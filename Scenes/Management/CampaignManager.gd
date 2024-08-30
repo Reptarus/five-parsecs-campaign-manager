@@ -37,7 +37,7 @@ func perform_upkeep() -> bool:
 	var upkeep_cost: int = game_state.current_crew.calculate_upkeep_cost()
 	if game_state.remove_credits(upkeep_cost):
 		for crew_member in game_state.current_crew.members:
-			crew_member.remove_injury_marker()
+			crew_member.recover_time = max(0, crew_member.recover_time - 1)
 		return true
 	else:
 		game_state.current_crew.decrease_morale()
@@ -71,7 +71,7 @@ func recruit_crew(recruit_index: int) -> bool:
 func train_and_study(crew_index: int, skill: String) -> bool:
 	if crew_index >= 0 and crew_index < game_state.current_crew.members.size():
 		var crew_member = game_state.current_crew.members[crew_index]
-		return crew_member.train_skill(skill)
+		return crew_member.add_skill(skill)
 	return false
 
 func trade_items(buy: bool, item_index: int) -> bool:
@@ -105,12 +105,12 @@ func handle_post_mission() -> Dictionary:
 		game_state.add_credits(results.loot.credits)
 		for item in results.loot.items:
 			game_state.equipment_manager.add_item(item)
-		
+
 		for crew_member in game_state.current_crew.members:
-			if crew_member.needs_medical_attention():
-				var injury = crew_member.apply_injury()
+			if crew_member.became_casualty:
+				var injury = crew_member.roll_injury()
 				results.injuries.append({"crew_member": crew_member.name, "injury": injury})
-		
+
 		game_state.current_crew.update_experience(results.xp_gained)
 		game_state.current_mission = null
 		return results

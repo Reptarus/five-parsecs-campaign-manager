@@ -2,20 +2,15 @@ class_name Character
 extends Resource
 
 signal xp_added(amount: int)
-signal skill_improved(skill: Skill)
+signal skill_improved(skill: String)
 signal stat_reduced(stat: String, amount: int)
 signal killed
 
-enum Race { HUMAN, ELF, DWARF, ORC, STRANGE }  # Define Race enum within Character class
-enum Background { SOLDIER, MERCHANT, SCHOLAR, THIEF }  # Define Background enum within Character class
-enum Motivation { WEALTH, POWER, KNOWLEDGE, REVENGE }  # Define Motivation enum within Character class
-enum Class { WARRIOR, MAGE, ROGUE, CLERIC }  # Define Class enum within Character class
-
 @export var name: String
-@export var race: Race
-@export var background: Background
-@export var motivation: Motivation
-@export var character_class: Class
+@export var race: CharacterCreationData.Race
+@export var background: CharacterCreationData.Background
+@export var motivation: CharacterCreationData.Motivation
+@export var character_class: CharacterCreationData.Class
 @export var skills: Dictionary = {}
 @export var portrait: String
 
@@ -26,31 +21,52 @@ enum Class { WARRIOR, MAGE, ROGUE, CLERIC }  # Define Class enum within Characte
 @export var savvy: int = 0
 @export var xp: int = 0
 @export var luck: int = 0
-@export var abilities: Array[String] = []
 
 var inventory: CharacterInventory
 var recover_time: int = 0
 var became_casualty: bool = false
 var killed_unique_individual: bool = false
-var strange_character: StrangeCharacters = null
+var implants: Array[String] = []
 
-func _init(_name: String = "", _race: Race = Race.HUMAN):
-	name = _name
-	race = _race
+func _init():
 	inventory = CharacterInventory.new()
-	if race == Race.STRANGE:
-		var strange_type = StrangeCharacters.StrangeCharacterType.values()[randi() % StrangeCharacters.StrangeCharacterType.size()]
-		strange_character = StrangeCharacters.new(strange_type)
-		strange_character.apply_special_abilities(self)
 
 func generate_random() -> void:
 	name = CharacterCreationData.get_random_name()
-	race = Race.values()[randi() % Race.size()]
-	background = Background.values()[randi() % Background.size()]
-	motivation = Motivation.values()[randi() % Motivation.size()]
-	character_class = Class.values()[randi() % Class.size()]
+	race = CharacterCreationData.get_random_race()
+	background = CharacterCreationData.get_random_background()
+	motivation = CharacterCreationData.get_random_motivation()
+	character_class = CharacterCreationData.get_random_class()
 	skills = CharacterCreationData.get_random_skills(3)
 	portrait = CharacterCreationData.get_random_portrait()
+	apply_race_traits()
+	apply_background_stats()
+	apply_motivation_stats()
+	apply_class_stats()
+
+func apply_race_traits() -> void:
+	var race_traits = CharacterCreationData.get_race_traits(race)
+	if "base_stats" in race_traits:
+		for stat in race_traits["base_stats"]:
+			set(stat, get(stat) + race_traits["base_stats"][stat])
+
+func apply_background_stats() -> void:
+	var background_stats = CharacterCreationData.get_background_stats(background)
+	for stat in background_stats:
+		if stat in self:
+			set(stat, get(stat) + background_stats[stat])
+
+func apply_motivation_stats() -> void:
+	var motivation_stats = CharacterCreationData.get_motivation_stats(motivation)
+	for stat in motivation_stats:
+		if stat in self:
+			set(stat, get(stat) + motivation_stats[stat])
+
+func apply_class_stats() -> void:
+	var class_stats = CharacterCreationData.get_class_stats(character_class)
+	for stat in class_stats:
+		if stat in self:
+			set(stat, get(stat) + class_stats[stat])
 
 func update(new_data: Dictionary) -> void:
 	for key in new_data:
@@ -60,10 +76,10 @@ func update(new_data: Dictionary) -> void:
 func to_dict() -> Dictionary:
 	return {
 		"name": name,
-		"race": Race.keys()[race],
-		"background": Background.keys()[background],
-		"motivation": Motivation.keys()[motivation],
-		"character_class": Class.keys()[character_class],
+		"race": CharacterCreationData.Race.keys()[race],
+		"background": CharacterCreationData.Background.keys()[background],
+		"motivation": CharacterCreationData.Motivation.keys()[motivation],
+		"character_class": CharacterCreationData.Class.keys()[character_class],
 		"skills": skills,
 		"portrait": portrait,
 		"reactions": reactions,
@@ -73,38 +89,46 @@ func to_dict() -> Dictionary:
 		"savvy": savvy,
 		"xp": xp,
 		"luck": luck,
-		"abilities": abilities
+		"implants": implants
 	}
 
 func from_dict(data: Dictionary) -> void:
 	for key in data:
 		if key in self:
-			if key in ["race", "background", "motivation", "character_class"]:
-				set(key, get(key).find_key(data[key]))
-			else:
-				set(key, data[key])
+			match key:
+				"race":
+					race = CharacterCreationData.Race[data[key]]
+				"background":
+					background = CharacterCreationData.Background[data[key]]
+				"motivation":
+					motivation = CharacterCreationData.Motivation[data[key]]
+				"character_class":
+					character_class = CharacterCreationData.Class[data[key]]
+				_:
+					set(key, data[key])
 
 func get_display_string() -> String:
-	return "{0} - {1} {2}".format([name, Race.keys()[race], Background.keys()[background]])
-	
-	
+	return "{0} - {1} {2}".format([name, CharacterCreationData.Race.keys()[race], CharacterCreationData.Background.keys()[background]])
+
 func _to_string() -> String:
 	return get_display_string()
 
-func add_skill(skill_name: String, skill_type: Skill.SkillType):
-	skills[skill_name] = Skill.new(skill_name, skill_type)
+func add_skill(skill_name: String):
+	if skill_name not in skills:
+		skills[skill_name] = 1
+	else:
+		skills[skill_name] += 1
+	skill_improved.emit(skill_name)
 
-func increase_skill(skill_name: String):
-	if skills.has(skill_name):
-		skills[skill_name].increase_level()
-		skill_improved.emit(skills[skill_name])
+func has_skill(skill_name: String) -> bool:
+	return skill_name in skills
 
-func add_ability(ability_name: String):
-	if not ability_name in abilities:
-		abilities.append(ability_name)
+func add_implant(implant_name: String):
+	if not implant_name in implants:
+		implants.append(implant_name)
 
-func has_ability(ability_name: String) -> bool:
-	return ability_name in abilities
+func has_implant(implant_name: String) -> bool:
+	return implant_name in implants
 
 func add_xp(amount: int):
 	xp += amount
@@ -114,7 +138,7 @@ func add_luck(amount: int):
 	luck += amount
 
 func is_bot() -> bool:
-	return race == Race.STRANGE and strange_character and strange_character.type == StrangeCharacters.StrangeCharacterType.BOT
+	return race == CharacterCreationData.Race.BOT
 
 func kill():
 	killed.emit()
@@ -143,15 +167,9 @@ func apply_experience_upgrades():
 	pass
 
 func serialize() -> Dictionary:
-	var data = to_dict()
-	if strange_character:
-		data["strange_character"] = strange_character.type
-	return data
+	return to_dict()
 
 static func deserialize(data: Dictionary) -> Character:
 	var character = Character.new()
 	character.from_dict(data)
-	if "strange_character" in data:
-		character.strange_character = StrangeCharacters.new(data["strange_character"])
-		character.strange_character.apply_special_abilities(character)
 	return character

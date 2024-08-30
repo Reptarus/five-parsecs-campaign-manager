@@ -8,6 +8,9 @@ extends Control
 @onready var instruction_label: Label = $InstructionLabel
 @onready var action_button: Button = $ActionButton
 @onready var options_container: VBoxContainer = $OptionsContainer
+@onready var crew_info_label: Label = $CrewInfoLabel
+@onready var credits_label: Label = $CreditsLabel
+@onready var story_points_label: Label = $StoryPointsLabel
 
 func _ready() -> void:
 	action_button.pressed.connect(_on_action_button_pressed)
@@ -19,7 +22,10 @@ func _on_phase_changed(new_phase: CampaignManager.TurnPhase) -> void:
 
 func update_display() -> void:
 	phase_label.text = CampaignManager.TurnPhase.keys()[campaign_manager.current_phase].capitalize().replace("_", " ")
-	
+	crew_info_label.text = "Crew: " + game_state.current_crew.name + " (" + str(game_state.current_crew.get_member_count()) + " members)"
+	credits_label.text = "Credits: " + str(game_state.credits)
+	story_points_label.text = "Story Points: " + str(game_state.story_points)
+
 	match campaign_manager.current_phase:
 		CampaignManager.TurnPhase.UPKEEP:
 			instruction_label.text = "Pay upkeep costs and remove Injury markers"
@@ -131,8 +137,9 @@ func _on_action_button_pressed() -> void:
 			_display_mission_results(results)
 		CampaignManager.TurnPhase.END_TURN:
 			campaign_manager.end_turn()
-	
+
 	campaign_manager.advance_phase()
+	update_display()
 
 func _display_location_options() -> void:
 	options_container.clear()
@@ -144,10 +151,10 @@ func _display_location_options() -> void:
 
 func _display_recruit_options() -> void:
 	options_container.clear()
-	var recruits = game_state.character_generator.generate_recruits()
+	var recruits = game_state.mission_generator.generate_recruits()
 	for i in range(recruits.size()):
 		var option = CheckBox.new()
-		option.text = recruits[i].name + " - " + recruits[i].background
+		option.text = recruits[i].name + " - " + CharacterCreationData.Background.keys()[recruits[i].background]
 		options_container.add_child(option)
 
 func _display_training_options() -> void:
@@ -166,7 +173,7 @@ func _display_trade_options() -> void:
 	buy_button.text = "Buy"
 	buy_button.pressed.connect(func(): _show_buy_options())
 	options_container.add_child(buy_button)
-	
+
 	var sell_button = Button.new()
 	sell_button.text = "Sell"
 	sell_button.pressed.connect(func(): _show_sell_options())
@@ -225,7 +232,7 @@ func _display_patron_jobs(jobs: Array) -> void:
 		job_button.pressed.connect(func(): _accept_patron_job(job))
 		options_container.add_child(job_button)
 
-func _accept_patron_job(job: Dictionary) -> void:
+func _accept_patron_job(job: Mission) -> void:
 	game_state.patron_job_manager.accept_job(job)
 	print("Accepted patron job: " + job.title)
 
@@ -246,12 +253,12 @@ func _display_mission_results(results: Dictionary) -> void:
 	result_text += "Credits earned: " + str(results.loot.credits) + "\n"
 	result_text += "Items found: " + ", ".join(results.loot.items.map(func(item): return item.name)) + "\n"
 	result_text += "XP gained: " + str(results.xp_gained) + "\n"
-	
+
 	if results.injuries.size() > 0:
 		result_text += "Injuries sustained:\n"
 		for injury in results.injuries:
 			result_text += injury.crew_member + " - " + injury.injury + "\n"
-	
+
 	var result_label = Label.new()
 	result_label.text = result_text
 	options_container.add_child(result_label)
