@@ -1,0 +1,107 @@
+[gd_scene format=3 uid="uid://bjsta3jc8nw2k"]
+
+[node name="CharacterCreation" type="Control"]
+layout_mode = 3
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+
+[node name="MarginContainer" type="MarginContainer" parent="."]
+layout_mode = 0
+offset_right = 40.0
+offset_bottom = 40.0
+
+[node name="Character Info Container" type="VBoxContainer" parent="MarginContainer"]
+layout_mode = 2
+
+[node name="Label" type="Label" parent="MarginContainer/Character Info Container"]
+layout_mode = 2
+
+[node name="Layout" type="HBoxContainer" parent="MarginContainer/Character Info Container"]
+layout_mode = 2
+
+[node name="Left Column" type="VBoxContainer" parent="MarginContainer/Character Info Container/Layout"]
+layout_mode = 2
+
+[node name="OptionButton" type="OptionButton" parent="MarginContainer/Character Info Container/Layout/Left Column"]
+layout_mode = 2
+
+[node name="OptionButton2" type="OptionButton" parent="MarginContainer/Character Info Container/Layout/Left Column"]
+layout_mode = 2
+
+[node name="OptionButton3" type="OptionButton" parent="MarginContainer/Character Info Container/Layout/Left Column"]
+layout_mode = 2
+
+[node name="OptionButton4" type="OptionButton" parent="MarginContainer/Character Info Container/Layout/Left Column"]
+layout_mode = 2
+
+[node name="Right Column" type="VBoxContainer" parent="MarginContainer/Character Info Container/Layout"]
+layout_mode = 2
+
+[node name="Label (Stat Distribution)" type="Label" parent="MarginContainer/Character Info Container/Layout/Right Column"]
+layout_mode = 2
+
+[node name="Stat Distribution" type="GridContainer" parent="MarginContainer/Character Info Container/Layout/Right Column"]
+layout_mode = 2
+
+[node name="Label" type="Label" parent="MarginContainer/Character Info Container/Layout/Right Column/Stat Distribution"]
+layout_mode = 2
+
+[node name="SpinBox" type="SpinBox" parent="MarginContainer/Character Info Container/Layout/Right Column/Stat Distribution"]
+layout_mode = 2
+
+[node name="Label2" type="Label" parent="MarginContainer/Character Info Container/Layout/Right Column/Stat Distribution"]
+layout_mode = 2
+
+[node name="SpinBox2" type="SpinBox" parent="MarginContainer/Character Info Container/Layout/Right Column/Stat Distribution"]
+layout_mode = 2
+
+[node name="Label3" type="Label" parent="MarginContainer/Character Info Container/Layout/Right Column/Stat Distribution"]
+layout_mode = 2
+
+[node name="SpinBox3" type="SpinBox" parent="MarginContainer/Character Info Container/Layout/Right Column/Stat Distribution"]
+layout_mode = 2
+
+[node name="Label4" type="Label" parent="MarginContainer/Character Info Container/Layout/Right Column/Stat Distribution"]
+layout_mode = 2
+
+[node name="SpinBox4" type="SpinBox" parent="MarginContainer/Character Info Container/Layout/Right Column/Stat Distribution"]
+layout_mode = 2
+
+[node name="Label5" type="Label" parent="MarginContainer/Character Info Container/Layout/Right Column/Stat Distribution"]
+layout_mode = 2
+
+[node name="SpinBox5" type="SpinBox" parent="MarginContainer/Character Info Container/Layout/Right Column/Stat Distribution"]
+layout_mode = 2
+
+[node name="Label Skill Selection" type="Label" parent="MarginContainer/Character Info Container/Layout"]
+layout_mode = 2
+
+[node name="GridContainer Skill Slection" type="GridContainer" parent="MarginContainer/Character Info Container/Layout"]
+layout_mode = 2
+
+[node name="CheckBox" type="CheckBox" parent="MarginContainer/Character Info Container/Layout/GridContainer Skill Slection"]
+layout_mode = 2
+
+[node name="Equipment Selection" type="Label" parent="MarginContainer/Character Info Container/Layout"]
+layout_mode = 2
+
+[node name="Equipment Selection2" type="ItemList" parent="MarginContainer/Character Info Container/Layout"]
+layout_mode = 2
+
+[node name="Character Info" type="HBoxContainer" parent="MarginContainer/Character Info Container"]
+layout_mode = 2
+
+[node name="Character Name" type="Label" parent="MarginContainer/Character Info Container/Character Info"]
+layout_mode = 2
+
+[node name="Character Name Input" type="LineEdit" parent="MarginContainer/Character Info Container/Character Info"]
+layout_mode = 2
+
+[node name="Character Summary" type="TextEdit" parent="MarginContainer/Character Info Container/Character Info"]
+layout_mode = 2
+
+[node name="Create Character" type="Button" parent="MarginContainer/Character Info Container/Character Info"]
+layout_mode = 2
