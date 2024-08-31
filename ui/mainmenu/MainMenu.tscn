@@ -1,0 +1,66 @@
+[gd_scene load_steps=2 format=3 uid="uid://5ws0uspoh6vk"]
+
+[ext_resource type="Texture2D" uid="uid://b03o2n8a6q4qg" path="res://Assets/Basic assets/Card X3/Card X6.png" id="1_mcblx"]
+
+[node name="Node" type="Control"]
+layout_mode = 3
+anchors_preset = 0
+
+[node name="GameBackdrop" type="Sprite2D" parent="."]
+position = Vector2(574.5, 321.5)
+scale = Vector2(1.65324, 1.62657)
+texture = ExtResource("1_mcblx")
+metadata/_edit_lock_ = true
+
+[node name="Label" type="Label" parent="."]
+layout_mode = 2
+offset_left = 104.0
+offset_top = 95.0
+offset_right = 427.0
+offset_bottom = 118.0
+text = "5 parsecs from home manager"
+
+[node name="Label2" type="Label" parent="."]
+layout_mode = 2
+offset_left = 756.0
+offset_top = 588.0
+offset_right = 1079.0
+offset_bottom = 611.0
+text = "V1.0, ReptarusOnIce Production, Help"
+
+[node name="VBoxContainer" type="VBoxContainer" parent="."]
+layout_mode = 0
+offset_left = 755.0
+offset_top = 85.0
+offset_right = 1078.0
+offset_bottom = 581.0
+
+[node name="Continue" type="Button" parent="VBoxContainer"]
+layout_mode = 2
+size_flags_vertical = 3
+text = "Continue Campaign"
+
+[node name="NewCampaign" type="Button" parent="VBoxContainer"]
+layout_mode = 2
+size_flags_vertical = 3
+text = "New Campaign"
+
+[node name="CoopCampaign" type="Button" parent="VBoxContainer"]
+layout_mode = 2
+size_flags_vertical = 3
+text = "Co-op Campaign"
+
+[node name="BattleSimulator" type="Button" parent="VBoxContainer"]
+layout_mode = 2
+size_flags_vertical = 3
+text = "Battle Simulator"
+
+[node name="BugHunt" type="Button" parent="VBoxContainer"]
+layout_mode = 2
+size_flags_vertical = 3
+text = "Bug Hunt"
+
+[node name="Options" type="Button" parent="VBoxContainer"]
+layout_mode = 2
+size_flags_vertical = 3
+text = "Options"

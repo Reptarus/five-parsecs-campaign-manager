@@ -1,0 +1,246 @@
+[gd_scene load_steps=4 format=3 uid="uid://c1ipgkdm40l6c"]
+
+[ext_resource type="Script" path="res://Scenes/Scene Container/campaigncreation/scripts/CampaignSetupScreen.gd" id="1_sapom"]
+[ext_resource type="Texture2D" uid="uid://bwejyqe8qschs" path="res://Assets/Basic assets/Card X3/Card X5.png" id="2_j33yf"]
+[ext_resource type="Texture2D" uid="uid://b0u2duocptu2v" path="res://Assets/Basic assets/Card X1/Card X2.png" id="3_6ulbh"]
+
+[node name="CampaignSetup" type="Control"]
+layout_mode = 3
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+script = ExtResource("1_sapom")
+
+[node name="Background" type="Sprite2D" parent="."]
+position = Vector2(573.5, 322)
+scale = Vector2(1.66187, 1.71353)
+texture = ExtResource("2_j33yf")
+metadata/_edit_lock_ = true
+
+[node name="Label" type="Label" parent="."]
+layout_mode = 0
+offset_left = 67.0
+offset_top = 45.0
+offset_right = 332.0
+offset_bottom = 68.0
+text = "New Campaign - Difficulty Options"
+
+[node name="HBoxContainer" type="HBoxContainer" parent="."]
+layout_mode = 0
+offset_left = 66.0
+offset_top = 139.0
+offset_right = 1099.0
+offset_bottom = 567.0
+
+[node name="Money Is Tight" type="VBoxContainer" parent="HBoxContainer"]
+layout_mode = 2
+size_flags_horizontal = 3
+
+[node name="Option background" type="Sprite2D" parent="HBoxContainer/Money Is Tight"]
+position = Vector2(74.5, 216.5)
+scale = Vector2(0.376263, 0.539551)
+texture = ExtResource("3_6ulbh")
+
+[node name="DifficultyName" type="Label" parent="HBoxContainer/Money Is Tight"]
+layout_mode = 2
+text = "Money Is Tight"
+horizontal_alignment = 1
+
+[node name="DifficultyDescription" type="Label" parent="HBoxContainer/Money Is Tight"]
+layout_mode = 2
+size_flags_vertical = 3
+text = "Upkeep costs change to 0 credits for a single 
+crew, 1 credit for a crew of 2-4 figures, and 
++1 credit for each crew member past 4. 
+Taking Find a Patron or Repair Your Kit 
+actions costs 1 credit.
+You do not receive 1 point of free Hull Point 
+repair each turn. All repairs must be paid for 
+unless granted by a random event or similar.
+Whenever you would roll 1D6 for credits, roll 
+1D6-1 instead (minimum score 1). This applies 
+both during character creation and during 
+game play. Any modifiers to the roll are applied 
+normally."
+horizontal_alignment = 1
+
+[node name="DifficultyToggle" type="CheckButton" parent="HBoxContainer/Money Is Tight"]
+layout_mode = 2
+text = "On/Off"
+alignment = 1
+
+[node name="Strength Adjusted Enemies" type="VBoxContainer" parent="HBoxContainer"]
+layout_direction = 2
+layout_mode = 2
+size_flags_horizontal = 3
+
+[node name="Option background" type="Sprite2D" parent="HBoxContainer/Strength Adjusted Enemies"]
+position = Vector2(74.5, 216.5)
+scale = Vector2(0.376263, 0.539551)
+texture = ExtResource("3_6ulbh")
+
+[node name="DifficultyName" type="Label" parent="HBoxContainer/Strength Adjusted Enemies"]
+layout_mode = 2
+text = "Difficulty Name"
+horizontal_alignment = 1
+
+[node name="DifficultyDescription" type="Label" parent="HBoxContainer/Strength Adjusted Enemies"]
+layout_mode = 2
+size_flags_vertical = 3
+text = "description
+sdfsdfsdf
+sdfsdfsdf
+sdfsdfsdf"
+horizontal_alignment = 1
+
+[node name="DifficultyToggle" type="CheckButton" parent="HBoxContainer/Strength Adjusted Enemies"]
+layout_mode = 2
+text = "On/Off"
+alignment = 1
+
+[node name="Slaves to the Star-Grind" type="VBoxContainer" parent="HBoxContainer"]
+layout_direction = 2
+layout_mode = 2
+size_flags_horizontal = 3
+
+[node name="Option background" type="Sprite2D" parent="HBoxContainer/Slaves to the Star-Grind"]
+position = Vector2(74.5, 216.5)
+scale = Vector2(0.376263, 0.539551)
+texture = ExtResource("3_6ulbh")
+
+[node name="DifficultyName" type="Label" parent="HBoxContainer/Slaves to the Star-Grind"]
+layout_mode = 2
+text = "Difficulty Name"
+horizontal_alignment = 1
+
+[node name="DifficultyDescription" type="Label" parent="HBoxContainer/Slaves to the Star-Grind"]
+layout_mode = 2
+size_flags_vertical = 3
+text = "description
+sdfsdfsdf
+sdfsdfsdf
+sdfsdfsdf"
+horizontal_alignment = 1
+
+[node name="DifficultyToggle" type="CheckButton" parent="HBoxContainer/Slaves to the Star-Grind"]
+layout_mode = 2
+text = "On/Off"
+alignment = 1
+
+[node name="Hit Me Harder" type="VBoxContainer" parent="HBoxContainer"]
+layout_direction = 2
+layout_mode = 2
+size_flags_horizontal = 3
+
+[node name="Option background" type="Sprite2D" parent="HBoxContainer/Hit Me Harder"]
+position = Vector2(74.5, 216.5)
+scale = Vector2(0.376263, 0.539551)
+texture = ExtResource("3_6ulbh")
+
+[node name="DifficultyName" type="Label" parent="HBoxContainer/Hit Me Harder"]
+layout_mode = 2
+text = "Difficulty Name"
+horizontal_alignment = 1
+
+[node name="DifficultyDescription" type="Label" parent="HBoxContainer/Hit Me Harder"]
+layout_mode = 2
+size_flags_vertical = 3
+text = "description
+sdfsdfsdf
+sdfsdfsdf
+sdfsdfsdf"
+horizontal_alignment = 1
+
+[node name="DifficultyToggle" type="CheckButton" parent="HBoxContainer/Hit Me Harder"]
+layout_mode = 2
+text = "On/Off"
+alignment = 1
+
+[node name="Time is Running Out" type="VBoxContainer" parent="HBoxContainer"]
+layout_direction = 2
+layout_mode = 2
+size_flags_horizontal = 3
+
+[node name="CardX2" type="Sprite2D" parent="HBoxContainer/Time is Running Out"]
+position = Vector2(74.5, 216.5)
+scale = Vector2(0.376263, 0.539551)
+texture = ExtResource("3_6ulbh")
+
+[node name="DifficultyName" type="Label" parent="HBoxContainer/Time is Running Out"]
+layout_mode = 2
+text = "Difficulty Name"
+horizontal_alignment = 1
+
+[node name="DifficultyDescription" type="Label" parent="HBoxContainer/Time is Running Out"]
+layout_mode = 2
+size_flags_vertical = 3
+text = "description
+sdfsdfsdf
+sdfsdfsdf
+sdfsdfsdf"
+horizontal_alignment = 1
+
+[node name="DifficultyToggle" type="CheckButton" parent="HBoxContainer/Time is Running Out"]
+layout_mode = 2
+text = "On/Off"
+alignment = 1
+
+[node name="Starting in the Gutter" type="VBoxContainer" parent="HBoxContainer"]
+layout_direction = 2
+layout_mode = 2
+size_flags_horizontal = 3
+
+[node name="CardX2" type="Sprite2D" parent="HBoxContainer/Starting in the Gutter"]
+position = Vector2(74.5, 216.5)
+scale = Vector2(0.376263, 0.539551)
+texture = ExtResource("3_6ulbh")
+
+[node name="DifficultyName" type="Label" parent="HBoxContainer/Starting in the Gutter"]
+layout_mode = 2
+text = "Difficulty Name"
+horizontal_alignment = 1
+
+[node name="DifficultyDescription" type="Label" parent="HBoxContainer/Starting in the Gutter"]
+layout_mode = 2
+size_flags_vertical = 3
+text = "description
+sdfsdfsdf
+sdfsdfsdf
+sdfsdfsdf"
+horizontal_alignment = 1
+
+[node name="DifficultyToggle" type="CheckButton" parent="HBoxContainer/Starting in the Gutter"]
+layout_mode = 2
+text = "On/Off"
+alignment = 1
+
+[node name="Reduced Lethality" type="VBoxContainer" parent="HBoxContainer"]
+layout_direction = 2
+layout_mode = 2
+size_flags_horizontal = 3
+
+[node name="CardX2" type="Sprite2D" parent="HBoxContainer/Reduced Lethality"]
+position = Vector2(74.5, 216.5)
+scale = Vector2(0.376263, 0.539551)
+texture = ExtResource("3_6ulbh")
+
+[node name="DifficultyName" type="Label" parent="HBoxContainer/Reduced Lethality"]
+layout_mode = 2
+text = "Difficulty Name"
+horizontal_alignment = 1
+
+[node name="DifficultyDescription" type="Label" parent="HBoxContainer/Reduced Lethality"]
+layout_mode = 2
+size_flags_vertical = 3
+text = "description
+sdfsdfsdf
+sdfsdfsdf
+sdfsdfsdf"
+horizontal_alignment = 1
+
+[node name="DifficultyToggle" type="CheckButton" parent="HBoxContainer/Reduced Lethality"]
+layout_mode = 2
+text = "On/Off"
+alignment = 1
