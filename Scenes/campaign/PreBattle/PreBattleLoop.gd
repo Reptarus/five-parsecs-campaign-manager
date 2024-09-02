@@ -170,13 +170,6 @@ func generate_rumor() -> String:
 	]
 	return rumors[randi() % rumors.size()]
 
-func run_pre_battle_loop() -> void:
-	print("Beginning pre-battle preparations...")
-	assign_crew_tasks(game_state.current_crew)
-	process_rumors()
-	update_mission_availability()
-	print("Pre-battle preparations complete.")
-
 func process_rumors() -> void:
 	for rumor in game_state.rumors:
 		if randf() < 0.2:  # 20% chance for a rumor to develop into a mission

@@ -1,32 +1,59 @@
+class_name CampaignEventGenerator
 extends Node
 
-signal event_occurred(event: Event)
+var game_state: GameState
 
-var events: Array[Event] = []
+func _init(_game_state: GameState) -> void:
+	game_state = _game_state
 
-func _ready() -> void:
-	_load_events()
+func generate_event() -> Dictionary:
+	var event_types = [
+		"Market Crash",
+		"Economic Boom",
+		"Trade Embargo",
+		"Resource Shortage",
+		"Technological Breakthrough"
+	]
+	var event_type = event_types[randi() % event_types.size()]
+	
+	return create_event(event_type)
 
-func trigger_random_event() -> void:
-	if events.is_empty():
-		print("Error: No events available.")
-		return
+func create_event(event_type: String) -> Dictionary:
+	var event = {
+		"type": event_type,
+		"description": get_event_description(event_type),
+		"effect": get_event_effect(event_type)
+	}
+	return event
 
-	var random_event: Event = events[randi() % events.size()]
-	event_occurred.emit(random_event)
+func get_event_description(event_type: String) -> String:
+	match event_type:
+		"Market Crash":
+			return "A sudden economic downturn has affected the sector."
+		"Economic Boom":
+			return "The sector is experiencing unprecedented economic growth."
+		"Trade Embargo":
+			return "A trade embargo has been imposed on certain goods."
+		"Resource Shortage":
+			return "A critical resource has become scarce in the sector."
+		"Technological Breakthrough":
+			return "A new technology has been developed, changing the market dynamics."
+		_:
+			return "An unexpected event has occurred in the sector."
 
-func _load_events() -> void:
-	# Placeholder for loading events from a file or database
-	var event1 = Event.new()
-	event1.title = "Unexpected Delay"
-	event1.description = "Your ship encounters a meteor storm, causing a delay in your journey."
-	events.append(event1)
+func get_event_effect(event_type: String) -> Callable:
+	match event_type:
+		"Market Crash":
+			return func(): game_state.credits = int(game_state.credits * 0.8)
+		"Economic Boom":
+			return func(): game_state.credits = int(game_state.credits * 1.2)
+		"Trade Embargo":
+			return func(): pass  # Implement trade restrictions
+		"Resource Shortage":
+			return func(): pass  # Implement price increases for certain items
+		"Technological Breakthrough":
+			return func(): pass  # Implement availability or price changes for certain items
+		_:
+			return func(): pass  # Default no-op function
 
-	var event2 = Event.new()
-	event2.title = "Lucky Find"
-	event2.description = "While exploring, you stumble upon a cache of valuable resources."
-	events.append(event2)
-
-class Event:
-	var title: String
-	var description: String
+# ... (any additional methods)

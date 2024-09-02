@@ -1,12 +1,7 @@
 class_name MissionTemplate
 extends Resource
 
-enum MissionType {
-	OPPORTUNITY,
-	PATRON,
-	QUEST,
-	RIVAL
-}
+enum MissionType { OPPORTUNITY, PATRON, QUEST, RIVAL }
 
 enum Objective {
 	MOVE_THROUGH,
@@ -33,6 +28,7 @@ enum Objective {
 @export var enemy_types: Array[String]
 @export var deployment_condition_chance: float
 @export var notable_sight_chance: float
+@export var economic_impact: float = 1.0  # New field for economic impact
 
 func _init(
 	_type: MissionType = MissionType.OPPORTUNITY,
@@ -45,7 +41,8 @@ func _init(
 	_required_skills: Array[String] = [],
 	_enemy_types: Array[String] = [],
 	_deployment_condition_chance: float = 0.4,
-	_notable_sight_chance: float = 0.2
+	_notable_sight_chance: float = 0.2,
+	_economic_impact: float = 1.0
 ):
 	type = _type
 	title_templates = _title_templates
@@ -58,111 +55,52 @@ func _init(
 	enemy_types = _enemy_types
 	deployment_condition_chance = _deployment_condition_chance
 	notable_sight_chance = _notable_sight_chance
+	economic_impact = _economic_impact
 
-static func create_opportunity_mission() -> MissionTemplate:
-	return MissionTemplate.new(
-		MissionType.OPPORTUNITY,
-		[
-			"Local Trouble",
-			"Quick Cash",
-			"Unexpected Opportunity",
-			"Starport Scuffle",
-			"Frontier Justice"
-		],
-		[
-			"A local dispute has escalated, and someone's willing to pay for outside help.",
-			"A desperate individual offers a job that seems too good to be true.",
-			"Word on the street is that there's easy money to be made for those willing to get their hands dirty.",
-			"Tensions are high at the starport, and credits are on the line for those who can handle the heat.",
-			"The frontier's calling for some old-fashioned problem-solving, and you're just the crew for the job."
-		],
-		Objective.FIGHT_OFF,
-		"Drive off the opposing force and hold your ground.",
-		Vector2(1, 6),
-		Vector2(1, 5),
-		["combat", "negotiation"],
-		["Gangers", "Cultists", "Mercenaries", "Security Forces"],
-		0.4,
-		0.2
-	)
+func calculate_reward(economy_manager: EconomyManager) -> int:
+	var base_reward = randf_range(reward_range.x, reward_range.y)
+	return int(base_reward * economy_manager.global_economic_modifier * economic_impact)
 
-static func create_patron_mission() -> MissionTemplate:
-	return MissionTemplate.new(
-		MissionType.PATRON,
-		[
-			"Corporate Interests",
-			"Government Contract",
-			"Private Matter",
-			"Off-the-Books Operation",
-			"Delicate Situation"
-		],
-		[
-			"A powerful corporation needs a problem solved discreetly and efficiently.",
-			"The local government is offering a lucrative contract for those with the right skills.",
-			"A wealthy individual seeks your services for a sensitive personal matter.",
-			"An anonymous patron offers a job that requires absolute secrecy.",
-			"A complex situation requires a delicate touch and a willingness to get your hands dirty."
-		],
-		Objective.DELIVER,
-		"Safely deliver the package to the designated location.",
-		Vector2(3, 8),
-		Vector2(2, 6),
-		["stealth", "combat", "tech"],
-		["Corporate Security", "Government Agents", "Rival Operatives"],
-		0.6,
-		0.4
-	)
+func generate_deployment_condition() -> String:
+	if randf() < deployment_condition_chance:
+		# Implementation of deployment condition generation
+		return "Challenging terrain"  # Placeholder
+	return "Standard deployment"
 
-static func create_quest_mission() -> MissionTemplate:
-	return MissionTemplate.new(
-		MissionType.QUEST,
-		[
-			"The Ancient Artifact",
-			"Echoes of the Past",
-			"Uncharted Territories",
-			"The Hidden Truth",
-			"Legacy of the Precursors"
-		],
-		[
-			"An ancient artifact of immense power has been discovered, and multiple factions are vying for control.",
-			"Mysterious signals from a long-lost expedition have surfaced, leading to a dangerous rescue mission.",
-			"Uncharted space holds the promise of riches and glory for those brave enough to explore.",
-			"A conspiracy threatens the stability of the sector, and only you can uncover the truth.",
-			"Remnants of an advanced alien civilization have been found, holding secrets that could change everything."
-		],
-		Objective.SEARCH,
-		"Search the area for clues or artifacts related to the quest.",
-		Vector2(5, 10),
-		Vector2(3, 7),
-		["exploration", "combat", "tech", "negotiation"],
-		["Ancient Guardians", "Rival Explorers", "Alien Entities"],
-		0.8,
-		0.6
-	)
+func generate_notable_sight() -> String:
+	if randf() < notable_sight_chance:
+		# Implementation of notable sight generation
+		return "Ancient artifact"  # Placeholder
+	return ""
 
-static func create_rival_mission() -> MissionTemplate:
+func to_dict() -> Dictionary:
+	return {
+		"type": MissionType.keys()[type],
+		"title_templates": title_templates,
+		"description_templates": description_templates,
+		"objective": Objective.keys()[objective],
+		"objective_description": objective_description,
+		"reward_range": {"x": reward_range.x, "y": reward_range.y},
+		"difficulty_range": {"x": difficulty_range.x, "y": difficulty_range.y},
+		"required_skills": required_skills,
+		"enemy_types": enemy_types,
+		"deployment_condition_chance": deployment_condition_chance,
+		"notable_sight_chance": notable_sight_chance,
+		"economic_impact": economic_impact
+	}
+
+static func from_dict(data: Dictionary) -> MissionTemplate:
 	return MissionTemplate.new(
-		MissionType.RIVAL,
-		[
-			"Old Scores",
-			"Revenge Served Cold",
-			"The Double-Cross",
-			"Turf War",
-			"Family Feud"
-		],
-		[
-			"An old enemy has resurfaced, seeking to settle a long-standing grudge.",
-			"Your past actions have come back to haunt you as a rival seeks revenge.",
-			"A supposed ally reveals their true colors, forcing a confrontation.",
-			"Rival factions clash over control of valuable territory or resources.",
-			"A bitter family dispute erupts into open conflict, dragging you into the fray."
-		],
-		Objective.ELIMINATE,
-		"Defeat your rival and their forces to assert your dominance.",
-		Vector2(2, 7),
-		Vector2(3, 8),
-		["combat", "tactics"],
-		["Rival Crew", "Criminal Syndicate", "Vengeful Ex-Allies"],
-		0.5,
-		0.3
+		MissionType[data["type"]],
+		data["title_templates"],
+		data["description_templates"],
+		Objective[data["objective"]],
+		data["objective_description"],
+		Vector2(data["reward_range"]["x"], data["reward_range"]["y"]),
+		Vector2(data["difficulty_range"]["x"], data["difficulty_range"]["y"]),
+		data["required_skills"],
+		data["enemy_types"],
+		data["deployment_condition_chance"],
+		data["notable_sight_chance"],
+		data["economic_impact"]
 	)

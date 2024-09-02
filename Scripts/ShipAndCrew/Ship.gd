@@ -7,15 +7,13 @@ signal power_changed(available_power: int)
 
 @export var name: String
 @export var components: Array[ShipComponent] = []
-@export var crew: Array[Crew] = []
+@export var crew: Array[Character] = []
 @export var inventory: ShipInventory
 @export var total_power: int
 @export var available_power: int
-@export var difficulty_settings: DifficultySettings
 
-func _init() -> void:
+func _init():
 	inventory = ShipInventory.new()
-	difficulty_settings = DifficultySettings.new()
 
 func add_component(component: ShipComponent) -> void:
 	components.append(component)
@@ -31,7 +29,7 @@ func get_component(type: ShipComponent.ComponentType) -> ShipComponent:
 	return components.filter(func(c): return c.type == type).front()
 
 func take_damage(amount: int) -> void:
-	var hull := get_component(ShipComponent.ComponentType.HULL) as ShipComponent
+	var hull := get_component(ShipComponent.ComponentType.HULL) as HullComponent
 	if hull:
 		hull.take_damage(amount)
 		component_damaged.emit(hull)
@@ -40,47 +38,26 @@ func repair_component(component: ShipComponent, amount: int) -> void:
 	component.repair(amount)
 	component_repaired.emit(component)
 
-func fire_weapons() -> int:
-	var weapons := get_component(ShipComponent.ComponentType.WEAPONS) as WeaponsComponent
-	return weapons.fire() if weapons else 0
+func calculate_maintenance_cost(economy_manager: EconomyManager) -> int:
+	var base_cost = components.reduce(func(acc, comp): return acc + comp.maintenance_cost, 0)
+	return int(base_cost * economy_manager.global_economic_modifier)
 
-func calculate_travel_time(distance: int) -> int:
-	var engine := get_component(ShipComponent.ComponentType.ENGINE) as EngineComponent
-	return engine.calculate_travel_time(distance) if engine else -1
-
-func process_turn() -> void:
-	for component in components:
-		if component.is_active:
-			if component is MedicalBayComponent:
-				component.heal_patients()
-
-func apply_difficulty_settings() -> void:
-	difficulty_settings.apply_to_ship(self)
-
-func to_dict() -> Dictionary:
+func serialize() -> Dictionary:
 	return {
 		"name": name,
-		"components": components.map(func(c): return c.to_dict()),
-		"crew": crew.map(func(c): return c.to_dict()),
-		"inventory": inventory.to_dict(),
+		"components": components.map(func(c): return c.serialize()),
+		"crew": crew.map(func(c): return c.serialize()),
+		"inventory": inventory.serialize(),
 		"total_power": total_power,
-		"available_power": available_power,
-		"difficulty_settings": difficulty_settings.to_dict()
+		"available_power": available_power
 	}
 
-static func from_dict(data: Dictionary) -> Ship:
-	var ship := Ship.new()
+static func deserialize(data: Dictionary) -> Ship:
+	var ship = Ship.new()
 	ship.name = data["name"]
-	ship.components = data["components"].map(func(c): 
-		match c["type"]:
-			"WEAPONS": return WeaponsComponent.from_dict(c)
-			"ENGINE": return EngineComponent.from_dict(c)
-			"MEDICAL_BAY": return MedicalBayComponent.from_dict(c)
-			_: return ShipComponent.from_dict(c)
-	)
-	ship.crew = data["crew"].map(func(c): return Crew.from_dict(c))
-	ship.inventory = ShipInventory.from_dict(data["inventory"])
+	ship.components = data["components"].map(func(c): return ShipComponent.deserialize(c))
+	ship.crew = data["crew"].map(func(c): return Character.deserialize(c))
+	ship.inventory = ShipInventory.deserialize(data["inventory"])
 	ship.total_power = data["total_power"]
 	ship.available_power = data["available_power"]
-	ship.difficulty_settings = DifficultySettings.from_dict(data["difficulty_settings"])
 	return ship
