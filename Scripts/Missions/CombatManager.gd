@@ -3,8 +3,8 @@ extends Node
 
 signal combat_started
 signal combat_ended(player_victory: bool)
-signal turn_started(character)
-signal turn_ended(character)
+signal turn_started(character: Character)
+signal turn_ended(character: Character)
 
 var game_state: GameState
 var current_battle: Battle
@@ -12,18 +12,45 @@ var turn_order: Array[Character] = []
 var current_turn_index: int = 0
 var ai_controller: AIController
 
-const GRID_SIZE: Vector2 = Vector2(24, 24)  # 24" x 24" battlefield
-var battlefield: Array = []
+const GRID_SIZE: Vector2i = Vector2i(24, 24)  # 24" x 24" battlefield
+var battlefield: Array[Array] = []
 
 enum CoverType { NONE, PARTIAL, FULL }
 enum BattlePhase { REACTION_ROLL, QUICK_ACTIONS, ENEMY_ACTIONS, SLOW_ACTIONS, END_PHASE }
 
 var current_phase: BattlePhase = BattlePhase.REACTION_ROLL
 
-func _init(_game_state: GameState):
+func _init(_game_state: GameState) -> void:
 	game_state = _game_state
-	ai_controller = AIController.new(self, game_state)
+	ai_controller = AIController.new()
+	ai_controller.initialize(self, game_state)
 	initialize_battlefield()
+
+class Battle:
+	var player_characters: Array[Character]
+	var enemies: Array[Character]
+	var enemy_panic_range: int = 2  # Default panic range, adjust as needed
+	var enemy_casualties_this_round: int = 0
+
+	func _init(_player_characters: Array[Character], _enemies: Array[Character]):
+		player_characters = _player_characters
+		enemies = _enemies
+
+	func are_all_enemies_defeated() -> bool:
+		return enemies.is_empty()
+
+	func are_all_players_defeated() -> bool:
+		return player_characters.all(func(player): return player.is_defeated())
+
+	func get_enemy_casualties_this_round() -> int:
+		return enemy_casualties_this_round
+
+	func reset_casualties_count() -> void:
+		enemy_casualties_this_round = 0
+
+	func increment_casualties_count() -> void:
+		enemy_casualties_this_round += 1
+
 
 func initialize_battlefield() -> void:
 	battlefield = []
@@ -36,73 +63,57 @@ func start_combat(player_characters: Array[Character], enemies: Array[Character]
 	current_battle = Battle.new(player_characters, enemies)
 	place_characters_on_battlefield()
 	seize_initiative()
-	emit_signal("combat_started")
+	combat_started.emit()
 	start_battle_round()
 
 func place_characters_on_battlefield() -> void:
-	# Place player characters
 	for character in current_battle.player_characters:
 		var position = find_empty_position(0, GRID_SIZE.x / 2 - 1)
 		character.position = position
 		battlefield[position.x][position.y] = character
 
-	# Place enemies
 	for enemy in current_battle.enemies:
 		var position = find_empty_position(GRID_SIZE.x / 2, GRID_SIZE.x - 1)
 		enemy.position = position
 		battlefield[position.x][position.y] = enemy
 
-func find_empty_position(start_x: int, end_x: int) -> Vector2:
-	while true:
+func find_empty_position(start_x: int, end_x: int) -> Vector2i:
+	for _attempt in range(100):  # Limit attempts to prevent infinite loop
 		var x = randi() % (end_x - start_x + 1) + start_x
 		var y = randi() % int(GRID_SIZE.y)
 		if battlefield[x][y] == null:
-			return Vector2(x, y)
-	# Add a fallback return statement
-	return Vector2.ZERO  # Or handle this case appropriately
+			return Vector2i(x, y)
+	return Vector2i.ZERO  # Fallback if no position found
 
 func seize_initiative() -> void:
-	var highest_savvy = 0
-	for character in current_battle.player_characters:
-		highest_savvy = max(highest_savvy, character.savvy)
-	
+	var highest_savvy = current_battle.player_characters.map(func(c): return c.savvy).max()
 	var roll = randi() % 6 + randi() % 6 + 2 + highest_savvy  # 2d6 + highest savvy
 	
-	# Apply modifiers
 	if current_battle.player_characters.size() < current_battle.enemies.size():
 		roll += 1
-	
-	# TODO: Add other modifiers based on enemy types and difficulty modes
 	
 	if roll >= 10:
 		for character in current_battle.player_characters:
 			# Allow move or fire
-			# TODO: Implement move_character and fire_weapon functions
-			pass
+			perform_action(character, "move_or_fire")
 
 func start_battle_round() -> void:
 	current_phase = BattlePhase.REACTION_ROLL
 	perform_reaction_roll()
 
 func perform_reaction_roll() -> void:
-	var reaction_rolls = []
+	turn_order.clear()
+	
 	for character in current_battle.player_characters:
-		reaction_rolls.append(randi() % 6 + 1)
+		var roll = randi() % 6 + 1
+		if roll <= character.reactions:
+			turn_order.append(character)
 	
-	turn_order = []
-	
-	# Assign quick actions
-	for i in range(reaction_rolls.size()):
-		if reaction_rolls[i] <= current_battle.player_characters[i].reactions:
-			turn_order.append(current_battle.player_characters[i])
-	
-	# Add enemies
 	turn_order.append_array(current_battle.enemies)
 	
-	# Add remaining player characters
-	for i in range(reaction_rolls.size()):
-		if reaction_rolls[i] > current_battle.player_characters[i].reactions:
-			turn_order.append(current_battle.player_characters[i])
+	for character in current_battle.player_characters:
+		if not character in turn_order:
+			turn_order.append(character)
 	
 	current_phase = BattlePhase.QUICK_ACTIONS
 	current_turn_index = 0
@@ -114,7 +125,7 @@ func start_next_turn() -> void:
 		return
 
 	var current_character = turn_order[current_turn_index]
-	emit_signal("turn_started", current_character)
+	turn_started.emit(current_character)
 
 	if current_character in current_battle.enemies:
 		if current_phase == BattlePhase.ENEMY_ACTIONS:
@@ -127,7 +138,7 @@ func start_next_turn() -> void:
 
 func end_turn() -> void:
 	var current_character = turn_order[current_turn_index]
-	emit_signal("turn_ended", current_character)
+	turn_ended.emit(current_character)
 	current_turn_index += 1
 	
 	if current_turn_index >= turn_order.size():
@@ -166,14 +177,14 @@ func check_enemy_morale() -> void:
 
 func check_battle_end() -> bool:
 	if current_battle.are_all_enemies_defeated():
-		emit_signal("combat_ended", true)  # Player victory
+		combat_ended.emit(true)  # Player victory
 		return true
 	elif current_battle.are_all_players_defeated():
-		emit_signal("combat_ended", false)  # Player defeat
+		combat_ended.emit(false)  # Player defeat
 		return true
 	return false
 
-func perform_action(character: Character, action: String, target: Character = null, target_position: Vector2 = Vector2.ZERO) -> void:
+func perform_action(character: Character, action: String, target: Character = null, target_position: Vector2i = Vector2i.ZERO) -> void:
 	match action:
 		"move":
 			move_character(character, target_position)
@@ -183,8 +194,13 @@ func perform_action(character: Character, action: String, target: Character = nu
 			use_item(character)
 		"snap_fire":
 			snap_fire(character, target)
+		"move_or_fire":
+			if target:
+				attack_character(character, target)
+			elif target_position != Vector2i.ZERO:
+				move_character(character, target_position)
 
-func move_character(character: Character, target_position: Vector2) -> void:
+func move_character(character: Character, target_position: Vector2i) -> void:
 	var start_position = character.position
 	var path = find_path(start_position, target_position)
 
@@ -198,55 +214,30 @@ func move_character(character: Character, target_position: Vector2) -> void:
 		character.position = new_position
 		battlefield[new_position.x][new_position.y] = character
 
-func find_path(start: Vector2, end: Vector2) -> Array:
+func find_path(start: Vector2i, end: Vector2i) -> Array[Vector2i]:
 	# Implement A* pathfinding algorithm here
 	# For simplicity, we'll use a straight line for now
-	var path = []
+	var path: Array[Vector2i] = []
 	var current = start
 	while current != end:
 		var diff = end - current
-		var step = diff.normalized()
+		var step = Vector2i(sign(diff.x), sign(diff.y))
 		current += step
 		path.append(current)
 	return path
 
-func attack_character(attacker: Character, target: Character) -> void:
-	var weapon = attacker.get_equipped_weapon()
-	var distance = attacker.position.distance_to(target.position)
-
-	if distance > weapon.range:
-		print("Target is out of range")
-		return
-
-	var to_hit_roll = randi() % 6 + 1 + attacker.combat_skill
-	var cover = get_cover_type(target)
-	var hit_threshold = 4  # Base hit threshold
-
-	match cover:
-		CoverType.PARTIAL:
-			hit_threshold = 5
-		CoverType.FULL:
-			hit_threshold = 6
-
-	if to_hit_roll >= hit_threshold:
-		var damage = weapon.damage + (randi() % 6 + 1)
-		if damage >= target.toughness:
-			target.take_damage(damage)
-		else:
-			target.apply_stun()
-
 func get_cover_type(character: Character) -> CoverType:
 	var pos = character.position
 	var adjacent_positions = [
-		Vector2(pos.x - 1, pos.y),
-		Vector2(pos.x + 1, pos.y),
-		Vector2(pos.x, pos.y - 1),
-		Vector2(pos.x, pos.y + 1)
+		Vector2i(pos.x - 1, pos.y),
+		Vector2i(pos.x + 1, pos.y),
+		Vector2i(pos.x, pos.y - 1),
+		Vector2i(pos.x, pos.y + 1)
 	]
 
 	var cover_count = 0
 	for adj_pos in adjacent_positions:
-		if is_valid_position(adj_pos) and battlefield[adj_pos.x][adj_pos.y] is TerrainPiece:
+		if is_valid_position(adj_pos) and battlefield[adj_pos.x][adj_pos.y] != null:
 			cover_count += 1
 
 	if cover_count >= 2:
@@ -256,7 +247,7 @@ func get_cover_type(character: Character) -> CoverType:
 	else:
 		return CoverType.NONE
 
-func is_valid_position(pos: Vector2) -> bool:
+func is_valid_position(pos: Vector2i) -> bool:
 	return pos.x >= 0 and pos.x < GRID_SIZE.x and pos.y >= 0 and pos.y < GRID_SIZE.y
 
 func use_item(character: Character) -> void:
@@ -264,8 +255,11 @@ func use_item(character: Character) -> void:
 	pass
 
 func snap_fire(character: Character, target: Character) -> void:
-	# Implement snap fire logic
-	pass
+	var weapon = character.get_equipped_weapon()
+	if "Snap Shot" in weapon.traits:
+		attack_character(character, target)
+	else:
+		print("This weapon cannot perform snap fire")
 
 func are_enemies_within_range(character: Character, range: float) -> bool:
 	for enemy in current_battle.player_characters:
@@ -285,52 +279,130 @@ func are_enemies_in_open(character: Character) -> bool:
 			return true
 	return false
 
-func find_distant_cover_position(character: Character) -> Vector2:
+# Update the attack function to consider weapon mods
+func attack_character(attacker: Character, target: Character) -> void:
+	var weapon = attacker.get_equipped_weapon()
+	var distance = attacker.position.distance_to(target.position)
+
+	if distance > weapon.range:
+		print("Target is out of range")
+		return
+
+	var to_hit_roll = randi() % 6 + 1 + attacker.combat_skill
+	var cover = get_cover_type(target)
+	var hit_threshold = 4  # Base hit threshold
+
+	match cover:
+		CoverType.PARTIAL:
+			hit_threshold = 5
+		CoverType.FULL:
+			hit_threshold = 6
+
+	# Apply weapon mod bonuses
+	to_hit_roll += weapon.get_hit_bonus(distance, attacker.is_aiming, is_in_cover(attacker))
+
+	if to_hit_roll >= hit_threshold:
+		var damage = weapon.weapon_damage + (randi() % 6 + 1)
+		
+		# Check for hot shot pack overheating
+		if weapon.check_overheat(to_hit_roll - attacker.combat_skill):
+			print("Weapon overheated!")
+			weapon.is_damaged = true
+		
+		if damage >= target.toughness:
+			apply_damage(target, damage)
+			
+			# Apply impact effect if the weapon has it
+			if "Impact" in weapon.traits:
+				target.apply_stun()
+		else:
+			target.apply_stun()
+
+# Function to check if a character is in cover
+func is_in_cover(character: Character) -> bool:
+	return get_cover_type(character) != CoverType.NONE
+
+# Function to apply damage to a character
+func apply_damage(character: Character, damage: int) -> void:
+	character.take_damage(damage)
+	if character.health <= 0:
+		character.kill()
+
+# Function to handle melee combat
+func handle_melee_combat(attacker: Character, defender: Character) -> void:
+	var attacker_weapon = attacker.get_equipped_weapon()
+	var defender_weapon = defender.get_equipped_weapon()
+	
+	var attacker_roll = randi() % 6 + 1 + attacker.combat_skill + (attacker_weapon.melee_bonus if attacker_weapon.is_melee() else 0)
+	var defender_roll = randi() % 6 + 1 + defender.combat_skill + (defender_weapon.melee_bonus if defender_weapon.is_melee() else 0)
+	
+	if attacker_roll > defender_roll:
+		apply_damage(defender, attacker_weapon.damage)
+	elif defender_roll > attacker_roll:
+		apply_damage(attacker, defender_weapon.damage)
+	# If rolls are equal, it's a draw and nothing happens
+
+# Function to calculate visibility
+func calculate_visibility(character: Character) -> int:
+	var base_visibility = 12  # Base visibility in inches
+	var weapon = character.get_equipped_weapon()
+	return base_visibility + weapon.visibility_bonus
+
+func find_distant_cover_position(character: Character) -> Vector2i:
 	var best_position = character.position
 	var best_distance = 0
 	
 	for x in range(GRID_SIZE.x):
 		for y in range(GRID_SIZE.y):
-			var pos = Vector2(x, y)
-			if battlefield[x][y] == null and get_cover_type(Character.new("", Character.Race.HUMAN, pos)) != CoverType.NONE:
-				var distance = character.position.distance_to(pos)
-				if distance > best_distance and are_enemies_within_range(Character.new("", Character.Race.HUMAN, pos), 12):
-					best_position = pos
-					best_distance = distance
+			var pos = Vector2i(x, y)
+			if battlefield[x][y] == null:
+				var temp_character = Character.new()
+				temp_character.position = pos
+				if get_cover_type(temp_character) != CoverType.NONE:
+					var distance = character.position.distance_to(pos)
+					if distance > best_distance and are_enemies_within_range(temp_character, 12):
+						best_position = pos
+						best_distance = distance
 	
 	return best_position
 
-func find_retreat_position(character: Character) -> Vector2:
-	var retreat_direction = (character.position - find_nearest_enemy(character).position).normalized()
-	var retreat_position = character.position + retreat_direction * character.speed
-	return clamp_position(retreat_position)
+func find_retreat_position(character: Character) -> Vector2i:
+	var retreat_direction = (Vector2(character.position) - Vector2(find_nearest_enemy(character).position)).normalized()
+	var retreat_position = Vector2(character.position) + (retreat_direction * float(character.speed))
+	return Vector2i(retreat_position)
 
-func find_cover_within_range(character: Character, range: float) -> Vector2:
+func find_cover_within_range(character: Character, range: float) -> Vector2i:
 	var best_position = character.position
 	
 	for x in range(GRID_SIZE.x):
 		for y in range(GRID_SIZE.y):
-			var pos = Vector2(x, y)
-			if battlefield[x][y] == null and get_cover_type(Character.new("", Character.Race.HUMAN, pos)) != CoverType.NONE:
-				var distance = character.position.distance_to(pos)
-				if distance <= range and distance > character.position.distance_to(best_position):
-					best_position = pos
+			var pos = Vector2i(x, y)
+			if battlefield[x][y] == null:
+				var temp_character = Character.new()
+				temp_character.position = pos
+				if get_cover_type(temp_character) != CoverType.NONE:
+					var distance = character.position.distance_to(pos)
+					if distance <= range and distance > character.position.distance_to(best_position):
+						best_position = pos
 	
 	return best_position
 
-func find_cover_near_enemy(character: Character) -> Vector2:
+func find_cover_near_enemy(character: Character) -> Vector2i:
 	var nearest_enemy = find_nearest_enemy(character)
 	var best_position = character.position
 	var best_distance = INF
 	
 	for x in range(GRID_SIZE.x):
 		for y in range(GRID_SIZE.y):
-			var pos = Vector2(x, y)
-			if battlefield[x][y] == null and get_cover_type(Character.new("", Character.Race.HUMAN, pos)) != CoverType.NONE:
-				var distance_to_enemy = pos.distance_to(nearest_enemy.position)
-				if distance_to_enemy < best_distance:
-					best_position = pos
-					best_distance = distance_to_enemy
+			var pos = Vector2i(x, y)
+			if battlefield[x][y] == null:
+				var temp_character = Character.new()
+				temp_character.position = pos
+				if get_cover_type(temp_character) != CoverType.NONE:
+					var distance_to_enemy = pos.distance_to(nearest_enemy.position)
+					if distance_to_enemy < best_distance:
+						best_position = pos
+						best_distance = distance_to_enemy
 	
 	return best_position
 
@@ -351,23 +423,17 @@ func find_best_target(character: Character) -> Character:
 	var best_score = -INF
 	
 	for enemy in current_battle.player_characters:
-		var score = 0
-		score -= character.position.distance_to(enemy.position)  # Prefer closer targets
-		score += (1 - enemy.health / enemy.max_health) * 10  # Prefer wounded targets
+		var score = 0.0
+		score -= float(character.position.distance_to(enemy.position))  # Prefer closer targets
+		score += (1.0 - float(enemy.health) / float(enemy.max_health)) * 10.0  # Prefer wounded targets
 		if get_cover_type(enemy) == CoverType.NONE:
-			score += 5  # Prefer targets out of cover
+			score += 5.0  # Prefer targets out of cover
 		
 		if score > best_score:
 			best_target = enemy
 			best_score = score
 	
 	return best_target
-
-func clamp_position(pos: Vector2) -> Vector2:
-	return Vector2(
-		clamp(pos.x, 0, GRID_SIZE.x - 1),
-		clamp(pos.y, 0, GRID_SIZE.y - 1)
-	)
 
 func move_to_brawl(character: Character, target: Character) -> void:
 	var path = find_path(character.position, target.position)
@@ -378,39 +444,13 @@ func charge(character: Character, target: Character) -> void:
 	move_to_brawl(character, target)
 	attack_character(character, target)
 
-func dash(character: Character, target_position: Vector2) -> void:
-	var direction = (target_position - character.position).normalized()
-	var dash_position = character.position + direction * (character.speed * 2)
-	move_character(character, clamp_position(dash_position))
+func dash(character: Character, target_position: Vector2i) -> void:
+	var direction = (Vector2(target_position) - Vector2(character.position)).normalized()
+	var dash_position = Vector2(character.position) + direction * (character.speed * 2)
+	move_character(character, Vector2i(dash_position))
 
-func retreat(character: Character, retreat_position: Vector2) -> void:
+func retreat(character: Character, retreat_position: Vector2i) -> void:
 	move_character(character, retreat_position)
 
 func aim(character: Character) -> void:
-	character.aiming = true
-
-# Inner class Battle
-class Battle:
-	var player_characters: Array[Character]
-	var enemies: Array[Character]
-	var enemy_panic_range: int = 2  # Default panic range, adjust as needed
-	var enemy_casualties_this_round: int = 0
-
-	func _init(_player_characters: Array[Character], _enemies: Array[Character]):
-		player_characters = _player_characters
-		enemies = _enemies
-
-	func are_all_enemies_defeated() -> bool:
-		return enemies.is_empty()
-
-	func are_all_players_defeated() -> bool:
-		return player_characters.all(func(player): return player.is_defeated())
-
-	func get_enemy_casualties_this_round() -> int:
-		return enemy_casualties_this_round
-
-	func reset_casualties_count() -> void:
-		enemy_casualties_this_round = 0
-
-	func increment_casualties_count() -> void:
-		enemy_casualties_this_round += 1
+	character.is_aiming = true

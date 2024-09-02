@@ -31,7 +31,7 @@ func asteroids_event() -> Dictionary:
 	var event = {
 		"name": "Asteroids",
 		"description": "Rocky debris everywhere, maybe from a recent collision?",
-		"action": func():
+		"action": func() -> String:
 			if game_state.current_crew.ship.has_upgrade("Probe Launcher"):
 				var roll = randi() % 6 + 1
 				if roll >= 3:
@@ -284,8 +284,8 @@ func locked_in_the_library_data_by_night_event() -> Dictionary:
 	return {
 		"name": "Locked in the Library Data by Night",
 		"description": "Pouring over old records and fragments of data, the captain has unearthed some intriguing information about the sector of space you are heading into.",
-		"action": func():
-			var worlds = []
+		"action": func() -> String:
+			var worlds: Array[Location] = []
 			for i in range(3):
 				worlds.append(game_state.generate_new_world())
 			game_state.set_available_worlds(worlds)

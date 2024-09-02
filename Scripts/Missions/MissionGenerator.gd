@@ -2,19 +2,11 @@ class_name MissionGenerator
 extends Node
 
 var game_state: GameState
-var mission_templates: Array[MissionTemplate] = []
 
-func _init(_game_state: GameState):
+func _init(_game_state: GameState) -> void:
 	game_state = _game_state
-	load_mission_templates()
 
-func load_mission_templates():
-	mission_templates.append(MissionTemplate.create_opportunity_mission())
-	mission_templates.append(MissionTemplate.create_patron_mission())
-	mission_templates.append(MissionTemplate.create_quest_mission())
-	mission_templates.append(MissionTemplate.create_rival_mission())
-
-func generate_mission(mission_type: MissionTemplate.MissionType = MissionTemplate.MissionType.OPPORTUNITY, patron: Patron = null) -> Mission:
+func generate_mission(mission_type: Mission.Type = Mission.Type.OPPORTUNITY, patron: Patron = null) -> Mission:
 	var template = choose_mission_template(mission_type)
 	var location = choose_mission_location(patron)
 	var title = generate_title(template)
@@ -26,7 +18,7 @@ func generate_mission(mission_type: MissionTemplate.MissionType = MissionTemplat
 	var deployment_condition = generate_deployment_condition(template)
 	var notable_sight = generate_notable_sight(template)
 
-	var mission = Mission.new(title, description, patron, location, time_limit, rewards, objectives)
+	var mission = Mission.new(title, description, mission_type, patron, location, time_limit, rewards, objectives)
 	mission.enemy_force = enemy_force
 	mission.deployment_condition = deployment_condition
 	mission.notable_sight = notable_sight
@@ -37,8 +29,8 @@ func generate_mission(mission_type: MissionTemplate.MissionType = MissionTemplat
 
 	return mission
 
-func choose_mission_template(mission_type: MissionTemplate.MissionType) -> MissionTemplate:
-	var suitable_templates = mission_templates.filter(func(template): return template.type == mission_type)
+func choose_mission_template(mission_type: Mission.Type) -> MissionTemplate:
+	var suitable_templates = game_state.mission_templates.filter(func(template): return template.type == mission_type)
 	return suitable_templates[randi() % suitable_templates.size()]
 
 func choose_mission_location(patron: Patron) -> Location:
@@ -93,7 +85,7 @@ func generate_optional_objective() -> String:
 	return optional_objectives[randi() % optional_objectives.size()]
 
 func generate_enemy_force(template: MissionTemplate) -> Dictionary:
-	var enemy_type = template.enemy_types[randi() % template.enemy_types.size()]
+	var enemy_type = EnemyTypes.get_enemy_type(template.enemy_types[randi() % template.enemy_types.size()])
 	var enemy_count = randi_range(3, 8)  # Base number of enemies
 	var specialists = randi() % 3  # 0-2 specialists
 	var unique_individual = randf() < 0.3  # 30% chance of a unique individual
@@ -139,47 +131,4 @@ func generate_notable_sight(template: MissionTemplate) -> Dictionary:
 	else:
 		return {}
 
-func generate_mission_chain(length: int, initial_type: MissionTemplate.MissionType) -> Array[Mission]:
-	var chain: Array[Mission] = []
-	var current_type = initial_type
-
-	for i in range(length):
-		var mission = generate_mission(current_type)
-		chain.append(mission)
-
-		# Determine the next mission type in the chain
-		if i < length - 1:
-			current_type = evolve_mission_type(current_type)
-
-	return chain
-
-func evolve_mission_type(current_type: MissionTemplate.MissionType) -> MissionTemplate.MissionType:
-	var evolution_chances = {
-		MissionTemplate.MissionType.OPPORTUNITY: {
-			MissionTemplate.MissionType.PATRON: 0.4,
-			MissionTemplate.MissionType.QUEST: 0.2,
-			MissionTemplate.MissionType.RIVAL: 0.1
-		},
-		MissionTemplate.MissionType.PATRON: {
-			MissionTemplate.MissionType.QUEST: 0.3,
-			MissionTemplate.MissionType.RIVAL: 0.2
-		},
-		MissionTemplate.MissionType.QUEST: {
-			MissionTemplate.MissionType.RIVAL: 0.4,
-			MissionTemplate.MissionType.PATRON: 0.2
-		},
-		MissionTemplate.MissionType.RIVAL: {
-			MissionTemplate.MissionType.OPPORTUNITY: 0.3,
-			MissionTemplate.MissionType.PATRON: 0.2
-		}
-	}
-
-	var roll = randf()
-	var cumulative_chance = 0.0
-
-	for next_type in evolution_chances[current_type]:
-		cumulative_chance += evolution_chances[current_type][next_type]
-		if roll < cumulative_chance:
-			return next_type
-
-	return current_type  # If no evolution occurs, keep the same type
+# ... (rest of the methods)

@@ -1,20 +1,22 @@
 class_name Equipment
 extends Resource
 
+enum Type { WEAPON, ARMOR, GEAR, SHIP_COMPONENT }
+
 @export var name: String
-@export var type: int
+@export var type: Type
 @export var value: int
 @export var is_damaged: bool = false
 
-func _init(_name: String = "", _type: int = 0, _value: int = 0):
+func _init(_name: String = "", _type: Type = Type.GEAR, _value: int = 0) -> void:
 	name = _name
 	type = _type
 	value = _value
 
-func repair():
+func repair() -> void:
 	is_damaged = false
 
-func damage():
+func damage() -> void:
 	is_damaged = true
 
 func get_effectiveness() -> int:

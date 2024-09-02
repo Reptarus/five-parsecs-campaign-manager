@@ -6,11 +6,11 @@ signal world_step_completed
 var game_state: GameState
 var world_step: WorldStep
 
-func _init(_game_state: GameState):
+func _init(_game_state: GameState) -> void:
 	game_state = _game_state
 	world_step = WorldStep.new(game_state)
 
-func execute_world_step():
+func execute_world_step() -> void:
 	print("Beginning world step...")
 	
 	handle_upkeep_and_repairs()
@@ -23,7 +23,7 @@ func execute_world_step():
 	print("World step completed.")
 	world_step_completed.emit()
 
-func handle_upkeep_and_repairs():
+func handle_upkeep_and_repairs() -> void:
 	var upkeep_cost = calculate_upkeep_cost()
 	if game_state.current_crew.pay_upkeep(upkeep_cost):
 		print("Upkeep paid: %d credits" % upkeep_cost)
@@ -40,7 +40,7 @@ func calculate_upkeep_cost() -> int:
 	var additional_cost = max(0, crew_size - 6)
 	return base_cost + additional_cost
 
-func assign_and_resolve_crew_tasks():
+func assign_and_resolve_crew_tasks() -> void:
 	for member in game_state.current_crew.members:
 		if member.is_available():
 			var task = choose_task(member)
@@ -50,19 +50,19 @@ func choose_task(character: Character) -> String:
 	var available_tasks = ["Trade", "Explore", "Train", "Recruit", "Find Patron", "Repair", "Decoy"]
 	return available_tasks[randi() % available_tasks.size()]
 
-func determine_job_offers():
+func determine_job_offers() -> void:
 	var available_patrons = game_state.patrons.filter(func(patron): return patron.has_available_jobs())
 	for patron in available_patrons:
 		var job = patron.generate_job()
 		game_state.add_mission(job)
 		print("New job offer from %s: %s" % [patron.name, job.title])
 
-func assign_equipment():
+func assign_equipment() -> void:
 	for member in game_state.current_crew.members:
 		member.optimize_equipment()
 	print("Equipment has been optimized for all crew members.")
 
-func resolve_rumors():
+func resolve_rumors() -> void:
 	if game_state.rumors.size() > 0:
 		var rumor_roll = randi() % 6 + 1
 		if rumor_roll <= game_state.rumors.size():
@@ -72,7 +72,7 @@ func resolve_rumors():
 			game_state.remove_rumor(chosen_rumor)
 			print("A rumor has developed into a new mission: %s" % new_mission.title)
 
-func choose_battle():
+func choose_battle() -> void:
 	var available_missions = game_state.available_missions
 	if available_missions.size() > 0:
 		var chosen_mission = available_missions[randi() % available_missions.size()]
@@ -84,20 +84,10 @@ func choose_battle():
 		game_state.current_mission = random_encounter
 		print("Random encounter generated: %s" % random_encounter.title)
 
-func check_for_invasion():
-	if game_state.current_mission.opponent.is_invasion_threat:
-		var roll = randi() % 6 + 1 + randi() % 6 + 1
-		roll += 1 if game_state.has_invasion_evidence else 0
-		roll -= 1 if game_state.current_battle.held_field else 0
+func get_world_traits() -> Array[String]:
+	return game_state.current_location.get_traits()
 
-		if roll >= 9:
-			print("Invasion imminent! Prepare to flee!")
-			game_state.set_world_invaded()
-
-func get_world_traits() -> Array:
-	return game_state.current_location.traits
-
-func apply_world_trait_effects():
+func apply_world_trait_effects() -> void:
 	var traits = get_world_traits()
 	for trait in traits:
 		match trait:

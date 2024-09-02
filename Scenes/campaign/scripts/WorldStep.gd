@@ -3,7 +3,7 @@ extends Node
 
 var game_state: GameState
 
-func _init(_game_state: GameState):
+func _init(_game_state: GameState) -> void:
 	game_state = _game_state
 
 func execute_world_step() -> void:
@@ -128,16 +128,29 @@ func repair(character: Character) -> void:
 		game_state.current_crew.ship.repair(ship_repair_amount)
 		print("%s repaired the ship, restoring %d hull points." % [character.name, ship_repair_amount])
 
+func generate_random_equipment() -> Equipment:
+	# Implement logic to generate random equipment
+	return Equipment.new()  # Placeholder implementation
+
+func generate_rumor() -> String:
+	var rumors = [
+		"There's talk of a hidden alien artifact on a nearby moon.",
+		"A notorious pirate captain is offering big credits for experienced crew.",
+		"The local government is secretly funding illegal weapons research.",
+		"An abandoned space station has been spotted in the outer reaches of the system.",
+		"A wealthy trader is looking for protection on a dangerous cargo run."
+	]
+	return rumors[randi() % rumors.size()]
+
 func determine_job_offers() -> void:
-	var available_patrons = game_state.patrons.filter(func(patron): return patron.has_available_jobs())
+	var available_patrons = game_state.patrons.filter(func(p): return p.has_available_jobs())
 	for patron in available_patrons:
 		var job = patron.generate_job()
 		game_state.add_mission(job)
 		print("New job offer from %s: %s" % [patron.name, job.title])
 
 func assign_equipment() -> void:
-	var crew = game_state.current_crew
-	for member in crew.members:
+	for member in game_state.current_crew.members:
 		member.optimize_equipment()
 	print("Equipment has been optimized for all crew members.")
 
@@ -161,17 +174,3 @@ func choose_battle() -> void:
 		print("No available missions. Generating a random encounter.")
 		var random_encounter = game_state.mission_generator.generate_random_encounter()
 		print("Random encounter generated: %s" % random_encounter.title)
-
-func generate_random_equipment() -> Equipment:
-	# Implementation depends on your Equipment class structure
-	return Equipment.new()  # Ensure it returns an Equipment instance
-
-func generate_rumor() -> String:
-	var rumors = [
-		"There's talk of a hidden alien artifact on a nearby moon.",
-		"A notorious pirate captain is offering big credits for experienced crew.",
-		"The local government is secretly funding illegal weapons research.",
-		"An abandoned space station has been spotted in the outer reaches of the system.",
-		"A wealthy trader is looking for protection on a dangerous cargo run."
-	]
-	return rumors[randi() % rumors.size()]

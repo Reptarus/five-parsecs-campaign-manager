@@ -10,6 +10,7 @@ enum Race { HUMAN, ENGINEER, KERIN, SOULLESS, PRECURSOR, FERAL, SWIFT, BOT }
 enum Background { HIGH_TECH_COLONY, OVERCROWDED_CITY, LOW_TECH_COLONY, MINING_COLONY, MILITARY_BRAT, SPACE_STATION }
 enum Motivation { WEALTH, FAME, GLORY, SURVIVAL, ESCAPE, ADVENTURE }
 enum Class { WORKING_CLASS, TECHNICIAN, SCIENTIST, HACKER, SOLDIER, MERCENARY }
+enum AIType { CAUTIOUS, AGGRESSIVE, TACTICAL, DEFENSIVE }
 
 @export var name: String = ""
 @export var race: Race = Race.HUMAN
@@ -32,6 +33,7 @@ enum Class { WORKING_CLASS, TECHNICIAN, SCIENTIST, HACKER, SOLDIER, MERCENARY }
 @export var health: int = 10
 @export var max_health: int = 10
 @export var is_aiming: bool = false
+@export var ai_type: AIType = AIType.CAUTIOUS
 
 var inventory: CharacterInventory
 var recover_time: int = 0
@@ -39,7 +41,7 @@ var became_casualty: bool = false
 var killed_unique_individual: bool = false
 var strange_character: StrangeCharacters = null
 
-func _init():
+func _init() -> void:
 	inventory = CharacterInventory.new()
 
 func generate_random() -> void:
@@ -172,6 +174,17 @@ func serialize() -> Dictionary:
 		"killed_unique_individual": killed_unique_individual,
 		"strange_character": strange_character.serialize() if strange_character else null
 	}
+
+static func create_random_character() -> Character:
+	var character = Character.new()
+	character.name = CharacterCreationData.get_random_name()
+	character.race = CharacterCreationData.get_random_race()
+	character.background = CharacterCreationData.get_random_background()
+	character.motivation = CharacterCreationData.get_random_motivation()
+	character.character_class = CharacterCreationData.get_random_class()
+	character.skills = CharacterCreationData.get_random_skills(3)
+	character.portrait = CharacterCreationData.get_random_portrait()
+	return character
 
 static func deserialize(data: Dictionary) -> Character:
 	var character = Character.new()

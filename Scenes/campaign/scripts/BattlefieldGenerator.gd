@@ -1,178 +1,180 @@
-class_name BattlefieldGenerator
+class_name BattlefieldLayoutGenerator
 extends Node
 
+enum TerrainType { INDUSTRIAL, WILDERNESS, ALIEN_RUIN, CRASH_SITE }
+enum FeatureSize { LARGE, SMALL, LINEAR }
+
+const GRID_SIZE: Vector2i = Vector2i(24, 24)  # 24" x 24" battlefield
+const SECTORS_PER_QUARTER: int = 4
+
 var game_state: GameState
+var rng: RandomNumberGenerator = RandomNumberGenerator.new()
 
-func _init(_game_state: GameState):
+func _init(_game_state: GameState) -> void:
 	game_state = _game_state
+	rng.randomize()
 
-func generate_battlefield(mission_type: String) -> Dictionary:
+func generate_battlefield(mission_type: String, terrain_type: TerrainType) -> Dictionary:
 	var battlefield = {
+		"grid": [],
+		"center_feature": {},
+		"quarters": [],
 		"deployment_condition": generate_deployment_condition(mission_type),
 		"notable_sight": generate_notable_sight(mission_type),
-		"terrain": generate_terrain()
+		"mission_type": mission_type,
+		"terrain_type": terrain_type
 	}
+	
+	_initialize_grid(battlefield.grid)
+	_generate_center_feature(battlefield, terrain_type)
+	_generate_quarters(battlefield, terrain_type)
+	
 	return battlefield
 
+func _initialize_grid(grid: Array) -> void:
+	for x in range(GRID_SIZE.x):
+		grid.append([])
+		for y in range(GRID_SIZE.y):
+			grid[x].append(".")  # Open space
+
+func _generate_center_feature(battlefield: Dictionary, terrain_type: TerrainType) -> void:
+	var feature = _roll_notable_feature(terrain_type)
+	battlefield.center_feature = {
+		"type": feature,
+		"position": Vector2i(GRID_SIZE.x / 2, GRID_SIZE.y / 2)
+	}
+	_apply_feature_to_grid(battlefield.grid, battlefield.center_feature)
+
+func _generate_quarters(battlefield: Dictionary, terrain_type: TerrainType) -> void:
+	for q in range(4):
+		var quarter = {
+			"features": [],
+			"scatter_terrain": []
+		}
+		
+		# Generate 4 regular features per quarter
+		for i in range(SECTORS_PER_QUARTER):
+			var feature = _roll_regular_feature(terrain_type)
+			quarter.features.append(feature)
+		
+		# Generate scatter terrain
+		var scatter_count = rng.randi_range(1, 6)
+		for i in range(scatter_count):
+			quarter.scatter_terrain.append(_generate_scatter_terrain())
+		
+		battlefield.quarters.append(quarter)
+	
+	_apply_quarters_to_grid(battlefield)
+
+func _roll_notable_feature(terrain_type: TerrainType) -> String:
+	var table = _get_notable_feature_table(terrain_type)
+	return table[rng.randi() % table.size()]
+
+func _roll_regular_feature(terrain_type: TerrainType) -> Dictionary:
+	var table = _get_regular_feature_table(terrain_type)
+	var feature_type = table[rng.randi() % table.size()]
+	return {
+		"type": feature_type,
+		"size": _determine_feature_size(feature_type)
+	}
+
+func _determine_feature_size(feature_type: String) -> FeatureSize:
+	# Implement logic to determine feature size based on type
+	return FeatureSize.SMALL  # Placeholder
+
+func _generate_scatter_terrain() -> String:
+	var scatter_types = ["Fuel Barrel", "Crate", "Rock", "Rubble", "Tree"]
+	return scatter_types[rng.randi() % scatter_types.size()]
+
+func _apply_quarters_to_grid(battlefield: Dictionary) -> void:
+	var quarter_size = Vector2i(GRID_SIZE.x / 2, GRID_SIZE.y / 2)
+	for q in range(4):
+		var start_x = (q % 2) * quarter_size.x
+		var start_y = (q / 2) * quarter_size.y
+		
+		for feature in battlefield.quarters[q].features:
+			var position = Vector2i(
+				rng.randi_range(start_x, start_x + quarter_size.x - 1),
+				rng.randi_range(start_y, start_y + quarter_size.y - 1)
+			)
+			_apply_feature_to_grid(battlefield.grid, {"type": feature.type, "position": position})
+		
+		for scatter in battlefield.quarters[q].scatter_terrain:
+			var position = Vector2i(
+				rng.randi_range(start_x, start_x + quarter_size.x - 1),
+				rng.randi_range(start_y, start_y + quarter_size.y - 1)
+			)
+			battlefield.grid[position.x][position.y] = "S"  # S for scatter
+
+func _apply_feature_to_grid(grid: Array, feature: Dictionary) -> void:
+	var symbol = _get_feature_symbol(feature.type)
+	grid[feature.position.x][feature.position.y] = symbol
+
+func _get_feature_symbol(feature_type: String) -> String:
+	# Implement logic to assign symbols to different feature types
+	return feature_type[0].to_upper()  # Placeholder: first letter of feature type
+
 func generate_deployment_condition(mission_type: String) -> Dictionary:
-	var roll = randi() % 100 + 1
-	var condition = {}
-	match mission_type:
-		"Opportunity", "Patron":
-			if roll <= 40:
-				condition = {"name": "No Condition", "effect": "Standard deployment"}
-			elif roll <= 45:
-				condition = {"name": "Small encounter", "effect": "A random crew member must sit out this fight. Reduce enemy numbers by -1 (-2 if they initially outnumber you)"}
-			elif roll <= 50:
-				condition = {"name": "Poor visibility", "effect": "Maximum visibility is 1D6+8\". Reroll at the start of each round."}
-			elif roll <= 55:
-				condition = {"name": "Brief engagement", "effect": "At the end of each round, roll 2D6. If the roll is equal or below the round number, the game ends inconclusively."}
-			elif roll <= 60:
-				condition = {"name": "Toxic environment", "effect": "Whenever a combatant is Stunned, roll 1D6+Savvy skill (0 for enemies). Failure to roll a 4+ becomes a casualty."}
-			elif roll <= 65:
-				condition = {"name": "Surprise encounter", "effect": "The enemy can't act in the first round."}
-			elif roll <= 75:
-				condition = {"name": "Delayed", "effect": "2 random crew members won't start on the table. At the end of each round, roll 1D6: If the roll is equal or below the round number, they may be placed at any point of your own battlefield edge."}
-			elif roll <= 80:
-				condition = {"name": "Slippery ground", "effect": "All movement at ground level is -1 Speed."}
-			elif roll <= 85:
-				condition = {"name": "Bitter struggle", "effect": "Enemy Morale is +1."}
-			elif roll <= 90:
-				condition = {"name": "Caught off guard", "effect": "Your squad all act in the Slow Actions phase in Round 1."}
-			else:
-				condition = {"name": "Gloomy", "effect": "Maximum visibility is 9\". Characters that fire can be fired upon at any range, however."}
-		"Rival":
-			if roll <= 10:
-				condition = {"name": "No Condition", "effect": "Standard deployment"}
-			elif roll <= 15:
-				condition = {"name": "Small encounter", "effect": "A random crew member must sit out this fight. Reduce enemy numbers by -1 (-2 if they initially outnumber you)"}
-			elif roll <= 20:
-				condition = {"name": "Poor visibility", "effect": "Maximum visibility is 1D6+8\". Reroll at the start of each round."}
-			elif roll <= 25:
-				condition = {"name": "Brief engagement", "effect": "At the end of each round, roll 2D6. If the roll is equal or below the round number, the game ends inconclusively."}
-			elif roll <= 30:
-				condition = {"name": "Toxic environment", "effect": "Whenever a combatant is Stunned, roll 1D6+Savvy skill (0 for enemies). Failure to roll a 4+ becomes a casualty."}
-			elif roll <= 45:
-				condition = {"name": "Surprise encounter", "effect": "The enemy can't act in the first round."}
-			elif roll <= 50:
-				condition = {"name": "Delayed", "effect": "2 random crew members won't start on the table. At the end of each round, roll 1D6: If the roll is equal or below the round number, they may be placed at any point of your own battlefield edge."}
-			elif roll <= 60:
-				condition = {"name": "Slippery ground", "effect": "All movement at ground level is -1 Speed."}
-			elif roll <= 75:
-				condition = {"name": "Bitter struggle", "effect": "Enemy Morale is +1."}
-			elif roll <= 90:
-				condition = {"name": "Caught off guard", "effect": "Your squad all act in the Slow Actions phase in Round 1."}
-			else:
-				condition = {"name": "Gloomy", "effect": "Maximum visibility is 9\". Characters that fire can be fired upon at any range, however."}
-		"Quest":
-			if roll <= 5:
-				condition = {"name": "No Condition", "effect": "Standard deployment"}
-			elif roll <= 10:
-				condition = {"name": "Small encounter", "effect": "A random crew member must sit out this fight. Reduce enemy numbers by -1 (-2 if they initially outnumber you)"}
-			elif roll <= 25:
-				condition = {"name": "Poor visibility", "effect": "Maximum visibility is 1D6+8\". Reroll at the start of each round."}
-			elif roll <= 30:
-				condition = {"name": "Brief engagement", "effect": "At the end of each round, roll 2D6. If the roll is equal or below the round number, the game ends inconclusively."}
-			elif roll <= 40:
-				condition = {"name": "Toxic environment", "effect": "Whenever a combatant is Stunned, roll 1D6+Savvy skill (0 for enemies). Failure to roll a 4+ becomes a casualty."}
-			elif roll <= 50:
-				condition = {"name": "Surprise encounter", "effect": "The enemy can't act in the first round."}
-			elif roll <= 60:
-				condition = {"name": "Delayed", "effect": "2 random crew members won't start on the table. At the end of each round, roll 1D6: If the roll is equal or below the round number, they may be placed at any point of your own battlefield edge."}
-			elif roll <= 65:
-				condition = {"name": "Slippery ground", "effect": "All movement at ground level is -1 Speed."}
-			elif roll <= 80:
-				condition = {"name": "Bitter struggle", "effect": "Enemy Morale is +1."}
-			elif roll <= 90:
-				condition = {"name": "Caught off guard", "effect": "Your squad all act in the Slow Actions phase in Round 1."}
-			else:
-				condition = {"name": "Gloomy", "effect": "Maximum visibility is 9\". Characters that fire can be fired upon at any range, however."}
-	return condition
+	# Use the provided generate_deployment_condition function
+	return generate_deployment_condition(mission_type)
 
 func generate_notable_sight(mission_type: String) -> Dictionary:
-	var roll = randi() % 100 + 1
-	var sight = {}
-	match mission_type:
-		"Opportunity", "Patron":
-			if roll <= 20:
-				sight = {"name": "Nothing special", "effect": "No effect"}
-			elif roll <= 30:
-				sight = {"name": "Documentation", "effect": "Gain a Quest Rumor"}
-			elif roll <= 40:
-				sight = {"name": "Priority target", "effect": "Select a random enemy figure. Add +1 to their Toughness. If they are slain, gain 1D3 credits."}
-			elif roll <= 50:
-				sight = {"name": "Loot cache", "effect": "Roll once on the Loot Table"}
-			elif roll <= 60:
-				sight = {"name": "Shiny bits", "effect": "Gain 1 credit"}
-			elif roll <= 70:
-				sight = {"name": "Really shiny bits", "effect": "Gain 2 credits"}
-			elif roll <= 80:
-				sight = {"name": "Person of interest", "effect": "Gain +1 story point"}
-			elif roll <= 90:
-				sight = {"name": "Peculiar item", "effect": "Gain +2 XP"}
-			else:
-				sight = {"name": "Curious item", "effect": "Roll 1D6. On a 1-4, it can be sold for 1 credit. On a 5-6, roll on the Loot Table"}
-		"Rival":
-			if roll <= 40:
-				sight = {"name": "Nothing special", "effect": "No effect"}
-			elif roll <= 50:
-				sight = {"name": "Documentation", "effect": "Gain a Quest Rumor"}
-			elif roll <= 60:
-				sight = {"name": "Priority target", "effect": "Select a random enemy figure. Add +1 to their Toughness. If they are slain, gain 1D3 credits."}
-			elif roll <= 70:
-				sight = {"name": "Loot cache", "effect": "Roll once on the Loot Table"}
-			elif roll <= 75:
-				sight = {"name": "Shiny bits", "effect": "Gain 1 credit"}
-			elif roll <= 80:
-				sight = {"name": "Really shiny bits", "effect": "Gain 2 credits"}
-			elif roll <= 90:
-				sight = {"name": "Person of interest", "effect": "Gain +1 story point"}
-			elif roll <= 95:
-				sight = {"name": "Peculiar item", "effect": "Gain +2 XP"}
-			else:
-				sight = {"name": "Curious item", "effect": "Roll 1D6. On a 1-4, it can be sold for 1 credit. On a 5-6, roll on the Loot Table"}
-		"Quest":
-			if roll <= 10:
-				sight = {"name": "Nothing special", "effect": "No effect"}
-			elif roll <= 25:
-				sight = {"name": "Documentation", "effect": "Gain a Quest Rumor"}
-			elif roll <= 35:
-				sight = {"name": "Priority target", "effect": "Select a random enemy figure. Add +1 to their Toughness. If they are slain, gain 1D3 credits."}
-			elif roll <= 50:
-				sight = {"name": "Loot cache", "effect": "Roll once on the Loot Table"}
-			elif roll <= 55:
-				sight = {"name": "Shiny bits", "effect": "Gain 1 credit"}
-			elif roll <= 65:
-				sight = {"name": "Really shiny bits", "effect": "Gain 2 credits"}
-			elif roll <= 80:
-				sight = {"name": "Person of interest", "effect": "Gain +1 story point"}
-			elif roll <= 90:
-				sight = {"name": "Peculiar item", "effect": "Gain +2 XP"}
-			else:
-				sight = {"name": "Curious item", "effect": "Roll 1D6. On a 1-4, it can be sold for 1 credit. On a 5-6, roll on the Loot Table"}
-	return sight
+	# Use the provided generate_notable_sight function
+	return generate_notable_sight(mission_type)
 
-func generate_terrain() -> Array:
-	var terrain = []
-	# Generate 2-3 large terrain features
-	for i in range(randi() % 2 + 2):
-		terrain.append(generate_large_terrain())
-	# Generate 4-6 small terrain features
-	for i in range(randi() % 3 + 4):
-		terrain.append(generate_small_terrain())
-	# Generate 2-4 linear terrain features
-	for i in range(randi() % 3 + 2):
-		terrain.append(generate_linear_terrain())
-	return terrain
+func _get_notable_feature_table(terrain_type: TerrainType) -> Array:
+	match terrain_type:
+		TerrainType.INDUSTRIAL:
+			return ["Large structure", "Industrial cluster", "Fenced area", "Landing pad", "Cargo area", "Large structure"]
+		TerrainType.WILDERNESS:
+			return ["Forested hill", "Swamp", "Rock formations", "Forested area", "Large hill", "Single building"]
+		TerrainType.ALIEN_RUIN:
+			return ["Overgrown area", "Large debris", "Ruined building", "Overgrown plaza", "Ruined tower", "Large statue"]
+		TerrainType.CRASH_SITE:
+			return ["Damaged structure", "Natural features with wreckage", "Burning forest", "Wreckage pile", "Large wreckage in crater", "Large crater"]
+	return []  # Should never reach here
 
-func generate_large_terrain() -> Dictionary:
-	var types = ["Hill", "Large Building", "Forested Area", "Comms Dish", "Crashed Spaceship"]
-	return {"type": "Large", "name": types[randi() % types.size()]}
+func _get_regular_feature_table(terrain_type: TerrainType) -> Array:
+	match terrain_type:
+		TerrainType.INDUSTRIAL:
+			return ["Linear obstacle", "Building", "Open ground", "Scatter cluster", "Statue", "Industrial item"]
+		TerrainType.WILDERNESS:
+			return ["Difficult terrain", "Rock formation", "Plant cluster", "Rock formation", "Open space", "Natural linear feature"]
+		TerrainType.ALIEN_RUIN:
+			return ["Odd feature", "Ruined building", "Partial ruin", "Open space", "Strange statue", "Scattered plants"]
+		TerrainType.CRASH_SITE:
+			return ["Mixed scatter", "Scattered wreckage", "Large wreckage", "Crater", "Natural feature", "Open ground"]
+	return []  # Should never reach here
 
-func generate_small_terrain() -> Dictionary:
-	var types = ["Boulder", "Small Building", "Shipping Container", "Vehicle Wreck", "Scattered Bushes"]
-	return {"type": "Small", "name": types[randi() % types.size()]}
-
-func generate_linear_terrain() -> Dictionary:
-	var types = ["Wall", "Fence", "Barricade", "Trench", "Pipeline"]
-	return {"type": "Linear", "name": types[randi() % types.size()]}
+func get_battlefield_representation(battlefield: Dictionary) -> String:
+	var representation = "Battlefield Layout:\n\n"
+	
+	# Add grid representation
+	for y in range(GRID_SIZE.y):
+		for x in range(GRID_SIZE.x):
+			representation += battlefield.grid[x][y] + " "
+		representation += "\n"
+	
+	# Add mission info
+	representation += "\nMission Type: " + battlefield.mission_type
+	representation += "\nTerrain Type: " + TerrainType.keys()[battlefield.terrain_type]
+	
+	# Add deployment condition
+	representation += "\n\nDeployment Condition: " + battlefield.deployment_condition.name
+	representation += "\nEffect: " + battlefield.deployment_condition.effect
+	
+	# Add notable sight
+	representation += "\n\nNotable Sight: " + battlefield.notable_sight.name
+	representation += "\nEffect: " + battlefield.notable_sight.effect
+	
+	# Add center feature
+	representation += "\n\nCenter Feature: " + battlefield.center_feature.type
+	
+	# Add quarter features
+	for q in range(4):
+		representation += "\n\nQuarter " + str(q+1) + " Features:"
+		for feature in battlefield.quarters[q].features:
+			representation += "\n- " + feature.type
+		representation += "\nScatter Terrain: " + str(battlefield.quarters[q].scatter_terrain.size()) + " pieces"
+	
+	return representation
