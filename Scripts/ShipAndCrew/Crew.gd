@@ -1,69 +1,24 @@
 class_name Crew
 extends Resource
 
-signal member_added(character: Character)
-signal member_removed(character: Character)
-
-@export var name: String = ""
-@export var credits: int = 0
-@export var reputation: int = 0
-@export var story_points: int = 0
+@export var name: String
 @export var members: Array[Character] = []
+@export var credits: int = 0
 @export var ship: Ship
-@export var equipment: Array[Equipment] = []
-@export var active_loans: Array[Dictionary] = []
+@export var reputation: int = 0
+@export var current_location: Location
 
-const MAX_MEMBERS: int = 8
-const MIN_MEMBERS: int = 3
-
-func _init(_name: String = "", _ship: Ship = null, initial_members: int = MIN_MEMBERS) -> void:
+func _init(_name: String = "", _ship: Ship = null):
 	name = _name
-	ship = _ship if _ship else Ship.new()
-	generate_random_crew(initial_members)
+	ship = _ship
 
-func add_member(character: Character) -> bool:
-	if members.size() < MAX_MEMBERS:
-		members.append(character)
-		member_added.emit(character)
-		return true
-	return false
+func add_member(character: Character):
+	members.append(character)
 
-func remove_member(character: Character) -> bool:
-	var index = members.find(character)
-	if index != -1:
-		members.remove_at(index)
-		member_removed.emit(character)
-		return true
-	return false
+func remove_member(character: Character):
+	members.erase(character)
 
-func get_member(index: int) -> Character:
-	if index >= 0 and index < members.size():
-		return members[index]
-	return null
-
-func get_member_count() -> int:
-	return members.size()
-
-func generate_random_crew(size: int) -> void:
-	for i in range(size):
-		var new_character = Character.new()
-		new_character.generate_random()
-		add_member(new_character)
-
-func reroll_member(index: int) -> void:
-	var member = get_member(index)
-	if member:
-		member.generate_random()
-
-func customize_member(index: int, new_data: Dictionary) -> void:
-	var member = get_member(index)
-	if member:
-		member.update_from_dictionary(new_data)
-
-func is_valid() -> bool:
-	return get_member_count() >= MIN_MEMBERS and get_member_count() <= MAX_MEMBERS and ship != null
-
-func add_credits(amount: int) -> void:
+func add_credits(amount: int):
 	credits += amount
 
 func remove_credits(amount: int) -> bool:
@@ -72,80 +27,28 @@ func remove_credits(amount: int) -> bool:
 		return true
 	return false
 
-func add_reputation(amount: int) -> void:
-	reputation += amount
+func pay_upkeep(economy_manager: EconomyManager) -> bool:
+	var upkeep_cost = economy_manager.calculate_upkeep_cost()
+	return remove_credits(upkeep_cost)
 
-func add_story_point() -> void:
-	story_points += 1
-
-func use_story_point() -> bool:
-	if story_points > 0:
-		story_points -= 1
-		return true
-	return false
-
-func add_equipment(item: Equipment) -> void:
-	equipment.append(item)
-
-func remove_equipment(item: Equipment) -> bool:
-	var index = equipment.find(item)
-	if index != -1:
-		equipment.remove_at(index)
-		return true
-	return false
-
-func get_all_items() -> Array[Equipment]:
-	var all_items: Array[Equipment] = []
-	all_items.append_array(equipment)
-	for member in members:
-		all_items.append_array(member.inventory.items)
-	return all_items
-
-func calculate_upkeep_cost() -> int:
-	var base_cost = 1  # Base cost for crews of 4-6 members
-	var additional_cost = max(0, get_member_count() - 6)
-	return base_cost + additional_cost
-
-func pay_upkeep(amount: int) -> bool:
-	return remove_credits(amount)
-
-func decrease_morale() -> void:
-	for member in members:
-		member.decrease_morale()
-
-func update_experience(xp: int) -> void:
-	for member in members:
-		member.add_xp(xp)
-
-func has_broker() -> bool:
-	for member in members:
-		if member.has_skill("Broker"):
-			return true
-	return false
-
-func get_max_allowed_debt() -> int:
-	return 50 + (reputation * 10)  # Example formula, adjust as needed
+func trade_item(item: Equipment, is_buying: bool, economy_manager: EconomyManager) -> bool:
+	return economy_manager.trade_item(item, is_buying)
 
 func serialize() -> Dictionary:
 	return {
 		"name": name,
-		"credits": credits,
-		"reputation": reputation,
-		"story_points": story_points,
 		"members": members.map(func(m): return m.serialize()),
-		"ship": ship.serialize(),
-		"equipment": equipment.map(func(e): return e.serialize()),
-		"active_loans": active_loans
+		"credits": credits,
+		"ship": ship.serialize() if ship else null,
+		"reputation": reputation,
+		"current_location": current_location.serialize() if current_location else null
 	}
 
 static func deserialize(data: Dictionary) -> Crew:
-	var crew = Crew.new()
-	crew.name = data.get("name", "")
-	crew.credits = data.get("credits", 0)
-	crew.reputation = data.get("reputation", 0)
-	crew.story_points = data.get("story_points", 0)
-	crew.members = data.get("members", []).map(func(m): return Character.deserialize(m))
-	crew.ship = Ship.deserialize(data.get("ship", {}))
-	crew.equipment = data.get("equipment", []).map(func(e): return Equipment.deserialize(e))
-	crew.active_loans = data.get("active_loans", [])
+	var crew = Crew.new(data["name"])
+	crew.members = data["members"].map(func(m): return Character.deserialize(m))
+	crew.credits = data["credits"]
+	crew.ship = Ship.deserialize(data["ship"]) if data["ship"] else null
+	crew.reputation = data["reputation"]
+	crew.current_location = Location.deserialize(data["current_location"]) if data["current_location"] else null
 	return crew

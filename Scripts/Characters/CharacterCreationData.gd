@@ -1,13 +1,11 @@
 class_name CharacterCreationData
 extends Resource
 
-# Enums for character properties
 enum Race { HUMAN, ENGINEER, KERIN, SOULLESS, PRECURSOR, FERAL, SWIFT, BOT }
 enum Background { HIGH_TECH_COLONY, OVERCROWDED_CITY, LOW_TECH_COLONY, MINING_COLONY, MILITARY_BRAT, SPACE_STATION }
 enum Motivation { WEALTH, FAME, GLORY, SURVIVAL, ESCAPE, ADVENTURE }
 enum Class { WORKING_CLASS, TECHNICIAN, SCIENTIST, HACKER, SOLDIER, MERCENARY }
 
-# Dictionary of race traits
 const RACE_TRAITS = {
 	Race.HUMAN: {},
 	Race.ENGINEER: {
@@ -53,7 +51,8 @@ const RACE_TRAITS = {
 	}
 }
 
-# Dictionary of background stats
+const STRANGE_CHARACTER_CHANCE: float = 0.1
+
 const BACKGROUND_STATS = {
 	Background.HIGH_TECH_COLONY: {"savvy": 1, "credits": 6},
 	Background.OVERCROWDED_CITY: {"speed": 1},
@@ -63,7 +62,6 @@ const BACKGROUND_STATS = {
 	Background.SPACE_STATION: {"gear": 1}
 }
 
-# Dictionary of motivation stats
 const MOTIVATION_STATS = {
 	Motivation.WEALTH: {"credits": 6},
 	Motivation.FAME: {"story_point": 1},
@@ -73,7 +71,6 @@ const MOTIVATION_STATS = {
 	Motivation.ADVENTURE: {"credits": 6, "low_tech_weapon": 1}
 }
 
-# Dictionary of class stats
 const CLASS_STATS = {
 	Class.WORKING_CLASS: {"savvy": 1, "luck": 1},
 	Class.TECHNICIAN: {"savvy": 1, "gear": 1},
@@ -82,25 +79,21 @@ const CLASS_STATS = {
 	Class.SOLDIER: {"combat_skill": 1, "credits": 6},
 	Class.MERCENARY: {"combat_skill": 1, "military_weapon": 1}
 }
-# Names
+
 const NAMES = [
 	"Alice", "Bob", "Charlie", "Diana", "Ethan", "Fiona", "George", "Hannah",
 	"Isaac", "Julia", "Kevin", "Laura", "Michael", "Natalie", "Oliver", "Penny"
 ]
 
-# Returns the traits for a given race
 static func get_race_traits(race: Race) -> Dictionary:
 	return RACE_TRAITS.get(race, {})
 
-# Returns the stats for a given background
 static func get_background_stats(background: Background) -> Dictionary:
 	return BACKGROUND_STATS.get(background, {})
 
-# Returns the stats for a given motivation
 static func get_motivation_stats(motivation: Motivation) -> Dictionary:
 	return MOTIVATION_STATS.get(motivation, {})
 
-# Returns the stats for a given class
 static func get_class_stats(character_class: Class) -> Dictionary:
 	return CLASS_STATS.get(character_class, {})
 
@@ -126,10 +119,62 @@ static func get_random_skills(count: int) -> Dictionary:
 	for i in range(count):
 		if all_skills.size() > 0:
 			var skill = all_skills.pop_at(randi() % all_skills.size())
-			selected_skills[skill] = Skill.new(skill, Skill.SkillType.COMBAT if i < 2 else Skill.SkillType.GENERAL)
+			var new_skill = Skill.new()
+			new_skill.initialize(skill, Skill.SkillType.COMBAT if i < 2 else Skill.SkillType.GENERAL)
+			selected_skills[skill] = new_skill
 	
 	return selected_skills
 
+static func generate_random_character() -> Character:
+	var character = Character.new()
+	character.name = get_random_name()
+	character.race = get_random_race()
+	character.background = get_random_background()
+	character.motivation = get_random_motivation()
+	character.character_class = get_random_class()
+	character.skills = get_random_skills(3)
+	character.portrait = get_random_portrait()
+
+	apply_race_traits(character)
+
+	if randf() < STRANGE_CHARACTER_CHANCE:
+		apply_strange_abilities(character)
+
+	return character
+
+static func apply_race_traits(character: Character) -> void:
+	var race_traits = RACE_TRAITS[character.race]
+	if "base_stats" in race_traits:
+		for stat in race_traits["base_stats"]:
+			var value = race_traits["base_stats"][stat]
+			character.set(stat, character.get(stat) + value)
+	
+	match character.race:
+		Race.ENGINEER:
+			var repair_skill = Skill.new()
+			repair_skill.initialize("Repair", Skill.SkillType.GENERAL)
+			character.skills["Repair"] = repair_skill
+		Race.KERIN:
+			character.add_ability("Brawling Advantage")
+		Race.SOULLESS:
+			character.add_ability("Armor Save 6+")
+		Race.PRECURSOR:
+			character.add_ability("Extra Character Event")
+		Race.FERAL:
+			character.add_ability("Ignore Initiative Penalties")
+			character.add_ability("Priority Reaction")
+		Race.SWIFT:
+			character.add_ability("Gliding")
+			character.add_ability("Free Jumping")
+		Race.BOT:
+			character.add_ability("Armor Save 6+")
+			character.add_ability("No Experience Gain")
+
+static func apply_strange_abilities(character: Character) -> void:
+	var strange_type = StrangeCharacters.StrangeCharacterType.values()[randi() % StrangeCharacters.StrangeCharacterType.size()]
+	character.strange_character = StrangeCharacters.new()
+	character.strange_character.initialize(strange_type)
+	character.strange_character.apply_special_abilities(character)
+
 static func get_random_portrait() -> String:
-	# Implement logic to select a random portrait
-	return "res://assets/portraits/portrait_01.png"  # Placeholder
+	return "res://assets/portraits/portrait_01.png"
