@@ -30,9 +30,9 @@ var terrain_generator: TerrainGenerator
 func _init() -> void:
 	mission_generator = MissionGenerator.new()
 	equipment_manager = EquipmentManager.new()
-	patron_job_manager = PatronJobManager.new(self)
+	patron_job_manager = PatronJobManager.new()
 	campaign_event_generator = CampaignEventGenerator.new()
-	loot_generator = LootGenerator.new(self)
+	loot_generator = LootGenerator.new()
 	economy_manager = EconomyManager.new(self)
 	terrain_generator = TerrainGenerator.new()
 

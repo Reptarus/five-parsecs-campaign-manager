@@ -1,107 +1,232 @@
-[gd_scene format=3 uid="uid://bjsta3jc8nw2k"]
+[gd_scene load_steps=7 format=3 uid="uid://bjsta3jc8nw2k"]
+
+[ext_resource type="Script" path="res://Scenes/Scene Container/campaigncreation/scripts/CharacterCreationScene.gd" id="1_yksn4"]
+[ext_resource type="Texture2D" uid="uid://bwejyqe8qschs" path="res://Assets/Basic assets/Card X3/Card X5.png" id="2_bi18b"]
+[ext_resource type="Script" path="res://Scenes/Scene Container/campaigncreation/scenes/MainContainer_CharacterCreationScreen.gd" id="3_0jmch"]
+[ext_resource type="Texture2D" uid="uid://565v8opj5ar" path="res://Assets/Basic assets/Icons/10.png" id="5_w84yq"]
+[ext_resource type="Texture2D" uid="uid://drk14p5w30g51" path="res://Assets/Basic assets/Icons/08.png" id="6_vk413"]
+
+[sub_resource type="PlaceholderTexture2D" id="PlaceholderTexture2D_04qho"]
+size = Vector2(300, 800)
 
 [node name="CharacterCreation" type="Control"]
 layout_mode = 3
 anchors_preset = 15
 anchor_right = 1.0
 anchor_bottom = 1.0
+offset_right = 768.0
+offset_bottom = 432.0
 grow_horizontal = 2
 grow_vertical = 2
+size_flags_horizontal = 3
+size_flags_vertical = 3
+script = ExtResource("1_yksn4")
+
+[node name="Background" type="TextureRect" parent="."]
+layout_mode = 1
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+texture = ExtResource("2_bi18b")
+stretch_mode = 5
+
+[node name="BackButton" type="Button" parent="."]
+visible = false
+layout_mode = 2
+offset_left = 84.0
+offset_top = 89.0
+offset_right = 218.0
+offset_bottom = 120.0
+size_flags_horizontal = 0
+size_flags_vertical = 0
+theme_override_colors/font_color = Color(1, 0, 0, 1)
+theme_override_constants/outline_size = 2
+theme_override_font_sizes/font_size = 40
+text = "<<< Back Button"
+
+[node name="ScreenTitle" type="Label" parent="."]
+visible = false
+layout_mode = 0
+offset_left = 1353.0
+offset_top = 87.0
+offset_right = 1853.0
+offset_bottom = 156.0
+size_flags_horizontal = 8
+size_flags_vertical = 0
+theme_override_colors/font_color = Color(0.168213, 0.537221, 0.931437, 1)
+theme_override_colors/font_shadow_color = Color(0, 0, 0, 1)
+theme_override_colors/font_outline_color = Color(0, 0, 0, 1)
+theme_override_font_sizes/font_size = 50
+text = "Character Creation"
+horizontal_alignment = 1
+vertical_alignment = 3
+autowrap_mode = 3
 
 [node name="MarginContainer" type="MarginContainer" parent="."]
-layout_mode = 0
-offset_right = 40.0
-offset_bottom = 40.0
+layout_mode = 1
+anchors_preset = -1
+anchor_left = 0.044
+anchor_top = 0.078
+anchor_right = 0.951
+anchor_bottom = 0.926
+offset_left = -43.48
+offset_top = -141.24
+offset_right = 81.08
+offset_bottom = 137.92
+grow_horizontal = 2
+grow_vertical = 2
+theme_override_constants/margin_left = 100
+theme_override_constants/margin_top = 100
+theme_override_constants/margin_right = 100
+theme_override_constants/margin_bottom = 100
+script = ExtResource("3_0jmch")
 
-[node name="Character Info Container" type="VBoxContainer" parent="MarginContainer"]
+[node name="MainContent" type="HBoxContainer" parent="MarginContainer"]
+layout_mode = 2
+theme_override_constants/separation = 760
+
+[node name="LeftColumn" type="VBoxContainer" parent="MarginContainer/MainContent"]
+custom_minimum_size = Vector2(100, 0)
 layout_mode = 2
 
-[node name="Label" type="Label" parent="MarginContainer/Character Info Container"]
+[node name="Character Portrait" type="TextureRect" parent="MarginContainer/MainContent/LeftColumn"]
+layout_mode = 2
+texture = SubResource("PlaceholderTexture2D_04qho")
+
+[node name="LineEdit" type="LineEdit" parent="MarginContainer/MainContent/LeftColumn"]
+layout_mode = 2
+placeholder_text = "Character Name"
+
+[node name="PortraitControls" type="VBoxContainer" parent="MarginContainer/MainContent/LeftColumn"]
 layout_mode = 2
 
-[node name="Layout" type="HBoxContainer" parent="MarginContainer/Character Info Container"]
+[node name="Face" type="Button" parent="MarginContainer/MainContent/LeftColumn/PortraitControls"]
+layout_mode = 2
+text = "Face"
+icon = ExtResource("5_w84yq")
+icon_alignment = 2
+
+[node name="Clothes" type="Button" parent="MarginContainer/MainContent/LeftColumn/PortraitControls"]
+layout_mode = 2
+text = "Clothes"
+icon = ExtResource("5_w84yq")
+icon_alignment = 2
+
+[node name="Accessories" type="Button" parent="MarginContainer/MainContent/LeftColumn/PortraitControls"]
+layout_mode = 2
+text = "Accessories"
+icon = ExtResource("5_w84yq")
+icon_alignment = 2
+
+[node name="Accessories2" type="Button" parent="MarginContainer/MainContent/LeftColumn"]
+layout_mode = 2
+text = "Random Character"
+icon = ExtResource("6_vk413")
+icon_alignment = 2
+
+[node name="RightColumn" type="VBoxContainer" parent="MarginContainer/MainContent"]
 layout_mode = 2
 
-[node name="Left Column" type="VBoxContainer" parent="MarginContainer/Character Info Container/Layout"]
+[node name="CharacterType" type="Label" parent="MarginContainer/MainContent/RightColumn"]
+layout_mode = 2
+text = "Select Species Type"
+
+[node name="SpeciesSelection" type="HBoxContainer" parent="MarginContainer/MainContent/RightColumn"]
 layout_mode = 2
 
-[node name="OptionButton" type="OptionButton" parent="MarginContainer/Character Info Container/Layout/Left Column"]
+[node name="SpeciesSelection" type="OptionButton" parent="MarginContainer/MainContent/RightColumn/SpeciesSelection"]
 layout_mode = 2
 
-[node name="OptionButton2" type="OptionButton" parent="MarginContainer/Character Info Container/Layout/Left Column"]
+[node name="RandomSpeciesButton" type="Button" parent="MarginContainer/MainContent/RightColumn/SpeciesSelection"]
+layout_mode = 2
+text = "Random Character"
+
+[node name="StatDistribution" type="HBoxContainer" parent="MarginContainer/MainContent/RightColumn"]
 layout_mode = 2
 
-[node name="OptionButton3" type="OptionButton" parent="MarginContainer/Character Info Container/Layout/Left Column"]
+[node name="Reactions" type="VBoxContainer" parent="MarginContainer/MainContent/RightColumn/StatDistribution"]
 layout_mode = 2
 
-[node name="OptionButton4" type="OptionButton" parent="MarginContainer/Character Info Container/Layout/Left Column"]
+[node name="ReactionsLabel" type="Label" parent="MarginContainer/MainContent/RightColumn/StatDistribution/Reactions"]
+layout_mode = 2
+text = "Reactions"
+
+[node name="ReactionsSpinBox" type="SpinBox" parent="MarginContainer/MainContent/RightColumn/StatDistribution/Reactions"]
 layout_mode = 2
 
-[node name="Right Column" type="VBoxContainer" parent="MarginContainer/Character Info Container/Layout"]
+[node name="Speed" type="VBoxContainer" parent="MarginContainer/MainContent/RightColumn/StatDistribution"]
 layout_mode = 2
 
-[node name="Label (Stat Distribution)" type="Label" parent="MarginContainer/Character Info Container/Layout/Right Column"]
+[node name="SpeedLabel" type="Label" parent="MarginContainer/MainContent/RightColumn/StatDistribution/Speed"]
+layout_mode = 2
+text = "Speed"
+
+[node name="SpeedSpinBox" type="SpinBox" parent="MarginContainer/MainContent/RightColumn/StatDistribution/Speed"]
 layout_mode = 2
 
-[node name="Stat Distribution" type="GridContainer" parent="MarginContainer/Character Info Container/Layout/Right Column"]
+[node name="Combat" type="VBoxContainer" parent="MarginContainer/MainContent/RightColumn/StatDistribution"]
 layout_mode = 2
 
-[node name="Label" type="Label" parent="MarginContainer/Character Info Container/Layout/Right Column/Stat Distribution"]
+[node name="CombatLabel" type="Label" parent="MarginContainer/MainContent/RightColumn/StatDistribution/Combat"]
+layout_mode = 2
+text = "Combat"
+
+[node name="CombatSponBox" type="SpinBox" parent="MarginContainer/MainContent/RightColumn/StatDistribution/Combat"]
 layout_mode = 2
 
-[node name="SpinBox" type="SpinBox" parent="MarginContainer/Character Info Container/Layout/Right Column/Stat Distribution"]
+[node name="Toughness" type="VBoxContainer" parent="MarginContainer/MainContent/RightColumn/StatDistribution"]
 layout_mode = 2
 
-[node name="Label2" type="Label" parent="MarginContainer/Character Info Container/Layout/Right Column/Stat Distribution"]
+[node name="ToughtnessLabel" type="Label" parent="MarginContainer/MainContent/RightColumn/StatDistribution/Toughness"]
+layout_mode = 2
+text = "Toughness"
+
+[node name="ToughlessSpinBox" type="SpinBox" parent="MarginContainer/MainContent/RightColumn/StatDistribution/Toughness"]
 layout_mode = 2
 
-[node name="SpinBox2" type="SpinBox" parent="MarginContainer/Character Info Container/Layout/Right Column/Stat Distribution"]
+[node name="Savvy" type="VBoxContainer" parent="MarginContainer/MainContent/RightColumn/StatDistribution"]
 layout_mode = 2
 
-[node name="Label3" type="Label" parent="MarginContainer/Character Info Container/Layout/Right Column/Stat Distribution"]
+[node name="SavvyLabel" type="Label" parent="MarginContainer/MainContent/RightColumn/StatDistribution/Savvy"]
+layout_mode = 2
+text = "Savvy"
+
+[node name="SavvySpinBox" type="SpinBox" parent="MarginContainer/MainContent/RightColumn/StatDistribution/Savvy"]
 layout_mode = 2
 
-[node name="SpinBox3" type="SpinBox" parent="MarginContainer/Character Info Container/Layout/Right Column/Stat Distribution"]
+[node name="Luck" type="VBoxContainer" parent="MarginContainer/MainContent/RightColumn/StatDistribution"]
 layout_mode = 2
 
-[node name="Label4" type="Label" parent="MarginContainer/Character Info Container/Layout/Right Column/Stat Distribution"]
+[node name="LuckLabel" type="Label" parent="MarginContainer/MainContent/RightColumn/StatDistribution/Luck"]
+layout_mode = 2
+text = "Luck"
+
+[node name="LuckSpinBox" type="SpinBox" parent="MarginContainer/MainContent/RightColumn/StatDistribution/Luck"]
 layout_mode = 2
 
-[node name="SpinBox4" type="SpinBox" parent="MarginContainer/Character Info Container/Layout/Right Column/Stat Distribution"]
+[node name="StartingXP" type="VBoxContainer" parent="MarginContainer/MainContent/RightColumn/StatDistribution"]
 layout_mode = 2
 
-[node name="Label5" type="Label" parent="MarginContainer/Character Info Container/Layout/Right Column/Stat Distribution"]
+[node name="StartingXPLabel" type="Label" parent="MarginContainer/MainContent/RightColumn/StatDistribution/StartingXP"]
+layout_mode = 2
+text = "XP"
+
+[node name="StartingXPSpinBox" type="SpinBox" parent="MarginContainer/MainContent/RightColumn/StatDistribution/StartingXP"]
 layout_mode = 2
 
-[node name="SpinBox5" type="SpinBox" parent="MarginContainer/Character Info Container/Layout/Right Column/Stat Distribution"]
+[node name="SpeciesInfoLabel" type="RichTextLabel" parent="MarginContainer/MainContent/RightColumn"]
+layout_mode = 2
+text = "tsaDFASDGASDFRHGASDFRGASDDG"
+
+[node name="StartingWeaponsAndGear" type="Label" parent="MarginContainer/MainContent/RightColumn"]
 layout_mode = 2
 
-[node name="Label Skill Selection" type="Label" parent="MarginContainer/Character Info Container/Layout"]
+[node name="WeaponsList" type="ItemList" parent="MarginContainer/MainContent/RightColumn"]
 layout_mode = 2
 
-[node name="GridContainer Skill Slection" type="GridContainer" parent="MarginContainer/Character Info Container/Layout"]
+[node name="UserNotes" type="TextEdit" parent="MarginContainer/MainContent/RightColumn"]
 layout_mode = 2
-
-[node name="CheckBox" type="CheckBox" parent="MarginContainer/Character Info Container/Layout/GridContainer Skill Slection"]
-layout_mode = 2
-
-[node name="Equipment Selection" type="Label" parent="MarginContainer/Character Info Container/Layout"]
-layout_mode = 2
-
-[node name="Equipment Selection2" type="ItemList" parent="MarginContainer/Character Info Container/Layout"]
-layout_mode = 2
-
-[node name="Character Info" type="HBoxContainer" parent="MarginContainer/Character Info Container"]
-layout_mode = 2
-
-[node name="Character Name" type="Label" parent="MarginContainer/Character Info Container/Character Info"]
-layout_mode = 2
-
-[node name="Character Name Input" type="LineEdit" parent="MarginContainer/Character Info Container/Character Info"]
-layout_mode = 2
-
-[node name="Character Summary" type="TextEdit" parent="MarginContainer/Character Info Container/Character Info"]
-layout_mode = 2
-
-[node name="Create Character" type="Button" parent="MarginContainer/Character Info Container/Character Info"]
-layout_mode = 2
+text = "Put any character notes here....Put any character notes here....Put any character notes here....Put any character notes here....Put any character notes here...."
+placeholder_text = "Put any character notes here...."
