@@ -11,23 +11,22 @@ config_version=5
 [application]
 
 config/name="Five Parsecs Campaign Manager"
-run/main_scene="res://ui/mainscene/Main.tscn"
 config/features=PackedStringArray("4.3", "GL Compatibility")
 config/icon="res://icon.svg"
 
 [autoload]
 
 SaveGame="*res://Scenes/Management/SaveManager.gd"
-Signal_Debugger="*res://addons/SignalVisualizer/Debugger/SignalDebugger.gd"
+
+[display]
+
+window/size/viewport_width=1920
+window/size/viewport_height=1080
 
 [editor]
 
 version_control/plugin_name="GitPlugin"
 version_control/autoload_on_startup=true
-
-[editor_plugins]
-
-enabled=PackedStringArray("res://addons/SignalVisualizer/plugin.cfg", "res://addons/block_code/plugin.cfg")
 
 [file_customization]
 
