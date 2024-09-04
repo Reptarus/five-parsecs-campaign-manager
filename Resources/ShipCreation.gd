@@ -15,14 +15,14 @@ func generate_starter_ship() -> Ship:
 	ship.total_power = BASE_SHIP_POWER
 	ship.available_power = BASE_SHIP_POWER
 
-	var hull := ShipComponent.new()
-	hull.type = ShipComponent.ComponentType.HULL
+	var hull := HullComponent.new(int)
+	hull.type = HullComponent.ComponentType.HULL
 	hull.name = "Basic Hull"
 	hull.health = 100
 	hull.max_health = 100
 	hull.power_usage = 0
 
-	var engine := EngineComponent.new()
+	var engine := EngineComponent.new(self)
 	engine.name = "Standard Engine"
 	engine.speed = 5
 	engine.fuel_efficiency = 1.0

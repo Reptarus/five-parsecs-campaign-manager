@@ -1,0 +1,19 @@
+{
+	"Booster pills": {
+		"name": "Booster pills",
+		"description": "When taken, the character removes all Stun markers. They may move at double normal Speed this round.",
+		"gear_type": "Consumable",
+		"level": 1,
+		"value": 100,
+		"is_damaged": false
+	},
+	"Combat serum": {
+		"name": "Combat serum",
+		"description": "The character receives +2\" Speed and +2 Reactions for the rest of the battle.",
+		"gear_type": "Consumable",
+		"level": 2,
+		"value": 200,
+		"is_damaged": false
+	}
+	// ... add all other gear items here
+}

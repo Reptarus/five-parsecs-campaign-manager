@@ -7,11 +7,13 @@ enum Type { WEAPON, ARMOR, GEAR, SHIP_COMPONENT }
 @export var type: Type
 @export var value: int
 @export var is_damaged: bool = false
+@export var description: String
 
-func _init(_name: String = "", _type: Type = Type.GEAR, _value: int = 0) -> void:
+func _init(_name: String = "", _type: Type = Type.GEAR, _value: int = 0, _description: String = "") -> void:
 	name = _name
 	type = _type
 	value = _value
+	description = _description
 
 func repair() -> void:
 	is_damaged = false
@@ -25,15 +27,18 @@ func get_effectiveness() -> int:
 func serialize() -> Dictionary:
 	return {
 		"name": name,
-		"type": type,
+		"type": Type.keys()[type],
 		"value": value,
 		"is_damaged": is_damaged,
+		"description": description
 	}
 
 static func deserialize(data: Dictionary) -> Equipment:
-	if not data.has_all(["name", "type", "value", "is_damaged"]):
-		push_error("Invalid equipment data for deserialization")
-		return null
-	var equipment = Equipment.new(data["name"], data["type"], data["value"])
+	var equipment = Equipment.new(
+		data["name"],
+		Type[data["type"]],
+		data["value"],
+		data["description"]
+	)
 	equipment.is_damaged = data["is_damaged"]
 	return equipment

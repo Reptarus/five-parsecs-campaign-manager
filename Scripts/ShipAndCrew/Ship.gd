@@ -26,7 +26,7 @@ func remove_component(component: ShipComponent) -> void:
 	power_changed.emit(available_power)
 
 func get_component(type: ShipComponent.ComponentType) -> ShipComponent:
-	return components.filter(func(c): return c.type == type).front()
+	return components.filter(func(c): return c.component_type == type).front()
 
 func take_damage(amount: int) -> void:
 	var hull := get_component(ShipComponent.ComponentType.HULL) as HullComponent
@@ -39,7 +39,7 @@ func repair_component(component: ShipComponent, amount: int) -> void:
 	component_repaired.emit(component)
 
 func calculate_maintenance_cost(economy_manager: EconomyManager) -> int:
-	var base_cost = components.reduce(func(acc, comp): return acc + comp.maintenance_cost, 0)
+	var base_cost = components.reduce(func(acc, comp): return acc + comp.power_usage, 0)
 	return int(base_cost * economy_manager.global_economic_modifier)
 
 func serialize() -> Dictionary:

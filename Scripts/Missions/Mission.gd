@@ -1,6 +1,8 @@
 class_name Mission
 extends Resource
 
+const Location = preload("res://Scripts/Locations/Location.gd")
+
 enum Type { OPPORTUNITY, PATRON, QUEST, RIVAL }
 enum Status { ACTIVE, COMPLETED, FAILED }
 enum Objective { MOVE_THROUGH, DELIVER, ACCESS, PATROL, FIGHT_OFF, SEARCH, DEFEND, ACQUIRE, ELIMINATE, SECURE, PROTECT }
@@ -35,9 +37,9 @@ func serialize() -> Dictionary:
 	return {
 		"title": title,
 		"description": description,
-		"type": type,
-		"status": status,
-		"objective": objective,
+		"type": Type.keys()[type],
+		"status": Status.keys()[status],
+		"objective": Objective.keys()[objective],
 		"patron": patron.serialize() if patron else null,
 		"rewards": rewards,
 		"time_limit": time_limit,
@@ -46,8 +48,8 @@ func serialize() -> Dictionary:
 	}
 
 static func deserialize(data: Dictionary) -> Mission:
-	var mission = Mission.new(data["title"], data["description"], data["type"], data["objective"])
-	mission.status = data["status"]
+	var mission = Mission.new(data["title"], data["description"], Type[data["type"]], Objective[data["objective"]])
+	mission.status = Status[data["status"]]
 	mission.patron = Patron.deserialize(data["patron"]) if data["patron"] else null
 	mission.rewards = data["rewards"]
 	mission.time_limit = data["time_limit"]

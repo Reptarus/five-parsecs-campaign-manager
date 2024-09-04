@@ -3,8 +3,8 @@ extends Resource
 
 enum Type { STAR_SYSTEM, PLANET, CITY }
 
-@export var name: String = ""
-@export var type: Type = Type.STAR_SYSTEM
+@export var name: String
+@export var type: Type
 @export var traits: Array[String] = []
 @export var parent: Location  # null for star systems
 @export var children: Array[Location] = []
@@ -27,29 +27,35 @@ func get_full_name() -> String:
 		return parent.get_full_name() + " - " + name
 	return name
 
-func add_trait(new_trait: String) -> void:
-	if new_trait not in traits:
-		traits.append(new_trait)
+func add_trait(trait: String) -> void:
+	if trait not in traits:
+		traits.append(trait)
 
-func remove_trait(old_trait: String) -> void:
-	traits.erase(old_trait)
+func remove_trait(trait: String) -> void:
+	traits.erase(trait)
 
-func has_trait(check_trait: String) -> bool:
-	return check_trait in traits
+func has_trait(trait: String) -> bool:
+	return trait in traits
 
 func get_traits() -> Array[String]:
 	return traits
 
-# New deserialize function
+func serialize() -> Dictionary:
+	return {
+		"name": name,
+		"type": Type.keys()[type],
+		"traits": traits,
+		"parent": parent.serialize() if parent else null,
+		"children": children.map(func(c: Location) -> Dictionary: return c.serialize())
+	}
+
 static func deserialize(data: Dictionary) -> Location:
-	var location = Location.new()
-	location.name = data.get("name", "")
-	location.type = Type[data.get("type", "STAR_SYSTEM")]  # Assuming type is stored as a string
-	location.traits = data.get("traits", [])
-	if data.has("parent"):
+	var location := Location.new(data["name"], Type[data["type"]])
+	location.traits = data["traits"]
+	if data["parent"]:
 		location.parent = Location.deserialize(data["parent"])
-	if data.has("children"):
-		for child_data in data["children"]:
-			var child_location = Location.deserialize(child_data)
-			location.add_child(child_location)
+	for child_data in data["children"]:
+		var child := Location.deserialize(child_data)
+		child.parent = location
+		location.children.append(child)
 	return location

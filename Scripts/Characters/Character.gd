@@ -142,19 +142,26 @@ func get_display_string() -> String:
 
 func _to_string() -> String:
 	return get_display_string()
+	
+static func create_random_character() -> Character:
+	var character = Character.new()
+	character.name = CharacterCreationData.get_random_name()
+	character.race = CharacterCreationData.get_random_race()
+	character.background = CharacterCreationData.get_random_background()
+	character.motivation = CharacterCreationData.get_random_motivation()
+	character.character_class = CharacterCreationData.get_random_class()
+	character.skills = CharacterCreationData.get_random_skills(3)
+	character.portrait = CharacterCreationData.get_random_portrait()
+	return character
 
 func serialize() -> Dictionary:
-	var serialized_skills = {}
-	for skill_name in skills:
-		serialized_skills[skill_name] = skills[skill_name].to_dict()
-	
 	return {
 		"name": name,
 		"race": Race.keys()[race],
 		"background": Background.keys()[background],
 		"motivation": Motivation.keys()[motivation],
 		"character_class": Class.keys()[character_class],
-		"skills": serialized_skills,
+		"skills": skills.values().map(func(s): return s.serialize()),
 		"portrait": portrait,
 		"reactions": reactions,
 		"speed": speed,
@@ -175,17 +182,6 @@ func serialize() -> Dictionary:
 		"strange_character": strange_character.serialize() if strange_character else null
 	}
 
-static func create_random_character() -> Character:
-	var character = Character.new()
-	character.name = CharacterCreationData.get_random_name()
-	character.race = CharacterCreationData.get_random_race()
-	character.background = CharacterCreationData.get_random_background()
-	character.motivation = CharacterCreationData.get_random_motivation()
-	character.character_class = CharacterCreationData.get_random_class()
-	character.skills = CharacterCreationData.get_random_skills(3)
-	character.portrait = CharacterCreationData.get_random_portrait()
-	return character
-
 static func deserialize(data: Dictionary) -> Character:
 	var character = Character.new()
 	character.name = data["name"]
@@ -193,9 +189,7 @@ static func deserialize(data: Dictionary) -> Character:
 	character.background = Background[data["background"]]
 	character.motivation = Motivation[data["motivation"]]
 	character.character_class = Class[data["character_class"]]
-	character.skills = {}
-	for skill_name in data["skills"]:
-		character.skills[skill_name] = Skill.from_dict(data["skills"][skill_name])
+	character.skills = data["skills"].map(func(s): return Skill.deserialize(s))
 	character.portrait = data["portrait"]
 	character.reactions = data["reactions"]
 	character.speed = data["speed"]
@@ -213,7 +207,5 @@ static func deserialize(data: Dictionary) -> Character:
 	character.recover_time = data["recover_time"]
 	character.became_casualty = data["became_casualty"]
 	character.killed_unique_individual = data["killed_unique_individual"]
-	if data["strange_character"]:
-		character.strange_character = StrangeCharacters.new()
-		character.strange_character.from_dict(data["strange_character"])
+	character.strange_character = data["strange_character"]
 	return character

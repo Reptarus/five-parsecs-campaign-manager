@@ -1,3 +1,8 @@
+class_name EconomyManager
+extends Node
+
+const WeaponType = preload("res://Scripts/Weapons/Weapon.gd").WeaponType
+
 enum ItemType { WEAPON, ARMOR, GEAR, SHIP_COMPONENT }
 enum GlobalEvent { MARKET_CRASH, ECONOMIC_BOOM, TRADE_EMBARGO, RESOURCE_SHORTAGE, TECHNOLOGICAL_BREAKTHROUGH }
 
@@ -25,28 +30,25 @@ func initialize_location_price_modifiers() -> void:
 		location_price_modifiers[location.name] = randf_range(0.8, 1.2)
 
 func add_credits(amount: int) -> void:
-	game_state.credits += amount
+	game_state.current_crew.add_credits(amount)
 
 func remove_credits(amount: int) -> bool:
-	if game_state.credits >= amount:
-		game_state.credits -= amount
-		return true
-	return false
+	return game_state.current_crew.remove_credits(amount)
 
 func can_afford(amount: int) -> bool:
-	return game_state.credits >= amount
+	return game_state.current_crew.can_afford(amount)
 
 func trade_item(item: Equipment, is_buying: bool) -> bool:
 	var price: int = calculate_item_price(item, is_buying)
 	if is_buying:
 		if can_afford(price) and not item.name in trade_restricted_items:
-			remove_credits(price)
-			game_state.current_crew.equipment.append(item)
-			return true
+			if remove_credits(price):
+				game_state.current_crew.inventory.add_item(item)
+				return true
 	else:
-		add_credits(price)
-		game_state.current_crew.equipment.erase(item)
-		return true
+		if game_state.current_crew.inventory.remove_item(item):
+			add_credits(price)
+			return true
 	return false
 
 func calculate_item_price(item: Equipment, is_buying: bool) -> int:
@@ -89,48 +91,48 @@ func generate_random_item() -> Equipment:
 		ItemType.SHIP_COMPONENT:
 			return generate_random_ship_component()
 	
-	# This should never happen, but we need to return something to satisfy the type system
 	push_error("Unexpected item type")
-	return Equipment.new()
+	return Equipment.new("Generic Item", Equipment.Type.GEAR, 0)
 
 func generate_random_weapon() -> Weapon:
 	var weapon_types = ["Pistol", "Rifle", "Shotgun", "Heavy Weapon"]
 	var weapon_name = weapon_types[randi() % weapon_types.size()]
 	var damage = randi() % 5 + 1
 	var range = randi() % 10 + 1
-	return Weapon.new(weapon_name, Weapon.WeaponType.MILITARY, range, 1, damage)
+	return Weapon.new(weapon_name, WeaponType.MILITARY, range, 1, damage)
 
-func generate_random_armor() -> Armor:
+func generate_random_armor() -> Equipment:
 	var armor_types = ["Light Armor", "Medium Armor", "Heavy Armor"]
 	var armor_name = armor_types[randi() % armor_types.size()]
 	var defense = randi() % 5 + 1
-	return Armor.new(armor_name, defense)
+	return Equipment.new(armor_name, Equipment.Type.ARMOR, defense)
 
 func generate_random_gear() -> Gear:
 	var gear_types = ["Medkit", "Repair Kit", "Stealth Field", "Jetpack"]
 	var gear_name = gear_types[randi() % gear_types.size()]
-	return Gear.new(gear_name, "A useful piece of equipment", "Utility")
+	return Gear.new(gear_name, "A useful piece of equipment", "Utility", 1)
 
 func generate_random_ship_component() -> ShipComponent:
 	var component_types = ["Engine Booster", "Shield Generator", "Weapon System", "Life Support"]
 	var component_name = component_types[randi() % component_types.size()]
 	var power_usage = randi() % 10 + 1
 	var health = randi() % 50 + 50
-	return ShipComponent.new(component_name, "A crucial ship component", power_usage, health)
+	var component_type = ShipComponent.ComponentType.values()[randi() % ShipComponent.ComponentType.size()]
+	return ShipComponent.new(component_name, "A crucial ship component", component_type, power_usage, health)
 
 func calculate_upkeep_cost() -> int:
 	var base_cost: int = game_state.current_crew.members.size() * 5
-
-	# Ensure the current location is valid and traits can be retrieved
+	
+	# Ensure the current location is valid
 	if game_state.current_location != null:
 		var location_traits = game_state.current_location.get_traits()
 		
 		# Check if location_traits is a valid list or array
-		if location_traits and typeof(location_traits) == TYPE_ARRAY and location_traits.size() > 0:
-			for trait in location_traits:
-				if trait == "High cost":  # Adjusting cost based on "High cost" trait
-					base_cost = int(base_cost * 1.5)
-
+		if location_traits is Array and not location_traits.is_empty():
+			# Use Array.has() method to check for "High cost" trait
+			if location_traits.has("High cost"):
+				base_cost = int(base_cost * 1.5)
+	
 	return base_cost
 
 
@@ -173,8 +175,8 @@ func update_global_economy() -> void:
 		new_tech_items.clear()
 	
 	# Update location-specific modifiers
-	for location in location_price_modifiers.keys():
-		location_price_modifiers[location] = lerp(location_price_modifiers[location], 1.0, ECONOMY_NORMALIZATION_RATE)
+	for location_name in location_price_modifiers.keys():
+		location_price_modifiers[location_name] = lerp(location_price_modifiers[location_name], 1.0, ECONOMY_NORMALIZATION_RATE)
 	
 	economy_updated.emit()
 
@@ -191,9 +193,9 @@ func apply_economic_event() -> void:
 	
 	match event:
 		"Market Crash":
-			game_state.credits = int(game_state.credits * 0.8)
+			remove_credits(int(game_state.current_crew.credits * 0.2))
 		"Economic Boom":
-			game_state.credits = int(game_state.credits * 1.2)
+			add_credits(int(game_state.current_crew.credits * 0.2))
 		"Trade Embargo", "Resource Shortage", "Technological Breakthrough":
 			pass  # Logic for these events is handled in trigger_global_event
 	

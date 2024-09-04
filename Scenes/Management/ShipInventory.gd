@@ -28,14 +28,14 @@ func get_item_count() -> int:
 func is_full() -> bool:
 	return get_item_count() >= capacity
 
-func to_dict() -> Dictionary:
+func serialize() -> Dictionary:
 	return {
-		"items": items.map(func(i): return i.to_dict()),
+		"items": items.map(func(i): return i.serialize()),
 		"capacity": capacity
 	}
 
-static func from_dict(data: Dictionary) -> ShipInventory:
-	var inventory := ShipInventory.new()
-	inventory.items = data["items"].map(func(i): return Gear.new().from_dict(i))
+static func deserialize(data: Dictionary) -> ShipInventory:
+	var inventory = ShipInventory.new()
+	inventory.items = data["items"].map(func(i): return Gear.deserialize(i))
 	inventory.capacity = data["capacity"]
 	return inventory

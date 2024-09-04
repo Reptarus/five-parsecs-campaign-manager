@@ -9,6 +9,7 @@ enum DifficultyMode { NORMAL, HARDCORE, INSANITY }
 @export var current_state: State = State.MAIN_MENU
 @export var current_crew: Crew
 @export var current_location: Location
+@export var available_locations: Array[Location] = []
 @export var current_mission: Mission
 @export var credits: int = 0
 @export var story_points: int = 0
@@ -26,15 +27,20 @@ var campaign_event_generator: CampaignEventGenerator
 var loot_generator: LootGenerator
 var economy_manager: EconomyManager
 var terrain_generator: TerrainGenerator
+var gear_database: GearDatabase
 
 func _init() -> void:
-	mission_generator = MissionGenerator.new()
+	mission_generator = MissionGenerator.new(self)
 	equipment_manager = EquipmentManager.new()
-	patron_job_manager = PatronJobManager.new()
+	patron_job_manager = PatronJobManager.new(self)
 	campaign_event_generator = CampaignEventGenerator.new()
 	loot_generator = LootGenerator.new()
 	economy_manager = EconomyManager.new(self)
 	terrain_generator = TerrainGenerator.new()
+	gear_database = GearDatabase.new()
+	gear_database.load_from_file("res://data/gear_database.json")
+
+# ... rest of the GameState.gd code ...
 
 func change_state(new_state: State) -> void:
 	current_state = new_state
@@ -86,8 +92,7 @@ func remove_rival(rival: Rival) -> void:
 	rivals.erase(rival)
 
 func get_all_locations() -> Array[Location]:
-	# Implement logic to return all available locations
-	return []
+	return available_locations
 
 func generate_battlefield() -> Dictionary:
 	return terrain_generator.generate_battlefield()
@@ -106,18 +111,18 @@ func serialize() -> Dictionary:
 		"story_points": story_points,
 		"campaign_turn": campaign_turn,
 		"difficulty_mode": difficulty_mode,
+		"current_location": current_location.serialize() if current_location else null,
+		"available_locations": available_locations.map(func(loc: Location) -> Dictionary: return loc.serialize()),
 		# Add other properties as needed
 	}
 	if current_crew:
 		data["current_crew"] = current_crew.serialize()
-	if current_location:
-		data["current_location"] = current_location.serialize()
 	if current_mission:
 		data["current_mission"] = current_mission.serialize()
-	data["available_missions"] = available_missions.map(func(m): return m.serialize())
-	data["active_quests"] = active_quests.map(func(q): return q.serialize())
-	data["patrons"] = patrons.map(func(p): return p.serialize())
-	data["rivals"] = rivals.map(func(r): return r.serialize())
+	data["available_missions"] = available_missions.map(func(m: Mission) -> Dictionary: return m.serialize())
+	data["active_quests"] = active_quests.map(func(q: Quest) -> Dictionary: return q.serialize())
+	data["patrons"] = patrons.map(func(p: Patron) -> Dictionary: return p.serialize())
+	data["rivals"] = rivals.map(func(r: Rival) -> Dictionary: return r.serialize())
 	return data
 
 static func deserialize(data: Dictionary) -> GameState:
@@ -129,12 +134,13 @@ static func deserialize(data: Dictionary) -> GameState:
 	game_state.difficulty_mode = data["difficulty_mode"]
 	if data.has("current_crew"):
 		game_state.current_crew = Crew.deserialize(data["current_crew"])
-	if data.has("current_location"):
+	if data.has("current_location") and data["current_location"] != null:
 		game_state.current_location = Location.deserialize(data["current_location"])
+	game_state.available_locations = data["available_locations"].map(func(loc_data: Dictionary) -> Location: return Location.deserialize(loc_data))
 	if data.has("current_mission"):
 		game_state.current_mission = Mission.deserialize(data["current_mission"])
-	game_state.available_missions = data["available_missions"].map(func(m): return Mission.deserialize(m))
-	game_state.active_quests = data["active_quests"].map(func(q): return Quest.deserialize(q))
-	game_state.patrons = data["patrons"].map(func(p): return Patron.deserialize(p))
-	game_state.rivals = data["rivals"].map(func(r): return Rival.deserialize(r))
+	game_state.available_missions = data["available_missions"].map(func(m: Dictionary) -> Mission: return Mission.deserialize(m))
+	game_state.active_quests = data["active_quests"].map(func(q: Dictionary) -> Quest: return Quest.deserialize(q))
+	game_state.patrons = data["patrons"].map(func(p: Dictionary) -> Patron: return Patron.deserialize(p))
+	game_state.rivals = data["rivals"].map(func(r: Dictionary) -> Rival: return Rival.deserialize(r))
 	return game_state

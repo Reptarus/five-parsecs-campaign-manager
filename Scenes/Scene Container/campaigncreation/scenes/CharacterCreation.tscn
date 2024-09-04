@@ -1,4 +1,4 @@
-[gd_scene load_steps=7 format=3 uid="uid://bjsta3jc8nw2k"]
+[gd_scene load_steps=8 format=3 uid="uid://bjsta3jc8nw2k"]
 
 [ext_resource type="Script" path="res://Scenes/Scene Container/campaigncreation/scripts/CharacterCreationScene.gd" id="1_yksn4"]
 [ext_resource type="Texture2D" uid="uid://bwejyqe8qschs" path="res://Assets/Basic assets/Card X3/Card X5.png" id="2_bi18b"]
@@ -6,8 +6,11 @@
 [ext_resource type="Texture2D" uid="uid://565v8opj5ar" path="res://Assets/Basic assets/Icons/10.png" id="5_w84yq"]
 [ext_resource type="Texture2D" uid="uid://drk14p5w30g51" path="res://Assets/Basic assets/Icons/08.png" id="6_vk413"]
 
+[sub_resource type="Theme" id="Theme_vs586"]
+
 [sub_resource type="PlaceholderTexture2D" id="PlaceholderTexture2D_04qho"]
-size = Vector2(300, 800)
+resource_local_to_scene = true
+size = Vector2(300, 500)
 
 [node name="CharacterCreation" type="Control"]
 layout_mode = 3
@@ -20,6 +23,7 @@ grow_horizontal = 2
 grow_vertical = 2
 size_flags_horizontal = 3
 size_flags_vertical = 3
+theme = SubResource("Theme_vs586")
 script = ExtResource("1_yksn4")
 
 [node name="Background" type="TextureRect" parent="."]
@@ -29,6 +33,7 @@ anchor_right = 1.0
 anchor_bottom = 1.0
 grow_horizontal = 2
 grow_vertical = 2
+theme = SubResource("Theme_vs586")
 texture = ExtResource("2_bi18b")
 stretch_mode = 5
 
@@ -41,6 +46,7 @@ offset_right = 218.0
 offset_bottom = 120.0
 size_flags_horizontal = 0
 size_flags_vertical = 0
+theme = SubResource("Theme_vs586")
 theme_override_colors/font_color = Color(1, 0, 0, 1)
 theme_override_constants/outline_size = 2
 theme_override_font_sizes/font_size = 40
@@ -55,6 +61,7 @@ offset_right = 1853.0
 offset_bottom = 156.0
 size_flags_horizontal = 8
 size_flags_vertical = 0
+theme = SubResource("Theme_vs586")
 theme_override_colors/font_color = Color(0.168213, 0.537221, 0.931437, 1)
 theme_override_colors/font_shadow_color = Color(0, 0, 0, 1)
 theme_override_colors/font_outline_color = Color(0, 0, 0, 1)
@@ -66,17 +73,12 @@ autowrap_mode = 3
 
 [node name="MarginContainer" type="MarginContainer" parent="."]
 layout_mode = 1
-anchors_preset = -1
-anchor_left = 0.044
-anchor_top = 0.078
-anchor_right = 0.951
-anchor_bottom = 0.926
-offset_left = -43.48
-offset_top = -141.24
-offset_right = 81.08
-offset_bottom = 137.92
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
 grow_horizontal = 2
 grow_vertical = 2
+theme = SubResource("Theme_vs586")
 theme_override_constants/margin_left = 100
 theme_override_constants/margin_top = 100
 theme_override_constants/margin_right = 100
@@ -85,7 +87,7 @@ script = ExtResource("3_0jmch")
 
 [node name="MainContent" type="HBoxContainer" parent="MarginContainer"]
 layout_mode = 2
-theme_override_constants/separation = 760
+theme_override_constants/separation = 445
 
 [node name="LeftColumn" type="VBoxContainer" parent="MarginContainer/MainContent"]
 custom_minimum_size = Vector2(100, 0)
@@ -94,6 +96,8 @@ layout_mode = 2
 [node name="Character Portrait" type="TextureRect" parent="MarginContainer/MainContent/LeftColumn"]
 layout_mode = 2
 texture = SubResource("PlaceholderTexture2D_04qho")
+expand_mode = 5
+stretch_mode = 4
 
 [node name="LineEdit" type="LineEdit" parent="MarginContainer/MainContent/LeftColumn"]
 layout_mode = 2

@@ -1,6 +1,8 @@
 class_name Crew
 extends Resource
 
+const Location = preload("res://Scripts/Locations/Location.gd")
+
 @export var name: String
 @export var members: Array[Character] = []
 @export var credits: int = 0
