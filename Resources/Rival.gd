@@ -2,7 +2,7 @@ class_name Rival
 extends Resource
 
 @export var name: String
-@export var location: Location
+@export var location: Location = null
 @export var strength: int = 1  # 1 to 5, 1 is weakest
 @export var hostility: int = 0  # 0 to 100, 0 is least hostile
 @export var economic_impact: float = 1.0

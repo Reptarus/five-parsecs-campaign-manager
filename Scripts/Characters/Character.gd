@@ -1,15 +1,17 @@
 class_name Character
 extends Resource
 
+const Race = GlobalEnums.Race
+const Background = GlobalEnums.Background
+const Motivation = GlobalEnums.Motivation
+const Class = GlobalEnums.Class
+const StrangeCharactersClass = preload("res://Scripts/Characters/StrangeCharacters.gd")
+
 signal xp_added(amount: int)
 signal skill_improved(skill: Skill)
 signal stat_reduced(stat: String, amount: int)
 signal killed
 
-enum Race { HUMAN, ENGINEER, KERIN, SOULLESS, PRECURSOR, FERAL, SWIFT, BOT }
-enum Background { HIGH_TECH_COLONY, OVERCROWDED_CITY, LOW_TECH_COLONY, MINING_COLONY, MILITARY_BRAT, SPACE_STATION }
-enum Motivation { WEALTH, FAME, GLORY, SURVIVAL, ESCAPE, ADVENTURE }
-enum Class { WORKING_CLASS, TECHNICIAN, SCIENTIST, HACKER, SOLDIER, MERCENARY }
 enum AIType { CAUTIOUS, AGGRESSIVE, TACTICAL, DEFENSIVE }
 
 @export var name: String = ""
@@ -55,8 +57,7 @@ func generate_random() -> void:
 
 	if randf() < 0.1:  # 10% chance for strange abilities
 		var strange_type = StrangeCharacters.StrangeCharacterType.values()[randi() % StrangeCharacters.StrangeCharacterType.size()]
-		strange_character = StrangeCharacters.new()
-		strange_character.initialize(strange_type)
+		strange_character = StrangeCharacters.new(strange_type)
 		strange_character.apply_special_abilities(self)
 
 func update(new_data: Dictionary) -> void:
@@ -155,7 +156,7 @@ static func create_random_character() -> Character:
 	return character
 
 func serialize() -> Dictionary:
-	return {
+	var data = {
 		"name": name,
 		"race": Race.keys()[race],
 		"background": Background.keys()[background],
@@ -181,6 +182,7 @@ func serialize() -> Dictionary:
 		"killed_unique_individual": killed_unique_individual,
 		"strange_character": strange_character.serialize() if strange_character else null
 	}
+	return data
 
 static func deserialize(data: Dictionary) -> Character:
 	var character = Character.new()
@@ -208,4 +210,6 @@ static func deserialize(data: Dictionary) -> Character:
 	character.became_casualty = data["became_casualty"]
 	character.killed_unique_individual = data["killed_unique_individual"]
 	character.strange_character = data["strange_character"]
+	if data["strange_character"]:
+		character.strange_character = StrangeCharacters.deserialize(data["strange_character"])
 	return character

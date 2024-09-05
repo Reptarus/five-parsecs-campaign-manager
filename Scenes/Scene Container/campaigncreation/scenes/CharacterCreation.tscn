@@ -1,7 +1,8 @@
-[gd_scene load_steps=8 format=3 uid="uid://bjsta3jc8nw2k"]
+[gd_scene load_steps=9 format=3 uid="uid://bjsta3jc8nw2k"]
 
 [ext_resource type="Script" path="res://Scenes/Scene Container/campaigncreation/scripts/CharacterCreationScene.gd" id="1_yksn4"]
 [ext_resource type="Texture2D" uid="uid://bwejyqe8qschs" path="res://Assets/Basic assets/Card X3/Card X5.png" id="2_bi18b"]
+[ext_resource type="Texture2D" uid="uid://bogjhy2wlwtca" path="res://Assets/Basic assets/Icons/09.png" id="4_0jfqn"]
 [ext_resource type="Texture2D" uid="uid://bjh0ro2ak2tle" path="res://Assets/BookImages/2024-09-03 18_48_37-01 - Core Rulebook.pdf and 3 more pages - Personal - Microsoft​ Edge.png" id="4_nujk6"]
 [ext_resource type="Texture2D" uid="uid://b0u2duocptu2v" path="res://Assets/Basic assets/Card X1/Card X2.png" id="5_s1mj3"]
 [ext_resource type="Texture2D" uid="uid://565v8opj5ar" path="res://Assets/Basic assets/Icons/10.png" id="5_w84yq"]
@@ -71,37 +72,105 @@ offset_right = 1130.0
 offset_bottom = 941.0
 theme_override_constants/separation = 55
 
-[node name="Picture and BMC controls" type="VBoxContainer" parent="CrewPictureAndStats"]
+[node name="PictureandBMCcontrols" type="VBoxContainer" parent="CrewPictureAndStats"]
 custom_minimum_size = Vector2(100, 0)
 layout_mode = 2
 size_flags_horizontal = 0
 size_flags_vertical = 4
+theme_override_constants/separation = 25
 
-[node name="Character Portrait" type="TextureRect" parent="CrewPictureAndStats/Picture and BMC controls"]
+[node name="CharacterPortrait" type="TextureRect" parent="CrewPictureAndStats/PictureandBMCcontrols"]
 layout_mode = 2
 texture = ExtResource("4_nujk6")
 stretch_mode = 5
 
-[node name="PortraitControls" type="VBoxContainer" parent="CrewPictureAndStats/Picture and BMC controls"]
+[node name="PortraitControls" type="VBoxContainer" parent="CrewPictureAndStats/PictureandBMCcontrols"]
 layout_mode = 2
+size_flags_horizontal = 4
+size_flags_vertical = 6
+theme_override_constants/separation = 20
 
-[node name="Background" type="Button" parent="CrewPictureAndStats/Picture and BMC controls/PortraitControls"]
+[node name="BackgroundSelection" type="HBoxContainer" parent="CrewPictureAndStats/PictureandBMCcontrols/PortraitControls"]
 layout_mode = 2
+size_flags_vertical = 3
+
+[node name="LeftArrow" type="Button" parent="CrewPictureAndStats/PictureandBMCcontrols/PortraitControls/BackgroundSelection"]
+layout_mode = 2
+icon = ExtResource("4_0jfqn")
+icon_alignment = 1
+
+[node name="BackgroundSelection" type="Label" parent="CrewPictureAndStats/PictureandBMCcontrols/PortraitControls/BackgroundSelection"]
+layout_mode = 2
+theme_override_font_sizes/font_size = 30
 text = "Background"
-icon = ExtResource("5_w84yq")
-icon_alignment = 2
+horizontal_alignment = 1
+vertical_alignment = 1
 
-[node name="Motivation" type="Button" parent="CrewPictureAndStats/Picture and BMC controls/PortraitControls"]
+[node name="RightArrow" type="Button" parent="CrewPictureAndStats/PictureandBMCcontrols/PortraitControls/BackgroundSelection"]
 layout_mode = 2
+icon = ExtResource("5_w84yq")
+icon_alignment = 1
+
+[node name="MotivationSelection" type="HBoxContainer" parent="CrewPictureAndStats/PictureandBMCcontrols/PortraitControls"]
+layout_mode = 2
+
+[node name="LeftArrow" type="Button" parent="CrewPictureAndStats/PictureandBMCcontrols/PortraitControls/MotivationSelection"]
+layout_mode = 2
+icon = ExtResource("4_0jfqn")
+icon_alignment = 1
+
+[node name="MotivationSelection" type="Label" parent="CrewPictureAndStats/PictureandBMCcontrols/PortraitControls/MotivationSelection"]
+layout_mode = 2
+theme_override_font_sizes/font_size = 30
 text = "Motivation"
-icon = ExtResource("5_w84yq")
-icon_alignment = 2
+horizontal_alignment = 1
 
-[node name="Class" type="Button" parent="CrewPictureAndStats/Picture and BMC controls/PortraitControls"]
+[node name="RightArrow" type="Button" parent="CrewPictureAndStats/PictureandBMCcontrols/PortraitControls/MotivationSelection"]
 layout_mode = 2
-text = "Class"
 icon = ExtResource("5_w84yq")
-icon_alignment = 2
+icon_alignment = 1
+
+[node name="ClassSelection" type="HBoxContainer" parent="CrewPictureAndStats/PictureandBMCcontrols/PortraitControls"]
+layout_mode = 2
+
+[node name="LeftArrow" type="Button" parent="CrewPictureAndStats/PictureandBMCcontrols/PortraitControls/ClassSelection"]
+layout_mode = 2
+icon = ExtResource("4_0jfqn")
+icon_alignment = 1
+
+[node name="ClassSelection" type="Label" parent="CrewPictureAndStats/PictureandBMCcontrols/PortraitControls/ClassSelection"]
+layout_mode = 2
+theme_override_font_sizes/font_size = 30
+text = "Class"
+
+[node name="RightArrow" type="Button" parent="CrewPictureAndStats/PictureandBMCcontrols/PortraitControls/ClassSelection"]
+layout_mode = 2
+icon = ExtResource("5_w84yq")
+
+[node name="HBoxContainer" type="HBoxContainer" parent="CrewPictureAndStats/PictureandBMCcontrols"]
+layout_mode = 2
+size_flags_horizontal = 4
+theme_override_constants/separation = 30
+
+[node name="Save" type="Button" parent="CrewPictureAndStats/PictureandBMCcontrols/HBoxContainer"]
+layout_mode = 2
+theme_override_font_sizes/font_size = 30
+text = "Save"
+
+[node name="Clear" type="Button" parent="CrewPictureAndStats/PictureandBMCcontrols/HBoxContainer"]
+layout_mode = 2
+theme_override_font_sizes/font_size = 30
+text = "Clear"
+
+[node name="Import" type="Button" parent="CrewPictureAndStats/PictureandBMCcontrols/HBoxContainer"]
+layout_mode = 2
+theme_override_font_sizes/font_size = 30
+text = "Import"
+
+[node name="Export" type="Button" parent="CrewPictureAndStats/PictureandBMCcontrols/HBoxContainer"]
+layout_mode = 2
+theme_override_font_sizes/font_size = 30
+text = "Export"
 
 [node name="CharacterFlavorBreakdown" type="Panel" parent="CrewPictureAndStats"]
 layout_mode = 2
@@ -142,16 +211,16 @@ offset_right = 1844.0
 offset_bottom = 960.0
 theme_override_constants/separation = 30
 
-[node name="HBoxContainer" type="HBoxContainer" parent="CrewStatsAndInfo"]
+[node name="NameEntry" type="HBoxContainer" parent="CrewStatsAndInfo"]
 layout_mode = 2
 theme_override_constants/separation = 10
 
-[node name="Label" type="Label" parent="CrewStatsAndInfo/HBoxContainer"]
+[node name="CaptainCrew" type="Label" parent="CrewStatsAndInfo/NameEntry"]
 layout_mode = 2
 theme_override_font_sizes/font_size = 35
 text = "Captain/Crewmate"
 
-[node name="LineEdit" type="LineEdit" parent="CrewStatsAndInfo/HBoxContainer"]
+[node name="NameInput" type="LineEdit" parent="CrewStatsAndInfo/NameEntry"]
 layout_mode = 2
 size_flags_horizontal = 3
 

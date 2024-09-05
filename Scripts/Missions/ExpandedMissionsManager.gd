@@ -26,7 +26,8 @@ func generate_expanded_mission() -> Dictionary:
 		"primary_objective": _generate_primary_objective(mission_type),
 		"secondary_objectives": _generate_secondary_objectives(mission_type),
 		"rewards": _generate_rewards(mission_type),
-		"difficulty": randi_range(1, 5)
+		"difficulty": randi_range(1, 5),
+		"location": game_state.current_location  # Add this line
 	}
 	
 	return mission

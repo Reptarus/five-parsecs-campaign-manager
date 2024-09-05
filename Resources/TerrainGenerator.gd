@@ -3,7 +3,7 @@ extends Node
 
 var game_state: GameState
 
-func _init(_game_state: GameState) -> void:
+func _init(_game_state: GameState):
 	game_state = _game_state
 
 func generate_battlefield() -> Dictionary:

@@ -6,14 +6,15 @@ enum Type { WEAPON, ARMOR, GEAR, SHIP_COMPONENT }
 @export var name: String
 @export var type: Type
 @export var value: int
-@export var is_damaged: bool = false
 @export var description: String
+@export var is_damaged: bool = false
 
-func _init(_name: String = "", _type: Type = Type.GEAR, _value: int = 0, _description: String = "") -> void:
+func _init(_name: String = "", _type: Type = Type.GEAR, _value: int = 0, _description: String = "", _is_damaged: bool = false) -> void:
 	name = _name
 	type = _type
 	value = _value
 	description = _description
+	is_damaged = _is_damaged
 
 func repair() -> void:
 	is_damaged = false
@@ -29,16 +30,26 @@ func serialize() -> Dictionary:
 		"name": name,
 		"type": Type.keys()[type],
 		"value": value,
-		"is_damaged": is_damaged,
-		"description": description
+		"description": description,
+		"is_damaged": is_damaged
 	}
 
 static func deserialize(data: Dictionary) -> Equipment:
-	var equipment = Equipment.new(
+	var equipment_type = Type[data["type"]] if data["type"] in Type else Type.GEAR
+	return Equipment.new(
 		data["name"],
-		Type[data["type"]],
+		equipment_type,
 		data["value"],
-		data["description"]
+		data["description"],
+		data.get("is_damaged", false)
 	)
-	equipment.is_damaged = data["is_damaged"]
-	return equipment
+
+static func from_json(json_data: Dictionary) -> Equipment:
+	var equipment_type = Type[json_data["type"]] if json_data["type"] in Type else Type.GEAR
+	return Equipment.new(
+		json_data["name"],
+		equipment_type,
+		json_data["value"],
+		json_data["description"],
+		false  # Assuming new equipment from JSON is not damaged by default
+	)

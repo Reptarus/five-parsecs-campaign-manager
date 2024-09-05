@@ -5,14 +5,17 @@ extends Node
 var game_state: GameState
 var mission_generator: MissionGenerator
 
-func _init(_game_state: GameState):
+func _init():
+	pass
+
+func initialize(_game_state: GameState) -> void:
 	game_state = _game_state
-	mission_generator = MissionGenerator.new(game_state)
+	mission_generator = game_state.mission_generator
 
 func generate_patron_jobs() -> void:
 	for patron in game_state.patrons:
 		if should_generate_job(patron):
-			var new_job: Mission = mission_generator.generate_mission(MissionGenerator.MissionType.PATRON, patron)
+			var new_job: Mission = mission_generator.generate_mission(Mission.Type.PATRON, patron)
 			patron.add_mission(new_job)
 			game_state.add_available_mission(new_job)
 

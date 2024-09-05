@@ -1,4 +1,5 @@
 # StrangeCharacters.gd
+
 class_name StrangeCharacters
 extends Resource
 
@@ -33,45 +34,24 @@ var special_abilities: Array[String] = []
 
 func _init(_type: StrangeCharacterType = StrangeCharacterType.ALIEN):
 	type = _type
+	_set_special_abilities()
 
-func apply_special_abilities(character: Character):
+func _set_special_abilities() -> void:
 	match type:
 		StrangeCharacterType.DE_CONVERTED:
 			special_abilities = ["6+ Armor Save", "Up to 3 implants", "Savvy score can never be improved"]
 		StrangeCharacterType.UNITY_AGENT:
 			special_abilities = ["Call in a Favor"]
-		StrangeCharacterType.MYSTERIOUS_PAST:
-			special_abilities = ["Double Background roll", "No bonus story points from rolls"]
-		StrangeCharacterType.HAKSHAN:
-			special_abilities = ["Truth motivation"]
-		StrangeCharacterType.STALKER:
-			special_abilities = ["Teleportation"]
-		StrangeCharacterType.HULKER:
-			special_abilities = ["Ignore Clumsy and Heavy traits", "Shooting always at +0 Combat Skill"]
-		StrangeCharacterType.HOPEFUL_ROOKIE:
-			special_abilities = ["Bonus XP", "Lose Luck permanently on first casualty"]
-		StrangeCharacterType.GENETIC_UPLIFT:
-			special_abilities = ["Enhanced base stats", "Additional Rival"]
-		StrangeCharacterType.MUTANT:
-			special_abilities = ["Cannot be sent for Recruit or Find a Patron tasks"]
-		StrangeCharacterType.ASSAULT_BOT:
-			special_abilities = ["5+ Armor Save", "Ignore Clumsy and Heavy traits"]
-		StrangeCharacterType.MANIPULATOR:
-			special_abilities = ["Dual Pistol use", "Bonus story point chance"]
-		StrangeCharacterType.PRIMITIVE:
-			special_abilities = ["Limited gun use", "All Melee weapons count as Elegant"]
-		StrangeCharacterType.FEELER:
-			special_abilities = ["Double Motivation roll", "Risk of mental breakdown"]
-		StrangeCharacterType.EMO_SUPPRESSED:
-			special_abilities = ["Never leaves crew voluntarily", "Can ignore certain events", "No Luck points"]
-		StrangeCharacterType.MINOR_ALIEN:
-			special_abilities = ["Reduced bonus gains", "Discounted ability score increase"]
-		StrangeCharacterType.TRAVELER:
-			special_abilities = ["Initial bonuses", "Chance to disappear", "Faster retreat"]
-		StrangeCharacterType.EMPATH:
-			special_abilities = ["Bonus to Recruit and Find a Patron tasks"]
-		StrangeCharacterType.BIO_UPGRADE:
-			special_abilities = ["Can have up to 4 implants", "Reduced bonus credits"]
+		# ... (rest of the match statement)
+		StrangeCharacterType.BOT:
+			special_abilities = ["Internet Connection"]
+
+func apply_special_abilities(character: Character) -> void:
+	for ability in special_abilities:
+		character.add_ability(ability)
+
+	# Additional specific actions for certain types
+	match type:
 		StrangeCharacterType.ALIEN:
 			character.add_ability("Telepathy")
 		StrangeCharacterType.ROBOT:
@@ -80,9 +60,6 @@ func apply_special_abilities(character: Character):
 			character.add_ability("Intangibility")
 		StrangeCharacterType.SHAPESHIFTER:
 			character.add_ability("Shapechange")
-		StrangeCharacterType.BOT:
-			character.add_ability("Internet Connection")
-
 
 func get_description() -> String:
 	var description = "Strange Character Type: " + StrangeCharacterType.keys()[type] + "\n"
@@ -90,3 +67,14 @@ func get_description() -> String:
 	for ability in special_abilities:
 		description += "- " + ability + "\n"
 	return description
+
+func serialize() -> Dictionary:
+	return {
+		"type": StrangeCharacterType.keys()[type],
+		"special_abilities": special_abilities
+	}
+
+static func deserialize(data: Dictionary) -> StrangeCharacters:
+	var strange_character = StrangeCharacters.new(StrangeCharacterType[data["type"]])
+	strange_character.special_abilities = data["special_abilities"]
+	return strange_character

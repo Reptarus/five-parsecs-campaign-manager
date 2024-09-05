@@ -1,10 +1,10 @@
 class_name CharacterCreationData
 extends Resource
 
-enum Race { HUMAN, ENGINEER, KERIN, SOULLESS, PRECURSOR, FERAL, SWIFT, BOT }
-enum Background { HIGH_TECH_COLONY, OVERCROWDED_CITY, LOW_TECH_COLONY, MINING_COLONY, MILITARY_BRAT, SPACE_STATION }
-enum Motivation { WEALTH, FAME, GLORY, SURVIVAL, ESCAPE, ADVENTURE }
-enum Class { WORKING_CLASS, TECHNICIAN, SCIENTIST, HACKER, SOLDIER, MERCENARY }
+const Race = GlobalEnums.Race
+const Background = GlobalEnums.Background
+const Motivation = GlobalEnums.Motivation
+const Class = GlobalEnums.Class
 
 const RACE_TRAITS = {
 	Race.HUMAN: {},
@@ -85,7 +85,7 @@ const NAMES = [
 	"Isaac", "Julia", "Kevin", "Laura", "Michael", "Natalie", "Oliver", "Penny"
 ]
 
-static func get_race_traits(race: Race) -> Dictionary:
+static func get_race_traits(race: Character.Race) -> String:
 	return RACE_TRAITS.get(race, {})
 
 static func get_background_stats(background: Background) -> Dictionary:

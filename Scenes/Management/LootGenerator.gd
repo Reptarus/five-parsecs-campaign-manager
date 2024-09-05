@@ -1,6 +1,11 @@
 class_name LootGenerator
 extends Node
 
+var game_state: GameState
+
+func _init(_game_state: GameState):
+	game_state = _game_state
+
 enum LootType {
 	WEAPON,
 	ARMOR,
@@ -18,11 +23,6 @@ const LOOT_TABLE: Dictionary = {
 	LootType.CREDITS: 20,
 	LootType.STORY_POINT: 5
 }
-
-var game_state: GameState
-
-func _init(_game_state: GameState) -> void:
-	game_state = _game_state
 
 func generate_loot() -> Dictionary:
 	var loot_type: LootType = _get_random_loot_type()
@@ -152,12 +152,25 @@ func _generate_consumable_effect() -> String:
 func apply_loot(character: Character, loot: Dictionary) -> void:
 	match loot.type:
 		"Weapon", "Armor", "Gear", "Consumable":
-			character.inventory.add_item(Equipment.new(loot.name, loot))
+			var equipment_type: Equipment.Type
+			match loot.type:
+				"Weapon":
+					equipment_type = Equipment.Type.WEAPON
+				"Armor":
+					equipment_type = Equipment.Type.ARMOR
+				"Gear":
+					equipment_type = Equipment.Type.GEAR
+				"Consumable":
+					equipment_type = Equipment.Type.GEAR  # Assuming consumables are treated as gear
+			
+			var new_equipment = Equipment.new(loot.name, equipment_type, loot.get("value", 0), loot.get("description", ""))
+			character.inventory.add_item(new_equipment)
+		
 		"Credits":
 			game_state.add_credits(loot.amount)
 		"Story Point":
 			game_state.add_story_points(loot.amount)
 		_:
 			push_error("Invalid loot type: " + loot.type)
-
-	print(character.name + " received " + loot.name if "name" in loot else loot.type)
+	
+	print(character.name + " received " + (loot.name if "name" in loot else loot.type))

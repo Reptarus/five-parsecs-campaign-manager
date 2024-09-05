@@ -3,10 +3,10 @@ extends Resource
 
 enum Type { STAR_SYSTEM, PLANET, CITY }
 
-@export var name: String
-@export var type: Type
+@export var name: String = ""
+@export var type: Type = Type.STAR_SYSTEM
 @export var traits: Array[String] = []
-@export var parent: Location  # null for star systems
+@export var parent: Location = null
 @export var children: Array[Location] = []
 
 func _init(_name: String = "", _type: Type = Type.STAR_SYSTEM, _parent: Location = null) -> void:
@@ -27,15 +27,15 @@ func get_full_name() -> String:
 		return parent.get_full_name() + " - " + name
 	return name
 
-func add_trait(trait: String) -> void:
-	if trait not in traits:
-		traits.append(trait)
+func add_trait(new_trait: String) -> void:
+	if not traits.has(new_trait):
+		traits.append(new_trait)
 
-func remove_trait(trait: String) -> void:
-	traits.erase(trait)
+func remove_trait(trait_to_remove: String) -> void:
+	traits.erase(trait_to_remove)
 
-func has_trait(trait: String) -> bool:
-	return trait in traits
+func has_trait(trait_to_check: String) -> bool:
+	return traits.has(trait_to_check)
 
 func get_traits() -> Array[String]:
 	return traits
@@ -46,7 +46,7 @@ func serialize() -> Dictionary:
 		"type": Type.keys()[type],
 		"traits": traits,
 		"parent": parent.serialize() if parent else null,
-		"children": children.map(func(c: Location) -> Dictionary: return c.serialize())
+		"children": children.map(func(c): return c.serialize())
 	}
 
 static func deserialize(data: Dictionary) -> Location:

@@ -2,7 +2,7 @@ class_name Gear
 extends Equipment
 
 var gear_type: String
-var description: String
+
 
 func _init(p_name: String = "", p_description: String = "", p_gear_type: String = "", p_level: int = 1):
 	super._init(p_name, Equipment.Type.GEAR, p_level)

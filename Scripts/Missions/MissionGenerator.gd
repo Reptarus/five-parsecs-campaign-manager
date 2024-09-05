@@ -3,7 +3,10 @@ extends Node
 
 var game_state: GameState
 
-func _init(_game_state: GameState) -> void:
+func _init():
+	pass
+
+func initialize(_game_state: GameState) -> void:
 	game_state = _game_state
 
 func generate_mission(mission_type: Mission.Type = Mission.Type.OPPORTUNITY, patron: Patron = null) -> Mission:
@@ -14,14 +17,13 @@ func generate_mission(mission_type: Mission.Type = Mission.Type.OPPORTUNITY, pat
 	var time_limit = generate_time_limit(template)
 	var rewards = generate_rewards(template)
 	var objectives = generate_objectives(template)
-	var enemy_force = generate_enemy_force(template)
-	var deployment_condition = generate_deployment_condition(template)
-	var notable_sight = generate_notable_sight(template)
 
-	var mission = Mission.new(title, description, mission_type, patron, location, time_limit, rewards, objectives)
-	mission.enemy_force = enemy_force
-	mission.deployment_condition = deployment_condition
-	mission.notable_sight = notable_sight
+	var mission = Mission.new(title, description, mission_type, template.objective)
+	mission.patron = patron
+	mission.location = location
+	mission.time_limit = time_limit
+	mission.rewards = rewards
+	mission.objectives = objectives
 
 	if patron:
 		patron.add_mission(mission)

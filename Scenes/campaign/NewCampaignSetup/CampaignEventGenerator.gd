@@ -3,7 +3,7 @@ extends Node
 
 var game_state: GameState
 
-func _init(_game_state: GameState) -> void:
+func _init(_game_state: GameState):
 	game_state = _game_state
 
 func generate_event() -> Dictionary:
@@ -55,5 +55,3 @@ func get_event_effect(event_type: String) -> Callable:
 			return func(): pass  # Implement availability or price changes for certain items
 		_:
 			return func(): pass  # Default no-op function
-
-# ... (any additional methods)

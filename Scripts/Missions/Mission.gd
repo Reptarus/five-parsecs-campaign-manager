@@ -1,7 +1,7 @@
 class_name Mission
 extends Resource
 
-const Location = preload("res://Scripts/Locations/Location.gd")
+const LocationClass = preload("res://Scripts/Locations/Location.gd")
 
 enum Type { OPPORTUNITY, PATRON, QUEST, RIVAL }
 enum Status { ACTIVE, COMPLETED, FAILED }

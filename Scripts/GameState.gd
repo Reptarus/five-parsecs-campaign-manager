@@ -30,17 +30,25 @@ var terrain_generator: TerrainGenerator
 var gear_database: GearDatabase
 
 func _init() -> void:
-	mission_generator = MissionGenerator.new(self)
+	mission_generator = MissionGenerator.new()
 	equipment_manager = EquipmentManager.new()
-	patron_job_manager = PatronJobManager.new(self)
-	campaign_event_generator = CampaignEventGenerator.new()
-	loot_generator = LootGenerator.new()
+	patron_job_manager = PatronJobManager.new()
+	campaign_event_generator = CampaignEventGenerator.new(self)
+	loot_generator = LootGenerator.new(self)
 	economy_manager = EconomyManager.new(self)
-	terrain_generator = TerrainGenerator.new()
+	terrain_generator = TerrainGenerator.new(self)
 	gear_database = GearDatabase.new()
+
+	mission_generator.initialize(self)
+	patron_job_manager.initialize(self)
+	campaign_event_generator.initialize(self)
+	loot_generator.initialize(self)
+	economy_manager.initialize(self)
+	terrain_generator.initialize(self)
+
 	gear_database.load_from_file("res://data/gear_database.json")
 
-# ... rest of the GameState.gd code ...
+
 
 func change_state(new_state: State) -> void:
 	current_state = new_state
