@@ -1,0 +1,133 @@
+{
+  "travel_events": [
+	{
+	  "name": "Asteroids",
+	  "description": "Rocky debris everywhere, maybe from a recent collision?",
+	  "effect": "Roll to avoid damage or use Probe Launcher. On failure, take 1D6 Hull damage."
+	},
+	{
+	  "name": "Navigation Trouble",
+	  "description": "Is this place even on the star maps?",
+	  "effect": "Lose 1 story point. If ship is damaged, roll 1D6. On 1-2, a random crew member suffers an injury."
+	},
+	{
+	  "name": "Raided",
+	  "description": "Your vessel catches the eye of some pirates.",
+	  "effect": "Roll 2D6 + highest Savvy. On 7+, intimidate pirates. Otherwise, engage in battle."
+	},
+	{
+	  "name": "Deep Space Wreckage",
+	  "description": "You find an old wreck drifting through empty space.",
+	  "effect": "Gain two damaged items of random type and quality."
+	},
+	{
+	  "name": "Drive Trouble",
+	  "description": "It's not supposed to make that sound.",
+	  "effect": "Roll 3 times, needing 6+ on 2D6 + highest Savvy. Each failure grounds ship for 1 turn."
+	},
+	{
+	  "name": "Down-time",
+	  "description": "It's a long time to just sit here.",
+	  "effect": "A random crew member gains 1 XP. Attempt to repair one random damaged item."
+	},
+	{
+	  "name": "Distress Call",
+	  "description": "\"This is Licensed Trader Cyberwolf\".",
+	  "effect": "Roll 1D6. 1: Take 1D6+1 Hull damage. 2: Find wreckage. 3-4: Rescue new crew member. 5-6: Save ship, gain reward or take damage."
+	},
+	{
+	  "name": "Patrol Ship",
+	  "description": "A Unity patrol vessel hails you.",
+	  "effect": "Roll 2D6-3 for each of two random items. On success, item is confiscated. Next world cannot be Invaded."
+	},
+	{
+	  "name": "Cosmic Phenomenon",
+	  "description": "A crew member sees a strange manifestation in space.",
+	  "effect": "Random crew member gains 1 Luck. If you have a Precursor, gain 1 story point."
+	},
+	{
+	  "name": "Escape Pod",
+	  "description": "You find an escape pod drifting through space.",
+	  "effect": "Roll 1D6. 1: Gain Rival. 2-3: Gain credits and item. 4: Gain Quest Rumor and story point. 5-6: Gain new crew member."
+	}
+  ],
+  "mission_events": [
+	{
+	  "name": "Unexpected Ally",
+	  "description": "A stranger offers assistance during your mission.",
+	  "effect": "Gain a temporary ally (use Skulker stats) for this mission only."
+	},
+	{
+	  "name": "Equipment Malfunction",
+	  "description": "A critical piece of gear stops working at the worst moment.",
+	  "effect": "One random piece of equipment is damaged and cannot be used for the rest of the mission."
+	},
+	{
+	  "name": "Hostile Environment",
+	  "description": "The local conditions are worse than expected.",
+	  "effect": "All characters take a -1 penalty to all rolls for the duration of the mission."
+	},
+	{
+	  "name": "Lucky Break",
+	  "description": "An unexpected opportunity presents itself.",
+	  "effect": "Gain advantage (roll twice, take best result) on your next roll or action."
+	},
+	{
+	  "name": "Rival Interference",
+	  "description": "One of your rivals shows up to complicate matters.",
+	  "effect": "Add an additional enemy group (use Rival crew stats) to the current encounter."
+	},
+	{
+	  "name": "Hidden Cache",
+	  "description": "You stumble upon a hidden stash of goods.",
+	  "effect": "Roll twice on the Loot Table and choose one item to keep."
+	},
+	{
+	  "name": "Local Uprising",
+	  "description": "The locals are rebelling against the current authorities.",
+	  "effect": "Choose to either help the rebels (+1 Reputation, -100 credits) or the authorities (-1 Reputation, +100 credits)."
+	},
+	{
+	  "name": "Time Pressure",
+	  "description": "You receive word that you have less time than initially thought.",
+	  "effect": "The mission must be completed in half the original number of turns, rounded up."
+	},
+	{
+	  "name": "Reinforcements",
+	  "description": "Enemy reinforcements arrive unexpectedly.",
+	  "effect": "Add 1D3 enemies of the same type as the current encounter to the battlefield."
+	},
+	{
+	  "name": "Tactical Advantage",
+	  "description": "You spot a weakness in the enemy's defenses.",
+	  "effect": "Your next attack against any enemy automatically hits and deals maximum damage."
+	}
+  ],
+  "post_mission_events": [
+	{
+	  "name": "Celebratory Mood",
+	  "description": "The successful mission has lifted everyone's spirits.",
+	  "effect": "All crew members recover 1 stress."
+	},
+	{
+	  "name": "Loot Discovery",
+	  "description": "While leaving the mission area, you find some overlooked valuables.",
+	  "effect": "Roll once on the Loot Table."
+	},
+	{
+	  "name": "Medical Emergency",
+	  "description": "One of your crew members' wounds turns out to be worse than initially thought.",
+	  "effect": "A random crew member who took damage during the mission must roll on the Injury Table."
+	},
+	{
+	  "name": "Reputation Boost",
+	  "description": "Word of your success spreads quickly.",
+	  "effect": "Gain +1 Reputation in the current star system."
+	},
+	{
+	  "name": "Gear Degradation",
+	  "description": "The wear and tear of the mission has taken its toll on your equipment.",
+	  "effect": "One random piece of gear or weapon is damaged and requires repair."
+	}
+  ]
+}

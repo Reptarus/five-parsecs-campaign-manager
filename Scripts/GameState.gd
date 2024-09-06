@@ -13,6 +13,7 @@ enum DifficultyMode { NORMAL, HARDCORE, INSANITY }
 @export var current_mission: Mission
 @export var credits: int = 0
 @export var story_points: int = 0
+@export var current_turn: int = 0
 @export var campaign_turn: int = 0
 @export var available_missions: Array[Mission] = []
 @export var active_quests: Array[Quest] = []

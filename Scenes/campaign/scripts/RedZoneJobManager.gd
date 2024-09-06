@@ -64,7 +64,7 @@ func generate_black_zone_job() -> Mission:
 
 func apply_black_zone_modifiers(mission: Mission):
 	mission.enemy_type = "Roving Threats"
-	mission.objective = generate_black_zone_objective()
+	mission.objective = Mission.Objective.SOME_ENUM_VALUE
 	mission.setup_black_zone_opposition()
 
 func generate_black_zone_objective() -> String:

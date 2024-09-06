@@ -87,14 +87,36 @@ func choose_battle() -> void:
 func get_world_traits() -> Array[String]:
 	return game_state.current_location.get_traits()
 
-func apply_world_trait_effects() -> void:
-	var traits = get_world_traits()
-	for trait in traits:
-		match trait:
+for trait in traits:
+	match trait:
 			"Haze":
-				game_state.current_battle.visibility = randi() % 6 + 8
+			game_state.current_battle.visibility = randi() % 6 + 8
 			"Overgrown":
-				game_state.current_battle.add_vegetation(randi() % 6 + 2)
+			game_state.current_battle.add_vegetation(randi() % 6 + 2)
+			"Darkness":
+				game_state.current_battle.visibility = randi() % 6 + 4
+			"Radiation":
+				game_state.current_battle.add_radiation(randi() % 3)
+			"Wildlife":
+				game_state.current_battle.spawn_wildlife(randi() % 2 + 1)
+			"Resource rich":
+				game_state.enable_extra_mining_action()
+			"Stormy":
+				game_state.current_battle.add_weather_penalty()
+			"High tech":
+				game_state.enable_extra_repair_action()
+			"Tourist destination":
+				game_state.enable_extra_trade_action()
+			"Underground":
+				game_state.current_battle.add_cave_features()
+			"Swamp":
+				game_state.current_battle.add_swamp_features()
+			"Harsh climate":
+				game_state.current_battle.add_climate_penalty()
+			"Alien artifacts":
+				game_state.enable_extra_explore_action()
+			"High gravity":
+				game_state.current_battle.add_gravity_penalty()
 			"Warzone":
 				game_state.current_battle.add_ruins(randi() % 3)
 			"Heavily enforced":

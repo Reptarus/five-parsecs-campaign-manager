@@ -1,19 +1,218 @@
 {
-	"Booster pills": {
-		"name": "Booster pills",
-		"description": "When taken, the character removes all Stun markers. They may move at double normal Speed this round.",
-		"gear_type": "Consumable",
-		"level": 1,
-		"value": 100,
-		"is_damaged": false
-	},
-	"Combat serum": {
-		"name": "Combat serum",
-		"description": "The character receives +2\" Speed and +2 Reactions for the rest of the battle.",
-		"gear_type": "Consumable",
-		"level": 2,
-		"value": 200,
-		"is_damaged": false
-	}
-	// ... add all other gear items here
+  "gear_database": {
+	"weapons": [
+	  {
+		"name": "Fury Rifle",
+		"type": "Military",
+		"damage": 2,
+		"range": 24,
+		"shots": 2,
+		"traits": ["Heavy"],
+		"value": 300
+	  },
+	  {
+		"name": "Blast Pistol",
+		"type": "Military",
+		"damage": 1,
+		"range": 12,
+		"shots": 1,
+		"traits": ["Pistol"],
+		"value": 150
+	  },
+	  {
+		"name": "Shatter Axe",
+		"type": "Melee",
+		"damage": 2,
+		"range": 0,
+		"traits": ["Melee"],
+		"value": 200
+	  },
+	  {
+		"name": "Plasma Cannon",
+		"type": "High-Tech",
+		"damage": 3,
+		"range": 18,
+		"shots": 1,
+		"traits": ["Heavy", "Energy"],
+		"value": 500
+	  },
+	  {
+		"name": "Sniper Rifle",
+		"type": "Military",
+		"damage": 2,
+		"range": 36,
+		"shots": 1,
+		"traits": ["Accurate"],
+		"value": 400
+	  },
+	  {
+		"name": "Flechette Gun",
+		"type": "Military",
+		"damage": 1,
+		"range": 18,
+		"shots": 3,
+		"traits": ["Rapid Fire"],
+		"value": 350
+	  },
+	  {
+		"name": "Neural Whip",
+		"type": "High-Tech",
+		"damage": 1,
+		"range": 6,
+		"shots": 1,
+		"traits": ["Melee", "Stun"],
+		"value": 250
+	  }
+	],
+	"armor": [
+	  {
+		"name": "Combat Vest",
+		"type": "Light",
+		"defense": 1,
+		"traits": ["Light"],
+		"value": 200
+	  },
+	  {
+		"name": "Battle Suit",
+		"type": "Medium",
+		"defense": 2,
+		"traits": ["Powered"],
+		"value": 400
+	  },
+	  {
+		"name": "Ablative Plates",
+		"type": "Heavy",
+		"defense": 3,
+		"traits": ["Heavy", "Cumbersome"],
+		"value": 600
+	  },
+	  {
+		"name": "Stealth Suit",
+		"type": "Light",
+		"defense": 1,
+		"traits": ["Stealthy"],
+		"value": 500
+	  },
+	  {
+		"name": "Energy Shield",
+		"type": "High-Tech",
+		"defense": 2,
+		"traits": ["Energy", "Rechargeable"],
+		"value": 800
+	  }
+	],
+	"gear": [
+	  {
+		"name": "Medkit",
+		"type": "Medical",
+		"effect": "Heal 2 wounds",
+		"uses": 3,
+		"value": 100
+	  },
+	  {
+		"name": "Grappling Hook",
+		"type": "Utility",
+		"effect": "Climb vertical surfaces",
+		"uses": -1,
+		"value": 150
+	  },
+	  {
+		"name": "Motion Tracker",
+		"type": "Tech",
+		"effect": "Detect movement within 12\"",
+		"uses": -1,
+		"value": 200
+	  },
+	  {
+		"name": "Holo-Projector",
+		"type": "Tech",
+		"effect": "Create illusory duplicate",
+		"uses": 2,
+		"value": 300
+	  },
+	  {
+		"name": "Jet Pack",
+		"type": "Mobility",
+		"effect": "Fly 12\" in any direction",
+		"uses": 3,
+		"value": 500
+	  },
+	  {
+		"name": "Camo-Cloak",
+		"type": "Stealth",
+		"effect": "+2 to stealth rolls",
+		"uses": -1,
+		"value": 400
+	  }
+	],
+	"consumables": [
+	  {
+		"name": "Stim Pack",
+		"type": "Medical",
+		"effect": "Remove all Stun markers and gain +1 to all rolls for one turn",
+		"uses": 1,
+		"value": 50
+	  },
+	  {
+		"name": "Frag Grenade",
+		"type": "Explosive",
+		"effect": "3\" radius, 2D6 damage",
+		"uses": 1,
+		"value": 75
+	  },
+	  {
+		"name": "Smoke Bomb",
+		"type": "Utility",
+		"effect": "Create 4\" radius of smoke, blocking line of sight",
+		"uses": 1,
+		"value": 40
+	  },
+	  {
+		"name": "Repair Nanites",
+		"type": "Tech",
+		"effect": "Repair 2 damage to armor or equipment",
+		"uses": 1,
+		"value": 100
+	  },
+	  {
+		"name": "Combat Drugs",
+		"type": "Medical",
+		"effect": "+2 to all Combat rolls for 3 turns, then suffer 1 Stun",
+		"uses": 1,
+		"value": 150
+	  }
+	],
+	"implants": [
+	  {
+		"name": "Subdermal Armor",
+		"type": "Defensive",
+		"effect": "+1 to all saving throws",
+		"value": 1000
+	  },
+	  {
+		"name": "Reflex Enhancer",
+		"type": "Combat",
+		"effect": "+1 to initiative rolls",
+		"value": 800
+	  },
+	  {
+		"name": "Targeting Array",
+		"type": "Combat",
+		"effect": "+1 to hit rolls with ranged weapons",
+		"value": 1200
+	  },
+	  {
+		"name": "Neural Processor",
+		"type": "Utility",
+		"effect": "+1 to all Savvy-based skill checks",
+		"value": 1500
+	  },
+	  {
+		"name": "Cybernetic Limb",
+		"type": "Augmentation",
+		"effect": "+1 to Strength or Agility-based rolls (choose when implanted)",
+		"value": 2000
+	  }
+	]
+  }
 }

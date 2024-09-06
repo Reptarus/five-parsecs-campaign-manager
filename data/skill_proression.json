@@ -1,0 +1,42 @@
+{
+  "skill_progression": [
+	{
+	  "skill_name": "Reactions",
+	  "xp_cost": 7,
+	  "max_value": 6
+	},
+	{
+	  "skill_name": "Combat Skill",
+	  "xp_cost": 7,
+	  "max_value": 5
+	},
+	{
+	  "skill_name": "Speed",
+	  "xp_cost": 5,
+	  "max_value": 8
+	},
+	{
+	  "skill_name": "Savvy",
+	  "xp_cost": 5,
+	  "max_value": 5
+	},
+	{
+	  "skill_name": "Toughness",
+	  "xp_cost": 6,
+	  "max_value": 6
+	},
+	{
+	  "skill_name": "Luck",
+	  "xp_cost": 10,
+	  "max_value": {
+		"default": 1,
+		"human": 3
+	  }
+	}
+  ],
+  "special_rules": [
+	"Engineer characters cannot raise their Toughness above 4.",
+	"Bot characters may install upgrades to any ability score by paying credits equal to the XP cost. Each ability score can be upgraded only once.",
+	"Soulless use the normal XP process and cannot buy Bot upgrades."
+  ]
+}

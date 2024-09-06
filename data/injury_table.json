@@ -1,0 +1,140 @@
+{
+  "injury_tables": {
+	"human_injury_table": [
+	  {
+		"roll_range": [1, 5],
+		"result": "Gruesome fate",
+		"effects": [
+		  "Character is dead",
+		  "All carried equipment is damaged"
+		],
+		"recovery_time": "N/A"
+	  },
+	  {
+		"roll_range": [6, 15],
+		"result": "Death or permanent injury",
+		"effects": [
+		  "Character is either dead or permanently removed from the campaign (player's choice)",
+		  "If removed, they may keep one carried item, the rest are lost"
+		],
+		"recovery_time": "N/A"
+	  },
+	  {
+		"roll_range": [16, 16],
+		"result": "Miraculous escape",
+		"effects": [
+		  "Character survives against all odds",
+		  "Gain +1 Luck",
+		  "All carried items are permanently lost"
+		],
+		"recovery_time": "1D3 campaign turns"
+	  },
+	  {
+		"roll_range": [17, 30],
+		"result": "Equipment loss",
+		"effects": [
+		  "One random carried item is damaged"
+		],
+		"recovery_time": "Immediate"
+	  },
+	  {
+		"roll_range": [31, 45],
+		"result": "Crippling wound",
+		"effects": [
+		  "Require 1D6 credits of surgery immediately",
+		  "If surgery not performed, suffer -1 permanent reduction to highest of Speed or Toughness"
+		],
+		"recovery_time": "1D6 campaign turns"
+	  },
+	  {
+		"roll_range": [46, 54],
+		"result": "Serious injury",
+		"effects": [
+		  "No long-term effect, but character is out of action for some time"
+		],
+		"recovery_time": "1D3+1 campaign turns"
+	  },
+	  {
+		"roll_range": [55, 80],
+		"result": "Minor injuries",
+		"effects": [
+		  "No long-term effect, but character needs some rest"
+		],
+		"recovery_time": "1 campaign turn"
+	  },
+	  {
+		"roll_range": [81, 95],
+		"result": "Knocked out",
+		"effects": [
+		  "Character regains consciousness after the battle",
+		  "No long-term effect"
+		],
+		"recovery_time": "Immediate"
+	  },
+	  {
+		"roll_range": [96, 100],
+		"result": "School of hard knocks",
+		"effects": [
+		  "Character learns from the close call",
+		  "Gain 1 XP"
+		],
+		"recovery_time": "Immediate"
+	  }
+	],
+	"bot_injury_table": [
+	  {
+		"roll_range": [1, 5],
+		"result": "Obliterated",
+		"effects": [
+		  "Bot is destroyed beyond repair",
+		  "All carried equipment is damaged"
+		],
+		"repair_time": "N/A"
+	  },
+	  {
+		"roll_range": [6, 15],
+		"result": "Destroyed",
+		"effects": [
+		  "Bot is destroyed but may be salvageable",
+		  "Requires 2D6 x 10 credits in parts to repair"
+		],
+		"repair_time": "2D6 campaign turns"
+	  },
+	  {
+		"roll_range": [16, 30],
+		"result": "Equipment loss",
+		"effects": [
+		  "One random carried item is damaged"
+		],
+		"repair_time": "Immediate"
+	  },
+	  {
+		"roll_range": [31, 45],
+		"result": "Severe damage",
+		"effects": [
+		  "Bot is non-functional until repaired",
+		  "Requires 1D6 x 5 credits in parts to repair"
+		],
+		"repair_time": "1D6 campaign turns"
+	  },
+	  {
+		"roll_range": [46, 65],
+		"result": "Minor damage",
+		"effects": [
+		  "Bot is functional but at reduced capacity",
+		  "-1 to all rolls until repaired"
+		],
+		"repair_time": "1 campaign turn"
+	  },
+	  {
+		"roll_range": [66, 100],
+		"result": "Just a few dents",
+		"effects": [
+		  "No significant damage",
+		  "Bot remains fully operational"
+		],
+		"repair_time": "Immediate"
+	  }
+	]
+  }
+}

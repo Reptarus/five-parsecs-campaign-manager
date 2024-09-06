@@ -1,6 +1,6 @@
 [gd_scene load_steps=2 format=3 uid="uid://belfwiqii3x62"]
 
-[ext_resource type="Script" path="res://Scenes/campaign/scripts/PreBattle.gd" id="1_5g11f"]
+[ext_resource type="Script" path="res://Scenes/campaign/scripts/PreBattleSceneScript.gd" id="1_5g11f"]
 
 [node name="PreBattle" type="Control"]
 layout_mode = 3

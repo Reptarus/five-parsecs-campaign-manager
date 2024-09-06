@@ -142,8 +142,7 @@ func distress_call_event() -> Dictionary:
 					game_state.current_crew.add_member(new_crew)
 					return "Rescued a crew member: " + new_crew.name
 				5, 6:
-					var roll = randi() % 6 + 1 + game_state.current_crew.get_best_savvy()
-					if roll >= 7:
+					if roll + game_state.current_crew.get_best_savvy() >= 7:
 						var loot = game_state.loot_generator.generate_loot()
 						game_state.add_to_inventory(loot)
 						return "Successfully saved the ship. Received " + loot.name + " as reward."
@@ -191,7 +190,7 @@ func escape_pod_event() -> Dictionary:
 			var roll = randi() % 6 + 1
 			match roll:
 				1:
-					game_state.add_rival()
+					game_state.add_rival(Rival)
 					return "Rescued a wanted criminal. Gained a new Rival."
 				2, 3:
 					var credits = randi() % 3 + 1

@@ -1,4 +1,4 @@
-class_name PreBattleLoop
+# PreBattleLoop.gd
 extends Node
 
 enum TaskType { TRADE, EXPLORE, TRAIN, RECRUIT, FIND_PATRON, REPAIR, REST }
@@ -43,49 +43,47 @@ func perform_task(character: Character, task: TaskType) -> void:
 			rest(character)
 
 func trade(character: Character) -> void:
-	var credits_earned = randi_range(1, 6) * 10
-	game_state.current_crew.add_credits(credits_earned)
-	print("%s earned %d credits through trading." % [character.name, credits_earned])
-	
-	if randf() < 0.3:  # 30% chance to find equipment
-		var equipment = generate_random_equipment()
-		character.inventory.add_item(equipment)
-		print("%s acquired %s while trading." % [character.name, equipment.name])
+	var roll = randi() % 100
+	if roll < 30:
+		var credits_earned = randi() % 6 * 10 + 10
+		game_state.current_crew.add_credits(credits_earned)
+		print("%s earned %d credits through trading." % [character.name, credits_earned])
+	elif roll < 60:
+		var item = generate_random_equipment()
+		character.inventory.add_item(item)
+		print("%s acquired %s while trading." % [character.name, item.name])
+	else:
+		print("%s couldn't find any good deals while trading." % character.name)
 
 func explore(character: Character) -> void:
-	var current_location = game_state.current_crew.current_location
-	var exploration_result = randi() % 100
-	
-	if exploration_result < 20:
+	var roll = randi() % 100
+	if roll < 20:
 		var rumor = generate_rumor()
 		game_state.add_rumor(rumor)
 		print("%s discovered a rumor: %s" % [character.name, rumor])
-	elif exploration_result < 40:
-		var credits_found = randi_range(1, 3) * 5
+	elif roll < 40:
+		var credits_found = randi() % 3 * 5 + 5
 		game_state.current_crew.add_credits(credits_found)
 		print("%s found %d credits while exploring." % [character.name, credits_found])
-	elif exploration_result < 60:
+	elif roll < 60:
 		var item = generate_random_equipment()
 		character.inventory.add_item(item)
 		print("%s found %s while exploring." % [character.name, item.name])
-	elif exploration_result < 80:
-		print("%s had an uneventful exploration of %s." % [character.name, current_location.name])
 	else:
-		var xp_gained = randi_range(1, 3)
-		character.gain_experience(xp_gained)
-		print("%s gained %d XP from an interesting discovery." % [character.name, xp_gained])
+		print("%s had an uneventful exploration." % character.name)
 
 func train(character: Character) -> void:
 	var skill_to_improve = character.get_random_skill()
-	var xp_gained = randi_range(1, 3)
+	var xp_gained = randi() % 3 + 1
 	character.improve_skill(skill_to_improve, xp_gained)
 	print("%s trained %s and gained %d XP." % [character.name, skill_to_improve, xp_gained])
 
 func recruit(character: Character) -> void:
-	if game_state.current_crew.get_member_count() < game_state.current_crew.max_members:
+	var crew = game_state.current_crew
+	if crew.get_member_count() < crew.max_members:
 		if randf() < 0.4:  # 40% chance to find a recruit
 			var new_recruit = Character.create_random_character()
-			game_state.current_crew.add_member(new_recruit)
+			crew.add_member(new_recruit)
 			print("%s successfully recruited %s to join the crew." % [character.name, new_recruit.name])
 		else:
 			print("%s couldn't find any suitable recruits." % character.name)
@@ -94,7 +92,7 @@ func recruit(character: Character) -> void:
 
 func find_patron(character: Character) -> void:
 	if randf() < 0.3:  # 30% chance to find a patron
-		var new_patron = Patron.new()  # Assuming you have a Patron class
+		var new_patron = Patron.new()
 		game_state.add_patron(new_patron)
 		print("%s found a new patron: %s" % [character.name, new_patron.name])
 	else:
@@ -110,12 +108,12 @@ func repair(character: Character) -> void:
 		else:
 			print("%s attempted to repair %s but failed." % [character.name, item_to_repair.name])
 	else:
-		var ship_repair_amount = randi_range(1, 5)
+		var ship_repair_amount = randi() % 5 + 1
 		game_state.current_crew.ship.repair(ship_repair_amount)
 		print("%s repaired the ship, restoring %d hull points." % [character.name, ship_repair_amount])
 
 func rest(character: Character) -> void:
-	var stress_recovered = randi_range(1, 3)
+	var stress_recovered = randi() % 3 + 1
 	character.reduce_stress(stress_recovered)
 	if character.is_injured():
 		character.heal(1)
@@ -124,41 +122,37 @@ func rest(character: Character) -> void:
 		print("%s rested and recovered %d stress." % [character.name, stress_recovered])
 
 func generate_random_equipment() -> Equipment:
-	var equipment_types = ["Weapon", "Armor", "Gadget", "Medical"]
-	var chosen_type = equipment_types[randi() % equipment_types.size()]
-	
-	match chosen_type:
-		"Weapon":
-			return generate_random_weapon()
-		"Armor":
-			return generate_random_armor()
-		"Gadget":
-			return generate_random_gadget()
-		"Medical":
-			return generate_random_medical()
+	var equipment_type = randi() % 4  # 0: Weapon, 1: Armor, 2: Gear, 3: Medical
+	match equipment_type:
+		0: return generate_random_weapon()
+		1: return generate_random_armor()
+		2: return generate_random_gear()
+		3: return generate_random_medical_item()
+	return null  # This should never happen
 
 func generate_random_weapon() -> Weapon:
-	var weapon_names = ["Laser Pistol", "Plasma Rifle", "Gauss Cannon", "Vibro-Blade"]
-	var name = weapon_names[randi() % weapon_names.size()]
-	var damage = randi_range(1, 4)
-	return Weapon.new(name, damage)
+	var weapon_types = ["Pistol", "Rifle", "Shotgun", "Heavy Weapon"]
+	var weapon_name = weapon_types[randi() % weapon_types.size()]
+	var damage = randi() % 5 + 1
+	var range = randi() % 10 + 1
+	return Weapon.new(weapon_name, Weapon.WeaponType.MILITARY, range, 1, damage)
 
-func generate_random_armor() -> Armor:
-	var armor_names = ["Combat Vest", "Energy Shield", "Nano-weave Suit", "Powered Exoskeleton"]
-	var name = armor_names[randi() % armor_names.size()]
-	var defense = randi_range(1, 3)
-	return Armor.new(name, defense)
+func generate_random_armor() -> Equipment:
+	var armor_types = ["Light Armor", "Medium Armor", "Heavy Armor"]
+	var armor_name = armor_types[randi() % armor_types.size()]
+	var defense = randi() % 5 + 1
+	return Equipment.new(armor_name, Equipment.Type.ARMOR, defense)
 
-func generate_random_gadget() -> Gadget:
-	var gadget_names = ["Holo-projector", "Grav-boots", "Cloaking Device", "Neural Implant"]
-	var name = gadget_names[randi() % gadget_names.size()]
-	return Gadget.new(name)
+func generate_random_gear() -> Gear:
+	var gear_types = ["Medkit", "Repair Kit", "Stealth Field", "Jetpack"]
+	var gear_name = gear_types[randi() % gear_types.size()]
+	return Gear.new(gear_name, "A useful piece of equipment", "Utility", 1)
 
-func generate_random_medical() -> MedicalItem:
-	var medical_names = ["Med-kit", "Stim-pack", "Nano-injector", "Trauma Pack"]
-	var name = medical_names[randi() % medical_names.size()]
-	var healing_value = randi_range(1, 3)
-	return MedicalItem.new(name, healing_value)
+func generate_random_medical_item() -> Equipment:
+	var medical_types = ["Med-kit", "Stim-pack", "Nano-injector", "Trauma Pack"]
+	var name = medical_types[randi() % medical_types.size()]
+	var healing_value = randi() % 3 + 1
+	return Equipment.new(name, Equipment.Type.CONSUMABLE, healing_value)
 
 func generate_rumor() -> String:
 	var rumors = [

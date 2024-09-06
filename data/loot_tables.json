@@ -1,0 +1,36 @@
+{
+  "loot_tables": [
+	{
+	  "name": "Common Loot",
+	  "items": [
+		{"name": "Credits", "quantity": "1D6 x 10", "chance": 30},
+		{"name": "Medkit", "quantity": 1, "chance": 20},
+		{"name": "Ammo Pack", "quantity": 1, "chance": 25},
+		{"name": "Rations", "quantity": "1D3", "chance": 15},
+		{"name": "Toolkit", "quantity": 1, "chance": 10}
+	  ]
+	},
+	{
+	  "name": "Rare Loot",
+	  "items": [
+		{"name": "Advanced Weapon", "quantity": 1, "chance": 20},
+		{"name": "Alien Artifact", "quantity": 1, "chance": 15},
+		{"name": "Ship Upgrade Component", "quantity": 1, "chance": 25},
+		{"name": "Rare Mineral Sample", "quantity": "1D3", "chance": 30},
+		{"name": "Experimental Tech", "quantity": 1, "chance": 10}
+	  ]
+	},
+	{
+	  "name": "Battlefield Finds",
+	  "items": [
+		{"name": "Weapon", "effect": "Roll on Weapon table", "chance": 15},
+		{"name": "Usable goods", "effect": "Roll on Gear table", "chance": 10},
+		{"name": "Curious data stick", "effect": "Gain Quest Rumor", "chance": 10},
+		{"name": "Starship part", "effect": "Gain 2 Hull repair", "chance": 15},
+		{"name": "Personal trinket", "effect": "No game effect", "chance": 15},
+		{"name": "Debris", "effect": "Gain 1D3 credits", "chance": 20},
+		{"name": "Vital info", "effect": "Gain Quest Rumor", "chance": 15}
+	  ]
+	}
+  ]
+}

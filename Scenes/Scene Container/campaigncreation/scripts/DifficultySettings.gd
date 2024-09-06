@@ -1,4 +1,4 @@
-class_name DifficultySettings
+# DifficultySettings.gd
 extends Resource
 
 enum DifficultyLevel { EASY, NORMAL, HARD }

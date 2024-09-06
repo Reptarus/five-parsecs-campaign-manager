@@ -1,4 +1,4 @@
-class_name PreBattle
+# PreBattleSceneScript.gd
 extends Control
 
 var game_state: GameState
@@ -21,18 +21,31 @@ func initialize(state: GameState) -> void:
 
 func _on_generate_terrain_pressed() -> void:
 	var battlefield: Dictionary = battlefield_generator.generate_battlefield(game_state.current_mission.type)
-	# TODO: Visualize the generated battlefield
+	_visualize_battlefield(battlefield)
 
 func _on_place_characters_pressed() -> void:
-	# TODO: Implement character placement logic
+	_place_characters()
 
 func _on_start_battle_pressed() -> void:
 	var battle_scene: PackedScene = load("res://scenes/Battle.tscn")
-	var battle: Battle = battle_scene.instantiate()
+	var battle = battle_scene.instantiate()
 	battle.initialize(game_state)
 	get_tree().root.add_child(battle)
 	queue_free()
 
 func _on_back_pressed() -> void:
-	# TODO: Implement logic to return to the previous screen
-	pass
+	get_tree().change_scene_to_file("res://scenes/campaign/CampaignDashboard.tscn")
+
+func _visualize_battlefield(battlefield: Dictionary) -> void:
+	# TODO: Implement battlefield visualization
+	# This function should create a visual representation of the battlefield
+	# using the data provided in the battlefield dictionary
+	print("Visualizing battlefield: ", battlefield)
+
+func _place_characters() -> void:
+	# TODO: Implement character placement logic
+	# This function should allow the player to place their characters on the battlefield
+	# It might involve drag-and-drop functionality or selecting deployment zones
+	print("Placing characters on the battlefield")
+
+# Additional helper functions can be added here as needed

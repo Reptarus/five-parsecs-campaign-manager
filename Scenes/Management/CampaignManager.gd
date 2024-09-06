@@ -1,4 +1,4 @@
-class_name CampaignManager
+# CampaignManager.gd
 extends Resource
 
 signal phase_changed(new_phase: TurnPhase)
@@ -30,7 +30,7 @@ func start_new_turn() -> void:
 	phase_changed.emit(current_phase)
 
 func advance_phase() -> void:
-	current_phase = (current_phase + 1) % TurnPhase.size()
+	current_phase = TurnPhase.values()[(current_phase + 1) % TurnPhase.size()]
 	phase_changed.emit(current_phase)
 
 func perform_upkeep() -> bool:
@@ -68,10 +68,10 @@ func recruit_crew(recruit_index: int) -> bool:
 		return game_state.current_crew.add_member(potential_recruits[recruit_index])
 	return false
 
-func train_and_study(crew_index: int, skill: String) -> bool:
+func train_and_study(crew_index: int, skill: String, skill_type: Skill.SkillType) -> bool:
 	if crew_index >= 0 and crew_index < game_state.current_crew.members.size():
 		var crew_member = game_state.current_crew.members[crew_index]
-		return crew_member.add_skill(skill)
+		return crew_member.add_skill(skill, skill_type)
 	return false
 
 func trade_items(buy: bool, item_index: int) -> bool:

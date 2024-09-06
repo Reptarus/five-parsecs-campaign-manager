@@ -1,0 +1,166 @@
+{
+  "weapons": [
+	{
+	  "name": "Assault Rifle",
+	  "type": "Military",
+	  "damage": 2,
+	  "range": 24,
+	  "shots": 3,
+	  "traits": ["Rapid Fire"]
+	},
+	{
+	  "name": "Sniper Rifle",
+	  "type": "Military",
+	  "damage": 3,
+	  "range": 36,
+	  "shots": 1,
+	  "traits": ["Accurate"]
+	},
+	{
+	  "name": "Shotgun",
+	  "type": "Military",
+	  "damage": 3,
+	  "range": 12,
+	  "shots": 2,
+	  "traits": ["Spread"]
+	},
+	{
+	  "name": "Plasma Pistol",
+	  "type": "High-Tech",
+	  "damage": 3,
+	  "range": 12,
+	  "shots": 1,
+	  "traits": ["Pistol", "Energy"]
+	},
+	{
+	  "name": "Laser Rifle",
+	  "type": "High-Tech",
+	  "damage": 2,
+	  "range": 30,
+	  "shots": 2,
+	  "traits": ["Energy", "Accurate"]
+	},
+	{
+	  "name": "Vibro-Blade",
+	  "type": "Melee",
+	  "damage": 3,
+	  "range": 0,
+	  "shots": 0,
+	  "traits": ["Melee", "Piercing"]
+	},
+	{
+	  "name": "Rocket Launcher",
+	  "type": "Heavy",
+	  "damage": 4,
+	  "range": 36,
+	  "shots": 1,
+	  "traits": ["Blast", "Heavy"]
+	}
+  ],
+  "armor": [
+	{
+	  "name": "Combat Vest",
+	  "type": "Light",
+	  "defense": 1,
+	  "traits": ["Light"]
+	},
+	{
+	  "name": "Battle Suit",
+	  "type": "Medium",
+	  "defense": 2,
+	  "traits": ["Powered"]
+	},
+	{
+	  "name": "Heavy Plating",
+	  "type": "Heavy",
+	  "defense": 3,
+	  "traits": ["Heavy", "Cumbersome"]
+	},
+	{
+	  "name": "Energy Shield",
+	  "type": "High-Tech",
+	  "defense": 2,
+	  "traits": ["Energy", "Rechargeable"]
+	}
+  ],
+  "gear": [
+	{
+	  "name": "Medkit",
+	  "type": "Medical",
+	  "effect": "Heal 2 wounds",
+	  "uses": 3
+	},
+	{
+	  "name": "Grappling Hook",
+	  "type": "Utility",
+	  "effect": "Climb vertical surfaces",
+	  "uses": -1
+	},
+	{
+	  "name": "Holo-Projector",
+	  "type": "Tech",
+	  "effect": "Create illusory duplicate",
+	  "uses": 2
+	},
+	{
+	  "name": "Stealth Field Generator",
+	  "type": "Tech",
+	  "effect": "Become invisible for one turn",
+	  "uses": 1
+	},
+	{
+	  "name": "Jet Pack",
+	  "type": "Mobility",
+	  "effect": "Fly 12\" in any direction",
+	  "uses": 3
+	}
+  ],
+  "consumables": [
+	{
+	  "name": "Stim Pack",
+	  "type": "Medical",
+	  "effect": "Remove all Stun markers and gain +1 to all rolls for one turn",
+	  "uses": 1
+	},
+	{
+	  "name": "Frag Grenade",
+	  "type": "Explosive",
+	  "effect": "3\" radius, 2D6 damage",
+	  "uses": 1
+	},
+	{
+	  "name": "Repair Nanites",
+	  "type": "Tech",
+	  "effect": "Repair 2 damage to armor or equipment",
+	  "uses": 1
+	},
+	{
+	  "name": "Smoke Bomb",
+	  "type": "Utility",
+	  "effect": "Create 4\" radius of smoke, blocking line of sight",
+	  "uses": 1
+	}
+  ],
+  "implants": [
+	{
+	  "name": "Subdermal Armor",
+	  "type": "Defensive",
+	  "effect": "+1 to all saving throws"
+	},
+	{
+	  "name": "Reflex Enhancer",
+	  "type": "Combat",
+	  "effect": "+1 to initiative rolls"
+	},
+	{
+	  "name": "Targeting Array",
+	  "type": "Combat",
+	  "effect": "+1 to hit rolls with ranged weapons"
+	},
+	{
+	  "name": "Neural Processor",
+	  "type": "Utility",
+	  "effect": "+1 to all Savvy-based skill checks"
+	}
+  ]
+}

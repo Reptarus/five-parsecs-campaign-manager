@@ -1,0 +1,87 @@
+{
+  "world_traits": [
+	{
+	  "name": "Haze",
+	  "description": "During battle, visibility is reduced to 1D6+8\"",
+	  "effect": {
+		"type": "visibility",
+		"value": "1D6+8"
+	  }
+	},
+	{
+	  "name": "Overgrown",
+	  "description": "When setting up the table, you must add 1D6+2 individual plant features or 1D3 areas of vegetation (roughly 3-5\" across)",
+	  "effect": {
+		"type": "terrain_addition",
+		"value": {
+		  "individual": "1D6+2",
+		  "area": "1D3"
+		}
+	  }
+	},
+	{
+	  "name": "Warzone",
+	  "description": "When setting up the table, you must add 1D3 ruined buildings or craters to the table.",
+	  "effect": {
+		"type": "terrain_addition",
+		"value": "1D3"
+	  }
+	},
+	{
+	  "name": "Heavily enforced",
+	  "description": "When fighting opponents from the Criminal Elements Encounter Table, the number encountered is reduced by 1. When rolling to see if they become Rivals, only roll a single die as normal.",
+	  "effect": {
+		"type": "enemy_modifier",
+		"value": -1
+	  }
+	},
+	{
+	  "name": "Rampant crime",
+	  "description": "When fighting opponents from the Criminal Elements encounter list, add 1 to the number encountered.",
+	  "effect": {
+		"type": "enemy_modifier",
+		"value": 1
+	  }
+	},
+	{
+	  "name": "Invasion risk",
+	  "description": "Add +1 to all Invasion rolls.",
+	  "effect": {
+		"type": "invasion_modifier",
+		"value": 1
+	  }
+	},
+	{
+	  "name": "Imminent invasion",
+	  "description": "Add +2 to all Invasion rolls and if the world is invaded, rolls for war progress are at -1.",
+	  "effect": {
+		"type": "invasion_modifier",
+		"value": 2
+	  }
+	},
+	{
+	  "name": "Lacks starship facilities",
+	  "description": "You cannot spend more than 3 credits per campaign turn on starship Repairs.",
+	  "effect": {
+		"type": "repair_limit",
+		"value": 3
+	  }
+	},
+	{
+	  "name": "Easy recruiting",
+	  "description": "Add +1 to the roll when Recruiting.",
+	  "effect": {
+		"type": "recruit_modifier",
+		"value": 1
+	  }
+	},
+	{
+	  "name": "Medical science",
+	  "description": "The cost for accelerated medical care is only 3 credits per character.",
+	  "effect": {
+		"type": "medical_care_cost",
+		"value": 3
+	  }
+	}
+  ]
+}

@@ -1,4 +1,4 @@
-class_name CrewManagement
+# CrewManagement.gd
 extends Control
 
 signal crew_creation_completed(crew: Crew)
@@ -18,18 +18,18 @@ var selected_crew_member: Character = null
 var crew: Crew
 
 func _ready() -> void:
-	crew_list.item_selected.connect(Callable(self, "_on_crew_member_selected"))
-	edit_stats_button.pressed.connect(Callable(self, "_on_edit_stats_pressed"))
-	edit_equipment_button.pressed.connect(Callable(self, "_on_edit_equipment_pressed"))
-	save_changes_button.pressed.connect(Callable(self, "_on_save_changes_pressed"))
-	back_button.pressed.connect(Callable(self, "_on_back_pressed"))
-	customize_panel.customization_completed.connect(Callable(self, "_on_customization_completed"))
+	crew_list.item_selected.connect(_on_crew_member_selected)
+	edit_stats_button.pressed.connect(_on_edit_stats_pressed)
+	edit_equipment_button.pressed.connect(_on_edit_equipment_pressed)
+	save_changes_button.pressed.connect(_on_save_changes_pressed)
+	back_button.pressed.connect(_on_back_pressed)
+	customize_panel.customization_completed.connect(_on_customization_completed)
 
 	# Initialize crew with a default size
 	initialize(MIN_CREW_SIZE)
 
 func initialize(crew_size: int) -> void:
-	crew = Crew.new(&"New Crew", null, crew_size)  # Use StringName for crew name
+	crew = Crew.new("New Crew", null, crew_size)
 	crew.generate_random_crew()
 	update_crew_list()
 
@@ -37,7 +37,7 @@ func update_crew_list() -> void:
 	crew_list.clear()
 	for i in range(crew.members.size()):
 		var member: Character = crew.members[i]
-		crew_list.add_item(member.name + " - " + str(member.background))  # Convert background to string
+		crew_list.add_item(member.name + " - " + str(member.background))
 
 func _on_crew_member_selected(index: int) -> void:
 	selected_crew_member = crew.get_member(index)

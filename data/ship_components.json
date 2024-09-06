@@ -1,0 +1,78 @@
+{
+  "metadata": {
+	"version": "1.0",
+	"last_updated": "2024-09-05"
+  },
+  "hull_components": [
+	{
+	  "id": "basic_hull",
+	  "name": "Basic Hull",
+	  "health": 100,
+	  "armor": 0,
+	  "power_usage": 0,
+	  "cost": 500
+	},
+	{
+	  "id": "reinforced_hull",
+	  "name": "Reinforced Hull",
+	  "health": 150,
+	  "armor": 1,
+	  "power_usage": 10,
+	  "cost": 1000
+	}
+  ],
+  "engine_components": [
+	{
+	  "id": "standard_engine",
+	  "name": "Standard Engine",
+	  "speed": 5,
+	  "fuel_efficiency": 1.0,
+	  "power_usage": 20,
+	  "cost": 750
+	},
+	{
+	  "id": "advanced_engine",
+	  "name": "Advanced Engine",
+	  "speed": 7,
+	  "fuel_efficiency": 1.2,
+	  "power_usage": 30,
+	  "cost": 1500
+	}
+  ],
+  "weapon_components": [
+	{
+	  "id": "laser_cannon",
+	  "name": "Laser Cannon",
+	  "damage": 10,
+	  "range": 5,
+	  "accuracy": 70,
+	  "power_usage": 30,
+	  "cost": 1000
+	},
+	{
+	  "id": "missile_launcher",
+	  "name": "Missile Launcher",
+	  "damage": 15,
+	  "range": 8,
+	  "accuracy": 60,
+	  "power_usage": 40,
+	  "cost": 1500
+	}
+  ],
+  "medical_components": [
+	{
+	  "id": "basic_med_bay",
+	  "name": "Basic Med Bay",
+	  "healing_capacity": 2,
+	  "power_usage": 15,
+	  "cost": 500
+	},
+	{
+	  "id": "advanced_med_bay",
+	  "name": "Advanced Med Bay",
+	  "healing_capacity": 4,
+	  "power_usage": 25,
+	  "cost": 1000
+	}
+  ]
+}
