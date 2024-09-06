@@ -11,6 +11,7 @@ config_version=5
 [application]
 
 config/name="Five Parsecs Campaign Manager"
+run/main_scene="res://Scenes/Scene Container/campaigncreation/scenes/CharacterCreation.tscn"
 config/features=PackedStringArray("4.3", "GL Compatibility")
 config/icon="res://icon.svg"
 
@@ -30,7 +31,7 @@ version_control/autoload_on_startup=true
 
 [editor_plugins]
 
-enabled=PackedStringArray("res://addons/copilot/plugin.cfg")
+enabled=PackedStringArray("res://addons/copilot/plugin.cfg", "res://addons/psd_to_layer_scene/plugin.cfg")
 
 [file_customization]
 

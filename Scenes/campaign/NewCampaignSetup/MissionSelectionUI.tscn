@@ -1,4 +1,6 @@
-[gd_scene load_steps=2 format=3 uid="uid://ddmexnm0dog68"]
+[gd_scene load_steps=3 format=3 uid="uid://ddmexnm0dog68"]
+
+[ext_resource type="Texture2D" uid="uid://bm6c4rx645ove" path="res://Assets/BookImages/Nov_23_Sunset2_.png" id="1_u2h7e"]
 
 [sub_resource type="Theme" id="Theme_x6od6"]
 
@@ -10,3 +12,45 @@ anchor_bottom = 1.0
 grow_horizontal = 2
 grow_vertical = 2
 theme = SubResource("Theme_x6od6")
+
+[node name="TextureRect" type="TextureRect" parent="."]
+layout_mode = 1
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+texture = ExtResource("1_u2h7e")
+expand_mode = 3
+
+[node name="Button" type="Button" parent="."]
+layout_mode = 0
+offset_left = 40.0
+offset_top = 27.0
+offset_right = 104.0
+offset_bottom = 58.0
+text = "<<Back"
+
+[node name="MarginContainer" type="MarginContainer" parent="."]
+layout_mode = 1
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+theme_override_constants/margin_left = 100
+theme_override_constants/margin_top = 100
+theme_override_constants/margin_right = 100
+theme_override_constants/margin_bottom = 100
+
+[node name="MissionPicks" type="HBoxContainer" parent="MarginContainer"]
+layout_mode = 2
+
+[node name="MissionBrief" type="VBoxContainer" parent="MarginContainer/MissionPicks"]
+layout_mode = 2
+
+[node name="PanelContainer" type="PanelContainer" parent="MarginContainer/MissionPicks/MissionBrief"]
+layout_mode = 2
+
+[node name="TextureRect" type="TextureRect" parent="MarginContainer/MissionPicks/MissionBrief/PanelContainer"]
+layout_mode = 2

@@ -1,7 +1,8 @@
-[gd_scene load_steps=3 format=3 uid="uid://fwkbmwcm4neh"]
+[gd_scene load_steps=4 format=3 uid="uid://fwkbmwcm4neh"]
 
 [ext_resource type="Script" path="res://Scenes/Utils/RulesReference.gd" id="1_usady"]
 [ext_resource type="Texture2D" uid="uid://rf8rruw1wr7" path="res://Assets/BookImages/Nov_22_Driftingaway.png" id="2_i750e"]
+[ext_resource type="Texture2D" uid="uid://35mn8pi343cm" path="res://Assets/PNG/Icon03.png" id="3_uc36b"]
 
 [node name="RulesReference" type="Control"]
 layout_mode = 3
@@ -22,17 +23,421 @@ grow_vertical = 2
 texture = ExtResource("2_i750e")
 expand_mode = 3
 
-[node name="MarginContainer" type="MarginContainer" parent="TextureRect"]
-layout_mode = 1
-anchors_preset = 15
-anchor_right = 1.0
-anchor_bottom = 1.0
-grow_horizontal = 2
-grow_vertical = 2
-theme_override_constants/margin_left = 100
-theme_override_constants/margin_top = 100
-theme_override_constants/margin_right = 100
-theme_override_constants/margin_bottom = 100
-
-[node name="VBoxContainer" type="VBoxContainer" parent="TextureRect/MarginContainer"]
+[node name="BackButton" type="Button" parent="."]
 layout_mode = 2
+offset_left = 17.0
+offset_top = 12.0
+offset_right = 194.0
+offset_bottom = 60.0
+size_flags_horizontal = 4
+size_flags_vertical = 4
+theme_override_font_sizes/font_size = 29
+text = "back button
+"
+
+[node name="MarginContainer" type="MarginContainer" parent="."]
+layout_mode = 1
+offset_right = 2906.0
+offset_bottom = 1594.0
+
+[node name="PanelContainer" type="PanelContainer" parent="MarginContainer"]
+layout_mode = 2
+
+[node name="VBoxContainer" type="VBoxContainer" parent="MarginContainer/PanelContainer"]
+layout_mode = 2
+alignment = 1
+
+[node name="LibraryRows" type="VBoxContainer" parent="MarginContainer/PanelContainer/VBoxContainer"]
+layout_mode = 2
+size_flags_horizontal = 4
+size_flags_vertical = 6
+alignment = 1
+
+[node name="Row1" type="HBoxContainer" parent="MarginContainer/PanelContainer/VBoxContainer/LibraryRows"]
+layout_mode = 2
+alignment = 1
+
+[node name="BestiaryButton" type="MarginContainer" parent="MarginContainer/PanelContainer/VBoxContainer/LibraryRows/Row1"]
+layout_mode = 2
+size_flags_horizontal = 6
+theme_override_constants/margin_left = 10
+theme_override_constants/margin_top = 10
+theme_override_constants/margin_right = 10
+theme_override_constants/margin_bottom = 10
+
+[node name="Button" type="Button" parent="MarginContainer/PanelContainer/VBoxContainer/LibraryRows/Row1/BestiaryButton"]
+layout_mode = 2
+theme_override_constants/icon_max_width = 200
+theme_override_font_sizes/font_size = 80
+text = "Bestiary"
+icon = ExtResource("3_uc36b")
+icon_alignment = 1
+vertical_icon_alignment = 0
+expand_icon = true
+
+[node name="Items" type="MarginContainer" parent="MarginContainer/PanelContainer/VBoxContainer/LibraryRows/Row1"]
+layout_mode = 2
+size_flags_horizontal = 6
+theme_override_constants/margin_left = 10
+theme_override_constants/margin_top = 10
+theme_override_constants/margin_right = 10
+theme_override_constants/margin_bottom = 10
+
+[node name="Button" type="Button" parent="MarginContainer/PanelContainer/VBoxContainer/LibraryRows/Row1/Items"]
+layout_mode = 2
+theme_override_constants/icon_max_width = 200
+theme_override_font_sizes/font_size = 80
+text = "Intro 
+Campaign"
+icon = ExtResource("3_uc36b")
+icon_alignment = 1
+vertical_icon_alignment = 0
+expand_icon = true
+
+[node name="BestiaryButton3" type="MarginContainer" parent="MarginContainer/PanelContainer/VBoxContainer/LibraryRows/Row1"]
+layout_mode = 2
+size_flags_horizontal = 6
+theme_override_constants/margin_left = 10
+theme_override_constants/margin_top = 10
+theme_override_constants/margin_right = 10
+theme_override_constants/margin_bottom = 10
+
+[node name="Button" type="Button" parent="MarginContainer/PanelContainer/VBoxContainer/LibraryRows/Row1/BestiaryButton3"]
+layout_mode = 2
+theme_override_constants/icon_max_width = 200
+theme_override_font_sizes/font_size = 80
+text = "Enemy AI"
+icon = ExtResource("3_uc36b")
+icon_alignment = 1
+vertical_icon_alignment = 0
+expand_icon = true
+
+[node name="BestiaryButton4" type="MarginContainer" parent="MarginContainer/PanelContainer/VBoxContainer/LibraryRows/Row1"]
+layout_mode = 2
+size_flags_horizontal = 6
+theme_override_constants/margin_left = 10
+theme_override_constants/margin_top = 10
+theme_override_constants/margin_right = 10
+theme_override_constants/margin_bottom = 10
+
+[node name="Button" type="Button" parent="MarginContainer/PanelContainer/VBoxContainer/LibraryRows/Row1/BestiaryButton4"]
+layout_mode = 2
+theme_override_constants/icon_max_width = 200
+theme_override_font_sizes/font_size = 80
+text = "PVP/Co-op"
+icon = ExtResource("3_uc36b")
+icon_alignment = 1
+vertical_icon_alignment = 0
+expand_icon = true
+
+[node name="BestiaryButton5" type="MarginContainer" parent="MarginContainer/PanelContainer/VBoxContainer/LibraryRows/Row1"]
+layout_mode = 2
+size_flags_horizontal = 6
+theme_override_constants/margin_left = 10
+theme_override_constants/margin_top = 10
+theme_override_constants/margin_right = 10
+theme_override_constants/margin_bottom = 10
+
+[node name="Button" type="Button" parent="MarginContainer/PanelContainer/VBoxContainer/LibraryRows/Row1/BestiaryButton5"]
+layout_mode = 2
+theme_override_constants/icon_max_width = 200
+theme_override_font_sizes/font_size = 80
+text = "Difficulty
+Options"
+icon = ExtResource("3_uc36b")
+icon_alignment = 1
+vertical_icon_alignment = 0
+expand_icon = true
+
+[node name="Row2" type="HBoxContainer" parent="MarginContainer/PanelContainer/VBoxContainer/LibraryRows"]
+layout_mode = 2
+size_flags_vertical = 3
+alignment = 1
+
+[node name="BestiaryButton6" type="MarginContainer" parent="MarginContainer/PanelContainer/VBoxContainer/LibraryRows/Row2"]
+layout_mode = 2
+size_flags_horizontal = 6
+theme_override_constants/margin_left = 10
+theme_override_constants/margin_top = 10
+theme_override_constants/margin_right = 10
+theme_override_constants/margin_bottom = 10
+
+[node name="Button" type="Button" parent="MarginContainer/PanelContainer/VBoxContainer/LibraryRows/Row2/BestiaryButton6"]
+layout_mode = 2
+theme_override_constants/icon_max_width = 200
+theme_override_font_sizes/font_size = 80
+text = "Elite Enemies"
+icon = ExtResource("3_uc36b")
+icon_alignment = 1
+vertical_icon_alignment = 0
+expand_icon = true
+
+[node name="BestiaryButton7" type="MarginContainer" parent="MarginContainer/PanelContainer/VBoxContainer/LibraryRows/Row2"]
+layout_mode = 2
+size_flags_horizontal = 6
+theme_override_constants/margin_left = 10
+theme_override_constants/margin_top = 10
+theme_override_constants/margin_right = 10
+theme_override_constants/margin_bottom = 10
+
+[node name="Button" type="Button" parent="MarginContainer/PanelContainer/VBoxContainer/LibraryRows/Row2/BestiaryButton7"]
+layout_mode = 2
+theme_override_constants/icon_max_width = 200
+theme_override_font_sizes/font_size = 80
+text = "Name Generation
+Tables"
+icon = ExtResource("3_uc36b")
+icon_alignment = 1
+vertical_icon_alignment = 0
+expand_icon = true
+
+[node name="BestiaryButton8" type="MarginContainer" parent="MarginContainer/PanelContainer/VBoxContainer/LibraryRows/Row2"]
+layout_mode = 2
+size_flags_horizontal = 6
+theme_override_constants/margin_left = 10
+theme_override_constants/margin_top = 10
+theme_override_constants/margin_right = 10
+theme_override_constants/margin_bottom = 10
+
+[node name="Button" type="Button" parent="MarginContainer/PanelContainer/VBoxContainer/LibraryRows/Row2/BestiaryButton8"]
+layout_mode = 2
+theme_override_constants/icon_max_width = 200
+theme_override_font_sizes/font_size = 80
+text = "Alternate Enemy
+Deployment"
+icon = ExtResource("3_uc36b")
+icon_alignment = 1
+vertical_icon_alignment = 0
+expand_icon = true
+
+[node name="BestiaryButton9" type="MarginContainer" parent="MarginContainer/PanelContainer/VBoxContainer/LibraryRows/Row2"]
+layout_mode = 2
+size_flags_horizontal = 6
+theme_override_constants/margin_left = 10
+theme_override_constants/margin_top = 10
+theme_override_constants/margin_right = 10
+theme_override_constants/margin_bottom = 10
+
+[node name="Button" type="Button" parent="MarginContainer/PanelContainer/VBoxContainer/LibraryRows/Row2/BestiaryButton9"]
+layout_mode = 2
+theme_override_constants/icon_max_width = 200
+theme_override_font_sizes/font_size = 80
+text = "Species List"
+icon = ExtResource("3_uc36b")
+icon_alignment = 1
+vertical_icon_alignment = 0
+expand_icon = true
+
+[node name="BestiaryButton10" type="MarginContainer" parent="MarginContainer/PanelContainer/VBoxContainer/LibraryRows/Row2"]
+layout_mode = 2
+size_flags_horizontal = 6
+theme_override_constants/margin_left = 10
+theme_override_constants/margin_top = 10
+theme_override_constants/margin_right = 10
+theme_override_constants/margin_bottom = 10
+
+[node name="Button" type="Button" parent="MarginContainer/PanelContainer/VBoxContainer/LibraryRows/Row2/BestiaryButton10"]
+layout_mode = 2
+theme_override_constants/icon_max_width = 200
+theme_override_font_sizes/font_size = 80
+text = "Psionics"
+icon = ExtResource("3_uc36b")
+icon_alignment = 1
+vertical_icon_alignment = 0
+expand_icon = true
+
+[node name="Row3" type="HBoxContainer" parent="MarginContainer/PanelContainer/VBoxContainer/LibraryRows"]
+layout_mode = 2
+size_flags_vertical = 3
+alignment = 1
+
+[node name="BestiaryButton6" type="MarginContainer" parent="MarginContainer/PanelContainer/VBoxContainer/LibraryRows/Row3"]
+layout_mode = 2
+size_flags_horizontal = 6
+theme_override_constants/margin_left = 10
+theme_override_constants/margin_top = 10
+theme_override_constants/margin_right = 10
+theme_override_constants/margin_bottom = 10
+
+[node name="Button" type="Button" parent="MarginContainer/PanelContainer/VBoxContainer/LibraryRows/Row3/BestiaryButton6"]
+layout_mode = 2
+theme_override_constants/icon_max_width = 200
+theme_override_font_sizes/font_size = 80
+text = "No-mini
+combat"
+icon = ExtResource("3_uc36b")
+icon_alignment = 1
+vertical_icon_alignment = 0
+expand_icon = true
+
+[node name="BestiaryButton7" type="MarginContainer" parent="MarginContainer/PanelContainer/VBoxContainer/LibraryRows/Row3"]
+layout_mode = 2
+size_flags_horizontal = 6
+theme_override_constants/margin_left = 10
+theme_override_constants/margin_top = 10
+theme_override_constants/margin_right = 10
+theme_override_constants/margin_bottom = 10
+
+[node name="Button" type="Button" parent="MarginContainer/PanelContainer/VBoxContainer/LibraryRows/Row3/BestiaryButton7"]
+layout_mode = 2
+theme_override_constants/icon_max_width = 200
+theme_override_font_sizes/font_size = 80
+text = "Equipment and
+Items"
+icon = ExtResource("3_uc36b")
+icon_alignment = 1
+vertical_icon_alignment = 0
+expand_icon = true
+
+[node name="BestiaryButton8" type="MarginContainer" parent="MarginContainer/PanelContainer/VBoxContainer/LibraryRows/Row3"]
+layout_mode = 2
+size_flags_horizontal = 6
+theme_override_constants/margin_left = 10
+theme_override_constants/margin_top = 10
+theme_override_constants/margin_right = 10
+theme_override_constants/margin_bottom = 10
+
+[node name="Button" type="Button" parent="MarginContainer/PanelContainer/VBoxContainer/LibraryRows/Row3/BestiaryButton8"]
+layout_mode = 2
+theme_override_constants/icon_max_width = 200
+theme_override_font_sizes/font_size = 80
+text = "Terrain Tables"
+icon = ExtResource("3_uc36b")
+icon_alignment = 1
+vertical_icon_alignment = 0
+expand_icon = true
+
+[node name="BestiaryButton9" type="MarginContainer" parent="MarginContainer/PanelContainer/VBoxContainer/LibraryRows/Row3"]
+layout_mode = 2
+size_flags_horizontal = 6
+theme_override_constants/margin_left = 10
+theme_override_constants/margin_top = 10
+theme_override_constants/margin_right = 10
+theme_override_constants/margin_bottom = 10
+
+[node name="Button" type="Button" parent="MarginContainer/PanelContainer/VBoxContainer/LibraryRows/Row3/BestiaryButton9"]
+layout_mode = 2
+theme_override_constants/icon_max_width = 200
+theme_override_font_sizes/font_size = 80
+text = "Expanded 
+Missions"
+icon = ExtResource("3_uc36b")
+icon_alignment = 1
+vertical_icon_alignment = 0
+expand_icon = true
+
+[node name="BestiaryButton10" type="MarginContainer" parent="MarginContainer/PanelContainer/VBoxContainer/LibraryRows/Row3"]
+layout_mode = 2
+size_flags_horizontal = 6
+theme_override_constants/margin_left = 10
+theme_override_constants/margin_top = 10
+theme_override_constants/margin_right = 10
+theme_override_constants/margin_bottom = 10
+
+[node name="Button" type="Button" parent="MarginContainer/PanelContainer/VBoxContainer/LibraryRows/Row3/BestiaryButton10"]
+layout_mode = 2
+theme_override_constants/icon_max_width = 200
+theme_override_font_sizes/font_size = 80
+text = "Fringe World
+Strife"
+icon = ExtResource("3_uc36b")
+icon_alignment = 1
+vertical_icon_alignment = 0
+expand_icon = true
+
+[node name="Row4" type="HBoxContainer" parent="MarginContainer/PanelContainer/VBoxContainer/LibraryRows"]
+layout_mode = 2
+size_flags_vertical = 3
+alignment = 1
+
+[node name="BestiaryButton6" type="MarginContainer" parent="MarginContainer/PanelContainer/VBoxContainer/LibraryRows/Row4"]
+layout_mode = 2
+size_flags_horizontal = 6
+theme_override_constants/margin_left = 10
+theme_override_constants/margin_top = 10
+theme_override_constants/margin_right = 10
+theme_override_constants/margin_bottom = 10
+
+[node name="Button" type="Button" parent="MarginContainer/PanelContainer/VBoxContainer/LibraryRows/Row4/BestiaryButton6"]
+layout_mode = 2
+theme_override_constants/icon_max_width = 200
+theme_override_font_sizes/font_size = 80
+text = "No-mini
+combat"
+icon = ExtResource("3_uc36b")
+icon_alignment = 1
+vertical_icon_alignment = 0
+expand_icon = true
+
+[node name="BestiaryButton7" type="MarginContainer" parent="MarginContainer/PanelContainer/VBoxContainer/LibraryRows/Row4"]
+layout_mode = 2
+size_flags_horizontal = 6
+theme_override_constants/margin_left = 10
+theme_override_constants/margin_top = 10
+theme_override_constants/margin_right = 10
+theme_override_constants/margin_bottom = 10
+
+[node name="Button" type="Button" parent="MarginContainer/PanelContainer/VBoxContainer/LibraryRows/Row4/BestiaryButton7"]
+layout_mode = 2
+theme_override_constants/icon_max_width = 200
+theme_override_font_sizes/font_size = 80
+text = "Expanded Quests"
+icon = ExtResource("3_uc36b")
+icon_alignment = 1
+vertical_icon_alignment = 0
+expand_icon = true
+
+[node name="BestiaryButton8" type="MarginContainer" parent="MarginContainer/PanelContainer/VBoxContainer/LibraryRows/Row4"]
+layout_mode = 2
+size_flags_horizontal = 6
+theme_override_constants/margin_left = 10
+theme_override_constants/margin_top = 10
+theme_override_constants/margin_right = 10
+theme_override_constants/margin_bottom = 10
+
+[node name="Button" type="Button" parent="MarginContainer/PanelContainer/VBoxContainer/LibraryRows/Row4/BestiaryButton8"]
+layout_mode = 2
+theme_override_constants/icon_max_width = 200
+theme_override_font_sizes/font_size = 80
+text = "Salvage Jobs"
+icon = ExtResource("3_uc36b")
+icon_alignment = 1
+vertical_icon_alignment = 0
+expand_icon = true
+
+[node name="BestiaryButton9" type="MarginContainer" parent="MarginContainer/PanelContainer/VBoxContainer/LibraryRows/Row4"]
+layout_mode = 2
+size_flags_horizontal = 6
+theme_override_constants/margin_left = 10
+theme_override_constants/margin_top = 10
+theme_override_constants/margin_right = 10
+theme_override_constants/margin_bottom = 10
+
+[node name="Button" type="Button" parent="MarginContainer/PanelContainer/VBoxContainer/LibraryRows/Row4/BestiaryButton9"]
+layout_mode = 2
+theme_override_constants/icon_max_width = 200
+theme_override_font_sizes/font_size = 80
+text = "Factions"
+icon = ExtResource("3_uc36b")
+icon_alignment = 1
+vertical_icon_alignment = 0
+expand_icon = true
+
+[node name="BestiaryButton10" type="MarginContainer" parent="MarginContainer/PanelContainer/VBoxContainer/LibraryRows/Row4"]
+layout_mode = 2
+size_flags_horizontal = 6
+theme_override_constants/margin_left = 10
+theme_override_constants/margin_top = 10
+theme_override_constants/margin_right = 10
+theme_override_constants/margin_bottom = 10
+
+[node name="Button" type="Button" parent="MarginContainer/PanelContainer/VBoxContainer/LibraryRows/Row4/BestiaryButton10"]
+layout_mode = 2
+theme_override_constants/icon_max_width = 200
+theme_override_font_sizes/font_size = 80
+text = "Stealth and
+Street Fights"
+icon = ExtResource("3_uc36b")
+icon_alignment = 1
+vertical_icon_alignment = 0
+expand_icon = true
