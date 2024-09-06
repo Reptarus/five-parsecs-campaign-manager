@@ -1,0 +1,56 @@
+{
+  "quest_stages": [
+	{
+	  "stage": 1,
+	  "description": "Initial lead",
+	  "requirements": [
+		"Complete a related mission",
+		"Gather intel from a specific source"
+	  ],
+	  "rewards": {
+		"credits": "1D6 x 10",
+		"story_points": 1
+	  }
+	},
+	{
+	  "stage": 2,
+	  "description": "Following the trail",
+	  "requirements": [
+		"Travel to a new location",
+		"Overcome a specific challenge or encounter"
+	  ],
+	  "rewards": {
+		"credits": "2D6 x 10",
+		"story_points": 1,
+		"gear": "Random item from loot table"
+	  }
+	},
+	{
+	  "stage": 3,
+	  "description": "Major breakthrough",
+	  "requirements": [
+		"Defeat a significant enemy",
+		"Solve a complex puzzle or mystery"
+	  ],
+	  "rewards": {
+		"credits": "3D6 x 10",
+		"story_points": 2,
+		"gear": "Rare item from loot table"
+	  }
+	},
+	{
+	  "stage": 4,
+	  "description": "Final confrontation",
+	  "requirements": [
+		"Face the ultimate challenge related to the quest",
+		"Make a crucial decision affecting the outcome"
+	  ],
+	  "rewards": {
+		"credits": "5D6 x 10",
+		"story_points": 3,
+		"gear": "Unique quest-related item",
+		"reputation": "Major boost with related faction"
+	  }
+	}
+  ]
+}

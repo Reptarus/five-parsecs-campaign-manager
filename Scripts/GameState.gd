@@ -112,6 +112,22 @@ func get_terrain_placement_suggestions() -> String:
 func get_setup_instructions() -> String:
 	return terrain_generator.get_setup_instructions()
 
+func equip_item(character: Character, item: Equipment) -> void:
+	character.inventory.add_item(item)
+	character.apply_equipment_effects(item)
+
+func unequip_item(character: Character, item: Equipment) -> void:
+	character.inventory.remove_item(item)
+	character.remove_equipment_effects(item)
+
+func end_battle() -> void:
+	for character in current_crew.members:
+		character.clear_temporary_buffs()
+
+func end_campaign_turn() -> void:
+	for character in current_crew.members:
+		character.clear_temporary_buffs()
+
 # Serialization methods
 func serialize() -> Dictionary:
 	var data := {

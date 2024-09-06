@@ -1,4 +1,5 @@
 # ShipCreation.gd
+class_name ShipCreation
 extends Node
 
 const BASE_SHIP_POWER: int = 100
@@ -20,31 +21,12 @@ func load_ship_components() -> void:
 	else:
 		print("JSON Parse Error: ", json.get_error_message())
 
-func generate_starter_ship() -> Ship:
-	var ship := Ship.new()
-	ship.name = "Starter Ship"
-	ship.total_power = BASE_SHIP_POWER
-	ship.available_power = BASE_SHIP_POWER
-
-	var hull = create_component_from_data(ship_components.hull_components[0])
-	var engine = create_component_from_data(ship_components.engine_components[0])
-	var weapons = create_component_from_data(ship_components.weapon_components[0])
-	var medical_bay = create_component_from_data(ship_components.medical_components[0])
-
-	ship.add_component(hull)
-	ship.add_component(engine)
-	ship.add_component(weapons)
-	ship.add_component(medical_bay)
-
-	return ship
-
 func create_component_from_data(component_data: Dictionary) -> ShipComponent:
 	match component_data.id.split("_")[0]:
 		"hull":
 			return HullComponent.new(
 				component_data.name,
-				"A ship hull component",
-				ShipComponent.ComponentType.HULL,
+				component_data.description,
 				component_data.power_usage,
 				component_data.health,
 				component_data.armor
@@ -52,16 +34,16 @@ func create_component_from_data(component_data: Dictionary) -> ShipComponent:
 		"engine":
 			return EngineComponent.new(
 				component_data.name,
-				"A ship engine component",
+				component_data.description,
 				component_data.power_usage,
 				component_data.health,
 				component_data.speed,
 				component_data.fuel_efficiency
 			)
-		"laser", "missile":  # Assuming these are weapon types
+		"weapon":
 			return WeaponsComponent.new(
 				component_data.name,
-				"A ship weapon component",
+				component_data.description,
 				component_data.power_usage,
 				component_data.health,
 				component_data.damage,
@@ -71,7 +53,7 @@ func create_component_from_data(component_data: Dictionary) -> ShipComponent:
 		"med":
 			return MedicalBayComponent.new(
 				component_data.name,
-				"A ship medical bay component",
+				component_data.description,
 				component_data.power_usage,
 				component_data.health,
 				component_data.healing_capacity

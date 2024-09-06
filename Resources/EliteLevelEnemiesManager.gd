@@ -52,7 +52,7 @@ func _apply_elite_modifications(enemy: Dictionary) -> Dictionary:
 	var roll := randf()
 	
 	if roll <= 0.2:
-		enemy = _apply_elite_weaponry(enemy)
+		enemy = apply_elite_weaponry(enemy)
 	elif roll <= 0.4:
 		enemy = _apply_elite_armor(enemy)
 	elif roll <= 0.6:
@@ -64,9 +64,9 @@ func _apply_elite_modifications(enemy: Dictionary) -> Dictionary:
 	
 	return enemy
 
-func _apply_elite_weaponry(enemy: Dictionary) -> Dictionary:
+func apply_elite_weaponry(enemy: Dictionary) -> Dictionary:
 	var new_enemy := enemy.duplicate(true)
-	var weapons := new_enemy.weapons.split(" ")
+	var weapons: Array = (new_enemy.get("weapons", "") as String).split(" ")
 	var new_weapons: Array[String] = []
 	
 	for weapon in weapons:
@@ -77,8 +77,8 @@ func _apply_elite_weaponry(enemy: Dictionary) -> Dictionary:
 			"2B", "2C": new_weapons.append("3C")
 			"3A", "3B", "3C": new_weapons.append(weapon)
 	
-	new_enemy.weapons = " ".join(new_weapons)
-	new_enemy.special_rules.append("Elite Weaponry: This enemy is equipped with more powerful weapons.")
+	new_enemy["weapons"] = " ".join(new_weapons)
+	new_enemy["special_rules"].append("Elite Weaponry: This enemy is equipped with more powerful weapons.")
 	return new_enemy
 
 func _apply_elite_armor(enemy: Dictionary) -> Dictionary:
@@ -122,7 +122,7 @@ func _apply_elite_leadership(enemy: Dictionary) -> Dictionary:
 	new_enemy.special_rules.append("Elite Leadership: All friendly units within 6\" gain +1 to hit rolls.")
 	return new_enemy
 
-func get_elite_enemy_reward(enemy: Dictionary) -> Dictionary:
+func get_elite_enemy_reward(_enemy: Dictionary) -> Dictionary:
 	# TODO: Implement elite enemy reward generation
 	return {
 		"credits": randi() % 6 + 5,

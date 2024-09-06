@@ -1,3 +1,4 @@
+# Character.gd
 class_name Character
 extends Resource
 
@@ -42,6 +43,8 @@ var recover_time: int = 0
 var became_casualty: bool = false
 var killed_unique_individual: bool = false
 var strange_character: StrangeCharacters = null
+var faction_standings: Dictionary = {}
+var status_effects: Array[StatusEffect] = []
 
 func _init() -> void:
 	inventory = CharacterInventory.new()
@@ -126,9 +129,19 @@ func take_damage(amount: int) -> void:
 	if health <= 0:
 		killed.emit()
 
-func apply_stun() -> void:
-	# TODO: Implement stun logic
-	pass
+func apply_status_effect(effect: StatusEffect) -> void:
+	status_effects.append(effect)
+
+func remove_status_effect(effect_type: String) -> void:
+	status_effects = status_effects.filter(func(effect): return effect.type != effect_type)
+
+func has_status_effect(effect_type: String) -> bool:
+	return status_effects.any(func(effect): return effect.type == effect_type)
+
+func process_status_effects() -> void:
+	for effect in status_effects:
+		effect.process(self)
+	status_effects = status_effects.filter(func(effect): return not effect.is_expired())
 
 func get_equipped_weapon() -> Weapon:
 	# TODO: Implement logic to return the character's equipped weapon
@@ -143,17 +156,66 @@ func get_display_string() -> String:
 
 func _to_string() -> String:
 	return get_display_string()
-	
+
 static func create_random_character() -> Character:
 	var character = Character.new()
-	character.name = CharacterCreationData.get_random_name()
-	character.race = CharacterCreationData.get_random_race()
-	character.background = CharacterCreationData.get_random_background()
-	character.motivation = CharacterCreationData.get_random_motivation()
-	character.character_class = CharacterCreationData.get_random_class()
-	character.skills = CharacterCreationData.get_random_skills(3)
-	character.portrait = CharacterCreationData.get_random_portrait()
+	character.generate_random()
 	return character
+
+func set_faction_standing(faction_name: String, standing: int) -> void:
+	faction_standings[faction_name] = standing
+
+func get_faction_standing(faction_name: String) -> int:
+	return faction_standings.get(faction_name, 0)
+	
+	
+func save_character(character: Character, file_name: String) -> void:
+	var character_data = character.serialize()
+	var file = FileAccess.open("user://" + file_name + ".json", FileAccess.WRITE)
+	if file:
+		file.store_string(JSON.stringify(character_data))
+		file.close()
+	else:
+		push_error("Failed to save character data")
+
+func load_character(file_name: String) -> Character:
+	var file = FileAccess.open("user://" + file_name + ".json", FileAccess.READ)
+	if file:
+		var json = JSON.new()
+		var error = json.parse(file.get_as_text())
+		if error == OK:
+			var character_data = json.data
+			file.close()
+			return Character.deserialize(character_data)
+		else:
+			push_error("Failed to parse character data: " + json.get_error_message())
+	else:
+		push_error("Failed to load character data")
+	return null
+
+func export_character(character: Character, file_path: String) -> void:
+	var character_data = character.serialize()
+	var file = FileAccess.open(file_path, FileAccess.WRITE)
+	if file:
+		file.store_string(JSON.stringify(character_data))
+		file.close()
+	else:
+		push_error("Failed to export character data")
+
+func import_character(file_path: String) -> Character:
+	var file = FileAccess.open(file_path, FileAccess.READ)
+	if file:
+		var json = JSON.new()
+		var error = json.parse(file.get_as_text())
+		if error == OK:
+			var character_data = json.data
+			file.close()
+			return Character.deserialize(character_data)
+		else:
+			push_error("Failed to parse imported character data: " + json.get_error_message())
+	else:
+		push_error("Failed to import character data")
+	return null
 
 func serialize() -> Dictionary:
 	var data = {
@@ -180,7 +242,9 @@ func serialize() -> Dictionary:
 		"recover_time": recover_time,
 		"became_casualty": became_casualty,
 		"killed_unique_individual": killed_unique_individual,
-		"strange_character": strange_character.serialize() if strange_character else null
+		"strange_character": strange_character.serialize() if strange_character else null,
+		"faction_standings": faction_standings,
+		"status_effects": status_effects.map(func(effect): return effect.serialize())
 	}
 	return data
 
@@ -209,7 +273,8 @@ static func deserialize(data: Dictionary) -> Character:
 	character.recover_time = data["recover_time"]
 	character.became_casualty = data["became_casualty"]
 	character.killed_unique_individual = data["killed_unique_individual"]
-	character.strange_character = data["strange_character"]
+	character.faction_standings = data["faction_standings"]
+	character.status_effects = data["status_effects"].map(func(s): return StatusEffect.deserialize(s))
 	if data["strange_character"]:
 		character.strange_character = StrangeCharacters.deserialize(data["strange_character"])
 	return character

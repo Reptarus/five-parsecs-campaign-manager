@@ -1,0 +1,44 @@
+{
+  "connection_types": [
+	{
+	  "name": "Alliance",
+	  "description": "A mutually beneficial partnership between factions.",
+	  "effects": [
+		"Increased reputation with both factions",
+		"Access to shared resources",
+		"Joint missions available"
+	  ],
+	  "duration": "1D6+4 campaign turns"
+	},
+	{
+	  "name": "Rivalry",
+	  "description": "A competitive relationship between factions.",
+	  "effects": [
+		"Decreased reputation with both factions",
+		"Increased difficulty in missions involving either faction",
+		"Opportunity for playing factions against each other"
+	  ],
+	  "duration": "2D6+2 campaign turns"
+	},
+	{
+	  "name": "Trade Agreement",
+	  "description": "An economic partnership focused on resource exchange.",
+	  "effects": [
+		"Better prices when trading with involved factions",
+		"Increased availability of certain goods",
+		"Occasional trade escort missions"
+	  ],
+	  "duration": "1D6+2 campaign turns"
+	},
+	{
+	  "name": "Information Network",
+	  "description": "A secretive exchange of intelligence between factions.",
+	  "effects": [
+		"Increased chance of uncovering rumors",
+		"Occasional intel-gathering missions",
+		"Bonus to relevant Savvy checks"
+	  ],
+	  "duration": "1D6 campaign turns"
+	}
+  ]
+}

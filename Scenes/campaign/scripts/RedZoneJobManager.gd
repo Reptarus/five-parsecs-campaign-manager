@@ -1,4 +1,5 @@
 # RedZoneJobManager.gd
+class_name RedZoneJobManager
 extends Node
 
 var game_state: GameState
@@ -64,7 +65,7 @@ func generate_black_zone_job() -> Mission:
 
 func apply_black_zone_modifiers(mission: Mission):
 	mission.enemy_type = "Roving Threats"
-	mission.objective = Mission.Objective.SOME_ENUM_VALUE
+	mission.objective = Mission.Objective.ELIMINATE  # Assuming ELIMINATE is a valid enum value
 	mission.setup_black_zone_opposition()
 
 func generate_black_zone_objective() -> String:

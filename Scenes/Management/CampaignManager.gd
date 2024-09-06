@@ -71,8 +71,18 @@ func recruit_crew(recruit_index: int) -> bool:
 func train_and_study(crew_index: int, skill: String, skill_type: Skill.SkillType) -> bool:
 	if crew_index >= 0 and crew_index < game_state.current_crew.members.size():
 		var crew_member = game_state.current_crew.members[crew_index]
-		return crew_member.add_skill(skill, skill_type)
-	return false
+		
+		# Check if the character already has the skill
+		if crew_member.has_skill(skill):
+			# If they have the skill, increase its level
+			crew_member.increase_skill_level(skill)
+		else:
+			# If they don't have the skill, add it
+			crew_member.add_skill(skill, skill_type)
+		
+		return true  # Training/studying was successful
+	
+	return false  # Invalid crew index or other failure
 
 func trade_items(buy: bool, item_index: int) -> bool:
 	if buy:

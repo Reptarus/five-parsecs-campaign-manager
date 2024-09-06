@@ -8,6 +8,7 @@ enum Type { WEAPON, ARMOR, GEAR, SHIP_COMPONENT }
 @export var value: int
 @export var description: String
 @export var is_damaged: bool = false
+@export var effects: Array[Dictionary] = []
 
 func _init(_name: String = "", _type: Type = Type.GEAR, _value: int = 0, _description: String = "", _is_damaged: bool = false) -> void:
 	name = _name
