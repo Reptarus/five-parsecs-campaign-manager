@@ -1,4 +1,5 @@
 # DifficultySettings.gd
+class_name DifficultySettings
 extends Resource
 
 enum DifficultyLevel { EASY, NORMAL, HARD }
@@ -31,9 +32,11 @@ func set_difficulty(new_level: DifficultyLevel) -> void:
 func apply_to_ship(ship: Ship) -> void:
 	for component in ship.components:
 		if component is WeaponsComponent:
-			component.damage = int(component.damage * enemy_damage_multiplier)
+			if component.get("damage") != null:
+				component.set("damage", int(component.get("damage") * enemy_damage_multiplier))
 		elif component is EngineComponent:
-			component.fuel_efficiency *= loot_quantity_multiplier
+			if component.get("fuel_efficiency") != null:
+				component.set("fuel_efficiency", component.get("fuel_efficiency") * loot_quantity_multiplier)
 
 func apply_to_enemy(enemy: Character) -> void:
 	enemy.health = int(enemy.health * enemy_health_multiplier)

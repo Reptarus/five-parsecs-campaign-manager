@@ -12,7 +12,8 @@ func _ready() -> void:
 		character.connect("stat_changed", Callable(self, "_on_stat_changed"))
 
 func update_stats_display() -> void:
-	for stat in Character.BASE_STATS:
+	var stats_to_display = ["reactions", "speed", "combat_skill", "toughness", "savvy"]
+	for stat in stats_to_display:
 		var label = stats_container.get_node(stat.capitalize() + "Label")
 		if label:
 			label.text = stat.capitalize() + ": " + str(character.get_stat(stat))

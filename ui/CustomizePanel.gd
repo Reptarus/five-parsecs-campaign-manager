@@ -10,15 +10,15 @@ var current_index: int = -1
 @onready var portrait_option: TextureRect = $PortraitOption
 
 func show_member(member: Character) -> void:
-	current_index = crew.members.find(member)
+	current_index = member.get_index()
 	name_input.text = member.name
-	background_option.select(BackgroundDatabase.get_index(member.background))
+	background_option.select(member.background)
 	update_skills(member.skills)
 	portrait_option.texture = load(member.portrait)
 
-func update_skills(member_skills: Array[String]) -> void:
+func update_skills(member_skills: Dictionary) -> void:
 	for skill in skills_container.get_children():
-		skill.button_pressed = skill.text in member_skills
+		skill.button_pressed = member_skills.has(skill.text)
 
 func _on_save_pressed() -> void:
 	var new_data: Dictionary = {

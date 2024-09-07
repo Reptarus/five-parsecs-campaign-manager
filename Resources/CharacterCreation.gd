@@ -101,24 +101,29 @@ func _apply_option_effects(option_name: String, index: int) -> void:
 	match option_name:
 		"RaceSelection":
 			var race_data = character_data.races[index]
-			for stat, value in race_data.base_stats.items():
+			for stat in race_data.base_stats.keys():
+				var value = race_data.base_stats[stat]
 				character.stats[stat] += value
 		"BackgroundSelection":
 			var background_data = character_data.backgrounds[index]
-			for stat, value in background_data.stat_bonuses.items():
+			for stat in background_data.stat_bonuses.keys():
+				var value = background_data.stat_bonuses[stat]
 				character.stats[stat] += value
 			character.credits += background_data.starting_credits
 		"MotivationSelection":
 			var motivation_data = character_data.motivations[index]
-			if "starting_credits" in motivation_data.effect:
-				character.credits += motivation_data.effect.starting_credits
-			if "story_points" in motivation_data.effect:
-				character.story_points += motivation_data.effect.story_points
+			if motivation_data.effect.has("starting_credits"):
+				character.credits += motivation_data.effect["starting_credits"]
+			if motivation_data.effect.has("story_points"):
+				character.story_points += motivation_data.effect["story_points"]
 		"ClassSelection":
 			var class_data = character_data.classes[index]
-			for stat, value in class_data.stat_bonuses.items():
+			for stat in class_data.stat_bonuses.keys():
+				var value = class_data.stat_bonuses[stat]
 				character.stats[stat] += value
+
 	_update_stat_spinboxes()
+
 
 func _update_stat_spinboxes() -> void:
 	for stat in character.stats.keys():
@@ -131,10 +136,11 @@ func _on_stat_changed(value: int, stat_name: String) -> void:
 
 func _on_skill_toggled(button_pressed: bool, skill_id: String) -> void:
 	if button_pressed:
-		character.skills.append(skill_id)
+		character.skills[skill_id] = Skill.new()
 	else:
 		character.skills.erase(skill_id)
 	_update_character_summary()
+
 
 func _on_equipment_selected(index: int) -> void:
 	var selected_equipment: String = equipment_selection.get_item_text(index)
@@ -178,10 +184,10 @@ func _on_create_character_pressed() -> void:
 
 func _validate_character() -> bool:
 	return character.name != "" and \
-		   character.race != "" and \
-		   character.background != "" and \
-		   character.motivation != "" and \
-		   character.character_class != "" and \
+		   str(character.race) != "" and \
+		   str(character.background) != "" and \
+		   str(character.motivation) != "" and \
+		   str(character.character_class) != "" and \
 		   character.skills.size() > 0 and \
 		   character.equipment.size() > 0
 

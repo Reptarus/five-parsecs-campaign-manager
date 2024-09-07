@@ -1,3 +1,4 @@
+# GameState.gd
 class_name GameState
 extends Resource
 
@@ -49,14 +50,18 @@ func _init() -> void:
 
 	gear_database.load_from_file("res://data/gear_database.json")
 
-
-
 func change_state(new_state: State) -> void:
 	current_state = new_state
 	state_changed.emit(new_state)
 
 func add_credits(amount: int) -> void:
 	credits += amount
+
+func set_current_crew(crew: Crew) -> void:
+	current_crew = crew
+
+func set_current_location(location: Location) -> void:
+	current_location = location
 
 func remove_credits(amount: int) -> bool:
 	if credits >= amount:

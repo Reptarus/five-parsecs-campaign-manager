@@ -3,7 +3,6 @@ extends Control
 
 @export var game_state: GameState
 @export var campaign_manager: CampaignManager
-
 @onready var phase_label: Label = $PhaseLabel
 @onready var instruction_label: Label = $InstructionLabel
 @onready var action_button: Button = $ActionButton
@@ -11,6 +10,7 @@ extends Control
 @onready var crew_info_label: Label = $CrewInfoLabel
 @onready var credits_label: Label = $CreditsLabel
 @onready var story_points_label: Label = $StoryPointsLabel
+
 
 func _ready() -> void:
 	action_button.pressed.connect(_on_action_button_pressed)
@@ -23,119 +23,119 @@ func _on_phase_changed(new_phase: CampaignManager.TurnPhase) -> void:
 func update_display() -> void:
 	phase_label.text = CampaignManager.TurnPhase.keys()[campaign_manager.current_phase].capitalize().replace("_", " ")
 	crew_info_label.text = "Crew: " + game_state.current_crew.name + " (" + str(game_state.current_crew.get_member_count()) + " members)"
-	credits_label.text = "Credits: " + str(game_state.credits)
+	credits_label.text = "Credits: " + str(game_state.current_crew.credits)
 	story_points_label.text = "Story Points: " + str(game_state.story_points)
 
 	match campaign_manager.current_phase:
-		CampaignManager.TurnPhase.UPKEEP:
+		campaign_manager.TurnPhase.UPKEEP:
 			instruction_label.text = "Pay upkeep costs and remove Injury markers"
 			action_button.text = "Complete Upkeep"
-		CampaignManager.TurnPhase.STORY_POINT:
+		campaign_manager.TurnPhase.STORY_POINT:
 			instruction_label.text = "Choose to spend a Story Point or not"
 			action_button.text = "Use Story Point" if game_state.story_points > 0 else "Skip Story Point"
-		CampaignManager.TurnPhase.MOVE_TO_NEW_LOCATION:
+		campaign_manager.TurnPhase.MOVE_TO_NEW_LOCATION:
 			instruction_label.text = "Choose to move to a new location or stay"
 			action_button.text = "Choose Location"
 			_display_location_options()
-		CampaignManager.TurnPhase.RUMORS_AND_HAPPENINGS:
+		campaign_manager.TurnPhase.RUMORS_AND_HAPPENINGS:
 			instruction_label.text = "Roll for Rumors and Happenings"
 			action_button.text = "Generate Events"
-		CampaignManager.TurnPhase.QUEST_PROGRESS:
+		campaign_manager.TurnPhase.QUEST_PROGRESS:
 			instruction_label.text = "Check for Quest progress"
 			action_button.text = "Update Quests"
-		CampaignManager.TurnPhase.RECRUIT:
+		campaign_manager.TurnPhase.RECRUIT:
 			instruction_label.text = "Attempt to recruit new crew members"
 			action_button.text = "Recruit"
 			_display_recruit_options()
-		CampaignManager.TurnPhase.TRAINING_AND_STUDY:
+		campaign_manager.TurnPhase.TRAINING_AND_STUDY:
 			instruction_label.text = "Train crew or study new skills"
 			action_button.text = "Train/Study"
 			_display_training_options()
-		CampaignManager.TurnPhase.TRADE:
+		campaign_manager.TurnPhase.TRADE:
 			instruction_label.text = "Buy or sell items"
 			action_button.text = "Trade"
 			_display_trade_options()
-		CampaignManager.TurnPhase.PATRON_JOB:
+		campaign_manager.TurnPhase.PATRON_JOB:
 			instruction_label.text = "Check for Patron Jobs"
 			action_button.text = "Check Jobs"
-		CampaignManager.TurnPhase.MISSION:
+		campaign_manager.TurnPhase.MISSION:
 			instruction_label.text = "Choose and complete a mission"
 			action_button.text = "Start Mission"
 			_display_mission_options()
-		CampaignManager.TurnPhase.POST_MISSION:
+		campaign_manager.TurnPhase.POST_MISSION:
 			instruction_label.text = "Resolve post-mission tasks"
 			action_button.text = "Resolve Mission"
-		CampaignManager.TurnPhase.END_TURN:
+		campaign_manager.TurnPhase.END_TURN:
 			instruction_label.text = "End the current turn"
 			action_button.text = "End Turn"
 
 func _on_action_button_pressed() -> void:
 	match campaign_manager.current_phase:
-		CampaignManager.TurnPhase.UPKEEP:
+		campaign_manager.TurnPhase.UPKEEP:
 			var success = campaign_manager.perform_upkeep()
 			if success:
 				print("Upkeep paid and Injury markers removed.")
 			else:
 				print("Insufficient funds for upkeep! Crew morale decreases.")
-		CampaignManager.TurnPhase.STORY_POINT:
+		campaign_manager.TurnPhase.STORY_POINT:
 			var used = campaign_manager.handle_story_point()
 			if used:
 				print("Story Point used! Choose an effect:")
 				_display_story_point_options()
 			else:
 				print("No Story Point used this turn.")
-		CampaignManager.TurnPhase.MOVE_TO_NEW_LOCATION:
+		campaign_manager.TurnPhase.MOVE_TO_NEW_LOCATION:
 			var location_index = _get_selected_option()
 			if campaign_manager.move_to_new_location(location_index):
 				print("Moved to new location: " + game_state.current_location.name)
 			else:
 				print("Failed to move to new location.")
-		CampaignManager.TurnPhase.RUMORS_AND_HAPPENINGS:
+		campaign_manager.TurnPhase.RUMORS_AND_HAPPENINGS:
 			var event = campaign_manager.generate_events()
 			if event:
 				print("New event: " + event.title)
 				_display_event_details(event)
 			else:
 				print("No new events this turn.")
-		CampaignManager.TurnPhase.QUEST_PROGRESS:
+		campaign_manager.TurnPhase.QUEST_PROGRESS:
 			var updated_quests = campaign_manager.update_quests()
 			for quest in updated_quests:
 				print("Quest updated: " + quest.title)
 			_display_quest_updates(updated_quests)
-		CampaignManager.TurnPhase.RECRUIT:
+		campaign_manager.TurnPhase.RECRUIT:
 			var recruit_index = _get_selected_option()
 			if campaign_manager.recruit_crew(recruit_index):
 				print("New crew member recruited!")
 			else:
 				print("Failed to recruit new crew member.")
-		CampaignManager.TurnPhase.TRAINING_AND_STUDY:
+		campaign_manager.TurnPhase.TRAINING_AND_STUDY:
 			var crew_index = _get_selected_option()
 			var skill = _get_selected_skill()
-			if campaign_manager.train_and_study(crew_index, skill):
+			if campaign_manager.train_and_study(crew_index, skill, Skill.SkillType.COMBAT):  # or Skill.SkillType.GENERAL
 				print("Training successful!")
 			else:
 				print("Training failed.")
-		CampaignManager.TurnPhase.TRADE:
+		campaign_manager.TurnPhase.TRADE:
 			var buy = _get_trade_action()
 			var item_index = _get_selected_option()
 			if campaign_manager.trade_items(buy, item_index):
 				print("Trade successful!")
 			else:
 				print("Trade failed.")
-		CampaignManager.TurnPhase.PATRON_JOB:
+		campaign_manager.TurnPhase.PATRON_JOB:
 			var available_jobs = campaign_manager.check_patron_jobs()
 			_display_patron_jobs(available_jobs)
-		CampaignManager.TurnPhase.MISSION:
+		campaign_manager.TurnPhase.MISSION:
 			var mission_index = _get_selected_option()
 			if campaign_manager.start_mission(mission_index):
 				print("Mission started: " + game_state.current_mission.title)
 				_start_mission_scene()
 			else:
 				print("Failed to start mission.")
-		CampaignManager.TurnPhase.POST_MISSION:
+		campaign_manager.TurnPhase.POST_MISSION:
 			var results = campaign_manager.handle_post_mission()
 			_display_mission_results(results)
-		CampaignManager.TurnPhase.END_TURN:
+		campaign_manager.TurnPhase.END_TURN:
 			campaign_manager.end_turn()
 
 	campaign_manager.advance_phase()

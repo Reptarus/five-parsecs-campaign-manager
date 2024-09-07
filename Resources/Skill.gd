@@ -7,6 +7,10 @@ enum SkillType { COMBAT, GENERAL }
 @export var type: SkillType
 @export var level: int = 0
 
+func _init() -> void:
+	# Initialize skill properties here
+	pass
+
 func increase_level() -> void:
 	level += 1
 

@@ -1,5 +1,7 @@
 extends Control
 
+const DifficultySettings = preload("res://Scenes/Scene Container/campaigncreation/scripts/DifficultySettings.gd")
+
 @onready var crew_name_input = $VBoxContainer/CrewNameInput
 @onready var difficulty_option_button = $VBoxContainer/DifficultyOptionButton
 @onready var victory_condition_button = $VBoxContainer/VictoryConditionButton

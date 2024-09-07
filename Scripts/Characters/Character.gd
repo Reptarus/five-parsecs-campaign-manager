@@ -1,4 +1,3 @@
-# Character.gd
 class_name Character
 extends Resource
 
@@ -37,12 +36,13 @@ enum AIType { CAUTIOUS, AGGRESSIVE, TACTICAL, DEFENSIVE }
 @export var max_health: int = 10
 @export var is_aiming: bool = false
 @export var ai_type: AIType = AIType.CAUTIOUS
+@export var current_location: Location = null
 
 var inventory: CharacterInventory
 var recover_time: int = 0
 var became_casualty: bool = false
 var killed_unique_individual: bool = false
-var strange_character: StrangeCharacters = null
+var strange_character: StrangeCharactersClass = null
 var faction_standings: Dictionary = {}
 var status_effects: Array[StatusEffect] = []
 
@@ -59,9 +59,9 @@ func generate_random() -> void:
 	portrait = CharacterCreationData.get_random_portrait()
 
 	if randf() < 0.1:  # 10% chance for strange abilities
-		var strange_type = StrangeCharacters.StrangeCharacterType.values()[randi() % StrangeCharacters.StrangeCharacterType.size()]
-		strange_character = StrangeCharacters.new(strange_type)
-		strange_character.apply_special_abilities(self)
+		var strange_type = StrangeCharactersClass.StrangeCharacterType.values()[randi() % StrangeCharactersClass.StrangeCharacterType.size()]
+		strange_character = StrangeCharactersClass.new(strange_type)
+		strange_character.call("apply_special_abilities", self)
 
 func update(new_data: Dictionary) -> void:
 	for key in new_data:
@@ -167,55 +167,6 @@ func set_faction_standing(faction_name: String, standing: int) -> void:
 
 func get_faction_standing(faction_name: String) -> int:
 	return faction_standings.get(faction_name, 0)
-	
-	
-func save_character(character: Character, file_name: String) -> void:
-	var character_data = character.serialize()
-	var file = FileAccess.open("user://" + file_name + ".json", FileAccess.WRITE)
-	if file:
-		file.store_string(JSON.stringify(character_data))
-		file.close()
-	else:
-		push_error("Failed to save character data")
-
-func load_character(file_name: String) -> Character:
-	var file = FileAccess.open("user://" + file_name + ".json", FileAccess.READ)
-	if file:
-		var json = JSON.new()
-		var error = json.parse(file.get_as_text())
-		if error == OK:
-			var character_data = json.data
-			file.close()
-			return Character.deserialize(character_data)
-		else:
-			push_error("Failed to parse character data: " + json.get_error_message())
-	else:
-		push_error("Failed to load character data")
-	return null
-
-func export_character(character: Character, file_path: String) -> void:
-	var character_data = character.serialize()
-	var file = FileAccess.open(file_path, FileAccess.WRITE)
-	if file:
-		file.store_string(JSON.stringify(character_data))
-		file.close()
-	else:
-		push_error("Failed to export character data")
-
-func import_character(file_path: String) -> Character:
-	var file = FileAccess.open(file_path, FileAccess.READ)
-	if file:
-		var json = JSON.new()
-		var error = json.parse(file.get_as_text())
-		if error == OK:
-			var character_data = json.data
-			file.close()
-			return Character.deserialize(character_data)
-		else:
-			push_error("Failed to parse imported character data: " + json.get_error_message())
-	else:
-		push_error("Failed to import character data")
-	return null
 
 func serialize() -> Dictionary:
 	var data = {
@@ -224,7 +175,7 @@ func serialize() -> Dictionary:
 		"background": Background.keys()[background],
 		"motivation": Motivation.keys()[motivation],
 		"character_class": Class.keys()[character_class],
-		"skills": skills.values().map(func(s): return s.serialize()),
+		"skills": {},
 		"portrait": portrait,
 		"reactions": reactions,
 		"speed": speed,
@@ -242,10 +193,22 @@ func serialize() -> Dictionary:
 		"recover_time": recover_time,
 		"became_casualty": became_casualty,
 		"killed_unique_individual": killed_unique_individual,
-		"strange_character": strange_character.serialize() if strange_character else null,
 		"faction_standings": faction_standings,
-		"status_effects": status_effects.map(func(effect): return effect.serialize())
+		"status_effects": []
 	}
+	
+	for skill_name in skills:
+		data["skills"][skill_name] = skills[skill_name].serialize()
+	
+	for effect in status_effects:
+		data["status_effects"].append(effect.serialize())
+	
+	if current_location:
+		data["current_location"] = current_location.serialize()
+	
+	if strange_character:
+		data["strange_character"] = strange_character.serialize()
+	
 	return data
 
 static func deserialize(data: Dictionary) -> Character:
@@ -255,7 +218,6 @@ static func deserialize(data: Dictionary) -> Character:
 	character.background = Background[data["background"]]
 	character.motivation = Motivation[data["motivation"]]
 	character.character_class = Class[data["character_class"]]
-	character.skills = data["skills"].map(func(s): return Skill.deserialize(s))
 	character.portrait = data["portrait"]
 	character.reactions = data["reactions"]
 	character.speed = data["speed"]
@@ -274,7 +236,17 @@ static func deserialize(data: Dictionary) -> Character:
 	character.became_casualty = data["became_casualty"]
 	character.killed_unique_individual = data["killed_unique_individual"]
 	character.faction_standings = data["faction_standings"]
-	character.status_effects = data["status_effects"].map(func(s): return StatusEffect.deserialize(s))
-	if data["strange_character"]:
-		character.strange_character = StrangeCharacters.deserialize(data["strange_character"])
+	
+	for skill_name in data["skills"]:
+		character.skills[skill_name] = Skill.deserialize(data["skills"][skill_name])
+	
+	for effect_data in data["status_effects"]:
+		character.status_effects.append(StatusEffect.deserialize(effect_data))
+	
+	if "current_location" in data:
+		character.current_location = Location.deserialize(data["current_location"])
+	
+	if "strange_character" in data:
+		character.strange_character = StrangeCharactersClass.deserialize(data["strange_character"])
+	
 	return character

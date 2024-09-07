@@ -1,36 +1,31 @@
-# CrewManagement.gd
 extends Control
+
+@onready var crew_list: ItemList = $CrewList
+@onready var character_sheet: Control = $CharacterSheet
+@onready var edit_stats_button: Button = $CharacterSheet/EditStatsButton
+@onready var edit_equipment_button: Button = $CharacterSheet/EditEquipmentButton
+@onready var save_changes_button: Button = $CharacterSheet/SaveChangesButton
+@onready var back_button: Button = $BackButton
+@onready var customize_panel: Control = $CustomizePanel
+
+var game_state: GameState
+var crew: Crew
+var selected_crew_member: Character = null
+
 
 signal crew_creation_completed(crew: Crew)
 
-const MAX_CREW_SIZE: int = 8
-const MIN_CREW_SIZE: int = 3
+func _ready():
+	crew_list.connect("item_selected", Callable(self, "_on_crew_member_selected"))
+	edit_stats_button.connect("pressed", Callable(self, "_on_edit_stats_pressed"))
+	edit_equipment_button.connect("pressed", Callable(self, "_on_edit_equipment_pressed"))
+	save_changes_button.connect("pressed", Callable(self, "_on_save_changes_pressed"))
+	back_button.connect("pressed", Callable(self, "_on_back_pressed"))
+	customize_panel.connect("customization_completed", Callable(self, "_on_customization_completed"))
 
-@onready var crew_list: ItemList = $MarginContainer/HBoxContainer/CrewList
-@onready var customize_panel: CustomizePanel = $CustomizePanel
-@onready var character_sheet: Control = $MarginContainer/HBoxContainer/CharacterSheet
-@onready var edit_stats_button: Button = $MarginContainer/HBoxContainer/CharacterSheet/EditStatsButton
-@onready var edit_equipment_button: Button = $MarginContainer/HBoxContainer/CharacterSheet/EditEquipmentButton
-@onready var save_changes_button: Button = $MarginContainer/HBoxContainer/CharacterSheet/SaveChangesButton
-@onready var back_button: Button = $BackButton
-
-var selected_crew_member: Character = null
-var crew: Crew
-
-func _ready() -> void:
-	crew_list.item_selected.connect(_on_crew_member_selected)
-	edit_stats_button.pressed.connect(_on_edit_stats_pressed)
-	edit_equipment_button.pressed.connect(_on_edit_equipment_pressed)
-	save_changes_button.pressed.connect(_on_save_changes_pressed)
-	back_button.pressed.connect(_on_back_pressed)
-	customize_panel.customization_completed.connect(_on_customization_completed)
-
-	# Initialize crew with a default size
-	initialize(MIN_CREW_SIZE)
-
-func initialize(crew_size: int) -> void:
-	crew = Crew.new("New Crew", null, crew_size)
-	crew.generate_random_crew()
+func initialize(_game_state: GameState):
+	game_state = _game_state
+	crew = game_state.current_crew
 	update_crew_list()
 
 func update_crew_list() -> void:
@@ -83,14 +78,29 @@ func _on_customization_completed(index: int, new_data: Dictionary) -> void:
 
 func _on_confirm_crew_pressed() -> void:
 	if crew.is_valid():
-		crew_creation_completed.emit(crew)
-		# TODO: Implement proper game state management
-		# GameState.change_state(GameState.State.CAMPAIGN_TURN)
+		# Assuming we have a GameState singleton
+		var game_state = get_node("/root/GameState")
+		game_state.set_current_crew(crew)
+		
+		# Generate initial world
+		var world_generator = WorldGenerator.new(game_state)
+		var initial_world = world_generator.generate_world()
+		game_state.set_current_location(initial_world)
+		
+		# Set initial game parameters
+		game_state.credits = 10  # Starting credits
+		game_state.story_points = randi() % 6 + 1  # 1D6 story points
+		
+		# Emit signal to indicate crew creation is complete
+		emit_signal("crew_creation_completed", crew)
+		
+		# Transition to the main game screen or campaign dashboard
+		get_tree().change_scene_to_file("res://scenes/CampaignDashboard.tscn")
 	else:
 		_show_error_message("Error: Crew is not valid. Please ensure all members are properly created.")
 
 func _show_error_message(message: String) -> void:
-	var dialog := AcceptDialog.new()
+	var dialog = AcceptDialog.new()
 	dialog.dialog_text = message
 	add_child(dialog)
 	dialog.popup_centered()

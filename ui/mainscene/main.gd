@@ -9,6 +9,7 @@ var game_state: GameState = null
 func _ready():
 	var root = get_tree().root
 	current_scene = root.get_child(root.get_child_count() - 1)
+	game_state = GameState.new()
 	load_main_menu()
 	game_manager.connect("game_state_changed", Callable(ui_manager, "update_ui"))
 

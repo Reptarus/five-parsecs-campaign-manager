@@ -73,7 +73,7 @@ func evaluate_move(ai_character: Character, target_position: Vector2) -> float:
 	
 	base_score -= distance_to_target
 	
-	if combat_manager.is_in_cover(target_position):
+	if combat_manager.is_in_cover(ai_character):
 		base_score += 5.0
 	
 	return base_score

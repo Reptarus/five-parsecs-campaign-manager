@@ -1,4 +1,4 @@
-class_name ExtendedConnectionsManager
+class_name ExpandedConnectionsManager
 extends Node
 
 enum ConnectionType {

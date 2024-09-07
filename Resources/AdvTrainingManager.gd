@@ -6,7 +6,7 @@ var game_state: GameState
 func _init(_game_state: GameState):
 	game_state = _game_state
 
-const ADVANCED_TRAINING_COURSES = {
+var ADVANCED_TRAINING_COURSES = {
 	"Pilot Training": {
 		"cost": 20,
 		"effect": func(character): character.pilot_skill += 1

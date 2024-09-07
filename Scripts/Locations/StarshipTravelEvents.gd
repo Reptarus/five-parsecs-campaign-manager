@@ -190,7 +190,7 @@ func escape_pod_event() -> Dictionary:
 			var roll = randi() % 6 + 1
 			match roll:
 				1:
-					game_state.add_rival(Rival)
+					game_state.add_rival(Rival.new())
 					return "Rescued a wanted criminal. Gained a new Rival."
 				2, 3:
 					var credits = randi() % 3 + 1

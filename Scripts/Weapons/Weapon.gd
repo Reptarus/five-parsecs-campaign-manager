@@ -4,7 +4,7 @@ extends Equipment
 enum WeaponType { LOW_TECH, MILITARY, HIGH_TECH }
 
 @export var weapon_type: WeaponType = WeaponType.LOW_TECH
-@export var range: int = 0
+@export var weapon_range: int = 0
 @export var shots: int = 1
 @export var weapon_damage: int = 0  # Renamed from 'damage' to avoid conflict
 @export var traits: Array[String] = []
@@ -20,7 +20,7 @@ enum WeaponType { LOW_TECH, MILITARY, HIGH_TECH }
 func _init(p_name: String = "", p_type: WeaponType = WeaponType.LOW_TECH, p_range: int = 0, p_shots: int = 1, p_damage: int = 0, p_traits: Array[String] = []) -> void:
 	super._init(p_name, Equipment.Type.WEAPON, 0)  # Set value to 0 for now
 	weapon_type = p_type
-	range = p_range
+	weapon_range = p_range
 	shots = p_shots
 	weapon_damage = p_damage
 	traits = p_traits
@@ -54,7 +54,7 @@ func serialize() -> Dictionary:
 	var base_data = super.serialize()
 	base_data.merge({
 		"weapon_type": weapon_type,
-		"range": range,
+		"range": weapon_range,
 		"shots": shots,
 		"damage": damage,
 		"traits": traits,
@@ -71,7 +71,7 @@ static func deserialize(data: Dictionary) -> Weapon:
 	var weapon = Weapon.new(
 		data.get("name", ""),
 		data.get("weapon_type", WeaponType.LOW_TECH),
-		data.get("range", 0),
+		data.get("weapon_range", 0),
 		data.get("shots", 1),
 		data.get("damage", 0),
 		data.get("traits", [])

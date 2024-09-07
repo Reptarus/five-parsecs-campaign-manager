@@ -284,7 +284,7 @@ func attack_character(attacker: Character, target: Character) -> void:
 	var weapon = attacker.get_equipped_weapon()
 	var distance = attacker.position.distance_to(target.position)
 
-	if distance > weapon.range:
+	if distance > weapon.weapon_range:
 		print("Target is out of range")
 		return
 

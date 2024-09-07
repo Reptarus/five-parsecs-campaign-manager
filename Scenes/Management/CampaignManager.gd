@@ -1,4 +1,4 @@
-# CampaignManager.gd
+class_name CampaignManager
 extends Resource
 
 signal phase_changed(new_phase: TurnPhase)

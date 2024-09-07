@@ -178,3 +178,7 @@ static func apply_strange_abilities(character: Character) -> void:
 
 static func get_random_portrait() -> String:
 	return "res://assets/portraits/portrait_01.png"
+
+static func get_background_info(background: String) -> String:
+	# Implement logic to return background information
+	return "Background info for " + background

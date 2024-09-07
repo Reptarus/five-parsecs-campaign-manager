@@ -1,4 +1,3 @@
-# StatusEffect.gd
 class_name StatusEffect
 extends Resource
 
@@ -31,24 +30,19 @@ func is_expired() -> bool:
 	return duration <= 0
 
 func process_stunned(character: Character) -> void:
-	# Implement stunned effect logic
-	pass
+	character.apply_stun(intensity)
 
 func process_poisoned(character: Character) -> void:
-	# Implement poisoned effect logic
-	pass
+	character.take_damage(intensity)
 
 func process_burning(character: Character) -> void:
-	# Implement burning effect logic
-	pass
+	character.take_damage(intensity * 2)
 
 func process_bleeding(character: Character) -> void:
-	# Implement bleeding effect logic
-	pass
+	character.take_damage(intensity)
 
 func process_confused(character: Character) -> void:
-	# Implement confused effect logic
-	pass
+	character.apply_confusion(intensity)
 
 func serialize() -> Dictionary:
 	return {

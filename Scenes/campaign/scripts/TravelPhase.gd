@@ -1,6 +1,8 @@
 # Travel.gd
 extends Control
 
+const Rival = preload("res://Resources/Rival.gd")
+
 var game_state: GameState
 var starship_travel_events: StarshipTravelEvents
 
@@ -48,10 +50,8 @@ func _handle_travel_event(event: Dictionary):
 	print(result)
 
 func _show_emergency_takeoff_dialog() -> bool:
-	# In a real implementation, this would show a dialog box
 	print("WARNING: Emergency take-off will cause 3D6 Hull Point damage.")
 	print("Do you wish to proceed? (y/n)")
-	# For this example, we'll assume the player always chooses yes
 	return true
 
 func _show_insufficient_funds_dialog():
@@ -98,13 +98,14 @@ func attempt_forged_license():
 		game_state.current_world.set_license_obtained()
 	elif roll == 1:
 		print("Attempt to forge license failed. Gained a new Rival.")
-		game_state.add_rival()
+		var new_rival = Rival.new("License Forger", game_state.current_location)  # Create a new Rival instance
+		game_state.add_rival(new_rival)  # Pass the new Rival instance to add_rival()
 	else:
 		print("Failed to obtain a forged license.")
 
 func generate_world_traits():
-	var traits = game_state.world_generator.generate_world_traits()
-	for trait in traits:
-		print("World trait: " + trait.name)
-		print(trait.effect)
-		game_state.current_world.add_trait(trait)
+	var world_traits = game_state.world_generator.generate_world_traits()
+	for world_trait in world_traits:
+		print("World trait: " + world_trait.name)
+		print(world_trait.effect)
+		game_state.current_world.add_trait(world_trait)

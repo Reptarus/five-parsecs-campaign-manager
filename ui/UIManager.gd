@@ -6,6 +6,10 @@ signal screen_changed(new_screen)
 
 var current_screen: Control
 var screens: Dictionary = {}
+var game_state: GameState
+
+func initialize(state: GameState):
+	game_state = state
 
 func _ready():
 	# Register all screens
@@ -73,13 +77,13 @@ func show_notification(message: String, duration: float = 2.0):
 	notification.hide()
 
 func update_credits_display():
-	$HUD/CreditsLabel.text = "Credits: " + str(GameState.credits)
+	$HUD/CreditsLabel.text = "Credits: " + str(game_state.credits)
 
 func update_story_points_display():
-	$HUD/StoryPointsLabel.text = "Story Points: " + str(GameState.story_points)
+	$HUD/StoryPointsLabel.text = "Story Points: " + str(game_state.story_points)
 
 func update_turn_display():
-	$HUD/TurnLabel.text = "Turn: " + str(GameState.current_turn)
+	$HUD/TurnLabel.text = "Turn: " + str(game_state.campaign_turn)
 
 func show_loading_screen():
 	$LoadingScreen.show()

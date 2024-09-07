@@ -99,3 +99,7 @@ func _find_nearest_cover(position: Vector2, battle_map: Dictionary) -> Vector2:
 			nearest_cover = cover
 	
 	return nearest_cover
+
+func _generate_half_flank_deployment(battle_map: Dictionary) -> Array:
+	# Implement the half flank deployment logic here
+	return []

@@ -1,7 +1,7 @@
 class_name Equipment
 extends Resource
 
-enum Type { WEAPON, ARMOR, GEAR, SHIP_COMPONENT }
+enum Type { WEAPON, ARMOR, GEAR, SHIP_COMPONENT, CONSUMABLE }
 
 @export var name: String
 @export var type: Type
@@ -24,7 +24,7 @@ func damage() -> void:
 	is_damaged = true
 
 func get_effectiveness() -> int:
-	return value if not is_damaged else value / 2
+	return value if not is_damaged else int(float(value) / 2.0)
 
 func serialize() -> Dictionary:
 	return {

@@ -1,13 +1,13 @@
-# PreBattleSceneScript.gd
+class_name PreBattleSceneScript
 extends Control
 
 var game_state: GameState
-var battlefield_generator: BattlefieldGenerator
+var terrain_generator: TerrainGenerator
 
-@onready var generate_terrain_button: Button = $MarginContainer/VBoxContainer/GenerateTerrainButton
-@onready var place_characters_button: Button = $MarginContainer/VBoxContainer/PlaceCharactersButton
-@onready var start_battle_button: Button = $MarginContainer/VBoxContainer/StartBattleButton
-@onready var back_button: Button = $MarginContainer/VBoxContainer/BackButton
+@onready var generate_terrain_button = $GenerateTerrainButton
+@onready var place_characters_button = $PlaceCharactersButton
+@onready var start_battle_button = $StartBattleButton
+@onready var back_button = $BackButton
 
 func _ready() -> void:
 	generate_terrain_button.pressed.connect(_on_generate_terrain_pressed)
@@ -17,10 +17,10 @@ func _ready() -> void:
 
 func initialize(state: GameState) -> void:
 	game_state = state
-	battlefield_generator = BattlefieldGenerator.new(game_state)
+	terrain_generator = TerrainGenerator.new(game_state)
 
 func _on_generate_terrain_pressed() -> void:
-	var battlefield: Dictionary = battlefield_generator.generate_battlefield(game_state.current_mission.type)
+	var battlefield: Dictionary = terrain_generator.generate_battlefield()
 	_visualize_battlefield(battlefield)
 
 func _on_place_characters_pressed() -> void:

@@ -4,6 +4,7 @@ extends Node
 
 var game_state: GameState
 
+
 @onready var resolve_outcomes_button: Button = $MarginContainer/VBoxContainer/ResolveOutcomesButton
 @onready var distribute_rewards_button: Button = $MarginContainer/VBoxContainer/DistributeRewardsButton
 @onready var handle_injuries_button: Button = $MarginContainer/VBoxContainer/HandleInjuriesButton
@@ -82,7 +83,7 @@ func determine_quest_progress():
 	if game_state.current_quest:
 		var roll = randi() % 6 + 1
 		roll += game_state.quest_rumors.size()
-		elseroll -= 2 if not game_state.current_battle.objective_completed
+		roll -= 2 if not game_state.current_battle.objective_completed else 0
 
 		if roll <= 3:
 			print("Quest progress: Dead end.")

@@ -9,6 +9,8 @@ enum GlobalEvent { MARKET_CRASH, ECONOMIC_BOOM, TRADE_EMBARGO, RESOURCE_SHORTAGE
 signal global_event_triggered(event: GlobalEvent)
 signal economy_updated
 
+@export var economic_range: Vector2 = Vector2(0, 100)
+
 var game_state: GameState
 var location_price_modifiers: Dictionary = {}
 var global_economic_modifier: float = 1.0
@@ -36,7 +38,7 @@ func remove_credits(amount: int) -> bool:
 	return game_state.current_crew.remove_credits(amount)
 
 func can_afford(amount: int) -> bool:
-	return game_state.current_crew.can_afford(amount)
+	return game_state.current_crew.credits >= amount
 
 func trade_item(item: Equipment, is_buying: bool) -> bool:
 	var price: int = calculate_item_price(item, is_buying)
@@ -98,8 +100,8 @@ func generate_random_weapon() -> Weapon:
 	var weapon_types = ["Pistol", "Rifle", "Shotgun", "Heavy Weapon"]
 	var weapon_name = weapon_types[randi() % weapon_types.size()]
 	var damage = randi() % 5 + 1
-	var range = randi() % 10 + 1
-	return Weapon.new(weapon_name, WeaponType.MILITARY, range, 1, damage)
+	var weapon_range = randi() % 10 + 1
+	return Weapon.new(weapon_name, WeaponType.MILITARY, weapon_range, 1, damage)
 
 func generate_random_armor() -> Equipment:
 	var armor_types = ["Light Armor", "Medium Armor", "Heavy Armor"]

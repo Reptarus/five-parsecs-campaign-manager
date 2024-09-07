@@ -1,7 +1,6 @@
+# Crew.gd
 class_name Crew
 extends Resource
-
-const LocationClass = preload("res://Scripts/Locations/Location.gd")
 
 @export var name: String
 @export var members: Array[Character] = []
@@ -29,12 +28,8 @@ func remove_credits(amount: int) -> bool:
 		return true
 	return false
 
-func pay_upkeep(economy_manager: EconomyManager) -> bool:
-	var upkeep_cost = economy_manager.calculate_upkeep_cost()
-	return remove_credits(upkeep_cost)
-
-func trade_item(item: Equipment, is_buying: bool, economy_manager: EconomyManager) -> bool:
-	return economy_manager.trade_item(item, is_buying)
+func get_member_count() -> int:
+	return members.size()
 
 func serialize() -> Dictionary:
 	return {
