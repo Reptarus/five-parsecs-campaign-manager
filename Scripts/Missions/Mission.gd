@@ -40,11 +40,11 @@ func serialize() -> Dictionary:
 		"type": Type.keys()[type],
 		"status": Status.keys()[status],
 		"objective": Objective.keys()[objective],
-		"patron": patron.serialize() if patron else null,
+		"patron": {"data": patron.serialize()} if patron else null,
 		"rewards": rewards,
 		"time_limit": time_limit,
 		"difficulty": difficulty,
-		"location": location.serialize() if location else null
+		"location": {"data": location.serialize()} if location else null
 	}
 
 static func deserialize(data: Dictionary) -> Mission:

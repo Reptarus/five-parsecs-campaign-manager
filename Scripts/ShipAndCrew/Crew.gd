@@ -36,9 +36,9 @@ func serialize() -> Dictionary:
 		"name": name,
 		"members": members.map(func(m): return m.serialize()),
 		"credits": credits,
-		"ship": ship.serialize() if ship else null,
+		"ship": {"data": ship.serialize()} if ship else null,
 		"reputation": reputation,
-		"current_location": current_location.serialize() if current_location else null
+		"current_location": {"data": current_location.serialize()} if current_location else null
 	}
 
 static func deserialize(data: Dictionary) -> Crew:

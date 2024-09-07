@@ -141,7 +141,7 @@ func serialize() -> Dictionary:
 		"story_points": story_points,
 		"campaign_turn": campaign_turn,
 		"difficulty_mode": difficulty_mode,
-		"current_location": current_location.serialize() if current_location else null,
+		"current_location": {"data": current_location.serialize()} if current_location else null,
 		"available_locations": available_locations.map(func(loc: Location) -> Dictionary: return loc.serialize()),
 		# Add other properties as needed
 	}

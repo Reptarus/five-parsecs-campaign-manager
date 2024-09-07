@@ -7,12 +7,19 @@ extends Control
 @onready var clear_button: Button = $CrewPictureAndStats/PictureandBMCcontrols/HBoxContainer/Clear
 @onready var import_button: Button = $CrewPictureAndStats/PictureandBMCcontrols/HBoxContainer/Import
 @onready var export_button: Button = $CrewPictureAndStats/PictureandBMCcontrols/HBoxContainer/Export
-@onready var background_selection: Button = $CrewPictureAndStats/PictureandBMCcontrols/PortraitControls/BackgroundSelection/RightArrow
-@onready var motivation_selection: Button = $CrewPictureAndStats/PictureandBMCcontrols/PortraitControls/MotivationSelection/RightArrow
-@onready var class_selection: Button = $CrewPictureAndStats/PictureandBMCcontrols/PortraitControls/ClassSelection/RightArrow
+@onready var background_left: Button = $CrewPictureAndStats/PictureandBMCcontrols/PortraitControls/BackgroundSelection/LeftArrow
+@onready var background_right: Button = $CrewPictureAndStats/PictureandBMCcontrols/PortraitControls/BackgroundSelection/RightArrow
+@onready var motivation_left: Button = $CrewPictureAndStats/PictureandBMCcontrols/PortraitControls/MotivationSelection/LeftArrow
+@onready var motivation_right: Button = $CrewPictureAndStats/PictureandBMCcontrols/PortraitControls/MotivationSelection/RightArrow
+@onready var class_left: Button = $CrewPictureAndStats/PictureandBMCcontrols/PortraitControls/ClassSelection/LeftArrow
+@onready var class_right: Button = $CrewPictureAndStats/PictureandBMCcontrols/PortraitControls/ClassSelection/RightArrow
 @onready var user_notes: TextEdit = $CrewStatsAndInfo/UserNotes
 
 var current_character: Character
+var background_index: int = 0
+var motivation_index: int = 0
+var class_index: int = 0
+
 
 func _ready():
 	species_option_button.connect("item_selected", _on_species_selected)
@@ -20,9 +27,12 @@ func _ready():
 	clear_button.connect("pressed", _on_clear_pressed)
 	import_button.connect("pressed", _on_import_pressed)
 	export_button.connect("pressed", _on_export_pressed)
-	background_selection.connect("item_selected", _on_background_selected)
-	motivation_selection.connect("item_selected", _on_motivation_selected)
-	class_selection.connect("item_selected", _on_class_selected)
+	background_left.connect("pressed", _on_background_left_pressed)
+	background_right.connect("pressed", _on_background_right_pressed)
+	motivation_left.connect("pressed", _on_motivation_left_pressed)
+	motivation_right.connect("pressed", _on_motivation_right_pressed)
+	class_left.connect("pressed", _on_class_left_pressed)
+	class_right.connect("pressed", _on_class_right_pressed)
 	user_notes.connect("text_changed", _on_user_notes_changed)
 	
 	for stat in ["Reactions", "Speed", "Combat", "Toughness", "Savvy", "Luck"]:
@@ -77,9 +87,6 @@ func update_ui():
 	
 	character_portrait.texture = load(current_character.portrait)
 	species_option_button.selected = current_character.race
-	background_selection.selected = current_character.background
-	motivation_selection.selected = current_character.motivation
-	class_selection.selected = current_character.character_class
 	
 	update_character_info()
 	update_stats()
@@ -89,11 +96,11 @@ func update_ui():
 func update_character_info():
 	var info_text = "Species: %s\n\n" % GlobalEnums.Race.keys()[current_character.race]
 	info_text += CharacterCreationData.get_race_traits(current_character.race) + "\n\n"
-	info_text += "Background: %s\n" % GlobalEnums.Background.keys()[current_character.background]
-	info_text += CharacterCreationData.get_background_info(GlobalEnums.Background.keys()[current_character.background]) + "\n\n"
-	info_text += "Motivation: %s\n" % GlobalEnums.Motivation.keys()[current_character.motivation]
+	info_text += "Background: %s\n" % GlobalEnums.Background.keys()[background_index]
+	info_text += CharacterCreationData.get_background_info(GlobalEnums.Background.keys()[background_index]) + "\n\n"
+	info_text += "Motivation: %s\n" % GlobalEnums.Motivation.keys()[motivation_index]
 	info_text += CharacterCreationData.get_motivation_stats(current_character.motivation).get("description", "") + "\n\n"
-	info_text += "Class: %s\n" % GlobalEnums.Class.keys()[current_character.character_class]
+	info_text += "Class: %s\n" % GlobalEnums.Class.keys()[class_index]
 	info_text += CharacterCreationData.get_class_stats(current_character.character_class).get("description", "")
 	
 	background_info.text = info_text
@@ -143,6 +150,37 @@ func _on_class_selected(index):
 func _on_stat_changed(value, stat):
 	current_character.stats[stat.to_lower()] = value
 	update_ui()
+	
+func _on_background_left_pressed():
+	background_index = (background_index - 1 + GlobalEnums.Background.size()) % GlobalEnums.Background.size()
+	current_character.background = GlobalEnums.Background.values()[background_index]
+	update_ui()
+
+func _on_background_right_pressed():
+	background_index = (background_index + 1) % GlobalEnums.Background.size()
+	current_character.background = GlobalEnums.Background.values()[background_index]
+	update_ui()
+
+func _on_motivation_left_pressed():
+	motivation_index = (motivation_index - 1 + GlobalEnums.Motivation.size()) % GlobalEnums.Motivation.size()
+	current_character.motivation = GlobalEnums.Motivation.values()[motivation_index]
+	update_ui()
+
+func _on_motivation_right_pressed():
+	motivation_index = (motivation_index + 1) % GlobalEnums.Motivation.size()
+	current_character.motivation = GlobalEnums.Motivation.values()[motivation_index]
+	update_ui()
+
+func _on_class_left_pressed():
+	class_index = (class_index - 1 + GlobalEnums.Class.size()) % GlobalEnums.Class.size()
+	current_character.character_class = GlobalEnums.Class.values()[class_index]
+	update_ui()
+
+func _on_class_right_pressed():
+	class_index = (class_index + 1) % GlobalEnums.Class.size()
+	current_character.character_class = GlobalEnums.Class.values()[class_index]
+	update_ui()
+
 
 func _on_user_notes_changed():
 	current_character.notes = user_notes.text

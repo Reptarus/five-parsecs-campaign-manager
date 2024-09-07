@@ -27,7 +27,7 @@ func change_hostility(amount: int):
 func serialize() -> Dictionary:
 	return {
 		"name": name,
-		"location": location.serialize() if location else null,
+		"location": {"data": location.serialize()} if location else null,
 		"strength": strength,
 		"hostility": hostility,
 		"economic_impact": economic_impact

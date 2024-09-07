@@ -30,6 +30,7 @@ enum AIType { CAUTIOUS, AGGRESSIVE, TACTICAL, DEFENSIVE }
 @export var xp: int = 0
 @export var luck: int = 0
 @export var abilities: Array[String] = []
+@export var stats: Dictionary = {}
 
 @export var position: Vector2 = Vector2.ZERO
 @export var health: int = 10

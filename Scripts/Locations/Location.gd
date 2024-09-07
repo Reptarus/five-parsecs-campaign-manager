@@ -45,7 +45,7 @@ func serialize() -> Dictionary:
 		"name": name,
 		"type": Type.keys()[type],
 		"traits": traits,
-		"parent": parent.serialize() if parent else null,
+		"parent": {"data": parent.serialize()} if parent else null,
 		"children": children.map(func(c): return c.serialize())
 	}
 
