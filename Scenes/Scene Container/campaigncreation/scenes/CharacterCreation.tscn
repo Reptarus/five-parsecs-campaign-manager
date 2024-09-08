@@ -351,100 +351,19 @@ theme_override_font_sizes/font_size = 30
 text = "Starting Weapons And Gear"
 horizontal_alignment = 1
 
-[node name="StartingWeapons" type="HBoxContainer" parent="CrewStatsAndInfo"]
+[node name="StartingWeaponsAndGear2" type="VBoxContainer" parent="CrewStatsAndInfo"]
 layout_mode = 2
-size_flags_horizontal = 5
-theme_override_constants/separation = 47
+size_flags_vertical = 4
+theme_override_constants/separation = 20
 
-[node name="Weapon" type="VBoxContainer" parent="CrewStatsAndInfo/StartingWeapons"]
-layout_mode = 2
-
-[node name="Weapons" type="Label" parent="CrewStatsAndInfo/StartingWeapons/Weapon"]
-layout_mode = 2
-text = "Weapon"
-horizontal_alignment = 1
-
-[node name="WeaponValue" type="Label" parent="CrewStatsAndInfo/StartingWeapons/Weapon"]
-layout_mode = 2
-text = "Fury rifle"
-horizontal_alignment = 1
-
-[node name="WeaponValue2" type="Label" parent="CrewStatsAndInfo/StartingWeapons/Weapon"]
-layout_mode = 2
-text = "Shatter Axe"
-horizontal_alignment = 1
-
-[node name="Range" type="VBoxContainer" parent="CrewStatsAndInfo/StartingWeapons"]
+[node name="WeaponOption" type="OptionButton" parent="CrewStatsAndInfo/StartingWeaponsAndGear2"]
 layout_mode = 2
 
-[node name="Range" type="Label" parent="CrewStatsAndInfo/StartingWeapons/Range"]
-layout_mode = 2
-text = "Range"
-horizontal_alignment = 1
-
-[node name="RangeValue" type="Label" parent="CrewStatsAndInfo/StartingWeapons/Range"]
-layout_mode = 2
-text = "24\""
-horizontal_alignment = 1
-
-[node name="RangeValue2" type="Label" parent="CrewStatsAndInfo/StartingWeapons/Range"]
-layout_mode = 2
-text = "Brawl"
-horizontal_alignment = 1
-
-[node name="Shots" type="VBoxContainer" parent="CrewStatsAndInfo/StartingWeapons"]
+[node name="ArmorOption" type="OptionButton" parent="CrewStatsAndInfo/StartingWeaponsAndGear2"]
 layout_mode = 2
 
-[node name="Shots" type="Label" parent="CrewStatsAndInfo/StartingWeapons/Shots"]
+[node name="GearOption" type="OptionButton" parent="CrewStatsAndInfo/StartingWeaponsAndGear2"]
 layout_mode = 2
-text = "Shots"
-horizontal_alignment = 1
-
-[node name="ShotsValue" type="Label" parent="CrewStatsAndInfo/StartingWeapons/Shots"]
-layout_mode = 2
-text = "1"
-horizontal_alignment = 1
-
-[node name="ShotsValue2" type="Label" parent="CrewStatsAndInfo/StartingWeapons/Shots"]
-layout_mode = 2
-text = "-"
-horizontal_alignment = 1
-
-[node name="Damage" type="VBoxContainer" parent="CrewStatsAndInfo/StartingWeapons"]
-layout_mode = 2
-
-[node name="Damage" type="Label" parent="CrewStatsAndInfo/StartingWeapons/Damage"]
-layout_mode = 2
-text = "Damage"
-horizontal_alignment = 1
-
-[node name="DamageValue" type="Label" parent="CrewStatsAndInfo/StartingWeapons/Damage"]
-layout_mode = 2
-text = "2"
-horizontal_alignment = 1
-
-[node name="DamageValue2" type="Label" parent="CrewStatsAndInfo/StartingWeapons/Damage"]
-layout_mode = 2
-text = "2"
-horizontal_alignment = 1
-
-[node name="Traits" type="VBoxContainer" parent="CrewStatsAndInfo/StartingWeapons"]
-layout_mode = 2
-
-[node name="Traits" type="Label" parent="CrewStatsAndInfo/StartingWeapons/Traits"]
-layout_mode = 2
-text = "Traits"
-horizontal_alignment = 1
-
-[node name="Traits Value" type="Label" parent="CrewStatsAndInfo/StartingWeapons/Traits"]
-layout_mode = 2
-text = "Heavy, Piercing"
-horizontal_alignment = 1
-
-[node name="Traits Value2" type="Label" parent="CrewStatsAndInfo/StartingWeapons/Traits"]
-layout_mode = 2
-text = "Melee"
-horizontal_alignment = 1
 
 [node name="UserNotes" type="TextEdit" parent="CrewStatsAndInfo"]
 layout_mode = 2

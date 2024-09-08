@@ -17,6 +17,11 @@ func _init(_name: String = "", _type: Type = Type.GEAR, _value: int = 0, _descri
 	description = _description
 	is_damaged = _is_damaged
 
+func duplicate() -> Equipment:
+	var new_equipment = Equipment.new(name, type, value, description, is_damaged)
+	new_equipment.effects = effects.duplicate()
+	return new_equipment
+
 func repair() -> void:
 	is_damaged = false
 

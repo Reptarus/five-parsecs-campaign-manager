@@ -17,6 +17,27 @@ func _load_equipment_database():
 				equipment_database[key] = Equipment.from_json(data[key])
 		file.close()
 
+func generate_equipment_from_background(background: Dictionary) -> Array:
+	var equipment = []
+	if "starting_gear" in background:
+		for item_name in background.starting_gear:
+			equipment.append(get_equipment(item_name))
+	return equipment
+
+func generate_equipment_from_motivation(motivation: Dictionary) -> Array:
+	var equipment = []
+	if "starting_gear" in motivation:
+		for item_name in motivation.starting_gear:
+			equipment.append(get_equipment(item_name))
+	return equipment
+
+func generate_equipment_from_class(class_type: Dictionary) -> Array:
+	var equipment = []
+	if "starting_gear" in class_type:
+		for item_name in class_type.starting_gear:
+			equipment.append(get_equipment(item_name))
+	return equipment
+
 func get_equipment(equipment_id: String) -> Equipment:
 	if equipment_id in equipment_database:
 		return equipment_database[equipment_id].duplicate()
