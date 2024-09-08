@@ -3,15 +3,15 @@
 importer="texture"
 type="CompressedTexture2D"
 uid="uid://dp0xcwv0f0du"
-path="res://.godot/imported/dice_shield.png-e72c9f974b9124f62f4167c1c56c07c7.ctex"
+path="res://.godot/imported/dice_shield.png-e086608b0c13bc8048feb13084339be6.ctex"
 metadata={
 "vram_texture": false
 }
 
 [deps]
 
-source_file="res://Assets/PNG/Double (128px)/dice_shield.png"
-dest_files=["res://.godot/imported/dice_shield.png-e72c9f974b9124f62f4167c1c56c07c7.ctex"]
+source_file="res://assets/PNG/Double (128px)/dice_shield.png"
+dest_files=["res://.godot/imported/dice_shield.png-e086608b0c13bc8048feb13084339be6.ctex"]
 
 [params]
 

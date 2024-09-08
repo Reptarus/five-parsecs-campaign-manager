@@ -3,15 +3,15 @@
 importer="texture"
 type="CompressedTexture2D"
 uid="uid://cfb01fh5r0ctt"
-path="res://.godot/imported/suit_diamonds.png-630bc8be5c76568fdd37484d8f0c90ee.ctex"
+path="res://.godot/imported/suit_diamonds.png-f8875a37241debbc3d59c6f06ee13296.ctex"
 metadata={
 "vram_texture": false
 }
 
 [deps]
 
-source_file="res://Assets/PNG/Double (128px)/suit_diamonds.png"
-dest_files=["res://.godot/imported/suit_diamonds.png-630bc8be5c76568fdd37484d8f0c90ee.ctex"]
+source_file="res://assets/PNG/Double (128px)/suit_diamonds.png"
+dest_files=["res://.godot/imported/suit_diamonds.png-f8875a37241debbc3d59c6f06ee13296.ctex"]
 
 [params]
 

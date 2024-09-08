@@ -3,15 +3,15 @@
 importer="texture"
 type="CompressedTexture2D"
 uid="uid://btuslicin62ua"
-path="res://.godot/imported/Jan_8_Cultist_ (1).jpg-c3b7a031a92c1c3314de1f0a70ac419f.ctex"
+path="res://.godot/imported/Jan_8_Cultist_ (1).jpg-6c4132d8caec16ac99a523aa7384109e.ctex"
 metadata={
 "vram_texture": false
 }
 
 [deps]
 
-source_file="res://Assets/BookImages/Jan_8_Cultist_ (1).jpg"
-dest_files=["res://.godot/imported/Jan_8_Cultist_ (1).jpg-c3b7a031a92c1c3314de1f0a70ac419f.ctex"]
+source_file="res://assets/BookImages/Jan_8_Cultist_ (1).jpg"
+dest_files=["res://.godot/imported/Jan_8_Cultist_ (1).jpg-6c4132d8caec16ac99a523aa7384109e.ctex"]
 
 [params]
 

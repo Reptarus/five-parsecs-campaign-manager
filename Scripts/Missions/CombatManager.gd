@@ -26,7 +26,7 @@ func _init(_game_state: GameState) -> void:
 	ai_controller.initialize(self, game_state)
 	initialize_battlefield()
 
-class Battle:
+class BattleManager:
 	var player_characters: Array[Character]
 	var enemies: Array[Character]
 	var enemy_panic_range: int = 2  # Default panic range, adjust as needed
@@ -52,6 +52,7 @@ class Battle:
 		enemy_casualties_this_round += 1
 
 
+
 func initialize_battlefield() -> void:
 	battlefield = []
 	for x in range(GRID_SIZE.x):
@@ -60,11 +61,12 @@ func initialize_battlefield() -> void:
 			battlefield[x].append(null)
 
 func start_combat(player_characters: Array[Character], enemies: Array[Character]) -> void:
-	current_battle = Battle.new(player_characters, enemies)
-	place_characters_on_battlefield()
-	seize_initiative()
-	combat_started.emit()
-	start_battle_round()
+	var current_battle = BattleManager.new(player_characters, enemies)  # Using the correct class name
+	place_characters_on_battlefield()  # Assuming this function is defined elsewhere
+	seize_initiative()  # Assuming this function is defined elsewhere
+	combat_started.emit()  # Ensure combat_started is a valid signal
+	start_battle_round()  # Assuming this function is defined elsewhere
+
 
 func place_characters_on_battlefield() -> void:
 	for character in current_battle.player_characters:

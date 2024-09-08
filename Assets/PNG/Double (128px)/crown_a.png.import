@@ -3,15 +3,15 @@
 importer="texture"
 type="CompressedTexture2D"
 uid="uid://cnq6vyyfckyd5"
-path="res://.godot/imported/crown_a.png-0572321e5ff94344eea0be4ec085e4fb.ctex"
+path="res://.godot/imported/crown_a.png-b4e8fbeabbc11b60681593abc2e1be22.ctex"
 metadata={
 "vram_texture": false
 }
 
 [deps]
 
-source_file="res://Assets/PNG/Double (128px)/crown_a.png"
-dest_files=["res://.godot/imported/crown_a.png-0572321e5ff94344eea0be4ec085e4fb.ctex"]
+source_file="res://assets/PNG/Double (128px)/crown_a.png"
+dest_files=["res://.godot/imported/crown_a.png-b4e8fbeabbc11b60681593abc2e1be22.ctex"]
 
 [params]
 

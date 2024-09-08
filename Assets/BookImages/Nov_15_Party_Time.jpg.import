@@ -3,15 +3,15 @@
 importer="texture"
 type="CompressedTexture2D"
 uid="uid://2tpugbxqjgmh"
-path="res://.godot/imported/Nov_15_Party_Time.jpg-694d423c45206d1976d60952fb5f6c47.ctex"
+path="res://.godot/imported/Nov_15_Party_Time.jpg-170c5d6ed813c207a73664698c02efbe.ctex"
 metadata={
 "vram_texture": false
 }
 
 [deps]
 
-source_file="res://Assets/BookImages/Nov_15_Party_Time.jpg"
-dest_files=["res://.godot/imported/Nov_15_Party_Time.jpg-694d423c45206d1976d60952fb5f6c47.ctex"]
+source_file="res://assets/BookImages/Nov_15_Party_Time.jpg"
+dest_files=["res://.godot/imported/Nov_15_Party_Time.jpg-170c5d6ed813c207a73664698c02efbe.ctex"]
 
 [params]
 

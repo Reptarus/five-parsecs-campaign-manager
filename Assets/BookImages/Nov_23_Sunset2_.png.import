@@ -3,15 +3,15 @@
 importer="texture"
 type="CompressedTexture2D"
 uid="uid://bm6c4rx645ove"
-path="res://.godot/imported/Nov_23_Sunset2_.png-e41d882ea9814515e87b60dfa2ee2d12.ctex"
+path="res://.godot/imported/Nov_23_Sunset2_.png-cc3917de0f84fa7ced7a1a518b22356f.ctex"
 metadata={
 "vram_texture": false
 }
 
 [deps]
 
-source_file="res://Assets/BookImages/Nov_23_Sunset2_.png"
-dest_files=["res://.godot/imported/Nov_23_Sunset2_.png-e41d882ea9814515e87b60dfa2ee2d12.ctex"]
+source_file="res://assets/BookImages/Nov_23_Sunset2_.png"
+dest_files=["res://.godot/imported/Nov_23_Sunset2_.png-cc3917de0f84fa7ced7a1a518b22356f.ctex"]
 
 [params]
 

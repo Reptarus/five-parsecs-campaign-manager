@@ -3,15 +3,15 @@
 importer="texture"
 type="CompressedTexture2D"
 uid="uid://csup80mpar3qm"
-path="res://.godot/imported/d3_number.png-cfa9af80eb665cb006308ab2e09de992.ctex"
+path="res://.godot/imported/d3_number.png-33a1d60e3a524104795e55a4ccea08eb.ctex"
 metadata={
 "vram_texture": false
 }
 
 [deps]
 
-source_file="res://Assets/PNG/Double (128px)/d3_number.png"
-dest_files=["res://.godot/imported/d3_number.png-cfa9af80eb665cb006308ab2e09de992.ctex"]
+source_file="res://assets/PNG/Double (128px)/d3_number.png"
+dest_files=["res://.godot/imported/d3_number.png-33a1d60e3a524104795e55a4ccea08eb.ctex"]
 
 [params]
 

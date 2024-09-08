@@ -3,15 +3,15 @@
 importer="texture"
 type="CompressedTexture2D"
 uid="uid://b08kp2tsdtjrx"
-path="res://.godot/imported/arrow_diagonal_cross.png-8730636b9a6808e4df3bea05ddb0d4a1.ctex"
+path="res://.godot/imported/arrow_diagonal_cross.png-e848d29f50ed2d1501a8789ced40c181.ctex"
 metadata={
 "vram_texture": false
 }
 
 [deps]
 
-source_file="res://Assets/PNG/Default (64px)/arrow_diagonal_cross.png"
-dest_files=["res://.godot/imported/arrow_diagonal_cross.png-8730636b9a6808e4df3bea05ddb0d4a1.ctex"]
+source_file="res://assets/PNG/Default (64px)/arrow_diagonal_cross.png"
+dest_files=["res://.godot/imported/arrow_diagonal_cross.png-e848d29f50ed2d1501a8789ced40c181.ctex"]
 
 [params]
 

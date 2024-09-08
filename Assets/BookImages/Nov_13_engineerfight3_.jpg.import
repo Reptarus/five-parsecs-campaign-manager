@@ -3,15 +3,15 @@
 importer="texture"
 type="CompressedTexture2D"
 uid="uid://g1qygvh2n3mp"
-path="res://.godot/imported/Nov_13_engineerfight3_.jpg-8547c53bd1954d55db86effef81f000c.ctex"
+path="res://.godot/imported/Nov_13_engineerfight3_.jpg-2615805b7fae35be8427df28adf90c81.ctex"
 metadata={
 "vram_texture": false
 }
 
 [deps]
 
-source_file="res://Assets/BookImages/Nov_13_engineerfight3_.jpg"
-dest_files=["res://.godot/imported/Nov_13_engineerfight3_.jpg-8547c53bd1954d55db86effef81f000c.ctex"]
+source_file="res://assets/BookImages/Nov_13_engineerfight3_.jpg"
+dest_files=["res://.godot/imported/Nov_13_engineerfight3_.jpg-2615805b7fae35be8427df28adf90c81.ctex"]
 
 [params]
 

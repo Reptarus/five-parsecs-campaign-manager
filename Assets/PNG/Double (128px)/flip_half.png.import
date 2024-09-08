@@ -3,15 +3,15 @@
 importer="texture"
 type="CompressedTexture2D"
 uid="uid://bd3lkjgq2nyba"
-path="res://.godot/imported/flip_half.png-6a776e6b3d2c7719d0101947dc61e52b.ctex"
+path="res://.godot/imported/flip_half.png-a3b82ec6b5bc865f1d3d98bca027982c.ctex"
 metadata={
 "vram_texture": false
 }
 
 [deps]
 
-source_file="res://Assets/PNG/Double (128px)/flip_half.png"
-dest_files=["res://.godot/imported/flip_half.png-6a776e6b3d2c7719d0101947dc61e52b.ctex"]
+source_file="res://assets/PNG/Double (128px)/flip_half.png"
+dest_files=["res://.godot/imported/flip_half.png-a3b82ec6b5bc865f1d3d98bca027982c.ctex"]
 
 [params]
 

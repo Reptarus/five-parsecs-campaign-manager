@@ -3,15 +3,15 @@
 importer="texture"
 type="CompressedTexture2D"
 uid="uid://ck0uddhd3047k"
-path="res://.godot/imported/hand_card.png-50147e11ec3d23503bedfe20fa578d5b.ctex"
+path="res://.godot/imported/hand_card.png-f4cc905547f0c264a31f182fdafb579a.ctex"
 metadata={
 "vram_texture": false
 }
 
 [deps]
 
-source_file="res://Assets/PNG/Default (64px)/hand_card.png"
-dest_files=["res://.godot/imported/hand_card.png-50147e11ec3d23503bedfe20fa578d5b.ctex"]
+source_file="res://assets/PNG/Default (64px)/hand_card.png"
+dest_files=["res://.godot/imported/hand_card.png-f4cc905547f0c264a31f182fdafb579a.ctex"]
 
 [params]
 

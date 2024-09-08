@@ -1,11 +1,11 @@
 [gd_scene load_steps=9 format=3 uid="uid://bjsta3jc8nw2k"]
 
 [ext_resource type="Script" path="res://Scenes/Scene Container/campaigncreation/scripts/CharacterCreationScene.gd" id="1_yksn4"]
-[ext_resource type="Texture2D" uid="uid://bwejyqe8qschs" path="res://Assets/Basic assets/Card X3/Card X5.png" id="2_bi18b"]
-[ext_resource type="Texture2D" uid="uid://bogjhy2wlwtca" path="res://Assets/Basic assets/Icons/09.png" id="4_0jfqn"]
-[ext_resource type="Texture2D" uid="uid://bjh0ro2ak2tle" path="res://Assets/BookImages/2024-09-03 18_48_37-01 - Core Rulebook.pdf and 3 more pages - Personal - Microsoft​ Edge.png" id="4_nujk6"]
-[ext_resource type="Texture2D" uid="uid://b0u2duocptu2v" path="res://Assets/Basic assets/Card X1/Card X2.png" id="5_s1mj3"]
-[ext_resource type="Texture2D" uid="uid://565v8opj5ar" path="res://Assets/Basic assets/Icons/10.png" id="5_w84yq"]
+[ext_resource type="Texture2D" uid="uid://bwejyqe8qschs" path="res://assets/Basic assets/Card X3/Card X5.png" id="2_bi18b"]
+[ext_resource type="Texture2D" uid="uid://bogjhy2wlwtca" path="res://assets/Basic assets/Icons/09.png" id="4_0jfqn"]
+[ext_resource type="Texture2D" uid="uid://bjh0ro2ak2tle" path="res://assets/BookImages/2024-09-03 18_48_37-01 - Core Rulebook.pdf and 3 more pages - Personal - Microsoft​ Edge.png" id="4_nujk6"]
+[ext_resource type="Texture2D" uid="uid://b0u2duocptu2v" path="res://assets/Basic assets/Card X1/Card X2.png" id="5_s1mj3"]
+[ext_resource type="Texture2D" uid="uid://565v8opj5ar" path="res://assets/Basic assets/Icons/10.png" id="5_w84yq"]
 
 [sub_resource type="Theme" id="Theme_vs586"]
 
@@ -82,7 +82,7 @@ theme_override_constants/separation = 25
 [node name="CharacterPortrait" type="TextureRect" parent="CrewPictureAndStats/PictureandBMCcontrols"]
 layout_mode = 2
 texture = ExtResource("4_nujk6")
-stretch_mode = 5
+expand_mode = 4
 
 [node name="PortraitControls" type="VBoxContainer" parent="CrewPictureAndStats/PictureandBMCcontrols"]
 layout_mode = 2

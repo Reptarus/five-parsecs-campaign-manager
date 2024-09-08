@@ -3,15 +3,15 @@
 importer="texture"
 type="CompressedTexture2D"
 uid="uid://quegiat6lov6"
-path="res://.godot/imported/award.png-86b9dfcd51ed335cec085bcc2943c696.ctex"
+path="res://.godot/imported/award.png-2c062e913d39789c9ab926961064cc85.ctex"
 metadata={
 "vram_texture": false
 }
 
 [deps]
 
-source_file="res://Assets/PNG/Default (64px)/award.png"
-dest_files=["res://.godot/imported/award.png-86b9dfcd51ed335cec085bcc2943c696.ctex"]
+source_file="res://assets/PNG/Default (64px)/award.png"
+dest_files=["res://.godot/imported/award.png-2c062e913d39789c9ab926961064cc85.ctex"]
 
 [params]
 

@@ -3,15 +3,15 @@
 importer="texture"
 type="CompressedTexture2D"
 uid="uid://djevylj1aovgk"
-path="res://.godot/imported/hexagon_tile.png-415ae6426e62f37d679ffc66d8a91337.ctex"
+path="res://.godot/imported/hexagon_tile.png-0a86f6ddc4a91e041805c4eb74806838.ctex"
 metadata={
 "vram_texture": false
 }
 
 [deps]
 
-source_file="res://Assets/PNG/Default (64px)/hexagon_tile.png"
-dest_files=["res://.godot/imported/hexagon_tile.png-415ae6426e62f37d679ffc66d8a91337.ctex"]
+source_file="res://assets/PNG/Default (64px)/hexagon_tile.png"
+dest_files=["res://.godot/imported/hexagon_tile.png-0a86f6ddc4a91e041805c4eb74806838.ctex"]
 
 [params]
 

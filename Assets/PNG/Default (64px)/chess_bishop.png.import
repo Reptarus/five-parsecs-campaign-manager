@@ -3,15 +3,15 @@
 importer="texture"
 type="CompressedTexture2D"
 uid="uid://b3amuitk7kieo"
-path="res://.godot/imported/chess_bishop.png-3fb5ee0ac6300a076c836ec01aff136c.ctex"
+path="res://.godot/imported/chess_bishop.png-a0646f4fe946252f114d4d8efd355672.ctex"
 metadata={
 "vram_texture": false
 }
 
 [deps]
 
-source_file="res://Assets/PNG/Default (64px)/chess_bishop.png"
-dest_files=["res://.godot/imported/chess_bishop.png-3fb5ee0ac6300a076c836ec01aff136c.ctex"]
+source_file="res://assets/PNG/Default (64px)/chess_bishop.png"
+dest_files=["res://.godot/imported/chess_bishop.png-a0646f4fe946252f114d4d8efd355672.ctex"]
 
 [params]
 

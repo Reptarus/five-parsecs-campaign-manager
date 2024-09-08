@@ -3,15 +3,15 @@
 importer="texture"
 type="CompressedTexture2D"
 uid="uid://crt5wm5kvf5g2"
-path="res://.godot/imported/suit_hearts_broken.png-86153aa392560d47e604f1561267d547.ctex"
+path="res://.godot/imported/suit_hearts_broken.png-bca5857aff7f026c3e47f81bc6617dbc.ctex"
 metadata={
 "vram_texture": false
 }
 
 [deps]
 
-source_file="res://Assets/PNG/Default (64px)/suit_hearts_broken.png"
-dest_files=["res://.godot/imported/suit_hearts_broken.png-86153aa392560d47e604f1561267d547.ctex"]
+source_file="res://assets/PNG/Default (64px)/suit_hearts_broken.png"
+dest_files=["res://.godot/imported/suit_hearts_broken.png-bca5857aff7f026c3e47f81bc6617dbc.ctex"]
 
 [params]
 

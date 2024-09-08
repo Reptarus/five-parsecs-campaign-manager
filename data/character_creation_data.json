@@ -1,8 +1,4 @@
 {
-  "metadata": {
-	"version": "1.0",
-	"last_updated": "2024-09-05"
-  },
   "races": [
 	{
 	  "id": "human",
@@ -292,47 +288,5 @@
 	  "type": "general",
 	  "description": "Skill in diplomacy and bargaining."
 	}
-  ],
-  "starting_equipment": {
-	"weapons": [
-	  {
-		"id": "laser_pistol",
-		"name": "Laser Pistol",
-		"type": "ranged",
-		"damage": 2,
-		"range": 12,
-		"traits": ["pistol"]
-	  },
-	  {
-		"id": "combat_knife",
-		"name": "Combat Knife",
-		"type": "melee",
-		"damage": 1,
-		"range": 0,
-		"traits": ["melee", "concealed"]
-	  }
-	],
-	"armor": [
-	  {
-		"id": "flak_vest",
-		"name": "Flak Vest",
-		"defense": 1,
-		"traits": ["light"]
-	  }
-	],
-	"gear": [
-	  {
-		"id": "medkit",
-		"name": "Medkit",
-		"effect": "heal_2",
-		"uses": 3
-	  },
-	  {
-		"id": "repair_kit",
-		"name": "Repair Kit",
-		"effect": "repair_1",
-		"uses": 3
-	  }
-	]
-  }
+  ]
 }

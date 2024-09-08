@@ -3,15 +3,15 @@
 importer="texture"
 type="CompressedTexture2D"
 uid="uid://hhwf06okcodv"
-path="res://.godot/imported/Dec_25_forestenviro_Concept_F.jpg-c9cb4595968096d1f43f7daa5c0b3341.ctex"
+path="res://.godot/imported/Dec_25_forestenviro_Concept_F.jpg-501bc866c0ea5409659a7d12e07342dc.ctex"
 metadata={
 "vram_texture": false
 }
 
 [deps]
 
-source_file="res://Assets/BookImages/Dec_25_forestenviro_Concept_F.jpg"
-dest_files=["res://.godot/imported/Dec_25_forestenviro_Concept_F.jpg-c9cb4595968096d1f43f7daa5c0b3341.ctex"]
+source_file="res://assets/BookImages/Dec_25_forestenviro_Concept_F.jpg"
+dest_files=["res://.godot/imported/Dec_25_forestenviro_Concept_F.jpg-501bc866c0ea5409659a7d12e07342dc.ctex"]
 
 [params]
 

@@ -3,15 +3,15 @@
 importer="texture"
 type="CompressedTexture2D"
 uid="uid://botbk4iqiurd2"
-path="res://.godot/imported/card_flipdouble.png-b3364ca9bdfda6a406bfe793c8015487.ctex"
+path="res://.godot/imported/card_flipdouble.png-cc8a846b0a422e9c7428b68511bfceb2.ctex"
 metadata={
 "vram_texture": false
 }
 
 [deps]
 
-source_file="res://Assets/PNG/Double (128px)/card_flipdouble.png"
-dest_files=["res://.godot/imported/card_flipdouble.png-b3364ca9bdfda6a406bfe793c8015487.ctex"]
+source_file="res://assets/PNG/Double (128px)/card_flipdouble.png"
+dest_files=["res://.godot/imported/card_flipdouble.png-cc8a846b0a422e9c7428b68511bfceb2.ctex"]
 
 [params]
 

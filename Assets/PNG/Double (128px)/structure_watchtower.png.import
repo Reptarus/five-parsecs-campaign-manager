@@ -3,15 +3,15 @@
 importer="texture"
 type="CompressedTexture2D"
 uid="uid://c6onnv5tgt6ju"
-path="res://.godot/imported/structure_watchtower.png-57ae120f947bc943714b6ee16da7124c.ctex"
+path="res://.godot/imported/structure_watchtower.png-feadd5ea0cb3610d659a166112da1ae2.ctex"
 metadata={
 "vram_texture": false
 }
 
 [deps]
 
-source_file="res://Assets/PNG/Double (128px)/structure_watchtower.png"
-dest_files=["res://.godot/imported/structure_watchtower.png-57ae120f947bc943714b6ee16da7124c.ctex"]
+source_file="res://assets/PNG/Double (128px)/structure_watchtower.png"
+dest_files=["res://.godot/imported/structure_watchtower.png-feadd5ea0cb3610d659a166112da1ae2.ctex"]
 
 [params]
 

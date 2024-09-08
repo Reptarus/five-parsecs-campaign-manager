@@ -3,15 +3,15 @@
 importer="texture"
 type="CompressedTexture2D"
 uid="uid://q0wqw3ogtqas"
-path="res://.godot/imported/Jan_10_Desert_explo.jpg-1ec8d32d153a3b689a750c1211ecdb38.ctex"
+path="res://.godot/imported/Jan_10_Desert_explo.jpg-05a7a0facf1146951783142c67c4f803.ctex"
 metadata={
 "vram_texture": false
 }
 
 [deps]
 
-source_file="res://Assets/BookImages/Jan_10_Desert_explo.jpg"
-dest_files=["res://.godot/imported/Jan_10_Desert_explo.jpg-1ec8d32d153a3b689a750c1211ecdb38.ctex"]
+source_file="res://assets/BookImages/Jan_10_Desert_explo.jpg"
+dest_files=["res://.godot/imported/Jan_10_Desert_explo.jpg-05a7a0facf1146951783142c67c4f803.ctex"]
 
 [params]
 

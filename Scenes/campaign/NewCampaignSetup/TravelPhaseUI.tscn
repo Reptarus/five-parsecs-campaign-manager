@@ -1,6 +1,6 @@
 [gd_scene load_steps=3 format=3 uid="uid://bjdo0o2bet0av"]
 
-[ext_resource type="Texture2D" uid="uid://bwejyqe8qschs" path="res://Assets/Basic assets/Card X3/Card X5.png" id="1_14nuf"]
+[ext_resource type="Texture2D" uid="uid://bwejyqe8qschs" path="res://assets/Basic assets/Card X3/Card X5.png" id="1_14nuf"]
 
 [sub_resource type="Theme" id="Theme_jsgo7"]
 

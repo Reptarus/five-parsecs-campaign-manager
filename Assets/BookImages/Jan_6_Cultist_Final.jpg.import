@@ -3,15 +3,15 @@
 importer="texture"
 type="CompressedTexture2D"
 uid="uid://cur2mpllqop5c"
-path="res://.godot/imported/Jan_6_Cultist_Final.jpg-19396fbe708d1ca7739cc630eb363c10.ctex"
+path="res://.godot/imported/Jan_6_Cultist_Final.jpg-64fdfb619d1e373d64d3a653adbdb65d.ctex"
 metadata={
 "vram_texture": false
 }
 
 [deps]
 
-source_file="res://Assets/BookImages/Jan_6_Cultist_Final.jpg"
-dest_files=["res://.godot/imported/Jan_6_Cultist_Final.jpg-19396fbe708d1ca7739cc630eb363c10.ctex"]
+source_file="res://assets/BookImages/Jan_6_Cultist_Final.jpg"
+dest_files=["res://.godot/imported/Jan_6_Cultist_Final.jpg-64fdfb619d1e373d64d3a653adbdb65d.ctex"]
 
 [params]
 

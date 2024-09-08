@@ -3,15 +3,15 @@
 importer="texture"
 type="CompressedTexture2D"
 uid="uid://bhcngu7xwn36l"
-path="res://.godot/imported/hand_hexagon.png-e7e1ebcb3f95d972626e38836b0ab90a.ctex"
+path="res://.godot/imported/hand_hexagon.png-188481dae060a7861ae79178f4b0f5ab.ctex"
 metadata={
 "vram_texture": false
 }
 
 [deps]
 
-source_file="res://Assets/PNG/Double (128px)/hand_hexagon.png"
-dest_files=["res://.godot/imported/hand_hexagon.png-e7e1ebcb3f95d972626e38836b0ab90a.ctex"]
+source_file="res://assets/PNG/Double (128px)/hand_hexagon.png"
+dest_files=["res://.godot/imported/hand_hexagon.png-188481dae060a7861ae79178f4b0f5ab.ctex"]
 
 [params]
 

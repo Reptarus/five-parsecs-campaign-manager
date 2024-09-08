@@ -3,15 +3,15 @@
 importer="texture"
 type="CompressedTexture2D"
 uid="uid://ws1ej5idc8dv"
-path="res://.godot/imported/pawn_clockwise.png-24c348c8c5159ee3cacf9e4213737611.ctex"
+path="res://.godot/imported/pawn_clockwise.png-86d5a8e03f4a461304d45ea8aa0fb4f1.ctex"
 metadata={
 "vram_texture": false
 }
 
 [deps]
 
-source_file="res://Assets/PNG/Default (64px)/pawn_clockwise.png"
-dest_files=["res://.godot/imported/pawn_clockwise.png-24c348c8c5159ee3cacf9e4213737611.ctex"]
+source_file="res://assets/PNG/Default (64px)/pawn_clockwise.png"
+dest_files=["res://.godot/imported/pawn_clockwise.png-86d5a8e03f4a461304d45ea8aa0fb4f1.ctex"]
 
 [params]
 

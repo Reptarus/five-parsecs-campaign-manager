@@ -1,6 +1,6 @@
 [gd_scene load_steps=2 format=3 uid="uid://5ws0uspoh6vk"]
 
-[ext_resource type="Texture2D" uid="uid://dpv5v3x1ujg66" path="res://Assets/BookImages/Nov_15_cityatnight.jpg" id="1_jq64m"]
+[ext_resource type="Texture2D" uid="uid://dpv5v3x1ujg66" path="res://assets/BookImages/Nov_15_cityatnight.jpg" id="1_jq64m"]
 
 [node name="Node" type="Control"]
 layout_mode = 3

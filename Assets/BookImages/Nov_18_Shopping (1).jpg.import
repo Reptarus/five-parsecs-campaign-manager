@@ -3,15 +3,15 @@
 importer="texture"
 type="CompressedTexture2D"
 uid="uid://cw58lmwbguby"
-path="res://.godot/imported/Nov_18_Shopping (1).jpg-2767c2062f3563d783908105cc1cef37.ctex"
+path="res://.godot/imported/Nov_18_Shopping (1).jpg-a24bc8469e0b073e4ddcc4e04cd40be3.ctex"
 metadata={
 "vram_texture": false
 }
 
 [deps]
 
-source_file="res://Assets/BookImages/Nov_18_Shopping (1).jpg"
-dest_files=["res://.godot/imported/Nov_18_Shopping (1).jpg-2767c2062f3563d783908105cc1cef37.ctex"]
+source_file="res://assets/BookImages/Nov_18_Shopping (1).jpg"
+dest_files=["res://.godot/imported/Nov_18_Shopping (1).jpg-a24bc8469e0b073e4ddcc4e04cd40be3.ctex"]
 
 [params]
 

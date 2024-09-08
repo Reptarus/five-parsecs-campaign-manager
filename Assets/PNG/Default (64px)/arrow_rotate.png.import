@@ -3,15 +3,15 @@
 importer="texture"
 type="CompressedTexture2D"
 uid="uid://hxhoq6v1fofp"
-path="res://.godot/imported/arrow_rotate.png-180cc1f1c2e9f5fbcc3697f65dca3000.ctex"
+path="res://.godot/imported/arrow_rotate.png-7763698096db4b894664e5ac30d9a022.ctex"
 metadata={
 "vram_texture": false
 }
 
 [deps]
 
-source_file="res://Assets/PNG/Default (64px)/arrow_rotate.png"
-dest_files=["res://.godot/imported/arrow_rotate.png-180cc1f1c2e9f5fbcc3697f65dca3000.ctex"]
+source_file="res://assets/PNG/Default (64px)/arrow_rotate.png"
+dest_files=["res://.godot/imported/arrow_rotate.png-7763698096db4b894664e5ac30d9a022.ctex"]
 
 [params]
 

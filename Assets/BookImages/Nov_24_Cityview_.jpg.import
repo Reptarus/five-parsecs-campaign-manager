@@ -3,15 +3,15 @@
 importer="texture"
 type="CompressedTexture2D"
 uid="uid://dwtv722eqpn51"
-path="res://.godot/imported/Nov_24_Cityview_.jpg-0b3c30e461f4717aabace7e15816adb1.ctex"
+path="res://.godot/imported/Nov_24_Cityview_.jpg-2f162463674bd664fa04b223ae7e5aca.ctex"
 metadata={
 "vram_texture": false
 }
 
 [deps]
 
-source_file="res://Assets/BookImages/Nov_24_Cityview_.jpg"
-dest_files=["res://.godot/imported/Nov_24_Cityview_.jpg-0b3c30e461f4717aabace7e15816adb1.ctex"]
+source_file="res://assets/BookImages/Nov_24_Cityview_.jpg"
+dest_files=["res://.godot/imported/Nov_24_Cityview_.jpg-2f162463674bd664fa04b223ae7e5aca.ctex"]
 
 [params]
 

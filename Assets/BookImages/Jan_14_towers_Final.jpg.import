@@ -3,15 +3,15 @@
 importer="texture"
 type="CompressedTexture2D"
 uid="uid://g11cp8a743r6"
-path="res://.godot/imported/Jan_14_towers_Final.jpg-960fb8d2145a3c8d6970992f6253453c.ctex"
+path="res://.godot/imported/Jan_14_towers_Final.jpg-d56caba5da8cf6dec48d1735ee852e48.ctex"
 metadata={
 "vram_texture": false
 }
 
 [deps]
 
-source_file="res://Assets/BookImages/Jan_14_towers_Final.jpg"
-dest_files=["res://.godot/imported/Jan_14_towers_Final.jpg-960fb8d2145a3c8d6970992f6253453c.ctex"]
+source_file="res://assets/BookImages/Jan_14_towers_Final.jpg"
+dest_files=["res://.godot/imported/Jan_14_towers_Final.jpg-d56caba5da8cf6dec48d1735ee852e48.ctex"]
 
 [params]
 

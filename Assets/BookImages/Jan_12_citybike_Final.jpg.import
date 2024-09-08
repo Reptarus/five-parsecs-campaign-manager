@@ -3,15 +3,15 @@
 importer="texture"
 type="CompressedTexture2D"
 uid="uid://crxg5cgqkgaws"
-path="res://.godot/imported/Jan_12_citybike_Final.jpg-a73de8612b61ecd7d2af397c172fe170.ctex"
+path="res://.godot/imported/Jan_12_citybike_Final.jpg-0da3852d16df78a9b8149102fcb363bd.ctex"
 metadata={
 "vram_texture": false
 }
 
 [deps]
 
-source_file="res://Assets/BookImages/Jan_12_citybike_Final.jpg"
-dest_files=["res://.godot/imported/Jan_12_citybike_Final.jpg-a73de8612b61ecd7d2af397c172fe170.ctex"]
+source_file="res://assets/BookImages/Jan_12_citybike_Final.jpg"
+dest_files=["res://.godot/imported/Jan_12_citybike_Final.jpg-0da3852d16df78a9b8149102fcb363bd.ctex"]
 
 [params]
 

@@ -3,15 +3,15 @@
 importer="texture"
 type="CompressedTexture2D"
 uid="uid://csu7fpkuc8672"
-path="res://.godot/imported/timer_CCW_50.png-cb02d5db2a69d49fd0b002bfb7275522.ctex"
+path="res://.godot/imported/timer_CCW_50.png-8bc9d659b8054190d22ea3a0635b472e.ctex"
 metadata={
 "vram_texture": false
 }
 
 [deps]
 
-source_file="res://Assets/PNG/Default (64px)/timer_CCW_50.png"
-dest_files=["res://.godot/imported/timer_CCW_50.png-cb02d5db2a69d49fd0b002bfb7275522.ctex"]
+source_file="res://assets/PNG/Default (64px)/timer_CCW_50.png"
+dest_files=["res://.godot/imported/timer_CCW_50.png-8bc9d659b8054190d22ea3a0635b472e.ctex"]
 
 [params]
 

@@ -3,15 +3,15 @@
 importer="texture"
 type="CompressedTexture2D"
 uid="uid://ouwwmujfxy64"
-path="res://.godot/imported/suit_clubs.png-5e16a733e17123e6bfee92bb8e072d57.ctex"
+path="res://.godot/imported/suit_clubs.png-1fe0bf83d6be115b9f68d0353bdc9f49.ctex"
 metadata={
 "vram_texture": false
 }
 
 [deps]
 
-source_file="res://Assets/PNG/Double (128px)/suit_clubs.png"
-dest_files=["res://.godot/imported/suit_clubs.png-5e16a733e17123e6bfee92bb8e072d57.ctex"]
+source_file="res://assets/PNG/Double (128px)/suit_clubs.png"
+dest_files=["res://.godot/imported/suit_clubs.png-1fe0bf83d6be115b9f68d0353bdc9f49.ctex"]
 
 [params]
 

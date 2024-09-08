@@ -3,15 +3,15 @@
 importer="texture"
 type="CompressedTexture2D"
 uid="uid://dmrbaqpg5jb6f"
-path="res://.godot/imported/tag_d6_infinte.png-3419676426cce814c1a7bd563b0ccd64.ctex"
+path="res://.godot/imported/tag_d6_infinte.png-67eb02f2c0a270d8bbe1ed0d4bc16e59.ctex"
 metadata={
 "vram_texture": false
 }
 
 [deps]
 
-source_file="res://Assets/PNG/Default (64px)/tag_d6_infinte.png"
-dest_files=["res://.godot/imported/tag_d6_infinte.png-3419676426cce814c1a7bd563b0ccd64.ctex"]
+source_file="res://assets/PNG/Default (64px)/tag_d6_infinte.png"
+dest_files=["res://.godot/imported/tag_d6_infinte.png-67eb02f2c0a270d8bbe1ed0d4bc16e59.ctex"]
 
 [params]
 

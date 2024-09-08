@@ -3,15 +3,15 @@
 importer="texture"
 type="CompressedTexture2D"
 uid="uid://c11jys1ha2dxt"
-path="res://.godot/imported/Soulless.jpg-2b5bd58e01d0b086c234e8155da828b2.ctex"
+path="res://.godot/imported/Soulless.jpg-af3fd958eaedb5d164d972503b308407.ctex"
 metadata={
 "vram_texture": false
 }
 
 [deps]
 
-source_file="res://Assets/BookImages/Soulless.jpg"
-dest_files=["res://.godot/imported/Soulless.jpg-2b5bd58e01d0b086c234e8155da828b2.ctex"]
+source_file="res://assets/BookImages/Soulless.jpg"
+dest_files=["res://.godot/imported/Soulless.jpg-af3fd958eaedb5d164d972503b308407.ctex"]
 
 [params]
 

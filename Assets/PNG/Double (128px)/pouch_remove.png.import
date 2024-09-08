@@ -3,15 +3,15 @@
 importer="texture"
 type="CompressedTexture2D"
 uid="uid://u84b7ljljsvq"
-path="res://.godot/imported/pouch_remove.png-c76c8c652f6c65f0b31e084c967851be.ctex"
+path="res://.godot/imported/pouch_remove.png-7ad02d987fa91cb0a3446db9b659fd27.ctex"
 metadata={
 "vram_texture": false
 }
 
 [deps]
 
-source_file="res://Assets/PNG/Double (128px)/pouch_remove.png"
-dest_files=["res://.godot/imported/pouch_remove.png-c76c8c652f6c65f0b31e084c967851be.ctex"]
+source_file="res://assets/PNG/Double (128px)/pouch_remove.png"
+dest_files=["res://.godot/imported/pouch_remove.png-7ad02d987fa91cb0a3446db9b659fd27.ctex"]
 
 [params]
 

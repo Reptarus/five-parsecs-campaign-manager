@@ -3,15 +3,15 @@
 importer="texture"
 type="CompressedTexture2D"
 uid="uid://bwb417f7y0ldd"
-path="res://.godot/imported/chess_rook.png-e2f49df6fd7efedeccfbb05d0a386976.ctex"
+path="res://.godot/imported/chess_rook.png-0659df7fdce290d7338454c6f73bbeaf.ctex"
 metadata={
 "vram_texture": false
 }
 
 [deps]
 
-source_file="res://Assets/PNG/Default (64px)/chess_rook.png"
-dest_files=["res://.godot/imported/chess_rook.png-e2f49df6fd7efedeccfbb05d0a386976.ctex"]
+source_file="res://assets/PNG/Default (64px)/chess_rook.png"
+dest_files=["res://.godot/imported/chess_rook.png-0659df7fdce290d7338454c6f73bbeaf.ctex"]
 
 [params]
 

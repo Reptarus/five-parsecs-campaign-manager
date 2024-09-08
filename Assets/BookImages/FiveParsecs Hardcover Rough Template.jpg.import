@@ -3,15 +3,15 @@
 importer="texture"
 type="CompressedTexture2D"
 uid="uid://dnolax6dvxmht"
-path="res://.godot/imported/FiveParsecs Hardcover Rough Template.jpg-480acaae388272374f2c55a23f308fad.ctex"
+path="res://.godot/imported/FiveParsecs Hardcover Rough Template.jpg-ce82b49b9d8523a53dad56e2b5ea3cd6.ctex"
 metadata={
 "vram_texture": false
 }
 
 [deps]
 
-source_file="res://Assets/BookImages/FiveParsecs Hardcover Rough Template.jpg"
-dest_files=["res://.godot/imported/FiveParsecs Hardcover Rough Template.jpg-480acaae388272374f2c55a23f308fad.ctex"]
+source_file="res://assets/BookImages/FiveParsecs Hardcover Rough Template.jpg"
+dest_files=["res://.godot/imported/FiveParsecs Hardcover Rough Template.jpg-ce82b49b9d8523a53dad56e2b5ea3cd6.ctex"]
 
 [params]
 

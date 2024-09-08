@@ -3,15 +3,15 @@
 importer="texture"
 type="CompressedTexture2D"
 uid="uid://d06fnrrf65c0n"
-path="res://.godot/imported/cards_stack_cross.png-6c6c6d1369beef3a20843bcf413ae053.ctex"
+path="res://.godot/imported/cards_stack_cross.png-f4de2b76ec22dd7cb59606426601ba7d.ctex"
 metadata={
 "vram_texture": false
 }
 
 [deps]
 
-source_file="res://Assets/PNG/Double (128px)/cards_stack_cross.png"
-dest_files=["res://.godot/imported/cards_stack_cross.png-6c6c6d1369beef3a20843bcf413ae053.ctex"]
+source_file="res://assets/PNG/Double (128px)/cards_stack_cross.png"
+dest_files=["res://.godot/imported/cards_stack_cross.png-f4de2b76ec22dd7cb59606426601ba7d.ctex"]
 
 [params]
 

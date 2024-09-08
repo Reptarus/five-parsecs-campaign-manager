@@ -3,15 +3,15 @@
 importer="texture"
 type="CompressedTexture2D"
 uid="uid://clgssfol5p78s"
-path="res://.godot/imported/Mercenary.jpg-fecaaec71153509d1b771ae774c9d11d.ctex"
+path="res://.godot/imported/Mercenary.jpg-64d3de6aa08365b72aab781c94c878eb.ctex"
 metadata={
 "vram_texture": false
 }
 
 [deps]
 
-source_file="res://Assets/BookImages/Mercenary.jpg"
-dest_files=["res://.godot/imported/Mercenary.jpg-fecaaec71153509d1b771ae774c9d11d.ctex"]
+source_file="res://assets/BookImages/Mercenary.jpg"
+dest_files=["res://.godot/imported/Mercenary.jpg-64d3de6aa08365b72aab781c94c878eb.ctex"]
 
 [params]
 

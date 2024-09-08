@@ -3,15 +3,15 @@
 importer="texture"
 type="CompressedTexture2D"
 uid="uid://c7dk5jgqmsvrs"
-path="res://.godot/imported/chess_knight.png-657bee6a166c5cae64276ce27f991aa2.ctex"
+path="res://.godot/imported/chess_knight.png-19f909ac656e228ddf40bbee69505aa6.ctex"
 metadata={
 "vram_texture": false
 }
 
 [deps]
 
-source_file="res://Assets/PNG/Double (128px)/chess_knight.png"
-dest_files=["res://.godot/imported/chess_knight.png-657bee6a166c5cae64276ce27f991aa2.ctex"]
+source_file="res://assets/PNG/Double (128px)/chess_knight.png"
+dest_files=["res://.godot/imported/chess_knight.png-19f909ac656e228ddf40bbee69505aa6.ctex"]
 
 [params]
 

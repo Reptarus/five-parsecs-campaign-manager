@@ -177,7 +177,7 @@ func cosmic_phenomenon_event() -> Dictionary:
 			crew_member.add_luck(1)
 			var result = crew_member.name + " gained 1 Luck."
 			if game_state.current_crew.has_precursor():
-				game_state.add_story_point(1)
+				game_state.add_story_point()
 				result += " Precursor predicts it's a good omen. Gained 1 story point."
 			return result
 	}
@@ -200,7 +200,7 @@ func escape_pod_event() -> Dictionary:
 					return "Rescued survivor. Gained " + str(credits) + " credits and " + loot.name
 				4:
 					game_state.add_quest_rumor()
-					game_state.add_story_point(1)
+					game_state.add_story_point()
 					return "Rescued survivor with interesting information. Gained 1 Quest Rumor and 1 story point."
 				5, 6:
 					var new_crew = game_state.character_generator.generate_character()
@@ -246,7 +246,7 @@ func time_to_reflect_event() -> Dictionary:
 		"name": "Time to Reflect",
 		"description": "How is the story unfolding? What did it all mean?",
 		"action": func():
-			game_state.add_story_point(1)
+			game_state.add_story_point()
 			return "Gained 1 story point."
 	}
 

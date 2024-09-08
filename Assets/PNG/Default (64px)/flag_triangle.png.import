@@ -3,15 +3,15 @@
 importer="texture"
 type="CompressedTexture2D"
 uid="uid://bedum5im75qo5"
-path="res://.godot/imported/flag_triangle.png-722100a65672a72c60d500504ee404cc.ctex"
+path="res://.godot/imported/flag_triangle.png-49c9dd3d0e50bbf18e8dff0095b0fd48.ctex"
 metadata={
 "vram_texture": false
 }
 
 [deps]
 
-source_file="res://Assets/PNG/Default (64px)/flag_triangle.png"
-dest_files=["res://.godot/imported/flag_triangle.png-722100a65672a72c60d500504ee404cc.ctex"]
+source_file="res://assets/PNG/Default (64px)/flag_triangle.png"
+dest_files=["res://.godot/imported/flag_triangle.png-49c9dd3d0e50bbf18e8dff0095b0fd48.ctex"]
 
 [params]
 

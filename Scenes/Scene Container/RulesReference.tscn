@@ -1,8 +1,8 @@
 [gd_scene load_steps=4 format=3 uid="uid://fwkbmwcm4neh"]
 
 [ext_resource type="Script" path="res://Scenes/Utils/RulesReference.gd" id="1_usady"]
-[ext_resource type="Texture2D" uid="uid://rf8rruw1wr7" path="res://Assets/BookImages/Nov_22_Driftingaway.png" id="2_i750e"]
-[ext_resource type="Texture2D" uid="uid://35mn8pi343cm" path="res://Assets/PNG/Icon03.png" id="3_uc36b"]
+[ext_resource type="Texture2D" uid="uid://rf8rruw1wr7" path="res://assets/BookImages/Nov_22_Driftingaway.png" id="2_i750e"]
+[ext_resource type="Texture2D" uid="uid://35mn8pi343cm" path="res://assets/PNG/Icon03.png" id="3_uc36b"]
 
 [node name="RulesReference" type="Control"]
 layout_mode = 3

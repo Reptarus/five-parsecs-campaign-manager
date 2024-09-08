@@ -3,15 +3,15 @@
 importer="texture"
 type="CompressedTexture2D"
 uid="uid://dfjfplkr423cg"
-path="res://.godot/imported/direction_e.png-94cf935f7f4851dc66c1885cdbabf4f1.ctex"
+path="res://.godot/imported/direction_e.png-32e23843aaa0733f4f95bd552a81e10e.ctex"
 metadata={
 "vram_texture": false
 }
 
 [deps]
 
-source_file="res://Assets/PNG/Double (128px)/direction_e.png"
-dest_files=["res://.godot/imported/direction_e.png-94cf935f7f4851dc66c1885cdbabf4f1.ctex"]
+source_file="res://assets/PNG/Double (128px)/direction_e.png"
+dest_files=["res://.godot/imported/direction_e.png-32e23843aaa0733f4f95bd552a81e10e.ctex"]
 
 [params]
 

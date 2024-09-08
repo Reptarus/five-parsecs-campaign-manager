@@ -3,15 +3,15 @@
 importer="texture"
 type="CompressedTexture2D"
 uid="uid://cveuupfk6dl5h"
-path="res://.godot/imported/cards_seek_top.png-0a7d37d6be590c61aaa9cf8d22be4952.ctex"
+path="res://.godot/imported/cards_seek_top.png-d75109920db6b592d403c1c40c56e666.ctex"
 metadata={
 "vram_texture": false
 }
 
 [deps]
 
-source_file="res://Assets/PNG/Default (64px)/cards_seek_top.png"
-dest_files=["res://.godot/imported/cards_seek_top.png-0a7d37d6be590c61aaa9cf8d22be4952.ctex"]
+source_file="res://assets/PNG/Default (64px)/cards_seek_top.png"
+dest_files=["res://.godot/imported/cards_seek_top.png-d75109920db6b592d403c1c40c56e666.ctex"]
 
 [params]
 

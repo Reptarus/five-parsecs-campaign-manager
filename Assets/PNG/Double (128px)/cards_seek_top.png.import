@@ -3,15 +3,15 @@
 importer="texture"
 type="CompressedTexture2D"
 uid="uid://cjnmdfkouruk2"
-path="res://.godot/imported/cards_seek_top.png-2469b9337509de97c6867010c3bd9c02.ctex"
+path="res://.godot/imported/cards_seek_top.png-b8e38c21833695cbc2c364dcadba2699.ctex"
 metadata={
 "vram_texture": false
 }
 
 [deps]
 
-source_file="res://Assets/PNG/Double (128px)/cards_seek_top.png"
-dest_files=["res://.godot/imported/cards_seek_top.png-2469b9337509de97c6867010c3bd9c02.ctex"]
+source_file="res://assets/PNG/Double (128px)/cards_seek_top.png"
+dest_files=["res://.godot/imported/cards_seek_top.png-b8e38c21833695cbc2c364dcadba2699.ctex"]
 
 [params]
 

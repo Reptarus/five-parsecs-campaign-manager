@@ -3,15 +3,15 @@
 importer="texture"
 type="CompressedTexture2D"
 uid="uid://b2xxp2bnurhwk"
-path="res://.godot/imported/dollar.png-90b91cfc2bd4a6d6217d96b0e02921f1.ctex"
+path="res://.godot/imported/dollar.png-d9042228dafeed7bc9488b3c0cceb389.ctex"
 metadata={
 "vram_texture": false
 }
 
 [deps]
 
-source_file="res://Assets/PNG/Double (128px)/dollar.png"
-dest_files=["res://.godot/imported/dollar.png-90b91cfc2bd4a6d6217d96b0e02921f1.ctex"]
+source_file="res://assets/PNG/Double (128px)/dollar.png"
+dest_files=["res://.godot/imported/dollar.png-d9042228dafeed7bc9488b3c0cceb389.ctex"]
 
 [params]
 

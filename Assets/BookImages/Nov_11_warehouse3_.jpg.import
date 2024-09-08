@@ -3,15 +3,15 @@
 importer="texture"
 type="CompressedTexture2D"
 uid="uid://dqnrfcteoadhi"
-path="res://.godot/imported/Nov_11_warehouse3_.jpg-978e61c20a0121153737ac1a7cd93149.ctex"
+path="res://.godot/imported/Nov_11_warehouse3_.jpg-7a1079bc0c27ca9ddd8ee9c7a224de35.ctex"
 metadata={
 "vram_texture": false
 }
 
 [deps]
 
-source_file="res://Assets/BookImages/Nov_11_warehouse3_.jpg"
-dest_files=["res://.godot/imported/Nov_11_warehouse3_.jpg-978e61c20a0121153737ac1a7cd93149.ctex"]
+source_file="res://assets/BookImages/Nov_11_warehouse3_.jpg"
+dest_files=["res://.godot/imported/Nov_11_warehouse3_.jpg-7a1079bc0c27ca9ddd8ee9c7a224de35.ctex"]
 
 [params]
 

@@ -3,15 +3,15 @@
 importer="texture"
 type="CompressedTexture2D"
 uid="uid://cbgs773tji60q"
-path="res://.godot/imported/pouch_add.png-4ce28f4f941453ab8b6a13e0bbf8f505.ctex"
+path="res://.godot/imported/pouch_add.png-8c4ca4c665fd7cdb381dc7bb8fef814d.ctex"
 metadata={
 "vram_texture": false
 }
 
 [deps]
 
-source_file="res://Assets/PNG/Double (128px)/pouch_add.png"
-dest_files=["res://.godot/imported/pouch_add.png-4ce28f4f941453ab8b6a13e0bbf8f505.ctex"]
+source_file="res://assets/PNG/Double (128px)/pouch_add.png"
+dest_files=["res://.godot/imported/pouch_add.png-8c4ca4c665fd7cdb381dc7bb8fef814d.ctex"]
 
 [params]
 

@@ -60,16 +60,23 @@ func execute_post_battle_sequence() -> void:
 	check_for_galactic_war_progress()
 
 func resolve_rival_status() -> void:
-	var battle: Battle = game_state.current_battle
+	var battle: Battle = game_state.current_battle  # Ensure BattleManager is the correct class
 	if battle.held_field and not battle.opponent.is_rival:
 		if randi() % 6 + 1 == 1:
-			game_state.add_rival(battle.opponent)
+			# Convert or cast Character to Rival
+			var rival_opponent: Rival = battle.opponent as Rival
+			if rival_opponent != null:
+				game_state.add_rival(rival_opponent)
 	elif battle.held_field and battle.opponent.is_rival:
 		var roll: int = randi() % 6 + 1
 		roll += 1 if game_state.tracked_rival else 0
 		roll += 1 if battle.killed_unique_individual else 0
 		if roll >= 4:
-			game_state.remove_rival(battle.opponent)
+			# Convert or cast Character to Rival
+			var rival_opponent: Rival = battle.opponent as Rival
+			if rival_opponent != null:
+				game_state.remove_rival(rival_opponent)
+
 
 func resolve_patron_status():
 	if game_state.current_mission and game_state.current_mission.patron:

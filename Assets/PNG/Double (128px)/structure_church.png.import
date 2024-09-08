@@ -3,15 +3,15 @@
 importer="texture"
 type="CompressedTexture2D"
 uid="uid://nj46w5kc1rl3"
-path="res://.godot/imported/structure_church.png-d9ca353163374ff19b50e028df82777d.ctex"
+path="res://.godot/imported/structure_church.png-b39e2f9abbc9e3b403c6f8e12a2779ef.ctex"
 metadata={
 "vram_texture": false
 }
 
 [deps]
 
-source_file="res://Assets/PNG/Double (128px)/structure_church.png"
-dest_files=["res://.godot/imported/structure_church.png-d9ca353163374ff19b50e028df82777d.ctex"]
+source_file="res://assets/PNG/Double (128px)/structure_church.png"
+dest_files=["res://.godot/imported/structure_church.png-b39e2f9abbc9e3b403c6f8e12a2779ef.ctex"]
 
 [params]
 

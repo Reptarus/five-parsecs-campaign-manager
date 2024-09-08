@@ -37,78 +37,64 @@ func _ready():
 	
 	for stat in ["Reactions", "Speed", "Combat", "Toughness", "Savvy", "Luck"]:
 		var spin_box = get_node("CrewStatsAndInfo/StatDistribution/" + stat + "/" + stat + "SpinBox")
-		spin_box.connect("value_changed", _on_stat_changed.bind(stat))
+		spin_box.connect("value_changed", _on_stat_changed.bind(stat.to_lower()))
 	
 	_generate_random_character()
 
 func _generate_random_character():
 	current_character = Character.new()
-	current_character.race = GlobalEnums.Race.values()[randi() % GlobalEnums.Race.size()]
-	current_character.background = GlobalEnums.Background.values()[randi() % GlobalEnums.Background.size()]
-	current_character.motivation = GlobalEnums.Motivation.values()[randi() % GlobalEnums.Motivation.size()]
-	current_character.character_class = GlobalEnums.Class.values()[randi() % GlobalEnums.Class.size()]
-	
-	for stat in current_character.stats.keys():
-		current_character.stats[stat] = randi() % 6 + 1  # Random value between 1 and 6
-	
-	# Generate starting equipment based on background, motivation, and class
-	var background_data = CharacterCreationData.get_background_stats(current_character.background)
-	var motivation_data = CharacterCreationData.get_motivation_stats(current_character.motivation)
-	var class_data = CharacterCreationData.get_class_stats(current_character.character_class)
-	
-	# Apply stat bonuses
-	for stat in background_data.keys():
-		if stat in current_character.stats:
-			current_character.stats[stat] += background_data[stat]
-	
-	for stat in motivation_data.keys():
-		if stat in current_character.stats:
-			current_character.stats[stat] += motivation_data[stat]
-	
-	for stat in class_data.keys():
-		if stat in current_character.stats:
-			current_character.stats[stat] += class_data[stat]
-	
-	# Add starting equipment
-	if "gear" in background_data:
-		current_character.inventory.add_item(Equipment.new(background_data["gear"], Equipment.Type.GEAR, 1))
-	if "military_weapon" in motivation_data:
-		current_character.inventory.add_item(Equipment.new("Military Weapon", Equipment.Type.WEAPON, 1))
-	if "low_tech_weapon" in motivation_data:
-		current_character.inventory.add_item(Equipment.new("Low-tech Weapon", Equipment.Type.WEAPON, 1))
-	if "gear" in class_data:
-		current_character.inventory.add_item(Equipment.new(class_data["gear"], Equipment.Type.GEAR, 1))
-	
+	current_character.generate_random()
+	print("Generated random character: ", current_character.name)
+	print("Character stats: ", current_character.stats)
 	update_ui()
 
 func update_ui():
+	print("Updating UI for character: ", current_character.name if current_character else "None")
 	if not current_character:
+		print("Warning: No current character to update UI")
 		return
 	
 	character_portrait.texture = load(current_character.portrait)
 	species_option_button.selected = current_character.race
 	
+	# Use a ternary operator to handle the notes
+	user_notes.text = current_character.notes if "notes" in current_character else ""
+	
 	update_character_info()
 	update_stats()
 	update_weapons_and_gear()
-	user_notes.text = current_character.notes
 
 func update_character_info():
 	var info_text = "Species: %s\n\n" % GlobalEnums.Race.keys()[current_character.race]
-	info_text += CharacterCreationData.get_race_traits(current_character.race) + "\n\n"
+	info_text += "%s\n\n" % CharacterCreationData.get_race_traits(current_character.race)
 	info_text += "Background: %s\n" % GlobalEnums.Background.keys()[background_index]
-	info_text += CharacterCreationData.get_background_info(GlobalEnums.Background.keys()[background_index]) + "\n\n"
+	info_text += "%s\n\n" % CharacterCreationData.get_background_info(GlobalEnums.Background.keys()[background_index])
 	info_text += "Motivation: %s\n" % GlobalEnums.Motivation.keys()[motivation_index]
-	info_text += CharacterCreationData.get_motivation_stats(current_character.motivation).get("description", "") + "\n\n"
+	
+	var motivation_stats = CharacterCreationData.get_motivation_stats(current_character.motivation)
+	if motivation_stats is Dictionary and motivation_stats.has("description"):
+		info_text += "%s\n\n" % motivation_stats["description"]
+	else:
+		info_text += "No description available.\n\n"
+	
 	info_text += "Class: %s\n" % GlobalEnums.Class.keys()[class_index]
-	info_text += CharacterCreationData.get_class_stats(current_character.character_class).get("description", "")
+	
+	var class_stats = CharacterCreationData.get_class_stats(current_character.character_class)
+	if class_stats is Dictionary and class_stats.has("description"):
+		info_text += "%s" % class_stats["description"]
+	else:
+		info_text += "No description available."
 	
 	background_info.text = info_text
 
 func update_stats():
-	for stat in ["Reactions", "Speed", "Combat", "Toughness", "Savvy", "Luck"]:
-		var spin_box = get_node("CrewStatsAndInfo/StatDistribution/" + stat + "/" + stat + "SpinBox")
-		spin_box.value = current_character.stats[stat.to_lower()]
+	for stat in ["reactions", "speed", "combat_skill", "toughness", "savvy", "luck"]:
+		var spin_box = get_node_or_null("CrewStatsAndInfo/StatDistribution/" + stat.capitalize() + "/" + stat.capitalize() + "SpinBox")
+		if spin_box and current_character.stats.has(stat):
+			spin_box.value = current_character.stats[stat]
+			print("Updated ", stat, " to ", current_character.stats[stat])
+		else:
+			print("Warning: SpinBox not found or stat missing for: " + stat)
 
 func update_weapons_and_gear():
 	var weapons_container = $CrewStatsAndInfo/StartingWeapons/Weapon
@@ -131,24 +117,27 @@ func update_weapons_and_gear():
 			damage_container.get_node("DamageValue" + str(i + 1)).text = str(item.damage)
 			traits_container.get_node("TraitsValue" + str(i + 1)).text = ", ".join(item.traits)
 
-func _on_species_selected(index):
+func _on_species_selected(index: int):
 	current_character.race = GlobalEnums.Race.values()[index]
 	update_ui()
 
-func _on_background_selected(index):
+func _on_background_selected(index: int):
+	background_index = index
 	current_character.background = GlobalEnums.Background.values()[index]
 	update_ui()
 
-func _on_motivation_selected(index):
+func _on_motivation_selected(index: int):
+	motivation_index = index
 	current_character.motivation = GlobalEnums.Motivation.values()[index]
 	update_ui()
 
-func _on_class_selected(index):
+func _on_class_selected(index: int):
+	class_index = index
 	current_character.character_class = GlobalEnums.Class.values()[index]
 	update_ui()
 
-func _on_stat_changed(value, stat):
-	current_character.stats[stat.to_lower()] = value
+func _on_stat_changed(value: int, stat: String):
+	current_character.stats[stat] = value
 	update_ui()
 	
 func _on_background_left_pressed():

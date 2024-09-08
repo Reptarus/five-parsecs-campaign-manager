@@ -3,15 +3,15 @@
 importer="texture"
 type="CompressedTexture2D"
 uid="uid://s5qk82o2tavl"
-path="res://.godot/imported/Dec_14_Lost_Avenue_.jpg-7e0238d4100307fae125e172c099be53.ctex"
+path="res://.godot/imported/Dec_14_Lost_Avenue_.jpg-e337a2674ad6b277ced32d6a6c1a2fcd.ctex"
 metadata={
 "vram_texture": false
 }
 
 [deps]
 
-source_file="res://Assets/BookImages/Dec_14_Lost_Avenue_.jpg"
-dest_files=["res://.godot/imported/Dec_14_Lost_Avenue_.jpg-7e0238d4100307fae125e172c099be53.ctex"]
+source_file="res://assets/BookImages/Dec_14_Lost_Avenue_.jpg"
+dest_files=["res://.godot/imported/Dec_14_Lost_Avenue_.jpg-e337a2674ad6b277ced32d6a6c1a2fcd.ctex"]
 
 [params]
 

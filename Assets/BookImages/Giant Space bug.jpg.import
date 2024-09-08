@@ -3,15 +3,15 @@
 importer="texture"
 type="CompressedTexture2D"
 uid="uid://dk1qjtgnbxmvy"
-path="res://.godot/imported/Giant Space bug.jpg-7473d27eeec9e6a61af7473187cb1894.ctex"
+path="res://.godot/imported/Giant Space bug.jpg-73067fd14fbb81596d8771135efc3852.ctex"
 metadata={
 "vram_texture": false
 }
 
 [deps]
 
-source_file="res://Assets/BookImages/Giant Space bug.jpg"
-dest_files=["res://.godot/imported/Giant Space bug.jpg-7473d27eeec9e6a61af7473187cb1894.ctex"]
+source_file="res://assets/BookImages/Giant Space bug.jpg"
+dest_files=["res://.godot/imported/Giant Space bug.jpg-73067fd14fbb81596d8771135efc3852.ctex"]
 
 [params]
 

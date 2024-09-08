@@ -3,15 +3,15 @@
 importer="texture"
 type="CompressedTexture2D"
 uid="uid://jy4ty77art24"
-path="res://.godot/imported/card_rotate.png-7fdab5cc9cd1733c10122f49f7935867.ctex"
+path="res://.godot/imported/card_rotate.png-a147b013aa6aed3dc0b5cc0d270207ae.ctex"
 metadata={
 "vram_texture": false
 }
 
 [deps]
 
-source_file="res://Assets/PNG/Double (128px)/card_rotate.png"
-dest_files=["res://.godot/imported/card_rotate.png-7fdab5cc9cd1733c10122f49f7935867.ctex"]
+source_file="res://assets/PNG/Double (128px)/card_rotate.png"
+dest_files=["res://.godot/imported/card_rotate.png-a147b013aa6aed3dc0b5cc0d270207ae.ctex"]
 
 [params]
 

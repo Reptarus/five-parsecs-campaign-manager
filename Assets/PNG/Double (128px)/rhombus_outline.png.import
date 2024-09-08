@@ -3,15 +3,15 @@
 importer="texture"
 type="CompressedTexture2D"
 uid="uid://rwrv3hika3yd"
-path="res://.godot/imported/rhombus_outline.png-96ad1a8ecadb7d85f38c8c6b6ee8a567.ctex"
+path="res://.godot/imported/rhombus_outline.png-3c350e22d820729e87798ee9683daae7.ctex"
 metadata={
 "vram_texture": false
 }
 
 [deps]
 
-source_file="res://Assets/PNG/Double (128px)/rhombus_outline.png"
-dest_files=["res://.godot/imported/rhombus_outline.png-96ad1a8ecadb7d85f38c8c6b6ee8a567.ctex"]
+source_file="res://assets/PNG/Double (128px)/rhombus_outline.png"
+dest_files=["res://.godot/imported/rhombus_outline.png-3c350e22d820729e87798ee9683daae7.ctex"]
 
 [params]
 

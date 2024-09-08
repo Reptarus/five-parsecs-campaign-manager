@@ -3,15 +3,15 @@
 importer="texture"
 type="CompressedTexture2D"
 uid="uid://b203npbw1qtvy"
-path="res://.godot/imported/Dec_12_escape_.jpg-15c7b2bbe40a9a7769e103f0622db2a7.ctex"
+path="res://.godot/imported/Dec_12_escape_.jpg-96435871264cdad003130e8148a0e006.ctex"
 metadata={
 "vram_texture": false
 }
 
 [deps]
 
-source_file="res://Assets/BookImages/Dec_12_escape_.jpg"
-dest_files=["res://.godot/imported/Dec_12_escape_.jpg-15c7b2bbe40a9a7769e103f0622db2a7.ctex"]
+source_file="res://assets/BookImages/Dec_12_escape_.jpg"
+dest_files=["res://.godot/imported/Dec_12_escape_.jpg-96435871264cdad003130e8148a0e006.ctex"]
 
 [params]
 

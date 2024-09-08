@@ -3,15 +3,15 @@
 importer="texture"
 type="CompressedTexture2D"
 uid="uid://b1x17mc0uxxho"
-path="res://.godot/imported/Ferals.jpg-f449d70e2ec0c9063d51554e31c94991.ctex"
+path="res://.godot/imported/Ferals.jpg-4842bd0dd3daebcb9b326b6ca78e3aa0.ctex"
 metadata={
 "vram_texture": false
 }
 
 [deps]
 
-source_file="res://Assets/BookImages/Ferals.jpg"
-dest_files=["res://.godot/imported/Ferals.jpg-f449d70e2ec0c9063d51554e31c94991.ctex"]
+source_file="res://assets/BookImages/Ferals.jpg"
+dest_files=["res://.godot/imported/Ferals.jpg-4842bd0dd3daebcb9b326b6ca78e3aa0.ctex"]
 
 [params]
 

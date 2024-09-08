@@ -3,15 +3,15 @@
 importer="texture"
 type="CompressedTexture2D"
 uid="uid://b72f3ovanqchc"
-path="res://.godot/imported/pentagon.png-15ef1918516f1ff614a5247b5dbf074b.ctex"
+path="res://.godot/imported/pentagon.png-d8fc9cf49dd909a3167e2f2d270e9985.ctex"
 metadata={
 "vram_texture": false
 }
 
 [deps]
 
-source_file="res://Assets/PNG/Default (64px)/pentagon.png"
-dest_files=["res://.godot/imported/pentagon.png-15ef1918516f1ff614a5247b5dbf074b.ctex"]
+source_file="res://assets/PNG/Default (64px)/pentagon.png"
+dest_files=["res://.godot/imported/pentagon.png-d8fc9cf49dd909a3167e2f2d270e9985.ctex"]
 
 [params]
 

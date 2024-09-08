@@ -3,15 +3,15 @@
 importer="texture"
 type="CompressedTexture2D"
 uid="uid://ltdjox4yqbji"
-path="res://.godot/imported/Fringe2.jpg-f03eeb77c10110bfd565c0070fbadc02.ctex"
+path="res://.godot/imported/Fringe2.jpg-5a9a801bf26146dd01644073ae8034fb.ctex"
 metadata={
 "vram_texture": false
 }
 
 [deps]
 
-source_file="res://Assets/BookImages/Fringe2.jpg"
-dest_files=["res://.godot/imported/Fringe2.jpg-f03eeb77c10110bfd565c0070fbadc02.ctex"]
+source_file="res://assets/BookImages/Fringe2.jpg"
+dest_files=["res://.godot/imported/Fringe2.jpg-5a9a801bf26146dd01644073ae8034fb.ctex"]
 
 [params]
 

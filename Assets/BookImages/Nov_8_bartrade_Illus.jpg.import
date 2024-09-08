@@ -3,15 +3,15 @@
 importer="texture"
 type="CompressedTexture2D"
 uid="uid://t53mv1tf4ea2"
-path="res://.godot/imported/Nov_8_bartrade_Illus.jpg-50011494e0f4bbe7cf6bc148f2ec2da8.ctex"
+path="res://.godot/imported/Nov_8_bartrade_Illus.jpg-47d781f64813f059370b4fcf80eee893.ctex"
 metadata={
 "vram_texture": false
 }
 
 [deps]
 
-source_file="res://Assets/BookImages/Nov_8_bartrade_Illus.jpg"
-dest_files=["res://.godot/imported/Nov_8_bartrade_Illus.jpg-50011494e0f4bbe7cf6bc148f2ec2da8.ctex"]
+source_file="res://assets/BookImages/Nov_8_bartrade_Illus.jpg"
+dest_files=["res://.godot/imported/Nov_8_bartrade_Illus.jpg-47d781f64813f059370b4fcf80eee893.ctex"]
 
 [params]
 

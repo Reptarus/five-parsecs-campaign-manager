@@ -3,15 +3,15 @@
 importer="texture"
 type="CompressedTexture2D"
 uid="uid://bmk3wdn2qtam2"
-path="res://.godot/imported/pentagon_outline.png-1b5f52b9d39fa4ed43b1b3252d5ef53b.ctex"
+path="res://.godot/imported/pentagon_outline.png-980ff906e2c5f6ccf64fead7b7a8c300.ctex"
 metadata={
 "vram_texture": false
 }
 
 [deps]
 
-source_file="res://Assets/PNG/Double (128px)/pentagon_outline.png"
-dest_files=["res://.godot/imported/pentagon_outline.png-1b5f52b9d39fa4ed43b1b3252d5ef53b.ctex"]
+source_file="res://assets/PNG/Double (128px)/pentagon_outline.png"
+dest_files=["res://.godot/imported/pentagon_outline.png-980ff906e2c5f6ccf64fead7b7a8c300.ctex"]
 
 [params]
 

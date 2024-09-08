@@ -3,15 +3,15 @@
 importer="texture"
 type="CompressedTexture2D"
 uid="uid://bs0pxr72ak0qk"
-path="res://.godot/imported/hand_cross.png-b69ee42175f736b46bae0ed574a93ee2.ctex"
+path="res://.godot/imported/hand_cross.png-a1bf6a26344d75c087f16deb94811683.ctex"
 metadata={
 "vram_texture": false
 }
 
 [deps]
 
-source_file="res://Assets/PNG/Double (128px)/hand_cross.png"
-dest_files=["res://.godot/imported/hand_cross.png-b69ee42175f736b46bae0ed574a93ee2.ctex"]
+source_file="res://assets/PNG/Double (128px)/hand_cross.png"
+dest_files=["res://.godot/imported/hand_cross.png-a1bf6a26344d75c087f16deb94811683.ctex"]
 
 [params]
 

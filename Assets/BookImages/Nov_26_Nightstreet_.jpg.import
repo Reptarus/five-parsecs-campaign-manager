@@ -3,15 +3,15 @@
 importer="texture"
 type="CompressedTexture2D"
 uid="uid://cwqe3pv45tjr6"
-path="res://.godot/imported/Nov_26_Nightstreet_.jpg-edf937988c13d1e71f482af259e3bf17.ctex"
+path="res://.godot/imported/Nov_26_Nightstreet_.jpg-804f42ef42dbe90d93b059f8a63d91c6.ctex"
 metadata={
 "vram_texture": false
 }
 
 [deps]
 
-source_file="res://Assets/BookImages/Nov_26_Nightstreet_.jpg"
-dest_files=["res://.godot/imported/Nov_26_Nightstreet_.jpg-edf937988c13d1e71f482af259e3bf17.ctex"]
+source_file="res://assets/BookImages/Nov_26_Nightstreet_.jpg"
+dest_files=["res://.godot/imported/Nov_26_Nightstreet_.jpg-804f42ef42dbe90d93b059f8a63d91c6.ctex"]
 
 [params]
 

@@ -3,15 +3,15 @@
 importer="texture"
 type="CompressedTexture2D"
 uid="uid://dcrreacni785p"
-path="res://.godot/imported/Nov_10_Thugfight_Illus.jpg-7cdce2dc812a6df14fd02090bb9b6122.ctex"
+path="res://.godot/imported/Nov_10_Thugfight_Illus.jpg-0ad718a37e9131ec75087c0111cfebba.ctex"
 metadata={
 "vram_texture": false
 }
 
 [deps]
 
-source_file="res://Assets/BookImages/Nov_10_Thugfight_Illus.jpg"
-dest_files=["res://.godot/imported/Nov_10_Thugfight_Illus.jpg-7cdce2dc812a6df14fd02090bb9b6122.ctex"]
+source_file="res://assets/BookImages/Nov_10_Thugfight_Illus.jpg"
+dest_files=["res://.godot/imported/Nov_10_Thugfight_Illus.jpg-0ad718a37e9131ec75087c0111cfebba.ctex"]
 
 [params]
 

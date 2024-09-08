@@ -85,7 +85,7 @@ const NAMES = [
 	"Isaac", "Julia", "Kevin", "Laura", "Michael", "Natalie", "Oliver", "Penny"
 ]
 
-static func get_race_traits(race: Character.Race) -> String:
+static func get_race_traits(race: Character.Race) -> Dictionary:
 	return RACE_TRAITS.get(race, {})
 
 static func get_background_stats(background: Background) -> Dictionary:
@@ -112,19 +112,6 @@ static func get_random_motivation() -> Motivation:
 static func get_random_class() -> Class:
 	return Class.values()[randi() % Class.size()]
 
-static func get_random_skills(count: int) -> Dictionary:
-	var all_skills = ["Melee", "Ranged", "Magic", "Stealth", "Persuasion", "Survival"]
-	var selected_skills = {}
-	
-	for i in range(count):
-		if all_skills.size() > 0:
-			var skill = all_skills.pop_at(randi() % all_skills.size())
-			var new_skill = Skill.new()
-			new_skill.initialize(skill, Skill.SkillType.COMBAT if i < 2 else Skill.SkillType.GENERAL)
-			selected_skills[skill] = new_skill
-	
-	return selected_skills
-
 static func generate_random_character() -> Character:
 	var character = Character.new()
 	character.name = get_random_name()
@@ -132,7 +119,6 @@ static func generate_random_character() -> Character:
 	character.background = get_random_background()
 	character.motivation = get_random_motivation()
 	character.character_class = get_random_class()
-	character.skills = get_random_skills(3)
 	character.portrait = get_random_portrait()
 
 	apply_race_traits(character)
@@ -177,7 +163,7 @@ static func apply_strange_abilities(character: Character) -> void:
 	character.strange_character.apply_special_abilities(character)
 
 static func get_random_portrait() -> String:
-	return "res://assets/portraits/portrait_01.png"
+	return "res://assets/portraits/portrait_01.jpg"
 
 static func get_background_info(background: String) -> String:
 	# Implement logic to return background information

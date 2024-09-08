@@ -3,15 +3,15 @@
 importer="texture"
 type="CompressedTexture2D"
 uid="uid://dsijolpt27cjy"
-path="res://.godot/imported/hand_token.png-d666020739cda5adf004b0c569c26064.ctex"
+path="res://.godot/imported/hand_token.png-19fa1be5c8cda545c7e633e6af97981c.ctex"
 metadata={
 "vram_texture": false
 }
 
 [deps]
 
-source_file="res://Assets/PNG/Default (64px)/hand_token.png"
-dest_files=["res://.godot/imported/hand_token.png-d666020739cda5adf004b0c569c26064.ctex"]
+source_file="res://assets/PNG/Default (64px)/hand_token.png"
+dest_files=["res://.godot/imported/hand_token.png-19fa1be5c8cda545c7e633e6af97981c.ctex"]
 
 [params]
 

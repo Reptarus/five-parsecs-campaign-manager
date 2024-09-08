@@ -3,15 +3,15 @@
 importer="texture"
 type="CompressedTexture2D"
 uid="uid://c7c185hdijpqn"
-path="res://.godot/imported/suit_spades.png-8c5187373442c6a17f9bfa9c28188e67.ctex"
+path="res://.godot/imported/suit_spades.png-faa0b459d9078d5c4ba8b6a04a69bd3c.ctex"
 metadata={
 "vram_texture": false
 }
 
 [deps]
 
-source_file="res://Assets/PNG/Double (128px)/suit_spades.png"
-dest_files=["res://.godot/imported/suit_spades.png-8c5187373442c6a17f9bfa9c28188e67.ctex"]
+source_file="res://assets/PNG/Double (128px)/suit_spades.png"
+dest_files=["res://.godot/imported/suit_spades.png-faa0b459d9078d5c4ba8b6a04a69bd3c.ctex"]
 
 [params]
 

@@ -3,15 +3,15 @@
 importer="texture"
 type="CompressedTexture2D"
 uid="uid://c11y16tkfihgg"
-path="res://.godot/imported/hexagon_out.png-ba720ea70472d6f3118984e9dc55096f.ctex"
+path="res://.godot/imported/hexagon_out.png-c469a201301a8ac6d2bdfc727c926b94.ctex"
 metadata={
 "vram_texture": false
 }
 
 [deps]
 
-source_file="res://Assets/PNG/Double (128px)/hexagon_out.png"
-dest_files=["res://.godot/imported/hexagon_out.png-ba720ea70472d6f3118984e9dc55096f.ctex"]
+source_file="res://assets/PNG/Double (128px)/hexagon_out.png"
+dest_files=["res://.godot/imported/hexagon_out.png-c469a201301a8ac6d2bdfc727c926b94.ctex"]
 
 [params]
 

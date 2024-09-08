@@ -1,218 +1,292 @@
 {
-  "gear_database": {
-	"weapons": [
-	  {
-		"name": "Fury Rifle",
-		"type": "Military",
-		"damage": 2,
-		"range": 24,
-		"shots": 2,
-		"traits": ["Heavy"],
-		"value": 300
+  "races": [
+	{
+	  "id": "human",
+	  "name": "Human",
+	  "description": "Adaptable and resourceful, humans are found throughout the galaxy.",
+	  "base_stats": {},
+	  "special_abilities": []
+	},
+	{
+	  "id": "engineer",
+	  "name": "Engineer",
+	  "description": "Cybernetically enhanced humans with an innate understanding of technology.",
+	  "base_stats": {
+		"toughness": -1,
+		"savvy": 1
 	  },
-	  {
-		"name": "Blast Pistol",
-		"type": "Military",
-		"damage": 1,
-		"range": 12,
-		"shots": 1,
-		"traits": ["Pistol"],
-		"value": 150
+	  "special_abilities": ["repair_bonus"],
+	  "max_toughness": 4
+	},
+	{
+	  "id": "kerin",
+	  "name": "K'Erin",
+	  "description": "Hulking aliens with a natural affinity for close combat.",
+	  "base_stats": {
+		"toughness": 1
 	  },
-	  {
-		"name": "Shatter Axe",
-		"type": "Melee",
-		"damage": 2,
-		"range": 0,
-		"traits": ["Melee"],
-		"value": 200
+	  "special_abilities": ["brawling_advantage", "must_engage_brawl"]
+	},
+	{
+	  "id": "soulless",
+	  "name": "Soulless",
+	  "description": "Mysterious beings with enhanced physical and mental capabilities.",
+	  "base_stats": {
+		"toughness": 1,
+		"savvy": 1
 	  },
-	  {
-		"name": "Plasma Cannon",
-		"type": "High-Tech",
-		"damage": 3,
-		"range": 18,
-		"shots": 1,
-		"traits": ["Heavy", "Energy"],
-		"value": 500
+	  "special_abilities": ["armor_save_6", "bot_injury_table", "no_consumables", "no_implants"]
+	},
+	{
+	  "id": "precursor",
+	  "name": "Precursor",
+	  "description": "Ancient race with advanced technology and mysterious abilities.",
+	  "base_stats": {
+		"speed": 1
 	  },
-	  {
-		"name": "Sniper Rifle",
-		"type": "Military",
-		"damage": 2,
-		"range": 36,
-		"shots": 1,
-		"traits": ["Accurate"],
-		"value": 400
+	  "special_abilities": ["extra_character_event"]
+	},
+	{
+	  "id": "feral",
+	  "name": "Feral",
+	  "description": "Wild and unpredictable beings with heightened instincts.",
+	  "base_stats": {},
+	  "special_abilities": ["ignore_initiative_penalties", "priority_reaction"]
+	},
+	{
+	  "id": "swift",
+	  "name": "Swift",
+	  "description": "Agile and quick, with natural gliding abilities.",
+	  "base_stats": {
+		"speed": 1
 	  },
-	  {
-		"name": "Flechette Gun",
-		"type": "Military",
-		"damage": 1,
-		"range": 18,
-		"shots": 3,
-		"traits": ["Rapid Fire"],
-		"value": 350
+	  "special_abilities": ["gliding", "free_jumping", "multi_shot_restriction"]
+	},
+	{
+	  "id": "bot",
+	  "name": "Bot",
+	  "description": "Artificial beings with enhanced physical capabilities but limited growth.",
+	  "base_stats": {
+		"reactions": 1,
+		"combat_skill": 1,
+		"toughness": 1,
+		"savvy": 2
 	  },
-	  {
-		"name": "Neural Whip",
-		"type": "High-Tech",
-		"damage": 1,
-		"range": 6,
-		"shots": 1,
-		"traits": ["Melee", "Stun"],
-		"value": 250
+	  "special_abilities": ["armor_save_6", "bot_injury_table", "no_experience", "no_consumables", "no_implants", "no_character_events"]
+	}
+  ],
+  "backgrounds": [
+	{
+	  "id": "high_tech_colony",
+	  "name": "High-Tech Colony",
+	  "description": "Raised in an advanced technological environment.",
+	  "stat_bonuses": {
+		"savvy": 1
+	  },
+	  "starting_credits": 6
+	},
+	{
+	  "id": "overcrowded_city",
+	  "name": "Overcrowded City",
+	  "description": "Grew up navigating the chaos of densely populated urban centers.",
+	  "stat_bonuses": {
+		"speed": 1
+	  },
+	  "starting_credits": 0
+	},
+	{
+	  "id": "low_tech_colony",
+	  "name": "Low-Tech Colony",
+	  "description": "Raised in a resource-poor environment, relying on outdated technology.",
+	  "stat_bonuses": {},
+	  "starting_gear": ["low_tech_weapon"],
+	  "starting_credits": 0
+	},
+	{
+	  "id": "mining_colony",
+	  "name": "Mining Colony",
+	  "description": "Grew up in the harsh conditions of a resource extraction outpost.",
+	  "stat_bonuses": {
+		"toughness": 1
+	  },
+	  "starting_credits": 0
+	},
+	{
+	  "id": "military_brat",
+	  "name": "Military Brat",
+	  "description": "Raised in a military family, moving between various postings.",
+	  "stat_bonuses": {
+		"combat_skill": 1
+	  },
+	  "starting_credits": 0
+	},
+	{
+	  "id": "space_station",
+	  "name": "Space Station",
+	  "description": "Born and raised on a bustling orbital habitat.",
+	  "stat_bonuses": {},
+	  "starting_gear": ["basic_gear"],
+	  "starting_credits": 0
+	}
+  ],
+  "motivations": [
+	{
+	  "id": "wealth",
+	  "name": "Wealth",
+	  "description": "Driven by the pursuit of riches and financial security.",
+	  "effect": {
+		"starting_credits": 6
 	  }
-	],
-	"armor": [
-	  {
-		"name": "Combat Vest",
-		"type": "Light",
-		"defense": 1,
-		"traits": ["Light"],
-		"value": 200
-	  },
-	  {
-		"name": "Battle Suit",
-		"type": "Medium",
-		"defense": 2,
-		"traits": ["Powered"],
-		"value": 400
-	  },
-	  {
-		"name": "Ablative Plates",
-		"type": "Heavy",
-		"defense": 3,
-		"traits": ["Heavy", "Cumbersome"],
-		"value": 600
-	  },
-	  {
-		"name": "Stealth Suit",
-		"type": "Light",
-		"defense": 1,
-		"traits": ["Stealthy"],
-		"value": 500
-	  },
-	  {
-		"name": "Energy Shield",
-		"type": "High-Tech",
-		"defense": 2,
-		"traits": ["Energy", "Rechargeable"],
-		"value": 800
+	},
+	{
+	  "id": "fame",
+	  "name": "Fame",
+	  "description": "Seeks recognition and renown across the galaxy.",
+	  "effect": {
+		"story_points": 1
 	  }
-	],
-	"gear": [
-	  {
-		"name": "Medkit",
-		"type": "Medical",
-		"effect": "Heal 2 wounds",
-		"uses": 3,
-		"value": 100
-	  },
-	  {
-		"name": "Grappling Hook",
-		"type": "Utility",
-		"effect": "Climb vertical surfaces",
-		"uses": -1,
-		"value": 150
-	  },
-	  {
-		"name": "Motion Tracker",
-		"type": "Tech",
-		"effect": "Detect movement within 12\"",
-		"uses": -1,
-		"value": 200
-	  },
-	  {
-		"name": "Holo-Projector",
-		"type": "Tech",
-		"effect": "Create illusory duplicate",
-		"uses": 2,
-		"value": 300
-	  },
-	  {
-		"name": "Jet Pack",
-		"type": "Mobility",
-		"effect": "Fly 12\" in any direction",
-		"uses": 3,
-		"value": 500
-	  },
-	  {
-		"name": "Camo-Cloak",
-		"type": "Stealth",
-		"effect": "+2 to stealth rolls",
-		"uses": -1,
-		"value": 400
+	},
+	{
+	  "id": "glory",
+	  "name": "Glory",
+	  "description": "Pursues heroic deeds and legendary status.",
+	  "effect": {
+		"combat_skill": 1,
+		"starting_gear": ["military_weapon"]
 	  }
-	],
-	"consumables": [
-	  {
-		"name": "Stim Pack",
-		"type": "Medical",
-		"effect": "Remove all Stun markers and gain +1 to all rolls for one turn",
-		"uses": 1,
-		"value": 50
-	  },
-	  {
-		"name": "Frag Grenade",
-		"type": "Explosive",
-		"effect": "3\" radius, 2D6 damage",
-		"uses": 1,
-		"value": 75
-	  },
-	  {
-		"name": "Smoke Bomb",
-		"type": "Utility",
-		"effect": "Create 4\" radius of smoke, blocking line of sight",
-		"uses": 1,
-		"value": 40
-	  },
-	  {
-		"name": "Repair Nanites",
-		"type": "Tech",
-		"effect": "Repair 2 damage to armor or equipment",
-		"uses": 1,
-		"value": 100
-	  },
-	  {
-		"name": "Combat Drugs",
-		"type": "Medical",
-		"effect": "+2 to all Combat rolls for 3 turns, then suffer 1 Stun",
-		"uses": 1,
-		"value": 150
+	},
+	{
+	  "id": "survival",
+	  "name": "Survival",
+	  "description": "Focused on staying alive in a hostile universe.",
+	  "effect": {
+		"toughness": 1
 	  }
-	],
-	"implants": [
-	  {
-		"name": "Subdermal Armor",
-		"type": "Defensive",
-		"effect": "+1 to all saving throws",
-		"value": 1000
-	  },
-	  {
-		"name": "Reflex Enhancer",
-		"type": "Combat",
-		"effect": "+1 to initiative rolls",
-		"value": 800
-	  },
-	  {
-		"name": "Targeting Array",
-		"type": "Combat",
-		"effect": "+1 to hit rolls with ranged weapons",
-		"value": 1200
-	  },
-	  {
-		"name": "Neural Processor",
-		"type": "Utility",
-		"effect": "+1 to all Savvy-based skill checks",
-		"value": 1500
-	  },
-	  {
-		"name": "Cybernetic Limb",
-		"type": "Augmentation",
-		"effect": "+1 to Strength or Agility-based rolls (choose when implanted)",
-		"value": 2000
+	},
+	{
+	  "id": "escape",
+	  "name": "Escape",
+	  "description": "Fleeing from a troubled past or pursuing freedom.",
+	  "effect": {
+		"speed": 1
 	  }
-	]
-  }
+	},
+	{
+	  "id": "adventure",
+	  "name": "Adventure",
+	  "description": "Seeking excitement and new experiences across the stars.",
+	  "effect": {
+		"starting_credits": 6,
+		"starting_gear": ["low_tech_weapon"]
+	  }
+	}
+  ],
+  "classes": [
+	{
+	  "id": "working_class",
+	  "name": "Working Class",
+	  "description": "Skilled laborers and everyday workers.",
+	  "stat_bonuses": {
+		"savvy": 1,
+		"luck": 1
+	  }
+	},
+	{
+	  "id": "technician",
+	  "name": "Technician",
+	  "description": "Experts in maintaining and repairing complex machinery.",
+	  "stat_bonuses": {
+		"savvy": 1
+	  },
+	  "starting_gear": ["repair_kit"]
+	},
+	{
+	  "id": "scientist",
+	  "name": "Scientist",
+	  "description": "Researchers and innovators pushing the boundaries of knowledge.",
+	  "stat_bonuses": {
+		"savvy": 1
+	  },
+	  "starting_gear": ["gadget"]
+	},
+	{
+	  "id": "hacker",
+	  "name": "Hacker",
+	  "description": "Skilled in manipulating and exploiting computer systems.",
+	  "stat_bonuses": {
+		"savvy": 1
+	  },
+	  "effect": {
+		"rival": 1
+	  }
+	},
+	{
+	  "id": "soldier",
+	  "name": "Soldier",
+	  "description": "Trained combatants with military experience.",
+	  "stat_bonuses": {
+		"combat_skill": 1
+	  },
+	  "starting_credits": 6
+	},
+	{
+	  "id": "mercenary",
+	  "name": "Mercenary",
+	  "description": "Professional fighters for hire.",
+	  "stat_bonuses": {
+		"combat_skill": 1
+	  },
+	  "starting_gear": ["military_weapon"]
+	}
+  ],
+  "skills": [
+	{
+	  "id": "melee",
+	  "name": "Melee",
+	  "type": "combat",
+	  "description": "Proficiency in close-quarters combat."
+	},
+	{
+	  "id": "ranged",
+	  "name": "Ranged",
+	  "type": "combat",
+	  "description": "Skill with ranged weapons and marksmanship."
+	},
+	{
+	  "id": "stealth",
+	  "name": "Stealth",
+	  "type": "general",
+	  "description": "Ability to move undetected and avoid notice."
+	},
+	{
+	  "id": "tech",
+	  "name": "Tech",
+	  "type": "general",
+	  "description": "Knowledge and skill with various technologies."
+	},
+	{
+	  "id": "navigation",
+	  "name": "Navigation",
+	  "type": "general",
+	  "description": "Expertise in plotting courses and reading star charts."
+	},
+	{
+	  "id": "leadership",
+	  "name": "Leadership",
+	  "type": "general",
+	  "description": "Ability to inspire and direct others effectively."
+	},
+	{
+	  "id": "medicine",
+	  "name": "Medicine",
+	  "type": "general",
+	  "description": "Knowledge of medical procedures and treatments."
+	},
+	{
+	  "id": "negotiation",
+	  "name": "Negotiation",
+	  "type": "general",
+	  "description": "Skill in diplomacy and bargaining."
+	}
+  ]
 }

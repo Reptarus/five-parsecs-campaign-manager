@@ -21,16 +21,19 @@ enum AIType { CAUTIOUS, AGGRESSIVE, TACTICAL, DEFENSIVE }
 @export var character_class: Class = Class.WORKING_CLASS
 @export var skills: Dictionary = {}
 @export var portrait: String = ""
+@export var notes: String = ""
 
-@export var reactions: int = 1
-@export var speed: int = 4
-@export var combat_skill: int = 0
-@export var toughness: int = 3
-@export var savvy: int = 0
+@export var stats: Dictionary = {
+	"reactions": 1,
+	"speed": 4,
+	"combat_skill": 0,
+	"toughness": 3,
+	"savvy": 0,
+	"luck": 0
+}
 @export var xp: int = 0
-@export var luck: int = 0
 @export var abilities: Array[String] = []
-@export var stats: Dictionary = {}
+
 
 @export var position: Vector2 = Vector2.ZERO
 @export var health: int = 10
@@ -56,13 +59,20 @@ func generate_random() -> void:
 	background = Background.values()[randi() % Background.size()]
 	motivation = Motivation.values()[randi() % Motivation.size()]
 	character_class = Class.values()[randi() % Class.size()]
-	skills = CharacterCreationData.get_random_skills(3)
 	portrait = CharacterCreationData.get_random_portrait()
 
-	if randf() < 0.1:  # 10% chance for strange abilities
-		var strange_type = StrangeCharactersClass.StrangeCharacterType.values()[randi() % StrangeCharactersClass.StrangeCharacterType.size()]
-		strange_character = StrangeCharactersClass.new(strange_type)
-		strange_character.call("apply_special_abilities", self)
+	for stat in ["reactions", "speed", "combat_skill", "toughness", "savvy", "luck"]:
+		stats[stat] = randi() % 6 + 1  # Random value between 1 and 6
+
+	# Apply bonuses from background, motivation, and class
+	var background_data = CharacterCreationData.get_background_stats(background)
+	var motivation_data = CharacterCreationData.get_motivation_stats(motivation)
+	var class_data = CharacterCreationData.get_class_stats(character_class)
+
+	for data in [background_data, motivation_data, class_data]:
+		for stat in data.keys():
+			if stat in stats:
+				stats[stat] += data[stat]
 
 func update(new_data: Dictionary) -> void:
 	for key in new_data:
@@ -89,9 +99,6 @@ func has_ability(ability_name: String) -> bool:
 func add_xp(amount: int) -> void:
 	xp += amount
 	xp_added.emit(amount)
-
-func add_luck(amount: int) -> void:
-	luck += amount
 
 func is_bot() -> bool:
 	return race == Race.BOT
@@ -178,13 +185,8 @@ func serialize() -> Dictionary:
 		"character_class": Class.keys()[character_class],
 		"skills": {},
 		"portrait": portrait,
-		"reactions": reactions,
-		"speed": speed,
-		"combat_skill": combat_skill,
-		"toughness": toughness,
-		"savvy": savvy,
+		"stats": stats,
 		"xp": xp,
-		"luck": luck,
 		"abilities": abilities,
 		"position": {"x": position.x, "y": position.y},
 		"health": health,
@@ -220,13 +222,8 @@ static func deserialize(data: Dictionary) -> Character:
 	character.motivation = Motivation[data["motivation"]]
 	character.character_class = Class[data["character_class"]]
 	character.portrait = data["portrait"]
-	character.reactions = data["reactions"]
-	character.speed = data["speed"]
-	character.combat_skill = data["combat_skill"]
-	character.toughness = data["toughness"]
-	character.savvy = data["savvy"]
+	character.stats = data["stats"]
 	character.xp = data["xp"]
-	character.luck = data["luck"]
 	character.abilities = data["abilities"]
 	character.position = Vector2(data["position"]["x"], data["position"]["y"])
 	character.health = data["health"]

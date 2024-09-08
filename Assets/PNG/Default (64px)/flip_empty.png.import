@@ -3,15 +3,15 @@
 importer="texture"
 type="CompressedTexture2D"
 uid="uid://bxj1nda3usv8l"
-path="res://.godot/imported/flip_empty.png-f8c02f6c920cb2a7586e36b36daae9e1.ctex"
+path="res://.godot/imported/flip_empty.png-bb9061eadfd72a0342f73d75b2e5370c.ctex"
 metadata={
 "vram_texture": false
 }
 
 [deps]
 
-source_file="res://Assets/PNG/Default (64px)/flip_empty.png"
-dest_files=["res://.godot/imported/flip_empty.png-f8c02f6c920cb2a7586e36b36daae9e1.ctex"]
+source_file="res://assets/PNG/Default (64px)/flip_empty.png"
+dest_files=["res://.godot/imported/flip_empty.png-bb9061eadfd72a0342f73d75b2e5370c.ctex"]
 
 [params]
 

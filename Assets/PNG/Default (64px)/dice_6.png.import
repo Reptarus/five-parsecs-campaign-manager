@@ -3,15 +3,15 @@
 importer="texture"
 type="CompressedTexture2D"
 uid="uid://d1nb6fa8ejq5f"
-path="res://.godot/imported/dice_6.png-377b68bdb16c87bd408077556c290ce3.ctex"
+path="res://.godot/imported/dice_6.png-4dec5d3c2e49811a5c5ce20c48e1aaf7.ctex"
 metadata={
 "vram_texture": false
 }
 
 [deps]
 
-source_file="res://Assets/PNG/Default (64px)/dice_6.png"
-dest_files=["res://.godot/imported/dice_6.png-377b68bdb16c87bd408077556c290ce3.ctex"]
+source_file="res://assets/PNG/Default (64px)/dice_6.png"
+dest_files=["res://.godot/imported/dice_6.png-4dec5d3c2e49811a5c5ce20c48e1aaf7.ctex"]
 
 [params]
 

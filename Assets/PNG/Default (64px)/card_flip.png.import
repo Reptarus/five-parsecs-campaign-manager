@@ -3,15 +3,15 @@
 importer="texture"
 type="CompressedTexture2D"
 uid="uid://wpgg54y5gyfh"
-path="res://.godot/imported/card_flip.png-756d4747a0f241bab1b3e759d73c372a.ctex"
+path="res://.godot/imported/card_flip.png-e93a852833afca61cf62fceba4214f47.ctex"
 metadata={
 "vram_texture": false
 }
 
 [deps]
 
-source_file="res://Assets/PNG/Default (64px)/card_flip.png"
-dest_files=["res://.godot/imported/card_flip.png-756d4747a0f241bab1b3e759d73c372a.ctex"]
+source_file="res://assets/PNG/Default (64px)/card_flip.png"
+dest_files=["res://.godot/imported/card_flip.png-e93a852833afca61cf62fceba4214f47.ctex"]
 
 [params]
 

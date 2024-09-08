@@ -3,15 +3,15 @@
 importer="texture"
 type="CompressedTexture2D"
 uid="uid://le854waoy0dh"
-path="res://.godot/imported/cards_shift.png-b2d731a9dd216436e11193ca9cb89146.ctex"
+path="res://.godot/imported/cards_shift.png-627329a392e28bf23cd33f914691bc09.ctex"
 metadata={
 "vram_texture": false
 }
 
 [deps]
 
-source_file="res://Assets/PNG/Default (64px)/cards_shift.png"
-dest_files=["res://.godot/imported/cards_shift.png-b2d731a9dd216436e11193ca9cb89146.ctex"]
+source_file="res://assets/PNG/Default (64px)/cards_shift.png"
+dest_files=["res://.godot/imported/cards_shift.png-627329a392e28bf23cd33f914691bc09.ctex"]
 
 [params]
 

@@ -3,15 +3,15 @@
 importer="texture"
 type="CompressedTexture2D"
 uid="uid://dabs1g1ys72s4"
-path="res://.godot/imported/Nov_25_Street_2nd scene_.jpg-f3676ea23734fffb62cb6827c6e133f4.ctex"
+path="res://.godot/imported/Nov_25_Street_2nd scene_.jpg-a04592d669364cbbe336f3ce2745b9c4.ctex"
 metadata={
 "vram_texture": false
 }
 
 [deps]
 
-source_file="res://Assets/BookImages/Nov_25_Street_2nd scene_.jpg"
-dest_files=["res://.godot/imported/Nov_25_Street_2nd scene_.jpg-f3676ea23734fffb62cb6827c6e133f4.ctex"]
+source_file="res://assets/BookImages/Nov_25_Street_2nd scene_.jpg"
+dest_files=["res://.godot/imported/Nov_25_Street_2nd scene_.jpg-a04592d669364cbbe336f3ce2745b9c4.ctex"]
 
 [params]
 

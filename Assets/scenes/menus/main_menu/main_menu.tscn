@@ -1,9 +1,9 @@
 [gd_scene load_steps=5 format=3 uid="uid://ckv8tlq4mindw"]
 
-[ext_resource type="PackedScene" path="res://addons/maaacks_menus_template/base/scenes/menus/main_menu/main_menu.tscn" id="1_pe4bf"]
-[ext_resource type="Script" path="res://Assets/scenes/menus/main_menu/main_menu.gd" id="2_wewnm"]
-[ext_resource type="PackedScene" path="res://Assets/scenes/menus/options_menu/master_options_menu_with_tabs.tscn" id="3_qas5q"]
-[ext_resource type="PackedScene" path="res://Assets/scenes/credits/credits.tscn" id="4_a3xrm"]
+[ext_resource type="PackedScene" uid="uid://c6k5nnpbypshi" path="res://addons/maaacks_menus_template/base/scenes/menus/main_menu/main_menu.tscn" id="1_pe4bf"]
+[ext_resource type="Script" path="res://assets/scenes/menus/main_menu/main_menu.gd" id="2_wewnm"]
+[ext_resource type="PackedScene" uid="uid://cw3bndln701ob" path="res://assets/scenes/menus/options_menu/master_options_menu_with_tabs.tscn" id="3_qas5q"]
+[ext_resource type="PackedScene" uid="uid://cf7bvja7qdoac" path="res://assets/scenes/credits/credits.tscn" id="4_a3xrm"]
 
 [node name="MainMenu" instance=ExtResource("1_pe4bf")]
 script = ExtResource("2_wewnm")

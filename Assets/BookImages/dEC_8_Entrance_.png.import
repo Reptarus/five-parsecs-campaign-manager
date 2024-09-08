@@ -3,15 +3,15 @@
 importer="texture"
 type="CompressedTexture2D"
 uid="uid://cyi5qlpju85ft"
-path="res://.godot/imported/dEC_8_Entrance_.png-3b306983cd9ce4762d447c71311fc035.ctex"
+path="res://.godot/imported/dEC_8_Entrance_.png-09dac9709aca79249df3d9f2a6657127.ctex"
 metadata={
 "vram_texture": false
 }
 
 [deps]
 
-source_file="res://Assets/BookImages/dEC_8_Entrance_.png"
-dest_files=["res://.godot/imported/dEC_8_Entrance_.png-3b306983cd9ce4762d447c71311fc035.ctex"]
+source_file="res://assets/BookImages/dEC_8_Entrance_.png"
+dest_files=["res://.godot/imported/dEC_8_Entrance_.png-09dac9709aca79249df3d9f2a6657127.ctex"]
 
 [params]
 

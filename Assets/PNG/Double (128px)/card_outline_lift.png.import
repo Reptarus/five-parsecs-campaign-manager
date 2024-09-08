@@ -3,15 +3,15 @@
 importer="texture"
 type="CompressedTexture2D"
 uid="uid://dfu1jgd7wfpgw"
-path="res://.godot/imported/card_outline_lift.png-9267269d26f58c7414aa030762911ff1.ctex"
+path="res://.godot/imported/card_outline_lift.png-d7bc57ed6a7658ed00498db27faf8182.ctex"
 metadata={
 "vram_texture": false
 }
 
 [deps]
 
-source_file="res://Assets/PNG/Double (128px)/card_outline_lift.png"
-dest_files=["res://.godot/imported/card_outline_lift.png-9267269d26f58c7414aa030762911ff1.ctex"]
+source_file="res://assets/PNG/Double (128px)/card_outline_lift.png"
+dest_files=["res://.godot/imported/card_outline_lift.png-d7bc57ed6a7658ed00498db27faf8182.ctex"]
 
 [params]
 

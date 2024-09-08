@@ -3,15 +3,15 @@
 importer="texture"
 type="CompressedTexture2D"
 uid="uid://c7d8yk7ywypmi"
-path="res://.godot/imported/spinner_segment.png-8be5cb556b30dc7177f60be81c88c999.ctex"
+path="res://.godot/imported/spinner_segment.png-add3fc66673542397b562f19fa495758.ctex"
 metadata={
 "vram_texture": false
 }
 
 [deps]
 
-source_file="res://Assets/PNG/Double (128px)/spinner_segment.png"
-dest_files=["res://.godot/imported/spinner_segment.png-8be5cb556b30dc7177f60be81c88c999.ctex"]
+source_file="res://assets/PNG/Double (128px)/spinner_segment.png"
+dest_files=["res://.godot/imported/spinner_segment.png-add3fc66673542397b562f19fa495758.ctex"]
 
 [params]
 

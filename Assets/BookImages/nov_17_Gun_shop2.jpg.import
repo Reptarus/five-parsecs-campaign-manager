@@ -3,15 +3,15 @@
 importer="texture"
 type="CompressedTexture2D"
 uid="uid://crsyikn7udip2"
-path="res://.godot/imported/nov_17_Gun_shop2.jpg-0e9d172a0a27d85847351e8b6722a077.ctex"
+path="res://.godot/imported/nov_17_Gun_shop2.jpg-c7f38c74329d70a7489e5fd761e69bc4.ctex"
 metadata={
 "vram_texture": false
 }
 
 [deps]
 
-source_file="res://Assets/BookImages/nov_17_Gun_shop2.jpg"
-dest_files=["res://.godot/imported/nov_17_Gun_shop2.jpg-0e9d172a0a27d85847351e8b6722a077.ctex"]
+source_file="res://assets/BookImages/nov_17_Gun_shop2.jpg"
+dest_files=["res://.godot/imported/nov_17_Gun_shop2.jpg-c7f38c74329d70a7489e5fd761e69bc4.ctex"]
 
 [params]
 

@@ -3,15 +3,15 @@
 importer="texture"
 type="CompressedTexture2D"
 uid="uid://cttilw5dpsue2"
-path="res://.godot/imported/Icon.4_58.png-5f8e30898fdadfaf5e566fdfc42317b6.ctex"
+path="res://.godot/imported/Icon.4_58.png-bd2ed8013c12402eb42abc156d201094.ctex"
 metadata={
 "vram_texture": false
 }
 
 [deps]
 
-source_file="res://Assets/789_Lorc_RPG_icons/Icon.4_58.png"
-dest_files=["res://.godot/imported/Icon.4_58.png-5f8e30898fdadfaf5e566fdfc42317b6.ctex"]
+source_file="res://assets/789_Lorc_RPG_icons/Icon.4_58.png"
+dest_files=["res://.godot/imported/Icon.4_58.png-bd2ed8013c12402eb42abc156d201094.ctex"]
 
 [params]
 

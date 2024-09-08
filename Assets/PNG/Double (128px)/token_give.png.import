@@ -3,15 +3,15 @@
 importer="texture"
 type="CompressedTexture2D"
 uid="uid://dbiuwqd5wpvgy"
-path="res://.godot/imported/token_give.png-049fb1f731733471a13a746583ed9998.ctex"
+path="res://.godot/imported/token_give.png-72656d479dc8928846dc6add2205fe21.ctex"
 metadata={
 "vram_texture": false
 }
 
 [deps]
 
-source_file="res://Assets/PNG/Double (128px)/token_give.png"
-dest_files=["res://.godot/imported/token_give.png-049fb1f731733471a13a746583ed9998.ctex"]
+source_file="res://assets/PNG/Double (128px)/token_give.png"
+dest_files=["res://.godot/imported/token_give.png-72656d479dc8928846dc6add2205fe21.ctex"]
 
 [params]
 

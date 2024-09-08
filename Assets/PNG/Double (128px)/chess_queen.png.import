@@ -3,15 +3,15 @@
 importer="texture"
 type="CompressedTexture2D"
 uid="uid://4t0c68htuykk"
-path="res://.godot/imported/chess_queen.png-ba2f4cae27885f21e25ae17c8dbd0633.ctex"
+path="res://.godot/imported/chess_queen.png-107838a100c0e5658c5b79611012aaf8.ctex"
 metadata={
 "vram_texture": false
 }
 
 [deps]
 
-source_file="res://Assets/PNG/Double (128px)/chess_queen.png"
-dest_files=["res://.godot/imported/chess_queen.png-ba2f4cae27885f21e25ae17c8dbd0633.ctex"]
+source_file="res://assets/PNG/Double (128px)/chess_queen.png"
+dest_files=["res://.godot/imported/chess_queen.png-107838a100c0e5658c5b79611012aaf8.ctex"]
 
 [params]
 

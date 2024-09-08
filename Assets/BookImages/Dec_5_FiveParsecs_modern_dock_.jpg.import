@@ -3,15 +3,15 @@
 importer="texture"
 type="CompressedTexture2D"
 uid="uid://ba3mq4o48ys3f"
-path="res://.godot/imported/Dec_5_FiveParsecs_modern_dock_.jpg-059ec0c52b6cf9ec91d77aa2b629666a.ctex"
+path="res://.godot/imported/Dec_5_FiveParsecs_modern_dock_.jpg-1a6eb35aab83f874eac9ea2488bd8ab8.ctex"
 metadata={
 "vram_texture": false
 }
 
 [deps]
 
-source_file="res://Assets/BookImages/Dec_5_FiveParsecs_modern_dock_.jpg"
-dest_files=["res://.godot/imported/Dec_5_FiveParsecs_modern_dock_.jpg-059ec0c52b6cf9ec91d77aa2b629666a.ctex"]
+source_file="res://assets/BookImages/Dec_5_FiveParsecs_modern_dock_.jpg"
+dest_files=["res://.godot/imported/Dec_5_FiveParsecs_modern_dock_.jpg-1a6eb35aab83f874eac9ea2488bd8ab8.ctex"]
 
 [params]
 

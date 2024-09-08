@@ -1,39 +1,28 @@
+# CharacterCreation.gd
 extends Control
 
-signal character_created(character: Character)
-
-const MIN_STAT_VALUE: int = 0
-const MAX_STAT_VALUE: int = 5
-const STARTING_SKILL_POINTS: int = 3
-
 var character_data: Dictionary
-var equipment_data: Dictionary
+@onready var species_option: OptionButton = $CrewStatsAndInfo/SpeciesSelection/SpeciesSelection
+@onready var background_option: OptionButton = $CrewPictureAndStats/PictureandBMCcontrols/PortraitControls/BackgroundSelection/BackgroundSelection
+@onready var motivation_option: OptionButton = $CrewPictureAndStats/PictureandBMCcontrols/PortraitControls/MotivationSelection/MotivationSelection
+@onready var class_option: OptionButton = $CrewPictureAndStats/PictureandBMCcontrols/PortraitControls/ClassSelection/ClassSelection
+@onready var info_box: RichTextLabel = $CrewPictureAndStats/CharacterFlavorBreakdown/SpeciesInfoLabel
+@onready var stat_spinboxes: Dictionary = {
+	"reactions": $CrewStatsAndInfo/StatDistribution/Reactions/ReactionsSpinBox,
+	"speed": $CrewStatsAndInfo/StatDistribution/Speed/SpeedSpinBox,
+	"combat_skill": $CrewStatsAndInfo/StatDistribution/Combat/CombatSpinBox,
+	"toughness": $CrewStatsAndInfo/StatDistribution/Toughness/ToughnessSpinBox,
+	"savvy": $CrewStatsAndInfo/StatDistribution/Savvy/SavvySpinBox,
+	"luck": $CrewStatsAndInfo/StatDistribution/Luck/LuckSpinBox
+}
 
-@onready var race_selection: OptionButton = $MarginContainer/VBoxContainer/HBoxContainer/LeftColumn/RaceSelection
-@onready var background_selection: OptionButton = $MarginContainer/VBoxContainer/HBoxContainer/LeftColumn/BackgroundSelection
-@onready var motivation_selection: OptionButton = $MarginContainer/VBoxContainer/HBoxContainer/LeftColumn/MotivationSelection
-@onready var class_selection: OptionButton = $MarginContainer/VBoxContainer/HBoxContainer/LeftColumn/ClassSelection
-@onready var stat_distribution: Control = $MarginContainer/VBoxContainer/HBoxContainer/RightColumn/StatDistribution
-@onready var skill_selection: Control = $MarginContainer/VBoxContainer/SkillSelection
-@onready var equipment_selection: Control = $MarginContainer/VBoxContainer/EquipmentSelection
-@onready var character_name_input: LineEdit = $MarginContainer/VBoxContainer/HBoxContainer/CharacterNameInput
-@onready var character_summary: TextEdit = $MarginContainer/VBoxContainer/CharacterSummary
-@onready var create_character_button: Button = $MarginContainer/VBoxContainer/CreateCharacterButton
-
-var character: Character
-
-func _ready() -> void:
+func _ready():
 	load_character_data()
-	load_equipment_data()
-	character = Character.new()
-	_setup_option_buttons()
-	_setup_stat_spinboxes()
-	_setup_skill_checkboxes()
-	_setup_equipment_list()
-	create_character_button.pressed.connect(_on_create_character_pressed)
-	character_name_input.text_changed.connect(_on_character_name_changed)
+	populate_option_buttons()
+	connect_signals()
+	update_character_info()
 
-func load_character_data() -> void:
+func load_character_data():
 	var file = FileAccess.open("res://data/character_creation_data.json", FileAccess.READ)
 	var json = JSON.new()
 	var error = json.parse(file.get_as_text())
@@ -41,197 +30,107 @@ func load_character_data() -> void:
 		character_data = json.data
 	else:
 		print("JSON Parse Error: ", json.get_error_message())
+	file.close()
 
-func load_equipment_data() -> void:
-	var file = FileAccess.open("res://data/equipment_database.json", FileAccess.READ)
-	var json = JSON.new()
-	var error = json.parse(file.get_as_text())
-	if error == OK:
-		equipment_data = json.data
-	else:
-		print("JSON Parse Error: ", json.get_error_message())
-
-func _setup_option_buttons() -> void:
-	_populate_option_button(race_selection, character_data.races)
-	_populate_option_button(background_selection, character_data.backgrounds)
-	_populate_option_button(motivation_selection, character_data.motivations)
-	_populate_option_button(class_selection, character_data.classes)
-
-func _populate_option_button(option_button: OptionButton, data: Array) -> void:
-	for item in data:
-		option_button.add_item(item.name)
-	option_button.item_selected.connect(_on_option_selected.bind(option_button.name))
-
-func _setup_stat_spinboxes() -> void:
-	for stat in character.stats.keys():
-		var spinbox: SpinBox = stat_distribution.get_node(stat.capitalize())
-		spinbox.value = character.stats[stat]
-		spinbox.min_value = MIN_STAT_VALUE
-		spinbox.max_value = MAX_STAT_VALUE
-		spinbox.value_changed.connect(_on_stat_changed.bind(stat))
-
-func _setup_skill_checkboxes() -> void:
-	for skill in character_data.skills:
-		var checkbox := CheckBox.new()
-		checkbox.text = skill.name
-		checkbox.toggled.connect(_on_skill_toggled.bind(skill.id))
-		skill_selection.add_child(checkbox)
-
-func _setup_equipment_list() -> void:
-	for category in ["weapons", "armor", "gear", "consumables"]:
-		for item in equipment_data[category]:
-			equipment_selection.add_item(item.name)
-	equipment_selection.item_selected.connect(_on_equipment_selected)
-
-func _on_option_selected(index: int, option_name: String) -> void:
-	var selected_option: String = get_node("MarginContainer/VBoxContainer/HBoxContainer/LeftColumn/" + option_name).get_item_text(index)
-	match option_name:
-		"RaceSelection":
-			character.race = character_data.races[index].id
-		"BackgroundSelection":
-			character.background = character_data.backgrounds[index].id
-		"MotivationSelection":
-			character.motivation = character_data.motivations[index].id
-		"ClassSelection":
-			character.character_class = character_data.classes[index].id
-	_apply_option_effects(option_name, index)
-	_update_character_summary()
-
-func _apply_option_effects(option_name: String, index: int) -> void:
-	match option_name:
-		"RaceSelection":
-			var race_data = character_data.races[index]
-			for stat in race_data.base_stats.keys():
-				var value = race_data.base_stats[stat]
-				character.stats[stat] += value
-		"BackgroundSelection":
-			var background_data = character_data.backgrounds[index]
-			for stat in background_data.stat_bonuses.keys():
-				var value = background_data.stat_bonuses[stat]
-				character.stats[stat] += value
-			character.credits += background_data.starting_credits
-		"MotivationSelection":
-			var motivation_data = character_data.motivations[index]
-			if motivation_data.effect.has("starting_credits"):
-				character.credits += motivation_data.effect["starting_credits"]
-			if motivation_data.effect.has("story_points"):
-				character.story_points += motivation_data.effect["story_points"]
-		"ClassSelection":
-			var class_data = character_data.classes[index]
-			for stat in class_data.stat_bonuses.keys():
-				var value = class_data.stat_bonuses[stat]
-				character.stats[stat] += value
-
-	_update_stat_spinboxes()
-
-
-func _update_stat_spinboxes() -> void:
-	for stat in character.stats.keys():
-		var spinbox: SpinBox = stat_distribution.get_node(stat.capitalize())
-		spinbox.value = character.stats[stat]
-
-func _on_stat_changed(value: int, stat_name: String) -> void:
-	character.stats[stat_name] = value
-	_update_character_summary()
-
-func _on_skill_toggled(button_pressed: bool, skill_id: String) -> void:
-	if button_pressed:
-		character.skills[skill_id] = Skill.new()
-	else:
-		character.skills.erase(skill_id)
-	_update_character_summary()
-
-
-func _on_equipment_selected(index: int) -> void:
-	var selected_equipment: String = equipment_selection.get_item_text(index)
-	if selected_equipment in character.equipment:
-		character.equipment.erase(selected_equipment)
-	else:
-		character.equipment.append(selected_equipment)
-	_update_character_summary()
-
-func _on_character_name_changed(new_text: String) -> void:
-	character.name = new_text
-	_update_character_summary()
-
-func _update_character_summary() -> void:
-	var summary: String = """
-	Name: {name}
-	Race: {race}
-	Background: {background}
-	Motivation: {motivation}
-	Class: {character_class}
-	
-	Stats:
-	- Reactions: {stats.reactions}
-	- Speed: {stats.speed}
-	- Combat Skill: {stats.combat_skill}
-	- Toughness: {stats.toughness}
-	- Savvy: {stats.savvy}
-	
-	Skills: {skills}
-	
-	Equipment: {equipment}
-	""".format(character.to_dict())
-	
-	character_summary.text = summary
-
-func _on_create_character_pressed() -> void:
-	if _validate_character():
-		character_created.emit(character)
-	else:
-		_show_error_message("Please fill in all required fields and make valid selections.")
-
-func _validate_character() -> bool:
-	return character.name != "" and \
-		   str(character.race) != "" and \
-		   str(character.background) != "" and \
-		   str(character.motivation) != "" and \
-		   str(character.character_class) != "" and \
-		   character.skills.size() > 0 and \
-		   character.equipment.size() > 0
-
-func _show_error_message(message: String) -> void:
-	var dialog := AcceptDialog.new()
-	dialog.dialog_text = message
-	add_child(dialog)
-	dialog.popup_centered()
-
-func get_race_name(race_id: String) -> String:
+func populate_option_buttons():
 	for race in character_data.races:
-		if race.id == race_id:
-			return race.name
-	return "Unknown Race"
-
-func get_background_name(background_id: String) -> String:
+		species_option.add_item(race.name)
 	for background in character_data.backgrounds:
-		if background.id == background_id:
-			return background.name
-	return "Unknown Background"
-
-func get_motivation_name(motivation_id: String) -> String:
+		background_option.add_item(background.name)
 	for motivation in character_data.motivations:
-		if motivation.id == motivation_id:
-			return motivation.name
-	return "Unknown Motivation"
-
-func get_class_name(class_id: String) -> String:
+		motivation_option.add_item(motivation.name)
 	for character_class in character_data.classes:
-		if character_class.id == class_id:
-			return character_class.name
-	return "Unknown Class"
+		class_option.add_item(character_class.name)
 
-func get_skill_names(skill_ids: Array) -> Array:
-	var skill_names = []
-	for skill in character_data.skills:
-		if skill.id in skill_ids:
-			skill_names.append(skill.name)
-	return skill_names
+func connect_signals():
+	species_option.item_selected.connect(update_character_info)
+	background_option.item_selected.connect(update_character_info)
+	motivation_option.item_selected.connect(update_character_info)
+	class_option.item_selected.connect(update_character_info)
 
-func get_equipment_names(equipment_ids: Array) -> Array:
-	var equipment_names = []
-	for category in ["weapons", "armor", "gear", "consumables"]:
-		for item in equipment_data[category]:
-			if item.id in equipment_ids:
-				equipment_names.append(item.name)
-	return equipment_names
+func update_character_info():
+	var selected_race = character_data.races[species_option.get_selected_id()]
+	var selected_background = character_data.backgrounds[background_option.get_selected_id()]
+	var selected_motivation = character_data.motivations[motivation_option.get_selected_id()]
+	var selected_class = character_data.classes[class_option.get_selected_id()]
+
+	update_stats(selected_race)
+	update_info_box(selected_race, selected_background, selected_motivation, selected_class)
+
+func update_stats(race):
+	for stat in stat_spinboxes:
+		stat_spinboxes[stat].value = race.base_stats.get(stat, 0)
+
+func _init():
+	pass
+
+func update_info_box(race, background, motivation, class):
+	var info_text = """
+	Species: {race_name}
+	{race_description}
+	Special Abilities: {race_abilities}
+
+	Background: {background_name}
+	{background_description}
+	{background_effects}
+
+	Motivation: {motivation_name}
+	{motivation_description}
+	{motivation_effects}
+
+	Class: {class_name}
+	{class_description}
+	{class_effects}
+	""".format({
+		"race_name": race.name,
+		"race_description": race.description,
+		"race_abilities": ", ".join(race.special_abilities),
+		"background_name": background.name,
+		"background_description": background.description,
+		"background_effects": get_background_effects(background),
+		"motivation_name": motivation.name,
+		"motivation_description": motivation.description,
+		"motivation_effects": get_motivation_effects(motivation),
+		"class_name": class.name,
+		"class_description": class.description,
+		"class_effects": get_class_effects(class)
+	})
+	info_box.text = info_text
+
+func get_background_effects(background):
+	var effects = []
+	for stat in background.stat_bonuses:
+		effects.append("+{0} {1}".format([background.stat_bonuses[stat], stat.capitalize()]))
+	if "starting_credits" in background:
+		effects.append("{0} starting credits".format([background.starting_credits]))
+	if "starting_gear" in background:
+		effects.append("Starting gear: " + ", ".join(background.starting_gear))
+	return ", ".join(effects)
+
+func get_motivation_effects(motivation):
+	var effects = []
+	for effect in motivation.effect:
+		effects.append("{0}: {1}".format([effect.capitalize(), motivation.effect[effect]]))
+	return ", ".join(effects)
+
+func get_class_effects(character_class):
+	var effects = []
+	for stat in character_class.stat_bonuses:
+		effects.append("+{0} {1}".format([character_class.stat_bonuses[stat], stat.capitalize()]))
+	if "starting_gear" in character_class:
+		effects.append("Starting gear: " + ", ".join(character_class.starting_gear))
+	return ", ".join(effects)
+
+func _on_random_button_pressed():
+	species_option.selected = randi() % species_option.item_count
+	background_option.selected = randi() % background_option.item_count
+	motivation_option.selected = randi() % motivation_option.item_count
+	class_option.selected = randi() % class_option.item_count
+	update_character_info()
+
+func _on_clear_button_pressed():
+	species_option.selected = 0  # Assuming Human is the first option
+	background_option.selected = 0
+	motivation_option.selected = 0
+	class_option.selected = 0
+	update_character_info()
