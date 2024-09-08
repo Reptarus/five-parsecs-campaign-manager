@@ -64,9 +64,9 @@ func _on_start_campaign_pressed():
 	
 	# Apply any difficulty modifiers
 	match game_state.difficulty_mode:
-		GameState.DifficultyMode.HARDCORE:
+		DifficultySettings.DifficultyLevel.HARDCORE:
 			game_state.story_points = max(0, game_state.story_points - 1)
-		GameState.DifficultyMode.INSANITY:
+		DifficultySettings.DifficultyLevel.INSANITY:
 			game_state.story_points = 0
 	
 	emit_signal("campaign_created", game_state)

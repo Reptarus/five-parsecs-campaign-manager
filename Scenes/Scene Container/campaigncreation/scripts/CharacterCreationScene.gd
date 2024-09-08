@@ -1,5 +1,7 @@
 extends Control
 
+const Weapon = preload("res://Scripts/Weapons/Weapon.gd")
+
 @onready var species_option_button: OptionButton = $CrewStatsAndInfo/SpeciesSelection/SpeciesSelection
 @onready var character_portrait: TextureRect = $CrewPictureAndStats/PictureandBMCcontrols/CharacterPortrait
 @onready var background_info: RichTextLabel = $CrewPictureAndStats/CharacterFlavorBreakdown/SpeciesInfoLabel
@@ -67,23 +69,23 @@ func update_ui():
 func update_character_info():
 	var info_text = "Species: %s\n\n" % GlobalEnums.Race.keys()[current_character.race]
 	info_text += "%s\n\n" % CharacterCreationData.get_race_traits(current_character.race)
+	
 	info_text += "Background: %s\n" % GlobalEnums.Background.keys()[background_index]
 	info_text += "%s\n\n" % CharacterCreationData.get_background_info(GlobalEnums.Background.keys()[background_index])
-	info_text += "Motivation: %s\n" % GlobalEnums.Motivation.keys()[motivation_index]
 	
+	info_text += "Motivation: %s\n" % GlobalEnums.Motivation.keys()[motivation_index]
 	var motivation_stats = CharacterCreationData.get_motivation_stats(current_character.motivation)
 	if motivation_stats is Dictionary and motivation_stats.has("description"):
 		info_text += "%s\n\n" % motivation_stats["description"]
-	else:
-		info_text += "No description available.\n\n"
 	
 	info_text += "Class: %s\n" % GlobalEnums.Class.keys()[class_index]
-	
 	var class_stats = CharacterCreationData.get_class_stats(current_character.character_class)
 	if class_stats is Dictionary and class_stats.has("description"):
-		info_text += "%s" % class_stats["description"]
-	else:
-		info_text += "No description available."
+		info_text += "%s\n\n" % class_stats["description"]
+	
+	info_text += "Stats:\n"
+	for stat in current_character.stats:
+		info_text += "%s: %d\n" % [stat.capitalize(), current_character.stats[stat]]
 	
 	background_info.text = info_text
 
@@ -97,25 +99,30 @@ func update_stats():
 			print("Warning: SpinBox not found or stat missing for: " + stat)
 
 func update_weapons_and_gear():
-	var weapons_container = $CrewStatsAndInfo/StartingWeapons/Weapon
-	var range_container = $CrewStatsAndInfo/StartingWeapons/Range
-	var shots_container = $CrewStatsAndInfo/StartingWeapons/Shots
-	var damage_container = $CrewStatsAndInfo/StartingWeapons/Damage
-	var traits_container = $CrewStatsAndInfo/StartingWeapons/Traits
+	var containers = {
+		"Weapon": $CrewStatsAndInfo/StartingWeapons/Weapon,
+		"Range": $CrewStatsAndInfo/StartingWeapons/Range,
+		"Shots": $CrewStatsAndInfo/StartingWeapons/Shots,
+		"Damage": $CrewStatsAndInfo/StartingWeapons/Damage,
+		"Traits": $CrewStatsAndInfo/StartingWeapons/Traits
+	}
 	
-	for container in [weapons_container, range_container, shots_container, damage_container, traits_container]:
-		for child in container.get_children():
-			if child is Label and child.name != container.name:
-				child.text = ""
+	# Clear all value labels
+	for container in containers.values():
+		for i in range(1, 4):  # We have 3 value labels
+			var label = container.get_node("Value" + str(i))
+			if label:
+				label.text = ""
 	
-	for i in range(current_character.inventory.items.size()):
-		var item = current_character.inventory.items[i]
-		if item is Weapon:
-			weapons_container.get_node("WeaponValue" + str(i + 1)).text = item.name
-			range_container.get_node("RangeValue" + str(i + 1)).text = str(item.range)
-			shots_container.get_node("ShotsValue" + str(i + 1)).text = str(item.shots)
-			damage_container.get_node("DamageValue" + str(i + 1)).text = str(item.damage)
-			traits_container.get_node("TraitsValue" + str(i + 1)).text = ", ".join(item.traits)
+	# Populate with character's weapons
+	var weapons = current_character.inventory.items.filter(func(item): return item is Weapon)
+	for i in range(min(weapons.size(), 3)):  # Display up to 3 weapons
+		var weapon = weapons[i]
+		containers["Weapon"].get_node("Value" + str(i + 1)).text = weapon.name
+		containers["Range"].get_node("Value" + str(i + 1)).text = str(weapon.weapon_range)
+		containers["Shots"].get_node("Value" + str(i + 1)).text = str(weapon.shots)
+		containers["Damage"].get_node("Value" + str(i + 1)).text = str(weapon.weapon_damage)
+		containers["Traits"].get_node("Value" + str(i + 1)).text = ", ".join(weapon.traits)
 
 func _on_species_selected(index: int):
 	current_character.race = GlobalEnums.Race.values()[index]

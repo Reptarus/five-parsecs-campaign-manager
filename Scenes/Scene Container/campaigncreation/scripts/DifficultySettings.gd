@@ -2,7 +2,7 @@
 class_name DifficultySettings
 extends Resource
 
-enum DifficultyLevel { EASY, NORMAL, HARD }
+enum DifficultyLevel { EASY, NORMAL, HARD, HARDCORE, INSANITY }
 
 @export var level: DifficultyLevel = DifficultyLevel.NORMAL
 @export var enemy_health_multiplier: float = 1.0

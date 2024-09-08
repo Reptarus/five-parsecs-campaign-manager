@@ -1,6 +1,8 @@
 class_name Character
 extends Resource
 
+enum AIType { CAUTIOUS, AGGRESSIVE, TACTICAL, DEFENSIVE }
+
 const Race = GlobalEnums.Race
 const Background = GlobalEnums.Background
 const Motivation = GlobalEnums.Motivation

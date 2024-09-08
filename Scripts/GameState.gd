@@ -74,6 +74,13 @@ func remove_patron(patron: Patron):
 func add_rival(rival: Rival):
 	rivals.append(rival)
 
+# In GameState.gd
+func find_rival_by_name(name: String) -> Rival:
+	for rival in rivals:
+		if rival.name == name:
+			return rival
+	return null
+
 func remove_rival(rival: Rival):
 	rivals.erase(rival)
 

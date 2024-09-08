@@ -351,18 +351,101 @@ theme_override_font_sizes/font_size = 30
 text = "Starting Weapons And Gear"
 horizontal_alignment = 1
 
-[node name="StartingWeaponsAndGear2" type="VBoxContainer" parent="CrewStatsAndInfo"]
+[node name="StartingWeapons" type="VBoxContainer" parent="CrewStatsAndInfo"]
 layout_mode = 2
 size_flags_vertical = 4
 theme_override_constants/separation = 20
 
-[node name="WeaponOption" type="OptionButton" parent="CrewStatsAndInfo/StartingWeaponsAndGear2"]
+[node name="WeaponOption" type="OptionButton" parent="CrewStatsAndInfo/StartingWeapons"]
+visible = false
 layout_mode = 2
 
-[node name="ArmorOption" type="OptionButton" parent="CrewStatsAndInfo/StartingWeaponsAndGear2"]
+[node name="ArmorOption" type="OptionButton" parent="CrewStatsAndInfo/StartingWeapons"]
+visible = false
 layout_mode = 2
 
-[node name="GearOption" type="OptionButton" parent="CrewStatsAndInfo/StartingWeaponsAndGear2"]
+[node name="GearOption" type="OptionButton" parent="CrewStatsAndInfo/StartingWeapons"]
+visible = false
+layout_mode = 2
+
+[node name="Weapon" type="HBoxContainer" parent="CrewStatsAndInfo/StartingWeapons"]
+layout_mode = 2
+
+[node name="Weapon" type="Label" parent="CrewStatsAndInfo/StartingWeapons/Weapon"]
+layout_mode = 2
+text = "Weapon"
+
+[node name="Value1" type="Label" parent="CrewStatsAndInfo/StartingWeapons/Weapon"]
+layout_mode = 2
+
+[node name="Value2" type="Label" parent="CrewStatsAndInfo/StartingWeapons/Weapon"]
+layout_mode = 2
+
+[node name="Value3" type="Label" parent="CrewStatsAndInfo/StartingWeapons/Weapon"]
+layout_mode = 2
+
+[node name="Range" type="HBoxContainer" parent="CrewStatsAndInfo/StartingWeapons"]
+layout_mode = 2
+
+[node name="Range" type="Label" parent="CrewStatsAndInfo/StartingWeapons/Range"]
+layout_mode = 2
+text = "Range"
+
+[node name="Value1" type="Label" parent="CrewStatsAndInfo/StartingWeapons/Range"]
+layout_mode = 2
+
+[node name="Value2" type="Label" parent="CrewStatsAndInfo/StartingWeapons/Range"]
+layout_mode = 2
+
+[node name="Value3" type="Label" parent="CrewStatsAndInfo/StartingWeapons/Range"]
+layout_mode = 2
+
+[node name="Shots" type="HBoxContainer" parent="CrewStatsAndInfo/StartingWeapons"]
+layout_mode = 2
+
+[node name="Shots" type="Label" parent="CrewStatsAndInfo/StartingWeapons/Shots"]
+layout_mode = 2
+text = "Shots"
+
+[node name="Value1" type="Label" parent="CrewStatsAndInfo/StartingWeapons/Shots"]
+layout_mode = 2
+
+[node name="Value2" type="Label" parent="CrewStatsAndInfo/StartingWeapons/Shots"]
+layout_mode = 2
+
+[node name="Value3" type="Label" parent="CrewStatsAndInfo/StartingWeapons/Shots"]
+layout_mode = 2
+
+[node name="Damage" type="HBoxContainer" parent="CrewStatsAndInfo/StartingWeapons"]
+layout_mode = 2
+
+[node name="Damage" type="Label" parent="CrewStatsAndInfo/StartingWeapons/Damage"]
+layout_mode = 2
+text = "Damage"
+
+[node name="Value1" type="Label" parent="CrewStatsAndInfo/StartingWeapons/Damage"]
+layout_mode = 2
+
+[node name="Value2" type="Label" parent="CrewStatsAndInfo/StartingWeapons/Damage"]
+layout_mode = 2
+
+[node name="Value3" type="Label" parent="CrewStatsAndInfo/StartingWeapons/Damage"]
+layout_mode = 2
+
+[node name="Traits" type="HBoxContainer" parent="CrewStatsAndInfo/StartingWeapons"]
+layout_mode = 2
+
+[node name="Traits" type="Label" parent="CrewStatsAndInfo/StartingWeapons/Traits"]
+layout_mode = 2
+text = "Traits"
+
+[node name="Value1" type="Label" parent="CrewStatsAndInfo/StartingWeapons/Traits"]
+layout_mode = 2
+
+[node name="Value2" type="Label" parent="CrewStatsAndInfo/StartingWeapons/Traits"]
+layout_mode = 2
+
+[node name="Value3" type="Label" parent="CrewStatsAndInfo/StartingWeapons/Traits"]
 layout_mode = 2
 
 [node name="UserNotes" type="TextEdit" parent="CrewStatsAndInfo"]

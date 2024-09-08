@@ -60,22 +60,21 @@ func execute_post_battle_sequence() -> void:
 	check_for_galactic_war_progress()
 
 func resolve_rival_status() -> void:
-	var battle: Battle = game_state.current_battle  # Ensure BattleManager is the correct class
+	var battle: Battle = game_state.current_battle
 	if battle.held_field and not battle.opponent.is_rival:
 		if randi() % 6 + 1 == 1:
-			# Convert or cast Character to Rival
-			var rival_opponent: Rival = battle.opponent as Rival
-			if rival_opponent != null:
-				game_state.add_rival(rival_opponent)
+			var new_rival = Rival.new(battle.opponent.name, battle.opponent.location)
+			# Copy relevant data from battle.opponent to new_rival
+			game_state.add_rival(new_rival)
 	elif battle.held_field and battle.opponent.is_rival:
 		var roll: int = randi() % 6 + 1
 		roll += 1 if game_state.tracked_rival else 0
 		roll += 1 if battle.killed_unique_individual else 0
 		if roll >= 4:
-			# Convert or cast Character to Rival
-			var rival_opponent: Rival = battle.opponent as Rival
-			if rival_opponent != null:
-				game_state.remove_rival(rival_opponent)
+			# Find the corresponding Rival object in the game state
+			var rival_to_remove = game_state.find_rival_by_name(battle.opponent.name)
+			if rival_to_remove:
+				game_state.remove_rival(rival_to_remove)
 
 
 func resolve_patron_status():
