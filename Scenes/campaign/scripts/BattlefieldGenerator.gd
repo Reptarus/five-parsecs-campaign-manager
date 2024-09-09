@@ -180,16 +180,16 @@ func get_battlefield_representation(battlefield: Dictionary) -> String:
 	return representation
 
 func _on_generate_terrain_pressed():
-    game_manager.generate_battlefield()
-    update_battlefield_display()
+	game_manager.generate_battlefield()
+	update_battlefield_display()
 
 func update_battlefield_display():
-    var terrain_map = game_manager.terrain_generator.get_terrain_map()
-    var feature_map = game_manager.terrain_generator.get_feature_map()
-    var cover_map = game_manager.terrain_generator.get_cover_map()
-    var loot_map = game_manager.terrain_generator.get_loot_map()
-    var enemies_map = game_manager.terrain_generator.get_enemies_map()
-    var npcs_map = game_manager.terrain_generator.get_npcs_map()
-    var events_map = game_manager.terrain_generator.get_events_map()
-    var encounters_map = game_manager.terrain_generator.get_encounters_map()
-    var missions_map = game_manager.terrain_generator.get_missions_map()
+	var terrain_map = game_manager.terrain_generator.get_terrain_map()
+	var feature_map = game_manager.terrain_generator.get_feature_map()
+	var cover_map = game_manager.terrain_generator.get_cover_map()
+	var loot_map = game_manager.terrain_generator.get_loot_map()
+	var enemies_map = game_manager.terrain_generator.get_enemies_map()
+	var npcs_map = game_manager.terrain_generator.get_npcs_map()
+	var events_map = game_manager.terrain_generator.get_events_map()
+	var encounters_map = game_manager.terrain_generator.get_encounters_map()
+	var missions_map = game_manager.terrain_generator.get_missions_map()
