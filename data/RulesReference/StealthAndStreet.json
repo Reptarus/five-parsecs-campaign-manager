@@ -1,0 +1,183 @@
+{
+    "special_missions": {
+      "stealth": {
+        "description": "Stealth missions require the crew to infiltrate a target location without being detected, while contending with various security measures.",
+        "setup": {
+          "table_size": "3 x 3-foot play area (36 x 36\")",
+          "terrain": "Requires a fairly dense table with lots of terrain. Avoid any large open spaces.",
+          "center_terrain": "Any terrain feature placed in the center of the table must be something that can be climbed or entered such as a building, forest, or ruin."
+        },
+        "objectives": {
+          "description": "Roll D100 on the Stealth Mission Objectives table to determine the objective.",
+          "table": [
+            {
+              "roll": "01-20",
+              "objective": "Locate and retrieve",
+              "description": "An item must be located using the \"Finding the target\" rules. Once located, it must be picked up and then exfiltrated."
+            },
+            {
+              "roll": "21-35",
+              "objective": "Deliver item",
+              "description": "An item must be delivered to the objective. Select which crew member carries it. Once it is delivered, the crew can exfiltrate."
+            },
+            {
+              "roll": "36-50",
+              "objective": "Locate and contact",
+              "description": "An individual must be located using the \"Finding the target\" rules. Once located, you must move within 3\" and Line of Sight, and then exfiltrate."
+            },
+            {
+              "roll": "51-70",
+              "objective": "Rescue individual",
+              "description": "An individual is placed at the objective. You must reach within 3\" and Line of Sight of them, at which point they join your crew for the rest of the mission. You must exfiltrate them."
+            },
+            {
+              "roll": "71-85",
+              "objective": "Transmit message",
+              "description": "An individual is placed at the objective. You must reach within 3\" and Line of Sight to deliver the message and get a reply, then exfiltrate."
+            },
+            {
+              "roll": "86-00",
+              "objective": "Retrieve package",
+              "description": "An item is placed at the objective. It must be picked up and then exfiltrated."
+            }
+          ]
+        },
+        "stealth_mechanics": {
+          "detection": {
+            "description": "The crew risks detection in the following circumstances:",
+            "conditions": [
+              "While a crew member moves, if any part of the move lies within Line of Sight and the Field of Vision of an enemy.",
+              "If a crew member is within Line of Sight and Field of Vision at the end of an enemy move.",
+              "If a crew member is within Line of Sight when an enemy scans."
+            ],
+            "resolution": "To determine if the crew figure is detected, roll 2D6 for the enemy in question. Subtract 1 if the enemy is scanning."
+          },
+          "tools_and_tricks": [
+            {
+              "name": "Stay Down",
+              "effect": "Until the character activates again, all spotting rolls against them are reduced by the character's Savvy bonus, provided they are at least partially obscured by terrain."
+            },
+            {
+              "name": "Distraction",
+              "effect": "Select an enemy within 6\" and roll 1D6+Savvy. On a 6+, they turn immediately in the chosen direction."
+            },
+            {
+              "name": "Lure",
+              "effect": "Every enemy within 8\" immediately moves 1D6\" towards the location of the crew member and then makes a spotting check."
+            }
+          ],
+          "alarm": {
+            "description": "When the alarm goes off, the current Stealth round ends immediately, and the game transitions to normal combat.",
+            "reinforcements": "At the beginning of each battle round, roll 2D6. For each die showing a 6, a basic enemy arrives as reinforcements at the center of the enemy table edge."
+          }
+        }
+      },
+      "street_fights": {
+        "description": "Street fighting is confused and muddled. Characters slip into and out of sight, it is difficult to confirm whether you hit your mark, and something unexpected lies around every corner.",
+        "setup": {
+          "table_marking": "Mark off streets and alleys. You can make some buildings accessible by marking entrance points and then drawing in a few rooms.",
+          "visibility": "All visibility is limited to 9\" in a street fight scenario, and cannot be increased by any abilities or equipment."
+        },
+        "suspect_markers": {
+          "description": "In a Street Fight, you must identify where the enemy is. All enemies begin the game as Suspect markers which may turn out to be opposition as you play.",
+          "initial_placement": "Place Suspect markers equal to the number of characters the player deploys, spaced out fairly evenly.",
+          "movement": {
+            "description": "Suspect markers behave randomly as their nature is not certain yet.",
+            "table": [
+              {
+                "roll": 1,
+                "action": "Stay: Remain in place."
+              },
+              {
+                "roll": "2-4",
+                "action": "Move: Move 4\" in a random direction, halting if unable to make the full move."
+              },
+              {
+                "roll": 5,
+                "action": "Pursue: Move 4\" towards the nearest crew member by the shortest route possible."
+              },
+              {
+                "roll": 6,
+                "action": "Something interesting?: The marker remains where it is. Place a City marker underneath it."
+              }
+            ]
+          },
+          "identification": {
+            "description": "If a crew member ever finds themself within Line of Sight and within a distance of 4+Savvy inches of a Suspect marker, the Suspect is identified.",
+            "table": [
+              {
+                "roll": 1,
+                "result": "Nothing interesting: Remove the marker."
+              },
+              {
+                "roll": 2,
+                "result": "Possible enemy: If the marker is in pursuit, it is an enemy. Otherwise, it is nothing of interest."
+              },
+              {
+                "roll": "3-5",
+                "result": "Enemy: Remove the marker and replace it with an enemy figure."
+              },
+              {
+                "roll": 6,
+                "result": "Ambush: Remove the marker and replace it with an enemy figure, then place a second enemy 6\" away from the spotting crew member in a random direction."
+              }
+            ]
+          }
+        },
+        "objectives": {
+          "description": "Roll D100 on the table to determine what you are getting paid to do.",
+          "table": [
+            {
+              "roll": "01-10",
+              "objective": "Contact individual",
+              "description": "You must reach the individual and move within 1\" to deliver the message."
+            },
+            {
+              "roll": "11-20",
+              "objective": "Locate individual",
+              "description": "The individual does not begin on the table. Place 6 markers around the table in buildings or interesting locations. Each time you move within 4\" and Line of Sight of a marker, remove it and roll a D6."
+            },
+            {
+              "roll": "21-40",
+              "objective": "Surveil individual",
+              "description": "You must end a total of 3 battle rounds with a figure within Line of Sight and 4-9\" from the individual, then make your escape."
+            },
+            {
+              "roll": "41-60",
+              "objective": "Confront individual",
+              "description": "You must reach the individual and move within 2\". Once you do, roll 1D6 to determine their reaction."
+            },
+            {
+              "roll": "61-75",
+              "objective": "Rescue individual",
+              "description": "You must reach the individual and corral them. You must get the individual off a table edge to save them."
+            },
+            {
+              "roll": "76-90",
+              "objective": "Deliver package",
+              "description": "Select a crew member to carry the package. It must be delivered to the center of the table. No enemy or Suspect marker may be within 5\" when the package is placed. You must then make your escape."
+            },
+            {
+              "roll": "91-00",
+              "objective": "Retrieve package",
+              "description": "A package is placed in the center of the table. A character must move into contact with the package, and it must then be moved off any table edge."
+            }
+          ]
+        },
+        "special_rules": {
+          "shootout": {
+            "description": "When an attacker fires a weapon with the Pistol trait, a Shootout is initiated:",
+            "steps": [
+              "The attacker fires normally.",
+              "If the target is not Stunned or eliminated, they may return fire IF they are armed with a Pistol.",
+              "If the attacker is not Stunned or eliminated or the target does not have a Pistol (or is otherwise unable to fire), the attacker fires a second time."
+            ]
+          },
+          "evasion": {
+            "description": "A crew member is eligible to Evade if they had no enemies visible at the start of the Enemy Actions phase.",
+            "resolution": "Roll 1D6+Savvy. For every point above 4, the crew member may immediately move 1\" in any direction."
+          }
+        }
+      }
+    }
+  }

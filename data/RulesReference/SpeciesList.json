@@ -1,0 +1,111 @@
+{
+    "species": [
+      {
+        "name": "Human",
+        "playable": true,
+        "description": "The most common species in the galaxy, humans are adaptable and varied.",
+        "homeworld": "Earth (lost to history)",
+        "traits": [
+          "Adaptable: Can excel in any role",
+          "Varied: No specific bonuses or penalties"
+        ],
+        "starting_bonus": "None"
+      },
+      {
+        "name": "Engineer",
+        "playable": true,
+        "description": "A mysterious alien species with an innate understanding of technology.",
+        "homeworld": "Unknown",
+        "traits": [
+          "Tech-savvy: +1 to all rolls involving technology",
+          "Analytical: +1 to Problem Solving rolls"
+        ],
+        "starting_bonus": "+1 Savvy"
+      },
+      {
+        "name": "Feral",
+        "playable": true,
+        "description": "Genetically engineered humanoids with animal-like features and instincts.",
+        "homeworld": "Various lab worlds",
+        "traits": [
+          "Enhanced Senses: +1 to detection rolls",
+          "Primal Instincts: +1 to Initiative rolls"
+        ],
+        "starting_bonus": "+1 Speed"
+      },
+      {
+        "name": "K'Erin",
+        "playable": true,
+        "description": "A warrior species known for their honor and combat prowess.",
+        "homeworld": "K'Erin Prime",
+        "traits": [
+          "Warrior Culture: +1 to Combat Skill",
+          "Honor-bound: Cannot flee from combat"
+        ],
+        "starting_bonus": "+1 Combat Skill"
+      },
+      {
+        "name": "Precursor",
+        "playable": true,
+        "description": "An ancient, highly advanced species with psionic abilities.",
+        "homeworld": "Unknown",
+        "traits": [
+          "Psionic: Can use psionic powers",
+          "Ancient Wisdom: +1 to Savvy"
+        ],
+        "starting_bonus": "Start with one Psionic power"
+      },
+      {
+        "name": "Soulless",
+        "playable": true,
+        "description": "Robotic entities with a collective consciousness.",
+        "homeworld": "Various",
+        "traits": [
+          "Robotic: Immune to fear and mind-affecting abilities",
+          "Collective Intelligence: Can share information instantaneously with other Soulless"
+        ],
+        "starting_bonus": "+1 Toughness"
+      },
+      {
+        "name": "Swift",
+        "playable": true,
+        "description": "Agile, winged humanoids known for their speed and grace.",
+        "homeworld": "Swift Prime",
+        "traits": [
+          "Winged: Can fly short distances",
+          "Agile: +1 to dodge rolls"
+        ],
+        "starting_bonus": "+2 Speed"
+      },
+      {
+        "name": "Converted",
+        "playable": false,
+        "description": "Cybernetically-enhanced zombies created by an unknown force.",
+        "homeworld": "Various",
+        "traits": [
+          "Undead: Immune to fear and mind-affecting abilities",
+          "Cybernetic: Enhanced strength and durability"
+        ]
+      },
+      {
+        "name": "Hakshan",
+        "playable": false,
+        "description": "Mysterious, suited aliens searching for something vitally important to their species.",
+        "homeworld": "Unknown",
+        "traits": [
+          "Advanced Technology: Use highly sophisticated equipment",
+          "Enigmatic: Motives are unclear to other species"
+        ]
+      },
+      {
+        "name": "Manipulators",
+        "playable": false,
+        "description": "A secretive species known for their political and economic influence.",
+        "homeworld": "Unknown",
+        "traits": [
+          "Master Manipulators: Skilled in diplomacy and deception",
+          "Shadow Network: Have spies and agents throughout the galaxy"
+        ]
+      }
+    ]
+  }

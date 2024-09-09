@@ -1,0 +1,140 @@
+{
+    "psionics": {
+      "description": "Psionics covers a range of phenomena allowing mental manipulation of the surrounding world. Different species access these energies through various means, producing tangible effects on their surroundings.",
+      "rules": [
+        "Only one Psionic can be in a crew at any time",
+        "Psionics cannot increase Combat Skill through Experience Points",
+        "Psionics can only use weapons with Pistol or Melee traits",
+        "Psionics lose abilities permanently if given any type of implant"
+      ],
+      "power_determination": {
+        "description": "Roll D10 twice to determine starting powers. If same power is rolled twice, choose power 1 number higher or lower on the table.",
+        "precursor_rule": "Precursors may trade either dice for result 6 (Predict)"
+      },
+      "powers": [
+        {
+          "id": 1,
+          "name": "Barrier",
+          "effects": "Select a target figure. Any ranged hit on the target is negated by the barrier on a D6 roll of 4+. Negated hits do not produce Stun markers. Environmental hazards and Brawling hits are not affected.",
+          "affects_robotic": true,
+          "target_self": true,
+          "persists": true
+        },
+        {
+          "id": 2,
+          "name": "Grab",
+          "effects": "Select a target figure. The target may either be pushed 1D6\" directly away from or pulled 1D6\" directly towards the Psionic. If the target contacts another figure or terrain feature, it halts half an inch short.",
+          "affects_robotic": true,
+          "target_self": false,
+          "persists": false
+        },
+        {
+          "id": 3,
+          "name": "Lift",
+          "effects": "Select a friendly or neutral target figure (up to human-sized) and move them 1D6+1\" in any direction. The target figure lands safely on the ground, and cannot be placed less than 0.5\" from any other figure.",
+          "affects_robotic": true,
+          "target_self": true,
+          "persists": false
+        },
+        {
+          "id": 4,
+          "name": "Shroud",
+          "effects": "Place a wall of fog entirely within range. The wall is 3\" wide, the height of a typical human miniature and 1\" thick. The fog can be moved through normally, but blocks all lines of sight. Figures even partially within the fog cannot fire, and count as being in Cover.",
+          "affects_robotic": true,
+          "target_self": false,
+          "persists": true
+        },
+        {
+          "id": 5,
+          "name": "Enrage",
+          "effects": "This power is only usable on a figure that has not yet acted this round. They immediately move a full move +2\" towards the nearest visible opponent, and attempt to engage them in Brawling combat. They are unable to act later in the round.",
+          "affects_robotic": false,
+          "target_self": true,
+          "persists": false
+        },
+        {
+          "id": 6,
+          "name": "Predict",
+          "effects": "When the target character next activates, they may roll twice for any one action they perform and pick the better score. If the action has multiple dice rolled, roll one additional die, then discard one.",
+          "affects_robotic": false,
+          "target_self": true,
+          "persists": true
+        },
+        {
+          "id": 7,
+          "name": "Shock",
+          "effects": "The target receives 1 Stun marker",
+          "affects_robotic": false,
+          "target_self": false,
+          "persists": false
+        },
+        {
+          "id": 8,
+          "name": "Rejuvenate",
+          "effects": "The target removes 1 Stun marker",
+          "affects_robotic": false,
+          "target_self": true,
+          "persists": false
+        },
+        {
+          "id": 9,
+          "name": "Guide",
+          "effects": "An allied figure may immediately takes one Shot with any non-Area weapon carried. The target of the attack must be visible to the Psionic, but does not have to be in range. This does not prevent them from firing normally this round when activated.",
+          "affects_robotic": false,
+          "target_self": true,
+          "persists": false
+        },
+        {
+          "id": 10,
+          "name": "Psionic Scare",
+          "effects": "Immediately make a Morale check for the target figure, unless they would normally be immune to morale checks.",
+          "affects_robotic": false,
+          "target_self": false,
+          "persists": false
+        }
+      ],
+      "using_powers": {
+        "description": "When activated, a Psionic may perform a Psionic Action as a bonus Action. Once resolved, they may THEN move and perform an Action exactly as any other figure.",
+        "projection_roll": "Make a 2D6 Projection roll. The power will project to a range equal to the roll in inches.",
+        "straining": {
+          "description": "If the roll is not high enough to reach the target, the Psionic may choose to Strain themselves",
+          "effects": [
+            "Roll one additional D6, and increase the distance by the score rolled",
+            "If the additional D6 result is a 4-5, the Psionic is Stunned, but the power takes effect",
+            "If the roll is a 6, the Psionic is Stunned, but the power fails",
+            "Swift characters are Stunned on a 5-6, and suffer no other effects"
+          ]
+        }
+      },
+      "psionic_advancement": {
+        "acquire_power": {
+          "xp_cost": 12,
+          "description": "Roll D10 and receive the psionic power indicated. If this indicates a power already known, modify the roll by +/- 1 and receive either power."
+        },
+        "power_enhancement": {
+          "xp_cost": 6,
+          "description": "Enhance any psionic power of your choice for an additional D6 to the casting roll whenever using that power. Powers can be enhanced in this way by only one D6 per power."
+        }
+      },
+      "psionic_legality": {
+        "description": "When using Psionic characters in a campaign, World Generation Steps gain an additional step after Travel Step 4: New World Arrival",
+        "legality_table": [
+          {
+            "roll": "01-25",
+            "status": "Outlawed",
+            "effects": "Psionics are illegal"
+          },
+          {
+            "roll": "26-55",
+            "status": "Highly unusual",
+            "effects": "Psionics will draw attention"
+          },
+          {
+            "roll": "56-100",
+            "status": "Who cares?",
+            "effects": "Psionics are a common enough sight that they do not result in any unusual effects"
+          }
+        ]
+      }
+    }
+  }

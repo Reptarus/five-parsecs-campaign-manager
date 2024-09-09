@@ -1,0 +1,80 @@
+{
+  "fringe_world_strife": {
+    "description": "Rules to make the Fringe feel more anarchic and wild as you travel deeper into uncontrolled space.",
+    "world_instability": {
+      "check": "When arriving on a new world, roll 1D6. A roll of 4+ indicates the world is Unstable.",
+      "initial_score": 1,
+      "adjustments": [
+        "During the Invasion step of every campaign turn, add 1D6 to the total.",
+        "Adjust the total by an additional +1 for every active Rival on this world.",
+        "Subtract -1 if you completed a Patron job this campaign turn.",
+        "Subtract -1 if you Held the Field against a Roving Threat this campaign turn."
+      ]
+    },
+    "chaos_events": {
+      "trigger": "If Instability reaches or exceeds 10, make a D100 roll on this table",
+      "events": [
+        {
+          "roll": "01-10",
+          "event": "Hooligans",
+          "effect": "You cannot perform any Explore or Trade crew actions during the next campaign turn.",
+          "instability_reduction": 5
+        },
+        {
+          "roll": "11-24",
+          "event": "Criminal Gang",
+          "effect": "Roll once on the Criminal Elements encounter subtable. This gang has set up shop threatening local businesses. Until you clear them out, all post-battle payouts on this world are reduced by 1 Credit.",
+          "instability_reduction": 5
+        },
+        {
+          "roll": "25-36",
+          "event": "Enemy Infiltration",
+          "effect": "A Converted Infiltrator squad has arrived on the planet. To go after them, use the Track crew action. If you find them, you may fight them as your job for this campaign turn. Set up a Fight Off mission. The enemy squad has a +1 Combat Skill and includes 1 additional Specialist.",
+          "instability_reduction": 5
+        },
+        {
+          "roll": "37-46",
+          "event": "Heating Up",
+          "effect": "Add a Rival randomly selected from the Criminal Elements subtable.",
+          "instability_reduction": 3
+        },
+        {
+          "roll": "47-54",
+          "event": "Sabotage",
+          "effect": "Your ship takes 1D6+1 points of hull damage.",
+          "instability_reduction": 7
+        },
+        {
+          "roll": "55-66",
+          "event": "Raiders",
+          "effect": "Next campaign turn, you will be attacked by scavengers. Resolve this as a Rival attack Raid scenario.",
+          "instability_reduction": 7
+        },
+        {
+          "roll": "67-72",
+          "event": "Crackdown",
+          "effect": "Unless you leave next campaign turn, roll three D6 in the Upkeep step, and discard every die rolling a 5 or a 6. Add the remaining dice together and pay that many credits in fines or have your ship confiscated.",
+          "instability_reduction": 10
+        },
+        {
+          "roll": "73-86",
+          "event": "Economic Collapse",
+          "effect": "You cannot take Trade actions, and all mission payouts are -1 Credit. Roll 1D6 each mission, adding +1 if you completed a Patron job, and +4 if you finished a Quest. On a result of 6+, the economic malaise is over.",
+          "instability_reduction": 10
+        },
+        {
+          "roll": "87-94",
+          "event": "Invasion Imminent",
+          "effect": "An alien invasion force is en route. After the next campaign turn, the world is automatically invaded.",
+          "instability_reduction": "NA"
+        },
+        {
+          "roll": "95-100",
+          "event": "Civil War",
+          "effect": "The world erupts in a shooting war next campaign turn. If you opt to remain, you will be caught up in the fighting.",
+          "instability_reduction": "NA"
+        }
+      ]
+    }
+  }
+}

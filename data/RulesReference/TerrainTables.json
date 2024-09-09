@@ -1,0 +1,304 @@
+{
+    "terrain_tables": {
+      "terrain_types": [
+        {
+          "name": "Linear",
+          "description": "Any wide feature that a miniature cannot generally be placed on top of.",
+          "examples": ["hedgerows", "walls", "sandbag barricades"],
+          "rules": [
+            "Can be climbed",
+            "Blocks Line of Sight up to 3\" after crossing"
+          ]
+        },
+        {
+          "name": "Area",
+          "description": "Features that cover a space on the table and can have miniatures placed within them.",
+          "examples": ["forest", "bushes", "rubble"],
+          "rules": [
+            "Can be entered",
+            "May be designated as Difficult",
+            "Blocks Line of Sight up to 3\" into the feature"
+          ]
+        },
+        {
+          "name": "Field",
+          "description": "Similar to an Area feature, but ground level.",
+          "examples": ["mud", "water", "lava pools"],
+          "rules": [
+            "Can be entered",
+            "May be designated as Difficult or Impassable"
+          ]
+        },
+        {
+          "name": "Individual",
+          "description": "A single piece of terrain that a figure cannot climb.",
+          "examples": ["barrels", "individual trees", "sign posts"],
+          "rules": [
+            "Blocks Line of Sight up to 3\" after crossing"
+          ]
+        },
+        {
+          "name": "Block",
+          "description": "A terrain piece that can be climbed or otherwise interacted with, but which figures cannot enter.",
+          "examples": ["boulders", "sealed shipping containers", "locked buildings"],
+          "rules": [
+            "Can be climbed",
+            "Provides Cover if in contact with corner"
+          ]
+        },
+        {
+          "name": "Interior",
+          "description": "An enclosed terrain piece that figures can enter.",
+          "examples": ["unsecured buildings", "tunnels", "caves"],
+          "rules": [
+            "Can be entered",
+            "Blocks Line of Sight"
+          ]
+        }
+      ],
+      "terrain_generation": {
+        "industrial": {
+          "notable_features": [
+            {
+              "roll": 1,
+              "feature": "Large structure or facility"
+            },
+            {
+              "roll": 2,
+              "feature": "Cluster of industrial items such as barrels, machinery, or similar"
+            },
+            {
+              "roll": 3,
+              "feature": "Open space surrounded by fencing, barricades, or low walls"
+            },
+            {
+              "roll": 4,
+              "feature": "Landing pad, loading bay, or similar open space with some scatter terrain"
+            },
+            {
+              "roll": 5,
+              "feature": "Cargo area with containers, crates, civilian vehicles, or similar"
+            },
+            {
+              "roll": 6,
+              "feature": "Single large structure or two medium structures"
+            }
+          ],
+          "regular_features": [
+            {
+              "roll": 1,
+              "feature": "Linear obstacles such as a fences, railings, or barricades"
+            },
+            {
+              "roll": 2,
+              "feature": "Building"
+            },
+            {
+              "roll": 3,
+              "feature": "Open ground with a few incidental items (sign post, boulder, or similar)"
+            },
+            {
+              "roll": 4,
+              "feature": "Several pieces of spread-out scatter terrain, such as boulders, barrels, vehicle parts, or similar"
+            },
+            {
+              "roll": 5,
+              "feature": "Open ground with a single central piece such as a statue, tree, or similar"
+            },
+            {
+              "roll": 6,
+              "feature": "Industrial or urban terrain such as shipping containers, a cluster of barrels, or a large civilian vehicle"
+            }
+          ]
+        },
+        "wilderness": {
+          "notable_features": [
+            {
+              "roll": 1,
+              "feature": "Forested hill or high ground"
+            },
+            {
+              "roll": 2,
+              "feature": "Large, difficult-to-cross feature such as a swamp"
+            },
+            {
+              "roll": 3,
+              "feature": "Group of rock formations"
+            },
+            {
+              "roll": 4,
+              "feature": "Forested area with paths to traverse"
+            },
+            {
+              "roll": 5,
+              "feature": "Large but fairly bare hill"
+            },
+            {
+              "roll": 6,
+              "feature": "Single building, ruin, or similar"
+            }
+          ],
+          "regular_features": [
+            {
+              "roll": 1,
+              "feature": "Difficult to pass feature such as swamp or dense forest"
+            },
+            {
+              "roll": 2,
+              "feature": "Rock formation surrounded by plants"
+            },
+            {
+              "roll": 3,
+              "feature": "Cluster of plants"
+            },
+            {
+              "roll": 4,
+              "feature": "Rock formation"
+            },
+            {
+              "roll": 5,
+              "feature": "Open space with scattered single plants"
+            },
+            {
+              "roll": 6,
+              "feature": "Natural linear feature such as a hedgerow or line of trees"
+            }
+          ]
+        },
+        "alien_ruin": {
+          "notable_features": [
+            {
+              "roll": 1,
+              "feature": "Scatter terrain with plants mixed in"
+            },
+            {
+              "roll": 2,
+              "feature": "Large pile of rubble and debris"
+            },
+            {
+              "roll": 3,
+              "feature": "Large, ruined building, possibly multi-story"
+            },
+            {
+              "roll": 4,
+              "feature": "Remnants of a landing pad or town plaza, but overgrown with plants"
+            },
+            {
+              "roll": 5,
+              "feature": "Ruined tower surrounded by rubble"
+            },
+            {
+              "roll": 6,
+              "feature": "Large statue surrounded by plants or rubble"
+            }
+          ],
+          "regular_features": [
+            {
+              "roll": 1,
+              "feature": "Odd feature such as crystals, weird plants, or similar"
+            },
+            {
+              "roll": 2,
+              "feature": "Ruined single building"
+            },
+            {
+              "roll": 3,
+              "feature": "Partial ruin (such as half of a building surrounded by rubble)"
+            },
+            {
+              "roll": 4,
+              "feature": "Open space with a few items of scatter"
+            },
+            {
+              "roll": 5,
+              "feature": "Strange statue or vehicle wreck"
+            },
+            {
+              "roll": 6,
+              "feature": "Scattered plants with some rubble"
+            }
+          ]
+        },
+        "crash_site": {
+          "notable_features": [
+            {
+              "roll": 1,
+              "feature": "Structure with damage (or reduced to a heap of rubble)"
+            },
+            {
+              "roll": 2,
+              "feature": "Cluster of natural features (rocks, plants) with wreckage among them"
+            },
+            {
+              "roll": 3,
+              "feature": "Forested area on fire"
+            },
+            {
+              "roll": 4,
+              "feature": "Pile of wreckage"
+            },
+            {
+              "roll": 5,
+              "feature": "Large chunk of wreckage in crater"
+            },
+            {
+              "roll": 6,
+              "feature": "Large crater"
+            }
+          ],
+          "regular_features": [
+            {
+              "roll": 1,
+              "feature": "Open with scatter. Mixture of natural features and wreckage."
+            },
+            {
+                "roll": 2,
+                "feature": "Scattered bits of wreckage"
+              },
+              {
+                "roll": 3,
+                "feature": "Larger piece of wreckage"
+              },
+              {
+                "roll": 4,
+                "feature": "Crater"
+              },
+              {
+                "roll": 5,
+                "feature": "Natural feature (rocks, plants, hedgerow)"
+              },
+              {
+                "roll": 6,
+                "feature": "Open ground, with smoke from fire"
+              }
+            ]
+          }
+        },
+        "terrain_effects": {
+          "line_of_sight": [
+            "Lines of Sight are stopped 3\" after crossing the boundary of an Area feature",
+            "Lines of Sight are stopped 3\" after crossing a Linear, Individual or Block feature",
+            "Lines of Sight are stopped 3\" into an Area feature, even if the boundary was not crossed",
+            "Lines of Sight are stopped if it crosses or is partially obscured by another figure",
+            "Ignore terrain features within 1\" of the firer for Line of Sight purposes"
+          ],
+          "cover": [
+            "A figure is in Cover if Line of Sight crossed any terrain feature",
+            "A figure is in Cover if positioned within an Area feature",
+            "A figure is in Cover if in contact with the corner of Block terrain"
+          ],
+          "movement": [
+            "Opening doors costs 1\" of movement",
+            "Climbing through a window or hole costs 2\"",
+            "Figures moving on the ground cannot move directly through another figure at any time",
+            "Difficult terrain consumes an additional 1\" of movement allowance for every full 2\" moved in it",
+            "Enemies are not affected by Difficult terrain and move at full speed through such features",
+            "Vertical obstacles can be traversed by paying the cost in inches",
+            "A descent equal to the height of the figure or less can be performed for free",
+            "Jumping down 3\" or further inflicts a Damage 0 hit",
+            "Troopers may not jump down from a height exceeding 6\""
+          ]
+        }
+      }
+    }
+  

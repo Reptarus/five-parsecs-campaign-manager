@@ -28,28 +28,41 @@ func load_rules_data():
 
 func setup_buttons():
 	var library_rows = $VBoxContainer/LibraryRows
+	var categories = rules_data.keys()
+	categories.sort()  # Sort categories alphabetically
 	
-	for row in library_rows.get_children():
-		if row is HBoxContainer:
-			for child in row.get_children():
-				if child is Button:
-					var category = child.name.replace("Button", "")
-					child.text = category
-					child.connect("pressed", Callable(self, "_on_category_button_pressed").bind(category))
+	var row_index = 0
+	var button_index = 0
+	for category in categories:
+		if button_index % 5 == 0:  # 5 buttons per row
+			row_index += 1
+		
+		var row_name = "Row" + str(row_index)
+		var row = library_rows.get_node_or_null(row_name)
+		if not row:
+			row = HBoxContainer.new()
+			row.name = row_name
+			library_rows.add_child(row)
+		
+		var button = Button.new()
+		button.text = category
+		button.name = category + "Button"
+		button.connect("pressed", Callable(self, "_on_category_button_pressed").bind(category))
+		row.add_child(button)
+		
+		button_index += 1
 	
 	# Adjust button sizes and spacing
 	for row in library_rows.get_children():
-		if row is HBoxContainer:
-			row.add_theme_constant_override("separation", 10)
-			for button in row.get_children():
-				if button is Button:
-					button.custom_minimum_size = Vector2(200, 100)
-					button.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+		row.add_theme_constant_override("separation", 10)
+		for button in row.get_children():
+			button.custom_minimum_size = Vector2(200, 100)
+			button.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 
 func _on_category_button_pressed(category: String):
 	if category in rules_data:
 		var rules_display = preload("res://Scenes/Utils/RulesDisplay.tscn").instantiate()
-		rules_display.display_category(category, rules_data[category])
+		rules_display.display_category(category, rules_data[category][category])
 		get_tree().root.add_child(rules_display)
 		hide()
 

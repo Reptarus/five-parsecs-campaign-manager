@@ -1,0 +1,243 @@
+{
+    "equipment": {
+      "weapons": [
+        {
+          "name": "Service pistol",
+          "range": 14,
+          "shots": 1,
+          "damage": 0,
+          "traits": ["Pistol"]
+        },
+        {
+          "name": "Hand cannon",
+          "range": 8,
+          "shots": 1,
+          "damage": 1,
+          "traits": ["Pistol"]
+        },
+        {
+          "name": "Carbine",
+          "range": 18,
+          "shots": 1,
+          "damage": 0,
+          "traits": []
+        },
+        {
+          "name": "Combat rifle",
+          "range": 26,
+          "shots": 1,
+          "damage": 0,
+          "traits": []
+        },
+        {
+          "name": "Shot gun",
+          "range": 12,
+          "shots": 2,
+          "damage": 1,
+          "traits": ["Focused"]
+        },
+        {
+          "name": "Sniper rifle",
+          "range": 40,
+          "shots": 1,
+          "damage": 1,
+          "traits": ["Aimed"]
+        },
+        {
+          "name": "Light machine gun",
+          "range": 36,
+          "shots": 3,
+          "damage": 1,
+          "traits": ["Heavy"]
+        },
+        {
+          "name": "Incinerator",
+          "range": 8,
+          "shots": 3,
+          "damage": 1,
+          "traits": ["Focused", "Area"]
+        },
+        {
+          "name": "Hyper blaster",
+          "range": 24,
+          "shots": 3,
+          "damage": 1,
+          "traits": ["Overheat"]
+        },
+        {
+          "name": "Plasma rifle",
+          "range": 20,
+          "shots": 2,
+          "damage": 1,
+          "traits": ["Focused", "Piercing"]
+        },
+        {
+          "name": "Boarding sword",
+          "range": 0,
+          "shots": 0,
+          "damage": 0,
+          "traits": ["Melee"]
+        },
+        {
+          "name": "Power claw",
+          "range": 0,
+          "shots": 0,
+          "damage": 1,
+          "traits": ["Melee"]
+        }
+      ],
+      "grenades": [
+        {
+          "name": "Flash grenade",
+          "range": 6,
+          "shots": 0,
+          "damage": 0,
+          "traits": ["Stun"]
+        },
+        {
+          "name": "Frag grenade",
+          "range": 6,
+          "shots": 2,
+          "damage": 0,
+          "traits": ["Area"]
+        }
+      ],
+      "special_weapons": [
+        {
+          "name": "Mounted launcher",
+          "range": 18,
+          "shots": 0,
+          "damage": 0,
+          "traits": ["Launcher"]
+        }
+      ]
+    },
+    "gear": [
+      {
+        "name": "Motion Tracker",
+        "description": "Detects movement within a certain radius, useful for detecting hidden enemies.",
+        "effect": "Adds +1 to all rolls to Seize the Initiative."
+      },
+      {
+        "name": "Medkit",
+        "description": "Basic medical supplies for treating injuries in the field.",
+        "effect": "Allows a character to attempt to heal a Wounded ally during battle."
+      },
+      {
+        "name": "Grappling Hook",
+        "description": "Used for scaling walls or traversing difficult terrain.",
+        "effect": "Allows a character to climb up to 6\" vertically without a skill check."
+      },
+      {
+        "name": "Holo-map",
+        "description": "Advanced mapping device that creates a 3D holographic map of the surroundings.",
+        "effect": "Provides +1 to all navigation-related rolls."
+      },
+      {
+        "name": "Comm-link",
+        "description": "Long-range communication device.",
+        "effect": "Allows communication between squad members at any distance."
+      }
+    ],
+    "items": [
+      {
+        "name": "Stim-pack",
+        "description": "Injectable combat stimulant.",
+        "effect": "Removes all Stun markers from a character."
+      },
+      {
+        "name": "Data-slate",
+        "description": "Portable computer for accessing and storing information.",
+        "effect": "Provides +1 to all Savvy rolls related to information or tech."
+      },
+      {
+        "name": "Repair Kit",
+        "description": "Tools for repairing damaged equipment.",
+        "effect": "Allows attempts to repair malfunctioning weapons during battle."
+      },
+      {
+        "name": "Lockpick Set",
+        "description": "Tools for bypassing electronic and mechanical locks.",
+        "effect": "Provides +1 to all rolls related to opening locked doors or containers."
+      },
+      {
+        "name": "Survival Kit",
+        "description": "Basic supplies for surviving in hostile environments.",
+        "effect": "Provides +1 to all rolls related to survival in harsh conditions."
+      }
+    ],
+    "armor": [
+      {
+        "name": "Trooper Armor",
+        "description": "Standard-issue armor for military personnel.",
+        "save": 5,
+        "effect": "Provides a saving throw on a roll of 5+"
+      },
+      {
+        "name": "Heavy Armor",
+        "description": "Reinforced armor for front-line combat.",
+        "save": 4,
+        "effect": "Provides a saving throw on a roll of 4+, but reduces Speed by 1\""
+      },
+      {
+        "name": "Stealth Suit",
+        "description": "Light armor designed for covert operations.",
+        "save": 6,
+        "effect": "Provides a saving throw on a roll of 6+, but adds +1 to all stealth-related rolls"
+      },
+      {
+        "name": "Hazard Suit",
+        "description": "Specialized armor for protection against environmental hazards.",
+        "save": 5,
+        "effect": "Provides a saving throw on a roll of 5+ and immunity to environmental effects"
+      },
+      {
+        "name": "Powered Armor",
+        "description": "Advanced armor with powered assistance.",
+        "save": 4,
+        "effect": "Provides a saving throw on a roll of 4+ and increases Toughness by 1"
+      }
+    ],
+    "weapon_traits": [
+      {
+        "name": "Pistol",
+        "effect": "Grants +1 to Brawling rolls"
+      },
+      {
+        "name": "Focused",
+        "effect": "Must direct all shots against a single target"
+      },
+      {
+        "name": "Aimed",
+        "effect": "Grants +1 Hit bonus if the firer does not move"
+      },
+      {
+        "name": "Heavy",
+        "effect": "Suffers -1 to hit when moving"
+      },
+      {
+        "name": "Area",
+        "effect": "Affects all figures within 2\" of the target point"
+      },
+      {
+        "name": "Melee",
+        "effect": "Grants +2 to Brawling rolls"
+      },
+      {
+        "name": "Stun",
+        "effect": "Will Stun any target within 2\" of the target point on a 3+ roll"
+      },
+      {
+        "name": "Launcher",
+        "effect": "May fire any grenade type carried up to the range indicated"
+      },
+      {
+        "name": "Piercing",
+        "effect": "Ignores saving throws"
+      },
+      {
+        "name": "Overheat",
+        "effect": "Weapon malfunctions if all three firing dice score the same number"
+      }
+    ]
+  }

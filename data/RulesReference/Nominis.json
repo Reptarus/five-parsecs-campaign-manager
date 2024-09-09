@@ -1,0 +1,134 @@
+{
+    "no_miniatures_combat": {
+      "description": "This system allows you to resolve a battle in Five Parsecs without the use of miniatures. It is useful if you want to progress your campaign, but can't set up a tabletop battle due to space constraints or while traveling.",
+      "basics": {
+        "battlefield": "Considered to be an open, abstract space, filled with terrain for combatants to lurk behind.",
+        "positioning": "Most of the time, you do not need to track the positioning of characters using this system.",
+        "movement": "Each combatant is assumed to be moving fluidly throughout the battle space.",
+        "brawling": "Characters are assumed to fight briefly, and then run for cover.",
+        "locations": "The battlefield may have specific Locations present, such as objectives. A character can move to a Location during the battle using the rules below."
+      },
+      "battle_round": {
+        "phases": [
+          "Battle flow events (additional optional rule)",
+          "Initiative",
+          "Firefight"
+        ]
+      },
+      "initiative": {
+        "description": "Roll for initiative at the beginning of each round using one die less than normal.",
+        "actions": [
+          {
+            "name": "Scout for Locations",
+            "description": "Select a suspected Location that becomes known to the crew.",
+            "test": "6+ required. Add +1 for Movement speed of 5\" or above."
+          },
+          {
+            "name": "Move Up",
+            "description": "The character moves to any known Location that does not already have a character present.",
+            "test": "No roll required."
+          },
+          {
+            "name": "Carry Out Task",
+            "description": "This is typically used for achieving objectives. The character must be at the correct Location to do so.",
+            "test": "Dependent on the scenario."
+          },
+          {
+            "name": "Charge",
+            "description": "Select a random Enemy. After selecting them, you may choose to engage them in a Brawl which is resolved immediately.",
+            "test": "6+ required. Add +1 for Movement speed of 5\" or above. Add +1 for use of special movement device."
+          },
+          {
+            "name": "Optimal Shot",
+            "description": "Select a random Enemy. You may engage them in a Firefight, as described below. You may select any range up to the maximum for your weapon.",
+            "test": "7+ required. -1 penalty if using a Heavy weapon."
+          },
+          {
+            "name": "Support",
+            "description": "Select a crew member. If that crew member is engaged in combat during this round, the Supporting character may opt to be engaged instead.",
+            "test": "No roll required."
+          },
+          {
+            "name": "Take Cover",
+            "description": "The character takes Cover. This affects Firefights as explained below.",
+            "test": "6+ required. -1 penalty if at a Location."
+          },
+          {
+            "name": "Keep Distance",
+            "description": "The character can only be selected as a target this round by enemies with a weapon range exceeding 12\".",
+            "test": "6+ required. Add +1 for Movement speed of 5\" or above"
+          }
+        ]
+      },
+      "firefight": {
+        "description": "The main phase of the battle round is the Firefight. During this phase, the combatants move around, spot targets, and engage in a brief exchange of opinion (and gunfire).",
+        "process": [
+          "Randomly select 3 Enemies (select 4, if there are 7 or more total Enemies on the battlefield).",
+          "The player may choose the order in which the Enemies are resolved.",
+          "When selected to be resolved, the Enemy will target a random crew figure and engage them in combat as explained below.",
+          "It is possible for more than one Enemy to target the same crew member."
+        ],
+        "combat_resolution": {
+          "ranged_combat": [
+            "The combatant with the longer weapon range fires first. If their target survives, the target then returns fire.",
+            "If ranges are identical, the crew figure fires first.",
+            "Each shooter is assumed to be stationary.",
+            "Each shooter uses the maximum range for their weapon.",
+            "Both combatants are assumed to be in Cover.",
+            "Each shooter will fire their maximum number of allowed Shots for the weapon in question."
+          ],
+          "melee_combat": [
+            "If one of the two characters involved can attack only by Brawling, their opponent may shoot first at 6\" range, counting the target as being in Cover.",
+            "The target may not use a Heavy or Area weapon.",
+            "If the target survives, they will then engage in Brawling combat.",
+            "If the target fired in defense, they cannot swap to another weapon and must forego any Melee weapons bonus.",
+            "They may receive the Pistol bonus if they fired a pistol defensively.",
+            "If they did not fire in defense, they may use any weapon to Brawl."
+          ],
+          "mixed_combat": [
+            "If an Enemy carries a Melee weapon and is out-ranged by their opponent, they will engage in Brawling combat instead.",
+            "Crew figures may choose to exercise this option, if desired.",
+            "Combatants with Pistol weapons are not eligible for this rule: It must be a Melee weapon."
+          ]
+        },
+        "taking_cover": [
+          "If a character is Taking Cover, all shots made by and against them will hit only on a natural 6.",
+          "If an Enemy with any Brawling weapon engages the character, the two will conduct Brawling combat, and no fire can be performed by the character Taking Cover."
+        ]
+      },
+      "optional_rules": {
+        "hectic_combat": "If you want a more frantic pace of combat, allow characters to shoot each time they are engaged by an enemy. After the initial exchange, any subsequent attacks by a character during the same battle round will hit only on natural 6s.",
+        "faster_combat": "To speed things up, the first exchange of fire each Firefight phase counts both combatants as being in the open. Subsequent exchanges assume cover as normal."
+      },
+      "battle_flow_events": {
+        "description": "When using the non-miniatures rules, you may roll on a table at the beginning of each battle round to determine random events that affect the flow of battle.",
+        "examples": [
+          {
+            "name": "Fleeting shot",
+            "description": "A randomly selected crew figure may immediately shoot at a target of your choice, if able to shoot."
+          },
+          {
+            "name": "Running firefight",
+            "description": "Randomly select a character from each side. They immediately fire at each other."
+          },
+          {
+            "name": "Stumble into each other",
+            "description": "Randomly select a character from each side. Resolve a Brawl immediately."
+          }
+        ]
+      },
+      "mission_specific_notes": {
+        "access": "The console is a suspected Location. Soulless receive a +1 bonus to locating it.",
+        "acquire": "The item is in a suspected Location. It can then be picked up by a character moving there.",
+        "defend": "No additional notes required.",
+        "deliver": "The delivery point is a suspected Location. If the item is dropped, it becomes a new known Location.",
+        "eliminate": "The target is not removed due to morale failures unless it is the last enemy on the table.",
+        "fight_off": "No additional notes required.",
+        "move_through": "The exit is a suspected Location. Once it is known, a crew member that moves to it can exit the battlefield, fulfilling the condition.",
+        "patrol": "Each objective is a suspected Location. An objective is checked by moving a crew member there.",
+        "protect": "The VIP is attached to a crew member and always accompanies them. While the crew member is on the field, the VIP cannot be attacked directly.",
+        "secure": "The center of the battlefield is a suspected Location. Any crew figure that is at the Location AND is not attacked in Brawling combat for 2 consecutive rounds will achieve the objective.",
+        "search": "Assume there are 5 suspected Locations capable of holding the item."
+      }
+    }
+  }

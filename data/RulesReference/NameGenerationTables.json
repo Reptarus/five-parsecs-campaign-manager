@@ -1,0 +1,241 @@
+{
+    "NameGenerationTables": {
+      "text": "Name Generation Tables provide a quick and easy way to create names for various elements in your Five Parsecs from Home campaign. These tables can be used to name characters, locations, ships, and more, adding flavor and consistency to your game world.",
+      "image": "res://assets/images/name_generation/overview.png",
+      "content": [
+        {
+          "title": "World Names Generator",
+          "description": "Generate names for planets and star systems.",
+          "instructions": "Roll D100 for the system name, then roll 1D6 for the planet number within the system.",
+          "table": [
+            {"roll": "01-04", "name": "Samsonov"},
+            {"roll": "05-08", "name": "Foch"},
+            {"roll": "09-12", "name": "Pershing"},
+            {"roll": "13-16", "name": "Cadorna"},
+            {"roll": "17-20", "name": "Monash"},
+            {"roll": "21-24", "name": "Mackensen"},
+            {"roll": "25-28", "name": "Falkenhayn"},
+            {"roll": "29-32", "name": "Byng"},
+            {"roll": "33-36", "name": "Lanrezac"},
+            {"roll": "37-40", "name": "Allenby"},
+            {"roll": "41-44", "name": "Gough"},
+            {"roll": "45-48", "name": "Currie"},
+            {"roll": "49-52", "name": "Danilov"},
+            {"roll": "53-56", "name": "Joffre"},
+            {"roll": "57-60", "name": "Petain"},
+            {"roll": "61-64", "name": "Brusilov"},
+            {"roll": "65-68", "name": "Potiorek"},
+            {"roll": "69-72", "name": "Putnik"},
+            {"roll": "73-76", "name": "Fuller"},
+            {"roll": "77-80", "name": "Birdwood"},
+            {"roll": "81-84", "name": "Moltke"},
+            {"roll": "85-88", "name": "Sarrail"},
+            {"roll": "89-92", "name": "Goltz"},
+            {"roll": "93-96", "name": "Maude"},
+            {"roll": "97-100", "name": "Nivelle"}
+          ]
+        },
+        {
+          "title": "Colony Names Generator",
+          "description": "Create names for colonies and settlements.",
+          "instructions": "Roll D100 twice, once for each part of the name.",
+          "tables": [
+            {
+              "name": "Part 1",
+              "table": [
+                {"roll": "01-04", "name": "Ingram's"},
+                {"roll": "05-08", "name": "Larsen's"},
+                {"roll": "09-12", "name": "Greenway's"},
+                {"roll": "13-16", "name": "Mustaine's"},
+                {"roll": "17-20", "name": "Kevill's"},
+                {"roll": "21-24", "name": "Duplantier's"},
+                {"roll": "25-28", "name": "Sattler's"},
+                {"roll": "29-32", "name": "Hetfield's"},
+                {"roll": "33-36", "name": "Friden's"},
+                {"roll": "37-40", "name": "Ryan's"},
+                {"roll": "41-44", "name": "Gossow's"},
+                {"roll": "45-48", "name": "Parkes'"},
+                {"roll": "49-52", "name": "Hegg's"},
+                {"roll": "53-56", "name": "Dickinson's"},
+                {"roll": "57-60", "name": "Shelton's"},
+                {"roll": "61-64", "name": "Scalzi's"},
+                {"roll": "65-68", "name": "Lindberg's"},
+                {"roll": "69-72", "name": "Willet's"},
+                {"roll": "73-76", "name": "Halford's"},
+                {"roll": "77-80", "name": "Baker's"},
+                {"roll": "81-84", "name": "Lee's"},
+                {"roll": "85-88", "name": "Cavaleras'"},
+                {"roll": "89-92", "name": "Plant's"},
+                {"roll": "93-96", "name": "Nasic's"},
+                {"roll": "97-100", "name": "Bryntse's"}
+              ]
+            },
+            {
+              "name": "Part 2",
+              "table": [
+                {"roll": "01-04", "name": "Ridge"},
+                {"roll": "05-08", "name": "Peace"},
+                {"roll": "09-12", "name": "Sanctuary"},
+                {"roll": "13-16", "name": "Mile"},
+                {"roll": "17-20", "name": "Road"},
+                {"roll": "21-24", "name": "Hope"},
+                {"roll": "25-28", "name": "Preserve"},
+                {"roll": "29-32", "name": "Point"},
+                {"roll": "33-36", "name": "Landing"},
+                {"roll": "37-40", "name": "Creek"},
+                {"roll": "41-44", "name": "Valley"},
+                {"roll": "45-48", "name": "Gorge"},
+                {"roll": "49-52", "name": "Redemption"},
+                {"roll": "53-56", "name": "Rise"},
+                {"roll": "57-60", "name": "Drift"},
+                {"roll": "61-64", "name": "Field"},
+                {"roll": "65-68", "name": "Place"},
+                {"roll": "69-72", "name": "Port"},
+                {"roll": "73-76", "name": "Hills"},
+                {"roll": "77-80", "name": "Salvation"},
+                {"roll": "81-84", "name": "Prayer"},
+                {"roll": "85-88", "name": "Isolation"},
+                {"roll": "89-92", "name": "Reach"},
+                {"roll": "93-96", "name": "Entry"},
+                {"roll": "97-100", "name": "Rest"}
+              ]
+            }
+          ]
+        },
+        {
+          "title": "Ship Names Generator",
+          "description": "Generate names for starships and other vessels.",
+          "instructions": "Roll D100 twice, once for each part of the name. For a more traditional naval feel, only use Part 1 and optionally add 'The' at the front.",
+          "tables": [
+            {
+              "name": "Part 1",
+              "table": [
+                {"roll": "01-04", "name": "Exuberant"},
+                {"roll": "05-08", "name": "Chivalrous"},
+                {"roll": "09-12", "name": "Dependable"},
+                {"roll": "13-16", "name": "Adventurous"},
+                {"roll": "17-20", "name": "Fierce"},
+                {"roll": "21-24", "name": "Invincible"},
+                {"roll": "25-28", "name": "Plucky"},
+                {"roll": "29-32", "name": "Determined"},
+                {"roll": "33-36", "name": "Majestic"},
+                {"roll": "37-40", "name": "Brave"},
+                {"roll": "41-44", "name": "Independent"},
+                {"roll": "45-48", "name": "Reliable"},
+                {"roll": "49-52", "name": "Proud"},
+                {"roll": "53-56", "name": "Loyal"},
+                {"roll": "57-60", "name": "Furious"},
+                {"roll": "61-64", "name": "Courageous"},
+                {"roll": "65-68", "name": "Ambitious"},
+                {"roll": "69-72", "name": "Regal"},
+                {"roll": "73-76", "name": "Stalwart"},
+                {"roll": "77-80", "name": "Fearsome"},
+                {"roll": "81-84", "name": "Magnificent"},
+                {"roll": "85-88", "name": "Unsurpassable"},
+                {"roll": "89-92", "name": "Inexhaustible"},
+                {"roll": "93-96", "name": "Indispensable"},
+                {"roll": "97-100", "name": "Curious"}
+              ]
+            },
+            {
+              "name": "Part 2",
+              "table": [
+                {"roll": "01-04", "name": "Otter"},
+                {"roll": "05-08", "name": "Traveler"},
+                {"roll": "09-12", "name": "Badger"},
+                {"roll": "13-16", "name": "Hedgehog"},
+                {"roll": "17-20", "name": "Weasel"},
+                {"roll": "21-24", "name": "Dingo"},
+                {"roll": "25-28", "name": "Explorer"},
+                {"roll": "29-32", "name": "Rabbit"},
+                {"roll": "33-36", "name": "Way"},
+                {"roll": "37-40", "name": "Ferret"},
+                {"roll": "41-44", "name": "Cougar"},
+                {"roll": "45-48", "name": "Pathfinder"},
+                {"roll": "49-52", "name": "Beaver"},
+                {"roll": "53-56", "name": "Mongoose"},
+                {"roll": "57-60", "name": "Raccoon"},
+                {"roll": "61-64", "name": "Squirrel"},
+                {"roll": "65-68", "name": "Scout"},
+                {"roll": "69-72", "name": "Tidings"},
+                {"roll": "73-76", "name": "Possum"},
+                {"roll": "77-80", "name": "Hamster"},
+                {"roll": "81-84", "name": "Intruder"},
+                {"roll": "85-88", "name": "Outrider"},
+                {"roll": "89-92", "name": "Hawk"},
+                {"roll": "93-96", "name": "Falcon"},
+                {"roll": "97-100", "name": "Wasp"}
+              ]
+            }
+          ]
+        },
+        {
+          "title": "Corporate Patron Names Generator",
+          "description": "Create names for corporate patrons and organizations.",
+          "instructions": "Roll D100 twice, once for each part of the name.",
+          "tables": [
+            {
+              "name": "Part 1",
+              "table": [
+                {"roll": "01-04", "name": "Interstellar"},
+                {"roll": "05-08", "name": "Agile"},
+                {"roll": "09-12", "name": "Calibrated"},
+                {"roll": "13-16", "name": "Synergistic"},
+                {"roll": "17-20", "name": "Customized"},
+                {"roll": "21-24", "name": "Unified"},
+                {"roll": "25-28", "name": "Galactic"},
+                {"roll": "29-32", "name": "Optimized"},
+                {"roll": "33-36", "name": "Accelerated"},
+                {"roll": "37-40", "name": "Xenomorphic"},
+                {"roll": "41-44", "name": "Diversified"},
+                {"roll": "45-48", "name": "Conglomerated"},
+                {"roll": "49-52", "name": "United"},
+                {"roll": "53-56", "name": "Responsive"},
+                {"roll": "57-60", "name": "Integrated"},
+                {"roll": "61-64", "name": "Universal"},
+                {"roll": "65-68", "name": "Associated"},
+                {"roll": "69-72", "name": "Incorporated"},
+                {"roll": "73-76", "name": "Dynamic"},
+                {"roll": "77-80", "name": "Reactive"},
+                {"roll": "81-84", "name": "Advanced"},
+                {"roll": "85-88", "name": "Optimized"},
+                {"roll": "89-92", "name": "Sector"},
+                {"roll": "93-96", "name": "Extra-solar"},
+                {"roll": "97-100", "name": "Orbital"}
+              ]
+            },
+            {
+              "name": "Part 2",
+              "table": [
+                {"roll": "01-04", "name": "Implementations"},
+                {"roll": "05-08", "name": "Solutions"},
+                {"roll": "09-12", "name": "Sequences"},
+                {"roll": "13-16", "name": "Aggregates"},
+                {"roll": "17-20", "name": "Enterprises"},
+                {"roll": "21-24", "name": "Deliveries"},
+                {"roll": "25-28", "name": "Composites"},
+                {"roll": "29-32", "name": "Amalgamations"},
+                {"roll": "33-36", "name": "Connections"},
+                {"roll": "37-40", "name": "Executives"},
+                {"roll": "41-44", "name": "Holdings"},
+                {"roll": "45-48", "name": "Acquisitions"},
+                {"roll": "49-52", "name": "Logistics"},
+                {"roll": "53-56", "name": "Resolutions"},
+                {"roll": "57-60", "name": "Defenses"},
+                {"roll": "61-64", "name": "Securities"},
+                {"roll": "65-68", "name": "Procurements"},
+                {"roll": "69-72", "name": "Proficiencies"},
+                {"roll": "73-76", "name": "Resources"},
+                {"roll": "77-80", "name": "Operations"},
+                {"roll": "81-84", "name": "Accounts"},
+                {"roll": "85-88", "name": "Assets"},
+                {"roll": "89-92", "name": "Interactions"},
+                {"roll": "93-96", "name": "Equities"},
+                {"roll": "97-100", "name": "Investments"}
+              ]
+            }
+          ]
+        }
+      ]
+    }
+  }

@@ -1,0 +1,180 @@
+{
+  "AlternateEnemyDeployment": {
+    "text": "Alternate Enemy Deployment provides various options for setting up enemy forces on the battlefield, adding unpredictability and tactical challenges to your missions.",
+    "image": "res://assets/images/alternate_deployment/overview.png",
+    "content": [
+      {
+        "title": "Using Alternate Deployment",
+        "description": "To use these rules:",
+        "steps": [
+          "1. Set up both sides normally and roll to Seize the Initiative.",
+          "2. If you fail to Seize the Initiative, roll D100 on the Deployment table.",
+          "3. Use the AI type to determine which deployment option the enemy will use.",
+          "4. If you successfully Seize the Initiative, the enemy always uses the Line (standard) deployment option."
+        ]
+      },
+      {
+        "title": "Deployment Table",
+        "description": "Roll D100 and consult this table based on the enemy AI type:",
+        "table": [
+          {
+            "deployment": "Line",
+            "aggressive": "01-20",
+            "cautious": "01-30",
+            "defensive": "01-25",
+            "rampage": "01-20",
+            "tactical": "01-20",
+            "beast": "-"
+          },
+          {
+            "deployment": "Half flank",
+            "aggressive": "21-35",
+            "cautious": "31-40",
+            "defensive": "-",
+            "rampage": "21-25",
+            "tactical": "21-30",
+            "beast": "01-15"
+          },
+          {
+            "deployment": "Improved positions",
+            "aggressive": "-",
+            "cautious": "41-50",
+            "defensive": "26-40",
+            "rampage": "-",
+            "tactical": "31-40",
+            "beast": "16-20"
+          },
+          {
+            "deployment": "Forward positions",
+            "aggressive": "36-50",
+            "cautious": "-",
+            "defensive": "41-45",
+            "rampage": "26-45",
+            "tactical": "41-50",
+            "beast": "21-35"
+          },
+          {
+            "deployment": "Bolstered line",
+            "aggressive": "51-60",
+            "cautious": "51-70",
+            "defensive": "46-60",
+            "rampage": "46-65",
+            "tactical": "51-60",
+            "beast": "36-45"
+          },
+          {
+            "deployment": "Infiltration",
+            "aggressive": "61-80",
+            "cautious": "-",
+            "defensive": "61-70",
+            "rampage": "66-75",
+            "tactical": "61-70",
+            "beast": "46-65"
+          },
+          {
+            "deployment": "Reinforced",
+            "aggressive": "-",
+            "cautious": "71-90",
+            "defensive": "71-85",
+            "rampage": "76-80",
+            "tactical": "71-80",
+            "beast": "66-70"
+          },
+          {
+            "deployment": "Bolstered flank",
+            "aggressive": "81-90",
+            "cautious": "-",
+            "defensive": "86-90",
+            "rampage": "81-90",
+            "tactical": "81-90",
+            "beast": "71-80"
+          },
+          {
+            "deployment": "Concealed",
+            "aggressive": "91-100",
+            "cautious": "91-100",
+            "defensive": "91-100",
+            "rampage": "91-100",
+            "tactical": "91-100",
+            "beast": "81-100"
+          }
+        ]
+      },
+      {
+        "title": "Deployment Effects",
+        "description": "Details of each deployment option:",
+        "options": [
+          {
+            "name": "Line",
+            "effect": "Enemy deployment remains as is."
+          },
+          {
+            "name": "Half flank",
+            "effect": "Randomly select a neutral battlefield edge. The half of the enemy forces closest to this battlefield edge is removed from the battlefield and set up near the center of the selected battlefield edge. No enemy may be set up closer than 12\" to a crew figure."
+          },
+          {
+            "name": "Improved positions",
+            "effect": "Each enemy figure is moved to be in or directly behind the nearest terrain feature that would provide Cover while still providing a firing position."
+          },
+          {
+            "name": "Forward positions",
+            "effect": "Each enemy figure is moved to be in or directly behind the closest terrain feature that lies ahead of their position."
+          },
+          {
+            "name": "Bolstered line",
+            "effect": "Enemy deployment remains as is. If you are outnumbered or have equal numbers, generate one additional basic enemy figure to the force. If you outnumber the enemy, generate one additional basic enemy and one additional specialist enemy figure to the force."
+          },
+          {
+            "name": "Infiltration",
+            "effect": "Remove half the enemy figures from the table. At the end of Round 2, roll 1D6: 1. Place the figures on the tallest terrain feature. 2-3. Place the figures in the terrain feature closest to the left or right battlefield edge. 4. Place the figures in the terrain feature closest to the most forward enemy figure. 5. Place the figures in the terrain feature closest to the center of the table. 6. Place the figures in the terrain feature closest to your battlefield edge."
+          },
+          {
+            "name": "Reinforced",
+            "effect": "Remove half the enemy figures from the table. At the end of each round, roll 1D6: If the roll is equal to or below the round number just played, the removed figures arrive from the center of the enemy battlefield edge. The arriving reinforcements are accompanied by two additional basic enemies. If the table has no enemies on it after a reinforcement roll is made, the mission ends."
+          },
+          {
+            "name": "Bolstered flank",
+            "effect": "Randomly select a neutral battlefield edge. The half of the enemy forces closest to this battlefield edge is removed from the table and set up near the center of the selected battlefield edge. Generate one additional specialist enemy for the flanking force. No enemy may be set up closer than 12\" to a crew figure."
+          },
+          {
+            "name": "Concealed",
+            "effect": "Remove the enemy forces from the table and divide them into three groups. Mark the 6 largest terrain features on the table from 1 to 6 (using tokens or dice). At the end of Rounds 2, 3, and 4 select a random terrain feature from those marked, and place one enemy group within the feature."
+          }
+        ]
+      },
+      {
+        "title": "Tactical Considerations",
+        "description": "How alternate deployments affect gameplay:",
+        "points": [
+          "Increases unpredictability in missions",
+          "Forces players to adapt their tactics based on enemy positions",
+          "Can create more challenging or advantageous situations for the player",
+          "Simulates different enemy strategies and approaches to combat",
+          "Encourages players to use terrain and positioning more effectively"
+        ]
+      },
+      {
+        "title": "Integration with Other Rules",
+        "description": "How Alternate Enemy Deployment interacts with other game mechanics:",
+        "interactions": [
+          {
+            "rule": "AI Variations",
+            "effect": "The deployment type can significantly affect how different AI behaviors play out on the battlefield."
+          },
+          {
+            "rule": "Escalating Battles",
+            "effect": "Consider how reinforcements or escalations might be affected by the initial deployment."
+          },
+          {
+            "rule": "Stealth Missions",
+            "effect": "Alternate deployments can make stealth approaches more challenging or create new opportunities for sneaking."
+          },
+          {
+            "rule": "Objectives",
+            "effect": "Some deployments may make certain objectives easier or harder to achieve."
+          }
+        ]
+      }
+    ]
+  }
+}

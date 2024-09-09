@@ -1,0 +1,159 @@
+{
+    "salvage_jobs": {
+      "description": "A new type of mission, based around exploring an area for possible valuables, resembling a treasure hunt in space.",
+      "finding_salvage_job": {
+        "action_required": "Looking for a salvage job requires a crew action in the campaign turn.",
+        "roll_table": [
+          {
+            "roll": 1,
+            "result": "No job"
+          },
+          {
+            "roll": "2-3",
+            "result": "Fee (must pay 2 Credit non-refundable fee to accept the job)"
+          },
+          {
+            "roll": "4-5",
+            "result": "Salvage job"
+          },
+          {
+            "roll": 6,
+            "result": "Illegal job"
+          }
+        ]
+      },
+      "illegal_jobs": {
+        "description": "When rolling for post-game Rivals, roll 1D6:",
+        "consequences": [
+          {
+            "roll": "1-4",
+            "result": "You got away with it."
+          },
+          {
+            "roll": "5-6",
+            "result": "The authorities are on your trail, you must do ONE of the following:",
+            "options": [
+              "Pay a fine equal to the die roll in Credits.",
+              "Hand over all Salvage units obtained during the job.",
+              "Add an Enforcer Rival."
+            ]
+          }
+        ]
+      },
+      "mission_setup": {
+        "steps": [
+          "Place 1D3+1 Salvage markers around the table, spread as evenly as possible.",
+          "Place 1 Point of Interest marker close to the center of each battlefield quarter.",
+          "Split your crew into two groups and deploy along a randomly selected battlefield edge."
+        ]
+      },
+      "tension_track": {
+        "description": "Tracks the level of Tension, a measure of how likely you are to encounter difficulties.",
+        "initial_value": "Half the crew size, rounded up",
+        "adjustment": {
+          "description": "At the beginning of each round, roll 1D6:",
+          "effects": [
+            "If the roll is above the Tension score, raise Tension by +1.",
+            "If the roll is equal to or below Tension, reduce Tension by the number on the D6 die roll, and a Contact is spawned."
+          ]
+        }
+      },
+      "contact_resolution": {
+        "description": "When a Contact is revealed, roll 1D6 on this table:",
+        "table": [
+          {
+            "roll": 1,
+            "result": "\"Beep, sir?\" It was nothing after all. Remove the Contact marker."
+          },
+          {
+            "roll": 2,
+            "result": "\"Are you reading it right?\" Select a crew member who opines they have a bad feeling about this. Remove the Contact marker and modify Tension by +1."
+          },
+          {
+            "roll": "3-5",
+            "result": "\"Hostiles!\" You have encountered hostile forces. Proceed to the Hostiles! section."
+          },
+          {
+            "roll": 6,
+            "result": "\"We've got movement all over the place!\" The scanner is going haywire. Remove the Contact marker, then spawn 2 new Contact markers."
+          }
+        ]
+      },
+      "points_of_interest": {
+        "description": "When a crew member comes within 3\" and Line of Sight of a Point of Interest marker, roll D100 on this table:",
+        "table": [
+          {
+            "roll": "01-05",
+            "result": "Obstacle",
+            "effect": "A hazardous obstacle immediately extends 2\" in every direction of the marker.",
+            "tension_adjustment": -2
+          },
+          {
+            "roll": "06-10",
+            "result": "Environmental threat",
+            "effect": "The crew member makes a 1D6+Savvy test. On a 5+ they prevent the leak. Otherwise the crew member and all figures within 1D6\" of them take a Damage 1 hit ignoring Screens.",
+            "tension_adjustment": -1
+          },
+          {
+            "roll": "11-14",
+            "result": "Map readouts",
+            "effect": "Randomly select a Point of Interest on the table, and move it 4\" in any direction.",
+            "tension_adjustment": -1
+          },
+          {
+            "roll": "15-19",
+            "result": "Secure device",
+            "effect": "Place a marker indicating the box where the Point of Interest was. A crew member that moves into contact may make a 1D6+Savvy test. A roll of 5+ opens the box granting a Loot roll (usable immediately).",
+            "tension_adjustment": 0
+          },
+          {
+            "roll": "20-23",
+            "result": "The air is thick in here",
+            "effect": "You keep thinking you heard something.",
+            "tension_adjustment": 3
+          }
+        ]
+      },
+      "post_mission_rewards": {
+        "description": "Your rewards depend on the Point of Interest and Salvage markers you found.",
+        "point_of_interest_roll": {
+          "description": "For every Point of Interest you completed, roll 1D6:",
+          "table": [
+            {
+              "roll": "1-4",
+              "result": "Just space junk"
+            },
+            {
+              "roll": 5,
+              "result": "An interesting bit of tech worth 1 unit of Salvage."
+            },
+            {
+              "roll": 6,
+              "result": "Something notable. Roll for a Discovery."
+            }
+          ]
+        },
+        "discoveries": {
+          "description": "For every Discovery you made, roll D100:",
+          "table": [
+            {
+              "roll": "01-40",
+              "result": "You found something that might be valuable with some restoration. Roll once on the Loot table."
+            },
+            {
+              "roll": "41-70",
+              "result": "Just a bit of scrap after all. Add 1 unit of Salvage."
+            },
+            {
+              "roll": "71-85",
+              "result": "Interesting data. Add 1 Quest Rumor."
+            },
+            {
+              "roll": "86-100",
+              "result": "Valuable trinkets. Add 1D3 Credits."
+            }
+          ]
+        }
+      }
+    }
+  }

@@ -1,0 +1,272 @@
+{
+    "expanded_missions": {
+      "overview": {
+        "description": "This system provides more detailed mission generation rules, offering a wider variety of missions to undertake.",
+        "usage": "You can use either this system or the core rules in your campaign, and can swap freely between the two as you see fit.",
+        "difficulty": "Missions generated using this system tend to be more challenging and time-consuming."
+      },
+      "objective_overview": {
+        "description": "This roll determines how many objectives will be present in the mission and which you must complete.",
+        "table": [
+          {
+            "roll": "01-60",
+            "result": "Generate a single objective. You must complete it to win the mission.",
+            "notes": "No special notes"
+          },
+          {
+            "roll": "61-85",
+            "result": "Generate two objectives, each with their own time constraints. Both must be completed to win the mission. They can be achieved in any order.",
+            "notes": "If you do achieve both objectives, a randomly selected crew member receives +1 XP."
+          },
+          {
+            "roll": "86-100",
+            "result": "Generate two objectives each with their own time constraints. You must complete one of them to win the mission.",
+            "notes": "You do not have to select in advance which objective you want to pursue, and there is no additional reward for completing both."
+          }
+        ]
+      },
+      "specific_objectives": {
+        "description": "Roll once on this table once for each objective. Objectives marked with * are taken from the core rulebook, and any conditions apply exactly as explained there.",
+        "table": [
+          {
+            "roll": "01-08",
+            "objective": "Access*",
+            "notes": "As core rulebook, p.90."
+          },
+          {
+            "roll": "09-15",
+            "objective": "Acquire*",
+            "notes": "As core rulebook, p.90."
+          },
+          {
+            "roll": "16-20",
+            "objective": "Defend*",
+            "notes": "As core rulebook, p.90."
+          },
+          {
+            "roll": "21-28",
+            "objective": "Deliver*",
+            "notes": "As core rulebook, p.90."
+          },
+          {
+            "roll": "29-34",
+            "objective": "Eliminate*",
+            "notes": "As core rulebook, p.90."
+          },
+          {
+            "roll": "35-38",
+            "objective": "Fight off*",
+            "notes": "As core rulebook, p.90."
+          },
+          {
+            "roll": "39-45",
+            "objective": "Investigate",
+            "description": "Place 6 markers, scattered evenly around the table. None should be within 6\" of a table edge. When a crew member moves within 1\" of a marker, remove it from the table, then roll 1D6. If the roll is equal or below the number of markers removed so far, the objective has been achieved."
+          },
+          {
+            "roll": "46-51",
+            "objective": "Move Through*",
+            "notes": "As core rulebook, p.90."
+          },
+          {
+            "roll": "52-57",
+            "objective": "Patrol*",
+            "notes": "As core rulebook, p.90."
+          },
+          {
+            "roll": "58-64",
+            "objective": "Protect*",
+            "notes": "As core rulebook, p.91. Ignore the reward for fast mission completion."
+          },
+          {
+            "roll": "65-71",
+            "objective": "Rescue",
+            "description": "Place a figure randomly 1D6\" from the center of the table. They will be ignored by the enemy until you move a crew member within 1\". At that point, they are treated like the VIP in the Protect mission description, and will act immediately in the phase in which they are freed. They must reach a table edge to complete the mission."
+          },
+          {
+            "roll": "72-77",
+            "objective": "Secure*",
+            "notes": "As core rulebook, p.91."
+          },
+          {
+            "roll": "78-85",
+            "objective": "Search*",
+            "notes": "As core rulebook, p.91."
+          },
+          {
+            "roll": "86-92",
+            "objective": "Sneak",
+            "description": "Place the objective 1D6\" from the center of the table. To complete the mission, a crew member must begin their activation within 1\" of the objective and not within Line of Sight of any enemy."
+          },
+          {
+            "roll": "93-100",
+            "objective": "Sweep",
+            "description": "Place three objectives spread evenly throughout the table. None may be within 6\" of a table edge. If a crew member begins an activation within 1\" of an objective, and no enemies are within 4\", the objective is removed. Once all three objectives have been removed, the mission is a success."
+          }
+        ]
+      },
+      "time_constraints": {
+        "description": "For each objective, roll D100 to determine if there are any time constraints applied to it. If a time limit expires, that objective can no longer be achieved.",
+        "table": [
+          {
+            "roll": "01-15",
+            "result": "No time limit."
+          },
+          {
+            "roll": "16-45",
+            "result": "The objective must be completed in the first 6 rounds."
+          },
+          {
+            "roll": "46-70",
+            "result": "The objective must be completed in the first 5 rounds"
+          },
+          {
+            "roll": "71-85",
+            "result": "The objective must be completed in the first 4 rounds."
+          },
+          {
+            "roll": "86-100",
+            "result": "No time limit. Extraction unknown."
+          }
+        ]
+      },
+      "extraction": {
+        "description": "Roll on this table to determine what actions you need to take to end the mission, once the objectives are completed.",
+        "table": [
+          {
+            "roll": "01-30",
+            "result": "The mission ends immediately."
+          },
+          {
+            "roll": "31-50",
+            "result": "You must exit across any battlefield edge."
+          },
+          {
+            "roll": "51-70",
+            "result": "You must exit across any battlefield edge within the next 3 rounds, or you will fail the mission."
+          },
+          {
+            "roll": "71-85",
+            "result": "You must exit across the battlefield edge you arrived from."
+          },
+          {
+            "roll": "86-100",
+            "result": "4 additional basic enemies arrive from the opposing battlefield edge. The mission ends when all figures exit across any battlefield edge OR after 3 game turns."
+          }
+        ]
+      },
+      "setup": {
+        "description": "Follow these steps to set up the mission:",
+        "steps": [
+          "Randomly select which side the enemy will be placed on.",
+          "If your table is 2 feet across, set up the enemy within 6\" of their battlefield edge. Your crew will then arrive from the opposing battlefield edge in Round 1.",
+          "If your table is 3 feet across, the enemy sets up within 9\" of their battlefield edge. Your crew is then set up within 9\" of your own battlefield edge."
+        ]
+      },
+      "special_conditions": {
+        "description": "Only if undertaking a Patron job, roll D100 on the table below to determine what special conditions apply.",
+        "table": [
+          {
+            "roll": "01-05",
+            "condition": "Collateral damage restriction",
+            "effect": "You cannot deploy any weapon with a Shot rating of 3 or higher, or a Damage rating of 2 or higher."
+          },
+          {
+            "roll": "06-10",
+            "condition": "Gas leaks",
+            "effect": "Any non-Area weapons-fire causes a cloud of gas to erupt around both shooter and target. The cloud is 2\" across, persists for the rest of the round and blocks all visibility."
+          },
+          {
+            "roll": "11-14",
+            "condition": "Special ammo required",
+            "effect": "A special ammunition type is mandated. This is compatible with all non-Area weapons, but restricts all weapons to 1 Shot per round."
+          },
+          {
+            "roll": "15-18",
+            "condition": "Explosive weapon restriction",
+            "effect": "No Area weapons may be deployed."
+          },
+          {
+            "roll": "19-22",
+            "condition": "Hacking required to enter",
+            "effect": "Your crew begin off-map. Each character must roll 6+ on a 1D6+Savvy test to enter the table from your battlefield edge. Roll at the start of each round. If all characters fail, select one to enter."
+          },
+          {
+            "roll": "23-26",
+            "condition": "Have to look humane",
+            "effect": "No Melee weapons may be deployed."
+          },
+          {
+            "roll": "27-30",
+            "condition": "Light weapons only",
+            "effect": "Only Pistol and Melee weapons may be deployed."
+          },
+          {
+            "roll": "31-34",
+            "condition": "Cautious progress required",
+            "effect": "No Jump, Flight or Teleport devices may be deployed."
+          },
+          {
+            "roll": "35-39",
+            "condition": "Heavy gear impractical",
+            "effect": "No Armor may be deployed."
+          },
+          {
+            "roll": "40-44",
+            "condition": "Erratic lighting",
+            "effect": "At the start of each phase (Quick Action, Enemy Action, Slow Action) roll 2D6 to determine maximum visibility in inches."
+          },
+          {
+            "roll": "45-50",
+            "condition": "Electronic interference",
+            "effect": "No Screens or Gunsights may be deployed."
+          },
+          {
+            "roll": "51-55",
+            "condition": "Environmental protection gear required",
+            "effect": "Except for Engineers and Soulless, no character may Dash."
+          },
+          {
+            "roll": "56-59",
+            "condition": "Organics only",
+            "effect": "No Bots or Soulless may be deployed."
+          },
+          {
+            "roll": "60-65",
+            "condition": "No Psionics",
+            "effect": "No Psionics may be deployed."
+          },
+          {
+            "roll": "66-70",
+            "condition": "Flash flooding",
+            "effect": "Put a marker on a random battlefield edge. At the end of each round, move the marker 1D3\" towards the opposite battlefield edge. Anything between the marker and the initial battlefield edge is flooded. Any character in this area is washed away and removed from battle, but does not take any damage or post-battle Injury results."
+          },
+          {
+            "roll": "71-76",
+            "condition": "Unstable ground",
+            "effect": "At the end of each round, roll 1D6. On a 1, the area is shaken by tremors. All characters on the ground are Stunned. All characters on a terrain feature but within 1\" of the terrain edge must roll 1D6, and if the roll exceeds their base movement speed, they fall down."
+          },
+          {
+            "roll": "77-81",
+            "condition": "Watch your shots",
+            "effect": "No more than 3 crew may fire a weapon each round."
+          },
+          {
+            "roll": "82-86",
+            "condition": "Scan before you progress",
+            "effect": "No more than 3 crew may move each round."
+          },
+          {
+            "roll": "87-92",
+            "condition": "Special vision required",
+            "effect": "Special helmet visors only allow the character a visual range of 8+Savvy\". (8\" for enemies)"
+          },
+          {
+            "roll": "93-100",
+            "condition": "Strict rules of engagement",
+            "effect": "You may not shoot at any target unless it shot at your crew last round OR is currently within 6\"."
+          }
+        ]
+      }
+    }
+  }
