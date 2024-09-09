@@ -35,27 +35,21 @@ theme_override_font_sizes/font_size = 29
 text = "back button
 "
 
-[node name="MarginContainer" type="MarginContainer" parent="."]
-layout_mode = 0
+[node name="VBoxContainer" type="VBoxContainer" parent="."]
+layout_mode = 2
 offset_right = 2756.0
 offset_bottom = 1444.0
+alignment = 1
 
-[node name="PanelContainer" type="PanelContainer" parent="MarginContainer"]
-layout_mode = 2
-
-[node name="VBoxContainer" type="VBoxContainer" parent="MarginContainer/PanelContainer"]
+[node name="LibraryRows" type="VBoxContainer" parent="VBoxContainer"]
 layout_mode = 2
 alignment = 1
 
-[node name="LibraryRows" type="VBoxContainer" parent="MarginContainer/PanelContainer/VBoxContainer"]
+[node name="Row1" type="HBoxContainer" parent="VBoxContainer/LibraryRows"]
 layout_mode = 2
 alignment = 1
 
-[node name="Row1" type="HBoxContainer" parent="MarginContainer/PanelContainer/VBoxContainer/LibraryRows"]
-layout_mode = 2
-alignment = 1
-
-[node name="BestiaryButton" type="MarginContainer" parent="MarginContainer/PanelContainer/VBoxContainer/LibraryRows/Row1"]
+[node name="BestiaryButton" type="MarginContainer" parent="VBoxContainer/LibraryRows/Row1"]
 layout_mode = 2
 size_flags_horizontal = 6
 theme_override_constants/margin_left = 10
@@ -63,7 +57,7 @@ theme_override_constants/margin_top = 10
 theme_override_constants/margin_right = 10
 theme_override_constants/margin_bottom = 10
 
-[node name="Button" type="Button" parent="MarginContainer/PanelContainer/VBoxContainer/LibraryRows/Row1/BestiaryButton"]
+[node name="Button" type="Button" parent="VBoxContainer/LibraryRows/Row1/BestiaryButton"]
 layout_mode = 2
 theme_override_constants/icon_max_width = 200
 theme_override_font_sizes/font_size = 80
@@ -73,7 +67,7 @@ icon_alignment = 1
 vertical_icon_alignment = 0
 expand_icon = true
 
-[node name="Items" type="MarginContainer" parent="MarginContainer/PanelContainer/VBoxContainer/LibraryRows/Row1"]
+[node name="Items" type="MarginContainer" parent="VBoxContainer/LibraryRows/Row1"]
 layout_mode = 2
 size_flags_horizontal = 6
 theme_override_constants/margin_left = 10
@@ -81,7 +75,7 @@ theme_override_constants/margin_top = 10
 theme_override_constants/margin_right = 10
 theme_override_constants/margin_bottom = 10
 
-[node name="Button" type="Button" parent="MarginContainer/PanelContainer/VBoxContainer/LibraryRows/Row1/Items"]
+[node name="Button" type="Button" parent="VBoxContainer/LibraryRows/Row1/Items"]
 layout_mode = 2
 theme_override_constants/icon_max_width = 200
 theme_override_font_sizes/font_size = 80
@@ -92,7 +86,7 @@ icon_alignment = 1
 vertical_icon_alignment = 0
 expand_icon = true
 
-[node name="EnemyAI" type="MarginContainer" parent="MarginContainer/PanelContainer/VBoxContainer/LibraryRows/Row1"]
+[node name="EnemyAI" type="MarginContainer" parent="VBoxContainer/LibraryRows/Row1"]
 layout_mode = 2
 size_flags_horizontal = 6
 theme_override_constants/margin_left = 10
@@ -100,7 +94,7 @@ theme_override_constants/margin_top = 10
 theme_override_constants/margin_right = 10
 theme_override_constants/margin_bottom = 10
 
-[node name="Button" type="Button" parent="MarginContainer/PanelContainer/VBoxContainer/LibraryRows/Row1/EnemyAI"]
+[node name="Button" type="Button" parent="VBoxContainer/LibraryRows/Row1/EnemyAI"]
 layout_mode = 2
 theme_override_constants/icon_max_width = 200
 theme_override_font_sizes/font_size = 80
@@ -110,7 +104,7 @@ icon_alignment = 1
 vertical_icon_alignment = 0
 expand_icon = true
 
-[node name="Multiplayer" type="MarginContainer" parent="MarginContainer/PanelContainer/VBoxContainer/LibraryRows/Row1"]
+[node name="Multiplayer" type="MarginContainer" parent="VBoxContainer/LibraryRows/Row1"]
 layout_mode = 2
 size_flags_horizontal = 6
 theme_override_constants/margin_left = 10
@@ -118,7 +112,7 @@ theme_override_constants/margin_top = 10
 theme_override_constants/margin_right = 10
 theme_override_constants/margin_bottom = 10
 
-[node name="Button" type="Button" parent="MarginContainer/PanelContainer/VBoxContainer/LibraryRows/Row1/Multiplayer"]
+[node name="Button" type="Button" parent="VBoxContainer/LibraryRows/Row1/Multiplayer"]
 layout_mode = 2
 theme_override_constants/icon_max_width = 200
 theme_override_font_sizes/font_size = 80
@@ -128,7 +122,7 @@ icon_alignment = 1
 vertical_icon_alignment = 0
 expand_icon = true
 
-[node name="Difficulty" type="MarginContainer" parent="MarginContainer/PanelContainer/VBoxContainer/LibraryRows/Row1"]
+[node name="Difficulty" type="MarginContainer" parent="VBoxContainer/LibraryRows/Row1"]
 layout_mode = 2
 size_flags_horizontal = 6
 theme_override_constants/margin_left = 10
@@ -136,7 +130,7 @@ theme_override_constants/margin_top = 10
 theme_override_constants/margin_right = 10
 theme_override_constants/margin_bottom = 10
 
-[node name="Button" type="Button" parent="MarginContainer/PanelContainer/VBoxContainer/LibraryRows/Row1/Difficulty"]
+[node name="Button" type="Button" parent="VBoxContainer/LibraryRows/Row1/Difficulty"]
 layout_mode = 2
 theme_override_constants/icon_max_width = 200
 theme_override_font_sizes/font_size = 80
@@ -147,12 +141,12 @@ icon_alignment = 1
 vertical_icon_alignment = 0
 expand_icon = true
 
-[node name="Row2" type="HBoxContainer" parent="MarginContainer/PanelContainer/VBoxContainer/LibraryRows"]
+[node name="Row2" type="HBoxContainer" parent="VBoxContainer/LibraryRows"]
 layout_mode = 2
 size_flags_vertical = 3
 alignment = 1
 
-[node name="BestiaryButton6" type="MarginContainer" parent="MarginContainer/PanelContainer/VBoxContainer/LibraryRows/Row2"]
+[node name="EliteEnemies" type="MarginContainer" parent="VBoxContainer/LibraryRows/Row2"]
 layout_mode = 2
 size_flags_horizontal = 6
 theme_override_constants/margin_left = 10
@@ -160,7 +154,7 @@ theme_override_constants/margin_top = 10
 theme_override_constants/margin_right = 10
 theme_override_constants/margin_bottom = 10
 
-[node name="Button" type="Button" parent="MarginContainer/PanelContainer/VBoxContainer/LibraryRows/Row2/BestiaryButton6"]
+[node name="Button" type="Button" parent="VBoxContainer/LibraryRows/Row2/EliteEnemies"]
 layout_mode = 2
 theme_override_constants/icon_max_width = 200
 theme_override_font_sizes/font_size = 80
@@ -170,7 +164,7 @@ icon_alignment = 1
 vertical_icon_alignment = 0
 expand_icon = true
 
-[node name="BestiaryButton7" type="MarginContainer" parent="MarginContainer/PanelContainer/VBoxContainer/LibraryRows/Row2"]
+[node name="NameGeneration" type="MarginContainer" parent="VBoxContainer/LibraryRows/Row2"]
 layout_mode = 2
 size_flags_horizontal = 6
 theme_override_constants/margin_left = 10
@@ -178,7 +172,7 @@ theme_override_constants/margin_top = 10
 theme_override_constants/margin_right = 10
 theme_override_constants/margin_bottom = 10
 
-[node name="Button" type="Button" parent="MarginContainer/PanelContainer/VBoxContainer/LibraryRows/Row2/BestiaryButton7"]
+[node name="Button" type="Button" parent="VBoxContainer/LibraryRows/Row2/NameGeneration"]
 layout_mode = 2
 theme_override_constants/icon_max_width = 200
 theme_override_font_sizes/font_size = 80
@@ -189,7 +183,7 @@ icon_alignment = 1
 vertical_icon_alignment = 0
 expand_icon = true
 
-[node name="BestiaryButton8" type="MarginContainer" parent="MarginContainer/PanelContainer/VBoxContainer/LibraryRows/Row2"]
+[node name="AlternateDeploy" type="MarginContainer" parent="VBoxContainer/LibraryRows/Row2"]
 layout_mode = 2
 size_flags_horizontal = 6
 theme_override_constants/margin_left = 10
@@ -197,7 +191,7 @@ theme_override_constants/margin_top = 10
 theme_override_constants/margin_right = 10
 theme_override_constants/margin_bottom = 10
 
-[node name="Button" type="Button" parent="MarginContainer/PanelContainer/VBoxContainer/LibraryRows/Row2/BestiaryButton8"]
+[node name="Button" type="Button" parent="VBoxContainer/LibraryRows/Row2/AlternateDeploy"]
 layout_mode = 2
 theme_override_constants/icon_max_width = 200
 theme_override_font_sizes/font_size = 80
@@ -208,7 +202,7 @@ icon_alignment = 1
 vertical_icon_alignment = 0
 expand_icon = true
 
-[node name="BestiaryButton9" type="MarginContainer" parent="MarginContainer/PanelContainer/VBoxContainer/LibraryRows/Row2"]
+[node name="SpeciesList" type="MarginContainer" parent="VBoxContainer/LibraryRows/Row2"]
 layout_mode = 2
 size_flags_horizontal = 6
 theme_override_constants/margin_left = 10
@@ -216,7 +210,7 @@ theme_override_constants/margin_top = 10
 theme_override_constants/margin_right = 10
 theme_override_constants/margin_bottom = 10
 
-[node name="Button" type="Button" parent="MarginContainer/PanelContainer/VBoxContainer/LibraryRows/Row2/BestiaryButton9"]
+[node name="Button" type="Button" parent="VBoxContainer/LibraryRows/Row2/SpeciesList"]
 layout_mode = 2
 theme_override_constants/icon_max_width = 200
 theme_override_font_sizes/font_size = 80
@@ -226,7 +220,7 @@ icon_alignment = 1
 vertical_icon_alignment = 0
 expand_icon = true
 
-[node name="BestiaryButton10" type="MarginContainer" parent="MarginContainer/PanelContainer/VBoxContainer/LibraryRows/Row2"]
+[node name="Psionics" type="MarginContainer" parent="VBoxContainer/LibraryRows/Row2"]
 layout_mode = 2
 size_flags_horizontal = 6
 theme_override_constants/margin_left = 10
@@ -234,7 +228,7 @@ theme_override_constants/margin_top = 10
 theme_override_constants/margin_right = 10
 theme_override_constants/margin_bottom = 10
 
-[node name="Button" type="Button" parent="MarginContainer/PanelContainer/VBoxContainer/LibraryRows/Row2/BestiaryButton10"]
+[node name="Button" type="Button" parent="VBoxContainer/LibraryRows/Row2/Psionics"]
 layout_mode = 2
 theme_override_constants/icon_max_width = 200
 theme_override_font_sizes/font_size = 80
@@ -244,12 +238,12 @@ icon_alignment = 1
 vertical_icon_alignment = 0
 expand_icon = true
 
-[node name="Row3" type="HBoxContainer" parent="MarginContainer/PanelContainer/VBoxContainer/LibraryRows"]
+[node name="Row3" type="HBoxContainer" parent="VBoxContainer/LibraryRows"]
 layout_mode = 2
 size_flags_vertical = 3
 alignment = 1
 
-[node name="BestiaryButton6" type="MarginContainer" parent="MarginContainer/PanelContainer/VBoxContainer/LibraryRows/Row3"]
+[node name="NominiCombat" type="MarginContainer" parent="VBoxContainer/LibraryRows/Row3"]
 layout_mode = 2
 size_flags_horizontal = 6
 theme_override_constants/margin_left = 10
@@ -257,7 +251,7 @@ theme_override_constants/margin_top = 10
 theme_override_constants/margin_right = 10
 theme_override_constants/margin_bottom = 10
 
-[node name="Button" type="Button" parent="MarginContainer/PanelContainer/VBoxContainer/LibraryRows/Row3/BestiaryButton6"]
+[node name="Button" type="Button" parent="VBoxContainer/LibraryRows/Row3/NominiCombat"]
 layout_mode = 2
 theme_override_constants/icon_max_width = 200
 theme_override_font_sizes/font_size = 80
@@ -268,7 +262,7 @@ icon_alignment = 1
 vertical_icon_alignment = 0
 expand_icon = true
 
-[node name="BestiaryButton7" type="MarginContainer" parent="MarginContainer/PanelContainer/VBoxContainer/LibraryRows/Row3"]
+[node name="EquipmentItems" type="MarginContainer" parent="VBoxContainer/LibraryRows/Row3"]
 layout_mode = 2
 size_flags_horizontal = 6
 theme_override_constants/margin_left = 10
@@ -276,7 +270,7 @@ theme_override_constants/margin_top = 10
 theme_override_constants/margin_right = 10
 theme_override_constants/margin_bottom = 10
 
-[node name="Button" type="Button" parent="MarginContainer/PanelContainer/VBoxContainer/LibraryRows/Row3/BestiaryButton7"]
+[node name="Button" type="Button" parent="VBoxContainer/LibraryRows/Row3/EquipmentItems"]
 layout_mode = 2
 theme_override_constants/icon_max_width = 200
 theme_override_font_sizes/font_size = 80
@@ -287,7 +281,7 @@ icon_alignment = 1
 vertical_icon_alignment = 0
 expand_icon = true
 
-[node name="BestiaryButton8" type="MarginContainer" parent="MarginContainer/PanelContainer/VBoxContainer/LibraryRows/Row3"]
+[node name="TerrainTables" type="MarginContainer" parent="VBoxContainer/LibraryRows/Row3"]
 layout_mode = 2
 size_flags_horizontal = 6
 theme_override_constants/margin_left = 10
@@ -295,7 +289,7 @@ theme_override_constants/margin_top = 10
 theme_override_constants/margin_right = 10
 theme_override_constants/margin_bottom = 10
 
-[node name="Button" type="Button" parent="MarginContainer/PanelContainer/VBoxContainer/LibraryRows/Row3/BestiaryButton8"]
+[node name="Button" type="Button" parent="VBoxContainer/LibraryRows/Row3/TerrainTables"]
 layout_mode = 2
 theme_override_constants/icon_max_width = 200
 theme_override_font_sizes/font_size = 80
@@ -305,7 +299,7 @@ icon_alignment = 1
 vertical_icon_alignment = 0
 expand_icon = true
 
-[node name="BestiaryButton9" type="MarginContainer" parent="MarginContainer/PanelContainer/VBoxContainer/LibraryRows/Row3"]
+[node name="ExpandedMissions" type="MarginContainer" parent="VBoxContainer/LibraryRows/Row3"]
 layout_mode = 2
 size_flags_horizontal = 6
 theme_override_constants/margin_left = 10
@@ -313,7 +307,7 @@ theme_override_constants/margin_top = 10
 theme_override_constants/margin_right = 10
 theme_override_constants/margin_bottom = 10
 
-[node name="Button" type="Button" parent="MarginContainer/PanelContainer/VBoxContainer/LibraryRows/Row3/BestiaryButton9"]
+[node name="Button" type="Button" parent="VBoxContainer/LibraryRows/Row3/ExpandedMissions"]
 layout_mode = 2
 theme_override_constants/icon_max_width = 200
 theme_override_font_sizes/font_size = 80
@@ -324,7 +318,7 @@ icon_alignment = 1
 vertical_icon_alignment = 0
 expand_icon = true
 
-[node name="BestiaryButton10" type="MarginContainer" parent="MarginContainer/PanelContainer/VBoxContainer/LibraryRows/Row3"]
+[node name="FringeWorldStrife" type="MarginContainer" parent="VBoxContainer/LibraryRows/Row3"]
 layout_mode = 2
 size_flags_horizontal = 6
 theme_override_constants/margin_left = 10
@@ -332,7 +326,7 @@ theme_override_constants/margin_top = 10
 theme_override_constants/margin_right = 10
 theme_override_constants/margin_bottom = 10
 
-[node name="Button" type="Button" parent="MarginContainer/PanelContainer/VBoxContainer/LibraryRows/Row3/BestiaryButton10"]
+[node name="Button" type="Button" parent="VBoxContainer/LibraryRows/Row3/FringeWorldStrife"]
 layout_mode = 2
 theme_override_constants/icon_max_width = 200
 theme_override_font_sizes/font_size = 80
@@ -343,12 +337,12 @@ icon_alignment = 1
 vertical_icon_alignment = 0
 expand_icon = true
 
-[node name="Row4" type="HBoxContainer" parent="MarginContainer/PanelContainer/VBoxContainer/LibraryRows"]
+[node name="Row4" type="HBoxContainer" parent="VBoxContainer/LibraryRows"]
 layout_mode = 2
 size_flags_vertical = 3
 alignment = 1
 
-[node name="BestiaryButton6" type="MarginContainer" parent="MarginContainer/PanelContainer/VBoxContainer/LibraryRows/Row4"]
+[node name="Lore" type="MarginContainer" parent="VBoxContainer/LibraryRows/Row4"]
 layout_mode = 2
 size_flags_horizontal = 6
 theme_override_constants/margin_left = 10
@@ -356,7 +350,7 @@ theme_override_constants/margin_top = 10
 theme_override_constants/margin_right = 10
 theme_override_constants/margin_bottom = 10
 
-[node name="Button" type="Button" parent="MarginContainer/PanelContainer/VBoxContainer/LibraryRows/Row4/BestiaryButton6"]
+[node name="Button" type="Button" parent="VBoxContainer/LibraryRows/Row4/Lore"]
 layout_mode = 2
 theme_override_constants/icon_max_width = 200
 theme_override_font_sizes/font_size = 80
@@ -367,7 +361,7 @@ icon_alignment = 1
 vertical_icon_alignment = 0
 expand_icon = true
 
-[node name="BestiaryButton7" type="MarginContainer" parent="MarginContainer/PanelContainer/VBoxContainer/LibraryRows/Row4"]
+[node name="ExpandedQuests" type="MarginContainer" parent="VBoxContainer/LibraryRows/Row4"]
 layout_mode = 2
 size_flags_horizontal = 6
 theme_override_constants/margin_left = 10
@@ -375,7 +369,7 @@ theme_override_constants/margin_top = 10
 theme_override_constants/margin_right = 10
 theme_override_constants/margin_bottom = 10
 
-[node name="Button" type="Button" parent="MarginContainer/PanelContainer/VBoxContainer/LibraryRows/Row4/BestiaryButton7"]
+[node name="Button" type="Button" parent="VBoxContainer/LibraryRows/Row4/ExpandedQuests"]
 layout_mode = 2
 theme_override_constants/icon_max_width = 200
 theme_override_font_sizes/font_size = 80
@@ -385,7 +379,7 @@ icon_alignment = 1
 vertical_icon_alignment = 0
 expand_icon = true
 
-[node name="BestiaryButton8" type="MarginContainer" parent="MarginContainer/PanelContainer/VBoxContainer/LibraryRows/Row4"]
+[node name="SalvageJobs" type="MarginContainer" parent="VBoxContainer/LibraryRows/Row4"]
 layout_mode = 2
 size_flags_horizontal = 6
 theme_override_constants/margin_left = 10
@@ -393,7 +387,7 @@ theme_override_constants/margin_top = 10
 theme_override_constants/margin_right = 10
 theme_override_constants/margin_bottom = 10
 
-[node name="Button" type="Button" parent="MarginContainer/PanelContainer/VBoxContainer/LibraryRows/Row4/BestiaryButton8"]
+[node name="Button" type="Button" parent="VBoxContainer/LibraryRows/Row4/SalvageJobs"]
 layout_mode = 2
 theme_override_constants/icon_max_width = 200
 theme_override_font_sizes/font_size = 80
@@ -403,7 +397,7 @@ icon_alignment = 1
 vertical_icon_alignment = 0
 expand_icon = true
 
-[node name="BestiaryButton9" type="MarginContainer" parent="MarginContainer/PanelContainer/VBoxContainer/LibraryRows/Row4"]
+[node name="Factions" type="MarginContainer" parent="VBoxContainer/LibraryRows/Row4"]
 layout_mode = 2
 size_flags_horizontal = 6
 theme_override_constants/margin_left = 10
@@ -411,7 +405,7 @@ theme_override_constants/margin_top = 10
 theme_override_constants/margin_right = 10
 theme_override_constants/margin_bottom = 10
 
-[node name="Button" type="Button" parent="MarginContainer/PanelContainer/VBoxContainer/LibraryRows/Row4/BestiaryButton9"]
+[node name="Button" type="Button" parent="VBoxContainer/LibraryRows/Row4/Factions"]
 layout_mode = 2
 theme_override_constants/icon_max_width = 200
 theme_override_font_sizes/font_size = 80
@@ -421,7 +415,7 @@ icon_alignment = 1
 vertical_icon_alignment = 0
 expand_icon = true
 
-[node name="BestiaryButton10" type="MarginContainer" parent="MarginContainer/PanelContainer/VBoxContainer/LibraryRows/Row4"]
+[node name="StealthStreet" type="MarginContainer" parent="VBoxContainer/LibraryRows/Row4"]
 layout_mode = 2
 size_flags_horizontal = 6
 theme_override_constants/margin_left = 10
@@ -429,7 +423,7 @@ theme_override_constants/margin_top = 10
 theme_override_constants/margin_right = 10
 theme_override_constants/margin_bottom = 10
 
-[node name="Button" type="Button" parent="MarginContainer/PanelContainer/VBoxContainer/LibraryRows/Row4/BestiaryButton10"]
+[node name="Button" type="Button" parent="VBoxContainer/LibraryRows/Row4/StealthStreet"]
 layout_mode = 2
 theme_override_constants/icon_max_width = 200
 theme_override_font_sizes/font_size = 80
@@ -439,8 +433,3 @@ icon = ExtResource("3_uc36b")
 icon_alignment = 1
 vertical_icon_alignment = 0
 expand_icon = true
-
-[node name="SearchBar" type="LineEdit" parent="."]
-layout_mode = 0
-offset_right = 67.0625
-offset_bottom = 31.0

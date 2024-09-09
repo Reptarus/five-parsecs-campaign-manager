@@ -22,6 +22,7 @@ func _ready():
 	save_changes_button.connect("pressed", Callable(self, "_on_save_changes_pressed"))
 	back_button.connect("pressed", Callable(self, "_on_back_pressed"))
 	customize_panel.connect("customization_completed", Callable(self, "_on_customization_completed"))
+	self.connect("crew_creation_completed", Callable(self, "_on_crew_creation_completed"))
 
 func initialize(_game_state: GameState):
 	game_state = _game_state
@@ -78,8 +79,7 @@ func _on_customization_completed(index: int, new_data: Dictionary) -> void:
 
 func _on_confirm_crew_pressed() -> void:
 	if crew.is_valid():
-		# Assuming we have a GameState singleton
-		var game_state = get_node("/root/GameState")
+		# Use the existing game_state variable
 		game_state.set_current_crew(crew)
 		
 		# Generate initial world
@@ -104,3 +104,7 @@ func _show_error_message(message: String) -> void:
 	dialog.dialog_text = message
 	add_child(dialog)
 	dialog.popup_centered()
+
+# Add this function at the end of the file
+func _on_crew_creation_completed(_crew: Crew) -> void:
+	pass  # This function can be empty or used for additional logic if needed

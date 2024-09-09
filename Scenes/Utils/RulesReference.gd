@@ -9,33 +9,49 @@ func _ready():
 	$BackButton.connect("pressed", Callable(self, "_on_back_pressed"))
 
 func load_rules_data():
-	var file = FileAccess.open("res://data/rules.json", FileAccess.READ)
-	if file:
-		var json = JSON.new()
-		var parse_result = json.parse(file.get_as_text())
-		if parse_result == OK:
-			rules_data = json.get_data()
-		file.close()
+	var dir = DirAccess.open("res://data/RulesReference/")
+	if dir:
+		dir.list_dir_begin()
+		var file_name = dir.get_next()
+		while file_name != "":
+			if file_name.ends_with(".json"):
+				var file = FileAccess.open("res://data/RulesReference/" + file_name, FileAccess.READ)
+				if file:
+					var json = JSON.new()
+					var parse_result = json.parse(file.get_as_text())
+					if parse_result == OK:
+						var data = json.get_data()
+						var category = file_name.get_basename()
+						rules_data[category] = data
+					file.close()
+			file_name = dir.get_next()
 
 func setup_buttons():
-	var library_rows = $MarginContainer/PanelContainer/VBoxContainer/LibraryRows
+	var library_rows = $VBoxContainer/LibraryRows
+	
 	for row in library_rows.get_children():
-		for button_container in row.get_children():
-			var button = button_container.get_node("Button")
-			button.connect("pressed", Callable(self, "_on_category_button_pressed").bind(button.text))
-			button.custom_minimum_size = Vector2(200, 100)
-			button.add_theme_constant_override("icon_max_width", 50)
-		row.add_theme_constant_override("separation", 10)
+		if row is HBoxContainer:
+			for child in row.get_children():
+				if child is Button:
+					var category = child.name.replace("Button", "")
+					child.text = category
+					child.connect("pressed", Callable(self, "_on_category_button_pressed").bind(category))
+	
+	# Adjust button sizes and spacing
+	for row in library_rows.get_children():
+		if row is HBoxContainer:
+			row.add_theme_constant_override("separation", 10)
+			for button in row.get_children():
+				if button is Button:
+					button.custom_minimum_size = Vector2(200, 100)
+					button.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 
 func _on_category_button_pressed(category: String):
 	if category in rules_data:
-		display_rules(category)
-	else:
-		print("Category not found in rules data: ", category)
-
-func display_rules(category: String):
-	# Assuming you have a TextEdit or RichTextLabel node named $RulesContent
-	$RulesContent.text = rules_data[category]
+		var rules_display = preload("res://Scenes/Utils/RulesDisplay.tscn").instantiate()
+		rules_display.display_category(category, rules_data[category])
+		get_tree().root.add_child(rules_display)
+		hide()
 
 func _on_back_pressed():
 	get_tree().change_scene_to_file("res://scenes/main_menu/MainMenu.tscn")
