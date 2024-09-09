@@ -1,0 +1,120 @@
+{
+  "Bestiary": {
+	"text": "The Bestiary contains information about various creatures and enemies encountered in the game. It includes both category tables and detailed descriptions.",
+	"image": "res://assets/images/bestiary/overview.png",
+	"content": [
+	  {
+		"title": "Criminal Elements",
+		"description": "Outlawed enterprises or factions you might encounter.",
+		"table": [
+		  {"roll": "01-10", "enemy": "Gangers", "notes": "Organized gangs run many backwater settlements, fighting for control."},
+		  {"roll": "11-19", "enemy": "Punks", "notes": "Disaffected delinquents, but armed to the teeth."},
+		  {"roll": "20-27", "enemy": "Raiders", "notes": "The only thing better than making something valuable is stealing it from someone else."},
+		  {"roll": "28-34", "enemy": "Cultists", "notes": "Fringe Space is full of odd para-religious groups, congregating around this or that principle."},
+		  {"roll": "35-43", "enemy": "Psychos", "notes": "For some, life in space just drives them nuts – homicidally so."},
+		  {"roll": "44-48", "enemy": "Brat Gang", "notes": "Upper class fools who have decided to shoot up the neighborhood for fun."},
+		  {"roll": "49-51", "enemy": "Gene Renegades", "notes": "Devotees of post-growth genetic reconfiguration."},
+		  {"roll": "52-57", "enemy": "Anarchists", "notes": "Separatist groups violently opposing the state and the mega-corps."},
+		  {"roll": "58-64", "enemy": "Pirates", "notes": "Space-faring looters who descend on colonies to raid, pillage and enslave."},
+		  {"roll": "65-71", "enemy": "K'Erin Outlaws", "notes": "The warlike K'Erin are an honorable people, though their outcasts frequently raid Human colonies."},
+		  {"roll": "72-79", "enemy": "Skulker Brigands", "notes": "Agile and gregarious, these rat-like humanoids show up almost anywhere in space."},
+		  {"roll": "80-83", "enemy": "Tech Gangers", "notes": "Weird criminal syndicates who seem to view high-tech with an almost religious reverence."},
+		  {"roll": "84-90", "enemy": "Starport Scum", "notes": "Any starship port facility will have assorted lowlifes and villains hanging around."},
+		  {"roll": "91-94", "enemy": "Hulker Gang", "notes": "Human-derived brutes possessing massive upper body strength, they often succumb to berserk fury."},
+		  {"roll": "95-100", "enemy": "Gun Slingers", "notes": "Desperados eager to test their trigger skills against an opponent."}
+		]
+	  },
+	  {
+		"title": "Hired Muscle",
+		"description": "Professional mercenaries and security forces.",
+		"table": [
+		  {"roll": "01-14", "enemy": "Unknown Mercs", "notes": "The Fringe is crawling with mercenary bands looking to make credits for paramilitary work."},
+		  {"roll": "15-26", "enemy": "Enforcers", "notes": "While the term usually refers to Unity law enforcement, in Fringe Space it tends to mean any organized troops keeping the peace."},
+		  {"roll": "27-34", "enemy": "Guild Troops", "notes": "Many of the various trade and tech guilds maintain their own private armies to enforce their interests in space."},
+		  {"roll": "35-39", "enemy": "Roid-Gangers", "notes": "Criminal gangs obsessed with body enhancement."},
+		  {"roll": "40-42", "enemy": "Black Ops Team", "notes": "Highly trained, elite killers tasked with neutralizing the most dangerous targets."},
+		  {"roll": "43-46", "enemy": "War Bots", "notes": "The CIM model War Bot, nicknamed 'The Demon', is a mainstay of high-tech, mech-infantry forces."},
+		  {"roll": "47-50", "enemy": "Secret Agents", "notes": "Likely to be spooks working for some powerful organization."},
+		  {"roll": "51-53", "enemy": "Assassins", "notes": "Hired killers. The sort who would garrote themselves AND their grandmother if the job paid enough."},
+		  {"roll": "54-59", "enemy": "Feral Mercenaries", "notes": "Uplifted Humans merged with animal features, typically wolves."},
+		  {"roll": "60-64", "enemy": "Skulker Mercenaries", "notes": "Rat-man humanoids. These pests will work for anyone who pays and are surprisingly loyal."},
+		  {"roll": "65-74", "enemy": "Corporate Security", "notes": "The corporations pay better than the Unity armed forces, plus great dental insurance."},
+		  {"roll": "75-79", "enemy": "Unity Grunts", "notes": "While often dismissed as unimaginative cannon fodder, Unity troops are well-trained professionals."},
+		  {"roll": "80-85", "enemy": "Security Bots", "notes": "Typical Security Bots used to guard all manner of installations and locations."},
+		  {"roll": "86-90", "enemy": "Black Dragon Mercs", "notes": "Extremely professional, the Black Dragons have carefully cultivated a reputation for 'clean' operations and high standards."},
+		  {"roll": "91-95", "enemy": "Rage Lizard Mercs", "notes": "The Rage Lizard mercenary unit specialize in boarding and ship-board operations."},
+		  {"roll": "96-100", "enemy": "Blood Storm Mercs", "notes": "Outlawed in many systems, the Blood Storm merc company are cold-blooded killers."}
+		]
+	  },
+	  {
+		"title": "Interested Parties",
+		"description": "Groups with their own agendas who may interfere with your mission.",
+		"table": [
+		  {"roll": "01-06", "enemy": "Renegade Soldiers", "notes": "Deserters, mutineers, and other scoundrels."},
+		  {"roll": "07-13", "enemy": "Bounty Hunters", "notes": "Hunting down fugitives and people that the warlords, governments and gang bosses want found is a booming business."},
+		  {"roll": "14-18", "enemy": "Abandoned", "notes": "Occasionally, a sort of sickness strikes crews in deep space for extended durations."},
+		  {"roll": "19-27", "enemy": "Vigilantes", "notes": "Disgruntled locals who have decided to take matters into their own hands."},
+		  {"roll": "28-35", "enemy": "Isolationists", "notes": "Whenever a group of people declare that they are a political unit, inevitably a smaller group will declare that they will have nothing to do with the rest of them."},
+		  {"roll": "36-41", "enemy": "Zealots", "notes": "Near-suicidal devotees to some cause, belief, principle, or brand loyalty."},
+		  {"roll": "42-48", "enemy": "Mutants", "notes": "The result of genetic warfare, black-site experiments, or hostile environments."},
+		  {"roll": "49-52", "enemy": "Primitives", "notes": "For various reasons, space is full of groups of Humans or aliens existing on a pre-industrial level."},
+		  {"roll": "53-56", "enemy": "Precursor exiles", "notes": "The refined and elegant Precursors are rarely seen in Human space."},
+		  {"roll": "57-63", "enemy": "K'Erin Colonists", "notes": "When this warrior species decides to colonize a world, war almost inevitably follows."},
+		  {"roll": "64-68", "enemy": "Swift War Squad", "notes": "Diminutive winged lizards who live in a highly ritualistic caste society."},
+		  {"roll": "69-72", "enemy": "Soulless Task Force", "notes": "Alien robot species operating in an inter-linked hive mind of sorts. Inscrutable."},
+		  {"roll": "73-76", "enemy": "Tech Zealots", "notes": "Cultists who worship technology. Often brimming with poorly fitted cybernetics."},
+		  {"roll": "77-83", "enemy": "Colonial Militia", "notes": "The armed militia of a colony is its first line of defense and often doubles as law enforcement."},
+		  {"roll": "84-88", "enemy": "Planetary Nomads", "notes": "On many habitable worlds, colonists will abandon civilization and go live among the dunes and jungles."},
+		  {"roll": "89-100", "enemy": "Salvage Team", "notes": "A rival crew looking for salvage and ready to fight for it."}
+		]
+	  },
+	  {
+		"title": "Roving Threats",
+		"description": "Dangerous creatures and hostile alien life forms.",
+		"table": [
+		  {"roll": "01-04", "enemy": "Converted Acquisition", "notes": "Nightmarish cyborg race that replenishes their ranks through captives and corpses, enhanced with bolted-in weaponry and control circuitry."},
+		  {"roll": "05-12", "enemy": "Converted Infiltrators", "notes": "The Converted often send in adapted members of a prospective target species to scout and spy."},
+		  {"roll": "13-18", "enemy": "Abductor Raiders", "notes": "The short, large-headed clone species known as the Abductors are despised throughout space."},
+		  {"roll": "19-28", "enemy": "Swarm Brood", "notes": "Multiple-limbed aliens that react to all lifeforms with extreme violence."},
+		  {"roll": "29-34", "enemy": "Haywire Robots", "notes": "Occasionally robots go berserk. This isn't a problem when it's a cat-sized cleaning device. It is a problem when the robot is a mining or construction bot."},
+		  {"roll": "35-44", "enemy": "Razor lizards", "notes": "An oversized lizard brimming with spikes and sharp teeth."},
+		  {"roll": "45-56", "enemy": "Sand Runners", "notes": "Fast predators associated with desert planets. As they are trainable, they can be found on many Human worlds."},
+		  {"roll": "57-63", "enemy": "Void Rippers", "notes": "Swarms of extremely aggressive fish-like flyers. They can rip a man to shreds in moments."},
+		  {"roll": "64-69", "enemy": "Krorg", "notes": "These beasts resemble a bear from Old Earth, but with larger claws and a surly demeanor."},
+		  {"roll": "70-78", "enemy": "Large bugs", "notes": "Oversized insects and other creepy-crawlies are a distressingly common sight throughout space."},
+		  {"roll": "79-84", "enemy": "Carnivore Chasers", "notes": "Fast pack predators. Will hunt any prey they can bring down."},
+		  {"roll": "85-97", "enemy": "Vent Crawlers", "notes": "Homicidal alien lifeforms that like to lurk inside starships and on strange moons."},
+		  {"roll": "98-100", "enemy": "Distorts", "notes": "Extra-dimensional horrors. It's rumored they are the remnants of sapient beings who were lost in teleport accidents."}
+		]
+	  },
+	  {
+		"title": "Unique Individuals",
+		"description": "Powerful enemies that may accompany other forces.",
+		"table": [
+		  {"roll": "01-06", "enemy": "Enemy Bruiser", "notes": "A particularly unpleasant-looking individual."},
+		  {"roll": "07-12", "enemy": "Enemy Heavy", "notes": "The enemy has opted to bring some additional firepower."},
+		  {"roll": "13-17", "enemy": "Enemy Boss", "notes": "One of the worst has managed to climb to the top of the hierarchy."},
+		  {"roll": "18-22", "enemy": "Hired Killer", "notes": "Will murder for credits."},
+		  {"roll": "23-25", "enemy": "Corporate Spook", "notes": "One of the mega-corps must be up to no good if they send these creeps."},
+		  {"roll": "26-30", "enemy": "Bounty Tracker", "notes": "Someone is willing to pay money to have you brought in, whole or in pieces."},
+		  {"roll": "31-35", "enemy": "Callous Merc", "notes": "Bitter and disillusioned mercenaries sometimes strike out on their own."},
+		  {"roll": "36-41", "enemy": "Freelancer", "notes": "A troubleshooter hired to supervise an operation and take care of any intrusions."},
+		  {"roll": "42-44", "enemy": "Secret Agent", "notes": "Mysterious individual, packing some state-of-the-art murder implements."},
+		  {"roll": "45-48", "enemy": "Hulker Brawler", "notes": "A burly post-Human uplift, brimming with strength and barely contained anger."},
+		  {"roll": "49-53", "enemy": "Gun Slinger", "notes": "One of any number of trigger-happy people that seem to congregate in Fringe Space."},
+		  {"roll": "54-56", "enemy": "Engineer Tech", "notes": "A quiet alien species fascinated with technology and gadgetry."},
+		  {"roll": "57-61", "enemy": "Mutant Bruiser", "notes": "A misshapen beast of a creature, irregular in both body and temperament."},
+		  {"roll": "62-65", "enemy": "Precursor Wanderer", "notes": "An alien mystic, brimming with psionic energies."},
+		  {"roll": "66-69", "enemy": "Hakshan Investigator", "notes": "Odd, suited aliens that trek the Galaxy in search of something vitally important to their species."},
+		  {"roll": "70-75", "enemy": "K'Erin Warrior", "notes": "A noble alien warrior seeking adventure."},
+		  {"roll": "76-79", "enemy": "Nomad Scout", "notes": "A skilled tracker and shooter, hiring out to the starfolk for credits."},
+		  {"roll": "80-82", "enemy": "Cyborg Merc", "notes": "A mercenary stuffed full of cybernetic enhancements."},
+		  {"roll": "83-85", "enemy": "Rogue Psionic", "notes": "Self-taught Psionics are a substantial asset in a gun battle."},
+		  {"roll": "86-91", "enemy": "Gene Dog", "notes": "Enhanced versions of Earth-dog breeds, usually modified to withstand the environment."},
+		  {"roll": "92-96", "enemy": "Sand Runner", "notes": "These fierce lizards can make surprisingly loyal companions."},
+		  {"roll": "97-100", "enemy": "Mk II Security Bot", "notes": "The state of the art in robotic security details."}
+		]
+	  }
+	]
+  }
+}

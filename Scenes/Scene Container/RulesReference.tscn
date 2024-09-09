@@ -36,9 +36,9 @@ text = "back button
 "
 
 [node name="MarginContainer" type="MarginContainer" parent="."]
-layout_mode = 1
-offset_right = 2906.0
-offset_bottom = 1594.0
+layout_mode = 0
+offset_right = 2756.0
+offset_bottom = 1444.0
 
 [node name="PanelContainer" type="PanelContainer" parent="MarginContainer"]
 layout_mode = 2
@@ -49,8 +49,6 @@ alignment = 1
 
 [node name="LibraryRows" type="VBoxContainer" parent="MarginContainer/PanelContainer/VBoxContainer"]
 layout_mode = 2
-size_flags_horizontal = 4
-size_flags_vertical = 6
 alignment = 1
 
 [node name="Row1" type="HBoxContainer" parent="MarginContainer/PanelContainer/VBoxContainer/LibraryRows"]
@@ -94,7 +92,7 @@ icon_alignment = 1
 vertical_icon_alignment = 0
 expand_icon = true
 
-[node name="BestiaryButton3" type="MarginContainer" parent="MarginContainer/PanelContainer/VBoxContainer/LibraryRows/Row1"]
+[node name="EnemyAI" type="MarginContainer" parent="MarginContainer/PanelContainer/VBoxContainer/LibraryRows/Row1"]
 layout_mode = 2
 size_flags_horizontal = 6
 theme_override_constants/margin_left = 10
@@ -102,7 +100,7 @@ theme_override_constants/margin_top = 10
 theme_override_constants/margin_right = 10
 theme_override_constants/margin_bottom = 10
 
-[node name="Button" type="Button" parent="MarginContainer/PanelContainer/VBoxContainer/LibraryRows/Row1/BestiaryButton3"]
+[node name="Button" type="Button" parent="MarginContainer/PanelContainer/VBoxContainer/LibraryRows/Row1/EnemyAI"]
 layout_mode = 2
 theme_override_constants/icon_max_width = 200
 theme_override_font_sizes/font_size = 80
@@ -112,7 +110,7 @@ icon_alignment = 1
 vertical_icon_alignment = 0
 expand_icon = true
 
-[node name="BestiaryButton4" type="MarginContainer" parent="MarginContainer/PanelContainer/VBoxContainer/LibraryRows/Row1"]
+[node name="Multiplayer" type="MarginContainer" parent="MarginContainer/PanelContainer/VBoxContainer/LibraryRows/Row1"]
 layout_mode = 2
 size_flags_horizontal = 6
 theme_override_constants/margin_left = 10
@@ -120,7 +118,7 @@ theme_override_constants/margin_top = 10
 theme_override_constants/margin_right = 10
 theme_override_constants/margin_bottom = 10
 
-[node name="Button" type="Button" parent="MarginContainer/PanelContainer/VBoxContainer/LibraryRows/Row1/BestiaryButton4"]
+[node name="Button" type="Button" parent="MarginContainer/PanelContainer/VBoxContainer/LibraryRows/Row1/Multiplayer"]
 layout_mode = 2
 theme_override_constants/icon_max_width = 200
 theme_override_font_sizes/font_size = 80
@@ -130,7 +128,7 @@ icon_alignment = 1
 vertical_icon_alignment = 0
 expand_icon = true
 
-[node name="BestiaryButton5" type="MarginContainer" parent="MarginContainer/PanelContainer/VBoxContainer/LibraryRows/Row1"]
+[node name="Difficulty" type="MarginContainer" parent="MarginContainer/PanelContainer/VBoxContainer/LibraryRows/Row1"]
 layout_mode = 2
 size_flags_horizontal = 6
 theme_override_constants/margin_left = 10
@@ -138,7 +136,7 @@ theme_override_constants/margin_top = 10
 theme_override_constants/margin_right = 10
 theme_override_constants/margin_bottom = 10
 
-[node name="Button" type="Button" parent="MarginContainer/PanelContainer/VBoxContainer/LibraryRows/Row1/BestiaryButton5"]
+[node name="Button" type="Button" parent="MarginContainer/PanelContainer/VBoxContainer/LibraryRows/Row1/Difficulty"]
 layout_mode = 2
 theme_override_constants/icon_max_width = 200
 theme_override_font_sizes/font_size = 80
@@ -441,3 +439,8 @@ icon = ExtResource("3_uc36b")
 icon_alignment = 1
 vertical_icon_alignment = 0
 expand_icon = true
+
+[node name="SearchBar" type="LineEdit" parent="."]
+layout_mode = 0
+offset_right = 67.0625
+offset_bottom = 31.0

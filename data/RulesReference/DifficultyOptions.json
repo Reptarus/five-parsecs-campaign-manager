@@ -1,0 +1,144 @@
+{
+  "DifficultyOptions": {
+	"text": "Difficulty options allow players to adjust the challenge level of Five Parsecs from Home to suit their preferences. These options can be used to make the game easier for newcomers or more challenging for experienced players.",
+	"image": "res://assets/images/difficulty/overview.png",
+	"content": [
+	  {
+		"title": "Difficulty Settings",
+		"description": "Five main difficulty settings that affect various aspects of the game:",
+		"settings": [
+		  {
+			"name": "I'm Too Pretty to Die",
+			"effects": [
+			  "Adjust initial Contact markers by -1",
+			  "Adjust Encounter number by -1",
+			  "Gain +2 Support points"
+			]
+		  },
+		  {
+			"name": "Hey, Not Too Crazy",
+			"effects": [
+			  "Adjust initial Contact markers by -1",
+			  "No adjustment to Encounter number",
+			  "No additional Support points"
+			]
+		  },
+		  {
+			"name": "Mess Me Up",
+			"effects": [
+			  "No adjustments to Contact markers or Encounter number",
+			  "Standard difficulty"
+			]
+		  },
+		  {
+			"name": "Mega-violence",
+			"effects": [
+			  "Adjust initial Contact markers by +1",
+			  "Adjust Encounter number by +1",
+			  "No additional Support points"
+			]
+		  },
+		  {
+			"name": "Living Nightmare",
+			"effects": [
+			  "Adjust initial Contact markers by +1",
+			  "Adjust Encounter number by +1",
+			  "At the end of each battle round, if there are less than 3 Contact markers on the table, place 1 new Contact marker at the center of a random battlefield edge"
+			]
+		  }
+		]
+	  },
+	  {
+		"title": "Strength-adjusted Enemies",
+		"description": "Ensures a minimum number of enemies based on your crew size:",
+		"rules": [
+		  "Instead of rolling for the number of enemies, assume the enemy rolled equal to the number of crew you brought to the fight.",
+		  "Any bonuses (from enemy numbers, difficulty adjustments, etc.) are added to that number.",
+		  "Example: If your enemy has a +2 Numbers modifier from the enemy tables, and you brought 5 crew, you will face 7 enemies."
+		]
+	  },
+	  {
+		"title": "Tougher Economy",
+		"description": "Options to make money and progression tighter:",
+		"options": [
+		  {
+			"name": "Money is Tight",
+			"rules": [
+			  "Increased upkeep costs",
+			  "Actions like Find a Patron or Repair Your Kit cost 1 credit",
+			  "No free Hull Point repair each turn",
+			  "Reduced credit rewards"
+			]
+		  },
+		  {
+			"name": "Slower Progression",
+			"rules": [
+			  "Increased XP costs for ability score improvements",
+			  "Lower maximum levels for some abilities"
+			]
+		  }
+		]
+	  },
+	  {
+		"title": "Enhanced Enemy Quality",
+		"description": "Options to increase the threat level of individual enemies:",
+		"options": [
+		  {
+			"name": "Veteran",
+			"effect": "One basic enemy increases their Combat Skill by +1"
+		  },
+		  {
+			"name": "Actually Specialized",
+			"effect": "Enemy specialist figures have a minimum Combat Skill of +1 and Toughness 4"
+		  },
+		  {
+			"name": "Armored Leaders",
+			"effect": "Lieutenants receive a 5+ Armor Saving Throw"
+		  },
+		  {
+			"name": "Better Leadership",
+			"effects": [
+			  "Increased chance of facing a Unique Individual",
+			  "Improved stats for leader-type enemies"
+			]
+		  }
+		]
+	  },
+	  {
+		"title": "Time Pressure",
+		"description": "Options to add urgency to battles:",
+		"options": [
+		  {
+			"name": "They are Paying us by the Hour",
+			"effect": "Limited number of rounds to complete objectives"
+		  },
+		  {
+			"name": "There's Movement all over the Place",
+			"effect": "Increasing chance of enemy reinforcements each round"
+		  },
+		  {
+			"name": "Fickle Scans",
+			"effect": "Notable Sights must be investigated quickly or they disappear"
+		  }
+		]
+	  },
+	  {
+		"title": "Starting Conditions",
+		"description": "Options for a more challenging start to the campaign:",
+		"options": [
+		  "Limited starting equipment",
+		  "Smaller initial crew size",
+		  "Start without a ship"
+		]
+	  },
+	  {
+		"title": "Reduced Lethality",
+		"description": "Options to make the game less fatal:",
+		"options": [
+		  "Ability to exempt one character from post-battle injury rolls",
+		  "Automatic recovery for a single injured character"
+		]
+	  }
+	]
+  }
+}

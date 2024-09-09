@@ -1,0 +1,129 @@
+{
+  "PVP/Co-op": {
+	"text": "Rules for player versus player and cooperative gameplay modes in Five Parsecs from Home. These modes add new dimensions to the game, allowing you to face off against friends or team up to tackle challenging scenarios.",
+	"image": "res://assets/images/pvp_coop/overview.png",
+	"content": [
+	  {
+		"title": "Player vs Player (PvP)",
+		"description": "Rules for competitive play between two or more players.",
+		"sections": [
+		  {
+			"subtitle": "Setting up a PvP Battle",
+			"details": [
+			  "- Agree on a reason for the conflict (e.g., chance encounter, hired by opposing sides, personal rivalry).",
+			  "- Choose a neutral location for the battle.",
+			  "- Determine the number of crew members each player can bring (typically equal to the lowest campaign crew size).",
+			  "- Set up the battlefield as normal, but don't roll for Deployment Conditions or Notable Sights."
+			]
+		  },
+		  {
+			"subtitle": "PvP-specific Rules",
+			"details": [
+			  "- Use Initiative Points: Each player receives 1 initiative point at the start of each round.",
+			  "- Initiative Point Usage: Can be spent to fire an extra shot, double movement speed, remove Stun markers, or turn a lost brawl into a draw.",
+			  "- Power Rating: Calculate each side's Power Rating to balance the match.",
+			  "- Outgunned Bonus: The side with lower Power Rating receives additional initiative points."
+			]
+		  },
+		  {
+			"subtitle": "PvP Battle Sequence",
+			"steps": [
+			  "1. Roll for initiative and assign dice.",
+			  "2. Fast Actions phase: Players alternate activating figures.",
+			  "3. Enemy Actions phase (if any AI-controlled forces are present).",
+			  "4. Slow Actions phase: Players alternate activating remaining figures.",
+			  "5. End of round: No morale checks in PvP."
+			]
+		  },
+		  {
+			"subtitle": "Ending a PvP Battle",
+			"conditions": [
+			  "- Players may agree to end the battle at any time if no third parties are present.",
+			  "- Figures can retreat off the battlefield edge.",
+			  "- Complete any mission objectives within 6 rounds, or they will be failed."
+			]
+		  },
+		  {
+			"subtitle": "Post-Battle in PvP",
+			"rules": [
+			  "- PvP battles never result in Rivals.",
+			  "- Each crew is paid normally, with a bonus for completing objectives.",
+			  "- Limited Battlefield Finds and Loot rolls.",
+			  "- Normal injury and experience rules apply."
+			]
+		  }
+		]
+	  },
+	  {
+		"title": "Cooperative Play (Co-op)",
+		"description": "Rules for multiple players teaming up against enhanced opposition.",
+		"sections": [
+		  {
+			"subtitle": "Setting up a Co-op Battle",
+			"details": [
+			  "- Agree on a mission type (typically Opportunity or Invasion battles).",
+			  "- Choose a location (neutral ground or a specific world from either campaign).",
+			  "- Determine crew sizes and equipment as normal.",
+			  "- Set up a larger battlefield (3-foot square recommended).",
+			  "- Place more terrain than usual to accommodate the larger battle."
+			]
+		  },
+		  {
+			"subtitle": "Co-op-specific Rules",
+			"details": [
+			  "- Combined Force: The two crews are considered a single force for the battle.",
+			  "- Enhanced Opposition: Face multiple enemy forces with increased numbers.",
+			  "- Unique Individuals: At least one Unique Individual will accompany the enemy forces.",
+			  "- Deployment: Forces should set up no closer than 24\" apart."
+			]
+		  },
+		  {
+			"subtitle": "Co-op Battle Sequence",
+			"steps": [
+			  "1. Each player rolls for Reactions and assigns dice normally.",
+			  "2. In each phase, players take turns activating eligible figures.",
+			  "3. Enemy forces act according to normal AI rules.",
+			  "4. Additional waves of enemies arrive as the battle progresses."
+			]
+		  },
+		  {
+			"subtitle": "Enemy Waves in Co-op",
+			"details": [
+			  "- Wave 1: Initial enemy force.",
+			  "- Wave 2: Arrives at the start of Round 3.",
+			  "- Wave 3: Possible additional force, determined by die roll."
+			]
+		  },
+		  {
+			"subtitle": "Ending a Co-op Battle",
+			"conditions": [
+			  "- Battle ends when all enemy forces are defeated or objectives are completed.",
+			  "- From Round 6 onwards, the game ends if the table is cleared of enemies, even if Wave 3 hasn't arrived."
+			]
+		  },
+		  {
+			"subtitle": "Post-Battle in Co-op",
+			"rules": [
+			  "- Both crews are considered to have Won if at least one figure Holds the Field.",
+			  "- Each crew receives a bonus when rolling for credits.",
+			  "- Both crews may roll for Battlefield Finds.",
+			  "- Each crew rolls for Loot, with one additional shared Loot roll.",
+			  "- Normal rules apply for Rival status, injuries, and experience."
+			]
+		  }
+		]
+	  },
+	  {
+		"title": "Balancing PvP and Co-op Play",
+		"description": "Tips for ensuring fair and enjoyable multi-player experiences:",
+		"tips": [
+		  "- Adjust crew sizes or apply handicaps for players with significantly different experience levels.",
+		  "- In PvP, consider using the Power Rating system to provide initiative bonuses to outgunned players.",
+		  "- For Co-op, scale the difficulty of enemy forces based on the combined strength of the player crews.",
+		  "- Allow players to use Story Points in multi-player games, but limit their effectiveness to maintain balance.",
+		  "- Encourage narrative play and roleplaying to enhance the multi-player experience beyond pure tactics."
+		]
+	  }
+	]
+  }
+}

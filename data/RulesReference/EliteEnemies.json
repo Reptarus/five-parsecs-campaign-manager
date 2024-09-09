@@ -1,0 +1,377 @@
+{
+  "EliteEnemies": {
+	"text": "Elite Enemies represent tougher, more skilled opponents that players may encounter as their crew becomes more experienced. These enemies provide a greater challenge and often come with improved stats, special abilities, and better rewards.",
+	"image": "res://assets/images/elite_enemies/overview.png",
+	"content": [
+	  {
+		"title": "Elite Enemy Composition",
+		"description": "The structure of elite enemy squads:",
+		"table": [
+		  { "Squad Size": 4, "Basic": 3, "Specialists": 1, "Lieutenants": 0, "Captain": 0 },
+		  { "Squad Size": 5, "Basic": 2, "Specialists": 2, "Lieutenants": 1, "Captain": 0 },
+		  { "Squad Size": 6, "Basic": 3, "Specialists": 2, "Lieutenants": 1, "Captain": 0 },
+		  { "Squad Size": "7+", "Basic": "3+", "Specialists": 2, "Lieutenants": 1, "Captain": 1 }
+		]
+	  },
+	  {
+		"title": "Elite Enemy Characteristics",
+		"description": "General improvements for elite enemies:",
+		"characteristics": [
+		  {
+			"type": "Basic Enemies",
+			"improvements": ["Armed with the basic weapon for their type"]
+		  },
+		  {
+			"type": "Specialists",
+			"improvements": [
+			  "Armed with the specialist weapon for their type",
+			  "If Combat Skill is +0, increase it to +1"
+			]
+		  },
+		  {
+			"type": "Lieutenant",
+			"improvements": [
+			  "Armed with the basic weapon for their type, plus a Blade",
+			  "Combat Skill is increased by +1",
+			  "Fearless",
+			  "If normally armored, increase their Armor Saving Throw by +1. Otherwise add a 5+ Armor Saving Throw"
+			]
+		  },
+		  {
+			"type": "Captain",
+			"improvements": [
+			  "Armed with the basic weapon for their type, plus a Ripper Sword",
+			  "Combat Skill is increased by +1",
+			  "Fearless",
+			  "If Toughness is less than 5, increase it to 5",
+			  "If normally armored, increase their Armor Saving Throw by +1. Otherwise add a 5+ Armor Saving Throw"
+			]
+		  }
+		]
+	  },
+	  {
+		"title": "Unique Individuals",
+		"description": "Increased likelihood of encountering Unique Individuals:",
+		"rules": [
+		  "If you outnumber the enemy, they are automatically accompanied by a Unique Individual",
+		  "If you do not outnumber them, a 7+ is required instead of the usual 9+"
+		]
+	  },
+	  {
+		"title": "Leadership Effects",
+		"description": "Improved morale effects from elite leaders:",
+		"table": [
+		  { "Leader": "Lieutenant", "Normal Panic Range": "1-3", "Modified Panic Range": "1-2" },
+		  { "Leader": "Lieutenant", "Normal Panic Range": "1-2", "Modified Panic Range": "1" },
+		  { "Leader": "Lieutenant", "Normal Panic Range": "1", "Modified Panic Range": "1" },
+		  { "Leader": "Captain", "Normal Panic Range": "1-3", "Modified Panic Range": "1" },
+		  { "Leader": "Captain", "Normal Panic Range": "1-2", "Modified Panic Range": "1" },
+		  { "Leader": "Captain", "Normal Panic Range": "1", "Modified Panic Range": "0 (Fearless)" }
+		]
+	  },
+	  {
+		"title": "Elite Rewards",
+		"description": "Improved rewards for defeating elite enemies:",
+		"rewards": [
+		  {
+			"type": "Better Loot",
+			"description": "Roll one additional Loot item beyond the usual amount, then select which items to keep"
+		  },
+		  {
+			"type": "Increased Patron Pay",
+			"description": "+1 credit in additional Danger Pay for Patron jobs, if at least one opponent is killed"
+		  },
+		  {
+			"type": "Enhanced Quest Rewards",
+			"description": "One additional Loot item when finishing a Quest"
+		  },
+		  {
+			"type": "Brutal Fight Bonus",
+			"description": "If your entire crew are casualties, one crew member of your choice receives +1 XP"
+		  }
+		]
+	  },
+	  {
+		"title": "Elite Enemy Types",
+		"description": "Detailed improvements for different enemy categories:",
+		"types": [
+		  {
+			"name": "Elite Criminal Elements",
+			"description": "Outlawed enterprises or factions with improved capabilities.",
+			"special_rules": [
+			  "Bounty pay: Increased chance of bounty being available. Roll 1D6, if 1-3, that's the number of bonus credits for Holding the Field.",
+			  "Gang feuds: Roll 2D6 when checking if they become Rivals. On any 1, they become Rivals. On double 1, they become Rivals AND increase numbers by +1 in all battles."
+			],
+			"enemies": [
+			  {
+				"name": "Gangers",
+				"improvements": [
+				  "Bug Out: When hit, retreat 3\" away from the shooter.",
+				  "Clack Clack: Some armed with Shotguns and Assault Blades.",
+				  "Back Alley fighting: No movement reduction for Difficult terrain."
+				]
+			  },
+			  {
+				"name": "Punks",
+				"improvements": [
+				  "Careless: +1 to Seize the Initiative.",
+				  "Style over substance: Many armed with Machine Pistols.",
+				  "Git 'im!: +1 to shooting rolls against Stunned targets."
+				]
+			  },
+			  {
+				"name": "Raiders",
+				"improvements": [
+				  "Scavengers: Additional Battlefield Finds roll if you Hold the Field.",
+				  "Always prepared: Pistol-wielders also carry Blades.",
+				  "Secure the goodies: Bonuses near objectives."
+				]
+			  },
+			  {
+				"name": "Cultists",
+				"improvements": [
+				  "Intrigue: Chance to obtain Quest Rumor after mission.",
+				  "Fire makes it better: Leaders carry Clingfire Pistols.",
+				  "Destroy the unbeliever: Retaliatory fire when allies are killed."
+				]
+			  },
+			  {
+				"name": "Psychos",
+				"improvements": [
+				  "Fire frenzy: Extra shot but only hit on 6.",
+				  "Eager to go: Stunned Psychos recover faster.",
+				  "Goes boom: Some carry Frakk Grenades."
+				]
+			  },
+			  {
+				"name": "Brat Gang",
+				"improvements": [
+				  "Careless: +1 to Seize the Initiative.",
+				  "Armor vests: 5+ Saving Throw.",
+				  "Best guns daddy could buy: Specialists get +1 to Hit."
+				]
+			  },
+			  {
+				"name": "Gene Renegades",
+				"improvements": [
+				  "Alert: -2 to Seize the Initiative.",
+				  "Teeth and claws: Brawling bonuses.",
+				  "Like a predator: Tactical movement to get better shots."
+				]
+			  },
+			  {
+				"name": "Anarchists",
+				"improvements": [
+				  "Stubborn: First two casualties don't force Morale check.",
+				  "Explosive politics: Some carry Frakk Grenades.",
+				  "Fight the power: Bonus against crew captain."
+				]
+			  },
+			  {
+				"name": "Pirates",
+				"improvements": [
+				  "Loot: Extra Loot roll if Holding the Field.",
+				  "Breach tactics: Some carry Shatter Axes.",
+				  "Ship fighting techniques: Bonus action after winning Brawl."
+				]
+			  },
+			  {
+				"name": "K'Erin Outlaws",
+				"improvements": [
+				  "Stubborn: First two casualties don't force Morale check.",
+				  "Para-military: Some armed with Auto-Rifles.",
+				  "Regain our honor: Chance to make free moves towards crew."
+				]
+			  },
+			  {
+				"name": "Skulker Brigands",
+				"improvements": [
+				  "Alert: -2 to Seize the Initiative.",
+				  "Scavengers: Additional Battlefield Finds roll if you Hold the Field.",
+				  "Pack tactics: Bonus to hit previously targeted crew members."
+				]
+			  },
+			  {
+				"name": "Tech Gangers",
+				"improvements": [
+				  "Loot: Extra Loot roll if Holding the Field.",
+				  "Overcharged weapons: Weapon bonuses in odd-numbered rounds.",
+				  "Tech Armor: 4+ Saving Throw."
+				]
+			  },
+			  {
+				"name": "Starport Scum",
+				"improvements": [
+				  "Friday night warriors: Allies retreat when a Scum is slain.",
+				  "The one in charge: Always accompanied by a Unique Individual.",
+				  "Cornered rats: Combat bonuses when near crew members."
+				]
+			  },
+			  {
+				"name": "Hulker Gang",
+				"improvements": [
+				  "Ferocious: Brawling advantage.",
+				  "Wrecking crew: Powerful melee attacks.",
+				  "Aggro: Charge towards attackers when shot."
+				]
+			  },
+			  {
+				"name": "Gun Slingers",
+				"improvements": [
+				  "Trick shot: Chain additional shots on natural 6.",
+				  "Downtown shooting style: Extra shot at close range.",
+				  "Count the shells: Leaders carry additional weapons."
+				]
+			  }
+			]
+		  },
+		  {
+			"name": "Elite Hired Muscle",
+			"description": "Professional mercenaries and security forces with enhanced training and equipment.",
+			"special_rules": [
+			  "Paid professionals: -1 modifier when you try to Seize the Initiative.",
+			  "Well supplied: Lieutenants and Captains receive a 4+ Armor Saving Throw, replacing any existing protection."
+			],
+			"enemies": [
+			  {
+				"name": "Unknown Mercs",
+				"improvements": [
+				  "Let us just call it a day: Possibility to call a truce when few Mercs remain.",
+				  "Tacti-cool: Some have sighted weapons for +1 to Hit.",
+				  "Supporting fire: Chance for bonus attacks after Brawls."
+				]
+			  },
+			  {
+				"name": "Enforcers",
+				"improvements": [
+				  "Cop killer: Always become Rivals after a battle.",
+				  "Blast and clear: Some have under-barrel Shotguns.",
+				  "Subdue: Brawling strikes have the Impact trait."
+				]
+			  },
+			  {
+				"name": "Guild Troops",
+				"improvements": [
+				  "Intrigue: Chance to obtain Quest Rumor after mission.",
+				  "Well supplied: All troops receive a 5+ Armor Saving Throw.",
+				  "Profit focused tactics: Combat bonus near objectives."
+				]
+			  },
+			  {
+				"name": "Roid-Gangers",
+				"improvements": [
+				  "Careless: +1 bonus to Seize the Initiative.",
+				  "100% Protein: All carry Blades or Ripper Swords.",
+				  "Brutes: Bonus when initiating Brawls."
+				]
+			  },
+			  {
+				"name": "Black Ops Team",
+				"improvements": [
+				  "Fire teams: Reroll 1s when firing near allies.",
+				  "Low light vision: Can see clearly out to 12\" in reduced visibility.",
+				  "Go! go! go!: Tactical movement to cover after each phase."
+				]
+			  },
+			  {
+				"name": "War Bots",
+				"improvements": [
+				  "Fearless: Never subject to Morale tests.",
+				  "Armored shell: 5+ Saving Throw.",
+				  "Following Fire: Chance for extra shots."
+				]
+			  },
+			  {
+				"name": "Secret Agents",
+				"improvements": [
+				  "Costly Loot: Extra Loot roll if you Hold the Field, but add an unspecified Rival.",
+				  "Upgraded sights: Bonus against targets in Cover.",
+				  "Intrigue: Chance to obtain Quest Rumor after mission."
+				]
+			  },
+			  {
+				"name": "Assassins",
+				"improvements": [
+				  "Gruesome: Penalty to post-battle injury rolls.",
+				  "Stopping Power: Armed with Hand Cannons.",
+				  "Evasive tactics: Harder to hit when in the open."
+				]
+			  },
+			  {
+				"name": "Feral Mercenaries",
+				"improvements": [
+				  "Quick Feet: Improved Dash moves.",
+				  "Shoot to kill: One carries a Blast Rifle with improved accuracy.",
+				  "Dog Fight: Combat bonus when near allies."
+				]
+			  },
+			  {
+				"name": "Skulker Mercenaries",
+				"improvements": [
+				  "Sniff them out: You cannot Seize the Initiative.",
+				  "Firefight standard: Improved weaponry.",
+				  "Chemical fog: Reduced visibility for crew."
+				]
+			  },
+			  {
+				"name": "Corporate Security",
+				"improvements": [
+				  "Armor vests: 5+ Saving Throw.",
+				  "Flash bangs: Use of Dazzle Grenades.",
+				  "Covering fire: Bonus attacks against Stunned targets."
+				]
+			  },
+			  {
+				"name": "Unity Grunts",
+				"improvements": [
+				  "Armor vests: 5+ Saving Throw.",
+				  "Standard issue: Armed with Needle Rifles.",
+				  "Shock tactics: Some can fire, move, and fire again."
+				]
+			  },
+			  {
+				"name": "Security Bots",
+				"improvements": [
+				  "Really careless: +2 when rolling to Seize the Initiative.",
+				  "Robot punch: All Bots can punch in melee.",
+				  "Bots: 5+ Saving Throw and Fearless."
+				]
+			  },
+			  {
+				"name": "Black Dragon Mercs",
+				"improvements": [
+				  "Stubborn: First two casualties don't force Morale check.",
+				  "Back up armaments: Leaders carry Glare Swords.",
+				  "Consumate professionals: Specialists have +2 Combat Skill."
+				]
+			  },
+			  {
+				"name": "Rage Lizard Mercs",
+				"improvements": [
+				  "Up Close: Combat bonus near terrain.",
+				  "Burn 'em out: Each carries a one-use Hand Flamer.",
+				  "Aggressive tactics: Can fire and then enter Brawl."
+				]
+			  },
+			  {
+				"name": "Blood Storm Mercs",
+				"improvements": [
+				  "Ferocious: +1 to Brawling rolls when initiating combat.",
+				  "Uncreative tactics: All carry Ripper Swords.",
+				  "Finish them off: Defeated crew members face harsher injury rolls."
+				]
+			  }
+			]
+		  },
+		  {
+			"name": "Elite Interested Parties",
+			"description": "Groups with their own agendas, now more capable and determined.",
+			"special_rules": [
+			  "Mastermind: +1 when rolling to see if a Unique Individual is present.",
+			  "On the trail: If encountering during a Quest mission, add +1 to the number encountered."
+			],
+			"enemies": [
+			  {
+				"name": "Renegade Soldiers",
+				"improvements": [
+				  "Grudge: If encountered as a Rival,

@@ -1,0 +1,130 @@
+{
+  "EnemyAI": {
+	"text": "This section details how enemy units behave and make decisions during combat in Five Parsecs from Home. Understanding enemy AI is crucial for tactical planning and mission success.",
+	"image": "res://assets/images/enemy_ai/overview.png",
+	"content": [
+	  {
+		"title": "AI Types",
+		"description": "Different enemy types follow distinct AI patterns. The main AI types are:",
+		"types": [
+		  {
+			"name": "Aggressive",
+			"description": "Enemies will move towards the nearest player figure and attempt to engage in combat.",
+			"base_condition": "If able to engage an opponent in brawling combat this round, advance to do so.",
+			"behavior_table": [
+			  {"roll": "1", "action": "Maneuver within current Cover to fire."},
+			  {"roll": "2", "action": "Maneuver within current Cover to fire."},
+			  {"roll": "3", "action": "Advance to the next forward position in Cover. Fire if eligible."},
+			  {"roll": "4", "action": "Advance and fire on the nearest enemy. Use Cover."},
+			  {"roll": "5", "action": "Advance and fire on the nearest enemy. Fastest route."},
+			  {"roll": "6", "action": "Dash towards the nearest enemy. Fastest route."}
+			]
+		  },
+		  {
+			"name": "Cautious",
+			"description": "Enemies prefer to maintain distance and use cover when possible.",
+			"base_condition": "If in Cover and visible opponents are within 12\", move away to the most distant position that remains in Cover and in range and retains Line of Sight to an opponent, then fire.",
+			"behavior_table": [
+			  {"roll": "1", "action": "Retreat a full move, remaining in Cover. Maintain Line of Sight if possible."},
+			  {"roll": "2", "action": "Remain in place or maneuver within current Cover to fire."},
+			  {"roll": "3", "action": "Remain in place or maneuver within current Cover to fire."},
+			  {"roll": "4", "action": "Advance to within 12\" of the nearest enemy and fire. Remain in Cover."},
+			  {"roll": "5", "action": "Advance to within 12\" of the nearest enemy and fire. Remain in Cover."},
+			  {"roll": "6", "action": "Advance on the nearest enemy and fire, ending in Cover if possible."}
+			]
+		  },
+		  {
+			"name": "Tactical",
+			"description": "Enemies use a balanced approach, considering both offense and defense.",
+			"base_condition": "If in Cover and within 12\" of visible opponents, remain in position and fire.",
+			"behavior_table": [
+			  {"roll": "1", "action": "Remain in place to fire."},
+			  {"roll": "2", "action": "Maneuver within current Cover to fire."},
+			  {"roll": "3", "action": "Advance to the next forward position in Cover or move to flank."},
+			  {"roll": "4", "action": "Advance to the next forward position in Cover or move to flank."},
+			  {"roll": "5", "action": "Advance and fire on the nearest enemy. Use Cover."},
+			  {"roll": "6", "action": "Advance and fire on the nearest enemy. Use Cover."}
+			]
+		  },
+		  {
+			"name": "Defensive",
+			"description": "Enemies prioritize staying in cover and only engage when necessary.",
+			"base_condition": "If in Cover and opponents in the open are visible, remain in position and fire.",
+			"behavior_table": [
+			  {"roll": "1", "action": "Remain in place to fire."},
+			  {"roll": "2", "action": "Maneuver within current Cover to fire."},
+			  {"roll": "3", "action": "Maneuver within current Cover to fire."},
+			  {"roll": "4", "action": "Maneuver within current Cover to fire."},
+			  {"roll": "5", "action": "Advance to the next forward position in Cover."},
+			  {"roll": "6", "action": "Advance and fire on the nearest enemy. Use Cover."}
+			]
+		  },
+		  {
+			"name": "Beast",
+			"description": "Animal-like behavior, typically very aggressive and direct.",
+			"base_condition": "Always move towards the nearest visible opponent by the most direct route possible.",
+			"note": "Beasts do not use the behavior table and always follow their base condition."
+		  },
+		  {
+			"name": "Rampage",
+			"description": "Extremely aggressive, will always attempt to engage in close combat.",
+			"base_condition": "Always move towards the nearest opponent by the most direct route possible, attempting to enter brawling combat.",
+			"note": "Rampage enemies do not use the behavior table and always follow their base condition."
+		  },
+		  {
+			"name": "Guardian",
+			"description": "Protects a specific area or object, only engaging when threats come close.",
+			"base_condition": "Remain in place unless an opponent comes within 12\", then move to engage.",
+			"note": "Guardian enemies do not use the behavior table and always follow their base condition."
+		  }
+		]
+	  },
+	  {
+		"title": "AI Decision Making",
+		"description": "When an enemy activates, follow these steps:",
+		"steps": [
+		  "1. Check if the base condition for the AI type applies. If so, the enemy follows that action.",
+		  "2. If the base condition doesn't apply, roll 1D6 and consult the behavior table for the AI type.",
+		  "3. Carry out the action indicated by the roll result.",
+		  "4. If the action is impossible or illogical, use common sense to determine the most appropriate action."
+		]
+	  },
+	  {
+		"title": "Group Actions",
+		"description": "Enemies in close proximity may act as a group:",
+		"rules": [
+		  "- If enemy figures are within 2\" of each other, they use the same die roll for their actions.",
+		  "- If any figure in the group meets the base condition, all figures in the group follow that action.",
+		  "- This simulates coordinated tactics and speeds up play for larger groups of enemies."
+		]
+	  },
+	  {
+		"title": "Special AI Rules",
+		"description": "Some enemies have unique AI behaviors:",
+		"examples": [
+		  "- Unique Individuals may have their own specific AI routines.",
+		  "- Some enemies may have special abilities that override standard AI behavior.",
+		  "- Certain scenarios might introduce modified AI behavior for specific enemy types."
+		]
+	  },
+	  {
+		"title": "AI and Cover",
+		"description": "How enemies interact with cover:",
+		"rules": [
+		  "- Most AI types will attempt to use cover when possible.",
+		  "- 'Use Cover' in actions means the enemy will try to end its move in cover if available.",
+		  "- Enemies consider both blocking line of sight and providing physical protection when seeking cover."
+		]
+	  },
+	  {
+		"title": "AI Targeting Priority",
+		"description": "How enemies choose their targets:",
+		"priorities": [
+		  "1. Closest visible opponent",
+		  "2. Opponent in the open (if the enemy is in cover)",
+		  "3. Random selection if multiple equal targets"
+		]
+	  }
+	]
+  }
+}

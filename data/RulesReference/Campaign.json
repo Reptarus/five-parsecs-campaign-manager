@@ -1,0 +1,82 @@
+{
+  "Campaign": {
+	"text": "The Campaign section outlines the structure and progression of your adventures in Five Parsecs from Home. It covers the key aspects of managing your crew, undertaking missions, and navigating the dangers of the galaxy.",
+	"image": "res://assets/images/campaign/overview.png",
+	"content": [
+	  {
+		"title": "Campaign Structure",
+		"description": "A campaign in Five Parsecs from Home is played in a series of turns. Each turn represents a period of time in which your crew undertakes a mission, deals with various events, and potentially improves their skills and equipment.",
+		"steps": [
+		  "1. Special Assignments: Characters not in sick bay can apply for special assignments to boost their abilities.",
+		  "2. Mission: Undertake a tabletop battle mission.",
+		  "3. Post-Battle Sequence: Resolve long-term consequences such as injuries, deaths, and rewards."
+		]
+	  },
+	  {
+		"title": "Crew Management",
+		"description": "Your crew is the heart of your campaign. Managing their skills, equipment, and well-being is crucial for success.",
+		"aspects": [
+		  "Recruitment: Start with 3-4 main characters and potentially add more over time.",
+		  "Character Development: Characters gain Experience Points (XP) and can improve their abilities.",
+		  "Equipment: Manage your crew's weapons and gear, upgrading when possible.",
+		  "Injuries and Recovery: Handle injuries sustained during missions and manage recovery time."
+		]
+	  },
+	  {
+		"title": "Mission Types",
+		"description": "Missions are the core gameplay element. They can come from various sources and have different objectives.",
+		"types": [
+		  "Patron Jobs: Missions offered by influential individuals or organizations.",
+		  "Opportunity Missions: Self-directed missions to earn credits and reputation.",
+		  "Rival Attacks: Defend against enemies who have a grudge against your crew.",
+		  "Invasion Battles: Large-scale conflicts against invading forces."
+		]
+	  },
+	  {
+		"title": "Travel and Exploration",
+		"description": "Your crew will travel between different worlds, each with its own characteristics and potential dangers.",
+		"elements": [
+		  "Starship Travel: Navigate between worlds, dealing with potential events and hazards.",
+		  "World Traits: Each world has unique traits that affect gameplay and available opportunities.",
+		  "Exploration: Spend time exploring new worlds to uncover opportunities and resources."
+		]
+	  },
+	  {
+		"title": "Economy and Resources",
+		"description": "Managing your crew's finances and resources is crucial for long-term success.",
+		"aspects": [
+		  "Credits: The primary currency, used for equipment, ship maintenance, and more.",
+		  "Story Points: A resource that can be spent to influence events and outcomes.",
+		  "Reputation: Affects your standing with various factions and access to opportunities."
+		]
+	  },
+	  {
+		"title": "Campaign Events",
+		"description": "Random events that occur during your campaign, adding flavor and challenges.",
+		"types": [
+		  "Character Events: Personal occurrences that affect individual crew members.",
+		  "Campaign Events: Larger scale events that impact your entire crew or the game world."
+		]
+	  },
+	  {
+		"title": "Galactic War Progress",
+		"description": "The ongoing conflict that forms the backdrop of your adventures.",
+		"elements": [
+		  "War Progress Tracker: Measures the overall state of the galactic conflict.",
+		  "Invasion Checks: Determine if worlds are at risk of being invaded.",
+		  "Impact on Gameplay: The state of the war affects mission availability and difficulty."
+		]
+	  },
+	  {
+		"title": "Campaign End",
+		"description": "A campaign can end in various ways, depending on your goals and preferences.",
+		"options": [
+		  "Set Number of Turns: Play for a predetermined number of campaign turns.",
+		  "Character-based: Follow a single character until they retire or perish.",
+		  "Story Completion: End the campaign when you feel your crew's story has been told.",
+		  "Victory Conditions: Achieve specific goals, such as amassing wealth or defeating key enemies."
+		]
+	  }
+	]
+  }
+}
