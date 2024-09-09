@@ -8,12 +8,14 @@ var game_state: GameState
 var ui_manager: UIManager
 var combat_manager: CombatManager
 var world_generator: WorldGenerator
+var terrain_generator: TerrainGenerator
 
 func _init(_game_state: GameState, _ui_manager: UIManager):
 	game_state = _game_state
 	ui_manager = _ui_manager
 	combat_manager = CombatManager.new(game_state)
 	world_generator = WorldGenerator.new(game_state)
+	terrain_generator = TerrainGenerator.new(game_state)
 
 func start_new_game():
 	game_state.change_state(GameState.State.CREW_CREATION)
@@ -75,3 +77,14 @@ func sell_equipment(item: Equipment):
 func handle_game_over(victory: bool):
 	ui_manager.show_game_over_screen(victory)
 	game_state_changed.emit(GameState.State.MAIN_MENU)
+
+func generate_battlefield():
+	terrain_generator.generate_terrain()
+	terrain_generator.generate_features()
+	terrain_generator.generate_cover()
+	terrain_generator.generate_loot()
+	terrain_generator.generate_enemies()
+	terrain_generator.generate_npcs()
+	terrain_generator.generate_events()
+	terrain_generator.generate_encounters()
+	terrain_generator.generate_missions()
