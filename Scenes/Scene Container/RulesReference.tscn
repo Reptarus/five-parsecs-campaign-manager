@@ -24,6 +24,7 @@ texture = ExtResource("2_i750e")
 expand_mode = 3
 
 [node name="BackButton" type="Button" parent="."]
+z_index = 1
 layout_mode = 2
 offset_left = 17.0
 offset_top = 12.0
@@ -36,14 +37,12 @@ text = "back button
 "
 
 [node name="VBoxContainer" type="VBoxContainer" parent="."]
-layout_mode = 2
+layout_mode = 0
 offset_right = 2756.0
 offset_bottom = 1444.0
-alignment = 1
 
 [node name="LibraryRows" type="VBoxContainer" parent="VBoxContainer"]
 layout_mode = 2
-alignment = 1
 
 [node name="Row1" type="HBoxContainer" parent="VBoxContainer/LibraryRows"]
 layout_mode = 2

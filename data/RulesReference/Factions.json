@@ -1,0 +1,275 @@
+{
+    "factions": {
+      "description": "Factions are groups or organizations that seek to gain influence and control over the region in which they resides.",
+      "generation": {
+        "quantity": "When creating a new world, generate 1D3+1 Factions",
+        "type_table": [
+          {
+            "roll": "01-10",
+            "type": "Charismatic leader",
+            "influence_mod": 0,
+            "power_mod": 0
+          },
+          {
+            "roll": "11-30",
+            "type": "Merchant cartel",
+            "influence_mod": 1,
+            "power_mod": 0
+          },
+          {
+            "roll": "31-50",
+            "type": "Criminal enterprise",
+            "influence_mod": 0,
+            "power_mod": 1
+          },
+          {
+            "roll": "51-60",
+            "type": "Advocacy group",
+            "influence_mod": 0,
+            "power_mod": 0
+          },
+          {
+            "roll": "61-75",
+            "type": "Political movement",
+            "influence_mod": 0,
+            "power_mod": 1
+          },
+          {
+            "roll": "76-90",
+            "type": "Religious movement",
+            "influence_mod": 1,
+            "power_mod": 0
+          },
+          {
+            "roll": "91-00",
+            "type": "Secretive organization",
+            "influence_mod": 1,
+            "power_mod": 1
+          }
+        ],
+        "attributes": [
+          {
+            "name": "Influence",
+            "description": "A measure of practical size, assets, resources, and public recognition.",
+            "initial_value": "1D3+1"
+          },
+          {
+            "name": "Power",
+            "description": "Indicates how well it can take action against other Factions.",
+            "initial_value": "1D3+1"
+          }
+        ]
+      },
+      "loyalty": {
+        "description": "The relationship between a Faction and a crew is measured by a Loyalty score.",
+        "initial_value": {
+          "new_world": 0,
+          "campaign_start_world": {
+            "one_faction": 1,
+            "others": 0
+          }
+        },
+        "gaining_loyalty": {
+          "description": "If you Win a Faction Job mission, roll 1D6:",
+          "effects": [
+            "If the roll is below your current Loyalty score, it remains the same.",
+            "If the roll is equal to or higher than your current Loyalty score, it is raised by +1 point."
+          ]
+        }
+      },
+      "faction_jobs": {
+        "description": "Before taking your crew tasks, each turn your captain may check for a Faction job.",
+        "availability_check": "Roll 1D6. If the roll is equal to or below the Influence score of the Faction, they have a job available.",
+        "job_type": "Faction jobs are treated as a Patron job, but do not roll for Danger Pay or Benefits.",
+        "difficulty": "Add 1 additional standard opponent to the enemy force you will face."
+      },
+      "faction_favors": {
+        "description": "Your captain may try to call in a favor once per campaign turn.",
+        "process": [
+          "Requires a crew task, can only be done by your captain.",
+          "Roll a D6. If the roll is equal to or below the current Loyalty score, reduce the Loyalty by the die roll, and select one of the favors listed below."
+        ],
+        "favors": [
+          {
+            "name": "Pulling strings",
+            "effect": "Can be used to cancel a Loan enforcement roll or remove an Enforcer, Vigilante, or Bounty Hunter Rival."
+          },
+          {
+            "name": "Monetary help",
+            "effect": "Gain Credits equal to the die roll. Add +1 to the score if the sum is used directly to pay off debts or medical expenses."
+          },
+          {
+            "name": "Contact network",
+            "effect": "You may either roll up a Patron that offers a job or opt to take a Salvage job."
+          },
+          {
+            "name": "Arrange a meeting",
+            "effect": "Roll up a new crew member using the start-of-campaign process. They will assist you for one mission. If you win, they will offer to join you permanently for a one-time payment of 1D6 Credits."
+          },
+          {
+            "name": "Provide cover",
+            "effect": "You cannot be attacked by any Rivals this turn."
+          },
+          {
+            "name": "Access to information",
+            "effect": "Gain Quest Clues equal to Influence this turn."
+          }
+        ]
+      },
+      "faction_activities": {
+        "description": "During the Check for Invasion step of each campaign turn, the Factions will perform activities if the world is not currently being invaded.",
+        "trigger": "If you did a job directly for a Faction, always perform the Faction Struggle event.",
+        "activity_table": [
+          {
+            "roll": "01-10",
+            "activity": "Consolidate power base",
+            "effect": "Roll 1D6. If it is higher than Power, the faction gains +1 power."
+          },
+          {
+            "roll": "11-15",
+            "activity": "Undermine Faction",
+            "effect": "Target a Faction. Roll 1D6. If the roll is a 5-6, decrease their highest score by -1 (deciding randomly, if equal)."
+          },
+          {
+            "roll": "16-20",
+            "activity": "Hostile take-over",
+            "effect": "Target a Faction. Roll 1D6. If the roll is higher than their Influence, adjust target Influence by -1 and initiator Influence by +1.",
+            "requirements": "Influence 3+"
+          },
+          {
+            "roll": "21-30",
+            "activity": "Public relations campaign",
+            "effect": "Roll 1D6. If higher than Influence, it increases by +1."
+          },
+          {
+            "roll": "31-45",
+            "activity": "Capitalize on events",
+            "effect": "Add +1 to lowest of Influence and Power (deciding randomly, if equal)",
+            "requirements": "Successful job this turn"
+          },
+          {
+            "roll": "46-55",
+            "activity": "Lay low",
+            "effect": "No actions are taken"
+          },
+          {
+            "roll": "56-60",
+            "activity": "Defensive posture",
+            "effect": "No actions are taken. The Faction negates any hostile action taken against it this campaign turn.",
+            "requirements": "Power 3+"
+          },
+          {
+            "roll": "61-75",
+            "activity": "Faction struggle",
+            "effect": "The faction initiates a struggle with another random faction. Roll 1D6+Power for each, adding +1 for a successful job this turn. The defeated Faction suffers -1 from the highest of Power or Influence (deciding randomly if equal).",
+            "requirements": "Power 3+"
+          },
+          {
+            "roll": "76-80",
+            "activity": "Office party",
+            "effect": "Crew gain Credits equal to their Loyalty rating"
+          },
+          {
+            "roll": "81-90",
+            "activity": "Plans within plans",
+            "effect": "Crew offered a Quest.",
+            "requirements": "Influence 3+"
+          },
+          {
+            "roll": "91-00",
+            "activity": "Day to day operations",
+            "effect": "Crew offered a job next turn."
+          }
+        ]
+      },
+      "faction_events": {
+        "description": "After rolling for crew and campaign events, roll D100 on this table for a Faction event.",
+        "table": [
+          {
+            "roll": "01-07",
+            "event": "New Faction",
+            "effect": "A new Faction emerges. Generate it from scratch but roll only 1D3 for Power and Influence. It automatically offers you a job next turn."
+          },
+          {
+            "roll": "08-14",
+            "event": "Shoot out",
+            "effect": "Two Factions are having it out in the streets. Randomly select both and roll 1D6+Power. The loser cannot offer a job next turn and cannot attempt any activity. They suffer -1 from their highest value of Power or Influence (Power, if equal)."
+          },
+          {
+            "roll": "15-19",
+            "event": "Tensions rising",
+            "effect": "Faction jobs next turn increase Danger Pay by +1 Credit."
+          },
+          {
+            "roll": "20-27",
+            "event": "Truce",
+            "effect": "Calm reigns. Next turn, no Faction activities occur."
+          },
+          {
+            "roll": "28-34",
+            "event": "Power base",
+            "effect": "A random Faction increases the lowest of its scores by +1. Select randomly, if equal."
+          },
+          {
+            "roll": "35-42",
+            "event": "Tip off",
+            "effect": "A random Faction grants you a Quest Clue in the hope of future favors."
+          },
+          {
+            "roll": "43-49",
+            "event": "Befriending the leadership",
+            "effect": "The Faction you have the highest loyalty towards is getting chummy. Add +1 Story Point."
+          },
+          {
+            "roll": "50-55",
+            "event": "New Leadership",
+            "effect": "A random Faction has a new person in charge. Roll 1D6 for each of Influence and Power: A 1 indicates the score suffers a -1 drop, while a 6 indicates it increases by +1."
+          },
+          {
+            "roll": "56-60",
+            "event": "Outside interference",
+            "effect": "A random Faction must roll 1D6. If the roll exceeds Power, it suffers -1 Influence."
+          },
+          {
+            "roll": "61-65",
+            "event": "Internal struggle",
+            "effect": "A random Faction must roll 1D6. On a 1, it suffers -1 Influence. On a 6, it suffers -1 Power."
+          },
+          {
+            "roll": "66-72",
+            "event": "Public display of support",
+            "effect": "A random Faction gains +1 Influence."
+          },
+          {
+            "roll": "73-79",
+            "event": "Armed to the teeth",
+            "effect": "A random Faction gains +1 Power."
+          },
+          {
+            "roll": "80-87",
+            "event": "A little visit",
+            "effect": "If you participated in an attack on a Faction this or last turn, they send an Enforcer Rival after you."
+          },
+          {
+            "roll": "88-93",
+            "event": "We thought we would do you a favor",
+            "effect": "Do you have 3+ Loyalty? If so, a random Faction you are loyal to eliminates one of your Rivals."
+          },
+          {
+            "roll": "94-00",
+            "event": "Dark secrets",
+            "effect": "A random Faction sends you on a Quest targeting one of their enemies. If you complete it successfully, the target Faction suffers -1 Influence and -1 Power. You receive +2 Loyalty for completing the Quest."
+          }
+        ]
+      },
+      "faction_destruction": {
+        "description": "If either Power or Influence is reduced to 0, the Faction ceases to exist.",
+        "effects": [
+          "All Loyalty is removed.",
+          "If a Faction was destroyed by a Faction Struggle and you had Loyalty of 4+ to the winner, you receive a Rival (from the Hired Muscle table) as vengeful elements of the defeated Faction go after you to settle some scores.",
+          "If you took a Faction job for the winner in the same battle round, add +2 Loyalty.",
+          "Every time a Faction is destroyed, every remaining Faction rolls 1D6+Power. The highest score gains +1 Influence (on a draw, both receive +1 Influence)."
+        ]
+      }
+    }
+  }
