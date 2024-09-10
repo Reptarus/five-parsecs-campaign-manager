@@ -1,6 +1,7 @@
-[gd_scene load_steps=2 format=3 uid="uid://b5rumvu1ohj4q"]
+[gd_scene load_steps=3 format=3 uid="uid://b5rumvu1ohj4q"]
 
-[ext_resource type="Script" path="res://Scenes/Management/CrewManagement.gd" id="1_c1w2h"]
+[ext_resource type="Script" path="res://scenes/Management/CrewManagement.gd" id="1_c1w2h"]
+[ext_resource type="PackedScene" path="res://scenes/CustomizePanel.tscn" id="2_d3f4g"]
 
 [node name="CrewManagement" type="Control"]
 layout_mode = 3
@@ -11,19 +12,67 @@ grow_horizontal = 2
 grow_vertical = 2
 script = ExtResource("1_c1w2h")
 
-[node name="MarginContainer" type="MarginContainer" parent="."]
-layout_mode = 0
-offset_right = 40.0
-offset_bottom = 40.0
+[node name="VBoxContainer" type="VBoxContainer" parent="."]
+layout_mode = 1
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
 
-[node name="VBoxContainer" type="VBoxContainer" parent="MarginContainer"]
+[node name="Label" type="Label" parent="VBoxContainer"]
+layout_mode = 2
+text = "Crew Management"
+horizontal_alignment = 1
+
+[node name="HBoxContainer" type="HBoxContainer" parent="VBoxContainer"]
+layout_mode = 2
+size_flags_vertical = 3
+
+[node name="CrewList" type="ItemList" parent="VBoxContainer/HBoxContainer"]
+layout_mode = 2
+size_flags_horizontal = 3
+
+[node name="CharacterSheet" type="Panel" parent="VBoxContainer/HBoxContainer"]
+layout_mode = 2
+size_flags_horizontal = 3
+size_flags_stretch_ratio = 2.0
+
+[node name="EditStatsButton" type="Button" parent="VBoxContainer/HBoxContainer/CharacterSheet"]
+layout_mode = 2
+text = "Edit Stats"
+
+[node name="EditEquipmentButton" type="Button" parent="VBoxContainer/HBoxContainer/CharacterSheet"]
+layout_mode = 2
+text = "Edit Equipment"
+
+[node name="SaveChangesButton" type="Button" parent="VBoxContainer/HBoxContainer/CharacterSheet"]
+layout_mode = 2
+text = "Save Changes"
+
+[node name="ButtonsContainer" type="HBoxContainer" parent="VBoxContainer"]
 layout_mode = 2
 
-[node name="EditStatsButton" type="Button" parent="MarginContainer/VBoxContainer"]
+[node name="GenerateRandomButton" type="Button" parent="VBoxContainer/ButtonsContainer"]
 layout_mode = 2
+text = "Generate Random Crew"
 
-[node name="EditEquipmentButton" type="Button" parent="MarginContainer/VBoxContainer"]
+[node name="CustomizeButton" type="Button" parent="VBoxContainer/ButtonsContainer"]
 layout_mode = 2
+text = "Customize Selected"
 
-[node name="SaveChangesButton" type="Button" parent="MarginContainer/VBoxContainer"]
+[node name="RerollButton" type="Button" parent="VBoxContainer/ButtonsContainer"]
 layout_mode = 2
+text = "Reroll Selected"
+
+[node name="ConfirmCrewButton" type="Button" parent="VBoxContainer/ButtonsContainer"]
+layout_mode = 2
+text = "Confirm Crew"
+
+[node name="BackButton" type="Button" parent="VBoxContainer"]
+layout_mode = 2
+text = "Back to Dashboard"
+
+[node name="CustomizePanel" parent="." instance=ExtResource("2_d3f4g")]
+visible = false
+layout_mode = 1

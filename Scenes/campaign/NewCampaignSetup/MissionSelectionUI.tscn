@@ -1,6 +1,7 @@
-[gd_scene load_steps=3 format=3 uid="uid://ddmexnm0dog68"]
+[gd_scene load_steps=4 format=3 uid="uid://ddmexnm0dog68"]
 
 [ext_resource type="Texture2D" uid="uid://bm6c4rx645ove" path="res://assets/BookImages/Nov_23_Sunset2_.png" id="1_u2h7e"]
+[ext_resource type="Script" path="res://scenes/MissionSelection.gd" id="1_ib26y"]
 
 [sub_resource type="Theme" id="Theme_x6od6"]
 
@@ -12,6 +13,7 @@ anchor_bottom = 1.0
 grow_horizontal = 2
 grow_vertical = 2
 theme = SubResource("Theme_x6od6")
+script = ExtResource("1_ib26y")
 
 [node name="TextureRect" type="TextureRect" parent="."]
 layout_mode = 1
@@ -23,15 +25,15 @@ grow_vertical = 2
 texture = ExtResource("1_u2h7e")
 expand_mode = 3
 
-[node name="Button" type="Button" parent="."]
-layout_mode = 0
-offset_left = 40.0
-offset_top = 27.0
-offset_right = 104.0
-offset_bottom = 58.0
-text = "<<Back"
+[node name="Panel" type="Panel" parent="."]
+layout_mode = 1
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
 
-[node name="MarginContainer" type="MarginContainer" parent="."]
+[node name="MarginContainer" type="MarginContainer" parent="Panel"]
 layout_mode = 1
 anchors_preset = 15
 anchor_right = 1.0
@@ -43,14 +45,43 @@ theme_override_constants/margin_top = 100
 theme_override_constants/margin_right = 100
 theme_override_constants/margin_bottom = 100
 
-[node name="MissionPicks" type="HBoxContainer" parent="MarginContainer"]
+[node name="VBoxContainer" type="VBoxContainer" parent="Panel/MarginContainer"]
 layout_mode = 2
 
-[node name="MissionBrief" type="VBoxContainer" parent="MarginContainer/MissionPicks"]
+[node name="Label" type="Label" parent="Panel/MarginContainer/VBoxContainer"]
 layout_mode = 2
+text = "Available Missions"
+horizontal_alignment = 1
 
-[node name="PanelContainer" type="PanelContainer" parent="MarginContainer/MissionPicks/MissionBrief"]
+[node name="HBoxContainer" type="HBoxContainer" parent="Panel/MarginContainer/VBoxContainer"]
 layout_mode = 2
+size_flags_vertical = 3
 
-[node name="TextureRect" type="TextureRect" parent="MarginContainer/MissionPicks/MissionBrief/PanelContainer"]
+[node name="MissionList" type="ItemList" parent="Panel/MarginContainer/VBoxContainer/HBoxContainer"]
 layout_mode = 2
+size_flags_horizontal = 3
+
+[node name="MissionDetails" type="RichTextLabel" parent="Panel/MarginContainer/VBoxContainer/HBoxContainer"]
+layout_mode = 2
+size_flags_horizontal = 3
+size_flags_stretch_ratio = 2.0
+
+[node name="ButtonContainer" type="HBoxContainer" parent="Panel/MarginContainer/VBoxContainer"]
+layout_mode = 2
+alignment = 1
+
+[node name="AcceptButton" type="Button" parent="Panel/MarginContainer/VBoxContainer/ButtonContainer"]
+layout_mode = 2
+text = "Accept Mission"
+
+[node name="CloseButton" type="Button" parent="Panel/MarginContainer/VBoxContainer/ButtonContainer"]
+layout_mode = 2
+text = "Close"
+
+[node name="BackButton" type="Button" parent="."]
+layout_mode = 0
+offset_left = 40.0
+offset_top = 27.0
+offset_right = 104.0
+offset_bottom = 58.0
+text = "<<Back"

@@ -1,37 +1,40 @@
-class_name MissionSelection
+# MissionSelection.gd
 extends Control
 
-signal mission_selected(mission: Mission)
-
 var game_state: GameState
-var available_missions: Array[Mission] = []
 
-@onready var mission_list: ItemList = $MissionList
-@onready var mission_details: RichTextLabel = $MissionDetails
-@onready var accept_button: Button = $AcceptButton
+@onready var mission_list: ItemList = $Panel/VBoxContainer/MissionList
+@onready var mission_details: RichTextLabel = $Panel/VBoxContainer/MissionDetails
+@onready var accept_button: Button = $Panel/VBoxContainer/AcceptButton
+@onready var close_button: Button = $Panel/VBoxContainer/CloseButton
 
 func _ready() -> void:
-	mission_list.item_selected.connect(_on_mission_selected)
-	accept_button.pressed.connect(_on_accept_pressed)
+	mission_list.connect("item_selected", Callable(self, "_on_mission_selected"))
+	accept_button.connect("pressed", Callable(self, "_on_accept_pressed"))
+	close_button.connect("pressed", Callable(self, "_on_close_pressed"))
 
-func initialize(p_game_state: GameState) -> void:
-	game_state = p_game_state
-	refresh_mission_list()
+func set_game_state(state: GameState) -> void:
+	game_state = state
+	populate_mission_list()
 
-func refresh_mission_list() -> void:
-	available_missions = game_state.get_available_missions()
+func populate_mission_list() -> void:
 	mission_list.clear()
-	for mission in available_missions:
+	for mission in game_state.available_missions:
 		mission_list.add_item(mission.title)
 
 func _on_mission_selected(index: int) -> void:
-	var selected_mission = available_missions[index]
+	var selected_mission = game_state.available_missions[index]
 	mission_details.text = _format_mission_details(selected_mission)
 	accept_button.disabled = false
 
 func _on_accept_pressed() -> void:
 	var selected_index = mission_list.get_selected_items()[0]
-	emit_signal("mission_selected", available_missions[selected_index])
+	game_state.current_mission = game_state.available_missions[selected_index]
+	game_state.remove_mission(game_state.current_mission)
+	get_tree().root.get_node("Main").goto_scene("res://scenes/PreBattle.tscn")
+
+func _on_close_pressed() -> void:
+	queue_free()
 
 func _format_mission_details(mission: Mission) -> String:
 	return """

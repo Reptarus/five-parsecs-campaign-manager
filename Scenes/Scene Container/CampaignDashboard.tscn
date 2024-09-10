@@ -1,6 +1,6 @@
 [gd_scene load_steps=2 format=3 uid="uid://da60mmlok38fq"]
 
-[ext_resource type="Script" path="res://Scenes/campaign/scripts/CampaignDashboard.gd" id="1_0ikrh"]
+[ext_resource type="Script" path="res://scenes/campaign/scripts/CampaignDashboard.gd" id="1_0ikrh"]
 
 [node name="CampaignDashboard" type="Control"]
 layout_mode = 3
@@ -11,24 +11,50 @@ grow_horizontal = 2
 grow_vertical = 2
 script = ExtResource("1_0ikrh")
 
-[node name="MarginContainer" type="MarginContainer" parent="."]
-offset_right = 40.0
-offset_bottom = 40.0
+[node name="VBoxContainer" type="VBoxContainer" parent="."]
+layout_mode = 1
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
 
-[node name="VBoxContainer" type="VBoxContainer" parent="MarginContainer"]
+[node name="TurnLabel" type="Label" parent="VBoxContainer"]
 layout_mode = 2
+text = "Turn: 1"
 
-[node name="StartTurnButton" type="Button" parent="MarginContainer/VBoxContainer"]
+[node name="CreditsLabel" type="Label" parent="VBoxContainer"]
 layout_mode = 2
+text = "Credits: 0"
 
-[node name="CrewManagementButton" type="Button" parent="MarginContainer/VBoxContainer"]
+[node name="StoryPointsLabel" type="Label" parent="VBoxContainer"]
 layout_mode = 2
+text = "Story Points: 0"
 
-[node name="ShipInventoryButton" type="Button" parent="MarginContainer/VBoxContainer"]
+[node name="StartTurnButton" type="Button" parent="VBoxContainer"]
 layout_mode = 2
+text = "Start Turn"
 
-[node name="LogbookButton" type="Button" parent="MarginContainer/VBoxContainer"]
+[node name="MissionButton" type="Button" parent="VBoxContainer"]
 layout_mode = 2
+text = "Available Missions"
 
-[node name="MainMenuButton" type="Button" parent="MarginContainer/VBoxContainer"]
+[node name="CrewManagementButton" type="Button" parent="VBoxContainer"]
 layout_mode = 2
+text = "Crew Management"
+
+[node name="ShipManagementButton" type="Button" parent="VBoxContainer"]
+layout_mode = 2
+text = "Ship Management"
+
+[node name="SaveButton" type="Button" parent="VBoxContainer"]
+layout_mode = 2
+text = "Save Game"
+
+[node name="LoadButton" type="Button" parent="VBoxContainer"]
+layout_mode = 2
+text = "Load Game"
+
+[node name="QuitButton" type="Button" parent="VBoxContainer"]
+layout_mode = 2
+text = "Quit to Main Menu"

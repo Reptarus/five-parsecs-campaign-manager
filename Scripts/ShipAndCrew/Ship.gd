@@ -28,12 +28,6 @@ func remove_component(component: ShipComponent) -> void:
 func get_component(type: ShipComponent.ComponentType) -> ShipComponent:
 	return components.filter(func(c): return c.component_type == type).front()
 
-func take_damage(amount: int) -> void:
-	var hull := get_component(ShipComponent.ComponentType.HULL) as HullComponent
-	if hull:
-		hull.take_damage(amount)
-		component_damaged.emit(hull)
-
 func repair_component(component: ShipComponent, amount: int) -> void:
 	component.repair(amount)
 	component_repaired.emit(component)
@@ -61,3 +55,23 @@ static func deserialize(data: Dictionary) -> Ship:
 	ship.total_power = data["total_power"]
 	ship.available_power = data["available_power"]
 	return ship
+
+# Add these methods to the Ship class
+
+func engage_in_combat(enemy_ship: Ship):
+	# Placeholder for ship combat logic
+	pass
+
+func take_damage(amount: int):
+	var hull = get_component(ShipComponent.ComponentType.HULL) as HullComponent
+	if hull:
+		hull.take_damage(amount)
+		if hull.is_destroyed():
+			# Handle ship destruction
+			pass
+
+func fire_weapons(target: Ship):
+	var weapons = get_component(ShipComponent.ComponentType.WEAPONS) as WeaponsComponent
+	if weapons:
+		var damage = weapons.calculate_damage()
+		target.take_damage(damage)

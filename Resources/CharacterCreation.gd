@@ -14,6 +14,11 @@ var character_data: Dictionary
 	"savvy": $CrewStatsAndInfo/StatDistribution/Savvy/SavvySpinBox,
 	"luck": $CrewStatsAndInfo/StatDistribution/Luck/LuckSpinBox
 }
+@onready var name_input: LineEdit = $CrewStatsAndInfo/NameEntry/NameInput
+@onready var random_button: Button = $CrewStatsAndInfo/SpeciesSelection/RandomSpeciesButton
+@onready var clear_button: Button = $CrewPictureAndStats/PictureandBMCcontrols/HBoxContainer/Clear
+@onready var save_button: Button = $CrewPictureAndStats/PictureandBMCcontrols/HBoxContainer/Save
+@onready var finish_button: Button = $FinishButton
 
 func _ready() -> void:
 	randomize()
@@ -53,6 +58,10 @@ func connect_signals():
 	background_option.item_selected.connect(update_character_info)
 	motivation_option.item_selected.connect(update_character_info)
 	class_option.item_selected.connect(update_character_info)
+	random_button.pressed.connect(_on_random_button_pressed)
+	clear_button.pressed.connect(_on_clear_button_pressed)
+	save_button.pressed.connect(_on_save_pressed)
+	finish_button.pressed.connect(_on_finish_pressed)
 
 func update_character_info() -> void:
 	var selected_race: Dictionary = character_data.races[species_option.get_selected_id()]
@@ -66,9 +75,6 @@ func update_character_info() -> void:
 func update_stats(race: Dictionary) -> void:
 	for stat in stat_spinboxes:
 		stat_spinboxes[stat].value = race.base_stats.get(stat, 0)
-
-func _init():
-	pass
 
 func update_info_box(race, background, motivation, character_class):
 	var info_text = """
@@ -135,8 +141,17 @@ func _on_random_button_pressed():
 	update_character_info()
 
 func _on_clear_button_pressed():
-	species_option.selected = 0  # Assuming Human is the first option
+	species_option.selected = 0
 	background_option.selected = 0
 	motivation_option.selected = 0
 	class_option.selected = 0
+	name_input.text = ""
 	update_character_info()
+
+func _on_save_pressed():
+	# Implement save functionality
+	pass
+
+func _on_finish_pressed():
+	# Implement finish creation functionality
+	pass

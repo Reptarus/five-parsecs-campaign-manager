@@ -8,6 +8,14 @@ const BASE_SHIP_COST: int = 1000
 var game_state: GameState
 var ship_components: Dictionary
 
+@onready var hull_option: OptionButton = $VBoxContainer/ComponentsContainer/HullOption
+@onready var engine_option: OptionButton = $VBoxContainer/ComponentsContainer/EngineOption
+@onready var weapon_option: OptionButton = $VBoxContainer/ComponentsContainer/WeaponOption
+@onready var medical_option: OptionButton = $VBoxContainer/ComponentsContainer/MedicalOption
+@onready var ship_info_label: Label = $VBoxContainer/ShipInfoLabel
+@onready var create_ship_button: Button = $VBoxContainer/CreateShipButton
+@onready var back_button: Button = $VBoxContainer/BackButton
+
 func _init(_game_state: GameState):
 	game_state = _game_state
 	load_ship_components()
@@ -182,3 +190,62 @@ func load_ship_design(design_name: String) -> Ship:
 	
 	push_error("Failed to load ship design: " + design_name)
 	return null
+
+func _ready():
+	load_ship_components()
+	populate_component_options()
+	connect_signals()
+
+func populate_component_options():
+	for component_type in ship_components:
+		var option_button = get_node("VBoxContainer/ComponentsContainer/" + component_type.capitalize() + "Option")
+		for component in ship_components[component_type]:
+			option_button.add_item(component.name)
+
+func connect_signals():
+	hull_option.connect("item_selected", _on_component_selected.bind("hull"))
+	engine_option.connect("item_selected", _on_component_selected.bind("engine"))
+	weapon_option.connect("item_selected", _on_component_selected.bind("weapon"))
+	medical_option.connect("item_selected", _on_component_selected.bind("medical"))
+	create_ship_button.connect("pressed", _on_create_ship_pressed)
+	back_button.connect("pressed", _on_back_pressed)
+
+func _on_component_selected(index: int, component_type: String):
+	update_ship_info()
+
+func update_ship_info():
+	var total_cost = BASE_SHIP_COST
+	var total_power = BASE_SHIP_POWER
+	var ship_info = "Ship Information:\n"
+
+	for component_type in ["hull", "engine", "weapon", "medical"]:
+		var option_button = get_node("VBoxContainer/ComponentsContainer/" + component_type.capitalize() + "Option")
+		var selected_component = ship_components[component_type + "_components"][option_button.selected]
+		total_cost += selected_component.cost
+		total_power -= selected_component.power_usage
+		ship_info += component_type.capitalize() + ": " + selected_component.name + "\n"
+
+	ship_info += "Total Cost: " + str(total_cost) + " credits\n"
+	ship_info += "Available Power: " + str(total_power)
+	ship_info_label.text = ship_info
+
+func _on_create_ship_pressed():
+	var new_ship = Ship.new()
+	new_ship.name = "Custom Ship"  # You might want to add a name input field
+	
+	for component_type in ["hull", "engine", "weapon", "medical"]:
+		var option_button = get_node("VBoxContainer/ComponentsContainer/" + component_type.capitalize() + "Option")
+		var selected_component = ship_components[component_type + "_components"][option_button.selected]
+		new_ship.add_component(create_component_from_data(selected_component))
+
+	if game_state.current_crew.credits >= get_ship_cost(new_ship):
+		game_state.current_crew.remove_credits(get_ship_cost(new_ship))
+		game_state.current_crew.ship = new_ship
+		print("Ship created successfully!")
+		# TODO: Transition to the next scene or update UI
+	else:
+		print("Not enough credits to create the ship!")
+
+func _on_back_pressed():
+	# TODO: Implement navigation back to the previous scene
+	pass

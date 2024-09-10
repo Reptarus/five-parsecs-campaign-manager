@@ -23,16 +23,16 @@ var mission_generator: MissionGenerator
 var equipment_manager: EquipmentManager
 var patron_job_manager: PatronJobManager
 
-func _init():
+func _init() -> void:
 	mission_generator = MissionGenerator.new()
 	equipment_manager = EquipmentManager.new()
 	patron_job_manager = PatronJobManager.new()
 
-func change_state(new_state: State):
+func change_state(new_state: State) -> void:
 	current_state = new_state
 	state_changed.emit(new_state)
 
-func add_credits(amount: int):
+func add_credits(amount: int) -> void:
 	credits += amount
 
 func remove_credits(amount: int) -> bool:
@@ -41,7 +41,7 @@ func remove_credits(amount: int) -> bool:
 		return true
 	return false
 
-func add_story_point():
+func add_story_point() -> void:
 	story_points += 1
 
 func use_story_point() -> bool:
@@ -50,38 +50,31 @@ func use_story_point() -> bool:
 		return true
 	return false
 
-func advance_turn():
+func advance_turn() -> void:
 	campaign_turn += 1
 
-func add_mission(mission: Mission):
+func add_mission(mission: Mission) -> void:
 	available_missions.append(mission)
 
-func remove_mission(mission: Mission):
+func remove_mission(mission: Mission) -> void:
 	available_missions.erase(mission)
 
-func add_quest(quest: Quest):
+func add_quest(quest: Quest) -> void:
 	active_quests.append(quest)
 
-func remove_quest(quest: Quest):
+func remove_quest(quest: Quest) -> void:
 	active_quests.erase(quest)
 
-func add_patron(patron: Patron):
+func add_patron(patron: Patron) -> void:
 	patrons.append(patron)
 
-func remove_patron(patron: Patron):
+func remove_patron(patron: Patron) -> void:
 	patrons.erase(patron)
 
-func add_rival(rival: Rival):
+func add_rival(rival: Rival) -> void:
 	rivals.append(rival)
 
-# In GameState.gd
-func find_rival_by_name(name: String) -> Rival:
-	for rival in rivals:
-		if rival.name == name:
-			return rival
-	return null
-
-func remove_rival(rival: Rival):
+func remove_rival(rival: Rival) -> void:
 	rivals.erase(rival)
 
 func serialize() -> Dictionary:
