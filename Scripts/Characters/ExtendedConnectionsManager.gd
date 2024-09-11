@@ -44,6 +44,120 @@ func _roll_duration(duration_string: String) -> int:
 	return total + bonus
 
 func apply_connection_effect(connection: Dictionary):
-	# Implement logic to apply connection effects
-	# This will depend on how your game state and faction systems are set up
-	pass
+	match connection["type"]:
+		"Psionic":
+			apply_psionic_connection_effect(connection)
+		"Faction":
+			apply_faction_connection_effect(connection)
+		"Equipment":
+			apply_equipment_connection_effect(connection)
+		_:
+			# For general connections
+			for effect in connection["effects"]:
+				match effect["type"]:
+					"modify_stat":
+						game_state.modify_character_stat(effect["stat"], effect["value"])
+					"add_ability":
+						game_state.add_character_ability(effect["ability"])
+					"modify_resource":
+						game_state.modify_resource(effect["resource"], effect["value"])
+					"trigger_event":
+						game_state.trigger_event(effect["event"])
+	
+	# Apply duration
+	game_state.add_active_connection(connection)
+
+func generate_psionic_connection() -> Dictionary:
+	var psionic_connections = connections_data["psionic_connections"]
+	var psionic_connection = psionic_connections[randi() % psionic_connections.size()]
+	var duration = _roll_duration(psionic_connection["duration"])
+	return {
+		"type": "Psionic " + psionic_connection["name"],
+		"description": psionic_connection["description"],
+		"effects": psionic_connection["effects"],
+		"duration": duration,
+		"psionic_power": psionic_connection["psionic_power"]
+	}
+
+func apply_psionic_connection_effect(connection: Dictionary):
+	# Implement logic to apply psionic connection effects
+	var psionic_power = connection["psionic_power"]
+	game_state.add_psionic_power(psionic_power)
+
+func generate_faction_connection() -> Dictionary:
+	var faction_connections = connections_data["faction_connections"]
+	var connection = faction_connections[randi() % faction_connections.size()]
+	var duration = _roll_duration(connection["duration"])
+	
+	return {
+		"type": "Faction " + connection["name"],
+		"description": connection["description"],
+		"effects": connection["effects"],
+			"duration": duration,
+			"faction": connection["faction"]
+	}
+
+func apply_faction_connection_effect(connection: Dictionary):
+	# Implement logic to apply faction connection effects
+	var faction = connection["faction"]
+	game_state.modify_faction_standing(faction, connection["effects"]["standing_change"])
+
+func generate_equipment_connection() -> Dictionary:
+	var equipment_connections = connections_data["equipment_connections"]
+	var connection = equipment_connections[randi() % equipment_connections.size()]
+	var duration = _roll_duration(connection["duration"])
+	
+	return {
+		"type": "Equipment " + connection["name"],
+		"description": connection["description"],
+		"effects": connection["effects"],
+		"duration": duration,
+		"equipment": connection["equipment"]
+	}
+
+func apply_equipment_connection_effect(connection: Dictionary):
+	var equipment = connection["equipment"]
+	if equipment is String:
+		game_state.add_equipment(equipment)
+	elif equipment is Dictionary:
+		for item_name in equipment:
+			var item_details = equipment[item_name]
+			if item_details.has("quantity"):
+				for i in range(item_details["quantity"]):
+					game_state.add_equipment(item_name)
+			else:
+				game_state.add_equipment(item_name)
+	
+	if connection["effects"].has("training"):
+		var training = connection["effects"]["training"]
+		game_state.add_training(training)
+	
+	if connection["effects"].has("bot_upgrade"):
+		var bot_upgrade = connection["effects"]["bot_upgrade"]
+		game_state.apply_bot_upgrade(bot_upgrade)
+	
+	if connection["effects"].has("ship_part"):
+		var ship_part = connection["effects"]["ship_part"]
+		game_state.add_ship_part(ship_part)
+	
+	if connection["effects"].has("psionic_equipment"):
+		var psionic_equipment = connection["effects"]["psionic_equipment"]
+		game_state.add_psionic_equipment(psionic_equipment)
+
+func generate_military_connection() -> Dictionary:
+	var military_connections = connections_data["military_connections"]
+	var connection = military_connections[randi() % military_connections.size()]
+	var duration = _roll_duration(connection["duration"])
+	
+	return {
+		"type": "Military " + connection["name"],
+		"description": connection["description"],
+		"effects": connection["effects"],
+		"duration": duration,
+		"military_bonus": connection["military_bonus"]
+	}
+
+func apply_military_connection_effect(connection: Dictionary):
+	# Implement logic to apply military connection effects
+	var military_bonus = connection["military_bonus"]
+	game_state.apply_military_bonus(military_bonus)

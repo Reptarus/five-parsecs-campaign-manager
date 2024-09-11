@@ -19,6 +19,7 @@ var character_data: Dictionary
 @onready var clear_button: Button = $CrewPictureAndStats/PictureandBMCcontrols/HBoxContainer/Clear
 @onready var save_button: Button = $CrewPictureAndStats/PictureandBMCcontrols/HBoxContainer/Save
 @onready var finish_button: Button = $FinishButton
+@onready var psionic_option: CheckBox = $CrewStatsAndInfo/PsionicOption/PsionicCheckBox
 
 func _ready() -> void:
 	randomize()
@@ -62,6 +63,7 @@ func connect_signals():
 	clear_button.pressed.connect(_on_clear_button_pressed)
 	save_button.pressed.connect(_on_save_pressed)
 	finish_button.pressed.connect(_on_finish_pressed)
+	psionic_option.pressed.connect(update_character_info)
 
 func update_character_info() -> void:
 	var selected_race: Dictionary = character_data.races[species_option.get_selected_id()]
@@ -71,6 +73,7 @@ func update_character_info() -> void:
 
 	update_stats(selected_race)
 	update_info_box(selected_race, selected_background, selected_motivation, selected_class)
+	update_psionic_info(psionic_option.pressed)
 
 func update_stats(race: Dictionary) -> void:
 	for stat in stat_spinboxes:
@@ -149,9 +152,25 @@ func _on_clear_button_pressed():
 	update_character_info()
 
 func _on_save_pressed():
-	# Implement save functionality
-	pass
+	var character = Character.new()
+	character.is_psionic = psionic_option.pressed
+	if character.is_psionic:
+		character.psionic_manager = PsionicManager.new()
+		character.psionic_manager.generate_starting_powers()
+		character.psionic_powers = character.psionic_manager.powers
+	# ... save the character ...
 
 func _on_finish_pressed():
 	# Implement finish creation functionality
 	pass
+
+func update_psionic_info(is_psionic: bool) -> void:
+	if is_psionic:
+		var psionic_manager = PsionicManager.new()
+		psionic_manager.generate_starting_powers()
+		info_box.text += "\n\nPsionic Powers: " + ", ".join(psionic_manager.powers)
+	else:
+		# Remove psionic information if it exists
+		var psionic_index = info_box.text.find("\n\nPsionic Powers:")
+		if psionic_index != -1:
+			info_box.text = info_box.text.substr(0, psionic_index)

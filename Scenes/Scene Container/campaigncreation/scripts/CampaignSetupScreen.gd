@@ -1,6 +1,6 @@
 extends Control
 
-const DifficultySettings = preload("res://Scenes/Scene Container/campaigncreation/scripts/DifficultySettings.gd")
+const DifficultySettingsResource = preload("res://Scenes/Scene Container/campaigncreation/scripts/DifficultySettings.gd")
 
 @onready var crew_name_input = $VBoxContainer/CrewNameInput
 @onready var difficulty_option_button = $VBoxContainer/DifficultyOptionButton
@@ -9,10 +9,10 @@ const DifficultySettings = preload("res://Scenes/Scene Container/campaigncreatio
 @onready var start_campaign_button = $VBoxContainer/StartCampaignButton
 
 var game_state: GameState
-var difficulty_settings: DifficultySettings
+var difficulty_settings: DifficultySettingsResource
 
 func _ready():
-	difficulty_settings = DifficultySettings.new()
+	difficulty_settings = DifficultySettingsResource.new()
 	
 	difficulty_option_button.add_item("Easy", DifficultySettings.DifficultyLevel.EASY)
 	difficulty_option_button.add_item("Normal", DifficultySettings.DifficultyLevel.NORMAL)

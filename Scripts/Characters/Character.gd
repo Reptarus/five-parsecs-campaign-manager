@@ -36,6 +36,9 @@ signal killed
 @export var max_health: int = 10
 @export var is_aiming: bool = false
 @export var current_location: Location = null
+@export var psionic_manager: PsionicManager = null
+@export var is_psionic: bool = false
+@export var psionic_powers: Array[String] = []
 
 var inventory: CharacterInventory
 var recover_time: int = 0
@@ -43,6 +46,39 @@ var became_casualty: bool = false
 var killed_unique_individual: bool = false
 var faction_standings: Dictionary = {}
 var status_effects: Array[StatusEffect] = []
+
+# Add these new properties
+
+
+# Add these new methods
+func is_enemy(other: Character) -> bool:
+	# Implement logic to determine if 'other' is an enemy
+	pass
+
+func is_ally(other: Character) -> bool:
+	# Implement logic to determine if 'other' is an ally
+	pass
+
+func is_in_cover() -> bool:
+	# Implement logic to determine if the character is in cover
+	pass
+
+# Update the serialize and deserialize methods
+func serialize() -> Dictionary:
+	var data = super.serialize()
+	data["is_psionic"] = is_psionic
+	data["psionic_powers"] = psionic_powers
+	if psionic_manager:
+		data["psionic_manager"] = psionic_manager.serialize()
+	return data
+
+static func deserialize(data: Dictionary) -> Character:
+	var character = super.deserialize(data)
+	character.is_psionic = data.get("is_psionic", false)
+	character.psionic_powers = data.get("psionic_powers", [])
+	if "psionic_manager" in data:
+		character.psionic_manager = PsionicManager.deserialize(data["psionic_manager"])
+	return character
 
 func _init() -> void:
 	inventory = CharacterInventory.new()

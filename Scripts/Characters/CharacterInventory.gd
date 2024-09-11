@@ -17,7 +17,8 @@ func clear():
 
 func serialize() -> Dictionary:
 	return {
-		"items": items.map(func(i): return i.serialize())
+		"items": items.map(func(i): return i.serialize()),
+		"has_psionic_equipment": has_psionic_equipment()
 	}
 
 static func deserialize(data: Dictionary) -> CharacterInventory:
@@ -28,3 +29,6 @@ static func deserialize(data: Dictionary) -> CharacterInventory:
 	var inventory = CharacterInventory.new()
 	inventory.items = data["items"].map(func(i): return Equipment.deserialize(i))
 	return inventory
+
+func has_psionic_equipment() -> bool:
+	return items.any(func(item): return item.is_psionic_equipment)

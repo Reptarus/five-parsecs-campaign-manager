@@ -1,7 +1,7 @@
 [gd_scene load_steps=3 format=3 uid="uid://b5rumvu1ohj4q"]
 
 [ext_resource type="Script" path="res://scenes/Management/CrewManagement.gd" id="1_c1w2h"]
-[ext_resource type="PackedScene" path="res://scenes/CustomizePanel.tscn" id="2_d3f4g"]
+[ext_resource type="PackedScene" uid="uid://bjlkj12avsxbo" path="res://ui/CusomizePanel.tscn" id="2_d3f4g"]
 
 [node name="CrewManagement" type="Control"]
 layout_mode = 3

@@ -1,107 +1,141 @@
-class_name ExpandedConnectionsManager
+class_name ExpandedQuestProgressionManager
 extends Node
 
-enum ConnectionType {
-	ALLIANCE,
-	RIVALRY,
-	TRADE,
-	INFORMATION
-}
-
-enum ConnectionStrength {
-	WEAK,
-	MODERATE,
-	STRONG
-}
-
-const MAX_CONNECTIONS_PER_FACTION: int = 5
-const CONNECTION_DECAY_RATE: float = 0.1
+const QUEST_STAGES_PATH = "res://data/expanded_quest_progressions.json"
 
 var game_state: GameState
+var quest_stages: Dictionary
+var active_quests: Array[Quest] = []
 
 func _init(_game_state: GameState) -> void:
 	game_state = _game_state
+	load_quest_stages()
 
-func generate_connection(faction1: Dictionary, faction2: Dictionary) -> Dictionary:
-	assert("name" in faction1 and "name" in faction2, "Invalid faction data")
-	
-	var connection: Dictionary = {
-		"type": ConnectionType.values()[randi() % ConnectionType.size()],
-		"strength": ConnectionStrength.values()[randi() % ConnectionStrength.size()],
-		"faction1": faction1.name,
-		"faction2": faction2.name,
-		"duration": randi_range(5, 20)
-	}
-	
-	return connection
+func load_quest_stages() -> void:
+	var file = FileAccess.open(QUEST_STAGES_PATH, FileAccess.READ)
+	var json = JSON.new()
+	var error = json.parse(file.get_as_text())
+	if error == OK:
+		quest_stages = json.get_data()
+	else:
+		push_error("Failed to parse quest stages JSON")
 
-func apply_connection_effect(connection: Dictionary) -> void:
-	assert("type" in connection and "strength" in connection, "Invalid connection data")
-	
-	match connection.type:
-		ConnectionType.ALLIANCE:
-			_apply_alliance_effect(connection)
-		ConnectionType.RIVALRY:
-			_apply_rivalry_effect(connection)
-		ConnectionType.TRADE:
-			_apply_trade_effect(connection)
-		ConnectionType.INFORMATION:
-			_apply_information_effect(connection)
-		_:
-			assert(false, "Invalid connection type")
+func generate_new_quest() -> Quest:
+	var quest_generator = QuestGenerator.new(game_state)
+	var new_quest = quest_generator.generate_quest()
+	new_quest.current_stage = 1
+	new_quest.current_requirements = quest_stages["quest_stages"][0]["requirements"]
+	active_quests.append(new_quest)
+	return new_quest
 
-func _apply_alliance_effect(connection: Dictionary) -> void:
-	var strength_multiplier: float = _get_strength_multiplier(connection.strength)
-	game_state.faction_relations[connection.faction1][connection.faction2] += 10 * strength_multiplier
-	game_state.faction_relations[connection.faction2][connection.faction1] += 10 * strength_multiplier
+func update_quests() -> void:
+	for quest in active_quests:
+		if _check_quest_requirements(quest):
+			_advance_quest_stage(quest)
 
-func _apply_rivalry_effect(connection: Dictionary) -> void:
-	var strength_multiplier: float = _get_strength_multiplier(connection.strength)
-	game_state.faction_relations[connection.faction1][connection.faction2] -= 10 * strength_multiplier
-	game_state.faction_relations[connection.faction2][connection.faction1] -= 10 * strength_multiplier
+func _check_quest_requirements(quest: Quest) -> bool:
+	for requirement in quest.current_requirements:
+		if not _is_requirement_met(requirement, quest):
+			return false
+	return true
 
-func _apply_trade_effect(connection: Dictionary) -> void:
-	var strength_multiplier: float = _get_strength_multiplier(connection.strength)
-	game_state.faction_wealth[connection.faction1] += 100 * strength_multiplier
-	game_state.faction_wealth[connection.faction2] += 100 * strength_multiplier
+func _is_requirement_met(requirement: String, quest: Quest) -> bool:
+	# This function would check if the requirement is met based on the game state
+	# For now, we'll use a placeholder implementation
+	return randf() > 0.5
 
-func _apply_information_effect(connection: Dictionary) -> void:
-	var strength_multiplier: float = _get_strength_multiplier(connection.strength)
-	game_state.faction_intel[connection.faction1] += 5 * strength_multiplier
-	game_state.faction_intel[connection.faction2] += 5 * strength_multiplier
+func _advance_quest_stage(quest: Quest) -> void:
+	quest.current_stage += 1
+	if quest.current_stage > quest_stages["quest_stages"].size():
+		_complete_quest(quest)
+	else:
+		var stage_data = quest_stages["quest_stages"][quest.current_stage - 1]
+		quest.current_requirements = stage_data["requirements"]
+		_apply_stage_rewards(quest, stage_data["rewards"])
 
-func _get_strength_multiplier(strength: ConnectionStrength) -> float:
-	match strength:
-		ConnectionStrength.WEAK:
-			return 0.5
-		ConnectionStrength.MODERATE:
-			return 1.0
-		ConnectionStrength.STRONG:
-			return 2.0
-		_:
-			assert(false, "Invalid connection strength")
-			return 1.0
+func _complete_quest(quest: Quest) -> void:
+	quest.complete()
+	active_quests.erase(quest)
+	game_state.completed_quests.append(quest)
+	_apply_final_rewards(quest)
 
-func update_connections() -> void:
-	for connection in game_state.active_connections:
-		connection.duration -= 1
-		if connection.duration <= 0:
-			game_state.active_connections.erase(connection)
-		else:
-			_decay_connection_strength(connection)
+func _apply_stage_rewards(_quest: Quest, rewards: Dictionary) -> void:
+	if "credits" in rewards:
+		var credits = _roll_dice(rewards["credits"])
+		game_state.credits += credits
+	if "story_points" in rewards:
+		game_state.story_points += rewards["story_points"]
+	if "gear" in rewards:
+		var new_gear = _generate_gear(rewards["gear"])
+		game_state.add_item(new_gear)
 
-func _decay_connection_strength(connection: Dictionary) -> void:
-	var current_strength: int = ConnectionStrength.values().find(connection.strength)
-	var decay_chance: float = CONNECTION_DECAY_RATE * (current_strength + 1)
-	
-	if randf() < decay_chance:
-		var new_strength: int = max(0, current_strength - 1)
-		connection.strength = ConnectionStrength.values()[new_strength]
+func _apply_final_rewards(quest: Quest) -> void:
+	game_state.credits += quest.reward["credits"]
+	game_state.reputation += quest.reward["reputation"]
+	if "item" in quest.reward:
+		game_state.add_item(quest.reward["item"])
 
-func get_faction_connections(faction_name: String) -> Array[Dictionary]:
-	return game_state.active_connections.filter(func(conn): 
-		return conn.faction1 == faction_name or conn.faction2 == faction_name
-	)
+func _roll_dice(dice_string: String) -> int:
+	var parts = dice_string.split("D")
+	var num_dice = int(parts[0])
+	var dice_size = int(parts[1].split(" x ")[0])
+	var multiplier = int(parts[1].split(" x ")[1])
+	var total = 0
+	for i in range(num_dice):
+		total += randi() % dice_size + 1
+	return total * multiplier
 
-func can_form_new_connection(faction_name: String) -> bool:
-	return get_faction_connections(faction_name).size() < MAX_CONNECTIONS_PER_FACTION
+func _generate_gear(gear_type: String) -> Equipment:
+	# This function would generate gear based on the type
+	# For now, we'll use a placeholder implementation
+	return Equipment.new(gear_type, 0, randi_range(50, 500))
+
+func get_active_quests() -> Array[Quest]:
+	return active_quests
+
+func get_quest_stage_description(quest: Quest) -> String:
+	return quest_stages["quest_stages"][quest.current_stage - 1]["description"]
+
+func fail_quest(quest: Quest) -> void:
+	quest.fail()
+	active_quests.erase(quest)
+
+func add_psionic_quest() -> Quest:
+	var psionic_quest = generate_new_quest()
+	psionic_quest.quest_type = "PSIONIC"
+	psionic_quest.objective = "Master a new psionic ability"
+	return psionic_quest
+
+func update_quest_for_new_location(new_location: Location) -> void:
+	for quest in active_quests:
+		if quest.location != new_location:
+			quest.location = new_location
+			quest.objective = _generate_new_objective_for_location(quest, new_location)
+
+func _generate_new_objective_for_location(quest: Quest, location: Location) -> String:
+	var quest_generator = QuestGenerator.new(game_state)
+	var quest_type = QuestGenerator.QuestType[quest.quest_type]
+	return quest_generator.generate_objective(quest_type, location)
+
+func get_quest_summary(quest: Quest) -> String:
+	var summary = "Quest: {type}\n".format({"type": quest.quest_type})
+	summary += "Location: {location}\n".format({"location": quest.location.name})
+	summary += "Objective: {objective}\n".format({"objective": quest.objective})
+	summary += "Current Stage: {stage}\n".format({"stage": quest.current_stage})
+	summary += "Stage Description: {description}\n".format({"description": get_quest_stage_description(quest)})
+	summary += "Requirements:\n"
+	for requirement in quest.current_requirements:
+		summary += "- {req}\n".format({"req": requirement})
+	return summary
+
+func serialize_quests() -> Array:
+	var serialized_quests = []
+	for quest in active_quests:
+		serialized_quests.append(quest.serialize())
+	return serialized_quests
+
+func deserialize_quests(data: Array) -> void:
+	active_quests.clear()
+	for quest_data in data:
+		var quest = Quest.deserialize(quest_data)
+		active_quests.append(quest)

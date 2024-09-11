@@ -1,37 +1,48 @@
-@tool
-extends Credits
+extends Control
 
-@export_file("*.tscn") var main_menu_scene : String
-@onready var init_mouse_filter = mouse_filter
+@export var scroll_speed: float = 50.0
+@onready var credits_label: Label = $CreditsLabel
 
-func _end_reached():
-	%EndMessagePanel.show()
-	mouse_filter = Control.MOUSE_FILTER_STOP
-	Input.set_mouse_mode(Input.MOUSE_MODE_VISIBLE)
-	super._end_reached()
+var credits_text = """
+Five Parsecs from Home
+A Solo Adventure Game
 
-func _on_MenuButton_pressed():
-	SceneLoader.load_scene(main_menu_scene)
+Developed by:
+[Your Name/Team Name]
 
-func _on_ExitButton_pressed():
-	get_tree().quit()
+Based on the tabletop game by:
+Ivan Sorensen
+
+Programming:
+[Programmer Names]
+
+Art:
+[Artist Names]
+
+Music:
+[Composer Names]
+
+Sound Effects:
+[Sound Designer Names]
+
+Special Thanks:
+[List of people or organizations to thank]
+
+Thank you for playing!
+"""
 
 func _ready():
-	if main_menu_scene.is_empty():
-		%MenuButton.hide()
-	if OS.has_feature("web"):
-		%ExitButton.hide()
-	super._ready()
+    credits_label.text = credits_text
+    credits_label.anchor_top = 1.0
+    credits_label.anchor_bottom = 1.0
+    credits_label.position.y = get_viewport_rect().size.y
 
-func reset():
-	super.reset()
-	%EndMessagePanel.hide()
-	mouse_filter = init_mouse_filter
+func _process(delta):
+    credits_label.position.y -= scroll_speed * delta
+    
+    if credits_label.position.y + credits_label.size.y < 0:
+        credits_label.position.y = get_viewport_rect().size.y
 
-func _unhandled_input(event):
-	if not enabled: return
-	if event.is_action_pressed("ui_cancel"):
-		if not %EndMessagePanel.visible:
-			_end_reached()
-		else:
-			get_tree().quit()
+func _input(event):
+    if event.is_action_pressed("ui_cancel"):
+        get_tree().change_scene_to_file("res://ui/mainmenu/MainMenu.tscn")

@@ -37,7 +37,7 @@ var ADVANCED_TRAINING_COURSES = {
 	}
 }
 
-func apply_for_training(character: Character, course: String) -> bool:
+func apply_for_training(_character: Character, course: String) -> bool:
 	if not ADVANCED_TRAINING_COURSES.has(course):
 		return false
 	
