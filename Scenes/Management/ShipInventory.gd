@@ -28,6 +28,12 @@ func get_item_count() -> int:
 func is_full() -> bool:
 	return get_item_count() >= capacity
 
+func update_capacity(new_capacity: int) -> void:
+	capacity = new_capacity
+	while items.size() > capacity:
+		var removed_item = items.pop_back()
+		item_removed.emit(removed_item)
+
 func serialize() -> Dictionary:
 	return {
 		"items": items.map(func(i): return i.serialize()),

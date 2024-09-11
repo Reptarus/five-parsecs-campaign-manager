@@ -188,7 +188,7 @@ func determine_injuries_and_recovery():
 			var injury = roll_on_injury_table(character)
 			apply_injury(character, injury)
 
-func roll_on_injury_table(character: Character) -> String:
+func roll_on_injury_table(character) -> String:
 	var roll = randi() % 100 + 1
 	if character.is_bot():
 		return roll_on_bot_injury_table(roll)
@@ -229,7 +229,7 @@ func roll_on_bot_injury_table(roll: int) -> String:
 	else:
 		return "Just a few dents"
 
-func apply_injury(character: Character, injury: String):
+func apply_injury(character, injury: String):
 	match injury:
 		"Gruesome fate", "Obliterated":
 			character.kill()
@@ -313,7 +313,7 @@ func apply_campaign_event(event: Dictionary):
 	print("Applying campaign event: %s" % event.name)
 	event.action.call()
 
-func apply_character_event(character: Character, event: Dictionary):
+func apply_character_event(character, event: Dictionary):
 	# Implement the effects of various character events
 	print("Applying character event for %s: %s" % [character.name, event.name])
 	event.action.call(character)

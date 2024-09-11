@@ -2,7 +2,7 @@
 class_name CharacterStatsDisplay
 extends Control
 
-@export var character: Character
+@export var character: Resource
 
 @onready var stats_container = $StatsContainer
 

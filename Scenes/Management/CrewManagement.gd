@@ -1,7 +1,7 @@
 # CrewManagement.gd
 extends Control
 
-signal crew_creation_completed(crew: Crew)
+signal crew_creation_completed(crew)
 
 @onready var crew_list: ItemList = $VBoxContainer/HBoxContainer/CrewList
 @onready var character_sheet: Panel = $VBoxContainer/HBoxContainer/CharacterSheet
@@ -17,11 +17,11 @@ signal crew_creation_completed(crew: Crew)
 
 var game_state: GameState
 var crew: Crew
-var selected_crew_member: Character = null
+var selected_crew_member: CrewMember
 
 func _ready() -> void:
-	crew_list.connect("item_selected", Callable(self, "_on_crew_member_selected"))
-	edit_stats_button.connect("pressed", Callable(self, "_on_edit_stats_pressed"))
+	crew_list.connect("item_selected", _on_crew_member_selected)
+	edit_stats_button.connect("pressed", _on_edit_stats_pressed)
 	edit_equipment_button.connect("pressed", Callable(self, "_on_edit_equipment_pressed"))
 	save_changes_button.connect("pressed", Callable(self, "_on_save_changes_pressed"))
 	generate_random_button.connect("pressed", Callable(self, "_on_generate_random_pressed"))
@@ -40,11 +40,11 @@ func set_game_state(state: GameState) -> void:
 func update_crew_list() -> void:
 	crew_list.clear()
 	for i in range(crew.members.size()):
-		var member: Character = crew.members[i]
+		var member = crew.members[i]
 		crew_list.add_item(member.name + " - " + str(member.background))
 
 func _on_crew_member_selected(index: int) -> void:
-	selected_crew_member = crew.get_member(index)
+	selected_crew_member = crew.members[index]
 	update_character_sheet()
 
 func update_character_sheet() -> void:
@@ -110,5 +110,5 @@ func _show_error_message(message: String) -> void:
 	add_child(dialog)
 	dialog.popup_centered()
 
-func _on_crew_creation_completed(_crew: Crew) -> void:
+func _on_crew_creation_completed(_crew) -> void:
 	pass  # This function can be empty or used for additional logic if needed

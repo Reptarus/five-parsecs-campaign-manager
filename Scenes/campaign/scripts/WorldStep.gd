@@ -39,11 +39,11 @@ func assign_and_resolve_crew_tasks() -> void:
 			var task = choose_task(member)
 			resolve_task(member, task)
 
-func choose_task(character: Character) -> String:
+func choose_task(character) -> String:
 	var available_tasks = ["Trade", "Explore", "Train", "Recruit", "Find Patron", "Repair"]
 	return available_tasks[randi() % available_tasks.size()]
 
-func resolve_task(character: Character, task: String) -> void:
+func resolve_task(character, task: String) -> void:
 	match task:
 		"Trade":
 			trade(character)
@@ -58,7 +58,7 @@ func resolve_task(character: Character, task: String) -> void:
 		"Repair":
 			repair(character)
 
-func trade(character: Character) -> void:
+func trade(character) -> void:
 	var roll = randi() % 100
 	if roll < 30:
 		var credits_earned = randi_range(1, 6) * 10
@@ -71,7 +71,7 @@ func trade(character: Character) -> void:
 	else:
 		print("%s couldn't find any good deals while trading." % character.name)
 
-func explore(character: Character) -> void:
+func explore(character) -> void:
 	var roll = randi() % 100
 	if roll < 20:
 		var rumor = generate_rumor()
@@ -88,17 +88,17 @@ func explore(character: Character) -> void:
 	else:
 		print("%s had an uneventful exploration." % character.name)
 
-func train(character: Character) -> void:
+func train(character) -> void:
 	var skill_to_improve = character.get_random_skill()
 	var xp_gained = randi_range(1, 3)
 	character.improve_skill(skill_to_improve, xp_gained)
 	print("%s trained %s and gained %d XP." % [character.name, skill_to_improve, xp_gained])
 
-func recruit(character: Character) -> void:
+func recruit(character) -> void:
 	var crew = game_state.current_crew
 	if crew.get_member_count() < crew.max_members:
 		if randf() < 0.4:  # 40% chance to find a recruit
-			var new_recruit = Character.create_random_character()
+			var new_recruit = preload("res://Scenes/character/Character.gd").new()
 			crew.add_member(new_recruit)
 			print("%s successfully recruited %s to join the crew." % [character.name, new_recruit.name])
 		else:
@@ -106,15 +106,15 @@ func recruit(character: Character) -> void:
 	else:
 		print("The crew is already at maximum capacity. %s couldn't recruit anyone." % character.name)
 
-func find_patron(character: Character) -> void:
+func find_patron(character) -> void:
 	if randf() < 0.3:  # 30% chance to find a patron
-		var new_patron = Patron.new()
+		var new_patron = Patron.new()  # Assuming Patron is a custom class
 		game_state.add_patron(new_patron)
 		print("%s found a new patron: %s" % [character.name, new_patron.name])
 	else:
 		print("%s couldn't find any patrons offering work." % character.name)
 
-func repair(character: Character) -> void:
+func repair(character) -> void:
 	var item_to_repair = character.inventory.get_damaged_item()
 	if item_to_repair:
 		var repair_success = randf() < 0.7  # 70% chance to successfully repair

@@ -1,6 +1,9 @@
 class_name PsionicManager
 extends Resource
 
+# Character script is now an autoload, so we don't need to preload it
+# const CharacterScript = preload("res://Characters/Character.gd")
+
 const PSIONIC_POWERS = {
 	GlobalEnums.PsionicPower.BARRIER: "Barrier",
 	GlobalEnums.PsionicPower.GRAB: "Grab",
@@ -35,29 +38,28 @@ func adjust_power(power: String) -> String:
 	var new_index = (index + [-1, 1].pick_random() + 10) % 10
 	return PSIONIC_POWERS.values()[new_index]
 
-func use_power(power: String, character: Character) -> bool:
+func use_power(power: String, character) -> bool:
 	var projection_roll = randi() % 6 + 1 + randi() % 6 + 1
 	if character.has_ability("Enhanced " + power):
 		projection_roll += randi() % 6 + 1
 	return projection_roll >= 7  # Assuming 7+ is a success
 
-func strain(character: Character) -> bool:
+func strain(character) -> bool:
 	var strain_roll = randi() % 6 + 1
 	if strain_roll in [4, 5]:
-		character.apply_status_effect(StatusEffect.new("Stunned", 1))
+		character.apply_status_effect(StatusEffect.new(StatusEffect.EffectType.STUNNED, 1))
 		return true
 	elif strain_roll == 6:
-		character.apply_status_effect(StatusEffect.new("Stunned", 1))
+		character.apply_status_effect(StatusEffect.new(StatusEffect.EffectType.STUNNED, 1))
 		return false
 	return true
 
-func determine_enemy_psionic_action(character: Character) -> Dictionary:
-	var best_power = ""
-	var best_score = -1
+func determine_enemy_psionic_action(character, all_characters: Array) -> Dictionary:
+	var best_power: String = ""
+	var best_score: float = -1.0
 	var best_target = null
-
-	for power in character.powers:
-		for target in get_valid_targets(character, power):
+	for power in character.psionic_powers:
+		for target in get_valid_targets(character, power, all_characters):
 			var score = evaluate_psionic_action(character, power, target)
 			if score > best_score:
 				best_score = score
@@ -66,12 +68,38 @@ func determine_enemy_psionic_action(character: Character) -> Dictionary:
 
 	return {"power": best_power, "target": best_target}
 
-func get_valid_targets(character: Character, power: String) -> Array:
-	# Implement logic to get valid targets based on the power
-	# This will depend on your game's rules and structure
-	pass
+func get_valid_targets(character, power: String, all_characters: Array) -> Array:
+	var valid_targets = []
+	
+	for target in all_characters:
+		if _is_valid_target(character, target, power):
+			valid_targets.append(target)
+	
+	# Filter targets based on range (assuming a range of 12" for all powers)
+	return _filter_targets_by_range(character, valid_targets)
 
-func evaluate_psionic_action(character: Character, power: String, target: Character) -> float:
+func _is_valid_target(character, target, power: String) -> bool:
+	match power:
+		"Barrier", "Shroud", "Predict", "Rejuvenate":
+			return target == character or _is_ally(character, target)
+		"Grab", "Lift", "Enrage", "Shock", "Psionic Scare":
+			return _is_enemy(character, target)
+		"Guide":
+			return _is_ally(character, target) and target != character
+		_:
+			return false
+
+func _is_ally(character, target) -> bool:
+	return character.faction == target.faction
+
+func _is_enemy(character, target) -> bool:
+	return character.faction != target.faction
+
+func _filter_targets_by_range(character, targets: Array) -> Array:
+	var max_range = 12 * 25.4  # 12 inches converted to mm
+	return targets.filter(func(target): return character.global_position.distance_to(target.global_position) <= max_range)
+
+func evaluate_psionic_action(character, power: String, target) -> float:
 	var score = 0.0
 	
 	match power:
@@ -104,22 +132,23 @@ func evaluate_psionic_action(character: Character, power: String, target: Charac
 
 	return score
 
-func check_psionic_legality(world: World) -> String:
+func check_psionic_legality(_world: World) -> String:
 	var roll = randi() % 100 + 1
 	if roll <= 25:
 		return "Outlawed"
 	elif roll <= 55:
 		return "Highly unusual"
 	else:
-		return "Who cares?"
+		return "Accepted"
 
-func acquire_new_power(character: Character) -> void:
+func acquire_new_power(character) -> void:
 	var new_power = roll_power()
 	while new_power in character.powers:
 		new_power = adjust_power(new_power)
 	character.powers.append(new_power)
+	print("Character acquired new power: ", new_power)
 
-func enhance_power(character: Character, power: String) -> void:
+func enhance_power(character, power: String) -> void:
 	if power in character.powers and not character.has_ability("Enhanced " + power):
 		character.add_ability("Enhanced " + power)
 

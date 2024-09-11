@@ -44,13 +44,15 @@ func _set_special_abilities() -> void:
 			special_abilities = ["Call in a Favor"]
 		# ... (rest of the match statement)
 		StrangeCharacterType.BOT:
-			special_abilities = ["Internet Connection"]
+			special_abilities = ["Internet Connection", "Data Processing"]
 
-func apply_special_abilities(character: Character) -> void:
+func apply_special_abilities(character) -> void:
 	for ability in special_abilities:
 		character.add_ability(ability)
 
 	# Additional specific actions for certain types
+	if type == StrangeCharacterType.BOT:
+		character.set_processing_speed(2.0)  # Increase processing speed for bots
 	match type:
 		StrangeCharacterType.ALIEN:
 			character.add_ability("Telepathy")

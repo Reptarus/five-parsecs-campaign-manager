@@ -1,5 +1,5 @@
 class_name Character
-extends Resource
+extends Node
 
 enum AIType { CAUTIOUS, AGGRESSIVE, TACTICAL, DEFENSIVE }
 
@@ -12,7 +12,7 @@ signal xp_added(amount: int)
 signal stat_reduced(stat: String, amount: int)
 signal killed
 
-@export var name: String = ""
+@export var character_name: String = ""
 @export var race: Race = Race.HUMAN
 @export var background: Background = Background.HIGH_TECH_COLONY
 @export var motivation: Motivation = Motivation.WEALTH
@@ -21,10 +21,10 @@ signal killed
 @export var notes: String = ""
 
 @export var stats: Dictionary = {
-	"reactions": 1,
-	"speed": 4,
+	"reactions": 0,
+	"speed": 0,
 	"combat_skill": 0,
-	"toughness": 3,
+	"toughness": 0,
 	"savvy": 0,
 	"luck": 0
 }
@@ -47,38 +47,7 @@ var killed_unique_individual: bool = false
 var faction_standings: Dictionary = {}
 var status_effects: Array[StatusEffect] = []
 
-# Add these new properties
-
-
-# Add these new methods
-func is_enemy(other: Character) -> bool:
-	# Implement logic to determine if 'other' is an enemy
-	pass
-
-func is_ally(other: Character) -> bool:
-	# Implement logic to determine if 'other' is an ally
-	pass
-
-func is_in_cover() -> bool:
-	# Implement logic to determine if the character is in cover
-	pass
-
-# Update the serialize and deserialize methods
-func serialize() -> Dictionary:
-	var data = super.serialize()
-	data["is_psionic"] = is_psionic
-	data["psionic_powers"] = psionic_powers
-	if psionic_manager:
-		data["psionic_manager"] = psionic_manager.serialize()
-	return data
-
-static func deserialize(data: Dictionary) -> Character:
-	var character = super.deserialize(data)
-	character.is_psionic = data.get("is_psionic", false)
-	character.psionic_powers = data.get("psionic_powers", [])
-	if "psionic_manager" in data:
-		character.psionic_manager = PsionicManager.deserialize(data["psionic_manager"])
-	return character
+var strange_character: StrangeCharacters = null
 
 func _init() -> void:
 	inventory = CharacterInventory.new()
@@ -89,7 +58,7 @@ func generate_random() -> void:
 	background = Background.values()[randi() % Background.size()]
 	motivation = Motivation.values()[randi() % Motivation.size()]
 	character_class = Class.values()[randi() % Class.size()]
-	portrait = CharacterCreationData.get_random_portrait()
+	portrait = get_random_portrait()
 
 	for stat in ["reactions", "speed", "combat_skill", "toughness", "savvy", "luck"]:
 		stats[stat] = randi() % 6 + 1  # Random value between 1 and 6
@@ -99,22 +68,63 @@ func generate_random() -> void:
 	apply_class_bonuses()
 
 func apply_background_bonuses() -> void:
-	var background_data = CharacterCreationData.get_background_stats(background)
+	var background_data = get_background_stats(background)
 	for stat in background_data:
 		if stat in stats:
 			stats[stat] += background_data[stat]
 
 func apply_motivation_bonuses() -> void:
-	var motivation_data = CharacterCreationData.get_motivation_stats(motivation)
+	var motivation_data = get_motivation_stats(motivation)
 	for stat in motivation_data:
 		if stat in stats:
 			stats[stat] += motivation_data[stat]
 
 func apply_class_bonuses() -> void:
-	var class_data = CharacterCreationData.get_class_stats(character_class)
+	var class_data = get_class_stats(character_class)
 	for stat in class_data:
 		if stat in stats:
 			stats[stat] += class_data[stat]
+
+func get_random_portrait() -> String:
+	# Implement logic to get a random portrait
+	return "res://path/to/default_portrait.png"
+
+func get_background_stats(bg: Background) -> Dictionary:
+	var creation_data = CharacterCreationData.new()
+	creation_data.load_data()
+	var background_data = creation_data.get_background_data(bg)
+	var stats = {}
+	if "speed" in background_data:
+		stats["speed"] = background_data["speed"]
+	if "savvy" in background_data:
+		stats["savvy"] = background_data["savvy"]
+	if "combat_skill" in background_data:
+		stats["combat_skill"] = background_data["combat_skill"]
+	if "toughness" in background_data:
+		stats["toughness"] = background_data["toughness"]
+	return stats
+
+func get_motivation_stats(mot: Motivation) -> Dictionary:
+	var creation_data = CharacterCreationData.new()
+	creation_data.load_data()
+	var motivation_data = creation_data.get_motivation_data(mot)
+	var stats = {}
+	if "speed" in motivation_data:
+		stats["speed"] = motivation_data["speed"]
+	if "xp" in motivation_data:
+		stats["xp"] = motivation_data["xp"]
+	return stats
+
+func get_class_stats(cls: Class) -> Dictionary:
+	var creation_data = CharacterCreationData.new()
+	creation_data.load_data()
+	var class_data = creation_data.get_class_data(cls)
+	var stats = {}
+	if "savvy" in class_data:
+		stats["savvy"] = class_data["savvy"]
+	if "combat_skill" in class_data:
+		stats["combat_skill"] = class_data["combat_skill"]
+	return stats
 
 func update(new_data: Dictionary) -> void:
 	for key in new_data:
@@ -152,8 +162,8 @@ func damage_random_equipment() -> void:
 		random_item.damage()
 
 func permanent_stat_reduction() -> void:
-	var stats = ["reactions", "speed", "combat_skill", "toughness", "savvy"]
-	var stat = stats[randi() % stats.size()]
+	var stat_names = ["reactions", "speed", "combat_skill", "toughness", "savvy"]
+	var stat = stat_names[randi() % stat_names.size()]
 	stats[stat] = max(1, stats[stat] - 1)
 	stat_reduced.emit(stat, 1)
 
@@ -202,7 +212,56 @@ func set_faction_standing(faction_name: String, standing: int) -> void:
 func get_faction_standing(faction_name: String) -> int:
 	return faction_standings.get(faction_name, 0)
 
-# Serialization methods
+func apply_character_effects(character_data: CharacterCreationData):
+	# Apply race effects
+	var race_data = character_data.get_race_data(GlobalEnums.Race.keys()[race])
+	apply_stat_bonuses(race_data.get("base_stats", {}))
+	for ability in race_data.get("special_abilities", []):
+		abilities.append(ability)
+	
+	# Apply background effects
+	var background_data = character_data.get_background_data(GlobalEnums.Background.keys()[background])
+	apply_stat_bonuses(background_data.get("stat_bonuses", {}))
+	for item in background_data.get("starting_gear", []):
+		inventory.add_item(item)
+	
+	# Apply motivation effects
+	var motivation_data = character_data.get_motivation_data(GlobalEnums.Motivation.keys()[motivation])
+	apply_stat_bonuses(motivation_data.get("stat_bonuses", {}))
+	xp += motivation_data.get("starting_xp", 0)
+	
+	# Apply class effects
+	var class_data = character_data.get_class_data(GlobalEnums.Class.keys()[character_class])
+	apply_stat_bonuses(class_data.get("stat_bonuses", {}))
+	for item in class_data.get("starting_gear", []):
+		inventory.add_item(item)
+	
+	# Apply strange character effects if applicable
+	if strange_character:
+		strange_character.apply_special_abilities(self)
+
+func apply_stat_bonuses(bonuses: Dictionary):
+	for stat in bonuses:
+		if stat in stats:
+			stats[stat] += bonuses[stat]
+
+func make_psionic():
+	is_psionic = true
+	psionic_manager = PsionicManager.new()
+	psionic_manager.generate_starting_powers()
+	psionic_powers = psionic_manager.powers
+
+func use_psionic_power(power: String, _target: Character) -> bool:
+	if is_psionic and power in psionic_powers:
+		return psionic_manager.use_power(power, self)
+	return false
+
+func set_strange_character_type(type: StrangeCharacters.StrangeCharacterType):
+	strange_character = StrangeCharacters.new(type)
+	strange_character.apply_special_abilities(self)
+
+# Removed duplicate add_ability function
+
 func serialize() -> Dictionary:
 	var data = {
 		"name": name,
@@ -223,11 +282,19 @@ func serialize() -> Dictionary:
 		"became_casualty": became_casualty,
 		"killed_unique_individual": killed_unique_individual,
 		"faction_standings": faction_standings,
-		"status_effects": status_effects.map(func(effect): return effect.serialize())
+		"status_effects": status_effects.map(func(effect): return effect.serialize()),
+		"is_psionic": is_psionic,
+		"psionic_powers": psionic_powers
 	}
 	
 	if current_location:
 		data["current_location"] = current_location.serialize()
+	
+	if psionic_manager:
+		data["psionic_manager"] = psionic_manager.serialize()
+	
+	if strange_character:
+		data["strange_character"] = strange_character.serialize()
 	
 	return data
 
@@ -251,10 +318,17 @@ static func deserialize(data: Dictionary) -> Character:
 	character.became_casualty = data["became_casualty"]
 	character.killed_unique_individual = data["killed_unique_individual"]
 	character.faction_standings = data["faction_standings"]
-	
 	character.status_effects = data["status_effects"].map(func(effect_data): return StatusEffect.deserialize(effect_data))
+	character.is_psionic = data.get("is_psionic", false)
+	character.psionic_powers = data.get("psionic_powers", [])
 	
 	if "current_location" in data:
 		character.current_location = Location.deserialize(data["current_location"])
+	
+	if "psionic_manager" in data:
+		character.psionic_manager = PsionicManager.deserialize(data["psionic_manager"])
+	
+	if "strange_character" in data:
+		character.strange_character = StrangeCharacters.deserialize(data["strange_character"])
 	
 	return character

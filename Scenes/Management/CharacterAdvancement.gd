@@ -6,17 +6,17 @@ var game_state: GameState
 func _init(_game_state: GameState):
 	game_state = _game_state
 
-func apply_experience(character: Character, xp_gained: int) -> void:
+func apply_experience(character, xp_gained: int) -> void:
 	character.add_xp(xp_gained)
 	check_for_upgrades(character)
 
-func check_for_upgrades(character: Character) -> void:
+func check_for_upgrades(character) -> void:
 	var upgrades = get_available_upgrades(character)
 	for upgrade in upgrades:
 		if character.xp >= upgrade.cost:
 			apply_upgrade(character, upgrade)
 
-func get_available_upgrades(character: Character) -> Array:
+func get_available_upgrades(character) -> Array:
 	var upgrades = []
 	if character.reactions < 6:
 		upgrades.append({"stat": "Reactions", "cost": 7})
@@ -28,11 +28,11 @@ func get_available_upgrades(character: Character) -> Array:
 		upgrades.append({"stat": "Savvy", "cost": 5})
 	if character.toughness < 6:
 		upgrades.append({"stat": "Toughness", "cost": 6})
-	if character.luck < (3 if character.race == CharacterCreationData.Race.HUMAN else 1):
+	if character.luck < (3 if character.race == "Human" else 1):
 		upgrades.append({"stat": "Luck", "cost": 10})
 	return upgrades
 
-func apply_upgrade(character: Character, upgrade: Dictionary) -> void:
+func apply_upgrade(character, upgrade: Dictionary) -> void:
 	character.xp -= upgrade.cost
 	match upgrade.stat:
 		"Reactions":

@@ -44,13 +44,13 @@ func _on_member_panel_clicked(event: InputEvent, index: int) -> void:
 
 func start_character_creation(index: int) -> void:
 	character_creation.show()
-	character_creation.initialize(index)  # Assuming you have this method
+	character_creation.initialize(index)
 
-func _on_character_created(character: Character) -> void:
+func _on_character_created(character) -> void:
 	if !crew:
 		crew = Crew.new()
-	crew.add_member(character)
-	if crew.get_member_count() < current_size:
+	crew.add_character(character)
+	if crew.get_character_count() < current_size:
 		character_creation.reset()
 	else:
 		finish_crew_creation()

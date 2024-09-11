@@ -190,10 +190,10 @@ func generate_detailed_entry(campaign_data: Dictionary) -> String:
 		entry += "[u]Faction Connections:[/u]\n"
 		for connection in campaign_data.connections:
 			entry += "- {type} between {faction1} and {faction2} ({strength})\n".format({
-				"type": ConnectionType.keys()[connection.type],
+				"type": connection.type,
 				"faction1": connection.faction1,
 				"faction2": connection.faction2,
-				"strength": ConnectionStrength.keys()[connection.strength]
+				"strength": connection.strength
 			})
 		entry += "\n"
 	

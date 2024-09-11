@@ -30,12 +30,11 @@ func initialize(_combat_manager: CombatManager, _game_state: GameState) -> void:
 func perform_ai_turn(ai_character: Character) -> void:
 	var action = determine_best_action(ai_character)
 	execute_action(ai_character, action)
-
 # Determine the best action for the AI character
 func determine_best_action(ai_character: Character) -> Dictionary:
 	var possible_actions = get_possible_actions(ai_character)
-	var best_action = null
-	var best_score = -1
+	var best_action: Dictionary = {}
+	var best_score: float = -1.0
 
 	for action in possible_actions:
 		var score = evaluate_action(ai_character, action)
@@ -163,7 +162,7 @@ func evaluate_compendium_action(ai_character: Character, action: Dictionary) -> 
 	
 	match action.type:
 		"use_psionic":
-			base_score = evaluate_psionic_action(ai_character, action.ability)
+			base_score = evaluate_psionic_action(ai_character, action.power)
 		"use_species_ability":
 			base_score = evaluate_species_ability(ai_character, action.ability)
 		"use_advanced_equipment":
@@ -254,10 +253,10 @@ func get_best_bot_upgrade(ai_character: Character) -> String:
 	
 	return best_upgrade
 
-func evaluate_psionic_action(ai_character: Character, ability: String) -> float:
+func evaluate_psionic_action(ai_character: Character, power: String) -> float:
 	var base_score = 25.0
 	
-	match ability:
+	match power:
 		"Telekinesis":
 			base_score += 5 if combat_manager.get_nearby_objects().size() > 0 else 0
 		"Mind Control":

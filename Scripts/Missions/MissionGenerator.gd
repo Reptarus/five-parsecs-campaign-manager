@@ -2,135 +2,157 @@ class_name MissionGenerator
 extends Node
 
 var game_state: GameState
+var expanded_missions_manager: ExpandedMissionsManager
 
-func _init():
-	pass
-
-func initialize(_game_state: GameState) -> void:
+func _init(_game_state: GameState):
 	game_state = _game_state
+	expanded_missions_manager = ExpandedMissionsManager.new(game_state)
 
-func generate_mission(mission_type: Mission.Type = Mission.Type.OPPORTUNITY, patron: Patron = null) -> Mission:
-	var template = choose_mission_template(mission_type)
-	var location = choose_mission_location(patron)
-	var title = generate_title(template)
-	var description = generate_description(template, location)
-	var time_limit = generate_time_limit(template)
-	var rewards = generate_rewards(template)
-	var objectives = generate_objectives(template)
-
-	var mission = Mission.new(title, description, mission_type, template.objective)
-	mission.patron = patron
-	mission.location = location
-	mission.time_limit = time_limit
-	mission.rewards = rewards
-	mission.objectives = objectives
-
-	if patron:
-		patron.add_mission(mission)
-	game_state.add_mission(mission)
-
-	return mission
-
-func choose_mission_template(mission_type: Mission.Type) -> MissionTemplate:
-	var suitable_templates = game_state.mission_templates.filter(func(template): return template.type == mission_type)
-	return suitable_templates[randi() % suitable_templates.size()]
-
-func choose_mission_location(patron: Patron) -> Location:
-	if patron:
-		return patron.location
+func generate_mission(use_expanded_missions: bool = false) -> Mission:
+	if use_expanded_missions:
+		return _generate_expanded_mission()
 	else:
-		var all_locations = game_state.get_all_locations()
-		return all_locations[randi() % all_locations.size()]
+		return _generate_standard_mission()
 
-func generate_title(template: MissionTemplate) -> String:
-	return template.title_templates[randi() % template.title_templates.size()]
+func _generate_standard_mission() -> Mission:
+	var mission_type = _roll_mission_type()
+	var location = game_state.get_random_location()
+	var objective = _generate_objective(mission_type)
+	var difficulty = randi() % 5 + 1  # 1 to 5
+	var rewards = _generate_rewards(difficulty)
+	var time_limit = randi() % 5 + 3  # 3 to 7 campaign turns
+	
+	return Mission.new(
+		_generate_mission_title(mission_type, location),
+		_generate_mission_description(mission_type, objective, location),
+		mission_type,
+		objective,
+		location,
+		difficulty,
+		rewards,
+		time_limit
+	)
 
-func generate_description(template: MissionTemplate, location: Location) -> String:
-	var description = template.description_templates[randi() % template.description_templates.size()]
-	description = description.replace("{LOCATION}", location.name)
-	description = description.replace("{OBJECTIVE}", template.objective_description)
-	return description
+func _generate_expanded_mission() -> Mission:
+	var expanded_mission_data = expanded_missions_manager.generate_expanded_mission()
+	
+	return Mission.new(
+		expanded_mission_data["title"],
+		expanded_mission_data["description"],
+		Mission.Type[expanded_mission_data["type"]],
+		Mission.Objective[expanded_mission_data["primary_objective"]],
+		expanded_mission_data["location"],
+		expanded_mission_data["difficulty"],
+		expanded_mission_data["rewards"],
+		randi() % 5 + 3  # 3 to 7 campaign turns
+	)
 
-func generate_time_limit(template: MissionTemplate) -> int:
-	return randi_range(int(template.difficulty_range.x), int(template.difficulty_range.y))
+func mission_to_quest(mission: Mission) -> Quest:
+	var quest_type = "MISSION_FOLLOWUP"
+	var objective = "Follow up on the outcomes of the recent mission: " + mission.title
+	var rewards = {
+		"credits": int(mission.rewards["credits"] * 1.5),
+		"reputation": mission.rewards["reputation"] + 1
+	}
+	
+	if randf() < 0.3:  # 30% chance for bonus reward
+		rewards["item"] = _generate_random_item()
+	
+	return Quest.new(quest_type, mission.location, objective, rewards)
 
-func generate_rewards(template: MissionTemplate) -> Dictionary:
-	var base_reward = randf_range(template.reward_range.x, template.reward_range.y)
-	var credits = round(base_reward * 100)  # Convert to credits
-	var story_points = randi() % 3  # 0-2 story points
-	var bonus_xp = randi() % 3  # 0-2 bonus XP
-
+func generate_connection_from_mission(mission: Mission) -> Dictionary:
+	var connection_types = ["Alliance", "Rivalry", "Trade Agreement", "Information Network"]
+	var connection_type = connection_types[randi() % connection_types.size()]
+	
+	var duration = randi() % 6 + 1  # 1D6 campaign turns
+	if connection_type == "Rivalry":
+		duration += randi() % 6  # Add another 1D6 for Rivalry
+	
+	var effects = _generate_connection_effects(connection_type, mission)
+	
 	return {
-		"credits": credits,
-		"story_points": story_points,
-		"bonus_xp": bonus_xp
+		"type": connection_type,
+		"description": _generate_connection_description(connection_type, mission),
+		"duration": duration,
+		"effects": effects
 	}
 
-func generate_objectives(template: MissionTemplate) -> Array[String]:
-	var objectives: Array[String] = []
-	objectives.append(template.objective_description)
+func _roll_mission_type() -> Mission.Type:
+	var roll = randi() % 100 + 1
+	if roll <= 40:
+		return Mission.Type.OPPORTUNITY
+	elif roll <= 70:
+		return Mission.Type.PATRON
+	elif roll <= 90:
+		return Mission.Type.QUEST
+	else:
+		return Mission.Type.RIVAL
 
-	# Add 1-2 additional optional objectives
-	for i in range(randi() % 2 + 1):
-		objectives.append(generate_optional_objective())
+func _generate_objective(mission_type: Mission.Type) -> Mission.Objective:
+	var objectives = Mission.Objective.values()
+	return objectives[randi() % objectives.size()]
 
-	return objectives
+func _generate_rewards(difficulty: int) -> Dictionary:
+	var base_credits = 100 * difficulty
+	return {
+		"credits": base_credits + randi() % (base_credits / 2),
+		"reputation": difficulty,
+		"item": randf() < 0.3  # 30% chance for item reward
+	}
 
-func generate_optional_objective() -> String:
-	var optional_objectives = [
-		"Recover valuable intel from the enemy",
-		"Minimize collateral damage",
-		"Complete the mission within a shorter time frame",
-		"Capture a high-value target alive",
-		"Destroy enemy equipment or resources"
+func _generate_mission_title(mission_type: Mission.Type, location: Location) -> String:
+	var titles = [
+		"Trouble in %s",
+		"%s Dilemma",
+		"Crisis at %s",
+		"The %s Incident",
+		"%s Operation"
 	]
-	return optional_objectives[randi() % optional_objectives.size()]
+	return titles[randi() % titles.size()] % location.name
 
-func generate_enemy_force(template: MissionTemplate) -> Dictionary:
-	var enemy_type = EnemyTypes.get_enemy_type(template.enemy_types[randi() % template.enemy_types.size()])
-	var enemy_count = randi_range(3, 8)  # Base number of enemies
-	var specialists = randi() % 3  # 0-2 specialists
-	var unique_individual = randf() < 0.3  # 30% chance of a unique individual
+func _generate_mission_description(mission_type: Mission.Type, objective: Mission.Objective, location: Location) -> String:
+	var descriptions = [
+		"A situation has arisen in %s that requires immediate attention.",
+		"Your expertise is needed to handle a delicate matter in %s.",
+		"An opportunity has presented itself in %s. Time is of the essence.",
+		"A crisis is unfolding in %s, and you're the only ones who can help."
+	]
+	return descriptions[randi() % descriptions.size()] % location.name
 
-	return {
-		"type": enemy_type,
-		"count": enemy_count,
-		"specialists": specialists,
-		"unique_individual": unique_individual
+func _generate_random_item() -> String:
+	var items = ["Advanced Weapon", "Protective Gear", "Rare Artifact", "Valuable Data Chip", "Experimental Tech"]
+	return items[randi() % items.size()]
+
+func _generate_connection_effects(connection_type: String, mission: Mission) -> Array:
+	var effects = []
+	match connection_type:
+		"Alliance":
+			effects.append("Increased reputation gain")
+			effects.append("Access to special equipment")
+		"Rivalry":
+			effects.append("Increased mission difficulty")
+			effects.append("Chance for ambushes")
+		"Trade Agreement":
+			effects.append("Better prices when trading")
+			effects.append("Access to rare items")
+		"Information Network":
+			effects.append("Increased chance for rumors")
+			effects.append("Bonus to relevant Savvy checks")
+	return effects
+
+func _generate_connection_description(connection_type: String, mission: Mission) -> String:
+	var descriptions = {
+		"Alliance": "A new alliance has been formed with a faction in %s.",
+		"Rivalry": "Your actions in %s have created a rivalry with a local group.",
+		"Trade Agreement": "A lucrative trade agreement has been established in %s.",
+		"Information Network": "You've tapped into a valuable information network in %s."
 	}
+	return descriptions[connection_type] % mission.location.name
 
-func generate_deployment_condition(template: MissionTemplate) -> String:
-	if randf() < template.deployment_condition_chance:
-		var conditions = [
-			"Small encounter",
-			"Poor visibility",
-			"Brief engagement",
-			"Toxic environment",
-			"Surprise encounter",
-			"Delayed",
-			"Slippery ground",
-			"Bitter struggle",
-			"Caught off guard",
-			"Gloomy"
-		]
-		return conditions[randi() % conditions.size()]
-	else:
-		return "Standard deployment"
-
-func generate_notable_sight(template: MissionTemplate) -> Dictionary:
-	if randf() < template.notable_sight_chance:
-		var sights = [
-			{"name": "Documentation", "effect": "Gain a Quest Rumor"},
-			{"name": "Priority target", "effect": "Defeat for bonus credits"},
-			{"name": "Loot cache", "effect": "Contains valuable items"},
-			{"name": "Shiny bits", "effect": "Gain 1 credit"},
-			{"name": "Really shiny bits", "effect": "Gain 2 credits"},
-			{"name": "Person of interest", "effect": "Gain 1 story point"},
-			{"name": "Peculiar item", "effect": "Gain 2 XP"},
-			{"name": "Curious item", "effect": "Potentially valuable"}
-		]
-		return sights[randi() % sights.size()]
-	else:
-		return {}
-
-# ... (rest of the methods)
+# Commented out probability function for future use
+# func _mission_to_quest_probability(mission: Mission) -> float:
+#     var base_probability = 0.2  # 20% base chance
+#     base_probability += mission.difficulty * 0.05  # +5% per difficulty level
+#     if mission.status == Mission.Status.COMPLETED:
+#         base_probability += 0.1  # +10% if mission was successful
+#     return min(base_probability, 0.75)  # Cap at 75% chance

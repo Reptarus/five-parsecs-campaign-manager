@@ -21,6 +21,7 @@ enum TurnPhase {
 
 var game_state: GameState
 var current_phase: TurnPhase = TurnPhase.UPKEEP
+var use_expanded_missions: bool = false
 
 func _init(_game_state: GameState) -> void:
 	game_state = _game_state

@@ -73,7 +73,7 @@ func update_character_info() -> void:
 
 	update_stats(selected_race)
 	update_info_box(selected_race, selected_background, selected_motivation, selected_class)
-	update_psionic_info(psionic_option.pressed)
+	update_psionic_info(psionic_option.is_pressed())
 
 func update_stats(race: Dictionary) -> void:
 	for stat in stat_spinboxes:
@@ -152,11 +152,12 @@ func _on_clear_button_pressed():
 	update_character_info()
 
 func _on_save_pressed():
-	var character = Character.new()
-	character.is_psionic = psionic_option.pressed
-	if character.is_psionic:
-		character.psionic_manager = PsionicManager.new()
-		character.psionic_manager.generate_starting_powers()
+	var character = {}  # Use a dictionary instead of a custom class
+	character["is_psionic"] = psionic_option.pressed
+	if character["is_psionic"]:
+		var psionic_manager = PsionicManager.new()
+		psionic_manager.generate_starting_powers()
+		character["psionic_powers"] = psionic_manager.powers
 		character.psionic_powers = character.psionic_manager.powers
 	# ... save the character ...
 

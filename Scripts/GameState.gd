@@ -7,10 +7,10 @@ signal state_changed(new_state: State)
 enum State { MAIN_MENU, CREW_CREATION, CAMPAIGN_TURN, MISSION, POST_MISSION }
 
 @export var current_state: State = State.MAIN_MENU
-@export var current_crew: Crew
-@export var current_location: Location
-@export var available_locations: Array[Location] = []
-@export var current_mission: Mission
+@export var current_crew: Resource
+@export var current_location: Resource
+@export var available_locations: Array[Resource] = []
+@export var current_mission: Resource
 @export var credits: int = 0
 @export var story_points: int = 0
 @export var campaign_turn: int = 0
@@ -83,7 +83,7 @@ func serialize() -> Dictionary:
 		"credits": credits,
 		"story_points": story_points,
 		"campaign_turn": campaign_turn,
-		"current_location": current_location.serialize() if current_location else null,
+		"current_location": null,
 		"available_locations": available_locations.map(func(loc): return loc.serialize()),
 		"available_missions": available_missions.map(func(mission): return mission.serialize()),
 		"active_quests": active_quests.map(func(quest): return quest.serialize()),
@@ -106,7 +106,7 @@ static func deserialize(data: Dictionary) -> GameState:
 		game_state.current_location = Location.deserialize(data["current_location"])
 	game_state.available_locations = data["available_locations"].map(func(loc_data): return Location.deserialize(loc_data))
 	if data.has("current_crew"):
-		game_state.current_crew = Crew.deserialize(data["current_crew"])
+		game_state.current_crew = Crew.new().deserialize(data["current_crew"])
 	if data.has("current_mission"):
 		game_state.current_mission = Mission.deserialize(data["current_mission"])
 	game_state.available_missions = data["available_missions"].map(func(mission_data): return Mission.deserialize(mission_data))

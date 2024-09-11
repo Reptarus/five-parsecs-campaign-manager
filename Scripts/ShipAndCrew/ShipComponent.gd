@@ -1,7 +1,7 @@
 class_name ShipComponent
 extends Equipment
 
-enum ComponentType { HULL, ENGINE, WEAPONS, SHIELDS, MEDICAL_BAY, CARGO_HOLD }
+enum ComponentType { HULL, ENGINE, WEAPONS, SHIELDS, MEDICAL_BAY, CARGO_HOLD, DROP_PODS, SHUTTLE }
 
 @export var component_type: ComponentType
 @export var power_usage: int

@@ -66,6 +66,38 @@ func create_component_from_data(component_data: Dictionary) -> ShipComponent:
 				component_data.health,
 				component_data.healing_capacity
 			)
+		"shield":
+			return ShieldComponent.new(
+				component_data.name,
+				component_data.description,
+				component_data.power_usage,
+				component_data.health,
+				component_data.shield_strength
+			)
+		"cargo":
+			return CargoHoldComponent.new(
+				component_data.name,
+				component_data.description,
+				component_data.power_usage,
+				component_data.health,
+				component_data.capacity
+			)
+		"drop_pod":
+			return DropPodComponent.new(
+				component_data.name,
+				component_data.description,
+				component_data.power_usage,
+				component_data.health,
+				component_data.pod_count
+			)
+		"shuttle":
+			return ShuttleComponent.new(
+				component_data.name,
+				component_data.description,
+				component_data.power_usage,
+				component_data.health,
+				component_data.passenger_capacity
+			)
 		_:
 			push_error("Unknown component type: " + component_data.id)
 			return null
@@ -128,10 +160,8 @@ func repair_ship(ship: Ship, amount: int) -> void:
 		hull.repair(amount)
 
 func calculate_maintenance_cost(ship: Ship) -> int:
-	var maintenance_cost := 0
-	for component in ship.components:
-		maintenance_cost += component.power_usage  # Assuming power usage correlates with maintenance cost
-	return maintenance_cost
+	var base_cost = ship.components.reduce(func(acc, comp): return acc + comp.power_usage, 0)
+	return int(base_cost * game_state.economy_manager.global_economic_modifier)
 
 func generate_random_component(component_type: ShipComponent.ComponentType) -> ShipComponent:
 	var category = get_category_for_component_type(component_type)
@@ -148,6 +178,14 @@ func get_category_for_component_type(component_type: ShipComponent.ComponentType
 			return "weapon_components"
 		ShipComponent.ComponentType.MEDICAL_BAY:
 			return "medical_components"
+		ShipComponent.ComponentType.SHIELDS:
+			return "shield_components"
+		ShipComponent.ComponentType.CARGO_HOLD:
+			return "cargo_components"
+		ShipComponent.ComponentType.DROP_PODS:
+			return "drop_pod_components"
+		ShipComponent.ComponentType.SHUTTLE:
+			return "shuttle_components"
 		_:
 			push_error("Unknown component type")
 			return ""

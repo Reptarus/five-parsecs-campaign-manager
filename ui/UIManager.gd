@@ -2,6 +2,7 @@
 class_name UIManager
 extends Node
 
+# warning-ignore:unused_signal
 signal screen_changed(new_screen)
 
 var current_screen: Control
@@ -24,8 +25,8 @@ func _ready():
 	# Set initial screen
 	change_screen("main_menu")
 
-func register_screen(name: String, screen: Control):
-	screens[name] = screen
+func register_screen(screen_name: String, screen: Control):
+	screens[screen_name] = screen
 	screen.hide()
 
 func change_screen(screen_name: String):
@@ -68,13 +69,12 @@ func hide_tooltip():
 	$Tooltip.hide()
 
 func show_notification(message: String, duration: float = 2.0):
-	var notification = $Notification
-	notification.set_text(message)
-	notification.show()
+	var notif = $Notification
+	notif.text = message
+	notif.show()
 	
-	var timer = get_tree().create_timer(duration)
-	await timer.timeout
-	notification.hide()
+	await get_tree().create_timer(duration).timeout
+	notif.hide()
 
 func update_credits_display():
 	$HUD/CreditsLabel.text = "Credits: " + str(game_state.credits)

@@ -3,7 +3,7 @@ class_name Crew
 extends Resource
 
 @export var name: String
-@export var members: Array[Character] = []
+@export var members: Array = []
 @export var credits: int = 0
 @export var ship: Ship
 @export var reputation: int = 0
@@ -13,10 +13,10 @@ func _init(_name: String = "", _ship: Ship = null):
 	name = _name
 	ship = _ship
 
-func add_member(character: Character):
+func add_member(character):
 	members.append(character)
 
-func remove_member(character: Character):
+func remove_member(character):
 	members.erase(character)
 
 func add_credits(amount: int):
@@ -32,18 +32,29 @@ func get_member_count() -> int:
 	return members.size()
 
 func serialize() -> Dictionary:
-	return {
+	var serialized_data = {
 		"name": name,
-		"members": members.map(func(m): return m.serialize()),
+		"members": [],
 		"credits": credits,
-		"ship": ship.serialize() if ship else null,
+		"ship": null,
 		"reputation": reputation,
-		"current_location": current_location.serialize() if current_location else null
+		"current_location": null
 	}
+	
+	for member in members:
+		serialized_data["members"].append(member.serialize())
+	
+	if ship:
+		serialized_data["ship"] = ship.serialize()
+	
+	if current_location:
+		serialized_data["current_location"] = current_location.serialize()
+	
+	return serialized_data
 
 static func deserialize(data: Dictionary) -> Crew:
 	var crew = Crew.new(data["name"])
-	crew.members = data["members"].map(func(m): return Character.deserialize(m))
+	crew.members = data["members"].map(func(m): return load("res://Scripts/Character.gd").deserialize(m))
 	crew.credits = data["credits"]
 	crew.ship = Ship.deserialize(data["ship"]) if data["ship"] else null
 	crew.reputation = data["reputation"]

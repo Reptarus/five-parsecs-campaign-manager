@@ -56,11 +56,11 @@ func travel_to_world(world: Location):
 	game_state.current_location = world
 	ui_manager.update_world_info()
 
-func recruit_crew_member(character: Character):
+func recruit_crew_member(character):
 	game_state.current_crew.add_member(character)
 	ui_manager.update_crew_info()
 
-func upgrade_character(character: Character, upgrade: String):
+func upgrade_character(character, upgrade: String):
 	character.apply_upgrade(upgrade)
 	ui_manager.update_crew_info()
 

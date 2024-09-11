@@ -34,18 +34,28 @@ func is_expired(current_turn: int) -> bool:
 	return current_turn >= time_limit
 
 func serialize() -> Dictionary:
-	return {
+	var serialized_data = {
 		"title": title,
 		"description": description,
 		"type": Type.keys()[type],
 		"status": Status.keys()[status],
 		"objective": Objective.keys()[objective],
-		"patron": {"data": patron.serialize()} if patron else null,
 		"rewards": rewards,
 		"time_limit": time_limit,
 		"difficulty": difficulty,
-		"location": {"data": location.serialize()} if location else null
 	}
+	
+	if patron != null:
+		serialized_data["patron"] = patron.serialize()
+	else:
+		serialized_data["patron"] = null
+	
+	if location:
+		serialized_data["location"] = {"data": location.serialize()}
+	else:
+		serialized_data["location"] = null
+	
+	return serialized_data
 
 static func deserialize(data: Dictionary) -> Mission:
 	var mission = Mission.new(data["title"], data["description"], Type[data["type"]], Objective[data["objective"]])
