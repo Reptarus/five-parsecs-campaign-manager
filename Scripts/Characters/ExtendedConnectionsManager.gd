@@ -163,7 +163,8 @@ func apply_military_connection_effect(connection: Dictionary):
 	game_state.apply_military_bonus(military_bonus)
 
 func generate_mission_from_connection(connection: Dictionary) -> Mission:
-	var mission_generator = MissionGenerator.new(game_state)
+	var mission_generator = MissionGenerator.new()
+	mission_generator.init(game_state)
 	var mission = mission_generator.generate_mission()
 	
 	# Modify mission based on connection type

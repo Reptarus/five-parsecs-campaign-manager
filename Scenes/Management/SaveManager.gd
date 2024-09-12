@@ -54,3 +54,13 @@ func get_save_list() -> Array:
 				saves.append(file_name.get_basename())
 			file_name = dir.get_next()
 	return saves
+
+func load_most_recent_save() -> GameState:
+	var saves = get_save_list()
+	if saves.is_empty():
+		return null
+	saves.sort()
+	return load_game(saves[-1])
+
+func create_autosave(game_state: GameState) -> Error:
+	return save_game(game_state, "autosave")

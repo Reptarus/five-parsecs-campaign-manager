@@ -153,3 +153,37 @@ text = "[center][b]Five Parsecs From Home[/b][/center]
 title = "Confirm Crew"
 size = Vector2i(300, 100)
 dialog_text = "Are you sure you want to finalize this crew?"
+
+func _ready():
+    display_crew(game_state.get_current_crew())
+
+func display_crew(crew):
+    for member in crew.get_members():
+        add_crew_member_to_ui(member)
+
+func add_crew_member_to_ui(member):
+    var character_sheet = preload("res://Scenes/Scene Container/CrewManagement/CharacterSheet.tscn").instantiate()
+    character_sheet.set_member(member)
+    CrewList.add_child(character_sheet)
+
+func remove_crew_member_from_ui(member):
+    for child in CrewList.get_children():
+        if child.member == member:
+            child.queue_free()
+            break
+
+func update_crew_size_label(crew):
+    SizeLabel.text = str(crew.get_members().size())
+
+func _on_size_slider_value_changed(value):
+    SizeLabel.text = str(int(value))
+
+func _on_generate_random_button_pressed():
+    generate_random_crew()
+
+func generate_random_crew():
+    var crew_size = int(SizeSlider.value)
+    var new_crew = Crew.new()
+    for i in range(crew_size):
+        var new_member = Character.new()
+

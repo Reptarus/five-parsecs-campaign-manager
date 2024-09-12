@@ -4,7 +4,6 @@ extends Node
 
 var game_state: GameState
 
-
 @onready var resolve_outcomes_button: Button = $MarginContainer/VBoxContainer/ResolveOutcomesButton
 @onready var distribute_rewards_button: Button = $MarginContainer/VBoxContainer/DistributeRewardsButton
 @onready var handle_injuries_button: Button = $MarginContainer/VBoxContainer/HandleInjuriesButton
@@ -58,6 +57,7 @@ func execute_post_battle_sequence() -> void:
 	roll_for_campaign_event()
 	roll_for_character_event()
 	check_for_galactic_war_progress()
+	create_logbook_entry()
 
 func resolve_rival_status() -> void:
 	var battle: Battle = game_state.current_battle
@@ -75,7 +75,6 @@ func resolve_rival_status() -> void:
 			var rival_to_remove = game_state.find_rival_by_name(battle.opponent.name)
 			if rival_to_remove:
 				game_state.remove_rival(rival_to_remove)
-
 
 func resolve_patron_status():
 	if game_state.current_mission and game_state.current_mission.patron:
@@ -159,17 +158,14 @@ func apply_battlefield_find(find: String):
 		"Personal trinket":
 			game_state.add_personal_trinket()
 		"Debris":
-			game_state.add_credits(randi() % 3 + 1)
+			# No action needed
+			pass
 
 func check_for_invasion():
-	if game_state.current_battle.opponent.is_invasion_threat:
-		var roll = randi() % 6 + 1 + randi() % 6 + 1
-		roll += 1 if game_state.has_invasion_evidence else 0
-		roll -= 1 if game_state.current_battle.held_field else 0
-
-		if roll >= 9:
-			print("Invasion imminent! Prepare to flee!")
-			game_state.set_world_invaded()
+	if randi() % 6 + 1 == 1:
+		var planet = game_state.get_random_planet()
+		game_state.add_invaded_planet(planet)
+		print("%s has been invaded!" % planet.name)
 
 func gather_loot():
 	var loot = game_state.loot_generator.generate_loot()
@@ -196,82 +192,47 @@ func roll_on_injury_table(character) -> String:
 		return roll_on_human_injury_table(roll)
 
 func roll_on_human_injury_table(roll: int) -> String:
-	if roll <= 5:
-		return "Gruesome fate"
-	elif roll <= 15:
-		return "Death or permanent injury"
-	elif roll == 16:
-		return "Miraculous escape"
+	if roll <= 15:
+		return "Minor Injury"
 	elif roll <= 30:
-		return "Equipment loss"
+		return "Moderate Injury"
 	elif roll <= 45:
-		return "Crippling wound"
-	elif roll <= 54:
-		return "Serious injury"
-	elif roll <= 80:
-		return "Minor injuries"
-	elif roll <= 95:
-		return "Knocked out"
-	else:
-		return "School of hard knocks"
+		return "Severe Injury"
+	elif roll <= 60:
+		return "Critical Injury"
+	elif roll <= 75:
+		return "Permanent Injury"
+	elif roll <= 90:
+		return "Psychological Trauma"
+	elif roll <= 100:
+		return "Near-Death Experience"
+	return "No Injury" # Fallback, should never reach this
 
 func roll_on_bot_injury_table(roll: int) -> String:
-	if roll <= 5:
-		return "Obliterated"
-	elif roll <= 15:
-		return "Destroyed"
-	elif roll <= 30:
-		return "Equipment loss"
-	elif roll <= 45:
-		return "Severe damage"
-	elif roll <= 65:
-		return "Minor damage"
-	else:
-		return "Just a few dents"
+	if roll <= 20:
+		return "Minor Damage"
+	elif roll <= 40:
+		return "Moderate Damage"
+	elif roll <= 60:
+		return "Severe Damage"
+	elif roll <= 80:
+		return "Critical System Failure"
+	elif roll <= 95:
+		return "Core Processor Damage"
+	elif roll <= 100:
+		return "Total Shutdown"
+	return "No Damage" # Fallback, should never reach this
 
 func apply_injury(character, injury: String):
-	match injury:
-		"Gruesome fate", "Obliterated":
-			character.kill()
-			character.damage_all_equipment()
-		"Death or permanent injury", "Destroyed":
-			character.kill()
-		"Miraculous escape":
-			character.add_luck(1)
-			character.lose_all_equipment()
-		"Equipment loss":
-			character.damage_random_equipment()
-		"Crippling wound":
-			var surgery_cost = randi() % 6 + 1
-			if game_state.credits >= surgery_cost:
-				game_state.remove_credits(surgery_cost)
-				character.recover_time = randi() % 6 + 1
-			else:
-				character.permanent_stat_reduction()
-		"Serious injury", "Severe damage":
-			character.recover_time = randi() % 3 + 2
-		"Minor injuries", "Minor damage":
-			character.recover_time = 1
-		"Knocked out", "Just a few dents":
-			pass
-		"School of hard knocks":
-			character.add_xp(1)
+	character.apply_injury(injury)
+	print("%s suffered injury: %s" % [character.name, injury])
 
 func experience_and_character_upgrades():
 	for character in game_state.current_crew.members:
 		if character.became_casualty:
 			character.add_xp(1)
-		elif game_state.current_battle.objective_completed:
-			character.add_xp(3)
-		else:
-			character.add_xp(2)
-
-		if character == game_state.current_battle.first_to_score_casualty:
-			character.add_xp(1)
-
 		if character.killed_unique_individual:
 			character.add_xp(1)
-
 		character.apply_experience_upgrades()
 
 func invest_in_advanced_training():
@@ -309,11 +270,20 @@ func check_for_galactic_war_progress():
 				planet.add_troop_presence()
 
 func apply_campaign_event(event: Dictionary):
-	# Implement the effects of various campaign events
 	print("Applying campaign event: %s" % event.name)
 	event.action.call()
 
 func apply_character_event(character, event: Dictionary):
-	# Implement the effects of various character events
 	print("Applying character event for %s: %s" % [character.name, event.name])
 	event.action.call(character)
+
+func create_logbook_entry():
+	var campaign_data = {
+		"location": game_state.current_location,
+		"crew": game_state.current_crew.members,
+		"credits": game_state.credits,
+		"mission_result": game_state.current_battle.objective_completed,
+		"loot": game_state.last_loot,
+		"events": game_state.last_events
+	}
+	game_state.logbook.create_new_entry(campaign_data)

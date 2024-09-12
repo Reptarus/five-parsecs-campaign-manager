@@ -52,7 +52,7 @@ static func deserialize(data: Dictionary) -> Rival:
 	var _name = data.get("name", "")
 	var _location = null
 	if data.get("location") != null:
-		_location = Location.deserialize(data["location"])
+		_location = Location.deserialize(data["location"]["data"])
 	var _strength = data.get("strength", 1)
 
 	var rival = Rival.new(_name, _location, _strength)

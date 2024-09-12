@@ -99,7 +99,8 @@ func serialize() -> Dictionary:
 		"available_missions": available_missions.map(func(mission): return mission.serialize()),
 		"active_quests": active_quests.map(func(quest): return quest.serialize()),
 		"patrons": patrons.map(func(patron): return patron.serialize()),
-		"rivals": rivals.map(func(rival): return rival.serialize())
+		"rivals": rivals.map(func(rival): return rival.serialize()),
+		"current_battle": current_battle.serialize() if current_battle else null,
 	}
 	if current_crew:
 		data["current_crew"] = current_crew.serialize()
@@ -124,4 +125,6 @@ static func deserialize(data: Dictionary) -> GameState:
 	game_state.active_quests = data.get("active_quests", []).map(func(quest_data): return Quest.deserialize(quest_data))
 	game_state.patrons = data.get("patrons", []).map(func(patron_data): return Patron.deserialize(patron_data))
 	game_state.rivals = data.get("rivals", []).map(func(rival_data): return Rival.deserialize(rival_data))
+	if data.has("current_battle") and data["current_battle"] != null:
+		game_state.current_battle = Battle.new(game_state).deserialize(data["current_battle"])
 	return game_state

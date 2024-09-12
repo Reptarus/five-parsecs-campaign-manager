@@ -3,7 +3,7 @@
 [ext_resource type="Script" path="res://Scenes/Scene Container/campaigncreation/scripts/CharacterCreationScene.gd" id="1_yksn4"]
 [ext_resource type="Texture2D" uid="uid://bwejyqe8qschs" path="res://assets/Basic assets/Card X3/Card X5.png" id="2_bi18b"]
 [ext_resource type="Texture2D" uid="uid://bogjhy2wlwtca" path="res://assets/Basic assets/Icons/09.png" id="4_0jfqn"]
-[ext_resource type="Texture2D" uid="uid://bjh0ro2ak2tle" path="res://assets/BookImages/2024-09-03 18_48_37-01 - Core Rulebook.pdf and 3 more pages - Personal - Microsoft​ Edge.png" id="4_nujk6"]
+[ext_resource type="Texture2D" uid="uid://bjh0ro2ak2tle" path="res://assets/BookImages/2024-09-03 18_48_37-01 - Core Rulebook.pdf and 3 more pages - Personal - Microsoft Edge.png" id="4_nujk6"]
 [ext_resource type="Texture2D" uid="uid://b0u2duocptu2v" path="res://assets/Basic assets/Card X1/Card X2.png" id="5_s1mj3"]
 [ext_resource type="Texture2D" uid="uid://565v8opj5ar" path="res://assets/Basic assets/Icons/10.png" id="5_w84yq"]
 
@@ -110,6 +110,17 @@ text = "Roll for Crew Type"
 visible = false
 layout_mode = 2
 
+[node name="NameEntry" type="HBoxContainer" parent="CharacterCreationTabs/BasicProfile"]
+layout_mode = 2
+
+[node name="NameLabel" type="Label" parent="CharacterCreationTabs/BasicProfile/NameEntry"]
+layout_mode = 2
+text = "Name:"
+
+[node name="NameInput" type="LineEdit" parent="CharacterCreationTabs/BasicProfile/NameEntry"]
+layout_mode = 2
+size_flags_horizontal = 3
+
 [node name="SpeciesSelection" type="VBoxContainer" parent="CharacterCreationTabs/BasicProfile"]
 layout_mode = 2
 
@@ -144,6 +155,13 @@ layout_mode = 2
 text = "Special Abilities"
 
 [node name="AbilitiesList" type="ItemList" parent="CharacterCreationTabs/CharacterDetails/SpecialAbilities"]
+layout_mode = 2
+
+[node name="PsionicCheckbox" type="CheckBox" parent="CharacterCreationTabs/CharacterDetails"]
+layout_mode = 2
+text = "Psionic"
+
+[node name="StrangeCharacterOption" type="OptionButton" parent="CharacterCreationTabs/CharacterDetails"]
 layout_mode = 2
 
 [node name="Equipment" type="VBoxContainer" parent="CharacterCreationTabs"]
@@ -226,41 +244,108 @@ grow_horizontal = 2
 grow_vertical = 2
 autowrap_mode = 3
 
-[node name="SaveButton" parent="." instance=ExtResource("CrewPictureAndStats/PictureandBMCcontrols/HBoxContainer/Save")]
+[node name="SaveButton" type="Button" parent="."]
 layout_mode = 2
 anchor_top = 1.0
 anchor_bottom = 1.0
 offset_top = -60
+offset_right = 100
 offset_bottom = -20
 grow_vertical = 0
+text = "Save"
 
-[node name="ClearButton" parent="." instance=ExtResource("CrewPictureAndStats/PictureandBMCcontrols/HBoxContainer/Clear")]
+[node name="ClearButton" type="Button" parent="."]
 layout_mode = 2
 anchor_left = 0.25
 anchor_top = 1.0
 anchor_right = 0.25
 anchor_bottom = 1.0
+offset_left = -50
 offset_top = -60
+offset_right = 50
 offset_bottom = -20
 grow_vertical = 0
+text = "Clear"
 
-[node name="ImportButton" parent="." instance=ExtResource("CrewPictureAndStats/PictureandBMCcontrols/HBoxContainer/Import")]
+[node name="ImportButton" type="Button" parent="."]
 layout_mode = 2
 anchor_left = 0.5
 anchor_top = 1.0
 anchor_right = 0.5
 anchor_bottom = 1.0
+offset_left = -50
 offset_top = -60
+offset_right = 50
 offset_bottom = -20
 grow_vertical = 0
+text = "Import"
 
-[node name="ExportButton" parent="." instance=ExtResource("CrewPictureAndStats/PictureandBMCcontrols/HBoxContainer/Export")]
+[node name="ExportButton" type="Button" parent="."]
 layout_mode = 2
 anchor_left = 0.75
 anchor_top = 1.0
 anchor_right = 0.75
 anchor_bottom = 1.0
+offset_left = -50
 offset_top = -60
+offset_right = 50
 offset_bottom = -20
 grow_vertical = 0
+text = "Export"
+
+[node name="AddCharacterButton" type="Button" parent="."]
+layout_mode = 2
+anchor_left = 1.0
+anchor_top = 1.0
+anchor_right = 1.0
+anchor_bottom = 1.0
+offset_left = -200
+offset_top = -60
+offset_right = -50
+offset_bottom = -20
+grow_horizontal = 0
+grow_vertical = 0
+text = "Add Character to Crew"
+
+[node name="CharacterList" type="ItemList" parent="."]
+layout_mode = 2
+anchor_left = 1.0
+anchor_top = 0.5
+anchor_right = 1.0
+anchor_bottom = 1.0
+offset_left = -300
+offset_top = -50
+offset_right = -50
+offset_bottom = -100
+grow_horizontal = 0
+grow_vertical = 0
+
+[node name="CharacterCountLabel" type="Label" parent="."]
+layout_mode = 2
+anchor_left = 1.0
+anchor_top = 1.0
+anchor_right = 1.0
+anchor_bottom = 1.0
+offset_left = -300
+offset_top = -100
+offset_right = -50
+offset_bottom = -80
+grow_horizontal = 0
+grow_vertical = 0
+text = "Characters: 0/8"
+horizontal_alignment = 1
+
+[node name="FinishCrewCreationButton" type="Button" parent="."]
+layout_mode = 2
+anchor_left = 1.0
+anchor_top = 1.0
+anchor_right = 1.0
+anchor_bottom = 1.0
+offset_left = -300
+offset_top = -40
+offset_right = -50
+offset_bottom = -10
+grow_horizontal = 0
+grow_vertical = 0
+text = "Finish Crew Creation"
 

@@ -38,10 +38,15 @@ func serialize() -> Dictionary:
 static func deserialize(data: Dictionary) -> Patron:
 	var patron = Patron.new(
 		data["name"],
-		Location.deserialize(data["location"]) if data["location"] else null,
+		data["location"]["data"] if data["location"] else null,
 		Type[data["type"]]
 	)
 	patron.relationship = data["relationship"]
 	patron.missions = data["missions"].map(func(m): return Mission.deserialize(m))
 	patron.economic_influence = data["economic_influence"]
+	
+	# Deserialize location if it exists
+	if data["location"]:
+		patron.location = Location.deserialize(data["location"]["data"])
+	
 	return patron

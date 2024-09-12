@@ -26,9 +26,22 @@ var use_expanded_missions: bool = false
 func _init(_game_state: GameState) -> void:
 	game_state = _game_state
 
-func start_new_turn() -> void:
-	current_phase = TurnPhase.UPKEEP
-	phase_changed.emit(current_phase)
+func start_new_turn(main_scene: Node) -> void:
+	game_state.current_turn += 1
+	game_state.reset_turn_specific_data()
+	
+	var turn_summary = create_campaign_turn_summary()
+	game_state.logbook.add_entry(turn_summary)
+	
+	var save_manager = SaveManager.new()
+	save_manager.save_game(game_state, "user://autosave.json")
+	
+	start_world_phase(main_scene)
+
+func start_world_phase(main_scene: Node):
+	var world_phase_scene = load("res://Scenes/campaign/WorldPhase.tscn").instantiate()
+	world_phase_scene.initialize(game_state)
+	main_scene.add_child(world_phase_scene)
 
 func advance_phase() -> void:
 	current_phase = TurnPhase.values()[(current_phase + 1) % TurnPhase.size()]
@@ -130,4 +143,7 @@ func handle_post_mission() -> Dictionary:
 func end_turn() -> void:
 	game_state.advance_turn()
 	turn_completed.emit()
-	start_new_turn()
+	start_new_turn(game_state.current_turn)
+
+func create_campaign_turn_summary() -> String:
+	return "Turn %d: %s" % [game_state.current_turn, game_state.current_location.name]

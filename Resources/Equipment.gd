@@ -54,7 +54,7 @@ static func deserialize(data: Dictionary) -> Equipment:
 
 static func from_json(json_data: Dictionary) -> Equipment:
 	var equipment_type = Type.GEAR  # Default to GEAR
-	var value = 0
+	var equipment_value = 0
 	var description = ""
 
 	if "type" in json_data:
@@ -69,9 +69,9 @@ static func from_json(json_data: Dictionary) -> Equipment:
 				equipment_type = Type.CONSUMABLE
 
 	if "damage" in json_data:
-		value = json_data["damage"]
+		equipment_value = json_data["damage"]
 	elif "defense" in json_data:
-		value = json_data["defense"]
+		equipment_value = json_data["defense"]
 	elif "effect" in json_data:
 		description = json_data["effect"]
 
@@ -81,7 +81,7 @@ static func from_json(json_data: Dictionary) -> Equipment:
 	return Equipment.new(
 		json_data["name"],
 		equipment_type,
-		value,
+		equipment_value,
 		description,
 		false  # Assuming new equipment from JSON is not damaged by default
 	)
