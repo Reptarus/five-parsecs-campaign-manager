@@ -50,12 +50,12 @@ func place_terrain_features(type: int, count: int):
 		if position:
 			place_terrain(type, position)
 
-func find_valid_position(type: int) -> Vector2i:
+func find_valid_position(_type: int) -> Vector2i:
 	# Implementation to find a valid position for terrain placement
 	# This will need to consider existing terrain and placement rules
 	return Vector2i.ZERO  # Placeholder return
 
-func place_terrain(type: int, position: Vector2i):
+func place_terrain(_type: int, _position: Vector2i):
 	# Implementation to place terrain on the map
 	# This will need to consider the size and shape of different terrain types
 	pass

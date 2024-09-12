@@ -53,3 +53,8 @@ func create_equipment(equipment_id: String) -> Equipment:
 	if equipment:
 		return equipment
 	return null
+
+func initialize(_game_state: GameState) -> void:
+	# This method is added for consistency with other manager classes
+	# Currently, EquipmentManager doesn't need the game_state, but we can add it if needed in the future
+	pass
