@@ -1,8 +1,8 @@
 class_name MedicalBayComponent
 extends ShipComponent
 
-@export var healing_capacity: int
-@export var patients: Array[Character] = []
+var healing_capacity: int
+var patients: Array[Character] = []
 
 func _init(p_name: String, p_description: String, p_power_usage: int, p_health: int, p_healing_capacity: int) -> void:
 	super._init(p_name, p_description, ComponentType.MEDICAL_BAY, p_power_usage, p_health)

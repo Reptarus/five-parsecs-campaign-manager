@@ -88,19 +88,19 @@ func _roll_mission_type() -> Mission.Type:
 	else:
 		return Mission.Type.RIVAL
 
-func _generate_objective(mission_type: Mission.Type) -> Mission.Objective:
+func _generate_objective(_mission_type: Mission.Type) -> Mission.Objective:
 	var objectives = Mission.Objective.values()
 	return objectives[randi() % objectives.size()]
 
 func _generate_rewards(difficulty: int) -> Dictionary:
 	var base_credits = 100 * difficulty
 	return {
-		"credits": base_credits + randi() % (base_credits / 2),
+		"credits": base_credits + randi() % int(base_credits / 2.0),
 		"reputation": difficulty,
 		"item": randf() < 0.3  # 30% chance for item reward
 	}
 
-func _generate_mission_title(mission_type: Mission.Type, location: Location) -> String:
+func _generate_mission_title(_mission_type: Mission.Type, location: Location) -> String:
 	var titles = [
 		"Trouble in %s",
 		"%s Dilemma",
@@ -110,7 +110,7 @@ func _generate_mission_title(mission_type: Mission.Type, location: Location) -> 
 	]
 	return titles[randi() % titles.size()] % location.name
 
-func _generate_mission_description(mission_type: Mission.Type, objective: Mission.Objective, location: Location) -> String:
+func _generate_mission_description(_mission_type: Mission.Type, _objective: Mission.Objective, location: Location) -> String:
 	var descriptions = [
 		"A situation has arisen in %s that requires immediate attention.",
 		"Your expertise is needed to handle a delicate matter in %s.",
@@ -123,7 +123,7 @@ func _generate_random_item() -> String:
 	var items = ["Advanced Weapon", "Protective Gear", "Rare Artifact", "Valuable Data Chip", "Experimental Tech"]
 	return items[randi() % items.size()]
 
-func _generate_connection_effects(connection_type: String, mission: Mission) -> Array:
+func _generate_connection_effects(connection_type: String, _mission: Mission) -> Array:
 	var effects = []
 	match connection_type:
 		"Alliance":

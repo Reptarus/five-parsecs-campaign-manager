@@ -3,9 +3,9 @@ extends Resource
 
 const LocationClass = preload("res://Scripts/Locations/Location.gd")
 
-enum Type { OPPORTUNITY, PATRON, QUEST, RIVAL }
-enum Status { ACTIVE, COMPLETED, FAILED }
-enum Objective { MOVE_THROUGH, DELIVER, ACCESS, PATROL, FIGHT_OFF, SEARCH, DEFEND, ACQUIRE, ELIMINATE, SECURE, PROTECT }
+enum Type {OPPORTUNITY, PATRON, QUEST, RIVAL}
+enum Status {ACTIVE, COMPLETED, FAILED}
+enum Objective {MOVE_THROUGH, DELIVER, ACCESS, PATROL, FIGHT_OFF, SEARCH, DEFEND, ACQUIRE, ELIMINATE, SECURE, PROTECT}
 
 @export var title: String
 @export var description: String
@@ -14,15 +14,21 @@ enum Objective { MOVE_THROUGH, DELIVER, ACCESS, PATROL, FIGHT_OFF, SEARCH, DEFEN
 @export var objective: Objective
 @export var patron: Patron
 @export var rewards: Dictionary
-@export var time_limit: int  # in campaign turns
-@export var difficulty: int  # 1-5
+@export var time_limit: int # in campaign turns
+@export var difficulty: int # 1-5
 @export var location: Location
 
-func _init(p_title: String = "", p_description: String = "", p_type: Type = Type.OPPORTUNITY, p_objective: Objective = Objective.FIGHT_OFF) -> void:
+func _init(p_title: String = "", p_description: String = "", p_type: Type = Type.OPPORTUNITY, 
+		   p_objective: Objective = Objective.MOVE_THROUGH, p_location: Location = null, 
+		   p_difficulty: int = 1, p_rewards: Dictionary = {}, p_time_limit: int = 3):
 	title = p_title
 	description = p_description
 	type = p_type
 	objective = p_objective
+	location = p_location
+	difficulty = p_difficulty
+	rewards = p_rewards
+	time_limit = p_time_limit
 
 func complete() -> void:
 	status = Status.COMPLETED
@@ -58,11 +64,18 @@ func serialize() -> Dictionary:
 	return serialized_data
 
 static func deserialize(data: Dictionary) -> Mission:
-	var mission = Mission.new(data["title"], data["description"], Type[data["type"]], Objective[data["objective"]])
+	var mission = Mission.new(
+		data["title"],
+		data["description"],
+		Type[data["type"]],
+		Objective[data["objective"]],
+		Location.deserialize(data["location"]) if data["location"] else null,
+		data["difficulty"],
+		data["rewards"],
+		data["time_limit"]
+	)
 	mission.status = Status[data["status"]]
 	mission.patron = Patron.deserialize(data["patron"]) if data["patron"] else null
-	mission.rewards = data["rewards"]
-	mission.time_limit = data["time_limit"]
 	mission.difficulty = data["difficulty"]
 	mission.location = Location.deserialize(data["location"]) if data["location"] else null
 	return mission

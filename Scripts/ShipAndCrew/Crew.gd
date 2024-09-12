@@ -56,7 +56,7 @@ static func deserialize(data: Dictionary) -> Crew:
 	var crew = Crew.new(data["name"])
 	crew.members = data["members"].map(func(m): return load("res://Scripts/Character.gd").deserialize(m))
 	crew.credits = data["credits"]
-	crew.ship = Ship.deserialize(data["ship"]) if data["ship"] else null
+	crew.ship = Ship.new().deserialize(data["ship"]) if data["ship"] else null
 	crew.reputation = data["reputation"]
-	crew.current_location = Location.deserialize(data["current_location"]) if data["current_location"] else null
+	crew.current_location = Location.new().deserialize(data["current_location"]) if data["current_location"] else null
 	return crew

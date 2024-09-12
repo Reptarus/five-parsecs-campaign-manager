@@ -137,17 +137,16 @@ func apply_damage(figure, damage: int) -> void:
 	if figure.toughness <= 0:
 		figure.set_state("out_of_action")
 		if figure.is_in_group("enemies"):
-			GameState.current_battle.enemy_casualties += 1
+			GameState.get_current_battle().enemy_casualties += 1
 	else:
 		# Check for panic
 		var panic_roll = roll_dice(2, 6)
 		if panic_roll <= figure.panic_value:
 			figure.set_state("panicked")
-
 func remove_weapon(weapon: Weapon) -> void:
-	if weapon in GameState.player_inventory.weapons:
+	if GameState.player_inventory and weapon in GameState.player_inventory.weapons:
 		GameState.player_inventory.weapons.erase(weapon)
-	if weapon.is_equipped:
+	if weapon.is_equipped and weapon.owner:
 		weapon.owner.unequip_weapon(weapon)
 
 func roll_dice(number: int, sides: int) -> int:
