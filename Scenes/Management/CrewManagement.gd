@@ -17,7 +17,7 @@ signal crew_creation_completed(crew)
 
 var game_state: GameState
 var crew: Crew
-var selected_crew_member: CrewMember
+var selected_crew_member: Character  # Changed from CrewMember to Character
 
 func _ready() -> void:
 	crew_list.connect("item_selected", _on_crew_member_selected)

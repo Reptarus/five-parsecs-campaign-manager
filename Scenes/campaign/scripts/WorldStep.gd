@@ -39,7 +39,7 @@ func assign_and_resolve_crew_tasks() -> void:
 			var task = choose_task(member)
 			resolve_task(member, task)
 
-func choose_task(character) -> String:
+func choose_task(_character) -> String:
 	var available_tasks = ["Trade", "Explore", "Train", "Recruit", "Find Patron", "Repair"]
 	return available_tasks[randi() % available_tasks.size()]
 
@@ -98,7 +98,7 @@ func recruit(character) -> void:
 	var crew = game_state.current_crew
 	if crew.get_member_count() < crew.max_members:
 		if randf() < 0.4:  # 40% chance to find a recruit
-			var new_recruit = preload("res://Scenes/character/Character.gd").new()
+			var new_recruit = preload("res://Scripts/Characters/Character.gd").new()
 			crew.add_member(new_recruit)
 			print("%s successfully recruited %s to join the crew." % [character.name, new_recruit.name])
 		else:

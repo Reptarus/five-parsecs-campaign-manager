@@ -17,7 +17,7 @@ func _ready() -> void:
 	campaign_manager.phase_changed.connect(_on_phase_changed)
 	update_display()
 
-func _on_phase_changed(new_phase: CampaignManager.TurnPhase) -> void:
+func _on_phase_changed(_new_phase: CampaignManager.TurnPhase) -> void:
 	update_display()
 
 func update_display() -> void:
@@ -154,7 +154,7 @@ func _display_recruit_options() -> void:
 	var recruits = game_state.mission_generator.generate_recruits()
 	for i in range(recruits.size()):
 		var option = CheckBox.new()
-		option.text = recruits[i].name + " - " + CharacterCreationData.Background.keys()[recruits[i].background]
+		option.text = recruits[i].name + " - " + str(recruits[i].background)
 		options_container.add_child(option)
 
 func _display_training_options() -> void:

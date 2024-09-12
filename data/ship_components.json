@@ -1,12 +1,13 @@
 {
   "metadata": {
-	"version": "1.0",
-	"last_updated": "2024-09-05"
+	"version": "1.1",
+	"last_updated": "2024-09-06"
   },
   "hull_components": [
 	{
 	  "id": "basic_hull",
 	  "name": "Basic Hull",
+	  "description": "Standard hull for small ships",
 	  "health": 100,
 	  "armor": 0,
 	  "power_usage": 0,
@@ -15,6 +16,7 @@
 	{
 	  "id": "reinforced_hull",
 	  "name": "Reinforced Hull",
+	  "description": "Stronger hull with improved armor",
 	  "health": 150,
 	  "armor": 1,
 	  "power_usage": 10,
@@ -25,6 +27,7 @@
 	{
 	  "id": "standard_engine",
 	  "name": "Standard Engine",
+	  "description": "Reliable engine for most ships",
 	  "speed": 5,
 	  "fuel_efficiency": 1.0,
 	  "power_usage": 20,
@@ -33,6 +36,7 @@
 	{
 	  "id": "advanced_engine",
 	  "name": "Advanced Engine",
+	  "description": "High-performance engine with better efficiency",
 	  "speed": 7,
 	  "fuel_efficiency": 1.2,
 	  "power_usage": 30,
@@ -43,6 +47,7 @@
 	{
 	  "id": "laser_cannon",
 	  "name": "Laser Cannon",
+	  "description": "Standard energy weapon",
 	  "damage": 10,
 	  "range": 5,
 	  "accuracy": 70,
@@ -52,6 +57,7 @@
 	{
 	  "id": "missile_launcher",
 	  "name": "Missile Launcher",
+	  "description": "Explosive projectile weapon",
 	  "damage": 15,
 	  "range": 8,
 	  "accuracy": 60,
@@ -63,6 +69,7 @@
 	{
 	  "id": "basic_med_bay",
 	  "name": "Basic Med Bay",
+	  "description": "Simple medical facility",
 	  "healing_capacity": 2,
 	  "power_usage": 15,
 	  "cost": 500
@@ -70,9 +77,82 @@
 	{
 	  "id": "advanced_med_bay",
 	  "name": "Advanced Med Bay",
+	  "description": "Well-equipped medical facility",
 	  "healing_capacity": 4,
 	  "power_usage": 25,
 	  "cost": 1000
+	}
+  ],
+  "shield_components": [
+	{
+	  "id": "basic_shield",
+	  "name": "Basic Shield",
+	  "description": "Standard energy shield",
+	  "shield_strength": 50,
+	  "power_usage": 20,
+	  "cost": 800
+	},
+	{
+	  "id": "advanced_shield",
+	  "name": "Advanced Shield",
+	  "description": "High-capacity energy shield",
+	  "shield_strength": 100,
+	  "power_usage": 35,
+	  "cost": 1600
+	}
+  ],
+  "cargo_components": [
+	{
+	  "id": "small_cargo_hold",
+	  "name": "Small Cargo Hold",
+	  "description": "Basic cargo storage",
+	  "capacity": 100,
+	  "power_usage": 5,
+	  "cost": 300
+	},
+	{
+	  "id": "large_cargo_hold",
+	  "name": "Large Cargo Hold",
+	  "description": "Expanded cargo storage",
+	  "capacity": 250,
+	  "power_usage": 10,
+	  "cost": 700
+	}
+  ],
+  "drop_pod_components": [
+	{
+	  "id": "basic_drop_pods",
+	  "name": "Basic Drop Pods",
+	  "description": "Standard boarding pods",
+	  "pod_count": 2,
+	  "power_usage": 15,
+	  "cost": 600
+	},
+	{
+	  "id": "advanced_drop_pods",
+	  "name": "Advanced Drop Pods",
+	  "description": "High-capacity boarding pods",
+	  "pod_count": 4,
+	  "power_usage": 25,
+	  "cost": 1200
+	}
+  ],
+  "shuttle_components": [
+	{
+	  "id": "basic_shuttle",
+	  "name": "Basic Shuttle",
+	  "description": "Small transport shuttle",
+	  "passenger_capacity": 5,
+	  "power_usage": 20,
+	  "cost": 1000
+	},
+	{
+	  "id": "advanced_shuttle",
+	  "name": "Advanced Shuttle",
+	  "description": "Large, well-equipped shuttle",
+	  "passenger_capacity": 10,
+	  "power_usage": 30,
+	  "cost": 2000
 	}
   ]
 }

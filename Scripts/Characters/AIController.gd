@@ -128,7 +128,7 @@ func execute_action(ai_character: Character, action: Dictionary) -> void:
 		"attack":
 			combat_manager.attack_character(ai_character, action.target)
 		"use_item":
-			combat_manager.use_item(ai_character)
+			combat_manager.use_item(ai_character, action.item)  # Added action.item as the second argument
 		"aim":
 			combat_manager.aim(ai_character)
 

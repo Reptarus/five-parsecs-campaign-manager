@@ -53,7 +53,7 @@ func _init() -> void:
 	inventory = CharacterInventory.new()
 
 func generate_random() -> void:
-	name = CharacterNameGenerator.get_random_name()
+	character_name = CharacterNameGenerator.get_random_name()
 	race = Race.values()[randi() % Race.size()]
 	background = Background.values()[randi() % Background.size()]
 	motivation = Motivation.values()[randi() % Motivation.size()]
@@ -92,39 +92,39 @@ func get_random_portrait() -> String:
 func get_background_stats(bg: Background) -> Dictionary:
 	var creation_data = CharacterCreationData.new()
 	creation_data.load_data()
-	var background_data = creation_data.get_background_data(bg)
-	var stats = {}
+	var background_data = creation_data.get_background_data(Background.keys()[bg])
+	var bg_stats = {}
 	if "speed" in background_data:
-		stats["speed"] = background_data["speed"]
+		bg_stats["speed"] = background_data["speed"]
 	if "savvy" in background_data:
-		stats["savvy"] = background_data["savvy"]
+		bg_stats["savvy"] = background_data["savvy"]
 	if "combat_skill" in background_data:
-		stats["combat_skill"] = background_data["combat_skill"]
+		bg_stats["combat_skill"] = background_data["combat_skill"]
 	if "toughness" in background_data:
-		stats["toughness"] = background_data["toughness"]
-	return stats
+		bg_stats["toughness"] = background_data["toughness"]
+	return bg_stats
 
 func get_motivation_stats(mot: Motivation) -> Dictionary:
 	var creation_data = CharacterCreationData.new()
 	creation_data.load_data()
-	var motivation_data = creation_data.get_motivation_data(mot)
-	var stats = {}
+	var motivation_data = creation_data.get_motivation_data(Motivation.keys()[mot])
+	var mot_stats = {}
 	if "speed" in motivation_data:
-		stats["speed"] = motivation_data["speed"]
+		mot_stats["speed"] = motivation_data["speed"]
 	if "xp" in motivation_data:
-		stats["xp"] = motivation_data["xp"]
-	return stats
+		mot_stats["xp"] = motivation_data["xp"]
+	return mot_stats
 
 func get_class_stats(cls: Class) -> Dictionary:
 	var creation_data = CharacterCreationData.new()
 	creation_data.load_data()
-	var class_data = creation_data.get_class_data(cls)
-	var stats = {}
+	var class_data = creation_data.get_class_data(Class.keys()[cls])
+	var class_stats = {}
 	if "savvy" in class_data:
-		stats["savvy"] = class_data["savvy"]
+		class_stats["savvy"] = class_data["savvy"]
 	if "combat_skill" in class_data:
-		stats["combat_skill"] = class_data["combat_skill"]
-	return stats
+		class_stats["combat_skill"] = class_data["combat_skill"]
+	return class_stats
 
 func update(new_data: Dictionary) -> void:
 	for key in new_data:
@@ -196,7 +196,7 @@ func has_usable_items() -> bool:
 	return inventory.has_usable_items()
 
 func get_display_string() -> String:
-	return "{0} - {1} {2}".format([name, Race.keys()[race], Background.keys()[background]])
+	return "{0} - {1} {2}".format([character_name, Race.keys()[race], Background.keys()[background]])
 
 func _to_string() -> String:
 	return get_display_string()
@@ -214,24 +214,24 @@ func get_faction_standing(faction_name: String) -> int:
 
 func apply_character_effects(character_data: CharacterCreationData):
 	# Apply race effects
-	var race_data = character_data.get_race_data(GlobalEnums.Race.keys()[race])
+	var race_data = character_data.get_race_data(Race.keys()[race])
 	apply_stat_bonuses(race_data.get("base_stats", {}))
 	for ability in race_data.get("special_abilities", []):
 		abilities.append(ability)
 	
 	# Apply background effects
-	var background_data = character_data.get_background_data(GlobalEnums.Background.keys()[background])
+	var background_data = character_data.get_background_data(Background.keys()[background])
 	apply_stat_bonuses(background_data.get("stat_bonuses", {}))
 	for item in background_data.get("starting_gear", []):
 		inventory.add_item(item)
 	
 	# Apply motivation effects
-	var motivation_data = character_data.get_motivation_data(GlobalEnums.Motivation.keys()[motivation])
+	var motivation_data = character_data.get_motivation_data(Motivation.keys()[motivation])
 	apply_stat_bonuses(motivation_data.get("stat_bonuses", {}))
 	xp += motivation_data.get("starting_xp", 0)
 	
 	# Apply class effects
-	var class_data = character_data.get_class_data(GlobalEnums.Class.keys()[character_class])
+	var class_data = character_data.get_class_data(Class.keys()[character_class])
 	apply_stat_bonuses(class_data.get("stat_bonuses", {}))
 	for item in class_data.get("starting_gear", []):
 		inventory.add_item(item)
@@ -260,11 +260,9 @@ func set_strange_character_type(type: StrangeCharacters.StrangeCharacterType):
 	strange_character = StrangeCharacters.new(type)
 	strange_character.apply_special_abilities(self)
 
-# Removed duplicate add_ability function
-
 func serialize() -> Dictionary:
 	var data = {
-		"name": name,
+		"character_name": character_name,
 		"race": Race.keys()[race],
 		"background": Background.keys()[background],
 		"motivation": Motivation.keys()[motivation],
@@ -284,7 +282,8 @@ func serialize() -> Dictionary:
 		"faction_standings": faction_standings,
 		"status_effects": status_effects.map(func(effect): return effect.serialize()),
 		"is_psionic": is_psionic,
-		"psionic_powers": psionic_powers
+		"psionic_powers": psionic_powers,
+		"notes": notes
 	}
 	
 	if current_location:
@@ -300,7 +299,7 @@ func serialize() -> Dictionary:
 
 static func deserialize(data: Dictionary) -> Character:
 	var character = Character.new()
-	character.name = data["name"]
+	character.character_name = data["character_name"]
 	character.race = Race[data["race"]]
 	character.background = Background[data["background"]]
 	character.motivation = Motivation[data["motivation"]]
@@ -321,6 +320,7 @@ static func deserialize(data: Dictionary) -> Character:
 	character.status_effects = data["status_effects"].map(func(effect_data): return StatusEffect.deserialize(effect_data))
 	character.is_psionic = data.get("is_psionic", false)
 	character.psionic_powers = data.get("psionic_powers", [])
+	character.notes = data.get("notes", "")
 	
 	if "current_location" in data:
 		character.current_location = Location.deserialize(data["current_location"])
