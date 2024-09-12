@@ -29,7 +29,7 @@ func generate_new_quest() -> Quest:
 	return new_quest
 
 func add_mission_followup_quest(mission: Mission) -> Quest:
-	var mission_generator = MissionGenerator.new(game_state)
+	var mission_generator = MissionGenerator.new()
 	var new_quest = mission_generator.mission_to_quest(mission)
 	active_quests.append(new_quest)
 	return new_quest
@@ -45,7 +45,7 @@ func _check_quest_requirements(quest: Quest) -> bool:
 			return false
 	return true
 
-func _is_requirement_met(requirement: String, quest: Quest) -> bool:
+func _is_requirement_met(_requirement: String, _quest: Quest) -> bool:
 	# This function would check if the requirement is met based on the game state
 	# For now, we'll use a placeholder implementation
 	return randf() > 0.5

@@ -21,7 +21,7 @@ func assign_crew_tasks(crew: Crew) -> void:
 			var task = choose_task(member)
 			perform_task(member, task)
 
-func choose_task(character) -> TaskType:
+func choose_task(_character) -> TaskType:
 	var available_tasks = TaskType.values()
 	return available_tasks[randi() % available_tasks.size()]
 
@@ -134,8 +134,8 @@ func generate_random_weapon() -> Weapon:
 	var weapon_types = ["Pistol", "Rifle", "Shotgun", "Heavy Weapon"]
 	var weapon_name = weapon_types[randi() % weapon_types.size()]
 	var damage = randi() % 5 + 1
-	var range = randi() % 10 + 1
-	return Weapon.new(weapon_name, Weapon.WeaponType.MILITARY, range, 1, damage)
+	var weapon_range = randi() % 10 + 1
+	return Weapon.new(weapon_name, Weapon.WeaponType.MILITARY, weapon_range, 1, damage)
 
 func generate_random_armor() -> Equipment:
 	var armor_types = ["Light Armor", "Medium Armor", "Heavy Armor"]
@@ -150,9 +150,9 @@ func generate_random_gear() -> Gear:
 
 func generate_random_medical_item() -> Equipment:
 	var medical_types = ["Med-kit", "Stim-pack", "Nano-injector", "Trauma Pack"]
-	var name = medical_types[randi() % medical_types.size()]
+	var item_name = medical_types[randi() % medical_types.size()]
 	var healing_value = randi() % 3 + 1
-	return Equipment.new(name, Equipment.Type.CONSUMABLE, healing_value)
+	return Equipment.new(item_name, Equipment.Type.CONSUMABLE, healing_value)
 
 func generate_rumor() -> String:
 	var rumors = [

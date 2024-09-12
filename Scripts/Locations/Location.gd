@@ -41,11 +41,15 @@ func get_traits() -> Array[String]:
 	return traits
 
 func serialize() -> Dictionary:
+	var serialized_parent = null
+	if parent:
+		serialized_parent = parent.serialize()
+	
 	return {
 		"name": name,
 		"type": Type.keys()[type],
 		"traits": traits,
-		"parent": {"data": parent.serialize()} if parent else null,
+		"parent": serialized_parent,
 		"children": children.map(func(c): return c.serialize())
 	}
 

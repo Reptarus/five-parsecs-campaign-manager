@@ -12,9 +12,10 @@ extends Control
 var game_state: GameState
 
 func _ready():
-	game_state = get_node("/root/GameState") as GameState
-	assert(game_state != null, "Expected GameState, but got null")
-	
+	setup_ui()
+	call_deferred("initialize_game_systems")
+
+func setup_ui():
 	continue_button.pressed.connect(_on_continue_pressed)
 	new_campaign_button.pressed.connect(_on_new_campaign_pressed)
 	coop_campaign_button.pressed.connect(_on_coop_campaign_pressed)
@@ -23,12 +24,15 @@ func _ready():
 	options_button.pressed.connect(_on_options_pressed)
 	library_button.pressed.connect(_on_library_pressed)
 	
-	update_continue_button_visibility()
-	
 	# Add fade-in animation
 	modulate = Color(1, 1, 1, 0)
 	var tween = create_tween()
 	tween.tween_property(self, "modulate", Color(1, 1, 1, 1), 0.5)
+
+func initialize_game_systems():
+	game_state = GameState.new()
+	assert(game_state != null, "Failed to create GameState instance")
+	update_continue_button_visibility()
 
 func update_continue_button_visibility():
 	continue_button.visible = game_state.current_crew != null

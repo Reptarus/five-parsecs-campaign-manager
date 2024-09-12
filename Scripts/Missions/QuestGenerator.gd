@@ -81,4 +81,4 @@ func generate_faction_name() -> String:
 func generate_reward_item() -> Equipment:
 	# Generate a random piece of equipment as a reward
 	# This would use the Equipment system we created earlier
-	return Equipment.new("Reward Item", 0, randi_range(50, 500))
+	return Equipment.new("Reward Item", Equipment.Type.values()[randi() % Equipment.Type.size()], randi_range(50, 500))

@@ -2,14 +2,25 @@ class_name MissionGenerator
 extends Resource  # Change from Node to Resource
 
 var game_state: GameState
+var mission_types: Array[String] = []
 var expanded_missions_manager: ExpandedMissionsManager
 
-func _init(_game_state: GameState = null):
-	if _game_state:
-		game_state = _game_state
-		expanded_missions_manager = ExpandedMissionsManager.new(game_state)
-	# Remove duplicate line
-	# expanded_missions_manager = ExpandedMissionsManager.new(game_state)
+func initialize(new_game_state: GameState):
+	self.game_state = new_game_state
+	print("MissionGenerator initializing...")
+	
+	# Initialize mission types
+	mission_types = ["OPPORTUNITY", "PATRON", "QUEST", "RIVAL"]
+	
+	# Load any additional data from JSON or other sources if needed
+	_load_mission_data()
+	
+	print("MissionGenerator initialized successfully")
+
+func _load_mission_data():
+	# Load any additional mission data from JSON files or other sources
+	# This is a placeholder - implement actual data loading if required
+	pass
 
 func generate_mission(use_expanded_missions: bool = false) -> Mission:
 	if use_expanded_missions:
@@ -146,9 +157,12 @@ func _generate_connection_description(connection_type: String, mission: Mission)
 	}
 	return descriptions[connection_type] % mission.location.name
 
+
+
 func set_game_state(_game_state: GameState):
 	game_state = _game_state
 	expanded_missions_manager = ExpandedMissionsManager.new(game_state)
+
 # Commented out probability function for future use
 # func _mission_to_quest_probability(mission: Mission) -> float:
 #     var base_probability = 0.2  # 20% base chance

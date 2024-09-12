@@ -1,6 +1,7 @@
 # VictoryConditionSelection.gd
 extends Control
 
+@warning_ignore("unused_signal")
 signal condition_selected(condition)
 
 @onready var condition_list = $VBoxContainer/ConditionList

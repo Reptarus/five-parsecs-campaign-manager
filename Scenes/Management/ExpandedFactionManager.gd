@@ -121,7 +121,7 @@ func capitalize_on_events(faction: Dictionary) -> void:
 	var stat_to_increase = "influence" if faction["influence"] <= faction["power"] else "power"
 	faction[stat_to_increase] = min(5, faction[stat_to_increase] + 1)
 
-func lay_low(faction: Dictionary) -> void:
+func lay_low(_faction: Dictionary) -> void:
 	# No action taken
 	pass
 

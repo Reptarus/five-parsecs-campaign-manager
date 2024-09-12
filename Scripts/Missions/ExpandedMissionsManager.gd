@@ -65,7 +65,7 @@ func _generate_secondary_objectives(mission_type: MissionType) -> Array[String]:
 	
 	return objectives
 
-func _generate_rewards(mission_type: MissionType) -> Dictionary:
+func _generate_rewards(_mission_type: MissionType) -> Dictionary:
 	return {
 		"credits": randi_range(1000, 5000),
 		"reputation": randi_range(1, 5),

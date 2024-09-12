@@ -23,7 +23,7 @@ func load_character(file_name: String):
         file.close()
         if error == OK:
             var character = Character.new()
-            character.deserialize(json.data)
+            Character.deserialize(json.data)
             return character
     return null
 
@@ -48,7 +48,7 @@ func load_crew(file_name: String) -> Array:
             var characters = []
             for char_data in json.data:
                 var character = Character.new()
-                character.deserialize(char_data)
+                Character.deserialize(char_data)
                 characters.append(character)
             return characters
     return []

@@ -53,11 +53,35 @@ static func deserialize(data: Dictionary) -> Equipment:
 	)
 
 static func from_json(json_data: Dictionary) -> Equipment:
-	var equipment_type = Type[json_data["type"]] if json_data["type"] in Type else Type.GEAR
+	var equipment_type = Type.GEAR  # Default to GEAR
+	var value = 0
+	var description = ""
+
+	if "type" in json_data:
+		match json_data["type"].to_lower():
+			"weapon", "military", "high-tech", "melee", "heavy":
+				equipment_type = Type.WEAPON
+			"armor", "light", "medium", "heavy":
+				equipment_type = Type.ARMOR
+			"gear", "utility", "tech", "mobility":
+				equipment_type = Type.GEAR
+			"consumable", "medical", "explosive":
+				equipment_type = Type.CONSUMABLE
+
+	if "damage" in json_data:
+		value = json_data["damage"]
+	elif "defense" in json_data:
+		value = json_data["defense"]
+	elif "effect" in json_data:
+		description = json_data["effect"]
+
+	if "traits" in json_data:
+		description += " Traits: " + ", ".join(json_data["traits"])
+
 	return Equipment.new(
 		json_data["name"],
 		equipment_type,
-		json_data["value"],
-		json_data["description"],
+		value,
+		description,
 		false  # Assuming new equipment from JSON is not damaged by default
 	)

@@ -56,7 +56,7 @@ func _initialize_grid():
 func _generate_center_feature():
 	center_feature = {
 		"type": _roll_notable_feature(),
-		"position": Vector2i(GRID_SIZE.x / 2, GRID_SIZE.y / 2)
+		"position": Vector2i(int(GRID_SIZE.x / 2), int(GRID_SIZE.y / 2))
 	}
 	_apply_feature_to_grid(center_feature)
 
@@ -114,22 +114,22 @@ func _apply_feature_to_grid(feature):
 	battlefield[feature.position.x][feature.position.y] = symbol
 
 func _apply_quarters_to_grid():
-	var quarter_size = Vector2i(GRID_SIZE.x / 2, GRID_SIZE.y / 2)
+	var quarter_size = Vector2i(int(GRID_SIZE.x / 2), int(GRID_SIZE.y / 2))
 	for q in range(4):
-		var start_x = (q % 2) * quarter_size.x
-		var start_y = (q / 2) * quarter_size.y
+		var start_x = int(q % 2) * quarter_size.x
+		var start_y = int(q / 2) * quarter_size.y
 		for feature in quarters[q].features:
-			var position = Vector2i(
+			var feature_pos = Vector2i(
 				randi() % quarter_size.x + start_x,
 				randi() % quarter_size.y + start_y
 			)
-			_apply_feature_to_grid({"type": feature, "position": position})
+			_apply_feature_to_grid({"type": feature, "position": feature_pos})
 		for scatter in quarters[q].scatter_terrain:
-			var position = Vector2i(
+			var scatter_pos = Vector2i(
 				randi() % quarter_size.x + start_x,
 				randi() % quarter_size.y + start_y
 			)
-			battlefield[position.x][position.y] = "S"
+			battlefield[scatter_pos.x][scatter_pos.y] = "S"
 
 func _get_feature_symbol(feature_type: String) -> String:
 	return feature_type[0].to_upper()

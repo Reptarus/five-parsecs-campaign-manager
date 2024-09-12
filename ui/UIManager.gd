@@ -2,9 +2,6 @@
 class_name UIManager
 extends Node
 
-# warning-ignore:unused_signal
-signal screen_changed(new_screen)
-
 var current_screen: Control
 var screens: Dictionary = {}
 var game_state: GameState

@@ -46,7 +46,7 @@ func assign_and_resolve_crew_tasks() -> void:
 			var task = choose_task(member)
 			world_step.resolve_task(member, task)
 
-func choose_task(member) -> String:
+func choose_task(_member) -> String:
 	var available_tasks = ["Trade", "Explore", "Train", "Recruit", "Find Patron", "Repair", "Decoy"]
 	return available_tasks[randi() % available_tasks.size()]
 

@@ -1,6 +1,7 @@
 # CrewManagement.gd
 extends Control
 
+@warning_ignore("unused_signal")
 signal crew_creation_completed(crew)
 
 @onready var crew_list: ItemList = $VBoxContainer/HBoxContainer/CrewList

@@ -3,7 +3,7 @@ extends Node
 
 var equipment_database: Dictionary = {}
 
-func _init():
+func _ready():
 	_load_equipment_database()
 
 func _load_equipment_database():
@@ -13,9 +13,13 @@ func _load_equipment_database():
 		var parse_result = json.parse(file.get_as_text())
 		if parse_result == OK:
 			var data = json.get_data()
-			for key in data:
-				equipment_database[key] = Equipment.from_json(data[key])
+			for category in data.keys():
+				for item in data[category]:
+					var equipment = Equipment.from_json(item)
+					equipment_database[equipment.name] = equipment
 		file.close()
+	else:
+		print("Failed to open equipment_database.json")
 
 func generate_equipment_from_background(background: Dictionary) -> Array:
 	var equipment = []

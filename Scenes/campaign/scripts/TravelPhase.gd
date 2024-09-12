@@ -1,7 +1,7 @@
 # Travel.gd
 extends Control
 
-const Rival = preload("res://Resources/Rival.gd")
+const RivalResource = preload("res://Resources/Rival.gd")
 
 var game_state: GameState
 var starship_travel_events: StarshipTravelEvents
@@ -20,7 +20,7 @@ func _on_stay_pressed():
 
 func _on_travel_pressed():
 	if game_state.current_crew.ship.hull_damage > 0:
-		var choice = await _show_emergency_takeoff_dialog()
+		var choice = _show_emergency_takeoff_dialog()
 		if choice:
 			emergency_takeoff()
 		else:

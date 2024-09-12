@@ -25,14 +25,14 @@ var patron_job_manager: PatronJobManager
 var current_battle: Battle
 
 func _init() -> void:
-	mission_generator = MissionGenerator.new(self)
+	mission_generator = MissionGenerator.new()
 	equipment_manager = EquipmentManager.new()
 	patron_job_manager = PatronJobManager.new()
 	
 	call_deferred("_post_init")
 
 func _post_init() -> void:
-	mission_generator.set_game_state(self)
+	mission_generator.initialize()
 	equipment_manager.initialize(self)
 	patron_job_manager.initialize(self)
 
