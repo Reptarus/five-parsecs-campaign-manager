@@ -1,3 +1,4 @@
+@ -1,351 +0,0 @@
 [gd_scene load_steps=9 format=3 uid="uid://bjsta3jc8nw2k"]
 
 [ext_resource type="Script" path="res://Scenes/Scene Container/campaigncreation/scripts/CharacterCreationScene.gd" id="1_yksn4"]
@@ -147,22 +148,51 @@ layout_mode = 2
 [node name="StatDistribution" parent="CharacterCreationTabs/CharacterDetails" instance=ExtResource("CrewStatsAndInfo/StatDistribution")]
 layout_mode = 2
 
+[node name="SkillsContainer" type="VBoxContainer" parent="CharacterCreationTabs/CharacterDetails"]
+layout_mode = 2
+
+[node name="SkillsLabel" type="Label" parent="CharacterCreationTabs/CharacterDetails/SkillsContainer"]
+layout_mode = 2
+text = "Skills"
+
+[node name="SkillsList" type="ItemList" parent="CharacterCreationTabs/CharacterDetails/SkillsContainer"]
+layout_mode = 2
+
 [node name="SpecialAbilities" type="VBoxContainer" parent="CharacterCreationTabs/CharacterDetails"]
 layout_mode = 2
 
-[node name="Label" type="Label" parent="CharacterCreationTabs/CharacterDetails/SpecialAbilities"]
+[node name="SpecialAbilitiesLabel" type="Label" parent="CharacterCreationTabs/CharacterDetails/SpecialAbilities"]
 layout_mode = 2
 text = "Special Abilities"
 
 [node name="AbilitiesList" type="ItemList" parent="CharacterCreationTabs/CharacterDetails/SpecialAbilities"]
 layout_mode = 2
 
-[node name="PsionicCheckbox" type="CheckBox" parent="CharacterCreationTabs/CharacterDetails"]
+[node name="PsionicContainer" type="VBoxContainer" parent="CharacterCreationTabs/CharacterDetails"]
+layout_mode = 2
+
+[node name="PsionicCheckbox" type="CheckBox" parent="CharacterCreationTabs/CharacterDetails/PsionicContainer"]
 layout_mode = 2
 text = "Psionic"
 
-[node name="StrangeCharacterOption" type="OptionButton" parent="CharacterCreationTabs/CharacterDetails"]
+[node name="PsionicPowersList" type="ItemList" parent="CharacterCreationTabs/CharacterDetails/PsionicContainer"]
 layout_mode = 2
+visible = false
+
+[node name="StrangeCharacters" type="VBoxContainer" parent="CharacterCreationTabs"]
+visible = false
+layout_mode = 2
+
+[node name="StrangeCharacterLabel" type="Label" parent="CharacterCreationTabs/StrangeCharacters"]
+layout_mode = 2
+text = "Strange Character Type:"
+
+[node name="StrangeCharacterOption" type="OptionButton" parent="CharacterCreationTabs/StrangeCharacters"]
+layout_mode = 2
+
+[node name="StrangeCharacterDescription" type="RichTextLabel" parent="CharacterCreationTabs/StrangeCharacters"]
+layout_mode = 2
+bbcode_enabled = true
 
 [node name="Equipment" type="VBoxContainer" parent="CharacterCreationTabs"]
 visible = false
@@ -219,6 +249,38 @@ text = "Motivation:"
 [node name="ClassLabel" type="Label" parent="CharacterPreview/CharacterSummary"]
 layout_mode = 2
 text = "Class:"
+
+[node name="StrangeCharacterLabel" type="Label" parent="CharacterPreview/CharacterSummary"]
+layout_mode = 2
+text = "Strange Character Type:"
+
+[node name="StatsContainer" type="GridContainer" parent="CharacterPreview/CharacterSummary"]
+layout_mode = 2
+columns = 2
+
+[node name="SkillsLabel" type="Label" parent="CharacterPreview/CharacterSummary"]
+layout_mode = 2
+text = "Skills:"
+
+[node name="SkillsList" type="Label" parent="CharacterPreview/CharacterSummary"]
+layout_mode = 2
+autowrap_mode = 3
+
+[node name="AbilitiesLabel" type="Label" parent="CharacterPreview/CharacterSummary"]
+layout_mode = 2
+text = "Special Abilities:"
+
+[node name="AbilitiesList" type="Label" parent="CharacterPreview/CharacterSummary"]
+layout_mode = 2
+autowrap_mode = 3
+
+[node name="PsionicLabel" type="Label" parent="CharacterPreview/CharacterSummary"]
+layout_mode = 2
+text = "Psionic Powers:"
+
+[node name="PsionicList" type="Label" parent="CharacterPreview/CharacterSummary"]
+layout_mode = 2
+autowrap_mode = 3
 
 [node name="TooltipPanel" type="Panel" parent="."]
 visible = false
@@ -348,4 +410,3 @@ offset_bottom = -10
 grow_horizontal = 0
 grow_vertical = 0
 text = "Finish Crew Creation"
-
