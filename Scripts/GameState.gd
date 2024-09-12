@@ -1,6 +1,6 @@
 # GameState.gd
 class_name GameState
-extends Resource
+extends Node
 
 signal state_changed(new_state: State)
 

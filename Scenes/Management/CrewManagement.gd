@@ -98,17 +98,3 @@ func _on_confirm_crew_pressed() -> void:
 		emit_signal("crew_creation_completed", crew)
 		
 		get_tree().root.get_node("Main").goto_scene("res://scenes/CampaignDashboard.tscn")
-	else:
-		_show_error_message("Error: Crew is not valid. Please ensure all members are properly created.")
-
-func _on_back_pressed() -> void:
-	get_tree().root.get_node("Main").goto_scene("res://scenes/CampaignDashboard.tscn")
-
-func _show_error_message(message: String) -> void:
-	var dialog = AcceptDialog.new()
-	dialog.dialog_text = message
-	add_child(dialog)
-	dialog.popup_centered()
-
-func _on_crew_creation_completed(_crew) -> void:
-	pass  # This function can be empty or used for additional logic if needed

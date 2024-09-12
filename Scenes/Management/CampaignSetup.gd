@@ -14,6 +14,11 @@ var game_state: GameState
 var world_generator: WorldGenerator
 
 func _ready():
+	game_state = get_node("/root/GameState") as GameState
+	if game_state == null:
+		push_error("Failed to get GameState node")
+		return
+	
 	world_generator = WorldGenerator.new(game_state)
 	crew_creation.connect("crew_created", Callable(self, "_on_crew_created"))
 	ship_creation.connect("ship_selected", Callable(self, "_on_ship_selected"))
@@ -22,6 +27,7 @@ func _ready():
 	victory_condition_selection.connect("victory_condition_selected", Callable(self, "_on_victory_condition_selected"))
 	start_campaign_button.connect("pressed", Callable(self, "_on_start_campaign_pressed"))
 	start_campaign_button.disabled = true
+	show_tutorial_popup()
 
 func _on_crew_created(crew: Crew):
 	game_state.current_crew = crew
@@ -70,3 +76,24 @@ func _on_start_campaign_pressed():
 			game_state.story_points = 0
 	
 	emit_signal("campaign_created", game_state)
+
+func show_tutorial_popup():
+	var tutorial_popup = AcceptDialog.new()
+	tutorial_popup.dialog_text = "Would you like to start the tutorial for setting up a character and crew?"
+	tutorial_popup.get_ok_button().text = "Yes"
+	tutorial_popup.add_button("No", true, "skip_tutorial")
+	tutorial_popup.connect("confirmed", Callable(self, "_start_tutorial"))
+	tutorial_popup.connect("custom_action", Callable(self, "_skip_tutorial"))
+	add_child(tutorial_popup)
+	tutorial_popup.popup_centered()
+
+func _start_tutorial():
+	# Implement tutorial logic here
+	print("Starting tutorial...")
+	# You can add specific tutorial steps here
+
+func _skip_tutorial():
+	# Continue with normal character creation
+	print("Skipping tutorial...")
+	# You might want to focus on the first step of character creation here
+	crew_creation.start_creation()
