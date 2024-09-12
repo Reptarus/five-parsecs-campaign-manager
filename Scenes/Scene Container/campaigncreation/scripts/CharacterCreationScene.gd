@@ -4,6 +4,7 @@ extends Control
 @onready var preview_panel: Panel = $PreviewPanel
 @onready var psionic_checkbox: CheckBox = $PsionicCheckbox
 @onready var strange_character_option: OptionButton = $StrangeCharacterOption
+@onready var species_option_button: OptionButton = $CharacterCreationTabs/BasicProfile/SpeciesSelection/SpeciesOptionButton
 
 var character_data: CharacterCreationData
 var current_character: Character
@@ -15,9 +16,16 @@ func _ready():
 	setup_tabs()
 	setup_preview_panel()
 	connect_signals()
-	create_new_character()
+	setup_species_selection()
 	setup_psionic_ui()
 	setup_strange_character_ui()
+	create_new_character()
+
+func setup_species_selection():
+	var species_list = ["Human", "Engineer", "K'Erin", "Soulless", "Precursor", "Feral", "Swift", "Bot"]
+	for species in species_list:
+		species_option_button.add_item(species)
+	species_option_button.item_selected.connect(_on_species_selected)
 
 func create_new_character():
 	current_character = Character.new()
@@ -29,18 +37,20 @@ func create_new_character():
 	current_character.portrait = character_data.get_random_portrait()
 	
 	# Generate random initial stats
-	for stat in current_character.stats:
-		current_character.stats[stat] = randi() % 6 + 1
+	current_character.reactions = 1
+	current_character.speed = 4
+	current_character.combat_skill = 0
+	current_character.toughness = 3
+	current_character.savvy = 0
 	
+	current_character.apply_species_effects()
 	current_character.apply_character_effects(character_data)
 	update_ui()
 
 func update_ui():
-	# Update all UI elements with the current character data
-	$CrewStatsAndInfo/NameEntry/NameInput.text = current_character.name
-	$CrewStatsAndInfo/SpeciesSelection/SpeciesSelection.select(current_character.race)
-	# ... (update other UI elements)
-	
+	$CharacterCreationTabs/BasicProfile/NameEntry/NameInput.text = current_character.name
+	species_option_button.select(current_character.species)
+	# Update other UI elements (background, motivation, class, etc.)
 	update_preview_panel()
 
 func update_preview_panel():
@@ -93,7 +103,8 @@ func load_character_data():
 
 func connect_signals():
 	# Connect UI element signals to update functions
-	pass
+	$CharacterCreationTabs/BasicProfile/NameEntry/NameInput.text_changed.connect(_on_name_changed)
+	# Connect other UI elements (background, motivation, class, etc.)
 
 func setup_psionic_ui():
 	psionic_checkbox.connect("toggled", Callable(self, "_on_psionic_toggled"))
@@ -107,11 +118,32 @@ func _on_psionic_toggled(button_pressed: bool):
 	if button_pressed:
 		current_character.make_psionic()
 	else:
-		current_character.is_psionic = false
-		current_character.psionic_powers.clear()
+		current_character.remove_psionic()
 	update_ui()
 
 func _on_strange_character_selected(index: int):
 	var type = StrangeCharacters.StrangeCharacterType.values()[index]
 	current_character.set_strange_character_type(type)
 	update_ui()
+
+func _on_species_selected(index: int):
+	var selected_species = species_option_button.get_item_text(index)
+	current_character.set_species(selected_species)
+	current_character.apply_species_effects()
+	update_ui()
+
+func _on_name_changed(new_name: String):
+	current_character.name = new_name
+	update_preview_panel()
+
+func roll_random_character():
+	create_new_character()
+	update_ui()
+
+func save_character():
+	# Implement character saving logic
+	pass
+
+func load_character():
+	# Implement character loading logic
+	pass

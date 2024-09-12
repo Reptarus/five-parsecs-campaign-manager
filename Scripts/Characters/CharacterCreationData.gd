@@ -52,3 +52,9 @@ func load_psionic_data():
 			psionic_data = json.data
 		else:
 			print("Error parsing Psionics.json")
+
+func get_psionic_power_data(power_id: String) -> Dictionary:
+	return psionic_data.powers.filter(func(p): return p.id == power_id)[0]
+
+func get_psionic_legality() -> GlobalEnums.PsionicLegality:
+	return GlobalEnums.PsionicLegality[psionic_data.legality]

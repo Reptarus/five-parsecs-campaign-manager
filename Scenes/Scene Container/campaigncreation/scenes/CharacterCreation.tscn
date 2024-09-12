@@ -110,7 +110,14 @@ text = "Roll for Crew Type"
 visible = false
 layout_mode = 2
 
-[node name="SpeciesSelection" parent="CharacterCreationTabs/BasicProfile" instance=ExtResource("CrewStatsAndInfo/SpeciesSelection")]
+[node name="SpeciesSelection" type="VBoxContainer" parent="CharacterCreationTabs/BasicProfile"]
+layout_mode = 2
+
+[node name="SpeciesLabel" type="Label" parent="CharacterCreationTabs/BasicProfile/SpeciesSelection"]
+layout_mode = 2
+text = "Species:"
+
+[node name="SpeciesOptionButton" type="OptionButton" parent="CharacterCreationTabs/BasicProfile/SpeciesSelection"]
 layout_mode = 2
 
 [node name="BackgroundSelection" parent="CharacterCreationTabs/BasicProfile" instance=ExtResource("CrewPictureAndStats/PictureandBMCcontrols/PortraitControls/BackgroundSelection")]
@@ -256,3 +263,4 @@ anchor_bottom = 1.0
 offset_top = -60
 offset_bottom = -20
 grow_vertical = 0
+
