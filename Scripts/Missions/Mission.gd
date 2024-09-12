@@ -1,7 +1,8 @@
 class_name Mission
 extends Resource
 
-const LocationClass = preload("res://Scripts/Locations/Location.gd")
+# Remove this line as it's not needed and can cause circular dependencies
+# const LocationClass = preload("res://Scripts/Locations/Location.gd")
 
 enum Type {OPPORTUNITY, PATRON, QUEST, RIVAL}
 enum Status {ACTIVE, COMPLETED, FAILED}
@@ -69,13 +70,12 @@ static func deserialize(data: Dictionary) -> Mission:
 		data["description"],
 		Type[data["type"]],
 		Objective[data["objective"]],
-		Location.deserialize(data["location"]) if data["location"] else null,
+		load("res://Scripts/Locations/Location.gd").new().deserialize(data["location"]) if data["location"] else null,
 		data["difficulty"],
 		data["rewards"],
 		data["time_limit"]
 	)
 	mission.status = Status[data["status"]]
-	mission.patron = Patron.deserialize(data["patron"]) if data["patron"] else null
+	mission.patron = load("res://Scripts/Patrons/Patron.gd").new().deserialize(data["patron"]) if data["patron"] else null
 	mission.difficulty = data["difficulty"]
-	mission.location = Location.deserialize(data["location"]) if data["location"] else null
 	return mission

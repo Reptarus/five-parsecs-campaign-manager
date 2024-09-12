@@ -15,7 +15,8 @@ func initialize(_game_state: GameState) -> void:
 func generate_patron_jobs() -> void:
 	for patron in game_state.patrons:
 		if should_generate_job(patron):
-			var new_job: Mission = mission_generator.generate_mission(Mission.Type.PATRON, patron)
+			var new_job: Mission = mission_generator.generate_mission(Mission.Type.PATRON)
+			new_job.set_patron(patron)
 			patron.add_mission(new_job)
 			game_state.add_available_mission(new_job)
 

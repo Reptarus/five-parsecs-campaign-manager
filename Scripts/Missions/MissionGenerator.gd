@@ -1,12 +1,15 @@
 class_name MissionGenerator
-extends Node
+extends Resource  # Change from Node to Resource
 
 var game_state: GameState
 var expanded_missions_manager: ExpandedMissionsManager
 
-func _init(_game_state: GameState):
-	game_state = _game_state
-	expanded_missions_manager = ExpandedMissionsManager.new(game_state)
+func _init(_game_state: GameState = null):
+	if _game_state:
+		game_state = _game_state
+		expanded_missions_manager = ExpandedMissionsManager.new(game_state)
+	# Remove duplicate line
+	# expanded_missions_manager = ExpandedMissionsManager.new(game_state)
 
 func generate_mission(use_expanded_missions: bool = false) -> Mission:
 	if use_expanded_missions:
@@ -15,37 +18,31 @@ func generate_mission(use_expanded_missions: bool = false) -> Mission:
 		return _generate_standard_mission()
 
 func _generate_standard_mission() -> Mission:
-	var mission_type = _roll_mission_type()
-	var location = game_state.get_random_location()
-	var objective = _generate_objective(mission_type)
-	var difficulty = randi() % 5 + 1  # 1 to 5
-	var rewards = _generate_rewards(difficulty)
-	var time_limit = randi() % 5 + 3  # 3 to 7 campaign turns
+	var mission = Mission.new()
+	mission.type = _roll_mission_type()
+	mission.location = game_state.get_random_location()
+	mission.objective = _generate_objective(mission.type)
+	mission.difficulty = randi() % 5 + 1  # 1 to 5
+	mission.rewards = _generate_rewards(mission.difficulty)
+	mission.time_limit = randi() % 5 + 3  # 3 to 7 campaign turns
+	mission.title = _generate_mission_title(mission.type, mission.location)
+	mission.description = _generate_mission_description(mission.type, mission.objective, mission.location)
 	
-	return Mission.new(
-		_generate_mission_title(mission_type, location),
-		_generate_mission_description(mission_type, objective, location),
-		mission_type,
-		objective,
-		location,
-		difficulty,
-		rewards,
-		time_limit
-	)
+	return mission
 
 func _generate_expanded_mission() -> Mission:
 	var expanded_mission_data = expanded_missions_manager.generate_expanded_mission()
+	var mission = Mission.new()
+	mission.title = expanded_mission_data["title"]
+	mission.description = expanded_mission_data["description"]
+	mission.type = Mission.Type[expanded_mission_data["type"]]
+	mission.objective = Mission.Objective[expanded_mission_data["primary_objective"]]
+	mission.location = expanded_mission_data["location"]
+	mission.difficulty = expanded_mission_data["difficulty"]
+	mission.rewards = expanded_mission_data["rewards"]
+	mission.time_limit = randi() % 5 + 3  # 3 to 7 campaign turns
 	
-	return Mission.new(
-		expanded_mission_data["title"],
-		expanded_mission_data["description"],
-		Mission.Type[expanded_mission_data["type"]],
-		Mission.Objective[expanded_mission_data["primary_objective"]],
-		expanded_mission_data["location"],
-		expanded_mission_data["difficulty"],
-		expanded_mission_data["rewards"],
-		randi() % 5 + 3  # 3 to 7 campaign turns
-	)
+	return mission
 
 func mission_to_quest(mission: Mission) -> Quest:
 	var quest_type = "MISSION_FOLLOWUP"
@@ -149,6 +146,9 @@ func _generate_connection_description(connection_type: String, mission: Mission)
 	}
 	return descriptions[connection_type] % mission.location.name
 
+func set_game_state(_game_state: GameState):
+	game_state = _game_state
+	expanded_missions_manager = ExpandedMissionsManager.new(game_state)
 # Commented out probability function for future use
 # func _mission_to_quest_probability(mission: Mission) -> float:
 #     var base_probability = 0.2  # 20% base chance
