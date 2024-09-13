@@ -46,11 +46,14 @@ var psionic_data: Dictionary
 
 func load_data():
 	var json_data = load_json_file("res://data/character_creation_data.json")
-	species = json_data.species
-	backgrounds = json_data.backgrounds
-	motivations = json_data.motivations
-	classes = json_data.classes
-	skills = json_data.skills
+	if json_data.has("species"):
+		species = json_data.species
+	if json_data.has("backgrounds"):
+		backgrounds = json_data.backgrounds
+	if json_data.has("motivations"):
+		motivations = json_data.motivations
+	if json_data.has("classes"):
+		classes = json_data.classes
 	load_psionic_data()
 
 func load_json_file(path: String) -> Dictionary:
@@ -67,13 +70,25 @@ func get_species_data(species_id: GlobalEnums.Species) -> Dictionary:
 	return species.filter(func(s): return s.id == species_id)[0]
 
 func get_background_data(background_id: int) -> Dictionary:
-	return backgrounds.filter(func(b): return b.id == background_id)[0]
+	var filtered_backgrounds = backgrounds.filter(func(b): return int(b.id) == background_id)
+	if filtered_backgrounds.is_empty():
+		print("No background found for id: ", background_id)
+		return {}
+	return filtered_backgrounds[0]
 
 func get_motivation_data(motivation_id: int) -> Dictionary:
-	return motivations.filter(func(m): return m.id == motivation_id)[0]
+	var filtered_motivations = motivations.filter(func(m): return int(m.id) == motivation_id)
+	if filtered_motivations.is_empty():
+		print("No motivation found for id: ", motivation_id)
+		return {}
+	return filtered_motivations[0]
 
 func get_class_data(class_id: int) -> Dictionary:
-	return classes.filter(func(c): return c.id == class_id)[0]
+	var filtered_classes = classes.filter(func(c): return int(c.id) == class_id)
+	if filtered_classes.is_empty():
+		print("No class found for id: ", class_id)
+		return {}
+	return filtered_classes[0]
 
 func get_skill_data(skill_id: String) -> Dictionary:
 	return skills.filter(func(s): return s.id == skill_id)[0]

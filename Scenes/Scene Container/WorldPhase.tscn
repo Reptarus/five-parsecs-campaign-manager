@@ -11,38 +11,51 @@ grow_horizontal = 2
 grow_vertical = 2
 script = ExtResource("1_m8jvc")
 
-[node name="MarginContainer" type="MarginContainer" parent="."]
-layout_mode = 0
-offset_right = 40.0
-offset_bottom = 40.0
+[node name="VBoxContainer" type="VBoxContainer" parent="."]
+layout_mode = 1
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
 
-[node name="VBoxContainer" type="VBoxContainer" parent="MarginContainer"]
+[node name="Label" type="Label" parent="VBoxContainer"]
 layout_mode = 2
+text = "World Phase"
+horizontal_alignment = 1
 
-[node name="UpkeepButton" type="Button" parent="MarginContainer/VBoxContainer"]
+[node name="UpkeepButton" type="Button" parent="VBoxContainer"]
 layout_mode = 2
 text = "Upkeep"
 
-[node name="CrewTasksButton" type="Button" parent="MarginContainer/VBoxContainer"]
+[node name="ShipRepairsButton" type="Button" parent="VBoxContainer"]
 layout_mode = 2
-text = "Crew Tasks"
+text = "Ship Repairs"
 
-[node name="JobOffersButton" type="Button" parent="MarginContainer/VBoxContainer"]
+[node name="CheckLoanEnforcementButton" type="Button" parent="VBoxContainer"]
 layout_mode = 2
-text = "Job Offers"
+text = "Check for Loan Enforcement"
 
-[node name="EquipmentButton" type="Button" parent="MarginContainer/VBoxContainer"]
+[node name="CrewTasksButton" type="Button" parent="VBoxContainer"]
 layout_mode = 2
-text = "Equipment"
+text = "Assign and Resolve Crew Tasks"
 
-[node name="RumorsButton" type="Button" parent="MarginContainer/VBoxContainer"]
+[node name="JobOffersButton" type="Button" parent="VBoxContainer"]
 layout_mode = 2
-text = "Rumors"
+text = "Determine Job Offers"
 
-[node name="StartBattleButton" type="Button" parent="MarginContainer/VBoxContainer"]
+[node name="EquipmentButton" type="Button" parent="VBoxContainer"]
 layout_mode = 2
-text = "Start Battle"
+text = "Assign Equipment"
 
-[node name="BackButton" type="Button" parent="MarginContainer/VBoxContainer"]
+[node name="RumorsButton" type="Button" parent="VBoxContainer"]
 layout_mode = 2
-text = "Back"
+text = "Resolve Rumors"
+
+[node name="ChooseBattleButton" type="Button" parent="VBoxContainer"]
+layout_mode = 2
+text = "Choose Your Battle"
+
+[node name="BackButton" type="Button" parent="VBoxContainer"]
+layout_mode = 2
+text = "Back to Dashboard"

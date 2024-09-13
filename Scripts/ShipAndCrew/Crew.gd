@@ -2,6 +2,8 @@
 class_name Crew
 extends Resource
 
+var characters: Array[Character] = []
+
 @export var name: String
 @export var members: Array = []
 @export var credits: int = 0
@@ -60,3 +62,15 @@ static func deserialize(data: Dictionary) -> Crew:
 	crew.reputation = data["reputation"]
 	crew.current_location = Location.deserialize(data["current_location"]) if data["current_location"] else null
 	return crew
+
+func add_character(character: Character):
+	characters.append(character)
+
+func remove_character(character: Character):
+	characters.erase(character)
+
+func is_valid() -> bool:
+	return characters.size() >= 3 and characters.size() <= 8
+
+func get_size() -> int:
+	return characters.size()

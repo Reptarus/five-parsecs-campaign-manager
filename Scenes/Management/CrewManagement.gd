@@ -50,24 +50,35 @@ func _on_crew_member_selected(index: int) -> void:
 
 func update_character_sheet() -> void:
 	assert(selected_crew_member != null, "No crew member selected")
-	# TODO: Update character sheet display with selected crew member's data
-	print("Updating character sheet for: ", selected_crew_member.name)
+	var stats_display = CharacterStatsDisplay.new()
+	stats_display.character = selected_crew_member
+	$VBoxContainer/HBoxContainer/CharacterSheet.add_child(stats_display)
+	stats_display.update_stats_display()
+	
+	# Update other character information
+	$VBoxContainer/HBoxContainer/CharacterSheet/NameLabel.text = "Name: " + selected_crew_member.name
+	$VBoxContainer/HBoxContainer/CharacterSheet/BackgroundLabel.text = "Background: " + selected_crew_member.background
+	$VBoxContainer/HBoxContainer/CharacterSheet/MotivationLabel.text = "Motivation: " + selected_crew_member.motivation
+	$VBoxContainer/HBoxContainer/CharacterSheet/ClassLabel.text = "Class: " + selected_crew_member.character_class
 
-func _on_edit_stats_pressed() -> void:
-	# TODO: Implement stat editing
-	print("Stat editing not implemented yet")
 
-func _on_edit_equipment_pressed() -> void:
-	# TODO: Implement equipment editing
-	print("Equipment editing not implemented yet")
 
 func _on_save_changes_pressed() -> void:
-	# TODO: Implement saving changes
-	print("Saving changes not implemented yet")
+	var save_manager = SaveManager.new()
+	var save_name = "crew_" + crew.name.to_lower().replace(" ", "_")
+	var result = save_manager.save_game(game_state, save_name)
+	if result == OK:
+		print("Crew saved successfully")
+	else:
+		printerr("Failed to save crew: ", result)
 
 func _on_generate_random_pressed() -> void:
-	crew.generate_random_crew()
+	var character_creation_logic = preload("res://Scripts/CharacterCreationLogic.gd").new()
+	for i in range(crew.get_member_count()):
+		var new_character = character_creation_logic.generate_random_character()
+		crew.members[i] = new_character
 	update_crew_list()
+	update_character_sheet()
 
 func _on_customize_pressed() -> void:
 	if selected_crew_member:

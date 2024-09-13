@@ -11,19 +11,70 @@ grow_horizontal = 2
 grow_vertical = 2
 script = ExtResource("1_i7w7c")
 
-[node name="MarginContainer" type="MarginContainer" parent="."]
-layout_mode = 0
-offset_right = 40.0
-offset_bottom = 40.0
+[node name="VBoxContainer" type="VBoxContainer" parent="."]
+layout_mode = 1
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
 
-[node name="VBoxContainer" type="VBoxContainer" parent="MarginContainer"]
+[node name="Label" type="Label" parent="VBoxContainer"]
+layout_mode = 2
+text = "Travel Phase"
+horizontal_alignment = 1
+
+[node name="FleeInvasionButton" type="Button" parent="VBoxContainer"]
+layout_mode = 2
+text = "Flee Invasion (if applicable)"
+
+[node name="CheckFactionsButton" type="Button" parent="VBoxContainer"]
+layout_mode = 2
+text = "Check for Factions"
+
+[node name="StayButton" type="Button" parent="VBoxContainer"]
+layout_mode = 2
+text = "Stay in Current Location"
+
+[node name="TravelButton" type="Button" parent="VBoxContainer"]
+layout_mode = 2
+text = "Travel to New Location"
+
+[node name="StarshipTravelEventButton" type="Button" parent="VBoxContainer"]
+layout_mode = 2
+text = "Starship Travel Event (if applicable)"
+
+[node name="NewWorldArrivalSteps" type="VBoxContainer" parent="VBoxContainer"]
 layout_mode = 2
 
-[node name="StayButton" type="Button" parent="MarginContainer/VBoxContainer"]
+[node name="Label" type="Label" parent="VBoxContainer/NewWorldArrivalSteps"]
 layout_mode = 2
+text = "New World Arrival Steps"
 
-[node name="TravelButton" type="Button" parent="MarginContainer/VBoxContainer"]
+[node name="CheckRivalsButton" type="Button" parent="VBoxContainer/NewWorldArrivalSteps"]
 layout_mode = 2
+text = "Check for Rivals"
 
-[node name="BackButton" type="Button" parent="MarginContainer/VBoxContainer"]
+[node name="DismissPatronsButton" type="Button" parent="VBoxContainer/NewWorldArrivalSteps"]
 layout_mode = 2
+text = "Dismiss Patrons"
+
+[node name="CheckLicensingButton" type="Button" parent="VBoxContainer/NewWorldArrivalSteps"]
+layout_mode = 2
+text = "Check for Licensing Requirements"
+
+[node name="WorldTraitsButton" type="Button" parent="VBoxContainer/NewWorldArrivalSteps"]
+layout_mode = 2
+text = "Determine World Traits"
+
+[node name="CheckInstabilityButton" type="Button" parent="VBoxContainer/NewWorldArrivalSteps"]
+layout_mode = 2
+text = "Check for Instability"
+
+[node name="CheckPsionicLegalityButton" type="Button" parent="VBoxContainer/NewWorldArrivalSteps"]
+layout_mode = 2
+text = "Check for Psionic Legality Status"
+
+[node name="BackButton" type="Button" parent="VBoxContainer"]
+layout_mode = 2
+text = "Back to Dashboard"

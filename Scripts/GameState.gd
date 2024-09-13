@@ -25,9 +25,9 @@ var patron_job_manager: PatronJobManager
 var current_battle: Battle
 
 func _init() -> void:
-	mission_generator = MissionGenerator.new()
-	equipment_manager = EquipmentManager.new()
-	patron_job_manager = PatronJobManager.new()
+	mission_generator = preload("res://Scripts/MissionGenerator.gd").new()
+	equipment_manager = preload("res://Scripts/EquipmentManager.gd").new()
+	patron_job_manager = preload("res://Scripts/PatronJobManager.gd").new()
 	
 	call_deferred("_post_init")
 
@@ -35,6 +35,7 @@ func _post_init() -> void:
 	mission_generator.set_game_state(self)
 	# equipment_manager.initialize(self)  # This line is already commented out
 	patron_job_manager.set_game_state(self)  # Changed initialize to set_game_state
+	equipment_manager.set_game_state(self)  # Added this line to initialize equipment_manager
 
 func get_current_battle() -> Battle:
 	return current_battle
@@ -87,6 +88,12 @@ func add_rival(rival: Rival) -> void:
 
 func remove_rival(rival: Rival) -> void:
 	rivals.erase(rival)
+
+func set_current_crew(crew: Crew):
+	current_crew = crew
+
+func get_current_crew() -> Crew:
+	return current_crew
 
 func serialize() -> Dictionary:
 	var data = {

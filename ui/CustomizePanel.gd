@@ -12,19 +12,16 @@ var current_index: int = -1
 func show_member(member: Character) -> void:
 	current_index = member.get_index()
 	name_input.text = member.name
-	background_option.select(member.background)
-	update_skills(member.skills)
-	portrait_option.texture = load(member.portrait)
-
-func update_skills(member_skills: Dictionary) -> void:
-	for skill in skills_container.get_children():
-		skill.button_pressed = member_skills.has(skill.text)
+	background_option.select(int(member.background))
+	if member.portrait:
+		portrait_option.texture = load(member.portrait)
+	else:
+		portrait_option.texture = null
 
 func _on_save_pressed() -> void:
 	var new_data: Dictionary = {
 		"name": name_input.text,
 		"background": background_option.get_item_text(background_option.selected),
-		"skills": get_selected_skills(),
 		"portrait": portrait_option.texture.resource_path
 	}
 	customization_completed.emit(current_index, new_data)

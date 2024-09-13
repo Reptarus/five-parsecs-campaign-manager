@@ -19,42 +19,65 @@ anchor_bottom = 1.0
 grow_horizontal = 2
 grow_vertical = 2
 
-[node name="TurnLabel" type="Label" parent="VBoxContainer"]
+[node name="HeaderLabel" type="Label" parent="VBoxContainer"]
+layout_mode = 2
+text = "Campaign Dashboard"
+horizontal_alignment = 1
+
+[node name="TabContainer" type="TabContainer" parent="VBoxContainer"]
+layout_mode = 2
+size_flags_vertical = 3
+
+[node name="Campaign Status" type="VBoxContainer" parent="VBoxContainer/TabContainer"]
+layout_mode = 2
+
+[node name="TurnLabel" type="Label" parent="VBoxContainer/TabContainer/Campaign Status"]
 layout_mode = 2
 text = "Turn: 1"
 
-[node name="CreditsLabel" type="Label" parent="VBoxContainer"]
+[node name="CreditsLabel" type="Label" parent="VBoxContainer/TabContainer/Campaign Status"]
 layout_mode = 2
 text = "Credits: 0"
 
-[node name="StoryPointsLabel" type="Label" parent="VBoxContainer"]
+[node name="StoryPointsLabel" type="Label" parent="VBoxContainer/TabContainer/Campaign Status"]
 layout_mode = 2
 text = "Story Points: 0"
 
-[node name="StartTurnButton" type="Button" parent="VBoxContainer"]
+[node name="Turn Sequence" type="VBoxContainer" parent="VBoxContainer/TabContainer"]
 layout_mode = 2
-text = "Start Turn"
 
-[node name="MissionButton" type="Button" parent="VBoxContainer"]
+[node name="CurrentPhaseLabel" type="Label" parent="VBoxContainer/TabContainer/Turn Sequence"]
 layout_mode = 2
-text = "Available Missions"
+text = "Current Phase: Travel"
 
-[node name="CrewManagementButton" type="Button" parent="VBoxContainer"]
+[node name="NextPhaseButton" type="Button" parent="VBoxContainer/TabContainer/Turn Sequence"]
 layout_mode = 2
-text = "Crew Management"
+text = "Proceed to Next Phase"
 
-[node name="ShipManagementButton" type="Button" parent="VBoxContainer"]
+[node name="Crew Overview" type="VBoxContainer" parent="VBoxContainer/TabContainer"]
 layout_mode = 2
-text = "Ship Management"
 
-[node name="SaveButton" type="Button" parent="VBoxContainer"]
+[node name="CrewList" type="ItemList" parent="VBoxContainer/TabContainer/Crew Overview"]
+layout_mode = 2
+
+[node name="Ship Status" type="VBoxContainer" parent="VBoxContainer/TabContainer"]
+layout_mode = 2
+
+[node name="ShipConditionLabel" type="Label" parent="VBoxContainer/TabContainer/Ship Status"]
+layout_mode = 2
+text = "Ship Condition: Good"
+
+[node name="ButtonContainer" type="HBoxContainer" parent="VBoxContainer"]
+layout_mode = 2
+
+[node name="SaveButton" type="Button" parent="VBoxContainer/ButtonContainer"]
 layout_mode = 2
 text = "Save Game"
 
-[node name="LoadButton" type="Button" parent="VBoxContainer"]
+[node name="LoadButton" type="Button" parent="VBoxContainer/ButtonContainer"]
 layout_mode = 2
 text = "Load Game"
 
-[node name="QuitButton" type="Button" parent="VBoxContainer"]
+[node name="QuitButton" type="Button" parent="VBoxContainer/ButtonContainer"]
 layout_mode = 2
 text = "Quit to Main Menu"

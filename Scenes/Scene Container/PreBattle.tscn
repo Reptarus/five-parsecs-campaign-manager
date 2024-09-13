@@ -11,21 +11,55 @@ grow_horizontal = 2
 grow_vertical = 2
 script = ExtResource("1_5g11f")
 
-[node name="MarginContainer" type="MarginContainer" parent="."]
-offset_right = 40.0
-offset_bottom = 40.0
+[node name="VBoxContainer" type="VBoxContainer" parent="."]
+layout_mode = 1
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
 
-[node name="VBoxContainer" type="VBoxContainer" parent="MarginContainer"]
+[node name="Label" type="Label" parent="VBoxContainer"]
 layout_mode = 2
+text = "Pre-Battle Setup"
+horizontal_alignment = 1
 
-[node name="GenerateTerrainButton" type="Button" parent="MarginContainer/VBoxContainer"]
+[node name="DetermineBattleTypeButton" type="Button" parent="VBoxContainer"]
 layout_mode = 2
+text = "Determine Battle Type"
 
-[node name="PlaceCharactersButton" type="Button" parent="MarginContainer/VBoxContainer"]
+[node name="CheckConnectionsButton" type="Button" parent="VBoxContainer"]
 layout_mode = 2
+text = "Check for Connections"
 
-[node name="StartBattleButton" type="Button" parent="MarginContainer/VBoxContainer"]
+[node name="DetermineDeploymentButton" type="Button" parent="VBoxContainer"]
 layout_mode = 2
+text = "Determine Deployment Conditions"
 
-[node name="BackButton" type="Button" parent="MarginContainer/VBoxContainer"]
+[node name="DetermineNotableSightsButton" type="Button" parent="VBoxContainer"]
 layout_mode = 2
+text = "Determine Notable Sights"
+
+[node name="DetermineObjectiveButton" type="Button" parent="VBoxContainer"]
+layout_mode = 2
+text = "Determine Objective"
+
+[node name="DetermineEnemyButton" type="Button" parent="VBoxContainer"]
+layout_mode = 2
+text = "Determine Enemy"
+
+[node name="GenerateTerrainButton" type="Button" parent="VBoxContainer"]
+layout_mode = 2
+text = "Generate Terrain"
+
+[node name="PlaceCharactersButton" type="Button" parent="VBoxContainer"]
+layout_mode = 2
+text = "Place Characters"
+
+[node name="StartBattleButton" type="Button" parent="VBoxContainer"]
+layout_mode = 2
+text = "Start Battle"
+
+[node name="BackButton" type="Button" parent="VBoxContainer"]
+layout_mode = 2
+text = "Back to Dashboard"
