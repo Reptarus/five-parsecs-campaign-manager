@@ -65,6 +65,7 @@ func resolve_rival_status() -> void:
 		if randi() % 6 + 1 == 1:
 			var new_rival = Rival.new(battle.opponent.name, battle.opponent.location)
 			# Copy relevant data from battle.opponent to new_rival
+			new_rival.copy_data_from(battle.opponent)
 			game_state.add_rival(new_rival)
 	elif battle.held_field and battle.opponent.is_rival:
 		var roll: int = randi() % 6 + 1

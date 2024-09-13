@@ -11,7 +11,7 @@ extends Panel
 func update_preview(character):
     portrait.texture = load(character.portrait)
     name_label.text = character.name
-    species_label.text = "Species: " + GlobalEnums.Race.keys()[character.race]
+    species_label.text = "Species: " + GlobalEnums.Species.keys()[character.race]
     background_label.text = "Background: " + GlobalEnums.Background.keys()[character.background]
     motivation_label.text = "Motivation: " + GlobalEnums.Motivation.keys()[character.motivation]
     class_label.text = "Class: " + GlobalEnums.Class.keys()[character.character_class]

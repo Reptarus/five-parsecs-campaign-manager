@@ -33,7 +33,7 @@ func load_next_shader():
 		var shader_path = shaders_to_load[current_shader_index]
 		var shader = ResourceLoader.load(shader_path, "Shader")
 		if shader:
-			RenderingServer.shader_get_param_list(shader.get_rid())
+			RenderingServer.get_shader_parameter_list(shader.get_rid())
 		
 		# Simulate shader compilation time
 		await get_tree().create_timer(0.5).timeout

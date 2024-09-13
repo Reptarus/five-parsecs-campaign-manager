@@ -156,12 +156,12 @@ func get_faction_job(faction: Dictionary) -> bool:
 		return true
 	return false
 
-func gain_faction_loyalty(faction: Dictionary, character: Character) -> void:
+func gain_faction_loyalty(faction: Dictionary, character) -> void:
 	var current_loyalty = character.get_faction_standing(faction["name"])
 	if randi() % 6 + 1 > current_loyalty:
 		character.set_faction_standing(faction["name"], current_loyalty + 1)
 
-func call_in_faction_favor(faction: Dictionary, character: Character) -> bool:
+func call_in_faction_favor(faction: Dictionary, character) -> bool:
 	var current_loyalty = character.get_faction_standing(faction["name"])
 	var roll = randi() % 6 + 1
 	if roll <= current_loyalty:

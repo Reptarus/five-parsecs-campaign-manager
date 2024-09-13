@@ -97,10 +97,16 @@ func update_stats(race: Dictionary) -> void:
 func update_character_traits(race: Dictionary, strange_character: StrangeCharactersScript):
 	var traits_list = $CharacterCreationTabs/CharacterDetails/TraitsList
 	traits_list.clear()
-	for trait in race.traits:
-		traits_list.add_item(trait)
-	for trait in strange_character.traits:
-		traits_list.add_item(trait)
+	
+	var index = 0
+	while index < race.traits.size():
+		traits_list.add_item(race.traits[index])
+		index += 1
+	
+	index = 0
+	while index < strange_character.traits.size():
+		traits_list.add_item(strange_character.traits[index])
+		index += 1
 
 func update_psionic_info(is_psionic: bool):
 	var psionic_powers_list = $CharacterCreationTabs/CharacterDetails/PsionicContainer/PsionicPowersList

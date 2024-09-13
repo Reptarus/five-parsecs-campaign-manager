@@ -32,9 +32,9 @@ func _init() -> void:
 	call_deferred("_post_init")
 
 func _post_init() -> void:
-	mission_generator.set_game_state(self)  # Change initialize to set_game_state
+	mission_generator.set_game_state(self)
 	# equipment_manager.initialize(self)  # This line is already commented out
-	patron_job_manager.initialize(self)
+	patron_job_manager.set_game_state(self)  # Changed initialize to set_game_state
 
 func get_current_battle() -> Battle:
 	return current_battle

@@ -242,8 +242,11 @@ func show_error(message: String):
 func update_character_traits():
 	var traits_list = $MarginContainer/VBoxContainer/HSplitContainer/CharacterCreationTabs/CharacterDetails/TraitsList
 	traits_list.clear()
-	for trait in current_character.traits:
-		traits_list.add_item(trait)
+	var index = 0
+	while index < current_character.traits.size():
+		var current_trait = current_character.traits[index]
+		traits_list.add_item(current_trait)
+		index += 1
 
 func populate_option_buttons():
 	var creation_data = load_character_creation_data()

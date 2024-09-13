@@ -67,21 +67,21 @@ static var extra_last_names = [
 	"Wavefunction", "X-ray", "Yield", "Zeeman", "Absolute", "Bohr", "Coulomb", "Dirac", "Einstein", "Fermi"
 ]
 
-static func get_random_name_for_species(species: GlobalEnums.Race) -> String:
+static func get_random_name_for_species(species: GlobalEnums.Species) -> String:
 	var first_name: String
 	var last_name: String
 	
 	match species:
-		GlobalEnums.Race.HUMAN:
+		GlobalEnums.Species.HUMAN:
 			first_name = extra_first_names[randi() % extra_first_names.size()]
 			last_name = extra_last_names[randi() % extra_last_names.size()]
-		GlobalEnums.Race.BOT:
+		GlobalEnums.Species.BOT:
 			first_name = "BOT-" + str(randi() % 1000).pad_zeros(3)
 			last_name = ""
-		GlobalEnums.Race.SKULKER:
+		GlobalEnums.Species.SKULKER:
 			first_name = "SK-" + str(randi() % 1000).pad_zeros(3)
 			last_name = extra_last_names[randi() % extra_last_names.size()]
-		GlobalEnums.Race.KRAG:
+		GlobalEnums.Species.KRAG:
 			first_name = "KR-" + str(randi() % 1000).pad_zeros(3)
 			last_name = extra_last_names[randi() % extra_last_names.size()]
 		_:

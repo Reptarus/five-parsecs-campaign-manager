@@ -46,7 +46,7 @@ var psionic_data: Dictionary
 
 func load_data():
 	var json_data = load_json_file("res://data/character_creation_data.json")
-	races = json_data.races
+	species = json_data.species
 	backgrounds = json_data.backgrounds
 	motivations = json_data.motivations
 	classes = json_data.classes

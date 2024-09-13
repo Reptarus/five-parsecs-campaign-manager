@@ -5,6 +5,7 @@ signal combat_started
 signal combat_ended(player_victory: bool)
 signal turn_started(character)
 signal turn_ended(character)
+signal player_input_received(action, target)
 
 var game_state: GameState
 var current_battle: BattleManager
@@ -25,6 +26,7 @@ func _init(_game_state: GameState) -> void:
 	ai_controller = AIController.new()
 	ai_controller.initialize(self, game_state)
 	initialize_battlefield()
+
 class BattleManager:
 	var player_characters: Array
 	var enemies: Array
@@ -50,8 +52,6 @@ class BattleManager:
 	func increment_casualties_count() -> void:
 		enemy_casualties_this_round += 1
 
-
-
 func initialize_battlefield() -> void:
 	battlefield = []
 	for x in range(GRID_SIZE.x):
@@ -65,7 +65,6 @@ func start_combat(player_characters: Array, enemies: Array) -> void:
 	seize_initiative()
 	combat_started.emit()
 	start_battle_round()
-
 
 func place_characters_on_battlefield() -> void:
 	for character in current_battle.player_characters:
@@ -135,7 +134,8 @@ func start_next_turn() -> void:
 			end_turn()
 	else:
 		# Wait for player input
-		pass
+		await player_input_received
+		end_turn()
 
 func end_turn() -> void:
 	var current_character = turn_order[current_turn_index]
@@ -501,3 +501,8 @@ func retreat(character, retreat_position: Vector2i) -> void:
 
 func aim(character) -> void:
 	character.is_aiming = true
+
+# Add this method to handle player input
+func handle_player_input(action: String, target = null) -> void:
+	perform_action(turn_order[current_turn_index], action, target)
+	player_input_received.emit()
