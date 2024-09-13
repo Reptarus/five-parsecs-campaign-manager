@@ -1,0 +1,205 @@
+[gd_scene load_steps=2 format=3 uid="uid://daw8uxd1gy463"]
+
+[ext_resource type="Script" path="res://Scenes/Scene Container/campaigncreation/scripts/CharacterCreationScene.gd" id="1_kxg3m"]
+
+[node name="CharacterCreation" type="Control"]
+layout_mode = 3
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+script = ExtResource("1_kxg3m")
+
+[node name="Background" type="TextureRect" parent="."]
+layout_mode = 1
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+expand_mode = 1
+stretch_mode = 6
+
+[node name="MarginContainer" type="MarginContainer" parent="."]
+layout_mode = 1
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+theme_override_constants/margin_left = 20
+theme_override_constants/margin_top = 20
+theme_override_constants/margin_right = 20
+theme_override_constants/margin_bottom = 20
+
+[node name="VBoxContainer" type="VBoxContainer" parent="MarginContainer"]
+layout_mode = 2
+
+[node name="HBoxContainer" type="HBoxContainer" parent="MarginContainer/VBoxContainer"]
+layout_mode = 2
+
+[node name="BackButton" type="Button" parent="MarginContainer/VBoxContainer/HBoxContainer"]
+layout_mode = 2
+text = "<<< Back"
+
+[node name="ScreenTitle" type="Label" parent="MarginContainer/VBoxContainer/HBoxContainer"]
+layout_mode = 2
+size_flags_horizontal = 3
+theme_override_font_sizes/font_size = 24
+text = "Character Creation"
+horizontal_alignment = 1
+
+[node name="RandomCharacterButton" type="Button" parent="MarginContainer/VBoxContainer/HBoxContainer"]
+layout_mode = 2
+text = "Random Character"
+
+[node name="HSplitContainer" type="HSplitContainer" parent="MarginContainer/VBoxContainer"]
+layout_mode = 2
+size_flags_vertical = 3
+
+[node name="CharacterCreationTabs" type="TabContainer" parent="MarginContainer/VBoxContainer/HSplitContainer"]
+layout_mode = 2
+size_flags_horizontal = 3
+current_tab = 0
+
+[node name="BasicProfile" type="VBoxContainer" parent="MarginContainer/VBoxContainer/HSplitContainer/CharacterCreationTabs"]
+layout_mode = 2
+metadata/_tab_index = 0
+
+[node name="NameEntry" type="HBoxContainer" parent="MarginContainer/VBoxContainer/HSplitContainer/CharacterCreationTabs/BasicProfile"]
+layout_mode = 2
+
+[node name="NameLabel" type="Label" parent="MarginContainer/VBoxContainer/HSplitContainer/CharacterCreationTabs/BasicProfile/NameEntry"]
+layout_mode = 2
+text = "Name:"
+
+[node name="NameInput" type="LineEdit" parent="MarginContainer/VBoxContainer/HSplitContainer/CharacterCreationTabs/BasicProfile/NameEntry"]
+layout_mode = 2
+size_flags_horizontal = 3
+
+[node name="SpeciesSelection" type="HBoxContainer" parent="MarginContainer/VBoxContainer/HSplitContainer/CharacterCreationTabs/BasicProfile"]
+layout_mode = 2
+
+[node name="SpeciesLabel" type="Label" parent="MarginContainer/VBoxContainer/HSplitContainer/CharacterCreationTabs/BasicProfile/SpeciesSelection"]
+layout_mode = 2
+text = "Species:"
+
+[node name="SpeciesOptionButton" type="OptionButton" parent="MarginContainer/VBoxContainer/HSplitContainer/CharacterCreationTabs/BasicProfile/SpeciesSelection"]
+layout_mode = 2
+size_flags_horizontal = 3
+
+[node name="BackgroundSelection" type="HBoxContainer" parent="MarginContainer/VBoxContainer/HSplitContainer/CharacterCreationTabs/BasicProfile"]
+layout_mode = 2
+
+[node name="BackgroundLabel" type="Label" parent="MarginContainer/VBoxContainer/HSplitContainer/CharacterCreationTabs/BasicProfile/BackgroundSelection"]
+layout_mode = 2
+text = "Background:"
+
+[node name="BackgroundOptionButton" type="OptionButton" parent="MarginContainer/VBoxContainer/HSplitContainer/CharacterCreationTabs/BasicProfile/BackgroundSelection"]
+layout_mode = 2
+size_flags_horizontal = 3
+
+[node name="MotivationSelection" type="HBoxContainer" parent="MarginContainer/VBoxContainer/HSplitContainer/CharacterCreationTabs/BasicProfile"]
+layout_mode = 2
+
+[node name="MotivationLabel" type="Label" parent="MarginContainer/VBoxContainer/HSplitContainer/CharacterCreationTabs/BasicProfile/MotivationSelection"]
+layout_mode = 2
+text = "Motivation:"
+
+[node name="MotivationOptionButton" type="OptionButton" parent="MarginContainer/VBoxContainer/HSplitContainer/CharacterCreationTabs/BasicProfile/MotivationSelection"]
+layout_mode = 2
+size_flags_horizontal = 3
+
+[node name="ClassSelection" type="HBoxContainer" parent="MarginContainer/VBoxContainer/HSplitContainer/CharacterCreationTabs/BasicProfile"]
+layout_mode = 2
+
+[node name="ClassLabel" type="Label" parent="MarginContainer/VBoxContainer/HSplitContainer/CharacterCreationTabs/BasicProfile/ClassSelection"]
+layout_mode = 2
+text = "Class:"
+
+[node name="ClassOptionButton" type="OptionButton" parent="MarginContainer/VBoxContainer/HSplitContainer/CharacterCreationTabs/BasicProfile/ClassSelection"]
+layout_mode = 2
+size_flags_horizontal = 3
+
+[node name="CharacterDetails" type="VBoxContainer" parent="MarginContainer/VBoxContainer/HSplitContainer/CharacterCreationTabs"]
+visible = false
+layout_mode = 2
+metadata/_tab_index = 1
+
+[node name="StatDistribution" type="VBoxContainer" parent="MarginContainer/VBoxContainer/HSplitContainer/CharacterCreationTabs/CharacterDetails"]
+layout_mode = 2
+
+[node name="PsionicCheckbox" type="CheckBox" parent="MarginContainer/VBoxContainer/HSplitContainer/CharacterCreationTabs/CharacterDetails"]
+layout_mode = 2
+text = "Psionic"
+
+[node name="StrangeCharacterOption" type="OptionButton" parent="MarginContainer/VBoxContainer/HSplitContainer/CharacterCreationTabs/CharacterDetails"]
+layout_mode = 2
+
+[node name="SpecialAbilities" type="VBoxContainer" parent="MarginContainer/VBoxContainer/HSplitContainer/CharacterCreationTabs/CharacterDetails"]
+layout_mode = 2
+
+[node name="Label" type="Label" parent="MarginContainer/VBoxContainer/HSplitContainer/CharacterCreationTabs/CharacterDetails/SpecialAbilities"]
+layout_mode = 2
+text = "Special Abilities:"
+
+[node name="AbilitiesList" type="ItemList" parent="MarginContainer/VBoxContainer/HSplitContainer/CharacterCreationTabs/CharacterDetails/SpecialAbilities"]
+layout_mode = 2
+
+[node name="Equipment" type="VBoxContainer" parent="MarginContainer/VBoxContainer/HSplitContainer/CharacterCreationTabs"]
+visible = false
+layout_mode = 2
+metadata/_tab_index = 2
+
+[node name="StartingWeaponsAndGear" type="VBoxContainer" parent="MarginContainer/VBoxContainer/HSplitContainer/CharacterCreationTabs/Equipment"]
+layout_mode = 2
+
+[node name="StartingWeapons" type="VBoxContainer" parent="MarginContainer/VBoxContainer/HSplitContainer/CharacterCreationTabs/Equipment"]
+layout_mode = 2
+
+[node name="RightPanel" type="VBoxContainer" parent="MarginContainer/VBoxContainer/HSplitContainer"]
+layout_mode = 2
+size_flags_horizontal = 3
+size_flags_stretch_ratio = 0.5
+
+[node name="CharacterPreview" type="Panel" parent="MarginContainer/VBoxContainer/HSplitContainer/RightPanel"]
+layout_mode = 2
+size_flags_vertical = 3
+
+[node name="CharacterList" type="ItemList" parent="MarginContainer/VBoxContainer/HSplitContainer/RightPanel"]
+layout_mode = 2
+size_flags_vertical = 3
+
+[node name="CharacterCountLabel" type="Label" parent="MarginContainer/VBoxContainer/HSplitContainer/RightPanel"]
+layout_mode = 2
+text = "Characters: 0/8"
+horizontal_alignment = 1
+
+[node name="HBoxContainer2" type="HBoxContainer" parent="MarginContainer/VBoxContainer"]
+layout_mode = 2
+alignment = 1
+
+[node name="SaveButton" type="Button" parent="MarginContainer/VBoxContainer/HBoxContainer2"]
+layout_mode = 2
+text = "Save"
+
+[node name="ClearButton" type="Button" parent="MarginContainer/VBoxContainer/HBoxContainer2"]
+layout_mode = 2
+text = "Clear"
+
+[node name="ImportButton" type="Button" parent="MarginContainer/VBoxContainer/HBoxContainer2"]
+layout_mode = 2
+text = "Import"
+
+[node name="ExportButton" type="Button" parent="MarginContainer/VBoxContainer/HBoxContainer2"]
+layout_mode = 2
+text = "Export"
+
+[node name="AddCharacterButton" type="Button" parent="MarginContainer/VBoxContainer/HBoxContainer2"]
+layout_mode = 2
+text = "Add Character to Crew"
+
+[node name="FinishCrewCreationButton" type="Button" parent="MarginContainer/VBoxContainer/HBoxContainer2"]
+layout_mode = 2
+text = "Finish Crew Creation"

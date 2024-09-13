@@ -1,51 +1,11 @@
 class_name Character
-extends Node
-
-enum Race {
-	HUMAN = GlobalEnums.Race.HUMAN,
-	ENGINEER = GlobalEnums.Race.ENGINEER,
-	KERIN = GlobalEnums.Race.KERIN,
-	SOULLESS = GlobalEnums.Race.SOULLESS,
-	PRECURSOR = GlobalEnums.Race.PRECURSOR,
-	FERAL = GlobalEnums.Race.FERAL,
-	SWIFT = GlobalEnums.Race.SWIFT,
-	BOT = GlobalEnums.Race.BOT,
-	SKULKER = GlobalEnums.Race.SKULKER,
-	KRAG = GlobalEnums.Race.KRAG
-}
-
-enum Background {
-	HIGH_TECH_COLONY = GlobalEnums.Background.HIGH_TECH_COLONY,
-	OVERCROWDED_CITY = GlobalEnums.Background.OVERCROWDED_CITY,
-	LOW_TECH_COLONY = GlobalEnums.Background.LOW_TECH_COLONY,
-	MINING_COLONY = GlobalEnums.Background.MINING_COLONY,
-	MILITARY_BRAT = GlobalEnums.Background.MILITARY_BRAT,
-	SPACE_STATION = GlobalEnums.Background.SPACE_STATION
-}
-
-enum Motivation {
-	WEALTH = GlobalEnums.Motivation.WEALTH,
-	FAME = GlobalEnums.Motivation.FAME,
-	GLORY = GlobalEnums.Motivation.GLORY,
-	SURVIVAL = GlobalEnums.Motivation.SURVIVAL,
-	ESCAPE = GlobalEnums.Motivation.ESCAPE,
-	ADVENTURE = GlobalEnums.Motivation.ADVENTURE
-}
-
-enum Class {
-	WORKING_CLASS = GlobalEnums.Class.WORKING_CLASS,
-	TECHNICIAN = GlobalEnums.Class.TECHNICIAN,
-	SCIENTIST = GlobalEnums.Class.SCIENTIST,
-	HACKER = GlobalEnums.Class.HACKER,
-	SOLDIER = GlobalEnums.Class.SOLDIER,
-	MERCENARY = GlobalEnums.Class.MERCENARY
-}
+extends Resource
 
 @export var character_name: String = ""
-@export var race: Race = Race.HUMAN
-@export var background: Background = Background.HIGH_TECH_COLONY
-@export var motivation: Motivation = Motivation.WEALTH
-@export var character_class: Class = Class.WORKING_CLASS
+@export var species: GlobalEnums.Species = GlobalEnums.Species.HUMAN
+@export var background: GlobalEnums.Background = GlobalEnums.Background.HIGH_TECH_COLONY
+@export var motivation: GlobalEnums.Motivation = GlobalEnums.Motivation.WEALTH
+@export var character_class: GlobalEnums.Class = GlobalEnums.Class.WORKING_CLASS
 
 @export var reactions: int = 1
 @export var speed: int = 4
@@ -55,10 +15,10 @@ enum Class {
 @export var luck: int = 0
 
 @export var is_psionic: bool = false
-@export var psionic_powers: Array[GlobalEnums.PsionicPower] = []
+@export var psionic_powers: Array[int] = []
 
 var strange_character: StrangeCharacters = null
-var abilities: Array[String] = []
+var traits: Array[String] = []
 var equipment: Array[String] = []
 var armor: String = ""
 var screen: String = ""
@@ -67,23 +27,28 @@ var stun_markers: int = 0
 var xp: int = 0
 
 func generate_random() -> void:
-	name = CharacterNameGenerator.get_random_name()
-	race = Race.values()[randi() % Race.size()]
-	background = Background.values()[randi() % Background.size()]
-	motivation = Motivation.values()[randi() % Motivation.size()]
-	character_class = Class.values()[randi() % Class.size()]
-	
-	reactions = 1
-	speed = 4
-	combat_skill = 0
-	toughness = 3
-	savvy = 0
-	luck = 0
-	
-	if randf() < 0.1:  # 10% chance of being psionic
-		make_psionic()
-	if randf() < 0.05:  # 5% chance of being a strange character
-		set_strange_character_type(StrangeCharacters.StrangeCharacterType.values()[randi() % StrangeCharacters.StrangeCharacterType.size()])
+    name = CharacterNameGenerator.get_random_name()
+    species = GlobalEnums.Species.values()[randi() % GlobalEnums.Species.size()]
+    background = GlobalEnums.Background.values()[randi() % GlobalEnums.Background.size()]
+    motivation = GlobalEnums.Motivation.values()[randi() % GlobalEnums.Motivation.size()]
+    character_class = GlobalEnums.Class.values()[randi() % GlobalEnums.Class.size()]
+    
+    # Reset stats before applying effects
+    reactions = 1
+    speed = 4
+    combat_skill = 0
+    toughness = 3
+    savvy = 0
+    luck = 0
+    
+    # Apply effects
+    apply_species_effects(CharacterCreationData.new())
+    apply_character_effects(CharacterCreationData.new())
+    
+    if randf() < 0.1:  # 10% chance of being psionic
+        make_psionic()
+    if randf() < 0.05:  # 5% chance of being a strange character
+        set_strange_character_type(StrangeCharacters.StrangeCharacterType.values()[randi() % StrangeCharacters.StrangeCharacterType.size()])
 
 func make_psionic() -> void:
 	is_psionic = true
@@ -142,10 +107,10 @@ func apply_saving_throw(damage: int) -> bool:
 func serialize() -> Dictionary:
 	var data = {
 		"name": name,
-		"race": Race.keys()[race],
-		"background": Background.keys()[background],
-		"motivation": Motivation.keys()[motivation],
-		"character_class": Class.keys()[character_class],
+		"species": GlobalEnums.Species.keys()[species],
+		"background": GlobalEnums.Background.keys()[background],
+		"motivation": GlobalEnums.Motivation.keys()[motivation],
+		"character_class": GlobalEnums.Class.keys()[character_class],
 		"reactions": reactions,
 		"speed": speed,
 		"combat_skill": combat_skill,
@@ -169,10 +134,10 @@ func serialize() -> Dictionary:
 static func deserialize(data: Dictionary) -> Character:
 	var character = Character.new()
 	character.name = data["name"]
-	character.race = Race[data["race"]]
-	character.background = Background[data["background"]]
-	character.motivation = Motivation[data["motivation"]]
-	character.character_class = Class[data["character_class"]]
+	character.species = GlobalEnums.Species[data["species"]]
+	character.background = GlobalEnums.Background[data["background"]]
+	character.motivation = GlobalEnums.Motivation[data["motivation"]]
+	character.character_class = GlobalEnums.Class[data["character_class"]]
 	character.reactions = data["reactions"]
 	character.speed = data["speed"]
 	character.combat_skill = data["combat_skill"]
@@ -191,3 +156,78 @@ static func deserialize(data: Dictionary) -> Character:
 	if "strange_character" in data:
 		character.strange_character = StrangeCharacters.deserialize(data["strange_character"])
 	return character
+
+func apply_species_effects(character_data: CharacterCreationData):
+    var species_data = character_data.species.filter(func(species): return species.name == self.species)
+    if species_data.size() > 0:
+        var effects = species_data[0].get("effects", {})
+        # Apply effects to character stats
+        self.reactions += effects.get("reactions", 0)
+        self.speed += effects.get("speed", 0)
+        self.combat_skill += effects.get("combat_skill", 0)
+        self.toughness += effects.get("toughness", 0)
+        self.savvy += effects.get("savvy", 0)
+       
+        # Apply special abilities
+        var special_abilities = effects.get("special_abilities", [])
+        for ability in special_abilities:
+            if ability not in self.abilities:
+                self.abilities.append(ability)
+       
+        # Apply equipment
+        var starting_equipment = effects.get("starting_equipment", [])
+        for item in starting_equipment:
+            if item not in self.equipment:
+                self.equipment.append(item)
+       
+        # Apply psionic effects
+        if effects.get("psionic", false):
+            self.is_psionic = true
+            var psionic_powers = effects.get("psionic_powers", [])
+            for power in psionic_powers:
+                if power not in self.psionic_powers:
+                    self.psionic_powers.append(power)
+
+func apply_character_effects(character_data: CharacterCreationData):
+    # Apply background effects
+    var background_data = character_data.get_background_data(self.background)
+    if background_data:
+        apply_effects(background_data.get("effects", {}))
+        add_starting_equipment(background_data.get("starting_equipment", []))
+   
+    # Apply motivation effects
+    var motivation_data = character_data.get_motivation_data(self.motivation)
+    if motivation_data:
+        apply_effects(motivation_data.get("effects", {}))
+   
+    # Apply class effects
+    var class_data = character_data.get_class_data(self.character_class)
+    if class_data:
+        apply_effects(class_data.get("effects", {}))
+        add_starting_equipment(class_data.get("starting_equipment", []))
+        apply_psionic_effects(class_data.get("effects", {}))
+
+func apply_effects(effects: Dictionary):
+    self.reactions += effects.get("reactions", 0)
+    self.speed += effects.get("speed", 0)
+    self.combat_skill += effects.get("combat_skill", 0)
+    self.toughness += effects.get("toughness", 0)
+    self.savvy += effects.get("savvy", 0)
+   
+    var traits = effects.get("traits", [])
+    for trait in traits:
+        if trait not in self.traits:
+            self.traits.append(trait)
+
+func add_starting_equipment(equipment_list: Array):
+    for item in equipment_list:
+        if item not in self.equipment:
+            self.equipment.append(item)
+
+func apply_psionic_effects(effects: Dictionary):
+    if effects.get("psionic", false):
+        self.is_psionic = true
+        var psionic_powers = effects.get("psionic_powers", [])
+        for power in psionic_powers:
+            if power not in self.psionic_powers:
+                self.psionic_powers.append(power)

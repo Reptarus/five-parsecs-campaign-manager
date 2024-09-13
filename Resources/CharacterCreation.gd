@@ -21,7 +21,7 @@ var character_data: Dictionary
 @onready var finish_button: Button = $FinishButton
 @onready var psionic_option: CheckBox = $CrewStatsAndInfo/PsionicOption/PsionicCheckBox
 
-const StrangeCharacters = preload("res://Scripts/Characters/StrangeCharacters.gd")
+const StrangeCharactersScript = preload("res://Scripts/Characters/StrangeCharacters.gd")
 
 func _ready() -> void:
 	randomize()
@@ -58,9 +58,9 @@ func populate_option_buttons():
 		class_option.add_item(character_class.name)
 
 func populate_strange_character_options():
-    var strange_character_option = $CharacterCreationTabs/StrangeCharacters/StrangeCharacterOption
-    for type in StrangeCharacters.StrangeCharacterType.keys():
-        strange_character_option.add_item(type)
+	var strange_character_option = $CharacterCreationTabs/StrangeCharacters/StrangeCharacterOption
+	for type in StrangeCharactersScript.StrangeCharacterType.keys():
+		strange_character_option.add_item(type)
 
 func connect_signals():
 	species_option.item_selected.connect(update_character_info)
@@ -72,7 +72,7 @@ func connect_signals():
 	save_button.pressed.connect(_on_save_pressed)
 	finish_button.pressed.connect(_on_finish_pressed)
 	psionic_option.pressed.connect(update_character_info)
-    $CharacterCreationTabs/StrangeCharacters/StrangeCharacterOption.item_selected.connect(update_strange_character_info)
+	$CharacterCreationTabs/StrangeCharacters/StrangeCharacterOption.item_selected.connect(update_strange_character_info)
 
 func update_character_info() -> void:
 	var selected_race: Dictionary = character_data.races[species_option.get_selected_id()]
@@ -80,49 +80,43 @@ func update_character_info() -> void:
 	var selected_motivation: Dictionary = character_data.motivations[motivation_option.get_selected_id()]
 	var selected_class: Dictionary = character_data.classes[class_option.get_selected_id()]
 
-    var strange_character_type = $CharacterCreationTabs/StrangeCharacters/StrangeCharacterOption.get_selected_id()
-    var strange_character = StrangeCharacters.new(StrangeCharacters.StrangeCharacterType.values()[strange_character_type])
-    
-    update_stats(selected_race)
-    update_skills(selected_background, selected_class)
-    update_special_abilities(selected_race, strange_character)
-    update_psionic_info(psionic_option.is_pressed())
-    update_info_box(selected_race, selected_background, selected_motivation, selected_class, strange_character)
+	var strange_character_type = $CharacterCreationTabs/StrangeCharacters/StrangeCharacterOption.get_selected_id()
+	var strange_character = StrangeCharactersScript.new(StrangeCharactersScript.StrangeCharacterType.values()[strange_character_type])
+	
+	update_stats(selected_race)
+	# Remove this line:
+	# update_skills(selected_background, selected_class)
+	update_character_traits(selected_race, strange_character)
+	update_psionic_info(psionic_option.is_pressed())
+	update_info_box(selected_race, selected_background, selected_motivation, selected_class, strange_character)
 
 func update_stats(race: Dictionary) -> void:
 	for stat in stat_spinboxes:
 		stat_spinboxes[stat].value = race.base_stats.get(stat, 0)
 
-func update_skills(background: Dictionary, character_class: Dictionary):
-    var skills_list = $CharacterCreationTabs/CharacterDetails/SkillsContainer/SkillsList
-    skills_list.clear()
-    for skill in character_data.skills:
-        if skill.id in background.get("skills", []) or skill.id in character_class.get("skills", []):
-            skills_list.add_item(skill.name)
-
-func update_special_abilities(race: Dictionary, strange_character: StrangeCharacters):
-    var abilities_list = $CharacterCreationTabs/CharacterDetails/SpecialAbilities/AbilitiesList
-    abilities_list.clear()
-    for ability in race.special_abilities:
-        abilities_list.add_item(ability)
-    for ability in strange_character.special_abilities:
-        abilities_list.add_item(ability)
+func update_character_traits(race: Dictionary, strange_character: StrangeCharactersScript):
+	var traits_list = $CharacterCreationTabs/CharacterDetails/TraitsList
+	traits_list.clear()
+	for trait in race.traits:
+		traits_list.add_item(trait)
+	for trait in strange_character.traits:
+		traits_list.add_item(trait)
 
 func update_psionic_info(is_psionic: bool):
-    var psionic_powers_list = $CharacterCreationTabs/CharacterDetails/PsionicContainer/PsionicPowersList
-    psionic_powers_list.visible = is_psionic
-    if is_psionic:
-        psionic_powers_list.clear()
-        var psionic_manager = PsionicManager.new()
-        psionic_manager.generate_starting_powers()
-        for power in psionic_manager.powers:
-            psionic_powers_list.add_item(power)
+	var psionic_powers_list = $CharacterCreationTabs/CharacterDetails/PsionicContainer/PsionicPowersList
+	psionic_powers_list.visible = is_psionic
+	if is_psionic:
+		psionic_powers_list.clear()
+		var psionic_manager = PsionicManager.new()
+		psionic_manager.generate_starting_powers()
+		for power in psionic_manager.powers:
+			psionic_powers_list.add_item(power)
 
 func update_info_box(race, background, motivation, character_class, strange_character):
 	var info_text = """
 Species: {race_name}
 {race_description}
-Special Abilities: {race_abilities}
+Traits: {race_traits}
 
 Background: {background_name}
 {background_description}
@@ -141,7 +135,7 @@ Strange Character Type: {strange_character_type}
 	""".format({
 		"race_name": race.name,
 		"race_description": race.description,
-		"race_abilities": ", ".join(race.special_abilities),
+		"race_traits": ", ".join(race.traits),
 		"background_name": background.name,
 		"background_description": background.description,
 		"background_effects": get_background_effects(background),
@@ -210,7 +204,7 @@ func _on_finish_pressed():
 	pass
 
 func update_strange_character_info(index: int):
-    var strange_character_type = StrangeCharacters.StrangeCharacterType.values()[index]
-    var strange_character = StrangeCharacters.new(strange_character_type)
-    $CharacterCreationTabs/StrangeCharacters/StrangeCharacterDescription.text = strange_character.get_description()
-    update_character_info()
+	var strange_character_type = StrangeCharactersScript.StrangeCharacterType.values()[index]
+	var strange_character = StrangeCharactersScript.new(strange_character_type)
+	$CharacterCreationTabs/StrangeCharacters/StrangeCharacterDescription.text = strange_character.get_description()
+	update_character_info()
