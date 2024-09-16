@@ -1,0 +1,19 @@
+[remap]
+
+importer="oggvorbisstr"
+type="AudioStreamOggVorbis"
+uid="uid://os8bhq8e33yy"
+path="res://.godot/imported/laser_retro_004.ogg-d8b7f4d1ee4928d7d39ac20d6bd3f4e1.oggvorbisstr"
+
+[deps]
+
+source_file="res://assets/kenney sci-fi sounds/laser_retro_004.ogg"
+dest_files=["res://.godot/imported/laser_retro_004.ogg-d8b7f4d1ee4928d7d39ac20d6bd3f4e1.oggvorbisstr"]
+
+[params]
+
+loop=false
+loop_offset=0
+bpm=0
+beat_count=0
+bar_beats=4

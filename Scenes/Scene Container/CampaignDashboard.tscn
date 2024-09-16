@@ -1,6 +1,7 @@
-[gd_scene load_steps=2 format=3 uid="uid://da60mmlok38fq"]
+[gd_scene load_steps=3 format=3 uid="uid://da60mmlok38fq"]
 
 [ext_resource type="Script" path="res://scenes/campaign/scripts/CampaignDashboard.gd" id="1_0ikrh"]
+[ext_resource type="Theme" uid="uid://d1you1rrwuu48" path="res://Scenes/sci_fi_theme.tres" id="2_theme"]
 
 [node name="CampaignDashboard" type="Control"]
 layout_mode = 3
@@ -9,83 +10,118 @@ anchor_right = 1.0
 anchor_bottom = 1.0
 grow_horizontal = 2
 grow_vertical = 2
+theme = ExtResource("2_theme")
 script = ExtResource("1_0ikrh")
 
-[node name="VBoxContainer" type="VBoxContainer" parent="."]
+[node name="Background" type="ColorRect" parent="."]
 layout_mode = 1
 anchors_preset = 15
 anchor_right = 1.0
 anchor_bottom = 1.0
 grow_horizontal = 2
 grow_vertical = 2
+color = Color(0.0392157, 0.0392157, 0.0392157, 1)
 
-[node name="HeaderLabel" type="Label" parent="VBoxContainer"]
+[node name="MarginContainer" type="MarginContainer" parent="."]
+layout_mode = 1
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+theme_override_constants/margin_left = 40
+theme_override_constants/margin_top = 40
+theme_override_constants/margin_right = 40
+theme_override_constants/margin_bottom = 40
+
+[node name="VBoxContainer" type="VBoxContainer" parent="MarginContainer"]
 layout_mode = 2
+theme_override_constants/separation = 20
+
+[node name="HeaderLabel" type="Label" parent="MarginContainer/VBoxContainer"]
+layout_mode = 2
+theme_override_font_sizes/font_size = 32
 text = "Campaign Dashboard"
 horizontal_alignment = 1
 
-[node name="TabContainer" type="TabContainer" parent="VBoxContainer"]
+[node name="HBoxContainer" type="HBoxContainer" parent="MarginContainer/VBoxContainer"]
 layout_mode = 2
 size_flags_vertical = 3
-current_tab = 0
+theme_override_constants/separation = 20
 
-[node name="Campaign Status" type="VBoxContainer" parent="VBoxContainer/TabContainer"]
+[node name="LeftPanel" type="VBoxContainer" parent="MarginContainer/VBoxContainer/HBoxContainer"]
 layout_mode = 2
-metadata/_tab_index = 0
+size_flags_horizontal = 3
 
-[node name="TurnLabel" type="Label" parent="VBoxContainer/TabContainer/Campaign Status"]
+[node name="CampaignStatus" type="PanelContainer" parent="MarginContainer/VBoxContainer/HBoxContainer/LeftPanel"]
+layout_mode = 2
+
+[node name="VBoxContainer" type="VBoxContainer" parent="MarginContainer/VBoxContainer/HBoxContainer/LeftPanel/CampaignStatus"]
+layout_mode = 2
+
+[node name="TurnLabel" type="Label" parent="MarginContainer/VBoxContainer/HBoxContainer/LeftPanel/CampaignStatus/VBoxContainer"]
 layout_mode = 2
 text = "Turn: 1"
 
-[node name="CreditsLabel" type="Label" parent="VBoxContainer/TabContainer/Campaign Status"]
+[node name="CreditsLabel" type="Label" parent="MarginContainer/VBoxContainer/HBoxContainer/LeftPanel/CampaignStatus/VBoxContainer"]
 layout_mode = 2
 text = "Credits: 0"
 
-[node name="StoryPointsLabel" type="Label" parent="VBoxContainer/TabContainer/Campaign Status"]
+[node name="StoryPointsLabel" type="Label" parent="MarginContainer/VBoxContainer/HBoxContainer/LeftPanel/CampaignStatus/VBoxContainer"]
 layout_mode = 2
 text = "Story Points: 0"
 
-[node name="Turn Sequence" type="VBoxContainer" parent="VBoxContainer/TabContainer"]
-visible = false
+[node name="TurnSequence" type="PanelContainer" parent="MarginContainer/VBoxContainer/HBoxContainer/LeftPanel"]
 layout_mode = 2
-metadata/_tab_index = 1
 
-[node name="CurrentPhaseLabel" type="Label" parent="VBoxContainer/TabContainer/Turn Sequence"]
+[node name="VBoxContainer" type="VBoxContainer" parent="MarginContainer/VBoxContainer/HBoxContainer/LeftPanel/TurnSequence"]
+layout_mode = 2
+
+[node name="CurrentPhaseLabel" type="Label" parent="MarginContainer/VBoxContainer/HBoxContainer/LeftPanel/TurnSequence/VBoxContainer"]
 layout_mode = 2
 text = "Current Phase: Travel"
 
-[node name="NextPhaseButton" type="Button" parent="VBoxContainer/TabContainer/Turn Sequence"]
+[node name="NextPhaseButton" type="Button" parent="MarginContainer/VBoxContainer/HBoxContainer/LeftPanel/TurnSequence/VBoxContainer"]
 layout_mode = 2
 text = "Proceed to Next Phase"
 
-[node name="Crew Overview" type="VBoxContainer" parent="VBoxContainer/TabContainer"]
+[node name="RightPanel" type="VBoxContainer" parent="MarginContainer/VBoxContainer/HBoxContainer"]
+layout_mode = 2
+size_flags_horizontal = 3
+size_flags_stretch_ratio = 1.5
+
+[node name="TabContainer" type="TabContainer" parent="MarginContainer/VBoxContainer/HBoxContainer/RightPanel"]
+layout_mode = 2
+size_flags_vertical = 3
+
+[node name="Crew Overview" type="VBoxContainer" parent="MarginContainer/VBoxContainer/HBoxContainer/RightPanel/TabContainer"]
+layout_mode = 2
+
+[node name="CrewList" type="ItemList" parent="MarginContainer/VBoxContainer/HBoxContainer/RightPanel/TabContainer/Crew Overview"]
+layout_mode = 2
+size_flags_vertical = 3
+
+[node name="Ship Status" type="VBoxContainer" parent="MarginContainer/VBoxContainer/HBoxContainer/RightPanel/TabContainer"]
 visible = false
 layout_mode = 2
-metadata/_tab_index = 2
 
-[node name="CrewList" type="ItemList" parent="VBoxContainer/TabContainer/Crew Overview"]
-layout_mode = 2
-
-[node name="Ship Status" type="VBoxContainer" parent="VBoxContainer/TabContainer"]
-visible = false
-layout_mode = 2
-metadata/_tab_index = 3
-
-[node name="ShipConditionLabel" type="Label" parent="VBoxContainer/TabContainer/Ship Status"]
+[node name="ShipConditionLabel" type="Label" parent="MarginContainer/VBoxContainer/HBoxContainer/RightPanel/TabContainer/Ship Status"]
 layout_mode = 2
 text = "Ship Condition: Good"
 
-[node name="ButtonContainer" type="HBoxContainer" parent="VBoxContainer"]
+[node name="ButtonContainer" type="HBoxContainer" parent="MarginContainer/VBoxContainer"]
 layout_mode = 2
+theme_override_constants/separation = 20
+alignment = 1
 
-[node name="SaveButton" type="Button" parent="VBoxContainer/ButtonContainer"]
+[node name="SaveButton" type="Button" parent="MarginContainer/VBoxContainer/ButtonContainer"]
 layout_mode = 2
 text = "Save Game"
 
-[node name="LoadButton" type="Button" parent="VBoxContainer/ButtonContainer"]
+[node name="LoadButton" type="Button" parent="MarginContainer/VBoxContainer/ButtonContainer"]
 layout_mode = 2
 text = "Load Game"
 
-[node name="QuitButton" type="Button" parent="VBoxContainer/ButtonContainer"]
+[node name="QuitButton" type="Button" parent="MarginContainer/VBoxContainer/ButtonContainer"]
 layout_mode = 2
 text = "Quit to Main Menu"

@@ -1,85 +1,106 @@
-[gd_scene load_steps=3 format=3 uid="uid://5ws0uspoh6vk"]
+[gd_scene load_steps=4 format=3 uid="uid://5ws0uspoh6vk"]
 
 [ext_resource type="Script" path="res://ui/mainmenu/MainMenu.gd" id="1_eb6mc"]
 [ext_resource type="Texture2D" uid="uid://dpv5v3x1ujg66" path="res://assets/BookImages/Nov_15_cityatnight.jpg" id="1_jq64m"]
+[ext_resource type="Theme" path="res://Scenes/sci_fi_theme.tres" id="3_theme"]
 
-[node name="Node" type="Control"]
+[node name="MainMenu" type="Control"]
 layout_mode = 3
-anchors_preset = 0
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+theme = ExtResource("3_theme")
 script = ExtResource("1_eb6mc")
 
-[node name="TextureRect" type="TextureRect" parent="."]
+[node name="Background" type="TextureRect" parent="."]
 layout_mode = 1
 anchors_preset = 15
 anchor_right = 1.0
 anchor_bottom = 1.0
-offset_right = 6000.0
-offset_bottom = 2880.0
 grow_horizontal = 2
 grow_vertical = 2
-scale = Vector2(0.375, 0.375)
 texture = ExtResource("1_jq64m")
+expand_mode = 1
+stretch_mode = 6
 
 [node name="Title" type="Label" parent="."]
-layout_mode = 2
-offset_left = 104.0
-offset_top = 95.0
-offset_right = 427.0
-offset_bottom = 118.0
-theme_override_colors/font_color = Color(1, 0.137255, 0, 1)
-theme_override_colors/font_shadow_color = Color(0, 0, 0, 1)
-theme_override_constants/shadow_offset_x = 4
-theme_override_constants/shadow_offset_y = 4
+layout_mode = 1
+anchors_preset = 5
+anchor_left = 0.5
+anchor_right = 0.5
+offset_left = -400
+offset_top = 50
+offset_right = 400
+offset_bottom = 150
+grow_horizontal = 2
 theme_override_font_sizes/font_size = 75
-text = "5 parsecs from home manager"
+text = "5 Parsecs From Home Manager"
+horizontal_alignment = 1
 
-[node name="Corpo Stuff" type="Label" parent="."]
-layout_mode = 2
-offset_left = 1544.0
-offset_top = 1032.0
-offset_right = 1867.0
-offset_bottom = 1055.0
-text = "V1.0, ReptarusOnIce Production, Help"
+[node name="MenuButtons" type="VBoxContainer" parent="."]
+layout_mode = 1
+anchors_preset = 6
+anchor_left = 1.0
+anchor_top = 0.5
+anchor_right = 1.0
+anchor_bottom = 0.5
+offset_left = -400
+offset_top = -250
+offset_right = -50
+offset_bottom = 250
+grow_horizontal = 0
+grow_vertical = 2
+theme_override_constants/separation = 20
 
-[node name="Menu Buttons" type="VBoxContainer" parent="."]
-layout_mode = 0
-offset_left = 1451.0
-offset_top = 125.0
-offset_right = 1864.0
-offset_bottom = 925.0
-
-[node name="Continue" type="Button" parent="Menu Buttons"]
+[node name="Continue" type="Button" parent="MenuButtons"]
 layout_mode = 2
 size_flags_vertical = 3
 text = "Continue Campaign"
 
-[node name="NewCampaign" type="Button" parent="Menu Buttons"]
+[node name="NewCampaign" type="Button" parent="MenuButtons"]
 layout_mode = 2
 size_flags_vertical = 3
 text = "New Campaign"
 
-[node name="CoopCampaign" type="Button" parent="Menu Buttons"]
+[node name="CoopCampaign" type="Button" parent="MenuButtons"]
 layout_mode = 2
 size_flags_vertical = 3
 text = "Co-op Campaign"
 
-[node name="BattleSimulator" type="Button" parent="Menu Buttons"]
+[node name="BattleSimulator" type="Button" parent="MenuButtons"]
 layout_mode = 2
 size_flags_vertical = 3
 text = "Battle Simulator"
 
-[node name="BugHunt" type="Button" parent="Menu Buttons"]
+[node name="BugHunt" type="Button" parent="MenuButtons"]
 layout_mode = 2
 size_flags_vertical = 3
 text = "Bug Hunt"
 
-[node name="Options" type="Button" parent="Menu Buttons"]
+[node name="Options" type="Button" parent="MenuButtons"]
 layout_mode = 2
 size_flags_vertical = 3
 text = "Options"
 
-[node name="Library" type="Button" parent="Menu Buttons"]
+[node name="Library" type="Button" parent="MenuButtons"]
 layout_mode = 2
 size_flags_vertical = 3
 text = "Library"
-icon_alignment = 2
+
+[node name="VersionLabel" type="Label" parent="."]
+layout_mode = 1
+anchors_preset = 3
+anchor_left = 1.0
+anchor_top = 1.0
+anchor_right = 1.0
+anchor_bottom = 1.0
+offset_left = -200
+offset_top = -40
+offset_right = -20
+offset_bottom = -20
+grow_horizontal = 0
+grow_vertical = 0
+text = "V1.0, ReptarusOnIce Production"
+horizontal_alignment = 2

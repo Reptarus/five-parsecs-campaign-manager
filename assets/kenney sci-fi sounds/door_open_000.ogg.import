@@ -1,0 +1,19 @@
+[remap]
+
+importer="oggvorbisstr"
+type="AudioStreamOggVorbis"
+uid="uid://cjl8w4gqppaq2"
+path="res://.godot/imported/door_open_000.ogg-53f6421cce7955aa1139536104dbe5db.oggvorbisstr"
+
+[deps]
+
+source_file="res://assets/kenney sci-fi sounds/door_open_000.ogg"
+dest_files=["res://.godot/imported/door_open_000.ogg-53f6421cce7955aa1139536104dbe5db.oggvorbisstr"]
+
+[params]
+
+loop=false
+loop_offset=0
+bpm=0
+beat_count=0
+bar_beats=4

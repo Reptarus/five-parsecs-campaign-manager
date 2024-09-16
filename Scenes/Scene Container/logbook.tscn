@@ -1,6 +1,7 @@
-[gd_scene load_steps=2 format=3 uid="uid://so5y02msjm1d"]
+[gd_scene load_steps=3 format=3 uid="uid://so5y02msjm1d"]
 
 [ext_resource type="Script" path="res://Scenes/Utils/logbook.gd" id="1_ofdhq"]
+[ext_resource type="Theme" uid="uid://d1you1rrwuu48" path="res://Scenes/sci_fi_theme.tres" id="2_theme"]
 
 [node name="Logbook" type="Control"]
 layout_mode = 3
@@ -9,7 +10,17 @@ anchor_right = 1.0
 anchor_bottom = 1.0
 grow_horizontal = 2
 grow_vertical = 2
+theme = ExtResource("2_theme")
 script = ExtResource("1_ofdhq")
+
+[node name="Background" type="ColorRect" parent="."]
+layout_mode = 1
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+color = Color(0.0392157, 0.0392157, 0.0392157, 1)
 
 [node name="MarginContainer" type="MarginContainer" parent="."]
 layout_mode = 1
@@ -18,20 +29,20 @@ anchor_right = 1.0
 anchor_bottom = 1.0
 grow_horizontal = 2
 grow_vertical = 2
-theme_override_constants/margin_left = 20
-theme_override_constants/margin_top = 20
-theme_override_constants/margin_right = 20
-theme_override_constants/margin_bottom = 20
+theme_override_constants/margin_left = 40
+theme_override_constants/margin_top = 40
+theme_override_constants/margin_right = 40
+theme_override_constants/margin_bottom = 40
 
 [node name="HBoxContainer" type="HBoxContainer" parent="MarginContainer"]
 layout_mode = 2
-theme_override_constants/separation = 20
+theme_override_constants/separation = 40
 
 [node name="Sidebar" type="VBoxContainer" parent="MarginContainer/HBoxContainer"]
 layout_mode = 2
 size_flags_horizontal = 3
 size_flags_stretch_ratio = 0.3
-theme_override_constants/separation = 10
+theme_override_constants/separation = 20
 
 [node name="CrewSelect" type="OptionButton" parent="MarginContainer/HBoxContainer/Sidebar"]
 layout_mode = 2
@@ -44,7 +55,7 @@ size_flags_vertical = 3
 
 [node name="ButtonsContainer" type="HBoxContainer" parent="MarginContainer/HBoxContainer/Sidebar"]
 layout_mode = 2
-theme_override_constants/separation = 10
+theme_override_constants/separation = 20
 
 [node name="NewEntryButton" type="Button" parent="MarginContainer/HBoxContainer/Sidebar/ButtonsContainer"]
 layout_mode = 2
@@ -67,7 +78,7 @@ text = "Back"
 [node name="MainContent" type="VBoxContainer" parent="MarginContainer/HBoxContainer"]
 layout_mode = 2
 size_flags_horizontal = 3
-theme_override_constants/separation = 10
+theme_override_constants/separation = 20
 
 [node name="EntryContent" type="RichTextLabel" parent="MarginContainer/HBoxContainer/MainContent"]
 layout_mode = 2

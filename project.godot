@@ -32,7 +32,7 @@ version_control/autoload_on_startup=true
 
 [editor_plugins]
 
-enabled=PackedStringArray("res://addons/AsepriteWizard/plugin.cfg", "res://addons/SignalVisualizer/plugin.cfg", "res://addons/copilot/plugin.cfg", "res://addons/dialogue_manager/plugin.cfg", "res://addons/globalize-plugins/plugin.cfg", "res://addons/godot-krita-importer/plugin.cfg", "res://addons/psd_to_layer_scene/plugin.cfg")
+enabled=PackedStringArray("res://addons/AsepriteWizard/plugin.cfg", "res://addons/SignalVisualizer/plugin.cfg", "res://addons/copilot/plugin.cfg", "res://addons/dialogue_manager/plugin.cfg", "res://addons/godot-krita-importer/plugin.cfg", "res://addons/psd_to_layer_scene/plugin.cfg")
 
 [file_customization]
 

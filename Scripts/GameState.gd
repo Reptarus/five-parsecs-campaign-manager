@@ -25,9 +25,9 @@ var patron_job_manager: PatronJobManager
 var current_battle: Battle
 
 func _init() -> void:
-	mission_generator = preload("res://Scripts/MissionGenerator.gd").new()
-	equipment_manager = preload("res://Scripts/EquipmentManager.gd").new()
-	patron_job_manager = preload("res://Scripts/PatronJobManager.gd").new()
+	mission_generator = preload("res://Scripts/Missions/MissionGenerator.gd").new()
+	equipment_manager = preload("res://Scenes/Management/EquipmentManager.gd").new()
+	patron_job_manager = preload("res://Scenes/Management/PatronJobManager.gd").new()
 	
 	call_deferred("_post_init")
 

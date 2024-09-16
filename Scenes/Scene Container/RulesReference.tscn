@@ -1,8 +1,15 @@
-[gd_scene load_steps=4 format=3 uid="uid://fwkbmwcm4neh"]
+[gd_scene load_steps=5 format=3 uid="uid://fwkbmwcm4neh"]
 
 [ext_resource type="Script" path="res://Scenes/Utils/RulesReference.gd" id="1_usady"]
-[ext_resource type="Texture2D" uid="uid://rf8rruw1wr7" path="res://assets/BookImages/Nov_22_Driftingaway.png" id="2_i750e"]
-[ext_resource type="Texture2D" uid="uid://35mn8pi343cm" path="res://assets/PNG/Icon03.png" id="3_uc36b"]
+[ext_resource type="Theme" uid="uid://d1you1rrwuu48" path="res://Scenes/sci_fi_theme.tres" id="2_theme"]
+[ext_resource type="Texture2D" uid="uid://rf8rruw1wr7" path="res://assets/BookImages/Nov_22_Driftingaway.png" id="3_background"]
+
+[sub_resource type="StyleBoxFlat" id="StyleBoxFlat_content_bg"]
+bg_color = Color(0.1, 0.1, 0.1, 0.8)
+corner_radius_top_left = 10
+corner_radius_top_right = 10
+corner_radius_bottom_right = 10
+corner_radius_bottom_left = 10
 
 [node name="RulesReference" type="Control"]
 layout_mode = 3
@@ -11,440 +18,78 @@ anchor_right = 1.0
 anchor_bottom = 1.0
 grow_horizontal = 2
 grow_vertical = 2
+theme = ExtResource("2_theme")
 script = ExtResource("1_usady")
 
-[node name="TextureRect" type="TextureRect" parent="."]
+[node name="Background" type="TextureRect" parent="."]
 layout_mode = 1
 anchors_preset = 15
 anchor_right = 1.0
 anchor_bottom = 1.0
 grow_horizontal = 2
 grow_vertical = 2
-texture = ExtResource("2_i750e")
-expand_mode = 3
+texture = ExtResource("3_background")
+expand_mode = 1
+stretch_mode = 6
 
-[node name="BackButton" type="Button" parent="."]
-z_index = 1
-layout_mode = 2
-offset_left = 17.0
-offset_top = 12.0
-offset_right = 194.0
-offset_bottom = 60.0
-size_flags_horizontal = 4
-size_flags_vertical = 4
-theme_override_font_sizes/font_size = 29
-text = "back button
-"
+[node name="MarginContainer" type="MarginContainer" parent="."]
+layout_mode = 1
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+theme_override_constants/margin_left = 20
+theme_override_constants/margin_top = 20
+theme_override_constants/margin_right = 20
+theme_override_constants/margin_bottom = 20
 
-[node name="SearchBar" type="LineEdit" parent="."]
+[node name="VBoxContainer" type="VBoxContainer" parent="MarginContainer"]
 layout_mode = 2
-offset_left = 200.0
-offset_top = 12.0
-offset_right = 600.0
-offset_bottom = 60.0
+theme_override_constants/separation = 20
+
+[node name="TopBar" type="HBoxContainer" parent="MarginContainer/VBoxContainer"]
+layout_mode = 2
+theme_override_constants/separation = 20
+
+[node name="BackButton" type="Button" parent="MarginContainer/VBoxContainer/TopBar"]
+layout_mode = 2
+text = "Back"
+
+[node name="SearchBar" type="LineEdit" parent="MarginContainer/VBoxContainer/TopBar"]
+layout_mode = 2
+size_flags_horizontal = 3
 placeholder_text = "Search rules..."
 
-[node name="BookmarksButton" type="Button" parent="."]
+[node name="BookmarksButton" type="Button" parent="MarginContainer/VBoxContainer/TopBar"]
 layout_mode = 2
-offset_left = 610.0
-offset_top = 12.0
-offset_right = 750.0
-offset_bottom = 60.0
 text = "Bookmarks"
 
-[node name="VBoxContainer" type="VBoxContainer" parent="."]
-layout_mode = 0
-offset_right = 2756.0
-offset_bottom = 1444.0
-
-[node name="LibraryRows" type="VBoxContainer" parent="VBoxContainer"]
-layout_mode = 2
-
-[node name="Row1" type="HBoxContainer" parent="VBoxContainer/LibraryRows"]
-layout_mode = 2
-alignment = 1
-
-[node name="BestiaryButton" type="MarginContainer" parent="VBoxContainer/LibraryRows/Row1"]
-layout_mode = 2
-size_flags_horizontal = 6
-theme_override_constants/margin_left = 10
-theme_override_constants/margin_top = 10
-theme_override_constants/margin_right = 10
-theme_override_constants/margin_bottom = 10
-
-[node name="Button" type="Button" parent="VBoxContainer/LibraryRows/Row1/BestiaryButton"]
-layout_mode = 2
-theme_override_constants/icon_max_width = 200
-theme_override_font_sizes/font_size = 80
-text = "Bestiary"
-icon = ExtResource("3_uc36b")
-icon_alignment = 1
-vertical_icon_alignment = 0
-expand_icon = true
-
-[node name="Items" type="MarginContainer" parent="VBoxContainer/LibraryRows/Row1"]
-layout_mode = 2
-size_flags_horizontal = 6
-theme_override_constants/margin_left = 10
-theme_override_constants/margin_top = 10
-theme_override_constants/margin_right = 10
-theme_override_constants/margin_bottom = 10
-
-[node name="Button" type="Button" parent="VBoxContainer/LibraryRows/Row1/Items"]
-layout_mode = 2
-theme_override_constants/icon_max_width = 200
-theme_override_font_sizes/font_size = 80
-text = "Intro 
-Campaign"
-icon = ExtResource("3_uc36b")
-icon_alignment = 1
-vertical_icon_alignment = 0
-expand_icon = true
-
-[node name="EnemyAI" type="MarginContainer" parent="VBoxContainer/LibraryRows/Row1"]
-layout_mode = 2
-size_flags_horizontal = 6
-theme_override_constants/margin_left = 10
-theme_override_constants/margin_top = 10
-theme_override_constants/margin_right = 10
-theme_override_constants/margin_bottom = 10
-
-[node name="Button" type="Button" parent="VBoxContainer/LibraryRows/Row1/EnemyAI"]
-layout_mode = 2
-theme_override_constants/icon_max_width = 200
-theme_override_font_sizes/font_size = 80
-text = "Enemy AI"
-icon = ExtResource("3_uc36b")
-icon_alignment = 1
-vertical_icon_alignment = 0
-expand_icon = true
-
-[node name="Multiplayer" type="MarginContainer" parent="VBoxContainer/LibraryRows/Row1"]
-layout_mode = 2
-size_flags_horizontal = 6
-theme_override_constants/margin_left = 10
-theme_override_constants/margin_top = 10
-theme_override_constants/margin_right = 10
-theme_override_constants/margin_bottom = 10
-
-[node name="Button" type="Button" parent="VBoxContainer/LibraryRows/Row1/Multiplayer"]
-layout_mode = 2
-theme_override_constants/icon_max_width = 200
-theme_override_font_sizes/font_size = 80
-text = "PVP/Co-op"
-icon = ExtResource("3_uc36b")
-icon_alignment = 1
-vertical_icon_alignment = 0
-expand_icon = true
-
-[node name="Difficulty" type="MarginContainer" parent="VBoxContainer/LibraryRows/Row1"]
-layout_mode = 2
-size_flags_horizontal = 6
-theme_override_constants/margin_left = 10
-theme_override_constants/margin_top = 10
-theme_override_constants/margin_right = 10
-theme_override_constants/margin_bottom = 10
-
-[node name="Button" type="Button" parent="VBoxContainer/LibraryRows/Row1/Difficulty"]
-layout_mode = 2
-theme_override_constants/icon_max_width = 200
-theme_override_font_sizes/font_size = 80
-text = "Difficulty
-Options"
-icon = ExtResource("3_uc36b")
-icon_alignment = 1
-vertical_icon_alignment = 0
-expand_icon = true
-
-[node name="Row2" type="HBoxContainer" parent="VBoxContainer/LibraryRows"]
+[node name="HSplitContainer" type="HSplitContainer" parent="MarginContainer/VBoxContainer"]
 layout_mode = 2
 size_flags_vertical = 3
-alignment = 1
 
-[node name="EliteEnemies" type="MarginContainer" parent="VBoxContainer/LibraryRows/Row2"]
+[node name="TopicList" type="ScrollContainer" parent="MarginContainer/VBoxContainer/HSplitContainer"]
 layout_mode = 2
-size_flags_horizontal = 6
-theme_override_constants/margin_left = 10
-theme_override_constants/margin_top = 10
-theme_override_constants/margin_right = 10
-theme_override_constants/margin_bottom = 10
+size_flags_horizontal = 3
+size_flags_stretch_ratio = 0.3
 
-[node name="Button" type="Button" parent="VBoxContainer/LibraryRows/Row2/EliteEnemies"]
+[node name="VBoxContainer" type="VBoxContainer" parent="MarginContainer/VBoxContainer/HSplitContainer/TopicList"]
 layout_mode = 2
-theme_override_constants/icon_max_width = 200
-theme_override_font_sizes/font_size = 80
-text = "Elite Enemies"
-icon = ExtResource("3_uc36b")
-icon_alignment = 1
-vertical_icon_alignment = 0
-expand_icon = true
-
-[node name="NameGeneration" type="MarginContainer" parent="VBoxContainer/LibraryRows/Row2"]
-layout_mode = 2
-size_flags_horizontal = 6
-theme_override_constants/margin_left = 10
-theme_override_constants/margin_top = 10
-theme_override_constants/margin_right = 10
-theme_override_constants/margin_bottom = 10
-
-[node name="Button" type="Button" parent="VBoxContainer/LibraryRows/Row2/NameGeneration"]
-layout_mode = 2
-theme_override_constants/icon_max_width = 200
-theme_override_font_sizes/font_size = 80
-text = "Name Generation
-Tables"
-icon = ExtResource("3_uc36b")
-icon_alignment = 1
-vertical_icon_alignment = 0
-expand_icon = true
-
-[node name="AlternateDeploy" type="MarginContainer" parent="VBoxContainer/LibraryRows/Row2"]
-layout_mode = 2
-size_flags_horizontal = 6
-theme_override_constants/margin_left = 10
-theme_override_constants/margin_top = 10
-theme_override_constants/margin_right = 10
-theme_override_constants/margin_bottom = 10
-
-[node name="Button" type="Button" parent="VBoxContainer/LibraryRows/Row2/AlternateDeploy"]
-layout_mode = 2
-theme_override_constants/icon_max_width = 200
-theme_override_font_sizes/font_size = 80
-text = "Alternate Enemy
-Deployment"
-icon = ExtResource("3_uc36b")
-icon_alignment = 1
-vertical_icon_alignment = 0
-expand_icon = true
-
-[node name="SpeciesList" type="MarginContainer" parent="VBoxContainer/LibraryRows/Row2"]
-layout_mode = 2
-size_flags_horizontal = 6
-theme_override_constants/margin_left = 10
-theme_override_constants/margin_top = 10
-theme_override_constants/margin_right = 10
-theme_override_constants/margin_bottom = 10
-
-[node name="Button" type="Button" parent="VBoxContainer/LibraryRows/Row2/SpeciesList"]
-layout_mode = 2
-theme_override_constants/icon_max_width = 200
-theme_override_font_sizes/font_size = 80
-text = "Species List"
-icon = ExtResource("3_uc36b")
-icon_alignment = 1
-vertical_icon_alignment = 0
-expand_icon = true
-
-[node name="Psionics" type="MarginContainer" parent="VBoxContainer/LibraryRows/Row2"]
-layout_mode = 2
-size_flags_horizontal = 6
-theme_override_constants/margin_left = 10
-theme_override_constants/margin_top = 10
-theme_override_constants/margin_right = 10
-theme_override_constants/margin_bottom = 10
-
-[node name="Button" type="Button" parent="VBoxContainer/LibraryRows/Row2/Psionics"]
-layout_mode = 2
-theme_override_constants/icon_max_width = 200
-theme_override_font_sizes/font_size = 80
-text = "Psionics"
-icon = ExtResource("3_uc36b")
-icon_alignment = 1
-vertical_icon_alignment = 0
-expand_icon = true
-
-[node name="Row3" type="HBoxContainer" parent="VBoxContainer/LibraryRows"]
-layout_mode = 2
+size_flags_horizontal = 3
 size_flags_vertical = 3
-alignment = 1
 
-[node name="NominiCombat" type="MarginContainer" parent="VBoxContainer/LibraryRows/Row3"]
+[node name="ContentDisplay" type="ScrollContainer" parent="MarginContainer/VBoxContainer/HSplitContainer"]
 layout_mode = 2
-size_flags_horizontal = 6
-theme_override_constants/margin_left = 10
-theme_override_constants/margin_top = 10
-theme_override_constants/margin_right = 10
-theme_override_constants/margin_bottom = 10
+size_flags_horizontal = 3
+size_flags_stretch_ratio = 0.7
 
-[node name="Button" type="Button" parent="VBoxContainer/LibraryRows/Row3/NominiCombat"]
+[node name="ContentBackground" type="Panel" parent="MarginContainer/VBoxContainer/HSplitContainer/ContentDisplay"]
+show_behind_parent = true
 layout_mode = 2
-theme_override_constants/icon_max_width = 200
-theme_override_font_sizes/font_size = 80
-text = "No-mini
-combat"
-icon = ExtResource("3_uc36b")
-icon_alignment = 1
-vertical_icon_alignment = 0
-expand_icon = true
+theme_override_styles/panel = SubResource("StyleBoxFlat_content_bg")
 
-[node name="EquipmentItems" type="MarginContainer" parent="VBoxContainer/LibraryRows/Row3"]
+[node name="VBoxContainer" type="VBoxContainer" parent="MarginContainer/VBoxContainer/HSplitContainer/ContentDisplay"]
 layout_mode = 2
-size_flags_horizontal = 6
-theme_override_constants/margin_left = 10
-theme_override_constants/margin_top = 10
-theme_override_constants/margin_right = 10
-theme_override_constants/margin_bottom = 10
-
-[node name="Button" type="Button" parent="VBoxContainer/LibraryRows/Row3/EquipmentItems"]
-layout_mode = 2
-theme_override_constants/icon_max_width = 200
-theme_override_font_sizes/font_size = 80
-text = "Equipment and
-Items"
-icon = ExtResource("3_uc36b")
-icon_alignment = 1
-vertical_icon_alignment = 0
-expand_icon = true
-
-[node name="TerrainTables" type="MarginContainer" parent="VBoxContainer/LibraryRows/Row3"]
-layout_mode = 2
-size_flags_horizontal = 6
-theme_override_constants/margin_left = 10
-theme_override_constants/margin_top = 10
-theme_override_constants/margin_right = 10
-theme_override_constants/margin_bottom = 10
-
-[node name="Button" type="Button" parent="VBoxContainer/LibraryRows/Row3/TerrainTables"]
-layout_mode = 2
-theme_override_constants/icon_max_width = 200
-theme_override_font_sizes/font_size = 80
-text = "Terrain Tables"
-icon = ExtResource("3_uc36b")
-icon_alignment = 1
-vertical_icon_alignment = 0
-expand_icon = true
-
-[node name="ExpandedMissions" type="MarginContainer" parent="VBoxContainer/LibraryRows/Row3"]
-layout_mode = 2
-size_flags_horizontal = 6
-theme_override_constants/margin_left = 10
-theme_override_constants/margin_top = 10
-theme_override_constants/margin_right = 10
-theme_override_constants/margin_bottom = 10
-
-[node name="Button" type="Button" parent="VBoxContainer/LibraryRows/Row3/ExpandedMissions"]
-layout_mode = 2
-theme_override_constants/icon_max_width = 200
-theme_override_font_sizes/font_size = 80
-text = "Expanded 
-Missions"
-icon = ExtResource("3_uc36b")
-icon_alignment = 1
-vertical_icon_alignment = 0
-expand_icon = true
-
-[node name="FringeWorldStrife" type="MarginContainer" parent="VBoxContainer/LibraryRows/Row3"]
-layout_mode = 2
-size_flags_horizontal = 6
-theme_override_constants/margin_left = 10
-theme_override_constants/margin_top = 10
-theme_override_constants/margin_right = 10
-theme_override_constants/margin_bottom = 10
-
-[node name="Button" type="Button" parent="VBoxContainer/LibraryRows/Row3/FringeWorldStrife"]
-layout_mode = 2
-theme_override_constants/icon_max_width = 200
-theme_override_font_sizes/font_size = 80
-text = "Fringe World
-Strife"
-icon = ExtResource("3_uc36b")
-icon_alignment = 1
-vertical_icon_alignment = 0
-expand_icon = true
-
-[node name="Row4" type="HBoxContainer" parent="VBoxContainer/LibraryRows"]
-layout_mode = 2
+size_flags_horizontal = 3
 size_flags_vertical = 3
-alignment = 1
-
-[node name="Lore" type="MarginContainer" parent="VBoxContainer/LibraryRows/Row4"]
-layout_mode = 2
-size_flags_horizontal = 6
-theme_override_constants/margin_left = 10
-theme_override_constants/margin_top = 10
-theme_override_constants/margin_right = 10
-theme_override_constants/margin_bottom = 10
-
-[node name="Button" type="Button" parent="VBoxContainer/LibraryRows/Row4/Lore"]
-layout_mode = 2
-theme_override_constants/icon_max_width = 200
-theme_override_font_sizes/font_size = 80
-text = "No-mini
-combat"
-icon = ExtResource("3_uc36b")
-icon_alignment = 1
-vertical_icon_alignment = 0
-expand_icon = true
-
-[node name="ExpandedQuests" type="MarginContainer" parent="VBoxContainer/LibraryRows/Row4"]
-layout_mode = 2
-size_flags_horizontal = 6
-theme_override_constants/margin_left = 10
-theme_override_constants/margin_top = 10
-theme_override_constants/margin_right = 10
-theme_override_constants/margin_bottom = 10
-
-[node name="Button" type="Button" parent="VBoxContainer/LibraryRows/Row4/ExpandedQuests"]
-layout_mode = 2
-theme_override_constants/icon_max_width = 200
-theme_override_font_sizes/font_size = 80
-text = "Expanded Quests"
-icon = ExtResource("3_uc36b")
-icon_alignment = 1
-vertical_icon_alignment = 0
-expand_icon = true
-
-[node name="SalvageJobs" type="MarginContainer" parent="VBoxContainer/LibraryRows/Row4"]
-layout_mode = 2
-size_flags_horizontal = 6
-theme_override_constants/margin_left = 10
-theme_override_constants/margin_top = 10
-theme_override_constants/margin_right = 10
-theme_override_constants/margin_bottom = 10
-
-[node name="Button" type="Button" parent="VBoxContainer/LibraryRows/Row4/SalvageJobs"]
-layout_mode = 2
-theme_override_constants/icon_max_width = 200
-theme_override_font_sizes/font_size = 80
-text = "Salvage Jobs"
-icon = ExtResource("3_uc36b")
-icon_alignment = 1
-vertical_icon_alignment = 0
-expand_icon = true
-
-[node name="Factions" type="MarginContainer" parent="VBoxContainer/LibraryRows/Row4"]
-layout_mode = 2
-size_flags_horizontal = 6
-theme_override_constants/margin_left = 10
-theme_override_constants/margin_top = 10
-theme_override_constants/margin_right = 10
-theme_override_constants/margin_bottom = 10
-
-[node name="Button" type="Button" parent="VBoxContainer/LibraryRows/Row4/Factions"]
-layout_mode = 2
-theme_override_constants/icon_max_width = 200
-theme_override_font_sizes/font_size = 80
-text = "Factions"
-icon = ExtResource("3_uc36b")
-icon_alignment = 1
-vertical_icon_alignment = 0
-expand_icon = true
-
-[node name="StealthStreet" type="MarginContainer" parent="VBoxContainer/LibraryRows/Row4"]
-layout_mode = 2
-size_flags_horizontal = 6
-theme_override_constants/margin_left = 10
-theme_override_constants/margin_top = 10
-theme_override_constants/margin_right = 10
-theme_override_constants/margin_bottom = 10
-
-[node name="Button" type="Button" parent="VBoxContainer/LibraryRows/Row4/StealthStreet"]
-layout_mode = 2
-theme_override_constants/icon_max_width = 200
-theme_override_font_sizes/font_size = 80
-text = "Stealth and
-Street Fights"
-icon = ExtResource("3_uc36b")
-icon_alignment = 1
-vertical_icon_alignment = 0
-expand_icon = true

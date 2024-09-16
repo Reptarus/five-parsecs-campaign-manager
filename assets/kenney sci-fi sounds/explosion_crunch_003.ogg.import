@@ -1,0 +1,19 @@
+[remap]
+
+importer="oggvorbisstr"
+type="AudioStreamOggVorbis"
+uid="uid://b7lhunutrxvm6"
+path="res://.godot/imported/explosion_crunch_003.ogg-27d0b0b5b3afe9335a8ef5837d591467.oggvorbisstr"
+
+[deps]
+
+source_file="res://assets/kenney sci-fi sounds/explosion_crunch_003.ogg"
+dest_files=["res://.godot/imported/explosion_crunch_003.ogg-27d0b0b5b3afe9335a8ef5837d591467.oggvorbisstr"]
+
+[params]
+
+loop=false
+loop_offset=0
+bpm=0
+beat_count=0
+bar_beats=4
