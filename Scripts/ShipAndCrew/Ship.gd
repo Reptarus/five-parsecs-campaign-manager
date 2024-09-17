@@ -6,78 +6,71 @@ signal component_repaired(component: ShipComponent)
 signal power_changed(available_power: int)
 
 @export var name: String
+@export var max_hull: int
+@export var current_hull: int
+@export var fuel: int
+@export var debt: int
 @export var components: Array[ShipComponent] = []
-@export var crew: Array = []
-@export var inventory: ShipInventory
-@export var total_power: int
-@export var available_power: int
-
-func _init():
-	inventory = ShipInventory.new()
+@export var traits: Array[String]
 
 func add_component(component: ShipComponent) -> void:
 	components.append(component)
-	available_power -= component.power_usage
-	power_changed.emit(available_power)
 
 func remove_component(component: ShipComponent) -> void:
 	components.erase(component)
-	available_power += component.power_usage
-	power_changed.emit(available_power)
 
-func get_component(type: ShipComponent.ComponentType) -> ShipComponent:
-	return components.filter(func(c): return c.component_type == type).front()
+func get_component_by_type(type: ShipComponent.ComponentType) -> ShipComponent:
+	for component in components:
+		if component.type == type:
+			return component
+	return null
 
-func repair_component(component: ShipComponent, amount: int) -> void:
-	component.repair(amount)
-	component_repaired.emit(component)
+func has_trait(trait: String) -> bool:
+	return trait in traits
 
-func calculate_maintenance_cost(economy_manager: EconomyManager) -> int:
-	var base_cost = components.reduce(func(acc, comp): return acc + comp.power_usage, 0)
-	return int(base_cost * economy_manager.global_economic_modifier)
+func repair(amount: int) -> void:
+	current_hull = min(current_hull + amount, max_hull)
 
-func engage_in_combat(enemy_ship: Ship):
-	var combat_result = {}
-	var has_shuttle = self.components.any(func(c): return c.component_type == ShipComponent.ComponentType.SHUTTLE)
-	var has_drop_launcher = self.components.any(func(c): return c.component_type == ShipComponent.ComponentType.DROP_PODS)
-	
-	for combat_round in range(3):
-		var damage_dealt = self.fire_weapons(enemy_ship)
-		var damage_received = enemy_ship.fire_weapons(self)
-		
-		combat_result["round_" + str(combat_round)] = {
-			"damage_dealt": damage_dealt,
-			"damage_received": damage_received
-		}
-		
-		if self.is_destroyed() or enemy_ship.is_destroyed():
-			break
-	
-	if has_shuttle:
-		combat_result["escape_bonus"] = 2
-	
-	if has_drop_launcher and randf() <= 0.25:
-		combat_result["boarding_opportunity"] = true
-	
-	return combat_result
+func take_damage(amount: int) -> void:
+	current_hull = max(current_hull - amount, 0)
 
 func is_destroyed() -> bool:
-	var hull = get_component(ShipComponent.ComponentType.HULL)
-	return hull.health <= 0 if hull else true
+	return current_hull <= 0
 
-func take_damage(amount: int):
-	var hull = get_component(ShipComponent.ComponentType.HULL) as HullComponent
-	if hull:
-		hull.take_damage(amount)
-		component_damaged.emit(hull)
-		if hull.is_destroyed():
-			# Handle ship destruction
-			pass
+func add_fuel(amount: int) -> void:
+	fuel += amount
 
-func fire_weapons(target: Ship):
-	var weapons = get_component(ShipComponent.ComponentType.WEAPONS) as WeaponsComponent
-	if weapons:
-		var damage = weapons.calculate_damage()
-		target.take_damage(damage)
-		return damage
-	return 0
+func use_fuel(amount: int) -> bool:
+	if fuel >= amount:
+		fuel -= amount
+		return true
+	return false
+
+func serialize() -> Dictionary:
+	return {
+		"name": name,
+		"max_hull": max_hull,
+		"current_hull": current_hull,
+		"fuel": fuel,
+		"debt": debt,
+		"components": components.map(func(c): return c.serialize()),
+		"traits": traits
+	}
+
+static func deserialize(data: Dictionary) -> Ship:
+	var ship = Ship.new()
+	ship.name = data["name"]
+	ship.max_hull = data["max_hull"]
+	ship.current_hull = data["current_hull"]
+	ship.fuel = data["fuel"]
+	ship.debt = data["debt"]
+	ship.components = data["components"].map(func(c): return ShipComponent.deserialize(c))
+	ship.traits = data["traits"]
+	return ship
+
+func get_total_power_consumption() -> int:
+	var total_power = 0
+	for component in components:
+		if not component.is_damaged:
+			total_power += component.power_usage
+	return total_power

@@ -22,9 +22,8 @@ func discharge_patient(crew_member: Character) -> bool:
 	return false
 
 func heal_patients() -> void:
-	if not is_damaged:
-		for patient in patients:
-			patient.heal(1)  # Adjust healing amount as needed
+	for patient in patients:
+		patient.recover()
 
 func process_turn() -> void:
 	heal_patients()

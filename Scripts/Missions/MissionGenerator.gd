@@ -10,7 +10,7 @@ func initialize(new_game_state: GameState):
 	print("MissionGenerator initializing...")
 	
 	# Initialize mission types
-	mission_types = ["OPPORTUNITY", "PATRON", "QUEST", "RIVAL"]
+	mission_types = Mission.Type.keys()
 	
 	# Load any additional data from JSON or other sources if needed
 	_load_mission_data()
@@ -22,11 +22,34 @@ func _load_mission_data():
 	# This is a placeholder - implement actual data loading if required
 	pass
 
-func generate_mission(use_expanded_missions: bool = false) -> Mission:
-	if use_expanded_missions:
-		return _generate_expanded_mission()
+func generate_mission() -> Mission:
+	var mission_type = _select_mission_type()
+	
+	match mission_type:
+		MissionType.STEALTH:
+			return game_state.stealth_missions_manager.generate_stealth_mission()
+		MissionType.STREET_FIGHT:
+			return game_state.street_fights_manager.generate_street_fight()
+		MissionType.SALVAGE_JOB:
+			return game_state.salvage_jobs_manager.generate_salvage_job()
+		MissionType.FRINGE_WORLD_STRIFE:
+			return game_state.fringe_world_strife_manager.generate_fringe_world_strife()
+		_:
+			return _generate_standard_mission()
+
+func _select_mission_type() -> MissionType:
+	# Implement new mission selection logic from pg 116 of the compendium
+	var roll = randi() % 100 + 1
+	if roll <= 20:
+		return MissionType.STEALTH
+	elif roll <= 40:
+		return MissionType.STREET_FIGHT
+	elif roll <= 60:
+		return MissionType.SALVAGE_JOB
+	elif roll <= 80:
+		return MissionType.FRINGE_WORLD_STRIFE
 	else:
-		return _generate_standard_mission()
+		return MissionType.values()[randi() % 5]  # Original mission types
 
 func _generate_standard_mission() -> Mission:
 	var mission = Mission.new()
@@ -52,7 +75,18 @@ func _generate_expanded_mission() -> Mission:
 	mission.difficulty = expanded_mission_data["difficulty"]
 	mission.rewards = expanded_mission_data["rewards"]
 	mission.time_limit = randi() % 5 + 3  # 3 to 7 campaign turns
+	mission.is_expanded = true
+	mission.faction = expanded_mission_data["faction"] if "faction" in expanded_mission_data else {}
+	mission.loyalty_requirement = expanded_mission_data["loyalty_requirement"] if "loyalty_requirement" in expanded_mission_data else 0
+	mission.power_requirement = expanded_mission_data["power_requirement"] if "power_requirement" in expanded_mission_data else 0
 	
+	return mission
+
+func generate_mission_for_faction(faction: Dictionary) -> Mission:
+	var mission = _generate_expanded_mission()
+	mission.faction = faction
+	mission.loyalty_requirement = randi() % 3 + 1  # 1 to 3
+	mission.power_requirement = randi() % faction["power"] + 1  # 1 to faction power
 	return mission
 
 func mission_to_quest(mission: Mission) -> Quest:

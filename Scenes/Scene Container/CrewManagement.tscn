@@ -1,7 +1,6 @@
 [gd_scene load_steps=5 format=3 uid="uid://b5rumvu1ohj4q"]
 
 [ext_resource type="Script" path="res://scenes/Management/CrewManagement.gd" id="1_c1w2h"]
-[ext_resource type="PackedScene" uid="uid://bjlkj12avsxbo" path="res://Scenes/CusomizePanel.tscn" id="2_d3f4g"]
 [ext_resource type="Texture2D" uid="uid://bwejyqe8qschs" path="res://assets/Basic assets/Card X3/Card X5.png" id="3_k7m9p"]
 [ext_resource type="StyleBox" uid="uid://d1you1rrwuu48" path="res://Scenes/sci_fi_theme.tres" id="4_l2n3p"]
 
@@ -24,7 +23,7 @@ grow_vertical = 2
 texture = ExtResource("3_k7m9p")
 stretch_mode = 6
 
-[node name="VBoxContainer" type="VBoxContainer" parent="."]
+[node name="HBoxContainer" type="HBoxContainer" parent="."]
 layout_mode = 1
 anchors_preset = 15
 anchor_right = 1.0
@@ -32,158 +31,198 @@ anchor_bottom = 1.0
 grow_horizontal = 2
 grow_vertical = 2
 
-[node name="Label" type="Label" parent="VBoxContainer"]
-layout_mode = 2
-theme_override_font_sizes/font_size = 32
-text = "Crew Management"
-horizontal_alignment = 1
-
-[node name="CrewSizeSelection" type="HBoxContainer" parent="VBoxContainer"]
-layout_mode = 2
-
-[node name="Label" type="Label" parent="VBoxContainer/CrewSizeSelection"]
-layout_mode = 2
-text = "Crew Size:"
-
-[node name="SizeSlider" type="HSlider" parent="VBoxContainer/CrewSizeSelection"]
+[node name="Sidebar" type="Panel" parent="HBoxContainer"]
 layout_mode = 2
 size_flags_horizontal = 3
-min_value = 3.0
-max_value = 8.0
-value = 5.0
-tick_count = 6
-ticks_on_borders = true
+size_flags_stretch_ratio = 0.2
+theme_override_styles/panel = ExtResource("4_l2n3p")
 
-[node name="SizeLabel" type="Label" parent="VBoxContainer/CrewSizeSelection"]
+[node name="VBoxContainer" type="VBoxContainer" parent="HBoxContainer/Sidebar"]
+layout_mode = 1
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+
+[node name="CrewButton" type="Button" parent="HBoxContainer/Sidebar/VBoxContainer"]
 layout_mode = 2
-text = "5"
+text = "Crew"
 
-[node name="HBoxContainer" type="HBoxContainer" parent="VBoxContainer"]
+[node name="ShipButton" type="Button" parent="HBoxContainer/Sidebar/VBoxContainer"]
+layout_mode = 2
+text = "Ship"
+
+[node name="QuestsButton" type="Button" parent="HBoxContainer/Sidebar/VBoxContainer"]
+layout_mode = 2
+text = "Quests"
+
+[node name="StashButton" type="Button" parent="HBoxContainer/Sidebar/VBoxContainer"]
+layout_mode = 2
+text = "Ship Stash"
+
+[node name="MainContent" type="Panel" parent="HBoxContainer"]
+layout_mode = 2
+size_flags_horizontal = 3
+size_flags_stretch_ratio = 0.8
+theme_override_styles/panel = ExtResource("4_l2n3p")
+
+[node name="MarginContainer" type="MarginContainer" parent="HBoxContainer/MainContent"]
+layout_mode = 1
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+theme_override_constants/margin_left = 20
+theme_override_constants/margin_top = 20
+theme_override_constants/margin_right = 20
+theme_override_constants/margin_bottom = 20
+
+[node name="ContentContainer" type="Control" parent="HBoxContainer/MainContent/MarginContainer"]
+layout_mode = 2
+
+[node name="CrewContent" type="Control" parent="HBoxContainer/MainContent/MarginContainer/ContentContainer"]
+visible = false
+layout_mode = 1
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+
+[node name="CrewGrid" type="GridContainer" parent="HBoxContainer/MainContent/MarginContainer/ContentContainer/CrewContent"]
+layout_mode = 1
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+columns = 3
+
+[node name="ShipContent" type="Control" parent="HBoxContainer/MainContent/MarginContainer/ContentContainer"]
+visible = false
+layout_mode = 1
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+
+[node name="ShipInfo" type="VBoxContainer" parent="HBoxContainer/MainContent/MarginContainer/ContentContainer/ShipContent"]
+layout_mode = 1
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+
+[node name="ShipName" type="Label" parent="HBoxContainer/MainContent/MarginContainer/ContentContainer/ShipContent/ShipInfo"]
+layout_mode = 2
+
+[node name="HullPoints" type="Label" parent="HBoxContainer/MainContent/MarginContainer/ContentContainer/ShipContent/ShipInfo"]
+layout_mode = 2
+
+[node name="Fuel" type="Label" parent="HBoxContainer/MainContent/MarginContainer/ContentContainer/ShipContent/ShipInfo"]
+layout_mode = 2
+
+[node name="ComponentsList" type="ItemList" parent="HBoxContainer/MainContent/MarginContainer/ContentContainer/ShipContent/ShipInfo"]
 layout_mode = 2
 size_flags_vertical = 3
 
-[node name="CrewList" type="GridContainer" parent="VBoxContainer/HBoxContainer"]
-layout_mode = 2
-size_flags_horizontal = 3
-columns = 3
-
-[node name="CharacterSheet" type="Panel" parent="VBoxContainer/HBoxContainer"]
-layout_mode = 2
-size_flags_horizontal = 3
-size_flags_stretch_ratio = 2.0
-theme_override_styles/panel = ExtResource("4_l2n3p")
-
-[node name="VBoxContainer" type="VBoxContainer" parent="VBoxContainer/HBoxContainer/CharacterSheet"]
-layout_mode = 1
-anchors_preset = 15
-anchor_right = 1.0
-anchor_bottom = 1.0
-grow_horizontal = 2
-grow_vertical = 2
-
-[node name="NameLabel" type="Label" parent="VBoxContainer/HBoxContainer/CharacterSheet/VBoxContainer"]
+[node name="Traits" type="Label" parent="HBoxContainer/MainContent/MarginContainer/ContentContainer/ShipContent/ShipInfo"]
 layout_mode = 2
 
-[node name="SpeciesLabel" type="Label" parent="VBoxContainer/HBoxContainer/CharacterSheet/VBoxContainer"]
+[node name="Debt" type="Label" parent="HBoxContainer/MainContent/MarginContainer/ContentContainer/ShipContent/ShipInfo"]
 layout_mode = 2
 
-[node name="EditButton" type="Button" parent="VBoxContainer/HBoxContainer/CharacterSheet/VBoxContainer"]
-layout_mode = 2
-text = "Edit Character"
-
-[node name="DeleteButton" type="Button" parent="VBoxContainer/HBoxContainer/CharacterSheet/VBoxContainer"]
-layout_mode = 2
-text = "Delete Character"
-
-[node name="ButtonsContainer" type="HBoxContainer" parent="VBoxContainer"]
-layout_mode = 2
-
-[node name="GenerateRandomButton" type="Button" parent="VBoxContainer/ButtonsContainer"]
-layout_mode = 2
-text = "Generate Random Crew"
-
-[node name="CustomizeButton" type="Button" parent="VBoxContainer/ButtonsContainer"]
-layout_mode = 2
-text = "Customize Selected"
-
-[node name="RerollButton" type="Button" parent="VBoxContainer/ButtonsContainer"]
-layout_mode = 2
-text = "Reroll Selected"
-
-[node name="ConfirmCrewButton" type="Button" parent="VBoxContainer/ButtonsContainer"]
-layout_mode = 2
-text = "Confirm Crew"
-
-[node name="BackButton" type="Button" parent="VBoxContainer"]
-layout_mode = 2
-text = "Back to Dashboard"
-
-[node name="CustomizePanel" parent="." instance=ExtResource("2_d3f4g")]
+[node name="QuestsContent" type="Control" parent="HBoxContainer/MainContent/MarginContainer/ContentContainer"]
 visible = false
 layout_mode = 1
-
-[node name="CompendiumPanel" type="Panel" parent="."]
-layout_mode = 1
-anchors_preset = 11
-anchor_left = 1.0
+anchors_preset = 15
 anchor_right = 1.0
 anchor_bottom = 1.0
-offset_left = -200.0
-grow_horizontal = 0
+grow_horizontal = 2
 grow_vertical = 2
-theme_override_styles/panel = ExtResource("4_l2n3p")
 
-[node name="CompendiumInfo" type="RichTextLabel" parent="CompendiumPanel"]
+[node name="MissionResults" type="Label" parent="HBoxContainer/MainContent/MarginContainer/ContentContainer/QuestsContent"]
 layout_mode = 1
 anchors_preset = 15
 anchor_right = 1.0
 anchor_bottom = 1.0
 grow_horizontal = 2
 grow_vertical = 2
-bbcode_enabled = true
-text = "[center][b]Five Parsecs From Home[/b][/center]
 
-[i]Quick Reference:[/i]
-- Crew size: 3-8 members
-- Species: Human, Alien, Bot
-- Key stats: Reactions, Speed, Combat Skill, Toughness, Savvy
-- Don't forget equipment and motivations!"
+[node name="MissionDetails" type="Label" parent="HBoxContainer/MainContent/MarginContainer/ContentContainer/QuestsContent"]
+layout_mode = 1
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
 
-[node name="ConfirmationDialog" type="ConfirmationDialog" parent="."]
-title = "Confirm Crew"
-size = Vector2i(300, 100)
-dialog_text = "Are you sure you want to finalize this crew?"
+[node name="NoMission" type="Label" parent="HBoxContainer/MainContent/MarginContainer/ContentContainer/QuestsContent"]
+layout_mode = 1
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+text = "No active mission"
 
-func _ready():
-    display_crew(game_state.get_current_crew())
+[node name="MissionSelection" type="VBoxContainer" parent="HBoxContainer/MainContent/MarginContainer/ContentContainer/QuestsContent"]
+layout_mode = 1
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
 
-func display_crew(crew):
-    for member in crew.get_members():
-        add_crew_member_to_ui(member)
+[node name="MissionList" type="ItemList" parent="HBoxContainer/MainContent/MarginContainer/ContentContainer/QuestsContent/MissionSelection"]
+layout_mode = 2
+size_flags_vertical = 3
 
-func add_crew_member_to_ui(member):
-    var character_sheet = preload("res://Scenes/Scene Container/CrewManagement/CharacterSheet.tscn").instantiate()
-    character_sheet.set_member(member)
-    CrewList.add_child(character_sheet)
+[node name="StashContent" type="Control" parent="HBoxContainer/MainContent/MarginContainer/ContentContainer"]
+visible = false
+layout_mode = 1
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
 
-func remove_crew_member_from_ui(member):
-    for child in CrewList.get_children():
-        if child.member == member:
-            child.queue_free()
-            break
+[node name="VBoxContainer" type="VBoxContainer" parent="HBoxContainer/MainContent/MarginContainer/ContentContainer/StashContent"]
+layout_mode = 1
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
 
-func update_crew_size_label(crew):
-    SizeLabel.text = str(crew.get_members().size())
+[node name="SortOptions" type="HBoxContainer" parent="HBoxContainer/MainContent/MarginContainer/ContentContainer/StashContent/VBoxContainer"]
+layout_mode = 2
 
-func _on_size_slider_value_changed(value):
-    SizeLabel.text = str(int(value))
+[node name="SortByName" type="Button" parent="HBoxContainer/MainContent/MarginContainer/ContentContainer/StashContent/VBoxContainer/SortOptions"]
+layout_mode = 2
+text = "Sort by Name"
 
-func _on_generate_random_button_pressed():
-    generate_random_crew()
+[node name="SortByRecency" type="Button" parent="HBoxContainer/MainContent/MarginContainer/ContentContainer/StashContent/VBoxContainer/SortOptions"]
+layout_mode = 2
+text = "Sort by Recency"
 
-func generate_random_crew():
-    var crew_size = int(SizeSlider.value)
-    var new_crew = Crew.new()
-    for i in range(crew_size):
-        var new_member = Character.new()
+[node name="SortByType" type="Button" parent="HBoxContainer/MainContent/MarginContainer/ContentContainer/StashContent/VBoxContainer/SortOptions"]
+layout_mode = 2
+text = "Sort by Type"
+
+[node name="StashList" type="ItemList" parent="HBoxContainer/MainContent/MarginContainer/ContentContainer/StashContent/VBoxContainer"]
+layout_mode = 2
+size_flags_vertical = 3
+
+[connection signal="pressed" from="HBoxContainer/Sidebar/VBoxContainer/CrewButton" to="." method="_on_crew_button_pressed"]
+[connection signal="pressed" from="HBoxContainer/Sidebar/VBoxContainer/ShipButton" to="." method="_on_ship_button_pressed"]
+[connection signal="pressed" from="HBoxContainer/Sidebar/VBoxContainer/QuestsButton" to="." method="_on_quests_button_pressed"]
+[connection signal="pressed" from="HBoxContainer/Sidebar/VBoxContainer/StashButton" to="." method="_on_stash_button_pressed"]
+[connection signal="pressed" from="HBoxContainer/MainContent/MarginContainer/ContentContainer/StashContent/VBoxContainer/SortOptions/SortByName" to="." method="_on_sort_by_name_pressed"]
+[connection signal="pressed" from="HBoxContainer/MainContent/MarginContainer/ContentContainer/StashContent/VBoxContainer/SortOptions/SortByRecency" to="." method="_on_sort_by_recency_pressed"]
+[connection signal="pressed" from="HBoxContainer/MainContent/MarginContainer/ContentContainer/StashContent/VBoxContainer/SortOptions/SortByType" to="." method="_on_sort_by_type_pressed"]
 
