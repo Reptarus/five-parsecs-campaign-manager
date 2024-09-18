@@ -2,8 +2,6 @@
 class_name Battle
 extends Resource
 
-const BattleClass = preload("res://Scenes/campaign/scripts/battle.gd")
-
 var held_field: bool = false
 var opponent: Character
 var killed_unique_individual: bool = false
@@ -31,4 +29,8 @@ func _on_end_battle_pressed():
 func update_display():
 	#$MarginContainer/VBoxContainer/RoundLabel.text = "Round: " + str(current_round)
 	# TODO: Update other battle information
+	pass
+
+func setup(rival: Rival, crew: Crew) -> void:
+	# Initialize the battle with the given rival and crew
 	pass

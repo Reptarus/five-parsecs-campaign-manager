@@ -1,7 +1,7 @@
 # CampaignSetup.gd
 extends Control
 
-signal campaign_created(game_state)
+signal campaign_created(campaign)
 
 @onready var crew_creation = $CrewCreation
 @onready var ship_creation = $ShipCreation
@@ -27,7 +27,7 @@ func _ready():
 	victory_condition_selection.connect("victory_condition_selected", Callable(self, "_on_victory_condition_selected"))
 	start_campaign_button.connect("pressed", Callable(self, "_on_start_campaign_pressed"))
 	start_campaign_button.disabled = true
-	show_tutorial_popup()
+	show_tutorial_selection_popup()
 
 func _on_crew_created(crew: Crew):
 	game_state.current_crew = crew
@@ -59,41 +59,41 @@ func _is_setup_complete() -> bool:
 		   not game_state.flavor_details.is_empty() and \
 		   game_state.victory_condition != null
 
-func _on_start_campaign_pressed():
-	var initial_world = world_generator.generate_world()
-	game_state.current_location = Location.new(initial_world["name"], Location.Type.PLANET)
-	game_state.current_location.traits = initial_world["traits"]
-	game_state.current_location.licensing_requirement = initial_world["licensing_requirement"]
-	
-	game_state.campaign_turn = 1
-	game_state.story_points = randi() % 6 + 1  # 1D6+1 story points
-	
-	# Apply any difficulty modifiers
-	match game_state.difficulty_mode:
-		DifficultySettings.DifficultyLevel.HARDCORE:
-			game_state.story_points = max(0, game_state.story_points - 1)
-		DifficultySettings.DifficultyLevel.INSANITY:
-			game_state.story_points = 0
-	
-	emit_signal("campaign_created", game_state)
+func _on_start_campaign_button_pressed():
+	if _validate_campaign_setup():
+		var campaign = _create_campaign()
+		emit_signal("campaign_created", campaign)
 
-func show_tutorial_popup():
-	var tutorial_popup = AcceptDialog.new()
-	tutorial_popup.dialog_text = "Would you like to start the tutorial for setting up a character and crew?"
-	tutorial_popup.get_ok_button().text = "Yes"
-	tutorial_popup.add_button("No", true, "skip_tutorial")
-	tutorial_popup.connect("confirmed", Callable(self, "_start_tutorial"))
-	tutorial_popup.connect("custom_action", Callable(self, "_skip_tutorial"))
+func _validate_campaign_setup():
+	# Implement validation logic
+	return true
+
+func _create_campaign():
+	# Create and return a new campaign based on the setup
+	return GameState
+
+func show_tutorial_selection_popup():
+	var tutorial_popup = ConfirmationDialog.new()
+	tutorial_popup.dialog_text = "Choose a tutorial option:"
+	tutorial_popup.get_ok_button().text = "Story Track Tutorial"
+	tutorial_popup.add_button("Compendium Tutorial", true, "compendium_tutorial")
+	tutorial_popup.add_cancel_button("Skip Tutorial")
+	tutorial_popup.connect("confirmed", Callable(self, "_start_story_track_tutorial"))
+	tutorial_popup.connect("custom_action", Callable(self, "_start_compendium_tutorial"))
+	tutorial_popup.connect("cancelled", Callable(self, "_skip_tutorial"))
 	add_child(tutorial_popup)
 	tutorial_popup.popup_centered()
 
-func _start_tutorial():
-	# Implement tutorial logic here
-	print("Starting tutorial...")
-	# You can add specific tutorial steps here
+func _start_story_track_tutorial():
+	print("Starting Story Track tutorial...")
+	# Implement Story Track tutorial logic here
+	game_state.start_story_track_tutorial()
+
+func _start_compendium_tutorial():
+	print("Starting Compendium tutorial...")
+	# Implement Compendium tutorial logic here
+	game_state.start_compendium_tutorial()
 
 func _skip_tutorial():
-	# Continue with normal character creation
 	print("Skipping tutorial...")
-	# You might want to focus on the first step of character creation here
 	crew_creation.start_creation()

@@ -20,9 +20,16 @@ const MAX_FACTION_POWER: int = 5
 
 var game_state: GameState
 var factions: Array[Dictionary] = []
+var faction_data: Dictionary
 
 func _init(_game_state: GameState) -> void:
 	game_state = _game_state
+	load_faction_data()
+
+func load_faction_data() -> void:
+	var file = FileAccess.open("res://data/RulesReference/Factions.json", FileAccess.READ)
+	faction_data = JSON.parse_string(file.get_as_text())["factions"]
+	file.close()
 
 func generate_factions(num_factions: int) -> void:
 	for i in range(num_factions):
@@ -178,3 +185,7 @@ static func deserialize(data: Dictionary) -> ExpandedFactionManager:
 	var manager = ExpandedFactionManager.new(null)  # GameState will be set later
 	manager.factions = data["factions"]
 	return manager
+
+static func deserialize_faction(data: Dictionary) -> Dictionary:
+	# Return the faction data as a Dictionary instead of a Faction object
+	return data

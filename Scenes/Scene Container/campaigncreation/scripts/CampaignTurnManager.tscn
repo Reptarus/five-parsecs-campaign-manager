@@ -1,0 +1,57 @@
+extends Control
+
+@onready var tab_container: TabContainer = $TabContainer
+@onready var travel_tab: Control = $TabContainer/Travel
+@onready var world_tab: Control = $TabContainer/World
+@onready var battle_tab: Control = $TabContainer/Battle
+@onready var post_battle_tab: Control = $TabContainer/PostBattle
+
+var current_phase: int = 0
+
+func _ready():
+    # Connect tab changed signal
+    tab_container.tab_changed.connect(_on_tab_changed)
+    
+    # Initialize the first phase
+    set_phase(0)
+
+func set_phase(phase: int):
+    current_phase = phase
+    tab_container.current_tab = phase
+    
+    # Disable tabs that shouldn't be accessible yet
+    for i in range(tab_container.get_tab_count()):
+        tab_container.set_tab_disabled(i, i > phase)
+
+func _on_tab_changed(tab: int):
+    # Ensure we can't go back to previous phases
+    if tab < current_phase:
+        tab_container.current_tab = current_phase
+    else:
+        current_phase = tab
+    
+    # Call appropriate method based on the new tab
+    match current_phase:
+        0: _on_enter_travel_phase()
+        1: _on_enter_world_phase()
+        2: _on_enter_battle_phase()
+        3: _on_enter_post_battle_phase()
+
+func _on_enter_travel_phase():
+    travel_tab.start_phase()
+
+func _on_enter_world_phase():
+    world_tab.start_phase()
+
+func _on_enter_battle_phase():
+    battle_tab.start_phase()
+
+func _on_enter_post_battle_phase():
+    post_battle_tab.start_phase()
+
+func advance_to_next_phase():
+    if current_phase < 3:
+        set_phase(current_phase + 1)
+    else:
+        print("Campaign turn complete!")
+        # Here you might want to reset for a new turn or end the game

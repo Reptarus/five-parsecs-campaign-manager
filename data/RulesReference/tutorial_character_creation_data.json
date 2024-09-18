@@ -1,0 +1,33 @@
+{
+    "tutorial_races": [
+      {
+        "id": "human",
+        "name": "Human",
+        "effects": {
+          "reactions": 1,
+          "speed": 1
+        }
+      }
+    ],
+    "tutorial_backgrounds": [
+      {
+        "id": "rookie",
+        "name": "Rookie",
+        "effects": {}
+      }
+    ],
+    "tutorial_motivations": [
+      {
+        "id": "adventure",
+        "name": "Adventure",
+        "effects": {}
+      }
+    ],
+    "tutorial_classes": [
+      {
+        "id": "soldier",
+        "name": "Soldier",
+        "abilities": ["Basic Training"]
+      }
+    ]
+  }

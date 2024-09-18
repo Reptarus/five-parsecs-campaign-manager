@@ -9,6 +9,8 @@ extends Control
 
 var game_state: GameState
 
+signal crew_finalized
+
 func _ready():
     game_state = get_node("/root/GameState")
     update_all_content()
@@ -141,3 +143,6 @@ func show_character_sheet(character):
     var character_sheet = preload("res://Scenes/Scene Container/campaigncreation/scenes/CharacterSheet.tscn").instantiate()
     character_sheet.set_character(character)
     add_child(character_sheet)
+
+func _on_finalize_crew_button_pressed():
+    emit_signal("crew_finalized")

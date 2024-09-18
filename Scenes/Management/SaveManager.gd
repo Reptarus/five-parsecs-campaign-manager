@@ -11,6 +11,7 @@ func _ready():
 
 func save_game(game_state: GameState, save_name: String) -> Error:
 	var save_data = game_state.serialize()
+	save_data["is_tutorial_active"] = game_state.is_tutorial_active
 	var save_path = SAVE_DIR + save_name + SAVE_FILE_EXTENSION
 	var json_string = JSON.stringify(save_data)
 	
@@ -41,7 +42,9 @@ func load_game(save_name: String) -> GameState:
 		return null
 	
 	var save_data = json.get_data()
-	return GameState.deserialize(save_data)
+	var game_state = GameState.deserialize(save_data)
+	game_state.is_tutorial_active = save_data.get("is_tutorial_active", false)
+	return game_state
 
 func get_save_list() -> Array:
 	var saves = []

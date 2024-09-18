@@ -93,9 +93,11 @@ size_flags_stretch_ratio = 1.5
 [node name="TabContainer" type="TabContainer" parent="MarginContainer/VBoxContainer/HBoxContainer/RightPanel"]
 layout_mode = 2
 size_flags_vertical = 3
+current_tab = 0
 
 [node name="Crew Overview" type="VBoxContainer" parent="MarginContainer/VBoxContainer/HBoxContainer/RightPanel/TabContainer"]
 layout_mode = 2
+metadata/_tab_index = 0
 
 [node name="CrewList" type="ItemList" parent="MarginContainer/VBoxContainer/HBoxContainer/RightPanel/TabContainer/Crew Overview"]
 layout_mode = 2
@@ -104,6 +106,7 @@ size_flags_vertical = 3
 [node name="Ship Status" type="VBoxContainer" parent="MarginContainer/VBoxContainer/HBoxContainer/RightPanel/TabContainer"]
 visible = false
 layout_mode = 2
+metadata/_tab_index = 1
 
 [node name="ShipConditionLabel" type="Label" parent="MarginContainer/VBoxContainer/HBoxContainer/RightPanel/TabContainer/Ship Status"]
 layout_mode = 2

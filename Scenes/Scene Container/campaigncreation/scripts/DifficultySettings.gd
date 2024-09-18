@@ -2,7 +2,7 @@
 class_name DifficultySettings
 extends Resource
 
-enum DifficultyLevel { EASY, NORMAL, HARD, HARDCORE, INSANITY }
+enum DifficultyLevel { TUTORIAL, EASY, NORMAL, HARD, HARDCORE, INSANITY }
 
 @export var level: DifficultyLevel = DifficultyLevel.NORMAL
 @export var enemy_health_multiplier: float = 1.0
@@ -13,6 +13,11 @@ enum DifficultyLevel { EASY, NORMAL, HARD, HARDCORE, INSANITY }
 func set_difficulty(new_level: DifficultyLevel) -> void:
 	level = new_level
 	match level:
+		DifficultyLevel.TUTORIAL:
+			enemy_health_multiplier = 0.5
+			enemy_damage_multiplier = 0.5
+			loot_quantity_multiplier = 1.5
+			event_frequency = 0.5
 		DifficultyLevel.EASY:
 			enemy_health_multiplier = 0.8
 			enemy_damage_multiplier = 0.8
@@ -28,6 +33,16 @@ func set_difficulty(new_level: DifficultyLevel) -> void:
 			enemy_damage_multiplier = 1.2
 			loot_quantity_multiplier = 0.8
 			event_frequency = 1.2
+		DifficultyLevel.HARDCORE:
+			enemy_health_multiplier = 1.5
+			enemy_damage_multiplier = 1.5
+			loot_quantity_multiplier = 0.6
+			event_frequency = 1.5
+		DifficultyLevel.INSANITY:
+			enemy_health_multiplier = 2.0
+			enemy_damage_multiplier = 2.0
+			loot_quantity_multiplier = 0.5
+			event_frequency = 2.0
 
 func apply_to_ship(ship: Ship) -> void:
 	for component in ship.components:

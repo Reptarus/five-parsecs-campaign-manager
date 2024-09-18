@@ -5,6 +5,7 @@ signal world_step_completed
 
 var game_state: GameState
 var world_step: WorldStep
+var mission_selection_scene = preload("res://Scripts/Missions/MissionSelection.gd")
 
 func _init(_game_state: GameState) -> void:
 	game_state = _game_state
@@ -75,14 +76,14 @@ func resolve_rumors() -> void:
 func choose_battle() -> void:
 	var available_missions = game_state.available_missions
 	if available_missions.size() > 0:
-		var chosen_mission = available_missions[randi() % available_missions.size()]
-		print("Chosen mission: %s" % chosen_mission.title)
-		game_state.current_mission = chosen_mission
+		# Instead of choosing randomly, we'll emit a signal to open the mission selection screen
+		emit_signal("mission_selection_requested", available_missions)
 	else:
 		print("No available missions. Generating a random encounter.")
 		var random_encounter = game_state.mission_generator.generate_random_encounter()
 		game_state.current_mission = random_encounter
 		print("Random encounter generated: %s" % random_encounter.title)
+		emit_signal("phase_completed")
 
 func get_world_traits() -> Array[String]:
 	return game_state.current_location.get_traits()
@@ -95,3 +96,37 @@ func serialize() -> Dictionary:
 static func deserialize(data: Dictionary) -> World:
 	var world = World.new(GameState.deserialize(data["game_state"]))
 	return world
+
+func _ready():
+	world_step = WorldStep.new(game_state)
+	world_step.phase_completed.connect(_on_phase_completed)
+	world_step.mission_selection_requested.connect(_on_mission_selection_requested)
+
+func _on_phase_completed():
+	# Handle phase completion logic here
+	print("Phase completed")
+	
+	# Update game state
+	game_state.current_turn += 1
+	
+	# Check for end game conditions
+	if game_state.check_end_game_conditions():
+		emit_signal("game_over")
+		return
+	
+	# Start the next phase
+	world_step.start_next_phase()
+	
+	# Update UI
+	emit_signal("ui_update_requested")
+
+func _on_mission_selection_requested(available_missions: Array):
+	var mission_selection = mission_selection_scene.instantiate()
+	add_child(mission_selection)
+	mission_selection.populate_missions(available_missions)
+	mission_selection.mission_selected.connect(_on_mission_selected)
+
+func _on_mission_selected(mission: Mission):
+	game_state.current_mission = mission
+	game_state.remove_mission(mission)
+	emit_signal("phase_completed")

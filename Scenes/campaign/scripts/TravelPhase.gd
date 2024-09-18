@@ -1,6 +1,8 @@
 # Travel.gd
 extends Control
 
+signal phase_completed
+
 const RivalResource = preload("res://Resources/Rival.gd")
 
 var game_state: GameState
@@ -109,3 +111,15 @@ func generate_world_traits():
 		print("World trait: " + world_trait.name)
 		print(world_trait.effect)
 		game_state.current_world.add_trait(world_trait)
+
+func start_phase():
+	# Initialize travel phase logic here
+	print("Travel phase started")
+	
+	# For demonstration, let's assume we have a button to complete the phase
+	$CompletePhaseButton.pressed.connect(_on_phase_completed)
+
+func _on_phase_completed():
+	emit_signal("phase_completed")
+
+# Add other travel-specific methods here

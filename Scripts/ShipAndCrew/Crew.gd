@@ -74,3 +74,9 @@ func is_valid() -> bool:
 
 func get_size() -> int:
 	return characters.size()
+
+func get_character_by_name(name: String):
+	for character in members:
+		if character.name == name:
+			return character
+	return null

@@ -14,6 +14,11 @@ var game_state: GameState
 func _ready():
 	setup_ui()
 	call_deferred("initialize_game_systems")
+	$MenuButtons/NewCampaign.connect("pressed", _on_new_campaign_pressed)
+	$VBoxContainer/NewCampaignButton.connect("pressed", Callable(self, "_on_new_campaign_pressed"))
+	new_campaign_button.connect("pressed", Callable(self, "_on_new_campaign_pressed"))
+	
+	# Connect other buttons as needed
 
 func setup_ui():
 	continue_button.pressed.connect(_on_continue_pressed)
@@ -44,9 +49,7 @@ func _on_continue_pressed():
 		_show_not_implemented_message("No saved game found")
 
 func _on_new_campaign_pressed():
-	var campaign_setup = load("res://Scenes/Scene Container/campaigncreation/scenes/CampaignSetupScreen.tscn").instantiate()
-	campaign_setup.connect("ready", Callable(campaign_setup, "show_tutorial_popup"))
-	transition_to_scene(campaign_setup)
+	get_tree().change_scene_to_file("res://Scenes/Management/NewCampaignFlow.tscn")
 
 func _on_coop_campaign_pressed():
 	_show_not_implemented_message("Co-op Campaign (Work in Progress)")
@@ -68,6 +71,20 @@ func _show_not_implemented_message(feature: String):
 	dialog.dialog_text = feature + " is not implemented yet."
 	add_child(dialog)
 	dialog.popup_centered()
+
+func _on_tutorial_choice_made(choice):
+	match choice:
+		"story_track":
+			TutorialManager.start_tutorial("story_track")
+		"compendium":
+			TutorialManager.start_tutorial("compendium")
+		"skip":
+			# Proceed without tutorial
+			pass
+	
+	# Transition to CrewSizeSelection
+	var crew_size_selection = preload("res://Scenes/Scene Container/CrewSizeSelection.tscn").instance()
+	add_child(crew_size_selection)
 
 func transition_to_scene(scene_path):
 	var tween = create_tween()

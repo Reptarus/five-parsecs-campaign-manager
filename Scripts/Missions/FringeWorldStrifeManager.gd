@@ -1,17 +1,40 @@
-# FringeWorldStrifeManager.gd
 class_name FringeWorldStrifeManager
 extends Node
 
 var game_state: GameState
 var mission_generator: MissionGenerator
-
-const STRIFE_TYPES = ["Resource Conflict", "Political Uprising", "Alien Incursion", "Corporate Warfare"]
+var difficulty_settings: DifficultySettings
+var escalating_battles_manager: EscalatingBattlesManager
+var street_fights_manager: StreetFightsManager
+var stealth_missions_manager: StealthMissionsManager
+var salvage_jobs_manager: SalvageJobsManager
+var current_mission: Mission
 
 var instability: int = 0
 
+const SUCCESS_THRESHOLD = 20
+const INSTABILITY_DECREASE_MIN = 1
+const INSTABILITY_DECREASE_MAX = 3
+const INSTABILITY_INCREASE_MIN = 1
+const INSTABILITY_INCREASE_MAX = 2
+const STORY_MILESTONE_CHANCE = 0.1
+const SIDE_QUEST_CHANCE = 0.2
+const NEW_RIVAL_CHANCE = 0.15
+const CREW_INJURY_CHANCE = 0.25
+const RANDOM_EVENT_CHANCE = 0.3
+const HIGH_INSTABILITY_THRESHOLD = 10
+
 func _init(_game_state: GameState):
+    if _game_state == null:
+        push_error("GameState cannot be null")
+        return
     game_state = _game_state
     mission_generator = game_state.mission_generator
+    difficulty_settings = DifficultySettings.new()
+    escalating_battles_manager = EscalatingBattlesManager.new(game_state)
+    street_fights_manager = StreetFightsManager.new(game_state)
+    stealth_missions_manager = StealthMissionsManager.new(game_state, game_state.battle_scene)
+    salvage_jobs_manager = SalvageJobsManager.new(game_state)
 
 func generate_fringe_world_strife() -> Mission:
     var mission = Mission.new()
@@ -21,10 +44,24 @@ func generate_fringe_world_strife() -> Mission:
     mission.difficulty = _calculate_difficulty()
     mission.rewards = _generate_strife_rewards(mission.difficulty)
     mission.special_rules = _generate_strife_special_rules()
+    
+    var mission_handlers = {
+        GlobalEnums.StrifeType.RESOURCE_CONFLICT: salvage_jobs_manager.setup_salvage_mission,
+        GlobalEnums.StrifeType.POLITICAL_UPRISING: street_fights_manager.generate_street_fight,
+        GlobalEnums.StrifeType.ALIEN_INCURSION: stealth_missions_manager.generate_stealth_mission,
+        GlobalEnums.StrifeType.CORPORATE_WARFARE: escalating_battles_manager.check_escalation
+    }
+    
+    if mission.objective in mission_handlers:
+        mission_handlers[mission.objective].call()
+    
     return mission
 
+func set_current_mission(mission: Mission):
+    current_mission = mission
+
 func _generate_strife_objective() -> String:
-    return "Resolve " + STRIFE_TYPES[randi() % STRIFE_TYPES.size()]
+    return GlobalEnums.StrifeType.keys()[randi() % GlobalEnums.StrifeType.size()]
 
 func _generate_strife_location() -> String:
     var locations = ["Desert Planet", "Jungle World", "Ice Planet", "Mining Colony", "Frontier Settlement"]
@@ -50,7 +87,10 @@ func _generate_strife_special_rules() -> Array:
     return rules
 
 func setup_fringe_world_strife(mission: Mission):
-    _calculate_initial_instability()
+    if not mission:
+        push_error("Invalid mission object provided")
+        return
+
     mission.involved_factions = _determine_involved_factions()
     mission.strife_intensity = _calculate_strife_intensity()
     mission.key_npcs = _generate_key_npcs()
@@ -58,10 +98,12 @@ func setup_fringe_world_strife(mission: Mission):
     mission.available_resources = _determine_available_resources()
     mission.time_pressure = _calculate_time_pressure()
     
-    # Set up mission-specific signals
-    mission.connect("strife_escalated", self, "_on_strife_escalated")
-    mission.connect("faction_influence_changed", self, "_on_faction_influence_changed")
-
+    if not mission.is_connected("strife_escalated", Callable(self, "_on_strife_escalated")):
+        mission.connect("strife_escalated", Callable(self, "_on_strife_escalated"))
+    
+    if not mission.is_connected("faction_influence_changed", Callable(self, "_on_faction_influence_changed")):
+        mission.connect("faction_influence_changed", Callable(self, "_on_faction_influence_changed"))
+        
 func _determine_involved_factions() -> Array:
     var factions = []
     for faction in game_state.active_factions:
@@ -104,88 +146,74 @@ func _on_strife_escalated(intensity_increase: int):
 func _on_faction_influence_changed(faction_id: String, influence_change: int):
     game_state.update_faction_influence(faction_id, influence_change)
 
-func _calculate_initial_instability():
-    instability = 1
-    instability += game_state.active_rivals.size()
-    
-    if game_state.completed_patron_job_this_turn:
-        instability -= 1
-    
-    if game_state.held_the_field_against_roving_threat:
-        instability -= 1
-
 func resolve_fringe_world_strife(mission: Mission) -> Dictionary:
     var outcome = {}
-    
-    # Roll for mission success
-    var success_roll = randi() % 20 + 1  # 1d20
+    var success_roll = randi() % SUCCESS_THRESHOLD + 1
     var difficulty = mission.difficulty + instability
     var success = success_roll >= difficulty
     
-    outcome["success"] = success
-    outcome["roll"] = success_roll
-    outcome["difficulty"] = difficulty
+    outcome = {
+        "success": success,
+        "roll": success_roll,
+        "difficulty": difficulty,
+        "instability_change": 0,
+        "credits_earned": 0,
+        "influence_gained": 0,
+        "faction_relations_changes": _calculate_faction_relations_changes(success)
+    }
     
-    # Determine consequences based on success/failure
     if success:
-        outcome["instability_decrease"] = randi() % 3 + 1  # 1-3
-        outcome["credits_earned"] = mission.rewards.get("credits", 0)
-        outcome["influence_gained"] = mission.rewards.get("influence", 0)
+        outcome.instability_change = -(randi() % (INSTABILITY_DECREASE_MAX - INSTABILITY_DECREASE_MIN + 1) + INSTABILITY_DECREASE_MIN)
+        outcome.credits_earned = mission.rewards.get("credits", 0)
+        outcome.influence_gained = mission.rewards.get("influence", 0)
         
-        if randf() < 0.1:  # 10% chance
-            outcome["story_milestone_reached"] = true
+        if randf() < STORY_MILESTONE_CHANCE:
+            outcome.story_milestone_reached = true
         
-        if randf() < 0.2:  # 20% chance
-            outcome["side_quest_unlocked"] = true
-            outcome["side_quest_id"] = _generate_side_quest_id()
+        if randf() < SIDE_QUEST_CHANCE:
+            outcome.side_quest_unlocked = true
+            outcome.side_quest_id = _generate_side_quest_id()
     else:
-        outcome["instability_increase"] = randi() % 2 + 1  # 1-2
+        outcome.instability_change = randi() % (INSTABILITY_INCREASE_MAX - INSTABILITY_INCREASE_MIN + 1) + INSTABILITY_INCREASE_MIN
         
-        if randf() < 0.15:  # 15% chance
-            outcome["new_rival_appeared"] = true
-            outcome["new_rival_id"] = _generate_rival_id()
+        if randf() < NEW_RIVAL_CHANCE:
+            outcome.new_rival_appeared = true
+            outcome.new_rival_id = _generate_rival_id()
         
-        if randf() < 0.25:  # 25% chance
-            outcome["crew_member_injured"] = true
-            outcome["injured_crew_member_id"] = _get_random_crew_member_id()
+        if randf() < CREW_INJURY_CHANCE:
+            outcome.crew_member_injured = true
+            outcome.injured_crew_member_id = _get_random_crew_member_id()
     
-    # Handle faction relations changes
-    outcome["faction_relations_changes"] = _calculate_faction_relations_changes(success)
-    
-    # Check for rare technology discovery
     if mission.rewards.get("rare_technology", false) and success:
-        outcome["rare_technology_discovered"] = true
+        outcome.rare_technology_discovered = true
     
-    # Trigger a random event
-    if randf() < 0.3:  # 30% chance
-        outcome["random_event"] = _trigger_random_event()
+    if randf() < RANDOM_EVENT_CHANCE:
+        outcome.random_event = _trigger_random_event()
     
     return outcome
 
+func _calculate_faction_relations_changes(success: bool) -> Dictionary:
+    var changes = {}
+    for faction in game_state.active_factions:
+        changes[faction.id] = randi() % 3 - 1  # -1, 0, or 1
+        if success:
+            changes[faction.id] += 1
+        else:
+            changes[faction.id] -= 1
+    return changes
+
 func _generate_side_quest_id() -> String:
-    # Implement logic to generate a unique side quest ID
     return "SQ_" + str(randi() % 1000)
 
 func _generate_rival_id() -> String:
-    # Implement logic to generate a unique rival ID
     return "RIV_" + str(randi() % 1000)
 
 func _get_random_crew_member_id() -> String:
-    # Implement logic to get a random crew member ID
     var crew_members = game_state.current_crew.get_members()
     return crew_members[randi() % crew_members.size()].id
 
-func _calculate_faction_relations_changes(success: bool) -> Dictionary:
-    var changes = {}
-    var factions = ["Rebels", "Empire", "Traders", "Pirates"]
-    for faction in factions:
-        changes[faction] = randi() % 3 - 1  # -1 to 1
-        if success:
-            changes[faction] += 1
-    return changes
-
 func _trigger_random_event() -> String:
-    var events = ["Resource Discovery", "Natural Disaster", "Alien Artifact", "Local Uprising"]
+    var events = ["Supply Cache Discovery", "Local Uprising", "Natural Disaster", "Unexpected Alliance"]
     return events[randi() % events.size()]
 
 func apply_strife_aftermath(mission: Mission, outcome: Dictionary):
@@ -195,60 +223,60 @@ func apply_strife_aftermath(mission: Mission, outcome: Dictionary):
     _update_story_progression(outcome)
     _update_faction_relations(outcome)
     _handle_special_consequences(outcome)
+    
+    var mission_handlers = {
+        GlobalEnums.StrifeType.RESOURCE_CONFLICT: salvage_jobs_manager.end_mission,
+        GlobalEnums.StrifeType.POLITICAL_UPRISING: street_fights_manager.generate_street_fight_aftermath,
+        GlobalEnums.StrifeType.ALIEN_INCURSION: stealth_missions_manager.check_mission_end_conditions,
+        GlobalEnums.StrifeType.CORPORATE_WARFARE: escalating_battles_manager.check_escalation
+    }
+    
+    if mission.objective in mission_handlers:
+        mission_handlers[mission.objective].call(mission if mission.objective == GlobalEnums.StrifeType.POLITICAL_UPRISING else outcome)
+
+func _update_instability(outcome: Dictionary):
+    instability += outcome.instability_change
+    if instability >= HIGH_INSTABILITY_THRESHOLD:
+        _trigger_high_instability_event()
 
 func _apply_rewards(mission: Mission, outcome: Dictionary):
-    if outcome.get("success", false):
-        game_state.add_credits(mission.rewards.get("credits", 0))
-        game_state.add_influence(mission.rewards.get("influence", 0))
-        if mission.rewards.get("rare_technology", false):
-            game_state.add_rare_technology()
+    game_state.add_credits(outcome.credits_earned)
+    game_state.add_influence(outcome.influence_gained)
+    if outcome.get("rare_technology_discovered", false):
+        game_state.add_rare_technology()
 
 func _update_story_progression(outcome: Dictionary):
     if outcome.get("story_milestone_reached", false):
-        game_state.advance_main_story()
+        game_state.advance_story()
     if outcome.get("side_quest_unlocked", false):
-        game_state.unlock_side_quest(outcome.get("side_quest_id"))
+        game_state.add_side_quest(outcome.side_quest_id)
 
 func _update_faction_relations(outcome: Dictionary):
-    for faction, change in outcome.get("faction_relations_changes", {}).items():
-        game_state.update_faction_relation(faction, change)
+    for faction_id in outcome.faction_relations_changes:
+        game_state.update_faction_relation(faction_id, outcome.faction_relations_changes[faction_id])
 
 func _handle_special_consequences(outcome: Dictionary):
     if outcome.get("new_rival_appeared", false):
-        game_state.add_rival(outcome.get("new_rival_id"))
-    if outcome.get("resource_discovered", false):
-        game_state.add_resource(outcome.get("resource_type"), outcome.get("resource_amount"))
+        game_state.add_rival(outcome.new_rival_id)
     if outcome.get("crew_member_injured", false):
-        game_state.injure_crew_member(outcome.get("injured_crew_member_id"))
-
-func _update_instability(outcome: Dictionary):
-    if outcome.get("instability_increase", 0) > 0:
-        instability += outcome["instability_increase"]
-    
-    if instability >= 10:
-        _trigger_high_instability_event()
-    elif instability <= 0:
-        instability = 0
-        print("The fringe world has stabilized... for now.")
+        game_state.injure_crew_member(outcome.injured_crew_member_id)
 
 func _trigger_high_instability_event():
     var roll = randi() % 6 + 1
     instability -= roll
     print("High instability event triggered! Roll: ", roll)
     
-    match roll:
-        1:
-            _handle_mass_exodus()
-        2:
-            _handle_government_collapse()
-        3:
-            _handle_widespread_riots()
-        4:
-            _handle_resource_crisis()
-        5:
-            _handle_planetary_lockdown()
-        6:
-            _handle_faction_war()
+    var event_handlers = {
+        1: _handle_mass_exodus,
+        2: _handle_government_collapse,
+        3: _handle_widespread_riots,
+        4: _handle_resource_crisis,
+        5: _handle_planetary_lockdown,
+        6: _handle_faction_war
+    }
+    
+    if roll in event_handlers:
+        event_handlers[roll].call()
 
 func _handle_mass_exodus():
     print("Mass Exodus: Large portions of the population are fleeing the planet.")
@@ -273,7 +301,7 @@ func _handle_resource_crisis():
 func _handle_planetary_lockdown():
     print("Planetary Lockdown: The planet is completely sealed off.")
     game_state.set_travel_status("locked")
-    game_state.block_trade_actions(3)  # Block trade actions for 3 turns
+    game_state.block_trade_actions()  # Block trade actions for 3 turns
 
 func _handle_faction_war():
     print("Faction War: Major factions have begun open warfare.")
@@ -283,28 +311,17 @@ func _handle_faction_war():
 func _trigger_chaos_event():
     var roll = randi() % 100 + 1
     match roll:
-        1, 2, 3, 4, 5, 6, 7, 8, 9, 10:
-            _handle_hooligans()
-        11, 12, 13, 14, 15, 16, 17, 18, 19, 20, 21, 22, 23, 24:
-            _handle_criminal_gang()
-        25, 26, 27, 28, 29, 30, 31, 32, 33, 34, 35, 36:
-            _handle_enemy_infiltration()
-        37, 38, 39, 40, 41, 42, 43, 44, 45, 46:
-            _handle_heating_up()
-        47, 48, 49, 50, 51, 52, 53, 54:
-            _handle_sabotage()
-        55, 56, 57, 58, 59, 60, 61, 62, 63, 64, 65, 66:
-            _handle_raiders()
-        67, 68, 69, 70, 71, 72:
-            _handle_crackdown()
-        73, 74, 75, 76, 77, 78, 79, 80, 81, 82, 83, 84, 85, 86:
-            _handle_economic_collapse()
-        87, 88, 89, 90, 91, 92, 93, 94:
-            _handle_invasion_imminent()
-        95, 96, 97, 98, 99, 100:
-            _handle_civil_war()
-        _:
-            print("No chaos event triggered.")
+        1, 2, 3, 4, 5, 6, 7, 8, 9, 10: _handle_hooligans()
+        11, 12, 13, 14, 15, 16, 17, 18, 19, 20, 21, 22, 23, 24: _handle_criminal_gang()
+        25, 26, 27, 28, 29, 30, 31, 32, 33, 34, 35, 36: _handle_enemy_infiltration()
+        37, 38, 39, 40, 41, 42, 43, 44, 45, 46: _handle_heating_up()
+        47, 48, 49, 50, 51, 52, 53, 54: _handle_sabotage()
+        55, 56, 57, 58, 59, 60, 61, 62, 63, 64, 65, 66: _handle_raiders()
+        67, 68, 69, 70, 71, 72: _handle_crackdown()
+        73, 74, 75, 76, 77, 78, 79, 80, 81, 82, 83, 84, 85, 86: _handle_economic_collapse()
+        87, 88, 89, 90, 91, 92, 93, 94: _handle_invasion_imminent()
+        95, 96, 97, 98, 99, 100: _handle_civil_war()
+        _: print("No chaos event triggered.")
 
 func _handle_hooligans():
     instability -= 5
@@ -358,7 +375,7 @@ func _handle_invasion_imminent():
 
 func _handle_civil_war():
     print("Civil War: The world erupts in a shooting war next campaign turn.")
-    var decision = yield(game_state.prompt_player_decision("Do you want to remain and get caught up in the fighting?"), "completed")
+    var decision = await game_state.prompt_player_decision("Do you want to remain and get caught up in the fighting?")
     
     if decision:
         _start_civil_war()
@@ -369,7 +386,7 @@ func _start_civil_war():
     print("You've decided to stay and participate in the civil war.")
     var interested_parties = _roll_interested_parties()
     print("The two sides struggling for control are: ", interested_parties[0], " and ", interested_parties[1])
-    var chosen_side = yield(game_state.prompt_player_choice("Which side do you choose?", interested_parties), "completed")
+    var chosen_side = await game_state.prompt_player_choice("Which side do you choose?", interested_parties)
     
     game_state.start_opportunity_missions(chosen_side)
     
@@ -471,24 +488,44 @@ func _manage_strife_intensity():
         print("Strife intensity is low. Decreasing mission difficulty.")
         _decrease_mission_difficulty()
 
+func set_difficulty(level: DifficultySettings.DifficultyLevel):
+    difficulty_settings.set_difficulty(level)
+    # Apply difficulty settings to all managers
+    _apply_difficulty_to_managers()
+
+func _apply_difficulty_to_managers():
+    escalating_battles_manager.apply_difficulty(difficulty_settings)
+    street_fights_manager.apply_difficulty(difficulty_settings)
+    stealth_missions_manager.apply_difficulty(difficulty_settings)
+    salvage_jobs_manager.apply_difficulty(difficulty_settings)
+
 func _increase_mission_difficulty():
-    var difficulty_settings = DifficultySettings.new()
     difficulty_settings.increase_enemy_count(1)
     difficulty_settings.increase_enemy_toughness(0.1)
-    difficulty_settings.decrease_loot_quality(-0.1)
+    difficulty_settings.decrease_loot_quality(0.1)  # Changed from -0.1 to 0.1
     difficulty_settings.increase_environmental_hazards(1)
-    
-    # Adjust mission parameters based on Five Parsecs From Home rules
-    mission.enemy_count += difficulty_settings.enemy_count_increase
-    mission.enemy_toughness_modifier += difficulty_settings.enemy_toughness_increase
-    mission.loot_quality_modifier -= difficulty_settings.loot_quality_decrease
-    mission.environmental_hazard_count += difficulty_settings.environmental_hazard_increase
-    
+    difficulty_settings.increase_difficulty_level(1)
+    difficulty_settings.increase_reward_multiplier(0.1)  # 10% increase
+
     print("Mission difficulty increased. New parameters: ", 
-          "Enemy Count: ", mission.enemy_count,
-          "Enemy Toughness Modifier: ", mission.enemy_toughness_modifier,
-          "Loot Quality Modifier: ", mission.loot_quality_modifier,
-          "Environmental Hazards: ", mission.environmental_hazard_count)
+          "Enemy Count Increase: ", difficulty_settings.enemy_count_increase,
+          "Enemy Toughness Increase: ", difficulty_settings.enemy_toughness_increase,
+          "Loot Quality Decrease: ", difficulty_settings.loot_quality_decrease,
+          "Environmental Hazards Increase: ", difficulty_settings.environmental_hazard_increase,
+          "Difficulty Level Increase: ", difficulty_settings.difficulty_level_increase,
+          "Reward Multiplier Increase: ", difficulty_settings.reward_multiplier_increase)
+
+func adjust_difficulty(adjustment: String):
+    match adjustment:
+        "easier":
+            instability = 0
+        "harder":
+            instability += 1
+            _remove_random_contact_marker()
+
+func _remove_random_contact_marker():
+    # Implement logic to remove a random contact marker
+    pass
 
 func _decrease_mission_difficulty():
     var difficulty_settings = DifficultySettings.new()
@@ -498,28 +535,33 @@ func _decrease_mission_difficulty():
     difficulty_settings.decrease_environmental_hazards(1)
     
     # Adjust mission parameters based on Five Parsecs From Home rules
-    mission.enemy_count = max(1, mission.enemy_count - difficulty_settings.enemy_count_decrease)
-    mission.enemy_toughness_modifier = max(0, mission.enemy_toughness_modifier - difficulty_settings.enemy_toughness_decrease)
-    mission.loot_quality_modifier = min(1, mission.loot_quality_modifier + difficulty_settings.loot_quality_increase)
-    mission.environmental_hazard_count = max(0, mission.environmental_hazard_count - difficulty_settings.environmental_hazard_decrease)
-    
-    print("Mission difficulty decreased. New parameters: ", 
-          "Enemy Count: ", mission.enemy_count,
-          "Enemy Toughness Modifier: ", mission.enemy_toughness_modifier,
-          "Loot Quality Modifier: ", mission.loot_quality_modifier,
-          "Environmental Hazards: ", mission.environmental_hazard_count)
+    if current_mission:
+        current_mission.enemy_count = max(1, current_mission.enemy_count - difficulty_settings.enemy_count_decrease)
+        current_mission.enemy_toughness_modifier = max(0, current_mission.enemy_toughness_modifier - difficulty_settings.enemy_toughness_decrease)
+        current_mission.loot_quality_modifier = min(1, current_mission.loot_quality_modifier + difficulty_settings.loot_quality_increase)
+        current_mission.environmental_hazard_count = max(0, current_mission.environmental_hazard_count - difficulty_settings.environmental_hazard_decrease)
+        
+        print("Mission difficulty decreased. New parameters: ", 
+              "Enemy Count: ", current_mission.enemy_count,
+              "Enemy Toughness Modifier: ", current_mission.enemy_toughness_modifier,
+              "Loot Quality Modifier: ", current_mission.loot_quality_modifier,
+              "Environmental Hazards: ", current_mission.environmental_hazard_count)
+    else:
+        print("No current mission to adjust difficulty for.")
 
 func _handle_npc_interactions():
-    for npc in mission.key_npcs:
-        var interaction_result = _simulate_npc_interaction(npc)
-        _apply_interaction_consequences(interaction_result)
+    if current_mission and current_mission.key_npcs:
+        for npc in current_mission.key_npcs:
+            var interaction_result = _simulate_npc_interaction(npc)
+            _apply_interaction_consequences(interaction_result)
+    else:
+        print("No current mission or key NPCs to handle interactions for.")
 
 func _simulate_npc_interaction(npc: String) -> Dictionary:
     var interaction_result = {}
     interaction_result["npc"] = npc
-    
-    # Get the character's savvy stat from the Character instance
-    var savvy = character.savvy
+    # Get the character's savvy stat from the player's character
+    var savvy = game_state.get_player_character().savvy
     
     # Calculate success chance based on savvy (20% increase per point)
     var success_chance = 0.5 + (savvy * 0.2)
@@ -551,6 +593,11 @@ func _apply_interaction_consequences(interaction_result: Dictionary):
         instability += 1
 
 func _update_available_resources():
-    for resource in mission.available_resources:
-        mission.available_resources[resource] += randi() % 3 - 1  # -1 to 1
-    print("Updated available resources: ", mission.available_resources)
+    var resources = game_state.get_available_resources()
+    if resources:
+        for resource in resources:
+            var change = randi() % 3 - 1  # -1 to 1
+            game_state.update_resource(resource, change)
+        print("Updated available resources: ", game_state.get_available_resources())
+    else:
+        print("No available resources to update.")

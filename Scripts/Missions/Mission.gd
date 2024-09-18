@@ -1,7 +1,7 @@
 class_name Mission
 extends Resource
 
-enum Type {OPPORTUNITY, PATRON, QUEST, RIVAL, ASSASSINATION, SABOTAGE, RESCUE, INFILTRATION, DEFENSE, ESCORT, FRINGE_WORLD_STRIFE, SALVAGE_JOB, STREET_FIGHT}
+enum Type {STANDARD, EXPANDED, TUTORIAL, OPPORTUNITY, PATRON, QUEST, RIVAL, ASSASSINATION, SABOTAGE, RESCUE, INFILTRATION, DEFENSE, ESCORT, FRINGE_WORLD_STRIFE, SALVAGE_JOB, STREET_FIGHT}
 enum Status {ACTIVE, COMPLETED, FAILED}
 enum Objective {MOVE_THROUGH, DELIVER, ACCESS, PATROL, FIGHT_OFF, SEARCH, DEFEND, ACQUIRE, ELIMINATE, SECURE, PROTECT}
 
@@ -39,6 +39,7 @@ enum Objective {MOVE_THROUGH, DELIVER, ACCESS, PATROL, FIGHT_OFF, SEARCH, DEFEND
 @export var time_pressure: int
 
 var result: String = ""
+var is_tutorial_mission: bool = false
 
 func _init(p_title: String = "", p_description: String = "", p_type: Type = Type.OPPORTUNITY, 
            p_objective: Objective = Objective.MOVE_THROUGH, p_location: Location = null, 
@@ -125,7 +126,7 @@ func set_time_pressure(pressure: int) -> void:
     time_pressure = pressure
 
 func serialize() -> Dictionary:
-    var serialized_data = {
+    var data = {
         "title": title,
         "description": description,
         "type": Type.keys()[type],
@@ -135,8 +136,8 @@ func serialize() -> Dictionary:
         "time_limit": time_limit,
         "difficulty": difficulty,
         "required_crew_size": required_crew_size,
-        "result": result,
         "is_expanded": is_expanded,
+        "faction": faction,
         "loyalty_requirement": loyalty_requirement,
         "power_requirement": power_requirement,
         "instability": instability,
@@ -149,25 +150,15 @@ func serialize() -> Dictionary:
         "key_npcs": key_npcs,
         "environmental_factors": environmental_factors,
         "available_resources": available_resources,
-        "time_pressure": time_pressure
+        "time_pressure": time_pressure,
+        "result": result,
+        "is_tutorial_mission": is_tutorial_mission
     }
-    
-    if patron != null:
-        serialized_data["patron"] = patron.serialize()
-    else:
-        serialized_data["patron"] = null
-    
+    if patron:
+        data["patron"] = patron.serialize()
     if location:
-        serialized_data["location"] = location.serialize()
-    else:
-        serialized_data["location"] = null
-    
-    if faction:
-        serialized_data["faction"] = faction.serialize()
-    else:
-        serialized_data["faction"] = null
-    
-    return serialized_data
+        data["location"] = location.serialize()
+    return data
 
 static func deserialize(data: Dictionary) -> Mission:
     var mission = Mission.new(
@@ -175,7 +166,7 @@ static func deserialize(data: Dictionary) -> Mission:
         data["description"],
         Type[data["type"]],
         Objective[data["objective"]],
-        Location.deserialize(data["location"]) if data["location"] else null,
+        Location.deserialize(data["location"]) if "location" in data else null,
         data["difficulty"],
         data["rewards"],
         data["time_limit"],
@@ -183,9 +174,8 @@ static func deserialize(data: Dictionary) -> Mission:
         data["faction"] if "faction" in data else {}
     )
     mission.status = Status[data["status"]]
-    mission.patron = Patron.deserialize(data["patron"]) if data["patron"] else null
+    mission.patron = Patron.deserialize(data["patron"]) if "patron" in data else null
     mission.required_crew_size = data["required_crew_size"]
-    mission.result = data["result"]
     mission.loyalty_requirement = data["loyalty_requirement"]
     mission.power_requirement = data["power_requirement"]
     mission.instability = data["instability"]
@@ -199,4 +189,6 @@ static func deserialize(data: Dictionary) -> Mission:
     mission.environmental_factors = data["environmental_factors"]
     mission.available_resources = data["available_resources"]
     mission.time_pressure = data["time_pressure"]
+    mission.result = data["result"]
+    mission.is_tutorial_mission = data["is_tutorial_mission"]
     return mission
