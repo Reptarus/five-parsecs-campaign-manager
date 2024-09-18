@@ -1,3 +1,4 @@
+class_name TutorialManager
 extends Node
 
 signal tutorial_step_changed(step: String)

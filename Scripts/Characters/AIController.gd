@@ -140,7 +140,7 @@ func get_compendium_possible_actions(ai_character: Character) -> Array:
 	
 	# Check for psionic abilities
 	if ai_character.has_psionics:
-		var psionic_action = game_state.psionic_manager.determine_enemy_psionic_action(ai_character)
+		var psionic_action = game_state.psionic_manager.determine_enemy_psionic_action(ai_character, combat_manager.get_valid_targets(ai_character))
 		actions.append({"type": "use_psionic", "power": psionic_action.power, "target": psionic_action.target})
 	
 	# Check for special species abilities

@@ -26,7 +26,7 @@ var story_track: StoryTrack
 
 func _init(_game_state: GameState) -> void:
     game_state = _game_state
-    story_track = StoryTrack.new(game_state)
+    story_track = StoryTrack.new()
 
 func start_new_turn(main_scene: Node) -> void:
     game_state.current_turn += 1

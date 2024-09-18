@@ -7,8 +7,9 @@ signal crew_size_selected(size: int)
 @onready var tutorial_label = $TutorialLabel
 
 func _ready():
-	if TutorialManager.is_tutorial_active:
-		tutorial_label.text = TutorialManager.get_tutorial_text("crew_size_selection")
+	var tutorial_manager = get_node("/root/TutorialManager")
+	if tutorial_manager.is_tutorial_active:
+		tutorial_label.text = tutorial_manager.get_tutorial_text("crew_size_selection")
 		tutorial_label.show()
 	else:
 		tutorial_label.hide()
@@ -17,5 +18,6 @@ func _ready():
 
 func _on_slider_value_changed(value):
 	emit_signal("crew_size_selected", int(value))
-	if TutorialManager.is_tutorial_active:
-		TutorialManager.set_step("campaign_setup")
+	var tutorial_manager = get_node("/root/TutorialManager")
+	if tutorial_manager.is_tutorial_active:
+		tutorial_manager.set_step("campaign_setup")

@@ -4,8 +4,8 @@ extends ShipComponent
 var healing_capacity: int
 var patients: Array[Character] = []
 
-func _init(p_name: String, p_description: String, p_power_usage: int, p_health: int, p_healing_capacity: int) -> void:
-	super._init(p_name, p_description, ComponentType.MEDICAL_BAY, p_power_usage, p_health)
+func _init(p_name: String, _p_type: ComponentType, p_power_usage: int, p_durability: int, p_healing_capacity: int) -> void:
+	super._init(p_name, ComponentType.MEDICAL_BAY, p_power_usage, p_durability)
 	healing_capacity = p_healing_capacity
 
 func admit_patient(crew_member: Character) -> bool:

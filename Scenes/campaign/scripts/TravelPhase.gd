@@ -42,7 +42,7 @@ func _on_back_pressed():
 
 func emergency_takeoff():
 	var damage = randi() % 6 + randi() % 6 + randi() % 6 + 3
-	game_state.current_crew.ship.take_damage(damage)
+	game_state.current_crew.ship.take_damage(damage, game_state)
 	_show_emergency_damage_dialog(damage)
 
 func _handle_travel_event(event: Dictionary):

@@ -27,8 +27,9 @@ const RELATIONSHIPS = [
 ]
 
 func _ready():
-    if TutorialManager.is_tutorial_active:
-        tutorial_label.text = TutorialManager.get_tutorial_text("connections_creation")
+    var tutorial_manager = get_node("/root/TutorialManager")
+    if tutorial_manager.is_tutorial_active:
+        tutorial_label.text = tutorial_manager.get_tutorial_text("connections_creation")
         tutorial_label.show()
     else:
         tutorial_label.hide()
@@ -78,7 +79,11 @@ func _connection_exists(char1_index: int, char2_index: int) -> bool:
 func _update_connections_list():
     connections_list.clear()
     for connection in connections:
-        connections_list.add_item(f"{connection.character1.name} - {connection.relationship} - {connection.character2.name}")
+        var char1_name = connection.character1.name
+        var char2_name = connection.character2.name
+        var relationship = connection.relationship
+        var connection_text = char1_name + " - " + relationship + " - " + char2_name
+        connections_list.add_item(connection_text)
 
 func _show_error(message: String):
     var error_dialog = AcceptDialog.new()
@@ -94,12 +99,14 @@ func finalize_connections():
     save_connections_to_game_state()
 
     emit_signal("connections_created")
-    if TutorialManager.is_tutorial_active:
-        TutorialManager.set_step("save_campaign")
+    var tutorial_manager = get_node("/root/TutorialManager")
+    if tutorial_manager and tutorial_manager.is_tutorial_active:
+        tutorial_manager.set_step("save_campaign")
 
 func save_connections_to_game_state():
-    if GameState.has_method("set_character_connections"):
-        GameState.set_character_connections(connections)
+    var game_state = get_node("/root/GameState")
+    if game_state and game_state.has_method("set_character_connections"):
+        game_state.set_character_connections(connections)
     else:
         print("Warning: GameState does not have a method to set character connections.")
 

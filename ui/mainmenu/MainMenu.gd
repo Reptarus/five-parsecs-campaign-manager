@@ -1,6 +1,8 @@
 # MainMenu.gd
 extends Control
 
+const TutorialManager = preload("res://Scenes/Utils/TutorialManager.gd")
+
 @onready var continue_button = $"Menu Buttons/Continue"
 @onready var new_campaign_button = $"Menu Buttons/NewCampaign"
 @onready var coop_campaign_button = $"Menu Buttons/CoopCampaign"
@@ -73,11 +75,12 @@ func _show_not_implemented_message(feature: String):
 	dialog.popup_centered()
 
 func _on_tutorial_choice_made(choice):
+	var tutorial_manager = get_node("/root/TutorialManager")
 	match choice:
 		"story_track":
-			TutorialManager.start_tutorial("story_track")
+			tutorial_manager.start_tutorial("story_track")
 		"compendium":
-			TutorialManager.start_tutorial("compendium")
+			tutorial_manager.start_tutorial("compendium")
 		"skip":
 			# Proceed without tutorial
 			pass
