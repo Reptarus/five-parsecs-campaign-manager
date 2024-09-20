@@ -4,7 +4,7 @@ extends Node
 signal local_event_triggered(event_description: String)
 signal economy_updated
 
-var world: Location
+var game_world: Location
 var economy_manager: EconomyManager
 var local_market: Array[Equipment] = []
 
@@ -13,8 +13,8 @@ const LOCAL_EVENT_CHANCE: float = 0.2
 const ECONOMY_NORMALIZATION_RATE: float = 0.1
 const MAX_MARKET_ITEMS: int = 20
 
-func _init(_world: Location, _economy_manager: EconomyManager) -> void:
-	world = _world
+func _init(_game_world: Location, _economy_manager: EconomyManager) -> void:
+	game_world = _game_world
 	economy_manager = _economy_manager
 	_initialize_local_market()
 
@@ -26,11 +26,11 @@ func _initialize_local_market() -> void:
 
 func calculate_upkeep() -> int:
 	var upkeep = BASE_UPKEEP_COST
-	if "High Cost" in world.traits:
+	if "High Cost" in game_world.traits:
 		upkeep = int(upkeep * 1.5)
-	if "Economic Depression" in world.traits:
+	if "Economic Depression" in game_world.traits:
 		upkeep = int(upkeep * 1.2)
-	if "Thriving Economy" in world.traits:
+	if "Thriving Economy" in game_world.traits:
 		upkeep = int(upkeep * 0.8)
 	return upkeep
 
@@ -64,7 +64,7 @@ func pay_upkeep(crew: Crew) -> bool:
 
 func get_item_price(item: Equipment) -> int:
 	var base_price = economy_manager.calculate_item_price(item, true)
-	var modifier = economy_manager.location_price_modifiers.get(world.name, 1.0)
+	var modifier = economy_manager.location_price_modifiers.get(game_world.name, 1.0)
 	return int(base_price * modifier)
 
 func buy_item(crew: Crew, item: Equipment) -> bool:
@@ -86,11 +86,11 @@ func sell_item(crew: Crew, item: Equipment) -> bool:
 	return false
 
 func _market_flourish() -> void:
-	economy_manager.location_price_modifiers[world.name] *= 0.9
+	economy_manager.location_price_modifiers[game_world.name] *= 0.9
 	local_event_triggered.emit("Local market flourish: Temporary decrease in prices")
 
 func _market_struggle() -> void:
-	economy_manager.location_price_modifiers[world.name] *= 1.1
+	economy_manager.location_price_modifiers[game_world.name] *= 1.1
 	local_event_triggered.emit("Local market struggle: Temporary increase in prices")
 
 func _new_trade_route() -> void:
@@ -109,7 +109,7 @@ func _local_festival() -> void:
 	var festival_items = ["Food", "Drink", "Entertainment", "Decorations"]
 	for item in local_market:
 		if item.name in festival_items:
-			economy_manager.location_price_modifiers[world.name] *= 1.2
+			economy_manager.location_price_modifiers[game_world.name] *= 1.2
 	local_event_triggered.emit("Local festival: Increased demand for certain items")
 
 func _resource_discovery() -> void:
@@ -119,12 +119,12 @@ func _resource_discovery() -> void:
 	local_event_triggered.emit("Resource discovery: New cheap resource available")
 
 func _economic_scandal() -> void:
-	economy_manager.location_price_modifiers[world.name] *= 1.15
+	economy_manager.location_price_modifiers[game_world.name] *= 1.15
 	local_event_triggered.emit("Economic scandal: General increase in prices")
 
 func _normalize_economy() -> void:
-	economy_manager.location_price_modifiers[world.name] = lerp(
-		economy_manager.location_price_modifiers[world.name],
+	economy_manager.location_price_modifiers[game_world.name] = lerp(
+		economy_manager.location_price_modifiers[game_world.name],
 		1.0,
 		ECONOMY_NORMALIZATION_RATE
 	)

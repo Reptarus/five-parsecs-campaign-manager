@@ -7,6 +7,11 @@ extends Resource
 @export var reward: Dictionary
 @export var completed: bool = false
 @export var failed: bool = false
+@export var current_stage: int = 1
+@export var current_requirements: Array = []
+@export var faction: Dictionary = {}
+@export var loyalty_requirement: int = 0
+@export var power_requirement: int = 0
 
 func _init(_quest_type: String, _location: Location, _objective: String, _reward: Dictionary):
 	quest_type = _quest_type
@@ -30,7 +35,12 @@ func serialize() -> Dictionary:
 		"objective": objective,
 		"reward": reward,
 		"completed": completed,
-		"failed": failed
+		"failed": failed,
+		"current_stage": current_stage,
+		"current_requirements": current_requirements,
+		"faction": faction,
+		"loyalty_requirement": loyalty_requirement,
+		"power_requirement": power_requirement
 	}
 
 static func deserialize(data: Dictionary) -> Quest:
@@ -42,4 +52,9 @@ static func deserialize(data: Dictionary) -> Quest:
 	)
 	quest.completed = data["completed"]
 	quest.failed = data["failed"]
+	quest.current_stage = data["current_stage"]
+	quest.current_requirements = data["current_requirements"]
+	quest.faction = data["faction"]
+	quest.loyalty_requirement = data["loyalty_requirement"]
+	quest.power_requirement = data["power_requirement"]
 	return quest

@@ -2,7 +2,7 @@
 
 [ext_resource type="Script" path="res://ui/mainmenu/MainMenu.gd" id="1_eb6mc"]
 [ext_resource type="Texture2D" uid="uid://dpv5v3x1ujg66" path="res://assets/BookImages/Nov_15_cityatnight.jpg" id="1_jq64m"]
-[ext_resource type="Theme" path="res://Scenes/sci_fi_theme.tres" id="3_theme"]
+[ext_resource type="Theme" uid="uid://d1you1rrwuu48" path="res://Scenes/sci_fi_theme.tres" id="3_theme"]
 
 [node name="MainMenu" type="Control"]
 layout_mode = 3
@@ -30,10 +30,10 @@ layout_mode = 1
 anchors_preset = 5
 anchor_left = 0.5
 anchor_right = 0.5
-offset_left = -400
-offset_top = 50
-offset_right = 400
-offset_bottom = 150
+offset_left = -400.0
+offset_top = 50.0
+offset_right = 400.0
+offset_bottom = 150.0
 grow_horizontal = 2
 theme_override_font_sizes/font_size = 75
 text = "5 Parsecs From Home Manager"
@@ -46,10 +46,10 @@ anchor_left = 1.0
 anchor_top = 0.5
 anchor_right = 1.0
 anchor_bottom = 0.5
-offset_left = -400
-offset_top = -250
-offset_right = -50
-offset_bottom = 250
+offset_left = -400.0
+offset_top = -250.0
+offset_right = -50.0
+offset_bottom = 250.0
 grow_horizontal = 0
 grow_vertical = 2
 theme_override_constants/separation = 20
@@ -96,10 +96,10 @@ anchor_left = 1.0
 anchor_top = 1.0
 anchor_right = 1.0
 anchor_bottom = 1.0
-offset_left = -200
-offset_top = -40
-offset_right = -20
-offset_bottom = -20
+offset_left = -200.0
+offset_top = -40.0
+offset_right = -20.0
+offset_bottom = -20.0
 grow_horizontal = 0
 grow_vertical = 0
 text = "V1.0, ReptarusOnIce Production"

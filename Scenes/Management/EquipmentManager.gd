@@ -19,7 +19,7 @@ func _load_equipment_database():
 					equipment_database[equipment.name] = equipment
 		file.close()
 	else:
-		print("Failed to open equipment_database.json")
+		push_error("Failed to open equipment_database.json")
 
 func generate_equipment_from_background(background: Dictionary) -> Array:
 	var equipment = []

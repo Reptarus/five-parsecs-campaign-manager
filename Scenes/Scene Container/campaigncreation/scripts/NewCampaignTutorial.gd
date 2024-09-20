@@ -1,6 +1,7 @@
 # NewCampaignTutorial.gd
 extends Control
 
+@warning_ignore("unused_signal")
 signal tutorial_choice_made(choice: String)
 
 func _ready():

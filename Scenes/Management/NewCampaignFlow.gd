@@ -51,8 +51,8 @@ func _on_tutorial_selected(tutorial_type: String):
     current_state = FlowState.CREW_SIZE_SELECTION
     _update_visible_content()
 
-func _on_crew_size_selected(size: int):
-    game_state.crew_size = size
+func _on_crew_size_selected(crew_size: int):
+    game_state.crew_size = crew_size
     current_state = FlowState.CHARACTER_CREATION
     _update_visible_content()
 
@@ -69,7 +69,7 @@ func _on_crew_finalized():
     current_state = FlowState.CAMPAIGN_SETUP
     _update_visible_content()
 
-func _on_campaign_created(campaign: GameState):
+func _on_campaign_created(_campaign: GameState):
     current_state = FlowState.FINISHED
     # Transition to the main game scene or wherever you want to go after campaign creation
     get_tree().change_scene_to_file("res://scenes/MainGameScene.tscn")

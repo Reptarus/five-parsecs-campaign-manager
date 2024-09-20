@@ -4,6 +4,8 @@ extends Resource
 
 enum DifficultyLevel { TUTORIAL, EASY, NORMAL, HARD, HARDCORE, INSANITY }
 
+const GlobalEnums = preload("res://Resources/GlobalEnums.gd")
+
 @export var level: DifficultyLevel = DifficultyLevel.NORMAL
 @export var enemy_health_multiplier: float = 1.0
 @export var enemy_damage_multiplier: float = 1.0
@@ -55,8 +57,8 @@ func apply_to_ship(ship: Ship) -> void:
 
 func apply_to_enemy(enemy: Character) -> void:
 	enemy.health = int(enemy.health * enemy_health_multiplier)
-	if enemy.get_component(ShipComponent.ComponentType.WEAPONS):
-		var weapons = enemy.get_component(ShipComponent.ComponentType.WEAPONS) as WeaponsComponent
+	if enemy.get_component(GlobalEnums.ComponentType.WEAPONS):
+		var weapons = enemy.get_component(GlobalEnums.ComponentType.WEAPONS)
 		weapons.damage = int(weapons.damage * enemy_damage_multiplier)
 
 func to_dict() -> Dictionary:

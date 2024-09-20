@@ -74,10 +74,8 @@ func is_expired(current_turn: int) -> bool:
 func start_mission(crew: Array[Character]) -> bool:
     if crew.size() < required_crew_size:
         return false
-    if is_expanded and faction:
-        var crew_loyalty = _get_crew_loyalty(crew)
-        if crew_loyalty < loyalty_requirement:
-            return false
+    if is_expanded and faction and _get_crew_loyalty(crew) < loyalty_requirement:
+        return false
     return true
 
 func _get_crew_loyalty(crew: Array[Character]) -> int:

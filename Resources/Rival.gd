@@ -41,7 +41,7 @@ func calculate_economic_impact() -> void:
 func serialize() -> Dictionary:
 	return {
 		"name": name,
-		"location": {"data": location.serialize()} if location else null,
+		"location": location.serialize() if location else {},
 		"strength": strength,
 		"hostility": hostility,
 		"economic_impact": economic_impact

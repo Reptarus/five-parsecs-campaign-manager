@@ -1,5 +1,6 @@
 # VictoryConditionSelection.gd
 extends Control
+class_name VictoryConditionSelection
 
 signal victory_condition_selected(condition)
 
@@ -97,3 +98,6 @@ func _on_condition_selected(index: int):
 func _on_confirm_pressed():
 	var selected_condition = condition_option_button.get_item_text(condition_option_button.selected)
 	emit_signal("victory_condition_selected", victory_conditions[selected_condition])
+
+# Note: Connect this signal in the parent scene or script
+# Example: victory_condition_selector.connect("victory_condition_selected", Callable(self, "_on_victory_condition_selected"))

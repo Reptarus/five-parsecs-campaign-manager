@@ -31,6 +31,6 @@ func update_display():
 	# TODO: Update other battle information
 	pass
 
-func setup(rival: Rival, crew: Crew) -> void:
+func setup(_rival: Rival, _crew: Crew) -> void:
 	# Initialize the battle with the given rival and crew
 	pass

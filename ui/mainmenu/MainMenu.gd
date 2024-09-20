@@ -1,35 +1,53 @@
 # MainMenu.gd
 extends Control
 
-const TutorialManager = preload("res://Scenes/Utils/TutorialManager.gd")
-
-@onready var continue_button = $"Menu Buttons/Continue"
-@onready var new_campaign_button = $"Menu Buttons/NewCampaign"
-@onready var coop_campaign_button = $"Menu Buttons/CoopCampaign"
-@onready var battle_simulator_button = $"Menu Buttons/BattleSimulator"
-@onready var bug_hunt_button = $"Menu Buttons/BugHunt"
-@onready var options_button = $"Menu Buttons/Options"
-@onready var library_button = $"Menu Buttons/Library"
+@onready var continue_button = $MenuButtons/Continue
+@onready var new_campaign_button = $MenuButtons/NewCampaign
+@onready var coop_campaign_button = $MenuButtons/CoopCampaign
+@onready var battle_simulator_button = $MenuButtons/BattleSimulator
+@onready var bug_hunt_button = $MenuButtons/BugHunt
+@onready var options_button = $MenuButtons/Options
+@onready var library_button = $MenuButtons/Library
 
 var game_state: GameState
 
 func _ready():
 	setup_ui()
 	call_deferred("initialize_game_systems")
-	$MenuButtons/NewCampaign.connect("pressed", _on_new_campaign_pressed)
-	$VBoxContainer/NewCampaignButton.connect("pressed", Callable(self, "_on_new_campaign_pressed"))
-	new_campaign_button.connect("pressed", Callable(self, "_on_new_campaign_pressed"))
+
+	var menu_buttons = {
+		"continue_button": continue_button,
+		"new_campaign_button": new_campaign_button,
+		"coop_campaign_button": coop_campaign_button,
+		"battle_simulator_button": battle_simulator_button,
+		"bug_hunt_button": bug_hunt_button,
+		"options_button": options_button,
+		"library_button": library_button
+	}
 	
-	# Connect other buttons as needed
+	for button_name in menu_buttons:
+		if menu_buttons[button_name]:
+			print_debug("%s: Connected" % button_name)
+		else:
+			push_warning("%s not found in the scene tree" % button_name)
+
+	# Note: Button connections are handled in setup_ui()
 
 func setup_ui():
-	continue_button.pressed.connect(_on_continue_pressed)
-	new_campaign_button.pressed.connect(_on_new_campaign_pressed)
-	coop_campaign_button.pressed.connect(_on_coop_campaign_pressed)
-	battle_simulator_button.pressed.connect(_on_battle_simulator_pressed)
-	bug_hunt_button.pressed.connect(_on_bug_hunt_pressed)
-	options_button.pressed.connect(_on_options_pressed)
-	library_button.pressed.connect(_on_library_pressed)
+	if continue_button:
+		continue_button.pressed.connect(_on_continue_pressed)
+	if new_campaign_button:
+		new_campaign_button.pressed.connect(_on_new_campaign_pressed)
+	if coop_campaign_button:
+		coop_campaign_button.pressed.connect(_on_coop_campaign_pressed)
+	if battle_simulator_button:
+		battle_simulator_button.pressed.connect(_on_battle_simulator_pressed)
+	if bug_hunt_button:
+		bug_hunt_button.pressed.connect(_on_bug_hunt_pressed)
+	if options_button:
+		options_button.pressed.connect(_on_options_pressed)
+	if library_button:
+		library_button.pressed.connect(_on_library_pressed)
 	
 	# Add fade-in animation
 	modulate = Color(1, 1, 1, 0)
@@ -75,7 +93,7 @@ func _show_not_implemented_message(feature: String):
 	dialog.popup_centered()
 
 func _on_tutorial_choice_made(choice):
-	var tutorial_manager = get_node("/root/TutorialManager")
+	var tutorial_manager = TutorialManager.new()  # Use the global class directly
 	match choice:
 		"story_track":
 			tutorial_manager.start_tutorial("story_track")

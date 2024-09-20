@@ -2,9 +2,11 @@
 extends Control
 
 const LOGBOOK_DIR = "user://logbook/"
-var current_campaign_turn = 0
+var current_campaign_turn: int = 0
 var game_state: GameState
 var current_crew: String = ""
+
+const CampaignDashboardScene = preload("res://Scenes/Scene Container/CampaignDashboard.tscn")
 
 func _ready():
 	create_logbook_directory()
@@ -69,7 +71,7 @@ func _on_export_pressed():
 	export_logbook()
 
 func _on_back_pressed():
-	get_node("/root/Main").load_scene("res://scenes/campaign/CampaignDashboard.tscn")
+	get_node("/root/Main").load_scene(CampaignDashboardScene)
 
 func _on_save_notes_pressed():
 	var notes = $MarginContainer/HBoxContainer/MainContent/NotesEdit.text
@@ -77,14 +79,21 @@ func _on_save_notes_pressed():
 
 func save_entry(entry_name, content):
 	var file = FileAccess.open(LOGBOOK_DIR + current_crew + "/" + entry_name + ".txt", FileAccess.WRITE)
-	file.store_string(content)
-	file.close()
+	if file:
+		file.store_string(content)
+		file.close()
+	else:
+		push_error("Failed to save entry: " + entry_name)
 
 func load_entry(entry_name):
 	var file = FileAccess.open(LOGBOOK_DIR + current_crew + "/" + entry_name + ".txt", FileAccess.READ)
-	var content = file.get_as_text()
-	file.close()
-	return content
+	if file:
+		var content = file.get_as_text()
+		file.close()
+		return content
+	else:
+		push_error("Failed to open file: " + entry_name)
+		return ""
 
 func delete_entry(entry_name):
 	var dir = DirAccess.open(LOGBOOK_DIR + current_crew)
@@ -106,7 +115,10 @@ func load_notes():
 func export_logbook():
 	var export_path = "user://exported_logbook_" + current_crew + ".txt"
 	var export_file = FileAccess.open(export_path, FileAccess.WRITE)
-	
+	if not export_file:
+		push_error("Failed to create export file")
+		return
+
 	var dir = DirAccess.open(LOGBOOK_DIR + current_crew)
 	if dir:
 		dir.list_dir_begin()
@@ -116,7 +128,9 @@ func export_logbook():
 				var content = load_entry(file_name.get_basename())
 				export_file.store_string(file_name + ":\n" + content + "\n\n")
 			file_name = dir.get_next()
-	
+	else:
+		push_error("Failed to open directory: " + LOGBOOK_DIR + current_crew)
+
 	export_file.close()
 	print("Logbook exported to: " + export_path)
 
@@ -143,7 +157,7 @@ func create_campaign_turn_summary(state: GameState) -> String:
 	# Add information about current mission (if any)
 	if state.current_mission:
 		summary += "Current Mission: " + state.current_mission.name + "\n"
-		summary += "Type: " + state.current_mission.type + "\n"
+		summary += "Type: " + str(state.current_mission.type) + "\n"
 		summary += "Difficulty: " + str(state.current_mission.difficulty) + "\n\n"
 	else:
 		summary += "No current mission\n\n"

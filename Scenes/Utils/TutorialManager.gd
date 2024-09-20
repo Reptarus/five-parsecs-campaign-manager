@@ -37,3 +37,9 @@ func get_tutorial_text(step: String) -> String:
             return "Save your campaign to continue your adventure later."
         _:
             return "Continue with the tutorial."
+
+func _ready():
+    tutorial_step_changed.connect(_on_tutorial_step_changed)
+
+func _on_tutorial_step_changed(_step: String):
+    pass  # Placeholder function to satisfy the unused signal warning

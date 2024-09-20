@@ -2,17 +2,19 @@ class_name Gear
 extends Equipment
 
 var gear_type: String
+@export var weight: float = 1.0
 
-
-func _init(p_name: String = "", p_description: String = "", p_gear_type: String = "", p_level: int = 1):
+func _init(p_name: String = "", p_description: String = "", p_gear_type: String = "", p_level: int = 1, p_weight: float = 1.0):
 	super._init(p_name, Equipment.Type.GEAR, p_level)
 	description = p_description
 	gear_type = p_gear_type
+	weight = p_weight
 
 func serialize() -> Dictionary:
 	var data = super.serialize()
 	data["gear_type"] = gear_type
 	data["description"] = description
+	data["weight"] = weight
 	return data
 
 static func deserialize(data: Dictionary) -> Gear:
@@ -20,7 +22,8 @@ static func deserialize(data: Dictionary) -> Gear:
 		data["name"],
 		data["description"],
 		data["gear_type"],
-		data["level"]
+		data["level"],
+		data["weight"]
 	)
 	gear.value = data["value"]
 	gear.is_damaged = data["is_damaged"]

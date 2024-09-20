@@ -2,7 +2,7 @@ class_name StealthMissionsManager
 extends Node
 
 var game_state: GameState
-var battle_scene: Battle
+# Removed battle_scene parameter
 
 const MAX_DETECTION_LEVEL: int = 2
 const DETECTION_LEVELS = ["Undetected", "Alerted", "Compromised"]
@@ -13,9 +13,9 @@ var crew_members: Array[Character] = []
 
 enum StealthAction { STAY_DOWN, DISTRACTION, LURE }
 
-func _init(_game_state: GameState, _battle_scene: Battle):
-    game_state = _game_state
-    battle_scene = _battle_scene
+func _init(game_state, _battle = null):
+    game_state = game_state
+    # Removed battle_scene parameter
 
 func generate_stealth_mission() -> Mission:
     var mission = Mission.new()
@@ -32,7 +32,7 @@ func generate_stealth_mission() -> Mission:
     
     return mission
 
-func _generate_stealth_enemies(mission: Mission):
+func _generate_stealth_enemies(_mission: Mission):
     var num_enemies = game_state.crew_size + 1
     for i in range(num_enemies):
         var enemy = Character.new()
@@ -108,7 +108,7 @@ func increase_detection_level():
 
 func _trigger_alarm():
     print("Alarm triggered! Transitioning to normal combat.")
-    battle_scene._on_stealth_mission_failed()
+    # Removed battle_scene reference
 
 func perform_stealth_action(character: Character, action: StealthAction) -> void:
     match action:
@@ -147,10 +147,10 @@ func _distract_enemy(enemy: Character):
     enemy.is_distracted = true
     # Implement distraction logic
 
-func _get_enemies_in_range(character: Character, range: float) -> Array:
+func _get_enemies_in_range(character: Character, detection_range: float) -> Array:
     var enemies_in_range = []
     for enemy in enemies:
-        if character.position.distance_to(enemy.position) <= range:
+        if character.position.distance_to(enemy.position) <= detection_range:
             enemies_in_range.append(enemy)
     return enemies_in_range
 
@@ -206,7 +206,7 @@ func _place_reinforcement(enemy: Character) -> void:
     var edge = randi() % 4
     enemy.position = _get_entry_position(edge)
 
-func _get_entry_position(edge: int) -> Vector2:
+func _get_entry_position(_edge: int) -> Vector2:
     # Implement logic to get a position on the specified table edge
     return Vector2.ZERO
 
@@ -216,14 +216,14 @@ func check_mission_end_conditions() -> bool:
     # Add more end conditions as needed
     return false
 
-func _generate_rewards(difficulty: int) -> Dictionary:
+func _generate_rewards(_difficulty: int) -> Dictionary:
     # Implement reward generation based on difficulty
     return {}
 
-func _generate_mission_title(type: int, location: Location) -> String:
+func _generate_mission_title(_type: int, _location: Location) -> String:
     # Implement mission title generation
     return "Stealth Mission"
 
-func _generate_mission_description(type: int, objective: int, location: Location) -> String:
+func _generate_mission_description(_type: int, _objective: int, _location: Location) -> String:
     # Implement mission description generation
     return "Infiltrate the enemy base and complete the objective without being detected."

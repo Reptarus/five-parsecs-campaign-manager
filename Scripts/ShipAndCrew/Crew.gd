@@ -56,27 +56,21 @@ func serialize() -> Dictionary:
 
 static func deserialize(data: Dictionary) -> Crew:
 	var crew = Crew.new(data["name"])
-	crew.members = data["members"].map(func(m): return load("res://Scripts/Character.gd").deserialize(m))
+	crew.members = data["members"].map(func(m): return Character.deserialize(m))
 	crew.credits = data["credits"]
-	crew.ship = Ship.new().deserialize(data["ship"]) if data["ship"] else null
+	crew.ship = Ship.deserialize(data["ship"]) if data["ship"] else null
 	crew.reputation = data["reputation"]
 	crew.current_location = Location.deserialize(data["current_location"]) if data["current_location"] else null
 	return crew
 
-func add_character(character: Character):
-	characters.append(character)
-
-func remove_character(character: Character):
-	characters.erase(character)
-
 func is_valid() -> bool:
-	return characters.size() >= 3 and characters.size() <= 8
+	return members.size() >= 3 and members.size() <= 8
 
 func get_size() -> int:
-	return characters.size()
+	return members.size()
 
-func get_character_by_name(name: String):
-	for character in members:
-		if character.name == name:
-			return character
+func get_member_by_name(member_name: String) -> Character:
+	for member in members:
+		if member.name == member_name:
+			return member
 	return null

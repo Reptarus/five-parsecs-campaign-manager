@@ -5,6 +5,7 @@ extends Node
 signal state_changed(new_state: State)
 
 enum State {MAIN_MENU, CREW_CREATION, CAMPAIGN_TURN, MISSION, POST_MISSION}
+enum DamageType {HULL, SYSTEMS, CREW}
 
 @export var current_state: State = State.MAIN_MENU
 @export var current_crew: Crew
@@ -33,6 +34,8 @@ var last_mission_results: String = ""
 const FringeWorldStrifeManagerScript = preload("res://Scripts/Missions/FringeWorldStrifeManager.gd")
 const SalvageJobsManagerScript = preload("res://Scripts/Missions/SalvageJobsManager.gd")
 const StealthMissionsManagerScript = preload("res://Scripts/Missions/StealthMissionsManager.gd")
+const CharacterScript = preload("res://Scripts/Characters/Character.gd")
+const MissionScript = preload("res://Scripts/Missions/Mission.gd")
 
 var fringe_world_strife_manager: FringeWorldStrifeManagerScript
 var salvage_jobs_manager: SalvageJobsManagerScript
@@ -53,23 +56,30 @@ var is_tutorial_active: bool = false
 var trade_actions_blocked: bool = false
 var mission_payout_reduction: int = 0
 
+var quest_rumors: Array[QuestRumor] = []
+
+static var instance: GameState
+
+func _ready():
+	instance = self
+
 func _init() -> void:
-	mission_generator = preload("res://Scripts/Missions/MissionGenerator.gd").new()
-	equipment_manager = preload("res://Scenes/Management/EquipmentManager.gd").new()
-	patron_job_manager = preload("res://Scenes/Management/PatronJobManager.gd").new()
+	mission_generator = MissionGenerator.new()
+	equipment_manager = EquipmentManager.new()
+	patron_job_manager = PatronJobManager.new()
 	
 	fringe_world_strife_manager = FringeWorldStrifeManagerScript.new(self)
 	salvage_jobs_manager = SalvageJobsManagerScript.new(self)
-	stealth_missions_manager = StealthMissionsManagerScript.new(self, current_battle)
+	stealth_missions_manager = StealthMissionsManagerScript.new(self)
 	street_fights_manager = StreetFightsManager.new(self)
 	psionic_manager = PsionicManager.new()
 	
 	call_deferred("_post_init")
 
 func _post_init() -> void:
-	mission_generator.set_game_state(self)
-	patron_job_manager.set_game_state(self)
-	equipment_manager.set_game_state(self)
+	mission_generator.initialize(self)
+	patron_job_manager.initialize(self)
+	equipment_manager.initialize(self)
 
 func get_current_battle() -> Battle:
 	return current_battle
@@ -100,6 +110,10 @@ func advance_turn() -> void:
 	campaign_turn += 1
 	completed_patron_job_this_turn = false
 	held_the_field_against_roving_threat = false
+	update_quest_rumors()
+	# Potentially generate new quest rumors here
+	if randf() < 0.3:  # 30% chance each turn
+		add_quest_rumor()
 
 func add_mission(mission: Mission) -> void:
 	available_missions.append(mission)
@@ -158,15 +172,20 @@ func get_random_location() -> Resource:
 
 func damage_ship(amount: int) -> void:
 	if current_ship:
-		current_ship.take_damage(amount, self)
+		if current_ship.has_method("take_damage"):
+			current_ship.call("take_damage", amount)
+		else:
+			push_warning("Ship does not have a take_damage method")
+	else:
+		push_warning("No current ship to damage")
 
-func repair_ship() -> void:
+func repair_ship(amount: int = 100) -> void:
 	if current_ship:
-		current_ship.repair(100)  # Assuming 100 is the amount to repair, adjust as needed
+		current_ship.repair(amount)
 
 func add_ship_module() -> void:
 	if current_ship:
-		var new_component = ShipComponent.new("New Component", ShipComponent.ComponentType.ENGINE, 1, 1)
+		var new_component = ShipComponent.new("New Component", "A new ship component", GlobalEnums.ComponentType.ENGINE, 1, 1)
 		current_ship.add_component(new_component)
 
 func upgrade_bot() -> void:
@@ -178,8 +197,34 @@ func upgrade_bot() -> void:
 		print_debug("Bot upgraded: %s" % chosen_upgrade)
 
 func add_quest_rumor() -> void:
-	# Note: QuestRumor class needs to be implemented
-	pass
+	var rumor_type = QuestRumor.RumorType.values()[randi() % QuestRumor.RumorType.size()]
+	var title = "Mysterious " + ["Artifact", "Signal", "Distress Call", "Anomaly"][randi() % 4]
+	var description = "Reports of a " + title.to_lower() + " in a nearby sector."
+	var difficulty = randi() % 5 + 1  # 1 to 5
+	var reward_estimate = difficulty * 100  # Simple scaling based on difficulty
+	var expiration_turns = randi() % 5 + 3  # 3 to 7 turns
+	
+	var new_rumor = QuestRumor.new(rumor_type, title, description, difficulty, reward_estimate, expiration_turns)
+	quest_rumors.append(new_rumor)
+	print_debug("New quest rumor added: " + title)
+
+func remove_quest_rumor(rumor: QuestRumor) -> void:
+	quest_rumors.erase(rumor)
+
+func update_quest_rumors() -> void:
+	for rumor in quest_rumors:
+		if rumor.is_expired(campaign_turn):
+			remove_quest_rumor(rumor)
+
+func generate_quest_from_rumor(rumor: QuestRumor) -> void:
+	var new_quest = rumor.generate_quest(self)
+	if new_quest:
+		add_quest(new_quest)
+		remove_quest_rumor(rumor)
+
+func discover_quest_rumor(rumor: QuestRumor) -> void:
+	rumor.discover()
+	# Potentially trigger UI update or notification here
 
 const BattleScene = preload("res://Scenes/Scene Container/Battle.tscn")
 
@@ -248,7 +293,6 @@ func prompt_player_choice(question: String, options: Array) -> String:
 	return ""
 
 func start_opportunity_missions(faction: String) -> void:
-	var mission_generator = MissionGenerator.new()
 	var new_mission = mission_generator.generate_opportunity_mission(faction)
 	
 	if new_mission:
@@ -263,8 +307,11 @@ func remove_random_rival() -> void:
 		remove_rival(rival_to_remove)
 
 func get_completed_missions_count() -> int:
-	# Implement completed missions count
-	return 0
+	var completed_count = 0
+	for mission in available_missions:
+		if mission.status == Mission.Status.COMPLETED:
+			completed_count += 1
+	return completed_count
 
 func serialize() -> Dictionary:
 	var data = {
@@ -291,6 +338,7 @@ func serialize() -> Dictionary:
 			"character2": conn.character2.name,
 			"relationship": conn.relationship
 		}),
+		"quest_rumors": quest_rumors.map(func(rumor): return rumor.serialize()),
 	}
 	if current_crew:
 		data["current_crew"] = current_crew.serialize()
@@ -339,6 +387,8 @@ static func deserialize(data: Dictionary) -> GameState:
 			}
 		)
 	
+	game_state.quest_rumors = data.get("quest_rumors", []).map(func(rumor_data): return QuestRumor.deserialize(rumor_data))
+	
 	return game_state
 
 func start_story_track_tutorial():
@@ -369,7 +419,7 @@ func set_character_connections(connections: Array) -> void:
 func get_character_connections() -> Array:
 	return character_connections
 
-func get_character_by_name(name: String):
+func get_character_by_name(character_name: String):
 	if current_crew:
-		return current_crew.get_character_by_name(name)
+		return current_crew.get_character_by_name(character_name)
 	return null

@@ -1,7 +1,7 @@
 class_name Equipment
 extends Resource
 
-enum Type { WEAPON, ARMOR, GEAR, SHIP_COMPONENT, CONSUMABLE }
+enum Type { WEAPON, ARMOR, GEAR, SHIP_COMPONENT, CONSUMABLE, IMPLANT, COMPONENT }
 
 @export var name: String
 @export var type: Type
@@ -55,33 +55,44 @@ static func deserialize(data: Dictionary) -> Equipment:
 static func from_json(json_data: Dictionary) -> Equipment:
 	var equipment_type = Type.GEAR  # Default to GEAR
 	var equipment_value = 0
-	var description = ""
+	var item_description = ""
 
 	if "type" in json_data:
 		match json_data["type"].to_lower():
-			"weapon", "military", "high-tech", "melee", "heavy":
+			"military", "high-tech", "melee", "heavy":
 				equipment_type = Type.WEAPON
-			"armor", "light", "medium", "heavy":
+			"light", "medium", "heavy":
 				equipment_type = Type.ARMOR
-			"gear", "utility", "tech", "mobility":
+			"utility", "tech", "mobility", "medical":
 				equipment_type = Type.GEAR
-			"consumable", "medical", "explosive":
+			"explosive":
 				equipment_type = Type.CONSUMABLE
+			"defensive", "combat":
+				equipment_type = Type.IMPLANT
 
 	if "damage" in json_data:
 		equipment_value = json_data["damage"]
 	elif "defense" in json_data:
 		equipment_value = json_data["defense"]
 	elif "effect" in json_data:
-		description = json_data["effect"]
+		item_description = json_data["effect"]
 
 	if "traits" in json_data:
-		description += " Traits: " + ", ".join(json_data["traits"])
+		item_description += " Traits: " + ", ".join(json_data["traits"])
 
-	return Equipment.new(
+	var equipment = Equipment.new(
 		json_data["name"],
 		equipment_type,
 		equipment_value,
-		description,
-		false  # Assuming new equipment from JSON is not damaged by default
+		item_description,
+		false
 	)
+
+	if "range" in json_data:
+		equipment.effects.append({"range": json_data["range"]})
+	if "shots" in json_data:
+		equipment.effects.append({"shots": json_data["shots"]})
+	if "uses" in json_data:
+		equipment.effects.append({"uses": json_data["uses"]})
+
+	return equipment

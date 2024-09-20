@@ -161,7 +161,7 @@ func _on_back_pressed():
 	get_tree().change_scene_to_file("res://scenes/main_menu/MainMenu.tscn")
 
 # Add these new functions for button hover and selection effects
-func _process(delta):
+func _process(_delta):
 	for button in topic_list.get_children():
 		if button is Button:
 			if button.is_hovered():

@@ -1,21 +1,21 @@
 class_name WeaponsComponent
 extends "res://Scripts/ShipAndCrew/ShipComponent.gd"
 
-@export var description: String
-
 @export var weapon_damage: int
 @export var weapon_range: int
 @export var accuracy: int
 
-func _init(p_name: String, p_power_usage: int, p_health: int, p_is_damaged: bool, p_description: String, p_weapon_damage: int = 0, p_range: int = 0, p_accuracy: int = 0) -> void:
-	super._init(p_name, ComponentType.WEAPONS, p_power_usage, p_health, p_is_damaged)
-	description = p_description
+func _init(p_name: String, p_description: String, p_component_type: GlobalEnums.ComponentType, p_power_usage: int, p_health: int, p_weight: float = 1.0, p_weapon_damage: int = 0, p_weapon_range: int = 0, p_accuracy: int = 0) -> void:
+	super._init(p_name, p_description, p_component_type, p_power_usage, p_health, p_weight)
 	weapon_damage = p_weapon_damage
-	weapon_range = p_range
+	weapon_range = p_weapon_range
 	accuracy = p_accuracy
 
+func check_if_damaged() -> bool:
+	return is_damaged
+
 func fire() -> int:
-	if not is_damaged and get_health() > 0:
+	if not is_damaged:
 		return weapon_damage
 	return 0
 
@@ -32,12 +32,13 @@ static func deserialize(data: Dictionary) -> WeaponsComponent:
 	var component = WeaponsComponent.new(
 		data["name"],
 		data["description"],
+		data["type"],
 		data["power_usage"],
-		data["max_health"],
+		data["health"],
+		data["weight"],
 		data["weapon_damage"],
-		data["range"],
+		data["weapon_range"],
 		data["accuracy"]
 	)
-	component.health = data["health"]
 	component.is_damaged = data["is_damaged"]
 	return component

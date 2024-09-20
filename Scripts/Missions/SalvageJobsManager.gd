@@ -6,11 +6,26 @@ var game_state: GameState
 
 const SALVAGE_MARKERS_COUNT = 6
 const POINTS_OF_INTEREST_COUNT = 4
+const TIME_LIMIT = 3600  # Time limit in seconds (e.g., 1 hour)
 
 var tension: int = 0
 var encounter_number: int = 1
 var salvage_units: int = 0
 var discoveries: int = 0
+
+const TENSION_ADJUSTMENTS = {
+    "Head canon": 1,
+    "We need to hurry": 1,
+    "Shut end": -1,
+    "Information station": -1,  # Special case handled separately
+    "Hot find": 1,
+    "Survivors discovered": 2,
+    "Hornet's nest": -2,
+    "Loot?": -1,
+    "All clear": -3
+}
+
+var mission_time: float = 0.0
 
 func _init(_game_state: GameState):
     game_state = _game_state
@@ -65,7 +80,7 @@ func _spawn_contact():
     var contact = _place_marker("Contact")
     _resolve_contact(contact)
 
-func _resolve_contact(contact):
+func _resolve_contact(_contact):
     var roll = randi() % 6 + 1
     match roll:
         1:
@@ -82,11 +97,46 @@ func _handle_hostiles():
     var roll = randi() % 100 + 1
     if roll <= 25:
         print("Free for all! Looters, renegades, or other suspicious characters are roaming around.")
-        # Determine a random opponent type from the Criminal Elements table
+        _spawn_criminal_elements()
     elif roll <= 40:
         print("Toughs. Someone hired a bunch of goons to make sure nobody snoops around.")
-        # Determine a random opponent type from the Hired Muscle table
-    # ... implement other hostiles results
+        _spawn_hired_muscle()
+    elif roll <= 60:
+        print("Rival salvagers. Looks like we're not the only ones interested in this place.")
+        _spawn_rival_salvagers()
+    elif roll <= 75:
+        print("Security systems. Old automated defenses have been triggered.")
+        _spawn_security_systems()
+    elif roll <= 90:
+        print("Local wildlife. Creatures have made this place their home.")
+        _spawn_local_wildlife()
+    else:
+        print("Something worse. A particularly dangerous threat lurks here.")
+        _spawn_major_threat()
+
+func _spawn_criminal_elements():
+    # Implement logic to spawn opponents from the Criminal Elements table
+    pass
+
+func _spawn_hired_muscle():
+    # Implement logic to spawn opponents from the Hired Muscle table
+    pass
+
+func _spawn_rival_salvagers():
+    # Implement logic to spawn rival salvager opponents
+    pass
+
+func _spawn_security_systems():
+    # Implement logic to spawn automated security system opponents
+    pass
+
+func _spawn_local_wildlife():
+    # Implement logic to spawn local wildlife opponents
+    pass
+
+func _spawn_major_threat():
+    # Implement logic to spawn a major threat opponent
+    pass
 
 func pick_up_salvage(crew_member):
     var salvage_marker = _find_nearest_salvage_marker(crew_member)
@@ -94,7 +144,7 @@ func pick_up_salvage(crew_member):
         game_state.add_salvage_unit(1)
         salvage_marker.queue_free()
 
-func _find_nearest_salvage_marker(crew_member):
+func _find_nearest_salvage_marker(_crew_member):
     # Implement logic to find the nearest salvage marker to the crew member
     pass
 
@@ -104,11 +154,11 @@ func investigate_point_of_interest(crew_member):
         _resolve_point_of_interest(poi)
         poi.queue_free()
 
-func _find_nearest_point_of_interest(crew_member):
+func _find_nearest_point_of_interest(_crew_member):
     # Implement logic to find the nearest point of interest to the crew member
     pass
 
-func _resolve_point_of_interest(poi):
+func _resolve_point_of_interest(_poi):
     var roll = randi() % 100 + 1
     if roll <= 83:
         print("Rival trap: It was all a set-up!")
@@ -152,9 +202,9 @@ func enemy_scanner_check():
         _spawn_enemy_forces()
 
 func _spawn_enemy_forces():
-    var enemy_count = 2
+    var _enemy_count = 2
     if encounter_number >= 3:
-        enemy_count += 1
+        _enemy_count += 1
     if encounter_number >= 2:
         # Add 1 specialist
         pass
@@ -162,25 +212,11 @@ func _spawn_enemy_forces():
     encounter_number += 1
 
 func adjust_tension_for_event(event: String):
-    match event:
-        "Head canon":
-            tension += 1
-        "We need to hurry":
-            tension += 1
-        "Shut end":
-            tension -= 1
-        "Information station":
+    if event in TENSION_ADJUSTMENTS:
+        if event == "Information station":
             tension = max(0, tension - game_state.crew_size)
-        "Hot find":
-            tension += 1
-        "Survivors discovered":
-            tension += 2
-        "Hornet's nest":
-            tension -= 2
-        "Loot?":
-            tension -= 1
-        "All clear":
-            tension -= 3
+        else:
+            tension += TENSION_ADJUSTMENTS[event]
 
 func end_mission():
     if _check_mission_completion():
@@ -199,8 +235,29 @@ func _calculate_post_game_rewards():
     _convert_salvage_to_credits()
 
 func _calculate_experience_points() -> int:
-    # Implement logic to calculate experience points based on mission performance
-    return 100  # Placeholder value
+    var base_xp = 10  # Base XP for completing the mission
+    var bonus_xp = 0
+    
+    # Bonus XP for each enemy defeated
+    var defeated_enemies = get_tree().get_nodes_in_group("DefeatedEnemies").size()
+    bonus_xp += defeated_enemies * 5
+    
+    # Bonus XP for each point of interest investigated
+    var investigated_poi = get_tree().get_nodes_in_group("InvestigatedPOI").size()
+    bonus_xp += investigated_poi * 3
+    
+    # Bonus XP for completing the mission without casualties
+    if game_state.crew_size == game_state.initial_crew_size:
+        bonus_xp += 20
+    
+    # Bonus XP for completing the mission quickly (assuming a time limit)
+    if mission_time < TIME_LIMIT:
+        bonus_xp += 15
+    
+    # Bonus XP for difficulty level (assuming a difficulty setting)
+    bonus_xp += 5 * game_state.difficulty_level
+    
+    return base_xp + bonus_xp
 
 func _roll_for_discoveries():
     for i in range(discoveries):

@@ -2,9 +2,17 @@ class_name EscalatingBattlesManager
 extends Node
 
 var game_state: GameState
+var difficulty_settings: DifficultySettings
 
 func _init(_game_state: GameState):
 	game_state = _game_state
+
+func initialize(_game_state: GameState, _difficulty_settings: DifficultySettings):
+	game_state = _game_state
+	difficulty_settings = _difficulty_settings
+
+func apply_difficulty(_difficulty_settings: DifficultySettings):
+	difficulty_settings = _difficulty_settings
 
 func check_escalation(battle_state: Dictionary) -> Dictionary:
 	var escalation = {}

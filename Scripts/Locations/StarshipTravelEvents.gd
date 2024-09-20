@@ -53,7 +53,7 @@ func asteroids_event() -> Dictionary:
 
 func asteroid_damage() -> String:
 	var damage = randi() % 6 + 1
-	game_state.current_crew.ship.take_damage(damage)
+	game_state.current_crew.ship.take_damage(damage, game_state)
 	return "Ship took " + str(damage) + " Hull Point damage from asteroids."
 
 func navigation_trouble_event() -> Dictionary:
@@ -133,7 +133,7 @@ func distress_call_event() -> Dictionary:
 			match roll:
 				1:
 					var damage = randi() % 6 + 2
-					game_state.current_crew.ship.take_damage(damage)
+					game_state.current_crew.ship.take_damage(damage, game_state)
 					return "Ship struck by debris wave, took " + str(damage) + " Hull Point damage."
 				2:
 					return "Found only drifting wreckage."
@@ -148,7 +148,7 @@ func distress_call_event() -> Dictionary:
 						return "Successfully saved the ship. Received " + loot.name + " as reward."
 					else:
 						var damage = randi() % 6 + 2
-						game_state.current_crew.ship.take_damage(damage)
+						game_state.current_crew.ship.take_damage(damage, game_state)
 						return "Failed to save the ship. Took " + str(damage) + " Hull Point damage from debris."
 	}
 
@@ -190,8 +190,9 @@ func escape_pod_event() -> Dictionary:
 			var roll = randi() % 6 + 1
 			match roll:
 				1:
-					game_state.add_rival(Rival.new())
-					return "Rescued a wanted criminal. Gained a new Rival."
+					var new_rival = game_state.rival_generator.generate_rival()
+					game_state.add_rival(new_rival.name)
+					return "Rescued a wanted criminal. Gained a new Rival: " + new_rival.name
 				2, 3:
 					var credits = randi() % 3 + 1
 					var loot = game_state.loot_generator.generate_loot()

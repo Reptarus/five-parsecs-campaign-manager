@@ -1,10 +1,10 @@
 extends Control
 
 # Import necessary classes
-const Character = preload("res://Scripts/Characters/Character.gd")
-const CharacterCreationData = preload("res://Scripts/Characters/CharacterCreationData.gd")
-const CharacterNameGenerator = preload("res://Resources/CharacterNameGenerator.gd")
-const Crew = preload("res://Scripts/ShipAndCrew/Crew.gd")
+const CharacterClass = preload("res://Scripts/Characters/Character.gd")
+const CharacterCreationDataResource = preload("res://Scripts/Characters/CharacterCreationData.gd")
+const NameGenerator = preload("res://Resources/CharacterNameGenerator.gd")
+const CrewResource = preload("res://Scripts/ShipAndCrew/Crew.gd")
 
 # Onready variables for frequently accessed nodes
 @onready var tabs: TabContainer = $MarginContainer/VBoxContainer/HSplitContainer/CharacterCreationTabs
@@ -72,7 +72,7 @@ func connect_signals():
 
 func create_new_character():
 	current_character = Character.new()
-	current_character.name = CharacterNameGenerator.get_random_name()
+	current_character.name = NameGenerator.get_random_name()
 	current_character.species = get_random_item(character_data.species).name
 	current_character.background = get_random_item(character_data.backgrounds).name
 	current_character.motivation = get_random_item(character_data.motivations).name

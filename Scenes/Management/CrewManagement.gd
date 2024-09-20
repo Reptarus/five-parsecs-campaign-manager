@@ -9,6 +9,7 @@ extends Control
 
 var game_state: GameState
 
+# warning-ignore:unused_signal
 signal crew_finalized
 
 func _ready():

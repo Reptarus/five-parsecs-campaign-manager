@@ -21,6 +21,9 @@ func generate_quest(use_expanded_content: bool = false) -> Quest:
         quest.loyalty_requirement = randi() % 3 + 1  # 1 to 3
         quest.power_requirement = randi() % quest.faction["power"] + 1  # 1 to faction power
     
+    quest.current_stage = 1
+    quest.current_requirements = []  # This will be set by ExpandedQuestProgressionManager
+    
     return quest
 
 func choose_quest_type() -> QuestType:
@@ -105,3 +108,16 @@ func generate_quest_for_faction(faction: Dictionary) -> Quest:
     quest.loyalty_requirement = randi() % 3 + 1  # 1 to 3
     quest.power_requirement = randi() % faction["power"] + 1  # 1 to faction power
     return quest
+
+func generate_quest_rumor(quest: Quest) -> QuestRumor:
+    var rumor_type = QuestRumor.RumorType.values()[randi() % QuestRumor.RumorType.size()]
+    var title = "Rumor: " + quest.quest_type
+    var description = "There are whispers of " + quest.objective.to_lower()
+    var difficulty = randi() % 5 + 1
+    var reward_estimate = quest.reward["credits"]
+    var expiration_turns = randi() % 5 + 3
+    
+    var rumor = QuestRumor.new(rumor_type, title, description, difficulty, reward_estimate, expiration_turns)
+    rumor.associated_quest = quest
+    
+    return rumor

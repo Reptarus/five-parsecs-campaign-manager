@@ -18,11 +18,11 @@ const MAX_FACTION_STRENGTH: int = 7
 const MIN_FACTION_POWER: int = 3
 const MAX_FACTION_POWER: int = 5
 
-var game_state: GameState
+var game_state: Resource  # Use Resource as a base class instead of GameState
 var factions: Array[Dictionary] = []
 var faction_data: Dictionary
 
-func _init(_game_state: GameState) -> void:
+func _init(_game_state: Resource) -> void:  # Change parameter type to Resource
 	game_state = _game_state
 	load_faction_data()
 

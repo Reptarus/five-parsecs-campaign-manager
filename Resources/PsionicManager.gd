@@ -132,7 +132,7 @@ func evaluate_psionic_action(character, power: String, target) -> float:
 
 	return score
 
-func check_psionic_legality(_world: World) -> String:
+func check_psionic_legality(_world) -> String:
 	var roll = randi() % 100 + 1
 	if roll <= 25:
 		return "Outlawed"

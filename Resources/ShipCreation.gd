@@ -1,51 +1,41 @@
 # ShipCreation.gd
 class_name ShipCreation
-extends Node
+extends Resource
 
 class ShieldComponent extends ShipComponent:
-	var shield_strength: int
-	func _init(p_name: String, p_description: String, p_power_usage: int, p_health: int, p_shield_strength: int):
-		super._init(p_name, p_description, ShipComponent.ComponentType.SHIELDS, p_power_usage, p_health)
+	@export var shield_strength: int
+	
+	func _init(p_name: String = "", p_description: String = "", p_power_usage: int = 0, p_health: int = 0, p_shield_strength: int = 0):
+		super._init(p_name, p_description, GlobalEnums.ComponentType.SHIELDS, p_power_usage, p_health)
 		shield_strength = p_shield_strength
 
 class CargoHoldComponent extends ShipComponent:
-	var capacity: int
-	func _init(p_name: String, p_description: String, p_power_usage: int, p_health: int, p_capacity: int):
-		super._init(p_name, p_description, ShipComponent.ComponentType.CARGO_HOLD, p_power_usage, p_health)
+	@export var capacity: int
+	
+	func _init(p_name: String = "", p_description: String = "", p_power_usage: int = 0, p_health: int = 0, p_capacity: int = 0):
+		super._init(p_name, p_description, GlobalEnums.ComponentType.CARGO_HOLD, p_power_usage, p_health)
 		capacity = p_capacity
 
 class DropPodComponent extends ShipComponent:
-	var pod_count: int
-	func _init(p_name: String, p_description: String, p_power_usage: int, p_health: int, p_pod_count: int):
-		super._init(p_name, p_description, ShipComponent.ComponentType.DROP_PODS, p_power_usage, p_health)
+	@export var pod_count: int
+	
+	func _init(p_name: String = "", p_description: String = "", p_power_usage: int = 0, p_health: int = 0, p_pod_count: int = 0):
+		super._init(p_name, p_description, GlobalEnums.ComponentType.DROP_POD, p_power_usage, p_health)
 		pod_count = p_pod_count
 
 class ShuttleComponent extends ShipComponent:
-	var passenger_capacity: int
-	func _init(p_name: String, p_description: String, p_power_usage: int, p_health: int, p_passenger_capacity: int):
-		super._init(p_name, p_description, ShipComponent.ComponentType.SHUTTLE, p_power_usage, p_health)
+	@export var passenger_capacity: int
+	
+	func _init(p_name: String = "", p_description: String = "", p_power_usage: int = 0, p_health: int = 0, p_passenger_capacity: int = 0):
+		super._init(p_name, p_description, GlobalEnums.ComponentType.SHUTTLE_BAY, p_power_usage, p_health)
 		passenger_capacity = p_passenger_capacity
 
 const BASE_SHIP_POWER: int = 100
 const BASE_SHIP_COST: int = 1000
 
-var game_state: GameState
-var ship_components: Dictionary
+var ship_components: Dictionary = {}
 
-@onready var hull_option: OptionButton = $VBoxContainer/ComponentsContainer/HullOption
-@onready var engine_option: OptionButton = $VBoxContainer/ComponentsContainer/EngineOption
-@onready var weapon_option: OptionButton = $VBoxContainer/ComponentsContainer/WeaponOption
-@onready var medical_option: OptionButton = $VBoxContainer/ComponentsContainer/MedicalOption
-@onready var shield_option: OptionButton = $VBoxContainer/ComponentsContainer/ShieldOption
-@onready var cargo_option: OptionButton = $VBoxContainer/ComponentsContainer/CargoOption
-@onready var drop_pod_option: OptionButton = $VBoxContainer/ComponentsContainer/DropPodOption
-@onready var shuttle_option: OptionButton = $VBoxContainer/ComponentsContainer/ShuttleOption
-@onready var ship_info_label: Label = $VBoxContainer/ShipInfoLabel
-@onready var create_ship_button: Button = $VBoxContainer/CreateShipButton
-@onready var back_button: Button = $VBoxContainer/BackButton
-
-func _init(_game_state: GameState):
-	game_state = _game_state
+func _init():
 	load_ship_components()
 
 func load_ship_components() -> void:
@@ -55,46 +45,12 @@ func load_ship_components() -> void:
 	if error == OK:
 		ship_components = json.data
 	else:
-		print("JSON Parse Error: ", json.get_error_message())
+		push_error("JSON Parse Error: " + json.get_error_message())
 
 func create_component_from_data(component_data: Dictionary) -> ShipComponent:
-	match component_data.id.split("_")[0]:
-		"basic", "reinforced", "hull":
-			return HullComponent.new(
-				component_data.name,
-				component_data.description,
-				component_data.power_usage,
-				component_data.health,
-				component_data.armor
-			)
-		"standard", "advanced", "engine":
-			return EngineComponent.new(
-				component_data.name,
-				component_data.description,
-				component_data.power_usage,
-				component_data.health,
-				component_data.speed,
-				component_data.fuel_efficiency
-			)
-		"laser", "missile", "weapon":
-			return WeaponsComponent.new(
-				component_data.name,
-				component_data.description,
-				component_data.power_usage,
-				component_data.health,
-				component_data.damage,
-				component_data.range,
-				component_data.accuracy
-			)
-		"basic_med", "advanced_med", "med":
-			return MedicalBayComponent.new(
-				component_data.name,
-				component_data.description,
-				component_data.power_usage,
-				component_data.health,
-				component_data.healing_capacity
-			)
-		"basic_shield", "advanced_shield", "shield":
+	var component_type = GlobalEnums.ComponentType[component_data.id.split("_")[0].to_upper()]
+	match component_type:
+		GlobalEnums.ComponentType.SHIELDS:
 			return ShieldComponent.new(
 				component_data.name,
 				component_data.description,
@@ -102,7 +58,7 @@ func create_component_from_data(component_data: Dictionary) -> ShipComponent:
 				component_data.health,
 				component_data.shield_strength
 			)
-		"small_cargo", "large_cargo", "cargo":
+		GlobalEnums.ComponentType.CARGO_HOLD:
 			return CargoHoldComponent.new(
 				component_data.name,
 				component_data.description,
@@ -110,7 +66,7 @@ func create_component_from_data(component_data: Dictionary) -> ShipComponent:
 				component_data.health,
 				component_data.capacity
 			)
-		"drop_pod":
+		GlobalEnums.ComponentType.DROP_POD:
 			return DropPodComponent.new(
 				component_data.name,
 				component_data.description,
@@ -118,7 +74,7 @@ func create_component_from_data(component_data: Dictionary) -> ShipComponent:
 				component_data.health,
 				component_data.pod_count
 			)
-		"shuttle":
+		GlobalEnums.ComponentType.SHUTTLE_BAY:
 			return ShuttleComponent.new(
 				component_data.name,
 				component_data.description,
@@ -127,5 +83,10 @@ func create_component_from_data(component_data: Dictionary) -> ShipComponent:
 				component_data.passenger_capacity
 			)
 		_:
-			push_error("Unknown component type: " + component_data.id)
-			return null
+			return ShipComponent.new(
+				component_data.name,
+				component_data.description,
+				component_type,
+				component_data.power_usage,
+				component_data.health
+			)

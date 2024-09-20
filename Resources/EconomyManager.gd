@@ -91,10 +91,11 @@ func generate_random_item() -> Equipment:
 		ItemType.GEAR:
 			return generate_random_gear()
 		ItemType.SHIP_COMPONENT:
-			return generate_random_ship_component()
-	
-	push_error("Unexpected item type")
-	return Equipment.new("Generic Item", Equipment.Type.GEAR, 0)
+			var ship_component = generate_random_ship_component()
+			return Equipment.new(ship_component.name, Equipment.Type.COMPONENT, ship_component.power_usage)
+		_:
+			push_error("Unexpected item type")
+			return Equipment.new("Generic Item", Equipment.Type.GEAR, 0)
 
 func generate_random_weapon() -> Weapon:
 	var weapon_types = ["Pistol", "Rifle", "Shotgun", "Heavy Weapon"]
@@ -115,11 +116,30 @@ func generate_random_gear() -> Gear:
 	return Gear.new(gear_name, "A useful piece of equipment", "Utility", 1)
 
 func generate_random_ship_component() -> ShipComponent:
-	var component_types = ["Engine Booster", "Shield Generator", "Weapon System", "Life Support"]
-	var component_name = component_types[randi() % component_types.size()]
+	var component_types = [
+		GlobalEnums.ComponentType.ENGINE,
+		GlobalEnums.ComponentType.SHIELDS,
+		GlobalEnums.ComponentType.WEAPONS,
+		GlobalEnums.ComponentType.MEDICAL_BAY
+	]
+	var component_type = component_types[randi() % component_types.size()]
+	
+	var component_name: String
+	match component_type:
+		GlobalEnums.ComponentType.ENGINE:
+			component_name = "Engine Booster"
+		GlobalEnums.ComponentType.SHIELDS:
+			component_name = "Shield Generator"
+		GlobalEnums.ComponentType.WEAPONS:
+			component_name = "Weapon System"
+		GlobalEnums.ComponentType.MEDICAL_BAY:
+			component_name = "Life Support System"
+		_:
+			component_name = "Generic Component"
+	
 	var power_usage = randi() % 10 + 1
 	var health = randi() % 50 + 50
-	var component_type = ShipComponent.ComponentType.values()[randi() % ShipComponent.ComponentType.size()]
+	
 	return ShipComponent.new(component_name, "A crucial ship component", component_type, power_usage, health)
 
 func calculate_upkeep_cost() -> int:

@@ -15,6 +15,10 @@ extends Resource
 @export var traits: Array[String]
 
 var _trait_dict: Dictionary = {}
+var inventory: ShipInventory
+
+func _init():
+    inventory = ShipInventory.new()
 
 func add_component(component: ShipComponent) -> void:
     components.append(component)
@@ -22,9 +26,10 @@ func add_component(component: ShipComponent) -> void:
 func remove_component(component: ShipComponent) -> void:
     components.erase(component)
 
-func get_component_by_type(type: ShipComponent.ComponentType) -> ShipComponent:
+# Update this method to use the correct enum
+func get_component_by_type(type: GlobalEnums.ComponentType) -> ShipComponent:
     for component in components:
-        if component.type == type:
+        if component.component_type == type:
             return component
     return null
 
@@ -49,7 +54,7 @@ func repair(amount: int) -> void:
 
 func take_damage(amount: int, game_state: GameState) -> void:
     if game_state.is_tutorial_active:
-        amount = max(1, amount / 2)  # Reduce damage in tutorial mode
+        amount = max(1, amount / 2.0)  # Reduce damage in tutorial mode
     current_hull = max(current_hull - amount, 0)
 
 func is_destroyed() -> bool:
@@ -71,21 +76,24 @@ func setup_tutorial_ship() -> void:
     fuel = 5
     debt = 0
     components = [
-        ShipComponent.new("Basic Engine", ShipComponent.ComponentType.ENGINE, 1, 1, false),
-        ShipComponent.new("Basic Laser", ShipComponent.ComponentType.WEAPONS, 1, 1, false)
+        ShipComponent.new("Basic Engine", "A simple engine for tutorial purposes", GlobalEnums.ComponentType.ENGINE, 1, 1),
+        ShipComponent.new("Basic Laser", "A basic laser weapon for tutorial purposes", GlobalEnums.ComponentType.WEAPONS, 1, 1)
     ]
     traits = ["Tutorial"]
 
+# Update serialize and deserialize methods to include inventory
 func serialize() -> Dictionary:
-    return {
+    var data = {
         "name": name,
         "max_hull": max_hull,
         "current_hull": current_hull,
         "fuel": fuel,
         "debt": debt,
         "components": components.map(func(c): return c.serialize()),
-        "traits": traits
+        "traits": traits,
+        "inventory": inventory.serialize()
     }
+    return data
 
 static func deserialize(data: Dictionary) -> Ship:
     var ship = Ship.new()
@@ -96,6 +104,7 @@ static func deserialize(data: Dictionary) -> Ship:
     ship.debt = data["debt"]
     ship.components = data["components"].map(func(c): return ShipComponent.deserialize(c))
     ship.traits = data["traits"]
+    ship.inventory = ShipInventory.deserialize(data["inventory"])
     return ship
 
 func get_total_power_consumption() -> int:
@@ -113,3 +122,16 @@ func get_traits_for_save() -> Array[String]:
 func load_traits_from_save(saved_traits: Array[String]) -> void:
     _trait_dict.clear()
     set_initial_traits(saved_traits)
+
+func get_total_armor() -> int:
+    var total_armor = 0
+    for component in components:
+        if component is HullComponent:
+            total_armor += component.armor
+    return total_armor
+
+func get_total_weight() -> float:
+    var total_weight = 0.0
+    for component in components:
+        total_weight += component.weight
+    return total_weight

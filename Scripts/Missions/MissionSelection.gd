@@ -1,6 +1,7 @@
 # MissionSelection.gd
 extends Control
 
+## Emitted when a mission is selected. Connected externally.
 signal mission_selected(mission)
 
 @onready var mission_list: ItemList = $Panel/VBoxContainer/MissionList

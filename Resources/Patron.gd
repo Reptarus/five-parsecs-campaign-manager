@@ -28,7 +28,7 @@ func change_relationship(amount: int):
 func serialize() -> Dictionary:
 	return {
 		"name": name,
-		"location": {"data": location.serialize()} if location else null,
+		"location": location.serialize() as Variant if location else null,
 		"relationship": relationship,
 		"missions": missions.map(func(m): return m.serialize()),
 		"type": Type.keys()[type],

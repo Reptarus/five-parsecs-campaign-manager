@@ -175,7 +175,7 @@ func generate_expanded_mission_aftermath(mission: Mission) -> Dictionary:
 func _update_quest_progression(mission: Mission) -> Dictionary:
     return game_state.expanded_quest_progression_manager.update_quest_stage(mission.quest_progression)
 
-func _generate_new_connections(mission: Mission) -> Array:
+func _generate_new_connections(_mission: Mission) -> Array:
     var connections = []
     if randf() < 0.3:
         connections.append({
@@ -260,7 +260,7 @@ func serialize_mission(mission: Mission) -> Dictionary:
         "quest_progression": mission.quest_progression
     }
 
-static func deserialize_mission(data: Dictionary, game_state: GameState) -> Mission:
+static func deserialize_mission(data: Dictionary, _gs: GameState) -> Mission:
     var mission = Mission.new()
     mission.type = data.type
     mission.objective = data.objective
@@ -268,7 +268,7 @@ static func deserialize_mission(data: Dictionary, game_state: GameState) -> Miss
     mission.difficulty = data.difficulty
     mission.rewards = data.rewards
     mission.special_rules = data.special_rules
-    mission.faction = game_state.expanded_faction_manager.deserialize_faction(data.faction)
+    mission.faction = _gs.expanded_faction_manager.deserialize_faction(data.faction)
     mission.quest_progression = data.quest_progression
     return mission
 

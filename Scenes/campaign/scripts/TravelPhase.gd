@@ -18,7 +18,7 @@ func _ready():
 	$MarginContainer/VBoxContainer/BackButton.connect("pressed", Callable(self, "_on_back_pressed"))
 
 func _on_stay_pressed():
-	get_node("/root/Main").load_scene("res://scenes/campaign/World.tscn")
+	get_node("/root/Main").load_scene("res://scenes/campaign/GameWorld.tscn")
 
 func _on_travel_pressed():
 	if game_state.current_crew.ship.hull_damage > 0:
@@ -35,7 +35,7 @@ func _on_travel_pressed():
 	var event = starship_travel_events.generate_travel_event()
 	_handle_travel_event(event)
 	game_state.generate_new_world()
-	get_node("/root/Main").load_scene("res://scenes/campaign/World.tscn")
+	get_node("/root/Main").load_scene("res://scenes/campaign/GameWorld.tscn")
 
 func _on_back_pressed():
 	get_node("/root/Main").load_scene("res://scenes/campaign/CampaignDashboard.tscn")
@@ -88,7 +88,7 @@ func check_for_licensing_requirement():
 	var roll = randi() % 6 + 1
 	if roll >= 5:
 		var license_cost = randi() % 6 + 1
-		game_state.current_world.set_license_requirement(license_cost)
+		game_state.current_location.set_license_requirement(license_cost)
 		print("This world requires a Freelancer License. Cost: " + str(license_cost) + " credits.")
 	else:
 		print("No license required on this world.")
@@ -97,7 +97,7 @@ func attempt_forged_license():
 	var roll = randi() % 6 + 1 + game_state.current_crew.get_best_savvy()
 	if roll >= 6:
 		print("Successfully obtained a forged license!")
-		game_state.current_world.set_license_obtained()
+		game_state.current_location.set_license_obtained()
 	elif roll == 1:
 		print("Attempt to forge license failed. Gained a new Rival.")
 		var new_rival = Rival.new("License Forger", game_state.current_location)  # Create a new Rival instance
@@ -110,7 +110,7 @@ func generate_world_traits():
 	for world_trait in world_traits:
 		print("World trait: " + world_trait.name)
 		print(world_trait.effect)
-		game_state.current_world.add_trait(world_trait)
+		game_state.current_location.add_trait(world_trait)
 
 func start_phase():
 	# Initialize travel phase logic here

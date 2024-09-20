@@ -1,7 +1,7 @@
 # RulesDisplay.gd
 extends Control
 
-signal back_pressed
+# signal back_pressed
 
 @onready var title_label = $VBoxContainer/TitleLabel
 @onready var content_text = $VBoxContainer/ContentText
@@ -81,5 +81,4 @@ func _on_related_rule_pressed(rule: String):
 	rules_reference.show_rules_display(rule)
 
 func _on_back_pressed():
-	emit_signal("back_pressed")
 	queue_free()

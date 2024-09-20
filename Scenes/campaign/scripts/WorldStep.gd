@@ -3,7 +3,8 @@ extends Node
 
 var game_state: GameState
 
-signal mission_selection_requested(available_missions)
+signal mission_selection_requested(available_missions: Array)
+signal phase_completed
 
 func _init(_game_state: GameState) -> void:
 	game_state = _game_state
@@ -169,11 +170,10 @@ func resolve_rumors() -> void:
 func choose_battle() -> void:
 	var available_missions = game_state.available_missions
 	if available_missions.size() > 0:
-		# Instead of choosing randomly, we'll emit a signal to open the mission selection screen
-		emit_signal("mission_selection_requested", available_missions)
+		mission_selection_requested.emit(available_missions)
 	else:
 		print("No available missions. Generating a random encounter.")
 		var random_encounter = game_state.mission_generator.generate_random_encounter()
 		game_state.current_mission = random_encounter
 		print("Random encounter generated: %s" % random_encounter.title)
-		emit_signal("phase_completed")
+		phase_completed.emit()
