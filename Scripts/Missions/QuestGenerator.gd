@@ -5,6 +5,10 @@ enum QuestType { EXPLORATION, RESCUE, RETRIEVAL, ELIMINATION, DIPLOMACY, PSIONIC
 
 var game_state: GameState
 
+const QuestRumor = preload("res://Scripts/Missions/QuestRumor.gd")
+
+var quest_rumors: Array[QuestRumor] = []
+
 func _init(_game_state: GameState) -> void:
     game_state = _game_state
 
@@ -121,3 +125,22 @@ func generate_quest_rumor(quest: Quest) -> QuestRumor:
     rumor.associated_quest = quest
     
     return rumor
+
+func add_quest_rumor(rumor_type, title, description, difficulty, reward_estimate, expiration_turns):
+    var new_rumor = QuestRumor.new(rumor_type, title, description, difficulty, reward_estimate, expiration_turns)
+    quest_rumors.append(new_rumor)
+
+func remove_quest_rumor(rumor: QuestRumor) -> void:
+    quest_rumors.erase(rumor)
+
+func update_quest_rumors() -> void:
+    quest_rumors = quest_rumors.filter(func(rumor: QuestRumor) -> bool: return not rumor.is_expired(game_state.campaign_manager.current_turn))
+
+func generate_quest_from_rumor(rumor: QuestRumor) -> void:
+    var new_quest = rumor.generate_quest(game_state)
+    if new_quest:
+        game_state.quest_manager.add_quest(new_quest)
+        remove_quest_rumor(rumor)
+
+func discover_quest_rumor(rumor: QuestRumor) -> void:
+    rumor.discover()

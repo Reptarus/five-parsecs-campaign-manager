@@ -33,7 +33,7 @@ func discover():
 func is_expired(current_turn: int) -> bool:
     return current_turn >= expiration_turns
 
-func generate_quest(game_state: GameState) -> Quest:
+func generate_quest(game_state) -> Quest:
     if associated_quest == null:
         var quest_generator = QuestGenerator.new(game_state)
         associated_quest = quest_generator.generate_quest()

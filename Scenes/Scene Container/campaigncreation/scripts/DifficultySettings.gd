@@ -4,8 +4,6 @@ extends Resource
 
 enum DifficultyLevel { TUTORIAL, EASY, NORMAL, HARD, HARDCORE, INSANITY }
 
-const GlobalEnums = preload("res://Resources/GlobalEnums.gd")
-
 @export var level: DifficultyLevel = DifficultyLevel.NORMAL
 @export var enemy_health_multiplier: float = 1.0
 @export var enemy_damage_multiplier: float = 1.0
@@ -71,6 +69,24 @@ func to_dict() -> Dictionary:
 	}
 
 static func from_dict(data: Dictionary) -> DifficultySettings:
+	var settings := DifficultySettings.new()
+	settings.level = DifficultyLevel[data["level"]]
+	settings.enemy_health_multiplier = data["enemy_health_multiplier"]
+	settings.enemy_damage_multiplier = data["enemy_damage_multiplier"]
+	settings.loot_quantity_multiplier = data["loot_quantity_multiplier"]
+	settings.event_frequency = data["event_frequency"]
+	return settings
+
+func serialize() -> Dictionary:
+	return {
+		"level": DifficultyLevel.keys()[level],
+		"enemy_health_multiplier": enemy_health_multiplier,
+		"enemy_damage_multiplier": enemy_damage_multiplier,
+		"loot_quantity_multiplier": loot_quantity_multiplier,
+		"event_frequency": event_frequency
+	}
+
+static func deserialize(data: Dictionary) -> DifficultySettings:
 	var settings := DifficultySettings.new()
 	settings.level = DifficultyLevel[data["level"]]
 	settings.enemy_health_multiplier = data["enemy_health_multiplier"]

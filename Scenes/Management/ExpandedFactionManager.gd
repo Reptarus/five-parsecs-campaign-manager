@@ -1,6 +1,6 @@
 # ExpandedFactionManager.gd
 class_name ExpandedFactionManager
-extends Node
+extends Resource
 
 enum FactionType {
 	CORPORATION,
@@ -22,7 +22,7 @@ var game_state: Resource  # Use Resource as a base class instead of GameState
 var factions: Array[Dictionary] = []
 var faction_data: Dictionary
 
-func _init(_game_state: Resource) -> void:  # Change parameter type to Resource
+func _init(_game_state: Resource = null) -> void:  # Change parameter type to Resource
 	game_state = _game_state
 	load_faction_data()
 

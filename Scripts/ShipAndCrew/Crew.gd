@@ -2,26 +2,27 @@
 class_name Crew
 extends Resource
 
-var characters: Array[Character] = []
-
-@export var name: String
-@export var members: Array = []
+@export var characters: Array[Character] = []
 @export var credits: int = 0
 @export var ship: Ship
 @export var reputation: int = 0
 @export var current_location: Location
+@export var name: String = ""
 
-func _init(_name: String = "", _ship: Ship = null):
-	name = _name
-	ship = _ship
 
-func add_member(character):
-	members.append(character)
+const MIN_CREW_SIZE: int = 3
+const MAX_CREW_SIZE: int = 8
 
-func remove_member(character):
-	members.erase(character)
+# Remove _init function as it's not needed for a Resource
 
-func add_credits(amount: int):
+func add_character(character: Character) -> void:
+	if characters.size() < MAX_CREW_SIZE:
+		characters.append(character)
+
+func remove_character(character: Character) -> void:
+	characters.erase(character)
+
+func add_credits(amount: int) -> void:
 	credits += amount
 
 func remove_credits(amount: int) -> bool:
@@ -30,21 +31,21 @@ func remove_credits(amount: int) -> bool:
 		return true
 	return false
 
-func get_member_count() -> int:
-	return members.size()
+func get_character_count() -> int:
+	return characters.size()
 
 func serialize() -> Dictionary:
 	var serialized_data = {
 		"name": name,
-		"members": [],
+		"characters": [],
 		"credits": credits,
 		"ship": null,
 		"reputation": reputation,
 		"current_location": null
 	}
 	
-	for member in members:
-		serialized_data["members"].append(member.serialize())
+	for character in characters:
+		serialized_data["characters"].append(character.serialize())
 	
 	if ship:
 		serialized_data["ship"] = ship.serialize()
@@ -53,10 +54,10 @@ func serialize() -> Dictionary:
 		serialized_data["current_location"] = current_location.serialize()
 	
 	return serialized_data
-
 static func deserialize(data: Dictionary) -> Crew:
-	var crew = Crew.new(data["name"])
-	crew.members = data["members"].map(func(m): return Character.deserialize(m))
+	var crew = Crew.new()
+	crew.name = data["name"]
+	crew.characters = data["characters"].map(func(c): return Character.deserialize(c))
 	crew.credits = data["credits"]
 	crew.ship = Ship.deserialize(data["ship"]) if data["ship"] else null
 	crew.reputation = data["reputation"]
@@ -64,13 +65,33 @@ static func deserialize(data: Dictionary) -> Crew:
 	return crew
 
 func is_valid() -> bool:
-	return members.size() >= 3 and members.size() <= 8
+	return characters.size() >= MIN_CREW_SIZE and characters.size() <= MAX_CREW_SIZE
 
 func get_size() -> int:
-	return members.size()
+	return characters.size()
 
-func get_member_by_name(member_name: String) -> Character:
-	for member in members:
-		if member.name == member_name:
-			return member
+func get_character_by_name(character_name: String) -> Character:
+	for character in characters:
+		if character.name == character_name:
+			return character
 	return null
+
+func set_ship(new_ship: Ship) -> void:
+	ship = new_ship
+
+func set_current_location(location: Location) -> void:
+	current_location = location
+
+func get_total_skill_level(skill: String) -> int:
+	var total: int = 0
+	for character in characters:
+		total += character.get_skill_level(skill)
+	return total
+
+func get_highest_skill_level(skill: String) -> int:
+	var highest: int = 0
+	for character in characters:
+		var skill_level = character.get_skill_level(skill)
+		if skill_level > highest:
+			highest = skill_level
+	return highest

@@ -2,27 +2,31 @@ extends Control
 
 const DifficultySettingsResource = preload("res://Scenes/Scene Container/campaigncreation/scripts/DifficultySettings.gd")
 
-@onready var crew_name_input = $VBoxContainer/CrewNameInput
-@onready var difficulty_option_button = $VBoxContainer/DifficultyOptionButton
-@onready var victory_condition_button = $VBoxContainer/VictoryConditionButton
-@onready var optional_features_container = $VBoxContainer/OptionalFeaturesContainer
-@onready var start_campaign_button = $VBoxContainer/StartCampaignButton
+@onready var crew_name_input: LineEdit = $VBoxContainer/CrewNameInput
+@onready var difficulty_option_button: OptionButton = $VBoxContainer/DifficultyOptionButton
+@onready var victory_condition_button: Button = $VBoxContainer/VictoryConditionButton
+@onready var optional_features_container: VBoxContainer = $VBoxContainer/OptionalFeaturesContainer
+@onready var start_campaign_button: Button = $VBoxContainer/StartCampaignButton
 
 var game_state: GameState
 var difficulty_settings: DifficultySettingsResource
 
 func _ready():
+	await get_tree().process_frame
+	
 	difficulty_settings = DifficultySettingsResource.new()
 	
-	difficulty_option_button.add_item("Easy", DifficultySettings.DifficultyLevel.EASY)
-	difficulty_option_button.add_item("Normal", DifficultySettings.DifficultyLevel.NORMAL)
-	difficulty_option_button.add_item("Hard", DifficultySettings.DifficultyLevel.HARD)
-	
+	_setup_ui_elements()
 	_setup_optional_features()
-	
-	victory_condition_button.connect("pressed", Callable(self, "_on_victory_condition_button_pressed"))
-	start_campaign_button.connect("pressed", Callable(self, "_on_start_campaign_button_pressed"))
-	difficulty_option_button.connect("item_selected", Callable(self, "_on_difficulty_selected"))
+	_connect_signals()
+
+func _setup_ui_elements():
+	if difficulty_option_button:
+		difficulty_option_button.add_item("Easy", DifficultySettings.DifficultyLevel.EASY)
+		difficulty_option_button.add_item("Normal", DifficultySettings.DifficultyLevel.NORMAL)
+		difficulty_option_button.add_item("Hard", DifficultySettings.DifficultyLevel.HARD)
+	else:
+		push_error("DifficultyOptionButton not found in the scene.")
 
 func _setup_optional_features():
 	var features = [
@@ -49,15 +53,22 @@ func _setup_optional_features():
 		checkbox.text = feature
 		optional_features_container.add_child(checkbox)
 
+func _connect_signals():
+	if difficulty_option_button:
+		difficulty_option_button.item_selected.connect(_on_difficulty_selected)
+	if victory_condition_button:
+		victory_condition_button.pressed.connect(_on_victory_condition_button_pressed)
+	if start_campaign_button:
+		start_campaign_button.pressed.connect(_on_start_campaign_button_pressed)
+
 func _on_victory_condition_button_pressed():
-	# Open VictoryConditionSelection scene
-	var victory_condition_scene = load("res://scenes/VictoryConditionSelection.tscn").instantiate()
-	victory_condition_scene.connect("condition_selected", Callable(self, "_on_victory_condition_selected"))
+	var victory_condition_scene = load("res://Scenes/Scene Container/campaigncreation/scenes/VictoryConditionSelection.tscn").instantiate()
+	victory_condition_scene.condition_selected.connect(_on_victory_condition_selected)
 	add_child(victory_condition_scene)
 
 func _on_victory_condition_selected(condition):
-	game_state.victory_condition = condition
-	victory_condition_button.text = "Victory Condition: " + condition.name
+	game_state.set_victory_condition(condition)
+	victory_condition_button.text = "Victory Condition: " + condition["type"] + " - " + str(condition["value"])
 
 func _on_difficulty_selected(index: int):
 	var difficulty_level = difficulty_option_button.get_item_id(index)
@@ -66,15 +77,14 @@ func _on_difficulty_selected(index: int):
 func _on_start_campaign_button_pressed():
 	if _validate_setup():
 		_apply_settings()
-		# Transition to the main game scene
 		get_tree().change_scene_to_file("res://scenes/MainGameScene.tscn")
 
 func _validate_setup() -> bool:
-	if crew_name_input.text.strip_edges() == "":
-		print("Please enter a crew name.")
+	if crew_name_input.text.strip_edges().is_empty():
+		print_debug("Please enter a crew name.")
 		return false
 	if game_state.victory_condition == null:
-		print("Please select a victory condition.")
+		print_debug("Please select a victory condition.")
 		return false
 	return true
 
@@ -83,39 +93,11 @@ func _apply_settings():
 	game_state.difficulty_settings = difficulty_settings
 	
 	for checkbox in optional_features_container.get_children():
-		match checkbox.text:
-			"Introductory Campaign":
-				game_state.use_introductory_campaign = checkbox.pressed
-			"Loans":
-				game_state.use_loans = checkbox.pressed
-			"Story Track":
-				game_state.use_story_track = checkbox.pressed
-			"Expanded Factions":
-				game_state.use_expanded_factions = checkbox.pressed
-			"Progressive Difficulty":
-				game_state.use_progressive_difficulty = checkbox.pressed
-			"Fringe World Strife":
-				game_state.use_fringe_world_strife = checkbox.pressed
-			"Dramatic Combat":
-				game_state.use_dramatic_combat = checkbox.pressed
-			"Casualty Tables":
-				game_state.use_casualty_tables = checkbox.pressed
-			"Detailed Post-Battle Injuries":
-				game_state.use_detailed_post_battle_injuries = checkbox.pressed
-			"AI Variations":
-				game_state.use_ai_variations = checkbox.pressed
-			"Enemy Deployment Variables":
-				game_state.use_enemy_deployment_variables = checkbox.pressed
-			"Escalating Battles":
-				game_state.use_escalating_battles = checkbox.pressed
-			"Elite-Level Enemies":
-				game_state.use_elite_level_enemies = checkbox.pressed
-			"Expanded Missions":
-				game_state.use_expanded_missions = checkbox.pressed
-			"Expanded Quest Progression":
-				game_state.use_expanded_quest_progression = checkbox.pressed
-			"Expanded Connections":
-				game_state.use_expanded_connections = checkbox.pressed
+		var feature_name = checkbox.text.to_snake_case()
+		if game_state.has("use_" + feature_name):
+			game_state.set("use_" + feature_name, checkbox.button_pressed)
 	
-	# Apply difficulty settings to the game state
 	game_state.apply_difficulty_settings()
+
+func set_game_state(new_game_state):
+	game_state = new_game_state

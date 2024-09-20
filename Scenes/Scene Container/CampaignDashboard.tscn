@@ -1,6 +1,6 @@
 [gd_scene load_steps=3 format=3 uid="uid://da60mmlok38fq"]
 
-[ext_resource type="Script" path="res://scenes/campaign/scripts/CampaignDashboard.gd" id="1_0ikrh"]
+[ext_resource type="Script" path="res://Scenes/campaign/scripts/CampaignDashboard.gd" id="2_fd26x"]
 [ext_resource type="Theme" uid="uid://d1you1rrwuu48" path="res://Scenes/sci_fi_theme.tres" id="2_theme"]
 
 [node name="CampaignDashboard" type="Control"]
@@ -11,7 +11,7 @@ anchor_bottom = 1.0
 grow_horizontal = 2
 grow_vertical = 2
 theme = ExtResource("2_theme")
-script = ExtResource("1_0ikrh")
+script = ExtResource("2_fd26x")
 
 [node name="Background" type="ColorRect" parent="."]
 layout_mode = 1

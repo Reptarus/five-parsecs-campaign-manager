@@ -3,9 +3,11 @@ extends Node
 
 var game_state: GameState
 var generated_world: Dictionary = {}
+var world_generator: WorldGenerator
 
 func _init(_game_state: GameState) -> void:
 	game_state = _game_state
+	world_generator = WorldGenerator.new(game_state)
 
 func generate_world() -> Location:
 	var world_name = generate_world_name()
@@ -65,3 +67,11 @@ func load_world() -> Location:
 				var world_data = json.get_data()
 				return Location.deserialize(world_data)
 	return null
+
+func schedule_world_invasion(game_state: GameState) -> void:
+	var current_location = game_state.get_current_location()
+	var invasion_turns: int = randi() % 3 + 1
+	if current_location:
+		current_location.schedule_invasion(invasion_turns)
+	else:
+		push_error("Failed to schedule invasion: Current location is null")

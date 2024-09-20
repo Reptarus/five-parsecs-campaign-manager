@@ -41,3 +41,6 @@ func _on_select_pressed():
 	var condition_name = condition_list.get_item_text(selected_index)
 	emit_signal("condition_selected", victory_conditions[condition_name])
 	queue_free()
+
+func get_victory_conditions() -> Dictionary:
+	return victory_conditions

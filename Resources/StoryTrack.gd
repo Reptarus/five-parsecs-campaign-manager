@@ -2,6 +2,8 @@
 class_name StoryTrack
 extends Resource
 
+signal event_triggered(event: StoryEvent)
+
 var events: Array[StoryEvent] = []
 var current_event_index: int = -1
 var story_clock: StoryClock
@@ -47,11 +49,10 @@ func trigger_current_event():
     var current_event = events[current_event_index]
     story_clock.set_ticks(current_event.next_event_ticks)
     
-    # Emit a signal or call a method to display the event description
-    # and apply the event effects
+    emit_signal("event_triggered", current_event)
 
-func progress_story(game_state: GameState, battle_won: bool):
-    story_clock.count_down(battle_won)
+func progress_story(game_state: GameState, current_phase: CampaignManager.TurnPhase):
+    story_clock.count_down(current_phase == CampaignManager.TurnPhase.POST_MISSION)
     if story_clock.is_event_triggered():
         current_event_index += 1
         if current_event_index < events.size():
@@ -59,3 +60,17 @@ func progress_story(game_state: GameState, battle_won: bool):
         else:
             # Tutorial completed
             game_state.end_tutorial()
+
+func serialize() -> Dictionary:
+    return {
+        "events": events.map(func(event): return event.serialize()),
+        "current_event_index": current_event_index,
+        "story_clock": story_clock.serialize()
+    }
+
+static func deserialize(data: Dictionary) -> StoryTrack:
+    var story_track = StoryTrack.new()
+    story_track.events = data["events"].map(func(event_data): return StoryEvent.deserialize(event_data))
+    story_track.current_event_index = data["current_event_index"]
+    story_track.story_clock = StoryClock.deserialize(data["story_clock"])
+    return story_track

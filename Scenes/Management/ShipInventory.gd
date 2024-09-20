@@ -77,3 +77,16 @@ func get_item_by_id(item_id: String) -> Gear:
 		if item.id == item_id:
 			return item
 	return null
+
+func get_items() -> Array[Gear]:
+	return items
+
+func sort_items(sort_type: String) -> void:
+	match sort_type:
+		"name":
+			items.sort_custom(func(a, b): return a.name < b.name)
+		"weight":
+			items.sort_custom(func(a, b): return a.weight < b.weight)
+		"value":
+			items.sort_custom(func(a, b): return a.value < b.value)
+		# Add more sorting options as needed

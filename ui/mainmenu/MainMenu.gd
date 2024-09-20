@@ -69,7 +69,25 @@ func _on_continue_pressed():
 		_show_not_implemented_message("No saved game found")
 
 func _on_new_campaign_pressed():
-	get_tree().change_scene_to_file("res://Scenes/Management/Scenes/NewCampaignFlow.tscn")
+	# Instead of directly changing the scene, let's use a deferred call
+	call_deferred("_change_to_new_campaign_scene")
+
+func _change_to_new_campaign_scene():
+	# Load the scene
+	var campaign_setup_scene = load("res://Scenes/Scene Container/campaigncreation/scenes/CampaignSetupScreen.tscn").instantiate()
+	
+	# Ensure the game_state is passed to the new scene if needed
+	if campaign_setup_scene.has_method("set_game_state"):
+		campaign_setup_scene.set_game_state(game_state)
+	
+	# Remove the current scene
+	get_tree().current_scene.queue_free()
+	
+	# Add the new scene to the tree
+	get_tree().root.add_child(campaign_setup_scene)
+	
+	# Set it as the current scene
+	get_tree().current_scene = campaign_setup_scene
 
 func _on_coop_campaign_pressed():
 	_show_not_implemented_message("Co-op Campaign (Work in Progress)")

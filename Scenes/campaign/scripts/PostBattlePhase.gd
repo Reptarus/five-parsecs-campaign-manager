@@ -3,6 +3,7 @@ class_name PostBattlePhase
 extends Node
 
 var game_state: GameState
+var galactic_war_manager: GalacticWarManager
 
 @onready var resolve_outcomes_button: Button = $MarginContainer/VBoxContainer/ResolveOutcomesButton
 @onready var distribute_rewards_button: Button = $MarginContainer/VBoxContainer/DistributeRewardsButton
@@ -11,6 +12,7 @@ var game_state: GameState
 
 func _init(_game_state: GameState) -> void:
 	game_state = _game_state
+	galactic_war_manager = GalacticWarManager.new(game_state)
 
 func _ready() -> void:
 	resolve_outcomes_button.pressed.connect(_on_resolve_outcomes_pressed)
@@ -46,245 +48,262 @@ func execute_post_battle_sequence() -> void:
 	resolve_rival_status()
 	resolve_patron_status()
 	determine_quest_progress()
-	get_paid()
-	battlefield_finds()
-	check_for_invasion()
-	gather_loot()
-	determine_injuries_and_recovery()
-	experience_and_character_upgrades()
-	invest_in_advanced_training()
-	purchase_items()
-	roll_for_campaign_event()
-	roll_for_character_event()
+	process_battle_rewards()
+	handle_injuries_and_experience()
+	roll_for_events()
 	check_for_galactic_war_progress()
 	create_logbook_entry()
 
-func resolve_rival_status() -> void:
-	var battle: Battle = game_state.current_battle
-	if battle.held_field and not battle.opponent.is_rival:
-		if randi() % 6 + 1 == 1:
-			var new_rival = Rival.new(battle.opponent.name, battle.opponent.location)
-			# Copy relevant data from battle.opponent to new_rival
-			new_rival.copy_data_from(battle.opponent)
-			game_state.add_rival(new_rival)
-	elif battle.held_field and battle.opponent.is_rival:
-		var roll: int = randi() % 6 + 1
-		roll += 1 if game_state.tracked_rival else 0
-		roll += 1 if battle.killed_unique_individual else 0
-		if roll >= 4:
-			# Find the corresponding Rival object in the game state
-			var rival_to_remove = game_state.find_rival_by_name(battle.opponent.name)
-			if rival_to_remove:
-				game_state.remove_rival(rival_to_remove)
+func get_paid() -> void:
+	var mission_payout = calculate_mission_payout()
+	game_state.credits += mission_payout
+	print("Mission payout: " + str(mission_payout) + " credits")
 
-func resolve_patron_status():
-	if game_state.current_mission and game_state.current_mission.patron:
-		if game_state.current_battle.objective_completed:
-			game_state.add_patron_contact(game_state.current_mission.patron)
-			print("Mission successful! Patron added to contacts.")
-		else:
-			print("Mission failed. Patron relationship unchanged.")
+func battlefield_finds() -> void:
+	var finds = generate_battlefield_finds()
+	for item in finds:
+		game_state.current_ship.inventory.add_item(item)
+	print("Battlefield finds: " + str(finds.size()) + " items discovered")
 
-func determine_quest_progress():
-	if game_state.current_quest:
-		var roll = randi() % 6 + 1
-		roll += game_state.quest_rumors.size()
-		roll -= 2 if not game_state.current_battle.objective_completed else 0
+func gather_loot() -> void:
+	var loot = generate_loot()
+	for item in loot:
+		game_state.current_ship.inventory.add_item(item)
+	print("Loot gathered: " + str(loot.size()) + " items acquired")
 
-		if roll <= 3:
-			print("Quest progress: Dead end.")
-		elif roll <= 6:
-			game_state.add_quest_rumor()
-			print("Quest progress: A step closer.")
-		else:
-			print("Quest progress: Final stage reached!")
-			game_state.set_quest_final_stage()
-
-		if roll >= 4:
-			if randi() % 6 + 1 >= 5:
-				print("Next quest step is on another world.")
-				game_state.set_quest_next_world()
-
-func get_paid():
-	var payment = randi() % 6 + 1
-	if game_state.current_quest and game_state.current_quest.is_final_stage:
-		payment = max(randi() % 6 + 1, randi() % 6 + 1) + 1
-
-	if game_state.current_battle.objective_completed:
-		payment = max(payment, 3)
-
-	if game_state.current_mission and game_state.current_mission.patron:
-		payment += game_state.current_mission.danger_pay
-
-	game_state.add_credits(payment)
-	print("Payment received: %d credits" % payment)
-
-func battlefield_finds():
-	if game_state.current_battle.held_field:
-		var roll = randi() % 100 + 1
-		var find = get_battlefield_find(roll)
-		print("Battlefield find: %s" % find)
-		apply_battlefield_find(find)
-
-func get_battlefield_find(roll: int) -> String:
-	if roll <= 15:
-		return "Weapon"
-	elif roll <= 25:
-		return "Usable goods"
-	elif roll <= 35:
-		return "Curious data stick"
-	elif roll <= 45:
-		return "Starship part"
-	elif roll <= 60:
-		return "Personal trinket"
-	elif roll <= 75:
-		return "Debris"
-	elif roll <= 90:
-		return "Vital info"
-	else:
-		return "Nothing of value"
-
-func apply_battlefield_find(find: String):
-	match find:
-		"Weapon":
-			var weapon = game_state.current_battle.get_random_enemy_weapon()
-			game_state.add_to_inventory(weapon)
-		"Usable goods":
-			var consumable = game_state.loot_generator.generate_random_consumable()
-			game_state.add_to_inventory(consumable)
-		"Curious data stick", "Vital info":
-			game_state.add_quest_rumor()
-		"Starship part":
-			game_state.add_ship_part(2)
-		"Personal trinket":
-			game_state.add_personal_trinket()
-		"Debris":
-			# No action needed
-			pass
-
-func check_for_invasion():
-	if randi() % 6 + 1 == 1:
-		var planet = game_state.get_random_planet()
-		game_state.add_invaded_planet(planet)
-		print("%s has been invaded!" % planet.name)
-
-func gather_loot():
-	var loot = game_state.loot_generator.generate_loot()
-	game_state.add_to_inventory(loot)
-	print("Loot gathered: %s" % loot.name)
-
-	if game_state.current_quest and game_state.current_quest.is_final_stage:
-		for i in range(2):
-			loot = game_state.loot_generator.generate_loot()
-			game_state.add_to_inventory(loot)
-			print("Additional quest loot: %s" % loot.name)
-
-func determine_injuries_and_recovery():
+func determine_injuries_and_recovery() -> void:
 	for character in game_state.current_crew.members:
-		if character.became_casualty:
-			var injury = roll_on_injury_table(character)
+		var injury = calculate_injury(character)
+		if injury:
 			apply_injury(character, injury)
+		var recovery_time = calculate_recovery_time(character)
+		set_recovery_time(character, recovery_time)
+	print("Injuries and recovery times determined for the crew")
 
-func roll_on_injury_table(character) -> String:
-	var roll = randi() % 100 + 1
-	if character.is_bot():
-		return roll_on_bot_injury_table(roll)
-	else:
-		return roll_on_human_injury_table(roll)
-
-func roll_on_human_injury_table(roll: int) -> String:
-	if roll <= 15:
-		return "Minor Injury"
-	elif roll <= 30:
-		return "Moderate Injury"
-	elif roll <= 45:
-		return "Severe Injury"
-	elif roll <= 60:
-		return "Critical Injury"
-	elif roll <= 75:
-		return "Permanent Injury"
-	elif roll <= 90:
-		return "Psychological Trauma"
-	elif roll <= 100:
-		return "Near-Death Experience"
-	return "No Injury" # Fallback, should never reach this
-
-func roll_on_bot_injury_table(roll: int) -> String:
-	if roll <= 20:
-		return "Minor Damage"
-	elif roll <= 40:
-		return "Moderate Damage"
-	elif roll <= 60:
-		return "Severe Damage"
-	elif roll <= 80:
-		return "Critical System Failure"
-	elif roll <= 95:
-		return "Core Processor Damage"
-	elif roll <= 100:
-		return "Total Shutdown"
-	return "No Damage" # Fallback, should never reach this
-
-func apply_injury(character, injury: String):
-	character.apply_injury(injury)
-	print("%s suffered injury: %s" % [character.name, injury])
-
-func experience_and_character_upgrades():
+func experience_and_character_upgrades() -> void:
 	for character in game_state.current_crew.members:
-		if character.became_casualty:
-			character.add_xp(1)
-		if character.killed_unique_individual:
-			character.add_xp(1)
-		character.apply_experience_upgrades()
+		var xp_gained = calculate_experience_gain(character)
+		character.add_experience(xp_gained)
+		if character.can_level_up():
+			character.level_up()
+	print("Experience awarded and character upgrades applied")
 
-func invest_in_advanced_training():
-	# This would typically be handled through user input in the UI
-	pass
+func resolve_rival_status() -> void:
+	for rival in game_state.rivals:
+		if rival.location == game_state.current_location:
+			if game_state.last_mission_results == "victory":
+				rival.decrease_strength()
+				rival.change_hostility(-10)
+			else:
+				rival.increase_strength()
+				rival.change_hostility(10)
+			rival.calculate_economic_impact()
 
-func purchase_items():
-	# This would typically be handled through user input in the UI
-	pass
+func resolve_patron_status() -> void:
+	for patron in game_state.patrons:
+		if patron.location == game_state.current_location:
+			if game_state.last_mission_results == "victory":
+				patron.change_relationship(5)
+				if game_state.patron_job_manager.should_generate_job(patron):
+					var new_job = game_state.mission_generator.generate_missions(game_state)[0]
+					new_job.set_type(Mission.Type.PATRON)
+					new_job.set_patron(patron)
+					patron.add_mission(new_job)
+					game_state.available_missions.append(new_job)
+			else:
+				patron.change_relationship(-5)
+			
+			patron.economic_influence *= 1.05 if game_state.last_mission_results == "victory" else 0.95
+			patron.economic_influence = clamp(patron.economic_influence, 0.5, 2.0)
 
-func roll_for_campaign_event():
-	var event = game_state.campaign_event_generator.generate_event()
-	apply_campaign_event(event)
+func determine_quest_progress() -> void:
+	for quest in game_state.active_quests:
+		if "defeat_enemies" in quest.current_requirements:
+			quest.progress["enemies_defeated"] += game_state.enemies_defeated_count
+		elif "survive_battles" in quest.current_requirements:
+			quest.progress["battles_survived"] += 1
 
-func roll_for_character_event():
-	var character = game_state.current_crew.get_random_member()
-	var event = game_state.character_event_generator.generate_event(character)
-	apply_character_event(character, event)
+func process_battle_rewards() -> void:
+	var rewards = calculate_rewards()
+	game_state.credits += rewards.credits
+	for item in rewards.items:
+		game_state.current_ship.inventory.add_item(item)
+	game_state.reputation += rewards.reputation
+	
+	if game_state.last_mission_results == "victory":
+		game_state.story_points += 1
 
-func check_for_galactic_war_progress():
-	for planet in game_state.invaded_planets:
-		var roll = randi() % 6 + 1 + randi() % 6 + 1
-		match roll:
-			2, 3, 4:
-				print("%s lost to Unity" % planet.name)
-				game_state.remove_invaded_planet(planet)
-			5, 6, 7:
-				print("%s remains contested" % planet.name)
-			8, 9:
-				print("%s: Unity making ground" % planet.name)
-				planet.unity_progress += 1
-			10, 11, 12:
-				print("Unity victorious on %s!" % planet.name)
-				game_state.remove_invaded_planet(planet)
-				planet.add_troop_presence()
+func handle_injuries_and_experience() -> void:
+	for character in game_state.current_crew.members:
+		apply_injuries(character)
+		grant_experience(character)
+		
+		if character.has_psionic_abilities:
+			var psi_roll = randi() % 100 + 1
+			if psi_roll <= 10:
+				character.advance_psionic_ability()
 
-func apply_campaign_event(event: Dictionary):
-	print("Applying campaign event: %s" % event.name)
-	event.action.call()
+func roll_for_events() -> void:
+	var event = generate_random_event()
+	if event:
+		apply_event_effects(event)
+	
+	var rumor_roll = randi() % 100 + 1
+	if rumor_roll <= 20:
+		var new_rumor = game_state.mission_generator.generate_missions(game_state)[0]
+		game_state.available_missions.append(new_rumor)
 
-func apply_character_event(character, event: Dictionary):
-	print("Applying character event for %s: %s" % [character.name, event.name])
-	event.action.call(character)
+func check_for_galactic_war_progress() -> void:
+	galactic_war_manager.post_battle_update(game_state.last_mission_results)
 
-func create_logbook_entry():
-	var campaign_data = {
-		"location": game_state.current_location,
-		"crew": game_state.current_crew.members,
-		"credits": game_state.credits,
-		"mission_result": game_state.current_battle.objective_completed,
-		"loot": game_state.last_loot,
-		"events": game_state.last_events
+func create_logbook_entry() -> void:
+	var entry = generate_logbook_entry()
+	game_state.add_logbook_entry(entry)
+	
+	game_state.campaign_turn += 1
+	
+	check_campaign_milestones()
+
+# Helper functions
+
+func calculate_rewards() -> Dictionary:
+	var rewards = {
+		"credits": 0,
+		"items": [],
+		"reputation": 0
 	}
-	game_state.logbook.create_new_entry(campaign_data)
+	
+	rewards.credits = randi_range(100, 1000) * game_state.difficulty_settings.battle_difficulty
+	
+	var possible_items = ["Medkit", "Shield Generator", "Weapon Upgrade"]
+	for i in range(randi_range(1, 3)):
+		rewards.items.append(possible_items[randi() % possible_items.size()])
+	
+	rewards.reputation = randi_range(1, 5) * game_state.difficulty_settings.battle_difficulty
+	
+	return rewards
+
+func apply_injuries(character: Character) -> void:
+	var injury_chance = 0.1 + (1.0 - character.health / character.max_health) * 0.2
+	if randf() < injury_chance:
+		var possible_injuries = ["Minor Wound", "Broken Bone", "Concussion"]
+		var injury = possible_injuries[randi() % possible_injuries.size()]
+		character.apply_injury(injury)
+
+func grant_experience(character: Character) -> void:
+	var base_xp = 50
+	var performance_multiplier = 1.0 + (character.kills * 0.1)
+	var xp_gained = int(base_xp * performance_multiplier * game_state.difficulty_settings.battle_difficulty)
+	character.add_experience(xp_gained)
+
+func generate_random_event() -> Dictionary:
+	var possible_events = [
+		{
+			"name": "Unexpected Ally",
+			"description": "A former enemy decides to join your crew.",
+			"effect": func(): game_state.current_crew.add_member(Character.new())
+		},
+		{
+			"name": "Equipment Malfunction",
+			"description": "One of your ship's systems malfunctions.",
+			"effect": func(): game_state.current_ship.damage_random_system()
+		},
+		{
+			"name": "Valuable Intel",
+			"description": "You discover valuable information about your next mission.",
+			"effect": func(): game_state.mission_generator.reveal_mission_info(game_state.available_missions[0])
+		}
+	]
+	return possible_events[randi() % possible_events.size()]
+
+func apply_event_effects(event: Dictionary) -> void:
+	print(event.description)
+	event.effect.call()
+
+func generate_logbook_entry() -> String:
+	var entry = "Battle Report - {date}\n\n".format({"date": Time.get_date_string_from_system()})
+	entry += "Location: {location}\n".format({"location": game_state.current_location.name})
+	entry += "Outcome: {outcome}\n".format({"outcome": game_state.last_mission_results})
+	entry += "Casualties: {casualties}\n".format({"casualties": game_state.enemies_defeated_count})
+	entry += "Notable events:\n"
+	for event in game_state.current_mission.events:
+		entry += "- " + event + "\n"
+	return entry
+
+func calculate_mission_payout() -> int:
+	var base_payout = 500
+	var difficulty_multiplier = game_state.difficulty_settings.battle_difficulty * 0.5
+	var performance_bonus = 200 if game_state.last_mission_results == "victory" else 0
+	var casualties_penalty = game_state.enemies_defeated_count * -50
+	return int(base_payout + (base_payout * difficulty_multiplier) + performance_bonus + casualties_penalty)
+
+func generate_battlefield_finds() -> Array:
+	var finds = []
+	var possible_finds = ["Ammo Cache", "Medical Supplies", "Scrap Metal", "Alien Artifact", "Abandoned Equipment"]
+	var num_finds = randi() % 3 + 1
+	for _i in range(num_finds):
+		finds.append(possible_finds[randi() % possible_finds.size()])
+	return finds
+
+func generate_loot() -> Array:
+	var loot = []
+	var possible_loot = ["Credits", "Weapon", "Armor", "Cybernetic", "Ship Part"]
+	var num_loot = randi() % 4 + 2
+	for _i in range(num_loot):
+		loot.append(possible_loot[randi() % possible_loot.size()])
+	return loot
+
+func calculate_injury(character: Character) -> String:
+	var injury_chance = 0.1 + (1.0 - character.health / character.max_health) * 0.2
+	if randf() < injury_chance:
+		var possible_injuries = ["Minor Wound", "Broken Bone", "Concussion", "Severe Burn", "Internal Injury"]
+		return possible_injuries[randi() % possible_injuries.size()]
+	return ""
+
+func apply_injury(character: Character, injury: String) -> void:
+	character.add_injury(injury)
+	match injury:
+		"Minor Wound":
+			character.health -= 10
+		"Broken Bone":
+			character.health -= 20
+			character.movement_speed *= 0.8
+		"Concussion":
+			character.health -= 15
+			character.accuracy *= 0.9
+		"Severe Burn":
+			character.health -= 25
+			character.defense *= 0.9
+		"Internal Injury":
+			character.health -= 30
+			character.stamina *= 0.8
+
+func calculate_recovery_time(character: Character) -> int:
+	var base_recovery_time = 3
+	for injury in character.injuries:
+		match injury:
+			"Minor Wound":
+				base_recovery_time += 1
+			"Broken Bone":
+				base_recovery_time += 5
+			"Concussion":
+				base_recovery_time += 3
+			"Severe Burn":
+				base_recovery_time += 4
+			"Internal Injury":
+				base_recovery_time += 7
+	return base_recovery_time
+
+func set_recovery_time(character: Character, recovery_time: int) -> void:
+	character.set_recovery_time(recovery_time)
+
+func calculate_experience_gain(character: Character) -> int:
+	var base_xp = 50
+	var performance_multiplier = 1.0 + (character.kills * 0.1)
+	var difficulty_bonus = game_state.difficulty_settings.battle_difficulty * 20
+	var survival_bonus = 25 if character.health > 0 else 0
+	return int(base_xp * performance_multiplier + difficulty_bonus + survival_bonus)
+
+func check_campaign_milestones():
+	# Implement milestone checking logic here
+	pass

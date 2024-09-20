@@ -9,7 +9,7 @@ var battle_setup: Dictionary
 var rewards: Dictionary
 var next_event_ticks: int
 
-func _init(data: Dictionary):
+func _init(data: Dictionary = {}):
     event_id = data.get("event_id", "")
     description = data.get("description", "")
     campaign_turn_modifications = data.get("campaign_turn_modifications", {})
@@ -34,3 +34,16 @@ func apply_rewards(game_state: GameState):
     for key in rewards:
         if game_state.has_method(key):
             game_state.call(key, rewards[key])
+
+func serialize() -> Dictionary:
+    return {
+        "event_id": event_id,
+        "description": description,
+        "campaign_turn_modifications": campaign_turn_modifications,
+        "battle_setup": battle_setup,
+        "rewards": rewards,
+        "next_event_ticks": next_event_ticks
+    }
+
+static func deserialize(data: Dictionary) -> StoryEvent:
+    return StoryEvent.new(data)

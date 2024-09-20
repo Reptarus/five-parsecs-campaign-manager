@@ -12,3 +12,13 @@ func count_down(won_mission: bool):
 
 func is_event_triggered() -> bool:
     return ticks <= 0
+
+func serialize() -> Dictionary:
+    return {
+        "ticks": ticks
+    }
+
+static func deserialize(data: Dictionary) -> StoryClock:
+    var clock = StoryClock.new()
+    clock.set_ticks(data.get("ticks", 0))
+    return clock

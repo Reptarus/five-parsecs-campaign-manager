@@ -7,26 +7,28 @@ var expanded_missions_manager: ExpandedMissionsManager
 
 const MissionType = preload("res://Scripts/Missions/Mission.gd").Type
 
-func initialize(new_game_state: GameState):
+func initialize(new_game_state: GameState) -> void:
 	self.game_state = new_game_state
 	print("MissionGenerator initializing...")
 	
 	mission_types = []
 	for key in Mission.Type.keys():
-		mission_types.append(Mission.Type.find_key(Mission.Type[key]))
+		mission_types.append(key)
 	
 	_load_mission_data()
 	
+	expanded_missions_manager = ExpandedMissionsManager.new(game_state)
+	
 	print("MissionGenerator initialized successfully")
 
-func _load_mission_data():
+func _load_mission_data() -> void:
 	var mission_data_file = "res://Data/mission_data.json"
 	if FileAccess.file_exists(mission_data_file):
 		var file = FileAccess.open(mission_data_file, FileAccess.READ)
 		var json = JSON.new()
 		var parse_result = json.parse(file.get_as_text())
 		if parse_result == OK:
-			var _mission_data = json.get_data()
+			var mission_data = json.get_data()
 			# Process and store the loaded mission data
 			# For example:
 			# self.mission_templates = mission_data.get("mission_templates", [])
@@ -38,50 +40,49 @@ func _load_mission_data():
 
 func generate_mission() -> Mission:
 	if game_state.is_tutorial_active:
-		return generate_tutorial_mission(game_state.campaign_manager.story_track.current_event)
+		return generate_tutorial_mission()
 	
 	var mission_type = _select_mission_type()
 	
 	match mission_type:
-		MissionType.INFILTRATION:
+		Mission.Type.INFILTRATION:
 			return game_state.stealth_missions_manager.generate_stealth_mission()
-		MissionType.STREET_FIGHT:
+		Mission.Type.STREET_FIGHT:
 			return game_state.street_fights_manager.generate_street_fight()
-		MissionType.SALVAGE_JOB:
+		Mission.Type.SALVAGE_JOB:
 			return game_state.salvage_jobs_manager.generate_salvage_job()
-		MissionType.FRINGE_WORLD_STRIFE:
-			return _generate_fringe_world_strife()
+		Mission.Type.FRINGE_WORLD_STRIFE:
+			return game_state.fringe_world_strife_manager.generate_fringe_world_strife()
 		_:
 			return _generate_standard_mission()
 
-func generate_tutorial_mission(event: StoryEvent) -> Mission:
+func generate_tutorial_mission() -> Mission:
 	var mission = Mission.new()
-	mission.title = event.mission_title
-	mission.description = event.mission_description
+	mission.title = "Tutorial Mission"
+	mission.description = "Learn the basics of the game"
 	mission.type = Mission.Type.TUTORIAL
-	mission.objective = event.mission_objective
-	mission.rewards = event.rewards
+	mission.objective = Mission.Objective.MOVE_THROUGH
+	mission.rewards = {"credits": 100, "reputation": 1}
 	mission.is_tutorial_mission = true
-	# Set other mission properties based on the StoryEvent
 	return mission
 
 func _select_mission_type() -> int:
 	var roll = randi() % 100 + 1
 	if roll <= 20:
-		return MissionType.INFILTRATION
+		return Mission.Type.INFILTRATION
 	elif roll <= 40:
-		return MissionType.STREET_FIGHT
+		return Mission.Type.STREET_FIGHT
 	elif roll <= 60:
-		return MissionType.SALVAGE_JOB
+		return Mission.Type.SALVAGE_JOB
 	elif roll <= 80:
-		return MissionType.FRINGE_WORLD_STRIFE
+		return Mission.Type.FRINGE_WORLD_STRIFE
 	else:
-		return MissionType.values()[randi() % MissionType.size()]
+		return Mission.Type.values()[randi() % Mission.Type.size()]
 
 func _generate_standard_mission() -> Mission:
 	var mission = Mission.new()
 	mission.type = _roll_mission_type()
-	mission.location = game_state.get_random_location()
+	mission.location = game_state.get_current_location()
 	mission.objective = _generate_objective(mission.type)
 	mission.difficulty = randi() % 5 + 1  # 1 to 5
 	mission.rewards = _generate_rewards(mission.difficulty)
@@ -146,7 +147,7 @@ func generate_connection_from_mission(mission: Mission) -> Dictionary:
 		"effects": effects
 	}
 
-func _roll_mission_type() -> Mission.Type:
+func _roll_mission_type() -> int:
 	var roll = randi() % 100 + 1
 	if roll <= 40:
 		return Mission.Type.OPPORTUNITY
@@ -157,7 +158,7 @@ func _roll_mission_type() -> Mission.Type:
 	else:
 		return Mission.Type.RIVAL
 
-func _generate_objective(_mission_type: Mission.Type) -> Mission.Objective:
+func _generate_objective(_mission_type: int) -> int:
 	var objectives = Mission.Objective.values()
 	return objectives[randi() % objectives.size()]
 
@@ -169,7 +170,7 @@ func _generate_rewards(difficulty: int) -> Dictionary:
 		"item": randf() < 0.3  # 30% chance for item reward
 	}
 
-func _generate_mission_title(_mission_type: Mission.Type, location: Location) -> String:
+func _generate_mission_title(_mission_type: int, location: Location) -> String:
 	var titles = [
 		"Trouble in %s",
 		"%s Dilemma",
@@ -179,7 +180,7 @@ func _generate_mission_title(_mission_type: Mission.Type, location: Location) ->
 	]
 	return titles[randi() % titles.size()] % location.name
 
-func _generate_mission_description(_mission_type: Mission.Type, _objective: Mission.Objective, location: Location) -> String:
+func _generate_mission_description(_mission_type: int, _objective: int, location: Location) -> String:
 	var descriptions = [
 		"A situation has arisen in %s that requires immediate attention.",
 		"Your expertise is needed to handle a delicate matter in %s.",
@@ -218,7 +219,7 @@ func _generate_connection_description(connection_type: String, mission: Mission)
 	}
 	return descriptions[connection_type] % mission.location.name
 
-func set_game_state(_game_state: GameState):
+func set_game_state(_game_state: GameState) -> void:
 	game_state = _game_state
 	expanded_missions_manager = ExpandedMissionsManager.new(game_state)
 
@@ -229,10 +230,3 @@ func set_game_state(_game_state: GameState):
 #     if mission.status == Mission.Status.COMPLETED:
 #         base_probability += 0.1  # +10% if mission was successful
 #     return min(base_probability, 0.75)  # Cap at 75% chance
-
-func _generate_fringe_world_strife() -> Mission:
-	if not game_state.fringe_world_strife_manager:
-		push_error("FringeWorldStrifeManager not initialized in GameState")
-		return null
-
-	return game_state.fringe_world_strife_manager.generate_fringe_world_strife()

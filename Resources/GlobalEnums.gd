@@ -1,4 +1,3 @@
-# GlobalEnums.gd
 class_name GlobalEnums
 extends Resource
 

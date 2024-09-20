@@ -1,9 +1,7 @@
 class_name ExpandedQuestProgressionManager
 extends Node
 
-const QUEST_STAGES_PATH = "res://data/expanded_quest_progressions.json"
-
-var game_state: GameState
+@export var game_state: GameState
 var quest_stages: Dictionary
 var active_quests: Array[Quest] = []
 var active_rumors: Array[QuestRumor] = []
@@ -13,13 +11,29 @@ func _init(_game_state: GameState) -> void:
     load_quest_stages()
 
 func load_quest_stages() -> void:
+    const QUEST_STAGES_PATH = "res://Data/quest_stages.json"
+    if not FileAccess.file_exists(QUEST_STAGES_PATH):
+        push_error("Quest stages file not found: " + QUEST_STAGES_PATH)
+        return
+    
     var file = FileAccess.open(QUEST_STAGES_PATH, FileAccess.READ)
+    if file == null:
+        push_error("Failed to open quest stages file: " + QUEST_STAGES_PATH)
+        return
+    
     var json = JSON.new()
     var error = json.parse(file.get_as_text())
+    file.close()
+    
     if error == OK:
-        quest_stages = json.get_data()
+        var data = json.get_data()
+        if typeof(data) == TYPE_DICTIONARY:
+            quest_stages = data
+        else:
+            push_error("Invalid quest stages data format")
     else:
-        push_error("Failed to parse quest stages JSON")
+        push_error("Failed to parse quest stages JSON: " + json.get_error_message())
+
 
 func generate_new_quest() -> Quest:
     var quest_generator = QuestGenerator.new(game_state)

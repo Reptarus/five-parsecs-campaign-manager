@@ -18,7 +18,7 @@ func generate_expanded_mission() -> Mission:
     var mission = Mission.new()
     mission.type = Mission.Type.EXPANDED
     mission.objective = _generate_expanded_objective()
-    mission.location = game_state.get_random_location()
+    mission.location = game_state.current_location
     mission.difficulty = randi() % 5 + 1  # 1 to 5
     mission.rewards = _generate_expanded_rewards(mission.difficulty)
     mission.special_rules = _generate_expanded_special_rules()
@@ -52,82 +52,14 @@ func _generate_expanded_special_rules() -> Array:
     return rules
 
 func _select_random_faction() -> Dictionary:
-    return game_state.expanded_faction_manager.factions[randi() % game_state.expanded_faction_manager.factions.size()]
+    return game_state.expanded_faction_manager.get_random_faction()
 
 func _generate_quest_progression() -> Dictionary:
-    return game_state.expanded_quest_progression_manager.generate_quest_stage()
+    # Assuming there's a method to generate quest stages in GameState
+    return game_state.generate_quest_stage()
 
 func _generate_special_item() -> Equipment:
-    # Similar to ExpandedQuestProgressionManager's _generate_gear function
-    var gear_type = ["weapon", "armor", "gadget"][randi() % 3]
-    var rarity = _determine_gear_rarity()
-    var quality = _determine_gear_quality()
-    var base_value = _calculate_base_value(gear_type, rarity, quality)
-    var modifiers = _generate_modifiers(gear_type, rarity)
-    
-    var equipment = Equipment.new(gear_type, rarity, base_value)
-    equipment.set_quality(quality)
-    
-    for modifier in modifiers:
-        equipment.add_modifier(modifier)
-    
-    return equipment
-
-func _determine_gear_rarity() -> int:
-    var roll = randf()
-    if roll < 0.60:
-        return 0  # Common
-    elif roll < 0.85:
-        return 1  # Uncommon
-    elif roll < 0.95:
-        return 2  # Rare
-    else:
-        return 3  # Legendary
-
-func _determine_gear_quality() -> int:
-    var roll = randf()
-    if roll < 0.20:
-        return 1  # Poor
-    elif roll < 0.60:
-        return 2  # Standard
-    elif roll < 0.90:
-        return 3  # Superior
-    else:
-        return 4  # Exceptional
-
-func _calculate_base_value(gear_type: String, rarity: int, quality: int) -> int:
-    var base_value = 100
-    base_value *= (rarity + 1) * 2
-    base_value *= quality
-    
-    match gear_type:
-        "weapon":
-            base_value *= 1.2
-        "armor":
-            base_value *= 1.5
-        "gadget":
-            base_value *= 1.0
-    
-    return int(base_value)
-
-func _generate_modifiers(gear_type: String, rarity: int) -> Array:
-    var modifiers = []
-    var num_modifiers = rarity + 1
-    
-    for i in range(num_modifiers):
-        var modifier = {}
-        match gear_type:
-            "weapon":
-                modifier["type"] = ["damage", "accuracy", "rate_of_fire"][randi() % 3]
-            "armor":
-                modifier["type"] = ["defense", "mobility", "stealth"][randi() % 3]
-            "gadget":
-                modifier["type"] = ["utility", "hacking", "scanning"][randi() % 3]
-        
-        modifier["value"] = (randi() % 5 + 1) * (rarity + 1)
-        modifiers.append(modifier)
-    
-    return modifiers
+    return game_state.equipment_manager.generate_random_equipment()
 
 func setup_expanded_mission(mission: Mission):
     mission.special_rules = _generate_expanded_special_rules()
@@ -143,7 +75,7 @@ func setup_expanded_mission(mission: Mission):
 
 func resolve_expanded_mission(mission: Mission) -> bool:
     var success_chance = 0.5
-    success_chance += 0.1 * (game_state.player_ship.crew.size() - mission.required_crew_size)
+    success_chance += 0.1 * (game_state.current_ship.crew.size() - mission.required_crew_size)
     success_chance -= 0.1 * (mission.difficulty - 3)
     
     for rule in mission.special_rules:
@@ -165,7 +97,6 @@ func resolve_expanded_mission(mission: Mission) -> bool:
     return success
 
 func generate_expanded_mission_aftermath(mission: Mission) -> Dictionary:
-    # Generate aftermath effects based on mission outcome
     var aftermath = {}
     aftermath["faction_influence_change"] = randf() * 2 - 1  # -1 to 1
     aftermath["quest_progression"] = _update_quest_progression(mission)
@@ -173,7 +104,8 @@ func generate_expanded_mission_aftermath(mission: Mission) -> Dictionary:
     return aftermath
 
 func _update_quest_progression(mission: Mission) -> Dictionary:
-    return game_state.expanded_quest_progression_manager.update_quest_stage(mission.quest_progression)
+    # Assuming there's a method to update quest stages in GameState
+    return game_state.update_quest_stage(mission.quest_progression)
 
 func _generate_new_connections(_mission: Mission) -> Array:
     var connections = []
@@ -192,20 +124,20 @@ func _generate_new_connections(_mission: Mission) -> Array:
 func _generate_random_contact() -> Dictionary:
     var contact = {
         "name": _generate_random_name(),
-        "faction": game_state.faction_manager.get_random_faction(),
+        "faction": game_state.expanded_faction_manager.get_random_faction(),
         "influence": randi() % 5 + 1,  # 1 to 5
         "speciality": _get_random_speciality(),
-        "location": game_state.get_random_location()
+        "location": game_state.current_location
     }
     return contact
 
 func _generate_random_rival() -> Dictionary:
     var rival = {
         "name": _generate_random_name(),
-        "faction": game_state.faction_manager.get_random_faction(),
+        "faction": game_state.expanded_faction_manager.get_random_faction(),
         "threat_level": randi() % 5 + 1,  # 1 to 5
         "motivation": _get_random_motivation(),
-        "last_known_location": game_state.get_random_location()
+        "last_known_location": game_state.current_location
     }
     return rival
 
@@ -232,7 +164,7 @@ func adjust_mission_difficulty(mission: Mission, adjustment: String):
     mission.rewards = _generate_expanded_rewards(mission.difficulty)
 
 func get_mission_summary(mission: Mission) -> String:
-    var summary = "Expanded Mission: {type}\n".format({"type": Mission.Objective.keys()[mission.objective]})
+    var summary = "Expanded Mission: {type}\n".format({"type": Mission.Type.keys()[mission.type]})
     summary += "Location: {location}\n".format({"location": mission.location.name})
     summary += "Difficulty: {difficulty}\n".format({"difficulty": mission.difficulty})
     summary += "Faction: {faction}\n".format({"faction": mission.faction.name})
@@ -252,11 +184,7 @@ func serialize_mission(mission: Mission) -> Dictionary:
         "difficulty": mission.difficulty,
         "rewards": mission.rewards,
         "special_rules": mission.special_rules,
-        "faction": {
-            "name": mission.faction.name,
-            "id": mission.faction.id
-            # Add other relevant faction properties
-        },
+        "faction": mission.faction,
         "quest_progression": mission.quest_progression
     }
 
@@ -268,7 +196,7 @@ static func deserialize_mission(data: Dictionary, _gs: GameState) -> Mission:
     mission.difficulty = data.difficulty
     mission.rewards = data.rewards
     mission.special_rules = data.special_rules
-    mission.faction = _gs.expanded_faction_manager.deserialize_faction(data.faction)
+    mission.faction = ExpandedFactionManager.deserialize_faction(data.faction)
     mission.quest_progression = data.quest_progression
     return mission
 
@@ -306,15 +234,15 @@ func _apply_mission_rewards(mission: Mission):
     for reward_type in mission.rewards:
         match reward_type:
             "credits":
-                game_state.player.credits += mission.rewards[reward_type]
+                game_state.credits += mission.rewards[reward_type]
             "reputation":
-                game_state.player.reputation += mission.rewards[reward_type]
+                game_state.reputation += mission.rewards[reward_type]
             "faction_influence":
-                mission.faction.influence += mission.rewards[reward_type]
+                game_state.expanded_faction_manager.update_faction_influence(mission.faction, mission.rewards[reward_type])
             "special_item":
-                game_state.player.inventory.add_item(mission.rewards[reward_type])
+                game_state.equipment_manager.add_equipment(mission.rewards[reward_type])
 
 func _apply_mission_penalties(mission: Mission):
-    game_state.player.reputation -= mission.difficulty
+    game_state.reputation -= mission.difficulty
     if "credits" in mission.rewards:
-        game_state.player.credits -= mission.rewards["credits"] * 0.1
+        game_state.credits -= int(mission.rewards["credits"] * 0.1)

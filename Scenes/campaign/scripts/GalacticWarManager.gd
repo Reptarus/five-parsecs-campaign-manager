@@ -41,3 +41,49 @@ func get_invasion_status(planet: Location) -> String:
 
 func get_invaded_planets() -> Array:
 	return game_state.invaded_planets
+
+func process_galactic_war_turn():
+	check_war_progress()
+	
+	# Process faction actions and conflicts
+	for faction in game_state.factions:
+		faction.process_actions()
+	
+	# Check for new invasions
+	for planet in game_state.planets:
+		if randf() < 0.1:  # 10% chance of invasion per planet
+			invade_planet(planet)
+	
+	# Resolve ongoing invasions
+	for planet in game_state.invaded_planets.duplicate():  # Duplicate to avoid modifying while iterating
+		resolve_invasion(planet)
+
+func update_faction_influence(battle_outcome: String):
+	var faction_influence_change = 0.1  # Base influence change
+	if battle_outcome == "victory":
+		game_state.player_faction.influence += faction_influence_change
+		game_state.enemy_faction.influence -= faction_influence_change
+	else:
+		game_state.player_faction.influence -= faction_influence_change
+		game_state.enemy_faction.influence += faction_influence_change
+	
+	# Check for major events
+	if game_state.player_faction.influence >= 0.75:
+		trigger_galactic_war_event("player_advantage")
+	elif game_state.enemy_faction.influence >= 0.75:
+		trigger_galactic_war_event("enemy_advantage")
+
+func trigger_galactic_war_event(event_type: String):
+	match event_type:
+		"player_advantage":
+			# Implement player advantage event
+			print("Player faction gains a significant advantage in the Galactic War!")
+		"enemy_advantage":
+			# Implement enemy advantage event
+			print("Enemy faction gains a significant advantage in the Galactic War!")
+		# Add more event types as needed
+
+# This function can be called from PostBattlePhase
+func post_battle_update(battle_outcome: String):
+	update_faction_influence(battle_outcome)
+	process_galactic_war_turn()
