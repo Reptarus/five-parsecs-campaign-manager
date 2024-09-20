@@ -1,6 +1,6 @@
 [gd_scene load_steps=3 format=3 uid="uid://cxxx"]
 
-[ext_resource type="Script" path="res://scenes/Management/CharacterBox.gd" id="1_script"]
+[ext_resource type="Script" path="res://Scenes/Scene Container/campaigncreation/scripts/CharacterBox.gd" id="1_script"]
 [ext_resource type="StyleBox" uid="uid://d1you1rrwuu48" path="res://Scenes/sci_fi_theme.tres" id="2_style"]
 
 [node name="CharacterBox" type="Button"]

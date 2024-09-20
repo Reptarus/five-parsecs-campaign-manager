@@ -1,11 +1,11 @@
-[gd_scene load_steps=7 format=3 uid="uid://unique_id_here"]
+[gd_scene load_steps=7 format=3 uid="uid://2o12hsa6g168"]
 
 [ext_resource type="Script" path="res://Scenes/Management/NewCampaignFlow.gd" id="1_script"]
-[ext_resource type="PackedScene" uid="uid://tutorial_selection_id" path="res://Scenes/Management/Scenes/TutorialSelection.tscn" id="2_tutorial"]
-[ext_resource type="PackedScene" uid="uid://crew_size_selection_id" path="res://Scenes/Management/Scenes/CrewSizeSelection.tscn" id="3_crew_size"]
-[ext_resource type="PackedScene" uid="uid://character_creator_id" path="res://Scenes/Management/Scenes/CharacterCreator.tscn" id="4_character"]
-[ext_resource type="PackedScene" uid="uid://crew_management_id" path="res://Scenes/Management/Scenes/CrewManagement.tscn" id="5_crew"]
-[ext_resource type="PackedScene" uid="uid://campaign_setup_id" path="res://Scenes/Management/Scenes/CampaignSetup.tscn" id="6_campaign"]
+[ext_resource type="Script" path="res://Scenes/Utils/TutorialManager.gd" id="2_w7qbq"]
+[ext_resource type="Script" path="res://Scenes/Scene Container/CrewSizeSelection.gd" id="3_3xjq0"]
+[ext_resource type="Script" path="res://Scenes/Scene Container/campaigncreation/scripts/CharacterCreationScene.gd" id="4_lrtqq"]
+[ext_resource type="Script" path="res://Scenes/Management/CrewManagement.gd" id="5_l4k6d"]
+[ext_resource type="Script" path="res://Scenes/Scene Container/campaigncreation/scripts/CampaignSetupScreen.gd" id="6_2yj0n"]
 
 [node name="NewCampaignFlow" type="Control"]
 layout_mode = 3
@@ -16,21 +16,22 @@ grow_horizontal = 2
 grow_vertical = 2
 script = ExtResource("1_script")
 
-[node name="TutorialSelection" parent="." instance=ExtResource("2_tutorial")]
-layout_mode = 1
+[node name="TutorialManager" type="Control" parent="."]
+anchors_preset = 0
+script = ExtResource("2_w7qbq")
 
-[node name="CrewSizeSelection" parent="." instance=ExtResource("3_crew_size")]
-layout_mode = 1
-visible = false
+[node name="CrewSizeSelection" type="Control" parent="."]
+anchors_preset = 0
+script = ExtResource("3_3xjq0")
 
-[node name="CharacterCreator" parent="." instance=ExtResource("4_character")]
-layout_mode = 1
-visible = false
+[node name="CharacterCreator" type="Control" parent="."]
+anchors_preset = 0
+script = ExtResource("4_lrtqq")
 
-[node name="CrewManagement" parent="." instance=ExtResource("5_crew")]
-layout_mode = 1
-visible = false
+[node name="CrewManagement" type="Control" parent="."]
+anchors_preset = 0
+script = ExtResource("5_l4k6d")
 
-[node name="CampaignSetup" parent="." instance=ExtResource("6_campaign")]
-layout_mode = 1
-visible = false
+[node name="CampaignSetupScreen" type="Control" parent="."]
+anchors_preset = 0
+script = ExtResource("6_2yj0n")

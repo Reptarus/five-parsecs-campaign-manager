@@ -69,7 +69,7 @@ func _on_continue_pressed():
 		_show_not_implemented_message("No saved game found")
 
 func _on_new_campaign_pressed():
-	get_tree().change_scene_to_file("res://Scenes/Management/NewCampaignFlow.tscn")
+	get_tree().change_scene_to_file("res://Scenes/Management/Scenes/NewCampaignFlow.tscn")
 
 func _on_coop_campaign_pressed():
 	_show_not_implemented_message("Co-op Campaign (Work in Progress)")

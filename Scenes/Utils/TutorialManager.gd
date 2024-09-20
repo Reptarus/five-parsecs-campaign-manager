@@ -38,6 +38,9 @@ func get_tutorial_text(step: String) -> String:
         _:
             return "Continue with the tutorial."
 
+func is_step_active(step: String) -> bool:
+    return is_tutorial_active and current_step == step
+
 func _ready():
     tutorial_step_changed.connect(_on_tutorial_step_changed)
 

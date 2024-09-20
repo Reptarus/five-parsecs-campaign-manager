@@ -4,7 +4,7 @@
 [ext_resource type="Theme" uid="uid://d1you1rrwuu48" path="res://Scenes/sci_fi_theme.tres" id="2_theme"]
 [ext_resource type="Texture2D" uid="uid://jtpbfu6la8oi" path="res://assets/PNG/MainPanel03.png" id="3_background"]
 
-[node name="CharacterCreation" type="Control"]
+[node name="CharacterCreator" type="Control"]
 layout_mode = 3
 anchors_preset = 15
 anchor_right = 1.0
@@ -136,12 +136,21 @@ metadata/_tab_index = 1
 [node name="StatDistribution" type="VBoxContainer" parent="MarginContainer/VBoxContainer/HSplitContainer/CharacterCreationTabs/CharacterDetails"]
 layout_mode = 2
 
-[node name="PsionicCheckbox" type="CheckBox" parent="MarginContainer/VBoxContainer/HSplitContainer/CharacterCreationTabs/CharacterDetails"]
+[node name="PsionicSection" type="VBoxContainer" parent="MarginContainer/VBoxContainer/HSplitContainer/CharacterCreationTabs/CharacterDetails"]
+layout_mode = 2
+
+[node name="PsionicCheckbox" type="CheckBox" parent="MarginContainer/VBoxContainer/HSplitContainer/CharacterCreationTabs/CharacterDetails/PsionicSection"]
 layout_mode = 2
 text = "Psionic"
 
-[node name="StrangeCharacterOption" type="OptionButton" parent="MarginContainer/VBoxContainer/HSplitContainer/CharacterCreationTabs/CharacterDetails"]
+[node name="PsionicAbilities" type="ItemList" parent="MarginContainer/VBoxContainer/HSplitContainer/CharacterCreationTabs/CharacterDetails/PsionicSection"]
+visible = false
 layout_mode = 2
+
+[node name="PsionicDescription" type="Label" parent="MarginContainer/VBoxContainer/HSplitContainer/CharacterCreationTabs/CharacterDetails/PsionicSection"]
+layout_mode = 2
+text = "Psionic abilities description will appear here."
+autowrap_mode = 3
 
 [node name="SpecialAbilities" type="VBoxContainer" parent="MarginContainer/VBoxContainer/HSplitContainer/CharacterCreationTabs/CharacterDetails"]
 layout_mode = 2
@@ -151,6 +160,9 @@ layout_mode = 2
 text = "Special Abilities:"
 
 [node name="AbilitiesList" type="ItemList" parent="MarginContainer/VBoxContainer/HSplitContainer/CharacterCreationTabs/CharacterDetails/SpecialAbilities"]
+layout_mode = 2
+
+[node name="StrangeCharacterOption" type="OptionButton" parent="MarginContainer/VBoxContainer/HSplitContainer/CharacterCreationTabs/CharacterDetails"]
 layout_mode = 2
 
 [node name="Equipment" type="VBoxContainer" parent="MarginContainer/VBoxContainer/HSplitContainer/CharacterCreationTabs"]
@@ -209,3 +221,9 @@ text = "Add Character to Crew"
 [node name="FinishCrewCreationButton" type="Button" parent="MarginContainer/VBoxContainer/ButtonContainer"]
 layout_mode = 2
 text = "Finish Crew Creation"
+
+[node name="FinishCreationDialog" type="ConfirmationDialog" parent="."]
+title = "Finish Character Creation"
+size = Vector2i(300, 100)
+ok_button_text = "Confirm"
+dialog_text = "Are you sure you want to finish character creation?"

@@ -1,0 +1,83 @@
+[gd_scene load_steps=7 format=3 uid="uid://dxr8yt2xqxgx7"]
+
+[ext_resource type="Theme" uid="uid://d1you1rrwuu48" path="res://Scenes/sci_fi_theme.tres" id="1_theme"]
+[ext_resource type="Script" path="res://assets/scenes/menus/options_menu/MasterOptionsMenu.gd" id="2_script"]
+[ext_resource type="PackedScene" path="res://assets/scenes/menus/options_menu/video/video_options_menu.tscn" id="3_video"]
+[ext_resource type="PackedScene" path="res://assets/scenes/menus/options_menu/audio/audio_options_menu.tscn" id="4_audio"]
+[ext_resource type="PackedScene" path="res://assets/scenes/menus/options_menu/audio/audio_input_option_control.tscn" id="5_audio_input"]
+[ext_resource type="PackedScene" path="res://assets/scenes/menus/options_menu/input/input_options_menu.tscn" id="6_input"]
+
+[node name="MasterOptionsMenu" type="Control"]
+layout_mode = 3
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+theme = ExtResource("1_theme")
+script = ExtResource("2_script")
+
+[node name="Panel" type="Panel" parent="."]
+layout_mode = 1
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+
+[node name="MarginContainer" type="MarginContainer" parent="Panel"]
+layout_mode = 1
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+theme_override_constants/margin_left = 20
+theme_override_constants/margin_top = 20
+theme_override_constants/margin_right = 20
+theme_override_constants/margin_bottom = 20
+
+[node name="VBoxContainer" type="VBoxContainer" parent="Panel/MarginContainer"]
+layout_mode = 2
+theme_override_constants/separation = 20
+
+[node name="Label" type="Label" parent="Panel/MarginContainer/VBoxContainer"]
+layout_mode = 2
+theme_override_font_sizes/font_size = 24
+text = "Options"
+horizontal_alignment = 1
+
+[node name="TabContainer" type="TabContainer" parent="Panel/MarginContainer/VBoxContainer"]
+layout_mode = 2
+size_flags_vertical = 3
+
+[node name="Video" parent="Panel/MarginContainer/VBoxContainer/TabContainer" instance=ExtResource("3_video")]
+layout_mode = 2
+
+[node name="Audio" parent="Panel/MarginContainer/VBoxContainer/TabContainer" instance=ExtResource("4_audio")]
+visible = false
+layout_mode = 2
+
+[node name="AudioInput" parent="Panel/MarginContainer/VBoxContainer/TabContainer" instance=ExtResource("5_audio_input")]
+visible = false
+layout_mode = 2
+
+[node name="Input" parent="Panel/MarginContainer/VBoxContainer/TabContainer" instance=ExtResource("6_input")]
+visible = false
+layout_mode = 2
+
+[node name="ButtonsContainer" type="HBoxContainer" parent="Panel/MarginContainer/VBoxContainer"]
+layout_mode = 2
+theme_override_constants/separation = 20
+alignment = 1
+
+[node name="ApplyButton" type="Button" parent="Panel/MarginContainer/VBoxContainer/ButtonsContainer"]
+layout_mode = 2
+text = "Apply"
+
+[node name="BackButton" type="Button" parent="Panel/MarginContainer/VBoxContainer/ButtonsContainer"]
+layout_mode = 2
+text = "Back"
+
+[connection signal="pressed" from="Panel/MarginContainer/VBoxContainer/ButtonsContainer/ApplyButton" to="." method="_on_apply_button_pressed"]
+[connection signal="pressed" from="Panel/MarginContainer/VBoxContainer/ButtonsContainer/BackButton" to="." method="_on_back_button_pressed"]

@@ -1,10 +1,8 @@
-[gd_scene load_steps=4 format=3 uid="uid://c1ipgkdm40l6c"]
+[gd_scene load_steps=2 format=3 uid="uid://c1ipgkdm40l6c"]
 
 [ext_resource type="Script" path="res://Scenes/Scene Container/campaigncreation/scripts/CampaignSetupScreen.gd" id="1_sapom"]
-[ext_resource type="Texture2D" uid="uid://bwejyqe8qschs" path="res://assets/Basic assets/Card X3/Card X5.png" id="2_j33yf"]
-[ext_resource type="Texture2D" uid="uid://b0u2duocptu2v" path="res://assets/Basic assets/Card X1/Card X2.png" id="3_6ulbh"]
 
-[node name="CampaignSetup" type="Control"]
+[node name="CampaignSetupScreen" type="Control"]
 layout_mode = 3
 anchors_preset = 15
 anchor_right = 1.0
@@ -13,16 +11,7 @@ grow_horizontal = 2
 grow_vertical = 2
 script = ExtResource("1_sapom")
 
-[node name="Background" type="TextureRect" parent="."]
-layout_mode = 1
-anchors_preset = 15
-anchor_right = 1.0
-anchor_bottom = 1.0
-grow_horizontal = 2
-grow_vertical = 2
-texture = ExtResource("2_j33yf")
-
-[node name="MainContainer" type="VBoxContainer" parent="."]
+[node name="VBoxContainer" type="VBoxContainer" parent="."]
 layout_mode = 1
 anchors_preset = 15
 anchor_right = 1.0
@@ -30,220 +19,20 @@ anchor_bottom = 1.0
 grow_horizontal = 2
 grow_vertical = 2
 
-[node name="Label" type="Label" parent="MainContainer"]
+[node name="CrewNameInput" type="LineEdit" parent="VBoxContainer"]
 layout_mode = 2
-text = "New Campaign - Difficulty Options"
+placeholder_text = "Enter Crew Name"
 
-[node name="HBoxContainer" type="HBoxContainer" parent="MainContainer"]
+[node name="DifficultyOptionButton" type="OptionButton" parent="VBoxContainer"]
 layout_mode = 2
 
-[node name="HBoxContainer#Money Is Tight" type="VBoxContainer" parent="."]
+[node name="VictoryConditionButton" type="Button" parent="VBoxContainer"]
 layout_mode = 2
-size_flags_horizontal = 3
+text = "Select Victory Condition"
 
-[node name="HBoxContainer_Money Is Tight#Option background" type="Sprite2D" parent="."]
-position = Vector2(74.5, 216.5)
-scale = Vector2(0.376263, 0.539551)
-texture = ExtResource("3_6ulbh")
-
-[node name="HBoxContainer_Money Is Tight#DifficultyName" type="Label" parent="."]
+[node name="OptionalFeaturesContainer" type="VBoxContainer" parent="VBoxContainer"]
 layout_mode = 2
-text = "Money Is Tight"
-horizontal_alignment = 1
 
-[node name="HBoxContainer_Money Is Tight#DifficultyDescription" type="Label" parent="."]
+[node name="StartCampaignButton" type="Button" parent="VBoxContainer"]
 layout_mode = 2
-size_flags_vertical = 3
-text = "Upkeep costs change to 0 credits for a single 
-crew, 1 credit for a crew of 2-4 figures, and 
-+1 credit for each crew member past 4. 
-Taking Find a Patron or Repair Your Kit 
-actions costs 1 credit.
-You do not receive 1 point of free Hull Point 
-repair each turn. All repairs must be paid for 
-unless granted by a random event or similar.
-Whenever you would roll 1D6 for credits, roll 
-1D6-1 instead (minimum score 1). This applies 
-both during character creation and during 
-game play. Any modifiers to the roll are applied 
-normally."
-horizontal_alignment = 1
-
-[node name="HBoxContainer_Money Is Tight#DifficultyToggle" type="CheckButton" parent="."]
-layout_mode = 2
-text = "On/Off"
-alignment = 1
-
-[node name="HBoxContainer#Strength Adjusted Enemies" type="VBoxContainer" parent="."]
-layout_direction = 2
-layout_mode = 2
-size_flags_horizontal = 3
-
-[node name="HBoxContainer_Strength Adjusted Enemies#Option background" type="Sprite2D" parent="."]
-position = Vector2(74.5, 216.5)
-scale = Vector2(0.376263, 0.539551)
-texture = ExtResource("3_6ulbh")
-
-[node name="HBoxContainer_Strength Adjusted Enemies#DifficultyName" type="Label" parent="."]
-layout_mode = 2
-text = "Difficulty Name"
-horizontal_alignment = 1
-
-[node name="HBoxContainer_Strength Adjusted Enemies#DifficultyDescription" type="Label" parent="."]
-layout_mode = 2
-size_flags_vertical = 3
-text = "description
-sdfsdfsdf
-sdfsdfsdf
-sdfsdfsdf"
-horizontal_alignment = 1
-
-[node name="HBoxContainer_Strength Adjusted Enemies#DifficultyToggle" type="CheckButton" parent="."]
-layout_mode = 2
-text = "On/Off"
-alignment = 1
-
-[node name="HBoxContainer#Slaves to the Star-Grind" type="VBoxContainer" parent="."]
-layout_direction = 2
-layout_mode = 2
-size_flags_horizontal = 3
-
-[node name="HBoxContainer_Slaves to the Star-Grind#Option background" type="Sprite2D" parent="."]
-position = Vector2(74.5, 216.5)
-scale = Vector2(0.376263, 0.539551)
-texture = ExtResource("3_6ulbh")
-
-[node name="HBoxContainer_Slaves to the Star-Grind#DifficultyName" type="Label" parent="."]
-layout_mode = 2
-text = "Difficulty Name"
-horizontal_alignment = 1
-
-[node name="HBoxContainer_Slaves to the Star-Grind#DifficultyDescription" type="Label" parent="."]
-layout_mode = 2
-size_flags_vertical = 3
-text = "description
-sdfsdfsdf
-sdfsdfsdf
-sdfsdfsdf"
-horizontal_alignment = 1
-
-[node name="HBoxContainer_Slaves to the Star-Grind#DifficultyToggle" type="CheckButton" parent="."]
-layout_mode = 2
-text = "On/Off"
-alignment = 1
-
-[node name="HBoxContainer#Hit Me Harder" type="VBoxContainer" parent="."]
-layout_direction = 2
-layout_mode = 2
-size_flags_horizontal = 3
-
-[node name="HBoxContainer_Hit Me Harder#Option background" type="Sprite2D" parent="."]
-position = Vector2(74.5, 216.5)
-scale = Vector2(0.376263, 0.539551)
-texture = ExtResource("3_6ulbh")
-
-[node name="HBoxContainer_Hit Me Harder#DifficultyName" type="Label" parent="."]
-layout_mode = 2
-text = "Difficulty Name"
-horizontal_alignment = 1
-
-[node name="HBoxContainer_Hit Me Harder#DifficultyDescription" type="Label" parent="."]
-layout_mode = 2
-size_flags_vertical = 3
-text = "description
-sdfsdfsdf
-sdfsdfsdf
-sdfsdfsdf"
-horizontal_alignment = 1
-
-[node name="HBoxContainer_Hit Me Harder#DifficultyToggle" type="CheckButton" parent="."]
-layout_mode = 2
-text = "On/Off"
-alignment = 1
-
-[node name="HBoxContainer#Time is Running Out" type="VBoxContainer" parent="."]
-layout_direction = 2
-layout_mode = 2
-size_flags_horizontal = 3
-
-[node name="HBoxContainer_Time is Running Out#CardX2" type="Sprite2D" parent="."]
-position = Vector2(74.5, 216.5)
-scale = Vector2(0.376263, 0.539551)
-texture = ExtResource("3_6ulbh")
-
-[node name="HBoxContainer_Time is Running Out#DifficultyName" type="Label" parent="."]
-layout_mode = 2
-text = "Difficulty Name"
-horizontal_alignment = 1
-
-[node name="HBoxContainer_Time is Running Out#DifficultyDescription" type="Label" parent="."]
-layout_mode = 2
-size_flags_vertical = 3
-text = "description
-sdfsdfsdf
-sdfsdfsdf
-sdfsdfsdf"
-horizontal_alignment = 1
-
-[node name="HBoxContainer_Time is Running Out#DifficultyToggle" type="CheckButton" parent="."]
-layout_mode = 2
-text = "On/Off"
-alignment = 1
-
-[node name="HBoxContainer#Starting in the Gutter" type="VBoxContainer" parent="."]
-layout_direction = 2
-layout_mode = 2
-size_flags_horizontal = 3
-
-[node name="HBoxContainer_Starting in the Gutter#CardX2" type="Sprite2D" parent="."]
-position = Vector2(74.5, 216.5)
-scale = Vector2(0.376263, 0.539551)
-texture = ExtResource("3_6ulbh")
-
-[node name="HBoxContainer_Starting in the Gutter#DifficultyName" type="Label" parent="."]
-layout_mode = 2
-text = "Difficulty Name"
-horizontal_alignment = 1
-
-[node name="HBoxContainer_Starting in the Gutter#DifficultyDescription" type="Label" parent="."]
-layout_mode = 2
-size_flags_vertical = 3
-text = "description
-sdfsdfsdf
-sdfsdfsdf
-sdfsdfsdf"
-horizontal_alignment = 1
-
-[node name="HBoxContainer_Starting in the Gutter#DifficultyToggle" type="CheckButton" parent="."]
-layout_mode = 2
-text = "On/Off"
-alignment = 1
-
-[node name="HBoxContainer#Reduced Lethality" type="VBoxContainer" parent="."]
-layout_direction = 2
-layout_mode = 2
-size_flags_horizontal = 3
-
-[node name="HBoxContainer_Reduced Lethality#CardX2" type="Sprite2D" parent="."]
-position = Vector2(74.5, 216.5)
-scale = Vector2(0.376263, 0.539551)
-texture = ExtResource("3_6ulbh")
-
-[node name="HBoxContainer_Reduced Lethality#DifficultyName" type="Label" parent="."]
-layout_mode = 2
-text = "Difficulty Name"
-horizontal_alignment = 1
-
-[node name="HBoxContainer_Reduced Lethality#DifficultyDescription" type="Label" parent="."]
-layout_mode = 2
-size_flags_vertical = 3
-text = "description
-sdfsdfsdf
-sdfsdfsdf
-sdfsdfsdf"
-horizontal_alignment = 1
-
-[node name="HBoxContainer_Reduced Lethality#DifficultyToggle" type="CheckButton" parent="."]
-layout_mode = 2
-text = "On/Off"
-alignment = 1
+text = "Start Campaign"
