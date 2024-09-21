@@ -12,7 +12,13 @@ var galactic_war_manager: GalacticWarManager
 
 func _init(_game_state: GameState) -> void:
 	game_state = _game_state
-	galactic_war_manager = GalacticWarManager.new(game_state)
+	galactic_war_manager = GalacticWarManager.new(_game_state)
+
+func _enter_tree() -> void:
+	if not game_state:
+		game_state = get_node("/root/Main").game_state
+	if not galactic_war_manager:
+		galactic_war_manager = GalacticWarManager.new(game_state)
 
 func _ready() -> void:
 	resolve_outcomes_button.pressed.connect(_on_resolve_outcomes_pressed)

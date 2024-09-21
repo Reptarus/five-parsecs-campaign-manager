@@ -1,4 +1,5 @@
 # GalacticWarManager.gd
+class_name GalacticWarManager
 extends Node
 
 var game_state: GameState

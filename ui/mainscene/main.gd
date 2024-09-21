@@ -45,5 +45,5 @@ func load_game() -> void:
 		
 		if parse_result == OK:
 			var save_data = json.get_data()
-			game_state = GameState.deserialize(save_data)
+			game_state = GameStateManager.deserialize(save_data)
 			goto_scene("res://scenes/CampaignDashboard.tscn")

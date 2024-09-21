@@ -6,14 +6,24 @@ extends Control
 @onready var crew_visual: Control = $CrewVisual
 @onready var character_creation = $CharacterCreation
 
-var game_state: GameState
+var game_state_manager_node: GameStateManagerNode
+var game_state: GameStateManager
 var crew: Crew
 var min_crew_size: int = 3
 var max_crew_size: int = 8
 var current_size: int = 5
 
 func _ready() -> void:
-	game_state = get_node("/root/Main").game_state
+	game_state_manager_node = get_node("/root/GameStateManagerNode")
+	if not game_state_manager_node:
+		push_error("GameStateManagerNode not found. Make sure it's properly set up as an AutoLoad.")
+		return
+	
+	game_state = game_state_manager_node.get_game_state()
+	if not game_state:
+		push_error("GameState not found in GameStateManagerNode.")
+		return
+	
 	size_slider.min_value = min_crew_size
 	size_slider.max_value = max_crew_size
 	size_slider.value = current_size
@@ -57,5 +67,18 @@ func _on_character_created(character) -> void:
 
 func finish_crew_creation() -> void:
 	game_state.set_current_crew(crew)
+	game_state.set_crew_size(current_size)
 	# Transition to the main game screen or campaign dashboard
 	get_tree().change_scene_to_file("res://scenes/CampaignDashboard.tscn")
+
+func set_crew_name(name: String) -> void:
+	if not crew:
+		crew = Crew.new()
+	crew.name = name
+
+func set_difficulty_settings(settings: DifficultySettings) -> void:
+	game_state.difficulty_settings = settings
+
+func set_optional_feature(feature_name: String, is_enabled: bool) -> void:
+	if game_state.has("use_" + feature_name):
+		game_state.set("use_" + feature_name, is_enabled)

@@ -42,9 +42,9 @@ func load_game(save_name: String) -> GameState:
 		return null
 	
 	var save_data = json.get_data()
-	var game_state = GameState.deserialize(save_data)
-	game_state.is_tutorial_active = save_data.get("is_tutorial_active", false)
-	return game_state
+	GameState.deserialize(save_data)
+	GameState.is_tutorial_active = save_data.get("is_tutorial_active", false)
+	return GameState
 
 func get_save_list() -> Array:
 	var saves = []

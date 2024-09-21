@@ -1,43 +1,46 @@
-# StreetFightsManager.gd
 class_name StreetFightsManager
-extends Node
+extends RefCounted
 
-var game_state: GameState
+var game_state: GameStateManager
+
+func initialize(state: GameStateManager) -> void:
+    game_state = state
+
+func serialize() -> Dictionary:
+    return {}
+
+func deserialize(_data: Dictionary) -> void:
+    pass
 
 const STREET_FIGHT_TYPES = ["Gang War", "Turf Defense", "Revenge Hit", "Protection Racket"]
 
-func _init(_game_state: GameState):
-    game_state = _game_state
-
 func generate_street_fight() -> Mission:
-    var mission = Mission.new()
+    var mission_template = MissionTemplate.new(
+        MissionTemplate.MissionType.OPPORTUNITY,
+        ["Street Fight: {0}"],
+        ["A violent confrontation has erupted in {0}. Your crew has been called to intervene."],
+        MissionTemplate.Objective.FIGHT_OFF,
+        "Defeat the opposing force in a street fight",
+        Vector2(800, 4000),  # Reward range
+        Vector2(1, 5),  # Difficulty range
+        ["Combat", "Streetwise"],
+        ["Street Thug", "Gang Member", "Rival Crew"],
+        0.3,  # Deployment condition chance
+        0.3,  # Notable sight chance
+        1.2,  # Economic impact
+        ExpandedFactionManager.FactionType.CRIMINAL_SYNDICATE,
+        Vector2(1, 3),  # Loyalty requirement range
+        Vector2(1, 3)   # Power requirement range
+    )
+    
+    var mission = game_state.mission_generator.generate_mission_from_template(mission_template)
     mission.type = Mission.Type.STREET_FIGHT
-    mission.objective = _generate_street_fight_objective()
-    mission.location = _generate_street_fight_location()
-    mission.difficulty = randi() % 5 + 1  # 1 to 5
-    mission.rewards = _generate_street_fight_rewards(mission.difficulty)
+    mission.street_fight_type = _generate_street_fight_objective()
     mission.special_rules = _generate_street_fight_special_rules()
     return mission
 
 func _generate_street_fight_objective() -> String:
     return STREET_FIGHT_TYPES[randi() % STREET_FIGHT_TYPES.size()]
-
-func _generate_street_fight_location() -> String:
-    var locations = [
-        "Abandoned Warehouse",
-        "Back Alley",
-        "Neon-lit Street",
-        "Underground Fighting Arena",
-        "Rooftop"
-    ]
-    return locations[randi() % locations.size()]
-
-func _generate_street_fight_rewards(difficulty: int) -> Dictionary:
-    return {
-        "credits": 800 * difficulty,
-        "reputation": difficulty + 1,
-        "territory_control": randf() < 0.5  # 50% chance for territory control
-    }
 
 func _generate_street_fight_special_rules() -> Array:
     var rules = []
@@ -69,7 +72,8 @@ func setup_street_fight(mission: Mission):
         _apply_special_rule(rule, mission.combat_state)
 
 func resolve_street_fight(mission: Mission) -> bool:
-    var combat_manager = CombatManager.new(game_state)
+    var combat_manager = CombatManager.new()
+    combat_manager.initialize()
     combat_manager.setup_combat(mission.combat_state)
     
     while not combat_manager.is_combat_finished():
@@ -86,14 +90,14 @@ func resolve_street_fight(mission: Mission) -> bool:
 func generate_street_fight_aftermath(mission: Mission) -> Dictionary:
     var aftermath = {}
     
-    if mission.success:
-        aftermath["reputation_gain"] = mission.rewards["reputation"]
-        aftermath["credits_earned"] = mission.rewards["credits"]
-        if mission.rewards["territory_control"]:
+    if mission.status == Mission.Status.COMPLETED:
+        aftermath["reputation_gain"] = mission.rewards.get("reputation", 0)
+        aftermath["credits_earned"] = mission.rewards.get("credits", 0)
+        if mission.rewards.get("territory_control", false):
             aftermath["territory_gained"] = _calculate_territory_gain(mission)
     else:
         aftermath["reputation_loss"] = mission.difficulty
-        aftermath["credits_lost"] = mission.rewards["credits"] * 0.1
+        aftermath["credits_lost"] = int(mission.rewards.get("credits", 0) * 0.1)
     
     aftermath["injuries"] = _calculate_injuries(mission)
     aftermath["loot"] = _generate_loot(mission)
@@ -104,14 +108,13 @@ func _generate_enemy_team(difficulty: int) -> Array:
     var enemy_team = []
     var enemy_count = difficulty + 1
     
-    for i in range(enemy_count):
+    for _i in range(enemy_count):
         var enemy = game_state.character_generator.generate_enemy(difficulty)
         enemy_team.append(enemy)
     
     return enemy_team
 
 func _generate_combat_map(location: String) -> Dictionary:
-    # This would be more complex in a real implementation
     return {
         "size": Vector2(10, 10),
         "obstacles": _generate_obstacles(location),

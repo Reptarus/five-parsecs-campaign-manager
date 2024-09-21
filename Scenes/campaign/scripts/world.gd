@@ -46,8 +46,12 @@ func serialize() -> Dictionary:
 	}
 
 static func deserialize(data: Dictionary) -> GameWorld:
-	var world = GameWorld.new(GameState.deserialize(data["game_state"]))
-	return world
+	var game_state = GameState.new()
+	if game_state.deserialize(data["game_state"]):
+		return GameWorld.new(game_state)
+	else:
+		push_error("Failed to deserialize GameState")
+		return null
 
 # Private methods
 func _handle_upkeep_and_repairs() -> void:

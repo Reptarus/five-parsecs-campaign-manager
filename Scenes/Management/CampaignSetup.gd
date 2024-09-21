@@ -9,12 +9,15 @@ signal campaign_created
 @onready var victory_condition_selection: Control = $VictoryConditionSelection
 @onready var start_campaign_button: Button = $StartCampaignButton
 
-var game_state: GameState
+var game_state: GameStateManager
 
 func _ready() -> void:
-	game_state = get_node("/root/GameState")
+	game_state = GameState.get_game_state()
 	if not game_state:
-		push_error("GameState not found. Make sure it's properly set up as an AutoLoad.")
+		push_error("GameStateManager not found. Make sure GameState is properly set up as an AutoLoad.")
+		return
+	if not game_state is GameStateManager:
+		push_error("GameState is not of type GameStateManager. Check your AutoLoad setup.")
 		return
 
 	_connect_signals()

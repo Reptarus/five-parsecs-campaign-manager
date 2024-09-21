@@ -16,7 +16,7 @@ func initialize(p_speed: int = 0, p_fuel_efficiency: float = 0.0) -> void:
 
 func calculate_travel_time(distance: int) -> int:
 	if health > 0:
-		return distance / speed
+		return int(float(distance) / speed)
 	return -1  # Unable to travel
 
 func serialize() -> Dictionary:

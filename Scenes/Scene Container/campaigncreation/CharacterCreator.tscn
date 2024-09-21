@@ -227,3 +227,12 @@ title = "Finish Character Creation"
 size = Vector2i(300, 100)
 ok_button_text = "Confirm"
 dialog_text = "Are you sure you want to finish character creation?"
+
+[connection signal="pressed" from="MarginContainer/VBoxContainer/HeaderContainer/BackButton" to="." method="_on_back_to_crew_management_pressed"]
+[connection signal="pressed" from="MarginContainer/VBoxContainer/HeaderContainer/RandomCharacterButton" to="." method="roll_random_character"]
+[connection signal="pressed" from="MarginContainer/VBoxContainer/ButtonContainer/SaveButton" to="." method="_on_save_character_pressed"]
+[connection signal="pressed" from="MarginContainer/VBoxContainer/ButtonContainer/ClearButton" to="." method="_on_clear_character_pressed"]
+[connection signal="pressed" from="MarginContainer/VBoxContainer/ButtonContainer/ImportButton" to="." method="_on_import_character_pressed"]
+[connection signal="pressed" from="MarginContainer/VBoxContainer/ButtonContainer/ExportButton" to="." method="_on_export_character_pressed"]
+[connection signal="pressed" from="MarginContainer/VBoxContainer/ButtonContainer/AddCharacterButton" to="." method="_on_add_character_pressed"]
+[connection signal="pressed" from="MarginContainer/VBoxContainer/ButtonContainer/FinishCrewCreationButton" to="." method="_on_finish_crew_creation_pressed"]

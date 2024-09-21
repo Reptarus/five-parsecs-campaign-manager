@@ -8,13 +8,13 @@ const RivalResource = preload("res://Resources/Rival.gd")
 var game_state: GameState
 var starship_travel_events: StarshipTravelEvents
 
-func _init(_game_state: GameState):
-	game_state = _game_state
-	starship_travel_events = StarshipTravelEvents.new(game_state)
+func _init(_game_state_manager: GameStateManager):
+	game_state = _game_state_manager.game_state
+	starship_travel_events = StarshipTravelEvents.new(_game_state_manager)
 
 func _ready():
-	$MarginContainer/VBoxContainer/StayButton.connect("pressed", Callable(self, "_on_stay_pressed"))
-	$MarginContainer/VBoxContainer/TravelButton.connect("pressed", Callable(self, "_on_travel_pressed"))
+	$MarginContainer/VBoxContainer/StayButton.pressed.connect(_on_stay_pressed)
+	$MarginContainer/VBoxContainer/TravelButton.pressed.connect(_on_travel_pressed)
 	$MarginContainer/VBoxContainer/BackButton.connect("pressed", Callable(self, "_on_back_pressed"))
 
 func _on_stay_pressed():

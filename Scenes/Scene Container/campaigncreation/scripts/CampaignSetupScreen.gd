@@ -1,6 +1,7 @@
 extends Control
 
 const DifficultySettingsResource = preload("res://Scenes/Scene Container/campaigncreation/scripts/DifficultySettings.gd")
+const Crew = preload("res://Scripts/ShipAndCrew/Crew.gd")
 
 @onready var crew_name_input: LineEdit = $VBoxContainer/CrewNameInput
 @onready var difficulty_option_button: OptionButton = $VBoxContainer/DifficultyOptionButton
@@ -8,7 +9,7 @@ const DifficultySettingsResource = preload("res://Scenes/Scene Container/campaig
 @onready var optional_features_container: VBoxContainer = $VBoxContainer/OptionalFeaturesContainer
 @onready var start_campaign_button: Button = $VBoxContainer/StartCampaignButton
 
-var game_state: GameState
+var game_state: GameStateManager
 var difficulty_settings: DifficultySettingsResource
 
 func _ready():
@@ -77,7 +78,7 @@ func _on_difficulty_selected(index: int):
 func _on_start_campaign_button_pressed():
 	if _validate_setup():
 		_apply_settings()
-		get_tree().change_scene_to_file("res://scenes/MainGameScene.tscn")
+		get_tree().change_scene_to_file("res://Scenes/Scene Container/CrewSizeSelection.tscn")
 
 func _validate_setup() -> bool:
 	if crew_name_input.text.strip_edges().is_empty():
@@ -89,15 +90,29 @@ func _validate_setup() -> bool:
 	return true
 
 func _apply_settings():
-	game_state.current_crew.name = crew_name_input.text.strip_edges()
-	game_state.difficulty_settings = difficulty_settings
-	
+	var crew_setup = get_node("/root/CrewSetup")  # Adjust this path if necessary
+	if not crew_setup:
+		push_error("CrewSetup node not found. Make sure it's properly set up in the scene tree.")
+		return
+
+	# Set the crew name
+	crew_setup.set_crew_name(crew_name_input.text.strip_edges())
+
+	# Apply difficulty settings
+	crew_setup.set_difficulty_settings(difficulty_settings)
+
+	# Apply optional features
 	for checkbox in optional_features_container.get_children():
 		var feature_name = checkbox.text.to_snake_case()
-		if game_state.has("use_" + feature_name):
-			game_state.set("use_" + feature_name, checkbox.button_pressed)
-	
-	game_state.apply_difficulty_settings()
+		crew_setup.set_optional_feature(feature_name, checkbox.button_pressed)
+
+	# Apply any other necessary settings
+
+	# Transition to CrewSizeSelection scene
+	get_tree().change_scene_to_file("res://Scenes/Scene Container/CrewSizeSelection.tscn")
 
 func set_game_state(new_game_state):
-	game_state = new_game_state
+	if new_game_state is GameStateManager:
+		game_state = new_game_state
+	else:
+		push_error("Invalid game state type provided to CampaignSetupScreen")

@@ -4,20 +4,24 @@ extends Control
 signal size_selected(size: int)
 
 @onready var slider: HSlider = $HSlider
+@onready var current_size_label: Label = $CurrentSizeLabel
 @onready var tutorial_label: Label = $TutorialLabel
-@onready var confirm_button: TextureButton = $ConfirmButton
+@onready var confirm_button: Button = $ConfirmButton
 
-var game_state_manager: GameStateManager
+var game_state_manager: GameStateManagerNode
 
 func _ready() -> void:
-	var node = get_node("Scripts/GameStateManager.gd")
-	game_state_manager = node as GameStateManager if node is GameStateManager else null
+	game_state_manager = get_node("/root/GameStateManagerNode")
 	if not game_state_manager:
-		push_error("GameStateManager not found or is not of type GameStateManager. Make sure it's properly set up as an AutoLoad.")
+		push_error("GameStateManagerNode not found. Make sure it's properly set up as an AutoLoad.")
 		return
-
+	
+	if not game_state_manager.has_method("get_game_state"):
+		push_error("GameStateManagerNode does not have a get_game_state method.")
+		return
+	
 	_setup_tutorial()
-	_connect_signals()
+	_update_current_size_label(slider.value)
 
 func _setup_tutorial() -> void:
 	var tutorial_manager = get_node("/root/TutorialManager")
@@ -27,18 +31,23 @@ func _setup_tutorial() -> void:
 	else:
 		tutorial_label.hide()
 
-func _connect_signals() -> void:
-	slider.value_changed.connect(_on_slider_value_changed)
-	confirm_button.pressed.connect(_on_confirm_button_pressed)
+func _on_h_slider_value_changed(value: float) -> void:
+	var crew_size = int(value)
+	game_state_manager.get_game_state().crew_size = crew_size
+	_update_current_size_label(crew_size)
 
-func _on_slider_value_changed(value: float) -> void:
-	game_state_manager.crew_size = int(value)
+func _update_current_size_label(size: int) -> void:
+	current_size_label.text = "Current Crew Size: %d" % size
 
 func _on_confirm_button_pressed() -> void:
-	size_selected.emit(game_state_manager.crew_size)
-
-	var tutorial_manager = get_node("/root/TutorialManager")
-	if tutorial_manager and tutorial_manager.is_tutorial_active:
-		tutorial_manager.set_step("campaign_setup")
-
+	var crew_size = int(slider.value)
+	if game_state_manager and game_state_manager.has_method("get_game_state"):
+		var game_state = game_state_manager.get_game_state()
+		if game_state and game_state.has_method("set_crew_size"):
+			game_state.set_crew_size(crew_size)
+		else:
+			push_error("GameState does not have a set_crew_size method.")
+	else:
+		push_error("GameStateManagerNode or get_game_state method not found.")
+	
 	get_tree().change_scene_to_file("res://Scenes/Scene Container/CrewManagement.tscn")

@@ -1,7 +1,17 @@
 class_name FringeWorldStrifeManager
-extends Node
+extends RefCounted
 
-var game_state: GameState
+var game_state: GameStateManager
+
+func initialize(state: GameStateManager) -> void:
+	game_state = state
+
+func serialize() -> Dictionary:
+	return {}
+
+func deserialize(_data: Dictionary) -> void:
+	pass
+
 var mission_generator: MissionGenerator
 var difficulty_settings: DifficultySettings
 var escalating_battles_manager: EscalatingBattlesManager
@@ -23,24 +33,6 @@ const NEW_RIVAL_CHANCE = 0.15
 const CREW_INJURY_CHANCE = 0.25
 const RANDOM_EVENT_CHANCE = 0.3
 const HIGH_INSTABILITY_THRESHOLD = 10
-
-func _init(_game_state: GameState):
-	game_state = _game_state
-	mission_generator = game_state.mission_generator
-	difficulty_settings = DifficultySettings.new()
-   
-	var managers = {
-		"escalating_battles": EscalatingBattlesManager,
-		"street_fights": StreetFightsManager,
-		"stealth_missions": StealthMissionsManager,
-		"salvage_jobs": SalvageJobsManager
-	}
-   
-	for manager_name in managers:
-		var manager = managers[manager_name].new(game_state)
-		if manager.has_method("initialize"):
-			manager.initialize(game_state, difficulty_settings)
-		set(manager_name + "_manager", manager)
 
 func generate_fringe_world_strife() -> Mission:
 	var mission = Mission.new()

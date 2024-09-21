@@ -75,8 +75,8 @@ func _on_tutorial_selected(tutorial_type: String):
 	print("Tutorial selected: ", tutorial_type)
 	transition_to_state(FlowState.CREW_SIZE_SELECTION)
 
-func _on_crew_size_selected(size: int):
-	print("Crew size selected: ", size)
+func _on_crew_size_selected(crew_size: int):
+	print("Crew size selected: ", crew_size)
 	transition_to_state(FlowState.CHARACTER_CREATION)
 
 func _on_character_created(character):

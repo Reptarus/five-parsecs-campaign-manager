@@ -51,8 +51,9 @@ func trigger_current_event():
     
     emit_signal("event_triggered", current_event)
 
-func progress_story(game_state: GameState, current_phase: CampaignManager.TurnPhase):
-    story_clock.count_down(current_phase == CampaignManager.TurnPhase.POST_MISSION)
+func progress_story(current_phase: GlobalEnums.CampaignPhase):
+    var game_state = GameState.instance.get_game_state()
+    story_clock.count_down(current_phase == GlobalEnums.CampaignPhase.POST_BATTLE)
     if story_clock.is_event_triggered():
         current_event_index += 1
         if current_event_index < events.size():

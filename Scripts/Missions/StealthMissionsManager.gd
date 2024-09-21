@@ -1,8 +1,18 @@
 class_name StealthMissionsManager
-extends Node
+extends RefCounted
 
-var game_state: GameState
-# Removed battle_scene parameter
+var game_state: GameStateManager
+
+func initialize(state: GameStateManager) -> void:
+    game_state = state
+
+func serialize() -> Dictionary:
+    return {}
+
+func deserialize(_data: Dictionary) -> void:
+    pass
+
+# ... rest of the existing code ...
 
 const MAX_DETECTION_LEVEL: int = 2
 const DETECTION_LEVELS = ["Undetected", "Alerted", "Compromised"]
@@ -12,10 +22,6 @@ var enemies: Array[Character] = []
 var crew_members: Array[Character] = []
 
 enum StealthAction { STAY_DOWN, DISTRACTION, LURE }
-
-func _init(game_state, _battle = null):
-    game_state = game_state
-    # Removed battle_scene parameter
 
 func generate_stealth_mission() -> Mission:
     var mission = Mission.new()

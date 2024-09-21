@@ -6,7 +6,7 @@ class Faction:
     var power: int
     var actions: int
 
-    func _init(p_name: String, p_strength: int, p_power: int):
+    func _init(p_name: String, p_strength: int, _p_power: int):
         name = p_name
         strength = p_strength
         power = power
@@ -17,12 +17,16 @@ var factions: Array[Faction] = []
 func _ready():
     randomize()
 
-func create_faction(name: String, strength: int = 0, power: int = 0) -> Faction:
-    if strength == 0:
-        strength = randi() % 6 + 2  # 1D6+1
-    if power == 0:
-        power = randi() % 3 + 3  # 1D3+2
-    var faction = Faction.new(name, strength, power)
+func create_faction(faction_name: String, faction_strength: int = 0, faction_power: int = 0) -> Faction:
+    var final_strength = faction_strength
+    var final_power = faction_power
+    
+    if final_strength == 0:
+        final_strength = randi() % 6 + 2  # 1D6+1
+    if final_power == 0:
+        final_power = randi() % 3 + 3  # 1D3+2
+    
+    var faction = Faction.new(faction_name, final_strength, final_power)
     factions.append(faction)
     return faction
 

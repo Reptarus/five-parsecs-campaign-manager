@@ -1,8 +1,7 @@
 class_name CampaignDashboard
 extends Control
 
-@export var game_state: GameState
-@export var campaign_manager: CampaignManager
+@export var campaign_manager: CampaignManager = null
 @onready var phase_label: Label = $PhaseLabel
 @onready var instruction_label: Label = $InstructionLabel
 @onready var action_button: Button = $ActionButton
@@ -12,8 +11,16 @@ extends Control
 @onready var story_points_label: Label = $StoryPointsLabel
 @onready var tutorial_panel: Panel = $TutorialPanel
 @onready var tutorial_event_description: Label = $TutorialPanel/EventDescription
+@onready var game_state = get_node("/root/GameState")
+
+
 
 func _ready() -> void:
+	game_state = get_node("/root/GameStateManagerNode") as GameState
+	if game_state == null:
+		push_error("Failed to get GameStateManager. Check if it's properly set up in the scene tree.")
+		return
+	
 	action_button.pressed.connect(_on_action_button_pressed)
 	campaign_manager.phase_changed.connect(_on_phase_changed)
 	update_display()
@@ -22,14 +29,14 @@ func _process(_delta: float) -> void:
 	if game_state.is_tutorial_active:
 		update_tutorial_ui()
 
-func _on_phase_changed(_new_phase: CampaignManager.TurnPhase) -> void:
+func _on_phase_changed(_new_phase: GlobalEnums.CampaignPhase) -> void:
 	update_display()
 
 func update_display() -> void:
 	if game_state.is_tutorial_active:
 		phase_label.text = "Tutorial"
 	else:
-		phase_label.text = CampaignManager.TurnPhase.keys()[campaign_manager.current_phase].capitalize().replace("_", " ")
+		phase_label.text = GlobalEnums.CampaignPhase.keys()[campaign_manager.current_phase].capitalize().replace("_", " ")
 	
 	crew_info_label.text = "Crew: " + game_state.current_crew.name + " (" + str(game_state.current_crew.get_member_count()) + " members)"
 	credits_label.text = "Credits: " + str(game_state.current_crew.credits)
@@ -52,9 +59,10 @@ func _update_phase_specific_ui() -> void:
 
 func _on_action_button_pressed() -> void:
 	if game_state.is_tutorial_active:
-		campaign_manager.story_track.progress_story(game_state, true)  # Assuming tutorial always succeeds
+		campaign_manager.story_track.progress_story(campaign_manager.current_phase)
 	else:
 		# Existing action button logic for normal gameplay
 		pass
 
-# ... (other existing methods remain unchanged)
+	# Placeholder for future implementation
+	print("Action button pressed. Implementation pending.")

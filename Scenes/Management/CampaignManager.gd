@@ -1,32 +1,24 @@
 class_name CampaignManager
 extends Resource
 
-signal phase_changed(new_phase: TurnPhase)
+const StoryTrack = preload("res://Resources/StoryTrack.gd")
+
+signal phase_changed(new_phase: GlobalEnums.CampaignPhase)
 signal turn_completed
 
-enum TurnPhase {
-    UPKEEP,
-    STORY_POINT,
-    MOVE_TO_NEW_LOCATION,
-    RUMORS_AND_HAPPENINGS,
-    QUEST_PROGRESS,
-    RECRUIT,
-    TRAINING_AND_STUDY,
-    TRADE,
-    PATRON_JOB,
-    MISSION,
-    POST_MISSION,
-    END_TURN
-}
-
-var game_state: GameState
-var current_phase: TurnPhase = TurnPhase.UPKEEP
+var game_state: GameStateManager
+var current_phase: GlobalEnums.CampaignPhase = GlobalEnums.CampaignPhase.UPKEEP
 var use_expanded_missions: bool = false
 var story_track: StoryTrack
+var save_manager: SaveManager
+var save_load_ui: Control
 
-func _init(_game_state: GameState) -> void:
+func _init(_game_state: GameStateManager) -> void:
     game_state = _game_state
     story_track = StoryTrack.new()
+    save_manager = SaveManager.new()
+    save_load_ui = preload("res://Scenes/campaign/NewCampaignSetup/SaveLoadUI.tscn").instantiate()
+    save_load_ui.hide()
 
 func start_new_turn(main_scene: Node) -> void:
     game_state.current_turn += 1
@@ -35,8 +27,7 @@ func start_new_turn(main_scene: Node) -> void:
     var turn_summary = create_campaign_turn_summary()
     game_state.logbook.add_entry(turn_summary)
     
-    var save_manager = SaveManager.new()
-    save_manager.save_game(game_state, "user://autosave.json")
+    show_save_load_ui()  # This will now handle autosaving
     
     if game_state.is_tutorial_active:
         start_tutorial_phase(main_scene)
@@ -55,9 +46,9 @@ func start_world_phase(main_scene: Node):
 
 func advance_phase() -> void:
     if game_state.is_tutorial_active:
-        story_track.progress_story(game_state, current_phase)
+        progress_story(current_phase)
     else:
-        current_phase = TurnPhase.values()[(current_phase + 1) % TurnPhase.size()]
+        current_phase = GlobalEnums.CampaignPhase.values()[(current_phase + 1) % GlobalEnums.CampaignPhase.size()]
     phase_changed.emit(current_phase)
 
 func perform_upkeep() -> bool:
@@ -99,17 +90,14 @@ func train_and_study(crew_index: int, skill: String, skill_type: Skill.SkillType
     if crew_index >= 0 and crew_index < game_state.current_crew.members.size():
         var crew_member = game_state.current_crew.members[crew_index]
         
-        # Check if the character already has the skill
         if crew_member.has_skill(skill):
-            # If they have the skill, increase its level
             crew_member.increase_skill_level(skill)
         else:
-            # If they don't have the skill, add it
             crew_member.add_skill(skill, skill_type)
         
-        return true  # Training/studying was successful
+        return true
     
-    return false  # Invalid crew index or other failure
+    return false
 
 func trade_items(buy: bool, item_index: int) -> bool:
     if buy:
@@ -164,11 +152,9 @@ func create_campaign_turn_summary() -> String:
 func start_story_track_tutorial():
     game_state.is_tutorial_active = true
     story_track.start_tutorial()
-    # Additional setup for tutorial mode if needed
 
 func end_tutorial(main_scene: Node):
     game_state.is_tutorial_active = false
-    # Transition to normal gameplay
     start_world_phase(main_scene)
 
 func start_tutorial():
@@ -176,4 +162,30 @@ func start_tutorial():
     var character_creation_logic = load("res://Resources/CharacterCreationLogic.gd").new()
     var tutorial_character = character_creation_logic.create_tutorial_character()
     game_state.current_crew.add_member(tutorial_character)
-    # Additional tutorial setup...
+
+func show_save_load_ui() -> void:
+    save_load_ui.show()
+    save_load_ui.connect("save_requested", _on_save_requested)
+    save_load_ui.connect("load_requested", _on_load_requested)
+
+func _on_save_requested(save_name: String) -> void:
+    var game_state_path = game_state.resource_path
+    var result = save_manager.save_game(game_state_path, save_name)
+    if result != OK:
+        push_error("Failed to save game. Error code: " + str(result))
+    else:
+        print("Game saved successfully as: " + save_name)
+
+func _on_load_requested(save_name: String) -> void:
+    var loaded_game_state = save_manager.load_game(save_name)
+    if loaded_game_state:
+        game_state = loaded_game_state
+        print("Game loaded successfully: " + save_name)
+    else:
+        push_error("Failed to load game: " + save_name)
+
+func progress_story(current_phase: GlobalEnums.CampaignPhase) -> void:
+    if game_state.story_track:
+        game_state.story_track.progress_story(current_phase)
+    else:
+        push_warning("Story track not initialized in game state.")

@@ -73,12 +73,12 @@ func serialize() -> Dictionary:
 		"permanent_modifiers": permanent_modifiers
 	}
 
-static func deserialize(data: Dictionary, character: Character) -> StatDistribution:
-	var stat_distribution = StatDistribution.new(character)
-	if data.has("base_stats"):
-		stat_distribution.base_stats = data["base_stats"]
-	if data.has("temporary_modifiers"):
-		stat_distribution.temporary_modifiers = data["temporary_modifiers"]
-	if data.has("permanent_modifiers"):
-		stat_distribution.permanent_modifiers = data["permanent_modifiers"]
-	return stat_distribution
+static func deserialize(data_dict: Dictionary, character_instance: Character) -> StatDistribution:
+	var new_stat_distribution = StatDistribution.new(character_instance)
+	if data_dict.has("base_stats"):
+		new_stat_distribution.base_stats = data_dict["base_stats"]
+	if data_dict.has("temporary_modifiers"):
+		new_stat_distribution.temporary_modifiers = data_dict["temporary_modifiers"]
+	if data_dict.has("permanent_modifiers"):
+		new_stat_distribution.permanent_modifiers = data_dict["permanent_modifiers"]
+	return new_stat_distribution

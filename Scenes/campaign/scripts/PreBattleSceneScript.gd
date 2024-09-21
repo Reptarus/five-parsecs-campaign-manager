@@ -1,7 +1,7 @@
 class_name PreBattleSceneScript
 extends Control
 
-var game_state: GameState
+@onready var game_state = get_node("/root/GameState")
 var terrain_generator: TerrainGenerator
 
 @onready var generate_terrain_button = $GenerateTerrainButton
@@ -15,12 +15,13 @@ func _ready() -> void:
 	start_battle_button.pressed.connect(_on_start_battle_pressed)
 	back_button.pressed.connect(_on_back_pressed)
 
-func initialize(state: GameState) -> void:
+func initialize(state: GameStateManager) -> void:
 	game_state = state
 	terrain_generator = TerrainGenerator.new(game_state)
+	terrain_generator.initialize(game_state.get_current_state())
 
 func _on_generate_terrain_pressed() -> void:
-	var battlefield: Dictionary = terrain_generator.generate_battlefield()
+	var battlefield: Dictionary = terrain_generator.generate_battlefield(game_state)
 	_visualize_battlefield(battlefield)
 
 func _on_place_characters_pressed() -> void:

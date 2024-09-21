@@ -28,7 +28,7 @@ func _load_mission_data() -> void:
 		var json = JSON.new()
 		var parse_result = json.parse(file.get_as_text())
 		if parse_result == OK:
-			var mission_data = json.get_data()
+			var _mission_data = json.get_data()
 			# Process and store the loaded mission data
 			# For example:
 			# self.mission_templates = mission_data.get("mission_templates", [])

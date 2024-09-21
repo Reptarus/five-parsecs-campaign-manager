@@ -9,7 +9,7 @@ extends Control
 @onready var options_button = $MenuButtons/Options
 @onready var library_button = $MenuButtons/Library
 
-var game_state: GameState
+var game_state: GameStateManager
 
 func _ready():
 	setup_ui()
@@ -55,7 +55,7 @@ func setup_ui():
 	tween.tween_property(self, "modulate", Color(1, 1, 1, 1), 0.5)
 
 func initialize_game_systems():
-	game_state = GameState.new()
+	game_state = GameStateManager.new()
 	assert(game_state != null, "Failed to create GameState instance")
 	update_continue_button_visibility()
 
@@ -73,12 +73,14 @@ func _on_new_campaign_pressed():
 	call_deferred("_change_to_new_campaign_scene")
 
 func _change_to_new_campaign_scene():
-	# Load the scene
 	var campaign_setup_scene = load("res://Scenes/Scene Container/campaigncreation/scenes/CampaignSetupScreen.tscn").instantiate()
 	
-	# Ensure the game_state is passed to the new scene if needed
 	if campaign_setup_scene.has_method("set_game_state"):
-		campaign_setup_scene.set_game_state(game_state)
+		# Ensure game_state is of the correct type
+		if game_state is GameStateManager:
+			campaign_setup_scene.set_game_state(game_state)
+		else:
+			push_error("Invalid game state type in MainMenu")
 	
 	# Remove the current scene
 	get_tree().current_scene.queue_free()

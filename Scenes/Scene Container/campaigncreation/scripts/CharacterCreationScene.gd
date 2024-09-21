@@ -5,6 +5,7 @@ const CharacterCreationDataResource := preload("res://Scripts/Characters/Charact
 const NameGenerator := preload("res://Resources/CharacterNameGenerator.gd")
 const CrewResource := preload("res://Scripts/ShipAndCrew/Crew.gd")
 const StrangeCharacters := preload("res://Scripts/Characters/StrangeCharacters.gd")
+const SaveManager = preload("res://Scenes/Management/SaveManager.gd")
 
 @onready var tabs := $MarginContainer/VBoxContainer/HSplitContainer/CharacterCreationTabs
 @onready var preview_panel := $MarginContainer/VBoxContainer/HSplitContainer/RightPanel/CharacterPreview
@@ -12,6 +13,7 @@ const StrangeCharacters := preload("res://Scripts/Characters/StrangeCharacters.g
 @onready var character_count_label := $MarginContainer/VBoxContainer/HSplitContainer/RightPanel/CharacterCountLabel
 @onready var finish_button := $MarginContainer/VBoxContainer/ButtonContainer/FinishCrewCreationButton
 @onready var finish_creation_dialog := $FinishCreationDialog
+@onready var back_to_crew_management_button: Button = $MarginContainer/VBoxContainer/HeaderContainer/BackButton
 
 var character_data: CharacterCreationDataResource
 var current_character: CharacterClass
@@ -27,6 +29,7 @@ func _ready() -> void:
 		populate_option_buttons()
 		update_ui()
 		finish_creation_dialog.confirmed.connect(_on_finish_creation_confirmed)
+		back_to_crew_management_button.connect("pressed", _on_back_to_crew_management_pressed)
 	else:
 		printerr("Failed to load character data. Aborting initialization.")
 
@@ -192,39 +195,50 @@ func show_error(message: String) -> void:
 	error_dialog.popup_centered()
 
 func create_crew() -> void:
-	var new_crew := CrewResource.new("New Crew")
+	var new_crew := CrewResource.new()
 	for character in created_characters:
 		new_crew.add_member(character)
 	
 	var game_state := get_node("/root/GameState")
-	if game_state:
+	if game_state is GameStateManagerNode:
 		game_state.current_crew = new_crew
-		game_state.change_state(GameState.State.CAMPAIGN_TURN)
+		game_state.transition_to_state(GameStateManager.State.CAMPAIGN_TURN)
 		get_tree().change_scene_to_file("res://Scenes/Scene Container/CrewManagement.tscn")
 	else:
-		push_error("Error: GameState not found")
+		push_error("Error: GameState not found or not of type GameStateManager")
 
 func _on_clear_character_pressed() -> void:
 	create_new_character()
 	update_ui()
 
 func _on_save_character_pressed() -> void:
-	var save_manager := SaveManager.new()
-	var save_name := "character_" + current_character.name.to_lower().replace(" ", "_")
-	var game_state := GameState.new()
-	game_state.current_character = current_character
-	var result := save_manager.save_game(game_state, save_name)
-	print("Character " + ("saved successfully" if result == OK else "failed to save: " + str(result)))
+	var save_load_ui = preload("res://Scenes/campaign/NewCampaignSetup/SaveLoadUI.tscn").instantiate()
+	add_child(save_load_ui)
+	save_load_ui.connect("save_confirmed", _on_save_confirmed)
+	save_load_ui.show_save_dialog()
+
+func _on_save_confirmed(save_name: String) -> void:
+	var save_manager: SaveManager = get_node("/root/SaveManager")
+	var game_state := get_node("/root/GameState")
+	if game_state is GameStateManagerNode:
+		game_state.current_character = current_character
+		var result := save_manager.save_game(game_state, save_name)
+		if result == OK:
+			print_debug("Character saved successfully")
+		else:
+			push_error("Failed to save character: " + str(result))
+	else:
+		push_error("Error: GameState not found or not of type GameStateManagerNode")
 
 func _on_import_character_pressed() -> void:
-	var save_manager := SaveManager.new()
-	var save_list := save_manager.get_save_list()
-	if save_list.is_empty():
-		show_error("No saved characters found")
-		return
-	# TODO: Implement a UI for selecting a save file
-	var selected_save: String = save_list[0]  # For now, just use the first save
-	
+	var save_manager: SaveManager = get_node("/root/SaveManager")
+	var save_load_ui = preload("res://Scenes/campaign/NewCampaignSetup/SaveLoadUI.tscn").instantiate()
+	add_child(save_load_ui)
+	save_load_ui.connect("load_confirmed", _on_load_confirmed)
+	save_load_ui.show_load_dialog(save_manager.get_save_list())
+
+func _on_load_confirmed(selected_save: String) -> void:
+	var save_manager: SaveManager = get_node("/root/SaveManager")
 	var loaded_game_state: GameState = save_manager.load_game(selected_save)
 	if loaded_game_state and loaded_game_state.current_character is CharacterClass:
 		current_character = loaded_game_state.current_character
@@ -234,15 +248,37 @@ func _on_import_character_pressed() -> void:
 		push_error("Failed to import character")
 
 func _on_export_character_pressed() -> void:
-	var save_manager := SaveManager.new()
+	if not current_character:
+		push_warning("No character to export.")
+		return
+
 	var export_name := "character_export_" + current_character.name.to_lower().replace(" ", "_")
-	var game_state := GameState.new()
+	
+	# Assuming SaveManager is a custom class, we'll use a more generic approach
+	var save_manager = SaveManager.new() if SaveManager else null
+	if not save_manager:
+		push_error("Failed to create SaveManager instance.")
+		return
+
+	# Assuming GameState is a custom class, we'll use a more generic approach
+	var game_state = GameState.new() if GameState else null
+	if not game_state:
+		push_error("GameState not available.")
+		return
+
 	game_state.current_character = current_character
-	var result := save_manager.save_game(game_state, export_name)
-	print("Character " + ("exported successfully to: " + SaveManager.SAVE_DIR + export_name + SaveManager.SAVE_FILE_EXTENSION if result == OK else "failed to export: " + str(result)))
+
+	var result = save_manager.save_game(game_state, export_name)
+	if result == OK:
+		print_debug("Character exported successfully to: %s" % str(save_manager.get_save_path(export_name)))
+	else:
+		push_error("Failed to export character. Error code: %s" % str(result))
 
 func update_psionic_info(is_psionic: bool) -> void:
-	ui_elements.psionic_abilities.visible = is_psionic
+	if ui_elements.has("psionic_abilities"):
+		ui_elements.psionic_abilities.visible = is_psionic
+	else:
+		push_warning("Psionic abilities UI element not found")
 	ui_elements.psionic_description.text = "This character " + ("has psionic abilities. Select from the list below:" if is_psionic else "does not have psionic abilities.")
 	if is_psionic:
 		ui_elements.psionic_abilities.clear()
@@ -254,3 +290,6 @@ func get_psionic_abilities() -> Array:
 	# Implement this function to return a list of psionic abilities based on the character's class or other factors
 	# For now, we'll return a placeholder list
 	return ["Telepathy", "Telekinesis", "Precognition", "Psychometry"]
+
+func _on_back_to_crew_management_pressed() -> void:
+	get_tree().change_scene_to_file("res://Scenes/Scene Container/CrewManagement.tscn")

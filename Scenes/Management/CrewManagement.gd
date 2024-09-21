@@ -6,20 +6,22 @@ extends Control
 @onready var ship_content = $HBoxContainer/MainContent/MarginContainer/ContentContainer/ShipContent
 @onready var quests_content = $HBoxContainer/MainContent/MarginContainer/ContentContainer/QuestsContent
 @onready var stash_content = $HBoxContainer/MainContent/MarginContainer/ContentContainer/StashContent
+@onready var create_character_button: Button = $CreateCharacterButton
 
-var game_state: GameState
+var game_state: GameStateManager
 
 signal crew_finalized
 
 func _ready() -> void:
-	game_state = get_node("/root/GameState")
+	game_state = GameState.get_game_state()
 	if not game_state:
-		push_error("GameState not found. Make sure it's properly set up as an AutoLoad.")
+		push_error("GameStateManager not found. Make sure it's properly set up as an AutoLoad.")
 		return
 	update_all_content()
 	show_content("crew")
 	get_viewport().size_changed.connect(_on_viewport_size_changed)
 	_on_viewport_size_changed()
+	create_character_button.connect("pressed", _on_create_character_button_pressed)
 
 func update_all_content() -> void:
 	update_crew_display()
@@ -134,4 +136,11 @@ func show_character_sheet(character) -> void:
 	add_child(character_sheet)
 
 func _on_finalize_crew_button_pressed() -> void:
-	crew_finalized.emit()
+	if game_state.get_current_crew().size() == game_state.get_crew_size():
+		crew_finalized.emit()
+		get_tree().change_scene_to_file("res://Scenes/Scene Container/CampaignDashboard.tscn")
+	else:
+		push_error("Crew size does not match the selected size. Please add or remove characters.")
+
+func _on_create_character_button_pressed() -> void:
+	get_tree().change_scene_to_file("res://Scenes/Scene Container/campaigncreation/CharacterCreator.tscn")
