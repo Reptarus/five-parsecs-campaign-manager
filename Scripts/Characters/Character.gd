@@ -1,8 +1,5 @@
-# Character.gd
 class_name Character
 extends Resource
-
-const ArmorResource = preload("res://Resources/Armor.gd")
 
 signal experience_gained(amount: int)
 signal leveled_up
@@ -14,127 +11,235 @@ signal request_upgrade_choice(upgrade_options)
 @export var background: String
 @export var character_class: String
 @export var motivation: String
+@export var is_strange: bool = false
+@export var strange_type: String = ""
 
-@export var reactions: int
-@export var speed: int
-@export var combat_skill: int
-@export var toughness: int
-@export var savvy: int
-@export var luck: int
-@export var xp: int
+@export var reactions: int = 1
+@export var speed: int = 4
+@export var combat_skill: int = 0
+@export var toughness: int = 3
+@export var savvy: int = 0
+@export var xp: int = 0
 @export var level: int = 1
+@export var luck: int = 0
 
-@export var inventory: CharacterInventory
-@export var traits: Array[String]
+@export var inventory: Array[Dictionary] = []
+@export var traits: Array[String] = []
 
 var medbay_turns_left: int = 0
 var injuries: Array[String] = []
+var position: Vector2i
+var weapon: Weapon
+var is_defeated: bool = false
+var is_priority_target: bool = false
 
-func _init() -> void:
-	inventory = CharacterInventory.new()
+# Include methods from CharacterInventory.gd
+func add_item(item: Dictionary): inventory.append(item)
+func remove_item(item: Dictionary): inventory.erase(item)
+func get_all_items() -> Array[Dictionary]: return inventory
+func clear_inventory(): inventory.clear()
 
-func is_in_medbay() -> bool:
-	return medbay_turns_left > 0
+# Include methods from StrangeCharacters.gd
+func set_strange_character(type: String):
+	is_strange = true
+	strange_type = type
+	# Apply special abilities based on type
 
-func recover() -> void:
-	if medbay_turns_left > 0:
-		medbay_turns_left -= 1
-
-func apply_tutorial_modifications(modifications: Dictionary) -> void:
-	for stat in modifications:
-		if stat in ["reactions", "speed", "combat_skill", "toughness", "savvy", "luck"]:
-			set(stat, get(stat) + modifications[stat])
-
-func level_up() -> void:
-	level += 1
-	var upgrade_options = [
-		"Increase Reactions by 1",
-		"Increase Speed by 1",
-		"Increase Combat Skill by 1",
-		"Increase Toughness by 1",
-		"Increase Savvy by 1",
-		"Increase Luck by 1",
-		"Gain a new Trait"
-	]
+# Include character creation and management methods
+static func create(species: String, background: String, motivation: String, character_class: String) -> Character:
+	var character = Character.new()
+	character.name = generate_name(species)
+	character.species = species
+	character.background = background
+	character.motivation = motivation
+	character.character_class = character_class
 	
-	var choice = await request_upgrade_choice.emit(upgrade_options)
+	character.initialize_default_stats()
+	character.apply_background_effects(background)
+	character.apply_class_effects(character_class)
 	
-	match choice:
-		"Increase Reactions by 1": reactions += 1
-		"Increase Speed by 1": speed += 1
-		"Increase Combat Skill by 1": combat_skill += 1
-		"Increase Toughness by 1": toughness += 1
-		"Increase Savvy by 1": savvy += 1
-		"Increase Luck by 1": luck += 1
-		"Gain a new Trait":
-			request_new_trait.emit()
-			var new_trait = await request_new_trait
-			traits.append(new_trait)
-	
-	xp -= get_xp_for_next_level()
-	leveled_up.emit()
+	return character
 
-func get_xp_for_next_level() -> int:
-	return level * 5  # Simple XP curve, adjust as needed
+func initialize_default_stats() -> void:
+	# Implement default stat initialization based on species
+	match species:
+		"Human":
+			reactions = 2
+			speed = 4
+			combat_skill = 1
+			toughness = 3
+			savvy = 1
+		"Converted":
+			reactions = 1
+			speed = 4
+			combat_skill = 0
+			toughness = 5
+			savvy = 0
+		"Abductor":
+			reactions = 3
+			speed = 4
+			combat_skill = 0
+			toughness = 3
+			savvy = 2
+		"Feral":
+			reactions = 3
+			speed = 5
+			combat_skill = 1
+			toughness = 4
+			savvy = 0
+		"Skulker":
+			reactions = 4
+			speed = 7
+			combat_skill = 1
+			toughness = 4
+			savvy = 0
 
-func can_level_up() -> bool:
-	return xp >= get_xp_for_next_level()
+func apply_background_effects(background: String) -> void:
+	# Implement background effects
+	match background:
+		"Peaceful, High-Tech Colony":
+			savvy += 1
+		"Giant, Overcrowded, Dystopian City":
+			speed += 1
+		"Low-Tech Colony":
+			# No specific stat changes
+			pass
+		"Mining Colony":
+			toughness += 1
+		"Military Brat":
+			combat_skill += 1
+		"Space Station":
+			# No specific stat changes
+			pass
+		"Military Outpost":
+			reactions += 1
+		"Drifter":
+			# No specific stat changes
+			pass
+		"Lower Megacity Class":
+			# No specific stat changes
+			pass
+		"Wealthy Merchant Family":
+			# No specific stat changes
+			pass
+		"Frontier Gang":
+			toughness += 1
+		"Religious Cult":
+			# No specific stat changes
+			pass
+		"War-Torn Hell-Hole":
+			reactions += 1
+		# Add more background-specific effects here
 
-func get_armor_save() -> int:
-	return inventory.get_items().reduce(func(acc, item): 
-		return max(acc, item.armor_save if "armor_save" in item else 0), 0)
+func apply_class_effects(character_class: String) -> void:
+	# Implement class effects
+	match character_class:
+		"Warrior":
+			combat_skill += 1
+			toughness += 1
+		"Engineer":
+			savvy += 1
+			speed += 1
+		"Explorer":
+			speed += 1
+			reactions += 1
+		"Medic":
+			toughness += 1
+			savvy += 1
+		# Add more class-specific effects here
 
+# Serialization methods
 func serialize() -> Dictionary:
-	return {
+	var data = {
 		"name": name,
 		"species": species,
 		"background": background,
 		"character_class": character_class,
 		"motivation": motivation,
+		"is_strange": is_strange,
+		"strange_type": strange_type,
 		"reactions": reactions,
 		"speed": speed,
 		"combat_skill": combat_skill,
 		"toughness": toughness,
 		"savvy": savvy,
-		"luck": luck,
 		"xp": xp,
 		"level": level,
+		"luck": luck,
+		"inventory": inventory,
 		"traits": traits,
 		"medbay_turns_left": medbay_turns_left,
-		"injuries": injuries,
-		"inventory": inventory.serialize()
+		"injuries": injuries
 	}
+	return data
 
 static func deserialize(data: Dictionary) -> Character:
 	var character = Character.new()
-	for key in data.keys():
-		if key != "inventory":
-			character.set(key, data[key])
-	character.inventory = CharacterInventory.deserialize(data["inventory"])
+	character.name = data.get("name", "")
+	character.species = data.get("species", "")
+	character.background = data.get("background", "")
+	character.character_class = data.get("character_class", "")
+	character.motivation = data.get("motivation", "")
+	character.is_strange = data.get("is_strange", false)
+	character.strange_type = data.get("strange_type", "")
+	character.reactions = data.get("reactions", 1)
+	character.speed = data.get("speed", 4)
+	character.combat_skill = data.get("combat_skill", 0)
+	character.toughness = data.get("toughness", 3)
+	character.savvy = data.get("savvy", 0)
+	character.xp = data.get("xp", 0)
+	character.level = data.get("level", 1)
+	character.luck = data.get("luck", 0)
+	character.inventory = data.get("inventory", [])
+	character.traits = data.get("traits", [])
+	character.medbay_turns_left = data.get("medbay_turns_left", 0)
+	character.injuries = data.get("injuries", [])
 	return character
 
-func enter_medbay(medical_bay: MedicalBayComponent) -> bool:
-	if medical_bay.admit_patient(self):
-		medbay_turns_left = 3
-		return true
-	return false
+# Static method for name generation
+static func generate_name(species: String) -> String:
+	var name_part1 = ""
+	var name_part2 = ""
+	
+	match species:
+		"human":
+			name_part1 = get_random_name_part("World Names Generator")
+			name_part2 = get_random_name_part("Colony Names Generator", "Part 2")
+		"alien":
+			name_part1 = get_random_name_part("Ship Names Generator", "Part 1")
+			name_part2 = get_random_name_part("Ship Names Generator", "Part 2")
+		"robot":
+			name_part1 = get_random_name_part("Corporate Patron Names Generator", "Part 1")
+			name_part2 = get_random_name_part("Corporate Patron Names Generator", "Part 2")
+		_:
+			name_part1 = get_random_name_part("World Names Generator")
+			name_part2 = get_random_name_part("Colony Names Generator", "Part 2")
+	
+	return name_part1 + " " + name_part2
 
-func leave_medbay(medical_bay: MedicalBayComponent) -> bool:
-	if medical_bay.discharge_patient(self):
-		medbay_turns_left = 0
-		return true
-	return false
+static func get_random_name_part(generator_title: String, part: String = "") -> String:
+	var name_tables = load("res://data/RulesReference/NameGenerationTables.json").get("NameGenerationTables").get("content")
+	
+	for table in name_tables:
+		if table.get("title") == generator_title:
+			if part == "":
+				return get_random_name_from_table(table.get("table"))
+			else:
+				for sub_table in table.get("tables"):
+					if sub_table.get("name") == part:
+						return get_random_name_from_table(sub_table.get("table"))
+	
+	return "Unknown"
 
-func apply_injury(injury: String) -> void:
-	injuries.append(injury)
-	# Implement stat penalties or other effects based on injury
-
-func heal_injury(injury: String) -> void:
-	injuries.erase(injury)
-	# Reverse any stat penalties or effects
-
-func add_experience(amount: int) -> void:
-	xp += amount
-	experience_gained.emit(amount)
-	while can_level_up():
-		level_up()
+static func get_random_name_from_table(table: Array) -> String:
+	var roll = randi() % 100 + 1
+	for entry in table:
+		var roll_range = entry.get("roll").split("-")
+		if roll_range.size() == 1:
+			if int(roll_range[0]) == roll:
+				return entry.get("name")
+		elif roll_range.size() == 2:
+			if roll >= int(roll_range[0]) and roll <= int(roll_range[1]):
+				return entry.get("name")
+	
+	return "Unknown"

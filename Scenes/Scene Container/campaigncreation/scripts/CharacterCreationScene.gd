@@ -1,295 +1,149 @@
+# Scenes/Scene Container/campaigncreation/scripts/CharacterCreationScene.gd
 extends Control
 
-const CharacterClass := preload("res://Scripts/Characters/Character.gd")
-const CharacterCreationDataResource := preload("res://Scripts/Characters/CharacterCreationData.gd")
-const NameGenerator := preload("res://Resources/CharacterNameGenerator.gd")
-const CrewResource := preload("res://Scripts/ShipAndCrew/Crew.gd")
-const StrangeCharacters := preload("res://Scripts/Characters/StrangeCharacters.gd")
-const SaveManager = preload("res://Scenes/Management/SaveManager.gd")
+var character_creation_logic: CharacterCreationLogic
+var character_creation_data: CharacterCreationData
+var current_character: Character
+var created_characters: Array[Character] = []
+var ship_inventory: ShipInventory
 
-@onready var tabs := $MarginContainer/VBoxContainer/HSplitContainer/CharacterCreationTabs
-@onready var preview_panel := $MarginContainer/VBoxContainer/HSplitContainer/RightPanel/CharacterPreview
-@onready var character_list := $MarginContainer/VBoxContainer/HSplitContainer/RightPanel/CharacterList
-@onready var character_count_label := $MarginContainer/VBoxContainer/HSplitContainer/RightPanel/CharacterCountLabel
-@onready var finish_button := $MarginContainer/VBoxContainer/ButtonContainer/FinishCrewCreationButton
-@onready var finish_creation_dialog := $FinishCreationDialog
-@onready var back_to_crew_management_button: Button = $MarginContainer/VBoxContainer/HeaderContainer/BackButton
+@onready var name_input: LineEdit = $MarginContainer/VBoxContainer/HSplitContainer/CharacterCreationTabs/BasicProfile/NameEntry/NameInput
+@onready var species_option: OptionButton = $MarginContainer/VBoxContainer/HSplitContainer/CharacterCreationTabs/BasicProfile/SpeciesSelection/SpeciesOptionButton
+@onready var background_option: OptionButton = $MarginContainer/VBoxContainer/HSplitContainer/CharacterCreationTabs/BasicProfile/BackgroundSelection/BackgroundOptionButton
+@onready var motivation_option: OptionButton = $MarginContainer/VBoxContainer/HSplitContainer/CharacterCreationTabs/BasicProfile/MotivationSelection/MotivationOptionButton
+@onready var class_option: OptionButton = $MarginContainer/VBoxContainer/HSplitContainer/CharacterCreationTabs/BasicProfile/ClassSelection/ClassOptionButton
+@onready var character_list: ItemList = $MarginContainer/VBoxContainer/HSplitContainer/RightPanel/CharacterList
+@onready var character_count_label: Label = $MarginContainer/VBoxContainer/HSplitContainer/RightPanel/CharacterCountLabel
+@onready var character_stats_display: Label = $MarginContainer/VBoxContainer/HSplitContainer/CharacterCreationTabs/BasicProfile/CharacterStatsDisplay
 
-var character_data: CharacterCreationDataResource
-var current_character: CharacterClass
-var created_characters: Array[CharacterClass] = []
-var ui_elements: Dictionary
+func _ready():
+	character_creation_logic = CharacterCreationLogic.new()
+	character_creation_data = CharacterCreationData.new()
+	character_creation_data.load_data()
+	ship_inventory = ShipInventory.new()
+	_populate_option_buttons()
+	_update_character_count()
 
-func _ready() -> void:
-	randomize()
-	if load_and_initialize_data():
-		setup_ui_elements()
-		connect_signals()
-		create_new_character()
-		populate_option_buttons()
-		update_ui()
-		finish_creation_dialog.confirmed.connect(_on_finish_creation_confirmed)
-		back_to_crew_management_button.connect("pressed", _on_back_to_crew_management_pressed)
-	else:
-		printerr("Failed to load character data. Aborting initialization.")
+func _populate_option_buttons():
+	_populate_option_button(species_option, character_creation_data.get_all_races())
+	_populate_option_button(background_option, character_creation_data.get_all_backgrounds())
+	_populate_option_button(motivation_option, character_creation_data.get_all_motivations())
+	_populate_option_button(class_option, character_creation_data.get_all_classes())
 
-func load_and_initialize_data() -> bool:
-	character_data = CharacterCreationDataResource.new()
-	return character_data != null and character_data.load_data()
-
-func setup_ui_elements() -> void:
-	ui_elements = {
-		"name_input": $MarginContainer/VBoxContainer/HSplitContainer/CharacterCreationTabs/BasicProfile/NameEntry/NameInput,
-		"species_option": $MarginContainer/VBoxContainer/HSplitContainer/CharacterCreationTabs/BasicProfile/SpeciesSelection/SpeciesOptionButton,
-		"background_option": $MarginContainer/VBoxContainer/HSplitContainer/CharacterCreationTabs/BasicProfile/BackgroundSelection/BackgroundOptionButton,
-		"motivation_option": $MarginContainer/VBoxContainer/HSplitContainer/CharacterCreationTabs/BasicProfile/MotivationSelection/MotivationOptionButton,
-		"class_option": $MarginContainer/VBoxContainer/HSplitContainer/CharacterCreationTabs/BasicProfile/ClassSelection/ClassOptionButton,
-		"stat_distribution": $MarginContainer/VBoxContainer/HSplitContainer/CharacterCreationTabs/CharacterDetails/StatDistribution,
-		"psionic_checkbox": $MarginContainer/VBoxContainer/HSplitContainer/CharacterCreationTabs/CharacterDetails/PsionicSection/PsionicCheckbox,
-		"psionic_abilities": $MarginContainer/VBoxContainer/HSplitContainer/CharacterCreationTabs/CharacterDetails/PsionicSection/PsionicAbilities,
-		"psionic_description": $MarginContainer/VBoxContainer/HSplitContainer/CharacterCreationTabs/CharacterDetails/PsionicSection/PsionicDescription,
-		"abilities_list": $MarginContainer/VBoxContainer/HSplitContainer/CharacterCreationTabs/CharacterDetails/SpecialAbilities/AbilitiesList,
-		"strange_character_option": $MarginContainer/VBoxContainer/HSplitContainer/CharacterCreationTabs/CharacterDetails/StrangeCharacterOption,
-		"starting_weapons_and_gear": $MarginContainer/VBoxContainer/HSplitContainer/CharacterCreationTabs/Equipment/StartingWeaponsAndGear,
-		"starting_weapons": $MarginContainer/VBoxContainer/HSplitContainer/CharacterCreationTabs/Equipment/StartingWeapons
-	}
-
-func connect_signals() -> void:
-	ui_elements.name_input.text_changed.connect(_on_name_changed)
-	$MarginContainer/VBoxContainer/HeaderContainer/RandomCharacterButton.pressed.connect(roll_random_character)
-	$MarginContainer/VBoxContainer/ButtonContainer/SaveButton.pressed.connect(_on_save_character_pressed)
-	$MarginContainer/VBoxContainer/ButtonContainer/ClearButton.pressed.connect(_on_clear_character_pressed)
-	$MarginContainer/VBoxContainer/ButtonContainer/ImportButton.pressed.connect(_on_import_character_pressed)
-	$MarginContainer/VBoxContainer/ButtonContainer/ExportButton.pressed.connect(_on_export_character_pressed)
-	$MarginContainer/VBoxContainer/ButtonContainer/AddCharacterButton.pressed.connect(_on_add_character_pressed)
-	$MarginContainer/VBoxContainer/ButtonContainer/FinishCrewCreationButton.pressed.connect(_on_finish_crew_creation_pressed)
-	
-	for option in ["species", "background", "motivation", "class"]:
-		ui_elements[option + "_option"].item_selected.connect(
-			func(index): _on_attribute_selected(index, option)
-		)
-	
-	ui_elements.psionic_checkbox.toggled.connect(_on_psionic_toggled)
-	ui_elements.strange_character_option.item_selected.connect(_on_strange_character_selected)
-
-func create_new_character() -> void:
-	current_character = CharacterClass.new()
-	current_character.name = NameGenerator.get_random_name()
-	for attribute in ["species", "background", "motivation", "character_class"]:
-		current_character[attribute] = get_random_item(character_data[attribute + "es" if attribute == "species" else attribute + "s"]).name
-	current_character.initialize_default_stats()
-	if not current_character.apply_species_effects(character_data) or not current_character.apply_character_effects(character_data):
-		push_error("Failed to apply character effects")
-
-func populate_option_buttons() -> void:
-	var options_data := {
-		"species_option": character_data.species,
-		"background_option": character_data.backgrounds,
-		"motivation_option": character_data.motivations,
-		"class_option": character_data.classes
-	}
-   
-	for option in options_data:
-		populate_option_button(ui_elements[option], options_data[option])
-   
-	populate_strange_character_option()
-
-func populate_option_button(option_button: OptionButton, items: Array) -> void:
+func _populate_option_button(option_button: OptionButton, options: Array):
 	option_button.clear()
-	for item in items:
-		option_button.add_item(item.name, item.get("id", item.name.hash()))
+	for option in options:
+		option_button.add_item(option.name, option.id)
 
-func populate_strange_character_option() -> void:
-	ui_elements.strange_character_option.clear()
-	ui_elements.strange_character_option.add_item_array(character_data.strange_character_types)
-
-func update_ui() -> void:
-	if not current_character:
-		push_error("No current character to update UI with.")
-		return
-
-	ui_elements.name_input.text = current_character.name
-	for attribute in ["species", "background", "motivation", "character_class"]:
-		update_option_button(ui_elements[attribute.replace("character_", "") + "_option"], current_character[attribute])
-	ui_elements.psionic_checkbox.button_pressed = current_character.is_psionic
-	update_option_button(ui_elements.strange_character_option, current_character.strange_character_type)
-	update_abilities_list()
-	ui_elements.stat_distribution.update_stats(current_character)
-	ui_elements.starting_weapons_and_gear.update_gear(current_character)
-	ui_elements.starting_weapons.update_weapons(current_character)
-	preview_panel.update_preview(current_character)
-	update_character_list()
-	update_psionic_info(current_character.is_psionic)
-
-func update_option_button(option_button: OptionButton, value: String) -> void:
-	var index := option_button.get_item_index(option_button.get_item_id(value.hash()))
-	option_button.select(index if index != -1 else 0)
-
-func update_abilities_list() -> void:
-	ui_elements.abilities_list.clear()
-	ui_elements.abilities_list.add_item_array(current_character.abilities)
-
-func update_character_list() -> void:
-	character_list.clear()
-	for character in created_characters:
-		character_list.add_item("%s - %s" % [character.name, character.background])
+func _update_character_count():
 	character_count_label.text = "Characters: %d/8" % created_characters.size()
-	var character_count := created_characters.size()
-	finish_button.disabled = character_count < 3 or character_count > 8
 
-func _on_name_changed(new_name: String) -> void:
-	current_character.name = new_name
-	preview_panel.update_preview(current_character)
+func _on_random_character_button_pressed():
+	species_option.select(randi() % species_option.item_count)
+	background_option.select(randi() % background_option.item_count)
+	motivation_option.select(randi() % motivation_option.item_count)
+	class_option.select(randi() % class_option.item_count)
+	name_input.text = Character.generate_name(species_option.get_item_text(species_option.selected))
+	_update_character_preview()
 
-func _on_attribute_selected(index: int, attribute: String) -> void:
-	current_character[attribute] = ui_elements[attribute + "_option"].get_item_text(index)
-	if attribute == "species" and not current_character.apply_species_effects(character_data):
-		push_error("Failed to apply species effects")
-	update_ui()
-
-func _on_psionic_toggled(button_pressed: bool) -> void:
-	if button_pressed:
-		current_character.make_psionic()
-	else:
-		current_character.remove_psionic()
-	update_ui()
-
-func _on_strange_character_selected(index: int) -> void:
-	current_character.set_strange_character_type(ui_elements.strange_character_option.get_item_text(index))
-	update_ui()
-
-func roll_random_character() -> void:
-	create_new_character()
-	update_ui()
-
-func _on_add_character_pressed() -> void:
+func _on_add_character_pressed():
 	if created_characters.size() < 8:
-		var new_character := CharacterClass.new()
-		new_character.copy_from(current_character)
+		var new_character = character_creation_logic.create_character(
+			species_option.get_selected_id(),
+			background_option.get_selected_id(),
+			motivation_option.get_selected_id(),
+			class_option.get_selected_id()
+		)
+		new_character.name = name_input.text
+		_apply_starting_rolls(new_character)
 		created_characters.append(new_character)
-		update_character_list()
-		create_new_character()
+		character_list.add_item(new_character.name)
+		_update_character_count()
+		_update_character_preview()
 	else:
-		show_error("Maximum crew size reached (8 characters)")
+		print("Maximum crew size reached (8 characters)")
 
-func _on_finish_crew_creation_pressed() -> void:
-	var crew_size := created_characters.size()
-	if crew_size >= 3 and crew_size <= 8:
-		finish_creation_dialog.popup_centered()
-	else:
-		show_error("Crew must have between 3 and 8 members")
-
-func _on_finish_creation_confirmed() -> void:
-	create_crew()
-
-func get_random_item(array: Array):
-	return array[randi() % array.size()] if not array.is_empty() else null
-
-func verify_ui_elements() -> bool:
-	return not ui_elements.values().has(null)
-
-func show_error(message: String) -> void:
-	var error_dialog := AcceptDialog.new()
-	error_dialog.dialog_text = message
-	add_child(error_dialog)
-	error_dialog.popup_centered()
-
-func create_crew() -> void:
-	var new_crew := CrewResource.new()
-	for character in created_characters:
-		new_crew.add_member(character)
+func _apply_starting_rolls(character: Character):
+	# Apply bonus equipment and weapon rolls
+	var bonus_equipment = _roll_bonus_equipment()
+	var bonus_weapon = _roll_bonus_weapon()
 	
-	var game_state := get_node("/root/GameState")
-	if game_state is GameStateManagerNode:
-		game_state.current_crew = new_crew
-		game_state.transition_to_state(GameStateManager.State.CAMPAIGN_TURN)
+	for item in bonus_equipment:
+		if character.inventory.size() < 3:  # 2 weapons + 1 pistol/blade
+			character.add_item(item)
+		else:
+			ship_inventory.add_item(item)
+	
+	if character.inventory.size() < 2:
+		character.add_item(bonus_weapon)
+	else:
+		ship_inventory.add_item(bonus_weapon)
+
+	# Generate and assign rivals, patrons, and rumors
+	character.rivals = _generate_rivals()
+	character.patrons = _generate_patrons()
+	character.rumors = _generate_rumors()
+
+func _roll_bonus_equipment() -> Array:
+	# Implement bonus equipment roll logic
+	return []  # Return an array of equipment items
+
+func _roll_bonus_weapon() -> Dictionary:
+	# Implement bonus weapon roll logic
+	return {}  # Return a weapon item
+
+func _generate_rivals() -> Array:
+	# Implement rival generation logic
+	return []  # Return an array of rivals
+
+func _generate_patrons() -> Array:
+	# Implement patron generation logic
+	return []  # Return an array of patrons
+
+func _generate_rumors() -> Array:
+	# Implement rumor generation logic
+	return []  # Return an array of rumors
+
+func _update_character_preview():
+	if current_character:
+		character_stats_display.text = """
+		Name: {name}
+		Species: {species}
+		Background: {background}
+		Motivation: {motivation}
+		Class: {character_class}
+		
+		Reactions: {reactions}
+		Speed: {speed}
+		Combat Skill: {combat_skill}
+		Toughness: {toughness}
+		Savvy: {savvy}
+		Luck: {luck}
+		
+		Inventory: {inventory}
+		Traits: {traits}
+		""".format(current_character)
+
+func _on_finish_crew_creation_pressed():
+	if created_characters.size() >= 3 and created_characters.size() <= 8:
+		# Save created characters and return to crew management
 		get_tree().change_scene_to_file("res://Scenes/Scene Container/CrewManagement.tscn")
 	else:
-		push_error("Error: GameState not found or not of type GameStateManager")
+		print("Crew must have between 3 and 8 members")
 
-func _on_clear_character_pressed() -> void:
-	create_new_character()
-	update_ui()
-
-func _on_save_character_pressed() -> void:
-	var save_load_ui = preload("res://Scenes/campaign/NewCampaignSetup/SaveLoadUI.tscn").instantiate()
-	add_child(save_load_ui)
-	save_load_ui.connect("save_confirmed", _on_save_confirmed)
-	save_load_ui.show_save_dialog()
-
-func _on_save_confirmed(save_name: String) -> void:
-	var save_manager: SaveManager = get_node("/root/SaveManager")
-	var game_state := get_node("/root/GameState")
-	if game_state is GameStateManagerNode:
-		game_state.current_character = current_character
-		var result := save_manager.save_game(game_state, save_name)
-		if result == OK:
-			print_debug("Character saved successfully")
-		else:
-			push_error("Failed to save character: " + str(result))
-	else:
-		push_error("Error: GameState not found or not of type GameStateManagerNode")
-
-func _on_import_character_pressed() -> void:
-	var save_manager: SaveManager = get_node("/root/SaveManager")
-	var save_load_ui = preload("res://Scenes/campaign/NewCampaignSetup/SaveLoadUI.tscn").instantiate()
-	add_child(save_load_ui)
-	save_load_ui.connect("load_confirmed", _on_load_confirmed)
-	save_load_ui.show_load_dialog(save_manager.get_save_list())
-
-func _on_load_confirmed(selected_save: String) -> void:
-	var save_manager: SaveManager = get_node("/root/SaveManager")
-	var loaded_game_state: GameState = save_manager.load_game(selected_save)
-	if loaded_game_state and loaded_game_state.current_character is CharacterClass:
-		current_character = loaded_game_state.current_character
-		update_ui()
-		print("Character imported successfully")
-	else:
-		push_error("Failed to import character")
-
-func _on_export_character_pressed() -> void:
-	if not current_character:
-		push_warning("No character to export.")
-		return
-
-	var export_name := "character_export_" + current_character.name.to_lower().replace(" ", "_")
-	
-	# Assuming SaveManager is a custom class, we'll use a more generic approach
-	var save_manager = SaveManager.new() if SaveManager else null
-	if not save_manager:
-		push_error("Failed to create SaveManager instance.")
-		return
-
-	# Assuming GameState is a custom class, we'll use a more generic approach
-	var game_state = GameState.new() if GameState else null
-	if not game_state:
-		push_error("GameState not available.")
-		return
-
-	game_state.current_character = current_character
-
-	var result = save_manager.save_game(game_state, export_name)
-	if result == OK:
-		print_debug("Character exported successfully to: %s" % str(save_manager.get_save_path(export_name)))
-	else:
-		push_error("Failed to export character. Error code: %s" % str(result))
-
-func update_psionic_info(is_psionic: bool) -> void:
-	if ui_elements.has("psionic_abilities"):
-		ui_elements.psionic_abilities.visible = is_psionic
-	else:
-		push_warning("Psionic abilities UI element not found")
-	ui_elements.psionic_description.text = "This character " + ("has psionic abilities. Select from the list below:" if is_psionic else "does not have psionic abilities.")
-	if is_psionic:
-		ui_elements.psionic_abilities.clear()
-		ui_elements.psionic_abilities.add_item_array(get_psionic_abilities())
-	else:
-		ui_elements.psionic_abilities.clear()
-
-func get_psionic_abilities() -> Array:
-	# Implement this function to return a list of psionic abilities based on the character's class or other factors
-	# For now, we'll return a placeholder list
-	return ["Telepathy", "Telekinesis", "Precognition", "Psychometry"]
-
-func _on_back_to_crew_management_pressed() -> void:
+func _on_back_to_crew_management_pressed():
 	get_tree().change_scene_to_file("res://Scenes/Scene Container/CrewManagement.tscn")
+
+func _on_clear_character_pressed():
+	name_input.text = ""
+	species_option.select(0)
+	background_option.select(0)
+	motivation_option.select(0)
+	class_option.select(0)
+	current_character = null
+	_update_character_preview()
+
+# ... (keep the existing import/export functions)
+
+func _on_option_button_item_selected(index: int):
+	_update_character_preview()

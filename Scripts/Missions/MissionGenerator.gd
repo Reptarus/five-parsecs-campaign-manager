@@ -1,232 +1,190 @@
+# Scripts/Missions/MissionGenerator.gd
 class_name MissionGenerator
-extends Resource
+extends Node
 
-var game_state: GameState
-var mission_types: Array[String] = []
-var expanded_missions_manager: ExpandedMissionsManager
+var game_state: GameStateManager
+var mission_manager: MissionManager
 
-const MissionType = preload("res://Scripts/Missions/Mission.gd").Type
-
-func initialize(new_game_state: GameState) -> void:
-	self.game_state = new_game_state
-	print("MissionGenerator initializing...")
-	
-	mission_types = []
-	for key in Mission.Type.keys():
-		mission_types.append(key)
-	
-	_load_mission_data()
-	
-	expanded_missions_manager = ExpandedMissionsManager.new(game_state)
-	
-	print("MissionGenerator initialized successfully")
-
-func _load_mission_data() -> void:
-	var mission_data_file = "res://Data/mission_data.json"
-	if FileAccess.file_exists(mission_data_file):
-		var file = FileAccess.open(mission_data_file, FileAccess.READ)
-		var json = JSON.new()
-		var parse_result = json.parse(file.get_as_text())
-		if parse_result == OK:
-			var _mission_data = json.get_data()
-			# Process and store the loaded mission data
-			# For example:
-			# self.mission_templates = mission_data.get("mission_templates", [])
-			# self.mission_modifiers = mission_data.get("mission_modifiers", [])
-		else:
-			push_error("JSON Parse Error: " + json.get_error_message() + " in " + mission_data_file + " at line " + str(json.get_error_line()))
-	else:
-		push_warning("Mission data file not found: " + mission_data_file)
+func _init(_game_state: GameStateManager):
+	game_state = _game_state
+	mission_manager = MissionManager.new(game_state)
 
 func generate_mission() -> Mission:
-	if game_state.is_tutorial_active:
-		return generate_tutorial_mission()
+	var missions = mission_manager.generate_missions()
+	if missions.is_empty():
+		return null
+	return missions.pick_random()
+
+func generate_mission_from_template(template: MissionTemplate) -> Mission:
+	var mission = Mission.new()
+	mission.type = template.type
+	mission.title = template.title_templates.pick_random().format([game_state.current_location.name])
+	mission.description = template.description_templates.pick_random().format([game_state.current_location.name])
+	mission.objective = template.objective
+	mission.difficulty = int(randf_range(template.difficulty_range.x, template.difficulty_range.y))
+	mission.time_limit = randi() % 5 + 3  # 3 to 7 turns
+	mission.location = game_state.current_location
+	mission.rewards = _generate_rewards_from_template(template)
+	mission.required_crew_size = randi() % 3 + 2  # 2 to 4 crew members required
 	
-	var mission_type = _select_mission_type()
+	if template.faction_type != null:
+		mission.faction = game_state.expanded_faction_manager.get_random_faction_of_type(template.faction_type)
+		mission.loyalty_requirement = int(randf_range(template.loyalty_requirement_range.x, template.loyalty_requirement_range.y))
+		mission.power_requirement = int(randf_range(template.power_requirement_range.x, template.power_requirement_range.y))
 	
-	match mission_type:
-		Mission.Type.INFILTRATION:
-			return game_state.stealth_missions_manager.generate_stealth_mission()
-		Mission.Type.STREET_FIGHT:
-			return game_state.street_fights_manager.generate_street_fight()
-		Mission.Type.SALVAGE_JOB:
-			return game_state.salvage_jobs_manager.generate_salvage_job()
-		Mission.Type.FRINGE_WORLD_STRIFE:
-			return game_state.fringe_world_strife_manager.generate_fringe_world_strife()
-		_:
-			return _generate_standard_mission()
+	return mission
+
+func _generate_rewards_from_template(template: MissionTemplate) -> Dictionary:
+	var rewards = {}
+	rewards["credits"] = int(randf_range(template.reward_range.x, template.reward_range.y))
+	rewards["reputation"] = randi() % 3 + 1  # 1 to 3 reputation
+	rewards["item"] = randf() < 0.3  # 30% chance for item reward
+	return rewards
 
 func generate_tutorial_mission() -> Mission:
 	var mission = Mission.new()
+	mission.type = Mission.Type.TUTORIAL
 	mission.title = "Tutorial Mission"
 	mission.description = "Learn the basics of the game"
-	mission.type = Mission.Type.TUTORIAL
 	mission.objective = Mission.Objective.MOVE_THROUGH
+	mission.difficulty = 1
+	mission.time_limit = 5
+	mission.location = game_state.current_location
 	mission.rewards = {"credits": 100, "reputation": 1}
+	mission.required_crew_size = game_state.current_crew.get_size()
 	mission.is_tutorial_mission = true
 	return mission
 
-func _select_mission_type() -> int:
-	var roll = randi() % 100 + 1
-	if roll <= 20:
-		return Mission.Type.INFILTRATION
-	elif roll <= 40:
-		return Mission.Type.STREET_FIGHT
-	elif roll <= 60:
-		return Mission.Type.SALVAGE_JOB
-	elif roll <= 80:
-		return Mission.Type.FRINGE_WORLD_STRIFE
-	else:
-		return Mission.Type.values()[randi() % Mission.Type.size()]
-
-func _generate_standard_mission() -> Mission:
+func generate_opportunity_mission() -> Mission:
 	var mission = Mission.new()
-	mission.type = _roll_mission_type()
-	mission.location = game_state.get_current_location()
-	mission.objective = _generate_objective(mission.type)
-	mission.difficulty = randi() % 5 + 1  # 1 to 5
-	mission.rewards = _generate_rewards(mission.difficulty)
-	mission.time_limit = randi() % 5 + 3  # 3 to 7 campaign turns
-	mission.title = _generate_mission_title(mission.type, mission.location)
-	mission.description = _generate_mission_description(mission.type, mission.objective, mission.location)
-	
+	mission.type = Mission.Type.OPPORTUNITY
+	mission.title = "Opportunity Mission"
+	mission.description = "A sudden opportunity has arisen"
+	mission.objective = Mission.Objective.values()[randi() % Mission.Objective.size()]
+	mission.difficulty = randi() % 3 + 1  # 1 to 3 difficulty
+	mission.time_limit = randi() % 3 + 2  # 2 to 4 turns
+	mission.location = game_state.current_location
+	mission.rewards = {"credits": randi() % 300 + 200, "reputation": randi() % 2 + 1}
+	mission.required_crew_size = randi() % 3 + 2  # 2 to 4 crew members required
 	return mission
 
-func _generate_expanded_mission() -> Mission:
-	var expanded_mission_data = expanded_missions_manager.generate_expanded_mission()
+func generate_rival_mission() -> Mission:
 	var mission = Mission.new()
-	mission.title = expanded_mission_data["title"]
-	mission.description = expanded_mission_data["description"]
-	mission.type = Mission.Type[expanded_mission_data["type"]]
-	mission.objective = Mission.Objective[expanded_mission_data["primary_objective"]]
-	mission.location = expanded_mission_data["location"]
-	mission.difficulty = expanded_mission_data["difficulty"]
-	mission.rewards = expanded_mission_data["rewards"]
-	mission.time_limit = randi() % 5 + 3  # 3 to 7 campaign turns
-	mission.is_expanded = true
-	mission.faction = expanded_mission_data["faction"] if "faction" in expanded_mission_data else {}
-	mission.loyalty_requirement = expanded_mission_data["loyalty_requirement"] if "loyalty_requirement" in expanded_mission_data else 0
-	mission.power_requirement = expanded_mission_data["power_requirement"] if "power_requirement" in expanded_mission_data else 0
-	
+	mission.type = Mission.Type.RIVAL
+	mission.title = "Rival Confrontation"
+	mission.description = "A rival crew is causing trouble"
+	mission.objective = Mission.Objective.FIGHT_OFF
+	mission.time_limit = randi() % 2 + 2  # 2 to 3 turns
+	mission.location = game_state.current_location
+	mission.rewards = {"credits": randi() % 400 + 300, "reputation": randi() % 3 + 2}
+	mission.required_crew_size = game_state.current_crew.get_size()
 	return mission
 
-func generate_mission_for_faction(faction: Dictionary) -> Mission:
-	var mission = _generate_expanded_mission()
-	mission.faction = faction
-	mission.loyalty_requirement = randi() % 3 + 1  # 1 to 3
-	mission.power_requirement = randi() % faction["power"] + 1  # 1 to faction power
+func generate_quest_mission() -> Mission:
+	var mission = Mission.new()
+	mission.type = Mission.Type.QUEST
+	mission.title = "Quest Mission"
+	mission.description = "A step in a larger quest"
+	mission.objective = Mission.Objective.values()[randi() % Mission.Objective.size()]
+	mission.difficulty = randi() % 4 + 2  # 2 to 5 difficulty
+	mission.time_limit = randi() % 3 + 3  # 3 to 5 turns
+	mission.location = game_state.current_location
+	mission.rewards = {"credits": randi() % 500 + 400, "reputation": randi() % 3 + 2, "item": true}
+	mission.required_crew_size = game_state.current_crew.get_size()
 	return mission
 
-func mission_to_quest(mission: Mission) -> Quest:
-	var quest_type = "MISSION_FOLLOWUP"
-	var objective = "Follow up on the outcomes of the recent mission: " + mission.title
-	var rewards = {
-		"credits": int(mission.rewards["credits"] * 1.5),
-		"reputation": mission.rewards["reputation"] + 1
-	}
+func generate_assassination_mission() -> Mission:
+	var mission = Mission.new()
+	mission.type = Mission.Type.ASSASSINATION
+	mission.title = "Assassination Contract"
+	mission.description = "Eliminate a high-value target"
+	mission.objective = Mission.Objective.ELIMINATE
+	mission.difficulty = randi() % 3 + 3  # 3 to 5 difficulty
+	mission.time_limit = randi() % 2 + 2  # 2 to 3 turns
+	mission.location = game_state.current_location
+	mission.rewards = {"credits": randi() % 600 + 500, "reputation": randi() % 2 + 3}
+	mission.required_crew_size = max(2, game_state.current_crew.get_size() - 1)
+	return mission
+
+func generate_sabotage_mission() -> Mission:
+	var mission = Mission.new()
+	mission.type = Mission.Type.SABOTAGE
+	mission.title = "Sabotage Operation"
+	mission.description = "Disrupt enemy operations"
+	mission.objective = Mission.Objective.DESTROY
+	mission.difficulty = randi() % 3 + 2  # 2 to 4 difficulty
+	mission.time_limit = randi() % 3 + 2  # 2 to 4 turns
+	mission.location = game_state.current_location
+	mission.rewards = {"credits": randi() % 500 + 400, "reputation": randi() % 3 + 2}
+	mission.required_crew_size = max(2, game_state.current_crew.get_size() - 1)
+	return mission
+
+func generate_rescue_mission() -> Mission:
+	var mission = Mission.new()
+	mission.type = Mission.Type.RESCUE
+	mission.title = "Rescue Operation"
+	mission.description = "Save hostages or stranded individuals"
+	mission.objective = Mission.Objective.RESCUE
+	mission.difficulty = randi() % 3 + 2  # 2 to 4 difficulty
+	mission.time_limit = randi() % 2 + 2  # 2 to 3 turns
+	mission.location = game_state.current_location
+	mission.rewards = {"credits": randi() % 400 + 300, "reputation": randi() % 3 + 2}
+	mission.required_crew_size = game_state.current_crew.get_size()
+	return mission
+
+func generate_defense_mission() -> Mission:
+	var mission = Mission.new()
+	mission.type = Mission.Type.DEFENSE
+	mission.title = "Defensive Stand"
+	mission.description = "Protect a location from enemy forces"
+	mission.objective = Mission.Objective.DEFEND
+	mission.difficulty = randi() % 3 + 3  # 3 to 5 difficulty
+	mission.time_limit = randi() % 3 + 3  # 3 to 5 turns
+	mission.location = game_state.current_location
+	mission.rewards = {"credits": randi() % 500 + 400, "reputation": randi() % 3 + 2}
+	mission.required_crew_size = game_state.current_crew.get_size()
+	return mission
+
+func generate_escort_mission() -> Mission:
+	var mission = Mission.new()
+	mission.type = Mission.Type.ESCORT
+	mission.title = "Escort Duty"
+	mission.description = "Safely transport a VIP or valuable cargo"
+	mission.objective = Mission.Objective.PROTECT
+	mission.difficulty = randi() % 3 + 2  # 2 to 4 difficulty
+	mission.time_limit = randi() % 3 + 2  # 2 to 4 turns
+	mission.location = game_state.current_location
+	mission.rewards = {"credits": randi() % 450 + 350, "reputation": randi() % 2 + 2}
+	mission.required_crew_size = max(3, game_state.current_crew.get_size() - 1)
+	return mission
+
+# You can add more mission generation functions here as needed
+
+func _on_mission_completed(mission: Mission) -> void:
+	game_state.add_credits(mission.rewards["credits"])
+	game_state.add_reputation(mission.rewards["reputation"])
+	if mission.rewards.get("item", false):
+		game_state.add_random_item()
 	
-	if randf() < 0.3:  # 30% chance for bonus reward
-		rewards["item"] = _generate_random_item()
+	match mission.type:
+		Mission.Type.PATRON:
+			if mission.patron:
+				mission.patron.change_relationship(5)
+		Mission.Type.RIVAL:
+			game_state.remove_rival(mission.rival)
+		Mission.Type.QUEST:
+			game_state.advance_quest(mission.quest)
 	
-	return Quest.new(quest_type, mission.location, objective, rewards)
+	game_state.update_faction_standings(mission)
 
-func generate_connection_from_mission(mission: Mission) -> Dictionary:
-	var connection_types = ["Alliance", "Rivalry", "Trade Agreement", "Information Network"]
-	var connection_type = connection_types[randi() % connection_types.size()]
+func _on_mission_failed(mission: Mission) -> void:
+	match mission.type:
+		Mission.Type.PATRON:
+			if mission.patron:
+				mission.patron.change_relationship(-3)
+		Mission.Type.RIVAL:
+			game_state.increase_rival_threat(mission.rival)
+		Mission.Type.QUEST:
+			game_state.fail_quest_step(mission.quest)
 	
-	var duration = randi() % 6 + 1  # 1D6 campaign turns
-	if connection_type == "Rivalry":
-		duration += randi() % 6  # Add another 1D6 for Rivalry
-	
-	var effects = _generate_connection_effects(connection_type, mission)
-	
-	return {
-		"type": connection_type,
-		"description": _generate_connection_description(connection_type, mission),
-		"duration": duration,
-		"effects": effects
-	}
-
-func _roll_mission_type() -> int:
-	var roll = randi() % 100 + 1
-	if roll <= 40:
-		return Mission.Type.OPPORTUNITY
-	elif roll <= 70:
-		return Mission.Type.PATRON
-	elif roll <= 90:
-		return Mission.Type.QUEST
-	else:
-		return Mission.Type.RIVAL
-
-func _generate_objective(_mission_type: int) -> int:
-	var objectives = Mission.Objective.values()
-	return objectives[randi() % objectives.size()]
-
-func _generate_rewards(difficulty: int) -> Dictionary:
-	var base_credits = 100 * difficulty
-	return {
-		"credits": base_credits + randi() % int(base_credits / 2.0),
-		"reputation": difficulty,
-		"item": randf() < 0.3  # 30% chance for item reward
-	}
-
-func _generate_mission_title(_mission_type: int, location: Location) -> String:
-	var titles = [
-		"Trouble in %s",
-		"%s Dilemma",
-		"Crisis at %s",
-		"The %s Incident",
-		"%s Operation"
-	]
-	return titles[randi() % titles.size()] % location.name
-
-func _generate_mission_description(_mission_type: int, _objective: int, location: Location) -> String:
-	var descriptions = [
-		"A situation has arisen in %s that requires immediate attention.",
-		"Your expertise is needed to handle a delicate matter in %s.",
-		"An opportunity has presented itself in %s. Time is of the essence.",
-		"A crisis is unfolding in %s, and you're the only ones who can help."
-	]
-	return descriptions[randi() % descriptions.size()] % location.name
-
-func _generate_random_item() -> String:
-	var items = ["Advanced Weapon", "Protective Gear", "Rare Artifact", "Valuable Data Chip", "Experimental Tech"]
-	return items[randi() % items.size()]
-
-func _generate_connection_effects(connection_type: String, _mission: Mission) -> Array:
-	var effects = []
-	match connection_type:
-		"Alliance":
-			effects.append("Increased reputation gain")
-			effects.append("Access to special equipment")
-		"Rivalry":
-			effects.append("Increased mission difficulty")
-			effects.append("Chance for ambushes")
-		"Trade Agreement":
-			effects.append("Better prices when trading")
-			effects.append("Access to rare items")
-		"Information Network":
-			effects.append("Increased chance for rumors")
-			effects.append("Bonus to relevant Savvy checks")
-	return effects
-
-func _generate_connection_description(connection_type: String, mission: Mission) -> String:
-	var descriptions = {
-		"Alliance": "A new alliance has been formed with a faction in %s.",
-		"Rivalry": "Your actions in %s have created a rivalry with a local group.",
-		"Trade Agreement": "A lucrative trade agreement has been established in %s.",
-		"Information Network": "You've tapped into a valuable information network in %s."
-	}
-	return descriptions[connection_type] % mission.location.name
-
-func set_game_state(_game_state: GameState) -> void:
-	game_state = _game_state
-	expanded_missions_manager = ExpandedMissionsManager.new(game_state)
-
-# Commented out probability function for future use
-# func _mission_to_quest_probability(mission: Mission) -> float:
-#     var base_probability = 0.2  # 20% base chance
-#     base_probability += mission.difficulty * 0.05  # +5% per difficulty level
-#     if mission.status == Mission.Status.COMPLETED:
-#         base_probability += 0.1  # +10% if mission was successful
-#     return min(base_probability, 0.75)  # Cap at 75% chance
+	game_state.update_faction_standings(mission)

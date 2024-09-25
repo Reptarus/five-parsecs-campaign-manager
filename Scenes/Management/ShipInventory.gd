@@ -1,8 +1,9 @@
-class_name ShipInventory
-extends Resource
+# Scripts/ShipAndCrew/ShipInventory.gd
+class_name ShipInventory extends Resource
 
 signal item_added(item: Gear)
 signal item_removed(item: Gear)
+signal capacity_changed(new_capacity: float)
 
 @export var items: Array[Gear] = []
 @export var max_weight_capacity: float = 100.0
@@ -15,12 +16,10 @@ func add_item(item: Gear) -> bool:
 	if current_weight + item.weight > max_weight_capacity:
 		push_error("Not enough capacity to add item to inventory")
 		return false
-	if current_weight + item.weight <= max_weight_capacity:
-		items.append(item)
-		current_weight += item.weight
-		item_added.emit(item)
-		return true
-	return false
+	items.append(item)
+	current_weight += item.weight
+	item_added.emit(item)
+	return true
 
 func remove_item(item: Gear) -> bool:
 	if item == null:
@@ -42,36 +41,18 @@ func is_full() -> bool:
 
 func update_capacity(new_capacity: float) -> void:
 	max_weight_capacity = new_capacity
+	capacity_changed.emit(new_capacity)
 	while current_weight > max_weight_capacity:
 		var removed_item = items.pop_back()
 		current_weight -= removed_item.weight
 		item_removed.emit(removed_item)
 
-func serialize() -> Dictionary:
-	var data = {
-		"items": items.map(func(i): return i.serialize()),
-		"max_weight_capacity": max_weight_capacity,
-		"current_weight": current_weight
-	}
-	return data
-
-static func deserialize(data: Dictionary) -> ShipInventory:
-	var inventory = ShipInventory.new()
-	inventory.items = data["items"].map(func(i): return Gear.deserialize(i))
-	inventory.capacity = data["capacity"]
-	inventory.max_weight_capacity = data["max_weight_capacity"]
-	inventory.current_weight = data["current_weight"]
-	return inventory
-
-# Get items by type or category
 func get_items_by_type(type: Equipment.Type) -> Array[Gear]:
 	return items.filter(func(item: Gear): return item.type == type)
 
-# Check if an item exists in the inventory
 func has_item(item: Gear) -> bool:
 	return items.has(item)
 
-# Get item by unique identifier
 func get_item_by_id(item_id: String) -> Gear:
 	for item in items:
 		if item.id == item_id:
@@ -90,3 +71,17 @@ func sort_items(sort_type: String) -> void:
 		"value":
 			items.sort_custom(func(a, b): return a.value < b.value)
 		# Add more sorting options as needed
+
+func serialize() -> Dictionary:
+	return {
+		"items": items.map(func(i): return i.serialize()),
+		"max_weight_capacity": max_weight_capacity,
+		"current_weight": current_weight
+	}
+
+static func deserialize(data: Dictionary) -> ShipInventory:
+	var inventory = ShipInventory.new()
+	inventory.items = data["items"].map(func(i): return Gear.deserialize(i))
+	inventory.max_weight_capacity = data["max_weight_capacity"]
+	inventory.current_weight = data["current_weight"]
+	return inventory

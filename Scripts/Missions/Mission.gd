@@ -1,7 +1,8 @@
+# Scripts/Missions/Mission.gd
 class_name Mission
 extends Resource
 
-enum Type {STANDARD, EXPANDED, TUTORIAL, OPPORTUNITY, PATRON, QUEST, RIVAL, ASSASSINATION, SABOTAGE, RESCUE, INFILTRATION, DEFENSE, ESCORT, FRINGE_WORLD_STRIFE, SALVAGE_JOB, STREET_FIGHT}
+enum Type {STANDARD, EXPANDED, TUTORIAL, OPPORTUNITY, PATRON, QUEST, RIVAL, ASSASSINATION, SABOTAGE, RESCUE, INFILTRATION, DEFENSE, ESCORT, FRINGE_WORLD_STRIFE, SALVAGE_JOB, STREET_FIGHT, STEALTH}
 enum Status {ACTIVE, COMPLETED, FAILED}
 enum Objective {MOVE_THROUGH, DELIVER, ACCESS, PATROL, FIGHT_OFF, SEARCH, DEFEND, ACQUIRE, ELIMINATE, SECURE, PROTECT}
 
@@ -17,13 +18,13 @@ enum Objective {MOVE_THROUGH, DELIVER, ACCESS, PATROL, FIGHT_OFF, SEARCH, DEFEND
 @export var location: Location
 @export var required_crew_size: int
 
-# New fields for expanded content
+# Expanded mission properties
 @export var is_expanded: bool = false
 @export var faction: Dictionary
 @export var loyalty_requirement: int = 0
 @export var power_requirement: int = 0
 
-# New fields for specific mission types
+# Specific mission type properties
 @export var instability: int = 0  # For Fringe World Strife
 @export var salvage_units: int = 0  # For Salvage Jobs
 @export var detection_level: int = 0  # For Stealth Missions

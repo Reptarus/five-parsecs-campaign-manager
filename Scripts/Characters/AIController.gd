@@ -1,310 +1,276 @@
 class_name AIController
 extends Node
 
+signal ai_action_completed(action: Dictionary)
+
 var combat_manager: CombatManager
 var game_state: GameState
+var escalating_battles_manager: EscalatingBattlesManager
+var enemy_deployment_manager: EnemyDeploymentManager
 
-# AI types from core rulebook
 enum AIType {
-	CAUTIOUS,
-	AGGRESSIVE,
-	TACTICAL,
-	DEFENSIVE,
-	BEAST,
-	RAMPAGING
+    CAUTIOUS,
+    AGGRESSIVE,
+    TACTICAL,
+    DEFENSIVE,
+    BEAST,
+    RAMPAGING
 }
 
-# Compendium AI types (to be implemented as DLC if requested)
-enum CompendiumAIType {
-	COWARDLY,
-	PROTECTIVE,
-	BERSERKER,
-	SNIPER
+enum AIBehavior {
+    DETERMINISTIC,
+    DICE_BASED
 }
+
+@export var ai_behavior: AIBehavior = AIBehavior.DETERMINISTIC
 
 func initialize(_combat_manager: CombatManager, _game_state: GameState) -> void:
-	combat_manager = _combat_manager
-	game_state = _game_state
+    combat_manager = _combat_manager
+    game_state = _game_state
+    escalating_battles_manager = EscalatingBattlesManager.new(game_state)
+    enemy_deployment_manager = EnemyDeploymentManager.new(game_state)
 
-# Perform an AI turn for the given character
 func perform_ai_turn(ai_character: Character) -> void:
-	var action = determine_best_action(ai_character)
-	execute_action(ai_character, action)
-# Determine the best action for the AI character
+    var action: Dictionary
+    
+    if ai_behavior == AIBehavior.DETERMINISTIC:
+        action = determine_best_action(ai_character)
+    else:
+        action = determine_dice_based_action(ai_character)
+    
+    execute_action(ai_character, action)
+
 func determine_best_action(ai_character: Character) -> Dictionary:
-	var possible_actions = get_possible_actions(ai_character)
-	var best_action: Dictionary = {}
-	var best_score: float = -1.0
+    var possible_actions = get_possible_actions(ai_character)
+    var best_action: Dictionary = {}
+    var best_score: float = -1.0
 
-	for action in possible_actions:
-		var score = evaluate_action(ai_character, action)
-		if score > best_score:
-			best_score = score
-			best_action = action
+    for action in possible_actions:
+        var score = evaluate_action(ai_character, action)
+        if score > best_score:
+            best_score = score
+            best_action = action
 
-	return best_action
+    return best_action
 
-# Get all possible actions for the AI character
 func get_possible_actions(ai_character: Character) -> Array:
-	var actions = []
+    var actions = []
 
-	match ai_character.ai_type:
-		AIType.CAUTIOUS:
-			actions.append({"type": "move", "target": combat_manager.find_cover_position(ai_character)})
-			if combat_manager.is_in_cover(ai_character):
-				actions.append({"type": "aim", "target": null})
-		AIType.AGGRESSIVE:
-			actions.append({"type": "move", "target": combat_manager.find_closest_enemy(ai_character)})
-		AIType.TACTICAL:
-			actions.append({"type": "move", "target": combat_manager.find_tactical_position(ai_character)})
-		AIType.DEFENSIVE:
-			if not combat_manager.is_in_cover(ai_character):
-				actions.append({"type": "move", "target": combat_manager.find_cover_position(ai_character)})
-		AIType.BEAST:
-			actions.append({"type": "move", "target": combat_manager.find_closest_enemy(ai_character)})
-		AIType.RAMPAGING:
-			actions.append({"type": "move", "target": combat_manager.find_random_position()})
+    match ai_character.ai_type:
+        AIType.CAUTIOUS:
+            actions.append({"type": "move", "target": combat_manager.find_cover_position(ai_character)})
+            if combat_manager.is_in_cover(ai_character):
+                actions.append({"type": "aim", "target": null})
+        AIType.AGGRESSIVE:
+            actions.append({"type": "move", "target": combat_manager.find_nearest_enemy(ai_character)})
+        AIType.TACTICAL:
+            actions.append({"type": "move", "target": combat_manager.find_tactical_position(ai_character)})
+        AIType.DEFENSIVE:
+            if not combat_manager.is_in_cover(ai_character):
+                actions.append({"type": "move", "target": combat_manager.find_cover_position(ai_character)})
+        AIType.BEAST:
+            actions.append({"type": "move", "target": combat_manager.find_nearest_enemy(ai_character)})
+        AIType.RAMPAGING:
+            actions.append({"type": "move", "target": combat_manager.find_random_position()})
 
-	for target in combat_manager.get_valid_targets(ai_character):
-		if combat_manager.can_attack(ai_character, target):
-			actions.append({"type": "attack", "target": target})
+    for target in combat_manager.get_valid_targets(ai_character):
+        if combat_manager.can_attack(ai_character, target):
+            actions.append({"type": "attack", "target": target})
 
-	if ai_character.has_usable_items():
-		actions.append({"type": "use_item", "target": null})
+    if ai_character.has_usable_items():
+        actions.append({"type": "use_item", "target": null})
 
-	return actions
+    return actions
 
-# Evaluate the potential effectiveness of an action
 func evaluate_action(ai_character: Character, action: Dictionary) -> float:
-	match action.type:
-		"move":
-			return evaluate_move(ai_character, action.target)
-		"attack":
-			return evaluate_attack(ai_character, action.target)
-		"use_item":
-			return evaluate_item_use(ai_character)
-		"aim":
-			return evaluate_aim(ai_character)
-	return 0.0
+    match action.type:
+        "move":
+            return evaluate_move(ai_character, action.target)
+        "attack":
+            return evaluate_attack(ai_character, action.target)
+        "use_item":
+            return evaluate_item_use(ai_character)
+        "aim":
+            return evaluate_aim(ai_character)
+    return 0.0
 
-# Evaluate a move action
 func evaluate_move(ai_character: Character, target_position: Vector2) -> float:
-	var base_score = 10.0
-	var distance_to_target = ai_character.position.distance_to(target_position)
-	
-	base_score -= distance_to_target
-	
-	if combat_manager.is_in_cover(ai_character):
-		base_score += 5.0
-	
-	return base_score
+    var base_score = 10.0
+    var distance_to_target = ai_character.position.distance_to(target_position)
+    
+    base_score -= distance_to_target
+    
+    if combat_manager.is_in_cover(ai_character):
+        base_score += 5.0
+    
+    return base_score
 
-# Evaluate an attack action
 func evaluate_attack(ai_character: Character, target: Character) -> float:
-	var weapon = ai_character.get_equipped_weapon()
-	var base_score = 20.0
-	
-	base_score += (1.0 - target.health / float(target.max_health)) * 10.0
-	base_score += weapon.damage * 2.0
-	
-	if not combat_manager.is_in_cover(target):
-		base_score += 5.0
-	
-	return base_score
+    var weapon = ai_character.get_equipped_weapon()
+    var base_score = 20.0
+    
+    base_score += (1.0 - target.health / float(target.max_health)) * 10.0
+    base_score += weapon.damage * 2.0
+    
+    if not combat_manager.is_in_cover(target):
+        base_score += 5.0
+    
+    return base_score
 
-# Evaluate using an item
-func evaluate_item_use(_ai_character: Character) -> float:
-	return 5.0  # Base score for using an item, can be adjusted based on item type and situation
+func evaluate_item_use(ai_character: Character) -> float:
+    return 5.0  # Base score for using an item, can be adjusted based on item type and situation
 
-# Evaluate aiming
 func evaluate_aim(ai_character: Character) -> float:
-	return 15.0 if combat_manager.is_in_cover(ai_character) else 5.0
+    return 15.0 if combat_manager.is_in_cover(ai_character) else 5.0
 
-# Execute the chosen action
 func execute_action(ai_character: Character, action: Dictionary) -> void:
-	match action.type:
-		"move":
-			combat_manager.move_character(ai_character, action.target)
-		"attack":
-			combat_manager.attack_character(ai_character, action.target)
-		"use_item":
-			combat_manager.use_item(ai_character, action.item)  # Added action.item as the second argument
-		"aim":
-			combat_manager.aim(ai_character)
+    match action.type:
+        "move":
+            combat_manager.move_character(ai_character, action.target)
+        "attack":
+            combat_manager.attack_character(ai_character, action.target)
+        "use_item":
+            combat_manager.use_item(ai_character, action.item)
+        "aim":
+            combat_manager.aim(ai_character)
 
-	combat_manager.end_turn()
+    ai_action_completed.emit(action)
 
-# Compendium AI functions (based on Five Parsecs From Home-Compendium)
-func get_compendium_possible_actions(ai_character: Character) -> Array:
-	var actions = []
-	
-	# Check for psionic abilities
-	if ai_character.has_psionics:
-		var psionic_action = game_state.psionic_manager.determine_enemy_psionic_action(ai_character, combat_manager.get_valid_targets(ai_character))
-		actions.append({"type": "use_psionic", "power": psionic_action.power, "target": psionic_action.target})
-	
-	# Check for special species abilities
-	if ai_character.species in ["Skulker", "Krag"]:
-		actions.append({"type": "use_species_ability", "ability": get_species_ability(ai_character)})
-	
-	# Check for advanced equipment
-	if ai_character.has_advanced_equipment():
-		actions.append({"type": "use_advanced_equipment", "item": get_best_advanced_equipment(ai_character)})
-	
-	# Check for bot upgrades
-	if ai_character.is_bot and ai_character.has_upgrades():
-		actions.append({"type": "use_bot_upgrade", "upgrade": get_best_bot_upgrade(ai_character)})
-	
-	return actions
+func determine_dice_based_action(ai_character: Character) -> Dictionary:
+    var roll = randi() % 6 + 1
+    var action = {}
 
-func evaluate_compendium_action(ai_character: Character, action: Dictionary) -> float:
-	var base_score = 0.0
-	
-	match action.type:
-		"use_psionic":
-			base_score = evaluate_psionic_action(ai_character, action.power)
-		"use_species_ability":
-			base_score = evaluate_species_ability(ai_character, action.ability)
-		"use_advanced_equipment":
-			base_score = evaluate_advanced_equipment(ai_character, action.item)
-		"use_bot_upgrade":
-			base_score = evaluate_bot_upgrade(ai_character, action.upgrade)
-	
-	# Adjust score based on current situation
-	if combat_manager.is_in_cover(ai_character):
-		base_score *= 1.2
-	
-	return base_score
+    match ai_character.ai_type:
+        AIType.CAUTIOUS:
+            action = _cautious_dice_action(ai_character, roll)
+        AIType.AGGRESSIVE:
+            action = _aggressive_dice_action(ai_character, roll)
+        AIType.TACTICAL:
+            action = _tactical_dice_action(ai_character, roll)
+        AIType.DEFENSIVE:
+            action = _defensive_dice_action(ai_character, roll)
+        AIType.BEAST, AIType.RAMPAGING:
+            action = _beast_dice_action(ai_character, roll)
 
-func get_best_psionic_ability(ai_character: Character) -> String:
-	var abilities = ai_character.psionic_abilities
-	var best_ability = ""
-	var highest_score = 0
-	
-	for ability in abilities:
-		var score = 0
-		match ability:
-			"Telekinesis":
-				score = 10 if combat_manager.get_nearby_objects().size() > 0 else 5
-			"Mind Control":
-				score = 15 if combat_manager.get_nearby_enemies(ai_character).size() > 0 else 0
-			"Healing":
-				score = 20 if ai_character.health < ai_character.max_health * 0.5 else 5
-			"Psionic Blast":
-				score = 15 if combat_manager.get_nearby_enemies(ai_character).size() > 1 else 10
-		
-		if score > highest_score:
-			highest_score = score
-			best_ability = ability
-	
-	return best_ability
+    return action
 
-func get_species_ability(ai_character: Character) -> String:
-	match ai_character.species:
-		"Skulker":
-			return "Shadow Blend"
-		"Krag":
-			return "Berserker Rage"
-	return ""
+func _cautious_dice_action(ai_character: Character, roll: int) -> Dictionary:
+    match roll:
+        1: return {"type": "move", "target": combat_manager.find_distant_cover_position(ai_character)}
+        2, 3: return {"type": "attack", "target": combat_manager.find_best_target(ai_character)}
+        4, 5: return {"type": "move", "target": combat_manager.find_cover_within_range(ai_character, 12.0)}
+        _: return {"type": "aim", "target": null}
 
-func get_best_advanced_equipment(ai_character: Character) -> String:
-	var equipment = ai_character.advanced_equipment
-	var best_equipment = ""
-	var highest_score = 0
-	
-	for item in equipment:
-		var score = 0
-		match item:
-			"Energy Shield":
-				score = 15 if ai_character.health < ai_character.max_health * 0.7 else 10
-			"Grav Boots":
-				score = 12 if combat_manager.is_difficult_terrain() else 5
-			"Nano-Medkit":
-				score = 18 if ai_character.health < ai_character.max_health * 0.3 else 8
-			"Holo-Projector":
-				score = 14 if not combat_manager.is_in_cover(ai_character) else 6
-		
-		if score > highest_score:
-			highest_score = score
-			best_equipment = item
-	
-	return best_equipment
+func _aggressive_dice_action(ai_character: Character, roll: int) -> Dictionary:
+    match roll:
+        1, 2: return {"type": "move", "target": combat_manager.find_nearest_enemy(ai_character)}
+        3, 4, 5: return {"type": "attack", "target": combat_manager.find_best_target(ai_character)}
+        _: return {"type": "charge", "target": combat_manager.find_nearest_enemy(ai_character)}
 
-func get_best_bot_upgrade(ai_character: Character) -> String:
-	var upgrades = ai_character.bot_upgrades
-	var best_upgrade = ""
-	var highest_score = 0
-	
-	for upgrade in upgrades:
-		var score = 0
-		match upgrade:
-			"Targeting System":
-				score = 15 if combat_manager.get_distance_to_nearest_enemy(ai_character) > 5 else 10
-			"Reinforced Plating":
-				score = 18 if ai_character.health < ai_character.max_health * 0.5 else 12
-			"Overclocked Processor":
-				score = 14
-			"Self-Repair Module":
-				score = 20 if ai_character.health < ai_character.max_health * 0.3 else 10
-		
-		if score > highest_score:
-			highest_score = score
-			best_upgrade = upgrade
-	
-	return best_upgrade
+func _tactical_dice_action(ai_character: Character, roll: int) -> Dictionary:
+    match roll:
+        1: return {"type": "move", "target": combat_manager.find_cover_near_enemy(ai_character)}
+        2, 3: return {"type": "attack", "target": combat_manager.find_best_target(ai_character)}
+        4: return {"type": "aim", "target": null}
+        5: return {"type": "use_item", "target": null}
+        _: return {"type": "move", "target": combat_manager.find_tactical_position(ai_character)}
 
-func evaluate_psionic_action(ai_character: Character, power: String) -> float:
-	var base_score = 25.0
-	
-	match power:
-		"Telekinesis":
-			base_score += 5 if combat_manager.get_nearby_objects().size() > 0 else 0
-		"Mind Control":
-			base_score += 10 if combat_manager.get_nearby_enemies(ai_character).size() > 0 else -5
-		"Healing":
-			base_score += 15 if ai_character.health < ai_character.max_health * 0.5 else -10
-		"Psionic Blast":
-			base_score += 10 if combat_manager.get_nearby_enemies(ai_character).size() > 1 else 0
-	
-	return base_score
+func _defensive_dice_action(ai_character: Character, roll: int) -> Dictionary:
+    match roll:
+        1, 2: return {"type": "move", "target": combat_manager.find_cover_position(ai_character)}
+        3, 4: return {"type": "attack", "target": combat_manager.find_best_target(ai_character)}
+        5: return {"type": "aim", "target": null}
+        _: return {"type": "use_item", "target": null}
 
-func evaluate_species_ability(ai_character: Character, ability: String) -> float:
-	var base_score = 20.0
-	
-	match ability:
-		"Shadow Blend":
-			base_score += 10 if not combat_manager.is_in_cover(ai_character) else 0
-		"Berserker Rage":
-			base_score += 15 if ai_character.health < ai_character.max_health * 0.5 else 5
-	
-	return base_score
+func _beast_dice_action(ai_character: Character, roll: int) -> Dictionary:
+    match roll:
+        1, 2, 3: return {"type": "move", "target": combat_manager.find_nearest_enemy(ai_character)}
+        4, 5: return {"type": "attack", "target": combat_manager.find_nearest_enemy(ai_character)}
+        _: return {"type": "charge", "target": combat_manager.find_nearest_enemy(ai_character)}
 
-func evaluate_advanced_equipment(ai_character: Character, item: String) -> float:
-	var base_score = 15.0
-	
-	match item:
-		"Energy Shield":
-			base_score += 10 if ai_character.health < ai_character.max_health * 0.7 else 5
-		"Grav Boots":
-			base_score += 8 if combat_manager.is_difficult_terrain() else 0
-		"Nano-Medkit":
-			base_score += 15 if ai_character.health < ai_character.max_health * 0.3 else 0
-		"Holo-Projector":
-			base_score += 12 if not combat_manager.is_in_cover(ai_character) else 2
-	
-	return base_score
+func apply_escalation(battle_state: Dictionary) -> void:
+    var escalation = escalating_battles_manager.check_escalation(battle_state)
+    if not escalation.is_empty():
+        _apply_escalation_effect(escalation)
 
-func evaluate_bot_upgrade(ai_character: Character, upgrade: String) -> float:
-	var base_score = 18.0
-	
-	match upgrade:
-		"Targeting System":
-			base_score += 7 if combat_manager.get_distance_to_nearest_enemy(ai_character) > 5 else 3
-		"Reinforced Plating":
-			base_score += 10 if ai_character.health < ai_character.max_health * 0.5 else 5
-		"Overclocked Processor":
-			base_score += 5
-		"Self-Repair Module":
-			base_score += 12 if ai_character.health < ai_character.max_health * 0.3 else 2
-	
-	return base_score
+func _apply_escalation_effect(escalation: Dictionary) -> void:
+    match escalation.type:
+        "reinforcements":
+            _spawn_reinforcements()
+        "psionic_event":
+            _trigger_psionic_event()
+        "equipment_malfunction":
+            _cause_equipment_malfunction()
+        "environmental_hazard":
+            _create_environmental_hazard()
+        "alien_intervention":
+            _trigger_alien_intervention()
+
+func _spawn_reinforcements() -> void:
+    var new_enemies = enemy_deployment_manager.generate_deployment("TACTICAL", combat_manager.get_battle_map())
+    for enemy in new_enemies:
+        combat_manager.add_enemy(enemy)
+
+func _trigger_psionic_event() -> void:
+    var psionic_effects = ["mind_control", "fear_wave", "telekinetic_push"]
+    var chosen_effect = psionic_effects[randi() % psionic_effects.size()]
+    
+    match chosen_effect:
+        "mind_control":
+            var target = combat_manager.find_random_enemy()
+            target.set_state("mind_controlled")
+        "fear_wave":
+            var enemies = combat_manager.get_all_enemies()
+            for enemy in enemies:
+                enemy.apply_status_effect("fear")
+        "telekinetic_push":
+            var target = combat_manager.find_nearest_enemy(ai_character)
+            target.apply_force(Vector2(randf_range(-10, 10), randf_range(-10, 10)))
+
+func _cause_equipment_malfunction() -> void:
+    var malfunction_effects = ["weapon_jam", "armor_failure", "sensor_glitch"]
+    var chosen_effect = malfunction_effects[randi() % malfunction_effects.size()]
+    
+    match chosen_effect:
+        "weapon_jam":
+            var target = combat_manager.find_random_ally()
+            target.disable_weapon()
+        "armor_failure":
+            var target = combat_manager.find_random_ally()
+            target.reduce_armor(50)
+        "sensor_glitch":
+            var target = combat_manager.find_random_ally()
+            target.disable_sensors()
+
+func _create_environmental_hazard() -> void:
+    var hazard_effects = ["fire", "toxic_gas", "earthquake"]
+    var chosen_effect = hazard_effects[randi() % hazard_effects.size()]
+    
+    match chosen_effect:
+        "fire":
+            combat_manager.create_hazard("fire", combat_manager.get_random_position())
+        "toxic_gas":
+            combat_manager.create_hazard("toxic_gas", combat_manager.get_random_position())
+        "earthquake":
+            combat_manager.trigger_earthquake()
+
+func _trigger_alien_intervention() -> void:
+    var intervention_effects = ["alien_attack", "alien_support", "alien_observation"]
+    var chosen_effect = intervention_effects[randi() % intervention_effects.size()]
+    
+    match chosen_effect:
+        "alien_attack":
+            var new_aliens = enemy_deployment_manager.generate_deployment("ALIEN", combat_manager.get_battle_map())
+            for alien in new_aliens:
+                combat_manager.add_enemy(alien)
+        "alien_support":
+            var new_allies = ally_deployment_manager.generate_deployment("ALIEN", combat_manager.get_battle_map())
+            for ally in new_allies:
+                combat_manager.add_ally(ally)
+        "alien_observation":
+            var observers = enemy_deployment_manager.generate_deployment("ALIEN_OBSERVER", combat_manager.get_battle_map())
+            for observer in observers:
+                combat_manager.add_neutral(observer)
+
+func set_ai_behavior(behavior: AIBehavior) -> void:
+    ai_behavior = behavior

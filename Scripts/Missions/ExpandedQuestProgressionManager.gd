@@ -1,39 +1,26 @@
-class_name ExpandedQuestProgressionManager
-extends Node
+class_name ExpandedQuestProgressionManager extends Node
+
+signal quest_generated(quest: Quest)
+signal quest_stage_advanced(quest: Quest, new_stage: int)
 
 @export var game_state: GameState
-var quest_stages: Dictionary
 var active_quests: Array[Quest] = []
-var active_rumors: Array[QuestRumor] = []
+var quest_stages: Dictionary
 
 func _init(_game_state: GameState) -> void:
     game_state = _game_state
     load_quest_stages()
 
 func load_quest_stages() -> void:
-    const QUEST_STAGES_PATH = "res://Data/quest_stages.json"
-    if not FileAccess.file_exists(QUEST_STAGES_PATH):
-        push_error("Quest stages file not found: " + QUEST_STAGES_PATH)
-        return
-    
-    var file = FileAccess.open(QUEST_STAGES_PATH, FileAccess.READ)
-    if file == null:
-        push_error("Failed to open quest stages file: " + QUEST_STAGES_PATH)
-        return
-    
+    # Load quest stages from JSON file
+    var file = FileAccess.open("res://Data/quest_stages.json", FileAccess.READ)
     var json = JSON.new()
     var error = json.parse(file.get_as_text())
-    file.close()
-    
     if error == OK:
-        var data = json.get_data()
-        if typeof(data) == TYPE_DICTIONARY:
-            quest_stages = data
-        else:
-            push_error("Invalid quest stages data format")
+        quest_stages = json.get_data()
     else:
-        push_error("Failed to parse quest stages JSON: " + json.get_error_message())
-
+        push_error("Failed to parse quest stages JSON")
+    file.close()
 
 func generate_new_quest() -> Quest:
     var quest_generator = QuestGenerator.new(game_state)
@@ -41,29 +28,7 @@ func generate_new_quest() -> Quest:
     new_quest.current_stage = 1
     new_quest.current_requirements = quest_stages["quest_stages"][0]["requirements"]
     active_quests.append(new_quest)
-    return new_quest
-
-func generate_new_rumor() -> QuestRumor:
-    var quest_generator = QuestGenerator.new(game_state)
-    var new_quest = generate_new_quest()
-    var new_rumor = quest_generator.generate_quest_rumor(new_quest)
-    active_rumors.append(new_rumor)
-    return new_rumor
-
-func update_rumors(current_turn: int) -> void:
-    for rumor in active_rumors:
-        if rumor.is_expired(current_turn):
-            active_rumors.erase(rumor)
-
-func discover_rumor(rumor: QuestRumor) -> void:
-    rumor.discover()
-    if rumor.associated_quest not in active_quests:
-        active_quests.append(rumor.associated_quest)
-
-func add_mission_followup_quest(mission: Mission) -> Quest:
-    var mission_generator = MissionGenerator.new()
-    var new_quest = mission_generator.mission_to_quest(mission)
-    active_quests.append(new_quest)
+    emit_signal("quest_generated", new_quest)
     return new_quest
 
 func update_quests() -> void:
@@ -77,19 +42,28 @@ func _check_quest_requirements(quest: Quest) -> bool:
             return false
     return true
 
-func _is_requirement_met(_requirement: String, _quest: Quest) -> bool:
-    # This function would check if the requirement is met based on the game state
-    # For now, we'll use a placeholder implementation
-    return randf() > 0.5
+func _is_requirement_met(requirement: String, quest: Quest) -> bool:
+    # Implement requirement checking logic
+    match requirement:
+        "location_reached":
+            return game_state.player_location == quest.location
+        "item_collected":
+            return game_state.inventory.has_item(quest.objective)
+        "enemy_defeated":
+            return game_state.defeated_enemies.has(quest.objective)
+        _:
+            push_warning("Unknown requirement: " + requirement)
+            return false
 
 func _advance_quest_stage(quest: Quest) -> void:
-    quest.current_stage += 1
+    quest.advance_stage()
     if quest.current_stage > quest_stages["quest_stages"].size():
         _complete_quest(quest)
     else:
         var stage_data = quest_stages["quest_stages"][quest.current_stage - 1]
         quest.current_requirements = stage_data["requirements"]
         _apply_stage_rewards(quest, stage_data["rewards"])
+    emit_signal("quest_stage_advanced", quest, quest.current_stage)
 
 func _complete_quest(quest: Quest) -> void:
     quest.complete()
@@ -97,198 +71,70 @@ func _complete_quest(quest: Quest) -> void:
     game_state.completed_quests.append(quest)
     _apply_final_rewards(quest)
 
-func _apply_stage_rewards(_quest: Quest, rewards: Dictionary) -> void:
-    if "credits" in rewards:
-        var credits = _roll_dice(rewards["credits"])
-        game_state.credits += credits
-    if "story_points" in rewards:
-        game_state.story_points += rewards["story_points"]
-    if "gear" in rewards:
-        var new_gear = _generate_gear(rewards["gear"])
-        game_state.add_item(new_gear)
+func _apply_stage_rewards(quest: Quest, rewards: Dictionary) -> void:
+    # Implement stage reward application logic
+    for reward_type in rewards:
+        match reward_type:
+            "experience":
+                game_state.add_experience(rewards[reward_type])
+            "credits":
+                game_state.add_credits(rewards[reward_type])
+            "item":
+                game_state.inventory.add_item(rewards[reward_type])
+            _:
+                push_warning("Unknown reward type: " + reward_type)
 
 func _apply_final_rewards(quest: Quest) -> void:
-    game_state.credits += quest.reward["credits"]
-    game_state.reputation += quest.reward["reputation"]
-    if "item" in quest.reward:
-        game_state.add_item(quest.reward["item"])
+    # Implement final reward application logic
+    _apply_stage_rewards(quest, quest.reward)
+    
+    # Additional final reward logic based on Core Rules and Compendium
+    if quest.reward.has("story_points"):
+        game_state.add_story_points(quest.reward["story_points"])
+    
+    if quest.reward.has("loyalty"):
+        game_state.add_loyalty(quest.reward["loyalty"])
+    
+    if quest.reward.has("influence"):
+        game_state.add_influence(quest.reward["influence"])
+    
+    if quest.reward.has("power"):
+        game_state.add_power(quest.reward["power"])
+    
+    if quest.reward.has("rival"):
+        game_state.add_rival(quest.reward["rival"])
+    
+    if quest.reward.has("faction_destruction"):
+        _handle_faction_destruction(quest.reward["faction_destruction"])
+    
+    if quest.reward.has("new_character"):
+        game_state.add_new_character(quest.reward["new_character"])
+    
+    if quest.reward.has("quest_rumors"):
+        game_state.add_quest_rumors(quest.reward["quest_rumors"])
+    
+    if quest.reward.has("credits"):
+        game_state.add_credits(quest.reward["credits"])
+    
+    if quest.reward.has("experience"):
+        game_state.add_experience(quest.reward["experience"])
+    
+    if quest.reward.has("item"):
+        game_state.inventory.add_item(quest.reward["item"])
+    
+    if quest.reward.has("patron"):
+        game_state.add_patron(quest.reward["patron"])
+    
+    if quest.reward.has("tick_clock"):
+        game_state.tick_clock(quest.reward["tick_clock"])
 
-func _roll_dice(dice_string: String) -> int:
-    var parts = dice_string.split("D")
-    var num_dice = int(parts[0])
-    var dice_size = int(parts[1].split(" x ")[0])
-    var multiplier = int(parts[1].split(" x ")[1])
-    var total = 0
-    for i in range(num_dice):
-        total += randi() % dice_size + 1
-    return total * multiplier
-
-func _generate_gear(gear_type: String) -> Equipment:
-    var rarity = _determine_gear_rarity()
-    var quality = _determine_gear_quality()
-    var base_value = _calculate_base_value(gear_type, rarity, quality)
-    var modifiers = _generate_modifiers(gear_type, rarity)
-   
-    var equipment = Equipment.new(gear_type, rarity, base_value)
-    equipment.set_quality(quality)
-   
-    for modifier in modifiers:
-        equipment.add_modifier(modifier)
-   
-    return equipment
-
-func _determine_gear_rarity() -> int:
-    var roll = randi() % 100 + 1
-    if roll <= 60:
-        return 0  # Common
-    elif roll <= 85:
-        return 1  # Uncommon
-    elif roll <= 95:
-        return 2  # Rare
-    else:
-        return 3  # Legendary
-
-func _determine_gear_quality() -> int:
-    var roll = randi() % 100 + 1
-    if roll <= 10:
-        return 0  # Poor
-    elif roll <= 70:
-        return 1  # Standard
-    elif roll <= 90:
-        return 2  # Good
-    else:
-        return 3  # Excellent
-
-func _calculate_base_value(gear_type: String, rarity: int, quality: int) -> int:
-    var base_value = 100  # Default base value
-   
-    # Adjust base value based on gear type
-    match gear_type:
-        "weapon":
-            base_value = 200
-        "armor":
-            base_value = 150
-        "gadget":
-            base_value = 100
-   
-    # Apply rarity multiplier
-    var rarity_multiplier = 1.0
-    match rarity:
-        1:  # Uncommon
-            rarity_multiplier = 1.5
-        2:  # Rare
-            rarity_multiplier = 2.5
-        3:  # Legendary
-            rarity_multiplier = 5.0
-   
-    base_value *= rarity_multiplier
-   
-    # Apply quality modifier
-    match quality:
-        0:  # Poor
-            base_value *= 0.7
-        2:  # Good
-            base_value *= 1.3
-        3:  # Excellent
-            base_value *= 1.8
-
-    return int(base_value)
-
-func _generate_modifiers(gear_type: String, rarity: int) -> Array:
-    var modifiers = []
-    var num_modifiers = 1 if rarity > 0 else 0
-   
-    if rarity >= 2:  # Rare or Legendary
-        num_modifiers += 1
-   
-    for _i in range(num_modifiers):
-        var modifier = _get_random_modifier(gear_type)
-        modifiers.append(modifier)
-   
-    return modifiers
-
-func _get_random_modifier(gear_type: String) -> String:
-    var possible_modifiers = []
-   
-    match gear_type:
-        "weapon":
-            possible_modifiers = ["damage_boost", "accuracy_boost", "critical_chance"]
-        "armor":
-            possible_modifiers = ["defense_boost", "damage_reduction", "stealth_boost"]
-        "gadget":
-            possible_modifiers = ["utility_boost", "recharge_rate", "range_increase"]
-
-    return possible_modifiers[randi() % possible_modifiers.size()]
-
-func get_active_quests() -> Array[Quest]:
-    return active_quests
-
-func get_quest_stage_description(quest: Quest) -> String:
-    return quest_stages["quest_stages"][quest.current_stage - 1]["description"]
-
-func fail_quest(quest: Quest) -> void:
-    quest.fail()
-    active_quests.erase(quest)
-
-func add_psionic_quest() -> Quest:
-    var psionic_quest = generate_new_quest()
-    psionic_quest.quest_type = "PSIONIC"
-    psionic_quest.objective = "Master a new psionic ability"
-    return psionic_quest
-
-func update_quest_for_new_location(new_location: Location) -> void:
-    for quest in active_quests:
-        if quest.location != new_location:
-            quest.location = new_location
-            quest.objective = _generate_new_objective_for_location(quest, new_location)
-
-func _generate_new_objective_for_location(quest: Quest, _location: Location) -> String:
-    var quest_generator = QuestGenerator.new(game_state)
-    var quest_type = QuestGenerator.QuestType[quest.quest_type]
-    return quest_generator.generate_objective(quest_type)
-
-func get_quest_summary(quest: Quest) -> String:
-    var summary = "Quest: {type}\n".format({"type": quest.quest_type})
-    summary += "Location: {location}\n".format({"location": quest.location.name})
-    summary += "Objective: {objective}\n".format({"objective": quest.objective})
-    summary += "Current Stage: {stage}\n".format({"stage": quest.current_stage})
-    summary += "Stage Description: {description}\n".format({"description": get_quest_stage_description(quest)})
-    summary += "Requirements:\n"
-    for requirement in quest.current_requirements:
-        summary += "- {req}\n".format({"req": requirement})
-    return summary
-
-func serialize_quests_and_rumors() -> Dictionary:
-    var serialized_data = {
-        "quests": serialize_quests(),
-        "rumors": serialize_rumors()
-    }
-    return serialized_data
-
-func deserialize_quests_and_rumors(data: Dictionary) -> void:
-    deserialize_quests(data["quests"])
-    deserialize_rumors(data["rumors"])
-
-func serialize_quests() -> Array:
-    var serialized_quests = []
-    for quest in active_quests:
-        serialized_quests.append(quest.serialize())
-    return serialized_quests
-
-func deserialize_quests(data: Array) -> void:
-    active_quests.clear()
-    for quest_data in data:
-        var quest = Quest.deserialize(quest_data)
-        active_quests.append(quest)
-
-func serialize_rumors() -> Array:
-    var serialized_rumors = []
-    for rumor in active_rumors:
-        serialized_rumors.append(rumor.serialize())
-    return serialized_rumors
-
-func deserialize_rumors(data: Array) -> void:
-    active_rumors.clear()
-    for rumor_data in data:
-        var rumor = QuestRumor.deserialize(rumor_data)
-        active_rumors.append(rumor)
+func _handle_faction_destruction(faction: String) -> void:
+    # Implement faction destruction logic
+    var destroyed_faction = game_state.get_faction(faction)
+    if destroyed_faction:
+        destroyed_faction.destroy()
+        game_state.remove_loyalty(destroyed_faction)
+        game_state.remove_influence(destroyed_faction)
+        game_state.remove_power(destroyed_faction)
+        game_state.remove_faction(destroyed_faction)
+        # Handle any additional logic for faction destruction

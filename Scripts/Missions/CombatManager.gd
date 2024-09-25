@@ -1,119 +1,98 @@
-class_name CombatManager
+# Scripts/Missions/CombatManager.gd
 extends Node
 
 signal combat_started
 signal combat_ended(player_victory: bool)
 signal turn_started(character)
 signal turn_ended(character)
-signal player_input_received(action, target)
-
-@export var game_state: GameStateManager
-var current_battle: BattleManager
-var turn_order: Array = []
-var current_turn_index: int = 0
-var ai_controller: AIController
-
-const GRID_SIZE: Vector2i = Vector2i(24, 24)  # 24" x 24" battlefield
-var battlefield: Array[Array] = []
 
 enum CoverType { NONE, PARTIAL, FULL }
 enum BattlePhase { REACTION_ROLL, QUICK_ACTIONS, ENEMY_ACTIONS, SLOW_ACTIONS, END_PHASE }
 
+var game_state: GameStateManager
+var current_mission: Mission
+var terrain_generator: TerrainGenerator
+var battlefield: Array
+var turn_order: Array
+var current_turn_index: int = 0
+var current_round: int = 1
 var current_phase: BattlePhase = BattlePhase.REACTION_ROLL
 
-func _ready():
-    initialize()
+const GRID_SIZE: Vector2i = Vector2i(24, 24)  # 24" x 24" battlefield
 
-func initialize():
-    ai_controller = AIController.new()
-    ai_controller.initialize(self, game_state.get_node())
-    initialize_battlefield()
+@onready var battle_grid: GridContainer = $"../BattleGrid"
+@onready var turn_label: Label = $"../SidePanel/VBoxContainer/TurnLabel"
+@onready var current_character_label: Label = $"../SidePanel/VBoxContainer/CurrentCharacterLabel"
+@onready var battle_log: TextEdit = $"../SidePanel/VBoxContainer/BattleLog"
 
-class BattleManager:
-    var player_characters: Array
-    var enemies: Array
-    var enemy_panic_range: int = 2  # Default panic range, adjust as needed
-    var enemy_casualties_this_round: int = 0
+func initialize(_game_state: GameStateManager, _mission: Mission):
+    game_state = _game_state
+    current_mission = _mission
+    terrain_generator = TerrainGenerator.new()
+    battlefield = terrain_generator.generate_terrain()
+    setup_battlefield()
+    setup_characters()
+    place_objectives()
+    start_combat()
 
-    func _init(_player_characters: Array, _enemies: Array):
-        player_characters = _player_characters
-        enemies = _enemies
-
-    func are_all_enemies_defeated() -> bool:
-        return enemies.is_empty()
-
-    func are_all_players_defeated() -> bool:
-        return player_characters.all(func(player): return player.is_defeated())
-
-    func get_enemy_casualties_this_round() -> int:
-        return enemy_casualties_this_round
-
-    func reset_casualties_count() -> void:
-        enemy_casualties_this_round = 0
-
-    func increment_casualties_count() -> void:
-        enemy_casualties_this_round += 1
-
-func initialize_battlefield() -> void:
-    battlefield = []
+func setup_battlefield():
+    battle_grid.columns = GRID_SIZE.x
     for x in range(GRID_SIZE.x):
-        battlefield.append([])
         for y in range(GRID_SIZE.y):
-            battlefield[x].append(null)
+            var cell = ColorRect.new()
+            cell.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+            cell.size_flags_vertical = Control.SIZE_EXPAND_FILL
+            cell.color = get_terrain_color(battlefield[x][y])
+            battle_grid.add_child(cell)
 
-func start_combat(player_characters: Array, enemies: Array) -> void:
-    current_battle = BattleManager.new(player_characters, enemies)
-    place_characters_on_battlefield()
-    seize_initiative()
-    combat_started.emit()
+func get_terrain_color(terrain_type) -> Color:
+    match terrain_type:
+        TerrainGenerator.TerrainType.LARGE:
+            return Color(0.2, 0.6, 0.2)
+        TerrainGenerator.TerrainType.SMALL:
+            return Color(0.6, 0.4, 0.2)
+        TerrainGenerator.TerrainType.LINEAR:
+            return Color(0.2, 0.2, 0.6)
+        _:
+            return Color(0.2, 0.2, 0.2)
+
+func setup_characters():
+    var crew = game_state.current_crew.characters
+    var enemies = current_mission.get_enemies()
+    
+    for character in crew + enemies:
+        character.position = find_valid_spawn_position(character in crew)
+
+func find_valid_spawn_position(is_crew: bool) -> Vector2i:
+    var x_range = range(0, 6) if is_crew else range(18, 24)
+    var valid_positions = []
+    for x in x_range:
+        for y in range(GRID_SIZE.y):
+            if battlefield[x][y] == null:
+                valid_positions.append(Vector2i(x, y))
+    return valid_positions[randi() % valid_positions.size()]
+
+func start_combat():
+    current_round = 1
+    current_phase = BattlePhase.REACTION_ROLL
+    emit_signal("combat_started")
     start_battle_round()
 
-func place_characters_on_battlefield() -> void:
-    for character in current_battle.player_characters:
-        var position = find_empty_position(0, int(GRID_SIZE.x / 2.0) - 1)
-        character.position = position
-        battlefield[position.x][position.y] = character
-
-    for enemy in current_battle.enemies:
-        var position = find_empty_position(int(GRID_SIZE.x / 2.0), GRID_SIZE.x - 1)
-        enemy.position = position
-        battlefield[position.x][position.y] = enemy
-
-func find_empty_position(start_x: int, end_x: int) -> Vector2i:
-    for _attempt in range(100):  # Limit attempts to prevent infinite loop
-        var x = randi() % (end_x - start_x + 1) + start_x
-        var y = randi() % int(GRID_SIZE.y)
-        if battlefield[x][y] == null:
-            return Vector2i(x, y)
-    return Vector2i.ZERO  # Fallback if no position found
-
-func seize_initiative() -> void:
-    var highest_savvy = current_battle.player_characters.map(func(c): return c.savvy).max()
-    var roll = randi() % 6 + randi() % 6 + 2 + highest_savvy  # 2d6 + highest savvy
-    
-    if current_battle.player_characters.size() < current_battle.enemies.size():
-        roll += 1
-    
-    if roll >= 10:
-        for character in current_battle.player_characters:
-            # Allow move or fire
-            perform_action(character, "move_or_fire")
-
-func start_battle_round() -> void:
-    current_phase = BattlePhase.REACTION_ROLL
+func start_battle_round():
+    log_action("Starting Round " + str(current_round))
     perform_reaction_roll()
 
-func perform_reaction_roll() -> void:
+func perform_reaction_roll():
     turn_order.clear()
+    var crew = game_state.current_crew.characters
+    var enemies = current_mission.get_enemies()
     
-    for character in current_battle.player_characters:
-        var roll = randi() % 6 + 1
+    for character in crew + enemies:
+        var roll = roll_dice(1, 6)
         if roll <= character.reactions:
             turn_order.append(character)
     
-    turn_order.append_array(current_battle.enemies)
-    
-    for character in current_battle.player_characters:
+    for character in crew + enemies:
         if not character in turn_order:
             turn_order.append(character)
     
@@ -121,121 +100,145 @@ func perform_reaction_roll() -> void:
     current_turn_index = 0
     start_next_turn()
 
-func start_next_turn() -> void:
+func start_next_turn():
     if current_turn_index >= turn_order.size():
-        end_battle_round()
+        advance_phase()
         return
 
     var current_character = turn_order[current_turn_index]
-    turn_started.emit(current_character)
+    emit_signal("turn_started", current_character)
+    update_ui(current_character)
 
-    if current_character in current_battle.enemies:
-        if current_phase == BattlePhase.ENEMY_ACTIONS:
-            ai_controller.perform_ai_turn(current_character)
-        else:
-            end_turn()
+    if current_character in current_mission.get_enemies():
+        perform_enemy_turn(current_character)
     else:
         # Wait for player input
-        await player_input_received
-        end_turn()
+        # This will be handled by the UI buttons
+        pass
 
-func end_turn() -> void:
-    var current_character = turn_order[current_turn_index]
-    turn_ended.emit(current_character)
-    current_turn_index += 1
-    
-    if current_turn_index >= turn_order.size():
-        if current_phase == BattlePhase.QUICK_ACTIONS:
+func advance_phase():
+    match current_phase:
+        BattlePhase.QUICK_ACTIONS:
             current_phase = BattlePhase.ENEMY_ACTIONS
-            current_turn_index = 0
-        elif current_phase == BattlePhase.ENEMY_ACTIONS:
+        BattlePhase.ENEMY_ACTIONS:
             current_phase = BattlePhase.SLOW_ACTIONS
-            current_turn_index = 0
+        BattlePhase.SLOW_ACTIONS:
+            end_battle_round()
+            return
     
+    current_turn_index = 0
     start_next_turn()
 
-func end_battle_round() -> void:
+func end_battle_round():
     current_phase = BattlePhase.END_PHASE
-    check_enemy_morale()
+    perform_morale_check()
     if not check_battle_end():
+        current_round += 1
         start_battle_round()
 
-func check_enemy_morale() -> void:
-    var casualties = current_battle.get_enemy_casualties_this_round()
-    if casualties > 0:
-        var panic_rolls = []
-        for i in range(casualties):
-            panic_rolls.append(randi() % 6 + 1)
-        
-        var bailed_enemies = 0
-        for roll in panic_rolls:
-            if roll <= current_battle.enemy_panic_range:
-                bailed_enemies += 1
-        
-        for i in range(bailed_enemies):
-            if current_battle.enemies.size() > 0:
-                var enemy_to_remove = current_battle.enemies.pop_back()
-                var pos = enemy_to_remove.position
-                battlefield[pos.x][pos.y] = null
+func update_ui(current_character):
+    turn_label.text = "Round: " + str(current_round) + " | Phase: " + BattlePhase.keys()[current_phase]
+    current_character_label.text = "Current Character: " + current_character.name
 
-func check_battle_end() -> bool:
-    if current_battle.are_all_enemies_defeated():
-        combat_ended.emit(true)  # Player victory
-        return true
-    elif current_battle.are_all_players_defeated():
-        combat_ended.emit(false)  # Player defeat
-        return true
-    return false
+func log_action(action: String):
+    battle_log.text += action + "\n"
 
-func perform_action(character, action: String, target = null, target_position: Vector2i = Vector2i.ZERO) -> void:
-    match action:
-        "move":
-            move_character(character, target_position)
-        "attack":
-            attack_character(character, target)
-        "use_item":
-            use_item(character, target)  # Added 'target' parameter
-        "snap_fire":
-            snap_fire(character, target)
-        "move_or_fire":
-            if target:
-                attack_character(character, target)
-            elif target_position != Vector2i.ZERO:
-                move_character(character, target_position)
+func roll_dice(num_dice: int, sides: int) -> int:
+    var total = 0
+    for i in range(num_dice):
+        total += randi() % sides + 1
+    log_action("Rolled " + str(num_dice) + "d" + str(sides) + ": " + str(total))
+    return total
 
-func move_character(character, target_position: Vector2i) -> void:
-    var start_position = character.position
-    var path = find_path(start_position, target_position)
-
-    if path.size() <= character.movement_points:
-        battlefield[start_position.x][start_position.y] = null
-        character.position = target_position
-        battlefield[target_position.x][target_position.y] = character
+func perform_enemy_turn(enemy: Character):
+    var target = find_nearest_enemy(enemy)
+    if can_attack(enemy, target):
+        perform_attack(enemy, target)
     else:
-        var new_position = path[character.speed]
-        battlefield[start_position.x][start_position.y] = null
+        var move_position = find_nearest_cover(enemy)
+        move_character(enemy, move_position)
+
+func move_character(character: Character, new_position: Vector2i):
+    if is_valid_move(character, new_position):
         character.position = new_position
-        battlefield[new_position.x][new_position.y] = character
+        update_character_position(character)
 
-func find_path(start: Vector2i, end: Vector2i) -> Array[Vector2i]:
-    # Implement A* pathfinding algorithm here
-    # For simplicity, we'll use a straight line for now
-    var path: Array[Vector2i] = []
-    var current = start
-    while current != end:
-        var diff = end - current
-        var step = Vector2i(sign(diff.x), sign(diff.y))
-        current += step
-        path.append(current)
-    return path
+func is_valid_move(character: Character, new_position: Vector2i) -> bool:
+    var distance = character.position.distance_to(new_position)
+    return is_valid_position(new_position) and distance <= character.speed and battlefield[new_position.x][new_position.y] == null
 
-func get_cover_type(character) -> CoverType:
-    var pos = character.position
+func update_character_position(character: Character):
+    # Update the visual representation of the character on the battlefield
+    # This will be implemented when we update the UI
+    pass
+
+func perform_attack(attacker: Character, target: Character):
+    if can_attack(attacker, target):
+        var hit_roll = roll_dice(1, 6) + attacker.combat_skill
+        var hit_threshold = 5 if get_cover_type(target) == CoverType.NONE else 6
+        
+        if hit_roll >= hit_threshold:
+            var damage = attacker.weapon.roll_damage()
+            apply_damage(target, damage)
+            log_action(attacker.name + " hit " + target.name + " for " + str(damage) + " damage!")
+        else:
+            log_action(attacker.name + " missed " + target.name + "!")
+
+func can_attack(attacker: Character, target: Character) -> bool:
+    var distance = attacker.position.distance_to(target.position)
+    return distance <= attacker.weapon.range and has_line_of_sight(attacker.position, target.position)
+
+func apply_damage(target: Character, damage: int):
+    if damage >= target.toughness:
+        target.is_defeated = true
+        log_action(target.name + " is defeated!")
+        remove_character(target)
+    else:
+        # Apply stun logic here
+        pass
+
+func remove_character(character: Character):
+    turn_order.erase(character)
+    if character in game_state.current_crew.characters:
+        game_state.current_crew.characters.erase(character)
+    elif character in current_mission.get_enemies():
+        current_mission.remove_enemy(character)
+
+func find_nearest_enemy(character: Character) -> Character:
+    var enemies = current_mission.get_enemies() if character in game_state.current_crew.characters else game_state.current_crew.characters
+    var nearest_enemy = null
+    var min_distance = INF
+    for enemy in enemies:
+        var distance = character.position.distance_to(enemy.position)
+        if distance < min_distance:
+            min_distance = distance
+            nearest_enemy = enemy
+    return nearest_enemy
+
+func find_nearest_cover(character: Character) -> Vector2i:
+    var best_cover = null
+    var min_distance = INF
+    for x in range(GRID_SIZE.x):
+        for y in range(GRID_SIZE.y):
+            var pos = Vector2i(x, y)
+            if get_cover_type(pos) != CoverType.NONE:
+                var distance = character.position.distance_to(pos)
+                if distance < min_distance:
+                    min_distance = distance
+                    best_cover = pos
+    return best_cover if best_cover else find_random_position()
+
+func find_random_position() -> Vector2i:
+    var x = randi() % GRID_SIZE.x
+    var y = randi() % GRID_SIZE.y
+    return Vector2i(x, y)
+
+func get_cover_type(position: Vector2i) -> CoverType:
     var adjacent_positions = [
-        Vector2i(pos.x - 1, pos.y),
-        Vector2i(pos.x + 1, pos.y),
-        Vector2i(pos.x, pos.y - 1),
-        Vector2i(pos.x, pos.y + 1)
+        Vector2i(position.x - 1, position.y),
+        Vector2i(position.x + 1, position.y),
+        Vector2i(position.x, position.y - 1),
+        Vector2i(position.x, position.y + 1)
     ]
 
     var cover_count = 0
@@ -253,258 +256,67 @@ func get_cover_type(character) -> CoverType:
 func is_valid_position(pos: Vector2i) -> bool:
     return pos.x >= 0 and pos.x < GRID_SIZE.x and pos.y >= 0 and pos.y < GRID_SIZE.y
 
-func use_item(character, item, target = null) -> void:
-    match item.type:
-        Item.ItemType.CONSUMABLE:
-            if item.name == "Booster pills":
-                character.remove_all_stun()
-                character.double_speed_this_round()
-            elif item.name == "Combat serum":
-                character.increase_speed(2)
-                character.increase_reactions(2)
-            elif item.name == "Kiranin crystals":
-                character.set_dazzling_effect(true)
-                character.increase_reactions(1)
-            elif item.name == "Rage out":
-                character.increase_speed(2)
-                character.increase_brawling(1)
-                if character.race == "Kerin":
-                    character.set_rage_state(true)
-            elif item.name == "Still":
-                character.increase_hit(1)
-                character.set_immobile(2)
-            elif item.name == "Stim-pack":
-                character.prevent_next_casualty()
-            elif item.name == "Reflective dust":
-                character.set_reflective_dust(true)
-        
-        Item.ItemType.PROTECTIVE:
-            if item.name == "Battle dress":
-                character.increase_reactions(1, 4)
-                character.set_saving_throw(5)
-            elif item.name in ["Camo cloak", "Combat armor", "Deflector field", "Flak screen", "Flex-armor", "Frag vest", "Screen generator", "Stealth gear"]:
-                character.set_armor(item.name)
-        
-        Item.ItemType.UTILITY:
-            if item.name == "Fog generator":
-                character.set_fog_generator(true)
-            elif item.name == "Teleportation device":
-                # Implement teleportation logic
-                pass
-            elif item.name == "Bot upgrade":
-                character.upgrade_bot()
-        
-        Item.ItemType.ONBOARD:
-            if item.name == "Ship part":
-                character.add_ship_part()
-            # Implement other onboard item effects
-        
-        Item.ItemType.PSIONIC:
-            if item.name == "Psionic amplifier":
-                character.increase_psionic_power(1)
+func has_line_of_sight(from_pos: Vector2i, to_pos: Vector2i) -> bool:
+    var dx = abs(to_pos.x - from_pos.x)
+    var dy = abs(to_pos.y - from_pos.y)
+    var x = from_pos.x
+    var y = from_pos.y
+    var n = 1 + dx + dy
+    var x_inc = 1 if to_pos.x > from_pos.x else -1
+    var y_inc = 1 if to_pos.y > from_pos.y else -1
+    var error = dx - dy
+    dx *= 2
+    dy *= 2
 
-    item.use(character, target)
-    character.remove_item(item)
-
-func snap_fire(character, target) -> void:
-    var weapon = character.get_equipped_weapon()
-    if "Snap Shot" in weapon.traits:
-        attack_character(character, target)
-    else:
-        print("This weapon cannot perform snap fire")
-
-func are_enemies_within_range(character, range_value: float) -> bool:
-    for enemy in current_battle.enemies:
-        if character.position.distance_to(enemy.position) <= range_value:
-            return true
-    return false
-
-func can_engage_in_brawl(character) -> bool:
-    for enemy in current_battle.enemies:
-        if character.position.distance_to(enemy.position) <= 1:  # Assuming 1 unit is melee range
-            return true
-    return false
-
-func are_enemies_in_open(_character) -> bool:
-    for enemy in current_battle.enemies:
-        if get_cover_type(enemy) == CoverType.NONE:
-            return true
-    return false
-
-# Update the attack function to consider weapon mods
-func attack_character(attacker, target) -> void:
-    var weapon = attacker.get_equipped_weapon()
-    var distance = attacker.position.distance_to(target.position)
-
-    if distance > weapon.weapon_range:
-        print("Target is out of range")
-        return
-
-    var to_hit_roll = randi() % 6 + 1 + attacker.combat_skill
-    var cover = get_cover_type(target)
-    var hit_threshold = 4  # Base hit threshold
-
-    match cover:
-        CoverType.PARTIAL:
-            hit_threshold = 5
-        CoverType.FULL:
-            hit_threshold = 6
-
-    # Apply weapon mod bonuses
-    to_hit_roll += weapon.get_hit_bonus(distance, attacker.is_aiming, is_in_cover(attacker))
-
-    if to_hit_roll >= hit_threshold:
-        var damage = weapon.weapon_damage + (randi() % 6 + 1)
-        
-        # Check for hot shot pack overheating
-        if weapon.check_overheat(to_hit_roll - attacker.combat_skill):
-            print("Weapon overheated!")
-            weapon.is_damaged = true
-        
-        if damage >= target.toughness:
-            apply_damage(target, damage)
-            
-            # Apply impact effect if the weapon has it
-            if "Impact" in weapon.traits:
-                target.apply_stun()
+    for _i in range(n):
+        if not is_valid_position(Vector2i(x, y)) or battlefield[x][y] == TerrainGenerator.TerrainType.LARGE:
+            return false
+        if error > 0:
+            x += x_inc
+            error -= dy
+        elif error < 0:
+            y += y_inc
+            error += dx
         else:
-            target.apply_stun()
+            x += x_inc
+            y += y_inc
+            error -= dy
+            error += dx
 
-# Function to check if a character is in cover
-func is_in_cover(character) -> bool:
-    return get_cover_type(character) != CoverType.NONE
+    return true
 
-func apply_damage(character, damage: int) -> void:
-    character.take_damage(damage)
-    if character.health <= 0:
-        character.kill()
-
-func handle_melee_combat(attacker, defender) -> void:
-    var attacker_weapon = attacker.get_equipped_weapon()
-    var defender_weapon = defender.get_equipped_weapon()
+func perform_morale_check():
+    var enemies = current_mission.get_enemies()
+    var casualties = enemies.filter(func(e): return e.is_defeated)
     
-    var attacker_roll = randi() % 6 + 1 + attacker.combat_skill + (attacker_weapon.melee_bonus if attacker_weapon.is_melee() else 0)
-    var defender_roll = randi() % 6 + 1 + defender.combat_skill + (defender_weapon.melee_bonus if defender_weapon.is_melee() else 0)
-    
-    if attacker_roll > defender_roll:
-        apply_damage(defender, attacker_weapon.damage)
-    elif defender_roll > attacker_roll:
-        apply_damage(attacker, defender_weapon.damage)
-    # If rolls are equal, it's a draw and nothing happens
+    for i in range(casualties.size()):
+        var roll = roll_dice(1, 6)
+        if roll <= enemies[0].panic_range:
+            var fleeing_enemy = enemies[randi() % enemies.size()]
+            fleeing_enemy.flee()
+            log_action(fleeing_enemy.name + " has fled the battle!")
 
-func calculate_visibility(character) -> int:
-    var base_visibility = 12  # Base visibility in inches
-    var weapon = character.get_equipped_weapon()
-    return base_visibility + weapon.visibility_bonus
+func check_battle_end() -> bool:
+    if check_victory_conditions():
+        emit_signal("combat_ended", true)
+        return true
+    elif check_defeat_conditions():
+        emit_signal("combat_ended", false)
+        return true
+    return false
 
-func find_distant_cover_position(character) -> Vector2i:
-    var best_position = character.position
-    var best_distance = 0
-    
-    for x in range(GRID_SIZE.x):
-        for y in range(GRID_SIZE.y):
-            var pos = Vector2i(x, y)
-            if battlefield[x][y] == null:
-                var temp_character = character.duplicate()
-                temp_character.position = pos
-                if get_cover_type(temp_character) != CoverType.NONE:
-                    var distance = character.position.distance_to(pos)
-                    if distance > best_distance and are_enemies_within_range(temp_character, 12):
-                        best_position = pos
-                        best_distance = distance
-    
-    return best_position
+# Implement victory and defeat condition checks here
 
-func find_retreat_position(character) -> Vector2i:
-    var retreat_direction = (Vector2(character.position) - Vector2(find_nearest_enemy(character).position)).normalized()
-    var retreat_position = Vector2(character.position) + (retreat_direction * float(character.speed))
-    return Vector2i(retreat_position)
+func _on_move_button_pressed():
+    var current_character = turn_order[current_turn_index]
+    # Implement move logic
+    pass
 
-func find_cover_within_range(character, cover_range: float) -> Vector2i:
-    var best_position = character.position
-    
-    for x in range(GRID_SIZE.x):
-        for y in range(GRID_SIZE.y):
-            var pos = Vector2i(x, y)
-            if battlefield[x][y] == null:
-                var temp_character = character.duplicate()
-                temp_character.position = pos
-                if get_cover_type(temp_character) != CoverType.NONE:
-                    var distance = character.position.distance_to(pos)
-                    if distance <= cover_range and distance > character.position.distance_to(best_position):
-                        best_position = pos
-    
-    return best_position
+func _on_attack_button_pressed():
+    var current_character = turn_order[current_turn_index]
+    # Implement attack logic
+    pass
 
-func find_cover_near_enemy(character) -> Vector2i:
-    var nearest_enemy = find_nearest_enemy(character)
-    var best_position = character.position
-    var best_distance = INF
-    
-    for x in range(GRID_SIZE.x):
-        for y in range(GRID_SIZE.y):
-            var pos = Vector2i(x, y)
-            if battlefield[x][y] == null:
-                var temp_character = character.duplicate()
-                temp_character.position = pos
-                if get_cover_type(temp_character) != CoverType.NONE:
-                    var distance_to_enemy = pos.distance_to(nearest_enemy.position)
-                    if distance_to_enemy < best_distance:
-                        best_position = pos
-                        best_distance = distance_to_enemy
-    
-    return best_position
-
-func find_nearest_enemy(character):
-    var nearest_enemy = null
-    var nearest_distance = INF
-    
-    for enemy in current_battle.player_characters:
-        var distance = character.position.distance_to(enemy.position)
-        if distance < nearest_distance:
-            nearest_enemy = enemy
-            nearest_distance = distance
-    
-    return nearest_enemy
-
-func find_best_target(character):
-    var best_target = null
-    var best_score = -INF
-    
-    for enemy in current_battle.player_characters:
-        var score = 0.0
-        score -= float(character.position.distance_to(enemy.position))  # Prefer closer targets
-        score += (1.0 - float(enemy.health) / float(enemy.max_health)) * 10.0  # Prefer wounded targets
-        if get_cover_type(enemy) == CoverType.NONE:
-            score += 5.0  # Prefer targets out of cover
-        
-        if score > best_score:
-            best_target = enemy
-            best_score = score
-    
-    return best_target
-
-func move_to_brawl(character, target) -> void:
-    var path = find_path(character.position, target.position)
-    var new_position = path[min(character.speed, path.size() - 1)]
-    move_character(character, new_position)
-
-func charge(character, target) -> void:
-    move_to_brawl(character, target)
-    attack_character(character, target)
-
-func dash(character, target_position: Vector2i) -> void:
-    var direction = (Vector2(target_position) - Vector2(character.position)).normalized()
-    var dash_position = Vector2(character.position) + direction * (character.speed * 2)
-    move_character(character, Vector2i(dash_position))
-
-func retreat(character, retreat_position: Vector2i) -> void:
-    move_character(character, retreat_position)
-
-func aim(character) -> void:
-    character.is_aiming = true
-
-# Add this method to handle player input
-func handle_player_input(action: String, target = null) -> void:
-    perform_action(turn_order[current_turn_index], action, target)
-    player_input_received.emit()
+func _on_end_turn_button_pressed():
+    current_turn_index += 1
+    start_next_turn()
