@@ -1,4 +1,4 @@
-# Scenes/Scene Container/campaigncreation/scripts/CharacterCreationScene.gd
+class_name CharacterCreationScene
 extends Control
 
 @export var character_creation_logic: CharacterCreationLogic
@@ -52,10 +52,10 @@ func _on_random_character_button_pressed():
 func _on_add_character_pressed():
 	if created_characters.size() < 8:
 		var new_character = character_creation_logic.create_character(
-			species_option.get_selected_id(),
-			background_option.get_selected_id(),
-			motivation_option.get_selected_id(),
-			class_option.get_selected_id()
+			species_option.get_item_text(species_option.selected),
+			background_option.get_item_text(background_option.selected),
+			motivation_option.get_item_text(motivation_option.selected),
+			class_option.get_item_text(class_option.selected)
 		)
 		new_character.name = name_input.text
 		_apply_starting_rolls(new_character)
@@ -104,15 +104,25 @@ func _roll_bonus_equipment() -> Array:
 func _roll_bonus_weapon() -> Weapon:
 	var weapon_system = WeaponSystem.new()
 	var roll = randi() % 6 + 1  # Roll 1d6
+	var weapon_name: String
 	match roll:
 		1, 2:
-			return Weapon.new("Pistol", Weapon.WeaponType.LOW_TECH, 6, 1, 1, ["Pistol"])
+			weapon_name = "Pistol"
 		3, 4:
-			return Weapon.new("Rifle", Weapon.WeaponType.MILITARY, 12, 1, 2, [])
+			weapon_name = "Rifle"
 		5:
-			return Weapon.new("Shotgun", Weapon.WeaponType.LOW_TECH, 4, 1, 3, ["Spread"])
+			weapon_name = "Shotgun"
 		6:
-			return Weapon.new("Energy Pistol", Weapon.WeaponType.HIGH_TECH, 8, 1, 2, ["Pistol", "Accurate"])
+			weapon_name = "Energy Pistol"
+	var weapon_data = weapon_system.BASE_WEAPONS[weapon_name]
+	return Weapon.new(
+		weapon_name,
+		weapon_data["type"],
+		weapon_data["range"],
+		weapon_data["shots"],
+		weapon_data["damage"],
+		weapon_data["traits"]
+	)
 
 func _generate_rivals() -> Array[Rival]:
 	var rivals = []
@@ -191,5 +201,5 @@ func _on_clear_character_pressed():
 
 # ... (keep the existing import/export functions)
 
-func _on_option_button_item_selected(index: int):
+func _on_option_button_item_selected(_index: int):
 	_update_character_preview()

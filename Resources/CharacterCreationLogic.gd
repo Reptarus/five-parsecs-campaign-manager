@@ -1,3 +1,4 @@
+class_name CharacterCreationLogic
 extends Node
 
 var character_creation_data: CharacterCreationData

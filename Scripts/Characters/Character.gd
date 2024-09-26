@@ -251,3 +251,40 @@ static func get_random_name_from_table(table: Array) -> String:
 				return entry.get("name")
 	
 	return "Unknown"
+
+static func create_temporary() -> Character:
+	var temp_ally = Character.new()
+	
+	# Initialize temp_ally with necessary properties based on Compendium.md and Core Rules.md
+	temp_ally.name = generate_name("human")
+	temp_ally.speed = 4
+	temp_ally.combat_skill = 0
+	temp_ally.toughness = 4
+	temp_ally.savvy = 1
+	temp_ally.weapon = "Handgun"
+	temp_ally.range = 6
+	temp_ally.shots = 1
+	temp_ally.damage = 1
+	temp_ally.traits = ["Basic"]
+	temp_ally.gear_notes = "Standard issue"
+	temp_ally.luck = 0
+	temp_ally.xp = 0
+	temp_ally.species_type = "Human"
+	temp_ally.reactions = 1
+	
+	# Integrate AIController
+	var ai_controller = AIController.new()
+	temp_ally.add_child(ai_controller)
+	temp_ally.ai_controller = ai_controller
+	temp_ally.ai_enabled = false  # Toggle to control AI
+
+	return temp_ally
+
+# Method to toggle AI on and off
+func toggle_ai(character: Character, enable: bool, combat_manager: Node, game_state: Node) -> void:
+	if character.ai_controller:
+		character.ai_enabled = enable
+		if enable:
+			character.ai_controller.initialize(combat_manager, game_state)
+		else:
+			character.ai_controller.queue_free()

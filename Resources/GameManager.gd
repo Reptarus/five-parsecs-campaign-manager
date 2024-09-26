@@ -2,12 +2,13 @@
 class_name GameManager
 extends Node
 
-signal game_state_changed(new_state: GameStateManager.State)
+signal game_state_changed(new_state: GlobalEnums.CampaignPhase)
 
 @export var mob_scene: PackedScene
 @export var battle_scene: PackedScene
+@export var game_over_scene: PackedScene  # Add this line
 
-var game_state: GameState
+var game_state: GameStateManager
 var ui_manager: UIManager
 var combat_manager: CombatManager
 var world_generator: WorldGenerator
@@ -19,7 +20,7 @@ var fringe_world_strife_manager: FringeWorldStrifeManager
 var psionic_manager: PsionicManager
 var expanded_faction_manager: ExpandedFactionManager
 
-func _init(_game_state: GameState, _ui_manager: UIManager):
+func _init(_game_state: GameStateManager, _ui_manager: UIManager):
 	game_state = _game_state
 	ui_manager = _ui_manager
 	initialize_managers()
@@ -28,7 +29,7 @@ func initialize_managers():
 	combat_manager = CombatManager.new()
 	world_generator = WorldGenerator.new()
 	terrain_generator = TerrainGenerator.new()
-	mission_generator = MissionGenerator.new(game_state.get_game_state_manager())
+	mission_generator = MissionGenerator.new()
 	equipment_manager = EquipmentManager.new()
 	patron_job_manager = PatronJobManager.new()
 	fringe_world_strife_manager = FringeWorldStrifeManager.new()
@@ -44,22 +45,22 @@ func initialize_managers():
 	for manager in managers_to_initialize:
 		if manager.has_method("initialize"):
 			manager.initialize(game_state)
-
+			
 func start_new_game():
-	game_state.change_state(GameState.State.CREW_CREATION)
+	game_state.change_state(GlobalEnums.CampaignPhase.CREW_CREATION)
 	ui_manager.change_screen("campaign_setup")
 	game_state.set_crew_size(5)  # Default crew size, can be adjusted
 
 func start_campaign_turn():
-	game_state.change_state(GameState.State.CAMPAIGN_TURN)
+	game_state.change_state(GlobalEnums.CampaignPhase.UPKEEP)
 	game_state.advance_turn()
 	ui_manager.change_screen("world_view")
 	game_state.update_mission_list()
 
 func start_mission(mission: Mission):
-	if mission.start_mission(game_state.get_current_crew().characters):
+	if mission.start_mission(game_state.get_current_crew().members):
 		game_state.current_mission = mission
-		game_state.change_state(GameState.State.MISSION)
+		game_state.change_state(GlobalEnums.CampaignPhase.MISSION)
 		ui_manager.change_screen("battle")
 		combat_manager.setup_battle(mission)
 		generate_battlefield()
@@ -67,7 +68,7 @@ func start_mission(mission: Mission):
 		ui_manager.show_message("Cannot start mission. Check crew requirements.")
 
 func end_mission(victory: bool):
-	game_state.change_state(GameState.State.POST_MISSION)
+	game_state.change_state(GlobalEnums.CampaignPhase.POST_BATTLE)
 	ui_manager.change_screen("post_battle")
 	process_mission_results(victory)
 
@@ -121,7 +122,8 @@ func sell_equipment(item: Equipment):
 
 func handle_game_over(victory: bool):
 	ui_manager.show_game_over_screen(victory)
-	game_state_changed.emit(GameState.State.MAIN_MENU)
+	game_state_changed.emit(GlobalEnums.CampaignPhase.MAIN_MENU)
+	get_tree().change_scene_to(game_over_scene)  # Add this line
 
 func generate_battlefield():
 	var battlefield_size = Vector2(24, 24)  # 24" x 24" battlefield as per rules
@@ -165,6 +167,4 @@ func start_battle(scene_tree: SceneTree):
 	var battle_instance = battle_scene.instantiate()
 	battle_instance.initialize(game_state, game_state.current_mission)
 	scene_tree.root.add_child(battle_instance)
-	game_state.transition_to_state(GameState.State.BATTLE)
-
-# Add more helper functions and game logic as needed
+	game_state.change_state(GlobalEnums.CampaignPhase.BATTLE)

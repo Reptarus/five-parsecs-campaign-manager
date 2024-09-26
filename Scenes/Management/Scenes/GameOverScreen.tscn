@@ -1,0 +1,32 @@
+[gd_scene load_steps=3 format=3 uid="uid://d1you1rrwuu48"]
+
+[ext_resource path="res://Scenes/sci_fi_theme.tres" type="Theme" id=1]
+
+[node name="GameOverScreen" type="Control"]
+theme = ExtResource( 1 )
+anchor_right = 1.0
+anchor_bottom = 1.0
+
+[node name="Label" type="Label" parent="."]
+anchor_left = 0.4
+anchor_top = 0.3
+anchor_right = 0.6
+anchor_bottom = 0.4
+margin_left = 0.0
+margin_top = 0.0
+margin_right = 0.0
+margin_bottom = 0.0
+text = "Game Over"
+align = "center"
+valign = "center"
+
+[node name="Button" type="Button" parent="."]
+anchor_left = 0.4
+anchor_top = 0.5
+anchor_right = 0.6
+anchor_bottom = 0.6
+margin_left = 0.0
+margin_top = 0.0
+margin_right = 0.0
+margin_bottom = 0.0
+text = "Return to Main Menu"

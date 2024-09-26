@@ -11,7 +11,9 @@ script = ExtResource("1_e8bb3")
 [node name="CombatManager" type="Node" parent="."]
 script = ExtResource("2_f9g7h")
 
-[node name="BattlefieldGenerator" type="Node" parent="."]
+[node name="BattlefieldGenerator" type="Control" parent="."]
+layout_mode = 3
+anchors_preset = 0
 script = ExtResource("3_k9l2m")
 
 [node name="AIController" type="Node" parent="."]

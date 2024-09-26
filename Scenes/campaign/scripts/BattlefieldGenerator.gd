@@ -4,10 +4,11 @@ extends Control
 const GRID_SIZE := Vector2i(24, 24)
 const CELL_SIZE := Vector2i(32, 32)
 
-var game_manager: GameManager
 var mission: Mission
 var terrain_generator: TerrainGenerator
 
+@onready var game_manager: Control = get_node("res://Resources/GameManager.gd") as Control
+@onready var battlefield_generator: Control = self
 @onready var deployment_conditions_label: Label = $MarginContainer/VBoxContainer/HBoxContainer2/VBoxContainer/DeploymentConditionsLabel
 @onready var mission_objective_label: Label = $MarginContainer/VBoxContainer/HBoxContainer2/VBoxContainer/MissionObjectiveLabel
 @onready var mission_enemies_label: Label = $MarginContainer/VBoxContainer/HBoxContainer2/VBoxContainer/MissionEnemiesLabel
@@ -45,7 +46,7 @@ func _setup_ui() -> void:
 	$MarginContainer/VBoxContainer/HBoxContainer2/VBoxContainer2/HBoxContainer/CrewStatsButton.pressed.connect(_on_crew_stats_pressed)
 	$MarginContainer/VBoxContainer/HBoxContainer2/VBoxContainer2/HBoxContainer/MedbayButton.pressed.connect(_on_medbay_pressed)
 	$MarginContainer/VBoxContainer/HBoxContainer2/VBoxContainer2/HBoxContainer/StashButton.pressed.connect(_on_stash_pressed)
-	$MarginContainer/VBoxContainer/StartMissionButton.pressed.connect(_on_start_mission_pressed)
+	$MarginContainer/StartMissionButton.pressed.connect(_on_start_mission_pressed)
 
 func _generate_battlefield() -> void:
 	_set_mission_info()
@@ -54,7 +55,7 @@ func _generate_battlefield() -> void:
 
 func _set_mission_info() -> void:
 	mission_name_label.text = "Mission: %s" % mission.title
-	mission_objective_label.text = "Objective: %s" % Mission.Objective.keys()[mission.objective]
+	mission_objective_label.text = "Objective: %s" % GlobalEnums.MissionObjective.keys()[mission.objective]
 	
 	var enemies_text := "Enemies:\n"
 	for enemy in mission.get_enemies():
@@ -85,26 +86,26 @@ func _generate_terrain() -> Array[Dictionary]:
 	for x in range(GRID_SIZE.x):
 		for y in range(GRID_SIZE.y):
 			match terrain_map[x][y]:
-				TerrainGenerator.TerrainType.LARGE:
+				GlobalEnums.TerrainSize.LARGE:
 					terrain.append({
 						"position": Vector2i(x, y) * CELL_SIZE,
 						"size": Vector2i(2, 2) * CELL_SIZE,
 						"type": "large"
 					})
-				TerrainGenerator.TerrainType.SMALL:
+				GlobalEnums.TerrainSize.SMALL:
 					terrain.append({
 						"position": Vector2i(x, y) * CELL_SIZE,
 						"size": Vector2i(1, 1) * CELL_SIZE,
 						"type": "small"
 					})
-				TerrainGenerator.TerrainType.LINEAR:
-					var is_horizontal: bool = x < GRID_SIZE.x - 1 and terrain_map[x + 1][y] == TerrainGenerator.TerrainType.LINEAR
+				GlobalEnums.TerrainFeature.LINEAR:
+					var is_horizontal: bool = x < GRID_SIZE.x - 1 and terrain_map[x + 1][y] == GlobalEnums.TerrainFeature.LINEAR
 					var length: int = 1
 					if is_horizontal:
-						while x + length < GRID_SIZE.x and terrain_map[x + length][y] == TerrainGenerator.TerrainType.LINEAR:
+						while x + length < GRID_SIZE.x and terrain_map[x + length][y] == GlobalEnums.TerrainFeature.LINEAR:
 							length += 1
 					else:
-						while y + length < GRID_SIZE.y and terrain_map[x][y + length] == TerrainGenerator.TerrainType.LINEAR:
+						while y + length < GRID_SIZE.y and terrain_map[x][y + length] == GlobalEnums.TerrainFeature.LINEAR:
 							length += 1
 					terrain.append({
 						"position": Vector2i(x, y) * CELL_SIZE,
@@ -134,7 +135,7 @@ func _generate_enemy_positions(num_enemies: int) -> Array[Vector2]:
 		enemy_positions.append(position)
 	return enemy_positions
 
-func _generate_battlefield_grid(battlefield_data: Dictionary) -> void:
+func _generate_battlefield_grid(_battlefield_data: Dictionary) -> void:
 	battlefield_grid.columns = GRID_SIZE.x
 	var terrain_map := terrain_generator.generate_terrain(GRID_SIZE)
 	
@@ -149,11 +150,11 @@ func _generate_battlefield_grid(battlefield_data: Dictionary) -> void:
 			cell.custom_minimum_size = CELL_SIZE
 			
 			match terrain_map[x][y]:
-				TerrainGenerator.TerrainType.LARGE:
+				GlobalEnums.TerrainSize.LARGE:
 					cell.color = Color(0.2, 0.6, 0.2)  # Green for large terrain
-				TerrainGenerator.TerrainType.SMALL:
+				GlobalEnums.TerrainSize.SMALL:
 					cell.color = Color(0.6, 0.4, 0.2)  # Brown for small terrain
-				TerrainGenerator.TerrainType.LINEAR:
+				GlobalEnums.TerrainFeature.LINEAR:
 					cell.color = Color(0.2, 0.2, 0.6)  # Blue for linear terrain
 				_:
 					cell.color = Color(0.2, 0.2, 0.2)  # Dark gray for empty cells

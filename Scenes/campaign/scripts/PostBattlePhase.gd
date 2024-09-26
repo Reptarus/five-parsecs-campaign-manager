@@ -44,11 +44,11 @@ func resolve_patron_status(player_victory: bool) -> void:
 			if player_victory:
 				patron.change_relationship(5)
 				if game_state.patron_job_manager.should_generate_job(patron):
-					var new_job = game_state.mission_generator.generate_missions(game_state)[0]
-					new_job.set_type(Mission.Type.PATRON)
-					new_job.set_patron(patron)
+					var new_job = game_state.mission_generator.generate_mission()
+					new_job.type = GlobalEnums.Type.PATRON
+					new_job.patron = patron
 					patron.add_mission(new_job)
-					game_state.available_missions.append(new_job)
+					game_state.add_available_mission(new_job)
 			else:
 				patron.change_relationship(-5)
 			
@@ -227,8 +227,7 @@ func apply_character_event(character: Character, event: Dictionary) -> void:
 	match event["effect"]:
 		"Gain a temporary ally":
 			# Logic to add a temporary ally
-			var ally = Character.new()
-			ally.initialize_as_temporary()
+			var ally = Character.create_temporary()
 			game_state.add_temporary_ally(ally)
 		"Equipment malfunction":
 			character.disable_random_item()
@@ -242,10 +241,11 @@ func apply_character_event(character: Character, event: Dictionary) -> void:
 			# Add random loot to character's inventory
 			var loot_generator = LootGenerator.new(game_state)
 			var loot = loot_generator.generate_loot()
-			loot_generator.apply_loot(character, loot)
+			loot_generator.apply_loot(character, loot, character.ship)
 		"Vital info":
 			# Turn in information to get a Corporate Patron
-			game_state.add_corporate_patron()
+			var patron = Patron.new()
+			game_state.add_corporate_patron(patron)
 		"Invasion Evidence":
 			# Earn credits and increase invasion chance
 			game_state.add_credits(1)

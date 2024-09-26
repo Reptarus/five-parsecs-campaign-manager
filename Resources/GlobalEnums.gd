@@ -1,12 +1,47 @@
 class_name GlobalEnums
 extends Resource
 
-enum Species { HUMAN, ENGINEER, KERIN, SOULLESS, PRECURSOR, FERAL, SWIFT, BOT, SKULKER, KRAG }
-enum Background { HIGH_TECH_COLONY, OVERCROWDED_CITY, LOW_TECH_COLONY, MINING_COLONY, MILITARY_BRAT, SPACE_STATION }
-enum Motivation { WEALTH, FAME, GLORY, SURVIVAL, ESCAPE, ADVENTURE }
-enum Class { WORKING_CLASS, TECHNICIAN, SCIENTIST, HACKER, SOLDIER, MERCENARY }
+enum Species {
+    HUMAN,
+    ENGINEER,
+    KERIN,
+    SOULLESS,
+    PRECURSOR,
+    FERAL,
+    SWIFT,
+    BOT,
+    SKULKER,
+    KRAG
+}
 
-enum PsionicPower { 
+enum Background {
+    HIGH_TECH_COLONY,
+    OVERCROWDED_CITY,
+    LOW_TECH_COLONY,
+    MINING_COLONY,
+    MILITARY_BRAT,
+    SPACE_STATION
+}
+
+enum Motivation {
+    WEALTH,
+    FAME,
+    GLORY,
+    SURVIVAL,
+    ESCAPE,
+    ADVENTURE
+}
+
+enum Class {
+    WORKING_CLASS,
+    TECHNICIAN,
+    SCIENTIST,
+    HACKER,
+    SOLDIER,
+    MERCENARY
+}
+
+enum PsionicPower {
     BARRIER,
     GRAB,
     LIFT,
@@ -23,21 +58,107 @@ enum PsionicPower {
     # Ensure this matches your Psionics.json file
 }
 
-enum PsionicLegality { LEGAL, RESTRICTED, ILLEGAL }
+enum PsionicLegality {
+    LEGAL,
+    RESTRICTED,
+    ILLEGAL
+}
 
-enum WeaponType { PISTOL, RIFLE, HEAVY, MELEE, GRENADE }
-enum ArmorType { LIGHT, MEDIUM, HEAVY, SCREEN }
-enum MissionType { PATROL, RESCUE, SABOTAGE, ESCORT, ASSASSINATION, RETRIEVAL }
-enum TerrainType { URBAN, WILDERNESS, SPACE_STATION, STARSHIP, ALIEN_WORLD }
-enum CampaignPhase { UPKEEP, STORY_POINT, TRAVEL, PATRONS, MISSION, BATTLE, POST_BATTLE }
-enum CharacterStatus { ACTIVE, INJURED, DEAD }
-enum SkillType { COMBAT, TECHNICAL, SOCIAL, SURVIVAL }
-enum ItemRarity { COMMON, UNCOMMON, RARE, UNIQUE }
-enum FactionType { NEUTRAL, FRIENDLY, HOSTILE }
-enum BattleOutcome { VICTORY, DEFEAT, DRAW }
-enum ShipUpgrade { ENGINE, WEAPONS, SHIELDS, CARGO, LIVING_QUARTERS }
+enum WeaponType {
+    PISTOL,
+    RIFLE,
+    HEAVY,
+    MELEE,
+    GRENADE
+}
 
-enum StrifeType { RESOURCE_CONFLICT, POLITICAL_UPRISING, ALIEN_INCURSION, CORPORATE_WARFARE }
+enum ArmorType {
+    LIGHT,
+    MEDIUM,
+    HEAVY,
+    SCREEN
+}
+
+enum MissionType {
+    PATROL,
+    RESCUE,
+    SABOTAGE,
+    ESCORT,
+    ASSASSINATION,
+    RETRIEVAL
+}
+
+enum TerrainType {
+    CITY,
+    FOREST,
+    SPACE_STATION,
+    STARSHIP,
+    ALIEN_LANDSCAPE
+}
+
+enum CampaignPhase {
+    UPKEEP,
+    STORY_POINT,
+    TRAVEL,
+    PATRONS,
+    MISSION,
+    BATTLE,
+    POST_BATTLE,
+    TRACK_RIVALS,
+    PATRON_JOB,
+    RIVAL_ATTACK,
+    ASSIGN_EQUIPMENT,
+    READY_FOR_BATTLE,
+    MAIN_MENU,
+    CREW_CREATION 
+}
+
+enum CharacterStatus {
+    ACTIVE,
+    INJURED,
+    DEAD
+}
+
+enum SkillType {
+    COMBAT,
+    TECHNICAL,
+    SOCIAL,
+    SURVIVAL
+}
+
+enum ItemRarity {
+    COMMON,
+    UNCOMMON,
+    RARE,
+    UNIQUE
+}
+
+enum FactionType {
+    NEUTRAL,
+    FRIENDLY,
+    HOSTILE
+}
+
+enum BattleOutcome {
+    VICTORY,
+    DEFEAT,
+    DRAW
+}
+
+enum ShipUpgrade {
+    ENGINE,
+    WEAPONS,
+    SHIELDS,
+    CARGO,
+    LIVING_QUARTERS
+}
+
+enum StrifeType {
+    RESOURCE_CONFLICT,
+    POLITICAL_UPRISING,
+    ALIEN_INCURSION,
+    CORPORATE_WARFARE
+}
 
 enum ComponentType {
     HULL,
@@ -186,3 +307,50 @@ enum ReputationLevel {
     RESPECTED,
     LEGENDARY
 }
+
+enum TerrainSize {
+    SMALL,
+    MEDIUM,
+    LARGE
+}
+
+enum TerrainFeature {
+    LINEAR,
+    AREA,
+    FIELD,
+    INDIVIDUAL,
+    BLOCK,
+    INTERIOR
+}
+
+enum TerrainGenerationType {
+    INDUSTRIAL,
+    WILDERNESS,
+    ALIEN_RUIN,
+    CRASH_SITE
+}
+
+enum TerrainEffect {
+    LINE_OF_SIGHT,
+    COVER,
+    MOVEMENT
+}
+
+# Expanded Campaign Phases
+enum ExpandedCampaignPhase {
+    UPKEEP,
+    STORY_POINT,
+    TRAVEL,
+    PATRONS,
+    MISSION,
+    BATTLE,
+    POST_BATTLE,
+    TRACK_RIVALS,
+    PATRON_JOB,
+    RIVAL_ATTACK,
+    ASSIGN_EQUIPMENT,
+    READY_FOR_BATTLE
+}
+
+# Gameplay Modifiers
+@export var use_expanded_campaign_phases: bool = false

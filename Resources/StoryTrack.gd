@@ -4,13 +4,20 @@ extends Resource
 
 signal event_triggered(event: StoryEvent)
 
+var story_clock: StoryClock
+var story_track_manager: StoryTrackManager
 var events: Array[StoryEvent] = []
 var current_event_index: int = -1
-var story_clock: StoryClock
 
 func _init():
 	story_clock = StoryClock.new()
-	_load_events()
+	story_track_manager = StoryTrackManager.new(GameState.instance.get_game_state())
+
+func _ready():
+	story_track_manager.connect("event_triggered", Callable(self, "_on_event_triggered"))
+
+func _on_event_triggered(event: StoryEvent):
+	emit_signal("event_triggered", event)
 
 func _load_events():
 	# Load events from a JSON file or create them manually
@@ -50,6 +57,13 @@ func trigger_current_event():
 	story_clock.set_ticks(current_event.next_event_ticks)
 	
 	emit_signal("event_triggered", current_event)
+	apply_event_effects(current_event)
+
+func apply_event_effects(event: StoryEvent):
+	var game_state = GameState.instance.get_game_state()
+	event.apply_event_effects(game_state)
+	event.setup_battle(game_state.current_battle)
+	event.apply_rewards(game_state)
 
 func progress_story(current_phase: GlobalEnums.CampaignPhase):
 	var game_state = GameState.instance.get_game_state()

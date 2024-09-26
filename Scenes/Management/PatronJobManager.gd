@@ -10,8 +10,8 @@ func generate_patron_jobs() -> void:
 	for patron in game_state.patrons:
 		if should_generate_job(patron):
 			var new_job: Mission = game_state.mission_generator.generate_mission()
-			new_job.set_type(Mission.Type.PATRON)
-			new_job.set_patron(patron)
+			new_job.type = GlobalEnums.Type.PATRON
+			new_job.patron = patron
 			patron.add_mission(new_job)
 			game_state.add_available_mission(new_job)
 

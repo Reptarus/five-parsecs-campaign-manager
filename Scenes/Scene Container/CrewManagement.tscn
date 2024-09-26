@@ -1,7 +1,6 @@
-[gd_scene load_steps=2 format=3 uid="uid://your_unique_id_here"]
+[gd_scene load_steps=3 format=3 uid="uid://bogbjollcirck"]
 
 [ext_resource type="Script" path="res://Scenes/Management/CrewManagement.gd" id="1_abcde"]
-
 [ext_resource type="Theme" uid="uid://d1you1rrwuu48" path="res://Scenes/sci_fi_theme.tres" id="2_theme"]
 
 [node name="CrewManagement" type="Control"]
@@ -249,4 +248,3 @@ text = "Create New Character"
 [connection signal="pressed" from="HBoxContainer/MainContent/MarginContainer/ContentContainer/StashContent/VBoxContainer/SortOptions/SortByType" to="." method="_on_sort_by_type_pressed"]
 [connection signal="pressed" from="FinalizeCrew" to="." method="_on_finalize_crew_button_pressed"]
 [connection signal="pressed" from="CreateCharacterButton" to="." method="_on_create_character_button_pressed"]
-
