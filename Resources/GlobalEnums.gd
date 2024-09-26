@@ -16,7 +16,10 @@ enum PsionicPower {
     SHOCK,
     REJUVENATE,
     GUIDE,
-    PSIONIC_SCARE
+    PSIONIC_SCARE,
+    CRUSH,
+    DIRECT,
+    DOMINATE
     # Ensure this matches your Psionics.json file
 }
 
@@ -44,7 +47,8 @@ enum ComponentType {
     SHIELDS,
     CARGO_HOLD,
     DROP_POD,
-    SHUTTLE_BAY
+    SHUTTLE_BAY,
+    LIFE_SUPPORT
 }
 
 enum Type {
@@ -56,5 +60,129 @@ enum Type {
     PATRON,
     QUEST,
     RIVAL,
-    TUTORIAL
+    TUTORIAL,
+    STANDARD,
+    ASSASSINATION,
+    SABOTAGE,
+    RESCUE,
+    DEFENSE,
+    ESCORT
+}
+
+enum MissionObjective {
+    INFILTRATION,
+    FIGHT_OFF,
+    ACQUIRE,
+    DEFEND,
+    DELIVER,
+    ELIMINATE,
+    EXPLORE,
+    MOVE_THROUGH,
+    SABOTAGE,
+    DESTROY,
+    RESCUE,
+    PROTECT
+}
+
+enum MissionStatus {
+    ACTIVE,
+    COMPLETED,
+    FAILED
+}
+
+enum CrewTask {
+    FIND_PATRON,
+    TRAIN,
+    TRADE,
+    RECRUIT,
+    EXPLORE,
+    TRACK,
+    REPAIR_KIT,
+    DECOY
+}
+
+enum ItemType {
+    WEAPON,
+    ARMOR,
+    GEAR,
+    CONSUMABLE
+}
+
+enum WeaponTrait {
+    CLUMSY,
+    CRITICAL,
+    ELEGANT,
+    FOCUSED,
+    TERRIFYING,
+    HEAVY,
+    AREA,
+    SINGLE_USE,
+    PIERCING,
+    SNAP_SHOT,
+    IMPACT
+}
+
+enum AIType {
+    AGGRESSIVE,
+    CAUTIOUS,
+    DEFENSIVE,
+    GUARDIAN,
+    RAMPAGE,
+    TACTICAL,
+    BEAST
+}
+
+enum Faction {
+    UNITY,
+    CORPORATE,
+    FRINGE,
+    ALIEN
+}
+
+enum WorldTrait {
+    BUSTLING,
+    QUIET,
+    DANGEROUS,
+    SAFE,
+    RICH,
+    POOR
+}
+
+enum DifficultyMode {
+    NORMAL,
+    CHALLENGING,
+    HARDCORE,
+    INSANITY
+}
+
+enum SalvageType {
+    TECH,
+    RESOURCES,
+    ARTIFACTS
+}
+
+enum StreetFightType {
+    GANG_WAR,
+    TURF_DEFENSE,
+    REVENGE_HIT
+}
+
+enum FringeWorldInstability {
+    STABLE,
+    UNREST,
+    CONFLICT,
+    CHAOS
+}
+
+enum LoanType {
+    STANDARD,
+    PREDATORY,
+    BLACK_MARKET
+}
+
+enum ReputationLevel {
+    UNKNOWN,
+    NOTORIOUS,
+    RESPECTED,
+    LEGENDARY
 }

@@ -17,11 +17,11 @@ func _ready() -> void:
 
 func initialize(state: GameStateManager) -> void:
 	game_state = state
-	terrain_generator = TerrainGenerator.new(game_state)
+	terrain_generator = TerrainGenerator.new()
 	terrain_generator.initialize(game_state.get_current_state())
 
 func _on_generate_terrain_pressed() -> void:
-	var battlefield: Dictionary = terrain_generator.generate_battlefield(game_state)
+	var battlefield: Dictionary = terrain_generator.generate_battlefield()
 	_visualize_battlefield(battlefield)
 
 func _on_place_characters_pressed() -> void:

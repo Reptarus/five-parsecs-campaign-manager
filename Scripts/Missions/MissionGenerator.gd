@@ -2,12 +2,14 @@
 class_name MissionGenerator
 extends Node
 
+var game_state_manager: GameStateManagerNode
 var game_state: GameStateManager
 var mission_manager: MissionManager
 
-func _init(_game_state: GameStateManager):
-	game_state = _game_state
-	mission_manager = MissionManager.new(game_state)
+func initialize(_game_state_manager: GameStateManagerNode):
+	game_state_manager = _game_state_manager
+	game_state = game_state_manager.get_game_state()
+	mission_manager = MissionManager.new(game_state_manager)
 
 func generate_mission() -> Mission:
 	var missions = mission_manager.generate_missions()
@@ -43,10 +45,10 @@ func _generate_rewards_from_template(template: MissionTemplate) -> Dictionary:
 
 func generate_tutorial_mission() -> Mission:
 	var mission = Mission.new()
-	mission.type = Mission.Type.TUTORIAL
+	mission.type = GlobalEnums.Type.TUTORIAL
 	mission.title = "Tutorial Mission"
 	mission.description = "Learn the basics of the game"
-	mission.objective = Mission.Objective.MOVE_THROUGH
+	mission.objective = GlobalEnums.MissionObjective.MOVE_THROUGH
 	mission.difficulty = 1
 	mission.time_limit = 5
 	mission.location = game_state.current_location
@@ -57,10 +59,10 @@ func generate_tutorial_mission() -> Mission:
 
 func generate_opportunity_mission() -> Mission:
 	var mission = Mission.new()
-	mission.type = Mission.Type.OPPORTUNITY
+	mission.type = GlobalEnums.Type.OPPORTUNITY
 	mission.title = "Opportunity Mission"
 	mission.description = "A sudden opportunity has arisen"
-	mission.objective = Mission.Objective.values()[randi() % Mission.Objective.size()]
+	mission.objective = GlobalEnums.MissionObjective.values()[randi() % GlobalEnums.MissionObjective.size()]
 	mission.difficulty = randi() % 3 + 1  # 1 to 3 difficulty
 	mission.time_limit = randi() % 3 + 2  # 2 to 4 turns
 	mission.location = game_state.current_location
@@ -70,10 +72,10 @@ func generate_opportunity_mission() -> Mission:
 
 func generate_rival_mission() -> Mission:
 	var mission = Mission.new()
-	mission.type = Mission.Type.RIVAL
+	mission.type = GlobalEnums.Type.RIVAL
 	mission.title = "Rival Confrontation"
 	mission.description = "A rival crew is causing trouble"
-	mission.objective = Mission.Objective.FIGHT_OFF
+	mission.objective = GlobalEnums.MissionObjective.FIGHT_OFF
 	mission.time_limit = randi() % 2 + 2  # 2 to 3 turns
 	mission.location = game_state.current_location
 	mission.rewards = {"credits": randi() % 400 + 300, "reputation": randi() % 3 + 2}
@@ -82,10 +84,10 @@ func generate_rival_mission() -> Mission:
 
 func generate_quest_mission() -> Mission:
 	var mission = Mission.new()
-	mission.type = Mission.Type.QUEST
+	mission.type = GlobalEnums.Type.QUEST
 	mission.title = "Quest Mission"
 	mission.description = "A step in a larger quest"
-	mission.objective = Mission.Objective.values()[randi() % Mission.Objective.size()]
+	mission.objective = GlobalEnums.MissionObjective.values()[randi() % GlobalEnums.MissionObjective.size()]
 	mission.difficulty = randi() % 4 + 2  # 2 to 5 difficulty
 	mission.time_limit = randi() % 3 + 3  # 3 to 5 turns
 	mission.location = game_state.current_location
@@ -95,10 +97,10 @@ func generate_quest_mission() -> Mission:
 
 func generate_assassination_mission() -> Mission:
 	var mission = Mission.new()
-	mission.type = Mission.Type.ASSASSINATION
+	mission.type = GlobalEnums.Type.STANDARD
 	mission.title = "Assassination Contract"
 	mission.description = "Eliminate a high-value target"
-	mission.objective = Mission.Objective.ELIMINATE
+	mission.objective = GlobalEnums.MissionObjective.ELIMINATE
 	mission.difficulty = randi() % 3 + 3  # 3 to 5 difficulty
 	mission.time_limit = randi() % 2 + 2  # 2 to 3 turns
 	mission.location = game_state.current_location
@@ -108,10 +110,10 @@ func generate_assassination_mission() -> Mission:
 
 func generate_sabotage_mission() -> Mission:
 	var mission = Mission.new()
-	mission.type = Mission.Type.SABOTAGE
+	mission.type = GlobalEnums.Type.STANDARD
 	mission.title = "Sabotage Operation"
 	mission.description = "Disrupt enemy operations"
-	mission.objective = Mission.Objective.DESTROY
+	mission.objective = GlobalEnums.MissionObjective.DESTROY
 	mission.difficulty = randi() % 3 + 2  # 2 to 4 difficulty
 	mission.time_limit = randi() % 3 + 2  # 2 to 4 turns
 	mission.location = game_state.current_location
@@ -121,10 +123,10 @@ func generate_sabotage_mission() -> Mission:
 
 func generate_rescue_mission() -> Mission:
 	var mission = Mission.new()
-	mission.type = Mission.Type.RESCUE
+	mission.type = GlobalEnums.Type.STANDARD
 	mission.title = "Rescue Operation"
 	mission.description = "Save hostages or stranded individuals"
-	mission.objective = Mission.Objective.RESCUE
+	mission.objective = GlobalEnums.MissionObjective.RESCUE
 	mission.difficulty = randi() % 3 + 2  # 2 to 4 difficulty
 	mission.time_limit = randi() % 2 + 2  # 2 to 3 turns
 	mission.location = game_state.current_location
@@ -134,10 +136,10 @@ func generate_rescue_mission() -> Mission:
 
 func generate_defense_mission() -> Mission:
 	var mission = Mission.new()
-	mission.type = Mission.Type.DEFENSE
+	mission.type = GlobalEnums.Type.STANDARD
 	mission.title = "Defensive Stand"
 	mission.description = "Protect a location from enemy forces"
-	mission.objective = Mission.Objective.DEFEND
+	mission.objective = GlobalEnums.MissionObjective.DEFEND
 	mission.difficulty = randi() % 3 + 3  # 3 to 5 difficulty
 	mission.time_limit = randi() % 3 + 3  # 3 to 5 turns
 	mission.location = game_state.current_location
@@ -147,10 +149,10 @@ func generate_defense_mission() -> Mission:
 
 func generate_escort_mission() -> Mission:
 	var mission = Mission.new()
-	mission.type = Mission.Type.ESCORT
+	mission.type = GlobalEnums.Type.STANDARD
 	mission.title = "Escort Duty"
 	mission.description = "Safely transport a VIP or valuable cargo"
-	mission.objective = Mission.Objective.PROTECT
+	mission.objective = GlobalEnums.MissionObjective.PROTECT
 	mission.difficulty = randi() % 3 + 2  # 2 to 4 difficulty
 	mission.time_limit = randi() % 3 + 2  # 2 to 4 turns
 	mission.location = game_state.current_location
@@ -167,24 +169,24 @@ func _on_mission_completed(mission: Mission) -> void:
 		game_state.add_random_item()
 	
 	match mission.type:
-		Mission.Type.PATRON:
+		GlobalEnums.Type.PATRON:
 			if mission.patron:
 				mission.patron.change_relationship(5)
-		Mission.Type.RIVAL:
+		GlobalEnums.Type.RIVAL:
 			game_state.remove_rival(mission.rival)
-		Mission.Type.QUEST:
+		GlobalEnums.Type.QUEST:
 			game_state.advance_quest(mission.quest)
 	
 	game_state.update_faction_standings(mission)
 
 func _on_mission_failed(mission: Mission) -> void:
 	match mission.type:
-		Mission.Type.PATRON:
+		GlobalEnums.Type.PATRON:
 			if mission.patron:
 				mission.patron.change_relationship(-3)
-		Mission.Type.RIVAL:
+		GlobalEnums.Type.RIVAL:
 			game_state.increase_rival_threat(mission.rival)
-		Mission.Type.QUEST:
+		GlobalEnums.Type.QUEST:
 			game_state.fail_quest_step(mission.quest)
 	
 	game_state.update_faction_standings(mission)

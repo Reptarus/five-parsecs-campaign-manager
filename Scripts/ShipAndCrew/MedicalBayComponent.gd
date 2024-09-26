@@ -45,5 +45,5 @@ static func deserialize(data: Dictionary) -> MedicalBayComponent:
 	)
 	component.max_health = data["max_health"]
 	component.is_damaged = data["is_damaged"]
-	component.patients = data["patients"].map(func(p): return Character.deserialize(p))
+	component.patients = data["patients"].map(func(p): return Character.deserialize(p, null))
 	return component

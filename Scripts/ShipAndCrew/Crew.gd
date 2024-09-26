@@ -54,14 +54,35 @@ func serialize() -> Dictionary:
 		serialized_data["current_location"] = current_location.serialize()
 	
 	return serialized_data
+
 static func deserialize(data: Dictionary) -> Crew:
 	var crew = Crew.new()
-	crew.name = data["name"]
-	crew.characters = data["characters"].map(func(c): return Character.deserialize(c))
-	crew.credits = data["credits"]
-	crew.ship = Ship.deserialize(data["ship"]) if data["ship"] else null
-	crew.reputation = data["reputation"]
-	crew.current_location = Location.deserialize(data["current_location"]) if data["current_location"] else null
+	
+	crew.name = data.get("name", "Unnamed Crew")
+	crew.credits = data.get("credits", 0)
+	crew.reputation = data.get("reputation", 0)
+	
+	# Handle characters
+	crew.characters = []
+	for character_data in data.get("characters", []):
+		if character_data is Dictionary:
+			crew.characters.append(Character.deserialize(character_data, crew))
+
+	
+	# Handle ship
+	var ship_data = data.get("ship")
+	if ship_data is Dictionary:
+		crew.ship = Ship.deserialize(ship_data)
+	else:
+		crew.ship = null
+	
+	# Handle current location
+	var location_data = data.get("current_location")
+	if location_data is Dictionary:
+		crew.current_location = Location.deserialize(location_data)
+	else:
+		crew.current_location = null
+	
 	return crew
 
 func is_valid() -> bool:
@@ -82,13 +103,13 @@ func set_ship(new_ship: Ship) -> void:
 func set_current_location(location: Location) -> void:
 	current_location = location
 
-func get_total_skill_level(skill: String) -> int:
+func get_total_skill_level(skill: GlobalEnums.SkillType) -> int:
 	var total: int = 0
 	for character in characters:
 		total += character.get_skill_level(skill)
 	return total
 
-func get_highest_skill_level(skill: String) -> int:
+func get_highest_skill_level(skill: GlobalEnums.SkillType) -> int:
 	var highest: int = 0
 	for character in characters:
 		var skill_level = character.get_skill_level(skill)

@@ -2,9 +2,14 @@ class_name Character
 extends Resource
 
 signal experience_gained(amount: int)
-signal leveled_up
+signal leveled_up(character: Character, new_level: int, available_upgrades: Array)
+signal experience_updated(character: Character, new_xp: int, xp_for_next_level: int)
 signal request_new_trait
-signal request_upgrade_choice(upgrade_options)
+signal request_upgrade_choice(upgrade_options: Array)
+
+var character_advancement: CharacterAdvancement
+
+# Remove the _init function and initialize character_advancement in create method
 
 @export var name: String
 @export var species: String
@@ -46,19 +51,21 @@ func set_strange_character(type: String):
 	# Apply special abilities based on type
 
 # Include character creation and management methods
-static func create(species: String, background: String, motivation: String, character_class: String) -> Character:
+static func create(species: String, background: String, motivation: String, character_class: String, game_state_manager: GameStateManagerNode) -> Character:
 	var character = Character.new()
+	character.initialize(species, background, motivation, character_class, game_state_manager)
 	character.name = generate_name(species)
-	character.species = species
-	character.background = background
-	character.motivation = motivation
-	character.character_class = character_class
-	
-	character.initialize_default_stats()
-	character.apply_background_effects(background)
-	character.apply_class_effects(character_class)
-	
 	return character
+
+func initialize(species: String, background: String, motivation: String, character_class: String, game_state_manager: GameStateManagerNode) -> void:
+	self.species = species
+	self.character_advancement = CharacterAdvancement.new(self)
+	self.background = background
+	self.motivation = motivation
+	self.character_class = character_class
+	initialize_default_stats()
+	apply_background_effects(background)
+	apply_class_effects(character_class)
 
 func initialize_default_stats() -> void:
 	# Implement default stat initialization based on species
@@ -173,7 +180,7 @@ func serialize() -> Dictionary:
 	}
 	return data
 
-static func deserialize(data: Dictionary) -> Character:
+static func deserialize(data: Dictionary, game_state_manager: GameStateManagerNode) -> Character:
 	var character = Character.new()
 	character.name = data.get("name", "")
 	character.species = data.get("species", "")
@@ -194,6 +201,7 @@ static func deserialize(data: Dictionary) -> Character:
 	character.traits = data.get("traits", [])
 	character.medbay_turns_left = data.get("medbay_turns_left", 0)
 	character.injuries = data.get("injuries", [])
+	character.character_advancement = CharacterAdvancement.new(character)
 	return character
 
 # Static method for name generation

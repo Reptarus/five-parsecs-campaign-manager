@@ -2,10 +2,12 @@
 class_name MissionManager
 extends Node
 
+var game_state_manager: GameStateManagerNode
 var game_state: GameStateManager
 
-func _init(_game_state: GameStateManager):
-    game_state = _game_state
+func _init(_game_state_manager: GameStateManagerNode):
+    game_state_manager = _game_state_manager
+    game_state = game_state_manager.get_game_state()
 
 func generate_missions() -> Array[Mission]:
     var missions: Array[Mission] = []
@@ -26,10 +28,10 @@ func generate_standard_missions() -> Array[Mission]:
     
     for i in range(num_missions):
         var mission = Mission.new()
-        mission.type = Mission.Type.STANDARD
+        mission.type = GlobalEnums.Type.STANDARD
         mission.title = "Standard Mission " + str(i + 1)
         mission.description = "A standard mission in the current location."
-        mission.objective = Mission.Objective.values()[randi() % Mission.Objective.size()]
+        mission.objective = GlobalEnums.MissionObjective.values()[randi() % GlobalEnums.MissionObjective.size()]
         mission.difficulty = randi() % 5 + 1
         mission.time_limit = randi() % 5 + 3
         mission.location = game_state.current_location
@@ -44,10 +46,10 @@ func generate_patron_missions() -> Array[Mission]:
     for patron in game_state.patrons:
         if randf() < 0.3:  # 30% chance for each patron to offer a mission
             var mission = Mission.new()
-            mission.type = Mission.Type.PATRON
+            mission.type = GlobalEnums.Type.PATRON
             mission.title = patron.name + "'s Mission"
             mission.description = "A mission from " + patron.name
-            mission.objective = Mission.Objective.values()[randi() % Mission.Objective.size()]
+            mission.objective = GlobalEnums.MissionObjective.values()[randi() % GlobalEnums.MissionObjective.size()]
             mission.difficulty = randi() % 5 + 1
             mission.time_limit = randi() % 5 + 3
             mission.location = game_state.current_location
@@ -61,10 +63,10 @@ func generate_stealth_missions() -> Array[Mission]:
     var missions: Array[Mission] = []
     if randf() < 0.2:  # 20% chance to generate a stealth mission
         var mission = Mission.new()
-        mission.type = Mission.Type.STEALTH
+        mission.type = GlobalEnums.Type.INFILTRATION
         mission.title = "Stealth Operation"
         mission.description = "A covert mission requiring stealth and subterfuge."
-        mission.objective = Mission.Objective.INFILTRATION
+        mission.objective = GlobalEnums.MissionObjective.INFILTRATION
         mission.difficulty = randi() % 5 + 1
         mission.time_limit = randi() % 3 + 2
         mission.location = game_state.current_location
@@ -77,15 +79,15 @@ func generate_street_fight_missions() -> Array[Mission]:
     var missions: Array[Mission] = []
     if randf() < 0.2:  # 20% chance to generate a street fight mission
         var mission = Mission.new()
-        mission.type = Mission.Type.STREET_FIGHT
+        mission.type = GlobalEnums.Type.STREET_FIGHT
         mission.title = "Street Brawl"
         mission.description = "A violent confrontation in the streets."
-        mission.objective = Mission.Objective.FIGHT_OFF
+        mission.objective = GlobalEnums.MissionObjective.FIGHT_OFF
         mission.difficulty = randi() % 5 + 1
         mission.time_limit = 1
         mission.location = game_state.current_location
         mission.rewards = generate_rewards(mission.difficulty)
-        mission.street_fight_type = ["Gang War", "Turf Defense", "Revenge Hit"].pick_random()
+        mission.street_fight_type = GlobalEnums.StreetFightType.values().pick_random()
         missions.append(mission)
     return missions
 
@@ -93,10 +95,10 @@ func generate_salvage_missions() -> Array[Mission]:
     var missions: Array[Mission] = []
     if randf() < 0.2:  # 20% chance to generate a salvage mission
         var mission = Mission.new()
-        mission.type = Mission.Type.SALVAGE_JOB
+        mission.type = GlobalEnums.Type.SALVAGE_JOB
         mission.title = "Salvage Operation"
         mission.description = "A mission to recover valuable salvage from a dangerous location."
-        mission.objective = Mission.Objective.ACQUIRE
+        mission.objective = GlobalEnums.MissionObjective.ACQUIRE
         mission.difficulty = randi() % 5 + 1
         mission.time_limit = randi() % 3 + 2
         mission.location = game_state.current_location
@@ -109,15 +111,15 @@ func generate_fringe_world_strife_missions() -> Array[Mission]:
     var missions: Array[Mission] = []
     if randf() < 0.1:  # 10% chance to generate a fringe world strife mission
         var mission = Mission.new()
-        mission.type = Mission.Type.FRINGE_WORLD_STRIFE
+        mission.type = GlobalEnums.Type.FRINGE_WORLD_STRIFE
         mission.title = "Fringe World Conflict"
         mission.description = "A mission to deal with rising tensions on a fringe world."
-        mission.objective = Mission.Objective.values()[randi() % Mission.Objective.size()]
+        mission.objective = GlobalEnums.MissionObjective.values()[randi() % GlobalEnums.MissionObjective.size()]
         mission.difficulty = randi() % 5 + 1
         mission.time_limit = randi() % 5 + 3
         mission.location = game_state.current_location
         mission.rewards = generate_rewards(mission.difficulty)
-        mission.instability = randi() % 5 + 1
+        mission.instability = GlobalEnums.FringeWorldInstability.values()[randi() % GlobalEnums.FringeWorldInstability.size()]
         missions.append(mission)
     return missions
 
@@ -131,13 +133,13 @@ func generate_rewards(difficulty: int) -> Dictionary:
 
 func resolve_mission(mission: Mission) -> bool:
     match mission.type:
-        Mission.Type.STEALTH:
+        GlobalEnums.Type.INFILTRATION:
             return resolve_stealth_mission(mission)
-        Mission.Type.STREET_FIGHT:
+        GlobalEnums.Type.STREET_FIGHT:
             return resolve_street_fight_mission(mission)
-        Mission.Type.SALVAGE_JOB:
+        GlobalEnums.Type.SALVAGE_JOB:
             return resolve_salvage_mission(mission)
-        Mission.Type.FRINGE_WORLD_STRIFE:
+        GlobalEnums.Type.FRINGE_WORLD_STRIFE:
             return resolve_fringe_world_strife_mission(mission)
         _:
             return resolve_standard_mission(mission)
@@ -210,7 +212,7 @@ func resolve_salvage_mission(mission: Mission) -> bool:
 
 func resolve_fringe_world_strife_mission(mission: Mission) -> bool:
     var success_chance = 0.4 + (0.1 * (game_state.current_crew.get_average_level() - mission.difficulty))
-    success_chance -= 0.05 * mission.instability
+    success_chance -= 0.05 * GlobalEnums.FringeWorldInstability.values().find(mission.instability)
     var roll = randf()
     var success = roll < success_chance
     
@@ -244,14 +246,14 @@ func update_mission_timers() -> void:
             if mission.patron:
                 mission.patron.change_relationship(-2)
 
-func get_mission_by_type(type: Mission.Type) -> Array[Mission]:
+func get_mission_by_type(type: GlobalEnums.Type) -> Array[Mission]:
     return game_state.available_missions.filter(func(m): return m.type == type)
 
 func get_active_missions() -> Array[Mission]:
-    return game_state.available_missions.filter(func(m): return m.status == Mission.Status.ACTIVE)
+    return game_state.available_missions.filter(func(m): return m.status == GlobalEnums.MissionStatus.ACTIVE)
 
 func get_completed_missions() -> Array[Mission]:
-    return game_state.available_missions.filter(func(m): return m.status == Mission.Status.COMPLETED)
+    return game_state.available_missions.filter(func(m): return m.status == GlobalEnums.MissionStatus.COMPLETED)
 
 func get_failed_missions() -> Array[Mission]:
-    return game_state.available_missions.filter(func(m): return m.status == Mission.Status.FAILED)
+    return game_state.available_missions.filter(func(m): return m.status == GlobalEnums.MissionStatus.FAILED)

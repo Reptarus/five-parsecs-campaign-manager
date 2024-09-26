@@ -61,24 +61,32 @@ func generate_weapon() -> Dictionary:
 	var weapon_types: Array[String] = ["Pistol", "Rifle", "Shotgun", "Sniper", "Heavy"]
 	var weapon_name: String = weapon_types[randi() % weapon_types.size()] + " " + _generate_rarity()
 	var damage: int = randi_range(1, 5)
+	var weapon_type: Weapon.WeaponType = Weapon.WeaponType.values()[randi() % Weapon.WeaponType.size()]
+	var weapon_range: int = randi_range(1, 10)
+	var shots: int = randi_range(1, 5)
 	
 	return {
 		"type": "Weapon",
 		"name": weapon_name,
 		"damage": damage,
-		"value": randi_range(10, 50) * damage
+		"value": randi_range(10, 50) * damage,
+		"weapon_type": weapon_type,
+		"weapon_range": weapon_range,
+		"shots": shots,
+		"traits": []
 	}
 
 func generate_armor() -> Dictionary:
 	var armor_types: Array[String] = ["Light", "Medium", "Heavy"]
 	var armor_name: String = armor_types[randi() % armor_types.size()] + " Armor " + _generate_rarity()
-	var defense: int = randi_range(1, 3)
+	var armor_save: int = randi_range(1, 3)
 	
 	return {
 		"type": "Armor",
 		"name": armor_name,
-		"defense": defense,
-		"value": randi_range(15, 60) * defense
+		"armor_save": armor_save,
+		"value": randi_range(15, 60) * armor_save,
+		"level": 1
 	}
 
 func generate_gear() -> Dictionary:
@@ -89,7 +97,8 @@ func generate_gear() -> Dictionary:
 		"type": "Gear",
 		"name": gear_name,
 		"effect": _generate_gear_effect(),
-		"value": randi_range(20, 100)
+		"value": randi_range(20, 100),
+		"weight": randi_range(1, 5)
 	}
 
 func generate_consumable() -> Dictionary:
@@ -100,7 +109,8 @@ func generate_consumable() -> Dictionary:
 		"type": "Consumable",
 		"name": consumable_name,
 		"effect": _generate_consumable_effect(),
-		"value": randi_range(5, 30)
+		"value": randi_range(5, 30),
+		"weight": randi_range(1, 3)
 	}
 
 func generate_credits() -> Dictionary:
@@ -149,28 +159,58 @@ func _generate_consumable_effect() -> String:
 	]
 	return effects[randi() % effects.size()]
 
-func apply_loot(character: Character, loot: Dictionary) -> void:
+func apply_loot(character: Character, loot: Dictionary, ship: Ship) -> void:
+	var loot_summary = []
 	match loot.type:
-		"Weapon", "Armor", "Gear", "Consumable":
-			var equipment_type: Equipment.Type
-			match loot.type:
-				"Weapon":
-					equipment_type = Equipment.Type.WEAPON
-				"Armor":
-					equipment_type = Equipment.Type.ARMOR
-				"Gear":
-					equipment_type = Equipment.Type.GEAR
-				"Consumable":
-					equipment_type = Equipment.Type.GEAR  # Assuming consumables are treated as gear
-			
-			var new_equipment = Equipment.new(loot.name, equipment_type, loot.get("value", 0), loot.get("description", ""))
-			character.inventory.add_item(new_equipment)
+		"Weapon":
+			var new_weapon = Weapon.new()
+			new_weapon.name = loot.name
+			new_weapon.weapon_type = loot.weapon_type
+			new_weapon.weapon_range = loot.weapon_range
+			new_weapon.shots = loot.shots
+			new_weapon.damage = loot.damage
+			new_weapon.traits = loot.traits
+			new_weapon.value = loot.value
+			if ship.add_to_ship_stash(new_weapon):
+				loot_summary.append("%s found %s" % [character.name, loot.name])
+			else:
+				loot_summary.append("Ship stash is full, couldn't store %s" % loot.name)
+		
+		"Armor":
+			var new_armor = Armor.new()
+			new_armor.name = loot.name
+			new_armor.armor_save = loot.armor_save
+			new_armor.level = loot.level
+			new_armor.value = loot.value
+			if ship.add_to_ship_stash(new_armor):
+				loot_summary.append("%s found %s" % [character.name, loot.name])
+			else:
+				loot_summary.append("Ship stash is full, couldn't store %s" % loot.name)
+		
+		"Gear", "Consumable":
+			var new_gear = Gear.new()
+			new_gear.name = loot.name
+			new_gear.type = loot.type
+			new_gear.effect = loot.effect
+			new_gear.value = loot.value
+			new_gear.weight = loot.weight
+			if ship.add_to_ship_stash(new_gear):
+				loot_summary.append("%s found %s" % [character.name, loot.name])
+			else:
+				loot_summary.append("Ship stash is full, couldn't store %s" % loot.name)
 		
 		"Credits":
-			game_state.add_credits(loot.amount)
+			ship.debt -= loot.amount  # Assuming credits reduce ship debt
+			loot_summary.append("%s found %d credits" % [character.name, loot.amount])
+		
 		"Story Point":
 			game_state.add_story_points(loot.amount)
+			loot_summary.append("%s discovered %d story point(s)" % [character.name, loot.amount])
+		
 		_:
-			push_error("Invalid loot type: " + loot.type)
+			push_error("Invalid loot type: %s" % loot.type)
 	
-	print(character.name + " received " + (loot.name if "name" in loot else loot.type))
+	# Store loot summary for mission recap
+	if not game_state.has("mission_loot_summary"):
+		game_state.mission_loot_summary = []
+	game_state.mission_loot_summary.append_array(loot_summary)

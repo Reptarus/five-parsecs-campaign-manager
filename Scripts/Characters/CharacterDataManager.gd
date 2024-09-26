@@ -5,7 +5,12 @@ const SAVE_DIR = "user://saves/"
 const CHARACTER_FILE_EXTENSION = ".char.json"
 const CREW_FILE_EXTENSION = ".crew.json"
 
-func save_character(character, file_name: String) -> void:
+var game_state_manager: GameStateManagerNode
+
+func _init(_game_state_manager: GameStateManagerNode):
+    game_state_manager = _game_state_manager
+
+func save_character(character: Character, file_name: String) -> void:
     var dir = DirAccess.open(SAVE_DIR)
     if not dir:
         DirAccess.make_dir_recursive_absolute(SAVE_DIR)
@@ -15,40 +20,37 @@ func save_character(character, file_name: String) -> void:
         file.store_string(JSON.stringify(character.serialize()))
         file.close()
 
-func load_character(file_name: String):
+func load_character(file_name: String) -> Character:
     var file = FileAccess.open(SAVE_DIR + file_name + CHARACTER_FILE_EXTENSION, FileAccess.READ)
     if file:
         var json = JSON.new()
         var error = json.parse(file.get_as_text())
         file.close()
         if error == OK:
-            var character = Character.new()
-            Character.deserialize(json.data)
-            return character
+            return Character.deserialize(json.data, game_state_manager)
     return null
 
-func save_crew(crew: Array, file_name: String) -> void:
+func save_crew(crew: Array[Character], file_name: String) -> void:
     var dir = DirAccess.open(SAVE_DIR)
     if not dir:
         DirAccess.make_dir_recursive_absolute(SAVE_DIR)
     
-    var crew_data = crew.map(func(character): return character.serialize())
+    var crew_data = crew.map(func(character: Character): return character.serialize())
     var file = FileAccess.open(SAVE_DIR + file_name + CREW_FILE_EXTENSION, FileAccess.WRITE)
     if file:
         file.store_string(JSON.stringify(crew_data))
         file.close()
 
-func load_crew(file_name: String) -> Array:
+func load_crew(file_name: String) -> Array[Character]:
     var file = FileAccess.open(SAVE_DIR + file_name + CREW_FILE_EXTENSION, FileAccess.READ)
     if file:
         var json = JSON.new()
         var error = json.parse(file.get_as_text())
         file.close()
         if error == OK:
-            var characters = []
+            var characters: Array[Character] = []
             for char_data in json.data:
-                var character = Character.new()
-                Character.deserialize(char_data)
+                var character = Character.deserialize(char_data, game_state_manager)
                 characters.append(character)
             return characters
     return []

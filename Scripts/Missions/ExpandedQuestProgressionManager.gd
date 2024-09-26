@@ -23,8 +23,8 @@ func load_quest_stages() -> void:
     file.close()
 
 func generate_new_quest() -> Quest:
-    var quest_generator = QuestGenerator.new(game_state)
-    var new_quest = quest_generator.generate_quest()
+    var quest_generator = preload("res://Scripts/Missions/Quest.gd").new()
+    var new_quest = quest_generator.generate_quest(game_state)
     new_quest.current_stage = 1
     new_quest.current_requirements = quest_stages["quest_stages"][0]["requirements"]
     active_quests.append(new_quest)

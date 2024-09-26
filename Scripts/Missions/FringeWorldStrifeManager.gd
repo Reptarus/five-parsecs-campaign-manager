@@ -2,22 +2,9 @@ class_name FringeWorldStrifeManager
 extends RefCounted
 
 var game_state: GameStateManager
-
-func initialize(state: GameStateManager) -> void:
-	game_state = state
-
-func serialize() -> Dictionary:
-	return {}
-
-func deserialize(_data: Dictionary) -> void:
-	pass
-
 var mission_generator: MissionGenerator
 var difficulty_settings: DifficultySettings
 var escalating_battles_manager: EscalatingBattlesManager
-var street_fights_manager: StreetFightsManager
-var stealth_missions_manager: StealthMissionsManager
-var salvage_jobs_manager: SalvageJobsManager
 var current_mission: Mission
 
 var instability: int = 0
@@ -34,9 +21,18 @@ const CREW_INJURY_CHANCE = 0.25
 const RANDOM_EVENT_CHANCE = 0.3
 const HIGH_INSTABILITY_THRESHOLD = 10
 
+func initialize(state: GameStateManager) -> void:
+	game_state = state
+
+func serialize() -> Dictionary:
+	return {}
+
+func deserialize(_data: Dictionary) -> void:
+	pass
+
 func generate_fringe_world_strife() -> Mission:
 	var mission = Mission.new()
-	mission.type = Mission.Type.FRINGE_WORLD_STRIFE
+	mission.type = GlobalEnums.Type.FRINGE_WORLD_STRIFE
 	mission.objective = _generate_strife_objective()
 	mission.location = _generate_strife_location()
 	mission.difficulty = _calculate_difficulty()
@@ -44,9 +40,6 @@ func generate_fringe_world_strife() -> Mission:
 	mission.special_rules = _generate_strife_special_rules()
    
 	var mission_handlers = {
-		GlobalEnums.StrifeType.RESOURCE_CONFLICT: salvage_jobs_manager.setup_salvage_mission,
-		GlobalEnums.StrifeType.POLITICAL_UPRISING: street_fights_manager.generate_street_fight,
-		GlobalEnums.StrifeType.ALIEN_INCURSION: stealth_missions_manager.generate_stealth_mission,
 		GlobalEnums.StrifeType.CORPORATE_WARFARE: escalating_battles_manager.check_escalation
 	}
    
@@ -223,9 +216,6 @@ func apply_strife_aftermath(mission: Mission, outcome: Dictionary):
 	_handle_special_consequences(outcome)
    
 	var mission_handlers = {
-		GlobalEnums.StrifeType.RESOURCE_CONFLICT: salvage_jobs_manager.end_mission,
-		GlobalEnums.StrifeType.POLITICAL_UPRISING: street_fights_manager.generate_street_fight_aftermath,
-		GlobalEnums.StrifeType.ALIEN_INCURSION: stealth_missions_manager.check_mission_end_conditions,
 		GlobalEnums.StrifeType.CORPORATE_WARFARE: escalating_battles_manager.check_escalation
 	}
    
@@ -493,9 +483,6 @@ func set_difficulty(level: DifficultySettings.DifficultyLevel):
 
 func _apply_difficulty_to_managers():
 	escalating_battles_manager.apply_difficulty(difficulty_settings)
-	street_fights_manager.apply_difficulty(difficulty_settings)
-	stealth_missions_manager.apply_difficulty(difficulty_settings)
-	salvage_jobs_manager.apply_difficulty(difficulty_settings)
 
 func _increase_mission_difficulty():
 	difficulty_settings.increase_enemy_count(1)

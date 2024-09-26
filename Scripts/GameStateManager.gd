@@ -5,7 +5,7 @@ signal state_changed(new_state: State)
 signal tutorial_ended
 signal battle_processed(battle_won: bool)
 
-enum State {MAIN_MENU, CREW_CREATION, CAMPAIGN_TURN, MISSION, POST_MISSION}
+enum State {MAIN_MENU, CREW_CREATION, CAMPAIGN_TURN, MISSION, BATTLE, POST_MISSION}
 
 @export var current_state: State = State.MAIN_MENU
 @export var current_crew: Resource = null
@@ -30,13 +30,11 @@ var equipment_manager: EquipmentManager
 var patron_job_manager: PatronJobManager
 var current_battle: Battle
 var fringe_world_strife_manager: FringeWorldStrifeManager
-var salvage_jobs_manager: SalvageJobsManager
-var stealth_missions_manager: StealthMissionsManager
-var street_fights_manager: StreetFightsManager
 var psionic_manager: PsionicManager
 var story_track: StoryTrack
 var world_generator: WorldGenerator
 var expanded_faction_manager: ExpandedFactionManager
+var combat_manager: CombatManager
 
 var last_mission_results: String = ""
 var crew_size: int = 0
@@ -47,30 +45,28 @@ var is_tutorial_active: bool = false
 var trade_actions_blocked: bool = false
 var mission_payout_reduction: int = 0
 
+var battle_scene: PackedScene = preload("res://Scenes/Scene Container/Battle.tscn")
+
 func _init() -> void:
     pass  # We'll initialize in _ready() instead
 
 func _ready() -> void:
     initialize_managers()
-
+    
 func initialize_managers() -> void:
     mission_generator = MissionGenerator.new()
     expanded_faction_manager = ExpandedFactionManager.new()
     equipment_manager = EquipmentManager.new()
     patron_job_manager = PatronJobManager.new()
     fringe_world_strife_manager = FringeWorldStrifeManager.new()
-    salvage_jobs_manager = SalvageJobsManager.new()
-    stealth_missions_manager = StealthMissionsManager.new()
-    street_fights_manager = StreetFightsManager.new()
     psionic_manager = PsionicManager.new()
     world_generator = WorldGenerator.new()
+    combat_manager = CombatManager.new()
 
-    # Initialize managers that require a reference to GameStateManager
     var managers_to_initialize = [
         mission_generator, expanded_faction_manager, equipment_manager,
-        patron_job_manager, fringe_world_strife_manager, salvage_jobs_manager,
-        stealth_missions_manager, street_fights_manager, psionic_manager,
-        world_generator
+        patron_job_manager, fringe_world_strife_manager, psionic_manager,
+        world_generator, combat_manager
     ]
 
     for manager in managers_to_initialize:
@@ -78,7 +74,7 @@ func initialize_managers() -> void:
             manager.initialize(self)
 
 func serialize() -> Dictionary:
-    return {
+    var data = {
         "current_state": current_state,
         "credits": credits,
         "reputation": reputation,
@@ -105,13 +101,12 @@ func serialize() -> Dictionary:
         "trade_actions_blocked": trade_actions_blocked,
         "mission_payout_reduction": mission_payout_reduction,
         "fringe_world_strife": fringe_world_strife_manager.serialize(),
-        "salvage_jobs": salvage_jobs_manager.serialize(),
-        "stealth_missions": stealth_missions_manager.serialize(),
-        "street_fights": street_fights_manager.serialize(),
         "psionic_data": psionic_manager.serialize(),
         "story_track": story_track.serialize() if story_track else null,
-        "world_data": world_generator.serialize()
+        "world_data": world_generator.serialize(),
+        "combat_manager": combat_manager.serialize() if combat_manager else null
     }
+    return data
 
 func deserialize(data: Dictionary) -> void:
     current_state = data.get("current_state", State.MAIN_MENU)
@@ -141,12 +136,14 @@ func deserialize(data: Dictionary) -> void:
     mission_payout_reduction = data.get("mission_payout_reduction", 0)
     
     fringe_world_strife_manager.deserialize(data.get("fringe_world_strife", {}))
-    salvage_jobs_manager.deserialize(data.get("salvage_jobs", {}))
-    stealth_missions_manager.deserialize(data.get("stealth_missions", {}))
-    street_fights_manager.deserialize(data.get("street_fights", {}))
     psionic_manager = PsionicManager.deserialize(data.get("psionic_data", {}))
     story_track = StoryTrack.deserialize(data.get("story_track", {})) if data.get("story_track") else null
     world_generator.deserialize(data.get("world_data", {}))
+    if data.has("combat_manager") and data["combat_manager"]:
+        combat_manager = CombatManager.new()
+        combat_manager.deserialize(data["combat_manager"])
+    else:
+        combat_manager = null
 
 func transition_to_state(new_state: State) -> void:
     current_state = new_state
@@ -163,10 +160,7 @@ func get_current_state() -> GameStateManager:
 
 func set_victory_condition(condition: Dictionary) -> void:
     victory_condition = condition
-    # You might want to emit a signal here if other parts of your game need to react to this change
-    # emit_signal("victory_condition_changed", victory_condition)
 
-# Add these functions to match CrewManagement.gd functionality
 func get_ship_stash() -> Array[Gear]:
     if current_ship and current_ship.inventory:
         return current_ship.inventory.get_items()
@@ -193,3 +187,56 @@ func remove_from_ship_stash(item: Gear) -> bool:
     if current_ship and current_ship.inventory:
         return current_ship.inventory.remove_item(item)
     return false
+
+func start_battle(scene_tree: SceneTree) -> void:
+    var battle_instance = battle_scene.instantiate()
+    battle_instance.initialize(self, current_mission)
+    scene_tree.root.add_child(battle_instance)
+    transition_to_state(State.BATTLE)
+
+func handle_move(character: Character, new_position: Vector2i) -> void:
+    combat_manager.handle_move(character, new_position)
+
+func handle_attack(attacker: Character, target: Character) -> void:
+    combat_manager.handle_attack(attacker, target)
+
+func handle_end_turn() -> void:
+    combat_manager.handle_end_turn()
+
+func get_valid_move_positions(character: Character) -> Array:
+    return combat_manager.get_valid_move_positions(character)
+
+func get_valid_targets(character: Character) -> Array:
+    return combat_manager.get_valid_targets(character)
+
+func get_character_at_position(position: Vector2i) -> Character:
+    return combat_manager.get_character_at_position(position)
+
+func end_battle(player_victory: bool, scene_tree: SceneTree) -> void:
+    # Update mission status
+    current_mission.set_completed(player_victory)
+    last_mission_results = "victory" if player_victory else "defeat"
+    
+    # Transition to post-battle phase
+    var post_battle_scene = load("res://Scenes/Scene Container/PostBattle.tscn").instantiate()
+    post_battle_scene.initialize(self)
+    scene_tree.root.add_child(post_battle_scene)
+    
+    # Execute post-battle sequence
+    post_battle_scene.execute_post_battle_sequence()
+    
+    # Update game state
+    transition_to_state(State.POST_MISSION)
+    
+    # Clean up battle scene
+    if scene_tree.root.has_node("Battle"):
+        scene_tree.root.get_node("Battle").queue_free()
+
+func start_mission(tree: SceneTree = null) -> void:
+    if current_mission:
+        if tree:
+            start_battle(tree)
+        else:
+            push_error("Scene tree not provided to start_mission()")
+    else:
+        push_warning("No mission selected")

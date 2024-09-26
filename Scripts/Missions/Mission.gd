@@ -2,15 +2,11 @@
 class_name Mission
 extends Resource
 
-enum Type {STANDARD, EXPANDED, TUTORIAL, OPPORTUNITY, PATRON, QUEST, RIVAL, ASSASSINATION, SABOTAGE, RESCUE, INFILTRATION, DEFENSE, ESCORT, FRINGE_WORLD_STRIFE, SALVAGE_JOB, STREET_FIGHT, STEALTH}
-enum Status {ACTIVE, COMPLETED, FAILED}
-enum Objective {MOVE_THROUGH, DELIVER, ACCESS, PATROL, FIGHT_OFF, SEARCH, DEFEND, ACQUIRE, ELIMINATE, SECURE, PROTECT}
-
 @export var title: String
 @export var description: String
-@export var type: Type
-@export var status: Status = Status.ACTIVE
-@export var objective: Objective
+@export var type: GlobalEnums.Type
+@export var status: GlobalEnums.MissionStatus = GlobalEnums.MissionStatus.ACTIVE
+@export var objective: GlobalEnums.MissionObjective
 @export var patron: Patron
 @export var rewards: Dictionary
 @export var time_limit: int # in campaign turns
@@ -25,14 +21,14 @@ enum Objective {MOVE_THROUGH, DELIVER, ACCESS, PATROL, FIGHT_OFF, SEARCH, DEFEND
 @export var power_requirement: int = 0
 
 # Specific mission type properties
-@export var instability: int = 0  # For Fringe World Strife
+@export var instability: GlobalEnums.FringeWorldInstability = GlobalEnums.FringeWorldInstability.STABLE  # For Fringe World Strife
 @export var salvage_units: int = 0  # For Salvage Jobs
 @export var detection_level: int = 0  # For Stealth Missions
-@export var street_fight_type: String  # For Street Fights
+@export var street_fight_type: GlobalEnums.StreetFightType  # For Street Fights
 
 # Additional fields
 @export var special_rules: Array
-@export var involved_factions: Array
+@export var involved_factions: Array[GlobalEnums.Faction]
 @export var strife_intensity: int
 @export var key_npcs: Array
 @export var environmental_factors: Array
@@ -42,8 +38,8 @@ enum Objective {MOVE_THROUGH, DELIVER, ACCESS, PATROL, FIGHT_OFF, SEARCH, DEFEND
 var result: String = ""
 var is_tutorial_mission: bool = false
 
-func _init(p_title: String = "", p_description: String = "", p_type: Type = Type.OPPORTUNITY, 
-           p_objective: Objective = Objective.MOVE_THROUGH, p_location: Location = null, 
+func _init(p_title: String = "", p_description: String = "", p_type: GlobalEnums.Type = GlobalEnums.Type.OPPORTUNITY, 
+           p_objective: GlobalEnums.MissionObjective = GlobalEnums.MissionObjective.MOVE_THROUGH, p_location: Location = null, 
            p_difficulty: int = 1, p_rewards: Dictionary = {}, p_time_limit: int = 3,
            p_is_expanded: bool = false, p_faction: Dictionary = {}):
     title = p_title
@@ -58,13 +54,13 @@ func _init(p_title: String = "", p_description: String = "", p_type: Type = Type
     faction = p_faction
 
 func complete() -> void:
-    status = Status.COMPLETED
+    status = GlobalEnums.MissionStatus.COMPLETED
     result = "Mission completed successfully"
     if is_expanded and faction:
         faction["loyalty"] += 1
 
 func fail() -> void:
-    status = Status.FAILED
+    status = GlobalEnums.MissionStatus.FAILED
     result = "Mission failed"
     if is_expanded and faction:
         faction["loyalty"] -= 1
@@ -92,7 +88,7 @@ func get_reward() -> Dictionary:
     return final_rewards
 
 func increase_instability(amount: int) -> void:
-    instability += amount
+    instability = min(instability + amount, GlobalEnums.FringeWorldInstability.CHAOS)
 
 func add_salvage_units(amount: int) -> void:
     salvage_units += amount
@@ -100,14 +96,14 @@ func add_salvage_units(amount: int) -> void:
 func increase_detection_level() -> void:
     detection_level = min(detection_level + 1, 2)  # Max detection level is 2
 
-func set_street_fight_type(fight_type: String) -> void:
+func set_street_fight_type(fight_type: GlobalEnums.StreetFightType) -> void:
     street_fight_type = fight_type
 
 func add_special_rule(rule: String) -> void:
     special_rules.append(rule)
 
-func add_involved_faction(faction_name: String) -> void:
-    involved_factions.append(faction_name)
+func add_involved_faction(faction: GlobalEnums.Faction) -> void:
+    involved_factions.append(faction)
 
 func set_strife_intensity(intensity: int) -> void:
     strife_intensity = intensity
@@ -128,9 +124,9 @@ func serialize() -> Dictionary:
     var data = {
         "title": title,
         "description": description,
-        "type": Type.keys()[type],
-        "status": Status.keys()[status],
-        "objective": Objective.keys()[objective],
+        "type": GlobalEnums.Type.keys()[type],
+        "status": GlobalEnums.MissionStatus.keys()[status],
+        "objective": GlobalEnums.MissionObjective.keys()[objective],
         "rewards": rewards,
         "time_limit": time_limit,
         "difficulty": difficulty,
@@ -139,12 +135,12 @@ func serialize() -> Dictionary:
         "faction": faction,
         "loyalty_requirement": loyalty_requirement,
         "power_requirement": power_requirement,
-        "instability": instability,
+        "instability": GlobalEnums.FringeWorldInstability.keys()[instability],
         "salvage_units": salvage_units,
         "detection_level": detection_level,
-        "street_fight_type": street_fight_type,
+        "street_fight_type": GlobalEnums.StreetFightType.keys()[street_fight_type],
         "special_rules": special_rules,
-        "involved_factions": involved_factions,
+        "involved_factions": involved_factions.map(func(f): return GlobalEnums.Faction.keys()[f]),
         "strife_intensity": strife_intensity,
         "key_npcs": key_npcs,
         "environmental_factors": environmental_factors,
@@ -163,8 +159,8 @@ static func deserialize(data: Dictionary) -> Mission:
     var mission = Mission.new(
         data["title"],
         data["description"],
-        Type[data["type"]],
-        Objective[data["objective"]],
+        GlobalEnums.Type[data["type"]],
+        GlobalEnums.MissionObjective[data["objective"]],
         Location.deserialize(data["location"]) if "location" in data else null,
         data["difficulty"],
         data["rewards"],
@@ -172,17 +168,17 @@ static func deserialize(data: Dictionary) -> Mission:
         data["is_expanded"],
         data["faction"] if "faction" in data else {}
     )
-    mission.status = Status[data["status"]]
+    mission.status = GlobalEnums.MissionStatus[data["status"]]
     mission.patron = Patron.deserialize(data["patron"]) if "patron" in data else null
     mission.required_crew_size = data["required_crew_size"]
     mission.loyalty_requirement = data["loyalty_requirement"]
     mission.power_requirement = data["power_requirement"]
-    mission.instability = data["instability"]
+    mission.instability = GlobalEnums.FringeWorldInstability[data["instability"]]
     mission.salvage_units = data["salvage_units"]
     mission.detection_level = data["detection_level"]
-    mission.street_fight_type = data["street_fight_type"]
+    mission.street_fight_type = GlobalEnums.StreetFightType[data["street_fight_type"]]
     mission.special_rules = data["special_rules"]
-    mission.involved_factions = data["involved_factions"]
+    mission.involved_factions = data["involved_factions"].map(func(f): return GlobalEnums.Faction[f])
     mission.strife_intensity = data["strife_intensity"]
     mission.key_npcs = data["key_npcs"]
     mission.environmental_factors = data["environmental_factors"]

@@ -9,14 +9,14 @@ signal mission_selected(mission)
 @onready var accept_button: Button = $Panel/VBoxContainer/AcceptButton
 @onready var close_button: Button = $Panel/VBoxContainer/CloseButton
 
-var available_missions: Array = []
+var available_missions: Array[Mission] = []
 
 func _ready() -> void:
 	mission_list.item_selected.connect(_on_mission_selected)
 	accept_button.pressed.connect(_on_accept_pressed)
 	close_button.pressed.connect(_on_close_pressed)
 
-func populate_missions(missions: Array) -> void:
+func populate_missions(missions: Array[Mission]) -> void:
 	available_missions = missions
 	mission_list.clear()
 	for mission in available_missions:
@@ -47,8 +47,8 @@ func _format_mission_details(mission: Mission) -> String:
 	Description: {description}
 	""".format({
 		"title": mission.title,
-		"type": Mission.Type.keys()[mission.type],
-		"objective": Mission.Objective.keys()[mission.objective],
+		"type": GlobalEnums.Type.keys()[mission.type],
+		"objective": GlobalEnums.MissionObjective.keys()[mission.objective],
 		"difficulty": mission.difficulty,
 		"time_limit": mission.time_limit,
 		"rewards": str(mission.rewards),
