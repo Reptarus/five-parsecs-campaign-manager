@@ -5,8 +5,9 @@ signal component_added(component: ShipComponent)
 signal component_removed(component: ShipComponent)
 signal hull_changed(current_hull: int, max_hull: int)
 signal fuel_changed(current_fuel: int)
-signal crew_changed(crew: Array)
+signal crew_changed(crew: Array[Character])
 signal ship_traveled(from: Location, to: Location)
+signal travel_event_occurred(event: Dictionary)
 
 @export var name: String
 @export var max_hull: int
@@ -20,7 +21,7 @@ var inventory: ShipInventory
 var crew: Array[Character] = []
 var current_location: Location
 
-func _init():
+func _init() -> void:
 	inventory = ShipInventory.new()
 
 func add_component(component: ShipComponent) -> void:
@@ -32,10 +33,7 @@ func remove_component(component: ShipComponent) -> void:
 	component_removed.emit(component)
 
 func get_component_by_type(type: GlobalEnums.ComponentType) -> ShipComponent:
-	for component in components:
-		if component.component_type == type:
-			return component
-	return null
+	return components.filter(func(c): return c.component_type == type).front()
 
 func set_initial_traits(initial_traits: Array[String]) -> void:
 	traits = initial_traits.duplicate()
@@ -52,7 +50,7 @@ func repair(amount: int) -> void:
 
 func take_damage(amount: int, game_state: GameState) -> void:
 	if game_state.is_tutorial_active:
-		amount = max(1, amount / 2.0)
+		amount = max(1, int(amount / 2.0))
 	current_hull = max(current_hull - amount, 0)
 	hull_changed.emit(current_hull, max_hull)
 
@@ -71,6 +69,10 @@ func use_fuel(amount: int) -> bool:
 	return false
 
 func travel_to(destination: Location, game_state: GameState) -> bool:
+	if not current_location:
+		push_error("Ship has no current location set")
+		return false
+	
 	var distance = current_location.distance_to(destination)
 	var fuel_cost = calculate_fuel_cost(distance)
 	
@@ -80,18 +82,17 @@ func travel_to(destination: Location, game_state: GameState) -> bool:
 		ship_traveled.emit(previous_location, current_location)
 		
 		# Trigger travel event
-		var travel_events = StarshipTravelEvents.new(game_state)
-		var event = travel_events.generate_travel_event()
-		# Handle the event (you might want to emit a signal or call a method in game_state)
+		var event = game_state.starship_travel_events.generate_travel_event()
+		travel_event_occurred.emit(event)
 		
 		return true
 	return false
 
 func calculate_fuel_cost(distance: float) -> int:
 	var base_cost = ceil(distance / 10)
-	for component in components:
-		if component is EngineComponent:
-			base_cost = component.modify_fuel_cost(base_cost)
+	var engine = get_engine()
+	if engine:
+		base_cost = engine.modify_fuel_cost(base_cost)
 	return base_cost
 
 func add_crew_member(character: Character) -> void:

@@ -1,174 +1,218 @@
-# TravelPhase.gd
+class_name TravelPhase
 extends Control
 
-signal phase_completed
+var game_state_manager: GameStateManagerNode
+var game_state: GameStateManager  # This will hold the actual game state
 
-const RivalResource = preload("res://Resources/Rival.gd")
-
-var game_state: GameState
+var game_world: GameWorld
+var campaign_manager: CampaignManager
+var mission_manager: MissionManager
+var quest_manager: QuestManager
+var patron_job_manager: PatronJobManager
+var campaign_event_generator: CampaignEventGenerator
 var starship_travel_events: StarshipTravelEvents
+var world_economy_manager: WorldEconomyManager
+var fringe_world_strife_manager: FringeWorldStrifeManager
 
-func _init(_game_state: GameState):
-	game_state = _game_state
-	starship_travel_events = StarshipTravelEvents.new(game_state)
+@onready var upkeep_details = $VBoxContainer/TabContainer/Upkeep/UpkeepDetails
+@onready var travel_event_details = $VBoxContainer/TabContainer/Travel/TravelEventDetails
+@onready var patrons_list = $VBoxContainer/TabContainer/Patrons/PatronsList
+@onready var mission_details = $VBoxContainer/TabContainer/Mission/MissionDetails
+@onready var log_book = $VBoxContainer/LogBook
+@onready var campaign_event_ui = preload("res://Scenes/campaign/NewCampaignSetup/CampaignEventUI.tscn")
 
 func _ready():
-	$MarginContainer/VBoxContainer/StayButton.pressed.connect(_on_stay_pressed)
-	$MarginContainer/VBoxContainer/TravelButton.pressed.connect(_on_travel_pressed)
-	$MarginContainer/VBoxContainer/BackButton.pressed.connect(_on_back_pressed)
-
-func _on_stay_pressed():
-	get_node("/root/Main").load_scene("res://scenes/campaign/GameWorld.tscn")
-
-func _on_travel_pressed():
-	if game_state.current_crew.ship.is_damaged():
-		var choice = _show_emergency_takeoff_dialog()
-		if choice:
-			emergency_takeoff()
-		else:
-			return
-
-	var travel_cost = 5  # Base travel cost
-	if not game_state.current_crew.remove_credits(travel_cost):
-		_show_insufficient_funds_dialog()
+	game_state_manager = get_node("/root/GameState")
+	if not game_state_manager:
+		push_error("Failed to get GameStateManagerNode")
 		return
-
-	var destination = game_state.world_generator.generate_new_world()
-	if game_state.current_crew.ship.travel_to(destination, game_state):
-		var event = starship_travel_events.generate_travel_event()
-		_handle_travel_event(event)
-		game_state.current_location = destination
-		check_for_patrons_and_rivals()
-		check_for_licensing_requirement()
-		generate_world_traits()
-		get_node("/root/Main").load_scene("res://scenes/campaign/GameWorld.tscn")
-	else:
-		print("Not enough fuel to travel to the destination.")
-
-func _on_back_pressed():
-	get_node("/root/Main").load_scene("res://scenes/campaign/CampaignDashboard.tscn")
-
-func emergency_takeoff():
-	var damage = randi() % 6 + randi() % 6 + randi() % 6 + 3
-	game_state.current_crew.ship.take_damage(damage, game_state)
-	_show_emergency_damage_dialog(damage)
-
-func _handle_travel_event(event: Dictionary):
-	print("Travel event: " + event.name)
-	print(event.description)
-	var result = event.action.call()
-	print(result)
-
-func _show_emergency_takeoff_dialog() -> bool:
-	print("WARNING: Emergency take-off will cause 3D6 Hull Point damage.")
-	print("Do you wish to proceed? (y/n)")
-	return true  # For demonstration; implement actual user input
-
-func _show_insufficient_funds_dialog():
-	print("Insufficient funds for travel. You need 5 credits.")
-
-func _show_emergency_damage_dialog(damage: int):
-	print("Emergency take-off caused " + str(damage) + " Hull Point damage.")
-
-func flee_invasion():
-	var roll = randi() % 6 + randi() % 6 + 2  # 2D6
-	if roll >= 8:
-		print("Successfully fled invasion!")
-		_on_travel_pressed()
-	else:
-		print("Failed to escape! Prepare for battle.")
-		get_node("/root/Main").load_scene("res://scenes/campaign/Battle.tscn")
-
-func check_for_patrons_and_rivals():
-	for patron in game_state.patrons:
-		if randi() % 6 + 1 >= 5:
-			patron.is_persistent = true
-		else:
-			game_state.remove_patron(patron)
 	
-	for rival in game_state.rivals:
-		if randi() % 6 + 1 >= 5:
-			rival.is_persistent = true
-		else:
-			game_state.remove_rival(rival)
+	game_state = game_state_manager.get_game_state()
+	if not game_state:
+		push_error("Failed to get GameStateManager")
+		return
+	
+	initialize_game_components(game_state_manager)
+	
+	# Ensure all UI elements are properly connected
+	assert(upkeep_details != null, "Upkeep details not found")
+	assert(travel_event_details != null, "Travel event details not found")
+	assert(patrons_list != null, "Patrons list not found")
+	assert(mission_details != null, "Mission details not found")
+	assert(log_book != null, "Log book not found")
 
-func check_for_licensing_requirement():
-	var roll = randi() % 6 + 1
-	if roll >= 5:
-		var license_cost = randi() % 6 + 1
-		game_state.current_location.set_license_requirement(license_cost)
-		print("This world requires a Freelancer License. Cost: " + str(license_cost) + " credits.")
+func initialize_game_components(game_state_manager_node: GameStateManagerNode):
+	var game_state = game_state_manager_node.get_game_state()
+	
+	# Initialize StoryTrack
+	var story_track = StoryTrack.new()
+	story_track.initialize(game_state)
+	
+	# Initialize GameWorld
+	game_world = GameWorld.new(game_state)
+	
+	# Initialize other components
+	campaign_manager = CampaignManager.new(game_state)
+	mission_manager = MissionManager.new(game_state)
+	quest_manager = QuestManager.new()
+	quest_manager.game_state = game_state
+	patron_job_manager = PatronJobManager.new()
+	patron_job_manager.game_state = game_state
+	
+	campaign_event_generator = CampaignEventGenerator.new(game_state_manager_node)
+	var economy_manager = EconomyManager.new(game_state_manager_node)
+	world_economy_manager = WorldEconomyManager.new(game_state.current_location, economy_manager)
+	
+	fringe_world_strife_manager = FringeWorldStrifeManager.new()
+	fringe_world_strife_manager.initialize(game_state)
+	starship_travel_events = StarshipTravelEvents.new()
+	starship_travel_events.set_game_state(game_state)
+	add_child(starship_travel_events)
+	
+	# Connect signals from game_world
+	game_world.world_step_completed.connect(_on_world_step_completed)
+	game_world.mission_selection_requested.connect(_on_mission_selection_requested)
+	game_world.phase_completed.connect(_on_phase_completed)
+	game_world.game_over.connect(_on_game_over)
+	game_world.ui_update_requested.connect(_on_ui_update_requested)
+
+func _on_upkeep_button_pressed():
+	world_economy_manager.update_local_economy()
+	fringe_world_strife_manager.update_strife()
+	quest_manager.update_quests()
+	
+	var new_event = campaign_event_generator.generate_event()
+	new_event.effect.call()
+	
+	var event_description = "Campaign Event: " + new_event.type + " - " + new_event.description
+	log_event(event_description)
+	upkeep_details.clear()
+	display_result(upkeep_details, event_description)
+	
+	_on_ui_update_requested()
+
+func _on_stay_button_pressed():
+	var stay_result = campaign_manager.stay_in_current_location()
+	travel_event_details.clear()
+	display_result(travel_event_details, stay_result)
+	log_event(stay_result)
+	_on_world_step_completed()
+
+func _on_travel_button_pressed():
+	var travel_result = campaign_manager.travel_to_new_location()
+	travel_event_details.clear()
+	if travel_result.success:
+		display_result(travel_event_details, "Traveled to: " + travel_result.destination)
+		log_event("Traveled to: " + travel_result.destination)
+		
+		var event = starship_travel_events.generate_travel_event()
+		var event_result = event["action"].call()
+		display_result(travel_event_details, event["name"] + ": " + event_result)
+		log_event(event["name"] + ": " + event_result)
+		
+		_on_world_step_completed()
 	else:
-		print("No license required on this world.")
+		display_result(travel_event_details, "Travel failed: " + travel_result.error)
+		log_event("Travel failed: " + travel_result.error)
 
-func attempt_forged_license():
-	var roll = randi() % 6 + 1 + game_state.current_crew.get_highest_skill_level("Savvy")
-	if roll >= 6:
-		print("Successfully obtained a forged license!")
-		game_state.current_location.set_license_obtained()
-	elif roll == 1:
-		print("Attempt to forge license failed. Gained a new Rival.")
-		var new_rival = RivalResource.new()
-		new_rival.initialize("License Forger", game_state.current_location)
-		game_state.add_rival(new_rival)
+func _on_next_event_button_pressed():
+	var event = starship_travel_events.generate_travel_event()
+	var event_result = event["action"].call()
+	travel_event_details.clear()
+	display_result(travel_event_details, event["name"] + ": " + event_result)
+	log_event(event["name"] + ": " + event_result)
+
+func _on_check_patrons_button_pressed():
+	var patrons_result = patron_job_manager.determine_job_offers()
+	patrons_list.clear()
+	for job in patrons_result:
+		display_result(patrons_list, job)
+	log_event("New job offers: " + ", ".join(patrons_result))
+
+func _on_start_mission_button_pressed():
+	var mission = mission_manager.generate_mission()
+	mission_details.clear()
+	if mission:
+		var mission_result = mission_manager.start_mission(mission)
+		display_result(mission_details, mission_result)
+		log_event("Mission started: " + mission_result)
 	else:
-		print("Failed to obtain a forged license.")
+		display_result(mission_details, "No available missions.")
+		log_event("No available missions.")
 
-func generate_world_traits():
-	var world_traits = game_state.world_generator.generate_world_traits()
-	for world_trait in world_traits:
-		print("World trait: " + world_trait.name)
-		print(world_trait.effect)
-		game_state.current_location.add_trait(world_trait)
+func _on_back_button_pressed():
+	get_tree().change_scene_to_file("res://Scenes/Scene Container/CampaignDashboard.tscn")
 
-func start_phase():
-	print("Travel phase started")
-	$CompletePhaseButton.pressed.connect(_on_phase_completed)
+func log_event(event: String):
+	game_state_manager.log_event(event)
+	log_book.text += event + "\n"
+	log_book.scroll_vertical = INF
+
+func display_result(parent: Control, result: String):
+	var label = Label.new()
+	label.text = result
+	label.autowrap = true
+	parent.add_child(label)
+
+func _on_mission_selection_requested(available_missions: Array):
+	var mission_selection_scene = preload("res://Scenes/campaign/NewCampaignSetup/MissionSelectionUI.tscn")
+	var mission_selection_instance = mission_selection_scene.instantiate()
+	mission_selection_instance.populate_missions(available_missions)
+	mission_selection_instance.mission_selected.connect(_on_mission_selected)
+	add_child(mission_selection_instance)
+
+func _on_mission_selected(mission: Mission):
+	var mission_result = mission_manager.start_mission(mission)
+	display_result(mission_details, mission_result)
+	log_event("Mission started: " + mission_result)
 
 func _on_phase_completed():
-	var world_step = WorldStep.new(game_state)
-	world_step.execute_world_step()
-	emit_signal("phase_completed")
+	log_event("Phase completed")
+	update_ui()
 
-# Additional methods to handle travel-related actions
+func _on_game_over():
+	log_event("Game Over")
+	# Implement game over logic here
 
-func handle_down_time():
-	var crew_member = game_state.current_crew.characters[randi() % game_state.current_crew.get_size()]
-	crew_member.add_xp(1)
-	var repaired_item = game_state.current_crew.ship.inventory.repair_random_item()
-	print(crew_member.name + " gained 1 XP. " + (repaired_item.name + " was repaired." if repaired_item else "No items were repaired."))
+func _on_ui_update_requested():
+	update_ui()
 
-func handle_distress_call():
-	var roll = randi() % 6 + 1
-	match roll:
-		1:
-			var damage = randi() % 6 + 2
-			game_state.current_crew.ship.take_damage(damage, game_state)
-			print("Ship struck by debris wave, took " + str(damage) + " Hull Point damage.")
-		2:
-			print("Found only drifting wreckage.")
-		3, 4:
-			var new_crew = game_state.character_generator.generate_character()
-			game_state.current_crew.add_character(new_crew)
-			print("Rescued a crew member: " + new_crew.name)
-		5, 6:
-			if roll + game_state.current_crew.get_highest_skill_level("Savvy") >= 7:
-				var loot = game_state.loot_generator.generate_loot()
-				game_state.current_crew.ship.add_to_ship_stash(loot)
-				print("Successfully saved the ship. Received " + loot.name + " as reward.")
-			else:
-				var damage = randi() % 6 + 2
-				game_state.current_crew.ship.take_damage(damage, game_state)
-				print("Failed to save the ship. Took " + str(damage) + " Hull Point damage.")
+func update_ui():
+	var tab_container = $VBoxContainer/TabContainer
+	
+	var upkeep_details = $VBoxContainer/TabContainer/Upkeep/UpkeepDetails
+	upkeep_details.clear()
+	
+	var travel_options = $VBoxContainer/TabContainer/Travel/TravelOptions
+	travel_options.clear()
+	
+	var travel_event_details = $VBoxContainer/TabContainer/Travel/TravelEventDetails
+	travel_event_details.clear()
+	
+	var patrons_list = $VBoxContainer/TabContainer/Patrons/PatronsList
+	patrons_list.clear()
+	
+	var mission_details = $VBoxContainer/TabContainer/Mission/MissionDetails
+	mission_details.clear()
+	
+	var log_book = $VBoxContainer/LogBook
+	log_book.text = game_state_manager.get_event_log()
+	
+	$VBoxContainer/TabContainer/Upkeep/UpkeepButton.disabled = false
+	$VBoxContainer/TabContainer/Travel/NextEventButton.disabled = false
+	$VBoxContainer/TabContainer/Patrons/CheckPatronsButton.disabled = false
+	$VBoxContainer/TabContainer/Mission/StartMissionButton.disabled = false
 
-func handle_drive_trouble():
-	var success_count = 0
-	for i in range(3):
-		var roll = randi() % 6 + 1 + game_state.current_crew.get_highest_skill_level("Savvy")
-		if roll >= 6:
-			success_count += 1
-	if success_count == 3:
-		print("Successfully fixed the drive trouble.")
-	else:
-		game_state.current_crew.ship.ground_for_turns(3 - success_count)
-		print("Ship grounded for " + str(3 - success_count) + " turns due to drive trouble.")
+func _on_world_step_completed():
+	world_economy_manager.update_economy()
+	fringe_world_strife_manager.update_strife()
+	quest_manager.update_quests()
+	var new_event = campaign_event_generator.generate_event()
+	
+	new_event.effect.call()
+	
+	var event_description = "Campaign Event: " + new_event.type + " - " + new_event.description
+	log_event(event_description)
+	display_result(travel_event_details, event_description)
+	
+	update_ui()

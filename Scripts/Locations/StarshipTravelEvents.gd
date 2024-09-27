@@ -3,8 +3,10 @@ extends Node
 
 var game_state: GameState
 
-func _init(_game_state: GameState):
+func set_game_state(_game_state: GameState):
 	game_state = _game_state
+
+# Remove the _init function entirely
 
 func generate_travel_event() -> Dictionary:
 	var roll = randi() % 100 + 1

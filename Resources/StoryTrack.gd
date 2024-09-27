@@ -11,13 +11,12 @@ var current_event_index: int = -1
 
 func _init():
 	story_clock = StoryClock.new()
-	story_track_manager = StoryTrackManager.new(GameState.instance.get_game_state())
 
-func _ready():
-	story_track_manager.connect("event_triggered", Callable(self, "_on_event_triggered"))
-
-func _on_event_triggered(event: StoryEvent):
-	emit_signal("event_triggered", event)
+func initialize(game_state: GameStateManager) -> void:
+	story_clock = StoryClock.new()
+	story_track_manager = StoryTrackManager.new(game_state)
+	_load_events()
+	current_event_index = -1
 
 func _load_events():
 	# Load events from a JSON file or create them manually

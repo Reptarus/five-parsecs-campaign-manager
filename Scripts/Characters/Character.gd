@@ -2,14 +2,12 @@ class_name Character
 extends Resource
 
 signal experience_gained(amount: int)
-signal leveled_up(character: Character, new_level: int, available_upgrades: Array)
-signal experience_updated(character: Character, new_xp: int, xp_for_next_level: int)
+signal leveled_up(new_level: int, available_upgrades: Array)
+signal experience_updated(new_xp: int, xp_for_next_level: int)
 signal request_new_trait
 signal request_upgrade_choice(upgrade_options: Array)
 
 var character_advancement: CharacterAdvancement
-
-# Remove the _init function and initialize character_advancement in create method
 
 @export var name: String
 @export var species: String
@@ -59,13 +57,13 @@ static func create(species: String, background: String, motivation: String, char
 
 func initialize(species: String, background: String, motivation: String, character_class: String, game_state_manager: GameStateManagerNode) -> void:
 	self.species = species
-	self.character_advancement = CharacterAdvancement.new(self)
 	self.background = background
 	self.motivation = motivation
 	self.character_class = character_class
 	initialize_default_stats()
 	apply_background_effects(background)
 	apply_class_effects(character_class)
+	self.character_advancement = CharacterAdvancement.new(self)
 
 func initialize_default_stats() -> void:
 	# Implement default stat initialization based on species
@@ -154,6 +152,20 @@ func apply_class_effects(character_class: String) -> void:
 			toughness += 1
 			savvy += 1
 		# Add more class-specific effects here
+
+func add_xp(amount: int) -> void:
+	xp += amount
+	emit_signal("experience_gained", amount)
+	character_advancement.apply_experience(amount)
+
+func get_xp_for_next_level() -> int:
+	return character_advancement.get_xp_for_next_level(level)
+
+func get_available_upgrades() -> Array:
+	return character_advancement.get_available_upgrades(self)
+
+func apply_upgrade(upgrade: Dictionary) -> void:
+	character_advancement.apply_upgrade(upgrade)
 
 # Serialization methods
 func serialize() -> Dictionary:

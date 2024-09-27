@@ -1,7 +1,7 @@
 [gd_scene load_steps=4 format=3 uid="uid://ddmexnm0dog68"]
 
 [ext_resource type="Texture2D" uid="uid://bm6c4rx645ove" path="res://assets/BookImages/Nov_23_Sunset2_.png" id="1_u2h7e"]
-[ext_resource type="Script" path="res://scenes/MissionSelection.gd" id="1_ib26y"]
+[ext_resource type="Script" path="res://Scripts/Missions/MissionSelection.gd" id="1_ib26y"]
 
 [sub_resource type="Theme" id="Theme_x6od6"]
 

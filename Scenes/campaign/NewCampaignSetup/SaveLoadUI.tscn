@@ -1,6 +1,6 @@
 [gd_scene load_steps=2 format=3 uid="uid://swd7rhnhcr41"]
 
-[ext_resource type="Script" path="res://Scenes/campaign/NewCampaignSetup/SaveLoadUI.gd" id="1_yjk2n"]
+[ext_resource type="Script" path="res://Resources/SaveLoadUI.gd" id="1_yjk2n"]
 
 [node name="SaveLoadUi" type="Control"]
 layout_mode = 3
@@ -11,32 +11,52 @@ grow_horizontal = 2
 grow_vertical = 2
 script = ExtResource("1_yjk2n")
 
-[node name="VBoxContainer" type="VBoxContainer" parent="."]
+[node name="Panel" type="Panel" parent="."]
 layout_mode = 1
-anchors_preset = 8
-anchor_left = 0.5
-anchor_top = 0.5
-anchor_right = 0.5
-anchor_bottom = 0.5
-offset_left = -100.0
-offset_top = -66.0
-offset_right = 100.0
-offset_bottom = 66.0
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
 grow_horizontal = 2
 grow_vertical = 2
 
-[node name="SaveNameInput" type="LineEdit" parent="VBoxContainer"]
+[node name="VBoxContainer" type="VBoxContainer" parent="Panel"]
+layout_mode = 1
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+alignment = 1
+
+[node name="SaveNameInput" type="LineEdit" parent="Panel/VBoxContainer"]
 layout_mode = 2
 placeholder_text = "Enter save name"
 
-[node name="SaveButton" type="Button" parent="VBoxContainer"]
+[node name="SaveButton" type="Button" parent="Panel/VBoxContainer"]
 layout_mode = 2
 text = "Save Game"
 
-[node name="LoadButton" type="Button" parent="VBoxContainer"]
+[node name="LoadButton" type="Button" parent="Panel/VBoxContainer"]
 layout_mode = 2
 text = "Load Game"
 
-[node name="SaveList" type="ItemList" parent="VBoxContainer"]
+[node name="DeleteButton" type="Button" parent="Panel/VBoxContainer"]
 layout_mode = 2
-auto_height = true
+text = "Delete Save"
+
+[node name="ExportButton" type="Button" parent="Panel/VBoxContainer"]
+layout_mode = 2
+text = "Export Save"
+
+[node name="ImportButton" type="Button" parent="Panel/VBoxContainer"]
+layout_mode = 2
+text = "Import Save"
+
+[node name="SaveList" type="ItemList" parent="Panel/VBoxContainer"]
+layout_mode = 2
+size_flags_vertical = 3
+
+[node name="StatusLabel" type="Label" parent="Panel/VBoxContainer"]
+layout_mode = 2
+text = "Status: Ready"
+horizontal_alignment = 1

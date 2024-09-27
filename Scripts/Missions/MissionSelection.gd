@@ -1,13 +1,15 @@
-# MissionSelection.gd
+class_name MissionSelection
 extends Control
 
 ## Emitted when a mission is selected. Connected externally.
 signal mission_selected(mission)
+const Mission = preload("res://Scripts/Missions/Mission.gd")
 
-@onready var mission_list: ItemList = $Panel/VBoxContainer/MissionList
-@onready var mission_details: RichTextLabel = $Panel/VBoxContainer/MissionDetails
-@onready var accept_button: Button = $Panel/VBoxContainer/AcceptButton
-@onready var close_button: Button = $Panel/VBoxContainer/CloseButton
+@onready var mission_list: ItemList = $Panel/MarginContainer/VBoxContainer/HBoxContainer/MissionList
+@onready var mission_details: RichTextLabel = $Panel/MarginContainer/VBoxContainer/HBoxContainer/MissionDetails
+@onready var accept_button: Button = $Panel/MarginContainer/VBoxContainer/ButtonContainer/AcceptButton
+@onready var close_button: Button = $Panel/MarginContainer/VBoxContainer/ButtonContainer/CloseButton
+@onready var back_button: Button = $BackButton
 
 var available_missions: Array[Mission] = []
 
@@ -15,6 +17,7 @@ func _ready() -> void:
 	mission_list.item_selected.connect(_on_mission_selected)
 	accept_button.pressed.connect(_on_accept_pressed)
 	close_button.pressed.connect(_on_close_pressed)
+	back_button.pressed.connect(_on_back_pressed)
 
 func populate_missions(missions: Array[Mission]) -> void:
 	available_missions = missions
@@ -35,6 +38,10 @@ func _on_accept_pressed() -> void:
 
 func _on_close_pressed() -> void:
 	queue_free()
+
+func _on_back_pressed() -> void:
+	# Implement your back functionality here
+	queue_free()  # or any other appropriate action
 
 func _format_mission_details(mission: Mission) -> String:
 	return """
