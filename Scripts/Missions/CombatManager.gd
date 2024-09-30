@@ -16,7 +16,7 @@ signal highlight_valid_positions(positions: Array[Vector2i])
 enum CoverType { NONE, PARTIAL, FULL }
 enum BattlePhase { REACTION_ROLL, QUICK_ACTIONS, ENEMY_ACTIONS, SLOW_ACTIONS, END_PHASE }
 
-var game_state: GameStateManager
+var game_state: GameState
 var current_mission: Mission
 var terrain_generator: TerrainGenerator
 var battlefield: Array[Array]
@@ -29,7 +29,7 @@ var battle_grid: GridContainer
 const GRID_SIZE: Vector2i = Vector2i(24, 24)  # 24" x 24" battlefield
 const CELL_SIZE: Vector2i = Vector2i(32, 32)  # Size of each cell in pixels
 
-func initialize(_game_state: GameStateManager, _mission: Mission, _battle_grid: GridContainer) -> void:
+func initialize(_game_state: GameState, _mission: Mission, _battle_grid: GridContainer) -> void:
 	game_state = _game_state
 	current_mission = _mission
 	battle_grid = _battle_grid
@@ -50,19 +50,19 @@ func setup_battlefield() -> void:
 			cell.color = get_terrain_color(battlefield[x][y])
 			battle_grid.add_child(cell)
 
-func get_terrain_color(terrain_type: TerrainGenerator.TerrainType) -> Color:
+func get_terrain_color(terrain_type: GlobalEnums.TerrainFeature) -> Color:
 	match terrain_type:
-		TerrainGenerator.TerrainType.LARGE:
+		GlobalEnums.TerrainFeature.AREA:
 			return Color(0.2, 0.6, 0.2)
-		TerrainGenerator.TerrainType.SMALL:
+		GlobalEnums.TerrainFeature.INDIVIDUAL:
 			return Color(0.6, 0.4, 0.2)
-		TerrainGenerator.TerrainType.LINEAR:
+		GlobalEnums.TerrainFeature.LINEAR:
 			return Color(0.2, 0.2, 0.6)
 		_:
 			return Color(0.2, 0.2, 0.2)
 
 func setup_characters() -> void:
-	var crew: Array[Character] = game_state.current_crew.characters
+	var crew: Array[Character] = game_state.current_crew.members
 	var enemies: Array[Character] = current_mission.get_enemies()
 	
 	for character in crew + enemies:
@@ -89,7 +89,7 @@ func start_battle_round() -> void:
 
 func perform_reaction_roll() -> void:
 	turn_order.clear()
-	var crew: Array[Character] = game_state.current_crew.characters
+	var crew: Array[Character] = game_state.current_crew.members
 	var enemies: Array[Character] = current_mission.get_enemies()
 	
 	for character in crew + enemies:
@@ -117,22 +117,12 @@ func start_next_turn() -> void:
 	if current_character in current_mission.get_enemies():
 		perform_enemy_turn(current_character)
 	else:
-		# Enable player controls for character actions
 		emit_signal("enable_player_controls", current_character)
-		
-		# Update UI elements
 		emit_signal("update_turn_label", current_round)
 		emit_signal("update_current_character_label", current_character.name)
-		
-		# Log the start of the character's turn
 		emit_signal("log_action", current_character.name + "'s turn started")
-		
-		# Highlight valid move positions
 		var valid_move_positions = get_valid_move_positions(current_character)
 		emit_signal("highlight_valid_positions", valid_move_positions)
-		
-		# Wait for player input (handled by Battle.tscn's UI buttons)
-		# The Battle scene will call handle_move(), handle_attack(), or handle_end_turn()
 
 func advance_phase() -> void:
 	match current_phase:
@@ -179,14 +169,10 @@ func is_valid_move(character: Character, new_position: Vector2i) -> bool:
 	return is_valid_position(new_position) and distance <= character.speed and battlefield[new_position.x][new_position.y] == null
 
 func update_character_position(character: Character) -> void:
-	# Update the visual representation of the character on the battlefield
 	var unit_node := get_node_or_null("../Battlefield/Units/" + character.name)
 	if unit_node:
-		# Assuming the battlefield uses a grid-based system
 		var grid_position := character.position * CELL_SIZE
 		unit_node.position = grid_position
-		
-		# Emit a signal to notify the Battle scene about the character movement
 		character_moved.emit(character, grid_position)
 	else:
 		push_error("Character node not found: %s" % character.name)
@@ -213,7 +199,6 @@ func apply_damage(target: Character, damage: int) -> void:
 		log_action.emit(target.name + " is defeated!")
 		remove_character(target)
 	else:
-		# Apply stun logic
 		var stun_roll := roll_dice(1, 6)
 		if stun_roll <= damage:
 			target.is_stunned = true
@@ -223,13 +208,13 @@ func apply_damage(target: Character, damage: int) -> void:
 
 func remove_character(character: Character) -> void:
 	turn_order.erase(character)
-	if character in game_state.current_crew.characters:
-		game_state.current_crew.characters.erase(character)
+	if character in game_state.current_crew.members:
+		game_state.current_crew.members.erase(character)
 	elif character in current_mission.get_enemies():
 		current_mission.remove_enemy(character)
 
 func find_nearest_enemy(character: Character) -> Character:
-	var enemies: Array[Character] = current_mission.get_enemies() if character in game_state.current_crew.characters else game_state.current_crew.characters
+	var enemies: Array[Character] = current_mission.get_enemies() if character in game_state.current_crew.members else game_state.current_crew.members
 	var nearest_enemy: Character = null
 	var min_distance := INF
 	for enemy in enemies:
@@ -294,7 +279,7 @@ func has_line_of_sight(from_pos: Vector2i, to_pos: Vector2i) -> bool:
 
 	for _i in range(n):
 		var current_pos := Vector2i(x, y)
-		if not is_valid_position(current_pos) or battlefield[current_pos.x][current_pos.y] == TerrainGenerator.TerrainType.LARGE:
+		if not is_valid_position(current_pos) or battlefield[current_pos.x][current_pos.y] == GlobalEnums.TerrainFeature.AREA:
 			return false
 		if error > 0:
 			x += x_inc

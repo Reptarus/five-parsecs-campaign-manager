@@ -3,30 +3,30 @@ class_name ShipCreation
 extends Resource
 
 class ShieldComponent extends ShipComponent:
-	@export var shield_strength: int
+	var shield_strength: int
 	
-	func _init(p_name: String = "", p_description: String = "", p_power_usage: int = 0, p_health: int = 0, p_shield_strength: int = 0):
+	func _init(p_name: String = "", p_description: String = "", p_power_usage: int = 0, p_health: int = 0, p_shield_strength: int = 0) -> void:
 		super._init(p_name, p_description, GlobalEnums.ComponentType.SHIELDS, p_power_usage, p_health)
 		shield_strength = p_shield_strength
 
 class CargoHoldComponent extends ShipComponent:
-	@export var capacity: int
+	var capacity: int
 	
-	func _init(p_name: String = "", p_description: String = "", p_power_usage: int = 0, p_health: int = 0, p_capacity: int = 0):
+	func _init(p_name: String = "", p_description: String = "", p_power_usage: int = 0, p_health: int = 0, p_capacity: int = 0) -> void:
 		super._init(p_name, p_description, GlobalEnums.ComponentType.CARGO_HOLD, p_power_usage, p_health)
 		capacity = p_capacity
 
 class DropPodComponent extends ShipComponent:
-	@export var pod_count: int
+	var pod_count: int
 	
-	func _init(p_name: String = "", p_description: String = "", p_power_usage: int = 0, p_health: int = 0, p_pod_count: int = 0):
+	func _init(p_name: String = "", p_description: String = "", p_power_usage: int = 0, p_health: int = 0, p_pod_count: int = 0) -> void:
 		super._init(p_name, p_description, GlobalEnums.ComponentType.DROP_POD, p_power_usage, p_health)
 		pod_count = p_pod_count
 
 class ShuttleComponent extends ShipComponent:
-	@export var passenger_capacity: int
+	var passenger_capacity: int
 	
-	func _init(p_name: String = "", p_description: String = "", p_power_usage: int = 0, p_health: int = 0, p_passenger_capacity: int = 0):
+	func _init(p_name: String = "", p_description: String = "", p_power_usage: int = 0, p_health: int = 0, p_passenger_capacity: int = 0) -> void:
 		super._init(p_name, p_description, GlobalEnums.ComponentType.SHUTTLE_BAY, p_power_usage, p_health)
 		passenger_capacity = p_passenger_capacity
 
@@ -35,20 +35,20 @@ const BASE_SHIP_COST: int = 1000
 
 var ship_components: Dictionary = {}
 
-func _init():
+func _init() -> void:
 	load_ship_components()
 
 func load_ship_components() -> void:
-	var file = FileAccess.open("res://data/ship_components.json", FileAccess.READ)
-	var json = JSON.new()
-	var error = json.parse(file.get_as_text())
+	var file := FileAccess.open("res://data/ship_components.json", FileAccess.READ)
+	var json := JSON.new()
+	var error := json.parse(file.get_as_text())
 	if error == OK:
 		ship_components = json.data
 	else:
 		push_error("JSON Parse Error: " + json.get_error_message())
 
 func create_component_from_data(component_data: Dictionary) -> ShipComponent:
-	var component_type = GlobalEnums.ComponentType[component_data.id.split("_")[0].to_upper()]
+	var component_type: GlobalEnums.ComponentType = GlobalEnums.ComponentType[component_data.id.split("_")[0].to_upper()]
 	match component_type:
 		GlobalEnums.ComponentType.SHIELDS:
 			return ShieldComponent.new(

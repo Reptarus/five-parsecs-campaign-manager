@@ -30,7 +30,7 @@ func _load_events() -> void:
 			},
 			"battle_setup": {
 				"set_enemy_type": "rival_gang",
-				"set_battlefield_size": Vector2i(48, 48)
+				"set_battlefield_size": Vector2i(24, 24)  # Updated to match the standard battlefield size
 			},
 			"rewards": {
 				"add_credits": 5,
@@ -60,7 +60,7 @@ func trigger_current_event() -> void:
 func apply_event_effects(event: StoryEvent) -> void:
 	var game_state: GameStateManagerNode = GameState
 	event.apply_event_effects(game_state)
-	event.setup_battle(game_state.current_battle)
+	event.setup_battle(game_state.combat_manager)  # Updated to use combat_manager
 	event.apply_rewards(game_state)
 
 func progress_story(current_phase: GlobalEnums.CampaignPhase) -> void:

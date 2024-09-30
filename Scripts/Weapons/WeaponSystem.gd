@@ -43,8 +43,8 @@ const BASE_WEAPONS = {
 }
 
 # Variables
-var WEAPON_TRAITS: Dictionary = {}
-var WEAPON_MODS: Dictionary = {}
+var weapon_traits: Dictionary = {}
+var weapon_mods: Dictionary = {}
 var game_state: GameState
 
 # Initialization
@@ -56,7 +56,7 @@ func initialize(gs: GameState) -> void:
 	game_state = gs
 
 func initialize_weapon_traits() -> void:
-	WEAPON_TRAITS = {
+	weapon_traits = {
 		"Area": area_trait,
 		"Clumsy": clumsy_trait,
 		"Critical": critical_trait,
@@ -74,7 +74,7 @@ func initialize_weapon_traits() -> void:
 	}
 
 func initialize_weapon_mods() -> void:
-	WEAPON_MODS = {
+	weapon_mods = {
 		"Assault blade": {
 			"effect": assault_blade_effect,
 			"restrictions": assault_blade_restrictions
@@ -159,11 +159,11 @@ func terrifying_trait(_weapon: Weapon, target: Character) -> void:
 
 # Weapon Mod Functions
 func assault_blade_effect(weapon: Weapon) -> void:
-	weapon.traits.append("Melee")
+	weapon.add_trait("Melee")
 	weapon.set_damage(weapon.get_damage() + 1)
 
 func assault_blade_restrictions(weapon: Weapon) -> bool:
-	return "Pistol" not in weapon.traits
+	return not weapon.has_trait("Pistol")
 
 func beam_light_effect(weapon: Weapon) -> void:
 	weapon.set_visibility_bonus(3)
@@ -189,11 +189,11 @@ func always_true(_weapon: Weapon) -> bool:
 	return true
 
 func not_pistol_restrictions(weapon: Weapon) -> bool:
-	return "Pistol" not in weapon.traits
+	return not weapon.has_trait("Pistol")
 
 # Weapon System Functions
 func apply_mod(weapon: Weapon, mod_name: String) -> void:
-	var mod = WEAPON_MODS[mod_name]
+	var mod = weapon_mods[mod_name]
 	if mod.restrictions.call(weapon):
 		mod.effect.call(weapon)
 
@@ -207,8 +207,8 @@ func check_overheat(weapon: Weapon, roll: int) -> bool:
 	return weapon.hot_shot and roll == 6
 
 func apply_trait(trait_name: String, weapon: Weapon, context: Dictionary) -> int:
-	if trait_name in WEAPON_TRAITS:
-		var effect_function = WEAPON_TRAITS[trait_name]
+	if trait_name in weapon_traits:
+		var effect_function = weapon_traits[trait_name]
 		var method_info = effect_function.get_method_info()
 		var arg_count = method_info.args.size() if method_info else 0
 		match arg_count:
@@ -278,7 +278,7 @@ func get_weapon_traits(weapon: Weapon) -> Array:
 	return BASE_WEAPONS[weapon.name]["traits"] if weapon.name in BASE_WEAPONS else []
 
 func is_weapon_melee(weapon: Weapon) -> bool:
-	return "Melee" in get_weapon_traits(weapon)
+	return weapon.has_trait("Melee")
 
 func is_weapon_ranged(weapon: Weapon) -> bool:
 	return not is_weapon_melee(weapon)

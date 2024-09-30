@@ -10,15 +10,15 @@ func _init():
 func create_character(species_id: String, background_id: String, motivation_id: String, class_id: String, game_state_manager: GameStateManagerNode) -> Character:
 	var character = Character.new()
 	
-	var species_data = character_creation_data.get_race_data(species_id)
+	var species_data = character_creation_data.get_species_data(species_id)
 	var background_data = character_creation_data.get_background_data(background_id)
 	var motivation_data = character_creation_data.get_motivation_data(motivation_id)
 	var class_data = character_creation_data.get_class_data(class_id)
 	
-	character.species = species_data["name"]
-	character.background = background_data["name"]
-	character.motivation = motivation_data["name"]
-	character.character_class = class_data["name"]
+	character.species = GlobalEnums.Species.get(species_data["name"].to_upper())
+	character.background = GlobalEnums.Background.get(background_data["name"].to_upper())
+	character.motivation = GlobalEnums.Motivation.get(motivation_data["name"].to_upper())
+	character.character_class = GlobalEnums.Class.get(class_data["name"].to_upper())
 	
 	_apply_species_effects(character, species_data)
 	_apply_background_effects(character, background_data)
@@ -29,19 +29,19 @@ func create_character(species_id: String, background_id: String, motivation_id: 
 func create_tutorial_character(game_state_manager: GameStateManagerNode) -> Character:
 	var character = Character.new()
 	
-	var race_data = character_creation_data.get_tutorial_race_data("human")
+	var species_data = character_creation_data.get_tutorial_species_data("human")
 	var background_data = character_creation_data.get_tutorial_background_data("rookie")
 	var motivation_data = character_creation_data.get_tutorial_motivation_data("adventure")
 	var class_data = character_creation_data.get_tutorial_class_data("soldier")
 	
-	character.species = race_data.name
-	character.background = background_data.name
-	character.motivation = motivation_data.name
-	character.character_class = class_data.name
+	character.species = GlobalEnums.Species.HUMAN
+	character.background = GlobalEnums.Background.MILITARY_BRAT
+	character.motivation = GlobalEnums.Motivation.ADVENTURE
+	character.character_class = GlobalEnums.Class.SOLDIER
 	
 	# Apply effects and abilities
-	for stat in race_data.effects:
-		var value = race_data.effects[stat]
+	for stat in species_data.effects:
+		var value = species_data.effects[stat]
 		character.set(stat, character.get(stat) + value)
 	
 	# Add class abilities

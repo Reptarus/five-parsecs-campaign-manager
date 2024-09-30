@@ -1,7 +1,8 @@
-[gd_scene load_steps=3 format=3 uid="uid://bogbjollcirck"]
+[gd_scene load_steps=4 format=3 uid="uid://bogbjollcirck"]
 
 [ext_resource type="Script" path="res://Scenes/Management/CrewManagement.gd" id="1_abcde"]
 [ext_resource type="Theme" uid="uid://d1you1rrwuu48" path="res://Scenes/sci_fi_theme.tres" id="2_theme"]
+[ext_resource type="PackedScene" uid="uid://c4m7o38wt8gvx" path="res://Scenes/Scene Container/CharacterDisplay.tscn" id="3_fghij"]
 
 [node name="CrewManagement" type="Control"]
 layout_mode = 3
@@ -238,6 +239,10 @@ offset_bottom = -70.0
 grow_horizontal = 0
 grow_vertical = 0
 text = "Create New Character"
+
+[node name="CharacterDisplay" parent="." instance=ExtResource("3_fghij")]
+visible = false
+layout_mode = 1
 
 [connection signal="pressed" from="HBoxContainer/Sidebar/VBoxContainer/CrewButton" to="." method="_on_crew_button_pressed"]
 [connection signal="pressed" from="HBoxContainer/Sidebar/VBoxContainer/ShipButton" to="." method="_on_ship_button_pressed"]

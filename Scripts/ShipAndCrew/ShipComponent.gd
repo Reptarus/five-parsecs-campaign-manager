@@ -1,5 +1,6 @@
 # Scripts/ShipAndCrew/ShipComponent.gd
-class_name ShipComponent extends Resource
+class_name ShipComponent
+extends Resource
 
 signal component_damaged
 signal component_repaired
@@ -29,13 +30,14 @@ func take_damage(amount: int) -> void:
 
 func repair(amount: int) -> void:
     health = min(max_health, health + amount)
-    if health > 0:
+    if health > 0 and is_damaged:
         is_damaged = false
         component_repaired.emit()
 
 func damage() -> void:
-    is_damaged = true
-    component_damaged.emit()
+    if not is_damaged:
+        is_damaged = true
+        component_damaged.emit()
 
 func get_effectiveness() -> float:
     return 1.0 if not is_damaged else 0.5
@@ -44,7 +46,7 @@ func serialize() -> Dictionary:
     return {
         "name": name,
         "description": description,
-        "type": component_type,
+        "component_type": GlobalEnums.ComponentType.keys()[component_type],
         "power_usage": power_usage,
         "health": health,
         "max_health": max_health,
@@ -56,7 +58,7 @@ static func deserialize(data: Dictionary) -> ShipComponent:
     var component = ShipComponent.new(
         data["name"],
         data["description"],
-        data["type"],
+        GlobalEnums.ComponentType[data["component_type"]],
         data["power_usage"],
         data["health"],
         data["weight"]
@@ -64,3 +66,6 @@ static func deserialize(data: Dictionary) -> ShipComponent:
     component.max_health = data["max_health"]
     component.is_damaged = data["is_damaged"]
     return component
+
+func _to_string() -> String:
+    return "%s (%s, Health: %d/%d)" % [name, GlobalEnums.ComponentType.keys()[component_type], health, max_health]

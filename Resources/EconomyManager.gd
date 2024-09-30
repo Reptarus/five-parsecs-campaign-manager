@@ -1,12 +1,7 @@
 class_name EconomyManager
 extends Node
 
-const WeaponType = preload("res://Scripts/Weapons/Weapon.gd").WeaponType
-
-enum ItemType { WEAPON, ARMOR, GEAR, SHIP_COMPONENT }
-enum GlobalEvent { MARKET_CRASH, ECONOMIC_BOOM, TRADE_EMBARGO, RESOURCE_SHORTAGE, TECHNOLOGICAL_BREAKTHROUGH }
-
-signal global_event_triggered(event: GlobalEvent)
+signal global_event_triggered(event: GlobalEnums.GlobalEvent)
 signal economy_updated
 
 @export var economic_range: Vector2 = Vector2(0, 100)
@@ -91,32 +86,33 @@ func generate_market_items() -> Array[Equipment]:
 	return market_items
 
 func generate_random_item() -> Equipment:
-	var item_type: ItemType = ItemType.values()[randi() % ItemType.size()]
+	var item_type: GlobalEnums.ItemType = GlobalEnums.ItemType.values()[randi() % GlobalEnums.ItemType.size()]
 	
 	match item_type:
-		ItemType.WEAPON:
+		GlobalEnums.ItemType.WEAPON:
 			return generate_random_weapon()
-		ItemType.ARMOR:
+		GlobalEnums.ItemType.ARMOR:
 			return generate_random_armor()
-		ItemType.GEAR:
+		GlobalEnums.ItemType.GEAR:
 			return generate_random_gear()
-		ItemType.SHIP_COMPONENT:
-			var ship_component = generate_random_ship_component()
-			return Equipment.new(ship_component.name, Equipment.Type.COMPONENT, ship_component.power_usage)
+		GlobalEnums.ItemType.CONSUMABLE:
+			return generate_random_consumable()
 		_:
 			push_error("Unexpected item type")
 			return Equipment.new("Generic Item", Equipment.Type.GEAR, 0)
 
 func generate_random_weapon() -> Weapon:
-	var weapon_types = ["Pistol", "Rifle", "Shotgun", "Heavy Weapon"]
-	var weapon_name = weapon_types[randi() % weapon_types.size()]
+	var weapon_types = GlobalEnums.WeaponType.values()
+	var weapon_type = weapon_types[randi() % weapon_types.size()]
+	var weapon_name = "Generic " + GlobalEnums.WeaponType.keys()[weapon_type]
 	var damage = randi() % 5 + 1
 	var weapon_range = randi() % 10 + 1
-	return Weapon.new(weapon_name, WeaponType.MILITARY, weapon_range, 1, damage)
+	return Weapon.new(weapon_name, weapon_type, weapon_range, 1, damage)
 
 func generate_random_armor() -> Equipment:
-	var armor_types = ["Light Armor", "Medium Armor", "Heavy Armor"]
-	var armor_name = armor_types[randi() % armor_types.size()]
+	var armor_types = GlobalEnums.ArmorType.values()
+	var armor_type = armor_types[randi() % armor_types.size()]
+	var armor_name = "Generic " + GlobalEnums.ArmorType.keys()[armor_type]
 	var defense = randi() % 5 + 1
 	return Equipment.new(armor_name, Equipment.Type.ARMOR, defense)
 
@@ -125,45 +121,22 @@ func generate_random_gear() -> Gear:
 	var gear_name = gear_types[randi() % gear_types.size()]
 	return Gear.new(gear_name, "A useful piece of equipment", "Utility", 1)
 
-func generate_random_ship_component() -> ShipComponent:
-	var component_types = [
-		GlobalEnums.ComponentType.ENGINE,
-		GlobalEnums.ComponentType.SHIELDS,
-		GlobalEnums.ComponentType.WEAPONS,
-		GlobalEnums.ComponentType.MEDICAL_BAY
-	]
-	var component_type = component_types[randi() % component_types.size()]
-	
-	var component_name: String
-	match component_type:
-		GlobalEnums.ComponentType.ENGINE:
-			component_name = "Engine Booster"
-		GlobalEnums.ComponentType.SHIELDS:
-			component_name = "Shield Generator"
-		GlobalEnums.ComponentType.WEAPONS:
-			component_name = "Weapon System"
-		GlobalEnums.ComponentType.MEDICAL_BAY:
-			component_name = "Life Support System"
-		_:
-			component_name = "Generic Component"
-	
-	var power_usage = randi() % 10 + 1
-	var health = randi() % 50 + 50
-	
-	return ShipComponent.new(component_name, "A crucial ship component", component_type, power_usage, health)
+func generate_random_consumable() -> Equipment:
+	var consumable_types = ["Stim Pack", "Grenade", "Repair Nanites", "Energy Cell"]
+	var consumable_name = consumable_types[randi() % consumable_types.size()]
+	return Equipment.new(consumable_name, Equipment.Type.CONSUMABLE, 1)
 
 func calculate_upkeep_cost() -> int:
 	var base_cost: int = game_state.current_crew.members.size() * 5
 	
-	# Ensure the current location is valid
 	if game_state.current_location != null:
 		var location_traits = game_state.current_location.get_traits()
 		
-		# Check if location_traits is a valid list or array
 		if location_traits is Array and not location_traits.is_empty():
-			# Use Array.has() method to check for "High cost" trait
-			if location_traits.has("High cost"):
+			if GlobalEnums.WorldTrait.RICH in location_traits:
 				base_cost = int(base_cost * 1.5)
+			elif GlobalEnums.WorldTrait.POOR in location_traits:
+				base_cost = int(base_cost * 0.8)
 	
 	return base_cost
 
@@ -172,21 +145,21 @@ func pay_upkeep() -> bool:
 	return remove_credits(cost)
 
 func trigger_global_event() -> void:
-	var event = GlobalEvent.values()[randi() % GlobalEvent.size()]
+	var event = GlobalEnums.GlobalEvent.values()[randi() % GlobalEnums.GlobalEvent.size()]
 	match event:
-		GlobalEvent.MARKET_CRASH:
+		GlobalEnums.GlobalEvent.MARKET_CRASH:
 			global_economic_modifier = 0.8
 			print("A market crash has occurred! Prices are generally lower.")
-		GlobalEvent.ECONOMIC_BOOM:
+		GlobalEnums.GlobalEvent.ECONOMIC_BOOM:
 			global_economic_modifier = 1.2
 			print("An economic boom is happening! Prices are generally higher.")
-		GlobalEvent.TRADE_EMBARGO:
+		GlobalEnums.GlobalEvent.TRADE_EMBARGO:
 			trade_restricted_items = ["Weapon", "Armor", "Ship Component"]
 			print("A trade embargo has been imposed. Weapons, armor, and ship components are unavailable.")
-		GlobalEvent.RESOURCE_SHORTAGE:
+		GlobalEnums.GlobalEvent.RESOURCE_SHORTAGE:
 			scarce_resources = ["Fuel", "Medical Supplies", "Food"]
 			print("A resource shortage is affecting the market. Fuel, medical supplies, and food are more expensive.")
-		GlobalEvent.TECHNOLOGICAL_BREAKTHROUGH:
+		GlobalEnums.GlobalEvent.TECHNOLOGICAL_BREAKTHROUGH:
 			new_tech_items = ["Advanced AI", "Quantum Computer", "Nanotech Fabricator"]
 			print("A technological breakthrough has occurred. Advanced AI, Quantum Computers, and Nanotech Fabricators are now available.")
 	
@@ -196,13 +169,11 @@ func update_global_economy() -> void:
 	if randf() < GLOBAL_EVENT_CHANCE:
 		trigger_global_event()
 	else:
-		# Gradually return the economy to normal if no event occurs
 		global_economic_modifier = lerp(global_economic_modifier, 1.0, ECONOMY_NORMALIZATION_RATE)
 		trade_restricted_items.clear()
 		scarce_resources.clear()
 		new_tech_items.clear()
 	
-	# Update location-specific modifiers
 	for location_name in location_price_modifiers.keys():
 		location_price_modifiers[location_name] = lerp(location_price_modifiers[location_name], 1.0, ECONOMY_NORMALIZATION_RATE)
 	
@@ -210,21 +181,14 @@ func update_global_economy() -> void:
 
 func apply_economic_event() -> void:
 	update_global_economy()
-	var events = [
-		"Market Crash",
-		"Economic Boom",
-		"Trade Embargo",
-		"Resource Shortage",
-		"Technological Breakthrough"
-	]
-	var event = events[randi() % events.size()]
+	var event = GlobalEnums.GlobalEvent.values()[randi() % GlobalEnums.GlobalEvent.size()]
 	
 	match event:
-		"Market Crash":
+		GlobalEnums.GlobalEvent.MARKET_CRASH:
 			remove_credits(int(game_state.current_crew.credits * 0.2))
-		"Economic Boom":
+		GlobalEnums.GlobalEvent.ECONOMIC_BOOM:
 			add_credits(int(game_state.current_crew.credits * 0.2))
-		"Trade Embargo", "Resource Shortage", "Technological Breakthrough":
-			pass  # Logic for these events is handled in trigger_global_event
+		_:
+			pass  # Logic for other events is handled in trigger_global_event
 	
-	print("Economic event occurred: " + event)
+	print("Economic event occurred: " + GlobalEnums.GlobalEvent.keys()[event])

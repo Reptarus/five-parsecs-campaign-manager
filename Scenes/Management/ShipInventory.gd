@@ -1,15 +1,16 @@
 # Scripts/ShipAndCrew/ShipInventory.gd
-class_name ShipInventory extends Resource
+class_name ShipInventory
+extends Resource
 
-signal item_added(item: Gear)
-signal item_removed(item: Gear)
+signal item_added(item: Equipment)
+signal item_removed(item: Equipment)
 signal capacity_changed(new_capacity: float)
 
-@export var items: Array[Gear] = []
+@export var items: Array[Equipment] = []
 @export var max_weight_capacity: float = 100.0
 var current_weight: float = 0.0
 
-func add_item(item: Gear) -> bool:
+func add_item(item: Equipment) -> bool:
 	if item == null:
 		push_error("Attempted to add null item to inventory")
 		return false
@@ -21,7 +22,7 @@ func add_item(item: Gear) -> bool:
 	item_added.emit(item)
 	return true
 
-func remove_item(item: Gear) -> bool:
+func remove_item(item: Equipment) -> bool:
 	if item == null:
 		push_error("Attempted to remove null item from inventory")
 		return false
@@ -47,19 +48,19 @@ func update_capacity(new_capacity: float) -> void:
 		current_weight -= removed_item.weight
 		item_removed.emit(removed_item)
 
-func get_items_by_type(type: Equipment.Type) -> Array[Gear]:
-	return items.filter(func(item: Gear): return item.type == type)
+func get_items_by_type(type: GlobalEnums.ItemType) -> Array[Equipment]:
+	return items.filter(func(item: Equipment): return item.type == type)
 
-func has_item(item: Gear) -> bool:
+func has_item(item: Equipment) -> bool:
 	return items.has(item)
 
-func get_item_by_id(item_id: String) -> Gear:
+func get_item_by_id(item_id: String) -> Equipment:
 	for item in items:
 		if item.id == item_id:
 			return item
 	return null
 
-func get_items() -> Array[Gear]:
+func get_items() -> Array[Equipment]:
 	return items
 
 func sort_items(sort_type: String) -> void:
@@ -70,7 +71,8 @@ func sort_items(sort_type: String) -> void:
 			items.sort_custom(func(a, b): return a.weight < b.weight)
 		"value":
 			items.sort_custom(func(a, b): return a.value < b.value)
-		# Add more sorting options as needed
+		"type":
+			items.sort_custom(func(a, b): return a.type < b.type)
 
 func serialize() -> Dictionary:
 	return {
@@ -81,7 +83,7 @@ func serialize() -> Dictionary:
 
 static func deserialize(data: Dictionary) -> ShipInventory:
 	var inventory = ShipInventory.new()
-	inventory.items = data["items"].map(func(i): return Gear.deserialize(i))
+	inventory.items = data["items"].map(func(i): return Equipment.deserialize(i))
 	inventory.max_weight_capacity = data["max_weight_capacity"]
 	inventory.current_weight = data["current_weight"]
 	return inventory

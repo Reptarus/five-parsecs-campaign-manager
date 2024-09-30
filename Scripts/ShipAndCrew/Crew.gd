@@ -9,11 +9,8 @@ extends Resource
 @export var current_location: Location
 @export var name: String = ""
 
-
 const MIN_CREW_SIZE: int = 3
 const MAX_CREW_SIZE: int = 8
-
-# Remove _init function as it's not needed for a Resource
 
 func add_character(character: Character) -> void:
 	if characters.size() < MAX_CREW_SIZE:
@@ -62,26 +59,18 @@ static func deserialize(data: Dictionary) -> Crew:
 	crew.credits = data.get("credits", 0)
 	crew.reputation = data.get("reputation", 0)
 	
-	# Handle characters
 	crew.characters = []
 	for character_data in data.get("characters", []):
 		if character_data is Dictionary:
 			crew.characters.append(Character.deserialize(character_data, crew))
-
 	
-	# Handle ship
 	var ship_data = data.get("ship")
 	if ship_data is Dictionary:
 		crew.ship = Ship.deserialize(ship_data)
-	else:
-		crew.ship = null
 	
-	# Handle current location
 	var location_data = data.get("current_location")
 	if location_data is Dictionary:
 		crew.current_location = Location.deserialize(location_data)
-	else:
-		crew.current_location = null
 	
 	return crew
 
@@ -116,3 +105,29 @@ func get_highest_skill_level(skill: GlobalEnums.SkillType) -> int:
 		if skill_level > highest:
 			highest = skill_level
 	return highest
+
+func gain_experience(xp: int) -> void:
+	for character in characters:
+		character.gain_experience(xp)
+
+func apply_casualties() -> void:
+	for character in characters:
+		if randf() < 0.1:  # 10% chance of casualty
+			character.status = GlobalEnums.CharacterStatus.INJURED
+			if randf() < 0.05:  # 5% chance of death among casualties
+				character.status = GlobalEnums.CharacterStatus.DEAD
+
+func add_equipment(item: Equipment) -> void:
+	if ship:
+		ship.add_to_cargo(item)
+
+func remove_equipment(item: Equipment) -> void:
+	if ship:
+		ship.remove_from_cargo(item)
+
+func can_add_member() -> bool:
+	return characters.size() < MAX_CREW_SIZE
+
+func update_reputation(change: int) -> void:
+	reputation += change
+	reputation = clamp(reputation, GlobalEnums.ReputationLevel.UNKNOWN, GlobalEnums.ReputationLevel.LEGENDARY)

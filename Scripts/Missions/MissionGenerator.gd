@@ -6,7 +6,7 @@ var game_state_manager: GameStateManagerNode
 var game_state: GameStateManager
 var mission_manager: MissionManager
 
-func initialize(_game_state_manager: GameStateManagerNode):
+func initialize(_game_state_manager: GameStateManagerNode) -> void:
 	game_state_manager = _game_state_manager
 	game_state = game_state_manager.get_game_state()
 	mission_manager = MissionManager.new(game_state_manager)
@@ -97,7 +97,7 @@ func generate_quest_mission() -> Mission:
 
 func generate_assassination_mission() -> Mission:
 	var mission = Mission.new()
-	mission.type = GlobalEnums.Type.STANDARD
+	mission.type = GlobalEnums.Type.ASSASSINATION
 	mission.title = "Assassination Contract"
 	mission.description = "Eliminate a high-value target"
 	mission.objective = GlobalEnums.MissionObjective.ELIMINATE
@@ -110,7 +110,7 @@ func generate_assassination_mission() -> Mission:
 
 func generate_sabotage_mission() -> Mission:
 	var mission = Mission.new()
-	mission.type = GlobalEnums.Type.STANDARD
+	mission.type = GlobalEnums.Type.SABOTAGE
 	mission.title = "Sabotage Operation"
 	mission.description = "Disrupt enemy operations"
 	mission.objective = GlobalEnums.MissionObjective.DESTROY
@@ -123,7 +123,7 @@ func generate_sabotage_mission() -> Mission:
 
 func generate_rescue_mission() -> Mission:
 	var mission = Mission.new()
-	mission.type = GlobalEnums.Type.STANDARD
+	mission.type = GlobalEnums.Type.RESCUE
 	mission.title = "Rescue Operation"
 	mission.description = "Save hostages or stranded individuals"
 	mission.objective = GlobalEnums.MissionObjective.RESCUE
@@ -136,7 +136,7 @@ func generate_rescue_mission() -> Mission:
 
 func generate_defense_mission() -> Mission:
 	var mission = Mission.new()
-	mission.type = GlobalEnums.Type.STANDARD
+	mission.type = GlobalEnums.Type.DEFENSE
 	mission.title = "Defensive Stand"
 	mission.description = "Protect a location from enemy forces"
 	mission.objective = GlobalEnums.MissionObjective.DEFEND
@@ -149,7 +149,7 @@ func generate_defense_mission() -> Mission:
 
 func generate_escort_mission() -> Mission:
 	var mission = Mission.new()
-	mission.type = GlobalEnums.Type.STANDARD
+	mission.type = GlobalEnums.Type.ESCORT
 	mission.title = "Escort Duty"
 	mission.description = "Safely transport a VIP or valuable cargo"
 	mission.objective = GlobalEnums.MissionObjective.PROTECT
@@ -159,8 +159,6 @@ func generate_escort_mission() -> Mission:
 	mission.rewards = {"credits": randi() % 450 + 350, "reputation": randi() % 2 + 2}
 	mission.required_crew_size = max(3, game_state.current_crew.get_size() - 1)
 	return mission
-
-# You can add more mission generation functions here as needed
 
 func _on_mission_completed(mission: Mission) -> void:
 	game_state.add_credits(mission.rewards["credits"])

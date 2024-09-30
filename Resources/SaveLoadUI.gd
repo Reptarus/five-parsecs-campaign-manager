@@ -73,10 +73,17 @@ func _on_export_button_pressed() -> void:
 		status_label.text = "Failed to export save."
 
 func _on_import_button_pressed() -> void:
-	# In a real scenario, you'd use a FileDialog here
-	var import_path = "user://imported_save.json"
+	var file_dialog = FileDialog.new()
+	file_dialog.file_mode = FileDialog.FILE_MODE_OPEN_FILE
+	file_dialog.access = FileDialog.ACCESS_FILESYSTEM
+	file_dialog.filters = ["*.json ; JSON Files"]
+	file_dialog.file_selected.connect(_on_import_file_selected)
+	add_child(file_dialog)
+	file_dialog.popup_centered(Vector2(800, 600))
+
+func _on_import_file_selected(path: String) -> void:
 	var new_save_name = "imported_save_%s" % Time.get_unix_time_from_system()
-	var error = SaveGame.import_save(import_path, new_save_name)
+	var error = SaveGame.import_save(path, new_save_name)
 	if error == OK:
 		status_label.text = "Save imported successfully."
 		refresh_save_list()
@@ -93,3 +100,9 @@ func _on_save_completed(success: bool, message: String) -> void:
 
 func _on_load_completed(success: bool, message: String) -> void:
 	status_label.text = message
+	if success:
+		var game_manager = get_node("/root/GameManager")
+		if game_manager:
+			game_manager.start_campaign_turn()
+		else:
+			push_error("GameManager not found in the scene tree.")

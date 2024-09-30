@@ -1,7 +1,7 @@
 class_name Battle
 extends Node2D
 
-var game_state: GameState
+var game_state: GameStateManagerNode
 var current_mission: Mission
 var combat_manager: CombatManager
 var ai_controller: AIController
@@ -21,8 +21,7 @@ var active_character: Character
 @onready var battle_grid: GridContainer = $Battlefield/BattleGrid
 
 func _ready() -> void:
-	var game_state_node = get_node("/root/GameState") as GameStateManagerNode
-	game_state = game_state_node.get_game_state()
+	game_state = get_node("/root/GameState")
 	current_mission = game_state.current_mission
 	combat_manager = $CombatManager
 	ai_controller = $AIController
@@ -163,7 +162,7 @@ func _on_turn_ended(character: Character) -> void:
 	print("Turn ended for ", character.name)
 	active_character = null
 
-func _on_ui_update_needed(round: int, phase: CombatManager.BattlePhase, current_character: Character) -> void:
+func _on_ui_update_needed(round: int, phase: GlobalEnums.CampaignPhase, current_character: Character) -> void:
 	print("UI update needed. Round: ", round, " Phase: ", phase, " Current character: ", current_character.name)
 
 func _on_log_action(action: String) -> void:
@@ -198,10 +197,10 @@ func disable_player_controls() -> void:
 func handle_character_damage(character: Character, damage: int) -> void:
 	character.toughness -= damage
 	if character.toughness <= 0:
-		character.is_defeated = true
+		character.status = GlobalEnums.CharacterStatus.DEAD
 		# Handle character defeat (remove from battlefield, etc.)
 
 func handle_character_recovery() -> void:
 	for character in game_state.current_crew.characters:
-		if character.is_in_medbay():
+		if character.status == GlobalEnums.CharacterStatus.INJURED:
 			character.heal()

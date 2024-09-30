@@ -6,18 +6,21 @@ signal game_state_changed(new_state: GlobalEnums.CampaignPhase)
 var game_state: GameState
 var ui_manager: UIManager
 var terrain_generator: TerrainGenerator
+var galactic_war_manager: GalacticWarManager
 var game_over_scene: PackedScene = preload("res://Scenes/Management/Scenes/GameOverScreen.tscn")
 
 func _init() -> void:
 	game_state = GameState.new()
 	ui_manager = UIManager.new()
 	terrain_generator = TerrainGenerator.new()
+	galactic_war_manager = GalacticWarManager.new()
 
 func start_new_game() -> void:
 	game_state.transition_to_state(GameState.State.CREW_CREATION)
 	game_state_changed.emit(GlobalEnums.CampaignPhase.CREW_CREATION)
 	ui_manager.change_screen("campaign_setup")
 	game_state.set_crew_size(5)  # Default crew size, can be adjusted
+	galactic_war_manager.initialize_factions()
 
 func start_campaign_turn() -> void:
 	game_state.transition_to_state(GameState.State.UPKEEP)
@@ -25,6 +28,7 @@ func start_campaign_turn() -> void:
 	game_state.advance_turn()
 	ui_manager.change_screen("world_view")
 	game_state.update_mission_list()
+	galactic_war_manager.process_galactic_war_turn()
 
 func start_mission(mission: Mission) -> void:
 	if mission.start_mission(game_state.get_current_crew().members):
@@ -74,20 +78,20 @@ func recruit_crew_member(character: Character) -> void:
 
 func upgrade_character(character: Character, upgrade: Dictionary) -> void:
 	if character.can_apply_upgrade(upgrade):
-		character.apply_upgrade({"type": upgrade})
+		character.apply_upgrade(upgrade)
 		ui_manager.update_crew_info()
 	else:
 		ui_manager.show_message("Upgrade not available for this character.")
 
 func buy_equipment(item: Equipment) -> void:
-	if game_state.remove_credits(item.cost):
+	if game_state.remove_credits(item.value):
 		game_state.current_crew.add_equipment(item)
 		ui_manager.update_crew_info()
 	else:
 		ui_manager.show_message("Not enough credits to buy this item.")
 
 func sell_equipment(item: Equipment) -> void:
-	game_state.add_credits(item.sell_value)
+	game_state.add_credits(item.get_effectiveness())
 	game_state.current_crew.remove_equipment(item)
 	ui_manager.update_crew_info()
 
@@ -139,5 +143,5 @@ func start_battle(scene_tree: SceneTree) -> void:
 	var battle_instance: Node = battle_scene.instantiate()
 	battle_instance.initialize(game_state, game_state.current_mission)
 	scene_tree.root.add_child(battle_instance)
-	game_state.transition_to_state(GlobalEnums.CampaignPhase.BATTLE)
+	game_state.transition_to_state(GameState.State.BATTLE)
 	game_state_changed.emit(GlobalEnums.CampaignPhase.BATTLE)

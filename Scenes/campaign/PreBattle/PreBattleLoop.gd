@@ -1,8 +1,6 @@
 # PreBattleLoop.gd
 extends Node
 
-enum TaskType { TRADE, EXPLORE, TRAIN, RECRUIT, FIND_PATRON, REPAIR, REST }
-
 var game_state: GameState
 
 func _init(_game_state: GameState) -> void:
@@ -21,68 +19,68 @@ func assign_crew_tasks(crew: Crew) -> void:
 			var task = choose_task(member)
 			perform_task(member, task)
 
-func choose_task(_character) -> TaskType:
-	var available_tasks = TaskType.values()
+func choose_task(_character) -> GlobalEnums.CrewTask:
+	var available_tasks = GlobalEnums.CrewTask.values()
 	return available_tasks[randi() % available_tasks.size()]
 
-func perform_task(character, task: TaskType) -> void:
+func perform_task(character: Character, task: GlobalEnums.CrewTask) -> void:
 	match task:
-		TaskType.TRADE:
+		GlobalEnums.CrewTask.TRADE:
 			trade(character)
-		TaskType.EXPLORE:
+		GlobalEnums.CrewTask.EXPLORE:
 			explore(character)
-		TaskType.TRAIN:
+		GlobalEnums.CrewTask.TRAIN:
 			train(character)
-		TaskType.RECRUIT:
+		GlobalEnums.CrewTask.RECRUIT:
 			recruit(character)
-		TaskType.FIND_PATRON:
+		GlobalEnums.CrewTask.FIND_PATRON:
 			find_patron(character)
-		TaskType.REPAIR:
+		GlobalEnums.CrewTask.REPAIR_KIT:
 			repair(character)
-		TaskType.REST:
+		GlobalEnums.CrewTask.DECOY:
 			rest(character)
 
-func trade(character) -> void:
-	var roll = randi() % 100
+func trade(character: Character) -> void:
+	var roll := GameManager.roll_dice(1, 100)
 	if roll < 30:
-		var credits_earned = randi() % 6 * 10 + 10
-		game_state.current_crew.add_credits(credits_earned)
+		var credits_earned := GameManager.roll_dice(1, 6) * 10 + 10
+		game_state.add_credits(credits_earned)
 		print_debug("%s earned %d credits through trading." % [character.get_name(), credits_earned])
 	elif roll < 60:
-		var item = generate_random_equipment()
-		character.get_inventory().add_item(item)
+		var item := generate_random_equipment()
+		character.add_equipment(item)
 		print_debug("%s acquired %s while trading." % [character.get_name(), item.get_name()])
 	else:
 		print_debug("%s couldn't find any good deals while trading." % character.get_name())
 
-func explore(character) -> void:
-	var roll = randi() % 100
+func explore(character: Character) -> void:
+	var roll := GameManager.roll_dice(1, 100)
 	if roll < 20:
-		var rumor = generate_rumor()
+		var rumor := generate_rumor()
 		game_state.add_rumor(rumor)
 		print_debug("%s discovered a rumor: %s" % [character.get_name(), rumor])
 	elif roll < 40:
-		var credits_found = randi() % 3 * 5 + 5
-		game_state.current_crew.add_credits(credits_found)
+		var credits_found := GameManager.roll_dice(1, 3) * 5 + 5
+		game_state.add_credits(credits_found)
 		print_debug("%s found %d credits while exploring." % [character.get_name(), credits_found])
 	elif roll < 60:
-		var item = generate_random_equipment()
-		character.get_inventory().add_item(item)
+		var item := generate_random_equipment()
+		character.add_equipment(item)
 		print_debug("%s found %s while exploring." % [character.get_name(), item.get_name()])
 	else:
 		print_debug("%s had an uneventful exploration." % character.get_name())
 
-func train(character) -> void:
-	var skill_to_improve = character.get_random_skill()
-	var xp_gained = randi() % 3 + 1
+func train(character: Character) -> void:
+	var skill_to_improve: GlobalEnums.SkillType = character.get_random_skill()
+	var xp_gained := GameManager.roll_dice(1, 3)
 	character.improve_skill(skill_to_improve, xp_gained)
-	print_debug("%s trained %s and gained %d XP." % [character.get_name(), skill_to_improve, xp_gained])
+	print_debug("%s trained %s and gained %d XP." % [character.get_name(), GlobalEnums.SkillType.keys()[skill_to_improve], xp_gained])
 
-func recruit(character) -> void:
-	var crew = game_state.current_crew
+func recruit(character: Character) -> void:
+	var crew := game_state.current_crew
 	if crew.get_member_count() < crew.get_max_members():
 		if randf() < 0.4:  # 40% chance to find a recruit
-			var new_recruit = game_state.character_factory.create_random_character()
+			var new_recruit := game_state.character_factory.create_random_character()
 			crew.add_member(new_recruit)
 			print_debug("%s successfully recruited %s to join the crew." % [character.get_name(), new_recruit.get_name()])
 		else:
@@ -90,30 +88,30 @@ func recruit(character) -> void:
 	else:
 		print_debug("The crew is already at maximum capacity. %s couldn't recruit anyone." % character.get_name())
 
-func find_patron(character) -> void:
+func find_patron(character: Character) -> void:
 	if randf() < 0.3:  # 30% chance to find a patron
-		var new_patron = game_state.patron_factory.create_random_patron()
+		var new_patron := game_state.patron_factory.create_random_patron()
 		game_state.add_patron(new_patron)
 		print_debug("%s found a new patron: %s" % [character.get_name(), new_patron.get_name()])
 	else:
 		print_debug("%s couldn't find any patrons offering work." % character.get_name())
 
-func repair(character) -> void:
-	var item_to_repair = character.get_inventory().get_damaged_item()
+func repair(character: Character) -> void:
+	var item_to_repair := character.get_damaged_equipment()
 	if item_to_repair:
-		var repair_success = randf() < 0.7  # 70% chance to successfully repair
+		var repair_success := randf() < 0.7  # 70% chance to successfully repair
 		if repair_success:
 			item_to_repair.repair()
 			print_debug("%s successfully repaired %s." % [character.get_name(), item_to_repair.get_name()])
 		else:
 			print_debug("%s attempted to repair %s but failed." % [character.get_name(), item_to_repair.get_name()])
 	else:
-		var ship_repair_amount = randi() % 5 + 1
+		var ship_repair_amount := GameManager.roll_dice(1, 5)
 		game_state.current_crew.get_ship().repair(ship_repair_amount)
 		print_debug("%s repaired the ship, restoring %d hull points." % [character.get_name(), ship_repair_amount])
 
-func rest(character) -> void:
-	var stress_recovered = randi() % 3 + 1
+func rest(character: Character) -> void:
+	var stress_recovered := GameManager.roll_dice(1, 3)
 	character.reduce_stress(stress_recovered)
 	if character.is_injured():
 		character.heal(1)
@@ -122,7 +120,7 @@ func rest(character) -> void:
 		print_debug("%s rested and recovered %d stress." % [character.get_name(), stress_recovered])
 
 func generate_random_equipment() -> Equipment:
-	var equipment_type = randi() % 4  # 0: Weapon, 1: Armor, 2: Gear, 3: Medical
+	var equipment_type := GameManager.roll_dice(1, 4) - 1
 	match equipment_type:
 		0: return generate_random_weapon()
 		1: return generate_random_armor()
@@ -131,43 +129,43 @@ func generate_random_equipment() -> Equipment:
 	return null  # This should never happen
 
 func generate_random_weapon() -> Weapon:
-	var weapon_types = ["Pistol", "Rifle", "Shotgun", "Heavy Weapon"]
-	var weapon_name = weapon_types[randi() % weapon_types.size()]
-	var damage = randi() % 5 + 1
-	var weapon_range = randi() % 10 + 1
-	return Weapon.new(weapon_name, Weapon.WeaponType.MILITARY, weapon_range, 1, damage)
+	var weapon_types := [GlobalEnums.WeaponType.PISTOL, GlobalEnums.WeaponType.RIFLE, GlobalEnums.WeaponType.HEAVY, GlobalEnums.WeaponType.MELEE]
+	var weapon_type := weapon_types[GameManager.roll_dice(1, weapon_types.size()) - 1]
+	var damage := GameManager.roll_dice(1, 5)
+	var weapon_range := GameManager.roll_dice(1, 10)
+	return Weapon.new(GlobalEnums.WeaponType.keys()[weapon_type], weapon_type, weapon_range, 1, damage)
 
 func generate_random_armor() -> Equipment:
-	var armor_types = ["Light Armor", "Medium Armor", "Heavy Armor"]
-	var armor_name = armor_types[randi() % armor_types.size()]
-	var defense = randi() % 5 + 1
-	return Equipment.new(armor_name, Equipment.Type.ARMOR, defense)
+	var armor_types := [GlobalEnums.ArmorType.LIGHT, GlobalEnums.ArmorType.MEDIUM, GlobalEnums.ArmorType.HEAVY]
+	var armor_type := armor_types[GameManager.roll_dice(1, armor_types.size()) - 1]
+	var defense := GameManager.roll_dice(1, 5)
+	return Equipment.new(GlobalEnums.ArmorType.keys()[armor_type], GlobalEnums.ItemType.ARMOR, defense)
 
 func generate_random_gear() -> Gear:
-	var gear_types = ["Medkit", "Repair Kit", "Stealth Field", "Jetpack"]
-	var gear_name = gear_types[randi() % gear_types.size()]
+	var gear_types := ["Medkit", "Repair Kit", "Stealth Field", "Jetpack"]
+	var gear_name := gear_types[GameManager.roll_dice(1, gear_types.size()) - 1]
 	return Gear.new(gear_name, "A useful piece of equipment", "Utility", 1)
 
 func generate_random_medical_item() -> Equipment:
-	var medical_types = ["Med-kit", "Stim-pack", "Nano-injector", "Trauma Pack"]
-	var item_name = medical_types[randi() % medical_types.size()]
-	var healing_value = randi() % 3 + 1
-	return Equipment.new(item_name, Equipment.Type.CONSUMABLE, healing_value)
+	var medical_types := ["Med-kit", "Stim-pack", "Nano-injector", "Trauma Pack"]
+	var item_name := medical_types[GameManager.roll_dice(1, medical_types.size()) - 1]
+	var healing_value := GameManager.roll_dice(1, 3)
+	return Equipment.new(item_name, GlobalEnums.ItemType.CONSUMABLE, healing_value)
 
 func generate_rumor() -> String:
-	var rumors = [
+	var rumors := [
 		"There's talk of a hidden alien artifact on a nearby moon.",
 		"A notorious pirate captain is offering big credits for experienced crew.",
 		"The local government is secretly funding illegal weapons research.",
 		"An abandoned space station has been spotted in the outer reaches of the system.",
 		"A wealthy trader is looking for protection on a dangerous cargo run."
 	]
-	return rumors[randi() % rumors.size()]
+	return rumors[GameManager.roll_dice(1, rumors.size()) - 1]
 
 func process_rumors() -> void:
 	for rumor in game_state.rumors:
 		if randf() < 0.2:  # 20% chance for a rumor to develop into a mission
-			var mission = game_state.mission_generator.generate_mission_from_rumor(rumor)
+			var mission := game_state.mission_generator.generate_mission_from_rumor(rumor)
 			game_state.add_mission(mission)
 			game_state.remove_rumor(rumor)
 			print_debug("A rumor has developed into a new mission: %s" % mission.title)
@@ -179,6 +177,6 @@ func update_mission_availability() -> void:
 			print_debug("The mission '%s' is no longer available." % mission.title)
 
 	if game_state.available_missions.size() < 3:
-		var new_mission = game_state.mission_generator.generate_mission()
+		var new_mission := game_state.mission_generator.generate_mission()
 		game_state.add_mission(new_mission)
 		print_debug("A new mission has become available: %s" % new_mission.title)

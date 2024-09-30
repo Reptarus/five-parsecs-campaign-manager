@@ -1,5 +1,6 @@
 # Scripts/ShipAndCrew/EngineComponent.gd
-class_name EngineComponent extends ShipComponent
+class_name EngineComponent
+extends ShipComponent
 
 @export var speed: int
 @export var fuel_efficiency: float
@@ -36,3 +37,14 @@ static func deserialize(data: Dictionary) -> EngineComponent:
 	component.max_health = data["max_health"]
 	component.is_damaged = data["is_damaged"]
 	return component
+
+func repair(amount: int) -> void:
+	super.repair(amount)
+	if not is_damaged:
+		print("Engine repaired and operational. Speed restored to: ", speed)
+
+func damage(amount: int) -> void:
+	super.damage(amount)
+	if is_damaged:
+		speed = max(1, speed / 2)  # Reduce speed by half when damaged, minimum 1
+		print("Engine damaged. Speed reduced to: ", speed)

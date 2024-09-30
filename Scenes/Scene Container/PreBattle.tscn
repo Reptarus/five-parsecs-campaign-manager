@@ -1,6 +1,7 @@
-[gd_scene load_steps=2 format=3 uid="uid://belfwiqii3x62"]
+[gd_scene load_steps=3 format=3 uid="uid://belfwiqii3x62"]
 
 [ext_resource type="Script" path="res://Scenes/campaign/scripts/PreBattleSceneScript.gd" id="1_5g11f"]
+[ext_resource type="Theme" uid="uid://d1you1rrwuu48" path="res://Scenes/sci_fi_theme.tres" id="2_theme"]
 
 [node name="PreBattle" type="Control"]
 layout_mode = 3
@@ -9,57 +10,87 @@ anchor_right = 1.0
 anchor_bottom = 1.0
 grow_horizontal = 2
 grow_vertical = 2
+theme = ExtResource("2_theme")
 script = ExtResource("1_5g11f")
 
-[node name="VBoxContainer" type="VBoxContainer" parent="."]
+[node name="Background" type="ColorRect" parent="."]
 layout_mode = 1
 anchors_preset = 15
 anchor_right = 1.0
 anchor_bottom = 1.0
 grow_horizontal = 2
 grow_vertical = 2
+color = Color(0.0392157, 0.0392157, 0.0392157, 1)
 
-[node name="Label" type="Label" parent="VBoxContainer"]
+[node name="MarginContainer" type="MarginContainer" parent="."]
+layout_mode = 1
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+theme_override_constants/margin_left = 40
+theme_override_constants/margin_top = 40
+theme_override_constants/margin_right = 40
+theme_override_constants/margin_bottom = 40
+
+[node name="VBoxContainer" type="VBoxContainer" parent="MarginContainer"]
 layout_mode = 2
+theme_override_constants/separation = 20
+
+[node name="TitleLabel" type="Label" parent="MarginContainer/VBoxContainer"]
+layout_mode = 2
+theme_override_font_sizes/font_size = 32
 text = "Pre-Battle Setup"
 horizontal_alignment = 1
 
-[node name="DetermineBattleTypeButton" type="Button" parent="VBoxContainer"]
+[node name="DetermineBattleTypeButton" type="Button" parent="MarginContainer/VBoxContainer"]
 layout_mode = 2
 text = "Determine Battle Type"
 
-[node name="CheckConnectionsButton" type="Button" parent="VBoxContainer"]
+[node name="CheckConnectionsButton" type="Button" parent="MarginContainer/VBoxContainer"]
 layout_mode = 2
 text = "Check for Connections"
 
-[node name="DetermineDeploymentButton" type="Button" parent="VBoxContainer"]
+[node name="DetermineDeploymentButton" type="Button" parent="MarginContainer/VBoxContainer"]
 layout_mode = 2
 text = "Determine Deployment Conditions"
 
-[node name="DetermineNotableSightsButton" type="Button" parent="VBoxContainer"]
+[node name="DetermineNotableSightsButton" type="Button" parent="MarginContainer/VBoxContainer"]
 layout_mode = 2
 text = "Determine Notable Sights"
 
-[node name="DetermineObjectiveButton" type="Button" parent="VBoxContainer"]
+[node name="DetermineObjectiveButton" type="Button" parent="MarginContainer/VBoxContainer"]
 layout_mode = 2
 text = "Determine Objective"
 
-[node name="DetermineEnemyButton" type="Button" parent="VBoxContainer"]
+[node name="DetermineEnemyButton" type="Button" parent="MarginContainer/VBoxContainer"]
 layout_mode = 2
 text = "Determine Enemy"
 
-[node name="GenerateTerrainButton" type="Button" parent="VBoxContainer"]
+[node name="GenerateTerrainButton" type="Button" parent="MarginContainer/VBoxContainer"]
 layout_mode = 2
 text = "Generate Terrain"
 
-[node name="PlaceCharactersButton" type="Button" parent="VBoxContainer"]
+[node name="PlaceCharactersButton" type="Button" parent="MarginContainer/VBoxContainer"]
 layout_mode = 2
 text = "Place Characters"
 
-[node name="StartBattleButton" type="Button" parent="VBoxContainer"]
+[node name="StartBattleButton" type="Button" parent="MarginContainer/VBoxContainer"]
 layout_mode = 2
 text = "Start Battle"
 
-[node name="BackButton" type="Button" parent="VBoxContainer"]
+[node name="BackButton" type="Button" parent="MarginContainer/VBoxContainer"]
 layout_mode = 2
 text = "Back to Dashboard"
+
+[connection signal="pressed" from="MarginContainer/VBoxContainer/DetermineBattleTypeButton" to="." method="_on_determine_battle_type_button_pressed"]
+[connection signal="pressed" from="MarginContainer/VBoxContainer/CheckConnectionsButton" to="." method="_on_check_connections_button_pressed"]
+[connection signal="pressed" from="MarginContainer/VBoxContainer/DetermineDeploymentButton" to="." method="_on_determine_deployment_button_pressed"]
+[connection signal="pressed" from="MarginContainer/VBoxContainer/DetermineNotableSightsButton" to="." method="_on_determine_notable_sights_button_pressed"]
+[connection signal="pressed" from="MarginContainer/VBoxContainer/DetermineObjectiveButton" to="." method="_on_determine_objective_button_pressed"]
+[connection signal="pressed" from="MarginContainer/VBoxContainer/DetermineEnemyButton" to="." method="_on_determine_enemy_button_pressed"]
+[connection signal="pressed" from="MarginContainer/VBoxContainer/GenerateTerrainButton" to="." method="_on_generate_terrain_button_pressed"]
+[connection signal="pressed" from="MarginContainer/VBoxContainer/PlaceCharactersButton" to="." method="_on_place_characters_button_pressed"]
+[connection signal="pressed" from="MarginContainer/VBoxContainer/StartBattleButton" to="." method="_on_start_battle_button_pressed"]
+[connection signal="pressed" from="MarginContainer/VBoxContainer/BackButton" to="." method="_on_back_button_pressed"]

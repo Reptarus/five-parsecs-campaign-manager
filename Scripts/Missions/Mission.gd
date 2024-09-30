@@ -26,11 +26,11 @@ extends Resource
 @export var street_fight_type: GlobalEnums.StreetFightType
 
 # Additional fields
-@export var special_rules: Array
+@export var special_rules: Array[String]
 @export var involved_factions: Array[GlobalEnums.Faction]
 @export var strife_intensity: int
-@export var key_npcs: Array
-@export var environmental_factors: Array
+@export var key_npcs: Array[String]
+@export var environmental_factors: Array[String]
 @export var available_resources: Dictionary
 @export var time_pressure: int
 
@@ -56,35 +56,34 @@ func complete() -> void:
     status = GlobalEnums.MissionStatus.COMPLETED
     result = "Mission completed successfully"
     if is_expanded and faction:
-        faction["loyalty"] += 1
+        faction["loyalty"] = faction.get("loyalty", 0) + 1
 
 func fail() -> void:
     status = GlobalEnums.MissionStatus.FAILED
     result = "Mission failed"
     if is_expanded and faction:
-        faction["loyalty"] -= 1
+        faction["loyalty"] = faction.get("loyalty", 0) - 1
 
 func is_expired(current_turn: int) -> bool:
     return current_turn >= time_limit
 
-func start_mission(crew: Array) -> bool:
+func start_mission(crew: Array[Character]) -> bool:
     if crew.size() < required_crew_size:
         return false
     if is_expanded and faction and _get_crew_loyalty(crew) < loyalty_requirement:
         return false
     return true
 
-func _get_crew_loyalty(crew: Array) -> int:
+func _get_crew_loyalty(crew: Array[Character]) -> int:
     var total_loyalty = 0
     for character in crew:
-        if character is Character:
-            total_loyalty += character.get_faction_standing(faction.name if faction is Dictionary else "")
+        total_loyalty += character.get_faction_standing(faction.get("name", ""))
     return total_loyalty / crew.size() if crew.size() > 0 else 0
 
 func get_reward() -> Dictionary:
     var final_rewards = rewards.duplicate()
     if is_expanded and faction:
-        final_rewards["credits"] *= (1 + (faction["power"] * 0.1))
+        final_rewards["credits"] = final_rewards.get("credits", 0) * (1 + (faction.get("power", 0) * 0.1))
     return final_rewards
 
 func increase_instability(amount: int) -> void:

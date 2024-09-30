@@ -1,7 +1,8 @@
-[gd_scene load_steps=3 format=3 uid="uid://c1ipgkdm40l6c"]
+[gd_scene load_steps=4 format=3 uid="uid://c1ipgkdm40l6c"]
 
 [ext_resource type="Script" path="res://Scenes/Scene Container/campaigncreation/scripts/CampaignSetupScreen.gd" id="1_sapom"]
 [ext_resource type="Theme" uid="uid://d1you1rrwuu48" path="res://Scenes/sci_fi_theme.tres" id="2_theme"]
+[ext_resource type="PackedScene" uid="uid://dp66b6flafme3" path="res://Scenes/Scene Container/campaigncreation/scenes/VictoryConditionSelection.tscn" id="3_victory"]
 
 [node name="CampaignSetupScreen" type="Control"]
 layout_mode = 3
@@ -13,28 +14,50 @@ grow_vertical = 2
 theme = ExtResource("2_theme")
 script = ExtResource("1_sapom")
 
-[node name="VBoxContainer" type="VBoxContainer" parent="."]
+[node name="MarginContainer" type="MarginContainer" parent="."]
 layout_mode = 1
 anchors_preset = 15
 anchor_right = 1.0
 anchor_bottom = 1.0
 grow_horizontal = 2
 grow_vertical = 2
+theme_override_constants/margin_left = 20
+theme_override_constants/margin_top = 20
+theme_override_constants/margin_right = 20
+theme_override_constants/margin_bottom = 20
 
-[node name="CrewNameInput" type="LineEdit" parent="VBoxContainer"]
+[node name="VBoxContainer" type="VBoxContainer" parent="MarginContainer"]
+layout_mode = 2
+theme_override_constants/separation = 10
+
+[node name="TitleLabel" type="Label" parent="MarginContainer/VBoxContainer"]
+layout_mode = 2
+text = "Campaign Setup"
+horizontal_alignment = 1
+
+[node name="CrewNameInput" type="LineEdit" parent="MarginContainer/VBoxContainer"]
 layout_mode = 2
 placeholder_text = "Enter Crew Name"
 
-[node name="DifficultyOptionButton" type="OptionButton" parent="VBoxContainer"]
+[node name="DifficultyOptionButton" type="OptionButton" parent="MarginContainer/VBoxContainer"]
 layout_mode = 2
 
-[node name="VictoryConditionButton" type="Button" parent="VBoxContainer"]
+[node name="VictoryConditionButton" type="Button" parent="MarginContainer/VBoxContainer"]
 layout_mode = 2
 text = "Select Victory Condition"
 
-[node name="OptionalFeaturesContainer" type="VBoxContainer" parent="VBoxContainer"]
+[node name="OptionalFeaturesContainer" type="VBoxContainer" parent="MarginContainer/VBoxContainer"]
 layout_mode = 2
 
-[node name="StartCampaignButton" type="Button" parent="VBoxContainer"]
+[node name="StartCampaignButton" type="Button" parent="MarginContainer/VBoxContainer"]
 layout_mode = 2
 text = "Start Campaign"
+
+[node name="VictoryConditionSelection" parent="." instance=ExtResource("3_victory")]
+visible = false
+layout_mode = 1
+
+[connection signal="text_changed" from="MarginContainer/VBoxContainer/CrewNameInput" to="." method="_on_crew_name_input_text_changed"]
+[connection signal="item_selected" from="MarginContainer/VBoxContainer/DifficultyOptionButton" to="." method="_on_difficulty_option_button_item_selected"]
+[connection signal="pressed" from="MarginContainer/VBoxContainer/VictoryConditionButton" to="." method="_on_victory_condition_button_pressed"]
+[connection signal="pressed" from="MarginContainer/VBoxContainer/StartCampaignButton" to="." method="_on_start_campaign_button_pressed"]

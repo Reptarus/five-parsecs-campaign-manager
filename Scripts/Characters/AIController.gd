@@ -3,32 +3,18 @@ extends Node
 
 signal ai_action_completed(action: Dictionary)
 
-@export var ai_behavior: AIBehavior = AIBehavior.DETERMINISTIC
+@export var ai_behavior: GlobalEnums.AIBehavior = GlobalEnums.AIBehavior.DETERMINISTIC
 
 var combat_manager: CombatManager
-var game_state: GameState
+var game_state: GameStateManagerNode
 var escalating_battles_manager: EscalatingBattlesManager
 var enemy_deployment_manager: EnemyDeploymentManager
-
-enum AIType {
-	CAUTIOUS,
-	AGGRESSIVE,
-	TACTICAL,
-	DEFENSIVE,
-	BEAST,
-	RAMPAGING
-}
-
-enum AIBehavior {
-	DETERMINISTIC,
-	DICE_BASED
-}
 
 func _init() -> void:
 	escalating_battles_manager = EscalatingBattlesManager.new(null)  # Pass null for now
 	enemy_deployment_manager = EnemyDeploymentManager.new(null)  # Pass null for now
 
-func initialize(_combat_manager: CombatManager, _game_state: GameState) -> void:
+func initialize(_combat_manager: CombatManager, _game_state: GameStateManagerNode) -> void:
 	combat_manager = _combat_manager
 	game_state = _game_state
 	escalating_battles_manager.initialize(game_state, null)  # Pass null for difficulty_settings
@@ -36,7 +22,7 @@ func initialize(_combat_manager: CombatManager, _game_state: GameState) -> void:
 
 func perform_ai_turn(ai_character: Character) -> void:
 	var action: Dictionary
-	if ai_behavior == AIBehavior.DETERMINISTIC:
+	if ai_behavior == GlobalEnums.AIBehavior.DETERMINISTIC:
 		action = determine_best_action(ai_character)
 	else:
 		action = determine_dice_based_action(ai_character)
@@ -60,18 +46,18 @@ func get_possible_actions(ai_character: Character) -> Array[Dictionary]:
 	var actions: Array[Dictionary] = []
 
 	match ai_character.ai_type:
-		AIType.CAUTIOUS:
+		GlobalEnums.AIType.CAUTIOUS:
 			actions.append({"type": "move", "target": combat_manager.find_cover_position(ai_character)})
 			if combat_manager.is_in_cover(ai_character):
 				actions.append({"type": "aim", "target": null})
-		AIType.AGGRESSIVE:
+		GlobalEnums.AIType.AGGRESSIVE:
 			actions.append({"type": "move", "target": combat_manager.find_nearest_enemy(ai_character)})
-		AIType.TACTICAL:
+		GlobalEnums.AIType.TACTICAL:
 			actions.append({"type": "move", "target": combat_manager.find_tactical_position(ai_character)})
-		AIType.DEFENSIVE:
+		GlobalEnums.AIType.DEFENSIVE:
 			if not combat_manager.is_in_cover(ai_character):
 				actions.append({"type": "move", "target": combat_manager.find_cover_position(ai_character)})
-		AIType.BEAST, AIType.RAMPAGING:
+		GlobalEnums.AIType.BEAST, GlobalEnums.AIType.RAMPAGE:
 			actions.append({"type": "move", "target": combat_manager.find_nearest_enemy(ai_character)})
 
 	for target in combat_manager.get_valid_targets(ai_character):
@@ -137,16 +123,16 @@ func execute_action(ai_character: Character, action: Dictionary) -> void:
 	ai_action_completed.emit(action)
 
 func determine_dice_based_action(ai_character: Character) -> Dictionary:
-	var roll := randi() % 6 + 1
+	var roll := GameManager.roll_dice(1, 6)
 	
 	match ai_character.ai_type:
-		AIType.CAUTIOUS:
+		GlobalEnums.AIType.CAUTIOUS:
 			return _cautious_dice_action(ai_character, roll)
-		AIType.AGGRESSIVE:
+		GlobalEnums.AIType.AGGRESSIVE:
 			return _aggressive_dice_action(ai_character, roll)
-		AIType.TACTICAL:
+		GlobalEnums.AIType.TACTICAL:
 			return _tactical_dice_action(ai_character, roll)
-		AIType.DEFENSIVE:
+		GlobalEnums.AIType.DEFENSIVE:
 			return _defensive_dice_action(ai_character, roll)
 		_:
 			return _beast_dice_action(ai_character, roll)
@@ -286,5 +272,5 @@ func _trigger_alien_intervention() -> void:
 			for observer in observers:
 				combat_manager.add_neutral(observer)
 
-func set_ai_behavior(behavior: AIBehavior) -> void:
+func set_ai_behavior(behavior: GlobalEnums.AIBehavior) -> void:
 	ai_behavior = behavior

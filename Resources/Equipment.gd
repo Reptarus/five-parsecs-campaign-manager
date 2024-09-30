@@ -1,24 +1,24 @@
 class_name Equipment
 extends Resource
 
-enum Type { WEAPON, ARMOR, GEAR, SHIP_COMPONENT, CONSUMABLE, IMPLANT, COMPONENT }
-
 @export var name: String
-@export var type: Type
+@export var type: GlobalEnums.ItemType
 @export var value: int
 @export var description: String
 @export var is_damaged: bool = false
 @export var effects: Array[Dictionary] = []
+@export var stats: Dictionary = {}
+@export var traits: Array[String] = []
 
-func _init(_name: String = "", _type: Type = Type.GEAR, _value: int = 0, _description: String = "", _is_damaged: bool = false) -> void:
+func _init(_name: String = "", _type: GlobalEnums.ItemType = GlobalEnums.ItemType.GEAR, _value: int = 0, _description: String = "", _is_damaged: bool = false) -> void:
 	name = _name
 	type = _type
 	value = _value
 	description = _description
 	is_damaged = _is_damaged
 
-func create_copy():
-	var copy = get_script().new()
+func create_copy() -> Equipment:
+	var copy = Equipment.new()
 	for property in get_property_list():
 		if property.usage & PROPERTY_USAGE_SCRIPT_VARIABLE:
 			copy.set(property.name, get(property.name))
@@ -36,39 +36,42 @@ func get_effectiveness() -> int:
 func serialize() -> Dictionary:
 	return {
 		"name": name,
-		"type": Type.keys()[type],
+		"type": GlobalEnums.ItemType.keys()[type],
 		"value": value,
 		"description": description,
-		"is_damaged": is_damaged
+		"is_damaged": is_damaged,
+		"stats": stats,
+		"traits": traits
 	}
 
 static func deserialize(data: Dictionary) -> Equipment:
-	var equipment_type = Type[data["type"]] if data["type"] in Type else Type.GEAR
-	return Equipment.new(
+	var equipment_type = GlobalEnums.ItemType[data["type"]] if data["type"] in GlobalEnums.ItemType else GlobalEnums.ItemType.GEAR
+	var equipment = Equipment.new(
 		data["name"],
 		equipment_type,
 		data["value"],
 		data["description"],
 		data.get("is_damaged", false)
 	)
+	equipment.stats = data.get("stats", {})
+	equipment.traits = data.get("traits", [])
+	return equipment
 
 static func from_json(json_data: Dictionary) -> Equipment:
-	var equipment_type = Type.GEAR  # Default to GEAR
+	var equipment_type = GlobalEnums.ItemType.GEAR  # Default to GEAR
 	var equipment_value = 0
 	var item_description = ""
 
 	if "type" in json_data:
 		match json_data["type"].to_lower():
-			"military", "high-tech", "melee", "heavy":
-				equipment_type = Type.WEAPON
-			"light", "medium", "heavy":
-				equipment_type = Type.ARMOR
-			"utility", "tech", "mobility", "medical":
-				equipment_type = Type.GEAR
-			"explosive":
-				equipment_type = Type.CONSUMABLE
-			"defensive", "combat":
-				equipment_type = Type.IMPLANT
+			"weapon":
+				equipment_type = GlobalEnums.ItemType.WEAPON
+			"armor":
+				equipment_type = GlobalEnums.ItemType.ARMOR
+			"gear":
+				equipment_type = GlobalEnums.ItemType.GEAR
+			"consumable":
+				equipment_type = GlobalEnums.ItemType.CONSUMABLE
 
 	if "damage" in json_data:
 		equipment_value = json_data["damage"]
@@ -76,9 +79,6 @@ static func from_json(json_data: Dictionary) -> Equipment:
 		equipment_value = json_data["defense"]
 	elif "effect" in json_data:
 		item_description = json_data["effect"]
-
-	if "traits" in json_data:
-		item_description += " Traits: " + ", ".join(json_data["traits"])
 
 	var equipment = Equipment.new(
 		json_data["name"],
@@ -89,10 +89,12 @@ static func from_json(json_data: Dictionary) -> Equipment:
 	)
 
 	if "range" in json_data:
-		equipment.effects.append({"range": json_data["range"]})
+		equipment.stats["range"] = json_data["range"]
 	if "shots" in json_data:
-		equipment.effects.append({"shots": json_data["shots"]})
+		equipment.stats["shots"] = json_data["shots"]
 	if "uses" in json_data:
-		equipment.effects.append({"uses": json_data["uses"]})
+		equipment.stats["uses"] = json_data["uses"]
+	if "traits" in json_data:
+		equipment.traits = json_data["traits"]
 
 	return equipment

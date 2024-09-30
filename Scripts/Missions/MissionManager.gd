@@ -2,12 +2,10 @@
 class_name MissionManager
 extends Node
 
-var game_state_manager: GameStateManagerNode
-var game_state: GameStateManager
+var game_state: GameState
 
-func _init(_game_state_manager: GameStateManagerNode):
-    game_state_manager = _game_state_manager
-    game_state = game_state_manager.get_game_state()
+func _init(_game_state: GameState):
+    game_state = _game_state
 
 func generate_missions() -> Array[Mission]:
     var missions: Array[Mission] = []
@@ -31,7 +29,7 @@ func generate_standard_missions() -> Array[Mission]:
         mission.type = GlobalEnums.Type.STANDARD
         mission.title = "Standard Mission " + str(i + 1)
         mission.description = "A standard mission in the current location."
-        mission.objective = GlobalEnums.MissionObjective.values()[randi() % GlobalEnums.MissionObjective.size()]
+        mission.objective = GlobalEnums.MissionObjective.values().pick_random()
         mission.difficulty = randi() % 5 + 1
         mission.time_limit = randi() % 5 + 3
         mission.location = game_state.current_location
@@ -49,7 +47,7 @@ func generate_patron_missions() -> Array[Mission]:
             mission.type = GlobalEnums.Type.PATRON
             mission.title = patron.name + "'s Mission"
             mission.description = "A mission from " + patron.name
-            mission.objective = GlobalEnums.MissionObjective.values()[randi() % GlobalEnums.MissionObjective.size()]
+            mission.objective = GlobalEnums.MissionObjective.values().pick_random()
             mission.difficulty = randi() % 5 + 1
             mission.time_limit = randi() % 5 + 3
             mission.location = game_state.current_location
@@ -114,12 +112,12 @@ func generate_fringe_world_strife_missions() -> Array[Mission]:
         mission.type = GlobalEnums.Type.FRINGE_WORLD_STRIFE
         mission.title = "Fringe World Conflict"
         mission.description = "A mission to deal with rising tensions on a fringe world."
-        mission.objective = GlobalEnums.MissionObjective.values()[randi() % GlobalEnums.MissionObjective.size()]
+        mission.objective = GlobalEnums.MissionObjective.values().pick_random()
         mission.difficulty = randi() % 5 + 1
         mission.time_limit = randi() % 5 + 3
         mission.location = game_state.current_location
         mission.rewards = generate_rewards(mission.difficulty)
-        mission.instability = GlobalEnums.FringeWorldInstability.values()[randi() % GlobalEnums.FringeWorldInstability.size()]
+        mission.instability = GlobalEnums.FringeWorldInstability.values().pick_random()
         missions.append(mission)
     return missions
 

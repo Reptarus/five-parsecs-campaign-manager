@@ -2,72 +2,84 @@
 class_name AdvancedTrainingManager
 extends Node
 
+signal training_completed(character: Character, course: String)
+signal training_failed(character: Character, course: String)
+
 var game_state: GameState
 
 func _init(_game_state: GameState):
 	game_state = _game_state
 
-var ADVANCED_TRAINING_COURSES = {
+const ADVANCED_TRAINING_COURSES = {
 	"Pilot Training": {
 		"cost": 20,
-		"effect": func(character): character.pilot_skill += 1
+		"effect": func(character: Character): character.increase_skill(GlobalEnums.SkillType.TECHNICAL, 1)
 	},
-	"Mechanic Training": {
-		"cost": 15,
-		"effect": func(character): character.mechanic_skill += 1
+	"Combat Training": {
+		"cost": 25,
+		"effect": func(character: Character): character.increase_skill(GlobalEnums.SkillType.COMBAT, 1)
 	},
 	"Medical School": {
 		"cost": 20,
-		"effect": func(character): character.medical_skill += 1
+		"effect": func(character: Character): character.increase_skill(GlobalEnums.SkillType.TECHNICAL, 1)
 	},
-	"Merchant School": {
-		"cost": 10,
-		"effect": func(character): character.merchant_skill += 1
-	},
-	"Security Training": {
-		"cost": 10,
-		"effect": func(character): character.security_skill += 1
-	},
-	"Broker Training": {
+	"Negotiation Course": {
 		"cost": 15,
-		"effect": func(character): character.broker_skill += 1
+		"effect": func(character: Character): character.increase_skill(GlobalEnums.SkillType.SOCIAL, 1)
 	},
-	"Bot Technician": {
-		"cost": 10,
-		"effect": func(character): character.bot_tech_skill += 1
+	"Survival Training": {
+		"cost": 18,
+		"effect": func(character: Character): character.increase_skill(GlobalEnums.SkillType.SURVIVAL, 1)
+	},
+	"Hacking Masterclass": {
+		"cost": 22,
+		"effect": func(character: Character): character.increase_skill(GlobalEnums.SkillType.TECHNICAL, 1)
 	}
 }
 
-func apply_for_training(_character: Character, course: String) -> bool:
+func apply_for_training(character: Character, course: String) -> bool:
 	if not ADVANCED_TRAINING_COURSES.has(course):
+		push_error("Invalid course: %s" % course)
 		return false
 	
 	var application_fee = 1
-	if game_state.current_crew.credits < application_fee:
+	if not game_state.remove_credits(application_fee):
+		push_warning("Not enough credits for application fee")
 		return false
 	
-	game_state.current_crew.credits -= application_fee
-	
-	var roll = randi() % 6 + randi() % 6 + 2  # 2d6
+	var roll = GameManager.roll_dice(2, 6)  # 2d6
 	if roll >= 4:
 		return true
 	return false
 
 func enroll_in_course(character: Character, course: String) -> bool:
 	if not ADVANCED_TRAINING_COURSES.has(course):
+		push_error("Invalid course: %s" % course)
 		return false
 	
 	var course_data = ADVANCED_TRAINING_COURSES[course]
-	if game_state.current_crew.credits < course_data.cost:
+	if not game_state.remove_credits(course_data.cost):
+		push_warning("Not enough credits for course: %s" % course)
 		return false
 	
-	game_state.current_crew.credits -= course_data.cost
 	course_data.effect.call(character)
+	training_completed.emit(character, course)
 	return true
 
-func get_available_courses(character: Character) -> Array:
-	var available_courses = []
+func get_available_courses(character: Character) -> Array[String]:
+	var available_courses: Array[String] = []
 	for course in ADVANCED_TRAINING_COURSES.keys():
 		if not character.has_training(course):
 			available_courses.append(course)
 	return available_courses
+
+func attempt_training(character: Character, course: String) -> void:
+	if apply_for_training(character, course):
+		if enroll_in_course(character, course):
+			print("Training successful: %s completed %s" % [character.name, course])
+		else:
+			training_failed.emit(character, course)
+			print("Training failed: %s could not enroll in %s" % [character.name, course])
+	else:
+		training_failed.emit(character, course)
+		print("Application failed: %s was not accepted for %s" % [character.name, course])

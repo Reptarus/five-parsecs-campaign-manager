@@ -10,10 +10,10 @@ signal request_upgrade_choice(upgrade_options: Array)
 var character_advancement: CharacterAdvancement
 
 @export var name: String
-@export var species: String
-@export var background: String
-@export var character_class: String
-@export var motivation: String
+@export var species: GlobalEnums.Species
+@export var background: GlobalEnums.Background
+@export var character_class: GlobalEnums.Class
+@export var motivation: GlobalEnums.Motivation
 @export var is_strange: bool = false
 @export var strange_type: String = ""
 
@@ -35,6 +35,7 @@ var position: Vector2i
 var weapon: Weapon
 var is_defeated: bool = false
 var is_priority_target: bool = false
+var status: GlobalEnums.CharacterStatus = GlobalEnums.CharacterStatus.ACTIVE
 
 # Include methods from CharacterInventory.gd
 func add_item(item: Dictionary): inventory.append(item)
@@ -49,13 +50,13 @@ func set_strange_character(type: String):
 	# Apply special abilities based on type
 
 # Include character creation and management methods
-static func create(species: String, background: String, motivation: String, character_class: String, game_state_manager: GameStateManagerNode) -> Character:
+static func create(species: GlobalEnums.Species, background: GlobalEnums.Background, motivation: GlobalEnums.Motivation, character_class: GlobalEnums.Class, game_state_manager: GameStateManagerNode) -> Character:
 	var character = Character.new()
 	character.initialize(species, background, motivation, character_class, game_state_manager)
 	character.name = generate_name(species)
 	return character
 
-func initialize(species: String, background: String, motivation: String, character_class: String, game_state_manager: GameStateManagerNode) -> void:
+func initialize(species: GlobalEnums.Species, background: GlobalEnums.Background, motivation: GlobalEnums.Motivation, character_class: GlobalEnums.Class, game_state_manager: GameStateManagerNode) -> void:
 	self.species = species
 	self.background = background
 	self.motivation = motivation
@@ -68,90 +69,70 @@ func initialize(species: String, background: String, motivation: String, charact
 func initialize_default_stats() -> void:
 	# Implement default stat initialization based on species
 	match species:
-		"Human":
+		GlobalEnums.Species.HUMAN:
 			reactions = 2
 			speed = 4
 			combat_skill = 1
 			toughness = 3
 			savvy = 1
-		"Converted":
+		GlobalEnums.Species.ENGINEER:
 			reactions = 1
 			speed = 4
 			combat_skill = 0
 			toughness = 5
 			savvy = 0
-		"Abductor":
+		GlobalEnums.Species.KERIN:
 			reactions = 3
 			speed = 4
 			combat_skill = 0
 			toughness = 3
 			savvy = 2
-		"Feral":
+		GlobalEnums.Species.FERAL:
 			reactions = 3
 			speed = 5
 			combat_skill = 1
 			toughness = 4
 			savvy = 0
-		"Skulker":
+		GlobalEnums.Species.SKULKER:
 			reactions = 4
 			speed = 7
 			combat_skill = 1
 			toughness = 4
 			savvy = 0
 
-func apply_background_effects(background: String) -> void:
+func apply_background_effects(background: GlobalEnums.Background) -> void:
 	# Implement background effects
 	match background:
-		"Peaceful, High-Tech Colony":
+		GlobalEnums.Background.HIGH_TECH_COLONY:
 			savvy += 1
-		"Giant, Overcrowded, Dystopian City":
+		GlobalEnums.Background.OVERCROWDED_CITY:
 			speed += 1
-		"Low-Tech Colony":
+		GlobalEnums.Background.LOW_TECH_COLONY:
 			# No specific stat changes
 			pass
-		"Mining Colony":
+		GlobalEnums.Background.MINING_COLONY:
 			toughness += 1
-		"Military Brat":
+		GlobalEnums.Background.MILITARY_BRAT:
 			combat_skill += 1
-		"Space Station":
+		GlobalEnums.Background.SPACE_STATION:
 			# No specific stat changes
 			pass
-		"Military Outpost":
-			reactions += 1
-		"Drifter":
-			# No specific stat changes
-			pass
-		"Lower Megacity Class":
-			# No specific stat changes
-			pass
-		"Wealthy Merchant Family":
-			# No specific stat changes
-			pass
-		"Frontier Gang":
-			toughness += 1
-		"Religious Cult":
-			# No specific stat changes
-			pass
-		"War-Torn Hell-Hole":
-			reactions += 1
-		# Add more background-specific effects here
 
-func apply_class_effects(character_class: String) -> void:
+func apply_class_effects(character_class: GlobalEnums.Class) -> void:
 	# Implement class effects
 	match character_class:
-		"Warrior":
+		GlobalEnums.Class.SOLDIER:
 			combat_skill += 1
 			toughness += 1
-		"Engineer":
+		GlobalEnums.Class.TECHNICIAN:
 			savvy += 1
 			speed += 1
-		"Explorer":
+		GlobalEnums.Class.SCIENTIST:
 			speed += 1
 			reactions += 1
-		"Medic":
+		GlobalEnums.Class.MERCENARY:
 			toughness += 1
 			savvy += 1
-		# Add more class-specific effects here
 
 func add_xp(amount: int) -> void:
 	xp += amount
@@ -162,7 +143,7 @@ func get_xp_for_next_level() -> int:
 	return character_advancement.get_xp_for_next_level(level)
 
 func get_available_upgrades() -> Array:
-	return character_advancement.get_available_upgrades(self)
+	return character_advancement.get_available_upgrades()
 
 func apply_upgrade(upgrade: Dictionary) -> void:
 	character_advancement.apply_upgrade(upgrade)
@@ -188,17 +169,18 @@ func serialize() -> Dictionary:
 		"inventory": inventory,
 		"traits": traits,
 		"medbay_turns_left": medbay_turns_left,
-		"injuries": injuries
+		"injuries": injuries,
+		"status": status
 	}
 	return data
 
 static func deserialize(data: Dictionary, game_state_manager: GameStateManagerNode) -> Character:
 	var character = Character.new()
 	character.name = data.get("name", "")
-	character.species = data.get("species", "")
-	character.background = data.get("background", "")
-	character.character_class = data.get("character_class", "")
-	character.motivation = data.get("motivation", "")
+	character.species = data.get("species", GlobalEnums.Species.HUMAN)
+	character.background = data.get("background", GlobalEnums.Background.HIGH_TECH_COLONY)
+	character.character_class = data.get("character_class", GlobalEnums.Class.WORKING_CLASS)
+	character.motivation = data.get("motivation", GlobalEnums.Motivation.ADVENTURE)
 	character.is_strange = data.get("is_strange", false)
 	character.strange_type = data.get("strange_type", "")
 	character.reactions = data.get("reactions", 1)
@@ -213,22 +195,23 @@ static func deserialize(data: Dictionary, game_state_manager: GameStateManagerNo
 	character.traits = data.get("traits", [])
 	character.medbay_turns_left = data.get("medbay_turns_left", 0)
 	character.injuries = data.get("injuries", [])
+	character.status = data.get("status", GlobalEnums.CharacterStatus.ACTIVE)
 	character.character_advancement = CharacterAdvancement.new(character)
 	return character
 
 # Static method for name generation
-static func generate_name(species: String) -> String:
+static func generate_name(species: GlobalEnums.Species) -> String:
 	var name_part1 = ""
 	var name_part2 = ""
 	
 	match species:
-		"human":
+		GlobalEnums.Species.HUMAN:
 			name_part1 = get_random_name_part("World Names Generator")
 			name_part2 = get_random_name_part("Colony Names Generator", "Part 2")
-		"alien":
+		GlobalEnums.Species.KERIN:
 			name_part1 = get_random_name_part("Ship Names Generator", "Part 1")
 			name_part2 = get_random_name_part("Ship Names Generator", "Part 2")
-		"robot":
+		GlobalEnums.Species.BOT:
 			name_part1 = get_random_name_part("Corporate Patron Names Generator", "Part 1")
 			name_part2 = get_random_name_part("Corporate Patron Names Generator", "Part 2")
 		_:
@@ -268,7 +251,7 @@ static func create_temporary() -> Character:
 	var temp_ally = Character.new()
 	
 	# Initialize temp_ally with necessary properties based on Compendium.md and Core Rules.md
-	temp_ally.name = generate_name("human")
+	temp_ally.name = generate_name(GlobalEnums.Species.HUMAN)
 	temp_ally.speed = 4
 	temp_ally.combat_skill = 0
 	temp_ally.toughness = 4
@@ -281,7 +264,7 @@ static func create_temporary() -> Character:
 	temp_ally.gear_notes = "Standard issue"
 	temp_ally.luck = 0
 	temp_ally.xp = 0
-	temp_ally.species_type = "Human"
+	temp_ally.species = GlobalEnums.Species.HUMAN
 	temp_ally.reactions = 1
 	
 	# Integrate AIController

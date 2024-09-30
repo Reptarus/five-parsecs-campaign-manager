@@ -8,7 +8,7 @@ const ENEMY_TYPES: Dictionary = {
 		"speed": 4,
 		"combat_skill": 0,
 		"toughness": 3,
-		"ai": "A",
+		"ai": GlobalEnums.AIType.AGGRESSIVE,
 		"weapons": "1 A",
 		"special_rules": ["Leg it: When a ganger is hit by a shot, they will retreat 3\" away from the shooter."]
 	},
@@ -18,7 +18,7 @@ const ENEMY_TYPES: Dictionary = {
 		"speed": 4,
 		"combat_skill": 0,
 		"toughness": 3,
-		"ai": "A",
+		"ai": GlobalEnums.AIType.AGGRESSIVE,
 		"weapons": "1 A",
 		"special_rules": [
 			"Careless: You are +1 to Seize the Initiative.",
@@ -31,7 +31,7 @@ const ENEMY_TYPES: Dictionary = {
 		"speed": 4,
 		"combat_skill": 1,
 		"toughness": 3,
-		"ai": "A",
+		"ai": GlobalEnums.AIType.AGGRESSIVE,
 		"weapons": "2 A",
 		"special_rules": ["Scavengers: Roll twice on the Battlefield Finds Table."]
 	},
@@ -41,7 +41,7 @@ const ENEMY_TYPES: Dictionary = {
 		"speed": 4,
 		"combat_skill": 0,
 		"toughness": 3,
-		"ai": "A",
+		"ai": GlobalEnums.AIType.AGGRESSIVE,
 		"weapons": "1 A",
 		"special_rules": ["Intrigue: Roll 2D6 and add +1 if you killed a Lieutenant and/or Unique Individual. On a 9+, you obtain a Quest Rumor."]
 	},
@@ -51,7 +51,7 @@ const ENEMY_TYPES: Dictionary = {
 		"speed": 6,
 		"combat_skill": 0,
 		"toughness": 4,
-		"ai": "R",
+		"ai": GlobalEnums.AIType.RAMPAGE,
 		"weapons": "1 B",
 		"special_rules": ["Bad shots: Their shooting only Hits on a natural 6."]
 	},
@@ -61,7 +61,7 @@ const ENEMY_TYPES: Dictionary = {
 		"speed": 5,
 		"combat_skill": 0,
 		"toughness": 4,
-		"ai": "A",
+		"ai": GlobalEnums.AIType.AGGRESSIVE,
 		"weapons": "2 C",
 		"special_rules": [
 			"Careless: You are +1 to Seize the Initiative.",
@@ -74,7 +74,7 @@ const ENEMY_TYPES: Dictionary = {
 		"speed": 5,
 		"combat_skill": 0,
 		"toughness": 4,
-		"ai": "C",
+		"ai": GlobalEnums.AIType.CAUTIOUS,
 		"weapons": "1 B",
 		"special_rules": ["Alert: You are -1 to Seize the Initiative."]
 	},
@@ -84,7 +84,7 @@ const ENEMY_TYPES: Dictionary = {
 		"speed": 5,
 		"combat_skill": 0,
 		"toughness": 3,
-		"ai": "A",
+		"ai": GlobalEnums.AIType.AGGRESSIVE,
 		"weapons": "2 B",
 		"special_rules": ["Stubborn: They ignore the first casualty of the battle when making a Morale check."]
 	},
@@ -94,7 +94,7 @@ const ENEMY_TYPES: Dictionary = {
 		"speed": 5,
 		"combat_skill": 0,
 		"toughness": 4,
-		"ai": "A",
+		"ai": GlobalEnums.AIType.AGGRESSIVE,
 		"weapons": "2 A",
 		"special_rules": ["Loot: Gain an extra Loot roll if Holding the Field."]
 	},
@@ -104,7 +104,7 @@ const ENEMY_TYPES: Dictionary = {
 		"speed": 4,
 		"combat_skill": 1,
 		"toughness": 4,
-		"ai": "A",
+		"ai": GlobalEnums.AIType.AGGRESSIVE,
 		"weapons": "2 A",
 		"special_rules": ["Stubborn: They ignore the first casualty when making a Morale check."]
 	},
@@ -114,7 +114,7 @@ const ENEMY_TYPES: Dictionary = {
 		"speed": 6,
 		"combat_skill": 0,
 		"toughness": 3,
-		"ai": "C",
+		"ai": GlobalEnums.AIType.CAUTIOUS,
 		"weapons": "1 B",
 		"special_rules": [
 			"Alert: You are -1 to Seize the Initiative.",
@@ -127,7 +127,7 @@ const ENEMY_TYPES: Dictionary = {
 		"speed": 4,
 		"combat_skill": 0,
 		"toughness": 5,
-		"ai": "T",
+		"ai": GlobalEnums.AIType.TACTICAL,
 		"weapons": "3 C",
 		"special_rules": [
 			"Loot: Gain an extra Loot roll if Holding the Field.",
@@ -140,7 +140,7 @@ const ENEMY_TYPES: Dictionary = {
 		"speed": 4,
 		"combat_skill": 0,
 		"toughness": 3,
-		"ai": "D",
+		"ai": GlobalEnums.AIType.DEFENSIVE,
 		"weapons": "1 A",
 		"special_rules": ["Friday Night Warriors: When a scum is slain, all allies within 6\" will retreat a standard move at their base speed directly back towards their own battlefield edge."]
 	},
@@ -150,7 +150,7 @@ const ENEMY_TYPES: Dictionary = {
 		"speed": 4,
 		"combat_skill": 1,
 		"toughness": 5,
-		"ai": "A",
+		"ai": GlobalEnums.AIType.AGGRESSIVE,
 		"weapons": "1 A",
 		"special_rules": [
 			"Ferocious: +1 to Brawling rolls when initiating combat.",
@@ -163,7 +163,7 @@ const ENEMY_TYPES: Dictionary = {
 		"speed": 4,
 		"combat_skill": 1,
 		"toughness": 3,
-		"ai": "T",
+		"ai": GlobalEnums.AIType.TACTICAL,
 		"weapons": "1 B",
 		"special_rules": ["Trick shot: Any natural 6 when they shoot allows an additional shot against the same target or another target within 2\"."]
 	},
@@ -173,7 +173,7 @@ const ENEMY_TYPES: Dictionary = {
 		"speed": 5,
 		"combat_skill": 1,
 		"toughness": 4,
-		"ai": "T",
+		"ai": GlobalEnums.AIType.TACTICAL,
 		"weapons": "2 B",
 		"special_rules": ["Lets just call it a day: If they are down to 1 or 2 figures remaining, they will accept ending the fight at the end of any round. Neither side Holds the Field in this case."]
 	},
@@ -183,7 +183,7 @@ const ENEMY_TYPES: Dictionary = {
 		"speed": 4,
 		"combat_skill": 1,
 		"toughness": 4,
-		"ai": "T",
+		"ai": GlobalEnums.AIType.TACTICAL,
 		"weapons": "2 A",
 		"special_rules": ["Cop killer: If you ever fight Enforcers as Rivals, add +2 to their numbers."]
 	},
@@ -193,7 +193,7 @@ const ENEMY_TYPES: Dictionary = {
 		"speed": 4,
 		"combat_skill": 1,
 		"toughness": 4,
-		"ai": "T",
+		"ai": GlobalEnums.AIType.TACTICAL,
 		"weapons": "2 C",
 		"special_rules": ["Intrigue: Roll 2D6, and add +1 if you killed a Lieutenant and/or Unique Individual. On a 9+, you obtain a Quest Rumor."]
 	},
@@ -203,7 +203,7 @@ const ENEMY_TYPES: Dictionary = {
 		"speed": 4,
 		"combat_skill": 0,
 		"toughness": 5,
-		"ai": "A",
+		"ai": GlobalEnums.AIType.AGGRESSIVE,
 		"weapons": "1 A",
 		"special_rules": ["Careless: You are +1 to Seize the Initiative (for a final modifier of 0)."]
 	},
@@ -213,7 +213,7 @@ const ENEMY_TYPES: Dictionary = {
 		"speed": 6,
 		"combat_skill": 2,
 		"toughness": 5,
-		"ai": "T",
+		"ai": GlobalEnums.AIType.TACTICAL,
 		"weapons": "3 A",
 		"special_rules": ["Tough fight: A random survivor gains +1 XP."]
 	},
@@ -223,7 +223,7 @@ const ENEMY_TYPES: Dictionary = {
 		"speed": 3,
 		"combat_skill": 1,
 		"toughness": 4,
-		"ai": "A",
+		"ai": GlobalEnums.AIType.AGGRESSIVE,
 		"weapons": "3 C",
 		"special_rules": [
 			"Fearless: Never affected by Morale.",
@@ -236,7 +236,7 @@ const ENEMY_TYPES: Dictionary = {
 		"speed": 5,
 		"combat_skill": 1,
 		"toughness": 4,
-		"ai": "C",
+		"ai": GlobalEnums.AIType.CAUTIOUS,
 		"weapons": "2 C",
 		"special_rules": [
 			"Loot: Gain an extra Loot roll if Holding the Field.",
@@ -249,7 +249,7 @@ const ENEMY_TYPES: Dictionary = {
 		"speed": 6,
 		"combat_skill": 2,
 		"toughness": 3,
-		"ai": "A",
+		"ai": GlobalEnums.AIType.AGGRESSIVE,
 		"weapons": "1 B",
 		"special_rules": [
 			"Gruesome: Characters rolling for post-battle Injuries must apply a -5 to the roll.",
@@ -262,7 +262,7 @@ const ENEMY_TYPES: Dictionary = {
 		"speed": 5,
 		"combat_skill": 0,
 		"toughness": 4,
-		"ai": "A",
+		"ai": GlobalEnums.AIType.AGGRESSIVE,
 		"weapons": "2 B",
 		"special_rules": ["Quick feet: They add +1\" to the distance for any Dash move."]
 	},
@@ -272,7 +272,7 @@ const ENEMY_TYPES: Dictionary = {
 		"speed": 7,
 		"combat_skill": 0,
 		"toughness": 3,
-		"ai": "C",
+		"ai": GlobalEnums.AIType.CAUTIOUS,
 		"weapons": "2 C",
 		"special_rules": [
 			"Alert: You are -1 to Seize the Initiative (for a total of -2).",
@@ -285,7 +285,7 @@ const ENEMY_TYPES: Dictionary = {
 		"speed": 4,
 		"combat_skill": 1,
 		"toughness": 4,
-		"ai": "D",
+		"ai": GlobalEnums.AIType.DEFENSIVE,
 		"weapons": "2 B",
 		"special_rules": ["6+ Saving Throw."]
 	},
@@ -295,7 +295,7 @@ const ENEMY_TYPES: Dictionary = {
 		"speed": 5,
 		"combat_skill": 1,
 		"toughness": 4,
-		"ai": "T",
+		"ai": GlobalEnums.AIType.TACTICAL,
 		"weapons": "2 C",
 		"special_rules": ["6+ Saving Throw."]
 	},
@@ -305,7 +305,7 @@ const ENEMY_TYPES: Dictionary = {
 		"speed": 3,
 		"combat_skill": 0,
 		"toughness": 5,
-		"ai": "D",
+		"ai": GlobalEnums.AIType.DEFENSIVE,
 		"weapons": "2 A",
 		"special_rules": [
 			"Careless: You are +1 to Seize the Initiative (for a total of 0).",
@@ -319,7 +319,7 @@ const ENEMY_TYPES: Dictionary = {
 		"speed": 5,
 		"combat_skill": 1,
 		"toughness": 4,
-		"ai": "T",
+		"ai": GlobalEnums.AIType.TACTICAL,
 		"weapons": "2 C",
 		"special_rules": ["Stubborn: They ignore the first casualty of the battle when making a Morale check."]
 	},
@@ -329,7 +329,7 @@ const ENEMY_TYPES: Dictionary = {
 		"speed": 4,
 		"combat_skill": 1,
 		"toughness": 5,
-		"ai": "T",
+		"ai": GlobalEnums.AIType.TACTICAL,
 		"weapons": "3 B",
 		"special_rules": ["Up close: If a Rage Lizard is within 1\" of terrain, they may add +1 to Brawling rolls."]
 	},
@@ -339,7 +339,7 @@ const ENEMY_TYPES: Dictionary = {
 		"speed": 4,
 		"combat_skill": 1,
 		"toughness": 4,
-		"ai": "A",
+		"ai": GlobalEnums.AIType.AGGRESSIVE,
 		"weapons": "2 B",
 		"special_rules": ["Ferocious: +1 to Brawling rolls when initiating combat."]
 	}

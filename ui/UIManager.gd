@@ -2,12 +2,16 @@
 class_name UIManager
 extends Node
 
+signal screen_changed(new_screen: Control)
+
 var current_screen: Control
 var screens: Dictionary = {}
 var game_state: GameState
+var game_manager: GameManager
 
-func initialize(state: GameState):
-	game_state = state
+func initialize(manager: GameManager):
+	game_manager = manager
+	game_state = manager.game_state
 
 func _ready():
 	# Register all screens
@@ -33,7 +37,7 @@ func change_screen(screen_name: String):
 	if screen_name in screens:
 		current_screen = screens[screen_name]
 		current_screen.show()
-		emit_signal("screen_changed", current_screen)
+		screen_changed.emit(current_screen)
 	else:
 		push_error("Screen not found: " + screen_name)
 
@@ -100,3 +104,13 @@ func show_game_over_screen(victory: bool):
 
 func hide_game_over_screen():
 	$GameOverScreen.hide()
+
+func update_tutorial_display(text: String):
+	$TutorialDisplay.text = text
+	$TutorialDisplay.show()
+
+func hide_tutorial_display():
+	$TutorialDisplay.hide()
+
+func update_campaign_phase_display(phase: GlobalEnums.CampaignPhase):
+	$HUD/PhaseLabel.text = "Phase: " + GlobalEnums.CampaignPhase.keys()[phase]

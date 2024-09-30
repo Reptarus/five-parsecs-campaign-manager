@@ -2,6 +2,8 @@
 class_name ExtendedConnectionsManager
 extends Node
 
+signal connection_applied(connection: Dictionary)
+
 var game_state: GameState
 var connections_data: Dictionary
 
@@ -16,7 +18,7 @@ func _load_connections_data():
 	if error == OK:
 		connections_data = json.data
 	else:
-		print("JSON Parse Error: ", json.get_error_message())
+		push_error("JSON Parse Error: " + json.get_error_message())
 
 func generate_connection() -> Dictionary:
 	var connection_types = connections_data["connection_types"]
@@ -51,6 +53,8 @@ func apply_connection_effect(connection: Dictionary):
 			apply_faction_connection_effect(connection)
 		"Equipment":
 			apply_equipment_connection_effect(connection)
+		"Military":
+			apply_military_connection_effect(connection)
 		_:
 			# For general connections
 			for effect in connection["effects"]:
@@ -66,13 +70,15 @@ func apply_connection_effect(connection: Dictionary):
 	
 	# Apply duration
 	game_state.add_active_connection(connection)
+	connection_applied.emit(connection)
 
 func generate_psionic_connection() -> Dictionary:
 	var psionic_connections = connections_data["psionic_connections"]
 	var psionic_connection = psionic_connections[randi() % psionic_connections.size()]
 	var duration = _roll_duration(psionic_connection["duration"])
 	return {
-		"type": "Psionic " + psionic_connection["name"],
+		"type": "Psionic",
+		"name": psionic_connection["name"],
 		"description": psionic_connection["description"],
 		"effects": psionic_connection["effects"],
 		"duration": duration,
@@ -80,7 +86,6 @@ func generate_psionic_connection() -> Dictionary:
 	}
 
 func apply_psionic_connection_effect(connection: Dictionary):
-	# Implement logic to apply psionic connection effects
 	var psionic_power = connection["psionic_power"]
 	game_state.add_psionic_power(psionic_power)
 
@@ -90,15 +95,15 @@ func generate_faction_connection() -> Dictionary:
 	var duration = _roll_duration(connection["duration"])
 	
 	return {
-		"type": "Faction " + connection["name"],
+		"type": "Faction",
+		"name": connection["name"],
 		"description": connection["description"],
 		"effects": connection["effects"],
-			"duration": duration,
-			"faction": connection["faction"]
+		"duration": duration,
+		"faction": connection["faction"]
 	}
 
 func apply_faction_connection_effect(connection: Dictionary):
-	# Implement logic to apply faction connection effects
 	var faction = connection["faction"]
 	game_state.modify_faction_standing(faction, connection["effects"]["standing_change"])
 
@@ -108,7 +113,8 @@ func generate_equipment_connection() -> Dictionary:
 	var duration = _roll_duration(connection["duration"])
 	
 	return {
-		"type": "Equipment " + connection["name"],
+		"type": "Equipment",
+		"name": connection["name"],
 		"description": connection["description"],
 		"effects": connection["effects"],
 		"duration": duration,
@@ -150,7 +156,8 @@ func generate_military_connection() -> Dictionary:
 	var duration = _roll_duration(connection["duration"])
 	
 	return {
-		"type": "Military " + connection["name"],
+		"type": "Military",
+		"name": connection["name"],
 		"description": connection["description"],
 		"effects": connection["effects"],
 		"duration": duration,
@@ -158,7 +165,6 @@ func generate_military_connection() -> Dictionary:
 	}
 
 func apply_military_connection_effect(connection: Dictionary):
-	# Implement logic to apply military connection effects
 	var military_bonus = connection["military_bonus"]
 	game_state.apply_military_bonus(military_bonus)
 
@@ -170,12 +176,62 @@ func generate_mission_from_connection(connection: Dictionary) -> Mission:
 	# Modify mission based on connection type
 	match connection["type"]:
 		"Alliance":
-			mission.difficulty -= 1
+			mission.difficulty = max(1, mission.difficulty - 1)
 		"Rivalry":
 			mission.difficulty += 1
 		"Trade Agreement":
-			mission.rewards["credits"] *= 1.2
+			mission.rewards["credits"] = int(mission.rewards["credits"] * 1.2)
 		"Information Network":
-			mission.rewards["reputation"] += 1
+			mission.rewards["reputation"] = min(5, mission.rewards["reputation"] + 1)
 	
 	return mission
+
+func check_elite_rival_persistence():
+	for rival in game_state.get_elite_rivals():
+		if game_state.roll_dice(1, 6) >= 4:
+			game_state.rival_follows_to_new_world(rival)
+
+func generate_elite_enemy_composition(squad_size: int) -> Dictionary:
+	var composition = {
+		"basic": 0,
+		"specialists": 0,
+		"lieutenants": 0,
+		"captain": 0
+	}
+	
+	if squad_size < 4:
+		squad_size = 4
+	
+	if squad_size == 4:
+		composition.basic = 3
+		composition.specialists = 1
+	elif squad_size == 5:
+		composition.basic = 2
+		composition.specialists = 2
+		composition.lieutenants = 1
+	elif squad_size == 6:
+		composition.basic = 3
+		composition.specialists = 2
+		composition.lieutenants = 1
+	else:  # 7+
+		composition.basic = 3
+		composition.specialists = 2
+		composition.lieutenants = 1
+		composition.captain = 1
+		composition.basic += squad_size - 7  # Add extra basic enemies for larger squads
+	
+	return composition
+
+func apply_elite_enemy_upgrades(enemy: Character, enemy_type: String):
+	match enemy_type:
+		"specialist":
+			enemy.equip_specialist_weapon()
+			if enemy.combat_skill == 0:
+				enemy.combat_skill = 1
+		"lieutenant":
+			enemy.equip_basic_weapon()
+			enemy.equip_blade()
+		"captain":
+			enemy.equip_specialist_weapon()
+			enemy.equip_blade()
+			enemy.combat_skill = max(2, enemy.combat_skill)

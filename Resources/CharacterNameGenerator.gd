@@ -73,6 +73,24 @@ static func get_random_name_for_species(species: GlobalEnums.Species) -> String:
 		GlobalEnums.Species.HUMAN:
 			first_name = EXTRA_FIRST_NAMES[randi() % EXTRA_FIRST_NAMES.size()]
 			last_name = EXTRA_LAST_NAMES[randi() % EXTRA_LAST_NAMES.size()]
+		GlobalEnums.Species.ENGINEER:
+			first_name = "ENG-" + str(randi() % 1000).pad_zeros(3)
+			last_name = EXTRA_LAST_NAMES[randi() % EXTRA_LAST_NAMES.size()]
+		GlobalEnums.Species.KERIN:
+			first_name = "K'" + EXTRA_FIRST_NAMES[randi() % EXTRA_FIRST_NAMES.size()]
+			last_name = EXTRA_LAST_NAMES[randi() % EXTRA_LAST_NAMES.size()]
+		GlobalEnums.Species.SOULLESS:
+			first_name = "SL-" + str(randi() % 1000).pad_zeros(3)
+			last_name = ""
+		GlobalEnums.Species.PRECURSOR:
+			first_name = EXTRA_FIRST_NAMES[randi() % EXTRA_FIRST_NAMES.size()]
+			last_name = "Ancient"
+		GlobalEnums.Species.FERAL:
+			first_name = EXTRA_FIRST_NAMES[randi() % EXTRA_FIRST_NAMES.size()]
+			last_name = "Wildborn"
+		GlobalEnums.Species.SWIFT:
+			first_name = EXTRA_FIRST_NAMES[randi() % EXTRA_FIRST_NAMES.size()]
+			last_name = "Quicksilver"
 		GlobalEnums.Species.BOT:
 			first_name = "BOT-" + str(randi() % 1000).pad_zeros(3)
 			last_name = ""

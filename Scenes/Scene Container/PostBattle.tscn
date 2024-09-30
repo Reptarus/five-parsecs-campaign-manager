@@ -1,6 +1,7 @@
-[gd_scene load_steps=2 format=3 uid="uid://clqsi3wwo4hte"]
+[gd_scene load_steps=3 format=3 uid="uid://clqsi3wwo4hte"]
 
 [ext_resource type="Script" path="res://Scenes/campaign/scripts/PostBattlePhase.gd" id="1_lqd0l"]
+[ext_resource type="Theme" uid="uid://d1you1rrwuu48" path="res://Scenes/sci_fi_theme.tres" id="2_theme"]
 
 [node name="PostBattle" type="Control"]
 layout_mode = 3
@@ -9,24 +10,62 @@ anchor_right = 1.0
 anchor_bottom = 1.0
 grow_horizontal = 2
 grow_vertical = 2
+theme = ExtResource("2_theme")
 script = ExtResource("1_lqd0l")
 
+[node name="Background" type="ColorRect" parent="."]
+layout_mode = 1
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+color = Color(0.0392157, 0.0392157, 0.0392157, 1)
+
 [node name="MarginContainer" type="MarginContainer" parent="."]
-layout_mode = 0
-offset_right = 40.0
-offset_bottom = 40.0
+layout_mode = 1
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+theme_override_constants/margin_left = 40
+theme_override_constants/margin_top = 40
+theme_override_constants/margin_right = 40
+theme_override_constants/margin_bottom = 40
 
 [node name="VBoxContainer" type="VBoxContainer" parent="MarginContainer"]
 layout_mode = 2
+theme_override_constants/separation = 20
+
+[node name="TitleLabel" type="Label" parent="MarginContainer/VBoxContainer"]
+layout_mode = 2
+theme_override_font_sizes/font_size = 32
+text = "Post-Battle Phase"
+horizontal_alignment = 1
 
 [node name="ResolveOutcomesButton" type="Button" parent="MarginContainer/VBoxContainer"]
 layout_mode = 2
+text = "Resolve Battle Outcomes"
 
 [node name="DistributeRewardsButton" type="Button" parent="MarginContainer/VBoxContainer"]
 layout_mode = 2
+text = "Distribute Rewards"
 
 [node name="HandleInjuriesButton" type="Button" parent="MarginContainer/VBoxContainer"]
 layout_mode = 2
+text = "Handle Injuries and Recovery"
+
+[node name="UpdateLogbookButton" type="Button" parent="MarginContainer/VBoxContainer"]
+layout_mode = 2
+text = "Update Crew Logbook"
 
 [node name="ReturnToDashboardButton" type="Button" parent="MarginContainer/VBoxContainer"]
 layout_mode = 2
+text = "Return to Campaign Dashboard"
+
+[connection signal="pressed" from="MarginContainer/VBoxContainer/ResolveOutcomesButton" to="." method="_on_resolve_outcomes_button_pressed"]
+[connection signal="pressed" from="MarginContainer/VBoxContainer/DistributeRewardsButton" to="." method="_on_distribute_rewards_button_pressed"]
+[connection signal="pressed" from="MarginContainer/VBoxContainer/HandleInjuriesButton" to="." method="_on_handle_injuries_button_pressed"]
+[connection signal="pressed" from="MarginContainer/VBoxContainer/UpdateLogbookButton" to="." method="_on_update_logbook_button_pressed"]
+[connection signal="pressed" from="MarginContainer/VBoxContainer/ReturnToDashboardButton" to="." method="_on_return_to_dashboard_button_pressed"]

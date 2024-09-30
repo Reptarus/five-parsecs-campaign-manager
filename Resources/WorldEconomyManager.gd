@@ -26,12 +26,12 @@ func _initialize_local_market() -> void:
 
 func calculate_upkeep() -> int:
 	var upkeep = BASE_UPKEEP_COST
-	if "High Cost" in game_world.traits:
+	if GlobalEnums.WorldTrait.RICH in game_world.traits:
 		upkeep = int(upkeep * 1.5)
-	if "Economic Depression" in game_world.traits:
-		upkeep = int(upkeep * 1.2)
-	if "Thriving Economy" in game_world.traits:
+	if GlobalEnums.WorldTrait.POOR in game_world.traits:
 		upkeep = int(upkeep * 0.8)
+	if GlobalEnums.WorldTrait.BUSTLING in game_world.traits:
+		upkeep = int(upkeep * 1.2)
 	return upkeep
 
 func trigger_local_event() -> void:

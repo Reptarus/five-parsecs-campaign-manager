@@ -14,19 +14,12 @@ enum EliteAbility {
 	CAMOUFLAGE
 }
 
-var game_state_manager: GameStateManagerNode
 var game_state: GameState
 
 func _init() -> void:
-	game_state_manager = get_node("/root/GameState")
-	if not game_state_manager:
-		push_error("GameStateManagerNode not found. Make sure it's properly set up as an AutoLoad.")
-		return
-	
-	game_state = game_state_manager.get_game_state()
+	game_state = GameState.get_singleton()
 	if not game_state:
-		push_error("GameState not found in GameStateManagerNode.")
-		return
+		push_error("GameState singleton not found. Make sure it's properly set up as an AutoLoad.")
 
 func generate_elite_enemy(enemy_type: String) -> Dictionary:
 	var base_enemy: Dictionary = EnemyTypes.get_enemy_type(enemy_type)
@@ -132,8 +125,94 @@ func _apply_elite_leadership(enemy: Dictionary) -> Dictionary:
 	return new_enemy
 
 func get_elite_enemy_reward(_enemy: Dictionary) -> Dictionary:
-	# TODO: Implement elite enemy reward generation
+	var credits: int = randi() % 6 + 5
+	var item: Equipment = _generate_random_item()
+	
 	return {
-		"credits": randi() % 6 + 5,
-		"item": null  # TODO: Generate random item reward
+		"credits": credits,
+		"item": item
 	}
+
+func _generate_random_item() -> Equipment:
+	var item_types: Array[GlobalEnums.ItemType] = [
+		GlobalEnums.ItemType.WEAPON,
+		GlobalEnums.ItemType.ARMOR,
+		GlobalEnums.ItemType.GEAR,
+		GlobalEnums.ItemType.CONSUMABLE
+	]
+	var random_type: GlobalEnums.ItemType = item_types[randi() % item_types.size()]
+	
+	match random_type:
+		GlobalEnums.ItemType.WEAPON:
+			return _generate_random_weapon()
+		GlobalEnums.ItemType.ARMOR:
+			return _generate_random_armor()
+		GlobalEnums.ItemType.GEAR:
+			return _generate_random_gear()
+		GlobalEnums.ItemType.CONSUMABLE:
+			return _generate_random_consumable()
+	
+	return null  # This should never happen, but satisfies the compiler
+
+func _generate_random_weapon() -> Equipment:
+	var weapons = [
+		{"name": "Auto rifle", "range": 24, "shots": 2, "damage": 0, "traits": []},
+		{"name": "Beam pistol", "range": 8, "shots": 1, "damage": 1, "traits": ["Pistol", "Critical"]},
+		{"name": "Blast rifle", "range": 18, "shots": 1, "damage": 1, "traits": []},
+		{"name": "Hand cannon", "range": 6, "shots": 1, "damage": 2, "traits": ["Pistol"]},
+		{"name": "Hunting rifle", "range": 30, "shots": 1, "damage": 1, "traits": ["Heavy", "Critical"]}
+	]
+	var weapon = weapons[randi() % weapons.size()]
+	var equipment = Equipment.new()
+	equipment.name = weapon.name
+	equipment.type = GlobalEnums.ItemType.WEAPON
+	equipment.stats = {
+		"range": weapon.range,
+		"shots": weapon.shots,
+		"damage": weapon.damage
+	}
+	equipment.traits = weapon.traits
+	return equipment
+
+func _generate_random_armor() -> Equipment:
+	var armors = [
+		{"name": "Light armor", "toughness_bonus": 1},
+		{"name": "Medium armor", "toughness_bonus": 2},
+		{"name": "Heavy armor", "toughness_bonus": 3}
+	]
+	var armor = armors[randi() % armors.size()]
+	var equipment = Equipment.new()
+	equipment.name = armor.name
+	equipment.type = GlobalEnums.ItemType.ARMOR
+	equipment.stats = {
+		"toughness_bonus": armor.toughness_bonus
+	}
+	return equipment
+
+func _generate_random_gear() -> Equipment:
+	var gears = [
+		"Medkit",
+		"Grappling hook",
+		"Binoculars",
+		"Comms unit",
+		"Toolkit"
+	]
+	var gear_name = gears[randi() % gears.size()]
+	var equipment = Equipment.new()
+	equipment.name = gear_name
+	equipment.type = GlobalEnums.ItemType.GEAR
+	return equipment
+
+func _generate_random_consumable() -> Equipment:
+	var consumables = [
+		"Stim pack",
+		"Grenade",
+		"Repair kit",
+		"Antidote",
+		"Energy cell"
+	]
+	var consumable_name = consumables[randi() % consumables.size()]
+	var equipment = Equipment.new()
+	equipment.name = consumable_name
+	equipment.type = GlobalEnums.ItemType.CONSUMABLE
+	return equipment

@@ -2,8 +2,7 @@ class_name MissionSelection
 extends Control
 
 ## Emitted when a mission is selected. Connected externally.
-signal mission_selected(mission)
-const Mission = preload("res://Scripts/Missions/Mission.gd")
+signal mission_selected(mission: Mission)
 
 @onready var mission_list: ItemList = $Panel/MarginContainer/VBoxContainer/HBoxContainer/MissionList
 @onready var mission_details: RichTextLabel = $Panel/MarginContainer/VBoxContainer/HBoxContainer/MissionDetails
@@ -26,22 +25,21 @@ func populate_missions(missions: Array[Mission]) -> void:
 		mission_list.add_item(mission.title)
 
 func _on_mission_selected(index: int) -> void:
-	var selected_mission = available_missions[index]
+	var selected_mission: Mission = available_missions[index]
 	mission_details.text = _format_mission_details(selected_mission)
 	accept_button.disabled = false
 
 func _on_accept_pressed() -> void:
-	var selected_index = mission_list.get_selected_items()[0]
-	var chosen_mission = available_missions[selected_index]
-	emit_signal("mission_selected", chosen_mission)
+	var selected_index: int = mission_list.get_selected_items()[0]
+	var chosen_mission: Mission = available_missions[selected_index]
+	mission_selected.emit(chosen_mission)
 	queue_free()
 
 func _on_close_pressed() -> void:
 	queue_free()
 
 func _on_back_pressed() -> void:
-	# Implement your back functionality here
-	queue_free()  # or any other appropriate action
+	queue_free()
 
 func _format_mission_details(mission: Mission) -> String:
 	return """

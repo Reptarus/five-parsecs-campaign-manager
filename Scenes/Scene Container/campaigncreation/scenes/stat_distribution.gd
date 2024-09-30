@@ -1,6 +1,8 @@
 class_name StatDistribution
 extends Resource
 
+signal stat_changed(stat: String, new_value: int)
+
 var character: Character
 var base_stats: Dictionary
 var temporary_modifiers: Dictionary
@@ -16,19 +18,23 @@ func add_temporary_modifier(stat: String, value: int, duration: int):
 	if not temporary_modifiers.has(stat):
 		temporary_modifiers[stat] = []
 	temporary_modifiers[stat].append({"value": value, "duration": duration})
+	emit_signal("stat_changed", stat, get_current_stat(stat))
 
 func add_permanent_modifier(stat: String, value: int):
 	if not permanent_modifiers.has(stat):
 		permanent_modifiers[stat] = 0
 	permanent_modifiers[stat] += value
+	emit_signal("stat_changed", stat, get_current_stat(stat))
 
 func remove_temporary_modifier(stat: String, index: int):
 	if temporary_modifiers.has(stat) and index < temporary_modifiers[stat].size():
 		temporary_modifiers[stat].remove_at(index)
+		emit_signal("stat_changed", stat, get_current_stat(stat))
 
 func remove_permanent_modifier(stat: String, value: int):
 	if permanent_modifiers.has(stat):
 		permanent_modifiers[stat] -= value
+		emit_signal("stat_changed", stat, get_current_stat(stat))
 
 func get_current_stat(stat: String) -> int:
 	var current_value = base_stats[stat]
@@ -49,6 +55,7 @@ func update_temporary_modifiers():
 			temporary_modifiers[stat][i]["duration"] -= 1
 			if temporary_modifiers[stat][i]["duration"] <= 0:
 				temporary_modifiers[stat].remove_at(i)
+				emit_signal("stat_changed", stat, get_current_stat(stat))
 			i -= 1
 
 func apply_equipment_modifiers(equipment: Equipment):
@@ -57,7 +64,9 @@ func apply_equipment_modifiers(equipment: Equipment):
 
 func remove_equipment_modifiers(equipment: Equipment):
 	for stat in equipment.stat_modifiers:
-		remove_temporary_modifier(stat, equipment.stat_modifiers[stat])
+		var index = temporary_modifiers[stat].find(func(mod): return mod["value"] == equipment.stat_modifiers[stat] and mod["duration"] == -1)
+		if index != -1:
+			remove_temporary_modifier(stat, index)
 
 func apply_status_effect(effect: StatusEffect):
 	for stat in effect.stat_modifiers:
@@ -82,3 +91,21 @@ static func deserialize(data_dict: Dictionary, character_instance: Character) ->
 	if data_dict.has("permanent_modifiers"):
 		new_stat_distribution.permanent_modifiers = data_dict["permanent_modifiers"]
 	return new_stat_distribution
+
+func get_stat_modifier_for_difficulty(stat: String) -> int:
+	var difficulty_mode = GameState.difficulty_mode
+	match difficulty_mode:
+		GlobalEnums.DifficultyMode.CHALLENGING:
+			return -1 if stat in ["combat", "technical", "social", "survival"] else 0
+		GlobalEnums.DifficultyMode.HARDCORE:
+			return -2 if stat in ["combat", "technical", "social", "survival"] else 0
+		GlobalEnums.DifficultyMode.INSANITY:
+			return -3 if stat in ["combat", "technical", "social", "survival"] else 0
+		_:
+			return 0
+
+func apply_difficulty_modifiers():
+	for stat in base_stats.keys():
+		var modifier = get_stat_modifier_for_difficulty(stat)
+		if modifier != 0:
+			add_permanent_modifier(stat, modifier)

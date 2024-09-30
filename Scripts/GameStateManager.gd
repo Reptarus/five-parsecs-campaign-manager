@@ -5,11 +5,11 @@ signal tutorial_ended
 signal battle_processed(battle_won: bool)
 
 @export var current_state: GlobalEnums.CampaignPhase = GlobalEnums.CampaignPhase.MAIN_MENU
-@export var current_crew: Resource = null
-@export var current_ship: Resource
-@export var current_location: Resource
-@export var available_locations: Array[Resource] = []
-@export var current_mission: Resource
+@export var current_crew: Crew
+@export var current_ship: Ship
+@export var current_location: Location
+@export var available_locations: Array[Location] = []
+@export var current_mission: Mission
 @export var credits: int = 0
 @export var story_points: int = 0
 @export var campaign_turn: int = 0
@@ -76,7 +76,7 @@ func serialize() -> Dictionary:
         "credits": credits,
         "reputation": reputation,
         "current_crew": current_crew.serialize() if current_crew else null,
-        "current_ship": current_ship.serialize() if current_ship else {},
+        "current_ship": current_ship.serialize() if current_ship else null,
         "current_location": current_location.serialize() if current_location else null,
         "available_locations": available_locations.map(func(loc): return loc.serialize()),
         "current_mission": current_mission.serialize() if current_mission else null,
@@ -108,32 +108,32 @@ func deserialize(data: Dictionary) -> void:
     current_state = data.get("current_state", GlobalEnums.CampaignPhase.MAIN_MENU)
     credits = data.get("credits", 0)
     reputation = data.get("reputation", 0)
-    current_crew = Crew.deserialize(data.get("current_crew", {})) if data.get("current_crew") else null
-    current_ship = Ship.deserialize(data.get("current_ship", {})) if data.get("current_ship") else null
-    current_location = load(data.get("current_location", "")).new().deserialize(data.get("current_location", {})) if data.get("current_location") else null
-    available_locations = data.get("available_locations", []).map(func(loc_data): return load(loc_data.get("resource_path", "")).new().deserialize(loc_data))
-    current_mission = Mission.deserialize(data.get("current_mission", {})) if data.get("current_mission") else null
+    current_crew = Crew.new().deserialize(data.get("current_crew", {})) if data.get("current_crew") else null
+    current_ship = Ship.new().deserialize(data.get("current_ship", {})) if data.get("current_ship") else null
+    current_location = Location.new().deserialize(data.get("current_location", {})) if data.get("current_location") else null
+    available_locations = data.get("available_locations", []).map(func(loc_data): return Location.new().deserialize(loc_data))
+    current_mission = Mission.new().deserialize(data.get("current_mission", {})) if data.get("current_mission") else null
     story_points = data.get("story_points", 0)
     campaign_turn = data.get("campaign_turn", 0)
-    available_missions = data.get("available_missions", []).map(func(mission_data): return Mission.deserialize(mission_data))
-    active_quests = data.get("active_quests", []).map(func(quest_data): return Quest.deserialize(quest_data))
-    patrons = data.get("patrons", []).map(func(patron_data): return Patron.deserialize(patron_data))
-    rivals = data.get("rivals", []).map(func(rival_data): return Rival.deserialize(rival_data))
+    available_missions = data.get("available_missions", []).map(func(mission_data): return Mission.new().deserialize(mission_data))
+    active_quests = data.get("active_quests", []).map(func(quest_data): return Quest.new().deserialize(quest_data))
+    patrons = data.get("patrons", []).map(func(patron_data): return Patron.new().deserialize(patron_data))
+    rivals = data.get("rivals", []).map(func(rival_data): return Rival.new().deserialize(rival_data))
     character_connections = data.get("character_connections", [])
-    difficulty_settings = DifficultySettings.deserialize(data.get("difficulty_settings", {}))
+    difficulty_settings = DifficultySettings.new().deserialize(data.get("difficulty_settings", {}))
     victory_condition = data.get("victory_condition", {})
     last_mission_results = data.get("last_mission_results", "")
     crew_size = data.get("crew_size", 0)
     completed_patron_job_this_turn = data.get("completed_patron_job_this_turn", false)
     held_the_field_against_roving_threat = data.get("held_the_field_against_roving_threat", false)
-    active_rivals = data.get("active_rivals", []).map(func(rival_data): return Rival.deserialize(rival_data))
+    active_rivals = data.get("active_rivals", []).map(func(rival_data): return Rival.new().deserialize(rival_data))
     is_tutorial_active = data.get("is_tutorial_active", false)
     trade_actions_blocked = data.get("trade_actions_blocked", false)
     mission_payout_reduction = data.get("mission_payout_reduction", 0)
     
     fringe_world_strife_manager.deserialize(data.get("fringe_world_strife", {}))
-    psionic_manager = PsionicManager.deserialize(data.get("psionic_data", {}))
-    story_track = StoryTrack.deserialize(data.get("story_track", {})) if data.get("story_track") else null
+    psionic_manager.deserialize(data.get("psionic_data", {}))
+    story_track = StoryTrack.new().deserialize(data.get("story_track", {})) if data.get("story_track") else null
     world_generator.deserialize(data.get("world_data", {}))
     if data.has("combat_manager") and data["combat_manager"]:
         combat_manager = CombatManager.new()
@@ -157,7 +157,7 @@ func get_current_state() -> GameStateManager:
 func set_victory_condition(condition: Dictionary) -> void:
     victory_condition = condition
 
-func get_ship_stash() -> Array[Gear]:
+func get_ship_stash() -> Array[Equipment]:
     return current_ship.inventory.get_items() if current_ship and current_ship.inventory else []
 
 func sort_ship_stash(sort_type: String) -> void:
@@ -172,10 +172,10 @@ func set_crew_size(size: int) -> void:
 func get_current_crew() -> Crew:
     return current_crew
 
-func add_to_ship_stash(item: Gear) -> bool:
+func add_to_ship_stash(item: Equipment) -> bool:
     return current_ship.inventory.add_item(item) if current_ship and current_ship.inventory else false
 
-func remove_from_ship_stash(item: Gear) -> bool:
+func remove_from_ship_stash(item: Equipment) -> bool:
     return current_ship.inventory.remove_item(item) if current_ship and current_ship.inventory else false
 
 func start_battle(scene_tree: SceneTree) -> void:
@@ -193,10 +193,10 @@ func handle_attack(attacker: Character, target: Character) -> void:
 func handle_end_turn() -> void:
     combat_manager.handle_end_turn()
 
-func get_valid_move_positions(character: Character) -> Array:
+func get_valid_move_positions(character: Character) -> Array[Vector2i]:
     return combat_manager.get_valid_move_positions(character)
 
-func get_valid_targets(character: Character) -> Array:
+func get_valid_targets(character: Character) -> Array[Character]:
     return combat_manager.get_valid_targets(character)
 
 func get_character_at_position(position: Vector2i) -> Character:

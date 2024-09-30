@@ -24,9 +24,14 @@ func discharge_patient(crew_member: Character) -> bool:
 func heal_patients() -> void:
 	for patient in patients:
 		patient.recover()
+		if patient.status == GlobalEnums.CharacterStatus.ACTIVE:
+			discharge_patient(patient)
 
 func process_turn() -> void:
 	heal_patients()
+
+func get_available_beds() -> int:
+	return healing_capacity - patients.size()
 
 func serialize() -> Dictionary:
 	var data = super.serialize()
@@ -45,5 +50,8 @@ static func deserialize(data: Dictionary) -> MedicalBayComponent:
 	)
 	component.max_health = data["max_health"]
 	component.is_damaged = data["is_damaged"]
-	component.patients = data["patients"].map(func(p): return Character.deserialize(p, null))
+	component.patients = data["patients"].map(func(p): return Character.deserialize(p))
 	return component
+
+func _to_string() -> String:
+	return "Medical Bay (Capacity: %d, Patients: %d)" % [healing_capacity, patients.size()]

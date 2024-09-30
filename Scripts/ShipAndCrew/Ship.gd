@@ -1,5 +1,6 @@
 # Scripts/ShipAndCrew/Ship.gd
-class_name Ship extends Resource
+class_name Ship
+extends Resource
 
 signal component_added(component: ShipComponent)
 signal component_removed(component: ShipComponent)

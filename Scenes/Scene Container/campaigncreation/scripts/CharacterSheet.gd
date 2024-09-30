@@ -46,9 +46,9 @@ func update_display():
 	
 	medbay_status.text = "In Medbay: %s (%d turns left)" % ["Yes" if character.is_in_medbay() else "No", character.medbay_turns_left]
 	
-	background_label.text = "Background: " + character.background
-	class_label.text = "Class: " + character.character_class
-	motivation_label.text = "Motivation: " + character.motivation
+	background_label.text = "Background: " + GlobalEnums.Background.keys()[character.background]
+	class_label.text = "Class: " + GlobalEnums.Class.keys()[character.character_class]
+	motivation_label.text = "Motivation: " + GlobalEnums.Motivation.keys()[character.motivation]
 
 func _on_close_button_pressed():
 	queue_free()

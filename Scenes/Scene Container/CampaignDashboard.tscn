@@ -1,6 +1,6 @@
 [gd_scene load_steps=3 format=3 uid="uid://da60mmlok38fq"]
 
-[ext_resource type="Script" path="res://Scenes/campaign/scripts/CampaignDashboard.gd" id="2_fd26x"]
+[ext_resource type="Script" path="res://Scenes/campaign/scripts/CampaignDashboard.gd" id="1_script"]
 [ext_resource type="Theme" uid="uid://d1you1rrwuu48" path="res://Scenes/sci_fi_theme.tres" id="2_theme"]
 
 [node name="CampaignDashboard" type="Control"]
@@ -11,7 +11,7 @@ anchor_bottom = 1.0
 grow_horizontal = 2
 grow_vertical = 2
 theme = ExtResource("2_theme")
-script = ExtResource("2_fd26x")
+script = ExtResource("1_script")
 
 [node name="Background" type="ColorRect" parent="."]
 layout_mode = 1
@@ -38,10 +38,15 @@ theme_override_constants/margin_bottom = 40
 layout_mode = 2
 theme_override_constants/separation = 20
 
-[node name="HeaderLabel" type="Label" parent="MarginContainer/VBoxContainer"]
+[node name="PhaseLabel" type="Label" parent="MarginContainer/VBoxContainer"]
 layout_mode = 2
 theme_override_font_sizes/font_size = 32
-text = "Campaign Dashboard"
+text = "Current Phase"
+horizontal_alignment = 1
+
+[node name="InstructionLabel" type="Label" parent="MarginContainer/VBoxContainer"]
+layout_mode = 2
+text = "Phase Instructions"
 horizontal_alignment = 1
 
 [node name="HBoxContainer" type="HBoxContainer" parent="MarginContainer/VBoxContainer"]
@@ -59,9 +64,9 @@ layout_mode = 2
 [node name="VBoxContainer" type="VBoxContainer" parent="MarginContainer/VBoxContainer/HBoxContainer/LeftPanel/CampaignStatus"]
 layout_mode = 2
 
-[node name="TurnLabel" type="Label" parent="MarginContainer/VBoxContainer/HBoxContainer/LeftPanel/CampaignStatus/VBoxContainer"]
+[node name="CrewInfoLabel" type="Label" parent="MarginContainer/VBoxContainer/HBoxContainer/LeftPanel/CampaignStatus/VBoxContainer"]
 layout_mode = 2
-text = "Turn: 1"
+text = "Crew Info"
 
 [node name="CreditsLabel" type="Label" parent="MarginContainer/VBoxContainer/HBoxContainer/LeftPanel/CampaignStatus/VBoxContainer"]
 layout_mode = 2
@@ -71,46 +76,25 @@ text = "Credits: 0"
 layout_mode = 2
 text = "Story Points: 0"
 
-[node name="TurnSequence" type="PanelContainer" parent="MarginContainer/VBoxContainer/HBoxContainer/LeftPanel"]
+[node name="ActionButton" type="Button" parent="MarginContainer/VBoxContainer/HBoxContainer/LeftPanel"]
 layout_mode = 2
+text = "Action"
 
-[node name="VBoxContainer" type="VBoxContainer" parent="MarginContainer/VBoxContainer/HBoxContainer/LeftPanel/TurnSequence"]
+[node name="OptionsContainer" type="VBoxContainer" parent="MarginContainer/VBoxContainer/HBoxContainer/LeftPanel"]
 layout_mode = 2
-
-[node name="CurrentPhaseLabel" type="Label" parent="MarginContainer/VBoxContainer/HBoxContainer/LeftPanel/TurnSequence/VBoxContainer"]
-layout_mode = 2
-text = "Current Phase: Travel"
-
-[node name="NextPhaseButton" type="Button" parent="MarginContainer/VBoxContainer/HBoxContainer/LeftPanel/TurnSequence/VBoxContainer"]
-layout_mode = 2
-text = "Proceed to Next Phase"
 
 [node name="RightPanel" type="VBoxContainer" parent="MarginContainer/VBoxContainer/HBoxContainer"]
 layout_mode = 2
 size_flags_horizontal = 3
 size_flags_stretch_ratio = 1.5
 
-[node name="TabContainer" type="TabContainer" parent="MarginContainer/VBoxContainer/HBoxContainer/RightPanel"]
-layout_mode = 2
-size_flags_vertical = 3
-current_tab = 0
-
-[node name="Crew Overview" type="VBoxContainer" parent="MarginContainer/VBoxContainer/HBoxContainer/RightPanel/TabContainer"]
-layout_mode = 2
-metadata/_tab_index = 0
-
-[node name="CrewList" type="ItemList" parent="MarginContainer/VBoxContainer/HBoxContainer/RightPanel/TabContainer/Crew Overview"]
-layout_mode = 2
-size_flags_vertical = 3
-
-[node name="Ship Status" type="VBoxContainer" parent="MarginContainer/VBoxContainer/HBoxContainer/RightPanel/TabContainer"]
+[node name="TutorialPanel" type="Panel" parent="MarginContainer/VBoxContainer/HBoxContainer/RightPanel"]
 visible = false
 layout_mode = 2
-metadata/_tab_index = 1
 
-[node name="ShipConditionLabel" type="Label" parent="MarginContainer/VBoxContainer/HBoxContainer/RightPanel/TabContainer/Ship Status"]
+[node name="EventDescription" type="Label" parent="MarginContainer/VBoxContainer/HBoxContainer/RightPanel/TutorialPanel"]
 layout_mode = 2
-text = "Ship Condition: Good"
+text = "Tutorial Event Description"
 
 [node name="ButtonContainer" type="HBoxContainer" parent="MarginContainer/VBoxContainer"]
 layout_mode = 2

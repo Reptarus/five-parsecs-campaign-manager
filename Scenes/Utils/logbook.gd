@@ -3,7 +3,7 @@ extends Control
 
 const LOGBOOK_DIR = "user://logbook/"
 var current_campaign_turn: int = 0
-var game_state: GameState
+var game_state: GameStateManager
 var current_crew: String = ""
 
 const CampaignDashboardScene = preload("res://Scenes/Scene Container/CampaignDashboard.tscn")
@@ -19,16 +19,16 @@ func create_logbook_directory():
 		dir.make_dir(LOGBOOK_DIR)
 
 func connect_signals():
-	$MarginContainer/HBoxContainer/Sidebar/CrewSelect.connect("item_selected", Callable(self, "_on_crew_selected"))
-	$MarginContainer/HBoxContainer/Sidebar/EntryList.connect("item_selected", Callable(self, "_on_entry_selected"))
-	$MarginContainer/HBoxContainer/Sidebar/ButtonsContainer/NewEntryButton.connect("pressed", Callable(self, "_on_new_entry_pressed"))
-	$MarginContainer/HBoxContainer/Sidebar/ButtonsContainer/DeleteEntryButton.connect("pressed", Callable(self, "_on_delete_entry_pressed"))
-	$MarginContainer/HBoxContainer/Sidebar/ExportButton.connect("pressed", Callable(self, "_on_export_pressed"))
-	$MarginContainer/HBoxContainer/Sidebar/BackButton.connect("pressed", Callable(self, "_on_back_pressed"))
-	$MarginContainer/HBoxContainer/MainContent/SaveButton.connect("pressed", Callable(self, "_on_save_notes_pressed"))
+	$MarginContainer/HBoxContainer/Sidebar/CrewSelect.item_selected.connect(_on_crew_selected)
+	$MarginContainer/HBoxContainer/Sidebar/EntryList.item_selected.connect(_on_entry_selected)
+	$MarginContainer/HBoxContainer/Sidebar/ButtonsContainer/NewEntryButton.pressed.connect(_on_new_entry_pressed)
+	$MarginContainer/HBoxContainer/Sidebar/ButtonsContainer/DeleteEntryButton.pressed.connect(_on_delete_entry_pressed)
+	$MarginContainer/HBoxContainer/Sidebar/ExportButton.pressed.connect(_on_export_pressed)
+	$MarginContainer/HBoxContainer/Sidebar/BackButton.pressed.connect(_on_back_pressed)
+	$MarginContainer/HBoxContainer/MainContent/SaveButton.pressed.connect(_on_save_notes_pressed)
 
 func load_crews():
-	var crews = game_state.get_all_crews()  # Assuming this method exists in GameState
+	var crews = game_state.get_all_crews()  # Assuming this method exists in GameStateManager
 	for crew in crews:
 		$MarginContainer/HBoxContainer/Sidebar/CrewSelect.add_item(crew)
 
@@ -71,7 +71,7 @@ func _on_export_pressed():
 	export_logbook()
 
 func _on_back_pressed():
-	get_node("/root/Main").load_scene(CampaignDashboardScene)
+	SaveGame.change_scene_to_file(CampaignDashboardScene)
 
 func _on_save_notes_pressed():
 	var notes = $MarginContainer/HBoxContainer/MainContent/NotesEdit.text
@@ -135,39 +135,39 @@ func export_logbook():
 	print("Logbook exported to: " + export_path)
 
 # This function generates the campaign turn summary
-func create_campaign_turn_summary(state: GameState) -> String:
+func create_campaign_turn_summary(state: GameStateManager) -> String:
 	var summary = ""
 	
 	# Add current turn number
-	summary += "Turn " + str(state.current_turn) + "\n\n"
+	summary += "Turn " + str(state.campaign_turn) + "\n\n"
 	
 	# Add crew information
 	summary += "Crew: " + state.current_crew.name + "\n"
-	summary += "Credits: " + str(state.current_crew.credits) + "\n"
-	summary += "Reputation: " + str(state.current_crew.reputation) + "\n\n"
+	summary += "Credits: " + str(state.credits) + "\n"
+	summary += "Reputation: " + str(state.reputation) + "\n\n"
 	
 	# Add information about each crew member
 	summary += "Crew Members:\n"
 	for member in state.current_crew.members:
-		summary += "- " + member.name + " (" + member.background + ")\n"
-		summary += "  Health: " + str(member.current_health) + "/" + str(member.max_health) + "\n"
+		summary += "- " + member.name + " (" + GlobalEnums.Background.keys()[member.background] + ")\n"
+		summary += "  Health: " + str(member.health_status) + "\n"
 		summary += "  XP: " + str(member.experience) + "\n"
 	summary += "\n"
 	
 	# Add information about current mission (if any)
 	if state.current_mission:
 		summary += "Current Mission: " + state.current_mission.name + "\n"
-		summary += "Type: " + str(state.current_mission.type) + "\n"
+		summary += "Type: " + GlobalEnums.MissionType.keys()[state.current_mission.type] + "\n"
 		summary += "Difficulty: " + str(state.current_mission.difficulty) + "\n\n"
 	else:
 		summary += "No current mission\n\n"
+	
 	# Add information about current location
-	summary += "Current Location: " + str(state.current_location) + "\n\n"
+	summary += "Current Location: " + state.current_location.name + "\n\n"
 	
 	# Add any notable events or changes from the last turn
-	if state.last_turn_events:
+	if state.last_mission_results:
 		summary += "Notable Events:\n"
-		for event in state.last_turn_events:
-			summary += "- " + event + "\n"
+		summary += "- " + state.last_mission_results + "\n"
 	
 	return summary

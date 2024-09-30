@@ -95,7 +95,6 @@ func set_difficulty(new_level: DifficultyLevel) -> void:
 			_set_advanced_tutorial()
 
 func _set_basic_tutorial() -> void:
-	# Set up the basic tutorial difficulty
 	enemy_health_multiplier = 0.7
 	enemy_damage_multiplier = 0.7
 	loot_quantity_multiplier = 1.5
@@ -111,7 +110,6 @@ func _set_basic_tutorial() -> void:
 	tutorial_step = 1
 
 func _set_advanced_tutorial() -> void:
-	# Set up the advanced tutorial difficulty
 	enemy_health_multiplier = 0.9
 	enemy_damage_multiplier = 0.9
 	loot_quantity_multiplier = 1.2

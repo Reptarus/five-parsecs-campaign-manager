@@ -1,52 +1,36 @@
 class_name MissionTemplate
 extends Resource
 
-enum MissionType { OPPORTUNITY, PATRON, QUEST, RIVAL, ASSASSINATION, SABOTAGE, RESCUE, INFILTRATION, DEFENSE, ESCORT }
-
-enum Objective {
-    MOVE_THROUGH,
-    DELIVER,
-    ACCESS,
-    PATROL,
-    FIGHT_OFF,
-    SEARCH,
-    DEFEND,
-    ACQUIRE,
-    ELIMINATE,
-    SECURE,
-    PROTECT
-}
-
-@export var type: MissionType
+@export var type: GlobalEnums.Type
 @export var title_templates: Array[String]
 @export var description_templates: Array[String]
-@export var objective: Objective
+@export var objective: GlobalEnums.MissionObjective
 @export var objective_description: String
 @export var reward_range: Vector2
 @export var difficulty_range: Vector2
-@export var required_skills: Array[String]
-@export var enemy_types: Array[String]
+@export var required_skills: Array[GlobalEnums.SkillType]
+@export var enemy_types: Array[GlobalEnums.AIType]
 @export var deployment_condition_chance: float
 @export var notable_sight_chance: float
 @export var economic_impact: float = 1.0
-@export var faction_type: ExpandedFactionManager.FactionType
+@export var faction_type: GlobalEnums.Faction
 @export var loyalty_requirement_range: Vector2
 @export var power_requirement_range: Vector2
 
 func _init(
-    _type: MissionType = MissionType.OPPORTUNITY,
+    _type: GlobalEnums.Type = GlobalEnums.Type.OPPORTUNITY,
     _title_templates: Array[String] = [],
     _description_templates: Array[String] = [],
-    _objective: Objective = Objective.FIGHT_OFF,
+    _objective: GlobalEnums.MissionObjective = GlobalEnums.MissionObjective.FIGHT_OFF,
     _objective_description: String = "",
     _reward_range: Vector2 = Vector2(1, 6),
     _difficulty_range: Vector2 = Vector2(1, 5),
-    _required_skills: Array[String] = [],
-    _enemy_types: Array[String] = [],
+    _required_skills: Array[GlobalEnums.SkillType] = [],
+    _enemy_types: Array[GlobalEnums.AIType] = [],
     _deployment_condition_chance: float = 0.4,
     _notable_sight_chance: float = 0.2,
     _economic_impact: float = 1.0,
-    _faction_type: ExpandedFactionManager.FactionType = ExpandedFactionManager.FactionType.CORPORATION,
+    _faction_type: GlobalEnums.Faction = GlobalEnums.Faction.CORPORATE,
     _loyalty_requirement_range: Vector2 = Vector2(1, 3),
     _power_requirement_range: Vector2 = Vector2(1, 5)
 ):
@@ -84,38 +68,38 @@ func generate_notable_sight() -> String:
 
 func to_dict() -> Dictionary:
     return {
-        "type": MissionType.keys()[type],
+        "type": GlobalEnums.Type.keys()[type],
         "title_templates": title_templates,
         "description_templates": description_templates,
-        "objective": Objective.keys()[objective],
+        "objective": GlobalEnums.MissionObjective.keys()[objective],
         "objective_description": objective_description,
         "reward_range": {"x": reward_range.x, "y": reward_range.y},
         "difficulty_range": {"x": difficulty_range.x, "y": difficulty_range.y},
-        "required_skills": required_skills,
-        "enemy_types": enemy_types,
+        "required_skills": required_skills.map(func(skill): return GlobalEnums.SkillType.keys()[skill]),
+        "enemy_types": enemy_types.map(func(enemy): return GlobalEnums.AIType.keys()[enemy]),
         "deployment_condition_chance": deployment_condition_chance,
         "notable_sight_chance": notable_sight_chance,
         "economic_impact": economic_impact,
-        "faction_type": ExpandedFactionManager.FactionType.keys()[faction_type],
+        "faction_type": GlobalEnums.Faction.keys()[faction_type],
         "loyalty_requirement_range": {"x": loyalty_requirement_range.x, "y": loyalty_requirement_range.y},
         "power_requirement_range": {"x": power_requirement_range.x, "y": power_requirement_range.y}
     }
 
 static func from_dict(data: Dictionary) -> MissionTemplate:
     return MissionTemplate.new(
-        MissionType[data["type"]],
+        GlobalEnums.Type[data["type"]],
         data["title_templates"],
         data["description_templates"],
-        Objective[data["objective"]],
+        GlobalEnums.MissionObjective[data["objective"]],
         data["objective_description"],
         Vector2(data["reward_range"]["x"], data["reward_range"]["y"]),
         Vector2(data["difficulty_range"]["x"], data["difficulty_range"]["y"]),
-        data["required_skills"],
-        data["enemy_types"],
+        data["required_skills"].map(func(skill): return GlobalEnums.SkillType[skill]),
+        data["enemy_types"].map(func(enemy): return GlobalEnums.AIType[enemy]),
         data["deployment_condition_chance"],
         data["notable_sight_chance"],
         data["economic_impact"],
-        ExpandedFactionManager.FactionType[data["faction_type"]],
+        GlobalEnums.Faction[data["faction_type"]],
         Vector2(data["loyalty_requirement_range"]["x"], data["loyalty_requirement_range"]["y"]),
         Vector2(data["power_requirement_range"]["x"], data["power_requirement_range"]["y"])
     )

@@ -25,14 +25,20 @@ func initialize(state: GameStateManager) -> void:
 	game_state = state
 
 func serialize() -> Dictionary:
-	return {}
+	return {
+		"instability": instability,
+		"current_mission": current_mission.serialize() if current_mission else null
+	}
 
-func deserialize(_data: Dictionary) -> void:
-	pass
+func deserialize(data: Dictionary) -> void:
+	instability = data.get("instability", 0)
+	if data.get("current_mission"):
+		current_mission = Mission.new()
+		current_mission.deserialize(data["current_mission"])
 
 func generate_fringe_world_strife() -> Mission:
 	var mission = Mission.new()
-	mission.type = GlobalEnums.Type.FRINGE_WORLD_STRIFE
+	mission.type = GlobalEnums.MissionType.FRINGE_WORLD_STRIFE
 	mission.objective = _generate_strife_objective()
 	mission.location = _generate_strife_location()
 	mission.difficulty = _calculate_difficulty()
@@ -487,7 +493,7 @@ func _apply_difficulty_to_managers():
 func _increase_mission_difficulty():
 	difficulty_settings.increase_enemy_count(1)
 	difficulty_settings.increase_enemy_toughness(0.1)
-	difficulty_settings.decrease_loot_quality(0.1)  # Changed from -0.1 to 0.1
+	difficulty_settings.decrease_loot_quality(0.1)
 	difficulty_settings.increase_environmental_hazards(1)
 	difficulty_settings.increase_difficulty_level(1)
 	difficulty_settings.increase_reward_multiplier(0.1)  # 10% increase
@@ -509,8 +515,7 @@ func adjust_difficulty(adjustment: String):
 			_remove_random_contact_marker()
 
 func _remove_random_contact_marker():
-	# Implement logic to remove a random contact marker
-	pass
+	game_state.remove_random_contact_marker()
 
 func _decrease_mission_difficulty():
 	difficulty_settings.decrease_enemy_count(1)

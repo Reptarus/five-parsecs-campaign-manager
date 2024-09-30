@@ -1,6 +1,7 @@
-[gd_scene load_steps=2 format=3 uid="uid://dxxx"]
+[gd_scene load_steps=3 format=3 uid="uid://dxxx"]
 
 [ext_resource type="Script" path="res://Scenes/Scene Container/campaigncreation/scripts/CharacterSheet.gd" id="1_script"]
+[ext_resource type="Theme" uid="uid://d1you1rrwuu48" path="res://Scenes/sci_fi_theme.tres" id="2_theme"]
 
 [node name="CharacterSheet" type="Control"]
 layout_mode = 3
@@ -9,6 +10,7 @@ anchor_right = 1.0
 anchor_bottom = 1.0
 grow_horizontal = 2
 grow_vertical = 2
+theme = ExtResource("2_theme")
 script = ExtResource("1_script")
 
 [node name="Panel" type="Panel" parent="."]
@@ -42,6 +44,7 @@ horizontal_alignment = 1
 [node name="StatsDisplay" type="RichTextLabel" parent="Panel/MarginContainer/VBoxContainer"]
 layout_mode = 2
 size_flags_vertical = 3
+bbcode_enabled = true
 
 [node name="TraitsDisplay" type="Label" parent="Panel/MarginContainer/VBoxContainer"]
 layout_mode = 2
@@ -50,6 +53,15 @@ text = "Traits: "
 [node name="EquipmentList" type="ItemList" parent="Panel/MarginContainer/VBoxContainer"]
 layout_mode = 2
 size_flags_vertical = 3
+auto_height = true
+
+[node name="SkillsDisplay" type="Label" parent="Panel/MarginContainer/VBoxContainer"]
+layout_mode = 2
+text = "Skills: "
+
+[node name="PsionicPowersDisplay" type="Label" parent="Panel/MarginContainer/VBoxContainer"]
+layout_mode = 2
+text = "Psionic Powers: "
 
 [node name="CloseButton" type="Button" parent="Panel/MarginContainer/VBoxContainer"]
 layout_mode = 2

@@ -1,124 +1,103 @@
 class_name EnemyDeploymentManager
 extends Node
 
-enum DeploymentType {
-	LINE,
-	HALF_FLANK,
-	IMPROVED_POSITIONS,
-	FORWARD_POSITIONS,
-	BOLSTERED_LINE,
-	INFILTRATION,
-	REINFORCED,
-	BOLSTERED_FLANK,
-	CONCEALED
-}
-
-enum EnemyType {
-	AGGRESSIVE,
-	CAUTIOUS,
-	DEFENSIVE,
-	TACTICAL,
-	RAMPAGE,
-	BEAST
-}
-
 const GRID_SIZE: int = 24
 const MIN_ENEMIES: int = 1
 const MAX_ENEMIES: int = 10
 
-var game_state: GameState
+var game_state: GameStateManagerNode
 
-func _init(_game_state: GameState) -> void:
+func _init(_game_state: GameStateManagerNode) -> void:
 	game_state = _game_state
 
-func generate_deployment(enemy_type: String, battle_map: Dictionary) -> Array:
-	assert(enemy_type in EnemyType.keys(), "Invalid enemy type")
+func generate_deployment(enemy_type: GlobalEnums.AIType, battle_map: Dictionary) -> Array:
+	assert(enemy_type in GlobalEnums.AIType.values(), "Invalid enemy type")
 	assert("enemy_edge" in battle_map and "width" in battle_map and "height" in battle_map, "Invalid battle map data")
 
 	var deployment: Array = []
 	var roll: int = randi_range(1, 100)
 	
-	var deployment_type: DeploymentType = _get_deployment_type(EnemyType[enemy_type], roll)
+	var deployment_type: GlobalEnums.DeploymentType = _get_deployment_type(enemy_type, roll)
 	deployment = _generate_deployment_by_type(deployment_type, battle_map)
 	
 	return deployment
 
-func _get_deployment_type(enemy_type: EnemyType, roll: int) -> DeploymentType:
+func _get_deployment_type(enemy_type: GlobalEnums.AIType, roll: int) -> GlobalEnums.DeploymentType:
 	match enemy_type:
-		EnemyType.AGGRESSIVE:
-			if roll <= 20: return DeploymentType.LINE
-			elif roll <= 35: return DeploymentType.HALF_FLANK
-			elif roll <= 50: return DeploymentType.FORWARD_POSITIONS
-			elif roll <= 60: return DeploymentType.BOLSTERED_LINE
-			elif roll <= 80: return DeploymentType.INFILTRATION
-			elif roll <= 90: return DeploymentType.BOLSTERED_FLANK
-			else: return DeploymentType.CONCEALED
-		EnemyType.CAUTIOUS:
-			if roll <= 30: return DeploymentType.LINE
-			elif roll <= 40: return DeploymentType.HALF_FLANK
-			elif roll <= 50: return DeploymentType.IMPROVED_POSITIONS
-			elif roll <= 70: return DeploymentType.BOLSTERED_LINE
-			elif roll <= 90: return DeploymentType.REINFORCED
-			else: return DeploymentType.CONCEALED
-		EnemyType.DEFENSIVE:
-			if roll <= 25: return DeploymentType.LINE
-			elif roll <= 40: return DeploymentType.IMPROVED_POSITIONS
-			elif roll <= 45: return DeploymentType.FORWARD_POSITIONS
-			elif roll <= 60: return DeploymentType.BOLSTERED_LINE
-			elif roll <= 70: return DeploymentType.INFILTRATION
-			elif roll <= 85: return DeploymentType.REINFORCED
-			elif roll <= 90: return DeploymentType.BOLSTERED_FLANK
-			else: return DeploymentType.CONCEALED
-		EnemyType.TACTICAL:
-			if roll <= 20: return DeploymentType.LINE
-			elif roll <= 30: return DeploymentType.HALF_FLANK
-			elif roll <= 40: return DeploymentType.IMPROVED_POSITIONS
-			elif roll <= 50: return DeploymentType.FORWARD_POSITIONS
-			elif roll <= 60: return DeploymentType.BOLSTERED_LINE
-			elif roll <= 70: return DeploymentType.INFILTRATION
-			elif roll <= 80: return DeploymentType.REINFORCED
-			elif roll <= 90: return DeploymentType.BOLSTERED_FLANK
-			else: return DeploymentType.CONCEALED
-		EnemyType.RAMPAGE:
-			if roll <= 20: return DeploymentType.LINE
-			elif roll <= 25: return DeploymentType.HALF_FLANK
-			elif roll <= 45: return DeploymentType.FORWARD_POSITIONS
-			elif roll <= 65: return DeploymentType.BOLSTERED_LINE
-			elif roll <= 75: return DeploymentType.INFILTRATION
-			elif roll <= 80: return DeploymentType.REINFORCED
-			elif roll <= 90: return DeploymentType.BOLSTERED_FLANK
-			else: return DeploymentType.CONCEALED
-		EnemyType.BEAST:
-			if roll <= 15: return DeploymentType.HALF_FLANK
-			elif roll <= 20: return DeploymentType.IMPROVED_POSITIONS
-			elif roll <= 35: return DeploymentType.FORWARD_POSITIONS
-			elif roll <= 45: return DeploymentType.BOLSTERED_LINE
-			elif roll <= 65: return DeploymentType.INFILTRATION
-			elif roll <= 70: return DeploymentType.REINFORCED
-			elif roll <= 80: return DeploymentType.BOLSTERED_FLANK
-			else: return DeploymentType.CONCEALED
+		GlobalEnums.AIType.AGGRESSIVE:
+			if roll <= 20: return GlobalEnums.DeploymentType.LINE
+			elif roll <= 35: return GlobalEnums.DeploymentType.HALF_FLANK
+			elif roll <= 50: return GlobalEnums.DeploymentType.FORWARD_POSITIONS
+			elif roll <= 60: return GlobalEnums.DeploymentType.BOLSTERED_LINE
+			elif roll <= 80: return GlobalEnums.DeploymentType.INFILTRATION
+			elif roll <= 90: return GlobalEnums.DeploymentType.BOLSTERED_FLANK
+			else: return GlobalEnums.DeploymentType.CONCEALED
+		GlobalEnums.AIType.CAUTIOUS:
+			if roll <= 30: return GlobalEnums.DeploymentType.LINE
+			elif roll <= 40: return GlobalEnums.DeploymentType.HALF_FLANK
+			elif roll <= 50: return GlobalEnums.DeploymentType.IMPROVED_POSITIONS
+			elif roll <= 70: return GlobalEnums.DeploymentType.BOLSTERED_LINE
+			elif roll <= 90: return GlobalEnums.DeploymentType.REINFORCED
+			else: return GlobalEnums.DeploymentType.CONCEALED
+		GlobalEnums.AIType.DEFENSIVE:
+			if roll <= 25: return GlobalEnums.DeploymentType.LINE
+			elif roll <= 40: return GlobalEnums.DeploymentType.IMPROVED_POSITIONS
+			elif roll <= 45: return GlobalEnums.DeploymentType.FORWARD_POSITIONS
+			elif roll <= 60: return GlobalEnums.DeploymentType.BOLSTERED_LINE
+			elif roll <= 70: return GlobalEnums.DeploymentType.INFILTRATION
+			elif roll <= 85: return GlobalEnums.DeploymentType.REINFORCED
+			elif roll <= 90: return GlobalEnums.DeploymentType.BOLSTERED_FLANK
+			else: return GlobalEnums.DeploymentType.CONCEALED
+		GlobalEnums.AIType.TACTICAL:
+			if roll <= 20: return GlobalEnums.DeploymentType.LINE
+			elif roll <= 30: return GlobalEnums.DeploymentType.HALF_FLANK
+			elif roll <= 40: return GlobalEnums.DeploymentType.IMPROVED_POSITIONS
+			elif roll <= 50: return GlobalEnums.DeploymentType.FORWARD_POSITIONS
+			elif roll <= 60: return GlobalEnums.DeploymentType.BOLSTERED_LINE
+			elif roll <= 70: return GlobalEnums.DeploymentType.INFILTRATION
+			elif roll <= 80: return GlobalEnums.DeploymentType.REINFORCED
+			elif roll <= 90: return GlobalEnums.DeploymentType.BOLSTERED_FLANK
+			else: return GlobalEnums.DeploymentType.CONCEALED
+		GlobalEnums.AIType.RAMPAGE:
+			if roll <= 20: return GlobalEnums.DeploymentType.LINE
+			elif roll <= 25: return GlobalEnums.DeploymentType.HALF_FLANK
+			elif roll <= 45: return GlobalEnums.DeploymentType.FORWARD_POSITIONS
+			elif roll <= 65: return GlobalEnums.DeploymentType.BOLSTERED_LINE
+			elif roll <= 75: return GlobalEnums.DeploymentType.INFILTRATION
+			elif roll <= 80: return GlobalEnums.DeploymentType.REINFORCED
+			elif roll <= 90: return GlobalEnums.DeploymentType.BOLSTERED_FLANK
+			else: return GlobalEnums.DeploymentType.CONCEALED
+		GlobalEnums.AIType.BEAST:
+			if roll <= 15: return GlobalEnums.DeploymentType.HALF_FLANK
+			elif roll <= 20: return GlobalEnums.DeploymentType.IMPROVED_POSITIONS
+			elif roll <= 35: return GlobalEnums.DeploymentType.FORWARD_POSITIONS
+			elif roll <= 45: return GlobalEnums.DeploymentType.BOLSTERED_LINE
+			elif roll <= 65: return GlobalEnums.DeploymentType.INFILTRATION
+			elif roll <= 70: return GlobalEnums.DeploymentType.REINFORCED
+			elif roll <= 80: return GlobalEnums.DeploymentType.BOLSTERED_FLANK
+			else: return GlobalEnums.DeploymentType.CONCEALED
 	
-	return DeploymentType.LINE  # Default deployment type
+	return GlobalEnums.DeploymentType.LINE  # Default deployment type
 
-func _generate_deployment_by_type(deployment_type: DeploymentType, battle_map: Dictionary) -> Array:
+func _generate_deployment_by_type(deployment_type: GlobalEnums.DeploymentType, battle_map: Dictionary) -> Array:
 	match deployment_type:
-		DeploymentType.LINE:
+		GlobalEnums.DeploymentType.LINE:
 			return _generate_line_deployment(battle_map)
-		DeploymentType.HALF_FLANK:
+		GlobalEnums.DeploymentType.HALF_FLANK:
 			return _generate_half_flank_deployment(battle_map)
-		DeploymentType.IMPROVED_POSITIONS:
+		GlobalEnums.DeploymentType.IMPROVED_POSITIONS:
 			return _generate_improved_positions_deployment(battle_map)
-		DeploymentType.FORWARD_POSITIONS:
+		GlobalEnums.DeploymentType.FORWARD_POSITIONS:
 			return _generate_forward_positions_deployment(battle_map)
-		DeploymentType.BOLSTERED_LINE:
+		GlobalEnums.DeploymentType.BOLSTERED_LINE:
 			return _generate_bolstered_line_deployment(battle_map)
-		DeploymentType.INFILTRATION:
+		GlobalEnums.DeploymentType.INFILTRATION:
 			return _generate_infiltration_deployment(battle_map)
-		DeploymentType.REINFORCED:
+		GlobalEnums.DeploymentType.REINFORCED:
 			return _generate_reinforced_deployment(battle_map)
-		DeploymentType.BOLSTERED_FLANK:
+		GlobalEnums.DeploymentType.BOLSTERED_FLANK:
 			return _generate_bolstered_flank_deployment(battle_map)
-		DeploymentType.CONCEALED:
+		GlobalEnums.DeploymentType.CONCEALED:
 			return _generate_concealed_deployment(battle_map)
 	
 	return []  # Default empty deployment

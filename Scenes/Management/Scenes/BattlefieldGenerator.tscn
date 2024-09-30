@@ -144,4 +144,35 @@ text = "Start Mission"
 [node name="BattlefieldTest" type="Node" parent="."]
 script = ExtResource("3_n5vnc")
 
+[node name="PlanetInfoPopup" type="Popup" parent="."]
+size = Vector2i(300, 200)
+
+[node name="Label" type="Label" parent="PlanetInfoPopup"]
+offset_right = 40.0
+offset_bottom = 23.0
+
+[node name="ShipStatsPopup" type="Popup" parent="."]
+size = Vector2i(300, 200)
+
+[node name="Label" type="Label" parent="ShipStatsPopup"]
+offset_right = 40.0
+offset_bottom = 23.0
+
+[node name="MedbayPopup" type="Popup" parent="."]
+size = Vector2i(300, 200)
+
+[node name="Label" type="Label" parent="MedbayPopup"]
+offset_right = 40.0
+offset_bottom = 23.0
+
+[connection signal="pressed" from="MarginContainer/VBoxContainer/HBoxContainer/BackButton" to="." method="_on_back_pressed"]
+[connection signal="pressed" from="MarginContainer/VBoxContainer/HBoxContainer/TravelButton" to="." method="_on_travel_pressed"]
+[connection signal="pressed" from="MarginContainer/VBoxContainer/HBoxContainer/WorldButton" to="." method="_on_world_pressed"]
+[connection signal="pressed" from="MarginContainer/VBoxContainer/HBoxContainer/BattleButton" to="." method="_on_battle_pressed"]
+[connection signal="pressed" from="MarginContainer/VBoxContainer/HBoxContainer/PostBattleButton" to="." method="_on_post_battle_pressed"]
+[connection signal="pressed" from="MarginContainer/VBoxContainer/HBoxContainer2/VBoxContainer2/HBoxContainer/PlanetInfoButton" to="." method="_on_planet_info_pressed"]
+[connection signal="pressed" from="MarginContainer/VBoxContainer/HBoxContainer2/VBoxContainer2/HBoxContainer/ShipStatsButton" to="." method="_on_ship_stats_pressed"]
+[connection signal="pressed" from="MarginContainer/VBoxContainer/HBoxContainer2/VBoxContainer2/HBoxContainer/CrewStatsButton" to="." method="_on_crew_stats_pressed"]
+[connection signal="pressed" from="MarginContainer/VBoxContainer/HBoxContainer2/VBoxContainer2/HBoxContainer/MedbayButton" to="." method="_on_medbay_pressed"]
+[connection signal="pressed" from="MarginContainer/VBoxContainer/HBoxContainer2/VBoxContainer2/HBoxContainer/StashButton" to="." method="_on_stash_pressed"]
 [connection signal="pressed" from="StartMissionButton" to="." method="_on_start_mission_pressed"]
