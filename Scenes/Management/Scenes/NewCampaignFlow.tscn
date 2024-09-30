@@ -1,4 +1,4 @@
-[gd_scene load_steps=7 format=3 uid="uid://2o12hsa6g168"]
+[gd_scene load_steps=8 format=3 uid="uid://2o12hsa6g168"]
 
 [ext_resource type="Script" path="res://Scenes/Management/NewCampaignFlow.gd" id="1_script"]
 [ext_resource type="Script" path="res://Scenes/Utils/TutorialManager.gd" id="2_w7qbq"]
@@ -6,6 +6,7 @@
 [ext_resource type="Script" path="res://Scenes/Scene Container/campaigncreation/scripts/CharacterCreationScene.gd" id="4_lrtqq"]
 [ext_resource type="Script" path="res://Scenes/Management/CrewManagement.gd" id="5_l4k6d"]
 [ext_resource type="Script" path="res://Scenes/Scene Container/campaigncreation/scripts/CampaignSetupScreen.gd" id="6_2yj0n"]
+[ext_resource type="Theme" uid="uid://d1you1rrwuu48" path="res://Scenes/sci_fi_theme.tres" id="7_theme"]
 
 [node name="NewCampaignFlow" type="Control"]
 layout_mode = 3
@@ -14,24 +15,80 @@ anchor_right = 1.0
 anchor_bottom = 1.0
 grow_horizontal = 2
 grow_vertical = 2
+theme = ExtResource("7_theme")
 script = ExtResource("1_script")
 
 [node name="TutorialManager" type="Control" parent="."]
-anchors_preset = 0
+layout_mode = 1
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
 script = ExtResource("2_w7qbq")
 
 [node name="CrewSizeSelection" type="Control" parent="."]
-anchors_preset = 0
+layout_mode = 1
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
 script = ExtResource("3_3xjq0")
 
 [node name="CharacterCreator" type="Control" parent="."]
-anchors_preset = 0
+layout_mode = 1
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
 script = ExtResource("4_lrtqq")
 
 [node name="CrewManagement" type="Control" parent="."]
-anchors_preset = 0
+layout_mode = 1
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
 script = ExtResource("5_l4k6d")
 
 [node name="CampaignSetupScreen" type="Control" parent="."]
-anchors_preset = 0
+layout_mode = 1
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
 script = ExtResource("6_2yj0n")
+
+[node name="BackButton" type="Button" parent="."]
+layout_mode = 1
+anchors_preset = 2
+anchor_top = 1.0
+anchor_bottom = 1.0
+offset_left = 20.0
+offset_top = -60.0
+offset_right = 120.0
+offset_bottom = -20.0
+grow_vertical = 0
+text = "Back"
+
+[node name="NextButton" type="Button" parent="."]
+layout_mode = 1
+anchors_preset = 3
+anchor_left = 1.0
+anchor_top = 1.0
+anchor_right = 1.0
+anchor_bottom = 1.0
+offset_left = -120.0
+offset_top = -60.0
+offset_right = -20.0
+offset_bottom = -20.0
+grow_horizontal = 0
+grow_vertical = 0
+text = "Next"
+
+[connection signal="pressed" from="BackButton" to="." method="_on_back_button_pressed"]
+[connection signal="pressed" from="NextButton" to="." method="_on_next_button_pressed"]

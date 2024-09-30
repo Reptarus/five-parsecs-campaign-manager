@@ -1,27 +1,20 @@
 # CharacterNameGenerator.gd
 class_name CharacterNameGenerator
-extends Object
+extends RefCounted
 
-static func get_random_name() -> String:
-	var first_names = [
-		"John", "Jane", "Alex", "Sarah", "Michael", "Emily", "Zorg", "Xyla", "Krath",
-		"Ivan", "Chris", "Bill", "Jason", "K'Erin", "Swift", "Precursor", "Soulless",
-		"Converted", "Krorg", "Unity", "Skulker", "Krag"
-	]
-	var last_names = [
-		"Smith", "Johnson", "Williams", "Brown", "Jones", "Garcia", "Miller", "Davis", "X'tor",
-		"Sorensen", "Modiphius", "Weasel", "Nordic", "Fringe", "Core", "Parsec", "Starport",
-		"Galactic", "War", "Swarm", "Hunt", "Bug"
-	]
-	
-	var first_name = first_names[randi() % first_names.size()]
-	var last_name = last_names[randi() % last_names.size()]
-	
-	return first_name + " " + last_name
+const FIRST_NAMES = [
+	"John", "Jane", "Alex", "Sarah", "Michael", "Emily", "Zorg", "Xyla", "Krath",
+	"Ivan", "Chris", "Bill", "Jason", "K'Erin", "Swift", "Precursor", "Soulless",
+	"Converted", "Krorg", "Unity", "Skulker", "Krag"
+]
 
-# Additional randomly generated sci-fi names
-# Can be easily added or removed if requested by app publishers
-static var extra_first_names = [
+const LAST_NAMES = [
+	"Smith", "Johnson", "Williams", "Brown", "Jones", "Garcia", "Miller", "Davis", "X'tor",
+	"Sorensen", "Modiphius", "Weasel", "Nordic", "Fringe", "Core", "Parsec", "Starport",
+	"Galactic", "War", "Swarm", "Hunt", "Bug"
+]
+
+const EXTRA_FIRST_NAMES = [
 	"Zax", "Vex", "Quark", "Nyx", "Lyra", "Kael", "Jett", "Io", "Hux", "Grix",
 	"Faye", "Elix", "Dax", "Cygnus", "Brix", "Astra", "Zephyr", "Vox", "Ulix", "Tarn",
 	"Sylar", "Ryx", "Pax", "Orion", "Nova", "Mox", "Lux", "Kix", "Jax", "Helix",
@@ -44,7 +37,7 @@ static var extra_first_names = [
 	"Wormhole", "Xenon", "Ymir", "Zelos", "Aether", "Boreas", "Cosmos", "Dysnomia", "Eunomia", "Fobos"
 ]
 
-static var extra_last_names = [
+const EXTRA_LAST_NAMES = [
 	"Voidborn", "Starforge", "Nebula", "Moonwalker", "Lightspeed", "Kuiper", "Jetstream", "Ionos", "Hyperion", "Gravity",
 	"Fusion", "Equinox", "Darkmatter", "Comet", "Blazar", "Astro", "Zenith", "Vortex", "Umbra", "Terraform",
 	"Supernova", "Radiant", "Pulsar", "Oort", "Neutron", "Meteor", "Lunar", "Kosmos", "Jupiter", "Interstellar",
@@ -67,25 +60,30 @@ static var extra_last_names = [
 	"Wavefunction", "X-ray", "Yield", "Zeeman", "Absolute", "Bohr", "Coulomb", "Dirac", "Einstein", "Fermi"
 ]
 
+static func get_random_name() -> String:
+	var first_name = FIRST_NAMES[randi() % FIRST_NAMES.size()]
+	var last_name = LAST_NAMES[randi() % LAST_NAMES.size()]
+	return first_name + " " + last_name
+
 static func get_random_name_for_species(species: GlobalEnums.Species) -> String:
 	var first_name: String
 	var last_name: String
 	
 	match species:
 		GlobalEnums.Species.HUMAN:
-			first_name = extra_first_names[randi() % extra_first_names.size()]
-			last_name = extra_last_names[randi() % extra_last_names.size()]
+			first_name = EXTRA_FIRST_NAMES[randi() % EXTRA_FIRST_NAMES.size()]
+			last_name = EXTRA_LAST_NAMES[randi() % EXTRA_LAST_NAMES.size()]
 		GlobalEnums.Species.BOT:
 			first_name = "BOT-" + str(randi() % 1000).pad_zeros(3)
 			last_name = ""
 		GlobalEnums.Species.SKULKER:
 			first_name = "SK-" + str(randi() % 1000).pad_zeros(3)
-			last_name = extra_last_names[randi() % extra_last_names.size()]
+			last_name = EXTRA_LAST_NAMES[randi() % EXTRA_LAST_NAMES.size()]
 		GlobalEnums.Species.KRAG:
 			first_name = "KR-" + str(randi() % 1000).pad_zeros(3)
-			last_name = extra_last_names[randi() % extra_last_names.size()]
+			last_name = EXTRA_LAST_NAMES[randi() % EXTRA_LAST_NAMES.size()]
 		_:
-			first_name = extra_first_names[randi() % extra_first_names.size()]
-			last_name = extra_last_names[randi() % extra_last_names.size()]
+			first_name = EXTRA_FIRST_NAMES[randi() % EXTRA_FIRST_NAMES.size()]
+			last_name = EXTRA_LAST_NAMES[randi() % EXTRA_LAST_NAMES.size()]
 	
 	return (first_name + " " + last_name).strip_edges()

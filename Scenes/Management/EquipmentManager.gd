@@ -1,12 +1,15 @@
 class_name EquipmentManager
 extends Node
 
-var equipment_database: Dictionary = {}
+signal equipment_updated
 
-func _ready():
+var equipment_database: Dictionary = {}
+var game_state: GameState
+
+func _ready() -> void:
 	_load_equipment_database()
 
-func _load_equipment_database():
+func _load_equipment_database() -> void:
 	var file = FileAccess.open("res://data/equipment_database.json", FileAccess.READ)
 	if file:
 		var json = JSON.new()
@@ -15,46 +18,77 @@ func _load_equipment_database():
 			var data = json.get_data()
 			for category in data.keys():
 				for item in data[category]:
-					var equipment = Equipment.from_json(item)
+					var equipment: Equipment
+					match category:
+						"weapons":
+							equipment = Weapon.from_json(item)
+						"armor":
+							equipment = Armor.from_json(item)
+						"gear":
+							equipment = Gear.from_json(item)
+						_:
+							equipment = Equipment.from_json(item)
 					equipment_database[equipment.name] = equipment
 		file.close()
 	else:
 		push_error("Failed to open equipment_database.json")
 
-func generate_equipment_from_background(background: Dictionary) -> Array:
-	var equipment = []
-	if "starting_gear" in background:
-		for item_name in background.starting_gear:
-			equipment.append(get_equipment(item_name))
+func generate_equipment_from_background(background: GlobalEnums.Background) -> Array[Equipment]:
+	var equipment: Array[Equipment] = []
+	var background_data = GameState.background_data[background]
+	if "starting_gear" in background_data:
+		for item_name in background_data.starting_gear:
+			var item = get_equipment(item_name)
+			if item:
+				equipment.append(item)
 	return equipment
 
-func generate_equipment_from_motivation(motivation: Dictionary) -> Array:
-	var equipment = []
-	if "starting_gear" in motivation:
-		for item_name in motivation.starting_gear:
-			equipment.append(get_equipment(item_name))
+func generate_equipment_from_motivation(motivation: GlobalEnums.Motivation) -> Array[Equipment]:
+	var equipment: Array[Equipment] = []
+	var motivation_data = GameState.motivation_data[motivation]
+	if "starting_gear" in motivation_data:
+		for item_name in motivation_data.starting_gear:
+			var item = get_equipment(item_name)
+			if item:
+				equipment.append(item)
 	return equipment
 
-func generate_equipment_from_class(class_type: Dictionary) -> Array:
-	var equipment = []
-	if "starting_gear" in class_type:
-		for item_name in class_type.starting_gear:
-			equipment.append(get_equipment(item_name))
+func generate_equipment_from_class(class_type: GlobalEnums.Class) -> Array[Equipment]:
+	var equipment: Array[Equipment] = []
+	var class_data = GameState.class_data[class_type]
+	if "starting_gear" in class_data:
+		for item_name in class_data.starting_gear:
+			var item = get_equipment(item_name)
+			if item:
+				equipment.append(item)
 	return equipment
 
 func get_equipment(equipment_id: String) -> Equipment:
 	if equipment_id in equipment_database:
-		return equipment_database[equipment_id].duplicate()
+		return equipment_database[equipment_id].create_copy()
 	push_error("Equipment not found: " + equipment_id)
 	return null
 
 func create_equipment(equipment_id: String) -> Equipment:
-	var equipment = get_equipment(equipment_id)
-	if equipment:
-		return equipment
-	return null
+	return get_equipment(equipment_id)
 
-func initialize(_game_state: GameState) -> void:
-	# This method is added for consistency with other manager classes
-	# Currently, EquipmentManager doesn't need the game_state, but we can add it if needed in the future
-	pass
+func initialize(game_state_ref: GameState) -> void:
+	game_state = game_state_ref
+
+func repair_equipment(equipment: Equipment) -> void:
+	equipment.repair()
+	equipment_updated.emit()
+
+func damage_equipment(equipment: Equipment) -> void:
+	equipment.damage()
+	equipment_updated.emit()
+
+func get_equipment_by_type(type: GlobalEnums.ItemType) -> Array[Equipment]:
+	var filtered_equipment: Array[Equipment] = []
+	for equipment in equipment_database.values():
+		if equipment.type == type:
+			filtered_equipment.append(equipment)
+	return filtered_equipment
+
+func get_equipment_value(equipment: Equipment) -> int:
+	return equipment.get_effectiveness()

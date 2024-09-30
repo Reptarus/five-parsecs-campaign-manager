@@ -11,6 +11,7 @@ signal economy_updated
 
 @export var economic_range: Vector2 = Vector2(0, 100)
 
+var game_state_manager: GameStateManagerNode
 var game_state: GameState
 var location_price_modifiers: Dictionary = {}
 var global_economic_modifier: float = 1.0
@@ -23,8 +24,17 @@ const BASE_ITEM_MARKDOWN: float = 0.8
 const GLOBAL_EVENT_CHANCE: float = 0.1
 const ECONOMY_NORMALIZATION_RATE: float = 0.1
 
-func _init(_game_state: GameState) -> void:
-	game_state = _game_state
+func _init() -> void:
+	game_state_manager = get_node("/root/GameState")
+	if not game_state_manager:
+		push_error("GameStateManagerNode not found. Make sure it's properly set up as an AutoLoad.")
+		return
+	
+	game_state = game_state_manager.get_game_state()
+	if not game_state:
+		push_error("GameState not found in GameStateManagerNode.")
+		return
+	
 	initialize_location_price_modifiers()
 
 func initialize_location_price_modifiers() -> void:
@@ -157,13 +167,9 @@ func calculate_upkeep_cost() -> int:
 	
 	return base_cost
 
-
-
 func pay_upkeep() -> bool:
 	var cost: int = calculate_upkeep_cost()
 	return remove_credits(cost)
-
-
 
 func trigger_global_event() -> void:
 	var event = GlobalEvent.values()[randi() % GlobalEvent.size()]

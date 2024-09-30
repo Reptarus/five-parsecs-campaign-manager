@@ -9,11 +9,11 @@ func _init(_game_state: GameState) -> void:
 	game_state = _game_state
 
 func run_pre_battle_loop() -> void:
-	print("Beginning pre-battle preparations...")
+	print_debug("Beginning pre-battle preparations...")
 	assign_crew_tasks(game_state.current_crew)
 	process_rumors()
 	update_mission_availability()
-	print("Pre-battle preparations complete.")
+	print_debug("Pre-battle preparations complete.")
 
 func assign_crew_tasks(crew: Crew) -> void:
 	for member in crew.get_members():
@@ -47,36 +47,36 @@ func trade(character) -> void:
 	if roll < 30:
 		var credits_earned = randi() % 6 * 10 + 10
 		game_state.current_crew.add_credits(credits_earned)
-		print("%s earned %d credits through trading." % [character.get_name(), credits_earned])
+		print_debug("%s earned %d credits through trading." % [character.get_name(), credits_earned])
 	elif roll < 60:
 		var item = generate_random_equipment()
 		character.get_inventory().add_item(item)
-		print("%s acquired %s while trading." % [character.get_name(), item.get_name()])
+		print_debug("%s acquired %s while trading." % [character.get_name(), item.get_name()])
 	else:
-		print("%s couldn't find any good deals while trading." % character.get_name())
+		print_debug("%s couldn't find any good deals while trading." % character.get_name())
 
 func explore(character) -> void:
 	var roll = randi() % 100
 	if roll < 20:
 		var rumor = generate_rumor()
 		game_state.add_rumor(rumor)
-		print("%s discovered a rumor: %s" % [character.get_name(), rumor])
+		print_debug("%s discovered a rumor: %s" % [character.get_name(), rumor])
 	elif roll < 40:
 		var credits_found = randi() % 3 * 5 + 5
 		game_state.current_crew.add_credits(credits_found)
-		print("%s found %d credits while exploring." % [character.get_name(), credits_found])
+		print_debug("%s found %d credits while exploring." % [character.get_name(), credits_found])
 	elif roll < 60:
 		var item = generate_random_equipment()
 		character.get_inventory().add_item(item)
-		print("%s found %s while exploring." % [character.get_name(), item.get_name()])
+		print_debug("%s found %s while exploring." % [character.get_name(), item.get_name()])
 	else:
-		print("%s had an uneventful exploration." % character.get_name())
+		print_debug("%s had an uneventful exploration." % character.get_name())
 
 func train(character) -> void:
 	var skill_to_improve = character.get_random_skill()
 	var xp_gained = randi() % 3 + 1
 	character.improve_skill(skill_to_improve, xp_gained)
-	print("%s trained %s and gained %d XP." % [character.get_name(), skill_to_improve, xp_gained])
+	print_debug("%s trained %s and gained %d XP." % [character.get_name(), skill_to_improve, xp_gained])
 
 func recruit(character) -> void:
 	var crew = game_state.current_crew
@@ -84,19 +84,19 @@ func recruit(character) -> void:
 		if randf() < 0.4:  # 40% chance to find a recruit
 			var new_recruit = game_state.character_factory.create_random_character()
 			crew.add_member(new_recruit)
-			print("%s successfully recruited %s to join the crew." % [character.get_name(), new_recruit.get_name()])
+			print_debug("%s successfully recruited %s to join the crew." % [character.get_name(), new_recruit.get_name()])
 		else:
-			print("%s couldn't find any suitable recruits." % character.get_name())
+			print_debug("%s couldn't find any suitable recruits." % character.get_name())
 	else:
-		print("The crew is already at maximum capacity. %s couldn't recruit anyone." % character.get_name())
+		print_debug("The crew is already at maximum capacity. %s couldn't recruit anyone." % character.get_name())
 
 func find_patron(character) -> void:
 	if randf() < 0.3:  # 30% chance to find a patron
 		var new_patron = game_state.patron_factory.create_random_patron()
 		game_state.add_patron(new_patron)
-		print("%s found a new patron: %s" % [character.get_name(), new_patron.get_name()])
+		print_debug("%s found a new patron: %s" % [character.get_name(), new_patron.get_name()])
 	else:
-		print("%s couldn't find any patrons offering work." % character.get_name())
+		print_debug("%s couldn't find any patrons offering work." % character.get_name())
 
 func repair(character) -> void:
 	var item_to_repair = character.get_inventory().get_damaged_item()
@@ -104,22 +104,22 @@ func repair(character) -> void:
 		var repair_success = randf() < 0.7  # 70% chance to successfully repair
 		if repair_success:
 			item_to_repair.repair()
-			print("%s successfully repaired %s." % [character.get_name(), item_to_repair.get_name()])
+			print_debug("%s successfully repaired %s." % [character.get_name(), item_to_repair.get_name()])
 		else:
-			print("%s attempted to repair %s but failed." % [character.get_name(), item_to_repair.get_name()])
+			print_debug("%s attempted to repair %s but failed." % [character.get_name(), item_to_repair.get_name()])
 	else:
 		var ship_repair_amount = randi() % 5 + 1
 		game_state.current_crew.get_ship().repair(ship_repair_amount)
-		print("%s repaired the ship, restoring %d hull points." % [character.get_name(), ship_repair_amount])
+		print_debug("%s repaired the ship, restoring %d hull points." % [character.get_name(), ship_repair_amount])
 
 func rest(character) -> void:
 	var stress_recovered = randi() % 3 + 1
 	character.reduce_stress(stress_recovered)
 	if character.is_injured():
 		character.heal(1)
-		print("%s rested and recovered 1 health point and %d stress." % [character.get_name(), stress_recovered])
+		print_debug("%s rested and recovered 1 health point and %d stress." % [character.get_name(), stress_recovered])
 	else:
-		print("%s rested and recovered %d stress." % [character.get_name(), stress_recovered])
+		print_debug("%s rested and recovered %d stress." % [character.get_name(), stress_recovered])
 
 func generate_random_equipment() -> Equipment:
 	var equipment_type = randi() % 4  # 0: Weapon, 1: Armor, 2: Gear, 3: Medical
@@ -170,15 +170,15 @@ func process_rumors() -> void:
 			var mission = game_state.mission_generator.generate_mission_from_rumor(rumor)
 			game_state.add_mission(mission)
 			game_state.remove_rumor(rumor)
-			print("A rumor has developed into a new mission: %s" % mission.title)
+			print_debug("A rumor has developed into a new mission: %s" % mission.title)
 
 func update_mission_availability() -> void:
 	for mission in game_state.available_missions:
 		if randf() < 0.1:  # 10% chance for a mission to become unavailable
 			game_state.remove_mission(mission)
-			print("The mission '%s' is no longer available." % mission.title)
+			print_debug("The mission '%s' is no longer available." % mission.title)
 
 	if game_state.available_missions.size() < 3:
 		var new_mission = game_state.mission_generator.generate_mission()
 		game_state.add_mission(new_mission)
-		print("A new mission has become available: %s" % new_mission.title)
+		print_debug("A new mission has become available: %s" % new_mission.title)

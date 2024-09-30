@@ -1,9 +1,6 @@
 class_name PsionicManager
 extends Resource
 
-# Character script is now an autoload, so we don't need to preload it
-# const CharacterScript = preload("res://Characters/Character.gd")
-
 const PSIONIC_POWERS = {
 	GlobalEnums.PsionicPower.BARRIER: "Barrier",
 	GlobalEnums.PsionicPower.GRAB: "Grab",

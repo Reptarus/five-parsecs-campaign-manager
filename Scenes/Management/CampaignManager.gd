@@ -1,19 +1,17 @@
 class_name CampaignManager
 extends Resource
 
-const StoryTrack = preload("res://Resources/StoryTrack.gd")
-
 signal phase_changed(new_phase: GlobalEnums.CampaignPhase)
 signal turn_completed
 
-var game_state: GameStateManager
+var game_state: GameState
 var current_phase: GlobalEnums.CampaignPhase = GlobalEnums.CampaignPhase.UPKEEP
 var use_expanded_missions: bool = false
 var story_track: StoryTrack
 var save_manager: SaveManager
 var save_load_ui: Control
 
-func _init(_game_state: GameStateManager) -> void:
+func _init(_game_state: GameState) -> void:
     game_state = _game_state
     story_track = StoryTrack.new()
     save_manager = SaveManager.new()
@@ -34,12 +32,12 @@ func start_new_turn(main_scene: Node) -> void:
     else:
         start_world_phase(main_scene)
 
-func start_tutorial_phase(main_scene: Node):
+func start_tutorial_phase(main_scene: Node) -> void:
     var tutorial_phase_scene = load("res://Scenes/campaign/TutorialPhase.tscn").instantiate()
     tutorial_phase_scene.initialize(game_state, story_track)
     main_scene.add_child(tutorial_phase_scene)
 
-func start_world_phase(main_scene: Node):
+func start_world_phase(main_scene: Node) -> void:
     var world_phase_scene = load("res://Scenes/campaign/WorldPhase.tscn").instantiate()
     world_phase_scene.initialize(game_state)
     main_scene.add_child(world_phase_scene)
@@ -68,7 +66,7 @@ func handle_story_point() -> bool:
     return false
 
 func move_to_new_location(location_index: int) -> bool:
-    var locations: Array = game_state.get_all_locations()
+    var locations: Array = game_state.available_locations
     if location_index >= 0 and location_index < locations.size():
         game_state.current_location = locations[location_index]
         return true
@@ -86,7 +84,7 @@ func recruit_crew(recruit_index: int) -> bool:
         return game_state.current_crew.add_member(potential_recruits[recruit_index])
     return false
 
-func train_and_study(crew_index: int, skill: String, skill_type: Skill.SkillType) -> bool:
+func train_and_study(crew_index: int, skill: String, skill_type: GlobalEnums.SkillType) -> bool:
     if crew_index >= 0 and crew_index < game_state.current_crew.members.size():
         var crew_member = game_state.current_crew.members[crew_index]
         
@@ -123,20 +121,20 @@ func start_mission(mission_index: int) -> bool:
 func handle_post_mission() -> Dictionary:
     if game_state.current_mission:
         var results = {
-            "loot": game_state.current_mission.generate_loot(),
+            "loot": game_state.current_mission.get_reward(),
             "injuries": [],
-            "xp_gained": game_state.current_mission.xp_reward
+            "xp_gained": game_state.current_mission.get_reward().xp
         }
         game_state.add_credits(results.loot.credits)
         for item in results.loot.items:
-            game_state.equipment_manager.add_item(item)
+            game_state.current_crew.add_equipment(item)
 
         for crew_member in game_state.current_crew.members:
-            if crew_member.became_casualty:
+            if crew_member.status == GlobalEnums.CharacterStatus.INJURED:
                 var injury = crew_member.roll_injury()
                 results.injuries.append({"crew_member": crew_member.name, "injury": injury})
 
-        game_state.current_crew.update_experience(results.xp_gained)
+        game_state.current_crew.gain_experience(results.xp_gained)
         game_state.current_mission = null
         return results
     return {}
@@ -144,20 +142,20 @@ func handle_post_mission() -> Dictionary:
 func end_turn() -> void:
     game_state.advance_turn()
     turn_completed.emit()
-    start_new_turn(game_state.current_turn)
+    start_new_turn(get_tree().current_scene)
 
 func create_campaign_turn_summary() -> String:
     return "Turn %d: %s" % [game_state.current_turn, game_state.current_location.name]
 
-func start_story_track_tutorial():
+func start_story_track_tutorial() -> void:
     game_state.is_tutorial_active = true
     story_track.start_tutorial()
 
-func end_tutorial(main_scene: Node):
+func end_tutorial(main_scene: Node) -> void:
     game_state.is_tutorial_active = false
     start_world_phase(main_scene)
 
-func start_tutorial():
+func start_tutorial() -> void:
     game_state.is_tutorial_active = true
     var character_creation_logic = load("res://Resources/CharacterCreationLogic.gd").new()
     var tutorial_character = character_creation_logic.create_tutorial_character()
@@ -169,15 +167,14 @@ func show_save_load_ui() -> void:
     save_load_ui.connect("load_requested", _on_load_requested)
 
 func _on_save_requested(save_name: String) -> void:
-    var game_state_path = game_state.resource_path
-    var result = save_manager.save_game(game_state_path, save_name)
+    var result = SaveGame.save_game(game_state, save_name)
     if result != OK:
         push_error("Failed to save game. Error code: " + str(result))
     else:
         print("Game saved successfully as: " + save_name)
 
 func _on_load_requested(save_name: String) -> void:
-    var loaded_game_state = save_manager.load_game(save_name)
+    var loaded_game_state = SaveGame.load_game(save_name)
     if loaded_game_state:
         game_state = loaded_game_state
         print("Game loaded successfully: " + save_name)
@@ -185,7 +182,7 @@ func _on_load_requested(save_name: String) -> void:
         push_error("Failed to load game: " + save_name)
 
 func progress_story(current_phase: GlobalEnums.CampaignPhase) -> void:
-    if game_state.story_track:
-        game_state.story_track.progress_story(current_phase)
+    if story_track:
+        story_track.progress_story(current_phase)
     else:
-        push_warning("Story track not initialized in game state.")
+        push_warning("Story track not initialized.")

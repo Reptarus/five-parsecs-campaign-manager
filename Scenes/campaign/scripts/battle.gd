@@ -1,7 +1,7 @@
 class_name Battle
-extends Node
+extends Node2D
 
-var game_state: GameStateManager
+var game_state: GameState
 var current_mission: Mission
 var combat_manager: CombatManager
 var ai_controller: AIController
@@ -18,19 +18,18 @@ var active_character: Character
 @onready var turn_label: Label = $UI/SidePanel/VBoxContainer/TurnLabel
 @onready var current_character_label: Label = $UI/SidePanel/VBoxContainer/CurrentCharacterLabel
 @onready var battle_log: TextEdit = $UI/SidePanel/VBoxContainer/BattleLog
-@onready var battle_grid: GridContainer = $Battlefield/BattleGrid  # Add this line
+@onready var battle_grid: GridContainer = $Battlefield/BattleGrid
 
 func _ready() -> void:
-	var game_state_node = get_node("/root/GameStateNode") as GameStateManagerNode
+	var game_state_node = get_node("/root/GameState") as GameStateManagerNode
 	game_state = game_state_node.get_game_state()
 	current_mission = game_state.current_mission
-	combat_manager = CombatManager.new()
-	add_child(combat_manager)
+	combat_manager = $CombatManager
 	ai_controller = $AIController
-	battlefield_generator = BattlefieldGenerator.new()
+	battlefield_generator = $BattlefieldGenerator
 	
 	combat_manager.initialize(game_state, current_mission, battle_grid)
-	ai_controller.initialize(combat_manager, game_state_node)
+	ai_controller.initialize(combat_manager, game_state)
 	
 	_initialize_battlefield()
 	_connect_signals()
@@ -50,7 +49,7 @@ func _create_terrain(terrain_data: Array) -> void:
 
 func _create_units(player_positions: Array, enemy_positions: Array) -> void:
 	for i in range(game_state.current_crew.characters.size()):
-		var _character = game_state.current_crew.characters[i]
+		var character = game_state.current_crew.characters[i]
 		var unit_shape = ColorRect.new()
 		unit_shape.color = Color.BLUE
 		unit_shape.size = Vector2(20, 20)
@@ -66,7 +65,6 @@ func _create_units(player_positions: Array, enemy_positions: Array) -> void:
 		unit_shape.position = enemy_positions[i]
 		units_node.add_child(unit_shape)
 		
-		# Add enemy name label
 		var name_label = Label.new()
 		name_label.text = enemy.name
 		name_label.position = enemy_positions[i] + Vector2(0, -20)
@@ -107,10 +105,10 @@ func clear_highlights() -> void:
 
 func wait_for_player_input() -> Vector2:
 	while true:
-		var event = await get_tree().create_timer(0.0).timeout
 		if Input.is_action_just_pressed("left_click"):
 			return get_viewport().get_mouse_position()
-	return Vector2.ZERO  # Default return to satisfy the function's return type
+		await get_tree().process_frame
+	return Vector2.ZERO
 
 func _get_move_input() -> Vector2:
 	var valid_positions = combat_manager.get_valid_move_positions(active_character)
@@ -197,7 +195,6 @@ func disable_player_controls() -> void:
 	attack_button.disabled = true
 	end_turn_button.disabled = true
 
-# Add methods for handling character actions, damage, and status effects
 func handle_character_damage(character: Character, damage: int) -> void:
 	character.toughness -= damage
 	if character.toughness <= 0:

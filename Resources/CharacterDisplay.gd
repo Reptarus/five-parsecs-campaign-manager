@@ -8,38 +8,38 @@ extends Control
 @onready var inventory_list: ItemList = $InventoryList
 @onready var traits_label: Label = $TraitsLabel
 
-func _ready():
-    if character:
-        update_display()
+func _ready() -> void:
+	if character:
+		update_display()
 
-func set_character(new_character: Character):
-    character = new_character
-    update_display()
+func set_character(new_character: Character) -> void:
+	character = new_character
+	update_display()
 
-func update_display():
-    name_label.text = character.name
-    update_stats()
-    update_inventory()
-    update_traits()
+func update_display() -> void:
+	name_label.text = character.name
+	update_stats()
+	update_inventory()
+	update_traits()
 
-func update_stats():
-    for stat in ["reactions", "speed", "combat_skill", "toughness", "savvy"]:
-        var label = stats_container.get_node(stat.capitalize() + "Label")
-        if label:
-            label.text = "%s: %d" % [stat.capitalize(), character.get(stat)]
+func update_stats() -> void:
+	for stat in ["reactions", "speed", "combat_skill", "toughness", "savvy"]:
+		var label: Label = stats_container.get_node(stat.capitalize() + "Label")
+		if label:
+			label.text = "%s: %d" % [stat.capitalize(), character.get(stat)]
 
-func update_inventory():
-    inventory_list.clear()
-    for item in character.get_all_items():
-        inventory_list.add_item(item.name)
+func update_inventory() -> void:
+	inventory_list.clear()
+	for item in character.get_all_items():
+		inventory_list.add_item(item.name)
 
-func update_traits():
-    traits_label.text = "Traits: " + ", ".join(character.traits)
+func update_traits() -> void:
+	traits_label.text = "Traits: " + ", ".join(character.traits)
 
-func show_detailed_view():
-    # Implement logic to show full character sheet
-    pass
+func show_detailed_view() -> void:
+	# Implement logic to show full character sheet
+	pass
 
-func show_preview():
-    # Implement logic to show character preview
-    pass
+func show_preview() -> void:
+	# Implement logic to show character preview
+	pass

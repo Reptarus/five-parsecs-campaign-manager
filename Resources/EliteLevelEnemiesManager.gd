@@ -14,10 +14,19 @@ enum EliteAbility {
 	CAMOUFLAGE
 }
 
+var game_state_manager: GameStateManagerNode
 var game_state: GameState
 
-func _init(_game_state: GameState) -> void:
-	game_state = _game_state
+func _init() -> void:
+	game_state_manager = get_node("/root/GameState")
+	if not game_state_manager:
+		push_error("GameStateManagerNode not found. Make sure it's properly set up as an AutoLoad.")
+		return
+	
+	game_state = game_state_manager.get_game_state()
+	if not game_state:
+		push_error("GameState not found in GameStateManagerNode.")
+		return
 
 func generate_elite_enemy(enemy_type: String) -> Dictionary:
 	var base_enemy: Dictionary = EnemyTypes.get_enemy_type(enemy_type)

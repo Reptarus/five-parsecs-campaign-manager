@@ -17,21 +17,38 @@ func generate_loan_offer() -> Dictionary:
 	var loan_amount: int = randi_range(MIN_LOAN_AMOUNT, MAX_LOAN_AMOUNT)
 	var interest_rate: float = randf_range(MIN_INTEREST_RATE, MAX_INTEREST_RATE)
 	var repayment_period: int = randi_range(MIN_REPAYMENT_PERIOD, MAX_REPAYMENT_PERIOD)
+	var loan_type: GlobalEnums.LoanType = _determine_loan_type()
 
 	return {
 		"amount": loan_amount,
 		"interest_rate": interest_rate,
 		"repayment_period": repayment_period,
-		"total_repayment": calculate_total_repayment(loan_amount, interest_rate, repayment_period)
+		"total_repayment": calculate_total_repayment(loan_amount, interest_rate, repayment_period),
+		"type": loan_type
 	}
+
+func _determine_loan_type() -> GlobalEnums.LoanType:
+	var roll: int = randi() % 100 + 1
+	if roll <= 60:
+		return GlobalEnums.LoanType.STANDARD
+	elif roll <= 90:
+		return GlobalEnums.LoanType.PREDATORY
+	else:
+		return GlobalEnums.LoanType.BLACK_MARKET
 
 func calculate_total_repayment(amount: int, rate: float, period: int) -> int:
 	return int(amount * (1 + rate * period))
 
 func accept_loan(loan: Dictionary) -> void:
-	assert(loan.has_all(["amount", "interest_rate", "repayment_period", "total_repayment"]), "Invalid loan data")
+	assert(loan.has_all(["amount", "interest_rate", "repayment_period", "total_repayment", "type"]), "Invalid loan data")
 	game_state.credits += loan.amount
 	game_state.current_crew.active_loans.append(loan)
+	
+	match loan.type:
+		GlobalEnums.LoanType.PREDATORY:
+			game_state.reputation -= 1
+		GlobalEnums.LoanType.BLACK_MARKET:
+			game_state.reputation -= 2
 
 func update_loans() -> void:
 	var loans_to_remove: Array[Dictionary] = []
@@ -55,6 +72,45 @@ func handle_loan_default(loan: Dictionary) -> void:
 	game_state.reputation -= 5
 	var penalty: int = int(loan.total_repayment * 0.5)
 	force_asset_sale(penalty)
+	
+	match loan.type:
+		GlobalEnums.LoanType.PREDATORY:
+			game_state.reputation -= 2
+		GlobalEnums.LoanType.BLACK_MARKET:
+			game_state.reputation -= 5
+			_trigger_black_market_consequences()
+
+func _trigger_black_market_consequences() -> void:
+	# Implement consequences for defaulting on a black market loan
+	var roll = randi() % 100 + 1
+	
+	if roll <= 30:
+		# Add a new Rival
+		var new_rival = {
+			"name": "Black Market Enforcer",
+			"description": "A ruthless debt collector sent to recover the defaulted loan."
+		}
+		game_state.current_crew.rivals.append(new_rival)
+		print("A new Rival has been added: Black Market Enforcer")
+	
+	elif roll <= 60:
+		# Trigger a special event: Bounty Hunter
+		print("A bounty hunter has been dispatched to track down your crew!")
+		# TODO: Implement a bounty hunter encounter in the next mission
+	
+	elif roll <= 80:
+		# Reputation hit
+		game_state.reputation -= 5
+		print("Your reputation has taken a severe hit in the criminal underworld.")
+	
+	else:
+		# Asset seizure
+		var seizure_amount = int(get_total_debt() * 0.2)  # 20% of total debt
+		force_asset_sale(seizure_amount)
+		print("Black market enforcers have seized some of your assets worth %d credits." % seizure_amount)
+	
+	# Add a story point to represent the dramatic turn of events
+	game_state.story_points += 1
 
 func force_asset_sale(amount: int) -> void:
 	var sold_amount: int = 0
@@ -89,3 +145,56 @@ func get_loan_risk_factor() -> float:
 	var current_debt: int = get_total_debt()
 	var max_allowed_debt: int = game_state.current_crew.get_max_allowed_debt()
 	return float(current_debt) / max_allowed_debt if max_allowed_debt > 0 else 1.0
+
+func roll_for_loan_event() -> void:
+	var roll: int = randi() % 100 + 1
+	if roll <= 10:
+		_trigger_loan_event()
+
+func _trigger_loan_event() -> void:
+	var roll = randi() % 100 + 1
+	var risk_factor = get_loan_risk_factor()
+	
+	if roll <= 20:
+		# Loan shark demands early repayment
+		var demand_amount = int(get_total_debt() * 0.25)
+		print("A loan shark demands early repayment of %d credits!" % demand_amount)
+		if game_state.credits >= demand_amount:
+			game_state.credits -= demand_amount
+			print("You paid the demand from your available credits.")
+		else:
+			force_asset_sale(demand_amount)
+			print("Assets were seized to cover the demand.")
+	
+	elif roll <= 40:
+		# Unexpected fees
+		var fee_amount = int(get_total_debt() * 0.1)
+		print("Unexpected loan fees of %d credits have been added to your debt." % fee_amount)
+		game_state.current_crew.active_loans[0].total_repayment += fee_amount
+	
+	elif roll <= 60:
+		# Opportunity to reduce debt
+		var reduction_amount = int(get_total_debt() * 0.15)
+		print("An opportunity arises to reduce your debt by %d credits." % reduction_amount)
+		if game_state.credits >= reduction_amount:
+			game_state.credits -= reduction_amount
+			game_state.current_crew.active_loans[0].total_repayment -= reduction_amount
+			print("You took advantage of the opportunity and reduced your debt.")
+		else:
+			print("You couldn't afford to take advantage of this opportunity.")
+	
+	elif roll <= 80:
+		# Rival interference
+		print("A rival has interfered with your loan arrangements.")
+		game_state.current_crew.active_loans[0].interest_rate += 0.05
+		print("Your interest rate has increased by 5%.")
+	
+	else:
+		# Loan forgiveness (rare event)
+		if risk_factor > 0.8:  # Only if in severe debt
+			var forgiven_amount = int(get_total_debt() * 0.2)
+			print("Due to unforeseen circumstances, %d credits of your debt have been forgiven!" % forgiven_amount)
+			game_state.current_crew.active_loans[0].total_repayment -= forgiven_amount
+	
+	# Add a story point for the dramatic event
+	game_state.story_points += 1

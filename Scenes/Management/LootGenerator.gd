@@ -6,22 +6,15 @@ var game_state: GameState
 func _init(_game_state: GameState):
 	game_state = _game_state
 
-enum LootType {
-	WEAPON,
-	ARMOR,
-	GEAR,
-	CONSUMABLE,
-	CREDITS,
-	STORY_POINT
-}
+const LootType = GlobalEnums.ItemType
 
 const LOOT_TABLE: Dictionary = {
 	LootType.WEAPON: 25,
 	LootType.ARMOR: 10,
 	LootType.GEAR: 20,
 	LootType.CONSUMABLE: 20,
-	LootType.CREDITS: 20,
-	LootType.STORY_POINT: 5
+	"CREDITS": 20,
+	"STORY_POINT": 5
 }
 
 func generate_loot() -> Dictionary:
@@ -36,15 +29,15 @@ func generate_loot() -> Dictionary:
 			return generate_gear()
 		LootType.CONSUMABLE:
 			return generate_consumable()
-		LootType.CREDITS:
+		"CREDITS":
 			return generate_credits()
-		LootType.STORY_POINT:
+		"STORY_POINT":
 			return generate_story_point()
 		_:
 			push_error("Invalid loot type")
 			return {}
 
-func _get_random_loot_type() -> LootType:
+func _get_random_loot_type():
 	var total_weight: int = LOOT_TABLE.values().reduce(func(acc, weight): return acc + weight, 0)
 	var roll: int = randi_range(1, total_weight)
 	var cumulative_weight: int = 0
@@ -55,13 +48,13 @@ func _get_random_loot_type() -> LootType:
 			return loot_type
 	
 	push_error("Failed to determine loot type")
-	return LootType.CREDITS
+	return "CREDITS"
 
 func generate_weapon() -> Dictionary:
 	var weapon_types: Array[String] = ["Pistol", "Rifle", "Shotgun", "Sniper", "Heavy"]
 	var weapon_name: String = weapon_types[randi() % weapon_types.size()] + " " + _generate_rarity()
 	var damage: int = randi_range(1, 5)
-	var weapon_type: Weapon.WeaponType = Weapon.WeaponType.values()[randi() % Weapon.WeaponType.size()]
+	var weapon_type: GlobalEnums.WeaponType = GlobalEnums.WeaponType.values()[randi() % GlobalEnums.WeaponType.size()]
 	var weapon_range: int = randi_range(1, 10)
 	var shots: int = randi_range(1, 5)
 	
@@ -200,7 +193,7 @@ func apply_loot(character: Character, loot: Dictionary, ship: Ship) -> void:
 				loot_summary.append("Ship stash is full, couldn't store %s" % loot.name)
 		
 		"Credits":
-			ship.debt -= loot.amount  # Assuming credits reduce ship debt
+			game_state.add_credits(loot.amount)
 			loot_summary.append("%s found %d credits" % [character.name, loot.amount])
 		
 		"Story Point":

@@ -2,27 +2,19 @@
 class_name ExpandedFactionManager
 extends Resource
 
-enum FactionType {
-	CORPORATION,
-	LOCAL_GOVERNMENT,
-	SECTOR_GOVERNMENT,
-	WEALTHY_INDIVIDUAL,
-	PRIVATE_ORGANIZATION,
-	SECRETIVE_GROUP,
-	CRIMINAL_SYNDICATE,
-	REBEL_FACTION
-}
+# Use the GlobalEnums.Faction enum instead of defining a new one
+const FactionType = GlobalEnums.Faction
 
 const MIN_FACTION_STRENGTH: int = 2
 const MAX_FACTION_STRENGTH: int = 7
 const MIN_FACTION_POWER: int = 3
 const MAX_FACTION_POWER: int = 5
 
-var game_state: Resource  # Use Resource as a base class instead of GameState
+var game_state: GameState
 var factions: Array[Dictionary] = []
 var faction_data: Dictionary
 
-func _init(_game_state: Resource = null) -> void:  # Change parameter type to Resource
+func _init(_game_state: GameState = null) -> void:
 	game_state = _game_state
 	load_faction_data()
 
@@ -56,7 +48,6 @@ func update_faction_relations(faction: Dictionary, change: float) -> void:
 	faction["influence"] = clamp(faction["influence"] + change, 1.0, 5.0)
 
 func get_faction_mission(faction: Dictionary) -> Mission:
-	# Generate a mission based on the faction's type and influence
 	return game_state.mission_generator.generate_mission_for_faction(faction)
 
 func resolve_faction_conflict() -> void:
@@ -129,7 +120,6 @@ func capitalize_on_events(faction: Dictionary) -> void:
 	faction[stat_to_increase] = min(5, faction[stat_to_increase] + 1)
 
 func lay_low(_faction: Dictionary) -> void:
-	# No action taken
 	pass
 
 func defensive_posture(faction: Dictionary) -> void:
@@ -187,5 +177,4 @@ static func deserialize(data: Dictionary) -> ExpandedFactionManager:
 	return manager
 
 static func deserialize_faction(data: Dictionary) -> Dictionary:
-	# Return the faction data as a Dictionary instead of a Faction object
 	return data

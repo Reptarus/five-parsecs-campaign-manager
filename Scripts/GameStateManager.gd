@@ -1,13 +1,10 @@
-class_name GameStateManager
 extends Resource
 
-signal state_changed(new_state: State)
+signal state_changed(new_state: GlobalEnums.CampaignPhase)
 signal tutorial_ended
 signal battle_processed(battle_won: bool)
 
-enum State {MAIN_MENU, CREW_CREATION, CAMPAIGN_TURN, MISSION, BATTLE, POST_MISSION}
-
-@export var current_state: State = State.MAIN_MENU
+@export var current_state: GlobalEnums.CampaignPhase = GlobalEnums.CampaignPhase.MAIN_MENU
 @export var current_crew: Resource = null
 @export var current_ship: Resource
 @export var current_location: Resource
@@ -74,7 +71,7 @@ func initialize_managers() -> void:
             manager.initialize(self)
 
 func serialize() -> Dictionary:
-    var data = {
+    return {
         "current_state": current_state,
         "credits": credits,
         "reputation": reputation,
@@ -106,10 +103,9 @@ func serialize() -> Dictionary:
         "world_data": world_generator.serialize(),
         "combat_manager": combat_manager.serialize() if combat_manager else null
     }
-    return data
 
 func deserialize(data: Dictionary) -> void:
-    current_state = data.get("current_state", State.MAIN_MENU)
+    current_state = data.get("current_state", GlobalEnums.CampaignPhase.MAIN_MENU)
     credits = data.get("credits", 0)
     reputation = data.get("reputation", 0)
     current_crew = Crew.deserialize(data.get("current_crew", {})) if data.get("current_crew") else null
@@ -145,7 +141,7 @@ func deserialize(data: Dictionary) -> void:
     else:
         combat_manager = null
 
-func transition_to_state(new_state: State) -> void:
+func transition_to_state(new_state: GlobalEnums.CampaignPhase) -> void:
     current_state = new_state
     state_changed.emit(new_state)
 
@@ -162,9 +158,7 @@ func set_victory_condition(condition: Dictionary) -> void:
     victory_condition = condition
 
 func get_ship_stash() -> Array[Gear]:
-    if current_ship and current_ship.inventory:
-        return current_ship.inventory.get_items()
-    return []
+    return current_ship.inventory.get_items() if current_ship and current_ship.inventory else []
 
 func sort_ship_stash(sort_type: String) -> void:
     if current_ship and current_ship.inventory:
@@ -179,20 +173,16 @@ func get_current_crew() -> Crew:
     return current_crew
 
 func add_to_ship_stash(item: Gear) -> bool:
-    if current_ship and current_ship.inventory:
-        return current_ship.inventory.add_item(item)
-    return false
+    return current_ship.inventory.add_item(item) if current_ship and current_ship.inventory else false
 
 func remove_from_ship_stash(item: Gear) -> bool:
-    if current_ship and current_ship.inventory:
-        return current_ship.inventory.remove_item(item)
-    return false
+    return current_ship.inventory.remove_item(item) if current_ship and current_ship.inventory else false
 
 func start_battle(scene_tree: SceneTree) -> void:
     var battle_instance = battle_scene.instantiate()
     battle_instance.initialize(self, current_mission)
     scene_tree.root.add_child(battle_instance)
-    transition_to_state(State.BATTLE)
+    transition_to_state(GlobalEnums.CampaignPhase.BATTLE)
 
 func handle_move(character: Character, new_position: Vector2i) -> void:
     combat_manager.handle_move(character, new_position)
@@ -213,22 +203,17 @@ func get_character_at_position(position: Vector2i) -> Character:
     return combat_manager.get_character_at_position(position)
 
 func end_battle(player_victory: bool, scene_tree: SceneTree) -> void:
-    # Update mission status
     current_mission.set_completed(player_victory)
     last_mission_results = "victory" if player_victory else "defeat"
     
-    # Transition to post-battle phase
     var post_battle_scene = load("res://Scenes/Scene Container/PostBattle.tscn").instantiate()
     post_battle_scene.initialize(self)
     scene_tree.root.add_child(post_battle_scene)
     
-    # Execute post-battle sequence
     post_battle_scene.execute_post_battle_sequence()
     
-    # Update game state
-    transition_to_state(State.POST_MISSION)
+    transition_to_state(GlobalEnums.CampaignPhase.POST_BATTLE)
     
-    # Clean up battle scene
     if scene_tree.root.has_node("Battle"):
         scene_tree.root.get_node("Battle").queue_free()
 

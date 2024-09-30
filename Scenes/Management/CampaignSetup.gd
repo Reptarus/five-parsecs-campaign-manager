@@ -9,15 +9,12 @@ signal campaign_created
 @onready var victory_condition_selection: Control = $VictoryConditionSelection
 @onready var start_campaign_button: Button = $StartCampaignButton
 
-var game_state: GameStateManager
+var game_state: GameState
 
 func _ready() -> void:
 	game_state = GameState.get_game_state()
 	if not game_state:
-		push_error("GameStateManager not found. Make sure GameState is properly set up as an AutoLoad.")
-		return
-	if not game_state is GameStateManager:
-		push_error("GameState is not of type GameStateManager. Check your AutoLoad setup.")
+		push_error("GameState not found. Make sure GameState is properly set up as an AutoLoad.")
 		return
 
 	_connect_signals()
@@ -70,8 +67,8 @@ func _on_start_campaign_pressed() -> void:
 			push_error("NewCampaignFlow node not found")
 		
 		# Transition to the campaign turn state
-		game_state.change_state(GameState.State.CAMPAIGN_TURN)
-		get_tree().change_scene_to_file("res://Scenes/Scene Container/CrewManagement.tscn")
+		game_state.transition_to_state(GameState.State.UPKEEP)
+		get_tree().change_scene_to_file("res://Scenes/Management/Scenes/BattlefieldGenerator.tscn")
 
 func _validate_campaign_setup() -> bool:
 	if not game_state:

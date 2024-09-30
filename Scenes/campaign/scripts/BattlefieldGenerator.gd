@@ -7,7 +7,7 @@ const CELL_SIZE := Vector2i(32, 32)
 var mission: Mission
 var terrain_generator: TerrainGenerator
 
-@onready var game_manager: Control = get_node("res://Resources/GameManager.gd") as Control
+@onready var game_state: GameState = get_node("/root/GameState")
 @onready var battlefield_generator: Control = self
 @onready var deployment_conditions_label: Label = $MarginContainer/VBoxContainer/HBoxContainer2/VBoxContainer/DeploymentConditionsLabel
 @onready var mission_objective_label: Label = $MarginContainer/VBoxContainer/HBoxContainer2/VBoxContainer/MissionObjectiveLabel
@@ -19,9 +19,9 @@ var terrain_generator: TerrainGenerator
 
 func _ready() -> void:
 	_setup_ui()
+	initialize()
 
-func initialize(game_state_manager_node: GameStateManagerNode) -> void:
-	var game_state = game_state_manager_node.get_game_state()
+func initialize() -> void:
 	mission = game_state.current_mission
 	terrain_generator = TerrainGenerator.new()
 	_generate_battlefield()
@@ -37,16 +37,16 @@ func _setup_ui() -> void:
 	for button_name in phase_buttons:
 		var button: Button = $MarginContainer/VBoxContainer/HBoxContainer.get_node(button_name)
 		button.pressed.connect(phase_buttons[button_name])
-		button.custom_minimum_size = Vector2(150, 50)  # Make buttons larger
-		if button_name.to_lower().replace("button", "") == game_manager.current_phase.to_lower():
-			button.add_theme_color_override("font_color", Color.GREEN)  # Highlight current phase
+		button.custom_minimum_size = Vector2(150, 50)
+		if button_name.to_lower().replace("button", "") == game_state.current_phase.to_lower():
+			button.add_theme_color_override("font_color", Color.GREEN)
 	
 	$MarginContainer/VBoxContainer/HBoxContainer2/VBoxContainer2/HBoxContainer/PlanetInfoButton.pressed.connect(_on_planet_info_pressed)
 	$MarginContainer/VBoxContainer/HBoxContainer2/VBoxContainer2/HBoxContainer/ShipStatsButton.pressed.connect(_on_ship_stats_pressed)
 	$MarginContainer/VBoxContainer/HBoxContainer2/VBoxContainer2/HBoxContainer/CrewStatsButton.pressed.connect(_on_crew_stats_pressed)
 	$MarginContainer/VBoxContainer/HBoxContainer2/VBoxContainer2/HBoxContainer/MedbayButton.pressed.connect(_on_medbay_pressed)
 	$MarginContainer/VBoxContainer/HBoxContainer2/VBoxContainer2/HBoxContainer/StashButton.pressed.connect(_on_stash_pressed)
-	$MarginContainer/StartMissionButton.pressed.connect(_on_start_mission_pressed)
+	$StartMissionButton.pressed.connect(_on_start_mission_pressed)
 
 func _generate_battlefield() -> void:
 	_set_mission_info()
@@ -79,20 +79,20 @@ func generate_battlefield(mission: Mission) -> Dictionary:
 	}
 
 func _generate_terrain() -> Array[Dictionary]:
-	var terrain_generator := TerrainGenerator.new()
-	var terrain_map: Array = terrain_generator.generate_terrain(GRID_SIZE)
+	var table_size := "2x2"  # Adjust based on mission requirements
+	var terrain_map: Array = terrain_generator.generate_terrain(table_size)
 	var terrain: Array[Dictionary] = []
 
 	for x in range(GRID_SIZE.x):
 		for y in range(GRID_SIZE.y):
 			match terrain_map[x][y]:
-				GlobalEnums.TerrainSize.LARGE:
+				GlobalEnums.TerrainFeature.BLOCK:
 					terrain.append({
 						"position": Vector2i(x, y) * CELL_SIZE,
 						"size": Vector2i(2, 2) * CELL_SIZE,
 						"type": "large"
 					})
-				GlobalEnums.TerrainSize.SMALL:
+				GlobalEnums.TerrainFeature.INDIVIDUAL:
 					terrain.append({
 						"position": Vector2i(x, y) * CELL_SIZE,
 						"size": Vector2i(1, 1) * CELL_SIZE,
@@ -135,9 +135,10 @@ func _generate_enemy_positions(num_enemies: int) -> Array[Vector2]:
 		enemy_positions.append(position)
 	return enemy_positions
 
-func _generate_battlefield_grid(_battlefield_data: Dictionary) -> void:
+func _generate_battlefield_grid(battlefield_data: Dictionary) -> void:
 	battlefield_grid.columns = GRID_SIZE.x
-	var terrain_map := terrain_generator.generate_terrain(GRID_SIZE)
+	var table_size := "2x2"  # Adjust based on mission requirements
+	var terrain_map := terrain_generator.generate_terrain(table_size)
 	
 	for cell in battlefield_grid.get_children():
 		cell.queue_free()
@@ -150,9 +151,9 @@ func _generate_battlefield_grid(_battlefield_data: Dictionary) -> void:
 			cell.custom_minimum_size = CELL_SIZE
 			
 			match terrain_map[x][y]:
-				GlobalEnums.TerrainSize.LARGE:
+				GlobalEnums.TerrainFeature.BLOCK:
 					cell.color = Color(0.2, 0.6, 0.2)  # Green for large terrain
-				GlobalEnums.TerrainSize.SMALL:
+				GlobalEnums.TerrainFeature.INDIVIDUAL:
 					cell.color = Color(0.6, 0.4, 0.2)  # Brown for small terrain
 				GlobalEnums.TerrainFeature.LINEAR:
 					cell.color = Color(0.2, 0.2, 0.6)  # Blue for linear terrain
@@ -165,34 +166,31 @@ func _set_mission_name() -> void:
 	mission_name_label.text = "Mission: %s" % mission.title
 
 func _on_back_pressed() -> void:
-	game_manager.load_scene("res://scenes/campaign/CampaignDashboard.tscn")
+	get_tree().change_scene_to_file("res://Scenes/Management/CampaignDashboard.tscn")
 
 func _on_travel_pressed() -> void:
-	game_manager.load_scene("res://scenes/campaign/TravelScene.tscn")
+	get_tree().change_scene_to_file("res://Scenes/Management/TravelScene.tscn")
 
 func _on_world_pressed() -> void:
-	game_manager.load_scene("res://scenes/campaign/WorldScene.tscn")
+	get_tree().change_scene_to_file("res://Scenes/Management/WorldScene.tscn")
 
 func _on_battle_pressed() -> void:
-	game_manager.load_scene("res://scenes/campaign/BattleScene.tscn")
+	get_tree().change_scene_to_file("res://Scenes/Management/BattleScene.tscn")
 
 func _on_post_battle_pressed() -> void:
-	game_manager.load_scene("res://scenes/campaign/PostBattleScene.tscn")
+	get_tree().change_scene_to_file("res://Scenes/Management/PostBattleScene.tscn")
 
 func _on_planet_info_pressed() -> void:
 	var planet_info: Popup = $PlanetInfoPopup
-	var game_state_manager: GameStateManagerNode = get_node("/root/GameStateManagerNode")
-	var current_location: Location = game_state_manager.get_game_state().current_location
+	var current_location: Location = game_state.current_location
 	var info_text: String = "Planet: %s\n" % current_location.name
 	info_text += "Traits:\n"
 	var traits: Array[String] = current_location.get_traits()
 	info_text += "- " + "\n- ".join(traits)
 	
-	# Add licensing requirement information
 	var licensing_requirement: String = current_location.get_licensing_requirement()
 	info_text += "\n\nLicensing: %s\n" % licensing_requirement
 	
-	# Add invasion information if scheduled
 	if current_location.is_invasion_scheduled():
 		info_text += "\nWARNING: Invasion scheduled in %d turns!\n" % current_location.get_invasion_countdown()
 	
@@ -202,8 +200,7 @@ func _on_planet_info_pressed() -> void:
 func _on_ship_stats_pressed() -> void:
 	var ship_stats: Popup = $ShipStatsPopup
 	ship_stats.popup_centered()
-	var game_state_manager: GameStateManagerNode = get_node("/root/GameStateManagerNode")
-	var ship: Ship = game_state_manager.get_game_state().current_crew.ship
+	var ship: Ship = game_state.current_crew.ship
 	var stats_text: String = "Ship: %s\n" % ship.name
 	stats_text += "Hull: %d / %d\n" % [ship.current_hull, ship.max_hull]
 	stats_text += "Fuel: %d\n" % ship.fuel
@@ -213,11 +210,10 @@ func _on_ship_stats_pressed() -> void:
 	ship_stats.get_node("Label").text = stats_text
 
 func _on_crew_stats_pressed() -> void:
-	get_tree().change_scene_to_file("res://Scenes/Scene Container/CrewManagement.tscn")
+	get_tree().change_scene_to_file("res://Scenes/Management/CrewManagement.tscn")
 
 func _on_medbay_pressed() -> void:
-	var game_state_manager: GameStateManagerNode = get_node("/root/GameStateManagerNode")
-	var ship = game_state_manager.get_game_state().current_crew.ship
+	var ship = game_state.current_crew.ship
 	var medbay: MedicalBayComponent = ship.get_component(GlobalEnums.ComponentType.MEDICAL_BAY)
 	if medbay:
 		var medbay_popup: Popup = $MedbayPopup
@@ -230,8 +226,8 @@ func _on_medbay_pressed() -> void:
 		print("No medbay available on this ship.")
 
 func _on_stash_pressed() -> void:
-	get_tree().change_scene_to_file("res://Scenes/Scene Container/ShipInventory.tscn")
+	get_tree().change_scene_to_file("res://Scenes/Management/ShipInventory.tscn")
 
 func _on_start_mission_pressed() -> void:
-	var game_state_manager: GameStateManagerNode = get_node("/root/GameStateManagerNode")
-	game_state_manager.get_game_state().start_mission(get_tree())
+	game_state.start_mission()
+	get_tree().change_scene_to_file("res://Scenes/campaign/Battle.tscn")

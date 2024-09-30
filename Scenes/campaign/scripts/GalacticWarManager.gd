@@ -4,46 +4,46 @@ extends Node
 
 var game_state: GameState
 
-func _init(_game_state: GameState):
+func _init(_game_state: GameState) -> void:
 	game_state = _game_state
 
-func check_war_progress():
+func check_war_progress() -> void:
 	for planet in game_state.invaded_planets:
-		var roll = randi() % 6 + randi() % 6 + 2  # 2d6
+		var roll: int = GameManager.roll_dice(2, 6)
 		match roll:
 			2, 3, 4:
-				planet.status = "Lost to Unity"
+				planet.status = GlobalEnums.FringeWorldInstability.CHAOS
 				game_state.invaded_planets.erase(planet)
 			5, 6, 7:
-				planet.status = "Contested"
+				planet.status = GlobalEnums.FringeWorldInstability.CONFLICT
 			8, 9:
-				planet.status = "Making Ground"
+				planet.status = GlobalEnums.FringeWorldInstability.UNREST
 				planet.unity_progress += 1
 			10, 11, 12:
-				planet.status = "Unity Victorious"
+				planet.status = GlobalEnums.FringeWorldInstability.STABLE
 				game_state.invaded_planets.erase(planet)
 				planet.add_troop_presence()
 
-func invade_planet(planet: Location):
+func invade_planet(planet: Location) -> void:
 	if not game_state.invaded_planets.has(planet):
 		game_state.invaded_planets.append(planet)
-		planet.status = "Invaded"
+		planet.status = GlobalEnums.FringeWorldInstability.CHAOS
 
-func resolve_invasion(planet: Location):
-	var roll = randi() % 6 + randi() % 6 + 2  # 2d6
+func resolve_invasion(planet: Location) -> void:
+	var roll: int = GameManager.roll_dice(2, 6)
 	if roll >= 8:
 		game_state.invaded_planets.erase(planet)
-		planet.status = "Liberated"
+		planet.status = GlobalEnums.FringeWorldInstability.STABLE
 	else:
-		planet.status = "Invasion Continues"
+		planet.status = GlobalEnums.FringeWorldInstability.CONFLICT
 
-func get_invasion_status(planet: Location) -> String:
-	return planet.status if planet.status else "Not Invaded"
+func get_invasion_status(planet: Location) -> GlobalEnums.FringeWorldInstability:
+	return planet.status if planet.status else GlobalEnums.FringeWorldInstability.STABLE
 
-func get_invaded_planets() -> Array:
+func get_invaded_planets() -> Array[Location]:
 	return game_state.invaded_planets
 
-func process_galactic_war_turn():
+func process_galactic_war_turn() -> void:
 	check_war_progress()
 	
 	# Process faction actions and conflicts
@@ -59,9 +59,9 @@ func process_galactic_war_turn():
 	for planet in game_state.invaded_planets.duplicate():  # Duplicate to avoid modifying while iterating
 		resolve_invasion(planet)
 
-func update_faction_influence(battle_outcome: String):
-	var faction_influence_change = 0.1  # Base influence change
-	if battle_outcome == "victory":
+func update_faction_influence(battle_outcome: GlobalEnums.BattleOutcome) -> void:
+	var faction_influence_change: float = 0.1  # Base influence change
+	if battle_outcome == GlobalEnums.BattleOutcome.VICTORY:
 		game_state.player_faction.influence += faction_influence_change
 		game_state.enemy_faction.influence -= faction_influence_change
 	else:
@@ -74,7 +74,7 @@ func update_faction_influence(battle_outcome: String):
 	elif game_state.enemy_faction.influence >= 0.75:
 		trigger_galactic_war_event("enemy_advantage")
 
-func trigger_galactic_war_event(event_type: String):
+func trigger_galactic_war_event(event_type: String) -> void:
 	match event_type:
 		"player_advantage":
 			# Implement player advantage event
@@ -85,6 +85,6 @@ func trigger_galactic_war_event(event_type: String):
 		# Add more event types as needed
 
 # This function can be called from PostBattlePhase
-func post_battle_update(battle_outcome: String):
+func post_battle_update(battle_outcome: GlobalEnums.BattleOutcome) -> void:
 	update_faction_influence(battle_outcome)
 	process_galactic_war_turn()

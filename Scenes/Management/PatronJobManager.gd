@@ -1,15 +1,20 @@
 class_name PatronJobManager
 extends Node
 
+var game_state_manager: GameStateManagerNode
 var game_state: GameState
+var mission_generator: MissionGenerator
 
-func initialize(_game_state: GameState) -> void:
-	game_state = _game_state
+func initialize(_game_state_manager: GameStateManagerNode) -> void:
+	game_state_manager = _game_state_manager
+	game_state = game_state_manager.get_game_state()
+	mission_generator = MissionGenerator.new()
+	mission_generator.initialize(game_state_manager)
 
 func generate_patron_jobs() -> void:
 	for patron in game_state.patrons:
 		if should_generate_job(patron):
-			var new_job: Mission = game_state.mission_generator.generate_mission()
+			var new_job = mission_generator.generate_mission()
 			new_job.type = GlobalEnums.Type.PATRON
 			new_job.patron = patron
 			patron.add_mission(new_job)
@@ -28,9 +33,8 @@ func accept_job(mission: Mission) -> void:
 func complete_job(mission: Mission) -> void:
 	mission.complete()
 	mission.patron.change_relationship(10)
-	game_state.add_credits(mission.rewards.credits)
-	game_state.story_points += mission.rewards.story_points
-	game_state.current_crew.gain_experience(mission.rewards.bonus_xp)
+	game_state.add_credits(mission.rewards["credits"])
+	game_state.add_reputation(mission.rewards.get("reputation", 0))
 	game_state.current_mission = null
 
 func fail_job(mission: Mission) -> void:
@@ -75,10 +79,10 @@ func generate_condition() -> String:
 	return ["Vengeful", "Demanding", "Small Squad", "Full Squad", "Clean", "Busy", "One-time Contract", "Reputation Required"].pick_random()
 
 func add_mission(mission: Mission) -> void:
-	game_state.available_missions.append(mission)
+	game_state.add_available_mission(mission)
 
 func remove_mission(mission: Mission) -> void:
-	game_state.available_missions.erase(mission)
+	game_state.remove_available_mission(mission)
 
 func add_patron(patron: Patron) -> void:
 	game_state.patrons.append(patron)

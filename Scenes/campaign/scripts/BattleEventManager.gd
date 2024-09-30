@@ -21,19 +21,42 @@ enum EventType {
 	SNIPER_SHOT,
 	MELEE_CLASH,
 	GRENADE_THROW,
-	MEDICAL_EMERGENCY
+	MEDICAL_EMERGENCY,
+	PSIONIC_EVENT,  # Added from EscalatingBattlesManager
+	ALIEN_INTERVENTION  # Added from EscalatingBattlesManager
 }
 
 var game_state: GameState
+var difficulty_settings: DifficultySettings  # Added from EscalatingBattlesManager
 
 func _init(_game_state: GameState):
 	game_state = _game_state
 
-func generate_event() -> Dictionary:
-	var event_type = EventType.values()[randi() % EventType.size()]
-	return _create_event(event_type)
+func initialize(_game_state: GameState, _difficulty_settings: DifficultySettings):  # Added from EscalatingBattlesManager
+	game_state = _game_state
+	difficulty_settings = _difficulty_settings
 
-func _create_event(event_type: EventType) -> Dictionary:
+func apply_difficulty(_difficulty_settings: DifficultySettings):  # Added from EscalatingBattlesManager
+	difficulty_settings = _difficulty_settings
+
+func generate_event(battle_state: Dictionary) -> Dictionary:  # Modified to include battle_state
+	if _should_escalate(battle_state):
+		return _create_event(EventType.values()[randi() % EventType.size()], battle_state)
+	return {}
+
+func _should_escalate(battle_state: Dictionary) -> bool:  # Added from EscalatingBattlesManager
+	var escalation_chance = 20  # Base 20% chance
+	
+	escalation_chance += 5 if "Skulkers" in battle_state.crew_species else 0
+	escalation_chance += 5 if "Krag" in battle_state.crew_species else 0
+	escalation_chance += 10 if battle_state.has_psionics else 0
+	escalation_chance -= 5 if battle_state.has_advanced_bot_upgrades else 0
+	
+	escalation_chance += difficulty_settings.get_escalation_modifier()
+	
+	return randf() < (escalation_chance / 100.0)
+
+func _create_event(event_type: EventType, battle_state: Dictionary) -> Dictionary:  # Modified to include battle_state
 	var event = {
 		"type": event_type,
 		"description": "",
@@ -101,6 +124,20 @@ func _create_event(event_type: EventType) -> Dictionary:
 		EventType.MEDICAL_EMERGENCY:
 			event.description = "A team member requires immediate medical attention."
 			event.effect = {"require_medic": true, "target": "player"}
+		EventType.PSIONIC_EVENT:  # Added from EscalatingBattlesManager
+			event.description = "Unexpected psionic phenomenon occurs"
+			event.effect = {"psionic_boost": true, "target": "all"}
+		EventType.ALIEN_INTERVENTION:  # Added from EscalatingBattlesManager
+			event.description = "Unexpected alien species intervenes"
+			event.effect = {"add_units": 1, "target": "random"}
+	
+	# Modify effect based on battle state (from EscalatingBattlesManager)
+	if "Skulkers" in battle_state.crew_species:
+		event.description += " (Skulkers provide advantage)"
+		event.effect["skulker_bonus"] = true
+	if battle_state.has_psionics:
+		event.description += " (Psionic effects intensified)"
+		event.effect["psionic_intensity"] = 2
 	
 	return event
 
@@ -165,3 +202,14 @@ func _apply_to_team(effect: Dictionary, team: Array) -> void:
 	if "require_medic" in effect:
 		var random_unit = team[randi() % team.size()]
 		random_unit.require_medical_attention()
+	if "psionic_boost" in effect:  # Added from EscalatingBattlesManager
+		for unit in team:
+			unit.apply_psionic_boost()
+	if "skulker_bonus" in effect:  # Added from EscalatingBattlesManager
+		for unit in team:
+			if unit.species == "Skulkers":
+				unit.apply_skulker_bonus()
+	if "psionic_intensity" in effect:  # Added from EscalatingBattlesManager
+		for unit in team:
+			if unit.has_psionic_abilities:
+				unit.increase_psionic_intensity(effect.psionic_intensity)

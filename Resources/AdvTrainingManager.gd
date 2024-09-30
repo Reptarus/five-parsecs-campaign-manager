@@ -1,4 +1,5 @@
 # AdvancedTrainingManager.gd
+class_name AdvancedTrainingManager
 extends Node
 
 var game_state: GameState

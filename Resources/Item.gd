@@ -184,3 +184,21 @@ static func effect_night_sight(user, _target):
 
 static func effect_pain_suppressor(user, _target):
 	user.set_pain_suppressor(true)
+
+static func effect_analyzer(user, _target):
+	user.set_analyzer(true)
+
+static func effect_colonist_ration_packs(user, _target):
+	user.add_colonist_ration_packs()
+
+static func effect_duplicator(user, _target):
+	user.set_duplicator(true)
+
+static func effect_fake_id(user, _target):
+	user.set_fake_id(true)
+
+static func effect_fixer(user, _target):
+	user.set_fixer(true)
+
+static func effect_genetic_reconfiguration_kit(user, _target):
+	user.set_genetic_reconfiguration_kit(true)

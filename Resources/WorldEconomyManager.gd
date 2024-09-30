@@ -20,7 +20,7 @@ func _init(_game_world: Location, _economy_manager: EconomyManager) -> void:
 
 func _initialize_local_market() -> void:
 	local_market.clear()
-	var num_items = randi_range(10, MAX_MARKET_ITEMS)
+	var num_items = randi() % (MAX_MARKET_ITEMS - 9) + 10
 	for i in range(num_items):
 		local_market.append(economy_manager.generate_random_equipment())
 
@@ -131,12 +131,12 @@ func _normalize_economy() -> void:
 
 func _update_market_items() -> void:
 	# Remove some items
-	var remove_count = randi_range(0, 3)
+	var remove_count = randi() % 4
 	for i in range(min(remove_count, local_market.size())):
 		local_market.pop_at(randi() % local_market.size())
 	
 	# Add some new items
-	var add_count = randi_range(0, 3)
+	var add_count = randi() % 4
 	for i in range(add_count):
 		if local_market.size() < MAX_MARKET_ITEMS:
 			local_market.append(economy_manager.generate_random_equipment())

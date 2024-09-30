@@ -1,7 +1,8 @@
-[gd_scene load_steps=3 format=3 uid="uid://bs5dsbl13w0yf"]
+[gd_scene load_steps=4 format=3 uid="uid://bs5dsbl13w0yf"]
 
 [ext_resource type="Script" path="res://Scenes/campaign/scripts/TutorialSelection.gd" id="1_script"]
 [ext_resource type="Theme" uid="uid://d1you1rrwuu48" path="res://Scenes/sci_fi_theme.tres" id="2_theme"]
+[ext_resource type="Script" path="res://Scenes/Utils/TutorialManager.gd" id="3_tutorial_manager"]
 
 [node name="TutorialSelection" type="Control"]
 layout_mode = 3
@@ -53,3 +54,10 @@ text = "Compendium"
 [node name="SkipButton" type="Button" parent="Panel/VBoxContainer"]
 layout_mode = 2
 text = "Skip Tutorial"
+
+[node name="TutorialManager" type="Node" parent="."]
+script = ExtResource("3_tutorial_manager")
+
+[connection signal="pressed" from="Panel/VBoxContainer/StoryTrackButton" to="." method="_on_story_track_pressed"]
+[connection signal="pressed" from="Panel/VBoxContainer/CompendiumButton" to="." method="_on_compendium_pressed"]
+[connection signal="pressed" from="Panel/VBoxContainer/SkipButton" to="." method="_on_skip_pressed"]

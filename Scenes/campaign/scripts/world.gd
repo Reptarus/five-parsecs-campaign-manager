@@ -6,22 +6,32 @@ signal mission_selection_requested(available_missions: Array[Mission])
 signal phase_completed
 signal game_over
 signal ui_update_requested
+signal local_event_triggered(event_description: String)
+signal economy_updated
 
 const BASE_UPKEEP_COST: int = 10
 const ADDITIONAL_CREW_COST: int = 2
+const LOCAL_EVENT_CHANCE: float = 0.2
 
 var game_state: GameState
 var world_step: WorldStep
+var world_economy_manager: WorldEconomyManager
+var world_generator: WorldGenerator
 
 var _mission_selection_scene = preload("res://Scripts/Missions/MissionSelection.gd")
 
 func _init(_game_state: GameState) -> void:
 	game_state = _game_state
 	world_step = WorldStep.new(game_state)
+	world_economy_manager = WorldEconomyManager.new(game_state.current_location, game_state.economy_manager)
+	world_generator = WorldGenerator.new()
+	world_generator.initialize(game_state)
 
 func _ready() -> void:
 	world_step.phase_completed.connect(_on_phase_completed)
 	world_step.mission_selection_requested.connect(_on_mission_selection_requested)
+	world_economy_manager.local_event_triggered.connect(_on_local_event_triggered)
+	world_economy_manager.economy_updated.connect(_on_economy_updated)
 
 # Public methods
 func execute_world_step() -> void:
@@ -32,6 +42,7 @@ func execute_world_step() -> void:
 	world_step.determine_job_offers()
 	world_step.assign_equipment()
 	world_step.resolve_rumors()
+	_update_local_economy()
 	world_step.choose_battle()
 	
 	print("World step completed.")
@@ -42,21 +53,26 @@ func get_world_traits() -> Array[String]:
 
 func serialize() -> Dictionary:
 	return {
-		"game_state": game_state.serialize()
+		"game_state": game_state.serialize(),
+		"world_economy": world_economy_manager.serialize(),
+		"world_generator": world_generator.serialize()
 	}
 
 static func deserialize(data: Dictionary) -> GameWorld:
 	var game_state = GameState.new()
 	if game_state.deserialize(data["game_state"]):
-		return GameWorld.new(game_state)
+		var world = GameWorld.new(game_state)
+		world.world_economy_manager.deserialize(data["world_economy"])
+		world.world_generator.deserialize(data["world_generator"])
+		return world
 	else:
-		push_error("Failed to deserialize GameState")
+		push_error("Failed to deserialize GameStateManager")
 		return null
 
 # Private methods
 func _handle_upkeep_and_repairs() -> void:
-	var upkeep_cost = _calculate_upkeep_cost()
-	if game_state.current_crew.pay_upkeep(upkeep_cost):
+	var upkeep_cost = world_economy_manager.calculate_upkeep()
+	if world_economy_manager.pay_upkeep(game_state.current_crew):
 		print("Upkeep paid: %d credits" % upkeep_cost)
 	else:
 		print("Not enough credits to pay upkeep. Crew morale decreases.")
@@ -65,12 +81,8 @@ func _handle_upkeep_and_repairs() -> void:
 	var repair_amount = game_state.current_crew.ship.auto_repair()
 	print("Ship auto-repaired %d hull points" % repair_amount)
 
-func _calculate_upkeep_cost() -> int:
-	var crew_size = game_state.current_crew.get_member_count()
-	var additional_cost = max(0, crew_size - 6) * ADDITIONAL_CREW_COST
-	return BASE_UPKEEP_COST + additional_cost
-
-# ... (other private methods)
+func _update_local_economy() -> void:
+	world_economy_manager.update_local_economy()
 
 func _on_phase_completed() -> void:
 	print("Phase completed")
@@ -85,7 +97,7 @@ func _on_phase_completed() -> void:
 	
 	ui_update_requested.emit()
 
-func _on_mission_selection_requested(available_missions: Array) -> void:
+func _on_mission_selection_requested(available_missions: Array[Mission]) -> void:
 	var mission_selection = _mission_selection_scene.instantiate()
 	add_child(mission_selection)
 	mission_selection.populate_missions(available_missions)
@@ -95,3 +107,19 @@ func _on_mission_selected(mission: Mission) -> void:
 	game_state.current_mission = mission
 	game_state.remove_mission(mission)
 	phase_completed.emit()
+
+func _on_local_event_triggered(event_description: String) -> void:
+	print("Local event: ", event_description)
+	local_event_triggered.emit(event_description)
+
+func _on_economy_updated() -> void:
+	print("Local economy updated")
+	economy_updated.emit()
+
+func generate_new_world() -> void:
+	var new_world = world_generator.generate_world()
+	game_state.set_current_location(new_world)
+	world_economy_manager = WorldEconomyManager.new(new_world, game_state.economy_manager)
+
+func schedule_world_invasion() -> void:
+	world_generator.schedule_world_invasion()

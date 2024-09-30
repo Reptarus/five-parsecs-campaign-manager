@@ -24,6 +24,10 @@ layout_mode = 2
 text = "Ship Creation"
 horizontal_alignment = 1
 
+[node name="ShipNameInput" type="LineEdit" parent="VBoxContainer"]
+layout_mode = 2
+placeholder_text = "Enter Ship Name"
+
 [node name="ComponentsContainer" type="GridContainer" parent="VBoxContainer"]
 layout_mode = 2
 columns = 2

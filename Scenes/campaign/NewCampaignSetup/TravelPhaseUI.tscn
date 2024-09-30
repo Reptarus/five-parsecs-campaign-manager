@@ -1,79 +1,112 @@
-[gd_scene load_steps=3 format=3 uid="uid://bjdo0o2bet0av"]
+[gd_scene load_steps=4 format=3 uid="uid://bjdo0o2bet0av"]
 
 [ext_resource type="Texture2D" uid="uid://bwejyqe8qschs" path="res://assets/Basic assets/Card X3/Card X5.png" id="1_14nuf"]
+[ext_resource type="Script" path="res://Scenes/campaign/scripts/TravelPhase.gd" id="2_script"]
+[ext_resource type="Theme" uid="uid://d1you1rrwuu48" path="res://Scenes/sci_fi_theme.tres" id="3_theme"]
 
-[sub_resource type="Theme" id="Theme_jsgo7"]
-
-[node name="TravelPhaseUi" type="Control"]
+[node name="TravelPhaseUI" type="Control"]
 layout_mode = 3
 anchors_preset = 15
 anchor_right = 1.0
 anchor_bottom = 1.0
-offset_right = 768.0
-offset_bottom = 432.0
 grow_horizontal = 2
 grow_vertical = 2
-size_flags_horizontal = 3
-size_flags_vertical = 3
+theme = ExtResource("3_theme")
+script = ExtResource("2_script")
 
 [node name="Background" type="TextureRect" parent="."]
 layout_mode = 1
 anchors_preset = 15
 anchor_right = 1.0
 anchor_bottom = 1.0
-offset_right = -768.0
-offset_bottom = -432.0
 grow_horizontal = 2
 grow_vertical = 2
-theme = SubResource("Theme_jsgo7")
 texture = ExtResource("1_14nuf")
 
-[node name="BackButton" type="Button" parent="."]
-layout_mode = 0
-offset_left = 84.0
-offset_top = 89.0
-offset_right = 218.0
-offset_bottom = 120.0
-size_flags_horizontal = 0
-size_flags_vertical = 0
-theme = SubResource("Theme_jsgo7")
-theme_override_colors/font_color = Color(1, 0, 0, 1)
-theme_override_constants/outline_size = 2
-theme_override_font_sizes/font_size = 40
-text = "<<< Back Button"
-
-[node name="ScreenTitle" type="Label" parent="."]
-layout_mode = 0
-offset_left = 1353.0
-offset_top = 87.0
-offset_right = 1853.0
-offset_bottom = 156.0
-size_flags_horizontal = 8
-size_flags_vertical = 0
-theme = SubResource("Theme_jsgo7")
-theme_override_colors/font_color = Color(0.168213, 0.537221, 0.931437, 1)
-theme_override_colors/font_shadow_color = Color(0, 0, 0, 1)
-theme_override_colors/font_outline_color = Color(0, 0, 0, 1)
-theme_override_font_sizes/font_size = 50
-text = "Travel Phase"
-horizontal_alignment = 1
-vertical_alignment = 3
-autowrap_mode = 3
-
-[node name="MarginContainer2" type="MarginContainer" parent="."]
+[node name="VBoxContainer" type="VBoxContainer" parent="."]
 layout_mode = 1
 anchors_preset = 15
 anchor_right = 1.0
 anchor_bottom = 1.0
-offset_right = -768.0
-offset_bottom = -432.0
 grow_horizontal = 2
 grow_vertical = 2
-theme = SubResource("Theme_jsgo7")
-theme_override_constants/margin_left = 100
-theme_override_constants/margin_top = 100
-theme_override_constants/margin_right = 100
-theme_override_constants/margin_bottom = 100
 
-[node name="TextureRect" type="TextureRect" parent="MarginContainer2"]
+[node name="HBoxContainer" type="HBoxContainer" parent="VBoxContainer"]
 layout_mode = 2
+
+[node name="BackButton" type="Button" parent="VBoxContainer/HBoxContainer"]
+layout_mode = 2
+text = "<<< Back"
+
+[node name="ScreenTitle" type="Label" parent="VBoxContainer/HBoxContainer"]
+layout_mode = 2
+size_flags_horizontal = 3
+text = "Travel Phase"
+horizontal_alignment = 1
+
+[node name="TabContainer" type="TabContainer" parent="VBoxContainer"]
+layout_mode = 2
+size_flags_vertical = 3
+
+[node name="Upkeep" type="VBoxContainer" parent="VBoxContainer/TabContainer"]
+layout_mode = 2
+
+[node name="UpkeepButton" type="Button" parent="VBoxContainer/TabContainer/Upkeep"]
+layout_mode = 2
+text = "Perform Upkeep"
+
+[node name="UpkeepDetails" type="VBoxContainer" parent="VBoxContainer/TabContainer/Upkeep"]
+layout_mode = 2
+
+[node name="Travel" type="VBoxContainer" parent="VBoxContainer/TabContainer"]
+visible = false
+layout_mode = 2
+
+[node name="TravelButton" type="Button" parent="VBoxContainer/TabContainer/Travel"]
+layout_mode = 2
+text = "Travel to New Location"
+
+[node name="StayButton" type="Button" parent="VBoxContainer/TabContainer/Travel"]
+layout_mode = 2
+text = "Stay in Current Location"
+
+[node name="NextEventButton" type="Button" parent="VBoxContainer/TabContainer/Travel"]
+layout_mode = 2
+text = "Generate Next Event"
+
+[node name="TravelEventDetails" type="VBoxContainer" parent="VBoxContainer/TabContainer/Travel"]
+layout_mode = 2
+
+[node name="Patrons" type="VBoxContainer" parent="VBoxContainer/TabContainer"]
+visible = false
+layout_mode = 2
+
+[node name="CheckPatronsButton" type="Button" parent="VBoxContainer/TabContainer/Patrons"]
+layout_mode = 2
+text = "Check for Patron Jobs"
+
+[node name="PatronsList" type="VBoxContainer" parent="VBoxContainer/TabContainer/Patrons"]
+layout_mode = 2
+
+[node name="Mission" type="VBoxContainer" parent="VBoxContainer/TabContainer"]
+visible = false
+layout_mode = 2
+
+[node name="StartMissionButton" type="Button" parent="VBoxContainer/TabContainer/Mission"]
+layout_mode = 2
+text = "Start Mission"
+
+[node name="MissionDetails" type="VBoxContainer" parent="VBoxContainer/TabContainer/Mission"]
+layout_mode = 2
+
+[node name="LogBook" type="RichTextLabel" parent="VBoxContainer"]
+layout_mode = 2
+size_flags_vertical = 3
+
+[connection signal="pressed" from="VBoxContainer/HBoxContainer/BackButton" to="." method="_on_back_button_pressed"]
+[connection signal="pressed" from="VBoxContainer/TabContainer/Upkeep/UpkeepButton" to="." method="_on_upkeep_button_pressed"]
+[connection signal="pressed" from="VBoxContainer/TabContainer/Travel/TravelButton" to="." method="_on_travel_button_pressed"]
+[connection signal="pressed" from="VBoxContainer/TabContainer/Travel/StayButton" to="." method="_on_stay_button_pressed"]
+[connection signal="pressed" from="VBoxContainer/TabContainer/Travel/NextEventButton" to="." method="_on_next_event_button_pressed"]
+[connection signal="pressed" from="VBoxContainer/TabContainer/Patrons/CheckPatronsButton" to="." method="_on_check_patrons_button_pressed"]
+[connection signal="pressed" from="VBoxContainer/TabContainer/Mission/StartMissionButton" to="." method="_on_start_mission_button_pressed"]

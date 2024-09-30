@@ -25,7 +25,7 @@ func execute_post_battle_sequence(player_victory: bool) -> void:
 	purchase_items()
 	roll_for_campaign_event()
 	roll_for_character_event()
-	check_for_galactic_war_progress()
+	check_for_galactic_war_progress(player_victory)
 
 func resolve_rival_status(player_victory: bool) -> void:
 	for rival in game_state.rivals:
@@ -142,8 +142,9 @@ func roll_for_character_event() -> void:
 	var event = generate_character_event()
 	apply_character_event(character, event)
 
-func check_for_galactic_war_progress() -> void:
-	galactic_war_manager.post_battle_update(game_state.last_mission_results)
+func check_for_galactic_war_progress(player_victory: bool) -> void:
+	var battle_outcome = GlobalEnums.BattleOutcome.VICTORY if player_victory else GlobalEnums.BattleOutcome.DEFEAT
+	galactic_war_manager.post_battle_update(battle_outcome)
 
 # Helper functions
 func calculate_mission_payout(player_victory: bool) -> int:
@@ -221,7 +222,7 @@ func generate_character_event() -> Dictionary:
 
 func apply_character_event(character: Character, event: Dictionary) -> void:
 	var battle_event_manager = BattleEventManager.new(game_state)
-	var battle_event = battle_event_manager._create_event(BattleEventManager.EventType.values()[randi() % BattleEventManager.EventType.size()])
+	var battle_event = battle_event_manager._create_event(BattleEventManager.EventType.values()[randi() % BattleEventManager.EventType.size()], character)
 	
 	# Apply the event effect to the character
 	match event["effect"]:

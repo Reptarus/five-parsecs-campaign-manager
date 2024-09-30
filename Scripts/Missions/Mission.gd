@@ -1,4 +1,3 @@
-# Scripts/Missions/Mission.gd
 class_name Mission
 extends Resource
 
@@ -21,10 +20,10 @@ extends Resource
 @export var power_requirement: int = 0
 
 # Specific mission type properties
-@export var instability: GlobalEnums.FringeWorldInstability = GlobalEnums.FringeWorldInstability.STABLE  # For Fringe World Strife
-@export var salvage_units: int = 0  # For Salvage Jobs
-@export var detection_level: int = 0  # For Stealth Missions
-@export var street_fight_type: GlobalEnums.StreetFightType  # For Street Fights
+@export var instability: GlobalEnums.FringeWorldInstability = GlobalEnums.FringeWorldInstability.STABLE
+@export var salvage_units: int = 0
+@export var detection_level: int = 0
+@export var street_fight_type: GlobalEnums.StreetFightType
 
 # Additional fields
 @export var special_rules: Array
@@ -68,18 +67,19 @@ func fail() -> void:
 func is_expired(current_turn: int) -> bool:
     return current_turn >= time_limit
 
-func start_mission(crew: Array[Character]) -> bool:
+func start_mission(crew: Array) -> bool:
     if crew.size() < required_crew_size:
         return false
     if is_expanded and faction and _get_crew_loyalty(crew) < loyalty_requirement:
         return false
     return true
 
-func _get_crew_loyalty(crew: Array[Character]) -> int:
+func _get_crew_loyalty(crew: Array) -> int:
     var total_loyalty = 0
     for character in crew:
-        total_loyalty += character.get_faction_standing(faction["name"])
-    return total_loyalty / crew.size()
+        if character is Character:
+            total_loyalty += character.get_faction_standing(faction.name if faction is Dictionary else "")
+    return total_loyalty / crew.size() if crew.size() > 0 else 0
 
 func get_reward() -> Dictionary:
     var final_rewards = rewards.duplicate()

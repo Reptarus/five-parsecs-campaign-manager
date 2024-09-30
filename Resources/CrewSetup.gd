@@ -5,6 +5,7 @@ extends Control
 @onready var size_label: Label = $SizeLabel
 @onready var crew_visual: Control = $CrewVisual
 @onready var character_creation = $CharacterCreation
+@onready var crew_name_input: LineEdit = $CrewNameInput
 
 var game_state_manager_node: GameStateManagerNode
 var game_state: GameStateManager
@@ -32,6 +33,9 @@ func _ready() -> void:
 	
 	# Hide character creation initially
 	character_creation.hide()
+	
+	# Connect crew name input
+	crew_name_input.text_changed.connect(_on_crew_name_changed)
 
 func _on_size_changed(new_size: float) -> void:
 	current_size = int(new_size)
@@ -82,3 +86,6 @@ func set_difficulty_settings(settings: DifficultySettings) -> void:
 func set_optional_feature(feature_name: String, is_enabled: bool) -> void:
 	if game_state.has("use_" + feature_name):
 		game_state.set("use_" + feature_name, is_enabled)
+
+func _on_crew_name_changed(new_name: String):
+	set_crew_name(new_name)

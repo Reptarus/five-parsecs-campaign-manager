@@ -22,23 +22,23 @@ func save_game(game_state: GameState, save_name: String) -> Error:
 	
 	var file = FileAccess.open(save_path, FileAccess.WRITE)
 	if file == null:
-		emit_signal("save_completed", false, "Failed to open save file.")
+		save_completed.emit(false, "Failed to open save file.")
 		return FileAccess.get_open_error()
 	
 	file.store_string(json_string)
 	file.close()
-	emit_signal("save_completed", true, "Game saved successfully.")
+	save_completed.emit(true, "Game saved successfully.")
 	return OK
 
 func load_game(save_name: String) -> GameState:
 	var save_path = SAVE_DIR + save_name + SAVE_FILE_EXTENSION
 	if not FileAccess.file_exists(save_path):
-		emit_signal("load_completed", false, "Save file not found.")
+		load_completed.emit(false, "Save file not found.")
 		return null
 	
 	var file = FileAccess.open(save_path, FileAccess.READ)
 	if file == null:
-		emit_signal("load_completed", false, "Failed to open save file.")
+		load_completed.emit(false, "Failed to open save file.")
 		return null
 	
 	var json_string = file.get_as_text()
@@ -47,7 +47,7 @@ func load_game(save_name: String) -> GameState:
 	var json = JSON.new()
 	var parse_result = json.parse(json_string)
 	if parse_result != OK:
-		emit_signal("load_completed", false, "Failed to parse save file.")
+		load_completed.emit(false, "Failed to parse save file.")
 		return null
 	
 	var save_data = json.get_data()
@@ -59,11 +59,11 @@ func load_game(save_name: String) -> GameState:
 	if saved_version != ProjectSettings.get_setting("application/config/version"):
 		push_warning("Loading save from different game version. Current: %s, Save: %s" % [ProjectSettings.get_setting("application/config/version"), saved_version])
 	
-	emit_signal("load_completed", true, "Game loaded successfully.")
+	load_completed.emit(true, "Game loaded successfully.")
 	return game_state
 
-func get_save_list() -> Array:
-	var saves = []
+func get_save_list() -> Array[Dictionary]:
+	var saves: Array[Dictionary] = []
 	var dir = DirAccess.open(SAVE_DIR)
 	if dir:
 		dir.list_dir_begin()
@@ -100,12 +100,12 @@ func load_most_recent_save() -> GameState:
 	var saves = get_save_list()
 	if saves.is_empty():
 		return null
-	saves.sort_custom(func(a, b): return a["date"] > b["date"])
+	saves.sort_custom(func(a: Dictionary, b: Dictionary) -> bool: return a["date"] > b["date"])
 	return load_game(saves[0]["name"])
 
 func create_autosave(game_state: GameState) -> Error:
-	var autosaves = get_save_list().filter(func(save): return save["name"].begins_with("autosave"))
-	autosaves.sort_custom(func(a, b): return a["date"] > b["date"])
+	var autosaves = get_save_list().filter(func(save: Dictionary) -> bool: return save["name"].begins_with("autosave"))
+	autosaves.sort_custom(func(a: Dictionary, b: Dictionary) -> bool: return a["date"] > b["date"])
 	
 	while autosaves.size() >= MAX_AUTOSAVES:
 		var oldest = autosaves.pop_back()

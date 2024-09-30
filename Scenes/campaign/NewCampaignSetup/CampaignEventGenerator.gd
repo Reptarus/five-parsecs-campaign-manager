@@ -1,9 +1,9 @@
 class_name CampaignEventGenerator
 extends Node
 
-var game_state: GameState
+var game_state: GameStateManagerNode
 
-func _init(_game_state: GameState):
+func _init(_game_state: GameStateManagerNode):
 	game_state = _game_state
 
 func generate_event() -> Dictionary:
@@ -44,14 +44,14 @@ func get_event_description(event_type: String) -> String:
 func get_event_effect(event_type: String) -> Callable:
 	match event_type:
 		"Market Crash":
-			return func(): game_state.credits = int(game_state.credits * 0.8)
+			return func(): game_state.modify_credits(int(game_state.credits * -0.2))
 		"Economic Boom":
-			return func(): game_state.credits = int(game_state.credits * 1.2)
+			return func(): game_state.modify_credits(int(game_state.credits * 0.2))
 		"Trade Embargo":
-			return func(): pass  # Implement trade restrictions
+			return func(): game_state.apply_trade_restrictions()
 		"Resource Shortage":
-			return func(): pass  # Implement price increases for certain items
+			return func(): game_state.increase_item_prices()
 		"Technological Breakthrough":
-			return func(): pass  # Implement availability or price changes for certain items
+			return func(): game_state.update_item_availability()
 		_:
-			return func(): pass  # Default no-op function
+			return func(): push_warning("Unhandled event type: " + event_type)

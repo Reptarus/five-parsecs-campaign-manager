@@ -2,7 +2,7 @@ class_name TravelPhase
 extends Control
 
 var game_state_manager: GameStateManagerNode
-var game_state: GameStateManager  # This will hold the actual game state
+var game_state: GameState  # Changed to GameState to match the correct type
 
 var game_world: GameWorld
 var campaign_manager: CampaignManager
@@ -29,10 +29,10 @@ func _ready():
 	
 	game_state = game_state_manager.get_game_state()
 	if not game_state:
-		push_error("Failed to get GameStateManager")
+		push_error("Failed to get GameState")
 		return
 	
-	initialize_game_components(game_state_manager)
+	initialize_game_components()
 	
 	# Ensure all UI elements are properly connected
 	assert(upkeep_details != null, "Upkeep details not found")
@@ -41,32 +41,36 @@ func _ready():
 	assert(mission_details != null, "Mission details not found")
 	assert(log_book != null, "Log book not found")
 
-func initialize_game_components(game_state_manager_node: GameStateManagerNode):
-	var game_state = game_state_manager_node.get_game_state()
-	
+func initialize_game_components():
 	# Initialize StoryTrack
 	var story_track = StoryTrack.new()
 	story_track.initialize(game_state)
 	
 	# Initialize GameWorld
-	game_world = GameWorld.new(game_state)
+	game_world = GameWorld.new()
+	game_world.initialize(game_state)
 	
 	# Initialize other components
-	campaign_manager = CampaignManager.new(game_state)
-	mission_manager = MissionManager.new(game_state)
+	campaign_manager = CampaignManager.new()
+	campaign_manager.initialize(game_state)
+	mission_manager = MissionManager.new()
+	mission_manager.initialize(game_state)
 	quest_manager = QuestManager.new()
-	quest_manager.game_state = game_state
+	quest_manager.initialize(game_state)
 	patron_job_manager = PatronJobManager.new()
-	patron_job_manager.game_state = game_state
+	patron_job_manager.initialize(game_state)
 	
-	campaign_event_generator = CampaignEventGenerator.new(game_state_manager_node)
-	var economy_manager = EconomyManager.new(game_state_manager_node)
-	world_economy_manager = WorldEconomyManager.new(game_state.current_location, economy_manager)
+	campaign_event_generator = CampaignEventGenerator.new()
+	campaign_event_generator.initialize(game_state)
+	var economy_manager = EconomyManager.new()
+	economy_manager.initialize(game_state)
+	world_economy_manager = WorldEconomyManager.new()
+	world_economy_manager.initialize(game_state.current_location, economy_manager)
 	
 	fringe_world_strife_manager = FringeWorldStrifeManager.new()
 	fringe_world_strife_manager.initialize(game_state)
 	starship_travel_events = StarshipTravelEvents.new()
-	starship_travel_events.set_game_state(game_state)
+	starship_travel_events.initialize(game_state)
 	add_child(starship_travel_events)
 	
 	# Connect signals from game_world
@@ -106,9 +110,9 @@ func _on_travel_button_pressed():
 		log_event("Traveled to: " + travel_result.destination)
 		
 		var event = starship_travel_events.generate_travel_event()
-		var event_result = event["action"].call()
-		display_result(travel_event_details, event["name"] + ": " + event_result)
-		log_event(event["name"] + ": " + event_result)
+		var event_result = event.action.call()
+		display_result(travel_event_details, event.name + ": " + event_result)
+		log_event(event.name + ": " + event_result)
 		
 		_on_world_step_completed()
 	else:
@@ -117,10 +121,10 @@ func _on_travel_button_pressed():
 
 func _on_next_event_button_pressed():
 	var event = starship_travel_events.generate_travel_event()
-	var event_result = event["action"].call()
+	var event_result = event.action.call()
 	travel_event_details.clear()
-	display_result(travel_event_details, event["name"] + ": " + event_result)
-	log_event(event["name"] + ": " + event_result)
+	display_result(travel_event_details, event.name + ": " + event_result)
+	log_event(event.name + ": " + event_result)
 
 func _on_check_patrons_button_pressed():
 	var patrons_result = patron_job_manager.determine_job_offers()
@@ -144,7 +148,7 @@ func _on_back_button_pressed():
 	get_tree().change_scene_to_file("res://Scenes/Scene Container/CampaignDashboard.tscn")
 
 func log_event(event: String):
-	game_state_manager.log_event(event)
+	game_state.log_event(event)
 	log_book.text += event + "\n"
 	log_book.scroll_vertical = INF
 
@@ -180,23 +184,18 @@ func _on_ui_update_requested():
 func update_ui():
 	var tab_container = $VBoxContainer/TabContainer
 	
-	var upkeep_details = $VBoxContainer/TabContainer/Upkeep/UpkeepDetails
 	upkeep_details.clear()
 	
 	var travel_options = $VBoxContainer/TabContainer/Travel/TravelOptions
 	travel_options.clear()
 	
-	var travel_event_details = $VBoxContainer/TabContainer/Travel/TravelEventDetails
 	travel_event_details.clear()
 	
-	var patrons_list = $VBoxContainer/TabContainer/Patrons/PatronsList
 	patrons_list.clear()
 	
-	var mission_details = $VBoxContainer/TabContainer/Mission/MissionDetails
 	mission_details.clear()
 	
-	var log_book = $VBoxContainer/LogBook
-	log_book.text = game_state_manager.get_event_log()
+	log_book.text = game_state.get_event_log()
 	
 	$VBoxContainer/TabContainer/Upkeep/UpkeepButton.disabled = false
 	$VBoxContainer/TabContainer/Travel/NextEventButton.disabled = false
