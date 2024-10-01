@@ -1,15 +1,13 @@
 class_name PatronJobManager
 extends Node
 
-var game_state_manager: GameStateManagerNode
 var game_state: GameState
 var mission_generator: MissionGenerator
 
-func initialize(_game_state_manager: GameStateManagerNode) -> void:
-	game_state_manager = _game_state_manager
-	game_state = game_state_manager.get_game_state()
+func _init() -> void:
+	game_state = get_node("/root/GameState")
 	mission_generator = MissionGenerator.new()
-	mission_generator.initialize(game_state_manager)
+	mission_generator.initialize(game_state)
 
 func generate_patron_jobs() -> void:
 	for patron in game_state.patrons:
@@ -58,15 +56,15 @@ func generate_benefits_hazards_conditions(patron: Patron) -> Dictionary:
 	}
 
 func should_generate_benefit(patron: Patron) -> bool:
-	var chance: float = 0.8 if patron.type in [Patron.Type.CORPORATION, Patron.Type.LOCAL_GOVERNMENT, Patron.Type.SECTOR_GOVERNMENT, Patron.Type.PRIVATE_ORGANIZATION, Patron.Type.SECRETIVE_GROUP] else 0.5
+	var chance: float = 0.8 if patron.type in [GlobalEnums.Faction.CORPORATE, GlobalEnums.Faction.UNITY] else 0.5
 	return randf() < chance
 
 func should_generate_hazard(patron: Patron) -> bool:
-	var chance: float = 0.5 if patron.type == Patron.Type.SECRETIVE_GROUP else 0.8
+	var chance: float = 0.5 if patron.type == GlobalEnums.Faction.FRINGE else 0.8
 	return randf() < chance
 
 func should_generate_condition(patron: Patron) -> bool:
-	var chance: float = 0.5 if patron.type == Patron.Type.CORPORATION else 0.8
+	var chance: float = 0.5 if patron.type == GlobalEnums.Faction.CORPORATE else 0.8
 	return randf() < chance
 
 func generate_benefit() -> String:

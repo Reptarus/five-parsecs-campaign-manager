@@ -101,8 +101,8 @@ func set_street_fight_type(fight_type: GlobalEnums.StreetFightType) -> void:
 func add_special_rule(rule: String) -> void:
     special_rules.append(rule)
 
-func add_involved_faction(faction: GlobalEnums.Faction) -> void:
-    involved_factions.append(faction)
+func add_involved_faction(new_faction: GlobalEnums.Faction) -> void:
+    involved_factions.append(new_faction)
 
 func set_strife_intensity(intensity: int) -> void:
     strife_intensity = intensity

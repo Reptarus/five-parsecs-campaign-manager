@@ -78,7 +78,8 @@ func buy_item(crew: Crew, item: Equipment) -> bool:
 
 func sell_item(crew: Crew, item: Equipment) -> bool:
 	var sell_price = int(get_item_price(item) * 0.7)  # 70% of buy price
-	if crew.remove_equipment(item):
+	if crew.has_equipment(item):
+		crew.remove_equipment(item)
 		crew.add_credits(sell_price)
 		if local_market.size() < MAX_MARKET_ITEMS:
 			local_market.append(item)

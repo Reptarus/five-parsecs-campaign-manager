@@ -9,8 +9,7 @@ extends Control
 @onready var options_button = $MenuButtons/Options
 @onready var library_button = $MenuButtons/Library
 
-var game_state: GameStateManager
-
+var game_state: GameState
 func _ready():
 	setup_ui()
 	call_deferred("initialize_game_systems")
@@ -55,7 +54,7 @@ func setup_ui():
 	tween.tween_property(self, "modulate", Color(1, 1, 1, 1), 0.5)
 
 func initialize_game_systems():
-	game_state = GameStateManager.new()
+	game_state = GameState.new()
 	assert(game_state != null, "Failed to create GameState instance")
 	update_continue_button_visibility()
 
@@ -77,7 +76,7 @@ func _change_to_new_campaign_scene():
 	
 	if campaign_setup_scene.has_method("set_game_state"):
 		# Ensure game_state is of the correct type
-		if game_state is GameStateManager:
+		if game_state is GameState:
 			campaign_setup_scene.set_game_state(game_state)
 		else:
 			push_error("Invalid game state type in MainMenu")
@@ -113,7 +112,8 @@ func _show_not_implemented_message(feature: String):
 	dialog.popup_centered()
 
 func _on_tutorial_choice_made(choice):
-	var tutorial_manager = TutorialManager.new()  # Use the global class directly
+	var game_manager_instance = GameManager.new()  # Create an instance of GameManager
+	var tutorial_manager = TutorialManager.new(game_manager_instance)  # Pass the instance to the constructor
 	match choice:
 		"story_track":
 			tutorial_manager.start_tutorial("story_track")

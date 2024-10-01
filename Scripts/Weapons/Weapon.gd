@@ -8,7 +8,6 @@ enum WeaponType { LOW_TECH, MILITARY, HIGH_TECH }
 @export var weapon_range: int = 0
 @export var shots: int = 1
 @export var weapon_damage: int = 0
-@export var traits: Array[String] = []
 
 # New properties for mods
 @export var melee_bonus: int = 0
@@ -18,12 +17,11 @@ enum WeaponType { LOW_TECH, MILITARY, HIGH_TECH }
 
 var weapon_system: WeaponSystem
 
-func _init(p_name: String = "", p_type: WeaponType = WeaponType.LOW_TECH, p_range: int = 0, p_shots: int = 1, p_damage: int = 0, p_traits: Array[String] = []) -> void:
-	super._init(p_name, Equipment.Type.WEAPON, 0)  # Set value to 0 for now
+func _init(p_name: String = "", p_type: GlobalEnums.WeaponType = GlobalEnums.WeaponType.PISTOL, p_range: int = 0, p_shots: int = 1, p_damage: int = 0, p_traits: Array[GlobalEnums.WeaponTrait] = []) -> void:
+	super._init(p_name, GlobalEnums.ItemType.WEAPON, 0)  # Set value to 0 for now
 	weapon_system = WeaponSystem.new()
-	
 	var base_weapon = weapon_system.BASE_WEAPONS.get(p_name, {})
-	weapon_type = p_type
+	weapon_type = WeaponType[GlobalEnums.WeaponType.keys()[p_type]]
 	weapon_range = p_range if p_range > 0 else base_weapon.get("range", 0)
 	shots = p_shots if p_shots > 1 else base_weapon.get("shots", 1)
 	weapon_damage = p_damage if p_damage > 0 else base_weapon.get("damage", 0)

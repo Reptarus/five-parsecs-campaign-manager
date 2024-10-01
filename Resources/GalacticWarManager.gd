@@ -1,4 +1,3 @@
-class_name GalacticWarManager
 extends Node
 
 signal faction_action_resolved(faction_name: String, success: bool)

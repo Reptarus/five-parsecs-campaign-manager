@@ -14,27 +14,15 @@ func _init(_character: Character):
 	temporary_modifiers = {}
 	permanent_modifiers = {}
 
-func add_temporary_modifier(stat: String, value: int, duration: int):
-	if not temporary_modifiers.has(stat):
-		temporary_modifiers[stat] = []
-	temporary_modifiers[stat].append({"value": value, "duration": duration})
-	emit_signal("stat_changed", stat, get_current_stat(stat))
-
-func add_permanent_modifier(stat: String, value: int):
-	if not permanent_modifiers.has(stat):
-		permanent_modifiers[stat] = 0
-	permanent_modifiers[stat] += value
-	emit_signal("stat_changed", stat, get_current_stat(stat))
-
-func remove_temporary_modifier(stat: String, index: int):
-	if temporary_modifiers.has(stat) and index < temporary_modifiers[stat].size():
-		temporary_modifiers[stat].remove_at(index)
-		emit_signal("stat_changed", stat, get_current_stat(stat))
-
-func remove_permanent_modifier(stat: String, value: int):
-	if permanent_modifiers.has(stat):
-		permanent_modifiers[stat] -= value
-		emit_signal("stat_changed", stat, get_current_stat(stat))
+# Core stat management functions
+func update_stat(stat: String, new_value: int) -> void:
+	if stat in base_stats:
+		base_stats[stat] = new_value
+		print("%s's %s changed to %d" % [character.name, stat, new_value])
+		character.stats[stat] = new_value
+		stat_changed.emit(stat, new_value)
+	else:
+		push_error("Invalid stat: %s" % stat)
 
 func get_current_stat(stat: String) -> int:
 	var current_value = base_stats[stat]
@@ -48,6 +36,32 @@ func get_current_stat(stat: String) -> int:
 	
 	return current_value
 
+func meets_stat_threshold(stat: String, threshold: int) -> bool:
+	return get_current_stat(stat) >= threshold
+
+# Modifier management
+func add_temporary_modifier(stat: String, value: int, duration: int):
+	if not temporary_modifiers.has(stat):
+		temporary_modifiers[stat] = []
+	temporary_modifiers[stat].append({"value": value, "duration": duration})
+	stat_changed.emit(stat, get_current_stat(stat))
+
+func add_permanent_modifier(stat: String, value: int):
+	if not permanent_modifiers.has(stat):
+		permanent_modifiers[stat] = 0
+	permanent_modifiers[stat] += value
+	stat_changed.emit(stat, get_current_stat(stat))
+
+func remove_temporary_modifier(stat: String, index: int):
+	if temporary_modifiers.has(stat) and index < temporary_modifiers[stat].size():
+		temporary_modifiers[stat].remove_at(index)
+		stat_changed.emit(stat, get_current_stat(stat))
+
+func remove_permanent_modifier(stat: String, value: int):
+	if permanent_modifiers.has(stat):
+		permanent_modifiers[stat] -= value
+		stat_changed.emit(stat, get_current_stat(stat))
+
 func update_temporary_modifiers():
 	for stat in temporary_modifiers.keys():
 		var i = temporary_modifiers[stat].size() - 1
@@ -55,9 +69,10 @@ func update_temporary_modifiers():
 			temporary_modifiers[stat][i]["duration"] -= 1
 			if temporary_modifiers[stat][i]["duration"] <= 0:
 				temporary_modifiers[stat].remove_at(i)
-				emit_signal("stat_changed", stat, get_current_stat(stat))
+				stat_changed.emit(stat, get_current_stat(stat))
 			i -= 1
 
+# Equipment and status effect functions
 func apply_equipment_modifiers(equipment: Equipment):
 	for stat in equipment.stat_modifiers:
 		add_temporary_modifier(stat, equipment.stat_modifiers[stat], -1)  # -1 for indefinite duration
@@ -72,26 +87,7 @@ func apply_status_effect(effect: StatusEffect):
 	for stat in effect.stat_modifiers:
 		add_temporary_modifier(stat, effect.stat_modifiers[stat], effect.duration)
 
-func meets_stat_threshold(stat: String, threshold: int) -> bool:
-	return get_current_stat(stat) >= threshold
-
-func serialize() -> Dictionary:
-	return {
-		"base_stats": base_stats,
-		"temporary_modifiers": temporary_modifiers,
-		"permanent_modifiers": permanent_modifiers
-	}
-
-static func deserialize(data_dict: Dictionary, character_instance: Character) -> StatDistribution:
-	var new_stat_distribution = StatDistribution.new(character_instance)
-	if data_dict.has("base_stats"):
-		new_stat_distribution.base_stats = data_dict["base_stats"]
-	if data_dict.has("temporary_modifiers"):
-		new_stat_distribution.temporary_modifiers = data_dict["temporary_modifiers"]
-	if data_dict.has("permanent_modifiers"):
-		new_stat_distribution.permanent_modifiers = data_dict["permanent_modifiers"]
-	return new_stat_distribution
-
+# Difficulty-related functions
 func get_stat_modifier_for_difficulty(stat: String) -> int:
 	var difficulty_mode = GameState.difficulty_mode
 	match difficulty_mode:
@@ -109,3 +105,21 @@ func apply_difficulty_modifiers():
 		var modifier = get_stat_modifier_for_difficulty(stat)
 		if modifier != 0:
 			add_permanent_modifier(stat, modifier)
+
+# Serialization
+func serialize() -> Dictionary:
+	return {
+		"base_stats": base_stats,
+		"temporary_modifiers": temporary_modifiers,
+		"permanent_modifiers": permanent_modifiers
+	}
+
+static func deserialize(data_dict: Dictionary, character_instance: Character) -> StatDistribution:
+	var new_stat_distribution = StatDistribution.new(character_instance)
+	if data_dict.has("base_stats"):
+		new_stat_distribution.base_stats = data_dict["base_stats"]
+	if data_dict.has("temporary_modifiers"):
+		new_stat_distribution.temporary_modifiers = data_dict["temporary_modifiers"]
+	if data_dict.has("permanent_modifiers"):
+		new_stat_distribution.permanent_modifiers = data_dict["permanent_modifiers"]
+	return new_stat_distribution

@@ -1,12 +1,9 @@
 extends Node
 
-const Mission = preload("res://Scripts/Missions/Mission.gd")
-const TerrainGenerator = preload("res://Resources/TerrainGenerator.gd")
-
 class MockMission extends Mission:
 	func _init():
 		title = "Industrial Sweep"
-		objective = Mission.Objective.MOVE_THROUGH
+		objective = GlobalEnums.MissionObjective.MOVE_THROUGH
 		environmental_factors = ["Smog", "Industrial Noise"]
 		var _enemies = [{"name": "Rogue Robot", "count": 5}, {"name": "Security Drone", "count": 3}]
 
@@ -43,7 +40,7 @@ func _display_mission_data():
 	var mission = mock_game_manager.game_state.current_mission
 	print("\nMission Data:")
 	print("Title: ", mission.title)
-	print("Objective: ", Mission.Objective.keys()[mission.objective])
+	print("Objective: ", GlobalEnums.MissionObjective.keys()[mission.objective])
 	print("Environmental Factors: ", mission.environmental_factors)
 	print("Enemies: ", mission.get_enemies())
 

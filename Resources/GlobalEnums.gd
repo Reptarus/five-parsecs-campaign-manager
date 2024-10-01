@@ -85,7 +85,8 @@ enum MissionType {
     SABOTAGE,
     ESCORT,
     ASSASSINATION,
-    RETRIEVAL
+    RETRIEVAL,
+    FRINGE_WORLD_STRIFE  # Add this to match the error in the image
 }
 
 enum TerrainType {
@@ -354,3 +355,106 @@ enum ExpandedCampaignPhase {
 
 # Gameplay Modifiers
 @export var use_expanded_campaign_phases: bool = false
+
+# Added missing enums
+enum GlobalEvent {
+    MARKET_CRASH,
+    ECONOMIC_BOOM,
+    TRADE_EMBARGO,
+    RESOURCE_SHORTAGE,
+    TECHNOLOGICAL_BREAKTHROUGH,
+    ALIEN_INVASION,
+    CORPORATE_TAKEOVER,
+    RESOURCE_CRISIS,
+    POLITICAL_UPHEAVAL,
+    NATURAL_DISASTER,
+    GALACTIC_WAR
+}
+
+enum StatusEffectType {
+    BUFF,
+    DEBUFF,
+    NEUTRAL,
+    STUN,
+    POISON,
+    REGENERATION,
+    SHIELD
+}
+
+enum DeploymentType {
+    LINE,
+    HALF_FLANK,
+    IMPROVED_POSITIONS,
+    FORWARD_POSITIONS,
+    BOLSTERED_LINE,
+    INFILTRATION,
+    REINFORCED,
+    BOLSTERED_FLANK,
+    CONCEALED
+}
+
+enum VictoryConditionType {
+    TURNS,
+    QUESTS,
+    BATTLES,
+    UNIQUE_KILLS,
+    CHARACTER_UPGRADES,
+    MULTI_CHARACTER_UPGRADES
+}
+
+enum AIBehavior {
+    AGGRESSIVE,
+    CAUTIOUS,
+    DEFENSIVE,
+    TACTICAL,
+    RAMPAGE,
+    BEAST,
+    GUARDIAN
+}
+
+# Add these new enums at the end of the file
+
+enum TrainingType {
+    BASIC,
+    ADVANCED,
+    SPECIALIZED
+}
+
+enum BasicTrainingCourse {
+    COMBAT_BASICS,
+    TECHNICAL_FUNDAMENTALS,
+    SOCIAL_SKILLS,
+    SURVIVAL_TECHNIQUES
+}
+
+enum AdvancedTrainingCourse {
+    PILOT_TRAINING,
+    HACKING_MASTERY,
+    ADVANCED_COMBAT_TACTICS,
+    XENOBIOLOGY,
+    NEGOTIATION_EXPERTISE
+}
+
+enum SpecializedTrainingCourse {
+    PSIONIC_DEVELOPMENT,
+    ALIEN_TECH_MASTERY,
+    COVERT_OPS,
+    LEADERSHIP,
+    ADVANCED_ENGINEERING
+}
+
+# You can also add a constant for training costs if needed
+const BASIC_TRAINING_COST = 10
+const ADVANCED_TRAINING_COST = 20
+const SPECIALIZED_TRAINING_COST = 30
+
+# Function to get training cost based on type
+static func get_training_cost(training_type: TrainingType) -> int:
+    match training_type:
+        TrainingType.BASIC:
+            return BASIC_TRAINING_COST
+        TrainingType.ADVANCED:
+            return ADVANCED_TRAINING_COST
+        TrainingType.SPECIALIZED:
+            return SPECIALIZED_TRAINING_COST
+    return 0  # Default case

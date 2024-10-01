@@ -39,20 +39,24 @@ func adjust_power(power: String) -> String:
 	return PSIONIC_POWERS.values()[new_index]
 
 func use_power(power: String, character: Character) -> bool:
-	var projection_roll = GameManager.roll_dice(2, 6)
+	var projection_roll = roll_dice(2, 6)
 	if character.has_ability("Enhanced " + power):
-		projection_roll += GameManager.roll_dice(1, 6)
+		projection_roll += roll_dice(1, 6)
 	return projection_roll >= 7  # Assuming 7+ is a success
 
 func strain(character: Character) -> bool:
-	var strain_roll = GameManager.roll_dice(1, 6)
-	if strain_roll in [4, 5]:
-		character.apply_status_effect(StatusEffect.new(GlobalEnums.StatusEffectType.STUNNED, 1))
-		return true
-	elif strain_roll == 6:
-		character.apply_status_effect(StatusEffect.new(GlobalEnums.StatusEffectType.STUNNED, 1))
-		return false
+	var strain_roll = roll_dice(1, 6)
+	if strain_roll >= 4:
+		character.apply_status_effect(StatusEffect.new(StatusEffect.EffectType.STUNNED, 1))
+		return strain_roll != 6
+	
 	return true
+
+func roll_dice(num_dice: int, sides: int) -> int:
+	var total := 0
+	for i in range(num_dice):
+		total += randi() % sides + 1
+	return total
 
 func determine_enemy_psionic_action(character: Character, all_characters: Array[Character]) -> Dictionary:
 	var best_power: String = ""
@@ -138,8 +142,8 @@ func evaluate_psionic_action(character: Character, power: String, target: Charac
 
 	return score
 
-func check_psionic_legality(world: Location) -> GlobalEnums.PsionicLegality:
-	var roll = GameManager.roll_dice(1, 100)
+func check_psionic_legality(_world: Location) -> GlobalEnums.PsionicLegality:
+	var roll = randi() % 100 + 1  # Generate a random number between 1 and 100
 	if roll <= 25:
 		return GlobalEnums.PsionicLegality.ILLEGAL
 	elif roll <= 55:

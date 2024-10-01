@@ -33,20 +33,10 @@ func apply_upgrade(upgrade: Dictionary) -> void:
 		return
 
 	character.xp -= upgrade.cost
-	match upgrade.stat:
-		"Reactions":
-			character.reactions += 1
-		"Combat Skill":
-			character.combat_skill += 1
-		"Speed":
-			character.speed += 1
-		"Savvy":
-			character.savvy += 1
-		"Toughness":
-			character.toughness += 1
-		"Luck":
-			character.luck += 1
-	print("%s upgraded %s to %d" % [character.name, upgrade.stat, character.get(upgrade.stat.to_lower())])
+	var stat_name = upgrade.stat.to_lower().replace(" ", "_")
+	var new_value = character.get(stat_name) + 1
+	character.stat_distribution.update_stat(stat_name, new_value)
+	print("%s upgraded %s to %d" % [character.name, upgrade.stat, new_value])
 
 func apply_experience(xp_gained: int) -> void:
 	character.add_xp(xp_gained)

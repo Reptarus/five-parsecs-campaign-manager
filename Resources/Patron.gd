@@ -26,7 +26,7 @@ func change_relationship(amount: int) -> void:
 func serialize() -> Dictionary:
 	return {
 		"name": name,
-		"location": location.serialize() if location else null,
+		"location": location.serialize() if location else {} as Dictionary,
 		"relationship": relationship,
 		"missions": missions.map(func(m): return m.serialize()),
 		"type": GlobalEnums.Faction.keys()[type],

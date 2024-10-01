@@ -9,20 +9,7 @@ extends Control
 @onready var save_list: ItemList = $Panel/VBoxContainer/SaveList
 @onready var status_label: Label = $Panel/VBoxContainer/StatusLabel
 
-signal save_requested(save_name: String)
-signal load_requested(save_name: String)
-
 func _ready() -> void:
-	save_button.pressed.connect(_on_save_button_pressed)
-	load_button.pressed.connect(_on_load_button_pressed)
-	delete_button.pressed.connect(_on_delete_button_pressed)
-	export_button.pressed.connect(_on_export_button_pressed)
-	import_button.pressed.connect(_on_import_button_pressed)
-	save_list.item_selected.connect(_on_save_selected)
-	
-	SaveGame.save_completed.connect(_on_save_completed)
-	SaveGame.load_completed.connect(_on_load_completed)
-	
 	refresh_save_list()
 
 func refresh_save_list() -> void:
@@ -36,7 +23,12 @@ func _on_save_button_pressed() -> void:
 	if save_name.is_empty():
 		status_label.text = "Please enter a save name."
 		return
-	emit_signal("save_requested", save_name)
+	var error = SaveGame.save_game(save_name, str(Time.get_unix_time_from_system()))
+	if error == OK:
+		status_label.text = "Game saved successfully."
+		refresh_save_list()
+	else:
+		status_label.text = "Failed to save game."
 
 func _on_load_button_pressed() -> void:
 	var selected_items = save_list.get_selected_items()
@@ -44,7 +36,16 @@ func _on_load_button_pressed() -> void:
 		status_label.text = "Please select a save to load."
 		return
 	var save_name = SaveGame.get_save_list()[selected_items[0]]["name"]
-	emit_signal("load_requested", save_name)
+	var error = SaveGame.load_game(save_name)
+	if error == OK:
+		status_label.text = "Game loaded successfully."
+		var game_manager = get_node("/root/GameManager")
+		if game_manager:
+			game_manager.start_campaign_turn()
+		else:
+			push_error("GameManager not found in the scene tree.")
+	else:
+		status_label.text = "Failed to load game."
 
 func _on_delete_button_pressed() -> void:
 	var selected_items = save_list.get_selected_items()
@@ -92,17 +93,3 @@ func _on_import_file_selected(path: String) -> void:
 
 func _on_save_selected(index: int) -> void:
 	save_name_input.text = SaveGame.get_save_list()[index]["name"]
-
-func _on_save_completed(success: bool, message: String) -> void:
-	status_label.text = message
-	if success:
-		refresh_save_list()
-
-func _on_load_completed(success: bool, message: String) -> void:
-	status_label.text = message
-	if success:
-		var game_manager = get_node("/root/GameManager")
-		if game_manager:
-			game_manager.start_campaign_turn()
-		else:
-			push_error("GameManager not found in the scene tree.")

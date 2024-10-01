@@ -1,11 +1,11 @@
 class_name Armor
-extends Gear
+extends Equipment
 
 @export var armor_save: int
 @export var armor_type: GlobalEnums.ArmorType
 
-func _init(p_name: String = "", p_description: String = "", p_armor_save: int = 0, p_armor_type: GlobalEnums.ArmorType = GlobalEnums.ArmorType.LIGHT, p_level: int = 1):
-    super._init(p_name, p_description, GlobalEnums.ItemType.ARMOR, p_level)
+func _init(p_name: String = "", p_item_type: GlobalEnums.ItemType = GlobalEnums.ItemType.ARMOR, p_level: int = 1, p_description: String = "", p_armor_save: int = 0, p_armor_type: GlobalEnums.ArmorType = GlobalEnums.ArmorType.LIGHT):
+    super._init(p_name, p_item_type, p_level, p_description)
     armor_save = p_armor_save
     armor_type = p_armor_type
 
@@ -37,3 +37,21 @@ func apply_damage() -> void:
 func repair() -> void:
     is_damaged = false
     armor_save += 1
+
+func get_effectiveness() -> int:
+    return armor_save
+
+func can_be_repaired() -> bool:
+    return is_damaged and armor_save < get_max_armor_save()
+
+func get_max_armor_save() -> int:
+    match armor_type:
+        GlobalEnums.ArmorType.LIGHT:
+            return 2
+        GlobalEnums.ArmorType.MEDIUM:
+            return 3
+        GlobalEnums.ArmorType.HEAVY:
+            return 4
+        GlobalEnums.ArmorType.SCREEN:
+            return 1
+    return 0

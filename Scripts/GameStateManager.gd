@@ -4,6 +4,23 @@ signal state_changed(new_state: GlobalEnums.CampaignPhase)
 signal tutorial_ended
 signal battle_processed(battle_won: bool)
 
+func end_tutorial() -> void:
+    is_tutorial_active = false
+    tutorial_ended.emit()
+
+func process_battle(battle_won: bool) -> void:
+    if battle_won:
+        current_mission.complete()
+    else:
+        current_mission.fail()
+    
+    battle_processed.emit(battle_won)
+    
+    if battle_won:
+        handle_character_recovery()
+    
+    current_battle = null
+
 @export var current_state: GlobalEnums.CampaignPhase = GlobalEnums.CampaignPhase.MAIN_MENU
 @export var current_crew: Crew
 @export var current_ship: Ship
@@ -75,17 +92,17 @@ func serialize() -> Dictionary:
         "current_state": current_state,
         "credits": credits,
         "reputation": reputation,
-        "current_crew": current_crew.serialize() if current_crew else null,
-        "current_ship": current_ship.serialize() if current_ship else null,
-        "current_location": current_location.serialize() if current_location else null,
+        "current_crew": current_crew.serialize() if current_crew else {},
+        "current_ship": current_ship.serialize() if current_ship else {},
+        "current_location": current_location.serialize() if current_location else {},
         "available_locations": available_locations.map(func(loc): return loc.serialize()),
-        "current_mission": current_mission.serialize() if current_mission else null,
+        "current_mission": current_mission.serialize() if current_mission else {},
         "story_points": story_points,
         "campaign_turn": campaign_turn,
         "available_missions": available_missions.map(func(mission): return mission.serialize()),
-        "active_quests": active_quests.map(func(quest): return quest.serialize()),
-        "patrons": patrons.map(func(patron): return patron.serialize()),
-        "rivals": rivals.map(func(rival): return rival.serialize()),
+        "active_quests": active_quests.map(func(quest_data): return Quest.deserialize(quest_data)),
+        "patrons": patrons.map(func(patron_data): return Patron.deserialize(patron_data)),
+        "rivals": rivals.map(func(rival_data): return Rival.deserialize(rival_data)),
         "character_connections": character_connections,
         "difficulty_settings": difficulty_settings.serialize(),
         "victory_condition": victory_condition,
@@ -93,47 +110,47 @@ func serialize() -> Dictionary:
         "crew_size": crew_size,
         "completed_patron_job_this_turn": completed_patron_job_this_turn,
         "held_the_field_against_roving_threat": held_the_field_against_roving_threat,
-        "active_rivals": active_rivals.map(func(rival): return rival.serialize()),
+        "active_rivals": active_rivals.map(func(rival_data): return Rival.deserialize(rival_data)),
         "is_tutorial_active": is_tutorial_active,
         "trade_actions_blocked": trade_actions_blocked,
         "mission_payout_reduction": mission_payout_reduction,
         "fringe_world_strife": fringe_world_strife_manager.serialize(),
         "psionic_data": psionic_manager.serialize(),
-        "story_track": story_track.serialize() if story_track else null,
+        "story_track": story_track.serialize() if story_track else {},
         "world_data": world_generator.serialize(),
-        "combat_manager": combat_manager.serialize() if combat_manager else null
+        "combat_manager": combat_manager.serialize() if combat_manager else {}
     }
 
 func deserialize(data: Dictionary) -> void:
     current_state = data.get("current_state", GlobalEnums.CampaignPhase.MAIN_MENU)
     credits = data.get("credits", 0)
     reputation = data.get("reputation", 0)
-    current_crew = Crew.new().deserialize(data.get("current_crew", {})) if data.get("current_crew") else null
-    current_ship = Ship.new().deserialize(data.get("current_ship", {})) if data.get("current_ship") else null
-    current_location = Location.new().deserialize(data.get("current_location", {})) if data.get("current_location") else null
-    available_locations = data.get("available_locations", []).map(func(loc_data): return Location.new().deserialize(loc_data))
-    current_mission = Mission.new().deserialize(data.get("current_mission", {})) if data.get("current_mission") else null
+    current_crew = Crew.deserialize(data.get("current_crew", {})) if data.get("current_crew") else null
+    current_ship = Ship.deserialize(data.get("current_ship", {})) if data.get("current_ship") else null
+    current_location = Location.deserialize(data.get("current_location", {})) if data.get("current_location") else null
+    available_locations = data.get("available_locations", []).map(func(loc_data): return Location.deserialize(loc_data))
+    current_mission = Mission.deserialize(data.get("current_mission", {})) if data.get("current_mission") else null
     story_points = data.get("story_points", 0)
     campaign_turn = data.get("campaign_turn", 0)
-    available_missions = data.get("available_missions", []).map(func(mission_data): return Mission.new().deserialize(mission_data))
-    active_quests = data.get("active_quests", []).map(func(quest_data): return Quest.new().deserialize(quest_data))
-    patrons = data.get("patrons", []).map(func(patron_data): return Patron.new().deserialize(patron_data))
-    rivals = data.get("rivals", []).map(func(rival_data): return Rival.new().deserialize(rival_data))
+    available_missions = data.get("available_missions", []).map(func(mission_data): return Mission.deserialize(mission_data))
+    active_quests = data.get("active_quests", []).map(func(quest_data): return Quest.deserialize(quest_data))
+    patrons = data.get("patrons", []).map(func(patron_data): return Patron.deserialize(patron_data))
+    rivals = data.get("rivals", []).map(func(rival_data): return Rival.deserialize(rival_data))
     character_connections = data.get("character_connections", [])
-    difficulty_settings = DifficultySettings.new().deserialize(data.get("difficulty_settings", {}))
+    difficulty_settings = DifficultySettings.deserialize(data.get("difficulty_settings", {}))
     victory_condition = data.get("victory_condition", {})
     last_mission_results = data.get("last_mission_results", "")
     crew_size = data.get("crew_size", 0)
     completed_patron_job_this_turn = data.get("completed_patron_job_this_turn", false)
     held_the_field_against_roving_threat = data.get("held_the_field_against_roving_threat", false)
-    active_rivals = data.get("active_rivals", []).map(func(rival_data): return Rival.new().deserialize(rival_data))
+    active_rivals = data.get("active_rivals", []).map(func(rival_data): return Rival.deserialize(rival_data))
     is_tutorial_active = data.get("is_tutorial_active", false)
     trade_actions_blocked = data.get("trade_actions_blocked", false)
     mission_payout_reduction = data.get("mission_payout_reduction", 0)
     
     fringe_world_strife_manager.deserialize(data.get("fringe_world_strife", {}))
-    psionic_manager.deserialize(data.get("psionic_data", {}))
-    story_track = StoryTrack.new().deserialize(data.get("story_track", {})) if data.get("story_track") else null
+    psionic_manager = PsionicManager.deserialize(data.get("psionic_data", {}))
+    story_track = StoryTrack.deserialize(data.get("story_track", {})) if data.get("story_track") else null
     world_generator.deserialize(data.get("world_data", {}))
     if data.has("combat_manager") and data["combat_manager"]:
         combat_manager = CombatManager.new()
@@ -151,8 +168,8 @@ func update_mission_list() -> void:
 func get_current_location() -> Location:
     return current_location
 
-func get_current_state() -> GameStateManager:
-    return self
+func get_current_state() -> GlobalEnums.CampaignPhase:
+    return current_state
 
 func set_victory_condition(condition: Dictionary) -> void:
     victory_condition = condition
@@ -225,3 +242,9 @@ func start_mission(tree: SceneTree = null) -> void:
             push_error("Scene tree not provided to start_mission()")
     else:
         push_warning("No mission selected")
+
+func handle_character_recovery():
+    # Implement character recovery logic here
+    for character in GameState.current_ship.crew:
+        character.health = min(character.health + 20, character.max_health)
+        character.stress = max(character.stress - 10, 0)

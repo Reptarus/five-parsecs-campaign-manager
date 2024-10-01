@@ -36,12 +36,12 @@ func calculate_economic_impact() -> void:
 
 func get_ai_action(combat_manager: CombatManager) -> Dictionary:
 	var optional_ai = OptionalEnemyAI.new(combat_manager)
-	return optional_ai.determine_action(self)
+	return optional_ai.determine_action(Character.new())
 
 func serialize() -> Dictionary:
 	return {
 		"name": name,
-		"location": location.serialize() if location else null,
+		"location": location.serialize() if location else {},
 		"strength": strength,
 		"hostility": hostility,
 		"economic_impact": economic_impact,

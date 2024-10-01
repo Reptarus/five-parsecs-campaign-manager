@@ -7,6 +7,35 @@ signal experience_updated(new_xp: int, xp_for_next_level: int)
 signal request_new_trait
 signal request_upgrade_choice(upgrade_options: Array)
 
+func _init() -> void:
+	character_advancement = CharacterAdvancement.new(self)
+	character_advancement.upgrade_available.connect(_on_upgrade_available)
+
+func add_xp(amount: int) -> void:
+	xp += amount
+	experience_gained.emit(amount)
+	character_advancement.apply_experience(amount)
+	_update_experience()
+
+func _update_experience() -> void:
+	var xp_for_next = character_advancement.get_xp_for_next_level(level)
+	experience_updated.emit(xp, xp_for_next)
+	if xp >= xp_for_next:
+		_level_up()
+
+func _level_up() -> void:
+	level += 1
+	var available_upgrades = character_advancement.get_available_upgrades()
+	leveled_up.emit(level, available_upgrades)
+	request_new_trait.emit()
+
+func _on_upgrade_available(upgrades: Array) -> void:
+	request_upgrade_choice.emit(upgrades)
+
+func apply_upgrade(upgrade: Dictionary) -> void:
+	character_advancement.apply_upgrade(upgrade)
+	_update_experience()
+
 var character_advancement: CharacterAdvancement
 
 @export var name: String
@@ -36,38 +65,43 @@ var weapon: Weapon
 var is_defeated: bool = false
 var is_priority_target: bool = false
 var status: GlobalEnums.CharacterStatus = GlobalEnums.CharacterStatus.ACTIVE
+var ai_controller: AIController
+var ai_enabled: bool = false
 
-# Include methods from CharacterInventory.gd
-func add_item(item: Dictionary): inventory.append(item)
-func remove_item(item: Dictionary): inventory.erase(item)
-func get_all_items() -> Array[Dictionary]: return inventory
-func clear_inventory(): inventory.clear()
+func add_item(item: Dictionary) -> void:
+	inventory.append(item)
 
-# Include methods from StrangeCharacters.gd
-func set_strange_character(type: String):
+func remove_item(item: Dictionary) -> void:
+	inventory.erase(item)
+
+func get_all_items() -> Array[Dictionary]:
+	return inventory
+
+func clear_inventory() -> void:
+	inventory.clear()
+
+func set_strange_character(type: String) -> void:
 	is_strange = true
 	strange_type = type
 	# Apply special abilities based on type
 
-# Include character creation and management methods
-static func create(species: GlobalEnums.Species, background: GlobalEnums.Background, motivation: GlobalEnums.Motivation, character_class: GlobalEnums.Class, game_state_manager: GameStateManagerNode) -> Character:
+static func create(p_species: GlobalEnums.Species, p_background: GlobalEnums.Background, p_motivation: GlobalEnums.Motivation, p_character_class: GlobalEnums.Class, _game_state_manager: GameStateManagerNode) -> Character:
 	var character = Character.new()
-	character.initialize(species, background, motivation, character_class, game_state_manager)
-	character.name = generate_name(species)
+	character.initialize(p_species, p_background, p_motivation, p_character_class, _game_state_manager)
+	character.name = generate_name(p_species)
 	return character
 
-func initialize(species: GlobalEnums.Species, background: GlobalEnums.Background, motivation: GlobalEnums.Motivation, character_class: GlobalEnums.Class, game_state_manager: GameStateManagerNode) -> void:
-	self.species = species
-	self.background = background
-	self.motivation = motivation
-	self.character_class = character_class
+func initialize(p_species: GlobalEnums.Species, p_background: GlobalEnums.Background, p_motivation: GlobalEnums.Motivation, p_character_class: GlobalEnums.Class, _game_state_manager: GameStateManagerNode) -> void:
+	self.species = p_species
+	self.background = p_background
+	self.motivation = p_motivation
+	self.character_class = p_character_class
 	initialize_default_stats()
 	apply_background_effects(background)
 	apply_class_effects(character_class)
 	self.character_advancement = CharacterAdvancement.new(self)
 
 func initialize_default_stats() -> void:
-	# Implement default stat initialization based on species
 	match species:
 		GlobalEnums.Species.HUMAN:
 			reactions = 2
@@ -100,27 +134,23 @@ func initialize_default_stats() -> void:
 			toughness = 4
 			savvy = 0
 
-func apply_background_effects(background: GlobalEnums.Background) -> void:
-	# Implement background effects
-	match background:
+func apply_background_effects(bg: GlobalEnums.Background) -> void:
+	match bg:
 		GlobalEnums.Background.HIGH_TECH_COLONY:
 			savvy += 1
 		GlobalEnums.Background.OVERCROWDED_CITY:
 			speed += 1
 		GlobalEnums.Background.LOW_TECH_COLONY:
-			# No specific stat changes
 			pass
 		GlobalEnums.Background.MINING_COLONY:
 			toughness += 1
 		GlobalEnums.Background.MILITARY_BRAT:
 			combat_skill += 1
 		GlobalEnums.Background.SPACE_STATION:
-			# No specific stat changes
 			pass
 
-func apply_class_effects(character_class: GlobalEnums.Class) -> void:
-	# Implement class effects
-	match character_class:
+func apply_class_effects(class_type: GlobalEnums.Class) -> void:
+	match class_type:
 		GlobalEnums.Class.SOLDIER:
 			combat_skill += 1
 			toughness += 1
@@ -134,23 +164,14 @@ func apply_class_effects(character_class: GlobalEnums.Class) -> void:
 			toughness += 1
 			savvy += 1
 
-func add_xp(amount: int) -> void:
-	xp += amount
-	emit_signal("experience_gained", amount)
-	character_advancement.apply_experience(amount)
-
 func get_xp_for_next_level() -> int:
 	return character_advancement.get_xp_for_next_level(level)
 
 func get_available_upgrades() -> Array:
 	return character_advancement.get_available_upgrades()
 
-func apply_upgrade(upgrade: Dictionary) -> void:
-	character_advancement.apply_upgrade(upgrade)
-
-# Serialization methods
 func serialize() -> Dictionary:
-	var data = {
+	return {
 		"name": name,
 		"species": species,
 		"background": background,
@@ -172,9 +193,8 @@ func serialize() -> Dictionary:
 		"injuries": injuries,
 		"status": status
 	}
-	return data
 
-static func deserialize(data: Dictionary, game_state_manager: GameStateManagerNode) -> Character:
+static func deserialize(data: Dictionary, _game_state_manager: GameStateManagerNode) -> Character:
 	var character = Character.new()
 	character.name = data.get("name", "")
 	character.species = data.get("species", GlobalEnums.Species.HUMAN)
@@ -199,12 +219,11 @@ static func deserialize(data: Dictionary, game_state_manager: GameStateManagerNo
 	character.character_advancement = CharacterAdvancement.new(character)
 	return character
 
-# Static method for name generation
-static func generate_name(species: GlobalEnums.Species) -> String:
-	var name_part1 = ""
-	var name_part2 = ""
+static func generate_name(species_type: GlobalEnums.Species) -> String:
+	var name_part1 := ""
+	var name_part2 := ""
 	
-	match species:
+	match species_type:
 		GlobalEnums.Species.HUMAN:
 			name_part1 = get_random_name_part("World Names Generator")
 			name_part2 = get_random_name_part("Colony Names Generator", "Part 2")
@@ -235,9 +254,9 @@ static func get_random_name_part(generator_title: String, part: String = "") -> 
 	return "Unknown"
 
 static func get_random_name_from_table(table: Array) -> String:
-	var roll = randi() % 100 + 1
+	var roll := randi() % 100 + 1
 	for entry in table:
-		var roll_range = entry.get("roll").split("-")
+		var roll_range: PackedStringArray = entry.get("roll").split("-")
 		if roll_range.size() == 1:
 			if int(roll_range[0]) == roll:
 				return entry.get("name")
@@ -248,38 +267,31 @@ static func get_random_name_from_table(table: Array) -> String:
 	return "Unknown"
 
 static func create_temporary() -> Character:
-	var temp_ally = Character.new()
+	var temp_ally := Character.new()
 	
-	# Initialize temp_ally with necessary properties based on Compendium.md and Core Rules.md
 	temp_ally.name = generate_name(GlobalEnums.Species.HUMAN)
 	temp_ally.speed = 4
 	temp_ally.combat_skill = 0
 	temp_ally.toughness = 4
 	temp_ally.savvy = 1
-	temp_ally.weapon = "Handgun"
-	temp_ally.range = 6
-	temp_ally.shots = 1
-	temp_ally.damage = 1
+	temp_ally.weapon = Weapon.new("Handgun", GlobalEnums.WeaponType.PISTOL, 6, 1, 1)
 	temp_ally.traits = ["Basic"]
-	temp_ally.gear_notes = "Standard issue"
 	temp_ally.luck = 0
 	temp_ally.xp = 0
 	temp_ally.species = GlobalEnums.Species.HUMAN
 	temp_ally.reactions = 1
 	
-	# Integrate AIController
-	var ai_controller = AIController.new()
-	temp_ally.add_child(ai_controller)
-	temp_ally.ai_controller = ai_controller
-	temp_ally.ai_enabled = false  # Toggle to control AI
+	temp_ally.ai_controller = AIController.new()
+	temp_ally.ai_enabled = false
 
 	return temp_ally
 
-# Method to toggle AI on and off
-func toggle_ai(character: Character, enable: bool, combat_manager: Node, game_state: Node) -> void:
-	if character.ai_controller:
-		character.ai_enabled = enable
-		if enable:
-			character.ai_controller.initialize(combat_manager, game_state)
-		else:
-			character.ai_controller.queue_free()
+func toggle_ai(enable: bool, combat_manager: Node, game_state: Node) -> void:
+	if enable and not ai_controller:
+		ai_controller = AIController.new()
+		ai_controller.initialize(combat_manager, game_state)
+	elif not enable and ai_controller:
+		ai_controller.queue_free()
+		ai_controller = null
+	
+	ai_enabled = enable

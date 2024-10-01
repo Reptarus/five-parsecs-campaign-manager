@@ -23,7 +23,7 @@ class DropPodComponent extends ShipComponent:
 		super._init(p_name, p_description, GlobalEnums.ComponentType.DROP_POD, p_power_usage, p_health)
 		pod_count = p_pod_count
 
-class ShuttleComponent extends ShipComponent:
+class ShuttleBayComponent extends ShipComponent:
 	var passenger_capacity: int
 	
 	func _init(p_name: String = "", p_description: String = "", p_power_usage: int = 0, p_health: int = 0, p_passenger_capacity: int = 0) -> void:
@@ -75,7 +75,7 @@ func create_component_from_data(component_data: Dictionary) -> ShipComponent:
 				component_data.pod_count
 			)
 		GlobalEnums.ComponentType.SHUTTLE_BAY:
-			return ShuttleComponent.new(
+			return ShuttleBayComponent.new(
 				component_data.name,
 				component_data.description,
 				component_data.power_usage,

@@ -26,7 +26,7 @@ func _process(_delta: float) -> void:
 	if game_state.is_tutorial_active:
 		update_tutorial_ui()
 
-func _on_phase_changed(new_phase: GlobalEnums.CampaignPhase) -> void:
+func _on_phase_changed(_new_phase: GlobalEnums.CampaignPhase) -> void:
 	update_display()
 
 func update_display() -> void:
@@ -89,7 +89,7 @@ func _on_action_button_pressed() -> void:
 				story_track_manager.use_story_point()
 			GlobalEnums.CampaignPhase.TRAVEL:
 				var travel_phase = TravelPhase.new()
-				travel_phase.initialize_game_components(game_state)
+				travel_phase.initialize_game_components()
 				travel_phase._on_travel_button_pressed()
 			GlobalEnums.CampaignPhase.PATRONS:
 				var patron_job_manager = PatronJobManager.new()

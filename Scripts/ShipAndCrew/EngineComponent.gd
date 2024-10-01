@@ -43,8 +43,8 @@ func repair(amount: int) -> void:
 	if not is_damaged:
 		print("Engine repaired and operational. Speed restored to: ", speed)
 
-func damage(amount: int) -> void:
-	super.damage(amount)
+func take_damage(amount: int) -> void:
+	super.take_damage(amount)
 	if is_damaged:
-		speed = max(1, speed / 2)  # Reduce speed by half when damaged, minimum 1
+		speed = max(1, speed / 2.0)  # Reduce speed by half when damaged, minimum 1
 		print("Engine damaged. Speed reduced to: ", speed)

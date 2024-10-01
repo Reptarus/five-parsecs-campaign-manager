@@ -171,7 +171,7 @@ func _generate_infiltration_deployment(battle_map: Dictionary) -> Array:
 	var base_deployment: Array = _generate_line_deployment(battle_map)
 	var infiltration_deployment: Array = []
 	
-	for i in range(base_deployment.size() / 2):
+	for i in range(int(base_deployment.size() / 2.0)):
 		infiltration_deployment.append(base_deployment[i])
 	
 	return infiltration_deployment
@@ -180,7 +180,7 @@ func _generate_reinforced_deployment(battle_map: Dictionary) -> Array:
 	var base_deployment: Array = _generate_line_deployment(battle_map)
 	var reinforced_deployment: Array = []
 	
-	for i in range(base_deployment.size() / 2):
+	for i in range(ceili((base_deployment.size() + 1) / 2.0)):
 		reinforced_deployment.append(base_deployment[i])
 	
 	# Add two additional basic enemies

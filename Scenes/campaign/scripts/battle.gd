@@ -48,7 +48,7 @@ func _create_terrain(terrain_data: Array) -> void:
 
 func _create_units(player_positions: Array, enemy_positions: Array) -> void:
 	for i in range(game_state.current_crew.characters.size()):
-		var character = game_state.current_crew.characters[i]
+		var _character = game_state.current_crew.characters[i]
 		var unit_shape = ColorRect.new()
 		unit_shape.color = Color.BLUE
 		unit_shape.size = Vector2(20, 20)
@@ -83,11 +83,11 @@ func _connect_signals() -> void:
 	combat_manager.highlight_valid_positions.connect(_on_highlight_valid_positions)
 
 func highlight_valid_positions(positions: Array) -> void:
-	for position in positions:
+	for pos in positions:
 		var highlight = ColorRect.new()
 		highlight.color = Color(0, 1, 0, 0.3)
 		highlight.size = Vector2(20, 20)
-		highlight.position = position
+		highlight.position = pos
 		highlights_node.add_child(highlight)
 
 func highlight_valid_targets(targets: Array) -> void:
@@ -156,14 +156,14 @@ func _on_turn_started(character: Character) -> void:
 		enable_player_controls()
 	else:
 		disable_player_controls()
-		await ai_controller.perform_ai_turn(character)
+		ai_controller.perform_ai_turn(character)
 
 func _on_turn_ended(character: Character) -> void:
 	print("Turn ended for ", character.name)
 	active_character = null
 
-func _on_ui_update_needed(round: int, phase: GlobalEnums.CampaignPhase, current_character: Character) -> void:
-	print("UI update needed. Round: ", round, " Phase: ", phase, " Current character: ", current_character.name)
+func _on_ui_update_needed(current_round: int, phase: GlobalEnums.CampaignPhase, current_character: Character) -> void:
+	print("UI update needed. Round: ", current_round, " Phase: ", phase, " Current character: ", current_character.name)
 
 func _on_log_action(action: String) -> void:
 	battle_log.text += action + "\n"
@@ -172,10 +172,10 @@ func _on_character_moved(character: Character, new_position: Vector2i) -> void:
 	print("Character ", character.name, " moved to ", new_position)
 	# Update the character's visual position on the battlefield
 
-func _on_enable_player_controls(character: Character) -> void:
+func _on_enable_player_controls(_character: Character) -> void:
 	enable_player_controls()
 
-func _on_update_turn_label(round: int) -> void:
+func _on_update_turn_label(_round: int) -> void:
 	turn_label.text = "Round: " + str(round)
 
 func _on_update_current_character_label(character_name: String) -> void:

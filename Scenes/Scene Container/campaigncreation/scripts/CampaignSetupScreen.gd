@@ -2,7 +2,6 @@ class_name CampaignSetupScreen
 extends Control
 
 const DifficultySettingsResource = preload("res://Scenes/Scene Container/campaigncreation/scripts/DifficultySettings.gd")
-const Crew = preload("res://Scripts/ShipAndCrew/Crew.gd")
 const CrewSetup = preload("res://Resources/CrewSetup.gd")
 
 @onready var difficulty_option_button: OptionButton = $VBoxContainer/DifficultyOptionButton
@@ -12,7 +11,7 @@ const CrewSetup = preload("res://Resources/CrewSetup.gd")
 @onready var optional_features_container: VBoxContainer = $VBoxContainer/OptionalFeaturesContainer
 @onready var start_campaign_button: Button = $VBoxContainer/StartCampaignButton
 
-var game_state: GameStateManager
+var game_state: GameState
 var difficulty_settings: DifficultySettingsResource
 var victory_types = ["Missions", "Credits", "Reputation", "Story Points"]
 var current_victory_type = 0
@@ -165,7 +164,7 @@ func _apply_settings() -> void:
 			push_error("GameStateManagerNode not found. Unable to initialize StoryTrack.")
 
 func set_game_state(new_game_state):
-	if new_game_state is GameStateManager:
+	if new_game_state is GameState:
 		game_state = new_game_state
 	else:
 		push_error("Invalid game state type provided to CampaignSetupScreen")

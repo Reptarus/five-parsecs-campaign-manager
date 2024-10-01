@@ -46,17 +46,23 @@ func _on_random_character_button_pressed():
 	background_option.select(background_option.get_item_index(random_options.background))
 	motivation_option.select(motivation_option.get_item_index(random_options.motivation))
 	class_option.select(class_option.get_item_index(random_options.character_class))
-	name_input.text = Character.generate_name(species_option.get_item_text(species_option.selected))
+	var selected_species = GlobalEnums.Species.values()[species_option.selected]
+	name_input.text = Character.generate_name(selected_species)
 	_update_character_preview()
 
 func _on_add_character_pressed():
 	if created_characters.size() < 8:
+		# Assuming you have a reference to the GameStateManagerNode
+		var game_state_manager = get_node("/root/GameStateManager")  # Adjust the path as needed
+		
 		var new_character = character_creation_logic.create_character(
 			species_option.get_item_text(species_option.selected),
 			background_option.get_item_text(background_option.selected),
 			motivation_option.get_item_text(motivation_option.selected),
-			class_option.get_item_text(class_option.selected)
+			class_option.get_item_text(class_option.selected),
+			game_state_manager  # Pass the GameStateManagerNode here
 		)
+
 		new_character.name = name_input.text
 		_apply_starting_rolls(new_character)
 		created_characters.append(new_character)
@@ -92,13 +98,13 @@ func _roll_bonus_equipment() -> Array:
 	var roll = randi() % 6 + 1  # Roll 1d6
 	match roll:
 		1, 2:
-			equipment_list.append(Equipment.new("Medkit", Equipment.Type.GEAR, 2, "Heals 1d6 HP"))
+			equipment_list.append(Equipment.new("Medkit", GlobalEnums.ItemType.GEAR, 2, "Heals 1d6 HP"))
 		3, 4:
-			equipment_list.append(Equipment.new("Armor Patch", Equipment.Type.GEAR, 1, "Repairs 1 point of armor damage"))
+			equipment_list.append(Equipment.new("Armor Patch", GlobalEnums.ItemType.GEAR, 1, "Repairs 1 point of armor damage"))
 		5:
-			equipment_list.append(Equipment.new("Stim Pack", Equipment.Type.CONSUMABLE, 3, "Temporarily boosts Combat Skill by 1"))
+			equipment_list.append(Equipment.new("Stim Pack", GlobalEnums.ItemType.CONSUMABLE, 3, "Temporarily boosts Combat Skill by 1"))
 		6:
-			equipment_list.append(Equipment.new("Grappling Hook", Equipment.Type.GEAR, 2, "Allows climbing difficult terrain"))
+			equipment_list.append(Equipment.new("Grappling Hook", GlobalEnums.ItemType.GEAR, 2, "Allows climbing difficult terrain"))
 	return equipment_list
 
 func _roll_bonus_weapon() -> Weapon:
@@ -144,7 +150,7 @@ func _generate_patrons() -> Array[Patron]:
 		var patron = Patron.new(
 			"Patron " + str(i+1),
 			null,  # Location will be set later
-			Patron.Type.values()[randi() % Patron.Type.size()]
+			GlobalEnums.Faction.values()[randi() % GlobalEnums.Faction.size()]
 		)
 		patron.change_relationship(randi() % 41 - 20)  # Random relationship between -20 and 20
 		patrons.append(patron)

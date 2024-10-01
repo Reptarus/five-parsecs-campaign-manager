@@ -32,7 +32,6 @@ func _ready() -> void:
 	size_slider.value_changed.connect(_on_size_changed)
 	
 	character_creation.hide()
-	crew_name_input.text_changed.connect(_on_crew_name_changed)
 
 func _on_size_changed(new_size: float) -> void:
 	current_size = int(new_size)
@@ -72,17 +71,12 @@ func finish_crew_creation() -> void:
 	game_state.transition_to_state(GameState.State.UPKEEP)
 	get_tree().change_scene_to_file("res://Scenes/Management/CampaignDashboard.tscn")
 
-func set_crew_name(name: String) -> void:
-	if not crew:
-		crew = Crew.new()
-	crew.name = name
+# This function is no longer needed in CrewSetup.gd
+# The crew name input has been moved to ShipCreation.tscn and ShipCreation.gd
 
 func set_difficulty_settings(settings: DifficultySettings) -> void:
 	game_state.difficulty_settings = settings
 
 func set_optional_feature(feature_name: String, is_enabled: bool) -> void:
-	if feature_name in GlobalEnums.get_property_list():
+	if feature_name in GlobalEnums:
 		game_state.set(feature_name, is_enabled)
-
-func _on_crew_name_changed(new_name: String) -> void:
-	set_crew_name(new_name)

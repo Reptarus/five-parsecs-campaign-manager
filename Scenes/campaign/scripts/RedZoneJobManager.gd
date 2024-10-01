@@ -2,6 +2,8 @@
 class_name RedZoneJobManager
 extends Node
 
+@onready var game_manager = get_node("/root/GameManager")
+
 var game_state: GameState
 
 func _init(_game_state: GameState) -> void:
@@ -81,7 +83,7 @@ func generate_black_zone_objective() -> String:
 # Additional functions based on Core Rules and GameManager
 
 func roll_for_intrigue() -> bool:
-	var roll: int = GameManager.roll_dice(2, 6)
+	var roll: int = game_manager.roll_dice(2, 6)
 	if game_state.killed_lieutenant:
 		roll += 1
 	if game_state.killed_unique_individual:

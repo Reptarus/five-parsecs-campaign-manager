@@ -202,18 +202,19 @@ func calculate_experience_gain(character: Character) -> int:
 
 func generate_campaign_event() -> Dictionary:
 	var event_generator = CampaignEventGenerator.new(game_state)
-	return event_generator.generate_event()
+	var event: StoryEvent = event_generator.generate_event()
+	return event.to_dictionary()  # Assuming StoryEvent has a to_dictionary() method
 
-func apply_campaign_event(event: Dictionary) -> void:
-	var story_event = StoryEvent.new(event)
-	story_event.apply_event_effects(game_state)
+func apply_campaign_event(event: StoryEvent) -> void:
+	# Assuming event is already a StoryEvent instance
+	event.apply_event_effects(game_state)
 	
 	if "battle_setup" in event:
 		var battle = Battle.new()  # Assuming you have a Battle class
-		story_event.setup_battle(battle)
+		event.setup_battle(battle)
 	
 	if "rewards" in event:
-		story_event.apply_rewards(game_state)
+		event.apply_rewards(game_state)
 
 func generate_character_event() -> Dictionary:
 	var event_tables = load_json_file("res://data/event_tables.json")
@@ -222,8 +223,9 @@ func generate_character_event() -> Dictionary:
 
 func apply_character_event(character: Character, event: Dictionary) -> void:
 	var battle_event_manager = BattleEventManager.new(game_state)
-	var battle_event = battle_event_manager._create_event(BattleEventManager.EventType.values()[randi() % BattleEventManager.EventType.size()], character)
-	
+	var event_data = {"character": character}
+	var battle_event = battle_event_manager._create_event(BattleEventManager.EventType.values()[randi() % BattleEventManager.EventType.size()], event_data)
+
 	# Apply the event effect to the character
 	match event["effect"]:
 		"Gain a temporary ally":

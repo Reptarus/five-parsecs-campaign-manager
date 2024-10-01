@@ -10,8 +10,7 @@ var tutorial_manager: TutorialManager
 var game_manager: GameManager
 
 func _ready() -> void:
-	tutorial_manager = TutorialManager.new()
-	game_manager = GameManager.new()
+	tutorial_manager = TutorialManager.new(game_manager)
 
 	story_track_button.pressed.connect(_on_story_track_pressed)
 	compendium_button.pressed.connect(_on_compendium_pressed)

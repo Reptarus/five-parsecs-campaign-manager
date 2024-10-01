@@ -2,7 +2,7 @@ class_name TravelPhase
 extends Control
 
 var game_state_manager: GameStateManagerNode
-var game_state: GameState  # Changed to GameState to match the correct type
+var game_state: GameState
 
 var game_world: GameWorld
 var campaign_manager: CampaignManager
@@ -13,6 +13,8 @@ var campaign_event_generator: CampaignEventGenerator
 var starship_travel_events: StarshipTravelEvents
 var world_economy_manager: WorldEconomyManager
 var fringe_world_strife_manager: FringeWorldStrifeManager
+
+var expanded_quest_progression_manager: ExpandedQuestProgressionManager
 
 @onready var upkeep_details = $VBoxContainer/TabContainer/Upkeep/UpkeepDetails
 @onready var travel_event_details = $VBoxContainer/TabContainer/Travel/TravelEventDetails
@@ -32,48 +34,48 @@ func _ready():
 		push_error("Failed to get GameState")
 		return
 	
+	expanded_quest_progression_manager = ExpandedQuestProgressionManager.new(game_state)
+	quest_manager = QuestManager.new()
+	quest_manager.initialize(game_state, expanded_quest_progression_manager)
+	
 	initialize_game_components()
 	
-	# Ensure all UI elements are properly connected
 	assert(upkeep_details != null, "Upkeep details not found")
 	assert(travel_event_details != null, "Travel event details not found")
 	assert(patrons_list != null, "Patrons list not found")
 	assert(mission_details != null, "Mission details not found")
 	assert(log_book != null, "Log book not found")
 
-func initialize_game_components():
-	# Initialize StoryTrack
-	var story_track = StoryTrack.new()
+func initialize_game_components() -> void:
+	var story_track := StoryTrack.new()
 	story_track.initialize(game_state)
 	
-	# Initialize GameWorld
-	game_world = GameWorld.new()
-	game_world.initialize(game_state)
+	game_world = GameWorld.new(game_state)
 	
-	# Initialize other components
-	campaign_manager = CampaignManager.new()
-	campaign_manager.initialize(game_state)
-	mission_manager = MissionManager.new()
-	mission_manager.initialize(game_state)
+	campaign_manager = CampaignManager.new(game_state)
+	
+	mission_manager = MissionManager.new(game_state)
+	
+	expanded_quest_progression_manager = ExpandedQuestProgressionManager.new(game_state)
 	quest_manager = QuestManager.new()
-	quest_manager.initialize(game_state)
+	quest_manager.initialize(game_state, expanded_quest_progression_manager)
+	
 	patron_job_manager = PatronJobManager.new()
 	patron_job_manager.initialize(game_state)
 	
-	campaign_event_generator = CampaignEventGenerator.new()
-	campaign_event_generator.initialize(game_state)
-	var economy_manager = EconomyManager.new()
+	campaign_event_generator = CampaignEventGenerator.new(game_state)
+	
+	var economy_manager := EconomyManager.new()
 	economy_manager.initialize(game_state)
-	world_economy_manager = WorldEconomyManager.new()
-	world_economy_manager.initialize(game_state.current_location, economy_manager)
+	
+	world_economy_manager = WorldEconomyManager.new(game_state.current_location, economy_manager)
 	
 	fringe_world_strife_manager = FringeWorldStrifeManager.new()
 	fringe_world_strife_manager.initialize(game_state)
+	
 	starship_travel_events = StarshipTravelEvents.new()
 	starship_travel_events.initialize(game_state)
-	add_child(starship_travel_events)
 	
-	# Connect signals from game_world
 	game_world.world_step_completed.connect(_on_world_step_completed)
 	game_world.mission_selection_requested.connect(_on_mission_selection_requested)
 	game_world.phase_completed.connect(_on_phase_completed)
@@ -182,7 +184,7 @@ func _on_ui_update_requested():
 	update_ui()
 
 func update_ui():
-	var tab_container = $VBoxContainer/TabContainer
+	var _tab_container = $VBoxContainer/TabContainer
 	
 	upkeep_details.clear()
 	

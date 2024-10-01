@@ -13,7 +13,7 @@ func _init() -> void:
 	game_state = GameState.new()
 	ui_manager = UIManager.new()
 	terrain_generator = TerrainGenerator.new()
-	galactic_war_manager = GalacticWarManager.new()
+	galactic_war_manager = GalacticWarManager.new(game_state)
 
 func start_new_game() -> void:
 	game_state.transition_to_state(GameState.State.CREW_CREATION)
@@ -101,9 +101,9 @@ func handle_game_over(victory: bool) -> void:
 	SaveGame.change_scene_to_file(game_over_scene)
 
 func generate_battlefield() -> void:
-	var battlefield_size := Vector2i(24, 24)  # 24" x 24" battlefield as per rules
+	var battlefield_size := GlobalEnums.TerrainSize.MEDIUM  # 24" x 24" battlefield as per rules
 	terrain_generator.generate_terrain(battlefield_size)
-	terrain_generator.generate_features()
+	terrain_generator.generate_features([battlefield_size], game_state.current_crew.members)
 	terrain_generator.generate_cover()
 	terrain_generator.generate_loot()
 	terrain_generator.generate_enemies()
@@ -122,7 +122,7 @@ func check_campaign_progress() -> void:
 	elif game_state.check_defeat_conditions():
 		handle_game_over(false)
 
-func roll_dice(num_dice: int, sides: int) -> int:
+static func roll_dice(num_dice: int, sides: int) -> int:
 	var total := 0
 	for i in range(num_dice):
 		total += randi() % sides + 1

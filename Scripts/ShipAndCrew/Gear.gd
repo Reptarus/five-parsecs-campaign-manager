@@ -39,10 +39,10 @@ static func deserialize(data: Dictionary) -> Gear:
 func get_gear_type_string() -> String:
 	return GearType.keys()[gear_type]
 
-func apply_effect(character: Character) -> void:
+func apply_effect(_character: Character) -> void:
 	# Implement gear-specific effects here
 	pass
 
-func can_use(character: Character) -> bool:
+func can_use(_character: Character) -> bool:
 	# Implement usage conditions here
 	return true

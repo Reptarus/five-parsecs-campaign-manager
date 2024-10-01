@@ -1,7 +1,7 @@
 class_name FringeWorldStrifeManager
 extends RefCounted
 
-var game_state: GameStateManager
+var game_state: GameState
 var mission_generator: MissionGenerator
 var difficulty_settings: DifficultySettings
 var escalating_battles_manager: EscalatingBattlesManager
@@ -21,20 +21,19 @@ const CREW_INJURY_CHANCE = 0.25
 const RANDOM_EVENT_CHANCE = 0.3
 const HIGH_INSTABILITY_THRESHOLD = 10
 
-func initialize(state: GameStateManager) -> void:
+func initialize(state: GameState) -> void:
 	game_state = state
 
 func serialize() -> Dictionary:
 	return {
 		"instability": instability,
-		"current_mission": current_mission.serialize() if current_mission else null
+		"current_mission": current_mission.as_serialized() if current_mission else null
 	}
 
 func deserialize(data: Dictionary) -> void:
 	instability = data.get("instability", 0)
 	if data.get("current_mission"):
-		current_mission = Mission.new()
-		current_mission.deserialize(data["current_mission"])
+		current_mission = Mission.deserialize(data["current_mission"])
 
 func generate_fringe_world_strife() -> Mission:
 	var mission = Mission.new()

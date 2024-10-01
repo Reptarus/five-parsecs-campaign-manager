@@ -63,7 +63,7 @@ func load_world(world_name: String) -> Location:
 
 func schedule_world_invasion() -> void:
     var current_location = game_state.get_current_location()
-    var invasion_turns: int = randi() % 3 + 1
+    var _invasion_turns: int = randi() % 3 + 1
     if current_location:
         current_location.update_strife_level(GlobalEnums.FringeWorldInstability.CONFLICT)
     else:

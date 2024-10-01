@@ -43,24 +43,35 @@ func is_expired() -> bool:
 
 func process_stunned(character: Character) -> void:
     character.apply_status_effect("stunned", intensity)
+    character.reactions -= 1
+    character.speed -= 1
 
 func process_poisoned(character: Character) -> void:
     character.take_damage(intensity)
+    character.toughness -= 1
 
 func process_burning(character: Character) -> void:
     character.take_damage(intensity * 2)
+    character.speed -= 1
 
 func process_bleeding(character: Character) -> void:
     character.take_damage(intensity)
+    character.toughness -= 1
 
 func process_confused(character: Character) -> void:
     character.apply_status_effect("confused", intensity)
+    character.combat_skill -= 1
+    character.savvy -= 1
 
 func process_shielded(character: Character) -> void:
     character.apply_status_effect("shielded", intensity)
+    character.toughness += intensity
 
 func process_enraged(character: Character) -> void:
     character.apply_status_effect("enraged", intensity)
+    character.combat_skill += 1
+    character.toughness += 1
+    character.savvy -= 1
 
 func serialize() -> Dictionary:
     return {

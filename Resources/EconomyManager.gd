@@ -99,7 +99,7 @@ func generate_random_item() -> Equipment:
 			return generate_random_consumable()
 		_:
 			push_error("Unexpected item type")
-			return Equipment.new("Generic Item", Equipment.Type.GEAR, 0)
+			return Equipment.new("Generic Item", GlobalEnums.ItemType.GEAR, 0)
 
 func generate_random_weapon() -> Weapon:
 	var weapon_types = GlobalEnums.WeaponType.values()
@@ -114,21 +114,21 @@ func generate_random_armor() -> Equipment:
 	var armor_type = armor_types[randi() % armor_types.size()]
 	var armor_name = "Generic " + GlobalEnums.ArmorType.keys()[armor_type]
 	var defense = randi() % 5 + 1
-	return Equipment.new(armor_name, Equipment.Type.ARMOR, defense)
+	return Equipment.new(armor_name, GlobalEnums.ItemType.ARMOR, defense)
 
-func generate_random_gear() -> Gear:
+func generate_random_gear() -> Equipment:
 	var gear_types = ["Medkit", "Repair Kit", "Stealth Field", "Jetpack"]
 	var gear_name = gear_types[randi() % gear_types.size()]
-	return Gear.new(gear_name, "A useful piece of equipment", "Utility", 1)
+	var gear_type = Gear.GearType[gear_name.to_upper()]
+	return Gear.new(gear_name, "A useful piece of equipment", gear_type, 1)
 
 func generate_random_consumable() -> Equipment:
 	var consumable_types = ["Stim Pack", "Grenade", "Repair Nanites", "Energy Cell"]
 	var consumable_name = consumable_types[randi() % consumable_types.size()]
-	return Equipment.new(consumable_name, Equipment.Type.CONSUMABLE, 1)
+	return Equipment.new(consumable_name, GlobalEnums.ItemType.CONSUMABLE, 1)
 
 func calculate_upkeep_cost() -> int:
 	var base_cost: int = game_state.current_crew.members.size() * 5
-	
 	if game_state.current_location != null:
 		var location_traits = game_state.current_location.get_traits()
 		

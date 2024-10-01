@@ -3,7 +3,7 @@ class_name MissionGenerator
 extends Node
 
 var game_state_manager: GameStateManagerNode
-var game_state: GameStateManager
+var game_state: GameState
 var mission_manager: MissionManager
 
 func initialize(_game_state_manager: GameStateManagerNode) -> void:

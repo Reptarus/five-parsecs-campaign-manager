@@ -1,5 +1,5 @@
 class_name CampaignManager
-extends Resource
+extends Node  # Add this line at the top of your script
 
 signal phase_changed(new_phase: GlobalEnums.CampaignPhase)
 signal turn_completed
@@ -53,7 +53,7 @@ func perform_upkeep() -> bool:
     var upkeep_cost: int = game_state.current_crew.calculate_upkeep_cost()
     if game_state.remove_credits(upkeep_cost):
         for crew_member in game_state.current_crew.members:
-            crew_member.recover_time = max(0, crew_member.recover_time - 1)
+            crew_member.recover_time = maxi(0, crew_member.recover_time - 1)
         return true
     else:
         game_state.current_crew.decrease_morale()
@@ -142,7 +142,11 @@ func handle_post_mission() -> Dictionary:
 func end_turn() -> void:
     game_state.advance_turn()
     turn_completed.emit()
-    start_new_turn(get_tree().current_scene)
+    var current_scene = get_tree().current_scene
+    if current_scene:
+        start_new_turn(current_scene)
+    else:
+        push_error("Current scene not found")
 
 func create_campaign_turn_summary() -> String:
     return "Turn %d: %s" % [game_state.current_turn, game_state.current_location.name]
@@ -163,8 +167,8 @@ func start_tutorial() -> void:
 
 func show_save_load_ui() -> void:
     save_load_ui.show()
-    save_load_ui.connect("save_requested", _on_save_requested)
-    save_load_ui.connect("load_requested", _on_load_requested)
+    save_load_ui.save_requested.connect(_on_save_requested)
+    save_load_ui.load_requested.connect(_on_load_requested)
 
 func _on_save_requested(save_name: String) -> void:
     var result = SaveGame.save_game(game_state, save_name)
@@ -181,8 +185,8 @@ func _on_load_requested(save_name: String) -> void:
     else:
         push_error("Failed to load game: " + save_name)
 
-func progress_story(current_phase: GlobalEnums.CampaignPhase) -> void:
+func progress_story(phase: GlobalEnums.CampaignPhase) -> void:
     if story_track:
-        story_track.progress_story(current_phase)
+        story_track.progress_story(phase)
     else:
         push_warning("Story track not initialized.")

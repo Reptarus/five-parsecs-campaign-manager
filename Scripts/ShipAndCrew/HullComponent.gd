@@ -9,8 +9,10 @@ func _init(p_name: String, p_description: String, p_power_usage: int, p_health: 
 	armor = p_armor
 
 func take_damage(amount: int) -> void:
-	var damage_after_armor = max(0, amount - armor)
-	super.damage(damage_after_armor)
+	super.take_damage(amount)
+	if is_damaged:
+		armor = max(0, armor - 1)  # Reduce armor by 1 when damaged, minimum 0
+		print("Hull damaged. Armor reduced to: ", armor)
 
 func serialize() -> Dictionary:
 	var data = super.serialize()
@@ -35,8 +37,3 @@ func repair(amount: int) -> void:
 	if not is_damaged:
 		print("Hull repaired. Armor integrity restored to: ", armor)
 
-func damage(amount: int) -> void:
-	super.damage(amount)
-	if is_damaged:
-		armor = max(0, armor - 1)  # Reduce armor by 1 when damaged, minimum 0
-		print("Hull damaged. Armor reduced to: ", armor)

@@ -1,8 +1,6 @@
 extends Button
 
 # Add this line at the top of the script
-const Character = preload("res://Scripts/Characters/Character.gd")
-
 @onready var name_label = $MarginContainer/VBoxContainer/NameLabel
 @onready var species_label = $MarginContainer/VBoxContainer/SpeciesLabel
 @onready var background_label = $MarginContainer/VBoxContainer/BackgroundLabel

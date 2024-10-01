@@ -1,8 +1,6 @@
 # CrewSizeSelection.gd
 extends Control
 
-signal size_selected(size: int)
-
 @onready var slider: HSlider = $HSlider
 @onready var current_size_label: Label = $CurrentSizeLabel
 @onready var tutorial_label: Label = $TutorialLabel
@@ -21,7 +19,9 @@ func _ready() -> void:
 		return
 	
 	_setup_tutorial()
-	_update_current_size_label(slider.value)
+	_update_current_size_label(int(slider.value))
+	
+	slider.value_changed.connect(_on_h_slider_value_changed)
 
 func _setup_tutorial() -> void:
 	var tutorial_manager = get_node("/root/TutorialManager")
@@ -36,8 +36,8 @@ func _on_h_slider_value_changed(value: float) -> void:
 	game_state_manager.get_game_state().crew_size = crew_size
 	_update_current_size_label(crew_size)
 
-func _update_current_size_label(size: int) -> void:
-	current_size_label.text = "Current Crew Size: %d" % size
+func _update_current_size_label(crew_size: int) -> void:
+	current_size_label.text = "Current Crew Size: %d" % crew_size
 
 func _on_confirm_button_pressed() -> void:
 	var crew_size = int(slider.value)

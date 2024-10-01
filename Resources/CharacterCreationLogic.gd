@@ -7,7 +7,7 @@ func _init():
 	character_creation_data = CharacterCreationData.new()
 	character_creation_data.load_data()
 
-func create_character(species_id: String, background_id: String, motivation_id: String, class_id: String, game_state_manager: GameStateManagerNode) -> Character:
+func create_character(species_id: String, background_id: String, motivation_id: String, class_id: String, _game_state_manager: GameStateManagerNode) -> Character:
 	var character = Character.new()
 	
 	var species_data = character_creation_data.get_species_data(species_id)
@@ -26,12 +26,12 @@ func create_character(species_id: String, background_id: String, motivation_id: 
 	
 	return character
 
-func create_tutorial_character(game_state_manager: GameStateManagerNode) -> Character:
+func create_tutorial_character(_game_state_manager: GameState) -> Character:
 	var character = Character.new()
 	
 	var species_data = character_creation_data.get_tutorial_species_data("human")
-	var background_data = character_creation_data.get_tutorial_background_data("rookie")
-	var motivation_data = character_creation_data.get_tutorial_motivation_data("adventure")
+	var _background_data = character_creation_data.get_tutorial_background_data("rookie")
+	var _motivation_data = character_creation_data.get_tutorial_motivation_data("adventure")
 	var class_data = character_creation_data.get_tutorial_class_data("soldier")
 	
 	character.species = GlobalEnums.Species.HUMAN

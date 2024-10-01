@@ -119,7 +119,7 @@ func add_to_ship_stash(item: Gear) -> bool:
 func remove_from_ship_stash(item: Gear) -> bool:
 	return inventory.remove_item(item)
 
-func get_ship_stash() -> Array[Gear]:
+func get_ship_stash() -> Array[Equipment]:
 	return inventory.get_items()
 
 func sort_ship_stash(sort_type: String) -> void:
@@ -148,7 +148,7 @@ func serialize() -> Dictionary:
 		"traits": traits,
 		"inventory": inventory.serialize(),
 		"crew": crew.map(func(c): return c.serialize()),
-		"current_location": current_location.serialize() if current_location else null
+		"current_location": current_location.serialize() if current_location else {}
 	}
 	return data
 

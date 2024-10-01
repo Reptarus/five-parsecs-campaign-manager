@@ -3,7 +3,7 @@ extends Control
 
 const LOGBOOK_DIR = "user://logbook/"
 var current_campaign_turn: int = 0
-var game_state: GameStateManager
+var game_state: GameState
 var current_crew: String = ""
 
 const CampaignDashboardScene = preload("res://Scenes/Scene Container/CampaignDashboard.tscn")
@@ -135,7 +135,7 @@ func export_logbook():
 	print("Logbook exported to: " + export_path)
 
 # This function generates the campaign turn summary
-func create_campaign_turn_summary(state: GameStateManager) -> String:
+func create_campaign_turn_summary(state: GameState) -> String:
 	var summary = ""
 	
 	# Add current turn number

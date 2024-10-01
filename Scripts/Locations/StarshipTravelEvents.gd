@@ -32,7 +32,7 @@ func asteroids_event() -> Dictionary:
 		"name": "Asteroids",
 		"description": "Rocky debris everywhere, maybe from a recent collision?",
 		"action": func() -> String:
-			if game_state.current_crew.ship.has_upgrade("Probe Launcher"):
+			if game_state.get_current_crew().ship.has_upgrade(GlobalEnums.ShipUpgrade.WEAPONS):
 				var roll := randi() % 6 + 1
 				if roll >= 3:
 					return "Successfully avoided the asteroid field."
@@ -41,7 +41,7 @@ func asteroids_event() -> Dictionary:
 			else:
 				var success_count := 0
 				for i in range(3):
-					var roll := randi() % 6 + 1 + game_state.current_crew.get_best_savvy()
+					var roll: int = randi() % 6 + 1 + game_state.get_current_crew().get_highest_skill_level(GlobalEnums.SkillType.TECHNICAL)
 					if roll >= 4:
 						success_count += 1
 				if success_count == 3:
@@ -53,7 +53,7 @@ func asteroids_event() -> Dictionary:
 
 func asteroid_damage() -> String:
 	var damage := randi() % 6 + 1
-	game_state.current_crew.ship.take_damage(damage, game_state)
+	game_state.get_current_crew().ship.take_damage(damage)
 	return "Ship took " + str(damage) + " Hull Point damage from asteroids."
 
 func navigation_trouble_event() -> Dictionary:
@@ -62,9 +62,9 @@ func navigation_trouble_event() -> Dictionary:
 		"description": "Is this place even on the star maps?",
 		"action": func() -> String:
 			game_state.remove_story_point(1)
-			if game_state.current_crew.ship.is_damaged():
-				var injured_crew := game_state.current_crew.get_random_member()
-				injured_crew.roll_injury()
+			if game_state.get_current_crew().ship.is_damaged():
+				var injured_crew: Character = game_state.get_current_crew().characters[randi() % game_state.get_current_crew().get_size()]
+				injured_crew.status = GlobalEnums.CharacterStatus.INJURED
 				return "Lost 1 story point and " + injured_crew.name + " was injured due to system failures."
 			return "Lost 1 story point due to navigation troubles."
 	}
@@ -74,7 +74,7 @@ func raided_event() -> Dictionary:
 		"name": "Raided",
 		"description": "Your vessel catches the eye of some pirates.",
 		"action": func() -> String:
-			var roll := randi() % 6 + 1 + game_state.current_crew.get_best_savvy()
+			var roll: int = randi() % 6 + 1 + game_state.get_current_crew().get_highest_skill_level(GlobalEnums.SkillType.COMBAT)
 			if roll >= 6:
 				return "Successfully intimidated the pirates and avoided conflict."
 			else:
@@ -87,12 +87,12 @@ func deep_space_wreckage_event() -> Dictionary:
 		"name": "Deep Space Wreckage",
 		"description": "You find an old wreck drifting through empty space.",
 		"action": func() -> String:
-			var gear1 := game_state.loot_generator.generate_gear()
-			var gear2 := game_state.loot_generator.generate_gear()
+			var gear1: Equipment = game_state.loot_generator.generate_gear()
+			var gear2: Equipment = game_state.loot_generator.generate_gear()
 			gear1.is_damaged = true
 			gear2.is_damaged = true
-			game_state.add_to_inventory(gear1)
-			game_state.add_to_inventory(gear2)
+			game_state.get_current_crew().add_equipment(gear1)
+			game_state.get_current_crew().add_equipment(gear2)
 			return "Found two damaged items: " + gear1.name + " and " + gear2.name
 	}
 
@@ -103,13 +103,13 @@ func drive_trouble_event() -> Dictionary:
 		"action": func() -> String:
 			var success_count := 0
 			for i in range(3):
-				var roll := randi() % 6 + 1 + game_state.current_crew.get_best_savvy()
+				var roll: int = randi() % 6 + 1 + game_state.get_current_crew().get_highest_skill_level(GlobalEnums.SkillType.TECHNICAL)
 				if roll >= 6:
 					success_count += 1
 			if success_count == 3:
 				return "Successfully fixed the drive trouble."
 			else:
-				game_state.current_crew.ship.ground_for_turns(3 - success_count)
+				game_state.get_current_crew().ship.ground_for_turns(3 - success_count)
 				return "Ship grounded for " + str(3 - success_count) + " turns due to drive trouble."
 	}
 
@@ -118,9 +118,9 @@ func down_time_event() -> Dictionary:
 		"name": "Down-time",
 		"description": "It's a long time to just sit here.",
 		"action": func() -> String:
-			var crew_member := game_state.current_crew.get_random_member()
-			crew_member.add_xp(1)
-			var repaired_item := game_state.current_crew.repair_random_item()
+			var crew_member: Character = game_state.get_current_crew().characters[randi() % game_state.get_current_crew().get_size()]
+			crew_member.gain_experience(1)
+			var repaired_item: Equipment = game_state.get_current_crew().repair_random_item()
 			return crew_member.name + " gained 1 XP. " + (repaired_item.name + " was repaired." if repaired_item else "No items were repaired.")
 	}
 
@@ -133,39 +133,42 @@ func distress_call_event() -> Dictionary:
 			match roll:
 				1:
 					var damage := randi() % 6 + 2
-					game_state.current_crew.ship.take_damage(damage, game_state)
+					game_state.get_current_crew().ship.take_damage(damage)
 					return "Ship struck by debris wave, took " + str(damage) + " Hull Point damage."
 				2:
 					return "Found only drifting wreckage."
 				3, 4:
-					var new_crew := game_state.character_generator.generate_character()
-					game_state.current_crew.add_member(new_crew)
+					var new_crew: Character = game_state.character_generator.generate_character()
+					game_state.get_current_crew().add_character(new_crew)
 					return "Rescued a crew member: " + new_crew.name
 				5, 6:
-					if roll + game_state.current_crew.get_best_savvy() >= 7:
-						var loot := game_state.loot_generator.generate_loot()
-						game_state.add_to_inventory(loot)
+					if roll + game_state.get_current_crew().get_highest_skill_level(GlobalEnums.SkillType.TECHNICAL) >= 7:
+						var loot: Equipment = game_state.loot_generator.generate_loot()
+						game_state.get_current_crew().add_equipment(loot)
 						return "Successfully saved the ship. Received " + loot.name + " as reward."
 					else:
 						var damage := randi() % 6 + 2
-						game_state.current_crew.ship.take_damage(damage, game_state)
+						game_state.get_current_crew().ship.take_damage(damage)
 						return "Failed to save the ship. Took " + str(damage) + " Hull Point damage from debris."
+			return "Unexpected outcome in distress call event."
 	}
+
+func action_function() -> String:
+	var confiscated_items: Array[Equipment] = []
+	for i in range(2):
+		var roll: int = randi() % 6 - 3
+		if roll > 0:
+			var item: Equipment = game_state.get_current_crew().remove_random_item()
+			if item:
+				confiscated_items.append(item)
+	game_state.set_next_world_safe()
+	return "%d items confiscated. Next world cannot be Invaded." % confiscated_items.size()
 
 func patrol_ship_event() -> Dictionary:
 	return {
 		"name": "Patrol Ship",
 		"description": "A Unity patrol vessel hails you.",
-		"action": func() -> String:
-			var confiscated_items := []
-			for i in range(2):
-				var roll := randi() % 6 - 3
-				if roll > 0:
-					var item := game_state.current_crew.remove_random_item()
-					if item:
-						confiscated_items.append(item)
-			game_state.set_next_world_safe()
-			return str(confiscated_items.size()) + " items confiscated. Next world cannot be Invaded."
+		"action": action_function
 	}
 
 func cosmic_phenomenon_event() -> Dictionary:
@@ -173,10 +176,10 @@ func cosmic_phenomenon_event() -> Dictionary:
 		"name": "Cosmic Phenomenon",
 		"description": "A crew member sees a strange manifestation in space.",
 		"action": func() -> String:
-			var crew_member := game_state.current_crew.get_random_member()
+			var crew_member: Character = game_state.get_current_crew().characters[randi() % game_state.get_current_crew().get_size()]
 			crew_member.add_luck(1)
 			var result := crew_member.name + " gained 1 Luck."
-			if game_state.current_crew.has_precursor():
+			if game_state.get_current_crew().has_precursor():
 				game_state.add_story_point()
 				result += " Precursor predicts it's a good omen. Gained 1 story point."
 			return result
@@ -190,25 +193,27 @@ func escape_pod_event() -> Dictionary:
 			var roll := randi() % 6 + 1
 			match roll:
 				1:
-					var new_rival := game_state.rival_generator.generate_rival()
+					var new_rival: Dictionary = game_state.rival_generator.generate_rival()
 					game_state.add_rival(new_rival.name)
 					return "Rescued a wanted criminal. Gained a new Rival: " + new_rival.name
 				2, 3:
 					var credits := randi() % 3 + 1
-					var loot := game_state.loot_generator.generate_loot()
-					game_state.add_credits(credits)
-					game_state.add_to_inventory(loot)
+					var loot: Equipment = game_state.loot_generator.generate_loot()
+					game_state.get_current_crew().add_credits(credits)
+					game_state.get_current_crew().add_equipment(loot)
 					return "Rescued survivor. Gained " + str(credits) + " credits and " + loot.name
 				4:
 					game_state.add_quest_rumor()
 					game_state.add_story_point()
 					return "Rescued survivor with interesting information. Gained 1 Quest Rumor and 1 story point."
 				5, 6:
-					var new_crew := game_state.character_generator.generate_character()
+					var new_crew: Character = game_state.character_generator.generate_character()
 					if roll == 6:
-						new_crew.add_xp(10)
-					game_state.current_crew.add_member(new_crew)
+						new_crew.gain_experience(10)
+					game_state.get_current_crew().add_character(new_crew)
 					return "Rescued " + new_crew.name + " who joined the crew" + (" with 10 XP" if roll == 6 else "") + "."
+				_:
+					return "An unexpected error occurred with the escape pod."
 	}
 
 func accident_event() -> Dictionary:
@@ -216,9 +221,9 @@ func accident_event() -> Dictionary:
 		"name": "Accident",
 		"description": "A crew member gets injured while doing a routine maintenance task.",
 		"action": func() -> String:
-			var crew_member := game_state.current_crew.get_random_member()
-			crew_member.injure(1)
-			var damaged_item := game_state.current_crew.damage_random_item()
+			var crew_member: Character = game_state.get_current_crew().characters[randi() % game_state.get_current_crew().get_size()]
+			crew_member.status = GlobalEnums.CharacterStatus.INJURED
+			var damaged_item: Equipment = game_state.get_current_crew().damage_random_item()
 			return crew_member.name + " was injured and " + (damaged_item.name if damaged_item else "no item was") + " damaged."
 	}
 
@@ -227,9 +232,9 @@ func travel_time_event() -> Dictionary:
 		"name": "Travel-time",
 		"description": "Local conditions force you to jump to the very edge of the system and approach under standard drives.",
 		"action": func() -> String:
-			for member in game_state.current_crew.members:
-				if member.is_injured():
-					member.heal(1)
+			for member in game_state.get_current_crew().characters:
+				if member.status == GlobalEnums.CharacterStatus.INJURED:
+					member.status = GlobalEnums.CharacterStatus.ACTIVE
 			return "All injured crew members rested for one campaign turn."
 	}
 
@@ -238,7 +243,7 @@ func uneventful_trip_event() -> Dictionary:
 		"name": "Uneventful Trip",
 		"description": "A lot of time playing cards and cleaning guns.",
 		"action": func() -> String:
-			var repaired_item := game_state.current_crew.repair_random_item()
+			var repaired_item: Equipment = game_state.get_current_crew().repair_random_item()
 			return repaired_item.name + " was repaired." if repaired_item else "No items were repaired."
 	}
 
@@ -260,22 +265,22 @@ func time_to_read_a_book_event() -> Dictionary:
 			var xp_gains := []
 			match roll:
 				1, 2:
-					var crew_member := game_state.current_crew.get_random_member()
-					crew_member.add_xp(3)
+					var crew_member: Character = game_state.get_current_crew().characters[randi() % game_state.get_current_crew().get_size()]
+					crew_member.gain_experience(3)
 					xp_gains.append(crew_member.name + ": 3 XP")
 				3, 4:
-					var crew_member1 := game_state.current_crew.get_random_member()
-					var crew_member2 := game_state.current_crew.get_random_member()
+					var crew_member1: Character = game_state.get_current_crew().characters[randi() % game_state.get_current_crew().get_size()]
+					var crew_member2: Character = game_state.get_current_crew().characters[randi() % game_state.get_current_crew().get_size()]
 					while crew_member2 == crew_member1:
-						crew_member2 = game_state.current_crew.get_random_member()
-					crew_member1.add_xp(2)
-					crew_member2.add_xp(1)
+						crew_member2 = game_state.get_current_crew().characters[randi() % game_state.get_current_crew().get_size()]
+					crew_member1.gain_experience(2)
+					crew_member2.gain_experience(1)
 					xp_gains.append(crew_member1.name + ": 2 XP")
 					xp_gains.append(crew_member2.name + ": 1 XP")
 				5, 6:
-					var crew_members := game_state.current_crew.get_random_members(3)
+					var crew_members: Array[Character] = game_state.get_current_crew().characters.slice(0, 3)
 					for member in crew_members:
-						member.add_xp(1)
+						member.gain_experience(1)
 						xp_gains.append(member.name + ": 1 XP")
 			return "XP gained: " + ", ".join(xp_gains)
 	}

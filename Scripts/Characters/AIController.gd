@@ -3,7 +3,7 @@ extends Node
 
 signal ai_action_completed(action: Dictionary)
 
-@export var ai_behavior: GlobalEnums.AIBehavior = GlobalEnums.AIBehavior.DETERMINISTIC
+@export var ai_behavior: GlobalEnums.AIBehavior = GlobalEnums.AIBehavior.AGGRESSIVE
 
 var combat_manager: CombatManager
 var game_state: GameStateManagerNode
@@ -22,11 +22,14 @@ func initialize(_combat_manager: CombatManager, _game_state: GameStateManagerNod
 
 func perform_ai_turn(ai_character: Character) -> void:
 	var action: Dictionary
-	if ai_behavior == GlobalEnums.AIBehavior.DETERMINISTIC:
-		action = determine_best_action(ai_character)
-	else:
-		action = determine_dice_based_action(ai_character)
-	
+	match ai_behavior:
+		GlobalEnums.AIBehavior.AGGRESSIVE, GlobalEnums.AIBehavior.CAUTIOUS, GlobalEnums.AIBehavior.DEFENSIVE, GlobalEnums.AIBehavior.TACTICAL:
+			action = determine_best_action(ai_character)
+		GlobalEnums.AIBehavior.RAMPAGE, GlobalEnums.AIBehavior.BEAST:
+			action = determine_dice_based_action(ai_character)
+		_:
+			push_error("Invalid AI behavior: %s" % ai_behavior)
+			action = determine_best_action(ai_character)  # Fallback to deterministic
 	execute_action(ai_character, action)
 
 func determine_best_action(ai_character: Character) -> Dictionary:
@@ -103,7 +106,7 @@ func evaluate_attack(ai_character: Character, target: Character) -> float:
 		base_score += 5.0
 	return base_score
 
-func evaluate_item_use(ai_character: Character) -> float:
+func evaluate_item_use(_ai_character: Character) -> float:
 	return 5.0  # Base score for using an item, can be adjusted based on item type and situation
 
 func evaluate_aim(ai_character: Character) -> float:
@@ -204,7 +207,7 @@ func _apply_escalation_effect(escalation: Dictionary) -> void:
 			_trigger_alien_intervention()
 
 func _spawn_reinforcements() -> void:
-	var new_enemies := enemy_deployment_manager.generate_deployment("TACTICAL", combat_manager.get_battle_map())
+	var new_enemies := enemy_deployment_manager.generate_deployment(GlobalEnums.AIType.TACTICAL, combat_manager.get_battle_map())
 	for enemy in new_enemies:
 		combat_manager.add_enemy(enemy)
 
@@ -260,15 +263,15 @@ func _trigger_alien_intervention() -> void:
 	
 	match chosen_effect:
 		"alien_attack":
-			var new_aliens := enemy_deployment_manager.generate_deployment("ALIEN", combat_manager.get_battle_map())
+			var new_aliens := enemy_deployment_manager.generate_deployment(GlobalEnums.AIType.BEAST, combat_manager.get_battle_map())
 			for alien in new_aliens:
 				combat_manager.add_enemy(alien)
 		"alien_support":
-			var new_allies := enemy_deployment_manager.generate_deployment("ALIEN", combat_manager.get_battle_map())
+			var new_allies := enemy_deployment_manager.generate_deployment(GlobalEnums.AIType.TACTICAL, combat_manager.get_battle_map())
 			for ally in new_allies:
 				combat_manager.add_ally(ally)
 		"alien_observation":
-			var observers := enemy_deployment_manager.generate_deployment("ALIEN_OBSERVER", combat_manager.get_battle_map())
+			var observers := enemy_deployment_manager.generate_deployment(GlobalEnums.AIType.CAUTIOUS, combat_manager.get_battle_map())
 			for observer in observers:
 				combat_manager.add_neutral(observer)
 

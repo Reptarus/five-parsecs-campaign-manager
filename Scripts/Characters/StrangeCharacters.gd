@@ -99,7 +99,7 @@ func roll_dice(num_dice: int, sides: int) -> int:
 		total += randi() % sides + 1
 	return total
 
-func handle_precursor_character_event(character) -> void:
+func handle_precursor_character_event(_character) -> void:
 	if type == StrangeCharacterType.PRECURSOR:
 		var event1 = roll_dice(1, 100)
 		var event2 = roll_dice(1, 100)

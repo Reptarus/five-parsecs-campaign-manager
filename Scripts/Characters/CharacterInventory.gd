@@ -45,4 +45,5 @@ func is_overweight(max_weight: float) -> bool:
 func get_most_valuable_item() -> Equipment:
 	if items.is_empty():
 		return null
-	return items.max(func(a: Equipment, b: Equipment) -> bool: return a.value > b.value)
+	items.sort_custom(func(a: Equipment, b: Equipment): return a.value < b.value)
+	return items[-1]

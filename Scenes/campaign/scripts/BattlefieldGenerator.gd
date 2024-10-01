@@ -67,10 +67,10 @@ func _set_mission_info() -> void:
 		conditions_text += "- %s\n" % condition
 	battlefield_conditions_label.text = conditions_text
 
-func generate_battlefield(mission: Mission) -> Dictionary:
+func generate_battlefield(mission_data: Mission) -> Dictionary:
 	var terrain := _generate_terrain()
-	var player_positions := _generate_player_positions(mission.required_crew_size)
-	var enemy_positions := _generate_enemy_positions(mission.get_enemies().size())
+	var player_positions := _generate_player_positions(mission_data.required_crew_size)
+	var enemy_positions := _generate_enemy_positions(mission_data.get_enemies().size())
 
 	return {
 		"terrain": terrain,
@@ -79,7 +79,7 @@ func generate_battlefield(mission: Mission) -> Dictionary:
 	}
 
 func _generate_terrain() -> Array[Dictionary]:
-	var table_size := "2x2"  # Adjust based on mission requirements
+	var table_size := GlobalEnums.TerrainSize.MEDIUM  # 24" x 24" battlefield as per rules
 	var terrain_map: Array = terrain_generator.generate_terrain(table_size)
 	var terrain: Array[Dictionary] = []
 
@@ -118,26 +118,26 @@ func _generate_terrain() -> Array[Dictionary]:
 func _generate_player_positions(num_players: int) -> Array[Vector2]:
 	var player_positions: Array[Vector2] = []
 	for _i in range(num_players):
-		var position: Vector2 = Vector2(
+		var spawn_position: Vector2 = Vector2(
 			randf_range(0, float(GRID_SIZE.x - 1)),
 			randf_range(0, float(GRID_SIZE.y - 1))
 		) * Vector2(CELL_SIZE)
-		player_positions.append(position)
+		player_positions.append(spawn_position)
 	return player_positions
 
 func _generate_enemy_positions(num_enemies: int) -> Array[Vector2]:
 	var enemy_positions: Array[Vector2] = []
 	for _i in range(num_enemies):
-		var position: Vector2 = Vector2(
+		var enemy_pos: Vector2 = Vector2(
 			randf_range(0, float(GRID_SIZE.x - 1)),
 			randf_range(0, float(GRID_SIZE.y - 1))
 		) * Vector2(CELL_SIZE)
-		enemy_positions.append(position)
+		enemy_positions.append(enemy_pos)
 	return enemy_positions
 
-func _generate_battlefield_grid(battlefield_data: Dictionary) -> void:
+func _generate_battlefield_grid(_battlefield_data: Dictionary) -> void:
 	battlefield_grid.columns = GRID_SIZE.x
-	var table_size := "2x2"  # Adjust based on mission requirements
+	var table_size := GlobalEnums.TerrainSize.MEDIUM  # 24" x 24" battlefield as per rules
 	var terrain_map := terrain_generator.generate_terrain(table_size)
 	
 	for cell in battlefield_grid.get_children():
@@ -182,11 +182,17 @@ func _on_post_battle_pressed() -> void:
 
 func _on_planet_info_pressed() -> void:
 	var planet_info: Popup = $PlanetInfoPopup
-	var current_location: Location = game_state.current_location
+	var current_location: Location = GameState.current_location
 	var info_text: String = "Planet: %s\n" % current_location.name
 	info_text += "Traits:\n"
-	var traits: Array[String] = current_location.get_traits()
-	info_text += "- " + "\n- ".join(traits)
+	
+	var traits: Array[GlobalEnums.WorldTrait] = current_location.get_traits()
+	var trait_names: Array = []
+	
+	for i in range(traits.size()):
+		trait_names.append("- %s" % GlobalEnums.WorldTrait.keys()[traits[i]])  # Access by index
+	
+	info_text += "\n".join(trait_names)
 	
 	var licensing_requirement: String = current_location.get_licensing_requirement()
 	info_text += "\n\nLicensing: %s\n" % licensing_requirement
@@ -196,6 +202,23 @@ func _on_planet_info_pressed() -> void:
 	
 	planet_info.get_node("Label").text = info_text
 	planet_info.popup_centered()
+	
+	# Update economy information
+	var economy_info: String = "\nEconomy:\n"
+	var world_economy_manager: WorldEconomyManager = GameState.get_world_economy_manager(current_location)
+	economy_info += "Market Stability: %.2f\n" % world_economy_manager.economy_manager.location_price_modifiers.get(current_location.name, 1.0)
+	economy_info += "Available Items: %d\n" % world_economy_manager.local_market.size()
+	economy_info += "Upkeep Cost: %d credits\n" % world_economy_manager.calculate_upkeep()
+	
+	planet_info.get_node("Label").text += economy_info
+	
+	# Check for any active global events
+	var active_events: Array = GameState.global_event_manager.get_active_events()
+	if active_events.size() > 0:
+		var event_info: String = "\nActive Global Events:\n"
+		for event in active_events:
+			event_info += "- %s\n" % GlobalEnums.GlobalEvent.keys()[event]
+		planet_info.get_node("Label").text += event_info
 
 func _on_ship_stats_pressed() -> void:
 	var ship_stats: Popup = $ShipStatsPopup
@@ -229,5 +252,5 @@ func _on_stash_pressed() -> void:
 	get_tree().change_scene_to_file("res://Scenes/Management/ShipInventory.tscn")
 
 func _on_start_mission_pressed() -> void:
-	game_state.start_mission()
+	game_state.start_mission(mission)
 	get_tree().change_scene_to_file("res://Scenes/campaign/Battle.tscn")

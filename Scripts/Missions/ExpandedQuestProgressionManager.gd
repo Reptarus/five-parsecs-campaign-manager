@@ -23,8 +23,8 @@ func load_quest_stages() -> void:
     file.close()
 
 func generate_new_quest() -> Quest:
-    var quest_generator := preload("res://Scripts/Missions/Quest.gd").new()
-    var new_quest := quest_generator.generate_quest(game_state)
+    var quest_generator := Quest.new()
+    var new_quest: Quest = quest_generator.generate_quest(game_state)
     new_quest.current_stage = 1
     new_quest.current_requirements = quest_stages["quest_stages"][0]["requirements"]
     active_quests.append(new_quest)
@@ -59,7 +59,7 @@ func _advance_quest_stage(quest: Quest) -> void:
     if quest.current_stage > quest_stages["quest_stages"].size():
         _complete_quest(quest)
     else:
-        var stage_data := quest_stages["quest_stages"][quest.current_stage - 1]
+        var stage_data: Dictionary = quest_stages["quest_stages"][quest.current_stage - 1]
         quest.current_requirements = stage_data["requirements"]
         _apply_stage_rewards(quest, stage_data["rewards"])
     quest_stage_advanced.emit(quest, quest.current_stage)
@@ -70,7 +70,7 @@ func _complete_quest(quest: Quest) -> void:
     game_state.completed_quests.append(quest)
     _apply_final_rewards(quest)
 
-func _apply_stage_rewards(quest: Quest, rewards: Dictionary) -> void:
+func _apply_stage_rewards(_quest: Quest, rewards: Dictionary) -> void:
     for reward_type in rewards:
         match reward_type:
             "experience":
@@ -116,10 +116,10 @@ func _apply_final_rewards(quest: Quest) -> void:
         game_state.advance_turn(quest.reward["tick_clock"])
 
 func _handle_faction_destruction(faction: GlobalEnums.Faction) -> void:
-    var destroyed_faction := game_state.get_faction(faction)
+    var destroyed_faction = game_state.get_faction(faction)
     if destroyed_faction:
         destroyed_faction.destroy()
-        game_state.remove_faction_loyalty(destroyed_faction)
-        game_state.remove_faction_influence(destroyed_faction)
+        game_state.remove_faction_loyalty(faction)
+        game_state.remove_faction_influence(faction)
         game_state.remove_faction_power(destroyed_faction)
         game_state.remove_faction(destroyed_faction)
