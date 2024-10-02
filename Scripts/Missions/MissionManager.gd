@@ -2,9 +2,9 @@
 class_name MissionManager
 extends Node
 
-var game_state: GameState
+var game_state: GameStateManager
 
-func _init(_game_state: GameState):
+func _init(_game_state: GameStateManager):
     game_state = _game_state
 
 func generate_missions() -> Array[Mission]:
@@ -130,102 +130,66 @@ func generate_rewards(difficulty: int) -> Dictionary:
     }
 
 func resolve_mission(mission: Mission) -> bool:
+    var success_chance = _calculate_success_chance(mission)
+    var roll = randf()
+    var success = roll < success_chance
+    
+    if success:
+        _handle_mission_success(mission)
+    else:
+        _handle_mission_failure(mission)
+    
+    return success
+
+func _calculate_success_chance(mission: Mission) -> float:
+    var base_chance = 0.5
+    var difficulty_modifier = 0.1 * (game_state.current_crew.get_average_level() - mission.difficulty)
+    
     match mission.type:
         GlobalEnums.Type.INFILTRATION:
-            return resolve_stealth_mission(mission)
+            base_chance = 0.4
+            difficulty_modifier -= 0.1 * mission.detection_level
         GlobalEnums.Type.STREET_FIGHT:
-            return resolve_street_fight_mission(mission)
+            base_chance = 0.6
+            difficulty_modifier = 0.1 * (game_state.current_crew.get_average_combat_skill() - mission.difficulty)
         GlobalEnums.Type.SALVAGE_JOB:
-            return resolve_salvage_mission(mission)
+            difficulty_modifier = 0.1 * (game_state.current_crew.get_average_savvy() - mission.difficulty)
         GlobalEnums.Type.FRINGE_WORLD_STRIFE:
-            return resolve_fringe_world_strife_mission(mission)
-        _:
-            return resolve_standard_mission(mission)
+            base_chance = 0.4
+            difficulty_modifier -= 0.05 * GlobalEnums.FringeWorldInstability.values().find(mission.instability)
+    
+    return base_chance + difficulty_modifier
 
-func resolve_standard_mission(mission: Mission) -> bool:
-    var success_chance = 0.5 + (0.1 * (game_state.current_crew.get_average_level() - mission.difficulty))
-    var roll = randf()
-    var success = roll < success_chance
+func _handle_mission_success(mission: Mission) -> void:
+    mission.complete()
+    var reward_multiplier = 1.0
+    var reputation_multiplier = 1.0
     
-    if success:
-        mission.complete()
-        game_state.add_credits(mission.rewards["credits"])
-        game_state.add_reputation(mission.rewards["reputation"])
-        if mission.rewards["item"]:
-            game_state.add_random_item()
-    else:
-        mission.fail()
+    match mission.type:
+        GlobalEnums.Type.INFILTRATION:
+            reward_multiplier = 1.2
+        GlobalEnums.Type.STREET_FIGHT:
+            reputation_multiplier = 1.5
+        GlobalEnums.Type.SALVAGE_JOB:
+            var salvage_value = mission.salvage_units * 50
+            game_state.add_credits(salvage_value)
+        GlobalEnums.Type.FRINGE_WORLD_STRIFE:
+            reward_multiplier = 1.5
+            reputation_multiplier = 2.0
+            game_state.reduce_fringe_world_instability(mission.location)
     
-    return success
+    game_state.add_credits(int(mission.rewards["credits"] * reward_multiplier))
+    game_state.add_reputation(int(mission.rewards["reputation"] * reputation_multiplier))
+    if mission.rewards["item"]:
+        game_state.add_random_item()
 
-func resolve_stealth_mission(mission: Mission) -> bool:
-    var success_chance = 0.4 + (0.1 * (game_state.current_crew.get_average_level() - mission.difficulty))
-    success_chance -= 0.1 * mission.detection_level
-    var roll = randf()
-    var success = roll < success_chance
-    
-    if success:
-        mission.complete()
-        game_state.add_credits(mission.rewards["credits"] * 1.2)  # 20% bonus for stealth missions
-        if mission.rewards["item"]:
-            game_state.add_random_item()
-    else:
-        mission.fail()
-    
-    return success
-
-func resolve_street_fight_mission(mission: Mission) -> bool:
-    var success_chance = 0.6 + (0.1 * (game_state.current_crew.get_average_combat_skill() - mission.difficulty))
-    var roll = randf()
-    var success = roll < success_chance
-    
-    if success:
-        mission.complete()
-        game_state.add_credits(mission.rewards["credits"])
-        game_state.add_reputation(mission.rewards["reputation"] * 1.5)  # 50% reputation bonus for street fights
-        if mission.rewards["item"]:
-            game_state.add_random_item()
-    else:
-        mission.fail()
-        game_state.add_crew_injury()  # Street fights are dangerous
-    
-    return success
-
-func resolve_salvage_mission(mission: Mission) -> bool:
-    var success_chance = 0.5 + (0.1 * (game_state.current_crew.get_average_savvy() - mission.difficulty))
-    var roll = randf()
-    var success = roll < success_chance
-    
-    if success:
-        mission.complete()
-        var salvage_value = mission.salvage_units * 50  # Each salvage unit is worth 50 credits
-        game_state.add_credits(mission.rewards["credits"] + salvage_value)
-        game_state.add_reputation(mission.rewards["reputation"])
-        if mission.rewards["item"]:
-            game_state.add_random_item()
-    else:
-        mission.fail()
-    
-    return success
-
-func resolve_fringe_world_strife_mission(mission: Mission) -> bool:
-    var success_chance = 0.4 + (0.1 * (game_state.current_crew.get_average_level() - mission.difficulty))
-    success_chance -= 0.05 * GlobalEnums.FringeWorldInstability.values().find(mission.instability)
-    var roll = randf()
-    var success = roll < success_chance
-    
-    if success:
-        mission.complete()
-        game_state.add_credits(mission.rewards["credits"] * 1.5)  # 50% bonus for dangerous fringe world missions
-        game_state.add_reputation(mission.rewards["reputation"] * 2)  # Double reputation for fringe world missions
-        if mission.rewards["item"]:
-            game_state.add_random_item()
-        game_state.reduce_fringe_world_instability(mission.location)
-    else:
-        mission.fail()
-        game_state.increase_fringe_world_instability(mission.location)
-    
-    return success
+func _handle_mission_failure(mission: Mission) -> void:
+    mission.fail()
+    match mission.type:
+        GlobalEnums.Type.STREET_FIGHT:
+            game_state.add_crew_injury()
+        GlobalEnums.Type.FRINGE_WORLD_STRIFE:
+            game_state.increase_fringe_world_instability(mission.location)
 
 func get_available_missions() -> Array[Mission]:
     return game_state.available_missions

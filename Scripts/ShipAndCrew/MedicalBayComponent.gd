@@ -2,7 +2,7 @@
 extends ShipComponent
 class_name MedicalBayComponent
 
-var game_state: GameState
+var game_state: GameStateManager
 
 @export var healing_capacity: int
 var patients: Array[Character] = []

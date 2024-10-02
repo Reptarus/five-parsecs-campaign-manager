@@ -252,5 +252,5 @@ func _on_stash_pressed() -> void:
 	get_tree().change_scene_to_file("res://Scenes/Management/ShipInventory.tscn")
 
 func _on_start_mission_pressed() -> void:
-	game_state.start_mission(mission)
+	game_state.start_mission(get_tree())
 	get_tree().change_scene_to_file("res://Scenes/campaign/Battle.tscn")

@@ -9,28 +9,11 @@ extends Control
 @onready var options_button = $MenuButtons/Options
 @onready var library_button = $MenuButtons/Library
 
-var game_state: GameState
+var game_state: GameStateManager
+
 func _ready():
 	setup_ui()
 	call_deferred("initialize_game_systems")
-
-	var menu_buttons = {
-		"continue_button": continue_button,
-		"new_campaign_button": new_campaign_button,
-		"coop_campaign_button": coop_campaign_button,
-		"battle_simulator_button": battle_simulator_button,
-		"bug_hunt_button": bug_hunt_button,
-		"options_button": options_button,
-		"library_button": library_button
-	}
-	
-	for button_name in menu_buttons:
-		if menu_buttons[button_name]:
-			print_debug("%s: Connected" % button_name)
-		else:
-			push_warning("%s not found in the scene tree" % button_name)
-
-	# Note: Button connections are handled in setup_ui()
 
 func setup_ui():
 	if continue_button:
@@ -54,18 +37,19 @@ func setup_ui():
 	tween.tween_property(self, "modulate", Color(1, 1, 1, 1), 0.5)
 
 func initialize_game_systems():
-	game_state = GameState.new()
-	assert(game_state != null, "Failed to create GameState instance")
+	game_state = GameStateManager.get_game_state()
+	if game_state == null:
+		push_error("Failed to get GameState instance")
 	update_continue_button_visibility()
 
 func update_continue_button_visibility():
-	continue_button.visible = game_state.current_crew != null
+	continue_button.visible = game_state.current_crew != null if game_state else false
 
 func _on_continue_pressed():
-	if game_state.current_crew:
-		transition_to_scene("res://Scenes/Scene Container/campaigncreation/scenes/CampaignSetupScreen.tscn")
+	if game_state and game_state.current_crew:
+		transition_to_scene("res://Scenes/Management/CrewManagement.tscn")
 	else:
-		_show_not_implemented_message("No saved game found")
+		_show_not_implemented_message
 
 func _on_new_campaign_pressed():
 	# Instead of directly changing the scene, let's use a deferred call
@@ -76,7 +60,7 @@ func _change_to_new_campaign_scene():
 	
 	if campaign_setup_scene.has_method("set_game_state"):
 		# Ensure game_state is of the correct type
-		if game_state is GameState:
+		if game_state is GameStateManager:
 			campaign_setup_scene.set_game_state(game_state)
 		else:
 			push_error("Invalid game state type in MainMenu")

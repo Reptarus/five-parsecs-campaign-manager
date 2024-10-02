@@ -49,7 +49,7 @@ func repair(amount: int) -> void:
 	current_hull = min(current_hull + amount, max_hull)
 	hull_changed.emit(current_hull, max_hull)
 
-func take_damage(amount: int, game_state: GameState) -> void:
+func take_damage(amount: int, game_state: GameStateManager) -> void:
 	if game_state.is_tutorial_active:
 		amount = max(1, int(amount / 2.0))
 	current_hull = max(current_hull - amount, 0)
@@ -69,7 +69,7 @@ func use_fuel(amount: int) -> bool:
 		return true
 	return false
 
-func travel_to(destination: Location, game_state: GameState) -> bool:
+func travel_to(destination: Location, game_state: GameStateManager) -> bool:
 	if not current_location:
 		push_error("Ship has no current location set")
 		return false

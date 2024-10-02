@@ -6,7 +6,7 @@ signal ai_action_completed(action: Dictionary)
 @export var ai_behavior: GlobalEnums.AIBehavior = GlobalEnums.AIBehavior.AGGRESSIVE
 
 var combat_manager: CombatManager
-var game_state: GameStateManagerNode
+var game_state: GameStateManager
 var escalating_battles_manager: EscalatingBattlesManager
 var enemy_deployment_manager: EnemyDeploymentManager
 
@@ -14,7 +14,7 @@ func _init() -> void:
 	escalating_battles_manager = EscalatingBattlesManager.new(null)  # Pass null for now
 	enemy_deployment_manager = EnemyDeploymentManager.new(null)  # Pass null for now
 
-func initialize(_combat_manager: CombatManager, _game_state: GameStateManagerNode) -> void:
+func initialize(_combat_manager: CombatManager, _game_state: GameStateManager) -> void:
 	combat_manager = _combat_manager
 	game_state = _game_state
 	escalating_battles_manager.initialize(game_state, null)  # Pass null for difficulty_settings

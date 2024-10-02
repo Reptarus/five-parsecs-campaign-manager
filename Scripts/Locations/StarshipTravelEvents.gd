@@ -1,9 +1,9 @@
 class_name StarshipTravelEvents
 extends Resource
 
-var game_state: GameState
+var game_state: Node
 
-func set_game_state(_game_state: GameState) -> void:
+func set_game_state(_game_state: Node) -> void:
 	game_state = _game_state
 
 func generate_travel_event() -> Dictionary:
@@ -78,7 +78,7 @@ func raided_event() -> Dictionary:
 			if roll >= 6:
 				return "Successfully intimidated the pirates and avoided conflict."
 			else:
-				game_state.start_battle("Pirates", 3)
+				game_state.start_battle()
 				return "Engaged in battle with pirates."
 	}
 

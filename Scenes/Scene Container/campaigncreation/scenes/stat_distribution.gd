@@ -89,7 +89,7 @@ func apply_status_effect(effect: StatusEffect):
 
 # Difficulty-related functions
 func get_stat_modifier_for_difficulty(stat: String) -> int:
-	var difficulty_mode = GameState.difficulty_mode
+	var difficulty_mode = GameStateManager.difficulty_mode
 	match difficulty_mode:
 		GlobalEnums.DifficultyMode.CHALLENGING:
 			return -1 if stat in ["combat", "technical", "social", "survival"] else 0

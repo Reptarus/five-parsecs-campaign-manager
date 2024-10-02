@@ -7,42 +7,13 @@ signal experience_updated(new_xp: int, xp_for_next_level: int)
 signal request_new_trait
 signal request_upgrade_choice(upgrade_options: Array)
 
-func _init() -> void:
-	character_advancement = CharacterAdvancement.new(self)
-	character_advancement.upgrade_available.connect(_on_upgrade_available)
-
-func add_xp(amount: int) -> void:
-	xp += amount
-	experience_gained.emit(amount)
-	character_advancement.apply_experience(amount)
-	_update_experience()
-
-func _update_experience() -> void:
-	var xp_for_next = character_advancement.get_xp_for_next_level(level)
-	experience_updated.emit(xp, xp_for_next)
-	if xp >= xp_for_next:
-		_level_up()
-
-func _level_up() -> void:
-	level += 1
-	var available_upgrades = character_advancement.get_available_upgrades()
-	leveled_up.emit(level, available_upgrades)
-	request_new_trait.emit()
-
-func _on_upgrade_available(upgrades: Array) -> void:
-	request_upgrade_choice.emit(upgrades)
-
-func apply_upgrade(upgrade: Dictionary) -> void:
-	character_advancement.apply_upgrade(upgrade)
-	_update_experience()
-
 var character_advancement: CharacterAdvancement
 
 @export var name: String
 @export var species: GlobalEnums.Species
 @export var background: GlobalEnums.Background
-@export var character_class: GlobalEnums.Class
 @export var motivation: GlobalEnums.Motivation
+@export var character_class: GlobalEnums.Class
 @export var is_strange: bool = false
 @export var strange_type: String = ""
 
@@ -68,30 +39,13 @@ var status: GlobalEnums.CharacterStatus = GlobalEnums.CharacterStatus.ACTIVE
 var ai_controller: AIController
 var ai_enabled: bool = false
 
-func add_item(item: Dictionary) -> void:
-	inventory.append(item)
+func _init() -> void:
+	character_advancement = CharacterAdvancement.new(self)
+	character_advancement.upgrade_available.connect(_on_upgrade_available)
 
-func remove_item(item: Dictionary) -> void:
-	inventory.erase(item)
-
-func get_all_items() -> Array[Dictionary]:
-	return inventory
-
-func clear_inventory() -> void:
-	inventory.clear()
-
-func set_strange_character(type: String) -> void:
-	is_strange = true
-	strange_type = type
-	# Apply special abilities based on type
-
-static func create(p_species: GlobalEnums.Species, p_background: GlobalEnums.Background, p_motivation: GlobalEnums.Motivation, p_character_class: GlobalEnums.Class, _game_state_manager: GameStateManagerNode) -> Character:
-	var character = Character.new()
-	character.initialize(p_species, p_background, p_motivation, p_character_class, _game_state_manager)
-	character.name = generate_name(p_species)
-	return character
-
-func initialize(p_species: GlobalEnums.Species, p_background: GlobalEnums.Background, p_motivation: GlobalEnums.Motivation, p_character_class: GlobalEnums.Class, _game_state_manager: GameStateManagerNode) -> void:
+func initialize(p_species: GlobalEnums.Species, p_background: GlobalEnums.Background, 
+				p_motivation: GlobalEnums.Motivation, p_character_class: GlobalEnums.Class, 
+				_game_state_manager: GameStateManagerNode) -> void:
 	self.species = p_species
 	self.background = p_background
 	self.motivation = p_motivation
@@ -135,34 +89,72 @@ func initialize_default_stats() -> void:
 			savvy = 0
 
 func apply_background_effects(bg: GlobalEnums.Background) -> void:
-	match bg:
-		GlobalEnums.Background.HIGH_TECH_COLONY:
-			savvy += 1
-		GlobalEnums.Background.OVERCROWDED_CITY:
-			speed += 1
-		GlobalEnums.Background.LOW_TECH_COLONY:
-			pass
-		GlobalEnums.Background.MINING_COLONY:
-			toughness += 1
-		GlobalEnums.Background.MILITARY_BRAT:
-			combat_skill += 1
-		GlobalEnums.Background.SPACE_STATION:
-			pass
+	var background_data = GameStateManager.character_creation_data.get_background_data(GlobalEnums.Background.keys()[bg].to_lower())
+	if background_data:
+		for stat, value in background_data.get("effects", {}).items():
+			if self.get(stat) != null:
+				self.set(stat, self.get(stat) + value)
+			else:
+				push_warning("Attempted to modify non-existent stat: " + stat)
 
 func apply_class_effects(class_type: GlobalEnums.Class) -> void:
-	match class_type:
-		GlobalEnums.Class.SOLDIER:
-			combat_skill += 1
-			toughness += 1
-		GlobalEnums.Class.TECHNICIAN:
-			savvy += 1
-			speed += 1
-		GlobalEnums.Class.SCIENTIST:
-			speed += 1
-			reactions += 1
-		GlobalEnums.Class.MERCENARY:
-			toughness += 1
-			savvy += 1
+	var class_data = GameStateManager.character_creation_data.get_class_data(GlobalEnums.Class.keys()[class_type].to_lower())
+	if class_data:
+		for ability in class_data.get("abilities", []):
+			traits.append(ability)
+		for stat, value in class_data.get("effects", {}).items():
+			if self.get(stat) != null:
+				self.set(stat, self.get(stat) + value)
+			else:
+				push_warning("Attempted to modify non-existent stat: " + stat)
+
+func add_xp(amount: int) -> void:
+	xp += amount
+	experience_gained.emit(amount)
+	character_advancement.apply_experience(amount)
+	_update_experience()
+
+func _update_experience() -> void:
+	var xp_for_next = character_advancement.get_xp_for_next_level(level)
+	experience_updated.emit(xp, xp_for_next)
+	if xp >= xp_for_next:
+		_level_up()
+
+func _level_up() -> void:
+	level += 1
+	var available_upgrades = character_advancement.get_available_upgrades()
+	leveled_up.emit(level, available_upgrades)
+	request_new_trait.emit()
+
+func _on_upgrade_available(upgrades: Array) -> void:
+	request_upgrade_choice.emit(upgrades)
+
+func apply_upgrade(upgrade: Dictionary) -> void:
+	character_advancement.apply_upgrade(upgrade)
+	_update_experience()
+
+func add_item(item: Dictionary) -> void:
+	inventory.append(item)
+
+func remove_item(item: Dictionary) -> void:
+	inventory.erase(item)
+
+func get_all_items() -> Array[Dictionary]:
+	return inventory
+
+func clear_inventory() -> void:
+	inventory.clear()
+
+func set_strange_character(type: String) -> void:
+	is_strange = true
+	strange_type = type
+	# Apply special abilities based on type
+
+static func create(p_species: GlobalEnums.Species, p_background: GlobalEnums.Background, p_motivation: GlobalEnums.Motivation, p_character_class: GlobalEnums.Class, _game_state_manager: GameStateManagerNode) -> Character:
+	var character = Character.new()
+	character.initialize(p_species, p_background, p_motivation, p_character_class, _game_state_manager)
+	character.name = generate_name(p_species)
+	return character
 
 func get_xp_for_next_level() -> int:
 	return character_advancement.get_xp_for_next_level(level)
@@ -173,10 +165,10 @@ func get_available_upgrades() -> Array:
 func serialize() -> Dictionary:
 	return {
 		"name": name,
-		"species": species,
-		"background": background,
-		"character_class": character_class,
-		"motivation": motivation,
+		"species": GlobalEnums.Species.keys()[species],
+		"background": GlobalEnums.Background.keys()[background],
+		"character_class": GlobalEnums.Class.keys()[character_class],
+		"motivation": GlobalEnums.Motivation.keys()[motivation],
 		"is_strange": is_strange,
 		"strange_type": strange_type,
 		"reactions": reactions,
@@ -191,16 +183,16 @@ func serialize() -> Dictionary:
 		"traits": traits,
 		"medbay_turns_left": medbay_turns_left,
 		"injuries": injuries,
-		"status": status
+		"status": GlobalEnums.CharacterStatus.keys()[status]
 	}
 
 static func deserialize(data: Dictionary, _game_state_manager: GameStateManagerNode) -> Character:
 	var character = Character.new()
 	character.name = data.get("name", "")
-	character.species = data.get("species", GlobalEnums.Species.HUMAN)
-	character.background = data.get("background", GlobalEnums.Background.HIGH_TECH_COLONY)
-	character.character_class = data.get("character_class", GlobalEnums.Class.WORKING_CLASS)
-	character.motivation = data.get("motivation", GlobalEnums.Motivation.ADVENTURE)
+	character.species = GlobalEnums.Species[data.get("species", "HUMAN")]
+	character.background = GlobalEnums.Background[data.get("background", "HIGH_TECH_COLONY")]
+	character.character_class = GlobalEnums.Class[data.get("character_class", "WORKING_CLASS")]
+	character.motivation = GlobalEnums.Motivation[data.get("motivation", "ADVENTURE")]
 	character.is_strange = data.get("is_strange", false)
 	character.strange_type = data.get("strange_type", "")
 	character.reactions = data.get("reactions", 1)
@@ -215,7 +207,7 @@ static func deserialize(data: Dictionary, _game_state_manager: GameStateManagerN
 	character.traits = data.get("traits", [])
 	character.medbay_turns_left = data.get("medbay_turns_left", 0)
 	character.injuries = data.get("injuries", [])
-	character.status = data.get("status", GlobalEnums.CharacterStatus.ACTIVE)
+	character.status = GlobalEnums.CharacterStatus[data.get("status", "ACTIVE")]
 	character.character_advancement = CharacterAdvancement.new(character)
 	return character
 

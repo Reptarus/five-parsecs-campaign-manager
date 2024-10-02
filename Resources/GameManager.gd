@@ -1,5 +1,6 @@
+extends Node
+
 class_name GameManager
-extends Resource
 
 signal game_state_changed(new_state: GlobalEnums.CampaignPhase)
 
@@ -9,7 +10,7 @@ var terrain_generator: TerrainGenerator
 var galactic_war_manager: GalacticWarManager
 var game_over_scene: PackedScene = preload("res://Scenes/Management/Scenes/GameOverScreen.tscn")
 
-func _init() -> void:
+func _ready() -> void:
 	game_state = GameState.new()
 	ui_manager = UIManager.new()
 	terrain_generator = TerrainGenerator.new()

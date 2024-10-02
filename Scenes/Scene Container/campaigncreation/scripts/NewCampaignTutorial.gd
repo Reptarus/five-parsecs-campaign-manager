@@ -20,7 +20,7 @@ func initialize(manager: GameManager) -> void:
 
 func _on_story_track_pressed() -> void:
 	tutorial_choice_made.emit("story_track")
-	game_manager.game_state.transition_to_state(GameState.State.CREW_CREATION)
+	game_manager.game_state.transition_to_state(GameStateManager.State.CREW_CREATION)
 	game_manager.game_state_changed.emit(GlobalEnums.CampaignPhase.CREW_CREATION)
 
 func _on_compendium_pressed() -> void:
@@ -29,5 +29,5 @@ func _on_compendium_pressed() -> void:
 
 func _on_skip_pressed() -> void:
 	tutorial_choice_made.emit("skip")
-	game_manager.game_state.transition_to_state(GameState.State.CREW_CREATION)
+	game_manager.game_state.transition_to_state(GameStateManager.State.CREW_CREATION)
 	game_manager.game_state_changed.emit(GlobalEnums.CampaignPhase.CREW_CREATION)

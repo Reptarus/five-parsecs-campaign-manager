@@ -1,52 +1,58 @@
 class_name CharacterCreationData
 extends Resource
 
-var races: Array[Dictionary] = []
+var species: Array[Dictionary] = []
 var backgrounds: Array[Dictionary] = []
 var motivations: Array[Dictionary] = []
 var classes: Array[Dictionary] = []
 var skills: Array[Dictionary] = []
 
-var tutorial_races: Array[Dictionary] = []
+var tutorial_species: Array[Dictionary] = []
 var tutorial_backgrounds: Array[Dictionary] = []
 var tutorial_motivations: Array[Dictionary] = []
 var tutorial_classes: Array[Dictionary] = []
 
+var _data_cache: Dictionary = {}
+
 func load_data() -> void:
+	if not _data_cache.is_empty():
+		return  # Data already loaded
+	
 	var json_data: Dictionary = load_json_file("res://data/character_creation_data.json")
-	if json_data.has("races"):
-		races = json_data.races
-	if json_data.has("backgrounds"):
-		backgrounds = json_data.backgrounds
-	if json_data.has("motivations"):
-		motivations = json_data.motivations
-	if json_data.has("classes"):
-		classes = json_data.classes
-	if json_data.has("skills"):
-		skills = json_data.skills
+	species = json_data.get("species", [])
+	backgrounds = json_data.get("backgrounds", [])
+	motivations = json_data.get("motivations", [])
+	classes = json_data.get("classes", [])
+	skills = json_data.get("skills", [])
 	
 	var tutorial_data: Dictionary = load_json_file("res://data/RulesReference/tutorial_character_creation_data.json")
-	if tutorial_data.has("tutorial_races"):
-		tutorial_races = tutorial_data.tutorial_races
-	if tutorial_data.has("tutorial_backgrounds"):
-		tutorial_backgrounds = tutorial_data.tutorial_backgrounds
-	if tutorial_data.has("tutorial_motivations"):
-		tutorial_motivations = tutorial_data.tutorial_motivations
-	if tutorial_data.has("tutorial_classes"):
-		tutorial_classes = tutorial_data.tutorial_classes
+	tutorial_species = tutorial_data.get("tutorial_species", [])
+	tutorial_backgrounds = tutorial_data.get("tutorial_backgrounds", [])
+	tutorial_motivations = tutorial_data.get("tutorial_motivations", [])
+	tutorial_classes = tutorial_data.get("tutorial_classes", [])
+	
+	_data_cache = json_data  # Cache the loaded data
 
 func load_json_file(path: String) -> Dictionary:
+	if path in _data_cache:
+		return _data_cache[path]
+	
 	var file: FileAccess = FileAccess.open(path, FileAccess.READ)
+	if file == null:
+		push_error("Failed to open file: " + path)
+		return {}
+	
 	var json: JSON = JSON.new()
 	var error: Error = json.parse(file.get_as_text())
 	if error == OK:
+		_data_cache[path] = json.data
 		return json.data
 	else:
 		push_error("JSON Parse Error: " + json.get_error_message())
 		return {}
 
 func get_race_data(race_id: String) -> Dictionary:
-	var filtered_races: Array = races.filter(func(r): return r.id == race_id)
+	var filtered_races: Array = species.filter(func(r): return r.id == race_id)
 	if filtered_races.is_empty():
 		push_warning("No race found for id: " + race_id)
 		return {}
@@ -81,7 +87,7 @@ func get_skill_data(skill_id: String) -> Dictionary:
 	return filtered_skills[0]
 
 func get_tutorial_race_data(race_id: String) -> Dictionary:
-	var filtered_races: Array = tutorial_races.filter(func(r): return r.id == race_id)
+	var filtered_races: Array = tutorial_species.filter(func(r): return r.id == race_id)
 	if filtered_races.is_empty():
 		push_warning("No tutorial race found for id: " + race_id)
 		return {}
@@ -111,7 +117,7 @@ func get_tutorial_class_data(class_id: String) -> Dictionary:
 # Additional utility functions
 
 func get_all_races() -> Array[Dictionary]:
-	return races
+	return species
 
 func get_all_backgrounds() -> Array[Dictionary]:
 	return backgrounds
@@ -126,7 +132,7 @@ func get_all_skills() -> Array[Dictionary]:
 	return skills
 
 func get_all_tutorial_races() -> Array[Dictionary]:
-	return tutorial_races
+	return tutorial_species
 
 func get_all_tutorial_backgrounds() -> Array[Dictionary]:
 	return tutorial_backgrounds

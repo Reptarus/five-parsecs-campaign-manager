@@ -1,7 +1,7 @@
 class_name FringeWorldStrifeManager
 extends RefCounted
 
-var game_state: GameState
+var game_state: GameStateManager	
 var mission_generator: MissionGenerator
 var difficulty_settings: DifficultySettings
 var escalating_battles_manager: EscalatingBattlesManager
@@ -21,7 +21,7 @@ const CREW_INJURY_CHANCE = 0.25
 const RANDOM_EVENT_CHANCE = 0.3
 const HIGH_INSTABILITY_THRESHOLD = 10
 
-func initialize(state: GameState) -> void:
+func initialize(state: GameStateManager) -> void:
 	game_state = state
 
 func serialize() -> Dictionary:

@@ -98,7 +98,26 @@ func _validate_campaign_setup() -> bool:
 	return true
 
 func start_setup() -> void:
-	ship_selection.show()
+	crew_size_container.show()
+	ship_selection.hide()
 	equipment_selection.hide()
 	flavor_details.hide()
 	victory_condition_selection.hide()
+
+# New method to progress to the next setup step
+func progress_setup() -> void:
+	if crew_size_container.visible:
+		crew_size_container.hide()
+		ship_selection.show()
+	elif ship_selection.visible:
+		ship_selection.hide()
+		equipment_selection.show()
+	elif equipment_selection.visible:
+		equipment_selection.hide()
+		flavor_details.show()
+	elif flavor_details.visible:
+		flavor_details.hide()
+		victory_condition_selection.show()
+	else:
+		# All steps completed, enable start button
+		start_campaign_button.disabled = false

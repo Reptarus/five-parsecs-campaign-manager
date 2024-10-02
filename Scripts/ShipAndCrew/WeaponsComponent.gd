@@ -16,11 +16,11 @@ func _init(p_name: String, p_description: String, p_power_usage: int, p_health: 
 func fire() -> int:
 	if not is_damaged:
 		var weapon_damage_amount = weapon_damage
-		if GameState.difficulty_mode == GlobalEnums.DifficultyMode.CHALLENGING:
+		if GameStateManager.difficulty_mode == GlobalEnums.DifficultyMode.CHALLENGING:
 			weapon_damage_amount = int(weapon_damage_amount * 0.9)
-		elif GameState.difficulty_mode == GlobalEnums.DifficultyMode.HARDCORE:
+		elif GameStateManager.difficulty_mode == GlobalEnums.DifficultyMode.HARDCORE:
 			weapon_damage_amount = int(weapon_damage_amount * 0.8)
-		elif GameState.difficulty_mode == GlobalEnums.DifficultyMode.INSANITY:
+		elif GameStateManager.difficulty_mode == GlobalEnums.DifficultyMode.INSANITY:
 			weapon_damage_amount = int(weapon_damage_amount * 0.7)
 		return weapon_damage_amount
 	return 0

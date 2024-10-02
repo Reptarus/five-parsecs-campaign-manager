@@ -1,7 +1,6 @@
-[gd_scene load_steps=4 format=3 uid="uid://c1ipgkdm40l6c"]
+[gd_scene load_steps=3 format=3 uid="uid://c1ipgkdm40l6c"]
 
 [ext_resource type="Script" path="res://Scenes/Scene Container/campaigncreation/scripts/CampaignSetupScreen.gd" id="1_sapom"]
-[ext_resource type="Theme" uid="uid://d1you1rrwuu48" path="res://Scenes/sci_fi_theme.tres" id="2_theme"]
 [ext_resource type="PackedScene" uid="uid://dp66b6flafme3" path="res://Scenes/Scene Container/campaigncreation/scenes/VictoryConditionSelection.tscn" id="3_victory"]
 
 [node name="CampaignSetupScreen" type="Control"]
@@ -11,7 +10,6 @@ anchor_right = 1.0
 anchor_bottom = 1.0
 grow_horizontal = 2
 grow_vertical = 2
-theme = ExtResource("2_theme")
 script = ExtResource("1_sapom")
 
 [node name="MarginContainer" type="MarginContainer" parent="."]
@@ -42,6 +40,28 @@ placeholder_text = "Enter Crew Name"
 [node name="DifficultyOptionButton" type="OptionButton" parent="MarginContainer/VBoxContainer"]
 layout_mode = 2
 
+[node name="CrewSizeContainer" type="VBoxContainer" parent="MarginContainer/VBoxContainer"]
+layout_mode = 2
+
+[node name="Label" type="Label" parent="MarginContainer/VBoxContainer/CrewSizeContainer"]
+layout_mode = 2
+text = "Select Crew Size:"
+
+[node name="HSlider" type="HSlider" parent="MarginContainer/VBoxContainer/CrewSizeContainer"]
+layout_mode = 2
+min_value = 1.0
+max_value = 10.0
+value = 3.0
+rounded = true
+
+[node name="CurrentSizeLabel" type="Label" parent="MarginContainer/VBoxContainer/CrewSizeContainer"]
+layout_mode = 2
+text = "Current Crew Size: 3"
+
+[node name="TutorialLabel" type="Label" parent="MarginContainer/VBoxContainer/CrewSizeContainer"]
+layout_mode = 2
+text = "Tutorial text goes here"
+
 [node name="VictoryConditionButton" type="Button" parent="MarginContainer/VBoxContainer"]
 layout_mode = 2
 text = "Select Victory Condition"
@@ -56,8 +76,10 @@ text = "Start Campaign"
 [node name="VictoryConditionSelection" parent="." instance=ExtResource("3_victory")]
 visible = false
 layout_mode = 1
+theme = null
 
 [connection signal="text_changed" from="MarginContainer/VBoxContainer/CrewNameInput" to="." method="_on_crew_name_input_text_changed"]
 [connection signal="item_selected" from="MarginContainer/VBoxContainer/DifficultyOptionButton" to="." method="_on_difficulty_option_button_item_selected"]
+[connection signal="value_changed" from="MarginContainer/VBoxContainer/CrewSizeContainer/HSlider" to="." method="_on_crew_size_slider_value_changed"]
 [connection signal="pressed" from="MarginContainer/VBoxContainer/VictoryConditionButton" to="." method="_on_victory_condition_button_pressed"]
 [connection signal="pressed" from="MarginContainer/VBoxContainer/StartCampaignButton" to="." method="_on_start_campaign_button_pressed"]

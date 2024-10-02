@@ -1,10 +1,10 @@
 class_name WorldGenerator
 extends RefCounted
 
-var game_state: GameState
+var game_state: GameStateManager
 var generated_world: Dictionary = {}
 
-func initialize(state: GameState) -> void:
+func initialize(state: GameStateManager) -> void:
     game_state = state
 
 func serialize() -> Dictionary:

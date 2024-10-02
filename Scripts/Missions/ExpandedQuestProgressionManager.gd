@@ -4,11 +4,11 @@ extends Node
 signal quest_generated(quest: Quest)
 signal quest_stage_advanced(quest: Quest, new_stage: int)
 
-var game_state: GameState
+var game_state: GameStateManager
 var active_quests: Array[Quest] = []
 var quest_stages: Dictionary
 
-func _init(_game_state: GameState) -> void:
+func _init(_game_state: GameStateManager) -> void:
     game_state = _game_state
     load_quest_stages()
 

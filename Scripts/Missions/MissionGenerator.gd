@@ -2,20 +2,14 @@
 class_name MissionGenerator
 extends Node
 
-var game_state_manager: GameStateManagerNode
-var game_state: GameState
+var game_state_manager: GameStateManager
+var game_state: GameStateManager
 var mission_manager: MissionManager
 
-func initialize(_game_state_manager: GameStateManagerNode) -> void:
+func initialize(_game_state_manager: GameStateManager) -> void:
 	game_state_manager = _game_state_manager
 	game_state = game_state_manager.get_game_state()
 	mission_manager = MissionManager.new(game_state_manager)
-
-func generate_mission() -> Mission:
-	var missions = mission_manager.generate_missions()
-	if missions.is_empty():
-		return null
-	return missions.pick_random()
 
 func generate_mission_from_template(template: MissionTemplate) -> Mission:
 	var mission = Mission.new()
@@ -95,18 +89,38 @@ func generate_quest_mission() -> Mission:
 	mission.required_crew_size = game_state.current_crew.get_size()
 	return mission
 
-func generate_assassination_mission() -> Mission:
+func generate_mission(type: GlobalEnums.Type, title: String, description: String, objective: GlobalEnums.MissionObjective) -> Mission:
 	var mission = Mission.new()
-	mission.type = GlobalEnums.Type.ASSASSINATION
-	mission.title = "Assassination Contract"
-	mission.description = "Eliminate a high-value target"
-	mission.objective = GlobalEnums.MissionObjective.ELIMINATE
-	mission.difficulty = randi() % 3 + 3  # 3 to 5 difficulty
-	mission.time_limit = randi() % 2 + 2  # 2 to 3 turns
+	mission.type = type
+	mission.title = title
+	mission.description = description
+	mission.objective = objective
+	mission.difficulty = randi() % 5 + 1
+	mission.time_limit = randi() % 5 + 3
 	mission.location = game_state.current_location
-	mission.rewards = {"credits": randi() % 600 + 500, "reputation": randi() % 2 + 3}
+	mission.rewards = _generate_rewards(mission.difficulty)
 	mission.required_crew_size = max(2, game_state.current_crew.get_size() - 1)
 	return mission
+
+func generate_assassination_mission() -> Mission:
+	var mission = generate_mission(
+		GlobalEnums.Type.ASSASSINATION,
+		"Assassination Contract",
+		"Eliminate a high-value target",
+		GlobalEnums.MissionObjective.ELIMINATE
+	)
+	mission.difficulty = randi() % 3 + 3  # 3 to 5 difficulty
+	mission.time_limit = randi() % 2 + 2  # 2 to 3 turns
+	mission.rewards["credits"] += randi() % 100 + 100  # Additional credits for high-risk mission
+	return mission
+
+func _generate_rewards(difficulty: int) -> Dictionary:
+	var base_credits = 100 * difficulty
+	return {
+		"credits": base_credits + randi() % int(base_credits / 2.0),
+		"reputation": difficulty,
+		"item": randf() < 0.3  # 30% chance for item reward
+	}
 
 func generate_sabotage_mission() -> Mission:
 	var mission = Mission.new()

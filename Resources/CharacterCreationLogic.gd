@@ -7,18 +7,24 @@ func _init():
 	character_creation_data = CharacterCreationData.new()
 	character_creation_data.load_data()
 
-func create_character(species_id: String, background_id: String, motivation_id: String, class_id: String, _game_state_manager: GameStateManagerNode) -> Character:
+func create_character(species: GlobalEnums.Species, background: GlobalEnums.Background, 
+                      motivation: GlobalEnums.Motivation, character_class: GlobalEnums.Class, 
+                      game_state_manager: GameStateManagerNode) -> Character:
 	var character = Character.new()
 	
-	var species_data = character_creation_data.get_species_data(species_id)
-	var background_data = character_creation_data.get_background_data(background_id)
-	var motivation_data = character_creation_data.get_motivation_data(motivation_id)
-	var class_data = character_creation_data.get_class_data(class_id)
+	var species_data = character_creation_data.get_species_data(GlobalEnums.Species.keys()[species].to_lower())
+	var background_data = character_creation_data.get_background_data(GlobalEnums.Background.keys()[background].to_lower())
+	var motivation_data = character_creation_data.get_motivation_data(GlobalEnums.Motivation.keys()[motivation].to_lower())
+	var class_data = character_creation_data.get_class_data(GlobalEnums.Class.keys()[character_class].to_lower())
 	
-	character.species = GlobalEnums.Species.get(species_data["name"].to_upper())
-	character.background = GlobalEnums.Background.get(background_data["name"].to_upper())
-	character.motivation = GlobalEnums.Motivation.get(motivation_data["name"].to_upper())
-	character.character_class = GlobalEnums.Class.get(class_data["name"].to_upper())
+	if not species_data or not background_data or not motivation_data or not class_data:
+		push_error("Failed to load character creation data")
+		return null
+	
+	character.species = species
+	character.background = background
+	character.motivation = motivation
+	character.character_class = character_class
 	
 	_apply_species_effects(character, species_data)
 	_apply_background_effects(character, background_data)
@@ -26,13 +32,17 @@ func create_character(species_id: String, background_id: String, motivation_id: 
 	
 	return character
 
-func create_tutorial_character(_game_state_manager: GameState) -> Character:
+func create_tutorial_character(game_state_manager: GameStateManagerNode) -> Character:
 	var character = Character.new()
 	
 	var species_data = character_creation_data.get_tutorial_species_data("human")
-	var _background_data = character_creation_data.get_tutorial_background_data("rookie")
-	var _motivation_data = character_creation_data.get_tutorial_motivation_data("adventure")
+	var background_data = character_creation_data.get_tutorial_background_data("rookie")
+	var motivation_data = character_creation_data.get_tutorial_motivation_data("adventure")
 	var class_data = character_creation_data.get_tutorial_class_data("soldier")
+	
+	if not species_data or not background_data or not motivation_data or not class_data:
+		push_error("Failed to load tutorial character creation data")
+		return null
 	
 	character.species = GlobalEnums.Species.HUMAN
 	character.background = GlobalEnums.Background.MILITARY_BRAT
@@ -64,15 +74,21 @@ func create_tutorial_character(_game_state_manager: GameState) -> Character:
 	return character
 
 func _apply_species_effects(character: Character, species_data: Dictionary) -> void:
-	for stat in species_data["effects"]:
+	for stat in species_data.get("effects", {}):
 		var value = species_data["effects"][stat]
-		character.set(stat, character.get(stat) + value)
+		if character.get(stat) != null:
+			character.set(stat, character.get(stat) + value)
+		else:
+			push_warning("Attempted to modify non-existent stat: " + stat)
 
 func _apply_background_effects(character: Character, background_data: Dictionary) -> void:
-	for stat in background_data["effects"]:
+	for stat in background_data.get("effects", {}):
 		var value = background_data["effects"][stat]
-		character.set(stat, character.get(stat) + value)
+		if character.get(stat) != null:
+			character.set(stat, character.get(stat) + value)
+		else:
+			push_warning("Attempted to modify non-existent stat: " + stat)
 
 func _apply_class_abilities(character: Character, class_data: Dictionary) -> void:
-	for ability in class_data["abilities"]:
+	for ability in class_data.get("abilities", []):
 		character.traits.append(ability)

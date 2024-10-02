@@ -19,7 +19,7 @@ enum BattlePhase { REACTION_ROLL, QUICK_ACTIONS, ENEMY_ACTIONS, SLOW_ACTIONS, EN
 const GRID_SIZE: Vector2i = Vector2i(24, 24)  # 24" x 24" battlefield
 const CELL_SIZE: Vector2i = Vector2i(32, 32)  # Size of each cell in pixels
 
-var game_state: GameState
+var game_state: GameStateManager
 var current_mission: Mission
 var terrain_generator: TerrainGenerator
 var battlefield: Array[Array]
@@ -30,7 +30,7 @@ var current_phase: BattlePhase = BattlePhase.REACTION_ROLL
 var battle_grid: GridContainer
 
 # Initialization and Setup
-func initialize(_game_state: GameState, _mission: Mission, _battle_grid: GridContainer) -> void:
+func initialize(_game_state: GameStateManager, _mission: Mission, _battle_grid: GridContainer) -> void:
 	game_state = _game_state
 	current_mission = _mission
 	battle_grid = _battle_grid

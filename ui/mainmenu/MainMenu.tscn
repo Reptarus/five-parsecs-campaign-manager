@@ -1,8 +1,7 @@
-[gd_scene load_steps=4 format=3 uid="uid://5ws0uspoh6vk"]
+[gd_scene load_steps=3 format=3 uid="uid://5ws0uspoh6vk"]
 
 [ext_resource type="Script" path="res://ui/mainmenu/MainMenu.gd" id="1_eb6mc"]
 [ext_resource type="Texture2D" uid="uid://dpv5v3x1ujg66" path="res://assets/BookImages/Nov_15_cityatnight.jpg" id="1_jq64m"]
-[ext_resource type="Theme" uid="uid://d1you1rrwuu48" path="res://Scenes/sci_fi_theme.tres" id="3_theme"]
 
 [node name="MainMenu" type="Control"]
 layout_mode = 3
@@ -11,7 +10,6 @@ anchor_right = 1.0
 anchor_bottom = 1.0
 grow_horizontal = 2
 grow_vertical = 2
-theme = ExtResource("3_theme")
 script = ExtResource("1_eb6mc")
 
 [node name="Background" type="TextureRect" parent="."]

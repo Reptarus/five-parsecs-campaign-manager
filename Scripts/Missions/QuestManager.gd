@@ -6,7 +6,7 @@ signal quest_completed(quest: Quest)
 signal quest_failed(quest: Quest)
 signal quest_stage_advanced(quest: Quest, new_stage: int)
 
-var game_state: GameState
+var game_state: GameStateManager
 var quest_progression_manager: ExpandedQuestProgressionManager
 
 var active_quests: Array[Quest] = []
@@ -55,6 +55,6 @@ func get_completed_quests() -> Array[Quest]:
 func get_failed_quests() -> Array[Quest]:
 	return failed_quests
 
-func initialize(p_game_state: GameState, p_quest_progression_manager: ExpandedQuestProgressionManager) -> void:
+func initialize(p_game_state: GameStateManager, p_quest_progression_manager: ExpandedQuestProgressionManager) -> void:
 	game_state = p_game_state
 	quest_progression_manager = p_quest_progression_manager

@@ -45,14 +45,14 @@ const BASE_WEAPONS = {
 # Variables
 var weapon_traits: Dictionary = {}
 var weapon_mods: Dictionary = {}
-var game_state: GameState
+var game_state: GameStateManager
 
 # Initialization
 func _init() -> void:
 	initialize_weapon_traits()
 	initialize_weapon_mods()
 
-func initialize(gs: GameState) -> void:
+func initialize(gs: GameStateManager) -> void:
 	game_state = gs
 
 func initialize_weapon_traits() -> void:

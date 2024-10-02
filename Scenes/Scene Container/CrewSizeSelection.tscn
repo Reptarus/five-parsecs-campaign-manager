@@ -1,4 +1,4 @@
-[gd_scene load_steps=4 format=3 uid="uid://cb4yxflrc3nyv"]
+[gd_scene load_steps=4 format=3 uid="uid://dxn5mnw32ulqt"]
 
 [ext_resource type="Script" path="res://Scenes/Scene Container/CrewSizeSelection.gd" id="1_xep0y"]
 [ext_resource type="Theme" uid="uid://d1you1rrwuu48" path="res://Scenes/sci_fi_theme.tres" id="2_theme"]
