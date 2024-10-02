@@ -11,7 +11,7 @@ extends Control
 @onready var story_points_label: Label = $StoryPointsLabel
 @onready var tutorial_panel: Panel = $TutorialPanel
 @onready var tutorial_event_description: Label = $TutorialPanel/EventDescription
-@onready var game_state: GameState = get_node("/root/GameState")
+@onready var game_state: GameStateManager = get_node("/root/GameState")
 
 func _ready() -> void:
 	if game_state == null:
@@ -33,7 +33,7 @@ func update_display() -> void:
 	if game_state.is_tutorial_active:
 		phase_label.text = "Tutorial"
 	else:
-		phase_label.text = GlobalEnums.CampaignPhase.keys()[game_state.current_phase].capitalize().replace("_", " ")
+		phase_label.text = GlobalEnums.CampaignPhase.keys()[game_state.current_state].capitalize().replace("_", " ")
 	
 	crew_info_label.text = "Crew: %s (%d members)" % [game_state.current_crew.name, game_state.current_crew.get_member_count()]
 	credits_label.text = "Credits: %d" % game_state.current_crew.credits
@@ -51,7 +51,7 @@ func update_tutorial_ui() -> void:
 	# Update other tutorial-specific UI elements as needed
 
 func _update_phase_specific_ui() -> void:
-	match game_state.current_phase:
+	match game_state.current_state:
 		GlobalEnums.CampaignPhase.UPKEEP:
 			instruction_label.text = "Perform upkeep tasks"
 			action_button.text = "Start Upkeep"
@@ -79,41 +79,30 @@ func _update_phase_specific_ui() -> void:
 
 func _on_action_button_pressed() -> void:
 	if game_state.is_tutorial_active:
-		game_state.story_track.progress_story(game_state.current_phase)
+		game_state.story_track.progress_story(game_state.current_state)
 	else:
-		match game_state.current_phase:
+		match game_state.current_state:
 			GlobalEnums.CampaignPhase.UPKEEP:
 				game_state.start_campaign_turn()
 			GlobalEnums.CampaignPhase.STORY_POINT:
-				var story_track_manager = StoryTrackManager.new(game_state)
-				story_track_manager.use_story_point()
+				game_state.story_track.use_story_point()
 			GlobalEnums.CampaignPhase.TRAVEL:
-				var travel_phase = TravelPhase.new()
-				travel_phase.initialize_game_components()
-				travel_phase._on_travel_button_pressed()
+				game_state.world_generator.generate_world()
+				game_state.transition_to_state(GlobalEnums.CampaignPhase.PATRONS)
 			GlobalEnums.CampaignPhase.PATRONS:
-				var patron_job_manager = PatronJobManager.new()
-				patron_job_manager.game_state = game_state
-				var patrons_result = patron_job_manager.determine_job_offers()
+				var patrons_result = game_state.patron_job_manager.determine_job_offers()
 				for job in patrons_result:
 					print(job)  # Replace with proper UI update
 			GlobalEnums.CampaignPhase.MISSION:
-				var mission_generator = MissionGenerator.new()
-				mission_generator.initialize(game_state)
-				var mission = mission_generator.generate_mission()
+				var mission = game_state.mission_generator.generate_mission(game_state.current_crew, game_state.current_location, game_state.difficulty_mode, game_state.available_mission_types)
 				if mission:
 					game_state.current_mission = mission
 					print("Mission started: ", mission.title)  # Replace with proper UI update
 			GlobalEnums.CampaignPhase.BATTLE:
-				var battle_scene: PackedScene = load("res://Scenes/Scene Container/Battle.tscn")
-				var battle_instance: Node = battle_scene.instantiate()
-				battle_instance.initialize(game_state, game_state.current_mission)
-				get_tree().root.add_child(battle_instance)
-				game_state.transition_to_state(GlobalEnums.CampaignPhase.BATTLE)
+				game_state.start_battle()
 			GlobalEnums.CampaignPhase.POST_BATTLE:
-				var post_battle_phase = PostBattlePhase.new(game_state)
-				post_battle_phase.execute_post_battle_sequence(true)  # Assuming player victory, adjust as needed
+				game_state.end_battle(true, get_tree())  # Assuming player victory, adjust as needed
 			_:
-				game_state.transition_to_next_phase()
+				game_state.transition_to_state(game_state.get_next_phase())
 	
 	update_display()

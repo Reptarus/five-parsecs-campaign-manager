@@ -7,7 +7,7 @@ const CELL_SIZE := Vector2i(32, 32)
 var mission: Mission
 var terrain_generator: TerrainGenerator
 
-@onready var game_state: GameState = get_node("/root/GameState")
+@onready var game_state_manager: GameStateManager = get_node("/root/GameStateManager")
 @onready var battlefield_generator: Control = self
 @onready var deployment_conditions_label: Label = $MarginContainer/VBoxContainer/HBoxContainer2/VBoxContainer/DeploymentConditionsLabel
 @onready var mission_objective_label: Label = $MarginContainer/VBoxContainer/HBoxContainer2/VBoxContainer/MissionObjectiveLabel
@@ -22,7 +22,7 @@ func _ready() -> void:
 	initialize()
 
 func initialize() -> void:
-	mission = game_state.current_mission
+	mission = game_state_manager.game_state.current_mission
 	terrain_generator = TerrainGenerator.new()
 	_generate_battlefield()
 
@@ -38,7 +38,7 @@ func _setup_ui() -> void:
 		var button: Button = $MarginContainer/VBoxContainer/HBoxContainer.get_node(button_name)
 		button.pressed.connect(phase_buttons[button_name])
 		button.custom_minimum_size = Vector2(150, 50)
-		if button_name.to_lower().replace("button", "") == game_state.current_phase.to_lower():
+		if button_name.to_lower().replace("button", "") == game_state_manager.game_state.current_state.to_lower():
 			button.add_theme_color_override("font_color", Color.GREEN)
 	
 	$MarginContainer/VBoxContainer/HBoxContainer2/VBoxContainer2/HBoxContainer/PlanetInfoButton.pressed.connect(_on_planet_info_pressed)
@@ -182,7 +182,7 @@ func _on_post_battle_pressed() -> void:
 
 func _on_planet_info_pressed() -> void:
 	var planet_info: Popup = $PlanetInfoPopup
-	var current_location: Location = GameState.current_location
+	var current_location: Location = game_state_manager.game_state.current_location
 	var info_text: String = "Planet: %s\n" % current_location.name
 	info_text += "Traits:\n"
 	
@@ -205,25 +205,26 @@ func _on_planet_info_pressed() -> void:
 	
 	# Update economy information
 	var economy_info: String = "\nEconomy:\n"
-	var world_economy_manager: WorldEconomyManager = GameState.get_world_economy_manager(current_location)
-	economy_info += "Market Stability: %.2f\n" % world_economy_manager.economy_manager.location_price_modifiers.get(current_location.name, 1.0)
-	economy_info += "Available Items: %d\n" % world_economy_manager.local_market.size()
-	economy_info += "Upkeep Cost: %d credits\n" % world_economy_manager.calculate_upkeep()
+	var economy_manager: EquipmentManager = game_state_manager.equipment_manager
+	economy_info += "Market Stability: %.2f\n" % economy_manager.location_price_modifiers.get(current_location.name, 1.0)
+	economy_info += "Available Items: %d\n" % economy_manager.get_available_items(current_location).size()
+	economy_info += "Upkeep Cost: %d credits\n" % economy_manager.calculate_upkeep(current_location)
 	
 	planet_info.get_node("Label").text += economy_info
 	
 	# Check for any active global events
-	var active_events: Array = GameState.global_event_manager.get_active_events()
+	var story_track: StoryTrack = game_state_manager.story_track
+	var active_events: Array = story_track.get_active_events()
 	if active_events.size() > 0:
 		var event_info: String = "\nActive Global Events:\n"
 		for event in active_events:
-			event_info += "- %s\n" % GlobalEnums.GlobalEvent.keys()[event]
+			event_info += "- %s\n" % event.description
 		planet_info.get_node("Label").text += event_info
 
 func _on_ship_stats_pressed() -> void:
 	var ship_stats: Popup = $ShipStatsPopup
 	ship_stats.popup_centered()
-	var ship: Ship = game_state.current_crew.ship
+	var ship: Ship = game_state_manager.game_state.current_ship
 	var stats_text: String = "Ship: %s\n" % ship.name
 	stats_text += "Hull: %d / %d\n" % [ship.current_hull, ship.max_hull]
 	stats_text += "Fuel: %d\n" % ship.fuel
@@ -236,7 +237,7 @@ func _on_crew_stats_pressed() -> void:
 	get_tree().change_scene_to_file("res://Scenes/Management/CrewManagement.tscn")
 
 func _on_medbay_pressed() -> void:
-	var ship = game_state.current_crew.ship
+	var ship = game_state_manager.game_state.current_ship
 	var medbay: MedicalBayComponent = ship.get_component(GlobalEnums.ComponentType.MEDICAL_BAY)
 	if medbay:
 		var medbay_popup: Popup = $MedbayPopup
@@ -252,5 +253,5 @@ func _on_stash_pressed() -> void:
 	get_tree().change_scene_to_file("res://Scenes/Management/ShipInventory.tscn")
 
 func _on_start_mission_pressed() -> void:
-	game_state.start_mission(get_tree())
+	game_state_manager.start_battle()
 	get_tree().change_scene_to_file("res://Scenes/campaign/Battle.tscn")

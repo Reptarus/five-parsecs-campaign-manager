@@ -49,7 +49,7 @@ func _on_continue_pressed():
 	if game_state and game_state.current_crew:
 		transition_to_scene("res://Scenes/Management/CrewManagement.tscn")
 	else:
-		_show_not_implemented_message
+		print("Continue functionality not yet implemented")
 
 func _on_new_campaign_pressed():
 	# Instead of directly changing the scene, let's use a deferred call

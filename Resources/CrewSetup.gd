@@ -7,8 +7,8 @@ extends Control
 @onready var character_creation: Control = $CharacterCreation
 @onready var crew_name_input: LineEdit = $CrewNameInput
 
-var game_state_manager: GameStateManagerNode
-var game_state: GameState
+var game_state_manager: GameStateManager
+var game_state: GameStateManager
 var crew: Crew
 var min_crew_size: int = 3
 var max_crew_size: int = 8
@@ -66,9 +66,9 @@ func _on_character_created(character: Character) -> void:
 		finish_crew_creation()
 
 func finish_crew_creation() -> void:
-	game_state.set_current_crew(crew)
-	game_state.set_crew_size(current_size)
-	game_state.transition_to_state(GameState.State.UPKEEP)
+	game_state.current_crew = crew
+	game_state.crew_size = current_size
+	game_state.current_state = GlobalEnums.CampaignPhase.UPKEEP
 	get_tree().change_scene_to_file("res://Scenes/Management/CampaignDashboard.tscn")
 
 # This function is no longer needed in CrewSetup.gd

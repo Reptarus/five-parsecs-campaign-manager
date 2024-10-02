@@ -10,7 +10,7 @@ var crew: Array[Character] = []
 @onready var character_display: CharacterDisplay = $CharacterDisplay
 
 func _ready() -> void:
-	game_state = GameState.get_game_state()
+	game_state = GameStateManager.get_game_state()
 	if not game_state:
 		push_error("GameState not found. Make sure GameState is properly set up as an AutoLoad.")
 		return

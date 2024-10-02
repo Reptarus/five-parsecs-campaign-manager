@@ -5,7 +5,7 @@ signal battle_processed(battle_won: bool)
 signal tutorial_ended
 signal battle_started(battle_instance)
 
-var game_state: GameStateManager
+var game_state: GameState
 
 var mission_generator: MissionGenerator
 var equipment_manager: EquipmentManager
@@ -21,31 +21,24 @@ var combat_manager: CombatManager
 var battle_scene: PackedScene = preload("res://Scenes/Scene Container/Battle.tscn")
 
 func _ready() -> void:
-    game_state = GameStateManager.new()
+    game_state = GameState.new()
     initialize_managers()
 
-func initialize_managers() -> void:
-    mission_generator = MissionGenerator.new()
-    expanded_faction_manager = ExpandedFactionManager.new()
-    equipment_manager = EquipmentManager.new()
-    patron_job_manager = PatronJobManager.new()
-    fringe_world_strife_manager = FringeWorldStrifeManager.new()
-    psionic_manager = PsionicManager.new()
-    world_generator = WorldGenerator.new()
-    combat_manager = CombatManager.new()
+# Add this method to allow access to GameState properties
+func _get(property: StringName):
+    if game_state.has(property):
+        return game_state.get(property)
+    return null
 
-    var managers_to_initialize = [
-        mission_generator, expanded_faction_manager, equipment_manager,
-        patron_job_manager, fringe_world_strife_manager, psionic_manager,
-        world_generator, combat_manager
-    ]
-
-    for manager in managers_to_initialize:
-        if manager.has_method("initialize"):
-            manager.initialize(self)
+# Add this method to allow setting GameState properties
+func _set(property: StringName, value) -> bool:
+    if game_state.has(property):
+        game_state.set(property, value)
+        return true
+    return false
 
 func get_game_state() -> GameStateManager:
-    return game_state
+    return self
 
 func transition_to_state(new_state: GlobalEnums.CampaignPhase) -> void:
     game_state.current_state = new_state
@@ -99,4 +92,24 @@ func process_battle(battle_won: bool) -> void:
     
     current_battle = null
 
-# ... Add any additional methods that were in the original GameStateManager
+# Add any methods from GameState that are directly called on GameStateManager
+func serialize() -> Dictionary:
+    return game_state.serialize()
+
+func deserialize(data: Dictionary) -> void:
+    game_state.deserialize(data)
+
+# Add any other methods from GameState that might be called directly on GameStateManager
+
+func initialize_managers() -> void:
+    mission_generator = MissionGenerator.new()
+    equipment_manager = EquipmentManager.new()
+    patron_job_manager = PatronJobManager.new()
+    fringe_world_strife_manager = FringeWorldStrifeManager.new()
+    psionic_manager = PsionicManager.new()
+    story_track = StoryTrack.new()
+    world_generator = WorldGenerator.new()
+    world_generator.initialize(self)
+    expanded_faction_manager = ExpandedFactionManager.new(self)
+    combat_manager = CombatManager.new()
+    # Initialize any other managers here

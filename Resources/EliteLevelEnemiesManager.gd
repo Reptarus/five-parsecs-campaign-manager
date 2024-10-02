@@ -17,7 +17,7 @@ enum EliteAbility {
 var game_state: GameState
 
 func _init() -> void:
-	game_state = GameState.get_singleton()
+	game_state = GameStateManager.get_singleton()
 	if not game_state:
 		push_error("GameState singleton not found. Make sure it's properly set up as an AutoLoad.")
 

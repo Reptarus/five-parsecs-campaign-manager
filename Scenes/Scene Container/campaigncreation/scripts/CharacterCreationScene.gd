@@ -50,17 +50,16 @@ func _on_random_character_button_pressed():
 	name_input.text = Character.generate_name(selected_species)
 	_update_character_preview()
 
-func _on_add_character_pressed():
+func _on_add_character_pressed() -> void:
 	if created_characters.size() < 8:
-		# Assuming you have a reference to the GameStateManagerNode
-		var game_state_manager = get_node("/root/GameStateManager")  # Adjust the path as needed
+		var game_state_manager: GameStateManager = get_node("/root/GameStateManager")
 		
-		var new_character = character_creation_logic.create_character(
-			species_option.get_item_text(species_option.selected),
-			background_option.get_item_text(background_option.selected),
-			motivation_option.get_item_text(motivation_option.selected),
-			class_option.get_item_text(class_option.selected),
-			game_state_manager  # Pass the GameStateManagerNode here
+		var new_character: Character = character_creation_logic.create_character(
+			GlobalEnums.Species.values()[species_option.selected],
+			GlobalEnums.Background.values()[background_option.selected],
+			GlobalEnums.Motivation.values()[motivation_option.selected],
+			GlobalEnums.Class.values()[class_option.selected],
+			game_state_manager.game_state
 		)
 
 		new_character.name = name_input.text

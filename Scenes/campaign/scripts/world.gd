@@ -17,7 +17,7 @@ const ADDITIONAL_CREW_COST: int = 2
 const LOCAL_EVENT_CHANCE: float = 0.2
 
 # Variables
-var game_state: GameState
+var game_state_manager: GameStateManager
 var world_step: WorldStep
 var world_economy_manager: WorldEconomyManager
 var world_generator: WorldGenerator
@@ -25,12 +25,12 @@ var world_generator: WorldGenerator
 var _mission_selection_scene = preload("res://Scenes/campaign/NewCampaignSetup/MissionSelectionUI.tscn")
 
 # Initialization and Setup
-func _init(_game_state: GameState) -> void:
-	game_state = _game_state
-	world_step = WorldStep.new(game_state)
-	world_economy_manager = WorldEconomyManager.new(game_state.current_location, game_state.economy_manager)
+func _init(_game_state_manager: GameStateManager) -> void:
+	game_state_manager = _game_state_manager
+	world_step = WorldStep.new(game_state_manager.game_state)
+	world_economy_manager = WorldEconomyManager.new(game_state_manager.current_location, game_state_manager.economy_manager)
 	world_generator = WorldGenerator.new()
-	world_generator.initialize(game_state)
+	world_generator.initialize(game_state_manager)
 
 func _ready() -> void:
 	world_step.phase_completed.connect(_on_phase_completed)
@@ -53,13 +53,13 @@ func execute_world_step() -> void:
 	print("World step completed.")
 	world_step_completed.emit()
 
-func get_world_traits() -> Array[String]:
-	return game_state.current_location.get_traits()
+func get_world_traits() -> Array[GlobalEnums.WorldTrait]:
+	return game_state_manager.game_state.current_location.get_traits()
 
 func generate_new_world() -> void:
 	var new_world = world_generator.generate_world()
-	game_state.set_current_location(new_world)
-	world_economy_manager = WorldEconomyManager.new(new_world, game_state.economy_manager)
+	game_state_manager.game_state.set_current_location(new_world)
+	world_economy_manager = WorldEconomyManager.new(new_world, game_state_manager.game_state.economy_manager)
 
 func schedule_world_invasion() -> void:
 	world_generator.schedule_world_invasion()
@@ -67,32 +67,29 @@ func schedule_world_invasion() -> void:
 # Serialization
 func serialize() -> Dictionary:
 	return {
-		"game_state": game_state.serialize(),
+		"game_state": game_state_manager.game_state.serialize(),
 		"world_economy": world_economy_manager.serialize(),
 		"world_generator": world_generator.serialize()
 	}
 
 static func deserialize(data: Dictionary) -> GameWorld:
-	var new_game_state = GameState.new()
-	if new_game_state.deserialize(data["game_state"]):
-		var world = GameWorld.new(new_game_state)
-		world.world_economy_manager.deserialize(data["world_economy"])
-		world.world_generator.deserialize(data["world_generator"])
-		return world
-	else:
-		push_error("Failed to deserialize GameStateManager")
-		return null
+	var new_game_state_manager = GameStateManager.new()
+	new_game_state_manager.game_state.deserialize(data["game_state"])
+	var world = GameWorld.new(new_game_state_manager)
+	world.world_economy_manager.deserialize(data["world_economy"])
+	world.world_generator.deserialize(data["world_generator"])
+	return world
 
 # Private Methods
 func _handle_upkeep_and_repairs() -> void:
 	var upkeep_cost = world_economy_manager.calculate_upkeep()
-	if world_economy_manager.pay_upkeep(game_state.current_crew):
+	if world_economy_manager.pay_upkeep(game_state_manager.game_state.current_crew):
 		print("Upkeep paid: %d credits" % upkeep_cost)
 	else:
 		print("Not enough credits to pay upkeep. Crew morale decreases.")
-		game_state.current_crew.decrease_morale()
+		game_state_manager.game_state.current_crew.decrease_morale()
 	
-	var repair_amount = game_state.current_crew.ship.auto_repair()
+	var repair_amount = game_state_manager.game_state.current_crew.ship.auto_repair()
 	print("Ship auto-repaired %d hull points" % repair_amount)
 
 func _update_local_economy() -> void:
@@ -107,7 +104,7 @@ func _on_mission_selection_requested(available_missions: Array[Mission]) -> void
 	mission_selection_instance.get_node("PopupPanel").popup_centered()
 
 func _on_mission_selected(mission: Mission) -> void:
-	game_state.current_mission = mission
+	game_state_manager.game_state.current_mission = mission
 	print("Selected mission: ", mission.title)
 	# Implement any additional logic needed when a mission is selected
 
@@ -115,9 +112,9 @@ func _on_phase_completed() -> void:
 	print("Phase completed")
 	phase_completed.emit()
 	
-	game_state.current_turn += 1
+	game_state_manager.game_state.current_turn += 1
 	
-	if game_state.check_end_game_conditions():
+	if game_state_manager.game_state.check_end_game_conditions():
 		game_over.emit()
 		return
 	

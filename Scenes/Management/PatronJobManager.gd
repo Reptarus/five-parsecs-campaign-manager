@@ -1,7 +1,7 @@
 class_name PatronJobManager
 extends Node
 
-var game_state: GameState
+var game_state: GameStateManager
 var mission_generator: MissionGenerator
 
 func _init() -> void:

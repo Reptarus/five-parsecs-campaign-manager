@@ -21,7 +21,7 @@ func get_random_options() -> Dictionary:
 func _get_random_element(array: Array) -> Variant:
 	return array[randi() % array.size()]
 
-func create_random_character(game_state_manager: GameStateManagerNode) -> Character:
+func create_random_character(game_state_manager: GameState) -> Character:
 	var options = get_random_options()
 	return character_creation_logic.create_character(
 		options.species,

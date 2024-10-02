@@ -14,7 +14,7 @@ var game_manager: GameManager
 @onready var class_option: OptionButton = $ClassOption
 
 func _ready() -> void:
-	game_manager = GameState.game_manager
+	game_manager = get_node("/root/GameStateManager").get_game_state()
 	_populate_option_buttons()
 
 func _populate_option_buttons() -> void:

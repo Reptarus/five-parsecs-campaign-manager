@@ -5,9 +5,9 @@ const GRID_SIZE: int = 24
 const MIN_ENEMIES: int = 1
 const MAX_ENEMIES: int = 10
 
-var game_state: GameStateManagerNode
+var game_state: GameStateManager
 
-func _init(_game_state: GameStateManagerNode) -> void:
+func _init(_game_state: GameStateManager) -> void:
 	game_state = _game_state
 
 func generate_deployment(enemy_type: GlobalEnums.AIType, battle_map: Dictionary) -> Array:

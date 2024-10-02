@@ -171,7 +171,12 @@ func apply_military_connection_effect(connection: Dictionary):
 func generate_mission_from_connection(connection: Dictionary) -> Mission:
 	var mission_generator = MissionGenerator.new()
 	mission_generator.init(game_state)
-	var mission = mission_generator.generate_mission()
+	var mission = mission_generator.generate_mission(
+		connection["difficulty"],
+		connection["reward_type"],
+		connection["reward_amount"],
+		connection["mission_type"]
+	)
 	
 	# Modify mission based on connection type
 	match connection["type"]:

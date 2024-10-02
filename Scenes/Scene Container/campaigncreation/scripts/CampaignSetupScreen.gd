@@ -24,7 +24,7 @@ func _ready():
 	await get_tree().process_frame
 	
 	difficulty_settings = DifficultySettingsResource.new()
-	game_state = GameStateManager.get_game_state()
+	game_state = get_node("/root/GameState")
 	
 	_setup_ui_elements()
 	_setup_optional_features()
@@ -36,13 +36,11 @@ func _ready():
 func _setup_ui_elements():
 	if difficulty_option_button:
 		difficulty_option_button.clear()
-		difficulty_option_button.add_item("Easy", DifficultySettings.DifficultyLevel.EASY)
-		difficulty_option_button.add_item("Normal", DifficultySettings.DifficultyLevel.NORMAL)
-		difficulty_option_button.add_item("Challenging", DifficultySettings.DifficultyLevel.CHALLENGING)
-		difficulty_option_button.add_item("Hardcore", DifficultySettings.DifficultyLevel.HARDCORE)
-		difficulty_option_button.add_item("Insanity", DifficultySettings.DifficultyLevel.INSANITY)
-		difficulty_option_button.add_item("Basic Tutorial", DifficultySettings.DifficultyLevel.BASIC_TUTORIAL)
-		difficulty_option_button.add_item("Advanced Tutorial", DifficultySettings.DifficultyLevel.ADVANCED_TUTORIAL)
+		difficulty_option_button.add_item("Easy", GlobalEnums.DifficultyMode.NORMAL)
+		difficulty_option_button.add_item("Normal", GlobalEnums.DifficultyMode.NORMAL)
+		difficulty_option_button.add_item("Challenging", GlobalEnums.DifficultyMode.CHALLENGING)
+		difficulty_option_button.add_item("Hardcore", GlobalEnums.DifficultyMode.HARDCORE)
+		difficulty_option_button.add_item("Insanity", GlobalEnums.DifficultyMode.INSANITY)
 	else:
 		push_error("DifficultyOptionButton not found in the scene.")
 
@@ -187,21 +185,12 @@ func _apply_settings() -> void:
 	# Apply Story Track if enabled
 	if crew_setup.get_optional_feature("story_track"):
 		var story_track := StoryTrack.new()
-		var game_state_node := get_node("/root/GameStateNode") as GameStateManager
-		if game_state_node:
-			story_track.initialize(game_state_node)
-			game_state.set_story_track(story_track)
-		else:
-			push_error("GameStateManagerNode not found. Unable to initialize StoryTrack.")
+		story_track.initialize(game_state.current_game_state)
+		game_state.set_story_track(story_track)
 
 	# Apply crew size
 	crew_setup.set_crew_size(int(crew_size_slider.value))
 
-func set_game_state(new_game_state):
-	if new_game_state is GameStateManager:
-		game_state = new_game_state
-	else:
-		push_error("Invalid game state type provided to CampaignSetupScreen")
 
 func _on_button_mouse_entered(button: Button):
 	button.scale = Vector2(1.05, 1.05)
@@ -216,18 +205,12 @@ func _on_button_released(button: Button):
 	button.scale = Vector2(1.0, 1.0)
 
 func _on_crew_name_input_text_changed(new_text: String) -> void:
-	if game_state:
-		game_state.set_crew_name(new_text)
-	else:
-		push_warning("GameState not available. Crew name not saved.")
+	game_state.set_crew_name(new_text)
 
 func _on_difficulty_option_button_item_selected(index: int) -> void:
 	var difficulty_level = difficulty_option_button.get_item_id(index)
 	difficulty_settings.set_difficulty(difficulty_level)
-	if game_state:
-		game_state.set_difficulty(difficulty_level)
-	else:
-		push_warning("GameState not available. Difficulty not saved.")
+	game_state.set_difficulty(difficulty_level)
 
 func _on_victory_condition_button_pressed() -> void:
 	var victory_condition_selection = $VictoryConditionSelection

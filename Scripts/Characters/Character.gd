@@ -45,7 +45,7 @@ func _init() -> void:
 
 func initialize(p_species: GlobalEnums.Species, p_background: GlobalEnums.Background, 
 				p_motivation: GlobalEnums.Motivation, p_character_class: GlobalEnums.Class, 
-				_game_state_manager: GameStateManagerNode) -> void:
+				_game_state_manager: GameStateManager) -> void:
 	self.species = p_species
 	self.background = p_background
 	self.motivation = p_motivation
@@ -91,7 +91,8 @@ func initialize_default_stats() -> void:
 func apply_background_effects(bg: GlobalEnums.Background) -> void:
 	var background_data = GameStateManager.character_creation_data.get_background_data(GlobalEnums.Background.keys()[bg].to_lower())
 	if background_data:
-		for stat, value in background_data.get("effects", {}).items():
+		for stat in background_data.get("effects", {}):
+			var value = background_data["effects"][stat]
 			if self.get(stat) != null:
 				self.set(stat, self.get(stat) + value)
 			else:
@@ -102,11 +103,12 @@ func apply_class_effects(class_type: GlobalEnums.Class) -> void:
 	if class_data:
 		for ability in class_data.get("abilities", []):
 			traits.append(ability)
-		for stat, value in class_data.get("effects", {}).items():
+		for stat in class_data.get("effects", {}):
+			var value = class_data["effects"][stat]
 			if self.get(stat) != null:
 				self.set(stat, self.get(stat) + value)
 			else:
-				push_warning("Attempted to modify non-existent stat: " + stat)
+				push_warning("Attempted to modify non-existent stat: " + str(stat))
 
 func add_xp(amount: int) -> void:
 	xp += amount
@@ -150,7 +152,7 @@ func set_strange_character(type: String) -> void:
 	strange_type = type
 	# Apply special abilities based on type
 
-static func create(p_species: GlobalEnums.Species, p_background: GlobalEnums.Background, p_motivation: GlobalEnums.Motivation, p_character_class: GlobalEnums.Class, _game_state_manager: GameStateManagerNode) -> Character:
+static func create(p_species: GlobalEnums.Species, p_background: GlobalEnums.Background, p_motivation: GlobalEnums.Motivation, p_character_class: GlobalEnums.Class, _game_state_manager: GameStateManager) -> Character:
 	var character = Character.new()
 	character.initialize(p_species, p_background, p_motivation, p_character_class, _game_state_manager)
 	character.name = generate_name(p_species)
@@ -186,7 +188,7 @@ func serialize() -> Dictionary:
 		"status": GlobalEnums.CharacterStatus.keys()[status]
 	}
 
-static func deserialize(data: Dictionary, _game_state_manager: GameStateManagerNode) -> Character:
+static func deserialize(data: Dictionary, _game_state_manager: GameStateManager) -> Character:
 	var character = Character.new()
 	character.name = data.get("name", "")
 	character.species = GlobalEnums.Species[data.get("species", "HUMAN")]

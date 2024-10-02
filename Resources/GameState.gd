@@ -55,12 +55,12 @@ func serialize() -> Dictionary:
         serialized_data["current_mission"] = current_mission.serialize()
     
     # Serialize arrays of complex objects
-    serialized_data["available_locations"] = [loc.serialize() for loc in available_locations]
-    serialized_data["available_missions"] = [mission.serialize() for mission in available_missions]
-    serialized_data["active_quests"] = [quest.serialize() for quest in active_quests]
-    serialized_data["patrons"] = [patron.serialize() for patron in patrons]
-    serialized_data["rivals"] = [rival.serialize() for rival in rivals]
-    serialized_data["active_rivals"] = [rival.serialize() for rival in active_rivals]
+    serialized_data["available_locations"] = available_locations.map(func(loc): return loc.serialize())
+    serialized_data["available_missions"] = available_missions.map(func(mission): return mission.serialize())
+    serialized_data["active_quests"] = active_quests.map(func(quest): return quest.serialize())
+    serialized_data["patrons"] = patrons.map(func(patron): return patron.serialize())
+    serialized_data["rivals"] = rivals.map(func(rival): return rival.serialize())
+    serialized_data["active_rivals"] = active_rivals.map(func(rival): return rival.serialize())
     
     # Serialize other complex types
     if difficulty_settings:
@@ -86,58 +86,47 @@ func deserialize(data: Dictionary) -> void:
     
     # Deserialize complex objects
     if "current_crew" in data:
-        current_crew = Crew.new()
-        current_crew.deserialize(data["current_crew"])
+        current_crew = Crew.deserialize(data["current_crew"])
     if "current_ship" in data:
-        current_ship = Ship.new()
-        current_ship.deserialize(data["current_ship"])
+        current_ship = Ship.deserialize(data["current_ship"])
     if "current_location" in data:
-        current_location = Location.new()
-        current_location.deserialize(data["current_location"])
+        current_location = Location.deserialize(data["current_location"])
     if "current_mission" in data:
-        current_mission = Mission.new()
-        current_mission.deserialize(data["current_mission"])
+        current_mission = Mission.deserialize(data["current_mission"])
     
     # Deserialize arrays of complex objects
     available_locations = []
     for loc_data in data.get("available_locations", []):
-        var loc = Location.new()
-        loc.deserialize(loc_data)
+        var loc = Location.deserialize(loc_data)
         available_locations.append(loc)
     
     available_missions = []
     for mission_data in data.get("available_missions", []):
-        var mission = Mission.new()
-        mission.deserialize(mission_data)
+        var mission = Mission.deserialize(mission_data)
         available_missions.append(mission)
     
     active_quests = []
     for quest_data in data.get("active_quests", []):
-        var quest = Quest.new()
-        quest.deserialize(quest_data)
+        var quest = Quest.deserialize(quest_data)
         active_quests.append(quest)
     
     patrons = []
     for patron_data in data.get("patrons", []):
-        var patron = Patron.new()
-        patron.deserialize(patron_data)
+        var patron = Patron.deserialize(patron_data)
         patrons.append(patron)
     
     rivals = []
     for rival_data in data.get("rivals", []):
-        var rival = Rival.new()
-        rival.deserialize(rival_data)
+        var rival = Rival.deserialize(rival_data)
         rivals.append(rival)
     
     active_rivals = []
     for rival_data in data.get("active_rivals", []):
-        var rival = Rival.new()
-        rival.deserialize(rival_data)
+        var rival = Rival.deserialize(rival_data)
         active_rivals.append(rival)
     
     # Deserialize other complex types
     if "difficulty_settings" in data:
-        difficulty_settings = DifficultySettings.new()
-        difficulty_settings.deserialize(data["difficulty_settings"])
+        difficulty_settings = DifficultySettings.deserialize(data["difficulty_settings"])
     victory_condition = data.get("victory_condition", {})
     character_connections = data.get("character_connections", [])

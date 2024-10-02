@@ -6,7 +6,7 @@ signal economy_updated
 
 @export var economic_range: Vector2 = Vector2(0, 100)
 
-var game_state_manager: GameStateManagerNode
+var game_state_manager: GameStateManager
 var game_state: GameState
 var location_price_modifiers: Dictionary = {}
 var global_economic_modifier: float = 1.0
@@ -25,7 +25,7 @@ func _init() -> void:
 		push_error("GameStateManagerNode not found. Make sure it's properly set up as an AutoLoad.")
 		return
 	
-	game_state = game_state_manager.get_game_state()
+	game_state = game_state.get_game_state()
 	if not game_state:
 		push_error("GameState not found in GameStateManagerNode.")
 		return

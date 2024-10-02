@@ -4,10 +4,10 @@ extends Control
 @onready var victory_label: Label = $VictoryLabel
 @onready var defeat_label: Label = $DefeatLabel
 
-var game_state: GameState
+var game_state: GameStateManager
 
 func _ready() -> void:
-	game_state = GameState.get_game_state()
+	game_state = GameStateManager.get_game_state()
 	if not game_state:
 		push_error("GameState not found. Make sure GameState is properly set up as an AutoLoad.")
 		return

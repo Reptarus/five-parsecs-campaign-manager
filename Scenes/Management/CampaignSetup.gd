@@ -9,10 +9,10 @@ signal campaign_created
 @onready var victory_condition_selection: Control = $VictoryConditionSelection
 @onready var start_campaign_button: Button = $StartCampaignButton
 
-var game_state: GameState
+var game_state: GameStateManager
 
 func _ready() -> void:
-	game_state = GameState.get_game_state()
+	game_state = GameStateManager.get_game_state()
 	if not game_state:
 		push_error("GameState not found. Make sure GameState is properly set up as an AutoLoad.")
 		return
@@ -67,7 +67,7 @@ func _on_start_campaign_pressed() -> void:
 			push_error("NewCampaignFlow node not found")
 		
 		# Transition to the campaign turn state
-		game_state.transition_to_state(GameState.State.UPKEEP)
+		game_state.transition_to_state(GlobalEnums.CampaignPhase.UPKEEP)
 		get_tree().change_scene_to_file("res://Scenes/Management/Scenes/BattlefieldGenerator.tscn")
 
 func _validate_campaign_setup() -> bool:
@@ -98,26 +98,29 @@ func _validate_campaign_setup() -> bool:
 	return true
 
 func start_setup() -> void:
-	crew_size_container.show()
-	ship_selection.hide()
-	equipment_selection.hide()
-	flavor_details.hide()
-	victory_condition_selection.hide()
+	$CrewSizeContainer.show()
+	$ShipSelection.hide()
+	$EquipmentSelection.hide()
+	$FlavorDetails.hide()
+	$VictoryConditionSelection.hide()
 
 # New method to progress to the next setup step
 func progress_setup() -> void:
-	if crew_size_container.visible:
-		crew_size_container.hide()
-		ship_selection.show()
-	elif ship_selection.visible:
-		ship_selection.hide()
-		equipment_selection.show()
-	elif equipment_selection.visible:
-		equipment_selection.hide()
-		flavor_details.show()
-	elif flavor_details.visible:
-		flavor_details.hide()
-		victory_condition_selection.show()
+	var game_state: GameStateManager = get_node("/root/GameState")
+	
+	if $CrewSizeContainer.visible:
+		$CrewSizeContainer.hide()
+		$ShipSelection.show()
+	elif $ShipSelection.visible:
+		$ShipSelection.hide()
+		$EquipmentSelection.show()
+	elif $EquipmentSelection.visible:
+		$EquipmentSelection.hide()
+		$FlavorDetails.show()
+	elif $FlavorDetails.visible:
+		$FlavorDetails.hide()
+		$VictoryConditionSelection.show()
 	else:
 		# All steps completed, enable start button
-		start_campaign_button.disabled = false
+		$StartCampaignButton.disabled = false
+		game_state.transition_to_state(GlobalEnums.CampaignPhase.UPKEEP)

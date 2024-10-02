@@ -1,13 +1,13 @@
 class_name EscalatingBattlesManager
 extends Resource
 
-var game_state: GameStateManagerNode
+var game_state: GameState
 var difficulty_settings: DifficultySettings
 
-func _init(_game_state: GameStateManagerNode):
+func _init(_game_state: GameState):
 	game_state = _game_state
 
-func initialize(_game_state: GameStateManagerNode, _difficulty_settings: DifficultySettings):
+func initialize(_game_state: GameState, _difficulty_settings: DifficultySettings):
 	game_state = _game_state
 	difficulty_settings = _difficulty_settings
 

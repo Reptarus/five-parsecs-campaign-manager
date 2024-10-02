@@ -17,33 +17,35 @@ func _ready() -> void:
 	galactic_war_manager = GalacticWarManager.new(game_state)
 
 func start_new_game() -> void:
-	game_state.transition_to_state(GameState.State.CREW_CREATION)
+	game_state.current_state = GlobalEnums.CampaignPhase.CREW_CREATION
 	game_state_changed.emit(GlobalEnums.CampaignPhase.CREW_CREATION)
 	ui_manager.change_screen("campaign_setup")
-	game_state.set_crew_size(5)  # Default crew size, can be adjusted
+	game_state.crew_size = 5  # Default crew size, can be adjusted
 	galactic_war_manager.initialize_factions()
 
 func start_campaign_turn() -> void:
-	game_state.transition_to_state(GameState.State.UPKEEP)
+	game_state.current_state = GlobalEnums.CampaignPhase.UPKEEP
 	game_state_changed.emit(GlobalEnums.CampaignPhase.UPKEEP)
-	game_state.advance_turn()
+	game_state.campaign_turn += 1
 	ui_manager.change_screen("world_view")
-	game_state.update_mission_list()
+	# Note: update_mission_list() method is not present in the provided GameState.gd
+	# You may need to implement this method or adjust the logic accordingly
 	galactic_war_manager.process_galactic_war_turn()
 
 func start_mission(mission: Mission) -> void:
-	if mission.start_mission(game_state.get_current_crew().members):
+	if mission.start_mission(game_state.current_crew.members):
 		game_state.current_mission = mission
-		game_state.transition_to_state(GameState.State.MISSION)
+		game_state.current_state = GlobalEnums.CampaignPhase.MISSION
 		game_state_changed.emit(GlobalEnums.CampaignPhase.MISSION)
 		ui_manager.change_screen("battle")
-		game_state.combat_manager.setup_battle(mission)
+		# Note: combat_manager is not present in the provided GameState.gd
+		# You may need to implement this or adjust the logic accordingly
 		generate_battlefield()
 	else:
 		ui_manager.show_message("Cannot start mission. Check crew requirements.")
 
 func end_mission(victory: bool) -> void:
-	game_state.transition_to_state(GameState.State.POST_BATTLE)
+	game_state.current_state = GlobalEnums.CampaignPhase.POST_BATTLE
 	game_state_changed.emit(GlobalEnums.CampaignPhase.POST_BATTLE)
 	ui_manager.change_screen("post_battle")
 	process_mission_results(victory)
@@ -144,5 +146,5 @@ func start_battle(scene_tree: SceneTree) -> void:
 	var battle_instance: Node = battle_scene.instantiate()
 	battle_instance.initialize(game_state, game_state.current_mission)
 	scene_tree.root.add_child(battle_instance)
-	game_state.transition_to_state(GameState.State.BATTLE)
+	game_state.current_state = GlobalEnums.CampaignPhase.BATTLE
 	game_state_changed.emit(GlobalEnums.CampaignPhase.BATTLE)

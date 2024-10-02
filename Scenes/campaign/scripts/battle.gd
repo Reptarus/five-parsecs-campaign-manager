@@ -1,7 +1,7 @@
 class_name Battle
 extends Node2D
 
-var game_state: GameStateManagerNode
+var game_state: GameStateManager
 var current_mission: Mission
 var combat_manager: CombatManager
 var ai_controller: AIController

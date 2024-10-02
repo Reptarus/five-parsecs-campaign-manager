@@ -15,7 +15,7 @@ func start_tutorial(type: String):
     tutorial_type = type
     is_tutorial_active = true
     set_step("crew_size_selection")
-    game_manager.game_state.transition_to_state(GameState.State.CREW_CREATION)
+    game_manager.game_state.transition_to_state(GameStateManager.State.CREW_CREATION)
     game_manager.game_state_changed.emit(GlobalEnums.CampaignPhase.CREW_CREATION)
 
 func set_step(step: String):
@@ -26,7 +26,7 @@ func end_tutorial():
     is_tutorial_active = false
     tutorial_type = ""
     current_step = ""
-    game_manager.game_state.transition_to_state(GameState.State.UPKEEP)
+    game_manager.game_state.transition_to_state(GameStateManager.State.UPKEEP)
     game_manager.game_state_changed.emit(GlobalEnums.CampaignPhase.UPKEEP)
 
 func get_tutorial_text(step: String) -> String:

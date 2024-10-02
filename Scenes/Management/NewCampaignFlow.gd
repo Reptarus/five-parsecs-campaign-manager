@@ -8,7 +8,7 @@ signal flow_completed
 @onready var crew_management = $CrewManagement
 @onready var campaign_setup = $CampaignSetup
 
-var game_state: GameState
+var game_state: GameStateManager
 var game_manager: GameManager
 
 enum FlowState {
@@ -23,7 +23,7 @@ enum FlowState {
 var current_state: FlowState = FlowState.TUTORIAL_SELECTION
 
 func _ready() -> void:
-	game_state = GameState.get_game_state()
+	game_state = GameStateManager.get_game_state()
 	game_manager = GameManager.new()
 	init()
 	flow_completed.connect(_on_flow_completed)

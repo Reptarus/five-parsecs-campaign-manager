@@ -35,7 +35,7 @@ func _load_equipment_database() -> void:
 
 func generate_equipment_from_background(background: GlobalEnums.Background) -> Array[Equipment]:
 	var equipment: Array[Equipment] = []
-	var background_data = GameState.background_data[background]
+	var background_data = GameStateManager.background_data[background]
 	if "starting_gear" in background_data:
 		for item_name in background_data.starting_gear:
 			var item = get_equipment(item_name)
@@ -45,7 +45,7 @@ func generate_equipment_from_background(background: GlobalEnums.Background) -> A
 
 func generate_equipment_from_motivation(motivation: GlobalEnums.Motivation) -> Array[Equipment]:
 	var equipment: Array[Equipment] = []
-	var motivation_data = GameState.motivation_data[motivation]
+	var motivation_data = GameStateManager	.motivation_data[motivation]
 	if "starting_gear" in motivation_data:
 		for item_name in motivation_data.starting_gear:
 			var item = get_equipment(item_name)
@@ -55,7 +55,7 @@ func generate_equipment_from_motivation(motivation: GlobalEnums.Motivation) -> A
 
 func generate_equipment_from_class(class_type: GlobalEnums.Class) -> Array[Equipment]:
 	var equipment: Array[Equipment] = []
-	var class_data = GameState.class_data[class_type]
+	var class_data = GameStateManager.class_data[class_type]
 	if "starting_gear" in class_data:
 		for item_name in class_data.starting_gear:
 			var item = get_equipment(item_name)

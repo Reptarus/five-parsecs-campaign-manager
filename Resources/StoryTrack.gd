@@ -1,6 +1,8 @@
 # StoryTrack.gd
-class_name StoryTrack
 extends Resource
+
+class_name StoryTrack
+
 
 signal event_triggered(event: StoryEvent)
 
@@ -8,11 +10,12 @@ var story_clock: StoryClock
 var story_track_manager: StoryTrackManager
 var events: Array[StoryEvent] = []
 var current_event_index: int = -1
+var game_state: GameState
 
 func _init() -> void:
 	story_clock = StoryClock.new()
 
-func initialize(game_state: GameStateManagerNode) -> void:
+func initialize(_game_state: GameState) -> void:
 	story_clock = StoryClock.new()
 	story_track_manager = StoryTrackManager.new(game_state)
 	_load_events()
@@ -58,13 +61,12 @@ func trigger_current_event() -> void:
 	apply_event_effects(current_event)
 
 func apply_event_effects(event: StoryEvent) -> void:
-	var game_state: GameStateManagerNode = GameState
 	event.apply_event_effects(game_state)
-	event.setup_battle(game_state.combat_manager)  # Updated to use combat_manager
+	event.setup_battle(game_state.combat_manager)
 	event.apply_rewards(game_state)
 
 func progress_story(current_phase: GlobalEnums.CampaignPhase) -> void:
-	var game_state: GameStateManagerNode = GameState
+	var game_state = GameState  # Assuming GameState is an autoload singleton
 	story_clock.count_down(current_phase == GlobalEnums.CampaignPhase.POST_BATTLE)
 	if story_clock.is_event_triggered():
 		current_event_index += 1
@@ -72,9 +74,12 @@ func progress_story(current_phase: GlobalEnums.CampaignPhase) -> void:
 			trigger_current_event()
 		else:
 			# Tutorial completed
-			game_state.end_tutorial()
+			game_state.is_tutorial_active = false
 
 func serialize() -> Dictionary:
+	# Tutorial completed
+	game_state.is_tutorial_active = false
+	
 	return {
 		"events": events.map(func(event: StoryEvent) -> Dictionary: return event.serialize()),
 		"current_event_index": current_event_index,

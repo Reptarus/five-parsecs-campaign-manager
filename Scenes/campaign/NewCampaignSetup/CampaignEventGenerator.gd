@@ -1,10 +1,10 @@
 class_name CampaignEventGenerator
 extends Resource
 
-var game_state: GameStateManagerNode
+var game_state: GameStateManager
 var rng: RandomNumberGenerator = RandomNumberGenerator.new()
 
-func _init(_game_state: GameStateManagerNode):
+func _init(_game_state: GameStateManager):
 	game_state = _game_state
 	rng.randomize()
 

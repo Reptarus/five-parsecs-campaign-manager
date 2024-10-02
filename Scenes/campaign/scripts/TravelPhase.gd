@@ -1,7 +1,6 @@
 class_name TravelPhase
 extends Control
 
-var game_state_manager: GameStateManagerNode
 var game_state: GameState
 
 var game_world: GameWorld
@@ -23,20 +22,16 @@ var expanded_quest_progression_manager: ExpandedQuestProgressionManager
 @onready var log_book = $VBoxContainer/LogBook
 @onready var campaign_event_ui = preload("res://Scenes/campaign/NewCampaignSetup/CampaignEventUI.tscn")
 
+var game_state_manager: GameStateManager
+
 func _ready():
-	game_state_manager = get_node("/root/GameState")
+	game_state_manager = get_node("/root/GameStateManager") as GameStateManager
 	if not game_state_manager:
-		push_error("Failed to get GameStateManagerNode")
+		push_error("Failed to get GameStateManager")
 		return
 	
-	game_state = game_state_manager.get_game_state()
-	if not game_state:
-		push_error("Failed to get GameState")
-		return
-	
-	expanded_quest_progression_manager = ExpandedQuestProgressionManager.new(game_state)
-	quest_manager = QuestManager.new()
-	quest_manager.initialize(game_state, expanded_quest_progression_manager)
+	expanded_quest_progression_manager = ExpandedQuestProgressionManager.new(game_state_manager)
+	quest_manager = game_state_manager.quest_manager
 	
 	initialize_game_components()
 	
@@ -50,28 +45,25 @@ func initialize_game_components() -> void:
 	var story_track := StoryTrack.new()
 	story_track.initialize(game_state)
 	
-	game_world = GameWorld.new(game_state)
+	game_world = GameWorld.new(game_state_manager)
 	
-	campaign_manager = CampaignManager.new(game_state)
+	campaign_manager = CampaignManager.new(game_state_manager.game_state)
 	
-	mission_manager = MissionManager.new(game_state)
+	mission_manager = game_state.mission_generator as MissionManager
 	
-	expanded_quest_progression_manager = ExpandedQuestProgressionManager.new(game_state)
-	quest_manager = QuestManager.new()
-	quest_manager.initialize(game_state, expanded_quest_progression_manager)
+	expanded_quest_progression_manager = ExpandedQuestProgressionManager.new(game_state_manager)
+	quest_manager = game_state_manager.quest_manager
 	
-	patron_job_manager = PatronJobManager.new()
-	patron_job_manager.initialize(game_state)
+	patron_job_manager = game_state_manager.patron_job_manager
 	
-	campaign_event_generator = CampaignEventGenerator.new(game_state)
+	campaign_event_generator = CampaignEventGenerator.new(game_state_manager)
 	
 	var economy_manager := EconomyManager.new()
 	economy_manager.initialize(game_state)
 	
 	world_economy_manager = WorldEconomyManager.new(game_state.current_location, economy_manager)
 	
-	fringe_world_strife_manager = FringeWorldStrifeManager.new()
-	fringe_world_strife_manager.initialize(game_state)
+	fringe_world_strife_manager = game_state_manager.fringe_world_strife_manager
 	
 	starship_travel_events = StarshipTravelEvents.new()
 	starship_travel_events.initialize(game_state)
@@ -136,12 +128,13 @@ func _on_check_patrons_button_pressed():
 	log_event("New job offers: " + ", ".join(patrons_result))
 
 func _on_start_mission_button_pressed():
-	var mission = mission_manager.generate_mission()
+	var mission = mission_manager.generate_missions()[0]  # Get the first generated mission
 	mission_details.clear()
 	if mission:
-		var mission_result = mission_manager.start_mission(mission)
-		display_result(mission_details, mission_result)
-		log_event("Mission started: " + mission_result)
+		game_state.current_mission = mission
+		game_state_manager.transition_to_state(GlobalEnums.CampaignPhase.MISSION)
+		display_result(mission_details, "Mission started: " + mission.name)
+		log_event("Mission started: " + mission.name)
 	else:
 		display_result(mission_details, "No available missions.")
 		log_event("No available missions.")
@@ -150,7 +143,7 @@ func _on_back_button_pressed():
 	get_tree().change_scene_to_file("res://Scenes/Scene Container/CampaignDashboard.tscn")
 
 func log_event(event: String):
-	game_state.log_event(event)
+	game_state.last_mission_results += event + "\n"
 	log_book.text += event + "\n"
 	log_book.scroll_vertical = INF
 
@@ -168,9 +161,10 @@ func _on_mission_selection_requested(available_missions: Array):
 	add_child(mission_selection_instance)
 
 func _on_mission_selected(mission: Mission):
-	var mission_result = mission_manager.start_mission(mission)
-	display_result(mission_details, mission_result)
-	log_event("Mission started: " + mission_result)
+	game_state.current_mission = mission
+	game_state_manager.transition_to_state(GlobalEnums.CampaignPhase.MISSION)
+	display_result(mission_details, "Mission started: " + mission.name)
+	log_event("Mission started: " + mission.name)
 
 func _on_phase_completed():
 	log_event("Phase completed")
@@ -197,7 +191,7 @@ func update_ui():
 	
 	mission_details.clear()
 	
-	log_book.text = game_state.get_event_log()
+	log_book.text = game_state.last_mission_results
 	
 	$VBoxContainer/TabContainer/Upkeep/UpkeepButton.disabled = false
 	$VBoxContainer/TabContainer/Travel/NextEventButton.disabled = false

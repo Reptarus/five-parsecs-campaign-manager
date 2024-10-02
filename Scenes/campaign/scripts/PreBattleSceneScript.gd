@@ -1,7 +1,7 @@
 class_name PreBattleSceneScript
 extends Control
 
-@onready var game_state: GameState = get_node("/root/GameState")
+@onready var game_state: GameStateManager = get_node("/root/GameState")
 var terrain_generator: TerrainGenerator
 
 # Declare current_mission as a class variable

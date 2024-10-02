@@ -33,7 +33,7 @@ func _setup_tutorial_text() -> void:
 func _on_story_track_pressed() -> void:
 	tutorial_manager.start_tutorial("story_track")
 	tutorial_selected.emit("story_track")
-	game_manager.game_state.transition_to_state(GameState.State.CREW_CREATION)
+	game_manager.game_state.transition_to_state(GameStateManager.State.CREW_CREATION)
 	game_manager.game_state_changed.emit(GlobalEnums.CampaignPhase.CREW_CREATION)
 
 func _on_compendium_pressed() -> void:
@@ -44,7 +44,7 @@ func _on_compendium_pressed() -> void:
 func _on_skip_pressed() -> void:
 	tutorial_manager.end_tutorial()
 	tutorial_selected.emit("skip")
-	game_manager.game_state.transition_to_state(GameState.State.CREW_CREATION)
+	game_manager.game_state.transition_to_state(GameStateManager.State.CREW_CREATION)
 	game_manager.game_state_changed.emit(GlobalEnums.CampaignPhase.CREW_CREATION)
 
 func _on_tutorial_step_changed(step: String) -> void:

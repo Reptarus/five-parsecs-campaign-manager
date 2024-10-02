@@ -9,6 +9,8 @@ signal connections_created
 @onready var character2_dropdown: OptionButton = $VBoxContainer/HBoxContainer/Character2Dropdown
 @onready var relationship_dropdown: OptionButton = $VBoxContainer/HBoxContainer/RelationshipDropdown
 @onready var finalize_button: Button = $VBoxContainer/FinalizeButton
+@onready var game_state_manager: GameStateManager = get_node("/root/GameStateManager")
+@onready var game_state = game_state_manager.get_game_state()
 
 var characters: Array[Character] = []
 var connections: Array[Dictionary] = []
@@ -28,12 +30,10 @@ const RELATIONSHIPS: Array[String] = [
 ]
 
 func _ready() -> void:
-    var game_state: GameState = get_node("/root/GameState")
     extended_connections_manager = ExtendedConnectionsManager.new(game_state)
     
-    var tutorial_manager: Node = get_node("/root/TutorialManager")
-    if tutorial_manager.is_tutorial_active:
-        tutorial_label.text = tutorial_manager.get_tutorial_text("connections_creation")
+    if game_state.is_tutorial_active:
+        tutorial_label.text = game_state.story_track.current_event.instruction
         tutorial_label.show()
     else:
         tutorial_label.hide()
@@ -102,16 +102,11 @@ func finalize_connections() -> void:
     save_connections_to_game_state()
 
     connections_created.emit()
-    var tutorial_manager: Node = get_node("/root/TutorialManager")
-    if tutorial_manager and tutorial_manager.is_tutorial_active:
-        tutorial_manager.set_step("save_campaign")
+    if game_state.is_tutorial_active:
+        game_state.current_state = GlobalEnums.CampaignPhase.CREW_CREATION
 
 func save_connections_to_game_state() -> void:
-    var game_state: GameState = get_node("/root/GameState")
-    if game_state and game_state.has_method("set_character_connections"):
-        game_state.set_character_connections(connections)
-    else:
-        push_warning("GameState does not have a method to set character connections.")
+    game_state.character_connections = connections
 
 func set_characters(char_list: Array[Character]) -> void:
     characters = char_list
