@@ -6,19 +6,22 @@ signal ai_action_completed(action: Dictionary)
 @export var ai_behavior: GlobalEnums.AIBehavior = GlobalEnums.AIBehavior.AGGRESSIVE
 
 var combat_manager: CombatManager
-var game_state: GameStateManager
+var game_state_manager: GameStateManager
 var escalating_battles_manager: EscalatingBattlesManager
 var enemy_deployment_manager: EnemyDeploymentManager
 
 func _init() -> void:
-	escalating_battles_manager = EscalatingBattlesManager.new(null)  # Pass null for now
-	enemy_deployment_manager = EnemyDeploymentManager.new(null)  # Pass null for now
+	pass  # Initialize managers in the initialize function
 
-func initialize(_combat_manager: CombatManager, _game_state: GameStateManager) -> void:
+func initialize(_combat_manager: CombatManager, _game_state_manager: GameStateManager) -> void:
 	combat_manager = _combat_manager
-	game_state = _game_state
-	escalating_battles_manager.initialize(game_state, null)  # Pass null for difficulty_settings
+	game_state_manager = _game_state_manager
+	var game_state = game_state_manager.get_game_state()
+	escalating_battles_manager = EscalatingBattlesManager.new(game_state)
 	enemy_deployment_manager = EnemyDeploymentManager.new(game_state)
+	var difficulty_settings = game_state_manager.difficulty_settings
+	escalating_battles_manager.initialize(game_state, difficulty_settings)
+	enemy_deployment_manager.initialize(game_state, difficulty_settings)
 
 func perform_ai_turn(ai_character: Character) -> void:
 	var action: Dictionary
@@ -100,14 +103,14 @@ func evaluate_attack(ai_character: Character, target: Character) -> float:
 	var weapon: Weapon = ai_character.get_equipped_weapon()
 	var base_score := 20.0
 	base_score += (1.0 - target.get_health() / float(target.get_max_health())) * 10.0
-	base_score += float(weapon.get_damage()) * 2.0  # Assuming get_damage() returns the actual damage value
+	base_score += float(weapon.get_damage()) * 2.0
 	
 	if not combat_manager.is_in_cover(target):
 		base_score += 5.0
 	return base_score
 
 func evaluate_item_use(_ai_character: Character) -> float:
-	return 5.0  # Base score for using an item, can be adjusted based on item type and situation
+	return 5.0
 
 func evaluate_aim(ai_character: Character) -> float:
 	return 15.0 if combat_manager.is_in_cover(ai_character) else 5.0
@@ -124,9 +127,8 @@ func execute_action(ai_character: Character, action: Dictionary) -> void:
 			combat_manager.aim(ai_character)
 
 	ai_action_completed.emit(action)
-
 func determine_dice_based_action(ai_character: Character) -> Dictionary:
-	var roll := GameManager.roll_dice(1, 6)
+	var roll: int = game_state_manager.roll_dice(1, 6)
 	
 	match ai_character.ai_type:
 		GlobalEnums.AIType.CAUTIOUS:

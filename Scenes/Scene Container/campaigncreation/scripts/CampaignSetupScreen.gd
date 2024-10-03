@@ -2,7 +2,6 @@ class_name CampaignSetupScreen
 extends Control
 
 const DifficultySettingsResource = preload("res://Scenes/Scene Container/campaigncreation/scripts/DifficultySettings.gd")
-const CrewSetup = preload("res://Resources/CrewSetup.gd")
 
 @onready var difficulty_option_button: OptionButton = $MarginContainer/VBoxContainer/DifficultyOptionButton
 @onready var victory_condition_container: HBoxContainer = $MarginContainer/VBoxContainer/VictoryConditionContainer
@@ -13,8 +12,10 @@ const CrewSetup = preload("res://Resources/CrewSetup.gd")
 @onready var crew_size_slider: HSlider = $MarginContainer/VBoxContainer/CrewSizeContainer/HSlider
 @onready var current_size_label: Label = $MarginContainer/VBoxContainer/CrewSizeContainer/CurrentSizeLabel
 @onready var crew_size_tutorial_label: Label = $MarginContainer/VBoxContainer/CrewSizeContainer/TutorialLabel
+@onready var set_victory_condition_button: Button = $MarginContainer/VBoxContainer/VictoryConditionContainer/SetVictoryConditionButton
+@onready var lock_crew_size_button: Button = $MarginContainer/VBoxContainer/CrewSizeContainer/LockCrewSizeButton
 
-var game_state: GameStateManager
+var game_state_manager: GameStateManager
 var difficulty_settings: DifficultySettingsResource
 var victory_types = ["Missions", "Credits", "Reputation", "Story Points"]
 var current_victory_type = 0
@@ -24,11 +25,20 @@ func _ready():
 	await get_tree().process_frame
 	
 	difficulty_settings = DifficultySettingsResource.new()
-	game_state = get_node("/root/GameState")
 	
+	# Use the GameStateManager autoload
+	game_state_manager = get_node("/root/GameStateManager")
+	if not game_state_manager:
+		push_error("GameStateManager autoload not found. Make sure it's properly set up in Project Settings.")
+		return
+
+	if victory_condition_container and victory_type_label and victory_count_label:
+		_setup_victory_conditions()
+	else:
+		push_error("Some required nodes for victory conditions are missing. Check your scene structure.")
+
 	_setup_ui_elements()
 	_setup_optional_features()
-	_setup_victory_conditions()
 	_setup_crew_size_selection()
 	_connect_signals()
 	_setup_animations()
@@ -36,11 +46,8 @@ func _ready():
 func _setup_ui_elements():
 	if difficulty_option_button:
 		difficulty_option_button.clear()
-		difficulty_option_button.add_item("Easy", GlobalEnums.DifficultyMode.NORMAL)
-		difficulty_option_button.add_item("Normal", GlobalEnums.DifficultyMode.NORMAL)
-		difficulty_option_button.add_item("Challenging", GlobalEnums.DifficultyMode.CHALLENGING)
-		difficulty_option_button.add_item("Hardcore", GlobalEnums.DifficultyMode.HARDCORE)
-		difficulty_option_button.add_item("Insanity", GlobalEnums.DifficultyMode.INSANITY)
+		for mode in GlobalEnums.DifficultyMode.keys():
+			difficulty_option_button.add_item(mode, GlobalEnums.DifficultyMode[mode])
 	else:
 		push_error("DifficultyOptionButton not found in the scene.")
 
@@ -91,22 +98,27 @@ func _setup_victory_conditions():
 	right_count_button.text = ">"
 	right_count_button.pressed.connect(_on_victory_count_right_pressed)
 	victory_condition_container.add_child(right_count_button)
+	
+	# Add "Set Victory Condition" button
+	if set_victory_condition_button:
+		set_victory_condition_button.pressed.connect(_on_set_victory_condition_pressed)
+	else:
+		push_error("SetVictoryConditionButton not found in the scene.")
 
 func _setup_crew_size_selection() -> void:
 	_update_current_size_label(int(crew_size_slider.value))
 	_setup_crew_size_tutorial()
 
 func _setup_crew_size_tutorial() -> void:
-	var tutorial_manager = get_node("/root/TutorialManager")
-	if tutorial_manager and tutorial_manager.is_step_active("crew_size_selection"):
-		crew_size_tutorial_label.text = tutorial_manager.get_tutorial_text("crew_size_selection")
-		crew_size_tutorial_label.show()
-	else:
-		crew_size_tutorial_label.hide()
+	# Implement tutorial logic if needed
+	pass
 
 func _on_crew_size_slider_value_changed(value: float) -> void:
 	var crew_size = int(value)
-	game_state.set_crew_size(crew_size)
+	if game_state_manager:
+		game_state_manager.game_state.crew_size = crew_size
+	else:
+		push_error("GameStateManager is not initialized")
 	_update_current_size_label(crew_size)
 
 func _update_current_size_label(crew_size: int) -> void:
@@ -114,11 +126,14 @@ func _update_current_size_label(crew_size: int) -> void:
 
 func _connect_signals():
 	if difficulty_option_button:
-		difficulty_option_button.item_selected.connect(_on_difficulty_selected)
+		if not difficulty_option_button.is_connected("item_selected", _on_difficulty_selected):
+			difficulty_option_button.item_selected.connect(_on_difficulty_selected)
 	if start_campaign_button:
-		start_campaign_button.pressed.connect(_on_start_campaign_button_pressed)
+		if not start_campaign_button.is_connected("pressed", _on_start_campaign_button_pressed):
+			start_campaign_button.pressed.connect(_on_start_campaign_button_pressed)
 	if crew_size_slider:
-		crew_size_slider.value_changed.connect(_on_crew_size_slider_value_changed)
+		if not crew_size_slider.is_connected("value_changed", _on_crew_size_slider_value_changed):
+			crew_size_slider.value_changed.connect(_on_crew_size_slider_value_changed)
 
 func _setup_animations():
 	for button in get_tree().get_nodes_in_group("animated_buttons"):
@@ -153,44 +168,33 @@ func _on_start_campaign_button_pressed():
 		get_tree().change_scene_to_file("res://Scenes/Management/CrewManagement.tscn")
 
 func _validate_setup() -> bool:
-	if game_state.victory_condition == null:
-		print_debug("Please select a victory condition.")
+	if game_state_manager.game_state.victory_condition.is_empty():
+		print_debug("Please set a victory condition.")
 		return false
-	if game_state.get_crew_size() == 0:
+	if game_state_manager.game_state.crew_size == 0:
 		print_debug("Please select a crew size.")
 		return false
 	return true
 
 func _apply_settings() -> void:
-	var crew_setup := get_node("/root/CrewSetup") as CrewSetup
-	if not crew_setup:
-		push_error("CrewSetup node not found. Make sure it's properly set up in the scene tree.")
-		return
-
 	# Apply difficulty settings
-	crew_setup.set_difficulty_settings(difficulty_settings)
+	game_state_manager.game_state.difficulty_settings = difficulty_settings
 
 	# Apply optional features
 	for checkbox in optional_features_container.get_children():
 		if checkbox is CheckBox:
 			var feature_name: String = checkbox.text.to_snake_case()
-			crew_setup.set_optional_feature(feature_name, checkbox.button_pressed)
+			# Assuming game_state has a dictionary for optional features
+			game_state_manager.game_state.set(feature_name, checkbox.button_pressed)
 
 	# Apply victory condition
-	game_state.set_victory_condition({
-		"type": victory_types[current_victory_type],
+	game_state_manager.game_state.victory_condition = {
+		"type": GlobalEnums.VictoryConditionType.keys()[current_victory_type],
 		"value": current_victory_count
-	})
-
-	# Apply Story Track if enabled
-	if crew_setup.get_optional_feature("story_track"):
-		var story_track := StoryTrack.new()
-		story_track.initialize(game_state.current_game_state)
-		game_state.set_story_track(story_track)
+	}
 
 	# Apply crew size
-	crew_setup.set_crew_size(int(crew_size_slider.value))
-
+	game_state_manager.game_state.crew_size = int(crew_size_slider.value)
 
 func _on_button_mouse_entered(button: Button):
 	button.scale = Vector2(1.05, 1.05)
@@ -204,17 +208,14 @@ func _on_button_pressed(button: Button):
 func _on_button_released(button: Button):
 	button.scale = Vector2(1.0, 1.0)
 
-func _on_crew_name_input_text_changed(new_text: String) -> void:
-	game_state.set_crew_name(new_text)
-
-func _on_difficulty_option_button_item_selected(index: int) -> void:
-	var difficulty_level = difficulty_option_button.get_item_id(index)
-	difficulty_settings.set_difficulty(difficulty_level)
-	game_state.set_difficulty(difficulty_level)
-
-func _on_victory_condition_button_pressed() -> void:
-	var victory_condition_selection = $VictoryConditionSelection
-	if victory_condition_selection:
-		victory_condition_selection.visible = true
-	else:
-		push_error("VictoryConditionSelection node not found in the scene.")
+func _on_set_victory_condition_pressed():
+	game_state_manager.game_state.victory_condition = {
+		"type": GlobalEnums.VictoryConditionType.keys()[current_victory_type],
+		"value": current_victory_count
+	}
+	print("Victory condition set: ", game_state_manager.game_state.victory_condition)
+	# Optionally, disable the victory condition selection after setting
+	for child in victory_condition_container.get_children():
+		if child is Button:
+			child.disabled = true
+	set_victory_condition_button.disabled = true

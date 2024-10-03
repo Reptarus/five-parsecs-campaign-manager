@@ -4,6 +4,7 @@ extends Node
 
 var game_state: GameState
 var galactic_war_manager: GalacticWarManager
+var game_state_manager: GameStateManager
 
 const AdvTrainingManager = preload("res://Resources/AdvTrainingManager.gd")
 
@@ -201,7 +202,7 @@ func calculate_experience_gain(character: Character) -> int:
 	return int(base_xp * performance_multiplier + difficulty_bonus + survival_bonus)
 
 func generate_campaign_event() -> Dictionary:
-	var event_generator = CampaignEventGenerator.new(game_state)
+	var event_generator = CampaignEventGenerator.new(game_state_manager)
 	var event: StoryEvent = event_generator.generate_event()
 	return event.to_dictionary()  # Assuming StoryEvent has a to_dictionary() method
 

@@ -9,7 +9,7 @@ func _init():
 
 func create_character(species: GlobalEnums.Species, background: GlobalEnums.Background, 
                       motivation: GlobalEnums.Motivation, character_class: GlobalEnums.Class, 
-                      game_state: GameState) -> Character:
+                      _game_state: GameState) -> Character:
 	var character = Character.new()
 	
 	var species_data = character_creation_data.get_species_data(GlobalEnums.Species.keys()[species].to_lower())
@@ -32,7 +32,7 @@ func create_character(species: GlobalEnums.Species, background: GlobalEnums.Back
 	
 	return character
 
-func create_tutorial_character(game_state: GameState) -> Character:
+func create_tutorial_character(_game_state: GameState) -> Character:
 	var character = Character.new()
 	
 	var species_data = character_creation_data.get_tutorial_species_data("human")

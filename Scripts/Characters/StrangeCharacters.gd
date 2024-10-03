@@ -35,9 +35,12 @@ var type: StrangeCharacterType
 var special_abilities: Array[String] = []
 var saving_throw: int = 0
 
+var game_state_manager: GameStateManager
+
 func _init(_type: StrangeCharacterType = StrangeCharacterType.ALIEN):
 	type = _type
 	_set_special_abilities()
+	game_state_manager = GameStateManager
 
 func _set_special_abilities() -> void:
 	match type:
@@ -58,18 +61,19 @@ func _set_special_abilities() -> void:
 			special_abilities = ["Enhanced Senses", "Natural Weapons"]
 		# Add other types as needed
 
-func apply_special_abilities(character) -> void:
+func apply_special_abilities(character: Character) -> void:
 	for ability in special_abilities:
-		character.add_ability(ability)
+		character.traits.append(ability)
 
 	match type:
 		StrangeCharacterType.BOT, StrangeCharacterType.ASSAULT_BOT, StrangeCharacterType.DE_CONVERTED:
-			character.set_armor_save(saving_throw)
+			character.toughness = saving_throw
 		StrangeCharacterType.PRECURSOR:
-			character.set_extra_character_event_roll(true)
+			# Assuming this is a boolean property in the Character class
+			character.has_extra_character_event_roll = true
 		StrangeCharacterType.FERAL:
-			character.set_combat_skill(1)
-			character.set_toughness(3)
+			character.combat_skill = 1
+			character.toughness = 3
 
 func get_description() -> String:
 	var description = "Strange Character Type: " + StrangeCharacterType.keys()[type] + "\n"
@@ -94,23 +98,21 @@ static func deserialize(data: Dictionary) -> StrangeCharacters:
 	return strange_character
 
 func roll_dice(num_dice: int, sides: int) -> int:
-	var total := 0
-	for i in range(num_dice):
-		total += randi() % sides + 1
-	return total
+	return game_state_manager.combat_manager.roll_dice(num_dice, sides)
 
-func handle_precursor_character_event(_character) -> void:
+func handle_precursor_character_event(character: Character) -> void:
 	if type == StrangeCharacterType.PRECURSOR:
 		var event1 = roll_dice(1, 100)
 		var event2 = roll_dice(1, 100)
 		# Logic to handle character event choice
-		# This is a placeholder and should be implemented based on your game's character event system
-		print("Precursor can choose between event " + str(event1) + " and event " + str(event2))
+		# This should be implemented using the game's character event system
+		game_state_manager.story_track.add_event("Precursor Character Event", 
+			"Precursor can choose between event " + str(event1) + " and event " + str(event2))
 
-func apply_feral_characteristics(character) -> void:
+func apply_feral_characteristics(character: Character) -> void:
 	if type == StrangeCharacterType.FERAL:
-		character.set_reactions(1)
-		character.set_speed(4)
-		character.set_combat_skill(1)
-		character.set_toughness(3)
-		character.set_savvy(1)
+		character.reactions = 1
+		character.speed = 4
+		character.combat_skill = 1
+		character.toughness = 3
+		character.savvy = 1

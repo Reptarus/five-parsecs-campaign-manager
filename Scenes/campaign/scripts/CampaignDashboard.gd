@@ -11,11 +11,18 @@ extends Control
 @onready var story_points_label: Label = $StoryPointsLabel
 @onready var tutorial_panel: Panel = $TutorialPanel
 @onready var tutorial_event_description: Label = $TutorialPanel/EventDescription
-@onready var game_state: GameStateManager = get_node("/root/GameState")
+@onready var game_state_manager: GameStateManager = get_node("/root/GameStateManager")
+
+var game_state: GameState
 
 func _ready() -> void:
+	if game_state_manager == null:
+		push_error("Failed to get GameStateManager. Check if it's properly set up as an autoload in project settings.")
+		return
+	
+	game_state = game_state_manager.get_game_state()
 	if game_state == null:
-		push_error("Failed to get GameState. Check if it's properly set up as an autoload in project settings.")
+		push_error("Failed to get GameState from GameStateManager.")
 		return
 	
 	action_button.pressed.connect(_on_action_button_pressed)
@@ -83,26 +90,34 @@ func _on_action_button_pressed() -> void:
 	else:
 		match game_state.current_state:
 			GlobalEnums.CampaignPhase.UPKEEP:
-				game_state.start_campaign_turn()
+				game_state_manager.start_campaign_turn()
 			GlobalEnums.CampaignPhase.STORY_POINT:
 				game_state.story_track.use_story_point()
 			GlobalEnums.CampaignPhase.TRAVEL:
-				game_state.world_generator.generate_world()
-				game_state.transition_to_state(GlobalEnums.CampaignPhase.PATRONS)
+				game_state_manager.world_generator.generate_world()
+				game_state_manager.transition_to_state(GlobalEnums.CampaignPhase.PATRONS)
 			GlobalEnums.CampaignPhase.PATRONS:
-				var patrons_result = game_state.patron_job_manager.determine_job_offers()
+				var patrons_result = game_state_manager.patron_job_manager.determine_job_offers()
 				for job in patrons_result:
 					print(job)  # Replace with proper UI update
 			GlobalEnums.CampaignPhase.MISSION:
-				var mission = game_state.mission_generator.generate_mission(game_state.current_crew, game_state.current_location, game_state.difficulty_mode, game_state.available_mission_types)
+				var mission = game_state_manager.mission_generator.generate_mission(
+					GlobalEnums.Type.STANDARD,  # Assuming STANDARD as default, adjust as needed
+					game_state.current_location.name,
+					game_state.difficulty_settings.name,
+					game_state.available_mission_types
+				)
 				if mission:
 					game_state.current_mission = mission
 					print("Mission started: ", mission.title)  # Replace with proper UI update
 			GlobalEnums.CampaignPhase.BATTLE:
-				game_state.start_battle()
+				game_state_manager.start_battle()
 			GlobalEnums.CampaignPhase.POST_BATTLE:
-				game_state.end_battle(true, get_tree())  # Assuming player victory, adjust as needed
+				game_state_manager.process_battle(true)  # Assuming player victory, adjust as needed
 			_:
-				game_state.transition_to_state(game_state.get_next_phase())
+				game_state_manager.transition_to_state(game_state_manager.get_next_phase())
 	
 	update_display()
+
+func _on_manage_crew_button_pressed() -> void:
+	get_tree().change_scene_to_file("res://Scenes/Management/CrewManagement.tscn")

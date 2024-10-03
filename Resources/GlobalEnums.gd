@@ -98,6 +98,9 @@ enum TerrainType {
 }
 
 enum CampaignPhase {
+    INITIAL_SETUP,
+    CREW_CREATION,
+    CREW_MANAGEMENT,
     UPKEEP,
     STORY_POINT,
     TRAVEL,
@@ -111,7 +114,6 @@ enum CampaignPhase {
     ASSIGN_EQUIPMENT,
     READY_FOR_BATTLE,
     MAIN_MENU,
-    CREW_CREATION 
 }
 
 enum CharacterStatus {
@@ -271,6 +273,7 @@ enum WorldTrait {
 }
 
 enum DifficultyMode {
+    EASY,
     NORMAL,
     CHALLENGING,
     HARDCORE,

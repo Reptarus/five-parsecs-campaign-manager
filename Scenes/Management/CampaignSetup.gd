@@ -106,7 +106,7 @@ func start_setup() -> void:
 
 # New method to progress to the next setup step
 func progress_setup() -> void:
-	var game_state: GameStateManager = get_node("/root/GameState")
+	var _game_state: GameStateManager = get_node("/root/GameState")
 	
 	if $CrewSizeContainer.visible:
 		$CrewSizeContainer.hide()

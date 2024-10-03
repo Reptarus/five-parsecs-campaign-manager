@@ -1,19 +1,29 @@
 class_name CharacterInventory
 extends Resource
 
+signal inventory_changed
+
 @export var items: Array[Equipment] = []
+
+var game_state_manager: GameStateManager
+
+func _init() -> void:
+	game_state_manager = GameStateManager
 
 func add_item(item: Equipment) -> void:
 	items.append(item)
+	inventory_changed.emit()
 
 func remove_item(item: Equipment) -> void:
 	items.erase(item)
+	inventory_changed.emit()
 
 func get_all_items() -> Array[Equipment]:
 	return items
 
 func clear() -> void:
 	items.clear()
+	inventory_changed.emit()
 
 func serialize() -> Dictionary:
 	return {
@@ -47,3 +57,12 @@ func get_most_valuable_item() -> Equipment:
 		return null
 	items.sort_custom(func(a: Equipment, b: Equipment): return a.value < b.value)
 	return items[-1]
+
+func get_equipment_manager() -> EquipmentManager:
+	return game_state_manager.equipment_manager
+
+func apply_difficulty_modifiers() -> void:
+	var difficulty_settings = game_state_manager.difficulty_settings
+	# Apply difficulty modifiers to equipment properties
+	for item in items:
+		item.apply_difficulty_modifier(difficulty_settings)

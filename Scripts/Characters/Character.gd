@@ -44,8 +44,7 @@ func _init() -> void:
 	character_advancement.upgrade_available.connect(_on_upgrade_available)
 
 func initialize(p_species: GlobalEnums.Species, p_background: GlobalEnums.Background, 
-				p_motivation: GlobalEnums.Motivation, p_character_class: GlobalEnums.Class, 
-				_game_state_manager: GameStateManager) -> void:
+				p_motivation: GlobalEnums.Motivation, p_character_class: GlobalEnums.Class) -> void:
 	self.species = p_species
 	self.background = p_background
 	self.motivation = p_motivation
@@ -152,9 +151,9 @@ func set_strange_character(type: String) -> void:
 	strange_type = type
 	# Apply special abilities based on type
 
-static func create(p_species: GlobalEnums.Species, p_background: GlobalEnums.Background, p_motivation: GlobalEnums.Motivation, p_character_class: GlobalEnums.Class, _game_state_manager: GameStateManager) -> Character:
+static func create(p_species: GlobalEnums.Species, p_background: GlobalEnums.Background, p_motivation: GlobalEnums.Motivation, p_character_class: GlobalEnums.Class) -> Character:
 	var character = Character.new()
-	character.initialize(p_species, p_background, p_motivation, p_character_class, _game_state_manager)
+	character.initialize(p_species, p_background, p_motivation, p_character_class)
 	character.name = generate_name(p_species)
 	return character
 
@@ -188,7 +187,7 @@ func serialize() -> Dictionary:
 		"status": GlobalEnums.CharacterStatus.keys()[status]
 	}
 
-static func deserialize(data: Dictionary, _game_state_manager: GameStateManager) -> Character:
+static func deserialize(data: Dictionary) -> Character:
 	var character = Character.new()
 	character.name = data.get("name", "")
 	character.species = GlobalEnums.Species[data.get("species", "HUMAN")]
@@ -280,10 +279,10 @@ static func create_temporary() -> Character:
 
 	return temp_ally
 
-func toggle_ai(enable: bool, combat_manager: Node, game_state: Node) -> void:
+func toggle_ai(enable: bool) -> void:
 	if enable and not ai_controller:
 		ai_controller = AIController.new()
-		ai_controller.initialize(combat_manager, game_state)
+		ai_controller.initialize(GameStateManager.combat_manager, GameStateManager)
 	elif not enable and ai_controller:
 		ai_controller.queue_free()
 		ai_controller = null

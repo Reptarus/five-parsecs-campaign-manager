@@ -14,7 +14,7 @@ var ship_inventory: ShipInventory
 @onready var class_option: OptionButton = $MarginContainer/VBoxContainer/HSplitContainer/CharacterCreationTabs/BasicProfile/ClassSelection/ClassOptionButton
 @onready var character_list: ItemList = $MarginContainer/VBoxContainer/HSplitContainer/RightPanel/CharacterList
 @onready var character_count_label: Label = $MarginContainer/VBoxContainer/HSplitContainer/RightPanel/CharacterCountLabel
-@onready var character_stats_display: Label = $MarginContainer/VBoxContainer/HSplitContainer/CharacterCreationTabs/BasicProfile/CharacterStatsDisplay
+@onready var character_stats_display: Label = $MarginContainer/VBoxContainer/HSplitContainer/RightPanel/CharacterPreview/CharacterStatsDisplay
 
 func _ready():
 	if not character_creation_logic:
@@ -184,6 +184,8 @@ func _update_character_preview():
 		Inventory: {inventory}
 		Traits: {traits}
 		""".format(current_character)
+	else:
+		character_stats_display.text = "No character selected"
 
 func _on_finish_crew_creation_pressed():
 	if created_characters.size() >= 3 and created_characters.size() <= 8:

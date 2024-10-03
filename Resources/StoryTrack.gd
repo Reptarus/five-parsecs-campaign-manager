@@ -66,7 +66,7 @@ func apply_event_effects(event: StoryEvent) -> void:
 	event.apply_rewards(game_state)
 
 func progress_story(current_phase: GlobalEnums.CampaignPhase) -> void:
-	var game_state = GameState  # Assuming GameState is an autoload singleton
+	var _game_state = GameState  # Assuming GameState is an autoload singleton
 	story_clock.count_down(current_phase == GlobalEnums.CampaignPhase.POST_BATTLE)
 	if story_clock.is_event_triggered():
 		current_event_index += 1

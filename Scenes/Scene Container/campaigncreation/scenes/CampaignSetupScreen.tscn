@@ -40,6 +40,19 @@ placeholder_text = "Enter Crew Name"
 [node name="DifficultyOptionButton" type="OptionButton" parent="MarginContainer/VBoxContainer"]
 layout_mode = 2
 
+[node name="VictoryConditionContainer" type="HBoxContainer" parent="MarginContainer/VBoxContainer"]
+layout_mode = 2
+
+[node name="VictoryTypeLabel" type="Label" parent="MarginContainer/VBoxContainer/VictoryConditionContainer"]
+layout_mode = 2
+
+[node name="VictoryCountLabel" type="Label" parent="MarginContainer/VBoxContainer/VictoryConditionContainer"]
+layout_mode = 2
+
+[node name="SetVictoryConditionButton" type="Button" parent="MarginContainer/VBoxContainer/VictoryConditionContainer"]
+layout_mode = 2
+text = "Set Victory Condition"
+
 [node name="CrewSizeContainer" type="VBoxContainer" parent="MarginContainer/VBoxContainer"]
 layout_mode = 2
 
@@ -62,9 +75,9 @@ text = "Current Crew Size: 3"
 layout_mode = 2
 text = "Tutorial text goes here"
 
-[node name="VictoryConditionButton" type="Button" parent="MarginContainer/VBoxContainer"]
+[node name="LockCrewSizeButton" type="Button" parent="MarginContainer/VBoxContainer/CrewSizeContainer"]
 layout_mode = 2
-text = "Select Victory Condition"
+text = "Lock Crew Size"
 
 [node name="OptionalFeaturesContainer" type="VBoxContainer" parent="MarginContainer/VBoxContainer"]
 layout_mode = 2
@@ -81,5 +94,4 @@ theme = null
 [connection signal="text_changed" from="MarginContainer/VBoxContainer/CrewNameInput" to="." method="_on_crew_name_input_text_changed"]
 [connection signal="item_selected" from="MarginContainer/VBoxContainer/DifficultyOptionButton" to="." method="_on_difficulty_option_button_item_selected"]
 [connection signal="value_changed" from="MarginContainer/VBoxContainer/CrewSizeContainer/HSlider" to="." method="_on_crew_size_slider_value_changed"]
-[connection signal="pressed" from="MarginContainer/VBoxContainer/VictoryConditionButton" to="." method="_on_victory_condition_button_pressed"]
 [connection signal="pressed" from="MarginContainer/VBoxContainer/StartCampaignButton" to="." method="_on_start_campaign_button_pressed"]

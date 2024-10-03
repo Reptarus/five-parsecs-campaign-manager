@@ -1,7 +1,7 @@
 class_name Battle
 extends Node2D
 
-var game_state: GameStateManager
+@export var game_state_manager: GameStateManager
 var current_mission: Mission
 var combat_manager: CombatManager
 var ai_controller: AIController
@@ -21,14 +21,15 @@ var active_character: Character
 @onready var battle_grid: GridContainer = $Battlefield/BattleGrid
 
 func _ready() -> void:
-	game_state = get_node("/root/GameState")
-	current_mission = game_state.current_mission
-	combat_manager = $CombatManager
+	if not game_state_manager:
+		game_state_manager = get_node("/root/GameStateManager")
+	current_mission = game_state_manager.current_mission
+	combat_manager = game_state_manager.combat_manager
 	ai_controller = $AIController
 	battlefield_generator = $BattlefieldGenerator
 	
-	combat_manager.initialize(game_state, current_mission, battle_grid)
-	ai_controller.initialize(combat_manager, game_state)
+	combat_manager.initialize(game_state_manager, current_mission, battle_grid)
+	ai_controller.initialize(combat_manager, game_state_manager)
 	
 	_initialize_battlefield()
 	_connect_signals()
@@ -47,8 +48,8 @@ func _create_terrain(terrain_data: Array) -> void:
 		terrain_node.add_child(terrain_shape)
 
 func _create_units(player_positions: Array, enemy_positions: Array) -> void:
-	for i in range(game_state.current_crew.characters.size()):
-		var _character = game_state.current_crew.characters[i]
+	for i in range(game_state_manager.current_ship.crew.size()):
+		var _character = game_state_manager.current_ship.crew[i]
 		var unit_shape = ColorRect.new()
 		unit_shape.color = Color.BLUE
 		unit_shape.size = Vector2(20, 20)
@@ -148,11 +149,12 @@ func _on_combat_started() -> void:
 
 func _on_combat_ended(player_victory: bool) -> void:
 	print("Combat ended. Player victory: ", player_victory)
+	game_state_manager.end_battle(player_victory, get_tree())
 
 func _on_turn_started(character: Character) -> void:
 	active_character = character
 	print("Turn started for ", character.name)
-	if character in game_state.current_crew.characters:
+	if character in game_state_manager.current_ship.crew:
 		enable_player_controls()
 	else:
 		disable_player_controls()
@@ -176,7 +178,7 @@ func _on_enable_player_controls(_character: Character) -> void:
 	enable_player_controls()
 
 func _on_update_turn_label(_round: int) -> void:
-	turn_label.text = "Round: " + str(round)
+	turn_label.text = "Round: " + str(_round)
 
 func _on_update_current_character_label(character_name: String) -> void:
 	current_character_label.text = "Current Character: " + character_name
@@ -195,12 +197,10 @@ func disable_player_controls() -> void:
 	end_turn_button.disabled = true
 
 func handle_character_damage(character: Character, damage: int) -> void:
-	character.toughness -= damage
-	if character.toughness <= 0:
+	character.health -= damage
+	if character.health <= 0:
 		character.status = GlobalEnums.CharacterStatus.DEAD
 		# Handle character defeat (remove from battlefield, etc.)
 
 func handle_character_recovery() -> void:
-	for character in game_state.current_crew.characters:
-		if character.status == GlobalEnums.CharacterStatus.INJURED:
-			character.heal()
+	game_state_manager.handle_character_recovery()

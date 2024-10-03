@@ -1,10 +1,10 @@
 class_name FringeWorldStrifeManager
-extends RefCounted
+extends Node
 
-var game_state: GameStateManager	
-var mission_generator: MissionGenerator
-var difficulty_settings: DifficultySettings
-var escalating_battles_manager: EscalatingBattlesManager
+@export var game_state: GameStateManager	
+@export var mission_generator: MissionGenerator
+@export var difficulty_settings: DifficultySettings
+@export var escalating_battles_manager: EscalatingBattlesManager
 var current_mission: Mission
 
 var instability: int = 0
@@ -481,7 +481,7 @@ func _manage_strife_intensity():
 		print("Strife intensity is low. Decreasing mission difficulty.")
 		_decrease_mission_difficulty()
 
-func set_difficulty(level: DifficultySettings.DifficultyLevel):
+func set_difficulty(level: GlobalEnums.DifficultyMode):
 	difficulty_settings.set_difficulty(level)
 	# Apply difficulty settings to all managers
 	_apply_difficulty_to_managers()

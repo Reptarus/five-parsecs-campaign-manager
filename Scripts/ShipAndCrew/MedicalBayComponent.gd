@@ -1,8 +1,6 @@
 # Scripts/ShipAndCrew/MedicalBayComponent.gd
-extends ShipComponent
 class_name MedicalBayComponent
-
-var game_state: GameStateManager
+extends ShipComponent
 
 @export var healing_capacity: int
 var patients: Array[Character] = []
@@ -11,16 +9,14 @@ func _init(p_name: String, p_description: String, p_power_usage: int, p_health: 
 	super(p_name, p_description, GlobalEnums.ComponentType.MEDICAL_BAY, p_power_usage, p_health, p_weight)
 	healing_capacity = p_healing_capacity
 
-func _ready() -> void:
-	pass  # Initialization is handled by @onready variable
-
 func process_turn() -> void:
 	heal_patients()
 
 func heal_patients() -> void:
 	for patient in patients:
-		patient.recover()
-		if patient.status == GlobalEnums.CharacterStatus.ACTIVE:
+		patient.health = min(patient.health + 20, patient.max_health)
+		patient.stress = max(patient.stress - 10, 0)
+		if patient.health == patient.max_health and patient.stress == 0:
 			discharge_patient(patient)
 
 func admit_patient(crew_member: Character) -> bool:
@@ -45,7 +41,7 @@ func serialize() -> Dictionary:
 	data["patients"] = patients.map(func(p): return p.serialize())
 	return data
 
-static func deserialize(data: Dictionary) -> ShipComponent:
+static func deserialize(data: Dictionary) -> MedicalBayComponent:
 	var component = MedicalBayComponent.new(
 		data["name"],
 		data["description"],
@@ -54,8 +50,9 @@ static func deserialize(data: Dictionary) -> ShipComponent:
 		data["weight"],
 		data["healing_capacity"]
 	)
+	component.max_health = data["max_health"]
 	component.is_damaged = data["is_damaged"]
-	component.patients = data["patients"].map(func(p): return Character.deserialize(p, component.game_state_manager))
+	component.patients = data["patients"].map(func(p): return Character.deserialize(p))
 	return component
 
 func _to_string() -> String:

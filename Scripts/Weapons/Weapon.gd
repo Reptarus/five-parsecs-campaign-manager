@@ -2,9 +2,7 @@
 class_name Weapon
 extends Equipment
 
-enum WeaponType { LOW_TECH, MILITARY, HIGH_TECH }
-
-@export var weapon_type: WeaponType = WeaponType.LOW_TECH
+@export var weapon_type: GlobalEnums.WeaponType = GlobalEnums.WeaponType.PISTOL
 @export var weapon_range: int = 0
 @export var shots: int = 1
 @export var weapon_damage: int = 0
@@ -21,17 +19,17 @@ func _init(p_name: String = "", p_type: GlobalEnums.WeaponType = GlobalEnums.Wea
 	super._init(p_name, GlobalEnums.ItemType.WEAPON, 0)  # Set value to 0 for now
 	weapon_system = WeaponSystem.new()
 	var base_weapon = weapon_system.BASE_WEAPONS.get(p_name, {})
-	weapon_type = WeaponType[GlobalEnums.WeaponType.keys()[p_type]]
+	weapon_type = p_type
 	weapon_range = p_range if p_range > 0 else base_weapon.get("range", 0)
 	shots = p_shots if p_shots > 1 else base_weapon.get("shots", 1)
 	weapon_damage = p_damage if p_damage > 0 else base_weapon.get("damage", 0)
 	traits = p_traits if p_traits.size() > 0 else base_weapon.get("traits", [])
 
 func is_pistol() -> bool:
-	return "Pistol" in traits
+	return weapon_type == GlobalEnums.WeaponType.PISTOL
 
 func is_melee() -> bool:
-	return "Melee" in traits
+	return weapon_type == GlobalEnums.WeaponType.MELEE
 
 func apply_mods(mods_to_apply: Array):
 	for mod in mods_to_apply:
@@ -43,17 +41,17 @@ func get_hit_bonus(distance: float, is_aiming: bool, is_in_cover: bool) -> int:
 func check_overheat(roll: int) -> bool:
 	return weapon_system.check_overheat(self, roll)
 
-func apply_trait(trait_name: String, context: Dictionary) -> int:
+func apply_trait(trait_name: GlobalEnums.WeaponTrait, context: Dictionary) -> int:
 	return weapon_system.apply_trait(trait_name, self, context)
 
 func serialize() -> Dictionary:
 	var base_data = super.serialize()
 	base_data.merge({
-		"weapon_type": weapon_type,
+		"weapon_type": GlobalEnums.WeaponType.keys()[weapon_type],
 		"range": weapon_range,
 		"shots": shots,
 		"damage": weapon_damage,
-		"traits": traits,
+		"traits": traits.map(func(trait): return GlobalEnums.WeaponTrait.keys()[trait]),
 		"melee_bonus": melee_bonus,
 		"visibility_bonus": visibility_bonus,
 		"bipod_bonus": bipod_bonus,
@@ -64,11 +62,11 @@ func serialize() -> Dictionary:
 static func deserialize(data: Dictionary) -> Weapon:
 	var weapon = Weapon.new(
 		data.get("name", ""),
-		data.get("weapon_type", WeaponType.LOW_TECH),
-		data.get("weapon_range", 0),
+		GlobalEnums.WeaponType[data.get("weapon_type", "PISTOL")],
+		data.get("range", 0),
 		data.get("shots", 1),
 		data.get("damage", 0),
-		data.get("traits", [])
+		data.get("traits", []).map(func(trait): return GlobalEnums.WeaponTrait[trait])
 	)
 	weapon.value = data.get("value", 0)
 	weapon.is_damaged = data.get("is_damaged", false)

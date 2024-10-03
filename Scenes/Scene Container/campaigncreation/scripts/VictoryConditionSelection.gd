@@ -29,8 +29,10 @@ func _ready() -> void:
 	for condition in victory_conditions.keys():
 		condition_list.add_item(condition)
 	
-	condition_list.item_selected.connect(_on_condition_selected)
-	select_button.pressed.connect(_on_select_pressed)
+	if not condition_list.item_selected.is_connected(_on_condition_selected):
+		condition_list.item_selected.connect(_on_condition_selected)
+	if not select_button.pressed.is_connected(_on_select_pressed):
+		select_button.pressed.connect(_on_select_pressed)
 
 func _on_condition_selected(index: int) -> void:
 	var condition_name: String = condition_list.get_item_text(index)

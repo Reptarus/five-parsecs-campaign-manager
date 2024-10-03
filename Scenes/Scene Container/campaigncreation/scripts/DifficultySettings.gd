@@ -2,9 +2,8 @@
 class_name DifficultySettings
 extends Resource
 
-enum DifficultyLevel { EASY, NORMAL, CHALLENGING, HARDCORE, INSANITY, BASIC_TUTORIAL, ADVANCED_TUTORIAL }
-
-@export var level: DifficultyLevel = DifficultyLevel.NORMAL
+# Use the GlobalEnums.DifficultyMode enum from GameStateManager
+@export var level: GlobalEnums.DifficultyMode = GlobalEnums.DifficultyMode.NORMAL
 @export var enemy_health_multiplier: float = 1.0
 @export var enemy_damage_multiplier: float = 1.0
 @export var loot_quantity_multiplier: float = 1.0
@@ -19,10 +18,10 @@ enum DifficultyLevel { EASY, NORMAL, CHALLENGING, HARDCORE, INSANITY, BASIC_TUTO
 @export var stars_of_story_disabled: bool = false
 @export var tutorial_step: int = 0
 
-func set_difficulty(new_level: DifficultyLevel) -> void:
+func set_difficulty(new_level: GlobalEnums.DifficultyMode) -> void:
 	level = new_level
 	match level:
-		DifficultyLevel.EASY:
+		GlobalEnums.DifficultyMode.EASY:
 			enemy_health_multiplier = 0.8
 			enemy_damage_multiplier = 0.8
 			loot_quantity_multiplier = 1.2
@@ -35,7 +34,7 @@ func set_difficulty(new_level: DifficultyLevel) -> void:
 			specialist_enemy_count = 0
 			unique_individual_chance = 0.0
 			stars_of_story_disabled = false
-		DifficultyLevel.NORMAL:
+		GlobalEnums.DifficultyMode.NORMAL:
 			enemy_health_multiplier = 1.0
 			enemy_damage_multiplier = 1.0
 			loot_quantity_multiplier = 1.0
@@ -48,7 +47,7 @@ func set_difficulty(new_level: DifficultyLevel) -> void:
 			specialist_enemy_count = 0
 			unique_individual_chance = 0.0
 			stars_of_story_disabled = false
-		DifficultyLevel.CHALLENGING:
+		GlobalEnums.DifficultyMode.CHALLENGING:
 			enemy_health_multiplier = 1.0
 			enemy_damage_multiplier = 1.0
 			loot_quantity_multiplier = 1.0
@@ -63,7 +62,7 @@ func set_difficulty(new_level: DifficultyLevel) -> void:
 			stars_of_story_disabled = false
 			# Special rule for Challenging
 			# When rolling to determine enemy numbers faced in battle, count any die rolling a 1 or 2 as a 3.
-		DifficultyLevel.HARDCORE:
+		GlobalEnums.DifficultyMode.HARDCORE:
 			enemy_health_multiplier = 1.2
 			enemy_damage_multiplier = 1.2
 			loot_quantity_multiplier = 0.8
@@ -76,7 +75,7 @@ func set_difficulty(new_level: DifficultyLevel) -> void:
 			specialist_enemy_count = 0
 			unique_individual_chance = 0.0
 			stars_of_story_disabled = false
-		DifficultyLevel.INSANITY:
+		GlobalEnums.DifficultyMode.INSANITY:
 			enemy_health_multiplier = 1.5
 			enemy_damage_multiplier = 1.5
 			loot_quantity_multiplier = 0.5
@@ -89,10 +88,6 @@ func set_difficulty(new_level: DifficultyLevel) -> void:
 			specialist_enemy_count = 1
 			unique_individual_chance = 1.0  # Always includes a Unique Individual
 			stars_of_story_disabled = true
-		DifficultyLevel.BASIC_TUTORIAL:
-			_set_basic_tutorial()
-		DifficultyLevel.ADVANCED_TUTORIAL:
-			_set_advanced_tutorial()
 
 func _set_basic_tutorial() -> void:
 	enemy_health_multiplier = 0.7
@@ -125,7 +120,7 @@ func _set_advanced_tutorial() -> void:
 	tutorial_step = 1
 
 func advance_tutorial() -> void:
-	if level == DifficultyLevel.BASIC_TUTORIAL or level == DifficultyLevel.ADVANCED_TUTORIAL:
+	if level == GlobalEnums.DifficultyMode.EASY:  # Assuming EASY is used for tutorial
 		tutorial_step += 1
 		_adjust_tutorial_difficulty()
 
@@ -151,7 +146,7 @@ func _adjust_tutorial_difficulty() -> void:
 
 func to_dict() -> Dictionary:
 	return {
-		"level": DifficultyLevel.keys()[level],
+		"level": GlobalEnums.DifficultyMode.keys()[level],
 		"enemy_health_multiplier": enemy_health_multiplier,
 		"enemy_damage_multiplier": enemy_damage_multiplier,
 		"loot_quantity_multiplier": loot_quantity_multiplier,
@@ -169,7 +164,7 @@ func to_dict() -> Dictionary:
 
 static func from_dict(data: Dictionary) -> DifficultySettings:
 	var settings := DifficultySettings.new()
-	settings.level = DifficultyLevel[data["level"]]
+	settings.level = GlobalEnums.DifficultyMode[data["level"]]
 	settings.enemy_health_multiplier = data["enemy_health_multiplier"]
 	settings.enemy_damage_multiplier = data["enemy_damage_multiplier"]
 	settings.loot_quantity_multiplier = data["loot_quantity_multiplier"]

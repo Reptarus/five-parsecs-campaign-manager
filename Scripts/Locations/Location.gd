@@ -11,12 +11,15 @@ enum Type { STAR_SYSTEM, PLANET, CITY, SPACE_STATION, ALIEN_LANDSCAPE }
 @export var strife_level: GlobalEnums.FringeWorldInstability = GlobalEnums.FringeWorldInstability.STABLE
 @export var faction: GlobalEnums.Faction = GlobalEnums.Faction.FRINGE
 
+var game_state_manager: GameStateManager
+
 func _init(_name: String = "", _type: Type = Type.STAR_SYSTEM, _parent: Location = null) -> void:
 	name = _name
 	type = _type
 	parent = _parent
 	if parent:
 		parent.add_child(self)
+	game_state_manager = GameStateManager
 
 func add_child(child: Location) -> void:
 	children.append(child)
@@ -55,9 +58,9 @@ func get_faction() -> GlobalEnums.Faction:
 	return faction
 
 func generate_random_traits() -> void:
-	var num_traits = randi() % 3 + 1  # 1 to 3 traits
+	var num_traits = game_state_manager.combat_manager.roll_dice(1, 3)  # 1 to 3 traits
 	for i in range(num_traits):
-		var random_trait = GlobalEnums.WorldTrait.values()[randi() % GlobalEnums.WorldTrait.size()]
+		var random_trait = GlobalEnums.WorldTrait.values()[game_state_manager.combat_manager.roll_dice(1, GlobalEnums.WorldTrait.size()) - 1]
 		add_trait(random_trait)
 
 func serialize() -> Dictionary:

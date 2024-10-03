@@ -15,14 +15,18 @@ var max_crew_size: int = 8
 var current_size: int = 5
 
 func _ready() -> void:
-	game_state_manager = get_node("/root/GameState")
+	game_state_manager = get_node("/root/GameStateManager")
 	if not game_state_manager:
-		push_error("GameStateManagerNode not found. Make sure it's properly set up as an AutoLoad.")
+		push_error("GameStateManager not found. Make sure it's properly set up as an AutoLoad.")
 		return
 	
-	game_state = game_state_manager.game_state
+	if not game_state_manager.has_method("get_game_state"):
+		push_error("GameStateManager does not have the expected get_game_state() method.")
+		return
+	
+	game_state = game_state_manager.get_game_state()
 	if not game_state:
-		push_error("GameState not found in GameStateManagerNode.")
+		push_error("Failed to get GameState from GameStateManager.")
 		return
 	
 	size_slider.min_value = min_crew_size
@@ -68,11 +72,8 @@ func _on_character_created(character: Character) -> void:
 func finish_crew_creation() -> void:
 	game_state.current_crew = crew
 	game_state.crew_size = current_size
-	game_state.current_state = GlobalEnums.CampaignPhase.UPKEEP
-	get_tree().change_scene_to_file("res://Scenes/Management/CampaignDashboard.tscn")
-
-# This function is no longer needed in CrewSetup.gd
-# The crew name input has been moved to ShipCreation.tscn and ShipCreation.gd
+	game_state.current_state = GlobalEnums.CampaignPhase.CREW_CREATION
+	get_tree().change_scene_to_file("res://Scenes/Management/CrewManagement.tscn")
 
 func set_difficulty_settings(settings: DifficultySettings) -> void:
 	game_state.difficulty_settings = settings

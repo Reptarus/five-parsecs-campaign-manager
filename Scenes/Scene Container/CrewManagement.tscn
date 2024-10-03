@@ -1,8 +1,7 @@
-[gd_scene load_steps=4 format=3 uid="uid://bogbjollcirck"]
+[gd_scene load_steps=3 format=3 uid="uid://bogbjollcirck"]
 
 [ext_resource type="Script" path="res://Scenes/Management/CrewManagement.gd" id="1_abcde"]
-[ext_resource type="Theme" uid="uid://d1you1rrwuu48" path="res://Scenes/sci_fi_theme.tres" id="2_theme"]
-[ext_resource type="PackedScene" uid="uid://c4m7o38wt8gvx" path="res://Scenes/Scene Container/CharacterDisplay.tscn" id="3_fghij"]
+[ext_resource type="PackedScene" uid="uid://cxxx" path="res://Scenes/Scene Container/campaigncreation/scenes/CharacterBox.tscn" id="2_charbox"]
 
 [node name="CrewManagement" type="Control"]
 layout_mode = 3
@@ -11,7 +10,6 @@ anchor_right = 1.0
 anchor_bottom = 1.0
 grow_horizontal = 2
 grow_vertical = 2
-theme = ExtResource("2_theme")
 script = ExtResource("1_abcde")
 
 [node name="HBoxContainer" type="HBoxContainer" parent="."]
@@ -22,39 +20,9 @@ anchor_bottom = 1.0
 grow_horizontal = 2
 grow_vertical = 2
 
-[node name="Sidebar" type="Panel" parent="HBoxContainer"]
-layout_mode = 2
-size_flags_horizontal = 3
-size_flags_stretch_ratio = 0.2
-
-[node name="VBoxContainer" type="VBoxContainer" parent="HBoxContainer/Sidebar"]
-layout_mode = 1
-anchors_preset = 15
-anchor_right = 1.0
-anchor_bottom = 1.0
-grow_horizontal = 2
-grow_vertical = 2
-
-[node name="CrewButton" type="Button" parent="HBoxContainer/Sidebar/VBoxContainer"]
-layout_mode = 2
-text = "Crew"
-
-[node name="ShipButton" type="Button" parent="HBoxContainer/Sidebar/VBoxContainer"]
-layout_mode = 2
-text = "Ship"
-
-[node name="QuestsButton" type="Button" parent="HBoxContainer/Sidebar/VBoxContainer"]
-layout_mode = 2
-text = "Quests"
-
-[node name="StashButton" type="Button" parent="HBoxContainer/Sidebar/VBoxContainer"]
-layout_mode = 2
-text = "Ship Stash"
-
 [node name="MainContent" type="Panel" parent="HBoxContainer"]
 layout_mode = 2
 size_flags_horizontal = 3
-size_flags_stretch_ratio = 0.8
 
 [node name="MarginContainer" type="MarginContainer" parent="HBoxContainer/MainContent"]
 layout_mode = 1
@@ -72,7 +40,6 @@ theme_override_constants/margin_bottom = 20
 layout_mode = 2
 
 [node name="CrewContent" type="Control" parent="HBoxContainer/MainContent/MarginContainer/ContentContainer"]
-visible = false
 layout_mode = 1
 anchors_preset = 15
 anchor_right = 1.0
@@ -88,127 +55,6 @@ anchor_bottom = 1.0
 grow_horizontal = 2
 grow_vertical = 2
 columns = 3
-
-[node name="ShipContent" type="Control" parent="HBoxContainer/MainContent/MarginContainer/ContentContainer"]
-visible = false
-layout_mode = 1
-anchors_preset = 15
-anchor_right = 1.0
-anchor_bottom = 1.0
-grow_horizontal = 2
-grow_vertical = 2
-
-[node name="ShipInfo" type="VBoxContainer" parent="HBoxContainer/MainContent/MarginContainer/ContentContainer/ShipContent"]
-layout_mode = 1
-anchors_preset = 15
-anchor_right = 1.0
-anchor_bottom = 1.0
-grow_horizontal = 2
-grow_vertical = 2
-
-[node name="ShipName" type="Label" parent="HBoxContainer/MainContent/MarginContainer/ContentContainer/ShipContent/ShipInfo"]
-layout_mode = 2
-
-[node name="HullPoints" type="Label" parent="HBoxContainer/MainContent/MarginContainer/ContentContainer/ShipContent/ShipInfo"]
-layout_mode = 2
-
-[node name="Fuel" type="Label" parent="HBoxContainer/MainContent/MarginContainer/ContentContainer/ShipContent/ShipInfo"]
-layout_mode = 2
-
-[node name="ComponentsList" type="ItemList" parent="HBoxContainer/MainContent/MarginContainer/ContentContainer/ShipContent/ShipInfo"]
-layout_mode = 2
-
-[node name="Traits" type="Label" parent="HBoxContainer/MainContent/MarginContainer/ContentContainer/ShipContent/ShipInfo"]
-layout_mode = 2
-
-[node name="Debt" type="Label" parent="HBoxContainer/MainContent/MarginContainer/ContentContainer/ShipContent/ShipInfo"]
-layout_mode = 2
-
-[node name="QuestsContent" type="Control" parent="HBoxContainer/MainContent/MarginContainer/ContentContainer"]
-visible = false
-layout_mode = 1
-anchors_preset = 15
-anchor_right = 1.0
-anchor_bottom = 1.0
-grow_horizontal = 2
-grow_vertical = 2
-
-[node name="MissionResults" type="Label" parent="HBoxContainer/MainContent/MarginContainer/ContentContainer/QuestsContent"]
-visible = false
-layout_mode = 1
-anchors_preset = 15
-anchor_right = 1.0
-anchor_bottom = 1.0
-grow_horizontal = 2
-grow_vertical = 2
-
-[node name="MissionDetails" type="Label" parent="HBoxContainer/MainContent/MarginContainer/ContentContainer/QuestsContent"]
-visible = false
-layout_mode = 1
-anchors_preset = 15
-anchor_right = 1.0
-anchor_bottom = 1.0
-grow_horizontal = 2
-grow_vertical = 2
-
-[node name="NoMission" type="Label" parent="HBoxContainer/MainContent/MarginContainer/ContentContainer/QuestsContent"]
-visible = false
-layout_mode = 1
-anchors_preset = 15
-anchor_right = 1.0
-anchor_bottom = 1.0
-grow_horizontal = 2
-grow_vertical = 2
-text = "No active mission"
-
-[node name="MissionSelection" type="VBoxContainer" parent="HBoxContainer/MainContent/MarginContainer/ContentContainer/QuestsContent"]
-visible = false
-layout_mode = 1
-anchors_preset = 15
-anchor_right = 1.0
-anchor_bottom = 1.0
-grow_horizontal = 2
-grow_vertical = 2
-
-[node name="MissionList" type="ItemList" parent="HBoxContainer/MainContent/MarginContainer/ContentContainer/QuestsContent/MissionSelection"]
-layout_mode = 2
-size_flags_vertical = 3
-
-[node name="StashContent" type="Control" parent="HBoxContainer/MainContent/MarginContainer/ContentContainer"]
-visible = false
-layout_mode = 1
-anchors_preset = 15
-anchor_right = 1.0
-anchor_bottom = 1.0
-grow_horizontal = 2
-grow_vertical = 2
-
-[node name="VBoxContainer" type="VBoxContainer" parent="HBoxContainer/MainContent/MarginContainer/ContentContainer/StashContent"]
-layout_mode = 1
-anchors_preset = 15
-anchor_right = 1.0
-anchor_bottom = 1.0
-grow_horizontal = 2
-grow_vertical = 2
-
-[node name="SortOptions" type="HBoxContainer" parent="HBoxContainer/MainContent/MarginContainer/ContentContainer/StashContent/VBoxContainer"]
-layout_mode = 2
-
-[node name="SortByName" type="Button" parent="HBoxContainer/MainContent/MarginContainer/ContentContainer/StashContent/VBoxContainer/SortOptions"]
-layout_mode = 2
-text = "Sort by Name"
-
-[node name="SortByRecency" type="Button" parent="HBoxContainer/MainContent/MarginContainer/ContentContainer/StashContent/VBoxContainer/SortOptions"]
-layout_mode = 2
-text = "Sort by Recency"
-
-[node name="SortByType" type="Button" parent="HBoxContainer/MainContent/MarginContainer/ContentContainer/StashContent/VBoxContainer/SortOptions"]
-layout_mode = 2
-text = "Sort by Type"
-
-[node name="StashList" type="ItemList" parent="HBoxContainer/MainContent/MarginContainer/ContentContainer/StashContent/VBoxContainer"]
-layout_mode = 2
-size_flags_vertical = 3
 
 [node name="FinalizeCrew" type="Button" parent="."]
 layout_mode = 1
@@ -240,16 +86,9 @@ grow_horizontal = 0
 grow_vertical = 0
 text = "Create New Character"
 
-[node name="CharacterDisplay" parent="." instance=ExtResource("3_fghij")]
+[node name="CharacterDisplay" parent="." instance=ExtResource("2_charbox")]
 visible = false
 layout_mode = 1
 
-[connection signal="pressed" from="HBoxContainer/Sidebar/VBoxContainer/CrewButton" to="." method="_on_crew_button_pressed"]
-[connection signal="pressed" from="HBoxContainer/Sidebar/VBoxContainer/ShipButton" to="." method="_on_ship_button_pressed"]
-[connection signal="pressed" from="HBoxContainer/Sidebar/VBoxContainer/QuestsButton" to="." method="_on_quests_button_pressed"]
-[connection signal="pressed" from="HBoxContainer/Sidebar/VBoxContainer/StashButton" to="." method="_on_stash_button_pressed"]
-[connection signal="pressed" from="HBoxContainer/MainContent/MarginContainer/ContentContainer/StashContent/VBoxContainer/SortOptions/SortByName" to="." method="_on_sort_by_name_pressed"]
-[connection signal="pressed" from="HBoxContainer/MainContent/MarginContainer/ContentContainer/StashContent/VBoxContainer/SortOptions/SortByRecency" to="." method="_on_sort_by_recency_pressed"]
-[connection signal="pressed" from="HBoxContainer/MainContent/MarginContainer/ContentContainer/StashContent/VBoxContainer/SortOptions/SortByType" to="." method="_on_sort_by_type_pressed"]
 [connection signal="pressed" from="FinalizeCrew" to="." method="_on_finalize_crew_button_pressed"]
 [connection signal="pressed" from="CreateCharacterButton" to="." method="_on_create_character_button_pressed"]

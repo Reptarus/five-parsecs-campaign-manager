@@ -5,16 +5,13 @@ signal combat_started
 signal combat_ended(player_victory: bool)
 signal turn_started(character: Character)
 signal turn_ended(character: Character)
-signal ui_update_needed(round: int, phase: BattlePhase, current_character: Character)
+signal ui_update_needed(round: int, phase: GlobalEnums.BattlePhase, current_character: Character)
 signal log_action(action: String)
 signal character_moved(character: Character, new_position: Vector2i)
 signal enable_player_controls(character: Character)
 signal update_turn_label(round: int)
 signal update_current_character_label(character_name: String)
 signal highlight_valid_positions(positions: Array[Vector2i])
-
-enum CoverType { NONE, PARTIAL, FULL }
-enum BattlePhase { REACTION_ROLL, QUICK_ACTIONS, ENEMY_ACTIONS, SLOW_ACTIONS, END_PHASE }
 
 const GRID_SIZE: Vector2i = Vector2i(24, 24)  # 24" x 24" battlefield
 const CELL_SIZE: Vector2i = Vector2i(32, 32)  # Size of each cell in pixels
@@ -26,7 +23,7 @@ var battlefield: Array[Array]
 var turn_order: Array[Character]
 var current_turn_index: int = 0
 var current_round: int = 1
-var current_phase: BattlePhase = BattlePhase.REACTION_ROLL
+var current_phase: GlobalEnums.BattlePhase = GlobalEnums.BattlePhase.REACTION_ROLL
 var battle_grid: GridContainer
 
 # Initialization and Setup
@@ -81,7 +78,7 @@ func perform_reaction_roll() -> void:
 		if not character in turn_order:
 			turn_order.append(character)
 	
-	current_phase = BattlePhase.QUICK_ACTIONS
+	current_phase = GlobalEnums.BattlePhase.QUICK_ACTIONS
 	current_turn_index = 0
 	start_next_turn()
 
@@ -92,7 +89,7 @@ func start_next_turn() -> void:
 
 	var current_character: Character = turn_order[current_turn_index]
 	emit_signal("turn_started", current_character)
-	update_ui(current_round, current_phase, current_character)  # Fixed: Added current_character as the third argument
+	update_ui(current_round, current_phase, current_character)
 	if current_character in current_mission.get_enemies():
 		perform_enemy_turn(current_character)
 	else:
@@ -105,11 +102,11 @@ func start_next_turn() -> void:
 
 func advance_phase() -> void:
 	match current_phase:
-		BattlePhase.QUICK_ACTIONS:
-			current_phase = BattlePhase.ENEMY_ACTIONS
-		BattlePhase.ENEMY_ACTIONS:
-			current_phase = BattlePhase.SLOW_ACTIONS
-		BattlePhase.SLOW_ACTIONS:
+		GlobalEnums.BattlePhase.QUICK_ACTIONS:
+			current_phase = GlobalEnums.BattlePhase.ENEMY_ACTIONS
+		GlobalEnums.BattlePhase.ENEMY_ACTIONS:
+			current_phase = GlobalEnums.BattlePhase.SLOW_ACTIONS
+		GlobalEnums.BattlePhase.SLOW_ACTIONS:
 			end_battle_round()
 			return
 	
@@ -117,7 +114,7 @@ func advance_phase() -> void:
 	start_next_turn()
 
 func end_battle_round() -> void:
-	current_phase = BattlePhase.END_PHASE
+	current_phase = GlobalEnums.BattlePhase.END_PHASE
 	perform_morale_check()
 	if not check_battle_end():
 		current_round += 1
@@ -135,7 +132,7 @@ func perform_enemy_turn(enemy: Character) -> void:
 func perform_attack(attacker: Character, target: Character) -> void:
 	if can_attack(attacker, target):
 		var hit_roll: int = roll_dice(1, 6) + attacker.combat_skill
-		var hit_threshold: int = 5 if get_cover_type(target.position) == CoverType.NONE else 6
+		var hit_threshold: int = 5 if get_cover_type(target.position) == GlobalEnums.CoverType.NONE else 6
 		
 		if hit_roll >= hit_threshold:
 			var damage: int = attacker.weapon.roll_damage()
@@ -206,7 +203,7 @@ func find_nearest_cover(character: Character) -> Vector2i:
 	for x in range(GRID_SIZE.x):
 		for y in range(GRID_SIZE.y):
 			var pos := Vector2i(x, y)
-			if get_cover_type(pos) != CoverType.NONE:
+			if get_cover_type(pos) != GlobalEnums.CoverType.NONE:
 				var distance := character.position.distance_to(pos)
 				if distance < min_distance:
 					min_distance = distance
@@ -218,7 +215,7 @@ func find_random_position() -> Vector2i:
 	var y := randi() % GRID_SIZE.y
 	return Vector2i(x, y)
 
-func get_cover_type(position: Vector2i) -> CoverType:
+func get_cover_type(position: Vector2i) -> GlobalEnums.CoverType:
 	var adjacent_positions := [
 		Vector2i(position.x - 1, position.y),
 		Vector2i(position.x + 1, position.y),
@@ -232,11 +229,11 @@ func get_cover_type(position: Vector2i) -> CoverType:
 			cover_count += 1
 
 	if cover_count >= 2:
-		return CoverType.FULL
+		return GlobalEnums.CoverType.FULL
 	elif cover_count == 1:
-		return CoverType.PARTIAL
+		return GlobalEnums.CoverType.PARTIAL
 	else:
-		return CoverType.NONE
+		return GlobalEnums.CoverType.NONE
 
 func is_valid_position(pos: Vector2i) -> bool:
 	return pos.x >= 0 and pos.x < GRID_SIZE.x and pos.y >= 0 and pos.y < GRID_SIZE.y
@@ -369,7 +366,7 @@ func start_turn(character: Character) -> void:
 func end_turn(character: Character) -> void:
 	turn_ended.emit(character)
 
-func update_ui(round_num: int, phase: BattlePhase, current_character: Character) -> void:
+func update_ui(round_num: int, phase: GlobalEnums.BattlePhase, current_character: Character) -> void:
 	ui_update_needed.emit(round_num, phase, current_character)
 
 func add_log_entry(action: String) -> void:

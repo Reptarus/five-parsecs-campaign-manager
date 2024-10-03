@@ -38,7 +38,7 @@ func _setup_ui() -> void:
 		var button: Button = $MarginContainer/VBoxContainer/HBoxContainer.get_node(button_name)
 		button.pressed.connect(phase_buttons[button_name])
 		button.custom_minimum_size = Vector2(150, 50)
-		if button_name.to_lower().replace("button", "") == game_state_manager.game_state.current_state.to_lower():
+		if button_name.to_lower().replace("button", "") == str(game_state_manager.game_state.current_state).to_lower():
 			button.add_theme_color_override("font_color", Color.GREEN)
 	
 	$MarginContainer/VBoxContainer/HBoxContainer2/VBoxContainer2/HBoxContainer/PlanetInfoButton.pressed.connect(_on_planet_info_pressed)

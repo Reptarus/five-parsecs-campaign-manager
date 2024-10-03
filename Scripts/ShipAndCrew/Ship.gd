@@ -50,7 +50,7 @@ func repair(amount: int) -> void:
 	hull_changed.emit(current_hull, max_hull)
 
 func take_damage(amount: int, game_state: GameStateManager) -> void:
-	if game_state.is_tutorial_active:
+	if game_state.game_state.is_tutorial_active:
 		amount = max(1, int(amount / 2.0))
 	current_hull = max(current_hull - amount, 0)
 	hull_changed.emit(current_hull, max_hull)
@@ -160,7 +160,7 @@ static func deserialize(data: Dictionary) -> Ship:
 	ship.fuel = data["fuel"]
 	ship.debt = data["debt"]
 	ship.components = data["components"].map(func(c):
-		match c["type"]:
+		match c["component_type"]:
 			GlobalEnums.ComponentType.ENGINE:
 				return EngineComponent.deserialize(c)
 			GlobalEnums.ComponentType.WEAPONS:
@@ -174,6 +174,6 @@ static func deserialize(data: Dictionary) -> Ship:
 	)
 	ship.traits = data["traits"]
 	ship.inventory = ShipInventory.deserialize(data["inventory"])
-	ship.crew = data["crew"].map(func(c): return Character.deserialize(c, ship))
+	ship.crew = data["crew"].map(func(c): return Character.deserialize(c))
 	ship.current_location = Location.deserialize(data["current_location"]) if data["current_location"] else null
 	return ship
