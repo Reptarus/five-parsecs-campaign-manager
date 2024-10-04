@@ -100,7 +100,7 @@ static func deserialize(data: Dictionary) -> StrangeCharacters:
 func roll_dice(num_dice: int, sides: int) -> int:
 	return game_state_manager.combat_manager.roll_dice(num_dice, sides)
 
-func handle_precursor_character_event(character: Character) -> void:
+func handle_precursor_character_event(_character: Character) -> void:
 	if type == StrangeCharacterType.PRECURSOR:
 		var event1 = roll_dice(1, 100)
 		var event2 = roll_dice(1, 100)

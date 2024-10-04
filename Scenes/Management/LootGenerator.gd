@@ -1,10 +1,10 @@
 class_name LootGenerator
 extends Node
 
-var game_state: GameState
+var game_state_manager: GameStateManager
 
-func _init(_game_state: GameState):
-	game_state = _game_state
+func _init():
+	game_state_manager = get_node("/root/GameStateManager")
 
 const LootType = GlobalEnums.ItemType
 
@@ -164,10 +164,10 @@ func apply_loot(character: Character, loot: Dictionary, ship: Ship) -> void:
 			new_weapon.damage = loot.damage
 			new_weapon.traits = loot.traits
 			new_weapon.value = loot.value
-			if ship.add_to_ship_stash(new_weapon):
+			if ship.inventory.add_item(new_weapon):
 				loot_summary.append("%s found %s" % [character.name, loot.name])
 			else:
-				loot_summary.append("Ship stash is full, couldn't store %s" % loot.name)
+				loot_summary.append("Ship inventory is full, couldn't store %s" % loot.name)
 		
 		"Armor":
 			var new_armor = Armor.new()
@@ -175,35 +175,35 @@ func apply_loot(character: Character, loot: Dictionary, ship: Ship) -> void:
 			new_armor.armor_save = loot.armor_save
 			new_armor.level = loot.level
 			new_armor.value = loot.value
-			if ship.add_to_ship_stash(new_armor):
+			if ship.inventory.add_item(new_armor):
 				loot_summary.append("%s found %s" % [character.name, loot.name])
 			else:
-				loot_summary.append("Ship stash is full, couldn't store %s" % loot.name)
+				loot_summary.append("Ship inventory is full, couldn't store %s" % loot.name)
 		
 		"Gear", "Consumable":
 			var new_gear = Gear.new()
 			new_gear.name = loot.name
-			new_gear.type = loot.type
-			new_gear.effect = loot.effect
+			new_gear.gear_type = GlobalEnums.ItemType[loot.type.to_upper()]
+			new_gear.description = loot.effect
 			new_gear.value = loot.value
 			new_gear.weight = loot.weight
-			if ship.add_to_ship_stash(new_gear):
+			if ship.inventory.add_item(new_gear):
 				loot_summary.append("%s found %s" % [character.name, loot.name])
 			else:
-				loot_summary.append("Ship stash is full, couldn't store %s" % loot.name)
+				loot_summary.append("Ship inventory is full, couldn't store %s" % loot.name)
 		
 		"Credits":
-			game_state.add_credits(loot.amount)
+			game_state_manager.game_state.add_credits(loot.amount)
 			loot_summary.append("%s found %d credits" % [character.name, loot.amount])
 		
 		"Story Point":
-			game_state.add_story_points(loot.amount)
+			game_state_manager.game_state.add_story_points(loot.amount)
 			loot_summary.append("%s discovered %d story point(s)" % [character.name, loot.amount])
 		
 		_:
 			push_error("Invalid loot type: %s" % loot.type)
 	
 	# Store loot summary for mission recap
-	if not game_state.has("mission_loot_summary"):
-		game_state.mission_loot_summary = []
-	game_state.mission_loot_summary.append_array(loot_summary)
+	if not game_state_manager.game_state.has("mission_loot_summary"):
+		game_state_manager.game_state.mission_loot_summary = []
+	game_state_manager.game_state.mission_loot_summary.append_array(loot_summary)

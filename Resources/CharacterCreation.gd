@@ -3,7 +3,7 @@ class_name CharacterCreation
 extends Resource
 
 var character_creation_data: CharacterCreationData
-@export var character_creation_logic: Resource
+@export var character_creation_logic: CharacterCreationLogic
 
 func _init() -> void:
 	character_creation_data = CharacterCreationData.new()
@@ -21,20 +21,20 @@ func get_random_options() -> Dictionary:
 func _get_random_element(array: Array) -> Variant:
 	return array[randi() % array.size()]
 
-func create_random_character(game_state_manager: GameState) -> Character:
+func create_random_character(game_state_manager: GameStateManager) -> Character:
 	var options = get_random_options()
 	return character_creation_logic.create_character(
-		options.species,
-		options.background,
-		options.motivation,
-		options.character_class,
-		game_state_manager
+		GlobalEnums.Species[options.species.to_upper()],
+		GlobalEnums.Background[options.background.to_upper()],
+		GlobalEnums.Motivation[options.motivation.to_upper()],
+		GlobalEnums.Class[options.character_class.to_upper()],
+		game_state_manager.game_state
 	)
 
-func get_background_data(background_id: String) -> Dictionary:
+func get_background_data(background_id: GlobalEnums.Background) -> Dictionary:
 	return character_creation_data.get_background_data(background_id)
 
-func get_class_data(class_id: String) -> Dictionary:
+func get_class_data(class_id: GlobalEnums.Class) -> Dictionary:
 	return character_creation_data.get_class_data(class_id)
 
 func get_all_species() -> Array[Dictionary]:

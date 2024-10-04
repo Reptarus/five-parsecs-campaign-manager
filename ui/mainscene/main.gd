@@ -45,7 +45,8 @@ func load_game() -> void:
 		
 		if parse_result == OK:
 			var save_data = json.get_data()
-			game_manager.game_state = GameState.deserialize(save_data)
+			game_manager.game_state = GameState.new()
+			game_manager.game_state.deserialize(save_data)
 			goto_scene("res://Scenes/campaign/Battle.tscn")
 
 func start_new_game() -> void:

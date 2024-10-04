@@ -1,83 +1,72 @@
-# CrewSetup.gd
+# InitialCrewCreation.gd
 extends Control
 
-@onready var size_slider: HSlider = $SizeSlider
-@onready var size_label: Label = $SizeLabel
-@onready var crew_visual: Control = $CrewVisual
-@onready var character_creation: Control = $CharacterCreation
-@onready var crew_name_input: LineEdit = $CrewNameInput
+@onready var crew_size_slider = $HSlider
+@onready var current_size_label = $CurrentSizeLabel
+@onready var tutorial_label = $TutorialLabel
+@onready var confirm_button = $ConfirmButton
 
 var game_state_manager: GameStateManager
-var game_state: GameStateManager
-var crew: Crew
-var min_crew_size: int = 3
-var max_crew_size: int = 8
-var current_size: int = 5
 
-func _ready() -> void:
+func _ready():
 	game_state_manager = get_node("/root/GameStateManager")
 	if not game_state_manager:
-		push_error("GameStateManager not found. Make sure it's properly set up as an AutoLoad.")
+		push_error("GameStateManager not found. Ensure it's properly set up.")
 		return
 	
-	if not game_state_manager.has_method("get_game_state"):
-		push_error("GameStateManager does not have the expected get_game_state() method.")
-		return
-	
-	game_state = game_state_manager.get_game_state()
-	if not game_state:
-		push_error("Failed to get GameState from GameStateManager.")
-		return
-	
-	size_slider.min_value = min_crew_size
-	size_slider.max_value = max_crew_size
-	size_slider.value = current_size
-	update_ui()
-	size_slider.value_changed.connect(_on_size_changed)
-	
-	character_creation.hide()
+	setup_ui()
+	update_tutorial_label()
 
-func _on_size_changed(new_size: float) -> void:
-	current_size = int(new_size)
-	update_ui()
+func setup_ui():
+	crew_size_slider.min_value = 4
+	crew_size_slider.max_value = 6
+	crew_size_slider.value = 5  # Default to 5 for tutorial
+	update_current_size_label()
 
-func update_ui() -> void:
-	size_label.text = str(current_size) + " Members"
-	update_crew_visual()
+func update_current_size_label():
+	current_size_label.text = "Current Crew Size: %d" % crew_size_slider.value
 
-func update_crew_visual() -> void:
-	for i in range(max_crew_size):
-		var member_panel: TextureRect = crew_visual.get_child(i)
-		member_panel.visible = i < current_size
-		if member_panel.visible:
-			member_panel.gui_input.connect(_on_member_panel_clicked.bind(i))
-
-func _on_member_panel_clicked(event: InputEvent, index: int) -> void:
-	if event is InputEventMouseButton and event.pressed and event.button_index == MOUSE_BUTTON_LEFT:
-		start_character_creation(index)
-
-func start_character_creation(index: int) -> void:
-	character_creation.show()
-	character_creation.initialize(index)
-
-func _on_character_created(character: Character) -> void:
-	if !crew:
-		crew = Crew.new()
-	crew.add_member(character)
-	if crew.get_member_count() < current_size:
-		character_creation.reset()
+func update_tutorial_label():
+	if game_state_manager.game_state.is_tutorial_active:
+		tutorial_label.text = "Tutorial Mode: Create your initial crew of 5 members."
+		tutorial_label.visible = true
+		crew_size_slider.editable = false
+		crew_size_slider.value = 5
 	else:
-		finish_crew_creation()
+		tutorial_label.visible = false
+		crew_size_slider.editable = true
 
-func finish_crew_creation() -> void:
-	game_state.current_crew = crew
-	game_state.crew_size = current_size
-	game_state.current_state = GlobalEnums.CampaignPhase.CREW_CREATION
-	get_tree().change_scene_to_file("res://Scenes/Management/CrewManagement.tscn")
+func _on_h_slider_value_changed(_value):
+	update_current_size_label()
 
-func set_difficulty_settings(settings: DifficultySettings) -> void:
-	game_state.difficulty_settings = settings
+func _on_confirm_button_pressed():
+	var crew_size = int(crew_size_slider.value)
+	game_state_manager.game_state.crew_size = crew_size
+	
+	# Generate initial crew members
+	for i in range(crew_size):
+		var new_crew_member = generate_crew_member()
+		game_state_manager.game_state.crew.append(new_crew_member)
+	
+	if game_state_manager.game_state.is_tutorial_active:
+		get_tree().change_scene_to_file("res://Scenes/TutorialBattle.tscn")
+	else:
+		get_tree().change_scene_to_file("res://Scenes/Scene Container/campaigncreation/scenes/CampaignSetupScreen.tscn")
 
-func set_optional_feature(feature_name: String, is_enabled: bool) -> void:
-	if feature_name in GlobalEnums:
-		game_state.set(feature_name, is_enabled)
+func generate_crew_member():
+	# This is a placeholder function. In a full implementation, you would:
+	# 1. Roll for species (or select based on player choice)
+	# 2. Generate stats based on species
+	# 3. Assign initial equipment
+	# 4. Generate a name
+	# For now, we'll return a simple dictionary
+	return {
+		"name": "Crew Member %d" % (game_state_manager.game_state.crew.size() + 1),
+		"species": "Human",
+		"reactions": 1,
+		"speed": 4,
+		"combat_skill": 0,
+		"toughness": 3,
+		"savvy": 0,
+		"equipment": ["Service Pistol", "Trooper Armor"]
+	}

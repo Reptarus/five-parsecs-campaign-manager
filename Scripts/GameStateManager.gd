@@ -5,8 +5,11 @@ signal battle_processed(battle_won: bool)
 signal tutorial_ended
 signal battle_started(battle_instance)
 
-var game_state: GameState
+const BATTLE_SCENE := preload("res://Scenes/Scene Container/Battle.tscn")
+const POST_BATTLE_SCENE := preload("res://Scenes/Scene Container/PostBattle.tscn")
+const INITIAL_CREW_CREATION_SCENE := "res://Scenes/Management/InitialCrewCreation.tscn"
 
+var game_state: GameState
 var mission_generator: MissionGenerator
 var equipment_manager: EquipmentManager
 var patron_job_manager: PatronJobManager
@@ -18,13 +21,10 @@ var world_generator: WorldGenerator
 var expanded_faction_manager: ExpandedFactionManager
 var combat_manager: CombatManager
 
-var battle_scene: PackedScene = preload("res://Scenes/Scene Container/Battle.tscn")
-
 func _ready() -> void:
 	game_state = GameState.new()
 	initialize_managers()
 
-# Delegate property access to GameState
 func _get(property: StringName):
 	return game_state.get(property)
 
@@ -37,12 +37,22 @@ func _set(property: StringName, value) -> bool:
 func _get_property_list() -> Array:
 	return game_state.get_property_list()
 
+func get_game_state() -> GameState:
+	if game_state == null:
+		game_state = GameState.new()
+	return game_state
+
 func transition_to_state(new_state: GlobalEnums.CampaignPhase) -> void:
 	game_state.current_state = new_state
 	state_changed.emit(new_state)
 
+func start_new_game() -> void:
+	game_state = GameState.new()
+	game_state.current_state = GlobalEnums.CampaignPhase.CREW_CREATION
+	get_tree().change_scene_to_file(INITIAL_CREW_CREATION_SCENE)
+
 func start_battle() -> void:
-	var battle_instance = battle_scene.instantiate()
+	var battle_instance = BATTLE_SCENE.instantiate()
 	battle_instance.initialize(self, game_state.current_mission)
 	battle_started.emit(battle_instance)
 	transition_to_state(GlobalEnums.CampaignPhase.BATTLE)
@@ -51,7 +61,7 @@ func end_battle(player_victory: bool, scene_tree: SceneTree) -> void:
 	game_state.current_mission.set_completed(player_victory)
 	game_state.last_mission_results = "victory" if player_victory else "defeat"
 	
-	var post_battle_scene = load("res://Scenes/Scene Container/PostBattle.tscn").instantiate()
+	var post_battle_scene = POST_BATTLE_SCENE.instantiate()
 	post_battle_scene.initialize(self)
 	scene_tree.root.add_child(post_battle_scene)
 	
@@ -62,6 +72,16 @@ func end_battle(player_victory: bool, scene_tree: SceneTree) -> void:
 	if scene_tree.root.has_node("Battle"):
 		scene_tree.root.get_node("Battle").queue_free()
 
+func process_battle(battle_won: bool) -> void:
+	if battle_won:
+		game_state.current_mission.complete()
+		handle_character_recovery()
+	else:
+		game_state.current_mission.fail()
+	
+	battle_processed.emit(battle_won)
+	current_battle = null
+
 func handle_character_recovery() -> void:
 	for character in game_state.current_ship.crew:
 		character.health = min(character.health + 20, character.max_health)
@@ -71,20 +91,6 @@ func end_tutorial() -> void:
 	game_state.is_tutorial_active = false
 	tutorial_ended.emit()
 
-func process_battle(battle_won: bool) -> void:
-	if battle_won:
-		game_state.current_mission.complete()
-	else:
-		game_state.current_mission.fail()
-	
-	battle_processed.emit(battle_won)
-	
-	if battle_won:
-		handle_character_recovery()
-	
-	current_battle = null
-
-# Delegate serialization to GameState
 func serialize() -> Dictionary:
 	return game_state.serialize()
 
@@ -102,9 +108,3 @@ func initialize_managers() -> void:
 	world_generator.initialize(self)
 	expanded_faction_manager = ExpandedFactionManager.new(game_state)
 	combat_manager = CombatManager.new()
-	# Initialize other managers as needed
-
-func start_new_game() -> void:
-	game_state = GameState.new()
-	game_state.current_state = GlobalEnums.CampaignPhase.CREW_CREATION
-	get_tree().change_scene_to_file("res://Scenes/Management/InitialCrewCreation.tscn")

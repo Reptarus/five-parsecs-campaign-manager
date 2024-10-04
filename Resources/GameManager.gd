@@ -104,14 +104,17 @@ func handle_game_over(victory: bool) -> void:
 	SaveGame.change_scene_to_file(game_over_scene)
 
 func generate_battlefield() -> void:
-	var battlefield_size := GlobalEnums.TerrainSize.MEDIUM  # 24" x 24" battlefield as per rules
-	terrain_generator.generate_terrain(battlefield_size)
-	terrain_generator.generate_features([battlefield_size], game_state.current_crew.members)
-	terrain_generator.generate_cover()
-	terrain_generator.generate_loot()
-	terrain_generator.generate_enemies()
-	terrain_generator.generate_npcs()
-	game_state.combat_manager.place_objectives()
+	var battlefield_generator = BattlefieldGenerator.new()
+	battlefield_generator.initialize()
+	var battlefield_data = battlefield_generator.generate_battlefield()
+	
+	# Update game state with the generated battlefield data
+	game_state.current_mission.battlefield_data = battlefield_data
+	# Emit signal to notify UI or other systems about the generated battlefield
+	emit_signal("battlefield_generated", battlefield_data)
+	
+	# Place objectives using the combat manager
+	game_state.combat_manager.place_objectives(battlefield_data)
 
 func handle_loot(loot: Array) -> void:
 	for item in loot:

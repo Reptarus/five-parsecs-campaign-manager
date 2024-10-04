@@ -4,7 +4,7 @@ extends Node
 var game_state_manager: GameStateManager
 var mission_generator: MissionGenerator
 
-func initialize(game_state_manager: GameStateManager) -> void:
+func initialize(_game_state_manager: GameStateManager) -> void:
 	self.game_state_manager = game_state_manager
 	mission_generator = MissionGenerator.new()
 	mission_generator.initialize(game_state_manager)

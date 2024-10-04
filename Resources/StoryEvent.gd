@@ -19,30 +19,32 @@ func _init(data: Dictionary = {}):
 	next_event_ticks = data.get("next_event_ticks", 0)
 	event_type = GlobalEnums.StrifeType[data.get("event_type", "RESOURCE_CONFLICT")]
 
-func apply_event_effects(game_state: GameState) -> void:
+func apply_event_effects(game_state_manager: GameStateManager) -> void:
+	var game_state = game_state_manager.game_state
 	for key in campaign_turn_modifications:
 		if game_state.has_method(key):
 			game_state.call(key, campaign_turn_modifications[key])
 	
-	game_state.galactic_war_manager.process_strife_event(event_type)
+	if game_state_manager.fringe_world_strife_manager:
+		game_state_manager.fringe_world_strife_manager.process_strife_event(event_type)
 
-func setup_battle(battle: Battle) -> void:
+func setup_battle(combat_manager: CombatManager) -> void:
 	for key in battle_setup:
-		if battle.has_method(key):
-			battle.call(key, battle_setup[key])
+		if combat_manager.has_method(key):
+			combat_manager.call(key, battle_setup[key])
 
-func apply_rewards(game_state: GameState) -> void:
+func apply_rewards(game_state_manager: GameStateManager) -> void:
+	var game_state = game_state_manager.game_state
 	for key in rewards:
 		match key:
 			"credits":
 				game_state.add_credits(rewards[key])
-			"experience":
-				game_state.current_crew.gain_experience(rewards[key])
+			"story_points":
+				game_state.add_story_points(rewards[key])
 			"equipment":
 				for item in rewards[key]:
-					game_state.add_to_ship_stash(item)
-			"reputation":
-				game_state.change_reputation(rewards[key])
+					if game_state_manager.equipment_manager:
+						game_state_manager.equipment_manager.add_to_ship_inventory(item)
 			_:
 				if game_state.has_method(key):
 					game_state.call(key, rewards[key])

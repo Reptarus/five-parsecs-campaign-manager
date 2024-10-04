@@ -208,14 +208,14 @@ func generate_campaign_event() -> Dictionary:
 
 func apply_campaign_event(event: StoryEvent) -> void:
 	# Assuming event is already a StoryEvent instance
-	event.apply_event_effects(game_state)
+	event.apply_event_effects(game_state_manager)
 	
 	if "battle_setup" in event:
 		var battle = Battle.new()  # Assuming you have a Battle class
 		event.setup_battle(battle)
 	
 	if "rewards" in event:
-		event.apply_rewards(game_state)
+		event.apply_rewards(game_state_manager)
 
 func generate_character_event() -> Dictionary:
 	var event_tables = load_json_file("res://data/event_tables.json")
@@ -243,7 +243,7 @@ func apply_character_event(character: Character, event: Dictionary) -> void:
 			character.add_temporary_modifier("lucky_break", 1)
 		"Hidden cache":
 			# Add random loot to character's inventory
-			var loot_generator = LootGenerator.new(game_state)
+			var loot_generator = LootGenerator.new()
 			var loot = loot_generator.generate_loot()
 			loot_generator.apply_loot(character, loot, character.ship)
 		"Vital info":

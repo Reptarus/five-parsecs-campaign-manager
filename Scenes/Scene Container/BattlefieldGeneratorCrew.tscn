@@ -1,0 +1,10 @@
+[gd_scene load_steps=3 format=3 uid="uid://bf7q1ie04cue8"]
+
+[ext_resource type="Script" path="res://Resources/CrewMember.gd" id="1_abcde"]
+[ext_resource type="Texture2D" uid="uid://d3iitfikxc1xb" path="res://assets/789_Lorc_RPG_icons/Icon.7_60.png" id="1_wstvi"]
+
+[node name="BattlefieldGeneratorCrew" type="Node2D"]
+script = ExtResource("1_abcde")
+
+[node name="Sprite2D" type="Sprite2D" parent="."]
+texture = ExtResource("1_wstvi")

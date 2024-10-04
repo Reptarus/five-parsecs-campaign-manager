@@ -19,7 +19,26 @@ var rng: RandomNumberGenerator = RandomNumberGenerator.new()
 func _init() -> void:
 	rng.randomize()
 
-func generate_terrain(table_size: GlobalEnums.TerrainSize) -> Array:
+func generate_battlefield(mission: Mission, table_size: GlobalEnums.TerrainSize = GlobalEnums.TerrainSize.MEDIUM) -> Dictionary:
+	if mission == null:
+		push_error("Cannot generate battlefield: mission is null.")
+		return {}
+	
+	var terrain_type: GlobalEnums.TerrainGenerationType = mission.terrain_type if mission.has("terrain_type") else GlobalEnums.TerrainGenerationType.INDUSTRIAL
+	
+	var terrain_map: Array = generate_terrain(table_size, terrain_type)
+	var features: Array[Dictionary] = generate_features(terrain_map, mission)
+	var player_positions: Array[Vector2] = generate_player_positions(mission.required_crew_size, TABLE_SIZES[table_size])
+	var enemy_positions: Array[Vector2] = generate_enemy_positions(mission.get_enemies().size(), TABLE_SIZES[table_size])
+
+	return {
+		"terrain": terrain_map,
+		"features": features,
+		"player_positions": player_positions,
+		"enemy_positions": enemy_positions
+	}
+
+func generate_terrain(table_size: GlobalEnums.TerrainSize, terrain_type: GlobalEnums.TerrainGenerationType) -> Array:
 	var grid_size = TABLE_SIZES[table_size]
 	var terrain_map = []
 	for x in range(grid_size.x):
@@ -27,25 +46,35 @@ func generate_terrain(table_size: GlobalEnums.TerrainSize) -> Array:
 		for y in range(grid_size.y):
 			terrain_map[x].append(GlobalEnums.TerrainFeature.FIELD)
 	
-	place_terrain_features(terrain_map, table_size)
+	place_central_feature(terrain_map, grid_size)
+	place_terrain_features(terrain_map, table_size, terrain_type)
 	return terrain_map
 
-func place_terrain_features(terrain_map: Array, table_size: GlobalEnums.TerrainSize) -> void:
+func place_central_feature(terrain_map: Array, grid_size: Vector2i) -> void:
+	var center_x: int = grid_size.x / 2
+	var center_y: int = grid_size.y / 2
+	
+	# Place a 2x2 block in the center
+	for dx in range(2):
+		for dy in range(2):
+			terrain_map[center_x + dx - 1][center_y + dy - 1] = GlobalEnums.TerrainFeature.BLOCK
+
+func place_terrain_features(terrain_map: Array, table_size: GlobalEnums.TerrainSize, terrain_type: GlobalEnums.TerrainGenerationType) -> void:
 	var terrain_counts = TERRAIN_COUNTS[table_size]
 	var grid_size = TABLE_SIZES[table_size]
 	
-	for terrain_type in [GlobalEnums.TerrainFeature.AREA, GlobalEnums.TerrainFeature.INDIVIDUAL, GlobalEnums.TerrainFeature.LINEAR]:
-		var count = terrain_counts[terrain_type]
+	for terrain_feature in [GlobalEnums.TerrainFeature.AREA, GlobalEnums.TerrainFeature.INDIVIDUAL, GlobalEnums.TerrainFeature.LINEAR]:
+		var count = terrain_counts[terrain_feature]
 		for i in range(count):
-			place_terrain(terrain_map, terrain_type, grid_size)
+			place_terrain(terrain_map, terrain_feature, grid_size, terrain_type)
 
-func place_terrain(terrain_map: Array, terrain_type: GlobalEnums.TerrainFeature, grid_size: Vector2i) -> void:
+func place_terrain(terrain_map: Array, terrain_feature: GlobalEnums.TerrainFeature, grid_size: Vector2i, _terrain_type: GlobalEnums.TerrainGenerationType) -> void:
 	var placed = false
 	while not placed:
 		var x = rng.randi() % grid_size.x
 		var y = rng.randi() % grid_size.y
-		if can_place_terrain(terrain_map, x, y, terrain_type, grid_size):
-			terrain_map[x][y] = terrain_type
+		if can_place_terrain(terrain_map, x, y, terrain_feature, grid_size):
+			terrain_map[x][y] = terrain_feature
 			placed = true
 
 func can_place_terrain(terrain_map: Array, x: int, y: int, terrain_type: GlobalEnums.TerrainFeature, grid_size: Vector2i) -> bool:
@@ -119,22 +148,46 @@ func generate_enemy_positions(num_enemies: int, grid_size: Vector2i) -> Array[Ve
 		enemy_positions.append(position)
 	return enemy_positions
 
-func generate_battlefield(mission: Mission) -> Dictionary:
-	var table_size := GlobalEnums.TerrainSize.MEDIUM  # Adjust based on mission requirements
-	var terrain_map: Array = generate_terrain(table_size)
-	var features: Array[Dictionary] = generate_features(terrain_map, mission)
-	var player_positions: Array[Vector2] = generate_player_positions(mission.required_crew_size, TABLE_SIZES[table_size])
-	var enemy_positions: Array[Vector2] = generate_enemy_positions(mission.get_enemies().size(), TABLE_SIZES[table_size])
-
-	return {
-		"terrain": terrain_map,
-		"features": features,
-		"player_positions": player_positions,
-		"enemy_positions": enemy_positions
-	}
-
 func serialize() -> Dictionary:
 	return {}
 
 static func deserialize(_data: Dictionary) -> TerrainGenerator:
 	return TerrainGenerator.new()
+
+func apply_table_size(battlefield_data: Dictionary, table_size: GlobalEnums.TerrainSize) -> Dictionary:
+	var new_size = TABLE_SIZES[table_size]
+	var old_size = Vector2i(len(battlefield_data.terrain), len(battlefield_data.terrain[0]))
+	
+	# Resize terrain map
+	battlefield_data.terrain = _resize_terrain_map(battlefield_data.terrain, new_size)
+	
+	# Adjust feature positions
+	battlefield_data.features = _adjust_feature_positions(battlefield_data.features, old_size, new_size)
+	
+	# Adjust player and enemy positions
+	battlefield_data.player_positions = _adjust_positions(battlefield_data.player_positions, old_size, new_size)
+	battlefield_data.enemy_positions = _adjust_positions(battlefield_data.enemy_positions, old_size, new_size)
+	
+	return battlefield_data
+
+func _resize_terrain_map(terrain_map: Array, new_size: Vector2i) -> Array:
+	var new_map = []
+	for y in range(new_size.y):
+		var row = []
+		for x in range(new_size.x):
+			if y < len(terrain_map) and x < len(terrain_map[0]):
+				row.append(terrain_map[y][x])
+			else:
+				row.append(GlobalEnums.TerrainFeature.FIELD)
+		new_map.append(row)
+	return new_map
+
+func _adjust_feature_positions(features: Array, old_size: Vector2i, new_size: Vector2i) -> Array:
+	var scale = Vector2(float(new_size.x) / old_size.x, float(new_size.y) / old_size.y)
+	for feature in features:
+		feature.position = (feature.position * scale).floor()
+	return features
+
+func _adjust_positions(positions: Array, old_size: Vector2i, new_size: Vector2i) -> Array:
+	var scale = Vector2(float(new_size.x) / old_size.x, float(new_size.y) / old_size.y)
+	return positions.map(func(pos): return (pos * scale).floor())

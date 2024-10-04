@@ -3,7 +3,7 @@ class_name MissionGenerator
 extends Node
 
 var game_state_manager: GameStateManager
-var game_state: GameStateManager
+var game_state: GameState
 var mission_manager: MissionManager
 
 func initialize(_game_state_manager: GameStateManager) -> void:
@@ -47,7 +47,7 @@ func generate_tutorial_mission() -> Mission:
 	mission.time_limit = 5
 	mission.location = game_state.current_location
 	mission.rewards = {"credits": 100, "reputation": 1}
-	mission.required_crew_size = game_state.current_crew.get_size()
+	mission.required_crew_size = game_state.current_ship.crew.size()
 	mission.is_tutorial_mission = true
 	return mission
 
@@ -73,7 +73,7 @@ func generate_rival_mission() -> Mission:
 	mission.time_limit = randi() % 2 + 2  # 2 to 3 turns
 	mission.location = game_state.current_location
 	mission.rewards = {"credits": randi() % 400 + 300, "reputation": randi() % 3 + 2}
-	mission.required_crew_size = game_state.current_crew.get_size()
+	mission.required_crew_size = game_state.current_ship.crew.size()
 	return mission
 
 func generate_quest_mission() -> Mission:
@@ -86,7 +86,7 @@ func generate_quest_mission() -> Mission:
 	mission.time_limit = randi() % 3 + 3  # 3 to 5 turns
 	mission.location = game_state.current_location
 	mission.rewards = {"credits": randi() % 500 + 400, "reputation": randi() % 3 + 2, "item": true}
-	mission.required_crew_size = game_state.current_crew.get_size()
+	mission.required_crew_size = game_state.current_ship.crew.size()
 	return mission
 
 func generate_mission(type: GlobalEnums.Type, title: String, description: String, objective: GlobalEnums.MissionObjective) -> Mission:
@@ -99,7 +99,7 @@ func generate_mission(type: GlobalEnums.Type, title: String, description: String
 	mission.time_limit = randi() % 5 + 3
 	mission.location = game_state.current_location
 	mission.rewards = _generate_rewards(mission.difficulty)
-	mission.required_crew_size = max(2, game_state.current_crew.get_size() - 1)
+	mission.required_crew_size = max(2, game_state.current_ship.crew.size() - 1)
 	return mission
 
 func generate_assassination_mission() -> Mission:
@@ -132,7 +132,7 @@ func generate_sabotage_mission() -> Mission:
 	mission.time_limit = randi() % 3 + 2  # 2 to 4 turns
 	mission.location = game_state.current_location
 	mission.rewards = {"credits": randi() % 500 + 400, "reputation": randi() % 3 + 2}
-	mission.required_crew_size = max(2, game_state.current_crew.get_size() - 1)
+	mission.required_crew_size = max(2, game_state.current_ship.crew.size() - 1)
 	return mission
 
 func generate_rescue_mission() -> Mission:
@@ -145,7 +145,7 @@ func generate_rescue_mission() -> Mission:
 	mission.time_limit = randi() % 2 + 2  # 2 to 3 turns
 	mission.location = game_state.current_location
 	mission.rewards = {"credits": randi() % 400 + 300, "reputation": randi() % 3 + 2}
-	mission.required_crew_size = game_state.current_crew.get_size()
+	mission.required_crew_size = game_state.current_ship.crew.size()
 	return mission
 
 func generate_defense_mission() -> Mission:
@@ -158,7 +158,7 @@ func generate_defense_mission() -> Mission:
 	mission.time_limit = randi() % 3 + 3  # 3 to 5 turns
 	mission.location = game_state.current_location
 	mission.rewards = {"credits": randi() % 500 + 400, "reputation": randi() % 3 + 2}
-	mission.required_crew_size = game_state.current_crew.get_size()
+	mission.required_crew_size = game_state.current_ship.crew.size()
 	return mission
 
 func generate_escort_mission() -> Mission:
@@ -171,7 +171,7 @@ func generate_escort_mission() -> Mission:
 	mission.time_limit = randi() % 3 + 2  # 2 to 4 turns
 	mission.location = game_state.current_location
 	mission.rewards = {"credits": randi() % 450 + 350, "reputation": randi() % 2 + 2}
-	mission.required_crew_size = max(3, game_state.current_crew.get_size() - 1)
+	mission.required_crew_size = max(3, game_state.current_ship.crew.size() - 1)
 	return mission
 
 func _on_mission_completed(mission: Mission) -> void:

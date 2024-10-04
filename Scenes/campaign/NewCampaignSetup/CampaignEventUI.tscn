@@ -1,5 +1,6 @@
-[gd_scene load_steps=2 format=3 uid="uid://bc3odsgdt877m"]
+[gd_scene load_steps=3 format=3 uid="uid://bc3odsgdt877m"]
 
+[ext_resource type="Theme" uid="uid://d1you1rrwuu48" path="res://Scenes/sci_fi_theme.tres" id="1_5j51j"]
 [ext_resource type="Script" path="res://Scenes/campaign/NewCampaignSetup/CampaignEventGenerator.gd" id="1_y8f2x"]
 
 [node name="CampaignEventUI" type="Control"]
@@ -9,6 +10,7 @@ anchor_right = 1.0
 anchor_bottom = 1.0
 grow_horizontal = 2
 grow_vertical = 2
+theme = ExtResource("1_5j51j")
 script = ExtResource("1_y8f2x")
 
 [node name="EventPanel" type="Panel" parent="."]

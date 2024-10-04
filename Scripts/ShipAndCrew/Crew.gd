@@ -62,7 +62,7 @@ static func deserialize(data: Dictionary) -> Crew:
 	crew.characters = []
 	for character_data in data.get("characters", []):
 		if character_data is Dictionary:
-			crew.characters.append(Character.deserialize(character_data, crew))
+			crew.characters.append(Character.deserialize(character_data))
 	
 	var ship_data = data.get("ship")
 	if ship_data is Dictionary:
@@ -131,3 +131,41 @@ func can_add_member() -> bool:
 func update_reputation(change: int) -> void:
 	reputation += change
 	reputation = clamp(reputation, GlobalEnums.ReputationLevel.UNKNOWN, GlobalEnums.ReputationLevel.LEGENDARY)
+
+func train_character(character: Character, training_type: GlobalEnums.TrainingType, course: int) -> bool:
+	var cost = GlobalEnums.get_training_cost(training_type)
+	if credits >= cost:
+		credits -= cost
+		match training_type:
+			GlobalEnums.TrainingType.BASIC:
+				character.complete_basic_training(course)
+			GlobalEnums.TrainingType.ADVANCED:
+				character.complete_advanced_training(course)
+			GlobalEnums.TrainingType.SPECIALIZED:
+				character.complete_specialized_training(course)
+		return true
+	return false
+
+func get_crew_combat_strength() -> int:
+	var strength = 0
+	for character in characters:
+		strength += character.get_combat_strength()
+	return strength
+
+func get_crew_technical_skill() -> int:
+	var skill = 0
+	for character in characters:
+		skill += character.get_technical_skill()
+	return skill
+
+func get_crew_social_skill() -> int:
+	var skill = 0
+	for character in characters:
+		skill += character.get_social_skill()
+	return skill
+
+func get_crew_survival_skill() -> int:
+	var skill = 0
+	for character in characters:
+		skill += character.get_survival_skill()
+	return skill

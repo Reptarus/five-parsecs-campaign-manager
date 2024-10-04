@@ -1,7 +1,7 @@
 [gd_scene load_steps=4 format=3 uid="uid://dxn5mnw32ulqt"]
 
-[ext_resource type="Script" path="res://Scenes/Scene Container/CrewSizeSelection.gd" id="1_xep0y"]
-[ext_resource type="Theme" uid="uid://d1you1rrwuu48" path="res://Scenes/sci_fi_theme.tres" id="2_theme"]
+[ext_resource type="Theme" uid="uid://d1you1rrwuu48" path="res://Scenes/sci_fi_theme.tres" id="1_qon6n"]
+[ext_resource type="Script" path="res://Resources/InitialCrewCreation.gd" id="1_xep0y"]
 [ext_resource type="Texture2D" uid="uid://b03o2n8a6q4qg" path="res://assets/Basic assets/Card X3/Card X6.png" id="3_background"]
 
 [node name="CrewSizeSelection" type="Control"]
@@ -11,7 +11,7 @@ anchor_right = 1.0
 anchor_bottom = 1.0
 grow_horizontal = 2
 grow_vertical = 2
-theme = ExtResource("2_theme")
+theme = ExtResource("1_qon6n")
 script = ExtResource("1_xep0y")
 
 [node name="Background" type="TextureRect" parent="."]
@@ -23,36 +23,7 @@ grow_horizontal = 2
 grow_vertical = 2
 texture = ExtResource("3_background")
 
-[node name="TutorialLabel" type="Label" parent="."]
-visible = false
-layout_mode = 0
-offset_left = 50.0
-offset_top = 50.0
-offset_right = 450.0
-offset_bottom = 100.0
-text = "Tutorial text goes here"
-
-[node name="HSlider" type="HSlider" parent="."]
-layout_mode = 1
-anchors_preset = 8
-anchor_left = 0.5
-anchor_top = 0.5
-anchor_right = 0.5
-anchor_bottom = 0.5
-offset_left = -175.0
-offset_top = -8.0
-offset_right = 175.0
-offset_bottom = 8.0
-grow_horizontal = 2
-grow_vertical = 2
-min_value = 3.0
-max_value = 8.0
-value = 3.0
-rounded = true
-tick_count = 6
-ticks_on_borders = true
-
-[node name="SliderLabels" type="Control" parent="HSlider"]
+[node name="HBoxContainer" type="HBoxContainer" parent="."]
 layout_mode = 1
 anchors_preset = 15
 anchor_right = 1.0
@@ -60,7 +31,52 @@ anchor_bottom = 1.0
 grow_horizontal = 2
 grow_vertical = 2
 
-[node name="3" type="Label" parent="HSlider/SliderLabels"]
+[node name="LeftPanel" type="MarginContainer" parent="HBoxContainer"]
+layout_mode = 2
+size_flags_horizontal = 3
+theme_override_constants/margin_left = 20
+theme_override_constants/margin_top = 20
+theme_override_constants/margin_right = 10
+theme_override_constants/margin_bottom = 20
+
+[node name="VBoxContainer" type="VBoxContainer" parent="HBoxContainer/LeftPanel"]
+layout_mode = 2
+theme_override_constants/separation = 10
+
+[node name="TitleLabel" type="Label" parent="HBoxContainer/LeftPanel/VBoxContainer"]
+layout_mode = 2
+text = "Initial Crew Creation"
+horizontal_alignment = 1
+
+[node name="TutorialLabel" type="Label" parent="HBoxContainer/LeftPanel/VBoxContainer"]
+layout_mode = 2
+text = "Tutorial Mode: Create your initial crew of 5 members."
+
+[node name="CrewSizeContainer" type="VBoxContainer" parent="HBoxContainer/LeftPanel/VBoxContainer"]
+layout_mode = 2
+
+[node name="Label" type="Label" parent="HBoxContainer/LeftPanel/VBoxContainer/CrewSizeContainer"]
+layout_mode = 2
+text = "Select Crew Size:"
+
+[node name="HSlider" type="HSlider" parent="HBoxContainer/LeftPanel/VBoxContainer/CrewSizeContainer"]
+layout_mode = 2
+min_value = 4.0
+max_value = 6.0
+value = 5.0
+rounded = true
+tick_count = 3
+ticks_on_borders = true
+
+[node name="SliderLabels" type="Control" parent="HBoxContainer/LeftPanel/VBoxContainer/CrewSizeContainer/HSlider"]
+layout_mode = 1
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+
+[node name="4" type="Label" parent="HBoxContainer/LeftPanel/VBoxContainer/CrewSizeContainer/HSlider/SliderLabels"]
 layout_mode = 1
 anchors_preset = 2
 anchor_top = 1.0
@@ -69,10 +85,10 @@ offset_top = 5.0
 offset_right = 40.0
 offset_bottom = 31.0
 grow_vertical = 0
-text = "3"
+text = "4"
 horizontal_alignment = 1
 
-[node name="8" type="Label" parent="HSlider/SliderLabels"]
+[node name="6" type="Label" parent="HBoxContainer/LeftPanel/VBoxContainer/CrewSizeContainer/HSlider/SliderLabels"]
 layout_mode = 1
 anchors_preset = 3
 anchor_left = 1.0
@@ -84,39 +100,57 @@ offset_top = 5.0
 offset_bottom = 31.0
 grow_horizontal = 0
 grow_vertical = 0
-text = "8"
+text = "6"
 horizontal_alignment = 1
 
-[node name="CurrentSizeLabel" type="Label" parent="."]
-layout_mode = 1
-anchors_preset = 8
-anchor_left = 0.5
-anchor_top = 0.5
-anchor_right = 0.5
-anchor_bottom = 0.5
-offset_left = -100.0
-offset_top = 20.0
-offset_right = 100.0
-offset_bottom = 46.0
-grow_horizontal = 2
-grow_vertical = 2
-text = "Current Crew Size: 3"
+[node name="CurrentSizeLabel" type="Label" parent="HBoxContainer/LeftPanel/VBoxContainer/CrewSizeContainer"]
+layout_mode = 2
+text = "Current Crew Size: 5"
 horizontal_alignment = 1
 
-[node name="ConfirmButton" type="Button" parent="."]
-layout_mode = 1
-anchors_preset = 7
-anchor_left = 0.5
-anchor_top = 1.0
-anchor_right = 0.5
-anchor_bottom = 1.0
-offset_left = -100.0
-offset_top = -150.0
-offset_right = 100.0
-offset_bottom = -50.0
-grow_horizontal = 2
-grow_vertical = 0
+[node name="ConfirmButton" type="Button" parent="HBoxContainer/LeftPanel/VBoxContainer"]
+layout_mode = 2
 text = "Confirm"
 
-[connection signal="value_changed" from="HSlider" to="." method="_on_h_slider_value_changed"]
-[connection signal="pressed" from="ConfirmButton" to="." method="_on_confirm_button_pressed"]
+[node name="RightPanel" type="MarginContainer" parent="HBoxContainer"]
+layout_mode = 2
+size_flags_horizontal = 3
+theme_override_constants/margin_left = 10
+theme_override_constants/margin_top = 20
+theme_override_constants/margin_right = 20
+theme_override_constants/margin_bottom = 20
+
+[node name="Panel" type="Panel" parent="HBoxContainer/RightPanel"]
+layout_mode = 2
+
+[node name="MarginContainer" type="MarginContainer" parent="HBoxContainer/RightPanel/Panel"]
+layout_mode = 1
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+theme_override_constants/margin_left = 10
+theme_override_constants/margin_top = 10
+theme_override_constants/margin_right = 10
+theme_override_constants/margin_bottom = 10
+
+[node name="VBoxContainer" type="VBoxContainer" parent="HBoxContainer/RightPanel/Panel/MarginContainer"]
+layout_mode = 2
+
+[node name="TitleLabel" type="Label" parent="HBoxContainer/RightPanel/Panel/MarginContainer/VBoxContainer"]
+layout_mode = 2
+text = "Crew Preview"
+horizontal_alignment = 1
+
+[node name="ScrollContainer" type="ScrollContainer" parent="HBoxContainer/RightPanel/Panel/MarginContainer/VBoxContainer"]
+layout_mode = 2
+size_flags_vertical = 3
+
+[node name="CrewPreview" type="VBoxContainer" parent="HBoxContainer/RightPanel/Panel/MarginContainer/VBoxContainer/ScrollContainer"]
+layout_mode = 2
+size_flags_horizontal = 3
+size_flags_vertical = 3
+
+[connection signal="value_changed" from="HBoxContainer/LeftPanel/VBoxContainer/CrewSizeContainer/HSlider" to="." method="_on_h_slider_value_changed"]
+[connection signal="pressed" from="HBoxContainer/LeftPanel/VBoxContainer/ConfirmButton" to="." method="_on_confirm_button_pressed"]

@@ -1,5 +1,6 @@
-[gd_scene load_steps=2 format=3 uid="uid://css3jafhkpmdr"]
+[gd_scene load_steps=3 format=3 uid="uid://css3jafhkpmdr"]
 
+[ext_resource type="Theme" uid="uid://d1you1rrwuu48" path="res://Scenes/sci_fi_theme.tres" id="1_rrhvw"]
 [ext_resource type="Script" path="res://Scenes/Management/ShipInventory.gd" id="1_x6hva"]
 
 [node name="ShipInventory" type="Control"]
@@ -9,6 +10,7 @@ anchor_right = 1.0
 anchor_bottom = 1.0
 grow_horizontal = 2
 grow_vertical = 2
+theme = ExtResource("1_rrhvw")
 script = ExtResource("1_x6hva")
 
 [node name="VBoxContainer" type="VBoxContainer" parent="."]

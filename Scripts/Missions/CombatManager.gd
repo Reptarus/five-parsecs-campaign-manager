@@ -7,18 +7,17 @@ signal turn_started(character: Character)
 signal turn_ended(character: Character)
 signal ui_update_needed(round: int, phase: GlobalEnums.BattlePhase, current_character: Character)
 signal log_action(action: String)
-signal character_moved(character: Character, new_position: Vector2i)
+signal character_moved(character: Character, new_position: Vector2)
 signal enable_player_controls(character: Character)
 signal update_turn_label(round: int)
 signal update_current_character_label(character_name: String)
-signal highlight_valid_positions(positions: Array[Vector2i])
+signal highlight_valid_positions(positions: Array[Vector2])
 
 const GRID_SIZE: Vector2i = Vector2i(24, 24)  # 24" x 24" battlefield
 const CELL_SIZE: Vector2i = Vector2i(32, 32)  # Size of each cell in pixels
 
-var game_state: GameStateManager
+var game_state_manager: GameStateManager
 var current_mission: Mission
-var terrain_generator: TerrainGenerator
 var battlefield: Array[Array]
 var turn_order: Array[Character]
 var current_turn_index: int = 0
@@ -27,16 +26,24 @@ var current_phase: GlobalEnums.BattlePhase = GlobalEnums.BattlePhase.REACTION_RO
 var battle_grid: GridContainer
 
 # Initialization and Setup
-func initialize(_game_state: GameStateManager, _mission: Mission, _battle_grid: GridContainer) -> void:
-	game_state = _game_state
+func initialize(_game_state_manager: GameStateManager, _mission: Mission, _battle_grid: GridContainer) -> void:
+	game_state_manager = _game_state_manager
 	current_mission = _mission
 	battle_grid = _battle_grid
-	terrain_generator = TerrainGenerator.new()
-	battlefield = terrain_generator.generate_terrain(GlobalEnums.TerrainSize.MEDIUM)
+	battlefield = generate_battlefield()
 	setup_battlefield()
 	setup_characters()
 	place_objectives()
 	start_combat()
+
+func generate_battlefield() -> Array[Array]:
+	# Implement battlefield generation logic here
+	var battlefield = []
+	for x in range(GRID_SIZE.x):
+		battlefield.append([])
+		for y in range(GRID_SIZE.y):
+			battlefield[x].append(null)
+	return battlefield
 
 func setup_battlefield() -> void:
 	battle_grid.columns = GRID_SIZE.x
@@ -49,7 +56,7 @@ func setup_battlefield() -> void:
 			battle_grid.add_child(cell)
 
 func setup_characters() -> void:
-	var crew: Array[Character] = game_state.current_crew.members
+	var crew: Array[Character] = game_state_manager.current_ship.crew
 	var enemies: Array[Character] = current_mission.get_enemies()
 	
 	for character in crew + enemies:
@@ -60,13 +67,17 @@ func place_objectives() -> void:
 	pass
 
 # Combat Flow
+func start_combat() -> void:
+	emit_signal("combat_started")
+	start_battle_round()
+
 func start_battle_round() -> void:
 	emit_signal("log_action", "Starting Round " + str(current_round))
 	perform_reaction_roll()
 
 func perform_reaction_roll() -> void:
 	turn_order.clear()
-	var crew: Array[Character] = game_state.current_crew.members
+	var crew: Array[Character] = game_state_manager.current_ship.crew
 	var enemies: Array[Character] = current_mission.get_enemies()
 	
 	for character in crew + enemies:
@@ -149,9 +160,9 @@ func roll_dice(num_dice: int, sides: int) -> int:
 	log_action.emit("Rolled " + str(num_dice) + "d" + str(sides) + ": " + str(total))
 	return total
 
-func is_valid_move(character: Character, new_position: Vector2i) -> bool:
+func is_valid_move(character: Character, new_position: Vector2) -> bool:
 	var distance := character.position.distance_to(new_position)
-	return is_valid_position(new_position) and distance <= character.speed and battlefield[new_position.x][new_position.y] == null
+	return is_valid_position(new_position) and distance <= character.speed and battlefield[int(new_position.x)][int(new_position.y)] == null
 
 func update_character_position(character: Character) -> void:
 	var unit_node := get_node_or_null("../Battlefield/Units/" + character.name)
@@ -168,26 +179,26 @@ func can_attack(attacker: Character, target: Character) -> bool:
 
 func apply_damage(target: Character, damage: int) -> void:
 	if damage >= target.toughness:
-		target.is_defeated = true
+		target.status = GlobalEnums.CharacterStatus.DEAD
 		log_action.emit(target.name + " is defeated!")
 		remove_character(target)
 	else:
 		var stun_roll := roll_dice(1, 6)
 		if stun_roll <= damage:
-			target.is_stunned = true
+			target.status = GlobalEnums.CharacterStatus.STUNNED
 			log_action.emit(target.name + " is stunned!")
 		else:
 			log_action.emit(target.name + " resists being stunned!")
 
 func remove_character(character: Character) -> void:
 	turn_order.erase(character)
-	if character in game_state.current_crew.members:
-		game_state.current_crew.members.erase(character)
+	if character in game_state_manager.current_ship.crew:
+		game_state_manager.current_ship.crew.erase(character)
 	elif character in current_mission.get_enemies():
 		current_mission.remove_enemy(character)
 
 func find_nearest_enemy(character: Character) -> Character:
-	var enemies: Array[Character] = current_mission.get_enemies() if character in game_state.current_crew.members else game_state.current_crew.members
+	var enemies: Array[Character] = current_mission.get_enemies() if character in game_state_manager.current_ship.crew else game_state_manager.current_ship.crew
 	var nearest_enemy: Character = null
 	var min_distance := INF
 	for enemy in enemies:
@@ -197,35 +208,35 @@ func find_nearest_enemy(character: Character) -> Character:
 			nearest_enemy = enemy
 	return nearest_enemy
 
-func find_nearest_cover(character: Character) -> Vector2i:
-	var best_cover: Vector2i = Vector2i.ZERO
+func find_nearest_cover(character: Character) -> Vector2:
+	var best_cover := Vector2.ZERO
 	var min_distance := INF
 	for x in range(GRID_SIZE.x):
 		for y in range(GRID_SIZE.y):
-			var pos := Vector2i(x, y)
+			var pos := Vector2(x, y)
 			if get_cover_type(pos) != GlobalEnums.CoverType.NONE:
 				var distance := character.position.distance_to(pos)
 				if distance < min_distance:
 					min_distance = distance
 					best_cover = pos
-	return best_cover if best_cover != Vector2i.ZERO else find_random_position()
+	return best_cover if best_cover != Vector2.ZERO else find_random_position()
 
-func find_random_position() -> Vector2i:
+func find_random_position() -> Vector2:
 	var x := randi() % GRID_SIZE.x
 	var y := randi() % GRID_SIZE.y
-	return Vector2i(x, y)
+	return Vector2(x, y)
 
-func get_cover_type(position: Vector2i) -> GlobalEnums.CoverType:
+func get_cover_type(position: Vector2) -> GlobalEnums.CoverType:
 	var adjacent_positions := [
-		Vector2i(position.x - 1, position.y),
-		Vector2i(position.x + 1, position.y),
-		Vector2i(position.x, position.y - 1),
-		Vector2i(position.x, position.y + 1)
+		Vector2(position.x - 1, position.y),
+		Vector2(position.x + 1, position.y),
+		Vector2(position.x, position.y - 1),
+		Vector2(position.x, position.y + 1)
 	]
 
 	var cover_count := 0
 	for adj_pos in adjacent_positions:
-		if is_valid_position(adj_pos) and battlefield[adj_pos.x][adj_pos.y] != null:
+		if is_valid_position(adj_pos) and battlefield[int(adj_pos.x)][int(adj_pos.y)] != null:
 			cover_count += 1
 
 	if cover_count >= 2:
@@ -235,14 +246,14 @@ func get_cover_type(position: Vector2i) -> GlobalEnums.CoverType:
 	else:
 		return GlobalEnums.CoverType.NONE
 
-func is_valid_position(pos: Vector2i) -> bool:
+func is_valid_position(pos: Vector2) -> bool:
 	return pos.x >= 0 and pos.x < GRID_SIZE.x and pos.y >= 0 and pos.y < GRID_SIZE.y
 
-func has_line_of_sight(from_pos: Vector2i, to_pos: Vector2i) -> bool:
-	var dx: int = abs(to_pos.x - from_pos.x)
-	var dy: int = abs(to_pos.y - from_pos.y)
-	var x: int = from_pos.x
-	var y: int = from_pos.y
+func has_line_of_sight(from_pos: Vector2, to_pos: Vector2) -> bool:
+	var dx: int = abs(int(to_pos.x - from_pos.x))
+	var dy: int = abs(int(to_pos.y - from_pos.y))
+	var x: int = int(from_pos.x)
+	var y: int = int(from_pos.y)
 	var n: int = 1 + dx + dy
 	var x_inc: int = 1 if to_pos.x > from_pos.x else -1
 	var y_inc: int = 1 if to_pos.y > from_pos.y else -1
@@ -251,8 +262,8 @@ func has_line_of_sight(from_pos: Vector2i, to_pos: Vector2i) -> bool:
 	dy *= 2
 
 	for _i in range(n):
-		var current_pos := Vector2i(x, y)
-		if not is_valid_position(current_pos) or battlefield[current_pos.x][current_pos.y] == GlobalEnums.TerrainFeature.AREA:
+		var current_pos := Vector2(x, y)
+		if not is_valid_position(current_pos) or battlefield[x][y] == GlobalEnums.TerrainFeature.AREA:
 			return false
 		if error > 0:
 			x += x_inc
@@ -270,13 +281,13 @@ func has_line_of_sight(from_pos: Vector2i, to_pos: Vector2i) -> bool:
 
 func perform_morale_check() -> void:
 	var enemies: Array[Character] = current_mission.get_enemies()
-	var casualties := enemies.filter(func(e: Character) -> bool: return e.is_defeated)
+	var casualties := enemies.filter(func(e: Character) -> bool: return e.status == GlobalEnums.CharacterStatus.DEAD)
 	
 	for i in range(casualties.size()):
 		var roll := roll_dice(1, 6)
 		if roll <= enemies[0].panic_range:
 			var fleeing_enemy: Character = enemies[randi() % enemies.size()]
-			fleeing_enemy.flee()
+			fleeing_enemy.status = GlobalEnums.CharacterStatus.FLEEING
 			emit_signal("log_action", fleeing_enemy.name + " has fled the battle!")
 
 func check_battle_end() -> bool:
@@ -288,11 +299,11 @@ func check_battle_end() -> bool:
 		return true
 	return false
 
-func get_valid_move_positions(character: Character) -> Array[Vector2i]:
-	var valid_positions: Array[Vector2i] = []
+func get_valid_move_positions(character: Character) -> Array[Vector2]:
+	var valid_positions: Array[Vector2] = []
 	for x in range(GRID_SIZE.x):
 		for y in range(GRID_SIZE.y):
-			var pos = Vector2i(x, y)
+			var pos = Vector2(x, y)
 			if is_valid_move(character, pos):
 				valid_positions.append(pos)
 	return valid_positions
@@ -300,15 +311,15 @@ func get_valid_move_positions(character: Character) -> Array[Vector2i]:
 func check_victory_conditions() -> bool:
 	match current_mission.objective:
 		GlobalEnums.MissionObjective.MOVE_THROUGH:
-			var crew_members = current_mission.get_crew_members()
+			var crew_members = game_state_manager.current_ship.crew
 			return crew_members.all(func(member: Character) -> bool: return member.position.x >= GRID_SIZE.x - 1)
 		_:
 			push_warning("Unhandled mission objective in victory conditions")
 			return false
 
 func check_defeat_conditions() -> bool:
-	var crew_members = current_mission.get_crew_members()
-	if crew_members.all(func(member: Character) -> bool: return member.is_defeated):
+	var crew_members = game_state_manager.current_ship.crew
+	if crew_members.all(func(member: Character) -> bool: return member.status == GlobalEnums.CharacterStatus.DEAD):
 		return true
 	
 	if current_mission.is_expired(current_round):
@@ -318,9 +329,9 @@ func check_defeat_conditions() -> bool:
 
 func check_escape_condition() -> bool:
 	var escape_zone = Rect2(Vector2.ZERO, Vector2(3, GRID_SIZE.y))
-	return current_mission.get_crew_members().any(func(member: Character) -> bool: return escape_zone.has_point(member.position))
+	return game_state_manager.current_ship.crew.any(func(member: Character) -> bool: return escape_zone.has_point(member.position))
 
-func handle_move(character: Character, new_position: Vector2i) -> void:
+func handle_move(character: Character, new_position: Vector2) -> void:
 	if is_valid_move(character, new_position):
 		move_character(character, new_position)
 		emit_signal("character_moved", character, new_position)
@@ -344,18 +355,20 @@ func get_terrain_color(terrain_type: GlobalEnums.TerrainFeature) -> Color:
 		_:
 			return Color(0.2, 0.2, 0.2)
 
-func find_valid_spawn_position(is_crew: bool) -> Vector2i:
+func find_valid_spawn_position(is_crew: bool) -> Vector2:
 	var x_range := range(0, 6) if is_crew else range(18, 24)
-	var valid_positions: Array[Vector2i] = []
+	var valid_positions: Array[Vector2] = []
 	for x in x_range:
 		for y in range(GRID_SIZE.y):
 			if battlefield[x][y] == null:
-				valid_positions.append(Vector2i(x, y))
+				valid_positions.append(Vector2(x, y))
 	return valid_positions[randi() % valid_positions.size()]
 
+func move_character(character: Character, new_position: Vector2) -> void:
+	character.position = new_position
+	update_character_position(character)
+
 # Signal Emitters
-func start_combat() -> void:
-	combat_started.emit()
 
 func end_combat(player_victory: bool) -> void:
 	combat_ended.emit(player_victory)
@@ -372,9 +385,6 @@ func update_ui(round_num: int, phase: GlobalEnums.BattlePhase, current_character
 func add_log_entry(action: String) -> void:
 	log_action.emit(action)
 
-func move_character(character: Character, new_position: Vector2i) -> void:
-	character_moved.emit(character, new_position)
-
 func enable_controls(character: Character) -> void:
 	enable_player_controls.emit(character)
 
@@ -384,6 +394,5 @@ func update_turn(turn_round: int) -> void:
 func update_current_character(character_name: String) -> void:
 	update_current_character_label.emit(character_name)
 
-func show_valid_positions(positions: Array[Vector2i]) -> void:
+func show_valid_positions(positions: Array[Vector2]) -> void:
 	highlight_valid_positions.emit(positions)
-

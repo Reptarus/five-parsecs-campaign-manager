@@ -8,8 +8,9 @@ extends Control
 @onready var bug_hunt_button = $MenuButtons/BugHunt
 @onready var options_button = $MenuButtons/Options
 @onready var library_button = $MenuButtons/Library
+@onready var new_campaign_tutorial = preload("res://Scenes/Scene Container/campaigncreation/scenes/NewCampaignTutorial.tscn")
 
-var game_state: GameStateManager
+var game_state_manager: GameStateManager
 
 func _ready():
 	setup_ui()
@@ -37,42 +38,38 @@ func setup_ui():
 	tween.tween_property(self, "modulate", Color(1, 1, 1, 1), 0.5)
 
 func initialize_game_systems():
-	game_state = GameStateManager.get_game_state()
-	if game_state == null:
-		push_error("Failed to get GameState instance")
-	update_continue_button_visibility()
+	game_state_manager = get_node("/root/GameStateManager")
+	if game_state_manager == null:
+		push_warning("GameStateManager not found. Retrying in 1 second.")
+		get_tree().create_timer(1.0).timeout.connect(initialize_game_systems)
+	else:
+		update_continue_button_visibility()
 
 func update_continue_button_visibility():
-	continue_button.visible = game_state.current_crew != null if game_state else false
+	if game_state_manager and game_state_manager.game_state and game_state_manager.game_state.current_ship:
+		continue_button.visible = game_state_manager.game_state.current_ship.crew.size() > 0
+	else:
+		continue_button.visible = false
 
 func _on_continue_pressed():
-	if game_state and game_state.current_crew:
+	if game_state_manager and game_state_manager.game_state.current_ship.crew.size() > 0:
 		transition_to_scene("res://Scenes/Management/CrewManagement.tscn")
 	else:
-		print("Continue functionality not yet implemented")
+		print("No active campaign to continue")
 
 func _on_new_campaign_pressed():
-	# Instead of directly changing the scene, let's use a deferred call
-	call_deferred("_change_to_new_campaign_scene")
+	var tutorial_instance = new_campaign_tutorial.instantiate()
+	tutorial_instance.connect("tutorial_choice_made", _on_tutorial_choice_made)
+	add_child(tutorial_instance)
+	
+	# Fade in the tutorial popup
+	tutorial_instance.modulate = Color(1, 1, 1, 0)
+	var tween = create_tween()
+	tween.tween_property(tutorial_instance, "modulate", Color(1, 1, 1, 1), 0.5)
 
 func _change_to_new_campaign_scene():
-	var campaign_setup_scene = load("res://Scenes/Scene Container/campaigncreation/scenes/CampaignSetupScreen.tscn").instantiate()
-	
-	if campaign_setup_scene.has_method("set_game_state"):
-		# Ensure game_state is of the correct type
-		if game_state is GameStateManager:
-			campaign_setup_scene.set_game_state(game_state)
-		else:
-			push_error("Invalid game state type in MainMenu")
-	
-	# Remove the current scene
-	get_tree().current_scene.queue_free()
-	
-	# Add the new scene to the tree
-	get_tree().root.add_child(campaign_setup_scene)
-	
-	# Set it as the current scene
-	get_tree().current_scene = campaign_setup_scene
+	game_state_manager.start_new_game()
+	transition_to_scene("res://Scenes/Scene Container/campaigncreation/scenes/CampaignSetupScreen.tscn")
 
 func _on_coop_campaign_pressed():
 	_show_not_implemented_message("Co-op Campaign (Work in Progress)")
@@ -96,22 +93,20 @@ func _show_not_implemented_message(feature: String):
 	dialog.popup_centered()
 
 func _on_tutorial_choice_made(choice):
-	var game_manager_instance = GameManager.new()  # Create an instance of GameManager
-	var tutorial_manager = TutorialManager.new(game_manager_instance)  # Pass the instance to the constructor
 	match choice:
 		"story_track":
-			tutorial_manager.start_tutorial("story_track")
+			game_state_manager.game_state.is_tutorial_active = true
+			game_state_manager.story_track.start_tutorial()
+			transition_to_scene("res://Scenes/Scene Container/InitialCrewCreation.tscn")
 		"compendium":
-			tutorial_manager.start_tutorial("compendium")
+			game_state_manager.game_state.is_tutorial_active = true
+			game_state_manager.story_track.start_tutorial()
+			transition_to_scene("res://Scenes/Scene Container/InitialCrewCreation.tscn")
 		"skip":
-			# Proceed without tutorial
-			pass
-	
-	# Transition to CrewSizeSelection
-	var crew_size_selection = preload("res://Scenes/Scene Container/CrewSizeSelection.tscn").instance()
-	add_child(crew_size_selection)
+			game_state_manager.game_state.is_tutorial_active = false
+			transition_to_scene("res://Scenes/Scene Container/campaigncreation/scenes/CampaignSetupScreen.tscn")
 
 func transition_to_scene(scene_path):
 	var tween = create_tween()
 	tween.tween_property(self, "modulate", Color(1, 1, 1, 0), 0.5)
-	tween.tween_callback(Callable(get_node("/root/Main"), "goto_scene").bind(scene_path))
+	tween.tween_callback(get_tree().change_scene_to_file.bind(scene_path))

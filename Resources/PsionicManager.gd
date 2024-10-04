@@ -39,24 +39,18 @@ func adjust_power(power: String) -> String:
 	return PSIONIC_POWERS.values()[new_index]
 
 func use_power(power: String, character: Character) -> bool:
-	var projection_roll = roll_dice(2, 6)
-	if character.has_ability("Enhanced " + power):
-		projection_roll += roll_dice(1, 6)
+	var projection_roll = GameManager.roll_dice(2, 6)
+	if character.traits.has("Enhanced " + power):
+		projection_roll += GameManager.roll_dice(1, 6)
 	return projection_roll >= 7  # Assuming 7+ is a success
 
 func strain(character: Character) -> bool:
-	var strain_roll = roll_dice(1, 6)
+	var strain_roll = GameManager.roll_dice(1, 6)
 	if strain_roll >= 4:
-		character.apply_status_effect(StatusEffect.new(StatusEffect.EffectType.STUNNED, 1))
+		character.apply_status_effect(GlobalEnums.StatusEffectType.STUN, 1)
 		return strain_roll != 6
 	
 	return true
-
-func roll_dice(num_dice: int, sides: int) -> int:
-	var total := 0
-	for i in range(num_dice):
-		total += randi() % sides + 1
-	return total
 
 func determine_enemy_psionic_action(character: Character, all_characters: Array[Character]) -> Dictionary:
 	var best_power: String = ""
@@ -108,13 +102,13 @@ func evaluate_psionic_action(character: Character, power: String, target: Charac
 	
 	match power:
 		"Barrier":
-			score = 10.0 if target.health < target.max_health * 0.5 else 5.0
+			score = 10.0 if target.toughness < 3 else 5.0
 		"Grab":
 			score = 15.0 if target.is_in_cover() else 8.0
 		"Lift":
 			score = 12.0 if not target.is_in_cover() else 6.0
 		"Shroud":
-			score = 18.0 if character.health < character.max_health * 0.3 else 10.0
+			score = 18.0 if character.toughness < 2 else 10.0
 		"Enrage":
 			score = 20.0 if _is_enemy(character, target) else -5.0
 		"Predict":
@@ -122,7 +116,7 @@ func evaluate_psionic_action(character: Character, power: String, target: Charac
 		"Shock":
 			score = 25.0 if _is_enemy(character, target) else -10.0
 		"Rejuvenate":
-			score = 30.0 if target.health < target.max_health * 0.5 else 5.0
+			score = 30.0 if target.toughness < 2 else 5.0
 		"Guide":
 			score = 22.0 if _is_ally(character, target) else -5.0
 		"Psionic Scare":
@@ -135,15 +129,15 @@ func evaluate_psionic_action(character: Character, power: String, target: Charac
 			score = 40.0 if _is_enemy(character, target) else -25.0
 
 	# Adjust score based on character's current situation
-	if character.health < character.max_health * 0.3:
+	if character.toughness < 2:
 		score *= 1.5
 	if character.is_in_cover():
 		score *= 1.2
 
 	return score
 
-func check_psionic_legality(_world: Location) -> GlobalEnums.PsionicLegality:
-	var roll = randi() % 100 + 1  # Generate a random number between 1 and 100
+func check_psionic_legality(world: Location) -> GlobalEnums.PsionicLegality:
+	var roll = GameManager.roll_dice(1, 100)
 	if roll <= 25:
 		return GlobalEnums.PsionicLegality.ILLEGAL
 	elif roll <= 55:
@@ -159,8 +153,8 @@ func acquire_new_power(character: Character) -> void:
 	print("Character acquired new power: ", new_power)
 
 func enhance_power(character: Character, power: String) -> void:
-	if power in character.psionic_powers and not character.has_ability("Enhanced " + power):
-		character.add_ability("Enhanced " + power)
+	if power in character.psionic_powers and not character.traits.has("Enhanced " + power):
+		character.traits.append("Enhanced " + power)
 
 func serialize() -> Dictionary:
 	return {"powers": powers}

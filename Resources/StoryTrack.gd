@@ -1,8 +1,6 @@
 # StoryTrack.gd
-extends Resource
-
 class_name StoryTrack
-
+extends Resource
 
 signal event_triggered(event: StoryEvent)
 
@@ -10,41 +8,26 @@ var story_clock: StoryClock
 var story_track_manager: StoryTrackManager
 var events: Array[StoryEvent] = []
 var current_event_index: int = -1
-var game_state: GameState
+var game_state_manager: GameStateManager
 
 func _init() -> void:
 	story_clock = StoryClock.new()
 
-func initialize(_game_state: GameState) -> void:
+func initialize(game_state_manager: GameStateManager) -> void:
+	self.game_state_manager = game_state_manager
 	story_clock = StoryClock.new()
-	story_track_manager = StoryTrackManager.new(game_state)
+	story_track_manager = StoryTrackManager.new(game_state_manager.get_game_state())
 	_load_events()
 	current_event_index = -1
 
 func _load_events() -> void:
-	# Load events from a JSON file or create them manually
-	var event_data: Array[Dictionary] = [
-		{
-			"event_id": "foiled",
-			"description": "Foiled! Your old rival O'Narr has struck again...",
-			"campaign_turn_modifications": {
-				"add_rival": "O'Narr",
-				"set_forced_action": "look_for_patron"
-			},
-			"battle_setup": {
-				"set_enemy_type": "rival_gang",
-				"set_battlefield_size": Vector2i(24, 24)  # Updated to match the standard battlefield size
-			},
-			"rewards": {
-				"add_credits": 5,
-				"add_story_points": 1
-			},
-			"next_event_ticks": 3
-		},
-		# Add more events here
-	]
-	
-	events = event_data.map(func(data): return StoryEvent.new(data))
+	var file = FileAccess.open("res://Data/story_events.json", FileAccess.READ)
+	if file:
+		var event_data: Array = JSON.parse_string(file.get_as_text())
+		file.close()
+		events = event_data.map(func(data): return StoryEvent.new(data))
+	else:
+		push_error("Failed to load story events file.")
 
 func start_tutorial() -> void:
 	current_event_index = 0
@@ -61,12 +44,11 @@ func trigger_current_event() -> void:
 	apply_event_effects(current_event)
 
 func apply_event_effects(event: StoryEvent) -> void:
-	event.apply_event_effects(game_state)
-	event.setup_battle(game_state.combat_manager)
-	event.apply_rewards(game_state)
+	event.apply_event_effects(game_state_manager)
+	event.setup_battle(game_state_manager.combat_manager)
+	event.apply_rewards(game_state_manager)
 
 func progress_story(current_phase: GlobalEnums.CampaignPhase) -> void:
-	var _game_state = GameState  # Assuming GameState is an autoload singleton
 	story_clock.count_down(current_phase == GlobalEnums.CampaignPhase.POST_BATTLE)
 	if story_clock.is_event_triggered():
 		current_event_index += 1
@@ -74,12 +56,9 @@ func progress_story(current_phase: GlobalEnums.CampaignPhase) -> void:
 			trigger_current_event()
 		else:
 			# Tutorial completed
-			game_state.is_tutorial_active = false
+			game_state_manager.get_game_state().is_tutorial_active = false
 
 func serialize() -> Dictionary:
-	# Tutorial completed
-	game_state.is_tutorial_active = false
-	
 	return {
 		"events": events.map(func(event: StoryEvent) -> Dictionary: return event.serialize()),
 		"current_event_index": current_event_index,

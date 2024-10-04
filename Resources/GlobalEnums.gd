@@ -119,6 +119,8 @@ enum CampaignPhase {
 enum CharacterStatus {
     ACTIVE,
     INJURED,
+    STUNNED,
+    FLEEING,
     DEAD
 }
 
@@ -461,3 +463,22 @@ static func get_training_cost(training_type: TrainingType) -> int:
         TrainingType.SPECIALIZED:
             return SPECIALIZED_TRAINING_COST
     return 0  # Default case
+
+enum BattlePhase {
+    REACTION_ROLL,
+    QUICK_ACTIONS,
+    ENEMY_ACTIONS,
+    SLOW_ACTIONS,
+    END_PHASE,
+    END_ROUND,
+}
+
+enum CoverType {
+    NONE,
+    PARTIAL,
+    FULL
+}
+
+
+
+

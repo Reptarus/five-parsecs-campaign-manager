@@ -16,24 +16,29 @@ var character_box_scene = preload("res://Scenes/Scene Container/campaigncreation
 const DEFAULT_CREW_SIZE = 8
 
 func _ready() -> void:
-	game_state_manager = get_node("/root/GameStateManager")
-	if not game_state_manager:
-		push_error("GameStateManager not found. Make sure it's properly set up as an AutoLoad.")
+	print("Starting _ready function in CrewManagement")
+	var game_state_manager = get_node("/root/GameStateManager")
+	print("GameStateManager node: ", game_state_manager)
+	if game_state_manager != null:
+		print("GameStateManager methods: ", game_state_manager.get_method_list())
+	
+	if game_state_manager == null:
+		push_error("GameStateManager not found in the scene tree.")
 		return
 	
 	if not game_state_manager.has_method("get_game_state"):
-		push_error("GameStateManager does not have the expected get_game_state() method.")
+		push_error("GameStateManager does not have the get_game_state method.")
 		return
 	
 	var game_state = game_state_manager.get_game_state()
 	if not game_state:
-		push_error("Failed to get GameState from GameStateManager.")
-		return
+		push_error("Failed to get GameState from GameStateManager. Initializing with default values.")
+		_initialize_default_game_state()
+		game_state = game_state_manager.get_game_state()  # Get updated game state
 	
 	if not game_state.current_crew:
 		push_error("Current crew not initialized. Initializing with default values.")
-		_initialize_default_game_state()
-		game_state = game_state_manager.get_game_state()  # Get updated game state
+		game_state.current_crew = Crew.new()
 	
 	setup_crew_slots()
 	update_crew_display()
@@ -85,7 +90,7 @@ func _show_character_details(character: Character) -> void:
 	character_display.set_character(character)
 	character_display.show()
 
-func _create_new_character(slot_index: int) -> void:
+func _create_new_character(_slot_index: int) -> void:
 	var character_creator = character_creator_scene.instantiate()
 	character_creator.connect("character_created", _on_character_created)
 	add_child(character_creator)
@@ -104,7 +109,7 @@ func _on_edit_character_pressed(character: Character) -> void:
 	character_creator.character_updated.connect(_on_character_updated)
 	add_child(character_creator)
 
-func _on_character_updated(updated_character: Character) -> void:
+func _on_character_updated(_updated_character: Character) -> void:
 	update_crew_display()
 
 func _on_remove_character_pressed(character: Character) -> void:
@@ -119,10 +124,11 @@ func _on_finalize_crew_button_pressed() -> void:
 		push_warning("Crew is not valid. Ensure you have the minimum required members.")
 
 func _on_create_character_button_pressed() -> void:
-	var current_crew = game_state_manager.game_state.current_crew
+	var current_crew = game_state_manager.get_game_state().current_crew
 	if not current_crew:
-		push_error("Current crew is null. Cannot create new character.")
-		return
+		push_error("Current crew is null. Creating a new crew for testing.")
+		current_crew = Crew.new()
+		game_state_manager.get_game_state().current_crew = current_crew
 	
 	if current_crew.can_add_member():
 		_create_new_character(current_crew.characters.size())

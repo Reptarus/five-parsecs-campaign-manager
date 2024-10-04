@@ -48,9 +48,9 @@ func has_trait(search_string: String) -> bool:
 func repair(amount: int) -> void:
 	current_hull = min(current_hull + amount, max_hull)
 	hull_changed.emit(current_hull, max_hull)
-
-func take_damage(amount: int, game_state: GameStateManager) -> void:
-	if game_state.game_state.is_tutorial_active:
+	
+func take_damage(amount: int) -> void:
+	if GameStateManager.game_state.is_tutorial_active:
 		amount = max(1, int(amount / 2.0))
 	current_hull = max(current_hull - amount, 0)
 	hull_changed.emit(current_hull, max_hull)
@@ -69,7 +69,7 @@ func use_fuel(amount: int) -> bool:
 		return true
 	return false
 
-func travel_to(destination: Location, game_state: GameStateManager) -> bool:
+func travel_to(destination: Location) -> bool:
 	if not current_location:
 		push_error("Ship has no current location set")
 		return false
@@ -83,7 +83,7 @@ func travel_to(destination: Location, game_state: GameStateManager) -> bool:
 		ship_traveled.emit(previous_location, current_location)
 		
 		# Trigger travel event
-		var event = game_state.starship_travel_events.generate_travel_event()
+		var event = GameStateManager.starship_travel_events.generate_travel_event()
 		travel_event_occurred.emit(event)
 		
 		return true

@@ -1,41 +1,31 @@
 class_name StatusEffect
 extends Resource
 
-enum EffectType {
-    STUNNED,
-    POISONED,
-    BURNING,
-    BLEEDING,
-    CONFUSED,
-    SHIELDED,
-    ENRAGED
-}
-
-@export var type: EffectType
+@export var type: GlobalEnums.StatusEffectType
 @export var duration: int
 @export var intensity: int
 
-func _init(_type: EffectType = EffectType.STUNNED, _duration: int = 1, _intensity: int = 1) -> void:
+func _init(_type: GlobalEnums.StatusEffectType = GlobalEnums.StatusEffectType.STUN, _duration: int = 1, _intensity: int = 1) -> void:
     type = _type
     duration = _duration
     intensity = _intensity
 
 func process(character: Character) -> void:
     match type:
-        EffectType.STUNNED:
+        GlobalEnums.StatusEffectType.STUN:
             process_stunned(character)
-        EffectType.POISONED:
+        GlobalEnums.StatusEffectType.POISON:
             process_poisoned(character)
-        EffectType.BURNING:
-            process_burning(character)
-        EffectType.BLEEDING:
-            process_bleeding(character)
-        EffectType.CONFUSED:
-            process_confused(character)
-        EffectType.SHIELDED:
-            process_shielded(character)
-        EffectType.ENRAGED:
-            process_enraged(character)
+        GlobalEnums.StatusEffectType.BUFF:
+            process_buff(character)
+        GlobalEnums.StatusEffectType.DEBUFF:
+            process_debuff(character)
+        GlobalEnums.StatusEffectType.NEUTRAL:
+            process_neutral(character)
+        GlobalEnums.StatusEffectType.REGENERATION:
+            process_regeneration(character)
+        GlobalEnums.StatusEffectType.SHIELD:
+            process_shield(character)
     duration -= 1
 
 func is_expired() -> bool:
@@ -50,39 +40,36 @@ func process_poisoned(character: Character) -> void:
     character.take_damage(intensity)
     character.toughness -= 1
 
-func process_burning(character: Character) -> void:
-    character.take_damage(intensity * 2)
-    character.speed -= 1
+func process_buff(character: Character) -> void:
+    character.apply_status_effect("buffed", intensity)
+    character.combat_skill += 1
+    character.toughness += 1
 
-func process_bleeding(character: Character) -> void:
-    character.take_damage(intensity)
+func process_debuff(character: Character) -> void:
+    character.apply_status_effect("debuffed", intensity)
+    character.combat_skill -= 1
     character.toughness -= 1
 
-func process_confused(character: Character) -> void:
-    character.apply_status_effect("confused", intensity)
-    character.combat_skill -= 1
-    character.savvy -= 1
+func process_neutral(character: Character) -> void:
+    character.apply_status_effect("neutral", intensity)
 
-func process_shielded(character: Character) -> void:
+func process_regeneration(character: Character) -> void:
+    character.heal(intensity)
+
+func process_shield(character: Character) -> void:
     character.apply_status_effect("shielded", intensity)
     character.toughness += intensity
 
-func process_enraged(character: Character) -> void:
-    character.apply_status_effect("enraged", intensity)
-    character.combat_skill += 1
-    character.toughness += 1
-    character.savvy -= 1
-
 func serialize() -> Dictionary:
     return {
-        "type": EffectType.keys()[type],
+        "type": GlobalEnums.StatusEffectType.keys()[type],
         "duration": duration,
         "intensity": intensity
     }
 
 static func deserialize(data: Dictionary) -> StatusEffect:
     return StatusEffect.new(
-        EffectType[data["type"]],
+        GlobalEnums.StatusEffectType[data["type"]],
         data["duration"],
         data["intensity"]
     )

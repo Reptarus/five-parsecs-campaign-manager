@@ -41,7 +41,7 @@ func get_hit_bonus(distance: float, is_aiming: bool, is_in_cover: bool) -> int:
 func check_overheat(roll: int) -> bool:
 	return weapon_system.check_overheat(self, roll)
 
-func apply_trait(trait_name: GlobalEnums.WeaponTrait, context: Dictionary) -> int:
+func apply_trait(trait_name: String, context: Dictionary) -> int:
 	return weapon_system.apply_trait(trait_name, self, context)
 
 func serialize() -> Dictionary:
@@ -51,7 +51,7 @@ func serialize() -> Dictionary:
 		"range": weapon_range,
 		"shots": shots,
 		"damage": weapon_damage,
-		"traits": traits.map(func(trait): return GlobalEnums.WeaponTrait.keys()[trait]),
+		"traits": traits.map(func(trait_enum): return GlobalEnums.WeaponTrait.keys()[trait_enum]),
 		"melee_bonus": melee_bonus,
 		"visibility_bonus": visibility_bonus,
 		"bipod_bonus": bipod_bonus,
@@ -66,7 +66,7 @@ static func deserialize(data: Dictionary) -> Weapon:
 		data.get("range", 0),
 		data.get("shots", 1),
 		data.get("damage", 0),
-		data.get("traits", []).map(func(trait): return GlobalEnums.WeaponTrait[trait])
+		data.get("traits", [])
 	)
 	weapon.value = data.get("value", 0)
 	weapon.is_damaged = data.get("is_damaged", false)

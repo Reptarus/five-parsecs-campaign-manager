@@ -142,23 +142,62 @@ func resolve_mission(mission: Mission) -> bool:
     return success
 
 func _calculate_success_chance(mission: Mission) -> float:
-    var base_chance = 0.5
-    var difficulty_modifier = 0.1 * (game_state.game_state.current_ship.crew.get_average_level() - mission.difficulty)
+    var base_chance = 0.5  # Default base chance
     
     match mission.type:
         GlobalEnums.Type.INFILTRATION:
             base_chance = 0.4
-            difficulty_modifier -= 0.1 * mission.detection_level
         GlobalEnums.Type.STREET_FIGHT:
             base_chance = 0.6
-            difficulty_modifier = 0.1 * (game_state.game_state.current_ship.crew.get_average_combat_skill() - mission.difficulty)
         GlobalEnums.Type.SALVAGE_JOB:
-            difficulty_modifier = 0.1 * (game_state.game_state.current_ship.crew.get_average_savvy() - mission.difficulty)
+            base_chance = 0.55
         GlobalEnums.Type.FRINGE_WORLD_STRIFE:
-            base_chance = 0.4
-            difficulty_modifier -= 0.05 * GlobalEnums.FringeWorldInstability.values().find(mission.instability)
+            base_chance = 0.45
     
-    return base_chance + difficulty_modifier
+    # Apply modifiers and calculate final chance
+    var crew_skill_modifier = 0.0
+    var equipment_modifier = 0.0
+    var difficulty_modifier = -0.05 * mission.difficulty
+    
+    match mission.objective:
+        GlobalEnums.MissionObjective.FIGHT_OFF:
+            crew_skill_modifier = (_calculate_average_combat_skill(game_state.game_state.current_ship.crew) - 3) * 0.05
+        GlobalEnums.MissionObjective.INFILTRATION:
+            crew_skill_modifier = (_calculate_average_savvy(game_state.game_state.current_ship.crew) - 3) * 0.05
+        GlobalEnums.MissionObjective.ACQUIRE:
+            crew_skill_modifier = (_calculate_average_savvy(game_state.game_state.current_ship.crew) - 3) * 0.03
+            equipment_modifier = 0.05 if game_state.equipment_manager.has_equipment_type("scanner") else 0.0
+        GlobalEnums.MissionObjective.DEFEND:
+            crew_skill_modifier = (_calculate_average_combat_skill(game_state.game_state.current_ship.crew) - 3) * 0.04
+        GlobalEnums.MissionObjective.DELIVER:
+            crew_skill_modifier = (_calculate_average_savvy(game_state.game_state.current_ship.crew) - 3) * 0.03
+        GlobalEnums.MissionObjective.ELIMINATE:
+            crew_skill_modifier = (_calculate_average_combat_skill(game_state.game_state.current_ship.crew) - 3) * 0.06
+        GlobalEnums.MissionObjective.EXPLORE:
+            crew_skill_modifier = (_calculate_average_savvy(game_state.game_state.current_ship.crew) - 3) * 0.04
+        GlobalEnums.MissionObjective.MOVE_THROUGH:
+            crew_skill_modifier = (_calculate_average_savvy(game_state.game_state.current_ship.crew) - 3) * 0.03
+        GlobalEnums.MissionObjective.SABOTAGE:
+            crew_skill_modifier = (_calculate_average_savvy(game_state.game_state.current_ship.crew) - 3) * 0.05
+        GlobalEnums.MissionObjective.DESTROY:
+            crew_skill_modifier = (_calculate_average_combat_skill(game_state.game_state.current_ship.crew) - 3) * 0.05
+        GlobalEnums.MissionObjective.RESCUE:
+            crew_skill_modifier = (_calculate_average_savvy(game_state.game_state.current_ship.crew) - 3) * 0.04
+        GlobalEnums.MissionObjective.PROTECT:
+            crew_skill_modifier = (_calculate_average_combat_skill(game_state.game_state.current_ship.crew) - 3) * 0.04
+    
+    var final_chance = base_chance + crew_skill_modifier + equipment_modifier + difficulty_modifier
+    
+    return clamp(final_chance, 0.1, 0.9)  # Ensure chance is between 10% and 90%
+
+func _calculate_average_level(crew: Array[Character]) -> float:
+    return crew.reduce(func(acc, character): return acc + character.level, 0.0) / crew.size()
+
+func _calculate_average_combat_skill(crew: Array[Character]) -> float:
+    return crew.reduce(func(acc, character): return acc + character.combat_skill, 0.0) / crew.size()
+
+func _calculate_average_savvy(crew: Array[Character]) -> float:
+    return crew.reduce(func(acc, character): return acc + character.savvy, 0.0) / crew.size()
 
 func _handle_mission_success(mission: Mission) -> void:
     mission.complete()

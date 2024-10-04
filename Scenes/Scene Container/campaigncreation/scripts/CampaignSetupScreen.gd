@@ -7,19 +7,37 @@ const DifficultySettingsResource = preload("res://Scenes/Scene Container/campaig
 @onready var victory_condition_container: HBoxContainer = $MarginContainer/VBoxContainer/VictoryConditionContainer
 @onready var victory_type_label: Label = $MarginContainer/VBoxContainer/VictoryConditionContainer/VictoryTypeLabel
 @onready var victory_count_label: Label = $MarginContainer/VBoxContainer/VictoryConditionContainer/VictoryCountLabel
-@onready var optional_features_container: VBoxContainer = $MarginContainer/VBoxContainer/OptionalFeaturesContainer
+@onready var optional_features_container: VBoxContainer = $HBoxContainer/LeftPanel/VBoxContainer/OptionalFeaturesContainer
 @onready var start_campaign_button: Button = $MarginContainer/VBoxContainer/StartCampaignButton
 @onready var crew_size_slider: HSlider = $MarginContainer/VBoxContainer/CrewSizeContainer/HSlider
 @onready var current_size_label: Label = $MarginContainer/VBoxContainer/CrewSizeContainer/CurrentSizeLabel
 @onready var crew_size_tutorial_label: Label = $MarginContainer/VBoxContainer/CrewSizeContainer/TutorialLabel
 @onready var set_victory_condition_button: Button = $MarginContainer/VBoxContainer/VictoryConditionContainer/SetVictoryConditionButton
 @onready var lock_crew_size_button: Button = $MarginContainer/VBoxContainer/CrewSizeContainer/LockCrewSizeButton
+@onready var variation_descriptions: VBoxContainer = $HBoxContainer/RightPanel/Panel/MarginContainer/VBoxContainer/ScrollContainer/VariationDescriptions
 
 var game_state_manager: GameStateManager
 var difficulty_settings: DifficultySettingsResource
 var victory_types = ["Missions", "Credits", "Reputation", "Story Points"]
 var current_victory_type = 0
 var current_victory_count = 5
+var feature_descriptions = {
+	"Loans": "Enable the ability to take out loans for financial flexibility.",
+	"Story Track": "Follow a narrative-driven campaign with branching storylines.",
+	"Expanded Factions": "Interact with a wider variety of factions and political entities.",
+	"Progressive Difficulty": "Face increasingly challenging missions as your campaign progresses.",
+	"Fringe World Strife": "Navigate conflicts in remote, lawless sectors of space.",
+	"Dramatic Combat": "Experience more intense and cinematic battle scenarios.",
+	"Casualty Tables": "Deal with realistic consequences of combat injuries.",
+	"Detailed Post-Battle Injuries": "Manage complex injury recovery for your crew.",
+	"AI Variations": "Encounter diverse and unpredictable AI behaviors.",
+	"Enemy Deployment Variables": "Face varied enemy compositions and strategies.",
+	"Escalating Battles": "Participate in larger-scale conflicts as your reputation grows.",
+	"Elite-Level Enemies": "Confront highly skilled and well-equipped adversaries.",
+	"Expanded Missions": "Access a wider variety of mission types and objectives.",
+	"Expanded Quest Progression": "Engage in more complex and interconnected quest lines.",
+	"Expanded Connections": "Develop deeper relationships with NPCs and factions."
+}
 
 func _ready():
 	await get_tree().process_frame
@@ -52,28 +70,29 @@ func _setup_ui_elements():
 		push_error("DifficultyOptionButton not found in the scene.")
 
 func _setup_optional_features():
-	var features = [
-		"Loans",
-		"Story Track",
-		"Expanded Factions",
-		"Progressive Difficulty",
-		"Fringe World Strife",
-		"Dramatic Combat",
-		"Casualty Tables",
-		"Detailed Post-Battle Injuries",
-		"AI Variations",
-		"Enemy Deployment Variables",
-		"Escalating Battles",
-		"Elite-Level Enemies",
-		"Expanded Missions",
-		"Expanded Quest Progression",
-		"Expanded Connections"
-	]
-	
-	for feature in features:
+	for feature in feature_descriptions.keys():
 		var checkbox = CheckBox.new()
 		checkbox.text = feature
+		checkbox.connect("toggled", _on_feature_toggled.bind(feature))
 		optional_features_container.add_child(checkbox)
+
+func _on_feature_toggled(button_pressed: bool, feature: String):
+	if button_pressed:
+		_add_feature_description(feature)
+	else:
+		_remove_feature_description(feature)
+
+func _add_feature_description(feature: String):
+	var label = Label.new()
+	label.text = feature_descriptions[feature]
+	label.autowrap = true
+	label.name = feature.replace(" ", "_") + "_Description"
+	variation_descriptions.add_child(label)
+
+func _remove_feature_description(feature: String):
+	var description_node = variation_descriptions.get_node_or_null(feature.replace(" ", "_") + "_Description")
+	if description_node:
+		description_node.queue_free()
 
 func _setup_victory_conditions():
 	victory_type_label.text = victory_types[current_victory_type]

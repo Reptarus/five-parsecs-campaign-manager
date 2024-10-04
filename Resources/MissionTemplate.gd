@@ -16,6 +16,10 @@ extends Resource
 @export var faction_type: GlobalEnums.Faction
 @export var loyalty_requirement_range: Vector2
 @export var power_requirement_range: Vector2
+@export var time_limit_range: Vector2
+@export var strife_intensity_range: Vector2
+@export var environmental_factors: Array[String]
+@export var available_resources: Dictionary
 
 func _init(
     _type: GlobalEnums.Type = GlobalEnums.Type.OPPORTUNITY,
@@ -32,7 +36,11 @@ func _init(
     _economic_impact: float = 1.0,
     _faction_type: GlobalEnums.Faction = GlobalEnums.Faction.CORPORATE,
     _loyalty_requirement_range: Vector2 = Vector2(1, 3),
-    _power_requirement_range: Vector2 = Vector2(1, 5)
+    _power_requirement_range: Vector2 = Vector2(1, 5),
+    _time_limit_range: Vector2 = Vector2(3, 7),
+    _strife_intensity_range: Vector2 = Vector2(1, 5),
+    _environmental_factors: Array[String] = [],
+    _available_resources: Dictionary = {}
 ):
     type = _type
     title_templates = _title_templates
@@ -49,21 +57,25 @@ func _init(
     faction_type = _faction_type
     loyalty_requirement_range = _loyalty_requirement_range
     power_requirement_range = _power_requirement_range
+    time_limit_range = _time_limit_range
+    strife_intensity_range = _strife_intensity_range
+    environmental_factors = _environmental_factors
+    available_resources = _available_resources
 
-func calculate_reward(economy_manager: EconomyManager) -> int:
+func calculate_reward(game_state_manager: GameStateManager) -> int:
     var base_reward = randf_range(reward_range.x, reward_range.y)
-    return int(base_reward * economy_manager.global_economic_modifier * economic_impact)
+    # Assuming GameStateManager has a method to get the global economic modifier
+    var global_economic_modifier = game_state_manager.get_global_economic_modifier()
+    return int(base_reward * global_economic_modifier * economic_impact)
 
 func generate_deployment_condition() -> String:
     if randf() < deployment_condition_chance:
-        # Implementation of deployment condition generation
-        return "Challenging terrain"  # Placeholder
-    return "Standard deployment"
+        return GlobalEnums.DeploymentType.keys()[randi() % GlobalEnums.DeploymentType.size()]
+    return "LINE"
 
 func generate_notable_sight() -> String:
-    if randf() < notable_sight_chance:
-        # Implementation of notable sight generation
-        return "Ancient artifact"  # Placeholder
+    if randf() < notable_sight_chance and environmental_factors.size() > 0:
+        return environmental_factors[randi() % environmental_factors.size()]
     return ""
 
 func to_dict() -> Dictionary:
@@ -82,7 +94,11 @@ func to_dict() -> Dictionary:
         "economic_impact": economic_impact,
         "faction_type": GlobalEnums.Faction.keys()[faction_type],
         "loyalty_requirement_range": {"x": loyalty_requirement_range.x, "y": loyalty_requirement_range.y},
-        "power_requirement_range": {"x": power_requirement_range.x, "y": power_requirement_range.y}
+        "power_requirement_range": {"x": power_requirement_range.x, "y": power_requirement_range.y},
+        "time_limit_range": {"x": time_limit_range.x, "y": time_limit_range.y},
+        "strife_intensity_range": {"x": strife_intensity_range.x, "y": strife_intensity_range.y},
+        "environmental_factors": environmental_factors,
+        "available_resources": available_resources
     }
 
 static func from_dict(data: Dictionary) -> MissionTemplate:
@@ -101,5 +117,9 @@ static func from_dict(data: Dictionary) -> MissionTemplate:
         data["economic_impact"],
         GlobalEnums.Faction[data["faction_type"]],
         Vector2(data["loyalty_requirement_range"]["x"], data["loyalty_requirement_range"]["y"]),
-        Vector2(data["power_requirement_range"]["x"], data["power_requirement_range"]["y"])
+        Vector2(data["power_requirement_range"]["x"], data["power_requirement_range"]["y"]),
+        Vector2(data["time_limit_range"]["x"], data["time_limit_range"]["y"]),
+        Vector2(data["strife_intensity_range"]["x"], data["strife_intensity_range"]["y"]),
+        data["environmental_factors"],
+        data["available_resources"]
     )
