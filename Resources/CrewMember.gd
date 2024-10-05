@@ -22,7 +22,8 @@ func set_default_stats() -> void:
 func equip_default_weapons() -> void:
 	var pistol = Weapon.new("Hand gun", GlobalEnums.WeaponType.PISTOL, 12, 1, 0)
 	var knife = Weapon.new("Blade", GlobalEnums.WeaponType.MELEE, 0, 1, 0)
-	character.inventory = [pistol.serialize(), knife.serialize()]
+	character.inventory.append(pistol.serialize())
+	character.inventory.append(knife.serialize())
 
 func initialize(species: GlobalEnums.Species, background: GlobalEnums.Background, 
 				motivation: GlobalEnums.Motivation, crew_class: GlobalEnums.Class) -> void:
@@ -32,8 +33,15 @@ func initialize(species: GlobalEnums.Species, background: GlobalEnums.Background
 func set_weapons(weapon_data: Array) -> void:
 	character.inventory.clear()
 	for weapon_info in weapon_data:
-		var weapon = Weapon.new(weapon_info.name, weapon_info.type, weapon_info.range, weapon_info.shots, weapon_info.damage)
-		character.inventory.append(weapon.serialize())
+		if weapon_info is Dictionary:
+			var weapon = Weapon.new(
+				weapon_info.get("name", ""),
+				weapon_info.get("type", GlobalEnums.WeaponType.PISTOL),
+				weapon_info.get("range", 0),
+				weapon_info.get("shots", 1),
+				weapon_info.get("damage", 0)
+			)
+			character.inventory.append(weapon)
 
 func assign_role(new_role: String) -> void:
 	role = new_role
@@ -50,9 +58,8 @@ func get_crew_member_data() -> Dictionary:
 		"loyalty": self.loyalty,
 		"special_ability": self.special_ability,
 	}
-	var merged_data = char_data.duplicate()
-	merged_data.merge(crew_specific_data)
-	return merged_data
+	char_data.merge(crew_specific_data)
+	return char_data
 
 func use_special_ability() -> void:
 	print("Using special ability: ", special_ability)

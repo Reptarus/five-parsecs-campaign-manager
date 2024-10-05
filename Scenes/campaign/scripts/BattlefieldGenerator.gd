@@ -7,8 +7,8 @@ signal terrain_placed(terrain_type: GlobalEnums.TerrainFeature, position: Vector
 const EnemyTypes = preload("res://Resources/EnemyTypes.gd")
 const CrewScene = preload("res://Scenes/Scene Container/BattlefieldGeneratorCrew.tscn")
 const EnemyScene = preload("res://Scenes/Scene Container/BattlefieldGeneratorEnemy.tscn")
-
-enum TableSize { SMALL, MEDIUM, LARGE }
+const Enemy = preload("res://Resources/Enemy.gd")
+const Mission = preload("res://Scripts/Missions/Mission.gd")
 
 @export var debug_mode: bool = false
 @export var table_size: GlobalEnums.TerrainSize = GlobalEnums.TerrainSize.MEDIUM
@@ -22,6 +22,7 @@ var terrain_generator: TerrainGenerator
 @onready var table_size_option: OptionButton = %TableSizeOption
 
 func _ready() -> void:
+	mission = _generate_placeholder_mission()
 	_setup_ui()
 	initialize()
 
@@ -105,19 +106,19 @@ func _generate_placeholder_mission() -> Mission:
 	placeholder_mission.terrain_type = GlobalEnums.TerrainGenerationType.INDUSTRIAL
 	placeholder_mission.required_crew_size = 4
 	
-	var enemies = []
+	var enemies: Array[Enemy] = []
 	for i in range(3):
-		var enemy = Enemy.new()
-		enemy.enemy_type = "Gangers"
-		enemy.initialize(GlobalEnums.Species.HUMAN, GlobalEnums.Background.OVERCROWDED_CITY, GlobalEnums.Motivation.WEALTH, GlobalEnums.Class.WORKING_CLASS)
+		var enemy = Enemy.new("Gangers", "Standard")
 		enemies.append(enemy)
 	
 	placeholder_mission.set_enemies(enemies)
 	return placeholder_mission
 
 func _setup_ui() -> void:
-	# UI setup code here (unchanged)
-	pass
+	table_size_option.clear()
+	for size in GlobalEnums.TerrainSize.keys():
+		table_size_option.add_item(size)
+	table_size_option.select(table_size)
 
 func _update_debug_info() -> void:
 	if debug_mode:
@@ -141,7 +142,7 @@ func _on_start_mission_pressed() -> void:
 	get_tree().change_scene_to_file("res://Scenes/campaign/Battle.tscn")
 
 func _on_table_size_option_item_selected(index: int) -> void:
-	table_size = TableSize.values()[index]
+	table_size = GlobalEnums.TerrainSize.values()[index]
 	_generate_battlefield()
 
 # Unit testing methods
@@ -157,11 +158,11 @@ func run_tests() -> void:
 		print("Test result: ", "PASS" if result else "FAIL")
 
 func _test_battlefield_generation() -> bool:
-	var battlefield_data = terrain_generator.generate_battlefield(mission)
+	var battlefield_data = terrain_generator.generate_battlefield(mission, table_size)
 	return battlefield_data.has("terrain") and battlefield_data.has("player_positions") and battlefield_data.has("enemy_positions")
 
 func _test_terrain_distribution() -> bool:
-	var battlefield_data = terrain_generator.generate_battlefield(mission)
+	var battlefield_data = terrain_generator.generate_battlefield(mission, table_size)
 	var terrain_count = {}
 	for row in battlefield_data.terrain:
 		for cell in row:
@@ -173,5 +174,5 @@ func _test_terrain_distribution() -> bool:
 	return true
 
 func _test_player_enemy_positions() -> bool:
-	var battlefield_data = terrain_generator.generate_battlefield(mission)
+	var battlefield_data = terrain_generator.generate_battlefield(mission, table_size)
 	return battlefield_data.player_positions.size() > 0 and battlefield_data.enemy_positions.size() > 0

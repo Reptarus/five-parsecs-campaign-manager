@@ -1,12 +1,29 @@
 class_name Patron
 extends Resource
 
-@export var name: String
-@export var location: Location
-@export var relationship: int = 0  # -100 to 100, 0 is neutral
-@export var missions: Array[Mission] = []
-@export var type: GlobalEnums.Faction = GlobalEnums.Faction.CORPORATE
-@export var economic_influence: float = 1.0
+var name: String:
+	get: return name
+	set(value): name = value
+
+var location: Location:
+	get: return location
+	set(value): location = value
+
+var relationship: int = 0:  # -100 to 100, 0 is neutral
+	get: return relationship
+	set(value): relationship = value
+
+var missions: Array[Mission] = []:
+	get: return missions
+	set(value): missions = value
+
+var type: GlobalEnums.Faction = GlobalEnums.Faction.CORPORATE:
+	get: return type
+	set(value): type = value
+
+var economic_influence: float = 1.0:
+	get: return economic_influence
+	set(value): economic_influence = value
 
 func _init(_name: String = "", _location: Location = null, _type: GlobalEnums.Faction = GlobalEnums.Faction.CORPORATE):
 	name = _name
@@ -29,17 +46,17 @@ func serialize() -> Dictionary:
 		"location": location.serialize() if location else {} as Dictionary,
 		"relationship": relationship,
 		"missions": missions.map(func(m): return m.serialize()),
-		"type": GlobalEnums.Faction.keys()[type],
+		"type": type,
 		"economic_influence": economic_influence
 	}
 
+# Add a static method for deserialization
 static func deserialize(data: Dictionary) -> Patron:
-	var patron = Patron.new(
-		data["name"],
-		Location.deserialize(data["location"]) if data["location"] else null,
-		GlobalEnums.Faction[data["type"]]
-	)
-	patron.relationship = data["relationship"]
-	patron.missions = data["missions"].map(func(m): return Mission.deserialize(m))
-	patron.economic_influence = data["economic_influence"]
+	var patron = Patron.new()
+	patron.name = data.get("name", "")
+	patron.location = Location.deserialize(data.get("location", {}))
+	patron.relationship = data.get("relationship", 0)
+	patron.missions = data.get("missions", []).map(func(m): return Mission.deserialize(m))
+	patron.type = data.get("type", GlobalEnums.Faction.CORPORATE)
+	patron.economic_influence = data.get("economic_influence", 1.0)
 	return patron

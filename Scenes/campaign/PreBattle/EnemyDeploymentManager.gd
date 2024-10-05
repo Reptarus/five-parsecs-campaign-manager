@@ -212,3 +212,12 @@ func _generate_concealed_deployment(battle_map: Dictionary) -> Array:
 			concealed_deployment.append(position)
 	
 	return concealed_deployment
+
+func deploy_enemies(enemies: Array, battle_map: Dictionary) -> void:
+	var deployment_positions = generate_deployment(game_state.current_mission.enemy_type, battle_map)
+	for i in range(min(enemies.size(), deployment_positions.size())):
+		var enemy = enemies[i]
+		var spawn_point = deployment_positions[i]
+		enemy.position = spawn_point
+		# Add the enemy to the battle scene
+		game_state.current_battle_scene.add_child(enemy)

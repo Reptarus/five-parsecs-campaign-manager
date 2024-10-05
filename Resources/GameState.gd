@@ -1,22 +1,69 @@
 class_name GameState
 extends Resource
 
-@export var current_state: GlobalEnums.CampaignPhase = GlobalEnums.CampaignPhase.MAIN_MENU
-@export var current_crew: Crew
-@export var current_ship: Ship
-@export var current_location: Location
-@export var available_locations: Array[Location] = []
-@export var current_mission: Mission
-@export var credits: int = 0
-@export var story_points: int = 0
-@export var campaign_turn: int = 0
-@export var available_missions: Array[Mission] = []
-@export var active_quests: Array[Quest] = []
-@export var patrons: Array[Patron] = []
-@export var rivals: Array[Rival] = []
-@export var character_connections: Array = []
-@export var difficulty_settings: DifficultySettings
-@export var victory_condition: Dictionary
+var current_state: GlobalEnums.CampaignPhase = GlobalEnums.CampaignPhase.MAIN_MENU:
+	get: return current_state
+	set(value): current_state = value
+
+var current_crew: Crew:
+	get: return current_crew
+	set(value): current_crew = value
+
+var current_ship: Ship:
+	get: return current_ship
+	set(value): current_ship = value
+
+var current_location: Location:
+	get: return current_location
+	set(value): current_location = value
+
+var available_locations: Array[Location] = []:
+	get: return available_locations
+	set(value): available_locations = value
+
+var current_mission: Mission:
+	get: return current_mission
+	set(value): current_mission = value
+
+var credits: int = 0:
+	get: return credits
+	set(value): credits = value
+
+var story_points: int = 0:
+	get: return story_points
+	set(value): story_points = value
+
+var campaign_turn: int = 0:
+	get: return campaign_turn
+	set(value): campaign_turn = value
+
+var available_missions: Array[Mission] = []:
+	get: return available_missions
+	set(value): available_missions = value
+
+var active_quests: Array[Quest] = []:
+	get: return active_quests
+	set(value): active_quests = value
+
+var patrons: Array[Patron] = []:
+	get: return patrons
+	set(value): patrons = value
+
+var rivals: Array[Rival] = []:
+	get: return rivals
+	set(value): rivals = value
+
+var character_connections: Array = []:
+	get: return character_connections
+	set(value): character_connections = value
+
+var difficulty_settings: DifficultySettings:
+	get: return difficulty_settings
+	set(value): difficulty_settings = value
+
+var victory_condition: Dictionary:
+	get: return victory_condition
+	set(value): victory_condition = value
 
 var reputation: int = 0
 var last_mission_results: String = ""

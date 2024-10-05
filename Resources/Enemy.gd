@@ -1,54 +1,48 @@
-extends Character
+extends Node2D
 class_name Enemy
 
-var threat_level: int = 1
-var loot_table: Array[Dictionary] = []
-var enemy_type: String = "Default"
+var character: Character
+var enemy_class: String
+var enemy_type: String
+
+@export var health: int = 100
+@export var max_health: int = 100
+@export var attack_power: int = 10
 
 var weapon_system: WeaponSystem
+var weapons: Array[Weapon] = []
+var threat_level: int = 0
 
-func _init() -> void:
-	super._init()
+# Add these variables to match the special rules
+var has_leg_it: bool = false
+var is_careless: bool = false
+var is_bad_shot: bool = false
+
+func _init(p_enemy_type: String, p_enemy_class: String) -> void:
+	character = Character.new()
+	enemy_type = p_enemy_type
+	enemy_class = p_enemy_class
+	
+	var enemy_data = EnemyTypes.get_enemy_type(enemy_type)
+	character.speed = enemy_data.speed
+	character.combat_skill = enemy_data.combat_skill
+	# Initialize other properties as needed
+
+func _ready() -> void:
 	weapon_system = WeaponSystem.new()
 	set_default_stats()
 	equip_default_weapons()
 
 func set_default_stats() -> void:
-	self.name = "Default Enemy"
-	self.health = 100
-	self.max_health = 100
-	self.attack_power = 10
-	self.speed = 4
-	self.combat_skill = 0
-	self.toughness = 3
-	self.savvy = 0
+	character.name = "Default Enemy"
+	character.health = 100
+	character.max_health = 100
+	# ... other stat initializations
 
 func equip_default_weapons() -> void:
 	var pistol = Weapon.new("Hand gun", GlobalEnums.WeaponType.PISTOL, 12, 1, 0)
 	var knife = Weapon.new("Blade", GlobalEnums.WeaponType.MELEE, 0, 1, 0)
 	self.weapons = [pistol, knife]
-
-func initialize(species: GlobalEnums.Species, background: GlobalEnums.Background, 
-				motivation: GlobalEnums.Motivation, enemy_class: GlobalEnums.Class) -> void:
-	self.species = species
-	self.background = background
-	self.motivation = motivation
-	self.enemy_class = enemy_class
-	var enemy_data = EnemyTypes.get_enemy_type(enemy_type)
-	
-	self.name = enemy_type
-	self.speed = enemy_data.speed
-	self.combat_skill = enemy_data.combat_skill
-	self.toughness = enemy_data.toughness
-	
-	# Set AI type
-	self.ai_type = enemy_data.ai
-	
-	# Set weapons based on the enemy type
-	set_weapons(enemy_data.weapons)
-	
-	# Set special rules
-	set_special_rules(enemy_data.special_rules)
 
 func set_weapons(weapon_code: String) -> void:
 	self.weapons.clear()
@@ -80,16 +74,15 @@ func set_special_rules(rules: Array) -> void:
 
 func get_enemy_data() -> Dictionary:
 	return {
-		"name": self.name,
-		"health": self.health,
-		"max_health": self.max_health,
+		"name": character.name,
+		"health": character.health,
+		"max_health": character.max_health,
 		"attack_power": self.attack_power,
 		"threat_level": self.threat_level,
-		"loot_table": self.loot_table,
-		"speed": self.speed,
-		"combat_skill": self.combat_skill,
-		"toughness": self.toughness,
-		"savvy": self.savvy,
+		"speed": character.speed,
+		"combat_skill": character.combat_skill,
+		"toughness": character.toughness,
+		"savvy": character.savvy,
 		"weapons": self.weapons.map(func(w): return w.serialize()),
 		"enemy_type": self.enemy_type
 	}
@@ -98,9 +91,23 @@ func set_threat_level(level: int) -> void:
 	threat_level = level
 	# Adjust enemy stats based on threat level
 
-func drop_loot() -> Array[Dictionary]:
-	return loot_table.duplicate()
+func drop_loot() -> Array:
+	var loot_generator = LootGenerator.new()
+	var loot_items = []
+	for _i in range(randi() % 3 + 1):  # Generate 1 to 3 loot items
+		loot_items.append(loot_generator.generate_loot())
+	return loot_items
 
 # Override or add any enemy-specific methods
 func enemy_specific_action() -> void:
-	print("Performing enemy-specific action for ", self.name)
+	print("Performing enemy-specific action for ", character.name)
+
+# Delegate methods to character resource as needed
+func add_xp(amount: int) -> void:
+	character.add_xp(amount)
+
+func get_xp_for_next_level() -> int:
+	return character.get_xp_for_next_level()
+
+func get_available_upgrades() -> Array:
+	return character.get_available_upgrades()

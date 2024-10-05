@@ -19,13 +19,8 @@ var rng: RandomNumberGenerator = RandomNumberGenerator.new()
 func _init() -> void:
 	rng.randomize()
 
-func generate_battlefield(mission: Mission, table_size: GlobalEnums.TerrainSize = GlobalEnums.TerrainSize.MEDIUM) -> Dictionary:
-	if mission == null:
-		push_error("Cannot generate battlefield: mission is null.")
-		return {}
-	
-	var terrain_type: GlobalEnums.TerrainGenerationType = mission.terrain_type if mission.has("terrain_type") else GlobalEnums.TerrainGenerationType.INDUSTRIAL
-	
+func generate_battlefield(mission: Mission, table_size: GlobalEnums.TerrainSize) -> Dictionary:
+	var terrain_type: GlobalEnums.TerrainGenerationType = mission.terrain_type
 	var terrain_map: Array = generate_terrain(table_size, terrain_type)
 	var features: Array[Dictionary] = generate_features(terrain_map, mission)
 	var player_positions: Array[Vector2] = generate_player_positions(mission.required_crew_size, TABLE_SIZES[table_size])

@@ -1,5 +1,7 @@
 class_name Mission
-extends Resource
+extends Resource  # Assuming Mission extends Node
+
+const Enemy = preload("res://Resources/Enemy.gd")
 
 signal mission_completed
 signal mission_failed
@@ -14,7 +16,7 @@ signal mission_failed
 @export var time_limit: int # in campaign turns
 @export var difficulty: int # 1-5
 @export var location: Location
-@export var required_crew_size: int
+@export var required_crew_size: int = 4
 
 @export var is_expanded: bool = false
 @export var faction: Dictionary
@@ -34,159 +36,184 @@ signal mission_failed
 @export var available_resources: Dictionary
 @export var time_pressure: int
 
-@export var terrain_type: GlobalEnums.TerrainGenerationType
+@export var terrain_type: GlobalEnums.TerrainGenerationType = GlobalEnums.TerrainGenerationType.INDUSTRIAL
 
 var result: String = ""
 var is_tutorial_mission: bool = false
 
+var enemies: Array[Enemy] = []
+var enemy_deployment_manager: EnemyDeploymentManager
+
 func _init(p_title: String = "", p_description: String = "", p_type: GlobalEnums.Type = GlobalEnums.Type.OPPORTUNITY, 
-           p_objective: GlobalEnums.MissionObjective = GlobalEnums.MissionObjective.MOVE_THROUGH, p_location: Location = null, 
-           p_difficulty: int = 1, p_rewards: Dictionary = {}, p_time_limit: int = 3,
-           p_is_expanded: bool = false, p_faction: Dictionary = {}):
-    title = p_title
-    description = p_description
-    type = p_type
-    objective = p_objective
-    location = p_location
-    difficulty = p_difficulty
-    rewards = p_rewards
-    time_limit = p_time_limit
-    is_expanded = p_is_expanded
-    faction = p_faction
+		   p_objective: GlobalEnums.MissionObjective = GlobalEnums.MissionObjective.MOVE_THROUGH, p_location: Location = null, 
+		   p_difficulty: int = 1, p_rewards: Dictionary = {}, p_time_limit: int = 3,
+		   p_is_expanded: bool = false, p_faction: Dictionary = {}):
+	title = p_title
+	description = p_description
+	type = p_type
+	objective = p_objective
+	location = p_location
+	difficulty = p_difficulty
+	rewards = p_rewards
+	time_limit = p_time_limit
+	is_expanded = p_is_expanded
+	faction = p_faction
+	enemy_deployment_manager = EnemyDeploymentManager.new(GameStateManager)  # Assuming GameStateManager is globally accessible
 
 func complete() -> void:
-    status = GlobalEnums.MissionStatus.COMPLETED
-    result = "Mission completed successfully"
-    if is_expanded and faction:
-        faction["loyalty"] = faction.get("loyalty", 0) + 1
-    emit_signal("mission_completed")
+	status = GlobalEnums.MissionStatus.COMPLETED
+	result = "Mission completed successfully"
+	if is_expanded and faction:
+		faction["loyalty"] = faction.get("loyalty", 0) + 1
+	emit_signal("mission_completed")
 
 func fail() -> void:
-    status = GlobalEnums.MissionStatus.FAILED
-    result = "Mission failed"
-    if is_expanded and faction:
-        faction["loyalty"] = faction.get("loyalty", 0) - 1
-    emit_signal("mission_failed")
+	status = GlobalEnums.MissionStatus.FAILED
+	result = "Mission failed"
+	if is_expanded and faction:
+		faction["loyalty"] = faction.get("loyalty", 0) - 1
+	emit_signal("mission_failed")
 
 func is_expired(current_turn: int) -> bool:
-    return current_turn >= time_limit
+	return current_turn >= time_limit
 
 func start_mission(crew: Array[Character]) -> bool:
-    if crew.size() < required_crew_size:
-        return false
-    if is_expanded and faction and _get_crew_loyalty(crew) < loyalty_requirement:
-        return false
-    return true
+	if crew.size() < required_crew_size:
+		return false
+	if is_expanded and faction and _get_crew_loyalty(crew) < loyalty_requirement:
+		return false
+	return true
 
 func _get_crew_loyalty(crew: Array[Character]) -> int:
-    var total_loyalty := 0
-    for character in crew:
-        total_loyalty += character.get_faction_standing(faction.get("name", ""))
-    return total_loyalty / crew.size() if crew.size() > 0 else 0
+	var total_loyalty := 0
+	for character in crew:
+		total_loyalty += character.get_faction_standing(faction.get("name", ""))
+	return total_loyalty / crew.size() if crew.size() > 0 else 0
 
 func get_reward() -> Dictionary:
-    var final_rewards := rewards.duplicate()
-    if is_expanded and faction:
-        final_rewards["credits"] = final_rewards.get("credits", 0) * (1 + (faction.get("power", 0) * 0.1))
-    return final_rewards
+	var final_rewards := rewards.duplicate()
+	if is_expanded and faction:
+		final_rewards["credits"] = final_rewards.get("credits", 0) * (1 + (faction.get("power", 0) * 0.1))
+	return final_rewards
 
 func increase_instability(amount: int) -> void:
-    instability = min(instability + amount, GlobalEnums.FringeWorldInstability.CHAOS)
+	instability = min(instability + amount, GlobalEnums.FringeWorldInstability.CHAOS)
 
 func add_salvage_units(amount: int) -> void:
-    salvage_units += amount
+	salvage_units += amount
 
 func increase_detection_level() -> void:
-    detection_level = min(detection_level + 1, 2)  # Max detection level is 2
+	detection_level = min(detection_level + 1, 2)  # Max detection level is 2
 
 func set_street_fight_type(fight_type: GlobalEnums.StreetFightType) -> void:
-    street_fight_type = fight_type
+	street_fight_type = fight_type
 
 func add_special_rule(rule: String) -> void:
-    special_rules.append(rule)
+	special_rules.append(rule)
 
 func add_involved_faction(new_faction: GlobalEnums.Faction) -> void:
-    involved_factions.append(new_faction)
+	involved_factions.append(new_faction)
 
 func set_strife_intensity(intensity: int) -> void:
-    strife_intensity = intensity
+	strife_intensity = intensity
 
 func add_key_npc(npc: String) -> void:
-    key_npcs.append(npc)
+	key_npcs.append(npc)
 
 func add_environmental_factor(factor: String) -> void:
-    environmental_factors.append(factor)
+	environmental_factors.append(factor)
 
 func set_available_resources(resources: Dictionary) -> void:
-    available_resources = resources
+	available_resources = resources
 
 func set_time_pressure(pressure: int) -> void:
-    time_pressure = pressure
+	time_pressure = pressure
+
+func set_enemies(enemy_list: Array[Enemy]) -> void:
+	enemies = enemy_list
+
+func get_enemies() -> Array[Enemy]:
+	return enemies
 
 func serialize() -> Dictionary:
-    var data := {
-        "title": title,
-        "description": description,
-        "type": GlobalEnums.Type.keys()[type],
-        "status": GlobalEnums.MissionStatus.keys()[status],
-        "objective": GlobalEnums.MissionObjective.keys()[objective],
-        "rewards": rewards,
-        "time_limit": time_limit,
-        "difficulty": difficulty,
-        "required_crew_size": required_crew_size,
-        "is_expanded": is_expanded,
-        "faction": faction,
-        "loyalty_requirement": loyalty_requirement,
-        "power_requirement": power_requirement,
-        "instability": GlobalEnums.FringeWorldInstability.keys()[instability],
-        "salvage_units": salvage_units,
-        "detection_level": detection_level,
-        "street_fight_type": GlobalEnums.StreetFightType.keys()[street_fight_type],
-        "special_rules": special_rules,
-        "involved_factions": involved_factions.map(func(f): return GlobalEnums.Faction.keys()[f]),
-        "strife_intensity": strife_intensity,
-        "key_npcs": key_npcs,
-        "environmental_factors": environmental_factors,
-        "available_resources": available_resources,
-        "time_pressure": time_pressure,
-        "result": result,
-        "is_tutorial_mission": is_tutorial_mission
-    }
-    if patron:
-        data["patron"] = patron.serialize()
-    if location:
-        data["location"] = location.serialize()
-    return data
+	var data := {
+		"title": title,
+		"description": description,
+		"type": GlobalEnums.Type.keys()[type],
+		"status": GlobalEnums.MissionStatus.keys()[status],
+		"objective": GlobalEnums.MissionObjective.keys()[objective],
+		"rewards": rewards,
+			"time_limit": time_limit,
+		"difficulty": difficulty,
+		"required_crew_size": required_crew_size,
+		"is_expanded": is_expanded,
+		"faction": faction,
+		"loyalty_requirement": loyalty_requirement,
+		"power_requirement": power_requirement,
+		"instability": GlobalEnums.FringeWorldInstability.keys()[instability],
+		"salvage_units": salvage_units,
+		"detection_level": detection_level,
+		"street_fight_type": GlobalEnums.StreetFightType.keys()[street_fight_type],
+		"special_rules": special_rules,
+		"involved_factions": involved_factions.map(func(f): return GlobalEnums.Faction.keys()[f]),
+		"strife_intensity": strife_intensity,
+		"key_npcs": key_npcs,
+		"environmental_factors": environmental_factors,
+		"available_resources": available_resources,
+		"time_pressure": time_pressure,
+		"result": result,
+		"is_tutorial_mission": is_tutorial_mission
+	}
+	if patron:
+		data["patron"] = patron.serialize()
+	if location:
+		data["location"] = location.serialize()
+	return data
 
 static func deserialize(data: Dictionary) -> Mission:
-    var mission := Mission.new(
-        data["title"],
-        data["description"],
-        GlobalEnums.Type[data["type"]],
-        GlobalEnums.MissionObjective[data["objective"]],
-        Location.deserialize(data["location"]) if "location" in data else null,
-        data["difficulty"],
-        data["rewards"],
-        data["time_limit"],
-        data["is_expanded"],
-        data["faction"] if "faction" in data else {}
-    )
-    mission.status = GlobalEnums.MissionStatus[data["status"]]
-    mission.patron = Patron.deserialize(data["patron"]) if "patron" in data else null
-    mission.required_crew_size = data["required_crew_size"]
-    mission.loyalty_requirement = data["loyalty_requirement"]
-    mission.power_requirement = data["power_requirement"]
-    mission.instability = GlobalEnums.FringeWorldInstability[data["instability"]]
-    mission.salvage_units = data["salvage_units"]
-    mission.detection_level = data["detection_level"]
-    mission.street_fight_type = GlobalEnums.StreetFightType[data["street_fight_type"]]
-    mission.special_rules = data["special_rules"]
-    mission.involved_factions = data["involved_factions"].map(func(f): return GlobalEnums.Faction[f])
-    mission.strife_intensity = data["strife_intensity"]
-    mission.key_npcs = data["key_npcs"]
-    mission.environmental_factors = data["environmental_factors"]
-    mission.available_resources = data["available_resources"]
-    mission.time_pressure = data["time_pressure"]
-    mission.result = data["result"]
-    mission.is_tutorial_mission = data["is_tutorial_mission"]
-    return mission
+	var mission := Mission.new(
+		data["title"],
+		data["description"],
+		GlobalEnums.Type[data["type"]],
+		GlobalEnums.MissionObjective[data["objective"]],
+		Location.deserialize(data["location"]) if "location" in data else null,
+		data["difficulty"],
+		data["rewards"],
+		data["time_limit"],
+		data["is_expanded"],
+		data["faction"] if "faction" in data else {}
+	)
+	mission.status = GlobalEnums.MissionStatus[data["status"]]
+	mission.patron = Patron.deserialize(data["patron"]) if "patron" in data else null
+	mission.required_crew_size = data["required_crew_size"]
+	mission.loyalty_requirement = data["loyalty_requirement"]
+	mission.power_requirement = data["power_requirement"]
+	mission.instability = GlobalEnums.FringeWorldInstability[data["instability"]]
+	mission.salvage_units = data["salvage_units"]
+	mission.detection_level = data["detection_level"]
+	mission.street_fight_type = GlobalEnums.StreetFightType[data["street_fight_type"]]
+	mission.special_rules = data["special_rules"]
+	mission.involved_factions = data["involved_factions"].map(func(f): return GlobalEnums.Faction[f])
+	mission.strife_intensity = data["strife_intensity"]
+	mission.key_npcs = data["key_npcs"]
+	mission.environmental_factors = data["environmental_factors"]
+	mission.available_resources = data["available_resources"]
+	mission.time_pressure = data["time_pressure"]
+	mission.result = data["result"]
+	mission.is_tutorial_mission = data["is_tutorial_mission"]
+	return mission
+
+func generate_enemies() -> void:
+	# Define enemy types as an Array
+	var enemy_types: Array = ["Grunt", "Elite", "Boss"]  # Example enemy types
+	
+	# Clear existing enemies
+	enemies.clear()
+	
+	# Use required_crew_size as a basis for enemy count
+	var num_enemies = required_crew_size + randi() % 3  # Add some randomness
+	
+	for i in range(num_enemies):
+		var enemy_type = enemy_types[randi() % enemy_types.size()]
+		var enemy = Enemy.new(enemy_type, "Standard")  # Assuming "Standard" as a default class
+		enemies.append(enemy)

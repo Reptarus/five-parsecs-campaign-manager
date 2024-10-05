@@ -57,7 +57,7 @@ func setup_battlefield() -> void:
 
 func setup_characters() -> void:
 	var crew: Array[Character] = game_state_manager.current_ship.crew
-	var enemies: Array[Character] = current_mission.get_enemies()
+	var enemies: Array = current_mission.get_enemies()
 	
 	for character in crew + enemies:
 		character.position = find_valid_spawn_position(character in crew)
@@ -78,7 +78,7 @@ func start_battle_round() -> void:
 func perform_reaction_roll() -> void:
 	turn_order.clear()
 	var crew: Array[Character] = game_state_manager.current_ship.crew
-	var enemies: Array[Character] = current_mission.get_enemies()
+	var enemies: Array = current_mission.get_enemies()
 	
 	for character in crew + enemies:
 		var roll := roll_dice(1, 6)
@@ -280,7 +280,7 @@ func has_line_of_sight(from_pos: Vector2, to_pos: Vector2) -> bool:
 	return true
 
 func perform_morale_check() -> void:
-	var enemies: Array[Character] = current_mission.get_enemies()
+	var enemies: Array = current_mission.get_enemies()
 	var casualties := enemies.filter(func(e: Character) -> bool: return e.status == GlobalEnums.CharacterStatus.DEAD)
 	
 	for i in range(casualties.size()):
