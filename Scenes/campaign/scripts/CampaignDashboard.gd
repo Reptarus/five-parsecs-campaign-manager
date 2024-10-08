@@ -20,9 +20,14 @@ func _ready() -> void:
 		push_error("Failed to get GameStateManager. Check if it's properly set up as an autoload in project settings.")
 		return
 	
-	game_state = game_state_manager.get_game_state()
+	var _campaign_phase = game_state_manager.get_game_state()
+	game_state = game_state_manager.get_game_state_object()
 	if game_state == null:
-		push_error("Failed to get GameState from GameStateManager.")
+		push_error("Failed to get GameState object from GameStateManager.")
+		return
+	
+	if campaign_manager == null:
+		push_error("CampaignManager is not set. Make sure it's properly assigned in the Inspector.")
 		return
 	
 	action_button.pressed.connect(_on_action_button_pressed)

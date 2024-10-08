@@ -5,7 +5,6 @@ extends Control
 @onready var defeat_label: Label = $DefeatLabel
 
 var game_state_manager: GameStateManager
-var game_state: GameState
 
 func _ready() -> void:
 	game_state_manager = get_node("/root/GameStateManager")
@@ -13,16 +12,16 @@ func _ready() -> void:
 		push_error("GameStateManager not found. Make sure GameStateManager is properly set up as an AutoLoad.")
 		return
 
-	game_state = game_state_manager.get_game_state()
-	if not game_state:
-		push_error("GameState not found. Make sure GameStateManager.get_game_state() returns a valid GameState.")
-		return
-
 	return_button.pressed.connect(_on_return_button_pressed)
 	_update_game_over_display()
 
 func _update_game_over_display() -> void:
-	if game_state.check_victory_conditions():
+	var game_state = game_state_manager.game_state
+	if not game_state:
+		push_error("GameState not found. Make sure GameStateManager.game_state is properly initialized.")
+		return
+
+	if game_state_manager.check_victory_conditions():
 		victory_label.show()
 		defeat_label.hide()
 	else:

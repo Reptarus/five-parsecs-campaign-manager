@@ -132,6 +132,10 @@ layout_mode = 2
 size_flags_horizontal = 3
 size_flags_vertical = 3
 
+[node name="MessageLabel" type="Label" parent="HBoxContainer/RightPanel/Panel/MarginContainer/VBoxContainer/ScrollContainer/VariationDescriptions"]
+layout_mode = 2
+autowrap_mode = 2
+
 [node name="VictoryConditionSelection" parent="." instance=ExtResource("3_victory")]
 visible = false
 layout_mode = 1

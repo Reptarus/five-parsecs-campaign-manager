@@ -1,7 +1,9 @@
-[gd_scene load_steps=3 format=3 uid="uid://5ws0uspoh6vk"]
+[gd_scene load_steps=5 format=3 uid="uid://5ws0uspoh6vk"]
 
 [ext_resource type="Script" path="res://ui/mainmenu/MainMenu.gd" id="1_eb6mc"]
 [ext_resource type="Texture2D" uid="uid://dpv5v3x1ujg66" path="res://assets/BookImages/Nov_15_cityatnight.jpg" id="1_jq64m"]
+[ext_resource type="Theme" uid="uid://d1you1rrwuu48" path="res://Scenes/sci_fi_theme.tres" id="3_xn2uy"]
+[ext_resource type="Script" path="res://Scenes/campaign/scripts/TutorialSelection.gd" id="4_lfg3x"]
 
 [node name="MainMenu" type="Control"]
 layout_mode = 3
@@ -10,6 +12,7 @@ anchor_right = 1.0
 anchor_bottom = 1.0
 grow_horizontal = 2
 grow_vertical = 2
+theme = ExtResource("3_xn2uy")
 script = ExtResource("1_eb6mc")
 
 [node name="Background" type="TextureRect" parent="."]
@@ -102,3 +105,54 @@ grow_horizontal = 0
 grow_vertical = 0
 text = "V1.0, ReptarusOnIce Production"
 horizontal_alignment = 2
+
+[node name="TutorialPopup" type="Panel" parent="."]
+layout_mode = 1
+anchors_preset = 8
+anchor_left = 0.5
+anchor_top = 0.5
+anchor_right = 0.5
+anchor_bottom = 0.5
+offset_left = -300.0
+offset_top = -200.0
+offset_right = 300.0
+offset_bottom = 200.0
+grow_horizontal = 2
+grow_vertical = 2
+script = ExtResource("4_lfg3x")
+
+[node name="VBoxContainer" type="VBoxContainer" parent="TutorialPopup"]
+layout_mode = 1
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+theme_override_constants/separation = 10
+
+[node name="TutorialText" type="Label" parent="TutorialPopup/VBoxContainer"]
+layout_mode = 2
+text = "Welcome to Five Parsecs From Home!
+
+You can choose to follow the Story Track tutorial, explore the Compendium, or skip the tutorial entirely.
+
+Story Track: Learn the basics of crew creation, ship management, and campaign play.
+Compendium: Explore detailed rules and lore of the game universe.
+Skip: Jump right into creating your crew and starting your adventure."
+autowrap_mode = 2
+
+[node name="StoryTrackButton" type="Button" parent="TutorialPopup/VBoxContainer"]
+layout_mode = 2
+text = "Story Track"
+
+[node name="CompendiumButton" type="Button" parent="TutorialPopup/VBoxContainer"]
+layout_mode = 2
+text = "Compendium"
+
+[node name="SkipButton" type="Button" parent="TutorialPopup/VBoxContainer"]
+layout_mode = 2
+text = "Skip Tutorial"
+
+[node name="DisableTutorialCheckbox" type="CheckBox" parent="TutorialPopup/VBoxContainer"]
+layout_mode = 2
+text = "Don't show this again"

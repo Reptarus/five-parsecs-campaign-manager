@@ -28,7 +28,7 @@ func add_quest(quest: Quest) -> void:
 	quest_added.emit(quest)
 
 func update_quests() -> void:
-	var current_turn = game_state.get_game_state().current_turn
+	var current_turn = game_state.current_turn
 	for quest in active_quests:
 		if quest.is_expired(current_turn):
 			_on_quest_failed(quest)

@@ -9,14 +9,20 @@ extends Control
 @onready var options_button = $MenuButtons/Options
 @onready var library_button = $MenuButtons/Library
 @onready var new_campaign_tutorial = preload("res://Scenes/Scene Container/campaigncreation/scenes/NewCampaignTutorial.tscn")
+@onready var tutorial_popup = $TutorialPopup
 
 var game_state_manager: GameStateManager
 
 func _ready():
 	setup_ui()
 	call_deferred("initialize_game_systems")
+	tutorial_popup.hide()  # Hide the tutorial popup on startup
 
 func setup_ui():
+	connect_buttons()
+	add_fade_in_animation()
+
+func connect_buttons():
 	if continue_button:
 		continue_button.pressed.connect(_on_continue_pressed)
 	if new_campaign_button:
@@ -31,8 +37,8 @@ func setup_ui():
 		options_button.pressed.connect(_on_options_pressed)
 	if library_button:
 		library_button.pressed.connect(_on_library_pressed)
-	
-	# Add fade-in animation
+
+func add_fade_in_animation():
 	modulate = Color(1, 1, 1, 0)
 	var tween = create_tween()
 	tween.tween_property(self, "modulate", Color(1, 1, 1, 1), 0.5)
@@ -58,14 +64,13 @@ func _on_continue_pressed():
 		print("No active campaign to continue")
 
 func _on_new_campaign_pressed():
-	var tutorial_instance = new_campaign_tutorial.instantiate()
-	tutorial_instance.connect("tutorial_choice_made", _on_tutorial_choice_made)
-	add_child(tutorial_instance)
-	
-	# Fade in the tutorial popup
-	tutorial_instance.modulate = Color(1, 1, 1, 0)
-	var tween = create_tween()
-	tween.tween_property(tutorial_instance, "modulate", Color(1, 1, 1, 1), 0.5)
+	# Always show the tutorial popup
+	_show_tutorial_popup()
+
+func _show_tutorial_popup():
+	tutorial_popup.show()
+	# Center the popup
+	tutorial_popup.position = (get_viewport_rect().size - tutorial_popup.size) / 2
 
 func _change_to_new_campaign_scene():
 	game_state_manager.start_new_game()
@@ -104,9 +109,27 @@ func _on_tutorial_choice_made(choice):
 			transition_to_scene("res://Scenes/Scene Container/InitialCrewCreation.tscn")
 		"skip":
 			game_state_manager.game_state.is_tutorial_active = false
-			transition_to_scene("res://Scenes/Scene Container/campaigncreation/scenes/CampaignSetupScreen.tscn")
+			_change_to_new_campaign_scene()
 
 func transition_to_scene(scene_path):
 	var tween = create_tween()
 	tween.tween_property(self, "modulate", Color(1, 1, 1, 0), 0.5)
 	tween.tween_callback(get_tree().change_scene_to_file.bind(scene_path))
+
+#func _on_disable_tutorial_toggled(button_pressed: bool):
+#	if game_state_manager:
+#		if "settings" in game_state_manager:
+#			if "disable_tutorial_popup" in game_state_manager.settings:
+#				game_state_manager.settings.disable_tutorial_popup = button_pressed
+#				game_state_manager.save_settings()
+#			else:
+#				push_error("disable_tutorial_popup not found in GameStateManager settings")
+#		else:
+#			push_error("settings not found in GameStateManager")
+#	else:
+#		push_error("GameStateManager not found")
+
+# Add this new function to handle the tutorial popup buttons
+func _on_tutorial_popup_button_pressed(choice: String):
+	tutorial_popup.hide()
+	_on_tutorial_choice_made(choice)

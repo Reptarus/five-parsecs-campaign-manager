@@ -1,36 +1,49 @@
+@tool
 class_name CharacterCreationScene
 extends Control
 
-@export var character_creation_logic: CharacterCreationLogic
-@export var character_creation_data: CharacterCreationData
-var current_character: Character
-var created_characters: Array[Character] = []
+@export var character_creation_data_res: CharacterCreationData
+@export var character_creation_logic_res: CharacterCreationLogic
+@export var character_creation_manager: CharacterCreationManager
+
+var current_character: CrewMember
+var created_characters: Array[CrewMember] = []
 var ship_inventory: ShipInventory
 
-@onready var name_input: LineEdit = $MarginContainer/VBoxContainer/HSplitContainer/CharacterCreationTabs/BasicProfile/NameEntry/NameInput
-@onready var species_option: OptionButton = $MarginContainer/VBoxContainer/HSplitContainer/CharacterCreationTabs/BasicProfile/SpeciesSelection/SpeciesOptionButton
-@onready var background_option: OptionButton = $MarginContainer/VBoxContainer/HSplitContainer/CharacterCreationTabs/BasicProfile/BackgroundSelection/BackgroundOptionButton
-@onready var motivation_option: OptionButton = $MarginContainer/VBoxContainer/HSplitContainer/CharacterCreationTabs/BasicProfile/MotivationSelection/MotivationOptionButton
-@onready var class_option: OptionButton = $MarginContainer/VBoxContainer/HSplitContainer/CharacterCreationTabs/BasicProfile/ClassSelection/ClassOptionButton
-@onready var character_list: ItemList = $MarginContainer/VBoxContainer/HSplitContainer/RightPanel/CharacterList
-@onready var character_count_label: Label = $MarginContainer/VBoxContainer/HSplitContainer/RightPanel/CharacterCountLabel
-@onready var character_stats_display: Label = $MarginContainer/VBoxContainer/HSplitContainer/RightPanel/CharacterPreview/CharacterStatsDisplay
+@onready var name_input: LineEdit = $MarginContainer/HSplitContainer/LeftPanel/ScrollContainer/VBoxContainer/NameEntry/NameInput
+@onready var species_option: OptionButton = $MarginContainer/HSplitContainer/LeftPanel/ScrollContainer/VBoxContainer/SpeciesSelection/SpeciesOptionButton
+@onready var background_option: OptionButton = $MarginContainer/HSplitContainer/LeftPanel/ScrollContainer/VBoxContainer/BackgroundSelection/BackgroundOptionButton
+@onready var motivation_option: OptionButton = $MarginContainer/HSplitContainer/LeftPanel/ScrollContainer/VBoxContainer/MotivationSelection/MotivationOptionButton
+@onready var class_option: OptionButton = $MarginContainer/HSplitContainer/LeftPanel/ScrollContainer/VBoxContainer/ClassSelection/ClassOptionButton
+@onready var character_list: ItemList = $MarginContainer/HSplitContainer/RightPanel/CharacterList
+@onready var character_count_label: Label = $MarginContainer/HSplitContainer/RightPanel/CharacterCountLabel
+@onready var character_stats_display: RichTextLabel = $MarginContainer/HSplitContainer/RightPanel/CharacterPreview/CharacterStatsDisplay
+
+var game_state_manager: GameStateManager
 
 func _ready():
-	if not character_creation_logic:
-		character_creation_logic = CharacterCreationLogic.new()
-	if not character_creation_data:
-		character_creation_data = CharacterCreationData.new()
-		character_creation_data.load_data()
+	game_state_manager = get_node("/root/GameStateManager")
+	if not character_creation_data_res:
+		character_creation_data_res = CharacterCreationData.new()
+		character_creation_data_res.load_data()
+	
+	if not character_creation_logic_res:
+		character_creation_logic_res = CharacterCreationLogic.new()
+	
+	if not character_creation_manager:
+		var manager_scene = load("res://Scenes/campaign/CharacterCreationManager.tscn")
+		character_creation_manager = manager_scene.instantiate()
+		add_child(character_creation_manager)
+	
 	ship_inventory = ShipInventory.new()
 	_populate_option_buttons()
 	_update_character_count()
 
 func _populate_option_buttons():
-	_populate_option_button(species_option, character_creation_data.get_all_races())
-	_populate_option_button(background_option, character_creation_data.get_all_backgrounds())
-	_populate_option_button(motivation_option, character_creation_data.get_all_motivations())
-	_populate_option_button(class_option, character_creation_data.get_all_classes())
+	_populate_option_button(species_option, character_creation_manager.get_all_species())
+	_populate_option_button(background_option, character_creation_manager.get_all_backgrounds())
+	_populate_option_button(motivation_option, character_creation_manager.get_all_motivations())
+	_populate_option_button(class_option, character_creation_manager.get_all_classes())
 
 func _populate_option_button(option_button: OptionButton, options: Array):
 	option_button.clear()
@@ -41,29 +54,21 @@ func _update_character_count():
 	character_count_label.text = "Characters: %d/8" % created_characters.size()
 
 func _on_random_character_button_pressed():
-	var random_options = character_creation_logic.get_random_options()
-	species_option.select(species_option.get_item_index(random_options.species))
-	background_option.select(background_option.get_item_index(random_options.background))
-	motivation_option.select(motivation_option.get_item_index(random_options.motivation))
-	class_option.select(class_option.get_item_index(random_options.character_class))
-	var selected_species = GlobalEnums.Species.values()[species_option.selected]
-	name_input.text = Character.generate_name(selected_species)
+	current_character = character_creation_manager.character_creation.create_random_character(game_state_manager)
 	_update_character_preview()
 
 func _on_add_character_pressed() -> void:
 	if created_characters.size() < 8:
-		var game_state_manager: GameStateManager = get_node("/root/GameStateManager")
-		
-		var new_character: Character = character_creation_logic.create_character(
+		var new_character = character_creation_manager.create_character(
 			GlobalEnums.Species.values()[species_option.selected],
 			GlobalEnums.Background.values()[background_option.selected],
 			GlobalEnums.Motivation.values()[motivation_option.selected],
 			GlobalEnums.Class.values()[class_option.selected],
 			game_state_manager.game_state
 		)
-
 		new_character.name = name_input.text
 		_apply_starting_rolls(new_character)
+		game_state_manager.recruit_crew_member(new_character)
 		created_characters.append(new_character)
 		character_list.add_item(new_character.name)
 		_update_character_count()
@@ -72,12 +77,11 @@ func _on_add_character_pressed() -> void:
 		print("Maximum crew size reached (8 characters)")
 
 func _apply_starting_rolls(character: Character):
-	# Apply bonus equipment and weapon rolls
 	var bonus_equipment = _roll_bonus_equipment()
 	var bonus_weapon = _roll_bonus_weapon()
 	
 	for item in bonus_equipment:
-		if character.inventory.size() < 3:  # 2 weapons + 1 pistol/blade
+		if character.inventory.size() < 3:
 			character.add_item(item)
 		else:
 			ship_inventory.add_item(item)
@@ -87,115 +91,47 @@ func _apply_starting_rolls(character: Character):
 	else:
 		ship_inventory.add_item(bonus_weapon)
 
-	# Generate and assign rivals, patrons, and rumors
-	character.rivals = _generate_rivals()
-	character.patrons = _generate_patrons()
-	character.rumors = _generate_rumors()
-
 func _roll_bonus_equipment() -> Array:
-	var equipment_list = []
-	var roll = randi() % 6 + 1  # Roll 1d6
-	match roll:
-		1, 2:
-			equipment_list.append(Equipment.new("Medkit", GlobalEnums.ItemType.GEAR, 2, "Heals 1d6 HP"))
-		3, 4:
-			equipment_list.append(Equipment.new("Armor Patch", GlobalEnums.ItemType.GEAR, 1, "Repairs 1 point of armor damage"))
-		5:
-			equipment_list.append(Equipment.new("Stim Pack", GlobalEnums.ItemType.CONSUMABLE, 3, "Temporarily boosts Combat Skill by 1"))
-		6:
-			equipment_list.append(Equipment.new("Grappling Hook", GlobalEnums.ItemType.GEAR, 2, "Allows climbing difficult terrain"))
-	return equipment_list
+	# Implement logic to roll for bonus equipment based on Core Rules
+	return []
 
-func _roll_bonus_weapon() -> Weapon:
-	var weapon_system = WeaponSystem.new()
-	var roll = randi() % 6 + 1  # Roll 1d6
-	var weapon_name: String
-	match roll:
-		1, 2:
-			weapon_name = "Pistol"
-		3, 4:
-			weapon_name = "Rifle"
-		5:
-			weapon_name = "Shotgun"
-		6:
-			weapon_name = "Energy Pistol"
-	var weapon_data = weapon_system.BASE_WEAPONS[weapon_name]
-	return Weapon.new(
-		weapon_name,
-		weapon_data["type"],
-		weapon_data["range"],
-		weapon_data["shots"],
-		weapon_data["damage"],
-		weapon_data["traits"]
-	)
-
-func _generate_rivals() -> Array[Rival]:
-	var rivals = []
-	var num_rivals = randi() % 2 + 1  # Generate 1-2 rivals
-	for i in range(num_rivals):
-		var rival = Rival.new(
-			"Rival " + str(i+1),
-			null,  # Location will be set later
-			randi() % 3 + 1  # Random strength between 1-3
-		)
-		rival.change_hostility(randi() % 51 + 50)  # Random hostility between 50-100
-		rivals.append(rival)
-	return rivals
-
-func _generate_patrons() -> Array[Patron]:
-	var patrons = []
-	var num_patrons = randi() % 2 + 1  # Generate 1-2 patrons
-	for i in range(num_patrons):
-		var patron = Patron.new(
-			"Patron " + str(i+1),
-			null,  # Location will be set later
-			GlobalEnums.Faction.values()[randi() % GlobalEnums.Faction.size()]
-		)
-		patron.change_relationship(randi() % 41 - 20)  # Random relationship between -20 and 20
-		patrons.append(patron)
-	return patrons
-
-func _generate_rumors() -> Array[Quest]:
-	var quest_manager = QuestManager.new()
-	var rumors = []
-	var num_rumors = randi() % 3 + 1  # Generate 1-3 rumors
-	for i in range(num_rumors):
-		var quest = quest_manager.generate_new_quest()
-		quest.discovered = false
-		rumors.append(quest)
-	return rumors
+func _roll_bonus_weapon() -> Item:
+	# Implement logic to roll for bonus weapon based on Core Rules
+	return Item.new()
 
 func _update_character_preview():
 	if current_character:
-		character_stats_display.text = """
-		Name: {name}
-		Species: {species}
-		Background: {background}
-		Motivation: {motivation}
-		Class: {character_class}
+		var preview_text = "[b]Character Preview:[/b]\n\n"
+		preview_text += "Name: %s\n" % current_character.name
+		preview_text += "Species: %s\n" % GlobalEnums.Species.keys()[current_character.species]
+		preview_text += "Background: %s\n" % GlobalEnums.Background.keys()[current_character.background]
+		preview_text += "Motivation: %s\n" % GlobalEnums.Motivation.keys()[current_character.motivation]
+		preview_text += "Class: %s\n\n" % GlobalEnums.Class.keys()[current_character.character_class]
 		
-		Reactions: {reactions}
-		Speed: {speed}
-		Combat Skill: {combat_skill}
-		Toughness: {toughness}
-		Savvy: {savvy}
-		Luck: {luck}
+		preview_text += "[b]Stats:[/b]\n"
+		preview_text += "Reactions: %d\n" % current_character.reactions
+		preview_text += "Speed: %d\"\n" % current_character.speed
+		preview_text += "Combat Skill: %d\n" % current_character.combat_skill
+		preview_text += "Toughness: %d\n" % current_character.toughness
+		preview_text += "Savvy: %d\n\n" % current_character.savvy
 		
-		Inventory: {inventory}
-		Traits: {traits}
-		""".format(current_character)
-	else:
-		character_stats_display.text = "No character selected"
+		preview_text += "[b]Equipment:[/b]\n"
+		for item in current_character.inventory:
+			preview_text += "- %s\n" % item.name
+		
+		preview_text += "\n[b]Ship Inventory:[/b]\n"
+		for item in ship_inventory.items:
+			preview_text += "- %s\n" % item.name
+		
+		character_stats_display.text = preview_text
 
-func _on_finish_crew_creation_pressed():
-	if created_characters.size() >= 3 and created_characters.size() <= 8:
-		# Save created characters and return to crew management
-		get_tree().change_scene_to_file("res://Scenes/Scene Container/CrewManagement.tscn")
-	else:
-		print("Crew must have between 3 and 8 members")
+func _on_option_button_item_selected(_index: int):
+	_update_character_preview()
 
-func _on_back_to_crew_management_pressed():
-	get_tree().change_scene_to_file("res://Scenes/Scene Container/CrewManagement.tscn")
+func _on_save_character_pressed():
+	if current_character:
+		# Implement save logic
+		pass
 
 func _on_clear_character_pressed():
 	name_input.text = ""
@@ -206,7 +142,60 @@ func _on_clear_character_pressed():
 	current_character = null
 	_update_character_preview()
 
-# ... (keep the existing import/export functions)
+func _on_import_character_pressed():
+	# Implement import logic
+	pass
 
-func _on_option_button_item_selected(_index: int):
+func _on_export_character_pressed():
+	if current_character:
+		# Implement export logic
+		pass
+
+func _on_finish_crew_creation_pressed():
+	if created_characters.size() > 0:
+		var crew_members = []
+		for character in created_characters:
+			if character is CrewMember:
+				crew_members.append(character)
+			else:
+				print("Error: Character is not a CrewMember")
+				return
+		game_state_manager.game_state.current_ship.crew = crew_members
+		game_state_manager.game_state.current_ship.inventory = ship_inventory
+		game_state_manager.transition_to_state(GlobalEnums.CampaignPhase.UPKEEP)
+	else:
+		print("Please create at least one character before finishing crew creation")
+
+func _on_back_to_crew_management_pressed():
+	get_tree().change_scene_to_file("res://Scenes/Management/CrewManagement.tscn")
+
+func _on_create_character_pressed():
+	var species = GlobalEnums.Species.values()[species_option.selected]
+	var background = GlobalEnums.Background.values()[background_option.selected]
+	var motivation = GlobalEnums.Motivation.values()[motivation_option.selected]
+	var character_class = GlobalEnums.Class.values()[class_option.selected]
+	
+	var new_character = character_creation_logic_res.create_character(
+		species,
+		background,
+		motivation,
+		character_class,
+		game_state_manager.game_state
+	)
+	
+	if new_character:
+		created_characters.append(new_character)
+		_update_character_count()
+		_clear_selection()
+	else:
+		print("Failed to create character")
+
+func _clear_selection():
+	# Clear the selected options in the UI
+	name_input.text = ""
+	species_option.select(0)
+	background_option.select(0)
+	motivation_option.select(0)
+	class_option.select(0)
+	current_character = null
 	_update_character_preview()

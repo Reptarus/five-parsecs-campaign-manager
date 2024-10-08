@@ -1,21 +1,9 @@
-[gd_scene load_steps=8 format=3 uid="uid://daw8uxd1gy463"]
+[gd_scene load_steps=5 format=3 uid="uid://daw8uxd1gy463"]
 
 [ext_resource type="Script" path="res://Scenes/Scene Container/campaigncreation/scripts/CharacterCreationScene.gd" id="1_kxg3m"]
 [ext_resource type="Theme" uid="uid://d1you1rrwuu48" path="res://Scenes/sci_fi_theme.tres" id="1_pjglv"]
 [ext_resource type="Texture2D" uid="uid://jtpbfu6la8oi" path="res://assets/PNG/MainPanel03.png" id="3_background"]
 [ext_resource type="Script" path="res://Scripts/Characters/CharacterCreationData.gd" id="4_ccdata"]
-[ext_resource type="Script" path="res://Resources/CharacterCreationLogic.gd" id="5_cclogic"]
-
-[sub_resource type="Resource" id="Resource_o01ma"]
-script = ExtResource("4_ccdata")
-species = Array[Dictionary]([])
-backgrounds = Array[Dictionary]([])
-motivations = Array[Dictionary]([])
-classes = Array[Dictionary]([])
-skills = Array[Dictionary]([])
-
-[sub_resource type="Resource" id="Resource_hpf0y"]
-script = ExtResource("5_cclogic")
 
 [node name="CharacterCreator" type="Control"]
 layout_mode = 3
@@ -26,8 +14,6 @@ grow_horizontal = 2
 grow_vertical = 2
 theme = ExtResource("1_pjglv")
 script = ExtResource("1_kxg3m")
-character_creation_data_res = SubResource("Resource_o01ma")
-character_creation_logic_res = SubResource("Resource_hpf0y")
 
 [node name="Background" type="TextureRect" parent="."]
 layout_mode = 1

@@ -8,7 +8,7 @@ signal flow_completed
 @onready var crew_management = $CrewManagement
 @onready var campaign_setup = $CampaignSetup
 
-var game_state: GameStateManager
+var game_state: GlobalEnums.CampaignPhase
 var game_manager: GameManager
 
 enum FlowState {
@@ -23,7 +23,7 @@ enum FlowState {
 var current_state: FlowState = FlowState.TUTORIAL_SELECTION
 
 func _ready() -> void:
-	game_state = GameStateManager.get_game_state()
+	var _game_state: GlobalEnums.CampaignPhase = GameStateManager.get_game_state()
 	game_manager = GameManager.new()
 	init()
 	flow_completed.connect(_on_flow_completed)
@@ -87,13 +87,13 @@ func _on_tutorial_selected(tutorial_type: String) -> void:
 
 func _on_crew_size_selected(crew_size: int) -> void:
 	print("Crew size selected: ", crew_size)
-	game_state.set_crew_size(crew_size)
+	GameStateManager.set_crew_size(crew_size)  # Assuming GameStateManager is a global singleton
 	transition_to_state(FlowState.CHARACTER_CREATION)
 
 func _on_character_created(character: Character) -> void:
 	print("Character created: ", character.name)
-	game_state.current_crew.add_member(character)
-	if game_state.current_crew.is_full():
+	GameStateManager.current_crew.add_member(character)
+	if GameStateManager.current_crew.is_full():
 		transition_to_state(FlowState.CREW_MANAGEMENT)
 	else:
 		character_creator.reset()

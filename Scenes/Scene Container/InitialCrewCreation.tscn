@@ -76,7 +76,7 @@ anchor_bottom = 1.0
 grow_horizontal = 2
 grow_vertical = 2
 
-[node name="4" type="Label" parent="HBoxContainer/LeftPanel/VBoxContainer/CrewSizeContainer/HSlider/SliderLabels"]
+[node name="3" type="Label" parent="HBoxContainer/LeftPanel/VBoxContainer/CrewSizeContainer/HSlider/SliderLabels"]
 layout_mode = 1
 anchors_preset = 2
 anchor_top = 1.0
@@ -85,10 +85,10 @@ offset_top = 5.0
 offset_right = 40.0
 offset_bottom = 31.0
 grow_vertical = 0
-text = "4"
+text = "3"
 horizontal_alignment = 1
 
-[node name="6" type="Label" parent="HBoxContainer/LeftPanel/VBoxContainer/CrewSizeContainer/HSlider/SliderLabels"]
+[node name="8" type="Label" parent="HBoxContainer/LeftPanel/VBoxContainer/CrewSizeContainer/HSlider/SliderLabels"]
 layout_mode = 1
 anchors_preset = 3
 anchor_left = 1.0
@@ -100,7 +100,7 @@ offset_top = 5.0
 offset_bottom = 31.0
 grow_horizontal = 0
 grow_vertical = 0
-text = "6"
+text = "8"
 horizontal_alignment = 1
 
 [node name="CurrentSizeLabel" type="Label" parent="HBoxContainer/LeftPanel/VBoxContainer/CrewSizeContainer"]

@@ -43,7 +43,7 @@ func _ready():
 
 func initialize_game_components() -> void:
 	var story_track := StoryTrack.new()
-	story_track.initialize(game_state)
+	story_track.initialize(game_state_manager)
 	
 	game_world = GameWorld.new(game_state_manager)
 	

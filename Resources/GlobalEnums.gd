@@ -347,9 +347,7 @@ enum ExpandedCampaignPhase {
     UPKEEP,
     STORY_POINT,
     TRAVEL,
-    PATRONS,
-    MISSION,
-    BATTLE,
+    WORLD,
     POST_BATTLE,
     TRACK_RIVALS,
     PATRON_JOB,
@@ -478,6 +476,8 @@ enum CoverType {
     PARTIAL,
     FULL
 }
+
+enum GameState {SETUP, CAMPAIGN, BATTLE, VICTORY_CHECK}
 
 
 

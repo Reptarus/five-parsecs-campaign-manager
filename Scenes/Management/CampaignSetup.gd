@@ -12,10 +12,17 @@ signal campaign_created
 var game_state: GameStateManager
 
 func _ready() -> void:
-	game_state = GameStateManager.get_game_state()
+	var game_state_manager = get_node("/root/GameStateManager")
+	if not game_state_manager:
+		push_error("GameStateManager not found. Make sure GameStateManager is properly set up as an AutoLoad.")
+		return
+	
+	game_state = game_state_manager.get_game_state()
 	if not game_state:
 		push_error("GameState not found. Make sure GameState is properly set up as an AutoLoad.")
 		return
+	
+	var _campaign_phase: GlobalEnums.CampaignPhase = game_state.current_phase
 
 	_connect_signals()
 	_update_start_button()

@@ -15,6 +15,8 @@ var character_box_scene = preload("res://Scenes/Scene Container/campaigncreation
 
 const DEFAULT_CREW_SIZE = 8
 
+@export var current_crew: Crew
+
 func _ready() -> void:
 	print("Starting _ready function in CrewManagement")
 	var game_state_manager = get_node("/root/GameStateManager")
@@ -124,14 +126,16 @@ func _on_finalize_crew_button_pressed() -> void:
 		push_warning("Crew is not valid. Ensure you have the minimum required members.")
 
 func _on_create_character_button_pressed() -> void:
-	var current_crew = game_state_manager.get_game_state().current_crew
-	if not current_crew:
-		push_error("Current crew is null. Creating a new crew for testing.")
-		current_crew = Crew.new()
-		game_state_manager.get_game_state().current_crew = current_crew
+	var game_state = game_state_manager.get_game_state()
+	if game_state is Dictionary and game_state.has("current_crew"):
+		var current_crew = game_state.current_crew
+		if not current_crew:
+			push_error("Current crew is null. Creating a new crew for testing.")
+	else:
+		push_error("Invalid game state or missing current_crew property.")
 	
 	if current_crew.can_add_member():
 		_create_new_character(current_crew.characters.size())
 	else:
-		# Show a message that the crew is full
-		print("Crew is at maximum capacity. Cannot add new character.")
+			# Show a message that the crew is full
+			print("Crew is at maximum capacity. Cannot add new character.")

@@ -8,7 +8,7 @@ var mission_manager: MissionManager
 
 func initialize(_game_state_manager: GameStateManager) -> void:
 	game_state_manager = _game_state_manager
-	game_state = game_state_manager.get_game_state()
+	game_state = game_state_manager.game_state  # Directly access the game_state property
 	mission_manager = MissionManager.new(game_state_manager)
 
 func generate_mission_from_template(template: MissionTemplate) -> Mission:

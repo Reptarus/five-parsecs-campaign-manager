@@ -9,12 +9,14 @@ var ui_manager: UIManager
 var terrain_generator: TerrainGenerator
 var galactic_war_manager: GalacticWarManager
 var game_over_scene: PackedScene = preload("res://Scenes/Management/Scenes/GameOverScreen.tscn")
+var settings: GameSettings
 
 func _ready() -> void:
 	game_state = GameState.new()
 	ui_manager = UIManager.new()
 	terrain_generator = TerrainGenerator.new()
 	galactic_war_manager = GalacticWarManager.new(game_state)
+	settings = load_settings()
 
 func start_new_game() -> void:
 	game_state.current_state = GlobalEnums.CampaignPhase.CREW_CREATION
@@ -151,3 +153,28 @@ func start_battle(scene_tree: SceneTree) -> void:
 	scene_tree.root.add_child(battle_instance)
 	game_state.current_state = GlobalEnums.CampaignPhase.BATTLE
 	game_state_changed.emit(GlobalEnums.CampaignPhase.BATTLE)
+
+func start_story_track_tutorial() -> void:
+	# Implement the logic to start the story track tutorial
+	print("Starting story track tutorial")
+	# You might want to load a specific scene or set up the game state for the tutorial
+	game_state.current_state = GlobalEnums.CampaignPhase.STORY_POINT
+	game_state_changed.emit(GlobalEnums.CampaignPhase.STORY_POINT)
+	ui_manager.change_screen("tutorial_story_track")
+
+func open_compendium() -> void:
+	# Implement the logic to open the compendium
+	print("Opening compendium")
+	# You might want to load a specific scene for the compendium
+	ui_manager.change_screen("compendium")
+
+func save_settings() -> void:
+	var save_path = "user://settings.tres"
+	ResourceSaver.save(settings, save_path)
+
+func load_settings() -> GameSettings:
+	var save_path = "user://settings.tres"
+	if ResourceLoader.exists(save_path):
+		return ResourceLoader.load(save_path) as GameSettings
+	else:
+		return GameSettings.new()

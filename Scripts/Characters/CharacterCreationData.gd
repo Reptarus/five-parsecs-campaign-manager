@@ -1,16 +1,44 @@
+@tool
 class_name CharacterCreationData
 extends Resource
 
-var species: Array[Dictionary] = []
-var backgrounds: Array[Dictionary] = []
-var motivations: Array[Dictionary] = []
-var classes: Array[Dictionary] = []
-var skills: Array[Dictionary] = []
+@export var species: Array[Dictionary] = []
+@export var backgrounds: Array[Dictionary] = []
+@export var motivations: Array[Dictionary] = []
+@export var classes: Array[Dictionary] = []
+@export var skills: Array[Dictionary] = []
 
-var tutorial_species: Array[Dictionary] = []
-var tutorial_backgrounds: Array[Dictionary] = []
-var tutorial_motivations: Array[Dictionary] = []
-var tutorial_classes: Array[Dictionary] = []
+var tutorial_data: Dictionary = {
+	"species": {
+		"id": GlobalEnums.Species.HUMAN,
+		"name": "Human",
+		"effects": {
+			"reactions": 0,
+			"speed": 0,
+			"combat_skill": 0,
+			"toughness": 0,
+			"savvy": 0
+		}
+	},
+	"background": {
+		"id": GlobalEnums.Background.MILITARY_BRAT,
+		"name": "Military Brat",
+		"effects": {
+			"combat_skill": 1,
+			"toughness": 1
+		}
+	},
+	"motivation": {
+		"id": GlobalEnums.Motivation.ADVENTURE,
+		"name": "Adventure",
+		"description": "Seeking thrills and excitement across the galaxy"
+	},
+	"class": {
+		"id": GlobalEnums.Class.SOLDIER,
+		"name": "Soldier",
+		"abilities": ["Combat Training", "Tactical Awareness"]
+	}
+}
 
 var _data_cache: Dictionary = {}
 
@@ -19,17 +47,11 @@ func load_data() -> void:
 		return  # Data already loaded
 	
 	var json_data: Dictionary = load_json_file("res://data/character_creation_data.json")
-	species = json_data.get("species", [])
-	backgrounds = json_data.get("backgrounds", [])
-	motivations = json_data.get("motivations", [])
-	classes = json_data.get("classes", [])
-	skills = json_data.get("skills", [])
-	
-	var tutorial_data: Dictionary = load_json_file("res://data/RulesReference/tutorial_character_creation.json")
-	tutorial_species = tutorial_data.get("tutorial_species", [])
-	tutorial_backgrounds = tutorial_data.get("tutorial_backgrounds", [])
-	tutorial_motivations = tutorial_data.get("tutorial_motivations", [])
-	tutorial_classes = tutorial_data.get("tutorial_classes", [])
+	species = _convert_to_array_dictionary(json_data.get("species", []))
+	backgrounds = _convert_to_array_dictionary(json_data.get("backgrounds", []))
+	motivations = _convert_to_array_dictionary(json_data.get("motivations", []))
+	classes = _convert_to_array_dictionary(json_data.get("classes", []))
+	skills = _convert_to_array_dictionary(json_data.get("skills", []))
 	
 	_data_cache = json_data  # Cache the loaded data
 
@@ -86,35 +108,17 @@ func get_skill_data(skill_id: GlobalEnums.SkillType) -> Dictionary:
 		return {}
 	return filtered_skills[0]
 
-func get_tutorial_species_data(species_id: GlobalEnums.Species) -> Dictionary:
-	var filtered_species: Array = tutorial_species.filter(func(s): return s.id == species_id)
-	if filtered_species.is_empty():
-		push_warning("No tutorial species found for id: " + str(species_id))
-		return {}
-	return filtered_species[0]
+func get_tutorial_species_data() -> Dictionary:
+	return tutorial_data["species"]
 
-func get_tutorial_background_data(background_id: GlobalEnums.Background) -> Dictionary:
-	var filtered_backgrounds: Array = tutorial_backgrounds.filter(func(b): return b.id == background_id)
-	if filtered_backgrounds.is_empty():
-		push_warning("No tutorial background found for id: " + str(background_id))
-		return {}
-	return filtered_backgrounds[0]
+func get_tutorial_background_data() -> Dictionary:
+	return tutorial_data["background"]
 
-func get_tutorial_motivation_data(motivation_id: GlobalEnums.Motivation) -> Dictionary:
-	var filtered_motivations: Array = tutorial_motivations.filter(func(m): return m.id == motivation_id)
-	if filtered_motivations.is_empty():
-		push_warning("No tutorial motivation found for id: " + str(motivation_id))
-		return {}
-	return filtered_motivations[0]
+func get_tutorial_motivation_data() -> Dictionary:
+	return tutorial_data["motivation"]
 
-func get_tutorial_class_data(class_id: GlobalEnums.Class) -> Dictionary:
-	var filtered_classes: Array = tutorial_classes.filter(func(c): return c.id == class_id)
-	if filtered_classes.is_empty():
-		push_warning("No tutorial class found for id: " + str(class_id))
-		return {}
-	return filtered_classes[0]
-
-# Additional utility functions
+func get_tutorial_class_data() -> Dictionary:
+	return tutorial_data["class"]
 
 func get_all_species() -> Array[Dictionary]:
 	return species
@@ -131,14 +135,9 @@ func get_all_classes() -> Array[Dictionary]:
 func get_all_skills() -> Array[Dictionary]:
 	return skills
 
-func get_all_tutorial_species() -> Array[Dictionary]:
-	return tutorial_species
-
-func get_all_tutorial_backgrounds() -> Array[Dictionary]:
-	return tutorial_backgrounds
-
-func get_all_tutorial_motivations() -> Array[Dictionary]:
-	return tutorial_motivations
-
-func get_all_tutorial_classes() -> Array[Dictionary]:
-	return tutorial_classes
+func _convert_to_array_dictionary(data: Array) -> Array[Dictionary]:
+	var result: Array[Dictionary] = []
+	for item in data:
+		if item is Dictionary:
+			result.append(item)
+	return result

@@ -8,8 +8,8 @@ func _init():
 	character_creation_data.load_data()
 
 func create_character(species: GlobalEnums.Species, background: GlobalEnums.Background, 
-                      motivation: GlobalEnums.Motivation, character_class: GlobalEnums.Class, 
-                      _game_state: GameState) -> Character:
+					  motivation: GlobalEnums.Motivation, character_class: GlobalEnums.Class, 
+					  _game_state: GameState) -> Character:
 	var character = Character.new()
 	
 	var species_data = character_creation_data.get_species_data(GlobalEnums.Species.keys()[species].to_lower())

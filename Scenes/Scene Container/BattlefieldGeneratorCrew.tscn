@@ -12,7 +12,7 @@ script = ExtResource("1_abcde")
 [node name="Collision" type="CollisionShape2D" parent="Character"]
 shape = SubResource("RectangleShape2D_fq138")
 
-[node name="Sprite" type="Sprite2D" parent="Character"]
+[node name="Sprite" type="Sprite2D" parent="Character/Collision"]
 
 [node name="WeaponSystem" type="Node" parent="."]
 

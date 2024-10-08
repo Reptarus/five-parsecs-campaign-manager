@@ -1,63 +1,34 @@
-extends Control
+extends Panel
 
-signal tutorial_selected(tutorial_type: String)
+@onready var story_track_button = $VBoxContainer/StoryTrackButton
+@onready var compendium_button = $VBoxContainer/CompendiumButton
+@onready var skip_button = $VBoxContainer/SkipButton
+@onready var disable_tutorial_checkbox = $VBoxContainer/DisableTutorialCheckbox
 
-@onready var story_track_button: Button = $StoryTrackButton
-@onready var compendium_button: Button = $CompendiumButton
-@onready var skip_button: Button = $SkipButton
+var game_state_manager: GameStateManager
 
-var tutorial_manager: TutorialManager
-var game_manager: GameManager
-
-func _ready() -> void:
-	tutorial_manager = TutorialManager.new(game_manager)
-
-	story_track_button.pressed.connect(_on_story_track_pressed)
-	compendium_button.pressed.connect(_on_compendium_pressed)
-	skip_button.pressed.connect(_on_skip_pressed)
-
-	_setup_tutorial_text()
-
-func _setup_tutorial_text() -> void:
-	$TutorialText.text = """
-	Welcome to Five Parsecs From Home!
+func _ready():
+	game_state_manager = get_node("/root/GameStateManager")
+	if game_state_manager == null:
+		push_error("GameStateManager not found")
 	
-	You can choose to follow the Story Track tutorial, explore the Compendium,
-	or skip the tutorial entirely.
-	
-	Story Track: Learn the basics of crew creation, ship management, and campaign play.
-	Compendium: Explore detailed rules and lore of the game universe.
-	Skip: Jump right into creating your crew and starting your adventure.
-	"""
+	if story_track_button:
+		story_track_button.pressed.connect(_on_story_track_pressed)
+	if compendium_button:
+		compendium_button.pressed.connect(_on_compendium_pressed)
+	if skip_button:
+		skip_button.pressed.connect(_on_skip_pressed)
+	if disable_tutorial_checkbox:
+		disable_tutorial_checkbox.toggled.connect(_on_disable_tutorial_toggled)
 
-func _on_story_track_pressed() -> void:
-	tutorial_manager.start_tutorial("story_track")
-	tutorial_selected.emit("story_track")
-	game_manager.game_state.transition_to_state(GameStateManager.State.CREW_CREATION)
-	game_manager.game_state_changed.emit(GlobalEnums.CampaignPhase.CREW_CREATION)
+func _on_story_track_pressed():
+	get_parent()._on_tutorial_popup_button_pressed("story_track")
 
-func _on_compendium_pressed() -> void:
-	tutorial_manager.start_tutorial("compendium")
-	tutorial_selected.emit("compendium")
-	# Load compendium scene or display compendium information
+func _on_compendium_pressed():
+	get_parent()._on_tutorial_popup_button_pressed("compendium")
 
-func _on_skip_pressed() -> void:
-	tutorial_manager.end_tutorial()
-	tutorial_selected.emit("skip")
-	game_manager.game_state.transition_to_state(GameStateManager.State.CREW_CREATION)
-	game_manager.game_state_changed.emit(GlobalEnums.CampaignPhase.CREW_CREATION)
+func _on_skip_pressed():
+	get_parent()._on_tutorial_popup_button_pressed("skip")
 
-func _on_tutorial_step_changed(step: String) -> void:
-	match step:
-		"crew_size_selection":
-			$TutorialText.text = tutorial_manager.get_tutorial_text("crew_size_selection")
-		"campaign_setup":
-			$TutorialText.text = tutorial_manager.get_tutorial_text("campaign_setup")
-		"character_creation":
-			$TutorialText.text = tutorial_manager.get_tutorial_text("character_creation")
-		"ship_creation":
-			$TutorialText.text = tutorial_manager.get_tutorial_text("ship_creation")
-		"connections_creation":
-			$TutorialText.text = tutorial_manager.get_tutorial_text("connections_creation")
-		"save_campaign":
-			$TutorialText.text = tutorial_manager.get_tutorial_text("save_campaign")
+func _on_disable_tutorial_toggled(button_pressed: bool):
+	get_parent()._on_disable_tutorial_toggled(button_pressed)

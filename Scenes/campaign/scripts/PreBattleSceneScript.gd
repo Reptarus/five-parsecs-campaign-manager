@@ -24,7 +24,8 @@ func initialize() -> void:
 
 func _on_generate_terrain_pressed() -> void:
 	var battlefield_size := GlobalEnums.TerrainSize.MEDIUM  # 24" x 24" battlefield as per rules
-	terrain_generator.generate_terrain(battlefield_size)
+	var terrain_type := GlobalEnums.TerrainGenerationType.INDUSTRIAL  # Assuming a default terrain type for generation
+	terrain_generator.generate_terrain(battlefield_size, terrain_type)
 	terrain_generator.generate_features([GlobalEnums.TerrainFeature.AREA], current_mission)
 	terrain_generator.generate_cover()
 	terrain_generator.generate_cover()

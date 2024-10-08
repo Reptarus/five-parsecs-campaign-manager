@@ -16,7 +16,7 @@ func _init() -> void:
 func initialize(game_state_manager: GameStateManager) -> void:
 	self.game_state_manager = game_state_manager
 	story_clock = StoryClock.new()
-	story_track_manager = StoryTrackManager.new(game_state_manager.get_game_state())
+	story_track_manager = StoryTrackManager.new(game_state_manager.game_state)
 	_load_events()
 	current_event_index = -1
 
@@ -56,7 +56,11 @@ func progress_story(current_phase: GlobalEnums.CampaignPhase) -> void:
 			trigger_current_event()
 		else:
 			# Tutorial completed
-			game_state_manager.get_game_state().is_tutorial_active = false
+			var game_state = game_state_manager.get_game_state()
+			if game_state is Resource:  # or whatever the expected type is
+				game_state.is_tutorial_active = false
+			else:
+				push_error("Unexpected game state type")
 
 func serialize() -> Dictionary:
 	return {
