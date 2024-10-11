@@ -10,9 +10,9 @@ const BATTLE_SCENE := preload("res://Scenes/Scene Container/Battle.tscn")
 const POST_BATTLE_SCENE := preload("res://Scenes/Scene Container/PostBattle.tscn")
 const INITIAL_CREW_CREATION_SCENE := "res://Scenes/Management/InitialCrewCreation.tscn"
 
-const CampaignStateMachine = preload("res://StateMachines/CampaignStateMachine.gd")
-const BattleStateMachine = preload("res://StateMachines/BattleStateMachine.gd")
-const MainGameStateMachine = preload("res://StateMachines/MainGameStateMachine.gd")
+const CAMPAIGN_STATE_MACHINE = preload("res://StateMachines/CampaignStateMachine.gd")
+const BATTLE_STATE_MACHINE = preload("res://StateMachines/BattleStateMachine.gd")
+const MAIN_GAME_STATE_MACHINE = preload("res://StateMachines/MainGameStateMachine.gd")
 
 var game_state: GameState
 var mission_generator: MissionGenerator
@@ -34,6 +34,8 @@ var settings: Dictionary = {
 	"disable_tutorial_popup": false
 }
 
+var temp_data: Dictionary = {}
+
 func _ready() -> void:
 	load_settings()
 	game_state = GameState.new()
@@ -48,13 +50,15 @@ func initialize_managers() -> void:
 	psionic_manager = PsionicManager.new()
 	story_track = StoryTrack.new()
 	world_generator = WorldGenerator.new()
-	world_generator.call("initialize", self)
-	expanded_faction_manager = ExpandedFactionManager.new(game_state)
+	world_generator.initialize(self)
+	expanded_faction_manager = ExpandedFactionManager.new()
+	expanded_faction_manager.initialize(game_state)
 	combat_manager = CombatManager.new()
+	combat_manager.initialize(game_state.current_mission, game_state.crew.crew_members, game_state.current_mission.tile_map)
 
 func initialize_state_machines() -> void:
 	main_game_state_machine = MainGameStateMachine.new()
-	main_game_state_machine.call("initialize", self)
+	main_game_state_machine.initialize(self)
 	
 	campaign_state_machine = CampaignStateMachine.new()
 	campaign_state_machine.call("initialize", self)
@@ -63,10 +67,12 @@ func initialize_state_machines() -> void:
 	battle_state_machine.call("initialize", self)
 
 func _get(property: StringName):
-	return game_state.get(property)
+	if property in game_state:
+		return game_state.get(property)
+	return null
 
 func _set(property: StringName, value) -> bool:
-	if game_state.has(property):
+	if property in game_state:
 		game_state.set(property, value)
 		return true
 	return false
@@ -86,8 +92,9 @@ func transition_to_state(new_state: GlobalEnums.CampaignPhase) -> void:
 
 func start_new_game() -> void:
 	game_state = GameState.new()
+	game_state.crew = Crew.new()
 	game_state.current_state = GlobalEnums.CampaignPhase.CREW_CREATION
-	get_tree().change_scene_to_file("res://Scenes/Scene Container/InitialCrewCreation.tscn")
+	get_tree().change_scene_to_file(INITIAL_CREW_CREATION_SCENE)
 
 func start_battle() -> void:
 	var battle_instance = BATTLE_SCENE.instantiate()

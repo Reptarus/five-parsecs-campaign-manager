@@ -71,7 +71,7 @@ func explore(character: Character) -> void:
 		print_debug("%s had an uneventful exploration." % character.name)
 
 func train(character: Character) -> void:
-	var skill_to_improve: GlobalEnums.SkillType = randi() % GlobalEnums.SkillType.size()
+	var skill_to_improve: GlobalEnums.SkillType = GlobalEnums.SkillType.values()[randi() % GlobalEnums.SkillType.size()]
 	var xp_gained := randi() % 3 + 1
 	character.improve_skill(skill_to_improve, xp_gained)
 	print_debug("%s trained %s and gained %d XP." % [character.name, GlobalEnums.SkillType.keys()[skill_to_improve], xp_gained])

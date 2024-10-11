@@ -1,0 +1,3 @@
+[gd_scene format=3 uid="uid://dtfb8qgvoruni"]
+
+[node name="ObstacleImpassable" type="Node2D"]

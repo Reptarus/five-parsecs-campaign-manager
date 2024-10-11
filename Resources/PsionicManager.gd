@@ -136,7 +136,7 @@ func evaluate_psionic_action(character: Character, power: String, target: Charac
 
 	return score
 
-func check_psionic_legality(world: Location) -> GlobalEnums.PsionicLegality:
+func check_psionic_legality(_world: Location) -> GlobalEnums.PsionicLegality:
 	var roll = GameManager.roll_dice(1, 100)
 	if roll <= 25:
 		return GlobalEnums.PsionicLegality.ILLEGAL

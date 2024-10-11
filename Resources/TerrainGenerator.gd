@@ -1,4 +1,3 @@
-# Resources/TerrainGenerator.gd
 class_name TerrainGenerator
 extends Resource
 
@@ -24,7 +23,7 @@ func generate_battlefield(mission: Mission, table_size: GlobalEnums.TerrainSize)
 	var terrain_map: Array = generate_terrain(table_size, terrain_type)
 	var features: Array[Dictionary] = generate_features(terrain_map, mission)
 	var player_positions: Array[Vector2] = generate_player_positions(mission.required_crew_size, TABLE_SIZES[table_size])
-	var enemy_positions: Array[Vector2] = generate_enemy_positions(mission.get_enemies().size(), TABLE_SIZES[table_size])
+	var enemy_positions: Array[Vector2] = generate_enemy_positions(mission.get_total_enemy_count(), TABLE_SIZES[table_size])
 
 	return {
 		"terrain": terrain_map,

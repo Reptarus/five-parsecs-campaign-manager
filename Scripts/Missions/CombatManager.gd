@@ -5,394 +5,152 @@ signal combat_started
 signal combat_ended(player_victory: bool)
 signal turn_started(character: Character)
 signal turn_ended(character: Character)
-signal ui_update_needed(round: int, phase: GlobalEnums.BattlePhase, current_character: Character)
+signal ui_update_needed(current_round: int, phase: GlobalEnums.CampaignPhase, current_character: Character)
 signal log_action(action: String)
-signal character_moved(character: Character, new_position: Vector2)
+signal character_moved(character: Character, new_position: Vector2i)
 signal enable_player_controls(character: Character)
 signal update_turn_label(round: int)
 signal update_current_character_label(character_name: String)
-signal highlight_valid_positions(positions: Array[Vector2])
+signal highlight_valid_positions(positions: Array[Vector2i])
 
-const GRID_SIZE: Vector2i = Vector2i(24, 24)  # 24" x 24" battlefield
-const CELL_SIZE: Vector2i = Vector2i(32, 32)  # Size of each cell in pixels
+const MAX_ROUNDS := 12
 
-var game_state_manager: GameStateManager
-var current_mission: Mission
-var battlefield: Array[Array]
-var turn_order: Array[Character]
-var current_turn_index: int = 0
-var current_round: int = 1
-var current_phase: GlobalEnums.BattlePhase = GlobalEnums.BattlePhase.REACTION_ROLL
-var battle_grid: GridContainer
+var current_round := 0
+var mission: Mission
+var crew: Array[Character]
+var enemies: Array[Character]
+var game_state_manager
+var ai_controller: AIController
+var battlefield: TileMap
+var active_character: Character
 
-# Initialization and Setup
-func initialize(_game_state_manager: GameStateManager, _mission: Mission, _battle_grid: GridContainer) -> void:
-	game_state_manager = _game_state_manager
-	current_mission = _mission
-	battle_grid = _battle_grid
-	battlefield = generate_battlefield()
-	setup_battlefield()
-	setup_characters()
-	place_objectives()
-	start_combat()
+func initialize(p_game_state_manager, p_mission: Mission, p_battlefield: TileMap) -> void:
+	game_state_manager = p_game_state_manager
+	mission = p_mission
+	battlefield = p_battlefield
+	crew = game_state_manager.current_ship.crew
+	enemies = mission.get_enemies()
 
-func generate_battlefield() -> Array[Array]:
-	# Implement battlefield generation logic here
-	var battlefield = []
-	for x in range(GRID_SIZE.x):
-		battlefield.append([])
-		for y in range(GRID_SIZE.y):
-			battlefield[x].append(null)
-	return battlefield
+func _ready() -> void:
+	ai_controller = AIController.new()
+	ai_controller.initialize(self, game_state_manager)
 
-func setup_battlefield() -> void:
-	battle_grid.columns = GRID_SIZE.x
-	for x in range(GRID_SIZE.x):
-		for y in range(GRID_SIZE.y):
-			var cell := ColorRect.new()
-			cell.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-			cell.size_flags_vertical = Control.SIZE_EXPAND_FILL
-			cell.color = get_terrain_color(battlefield[x][y])
-			battle_grid.add_child(cell)
-
-func setup_characters() -> void:
-	var crew: Array[Character] = game_state_manager.current_ship.crew
-	var enemies: Array = current_mission.get_enemies()
-	
-	for character in crew + enemies:
-		character.position = find_valid_spawn_position(character in crew)
-
-func place_objectives() -> void:
-	# Implement objective placement logic here
-	pass
-
-# Combat Flow
 func start_combat() -> void:
-	emit_signal("combat_started")
-	start_battle_round()
+	current_round = 1
+	combat_started.emit()
+	_start_round()
 
-func start_battle_round() -> void:
-	emit_signal("log_action", "Starting Round " + str(current_round))
-	perform_reaction_roll()
-
-func perform_reaction_roll() -> void:
-	turn_order.clear()
-	var crew: Array[Character] = game_state_manager.current_ship.crew
-	var enemies: Array = current_mission.get_enemies()
-	
-	for character in crew + enemies:
-		var roll := roll_dice(1, 6)
-		if roll <= character.reactions:
-			turn_order.append(character)
-	
-	for character in crew + enemies:
-		if not character in turn_order:
-			turn_order.append(character)
-	
-	current_phase = GlobalEnums.BattlePhase.QUICK_ACTIONS
-	current_turn_index = 0
-	start_next_turn()
-
-func start_next_turn() -> void:
-	if current_turn_index >= turn_order.size():
-		advance_phase()
+func _start_round() -> void:
+	if current_round > MAX_ROUNDS:
+		end_combat(false)
 		return
 
-	var current_character: Character = turn_order[current_turn_index]
-	emit_signal("turn_started", current_character)
-	update_ui(current_round, current_phase, current_character)
-	if current_character in current_mission.get_enemies():
-		perform_enemy_turn(current_character)
-	else:
-		emit_signal("enable_player_controls", current_character)
-		emit_signal("update_turn_label", current_round)
-		emit_signal("update_current_character_label", current_character.name)
-		emit_signal("log_action", current_character.name + "'s turn started")
-		var valid_move_positions = get_valid_move_positions(current_character)
-		emit_signal("highlight_valid_positions", valid_move_positions)
+	update_turn_label.emit(current_round)
+	_perform_actions()
 
-func advance_phase() -> void:
-	match current_phase:
-		GlobalEnums.BattlePhase.QUICK_ACTIONS:
-			current_phase = GlobalEnums.BattlePhase.ENEMY_ACTIONS
-		GlobalEnums.BattlePhase.ENEMY_ACTIONS:
-			current_phase = GlobalEnums.BattlePhase.SLOW_ACTIONS
-		GlobalEnums.BattlePhase.SLOW_ACTIONS:
-			end_battle_round()
-			return
-	
-	current_turn_index = 0
-	start_next_turn()
+func _perform_actions() -> void:
+	var all_units: Array[Character] = []
+	all_units.append_array(crew)
+	all_units.append_array(enemies)
+	all_units.sort_custom(func(a: Character, b: Character): return a.reactions > b.reactions)
 
-func end_battle_round() -> void:
-	current_phase = GlobalEnums.BattlePhase.END_PHASE
-	perform_morale_check()
-	if not check_battle_end():
-		current_round += 1
-		start_battle_round()
-
-# Character Actions
-func perform_enemy_turn(enemy: Character) -> void:
-	var target := find_nearest_enemy(enemy)
-	if can_attack(enemy, target):
-		perform_attack(enemy, target)
-	else:
-		var move_position := find_nearest_cover(enemy)
-		move_character(enemy, move_position)
-
-func perform_attack(attacker: Character, target: Character) -> void:
-	if can_attack(attacker, target):
-		var hit_roll: int = roll_dice(1, 6) + attacker.combat_skill
-		var hit_threshold: int = 5 if get_cover_type(target.position) == GlobalEnums.CoverType.NONE else 6
-		
-		if hit_roll >= hit_threshold:
-			var damage: int = attacker.weapon.roll_damage()
-			apply_damage(target, damage)
-			log_action.emit("%s hit %s for %d damage!" % [attacker.name, target.name, damage])
+	for unit in all_units:
+		active_character = unit
+		update_current_character_label.emit(unit.name)
+		turn_started.emit(unit)
+		if unit in crew:
+			enable_player_controls.emit(unit)
 		else:
-			log_action.emit("%s missed %s!" % [attacker.name, target.name])
+			_perform_enemy_action(unit)
+		turn_ended.emit(unit)
 
-# Helper Functions
-func roll_dice(num_dice: int, sides: int) -> int:
-	var total := 0
-	for i in range(num_dice):
-		total += randi() % sides + 1
-	log_action.emit("Rolled " + str(num_dice) + "d" + str(sides) + ": " + str(total))
-	return total
-
-func is_valid_move(character: Character, new_position: Vector2) -> bool:
-	var distance := character.position.distance_to(new_position)
-	return is_valid_position(new_position) and distance <= character.speed and battlefield[int(new_position.x)][int(new_position.y)] == null
-
-func update_character_position(character: Character) -> void:
-	var unit_node := get_node_or_null("../Battlefield/Units/" + character.name)
-	if unit_node:
-		var grid_position := character.position * CELL_SIZE
-		unit_node.position = grid_position
-		character_moved.emit(character, grid_position)
-	else:
-		push_error("Character node not found: %s" % character.name)
-
-func can_attack(attacker: Character, target: Character) -> bool:
-	var distance := attacker.position.distance_to(target.position)
-	return distance <= attacker.weapon.range and has_line_of_sight(attacker.position, target.position)
-
-func apply_damage(target: Character, damage: int) -> void:
-	if damage >= target.toughness:
-		target.status = GlobalEnums.CharacterStatus.DEAD
-		log_action.emit(target.name + " is defeated!")
-		remove_character(target)
-	else:
-		var stun_roll := roll_dice(1, 6)
-		if stun_roll <= damage:
-			target.status = GlobalEnums.CharacterStatus.STUNNED
-			log_action.emit(target.name + " is stunned!")
-		else:
-			log_action.emit(target.name + " resists being stunned!")
-
-func remove_character(character: Character) -> void:
-	turn_order.erase(character)
-	if character in game_state_manager.current_ship.crew:
-		game_state_manager.current_ship.crew.erase(character)
-	elif character in current_mission.get_enemies():
-		current_mission.remove_enemy(character)
-
-func find_nearest_enemy(character: Character) -> Character:
-	var enemies: Array[Character] = current_mission.get_enemies() if character in game_state_manager.current_ship.crew else game_state_manager.current_ship.crew
-	var nearest_enemy: Character = null
-	var min_distance := INF
-	for enemy in enemies:
-		var distance := character.position.distance_to(enemy.position)
-		if distance < min_distance:
-			min_distance = distance
-			nearest_enemy = enemy
-	return nearest_enemy
-
-func find_nearest_cover(character: Character) -> Vector2:
-	var best_cover := Vector2.ZERO
-	var min_distance := INF
-	for x in range(GRID_SIZE.x):
-		for y in range(GRID_SIZE.y):
-			var pos := Vector2(x, y)
-			if get_cover_type(pos) != GlobalEnums.CoverType.NONE:
-				var distance := character.position.distance_to(pos)
-				if distance < min_distance:
-					min_distance = distance
-					best_cover = pos
-	return best_cover if best_cover != Vector2.ZERO else find_random_position()
-
-func find_random_position() -> Vector2:
-	var x := randi() % GRID_SIZE.x
-	var y := randi() % GRID_SIZE.y
-	return Vector2(x, y)
-
-func get_cover_type(position: Vector2) -> GlobalEnums.CoverType:
-	var adjacent_positions := [
-		Vector2(position.x - 1, position.y),
-		Vector2(position.x + 1, position.y),
-		Vector2(position.x, position.y - 1),
-		Vector2(position.x, position.y + 1)
-	]
-
-	var cover_count := 0
-	for adj_pos in adjacent_positions:
-		if is_valid_position(adj_pos) and battlefield[int(adj_pos.x)][int(adj_pos.y)] != null:
-			cover_count += 1
-
-	if cover_count >= 2:
-		return GlobalEnums.CoverType.FULL
-	elif cover_count == 1:
-		return GlobalEnums.CoverType.PARTIAL
-	else:
-		return GlobalEnums.CoverType.NONE
-
-func is_valid_position(pos: Vector2) -> bool:
-	return pos.x >= 0 and pos.x < GRID_SIZE.x and pos.y >= 0 and pos.y < GRID_SIZE.y
-
-func has_line_of_sight(from_pos: Vector2, to_pos: Vector2) -> bool:
-	var dx: int = abs(int(to_pos.x - from_pos.x))
-	var dy: int = abs(int(to_pos.y - from_pos.y))
-	var x: int = int(from_pos.x)
-	var y: int = int(from_pos.y)
-	var n: int = 1 + dx + dy
-	var x_inc: int = 1 if to_pos.x > from_pos.x else -1
-	var y_inc: int = 1 if to_pos.y > from_pos.y else -1
-	var error: int = dx - dy
-	dx *= 2
-	dy *= 2
-
-	for _i in range(n):
-		var current_pos := Vector2(x, y)
-		if not is_valid_position(current_pos) or battlefield[x][y] == GlobalEnums.TerrainFeature.AREA:
-			return false
-		if error > 0:
-			x += x_inc
-			error -= dy
-		elif error < 0:
-			y += y_inc
-			error += dx
-		else:
-			x += x_inc
-			y += y_inc
-			error -= dy
-			error += dx
-
-	return true
-
-func perform_morale_check() -> void:
-	var enemies: Array = current_mission.get_enemies()
-	var casualties := enemies.filter(func(e: Character) -> bool: return e.status == GlobalEnums.CharacterStatus.DEAD)
-	
-	for i in range(casualties.size()):
-		var roll := roll_dice(1, 6)
-		if roll <= enemies[0].panic_range:
-			var fleeing_enemy: Character = enemies[randi() % enemies.size()]
-			fleeing_enemy.status = GlobalEnums.CharacterStatus.FLEEING
-			emit_signal("log_action", fleeing_enemy.name + " has fled the battle!")
-
-func check_battle_end() -> bool:
-	if check_victory_conditions():
-		emit_signal("combat_ended", true)
-		return true
-	elif check_defeat_conditions():
-		emit_signal("combat_ended", false)
-		return true
-	return false
-
-func get_valid_move_positions(character: Character) -> Array[Vector2]:
-	var valid_positions: Array[Vector2] = []
-	for x in range(GRID_SIZE.x):
-		for y in range(GRID_SIZE.y):
-			var pos = Vector2(x, y)
-			if is_valid_move(character, pos):
-				valid_positions.append(pos)
-	return valid_positions
-
-func check_victory_conditions() -> bool:
-	match current_mission.objective:
-		GlobalEnums.MissionObjective.MOVE_THROUGH:
-			var crew_members = game_state_manager.current_ship.crew
-			return crew_members.all(func(member: Character) -> bool: return member.position.x >= GRID_SIZE.x - 1)
-		_:
-			push_warning("Unhandled mission objective in victory conditions")
-			return false
-
-func check_defeat_conditions() -> bool:
-	var crew_members = game_state_manager.current_ship.crew
-	if crew_members.all(func(member: Character) -> bool: return member.status == GlobalEnums.CharacterStatus.DEAD):
-		return true
-	
-	if current_mission.is_expired(current_round):
-		return true
-	
-	return false
-
-func check_escape_condition() -> bool:
-	var escape_zone = Rect2(Vector2.ZERO, Vector2(3, GRID_SIZE.y))
-	return game_state_manager.current_ship.crew.any(func(member: Character) -> bool: return escape_zone.has_point(member.position))
+	_end_round()
 
 func handle_move(character: Character, new_position: Vector2) -> void:
-	if is_valid_move(character, new_position):
-		move_character(character, new_position)
-		emit_signal("character_moved", character, new_position)
+	character.position = new_position
+	character_moved.emit(character, new_position)
+	log_action.emit(character.name + " moved to " + str(new_position))
 
 func handle_attack(attacker: Character, target: Character) -> void:
-	if can_attack(attacker, target):
-		perform_attack(attacker, target)
+	var damage = attacker.calculate_damage()
+	target.take_damage(damage)
+	log_action.emit(attacker.name + " attacked " + target.name + " for " + str(damage) + " damage")
 
 func handle_end_turn() -> void:
-	current_turn_index += 1
-	start_next_turn()
+	turn_ended.emit(active_character)
+	active_character = null
 
-func get_terrain_color(terrain_type: GlobalEnums.TerrainFeature) -> Color:
-	match terrain_type:
-		GlobalEnums.TerrainFeature.AREA:
-			return Color(0.2, 0.6, 0.2)
-		GlobalEnums.TerrainFeature.INDIVIDUAL:
-			return Color(0.6, 0.4, 0.2)
-		GlobalEnums.TerrainFeature.LINEAR:
-			return Color(0.2, 0.2, 0.6)
+func _perform_enemy_action(enemy: Character) -> void:
+	var ai_behavior = _get_ai_behavior(enemy.ai_type)
+	ai_controller.set_ai_behavior(ai_behavior)
+	ai_controller.perform_ai_turn(enemy)
+
+func _get_ai_behavior(ai_type: GlobalEnums.AIType) -> GlobalEnums.AIBehavior:
+	match ai_type:
+		GlobalEnums.AIType.CAUTIOUS:
+			return GlobalEnums.AIBehavior.CAUTIOUS
+		GlobalEnums.AIType.AGGRESSIVE:
+			return GlobalEnums.AIBehavior.AGGRESSIVE
+		GlobalEnums.AIType.TACTICAL:
+			return GlobalEnums.AIBehavior.TACTICAL
+		GlobalEnums.AIType.DEFENSIVE:
+			return GlobalEnums.AIBehavior.DEFENSIVE
+		GlobalEnums.AIType.RAMPAGE:
+			return GlobalEnums.AIBehavior.RAMPAGE
+		GlobalEnums.AIType.BEAST:
+			return GlobalEnums.AIBehavior.BEAST
 		_:
-			return Color(0.2, 0.2, 0.2)
+			push_error("Invalid AI type")
+			return GlobalEnums.AIBehavior.CAUTIOUS
 
-func find_valid_spawn_position(is_crew: bool) -> Vector2:
-	var x_range := range(0, 6) if is_crew else range(18, 24)
-	var valid_positions: Array[Vector2] = []
-	for x in x_range:
-		for y in range(GRID_SIZE.y):
-			if battlefield[x][y] == null:
-				valid_positions.append(Vector2(x, y))
-	return valid_positions[randi() % valid_positions.size()]
+func _end_round() -> void:
+	_check_objective()
+	_check_morale()
+	current_round += 1
+	_start_round()
 
-func move_character(character: Character, new_position: Vector2) -> void:
-	character.position = new_position
-	update_character_position(character)
+func _check_objective() -> void:
+	if game_state_manager.is_objective_completed():
+		end_combat(true)
 
-# Signal Emitters
+func _check_morale() -> void:
+	var casualties_this_round = game_state_manager.get_casualties_this_round()
+	
+	for i in range(casualties_this_round):
+		if _roll_dice(6) <= game_state_manager.get_panic_range():
+			var enemy_to_remove = game_state_manager.get_random_enemy()
+			if enemy_to_remove:
+				game_state_manager.remove_enemy(enemy_to_remove)
+				log_action.emit("Enemy fled due to low morale!")
+
+func _roll_dice(sides: int) -> int:
+	return randi() % sides + 1
 
 func end_combat(player_victory: bool) -> void:
 	combat_ended.emit(player_victory)
 
-func start_turn(character: Character) -> void:
-	turn_started.emit(character)
+func is_combat_over() -> bool:
+	return crew.is_empty() or enemies.is_empty() or current_round > MAX_ROUNDS
 
-func end_turn(character: Character) -> void:
-	turn_ended.emit(character)
+func get_valid_move_positions(_character: Character) -> Array[Vector2i]:
+	# Implement logic to get valid move positions
+	var valid_positions: Array[Vector2i] = []
+	# ... (implement the logic)
+	return valid_positions
 
-func update_ui(round_num: int, phase: GlobalEnums.BattlePhase, current_character: Character) -> void:
-	ui_update_needed.emit(round_num, phase, current_character)
+func get_valid_targets(_character: Character) -> Array[Character]:
+	# Implement logic to get valid targets
+	var valid_targets: Array[Character] = []
+	# ... (implement the logic)
+	return valid_targets
 
-func add_log_entry(action: String) -> void:
-	log_action.emit(action)
+func get_character_at_position(_position: Vector2) -> Character:
+	# Implement logic to get character at position
+	# ... (implement the logic)
+	return null
 
-func enable_controls(character: Character) -> void:
-	enable_player_controls.emit(character)
-
-func update_turn(turn_round: int) -> void:
-	update_turn_label.emit(turn_round)
-
-func update_current_character(character_name: String) -> void:
-	update_current_character_label.emit(character_name)
-
-func show_valid_positions(positions: Array[Vector2]) -> void:
-	highlight_valid_positions.emit(positions)
+func get_mission_results() -> Dictionary:
+	# Implement logic to get mission results
+	var results = {}
+	# ... (implement the logic)
+	return results

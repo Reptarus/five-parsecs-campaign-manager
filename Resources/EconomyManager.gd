@@ -59,7 +59,7 @@ func generate_random_weapon() -> Equipment:
     var weapon_type = weapon_types[randi() % weapon_types.size()]
     var weapon_name = "Generic " + GlobalEnums.WeaponType.keys()[weapon_type]
     var damage = randi() % 5 + 1
-    var weapon_range = randi() % 10 + 1
+    var _weapon_range = randi() % 10 + 1
     return Equipment.new(weapon_name, GlobalEnums.ItemType.WEAPON, damage)
 
 func generate_random_armor() -> Equipment:

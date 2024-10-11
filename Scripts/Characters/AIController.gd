@@ -226,8 +226,9 @@ func _trigger_psionic_event() -> void:
 			for enemy in enemies:
 				enemy.apply_status_effect("fear")
 		"telekinetic_push":
-			var target := combat_manager.find_nearest_enemy(combat_manager.get_player())
-			target.apply_force(Vector2(randf_range(-10, 10), randf_range(-10, 10)))
+			var target: Character = combat_manager.find_nearest_enemy(combat_manager.get_player())
+			if target:
+				target.apply_force(Vector2(randf_range(-10, 10), randf_range(-10, 10)))
 
 func _cause_equipment_malfunction() -> void:
 	var malfunction_effects := ["weapon_jam", "armor_failure", "sensor_glitch"]

@@ -1,7 +1,7 @@
 class_name Battle
 extends Node2D
 
-@export var game_state_manager: GameStateManager
+var game_state_manager: GameStateManager
 var current_mission: Mission
 var combat_manager: CombatManager
 var ai_controller: AIController
@@ -28,7 +28,7 @@ func _ready() -> void:
 	ai_controller = $AIController
 	battlefield_generator = $BattlefieldGenerator
 	
-	combat_manager.initialize(game_state_manager, current_mission, battle_grid)
+	combat_manager.initialize(game_state_manager, current_mission, tilemap)
 	ai_controller.initialize(combat_manager, game_state_manager)
 	
 	_initialize_battlefield()

@@ -230,7 +230,7 @@ func _handle_mission_failure(mission: Mission) -> void:
         GlobalEnums.Type.FRINGE_WORLD_STRIFE:
             game_state.fringe_world_strife_manager.increase_instability(mission.location)
 
-func get_available_missions() -> Array[Mission]:
+func get_available_missions() -> Array:
     return game_state.game_state.available_missions
 
 func add_mission(mission: Mission) -> void:

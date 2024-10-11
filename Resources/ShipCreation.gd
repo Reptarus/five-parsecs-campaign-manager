@@ -91,7 +91,7 @@ func calculate_initial_fuel(components: Array[ShipComponent]) -> int:
 	var engine_component := components.filter(func(c): return c is EngineComponent).front() as EngineComponent
 	return 100 if engine_component else 0  # Default fuel capacity, adjust as needed
 
-func get_component_cost(component: ShipComponent) -> int:
+func get_component_cost(_component: ShipComponent) -> int:
 	# Implement cost calculation logic here
 	return 100  # Placeholder value
 

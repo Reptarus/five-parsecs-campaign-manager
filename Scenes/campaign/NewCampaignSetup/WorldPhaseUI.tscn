@@ -1,7 +1,8 @@
-[gd_scene load_steps=3 format=3 uid="uid://b8cqdvcppb5lt"]
+[gd_scene load_steps=4 format=3 uid="uid://b8cqdvcppb5lt"]
 
-[ext_resource type="Script" path="res://Scenes/campaign/scripts/WorldPhaseUI.gd" id="1_script"]
+[ext_resource type="Script" path="res://Scenes/campaign/scripts/WorldStep.gd" id="1_script"]
 [ext_resource type="Theme" uid="uid://d1you1rrwuu48" path="res://Scenes/sci_fi_theme.tres" id="2_theme"]
+[ext_resource type="Texture2D" uid="uid://2tpugbxqjgmh" path="res://assets/BookImages/Nov_15_Party_Time.jpg" id="3_5d3tj"]
 
 [node name="WorldPhaseUI" type="Control"]
 layout_mode = 3
@@ -13,93 +14,141 @@ grow_vertical = 2
 theme = ExtResource("2_theme")
 script = ExtResource("1_script")
 
-[node name="VBoxContainer" type="VBoxContainer" parent="."]
+[node name="Background" type="TextureRect" parent="."]
+clip_contents = true
 layout_mode = 1
 anchors_preset = 15
 anchor_right = 1.0
 anchor_bottom = 1.0
+offset_left = -273.0
+offset_top = -202.0
+offset_right = 5807.0
+offset_bottom = 3218.0
 grow_horizontal = 2
 grow_vertical = 2
+scale = Vector2(0.3, 0.3)
+texture = ExtResource("3_5d3tj")
 
-[node name="PhaseLabel" type="Label" parent="VBoxContainer"]
-layout_mode = 2
-text = "World Phase"
-horizontal_alignment = 1
+[node name="TopBar" type="HBoxContainer" parent="."]
+layout_mode = 0
+offset_right = 40.0
+offset_bottom = 40.0
 
-[node name="ScrollContainer" type="ScrollContainer" parent="VBoxContainer"]
-layout_mode = 2
-size_flags_vertical = 3
-
-[node name="PhaseContent" type="VBoxContainer" parent="VBoxContainer/ScrollContainer"]
-layout_mode = 2
-size_flags_horizontal = 3
-size_flags_vertical = 3
-
-[node name="UpkeepSection" type="VBoxContainer" parent="VBoxContainer/ScrollContainer/PhaseContent"]
+[node name="BackButton" type="Button" parent="TopBar"]
 layout_mode = 2
 
-[node name="UpkeepLabel" type="Label" parent="VBoxContainer/ScrollContainer/PhaseContent/UpkeepSection"]
-layout_mode = 2
-text = "Upkeep and Repairs"
-
-[node name="UpkeepDetails" type="Label" parent="VBoxContainer/ScrollContainer/PhaseContent/UpkeepSection"]
-layout_mode = 2
-text = "Upkeep cost: 0 credits"
-
-[node name="CrewTasksSection" type="VBoxContainer" parent="VBoxContainer/ScrollContainer/PhaseContent"]
+[node name="TitleLabel" type="Label" parent="TopBar"]
 layout_mode = 2
 
-[node name="CrewTasksLabel" type="Label" parent="VBoxContainer/ScrollContainer/PhaseContent/CrewTasksSection"]
-layout_mode = 2
-text = "Crew Tasks"
-
-[node name="CrewTasksList" type="VBoxContainer" parent="VBoxContainer/ScrollContainer/PhaseContent/CrewTasksSection"]
+[node name="OptionsButton" type="Button" parent="TopBar"]
 layout_mode = 2
 
-[node name="JobOffersSection" type="VBoxContainer" parent="VBoxContainer/ScrollContainer/PhaseContent"]
+[node name="NextButton" type="Button" parent="TopBar"]
 layout_mode = 2
 
-[node name="JobOffersLabel" type="Label" parent="VBoxContainer/ScrollContainer/PhaseContent/JobOffersSection"]
-layout_mode = 2
-text = "Job Offers"
+[node name="StepIndicator" type="HBoxContainer" parent="."]
+layout_mode = 0
+offset_right = 40.0
+offset_bottom = 40.0
 
-[node name="JobOffersList" type="VBoxContainer" parent="VBoxContainer/ScrollContainer/PhaseContent/JobOffersSection"]
-layout_mode = 2
-
-[node name="EquipmentSection" type="VBoxContainer" parent="VBoxContainer/ScrollContainer/PhaseContent"]
+[node name="Step1Button" type="Button" parent="StepIndicator"]
 layout_mode = 2
 
-[node name="EquipmentLabel" type="Label" parent="VBoxContainer/ScrollContainer/PhaseContent/EquipmentSection"]
-layout_mode = 2
-text = "Equipment Assignment"
-
-[node name="EquipmentDetails" type="Label" parent="VBoxContainer/ScrollContainer/PhaseContent/EquipmentSection"]
-layout_mode = 2
-text = "Equipment has been optimized for all crew members."
-
-[node name="RumorsSection" type="VBoxContainer" parent="VBoxContainer/ScrollContainer/PhaseContent"]
+[node name="Step2Button" type="Button" parent="StepIndicator"]
 layout_mode = 2
 
-[node name="RumorsLabel" type="Label" parent="VBoxContainer/ScrollContainer/PhaseContent/RumorsSection"]
-layout_mode = 2
-text = "Rumors"
-
-[node name="RumorsList" type="VBoxContainer" parent="VBoxContainer/ScrollContainer/PhaseContent/RumorsSection"]
+[node name="Step3Button" type="Button" parent="StepIndicator"]
 layout_mode = 2
 
-[node name="BattleSection" type="VBoxContainer" parent="VBoxContainer/ScrollContainer/PhaseContent"]
+[node name="Step4Button" type="Button" parent="StepIndicator"]
 layout_mode = 2
 
-[node name="BattleLabel" type="Label" parent="VBoxContainer/ScrollContainer/PhaseContent/BattleSection"]
-layout_mode = 2
-text = "Battle Selection"
+[node name="MainContent" type="MarginContainer" parent="."]
+layout_mode = 0
+offset_right = 40.0
+offset_bottom = 40.0
 
-[node name="BattleDetails" type="Label" parent="VBoxContainer/ScrollContainer/PhaseContent/BattleSection"]
+[node name="UpkeepPanel" type="VBoxContainer" parent="MainContent"]
 layout_mode = 2
-text = "No available missions. A random encounter will be generated."
 
-[node name="NextPhaseButton" type="Button" parent="VBoxContainer"]
+[node name="CreditsInfo" type="HBoxContainer" parent="MainContent/UpkeepPanel"]
 layout_mode = 2
-text = "Next Phase"
 
-[connection signal="pressed" from="VBoxContainer/NextPhaseButton" to="." method="_on_next_phase_button_pressed"]
+[node name="ShipRepairOptions" type="VBoxContainer" parent="MainContent/UpkeepPanel"]
+layout_mode = 2
+
+[node name="MedicalCareOptions" type="VBoxContainer" parent="MainContent/UpkeepPanel"]
+layout_mode = 2
+
+[node name="CrewTasksPanel" type="VBoxContainer" parent="MainContent"]
+layout_mode = 2
+
+[node name="CrewList" type="ItemList" parent="MainContent/CrewTasksPanel"]
+layout_mode = 2
+
+[node name="TaskAssignment" type="OptionButton" parent="MainContent/CrewTasksPanel"]
+layout_mode = 2
+
+[node name="ResolveTask" type="Button" parent="MainContent/CrewTasksPanel"]
+layout_mode = 2
+
+[node name="JobOffersPanel" type="VBoxContainer" parent="MainContent"]
+layout_mode = 2
+
+[node name="PatronList" type="ItemList" parent="MainContent/JobOffersPanel"]
+layout_mode = 2
+
+[node name="JobDetails" type="RichTextLabel" parent="MainContent/JobOffersPanel"]
+layout_mode = 2
+
+[node name="AcceptJobButton" type="Button" parent="MainContent/JobOffersPanel"]
+layout_mode = 2
+
+[node name="MissionPrepPanel" type="VBoxContainer" parent="MainContent"]
+layout_mode = 2
+
+[node name="EquipmentList" type="ItemList" parent="MainContent/MissionPrepPanel"]
+layout_mode = 2
+
+[node name="CrewEquipment" type="GridContainer" parent="MainContent/MissionPrepPanel"]
+layout_mode = 2
+
+[node name="MissionDetails" type="RichTextLabel" parent="MainContent/MissionPrepPanel"]
+layout_mode = 2
+
+[node name="SidePanel" type="VBoxContainer" parent="."]
+layout_mode = 0
+offset_right = 40.0
+offset_bottom = 40.0
+
+[node name="CrewStatus" type="VBoxContainer" parent="SidePanel"]
+layout_mode = 2
+
+[node name="CrewStatusLabel" type="Label" parent="SidePanel/CrewStatus"]
+layout_mode = 2
+
+[node name="CrewStatusList" type="ItemList" parent="SidePanel/CrewStatus"]
+layout_mode = 2
+
+[node name="ShipStatus" type="VBoxContainer" parent="SidePanel"]
+layout_mode = 2
+
+[node name="ShipStatusLabel" type="Label" parent="SidePanel/ShipStatus"]
+layout_mode = 2
+
+[node name="ShipStatusInfo" type="RichTextLabel" parent="SidePanel/ShipStatus"]
+layout_mode = 2
+
+[node name="EventLog" type="VBoxContainer" parent="."]
+layout_mode = 0
+offset_right = 40.0
+offset_bottom = 40.0
+
+[node name="EventLogLabel" type="Label" parent="EventLog"]
+layout_mode = 2
+
+[node name="ScrollContainer" type="ScrollContainer" parent="EventLog"]
+layout_mode = 2
+
+[node name="EventLogText" type="RichTextLabel" parent="EventLog/ScrollContainer"]
+layout_mode = 2

@@ -1,21 +1,8 @@
-[gd_scene load_steps=8 format=3 uid="uid://daw8uxd1gy463"]
+[gd_scene load_steps=4 format=3 uid="uid://daw8uxd1gy463"]
 
 [ext_resource type="Script" path="res://Scenes/Scene Container/campaigncreation/scripts/CharacterCreationScene.gd" id="1_kxg3m"]
 [ext_resource type="Theme" uid="uid://d1you1rrwuu48" path="res://Scenes/sci_fi_theme.tres" id="1_pjglv"]
 [ext_resource type="Texture2D" uid="uid://jtpbfu6la8oi" path="res://assets/PNG/MainPanel03.png" id="3_background"]
-[ext_resource type="Script" path="res://Scripts/Characters/CharacterCreationData.gd" id="4_ccdata"]
-[ext_resource type="Script" path="res://Resources/CharacterCreationLogic.gd" id="5_cclogic"]
-
-[sub_resource type="Resource" id="Resource_o01ma"]
-script = ExtResource("4_ccdata")
-species = Array[Dictionary]([])
-backgrounds = Array[Dictionary]([])
-motivations = Array[Dictionary]([])
-classes = Array[Dictionary]([])
-skills = Array[Dictionary]([])
-
-[sub_resource type="Resource" id="Resource_hpf0y"]
-script = ExtResource("5_cclogic")
 
 [node name="CharacterCreator" type="Control"]
 layout_mode = 3
@@ -26,8 +13,6 @@ grow_horizontal = 2
 grow_vertical = 2
 theme = ExtResource("1_pjglv")
 script = ExtResource("1_kxg3m")
-character_creation_data_res = SubResource("Resource_o01ma")
-character_creation_logic_res = SubResource("Resource_hpf0y")
 
 [node name="Background" type="TextureRect" parent="."]
 layout_mode = 1
@@ -119,6 +104,10 @@ text = "Background:"
 layout_mode = 2
 size_flags_horizontal = 3
 
+[node name="BackgroundRollResult" type="Label" parent="MarginContainer/HSplitContainer/LeftPanel/ScrollContainer/VBoxContainer/BackgroundSelection"]
+layout_mode = 2
+text = "Roll: "
+
 [node name="MotivationSelection" type="HBoxContainer" parent="MarginContainer/HSplitContainer/LeftPanel/ScrollContainer/VBoxContainer"]
 layout_mode = 2
 
@@ -130,6 +119,10 @@ text = "Motivation:"
 layout_mode = 2
 size_flags_horizontal = 3
 
+[node name="MotivationRollResult" type="Label" parent="MarginContainer/HSplitContainer/LeftPanel/ScrollContainer/VBoxContainer/MotivationSelection"]
+layout_mode = 2
+text = "Roll: "
+
 [node name="ClassSelection" type="HBoxContainer" parent="MarginContainer/HSplitContainer/LeftPanel/ScrollContainer/VBoxContainer"]
 layout_mode = 2
 
@@ -140,6 +133,10 @@ text = "Class:"
 [node name="ClassOptionButton" type="OptionButton" parent="MarginContainer/HSplitContainer/LeftPanel/ScrollContainer/VBoxContainer/ClassSelection"]
 layout_mode = 2
 size_flags_horizontal = 3
+
+[node name="ClassRollResult" type="Label" parent="MarginContainer/HSplitContainer/LeftPanel/ScrollContainer/VBoxContainer/ClassSelection"]
+layout_mode = 2
+text = "Roll: "
 
 [node name="RightPanel" type="VBoxContainer" parent="MarginContainer/HSplitContainer"]
 layout_mode = 2
@@ -195,9 +192,6 @@ text = "Add Character to Crew"
 [node name="FinishCrewCreationButton" type="Button" parent="MarginContainer/ButtonContainer"]
 layout_mode = 2
 text = "Finish Crew Creation"
-
-[node name="CharacterCreationData" type="Node" parent="."]
-script = ExtResource("4_ccdata")
 
 [connection signal="pressed" from="MarginContainer/HSplitContainer/LeftPanel/HeaderContainer/BackButton" to="." method="_on_back_to_crew_management_pressed"]
 [connection signal="pressed" from="MarginContainer/HSplitContainer/LeftPanel/HeaderContainer/RandomCharacterButton" to="." method="_on_random_character_button_pressed"]

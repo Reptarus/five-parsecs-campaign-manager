@@ -7,119 +7,70 @@ extends Resource
 @export var motivations: Array[Dictionary] = []
 @export var classes: Array[Dictionary] = []
 @export var skills: Array[Dictionary] = []
-
-var tutorial_data: Dictionary = {
-	"species": {
-		"id": GlobalEnums.Species.HUMAN,
-		"name": "Human",
-		"effects": {
-			"reactions": 0,
-			"speed": 0,
-			"combat_skill": 0,
-			"toughness": 0,
-			"savvy": 0
-		}
-	},
-	"background": {
-		"id": GlobalEnums.Background.MILITARY_BRAT,
-		"name": "Military Brat",
-		"effects": {
-			"combat_skill": 1,
-			"toughness": 1
-		}
-	},
-	"motivation": {
-		"id": GlobalEnums.Motivation.ADVENTURE,
-		"name": "Adventure",
-		"description": "Seeking thrills and excitement across the galaxy"
-	},
-	"class": {
-		"id": GlobalEnums.Class.SOLDIER,
-		"name": "Soldier",
-		"abilities": ["Combat Training", "Tactical Awareness"]
-	}
-}
+@export var strange_characters: Array[Dictionary] = []
+@export var weapons: Array[Dictionary] = []
+@export var crew_sizes: Array[int] = []
+@export var victory_conditions: Array[Dictionary] = []
+@export var gear: Array[Dictionary] = []
+@export var ship_upgrades: Array[Dictionary] = []
+@export var story_hooks: Array[Dictionary] = []
 
 var _data_cache: Dictionary = {}
+
+func _init():
+	load_data()
 
 func load_data() -> void:
 	if not _data_cache.is_empty():
 		return  # Data already loaded
 	
+	print("Loading character creation data from JSON")
 	var json_data: Dictionary = load_json_file("res://data/character_creation_data.json")
+	print("JSON data loaded. Contents: ", json_data)
+	
 	species = _convert_to_array_dictionary(json_data.get("species", []))
 	backgrounds = _convert_to_array_dictionary(json_data.get("backgrounds", []))
 	motivations = _convert_to_array_dictionary(json_data.get("motivations", []))
 	classes = _convert_to_array_dictionary(json_data.get("classes", []))
 	skills = _convert_to_array_dictionary(json_data.get("skills", []))
+	strange_characters = _convert_to_array_dictionary(json_data.get("strange_characters", []))
+	weapons = _convert_to_array_dictionary(json_data.get("weapons", []))
+	crew_sizes = _convert_to_array_int(json_data.get("crew_sizes", []))
+	victory_conditions = _convert_to_array_dictionary(json_data.get("victory_conditions", []))
+	gear = _convert_to_array_dictionary(json_data.get("gear", []))
+	ship_upgrades = _convert_to_array_dictionary(json_data.get("ship_upgrades", []))
+	story_hooks = _convert_to_array_dictionary(json_data.get("story_hooks", []))
 	
 	_data_cache = json_data  # Cache the loaded data
 
 func load_json_file(path: String) -> Dictionary:
-	if path in _data_cache:
-		return _data_cache[path]
-	
-	var file: FileAccess = FileAccess.open(path, FileAccess.READ)
-	if file == null:
-		push_error("Failed to open file: " + path)
-		return {}
-	
-	var json: JSON = JSON.new()
-	var error: Error = json.parse(file.get_as_text())
-	if error == OK:
-		_data_cache[path] = json.data
-		return json.data
+	if FileAccess.file_exists(path):
+		var file = FileAccess.open(path, FileAccess.READ)
+		var json = JSON.new()
+		var error = json.parse(file.get_as_text())
+		if error == OK:
+			return json.data
+		else:
+			push_error("JSON Parse Error: " + json.get_error_message())
 	else:
-		push_error("JSON Parse Error: " + json.get_error_message())
-		return {}
+		push_error("File not found: " + path)
+	return {}
 
-func get_species_data(species_id: GlobalEnums.Species) -> Dictionary:
-	var filtered_species: Array = species.filter(func(s): return s.id == species_id)
-	if filtered_species.is_empty():
-		push_warning("No species found for id: " + str(species_id))
-		return {}
-	return filtered_species[0]
+func _convert_to_array_dictionary(data: Array) -> Array[Dictionary]:
+	var result: Array[Dictionary] = []
+	for item in data:
+		if item is Dictionary:
+			result.append(item)
+	return result
 
-func get_background_data(background_id: GlobalEnums.Background) -> Dictionary:
-	var filtered_backgrounds: Array = backgrounds.filter(func(b): return b.id == background_id)
-	if filtered_backgrounds.is_empty():
-		push_warning("No background found for id: " + str(background_id))
-		return {}
-	return filtered_backgrounds[0]
+func _convert_to_array_int(data: Array) -> Array[int]:
+	var result: Array[int] = []
+	for item in data:
+		if item is int:
+			result.append(item)
+	return result
 
-func get_motivation_data(motivation_id: GlobalEnums.Motivation) -> Dictionary:
-	var filtered_motivations: Array = motivations.filter(func(m): return m.id == motivation_id)
-	if filtered_motivations.is_empty():
-		push_warning("No motivation found for id: " + str(motivation_id))
-		return {}
-	return filtered_motivations[0]
-
-func get_class_data(class_id: GlobalEnums.Class) -> Dictionary:
-	var filtered_classes: Array = classes.filter(func(c): return c.id == class_id)
-	if filtered_classes.is_empty():
-		push_warning("No class found for id: " + str(class_id))
-		return {}
-	return filtered_classes[0]
-
-func get_skill_data(skill_id: GlobalEnums.SkillType) -> Dictionary:
-	var filtered_skills: Array = skills.filter(func(s): return s.id == skill_id)
-	if filtered_skills.is_empty():
-		push_warning("No skill found for id: " + str(skill_id))
-		return {}
-	return filtered_skills[0]
-
-func get_tutorial_species_data() -> Dictionary:
-	return tutorial_data["species"]
-
-func get_tutorial_background_data() -> Dictionary:
-	return tutorial_data["background"]
-
-func get_tutorial_motivation_data() -> Dictionary:
-	return tutorial_data["motivation"]
-
-func get_tutorial_class_data() -> Dictionary:
-	return tutorial_data["class"]
-
+# Generic get_all functions
 func get_all_species() -> Array[Dictionary]:
 	return species
 
@@ -135,9 +86,85 @@ func get_all_classes() -> Array[Dictionary]:
 func get_all_skills() -> Array[Dictionary]:
 	return skills
 
-func _convert_to_array_dictionary(data: Array) -> Array[Dictionary]:
-	var result: Array[Dictionary] = []
-	for item in data:
-		if item is Dictionary:
-			result.append(item)
-	return result
+func get_all_strange_characters() -> Array[Dictionary]:
+	return strange_characters
+
+func get_all_weapons() -> Array[Dictionary]:
+	return weapons
+
+func get_all_crew_sizes() -> Array[int]:
+	return crew_sizes
+
+func get_all_victory_conditions() -> Array[Dictionary]:
+	return victory_conditions
+
+func get_all_gear() -> Array[Dictionary]:
+	return gear
+
+func get_all_ship_upgrades() -> Array[Dictionary]:
+	return ship_upgrades
+
+func get_all_story_hooks() -> Array[Dictionary]:
+	return story_hooks
+
+# Generic get_data functions
+func get_data_by_id(data_array: Array[Dictionary], id: String) -> Dictionary:
+	var filtered_data: Array = data_array.filter(func(item): return item.id == id)
+	if filtered_data.is_empty():
+		push_warning("No item found for id: " + str(id))
+		return {}
+	return filtered_data[0]
+
+func get_background_data(background_id: String) -> Dictionary:
+	return get_data_by_id(backgrounds, background_id)
+
+func get_motivation_data(motivation_id: String) -> Dictionary:
+	return get_data_by_id(motivations, motivation_id)
+
+func get_class_data(class_id: String) -> Dictionary:
+	return get_data_by_id(classes, class_id)
+
+func get_skill_data(skill_id: String) -> Dictionary:
+	return get_data_by_id(skills, skill_id)
+
+# Generic get_description functions
+func get_description_by_id(data_array: Array[Dictionary], id: String) -> String:
+	var item = get_data_by_id(data_array, id)
+	return item.get("description", "Description not found")
+
+func get_background_description(background_id: String) -> String:
+	return get_description_by_id(backgrounds, background_id)
+
+func get_motivation_description(motivation_id: String) -> String:
+	return get_description_by_id(motivations, motivation_id)
+
+func get_class_description(class_id: String) -> String:
+	return get_description_by_id(classes, class_id)
+
+# New functions for roll effects
+func get_background_roll_effect(background_id: String, roll: int) -> String:
+	var background = get_background_data(background_id)
+	var roll_effects = background.get("roll_effects", {})
+	return roll_effects.get(str(roll), "No effect")
+
+func get_motivation_roll_effect(motivation_id: String, roll: int) -> String:
+	var motivation = get_motivation_data(motivation_id)
+	var roll_effects = motivation.get("roll_effects", {})
+	return roll_effects.get(str(roll), "No effect")
+
+func get_class_roll_effect(class_id: String, roll: int) -> String:
+	var character_class = get_class_data(class_id)
+	var roll_effects = character_class.get("roll_effects", {})
+	return roll_effects.get(str(roll), "No effect")
+
+# Random outcome generation
+func generate_random_outcome(outcomes: Array) -> Dictionary:
+	if outcomes.is_empty():
+		return {}
+	return outcomes[randi() % outcomes.size()]
+
+# Tutorial data (if needed)
+@export var tutorial_data: Dictionary = {}
+
+func get_tutorial_data(category: String) -> Dictionary:
+	return tutorial_data.get(category, {})

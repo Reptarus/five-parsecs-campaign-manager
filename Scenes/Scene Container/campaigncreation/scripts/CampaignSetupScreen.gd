@@ -227,11 +227,13 @@ func _on_lock_crew_size_pressed():
 func _finalize_crew_size(crew_size: int):
 	game_state_manager.game_state.crew_size = crew_size
 	
-	# Generate initial crew members
-	game_state_manager.game_state.crew.clear()
-	for i in range(crew_size):
-		var new_crew_member = generate_crew_member()
-		game_state_manager.game_state.crew.append(new_crew_member)
+	# Comment out the crew generation code
+	# var crew_size = int(crew_size_slider.value)
+	# for i in range(crew_size):
+	# 	var new_crew_member = generate_crew_member()
+	# 	if new_crew_member:
+	# 		game_state_manager.game_state.crew.append(new_crew_member)
+	pass  # We'll implement this later for tutorial crew members
 	
 	# Lock the crew size slider
 	crew_size_slider.editable = false
@@ -285,7 +287,7 @@ func _on_start_campaign_button_pressed():
 		_apply_settings()
 		_show_tutorial_popup()
 		await get_tree().create_timer(0.1).timeout
-		get_tree().change_scene_to_file("res://Scenes/Management/CrewManagement.tscn")
+		get_tree().change_scene_to_file("res://Scenes/Scene Container/InitialCrewCreation.tscn")
 
 func _validate_setup() -> bool:
 	if game_state_manager.game_state.victory_condition.is_empty():

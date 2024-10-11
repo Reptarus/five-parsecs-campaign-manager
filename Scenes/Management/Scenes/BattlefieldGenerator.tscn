@@ -141,6 +141,8 @@ layout_mode = 0
 offset_right = 40.0
 offset_bottom = 40.0
 
+[node name="Node2D" type="Node2D" parent="BattlefieldArea/SubViewport/UnitActions/Attack"]
+
 [node name="Items" type="TextureButton" parent="BattlefieldArea/SubViewport/UnitActions"]
 layout_mode = 0
 offset_right = 8.0

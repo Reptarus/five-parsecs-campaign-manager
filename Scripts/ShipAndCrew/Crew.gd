@@ -1,171 +1,156 @@
-# Crew.gd
+@tool
 class_name Crew
 extends Resource
 
-@export var characters: Array[Character] = []
-@export var credits: int = 0
-@export var ship: Ship
-@export var reputation: int = 0
-@export var current_location: Location
-@export var name: String = ""
+@export_group("Character Creation")
+@export var character_creation_data: CharacterCreationData
+@export var character_creation_logic: CharacterCreationLogic
 
-const MIN_CREW_SIZE: int = 3
+var _characters: Array[CrewMember] = []
+
 const MAX_CREW_SIZE: int = 8
 
-func add_character(character: Character) -> void:
-	if characters.size() < MAX_CREW_SIZE:
-		characters.append(character)
-
-func remove_character(character: Character) -> void:
-	characters.erase(character)
-
-func add_credits(amount: int) -> void:
-	credits += amount
-
-func remove_credits(amount: int) -> bool:
-	if credits >= amount:
-		credits -= amount
-		return true
-	return false
-
-func get_character_count() -> int:
-	return characters.size()
-
-func serialize() -> Dictionary:
-	var serialized_data = {
-		"name": name,
-		"characters": [],
-		"credits": credits,
-		"ship": null,
-		"reputation": reputation,
-		"current_location": null
-	}
+func initialize() -> void:
+	if not character_creation_data:
+		character_creation_data = CharacterCreationData.new()
 	
-	for character in characters:
-		serialized_data["characters"].append(character.serialize())
-	
-	if ship:
-		serialized_data["ship"] = ship.serialize()
-	
-	if current_location:
-		serialized_data["current_location"] = current_location.serialize()
-	
-	return serialized_data
+	print("Loading character creation data")
+	character_creation_data.load_data()
+	print("Character creation data loaded. Species count: ", character_creation_data.get_all_species().size())
 
-static func deserialize(data: Dictionary) -> Crew:
-	var crew = Crew.new()
-	
-	crew.name = data.get("name", "Unnamed Crew")
-	crew.credits = data.get("credits", 0)
-	crew.reputation = data.get("reputation", 0)
-	
-	crew.characters = []
-	for character_data in data.get("characters", []):
-		if character_data is Dictionary:
-			crew.characters.append(Character.deserialize(character_data))
-	
-	var ship_data = data.get("ship")
-	if ship_data is Dictionary:
-		crew.ship = Ship.deserialize(ship_data)
-	
-	var location_data = data.get("current_location")
-	if location_data is Dictionary:
-		crew.current_location = Location.deserialize(location_data)
-	
-	return crew
+func add_character(new_character: CrewMember) -> void:
+	if _characters.size() < MAX_CREW_SIZE:
+		_characters.append(new_character)
+		print("Character added successfully: ", new_character.name)
+	else:
+		print("Maximum crew size reached (%d characters)" % MAX_CREW_SIZE)
 
-func is_valid() -> bool:
-	return characters.size() >= MIN_CREW_SIZE and characters.size() <= MAX_CREW_SIZE
+func remove_character(index: int) -> void:
+	if index >= 0 and index < _characters.size():
+		_characters.remove_at(index)
 
-func get_size() -> int:
-	return characters.size()
-
-func get_character_by_name(character_name: String) -> Character:
-	for character in characters:
-		if character.name == character_name:
-			return character
+func get_character(index: int) -> CrewMember:
+	if index >= 0 and index < _characters.size():
+		return _characters[index]
 	return null
 
-func set_ship(new_ship: Ship) -> void:
-	ship = new_ship
+func get_characters() -> Array[CrewMember]:
+	return _characters
 
-func set_current_location(location: Location) -> void:
-	current_location = location
+func get_crew_size() -> int:
+	return _characters.size()
 
-func get_total_skill_level(skill: GlobalEnums.SkillType) -> int:
-	var total: int = 0
-	for character in characters:
-		total += character.get_skill_level(skill)
-	return total
+func is_full() -> bool:
+	return _characters.size() >= MAX_CREW_SIZE
 
-func get_highest_skill_level(skill: GlobalEnums.SkillType) -> int:
-	var highest: int = 0
-	for character in characters:
-		var skill_level = character.get_skill_level(skill)
-		if skill_level > highest:
-			highest = skill_level
-	return highest
+func serialize() -> Dictionary:
+	return {
+		"characters": _characters.map(func(member): return member.serialize())
+	}
 
-func gain_experience(xp: int) -> void:
-	for character in characters:
-		character.gain_experience(xp)
+func deserialize(data: Dictionary) -> void:
+	_characters = []
+	for member_data in data.get("characters", []):
+		var crew_member = CrewMember.new()
+		crew_member.deserialize(member_data)
+		_characters.append(crew_member)
 
-func apply_casualties() -> void:
-	for character in characters:
-		if randf() < 0.1:  # 10% chance of casualty
-			character.status = GlobalEnums.CharacterStatus.INJURED
-			if randf() < 0.05:  # 5% chance of death among casualties
-				character.status = GlobalEnums.CharacterStatus.DEAD
+func assign_task(character_index: int, task: GlobalEnums.CrewTask) -> void:
+	if character_index >= 0 and character_index < _characters.size():
+		_characters[character_index].assign_task(task)
 
-func add_equipment(item: Equipment) -> void:
-	if ship:
-		ship.add_to_cargo(item)
+func resolve_tasks() -> void:
+	for character in _characters:
+		character.resolve_task()
 
-func remove_equipment(item: Equipment) -> void:
-	if ship:
-		ship.remove_from_cargo(item)
-
-func can_add_member() -> bool:
-	return characters.size() < MAX_CREW_SIZE
-
-func update_reputation(change: int) -> void:
-	reputation += change
-	reputation = clamp(reputation, GlobalEnums.ReputationLevel.UNKNOWN, GlobalEnums.ReputationLevel.LEGENDARY)
-
-func train_character(character: Character, training_type: GlobalEnums.TrainingType, course: int) -> bool:
-	var cost = GlobalEnums.get_training_cost(training_type)
-	if credits >= cost:
-		credits -= cost
-		match training_type:
-			GlobalEnums.TrainingType.BASIC:
-				character.complete_basic_training(course)
-			GlobalEnums.TrainingType.ADVANCED:
-				character.complete_advanced_training(course)
-			GlobalEnums.TrainingType.SPECIALIZED:
-				character.complete_specialized_training(course)
-		return true
+func train_character(character_index: int, training_type: GlobalEnums.TrainingType, course: int) -> bool:
+	if character_index >= 0 and character_index < _characters.size():
+		return _characters[character_index].train(training_type, course)
 	return false
 
-func get_crew_combat_strength() -> int:
-	var strength = 0
-	for character in characters:
-		strength += character.get_combat_strength()
-	return strength
+func heal_characters() -> void:
+	for character in _characters:
+		character.heal()
 
-func get_crew_technical_skill() -> int:
-	var skill = 0
-	for character in characters:
-		skill += character.get_technical_skill()
-	return skill
+func apply_experience() -> void:
+	for character in _characters:
+		character.apply_experience()
 
-func get_crew_social_skill() -> int:
-	var skill = 0
-	for character in characters:
-		skill += character.get_social_skill()
-	return skill
+func check_for_level_ups() -> void:
+	for character in _characters:
+		character.check_for_level_up()
 
-func get_crew_survival_skill() -> int:
-	var skill = 0
-	for character in characters:
-		skill += character.get_survival_skill()
-	return skill
+func equip_item(character_index: int, item: Item) -> bool:
+	if character_index >= 0 and character_index < _characters.size():
+		return _characters[character_index].equip_item(item)
+	return false
+
+func unequip_item(character_index: int, item: Item) -> bool:
+	if character_index >= 0 and character_index < _characters.size():
+		return _characters[character_index].unequip_item(item)
+	return false
+
+func get_total_combat_skill() -> int:
+	var total_skill = 0
+	for character in _characters:
+		total_skill += character.combat_skill
+	return total_skill
+
+func get_total_savvy() -> int:
+	var total_savvy = 0
+	for character in _characters:
+		total_savvy += character.savvy
+	return total_savvy
+
+func get_average_toughness() -> float:
+	if _characters.is_empty():
+		return 0.0
+	var total_toughness = 0
+	for character in _characters:
+		total_toughness += character.toughness
+	return float(total_toughness) / _characters.size()
+
+func get_fastest_speed() -> int:
+	var max_speed = 0
+	for character in _characters:
+		max_speed = max(max_speed, character.speed)
+	return max_speed
+
+func get_active_characters() -> Array[CrewMember]:
+	return _characters.filter(func(character): return character.status == GlobalEnums.CharacterStatus.ACTIVE)
+
+func get_injured_characters() -> Array[CrewMember]:
+	return _characters.filter(func(character): return character.status == GlobalEnums.CharacterStatus.INJURED)
+
+func has_psionic_character() -> bool:
+	for character in _characters:
+		if character.has_psionic_power():
+			return true
+	return false
+
+func get_crew_morale() -> float:
+	if _characters.is_empty():
+		return 0.0
+	var total_morale = 0.0
+	for character in _characters:
+		total_morale += character.get_morale()
+	return total_morale / _characters.size()
+
+func update_crew_status(battle_outcome: GlobalEnums.BattleOutcome) -> void:
+	for character in _characters:
+		character.update_status(battle_outcome)
+
+func get_crew_reputation() -> GlobalEnums.ReputationLevel:
+	var total_reputation = 0
+	for character in _characters:
+		total_reputation += character.get_reputation_value()
+	var average_reputation = total_reputation / _characters.size()
+	
+	if average_reputation >= 90:
+		return GlobalEnums.ReputationLevel.LEGENDARY
+	elif average_reputation >= 70:
+		return GlobalEnums.ReputationLevel.RESPECTED
+	elif average_reputation >= 40:
+		return GlobalEnums.ReputationLevel.NOTORIOUS
+	else:
+		return GlobalEnums.ReputationLevel.UNKNOWN

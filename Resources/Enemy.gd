@@ -55,7 +55,7 @@ func set_weapons(weapon_code: String) -> void:
 		var weapon = Weapon.new(weapon_name)
 		self.weapons.append(weapon)
 
-func get_random_weapon_of_tier(tier: String) -> String:
+func get_random_weapon_of_tier(_tier: String) -> String:
 	# This function should return a random weapon name based on the tier
 	# You'll need to implement this based on your weapon tiers
 	return "Hand gun"  # Placeholder

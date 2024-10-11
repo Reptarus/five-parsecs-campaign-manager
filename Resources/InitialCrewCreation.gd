@@ -1,72 +1,92 @@
-# InitialCrewCreation.gd
+class_name InitialCrewCreation
 extends Control
 
-@onready var crew_size_slider = $HSlider
-@onready var current_size_label = $CurrentSizeLabel
-@onready var tutorial_label = $TutorialLabel
-@onready var confirm_button = $ConfirmButton
+@onready var character_columns := [
+	$HBoxContainer/LeftPanel/VBoxContainer/CharacterColumns/CharacterColumn1,
+	$HBoxContainer/LeftPanel/VBoxContainer/CharacterColumns/CharacterColumn2
+]
+@onready var confirm_button := $HBoxContainer/LeftPanel/VBoxContainer/ConfirmButton
 
 var game_state_manager: GameStateManager
 
-func _ready():
+func _ready() -> void:
 	game_state_manager = get_node("/root/GameStateManager")
 	if not game_state_manager:
 		push_error("GameStateManager not found. Ensure it's properly set up.")
 		return
 	
 	setup_ui()
-	update_tutorial_label()
-
-func setup_ui():
-	crew_size_slider.min_value = 4
-	crew_size_slider.max_value = 6
-	crew_size_slider.value = 5  # Default to 5 for tutorial
-	update_current_size_label()
-
-func update_current_size_label():
-	current_size_label.text = "Current Crew Size: %d" % crew_size_slider.value
-
-func update_tutorial_label():
-	if game_state_manager.game_state.is_tutorial_active:
-		tutorial_label.text = "Tutorial Mode: Create your initial crew of 5 members."
-		tutorial_label.visible = true
-		crew_size_slider.editable = false
-		crew_size_slider.value = 5
-	else:
-		tutorial_label.visible = false
-		crew_size_slider.editable = true
-
-func _on_h_slider_value_changed(_value):
-	update_current_size_label()
-
-func _on_confirm_button_pressed():
-	var crew_size = int(crew_size_slider.value)
-	game_state_manager.game_state.crew_size = crew_size
+	connect_signals()
 	
-	# Generate initial crew members
-	for i in range(crew_size):
-		var new_crew_member = generate_crew_member()
-		game_state_manager.game_state.crew.append(new_crew_member)
+	# Initialize crew if not exists
+	if not game_state_manager.game_state.crew:
+		game_state_manager.game_state.crew = Crew.new()
 	
-	if game_state_manager.game_state.is_tutorial_active:
-		get_tree().change_scene_to_file("res://Scenes/TutorialBattle.tscn")
-	else:
-		get_tree().change_scene_to_file("res://Scenes/Scene Container/campaigncreation/scenes/CampaignSetupScreen.tscn")
+	update_character_panels()
 
-func generate_crew_member():
-	# This is a placeholder function. In a full implementation, you would:
-	# 1. Roll for species (or select based on player choice)
-	# 2. Generate stats based on species
-	# 3. Assign initial equipment
-	# 4. Generate a name
-	# For now, we'll return a simple dictionary
-	return {
-		"name": "Crew Member %d" % (game_state_manager.game_state.crew.size() + 1),
-		"species": "Human",
-		"reactions": 1,
-		"speed": 4,
-		"combat_skill": 0,
-		"toughness": 3,
-		"savvy": 0,
-		"equipment": ["Service Pistol", "Trooper Armor"]
-	}
+func setup_ui() -> void:
+	update_character_panels()
+
+func update_character_panels() -> void:
+	var crew = game_state_manager.game_state.crew
+	for i in range(8):
+		# warning-ignore:integer_division
+		var panel = character_columns[i / 4].get_child(i % 4)
+		if i < crew.get_crew_size():
+			update_panel_with_character(panel, crew.get_character(i))
+		else:
+			reset_panel(panel)
+
+func reset_panel(panel: Panel) -> void:
+	var name_label = panel.get_node_or_null("HBoxContainer/VBoxContainer/Name")
+	var species_label = panel.get_node_or_null("HBoxContainer/VBoxContainer/Species")
+	var class_label = panel.get_node_or_null("HBoxContainer/VBoxContainer/Class")
+	
+	if name_label:
+		name_label.text = "Click to Create"
+	if species_label:
+		species_label.text = ""
+	if class_label:
+		class_label.text = ""
+
+func connect_signals() -> void:
+	for column in character_columns:
+		for panel in column.get_children():
+			if panel is Panel:
+				panel.gui_input.connect(_on_character_panel_input.bind(panel))
+	
+	confirm_button.pressed.connect(_on_confirm_button_pressed)
+
+func _on_character_panel_input(event: InputEvent, panel: Panel) -> void:
+	if event is InputEventMouseButton and event.pressed and event.button_index == MOUSE_BUTTON_LEFT:
+		var character_index = get_character_index(panel)
+		_on_character_panel_pressed(character_index)
+
+func _on_character_panel_pressed(character_index: int) -> void:
+	game_state_manager.temp_data["editing_character_index"] = character_index
+	get_tree().change_scene_to_file("res://Scenes/Scene Container/campaigncreation/CharacterCreator.tscn")
+
+func get_character_index(panel: Panel) -> int:
+	var index := 0
+	for column in character_columns:
+		for child in column.get_children():
+			if child == panel:
+				return index
+			index += 1
+	return -1
+
+func _on_confirm_button_pressed() -> void:
+	var crew = game_state_manager.game_state.crew
+	if crew.get_crew_size() == Crew.MAX_CREW_SIZE:
+		get_tree().change_scene_to_file("res://Scenes/campaign/NewCampaignSetup/ShipCreation.tscn")
+	else:
+		print("Please create all 8 characters before confirming.")
+
+func update_panel_with_character(panel: Panel, character: CrewMember) -> void:
+	panel.get_node("HBoxContainer/VBoxContainer/Name").text = character.name
+	panel.get_node("HBoxContainer/VBoxContainer/Species").text = character.species
+	panel.get_node("HBoxContainer/VBoxContainer/Class").text = character.character_class
+
+# Connect this function to the "back" button in CharacterCreator scene
+func _on_back_from_character_creator() -> void:
+	get_tree().change_scene_to_file("res://Scenes/Scene Container/InitialCrewCreation.tscn")

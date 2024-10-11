@@ -29,8 +29,7 @@ func load_character(file_name: String) -> Character:
         var error = json.parse(file.get_as_text())
         file.close()
         if error == OK:
-            var character = Character.new()
-            character.deserialize(json.data)
+            var character = Character.deserialize(json.data)
             character.initialize_managers(game_state_manager)
             return character
         else:
@@ -61,8 +60,7 @@ func load_crew(file_name: String) -> Array[Character]:
         if error == OK:
             var characters: Array[Character] = []
             for char_data in json.data:
-                var character = Character.new()
-                character.deserialize(char_data)
+                var character = Character.deserialize(char_data)
                 character.initialize_managers(game_state_manager)
                 characters.append(character)
             return characters

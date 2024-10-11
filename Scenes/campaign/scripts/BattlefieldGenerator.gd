@@ -5,17 +5,21 @@ signal battlefield_generated(battlefield_data: Dictionary)
 signal terrain_placed(terrain_type: GlobalEnums.TerrainFeature, position: Vector2)
 signal mission_started
 
-const EnemyTypes = preload("res://Resources/EnemyTypes.gd")
-const CrewScene = preload("res://Scenes/Scene Container/BattlefieldGeneratorCrew.tscn")
-const EnemyScene = preload("res://Scenes/Scene Container/BattlefieldGeneratorEnemy.tscn")
-const Enemy = preload("res://Resources/Enemy.gd")
-const Mission = preload("res://Scripts/Missions/Mission.gd")
+const EnemyTypesResource := preload("res://Resources/EnemyTypes.gd")
+const CrewScene := preload("res://Scenes/Scene Container/BattlefieldGeneratorCrew.tscn")
+const EnemyScene := preload("res://Scenes/Scene Container/BattlefieldGeneratorEnemy.tscn")
+const MissionResource := preload("res://Scripts/Missions/Mission.gd")
+const CombatManagerResource := preload("res://Scripts/Missions/CombatManager.gd")
+const EnemyScript := preload("res://Resources/Enemy.gd")
 
 @export var debug_mode: bool = false
 @export var table_size: GlobalEnums.TerrainSize = GlobalEnums.TerrainSize.MEDIUM
 
 var mission: Mission
 var terrain_generator: TerrainGenerator
+var combat_manager: CombatManager
+var deployment_condition: String = ""
+var notable_sight: String = ""
 
 @onready var game_state_manager: GameStateManager = get_node("/root/GameStateManager")
 @onready var battlefield_terrain: TileMap = %BattlefieldTerrain
@@ -26,15 +30,32 @@ var terrain_generator: TerrainGenerator
 @onready var transition_rect: ColorRect = $TransitionRect
 
 func _ready() -> void:
-	mission = _generate_placeholder_mission()
-	_setup_ui()
 	initialize()
+	_setup_ui()
 	_setup_signals()
 
+func _setup_ui() -> void:
+	table_size_option.clear()
+	for terrain_size in GlobalEnums.TerrainSize.values():
+		table_size_option.add_item(GlobalEnums.TerrainSize.keys()[terrain_size])
+	table_size_option.select(table_size)
+	
+	debug_label.visible = debug_mode
+
 func _setup_signals() -> void:
-	%RegenerateButton.pressed.connect(_on_regenerate_pressed)
-	%StartMissionButton.pressed.connect(_on_start_mission_pressed)
-	table_size_option.item_selected.connect(_on_table_size_option_item_selected)
+	%RegenerateButton.pressed.connect(func(): _on_regenerate_pressed())
+	%StartMissionButton.pressed.connect(func(): _on_start_mission_pressed())
+	table_size_option.item_selected.connect(func(index: int): _on_table_size_option_item_selected(index))
+
+func _on_regenerate_pressed() -> void:
+	_generate_battlefield()
+
+func _on_start_mission_pressed() -> void:
+	mission_started.emit()
+
+func _on_table_size_option_item_selected(index: int) -> void:
+	table_size = GlobalEnums.TerrainSize.values()[index]
+	_generate_battlefield()
 
 func _input(event: InputEvent) -> void:
 	if event.is_action_pressed("toggle_debug"):
@@ -45,6 +66,8 @@ func initialize() -> void:
 	mission = game_state_manager.game_state.current_mission if game_state_manager.game_state.current_mission else _generate_placeholder_mission()
 	terrain_generator = TerrainGenerator.new()
 	_generate_battlefield()
+	combat_manager = CombatManager.new()
+	combat_manager.initialize(mission, game_state_manager.game_state.crew.crew_members, battlefield_terrain)
 
 func _generate_battlefield() -> void:
 	if mission == null:
@@ -53,119 +76,97 @@ func _generate_battlefield() -> void:
 	
 	var battlefield_data := terrain_generator.generate_battlefield(mission, table_size)
 	_generate_battlefield_terrain(battlefield_data)
+	_apply_deployment_condition()
+	_place_notable_sight()
 	battlefield_generated.emit(battlefield_data)
 
 func _generate_battlefield_terrain(battlefield_data: Dictionary) -> void:
 	battlefield_terrain.clear()
-	var terrain_map: Array = battlefield_data.terrain
-	var grid_size = TerrainGenerator.TABLE_SIZES[table_size]
-	
-	for y in range(grid_size.y):
-		for x in range(grid_size.x):
-			var terrain_feature = terrain_map[x][y]
-			battlefield_terrain.set_cell(0, Vector2i(x, y), 0, Vector2i(terrain_feature, 0))
-			
-			if terrain_feature != GlobalEnums.TerrainFeature.FIELD:
-				terrain_placed.emit(terrain_feature, Vector2(x, y))
-	
-	_place_units(battlefield_data)
+	for cell in battlefield_data.cells:
+		battlefield_terrain.set_cell(0, cell.position, 0, Vector2i(cell.tile_index, 0))
+		terrain_placed.emit(cell.terrain_type, cell.position)
 
-func _place_units(battlefield_data: Dictionary) -> void:
+func _apply_deployment_condition() -> void:
+	deployment_condition = terrain_generator.generate_deployment_condition()
+	# Apply the deployment condition logic here
+
+func _place_notable_sight() -> void:
+	notable_sight = terrain_generator.generate_notable_sight()
+	# Place the notable sight on the battlefield here
+
+func _update_debug_info() -> void:
+	if debug_mode:
+		var debug_text = "Mission: %s\nTable Size: %s\nDeployment: %s\nNotable Sight: %s" % [
+			str(mission.objective) if mission else "None",
+			GlobalEnums.TerrainSize.keys()[table_size],
+			deployment_condition,
+			notable_sight
+		]
+		debug_label.text = debug_text
+	debug_label.visible = debug_mode
+
+func _generate_placeholder_mission() -> Mission:
+	var placeholder_mission = Mission.new()
+	placeholder_mission.objective = GlobalEnums.MissionObjective.FIGHT_OFF
+	placeholder_mission.terrain_type = GlobalEnums.TerrainGenerationType.INDUSTRIAL
+	placeholder_mission.mission_type = GlobalEnums.MissionType.FRINGE_WORLD_STRIFE
+	placeholder_mission.difficulty = GlobalEnums.DifficultyMode.NORMAL
+	placeholder_mission.deployment = GlobalEnums.DeploymentType.LINE
+	return placeholder_mission
+
+func place_crew() -> void:
+	for crew_member in game_state_manager.game_state.crew.crew_members:
+		var crew_instance = CrewScene.instantiate()
+		crew_instance.initialize(crew_member)
+		crew_container.add_child(crew_instance)
+		# Set initial position based on deployment condition
+
+func place_enemies() -> void:
+	for enemy_data in mission.enemies:
+		var enemy_instance = EnemyScene.instantiate()
+		var enemy_script = enemy_instance.get_node("EnemyScript")
+		if enemy_script:
+			enemy_script.initialize(enemy_data)
+		else:
+			push_error("EnemyScript node not found in EnemyScene")
+		enemies_container.add_child(enemy_instance)
+		# Set initial position based on mission parameters
+		# enemy_instance.position = _get_enemy_spawn_position(enemy_data)
+
+func _get_enemy_spawn_position(_enemy_data: Dictionary) -> Vector2:
+	# Implement logic to determine spawn position based on mission parameters
+	# This is a placeholder implementation
+	return Vector2(randf_range(0, battlefield_terrain.get_used_rect().size.x),
+				   randf_range(0, battlefield_terrain.get_used_rect().size.y))
+
+func start_mission() -> void:
+	place_crew()
+	place_enemies()
+	
+	# Initialize combat for all enemies
+	for enemy in enemies_container.get_children():
+		var enemy_script = enemy.get_node("EnemyScript")
+		if enemy_script:
+			enemy_script.initialize_combat(combat_manager)
+	
+	combat_manager.start_combat()
+	# Additional mission start logic
+
+func end_mission() -> void:
+	# Clean up battlefield
 	for child in crew_container.get_children():
 		child.queue_free()
 	for child in enemies_container.get_children():
 		child.queue_free()
 	
-	for pos in battlefield_data.player_positions:
-		var crew_instance = CrewScene.instantiate()
-		crew_instance.position = battlefield_terrain.map_to_local(Vector2i(pos.x, pos.y))
-		crew_container.add_child(crew_instance)
-
-	for pos in battlefield_data.enemy_positions:
-		var enemy_instance = EnemyScene.instantiate()
-		enemy_instance.position = battlefield_terrain.map_to_local(Vector2i(pos.x, pos.y))
-		enemies_container.add_child(enemy_instance)
-
-func _generate_placeholder_mission() -> Mission:
-	var placeholder_mission = Mission.new()
-	placeholder_mission.terrain_type = GlobalEnums.TerrainGenerationType.INDUSTRIAL
-	placeholder_mission.required_crew_size = 4
+	# Process mission results
+	var mission_results = combat_manager.get_mission_results()
+	game_state_manager.process_mission_results(mission_results)
 	
-	var enemies: Array[Enemy] = []
-	for i in range(3):
-		var enemy = Enemy.new("Gangers", "Standard")
-		enemies.append(enemy)
-	
-	placeholder_mission.set_enemies(enemies)
-	return placeholder_mission
+	# Transition back to campaign map or relevant scene
+	transition_rect.show()
+	await get_tree().create_timer(1.0).timeout
+	get_tree().change_scene_to_file("res://Scenes/campaign/CampaignMap.tscn")
 
-func _setup_ui() -> void:
-	table_size_option.clear()
-	for size in GlobalEnums.TerrainSize.keys():
-		table_size_option.add_item(size)
-	table_size_option.select(table_size)
-
-func _update_debug_info() -> void:
-	if debug_mode:
-		debug_label.text = "Terrain Count:\n"
-		var terrain_count = {}
-		var grid_size = TerrainGenerator.TABLE_SIZES[table_size]
-		for y in range(grid_size.y):
-			for x in range(grid_size.x):
-				var terrain_feature = battlefield_terrain.get_cell(0, Vector2i(x, y)).id
-				terrain_count[terrain_feature] = terrain_count.get(terrain_feature, 0) + 1
-		for feature in terrain_count:
-			debug_label.text += "%s: %d\n" % [GlobalEnums.TerrainFeature.keys()[feature], terrain_count[feature]]
-	else:
-		debug_label.text = ""
-
-func _on_regenerate_pressed() -> void:
-	_generate_battlefield()
-
-func _on_start_mission_pressed() -> void:
-	game_state_manager.start_battle()
-	_fade_transition("res://Scenes/campaign/Battle.tscn")
-
-func _on_table_size_option_item_selected(index: int) -> void:
-	table_size = GlobalEnums.TerrainSize.values()[index]
-	_generate_battlefield()
-
-func _fade_transition(next_scene: String) -> void:
-	var tween = create_tween()
-	tween.tween_property(transition_rect, "color:a", 1.0, 0.5)
-	await tween.finished
-	get_tree().change_scene_to_file(next_scene)
-	tween = create_tween()
-	tween.tween_property(transition_rect, "color:a", 0.0, 0.5)
-
-# Unit testing methods
-func run_tests() -> void:
-	var test_cases = [
-		func(): return _test_battlefield_generation(),
-		func(): return _test_terrain_distribution(),
-		func(): return _test_player_enemy_positions(),
-	]
-	
-	for test in test_cases:
-		var result = test.call()
-		print("Test result: ", "PASS" if result else "FAIL")
-
-func _test_battlefield_generation() -> bool:
-	var battlefield_data = terrain_generator.generate_battlefield(mission, table_size)
-	return battlefield_data.has("terrain") and battlefield_data.has("player_positions") and battlefield_data.has("enemy_positions")
-
-func _test_terrain_distribution() -> bool:
-	var battlefield_data = terrain_generator.generate_battlefield(mission, table_size)
-	var terrain_count = {}
-	for row in battlefield_data.terrain:
-		for cell in row:
-			terrain_count[cell] = terrain_count.get(cell, 0) + 1
-	
-	for terrain_type in GlobalEnums.TerrainFeature.values():
-		if terrain_count.get(terrain_type, 0) == 0:
-			return false
-	return true
-
-func _test_player_enemy_positions() -> bool:
-	var battlefield_data = terrain_generator.generate_battlefield(mission, table_size)
-	return battlefield_data.player_positions.size() > 0 and battlefield_data.enemy_positions.size() > 0
+func _on_combat_manager_combat_ended() -> void:
+	end_mission()

@@ -13,8 +13,8 @@ var game_state_manager: GameStateManager
 func _init() -> void:
 	story_clock = StoryClock.new()
 
-func initialize(game_state_manager: GameStateManager) -> void:
-	self.game_state_manager = game_state_manager
+func initialize(new_game_state_manager: GameStateManager) -> void:
+	game_state_manager = new_game_state_manager
 	story_clock = StoryClock.new()
 	story_track_manager = StoryTrackManager.new(game_state_manager.game_state)
 	_load_events()

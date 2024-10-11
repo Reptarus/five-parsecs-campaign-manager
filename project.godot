@@ -25,6 +25,10 @@ SaveGame="*res://Scenes/Management/SaveManager.gd"
 window/size/viewport_width=1920
 window/size/viewport_height=1080
 
+[dotnet]
+
+project/assembly_name="Five Parsecs Campaign Manager"
+
 [editor]
 
 version_control/plugin_name="GitPlugin"

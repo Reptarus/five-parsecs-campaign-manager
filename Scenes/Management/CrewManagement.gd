@@ -1,5 +1,5 @@
 # Scenes/Management/CrewManagement.gd
-
+class_name CrewManagement
 extends Control
 
 signal crew_finalized
@@ -10,37 +10,23 @@ signal crew_finalized
 @onready var finalize_crew_button: Button = $FinalizeCrew
 @onready var create_character_button: Button = $CreateCharacterButton
 
-var character_creator_scene = preload("res://Scenes/Scene Container/campaigncreation/CharacterCreator.tscn")
-var character_box_scene = preload("res://Scenes/Scene Container/campaigncreation/scenes/CharacterBox.tscn")
-
-const DEFAULT_CREW_SIZE = 8
-
-@export var current_crew: Crew
+const MAX_CREW_SIZE = 8
 
 func _ready() -> void:
 	print("Starting _ready function in CrewManagement")
-	var game_state_manager = get_node("/root/GameStateManager")
-	print("GameStateManager node: ", game_state_manager)
-	if game_state_manager != null:
-		print("GameStateManager methods: ", game_state_manager.get_method_list())
-	
-	if game_state_manager == null:
+	game_state_manager = get_node("/root/GameStateManager")
+	if not game_state_manager:
 		push_error("GameStateManager not found in the scene tree.")
-		return
-	
-	if not game_state_manager.has_method("get_game_state"):
-		push_error("GameStateManager does not have the get_game_state method.")
 		return
 	
 	var game_state = game_state_manager.get_game_state()
 	if not game_state:
-		push_error("Failed to get GameState from GameStateManager. Initializing with default values.")
-		_initialize_default_game_state()
-		game_state = game_state_manager.get_game_state()  # Get updated game state
+		push_error("Failed to get GameState from GameStateManager.")
+		return
 	
-	if not game_state.current_crew:
-		push_error("Current crew not initialized. Initializing with default values.")
-		game_state.current_crew = Crew.new()
+	if not game_state.crew:
+		push_error("Crew not initialized. Initializing with default values.")
+		game_state.crew = Crew.new()
 	
 	setup_crew_slots()
 	update_crew_display()
@@ -48,94 +34,65 @@ func _ready() -> void:
 func _initialize_default_game_state() -> void:
 	if not game_state_manager.game_state:
 		game_state_manager.game_state = GameState.new()
-	if not game_state_manager.game_state.current_crew:
-		game_state_manager.game_state.current_crew = Crew.new()
+	if not game_state_manager.game_state.crew:
+		game_state_manager.game_state.crew = Crew.new()
 
 func setup_crew_slots() -> void:
-	var crew_size = game_state_manager.game_state.crew_size if game_state_manager.game_state.crew_size > 0 else DEFAULT_CREW_SIZE
-	for i in range(crew_size):
-		var character_box = character_box_scene.instantiate()
-		character_box.pressed.connect(_on_character_box_pressed.bind(i))
-		character_box.edit_character.connect(_on_edit_character_pressed)
-		character_box.remove_character.connect(_on_remove_character_pressed)
-		crew_grid.add_child(character_box)
+	for i in range(MAX_CREW_SIZE):
+		var character_slot = Panel.new()
+		character_slot.connect("gui_input", _on_character_slot_pressed.bind(i))
+		crew_grid.add_child(character_slot)
 
 func update_crew_display() -> void:
-	var current_crew = game_state_manager.game_state.current_crew
-	if not current_crew:
-		push_error("Current crew is null. Cannot update display.")
-		return
-	
+	var crew = game_state_manager.game_state.crew
 	for i in range(crew_grid.get_child_count()):
-		var character_box = crew_grid.get_child(i)
-		if i < current_crew.characters.size():
-			character_box.set_character(current_crew.characters[i])
-			character_box.get_node("MarginContainer/VBoxContainer/EditButton").visible = true
-			character_box.get_node("MarginContainer/VBoxContainer/RemoveButton").visible = true
+		var character_slot = crew_grid.get_child(i)
+		if i < crew.get_crew_size():
+			var character = crew.get_character(i)
+			_update_character_slot(character_slot, character)
 		else:
-			character_box.set_empty()
-			character_box.get_node("MarginContainer/VBoxContainer/EditButton").visible = false
-			character_box.get_node("MarginContainer/VBoxContainer/RemoveButton").visible = false
+			_clear_character_slot(character_slot)
 
-func _on_character_box_pressed(slot_index: int) -> void:
-	var current_crew = game_state_manager.game_state.current_crew
-	if not current_crew:
-		push_error("Current crew is null. Cannot process character box press.")
-		return
-	
-	if slot_index < current_crew.characters.size():
-		_show_character_details(current_crew.characters[slot_index])
-	else:
-		_create_new_character(slot_index)
+func _update_character_slot(slot: Panel, character: CrewMember) -> void:
+	# Update the slot with character information
+	# This is a placeholder - implement actual UI update logic
+	var label = Label.new()
+	label.text = character.name
+	slot.add_child(label)
 
-func _show_character_details(character: Character) -> void:
-	character_display.set_character(character)
-	character_display.show()
+func _clear_character_slot(slot: Panel) -> void:
+	# Clear the slot
+	for child in slot.get_children():
+		child.queue_free()
 
-func _create_new_character(_slot_index: int) -> void:
-	var character_creator = character_creator_scene.instantiate()
-	character_creator.connect("character_created", _on_character_created)
-	add_child(character_creator)
+func _on_character_slot_pressed(event: InputEvent, slot_index: int) -> void:
+	if event is InputEventMouseButton and event.pressed and event.button_index == MOUSE_BUTTON_LEFT:
+		var crew = game_state_manager.game_state.crew
+		if slot_index < crew.get_crew_size():
+			_show_character_details(crew.get_character(slot_index))
+		else:
+			_create_new_character()
 
-func _on_character_created(new_character: Character) -> void:
-	var current_crew = game_state_manager.game_state.current_crew
-	if current_crew.can_add_member():
-		current_crew.add_character(new_character)
+func _show_character_details(character: CrewMember) -> void:
+	# Implement character details display logic
+	print("Showing details for character: ", character.name)
+
+func _create_new_character() -> void:
+	var crew = game_state_manager.game_state.crew
+	if not crew.is_full():
+		var new_character = CrewMember.new()  # Implement character creation logic
+		crew.add_character(new_character)
 		update_crew_display()
 	else:
 		push_error("Cannot add character. Crew is at maximum capacity.")
 
-func _on_edit_character_pressed(character: Character) -> void:
-	var character_creator = character_creator_scene.instantiate()
-	character_creator.set_character(character)
-	character_creator.character_updated.connect(_on_character_updated)
-	add_child(character_creator)
-
-func _on_character_updated(_updated_character: Character) -> void:
-	update_crew_display()
-
-func _on_remove_character_pressed(character: Character) -> void:
-	game_state_manager.game_state.current_crew.remove_member(character)
-	update_crew_display()
-
 func _on_finalize_crew_button_pressed() -> void:
-	if game_state_manager.game_state.current_crew.is_valid():
+	var crew = game_state_manager.game_state.crew
+	if crew.get_crew_size() > 0:
 		game_state_manager.game_state.current_state = GlobalEnums.CampaignPhase.UPKEEP
 		get_tree().change_scene_to_file("res://Scenes/Management/CampaignDashboard.tscn")
 	else:
-		push_warning("Crew is not valid. Ensure you have the minimum required members.")
+		push_warning("Crew is empty. Add at least one crew member before finalizing.")
 
 func _on_create_character_button_pressed() -> void:
-	var game_state = game_state_manager.get_game_state()
-	if game_state is Dictionary and game_state.has("current_crew"):
-		var current_crew = game_state.current_crew
-		if not current_crew:
-			push_error("Current crew is null. Creating a new crew for testing.")
-	else:
-		push_error("Invalid game state or missing current_crew property.")
-	
-	if current_crew.can_add_member():
-		_create_new_character(current_crew.characters.size())
-	else:
-			# Show a message that the crew is full
-			print("Crew is at maximum capacity. Cannot add new character.")
+	_create_new_character()

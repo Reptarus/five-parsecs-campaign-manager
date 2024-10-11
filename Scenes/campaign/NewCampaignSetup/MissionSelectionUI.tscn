@@ -1,7 +1,7 @@
 [gd_scene load_steps=4 format=3 uid="uid://ddmexnm0dog68"]
 
-[ext_resource type="Texture2D" uid="uid://bm6c4rx645ove" path="res://assets/BookImages/Nov_23_Sunset2_.png" id="1_u2h7e"]
 [ext_resource type="Script" path="res://Scripts/Missions/MissionSelection.gd" id="1_ib26y"]
+[ext_resource type="Texture2D" uid="uid://bm6c4rx645ove" path="res://assets/BookImages/Nov_23_Sunset2_.png" id="1_u2h7e"]
 [ext_resource type="Theme" uid="uid://d1you1rrwuu48" path="res://Scenes/sci_fi_theme.tres" id="2_theme"]
 
 [node name="MissionSelectionUI" type="Control"]
@@ -31,8 +31,10 @@ visible = true
 borderless = false
 
 [node name="MarginContainer" type="MarginContainer" parent="PopupPanel"]
-offset_right = 800.0
-offset_bottom = 600.0
+offset_left = 4.0
+offset_top = 4.0
+offset_right = 796.0
+offset_bottom = 596.0
 theme_override_constants/margin_left = 20
 theme_override_constants/margin_top = 20
 theme_override_constants/margin_right = 20

@@ -1,79 +1,62 @@
 class_name GameState
 extends Resource
 
-var current_state: GlobalEnums.CampaignPhase = GlobalEnums.CampaignPhase.MAIN_MENU:
-	get: return current_state
-	set(value): current_state = value
+signal state_changed(new_state: GlobalEnums.CampaignPhase)
+signal credits_changed(new_amount: int)
+signal story_points_changed(new_amount: int)
 
-var current_crew: Crew:
-	get: return current_crew
-	set(value): current_crew = value
+const DEFAULT_CREDITS: int = 0
+const DEFAULT_STORY_POINTS: int = 0
 
-var current_ship: Ship:
-	get: return current_ship
-	set(value): current_ship = value
+var crew: Crew 
 
-var current_location: Location:
-	get: return current_location
-	set(value): current_location = value
+@export var current_state: GlobalEnums.CampaignPhase = GlobalEnums.CampaignPhase.MAIN_MENU:
+	set(value):
+		if current_state != value:
+			current_state = value
+			state_changed.emit(current_state)
 
-var available_locations: Array[Location] = []:
-	get: return available_locations
-	set(value): available_locations = value
+@export var current_ship: Resource  # Changed from Ship to Resource
+@export var current_location: Resource  # Changed from Location to Resource
+@export var available_locations: Array[Resource] = []  # Changed from Array[Location] to Array[Resource]
+@export var current_mission: Resource  # Changed from Mission to Resource
+@export var credits: int = DEFAULT_CREDITS:
+	set(value):
+		if credits != value:
+			credits = value
+			credits_changed.emit(credits)
 
-var current_mission: Mission:
-	get: return current_mission
-	set(value): current_mission = value
+@export var story_points: int = DEFAULT_STORY_POINTS:
+	set(value):
+		if story_points != value:
+			story_points = value
+			story_points_changed.emit(story_points)
 
-var credits: int = 0:
-	get: return credits
-	set(value): credits = value
+@export var campaign_turn: int = 0
+@export var available_missions: Array[Resource] = []  # Changed from Array[Mission] to Array[Resource]
+@export var active_quests: Array[Resource] = []  # Changed from Array[Quest] to Array[Resource]
+@export var patrons: Array[Resource] = []  # Changed from Array[Patron] to Array[Resource]
+@export var rivals: Array[Resource] = []  # Changed from Array[Rival] to Array[Resource]
+@export var character_connections: Array[Dictionary] = []
+@export var difficulty_settings: Resource  # Changed from DifficultySettings to Resource
+@export var victory_condition: Dictionary = {}
 
-var story_points: int = 0:
-	get: return story_points
-	set(value): story_points = value
+@export var reputation: int = 0
+@export var last_mission_results: String = ""
+@export var crew_size: int = 0
+@export var completed_patron_job_this_turn: bool = false
+@export var held_the_field_against_roving_threat: bool = false
+@export var active_rivals: Array[Resource] = []  # Changed from Array[Rival] to Array[Resource]
+@export var is_tutorial_active: bool = false
+@export var trade_actions_blocked: bool = false
+@export var mission_payout_reduction: int = 0
 
-var campaign_turn: int = 0:
-	get: return campaign_turn
-	set(value): campaign_turn = value
-
-var available_missions: Array[Mission] = []:
-	get: return available_missions
-	set(value): available_missions = value
-
-var active_quests: Array[Quest] = []:
-	get: return active_quests
-	set(value): active_quests = value
-
-var patrons: Array[Patron] = []:
-	get: return patrons
-	set(value): patrons = value
-
-var rivals: Array[Rival] = []:
-	get: return rivals
-	set(value): rivals = value
-
-var character_connections: Array = []:
-	get: return character_connections
-	set(value): character_connections = value
-
-var difficulty_settings: DifficultySettings:
-	get: return difficulty_settings
-	set(value): difficulty_settings = value
-
-var victory_condition: Dictionary:
-	get: return victory_condition
-	set(value): victory_condition = value
-
-var reputation: int = 0
-var last_mission_results: String = ""
-var crew_size: int = 0
-var completed_patron_job_this_turn: bool = false
-var held_the_field_against_roving_threat: bool = false
-var active_rivals: Array[Rival] = []
-var is_tutorial_active: bool = false
-var trade_actions_blocked: bool = false
-var mission_payout_reduction: int = 0
+# New properties based on GlobalEnums.gd
+@export var current_game_state: GlobalEnums.GameState = GlobalEnums.GameState.SETUP
+@export var current_battle_phase: GlobalEnums.BattlePhase = GlobalEnums.BattlePhase.REACTION_ROLL
+@export var current_cover_type: GlobalEnums.CoverType = GlobalEnums.CoverType.NONE
+@export var current_global_event: GlobalEnums.GlobalEvent = GlobalEnums.GlobalEvent.MARKET_CRASH
+@export var current_victory_condition: GlobalEnums.VictoryConditionType = GlobalEnums.VictoryConditionType.TURNS
 
 func serialize() -> Dictionary:
 	var serialized_data = {
@@ -89,19 +72,18 @@ func serialize() -> Dictionary:
 		"is_tutorial_active": is_tutorial_active,
 		"trade_actions_blocked": trade_actions_blocked,
 		"mission_payout_reduction": mission_payout_reduction,
+		"current_game_state": current_game_state,
+		"current_battle_phase": current_battle_phase,
+		"current_cover_type": current_cover_type,
+		"current_global_event": current_global_event,
+		"current_victory_condition": current_victory_condition,
 	}
 	
-	# Serialize complex objects
-	if current_crew:
-		serialized_data["current_crew"] = current_crew.serialize()
-	if current_ship:
-		serialized_data["current_ship"] = current_ship.serialize()
-	if current_location:
-		serialized_data["current_location"] = current_location.serialize()
-	if current_mission:
-		serialized_data["current_mission"] = current_mission.serialize()
+	serialized_data["crew"] = crew.serialize() if crew else {} as Dictionary
+	serialized_data["current_ship"] = current_ship.serialize() if current_ship else {} as Dictionary
+	serialized_data["current_location"] = current_location.serialize() if current_location else {} as Dictionary
+	serialized_data["current_mission"] = current_mission.serialize() if current_mission else null
 	
-	# Serialize arrays of complex objects
 	serialized_data["available_locations"] = available_locations.map(func(loc): return loc.serialize())
 	serialized_data["available_missions"] = available_missions.map(func(mission): return mission.serialize())
 	serialized_data["active_quests"] = active_quests.map(func(quest): return quest.serialize())
@@ -109,18 +91,22 @@ func serialize() -> Dictionary:
 	serialized_data["rivals"] = rivals.map(func(rival): return rival.serialize())
 	serialized_data["active_rivals"] = active_rivals.map(func(rival): return rival.serialize())
 	
-	# Serialize other complex types
-	if difficulty_settings:
-		serialized_data["difficulty_settings"] = difficulty_settings.serialize()
+	serialized_data["difficulty_settings"] = difficulty_settings.serialize() if difficulty_settings else null
 	serialized_data["victory_condition"] = victory_condition.duplicate()
 	serialized_data["character_connections"] = character_connections.duplicate()
 	
 	return serialized_data
 
+func check_victory_conditions() -> bool:
+	# TODO: Implement victory condition checks
+	return false
+
 func deserialize(data: Dictionary) -> void:
+	assert(data.has("current_state"), "Deserialized data must contain current_state")
+	
 	current_state = data.get("current_state", GlobalEnums.CampaignPhase.MAIN_MENU)
-	credits = data.get("credits", 0)
-	story_points = data.get("story_points", 0)
+	credits = data.get("credits", DEFAULT_CREDITS)
+	story_points = data.get("story_points", DEFAULT_STORY_POINTS)
 	campaign_turn = data.get("campaign_turn", 0)
 	reputation = data.get("reputation", 0)
 	last_mission_results = data.get("last_mission_results", "")
@@ -130,55 +116,41 @@ func deserialize(data: Dictionary) -> void:
 	is_tutorial_active = data.get("is_tutorial_active", false)
 	trade_actions_blocked = data.get("trade_actions_blocked", false)
 	mission_payout_reduction = data.get("mission_payout_reduction", 0)
+	current_game_state = data.get("current_game_state", GlobalEnums.GameState.SETUP)
+	current_battle_phase = data.get("current_battle_phase", GlobalEnums.BattlePhase.REACTION_ROLL)
+	current_cover_type = data.get("current_cover_type", GlobalEnums.CoverType.NONE)
+	current_global_event = data.get("current_global_event", GlobalEnums.GlobalEvent.MARKET_CRASH)
+	current_victory_condition = data.get("current_victory_condition", GlobalEnums.VictoryConditionType.TURNS)
 	
-	# Deserialize complex objects
-	if "current_crew" in data:
-		current_crew = Crew.deserialize(data["current_crew"])
-	if "current_ship" in data:
-		current_ship = Ship.deserialize(data["current_ship"])
-	if "current_location" in data:
-		current_location = Location.deserialize(data["current_location"])
-	if "current_mission" in data:
-		current_mission = Mission.deserialize(data["current_mission"])
+	crew = _deserialize_resource(data.get("crew"), "Crew") as Crew
+	current_ship = _deserialize_resource(data.get("current_ship"), "Ship") as Ship
+	current_location = _deserialize_resource(data.get("current_location"), "Location") as Location
+	current_mission = _deserialize_resource(data.get("current_mission"), "Mission") as Mission
+	available_locations = _deserialize_array(data.get("available_locations", []), "Location")
+	available_missions = _deserialize_array(data.get("available_missions", []), "Mission")
+	active_quests = _deserialize_array(data.get("active_quests", []), "Quest")
+	patrons = _deserialize_array(data.get("patrons", []), "Patron")
+	rivals = _deserialize_array(data.get("rivals", []), "Rival")
+	active_rivals = _deserialize_array(data.get("active_rivals", []), "Rival")
 	
-	# Deserialize arrays of complex objects
-	available_locations = []
-	for loc_data in data.get("available_locations", []):
-		var loc = Location.deserialize(loc_data)
-		available_locations.append(loc)
+	difficulty_settings = _deserialize_resource(data.get("difficulty_settings"), "DifficultySettings")
 	
-	available_missions = []
-	for mission_data in data.get("available_missions", []):
-		var mission = Mission.deserialize(mission_data)
-		available_missions.append(mission)
-	
-	active_quests = []
-	for quest_data in data.get("active_quests", []):
-		var quest = Quest.deserialize(quest_data)
-		active_quests.append(quest)
-	
-	patrons = []
-	for patron_data in data.get("patrons", []):
-		var patron = Patron.deserialize(patron_data)
-		patrons.append(patron)
-	
-	rivals = []
-	for rival_data in data.get("rivals", []):
-		var rival = Rival.deserialize(rival_data)
-		rivals.append(rival)
-	
-	active_rivals = []
-	for rival_data in data.get("active_rivals", []):
-		var rival = Rival.deserialize(rival_data)
-		active_rivals.append(rival)
-	
-	# Deserialize other complex types
-	if "difficulty_settings" in data:
-		difficulty_settings = DifficultySettings.deserialize(data["difficulty_settings"])
 	victory_condition = data.get("victory_condition", {})
 	character_connections = data.get("character_connections", [])
 
-func check_victory_conditions() -> bool:
-	# Implement victory condition checks here
-	# This is a placeholder implementation
-	return false
+func _deserialize_resource(resource_data: Dictionary, resource_type: String) -> Resource:
+	if resource_data:
+		var ResourceClass = load("res://Resources/" + resource_type + ".gd")
+		var resource = ResourceClass.new()
+		resource.deserialize(resource_data)
+		return resource as Resource
+	return null
+
+func _deserialize_array(array_data: Array, object_type: String) -> Array:
+	var deserialized_array = []
+	var ResourceClass = load("res://Resources/" + object_type + ".gd")
+	for item_data in array_data:
+		var item = ResourceClass.new()
+		item.deserialize(item_data)
+		deserialized_array.append(item)
+	return deserialized_array
