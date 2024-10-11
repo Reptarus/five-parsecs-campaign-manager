@@ -5,7 +5,7 @@ signal combat_started
 signal combat_ended(player_victory: bool)
 signal turn_started(character: Character)
 signal turn_ended(character: Character)
-signal ui_update_needed(current_round: int, phase: GlobalEnums.CampaignPhase, current_character: Character)
+signal ui_update_needed(current_round: int, phase: GlobalEnums.BattlePhase, current_character: Character)
 signal log_action(action: String)
 signal character_moved(character: Character, new_position: Vector2i)
 signal enable_player_controls(character: Character)
@@ -28,8 +28,20 @@ func initialize(p_game_state_manager, p_mission: Mission, p_battlefield: TileMap
 	game_state_manager = p_game_state_manager
 	mission = p_mission
 	battlefield = p_battlefield
-	crew = game_state_manager.current_ship.crew
-	enemies = mission.get_enemies()
+	
+	var current_ship = game_state_manager.get_current_ship()
+	if current_ship and current_ship.crew:
+		crew = current_ship.crew
+	else:
+		push_error("Unable to access crew from current ship")
+		crew = []
+	
+	# Assuming enemies are stored directly in the Mission resource
+	if mission.has("enemies"):
+		enemies = mission.enemies as Array[Character]
+	else:
+		push_error("Mission does not have an 'enemies' property")
+		enemies = []
 
 func _ready() -> void:
 	ai_controller = AIController.new()
@@ -99,6 +111,8 @@ func _get_ai_behavior(ai_type: GlobalEnums.AIType) -> GlobalEnums.AIBehavior:
 			return GlobalEnums.AIBehavior.RAMPAGE
 		GlobalEnums.AIType.BEAST:
 			return GlobalEnums.AIBehavior.BEAST
+		GlobalEnums.AIType.GUARDIAN:
+			return GlobalEnums.AIBehavior.GUARDIAN
 		_:
 			push_error("Invalid AI type")
 			return GlobalEnums.AIBehavior.CAUTIOUS

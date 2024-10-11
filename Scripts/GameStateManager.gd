@@ -39,6 +39,9 @@ var temp_data: Dictionary = {}
 func _ready() -> void:
 	load_settings()
 	game_state = GameState.new()
+	game_state.crew = Crew.new()
+	game_state.crew.initialize()  # Assuming you have an initialize method in Crew
+	game_state.current_mission = Mission.new()  # Make sure current_mission is initialized
 	initialize_managers()
 	initialize_state_machines()
 
@@ -51,10 +54,9 @@ func initialize_managers() -> void:
 	story_track = StoryTrack.new()
 	world_generator = WorldGenerator.new()
 	world_generator.initialize(self)
-	expanded_faction_manager = ExpandedFactionManager.new()
-	expanded_faction_manager.initialize(game_state)
+	expanded_faction_manager = ExpandedFactionManager.new(game_state)
 	combat_manager = CombatManager.new()
-	combat_manager.initialize(game_state.current_mission, game_state.crew.crew_members, game_state.current_mission.tile_map)
+	combat_manager.initialize(self, game_state.current_mission, get_current_battlefield())
 
 func initialize_state_machines() -> void:
 	main_game_state_machine = MainGameStateMachine.new()
@@ -178,3 +180,23 @@ func set_setting(key: String, value) -> void:
 		save_settings()
 	else:
 		push_warning("Attempted to set unknown setting: " + key)
+
+func get_current_battlefield() -> TileMap:
+	# Implement this method to return the current battlefield TileMap
+	# This might involve getting it from the current mission, scene, or elsewhere
+	# For now, we'll return null as a placeholder
+	return null
+
+func get_current_ship():
+	if game_state and game_state.current_ship:
+		return game_state.current_ship
+	push_error("Current ship is not set in game state")
+	return null
+
+func get_crew() -> Array[CrewMember]:
+	var current_ship = get_current_ship()
+	if current_ship and current_ship.crew:
+		return current_ship.crew.get_characters()
+	else:
+		push_warning("No crew available in current ship")
+		return []

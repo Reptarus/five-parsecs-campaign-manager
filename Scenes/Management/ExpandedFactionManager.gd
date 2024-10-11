@@ -2,7 +2,7 @@
 class_name ExpandedFactionManager
 extends Resource
 
-# Use the GlobalEnums.Faction enum instead of defining a new one
+# Use the GlobalEnums.Faction enum
 const FactionType = GlobalEnums.Faction
 
 const MIN_FACTION_STRENGTH: int = 2
@@ -36,7 +36,8 @@ func generate_faction() -> Dictionary:
 		"strength": randi_range(MIN_FACTION_STRENGTH, MAX_FACTION_STRENGTH),
 		"power": randi_range(MIN_FACTION_POWER, MAX_FACTION_POWER),
 		"influence": randi_range(1, 5),
-		"loyalty": {}
+		"loyalty": {},
+		"temporary_defense": false
 	}
 
 func generate_faction_name() -> String:
@@ -59,6 +60,10 @@ func resolve_faction_conflict() -> void:
 	
 	var attacker_roll = randi() % 6 + 1 + attacker["power"]
 	var defender_roll = randi() % 6 + 1 + defender["power"]
+	
+	if defender["temporary_defense"]:
+		defender_roll += 2
+		defender["temporary_defense"] = false
 	
 	if attacker_roll > defender_roll:
 		defender["strength"] = max(1, defender["strength"] - 1)
@@ -153,12 +158,12 @@ func get_faction_job(faction: Dictionary) -> bool:
 		return true
 	return false
 
-func gain_faction_loyalty(faction: Dictionary, character) -> void:
+func gain_faction_loyalty(faction: Dictionary, character: Character) -> void:
 	var current_loyalty = character.get_faction_standing(faction["name"])
 	if randi() % 6 + 1 > current_loyalty:
 		character.set_faction_standing(faction["name"], current_loyalty + 1)
 
-func call_in_faction_favor(faction: Dictionary, character) -> bool:
+func call_in_faction_favor(faction: Dictionary, character: Character) -> bool:
 	var current_loyalty = character.get_faction_standing(faction["name"])
 	var roll = randi() % 6 + 1
 	if roll <= current_loyalty:
@@ -178,3 +183,153 @@ static func deserialize(data: Dictionary) -> ExpandedFactionManager:
 
 static func deserialize_faction(data: Dictionary) -> Dictionary:
 	return data
+
+func get_faction_by_name(faction_name: String) -> Dictionary:
+	for faction in factions:
+		if faction["name"] == faction_name:
+			return faction
+	return {}
+
+func get_faction_by_type(faction_type: FactionType) -> Dictionary:
+	for faction in factions:
+		if faction["type"] == faction_type:
+			return faction
+	return {}
+
+func get_strongest_faction() -> Dictionary:
+	var strongest_faction = factions[0]
+	for faction in factions:
+		if faction["strength"] > strongest_faction["strength"]:
+			strongest_faction = faction
+	return strongest_faction
+
+func get_weakest_faction() -> Dictionary:
+	var weakest_faction = factions[0]
+	for faction in factions:
+		if faction["strength"] < weakest_faction["strength"]:
+			weakest_faction = faction
+	return weakest_faction
+
+func get_most_influential_faction() -> Dictionary:
+	var most_influential_faction = factions[0]
+	for faction in factions:
+		if faction["influence"] > most_influential_faction["influence"]:
+			most_influential_faction = faction
+	return most_influential_faction
+
+func get_least_influential_faction() -> Dictionary:
+	var least_influential_faction = factions[0]
+	for faction in factions:
+		if faction["influence"] < least_influential_faction["influence"]:
+			least_influential_faction = faction
+	return least_influential_faction
+
+func get_faction_power_ranking() -> Array[Dictionary]:
+	var sorted_factions = factions.duplicate()
+	sorted_factions.sort_custom(func(a, b): return a["power"] > b["power"])
+	return sorted_factions
+
+func get_faction_influence_ranking() -> Array[Dictionary]:
+	var sorted_factions = factions.duplicate()
+	sorted_factions.sort_custom(func(a, b): return a["influence"] > b["influence"])
+	return sorted_factions
+
+func get_faction_strength_ranking() -> Array[Dictionary]:
+	var sorted_factions = factions.duplicate()
+	sorted_factions.sort_custom(func(a, b): return a["strength"] > b["strength"])
+	return sorted_factions
+
+func get_total_faction_power() -> int:
+	var total_power = 0
+	for faction in factions:
+		total_power += faction["power"]
+	return total_power
+
+func get_total_faction_influence() -> int:
+	var total_influence = 0
+	for faction in factions:
+		total_influence += faction["influence"]
+	return total_influence
+
+func get_total_faction_strength() -> int:
+	var total_strength = 0
+	for faction in factions:
+		total_strength += faction["strength"]
+	return total_strength
+
+func get_average_faction_power() -> float:
+	return float(get_total_faction_power()) / factions.size()
+
+func get_average_faction_influence() -> float:
+	return float(get_total_faction_influence()) / factions.size()
+
+func get_average_faction_strength() -> float:
+	return float(get_total_faction_strength()) / factions.size()
+
+func remove_faction(faction: Dictionary) -> void:
+	factions.erase(faction)
+
+func add_faction(faction: Dictionary) -> void:
+	factions.append(faction)
+
+func merge_factions(faction1: Dictionary, faction2: Dictionary) -> Dictionary:
+	var merged_faction = generate_faction()
+	merged_faction["name"] = faction1["name"] + "-" + faction2["name"]
+	merged_faction["strength"] = min(MAX_FACTION_STRENGTH, faction1["strength"] + faction2["strength"])
+	merged_faction["power"] = min(MAX_FACTION_POWER, faction1["power"] + faction2["power"])
+	merged_faction["influence"] = min(5, max(faction1["influence"], faction2["influence"]) + 1)
+	remove_faction(faction1)
+	remove_faction(faction2)
+	add_faction(merged_faction)
+	return merged_faction
+
+func split_faction(faction: Dictionary) -> Array[Dictionary]:
+	var faction1 = generate_faction()
+	var faction2 = generate_faction()
+	faction1["strength"] = max(MIN_FACTION_STRENGTH, faction["strength"] / 2)
+	faction2["strength"] = max(MIN_FACTION_STRENGTH, faction["strength"] - faction1["strength"])
+	faction1["power"] = max(MIN_FACTION_POWER, faction["power"] / 2)
+	faction2["power"] = max(MIN_FACTION_POWER, faction["power"] - faction1["power"])
+	faction1["influence"] = max(1, faction["influence"] / 2)
+	faction2["influence"] = max(1, faction["influence"] - faction1["influence"])
+	remove_faction(faction)
+	add_faction(faction1)
+	add_faction(faction2)
+	return [faction1, faction2]
+
+func update_faction_relations_global_event(event: GlobalEnums.GlobalEvent) -> void:
+	match event:
+		GlobalEnums.GlobalEvent.MARKET_CRASH:
+			for faction in factions:
+				faction["influence"] = max(1, faction["influence"] - 1)
+		GlobalEnums.GlobalEvent.ECONOMIC_BOOM:
+			for faction in factions:
+				faction["influence"] = min(5, faction["influence"] + 1)
+		GlobalEnums.GlobalEvent.TRADE_EMBARGO:
+			var affected_faction = factions[randi() % factions.size()]
+			affected_faction["influence"] = max(1, affected_faction["influence"] - 2)
+		GlobalEnums.GlobalEvent.RESOURCE_SHORTAGE:
+			for faction in factions:
+				faction["strength"] = max(MIN_FACTION_STRENGTH, faction["strength"] - 1)
+		GlobalEnums.GlobalEvent.TECHNOLOGICAL_BREAKTHROUGH:
+			var lucky_faction = factions[randi() % factions.size()]
+			lucky_faction["power"] = min(MAX_FACTION_POWER, lucky_faction["power"] + 2)
+		GlobalEnums.GlobalEvent.ALIEN_INVASION:
+			for faction in factions:
+				faction["strength"] = max(MIN_FACTION_STRENGTH, faction["strength"] - 2)
+				faction["influence"] = max(1, faction["influence"] - 1)
+		GlobalEnums.GlobalEvent.CORPORATE_TAKEOVER:
+			if factions.size() >= 2:
+				var acquirer = factions[randi() % factions.size()]
+				var target = factions[randi() % factions.size()]
+				while target == acquirer:
+					target = factions[randi() % factions.size()]
+				merge_factions(acquirer, target)
+		GlobalEnums.GlobalEvent.RESOURCE_CRISIS:
+			for faction in factions:
+				faction["power"] = max(MIN_FACTION_POWER, faction["power"] - 1)
+		GlobalEnums.GlobalEvent.POLITICAL_UPHEAVAL:
+			for faction in factions:
+				faction["influence"] = max(1, min(5, faction["influence"] + randi() % 3 - 1))
+		GlobalEnums.GlobalEvent.NATURAL_DISASTER:
+			var affected_faction = factions[randi() % factions.size()]
