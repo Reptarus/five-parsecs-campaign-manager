@@ -36,14 +36,20 @@ var settings: Dictionary = {
 
 var temp_data: Dictionary = {}
 
+var character_creation_data: CharacterCreationData
+
 func _ready() -> void:
 	load_settings()
 	game_state = GameState.new()
 	game_state.crew = Crew.new()
 	game_state.crew.initialize()  # Assuming you have an initialize method in Crew
-	game_state.current_mission = Mission.new()  # Make sure current_mission is initialized
+	game_state.current_ship = Ship.new()  # Or load an existing ship
+	if not game_state.current_ship:
+		push_error("Failed to initialize current_ship in GameStateManager")
 	initialize_managers()
 	initialize_state_machines()
+	character_creation_data = CharacterCreationData.new()
+	# Load data if necessary
 
 func initialize_managers() -> void:
 	mission_generator = MissionGenerator.new()
@@ -80,7 +86,7 @@ func _set(property: StringName, value) -> bool:
 	return false
 
 func _get_property_list() -> Array:
-	return game_state.get_property_list()
+	return get_game_state_properties()
 
 func get_game_state() -> GlobalEnums.CampaignPhase:
 	return game_state.current_state
@@ -193,10 +199,23 @@ func get_current_ship():
 	push_error("Current ship is not set in game state")
 	return null
 
-func get_crew() -> Array[CrewMember]:
+func get_crew() -> Array[Character]:  # Changed from Array[CrewMember]
 	var current_ship = get_current_ship()
 	if current_ship and current_ship.crew:
-		return current_ship.crew.get_characters()
+		return current_ship.crew  # The crew is already an Array[Character]
 	else:
 		push_warning("No crew available in current ship")
 		return []
+
+func get_game_state_properties() -> Array:
+	if game_state:
+		return game_state.get_property_list()
+	return []
+
+func has_medical_bay_component() -> bool:
+	var current_ship = get_current_ship()
+	if current_ship:
+		for component in current_ship.components:
+			if component is MedicalBayComponent:
+				return true
+	return false

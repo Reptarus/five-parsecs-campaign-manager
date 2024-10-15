@@ -1,14 +1,18 @@
 class_name Character
 extends Resource
 
+# Signals
 signal experience_gained(amount: int)
 signal leveled_up(new_level: int, available_upgrades: Array)
 signal experience_updated(new_xp: int, xp_for_next_level: int)
 signal request_new_trait
 signal request_upgrade_choice(upgrade_options: Array)
 
-var character_advancement: CharacterAdvancement
+# Enums
 
+# Constants
+
+# Exported variables
 @export var name: String
 @export var species: GlobalEnums.Species
 @export var background: GlobalEnums.Background
@@ -16,6 +20,7 @@ var character_advancement: CharacterAdvancement
 @export var character_class: GlobalEnums.Class
 @export var is_strange: bool = false
 @export var strange_type: String = ""
+@export var psionic_power: GlobalEnums.PsionicPower = GlobalEnums.PsionicPower.NONE
 
 @export var reactions: int = 1
 @export var speed: int = 4
@@ -27,32 +32,50 @@ var character_advancement: CharacterAdvancement
 @export var luck: int = 0
 
 @export var inventory: Array[Dictionary] = []
-@export var traits: Array[String] = []
+@export var credits: int = 0
 
-var medbay_turns_left: int = 0
-var injuries: Array[String] = []
+# Public variables
+var character_advancement: CharacterAdvancement
+var ai_controller: AIController
+var ai_enabled: bool = false
+
+var morale: int = 100
 var position: Vector2i
 var weapon: Weapon
 var is_defeated: bool = false
 var is_priority_target: bool = false
 var status: GlobalEnums.CharacterStatus = GlobalEnums.CharacterStatus.ACTIVE
-var ai_controller: AIController
-var ai_enabled: bool = false
+var current_task: GlobalEnums.CrewTask = GlobalEnums.CrewTask.FIND_PATRON
+
+
+var equipped_weapon: Equipment = null
+var equipped_armor: Equipment = null
+var equipped_gear: Equipment = null
+var equipped_consumable: Equipment = null
+
+var injuries: Array[String] = []
+
+var medbay_turns_left: int = 0
+
+# Private variables
+
+# Onready variables
 
 func _init() -> void:
 	character_advancement = CharacterAdvancement.new(self)
 	character_advancement.upgrade_available.connect(_on_upgrade_available)
+	psionic_power = GlobalEnums.PsionicPower.NONE
 
 func initialize(p_species: GlobalEnums.Species, p_background: GlobalEnums.Background, 
 				p_motivation: GlobalEnums.Motivation, p_character_class: GlobalEnums.Class) -> void:
-	self.species = p_species
-	self.background = p_background
-	self.motivation = p_motivation
-	self.character_class = p_character_class
+	species = p_species
+	background = p_background
+	motivation = p_motivation
+	character_class = p_character_class
 	initialize_default_stats()
 	apply_background_effects(background)
 	apply_class_effects(character_class)
-	self.character_advancement = CharacterAdvancement.new(self)
+	character_advancement = CharacterAdvancement.new(self)
 
 func initialize_default_stats() -> void:
 	match species:
@@ -92,8 +115,8 @@ func apply_background_effects(bg: GlobalEnums.Background) -> void:
 	if background_data:
 		for stat in background_data.get("effects", {}):
 			var value = background_data["effects"][stat]
-			if self.get(stat) != null:
-				self.set(stat, self.get(stat) + value)
+			if get(stat) != null:
+				set(stat, get(stat) + value)
 			else:
 				push_warning("Attempted to modify non-existent stat: " + stat)
 
@@ -101,11 +124,12 @@ func apply_class_effects(class_type: GlobalEnums.Class) -> void:
 	var class_data = GameStateManager.character_creation_data.get_class_data(GlobalEnums.Class.keys()[class_type].to_lower())
 	if class_data:
 		for ability in class_data.get("abilities", []):
-			traits.append(ability)
+			# Handle abilities (if needed)
+			pass
 		for stat in class_data.get("effects", {}):
 			var value = class_data["effects"][stat]
-			if self.get(stat) != null:
-				self.set(stat, self.get(stat) + value)
+			if get(stat) != null:
+				set(stat, get(stat) + value)
 			else:
 				push_warning("Attempted to modify non-existent stat: " + str(stat))
 
@@ -181,9 +205,8 @@ func serialize() -> Dictionary:
 		"level": level,
 		"luck": luck,
 		"inventory": inventory,
-		"traits": traits,
-		"medbay_turns_left": medbay_turns_left,
-		"injuries": injuries,
+		"credits": credits,
+		"morale": morale,
 		"status": GlobalEnums.CharacterStatus.keys()[status]
 	}
 
@@ -205,9 +228,8 @@ static func deserialize(data: Dictionary) -> Character:
 	character.level = data.get("level", 1)
 	character.luck = data.get("luck", 0)
 	character.inventory = data.get("inventory", [])
-	character.traits = data.get("traits", [])
-	character.medbay_turns_left = data.get("medbay_turns_left", 0)
-	character.injuries = data.get("injuries", [])
+	character.credits = data.get("credits", 0)
+	character.morale = data.get("morale", 100)
 	character.status = GlobalEnums.CharacterStatus[data.get("status", "ACTIVE")]
 	character.character_advancement = CharacterAdvancement.new(character)
 	return character
@@ -233,17 +255,37 @@ static func generate_name(species_type: GlobalEnums.Species) -> String:
 	return name_part1 + " " + name_part2
 
 static func get_random_name_part(generator_title: String, part: String = "") -> String:
-	var name_tables = load("res://data/RulesReference/NameGenerationTables.json").get("NameGenerationTables").get("content")
+	var file = FileAccess.open("res://data/RulesReference/NameGenerationTables.json", FileAccess.READ)
+	if not file:
+		push_error("Failed to open NameGenerationTables.json")
+		return "Unknown"
+	
+	var json_text = file.get_as_text()
+	file.close()
+	
+	var json = JSON.new()
+	var error = json.parse(json_text)
+	if error != OK:
+		push_error("JSON Parse Error: " + json.get_error_message() + " in " + json_text + " at line " + str(json.get_error_line()))
+		return "Unknown"
+	
+	var data = json.get_data()
+	if typeof(data) != TYPE_DICTIONARY or not data.has("NameGenerationTables") or not data["NameGenerationTables"].has("content"):
+		push_error("Invalid JSON structure in NameGenerationTables.json")
+		return "Unknown"
+	
+	var name_tables = data["NameGenerationTables"]["content"]
 	
 	for table in name_tables:
 		if table.get("title") == generator_title:
 			if part == "":
-				return get_random_name_from_table(table.get("table"))
+				return get_random_name_from_table(table.get("table", []))
 			else:
-				for sub_table in table.get("tables"):
+				for sub_table in table.get("tables", []):
 					if sub_table.get("name") == part:
-						return get_random_name_from_table(sub_table.get("table"))
+						return get_random_name_from_table(sub_table.get("table", []))
 	
+	push_warning("No matching generator found for: " + generator_title + " " + part)
 	return "Unknown"
 
 static func get_random_name_from_table(table: Array) -> String:
@@ -268,7 +310,6 @@ static func create_temporary() -> Character:
 	temp_ally.toughness = 4
 	temp_ally.savvy = 1
 	temp_ally.weapon = Weapon.new("Handgun", GlobalEnums.WeaponType.PISTOL, 6, 1, 1)
-	temp_ally.traits = ["Basic"]
 	temp_ally.luck = 0
 	temp_ally.xp = 0
 	temp_ally.species = GlobalEnums.Species.HUMAN
@@ -288,3 +329,146 @@ func toggle_ai(enable: bool) -> void:
 		ai_controller = null
 	
 	ai_enabled = enable
+
+func equip_item(item: Equipment) -> bool:
+	match item.type:
+		GlobalEnums.ItemType.WEAPON:
+			equipped_weapon = item
+		GlobalEnums.ItemType.ARMOR:
+			equipped_armor = item
+		# Add other types as needed
+		_:
+			return false
+	return true
+
+func unequip_item(item_type: GlobalEnums.ItemType) -> bool:
+	match item_type:
+		GlobalEnums.ItemType.WEAPON:
+			if equipped_weapon:
+				equipped_weapon = null
+				return true
+		GlobalEnums.ItemType.ARMOR:
+			if equipped_armor:
+				equipped_armor = null
+				return true
+		GlobalEnums.ItemType.GEAR:
+			if equipped_gear:
+				equipped_gear = null
+				return true
+		GlobalEnums.ItemType.CONSUMABLE:
+			if equipped_consumable:
+				equipped_consumable = null
+				return true
+	return false
+
+func get_equipped_items() -> Dictionary:
+	return {
+		"weapon": equipped_weapon,
+		"armor": equipped_armor,
+		# Add other equipment slots as needed
+	}
+
+func set_injuries(new_injuries: Array) -> void:
+	var temp_injuries: Array[String] = []
+	for injury in new_injuries:
+		if injury is String:
+			temp_injuries.append(injury)
+		else:
+			push_warning("Ignored non-string injury: " + str(injury))
+	injuries = temp_injuries
+
+func add_random_injury() -> void:
+	var injury_types = ["Bruise", "Cut", "Sprain", "Fracture", "Concussion"]
+	add_injury(injury_types[randi() % injury_types.size()])
+
+func add_injury(injury: String) -> void:
+	if injury not in injuries:
+		injuries.append(injury)
+
+func remove_injury(injury: String) -> void:
+	injuries.erase(injury)
+
+func has_injury(injury: String) -> bool:
+	return injury in injuries
+
+func get_injuries() -> Array[String]:
+	return injuries
+
+func get_status() -> GlobalEnums.CharacterStatus:
+	return status
+
+func update_morale(amount: int) -> void:
+	morale = clamp(morale + amount, 0, 100)
+
+func assign_task(task: GlobalEnums.CrewTask) -> void:
+	if not can_perform_task(task):
+		push_warning("%s cannot perform the task: %s" % [name, GlobalEnums.CrewTask.keys()[task]])
+		return
+
+	current_task = task
+	status = GlobalEnums.CharacterStatus.BUSY
+
+	match task:
+		GlobalEnums.CrewTask.FIND_PATRON:
+			GameStateManager.patron_job_manager.add_search_bonus(savvy)
+		GlobalEnums.CrewTask.TRAIN:
+			# Implement training logic
+			pass
+		GlobalEnums.CrewTask.TRADE:
+			if GameStateManager.current_world.has_trait("Free trade zone"):
+				GameStateManager.trade_manager.add_extra_roll(self)
+		GlobalEnums.CrewTask.RECRUIT:
+			# Implement recruitment logic
+			pass
+		GlobalEnums.CrewTask.EXPLORE:
+			if GameStateManager.current_world.has_trait("Travel restricted"):
+				push_warning("Exploration is restricted on this world.")
+		GlobalEnums.CrewTask.TRACK_RIVAL:
+			# Implement rival tracking logic
+			pass
+		GlobalEnums.CrewTask.REPAIR:
+			if GameStateManager.current_world.has_trait("Technical knowledge"):
+				GameStateManager.repair_manager.add_repair_bonus(1)
+		# DECOY task has been removed as per the updated enum
+
+	emit_signal("task_assigned", self, task)
+	print("%s has been assigned the task: %s" % [name, GlobalEnums.CrewTask.keys()[task]])
+
+func can_perform_task(task: GlobalEnums.CrewTask) -> bool:
+	if GameStateManager.current_world.has_trait("Alien species restricted"):
+		var restricted_species = GameStateManager.current_world.get_restricted_species()
+		if species in restricted_species:
+			return false
+	
+	match task:
+		GlobalEnums.CrewTask.REPAIR:
+			return savvy > 0
+		GlobalEnums.CrewTask.TRADE:
+			return not GameStateManager.current_world.has_trait("Import restrictions")
+		GlobalEnums.CrewTask.RECRUIT:
+			return GameStateManager.current_world.has_trait("Easy recruiting")
+		# Add more task-specific requirements as needed
+	
+	return true
+
+func resolve_task() -> void:
+	match current_task:
+		GlobalEnums.CrewTask.FIND_PATRON:
+			GameStateManager.patron_job_manager.find_patron(self)
+		GlobalEnums.CrewTask.TRAIN:
+			GameStateManager.training_manager.train_character(self)
+		GlobalEnums.CrewTask.TRADE:
+			GameStateManager.trade_manager.perform_trade(self)
+		GlobalEnums.CrewTask.RECRUIT:
+			GameStateManager.recruitment_manager.attempt_recruitment(self)
+		GlobalEnums.CrewTask.EXPLORE:
+			GameStateManager.exploration_manager.explore(self)
+		GlobalEnums.CrewTask.TRACK_RIVAL:
+			GameStateManager.rival_manager.track_rival(self)
+		GlobalEnums.CrewTask.REPAIR:
+			GameStateManager.repair_manager.perform_repair(self)
+		GlobalEnums.CrewTask.NONE:
+			print("%s had no task to resolve." % name)
+	
+	status = GlobalEnums.CharacterStatus.ACTIVE
+	current_task = GlobalEnums.CrewTask.NONE

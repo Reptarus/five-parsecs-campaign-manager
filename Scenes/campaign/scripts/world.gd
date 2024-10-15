@@ -15,6 +15,7 @@ signal economy_updated
 const BASE_UPKEEP_COST: int = 10
 const ADDITIONAL_CREW_COST: int = 2
 const LOCAL_EVENT_CHANCE: float = 0.2
+const WorldStep = preload("res://Scenes/campaign/scripts/WorldStep.gd")
 
 # Variables
 var game_state_manager: GameStateManager
@@ -27,7 +28,7 @@ var _mission_selection_scene = preload("res://Scenes/campaign/NewCampaignSetup/M
 # Initialization and Setup
 func _init(_game_state_manager: GameStateManager) -> void:
 	game_state_manager = _game_state_manager
-	world_step = WorldStep.new(game_state_manager.game_state)
+	world_step = WorldStep.new()
 	world_economy_manager = WorldEconomyManager.new(game_state_manager.current_location, game_state_manager.economy_manager)
 	world_generator = WorldGenerator.new()
 	world_generator.initialize(game_state_manager)

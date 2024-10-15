@@ -36,12 +36,19 @@ func initialize(p_game_state_manager, p_mission: Mission, p_battlefield: TileMap
 		push_error("Unable to access crew from current ship")
 		crew = []
 	
-	# Assuming enemies are stored directly in the Mission resource
-	if mission.has("enemies"):
-		enemies = mission.enemies as Array[Character]
+	# Accessing enemies from the Mission resource and converting them to Characters
+	if mission != null:
+		if mission.enemies:
+			for enemy in mission.enemies:
+				if enemy is Character:
+					enemies.append(enemy)
+				else:
+					push_warning("Enemy in mission is not a Character type. Skipping.")
+		else:
+			push_warning("Mission does not have enemies")
 	else:
-		push_error("Mission does not have an 'enemies' property")
-		enemies = []
+		push_error("Mission is null")
+		# Optionally, you might want to return or handle this case differently
 
 func _ready() -> void:
 	ai_controller = AIController.new()

@@ -1,7 +1,7 @@
 [gd_scene load_steps=4 format=3 uid="uid://b8cqdvcppb5lt"]
 
 [ext_resource type="Script" path="res://Scenes/campaign/scripts/WorldStep.gd" id="1_script"]
-[ext_resource type="Theme" uid="uid://d1you1rrwuu48" path="res://Scenes/sci_fi_theme.tres" id="2_theme"]
+[ext_resource type="Theme" uid="uid://d1you1rrwuu48" path="res://ui/tabletlayout.tres" id="2_theme"]
 [ext_resource type="Texture2D" uid="uid://2tpugbxqjgmh" path="res://assets/BookImages/Nov_15_Party_Time.jpg" id="3_5d3tj"]
 
 [node name="WorldPhaseUI" type="Control"]
@@ -177,6 +177,11 @@ text = "Crew Status"
 [node name="CrewStatusList" type="ItemList" parent="MarginContainer/VBoxContainer/HSplitContainer/SidePanel/CrewStatus"]
 layout_mode = 2
 size_flags_vertical = 3
+select_mode = 1
+max_text_lines = 6
+auto_height = true
+max_columns = 2
+same_column_width = true
 
 [node name="ShipStatus" type="VBoxContainer" parent="MarginContainer/VBoxContainer/HSplitContainer/SidePanel"]
 layout_mode = 2
@@ -207,3 +212,15 @@ size_flags_vertical = 3
 layout_mode = 2
 size_flags_horizontal = 3
 size_flags_vertical = 3
+
+[connection signal="pressed" from="MarginContainer/VBoxContainer/TopBar/BackButton" to="." method="on_back_pressed"]
+[connection signal="pressed" from="MarginContainer/VBoxContainer/TopBar/OptionsButton" to="." method="on_options_pressed"]
+[connection signal="pressed" from="MarginContainer/VBoxContainer/TopBar/NextButton" to="." method="on_next_pressed"]
+[connection signal="pressed" from="MarginContainer/VBoxContainer/StepIndicator/Step1Button" to="." method="on_step_button_pressed" binds= [0]]
+[connection signal="pressed" from="MarginContainer/VBoxContainer/StepIndicator/Step2Button" to="." method="on_step_button_pressed" binds= [1]]
+[connection signal="pressed" from="MarginContainer/VBoxContainer/StepIndicator/Step3Button" to="." method="on_step_button_pressed" binds= [2]]
+[connection signal="pressed" from="MarginContainer/VBoxContainer/StepIndicator/Step4Button" to="." method="on_step_button_pressed" binds= [3]]
+[connection signal="item_selected" from="MarginContainer/VBoxContainer/HSplitContainer/MainContent/CrewTasksPanel/CrewList" to="." method="on_crew_selected"]
+[connection signal="pressed" from="MarginContainer/VBoxContainer/HSplitContainer/MainContent/CrewTasksPanel/ResolveTask" to="." method="resolve_crew_tasks"]
+[connection signal="item_selected" from="MarginContainer/VBoxContainer/HSplitContainer/MainContent/JobOffersPanel/PatronList" to="." method="on_patron_selected"]
+[connection signal="pressed" from="MarginContainer/VBoxContainer/HSplitContainer/MainContent/JobOffersPanel/AcceptJobButton" to="." method="accept_job"]

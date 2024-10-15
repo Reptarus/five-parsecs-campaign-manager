@@ -226,7 +226,7 @@ func _handle_mission_failure(mission: Mission) -> void:
     mission.fail()
     match mission.type:
         GlobalEnums.Type.STREET_FIGHT:
-            game_state.game_state.current_ship.crew[0].add_injury()  # Assuming the first crew member gets injured
+            game_state.current_ship.crew[0].add_random_injury()  # Assuming the first crew member gets injured
         GlobalEnums.Type.FRINGE_WORLD_STRIFE:
             game_state.fringe_world_strife_manager.increase_instability(mission.location)
 

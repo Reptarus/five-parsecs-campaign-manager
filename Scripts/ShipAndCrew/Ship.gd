@@ -10,20 +10,26 @@ signal crew_changed(crew: Array[Character])
 signal ship_traveled(from: Location, to: Location)
 signal travel_event_occurred(event: Dictionary)
 
-@export var name: String
+@export var name: String = ""
 @export var max_hull: int
 @export var current_hull: int
-@export var fuel: int
+@export var fuel: int = 100
 @export var debt: int
 @export var components: Array[ShipComponent] = []
 @export var traits: Array[String] = []
+@export var hull_integrity: int = 100  # Add this line
+@export var cargo_capacity: int = 100
+@export var current_cargo: int = 0
 
 var inventory: ShipInventory
 var crew: Array[Character] = []
 var current_location: Location
+var hull_component: HullComponent
 
 func _init() -> void:
 	inventory = ShipInventory.new()
+	hull_component = HullComponent.new("Basic Hull", "Standard ship hull", 0, 100, 10, 5)
+	components.append(hull_component)
 
 func add_component(component: ShipComponent) -> void:
 	components.append(component)
@@ -126,16 +132,23 @@ func sort_ship_stash(sort_type: String) -> void:
 	inventory.sort_items(sort_type)
 
 func get_engine() -> EngineComponent:
-	return get_component_by_type(GlobalEnums.ComponentType.ENGINE) as EngineComponent
+	return components.filter(func(c): return c is EngineComponent).front()
 
 func get_weapons() -> Array[WeaponsComponent]:
 	return components.filter(func(c): return c is WeaponsComponent)
 
 func get_medical_bay() -> MedicalBayComponent:
-	return get_component_by_type(GlobalEnums.ComponentType.MEDICAL_BAY) as MedicalBayComponent
+	return components.filter(func(c): return c is MedicalBayComponent).front()
 
 func get_hull_components() -> Array[HullComponent]:
 	return components.filter(func(c): return c is HullComponent)
+
+func get_hull_integrity() -> int:
+	return hull_component.health if hull_component else 0
+
+func set_hull_integrity(value: int) -> void:
+	if hull_component:
+		hull_component.health = clamp(value, 0, hull_component.max_health)
 
 func serialize() -> Dictionary:
 	var data = {
@@ -148,7 +161,8 @@ func serialize() -> Dictionary:
 		"traits": traits,
 		"inventory": inventory.serialize(),
 		"crew": crew.map(func(c): return c.serialize()),
-		"current_location": current_location.serialize() if current_location else {}
+		"current_location": current_location.serialize() if current_location else {},
+		"hull_component": hull_component.serialize() if hull_component else {}
 	}
 	return data
 
@@ -176,4 +190,45 @@ static func deserialize(data: Dictionary) -> Ship:
 	ship.inventory = ShipInventory.deserialize(data["inventory"])
 	ship.crew = data["crew"].map(func(c): return Character.deserialize(c))
 	ship.current_location = Location.deserialize(data["current_location"]) if data["current_location"] else null
+	ship.hull_component = HullComponent.deserialize(data["hull_component"]) if data["hull_component"] else null
 	return ship
+
+# Debug and Testing Section
+func generate_test_ship() -> void:
+	name = "Test Ship"
+	max_hull = 100
+	current_hull = 100
+	fuel = 50
+	debt = 1000
+	
+	# Generate basic components
+	components.clear()
+	var engine = EngineComponent.new("Basic Engine", "ENGINE", 1, 0)
+	add_component(engine)
+	
+	var weapons = WeaponsComponent.new("Basic Laser", "WEAPONS", 1, 0)
+	add_component(weapons)
+	
+	var hull = HullComponent.new("Standard Hull", "HULL", 1, 0)
+	add_component(hull)
+	
+	var medical = MedicalBayComponent.new("Basic Med Bay", "MEDICAL_BAY", 1, 0)
+	add_component(medical)
+	
+	# Add some test inventory items
+	for i in range(3):
+		var test_item = Gear.new()
+		test_item.name = "Test Item %d" % (i + 1)
+		add_to_ship_stash(test_item)
+	
+	print("Test ship generated with %d components and %d inventory items" % [components.size(), inventory.get_items().size()])
+
+func is_test_ship() -> bool:
+	return name == "Test Ship" and components.size() == 4
+
+# Call this function to set up a test ship for debugging
+func setup_test_environment() -> void:
+	if components.is_empty() or is_test_ship():
+		generate_test_ship()
+	else:
+		print("Warning: Real ship data exists. Not generating test ship.")
