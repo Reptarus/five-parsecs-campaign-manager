@@ -3,13 +3,41 @@ extends Node
 
 signal world_step_completed
 
+<<<<<<< HEAD
 var game_state: GameState
+=======
+# Constants
+const BASE_UPKEEP_COST: int = 10
+const ADDITIONAL_CREW_COST: int = 2
+const LOCAL_EVENT_CHANCE: float = 0.2
+
+# Variables
+var game_state_manager: GameStateManager
+>>>>>>> parent of 1efa334 (worldphase functionality)
 var world_step: WorldStep
 
 func _init(_game_state: GameState) -> void:
 	game_state = _game_state
 	world_step = WorldStep.new(game_state)
 
+<<<<<<< HEAD
+=======
+# Initialization and Setup
+func _init(_game_state_manager: GameStateManager) -> void:
+	game_state_manager = _game_state_manager
+	world_step = WorldStep.new(game_state_manager.game_state)
+	world_economy_manager = WorldEconomyManager.new(game_state_manager.current_location, game_state_manager.economy_manager)
+	world_generator = WorldGenerator.new()
+	world_generator.initialize(game_state_manager)
+
+func _ready() -> void:
+	world_step.phase_completed.connect(_on_phase_completed)
+	world_step.mission_selection_requested.connect(_on_mission_selection_requested)
+	world_economy_manager.local_event_triggered.connect(_on_local_event_triggered)
+	world_economy_manager.economy_updated.connect(_on_economy_updated)
+
+# Public Methods
+>>>>>>> parent of 1efa334 (worldphase functionality)
 func execute_world_step() -> void:
 	print("Beginning world step...")
 	

@@ -3,15 +3,15 @@
 importer="texture"
 type="CompressedTexture2D"
 uid="uid://ibnkdf735hw3"
-path="res://.godot/imported/20.png-4e09461a0fad2dffb344836eb8ac082e.ctex"
+path="res://.godot/imported/20.png-3014eeb78e5e29ca2f25609fd4b0ddd9.ctex"
 metadata={
 "vram_texture": false
 }
 
 [deps]
 
-source_file="res://Assets/1. Free Hologram Interface Wenrexa/Icons/20.png"
-dest_files=["res://.godot/imported/20.png-4e09461a0fad2dffb344836eb8ac082e.ctex"]
+source_file="res://assets/1. Free Hologram Interface Wenrexa/Icons/20.png"
+dest_files=["res://.godot/imported/20.png-3014eeb78e5e29ca2f25609fd4b0ddd9.ctex"]
 
 [params]
 

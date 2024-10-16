@@ -10,11 +10,19 @@ func _init(_game_state: GameState):
 	mission_generator = MissionGenerator.new(game_state)
 
 func generate_patron_jobs() -> void:
+<<<<<<< HEAD
 	for patron in game_state.patrons:
+=======
+	for patron in game_state_manager.patrons:
+>>>>>>> parent of 1efa334 (worldphase functionality)
 		if should_generate_job(patron):
 			var new_job: Mission = mission_generator.generate_mission(MissionGenerator.MissionType.PATRON, patron)
 			patron.add_mission(new_job)
+<<<<<<< HEAD
 			game_state.add_available_mission(new_job)
+=======
+			game_state_manager.add_available_mission(new_job)
+>>>>>>> parent of 1efa334 (worldphase functionality)
 
 func should_generate_job(patron: Patron) -> bool:
 	var chance: float = 0.2 + (patron.relationship / 200.0)

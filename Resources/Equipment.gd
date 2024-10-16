@@ -8,7 +8,11 @@ enum Type { WEAPON, ARMOR, GEAR, SHIP_COMPONENT }
 @export var value: int
 @export var is_damaged: bool = false
 
+<<<<<<< HEAD
 func _init(_name: String = "", _type: Type = Type.GEAR, _value: int = 0) -> void:
+=======
+func _init(_name: String = "", _type: GlobalEnums.ItemType = GlobalEnums.ItemType.GEAR, _value: int = 0, _description: String = "", _is_damaged: bool = false) -> void:
+>>>>>>> parent of 1efa334 (worldphase functionality)
 	name = _name
 	type = _type
 	value = _value
@@ -25,9 +29,18 @@ func get_effectiveness() -> int:
 func serialize() -> Dictionary:
 	return {
 		"name": name,
+<<<<<<< HEAD
 		"type": type,
 		"value": value,
 		"is_damaged": is_damaged,
+=======
+		"type": GlobalEnums.ItemType.keys()[type],
+		"value": value,
+		"description": description,
+		"is_damaged": is_damaged,
+		"stats": stats,
+		"traits": traits
+>>>>>>> parent of 1efa334 (worldphase functionality)
 	}
 
 static func deserialize(data: Dictionary) -> Equipment:

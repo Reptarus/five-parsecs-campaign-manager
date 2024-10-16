@@ -3,15 +3,15 @@
 importer="texture"
 type="CompressedTexture2D"
 uid="uid://rbmdix4hwemi"
-path="res://.godot/imported/Panel Red.png-6d5891d311088e5557bff92fae9c24ee.ctex"
+path="res://.godot/imported/Panel Red.png-e820c89f07b1db9e2f19513e5cb1c48d.ctex"
 metadata={
 "vram_texture": false
 }
 
 [deps]
 
-source_file="res://Assets/1. Free Hologram Interface Wenrexa/Card X1/Panel Red.png"
-dest_files=["res://.godot/imported/Panel Red.png-6d5891d311088e5557bff92fae9c24ee.ctex"]
+source_file="res://assets/1. Free Hologram Interface Wenrexa/Card X1/Panel Red.png"
+dest_files=["res://.godot/imported/Panel Red.png-e820c89f07b1db9e2f19513e5cb1c48d.ctex"]
 
 [params]
 

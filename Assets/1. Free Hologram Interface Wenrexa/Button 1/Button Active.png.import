@@ -3,15 +3,15 @@
 importer="texture"
 type="CompressedTexture2D"
 uid="uid://b1x7348c7hgjb"
-path="res://.godot/imported/Button Active.png-6edb7732fcf24762da4d2b45c277a42f.ctex"
+path="res://.godot/imported/Button Active.png-7df95376da9935873efbfb4f489a044d.ctex"
 metadata={
 "vram_texture": false
 }
 
 [deps]
 
-source_file="res://Assets/1. Free Hologram Interface Wenrexa/Button 1/Button Active.png"
-dest_files=["res://.godot/imported/Button Active.png-6edb7732fcf24762da4d2b45c277a42f.ctex"]
+source_file="res://assets/1. Free Hologram Interface Wenrexa/Button 1/Button Active.png"
+dest_files=["res://.godot/imported/Button Active.png-7df95376da9935873efbfb4f489a044d.ctex"]
 
 [params]
 

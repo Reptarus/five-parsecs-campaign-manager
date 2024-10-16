@@ -3,15 +3,15 @@
 importer="texture"
 type="CompressedTexture2D"
 uid="uid://dnit4gdxytqq5"
-path="res://.godot/imported/Panel Empty Green.png-91ac9a6750fe1183c5bcd40c44f05181.ctex"
+path="res://.godot/imported/Panel Empty Green.png-1d308d4faf65dec7cb5ddd134c850884.ctex"
 metadata={
 "vram_texture": false
 }
 
 [deps]
 
-source_file="res://Assets/Basic assets/Card X1/Panel Empty Green.png"
-dest_files=["res://.godot/imported/Panel Empty Green.png-91ac9a6750fe1183c5bcd40c44f05181.ctex"]
+source_file="res://assets/Basic assets/Card X1/Panel Empty Green.png"
+dest_files=["res://.godot/imported/Panel Empty Green.png-1d308d4faf65dec7cb5ddd134c850884.ctex"]
 
 [params]
 

@@ -12,8 +12,29 @@ var turn_order: Array[Character] = []
 var current_turn_index: int = 0
 var ai_controller: AIController
 
+<<<<<<< HEAD
 const GRID_SIZE: Vector2i = Vector2i(24, 24)  # 24" x 24" battlefield
 var battlefield: Array[Array] = []
+=======
+func initialize(p_game_state_manager, p_mission: Mission, p_battlefield: TileMap) -> void:
+	game_state_manager = p_game_state_manager
+	mission = p_mission
+	battlefield = p_battlefield
+	
+	var current_ship = game_state_manager.get_current_ship()
+	if current_ship and current_ship.crew:
+		crew = current_ship.crew
+	else:
+		push_error("Unable to access crew from current ship")
+		crew = []
+	
+	# Assuming enemies are stored directly in the Mission resource
+	if mission.has("enemies"):
+		enemies = mission.enemies as Array[Character]
+	else:
+		push_error("Mission does not have an 'enemies' property")
+		enemies = []
+>>>>>>> parent of 1efa334 (worldphase functionality)
 
 enum CoverType { NONE, PARTIAL, FULL }
 enum BattlePhase { REACTION_ROLL, QUICK_ACTIONS, ENEMY_ACTIONS, SLOW_ACTIONS, END_PHASE }

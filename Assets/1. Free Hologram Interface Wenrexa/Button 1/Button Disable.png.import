@@ -3,15 +3,15 @@
 importer="texture"
 type="CompressedTexture2D"
 uid="uid://c8ryowark724x"
-path="res://.godot/imported/Button Disable.png-01479401b2a08f0c12ecce0d78a62c45.ctex"
+path="res://.godot/imported/Button Disable.png-ea2078b5e2195b3f7bbaddf8b5400110.ctex"
 metadata={
 "vram_texture": false
 }
 
 [deps]
 
-source_file="res://Assets/1. Free Hologram Interface Wenrexa/Button 1/Button Disable.png"
-dest_files=["res://.godot/imported/Button Disable.png-01479401b2a08f0c12ecce0d78a62c45.ctex"]
+source_file="res://assets/1. Free Hologram Interface Wenrexa/Button 1/Button Disable.png"
+dest_files=["res://.godot/imported/Button Disable.png-ea2078b5e2195b3f7bbaddf8b5400110.ctex"]
 
 [params]
 

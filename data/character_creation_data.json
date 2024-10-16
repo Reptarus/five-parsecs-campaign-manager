@@ -1,0 +1,719 @@
+{
+  "species": [
+    {
+      "id": "human",
+      "name": "Human",
+      "description": "Baseline Humans are plain, ordinary people. Distributed across thousands of worlds, cultures, and environments.",
+      "base_stats": {
+        "reactions": 1,
+        "speed": 4,
+        "combat_skill": 0,
+        "toughness": 3,
+        "savvy": 0
+      },
+      "special_abilities": ["can_exceed_1_luck"]
+    },
+    {
+      "id": "engineer",
+      "name": "Engineer",
+      "description": "Cybernetically enhanced humans with an innate understanding of technology.",
+      "base_stats": {
+        "reactions": 1,
+        "speed": 4,
+        "combat_skill": 0,
+        "toughness": 2,
+        "savvy": 1
+      },
+      "special_abilities": ["repair_bonus"],
+      "max_toughness": 4
+    },
+    {
+      "id": "kerin",
+      "name": "K'Erin",
+      "description": "Hulking aliens with a natural affinity for close combat.",
+      "base_stats": {
+        "reactions": 1,
+        "speed": 4,
+        "combat_skill": 0,
+        "toughness": 4,
+        "savvy": 0
+      },
+      "special_abilities": ["brawling_advantage", "must_engage_brawl"]
+    },
+    {
+      "id": "soulless",
+      "name": "Soulless",
+      "description": "Mysterious beings with enhanced physical and mental capabilities.",
+      "base_stats": {
+        "reactions": 1,
+        "speed": 4,
+        "combat_skill": 0,
+        "toughness": 4,
+        "savvy": 1
+      },
+      "special_abilities": ["armor_save_6", "bot_injury_table", "no_consumables", "no_implants"]
+    },
+    {
+      "id": "precursor",
+      "name": "Precursor",
+      "description": "Ancient race with advanced technology and mysterious abilities.",
+      "base_stats": {
+        "reactions": 1,
+        "speed": 5,
+        "combat_skill": 0,
+        "toughness": 3,
+        "savvy": 0
+      },
+      "special_abilities": ["extra_character_event"]
+    },
+    {
+      "id": "feral",
+      "name": "Feral",
+      "description": "Wild and unpredictable beings with heightened instincts.",
+      "base_stats": {
+        "reactions": 1,
+        "speed": 4,
+        "combat_skill": 0,
+        "toughness": 3,
+        "savvy": 0
+      },
+      "special_abilities": ["ignore_initiative_penalties", "priority_reaction"]
+    },
+    {
+      "id": "swift",
+      "name": "Swift",
+      "description": "Agile and quick, with natural gliding abilities.",
+      "base_stats": {
+        "reactions": 1,
+        "speed": 5,
+        "combat_skill": 0,
+        "toughness": 3,
+        "savvy": 0
+      },
+      "special_abilities": ["gliding", "free_jumping", "multi_shot_restriction"]
+    },
+    {
+      "id": "bot",
+      "name": "Bot",
+      "description": "Artificial beings with enhanced physical capabilities but limited growth.",
+      "base_stats": {
+        "reactions": 2,
+        "speed": 4,
+        "combat_skill": 1,
+        "toughness": 4,
+        "savvy": 2
+      },
+      "special_abilities": ["armor_save_6", "bot_injury_table", "no_experience", "no_consumables", "no_implants", "no_character_events"]
+    }
+  ],
+  "backgrounds": [
+    {
+      "id": "high_tech_colony",
+      "name": "High-Tech Colony",
+      "description": "Raised in an advanced technological environment.",
+      "stat_bonuses": {
+        "savvy": 1
+      },
+      "starting_credits": 6,
+      "outcomes": [
+        {"description": "Roll 2D6: Gain this many credits."},
+        {"description": "Gain 1 Luck point."},
+        {"description": "Start with a Low-tech weapon of your choice."}
+      ]
+    },
+    {
+      "id": "overcrowded_city",
+      "name": "Overcrowded City",
+      "description": "Grew up navigating the chaos of densely populated urban centers.",
+      "stat_bonuses": {
+        "speed": 1
+      },
+      "starting_credits": 0,
+      "outcomes": [
+        {"description": "Gain 1 Story Point."},
+        {"description": "Start with a Hacking Tool."},
+        {"description": "Roll 1D6: Gain this many credits."}
+      ]
+    },
+    {
+      "id": "low_tech_colony",
+      "name": "Low-Tech Colony",
+      "description": "Raised in a resource-poor environment, relying on outdated technology.",
+      "stat_bonuses": {},
+      "starting_gear": ["low_tech_weapon"],
+      "starting_credits": 0,
+      "outcomes": [
+        {"description": "Gain 1 Toughness."},
+        {"description": "Start with Survival Gear."},
+        {"description": "Gain a Quest rumor about valuable resources."}
+      ]
+    },
+    {
+      "id": "mining_colony",
+      "name": "Mining Colony",
+      "description": "Grew up in the harsh conditions of a resource extraction outpost.",
+      "stat_bonuses": {
+        "toughness": 1
+      },
+      "starting_credits": 0,
+      "outcomes": [
+        {"description": "Start with a Power Claw."},
+        {"description": "Gain 2D6 credits."},
+        {"description": "Gain 1 Combat Skill."}
+      ]
+    },
+    {
+      "id": "military_brat",
+      "name": "Military Brat",
+      "description": "Raised in a military family, moving between various postings.",
+      "stat_bonuses": {
+        "combat_skill": 1
+      },
+      "starting_credits": 0,
+      "outcomes": [
+        {"description": "Start with a Military weapon of your choice."},
+        {"description": "Gain 1 Reactions."},
+        {"description": "Start with 1D6 credits."}
+      ]
+    },
+    {
+      "id": "space_station",
+      "name": "Space Station",
+      "description": "Born and raised on a bustling orbital habitat.",
+      "stat_bonuses": {},
+      "starting_gear": ["basic_gear"],
+      "starting_credits": 0,
+      "outcomes": [
+        {"description": "Gain 1 Savvy."},
+        {"description": "Start with a Repair Kit."},
+        {"description": "Gain a Quest rumor about a valuable space salvage."}
+      ]
+    }
+  ],
+  "motivations": [
+    {
+      "id": "wealth",
+      "name": "Wealth",
+      "description": "Driven by the pursuit of riches and financial security.",
+      "effect": {
+        "starting_credits": 6
+      },
+      "outcomes": [
+        {"description": "Start with 2D6 extra credits."},
+        {"description": "Gain a Quest rumor about a valuable treasure."}
+      ]
+    },
+    {
+      "id": "fame",
+      "name": "Fame",
+      "description": "Seeks recognition and renown across the galaxy.",
+      "effect": {
+        "story_points": 1
+      },
+      "outcomes": [
+        {"description": "Gain an additional Story Point."},
+        {"description": "Start with a unique, recognizable item."}
+      ]
+    },
+    {
+      "id": "glory",
+      "name": "Glory",
+      "description": "Pursues heroic deeds and legendary status.",
+      "effect": {
+        "combat_skill": 1,
+        "starting_gear": ["military_weapon"]
+      },
+      "outcomes": [
+        {"description": "Gain an additional Combat Skill point."},
+        {"description": "Start with a Quest for a heroic deed."}
+      ]
+    },
+    {
+      "id": "survival",
+      "name": "Survival",
+      "description": "Focused on staying alive in a hostile universe.",
+      "effect": {
+        "toughness": 1
+      },
+      "outcomes": [
+        {"description": "Gain 1 Luck point."},
+        {"description": "Start with Survival Gear."}
+      ]
+    },
+    {
+      "id": "escape",
+      "name": "Escape",
+      "description": "Fleeing from a troubled past or pursuing freedom.",
+      "effect": {
+        "speed": 1
+      },
+      "outcomes": [
+        {"description": "Gain 1 Reactions point."},
+        {"description": "Start with a fake ID."}
+      ]
+    },
+    {
+      "id": "adventure",
+      "name": "Adventure",
+      "description": "Seeking new experiences and thrills across the stars.",
+      "effect": {
+        "luck": 1
+      },
+      "outcomes": [
+        {"description": "Gain an additional Luck point."},
+        {"description": "Start with a Quest for an unexplored world."}
+      ]
+    }
+  ],
+  "classes": [
+    {
+      "id": "working_class",
+      "name": "Working Class",
+      "description": "Skilled laborers and everyday workers.",
+      "stat_bonuses": {
+        "savvy": 1,
+        "luck": 1
+      },
+      "outcomes": [
+        {"description": "Gain 1D6 credits."},
+        {"description": "Start with a Repair Kit."},
+        {"description": "Gain a Quest for a labor dispute resolution."}
+      ]
+    },
+    {
+      "id": "technician",
+      "name": "Technician",
+      "description": "Experts in maintaining and repairing complex machinery.",
+      "stat_bonuses": {
+        "savvy": 1
+      },
+      "starting_gear": ["repair_kit"],
+      "outcomes": [
+        {"description": "Gain an additional Savvy point."},
+        {"description": "Start with a Hacking Tool."},
+        {"description": "Gain a Quest for recovering lost technology."}
+      ]
+    },
+    {
+      "id": "scientist",
+      "name": "Scientist",
+      "description": "Researchers and innovators pushing the boundaries of knowledge.",
+      "stat_bonuses": {
+        "savvy": 1
+      },
+      "starting_gear": ["gadget"],
+      "outcomes": [
+        {"description": "Gain 1 Story Point."},
+        {"description": "Start with Advanced Sensors for your ship."},
+        {"description": "Gain a Quest for a scientific discovery."}
+      ]
+    },
+    {
+      "id": "hacker",
+      "name": "Hacker",
+      "description": "Skilled in manipulating and exploiting computer systems.",
+      "stat_bonuses": {
+        "savvy": 1
+      },
+      "effect": {
+        "rival": 1
+      },
+      "outcomes": [
+        {"description": "Gain a high-tech encryption device."},
+        {"description": "Start with 2D6 credits from a recent 'job'."},
+        {"description": "Gain a Quest for infiltrating a secure network."}
+      ]
+    },
+    {
+      "id": "soldier",
+      "name": "Soldier",
+      "description": "Trained combatants with military experience.",
+      "stat_bonuses": {
+        "combat_skill": 1
+      },
+      "starting_credits": 6,
+      "outcomes": [
+        {"description": "Gain an additional Combat Skill point."},
+        {"description": "Start with Military-grade body armor."},
+        {"description": "Gain a Quest for a covert military operation."}
+      ]
+    },
+    {
+      "id": "mercenary",
+      "name": "Mercenary",
+      "description": "Professional fighters for hire.",
+      "stat_bonuses": {
+        "combat_skill": 1
+      },
+      "starting_gear": ["military_weapon"],
+      "outcomes": [
+        {"description": "Gain 1 Reactions point."},
+        {"description": "Start with a contact in the mercenary world."},
+        {"description": "Gain a Quest for a high-paying combat mission."}
+      ]
+    }
+  ],
+  "skills": [
+    {
+      "id": "melee",
+      "name": "Melee",
+      "type": "combat",
+      "description": "Proficiency in close-quarters combat."
+    },
+    {
+      "id": "ranged",
+      "name": "Ranged",
+      "type": "combat",
+      "description": "Skill with ranged weapons and marksmanship."
+    },
+    {
+      "id": "stealth",
+      "name": "Stealth",
+      "type": "general",
+      "description": "Ability to move undetected and avoid notice."
+    },
+    {
+      "id": "tech",
+      "name": "Tech",
+      "type": "general",
+      "description": "Knowledge and skill with various technologies."
+    },
+    {
+      "id": "navigation",
+      "name": "Navigation",
+      "type": "general",
+      "description": "Expertise in plotting courses and reading star charts."
+    },
+    {
+      "id": "leadership",
+      "name": "Leadership",
+      "type": "general",
+      "description": "Ability to inspire and direct others effectively."
+    },
+    {
+      "id": "medicine",
+      "name": "Medicine",
+      "type": "general",
+      "description": "Knowledge of medical procedures and treatments."
+    },
+    {
+      "id": "negotiation",
+      "name": "Negotiation",
+      "type": "general",
+      "description": "Skill in diplomacy and bargaining."
+    }
+  ],
+  "strange_characters": [
+    {
+      "id": "de_converted",
+      "name": "De-converted",
+      "description": "Former prisoner of the Converted, partially cyborg.",
+      "base_stats": {
+        "reactions": 1,
+        "speed": 4,
+        "combat_skill": 0,
+        "toughness": 3,
+        "savvy": 0
+      },
+      "special_abilities": ["armor_save_6", "max_3_implants", "fixed_savvy", "motivation_revenge"]
+    },
+    {
+      "id": "unity_agent",
+      "name": "Unity Agent",
+      "description": "Secret agent for the Unity administration.",
+      "base_stats": {
+        "reactions": 2,
+        "speed": 4,
+        "combat_skill": 0,
+        "toughness": 3,
+        "savvy": 0
+      },
+      "special_abilities": ["call_in_favor", "motivation_order"]
+    },
+    {
+      "id": "mysterious_past",
+      "name": "Mysterious Past",
+      "description": "Character with an unknown background.",
+      "special_abilities": ["double_background_roll", "no_bonus_story_points"]
+    },
+    {
+      "id": "hakshan",
+      "name": "Hakshan",
+      "description": "High-tech aliens searching for something.",
+      "base_stats": {
+        "reactions": 1,
+        "speed": 4,
+        "combat_skill": 0,
+        "toughness": 3,
+        "savvy": 0
+      },
+      "special_abilities": ["motivation_truth"]
+    },
+    {
+      "id": "stalker",
+      "name": "Stalker",
+      "description": "Blue-skinned Human gene-mods with teleportation ability.",
+      "base_stats": {
+        "reactions": 1,
+        "speed": 4,
+        "combat_skill": 0,
+        "toughness": 3,
+        "savvy": 0
+      },
+      "special_abilities": ["teleportation"]
+    },
+    {
+      "id": "hulker",
+      "name": "Hulker",
+      "description": "Muscular Human gene-mods, perfect for heavy work.",
+      "base_stats": {
+        "reactions": 1,
+        "speed": 4,
+        "combat_skill": 1,
+        "toughness": 5,
+        "savvy": 0
+      },
+      "special_abilities": ["limited_shooting", "ignore_weapon_traits", "limited_class_options"]
+    },
+    {
+      "id": "hopeful_rookie",
+      "name": "Hopeful Rookie",
+      "description": "Enthusiastic newcomer to the crew.",
+      "special_abilities": ["bonus_luck", "bonus_xp", "lose_luck_on_casualty"]
+    },
+    {
+      "id": "genetic_uplift",
+      "name": "Genetic Uplift",
+      "description": "Genetically enhanced human with superior abilities.",
+      "base_stats": {
+        "reactions": 2,
+        "speed": 5,
+        "combat_skill": 1,
+        "toughness": 4,
+        "savvy": 1
+      },
+      "special_abilities": ["no_bonus_credits", "additional_rival"]
+    },
+    {
+      "id": "mutant",
+      "name": "Mutant",
+      "description": "Genetically distorted individual.",
+      "special_abilities": ["limited_tasks", "fixed_background"]
+    },
+    {
+      "id": "assault_bot",
+      "name": "Assault Bot",
+      "description": "Heavily armored combat robot.",
+      "base_stats": {
+        "reactions": 2,
+        "speed": 4,
+        "combat_skill": 1,
+        "toughness": 4,
+        "savvy": 0
+      },
+      "special_abilities": ["fixed_savvy", "ignore_weapon_traits", "improved_armor_save", "no_background_motivation_class"]
+    },
+    {
+      "id": "manipulator",
+      "name": "Manipulator",
+      "description": "Alien skilled in communication and politics.",
+      "base_stats": {
+        "reactions": 2,
+        "speed": 4,
+        "combat_skill": 0,
+        "toughness": 3,
+        "savvy": 1
+      },
+      "special_abilities": ["no_voluntary_brawl", "dual_pistol_use", "bonus_story_point_chance", "fixed_background"]
+    },
+    {
+      "id": "primitive",
+      "name": "Primitive",
+      "description": "Character from a technologically regressed world.",
+      "special_abilities": ["limited_weapon_use", "melee_weapon_bonus", "limited_background_options"]
+    },
+    {
+      "id": "feeler",
+      "name": "Feeler",
+      "description": "Character with extremely strong emotional output.",
+      "special_abilities": ["double_motivation", "mental_breakdown_risk"]
+    },
+    {
+      "id": "emo_suppressed",
+      "name": "Emo-suppressed",
+      "description": "Character unable to feel emotions beyond basic needs.",
+      "special_abilities": ["never_leave_crew", "ignore_certain_events", "no_luck", "fixed_motivation"]
+    },
+    {
+      "id": "minor_alien",
+      "name": "Minor Alien",
+      "description": "Lesser-known alien species with unique traits.",
+      "special_abilities": ["alien_physiology", "cultural_misunderstanding"]
+    }
+  ],
+  "weapons": [
+    {
+      "id": "auto_rifle",
+      "name": "Auto rifle",
+      "range": 24,
+      "shots": 2,
+      "damage": 0,
+      "traits": []
+    },
+    {
+      "id": "beam_pistol",
+      "name": "Beam pistol",
+      "range": 10,
+      "shots": 1,
+      "damage": 1,
+      "traits": ["Pistol", "Critical"]
+    },
+    {
+      "id": "blade",
+      "name": "Blade",
+      "range": "Brawl",
+      "shots": null,
+      "damage": 0,
+      "traits": ["Melee"]
+    },
+    {
+      "id": "hand_cannon",
+      "name": "Hand cannon",
+      "range": 8,
+      "shots": 1,
+      "damage": 2,
+      "traits": ["Pistol"]
+    },
+    {
+      "id": "hand_flamer",
+      "name": "Hand flamer",
+      "range": 12,
+      "shots": 2,
+      "damage": 1,
+      "traits": ["Focused", "Area"]
+    },
+    {
+      "id": "glare_sword",
+      "name": "Glare sword",
+      "range": "Brawl",
+      "shots": null,
+      "damage": 0,
+      "traits": ["Melee", "Elegant", "Piercing"]
+    },
+    {
+      "id": "hand_laser",
+      "name": "Hand laser",
+      "range": 12,
+      "shots": 1,
+      "damage": 0,
+      "traits": ["Snap Shot", "Pistol"]
+    },
+    {
+      "id": "hunting_rifle",
+      "name": "Hunting rifle",
+      "range": 30,
+      "shots": 1,
+      "damage": 1,
+      "traits": ["Heavy"]
+    },
+    {
+      "id": "power_claw",
+      "name": "Power claw",
+      "range": "Brawl",
+      "shots": null,
+      "damage": 3,
+      "traits": ["Melee", "Clumsy"]
+    }
+  ],
+  "crew_sizes": [3, 4, 5, 6, 7, 8],
+  "victory_conditions": [
+    {
+      "id": "wealth",
+      "name": "Wealth",
+      "description": "Accumulate 100 credits per crew member",
+      "target_value": 100
+    },
+    {
+      "id": "reputation",
+      "name": "Reputation",
+      "description": "Gain a total of 10 Patrons",
+      "target_value": 10
+    },
+    {
+      "id": "exploration",
+      "name": "Exploration",
+      "description": "Visit 15 different star systems",
+      "target_value": 15
+    }
+  ],
+  "gear": [
+    {
+      "id": "repair_kit",
+      "name": "Repair Kit",
+      "description": "Tools for fixing equipment and machinery"
+    },
+    {
+      "id": "medkit",
+      "name": "Medkit",
+      "description": "Basic medical supplies for treating injuries"
+    },
+    {
+      "id": "hacking_tool",
+      "name": "Hacking Tool",
+      "description": "Advanced device for bypassing electronic security"
+    },
+    {
+      "id": "survival_gear",
+      "name": "Survival Gear",
+      "description": "Essential equipment for harsh environments"
+    }
+  ],
+  "ship_upgrades": [
+    {
+      "id": "improved_engines",
+      "name": "Improved Engines",
+      "description": "Increases ship speed and maneuverability",
+      "cost": 10
+    },
+    {
+      "id": "advanced_sensors",
+      "name": "Advanced Sensors",
+      "description": "Enhances detection and scanning capabilities",
+      "cost": 8
+    },
+    {
+      "id": "cargo_expansion",
+      "name": "Cargo Expansion",
+      "description": "Increases the ship's storage capacity",
+      "cost": 6
+    },
+    {
+      "id": "shield_generator",
+      "name": "Shield Generator",
+      "description": "Provides additional protection in combat",
+      "cost": 12
+    }
+  ],
+  "story_hooks": [
+    {
+      "id": "ancient_artifact",
+      "name": "Ancient Artifact",
+      "description": "Discover the secrets of a mysterious relic"
+    },
+    {
+      "id": "corporate_conspiracy",
+      "name": "Corporate Conspiracy",
+      "description": "Uncover a sinister plot involving major corporations"
+    },
+    {
+      "id": "alien_invasion",
+      "name": "Alien Invasion",
+      "description": "Defend against an impending extraterrestrial threat"
+    },
+    {
+      "id": "lost_colony",
+      "name": "Lost Colony",
+      "description": "Locate and explore a long-forgotten human settlement"
+    }
+  ]
+}

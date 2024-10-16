@@ -3,15 +3,15 @@
 importer="texture"
 type="CompressedTexture2D"
 uid="uid://b1oi70djx0y6o"
-path="res://.godot/imported/PUT A RATING!.jpg-bfe46f4e3f24c0d264f8f5adac6fb2fa.ctex"
+path="res://.godot/imported/PUT A RATING!.jpg-302a23521c13dbb7723524104b98737c.ctex"
 metadata={
 "vram_texture": false
 }
 
 [deps]
 
-source_file="res://Assets/Basic assets/PUT A RATING!.jpg"
-dest_files=["res://.godot/imported/PUT A RATING!.jpg-bfe46f4e3f24c0d264f8f5adac6fb2fa.ctex"]
+source_file="res://assets/Basic assets/PUT A RATING!.jpg"
+dest_files=["res://.godot/imported/PUT A RATING!.jpg-302a23521c13dbb7723524104b98737c.ctex"]
 
 [params]
 
