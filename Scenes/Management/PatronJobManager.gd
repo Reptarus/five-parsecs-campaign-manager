@@ -9,8 +9,7 @@ func initialize(_game_state_manager: GameStateManager) -> void:
 	mission_generator = MissionGenerator.new()
 	mission_generator.initialize(game_state_manager)
 
-func generate_patron_jobs() -> Array[Mission]:
-	var generated_jobs: Array[Mission] = []
+func generate_patron_jobs() -> void:
 	for patron in game_state_manager.patrons:
 		if should_generate_job(patron):
 			var benefits_hazards_conditions = generate_benefits_hazards_conditions(patron)
@@ -24,8 +23,6 @@ func generate_patron_jobs() -> Array[Mission]:
 			new_job.patron = patron
 			patron.add_mission(new_job)
 			game_state_manager.add_available_mission(new_job)
-			generated_jobs.append(new_job)
-	return generated_jobs
 
 func should_generate_job(patron: Patron) -> bool:
 	return randf() < 0.2 + (patron.relationship / 200.0)

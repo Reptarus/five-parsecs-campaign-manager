@@ -108,7 +108,7 @@
   ],
   "backgrounds": [
     {
-      "id": "HIGH_TECH_COLONY",
+      "id": "high_tech_colony",
       "name": "High-Tech Colony",
       "description": "Raised in an advanced technological environment.",
       "stat_bonuses": {
@@ -122,7 +122,7 @@
       ]
     },
     {
-      "id": "OVERCROWDED_CITY",
+      "id": "overcrowded_city",
       "name": "Overcrowded City",
       "description": "Grew up navigating the chaos of densely populated urban centers.",
       "stat_bonuses": {
@@ -136,7 +136,7 @@
       ]
     },
     {
-      "id": "LOW_TECH_COLONY",
+      "id": "low_tech_colony",
       "name": "Low-Tech Colony",
       "description": "Raised in a resource-poor environment, relying on outdated technology.",
       "stat_bonuses": {},
@@ -149,7 +149,7 @@
       ]
     },
     {
-      "id": "MINING_COLONY",
+      "id": "mining_colony",
       "name": "Mining Colony",
       "description": "Grew up in the harsh conditions of a resource extraction outpost.",
       "stat_bonuses": {
@@ -163,7 +163,7 @@
       ]
     },
     {
-      "id": "MILITARY_BRAT",
+      "id": "military_brat",
       "name": "Military Brat",
       "description": "Raised in a military family, moving between various postings.",
       "stat_bonuses": {
@@ -177,7 +177,7 @@
       ]
     },
     {
-      "id": "SPACE_STATION",
+      "id": "space_station",
       "name": "Space Station",
       "description": "Born and raised on a bustling orbital habitat.",
       "stat_bonuses": {},
@@ -192,7 +192,7 @@
   ],
   "motivations": [
     {
-      "id": "WEALTH",
+      "id": "wealth",
       "name": "Wealth",
       "description": "Driven by the pursuit of riches and financial security.",
       "effect": {
@@ -204,7 +204,7 @@
       ]
     },
     {
-      "id": "FAME",
+      "id": "fame",
       "name": "Fame",
       "description": "Seeks recognition and renown across the galaxy.",
       "effect": {
@@ -216,7 +216,7 @@
       ]
     },
     {
-      "id": "GLORY",
+      "id": "glory",
       "name": "Glory",
       "description": "Pursues heroic deeds and legendary status.",
       "effect": {
@@ -229,7 +229,7 @@
       ]
     },
     {
-      "id": "SURVIVAL",
+      "id": "survival",
       "name": "Survival",
       "description": "Focused on staying alive in a hostile universe.",
       "effect": {
@@ -241,7 +241,7 @@
       ]
     },
     {
-      "id": "ESCAPE",
+      "id": "escape",
       "name": "Escape",
       "description": "Fleeing from a troubled past or pursuing freedom.",
       "effect": {
@@ -253,7 +253,7 @@
       ]
     },
     {
-      "id": "ADVENTURE",
+      "id": "adventure",
       "name": "Adventure",
       "description": "Seeking new experiences and thrills across the stars.",
       "effect": {

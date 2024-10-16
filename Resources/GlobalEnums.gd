@@ -54,8 +54,8 @@ enum PsionicPower {
     PSIONIC_SCARE,
     CRUSH,
     DIRECT,
-    DOMINATE,
-    NONE
+    DOMINATE
+    # Ensure this matches your Psionics.json file
 }
 
 enum PsionicLegality {
@@ -121,8 +121,7 @@ enum CharacterStatus {
     INJURED,
     STUNNED,
     FLEEING,
-    DEAD,
-    BUSY,
+    DEAD
 }
 
 enum SkillType {
@@ -218,7 +217,6 @@ enum MissionStatus {
 }
 
 enum CrewTask {
-    NONE,
     FIND_PATRON,
     TRAIN,
     TRADE,
@@ -226,9 +224,7 @@ enum CrewTask {
     EXPLORE,
     TRACK,
     REPAIR_KIT,
-    DECOY,
-    TRACK_RIVAL,
-    REPAIR,
+    DECOY
 }
 
 enum ItemType {

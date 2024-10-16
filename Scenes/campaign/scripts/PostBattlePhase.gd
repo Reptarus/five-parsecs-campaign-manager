@@ -8,13 +8,9 @@ var game_state_manager: GameStateManager
 
 const AdvTrainingManager = preload("res://Resources/AdvTrainingManager.gd")
 
-var injury_tables: Dictionary
-
-func _init(_game_state_manager: GameStateManager) -> void:
-	game_state_manager = _game_state_manager
-	game_state = game_state_manager.game_state
-	galactic_war_manager = GalacticWarManager.new(game_state)
-	injury_tables = load_json_file("res://data/injury_table.json").get("injury_tables", {})
+func _init(_game_state: GameState) -> void:
+	game_state = _game_state
+	galactic_war_manager = GalacticWarManager.new(_game_state)
 
 func execute_post_battle_sequence(player_victory: bool) -> void:
 	resolve_rival_status(player_victory)
@@ -48,13 +44,8 @@ func resolve_patron_status(player_victory: bool) -> void:
 		if patron.location == game_state.current_location:
 			if player_victory:
 				patron.change_relationship(5)
-				if game_state_manager.patron_job_manager.should_generate_job(patron):
-					var new_job = game_state_manager.mission_generator.generate_mission(
-						GlobalEnums.Type.PATRON,
-						game_state.current_date,
-						patron.name,
-						game_state.player_faction
-					)
+				if game_state.patron_job_manager.should_generate_job(patron):
+					var new_job = game_state.mission_generator.generate_mission()
 					new_job.type = GlobalEnums.Type.PATRON
 					new_job.patron = patron
 					patron.add_mission(new_job)
@@ -94,76 +85,22 @@ func gather_loot() -> void:
 	print("Loot gathered: " + str(loot.size()) + " items acquired")
 
 func determine_injuries_and_recovery() -> void:
-	for character in game_state.get_crew():
-		var injury = roll_for_injury(character)
+	for character in game_state.current_crew.members:
+		var injury = calculate_injury(character)
 		if injury:
-			apply_injury(character, injury)
-		print("Injury for %s: %s" % [character.name, injury.result if injury else "None"])
-
-func roll_for_injury(character: Character) -> Dictionary:
-	var roll = randi() % 100 + 1
-	var injury_table = injury_tables["human_injury_table"] if character.species == GlobalEnums.Species.HUMAN else injury_tables["bot_injury_table"]
-	
-	for entry in injury_table:
-		if roll >= entry.roll_range[0] and roll <= entry.roll_range[1]:
-			return entry
-	return {}
-
-func apply_injury(character: Character, injury: Dictionary) -> void:
-	character.injuries.append(injury.result)
-	
-	for effect in injury.effects:
-		match effect:
-			"Character is dead":
-				character.status = GlobalEnums.CharacterStatus.DEAD
-			"All carried equipment is damaged":
-				for item in character.inventory:
-					if item.get("type") == "Equipment":
-						damage_item(item)
-			"Gain +1 Luck":
-				character.luck += 1
-			"All carried items are permanently lost":
-				character.inventory.clear()
-			"One random carried item is damaged":
-				if character.inventory.size() > 0:
-					var random_item = character.inventory[randi() % character.inventory.size()]
-					if random_item.get("type") == "Equipment":
-						random_item.take_damage()
-			"Require 1D6 credits of surgery immediately":
-				var surgery_cost = randi() % 6 + 1
-				game_state.credits -= surgery_cost
-			"If surgery not performed, suffer -1 permanent reduction to highest of Speed or Toughness":
-				if game_state.credits < 0:  # Surgery wasn't performed
-					if character.speed > character.toughness:
-						character.speed -= 1
-					else:
-						character.toughness -= 1
-	
-	# Apply recovery time
-	if "recovery_time" in injury:
-		match injury.recovery_time:
-			"N/A":
-				pass  # No recovery time for fatal injuries
-			"Immediate":
-				pass  # No recovery time needed
-			_:
-				# Parse the recovery time string (e.g., "1D3 campaign turns")
-				var dice_roll = injury.recovery_time.split(" ")[0]
-				var dice_count = int(dice_roll.split("D")[0])
-				var dice_sides = int(dice_roll.split("D")[1])
-				var total_recovery_time = 0
-				for i in range(dice_count):
-					total_recovery_time += randi() % dice_sides + 1
-				character.medbay_turns_left = total_recovery_time
+			character.apply_injury(injury)
+		var recovery_time = calculate_recovery_time(character)
+		character.set_recovery_time(recovery_time)
+	print("Injuries and recovery times determined for the crew")
 
 func experience_and_character_upgrades() -> void:
-	for character in game_state.get_crew():
+	for character in game_state.current_crew.members:
 		var xp_gained = calculate_experience_gain(character)
 		character.character_advancement.apply_experience(xp_gained)
 
 func invest_in_advanced_training() -> void:
 	var adv_training_manager = AdvTrainingManager.new(game_state)
-	for character in game_state.get_crew():
+	for character in game_state.current_crew.members:
 		var available_courses = adv_training_manager.get_available_courses(character)
 		if available_courses.size() > 0:
 			var chosen_course = available_courses[randi() % available_courses.size()]
@@ -182,16 +119,16 @@ func purchase_items() -> void:
 	
 	for item in available_items:
 		var item_price = world_economy_manager.get_item_price(item)
-		if game_state.crew.credits >= item_price and randf() < 0.3:  # 30% chance to buy an item
-			if world_economy_manager.buy_item(game_state.crew, item):
+		if game_state.current_crew.credits >= item_price and randf() < 0.3:  # 30% chance to buy an item
+			if world_economy_manager.buy_item(game_state.current_crew, item):
 				print("%s purchased for %d credits" % [item.name, item_price])
 	
 	# Selling items
-	var inventory = game_state.current_ship.inventory
-	for item in inventory.items:
+	var inventory = game_state.current_crew.inventory
+	for item in inventory.get_items():
 		if randf() < 0.2:  # 20% chance to sell an item
 			var sell_price = world_economy_manager.get_item_price(item)
-			if world_economy_manager.sell_item(game_state.crew, item):
+			if world_economy_manager.sell_item(game_state.current_crew, item):
 				print("%s sold for %d credits" % [item.name, sell_price])
 	
 	# Update local economy
@@ -202,7 +139,7 @@ func roll_for_campaign_event() -> void:
 	apply_campaign_event(event)
 
 func roll_for_character_event() -> void:
-	var character = game_state.get_crew()[randi() % game_state.get_crew().size()]
+	var character = game_state.current_crew.get_random_character()
 	var event = generate_character_event()
 	apply_character_event(character, event)
 
@@ -233,6 +170,29 @@ func generate_loot() -> Array:
 	for _i in range(num_loot):
 		loot.append(possible_loot[randi() % possible_loot.size()])
 	return loot
+
+func calculate_injury(character: Character) -> String:
+	var injury_chance = 0.1 + (1.0 - character.toughness / character.get_max_toughness()) * 0.2
+	if randf() < injury_chance:
+		var possible_injuries = ["Minor Wound", "Broken Bone", "Concussion", "Severe Burn", "Internal Injury"]
+		return possible_injuries[randi() % possible_injuries.size()]
+	return ""
+
+func calculate_recovery_time(character: Character) -> int:
+	var base_recovery_time = 3
+	for injury in character.injuries:
+		match injury:
+			"Minor Wound":
+				base_recovery_time += 1
+			"Broken Bone":
+				base_recovery_time += 5
+			"Concussion":
+				base_recovery_time += 3
+			"Severe Burn":
+				base_recovery_time += 4
+			"Internal Injury":
+				base_recovery_time += 7
+	return base_recovery_time
 
 func calculate_experience_gain(character: Character) -> int:
 	var base_xp = 50
@@ -285,7 +245,7 @@ func apply_character_event(character: Character, event: Dictionary) -> void:
 			# Add random loot to character's inventory
 			var loot_generator = LootGenerator.new()
 			var loot = loot_generator.generate_loot()
-			loot_generator.apply_loot(character, loot, game_state.current_ship)
+			loot_generator.apply_loot(character, loot, character.ship)
 		"Vital info":
 			# Turn in information to get a Corporate Patron
 			var patron = Patron.new()
@@ -328,9 +288,3 @@ func load_json_file(file_path: String) -> Dictionary:
 	else:
 		push_error("Failed to open file: " + file_path)
 		return {}
-
-func damage_item(item: Dictionary) -> void:
-	# Implement logic to damage the item
-	if "durability" in item:
-		item["durability"] -= 1
-	# Add any other necessary damage logic

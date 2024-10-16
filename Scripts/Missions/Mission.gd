@@ -90,7 +90,7 @@ func serialize() -> Dictionary:
 		"terrain_type": GlobalEnums.TerrainGenerationType.keys()[terrain_type],
 		"required_crew_size": required_crew_size,
 		"enemies": enemies.map(func(enemy: Enemy) -> Dictionary: return enemy.serialize()),
-		"unique_individual": unique_individual.serialize() if unique_individual else {},
+		"unique_individual": unique_individual.serialize() if unique_individual else null,
 		"status": GlobalEnums.MissionStatus.keys()[status],
 		"location": location.serialize() if location else {"is_null": true},
 		"difficulty": difficulty,
@@ -111,8 +111,8 @@ static func deserialize(data: Dictionary) -> Mission:
 	mission.objective = GlobalEnums.MissionObjective[data.get("objective", "FIGHT_OFF")]
 	mission.terrain_type = GlobalEnums.TerrainGenerationType[data.get("terrain_type", "INDUSTRIAL")]
 	mission.required_crew_size = data.get("required_crew_size", 4)
-	mission.enemies = data.get("enemies", []).map(func(enemy_data: Dictionary) -> Enemy: return Enemy.deserialize(enemy_data))
-	mission.unique_individual = Enemy.deserialize(data["unique_individual"]) if data.get("unique_individual") else null
+	mission.enemies = data.get("enemies", []).map(func(enemy_data: Dictionary) -> Enemy: return Enemy.new(enemy_data.get("name", ""), enemy_data.get("enemy_type", "")).deserialize(enemy_data))
+	mission.unique_individual = Enemy.new("Unique", "").deserialize(data["unique_individual"]) if data.get("unique_individual") else null
 	mission.status = GlobalEnums.MissionStatus[data.get("status", "ACTIVE")]
 	mission.location = Location.deserialize(data["location"]) if data.get("location") else null
 	mission.difficulty = data.get("difficulty", 1)

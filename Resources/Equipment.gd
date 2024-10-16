@@ -10,8 +10,6 @@ extends Resource
 @export var stats: Dictionary = {}
 @export var traits: Array[String] = []
 
-var durability: int = 100
-
 func _init(_name: String = "", _type: GlobalEnums.ItemType = GlobalEnums.ItemType.GEAR, _value: int = 0, _description: String = "", _is_damaged: bool = false) -> void:
 	name = _name
 	type = _type
@@ -32,23 +30,18 @@ func repair() -> void:
 func damage() -> void:
 	is_damaged = true
 
-func take_damage(amount: int = 10) -> void:
-	durability = max(0, durability - amount)
-	if durability == 0:
-		damage()
-
 func get_effectiveness() -> int:
 	return value if not is_damaged else int(float(value) / 2.0)
 
 func serialize() -> Dictionary:
 	return {
-			"name": name,
-			"type": GlobalEnums.ItemType.keys()[type],
-			"value": value,
-			"description": description,
-			"is_damaged": is_damaged,
-			"stats": stats,
-			"traits": traits
+		"name": name,
+		"type": GlobalEnums.ItemType.keys()[type],
+		"value": value,
+		"description": description,
+		"is_damaged": is_damaged,
+		"stats": stats,
+		"traits": traits
 	}
 
 static func deserialize(data: Dictionary) -> Equipment:
