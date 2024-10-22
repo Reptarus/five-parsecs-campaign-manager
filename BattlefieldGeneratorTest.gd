@@ -1,29 +1,15 @@
 extends Node
 
-class MockMission extends Mission:
-	func _init():
-		title = "Industrial Sweep"
-		objective = GlobalEnums.MissionObjective.MOVE_THROUGH
-		environmental_factors = ["Smog", "Industrial Noise"]
-		var _enemies = [{"name": "Rogue Robot", "count": 5}, {"name": "Security Drone", "count": 3}]
-
-class MockGameStateManager:
-	var current_mission: Mission = MockMission.new()
-
-class MockGameManager:
-	var game_state = MockGameStateManager.new()
-	var current_phase = "battle"
-
-var mock_game_manager: MockGameManager
+var mock_game_state: MockGameState
 
 func _ready():
-	mock_game_manager = MockGameManager.new()
+	mock_game_state = preload("res://Resources/MockGameState.tres")
 	
 	var battlefield_generator = get_parent()
 	if battlefield_generator.has_method("initialize"):
-		battlefield_generator.initialize(mock_game_manager)
+		battlefield_generator.initialize(mock_game_state)
 
-	print("Mission generated: ", mock_game_manager.game_state.current_mission != null)
+	print("Mission generated: ", mock_game_state.game_state.current_mission != null)
 
 	if battlefield_generator.has_method("_generate_battlefield"):
 		battlefield_generator._generate_battlefield()
@@ -37,7 +23,7 @@ func _ready():
 	_generate_suggested_layout()
 
 func _display_mission_data():
-	var mission = mock_game_manager.game_state.current_mission
+	var mission = mock_game_state.game_state.current_mission
 	print("\nMission Data:")
 	print("Title: ", mission.title)
 	print("Objective: ", GlobalEnums.MissionObjective.keys()[mission.objective])

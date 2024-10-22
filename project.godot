@@ -11,14 +11,15 @@ config_version=5
 [application]
 
 config/name="Five Parsecs Campaign Manager"
-run/main_scene="res://ui/mainmenu/MainMenu.tscn"
+run/main_scene="res://ui/mainscene/Main.tscn"
 config/features=PackedStringArray("4.3", "GL Compatibility")
 config/icon="res://icon.svg"
 
 [autoload]
 
-GameStateManager="*res://Scripts/GameStateManager.gd"
-SaveGame="*res://Scenes/Management/SaveManager.gd"
+GameStateManager="*res://Resources/MockGameState.gd"
+GlobalEnums="*res://Resources/GameData/GlobalEnums.gd"
+SaveGame="*res://Resources/GameData/SaveManager.gd"
 
 [display]
 
@@ -33,6 +34,10 @@ project/assembly_name="Five Parsecs Campaign Manager"
 
 version_control/plugin_name="GitPlugin"
 version_control/autoload_on_startup=true
+
+[editor_plugins]
+
+enabled=PackedStringArray()
 
 [file_customization]
 

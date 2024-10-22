@@ -1,0 +1,43 @@
+[gd_scene load_steps=2 format=3 uid="uid://dp66b6flafme3"]
+
+[ext_resource type="Script" path="res://Resources/GameData/VictoryConditionSelection.gd" id="1_script"]
+
+[node name="VictoryConditionSelection" type="Control"]
+layout_mode = 3
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+script = ExtResource("1_script")
+
+[node name="VBoxContainer" type="VBoxContainer" parent="."]
+layout_mode = 1
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+alignment = 1
+
+[node name="TitleLabel" type="Label" parent="VBoxContainer"]
+layout_mode = 2
+text = "Select Victory Condition"
+horizontal_alignment = 1
+
+[node name="ConditionList" type="ItemList" parent="VBoxContainer"]
+layout_mode = 2
+size_flags_vertical = 3
+auto_height = true
+
+[node name="DescriptionLabel" type="Label" parent="VBoxContainer"]
+layout_mode = 2
+text = "Select a victory condition"
+autowrap_mode = 3
+
+[node name="SelectButton" type="Button" parent="VBoxContainer"]
+layout_mode = 2
+text = "Confirm Selection"
+
+[connection signal="item_selected" from="VBoxContainer/ConditionList" to="." method="_on_condition_selected"]
+[connection signal="pressed" from="VBoxContainer/SelectButton" to="." method="_on_select_pressed"]

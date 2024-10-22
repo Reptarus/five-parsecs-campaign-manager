@@ -1,0 +1,117 @@
+[gd_scene load_steps=4 format=3 uid="uid://bjdo0o2bet0av"]
+
+[ext_resource type="Theme" uid="uid://ddjoduj1ya6tp" path="res://assets/5PFH.tres" id="1_nq7n0"]
+[ext_resource type="Script" path="res://Scenes/campaign/scripts/TravelPhase.gd" id="2_h665a"]
+[ext_resource type="Texture2D" uid="uid://bwejyqe8qschs" path="res://assets/Basic assets/Card X3/Card X5.png" id="3_jfytx"]
+
+[node name="TravelPhaseUI" type="Control"]
+layout_mode = 3
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+theme = ExtResource("1_nq7n0")
+script = ExtResource("2_h665a")
+
+[node name="Background" type="TextureRect" parent="."]
+layout_mode = 1
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+texture = ExtResource("3_jfytx")
+
+[node name="VBoxContainer" type="VBoxContainer" parent="."]
+layout_mode = 1
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+
+[node name="HBoxContainer" type="HBoxContainer" parent="VBoxContainer"]
+layout_mode = 2
+
+[node name="BackButton" type="Button" parent="VBoxContainer/HBoxContainer"]
+layout_mode = 2
+text = "<<< Back"
+
+[node name="ScreenTitle" type="Label" parent="VBoxContainer/HBoxContainer"]
+layout_mode = 2
+size_flags_horizontal = 3
+text = "Travel Phase"
+horizontal_alignment = 1
+
+[node name="TabContainer" type="TabContainer" parent="VBoxContainer"]
+layout_mode = 2
+size_flags_vertical = 3
+current_tab = 0
+
+[node name="Upkeep" type="VBoxContainer" parent="VBoxContainer/TabContainer"]
+layout_mode = 2
+metadata/_tab_index = 0
+
+[node name="UpkeepButton" type="Button" parent="VBoxContainer/TabContainer/Upkeep"]
+layout_mode = 2
+text = "Perform Upkeep"
+
+[node name="UpkeepDetails" type="VBoxContainer" parent="VBoxContainer/TabContainer/Upkeep"]
+layout_mode = 2
+
+[node name="Travel" type="VBoxContainer" parent="VBoxContainer/TabContainer"]
+visible = false
+layout_mode = 2
+metadata/_tab_index = 1
+
+[node name="TravelButton" type="Button" parent="VBoxContainer/TabContainer/Travel"]
+layout_mode = 2
+text = "Travel to New Location"
+
+[node name="StayButton" type="Button" parent="VBoxContainer/TabContainer/Travel"]
+layout_mode = 2
+text = "Stay in Current Location"
+
+[node name="NextEventButton" type="Button" parent="VBoxContainer/TabContainer/Travel"]
+layout_mode = 2
+text = "Generate Next Event"
+
+[node name="TravelEventDetails" type="VBoxContainer" parent="VBoxContainer/TabContainer/Travel"]
+layout_mode = 2
+
+[node name="Patrons" type="VBoxContainer" parent="VBoxContainer/TabContainer"]
+visible = false
+layout_mode = 2
+metadata/_tab_index = 2
+
+[node name="CheckPatronsButton" type="Button" parent="VBoxContainer/TabContainer/Patrons"]
+layout_mode = 2
+text = "Check for Patron Jobs"
+
+[node name="PatronsList" type="VBoxContainer" parent="VBoxContainer/TabContainer/Patrons"]
+layout_mode = 2
+
+[node name="Mission" type="VBoxContainer" parent="VBoxContainer/TabContainer"]
+visible = false
+layout_mode = 2
+metadata/_tab_index = 3
+
+[node name="StartMissionButton" type="Button" parent="VBoxContainer/TabContainer/Mission"]
+layout_mode = 2
+text = "Start Mission"
+
+[node name="MissionDetails" type="VBoxContainer" parent="VBoxContainer/TabContainer/Mission"]
+layout_mode = 2
+
+[node name="LogBook" type="RichTextLabel" parent="VBoxContainer"]
+layout_mode = 2
+size_flags_vertical = 3
+
+[connection signal="pressed" from="VBoxContainer/HBoxContainer/BackButton" to="." method="_on_back_button_pressed"]
+[connection signal="pressed" from="VBoxContainer/TabContainer/Upkeep/UpkeepButton" to="." method="_on_upkeep_button_pressed"]
+[connection signal="pressed" from="VBoxContainer/TabContainer/Travel/TravelButton" to="." method="_on_travel_button_pressed"]
+[connection signal="pressed" from="VBoxContainer/TabContainer/Travel/StayButton" to="." method="_on_stay_button_pressed"]
+[connection signal="pressed" from="VBoxContainer/TabContainer/Travel/NextEventButton" to="." method="_on_next_event_button_pressed"]
+[connection signal="pressed" from="VBoxContainer/TabContainer/Patrons/CheckPatronsButton" to="." method="_on_check_patrons_button_pressed"]
+[connection signal="pressed" from="VBoxContainer/TabContainer/Mission/StartMissionButton" to="." method="_on_start_mission_button_pressed"]

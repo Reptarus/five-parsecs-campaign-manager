@@ -1,0 +1,46 @@
+[gd_resource type="Theme" load_steps=5 format=3 uid="uid://vj5k057k0vop"]
+
+[sub_resource type="StyleBoxTexture" id="StyleBoxTexture_hover"]
+
+[sub_resource type="StyleBoxTexture" id="StyleBoxTexture_normal"]
+
+[sub_resource type="StyleBoxTexture" id="StyleBoxTexture_pressed"]
+
+[sub_resource type="StyleBoxFlat" id="StyleBoxFlat_panel"]
+bg_color = Color(0.12, 0.14, 0.18, 1)
+border_width_left = 2
+border_width_top = 2
+border_width_right = 2
+border_width_bottom = 2
+border_color = Color(0.8, 0.8, 0.8, 0.5)
+corner_radius_top_left = 8
+corner_radius_top_right = 8
+corner_radius_bottom_right = 8
+corner_radius_bottom_left = 8
+
+[resource]
+default_font_size = 16
+Button/colors/font_color = Color(0.875, 0.875, 0.875, 1)
+Button/colors/font_hover_color = Color(1, 1, 1, 1)
+Button/colors/font_pressed_color = Color(0.7, 0.7, 0.7, 1)
+Button/styles/hover = SubResource("StyleBoxTexture_hover")
+Button/styles/normal = SubResource("StyleBoxTexture_normal")
+Button/styles/pressed = SubResource("StyleBoxTexture_pressed")
+HBoxContainer/constants/separation = 10
+ItemList/colors/font_color = Color(0.875, 0.875, 0.875, 1)
+ItemList/styles/panel = SubResource("StyleBoxFlat_panel")
+Label/colors/font_color = Color(0.9, 0.9, 0.9, 1)
+LineEdit/colors/font_color = Color(0.875, 0.875, 0.875, 1)
+LineEdit/colors/font_placeholder_color = Color(0.5, 0.5, 0.5, 1)
+LineEdit/styles/normal = SubResource("StyleBoxFlat_panel")
+MarginContainer/constants/margin_bottom = 20
+MarginContainer/constants/margin_left = 20
+MarginContainer/constants/margin_right = 20
+MarginContainer/constants/margin_top = 20
+OptionButton/colors/font_color = Color(0.875, 0.875, 0.875, 1)
+OptionButton/styles/hover = SubResource("StyleBoxTexture_hover")
+OptionButton/styles/normal = SubResource("StyleBoxTexture_normal")
+OptionButton/styles/pressed = SubResource("StyleBoxTexture_pressed")
+Panel/styles/panel = SubResource("StyleBoxFlat_panel")
+RichTextLabel/colors/default_color = Color(0.875, 0.875, 0.875, 1)
+VBoxContainer/constants/separation = 10

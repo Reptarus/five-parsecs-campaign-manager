@@ -1,0 +1,260 @@
+[gd_scene load_steps=7 format=3 uid="uid://b8cqdvcppb5lt"]
+
+[ext_resource type="Theme" uid="uid://ddjoduj1ya6tp" path="res://assets/5PFH.tres" id="1_kafme"]
+[ext_resource type="Script" path="res://Scenes/campaign/scripts/WorldStep.gd" id="2_xac28"]
+[ext_resource type="Texture2D" uid="uid://rf8rruw1wr7" path="res://assets/BookImages/Nov_22_Driftingaway.png" id="3_oi7jl"]
+[ext_resource type="Texture2D" uid="uid://4b7oasvcfbv3" path="res://assets/Basic assets/5PFHUIAssets/Sci-Fi-Infoboxes_0001s_0001s_0001s_0008_Brush.png" id="4_kw3be"]
+[ext_resource type="Texture2D" uid="uid://clpch605bgcka" path="res://assets/Basic assets/5PFHUIAssets/Sci-Fi-Infoboxes_0002s_0002s_0000s_0000s_0001_moving-part.png" id="5_yp2y1"]
+[ext_resource type="Texture2D" uid="uid://cac7q24qi2e5c" path="res://assets/Basic assets/5PFHUIAssets/Sci-Fi-Infoboxes_0000s_0003s_0002s_0001s_0000_empty.png" id="6_lxk4d"]
+
+[node name="WorldPhaseUI" type="Control"]
+layout_mode = 3
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+theme = ExtResource("1_kafme")
+script = ExtResource("2_xac28")
+
+[node name="Background" type="TextureRect" parent="."]
+layout_mode = 1
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+texture = ExtResource("3_oi7jl")
+expand_mode = 2
+
+[node name="MarginContainer" type="MarginContainer" parent="."]
+layout_mode = 1
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+theme = ExtResource("1_kafme")
+theme_override_constants/margin_left = 20
+theme_override_constants/margin_top = 20
+theme_override_constants/margin_right = 20
+theme_override_constants/margin_bottom = 20
+
+[node name="VBoxContainer" type="VBoxContainer" parent="MarginContainer"]
+layout_mode = 2
+theme_override_constants/separation = 10
+
+[node name="TopBar" type="HBoxContainer" parent="MarginContainer/VBoxContainer"]
+layout_mode = 2
+
+[node name="BackButton" type="Button" parent="MarginContainer/VBoxContainer/TopBar"]
+custom_minimum_size = Vector2(175, 50)
+layout_mode = 2
+text = "Back"
+flat = true
+
+[node name="TextureRect" type="TextureRect" parent="MarginContainer/VBoxContainer/TopBar/BackButton"]
+show_behind_parent = true
+layout_mode = 0
+offset_right = 40.0
+offset_bottom = 40.0
+texture = ExtResource("4_kw3be")
+
+[node name="TitleLabel" type="Label" parent="MarginContainer/VBoxContainer/TopBar"]
+layout_mode = 2
+size_flags_horizontal = 3
+text = "World Phase: {Planet Name}"
+horizontal_alignment = 1
+vertical_alignment = 1
+
+[node name="TextureRect" type="TextureRect" parent="MarginContainer/VBoxContainer/TopBar/TitleLabel"]
+layout_mode = 0
+offset_left = 722.0
+offset_top = -5.0
+offset_right = 762.0
+offset_bottom = 35.0
+texture = ExtResource("5_yp2y1")
+
+[node name="OptionsButton" type="Button" parent="MarginContainer/VBoxContainer/TopBar"]
+custom_minimum_size = Vector2(100, 50)
+layout_mode = 2
+text = "Options"
+
+[node name="NextButton" type="Button" parent="MarginContainer/VBoxContainer/TopBar"]
+custom_minimum_size = Vector2(100, 50)
+layout_mode = 2
+text = "Next"
+
+[node name="StepIndicator" type="HBoxContainer" parent="MarginContainer/VBoxContainer"]
+layout_mode = 2
+alignment = 1
+
+[node name="Step1Button" type="Button" parent="MarginContainer/VBoxContainer/StepIndicator"]
+custom_minimum_size = Vector2(150, 50)
+layout_mode = 2
+text = "Upkeep"
+flat = true
+
+[node name="TextureRect" type="TextureRect" parent="MarginContainer/VBoxContainer/StepIndicator/Step1Button"]
+show_behind_parent = true
+layout_mode = 0
+offset_right = 150.0
+offset_bottom = 50.0
+texture = ExtResource("6_lxk4d")
+
+[node name="Step2Button" type="Button" parent="MarginContainer/VBoxContainer/StepIndicator"]
+custom_minimum_size = Vector2(150, 50)
+layout_mode = 2
+text = "Crew Tasks"
+flat = true
+
+[node name="TextureRect" type="TextureRect" parent="MarginContainer/VBoxContainer/StepIndicator/Step2Button"]
+show_behind_parent = true
+layout_mode = 0
+offset_right = 150.0
+offset_bottom = 50.0
+texture = ExtResource("6_lxk4d")
+
+[node name="Step3Button" type="Button" parent="MarginContainer/VBoxContainer/StepIndicator"]
+custom_minimum_size = Vector2(150, 50)
+layout_mode = 2
+text = "Job Offers"
+flat = true
+
+[node name="TextureRect" type="TextureRect" parent="MarginContainer/VBoxContainer/StepIndicator/Step3Button"]
+show_behind_parent = true
+layout_mode = 0
+offset_right = 150.0
+offset_bottom = 50.0
+texture = ExtResource("6_lxk4d")
+
+[node name="Step4Button" type="Button" parent="MarginContainer/VBoxContainer/StepIndicator"]
+custom_minimum_size = Vector2(150, 50)
+layout_mode = 2
+text = "Mission Prep"
+flat = true
+
+[node name="TextureRect" type="TextureRect" parent="MarginContainer/VBoxContainer/StepIndicator/Step4Button"]
+show_behind_parent = true
+layout_mode = 0
+offset_right = 150.0
+offset_bottom = 50.0
+texture = ExtResource("6_lxk4d")
+
+[node name="HSplitContainer" type="HSplitContainer" parent="MarginContainer/VBoxContainer"]
+layout_mode = 2
+size_flags_vertical = 3
+
+[node name="MainContent" type="MarginContainer" parent="MarginContainer/VBoxContainer/HSplitContainer"]
+layout_mode = 2
+size_flags_horizontal = 3
+size_flags_stretch_ratio = 2.0
+
+[node name="UpkeepPanel" type="VBoxContainer" parent="MarginContainer/VBoxContainer/HSplitContainer/MainContent"]
+visible = false
+layout_mode = 2
+
+[node name="CreditsInfo" type="HBoxContainer" parent="MarginContainer/VBoxContainer/HSplitContainer/MainContent/UpkeepPanel"]
+layout_mode = 2
+
+[node name="ShipRepairOptions" type="VBoxContainer" parent="MarginContainer/VBoxContainer/HSplitContainer/MainContent/UpkeepPanel"]
+layout_mode = 2
+
+[node name="MedicalCareOptions" type="VBoxContainer" parent="MarginContainer/VBoxContainer/HSplitContainer/MainContent/UpkeepPanel"]
+layout_mode = 2
+
+[node name="CrewTasksPanel" type="VBoxContainer" parent="MarginContainer/VBoxContainer/HSplitContainer/MainContent"]
+visible = false
+layout_mode = 2
+
+[node name="CrewList" type="ItemList" parent="MarginContainer/VBoxContainer/HSplitContainer/MainContent/CrewTasksPanel"]
+layout_mode = 2
+size_flags_vertical = 3
+
+[node name="TaskAssignment" type="OptionButton" parent="MarginContainer/VBoxContainer/HSplitContainer/MainContent/CrewTasksPanel"]
+custom_minimum_size = Vector2(0, 50)
+layout_mode = 2
+
+[node name="ResolveTask" type="Button" parent="MarginContainer/VBoxContainer/HSplitContainer/MainContent/CrewTasksPanel"]
+custom_minimum_size = Vector2(0, 50)
+layout_mode = 2
+text = "Resolve Tasks"
+
+[node name="JobOffersPanel" type="VBoxContainer" parent="MarginContainer/VBoxContainer/HSplitContainer/MainContent"]
+visible = false
+layout_mode = 2
+
+[node name="PatronList" type="ItemList" parent="MarginContainer/VBoxContainer/HSplitContainer/MainContent/JobOffersPanel"]
+layout_mode = 2
+size_flags_vertical = 3
+
+[node name="JobDetails" type="RichTextLabel" parent="MarginContainer/VBoxContainer/HSplitContainer/MainContent/JobOffersPanel"]
+layout_mode = 2
+size_flags_vertical = 3
+
+[node name="AcceptJobButton" type="Button" parent="MarginContainer/VBoxContainer/HSplitContainer/MainContent/JobOffersPanel"]
+custom_minimum_size = Vector2(0, 50)
+layout_mode = 2
+text = "Accept Job"
+
+[node name="MissionPrepPanel" type="VBoxContainer" parent="MarginContainer/VBoxContainer/HSplitContainer/MainContent"]
+visible = false
+layout_mode = 2
+
+[node name="EquipmentList" type="ItemList" parent="MarginContainer/VBoxContainer/HSplitContainer/MainContent/MissionPrepPanel"]
+layout_mode = 2
+size_flags_vertical = 3
+
+[node name="CrewEquipment" type="GridContainer" parent="MarginContainer/VBoxContainer/HSplitContainer/MainContent/MissionPrepPanel"]
+layout_mode = 2
+size_flags_vertical = 3
+
+[node name="MissionDetails" type="RichTextLabel" parent="MarginContainer/VBoxContainer/HSplitContainer/MainContent/MissionPrepPanel"]
+layout_mode = 2
+size_flags_vertical = 3
+
+[node name="SidePanel" type="VBoxContainer" parent="MarginContainer/VBoxContainer/HSplitContainer"]
+layout_mode = 2
+size_flags_horizontal = 3
+
+[node name="CrewStatus" type="VBoxContainer" parent="MarginContainer/VBoxContainer/HSplitContainer/SidePanel"]
+layout_mode = 2
+size_flags_vertical = 3
+
+[node name="CrewStatusLabel" type="Label" parent="MarginContainer/VBoxContainer/HSplitContainer/SidePanel/CrewStatus"]
+layout_mode = 2
+text = "Crew Status"
+
+[node name="CrewStatusList" type="ItemList" parent="MarginContainer/VBoxContainer/HSplitContainer/SidePanel/CrewStatus"]
+layout_mode = 2
+size_flags_vertical = 3
+
+[node name="ShipStatus" type="VBoxContainer" parent="MarginContainer/VBoxContainer/HSplitContainer/SidePanel"]
+layout_mode = 2
+size_flags_vertical = 3
+
+[node name="ShipStatusLabel" type="Label" parent="MarginContainer/VBoxContainer/HSplitContainer/SidePanel/ShipStatus"]
+layout_mode = 2
+text = "Ship Status"
+
+[node name="ShipStatusInfo" type="RichTextLabel" parent="MarginContainer/VBoxContainer/HSplitContainer/SidePanel/ShipStatus"]
+layout_mode = 2
+size_flags_vertical = 3
+
+[node name="EventLog" type="VBoxContainer" parent="MarginContainer/VBoxContainer"]
+layout_mode = 2
+size_flags_vertical = 3
+size_flags_stretch_ratio = 0.5
+
+[node name="EventLogLabel" type="Label" parent="MarginContainer/VBoxContainer/EventLog"]
+layout_mode = 2
+text = "Event Log"
+
+[node name="ScrollContainer" type="ScrollContainer" parent="MarginContainer/VBoxContainer/EventLog"]
+layout_mode = 2
+size_flags_vertical = 3
+
+[node name="EventLogText" type="RichTextLabel" parent="MarginContainer/VBoxContainer/EventLog/ScrollContainer"]
+layout_mode = 2
+size_flags_horizontal = 3
+size_flags_vertical = 3
