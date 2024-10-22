@@ -14,7 +14,7 @@ const CAMPAIGN_STATE_MACHINE = preload("res://StateMachines/CampaignStateMachine
 const BATTLE_STATE_MACHINE = preload("res://StateMachines/BattleStateMachine.gd")
 const MAIN_GAME_STATE_MACHINE = preload("res://StateMachines/MainGameStateMachine.gd")
 
-var game_state: GameState
+var game_state: MockGameState
 var mission_generator: MissionGenerator
 var equipment_manager: EquipmentManager
 var patron_job_manager: PatronJobManager
@@ -38,7 +38,7 @@ var temp_data: Dictionary = {}
 
 func _ready() -> void:
 	load_settings()
-	game_state = GameState.new()
+	game_state = MockGameState.new()
 	game_state.crew = Crew.new()
 	game_state.crew.initialize()  # Assuming you have an initialize method in Crew
 	game_state.current_mission = Mission.new()  # Make sure current_mission is initialized
@@ -53,18 +53,17 @@ func initialize_managers() -> void:
 	psionic_manager = PsionicManager.new()
 	story_track = StoryTrack.new()
 	world_generator = WorldGenerator.new()
-	world_generator.initialize(self)
+	world_generator.initialize(game_state)
 	expanded_faction_manager = ExpandedFactionManager.new(game_state)
 	combat_manager = CombatManager.new()
 	combat_manager.initialize(self, game_state.current_mission, get_current_battlefield())
 
 func initialize_state_machines() -> void:
 	main_game_state_machine = MainGameStateMachine.new()
-	main_game_state_machine.initialize(self)
+	main_game_state_machine.initialize(game_state)
 	
 	campaign_state_machine = CampaignStateMachine.new()
-	campaign_state_machine.call("initialize", self)
-	
+	campaign_state_machine.initialize(game_state)
 	battle_state_machine = BattleStateMachine.new()
 	battle_state_machine.call("initialize", self)
 
@@ -91,9 +90,8 @@ func get_current_campaign_phase() -> GlobalEnums.CampaignPhase:
 func transition_to_state(new_state: GlobalEnums.CampaignPhase) -> void:
 	game_state.current_state = new_state
 	state_changed.emit(new_state)
-
 func start_new_game() -> void:
-	game_state = GameState.new()
+	game_state = MockGameState.new()
 	game_state.crew = Crew.new()
 	game_state.current_state = GlobalEnums.CampaignPhase.CREW_CREATION
 	get_tree().change_scene_to_file(INITIAL_CREW_CREATION_SCENE)

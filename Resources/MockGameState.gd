@@ -68,55 +68,89 @@ func _setup_crew() -> void:
 	var crew_members = [
 		{
 			"name": "Zara Vex",
-			"species": GlobalEnums.Species.HUMAN,
-			"background": GlobalEnums.Background.MILITARY_BRAT,
-			"motivation": GlobalEnums.Motivation.GLORY,
-			"class": GlobalEnums.Class.SOLDIER,
 			"combat": 3,
 			"technical": 1,
 			"social": 2,
 			"survival": 2,
 			"health": 10,
 			"max_health": 10,
-			"stress": 2,
-			"xp": 120
+			"class_type": GlobalEnums.Class.SOLDIER
 		},
 		{
 			"name": "Krix",
-			"species": GlobalEnums.Species.KERIN,
-			"background": GlobalEnums.Background.SPACE_STATION,
-			"motivation": GlobalEnums.Motivation.WEALTH,
-			"class": GlobalEnums.Class.HACKER,
 			"combat": 1,
 			"technical": 4,
 			"social": 2,
 			"survival": 1,
 			"health": 8,
 			"max_health": 8,
-			"stress": 1,
-			"xp": 95
+			"class_type": GlobalEnums.Class.HACKER
 		},
 		{
 			"name": "Dorn-7",
-			"species": GlobalEnums.Species.BOT,
-			"background": GlobalEnums.Background.MINING_COLONY,
-			"motivation": GlobalEnums.Motivation.SURVIVAL,
-			"class": GlobalEnums.Class.TECHNICIAN,
 			"combat": 2,
 			"technical": 3,
 			"social": 1,
 			"survival": 2,
 			"health": 12,
 			"max_health": 12,
-			"stress": 0,
-			"xp": 110
+			"class_type": GlobalEnums.Class.TECHNICIAN
+		},
+		{
+			"name": "Luna Eclipse",
+			"combat": 2,
+			"technical": 2,
+			"social": 4,
+			"survival": 2,
+			"health": 9,
+			"max_health": 9,
+			"class_type": GlobalEnums.Class.MERCENARY
+		},
+		{
+			"name": "Rex Steele",
+			"combat": 4,
+			"technical": 1,
+			"social": 1,
+			"survival": 3,
+			"health": 15,
+			"max_health": 15,
+			"class_type": GlobalEnums.Class.MERCENARY
+		},
+		{
+			"name": "Nova Blake",
+			"combat": 2,
+			"technical": 3,
+			"social": 2,
+			"survival": 3,
+			"health": 11,
+			"max_health": 11,
+			"class_type": GlobalEnums.Class.TECHNICIAN
+		},
+		{
+			"name": "Cipher",
+			"combat": 1,
+			"technical": 5,
+			"social": 1,
+			"survival": 1,
+			"health": 7,
+			"max_health": 7,
+			"class_type": GlobalEnums.Class.HACKER
+		},
+		{
+			"name": "Echo",
+			"combat": 3,
+			"technical": 2,
+			"social": 3,
+			"survival": 2,
+			"health": 10,
+			"max_health": 10,
+			"class_type": GlobalEnums.Class.SCIENTIST
 		}
 	]
 	
 	for member_data in crew_members:
 		var crew_member = CrewMember.new()
-		for key in member_data:
-			crew_member.set(key, member_data[key])
+		crew_member.set_stats(member_data)
 		crew.add_character(crew_member)
 
 func _setup_ship() -> void:
@@ -323,3 +357,4 @@ func set_internal_game_state(new_state: MockGameState) -> void:
 # If you need a World object, add this method
 func create_current_world() -> World:
 	return World.new(current_location_data) if current_location_data else null
+

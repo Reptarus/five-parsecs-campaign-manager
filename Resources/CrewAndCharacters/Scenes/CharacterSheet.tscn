@@ -1,6 +1,6 @@
 [gd_scene load_steps=3 format=3 uid="uid://dxxx"]
 
-[ext_resource type="Script" path="res://Scenes/Scene Container/campaigncreation/scripts/CharacterSheet.gd" id="1_script"]
+[ext_resource type="Script" path="res://Resources/CrewAndCharacters/CharacterSheet.gd" id="1_script"]
 [ext_resource type="Theme" uid="uid://d1you1rrwuu48" path="res://Scenes/sci_fi_theme.tres" id="2_theme"]
 
 [node name="CharacterSheet" type="Control"]

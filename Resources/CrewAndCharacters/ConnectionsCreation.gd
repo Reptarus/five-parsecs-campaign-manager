@@ -9,8 +9,6 @@ signal connections_created
 @onready var character2_dropdown: OptionButton = $VBoxContainer/HBoxContainer/Character2Dropdown
 @onready var relationship_dropdown: OptionButton = $VBoxContainer/HBoxContainer/RelationshipDropdown
 @onready var finalize_button: Button = $VBoxContainer/FinalizeButton
-@onready var game_state_manager: GameStateManager = get_node("/root/GameStateManager")
-@onready var game_state = game_state_manager.get_game_state()
 
 var characters: Array[Character] = []
 var connections: Array[Dictionary] = []
@@ -30,11 +28,24 @@ const RELATIONSHIPS: Array[String] = [
 ]
 
 func _ready() -> void:
-    extended_connections_manager = ExtendedConnectionsManager.new(game_state)
+    if not GameStateManager:
+        push_error("GameStateManager not found. Ensure it's properly set up.")
+        return
+
+    # Create a new GameState instance to pass to ExtendedConnectionsManager
+    var temp_game_state = GameState.new()
+    # Copy relevant data from MockGameState to GameState if needed
+    # For example: temp_game_state.some_property = GameStateManager.game_state.some_property
+
+    extended_connections_manager = ExtendedConnectionsManager.new(temp_game_state)
     
-    if game_state.is_tutorial_active:
-        tutorial_label.text = game_state.story_track.current_event.instruction
-        tutorial_label.show()
+    if GameStateManager.game_state.is_tutorial_active:
+        if GameStateManager.game_state.story_track and GameStateManager.game_state.story_track.current_event:
+            tutorial_label.text = GameStateManager.game_state.story_track.current_event.instruction
+            tutorial_label.show()
+        else:
+            push_warning("Tutorial is active but story_track or current_event is missing.")
+            tutorial_label.hide()
     else:
         tutorial_label.hide()
 
@@ -102,11 +113,11 @@ func finalize_connections() -> void:
     save_connections_to_game_state()
 
     connections_created.emit()
-    if game_state.is_tutorial_active:
-        game_state.current_state = GlobalEnums.CampaignPhase.CREW_CREATION
+    if GameStateManager.game_state.is_tutorial_active:
+        GameStateManager.game_state.current_state = GlobalEnums.CampaignPhase.CREW_CREATION
 
 func save_connections_to_game_state() -> void:
-    game_state.character_connections = connections
+    GameStateManager.game_state.character_connections = connections
 
 func set_characters(char_list: Array[Character]) -> void:
     characters = char_list

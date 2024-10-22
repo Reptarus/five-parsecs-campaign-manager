@@ -7,20 +7,20 @@ extends Control
 ]
 @onready var confirm_button := $HBoxContainer/LeftPanel/VBoxContainer/ConfirmButton
 
-var game_state_manager: GameStateManager
+var current_phase: GlobalEnums.CampaignPhase
 
 func _ready() -> void:
-	game_state_manager = get_node("/root/GameStateManager")
-	if not game_state_manager:
+	if not GameStateManager:
 		push_error("GameStateManager not found. Ensure it's properly set up.")
 		return
+	current_phase = GameStateManager.get_game_state()
 	
 	setup_ui()
 	connect_signals()
 	
 	# Initialize crew if not exists
-	if not game_state_manager.game_state.crew:
-		game_state_manager.game_state.crew = Crew.new()
+	if not GameStateManager.game_state.crew:
+		GameStateManager.game_state.crew = Crew.new()
 	
 	update_character_panels()
 
@@ -28,7 +28,7 @@ func setup_ui() -> void:
 	update_character_panels()
 
 func update_character_panels() -> void:
-	var crew = game_state_manager.game_state.crew
+	var crew = GameStateManager.game_state.crew
 	for i in range(8):
 		# warning-ignore:integer_division
 		var panel = character_columns[i / 4].get_child(i % 4)
@@ -63,7 +63,7 @@ func _on_character_panel_input(event: InputEvent, panel: Panel) -> void:
 		_on_character_panel_pressed(character_index)
 
 func _on_character_panel_pressed(character_index: int) -> void:
-	game_state_manager.temp_data["editing_character_index"] = character_index
+	GameStateManager.temp_data["editing_character_index"] = character_index
 	get_tree().change_scene_to_file("res://Scenes/Scene Container/campaigncreation/CharacterCreator.tscn")
 
 func get_character_index(panel: Panel) -> int:
@@ -76,7 +76,7 @@ func get_character_index(panel: Panel) -> int:
 	return -1
 
 func _on_confirm_button_pressed() -> void:
-	var crew = game_state_manager.game_state.crew
+	var crew = GameStateManager.game_state.crew
 	if crew.get_crew_size() == Crew.MAX_CREW_SIZE:
 		get_tree().change_scene_to_file("res://Scenes/campaign/NewCampaignSetup/ShipCreation.tscn")
 	else:

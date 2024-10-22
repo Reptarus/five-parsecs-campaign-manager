@@ -8,7 +8,7 @@ func _ready() -> void:
 
 func run_pre_battle_loop() -> void:
 	print_debug("Beginning pre-battle preparations...")
-	assign_crew_tasks(game_state_manager.game_state.current_ship.crew)
+	assign_crew_tasks(Array[Character])
 	process_rumors()
 	update_mission_availability()
 	print_debug("Pre-battle preparations complete.")

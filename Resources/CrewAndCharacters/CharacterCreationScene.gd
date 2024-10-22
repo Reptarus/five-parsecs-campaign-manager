@@ -22,7 +22,6 @@ var ship_inventory: ShipInventory
 @onready var motivation_roll_result: Label = $MarginContainer/HSplitContainer/LeftPanel/ScrollContainer/VBoxContainer/MotivationSelection/MotivationRollResult
 @onready var class_roll_result: Label = $MarginContainer/HSplitContainer/LeftPanel/ScrollContainer/VBoxContainer/ClassSelection/ClassRollResult
 
-var game_state_manager: GameStateManager
 var editing_index: int = -1
 
 var background_roll: int = 0
@@ -33,17 +32,16 @@ func _ready():
 	if Engine.is_editor_hint():
 		return  # Skip initialization in the editor
 	
-	game_state_manager = get_node("/root/GameStateManager")
-	if not game_state_manager:
+	if not GameStateManager:
 		push_error("GameStateManager not found")
 		return
 
 	# Initialize crew if it doesn't exist
 	if not crew:
-		crew = game_state_manager.game_state.get("crew")
+		crew = GameStateManager.game_state.get("crew")
 		if not crew:
 			crew = Crew.new()
-			game_state_manager.game_state.crew = crew
+			GameStateManager.game_state.crew = crew
 	
 	if not character_creation_data:
 		character_creation_data = CharacterCreationData.new()
@@ -107,7 +105,7 @@ func _update_character_count():
 		character_count_label.text = "Characters: 0/8"
 
 func _load_character_for_editing():
-	editing_index = game_state_manager.temp_data.get("editing_character_index", -1)
+	editing_index = GameStateManager.temp_data.get("editing_character_index", -1)
 	if crew and editing_index != -1 and editing_index < crew.get_size():
 		var character = crew.characters[editing_index]
 		if character is CrewMember:
@@ -139,7 +137,7 @@ func _select_option_by_metadata(option_button: OptionButton, value):
 func _on_add_character_pressed() -> void:
 	if not crew:
 		crew = Crew.new()
-		game_state_manager.game_state.crew = crew
+		GameStateManager.game_state.crew = crew
 
 	if crew.get_size() < Crew.MAX_CREW_SIZE:
 		var new_character = CrewMember.new()
@@ -149,7 +147,7 @@ func _on_add_character_pressed() -> void:
 		new_character.motivation = motivation_option.get_selected_metadata()
 		new_character.character_class = class_option.get_selected_metadata()
 		
-		character_creation_logic.initialize_character(new_character, game_state_manager.game_state)
+		character_creation_logic.initialize_character(new_character, GameStateManager.game_state)
 		_apply_starting_rolls(new_character)
 		
 		if editing_index != -1 and editing_index < crew.get_size():
@@ -157,8 +155,8 @@ func _on_add_character_pressed() -> void:
 		else:
 			crew.add_character(new_character)
 		
-		game_state_manager.game_state.crew = crew
-		game_state_manager.save_game()
+		GameStateManager.game_state.crew = crew
+		GameStateManager.save_game()
 		
 		print("Character added successfully: ", new_character.name)
 		get_tree().change_scene_to_file("res://Scenes/Scene Container/InitialCrewCreation.tscn")
@@ -270,8 +268,8 @@ func _clear_selection():
 	_update_character_preview()
 
 func _on_back_to_crew_management_pressed():
-	game_state_manager.game_state.crew = crew
-	game_state_manager.save_game()
+	GameStateManager.game_state.crew = crew
+	GameStateManager.save_game()
 	get_tree().change_scene_to_file("res://Scenes/Scene Container/InitialCrewCreation.tscn")
 
 func _connect_signals():
@@ -313,8 +311,8 @@ func _on_class_selected(index: int):
 
 func _notification(what: int) -> void:
 	if what == NOTIFICATION_WM_CLOSE_REQUEST:
-		game_state_manager.game_state.crew = crew
-		game_state_manager.save_game()
+		GameStateManager.game_state.crew = crew
+		GameStateManager.save_game()
 
 func _on_save_character_pressed():
 	var species_id = species_option.get_selected_metadata()

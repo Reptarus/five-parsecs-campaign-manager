@@ -6,7 +6,7 @@ var game_state: GameState
 var galactic_war_manager: GalacticWarManager
 var game_state_manager: GameStateManager
 
-const AdvTrainingManager = preload("res://Resources/AdvTrainingManager.gd")
+const AdvTrainingManager = preload("res://Resources/WorldPhase/AdvTrainingManager.gd")
 
 func _init(_game_state: GameState) -> void:
 	game_state = _game_state
@@ -114,7 +114,7 @@ func invest_in_advanced_training() -> void:
 
 func purchase_items() -> void:
 	var economy_manager = game_state.economy_manager
-	var world_economy_manager = WorldEconomyManager.new(game_state.current_location, economy_manager)
+	var world_economy_manager = WorldEconomyManager.new(Location.new(), economy_manager)
 	var available_items = world_economy_manager.get_local_market()
 	
 	for item in available_items:
@@ -245,7 +245,7 @@ func apply_character_event(character: Character, event: Dictionary) -> void:
 			# Add random loot to character's inventory
 			var loot_generator = LootGenerator.new()
 			var loot = loot_generator.generate_loot()
-			loot_generator.apply_loot(character, loot, character.ship)
+			loot_generator.apply_loot(game_state.current_crew, loot, character.ship)
 		"Vital info":
 			# Turn in information to get a Corporate Patron
 			var patron = Patron.new()

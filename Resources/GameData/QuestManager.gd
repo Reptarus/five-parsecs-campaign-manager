@@ -14,7 +14,7 @@ var failed_quests: Array[Quest] = []
 
 func _ready() -> void:
 	if not game_state:
-		game_state = get_node("/root/GameStateManager")
+		game_state = get_node("/root/MockGameState")
 
 func generate_new_quest() -> Quest:
 	var new_quest = Quest.new().generate_quest(game_state)

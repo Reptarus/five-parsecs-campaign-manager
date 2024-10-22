@@ -6,7 +6,7 @@ var current_campaign_turn: int = 0
 var game_state: GameState
 var current_crew: String = ""
 
-const CampaignDashboardScene = preload("res://Scenes/Scene Container/CampaignDashboard.tscn")
+const CampaignDashboardScene = preload("res://Resources/CampaignManagement/Scenes/CampaignDashboard.tscn")
 
 func _ready():
 	create_logbook_directory()

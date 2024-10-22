@@ -46,7 +46,7 @@ func _on_back_pressed() -> void:
 	get_tree().change_scene_to_file("res://Scenes/Management/CampaignDashboard.tscn")
 
 func _visualize_battlefield() -> void:
-	var battlefield_generator = preload("res://Scenes/Management/Scenes/BattlefieldGenerator.tscn").instantiate()
+	var battlefield_generator = preload("res://Resources/BattlePhase/Scenes/BattlefieldGenerator.tscn").instantiate()
 	add_child(battlefield_generator)
 	
 	battlefield_generator.mission = current_mission

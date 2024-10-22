@@ -1,32 +1,40 @@
 [gd_scene load_steps=2 format=3 uid="uid://cxxx"]
 
-[ext_resource type="Script" path="res://Resources/CrewAndCharacters/Scripts/CharacterBox.gd" id="1_script"]
+[ext_resource type="Script" path="res://Resources/CrewAndCharacters/CharacterBox.gd" id="1_script"]
 
 [node name="CharacterBox" type="PanelContainer"]
-custom_minimum_size = Vector2(0, 100)
+custom_minimum_size = Vector2(0, 100)  # Set minimum height
+size_flags_horizontal = 3  # Make it expand horizontally
 script = ExtResource("1_script")
 
-[node name="HBoxContainer" type="HBoxContainer" parent="."]
+[node name="MarginContainer" type="MarginContainer" parent="."]
 layout_mode = 2
+theme_override_constants/margin_left = 10
+theme_override_constants/margin_top = 5
+theme_override_constants/margin_right = 10
+theme_override_constants/margin_bottom = 5
 
-[node name="Portrait" type="TextureRect" parent="HBoxContainer"]
-custom_minimum_size = Vector2(100, 100)
+[node name="VBoxContainer" type="VBoxContainer" parent="MarginContainer"]
 layout_mode = 2
-expand_mode = 1
-stretch_mode = 5
+theme_override_constants/separation = 5
 
-[node name="VBoxContainer" type="VBoxContainer" parent="HBoxContainer"]
+[node name="NameLabel" type="Label" parent="MarginContainer/VBoxContainer"]
 layout_mode = 2
-size_flags_horizontal = 3
-
-[node name="NameLabel" type="Label" parent="HBoxContainer/VBoxContainer"]
-layout_mode = 2
+theme_override_font_sizes/font_size = 16
 text = "Name"
 
-[node name="SpeciesLabel" type="Label" parent="HBoxContainer/VBoxContainer"]
+[node name="ClassLabel" type="Label" parent="MarginContainer/VBoxContainer"]
 layout_mode = 2
-text = "Species"
-
-[node name="ClassLabel" type="Label" parent="HBoxContainer/VBoxContainer"]
-layout_mode = 2
+theme_override_font_sizes/font_size = 14
 text = "Class"
+
+[node name="StatsContainer" type="Label" parent="MarginContainer/VBoxContainer"]
+layout_mode = 2
+theme_override_font_sizes/font_size = 12
+text = "Stats"
+
+[node name="HealthBar" type="ProgressBar" parent="MarginContainer/VBoxContainer"]
+custom_minimum_size = Vector2(0, 10)
+layout_mode = 2
+value = 100.0
+show_percentage = false
