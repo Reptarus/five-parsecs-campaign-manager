@@ -60,7 +60,7 @@ func _on_pressed() -> void:
 		edit_character.emit(character)
 	else:
 		# Start the process of creating a new character
-		var character_creator = preload("res://Scenes/Scene Container/campaigncreation/CharacterCreator.tscn").instantiate()
+		var character_creator = preload("res://Resources/CampaignManagement/Scenes/CharacterCreator.tscn").instantiate()
 		character_creator.connect("character_created", _on_character_created)
 		get_tree().root.add_child(character_creator)
 
