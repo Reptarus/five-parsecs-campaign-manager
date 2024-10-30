@@ -6,6 +6,12 @@ var required_crew_size: int = 4
 var enemies: Array[Enemy] = []
 var unique_individual: Enemy
 var status: GlobalEnums.MissionStatus = GlobalEnums.MissionStatus.ACTIVE
+var benefits: Array[String] = []
+var hazards: Array[String] = []
+var conditions: Array[String] = []
+var patron: Patron = null
+var threat_condition: String = ""
+var time_constraint: String = ""
 
 @export var title: String = ""
 @export var description: String = ""
@@ -124,3 +130,24 @@ static func deserialize(data: Dictionary) -> Mission:
 	mission.victory_condition = GlobalEnums.VictoryConditionType[data.get("victory_condition", "TURNS")]
 	mission.ai_behavior = GlobalEnums.AIBehavior[data.get("ai_behavior", "TACTICAL")]
 	return mission
+
+func complete() -> void:
+	status = GlobalEnums.MissionStatus.COMPLETED
+
+func fail() -> void:
+	status = GlobalEnums.MissionStatus.FAILED
+
+func increased_opposition() -> void:
+	difficulty += 1
+	for enemy in enemies:
+		enemy.increase_difficulty()
+
+func improved_rewards() -> void:
+	rewards["credits"] = int(rewards["credits"] * 1.5)
+	rewards["reputation"] = mini(5, rewards["reputation"] + 1)
+
+func setup_black_zone_opposition() -> void:
+	for enemy in enemies:
+		enemy.set_elite_status()
+	if unique_individual:
+		unique_individual.set_elite_status()

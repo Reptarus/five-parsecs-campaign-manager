@@ -1,50 +1,33 @@
 class_name PatronJobManager
-extends Node
+extends Resource
 
-var game_state_manager: GameStateManager
-var mission_generator: MissionGenerator
+var game_state_manager: GameState
+var validation_manager: ValidationManager
 
-func initialize(_game_state_manager: GameStateManager) -> void:
-	self.game_state_manager = game_state_manager
-	mission_generator = MissionGenerator.new()
-	mission_generator.initialize(game_state_manager)
+func _init(_game_state: GameState) -> void:
+	game_state_manager = _game_state
+	validation_manager = ValidationManager.new(_game_state)
 
-func generate_patron_jobs() -> void:
-	for patron in game_state_manager.patrons:
-		if should_generate_job(patron):
-			var benefits_hazards_conditions = generate_benefits_hazards_conditions(patron)
-			var new_job = mission_generator.generate_mission(
-				patron.faction,
-				patron.preferred_mission_types,
-				str(patron.relationship),  # Convert relationship to string
-				benefits_hazards_conditions
-			)
-			new_job.type = GlobalEnums.Type.PATRON
-			new_job.patron = patron
-			patron.add_mission(new_job)
-			game_state_manager.add_available_mission(new_job)
-
-func should_generate_job(patron: Patron) -> bool:
-	return randf() < 0.2 + (patron.relationship / 200.0)
-
-func get_available_patron_jobs() -> Array[Mission]:
-	return game_state_manager.available_missions.filter(func(mission: Mission) -> bool: return mission.patron != null)
-
-func accept_job(mission: Mission) -> void:
+func accept_job(mission: Mission) -> bool:
+	var validation_result = validation_manager.validate_mission_start(mission)
+	if not validation_result.valid:
+		return false
+		
 	game_state_manager.current_mission = mission
 	game_state_manager.remove_available_mission(mission)
+	return true
 
 func complete_job(mission: Mission) -> void:
 	mission.complete()
+	_apply_job_rewards(mission)
 	mission.patron.change_relationship(10)
-	game_state_manager.add_credits(mission.rewards["credits"])
-	game_state_manager.add_reputation(mission.rewards.get("reputation", 0))
 	game_state_manager.current_mission = null
 
 func fail_job(mission: Mission) -> void:
 	mission.fail()
 	mission.patron.change_relationship(-5)
 	game_state_manager.current_mission = null
+	_apply_failure_consequences(mission)
 
 func update_job_timers() -> void:
 	for mission in game_state_manager.available_missions:
@@ -53,6 +36,24 @@ func update_job_timers() -> void:
 			if mission.time_limit <= 0:
 				game_state_manager.remove_available_mission(mission)
 				mission.patron.change_relationship(-2)
+
+func _apply_job_rewards(mission: Mission) -> void:
+	game_state_manager.add_credits(mission.rewards["credits"])
+	game_state_manager.add_reputation(mission.rewards.get("reputation", 0))
+	
+	if mission.rewards.has("equipment"):
+		for item in mission.rewards.equipment:
+			game_state_manager.current_crew.add_equipment(item)
+			
+	if mission.rewards.has("influence"):
+		game_state_manager.add_influence(mission.rewards.influence)
+
+func _apply_failure_consequences(mission: Mission) -> void:
+	if mission.hazards.size() > 0:
+		game_state_manager.current_crew.apply_casualties()
+	
+	if mission.conditions.has("Reputation Required"):
+		game_state_manager.decrease_reputation(5)
 
 func generate_benefits_hazards_conditions(patron: Patron) -> Dictionary:
 	return {

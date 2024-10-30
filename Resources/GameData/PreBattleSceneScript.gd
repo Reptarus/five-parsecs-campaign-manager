@@ -1,42 +1,84 @@
 class_name PreBattleSceneScript
 extends Control
 
-const MockGameState = preload("res://Resources/MockGameState.gd")
+signal battle_started
+signal setup_completed
+
 const MISSION_PANEL_SCENE = preload("res://Resources/BattlePhase/Scenes/MissionInfoPanel.tscn")
 const ENEMY_PANEL_SCENE = preload("res://Resources/BattlePhase/Scenes/EnemyInfoPanel.tscn")
 const BATTLEFIELD_PREVIEW_SCENE = preload("res://Resources/BattlePhase/Scenes/BattlefieldPreview.tscn")
 const CHARACTER_BOX_SCENE = preload("res://Resources/CrewAndCharacters/Scenes/CharacterBox.tscn")
 
-@onready var game_state: MockGameState = get_node("/root/GameStateManager")
+@onready var game_state: GameState = get_node("/root/GameStateManager").game_state
 var terrain_generator: TerrainGenerator
-
-# Declare current_mission as a class variable
 var current_mission: Mission
 
-@onready var generate_terrain_button: Button = $GenerateTerrainButton
-@onready var place_characters_button: Button = $PlaceCharactersButton
-@onready var start_battle_button: Button = $StartBattleButton
-@onready var back_button: Button = $BackButton
+# UI Elements
 @onready var mission_container = $HBoxContainer/MissionPanel
 @onready var enemy_container = $HBoxContainer/EnemyPanel
 @onready var battlefield_container = $HBoxContainer/BattlefieldPanel
 @onready var crew_container = $BottomPanel/CrewContainer
 @onready var map_legend = $HBoxContainer/BattlefieldPanel/MapLegend
+@onready var generate_terrain_button = $ButtonContainer/GenerateTerrainButton
+@onready var place_characters_button = $ButtonContainer/PlaceCharactersButton
+@onready var start_battle_button = $ButtonContainer/StartBattleButton
+@onready var back_button = $ButtonContainer/BackButton
 
-var mission_icons = {
+var mission_icons := {
 	"assassination_target": preload("res://Assets/Icons/assassination_target.png"),
 	"escort_target": preload("res://Assets/Icons/escort_target.png"),
 	"intel": preload("res://Assets/Icons/intel.png"),
-	"objective": preload("res://Assets/Icons/objective.png"),
-	# Add other mission-specific icons
+	"objective": preload("res://Assets/Icons/objective.png")
 }
 
 func _ready() -> void:
+	current_mission = game_state.current_mission
+	if not current_mission:
+		push_error("No mission loaded")
+		return
+		
+	initialize()
+	setup_ui()
+	connect_signals()
+
+func initialize() -> void:
+	terrain_generator = TerrainGenerator.new()
+	terrain_generator.initialize(game_state)
+
+func setup_ui() -> void:
 	setup_mission_info()
 	setup_enemy_info()
 	setup_battlefield_preview()
 	setup_crew_selection()
 	setup_map_legend()
+	update_button_states()
+
+func connect_signals() -> void:
+	generate_terrain_button.pressed.connect(_on_generate_terrain_pressed)
+	place_characters_button.pressed.connect(_on_place_characters_pressed)
+	start_battle_button.pressed.connect(_on_start_battle_pressed)
+	back_button.pressed.connect(_on_back_pressed)
+
+func setup_mission_info() -> void:
+	var mission_panel = MISSION_PANEL_SCENE.instantiate()
+	mission_panel.setup(current_mission)
+	mission_container.add_child(mission_panel)
+
+func setup_enemy_info() -> void:
+	var enemy_panel = ENEMY_PANEL_SCENE.instantiate()
+	enemy_panel.setup(current_mission.enemies)
+	enemy_container.add_child(enemy_panel)
+
+func setup_battlefield_preview() -> void:
+	var preview = BATTLEFIELD_PREVIEW_SCENE.instantiate()
+	preview.setup(current_mission.battlefield_size)
+	battlefield_container.add_child(preview)
+
+func setup_crew_selection() -> void:
+	for character in game_state.current_crew.members:
+		var char_box = CHARACTER_BOX_SCENE.instantiate()
+		char_box.setup(character)
+		crew_container.add_child(char_box)
 
 func setup_map_legend() -> void:
 	for icon_name in mission_icons:
@@ -49,134 +91,61 @@ func setup_map_legend() -> void:
 		icon_container.add_child(label)
 		map_legend.add_child(icon_container)
 
-func initialize() -> void:
-	terrain_generator = TerrainGenerator.new()
-	terrain_generator.initialize(game_state)
+func update_button_states() -> void:
+	place_characters_button.disabled = true
+	start_battle_button.disabled = true
+	generate_terrain_button.disabled = false
 
 func _on_generate_terrain_pressed() -> void:
-	var battlefield_size := GlobalEnums.TerrainSize.MEDIUM  # 24" x 24" battlefield as per rules
-	var terrain_type := GlobalEnums.TerrainGenerationType.INDUSTRIAL  # Assuming a default terrain type for generation
+	var battlefield_size := GlobalEnums.TerrainSize.MEDIUM
+	var terrain_type := current_mission.terrain_type
+	
 	terrain_generator.generate_terrain(battlefield_size, terrain_type)
-	terrain_generator.generate_features([GlobalEnums.TerrainFeature.AREA], current_mission)
-	terrain_generator.generate_cover()
+	terrain_generator.generate_features(current_mission.required_features, current_mission)
 	terrain_generator.generate_cover()
 	terrain_generator.generate_loot()
 	terrain_generator.generate_enemies()
 	terrain_generator.generate_npcs()
-	game_state.combat_manager.place_objectives()
+	
 	_visualize_battlefield()
+	place_characters_button.disabled = false
+	generate_terrain_button.disabled = true
 
 func _on_place_characters_pressed() -> void:
 	_place_characters()
+	start_battle_button.disabled = false
+	place_characters_button.disabled = true
 
 func _on_start_battle_pressed() -> void:
-	GameManager.new().start_battle(get_tree())
+	battle_started.emit()
 	queue_free()
 
 func _on_back_pressed() -> void:
 	get_tree().change_scene_to_file("res://Scenes/Management/CampaignDashboard.tscn")
 
 func _visualize_battlefield() -> void:
-	var battlefield_generator = preload("res://Resources/BattlePhase/Scenes/BattlefieldGenerator.tscn").instantiate()
-	add_child(battlefield_generator)
-	
-	battlefield_generator.mission = current_mission
-	battlefield_generator.terrain_generator = terrain_generator
-	battlefield_generator.initialize()
-	
-	# Update labels with mission information
-	battlefield_generator.mission_name_label.text = "Mission: %s" % current_mission.title
-	battlefield_generator.mission_objective_label.text = "Objective: %s" % GlobalEnums.MissionObjective.keys()[current_mission.objective]
-	
-	var enemies_text := "Enemies:\n"
-	for enemy in current_mission.get_enemies():
-		enemies_text += "- %s x%d\n" % [enemy.name, enemy.count]
-	battlefield_generator.mission_enemies_label.text = enemies_text
-	
-	var conditions_text := "Conditions:\n"
-	for condition in current_mission.environmental_factors:
-		conditions_text += "- %s\n" % condition
-	battlefield_generator.battlefield_conditions_label.text = conditions_text
-	
-	# Generate and display the battlefield grid
-	var battlefield_data = battlefield_generator.generate_battlefield(current_mission)
-	battlefield_generator._generate_battlefield_grid(battlefield_data)
+	var battlefield_view = BattlefieldView.new()
+	battlefield_view.setup(terrain_generator.get_battlefield_data())
+	battlefield_container.add_child(battlefield_view)
 
 func _place_characters() -> void:
 	var deployment_zone = _get_deployment_zone()
-	var characters = game_state.current_crew.characters
+	var characters = game_state.current_crew.get_active_members()
 	var placed_characters = []
 
 	for character in characters:
 		var valid_positions = _get_valid_positions(deployment_zone, placed_characters)
 		if valid_positions.is_empty():
-			print("Warning: No valid positions left for character deployment")
+			push_warning("No valid positions left for character deployment")
 			break
 
 		var char_position = _select_position(valid_positions)
 		_place_character(character, char_position)
 		placed_characters.append({"character": character, "position": char_position})
 
-	_update_battlefield_display(placed_characters)
+	game_state.combat_manager.set_initial_positions(placed_characters)
+	setup_completed.emit()
 
 func _get_deployment_zone() -> Rect2:
-	# Define deployment zone based on mission type and battlefield size
-	# For now, we'll use a simple 6" deployment zone on one edge
-	var battlefield_size = Vector2(24, 24)  # 24" x 24" as per Core Rules
+	var battlefield_size = current_mission.battlefield_size
 	return Rect2(Vector2.ZERO, Vector2(6, battlefield_size.y))
-
-func _get_valid_positions(deployment_zone: Rect2, placed_characters: Array) -> Array:
-	var valid_positions = []
-	for x in range(int(deployment_zone.size.x)):
-		for y in range(int(deployment_zone.size.y)):
-			var grid_pos = Vector2(x, y)
-			if _is_position_valid(grid_pos, placed_characters):
-				valid_positions.append(grid_pos)
-	return valid_positions
-
-func _is_position_valid(pos: Vector2, placed_characters: Array) -> bool:
-	for placed in placed_characters:
-		if placed.position.distance_to(pos) < 1:  # Ensure 1" spacing between characters
-			return false
-	return true
-
-func _select_position(valid_positions: Array) -> Vector2:
-	# For now, we'll just select a random valid position
-	# In the future, this could be replaced with player input
-	return valid_positions[randi() % valid_positions.size()]
-
-func _place_character(character: Character, char_position: Vector2) -> void:
-	character.position = char_position
-	print("Placed %s at position %s" % [character.name, char_position])
-
-func _update_battlefield_display(placed_characters: Array) -> void:
-	# Update the visual representation of the battlefield
-	# This involves updating the UI to show character positions
-	var battlefield_grid = $MarginContainer/VBoxContainer/HBoxContainer2/VBoxContainer2/AspectRatioContainer/BattlefieldGrid
-	var cell_size = Vector2(32, 32)  # CELL_SIZE from BattlefieldGenerator
-
-	for placed in placed_characters:
-		var character_node = ColorRect.new()
-		character_node.color = Color.BLUE
-		character_node.size = cell_size
-		character_node.position = placed.position * cell_size
-		battlefield_grid.add_child(character_node)
-
-	print("Updated battlefield display with %d characters" % placed_characters.size())
-
-# Additional helper functions can be added here as needed
-
-func load_current_mission() -> Mission:
-	var mission_manager = MissionManager.new(game_state)
-	var available_missions = mission_manager.get_available_missions()
-	
-	if available_missions.is_empty():
-		# If no missions are available, generate a new one
-		var new_missions = mission_manager.generate_missions()
-		if new_missions.is_empty():
-			push_error("Failed to generate any missions")
-			return null
-		return new_missions[0]
-	else:
-		# Return the first available mission
-		return available_missions[0]

@@ -2,7 +2,7 @@
 
 [ext_resource type="Theme" uid="uid://ddjoduj1ya6tp" path="res://assets/5PFH.tres" id="1_nq7n0"]
 [ext_resource type="Script" path="res://Resources/CampaignManagement/TravelPhase.gd" id="2_h665a"]
-[ext_resource type="Texture2D" uid="uid://bwejyqe8qschs" path="res://assets/Basic assets/Card X3/Card X5.png" id="3_jfytx"]
+[ext_resource type="Script" path="res://Scripts/Locations/StarshipTravelEvents.gd" id="3_stev"]
 
 [node name="TravelPhaseUI" type="Control"]
 layout_mode = 3
@@ -21,7 +21,6 @@ anchor_right = 1.0
 anchor_bottom = 1.0
 grow_horizontal = 2
 grow_vertical = 2
-texture = ExtResource("3_jfytx")
 
 [node name="CenterContainer" type="CenterContainer" parent="."]
 layout_mode = 1
@@ -45,6 +44,50 @@ horizontal_alignment = 1
 
 [node name="HSeparator" type="HSeparator" parent="CenterContainer/PanelContainer/VBoxContainer"]
 layout_mode = 2
+
+[node name="TabContainer" type="TabContainer" parent="CenterContainer/PanelContainer/VBoxContainer"]
+layout_mode = 2
+size_flags_vertical = 3
+
+[node name="Upkeep" type="VBoxContainer" parent="CenterContainer/PanelContainer/VBoxContainer/TabContainer"]
+layout_mode = 2
+
+[node name="UpkeepLabel" type="Label" parent="CenterContainer/PanelContainer/VBoxContainer/TabContainer/Upkeep"]
+layout_mode = 2
+text = "Upkeep Phase"
+
+[node name="UpkeepDetails" type="VBoxContainer" parent="CenterContainer/PanelContainer/VBoxContainer/TabContainer/Upkeep"]
+layout_mode = 2
+
+[node name="UpkeepButton" type="Button" parent="CenterContainer/PanelContainer/VBoxContainer/TabContainer/Upkeep"]
+layout_mode = 2
+text = "Perform Upkeep"
+
+[node name="Travel" type="VBoxContainer" parent="CenterContainer/PanelContainer/VBoxContainer/TabContainer"]
+visible = false
+layout_mode = 2
+
+[node name="TravelLabel" type="Label" parent="CenterContainer/PanelContainer/VBoxContainer/TabContainer/Travel"]
+layout_mode = 2
+text = "Travel Phase"
+
+[node name="TravelOptions" type="VBoxContainer" parent="CenterContainer/PanelContainer/VBoxContainer/TabContainer/Travel"]
+layout_mode = 2
+
+[node name="StayButton" type="Button" parent="CenterContainer/PanelContainer/VBoxContainer/TabContainer/Travel/TravelOptions"]
+layout_mode = 2
+text = "Stay in Current Location"
+
+[node name="TravelButton" type="Button" parent="CenterContainer/PanelContainer/VBoxContainer/TabContainer/Travel/TravelOptions"]
+layout_mode = 2
+text = "Travel to New Location"
+
+[node name="TravelEventDetails" type="VBoxContainer" parent="CenterContainer/PanelContainer/VBoxContainer/TabContainer/Travel"]
+layout_mode = 2
+
+[node name="NextEventButton" type="Button" parent="CenterContainer/PanelContainer/VBoxContainer/TabContainer/Travel"]
+layout_mode = 2
+text = "Generate Next Event"
 
 [node name="StepContainer" type="VBoxContainer" parent="CenterContainer/PanelContainer/VBoxContainer"]
 layout_mode = 2
@@ -72,5 +115,12 @@ grow_horizontal = 2
 grow_vertical = 0
 size_flags_vertical = 3
 
+[node name="StarshipTravelEvents" type="Node" parent="."]
+script = ExtResource("3_stev")
+
+[connection signal="pressed" from="CenterContainer/PanelContainer/VBoxContainer/TabContainer/Upkeep/UpkeepButton" to="." method="_on_upkeep_button_pressed"]
+[connection signal="pressed" from="CenterContainer/PanelContainer/VBoxContainer/TabContainer/Travel/TravelOptions/StayButton" to="." method="_on_stay_button_pressed"]
+[connection signal="pressed" from="CenterContainer/PanelContainer/VBoxContainer/TabContainer/Travel/TravelOptions/TravelButton" to="." method="_on_travel_button_pressed"]
+[connection signal="pressed" from="CenterContainer/PanelContainer/VBoxContainer/TabContainer/Travel/NextEventButton" to="." method="_on_next_event_button_pressed"]
 [connection signal="pressed" from="CenterContainer/PanelContainer/VBoxContainer/ButtonContainer/BackButton" to="." method="_on_back_button_pressed"]
 [connection signal="pressed" from="CenterContainer/PanelContainer/VBoxContainer/ButtonContainer/NextButton" to="." method="_on_next_button_pressed"]
