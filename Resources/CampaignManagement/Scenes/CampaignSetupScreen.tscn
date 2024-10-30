@@ -1,7 +1,8 @@
-[gd_scene load_steps=4 format=3 uid="uid://c1ipgkdm40l6c"]
+[gd_scene load_steps=5 format=3 uid="uid://c1ipgkdm40l6c"]
 
 [ext_resource type="Theme" uid="uid://ddjoduj1ya6tp" path="res://assets/5PFH.tres" id="1_23rvc"]
 [ext_resource type="Script" path="res://Resources/GameData/CampaignSetupScreen.gd" id="1_sapom"]
+[ext_resource type="Texture2D" uid="uid://cb3wc2cq0m72j" path="res://assets/BookImages/Dec_9_Gambling_Hall.jpg" id="3_mupwv"]
 [ext_resource type="PackedScene" uid="uid://dp66b6flafme3" path="res://Resources/CampaignManagement/Scenes/VictoryConditionSelection.tscn" id="3_victory"]
 
 [node name="CampaignSetupScreen" type="Control"]
@@ -13,6 +14,16 @@ grow_horizontal = 2
 grow_vertical = 2
 theme = ExtResource("1_23rvc")
 script = ExtResource("1_sapom")
+
+[node name="TextureRect" type="TextureRect" parent="."]
+layout_mode = 1
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+texture = ExtResource("3_mupwv")
+expand_mode = 3
 
 [node name="HBoxContainer" type="HBoxContainer" parent="."]
 layout_mode = 1

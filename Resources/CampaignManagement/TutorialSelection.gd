@@ -1,25 +1,23 @@
 extends Panel
 
+const MockGameState = preload("res://Resources/MockGameState.gd")
+
 @onready var story_track_button = $VBoxContainer/StoryTrackButton
 @onready var compendium_button = $VBoxContainer/CompendiumButton
 @onready var skip_button = $VBoxContainer/SkipButton
 @onready var disable_tutorial_checkbox = $VBoxContainer/DisableTutorialCheckbox
 
-var game_state_manager: GameStateManager
+@onready var game_state_manager: MockGameState = get_node("/root/GameStateManager")
 
 func _ready():
-	game_state_manager = get_node("/root/GameStateManager")
-	if game_state_manager == null:
+	if !is_instance_valid(game_state_manager):
 		push_error("GameStateManager not found")
+		return
 	
-	if story_track_button:
-		story_track_button.pressed.connect(_on_story_track_pressed)
-	if compendium_button:
-		compendium_button.pressed.connect(_on_compendium_pressed)
-	if skip_button:
-		skip_button.pressed.connect(_on_skip_pressed)
-	if disable_tutorial_checkbox:
-		disable_tutorial_checkbox.toggled.connect(_on_disable_tutorial_toggled)
+	story_track_button.pressed.connect(_on_story_track_pressed)
+	compendium_button.pressed.connect(_on_compendium_pressed)
+	skip_button.pressed.connect(_on_skip_pressed)
+	disable_tutorial_checkbox.toggled.connect(_on_disable_tutorial_toggled)
 
 func _on_story_track_pressed():
 	get_parent()._on_tutorial_popup_button_pressed("story_track")

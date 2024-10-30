@@ -1,7 +1,7 @@
 [gd_scene load_steps=4 format=3 uid="uid://c81bnyoxyhbg5"]
 
 [ext_resource type="Theme" uid="uid://ddjoduj1ya6tp" path="res://assets/5PFH.tres" id="1_k3jl8"]
-[ext_resource type="Script" path="res://Resources/ShipCreation.gd" id="1_script"]
+[ext_resource type="Script" path="res://Resources/Ships/ShipCreation.gd" id="1_script"]
 [ext_resource type="Texture2D" uid="uid://b203npbw1qtvy" path="res://assets/BookImages/Dec_12_escape_.jpg" id="3_gq2wl"]
 
 [node name="ShipCreation" type="Control"]

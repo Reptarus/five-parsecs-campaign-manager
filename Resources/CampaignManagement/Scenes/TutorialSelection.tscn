@@ -1,9 +1,9 @@
 [gd_scene load_steps=6 format=3 uid="uid://cerfs74ne77rd"]
 
 [ext_resource type="Theme" uid="uid://ddjoduj1ya6tp" path="res://assets/5PFH.tres" id="1_unuw3"]
-[ext_resource type="Script" path="res://Scenes/campaign/scripts/TutorialSelection.gd" id="2_mt7xa"]
+[ext_resource type="Script" path="res://Resources/CampaignManagement/TutorialSelection.gd" id="2_mt7xa"]
 [ext_resource type="Texture2D" uid="uid://bqw88gvv0saii" path="res://assets/Basic assets/5PFHUIAssets/Sci-Fi-Infoboxes_0000s_0005s_0033_11.png" id="3_pr5ho"]
-[ext_resource type="Script" path="res://Scenes/Utils/TutorialManager.gd" id="4_a3gvo"]
+[ext_resource type="Script" path="res://Resources/GameData/TutorialManager.gd" id="4_a3gvo"]
 
 [sub_resource type="StyleBoxTexture" id="StyleBoxTexture_1fhnw"]
 texture = ExtResource("3_pr5ho")

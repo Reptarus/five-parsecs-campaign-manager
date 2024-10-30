@@ -1,6 +1,9 @@
 # MainMenu.gd
 extends Control
 
+# At the top of the file, add the class reference
+const MockGameState = preload("res://Resources/MockGameState.gd")
+
 @onready var continue_button = $MenuButtons/Continue
 @onready var new_campaign_button = $MenuButtons/NewCampaign
 @onready var coop_campaign_button = $MenuButtons/CoopCampaign
@@ -8,15 +11,23 @@ extends Control
 @onready var bug_hunt_button = $MenuButtons/BugHunt
 @onready var options_button = $MenuButtons/Options
 @onready var library_button = $MenuButtons/Library
-@onready var new_campaign_tutorial = preload("res://Scenes/Scene Container/campaigncreation/scenes/NewCampaignTutorial.tscn")
+@onready var new_campaign_tutorial = preload("res://Resources/CampaignManagement/Scenes/NewCampaignTutorial.tscn")
 @onready var tutorial_popup = $TutorialPopup
 
-var game_state_manager: GameStateManager
+# Update the variable declaration to be explicit about the type
+var game_state_manager: MockGameState
 
 func _ready():
 	setup_ui()
 	call_deferred("initialize_game_systems")
-	tutorial_popup.hide()  # Hide the tutorial popup on startup
+	tutorial_popup.hide()
+	
+	# Connect tutorial popup signals
+	var tutorial_container = tutorial_popup.get_node("VBoxContainer")
+	tutorial_container.get_node("StoryTrackButton").pressed.connect(_on_tutorial_popup_button_pressed.bind("story_track"))
+	tutorial_container.get_node("CompendiumButton").pressed.connect(_on_tutorial_popup_button_pressed.bind("compendium"))
+	tutorial_container.get_node("SkipButton").pressed.connect(_on_tutorial_popup_button_pressed.bind("skip"))
+	tutorial_container.get_node("DisableTutorialCheckbox").toggled.connect(_on_disable_tutorial_toggled)
 
 func setup_ui():
 	connect_buttons()
@@ -44,16 +55,17 @@ func add_fade_in_animation():
 	tween.tween_property(self, "modulate", Color(1, 1, 1, 1), 0.5)
 
 func initialize_game_systems():
-	game_state_manager = get_node("/root/GameStateManager")
-	if game_state_manager == null:
+	# Since we're using @onready, we just need to check if it's valid
+	if !is_instance_valid(game_state_manager):
 		push_warning("GameStateManager not found. Retrying in 1 second.")
 		get_tree().create_timer(1.0).timeout.connect(initialize_game_systems)
 	else:
 		update_continue_button_visibility()
 
 func update_continue_button_visibility():
-	if game_state_manager and game_state_manager.game_state and game_state_manager.game_state.current_ship:
-		continue_button.visible = game_state_manager.game_state.current_ship.crew.size() > 0
+	if game_state_manager and game_state_manager.get_current_ship():
+		var crew = game_state_manager.get_crew()
+		continue_button.visible = crew.size() > 0
 	else:
 		continue_button.visible = false
 
@@ -64,8 +76,10 @@ func _on_continue_pressed():
 		print("No active campaign to continue")
 
 func _on_new_campaign_pressed():
-	# Always show the tutorial popup
-	_show_tutorial_popup()
+	if game_state_manager and game_state_manager.settings.get("disable_tutorial_popup", false):
+		_change_to_new_campaign_scene()
+	else:
+		_show_tutorial_popup()
 
 func _show_tutorial_popup():
 	tutorial_popup.show()
@@ -133,3 +147,14 @@ func transition_to_scene(scene_path):
 func _on_tutorial_popup_button_pressed(choice: String):
 	tutorial_popup.hide()
 	_on_tutorial_choice_made(choice)
+
+# Re-enable and update the tutorial toggle function
+func _on_disable_tutorial_toggled(button_pressed: bool):
+	if game_state_manager:
+		game_state_manager.settings["disable_tutorial_popup"] = button_pressed
+		if game_state_manager.has_method("save_settings"):
+			game_state_manager.save_settings()
+		else:
+			push_warning("GameStateManager does not have save_settings method")
+	else:
+		push_warning("GameStateManager not found when toggling tutorial setting")

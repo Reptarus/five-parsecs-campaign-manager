@@ -1,7 +1,7 @@
 [gd_scene load_steps=3 format=3 uid="uid://c61gpero4ks2m"]
 
 [ext_resource type="Theme" uid="uid://ddjoduj1ya6tp" path="res://assets/5PFH.tres" id="1_to0eh"]
-[ext_resource type="Script" path="res://Scenes/campaign/scripts/PostBattlePhase.gd" id="2_th48e"]
+[ext_resource type="Script" path="res://Resources/GameData/PostBattlePhase.gd" id="2_th48e"]
 
 [node name="PostBattleUI" type="Control"]
 layout_mode = 3

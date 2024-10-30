@@ -2,7 +2,7 @@
 
 [ext_resource type="Theme" uid="uid://ddjoduj1ya6tp" path="res://assets/5PFH.tres" id="1_1bg0s"]
 [ext_resource type="Script" path="res://Resources/CampaignManagement/CrewManagement.gd" id="1_abcde"]
-[ext_resource type="Texture2D" uid="uid://b3fyh80tftu7s" path="res://assets/BookImages/Jan_6_Cultist_.jpg" id="3_mj22h"]
+[ext_resource type="PackedScene" uid="uid://dxxx" path="res://Resources/CrewAndCharacters/Scenes/CharacterSheet.tscn" id="3_sheet"]
 [ext_resource type="PackedScene" uid="uid://cxxx" path="res://Resources/CrewAndCharacters/Scenes/CharacterBox.tscn" id="4_p5e7i"]
 
 [node name="CrewManagement" type="Control"]
@@ -15,16 +15,6 @@ grow_vertical = 2
 theme = ExtResource("1_1bg0s")
 script = ExtResource("1_abcde")
 
-[node name="Background" type="TextureRect" parent="."]
-layout_mode = 1
-anchors_preset = 15
-anchor_right = 1.0
-anchor_bottom = 1.0
-grow_horizontal = 2
-grow_vertical = 2
-texture = ExtResource("3_mj22h")
-expand_mode = 3
-
 [node name="MainLayout" type="HBoxContainer" parent="."]
 layout_mode = 1
 anchors_preset = 15
@@ -32,45 +22,101 @@ anchor_right = 1.0
 anchor_bottom = 1.0
 grow_horizontal = 2
 grow_vertical = 2
+
+[node name="CrewList" type="ScrollContainer" parent="MainLayout"]
+layout_mode = 2
+size_flags_horizontal = 3
+size_flags_stretch_ratio = 0.3
+
+[node name="VBoxContainer" type="VBoxContainer" parent="MainLayout/CrewList"]
+layout_mode = 2
+size_flags_horizontal = 3
 theme_override_constants/separation = 10
 
-[node name="LeftPanel" type="Panel" parent="MainLayout"]
+[node name="Label" type="Label" parent="MainLayout/CrewList/VBoxContainer"]
 layout_mode = 2
-size_flags_stretch_ratio = 0.25
+text = "CREW LIST"
+horizontal_alignment = 1
 
-[node name="VBoxContainer" type="VBoxContainer" parent="MainLayout/LeftPanel"]
+[node name="CharacterBox" parent="MainLayout/CrewList/VBoxContainer" instance=ExtResource("4_p5e7i")]
+layout_mode = 2
+
+[node name="CharacterBox2" parent="MainLayout/CrewList/VBoxContainer" instance=ExtResource("4_p5e7i")]
+layout_mode = 2
+
+[node name="CharacterBox3" parent="MainLayout/CrewList/VBoxContainer" instance=ExtResource("4_p5e7i")]
+layout_mode = 2
+
+[node name="CharacterBox4" parent="MainLayout/CrewList/VBoxContainer" instance=ExtResource("4_p5e7i")]
+layout_mode = 2
+
+[node name="CharacterBox5" parent="MainLayout/CrewList/VBoxContainer" instance=ExtResource("4_p5e7i")]
+layout_mode = 2
+
+[node name="CharacterBox6" parent="MainLayout/CrewList/VBoxContainer" instance=ExtResource("4_p5e7i")]
+layout_mode = 2
+
+[node name="CharacterBox7" parent="MainLayout/CrewList/VBoxContainer" instance=ExtResource("4_p5e7i")]
+layout_mode = 2
+
+[node name="CharacterBox8" parent="MainLayout/CrewList/VBoxContainer" instance=ExtResource("4_p5e7i")]
+layout_mode = 2
+
+[node name="CharacterPanel" type="PanelContainer" parent="MainLayout"]
+layout_mode = 2
+size_flags_horizontal = 3
+size_flags_vertical = 4
+
+[node name="VBoxContainer" type="VBoxContainer" parent="MainLayout/CharacterPanel"]
+layout_mode = 2
+
+[node name="CharacterName" type="Label" parent="MainLayout/CharacterPanel/VBoxContainer"]
+layout_mode = 2
+theme_override_font_sizes/font_size = 32
+text = "CHARACTER NAME"
+horizontal_alignment = 1
+
+[node name="HSplitContainer" type="HSplitContainer" parent="MainLayout/CharacterPanel/VBoxContainer"]
+layout_mode = 2
+size_flags_vertical = 3
+
+[node name="Portrait" type="TextureRect" parent="MainLayout/CharacterPanel/VBoxContainer/HSplitContainer"]
+custom_minimum_size = Vector2(300, 300)
+layout_mode = 2
+expand_mode = 1
+stretch_mode = 5
+
+[node name="InfoSection" type="Label" parent="MainLayout/CharacterPanel/VBoxContainer/HSplitContainer"]
+layout_mode = 2
+size_flags_horizontal = 3
+text = "SPECIES:
+BACKGROUND:
+MOTIVATION:
+CLASS:"
+
+[node name="Equipment" type="PanelContainer" parent="MainLayout/CharacterPanel/VBoxContainer"]
+layout_mode = 2
+
+[node name="Label" type="Label" parent="MainLayout/CharacterPanel/VBoxContainer/Equipment"]
+layout_mode = 2
+text = "EQUIPMENT"
+horizontal_alignment = 1
+
+[node name="Equipment2" type="PanelContainer" parent="MainLayout/CharacterPanel/VBoxContainer"]
+layout_mode = 2
+
+[node name="Label" type="Label" parent="MainLayout/CharacterPanel/VBoxContainer/Equipment2"]
+layout_mode = 2
+text = "EQUIPMENT"
+horizontal_alignment = 1
+
+[node name="ViewCharacterSheetButton" type="Button" parent="MainLayout/CharacterPanel/VBoxContainer"]
+layout_mode = 2
+text = "View Full Character Sheet"
+
+[node name="CharacterSheetPopup" parent="." instance=ExtResource("3_sheet")]
+visible = false
 layout_mode = 1
-anchors_preset = 15
-anchor_right = 1.0
-anchor_bottom = 1.0
-grow_horizontal = 2
-grow_vertical = 2
+theme = null
 
-[node name="CrewListLabel" type="Label" parent="MainLayout/LeftPanel/VBoxContainer"]
-layout_mode = 2
-
-[node name="CrewList" type="ScrollContainer" parent="MainLayout/LeftPanel/VBoxContainer"]
-layout_mode = 2
-
-[node name="VBoxContainer" type="VBoxContainer" parent="MainLayout/LeftPanel/VBoxContainer/CrewList"]
-layout_mode = 2
-
-[node name="AddCrewButton" type="Button" parent="MainLayout/LeftPanel/VBoxContainer"]
-layout_mode = 2
-
-[node name="AddCrewButton" type="Label" parent="MainLayout/LeftPanel/VBoxContainer/AddCrewButton"]
-layout_mode = 0
-offset_right = 40.0
-offset_bottom = 19.0
-
-[node name="CrewCountLabel" type="Label" parent="MainLayout/LeftPanel/VBoxContainer"]
-layout_mode = 2
-
-[node name="Panel" type="Panel" parent="."]
-layout_mode = 0
-offset_right = 40.0
-offset_bottom = 40.0
-
-[node name="CharacterBox" parent="Panel" instance=ExtResource("4_p5e7i")]
-layout_mode = 0
-script = null
+[connection signal="pressed" from="MainLayout/CharacterPanel/VBoxContainer/ViewCharacterSheetButton" to="." method="_on_character_sheet_button_pressed"]

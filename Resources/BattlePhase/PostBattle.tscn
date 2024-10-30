@@ -1,7 +1,11 @@
-[gd_scene load_steps=3 format=3 uid="uid://clqsi3wwo4hte"]
+[gd_scene load_steps=7 format=3 uid="uid://clqsi3wwo4hte"]
 
-[ext_resource type="Script" path="res://Scenes/campaign/scripts/PostBattlePhase.gd" id="1_lqd0l"]
-[ext_resource type="Theme" uid="uid://d1you1rrwuu48" path="res://Scenes/sci_fi_theme.tres" id="2_theme"]
+[ext_resource type="Script" path="res://Resources/GameData/PostBattlePhase.gd" id="1_lqd0l"]
+[ext_resource type="PackedScene" path="res://Resources/BattlePhase/Scenes/MissionSummaryPanel.tscn" id="2_summary"]
+[ext_resource type="PackedScene" path="res://Resources/BattlePhase/Scenes/RewardsPanel.tscn" id="3_rewards"]
+[ext_resource type="PackedScene" path="res://Resources/BattlePhase/Scenes/CampaignStatusPanel.tscn" id="4_status"]
+[ext_resource type="PackedScene" uid="uid://cxxx" path="res://Resources/CrewAndCharacters/Scenes/CharacterBox.tscn" id="5_char"]
+[ext_resource type="Theme" uid="uid://ccpt5srj6tnbv" path="res://Resources/Utilities/sci_fi_theme.tres" id="6_theme"]
 
 [node name="PostBattle" type="Control"]
 layout_mode = 3
@@ -10,7 +14,7 @@ anchor_right = 1.0
 anchor_bottom = 1.0
 grow_horizontal = 2
 grow_vertical = 2
-theme = ExtResource("2_theme")
+theme = ExtResource("6_theme")
 script = ExtResource("1_lqd0l")
 
 [node name="Background" type="ColorRect" parent="."]
@@ -22,50 +26,113 @@ grow_horizontal = 2
 grow_vertical = 2
 color = Color(0.0392157, 0.0392157, 0.0392157, 1)
 
-[node name="MarginContainer" type="MarginContainer" parent="."]
+[node name="TitleLabel" type="Label" parent="."]
+layout_mode = 2
+offset_left = 40.0
+offset_top = 40.0
+offset_right = 1880.0
+offset_bottom = 85.0
+theme_override_font_sizes/font_size = 32
+text = "Post-Battle Results"
+horizontal_alignment = 1
+
+[node name="HBoxContainer" type="HBoxContainer" parent="."]
 layout_mode = 1
 anchors_preset = 15
 anchor_right = 1.0
 anchor_bottom = 1.0
+offset_left = 337.0
+offset_top = 129.0
+offset_right = -314.0
+offset_bottom = -415.0
 grow_horizontal = 2
 grow_vertical = 2
-theme_override_constants/margin_left = 40
-theme_override_constants/margin_top = 40
-theme_override_constants/margin_right = 40
-theme_override_constants/margin_bottom = 40
-
-[node name="VBoxContainer" type="VBoxContainer" parent="MarginContainer"]
-layout_mode = 2
 theme_override_constants/separation = 20
+alignment = 1
 
-[node name="TitleLabel" type="Label" parent="MarginContainer/VBoxContainer"]
+[node name="MissionSummaryPanel" parent="HBoxContainer" instance=ExtResource("2_summary")]
 layout_mode = 2
-theme_override_font_sizes/font_size = 32
-text = "Post-Battle Phase"
+size_flags_horizontal = 3
+
+[node name="RewardsPanel" parent="HBoxContainer" instance=ExtResource("3_rewards")]
+layout_mode = 2
+size_flags_horizontal = 3
+
+[node name="CampaignStatusPanel" parent="HBoxContainer" instance=ExtResource("4_status")]
+layout_mode = 2
+size_flags_horizontal = 3
+script = null
+
+[node name="BottomPanel" type="PanelContainer" parent="."]
+layout_mode = 0
+offset_left = 227.0
+offset_top = 664.0
+offset_right = 1747.0
+offset_bottom = 1010.0
+
+[node name="VBoxContainer" type="VBoxContainer" parent="BottomPanel"]
+layout_mode = 2
+theme_override_constants/separation = 10
+
+[node name="CrewStatusLabel" type="Label" parent="BottomPanel/VBoxContainer"]
+layout_mode = 2
+text = "Crew Status & Experience"
 horizontal_alignment = 1
 
-[node name="ResolveOutcomesButton" type="Button" parent="MarginContainer/VBoxContainer"]
+[node name="HBoxContainer" type="HBoxContainer" parent="BottomPanel/VBoxContainer"]
 layout_mode = 2
-text = "Resolve Battle Outcomes"
+alignment = 1
 
-[node name="DistributeRewardsButton" type="Button" parent="MarginContainer/VBoxContainer"]
+[node name="CharacterBox" parent="BottomPanel/VBoxContainer/HBoxContainer" instance=ExtResource("5_char")]
 layout_mode = 2
-text = "Distribute Rewards"
 
-[node name="HandleInjuriesButton" type="Button" parent="MarginContainer/VBoxContainer"]
+[node name="CharacterBox2" parent="BottomPanel/VBoxContainer/HBoxContainer" instance=ExtResource("5_char")]
 layout_mode = 2
-text = "Handle Injuries and Recovery"
 
-[node name="UpdateLogbookButton" type="Button" parent="MarginContainer/VBoxContainer"]
+[node name="CharacterBox3" parent="BottomPanel/VBoxContainer/HBoxContainer" instance=ExtResource("5_char")]
 layout_mode = 2
-text = "Update Crew Logbook"
 
-[node name="ReturnToDashboardButton" type="Button" parent="MarginContainer/VBoxContainer"]
+[node name="CharacterBox4" parent="BottomPanel/VBoxContainer/HBoxContainer" instance=ExtResource("5_char")]
 layout_mode = 2
-text = "Return to Campaign Dashboard"
 
-[connection signal="pressed" from="MarginContainer/VBoxContainer/ResolveOutcomesButton" to="." method="_on_resolve_outcomes_button_pressed"]
-[connection signal="pressed" from="MarginContainer/VBoxContainer/DistributeRewardsButton" to="." method="_on_distribute_rewards_button_pressed"]
-[connection signal="pressed" from="MarginContainer/VBoxContainer/HandleInjuriesButton" to="." method="_on_handle_injuries_button_pressed"]
-[connection signal="pressed" from="MarginContainer/VBoxContainer/UpdateLogbookButton" to="." method="_on_update_logbook_button_pressed"]
-[connection signal="pressed" from="MarginContainer/VBoxContainer/ReturnToDashboardButton" to="." method="_on_return_to_dashboard_button_pressed"]
+[node name="HBoxContainer2" type="HBoxContainer" parent="BottomPanel/VBoxContainer"]
+layout_mode = 2
+alignment = 1
+
+[node name="CharacterBox" parent="BottomPanel/VBoxContainer/HBoxContainer2" instance=ExtResource("5_char")]
+layout_mode = 2
+
+[node name="CharacterBox2" parent="BottomPanel/VBoxContainer/HBoxContainer2" instance=ExtResource("5_char")]
+layout_mode = 2
+
+[node name="CharacterBox3" parent="BottomPanel/VBoxContainer/HBoxContainer2" instance=ExtResource("5_char")]
+layout_mode = 2
+
+[node name="CharacterBox4" parent="BottomPanel/VBoxContainer/HBoxContainer2" instance=ExtResource("5_char")]
+layout_mode = 2
+
+[node name="ButtonContainer" type="HBoxContainer" parent="."]
+layout_mode = 1
+anchors_preset = 12
+anchor_top = 1.0
+anchor_right = 1.0
+anchor_bottom = 1.0
+offset_top = -100.0
+offset_bottom = -20.0
+grow_horizontal = 2
+grow_vertical = 0
+theme_override_constants/separation = 20
+alignment = 1
+
+[node name="FinalizeButton" type="Button" parent="ButtonContainer"]
+custom_minimum_size = Vector2(200, 50)
+layout_mode = 2
+text = "Finalize & Log Results"
+
+[node name="ReturnButton" type="Button" parent="ButtonContainer"]
+custom_minimum_size = Vector2(200, 50)
+layout_mode = 2
+text = "Return to Dashboard"
+
+[connection signal="pressed" from="ButtonContainer/FinalizeButton" to="." method="_on_finalize_button_pressed"]
+[connection signal="pressed" from="ButtonContainer/ReturnButton" to="." method="_on_return_button_pressed"]

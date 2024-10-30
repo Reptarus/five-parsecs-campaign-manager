@@ -1,6 +1,6 @@
 [gd_scene load_steps=2 format=3 uid="uid://cyyja0pdb34wm"]
 
-[ext_resource type="Script" path="res://Scenes/campaign/scripts/world.gd" id="1_j5f55"]
+[ext_resource type="Script" path="res://Resources/GameData/world.gd" id="1_j5f55"]
 
 [node name="World" type="Control"]
 layout_mode = 3

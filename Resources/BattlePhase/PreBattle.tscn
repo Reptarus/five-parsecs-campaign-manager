@@ -1,7 +1,10 @@
-[gd_scene load_steps=3 format=3 uid="uid://belfwiqii3x62"]
+[gd_scene load_steps=6 format=3 uid="uid://belfwiqii3x62"]
 
-[ext_resource type="Script" path="res://Scenes/campaign/scripts/PreBattleSceneScript.gd" id="1_5g11f"]
-[ext_resource type="Theme" uid="uid://d1you1rrwuu48" path="res://Scenes/sci_fi_theme.tres" id="2_theme"]
+[ext_resource type="Script" path="res://Resources/GameData/PreBattleSceneScript.gd" id="1_5g11f"]
+[ext_resource type="PackedScene" uid="uid://0ve5q5brp1ci" path="res://Resources/BattlePhase/Scenes/MissionInfoPanel.tscn" id="2_mission"]
+[ext_resource type="PackedScene" uid="uid://by2a06guscvle" path="res://Resources/BattlePhase/Scenes/EnemyInfoPanel.tscn" id="3_svkk2"]
+[ext_resource type="PackedScene" uid="uid://cnfbctdh8npq1" path="res://Resources/BattlePhase/Scenes/BattlefieldPreview.tscn" id="4_oa7sx"]
+[ext_resource type="PackedScene" uid="uid://cxxx" path="res://Resources/CrewAndCharacters/Scenes/CharacterBox.tscn" id="5_870kb"]
 
 [node name="PreBattle" type="Control"]
 layout_mode = 3
@@ -10,7 +13,6 @@ anchor_right = 1.0
 anchor_bottom = 1.0
 grow_horizontal = 2
 grow_vertical = 2
-theme = ExtResource("2_theme")
 script = ExtResource("1_5g11f")
 
 [node name="Background" type="ColorRect" parent="."]
@@ -22,75 +24,107 @@ grow_horizontal = 2
 grow_vertical = 2
 color = Color(0.0392157, 0.0392157, 0.0392157, 1)
 
-[node name="MarginContainer" type="MarginContainer" parent="."]
-layout_mode = 1
-anchors_preset = 15
-anchor_right = 1.0
-anchor_bottom = 1.0
-grow_horizontal = 2
-grow_vertical = 2
-theme_override_constants/margin_left = 40
-theme_override_constants/margin_top = 40
-theme_override_constants/margin_right = 40
-theme_override_constants/margin_bottom = 40
-
-[node name="VBoxContainer" type="VBoxContainer" parent="MarginContainer"]
+[node name="TitleLabel" type="Label" parent="."]
 layout_mode = 2
-theme_override_constants/separation = 20
-
-[node name="TitleLabel" type="Label" parent="MarginContainer/VBoxContainer"]
-layout_mode = 2
+offset_left = 40.0
+offset_top = 40.0
+offset_right = 1880.0
+offset_bottom = 85.0
 theme_override_font_sizes/font_size = 32
 text = "Pre-Battle Setup"
 horizontal_alignment = 1
 
-[node name="DetermineBattleTypeButton" type="Button" parent="MarginContainer/VBoxContainer"]
-layout_mode = 2
-text = "Determine Battle Type"
+[node name="HBoxContainer" type="HBoxContainer" parent="."]
+layout_mode = 1
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+offset_left = 337.0
+offset_top = 129.0
+offset_right = -314.0
+offset_bottom = -415.0
+grow_horizontal = 2
+grow_vertical = 2
+alignment = 1
 
-[node name="CheckConnectionsButton" type="Button" parent="MarginContainer/VBoxContainer"]
+[node name="MissionInfoPanel" parent="HBoxContainer" instance=ExtResource("2_mission")]
 layout_mode = 2
-text = "Check for Connections"
+size_flags_horizontal = 3
+size_flags_vertical = 0
+size_flags_stretch_ratio = 0.3
 
-[node name="DetermineDeploymentButton" type="Button" parent="MarginContainer/VBoxContainer"]
+[node name="EnemyInfoPanel" parent="HBoxContainer" instance=ExtResource("3_svkk2")]
 layout_mode = 2
-text = "Determine Deployment Conditions"
+size_flags_horizontal = 3
+size_flags_vertical = 0
+size_flags_stretch_ratio = 0.3
 
-[node name="DetermineNotableSightsButton" type="Button" parent="MarginContainer/VBoxContainer"]
+[node name="BattlefieldPreview" parent="HBoxContainer" instance=ExtResource("4_oa7sx")]
 layout_mode = 2
-text = "Determine Notable Sights"
+size_flags_horizontal = 3
+size_flags_vertical = 0
+size_flags_stretch_ratio = 0.0
 
-[node name="DetermineObjectiveButton" type="Button" parent="MarginContainer/VBoxContainer"]
-layout_mode = 2
-text = "Determine Objective"
+[node name="BottomPanel" type="PanelContainer" parent="."]
+layout_mode = 0
+offset_left = 227.0
+offset_top = 664.0
+offset_right = 1747.0
+offset_bottom = 1010.0
 
-[node name="DetermineEnemyButton" type="Button" parent="MarginContainer/VBoxContainer"]
+[node name="VBoxContainer" type="VBoxContainer" parent="BottomPanel"]
 layout_mode = 2
-text = "Determine Enemy"
+size_flags_vertical = 4
 
-[node name="GenerateTerrainButton" type="Button" parent="MarginContainer/VBoxContainer"]
+[node name="HBoxContainer" type="HBoxContainer" parent="BottomPanel/VBoxContainer"]
 layout_mode = 2
-text = "Generate Terrain"
+alignment = 1
 
-[node name="PlaceCharactersButton" type="Button" parent="MarginContainer/VBoxContainer"]
+[node name="CharacterBox" parent="BottomPanel/VBoxContainer/HBoxContainer" instance=ExtResource("5_870kb")]
 layout_mode = 2
-text = "Place Characters"
+size_flags_horizontal = 4
+size_flags_vertical = 4
+size_flags_stretch_ratio = 0.0
 
-[node name="StartBattleButton" type="Button" parent="MarginContainer/VBoxContainer"]
+[node name="CharacterBox2" parent="BottomPanel/VBoxContainer/HBoxContainer" instance=ExtResource("5_870kb")]
 layout_mode = 2
+size_flags_horizontal = 6
+size_flags_vertical = 4
+size_flags_stretch_ratio = 0.0
+
+[node name="CharacterBox3" parent="BottomPanel/VBoxContainer/HBoxContainer" instance=ExtResource("5_870kb")]
+layout_mode = 2
+
+[node name="CharacterBox4" parent="BottomPanel/VBoxContainer/HBoxContainer" instance=ExtResource("5_870kb")]
+layout_mode = 2
+
+[node name="HBoxContainer2" type="HBoxContainer" parent="BottomPanel/VBoxContainer"]
+layout_mode = 2
+alignment = 1
+
+[node name="CharacterBox" parent="BottomPanel/VBoxContainer/HBoxContainer2" instance=ExtResource("5_870kb")]
+layout_mode = 2
+
+[node name="CharacterBox2" parent="BottomPanel/VBoxContainer/HBoxContainer2" instance=ExtResource("5_870kb")]
+layout_mode = 2
+
+[node name="CharacterBox3" parent="BottomPanel/VBoxContainer/HBoxContainer2" instance=ExtResource("5_870kb")]
+layout_mode = 2
+
+[node name="CharacterBox4" parent="BottomPanel/VBoxContainer/HBoxContainer2" instance=ExtResource("5_870kb")]
+layout_mode = 2
+
+[node name="StartBattleButton" type="Button" parent="."]
+layout_mode = 2
+offset_right = 155.0
+offset_bottom = 40.0
 text = "Start Battle"
 
-[node name="BackButton" type="Button" parent="MarginContainer/VBoxContainer"]
+[node name="BackButton" type="Button" parent="."]
 layout_mode = 2
+offset_right = 155.0
+offset_bottom = 40.0
 text = "Back to Dashboard"
 
-[connection signal="pressed" from="MarginContainer/VBoxContainer/DetermineBattleTypeButton" to="." method="_on_determine_battle_type_button_pressed"]
-[connection signal="pressed" from="MarginContainer/VBoxContainer/CheckConnectionsButton" to="." method="_on_check_connections_button_pressed"]
-[connection signal="pressed" from="MarginContainer/VBoxContainer/DetermineDeploymentButton" to="." method="_on_determine_deployment_button_pressed"]
-[connection signal="pressed" from="MarginContainer/VBoxContainer/DetermineNotableSightsButton" to="." method="_on_determine_notable_sights_button_pressed"]
-[connection signal="pressed" from="MarginContainer/VBoxContainer/DetermineObjectiveButton" to="." method="_on_determine_objective_button_pressed"]
-[connection signal="pressed" from="MarginContainer/VBoxContainer/DetermineEnemyButton" to="." method="_on_determine_enemy_button_pressed"]
-[connection signal="pressed" from="MarginContainer/VBoxContainer/GenerateTerrainButton" to="." method="_on_generate_terrain_button_pressed"]
-[connection signal="pressed" from="MarginContainer/VBoxContainer/PlaceCharactersButton" to="." method="_on_place_characters_button_pressed"]
-[connection signal="pressed" from="MarginContainer/VBoxContainer/StartBattleButton" to="." method="_on_start_battle_button_pressed"]
-[connection signal="pressed" from="MarginContainer/VBoxContainer/BackButton" to="." method="_on_back_button_pressed"]
+[connection signal="pressed" from="StartBattleButton" to="." method="_on_start_battle_button_pressed"]
+[connection signal="pressed" from="BackButton" to="." method="_on_back_button_pressed"]

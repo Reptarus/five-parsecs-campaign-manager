@@ -1,27 +1,16 @@
 extends PanelContainer
 
-@onready var name_label = $MarginContainer/VBoxContainer/NameLabel
-@onready var class_label = $MarginContainer/VBoxContainer/ClassLabel
-@onready var stats_container = $MarginContainer/VBoxContainer/StatsContainer
-@onready var health_bar = $MarginContainer/VBoxContainer/HealthBar
+@onready var portrait = $MarginContainer/HBoxContainer/Portrait
+@onready var info_container = $MarginContainer/HBoxContainer/VBoxContainer
+@onready var name_label = $MarginContainer/HBoxContainer/VBoxContainer/NameLabel
+@onready var species_label = $MarginContainer/HBoxContainer/VBoxContainer/SpeciesLabel
+@onready var class_label = $MarginContainer/HBoxContainer/VBoxContainer/ClassLabel
+@onready var health_bar = $MarginContainer/HBoxContainer/VBoxContainer/HealthBar
 
-func update_display(crew_member: CrewMember) -> void:
-	if not crew_member:
-		push_error("Attempted to update display with null crew member")
-		return
-	
-	name_label.text = crew_member.name
-	class_label.text = str(crew_member.get("class_type"))
-	
-	# Update stats
-	var stats_text = "Combat: %d  Tech: %d\nSocial: %d  Survival: %d" % [
-		crew_member.combat,
-		crew_member.technical,
-		crew_member.social,
-		crew_member.survival
-	]
-	stats_container.text = stats_text
-	
-	# Update health bar
-	health_bar.max_value = crew_member.max_health
-	health_bar.value = crew_member.health
+func setup(character_data: Dictionary) -> void:
+	name_label.text = "NAME: " + character_data.name
+	species_label.text = "SPECIES: " + character_data.species
+	class_label.text = "CLASS: " + character_data.character_class
+	health_bar.value = character_data.health
+	if character_data.portrait:
+		portrait.texture = character_data.portrait

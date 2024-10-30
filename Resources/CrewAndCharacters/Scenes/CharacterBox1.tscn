@@ -1,6 +1,6 @@
-[gd_scene load_steps=2 format=3 uid="uid://cxxx"]
+[gd_scene load_steps=2 format=3 uid="uid://cvakeofg077c2"]
 
-[ext_resource type="Theme" uid="uid://ccpt5srj6tnbv" path="res://Resources/Utilities/sci_fi_theme.tres" id="1_vmo05"]
+[ext_resource type="Theme" uid="uid://ccpt5srj6tnbv" path="res://Resources/Utilities/sci_fi_theme.tres" id="1_07kx8"]
 
 [node name="CharacterBox" type="PanelContainer"]
 custom_minimum_size = Vector2(0, 100)
@@ -8,7 +8,7 @@ custom_minimum_size = Vector2(0, 100)
 [node name="MarginContainer" type="MarginContainer" parent="."]
 custom_minimum_size = Vector2(200, 100)
 layout_mode = 2
-theme = ExtResource("1_vmo05")
+theme = ExtResource("1_07kx8")
 theme_override_constants/margin_left = 10
 theme_override_constants/margin_top = 5
 theme_override_constants/margin_right = 10

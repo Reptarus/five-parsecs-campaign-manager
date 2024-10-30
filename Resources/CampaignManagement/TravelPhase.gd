@@ -15,12 +15,21 @@ var fringe_world_strife_manager: FringeWorldStrifeManager
 
 var expanded_quest_progression_manager: ExpandedQuestProgressionManager
 
-@onready var upkeep_details = $VBoxContainer/TabContainer/Upkeep/UpkeepDetails
-@onready var travel_event_details = $VBoxContainer/TabContainer/Travel/TravelEventDetails
-@onready var patrons_list = $VBoxContainer/TabContainer/Patrons/PatronsList
-@onready var mission_details = $VBoxContainer/TabContainer/Mission/MissionDetails
-@onready var log_book = $VBoxContainer/LogBook
-@onready var campaign_event_ui = preload("res://Scenes/campaign/NewCampaignSetup/CampaignEventUI.tscn")
+enum TravelStep {
+	UPKEEP,
+	TRAVEL_DECISION,
+	EVENT_RESOLUTION,
+	PATRON_CHECK,
+	MISSION_START
+}
+
+var current_step: TravelStep = TravelStep.UPKEEP
+
+@onready var step_container = $CenterContainer/PanelContainer/VBoxContainer/StepContainer
+@onready var step_label = $CenterContainer/PanelContainer/VBoxContainer/StepLabel
+@onready var next_button = $CenterContainer/PanelContainer/VBoxContainer/ButtonContainer/NextButton
+@onready var back_button = $CenterContainer/PanelContainer/VBoxContainer/ButtonContainer/BackButton
+@onready var log_book = $LogBook
 
 var game_state_manager: GameStateManager
 
@@ -40,6 +49,8 @@ func _ready():
 	assert(patrons_list != null, "Patrons list not found")
 	assert(mission_details != null, "Mission details not found")
 	assert(log_book != null, "Log book not found")
+	
+	setup_current_step()
 
 func initialize_game_components() -> void:
 	var story_track := StoryTrack.new()
@@ -211,3 +222,34 @@ func _on_world_step_completed():
 	display_result(travel_event_details, event_description)
 	
 	update_ui()
+
+func setup_current_step() -> void:
+	# Clear previous step content
+	for child in step_container.get_children():
+		child.queue_free()
+	
+	match current_step:
+		TravelStep.UPKEEP:
+			step_label.text = "Step 1: Upkeep"
+			_setup_upkeep_step()
+			back_button.disabled = true
+			
+		TravelStep.TRAVEL_DECISION:
+			step_label.text = "Step 2: Travel Decision"
+			_setup_travel_step()
+			back_button.disabled = false
+			
+		TravelStep.EVENT_RESOLUTION:
+			step_label.text = "Step 3: Event Resolution"
+			_setup_event_step()
+			back_button.disabled = false
+			
+		TravelStep.PATRON_CHECK:
+			step_label.text = "Step 4: Patron Jobs"
+			_setup_patron_step()
+			back_button.disabled = false
+			
+		TravelStep.MISSION_START:
+			step_label.text = "Step 5: Mission Start"
+			_setup_mission_step()
+			back_button.disabled = false

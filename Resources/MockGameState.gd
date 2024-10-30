@@ -1,21 +1,22 @@
-extends Resource
+extends Node
 class_name MockGameState
 
 const World = preload("res://Resources/GameData/world.gd")
 
 # Explicitly define all properties
-var game_state: MockGameState
-var mission_generator: MissionGenerator
-var equipment_manager: EquipmentManager
-var patron_job_manager: PatronJobManager
-var current_battle: Battle
-var fringe_world_strife_manager: FringeWorldStrifeManager
-var psionic_manager: PsionicManager
-var story_track: StoryTrack
-var world_generator: WorldGenerator
-var expanded_faction_manager: ExpandedFactionManager
-var combat_manager: CombatManager
-var crew: Crew
+@onready var game_state: MockGameState = self
+@onready var mission_generator: MissionGenerator
+@onready var equipment_manager: EquipmentManager
+@onready var patron_job_manager: PatronJobManager
+@onready var current_battle: Battle
+@onready var fringe_world_strife_manager: FringeWorldStrifeManager
+@onready var psionic_manager: PsionicManager
+@onready var story_track: StoryTrack
+@onready var world_generator: WorldGenerator
+@onready var expanded_faction_manager: ExpandedFactionManager
+@onready var combat_manager: CombatManager
+@onready var crew: Crew
+
 var settings: Dictionary = {
 	"disable_tutorial_popup": false
 }
@@ -33,9 +34,10 @@ var current_location_data: Dictionary
 @export var patrons: Array[Patron] = []
 @export var rivals: Array[Rival] = []
 
-# Add this near the top of the file, with other property declarations
-func _init() -> void:
-	game_state = self
+func _ready() -> void:
+	initialize_game_state()
+
+func initialize_game_state() -> void:
 	crew = Crew.new()
 	crew.initialize()
 	_setup_crew()
@@ -357,4 +359,3 @@ func set_internal_game_state(new_state: MockGameState) -> void:
 # If you need a World object, add this method
 func create_current_world() -> World:
 	return World.new(current_location_data) if current_location_data else null
-

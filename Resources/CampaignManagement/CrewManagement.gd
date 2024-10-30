@@ -1,48 +1,88 @@
 extends Control
 
-signal crew_finalized
+var game_state_manager: GameStateManager
+var selected_character: Character
 
-var game_state: MockGameState
-var crew_box_scene = preload("res://Resources/CrewAndCharacters/Scenes/CharacterBox.tscn")
-
-@onready var crew_list = $MainLayout/LeftPanel/VBoxContainer/CrewList/VBoxContainer
-@onready var crew_count_label = $MainLayout/LeftPanel/VBoxContainer/CrewCountLabel
-@onready var crew_list_label = $MainLayout/LeftPanel/VBoxContainer/CrewListLabel
-@onready var add_crew_button = $MainLayout/LeftPanel/VBoxContainer/AddCrew
+@onready var crew_list = $MainLayout/CrewList/VBoxContainer
+@onready var character_name_label = $MainLayout/CharacterPanel/CharacterName
+@onready var character_portrait = $MainLayout/CharacterPanel/Portrait
+@onready var character_info = $MainLayout/CharacterPanel/InfoSection
+@onready var equipment_panel = $MainLayout/CharacterPanel/Equipment
+@onready var equipment_panel2 = $MainLayout/CharacterPanel/Equipment2
+@onready var character_sheet_popup = $CharacterSheetPopup
 
 func _ready() -> void:
-	# For testing, create a new MockGameState instance
-	game_state = MockGameState.new()
+	game_state_manager = get_node("/root/GameStateManager")
+	update_crew_list()
 	
-	# Initialize UI elements
-	crew_list_label.text = "Crew Members"
-	add_crew_button.text = "Add New Crew"
-	
-	# Connect signals
-	add_crew_button.pressed.connect(_on_add_crew_pressed)
-	
-	# Populate the crew list
-	_update_crew_display()
+	# Connect signals from ShipInventory for equipment updates
+	game_state_manager.game_state.current_ship.inventory.item_added.connect(_on_inventory_updated)
+	game_state_manager.game_state.current_ship.inventory.item_removed.connect(_on_inventory_updated)
 
-func _update_crew_display() -> void:
-	# Clear existing crew boxes
+func update_crew_list() -> void:
 	for child in crew_list.get_children():
 		child.queue_free()
 	
-	# Get crew from mock game state
-	var crew_members = game_state.get_crew()
-	
-	# Create character boxes for each crew member
-	for crew_member in crew_members:
-		var character_box = crew_box_scene.instantiate()
-		crew_list.add_child(character_box)
-		
-		# Update character box with crew member data
-		character_box.update_display(crew_member)
-	
-	# Update crew count
-	crew_count_label.text = "Total Crew: %d" % crew_members.size()
+	var crew = game_state_manager.game_state.current_crew.members
+	for member in crew:
+		var crew_button = create_crew_button(member)
+		crew_list.add_child(crew_button)
 
-func _on_add_crew_pressed() -> void:
-	# This is just a placeholder for now
-	print("Add crew functionality to be implemented")
+func create_crew_button(character: Character) -> Button:
+	var button = Button.new()
+	button.custom_minimum_size = Vector2(200, 60)
+	button.text = "%s\n%s %s" % [character.name, character.species, character.class_type]
+	button.pressed.connect(_on_crew_button_pressed.bind(character))
+	return button
+
+func _on_crew_button_pressed(character: Character) -> void:
+	selected_character = character
+	update_character_display()
+
+func update_character_display() -> void:
+	if !selected_character:
+		return
+		
+	character_name_label.text = selected_character.name
+	character_portrait.texture = selected_character.portrait
+	
+	# Update basic info
+	var info_text = """
+	SPECIES: %s
+	BACKGROUND: %s
+	MOTIVATION: %s
+	CLASS: %s
+	""" % [selected_character.species, selected_character.background, 
+		   selected_character.motivation, selected_character.class_type]
+	character_info.text = info_text
+	
+	# Update equipment displays
+	update_equipment_display()
+
+func _on_character_sheet_button_pressed() -> void:
+	if selected_character:
+		character_sheet_popup.set_character(selected_character)
+		character_sheet_popup.popup_centered()
+
+func update_equipment_display() -> void:
+	# Clear existing equipment displays
+	for child in equipment_panel.get_children():
+		child.queue_free()
+	for child in equipment_panel2.get_children():
+		child.queue_free()
+		
+	if selected_character:
+		# Display current equipment
+		if selected_character.equipped_weapon:
+			var weapon_label = Label.new()
+			weapon_label.text = selected_character.equipped_weapon.name
+			equipment_panel.add_child(weapon_label)
+			
+		if selected_character.equipped_armor:
+			var armor_label = Label.new()
+			armor_label.text = selected_character.equipped_armor.name
+			equipment_panel2.add_child(armor_label)
+
+func _on_inventory_updated(_item: Equipment) -> void:
+	if selected_character:
+		update_equipment_display()

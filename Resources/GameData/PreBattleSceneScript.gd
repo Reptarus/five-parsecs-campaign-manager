@@ -1,7 +1,13 @@
 class_name PreBattleSceneScript
 extends Control
 
-@onready var game_state: GameStateManager = get_node("/root/GameState")
+const MockGameState = preload("res://Resources/MockGameState.gd")
+const MISSION_PANEL_SCENE = preload("res://Resources/BattlePhase/Scenes/MissionInfoPanel.tscn")
+const ENEMY_PANEL_SCENE = preload("res://Resources/BattlePhase/Scenes/EnemyInfoPanel.tscn")
+const BATTLEFIELD_PREVIEW_SCENE = preload("res://Resources/BattlePhase/Scenes/BattlefieldPreview.tscn")
+const CHARACTER_BOX_SCENE = preload("res://Resources/CrewAndCharacters/Scenes/CharacterBox.tscn")
+
+@onready var game_state: MockGameState = get_node("/root/GameStateManager")
 var terrain_generator: TerrainGenerator
 
 # Declare current_mission as a class variable
@@ -11,12 +17,37 @@ var current_mission: Mission
 @onready var place_characters_button: Button = $PlaceCharactersButton
 @onready var start_battle_button: Button = $StartBattleButton
 @onready var back_button: Button = $BackButton
+@onready var mission_container = $HBoxContainer/MissionPanel
+@onready var enemy_container = $HBoxContainer/EnemyPanel
+@onready var battlefield_container = $HBoxContainer/BattlefieldPanel
+@onready var crew_container = $BottomPanel/CrewContainer
+@onready var map_legend = $HBoxContainer/BattlefieldPanel/MapLegend
+
+var mission_icons = {
+	"assassination_target": preload("res://Assets/Icons/assassination_target.png"),
+	"escort_target": preload("res://Assets/Icons/escort_target.png"),
+	"intel": preload("res://Assets/Icons/intel.png"),
+	"objective": preload("res://Assets/Icons/objective.png"),
+	# Add other mission-specific icons
+}
 
 func _ready() -> void:
-	generate_terrain_button.pressed.connect(_on_generate_terrain_pressed)
-	place_characters_button.pressed.connect(_on_place_characters_pressed)
-	start_battle_button.pressed.connect(_on_start_battle_pressed)
-	back_button.pressed.connect(_on_back_pressed)
+	setup_mission_info()
+	setup_enemy_info()
+	setup_battlefield_preview()
+	setup_crew_selection()
+	setup_map_legend()
+
+func setup_map_legend() -> void:
+	for icon_name in mission_icons:
+		var icon_container = HBoxContainer.new()
+		var icon = TextureRect.new()
+		icon.texture = mission_icons[icon_name]
+		var label = Label.new()
+		label.text = icon_name.capitalize()
+		icon_container.add_child(icon)
+		icon_container.add_child(label)
+		map_legend.add_child(icon_container)
 
 func initialize() -> void:
 	terrain_generator = TerrainGenerator.new()

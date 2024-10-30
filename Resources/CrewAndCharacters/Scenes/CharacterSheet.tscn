@@ -68,3 +68,90 @@ layout_mode = 2
 text = "Close"
 
 [connection signal="pressed" from="Panel/MarginContainer/VBoxContainer/CloseButton" to="." method="_on_close_button_pressed"]
+
+[node name="EquipmentSection" type="VBoxContainer" parent="Panel/MarginContainer/VBoxContainer"]
+layout_mode = 2
+
+[node name="Label" type="Label" parent="Panel/MarginContainer/VBoxContainer/EquipmentSection"]
+layout_mode = 2
+text = "Equipment"
+
+[node name="WeaponButton" type="Button" parent="Panel/MarginContainer/VBoxContainer/EquipmentSection"]
+layout_mode = 2
+text = "Change Weapon"
+
+[node name="ArmorButton" type="Button" parent="Panel/MarginContainer/VBoxContainer/EquipmentSection"]
+layout_mode = 2
+text = "Change Armor"
+
+[node name="GearButton" type="Button" parent="Panel/MarginContainer/VBoxContainer/EquipmentSection"]
+layout_mode = 2
+text = "Change Gear"
+
+[node name="EquipmentPopup" type="PopupPanel" parent="."]
+title = "Select Equipment"
+size = Vector2(300, 400)
+
+[node name="MarginContainer" type="MarginContainer" parent="EquipmentPopup"]
+offset_right = 300
+offset_bottom = 400
+theme_override_constants/margin_left = 10
+theme_override_constants/margin_top = 10
+theme_override_constants/margin_right = 10
+theme_override_constants/margin_bottom = 10
+
+[node name="VBoxContainer" type="VBoxContainer" parent="EquipmentPopup/MarginContainer"]
+layout_mode = 2
+
+[node name="InventoryList" type="ItemList" parent="EquipmentPopup/MarginContainer/VBoxContainer"]
+layout_mode = 2
+size_flags_vertical = 3
+
+[node name="CloseButton" type="Button" parent="EquipmentPopup/MarginContainer/VBoxContainer"]
+layout_mode = 2
+text = "Close"
+
+[connection signal="pressed" from="Panel/MarginContainer/VBoxContainer/EquipmentSection/WeaponButton" to="." method="_on_weapon_button_pressed"]
+[connection signal="pressed" from="Panel/MarginContainer/VBoxContainer/EquipmentSection/ArmorButton" to="." method="_on_armor_button_pressed"]
+[connection signal="pressed" from="Panel/MarginContainer/VBoxContainer/EquipmentSection/GearButton" to="." method="_on_gear_button_pressed"]
+[connection signal="item_selected" from="EquipmentPopup/MarginContainer/VBoxContainer/InventoryList" to="." method="_on_inventory_item_selected"]
+[connection signal="pressed" from="EquipmentPopup/MarginContainer/VBoxContainer/CloseButton" to="EquipmentPopup" method="hide"]
+
+[node name="MissionHistorySection" type="VBoxContainer" parent="Panel/MarginContainer/VBoxContainer"]
+layout_mode = 2
+
+[node name="Label" type="Label" parent="Panel/MarginContainer/VBoxContainer/MissionHistorySection"]
+layout_mode = 2
+text = "Mission History"
+
+[node name="MissionList" type="ItemList" parent="Panel/MarginContainer/VBoxContainer/MissionHistorySection"]
+layout_mode = 2
+size_flags_vertical = 3
+
+[node name="TrainingSection" type="VBoxContainer" parent="Panel/MarginContainer/VBoxContainer"]
+layout_mode = 2
+
+[node name="Label" type="Label" parent="Panel/MarginContainer/VBoxContainer/TrainingSection"]
+layout_mode = 2
+text = "Available Training"
+
+[node name="AvailableCourses" type="ItemList" parent="Panel/MarginContainer/VBoxContainer/TrainingSection"]
+layout_mode = 2
+size_flags_vertical = 3
+
+[node name="EnrollButton" type="Button" parent="Panel/MarginContainer/VBoxContainer/TrainingSection"]
+layout_mode = 2
+text = "Enroll in Selected Course"
+
+[node name="EventHistorySection" type="VBoxContainer" parent="Panel/MarginContainer/VBoxContainer"]
+layout_mode = 2
+
+[node name="Label" type="Label" parent="Panel/MarginContainer/VBoxContainer/EventHistorySection"]
+layout_mode = 2
+text = "Event History"
+
+[node name="EventList" type="ItemList" parent="Panel/MarginContainer/VBoxContainer/EventHistorySection"]
+layout_mode = 2
+size_flags_vertical = 3
+
+[connection signal="pressed" from="Panel/MarginContainer/VBoxContainer/TrainingSection/EnrollButton" to="." method="_on_enroll_pressed"]

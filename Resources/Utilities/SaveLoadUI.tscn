@@ -1,7 +1,7 @@
 [gd_scene load_steps=3 format=3 uid="uid://swd7rhnhcr41"]
 
 [ext_resource type="Theme" uid="uid://ddjoduj1ya6tp" path="res://assets/5PFH.tres" id="1_p4ru0"]
-[ext_resource type="Script" path="res://Resources/SaveLoadUI.gd" id="2_oy01e"]
+[ext_resource type="Script" path="res://Resources/GameData/SaveLoadUI.gd" id="2_oy01e"]
 
 [node name="SaveLoadUI" type="Control"]
 layout_mode = 3

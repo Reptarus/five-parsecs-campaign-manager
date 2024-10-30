@@ -1,4 +1,6 @@
-[gd_resource type="Theme" load_steps=5 format=3 uid="uid://ccpt5srj6tnbv"]
+[gd_resource type="Theme" load_steps=6 format=3 uid="uid://ccpt5srj6tnbv"]
+
+[ext_resource type="FontFile" uid="uid://3djcdfttvepb" path="res://assets/' Mono Regular.ttf" id="1_hgnjs"]
 
 [sub_resource type="StyleBoxFlat" id="StyleBoxFlat_button_hover"]
 bg_color = Color(0.15, 0.15, 0.3, 1)
@@ -49,6 +51,7 @@ corner_radius_bottom_right = 5
 corner_radius_bottom_left = 5
 
 [resource]
+Button/fonts/font = ExtResource("1_hgnjs")
 Button/styles/hover = SubResource("StyleBoxFlat_button_hover")
 Button/styles/normal = SubResource("StyleBoxFlat_button_normal")
 Button/styles/pressed = SubResource("StyleBoxFlat_button_pressed")

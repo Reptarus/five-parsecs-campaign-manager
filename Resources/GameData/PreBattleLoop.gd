@@ -1,10 +1,14 @@
 # PreBattleLoop.gd
 extends Node
 
-var game_state_manager: GameStateManager
+const MockGameState = preload("res://Resources/MockGameState.gd")
+
+@onready var game_state_manager: MockGameState = get_node("/root/GameStateManager")
 
 func _ready() -> void:
-	game_state_manager = get_node("/root/GameStateManager")
+	if !is_instance_valid(game_state_manager):
+		push_error("GameStateManager not found")
+		return
 
 func run_pre_battle_loop() -> void:
 	print_debug("Beginning pre-battle preparations...")
@@ -75,12 +79,11 @@ func train(character: Character) -> void:
 	var xp_gained := randi() % 3 + 1
 	character.improve_skill(skill_to_improve, xp_gained)
 	print_debug("%s trained %s and gained %d XP." % [character.name, GlobalEnums.SkillType.keys()[skill_to_improve], xp_gained])
-
 func recruit(character: Character) -> void:
-	var crew: Array[Character] = game_state_manager.game_state.current_ship.crew
+	var crew: Array[CrewMember] = game_state_manager.game_state.current_ship.crew
 	if crew.size() < game_state_manager.game_state.current_ship.max_crew_size:
 		if randf() < 0.4:  # 40% chance to find a recruit
-			var new_recruit: Character = game_state_manager.game_state.character_factory.create_random_character()
+			var new_recruit: CrewMember = game_state_manager.game_state.character_factory.create_random_character()
 			crew.append(new_recruit)
 			print_debug("%s successfully recruited %s to join the crew." % [character.name, new_recruit.name])
 		else:

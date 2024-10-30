@@ -1,20 +1,22 @@
 class_name QuestManager
 extends Node
 
+const MockGameState = preload("res://Resources/MockGameState.gd")
+
 signal quest_added(quest: Quest)
 signal quest_completed(quest: Quest)
 signal quest_failed(quest: Quest)
 signal quest_stage_advanced(quest: Quest, new_stage: int)
 signal rumor_discovered(quest: Quest)
 
-var game_state: GameStateManager
+@onready var game_state: MockGameState = get_node("/root/GameStateManager")
 var active_quests: Array[Quest] = []
 var completed_quests: Array[Quest] = []
 var failed_quests: Array[Quest] = []
 
 func _ready() -> void:
-	if not game_state:
-		game_state = get_node("/root/MockGameState")
+	if !is_instance_valid(game_state):
+		game_state = get_node("/root/GameStateManager") as MockGameState
 
 func generate_new_quest() -> Quest:
 	var new_quest = Quest.new().generate_quest(game_state)

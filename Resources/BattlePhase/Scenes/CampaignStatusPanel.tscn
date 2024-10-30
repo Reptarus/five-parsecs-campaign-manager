@@ -1,0 +1,83 @@
+[gd_scene load_steps=3 format=3]
+
+[ext_resource type="Script" path="res://Resources/BattlePhase/Scenes/CampaignStatusPanel.gd" id="1_script"]
+[ext_resource type="PackedScene" uid="uid://bc3odsgdt877m" path="res://Resources/CampaignManagement/Scenes/CampaignEventUI.tscn" id="2_event"]
+
+[node name="CampaignStatusPanel" type="PanelContainer"]
+theme_type_variation = &"DarkPanel"
+script = ExtResource("1_script")
+
+[node name="MarginContainer" type="MarginContainer" parent="."]
+layout_mode = 2
+theme_override_constants/margin_left = 10
+theme_override_constants/margin_top = 10
+theme_override_constants/margin_right = 10
+theme_override_constants/margin_bottom = 10
+
+[node name="VBoxContainer" type="VBoxContainer" parent="MarginContainer"]
+layout_mode = 2
+theme_override_constants/separation = 15
+
+[node name="EventsContainer" type="VBoxContainer" parent="MarginContainer/VBoxContainer"]
+layout_mode = 2
+
+[node name="CampaignEventButton" type="Button" parent="MarginContainer/VBoxContainer/EventsContainer"]
+unique_name_in_owner = true
+layout_mode = 2
+text = "Roll Campaign Event"
+
+[node name="CharacterEventButton" type="Button" parent="MarginContainer/VBoxContainer/EventsContainer"]
+unique_name_in_owner = true
+layout_mode = 2
+text = "Roll Character Event"
+
+[node name="HSeparator" type="HSeparator" parent="MarginContainer/VBoxContainer"]
+layout_mode = 2
+
+[node name="WorldStatusContainer" type="VBoxContainer" parent="MarginContainer/VBoxContainer"]
+layout_mode = 2
+
+[node name="WorldStatusLabel" type="Label" parent="MarginContainer/VBoxContainer/WorldStatusContainer"]
+layout_mode = 2
+theme_override_font_sizes/font_size = 20
+text = "World Status"
+horizontal_alignment = 1
+
+[node name="InvasionCheckLabel" type="Label" parent="MarginContainer/VBoxContainer/WorldStatusContainer"]
+unique_name_in_owner = true
+layout_mode = 2
+text = "Invasion Check: Not Required"
+
+[node name="LocalChangesLabel" type="RichTextLabel" parent="MarginContainer/VBoxContainer/WorldStatusContainer"]
+unique_name_in_owner = true
+layout_mode = 2
+fit_content = true
+text = "Local Changes:
+• Trade Routes Disrupted
+• Security Increased"
+
+[node name="HSeparator2" type="HSeparator" parent="MarginContainer/VBoxContainer"]
+layout_mode = 2
+
+[node name="QuestUpdatesContainer" type="VBoxContainer" parent="MarginContainer/VBoxContainer"]
+layout_mode = 2
+
+[node name="QuestLabel" type="Label" parent="MarginContainer/VBoxContainer/QuestUpdatesContainer"]
+layout_mode = 2
+theme_override_font_sizes/font_size = 20
+text = "Quest Updates"
+horizontal_alignment = 1
+
+[node name="QuestUpdatesList" type="RichTextLabel" parent="MarginContainer/VBoxContainer/QuestUpdatesContainer"]
+unique_name_in_owner = true
+layout_mode = 2
+fit_content = true
+text = "• Main Quest: New Lead Available
+• Side Quest: Deadline Extended"
+
+[node name="CampaignEventUI" parent="." instance=ExtResource("2_event")]
+visible = false
+layout_mode = 2
+
+[connection signal="pressed" from="MarginContainer/VBoxContainer/EventsContainer/CampaignEventButton" to="." method="_on_campaign_event_pressed"]
+[connection signal="pressed" from="MarginContainer/VBoxContainer/EventsContainer/CharacterEventButton" to="." method="_on_character_event_pressed"]
