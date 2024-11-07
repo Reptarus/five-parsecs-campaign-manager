@@ -1,7 +1,7 @@
 class_name FringeWorldStrifeManager
 extends Node
 
-@export var game_state: MockGameState
+@export var game_state: GameStateManager
 @export var mission_generator: MissionGenerator
 @export var difficulty_settings: DifficultySettings
 @export var escalating_battles_manager: EscalatingBattlesManager

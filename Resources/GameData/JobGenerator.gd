@@ -110,3 +110,27 @@ func _calculate_difficulty_for_world(world_data: Dictionary) -> int:
         GlobalEnums.Background.MINING_COLONY:
             base_difficulty += randi() % 2
     return base_difficulty
+
+func _apply_red_zone_modifiers(job: Mission) -> void:
+    job.difficulty += 2
+    job.rewards["credits"] *= 1.5
+    job.required_crew_size += 1
+
+func _apply_black_zone_modifiers(job: Mission) -> void:
+    job.difficulty += 3
+    job.rewards["credits"] *= 2.0
+    job.required_crew_size += 2
+    job.setup_black_zone_opposition()
+
+func _calculate_rewards(difficulty: int) -> Dictionary:
+    return {
+        "credits": BASE_REWARD_CREDITS * difficulty + randi() % (DIFFICULTY_MULTIPLIER * difficulty),
+        "reputation": REPUTATION_BASE + floori(difficulty / 2.0)
+    }
+
+func _generate_patron_conditions(patron: Patron) -> Dictionary:
+    return {
+        "benefits": [generate_benefit()],
+        "hazards": [generate_hazard()],
+        "conditions": [generate_condition()]
+    }

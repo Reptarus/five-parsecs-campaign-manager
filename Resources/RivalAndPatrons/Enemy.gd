@@ -1,8 +1,8 @@
-extends Character
+extends Node
 class_name Enemy
 
-var enemy_class: String
-var enemy_type: String
+@export var enemy_class: String
+@export var enemy_type: String
 
 @export var attack_power: int = 10
 
@@ -15,8 +15,14 @@ var has_leg_it: bool = false
 var is_careless: bool = false
 var is_bad_shot: bool = false
 
+var speed: int
+var combat_skill: int
+var toughness: int
+var savvy: int
+var reactions: int
+var luck: int
+
 func _init(p_enemy_type: String, p_enemy_class: String) -> void:
-	super()
 	enemy_type = p_enemy_type
 	enemy_class = p_enemy_class
 	
@@ -24,6 +30,7 @@ func _init(p_enemy_type: String, p_enemy_class: String) -> void:
 	speed = enemy_data.speed
 	combat_skill = enemy_data.combat_skill
 	# Initialize other properties as needed
+
 func _ready() -> void:
 	weapon_system = WeaponSystem.new()
 	set_default_stats()
@@ -98,6 +105,3 @@ func drop_loot() -> Array:
 # Override or add any enemy-specific methods
 func enemy_specific_action() -> void:
 	print("Performing enemy-specific action for ", name)
-
-# Note: We've removed the delegated methods (add_xp, get_xp_for_next_level, get_available_upgrades)
-# as they should now be inherited from the Character class

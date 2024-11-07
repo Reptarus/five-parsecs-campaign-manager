@@ -1,121 +1,166 @@
 # ShipCreation.gd
-class_name ShipCreation
-extends Resource
+extends CampaignResponsiveLayout
 
-const BASE_SHIP_POWER: int = 100
-const BASE_SHIP_COST: int = 1000
+signal ship_created(ship: Ship)
+signal creation_cancelled
 
-var ship_components: Dictionary = {}
+@onready var ship_name_input := $VBoxContainer/ShipNameInput
+@onready var components_container := $VBoxContainer/ComponentsContainer
+@onready var hull_option := $VBoxContainer/ComponentsContainer/HullOption
+@onready var engine_option := $VBoxContainer/ComponentsContainer/EngineOption
+@onready var weapon_option := $VBoxContainer/ComponentsContainer/WeaponOption
+@onready var medical_option := $VBoxContainer/ComponentsContainer/MedicalOption
+@onready var ship_info_label := $VBoxContainer/ShipInfoLabel
 
-func _init() -> void:
-	load_ship_components()
+const TOUCH_BUTTON_HEIGHT := 60
+const PORTRAIT_COMPONENTS_RATIO := 0.6  # Components take 60% in portrait mode
 
-func load_ship_components() -> void:
-	var file := FileAccess.open("res://data/ship_components.json", FileAccess.READ)
-	var json := JSON.new()
-	var error := json.parse(file.get_as_text())
-	if error == OK:
-		ship_components = json.data
+var current_ship: Ship
+
+func _ready() -> void:
+	super._ready()
+	_setup_ship_creation()
+	_connect_signals()
+
+func _setup_ship_creation() -> void:
+	_setup_component_options()
+	_setup_buttons()
+	current_ship = Ship.new()
+
+func _apply_portrait_layout() -> void:
+	super._apply_portrait_layout()
+	
+	# Stack components vertically
+	components_container.columns = 1
+	
+	# Adjust component sizes for portrait mode
+	var viewport_height = get_viewport_rect().size.y
+	components_container.custom_minimum_size.y = viewport_height * PORTRAIT_COMPONENTS_RATIO
+	
+	# Make controls touch-friendly
+	_adjust_touch_sizes(true)
+	
+	# Adjust margins for mobile
+	$VBoxContainer.add_theme_constant_override("margin_left", 10)
+	$VBoxContainer.add_theme_constant_override("margin_right", 10)
+
+func _apply_landscape_layout() -> void:
+	super._apply_landscape_layout()
+	
+	# Two column layout for components
+	components_container.columns = 2
+	
+	# Reset component sizes
+	components_container.custom_minimum_size = Vector2(600, 0)
+	
+	# Reset control sizes
+	_adjust_touch_sizes(false)
+	
+	# Reset margins
+	$VBoxContainer.add_theme_constant_override("margin_left", 20)
+	$VBoxContainer.add_theme_constant_override("margin_right", 20)
+
+func _adjust_touch_sizes(is_portrait: bool) -> void:
+	var button_height = TOUCH_BUTTON_HEIGHT if is_portrait else TOUCH_BUTTON_HEIGHT * 0.75
+	
+	# Adjust all buttons and option buttons
+	for control in get_tree().get_nodes_in_group("touch_controls"):
+		control.custom_minimum_size.y = button_height
+	
+	# Adjust name input
+	ship_name_input.custom_minimum_size.y = button_height
+
+func _setup_component_options() -> void:
+	# Add options to groups for touch controls
+	for option in [hull_option, engine_option, weapon_option, medical_option]:
+		option.add_to_group("touch_controls")
+	
+	# Populate hull options
+	for hull in GlobalEnums.HullType.values():
+		hull_option.add_item(GlobalEnums.HullType.keys()[hull])
+		
+	# Populate engine options
+	for engine in GlobalEnums.EngineType.values():
+		engine_option.add_item(GlobalEnums.EngineType.keys()[engine])
+		
+	# Populate weapon options
+	for weapon in GlobalEnums.WeaponType.values():
+		weapon_option.add_item(GlobalEnums.WeaponType.keys()[weapon])
+		
+	# Populate medical bay options
+	for medical in GlobalEnums.MedicalBayType.values():
+		medical_option.add_item(GlobalEnums.MedicalBayType.keys()[medical])
+
+func _setup_buttons() -> void:
+	var create_button = $VBoxContainer/CreateShipButton
+	var back_button = $VBoxContainer/BackButton
+	
+	create_button.add_to_group("touch_controls")
+	back_button.add_to_group("touch_controls")
+	
+	create_button.pressed.connect(_on_create_pressed)
+	back_button.pressed.connect(_on_back_pressed)
+
+func _connect_signals() -> void:
+	ship_name_input.text_changed.connect(_on_name_changed)
+	hull_option.item_selected.connect(_on_hull_selected)
+	engine_option.item_selected.connect(_on_engine_selected)
+	weapon_option.item_selected.connect(_on_weapon_selected)
+	medical_option.item_selected.connect(_on_medical_selected)
+
+func _on_name_changed(new_name: String) -> void:
+	current_ship.name = new_name
+	_update_ship_info()
+
+func _on_hull_selected(index: int) -> void:
+	current_ship.hull_type = index
+	_update_ship_info()
+
+func _on_engine_selected(index: int) -> void:
+	current_ship.engine_type = index
+	_update_ship_info()
+
+func _on_weapon_selected(index: int) -> void:
+	current_ship.weapon_type = index
+	_update_ship_info()
+
+func _on_medical_selected(index: int) -> void:
+	current_ship.medical_bay_type = index
+	_update_ship_info()
+
+func _update_ship_info() -> void:
+	var info = """
+	Ship Name: %s
+	Hull Type: %s
+	Engine Type: %s
+	Weapon System: %s
+	Medical Bay: %s
+	
+	Cargo Capacity: %d
+	Crew Capacity: %d
+	Combat Rating: %d
+	""" % [
+		current_ship.name,
+		GlobalEnums.HullType.keys()[current_ship.hull_type],
+		GlobalEnums.EngineType.keys()[current_ship.engine_type],
+		GlobalEnums.WeaponType.keys()[current_ship.weapon_type],
+		GlobalEnums.MedicalBayType.keys()[current_ship.medical_bay_type],
+		current_ship.get_cargo_capacity(),
+		current_ship.get_crew_capacity(),
+		current_ship.get_combat_rating()
+	]
+	
+	ship_info_label.text = info
+
+func _on_create_pressed() -> void:
+	if _validate_ship():
+		ship_created.emit(current_ship)
 	else:
-		push_error("JSON Parse Error: " + json.get_error_message())
+		# Show error message
+		pass
 
-func create_component_from_data(component_data: Dictionary) -> ShipComponent:
-	var id_parts = component_data.id.split("_")
-	var component_type_str = id_parts[0].to_upper()
-	var component_type: GlobalEnums.ComponentType
-	
-	match component_type_str:
-		"ENGINE":
-			component_type = GlobalEnums.ComponentType.ENGINE
-		"WEAPONS":
-			component_type = GlobalEnums.ComponentType.WEAPONS
-		"HULL":
-			component_type = GlobalEnums.ComponentType.HULL
-		"MEDICAL":
-			component_type = GlobalEnums.ComponentType.MEDICAL_BAY
-		_:
-			push_error("Unknown component type: " + component_type_str)
-			return null
+func _on_back_pressed() -> void:
+	creation_cancelled.emit()
 
-	match component_type:
-		GlobalEnums.ComponentType.ENGINE:
-			return EngineComponent.new(
-				component_data.name,
-				component_data.description,
-				component_data.power_usage,
-				component_data.health,
-				component_data.weight,
-				component_data.speed,
-				component_data.fuel_efficiency
-			)
-		GlobalEnums.ComponentType.WEAPONS:
-			return WeaponsComponent.new(
-				component_data.name,
-				component_data.description,
-				component_data.power_usage,
-				component_data.health,
-				component_data.weight,
-				component_data.damage,
-				component_data.range
-			)
-		GlobalEnums.ComponentType.HULL:
-			return HullComponent.new(
-				component_data.name,
-				component_data.description,
-				component_data.power_usage,
-				component_data.health,
-				component_data.weight,
-				component_data.armor
-			)
-		GlobalEnums.ComponentType.MEDICAL_BAY:
-			return MedicalBayComponent.new(
-				component_data.name,
-				component_data.description,
-				component_data.power_usage,
-				component_data.health,
-				component_data.weight,
-				component_data.healing_capacity
-			)
-		_:
-			return ShipComponent.new(
-				component_data.name,
-				component_data.description,
-				component_type,
-				component_data.power_usage,
-				component_data.health,
-				component_data.weight
-			)
-
-func create_ship(ship_name: String, components: Array[ShipComponent]) -> Ship:
-	var new_ship := Ship.new()
-	new_ship.name = ship_name
-	new_ship.max_hull = calculate_max_hull(components)
-	new_ship.current_hull = new_ship.max_hull
-	new_ship.fuel = calculate_initial_fuel(components)
-	
-	for component in components:
-		new_ship.add_component(component)
-	
-	return new_ship
-
-func calculate_max_hull(components: Array[ShipComponent]) -> int:
-	var hull_components := components.filter(func(c): return c is HullComponent)
-	return hull_components.reduce(func(acc, component): return acc + (component as HullComponent).armor, 0)
-
-func calculate_initial_fuel(components: Array[ShipComponent]) -> int:
-	var engine_component := components.filter(func(c): return c is EngineComponent).front() as EngineComponent
-	return 100 if engine_component else 0  # Default fuel capacity, adjust as needed
-
-func get_component_cost(_component: ShipComponent) -> int:
-	# Implement cost calculation logic here
-	return 100  # Placeholder value
-
-func get_total_ship_cost(components: Array[ShipComponent]) -> int:
-	return BASE_SHIP_COST + components.reduce(func(acc, component): return acc + get_component_cost(component), 0)
-
-func validate_ship_configuration(components: Array[ShipComponent]) -> bool:
-	var has_engine := components.any(func(c): return c is EngineComponent)
-	var has_hull := components.any(func(c): return c is HullComponent)
-	var total_power_usage := components.reduce(func(acc, c): return acc + c.power_usage, 0) as int
-	
-	return has_engine and has_hull and total_power_usage <= BASE_SHIP_POWER
+func _validate_ship() -> bool:
+	return current_ship.name.length() > 0

@@ -29,6 +29,21 @@ enum EventType {
 var game_state: GameState
 var difficulty_settings: DifficultySettings  # Added from EscalatingBattlesManager
 
+var tutorial_events := {
+	"first_move": {
+		"description": "Good! You've made your first move.",
+		"effect": {"type": "highlight", "target": "next_position"}
+	},
+	"first_attack": {
+		"description": "Well done! You've attacked an enemy.",
+		"effect": {"type": "highlight", "target": "enemy"}
+	},
+	"used_cover": {
+		"description": "Excellent use of cover!",
+		"effect": {"type": "boost", "target": "defense"}
+	}
+}
+
 func _init(_game_state: GameState):
 	game_state = _game_state
 
@@ -213,3 +228,42 @@ func _apply_to_team(effect: Dictionary, team: Array) -> void:
 		for unit in team:
 			if unit.has_psionic_abilities:
 				unit.increase_psionic_intensity(effect.psionic_intensity)
+
+func handle_tutorial_event(event_type: String, context: Dictionary = {}) -> void:
+	if not game_state.is_tutorial_active:
+		return
+		
+	var event = tutorial_events.get(event_type)
+	if event:
+		# Show tutorial feedback
+		print("Tutorial: " + event.description)
+		
+		# Apply any tutorial-specific effects
+		if "effect" in event:
+			_apply_tutorial_effect(event.effect, context)
+
+func _apply_tutorial_effect(effect: Dictionary, context: Dictionary) -> void:
+	match effect.type:
+		"highlight":
+			_highlight_tutorial_target(effect.target, context)
+		"boost":
+			_apply_tutorial_boost(effect.target, context)
+
+# Add missing functions
+func _highlight_tutorial_target(target: String, context: Dictionary) -> void:
+	match target:
+		"next_position":
+			var valid_positions = context.get("valid_positions", [])
+			if valid_positions:
+				game_state.combat_manager.highlight_positions(valid_positions)
+		"enemy":
+			var enemies = context.get("enemies", [])
+			if enemies:
+				game_state.combat_manager.highlight_enemies(enemies)
+
+func _apply_tutorial_boost(target: String, context: Dictionary) -> void:
+	match target:
+		"defense":
+			var character = context.get("character")
+			if character:
+				character.add_temporary_modifier("tutorial_defense_boost", 1)

@@ -1,158 +1,143 @@
-extends Control
+extends CampaignResponsiveLayout
 
-@onready var name_label = $Panel/MarginContainer/VBoxContainer/NameLabel
-@onready var stats_display = $Panel/MarginContainer/VBoxContainer/StatsDisplay
-@onready var traits_display = $Panel/MarginContainer/VBoxContainer/TraitsDisplay
-@onready var equipment_list = $Panel/MarginContainer/VBoxContainer/EquipmentList
-@onready var xp_label = $Panel/MarginContainer/VBoxContainer/XPLabel
-@onready var medbay_status = $Panel/MarginContainer/VBoxContainer/MedbayStatus
-@onready var background_label = $Panel/MarginContainer/VBoxContainer/BackgroundLabel
-@onready var class_label = $Panel/MarginContainer/VBoxContainer/ClassLabel
-@onready var motivation_label = $Panel/MarginContainer/VBoxContainer/MotivationLabel
-@onready var equipment_popup = $EquipmentPopup
-@onready var weapon_button = $Panel/MarginContainer/VBoxContainer/EquipmentSection/WeaponButton
-@onready var armor_button = $Panel/MarginContainer/VBoxContainer/EquipmentSection/ArmorButton
-@onready var gear_button = $Panel/MarginContainer/VBoxContainer/EquipmentSection/GearButton
-@onready var inventory_list = $EquipmentPopup/MarginContainer/VBoxContainer/InventoryList
-@onready var mission_history_list = $Panel/MarginContainer/VBoxContainer/MissionHistorySection/MissionList
-@onready var training_section = $Panel/MarginContainer/VBoxContainer/TrainingSection
-@onready var available_courses_list = $Panel/MarginContainer/VBoxContainer/TrainingSection/AvailableCourses
-@onready var event_history = $Panel/MarginContainer/VBoxContainer/EventHistorySection/EventList
+signal character_updated(character: Character)
+
+@onready var name_label := $Panel/MarginContainer/VBoxContainer/NameLabel
+@onready var portrait := $Panel/MarginContainer/VBoxContainer/Portrait
+@onready var stats_container := $Panel/MarginContainer/VBoxContainer/StatsDisplay
+@onready var equipment_section := $Panel/MarginContainer/VBoxContainer/EquipmentSection
+@onready var skills_display := $Panel/MarginContainer/VBoxContainer/SkillsDisplay
+@onready var equipment_popup := $EquipmentPopup
+
+const TOUCH_BUTTON_HEIGHT := 60
+const PORTRAIT_SIZE_RATIO := 0.3  # 30% of screen height in portrait mode
 
 var character: Character
-var ship_inventory: ShipInventory
-var equipment_manager: EquipmentManager
 
 func _ready() -> void:
-	equipment_manager = get_node("/root/GameStateManager").equipment_manager
-	ship_inventory = get_node("/root/GameStateManager").game_state.current_ship.inventory
-	
-	# Connect signals
-	ship_inventory.item_added.connect(_on_inventory_updated)
-	ship_inventory.item_removed.connect(_on_inventory_updated)
+	super._ready()
+	_setup_character_sheet()
+	_connect_signals()
 
-func set_character(new_character: Character) -> void:
-	character = new_character
-	update_display()
-
-func update_display():
-	name_label.text = character.name
-	stats_display.text = """
-	Reactions: %d
-	Speed: %d
-	Combat Skill: %d
-	Toughness: %d
-	Savvy: %d
-	Luck: %d
-	""" % [
-		character.reactions,
-		character.speed,
-		character.combat_skill,
-		character.toughness,
-		character.savvy,
-		character.luck
-	]
-	
-	xp_label.text = "XP: %d" % character.xp
-	
-	traits_display.text = "Traits: " + ", ".join(character.traits)
-	
-	equipment_list.clear()
-	if character.equipped_weapon:
-		equipment_list.add_item("Weapon: " + character.equipped_weapon.name)
-	for item in character.equipped_items:
-		equipment_list.add_item(item.name)
-	
-	medbay_status.text = "In Medbay: %s (%d turns left)" % ["Yes" if character.is_in_medbay() else "No", character.medbay_turns_left]
-	
-	background_label.text = "Background: " + GlobalEnums.Background.keys()[character.background]
-	class_label.text = "Class: " + GlobalEnums.Class.keys()[character.character_class]
-	motivation_label.text = "Motivation: " + GlobalEnums.Motivation.keys()[character.motivation]
-	update_mission_history()
-	update_training_options()
-	update_event_history()
-
-func _on_close_button_pressed():
-	queue_free()
-
-func _on_weapon_button_pressed() -> void:
-	show_equipment_popup(GlobalEnums.ItemType.WEAPON)
-
-func _on_armor_button_pressed() -> void:
-	show_equipment_popup(GlobalEnums.ItemType.ARMOR)
-
-func _on_gear_button_pressed() -> void:
-	show_equipment_popup(GlobalEnums.ItemType.GEAR)
-
-func show_equipment_popup(type: GlobalEnums.ItemType) -> void:
-	inventory_list.clear()
-	var available_items = ship_inventory.get_items_by_type(type)
-	
-	for item in available_items:
-		inventory_list.add_item(item.name, null, true)
-	
-	equipment_popup.popup_centered()
-	equipment_popup.current_type = type
-
-func _on_inventory_item_selected(index: int) -> void:
-	var type = equipment_popup.current_type
-	var available_items = ship_inventory.get_items_by_type(type)
-	var selected_item = available_items[index]
-	
-	# Remove currently equipped item and add to ship inventory
-	match type:
-		GlobalEnums.ItemType.WEAPON:
-			if character.equipped_weapon:
-				ship_inventory.add_item(character.equipped_weapon)
-			character.equipped_weapon = selected_item
-		GlobalEnums.ItemType.ARMOR:
-			if character.equipped_armor:
-				ship_inventory.add_item(character.equipped_armor)
-			character.equipped_armor = selected_item
-		GlobalEnums.ItemType.GEAR:
-			# Handle gear equipping logic
-			pass
-	
-	ship_inventory.remove_item(selected_item)
+func _setup_character_sheet() -> void:
+	_setup_equipment_buttons()
+	_setup_equipment_popup()
 	equipment_popup.hide()
-	update_display()
 
-func update_mission_history() -> void:
-	mission_history_list.clear()
-	var missions = character.get_mission_history()
-	for mission in missions:
-		var text = "%s - %s (%s)" % [
-			mission.date,
-			mission.name,
-			"Success" if mission.success else "Failure"
-		]
-		mission_history_list.add_item(text)
-
-func update_training_options() -> void:
-	available_courses_list.clear()
-	var adv_training_manager = AdvTrainingManager.new(game_state_manager.game_state)
-	var available_courses = adv_training_manager.get_available_courses(character)
+func _apply_portrait_layout() -> void:
+	super._apply_portrait_layout()
 	
-	for course in available_courses:
-		var text = "%s - %d credits" % [course.name, course.cost]
-		available_courses_list.add_item(text)
-
-func _on_enroll_pressed() -> void:
-	var selected_idx = available_courses_list.get_selected_items()[0]
-	var course = available_courses_list.get_item_text(selected_idx)
-	var adv_training_manager = AdvTrainingManager.new(game_state_manager.game_state)
+	# Adjust portrait size for portrait mode
+	var portrait_size = get_viewport_rect().size.y * PORTRAIT_SIZE_RATIO
+	portrait.custom_minimum_size = Vector2(portrait_size, portrait_size)
 	
-	if adv_training_manager.apply_for_training(character, course):
-		if adv_training_manager.enroll_in_course(character, course):
-			update_display()
-		else:
-			game_state_manager.ui_manager.show_message("Not enough credits for training")
-	else:
-		game_state_manager.ui_manager.show_message("Application rejected")
+	# Stack sections vertically with adjusted spacing
+	$Panel/MarginContainer.add_theme_constant_override("margin_left", 10)
+	$Panel/MarginContainer.add_theme_constant_override("margin_right", 10)
+	
+	# Make controls touch-friendly
+	_adjust_touch_sizes(true)
 
-func update_event_history() -> void:
-	event_history.clear()
-	var events = character.get_event_history()
-	for event in events:
-		var text = "%s - %s" % [event.date, event.description]
-		event_history.add_item(text)
+func _apply_landscape_layout() -> void:
+	super._apply_landscape_layout()
+	
+	# Reset portrait size for landscape mode
+	portrait.custom_minimum_size = Vector2(300, 300)
+	
+	# Reset margins
+	$Panel/MarginContainer.add_theme_constant_override("margin_left", 20)
+	$Panel/MarginContainer.add_theme_constant_override("margin_right", 20)
+	
+	# Reset control sizes
+	_adjust_touch_sizes(false)
+
+func _adjust_touch_sizes(is_portrait: bool) -> void:
+	var button_height = TOUCH_BUTTON_HEIGHT if is_portrait else TOUCH_BUTTON_HEIGHT * 0.75
+	
+	# Adjust all buttons
+	for button in get_tree().get_nodes_in_group("touch_buttons"):
+		button.custom_minimum_size.y = button_height
+	
+	# Adjust list items in equipment popup
+	if equipment_popup.visible:
+		var inventory_list = equipment_popup.get_node("MarginContainer/VBoxContainer/InventoryList")
+		inventory_list.fixed_item_height = button_height
+
+func _setup_equipment_buttons() -> void:
+	var buttons = equipment_section.get_node("WeaponButton")
+	buttons.add_to_group("touch_buttons")
+	buttons = equipment_section.get_node("ArmorButton")
+	buttons.add_to_group("touch_buttons")
+	buttons = equipment_section.get_node("GearButton")
+	buttons.add_to_group("touch_buttons")
+
+func _setup_equipment_popup() -> void:
+	var close_button = equipment_popup.get_node("MarginContainer/VBoxContainer/CloseButton")
+	close_button.add_to_group("touch_buttons")
+
+func initialize(char: Character) -> void:
+	character = char
+	_update_display()
+	character.connect("stats_changed", _on_character_stats_changed)
+	character.connect("equipment_changed", _on_character_equipment_changed)
+	character.connect("traits_changed", _on_character_traits_changed)
+
+func _update_display() -> void:
+	if not character:
+		return
+		
+	name_label.text = character.name
+	_update_portrait()
+	_update_stats()
+	_update_skills()
+	_update_equipment()
+	_update_traits()
+
+func _update_portrait() -> void:
+	# Portrait update logic from CharacterPreview
+	if character.portrait_path:
+		var texture = load(character.portrait_path)
+		if texture:
+			portrait.texture = texture
+
+func _update_stats() -> void:
+	for stat in character.stats:
+		var stat_label = stats_container.get_node_or_null(stat + "Label")
+		if stat_label:
+			stat_label.text = str(character.stats[stat])
+
+func _update_skills() -> void:
+	for skill in character.skills:
+		var skill_label = skills_display.get_node_or_null(skill + "Label")
+		if skill_label:
+			skill_label.text = str(character.skills[skill])
+
+func _update_equipment() -> void:
+	for child in equipment_section.get_children():
+		child.queue_free()
+	
+	for item in character.equipment:
+		var item_label = Label.new()
+		item_label.text = item.name
+		equipment_section.add_child(item_label)
+
+func _update_traits() -> void:
+	for child in equipment_section.get_children():
+		child.queue_free()
+	
+	for current_trait in character.traits:
+		var trait_label = Label.new()
+		trait_label.text = str(current_trait)
+		equipment_section.add_child(trait_label)
+
+func _on_character_stats_changed() -> void:
+	_update_stats()
+	character_updated.emit(character)
+
+func _on_character_equipment_changed() -> void:
+	_update_equipment()
+	character_updated.emit(character)
+
+func _on_character_traits_changed() -> void:
+	_update_traits()
+	character_updated.emit(character)

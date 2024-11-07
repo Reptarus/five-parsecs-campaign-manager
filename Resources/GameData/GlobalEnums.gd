@@ -85,7 +85,11 @@ enum MissionType {
     ESCORT,
     ASSASSINATION,
     RETRIEVAL,
-    FRINGE_WORLD_STRIFE  # Add this to match the error in the image
+    RESOURCE_GATHERING,
+    SITE_DEFENSE,
+    DATA_RETRIEVAL,
+    TECH_RECOVERY,
+    FRINGE_WORLD_STRIFE
 }
 
 enum TerrainType {

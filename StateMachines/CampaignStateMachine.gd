@@ -1,112 +1,80 @@
 class_name CampaignStateMachine
 extends Node
 
+signal state_changed(new_state: GlobalEnums.CampaignPhase)
+
 var game_state_manager: GameStateManager
-var current_state: GlobalEnums.ExpandedCampaignPhase = GlobalEnums.ExpandedCampaignPhase.UPKEEP
+var current_state: GlobalEnums.CampaignPhase
 
-func initialize(gsm: GameStateManager):
+func initialize(gsm: GameStateManager) -> void:
 	game_state_manager = gsm
-	current_state = gsm.get_game_state() as GlobalEnums.ExpandedCampaignPhase
+	current_state = gsm.get_current_campaign_phase()
 
-func transition_to(new_state: GlobalEnums.ExpandedCampaignPhase):
+func transition_to(new_state: GlobalEnums.CampaignPhase) -> void:
 	current_state = new_state
 	match new_state:
-		GlobalEnums.ExpandedCampaignPhase.UPKEEP:
+		GlobalEnums.CampaignPhase.UPKEEP:
 			handle_upkeep()
-		GlobalEnums.ExpandedCampaignPhase.TRAVEL:
+			state_changed.emit(new_state)
+		GlobalEnums.CampaignPhase.TRAVEL:
 			handle_travel()
-		GlobalEnums.ExpandedCampaignPhase.WORLD:
-			handle_world()
-		GlobalEnums.ExpandedCampaignPhase.POST_BATTLE:
+			state_changed.emit(new_state)
+		GlobalEnums.CampaignPhase.PATRONS:
+			handle_patrons()
+			state_changed.emit(new_state)
+		GlobalEnums.CampaignPhase.POST_BATTLE:
 			handle_post_battle()
-		GlobalEnums.ExpandedCampaignPhase.TRACK_RIVALS:
+			state_changed.emit(new_state)
+		GlobalEnums.CampaignPhase.TRACK_RIVALS:
 			handle_track_rivals()
-		GlobalEnums.ExpandedCampaignPhase.PATRON_JOB:
+			state_changed.emit(new_state)
+		GlobalEnums.CampaignPhase.PATRON_JOB:
 			handle_patron_job()
-		GlobalEnums.ExpandedCampaignPhase.RIVAL_ATTACK:
+			state_changed.emit(new_state)
+		GlobalEnums.CampaignPhase.RIVAL_ATTACK:
 			handle_rival_attack()
-		GlobalEnums.ExpandedCampaignPhase.ASSIGN_EQUIPMENT:
+			state_changed.emit(new_state)
+		GlobalEnums.CampaignPhase.ASSIGN_EQUIPMENT:
 			handle_assign_equipment()
-		GlobalEnums.ExpandedCampaignPhase.READY_FOR_BATTLE:
+			state_changed.emit(new_state)
+		GlobalEnums.CampaignPhase.READY_FOR_BATTLE:
 			handle_ready_for_battle()
+			state_changed.emit(new_state)
 
-func handle_track_rivals():
-	# 1. Identify rival movements
-	# 2. Plan counteractions
-	# 3. Update rival status
+# Phase handlers
+func handle_upkeep() -> void:
+	var world_step_manager = WorldStepManager.new()
+	world_step_manager.initialize(game_state_manager)
+	world_step_manager.process_step()
+
+func handle_travel() -> void:
+	# Handle travel phase
 	pass
 
-func handle_patron_job():
-	# 1. Receive job details from patron
-	# 2. Plan and execute the job
-	# 3. Report back to patron
-	# 4. Receive rewards and consequences
+func handle_patrons() -> void:
+	# Handle patron interactions
+	pass
+func handle_post_battle() -> void:
+	var post_battle_manager = PostBattlePhase.new(game_state_manager.game_state)
+	post_battle_manager.process_post_battle()
+
+func handle_track_rivals() -> void:
+	# Handle rival tracking
+	pass
 	pass
 
-func handle_rival_attack():
-	# 1. Detect incoming rival attack
-	# 2. Prepare defenses
-	# 3. Engage in combat
-	# 4. Resolve aftermath
+func handle_patron_job() -> void:
+	# Handle patron job assignment
 	pass
 
-func handle_assign_equipment():
-	# 1. Review available equipment
-	# 2. Assign equipment to crew members
-	# 3. Update equipment status
+func handle_rival_attack() -> void:
+	# Handle rival attacks
 	pass
 
-func handle_ready_for_battle():
-	# 1. Finalize battle preparations
-	# 2. Confirm crew readiness
-	# 3. Move to battle phase
+func handle_assign_equipment() -> void:
+	# Handle equipment assignment
 	pass
 
-func handle_upkeep():
-	# 1. Upkeep and ship repairs
-	# 2. Assign and resolve crew tasks
-	# 3. Determine job offers
-	# 4. Assign equipment
-	# 5. Resolve any Rumors
-	# 6. Choose your battle
+func handle_ready_for_battle() -> void:
+	# Prepare for battle
 	pass
-
-func handle_travel():
-	# 1. Flee Invasion (if applicable)
-	# 2. Decide whether to travel
-	# 3. Starship travel event (if applicable)
-	# 4. New world arrival steps (if applicable)
-	pass
-
-func handle_world():
-	# 1. Upkeep and ship repairs
-	# 2. Assign and resolve crew tasks
-	# 3. Determine job offers
-	# 4. Assign equipment
-	# 5. Resolve any Rumors
-	# 6. Choose your battle
-	pass
-
-func handle_post_battle():
-	# 1. Resolve Rival status
-	# 2. Resolve Patron status
-	# 3. Determine Quest progress
-	# 4. Get paid
-	# 5. Battlefield finds
-	# 6. Check for Invasion
-	# 7. Gather the Loot
-	# 8. Determine Injuries and recovery
-	# 9. Experience and Character Upgrades
-	# 10. Invest in Advanced Training
-	# 11. Purchase items
-	# 12. Roll for a Campaign Event
-	# 13. Roll for a Character Event
-	# 14. Check for Galactic War progress
-	pass
-
-func process_campaign_turn():
-	transition_to(GlobalEnums.ExpandedCampaignPhase.UPKEEP)
-	transition_to(GlobalEnums.ExpandedCampaignPhase.TRAVEL)
-	transition_to(GlobalEnums.ExpandedCampaignPhase.WORLD)
-	# Battle happens here (managed by MainGameStateMachine)
-	transition_to(GlobalEnums.ExpandedCampaignPhase.POST_BATTLE)

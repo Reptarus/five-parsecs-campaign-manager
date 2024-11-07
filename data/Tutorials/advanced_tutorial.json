@@ -1,0 +1,41 @@
+{
+    "name": "Advanced Campaign Tutorial",
+    "description": "Master the full depth of Five Parsecs From Home",
+    "steps": [
+        {
+            "id": "campaign_setup",
+            "title": "Campaign Setup",
+            "content": "Let's set up a full campaign with all available options.",
+            "required_actions": ["difficulty_selected", "victory_condition_set"],
+            "setup_options": {
+                "crew_size": "choose",
+                "difficulty": "all",
+                "victory_conditions": "all",
+                "house_rules": true
+            }
+        },
+        {
+            "id": "faction_intro",
+            "title": "Faction System",
+            "content": "Learn about the faction system and how it affects your campaign.",
+            "required_actions": ["faction_viewed"],
+            "faction_setup": {
+                "starting_factions": 2,
+                "relationship_types": ["friendly", "neutral", "hostile"],
+                "faction_jobs": true
+            }
+        },
+        {
+            "id": "economy",
+            "title": "Economy Management",
+            "content": "Master credits, resources, and economic decisions.",
+            "required_actions": ["trade_completed"],
+            "economy_topics": [
+                "Trading",
+                "Ship Upgrades",
+                "Equipment Management",
+                "Crew Salaries"
+            ]
+        }
+    ]
+} 

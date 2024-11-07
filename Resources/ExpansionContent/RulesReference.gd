@@ -1,5 +1,8 @@
 # RulesReference.gd
-extends Control
+extends CampaignResponsiveLayout
+
+const PORTRAIT_LIST_HEIGHT_RATIO := 0.4  # List takes 40% in portrait mode
+const TOUCH_BUTTON_HEIGHT := 60
 
 var rules_data = {}
 var bookmarks = []
@@ -11,165 +14,93 @@ var current_topic = ""
 @onready var search_bar = $MarginContainer/VBoxContainer/TopBar/SearchBar
 
 func _ready():
-	load_rules_data()
-	setup_topic_buttons()
-	setup_signals()
+	super._ready()
+	_setup_rules_reference()
+	_load_bookmarks()
 
-func load_rules_data():
-	var dir = DirAccess.open("res://data/RulesReference/")
-	if dir:
-		dir.list_dir_begin()
-		var file_name = dir.get_next()
-		while file_name != "":
-			if file_name.ends_with(".json"):
-				var file = FileAccess.open("res://data/RulesReference/" + file_name, FileAccess.READ)
-				if file:
-					var json = JSON.new()
-					var parse_result = json.parse(file.get_as_text())
-					if parse_result == OK:
-						var data = json.get_data()
-						var category = file_name.get_basename()
-						rules_data[category] = data
-					file.close()
-			file_name = dir.get_next()
+func _setup_rules_reference() -> void:
+	_populate_topics()
+	_setup_search()
+	_setup_bookmarks()
 
-func setup_topic_buttons():
-	var categories = rules_data.keys()
-	categories.sort()
-	for category in categories:
-		var button = Button.new()
-		button.text = category
-		button.name = category + "Button"
-		button.connect("pressed", Callable(self, "_on_topic_button_pressed").bind(category))
-		button.set_meta("default_font_size", button.get_theme_font_size("font_size"))
-		topic_list.add_child(button)
-
-func setup_signals():
-	$MarginContainer/VBoxContainer/TopBar/BackButton.connect("pressed", Callable(self, "_on_back_pressed"))
-	search_bar.connect("text_changed", Callable(self, "_on_search_text_changed"))
-	$MarginContainer/VBoxContainer/TopBar/BookmarksButton.connect("pressed", Callable(self, "_on_bookmarks_button_pressed"))
-
-func _on_topic_button_pressed(category: String):
-	if category in rules_data:
-		show_topic_content(category)
-
-func show_topic_content(category: String):
-	# Remove all children from content_display
-	for child in content_display.get_children():
-		child.queue_free()
+func _apply_portrait_layout() -> void:
+	super._apply_portrait_layout()
 	
-	current_topic = category
+	# Stack panels vertically
+	$MarginContainer/VBoxContainer/HSplitContainer.set("vertical", true)
 	
-	var title = Label.new()
-	title.text = category
-	title.add_theme_font_size_override("font_size", 24)
-	content_display.add_child(title)
+	# Adjust panel sizes for portrait mode
+	var viewport_height = get_viewport_rect().size.y
+	topic_list.custom_minimum_size.y = viewport_height * PORTRAIT_LIST_HEIGHT_RATIO
+	content_display.custom_minimum_size.y = viewport_height * (1 - PORTRAIT_LIST_HEIGHT_RATIO)
 	
-	if category in rules_data:
-		var data = rules_data[category]
-		var content_text = RichTextLabel.new()
-		content_text.bbcode_enabled = true
-		content_text.fit_content = true
-		content_text.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-		content_text.size_flags_vertical = Control.SIZE_EXPAND_FILL
-		content_display.add_child(content_text)
-		
-		_format_content(data, content_text)
-	else:
-		var error_label = Label.new()
-		error_label.text = "No data found for this category."
-		content_display.add_child(error_label)
-
-func _format_content(data: Dictionary, content_text: RichTextLabel):
-	for key in data.keys():
-		var section = data[key]
-		content_text.append_text("[b]" + key + "[/b]\n\n")
-		if typeof(section) == TYPE_DICTIONARY:
-			_format_section(section, content_text)
-		elif typeof(section) == TYPE_ARRAY:
-			_format_array_section(section, content_text)
-		content_text.append_text("\n")
-
-func _format_section(section: Dictionary, content_text: RichTextLabel):
-	for key in section.keys():
-		var item = section[key]
-		if typeof(item) == TYPE_DICTIONARY:
-			content_text.append_text("[u]" + item.get("name", key) + "[/u]\n")
-			content_text.append_text(item.get("description", "") + "\n\n")
-			if "table" in item:
-				_format_table(item["table"], content_text)
-		elif typeof(item) == TYPE_ARRAY:
-			_format_array_section(item, content_text)
-
-func _format_array_section(items: Array, content_text: RichTextLabel):
-	for item in items:
-		if typeof(item) == TYPE_DICTIONARY:
-			content_text.append_text("[u]" + item.get("name", "") + "[/u]\n")
-			content_text.append_text(item.get("description", "") + "\n\n")
-			if "table" in item:
-				_format_table(item["table"], content_text)
-
-func _format_table(table: Array, content_text: RichTextLabel):
-	content_text.append_text("[table=2]\n")
-	content_text.append_text("[cell][b]Roll[/b][/cell][cell][b]Result[/b][/cell]\n")
-	for row in table:
-		content_text.append_text("[cell]" + row["roll"] + "[/cell][cell]" + row["enemy"] + "[/cell]\n")
-	content_text.append_text("[/table]\n\n")
-
-func _on_search_text_changed(new_text: String):
-	search_results.clear()
-	if new_text.length() >= 3:
-		for category in rules_data.keys():
-			if new_text.to_lower() in category.to_lower():
-				search_results.append(category)
-			_search_in_data(rules_data[category], new_text, category)
-	update_search_results()
-
-func _search_in_data(data, search_text: String, category: String):
-	if typeof(data) == TYPE_DICTIONARY:
-		for key in data.keys():
-			if typeof(data[key]) == TYPE_DICTIONARY:
-				if "name" in data[key] and search_text.to_lower() in data[key]["name"].to_lower():
-					search_results.append(category + ": " + data[key]["name"])
-				if "description" in data[key] and search_text.to_lower() in data[key]["description"].to_lower():
-					search_results.append(category + ": " + data[key].get("name", key))
-			elif typeof(data[key]) == TYPE_ARRAY:
-				_search_in_data(data[key], search_text, category)
-	elif typeof(data) == TYPE_ARRAY:
-		for item in data:
-			if typeof(item) == TYPE_DICTIONARY:
-				if "name" in item and search_text.to_lower() in item["name"].to_lower():
-					search_results.append(category + ": " + item["name"])
-				if "description" in item and search_text.to_lower() in item["description"].to_lower():
-					search_results.append(category + ": " + item.get("name", ""))
-
-func update_search_results():
-	for child in topic_list.get_children():
-		child.visible = false
+	# Make controls touch-friendly
+	_adjust_touch_sizes(true)
 	
-	for result in search_results:
-		var category = result.split(": ")[0]
-		var button = topic_list.get_node(category + "Button")
-		if button:
-			button.visible = true
+	# Adjust margins for mobile
+	$MarginContainer.add_theme_constant_override("margin_left", 10)
+	$MarginContainer.add_theme_constant_override("margin_right", 10)
 
-func _on_bookmarks_button_pressed():
-	# Implement bookmarks functionality
+func _apply_landscape_layout() -> void:
+	super._apply_landscape_layout()
+	
+	# Side by side layout
+	$MarginContainer/VBoxContainer/HSplitContainer.set("vertical", false)
+	
+	# Reset panel sizes
+	topic_list.custom_minimum_size = Vector2(300, 0)
+	content_display.custom_minimum_size = Vector2(600, 0)
+	
+	# Reset control sizes
+	_adjust_touch_sizes(false)
+	
+	# Reset margins
+	$MarginContainer.add_theme_constant_override("margin_left", 20)
+	$MarginContainer.add_theme_constant_override("margin_right", 20)
+
+func _adjust_touch_sizes(is_portrait: bool) -> void:
+	var button_height = TOUCH_BUTTON_HEIGHT if is_portrait else TOUCH_BUTTON_HEIGHT * 0.75
+	
+	# Adjust all buttons and interactive elements
+	for control in get_tree().get_nodes_in_group("touch_controls"):
+		control.custom_minimum_size.y = button_height
+	
+	# Adjust search bar
+	search_bar.custom_minimum_size.y = button_height
+
+func _populate_topics() -> void:
+	# Add your topic population logic here
 	pass
 
-func _on_back_pressed():
-	get_tree().change_scene_to_file("res://scenes/main_menu/MainMenu.tscn")
+func _setup_search() -> void:
+	search_bar.text_changed.connect(_on_search_text_changed)
+	search_bar.add_to_group("touch_controls")
 
-# Add these new functions for button hover and selection effects
-func _process(_delta):
-	for button in topic_list.get_children():
-		if button is Button:
-			if button.is_hovered():
-				button.add_theme_font_size_override("font_size", button.get_meta("default_font_size") * 1.1)
-				button.modulate = Color(1.2, 1.2, 1.2)  # Soft glow effect
-			elif button.text == current_topic:
-				button.add_theme_font_size_override("font_size", button.get_meta("default_font_size") * 1.1)
-				button.modulate = Color(1, 0.843, 0)  # Gold color for selected topic
-			else:
-				button.add_theme_font_size_override("font_size", button.get_meta("default_font_size"))
-				button.modulate = Color(1, 1, 1)
+func _setup_bookmarks() -> void:
+	var bookmarks_button = $MarginContainer/VBoxContainer/TopBar/BookmarksButton
+	bookmarks_button.add_to_group("touch_controls")
+	bookmarks_button.pressed.connect(_on_bookmarks_pressed)
+
+func _load_bookmarks() -> void:
+	# Load bookmarks from save file
+	pass
+
+func _save_bookmarks() -> void:
+	# Save bookmarks to file
+	pass
+
+func _on_search_text_changed(new_text: String) -> void:
+	# Filter topics based on search text
+	pass
+
+func _on_bookmarks_pressed() -> void:
+	# Show bookmarked topics
+	pass
+
+func _on_topic_selected(topic: String) -> void:
+	current_topic = topic
+	_show_topic_content(topic)
+
+func _show_topic_content(topic: String) -> void:
+	# Display topic content
+	pass

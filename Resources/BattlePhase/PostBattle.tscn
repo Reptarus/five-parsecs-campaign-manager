@@ -1,4 +1,4 @@
-[gd_scene load_steps=7 format=3 uid="uid://clqsi3wwo4hte"]
+[gd_scene load_steps=7 format=3 uid="uid://ylx5ovwlv3tn"]
 
 [ext_resource type="Script" path="res://Resources/GameData/PostBattlePhase.gd" id="1_lqd0l"]
 [ext_resource type="PackedScene" path="res://Resources/BattlePhase/Scenes/MissionSummaryPanel.tscn" id="2_summary"]

@@ -1,0 +1,35 @@
+{
+    "name": "Quick Start Tutorial",
+    "description": "Learn the basic mechanics of Five Parsecs From Home",
+    "steps": [
+        {
+            "id": "welcome",
+            "title": "Welcome to Five Parsecs",
+            "content": "Welcome to Five Parsecs From Home! This tutorial will teach you the basic mechanics.",
+            "required_actions": ["tutorial_started"]
+        },
+        {
+            "id": "crew_creation",
+            "title": "Creating Your Crew",
+            "content": "Let's start by creating your first crew members. You'll need a balanced team to survive.",
+            "required_actions": ["character_created", "crew_named"],
+            "objectives": [
+                "Create at least 3 crew members",
+                "Name your crew",
+                "Assign starting equipment"
+            ]
+        },
+        {
+            "id": "first_battle",
+            "title": "Basic Combat",
+            "content": "Time to learn the basic combat mechanics. We'll start with a simple encounter.",
+            "required_actions": ["battle_started"],
+            "battle_setup": {
+                "enemy_type": "Isolationist",
+                "enemy_count": 3,
+                "deployment": "basic",
+                "objective": "fight_off"
+            }
+        }
+    ]
+} 

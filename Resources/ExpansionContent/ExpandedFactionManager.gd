@@ -10,12 +10,12 @@ const MAX_FACTION_STRENGTH: int = 7
 const MIN_FACTION_POWER: int = 3
 const MAX_FACTION_POWER: int = 5
 
-var game_state: MockGameState
+var game_state_manager: GameStateManager
 var factions: Array[Dictionary] = []
 var faction_data: Dictionary
 
-func _init(_game_state: MockGameState = null) -> void:
-	game_state = _game_state
+func _init(_game_state_manager: GameStateManager = null) -> void:
+	game_state_manager = _game_state_manager
 	load_faction_data()
 
 func load_faction_data() -> void:
@@ -49,7 +49,7 @@ func update_faction_relations(faction: Dictionary, change: float) -> void:
 	faction["influence"] = clamp(faction["influence"] + change, 1.0, 5.0)
 
 func get_faction_mission(faction: Dictionary) -> Mission:
-	return game_state.mission_generator.generate_mission_for_faction(faction)
+	return game_state_manager.mission_generator.generate_mission_for_faction(faction)
 
 func resolve_faction_conflict() -> void:
 	var attacker = factions[randi() % factions.size()]
@@ -136,17 +136,18 @@ func faction_struggle(faction: Dictionary) -> void:
 		resolve_faction_conflict()
 
 func office_party(faction: Dictionary) -> void:
-	for character in game_state.get_crew():
+	for character in game_state_manager.game_state.get_crew():
 		var loyalty = character.get_faction_standing(faction["name"])
-		game_state.get_internal_game_state().credits += loyalty
+		game_state_manager.game_state.credits += loyalty
 
 func plans_within_plans(faction: Dictionary) -> void:
 	if faction["influence"] >= 3:
-		# Assuming quest_generator is part of the game_state
-		game_state.get_internal_game_state().add_quest(game_state.quest_generator.generate_quest_for_faction(faction))
+		game_state_manager.game_state.add_quest(
+			game_state_manager.quest_generator.generate_quest_for_faction(faction)
+		)
 
 func day_to_day_operations(faction: Dictionary) -> void:
-	game_state.get_internal_game_state().add_job_offer(get_faction_mission(faction))
+	game_state_manager.game_state.add_job_offer(get_faction_mission(faction))
 
 func update_factions() -> void:
 	for faction in factions:
@@ -155,7 +156,7 @@ func update_factions() -> void:
 func get_faction_job(faction: Dictionary) -> bool:
 	if randi() % 6 + 1 <= faction["influence"]:
 		var job = get_faction_mission(faction)
-		game_state.get_internal_game_state().add_job_offer(job)
+		game_state_manager.game_state.add_job_offer(job)
 		return true
 	return false
 

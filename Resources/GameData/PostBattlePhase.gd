@@ -1,6 +1,24 @@
 # PostBattle.gd
 class_name PostBattlePhase
-extends Node
+extends CampaignResponsiveLayout
+
+signal phase_completed
+
+@onready var step_label := $VBoxContainer/StepLabel
+@onready var step_description := $VBoxContainer/StepDescription
+@onready var step_content := $VBoxContainer/ScrollContainer/StepContent
+
+const TOUCH_BUTTON_HEIGHT := 60
+const PORTRAIT_CONTENT_RATIO := 0.7  # Content takes 70% in portrait mode
+
+var current_step := 0
+var steps := [
+	"Resolve Combat Results",
+	"Apply Injuries",
+	"Collect Loot",
+	"Update Mission Status",
+	"Record Experience"
+]
 
 var game_state: GameState
 var galactic_war_manager: GalacticWarManager
@@ -11,6 +29,108 @@ const AdvTrainingManager = preload("res://Resources/WorldPhase/AdvTrainingManage
 func _init(_game_state: GameState) -> void:
 	game_state = _game_state
 	galactic_war_manager = GalacticWarManager.new(_game_state)
+
+func _ready() -> void:
+	super._ready()
+	_setup_post_battle_ui()
+	_show_current_step()
+
+func _setup_post_battle_ui() -> void:
+	_setup_step_content()
+	_setup_buttons()
+
+func _apply_portrait_layout() -> void:
+	super._apply_portrait_layout()
+	
+	# Stack content vertically
+	$VBoxContainer.set("vertical", true)
+	
+	# Adjust content size for portrait mode
+	var viewport_height = get_viewport_rect().size.y
+	step_content.custom_minimum_size.y = viewport_height * PORTRAIT_CONTENT_RATIO
+	
+	# Make controls touch-friendly
+	_adjust_touch_sizes(true)
+	
+	# Adjust margins for mobile
+	$VBoxContainer.add_theme_constant_override("margin_left", 10)
+	$VBoxContainer.add_theme_constant_override("margin_right", 10)
+
+func _apply_landscape_layout() -> void:
+	super._apply_landscape_layout()
+	
+	# Reset to default layout
+	$VBoxContainer.set("vertical", false)
+	
+	# Reset content size
+	step_content.custom_minimum_size = Vector2(800, 400)
+	
+	# Reset control sizes
+	_adjust_touch_sizes(false)
+	
+	# Reset margins
+	$VBoxContainer.add_theme_constant_override("margin_left", 20)
+	$VBoxContainer.add_theme_constant_override("margin_right", 20)
+
+func _adjust_touch_sizes(is_portrait: bool) -> void:
+	var button_height = TOUCH_BUTTON_HEIGHT if is_portrait else TOUCH_BUTTON_HEIGHT * 0.75
+	
+	# Adjust all buttons
+	for button in get_tree().get_nodes_in_group("touch_buttons"):
+		button.custom_minimum_size.y = button_height
+
+func _setup_step_content() -> void:
+	# Add step-specific content containers
+	for step in steps:
+		var container = VBoxContainer.new()
+		container.name = step.replace(" ", "_")
+		container.visible = false
+		step_content.add_child(container)
+
+func _setup_buttons() -> void:
+	var next_button = $VBoxContainer/NextStepButton
+	var finish_button = $VBoxContainer/FinishPostBattleButton
+	
+	next_button.add_to_group("touch_buttons")
+	finish_button.add_to_group("touch_buttons")
+	
+	next_button.pressed.connect(_on_next_step_pressed)
+	finish_button.pressed.connect(_on_finish_pressed)
+
+func _show_current_step() -> void:
+	if current_step >= steps.size():
+		return
+		
+	step_label.text = "Current Step: " + steps[current_step]
+	step_description.text = _get_step_description(current_step)
+	
+	# Hide all content containers
+	for container in step_content.get_children():
+		container.visible = false
+	
+	# Show current step content
+	var current_container = step_content.get_node(steps[current_step].replace(" ", "_"))
+	if current_container:
+		current_container.visible = true
+
+func _get_step_description(step_index: int) -> String:
+	match step_index:
+		0: return "Determine the outcome of the battle and apply immediate effects."
+		1: return "Check for and apply any injuries sustained during combat."
+		2: return "Gather and distribute any loot from the battlefield."
+		3: return "Update the current mission's progress and objectives."
+		4: return "Award experience points to surviving crew members."
+		_: return ""
+
+func _on_next_step_pressed() -> void:
+	current_step += 1
+	if current_step < steps.size():
+		_show_current_step()
+	else:
+		_on_finish_pressed()
+
+func _on_finish_pressed() -> void:
+	phase_completed.emit()
 
 func execute_post_battle_sequence(player_victory: bool) -> void:
 	resolve_rival_status(player_victory)
@@ -230,8 +350,7 @@ func apply_character_event(character: Character, event: Dictionary) -> void:
 	# Apply the event effect to the character
 	match event["effect"]:
 		"Gain a temporary ally":
-			# Logic to add a temporary ally
-			var ally = Character.create_temporary()
+			var ally = _handle_temporary_ally()
 			game_state.add_temporary_ally(ally)
 		"Equipment malfunction":
 			character.disable_random_item()
@@ -288,3 +407,8 @@ func load_json_file(file_path: String) -> Dictionary:
 	else:
 		push_error("Failed to open file: " + file_path)
 		return {}
+
+func _handle_temporary_ally() -> Character:
+	var ally = Character.new()  # Create base character
+	ally.set_temporary(true)    # Mark as temporary
+	return ally

@@ -2,14 +2,14 @@
 class_name MissionGenerator
 extends Node
 
-var game_state_manager: GameStateManager
-var game_state: MockGameState
+@export var game_state_manager: GameStateManager
+var game_state: GameState
 var mission_manager: MissionManager
 
-func initialize(_game_state_manager: GameStateManager) -> void:
+func _init(_game_state_manager: GameStateManager) -> void:
 	game_state_manager = _game_state_manager
-	game_state = game_state_manager.game_state  # Directly access the game_state property
-	mission_manager = MissionManager.new(game_state_manager)
+	game_state = game_state_manager.game_state
+	mission_manager = MissionManager.new(game_state_manager.game_state)
 
 func generate_mission_from_template(template: MissionTemplate) -> Mission:
 	var mission = Mission.new()

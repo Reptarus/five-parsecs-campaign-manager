@@ -1,6 +1,8 @@
 class_name BattleStateMachine
 extends Node
 
+signal state_changed(new_state: BattleState)
+
 var game_state_manager: GameStateManager
 
 enum BattleState {SETUP, ROUND, CLEANUP}
@@ -9,7 +11,7 @@ enum UnitAction {MOVE, ATTACK, DASH, ITEMS, SNAP_FIRE, FREE_ACTION, STUNNED, BRA
 var current_battle_state: BattleState = BattleState.SETUP
 var current_round_phase: GlobalEnums.BattlePhase = GlobalEnums.BattlePhase.REACTION_ROLL
 
-func initialize(gsm: GameStateManager):
+func initialize(gsm: GameStateManager) -> void:
 	game_state_manager = gsm
 
 func transition_to_battle_state(new_state: BattleState):

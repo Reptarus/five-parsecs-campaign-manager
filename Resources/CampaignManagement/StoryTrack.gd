@@ -1,11 +1,12 @@
 # StoryTrack.gd
 class_name StoryTrack
-extends Resource
+extends Node
 
 signal event_triggered(event: StoryEvent)
 
 var story_clock: StoryClock
-var story_track_manager: StoryTrackManager
+var game_state_manager: GameStateManager
+var internal_state: GameState
 var events: Array[StoryEvent] = []
 var current_event_index: int = -1
 var mock_game_state: MockGameState
@@ -13,14 +14,10 @@ var mock_game_state: MockGameState
 func _init() -> void:
 	story_clock = StoryClock.new()
 
-func initialize(new_mock_game_state: MockGameState) -> void:
-	mock_game_state = new_mock_game_state
+func initialize(gsm: GameStateManager) -> void:
+	game_state_manager = gsm
+	internal_state = gsm.game_state
 	story_clock = StoryClock.new()
-	var internal_state = mock_game_state.get_internal_game_state()
-	if internal_state is GameState:
-		story_track_manager = StoryTrackManager.new(internal_state)
-	else:
-		push_error("Expected GameState, got %s" % internal_state.get_class())
 	_load_events()
 	current_event_index = -1
 
@@ -48,9 +45,13 @@ func trigger_current_event() -> void:
 	apply_event_effects(current_event)
 
 func apply_event_effects(event: StoryEvent) -> void:
-	event.apply_event_effects(mock_game_state)
-	event.setup_battle(mock_game_state.combat_manager)
-	event.apply_rewards(mock_game_state)
+	if not game_state_manager:
+		push_error("GameStateManager not initialized")
+		return
+	
+	event.apply_event_effects(game_state_manager)
+	event.setup_battle(game_state_manager.combat_manager)
+	event.apply_rewards(game_state_manager)
 
 func progress_story(current_phase: GlobalEnums.CampaignPhase) -> void:
 	story_clock.count_down(current_phase == GlobalEnums.CampaignPhase.POST_BATTLE)

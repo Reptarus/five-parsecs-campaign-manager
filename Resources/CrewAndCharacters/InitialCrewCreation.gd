@@ -1,92 +1,91 @@
 class_name InitialCrewCreation
-extends Control
+extends CampaignResponsiveLayout
 
-@onready var character_columns := [
-	$HBoxContainer/LeftPanel/VBoxContainer/CharacterColumns/CharacterColumn1,
-	$HBoxContainer/LeftPanel/VBoxContainer/CharacterColumns/CharacterColumn2
-]
-@onready var confirm_button := $HBoxContainer/LeftPanel/VBoxContainer/ConfirmButton
+const CharacterCreator = preload("res://Resources/CrewAndCharacters/CharacterCreator.gd")
+const CrewManager = preload("res://Resources/CrewAndCharacters/CrewManager.gd")
 
-var current_phase: GlobalEnums.CampaignPhase
+signal crew_creation_completed(crew: Array[Character])
+signal crew_creation_cancelled
+
+const TOUCH_BUTTON_HEIGHT := 60
+const PORTRAIT_PREVIEW_HEIGHT_RATIO := 0.4  # Preview takes 40% in portrait mode
+
+@onready var crew_columns := $HBoxContainer/LeftPanel/Panel/VBoxContainer/CharacterColumns
+@onready var crew_preview := $HBoxContainer/RightPanel/Panel/MarginContainer/VBoxContainer/ScrollContainer/CrewPreview
+
+var character_creator: CharacterCreator
+var crew_manager: CrewManager
 
 func _ready() -> void:
-	if not GameStateManager:
-		push_error("GameStateManager not found. Ensure it's properly set up.")
-		return
-	current_phase = GameStateManager.get_game_state()
+	super._ready()
+	character_creator = CharacterCreator.new()
+	crew_manager = CrewManager.new()
+	_setup_crew_creation()
+	_connect_signals()
+
+func _setup_crew_creation() -> void:
+	_setup_crew_columns()
+	_setup_crew_preview()
+	_setup_buttons()
+
+func _apply_portrait_layout() -> void:
+	super._apply_portrait_layout()
 	
-	setup_ui()
-	connect_signals()
+	# Stack panels vertically
+	main_container.set("orientation", BaseContainer.Orientation.VERTICAL)
 	
-	# Initialize crew if not exists
-	if not GameStateManager.game_state.crew:
-		GameStateManager.game_state.crew = Crew.new()
+	# Adjust panel sizes for portrait mode
+	var viewport_height = get_viewport_rect().size.y
+	crew_columns.custom_minimum_size.y = viewport_height * (1 - PORTRAIT_PREVIEW_HEIGHT_RATIO)
+	crew_preview.custom_minimum_size.y = viewport_height * PORTRAIT_PREVIEW_HEIGHT_RATIO
 	
-	update_character_panels()
+	# Make controls touch-friendly
+	_adjust_touch_sizes(true)
 
-func setup_ui() -> void:
-	update_character_panels()
-
-func update_character_panels() -> void:
-	var crew = GameStateManager.game_state.crew
-	for i in range(8):
-		# warning-ignore:integer_division
-		var panel = character_columns[i / 4].get_child(i % 4)
-		if i < crew.get_crew_size():
-			update_panel_with_character(panel, crew.get_character(i))
-		else:
-			reset_panel(panel)
-
-func reset_panel(panel: Panel) -> void:
-	var name_label = panel.get_node_or_null("HBoxContainer/VBoxContainer/Name")
-	var species_label = panel.get_node_or_null("HBoxContainer/VBoxContainer/Species")
-	var class_label = panel.get_node_or_null("HBoxContainer/VBoxContainer/Class")
+func _apply_landscape_layout() -> void:
+	super._apply_landscape_layout()
 	
-	if name_label:
-		name_label.text = "Click to Create"
-	if species_label:
-		species_label.text = ""
-	if class_label:
-		class_label.text = ""
-
-func connect_signals() -> void:
-	for column in character_columns:
-		for panel in column.get_children():
-			if panel is Panel:
-				panel.gui_input.connect(_on_character_panel_input.bind(panel))
+	# Side by side layout
+	main_container.set("orientation", BaseContainer.Orientation.HORIZONTAL)
 	
-	confirm_button.pressed.connect(_on_confirm_button_pressed)
+	# Reset panel sizes
+	crew_columns.custom_minimum_size = Vector2(600, 0)
+	crew_preview.custom_minimum_size = Vector2(300, 0)
+	
+	# Reset control sizes
+	_adjust_touch_sizes(false)
 
-func _on_character_panel_input(event: InputEvent, panel: Panel) -> void:
-	if event is InputEventMouseButton and event.pressed and event.button_index == MOUSE_BUTTON_LEFT:
-		var character_index = get_character_index(panel)
-		_on_character_panel_pressed(character_index)
+func _adjust_touch_sizes(is_portrait: bool) -> void:
+	var button_height = TOUCH_BUTTON_HEIGHT if is_portrait else TOUCH_BUTTON_HEIGHT * 0.75
+	
+	# Adjust all buttons
+	for button in get_tree().get_nodes_in_group("touch_buttons"):
+		button.custom_minimum_size.y = button_height
+	
+	# Adjust character boxes
+	for box in get_tree().get_nodes_in_group("character_boxes"):
+		box.custom_minimum_size.y = button_height * 1.5
 
-func _on_character_panel_pressed(character_index: int) -> void:
-	GameStateManager.temp_data["editing_character_index"] = character_index
-	get_tree().change_scene_to_file("res://Scenes/Scene Container/campaigncreation/CharacterCreator.tscn")
+func _setup_crew_columns() -> void:
+	for column in crew_columns.get_children():
+		for character_box in column.get_children():
+			character_box.add_to_group("character_boxes")
+			character_box.pressed.connect(_on_character_box_pressed.bind(character_box))
 
-func get_character_index(panel: Panel) -> int:
-	var index := 0
-	for column in character_columns:
-		for child in column.get_children():
-			if child == panel:
-				return index
-			index += 1
-	return -1
+func _setup_crew_preview() -> void:
+	crew_preview.initialize(crew_manager.get_crew())
 
-func _on_confirm_button_pressed() -> void:
-	var crew = GameStateManager.game_state.crew
-	if crew.get_crew_size() == Crew.MAX_CREW_SIZE:
-		get_tree().change_scene_to_file("res://Scenes/campaign/NewCampaignSetup/ShipCreation.tscn")
+func _setup_buttons() -> void:
+	var confirm_button = $HBoxContainer/LeftPanel/Panel/VBoxContainer/ConfirmButton
+	confirm_button.add_to_group("touch_buttons")
+	confirm_button.pressed.connect(_on_confirm_pressed)
+
+func _on_character_box_pressed(box: Button) -> void:
+	character_creator.edit_character(crew_manager.get_character(box.get_index()))
+
+func _on_confirm_pressed() -> void:
+	if crew_manager.validate_crew():
+		crew_creation_completed.emit(crew_manager.get_crew())
 	else:
-		print("Please create all 8 characters before confirming.")
-
-func update_panel_with_character(panel: Panel, character: CrewMember) -> void:
-	panel.get_node("HBoxContainer/VBoxContainer/Name").text = character.name
-	panel.get_node("HBoxContainer/VBoxContainer/Species").text = character.species
-	panel.get_node("HBoxContainer/VBoxContainer/Class").text = character.character_class
-
-# Connect this function to the "back" button in CharacterCreator scene
-func _on_back_from_character_creator() -> void:
-	get_tree().change_scene_to_file("res://Scenes/Scene Container/InitialCrewCreation.tscn")
+		# Show error message
+		pass

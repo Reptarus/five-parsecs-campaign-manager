@@ -1,121 +1,112 @@
-class_name CampaignDashboard
-extends Control
-
-const GlobalEnums = preload("res://Resources/GameData/GlobalEnums.gd")
-const MockGameState = preload("res://Resources/MockGameState.gd")
-
-@onready var phase_label: Label = $MarginContainer/VBoxContainer/HeaderPanel/HBoxContainer/PhaseLabel
-@onready var credits_label: Label = $MarginContainer/VBoxContainer/HeaderPanel/HBoxContainer/CreditsLabel
-@onready var story_points_label: Label = $MarginContainer/VBoxContainer/HeaderPanel/HBoxContainer/StoryPointsLabel
-@onready var crew_list: ItemList = $MarginContainer/VBoxContainer/MainContent/LeftPanel/CrewPanel/VBoxContainer/CrewList
-@onready var ship_info: Label = $MarginContainer/VBoxContainer/MainContent/LeftPanel/ShipPanel/VBoxContainer/ShipInfo
-@onready var quest_info: Label = $MarginContainer/VBoxContainer/MainContent/RightPanel/QuestPanel/VBoxContainer/QuestInfo
-@onready var world_info: Label = $MarginContainer/VBoxContainer/MainContent/RightPanel/WorldPanel/VBoxContainer/WorldInfo
-@onready var patron_list: ItemList = $MarginContainer/VBoxContainer/MainContent/RightPanel/PatronPanel/VBoxContainer/PatronList
-@onready var action_button: Button = $MarginContainer/VBoxContainer/ButtonContainer/ActionButton
-@onready var manage_crew_button: Button = $MarginContainer/VBoxContainer/ButtonContainer/ManageCrewButton
-@onready var save_button: Button = $MarginContainer/VBoxContainer/ButtonContainer/SaveButton
-@onready var load_button: Button = $MarginContainer/VBoxContainer/ButtonContainer/LoadButton
-@onready var quit_button: Button = $MarginContainer/VBoxContainer/ButtonContainer/QuitButton
-
-var game_state: MockGameState
+extends CampaignResponsiveLayout
 
 func _ready() -> void:
-	game_state = MockGameState.new()
+	super._ready()
+	_setup_dashboard_ui()
+
+func _setup_dashboard_ui() -> void:
+	# Set up header content
+	var header_content = _create_header_content()
+	header_container.add_child(header_content)
 	
-	action_button.pressed.connect(_on_action_button_pressed)
-	manage_crew_button.pressed.connect(_on_manage_crew_button_pressed)
-	save_button.pressed.connect(_on_save_button_pressed)
-	load_button.pressed.connect(_on_load_button_pressed)
-	quit_button.pressed.connect(_on_quit_button_pressed)
+	# Set up left panel content (crew and ship info)
+	var left_content = _create_left_panel_content()
+	left_panel.add_child(left_content)
 	
-	update_display()
-
-func update_display() -> void:
-	phase_label.text = GlobalEnums.CampaignPhase.keys()[game_state.current_state].capitalize().replace("_", " ")
-	credits_label.text = "Credits: %d" % game_state.credits
-	story_points_label.text = "Story Points: %d" % game_state.story_points
+	# Set up right panel content (quests, world info, patrons)
+	var right_content = _create_right_panel_content()
+	right_panel.add_child(right_content)
 	
-	update_crew_list()
-	update_ship_info()
-	update_quest_info()
-	update_world_info()
-	update_patron_list()
-	update_action_button()
+	# Set up footer content (action buttons)
+	var footer_content = _create_footer_content()
+	footer_container.add_child(footer_content)
 
-func update_crew_list() -> void:
-	crew_list.clear()
-	for character in game_state.crew.get_characters():
-		crew_list.add_item("%s - %s" % [character.name, GlobalEnums.Class.keys()[character.class]])
+func _create_header_content() -> Control:
+	var header = HBoxContainer.new()
+	
+	var phase_label = Label.new()
+	phase_label.text = "Current Phase"
+	phase_label.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	
+	var credits_label = Label.new()
+	credits_label.text = "Credits: 0"
+	
+	var story_points_label = Label.new()
+	story_points_label.text = "Story Points: 0"
+	
+	header.add_child(phase_label)
+	header.add_child(credits_label)
+	header.add_child(story_points_label)
+	
+	return header
 
-func update_ship_info() -> void:
-	var ship = game_state.current_ship
-	if ship:
-		ship_info.text = "Ship: %s\nHull: %d/%d" % [ship.name, ship.current_hull, ship.max_hull]
-	else:
-		ship_info.text = "No ship information available"
+func _create_left_panel_content() -> Control:
+	var content = VBoxContainer.new()
+	
+	# Crew section
+	var crew_section = _create_crew_section()
+	content.add_child(crew_section)
+	
+	# Ship section
+	var ship_section = _create_ship_section()
+	content.add_child(ship_section)
+	
+	return content
 
-func update_quest_info() -> void:
-	var current_mission = game_state.current_mission
-	if current_mission:
-		quest_info.text = "Mission: %s\nType: %s\nStatus: %s" % [
-			current_mission.title,
-			GlobalEnums.MissionType.keys()[current_mission.mission_type],
-			GlobalEnums.MissionStatus.keys()[current_mission.status]
-		]
-	else:
-		quest_info.text = "No active mission"
+func _create_right_panel_content() -> Control:
+	var content = VBoxContainer.new()
+	
+	# Quest section
+	var quest_section = _create_quest_section()
+	content.add_child(quest_section)
+	
+	# World section
+	var world_section = _create_world_section()
+	content.add_child(world_section)
+	
+	# Patron section
+	var patron_section = _create_patron_section()
+	content.add_child(patron_section)
+	
+	return content
 
-func update_world_info() -> void:
-	var current_world = game_state.current_location
-	if current_world:
-		world_info.text = "World: %s\nType: %s\nFaction: %s\nInstability: %s" % [
-			current_world.name,
-			GlobalEnums.TerrainType.keys()[current_world.type],
-			GlobalEnums.FactionType.keys()[current_world.faction],
-			GlobalEnums.StrifeType.keys()[current_world.instability]
-		]
-	else:
-		world_info.text = "No current world information"
+func _create_footer_content() -> Control:
+	var footer = HBoxContainer.new()
+	footer.alignment = BoxContainer.ALIGNMENT_CENTER
+	
+	var buttons = [
+		"Action",
+		"Manage Crew",
+		"Save Game",
+		"Load Game",
+		"Quit to Main Menu"
+	]
+	
+	for button_text in buttons:
+		var button = Button.new()
+		button.text = button_text
+		button.custom_minimum_size.x = 120
+		footer.add_child(button)
+	
+	return footer
 
-func update_patron_list() -> void:
-	patron_list.clear()
-	for patron in game_state.patrons:
-		patron_list.add_item(patron.name)
+# Helper functions to create individual sections
+func _create_crew_section() -> Control:
+	# Implementation
+	return Control.new()
 
-func update_action_button() -> void:
-	match game_state.current_state:
-		GlobalEnums.CampaignPhase.UPKEEP:
-			action_button.text = "Start Upkeep"
-		GlobalEnums.CampaignPhase.STORY_POINT:
-			action_button.text = "Use Story Point"
-		GlobalEnums.CampaignPhase.TRAVEL:
-			action_button.text = "Travel"
-		GlobalEnums.CampaignPhase.PATRONS:
-			action_button.text = "Find Patrons"
-		GlobalEnums.CampaignPhase.MISSION:
-			action_button.text = "Start Mission"
-		_:
-			action_button.text = "Continue"
+func _create_ship_section() -> Control:
+	# Implementation
+	return Control.new()
 
-func _on_action_button_pressed() -> void:
-	# For now, just cycle through phases
-	var current_phase = game_state.current_state
-	var next_phase = (current_phase + 1) % GlobalEnums.CampaignPhase.size()
-	game_state.current_state = next_phase
-	update_display()
+func _create_quest_section() -> Control:
+	# Implementation
+	return Control.new()
 
-func _on_manage_crew_button_pressed() -> void:
-	print("Manage Crew button pressed")
-	# Implement crew management functionality
+func _create_world_section() -> Control:
+	# Implementation
+	return Control.new()
 
-func _on_save_button_pressed() -> void:
-	print("Save button pressed")
-	# Implement save game functionality
-
-func _on_load_button_pressed() -> void:
-	print("Load button pressed")
-	# Implement load game functionality
-
-func _on_quit_button_pressed() -> void:
-	get_tree().quit()
+func _create_patron_section() -> Control:
+	# Implementation
+	return Control.new()

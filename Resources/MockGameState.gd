@@ -56,14 +56,14 @@ func initialize_game_state() -> void:
 		"progress": 8
 	}
 	
-	mission_generator = MissionGenerator.new()
+	mission_generator = MissionGenerator.new(GameStateManager)
 	equipment_manager = EquipmentManager.new()
 	patron_job_manager = PatronJobManager.new()
 	fringe_world_strife_manager = FringeWorldStrifeManager.new()
 	psionic_manager = PsionicManager.new()
 	story_track = StoryTrack.new()
 	world_generator = WorldGenerator.new()
-	expanded_faction_manager = ExpandedFactionManager.new(self)
+	expanded_faction_manager = ExpandedFactionManager.new(GameStateManager)
 	combat_manager = CombatManager.new()
 
 func _setup_crew() -> void:

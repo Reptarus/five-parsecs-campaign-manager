@@ -4,11 +4,14 @@ class_name GameManager
 
 signal game_state_changed(new_state: GlobalEnums.CampaignPhase)
 
+const BattlefieldGenerator = preload("res://Resources/BattlePhase/BattlefieldGenerator.gd")
+const GameOverScreen = preload("res://Resources/Utilities/GameOverScreen.tscn")
+const GameSettings = preload("res://Resources/GameData/GameSettings.gd")
+
 var game_state: GameState
 var ui_manager: UIManager
 var terrain_generator: TerrainGenerator
 var galactic_war_manager: GalacticWarManager
-var game_over_scene: PackedScene = preload("res://Resources/Utilities/GameOverScreen.tscn")
 var settings: GameSettings
 var battlefield_generator: BattlefieldGenerator
 
@@ -17,6 +20,7 @@ func _ready() -> void:
 	ui_manager = UIManager.new()
 	terrain_generator = TerrainGenerator.new()
 	galactic_war_manager = GalacticWarManager.new(game_state)
+	battlefield_generator = BattlefieldGenerator.new()
 	settings = load_settings()
 
 func start_new_game() -> void:
@@ -104,10 +108,9 @@ func sell_equipment(item: Equipment) -> void:
 func handle_game_over(victory: bool) -> void:
 	ui_manager.show_game_over_screen(victory)
 	game_state_changed.emit(GlobalEnums.CampaignPhase.MAIN_MENU)
-	SaveGame.change_scene_to_file(game_over_scene)
+	SaveGame.change_scene_to_file(GameOverScreen)
 
 func generate_battlefield() -> void:
-	var battlefield_generator = BattlefieldGenerator.new()
 	battlefield_generator.initialize()
 	var battlefield_data = battlefield_generator.generate_battlefield()
 	

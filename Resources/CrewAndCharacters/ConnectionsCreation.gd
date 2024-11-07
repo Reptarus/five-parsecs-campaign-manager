@@ -1,127 +1,134 @@
-extends Control
+extends CampaignResponsiveLayout
 
-signal connections_created
+signal connections_completed(connections: Array)
+signal connections_cancelled
 
-@onready var connections_list: ItemList = $VBoxContainer/ConnectionsList
-@onready var add_connection_button: Button = $VBoxContainer/AddConnectionButton
-@onready var tutorial_label: Label = $TutorialLabel
-@onready var character1_dropdown: OptionButton = $VBoxContainer/HBoxContainer/Character1Dropdown
-@onready var character2_dropdown: OptionButton = $VBoxContainer/HBoxContainer/Character2Dropdown
-@onready var relationship_dropdown: OptionButton = $VBoxContainer/HBoxContainer/RelationshipDropdown
-@onready var finalize_button: Button = $VBoxContainer/FinalizeButton
+@onready var name_input := $VBoxContainer/HBoxContainer/NameInput
+@onready var relationship_dropdown := $VBoxContainer/HBoxContainer/RelationshipDropdown
+@onready var connections_list := $VBoxContainer/ConnectionsList
+@onready var extended_toggle := $VBoxContainer/ExtendedConnectionsToggle
+@onready var tutorial_label := $TutorialLabel
 
-var characters: Array[Character] = []
-var connections: Array[Dictionary] = []
-var extended_connections_manager: ExtendedConnectionsManager
+const TOUCH_BUTTON_HEIGHT := 60
+const PORTRAIT_LIST_HEIGHT_RATIO := 0.5  # List takes 50% in portrait mode
 
-const RELATIONSHIPS: Array[String] = [
-	"Friend",
-	"Rival",
-	"Mentor",
-	"Student",
-	"Sibling",
-	"Lover",
-	"Ex-lover",
-	"Colleague",
-	"Enemy",
-	"Acquaintance"
-]
+var current_connections := []
 
 func _ready() -> void:
-	if not GameStateManager:
-		push_error("GameStateManager not found. Ensure it's properly set up.")
-		return
+	super._ready()
+	_setup_connections_ui()
+	_connect_signals()
 
-	# Create a new GameState instance to pass to ExtendedConnectionsManager
-	var temp_game_state = GameState.new()
-	# Copy relevant data from MockGameState to GameState if needed
-	# For example: temp_game_state.some_property = GameStateManager.game_state.some_property
+func _setup_connections_ui() -> void:
+	_setup_input_fields()
+	_setup_buttons()
+	_populate_relationship_types()
 
-	extended_connections_manager = ExtendedConnectionsManager.new(temp_game_state)
+func _apply_portrait_layout() -> void:
+	super._apply_portrait_layout()
 	
-	if GameStateManager.game_state.is_tutorial_active:
-		if GameStateManager.game_state.story_track and GameStateManager.game_state.story_track.current_event:
-			tutorial_label.text = GameStateManager.game_state.story_track.current_event.instruction
-			tutorial_label.show()
-		else:
-			push_warning("Tutorial is active but story_track or current_event is missing.")
-			tutorial_label.hide()
-	else:
-		tutorial_label.hide()
-
-	add_connection_button.pressed.connect(_on_add_connection_pressed)
-	finalize_button.pressed.connect(finalize_connections)
-
-	_populate_dropdowns()
-
-func _populate_dropdowns() -> void:
-	for character in characters:
-		character1_dropdown.add_item(character.name)
-		character2_dropdown.add_item(character.name)
+	# Stack elements vertically
+	$VBoxContainer.set("vertical", true)
 	
-	for relationship in RELATIONSHIPS:
-		relationship_dropdown.add_item(relationship)
-
-func _on_add_connection_pressed() -> void:
-	var character1_index: int = character1_dropdown.selected
-	var character2_index: int = character2_dropdown.selected
-	var relationship: String = relationship_dropdown.get_item_text(relationship_dropdown.selected)
-
-	if character1_index == character2_index:
-		_show_error("A character cannot have a connection with themselves.")
-		return
-
-	if _connection_exists(character1_index, character2_index):
-		_show_error("This connection already exists.")
-		return
-
-	var connection: Dictionary = extended_connections_manager.generate_connection()
-	connection["character1"] = characters[character1_index]
-	connection["character2"] = characters[character2_index]
-	connection["relationship"] = relationship
+	# Adjust list size for portrait mode
+	var viewport_height = get_viewport_rect().size.y
+	connections_list.custom_minimum_size.y = viewport_height * PORTRAIT_LIST_HEIGHT_RATIO
 	
-	connections.append(connection)
+	# Make controls touch-friendly
+	_adjust_touch_sizes(true)
+	
+	# Adjust margins for mobile
+	$VBoxContainer.add_theme_constant_override("margin_left", 10)
+	$VBoxContainer.add_theme_constant_override("margin_right", 10)
+
+func _apply_landscape_layout() -> void:
+	super._apply_landscape_layout()
+	
+	# Reset to default layout
+	$VBoxContainer.set("vertical", false)
+	
+	# Reset list size
+	connections_list.custom_minimum_size = Vector2(0, 300)
+	
+	# Reset control sizes
+	_adjust_touch_sizes(false)
+	
+	# Reset margins
+	$VBoxContainer.add_theme_constant_override("margin_left", 20)
+	$VBoxContainer.add_theme_constant_override("margin_right", 20)
+
+func _adjust_touch_sizes(is_portrait: bool) -> void:
+	var button_height = TOUCH_BUTTON_HEIGHT if is_portrait else TOUCH_BUTTON_HEIGHT * 0.75
+	
+	# Adjust all buttons
+	for button in get_tree().get_nodes_in_group("touch_buttons"):
+		button.custom_minimum_size.y = button_height
+	
+	# Adjust input fields
+	name_input.custom_minimum_size.y = button_height
+	relationship_dropdown.custom_minimum_size.y = button_height
+
+func _setup_input_fields() -> void:
+	name_input.add_to_group("touch_controls")
+	relationship_dropdown.add_to_group("touch_controls")
+
+func _setup_buttons() -> void:
+	var add_button = $VBoxContainer/AddConnectionButton
+	var finalize_button = $VBoxContainer/FinalizeButton
+	
+	for button in [add_button, finalize_button]:
+		button.add_to_group("touch_buttons")
+		button.custom_minimum_size = Vector2(200, TOUCH_BUTTON_HEIGHT)
+
+func _populate_relationship_types() -> void:
+	var relationships = [
+		"Friend",
+		"Rival",
+		"Mentor",
+		"Student",
+		"Family",
+		"Business Partner"
+	]
+	
+	for type in relationships:
+		relationship_dropdown.add_item(type)
+
+func _connect_signals() -> void:
+	var add_button = $VBoxContainer/AddConnectionButton
+	var finalize_button = $VBoxContainer/FinalizeButton
+	
+	add_button.pressed.connect(_on_add_connection)
+	finalize_button.pressed.connect(_on_finalize)
+	extended_toggle.toggled.connect(_on_extended_toggled)
+
+func _on_add_connection() -> void:
+	var connection = {
+		"name": name_input.text,
+		"relationship": relationship_dropdown.get_item_text(relationship_dropdown.selected)
+	}
+	
+	current_connections.append(connection)
 	_update_connections_list()
+	name_input.text = ""
 
-func _connection_exists(char1_index: int, char2_index: int) -> bool:
-	for connection in connections:
-		if (connection["character1"] == characters[char1_index] and connection["character2"] == characters[char2_index]) or \
-		   (connection["character1"] == characters[char2_index] and connection["character2"] == characters[char1_index]):
-			return true
-	return false
+func _on_finalize() -> void:
+	connections_completed.emit(current_connections)
+
+func _on_extended_toggled(enabled: bool) -> void:
+	# Add or remove extended relationship types
+	if enabled:
+		_add_extended_relationships()
+	else:
+		_remove_extended_relationships()
 
 func _update_connections_list() -> void:
-	connections_list.clear()
-	for connection in connections:
-		var char1_name: String = connection["character1"].name
-		var char2_name: String = connection["character2"].name
-		var relationship: String = connection["relationship"]
-		var connection_text: String = "%s - %s - %s" % [char1_name, relationship, char2_name]
-		connections_list.add_item(connection_text)
+	# Update the visual list of connections
+	pass
 
-func _show_error(message: String) -> void:
-	var error_dialog: AcceptDialog = AcceptDialog.new()
-	error_dialog.dialog_text = message
-	add_child(error_dialog)
-	error_dialog.popup_centered()
+func _add_extended_relationships() -> void:
+	# Add additional relationship types
+	pass
 
-func finalize_connections() -> void:
-	if connections.is_empty():
-		_show_error("Please create at least one connection before finalizing.")
-		return
-
-	save_connections_to_game_state()
-
-	connections_created.emit()
-	if GameStateManager.game_state.is_tutorial_active:
-		GameStateManager.game_state.current_state = GlobalEnums.CampaignPhase.CREW_CREATION
-
-func save_connections_to_game_state() -> void:
-	GameStateManager.game_state.character_connections = connections
-
-func set_characters(char_list: Array[Character]) -> void:
-	characters = char_list
-	_populate_dropdowns()
-
-func get_connections() -> Array[Dictionary]:
-	return connections
+func _remove_extended_relationships() -> void:
+	# Remove extended relationship types
+	pass

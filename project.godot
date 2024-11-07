@@ -17,7 +17,7 @@ config/icon="res://icon.svg"
 
 [autoload]
 
-GameStateManager="*res://Resources/MockGameState.gd"
+GameStateManager="*res://StateMachines/GameStateManager.gd"
 GlobalEnums="*res://Resources/GameData/GlobalEnums.gd"
 SaveGame="*res://Resources/GameData/SaveManager.gd"
 
