@@ -6,13 +6,52 @@
             "id": "welcome",
             "title": "Welcome to Five Parsecs",
             "content": "Welcome to Five Parsecs From Home! This tutorial will teach you the basic mechanics.",
-            "required_actions": ["tutorial_started"]
+            "required_actions": ["tutorial_started"],
+            "highlight_target": null,
+            "next_step_trigger": "button_press"
+        },
+        {
+            "id": "story_track_intro",
+            "title": "Story Track System",
+            "content": "The Story Track system adds narrative depth to your campaign. Let's learn how it works.",
+            "required_actions": ["story_track_viewed"],
+            "highlight_target": "story_track_panel",
+            "next_step_trigger": "action_complete",
+            "story_elements": {
+                "initial_hook": "Your crew discovers a mysterious signal...",
+                "choices": [
+                    {
+                        "text": "Investigate the signal",
+                        "consequence": "story_mission_1"
+                    },
+                    {
+                        "text": "Report it to authorities",
+                        "consequence": "faction_reputation_gain"
+                    }
+                ]
+            }
+        },
+        {
+            "id": "story_mission_setup",
+            "title": "Story Mission",
+            "content": "Story missions are special scenarios that advance your narrative.",
+            "required_actions": ["mission_accepted"],
+            "highlight_target": "mission_panel",
+            "next_step_trigger": "action_complete",
+            "mission_setup": {
+                "type": "story",
+                "difficulty": "tutorial",
+                "objectives": ["Investigate the signal source", "Collect data samples"],
+                "special_rules": ["No time limit", "Tutorial enemies"]
+            }
         },
         {
             "id": "crew_creation",
             "title": "Creating Your Crew",
             "content": "Let's start by creating your first crew members. You'll need a balanced team to survive.",
             "required_actions": ["character_created", "crew_named"],
+            "highlight_target": "crew_creation_panel",
+            "next_step_trigger": "action_complete",
             "objectives": [
                 "Create at least 3 crew members",
                 "Name your crew",
@@ -24,11 +63,23 @@
             "title": "Basic Combat",
             "content": "Time to learn the basic combat mechanics. We'll start with a simple encounter.",
             "required_actions": ["battle_started"],
+            "highlight_target": "battle_grid",
+            "next_step_trigger": "action_complete",
             "battle_setup": {
-                "enemy_type": "Isolationist",
-                "enemy_count": 3,
+                "enemy_type": "Basic",
+                "enemy_count": 2,
                 "deployment": "basic",
-                "objective": "fight_off"
+                "objective": "fight_off",
+                "tutorial_highlights": [
+                    {
+                        "target": "move_button",
+                        "message": "Click here to move your character"
+                    },
+                    {
+                        "target": "attack_button",
+                        "message": "Click here to attack enemies"
+                    }
+                ]
             }
         }
     ]

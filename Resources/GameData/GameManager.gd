@@ -112,7 +112,7 @@ func handle_game_over(victory: bool) -> void:
 
 func generate_battlefield() -> void:
 	battlefield_generator.initialize()
-	var battlefield_data = battlefield_generator.generate_battlefield()
+	var battlefield_data = battlefield_generator.generate_battlefield(game_state.current_mission)
 	
 	# Update game state with the generated battlefield data
 	game_state.current_mission.battlefield_data = battlefield_data
@@ -125,7 +125,7 @@ func generate_battlefield() -> void:
 func handle_loot(loot: Array) -> void:
 	for item in loot:
 		if item is Equipment:
-			game_state.add_to_ship_stash(item)
+				game_state.add_to_ship_stash(item)
 	ui_manager.update_inventory()
 
 func check_campaign_progress() -> void:

@@ -12,10 +12,10 @@ const CHARACTER_BOX_SCENE = preload("res://Resources/CrewAndCharacters/Scenes/Ch
 @onready var map_legend = $HBoxContainer/BattlefieldPanel/MapLegend
 
 var mission_icons = {
-    "assassination_target": preload("res://Assets/Icons/assassination_target.png"),
-    "escort_target": preload("res://Assets/Icons/escort_target.png"),
-    "intel": preload("res://Assets/Icons/intel.png"),
-    "objective": preload("res://Assets/Icons/objective.png"),
+    "assassination_target": preload("res://assets/Basic assets/Icons/17.png"),
+    "escort_target": preload("res://assets/Basic assets/Icons/18.png"),
+    "intel": preload("res://assets/Basic assets/Icons/05.png"),
+    "objective": preload("res://assets/Basic assets/Icons/07.png"),
     # Add other mission-specific icons
 }
 
@@ -40,8 +40,8 @@ func setup_enemy_info() -> void:
 func setup_battlefield_preview() -> void:
     var battlefield_preview = BATTLEFIELD_PREVIEW_SCENE.instantiate()
     battlefield_container.add_child(battlefield_preview)
-
 func setup_crew_selection() -> void:
+    var game_state = get_node("/root/GameState")
     for character in game_state.current_crew.members:
         var character_box = CHARACTER_BOX_SCENE.instantiate()
         crew_container.add_child(character_box)

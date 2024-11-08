@@ -103,4 +103,42 @@ func _exit_campaign_tutorial() -> void:
 
 func _complete_tutorial() -> void:
     game_state.is_tutorial_active = false
-    tutorial_manager.end_tutorial() 
+    tutorial_manager.end_tutorial()
+
+func _enter_story_tutorial() -> void:
+    game_state.is_tutorial_active = true
+    
+    # Load story track tutorial layout
+    var layout = StoryTrackTutorialLayout.get_story_layout("introduction")
+    
+    # Set up tutorial mission
+    var mission_setup = {
+        "type": GlobalEnums.Type.TUTORIAL,
+        "story_elements": layout.story_elements,
+        "battlefield": layout.terrain,
+        "objectives": layout.objectives,
+        "enemies": layout.enemies
+    }
+    
+    # Initialize story track
+    game_state.story_track.initialize_tutorial(mission_setup)
+    
+    # Set up UI elements
+    tutorial_manager.highlight_story_elements()
+
+func handle_story_choice(choice: Dictionary) -> void:
+    match choice.consequence:
+        "story_mission_1":
+            _setup_story_mission()
+        "faction_reputation_gain":
+            _handle_faction_interaction()
+        _:
+            push_error("Unknown story choice consequence")
+
+func _setup_story_mission() -> void:
+    var layout = StoryTrackTutorialLayout.get_story_layout("story_development")
+    game_state.start_tutorial_mission(layout)
+
+func _handle_faction_interaction() -> void:
+    var layout = StoryTrackTutorialLayout.get_story_layout("faction_interaction")
+    game_state.handle_tutorial_faction_interaction(layout) 

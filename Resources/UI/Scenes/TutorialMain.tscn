@@ -1,0 +1,23 @@
+[gd_scene load_steps=5 format=3 uid="uid://..."]
+
+[ext_resource type="Script" path="res://Resources/GameData/TutorialManager.gd" id="1_..."]
+[ext_resource type="PackedScene" path="res://Resources/UI/Scenes/TutorialOverlay.tscn" id="2_..."]
+[ext_resource type="PackedScene" path="res://Resources/UI/Scenes/TutorialProgress.tscn" id="3_..."]
+[ext_resource type="PackedScene" path="res://Resources/UI/Scenes/TutorialContent.tscn" id="4_..."]
+
+[node name="TutorialMain" type="Control"]
+layout_mode = 3
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+script = ExtResource("1_...")
+
+[node name="TutorialOverlay" parent="." instance=ExtResource("2_...")]
+
+[node name="TutorialProgress" parent="." instance=ExtResource("3_...")]
+layout_mode = 1
+
+[node name="TutorialContent" parent="." instance=ExtResource("4_...")]
+layout_mode = 1 
