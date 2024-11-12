@@ -39,45 +39,8 @@ func _get_deployment_type(enemy_type: GlobalEnums.AIType, roll: int) -> GlobalEn
 			elif roll <= 70: return GlobalEnums.DeploymentType.BOLSTERED_LINE
 			elif roll <= 90: return GlobalEnums.DeploymentType.REINFORCED
 			else: return GlobalEnums.DeploymentType.CONCEALED
-		GlobalEnums.AIType.DEFENSIVE:
-			if roll <= 25: return GlobalEnums.DeploymentType.LINE
-			elif roll <= 40: return GlobalEnums.DeploymentType.IMPROVED_POSITIONS
-			elif roll <= 45: return GlobalEnums.DeploymentType.FORWARD_POSITIONS
-			elif roll <= 60: return GlobalEnums.DeploymentType.BOLSTERED_LINE
-			elif roll <= 70: return GlobalEnums.DeploymentType.INFILTRATION
-			elif roll <= 85: return GlobalEnums.DeploymentType.REINFORCED
-			elif roll <= 90: return GlobalEnums.DeploymentType.BOLSTERED_FLANK
-			else: return GlobalEnums.DeploymentType.CONCEALED
-		GlobalEnums.AIType.TACTICAL:
-			if roll <= 20: return GlobalEnums.DeploymentType.LINE
-			elif roll <= 30: return GlobalEnums.DeploymentType.HALF_FLANK
-			elif roll <= 40: return GlobalEnums.DeploymentType.IMPROVED_POSITIONS
-			elif roll <= 50: return GlobalEnums.DeploymentType.FORWARD_POSITIONS
-			elif roll <= 60: return GlobalEnums.DeploymentType.BOLSTERED_LINE
-			elif roll <= 70: return GlobalEnums.DeploymentType.INFILTRATION
-			elif roll <= 80: return GlobalEnums.DeploymentType.REINFORCED
-			elif roll <= 90: return GlobalEnums.DeploymentType.BOLSTERED_FLANK
-			else: return GlobalEnums.DeploymentType.CONCEALED
-		GlobalEnums.AIType.RAMPAGE:
-			if roll <= 20: return GlobalEnums.DeploymentType.LINE
-			elif roll <= 25: return GlobalEnums.DeploymentType.HALF_FLANK
-			elif roll <= 45: return GlobalEnums.DeploymentType.FORWARD_POSITIONS
-			elif roll <= 65: return GlobalEnums.DeploymentType.BOLSTERED_LINE
-			elif roll <= 75: return GlobalEnums.DeploymentType.INFILTRATION
-			elif roll <= 80: return GlobalEnums.DeploymentType.REINFORCED
-			elif roll <= 90: return GlobalEnums.DeploymentType.BOLSTERED_FLANK
-			else: return GlobalEnums.DeploymentType.CONCEALED
-		GlobalEnums.AIType.BEAST:
-			if roll <= 15: return GlobalEnums.DeploymentType.HALF_FLANK
-			elif roll <= 20: return GlobalEnums.DeploymentType.IMPROVED_POSITIONS
-			elif roll <= 35: return GlobalEnums.DeploymentType.FORWARD_POSITIONS
-			elif roll <= 45: return GlobalEnums.DeploymentType.BOLSTERED_LINE
-			elif roll <= 65: return GlobalEnums.DeploymentType.INFILTRATION
-			elif roll <= 70: return GlobalEnums.DeploymentType.REINFORCED
-			elif roll <= 80: return GlobalEnums.DeploymentType.BOLSTERED_FLANK
-			else: return GlobalEnums.DeploymentType.CONCEALED
-	
-	return GlobalEnums.DeploymentType.LINE  # Default deployment type
+		_:
+			return GlobalEnums.DeploymentType.LINE
 
 func _generate_deployment_by_type(deployment_type: GlobalEnums.DeploymentType, battle_map: Dictionary) -> Array:
 	match deployment_type:

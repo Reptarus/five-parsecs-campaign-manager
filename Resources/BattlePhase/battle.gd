@@ -1,6 +1,9 @@
 class_name Battle
 extends Node2D
 
+signal ui_update_needed(current_round: int, phase: GlobalEnums.CampaignPhase, current_character: Character)
+signal battlefield_generated(battlefield_data: Dictionary)
+
 var game_state_manager: GameStateManager
 var current_mission: Mission
 var combat_manager: CombatManager
@@ -47,6 +50,23 @@ const TUTORIAL_ENEMY_TYPES = {
 		"weapons": "3 A"
 	}
 }
+
+func initialize(gsm: GameStateManager, mission: Mission) -> void:
+	game_state_manager = gsm
+	current_mission = mission
+	combat_manager = game_state_manager.combat_manager
+	ai_controller = $AIController as AIController
+	battlefield_generator = BattlefieldGenerator.new()
+	
+	if not ai_controller:
+		push_error("Failed to get AIController")
+		return
+		
+	combat_manager.initialize(game_state_manager, current_mission, game_state_manager.get_current_battlefield())
+	ai_controller.initialize(combat_manager, game_state_manager)
+	
+	_initialize_battlefield()
+	_connect_signals()
 
 func _ready() -> void:
 	if not game_state_manager:
@@ -112,17 +132,20 @@ func _create_units(player_positions: Array, enemy_positions: Array) -> void:
 		units_node.add_child(name_label)
 
 func _connect_signals() -> void:
-	combat_manager.combat_started.connect(_on_combat_started)
-	combat_manager.combat_ended.connect(_on_combat_ended)
-	combat_manager.turn_started.connect(_on_turn_started)
-	combat_manager.turn_ended.connect(_on_turn_ended)
-	combat_manager.ui_update_needed.connect(_on_ui_update_needed)
-	combat_manager.log_action.connect(_on_log_action)
-	combat_manager.character_moved.connect(_on_character_moved)
-	combat_manager.enable_player_controls.connect(_on_enable_player_controls)
-	combat_manager.update_turn_label.connect(_on_update_turn_label)
-	combat_manager.update_current_character_label.connect(_on_update_current_character_label)
-	combat_manager.highlight_valid_positions.connect(_on_highlight_valid_positions)
+	if combat_manager:
+		combat_manager.combat_started.connect(_on_combat_started)
+		combat_manager.combat_ended.connect(_on_combat_ended)
+		combat_manager.turn_started.connect(_on_turn_started)
+		combat_manager.turn_ended.connect(_on_turn_ended)
+		combat_manager.ui_update_needed.connect(_on_ui_update_needed)
+		combat_manager.log_action.connect(_on_log_action)
+		combat_manager.character_moved.connect(_on_character_moved)
+		combat_manager.enable_player_controls.connect(_on_enable_player_controls)
+		combat_manager.update_turn_label.connect(_on_update_turn_label)
+		combat_manager.update_current_character_label.connect(_on_update_current_character_label)
+		combat_manager.highlight_valid_positions.connect(_on_highlight_valid_positions)
+	else:
+		push_error("Combat manager not initialized during signal connection")
 
 func highlight_valid_positions(positions: Array) -> void:
 	for pos in positions:
@@ -207,7 +230,21 @@ func _on_turn_ended(character: Character) -> void:
 	active_character = null
 
 func _on_ui_update_needed(current_round: int, phase: GlobalEnums.CampaignPhase, current_character: Character) -> void:
-	print("UI update needed. Round: ", current_round, " Phase: ", phase, " Current character: ", current_character.name)
+	ui_update_needed.emit(current_round, phase, current_character)
+	_update_ui_elements(current_round, current_character)
+
+func _update_ui_elements(current_round: int, current_character: Character) -> void:
+	if turn_label:
+		turn_label.text = "Round: " + str(current_round)
+	if current_character_label and current_character:
+		current_character_label.text = "Current Character: " + current_character.character_name
+	
+	# Update button states based on current character
+	var is_player_turn = current_character in game_state_manager.current_ship.crew
+	if move_button and attack_button and end_turn_button:
+		move_button.disabled = !is_player_turn
+		attack_button.disabled = !is_player_turn
+		end_turn_button.disabled = !is_player_turn
 
 func _on_log_action(action: String) -> void:
 	battle_log.text += action + "\n"
@@ -241,8 +278,43 @@ func disable_player_controls() -> void:
 func handle_character_damage(character: Character, damage: int) -> void:
 	character.health -= damage
 	if character.health <= 0:
-		character.status = GlobalEnums.CharacterStatus.DEAD
-		# Handle character defeat (remove from battlefield, etc.)
+		character.status = GlobalEnums.CharacterState.OUT_OF_ACTION
+		_handle_character_defeat(character)
+
+func _handle_character_defeat(character: Character) -> void:
+	# Remove character from active units
+	if character in units_node.get_children():
+		character.get_parent().remove_child(character)
+	
+	# Notify combat manager
+	combat_manager.handle_unit_defeat(character)
+	
+	# Log the event
+	battle_log.text += character.name + " is out of action!\n"
+	
+	# Check for mission failure/success conditions
+	if character in game_state_manager.current_ship.crew:
+		_check_mission_failure()
+	else:
+		_check_mission_success()
+
+func _check_mission_failure() -> void:
+	var active_crew = game_state_manager.current_ship.crew.filter(
+		func(crew_member: Character) -> bool:
+			return crew_member.status == GlobalEnums.CharacterState.ACTIVE
+	)
+	
+	if active_crew.size() < game_state_manager.current_mission.required_crew_size:
+		combat_manager.end_combat(false)  # Mission failed
+
+func _check_mission_success() -> void:
+	var active_enemies = units_node.get_children().filter(
+		func(unit: Character) -> bool:
+			return unit.status == GlobalEnums.CharacterState.ACTIVE and not unit in game_state_manager.current_ship.crew
+	)
+	
+	if active_enemies.is_empty():
+		combat_manager.end_combat(true)  # Mission succeeded
 
 func handle_character_recovery() -> void:
 	game_state_manager.handle_character_recovery()

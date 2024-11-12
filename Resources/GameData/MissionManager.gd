@@ -25,16 +25,28 @@ func complete_mission(mission: Mission) -> void:
 	mission.complete()
 	_apply_mission_rewards(mission)
 	
-	if mission.patron:
-		mission.patron.change_relationship(10)
+	match mission.type:
+		GlobalEnums.Type.PATRON:
+			if mission.patron:
+				mission.patron.change_relationship(10)
+		GlobalEnums.Type.RIVAL:
+			game_state.remove_rival(mission.faction)
+		GlobalEnums.Type.QUEST:
+			game_state.advance_quest(mission)
 	
 	game_state.current_mission = null
 
 func fail_mission(mission: Mission) -> void:
 	mission.fail()
 	
-	if mission.patron:
-		mission.patron.change_relationship(-5)
+	match mission.type:
+		GlobalEnums.Type.PATRON:
+			if mission.patron:
+				mission.patron.change_relationship(-5)
+		GlobalEnums.Type.RIVAL:
+			game_state.increase_rival_threat(mission.faction)
+		GlobalEnums.Type.QUEST:
+			game_state.fail_quest_step(mission)
 	
 	game_state.current_mission = null
 
@@ -42,5 +54,23 @@ func _apply_mission_rewards(mission: Mission) -> void:
 	game_state.add_credits(mission.rewards.get("credits", 0))
 	game_state.add_reputation(mission.rewards.get("reputation", 0))
 	
-	if "story_points" in mission.rewards:
-		game_state.add_story_points(mission.rewards["story_points"])
+	if mission.rewards.get("item", false):
+		game_state.add_random_item()
+	
+	if mission.rewards.get("story_points", 0) > 0:
+		game_state.add_story_points(mission.rewards.story_points)
+
+func update_mission_timers() -> void:
+	var expired_missions: Array[Mission] = []
+	
+	for mission in game_state.available_missions:
+		mission.time_limit -= 1
+		if mission.time_limit <= 0:
+			expired_missions.append(mission)
+			mission.status = GlobalEnums.MissionStatus.EXPIRED
+			
+			if mission.patron:
+				mission.patron.change_relationship(-2)
+	
+	for mission in expired_missions:
+		game_state.remove_available_mission(mission)

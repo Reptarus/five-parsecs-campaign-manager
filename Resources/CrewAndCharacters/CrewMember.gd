@@ -22,6 +22,11 @@ var health: int = 10
 var max_health: int = 10
 var class_type = null  # Using get("class") in the CharacterBox script
 
+var experience: int = 0
+var specialization: String = ""
+var traits: Array[String] = []
+var relationships: Dictionary = {}
+
 func _init() -> void:
 	character = Character.new()
 	weapon_system = WeaponSystem.new()
@@ -38,9 +43,9 @@ func equip_default_weapons() -> void:
 	character.inventory.append(pistol)
 	character.inventory.append(knife)
 
-func initialize(species: GlobalEnums.Species, background: GlobalEnums.Background, 
+func initialize(origin: GlobalEnums.Origin, background: GlobalEnums.Background, 
 				motivation: GlobalEnums.Motivation, crew_class: GlobalEnums.Class) -> void:
-	character.initialize(species, background, motivation, crew_class)
+	character.initialize(origin, background, motivation, crew_class)
 
 func set_weapons(weapon_data: Array) -> void:
 	character.inventory.clear()
@@ -88,21 +93,46 @@ func get_available_upgrades() -> Array:
 # Add any additional crew-specific methods here
 
 func serialize() -> Dictionary:
-	return {
-		"character": character.serialize(),
+	var base_data = character.serialize()
+	var crew_data = {
+		"experience": experience,
+		"specialization": specialization,
+		"traits": traits,
+		"relationships": relationships,
 		"role": role,
 		"loyalty": loyalty,
 		"special_ability": special_ability,
-		"weapon_system": weapon_system.serialize()
+		"combat": combat,
+		"technical": technical,
+		"social": social,
+		"survival": survival,
+		"health": health,
+		"max_health": max_health,
+		"class_type": class_type
 	}
+	base_data.merge(crew_data)
+	return base_data
 
 static func deserialize(data: Dictionary) -> CrewMember:
 	var crew_member = CrewMember.new()
-	crew_member.character = Character.deserialize(data["character"])
-	crew_member.role = data["role"]
-	crew_member.loyalty = data["loyalty"]
-	crew_member.special_ability = data["special_ability"]
-	crew_member.weapon_system.deserialize(data["weapon_system"])
+	# First deserialize base Character data
+	var character_data = Character.deserialize(data)
+	crew_member.role = character_data.role
+	crew_member.character_name = character_data.character_name
+	crew_member.level = character_data.level
+	crew_member.health = character_data.health
+	crew_member.max_health = character_data.max_health
+	crew_member.status = character_data.status
+	crew_member.equipment_slots = character_data.equipment_slots
+	crew_member.skills = character_data.skills
+	crew_member.tutorial_progress = character_data.tutorial_progress
+	
+	# Then deserialize CrewMember specific data
+	crew_member.experience = data.get("experience", 0)
+	crew_member.specialization = data.get("specialization", "")
+	crew_member.traits = data.get("traits", [])
+	crew_member.relationships = data.get("relationships", {})
+	
 	return crew_member
 
 # Optional: Add a method to set all stats at once

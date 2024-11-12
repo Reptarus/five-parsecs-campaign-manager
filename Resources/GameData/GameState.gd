@@ -8,7 +8,7 @@ signal story_points_changed(new_amount: int)
 const DEFAULT_CREDITS: int = 0
 const DEFAULT_STORY_POINTS: int = 0
 const Crew = preload("res://Resources/CrewAndCharacters/Crew.gd")
-const GameWorld = preload("res://Resources/GameData/world.gd")
+const GameWorld = preload("res://Resources/GameData/GameWorld.gd")
 const Mission = preload("res://Resources/GameData/Mission.gd")
 const Ship = preload("res://Resources/Ships/Ship.gd")
 
@@ -126,17 +126,33 @@ func deserialize(data: Dictionary) -> void:
 	current_global_event = data.get("current_global_event", GlobalEnums.GlobalEvent.MARKET_CRASH)
 	current_victory_condition = data.get("current_victory_condition", GlobalEnums.VictoryConditionType.TURNS)
 	
-	crew = _deserialize_resource(data.get("crew"), "Crew") as Crew
-	current_ship = _deserialize_resource(data.get("current_ship"), "Ship") as Ship
-	
+	var crew_data = data.get("crew", {})
+	if crew_data:
+		crew = _deserialize_resource(crew_data, "Crew")
+		if not crew:
+			crew = Crew.new()
+
+	var ship_data = data.get("current_ship", {})
+	if ship_data:
+		current_ship = _deserialize_resource(ship_data, "Ship")
+		if not current_ship:
+			current_ship = Ship.new()
+
 	if data.has("current_location"):
-		current_location = GameWorld.deserialize(data["current_location"])
-	
-	available_locations = []
+		var location_data = data["current_location"]
+		if location_data is Dictionary and not location_data.is_empty():
+			if not current_location:
+				current_location = GameWorld.new()
+			if current_location.has_method("deserialize"):
+				current_location.deserialize(location_data)
+
+	available_locations.clear()  # Clear existing locations
 	for location_data in data.get("available_locations", []):
-		var location = GameWorld.deserialize(location_data)
-		available_locations.append(location)
-	
+		if location_data is Dictionary and not location_data.is_empty():
+			var location = GameWorld.new()
+			location.deserialize(location_data)
+			available_locations.append(location)
+
 	current_mission = _deserialize_resource(data.get("current_mission"), "Mission") as Mission
 	available_missions = _deserialize_array(data.get("available_missions", []), "Mission")
 	active_quests = _deserialize_array(data.get("active_quests", []), "Quest")

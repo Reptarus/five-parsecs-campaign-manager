@@ -54,7 +54,7 @@ func initialize_game_components() -> void:
 	var story_track := StoryTrack.new()
 	story_track.initialize(game_state_manager)
 	
-	game_world = GameWorld.new(game_state_manager)
+	game_world = GameWorld.new()
 	campaign_manager = CampaignManager.new(game_state)
 	mission_manager = game_state.mission_generator as MissionManager
 	expanded_quest_progression_manager = ExpandedQuestProgressionManager.new(game_state_manager)
@@ -64,7 +64,7 @@ func initialize_game_components() -> void:
 	
 	var economy_manager := EconomyManager.new()
 	economy_manager.initialize(game_state)
-	world_economy_manager = WorldEconomyManager.new(game_state.current_location, economy_manager)
+	world_economy_manager = WorldEconomyManager.new(Location.new(), economy_manager)
 	fringe_world_strife_manager = game_state_manager.fringe_world_strife_manager
 	
 	starship_travel_events = StarshipTravelEvents.new()
@@ -268,7 +268,7 @@ func _on_ui_update_requested() -> void:
 	setup_current_step()
 
 func _on_mission_selection_requested() -> void:
-	var mission_selection = preload("res://Scenes/campaign/MissionSelectionPanel.tscn").instantiate()
+	var mission_selection = preload("res://Resources/WorldPhase/MissionSelectionUI.tscn").instantiate()
 	mission_selection.initialize(game_state)
 	add_child(mission_selection)
 	mission_selection.mission_selected.connect(_on_mission_selected)

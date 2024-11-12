@@ -2,7 +2,7 @@
 
 [ext_resource type="Script" path="res://ui/mainmenu/MainMenu.gd" id="1_eb6mc"]
 [ext_resource type="Texture2D" uid="uid://dpv5v3x1ujg66" path="res://assets/BookImages/Nov_15_cityatnight.jpg" id="1_jq64m"]
-[ext_resource type="Script" path="res://Resources/CampaignManagement/TutorialSelection.gd" id="4_lfg3x"]
+[ext_resource type="Script" path="res://Resources/GameData/TutorialSystem.gd" id="4_lfg3x"]
 
 [node name="MainMenu" type="Control"]
 layout_mode = 3

@@ -53,19 +53,14 @@ func apply_event_effects(event: StoryEvent) -> void:
 	event.setup_battle(game_state_manager.combat_manager)
 	event.apply_rewards(game_state_manager)
 
-func progress_story(current_phase: GlobalEnums.CampaignPhase) -> void:
-	story_clock.count_down(current_phase == GlobalEnums.CampaignPhase.POST_BATTLE)
-	if story_clock.is_event_triggered():
-		current_event_index += 1
-		if current_event_index < events.size():
-			trigger_current_event()
-		else:
-			# Tutorial completed
-			var game_state = mock_game_state.get_internal_game_state()
-			if game_state is GameStateManager:
-				game_state.is_tutorial_active = false
-			else:
-				push_error("Unexpected game state type")
+func progress_story(phase: GlobalEnums.CampaignPhase) -> void:
+	match phase:
+		GlobalEnums.CampaignPhase.UPKEEP:
+			# Handle upkeep phase
+			pass
+		GlobalEnums.CampaignPhase.MISSION:
+			# Handle mission phase
+			pass
 
 func serialize() -> Dictionary:
 	return {

@@ -28,10 +28,18 @@ var time_constraint: String = ""
 @export var victory_condition: GlobalEnums.VictoryConditionType = GlobalEnums.VictoryConditionType.TURNS
 @export var ai_behavior: GlobalEnums.AIBehavior = GlobalEnums.AIBehavior.TACTICAL
 
-func _init(p_title: String = "", p_description: String = "", p_type: GlobalEnums.Type = GlobalEnums.Type.OPPORTUNITY, 
-		   p_objective: GlobalEnums.MissionObjective = GlobalEnums.MissionObjective.FIGHT_OFF, p_location: Location = null, 
-		   p_difficulty: int = 1, p_rewards: Dictionary = {}, p_time_limit: int = 3,
-		   p_is_expanded: bool = false, p_faction: Dictionary = {}) -> void:
+func _init(
+	p_title: String = "", 
+	p_description: String = "", 
+	p_type: GlobalEnums.Type = GlobalEnums.Type.OPPORTUNITY,
+	p_objective: GlobalEnums.MissionObjective = GlobalEnums.MissionObjective.FIGHT_OFF, 
+	p_location: Location = null,
+	p_difficulty: int = 1, 
+	p_rewards: Dictionary = {}, 
+	p_time_limit: int = 3,
+	p_is_expanded: bool = false, 
+	p_faction: Dictionary = {}
+) -> void:
 	title = p_title
 	description = p_description
 	mission_type = p_type
@@ -43,26 +51,11 @@ func _init(p_title: String = "", p_description: String = "", p_type: GlobalEnums
 	is_expanded = p_is_expanded
 	faction = p_faction
 
-func set_enemies(p_enemies: Array[Enemy]) -> void:
-	enemies = p_enemies
-
-func add_enemy(enemy: Enemy) -> void:
-	enemies.append(enemy)
-
-func set_unique_individual(p_unique_individual: Enemy) -> void:
-	unique_individual = p_unique_individual
-
-func get_enemy_count() -> int:
-	return enemies.size()
-
-func get_total_enemy_count() -> int:
-	return get_enemy_count() + (1 if unique_individual else 0)
-
 func get_objective_description() -> String:
 	match objective:
 		GlobalEnums.MissionObjective.MOVE_THROUGH:
 			return "Move at least 2 crew members off the opposing battlefield edge."
-		GlobalEnums.MissionObjective.DELIVER:
+		GlobalEnums.MissionObjective.RETRIEVE:
 			return "Deliver a package to the center of the battlefield."
 		GlobalEnums.MissionObjective.EXPLORE:
 			return "Access a computer console in the center of the battlefield."
@@ -70,22 +63,26 @@ func get_objective_description() -> String:
 			return "Check 3 randomly selected terrain features."
 		GlobalEnums.MissionObjective.FIGHT_OFF:
 			return "Drive off all enemy forces."
-		GlobalEnums.MissionObjective.ACQUIRE:
+		GlobalEnums.MissionObjective.RESCUE:
 			return "Search terrain features to find a specific item."
 		GlobalEnums.MissionObjective.PROTECT:
 			return "Defend against enemy forces and hold your position."
-		GlobalEnums.MissionObjective.SABOTAGE:
-			return "Acquire an item from the center of the battlefield and extract it."
 		GlobalEnums.MissionObjective.ELIMINATE:
 			return "Eliminate a specific target enemy figure."
-		GlobalEnums.MissionObjective.INFILTRATION:
+		GlobalEnums.MissionObjective.NEGOTIATE:
 			return "Secure the center of the battlefield for 2 consecutive rounds."
-		GlobalEnums.MissionObjective.RESCUE:
+		GlobalEnums.MissionObjective.ESCORT:
 			return "Protect a VIP and get them to the center of the battlefield."
 		GlobalEnums.MissionObjective.DESTROY:
 			return "Destroy a specific target or structure on the battlefield."
 		_:
 			return "Unknown objective."
+
+func complete() -> void:
+	status = GlobalEnums.MissionStatus.COMPLETED
+
+func fail() -> void:
+	status = GlobalEnums.MissionStatus.FAILED
 
 func serialize() -> Dictionary:
 	return {
@@ -117,8 +114,15 @@ static func deserialize(data: Dictionary) -> Mission:
 	mission.objective = GlobalEnums.MissionObjective[data.get("objective", "FIGHT_OFF")]
 	mission.terrain_type = GlobalEnums.TerrainGenerationType[data.get("terrain_type", "INDUSTRIAL")]
 	mission.required_crew_size = data.get("required_crew_size", 4)
-	mission.enemies = data.get("enemies", []).map(func(enemy_data: Dictionary) -> Enemy: return Enemy.new(enemy_data.get("name", ""), enemy_data.get("enemy_type", "")).deserialize(enemy_data))
-	mission.unique_individual = Enemy.new("Unique", "").deserialize(data["unique_individual"]) if data.get("unique_individual") else null
+	mission.enemies = data.get("enemies", []).map(func(enemy_data: Dictionary) -> Enemy: 
+		var enemy = Enemy.new(enemy_data.get("name", ""), enemy_data.get("type", ""))
+		return enemy.deserialize(enemy_data)
+	)
+	if data.get("unique_individual"):
+		var unique_data = data["unique_individual"]
+		mission.unique_individual = Enemy.new(unique_data.get("name", ""), unique_data.get("type", "")).deserialize(unique_data)
+	else:
+		mission.unique_individual = null
 	mission.status = GlobalEnums.MissionStatus[data.get("status", "ACTIVE")]
 	mission.location = Location.deserialize(data["location"]) if data.get("location") else null
 	mission.difficulty = data.get("difficulty", 1)
@@ -130,24 +134,3 @@ static func deserialize(data: Dictionary) -> Mission:
 	mission.victory_condition = GlobalEnums.VictoryConditionType[data.get("victory_condition", "TURNS")]
 	mission.ai_behavior = GlobalEnums.AIBehavior[data.get("ai_behavior", "TACTICAL")]
 	return mission
-
-func complete() -> void:
-	status = GlobalEnums.MissionStatus.COMPLETED
-
-func fail() -> void:
-	status = GlobalEnums.MissionStatus.FAILED
-
-func increased_opposition() -> void:
-	difficulty += 1
-	for enemy in enemies:
-		enemy.increase_difficulty()
-
-func improved_rewards() -> void:
-	rewards["credits"] = int(rewards["credits"] * 1.5)
-	rewards["reputation"] = mini(5, rewards["reputation"] + 1)
-
-func setup_black_zone_opposition() -> void:
-	for enemy in enemies:
-		enemy.set_elite_status()
-	if unique_individual:
-		unique_individual.set_elite_status()

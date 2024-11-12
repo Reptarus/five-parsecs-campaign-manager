@@ -76,41 +76,54 @@ func handle_loan_default(loan: Dictionary) -> void:
 	match loan.type:
 		GlobalEnums.LoanType.PREDATORY:
 			game_state.reputation -= 2
+			_trigger_predatory_consequences()
 		GlobalEnums.LoanType.BLACK_MARKET:
 			game_state.reputation -= 5
 			_trigger_black_market_consequences()
 
 func _trigger_black_market_consequences() -> void:
-	# Implement consequences for defaulting on a black market loan
 	var roll = randi() % 100 + 1
 	
 	if roll <= 30:
 		# Add a new Rival
 		var new_rival = {
 			"name": "Black Market Enforcer",
+			"type": GlobalEnums.Faction.CRIMINAL,
 			"description": "A ruthless debt collector sent to recover the defaulted loan."
 		}
 		game_state.current_crew.rivals.append(new_rival)
-		print("A new Rival has been added: Black Market Enforcer")
-	
+		
 	elif roll <= 60:
-		# Trigger a special event: Bounty Hunter
-		print("A bounty hunter has been dispatched to track down your crew!")
-		# TODO: Implement a bounty hunter encounter in the next mission
-	
+		# Trigger a bounty hunter encounter
+		game_state.add_story_event({
+			"type": GlobalEnums.StrifeType.RESOURCE_CONFLICT,
+			"description": "A bounty hunter has been dispatched to track down your crew!"
+		})
+		
 	elif roll <= 80:
-		# Reputation hit
-		game_state.reputation -= 5
-		print("Your reputation has taken a severe hit in the criminal underworld.")
-	
+		# Reputation hit with criminal factions
+		game_state.faction_standings[GlobalEnums.Faction.CRIMINAL] -= 10
+		
 	else:
 		# Asset seizure
-		var seizure_amount = int(get_total_debt() * 0.2)  # 20% of total debt
+		var seizure_amount = int(get_total_debt() * 0.2)
 		force_asset_sale(seizure_amount)
-		print("Black market enforcers have seized some of your assets worth %d credits." % seizure_amount)
+
+func _trigger_predatory_consequences() -> void:
+	var roll = randi() % 100 + 1
 	
-	# Add a story point to represent the dramatic turn of events
-	game_state.story_points += 1
+	if roll <= 40:
+		# Legal troubles
+		game_state.faction_standings[GlobalEnums.Faction.CORPORATE] -= 5
+	elif roll <= 70:
+		# Credit rating hit
+		game_state.credit_rating -= 1
+	else:
+		# Debt collectors
+		game_state.add_story_event({
+			"type": GlobalEnums.StrifeType.CORPORATE_WARFARE,
+			"description": "Corporate debt collectors are pursuing your crew."
+		})
 
 func force_asset_sale(amount: int) -> void:
 	var sold_amount: int = 0

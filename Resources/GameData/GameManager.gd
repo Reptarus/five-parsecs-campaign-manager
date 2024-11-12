@@ -4,23 +4,23 @@ class_name GameManager
 
 signal game_state_changed(new_state: GlobalEnums.CampaignPhase)
 
-const BattlefieldGenerator = preload("res://Resources/BattlePhase/BattlefieldGenerator.gd")
-const GameOverScreen = preload("res://Resources/Utilities/GameOverScreen.tscn")
-const GameSettings = preload("res://Resources/GameData/GameSettings.gd")
+const BattlefieldGeneratorScene = preload("res://Resources/BattlePhase/BattlefieldGenerator.gd")
+const GameOverScreenScene = preload("res://Resources/Utilities/GameOverScreen.tscn")
+const GameSettingsResource = preload("res://Resources/GameData/GameSettings.gd")
 
 var game_state: GameState
 var ui_manager: UIManager
 var terrain_generator: TerrainGenerator
 var galactic_war_manager: GalacticWarManager
-var settings: GameSettings
-var battlefield_generator: BattlefieldGenerator
+var settings: GameSettingsResource
+var battlefield_generator: BattlefieldGeneratorScene
 
 func _ready() -> void:
 	game_state = GameState.new()
 	ui_manager = UIManager.new()
 	terrain_generator = TerrainGenerator.new()
 	galactic_war_manager = GalacticWarManager.new(game_state)
-	battlefield_generator = BattlefieldGenerator.new()
+	battlefield_generator = BattlefieldGeneratorScene.new()
 	settings = load_settings()
 
 func start_new_game() -> void:
@@ -73,8 +73,7 @@ func process_mission_results(victory: bool) -> void:
 func generate_new_world() -> void:
 	var new_world: Location = game_state.world_generator.generate_world()
 	game_state.available_locations.append(new_world)
-
-func travel_to_world(world: World) -> void:
+func travel_to_world(world: GameWorld) -> void:
 	game_state.current_location = world
 	ui_manager.update_world_info()
 	game_state.fringe_world_strife_manager.update_world_strife(world)
@@ -108,7 +107,7 @@ func sell_equipment(item: Equipment) -> void:
 func handle_game_over(victory: bool) -> void:
 	ui_manager.show_game_over_screen(victory)
 	game_state_changed.emit(GlobalEnums.CampaignPhase.MAIN_MENU)
-	SaveGame.change_scene_to_file(GameOverScreen)
+	SaveGame.change_scene_to_file(GameOverScreenScene)
 
 func generate_battlefield() -> void:
 	battlefield_generator.initialize()
@@ -176,9 +175,9 @@ func save_settings() -> void:
 	var save_path = "user://settings.tres"
 	ResourceSaver.save(settings, save_path)
 
-func load_settings() -> GameSettings:
+func load_settings() -> GameSettingsResource:
 	var save_path = "user://settings.tres"
 	if ResourceLoader.exists(save_path):
-		return ResourceLoader.load(save_path) as GameSettings
+		return ResourceLoader.load(save_path) as GameSettingsResource
 	else:
-		return GameSettings.new()
+		return GameSettingsResource.new()

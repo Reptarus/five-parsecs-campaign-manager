@@ -37,11 +37,41 @@ func _create_job(world_data: Dictionary, job_type: JobType) -> Mission:
     
     return job
 
+func _apply_patron_job_modifiers(job: Mission) -> void:
+    job.type = GlobalEnums.Type.PATRON
+    job.difficulty += 1
+    job.rewards["credits"] *= 1.2
+    job.rewards["reputation"] += 1
+
 func _check_red_zone_eligibility() -> bool:
     return game_state.campaign_turns >= 10 and game_state.current_crew.get_member_count() >= 7
 
+func _apply_red_zone_modifiers(job: Mission) -> void:
+    job.type = GlobalEnums.Type.RED_ZONE
+    job.difficulty += 2
+    job.rewards["credits"] *= 1.5
+    job.required_crew_size += 1
+
 func _check_black_zone_eligibility() -> bool:
     return _check_red_zone_eligibility() and game_state.current_crew.has_red_zone_license
+
+func _apply_black_zone_modifiers(job: Mission) -> void:
+    job.type = GlobalEnums.Type.BLACK_ZONE
+    job.difficulty += 3
+    job.rewards["credits"] *= 2.0
+    job.required_crew_size += 2
+    job.setup_black_zone_opposition()
+
+func _apply_opportunity_modifiers(job: Mission) -> void:
+    job.type = GlobalEnums.Type.OPPORTUNITY
+    job.time_limit = randi() % 2 + 2  # 2-3 turns
+    job.rewards["credits"] *= 1.1
+
+func _apply_rival_modifiers(job: Mission) -> void:
+    job.type = GlobalEnums.Type.RIVAL
+    job.difficulty += 1
+    job.rewards["reputation"] += 2
+    job.required_crew_size = game_state.current_crew.get_member_count()
 
 func _apply_standard_job_modifiers(job: Mission, world_data: Dictionary) -> void:
     job.type = _get_job_type_for_world(world_data)
@@ -49,88 +79,52 @@ func _apply_standard_job_modifiers(job: Mission, world_data: Dictionary) -> void
     job.rewards = _calculate_rewards(job.difficulty)
     job.required_crew_size = _calculate_required_crew_size()
 
-func _apply_patron_job_modifiers(job: Mission) -> void:
-    var patron = _select_available_patron()
-    if patron:
-        job.type = GlobalEnums.Type.PATRON
-        job.patron = patron
-        var conditions = _generate_patron_conditions(patron)
-        job.benefits = conditions.benefits
-        job.hazards = conditions.hazards
-        job.conditions = conditions.conditions
-        _modify_rewards(job, 1.2)  # 20% bonus for patron missions
+func _calculate_difficulty_for_world(world_data: Dictionary) -> int:
+    var base_difficulty = randi() % 3 + 1
+    if world_data.type == GlobalEnums.Background.HIGH_TECH_COLONY:
+        base_difficulty += 1
+    return base_difficulty
 
-func _apply_opportunity_modifiers(job: Mission) -> void:
-    job.type = GlobalEnums.Type.OPPORTUNITY
-    job.title = "Opportunity Mission"
-    job.description = "A sudden opportunity has arisen"
-    job.objective = GlobalEnums.MissionObjective.values().pick_random()
-    _modify_rewards(job, 1.1)  # 10% bonus for opportunity missions
+func _calculate_required_crew_size() -> int:
+    return maxi(2, game_state.current_crew.get_member_count() - 1)
 
-func _apply_rival_modifiers(job: Mission) -> void:
-    job.type = GlobalEnums.Type.RIVAL
-    job.title = "Rival Confrontation"
-    job.description = "A rival crew is causing trouble"
-    job.objective = GlobalEnums.MissionObjective.FIGHT_OFF
-    job.required_crew_size = game_state.current_ship.crew.size()
-    _modify_rewards(job, 1.3)  # 30% bonus for rival missions
-
-func _get_job_type_for_world(world_data: Dictionary) -> int:
+func _get_job_type_for_world(world_data: Dictionary) -> GlobalEnums.Type:
     var possible_types = []
     match world_data.type:
         GlobalEnums.Background.MINING_COLONY:
             possible_types = [
-                GlobalEnums.MissionType.RESOURCE_GATHERING,
-                GlobalEnums.MissionType.SITE_DEFENSE,
-                GlobalEnums.MissionType.ESCORT
+                GlobalEnums.Type.RESCUE,
+                GlobalEnums.Type.DEFENSE,
+                GlobalEnums.Type.ESCORT
             ]
         GlobalEnums.Background.HIGH_TECH_COLONY:
             possible_types = [
-                GlobalEnums.MissionType.DATA_RETRIEVAL,
-                GlobalEnums.MissionType.TECH_RECOVERY,
-                GlobalEnums.MissionType.SABOTAGE
+                GlobalEnums.Type.SABOTAGE,
+                GlobalEnums.Type.ASSASSINATION,
+                GlobalEnums.Type.QUEST
             ]
         _:
-            possible_types = [GlobalEnums.MissionType.PATROL]
+            possible_types = [GlobalEnums.Type.OPPORTUNITY]
     
     return possible_types.pick_random()
 
-func _select_available_patron() -> Patron:
-    var available_patrons = game_state.patrons.filter(func(p): return _can_generate_patron_job(p))
-    return available_patrons.pick_random() if available_patrons.size() > 0 else null
-
-func _can_generate_patron_job(patron: Patron) -> bool:
-    return randf() < 0.2 + (patron.relationship / 200.0)
-
-func _calculate_difficulty_for_world(world_data: Dictionary) -> int:
-    var base_difficulty = _calculate_base_difficulty()
-    match world_data.type:
-        GlobalEnums.Background.HIGH_TECH_COLONY:
-            base_difficulty += 1
-        GlobalEnums.Background.MINING_COLONY:
-            base_difficulty += randi() % 2
-    return base_difficulty
-
-func _apply_red_zone_modifiers(job: Mission) -> void:
-    job.difficulty += 2
-    job.rewards["credits"] *= 1.5
-    job.required_crew_size += 1
-
-func _apply_black_zone_modifiers(job: Mission) -> void:
-    job.difficulty += 3
-    job.rewards["credits"] *= 2.0
-    job.required_crew_size += 2
-    job.setup_black_zone_opposition()
-
 func _calculate_rewards(difficulty: int) -> Dictionary:
-    return {
-        "credits": BASE_REWARD_CREDITS * difficulty + randi() % (DIFFICULTY_MULTIPLIER * difficulty),
-        "reputation": REPUTATION_BASE + floori(difficulty / 2.0)
+    var base_credits = difficulty * 100
+    var base_reputation = difficulty
+    
+    # Add random variation to credits
+    var credits = base_credits + randi() % int(base_credits * 0.5)
+    
+    # Add potential bonus rewards based on difficulty
+    var rewards = {
+        "credits": credits,
+        "reputation": base_reputation
     }
-
-func _generate_patron_conditions(patron: Patron) -> Dictionary:
-    return {
-        "benefits": [generate_benefit()],
-        "hazards": [generate_hazard()],
-        "conditions": [generate_condition()]
-    }
+    
+    # Add special rewards for higher difficulties
+    if difficulty >= 3:
+        rewards["item"] = true
+    if difficulty >= 4:
+        rewards["story_points"] = 1
+        
+    return rewards

@@ -1,74 +1,80 @@
 class_name Character
-extends Resource
+extends Node
 
-signal morale_changed(new_value: int)
-signal experience_gained(amount: int)
-signal status_changed(new_status: int)
-
-@export var name: String = ""
 @export var role: GlobalEnums.CrewRole
-@export var traits: Array[String] = []
-@export var skills: Dictionary = {}
-@export var experience: int = 0
-@export var morale: int = 5
-@export var equipment: Array[Equipment] = []
-@export var status_effects: Array[String] = []
-@export var status: GlobalEnums.CharacterStatus = GlobalEnums.CharacterStatus.READY
+@export var character_name: String
+@export var level: int = 1
+@export var health: int = 100
+@export var max_health: int = 100
 
-var mission_ready: bool = true
-var current_task: String = ""
+var origin: GlobalEnums.Origin
+var background: GlobalEnums.Background
+var motivation: GlobalEnums.Motivation
+var class_type: GlobalEnums.Class
+var status: GlobalEnums.CharacterStatus = GlobalEnums.CharacterStatus.READY
+var equipment_slots: Array[String] = []
+var skills: Array[String] = []
+var tutorial_progress: Dictionary = {}
 
-func can_participate_in_mission(mission: Mission) -> bool:
-	if not mission_ready or status != GlobalEnums.CharacterStatus.READY:
-		return false
-	
-	# Check if character's role is required for the mission
-	if mission.required_roles.has(role):
-		return true
-	
-	# Check if character has required skills
-	for skill in mission.required_skills:
-		if not skills.has(skill) or skills[skill] < mission.required_skills[skill]:
-			return false
-	
-	# Check if character has required equipment for mission type
-	if mission.mission_type == GlobalEnums.Type.RED_ZONE and not has_hazard_gear():
-		return false
-	
-	return true
+func _init() -> void:
+    status = GlobalEnums.CharacterStatus.READY
 
-func decrease_morale() -> void:
-	morale = max(0, morale - 1)
-	morale_changed.emit(morale)
+func initialize(origin_type: GlobalEnums.Origin, bg: GlobalEnums.Background, 
+                motiv: GlobalEnums.Motivation, char_class: GlobalEnums.Class) -> void:
+    origin = origin_type
+    background = bg
+    motivation = motiv
+    class_type = char_class
+    _apply_origin_bonuses()
 
-func gain_experience(amount: int) -> void:
-	experience += amount
-	experience_gained.emit(amount)
+func _apply_origin_bonuses() -> void:
+    match origin:
+        GlobalEnums.Origin.HUMAN:
+            # Balanced stats
+            pass
+        GlobalEnums.Origin.SYNTHETIC:
+            # Enhanced technical abilities
+            pass
+        GlobalEnums.Origin.HYBRID:
+            # Enhanced survival abilities
+            pass
+        GlobalEnums.Origin.MUTANT:
+            # Enhanced physical abilities
+            pass
+        GlobalEnums.Origin.UPLIFTED:
+            # Enhanced social abilities
+            pass
 
-func has_trait(trait_name: String) -> bool:
-	return traits.has(trait_name)
+static func deserialize(data: Dictionary) -> Character:
+    var character = Character.new()
+    character.role = data.get("role", GlobalEnums.CrewRole.SECURITY)
+    character.character_name = data.get("name", "Unknown")
+    character.level = data.get("level", 1)
+    character.health = data.get("health", 100)
+    character.max_health = data.get("max_health", 100)
+    character.status = data.get("status", GlobalEnums.CharacterStatus.READY)
+    character.origin = data.get("origin", GlobalEnums.Origin.HUMAN)
+    character.background = data.get("background", GlobalEnums.Background.MILITARY)
+    character.motivation = data.get("motivation", GlobalEnums.Motivation.SURVIVAL)
+    character.class_type = data.get("class_type", GlobalEnums.Class.SOLDIER)
+    character.equipment_slots = data.get("equipment_slots", [])
+    character.skills = data.get("skills", [])
+    character.tutorial_progress = data.get("tutorial_progress", {})
+    return character
 
-func get_skill_level(skill_name: String) -> int:
-	return skills.get(skill_name, 0)
-
-func has_hazard_gear() -> bool:
-	for item in equipment:
-		if item.type == GlobalEnums.EquipmentType.HAZARD_GEAR:
-			return true
-	return false
-
-func set_status(new_status: GlobalEnums.CharacterStatus) -> void:
-	status = new_status
-	status_changed.emit(status)
-	mission_ready = (status == GlobalEnums.CharacterStatus.READY)
-
-func roll_injury() -> String:
-	var injury_table = ["Minor Cuts", "Broken Arm", "Concussion", "Severe Burns"]
-	return injury_table.pick_random()
-
-func apply_upgrade(upgrade: Dictionary) -> void:
-	if upgrade.has("skill"):
-		skills[upgrade.skill] = skills.get(upgrade.skill, 0) + 1
-	if upgrade.has("trait"):
-		if not traits.has(upgrade.trait):
-			traits.append(upgrade.trait)
+func serialize() -> Dictionary:
+    return {
+        "role": role,
+        "name": character_name,
+        "level": level,
+        "health": health,
+        "max_health": max_health,
+        "status": status,
+        "origin": origin,
+        "background": background,
+        "motivation": motivation,
+        "class_type": class_type,
+        "equipment_slots": equipment_slots,
+        "skills": skills,
+        "tutorial_progress": tutorial_progress
+    }

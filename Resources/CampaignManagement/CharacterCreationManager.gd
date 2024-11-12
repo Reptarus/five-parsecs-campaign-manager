@@ -19,8 +19,8 @@ func _init() -> void:
 	_load_creation_data()
 
 func _load_creation_data() -> void:
-	# Load available options from data files
-	available_species = GlobalEnums.Species.values()
+	# Updated to use correct enums
+	available_species = GlobalEnums.Origin.values()
 	available_backgrounds = GlobalEnums.Background.values()
 	available_classes = GlobalEnums.Class.values()
 	available_motivations = GlobalEnums.Motivation.values()
@@ -48,29 +48,52 @@ func randomize_character() -> void:
 
 func _apply_species_bonuses() -> void:
 	match current_character.species:
-		GlobalEnums.Species.HUMAN:
+		GlobalEnums.Origin.HUMAN:
 			current_character.stats.luck += 1
-		GlobalEnums.Species.ENGINEER:
+		GlobalEnums.Origin.SYNTHETIC:
 			current_character.stats.technical += 1
-		# Add other species bonuses...
+		GlobalEnums.Origin.HYBRID:
+			current_character.stats.agility += 1
+		GlobalEnums.Origin.MUTANT:
+			current_character.stats.strength += 1
+		GlobalEnums.Origin.UPLIFTED:
+			current_character.stats.intelligence += 1
 
 func _apply_background_effects() -> void:
 	match current_character.background:
-		GlobalEnums.Background.MILITARY_BRAT:
+		GlobalEnums.Background.MILITARY:
 			current_character.stats.combat += 1
-		GlobalEnums.Background.MINING_COLONY:
+		GlobalEnums.Background.CORPORATE:
 			current_character.stats.technical += 1
-		# Add other background effects...
+		GlobalEnums.Background.ACADEMIC:
+			current_character.stats.intelligence += 1
+		GlobalEnums.Background.FRONTIER:
+			current_character.stats.survival += 1
+		GlobalEnums.Background.CRIMINAL:
+			current_character.stats.stealth += 1
+		GlobalEnums.Background.NOMAD:
+			current_character.stats.piloting += 1
 
 func _apply_class_equipment() -> void:
 	match current_character.character_class:
 		GlobalEnums.Class.SOLDIER:
-			current_character.add_starting_equipment("Military Rifle")
-			current_character.add_starting_equipment("Combat Armor")
+			_add_starting_equipment(GlobalEnums.WeaponType.MILITARY, GlobalEnums.ArmorType.MEDIUM)
+		GlobalEnums.Class.SCOUT:
+			_add_starting_equipment(GlobalEnums.WeaponType.RIFLE, GlobalEnums.ArmorType.LIGHT)
 		GlobalEnums.Class.TECHNICIAN:
-			current_character.add_starting_equipment("Repair Kit")
-			current_character.add_starting_equipment("Tech Scanner")
-		# Add other class equipment...
+			_add_starting_equipment(GlobalEnums.WeaponType.PISTOL, GlobalEnums.ArmorType.LIGHT)
+		GlobalEnums.Class.MEDIC:
+			_add_starting_equipment(GlobalEnums.WeaponType.PISTOL, GlobalEnums.ArmorType.LIGHT)
+		GlobalEnums.Class.DIPLOMAT:
+			_add_starting_equipment(GlobalEnums.WeaponType.PISTOL, GlobalEnums.ArmorType.SCREEN)
+		GlobalEnums.Class.PSION:
+			_add_starting_equipment(GlobalEnums.WeaponType.SPECIAL, GlobalEnums.ArmorType.LIGHT)
+
+func _add_starting_equipment(weapon_type: GlobalEnums.WeaponType, armor_type: GlobalEnums.ArmorType) -> void:
+	var weapon = game_state.equipment_manager.create_weapon(weapon_type)
+	var armor = game_state.equipment_manager.create_armor(armor_type)
+	current_character.add_equipment(weapon)
+	current_character.add_equipment(armor)
 
 func validate_character() -> bool:
 	# Add validation logic

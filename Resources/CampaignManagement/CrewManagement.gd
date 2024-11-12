@@ -86,3 +86,9 @@ func update_equipment_display() -> void:
 func _on_inventory_updated(_item: Equipment) -> void:
 	if selected_character:
 		update_equipment_display()
+
+func update_character_info(character: Character) -> void:
+	# Updated to use new enums
+	var species_text = GlobalEnums.Species.keys()[character.species]
+	var class_text = GlobalEnums.Class.keys()[character.class_type]
+	# ... rest of the function

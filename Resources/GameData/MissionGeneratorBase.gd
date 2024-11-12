@@ -3,55 +3,93 @@ extends Resource
 
 var game_state: GameState
 
-const BASE_REWARD_CREDITS := 100
-const DIFFICULTY_MULTIPLIER := 50
-const REPUTATION_BASE := 1
-
 func _init(_game_state: GameState) -> void:
     game_state = _game_state
 
 func _create_base_mission() -> Mission:
     var mission = Mission.new()
-    mission.location = game_state.current_location
-    mission.time_limit = _generate_time_limit()
-    mission.difficulty = _calculate_base_difficulty()
-    mission.rewards = _calculate_base_rewards(mission.difficulty)
-    mission.required_crew_size = _calculate_required_crew_size()
+    mission.type = GlobalEnums.Type.OPPORTUNITY
+    mission.objective = GlobalEnums.MissionObjective.FIGHT_OFF
+    mission.deployment_type = GlobalEnums.DeploymentType.LINE
+    mission.victory_condition = GlobalEnums.VictoryConditionType.TURNS
+    mission.ai_behavior = GlobalEnums.AIBehavior.TACTICAL
+    mission.terrain_type = GlobalEnums.TerrainGenerationType.INDUSTRIAL
+    
+    # Set default values
+    mission.difficulty = 1
+    mission.time_limit = 3
+    mission.required_crew_size = 4
+    mission.rewards = {
+        "credits": 100,
+        "reputation": 1
+    }
+    
     return mission
 
-func _calculate_base_difficulty() -> int:
-    return randi() % 3 + 1  # 1 to 3 base difficulty
-
-func _calculate_base_rewards(difficulty: int) -> Dictionary:
-    return {
-        "credits": BASE_REWARD_CREDITS * difficulty + randi() % (DIFFICULTY_MULTIPLIER * difficulty),
-        "reputation": REPUTATION_BASE + floori(difficulty / 2.0)
-    }
-
-func _generate_time_limit() -> int:
-    return randi() % 3 + 2  # 2 to 4 turns
-
-func _calculate_required_crew_size() -> int:
-    var base_size = max(2, game_state.current_ship.crew.size() - 1)
-    return mini(base_size, 4)  # Cap at 4 crew members
-
 func _validate_mission_requirements(mission: Mission) -> bool:
-    var validation_manager = ValidationManager.new(game_state)
-    var result = validation_manager.validate_mission_start(mission)
-    return result.valid
+    # Basic validation
+    if not mission:
+        return false
+        
+    # Check crew size requirements
+    if game_state.current_crew.get_member_count() < mission.required_crew_size:
+        return false
+        
+    # Check mission type specific requirements
+    match mission.type:
+        GlobalEnums.Type.RED_ZONE:
+            if not _check_red_zone_requirements():
+                return false
+        GlobalEnums.Type.BLACK_ZONE:
+            if not _check_black_zone_requirements():
+                return false
+        GlobalEnums.Type.PATRON:
+            if not _check_patron_requirements(mission):
+                return false
+    
+    return true
 
-func _modify_rewards(mission: Mission, modifier: float) -> void:
-    mission.rewards["credits"] = int(mission.rewards["credits"] * modifier)
-    mission.rewards["reputation"] = mini(5, int(mission.rewards["reputation"] * modifier))
+func _check_red_zone_requirements() -> bool:
+    return game_state.campaign_turns >= 10 and game_state.current_crew.get_member_count() >= 7
 
-func generate_benefit() -> String:
-    return ["Fringe Benefit", "Connections", "Company Store", "Health Insurance", 
-            "Security Team", "Persistent", "Negotiable"].pick_random()
+func _check_black_zone_requirements() -> bool:
+    return _check_red_zone_requirements() and game_state.current_crew.has_red_zone_license
 
-func generate_hazard() -> String:
-    return ["Dangerous Job", "Hot Job", "VIP", "Veteran Opposition", 
-            "Low Priority", "Private Transport"].pick_random()
+func _check_patron_requirements(mission: Mission) -> bool:
+    if not mission.patron:
+        return false
+    return game_state.faction_standings.get(mission.patron.faction, 0) >= mission.patron.required_standing
 
-func generate_condition() -> String:
-    return ["Vengeful", "Demanding", "Small Squad", "Full Squad", 
-            "Clean", "Busy", "One-time Contract", "Reputation Required"].pick_random()
+func _generate_enemy_composition(difficulty: int) -> Array[Enemy]:
+    var enemies: Array[Enemy] = []
+    var base_count = difficulty + 1
+    
+    for i in range(base_count):
+        var enemy_type = _select_enemy_type(difficulty)
+        var enemy = Enemy.new("Enemy " + str(i + 1), enemy_type)
+        enemies.append(enemy)
+    
+    return enemies
+
+func _select_enemy_type(difficulty: int) -> GlobalEnums.AIType:
+    if difficulty >= 4:
+        return GlobalEnums.AIType.ELITE
+    elif difficulty >= 3:
+        return GlobalEnums.AIType.TACTICAL
+    elif difficulty >= 2:
+        return GlobalEnums.AIType.AGGRESSIVE
+    else:
+        return GlobalEnums.AIType.GRUNT
+
+func _generate_deployment_type(mission_type: GlobalEnums.Type) -> GlobalEnums.DeploymentType:
+    match mission_type:
+        GlobalEnums.Type.ASSASSINATION:
+            return GlobalEnums.DeploymentType.CONCEALED
+        GlobalEnums.Type.SABOTAGE:
+            return GlobalEnums.DeploymentType.INFILTRATION
+        GlobalEnums.Type.DEFENSE:
+            return GlobalEnums.DeploymentType.DEFENSIVE
+        GlobalEnums.Type.ESCORT:
+            return GlobalEnums.DeploymentType.BOLSTERED_LINE
+        _:
+            return GlobalEnums.DeploymentType.LINE

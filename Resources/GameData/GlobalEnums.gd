@@ -1,196 +1,15 @@
-extends Resource
-
-enum Species {
-    HUMAN,
-    ENGINEER,
-    KERIN,
-    SOULLESS,
-    PRECURSOR,
-    FERAL,
-    SWIFT,
-    BOT,
-    SKULKER,
-    KRAG
-}
-
-enum Background {
-    HIGH_TECH_COLONY,
-    OVERCROWDED_CITY,
-    LOW_TECH_COLONY,
-    MINING_COLONY,
-    MILITARY_BRAT,
-    SPACE_STATION
-}
-
-enum Motivation {
-    WEALTH,
-    FAME,
-    GLORY,
-    SURVIVAL,
-    ESCAPE,
-    ADVENTURE
-}
-
-enum Class {
-    WORKING_CLASS,
-    TECHNICIAN,
-    SCIENTIST,
-    HACKER,
-    SOLDIER,
-    MERCENARY
-}
-
-enum PsionicPower {
-    BARRIER,
-    GRAB,
-    LIFT,
-    SHROUD,
-    ENRAGE,
-    PREDICT,
-    SHOCK,
-    REJUVENATE,
-    GUIDE,
-    PSIONIC_SCARE,
-    CRUSH,
-    DIRECT,
-    DOMINATE
-    # Ensure this matches your Psionics.json file
-}
-
-enum PsionicLegality {
-    LEGAL,
-    RESTRICTED,
-    ILLEGAL
-}
-
-enum WeaponType {
-    PISTOL,
-    RIFLE,
-    HEAVY,
-    MELEE,
-    GRENADE
-}
-
-enum ArmorType {
-    LIGHT,
-    MEDIUM,
-    HEAVY,
-    SCREEN
-}
-
-enum MissionType {
-    PATROL,
-    RESCUE,
-    SABOTAGE,
-    ESCORT,
-    ASSASSINATION,
-    RETRIEVAL,
-    RESOURCE_GATHERING,
-    SITE_DEFENSE,
-    DATA_RETRIEVAL,
-    TECH_RECOVERY,
-    FRINGE_WORLD_STRIFE
-}
-
-enum TerrainType {
-    CITY,
-    FOREST,
-    SPACE_STATION,
-    STARSHIP,
-    ALIEN_LANDSCAPE
-}
-
-enum CampaignPhase {
-    INITIAL_SETUP,
-    CREW_CREATION,
-    CREW_MANAGEMENT,
-    UPKEEP,
-    STORY_POINT,
-    TRAVEL,
-    PATRONS,
-    MISSION,
-    BATTLE,
-    POST_BATTLE,
-    TRACK_RIVALS,
-    PATRON_JOB,
-    RIVAL_ATTACK,
-    ASSIGN_EQUIPMENT,
-    READY_FOR_BATTLE,
-    MAIN_MENU,
-}
-
-enum CharacterStatus {
-    ACTIVE,
-    INJURED,
-    STUNNED,
-    FLEEING,
-    DEAD
-}
-
-enum SkillType {
-    COMBAT,
-    TECHNICAL,
-    SOCIAL,
-    SURVIVAL
-}
-
-enum ItemRarity {
-    COMMON,
-    UNCOMMON,
-    RARE,
-    UNIQUE
-}
-
-enum FactionType {
-    NEUTRAL,
-    FRIENDLY,
-    HOSTILE
-}
-
-enum BattleOutcome {
-    VICTORY,
-    DEFEAT,
-    DRAW
-}
-
-enum ShipUpgrade {
-    ENGINE,
-    WEAPONS,
-    SHIELDS,
-    CARGO,
-    LIVING_QUARTERS
-}
-
-enum StrifeType {
-    RESOURCE_CONFLICT,
-    POLITICAL_UPRISING,
-    ALIEN_INCURSION,
-    CORPORATE_WARFARE
-}
-
-enum ComponentType {
-    HULL,
-    ENGINE,
-    WEAPONS,
-    MEDICAL_BAY,
-    SHIELDS,
-    CARGO_HOLD,
-    DROP_POD,
-    SHUTTLE_BAY,
-    LIFE_SUPPORT
-}
+extends Node
 
 enum Type {
-    INFILTRATION,
-    STREET_FIGHT,
-    SALVAGE_JOB,
-    FRINGE_WORLD_STRIFE,
+    RED_ZONE,
+    YELLOW_ZONE,
+    GREEN_ZONE,
+    BLACK_ZONE,
     OPPORTUNITY,
-    PATRON,
     QUEST,
-    RIVAL,
     TUTORIAL,
-    STANDARD,
+    RIVAL,
+    PATRON,
     ASSASSINATION,
     SABOTAGE,
     RESCUE,
@@ -198,172 +17,320 @@ enum Type {
     ESCORT
 }
 
-enum MissionObjective {
-    INFILTRATION,
-    FIGHT_OFF,
-    ACQUIRE,
-    DEFEND,
-    DELIVER,
-    ELIMINATE,
-    EXPLORE,
-    MOVE_THROUGH,
-    SABOTAGE,
-    DESTROY,
-    RESCUE,
-    PROTECT
+enum Origin {
+    HUMAN,
+    SYNTHETIC,
+    HYBRID,
+    MUTANT,
+    UPLIFTED
+}
+
+enum Background {
+    MILITARY,
+    CORPORATE,
+    ACADEMIC,
+    FRONTIER,
+    CRIMINAL,
+    NOMAD,
+    MILITARY_BRAT,
+    MINING_COLONY,
+    HIGH_TECH_COLONY
+}
+
+enum Motivation {
+    WEALTH,
+    REVENGE,
+    DISCOVERY,
+    GLORY,
+    SURVIVAL,
+    POWER
+}
+
+enum Class {
+    SOLDIER,
+    SCOUT,
+    TECHNICIAN,
+    MEDIC,
+    DIPLOMAT,
+    PSION
+}
+
+enum WeaponType {
+    PISTOL,
+    RIFLE,
+    HEAVY,
+    MELEE,
+    SPECIAL,
+    MILITARY,
+    HIGH_TECH,
+    LAUNCHER,
+    GRENADE
+}
+
+enum CampaignPhase {
+    MAIN_MENU,
+    CREW_CREATION,
+    UPKEEP,
+    MISSION,
+    BATTLE,
+    POST_BATTLE,
+    STORY_POINT
+}
+
+enum TerrainType {
+    CITY,
+    WILDERNESS,
+    SPACE,
+    STATION,
+    UNDERGROUND
+}
+
+enum FactionType {
+    NEUTRAL,
+    HOSTILE,
+    FRIENDLY,
+    CORPORATE,
+    MILITARY,
+    CRIMINAL
+}
+
+enum StrifeType {
+    RESOURCE_CONFLICT,
+    CIVIL_UNREST,
+    CORPORATE_WAR,
+    ALIEN_THREAT,
+    NATURAL_DISASTER,
+    POLITICAL_UPRISING,
+    ALIEN_INCURSION,
+    CORPORATE_WARFARE
 }
 
 enum MissionStatus {
     ACTIVE,
     COMPLETED,
-    FAILED
+    FAILED,
+    EXPIRED
 }
 
-enum CrewTask {
-    FIND_PATRON,
-    TRAIN,
-    TRADE,
-    RECRUIT,
+enum MissionObjective {
     EXPLORE,
-    TRACK,
-    REPAIR_KIT,
-    DECOY
+    FIGHT_OFF,
+    RESCUE,
+    RETRIEVE,
+    ELIMINATE,
+    NEGOTIATE,
+    DEFEND,
+    ESCORT,
+    MOVE_THROUGH,
+    PROTECT,
+    DESTROY
+}
+
+enum TerrainGenerationType {
+    INDUSTRIAL,
+    URBAN,
+    WILDERNESS,
+    SPACE,
+    UNDERGROUND
+}
+
+enum DeploymentType {
+    LINE,
+    SCATTERED,
+    FLANKING,
+    DEFENSIVE,
+    AGGRESSIVE,
+    HALF_FLANK,
+    FORWARD_POSITIONS,
+    BOLSTERED_LINE,
+    INFILTRATION,
+    BOLSTERED_FLANK,
+    CONCEALED,
+    IMPROVED_POSITIONS,
+    REINFORCED
+}
+
+enum VictoryConditionType {
+    TURNS,
+    ELIMINATION,
+    OBJECTIVE,
+    SURVIVAL,
+    EXTRACTION
+}
+
+enum AIBehavior {
+    TACTICAL,
+    AGGRESSIVE,
+    DEFENSIVE,
+    OPPORTUNISTIC,
+    CAUTIOUS
+}
+
+enum WorldTrait {
+    RICH,
+    POOR,
+    LAWLESS,
+    ORDERLY,
+    TECHNOLOGICAL,
+    PRIMITIVE
+}
+
+enum SkillType {
+    COMBAT,
+    TECHNICAL,
+    SOCIAL,
+    SURVIVAL,
+    LEADERSHIP,
+    PILOTING
+}
+
+enum AIType {
+    GRUNT,
+    ELITE,
+    BOSS,
+    CIVILIAN,
+    SECURITY,
+    CAUTIOUS,
+    AGGRESSIVE,
+    TACTICAL,
+    DEFENSIVE,
+    RAMPAGE,
+    BEAST,
+    GUARDIAN
+}
+
+enum Faction {
+    CORPORATE,
+    MILITARY,
+    CRIMINAL,
+    SCIENTIFIC,
+    POLITICAL,
+    RELIGIOUS,
+    MERCENARY,
+    INDEPENDENT,
+    UNITY,
+    FRINGE
+}
+
+enum FringeWorldInstability {
+    LOW,
+    MEDIUM,
+    HIGH,
+    CRITICAL
+}
+
+enum WorldPhase {
+    UPKEEP,
+    SHIP_REPAIRS,
+    LOAN_CHECK,
+    CREW_TASKS,
+    JOB_OFFERS,
+    EQUIPMENT,
+    RUMORS,
+    BATTLE_PREP
+}
+
+enum WeaponTrait {
+    AREA,
+    CLUMSY,
+    CRITICAL,
+    ELEGANT,
+    FOCUSED,
+    HEAVY,
+    IMPACT,
+    MELEE,
+    PIERCING,
+    PISTOL,
+    SINGLE_USE,
+    SNAP_SHOT,
+    STUN,
+    TERRIFYING,
+    RAPID_FIRE,
+    ACCURATE,
+    SPREAD,
+    ENERGY,
+    BLAST,
+    OVERHEAT,
+    AIMED
+}
+
+enum ArmorTrait {
+    LIGHT,
+    MEDIUM,
+    HEAVY,
+    POWERED,
+    CUMBERSOME,
+    ENERGY,
+    RECHARGEABLE
 }
 
 enum ItemType {
     WEAPON,
     ARMOR,
+    CONSUMABLE,
+    TOOL,
+    MODIFICATION,
     GEAR,
+    MEDICAL,
+    UTILITY,
+    TECH,
+    MOBILITY,
+    EXPLOSIVE,
+    IMPLANT
+}
+
+enum EquipmentSlot {
+    PRIMARY_WEAPON,
+    SECONDARY_WEAPON,
+    ARMOR,
+    GEAR,
+    IMPLANT,
     CONSUMABLE
 }
 
-enum WeaponTrait {
-    CLUMSY,
-    CRITICAL,
-    ELEGANT,
-    FOCUSED,
-    TERRIFYING,
-    HEAVY,
-    AREA,
-    SINGLE_USE,
-    PIERCING,
-    SNAP_SHOT,
-    IMPACT
-}
-
-enum AIType {
-    AGGRESSIVE,
-    CAUTIOUS,
-    DEFENSIVE,
-    GUARDIAN,
-    RAMPAGE,
-    TACTICAL,
-    BEAST
-}
-
-enum Faction {
-    UNITY,
-    CORPORATE,
-    FRINGE,
-    ALIEN
-}
-
-enum WorldTrait {
-    BUSTLING,
-    QUIET,
-    DANGEROUS,
-    SAFE,
-    RICH,
-    POOR
-}
-
-enum DifficultyMode {
-    EASY,
-    NORMAL,
-    CHALLENGING,
-    HARDCORE,
-    INSANITY
-}
-
-enum SalvageType {
-    TECH,
-    RESOURCES,
-    ARTIFACTS
-}
-
-enum StreetFightType {
-    GANG_WAR,
-    TURF_DEFENSE,
-    REVENGE_HIT
-}
-
-enum FringeWorldInstability {
-    STABLE,
-    UNREST,
-    CONFLICT,
-    CHAOS
-}
-
-enum LoanType {
-    STANDARD,
-    PREDATORY,
-    BLACK_MARKET
-}
-
-enum ReputationLevel {
-    UNKNOWN,
-    NOTORIOUS,
-    RESPECTED,
+enum EquipmentRarity {
+    COMMON,
+    UNCOMMON,
+    RARE,
+    UNIQUE,
     LEGENDARY
 }
 
-enum TerrainSize {
-    SMALL,
+enum EquipmentCategory {
+    MILITARY,
+    HIGH_TECH,
+    CIVILIAN,
+    EXPERIMENTAL,
+    ALIEN
+}
+
+enum GameState {
+    SETUP,
+    CAMPAIGN,
+    BATTLE,
+    PAUSE,
+    GAME_OVER
+}
+
+enum BattlePhase {
+    REACTION_ROLL,
+    MOVEMENT,
+    SHOOTING,
+    MELEE,
+    MORALE,
+    END_TURN
+}
+
+enum CoverType {
+    NONE,
+    LIGHT,
     MEDIUM,
-    LARGE
+    HEAVY,
+    FULL
 }
 
-enum TerrainFeature {
-    LINEAR,
-    AREA,
-    FIELD,
-    INDIVIDUAL,
-    BLOCK,
-    INTERIOR
-}
-
-enum TerrainGenerationType {
-    INDUSTRIAL,
-    WILDERNESS,
-    ALIEN_RUIN,
-    CRASH_SITE
-}
-
-enum TerrainEffect {
-    LINE_OF_SIGHT,
-    COVER,
-    MOVEMENT
-}
-
-# Expanded Campaign Phases
-enum ExpandedCampaignPhase {
-    UPKEEP,
-    STORY_POINT,
-    TRAVEL,
-    WORLD,
-    POST_BATTLE,
-    TRACK_RIVALS,
-    PATRON_JOB,
-    RIVAL_ATTACK,
-    ASSIGN_EQUIPMENT,
-    READY_FOR_BATTLE
-}
-
-# Gameplay Modifiers
-@export var use_expanded_campaign_phases: bool = false
-
-# Added missing enums
 enum GlobalEvent {
+    NONE,
     MARKET_CRASH,
     ECONOMIC_BOOM,
     TRADE_EMBARGO,
@@ -373,114 +340,116 @@ enum GlobalEvent {
     CORPORATE_TAKEOVER,
     RESOURCE_CRISIS,
     POLITICAL_UPHEAVAL,
-    NATURAL_DISASTER,
-    GALACTIC_WAR
+    NATURAL_DISASTER
 }
 
-enum StatusEffectType {
-    BUFF,
-    DEBUFF,
-    NEUTRAL,
-    STUN,
-    POISON,
-    REGENERATION,
-    SHIELD
+enum CharacterState {
+    ACTIVE,
+    STUNNED,
+    WOUNDED,
+    PANICKED,
+    OUT_OF_ACTION
 }
 
-enum DeploymentType {
-    LINE,
-    HALF_FLANK,
-    IMPROVED_POSITIONS,
-    FORWARD_POSITIONS,
-    BOLSTERED_LINE,
-    INFILTRATION,
-    REINFORCED,
-    BOLSTERED_FLANK,
-    CONCEALED
+enum BattleState {
+    SETUP,
+    DEPLOYMENT,
+    IN_PROGRESS,
+    ENDED
 }
 
-enum VictoryConditionType {
-    TURNS,
-    QUESTS,
-    BATTLES,
-    UNIQUE_KILLS,
-    CHARACTER_UPGRADES,
-    MULTI_CHARACTER_UPGRADES
+enum PostBattlePhase {
+    REWARDS,
+    RECOVERY,
+    DEBRIEF,
+    ADVANCEMENT
 }
 
-enum AIBehavior {
-    AGGRESSIVE,
-    CAUTIOUS,
-    DEFENSIVE,
-    TACTICAL,
-    RAMPAGE,
-    BEAST,
-    GUARDIAN
+enum PatronType {
+    MERCHANT,
+    NOBLE,
+    MERCENARY,
+    SCIENTIST,
+    DIPLOMAT,
+    CRIMINAL
 }
 
-# Add these new enums at the end of the file
-
-enum TrainingType {
-    BASIC,
-    ADVANCED,
-    SPECIALIZED
+enum QuestType {
+    STORY,
+    SIDE,
+    PATRON,
+    RIVAL,
+    EVENT
 }
 
-enum BasicTrainingCourse {
-    COMBAT_BASICS,
-    TECHNICAL_FUNDAMENTALS,
-    SOCIAL_SKILLS,
-    SURVIVAL_TECHNIQUES
+enum ShipSystem {
+    ENGINES,
+    WEAPONS,
+    SHIELDS,
+    LIFE_SUPPORT,
+    SENSORS,
+    CARGO
 }
 
-enum AdvancedTrainingCourse {
-    PILOT_TRAINING,
-    HACKING_MASTERY,
-    ADVANCED_COMBAT_TACTICS,
-    XENOBIOLOGY,
-    NEGOTIATION_EXPERTISE
+enum TutorialStage {
+    INTRODUCTION,
+    MOVEMENT,
+    COMBAT,
+    OBJECTIVES,
+    EQUIPMENT,
+    CREW_MANAGEMENT,
+    COMPLETED
 }
 
-enum SpecializedTrainingCourse {
-    PSIONIC_DEVELOPMENT,
-    ALIEN_TECH_MASTERY,
-    COVERT_OPS,
-    LEADERSHIP,
-    ADVANCED_ENGINEERING
+enum DifficultyLevel {
+    EASY,
+    NORMAL,
+    HARD,
+    IRONMAN
 }
 
-# You can also add a constant for training costs if needed
-const BASIC_TRAINING_COST = 10
-const ADVANCED_TRAINING_COST = 20
-const SPECIALIZED_TRAINING_COST = 30
-
-# Function to get training cost based on type
-static func get_training_cost(training_type: TrainingType) -> int:
-    match training_type:
-        TrainingType.BASIC:
-            return BASIC_TRAINING_COST
-        TrainingType.ADVANCED:
-            return ADVANCED_TRAINING_COST
-        TrainingType.SPECIALIZED:
-            return SPECIALIZED_TRAINING_COST
-    return 0  # Default case
-
-enum BattlePhase {
-    REACTION_ROLL,
-    QUICK_ACTIONS,
-    ENEMY_ACTIONS,
-    SLOW_ACTIONS,
-    END_PHASE,
-    END_ROUND,
+enum CharacterAttribute {
+    STRENGTH,
+    AGILITY,
+    INTELLIGENCE,
+    WILLPOWER,
+    CHARISMA,
+    TECH
 }
 
-enum CoverType {
-    NONE,
-    PARTIAL,
-    FULL
+enum ComponentType {
+    HULL,
+    ENGINE,
+    WEAPONS,
+    MEDICAL_BAY,
+    SHIELD,
+    CARGO,
+    DROP_POD,
+    SHUTTLE
 }
 
-enum GameState {SETUP, CAMPAIGN, BATTLE, VICTORY_CHECK}
+enum StreetFightType {
+    AMBUSH,
+    BRAWL,
+    CHASE,
+    SIEGE,
+    RAID
+}
+
+enum LoanType {
+    STANDARD,
+    PREDATORY,
+    BLACK_MARKET
+}
+
+enum ArmorType {
+    LIGHT,
+    MEDIUM,
+    HEAVY,
+    SCREEN
+}
+
+# Make sure this is registered as an autoload in project settings
 
 
 

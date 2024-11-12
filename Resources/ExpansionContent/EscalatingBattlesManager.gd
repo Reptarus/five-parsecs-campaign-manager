@@ -24,8 +24,8 @@ func _should_escalate(battle_state: Dictionary) -> bool:
 	var escalation_chance = 20  # Base 20% chance
 	
 	# Increase chance based on crew composition
-	escalation_chance += 5 if GlobalEnums.Species.SKULKER in battle_state.crew_species else 0
-	escalation_chance += 5 if GlobalEnums.Species.KRAG in battle_state.crew_species else 0
+	escalation_chance += 5 if GlobalEnums.Origin.MUTANT in battle_state.crew_species else 0
+	escalation_chance += 5 if GlobalEnums.Origin.HYBRID in battle_state.crew_species else 0
 	
 	# Increase chance if psionics are present
 	escalation_chance += 10 if battle_state.has_psionics else 0
@@ -62,9 +62,9 @@ func _generate_escalation(battle_state: Dictionary) -> Dictionary:
 			escalation.effect = {"disable_item": true, "target": "player"}
 	
 	# Modify effect based on battle state
-	if GlobalEnums.Species.SKULKER in battle_state.crew_species:
-		escalation.description += " (Skulkers provide advantage)"
-		escalation.effect["skulker_bonus"] = true
+	if GlobalEnums.Origin.MUTANT in battle_state.crew_species:
+		escalation.description += " (Mutants provide advantage)"
+		escalation.effect["mutant_bonus"] = true
 	if battle_state.has_psionics:
 		escalation.description += " (Psionic effects intensified)"
 		escalation.effect["psionic_intensity"] = 2
@@ -101,10 +101,10 @@ func _apply_to_team(effect: Dictionary, team: Array) -> void:
 		for unit in team:
 			if unit.has_psionic_powers():
 				unit.boost_psionic_power()
-	if "skulker_bonus" in effect:
+	if "mutant_bonus" in effect:
 		for unit in team:
-			if unit.species == GlobalEnums.Species.SKULKER:
-				unit.apply_skulker_bonus()
+			if unit.species == GlobalEnums.Species.MUTANT:
+				unit.apply_mutant_bonus()
 
 func generate_suspect(pursuit: bool) -> Dictionary:
 	var suspect = {}

@@ -5,24 +5,41 @@ extends Resource
 signal crew_updated
 signal resources_changed
 
-@export var members: Array[Character] = []
-@export var credits: int = 0
-@export var reputation: int = 0
-@export var has_red_zone_license: bool = false
-@export var has_black_zone_access: bool = false
-@export var equipment: Array[Equipment] = []
+var _members: Array[Character]:
+	get:
+		return _members
+	set(value):
+		_members = value
+		crew_updated.emit()
+
+var _credits: int:
+	get:
+		return _credits
+	set(value):
+		_credits = value
+		resources_changed.emit()
+
+var reputation: int
+var has_red_zone_license: bool
+var has_black_zone_access: bool
+var _equipment: Array[Equipment]:
+	get:
+		return _equipment
+	set(value):
+		_equipment = value
+		resources_changed.emit()
 
 const MAX_CREW_SIZE = 8
 
 func get_member_count() -> int:
-	return members.size()
+	return _members.size()
 
 func can_add_member() -> bool:
-	return members.size() < MAX_CREW_SIZE
+	return _members.size() < MAX_CREW_SIZE
 
 func get_available_members_for_mission(mission: Mission) -> Array[Character]:
 	var available_members: Array[Character] = []
-	for member in members:
+	for member in _members:
 		if member.can_participate_in_mission(mission):
 			available_members.append(member)
 	return available_members
@@ -45,35 +62,35 @@ func has_required_crew_for_mission(mission: Mission) -> bool:
 	return true
 
 func has_broker() -> bool:
-	for member in members:
+	for member in _members:
 		if member.role == GlobalEnums.CrewRole.BROKER:
 			return true
 	return false
 
 func get_total_skill_level(skill_name: String) -> int:
 	var total = 0
-	for member in members:
+	for member in _members:
 		total += member.get_skill_level(skill_name)
 	return total
 
 func add_member(character: Character) -> void:
 	if can_add_member():
-		members.append(character)
+		_members.append(character)
 		crew_updated.emit()
 
 func remove_member(character: Character) -> void:
-	members.erase(character)
+	_members.erase(character)
 	crew_updated.emit()
 
 func add_equipment(item: Equipment) -> void:
-	equipment.append(item)
+	_equipment.append(item)
 	resources_changed.emit()
 
 func remove_equipment(item: Equipment) -> void:
-	equipment.erase(item)
+	_equipment.erase(item)
 	resources_changed.emit()
 
 func apply_casualties() -> void:
-	for member in members:
+	for member in _members:
 		if randf() < 0.2:  # 20% chance of injury
 			member.set_status(GlobalEnums.CharacterStatus.INJURED)

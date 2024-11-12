@@ -5,7 +5,7 @@ signal combat_started
 signal combat_ended(player_victory: bool)
 signal turn_started(character: Character)
 signal turn_ended(character: Character)
-signal ui_update_needed(current_round: int, phase: GlobalEnums.BattlePhase, current_character: Character)
+signal ui_update_needed(current_round: int, phase: GlobalEnums.CampaignPhase, current_character: Character)
 signal log_action(action: String)
 signal character_moved(character: Character, new_position: Vector2i)
 signal enable_player_controls(character: Character)

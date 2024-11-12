@@ -20,6 +20,7 @@ extends Resource
 @export var strife_intensity_range: Vector2
 @export var environmental_factors: Array[String]
 @export var available_resources: Dictionary
+@export var deployment_type: GlobalEnums.DeploymentType
 
 func _init(
     _type: GlobalEnums.Type = GlobalEnums.Type.OPPORTUNITY,
@@ -40,8 +41,9 @@ func _init(
     _time_limit_range: Vector2 = Vector2(3, 7),
     _strife_intensity_range: Vector2 = Vector2(1, 5),
     _environmental_factors: Array[String] = [],
-    _available_resources: Dictionary = {}
-):
+    _available_resources: Dictionary = {},
+    _deployment_type: GlobalEnums.DeploymentType = GlobalEnums.DeploymentType.LINE
+) -> void:
     type = _type
     title_templates = _title_templates
     description_templates = _description_templates
@@ -61,22 +63,7 @@ func _init(
     strife_intensity_range = _strife_intensity_range
     environmental_factors = _environmental_factors
     available_resources = _available_resources
-
-func calculate_reward(game_state_manager: GameStateManager) -> int:
-    var base_reward = randf_range(reward_range.x, reward_range.y)
-    # Assuming GameStateManager has a method to get the global economic modifier
-    var global_economic_modifier = game_state_manager.get_global_economic_modifier()
-    return int(base_reward * global_economic_modifier * economic_impact)
-
-func generate_deployment_condition() -> String:
-    if randf() < deployment_condition_chance:
-        return GlobalEnums.DeploymentType.keys()[randi() % GlobalEnums.DeploymentType.size()]
-    return "LINE"
-
-func generate_notable_sight() -> String:
-    if randf() < notable_sight_chance and environmental_factors.size() > 0:
-        return environmental_factors[randi() % environmental_factors.size()]
-    return ""
+    deployment_type = _deployment_type
 
 func to_dict() -> Dictionary:
     return {
@@ -98,7 +85,8 @@ func to_dict() -> Dictionary:
         "time_limit_range": {"x": time_limit_range.x, "y": time_limit_range.y},
         "strife_intensity_range": {"x": strife_intensity_range.x, "y": strife_intensity_range.y},
         "environmental_factors": environmental_factors,
-        "available_resources": available_resources
+        "available_resources": available_resources,
+        "deployment_type": GlobalEnums.DeploymentType.keys()[deployment_type]
     }
 
 static func from_dict(data: Dictionary) -> MissionTemplate:
@@ -121,5 +109,6 @@ static func from_dict(data: Dictionary) -> MissionTemplate:
         Vector2(data["time_limit_range"]["x"], data["time_limit_range"]["y"]),
         Vector2(data["strife_intensity_range"]["x"], data["strife_intensity_range"]["y"]),
         data["environmental_factors"],
-        data["available_resources"]
+        data["available_resources"],
+        GlobalEnums.DeploymentType[data["deployment_type"]]
     )

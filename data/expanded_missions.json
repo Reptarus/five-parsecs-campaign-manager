@@ -1,45 +1,64 @@
 {
   "mission_types": [
-	{
-	  "name": "Assassination",
-	  "description": "Eliminate a high-value target.",
-	  "objectives": [
-		"Locate the target",
-		"Eliminate the target",
-		"Escape the area"
-	  ],
-	  "difficulty_modifier": 1.5
-	},
-	{
-	  "name": "Sabotage",
-	  "description": "Destroy or disable a key facility or equipment.",
-	  "objectives": [
-		"Infiltrate the location",
-		"Plant explosives or disable systems",
-		"Escape before detonation"
-	  ],
-	  "difficulty_modifier": 1.3
-	},
-	{
-	  "name": "Rescue",
-	  "description": "Extract a captive or stranded individual.",
-	  "objectives": [
-		"Locate the captive",
-		"Free the captive",
-		"Escort to extraction point"
-	  ],
-	  "difficulty_modifier": 1.2
-	},
-	{
-	  "name": "Infiltration",
-	  "description": "Gain access to a secure location to retrieve data or plant false information.",
-	  "objectives": [
-		"Bypass security",
-		"Access the target system or area",
-		"Retrieve or plant information",
-		"Exit undetected"
-	  ],
-	  "difficulty_modifier": 1.4
-	}
+    {
+      "name": "ASSASSINATION",
+      "description": "Eliminate a high-value target.",
+      "objectives": [
+        "ELIMINATE",
+        "FIGHT_OFF",
+        "ESCAPE"
+      ],
+      "difficulty_modifier": 1.5,
+      "deployment_types": [
+        "CONCEALED",
+        "INFILTRATION",
+        "SCATTERED"
+      ]
+    },
+    {
+      "name": "SABOTAGE",
+      "description": "Destroy or disable a key facility or equipment.",
+      "objectives": [
+        "DESTROY",
+        "FIGHT_OFF",
+        "ESCAPE"
+      ],
+      "difficulty_modifier": 1.3,
+      "deployment_types": [
+        "LINE",
+        "INFILTRATION",
+        "HALF_FLANK"
+      ]
+    },
+    {
+      "name": "RESCUE",
+      "description": "Extract a captive or stranded individual.",
+      "objectives": [
+        "RESCUE",
+        "PROTECT",
+        "ESCORT"
+      ],
+      "difficulty_modifier": 1.2,
+      "deployment_types": [
+        "DEFENSIVE",
+        "BOLSTERED_LINE",
+        "REINFORCED"
+      ]
+    },
+    {
+      "name": "INFILTRATION",
+      "description": "Gain access to a secure location.",
+      "objectives": [
+        "MOVE_THROUGH",
+        "RETRIEVE",
+        "ESCAPE"
+      ],
+      "difficulty_modifier": 1.4,
+      "deployment_types": [
+        "INFILTRATION",
+        "CONCEALED",
+        "SCATTERED"
+      ]
+    }
   ]
 }

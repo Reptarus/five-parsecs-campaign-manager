@@ -48,21 +48,21 @@ func get_task_description(task: TaskType) -> String:
 func _get_relevant_skill(character: Character, task: TaskType) -> int:
     match task:
         TaskType.TRADE:
-            return character.get_skill_level("negotiation")
+            return character.get_skill_level(GlobalEnums.SkillType.SOCIAL)
         TaskType.EXPLORE:
-            return character.get_skill_level("survival")
+            return character.get_skill_level(GlobalEnums.SkillType.SURVIVAL)
         TaskType.TRAIN:
-            return character.get_skill_level("leadership")
+            return character.get_skill_level(GlobalEnums.SkillType.LEADERSHIP)
         TaskType.RECRUIT:
-            return character.get_skill_level("diplomacy")
+            return character.get_skill_level(GlobalEnums.SkillType.SOCIAL)
         TaskType.FIND_PATRON:
-            return character.get_skill_level("negotiation")
+            return character.get_skill_level(GlobalEnums.SkillType.SOCIAL)
         TaskType.REPAIR_KIT:
-            return character.get_skill_level("technical")
+            return character.get_skill_level(GlobalEnums.SkillType.TECHNICAL)
         TaskType.GATHER_INTEL:
-            return character.get_skill_level("stealth")
+            return character.get_skill_level(GlobalEnums.SkillType.SURVIVAL)
         TaskType.MAINTENANCE:
-            return character.get_skill_level("technical")
+            return character.get_skill_level(GlobalEnums.SkillType.TECHNICAL)
         _:
             return 0
 

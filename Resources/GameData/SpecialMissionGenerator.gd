@@ -1,86 +1,57 @@
 class_name SpecialMissionGenerator
 extends MissionGeneratorBase
 
-enum MissionTier {NORMAL, RED_ZONE, BLACK_ZONE}
-
-const RED_ZONE_REWARD_MULTIPLIER := 1.5
-const BLACK_ZONE_REWARD_MULTIPLIER := 2.0
-const RED_ZONE_DIFFICULTY_INCREASE := 2
-const BLACK_ZONE_DIFFICULTY_INCREASE := 4
-
-func generate_special_mission(tier: MissionTier, params: Dictionary = {}) -> Mission:
-    var mission = _create_base_mission()
+func generate_special_mission(mission_type: GlobalEnums.Type) -> Mission:
+    var mission = Mission.new()
+    mission.type = mission_type
     
-    match tier:
-        MissionTier.RED_ZONE:
-            _apply_red_zone_modifiers(mission)
-        MissionTier.BLACK_ZONE:
-            _apply_black_zone_modifiers(mission)
+    match mission_type:
+        GlobalEnums.Type.ASSASSINATION:
+            _setup_assassination_mission(mission)
+        GlobalEnums.Type.SABOTAGE:
+            _setup_sabotage_mission(mission)
+        GlobalEnums.Type.RESCUE:
+            _setup_rescue_mission(mission)
+        GlobalEnums.Type.DEFENSE:
+            _setup_defense_mission(mission)
+        GlobalEnums.Type.ESCORT:
+            _setup_escort_mission(mission)
     
-    if params.has("patron"):
-        _apply_patron_modifiers(mission, params.patron)
-    
-    return mission if _validate_mission_requirements(mission) else null
+    return mission
 
-func _apply_red_zone_modifiers(mission: Mission) -> void:
-    mission.difficulty += RED_ZONE_DIFFICULTY_INCREASE
-    mission.threat_condition = _generate_threat_condition()
-    mission.time_constraint = _generate_time_constraint()
-    _modify_rewards(mission, RED_ZONE_REWARD_MULTIPLIER)
-    mission.increased_opposition()
-
-func _apply_black_zone_modifiers(mission: Mission) -> void:
-    mission.difficulty += BLACK_ZONE_DIFFICULTY_INCREASE
-    mission.enemy_type = "Roving Threats"
+func _setup_assassination_mission(mission: Mission) -> void:
     mission.objective = GlobalEnums.MissionObjective.ELIMINATE
-    _modify_rewards(mission, BLACK_ZONE_REWARD_MULTIPLIER)
-    mission.setup_black_zone_opposition()
+    mission.deployment_type = GlobalEnums.DeploymentType.CONCEALED
+    mission.victory_condition = GlobalEnums.VictoryConditionType.ELIMINATION
+    mission.ai_behavior = GlobalEnums.AIBehavior.TACTICAL
+    mission.difficulty += 2
+    mission.rewards["credits"] *= 1.5
 
-func _apply_patron_modifiers(mission: Mission, patron: Patron) -> void:
-    var benefits_hazards = _generate_patron_conditions(patron)
-    mission.benefits = benefits_hazards.benefits
-    mission.hazards = benefits_hazards.hazards
-    mission.conditions = benefits_hazards.conditions
-    mission.patron = patron
-    mission.type = GlobalEnums.Type.PATRON
+func _setup_sabotage_mission(mission: Mission) -> void:
+    mission.objective = GlobalEnums.MissionObjective.DESTROY
+    mission.deployment_type = GlobalEnums.DeploymentType.INFILTRATION
+    mission.victory_condition = GlobalEnums.VictoryConditionType.OBJECTIVE
+    mission.ai_behavior = GlobalEnums.AIBehavior.DEFENSIVE
+    mission.difficulty += 1
+    mission.rewards["reputation"] += 1
 
-func _generate_patron_conditions(patron: Patron) -> Dictionary:
-    return {
-        "benefits": [generate_benefit()] if _should_generate_benefit(patron) else [],
-        "hazards": [generate_hazard()] if _should_generate_hazard(patron) else [],
-        "conditions": [generate_condition()] if _should_generate_condition(patron) else []
-    }
+func _setup_rescue_mission(mission: Mission) -> void:
+    mission.objective = GlobalEnums.MissionObjective.RESCUE
+    mission.deployment_type = GlobalEnums.DeploymentType.SCATTERED
+    mission.victory_condition = GlobalEnums.VictoryConditionType.EXTRACTION
+    mission.ai_behavior = GlobalEnums.AIBehavior.AGGRESSIVE
+    mission.time_limit += 1
 
-func _should_generate_benefit(patron: Patron) -> bool:
-    var chance: float = 0.8 if patron.type in [GlobalEnums.Faction.CORPORATE, GlobalEnums.Faction.UNITY] else 0.5
-    return randf() < chance
+func _setup_defense_mission(mission: Mission) -> void:
+    mission.objective = GlobalEnums.MissionObjective.DEFEND
+    mission.deployment_type = GlobalEnums.DeploymentType.DEFENSIVE
+    mission.victory_condition = GlobalEnums.VictoryConditionType.SURVIVAL
+    mission.ai_behavior = GlobalEnums.AIBehavior.AGGRESSIVE
+    mission.required_crew_size += 1
 
-func _should_generate_hazard(patron: Patron) -> bool:
-    var chance: float = 0.5 if patron.type == GlobalEnums.Faction.FRINGE else 0.8
-    return randf() < chance
-
-func _should_generate_condition(patron: Patron) -> bool:
-    var chance: float = 0.5 if patron.type == GlobalEnums.Faction.CORPORATE else 0.8
-    return randf() < chance
-
-func _generate_threat_condition() -> String:
-    var conditions := [
-        "Comms Interference",
-        "Elite Opposition",
-        "Pitch Black",
-        "Heavy Opposition",
-        "Armored Opponents",
-        "Enemy Captain"
-    ]
-    return conditions.pick_random()
-
-func _generate_time_constraint() -> String:
-    var constraints := [
-        "None",
-        "Reinforcements",
-        "Significant reinforcements",
-        "Count down",
-        "Evac now!",
-        "Elite reinforcements"
-    ]
-    return constraints.pick_random()
+func _setup_escort_mission(mission: Mission) -> void:
+    mission.objective = GlobalEnums.MissionObjective.ESCORT
+    mission.deployment_type = GlobalEnums.DeploymentType.BOLSTERED_LINE
+    mission.victory_condition = GlobalEnums.VictoryConditionType.EXTRACTION
+    mission.ai_behavior = GlobalEnums.AIBehavior.TACTICAL
+    mission.time_limit += 2
