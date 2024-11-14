@@ -1,10 +1,10 @@
 class_name EnemyTypes
 extends Resource
 
-const ENEMY_TYPES: Dictionary = {
-	"Gangers": {
+static var ENEMY_TYPES: Dictionary = {
+	"GRUNT": {
 		"numbers": 2,
-		"panic": "1-2",
+		"panic": "1-2", 
 		"speed": 4,
 		"combat_skill": 0,
 		"toughness": 3,

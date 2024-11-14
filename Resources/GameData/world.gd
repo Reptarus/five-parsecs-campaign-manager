@@ -23,44 +23,29 @@ var faction_type: GlobalEnums.FactionType = GlobalEnums.FactionType.NEUTRAL
 var strife_type: GlobalEnums.StrifeType = GlobalEnums.StrifeType.RESOURCE_CONFLICT
 
 # Variables
-var mock_game_state: MockGameState
 var world_step: WorldPhaseUI
 var world_economy_manager: WorldEconomyManager
 var world_generator: WorldGenerator
-var game_state: MockGameState
+var game_state_manager: GameStateManager
 
 var _mission_selection_scene = preload("res://Resources/WorldPhase/MissionSelectionUI.tscn")
 
 # Initialization and Setup
 func _init(param = null) -> void:
-	if param is MockGameState:
-		_init_with_mock_game_state(param)
+	if param is GameStateManager:
+		game_state_manager = param
 	elif param is Dictionary:
 		_init_with_dict(param)
 	else:
 		push_error("Invalid parameter type for World constructor")
 
-func _init_with_mock_game_state(_game_state_param: MockGameState) -> void:
-	mock_game_state = _game_state_param
-	game_state = mock_game_state.get_internal_game_state()
-	world_step = WorldPhaseUI.new()
-	
-	var current_location = game_state.current_location
-	var economy_manager = game_state.economy_manager
-	
-	if current_location != null and economy_manager != null:
-		world_economy_manager = WorldEconomyManager.new(current_location, economy_manager)
-	else:
-		push_error("Missing current_location or economy_manager in game state")
-	
-	world_generator = mock_game_state.world_generator
-
-func _init_with_dict(world_data: Dictionary) -> void:
-	world_name = world_data.get("name", "")
-	terrain_type = world_data.get("type", GlobalEnums.TerrainType.CITY)
-	faction_type = world_data.get("faction", GlobalEnums.FactionType.NEUTRAL)
-	strife_type = world_data.get("instability", GlobalEnums.StrifeType.RESOURCE_CONFLICT)
-	# Initialize other necessary properties here
+func _init_with_dict(param: Dictionary) -> void:
+	# Implementation for initializing with a dictionary
+	# Example:
+	world_name = param.get("world_name", "")
+	terrain_type = param.get("terrain_type", GlobalEnums.TerrainType.CITY)
+	faction_type = param.get("faction_type", GlobalEnums.FactionType.NEUTRAL)
+	strife_type = param.get("strife_type", GlobalEnums.StrifeType.RESOURCE_CONFLICT)
 
 func _ready() -> void:
 	world_step.phase_completed.connect(_on_phase_completed)
@@ -72,24 +57,36 @@ func _ready() -> void:
 func execute_world_step() -> void:
 	print("Beginning world step...")
 	
-	_handle_upkeep_and_repairs()
-	world_step.assign_and_resolve_crew_tasks()
-	world_step.determine_job_offers()
-	world_step.assign_equipment()
-	world_step.resolve_rumors()
-	_update_local_economy()
-	world_step.choose_battle()
+	var current_step: GlobalEnums.WorldPhase = GlobalEnums.WorldPhase.UPKEEP
+	
+	match current_step:
+		GlobalEnums.WorldPhase.UPKEEP:
+			_handle_upkeep_and_repairs()
+		GlobalEnums.WorldPhase.SHIP_REPAIRS:
+			world_step.process_ship_repairs()
+		GlobalEnums.WorldPhase.LOAN_CHECK:
+			world_step.process_loans()
+		GlobalEnums.WorldPhase.CREW_TASKS:
+			world_step.assign_and_resolve_crew_tasks()
+		GlobalEnums.WorldPhase.JOB_OFFERS:
+			world_step.determine_job_offers()
+		GlobalEnums.WorldPhase.EQUIPMENT:
+			world_step.assign_equipment()
+		GlobalEnums.WorldPhase.RUMORS:
+			world_step.resolve_rumors()
+		GlobalEnums.WorldPhase.BATTLE_PREP:
+			world_step.choose_battle()
 	
 	print("World step completed.")
 	world_step_completed.emit()
 
 func get_world_traits() -> Array[GlobalEnums.WorldTrait]:
-	return game_state.current_location.get_traits()
+	return game_state_manager.game_state.current_location.get_traits()
 
 func generate_new_world() -> void:
 	var new_world = world_generator.generate_world()
-	game_state.set_current_location(new_world)
-	world_economy_manager = WorldEconomyManager.new(new_world, game_state.economy_manager)
+	game_state_manager.game_state.set_current_location(new_world)
+	world_economy_manager = WorldEconomyManager.new(new_world, game_state_manager.game_state.economy_manager)
 
 func schedule_world_invasion() -> void:
 	world_generator.schedule_world_invasion()
@@ -97,15 +94,14 @@ func schedule_world_invasion() -> void:
 # Serialization
 func serialize() -> Dictionary:
 	return {
-		"game_state": game_state.serialize(),
+		"game_state": game_state_manager.game_state.serialize(),
 		"world_economy": world_economy_manager.serialize(),
 		"world_generator": world_generator.serialize()
 	}
 
 static func deserialize(data: Dictionary) -> World:
-	var new_mock_game_state = MockGameState.new()
-	new_mock_game_state.deserialize(data["game_state"])
-	var world = World.new(new_mock_game_state)
+	var world = World.new()
+	world.game_state_manager.game_state.deserialize(data["game_state"])
 	world.world_economy_manager.deserialize(data["world_economy"])
 	world.world_generator.deserialize(data["world_generator"])
 	return world
@@ -117,9 +113,9 @@ func _handle_upkeep_and_repairs() -> void:
 		print("Upkeep paid: %d credits" % upkeep_cost)
 	else:
 		print("Not enough credits to pay upkeep. Crew morale decreases.")
-		game_state.crew.get_characters()[0].decrease_morale()  # Assuming the first crew member for simplicity
+		game_state_manager.game_state.crew.get_characters()[0].decrease_morale()  # Assuming the first crew member for simplicity
 	
-	var repair_amount = game_state.current_ship.auto_repair()
+	var repair_amount = game_state_manager.game_state.current_ship.auto_repair()
 	print("Ship auto-repaired %d hull points" % repair_amount)
 
 func _update_local_economy() -> void:
@@ -134,7 +130,7 @@ func _on_mission_selection_requested(available_missions: Array[Mission]) -> void
 	mission_selection_instance.get_node("PopupPanel").popup_centered()
 
 func _on_mission_selected(mission: Mission) -> void:
-	game_state.current_mission = mission
+	game_state_manager.game_state.current_mission = mission
 	print("Selected mission: ", mission.title)
 	# Implement any additional logic needed when a mission is selected
 
@@ -142,9 +138,9 @@ func _on_phase_completed() -> void:
 	print("Phase completed")
 	phase_completed.emit()
 	
-	game_state.campaign_turn += 1
+	game_state_manager.game_state.campaign_turn += 1
 	
-	if game_state.check_victory_conditions():
+	if game_state_manager.game_state.check_victory_conditions():
 		game_over.emit()
 		return
 	

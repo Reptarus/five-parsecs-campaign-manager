@@ -1,14 +1,14 @@
 class_name LootGenerator
 extends Node
 
-var game_state: MockGameState
+var game_state: GameState
 
 func _init():
-	var potential_game_state = get_node("/root/MockGameState")
-	if potential_game_state is MockGameState:
+	var potential_game_state = GameStateManager.get_instance().get_game_state()
+	if potential_game_state is GameState:
 		game_state = potential_game_state
 	else:
-		push_error("Node at /root/MockGameState is not of type MockGameState")
+		push_error("GameStateManager did not return a valid GameState")
 
 const LootType = GlobalEnums.ItemType
 

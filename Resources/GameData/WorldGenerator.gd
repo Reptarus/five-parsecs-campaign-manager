@@ -1,10 +1,17 @@
 class_name WorldGenerator
 extends Object
 
+signal world_generated(world: World)
+signal generation_failed(error: String)
+
 var game_state_manager: GameStateManager
 var generated_world: Dictionary = {}
 
 func initialize(_game_state_manager: GameStateManager) -> void:
+    if not _game_state_manager:
+        push_error("GameStateManager is required for WorldGenerator")
+        generation_failed.emit("GameStateManager not provided")
+        return
     game_state_manager = _game_state_manager
 
 func serialize() -> Dictionary:
@@ -16,29 +23,34 @@ func deserialize(data: Dictionary) -> void:
     generated_world = data.get("generated_world", {})
 
 func generate_world() -> World:
-    var world_name = generate_world_name()
-    var world_type = GlobalEnums.TerrainType.CITY  # Corrected to a valid TerrainType
-    var world_faction = generate_faction()
-    var world_instability = generate_strife_level()
-    
-    var world_data = {
-        "name": world_name,
-        "type": world_type,
-        "faction": world_faction,
-        "instability": world_instability
+    if not game_state_manager:
+        push_error("GameStateManager not initialized")
+        generation_failed.emit("GameStateManager not initialized")
+        return null
+        
+    var world_data := {
+        "name": generate_world_name(),
+        "type": GlobalEnums.TerrainType.CITY,
+        "faction": generate_faction(),
+        "instability": generate_strife_level()
     }
     
-    var world = World.new(world_data)  # Corrected to pass world_data to the constructor
-    world.initialize(world_data)
-    
+    var world := World.new(world_data)
+    if not world:
+        push_error("Failed to create World instance")
+        generation_failed.emit("World creation failed")
+        return null
+        
+    _add_world_traits(world)
+    generated_world[world.name] = world.serialize()
+    world_generated.emit(world)
+    return world
+
+func _add_world_traits(world: World) -> void:
     world.add_trait(generate_licensing_requirement())
-    
-    var num_traits = game_state_manager.combat_manager.roll_dice(1, 3)
+    var num_traits: int = game_state_manager.combat_manager.roll_dice(1, 3)
     for i in range(num_traits):
         world.add_trait(generate_world_trait())
-    
-    generated_world[world_name] = world.serialize()
-    return world
 
 func generate_world_name() -> String:
     var prefixes = ["New", "Old", "Alpha", "Beta", "Gamma", "Nova", "Proxima", "Distant"]
@@ -48,20 +60,20 @@ func generate_world_name() -> String:
            names[game_state_manager.combat_manager.roll_dice(1, names.size()) - 1] + " " + \
            suffixes[game_state_manager.combat_manager.roll_dice(1, suffixes.size()) - 1]
 
-func generate_licensing_requirement() -> GlobalEnums.WorldTrait:
+func generate_licensing_requirement() -> int:
     var roll = game_state_manager.combat_manager.roll_dice(1, 6)
     if roll >= 5:
-        return GlobalEnums.WorldTrait.RICH
-    return GlobalEnums.WorldTrait.POOR
+        return GlobalEnums.FactionType.CORPORATE
+    return GlobalEnums.FactionType.NEUTRAL
 
-func generate_world_trait() -> GlobalEnums.WorldTrait:
-    return GlobalEnums.WorldTrait.values()[game_state_manager.combat_manager.roll_dice(1, GlobalEnums.WorldTrait.size()) - 1]
+func generate_world_trait() -> int:
+    return game_state_manager.combat_manager.roll_dice(1, GlobalEnums.TerrainType.size()) - 1
 
-func generate_strife_level() -> GlobalEnums.FringeWorldInstability:
-    return GlobalEnums.FringeWorldInstability.values()[game_state_manager.combat_manager.roll_dice(1, GlobalEnums.FringeWorldInstability.size()) - 1]
+func generate_strife_level() -> int:
+    return game_state_manager.combat_manager.roll_dice(1, GlobalEnums.FactionType.size()) - 1
 
-func generate_faction() -> GlobalEnums.Faction:
-    return GlobalEnums.Faction.values()[game_state_manager.combat_manager.roll_dice(1, GlobalEnums.Faction.size()) - 1]
+func generate_faction() -> int:
+    return game_state_manager.combat_manager.roll_dice(1, GlobalEnums.FactionType.size()) - 1
 
 func save_world(world: Location) -> void:
     generated_world[world.name] = world.serialize()
@@ -75,6 +87,6 @@ func schedule_world_invasion() -> void:
     var current_location = game_state_manager.game_state.current_location
     var _invasion_turns: int = game_state_manager.combat_manager.roll_dice(1, 3)
     if current_location:
-        current_location.update_strife_level(GlobalEnums.FringeWorldInstability.CONFLICT)
+        current_location.update_strife_level(GlobalEnums.FactionType.HOSTILE)
     else:
         push_error("Failed to schedule invasion: Current location is null")

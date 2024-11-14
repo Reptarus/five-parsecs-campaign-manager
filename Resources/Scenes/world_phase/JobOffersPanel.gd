@@ -5,10 +5,25 @@ signal job_selected(job: Mission)
 
 var job_generator: JobGenerator
 var special_mission_generator: SpecialMissionGenerator
+var game_state_manager: GameStateManager
 
 func _ready() -> void:
-    job_generator = JobGenerator.new(GameStateManager.get_state())
-    special_mission_generator = SpecialMissionGenerator.new(GameStateManager.get_state())
+    game_state_manager = GameStateManager.get_instance.call()
+    if not game_state_manager:
+        push_error("GameStateManager instance not found")
+        queue_free()
+        return
+        
+    job_generator = JobGenerator.new(game_state_manager.game_state)
+    special_mission_generator = SpecialMissionGenerator.new(game_state_manager.game_state)
+    
+    # Connect to necessary signals
+    if game_state_manager.game_state:
+        game_state_manager.game_state.connect("state_changed", _on_game_state_changed)
+
+func _on_game_state_changed() -> void:
+    # Handle state changes here
+    pass
 
 func populate_jobs(available_missions: Array) -> void:
     # Generate standard jobs
@@ -16,14 +31,20 @@ func populate_jobs(available_missions: Array) -> void:
     _add_jobs_to_list(standard_jobs, "Standard Jobs")
     
     # Generate patron jobs if available
-    if GameStateManager.get_state().has_active_patrons():
-        var patron_jobs = job_generator.generate_jobs(2, JobGenerator.JobType.PATRON)
+    if game_state_manager.game_state.has_active_patrons():
+        var patron_job_manager = PatronJobManager.new(game_state_manager.game_state)
+        var active_patrons = game_state_manager.game_state.get_active_patrons()
+        var patron_jobs = []
+        for patron in active_patrons:
+            var benefits_hazards_conditions = patron_job_manager.generate_benefits_hazards_conditions(patron)
+            for job in benefits_hazards_conditions.values():
+                patron_jobs.append(job)
         _add_jobs_to_list(patron_jobs, "Patron Jobs")
     
     # Generate red zone jobs if eligible
-    if job_generator._check_red_zone_eligibility():
+    if job_generator.check_red_zone_eligibility():
         var red_zone_job = special_mission_generator.generate_special_mission(
-            SpecialMissionGenerator.MissionTier.RED_ZONE
+            GlobalEnums.MissionType.RED_ZONE
         )
         if red_zone_job:
             _add_jobs_to_list([red_zone_job], "Red Zone Jobs")

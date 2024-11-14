@@ -1,5 +1,8 @@
 extends Node
 
+const Character = preload("res://Resources/CrewAndCharacters/Character.gd")
+const CharacterNameGenerator = preload("res://Resources/CrewAndCharacters/CharacterNameGenerator.gd")
+
 signal character_created(character: Character)
 signal creation_cancelled
 
@@ -48,52 +51,60 @@ func randomize_character() -> void:
 
 func _apply_species_bonuses() -> void:
 	match current_character.species:
-		GlobalEnums.Origin.HUMAN:
-			current_character.stats.luck += 1
-		GlobalEnums.Origin.SYNTHETIC:
-			current_character.stats.technical += 1
+		GlobalEnums.Origin.MILITARY:
+			current_character.stats[GlobalEnums.CharacterStats.LUCK] += 1
+		GlobalEnums.Origin.CORPORATE:
+			current_character.stats[GlobalEnums.CharacterStats.TECHNICAL] += 1
 		GlobalEnums.Origin.HYBRID:
-			current_character.stats.agility += 1
+			current_character.stats[GlobalEnums.CharacterStats.AGILITY] += 1
 		GlobalEnums.Origin.MUTANT:
-			current_character.stats.strength += 1
-		GlobalEnums.Origin.UPLIFTED:
-			current_character.stats.intelligence += 1
+			current_character.stats[GlobalEnums.CharacterStats.STRENGTH] += 1
+		GlobalEnums.Origin.ACADEMIC:
+			current_character.stats[GlobalEnums.CharacterStats.INTELLIGENCE] += 1
 
 func _apply_background_effects() -> void:
 	match current_character.background:
-		GlobalEnums.Background.MILITARY:
-			current_character.stats.combat += 1
-		GlobalEnums.Background.CORPORATE:
-			current_character.stats.technical += 1
-		GlobalEnums.Background.ACADEMIC:
-			current_character.stats.intelligence += 1
-		GlobalEnums.Background.FRONTIER:
-			current_character.stats.survival += 1
-		GlobalEnums.Background.CRIMINAL:
-			current_character.stats.stealth += 1
-		GlobalEnums.Background.NOMAD:
-			current_character.stats.piloting += 1
+		GlobalEnums.Background.SOLDIER:
+			current_character.stats[GlobalEnums.CharacterStats.COMBAT_SKILL] += 1
+		GlobalEnums.Background.MERCHANT:
+			current_character.stats[GlobalEnums.CharacterStats.TECHNICAL] += 1
+		GlobalEnums.Background.SCIENTIST:
+			current_character.stats[GlobalEnums.CharacterStats.INTELLIGENCE] += 1
+		GlobalEnums.Background.EXPLORER:
+			current_character.stats[GlobalEnums.CharacterStats.SURVIVAL] += 1
+		GlobalEnums.Background.OUTLAW:
+			current_character.stats[GlobalEnums.CharacterStats.STEALTH] += 1
+		GlobalEnums.Background.DIPLOMAT:
+			current_character.stats[GlobalEnums.CharacterStats.SAVVY] += 1
 
 func _apply_class_equipment() -> void:
 	match current_character.character_class:
-		GlobalEnums.Class.SOLDIER:
-			_add_starting_equipment(GlobalEnums.WeaponType.MILITARY, GlobalEnums.ArmorType.MEDIUM)
+		GlobalEnums.Class.WARRIOR:
+			_add_starting_equipment(GlobalEnums.WeaponType.SHELL_GUN, GlobalEnums.ArmorType.MEDIUM)
 		GlobalEnums.Class.SCOUT:
-			_add_starting_equipment(GlobalEnums.WeaponType.RIFLE, GlobalEnums.ArmorType.LIGHT)
-		GlobalEnums.Class.TECHNICIAN:
-			_add_starting_equipment(GlobalEnums.WeaponType.PISTOL, GlobalEnums.ArmorType.LIGHT)
-		GlobalEnums.Class.MEDIC:
-			_add_starting_equipment(GlobalEnums.WeaponType.PISTOL, GlobalEnums.ArmorType.LIGHT)
-		GlobalEnums.Class.DIPLOMAT:
-			_add_starting_equipment(GlobalEnums.WeaponType.PISTOL, GlobalEnums.ArmorType.SCREEN)
-		GlobalEnums.Class.PSION:
-			_add_starting_equipment(GlobalEnums.WeaponType.SPECIAL, GlobalEnums.ArmorType.LIGHT)
+			_add_starting_equipment(GlobalEnums.WeaponType.HUNTING_RIFLE, GlobalEnums.ArmorType.LIGHT)
+		GlobalEnums.Class.TECH:
+			_add_starting_equipment(GlobalEnums.WeaponType.HAND_GUN, GlobalEnums.ArmorType.LIGHT)
+		GlobalEnums.Class.LEADER:
+			_add_starting_equipment(GlobalEnums.WeaponType.HAND_GUN, GlobalEnums.ArmorType.LIGHT)
+		GlobalEnums.Class.SPECIALIST:
+			_add_starting_equipment(GlobalEnums.WeaponType.HAND_GUN, GlobalEnums.ArmorType.STEALTH)
+		GlobalEnums.Class.SUPPORT:
+			_add_starting_equipment(GlobalEnums.WeaponType.PLASMA_RIFLE, GlobalEnums.ArmorType.LIGHT)
 
 func _add_starting_equipment(weapon_type: GlobalEnums.WeaponType, armor_type: GlobalEnums.ArmorType) -> void:
+	if not game_state or not game_state.equipment_manager:
+		push_error("Equipment manager not initialized")
+		return
+		
 	var weapon = game_state.equipment_manager.create_weapon(weapon_type)
 	var armor = game_state.equipment_manager.create_armor(armor_type)
-	current_character.add_equipment(weapon)
-	current_character.add_equipment(armor)
+	
+	if weapon and armor and current_character:
+		current_character.add_equipment(weapon)
+		current_character.add_equipment(armor)
+	else:
+		push_error("Failed to add starting equipment")
 
 func validate_character() -> bool:
 	# Add validation logic

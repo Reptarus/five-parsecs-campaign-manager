@@ -121,14 +121,14 @@ func _validate_story_progress(checkpoint: Dictionary) -> bool:
 
 func _validate_tutorial_character_progress(character: CharacterState) -> bool:
     # Check if character has met minimum requirements for story progression
-    var required_stats = {
+    var _required_stats = {
         "combat_experience": 2,
         "missions_completed": 1,
         "skill_points_spent": 1
     }
     
     # Check if character has completed necessary tutorial objectives
-    var required_objectives = ["basic_combat", "skill_usage", "equipment_management"]
+    var _required_objectives = ["basic_combat", "skill_usage", "equipment_management"]
     
     # Check equipment slots
     if character.get_equipped_items().size() < 2:
@@ -233,7 +233,7 @@ func _serialize_objectives(objectives: Array) -> Array:
 func _get_unit_states(units: Array) -> Array:
     var states = []
     for unit in units:
-        if unit.status != GlobalEnums.CharacterStatus.DEAD:
+        if unit.status != GlobalEnums.CharacterStatus.CRITICAL:
             states.append({
                 "id": unit.id,
                 "position": unit.position,
@@ -257,4 +257,4 @@ func _get_objective_states(objectives: Array) -> Array:
     return states
 
 func _count_active_units(units: Array) -> int:
-    return units.filter(func(u): return u.status != GlobalEnums.CharacterStatus.DEAD).size() 
+    return units.filter(func(u): return u.status != GlobalEnums.CharacterStatus.CRITICAL).size() 

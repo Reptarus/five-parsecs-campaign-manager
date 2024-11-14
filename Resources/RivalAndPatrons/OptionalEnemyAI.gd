@@ -1,174 +1,46 @@
 class_name OptionalEnemyAI
 extends Resource
 
-var combat_manager: CombatManager
+const GlobalEnums = preload("res://Resources/GameData/GlobalEnums.gd")
+const Character = preload("res://Resources/CrewAndCharacters/Character.gd")
 
-func _init(_combat_manager: CombatManager):
-	combat_manager = _combat_manager
+var ai_controller: AIController
+
+func setup(controller: AIController) -> void:
+	ai_controller = controller
 
 func determine_action(enemy: Character) -> Dictionary:
-	var ai_type = enemy.ai_type
-	var base_condition_met = check_base_condition(enemy, ai_type)
+	# Check for special rules that affect behavior
+	if enemy.has_special_rule(GlobalEnums.EnemySpecialRule.FEROCIOUS):
+		ai_controller.set_ai_behavior(GlobalEnums.AIBehavior.RAMPAGE)
+		return _get_action(enemy)
+		
+	elif enemy.has_special_rule(GlobalEnums.EnemySpecialRule.QUICK_FEET):
+		ai_controller.set_ai_behavior(GlobalEnums.AIBehavior.TACTICAL) 
+		return _get_action(enemy)
 	
-	if base_condition_met:
-		return execute_base_action(enemy, ai_type)
-	
-	var roll = randi() % 6 + 1
-	return execute_rolled_action(enemy, ai_type, roll)
-
-func check_base_condition(enemy: Character, ai_type: GlobalEnums.AIType) -> bool:
-	match ai_type:
-		GlobalEnums.AIType.CAUTIOUS:
-			return enemy.is_in_cover() and combat_manager.are_enemies_within_range(enemy, 12)
-		GlobalEnums.AIType.AGGRESSIVE:
-			return combat_manager.can_engage_in_brawl(enemy)
-		GlobalEnums.AIType.DEFENSIVE:
-			return enemy.is_in_cover() and combat_manager.are_enemies_in_open(enemy)
-		GlobalEnums.AIType.TACTICAL:
-			return enemy.is_in_cover() and combat_manager.are_enemies_within_range(enemy, 12)
+	# Default behavior based on enemy category and compendium rules
+	match enemy.enemy_category:
+		GlobalEnums.EnemyCategory.CRIMINAL_ELEMENTS:
+			# Criminal elements tend to be aggressive per compendium
+			ai_controller.set_ai_behavior(GlobalEnums.AIBehavior.AGGRESSIVE)
+			return _get_action(enemy)
+			
+		GlobalEnums.EnemyCategory.HIRED_MUSCLE:
+			# Hired muscle uses tactical behavior per compendium
+			ai_controller.set_ai_behavior(GlobalEnums.AIBehavior.TACTICAL)
+			return _get_action(enemy)
+			
+		GlobalEnums.EnemyCategory.INTERESTED_PARTIES:
+			# Interested parties are more cautious per compendium
+			ai_controller.set_ai_behavior(GlobalEnums.AIBehavior.CAUTIOUS)
+			return _get_action(enemy)
+			
 		_:
-			return false
+			ai_controller.set_ai_behavior(GlobalEnums.AIBehavior.AGGRESSIVE)
+			return _get_action(enemy)
 
-func execute_base_action(enemy: Character, ai_type: GlobalEnums.AIType) -> Dictionary:
-	match ai_type:
-		GlobalEnums.AIType.CAUTIOUS:
-			return {
-				"type": "move_and_fire",
-				"move_to": combat_manager.find_distant_cover_position(enemy),
-				"fire_at": combat_manager.find_nearest_enemy(enemy)
-			}
-		GlobalEnums.AIType.AGGRESSIVE:
-			return {
-				"type": "move_to_brawl",
-				"target": combat_manager.find_nearest_enemy(enemy)
-			}
-		GlobalEnums.AIType.DEFENSIVE, GlobalEnums.AIType.TACTICAL:
-			return {
-				"type": "fire",
-				"target": combat_manager.find_best_target(enemy)
-			}
-		_:
-			return {}
-
-func execute_rolled_action(enemy: Character, ai_type: GlobalEnums.AIType, roll: int) -> Dictionary:
-	match ai_type:
-		GlobalEnums.AIType.CAUTIOUS:
-			return execute_cautious_action(enemy, roll)
-		GlobalEnums.AIType.AGGRESSIVE:
-			return execute_aggressive_action(enemy, roll)
-		GlobalEnums.AIType.DEFENSIVE:
-			return execute_defensive_action(enemy, roll)
-		GlobalEnums.AIType.TACTICAL:
-			return execute_tactical_action(enemy, roll)
-		_:
-			return {}
-
-func execute_cautious_action(enemy: Character, roll: int) -> Dictionary:
-	match roll:
-		1:
-			return {
-				"type": "retreat",
-				"move_to": combat_manager.find_retreat_position(enemy)
-			}
-		2, 3:
-			return {
-				"type": "fire",
-				"target": combat_manager.find_best_target(enemy)
-			}
-		4, 5:
-			return {
-				"type": "move_and_fire",
-				"move_to": combat_manager.find_cover_within_range(enemy, 12),
-				"fire_at": combat_manager.find_nearest_enemy(enemy)
-			}
-		6:
-			return {
-				"type": "move_and_fire",
-				"move_to": combat_manager.find_cover_near_enemy(enemy),
-				"fire_at": combat_manager.find_nearest_enemy(enemy)
-			}
-		_:
-			return {}
-
-func execute_aggressive_action(enemy: Character, roll: int) -> Dictionary:
-	match roll:
-		1, 2:
-			return {
-				"type": "move_and_fire",
-				"move_to": combat_manager.find_nearest_cover(enemy),
-				"fire_at": combat_manager.find_nearest_enemy(enemy)
-			}
-		3, 4:
-			return {
-				"type": "move_and_fire",
-				"move_to": combat_manager.find_position_closer_to_enemy(enemy),
-				"fire_at": combat_manager.find_nearest_enemy(enemy)
-			}
-		5:
-			return {
-				"type": "charge",
-				"target": combat_manager.find_nearest_enemy(enemy)
-			}
-		6:
-			return {
-				"type": "dash",
-				"move_to": combat_manager.find_position_closer_to_enemy(enemy, true)
-			}
-		_:
-			return {}
-
-func execute_defensive_action(enemy: Character, roll: int) -> Dictionary:
-	match roll:
-		1, 2, 3:
-			return {
-				"type": "fire",
-				"target": combat_manager.find_best_target(enemy)
-			}
-		4:
-			return {
-				"type": "move_and_fire",
-				"move_to": combat_manager.find_better_cover(enemy),
-				"fire_at": combat_manager.find_best_target(enemy)
-			}
-		5:
-			return {
-				"type": "move_and_fire",
-				"move_to": combat_manager.find_cover_within_range(enemy, 12),
-				"fire_at": combat_manager.find_nearest_enemy(enemy)
-			}
-		6:
-			return {
-				"type": "move_and_fire",
-				"move_to": combat_manager.find_cover_near_enemy(enemy),
-				"fire_at": combat_manager.find_nearest_enemy(enemy)
-			}
-		_:
-			return {}
-
-func execute_tactical_action(enemy: Character, roll: int) -> Dictionary:
-	match roll:
-		1:
-			return {
-				"type": "fire",
-				"target": combat_manager.find_best_target(enemy)
-			}
-		2:
-			return {
-				"type": "move_and_fire",
-				"move_to": combat_manager.find_better_cover(enemy),
-				"fire_at": combat_manager.find_best_target(enemy)
-			}
-		3, 4:
-			return {
-				"type": "move_and_fire",
-				"move_to": combat_manager.find_flanking_position(enemy),
-				"fire_at": combat_manager.find_best_target(enemy)
-			}
-		5, 6:
-			return {
-				"type": "move_and_fire",
-				"move_to": combat_manager.find_cover_near_enemy(enemy),
-				"fire_at": combat_manager.find_nearest_enemy(enemy)
-			}
-		_:
-			return {}
+func _get_action(enemy: Character) -> Dictionary:
+	var action := {}
+	ai_controller.perform_ai_turn(enemy)
+	return action

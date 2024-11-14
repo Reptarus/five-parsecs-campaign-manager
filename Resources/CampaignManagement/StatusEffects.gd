@@ -7,10 +7,14 @@ extends Resource
 
 func _init(_type: GlobalEnums.StatusEffectType = GlobalEnums.StatusEffectType.STUN, _duration: int = 1, _intensity: int = 1) -> void:
     type = _type
-    duration = _duration
-    intensity = _intensity
+    duration = max(1, _duration)
+    intensity = max(1, _intensity)
 
 func process(character: Character) -> void:
+    if not character:
+        push_error("Character is required for status effect processing")
+        return
+        
     match type:
         GlobalEnums.StatusEffectType.STUN:
             process_stunned(character)
@@ -26,7 +30,7 @@ func process(character: Character) -> void:
             process_regeneration(character)
         GlobalEnums.StatusEffectType.SHIELD:
             process_shield(character)
-    duration -= 1
+    duration = max(0, duration - 1)
 
 func is_expired() -> bool:
     return duration <= 0

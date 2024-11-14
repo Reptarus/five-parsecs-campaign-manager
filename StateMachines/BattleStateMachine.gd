@@ -1,30 +1,32 @@
 class_name BattleStateMachine
 extends Node
 
-signal state_changed(new_state: BattleState)
+const GlobalEnums = preload("res://Resources/GameData/GlobalEnums.gd")
+const Character = preload("res://Resources/CrewAndCharacters/Character.gd")
 
-var game_state_manager: GameStateManager
+signal state_changed(new_state: int)  # BattleState
+
+@export var game_state_manager: GameStateManager
 
 enum BattleState {SETUP, ROUND, CLEANUP}
 enum UnitAction {MOVE, ATTACK, DASH, ITEMS, SNAP_FIRE, FREE_ACTION, STUNNED, BRAWL, OTHER}
 
-var current_battle_state: BattleState = BattleState.SETUP
-var current_round_phase: GlobalEnums.BattlePhase = GlobalEnums.BattlePhase.REACTION_ROLL
+var current_battle_state: int = BattleState.SETUP
+var current_round_phase: int = GlobalEnums.BattlePhase.REACTION_ROLL
+var is_transitioning := false
 
-func initialize(gsm: GameStateManager) -> void:
-	game_state_manager = gsm
-
-func transition_to_battle_state(new_state: BattleState):
+func transition_to(new_state: int) -> void:
+	if is_transitioning:
+		push_warning("State transition already in progress")
+		return
+	
+	await _cleanup_current_state()
 	current_battle_state = new_state
-	match new_state:
-		BattleState.SETUP:
-			setup_battle()
-		BattleState.ROUND:
-			start_round()
-		BattleState.CLEANUP:
-			cleanup_battle()
+	await _initialize_new_state()
+	
+	state_changed.emit(new_state)
 
-func transition_to_round_phase(new_phase: GlobalEnums.BattlePhase):
+func transition_to_round_phase(new_phase: int) -> void:
 	current_round_phase = new_phase
 	match new_phase:
 		GlobalEnums.BattlePhase.REACTION_ROLL:
@@ -38,7 +40,7 @@ func transition_to_round_phase(new_phase: GlobalEnums.BattlePhase):
 		GlobalEnums.BattlePhase.END_PHASE:
 			end_round()
 
-func perform_unit_action(unit, action: UnitAction):
+func perform_unit_action(unit: Character, action: int) -> void:
 	match action:
 		UnitAction.MOVE:
 			unit.move()
@@ -59,27 +61,57 @@ func perform_unit_action(unit, action: UnitAction):
 		UnitAction.OTHER:
 			unit.other_action()
 
-# Implement the following methods based on the Core Rules
-func setup_battle():
+# State cleanup and initialization
+func _cleanup_current_state() -> void:
+	match current_battle_state:
+		BattleState.SETUP:
+			# Cleanup setup state
+			pass
+		BattleState.ROUND:
+			# Cleanup round state
+			pass
+		BattleState.CLEANUP:
+			# Cleanup cleanup state
+			pass
+
+func _initialize_new_state() -> void:
+	match current_battle_state:
+		BattleState.SETUP:
+			setup_battle()
+		BattleState.ROUND:
+			start_round()
+		BattleState.CLEANUP:
+			cleanup_battle()
+
+# Phase handlers
+func setup_battle() -> void:
+	# Implementation
 	pass
 
-func start_round():
+func start_round() -> void:
+	# Implementation
 	pass
 
-func cleanup_battle():
+func cleanup_battle() -> void:
+	# Implementation
 	pass
 
-func perform_reaction_roll():
+func perform_reaction_roll() -> void:
+	# Implementation
 	pass
 
-func handle_quick_actions():
+func handle_quick_actions() -> void:
+	# Implementation
 	pass
 
-func handle_enemy_actions():
+func handle_enemy_actions() -> void:
+	# Implementation
 	pass
 
-func handle_slow_actions():
+func handle_slow_actions() -> void:
+	# Implementation
 	pass
 
-func end_round():
+func end_round() -> void:
+	# Implementation
 	pass

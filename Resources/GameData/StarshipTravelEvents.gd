@@ -1,9 +1,14 @@
 class_name StarshipTravelEvents
 extends Resource
 
-var game_state: Node
+var game_state: GameState
 
-func set_game_state(_game_state: Node) -> void:
+# Add required preloads
+const Character = preload("res://Resources/CrewAndCharacters/Character.gd")
+const Equipment = preload("res://Resources/CrewAndCharacters/Equipment.gd")
+const Location = preload("res://Resources/GameData/Location.gd")
+
+func set_game_state(_game_state: GameState) -> void:
 	game_state = _game_state
 
 func generate_travel_event() -> Dictionary:
@@ -178,7 +183,7 @@ func cosmic_phenomenon_event() -> Dictionary:
 		"action": func() -> String:
 			var crew_member: Character = game_state.get_current_crew().characters[randi() % game_state.get_current_crew().get_size()]
 			crew_member.add_luck(1)
-			var result := crew_member.name + " gained 1 Luck."
+			var result: String = crew_member.name + " gained 1 Luck."
 			if game_state.get_current_crew().has_precursor():
 				game_state.add_story_point()
 				result += " Precursor predicts it's a good omen. Gained 1 story point."
@@ -234,7 +239,7 @@ func travel_time_event() -> Dictionary:
 		"action": func() -> String:
 			for member in game_state.get_current_crew().characters:
 				if member.status == GlobalEnums.CharacterStatus.INJURED:
-					member.status = GlobalEnums.CharacterStatus.ACTIVE
+					member.status = GlobalEnums.CharacterStatus.RESTING
 			return "All injured crew members rested for one campaign turn."
 	}
 
@@ -262,7 +267,7 @@ func time_to_read_a_book_event() -> Dictionary:
 		"description": "There's time to sit, have a read, and maybe even indulge in a bit of education.",
 		"action": func() -> String:
 			var roll := randi() % 6 + 1
-			var xp_gains := []
+			var xp_gains: Array[String] = []
 			match roll:
 				1, 2:
 					var crew_member: Character = game_state.get_current_crew().characters[randi() % game_state.get_current_crew().get_size()]
@@ -296,3 +301,24 @@ func locked_in_the_library_data_by_night_event() -> Dictionary:
 			game_state.set_available_worlds(worlds)
 			return "Generated 3 potential worlds to visit. You must choose one of these due to fuel limitations."
 	}
+
+# Consolidate repeated code patterns into reusable functions
+func _roll_dice(num_dice: int = 1, sides: int = 6) -> int:
+	var total := 0
+	for i in range(num_dice):
+		total += randi() % sides + 1
+	return total
+
+func _handle_crew_injury(crew_member: Character) -> String:
+	crew_member.status = GlobalEnums.CharacterStatus.INJURED
+	return "%s was injured" % crew_member.name
+
+func _handle_ship_damage(damage: int) -> String:
+	game_state.get_current_crew().ship.take_damage(damage)
+	return "Ship took %d Hull Point damage" % damage
+
+func _get_random_crew_member() -> Character:
+	var crew = game_state.get_current_crew()
+	if crew.characters.is_empty():
+		return null
+	return crew.characters[randi() % crew.characters.size()]

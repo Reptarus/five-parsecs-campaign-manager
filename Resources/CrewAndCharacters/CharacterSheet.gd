@@ -2,6 +2,8 @@ extends CampaignResponsiveLayout
 
 signal character_updated(character: Character)
 
+const Character = preload("res://Resources/CrewAndCharacters/Character.gd")
+
 @onready var name_label := $Panel/MarginContainer/VBoxContainer/NameLabel
 @onready var portrait := $Panel/MarginContainer/VBoxContainer/Portrait
 @onready var stats_container := $Panel/MarginContainer/VBoxContainer/StatsDisplay
@@ -27,38 +29,30 @@ func _setup_character_sheet() -> void:
 func _apply_portrait_layout() -> void:
 	super._apply_portrait_layout()
 	
-	# Adjust portrait size for portrait mode
 	var portrait_size = get_viewport_rect().size.y * PORTRAIT_SIZE_RATIO
 	portrait.custom_minimum_size = Vector2(portrait_size, portrait_size)
 	
-	# Stack sections vertically with adjusted spacing
 	$Panel/MarginContainer.add_theme_constant_override("margin_left", 10)
 	$Panel/MarginContainer.add_theme_constant_override("margin_right", 10)
 	
-	# Make controls touch-friendly
 	_adjust_touch_sizes(true)
 
 func _apply_landscape_layout() -> void:
 	super._apply_landscape_layout()
 	
-	# Reset portrait size for landscape mode
 	portrait.custom_minimum_size = Vector2(300, 300)
 	
-	# Reset margins
 	$Panel/MarginContainer.add_theme_constant_override("margin_left", 20)
 	$Panel/MarginContainer.add_theme_constant_override("margin_right", 20)
 	
-	# Reset control sizes
 	_adjust_touch_sizes(false)
 
 func _adjust_touch_sizes(is_portrait: bool) -> void:
 	var button_height = TOUCH_BUTTON_HEIGHT if is_portrait else TOUCH_BUTTON_HEIGHT * 0.75
 	
-	# Adjust all buttons
 	for button in get_tree().get_nodes_in_group("touch_buttons"):
 		button.custom_minimum_size.y = button_height
 	
-	# Adjust list items in equipment popup
 	if equipment_popup.visible:
 		var inventory_list = equipment_popup.get_node("MarginContainer/VBoxContainer/InventoryList")
 		inventory_list.fixed_item_height = button_height
@@ -86,7 +80,7 @@ func _update_display() -> void:
 	if not character:
 		return
 		
-	name_label.text = character.name
+	name_label.text = character.character_name
 	_update_portrait()
 	_update_stats()
 	_update_skills()
@@ -94,7 +88,6 @@ func _update_display() -> void:
 	_update_traits()
 
 func _update_portrait() -> void:
-	# Portrait update logic from CharacterPreview
 	if character.portrait_path:
 		var texture = load(character.portrait_path)
 		if texture:
@@ -102,15 +95,16 @@ func _update_portrait() -> void:
 
 func _update_stats() -> void:
 	for stat in character.stats:
-		var stat_label = stats_container.get_node_or_null(stat + "Label")
+		var stat_label = stats_container.get_node_or_null(str(stat) + "Label")
 		if stat_label:
 			stat_label.text = str(character.stats[stat])
 
 func _update_skills() -> void:
-	for skill in character.skills:
-		var skill_label = skills_display.get_node_or_null(skill + "Label")
+	for i in character.skills.size():
+		var skill = character.skills[i]
+		var skill_label = skills_display.get_node_or_null(str(skill) + "Label")
 		if skill_label:
-			skill_label.text = str(character.skills[skill])
+			skill_label.text = str(skill)
 
 func _update_equipment() -> void:
 	for child in equipment_section.get_children():

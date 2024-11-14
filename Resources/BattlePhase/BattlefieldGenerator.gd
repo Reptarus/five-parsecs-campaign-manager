@@ -1,6 +1,9 @@
 class_name BattlefieldGenerator
 extends Node
 
+const GlobalEnums = preload("res://Resources/GameData/GlobalEnums.gd")
+const Mission = preload("res://Resources/GameData/Mission.gd")
+
 signal battlefield_generated(data: Dictionary)
 signal terrain_placed(piece: Node3D)
 signal deployment_zone_created(zone: Node3D)
@@ -8,19 +11,19 @@ signal objective_placed(objective: Node3D)
 
 # Terrain type definitions
 const TERRAIN_CONFIGS := {
-	"CITY": {
+	GlobalEnums.TerrainType.CITY: {
 		"cover_density": 0.3,
 		"building_density": 0.4,
 		"hazard_density": 0.1,
 		"elevation_chance": 0.2
 	},
-	"INDUSTRIAL": {
+	GlobalEnums.TerrainType.INDUSTRIAL: {
 		"cover_density": 0.4,
 		"building_density": 0.3,
 		"hazard_density": 0.3,
 		"elevation_chance": 0.3
 	},
-	"WILDERNESS": {
+	GlobalEnums.TerrainType.WILDERNESS: {
 		"cover_density": 0.5,
 		"building_density": 0.1,
 		"hazard_density": 0.2,
@@ -30,15 +33,15 @@ const TERRAIN_CONFIGS := {
 
 # Deployment zone configurations
 const DEPLOYMENT_CONFIGS := {
-	"STANDARD": {
+	GlobalEnums.DeploymentType.STANDARD: {
 		"player_zone": {"x": [0, 6], "y": [0, 20]},
 		"enemy_zone": {"x": [14, 20], "y": [0, 20]}
 	},
-	"FLANK": {
+	GlobalEnums.DeploymentType.FLANK: {
 		"player_zone": {"x": [0, 20], "y": [0, 6]},
 		"enemy_zone": {"x": [0, 20], "y": [14, 20]}
 	},
-	"SCATTERED": {
+	GlobalEnums.DeploymentType.SCATTERED: {
 		"zones": [
 			{"x": [0, 6], "y": [0, 6]},
 			{"x": [14, 20], "y": [14, 20]},
@@ -58,8 +61,8 @@ var current_battle_state: Dictionary
 
 func generate_battlefield(mission: Mission) -> Dictionary:
 	current_mission = mission
-	var terrain_config = _get_terrain_config(mission.type)
-	var deployment_config = _get_deployment_config(mission.deployment_type)
+	var terrain_config = _get_terrain_config(mission.mission_type)
+	var deployment_config = DEPLOYMENT_CONFIGS[mission.deployment_type]
 	
 	var battlefield_data = {
 		"terrain": _generate_terrain(terrain_config),
@@ -74,27 +77,22 @@ func generate_battlefield(mission: Mission) -> Dictionary:
 
 func _get_terrain_config(mission_type: int) -> Dictionary:
 	match mission_type:
-		GlobalEnums.Type.STREET_FIGHT:
-			return TERRAIN_CONFIGS.CITY
-		GlobalEnums.Type.INFILTRATION:
-			return TERRAIN_CONFIGS.INDUSTRIAL
+		GlobalEnums.MissionType.STREET_FIGHT:
+			return TERRAIN_CONFIGS[GlobalEnums.TerrainType.CITY]
+		GlobalEnums.MissionType.INFILTRATION:
+			return TERRAIN_CONFIGS[GlobalEnums.TerrainType.INDUSTRIAL]
 		_:
-			return TERRAIN_CONFIGS.WILDERNESS
-
-func _get_deployment_config(deployment_type: GlobalEnums.DeploymentType) -> Dictionary:
-	# Convert enum to string for dictionary lookup
-	var config_key = GlobalEnums.DeploymentType.keys()[deployment_type]
-	return DEPLOYMENT_CONFIGS.get(config_key, DEPLOYMENT_CONFIGS.STANDARD)
+			return TERRAIN_CONFIGS[GlobalEnums.TerrainType.WILDERNESS]
 
 func _generate_terrain(config: Dictionary) -> Array:
-	var terrain_data = []
+	var terrain_data: Array[Dictionary] = []
 	
 	# Generate cover
 	var cover_count = int(grid_size.x * grid_size.y * config.cover_density)
 	for i in range(cover_count):
 		var position = _get_valid_terrain_position(terrain_data)
 		terrain_data.append({
-			"type": "COVER",
+			"type": GlobalEnums.TerrainFeature.COVER,
 			"position": position,
 			"rotation": randf() * PI
 		})
@@ -104,13 +102,14 @@ func _generate_terrain(config: Dictionary) -> Array:
 	for i in range(building_count):
 		var position = _get_valid_terrain_position(terrain_data)
 		terrain_data.append({
-			"type": "BUILDING",
+			"type": GlobalEnums.TerrainFeature.BUILDING,
 			"position": position,
 			"rotation": randf() * PI
 		})
 	
-	# Add hazards and elevation
+	# Add hazards
 	_add_hazards(terrain_data, config)
+	# Add elevation
 	_add_elevation(terrain_data, config)
 	
 	return terrain_data
@@ -171,24 +170,24 @@ func _get_terrain_texture(type: String) -> Texture2D:
 		_:
 			return load("res://assets/textures/default_terrain.png")
 
-func _add_hazards(terrain_data: Array, config: Dictionary) -> void:
+func _add_hazards(terrain_data: Array[Dictionary], config: Dictionary) -> void:
 	var hazard_count = int(grid_size.x * grid_size.y * config.hazard_density)
 	for i in range(hazard_count):
 		var position = _get_valid_terrain_position(terrain_data)
 		terrain_data.append({
-			"type": "HAZARD",
+			"type": GlobalEnums.TerrainFeature.HAZARD,
 			"position": position,
-			"effect": _generate_hazard_effect()
+			"rotation": randf() * PI
 		})
 
-func _add_elevation(terrain_data: Array, config: Dictionary) -> void:
+func _add_elevation(terrain_data: Array[Dictionary], config: Dictionary) -> void:
 	var elevation_count = int(grid_size.x * grid_size.y * config.elevation_chance)
 	for i in range(elevation_count):
 		var position = _get_valid_terrain_position(terrain_data)
 		terrain_data.append({
-			"type": "ELEVATION",
+			"type": GlobalEnums.TerrainFeature.ELEVATION,
 			"position": position,
-			"height": randi() % 3 + 1
+			"height": randf_range(1, 3)
 		})
 
 func _generate_hazard_effect() -> Dictionary:
@@ -472,15 +471,69 @@ func _generate_objectives(mission: Mission) -> Array:
 	match mission.objective:
 		GlobalEnums.MissionObjective.ACQUIRE:
 			objectives.append({
-				"type": "ITEM",
+				"type": GlobalEnums.TerrainFeature.FIELD,
 				"position": _get_valid_terrain_position([])
 			})
 		GlobalEnums.MissionObjective.MOVE_THROUGH:
 			objectives.append({
-				"type": "EXIT",
+				"type": GlobalEnums.TerrainFeature.FIELD,
 				"position": _get_valid_terrain_position([])
 			})
-		# Add other objective types...
+		GlobalEnums.MissionObjective.DEFEND:
+			objectives.append({
+				"type": GlobalEnums.TerrainFeature.AREA,
+				"position": _get_valid_terrain_position([])
+			})
+		GlobalEnums.MissionObjective.ESCORT:
+			objectives.append({
+				"type": GlobalEnums.TerrainFeature.FIELD,
+				"position": _get_valid_terrain_position([])
+			})
+		GlobalEnums.MissionObjective.SURVIVE:
+			objectives.append({
+				"type": GlobalEnums.TerrainFeature.AREA,
+				"position": _get_valid_terrain_position([])
+			})
+		GlobalEnums.MissionObjective.DESTROY:
+			objectives.append({
+				"type": GlobalEnums.TerrainFeature.BLOCK,
+				"position": _get_valid_terrain_position([])
+			})
+		GlobalEnums.MissionObjective.CONTROL_POINT:
+			objectives.append({
+				"type": GlobalEnums.TerrainFeature.AREA,
+				"position": _get_valid_terrain_position([])
+			})
+		GlobalEnums.MissionObjective.RETRIEVE:
+			objectives.append({
+				"type": GlobalEnums.TerrainFeature.FIELD,
+				"position": _get_valid_terrain_position([])
+			})
+		GlobalEnums.MissionObjective.PROTECT:
+			objectives.append({
+				"type": GlobalEnums.TerrainFeature.BLOCK,
+				"position": _get_valid_terrain_position([])
+			})
+		GlobalEnums.MissionObjective.ELIMINATE:
+			objectives.append({
+				"type": GlobalEnums.TerrainFeature.FIELD,
+				"position": _get_valid_terrain_position([])
+			})
+		GlobalEnums.MissionObjective.EXPLORE:
+			objectives.append({
+				"type": GlobalEnums.TerrainFeature.AREA,
+				"position": _get_valid_terrain_position([])
+			})
+		GlobalEnums.MissionObjective.NEGOTIATE:
+			objectives.append({
+				"type": GlobalEnums.TerrainFeature.BLOCK,
+				"position": _get_valid_terrain_position([])
+			})
+		GlobalEnums.MissionObjective.RESCUE:
+			objectives.append({
+				"type": GlobalEnums.TerrainFeature.BLOCK,
+				"position": _get_valid_terrain_position([])
+			})
 	return objectives
 
 func _generate_deployment_zones(deployment_config: Dictionary) -> Array:
@@ -551,7 +604,7 @@ func _is_position_accessible(position: Vector2) -> bool:
 	# Add additional accessibility checks here
 	return true
 
-func _find_path_to_element(battlefield_data: Dictionary, element: Dictionary) -> Array:
+func _find_path_to_element(_battlefield_data: Dictionary, element: Dictionary) -> Array:
 	# Simple direct path implementation
 	var start = Vector2.ZERO
 	var end = element.position

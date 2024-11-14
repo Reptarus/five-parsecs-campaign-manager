@@ -1,15 +1,13 @@
 extends Node
 
-var mock_game_state: MockGameState
-
-func _ready():
-	mock_game_state = preload("res://Resources/MockGameState.tres")
+func _ready() -> void:
+	var game_state_manager = GameStateManager.get_instance.call()
 	
 	var battlefield_generator = get_parent()
 	if battlefield_generator.has_method("initialize"):
-		battlefield_generator.initialize(mock_game_state)
+		battlefield_generator.initialize(game_state_manager)
 
-	print("Mission generated: ", mock_game_state.game_state.current_mission != null)
+	print("Mission generated: ", game_state_manager.game_state.current_mission != null)
 
 	if battlefield_generator.has_method("_generate_battlefield"):
 		battlefield_generator._generate_battlefield()
@@ -19,11 +17,14 @@ func _ready():
 		battlefield_generator._generate_battlefield_grid()
 		print("Battlefield grid generated")
 
-	_display_mission_data()
+	_display_mission_data(game_state_manager.game_state.current_mission)
 	_generate_suggested_layout()
 
-func _display_mission_data():
-	var mission = mock_game_state.game_state.current_mission
+func _display_mission_data(mission: Mission) -> void:
+	if not mission:
+		print("\nNo mission data available")
+		return
+		
 	print("\nMission Data:")
 	print("Title: ", mission.title)
 	print("Objective: ", GlobalEnums.MissionObjective.keys()[mission.objective])

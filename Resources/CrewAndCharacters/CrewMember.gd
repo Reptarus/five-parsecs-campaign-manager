@@ -20,7 +20,7 @@ var social: int = 0
 var survival: int = 0
 var health: int = 10
 var max_health: int = 10
-var class_type = null  # Using get("class") in the CharacterBox script
+var class_type: GlobalEnums.Class = GlobalEnums.Class.WARRIOR  # Default class type
 
 var experience: int = 0
 var specialization: String = ""
@@ -38,14 +38,13 @@ func set_default_stats() -> void:
 	character.initialize_default_stats()
 
 func equip_default_weapons() -> void:
-	var pistol = Weapon.new("Hand gun", GlobalEnums.WeaponType.PISTOL, 12, 1, 0)
-	var knife = Weapon.new("Blade", GlobalEnums.WeaponType.MELEE, 0, 1, 0)
+	var pistol = Weapon.new("Hand gun", GlobalEnums.WeaponType.HAND_GUN, 12, 1, 0)
+	var knife = Weapon.new("Blade", GlobalEnums.WeaponType.BLADE, 0, 1, 0)
 	character.inventory.append(pistol)
 	character.inventory.append(knife)
 
-func initialize(origin: GlobalEnums.Origin, background: GlobalEnums.Background, 
-				motivation: GlobalEnums.Motivation, crew_class: GlobalEnums.Class) -> void:
-	character.initialize(origin, background, motivation, crew_class)
+func initialize(data: Dictionary) -> void:
+	character.initialize(data)
 
 func set_weapons(weapon_data: Array) -> void:
 	character.inventory.clear()
@@ -53,7 +52,7 @@ func set_weapons(weapon_data: Array) -> void:
 		if weapon_info is Dictionary:
 			var weapon = Weapon.new(
 				weapon_info.get("name", ""),
-				weapon_info.get("type", GlobalEnums.WeaponType.PISTOL),
+				weapon_info.get("type", GlobalEnums.WeaponType.HAND_GUN),
 				weapon_info.get("range", 0),
 				weapon_info.get("shots", 1),
 				weapon_info.get("damage", 0)
@@ -144,4 +143,4 @@ func set_stats(stats: Dictionary) -> void:
 # Helper method to check if property exists
 func has_property(property: String) -> bool:
 	return property in ["name", "combat", "technical", "social", 
-                       "survival", "health", "max_health", "class_type"]
+					   "survival", "health", "max_health", "class_type"]

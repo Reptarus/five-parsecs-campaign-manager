@@ -5,31 +5,31 @@ extends Resource
 signal crew_updated
 signal resources_changed
 
-var _members: Array[Character]:
+@export var _members: Array[Character]:
 	get:
 		return _members
 	set(value):
 		_members = value
 		crew_updated.emit()
 
-var _credits: int:
+@export var _credits: int:
 	get:
 		return _credits
 	set(value):
 		_credits = value
 		resources_changed.emit()
 
-var reputation: int
-var has_red_zone_license: bool
-var has_black_zone_access: bool
-var _equipment: Array[Equipment]:
+@export var reputation: int = 0
+@export var has_red_zone_license: bool = false
+@export var has_black_zone_access: bool = false
+@export var _equipment: Array[Equipment]:
 	get:
 		return _equipment
 	set(value):
 		_equipment = value
 		resources_changed.emit()
 
-const MAX_CREW_SIZE = 8
+const MAX_CREW_SIZE: int = 8
 
 func get_member_count() -> int:
 	return _members.size()
@@ -39,6 +39,10 @@ func can_add_member() -> bool:
 
 func get_available_members_for_mission(mission: Mission) -> Array[Character]:
 	var available_members: Array[Character] = []
+	if not mission:
+		push_error("Mission is null")
+		return available_members
+		
 	for member in _members:
 		if member.can_participate_in_mission(mission):
 			available_members.append(member)

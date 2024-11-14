@@ -1,0 +1,36 @@
+project/
+├── Scripts/                    # All game logic scripts
+│   ├── Core/                  # Core game systems
+│   │   ├── GameManager/      # Game management and state
+│   │   ├── Data/            # Data management and persistence
+│   │   └── Utils/           # Utility scripts
+│   ├── Battle/               # Battle system scripts
+│   │   ├── Core/           
+│   │   ├── AI/             
+│   │   └── Generation/      
+│   ├── Campaign/             # Campaign management
+│   │   ├── Story/          
+│   │   └── Events/         
+│   ├── Characters/           # Character-related scripts
+│   │   ├── Crew/           
+│   │   └── NPCs/           
+│   ├── Ships/                # Ship-related scripts
+│   │   ├── Components/      
+│   │   └── Systems/        
+│   └── UI/                   # UI scripts
+│       ├── Menus/          
+│       └── HUD/            
+├── Resources/                 # Game resources and data
+│   ├── Data/                 # JSON and other data files
+│   ├── Templates/            # Template resources
+│   ├── UI/                   # UI resources (themes, styles)
+│   └── World/               # World-related resources
+├── Scenes/                    # Game scenes
+│   ├── Battle/              
+│   ├── Campaign/            
+│   ├── UI/                  
+│   └── World/               
+└── assets/                    # Raw assets (unchanged)
+    ├── images/              
+    ├── sounds/              
+    └── fonts/               

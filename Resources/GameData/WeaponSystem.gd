@@ -2,6 +2,9 @@
 class_name WeaponSystem
 extends Node
 
+const Character = preload("res://Resources/CrewAndCharacters/Character.gd")
+const CharacterInventory = preload("res://Resources/CrewAndCharacters/CharacterInventory.gd")
+
 # Constants
 const BASE_WEAPONS = {
 	"Auto rifle": {"range": 24, "shots": 2, "damage": 0, "traits": []},
@@ -319,3 +322,38 @@ func deserialize(data: Dictionary) -> void:
 			"effect": Callable(self, data["weapon_mods"][mod_name]["effect"]),
 			"restrictions": Callable(self, data["weapon_mods"][mod_name]["restrictions"])
 		}
+
+func get_weapon_for_enemy(enemy_type: GlobalEnums.EnemyCategory, weapon_group: GlobalEnums.EnemyWeaponGroup) -> Weapon:
+	var weapon_pool := _get_weapon_pool(weapon_group)
+	return weapon_pool[randi() % weapon_pool.size()]
+
+func _get_weapon_pool(group: GlobalEnums.EnemyWeaponGroup) -> Array[Weapon]:
+	var pool: Array[Weapon] = []
+	match group:
+		GlobalEnums.EnemyWeaponGroup.GROUP_1:
+			pool.append_array([
+				create_weapon("Scrap pistol", 9, 1, [GlobalEnums.WeaponTrait.PISTOL]),
+				create_weapon("Colony rifle", 18, 1, []),
+				create_weapon("Blade", 0, 0, [GlobalEnums.WeaponTrait.MELEE])
+			])
+		GlobalEnums.EnemyWeaponGroup.GROUP_2:
+			pool.append_array([
+				create_weapon("Military rifle", 24, 2, []),
+				create_weapon("Hand laser", 18, 1, [GlobalEnums.WeaponTrait.FOCUSED]),
+				create_weapon("Shotgun", 12, 2, [GlobalEnums.WeaponTrait.AREA])
+			])
+		GlobalEnums.EnemyWeaponGroup.GROUP_3:
+			pool.append_array([
+				create_weapon("Infantry laser", 24, 2, [GlobalEnums.WeaponTrait.FOCUSED]),
+				create_weapon("Blast rifle", 18, 2, [GlobalEnums.WeaponTrait.IMPACT]),
+				create_weapon("Plasma rifle", 18, 3, [GlobalEnums.WeaponTrait.HEAVY])
+			])
+	return pool
+
+func create_weapon(name: String, range: int, damage: int, traits: Array) -> Weapon:
+	var weapon = Weapon.new()
+	weapon.weapon_name = name
+	weapon.range = range
+	weapon.damage = damage
+	weapon.traits = traits
+	return weapon

@@ -3,13 +3,22 @@ class_name StoryTrack
 extends Node
 
 signal event_triggered(event: StoryEvent)
+signal story_point_added(total: int)
+signal story_point_spent(total: int)
+signal story_milestone_reached(milestone: int)
+
+const StoryClock = preload("res://Resources/CampaignManagement/StoryClock.gd")
+const StoryEvent = preload("res://Resources/CampaignManagement/StoryEvent.gd")
+const GameState = preload("res://Resources/GameData/GameState.gd")
+const GlobalEnums = preload("res://Resources/GameData/GlobalEnums.gd")
 
 var story_clock: StoryClock
 var game_state_manager: GameStateManager
 var internal_state: GameState
 var events: Array[StoryEvent] = []
 var current_event_index: int = -1
-var mock_game_state: MockGameState
+var story_points: int = 0
+var milestones_reached: Array[int] = []
 
 func _init() -> void:
 	story_clock = StoryClock.new()
@@ -58,20 +67,39 @@ func progress_story(phase: GlobalEnums.CampaignPhase) -> void:
 		GlobalEnums.CampaignPhase.UPKEEP:
 			# Handle upkeep phase
 			pass
-		GlobalEnums.CampaignPhase.MISSION:
-			# Handle mission phase
+		GlobalEnums.CampaignPhase.BATTLE:
+			# Handle battle phase
 			pass
+
+func add_story_point() -> void:
+	story_points += 1
+	story_point_added.emit(story_points)
+	check_milestones()
+
+func spend_story_point() -> bool:
+	if story_points > 0:
+		story_points -= 1
+		story_point_spent.emit(story_points)
+		return true
+	return false
+
+func check_milestones() -> void:
+	var new_milestone = story_points / 5
+	if new_milestone > 0 and not new_milestone in milestones_reached:
+		milestones_reached.append(new_milestone)
+		story_milestone_reached.emit(new_milestone)
 
 func serialize() -> Dictionary:
 	return {
-		"events": events.map(func(event: StoryEvent) -> Dictionary: return event.serialize()),
+		"story_points": story_points,
+		"milestones_reached": milestones_reached,
 		"current_event_index": current_event_index,
-		"story_clock": story_clock.serialize()
+		"story_clock": story_clock.serialize() if story_clock else {}
 	}
 
-static func deserialize(data: Dictionary) -> StoryTrack:
-	var story_track := StoryTrack.new()
-	story_track.events = data["events"].map(func(event_data: Dictionary) -> StoryEvent: return StoryEvent.deserialize(event_data))
-	story_track.current_event_index = data["current_event_index"]
-	story_track.story_clock = StoryClock.deserialize(data["story_clock"])
-	return story_track
+func deserialize(data: Dictionary) -> void:
+	story_points = data.get("story_points", 0)
+	milestones_reached = data.get("milestones_reached", [])
+	current_event_index = data.get("current_event_index", -1)
+	if data.has("story_clock"):
+		story_clock.deserialize(data["story_clock"])

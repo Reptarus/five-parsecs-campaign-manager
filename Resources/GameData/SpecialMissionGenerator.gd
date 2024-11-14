@@ -1,20 +1,20 @@
 class_name SpecialMissionGenerator
 extends MissionGeneratorBase
 
-func generate_special_mission(mission_type: GlobalEnums.Type) -> Mission:
+func generate_special_mission(mission_type: GlobalEnums.MissionType) -> Mission:
     var mission = Mission.new()
     mission.type = mission_type
     
     match mission_type:
-        GlobalEnums.Type.ASSASSINATION:
+        GlobalEnums.MissionType.ASSASSINATION:
             _setup_assassination_mission(mission)
-        GlobalEnums.Type.SABOTAGE:
+        GlobalEnums.MissionType.SABOTAGE:
             _setup_sabotage_mission(mission)
-        GlobalEnums.Type.RESCUE:
+        GlobalEnums.MissionType.RESCUE:
             _setup_rescue_mission(mission)
-        GlobalEnums.Type.DEFENSE:
+        GlobalEnums.MissionType.DEFENSE:
             _setup_defense_mission(mission)
-        GlobalEnums.Type.ESCORT:
+        GlobalEnums.MissionType.ESCORT:
             _setup_escort_mission(mission)
     
     return mission
@@ -30,7 +30,7 @@ func _setup_assassination_mission(mission: Mission) -> void:
 func _setup_sabotage_mission(mission: Mission) -> void:
     mission.objective = GlobalEnums.MissionObjective.DESTROY
     mission.deployment_type = GlobalEnums.DeploymentType.INFILTRATION
-    mission.victory_condition = GlobalEnums.VictoryConditionType.OBJECTIVE
+    mission.victory_condition = GlobalEnums.VictoryConditionType.ELIMINATION
     mission.ai_behavior = GlobalEnums.AIBehavior.DEFENSIVE
     mission.difficulty += 1
     mission.rewards["reputation"] += 1

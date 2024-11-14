@@ -58,3 +58,13 @@ func _validate_deployment_requirements(deployment_type: GlobalEnums.DeploymentTy
             return game_state.current_crew.get_member_count() >= 5
         _:
             return true
+
+# Add robust error handling
+func validate_game_state() -> Dictionary:
+    var validation = {"valid": true, "errors": []}
+    
+    if not game_state:
+        validation.valid = false
+        validation.errors.append("Game state is null")
+    
+    return validation

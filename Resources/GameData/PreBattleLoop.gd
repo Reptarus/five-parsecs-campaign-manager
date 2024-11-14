@@ -1,14 +1,57 @@
 # PreBattleLoop.gd
 extends Node
 
-const MockGameState = preload("res://Resources/MockGameState.gd")
+signal preparation_complete
+signal deployment_ready
+signal equipment_assigned
 
-@onready var game_state_manager: MockGameState = get_node("/root/GameStateManager")
+const PREPARATION_TIME := 3
+const MAX_EQUIPMENT_PER_CHARACTER := 4
 
-func _ready() -> void:
-	if !is_instance_valid(game_state_manager):
-		push_error("GameStateManager not found")
+var game_state_manager: GameStateManager
+var deployment_manager: Node
+var equipment_manager: EquipmentManager
+var terrain_generator: TerrainGenerator
+
+func _init(_game_state_manager: GameStateManager) -> void:
+	if not _game_state_manager:
+		push_error("GameStateManager is required for PreBattleLoop")
 		return
+	game_state_manager = _game_state_manager
+	_initialize_managers()
+
+func _initialize_managers() -> void:
+	deployment_manager = load("res://Resources/GameData/EnemyDeploymentManager.gd").new(game_state_manager)
+	equipment_manager = game_state_manager.equipment_manager
+	terrain_generator = TerrainGenerator.new()
+
+func prepare_battle(mission: Mission) -> void:
+	if not validate_mission(mission):
+		push_error("Invalid mission for battle preparation")
+		return
+		
+	var terrain = terrain_generator.generate_terrain(
+		GlobalEnums.TerrainType.CITY,
+		mission.terrain_type
+	)
+	deployment_manager.setup_deployment_zones(
+		terrain,
+		mission.deployment_type
+	)
+	
+	equipment_manager.prepare_equipment_loadout(
+		game_state_manager.game_state.active_crew,
+		mission.difficulty
+	)
+	
+	preparation_complete.emit()
+
+func validate_mission(mission: Mission) -> bool:
+	return (
+		mission != null and
+		mission.terrain_type in GlobalEnums.TerrainType.values() and
+		mission.deployment_type in GlobalEnums.DeploymentType.values()
+	)
 
 func run_pre_battle_loop() -> void:
 	print_debug("Beginning pre-battle preparations...")
@@ -19,7 +62,7 @@ func run_pre_battle_loop() -> void:
 
 func assign_crew_tasks(crew: Array[Character]) -> void:
 	for member in crew:
-		if member.status == GlobalEnums.CharacterStatus.ACTIVE:
+		if member.status == GlobalEnums.CharacterStatus.HEALTHY:
 			var task = choose_task(member)
 			perform_task(member, task)
 
@@ -43,6 +86,8 @@ func perform_task(character: Character, task: GlobalEnums.CrewTask) -> void:
 			repair(character)
 		GlobalEnums.CrewTask.DECOY:
 			rest(character)
+		GlobalEnums.CrewTask.REST:
+			rest(character)
 
 func trade(character: Character) -> void:
 	var roll := randi() % 100 + 1
@@ -52,7 +97,7 @@ func trade(character: Character) -> void:
 		print_debug("%s earned %d credits through trading." % [character.name, credits_earned])
 	elif roll < 60:
 		var item := generate_random_equipment()
-		game_state_manager.game_state.current_ship.add_to_cargo(item)
+		game_state_manager.get_current_ship().add_to_cargo(item)
 		print_debug("%s acquired %s while trading." % [character.name, item.name])
 	else:
 		print_debug("%s couldn't find any good deals while trading." % character.name)
@@ -69,7 +114,7 @@ func explore(character: Character) -> void:
 		print_debug("%s found %d credits while exploring." % [character.name, credits_found])
 	elif roll < 60:
 		var item := generate_random_equipment()
-		game_state_manager.game_state.current_ship.add_to_cargo(item)
+		game_state_manager.get_current_ship().add_to_cargo(item)
 		print_debug("%s found %s while exploring." % [character.name, item.name])
 	else:
 		print_debug("%s had an uneventful exploration." % character.name)
@@ -80,11 +125,11 @@ func train(character: Character) -> void:
 	character.improve_skill(skill_to_improve, xp_gained)
 	print_debug("%s trained %s and gained %d XP." % [character.name, GlobalEnums.SkillType.keys()[skill_to_improve], xp_gained])
 func recruit(character: Character) -> void:
-	var crew: Array[CrewMember] = game_state_manager.game_state.current_ship.crew
-	if crew.size() < game_state_manager.game_state.current_ship.max_crew_size:
+	var ship = game_state_manager.get_current_ship()
+	if ship.crew.size() < ship.max_crew_size:
 		if randf() < 0.4:  # 40% chance to find a recruit
 			var new_recruit: CrewMember = game_state_manager.game_state.character_factory.create_random_character()
-			crew.append(new_recruit)
+			ship.crew.append(new_recruit)
 			print_debug("%s successfully recruited %s to join the crew." % [character.name, new_recruit.name])
 		else:
 			print_debug("%s couldn't find any suitable recruits." % character.name)
@@ -180,10 +225,7 @@ func update_mission_availability() -> void:
 			print_debug("The mission '%s' is no longer available." % mission.title)
 	if game_state_manager.game_state.available_missions.size() < 3:
 		var new_mission: Mission = game_state_manager.mission_generator.generate_mission(
-			game_state_manager.game_state.current_sector,
-			game_state_manager.game_state.player_reputation,
-			game_state_manager.game_state.difficulty,
-			game_state_manager.game_state.available_factions
+			GlobalEnums.MissionType.OPPORTUNITY
 		)
 		game_state_manager.game_state.add_mission(new_mission)
 		print_debug("A new mission has become available: %s" % new_mission.title)

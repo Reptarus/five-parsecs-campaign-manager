@@ -16,8 +16,8 @@ enum EliteAbility {
 
 var game_state: GameState
 
-func _init() -> void:
-	game_state = GameStateManager.get_singleton()
+func _ready() -> void:
+	game_state = Engine.get_main_loop().get_root().get_node("/root/GameState")
 	if not game_state:
 		push_error("GameState singleton not found. Make sure it's properly set up as an AutoLoad.")
 
@@ -103,18 +103,18 @@ func _apply_elite_skills(enemy: Dictionary) -> Dictionary:
 
 func _apply_elite_ability(enemy: Dictionary) -> Dictionary:
 	var new_enemy := enemy.duplicate(true)
-	var ability: EliteAbility = EliteAbility.values()[randi() % EliteAbility.size()]
+	var ability: GlobalEnums.EliteAbility = GlobalEnums.EliteAbility.values()[randi() % GlobalEnums.EliteAbility.size()]
 	
 	match ability:
-		EliteAbility.REGENERATION:
+		GlobalEnums.EliteAbility.REGENERATION:
 			new_enemy.special_rules.append("Regeneration: At the end of each round, remove 1 Stun marker.")
-		EliteAbility.TELEPORT:
+		GlobalEnums.EliteAbility.TELEPORT:
 			new_enemy.special_rules.append("Teleport: Once per battle, can move to any point on the battlefield as a free action.")
-		EliteAbility.ENERGY_SHIELD:
+		GlobalEnums.EliteAbility.ENERGY_SHIELD:
 			new_enemy.special_rules.append("Energy Shield: The first hit each round is automatically negated.")
-		EliteAbility.BERSERKER:
+		GlobalEnums.EliteAbility.BERSERKER:
 			new_enemy.special_rules.append("Berserker: Gains +1 to all rolls when wounded.")
-		EliteAbility.CAMOUFLAGE:
+		GlobalEnums.EliteAbility.CAMOUFLAGE:
 			new_enemy.special_rules.append("Camouflage: -1 to all enemy hit rolls against this enemy when in cover.")
 	
 	return new_enemy

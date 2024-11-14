@@ -1,4 +1,4 @@
-[gd_scene load_steps=2 format=3 uid="uid://..."]
+[gd_scene load_steps=2 format=3 uid="uid://7a1l2ocanju3"]
 
 [ext_resource type="Script" path="res://Resources/UI/TutorialOverlay.gd" id="1_..."]
 
@@ -37,4 +37,4 @@ text = "Next"
 
 [node name="SkipButton" type="Button" parent="ContentPanel/MarginContainer/VBoxContainer/ButtonContainer"]
 layout_mode = 2
-text = "Skip" 
+text = "Skip"

@@ -169,15 +169,8 @@ func apply_military_connection_effect(connection: Dictionary):
 	game_state.apply_military_bonus(military_bonus)
 
 func generate_mission_from_connection(connection: Dictionary) -> Mission:
-	var mission_generator = MissionGenerator.new()
-	mission_generator.init(game_state)
-	var mission = mission_generator.generate_mission(
-		connection["difficulty"],
-		connection["reward_type"],
-		connection["reward_amount"],
-		connection["mission_type"]
-	)
-	
+	var mission_generator = MissionGenerator.new(game_state)
+	var mission = mission_generator.generate_mission(connection["id"])
 	# Modify mission based on connection type
 	match connection["type"]:
 		"Alliance":
@@ -190,7 +183,7 @@ func generate_mission_from_connection(connection: Dictionary) -> Mission:
 			mission.rewards["reputation"] = min(5, mission.rewards["reputation"] + 1)
 	
 	return mission
-
+	
 func check_elite_rival_persistence():
 	for rival in game_state.get_elite_rivals():
 		if game_state.roll_dice(1, 6) >= 4:

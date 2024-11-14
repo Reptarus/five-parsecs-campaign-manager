@@ -3,8 +3,6 @@ class_name ExpandedFactionManager
 extends Resource
 
 # Use the GlobalEnums.Faction enum
-const FactionType = GlobalEnums.Faction
-
 const MIN_FACTION_STRENGTH: int = 2
 const MAX_FACTION_STRENGTH: int = 7
 const MIN_FACTION_POWER: int = 3
@@ -26,9 +24,8 @@ func load_faction_data() -> void:
 func generate_factions(num_factions: int) -> void:
 	for i in range(num_factions):
 		factions.append(generate_faction())
-
 func generate_faction() -> Dictionary:
-	var faction_type: FactionType = FactionType.values()[randi() % FactionType.size()]
+	var faction_type = GlobalEnums.Faction.values()[randi() % GlobalEnums.Faction.size()]
 	
 	return {
 		"name": generate_faction_name(),
@@ -192,7 +189,7 @@ func get_faction_by_name(faction_name: String) -> Dictionary:
 			return faction
 	return {}
 
-func get_faction_by_type(faction_type: FactionType) -> Dictionary:
+func get_faction_by_type(faction_type: String) -> Dictionary:
 	for faction in factions:
 		if faction["type"] == faction_type:
 			return faction
@@ -304,34 +301,20 @@ func update_faction_relations_global_event(event: GlobalEnums.GlobalEvent) -> vo
 		GlobalEnums.GlobalEvent.MARKET_CRASH:
 			for faction in factions:
 				faction["influence"] = max(1, faction["influence"] - 1)
-		GlobalEnums.GlobalEvent.ECONOMIC_BOOM:
-			for faction in factions:
-				faction["influence"] = min(5, faction["influence"] + 1)
-		GlobalEnums.GlobalEvent.TRADE_EMBARGO:
-			var affected_faction = factions[randi() % factions.size()]
-			affected_faction["influence"] = max(1, affected_faction["influence"] - 2)
-		GlobalEnums.GlobalEvent.RESOURCE_SHORTAGE:
-			for faction in factions:
-				faction["strength"] = max(MIN_FACTION_STRENGTH, faction["strength"] - 1)
-		GlobalEnums.GlobalEvent.TECHNOLOGICAL_BREAKTHROUGH:
-			var lucky_faction = factions[randi() % factions.size()]
-			lucky_faction["power"] = min(MAX_FACTION_POWER, lucky_faction["power"] + 2)
 		GlobalEnums.GlobalEvent.ALIEN_INVASION:
 			for faction in factions:
 				faction["strength"] = max(MIN_FACTION_STRENGTH, faction["strength"] - 2)
 				faction["influence"] = max(1, faction["influence"] - 1)
-		GlobalEnums.GlobalEvent.CORPORATE_TAKEOVER:
+		GlobalEnums.GlobalEvent.CORPORATE_WAR:
 			if factions.size() >= 2:
 				var acquirer = factions[randi() % factions.size()]
 				var target = factions[randi() % factions.size()]
 				while target == acquirer:
 					target = factions[randi() % factions.size()]
 				merge_factions(acquirer, target)
-		GlobalEnums.GlobalEvent.RESOURCE_CRISIS:
+		GlobalEnums.GlobalEvent.PIRATE_RAIDS:
 			for faction in factions:
 				faction["power"] = max(MIN_FACTION_POWER, faction["power"] - 1)
-		GlobalEnums.GlobalEvent.POLITICAL_UPHEAVAL:
+		GlobalEnums.GlobalEvent.PLAGUE_OUTBREAK:
 			for faction in factions:
 				faction["influence"] = max(1, min(5, faction["influence"] + randi() % 3 - 1))
-		GlobalEnums.GlobalEvent.NATURAL_DISASTER:
-			var affected_faction = factions[randi() % factions.size()]

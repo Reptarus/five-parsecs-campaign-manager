@@ -1,7 +1,6 @@
-[gd_scene load_steps=3 format=3 uid="uid://dxxx"]
+[gd_scene load_steps=2 format=3 uid="uid://dxxx"]
 
 [ext_resource type="Script" path="res://Resources/CrewAndCharacters/CharacterSheet.gd" id="1_script"]
-[ext_resource type="Theme" uid="uid://d1you1rrwuu48" path="res://Scenes/sci_fi_theme.tres" id="2_theme"]
 
 [node name="CharacterSheet" type="Control"]
 layout_mode = 3
@@ -10,7 +9,6 @@ anchor_right = 1.0
 anchor_bottom = 1.0
 grow_horizontal = 2
 grow_vertical = 2
-theme = ExtResource("2_theme")
 script = ExtResource("1_script")
 
 [node name="Panel" type="Panel" parent="."]
@@ -67,8 +65,6 @@ text = "Psionic Powers: "
 layout_mode = 2
 text = "Close"
 
-[connection signal="pressed" from="Panel/MarginContainer/VBoxContainer/CloseButton" to="." method="_on_close_button_pressed"]
-
 [node name="EquipmentSection" type="VBoxContainer" parent="Panel/MarginContainer/VBoxContainer"]
 layout_mode = 2
 
@@ -87,35 +83,6 @@ text = "Change Armor"
 [node name="GearButton" type="Button" parent="Panel/MarginContainer/VBoxContainer/EquipmentSection"]
 layout_mode = 2
 text = "Change Gear"
-
-[node name="EquipmentPopup" type="PopupPanel" parent="."]
-title = "Select Equipment"
-size = Vector2(300, 400)
-
-[node name="MarginContainer" type="MarginContainer" parent="EquipmentPopup"]
-offset_right = 300
-offset_bottom = 400
-theme_override_constants/margin_left = 10
-theme_override_constants/margin_top = 10
-theme_override_constants/margin_right = 10
-theme_override_constants/margin_bottom = 10
-
-[node name="VBoxContainer" type="VBoxContainer" parent="EquipmentPopup/MarginContainer"]
-layout_mode = 2
-
-[node name="InventoryList" type="ItemList" parent="EquipmentPopup/MarginContainer/VBoxContainer"]
-layout_mode = 2
-size_flags_vertical = 3
-
-[node name="CloseButton" type="Button" parent="EquipmentPopup/MarginContainer/VBoxContainer"]
-layout_mode = 2
-text = "Close"
-
-[connection signal="pressed" from="Panel/MarginContainer/VBoxContainer/EquipmentSection/WeaponButton" to="." method="_on_weapon_button_pressed"]
-[connection signal="pressed" from="Panel/MarginContainer/VBoxContainer/EquipmentSection/ArmorButton" to="." method="_on_armor_button_pressed"]
-[connection signal="pressed" from="Panel/MarginContainer/VBoxContainer/EquipmentSection/GearButton" to="." method="_on_gear_button_pressed"]
-[connection signal="item_selected" from="EquipmentPopup/MarginContainer/VBoxContainer/InventoryList" to="." method="_on_inventory_item_selected"]
-[connection signal="pressed" from="EquipmentPopup/MarginContainer/VBoxContainer/CloseButton" to="EquipmentPopup" method="hide"]
 
 [node name="MissionHistorySection" type="VBoxContainer" parent="Panel/MarginContainer/VBoxContainer"]
 layout_mode = 2
@@ -154,4 +121,35 @@ text = "Event History"
 layout_mode = 2
 size_flags_vertical = 3
 
+[node name="EquipmentPopup" type="PopupPanel" parent="."]
+title = "Select Equipment"
+size = Vector2i(300, 400)
+
+[node name="MarginContainer" type="MarginContainer" parent="EquipmentPopup"]
+offset_left = 4.0
+offset_top = 4.0
+offset_right = 296.0
+offset_bottom = 396.0
+theme_override_constants/margin_left = 10
+theme_override_constants/margin_top = 10
+theme_override_constants/margin_right = 10
+theme_override_constants/margin_bottom = 10
+
+[node name="VBoxContainer" type="VBoxContainer" parent="EquipmentPopup/MarginContainer"]
+layout_mode = 2
+
+[node name="InventoryList" type="ItemList" parent="EquipmentPopup/MarginContainer/VBoxContainer"]
+layout_mode = 2
+size_flags_vertical = 3
+
+[node name="CloseButton" type="Button" parent="EquipmentPopup/MarginContainer/VBoxContainer"]
+layout_mode = 2
+text = "Close"
+
+[connection signal="pressed" from="Panel/MarginContainer/VBoxContainer/CloseButton" to="." method="_on_close_button_pressed"]
+[connection signal="pressed" from="Panel/MarginContainer/VBoxContainer/EquipmentSection/WeaponButton" to="." method="_on_weapon_button_pressed"]
+[connection signal="pressed" from="Panel/MarginContainer/VBoxContainer/EquipmentSection/ArmorButton" to="." method="_on_armor_button_pressed"]
+[connection signal="pressed" from="Panel/MarginContainer/VBoxContainer/EquipmentSection/GearButton" to="." method="_on_gear_button_pressed"]
 [connection signal="pressed" from="Panel/MarginContainer/VBoxContainer/TrainingSection/EnrollButton" to="." method="_on_enroll_pressed"]
+[connection signal="item_selected" from="EquipmentPopup/MarginContainer/VBoxContainer/InventoryList" to="." method="_on_inventory_item_selected"]
+[connection signal="pressed" from="EquipmentPopup/MarginContainer/VBoxContainer/CloseButton" to="EquipmentPopup" method="hide"]

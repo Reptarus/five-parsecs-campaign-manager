@@ -13,8 +13,10 @@ var completed_quests: Array[Quest] = []
 var failed_quests: Array[Quest] = []
 
 func _ready() -> void:
-	if !is_instance_valid(game_state):
-		game_state = get_node("/root/GameStateManager") as GameStateManager
+	if Engine.has_singleton("GameStateManager"):
+		game_state = Engine.get_singleton("GameStateManager")
+	else:
+		push_error("GameStateManager singleton not found")
 
 func generate_new_quest() -> Quest:
 	var new_quest = Quest.new().generate_quest(game_state)
@@ -73,9 +75,21 @@ func serialize() -> Dictionary:
 	}
 
 func deserialize(data: Dictionary) -> void:
-	active_quests = data["active_quests"].map(func(q): return Quest.deserialize(q))
-	completed_quests = data["completed_quests"].map(func(q): return Quest.deserialize(q))
-	failed_quests = data["failed_quests"].map(func(q): return Quest.deserialize(q))
+	active_quests = data["active_quests"].map(func(q): 
+		var quest = Quest.new()
+		quest.deserialize(q)
+		return quest
+	)
+	completed_quests = data["completed_quests"].map(func(q):
+		var quest = Quest.new()
+		quest.deserialize(q) 
+		return quest
+	)
+	failed_quests = data["failed_quests"].map(func(q):
+		var quest = Quest.new()
+		quest.deserialize(q)
+		return quest
+	)
 	for quest in active_quests:
 		quest.quest_stage_changed.connect(_on_quest_stage_advanced.bind(quest))
 		quest.rumor_discovered.connect(_on_rumor_discovered.bind(quest))

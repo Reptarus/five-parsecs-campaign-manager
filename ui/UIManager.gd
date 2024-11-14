@@ -2,6 +2,8 @@
 class_name UIManager
 extends Node
 
+const GlobalEnums = preload("res://Resources/GameData/GlobalEnums.gd")
+
 signal screen_changed(new_screen: Control)
 
 var current_screen: Control
@@ -30,7 +32,7 @@ func register_screen(screen_name: String, screen: Control):
 	screens[screen_name] = screen
 	screen.hide()
 
-func change_screen(screen_name: String):
+func change_screen(screen_name: String) -> void:
 	if current_screen:
 		current_screen.hide()
 	

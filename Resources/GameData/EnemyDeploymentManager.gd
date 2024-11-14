@@ -10,8 +10,8 @@ var game_state: GameStateManager
 func _init(_game_state: GameStateManager) -> void:
 	game_state = _game_state
 
-func generate_deployment(enemy_type: GlobalEnums.AIType, battle_map: Dictionary) -> Array:
-	assert(enemy_type in GlobalEnums.AIType.values(), "Invalid enemy type")
+func generate_deployment(enemy_type: GlobalEnums.AIBehavior, battle_map: Dictionary) -> Array:
+	assert(enemy_type in GlobalEnums.AIBehavior.values(), "Invalid enemy type")
 	assert("enemy_edge" in battle_map and "width" in battle_map and "height" in battle_map, "Invalid battle map data")
 
 	var deployment: Array = []
@@ -22,35 +22,37 @@ func generate_deployment(enemy_type: GlobalEnums.AIType, battle_map: Dictionary)
 	
 	return deployment
 
-func _get_deployment_type(enemy_type: GlobalEnums.AIType, roll: int) -> GlobalEnums.DeploymentType:
+func _get_deployment_type(enemy_type: GlobalEnums.AIBehavior, roll: int) -> GlobalEnums.DeploymentType:
 	match enemy_type:
-		GlobalEnums.AIType.AGGRESSIVE:
+		GlobalEnums.AIBehavior.AGGRESSIVE:
 			if roll <= 20: return GlobalEnums.DeploymentType.LINE
-			elif roll <= 35: return GlobalEnums.DeploymentType.HALF_FLANK
-			elif roll <= 50: return GlobalEnums.DeploymentType.FORWARD_POSITIONS
+			elif roll <= 35: return GlobalEnums.DeploymentType.FLANK
+			elif roll <= 50: return GlobalEnums.DeploymentType.SCATTERED
 			elif roll <= 60: return GlobalEnums.DeploymentType.BOLSTERED_LINE
 			elif roll <= 80: return GlobalEnums.DeploymentType.INFILTRATION
 			elif roll <= 90: return GlobalEnums.DeploymentType.BOLSTERED_FLANK
 			else: return GlobalEnums.DeploymentType.CONCEALED
-		GlobalEnums.AIType.CAUTIOUS:
+		GlobalEnums.AIBehavior.CAUTIOUS:
 			if roll <= 30: return GlobalEnums.DeploymentType.LINE
-			elif roll <= 40: return GlobalEnums.DeploymentType.HALF_FLANK
-			elif roll <= 50: return GlobalEnums.DeploymentType.IMPROVED_POSITIONS
+			elif roll <= 40: return GlobalEnums.DeploymentType.FLANK
+			elif roll <= 50: return GlobalEnums.DeploymentType.DEFENSIVE
 			elif roll <= 70: return GlobalEnums.DeploymentType.BOLSTERED_LINE
 			elif roll <= 90: return GlobalEnums.DeploymentType.REINFORCED
 			else: return GlobalEnums.DeploymentType.CONCEALED
 		_:
-			return GlobalEnums.DeploymentType.LINE
+			return GlobalEnums.DeploymentType.STANDARD
 
 func _generate_deployment_by_type(deployment_type: GlobalEnums.DeploymentType, battle_map: Dictionary) -> Array:
 	match deployment_type:
+		GlobalEnums.DeploymentType.STANDARD:
+			return _generate_line_deployment(battle_map)
 		GlobalEnums.DeploymentType.LINE:
 			return _generate_line_deployment(battle_map)
-		GlobalEnums.DeploymentType.HALF_FLANK:
+		GlobalEnums.DeploymentType.FLANK:
 			return _generate_half_flank_deployment(battle_map)
-		GlobalEnums.DeploymentType.IMPROVED_POSITIONS:
+		GlobalEnums.DeploymentType.DEFENSIVE:
 			return _generate_improved_positions_deployment(battle_map)
-		GlobalEnums.DeploymentType.FORWARD_POSITIONS:
+		GlobalEnums.DeploymentType.SCATTERED:
 			return _generate_forward_positions_deployment(battle_map)
 		GlobalEnums.DeploymentType.BOLSTERED_LINE:
 			return _generate_bolstered_line_deployment(battle_map)

@@ -74,7 +74,7 @@ func _on_start_campaign_pressed() -> void:
 			push_error("NewCampaignFlow node not found")
 		
 		# Transition to the campaign turn state
-		game_state.transition_to_state(GlobalEnums.CampaignPhase.UPKEEP)
+		game_state.transition_to_state(GlobalEnums.GameState.CAMPAIGN)
 		get_tree().change_scene_to_file("res://Scenes/Management/Scenes/BattlefieldGenerator.tscn")
 
 func _validate_campaign_setup() -> bool:
@@ -130,4 +130,4 @@ func progress_setup() -> void:
 	else:
 		# All steps completed, enable start button
 		$StartCampaignButton.disabled = false
-		game_state.transition_to_state(GlobalEnums.CampaignPhase.UPKEEP)
+		game_state.transition_to_state(GlobalEnums.GameState.CAMPAIGN)

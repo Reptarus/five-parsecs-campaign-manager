@@ -51,13 +51,14 @@ func _generate_escalation(battle_state: Dictionary) -> Dictionary:
 		GlobalEnums.StrifeType.RESOURCE_CONFLICT:
 			escalation.description = "Enemy reinforcements arrive"
 			escalation.effect = {"add_units": randi_range(1, 3), "target": "enemy"}
-		GlobalEnums.StrifeType.POLITICAL_UPRISING:
+		GlobalEnums.StrifeType.POLITICAL_UNREST:
 			escalation.description = "Unexpected psionic phenomenon occurs"
 			escalation.effect = {"psionic_boost": true, "target": "all"}
-		GlobalEnums.StrifeType.ALIEN_INCURSION:
+			escalation.effect["psionic_intensity"] = 2
+		GlobalEnums.StrifeType.CRIMINAL_WARFARE:
 			escalation.description = "Sudden environmental change"
 			escalation.effect = {"damage": 1, "target": "all"}
-		GlobalEnums.StrifeType.CORPORATE_WARFARE:
+		GlobalEnums.StrifeType.CORPORATE_RIVALRY:
 			escalation.description = "Random crew equipment malfunctions"
 			escalation.effect = {"disable_item": true, "target": "player"}
 	
@@ -103,7 +104,7 @@ func _apply_to_team(effect: Dictionary, team: Array) -> void:
 				unit.boost_psionic_power()
 	if "mutant_bonus" in effect:
 		for unit in team:
-			if unit.species == GlobalEnums.Species.MUTANT:
+			if unit.species == GlobalEnums.Origin.MUTANT:
 				unit.apply_mutant_bonus()
 
 func generate_suspect(pursuit: bool) -> Dictionary:

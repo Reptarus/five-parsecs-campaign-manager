@@ -6,7 +6,7 @@ extends ShipComponent
 var patients: Array[Character] = []
 
 func _init(p_name: String, p_description: String, p_power_usage: int, p_health: int, p_weight: float = 1.0, p_healing_capacity: int = 0):
-	super(p_name, p_description, GlobalEnums.ComponentType.MEDICAL_BAY, p_power_usage, p_health, p_weight)
+	super(p_name, p_description, GlobalEnums.ShipComponentType.MEDICAL_BAY, p_power_usage, p_health, p_weight)
 	healing_capacity = p_healing_capacity
 
 func process_turn() -> void:

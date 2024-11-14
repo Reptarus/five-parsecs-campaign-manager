@@ -1,33 +1,42 @@
 # MainMenu.gd
 extends Control
-
 # At the top of the file, add the class reference
-const MockGameState = preload("res://Resources/MockGameState.gd")
+const GameStateManager = preload("res://StateMachines/GameStateManager.gd")
+const NewCampaignTutorial = preload("res://Resources/CampaignManagement/Scenes/NewCampaignTutorial.tscn")
 
-@onready var continue_button = $MenuButtons/Continue
-@onready var new_campaign_button = $MenuButtons/NewCampaign
-@onready var coop_campaign_button = $MenuButtons/CoopCampaign
-@onready var battle_simulator_button = $MenuButtons/BattleSimulator
-@onready var bug_hunt_button = $MenuButtons/BugHunt
-@onready var options_button = $MenuButtons/Options
-@onready var library_button = $MenuButtons/Library
-@onready var new_campaign_tutorial = preload("res://Resources/CampaignManagement/Scenes/NewCampaignTutorial.tscn")
-@onready var tutorial_popup = $TutorialPopup
+@onready var continue_button: Button = $MenuButtons/Continue
+@onready var new_campaign_button: Button = $MenuButtons/NewCampaign
+@onready var coop_campaign_button: Button = $MenuButtons/CoopCampaign
+@onready var battle_simulator_button: Button = $MenuButtons/BattleSimulator
+@onready var bug_hunt_button: Button = $MenuButtons/BugHunt
+@onready var options_button: Button = $MenuButtons/Options
+@onready var library_button: Button = $MenuButtons/Library
+@onready var tutorial_popup: PopupPanel = $TutorialPopup
 
-# Update the variable declaration to be explicit about the type
-var game_state_manager: MockGameState
+var game_state_manager: GameStateManager
 
-func _ready():
+func _ready() -> void:
 	setup_ui()
 	call_deferred("initialize_game_systems")
 	tutorial_popup.hide()
+	_connect_tutorial_signals()
+
+func _connect_tutorial_signals() -> void:
+	var tutorial_container := tutorial_popup.get_node("VBoxContainer")
+	if not tutorial_container:
+		push_error("Tutorial container not found")
+		return
+		
+	var buttons := {
+		"StoryTrackButton": "story_track",
+		"CompendiumButton": "compendium",
+		"SkipButton": "skip"
+	}
 	
-	# Connect tutorial popup signals
-	var tutorial_container = tutorial_popup.get_node("VBoxContainer")
-	tutorial_container.get_node("StoryTrackButton").pressed.connect(_on_tutorial_popup_button_pressed.bind("story_track"))
-	tutorial_container.get_node("CompendiumButton").pressed.connect(_on_tutorial_popup_button_pressed.bind("compendium"))
-	tutorial_container.get_node("SkipButton").pressed.connect(_on_tutorial_popup_button_pressed.bind("skip"))
-	tutorial_container.get_node("DisableTutorialCheckbox").toggled.connect(_on_disable_tutorial_toggled)
+	for button_name in buttons:
+		var button: Button = tutorial_container.get_node_or_null(button_name)
+		if button:
+			button.pressed.connect(_on_tutorial_popup_button_pressed.bind(buttons[button_name]))
 
 func setup_ui():
 	connect_buttons()
@@ -84,7 +93,7 @@ func _on_new_campaign_pressed():
 func _show_tutorial_popup():
 	tutorial_popup.show()
 	# Center the popup
-	tutorial_popup.position = (get_viewport_rect().size - tutorial_popup.size) / 2
+	tutorial_popup.position = (Vector2(get_viewport_rect().size) - Vector2(tutorial_popup.size)) / 2
 
 func _change_to_new_campaign_scene():
 	game_state_manager.start_new_game()

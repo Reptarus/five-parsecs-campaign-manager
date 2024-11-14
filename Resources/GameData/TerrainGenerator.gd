@@ -2,15 +2,15 @@ class_name TerrainGenerator
 extends Resource
 
 const TABLE_SIZES = {
-	GlobalEnums.TerrainSize.SMALL: Vector2i(24, 24),
-	GlobalEnums.TerrainSize.MEDIUM: Vector2i(30, 30),
-	GlobalEnums.TerrainSize.LARGE: Vector2i(36, 36)
+	GlobalEnums.TerrainType.URBAN: Vector2i(24, 24),
+	GlobalEnums.TerrainType.WILDERNESS: Vector2i(30, 30),
+	GlobalEnums.TerrainType.SPACE_STATION: Vector2i(36, 36)
 }
 
 const TERRAIN_COUNTS = {
-	GlobalEnums.TerrainSize.SMALL: {GlobalEnums.TerrainFeature.AREA: 2, GlobalEnums.TerrainFeature.INDIVIDUAL: 4, GlobalEnums.TerrainFeature.LINEAR: 2},
-	GlobalEnums.TerrainSize.MEDIUM: {GlobalEnums.TerrainFeature.AREA: 2, GlobalEnums.TerrainFeature.INDIVIDUAL: 5, GlobalEnums.TerrainFeature.LINEAR: 4},
-	GlobalEnums.TerrainSize.LARGE: {GlobalEnums.TerrainFeature.AREA: 3, GlobalEnums.TerrainFeature.INDIVIDUAL: 6, GlobalEnums.TerrainFeature.LINEAR: 3}
+	GlobalEnums.TerrainType.URBAN: {GlobalEnums.TerrainFeature.AREA: 2, GlobalEnums.TerrainFeature.INDIVIDUAL: 4, GlobalEnums.TerrainFeature.LINEAR: 2},
+	GlobalEnums.TerrainType.WILDERNESS: {GlobalEnums.TerrainFeature.AREA: 2, GlobalEnums.TerrainFeature.INDIVIDUAL: 5, GlobalEnums.TerrainFeature.LINEAR: 4},
+	GlobalEnums.TerrainType.SPACE_STATION: {GlobalEnums.TerrainFeature.AREA: 3, GlobalEnums.TerrainFeature.INDIVIDUAL: 6, GlobalEnums.TerrainFeature.LINEAR: 3}
 }
 
 var rng: RandomNumberGenerator = RandomNumberGenerator.new()
@@ -18,8 +18,8 @@ var rng: RandomNumberGenerator = RandomNumberGenerator.new()
 func _init() -> void:
 	rng.randomize()
 
-func generate_battlefield(mission: Mission, table_size: GlobalEnums.TerrainSize) -> Dictionary:
-	var terrain_type: GlobalEnums.TerrainGenerationType = mission.terrain_type
+func generate_battlefield(mission: Mission, table_size: GlobalEnums.TerrainType) -> Dictionary:
+	var terrain_type: GlobalEnums.TerrainType = mission.terrain_type
 	var terrain_map: Array = generate_terrain(table_size, terrain_type)
 	var features: Array[Dictionary] = generate_features(terrain_map, mission)
 	var player_positions: Array[Vector2] = generate_player_positions(mission.required_crew_size, TABLE_SIZES[table_size])
@@ -32,7 +32,7 @@ func generate_battlefield(mission: Mission, table_size: GlobalEnums.TerrainSize)
 		"enemy_positions": enemy_positions
 	}
 
-func generate_terrain(table_size: GlobalEnums.TerrainSize, terrain_type: GlobalEnums.TerrainGenerationType) -> Array:
+func generate_terrain(table_size: GlobalEnums.TerrainType, terrain_type: GlobalEnums.TerrainType) -> Array:
 	var grid_size = TABLE_SIZES[table_size]
 	var terrain_map = []
 	for x in range(grid_size.x):
@@ -53,7 +53,7 @@ func place_central_feature(terrain_map: Array, grid_size: Vector2i) -> void:
 		for dy in range(2):
 			terrain_map[center_x + dx - 1][center_y + dy - 1] = GlobalEnums.TerrainFeature.BLOCK
 
-func place_terrain_features(terrain_map: Array, table_size: GlobalEnums.TerrainSize, terrain_type: GlobalEnums.TerrainGenerationType) -> void:
+func place_terrain_features(terrain_map: Array, table_size: GlobalEnums.TerrainType, terrain_type: GlobalEnums.TerrainType) -> void:
 	var terrain_counts = TERRAIN_COUNTS[table_size]
 	var grid_size = TABLE_SIZES[table_size]
 	
@@ -62,7 +62,7 @@ func place_terrain_features(terrain_map: Array, table_size: GlobalEnums.TerrainS
 		for i in range(count):
 			place_terrain(terrain_map, terrain_feature, grid_size, terrain_type)
 
-func place_terrain(terrain_map: Array, terrain_feature: GlobalEnums.TerrainFeature, grid_size: Vector2i, _terrain_type: GlobalEnums.TerrainGenerationType) -> void:
+func place_terrain(terrain_map: Array, terrain_feature: GlobalEnums.TerrainFeature, grid_size: Vector2i, _terrain_type: GlobalEnums.TerrainType) -> void:
 	var placed = false
 	while not placed:
 		var x = rng.randi() % grid_size.x
@@ -148,7 +148,7 @@ func serialize() -> Dictionary:
 static func deserialize(_data: Dictionary) -> TerrainGenerator:
 	return TerrainGenerator.new()
 
-func apply_table_size(battlefield_data: Dictionary, table_size: GlobalEnums.TerrainSize) -> Dictionary:
+func apply_table_size(battlefield_data: Dictionary, table_size: GlobalEnums.TerrainType) -> Dictionary:
 	var new_size = TABLE_SIZES[table_size]
 	var old_size = Vector2i(len(battlefield_data.terrain), len(battlefield_data.terrain[0]))
 	

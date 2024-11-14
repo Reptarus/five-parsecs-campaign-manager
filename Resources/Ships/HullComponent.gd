@@ -5,14 +5,14 @@ extends ShipComponent
 @export var armor: int
 
 func _init(p_name: String, p_description: String, p_power_usage: int, p_health: int, p_weight: float = 1.0, p_armor: int = 0):
-	super(p_name, p_description, GlobalEnums.ComponentType.HULL, p_power_usage, p_health, p_weight)
+	super(p_name, p_description, GlobalEnums.ShipComponentType.HULL, p_power_usage, p_health, p_weight)
 	armor = p_armor
 
 func take_damage(amount: int) -> void:
 	super.take_damage(amount)
 	if is_damaged:
 		armor = max(0, armor - 1)  # Reduce armor by 1 when damaged, minimum 0
-		print("Hull damaged. Armor reduced to: ", armor)
+		push_warning("Hull damaged. Armor reduced to: %d" % armor)
 
 func serialize() -> Dictionary:
 	var data = super.serialize()
@@ -35,5 +35,4 @@ static func deserialize(data: Dictionary) -> HullComponent:
 func repair(amount: int) -> void:
 	super.repair(amount)
 	if not is_damaged:
-		print("Hull repaired. Armor integrity restored to: ", armor)
-
+		push_warning("Hull repaired. Armor integrity restored to: %d" % armor)

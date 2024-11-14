@@ -1,76 +1,61 @@
 # Scripts/Missions/MissionManager.gd
 class_name MissionManager
-extends Resource
+extends Node
+
+const Mission = preload("res://Resources/GameData/Mission.gd")
+const MissionGenerator = preload("res://Resources/GameData/MissionGenerator.gd")
+const GlobalEnums = preload("res://Resources/GameData/GlobalEnums.gd")
+const GameState = preload("res://Resources/GameData/GameState.gd")
+
+signal mission_added(mission: Mission)
+signal mission_completed(mission: Mission)
+signal mission_failed(mission: Mission)
+signal mission_stage_advanced(mission: Mission, new_stage: int)
 
 var game_state: GameState
-var validation_manager: ValidationManager
+var active_missions: Array[Mission] = []
+var completed_missions: Array[Mission] = []
+var failed_missions: Array[Mission] = []
+var mission_generator: MissionGenerator
 
 func _init(_game_state: GameState) -> void:
 	game_state = _game_state
-	validation_manager = ValidationManager.new(_game_state)
+	mission_generator = MissionGenerator.new(game_state)
 
-func accept_mission(mission: Mission) -> bool:
-	var validation_result = validation_manager.validate_mission_start(mission)
-	if not validation_result.valid:
-		return false
-		
-	game_state.current_mission = mission
-	game_state.remove_available_mission(mission)
-	
-	if mission.patron:
-		mission.patron.on_mission_accepted(mission)
-	return true
+func generate_mission(mission_type: int = GlobalEnums.MissionType.OPPORTUNITY) -> Mission:
+	var mission = mission_generator.generate_mission(mission_type)
+	add_mission(mission)
+	return mission
+
+func add_mission(mission: Mission) -> void:
+	active_missions.append(mission)
+	mission_added.emit(mission)
 
 func complete_mission(mission: Mission) -> void:
-	mission.complete()
-	_apply_mission_rewards(mission)
-	
-	match mission.type:
-		GlobalEnums.Type.PATRON:
-			if mission.patron:
-				mission.patron.change_relationship(10)
-		GlobalEnums.Type.RIVAL:
-			game_state.remove_rival(mission.faction)
-		GlobalEnums.Type.QUEST:
-			game_state.advance_quest(mission)
-	
-	game_state.current_mission = null
+	if mission in active_missions:
+		active_missions.erase(mission)
+		completed_missions.append(mission)
+		mission.complete()
+		mission_completed.emit(mission)
 
 func fail_mission(mission: Mission) -> void:
-	mission.fail()
-	
-	match mission.type:
-		GlobalEnums.Type.PATRON:
-			if mission.patron:
-				mission.patron.change_relationship(-5)
-		GlobalEnums.Type.RIVAL:
-			game_state.increase_rival_threat(mission.faction)
-		GlobalEnums.Type.QUEST:
-			game_state.fail_quest_step(mission)
-	
-	game_state.current_mission = null
+	if mission in active_missions:
+		active_missions.erase(mission)
+		failed_missions.append(mission)
+		mission.fail()
+		mission_failed.emit(mission)
 
-func _apply_mission_rewards(mission: Mission) -> void:
-	game_state.add_credits(mission.rewards.get("credits", 0))
-	game_state.add_reputation(mission.rewards.get("reputation", 0))
-	
-	if mission.rewards.get("item", false):
-		game_state.add_random_item()
-	
-	if mission.rewards.get("story_points", 0) > 0:
-		game_state.add_story_points(mission.rewards.story_points)
+func get_available_missions() -> Array[Mission]:
+	return active_missions
 
-func update_mission_timers() -> void:
-	var expired_missions: Array[Mission] = []
-	
-	for mission in game_state.available_missions:
-		mission.time_limit -= 1
-		if mission.time_limit <= 0:
-			expired_missions.append(mission)
-			mission.status = GlobalEnums.MissionStatus.EXPIRED
-			
-			if mission.patron:
-				mission.patron.change_relationship(-2)
-	
-	for mission in expired_missions:
-		game_state.remove_available_mission(mission)
+func serialize() -> Dictionary:
+	return {
+		"active_missions": active_missions.map(func(m): return m.serialize()),
+		"completed_missions": completed_missions.map(func(m): return m.serialize()),
+		"failed_missions": failed_missions.map(func(m): return m.serialize())
+	}
+
+func deserialize(data: Dictionary) -> void:
+	active_missions = data.get("active_missions", []).map(func(m): return Mission.deserialize(m))
+	completed_missions = data.get("completed_missions", []).map(func(m): return Mission.deserialize(m))
+	failed_missions = data.get("failed_missions", []).map(func(m): return Mission.deserialize(m))

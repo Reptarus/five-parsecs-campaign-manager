@@ -1,6 +1,9 @@
 class_name CharacterInventory
 extends Resource
 
+const Equipment = preload("res://Resources/CrewAndCharacters/Equipment.gd")
+const GlobalEnums = preload("res://Resources/GameData/GlobalEnums.gd")
+
 signal inventory_changed
 
 @export var items: Array[Equipment] = []
@@ -8,13 +11,22 @@ signal inventory_changed
 var game_state_manager: GameStateManager
 
 func _init() -> void:
-	game_state_manager = GameStateManager
+	if Engine.has_singleton("GameStateManager"):
+		game_state_manager = Engine.get_singleton("GameStateManager")
+	else:
+		push_error("GameStateManager singleton not found")
 
 func add_item(item: Equipment) -> void:
+	if not item:
+		push_error("Attempting to add null item to inventory")
+		return
 	items.append(item)
 	inventory_changed.emit()
 
 func remove_item(item: Equipment) -> void:
+	if not item:
+		push_error("Attempting to remove null item from inventory")
+		return
 	items.erase(item)
 	inventory_changed.emit()
 
@@ -43,8 +55,8 @@ static func deserialize(data: Dictionary) -> CharacterInventory:
 func has_psionic_equipment() -> bool:
 	return items.any(func(item: Equipment) -> bool: return item.is_psionic_equipment)
 
-func get_items_by_type(item_type: GlobalEnums.ItemType) -> Array[Equipment]:
-	return items.filter(func(item: Equipment) -> bool: return item.type == item_type)
+func get_items_by_type(type: GlobalEnums.ItemType) -> Array[Equipment]:
+	return items.filter(func(item: Equipment) -> bool: return item.type == type)
 
 func get_total_weight() -> float:
 	return items.reduce(func(acc: float, item: Equipment) -> float: return acc + item.weight, 0.0)
@@ -55,14 +67,16 @@ func is_overweight(max_weight: float) -> bool:
 func get_most_valuable_item() -> Equipment:
 	if items.is_empty():
 		return null
-	items.sort_custom(func(a: Equipment, b: Equipment): return a.value < b.value)
+	items.sort_custom(func(a: Equipment, b: Equipment) -> bool: return a.value < b.value)
 	return items[-1]
 
 func get_equipment_manager() -> EquipmentManager:
-	return game_state_manager.equipment_manager
+	return game_state_manager.equipment_manager if game_state_manager else null
 
 func apply_difficulty_modifiers() -> void:
-	var difficulty_settings = game_state_manager.difficulty_settings
-	# Apply difficulty modifiers to equipment properties
+	var difficulty_settings = game_state_manager.difficulty_settings if game_state_manager else null
+	if not difficulty_settings:
+		return
+	
 	for item in items:
 		item.apply_difficulty_modifier(difficulty_settings)

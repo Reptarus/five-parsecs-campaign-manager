@@ -1,24 +1,29 @@
 class_name GameState
 extends Resource
 
-signal state_changed(new_state: GlobalEnums.CampaignPhase)
+signal state_changed(new_state: GlobalEnums.GameState)
+signal ui_state_changed(new_state: GlobalEnums.UIState)
 signal credits_changed(new_amount: int)
 signal story_points_changed(new_amount: int)
 
 const DEFAULT_CREDITS: int = 0
 const DEFAULT_STORY_POINTS: int = 0
-const Crew = preload("res://Resources/CrewAndCharacters/Crew.gd")
-const GameWorld = preload("res://Resources/GameData/GameWorld.gd")
-const Mission = preload("res://Resources/GameData/Mission.gd")
-const Ship = preload("res://Resources/Ships/Ship.gd")
 
 var crew: Crew 
 
-var current_state: GlobalEnums.CampaignPhase = GlobalEnums.CampaignPhase.MAIN_MENU:
+var current_state: GlobalEnums.GameState = GlobalEnums.GameState.SETUP:
 	set(value):
 		if current_state != value:
 			current_state = value
 			state_changed.emit(current_state)
+
+var current_ui_state: GlobalEnums.UIState = GlobalEnums.UIState.MAIN_MENU:
+	set(value):
+		if current_ui_state != value:
+			current_ui_state = value
+			ui_state_changed.emit(current_ui_state)
+
+var current_campaign_phase: GlobalEnums.CampaignPhase = GlobalEnums.CampaignPhase.UPKEEP
 
 var current_ship: Ship
 var available_locations: Array[GameWorld] = []
@@ -58,13 +63,30 @@ var mission_payout_reduction: int = 0
 # New properties based on GlobalEnums.gd
 var current_game_state: GlobalEnums.GameState = GlobalEnums.GameState.SETUP
 var current_battle_phase: GlobalEnums.BattlePhase = GlobalEnums.BattlePhase.REACTION_ROLL
+var current_victory_condition: GlobalEnums.VictoryConditionType = GlobalEnums.VictoryConditionType.TURNS
+
 var current_cover_type: GlobalEnums.CoverType = GlobalEnums.CoverType.NONE
 var current_global_event: GlobalEnums.GlobalEvent = GlobalEnums.GlobalEvent.MARKET_CRASH
-var current_victory_condition: GlobalEnums.VictoryConditionType = GlobalEnums.VictoryConditionType.TURNS
+
+var completed_missions: Array[Mission] = []
+
+func _check_dominance_condition() -> bool:
+	# Check if player controls majority of territories or has eliminated key rivals
+	var controlled_territories = available_locations.filter(func(loc): return loc.is_controlled_by_player)
+	return controlled_territories.size() > available_locations.size() / 2
+
+func add_completed_mission(mission: Mission) -> void:
+	if mission not in completed_missions:
+		completed_missions.append(mission)
+		
+func get_completed_mission_count() -> int:
+	return completed_missions.size()
 
 func serialize() -> Dictionary:
 	var serialized_data = {
 		"current_state": current_state,
+		"current_ui_state": current_ui_state,
+		"current_campaign_phase": current_campaign_phase,
 		"credits": credits,
 		"story_points": story_points,
 		"campaign_turn": campaign_turn,
@@ -78,9 +100,10 @@ func serialize() -> Dictionary:
 		"mission_payout_reduction": mission_payout_reduction,
 		"current_game_state": current_game_state,
 		"current_battle_phase": current_battle_phase,
+		"current_victory_condition": current_victory_condition,
 		"current_cover_type": current_cover_type,
 		"current_global_event": current_global_event,
-		"current_victory_condition": current_victory_condition,
+		"completed_missions": completed_missions.map(func(mission): return mission.serialize())
 	}
 	
 	serialized_data["crew"] = crew.serialize() if crew else {} as Dictionary
@@ -102,13 +125,27 @@ func serialize() -> Dictionary:
 	return serialized_data
 
 func check_victory_conditions() -> bool:
-	# TODO: Implement victory condition checks
+	match current_victory_condition:
+		GlobalEnums.VictoryConditionType.TURNS:
+			return campaign_turn >= victory_condition.value
+		GlobalEnums.VictoryConditionType.BATTLES:
+			return completed_missions.size() >= victory_condition.value
+		GlobalEnums.VictoryConditionType.QUESTS:
+			return active_quests.filter(func(q): return q.completed).size() >= victory_condition.value
+		GlobalEnums.VictoryConditionType.WEALTH:
+			return credits >= victory_condition.value
+		GlobalEnums.VictoryConditionType.REPUTATION:
+			return reputation >= victory_condition.value
+		GlobalEnums.VictoryConditionType.DOMINANCE:
+			return _check_dominance_condition()
 	return false
 
 func deserialize(data: Dictionary) -> void:
 	assert(data.has("current_state"), "Deserialized data must contain current_state")
 	
-	current_state = data.get("current_state", GlobalEnums.CampaignPhase.MAIN_MENU)
+	current_state = data.get("current_state", GlobalEnums.GameState.SETUP)
+	current_ui_state = data.get("current_ui_state", GlobalEnums.UIState.MAIN_MENU)
+	current_campaign_phase = data.get("current_campaign_phase", GlobalEnums.CampaignPhase.UPKEEP)
 	credits = data.get("credits", DEFAULT_CREDITS)
 	story_points = data.get("story_points", DEFAULT_STORY_POINTS)
 	campaign_turn = data.get("campaign_turn", 0)
@@ -164,6 +201,7 @@ func deserialize(data: Dictionary) -> void:
 	
 	victory_condition = data.get("victory_condition", {})
 	character_connections = data.get("character_connections", [])
+	completed_missions = _deserialize_array(data.get("completed_missions", []), "Mission")
 
 func _deserialize_resource(resource_data: Dictionary, resource_type: String) -> Resource:
 	if resource_data:

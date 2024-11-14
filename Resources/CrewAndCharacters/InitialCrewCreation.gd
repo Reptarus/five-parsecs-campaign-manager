@@ -1,6 +1,7 @@
 class_name InitialCrewCreation
 extends CampaignResponsiveLayout
 
+const Character = preload("res://Resources/CrewAndCharacters/Character.gd")
 const CharacterCreator = preload("res://Resources/CrewAndCharacters/CharacterCreator.gd")
 const CrewManager = preload("res://Resources/CrewAndCharacters/CrewManager.gd")
 
@@ -81,11 +82,14 @@ func _setup_buttons() -> void:
 	confirm_button.pressed.connect(_on_confirm_pressed)
 
 func _on_character_box_pressed(box: Button) -> void:
-	character_creator.edit_character(crew_manager.get_character(box.get_index()))
+	var character = crew_manager.get_character(box.get_index())
+	if character:
+		character_creator.edit_character(character)
+	else:
+		push_error("No character found at index: " + str(box.get_index()))
 
 func _on_confirm_pressed() -> void:
 	if crew_manager.validate_crew():
 		crew_creation_completed.emit(crew_manager.get_crew())
 	else:
-		# Show error message
-		pass
+		OS.alert("You need at least " + str(crew_manager.min_crew_size) + " crew members.")

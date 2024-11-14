@@ -72,7 +72,7 @@ func _enter_battle_tutorial() -> void:
     var battle_setup = {
         "enemy_count": 2,
         "terrain_type": GlobalEnums.TerrainType.CITY,
-        "objective": GlobalEnums.MissionObjective.FIGHT_OFF
+        "objective": GlobalEnums.MissionObjective.DEFEND
     }
     game_state.start_tutorial_battle(battle_setup)
 

@@ -1,19 +1,21 @@
 class_name MainGameStateMachine
 extends Node
 
-signal state_changed(new_state: GlobalEnums.GameState)
+const GlobalEnums = preload("res://Resources/GameData/GlobalEnums.gd")
+const GameState = preload("res://Resources/GameData/GameState.gd")
+const CAMPAIGN_SETUP_SCENE = preload("res://Resources/CampaignManagement/Scenes/CampaignSetupScreen.tscn")
+
+signal state_changed(new_state: int)  # GlobalEnums.GameState
 
 var game_state_manager: GameStateManager
-var current_campaign_phase: GlobalEnums.CampaignPhase
-var current_state: GlobalEnums.GameState = GlobalEnums.GameState.SETUP
-
-const CAMPAIGN_SETUP_SCENE := preload("res://Resources/CampaignManagement/Scenes/CampaignSetupScreen.tscn")
+var current_campaign_phase: int = GlobalEnums.CampaignPhase.UPKEEP
+var current_state: int = GlobalEnums.GameState.SETUP
 
 func initialize(gsm: GameStateManager) -> void:
 	game_state_manager = gsm
 	current_campaign_phase = gsm.get_current_campaign_phase()
 
-func transition_to(new_state: GlobalEnums.GameState) -> void:
+func transition_to(new_state: int) -> void:
 	current_state = new_state
 	match new_state:
 		GlobalEnums.GameState.SETUP:

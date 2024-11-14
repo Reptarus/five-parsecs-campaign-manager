@@ -1,8 +1,10 @@
 class_name Equipment
 extends Resource
 
+const GlobalEnums = preload("res://Resources/GameData/GlobalEnums.gd")
+
 @export var name: String
-@export var type: GlobalEnums.ItemType
+@export var type: int  # GlobalEnums.ItemType
 @export var value: int
 @export var description: String
 @export var is_damaged: bool = false
@@ -10,7 +12,7 @@ extends Resource
 @export var stats: Dictionary = {}
 @export var traits: Array[String] = []
 
-func _init(_name: String = "", _type: GlobalEnums.ItemType = GlobalEnums.ItemType.GEAR, _value: int = 0, _description: String = "", _is_damaged: bool = false) -> void:
+func _init(_name: String = "", _type: int = GlobalEnums.ItemType.GEAR, _value: int = 0, _description: String = "", _is_damaged: bool = false) -> void:
 	name = _name
 	type = _type
 	value = _value

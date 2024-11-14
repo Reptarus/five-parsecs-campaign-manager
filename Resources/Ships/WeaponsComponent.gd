@@ -4,10 +4,10 @@ class_name WeaponsComponent extends ShipComponent
 @export var weapon_damage: int
 @export var weapon_range: int
 @export var accuracy: int
-@export var weapon_type: GlobalEnums.WeaponType
+@export_enum("PISTOL", "RIFLE", "SHOTGUN", "LASER", "PLASMA", "MISSILE") var weapon_type: int
 
-func _init(p_name: String, p_description: String, p_power_usage: int, p_health: int, p_weight: float = 1.0, p_weapon_damage: int = 0, p_weapon_range: int = 0, p_accuracy: int = 0, p_weapon_type: GlobalEnums.WeaponType = GlobalEnums.WeaponType.PISTOL):
-	super(p_name, p_description, GlobalEnums.ComponentType.WEAPONS, p_power_usage, p_health, p_weight)
+func _init(p_name: String, p_description: String, p_power_usage: int, p_health: int, p_weight: float = 1.0, p_weapon_damage: int = 0, p_weapon_range: int = 0, p_accuracy: int = 0, p_weapon_type: int = 0):
+	super(p_name, p_description, GlobalEnums.ShipComponentType.WEAPON, p_power_usage, p_health, p_weight)
 	weapon_damage = p_weapon_damage
 	weapon_range = p_weapon_range
 	accuracy = p_accuracy

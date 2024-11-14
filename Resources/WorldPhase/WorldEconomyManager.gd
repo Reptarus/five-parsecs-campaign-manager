@@ -8,7 +8,7 @@ var game_world: Location
 var economy_manager: EconomyManager
 var local_market: Array[Equipment] = []
 
-const BASE_UPKEEP_COST: int = 10
+const BASE_UPKEEP_COST: int = 100  # Assuming 100 is the constant value for BASE_UPKEEP_COST
 const LOCAL_EVENT_CHANCE: float = 0.2
 const ECONOMY_NORMALIZATION_RATE: float = 0.1
 const MAX_MARKET_ITEMS: int = 20
@@ -21,17 +21,18 @@ func _init(_game_world: Location, _economy_manager: EconomyManager) -> void:
 
 func _initialize_local_market() -> void:
 	local_market.clear()
-	var num_items = randi() % (MAX_MARKET_ITEMS - 9) + 10
-	for i in range(num_items):
-		local_market.append(economy_manager.generate_random_equipment())
+	for i in range(MAX_MARKET_ITEMS):
+		var item = economy_manager.generate_random_equipment()
+		if item:
+			local_market.append(item)
 
 func calculate_upkeep() -> int:
 	var upkeep = BASE_UPKEEP_COST
-	if GlobalEnums.WorldTrait.RICH in game_world.traits:
+	if GlobalEnums.WorldTrait.INDUSTRIAL_HUB in game_world.traits:
 		upkeep = int(upkeep * 1.5)
-	if GlobalEnums.WorldTrait.POOR in game_world.traits:
+	if GlobalEnums.WorldTrait.FRONTIER_WORLD in game_world.traits:
 		upkeep = int(upkeep * 0.8)
-	if GlobalEnums.WorldTrait.BUSTLING in game_world.traits:
+	if GlobalEnums.WorldTrait.TRADE_CENTER in game_world.traits:
 		upkeep = int(upkeep * 1.2)
 	return upkeep
 

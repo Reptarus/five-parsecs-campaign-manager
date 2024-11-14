@@ -1,493 +1,327 @@
 class_name Battle
 extends Node2D
 
-signal ui_update_needed(current_round: int, phase: GlobalEnums.CampaignPhase, current_character: Character)
+const GlobalEnums = preload("res://Resources/GameData/GlobalEnums.gd")
+const Character = preload("res://Resources/CrewAndCharacters/Character.gd")
+const Mission = preload("res://Resources/GameData/Mission.gd")
+const BattleSystem = preload("res://Resources/BattlePhase/BattleSystem.gd")
+const CombatManager = preload("res://Resources/BattlePhase/CombatManager.gd")
+const AIController = preload("res://Resources/GameData/AIController.gd")
+
+signal ui_update_needed(current_round: int, phase: GlobalEnums.BattlePhase, current_character: Character)
 signal battlefield_generated(battlefield_data: Dictionary)
+signal action_completed
+signal tutorial_step_completed
 
-var game_state_manager: GameStateManager
-var current_mission: Mission
-var combat_manager: CombatManager
-var ai_controller: AIController
-var active_character: Character
+@export_group("Grid Settings")
+@export var GRID_SIZE: int = 32  # Size of each grid cell in pixels
 
-var is_tutorial_battle: bool = false
-var tutorial_step: int = 0
-var tutorial_objectives: Array[String] = []
+@export_group("Battle Systems")
+@export var battle_system: BattleSystem
+@export var combat_manager: CombatManager
+@export var ai_controller: AIController
 
+@export_group("UI Elements")
 @onready var tilemap: TileMap = $Battlefield/TileMap
 @onready var units_node: Node2D = $Battlefield/Units
 @onready var terrain_node: Node2D = $Battlefield/Terrain
 @onready var highlights_node: Node2D = $Battlefield/Highlights
-@onready var move_button: Button = $UI/SidePanel/VBoxContainer/ActionButtons/MoveButton
-@onready var attack_button: Button = $UI/SidePanel/VBoxContainer/ActionButtons/AttackButton
-@onready var end_turn_button: Button = $UI/SidePanel/VBoxContainer/ActionButtons/EndTurnButton
-@onready var turn_label: Label = $UI/SidePanel/VBoxContainer/TurnLabel
-@onready var current_character_label: Label = $UI/SidePanel/VBoxContainer/CurrentCharacterLabel
-@onready var battle_log: TextEdit = $UI/SidePanel/VBoxContainer/BattleLog
 @onready var battle_grid: GridContainer = $Battlefield/BattleGrid
 
-var battlefield_generator: BattlefieldGenerator
-
-const TUTORIAL_ENEMY_TYPES = {
-	"Basic": {
-		"type": "Gangers",
-		"numbers": 2,
-		"panic": "1-2",
-		"speed": 4,
-		"combat_skill": 0,
-		"toughness": 3,
-		"ai": "A",
-		"weapons": "1 A"
-	},
-	"Elite": {
-		"type": "Black Ops Team",
-		"numbers": 0,
-		"panic": "1",
-		"speed": 6,
-		"combat_skill": 2,
-		"toughness": 5,
-		"ai": "T",
-		"weapons": "3 A"
-	}
-}
-
-func initialize(gsm: GameStateManager, mission: Mission) -> void:
-	game_state_manager = gsm
-	current_mission = mission
-	combat_manager = game_state_manager.combat_manager
-	ai_controller = $AIController as AIController
-	battlefield_generator = BattlefieldGenerator.new()
-	
-	if not ai_controller:
-		push_error("Failed to get AIController")
-		return
-		
-	combat_manager.initialize(game_state_manager, current_mission, game_state_manager.get_current_battlefield())
-	ai_controller.initialize(combat_manager, game_state_manager)
-	
-	_initialize_battlefield()
-	_connect_signals()
+var ui_elements: Dictionary = {}
+var game_state_manager: GameStateManager
+var current_mission: Mission
+var active_character: Character
+var selected_action: String = ""
+var valid_action_cells: Array[Vector2i] = []
+var is_tutorial_battle: bool = false
+var tutorial_step: int = 0
+var tutorial_objectives: Array[String] = []
 
 func _ready() -> void:
+	initialize_from_autoload()
+	setup_signals()
+	setup_ui()
+	_setup_ui_elements()
+
+func _setup_ui_elements() -> void:
+	ui_elements = {
+		"move_button": $UI/SidePanel/VBoxContainer/ActionButtons/MoveButton,
+		"attack_button": $UI/SidePanel/VBoxContainer/ActionButtons/AttackButton,
+		"end_turn_button": $UI/SidePanel/VBoxContainer/ActionButtons/EndTurnButton,
+		"turn_label": $UI/SidePanel/VBoxContainer/TurnLabel,
+		"current_character_label": $UI/SidePanel/VBoxContainer/CurrentCharacterLabel,
+		"battle_log": $UI/SidePanel/VBoxContainer/BattleLog
+	}
+
+func initialize_from_autoload() -> void:
+	game_state_manager = get_node("/root/GameStateManager") as GameStateManager
 	if not game_state_manager:
-		var potential_game_state = get_node("/root/GameStateManager")
-		if potential_game_state:
-			game_state_manager = potential_game_state
-		else:
-			push_error("GameStateManager not found")
-			return
-		
-	current_mission = game_state_manager.current_mission
-	combat_manager = game_state_manager.combat_manager
-	ai_controller = $AIController as AIController
-	battlefield_generator = BattlefieldGenerator.new()
-	
-	if not ai_controller:
-		push_error("Failed to get AIController")
+		push_error("Failed to get GameStateManager")
 		return
 		
-	combat_manager.initialize(game_state_manager, current_mission, game_state_manager.get_current_battlefield())
-	ai_controller.initialize(combat_manager, game_state_manager)
+	current_mission = game_state_manager.game_state.current_mission
+	is_tutorial_battle = current_mission.mission_type == GlobalEnums.MissionType.TUTORIAL
+
+func initialize(game_state_manager: GameStateManager, mission: Mission) -> void:
+	self.game_state_manager = game_state_manager
+	current_mission = mission
+	is_tutorial_battle = mission.mission_type == GlobalEnums.MissionType.TUTORIAL
 	
-	_initialize_battlefield()
-	_connect_signals()
+	if not battle_system:
+		battle_system = BattleSystem.new(game_state_manager.game_state)
+		add_child(battle_system)
+	
+	if not combat_manager:
+		combat_manager = game_state_manager.combat_manager
+	
+	if not ai_controller:
+		ai_controller = $AIController
+		if not ai_controller:
+			push_error("Failed to get AIController")
+			return
+	
+	setup_battle()
 
-func _initialize_battlefield() -> void:
-	if battlefield_generator:
-		var battlefield_data = battlefield_generator.generate_battlefield(current_mission)
-		_create_terrain(battlefield_data.terrain)
-		_create_units(battlefield_data.player_positions, battlefield_data.enemy_positions)
-	else:
-		push_error("BattlefieldGenerator not initialized")
+# UI Setup and Management
 
-func _create_terrain(terrain_data: Array) -> void:
+func setup_ui() -> void:
+	update_ui_state(false)  # Disable UI until battle starts
+	setup_battle_grid()
+	setup_action_buttons()
+
+func setup_action_buttons() -> void:
+	for button in ui_elements.values():
+		if button is Button:
+			button.disabled = true
+			button.modulate = Color(1, 1, 1, 0.5)
+
+func update_ui_state(enabled: bool) -> void:
+	for element in ui_elements.values():
+		if element is Control:
+			element.visible = enabled
+			if element is Button:
+				element.disabled = not enabled
+
+func update_character_ui(character: Character) -> void:
+	ui_elements["current_character_label"].text = "Current Turn: " + character.name
+	ui_elements["move_button"].disabled = not character.can_move()
+	ui_elements["attack_button"].disabled = not character.can_attack()
+
+func update_phase_ui(phase: GlobalEnums.BattlePhase) -> void:
+	ui_elements["turn_label"].text = "Phase: " + GlobalEnums.BattlePhase.keys()[phase]
+
+func add_battle_log_entry(text: String) -> void:
+	var battle_log = ui_elements["battle_log"]
+	battle_log.text += "\n" + text
+	battle_log.scroll_vertical = battle_log.get_line_count()
+
+# Battlefield Setup
+
+func setup_battle() -> void:
+	battle_system.start_battle(current_mission)
+	setup_battlefield()
+	if is_tutorial_battle:
+		setup_tutorial()
+
+func setup_battlefield() -> void:
+	var battlefield_data = await battle_system.battlefield_generator.generate_battlefield(current_mission)
+	create_terrain(battlefield_data.terrain)
+	create_grid(battlefield_data.size)
+	battlefield_generated.emit(battlefield_data)
+
+func create_terrain(terrain_data: Array) -> void:
 	for terrain in terrain_data:
-		var terrain_shape = ColorRect.new()
-		terrain_shape.color = Color(0.2, 0.2, 0.2, 0.5)
-		terrain_shape.size = terrain.size
-		terrain_shape.position = terrain.position
-		terrain_node.add_child(terrain_shape)
+		var terrain_node = create_terrain_node(terrain)
+		self.terrain_node.add_child(terrain_node)
 
-func _create_units(player_positions: Array, enemy_positions: Array) -> void:
-	for i in range(game_state_manager.current_ship.crew.size()):
-		var _character = game_state_manager.current_ship.crew[i]
-		var unit_shape = ColorRect.new()
-		unit_shape.color = Color.BLUE
-		unit_shape.size = Vector2(20, 20)
-		unit_shape.position = player_positions[i]
-		units_node.add_child(unit_shape)
+func create_terrain_node(terrain_data: Dictionary) -> Node2D:
+	var node = Node2D.new()
+	var sprite = Sprite2D.new()
+	sprite.texture = load("res://Assets/Terrain/" + terrain_data.type.to_lower() + ".png")
+	sprite.position = terrain_data.position * GRID_SIZE
+	node.add_child(sprite)
+	
+	if terrain_data.has("collision"):
+		var collision = CollisionShape2D.new()
+		collision.shape = RectangleShape2D.new()
+		collision.shape.size = Vector2(GRID_SIZE, GRID_SIZE)
+		node.add_child(collision)
+	
+	return node
 
-	var enemies = current_mission.get_enemies()
-	for i in range(min(enemy_positions.size(), enemies.size())):
-		var enemy = enemies[i]
-		var unit_shape = ColorRect.new()
-		unit_shape.color = Color.RED
-		unit_shape.size = Vector2(20, 20)
-		unit_shape.position = enemy_positions[i]
-		units_node.add_child(unit_shape)
-		
-		var name_label = Label.new()
-		name_label.text = enemy.name
-		name_label.position = enemy_positions[i] + Vector2(0, -20)
-		units_node.add_child(name_label)
+# Grid Management
 
-func _connect_signals() -> void:
-	if combat_manager:
-		combat_manager.combat_started.connect(_on_combat_started)
-		combat_manager.combat_ended.connect(_on_combat_ended)
-		combat_manager.turn_started.connect(_on_turn_started)
-		combat_manager.turn_ended.connect(_on_turn_ended)
-		combat_manager.ui_update_needed.connect(_on_ui_update_needed)
-		combat_manager.log_action.connect(_on_log_action)
-		combat_manager.character_moved.connect(_on_character_moved)
-		combat_manager.enable_player_controls.connect(_on_enable_player_controls)
-		combat_manager.update_turn_label.connect(_on_update_turn_label)
-		combat_manager.update_current_character_label.connect(_on_update_current_character_label)
-		combat_manager.highlight_valid_positions.connect(_on_highlight_valid_positions)
-	else:
-		push_error("Combat manager not initialized during signal connection")
+func create_grid(size: Vector2) -> void:
+	battle_grid.columns = int(size.x)
+	for y in range(size.y):
+		for x in range(size.x):
+			var cell = create_grid_cell()
+			battle_grid.add_child(cell)
 
-func highlight_valid_positions(positions: Array) -> void:
-	for pos in positions:
-		var highlight = ColorRect.new()
-		highlight.color = Color(0, 1, 0, 0.3)
-		highlight.size = Vector2(20, 20)
-		highlight.position = pos
-		highlights_node.add_child(highlight)
+func create_grid_cell() -> Control:
+	var cell = Control.new()
+	cell.custom_minimum_size = Vector2(GRID_SIZE, GRID_SIZE)
+	cell.mouse_filter = Control.MOUSE_FILTER_PASS
+	cell.gui_input.connect(_on_grid_cell_input.bind(cell))
+	return cell
 
-func highlight_valid_targets(targets: Array) -> void:
-	for target in targets:
-		var highlight = ColorRect.new()
-		highlight.color = Color(1, 0, 0, 0.3)
-		highlight.size = Vector2(20, 20)
-		highlight.position = target.position
-		highlights_node.add_child(highlight)
+func highlight_valid_actions(character: Character) -> void:
+	clear_highlights()
+	match selected_action:
+		"move":
+			valid_action_cells = combat_manager.get_valid_move_positions(character)
+		"attack":
+			valid_action_cells = combat_manager.get_valid_attack_positions(character)
+	
+	for pos in valid_action_cells:
+		create_highlight(pos)
+
+func create_highlight(_position: Vector2i) -> void:
+	var highlight = Sprite2D.new()
+	highlight.texture = load("res://Assets/UI/highlight.png")
+	highlight.position = Vector2(position.x * GRID_SIZE, position.y * GRID_SIZE)
+	highlights_node.add_child(highlight)
 
 func clear_highlights() -> void:
 	for child in highlights_node.get_children():
 		child.queue_free()
+	valid_action_cells.clear()
 
-func wait_for_player_input() -> Vector2:
-	while true:
-		if Input.is_action_just_pressed("left_click"):
-			return get_viewport().get_mouse_position()
-		await get_tree().process_frame
-	return Vector2.ZERO
+# Action Handling
 
-func _get_move_input() -> Vector2:
-	var valid_positions = combat_manager.get_valid_move_positions(active_character)
-	highlight_valid_positions(valid_positions)
-	
-	var selected_position = await wait_for_player_input()
-	
-	clear_highlights()
-	return selected_position
+func handle_move_action() -> void:
+	selected_action = "move"
+	highlight_valid_actions(active_character)
 
-func _get_attack_target() -> Character:
-	var valid_targets = combat_manager.get_valid_targets(active_character)
-	highlight_valid_targets(valid_targets)
-	
-	var selected_position = await wait_for_player_input()
-	var selected_target = combat_manager.get_character_at_position(selected_position)
-	
-	clear_highlights()
-	return selected_target
+func handle_attack_action() -> void:
+	selected_action = "attack"
+	highlight_valid_actions(active_character)
 
-func _on_move_button_pressed() -> void:
+func handle_end_turn() -> void:
 	if active_character:
-		var new_position = await _get_move_input()
-		if new_position:
-			combat_manager.handle_move(active_character, new_position)
+		combat_manager.end_turn(active_character)
+		selected_action = ""
+		clear_highlights()
 
-func _on_attack_button_pressed() -> void:
-	if active_character:
-		var target = await _get_attack_target()
-		if target:
-			combat_manager.handle_attack(active_character, target)
-
-func _on_end_turn_button_pressed() -> void:
-	combat_manager.handle_end_turn()
-
-func _on_combat_started() -> void:
-	print("Combat started")
-
-func _on_combat_ended(player_victory: bool) -> void:
-	print("Combat ended. Player victory: ", player_victory)
-	combat_manager.end_combat(player_victory)  # Add victory parameter
-	game_state_manager.end_battle(player_victory, get_tree())
-
-func _on_turn_started(character: Character) -> void:
-	active_character = character
-	print("Turn started for ", character.name)
-	if character in game_state_manager.current_ship.crew:
-		enable_player_controls()
-	else:
-		disable_player_controls()
-		ai_controller.perform_ai_turn(character)
-
-func _on_turn_ended(character: Character) -> void:
-	print("Turn ended for ", character.name)
-	active_character = null
-
-func _on_ui_update_needed(current_round: int, phase: GlobalEnums.CampaignPhase, current_character: Character) -> void:
-	ui_update_needed.emit(current_round, phase, current_character)
-	_update_ui_elements(current_round, current_character)
-
-func _update_ui_elements(current_round: int, current_character: Character) -> void:
-	if turn_label:
-		turn_label.text = "Round: " + str(current_round)
-	if current_character_label and current_character:
-		current_character_label.text = "Current Character: " + current_character.character_name
+func handle_grid_cell_clicked(cell: Control) -> void:
+	if not active_character or selected_action.is_empty():
+		return
+		
+	var grid_position = Vector2i(cell.get_index() % battle_grid.columns,
+							   cell.get_index() / battle_grid.columns)
 	
-	# Update button states based on current character
-	var is_player_turn = current_character in game_state_manager.current_ship.crew
-	if move_button and attack_button and end_turn_button:
-		move_button.disabled = !is_player_turn
-		attack_button.disabled = !is_player_turn
-		end_turn_button.disabled = !is_player_turn
+	if grid_position in valid_action_cells:
+		match selected_action:
+			"move":
+				execute_move(grid_position)
+			"attack":
+				execute_attack(grid_position)
 
-func _on_log_action(action: String) -> void:
-	battle_log.text += action + "\n"
+func execute_move(target_position: Vector2i) -> void:
+	await combat_manager.move_character(active_character, target_position)
+	selected_action = ""
+	clear_highlights()
+	action_completed.emit()
 
-func _on_character_moved(character: Character, new_position: Vector2i) -> void:
-	print("Character ", character.name, " moved to ", new_position)
-	# Update the character's visual position on the battlefield
+func execute_attack(target_position: Vector2i) -> void:
+	var target = combat_manager.get_character_at_position(target_position)
+	if target:
+		await combat_manager.attack_character(active_character, target)
+	selected_action = ""
+	clear_highlights()
+	action_completed.emit()
 
-func _on_enable_player_controls(_character: Character) -> void:
-	enable_player_controls()
+# Tutorial Management
 
-func _on_update_turn_label(_round: int) -> void:
-	turn_label.text = "Round: " + str(_round)
-
-func _on_update_current_character_label(character_name: String) -> void:
-	current_character_label.text = "Current Character: " + character_name
-
-func _on_highlight_valid_positions(positions: Array[Vector2i]) -> void:
-	highlight_valid_positions(positions)
-
-func enable_player_controls() -> void:
-	move_button.disabled = false
-	attack_button.disabled = false
-	end_turn_button.disabled = false
-
-func disable_player_controls() -> void:
-	move_button.disabled = true
-	attack_button.disabled = true
-	end_turn_button.disabled = true
-
-func handle_character_damage(character: Character, damage: int) -> void:
-	character.health -= damage
-	if character.health <= 0:
-		character.status = GlobalEnums.CharacterState.OUT_OF_ACTION
-		_handle_character_defeat(character)
-
-func _handle_character_defeat(character: Character) -> void:
-	# Remove character from active units
-	if character in units_node.get_children():
-		character.get_parent().remove_child(character)
-	
-	# Notify combat manager
-	combat_manager.handle_unit_defeat(character)
-	
-	# Log the event
-	battle_log.text += character.name + " is out of action!\n"
-	
-	# Check for mission failure/success conditions
-	if character in game_state_manager.current_ship.crew:
-		_check_mission_failure()
-	else:
-		_check_mission_success()
-
-func _check_mission_failure() -> void:
-	var active_crew = game_state_manager.current_ship.crew.filter(
-		func(crew_member: Character) -> bool:
-			return crew_member.status == GlobalEnums.CharacterState.ACTIVE
-	)
-	
-	if active_crew.size() < game_state_manager.current_mission.required_crew_size:
-		combat_manager.end_combat(false)  # Mission failed
-
-func _check_mission_success() -> void:
-	var active_enemies = units_node.get_children().filter(
-		func(unit: Character) -> bool:
-			return unit.status == GlobalEnums.CharacterState.ACTIVE and not unit in game_state_manager.current_ship.crew
-	)
-	
-	if active_enemies.is_empty():
-		combat_manager.end_combat(true)  # Mission succeeded
-
-func handle_character_recovery() -> void:
-	game_state_manager.handle_character_recovery()
-
-func initialize_tutorial_battle() -> void:
-	is_tutorial_battle = true
+func setup_tutorial() -> void:
 	tutorial_step = 0
 	tutorial_objectives = [
 		"Move your character",
 		"Attack an enemy",
-		"Use cover",
 		"End your turn"
 	]
-	_setup_tutorial_scenario()
+	show_tutorial_step()
 
-func _setup_tutorial_scenario() -> void:
-	# Set up a simplified battle for tutorial
-	var tutorial_enemies = [
-		{"type": "Basic", "position": Vector2(10, 5)},
-		{"type": "Basic", "position": Vector2(12, 7)}
-	]
-	
-	var tutorial_terrain = [
-		{"type": "Cover", "position": Vector2(5, 5)},
-		{"type": "Cover", "position": Vector2(8, 8)}
-	]
-	
-	_create_tutorial_battlefield(tutorial_enemies, tutorial_terrain)
+func show_tutorial_step() -> void:
+	if tutorial_step < tutorial_objectives.size():
+		add_battle_log_entry("Tutorial: " + tutorial_objectives[tutorial_step])
 
-func advance_tutorial_step() -> void:
+func advance_tutorial() -> void:
 	tutorial_step += 1
 	if tutorial_step < tutorial_objectives.size():
-		_highlight_tutorial_objective(tutorial_objectives[tutorial_step])
+		show_tutorial_step()
+	tutorial_step_completed.emit()
+
+# Signal Handlers
+
+func _on_battle_started() -> void:
+	update_ui_state(true)
+	if is_tutorial_battle:
+		show_tutorial_step()
+
+func _on_battle_ended(victory: bool) -> void:
+	update_ui_state(false)
+	show_battle_results(victory)
+
+func _on_turn_started(character: Character) -> void:
+	active_character = character
+	update_character_ui(character)
+	highlight_valid_actions(character)
+
+func _on_turn_ended(character: Character) -> void:
+	clear_highlights()
+	if character == active_character:
+		active_character = null
+
+func _on_phase_changed(new_phase: GlobalEnums.BattlePhase) -> void:
+	update_phase_ui(new_phase)
+	ui_update_needed.emit(battle_system.combat_manager.current_round, new_phase, active_character)
+
+func _on_button_pressed(button: Button) -> void:
+	match button.name:
+		"MoveButton":
+			handle_move_action()
+		"AttackButton":
+			handle_attack_action()
+		"EndTurnButton":
+			handle_end_turn()
+
+func _on_grid_cell_input(event: InputEvent, cell: Control) -> void:
+	if event is InputEventMouseButton and event.pressed:
+		handle_grid_cell_clicked(cell)
+
+func show_battle_results(victory: bool) -> void:
+	var results_dialog = AcceptDialog.new()
+	results_dialog.dialog_text = "Battle " + ("Won!" if victory else "Lost...")
+	add_child(results_dialog)
+	results_dialog.popup_centered()
+	await results_dialog.confirmed
+	results_dialog.queue_free()
+
+func setup_signals() -> void:
+	if not battle_system:
+		return
 		
-		# Check for special tutorial events from data
-		var tutorial_data = load("res://data/Tutorials/quick_start_tutorial.json").get_data()
-		var current_step = tutorial_data.steps[tutorial_step]
+	battle_system.battle_started.connect(_on_battle_started)
+	battle_system.battle_ended.connect(_on_battle_ended)
+	battle_system.turn_started.connect(_on_turn_started)
+	battle_system.turn_ended.connect(_on_turn_ended)
+	battle_system.phase_changed.connect(_on_phase_changed)
+	
+	for button in ui_elements.values():
+		if button is Button:
+			button.pressed.connect(_on_button_pressed.bind(button))
+
+func setup_battle_grid() -> void:
+	if not battle_grid:
+		push_error("Battle grid not found")
+		return
 		
-		if current_step.has("battle_setup"):
-			_setup_tutorial_battle_step(current_step.battle_setup)
-	else:
-		complete_tutorial()
-
-func _highlight_tutorial_objective(objective: String) -> void:
-	# Update UI to show current objective
-	if battle_log:
-		battle_log.text += "\nTutorial: " + objective
-
-func complete_tutorial() -> void:
-	is_tutorial_battle = false
-	# Notify tutorial system of completion
-	if game_state_manager:
-		game_state_manager.tutorial_manager.complete_battle_tutorial()
-
-func _create_tutorial_battlefield(tutorial_enemies: Array, tutorial_terrain: Array) -> void:
-	# Clear existing battlefield
-	for child in terrain_node.get_children():
+	battle_grid.custom_minimum_size = Vector2(GRID_SIZE * 10, GRID_SIZE * 10)  # Default size
+	battle_grid.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	battle_grid.size_flags_vertical = Control.SIZE_EXPAND_FILL
+	
+	# Clear existing cells
+	for child in battle_grid.get_children():
 		child.queue_free()
-	for child in units_node.get_children():
-		child.queue_free()
-	
-	# Create tutorial terrain based on data
-	for terrain in tutorial_terrain:
-		var terrain_piece = _create_terrain_piece(terrain)
-		terrain_node.add_child(terrain_piece)
-	
-	# Create tutorial enemies based on data
-	for enemy in tutorial_enemies:
-		var enemy_unit = _create_enemy_unit(enemy)
-		units_node.add_child(enemy_unit)
-
-func _create_terrain_piece(terrain_data: Dictionary) -> Node3D:
-	var terrain_piece = Node3D.new()
-	var collision_shape = CollisionShape3D.new()
-	var mesh_instance = MeshInstance3D.new()
-	
-	# Set up based on terrain type from data
-	match terrain_data.type:
-		"Cover":
-			mesh_instance.mesh = load("res://assets/meshes/cover_block.tres")
-			collision_shape.shape = BoxShape3D.new()
-		"Objective":
-			mesh_instance.mesh = load("res://assets/meshes/objective_marker.tres")
-			collision_shape.shape = CylinderShape3D.new()
-		_:
-			mesh_instance.mesh = load("res://assets/meshes/generic_terrain.tres")
-			collision_shape.shape = BoxShape3D.new()
-	
-	terrain_piece.position = terrain_data.position
-	terrain_piece.add_child(collision_shape)
-	terrain_piece.add_child(mesh_instance)
-	return terrain_piece
-
-func _create_enemy_unit(enemy_data: Dictionary) -> Character:
-	var enemy_type = TUTORIAL_ENEMY_TYPES[enemy_data.type]
-	var enemy_unit = game_state_manager.character_factory.create_enemy(enemy_type.type)
-	
-	# Apply tutorial-specific modifications
-	enemy_unit.position = enemy_data.position
-	enemy_unit.combat_skill = enemy_type.combat_skill
-	enemy_unit.toughness = enemy_type.toughness
-	enemy_unit.speed = enemy_type.speed
-	
-	# Set up AI behavior based on data
-	enemy_unit.ai_behavior = enemy_type.ai
-	
-	# Add weapons based on data
-	var weapons = _parse_weapon_string(enemy_type.weapons)
-	for weapon in weapons:
-		enemy_unit.add_weapon(weapon)
-	
-	return enemy_unit
-
-func _parse_weapon_string(weapon_string: String) -> Array:
-	var parts = weapon_string.split(" ")
-	var count = int(parts[0])
-	var tier = parts[1]
-	
-	var weapons = []
-	var weapon_data = load("res://data/equipment_database.json").get_data()
-	
-	for i in range(count):
-		var available_weapons = weapon_data.weapons.filter(
-			func(w): return w.type == tier
-		)
-		if available_weapons.size() > 0:
-			weapons.append(available_weapons[randi() % available_weapons.size()])
-	
-	return weapons
-
-func _setup_tutorial_battle_step(battle_setup: Dictionary) -> void:
-	# Configure battle based on tutorial data
-	var enemy_count = battle_setup.get("enemy_count", 2)
-	var enemy_type = battle_setup.get("enemy_type", "Basic")
-	var deployment = battle_setup.get("deployment", "basic")
-	var _objective = battle_setup.get("objective", "fight_off")
-	
-	# Create enemies
-	var enemies = []
-	for i in range(enemy_count):
-		var enemy_data = {
-			"type": enemy_type,
-			"position": _get_deployment_position(deployment, i)
-		}
-		enemies.append(enemy_data)
-	
-	# Set up battlefield
-	_create_tutorial_battlefield(enemies, _generate_tutorial_terrain(deployment))
-
-func _get_deployment_position(deployment_type: String, index: int) -> Vector2:
-	match deployment_type:
-		"basic":
-			return Vector2(10 + (index * 3), 5)
-		"line":
-			return Vector2(15, 3 + (index * 2))
-		"flank":
-			return Vector2(5 + (index * 2), 10)
-		_:
-			return Vector2(10, 5)
-
-func _generate_tutorial_terrain(deployment_type: String) -> Array:
-	var terrain = []
-	match deployment_type:
-		"basic":
-			terrain.append({"type": "Cover", "position": Vector2(5, 5)})
-			terrain.append({"type": "Cover", "position": Vector2(8, 8)})
-		"line":
-			terrain.append({"type": "Cover", "position": Vector2(12, 4)})
-			terrain.append({"type": "Cover", "position": Vector2(12, 8)})
-		"flank":
-			terrain.append({"type": "Cover", "position": Vector2(4, 8)})
-			terrain.append({"type": "Cover", "position": Vector2(8, 8)})
-		_:
-			terrain.append({"type": "Cover", "position": Vector2(5, 5)})
-	
-	return terrain

@@ -1,134 +1,36 @@
 class_name CrewTaskManager
 extends Node
 
-signal task_completed(character: Character, result: Dictionary)
-signal task_failed(character: Character, reason: String)
-
-enum TaskResult {
-    CRITICAL_SUCCESS,
-    SUCCESS,
-    PARTIAL_SUCCESS,
-    FAILURE,
-    CRITICAL_FAILURE
-}
-
-enum TaskType {
-    TRADE,
-    EXPLORE,
-    TRAIN,
-    RECRUIT,
-    FIND_PATRON,
-    REPAIR_KIT,
-    DECOY,
-    REST,
-    GATHER_INTEL,
-    MAINTENANCE
-}
+signal task_assigned(crew_member: CrewMember, task: GlobalEnums.CrewTask)
+signal task_completed(crew_member: CrewMember, task: GlobalEnums.CrewTask)
 
 var game_state: GameState
-var task_descriptions := {
-    TaskType.TRADE: "Engage in local trading for profit",
-    TaskType.EXPLORE: "Scout the local area",
-    TaskType.TRAIN: "Train crew skills",
-    TaskType.RECRUIT: "Search for new crew members",
-    TaskType.FIND_PATRON: "Network with potential patrons",
-    TaskType.REPAIR_KIT: "Craft repair supplies",
-    TaskType.DECOY: "Create diversions",
-    TaskType.REST: "Rest and recover",
-    TaskType.GATHER_INTEL: "Gather local intelligence",
-    TaskType.MAINTENANCE: "Perform ship maintenance"
-}
+var active_tasks: Dictionary = {}  # CrewMember: GlobalEnums.CrewTask
 
-func _init(state: GameState) -> void:
-    game_state = state
+func _init(_game_state: GameState) -> void:
+    if not _game_state:
+        push_error("GameState is required for CrewTaskManager")
+        return
+    game_state = _game_state
 
-func get_task_description(task: TaskType) -> String:
-    return task_descriptions[task]
+func assign_task(crew_member: CrewMember, task: GlobalEnums.CrewTask) -> bool:
+    if not crew_member:
+        push_error("CrewMember is required for task assignment")
+        return false
+        
+    if crew_member.is_busy():
+        push_error("CrewMember is already assigned to a task")
+        return false
+        
+    active_tasks[crew_member] = task
+    task_assigned.emit(crew_member, task)
+    return true
 
-func _get_relevant_skill(character: Character, task: TaskType) -> int:
-    match task:
-        TaskType.TRADE:
-            return character.get_skill_level(GlobalEnums.SkillType.SOCIAL)
-        TaskType.EXPLORE:
-            return character.get_skill_level(GlobalEnums.SkillType.SURVIVAL)
-        TaskType.TRAIN:
-            return character.get_skill_level(GlobalEnums.SkillType.LEADERSHIP)
-        TaskType.RECRUIT:
-            return character.get_skill_level(GlobalEnums.SkillType.SOCIAL)
-        TaskType.FIND_PATRON:
-            return character.get_skill_level(GlobalEnums.SkillType.SOCIAL)
-        TaskType.REPAIR_KIT:
-            return character.get_skill_level(GlobalEnums.SkillType.TECHNICAL)
-        TaskType.GATHER_INTEL:
-            return character.get_skill_level(GlobalEnums.SkillType.SURVIVAL)
-        TaskType.MAINTENANCE:
-            return character.get_skill_level(GlobalEnums.SkillType.TECHNICAL)
-        _:
-            return 0
-
-func _calculate_rewards(result: Dictionary) -> void:
-    var task = result["task"] as TaskType
-    var rewards = {}
-    
-    match result["outcome"]:
-        TaskResult.CRITICAL_SUCCESS:
-            rewards = _get_critical_success_rewards(task)
-        TaskResult.SUCCESS:
-            rewards = _get_success_rewards(task)
-        TaskResult.PARTIAL_SUCCESS:
-            rewards = _get_partial_success_rewards(task)
-        TaskResult.CRITICAL_FAILURE:
-            rewards = _get_critical_failure_penalties(task)
-        _:
-            rewards = {}
-    
-    result["rewards"] = rewards
-
-func _get_critical_success_rewards(task: TaskType) -> Dictionary:
-    match task:
-        TaskType.TRADE:
-            return {"credits": randi() % 300 + 200, "experience": 100, "item": "rare_trade_good"}
-        TaskType.EXPLORE:
-            return {"credits": randi() % 100 + 50, "experience": 150, "rumor": true}
-        TaskType.TRAIN:
-            return {"experience": 200, "skill_increase": true}
-        TaskType.RECRUIT:
-            return {"experience": 100, "new_recruit": true}
-        TaskType.FIND_PATRON:
-            return {"credits": randi() % 200 + 100, "patron_reputation": 2}
-        TaskType.REPAIR_KIT:
-            return {"repair_kits": 3, "experience": 100}
-        TaskType.GATHER_INTEL:
-            return {"intel_value": 3, "experience": 150, "story_points": 1}
-        TaskType.MAINTENANCE:
-            return {"ship_repair": 20, "experience": 100}
-        _:
-            return {"experience": 50}
-
-func _get_success_rewards(task: TaskType) -> Dictionary:
-    match task:
-        TaskType.TRADE:
-            return {"credits": randi() % 150 + 100, "experience": 50}
-        TaskType.EXPLORE:
-            return {"credits": randi() % 50 + 25, "experience": 75}
-        # Add other task rewards...
-        _:
-            return {"experience": 25}
-
-func _get_partial_success_rewards(task: TaskType) -> Dictionary:
-    match task:
-        TaskType.TRADE:
-            return {"credits": randi() % 50 + 25, "experience": 25}
-        # Add other task rewards...
-        _:
-            return {"experience": 10}
-
-func _get_critical_failure_penalties(task: TaskType) -> Dictionary:
-    match task:
-        TaskType.TRADE:
-            return {"credits_loss": randi() % 100 + 50, "morale_loss": true}
-        TaskType.EXPLORE:
-            return {"injury": true, "morale_loss": true}
-        # Add other task penalties...
-        _:
-            return {"morale_loss": true}
+func complete_task(crew_member: CrewMember) -> void:
+    if not active_tasks.has(crew_member):
+        push_error("CrewMember has no active task")
+        return
+        
+    var completed_task = active_tasks[crew_member]
+    active_tasks.erase(crew_member)
+    task_completed.emit(crew_member, completed_task)

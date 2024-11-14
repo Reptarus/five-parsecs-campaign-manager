@@ -2,55 +2,82 @@ class_name TutorialSystem
 extends Node
 
 # Signals from various tutorial classes
-signal tutorial_step_changed(step: String)
-signal tutorial_completed(type: String)
-signal tutorial_step_completed(step_id: String)
-signal tutorial_track_completed(track_id: String)
+signal tutorial_step_changed(step_id: String)
+signal tutorial_completed(track_id: String)
+signal tutorial_step_completed
+signal tutorial_track_completed
 
 # Components
-var tutorial_manager: GameTutorialManager
-var tutorial_ui: TutorialUI
-var tutorial_progress: Resource # Changed to Resource for data container
-var tutorial_content: Resource # Changed to Resource for data container
+@onready var tutorial_manager: Node
+@onready var tutorial_ui: Node
+@onready var game_state_manager: GameStateManager = get_node("/root/GameStateManager")
 
-# Update to use GameStateManager
-var game_state_manager: GameStateManager
+# Resources
+var tutorial_progress: Resource
+var tutorial_content: Resource
 
 func _ready() -> void:
-    game_state_manager = get_node("/root/GameStateManager")
-    if not game_state_manager:
-        push_error("GameStateManager not found")
-        return
-        
-    tutorial_manager = GameTutorialManager.new()
-    tutorial_ui = TutorialUI.new()
-    tutorial_progress = load("res://Resources/GameData/TutorialProgress.tres") # Load as Resource
-    tutorial_content = load("res://Resources/GameData/TutorialContent.tres") # Load as Resource
-    
-    _connect_signals()
+	if not game_state_manager:
+		push_error("GameStateManager not found")
+		return
+		
+	# Load resources
+	var progress_path := "res://Resources/GameData/TutorialProgress.tres"
+	var content_path := "res://Resources/GameData/TutorialContent.tres"
+	
+	if ResourceLoader.exists(progress_path) and ResourceLoader.exists(content_path):
+		tutorial_progress = load(progress_path)
+		tutorial_content = load(content_path)
+	else:
+		push_error("Tutorial resources not found")
+		return
+	
+	_initialize_components()
+	_connect_signals()
+
+func _initialize_components() -> void:
+	tutorial_manager = Node.new()
+	tutorial_manager.name = "TutorialManager"
+	add_child(tutorial_manager)
+	
+	tutorial_ui = Node.new()
+	tutorial_ui.name = "TutorialUI"
+	add_child(tutorial_ui)
 
 func _connect_signals() -> void:
-    tutorial_manager.tutorial_step_changed.connect(_on_step_changed)
-    tutorial_manager.tutorial_completed.connect(_on_tutorial_completed)
-    tutorial_ui.tutorial_step_completed.connect(_on_step_completed)
-    tutorial_ui.tutorial_track_completed.connect(_on_track_completed)
+	if tutorial_manager and tutorial_ui:
+		tutorial_manager.connect("step_changed", _on_step_changed)
+		tutorial_manager.connect("tutorial_completed", _on_tutorial_completed)
+		tutorial_ui.connect("step_completed", _on_step_completed)
+		tutorial_ui.connect("track_completed", _on_track_completed)
+	else:
+		push_error("Tutorial components not properly initialized")
 
-func start_tutorial(type: GameTutorialManager.TutorialTrack) -> void:
-    tutorial_manager.start_tutorial(type)
-    tutorial_ui.show()
-    
+func start_tutorial(type: GlobalEnums.TutorialType) -> void:
+	if not tutorial_manager:
+		push_error("Tutorial manager not initialized")
+		return
+		
+	tutorial_manager.start_tutorial(type)
+	tutorial_ui.show()
+
 func _on_step_changed(step: String) -> void:
-    tutorial_ui.update_content(tutorial_content.get_step_content(step))
-    tutorial_progress.save_progress()
+	if tutorial_content and tutorial_ui:
+		tutorial_ui.update_content(tutorial_content.get_step_content(step))
+		tutorial_progress.save_progress()
 
 func _on_tutorial_completed(type: String) -> void:
-    tutorial_progress.mark_track_complete(type)
-    tutorial_ui.hide()
+	if tutorial_progress:
+		tutorial_progress.mark_track_complete(type)
+	if tutorial_ui:
+		tutorial_ui.hide()
 
 func _on_step_completed(step_id: String) -> void:
-    tutorial_progress.complete_step(step_id)
-    tutorial_manager.advance_tutorial()
+	if tutorial_progress and tutorial_manager:
+		tutorial_progress.complete_step(step_id)
+		tutorial_manager.advance_tutorial()
 
 func _on_track_completed(track_id: String) -> void:
-    tutorial_progress.complete_track(track_id)
-    tutorial_manager.end_tutorial() 
+	if tutorial_progress and tutorial_manager:
+		tutorial_progress.complete_track(track_id)
+		tutorial_manager.end_tutorial()

@@ -1,4 +1,4 @@
-[gd_scene load_steps=2 format=3]
+[gd_scene load_steps=2 format=3 uid="uid://ccp7a6kfi1vwe"]
 
 [ext_resource type="Script" path="res://Resources/BattlePhase/Scenes/RewardsPanel.gd" id="1_script"]
 
@@ -72,10 +72,10 @@ text = "Roll for Loot"
 [node name="LootList" type="RichTextLabel" parent="MarginContainer/VBoxContainer/LootContainer"]
 unique_name_in_owner = true
 layout_mode = 2
-fit_content = true
 text = "• Military Rifle (Good)
 • Medical Supplies
 • Encrypted Data Chip"
+fit_content = true
 
 [node name="HSeparator3" type="HSeparator" parent="MarginContainer/VBoxContainer"]
 layout_mode = 2
@@ -99,9 +99,9 @@ text = "Roll Status"
 [node name="StatusList" type="RichTextLabel" parent="MarginContainer/VBoxContainer/StatusContainer"]
 unique_name_in_owner = true
 layout_mode = 2
-fit_content = true
 text = "• Patron: Simon - Impressed (+1 Rep)
 • Rival: Black Dragons - No Change"
+fit_content = true
 
 [connection signal="pressed" from="MarginContainer/VBoxContainer/LootContainer/HBoxContainer/RollLootButton" to="." method="_on_roll_loot_pressed"]
 [connection signal="pressed" from="MarginContainer/VBoxContainer/StatusContainer/HBoxContainer/RollStatusButton" to="." method="_on_roll_status_pressed"]

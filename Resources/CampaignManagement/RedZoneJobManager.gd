@@ -7,6 +7,9 @@ extends Node
 var game_state: GameState
 
 func _init(_game_state: GameState) -> void:
+	if not _game_state:
+		push_error("GameState is required for RedZoneJobManager")
+		return
 	game_state = _game_state
 
 func is_red_zone_eligible() -> bool:
@@ -33,32 +36,50 @@ func generate_red_zone_job() -> Mission:
 	return mission
 
 func apply_red_zone_modifiers(mission: Mission) -> void:
+	if not mission:
+		push_error("Mission is required for red zone modifiers")
+		return
+		
 	mission.threat_condition = generate_threat_condition()
 	mission.time_constraint = generate_time_constraint()
 	mission.increased_opposition()
 	mission.improved_rewards()
 
 func generate_threat_condition() -> String:
-	var conditions: Array[String] = [
-		"Comms Interference",
-		"Elite Opposition",
-		"Pitch Black",
-		"Heavy Opposition",
-		"Armored Opponents",
-		"Enemy Captain"
-	]
-	return conditions[randi() % conditions.size()]
+	var condition: GlobalEnums.RedZoneCondition = GlobalEnums.RedZoneCondition.values()[randi() % GlobalEnums.RedZoneCondition.size()]
+	match condition:
+		GlobalEnums.RedZoneCondition.COMMS_INTERFERENCE:
+			return "Comms Interference"
+		GlobalEnums.RedZoneCondition.ELITE_OPPOSITION:
+			return "Elite Opposition"
+		GlobalEnums.RedZoneCondition.PITCH_BLACK:
+			return "Pitch Black"
+		GlobalEnums.RedZoneCondition.HEAVY_OPPOSITION:
+			return "Heavy Opposition"
+		GlobalEnums.RedZoneCondition.ARMORED_OPPONENTS:
+			return "Armored Opponents"
+		GlobalEnums.RedZoneCondition.ENEMY_CAPTAIN:
+			return "Enemy Captain"
+		_:
+			return "Heavy Opposition" # Default case
 
 func generate_time_constraint() -> String:
-	var constraints: Array[String] = [
-		"None",
-		"Reinforcements",
-		"Significant reinforcements",
-		"Count down",
-		"Evac now!",
-		"Elite reinforcements"
-	]
-	return constraints[randi() % constraints.size()]
+	var constraint: GlobalEnums.RedZoneTimeConstraint = GlobalEnums.RedZoneTimeConstraint.values()[randi() % GlobalEnums.RedZoneTimeConstraint.size()]
+	match constraint:
+		GlobalEnums.RedZoneTimeConstraint.NONE:
+			return "None"
+		GlobalEnums.RedZoneTimeConstraint.REINFORCEMENTS:
+			return "Reinforcements"
+		GlobalEnums.RedZoneTimeConstraint.SIGNIFICANT_REINFORCEMENTS:
+			return "Significant reinforcements"
+		GlobalEnums.RedZoneTimeConstraint.COUNT_DOWN:
+			return "Count down"
+		GlobalEnums.RedZoneTimeConstraint.EVAC_NOW:
+			return "Evac now!"
+		GlobalEnums.RedZoneTimeConstraint.ELITE_REINFORCEMENTS:
+			return "Elite reinforcements"
+		_:
+			return "None" # Default case
 
 func generate_black_zone_job() -> Mission:
 	var mission: Mission = generate_red_zone_job()
@@ -66,14 +87,18 @@ func generate_black_zone_job() -> Mission:
 	return mission
 
 func apply_black_zone_modifiers(mission: Mission) -> void:
-	mission.enemy_type = "Roving Threats"
+	if not mission:
+		push_error("Mission is required for black zone modifiers")
+		return
+		
+	mission.enemy_type = GlobalEnums.EnemyType.ROVING_THREATS
 	mission.objective = GlobalEnums.MissionObjective.ELIMINATE
 	mission.setup_black_zone_opposition()
 
 func generate_black_zone_objective() -> String:
 	var objectives: Array[String] = [
 		"Destroy strong point",
-		"Hold against assault",
+		"Hold against assault", 
 		"Eliminate priority target",
 		"Destroy enemy platoon",
 		"Penetrate the lines"
@@ -95,7 +120,12 @@ func generate_quest_rumor() -> void:
 		game_state.add_quest_rumor()
 
 func setup_battlefield() -> void:
-	var battlefield_size := Vector2i(24, 24)  # 24" x 24" battlefield as per rules
+	var battlefield_size := Vector2i(24, 24) # 24" x 24" battlefield as per rules
+	
+	if not game_state.terrain_generator:
+		push_error("Terrain generator not initialized")
+		return
+		
 	game_state.terrain_generator.generate_terrain(battlefield_size)
 	game_state.terrain_generator.generate_features()
 	game_state.terrain_generator.generate_cover()
@@ -108,3 +138,27 @@ func handle_mission_outcome(victory: bool) -> void:
 	if victory:
 		generate_quest_rumor()
 	game_state.process_mission_results(victory)
+
+func _generate_objective() -> String:
+	var objective: GlobalEnums.MissionObjective = GlobalEnums.MissionObjective.values()[randi() % GlobalEnums.MissionObjective.size()]
+	match objective:
+		GlobalEnums.MissionObjective.DESTROY_STRONGPOINT:
+			return "Destroy strong point"
+		GlobalEnums.MissionObjective.HOLD_POSITION:
+			return "Hold against assault"
+		GlobalEnums.MissionObjective.ELIMINATE_TARGET:
+			return "Eliminate priority target"
+		GlobalEnums.MissionObjective.DESTROY_PLATOON:
+			return "Destroy enemy platoon"
+		GlobalEnums.MissionObjective.PENETRATE_LINES:
+			return "Penetrate the lines"
+		GlobalEnums.MissionObjective.SABOTAGE:
+			return "Plant sabotage device"
+		GlobalEnums.MissionObjective.RESCUE:
+			return "Rescue captive"
+		GlobalEnums.MissionObjective.SECURE_INTEL:
+			return "Secure intelligence"
+		GlobalEnums.MissionObjective.CLEAR_ZONE:
+			return "Clear red zone"
+		_:
+			return "Eliminate all opposition"

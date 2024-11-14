@@ -2,7 +2,7 @@
 
 [ext_resource type="Theme" uid="uid://ddjoduj1ya6tp" path="res://assets/5PFH.tres" id="1_nq7n0"]
 [ext_resource type="Script" path="res://Resources/CampaignManagement/TravelPhase.gd" id="2_h665a"]
-[ext_resource type="Script" path="res://Scripts/Locations/StarshipTravelEvents.gd" id="3_stev"]
+[ext_resource type="Script" path="res://Resources/GameData/StarshipTravelEvents.gd" id="3_stev"]
 
 [node name="TravelPhaseUI" type="Control"]
 layout_mode = 3
@@ -24,7 +24,7 @@ grow_vertical = 2
 
 [node name="CenterContainer" type="CenterContainer" parent="."]
 layout_mode = 1
-anchors_preset = 15
+anchors_preset = -1
 anchor_right = 1.0
 anchor_bottom = 0.7
 grow_horizontal = 2
@@ -48,9 +48,11 @@ layout_mode = 2
 [node name="TabContainer" type="TabContainer" parent="CenterContainer/PanelContainer/VBoxContainer"]
 layout_mode = 2
 size_flags_vertical = 3
+current_tab = 0
 
 [node name="Upkeep" type="VBoxContainer" parent="CenterContainer/PanelContainer/VBoxContainer/TabContainer"]
 layout_mode = 2
+metadata/_tab_index = 0
 
 [node name="UpkeepLabel" type="Label" parent="CenterContainer/PanelContainer/VBoxContainer/TabContainer/Upkeep"]
 layout_mode = 2
@@ -66,6 +68,7 @@ text = "Perform Upkeep"
 [node name="Travel" type="VBoxContainer" parent="CenterContainer/PanelContainer/VBoxContainer/TabContainer"]
 visible = false
 layout_mode = 2
+metadata/_tab_index = 1
 
 [node name="TravelLabel" type="Label" parent="CenterContainer/PanelContainer/VBoxContainer/TabContainer/Travel"]
 layout_mode = 2
@@ -107,7 +110,7 @@ text = "Next"
 
 [node name="LogBook" type="RichTextLabel" parent="."]
 layout_mode = 1
-anchors_preset = 12
+anchors_preset = -1
 anchor_top = 0.7
 anchor_right = 1.0
 anchor_bottom = 1.0

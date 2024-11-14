@@ -3,9 +3,8 @@ class_name StoryClock
 extends Resource
 
 signal event_triggered
-
 @export var ticks: int = 0
-@export var event_type: GlobalEnums.StrifeType = GlobalEnums.StrifeType.RESOURCE_CONFLICT
+@export var event_type: GlobalEnums.GlobalEvent = GlobalEnums.GlobalEvent.MARKET_CRASH
 
 func set_ticks(value: int) -> void:
 	ticks = max(0, value)
@@ -28,12 +27,11 @@ func serialize() -> Dictionary:
 		"event_type": GlobalEnums.StrifeType.keys()[event_type]
 	}
 
-static func deserialize(data: Dictionary) -> StoryClock:
+func deserialize(data: Dictionary) -> void:
 	var clock = StoryClock.new()
 	clock.set_ticks(data.get("ticks", 0))
 	if data.has("event_type"):
 		clock.event_type = GlobalEnums.StrifeType[data["event_type"]]
-	return clock
 
 func _init(initial_ticks: int = 0) -> void:
 	ticks = initial_ticks

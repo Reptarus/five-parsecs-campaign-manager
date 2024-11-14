@@ -10,12 +10,50 @@ signal crew_changed(crew: Array[CrewMember])
 signal ship_traveled(from: Location, to: Location)
 signal travel_event_occurred(event: Dictionary)
 
-@export var name: String
-@export var max_hull: int
-@export var current_hull: int
+@export var name: String:
+	get:
+		return name
+	set(value):
+		if value.strip_edges().is_empty():
+			push_error("Ship name cannot be empty")
+			return
+		name = value
+
+@export var max_hull: int = 100:
+	get:
+		return max_hull
+	set(value):
+		max_hull = max(1, value)
+		current_hull = min(current_hull, max_hull)
+
+@export var current_hull: int = 100:
+	get:
+		return current_hull
+	set(value):
+		current_hull = clamp(value, 0, max_hull)
+		hull_changed.emit(current_hull, max_hull)
+
+@export var components: Array[ShipComponent] = []:
+	get:
+		return components
+	set(value):
+		components = value
+		_validate_components()
+
+func _validate_components() -> void:
+	var has_engine := false
+	var has_hull := false
+	for component in components:
+		if component is ShipComponent:
+			if component.component_type == GlobalEnums.ShipComponentType.ENGINE:
+				has_engine = true
+			elif component.component_type == GlobalEnums.ShipComponentType.HULL:
+				has_hull = true
+	if not (has_engine and has_hull):
+		push_warning("Ship missing required components (engine or hull)")
+
 @export var fuel: int
 @export var debt: int
-@export var components: Array[ShipComponent] = []
 @export var traits: Array[String] = []
 
 var inventory: ShipInventory
@@ -33,7 +71,7 @@ func remove_component(component: ShipComponent) -> void:
 	components.erase(component)
 	component_removed.emit(component)
 
-func get_component_by_type(type: GlobalEnums.ComponentType) -> ShipComponent:
+func get_component_by_type(type: GlobalEnums.ShipComponentType) -> ShipComponent:
 	return components.filter(func(c): return c.component_type == type).front()
 
 func set_initial_traits(initial_traits: Array[String]) -> void:
@@ -50,9 +88,11 @@ func repair(amount: int) -> void:
 	hull_changed.emit(current_hull, max_hull)
 	
 func take_damage(amount: int) -> void:
-	if GameStateManager.game_state.is_tutorial_active:
-		amount = max(1, int(amount / 2.0))
-	current_hull = max(current_hull - amount, 0)
+	var game_state_manager := GameStateManager.get_instance()
+	if game_state_manager.game_state.is_tutorial_active:
+		amount = min(amount, 1)
+	
+	current_hull = max(0, current_hull - amount)
 	hull_changed.emit(current_hull, max_hull)
 
 func is_destroyed() -> bool:
@@ -125,13 +165,13 @@ func sort_ship_stash(sort_type: String) -> void:
 	inventory.sort_items(sort_type)
 
 func get_engine() -> EngineComponent:
-	return get_component_by_type(GlobalEnums.ComponentType.ENGINE) as EngineComponent
+	return get_component_by_type(GlobalEnums.ShipComponentType.ENGINE) as EngineComponent
 
 func get_weapons() -> Array[WeaponsComponent]:
 	return components.filter(func(c): return c is WeaponsComponent)
 
 func get_medical_bay() -> MedicalBayComponent:
-	return get_component_by_type(GlobalEnums.ComponentType.MEDICAL_BAY) as MedicalBayComponent
+	return get_component_by_type(GlobalEnums.ShipComponentType.MEDICAL_BAY) as MedicalBayComponent
 
 func get_hull_components() -> Array[HullComponent]:
 	return components.filter(func(c): return c is HullComponent)
@@ -158,14 +198,14 @@ static func deserialize(data: Dictionary) -> Ship:
 	ship.fuel = data["fuel"]
 	ship.debt = data["debt"]
 	ship.components = data["components"].map(func(c):
-		match c["component_type"] as GlobalEnums.ComponentType:
-			GlobalEnums.ComponentType.ENGINE:
+		match c["component_type"]:
+			GlobalEnums.ShipComponentType.ENGINE:
 				return EngineComponent.deserialize(c)
-			GlobalEnums.ComponentType.WEAPONS:
+			GlobalEnums.ShipComponentType.WEAPON:
 				return WeaponsComponent.deserialize(c)
-			GlobalEnums.ComponentType.HULL:
+			GlobalEnums.ShipComponentType.HULL:
 				return HullComponent.deserialize(c)
-			GlobalEnums.ComponentType.MEDICAL_BAY:
+			GlobalEnums.ShipComponentType.MEDICAL_BAY:
 				return MedicalBayComponent.deserialize(c)
 			_:
 				return ShipComponent.deserialize(c)

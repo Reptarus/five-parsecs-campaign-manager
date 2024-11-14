@@ -19,6 +19,7 @@ config/icon="res://icon.svg"
 
 GameStateManager="*res://StateMachines/GameStateManager.gd"
 GlobalEnums="*res://Resources/GameData/GlobalEnums.gd"
+CombatManager="*res://Resources/BattlePhase/CombatManager.gd"
 SaveGame="*res://Resources/GameData/SaveManager.gd"
 
 [display]

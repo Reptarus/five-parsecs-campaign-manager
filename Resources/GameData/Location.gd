@@ -4,9 +4,9 @@ extends Resource
 @export var name: String
 @export var type: GlobalEnums.TerrainType
 @export var faction: GlobalEnums.FactionType
-@export var instability: GlobalEnums.FringeWorldInstability
+@export var instability: int # Instability level from 0-5
 
-var traits: Array[GlobalEnums.WorldTrait] = []
+var traits: Array[String] = [] # World traits as strings
 var available_missions: Array[Mission] = []
 var local_events: Array[Dictionary] = []
 var resources: Dictionary = {}
@@ -14,13 +14,13 @@ var resources: Dictionary = {}
 func _init(location_name: String = "", 
           location_type: GlobalEnums.TerrainType = GlobalEnums.TerrainType.CITY,
           location_faction: GlobalEnums.FactionType = GlobalEnums.FactionType.NEUTRAL,
-          location_instability: GlobalEnums.FringeWorldInstability = GlobalEnums.FringeWorldInstability.NONE) -> void:
+          location_instability: int = 0) -> void:
     name = location_name
     type = location_type
     faction = location_faction
     instability = location_instability
 
-func get_traits() -> Array[GlobalEnums.WorldTrait]:
+func get_traits() -> Array[String]:
     return traits
 
 func serialize() -> Dictionary:
@@ -44,7 +44,7 @@ static func deserialize(data: Dictionary) -> Location:
         data.get("name", ""),
         data.get("type", GlobalEnums.TerrainType.CITY),
         data.get("faction", GlobalEnums.FactionType.NEUTRAL),
-        data.get("instability", GlobalEnums.FringeWorldInstability.NONE)
+        data.get("instability", 0)
     )
     
     location.traits = data.get("traits", [])

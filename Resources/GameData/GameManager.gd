@@ -2,11 +2,12 @@ extends Node
 
 class_name GameManager
 
-signal game_state_changed(new_state: GlobalEnums.CampaignPhase)
+signal game_state_changed(new_state: int)
+signal battlefield_generated(battlefield_data: Dictionary)
 
-const BattlefieldGeneratorScene = preload("res://Resources/BattlePhase/BattlefieldGenerator.gd")
-const GameOverScreenScene = preload("res://Resources/Utilities/GameOverScreen.tscn")
-const GameSettingsResource = preload("res://Resources/GameData/GameSettings.gd")
+const BattlefieldGeneratorScene := preload("res://Resources/BattlePhase/BattlefieldGenerator.gd")
+const GameOverScreenScene := preload("res://Resources/Utilities/GameOverScreen.tscn")
+const GameSettingsResource := preload("res://Resources/GameData/GameSettings.gd")
 
 var game_state: GameState
 var ui_manager: UIManager
@@ -16,7 +17,7 @@ var settings: GameSettingsResource
 var battlefield_generator: BattlefieldGeneratorScene
 
 func _ready() -> void:
-	game_state = GameState.new()
+	game_state.current_state = GlobalEnums.GameState.SETUP
 	ui_manager = UIManager.new()
 	terrain_generator = TerrainGenerator.new()
 	galactic_war_manager = GalacticWarManager.new(game_state)
@@ -24,27 +25,26 @@ func _ready() -> void:
 	settings = load_settings()
 
 func start_new_game() -> void:
-	game_state.current_state = GlobalEnums.CampaignPhase.CREW_CREATION
-	game_state_changed.emit(GlobalEnums.CampaignPhase.CREW_CREATION)
-	ui_manager.change_screen("campaign_setup")
+	game_state.current_state = GlobalEnums.GameState.CAMPAIGN
+	game_state_changed.emit(GlobalEnums.GameState.CAMPAIGN)
+	ui_manager.change_screen(GlobalEnums.ScreenType.CAMPAIGN_SETUP)
 	game_state.crew_size = 5  # Default crew size, can be adjusted
 	galactic_war_manager.initialize_factions()
 
 func start_campaign_turn() -> void:
-	game_state.current_state = GlobalEnums.CampaignPhase.UPKEEP
-	game_state_changed.emit(GlobalEnums.CampaignPhase.UPKEEP)
+	game_state.current_state = GlobalEnums.GameState.CAMPAIGN
+	game_state_changed.emit(GlobalEnums.GameState.CAMPAIGN)
 	game_state.campaign_turn += 1
-	ui_manager.change_screen("world_view")
+	ui_manager.change_screen(GlobalEnums.ScreenType.WORLD_VIEW)
 	# Note: update_mission_list() method is not present in the provided GameState.gd
 	# You may need to implement this method or adjust the logic accordingly
 	galactic_war_manager.process_galactic_war_turn()
 
 func start_mission(mission: Mission) -> void:
 	if mission.start_mission(game_state.current_crew.members):
-		game_state.current_mission = mission
-		game_state.current_state = GlobalEnums.CampaignPhase.MISSION
-		game_state_changed.emit(GlobalEnums.CampaignPhase.MISSION)
-		ui_manager.change_screen("battle")
+		game_state.current_state = GlobalEnums.GameState.BATTLE
+		game_state_changed.emit(GlobalEnums.GameState.BATTLE)
+		ui_manager.change_screen(GlobalEnums.ScreenType.BATTLE)
 		# Note: combat_manager is not present in the provided GameState.gd
 		# You may need to implement this or adjust the logic accordingly
 		generate_battlefield()
@@ -52,9 +52,9 @@ func start_mission(mission: Mission) -> void:
 		ui_manager.show_message("Cannot start mission. Check crew requirements.")
 
 func end_mission(victory: bool) -> void:
-	game_state.current_state = GlobalEnums.CampaignPhase.POST_BATTLE
-	game_state_changed.emit(GlobalEnums.CampaignPhase.POST_BATTLE)
-	ui_manager.change_screen("post_battle")
+	game_state.current_state = GlobalEnums.GameState.CAMPAIGN
+	game_state_changed.emit(GlobalEnums.GameState.CAMPAIGN)
+	ui_manager.change_screen(GlobalEnums.ScreenType.POST_BATTLE)
 	process_mission_results(victory)
 
 func process_mission_results(victory: bool) -> void:
@@ -106,7 +106,8 @@ func sell_equipment(item: Equipment) -> void:
 
 func handle_game_over(victory: bool) -> void:
 	ui_manager.show_game_over_screen(victory)
-	game_state_changed.emit(GlobalEnums.CampaignPhase.MAIN_MENU)
+	game_state.current_state = GlobalEnums.GameState.GAME_OVER
+	game_state_changed.emit(GlobalEnums.GameState.GAME_OVER)
 	SaveGame.change_scene_to_file(GameOverScreenScene)
 
 func generate_battlefield() -> void:
@@ -139,45 +140,43 @@ static func roll_dice(num_dice: int, sides: int) -> int:
 		total += randi() % sides + 1
 	return total
 
-func handle_player_action(action: String, params: Dictionary = {}) -> void:
+func handle_player_action(action: int, params: Dictionary = {}) -> void:
 	match action:
-		"move":
+		GlobalEnums.PlayerAction.MOVE:
 			game_state.combat_manager.handle_move(params.character, params.new_position)
-		"attack":
+		GlobalEnums.PlayerAction.ATTACK:
 			game_state.combat_manager.handle_attack(params.attacker, params.target)
-		"end_turn":
+		GlobalEnums.PlayerAction.END_TURN:
 			game_state.combat_manager.handle_end_turn()
-		# Add more actions as needed
+		_:
+			push_warning("Unhandled player action: %s" % action)
 
 func start_battle(scene_tree: SceneTree) -> void:
 	var battle_scene: PackedScene = preload("res://Resources/BattlePhase/Scenes/Battle.tscn")
 	var battle_instance: Node = battle_scene.instantiate()
 	battle_instance.initialize(game_state, game_state.current_mission)
 	scene_tree.root.add_child(battle_instance)
-	game_state.current_state = GlobalEnums.CampaignPhase.BATTLE
-	game_state_changed.emit(GlobalEnums.CampaignPhase.BATTLE)
+	game_state.current_state = GlobalEnums.GameState.BATTLE
+	game_state_changed.emit(GlobalEnums.GameState.BATTLE)
 
 func start_story_track_tutorial() -> void:
-	# Implement the logic to start the story track tutorial
-	print("Starting story track tutorial")
-	# You might want to load a specific scene or set up the game state for the tutorial
-	game_state.current_state = GlobalEnums.CampaignPhase.STORY_POINT
-	game_state_changed.emit(GlobalEnums.CampaignPhase.STORY_POINT)
-	ui_manager.change_screen("tutorial_story_track")
+	game_state.current_state = GlobalEnums.GameState.CAMPAIGN
+	game_state_changed.emit(GlobalEnums.GameState.CAMPAIGN)
+	ui_manager.change_screen(str(GlobalEnums.ScreenType.TUTORIAL_STORY_TRACK))
 
 func open_compendium() -> void:
-	# Implement the logic to open the compendium
-	print("Opening compendium")
-	# You might want to load a specific scene for the compendium
-	ui_manager.change_screen("compendium")
+	print_debug("Opening compendium")
+	ui_manager.change_screen(str(GlobalEnums.ScreenType.COMPENDIUM))
 
-func save_settings() -> void:
+func save_settings() -> Error:
 	var save_path = "user://settings.tres"
-	ResourceSaver.save(settings, save_path)
+	return ResourceSaver.save(settings, save_path)
 
 func load_settings() -> GameSettingsResource:
 	var save_path = "user://settings.tres"
 	if ResourceLoader.exists(save_path):
-		return ResourceLoader.load(save_path) as GameSettingsResource
-	else:
-		return GameSettingsResource.new()
+		var loaded = ResourceLoader.load(save_path)
+		if loaded is GameSettingsResource:
+			return loaded
+		push_error("Invalid settings resource type")
+	return GameSettingsResource.new()

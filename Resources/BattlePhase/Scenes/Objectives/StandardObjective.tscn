@@ -1,8 +1,0 @@
-[gd_scene load_steps=3 format=3]
-
-[ext_resource type="PackedScene" path="res://Resources/BattlePhase/Scenes/Objectives/ObjectiveMarker.tscn" id="1"]
-
-[node name="StandardObjective" instance=ExtResource("1")]
-
-[node name="MeshInstance3D" parent="." index="1"]
-mesh = SubResource("CylinderMesh_standard") 

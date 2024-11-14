@@ -8,12 +8,12 @@ func _init(_game_state: GameState) -> void:
 
 func _create_base_mission() -> Mission:
     var mission = Mission.new()
-    mission.type = GlobalEnums.Type.OPPORTUNITY
-    mission.objective = GlobalEnums.MissionObjective.FIGHT_OFF
+    mission.type = GlobalEnums.MissionType.OPPORTUNITY
+    mission.objective = GlobalEnums.ObjectiveType.FIGHT_OFF
     mission.deployment_type = GlobalEnums.DeploymentType.LINE
     mission.victory_condition = GlobalEnums.VictoryConditionType.TURNS
     mission.ai_behavior = GlobalEnums.AIBehavior.TACTICAL
-    mission.terrain_type = GlobalEnums.TerrainGenerationType.INDUSTRIAL
+    mission.terrain_type = GlobalEnums.TerrainType.INDUSTRIAL
     
     # Set default values
     mission.difficulty = 1
@@ -37,13 +37,13 @@ func _validate_mission_requirements(mission: Mission) -> bool:
         
     # Check mission type specific requirements
     match mission.type:
-        GlobalEnums.Type.RED_ZONE:
+        GlobalEnums.MissionType.RED_ZONE:
             if not _check_red_zone_requirements():
                 return false
-        GlobalEnums.Type.BLACK_ZONE:
+        GlobalEnums.MissionType.BLACK_ZONE:
             if not _check_black_zone_requirements():
                 return false
-        GlobalEnums.Type.PATRON:
+        GlobalEnums.MissionType.PATRON:
             if not _check_patron_requirements(mission):
                 return false
     
@@ -66,30 +66,30 @@ func _generate_enemy_composition(difficulty: int) -> Array[Enemy]:
     
     for i in range(base_count):
         var enemy_type = _select_enemy_type(difficulty)
-        var enemy = Enemy.new("Enemy " + str(i + 1), enemy_type)
+        var enemy = Enemy.new()
         enemies.append(enemy)
     
     return enemies
 
-func _select_enemy_type(difficulty: int) -> GlobalEnums.AIType:
+func _select_enemy_type(difficulty: int) -> GlobalEnums.EnemyType:
     if difficulty >= 4:
-        return GlobalEnums.AIType.ELITE
+        return GlobalEnums.EnemyType.ELITE
     elif difficulty >= 3:
-        return GlobalEnums.AIType.TACTICAL
+        return GlobalEnums.EnemyType.SPECIALIST
     elif difficulty >= 2:
-        return GlobalEnums.AIType.AGGRESSIVE
+        return GlobalEnums.EnemyType.SUPPORT
     else:
-        return GlobalEnums.AIType.GRUNT
+        return GlobalEnums.EnemyType.GRUNT
 
-func _generate_deployment_type(mission_type: GlobalEnums.Type) -> GlobalEnums.DeploymentType:
+func _generate_deployment_type(mission_type: GlobalEnums.MissionType) -> GlobalEnums.DeploymentType:
     match mission_type:
-        GlobalEnums.Type.ASSASSINATION:
+        GlobalEnums.MissionType.ASSASSINATION:
             return GlobalEnums.DeploymentType.CONCEALED
-        GlobalEnums.Type.SABOTAGE:
+        GlobalEnums.MissionType.SABOTAGE:
             return GlobalEnums.DeploymentType.INFILTRATION
-        GlobalEnums.Type.DEFENSE:
+        GlobalEnums.MissionType.DEFENSE:
             return GlobalEnums.DeploymentType.DEFENSIVE
-        GlobalEnums.Type.ESCORT:
+        GlobalEnums.MissionType.ESCORT:
             return GlobalEnums.DeploymentType.BOLSTERED_LINE
         _:
             return GlobalEnums.DeploymentType.LINE
