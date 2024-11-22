@@ -1,12 +1,12 @@
 [gd_scene load_steps=8 format=3 uid="uid://2o12hsa6g168"]
 
-[ext_resource type="Script" path="res://Scenes/Management/NewCampaignFlow.gd" id="1_script"]
-[ext_resource type="Script" path="res://Scenes/Utils/TutorialManager.gd" id="2_w7qbq"]
+[ext_resource type="Script" path="res://Resources/CampaignManagement/NewCampaignFlow.gd" id="1_script"]
+[ext_resource type="Script" path="res://Resources/GameData/TutorialManager.gd" id="2_w7qbq"]
 [ext_resource type="Script" path="res://Scenes/Scene Container/CrewSizeSelection.gd" id="3_3xjq0"]
-[ext_resource type="Script" path="res://Scenes/Scene Container/campaigncreation/scripts/CharacterCreationScene.gd" id="4_lrtqq"]
-[ext_resource type="Script" path="res://Scenes/Management/CrewManagement.gd" id="5_l4k6d"]
-[ext_resource type="Script" path="res://Scenes/Scene Container/campaigncreation/scripts/CampaignSetupScreen.gd" id="6_2yj0n"]
-[ext_resource type="Theme" uid="uid://d1you1rrwuu48" path="res://Scenes/sci_fi_theme.tres" id="7_theme"]
+[ext_resource type="Script" path="res://Resources/CrewAndCharacters/CharacterCreationScene.gd" id="4_lrtqq"]
+[ext_resource type="Script" path="res://Resources/CampaignManagement/CrewManagement.gd" id="5_l4k6d"]
+[ext_resource type="Script" path="res://Resources/GameData/CampaignSetupScreen.gd" id="6_2yj0n"]
+[ext_resource type="Theme" uid="uid://d1you1rrwuu48" path="res://Resources/Utilities/GameOverScreen.tscn" id="7_theme"]
 
 [node name="NewCampaignFlow" type="Control"]
 layout_mode = 3
