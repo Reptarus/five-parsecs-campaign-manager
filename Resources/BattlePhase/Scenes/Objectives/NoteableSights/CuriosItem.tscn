@@ -1,0 +1,9 @@
+[gd_scene load_steps=2 format=3 uid="uid://cyhnguxwf1s7c"]
+
+[ext_resource type="Texture2D" uid="uid://dff77k8ah3c1" path="res://assets/PNG/Default (64px)/rhombus_question.png" id="1_yabx3"]
+
+[node name="CuriosItem" type="Node2D"]
+
+[node name="RhombusQuestion" type="Sprite2D" parent="."]
+position = Vector2(37, 33)
+texture = ExtResource("1_yabx3")

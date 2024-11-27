@@ -3,12 +3,32 @@ extends Node
 
 var game_state: GameState
 
+# Add object pooling for frequently generated items
+var _item_pool: Array[Item] = []
+const POOL_SIZE := 50
+
 func _init():
 	var potential_game_state = GameStateManager.get_instance().get_game_state()
 	if potential_game_state is GameState:
 		game_state = potential_game_state
 	else:
 		push_error("GameStateManager did not return a valid GameState")
+
+	if OS.get_name() == "Android":
+		_initialize_pool()
+
+func _initialize_pool() -> void:
+	for i in range(POOL_SIZE):
+		var item := Item.new()
+		item.set_meta("in_use", false)
+		_item_pool.append(item)
+
+func get_item() -> Item:
+	for item in _item_pool:
+		if not item.get_meta("in_use"):
+			item.set_meta("in_use", true)
+			return item
+	return Item.new() # Fallback if pool is exhausted
 
 const LootType = GlobalEnums.ItemType
 

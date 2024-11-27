@@ -1,74 +1,162 @@
 class_name CampaignSetupScreen
-extends CampaignResponsiveLayout
+extends Control
 
-# Add class references
-const DifficultyOption = preload("res://Resources/UI/DifficultyOption.gd")
-const VictoryOption = preload("res://Resources/UI/VictoryOption.gd")
-const QuickStartDialog = preload("res://Resources/UI/QuickStartDialog.gd")
+# Constants and preloads at the top
+const VictoryConditionScene := preload("res://Resources/CampaignManagement/Scenes/VictoryConditionSelection.tscn")
+const GlobalEnums := preload("res://Resources/GameData/GlobalEnums.gd")
+const VictoryConditionSelection := preload("res://Resources/CampaignManagement/Scenes/VictoryConditionSelection.tscn")
 
-# Add missing constants
-const TOUCH_BUTTON_HEIGHT := 60
-const PORTRAIT_CONTROLS_HEIGHT_RATIO := 0.3
+const MIN_CREW_SIZE := 3
+const MAX_CREW_SIZE := 8
+const DEFAULT_CREW_SIZE := 4
 
-# Add missing function
-func _adjust_touch_sizes(is_portrait: bool) -> void:
-	var button_height = TOUCH_BUTTON_HEIGHT if is_portrait else TOUCH_BUTTON_HEIGHT * 0.75
-	
-	for control in get_tree().get_nodes_in_group("touch_controls"):
-		control.custom_minimum_size.y = button_height
+# Add touch-specific constants
+const TOUCH_MIN_DRAG_DISTANCE := 10.0
+const TOUCH_BUTTON_SIZE := Vector2(120, 60)
 
-# Add onready variables
-@onready var difficulty_option := $PanelContainer/MarginContainer/VBoxContainer/DifficultyOption as OptionButton
-@onready var victory_option := $PanelContainer/MarginContainer/VBoxContainer/VictoryOption as OptionButton
-@onready var quick_start_button := $PanelContainer/MarginContainer/VBoxContainer/QuickStartButton as Button
+# Signal declarations next
+signal campaign_setup_completed(config: Dictionary)
 
-# Add _ready function
+# Onready variables grouped together with type hints
+@onready var victory_selection: Control = $VictoryConditionSelection
+@onready var victory_type_label: Label = $HBoxContainer/LeftPanel/VBoxContainer/VictoryConditionContainer/VictoryTypeLabel
+@onready var victory_count_label: Label = $HBoxContainer/LeftPanel/VBoxContainer/VictoryConditionContainer/VictoryCountLabel
+@onready var set_victory_button: Button = $HBoxContainer/LeftPanel/VBoxContainer/VictoryConditionContainer/SetVictoryConditionButton
+@onready var crew_name_input: LineEdit = $HBoxContainer/LeftPanel/VBoxContainer/CrewNameInput
+@onready var difficulty_option: OptionButton = $HBoxContainer/LeftPanel/VBoxContainer/DifficultyOptionButton
+@onready var crew_size_slider: HSlider = $HBoxContainer/LeftPanel/VBoxContainer/CrewSizeContainer/HSlider
+@onready var crew_size_label: Label = $HBoxContainer/LeftPanel/VBoxContainer/CrewSizeContainer/CrewSizeLabel
+@onready var start_button: Button = $HBoxContainer/LeftPanel/VBoxContainer/StartCampaignButton
+
+# Campaign configuration with type hints and default values
+var campaign_config: Dictionary = {
+	"crew_name": "",
+	"difficulty": 0,
+	"crew_size": DEFAULT_CREW_SIZE,
+	"victory_condition": GlobalEnums.CampaignVictoryType.NONE,
+	"custom_victory_data": {}
+}
+
+# Update victory descriptions to use GlobalEnums
+const VICTORY_DESCRIPTIONS = {
+	GlobalEnums.CampaignVictoryType.WEALTH_5000: "Accumulate 5000 credits through jobs, trade, and salvage.",
+	GlobalEnums.CampaignVictoryType.REPUTATION_NOTORIOUS: "Become a notorious crew through successful missions and story events.",
+	GlobalEnums.CampaignVictoryType.STORY_COMPLETE: "Complete the 7-stage narrative campaign.",
+	GlobalEnums.CampaignVictoryType.BLACK_ZONE_MASTER: "Successfully complete 3 super-hard Black Zone jobs.",
+	GlobalEnums.CampaignVictoryType.RED_ZONE_VETERAN: "Successfully complete 5 high-risk Red Zone jobs.",
+	GlobalEnums.CampaignVictoryType.QUEST_MASTER: "Complete 10 quests",
+	GlobalEnums.CampaignVictoryType.FACTION_DOMINANCE: "Become dominant in a faction",
+	GlobalEnums.CampaignVictoryType.FLEET_COMMANDER: "Build up a significant fleet"
+}
+
 func _ready() -> void:
-	super._ready()
-	_setup_campaign_options()
+	if not _verify_nodes():
+		push_error("CampaignSetupScreen: Required nodes are missing!")
+		return
+		
+	_setup_ui()
 	_connect_signals()
+	_update_ui_state()
+	
+	if OS.get_name() == "Android":
+		# Increase button sizes for touch
+		for button in get_tree().get_nodes_in_group("touch_buttons"):
+			button.custom_minimum_size = TOUCH_BUTTON_SIZE
+			button.size = TOUCH_BUTTON_SIZE
 
-# Add setup functions
-func _setup_campaign_options() -> void:
-	_setup_difficulty_options()
-	_setup_victory_options()
-	_setup_buttons()
+func _verify_nodes() -> bool:
+	return victory_selection != null and \
+		   victory_type_label != null and \
+		   victory_count_label != null and \
+		   set_victory_button != null and \
+		   crew_name_input != null and \
+		   difficulty_option != null and \
+		   crew_size_slider != null and \
+		   start_button != null
 
-func _setup_difficulty_options() -> void:
-	if difficulty_option:
-		difficulty_option.add_to_group("touch_controls")
-		_populate_difficulty_options()
+func _setup_ui() -> void:
+	# Setup difficulty options
+	for difficulty in GlobalEnums.DifficultyMode.values():
+		difficulty_option.add_item(str(difficulty), difficulty)
+	
+	# Setup crew size slider
+	crew_size_slider.min_value = MIN_CREW_SIZE
+	crew_size_slider.max_value = MAX_CREW_SIZE
+	crew_size_slider.value = DEFAULT_CREW_SIZE
+	
+	# Update initial labels
+	_update_crew_size_label(DEFAULT_CREW_SIZE)
+	
+	# Initialize victory condition UI
+	if victory_selection:
+		victory_selection.hide()
+		victory_type_label.text = "No victory condition selected"
+		victory_count_label.text = ""
 
-func _setup_victory_options() -> void:
-	if victory_option:
-		victory_option.add_to_group("touch_controls")
-		_populate_victory_options()
-
-func _setup_buttons() -> void:
-	if quick_start_button:
-		quick_start_button.add_to_group("touch_buttons")
-		quick_start_button.custom_minimum_size = Vector2(200, TOUCH_BUTTON_HEIGHT)
-
-# Add populate functions
-func _populate_difficulty_options() -> void:
-	if difficulty_option:
-		difficulty_option.clear()
-		for difficulty in GlobalEnums.Difficulty.values():
-			difficulty_option.add_item(GlobalEnums.Difficulty.keys()[difficulty])
-
-func _populate_victory_options() -> void:
-	if victory_option:
-		victory_option.clear()
-		for victory in GlobalEnums.VictoryCondition.values():
-			victory_option.add_item(GlobalEnums.VictoryCondition.keys()[victory])
-
-# Add signal connection function
 func _connect_signals() -> void:
-	if quick_start_button:
-		quick_start_button.pressed.connect(_on_quick_start_pressed)
+	if not _verify_nodes():
+		push_error("Required nodes not found!")
+		return
+	
+	# Basic UI signals - only connect those not in TSCN
+	if crew_name_input:
+		crew_name_input.text_changed.connect(_on_crew_name_changed)
+	if difficulty_option:
+		difficulty_option.item_selected.connect(_on_difficulty_selected)
+	if crew_size_slider:
+		crew_size_slider.value_changed.connect(_on_crew_size_changed)
+	if start_button:
+		start_button.pressed.connect(_on_start_campaign)
+	
+	# Victory selection signals
+	if victory_selection:
+		var victory_selector := victory_selection as VictoryConditionSelection
+		if victory_selector:
+			victory_selector.victory_selected.connect(_on_victory_condition_selected)
+			victory_selector.closed.connect(_on_victory_selection_closed)
 
-# Add signal handler
-func _on_quick_start_pressed() -> void:
-	var selected_difficulty = GlobalEnums.Difficulty[difficulty_option.get_selected_id()]
-	var selected_victory = GlobalEnums.VictoryCondition[victory_option.get_selected_id()]
-	emit_signal("quick_start_selected", selected_difficulty, selected_victory)
+func _on_crew_name_changed(new_name: String) -> void:
+	campaign_config.crew_name = new_name
+	_update_ui_state()
+
+func _on_difficulty_selected(index: int) -> void:
+	var difficulty = difficulty_option.get_item_id(index)
+	campaign_config.difficulty = difficulty
+
+func _on_crew_size_changed(value: float) -> void:
+	campaign_config.crew_size = int(value)
+	_update_crew_size_label(value)
+
+func _update_crew_size_label(size: float) -> void:
+	crew_size_label.text = "Current Crew Size: %d" % int(size)
+
+func _on_set_victory_pressed() -> void:
+	if victory_selection:
+		victory_selection.show()
+
+func _on_victory_condition_selected(condition: GlobalEnums.CampaignVictoryType, custom_data: Dictionary = {}) -> void:
+	campaign_config.victory_condition = condition
+	campaign_config.custom_victory_data = custom_data
+	
+	var description = "Unknown victory condition"
+	if condition == GlobalEnums.CampaignVictoryType.CUSTOM:
+		description = "Custom: %s - Target: %d" % [custom_data.type, custom_data.value]
+	else:
+		description = VICTORY_DESCRIPTIONS.get(condition, "Unknown victory condition")
+	
+	victory_type_label.text = str(condition)
+	victory_count_label.text = description
+	_update_ui_state()
+
+func _on_start_campaign() -> void:
+	campaign_setup_completed.emit(campaign_config)
+
+func _on_victory_selection_closed() -> void:
+	if victory_selection:
+		victory_selection.hide()
+
+func _update_ui_state() -> void:
+	var has_crew_name = campaign_config.crew_name.length() > 0
+	var has_victory_condition = campaign_config.victory_condition != GlobalEnums.CampaignVictoryType.NONE
+	if start_button:
+		start_button.disabled = !has_crew_name || !has_victory_condition

@@ -1,0 +1,10 @@
+[gd_scene load_steps=2 format=3 uid="uid://0biouqg1nfun"]
+
+[ext_resource type="Texture2D" uid="uid://bhjdusfgyolqa" path="res://assets/PNG/Double (128px)/tag_1.png" id="1_h8gc3"]
+
+[node name="EnemyLabel1" type="Node2D"]
+
+[node name="Tag1" type="Sprite2D" parent="."]
+self_modulate = Color(0.968441, 0, 0.222874, 1)
+position = Vector2(63, 66)
+texture = ExtResource("1_h8gc3")

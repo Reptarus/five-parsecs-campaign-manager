@@ -17,6 +17,14 @@ var combat_manager: CombatManager
 var game_state_manager: GameStateManager
 var enemy_deployment_manager: Node  # Will be typed when EnemyDeploymentManager is available
 
+# Add frame budgeting for AI calculations
+const MAX_AI_UPDATES_PER_FRAME := 5
+var _pending_ai_updates: Array[Character] = []
+
+# Add helper functions for AI processing
+var _current_frame_budget: int = 0
+var _last_process_time: float = 0.0
+
 func setup(p_combat_manager: Node, p_game_state_manager: GameStateManager) -> void:
 	if not p_combat_manager or not p_game_state_manager:
 		push_error("Invalid managers provided to AIController")
@@ -117,3 +125,60 @@ func _perform_guardian_actions(character: Character) -> void:
 	var target = combat_manager.find_best_target(character)
 	if target:
 		combat_manager.handle_attack(character, target)
+
+func process_ai_updates() -> void:
+	if OS.get_name() == "Android":
+		var updates_this_frame := 0
+		while not _pending_ai_updates.is_empty() and updates_this_frame < MAX_AI_UPDATES_PER_FRAME:
+			var character = _pending_ai_updates.pop_front()
+			_update_character_ai(character)
+			updates_this_frame += 1
+	else:
+		for character in _pending_ai_updates:
+			_update_character_ai(character)
+		_pending_ai_updates.clear()
+
+func _update_character_ai(character: Character) -> void:
+	if not is_instance_valid(character):
+		return
+		
+	match character.ai_behavior:
+		GlobalEnums.AIBehavior.TACTICAL:
+			_perform_tactical_actions(character)
+		GlobalEnums.AIBehavior.DEFENSIVE:
+			_perform_defensive_actions(character)
+		GlobalEnums.AIBehavior.AGGRESSIVE:
+			_perform_rampage_actions(character)
+		GlobalEnums.AIBehavior.BEAST:
+			_perform_beast_actions(character)
+		GlobalEnums.AIBehavior.GUARDIAN:
+			_perform_guardian_actions(character)
+		_:
+			push_warning("Unknown AI behavior type: %s" % character.ai_behavior)
+
+func queue_ai_update(character: Character) -> void:
+	if not character in _pending_ai_updates:
+		_pending_ai_updates.append(character)
+
+func _reset_frame_budget() -> void:
+	_current_frame_budget = MAX_AI_UPDATES_PER_FRAME
+	_last_process_time = Time.get_ticks_msec()
+
+func has_pending_updates() -> bool:
+	return not _pending_ai_updates.is_empty()
+
+func get_pending_count() -> int:
+	return _pending_ai_updates.size()
+
+# Add performance monitoring
+func _monitor_performance() -> void:
+	var current_time = Time.get_ticks_msec()
+	var frame_time = current_time - _last_process_time
+	
+	# Instead of modifying the constant, store the value in a variable
+	var target_updates = _current_frame_budget
+	if frame_time > 16.67:  # More than 1/60th of a second
+		target_updates = max(1, target_updates - 1)
+	elif frame_time < 8.33:  # Less than 1/120th of a second
+		target_updates = min(10, target_updates + 1)
+	_current_frame_budget = target_updates

@@ -7,11 +7,13 @@ signal equipment_assigned
 
 const PREPARATION_TIME := 3
 const MAX_EQUIPMENT_PER_CHARACTER := 4
+const BATCH_SIZE := 5
 
 var game_state_manager: GameStateManager
 var deployment_manager: Node
 var equipment_manager: EquipmentManager
 var terrain_generator: TerrainGenerator
+var _preparation_queue: Array = []
 
 func _init(_game_state_manager: GameStateManager) -> void:
 	if not _game_state_manager:
@@ -24,6 +26,120 @@ func _initialize_managers() -> void:
 	deployment_manager = load("res://Resources/GameData/EnemyDeploymentManager.gd").new(game_state_manager)
 	equipment_manager = game_state_manager.equipment_manager
 	terrain_generator = TerrainGenerator.new()
+
+func prepare_for_battle() -> void:
+	if OS.get_name() == "Android":
+		_preparation_queue = game_state_manager.get_current_crew().duplicate()
+		_process_preparation_batch()
+	else:
+		_prepare_all_immediately()
+
+func _process_preparation_batch() -> void:
+	var processed := 0
+	while not _preparation_queue.is_empty() and processed < BATCH_SIZE:
+		var character = _preparation_queue.pop_front()
+		_prepare_character(character)
+		processed += 1
+	
+	if not _preparation_queue.is_empty():
+		call_deferred("_process_preparation_batch")
+	else:
+		preparation_complete.emit()
+
+func _prepare_all_immediately() -> void:
+	var crew = game_state_manager.get_current_crew()
+	for character in crew:
+		_prepare_character(character)
+	preparation_complete.emit()
+
+func _prepare_character(character: Character) -> void:
+	if not is_instance_valid(character):
+		return
+		
+	# Assign equipment
+	_assign_equipment(character)
+	
+	# Set initial position
+	_set_initial_position(character)
+	
+	# Update status
+	character.reset_battle_status()
+
+func _assign_equipment(character: Character) -> void:
+	var available_equipment = equipment_manager.get_available_equipment()
+	var assigned_count = 0
+	
+	for item in available_equipment:
+		if assigned_count >= MAX_EQUIPMENT_PER_CHARACTER:
+			break
+			
+		if equipment_manager.can_equip(character, item):
+			equipment_manager.equip_item(character, item)
+			assigned_count += 1
+	
+	equipment_assigned.emit()
+
+func _set_initial_position(character: Character) -> void:
+	var deployment_zone = _get_deployment_zone()
+	var position = _find_valid_position(deployment_zone)
+	character.set_deployment_position(position)
+
+func _get_deployment_zone() -> Rect2:
+	var mission = game_state_manager.get_current_mission()
+	var map_data = terrain_generator.get_map_data()
+	
+	match mission.deployment_type:
+		GlobalEnums.DeploymentType.LINE:
+			return Rect2(0, 0, 2, map_data.height)
+		GlobalEnums.DeploymentType.SCATTERED:
+			return Rect2(0, 0, 4, map_data.height)
+		GlobalEnums.DeploymentType.DEFENSIVE:
+			return Rect2(0, map_data.height/4, 3, map_data.height/2)
+		_:
+			return Rect2(0, 0, 2, map_data.height)
+
+func _find_valid_position(zone: Rect2) -> Vector2:
+	var attempts = 0
+	var position = Vector2.ZERO
+	
+	while attempts < 10:
+		position = Vector2(
+			randf_range(zone.position.x, zone.end.x),
+			randf_range(zone.position.y, zone.end.y)
+		)
+		
+		if _is_position_valid(position):
+			return position
+		attempts += 1
+	
+	return _find_fallback_position(zone)
+
+func _is_position_valid(position: Vector2) -> bool:
+	# Check if position is occupied or blocked
+	var map_data = terrain_generator.get_map_data()
+	if not map_data.is_within_bounds(position):
+		return false
+		
+	if map_data.is_blocked(position):
+		return false
+		
+	for character in game_state_manager.get_current_crew():
+		if character.deployment_position.distance_to(position) < 1.0:
+			return false
+			
+	return true
+
+func _find_fallback_position(zone: Rect2) -> Vector2:
+	# Simple fallback: return center of deployment zone
+	return Vector2(
+		zone.position.x + zone.size.x / 2,
+		zone.position.y + zone.size.y / 2
+	)
+
+func get_preparation_progress() -> float:
+	var total_crew = game_state_manager.get_current_crew().size()
+	var remaining = _preparation_queue.size()
+	return 1.0 - (float(remaining) / float(total_crew))
 
 func prepare_battle(mission: Mission) -> void:
 	if not validate_mission(mission):

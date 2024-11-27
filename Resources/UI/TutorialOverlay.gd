@@ -2,6 +2,8 @@ class_name TutorialOverlay
 extends CanvasLayer
 
 signal overlay_clicked(position: Vector2)
+signal tutorial_step_completed(step_id: String)
+signal tutorial_track_completed
 
 const HIGHLIGHT_COLOR := Color(1, 1, 0, 0.3)
 const HIGHLIGHT_BORDER_COLOR := Color(1, 1, 0, 0.8)

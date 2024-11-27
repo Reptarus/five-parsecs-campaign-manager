@@ -19,6 +19,8 @@ var events: Array[StoryEvent] = []
 var current_event_index: int = -1
 var story_points: int = 0
 var milestones_reached: Array[int] = []
+var _event_data: Dictionary = {}
+var _is_initialized: bool = false
 
 func _init() -> void:
 	story_clock = StoryClock.new()
@@ -27,17 +29,29 @@ func initialize(gsm: GameStateManager) -> void:
 	game_state_manager = gsm
 	internal_state = gsm.game_state
 	story_clock = StoryClock.new()
+	if _is_initialized:
+		return
+		
 	_load_events()
+	_is_initialized = true
 	current_event_index = -1
 
 func _load_events() -> void:
-	var file = FileAccess.open("res://Data/story_events.json", FileAccess.READ)
-	if file:
-		var event_data: Array = JSON.parse_string(file.get_as_text())
+	if FileAccess.file_exists("res://Data/story_events.json"):
+		var file = FileAccess.open("res://Data/story_events.json", FileAccess.READ)
+		var json = JSON.new()
+		var parse_result = json.parse(file.get_as_text())
 		file.close()
-		events = event_data.map(func(data): return StoryEvent.new(data))
+		
+		if parse_result == OK:
+			_event_data = json.get_data()
+			events = []
+			for data in _event_data:
+				events.append(StoryEvent.new(data))
+		else:
+			push_error("Failed to parse story events file")
 	else:
-		push_error("Failed to load story events file.")
+		push_error("Story events file not found")
 
 func start_tutorial() -> void:
 	current_event_index = 0
@@ -103,3 +117,9 @@ func deserialize(data: Dictionary) -> void:
 	current_event_index = data.get("current_event_index", -1)
 	if data.has("story_clock"):
 		story_clock.deserialize(data["story_clock"])
+
+func cleanup() -> void:
+	if _is_initialized:
+		_event_data.clear()
+		events.clear()
+		_is_initialized = false

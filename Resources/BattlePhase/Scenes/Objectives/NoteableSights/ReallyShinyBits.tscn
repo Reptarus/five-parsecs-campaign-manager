@@ -1,0 +1,9 @@
+[gd_scene load_steps=2 format=3 uid="uid://b05w6iijgfkde"]
+
+[ext_resource type="Texture2D" uid="uid://do54q87e38i15" path="res://assets/PNG/Default (64px)/crown_b.png" id="1_3do1a"]
+
+[node name="ReallyShinyBits" type="Node2D"]
+
+[node name="CrownB" type="Sprite2D" parent="."]
+position = Vector2(30, 29)
+texture = ExtResource("1_3do1a")

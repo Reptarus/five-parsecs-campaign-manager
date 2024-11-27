@@ -1,0 +1,3 @@
+[gd_scene format=3 uid="uid://i00x3d551lc7"]
+
+[node name="ClimbableTerrain" type="Node2D"]

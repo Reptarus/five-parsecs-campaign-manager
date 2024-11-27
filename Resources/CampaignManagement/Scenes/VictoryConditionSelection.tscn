@@ -11,33 +11,72 @@ grow_horizontal = 2
 grow_vertical = 2
 script = ExtResource("1_script")
 
-[node name="VBoxContainer" type="VBoxContainer" parent="."]
+[node name="ColorRect" type="ColorRect" parent="."]
 layout_mode = 1
 anchors_preset = 15
 anchor_right = 1.0
 anchor_bottom = 1.0
 grow_horizontal = 2
 grow_vertical = 2
-alignment = 1
+color = Color(0, 0, 0, 0.7)
 
-[node name="TitleLabel" type="Label" parent="VBoxContainer"]
+[node name="CenterContainer" type="CenterContainer" parent="."]
+layout_mode = 1
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+
+[node name="PanelContainer" type="PanelContainer" parent="CenterContainer"]
+custom_minimum_size = Vector2(400, 500)
 layout_mode = 2
+
+[node name="VBoxContainer" type="VBoxContainer" parent="CenterContainer/PanelContainer"]
+layout_mode = 2
+theme_override_constants/separation = 10
+
+[node name="HeaderContainer" type="HBoxContainer" parent="CenterContainer/PanelContainer/VBoxContainer"]
+layout_mode = 2
+
+[node name="TitleLabel" type="Label" parent="CenterContainer/PanelContainer/VBoxContainer/HeaderContainer"]
+layout_mode = 2
+size_flags_horizontal = 3
 text = "Select Victory Condition"
 horizontal_alignment = 1
 
-[node name="ConditionList" type="ItemList" parent="VBoxContainer"]
+[node name="CloseButton" type="Button" parent="CenterContainer/PanelContainer/VBoxContainer/HeaderContainer"]
+layout_mode = 2
+text = "X"
+
+[node name="ConditionList" type="ItemList" parent="CenterContainer/PanelContainer/VBoxContainer"]
 layout_mode = 2
 size_flags_vertical = 3
 auto_height = true
 
-[node name="DescriptionLabel" type="Label" parent="VBoxContainer"]
+[node name="DescriptionLabel" type="Label" parent="CenterContainer/PanelContainer/VBoxContainer"]
 layout_mode = 2
 text = "Select a victory condition"
 autowrap_mode = 3
 
-[node name="SelectButton" type="Button" parent="VBoxContainer"]
+[node name="SelectButton" type="Button" parent="CenterContainer/PanelContainer/VBoxContainer"]
 layout_mode = 2
 text = "Confirm Selection"
 
-[connection signal="item_selected" from="VBoxContainer/ConditionList" to="." method="_on_condition_selected"]
-[connection signal="pressed" from="VBoxContainer/SelectButton" to="." method="_on_select_pressed"]
+[node name="CategoryList" type="ItemList" parent="CenterContainer/PanelContainer/VBoxContainer"]
+layout_mode = 2
+size_flags_vertical = 3
+auto_height = true
+
+[node name="CustomContainer" type="VBoxContainer" parent="CenterContainer/PanelContainer/VBoxContainer"]
+layout_mode = 2
+
+[node name="CustomTypeOption" type="OptionButton" parent="CenterContainer/PanelContainer/VBoxContainer/CustomContainer"]
+layout_mode = 2
+
+[node name="CustomValueSpin" type="SpinBox" parent="CenterContainer/PanelContainer/VBoxContainer/CustomContainer"]
+layout_mode = 2
+
+[connection signal="pressed" from="CenterContainer/PanelContainer/VBoxContainer/HeaderContainer/CloseButton" to="." method="_on_close_button_pressed"]
+[connection signal="item_selected" from="CenterContainer/PanelContainer/VBoxContainer/ConditionList" to="." method="_on_condition_selected"]
+[connection signal="pressed" from="CenterContainer/PanelContainer/VBoxContainer/SelectButton" to="." method="_on_select_pressed"]

@@ -1,0 +1,9 @@
+[gd_scene load_steps=2 format=3 uid="uid://dxr0aqjyt1nbg"]
+
+[ext_resource type="Texture2D" uid="uid://c0e76ofu0tclm" path="res://assets/PNG/Default (64px)/character.png" id="1_d21vg"]
+
+[node name="PersonOfInterest" type="Node2D"]
+
+[node name="Character" type="Sprite2D" parent="."]
+position = Vector2(29, 31)
+texture = ExtResource("1_d21vg")

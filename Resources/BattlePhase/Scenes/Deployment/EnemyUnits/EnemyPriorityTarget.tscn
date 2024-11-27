@@ -1,0 +1,9 @@
+[gd_scene load_steps=2 format=3 uid="uid://bd7apjh5qndjg"]
+
+[ext_resource type="Texture2D" uid="uid://d1xllikp0o4g0" path="res://assets/PNG/Double (128px)/tag_d6_cross.png" id="1_muhbs"]
+
+[node name="EnemyPriorityTarget" type="Node2D"]
+
+[node name="TagD6Cross" type="Sprite2D" parent="."]
+position = Vector2(64, 63)
+texture = ExtResource("1_muhbs")

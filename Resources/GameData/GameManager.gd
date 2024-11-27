@@ -16,6 +16,41 @@ var galactic_war_manager: GalacticWarManager
 var settings: GameSettingsResource
 var battlefield_generator: BattlefieldGeneratorScene
 
+# Add deferred loading variables
+var _scenes_to_load: Dictionary = {}
+var _is_initialized: bool = false
+
+# Add deferred loading for heavy resources
+var _loaded_resources := {}
+var _loading_queue := []
+
+func _init() -> void:
+	# Defer heavy resource loading
+	_scenes_to_load = {
+		"battlefield": "res://Resources/BattlePhase/Scenes/Battle.tscn",
+		"game_over": "res://Resources/Utilities/GameOverScreen.tscn",
+		"pre_battle": "res://Resources/BattlePhase/PreBattle.tscn"
+	}
+
+func initialize() -> void:
+	if _is_initialized:
+		return
+	
+	for key in _scenes_to_load:
+		var scene = load(_scenes_to_load[key])
+		if scene:
+			_scenes_to_load[key] = scene
+		else:
+			push_error("Failed to load scene: " + _scenes_to_load[key])
+	
+	_is_initialized = true
+
+# Add cleanup method
+func cleanup() -> void:
+	if _is_initialized:
+		_scenes_to_load.clear()
+		_is_initialized = false
+
 func _ready() -> void:
 	game_state.current_state = GlobalEnums.GameState.SETUP
 	ui_manager = UIManager.new()
@@ -180,3 +215,27 @@ func load_settings() -> GameSettingsResource:
 			return loaded
 		push_error("Invalid settings resource type")
 	return GameSettingsResource.new()
+
+func load_resource(path: String) -> void:
+	if OS.get_name() == "Android":
+		if not path in _loading_queue:
+			_loading_queue.append(path)
+			_process_loading_queue()
+	else:
+		return ResourceLoader.load(path)
+
+func _process_loading_queue() -> void:
+	if _loading_queue.is_empty():
+		return
+		
+	var path = _loading_queue[0]
+	var status = ResourceLoader.load_threaded_get_status(path)
+	
+	match status:
+		ResourceLoader.THREAD_LOAD_LOADED:
+			_loaded_resources[path] = ResourceLoader.load_threaded_get(path)
+			_loading_queue.pop_front()
+		ResourceLoader.THREAD_LOAD_IN_PROGRESS:
+			pass # Still loading
+		_:
+			_loading_queue.pop_front() # Error occurred

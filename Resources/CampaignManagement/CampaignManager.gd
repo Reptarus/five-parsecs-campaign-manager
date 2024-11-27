@@ -3,6 +3,7 @@ extends Node  # Add this line at the top of your script
 
 signal phase_changed(new_phase: GlobalEnums.CampaignPhase)
 signal turn_completed
+signal campaign_victory_achieved(victory_type: GlobalEnums.CampaignVictoryType)
 
 var game_state: GameState
 var current_phase: GlobalEnums.CampaignPhase = GlobalEnums.CampaignPhase.UPKEEP
@@ -11,21 +12,51 @@ var story_track: StoryTrack
 var save_manager: SaveManager
 var save_load_ui: Control
 
+# Add new variables for deferred loading
+var _save_load_ui_scene: PackedScene
+var _is_initialized: bool = false
+
 func _init(_game_state: GameState) -> void:
     game_state = _game_state
     story_track = StoryTrack.new()
     save_manager = SaveManager.new()
-    save_load_ui = preload("res://Resources/Utilities/SaveLoadUI.tscn").instantiate()
-    save_load_ui.hide()
+    # Defer scene loading
+    _save_load_ui_scene = load("res://Resources/Utilities/SaveLoadUI.tscn")
+    
+    # Remove immediate instantiation
+    save_load_ui = null
+
+# Add initialization method to be called after engine is ready
+func initialize() -> void:
+    if _is_initialized:
+        return
+        
+    if _save_load_ui_scene:
+        save_load_ui = _save_load_ui_scene.instantiate()
+        save_load_ui.hide()
+        add_child(save_load_ui)
+    else:
+        push_error("Failed to load SaveLoadUI scene")
+    
+    _is_initialized = true
 
 func start_new_turn(main_scene: Node) -> void:
+    # Add validation
+    if not is_instance_valid(main_scene):
+        push_error("Invalid main scene provided")
+        return
+        
     game_state.current_turn += 1
     game_state.reset_turn_specific_data()
     
     var turn_summary = create_campaign_turn_summary()
     game_state.logbook.add_entry(turn_summary)
     
-    show_save_load_ui()  # This will now handle autosaving
+    # Add validation before showing UI
+    if _is_initialized and is_instance_valid(save_load_ui):
+        show_save_load_ui()
+    else:
+        push_warning("SaveLoadUI not initialized, skipping autosave")
     
     if game_state.is_tutorial_active:
         start_tutorial_phase(main_scene)
@@ -141,6 +172,7 @@ func handle_post_mission() -> Dictionary:
 
 func end_turn() -> void:
     game_state.advance_turn()
+    check_victory_conditions()
     turn_completed.emit()
     var current_scene = get_tree().current_scene
     if current_scene:
@@ -190,3 +222,15 @@ func progress_story(phase: GlobalEnums.CampaignPhase) -> void:
         story_track.progress_story(phase)
     else:
         push_warning("Story track not initialized.")
+
+func check_victory_conditions() -> void:
+    var game_state_manager = GameStateManager.get_instance()
+    if game_state_manager.check_campaign_victory_condition():
+        campaign_victory_achieved.emit(game_state_manager.campaign_victory_condition)
+
+# Add cleanup method for Android lifecycle management
+func cleanup() -> void:
+    if is_instance_valid(save_load_ui):
+        save_load_ui.queue_free()
+        save_load_ui = null
+    _is_initialized = false

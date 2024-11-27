@@ -1,18 +1,11 @@
 class_name TutorialStateMachine
 extends Node
 
-signal state_changed(state: TutorialState)
+const GlobalEnums := preload("res://Resources/GameData/GlobalEnums.gd")
 
-enum TutorialState {
-    INACTIVE,
-    QUICK_START,
-    ADVANCED,
-    BATTLE_TUTORIAL,
-    CAMPAIGN_TUTORIAL,
-    COMPLETED
-}
+signal state_changed(state: int)
 
-var current_state: TutorialState = TutorialState.INACTIVE
+var current_state: int = GlobalEnums.TutorialType.QUICK_START
 var tutorial_manager: GameTutorialManager
 var game_state: GameState
 
@@ -23,36 +16,36 @@ func _init(_game_state: GameState) -> void:
 func start_tutorial(type: GameTutorialManager.TutorialTrack) -> void:
     match type:
         GameTutorialManager.TutorialTrack.QUICK_START:
-            transition_to(TutorialState.QUICK_START)
+            transition_to(GlobalEnums.TutorialType.QUICK_START)
         GameTutorialManager.TutorialTrack.ADVANCED:
-            transition_to(TutorialState.ADVANCED)
+            transition_to(GlobalEnums.TutorialType.ADVANCED)
         _:
             push_error("Invalid tutorial type")
 
-func transition_to(new_state: TutorialState) -> void:
+func transition_to(new_state: int) -> void:
     # Exit current state
     match current_state:
-        TutorialState.QUICK_START:
+        GlobalEnums.TutorialType.QUICK_START:
             _exit_quick_start()
-        TutorialState.ADVANCED:
+        GlobalEnums.TutorialType.ADVANCED:
             _exit_advanced()
-        TutorialState.BATTLE_TUTORIAL:
+        GlobalEnums.TutorialType.BATTLE_TUTORIAL:
             _exit_battle_tutorial()
-        TutorialState.CAMPAIGN_TUTORIAL:
+        GlobalEnums.TutorialType.CAMPAIGN_TUTORIAL:
             _exit_campaign_tutorial()
 
     # Enter new state
     current_state = new_state
     match new_state:
-        TutorialState.QUICK_START:
+        GlobalEnums.TutorialType.QUICK_START:
             _enter_quick_start()
-        TutorialState.ADVANCED:
+        GlobalEnums.TutorialType.ADVANCED:
             _enter_advanced()
-        TutorialState.BATTLE_TUTORIAL:
+        GlobalEnums.TutorialType.BATTLE_TUTORIAL:
             _enter_battle_tutorial()
-        TutorialState.CAMPAIGN_TUTORIAL:
+        GlobalEnums.TutorialType.CAMPAIGN_TUTORIAL:
             _enter_campaign_tutorial()
-        TutorialState.COMPLETED:
+        GlobalEnums.TutorialType.COMPLETED:
             _complete_tutorial()
 
     state_changed.emit(current_state)
@@ -113,7 +106,7 @@ func _enter_story_tutorial() -> void:
     
     # Set up tutorial mission
     var mission_setup = {
-        "type": GlobalEnums.Type.TUTORIAL,
+        "type": GlobalEnums.MissionType.TUTORIAL,
         "story_elements": layout.story_elements,
         "battlefield": layout.terrain,
         "objectives": layout.objectives,

@@ -57,18 +57,20 @@ placeholder_text = "Enter Crew Name"
 [node name="DifficultyOptionButton" type="OptionButton" parent="HBoxContainer/LeftPanel/VBoxContainer"]
 layout_mode = 2
 
-[node name="VictoryConditionContainer" type="HBoxContainer" parent="HBoxContainer/LeftPanel/VBoxContainer"]
-layout_mode = 2
-
-[node name="VictoryTypeLabel" type="Label" parent="HBoxContainer/LeftPanel/VBoxContainer/VictoryConditionContainer"]
-layout_mode = 2
-
-[node name="VictoryCountLabel" type="Label" parent="HBoxContainer/LeftPanel/VBoxContainer/VictoryConditionContainer"]
+[node name="VictoryConditionContainer" type="VBoxContainer" parent="HBoxContainer/LeftPanel/VBoxContainer"]
 layout_mode = 2
 
 [node name="SetVictoryConditionButton" type="Button" parent="HBoxContainer/LeftPanel/VBoxContainer/VictoryConditionContainer"]
 layout_mode = 2
 text = "Set Victory Condition"
+
+[node name="VictoryTypeLabel" type="Label" parent="HBoxContainer/LeftPanel/VBoxContainer/VictoryConditionContainer"]
+layout_mode = 2
+text = "No victory condition selected"
+
+[node name="VictoryCountLabel" type="Label" parent="HBoxContainer/LeftPanel/VBoxContainer/VictoryConditionContainer"]
+layout_mode = 2
+autowrap_mode = 3
 
 [node name="CrewSizeContainer" type="VBoxContainer" parent="HBoxContainer/LeftPanel/VBoxContainer"]
 layout_mode = 2
@@ -84,7 +86,7 @@ max_value = 10.0
 value = 3.0
 rounded = true
 
-[node name="CurrentSizeLabel" type="Label" parent="HBoxContainer/LeftPanel/VBoxContainer/CrewSizeContainer"]
+[node name="CrewSizeLabel" type="Label" parent="HBoxContainer/LeftPanel/VBoxContainer/CrewSizeContainer"]
 layout_mode = 2
 text = "Current Crew Size: 3"
 
@@ -154,5 +156,6 @@ script = null
 
 [connection signal="text_changed" from="HBoxContainer/LeftPanel/VBoxContainer/CrewNameInput" to="." method="_on_crew_name_input_text_changed"]
 [connection signal="item_selected" from="HBoxContainer/LeftPanel/VBoxContainer/DifficultyOptionButton" to="." method="_on_difficulty_option_button_item_selected"]
+[connection signal="pressed" from="HBoxContainer/LeftPanel/VBoxContainer/VictoryConditionContainer/SetVictoryConditionButton" to="." method="_on_set_victory_pressed"]
 [connection signal="value_changed" from="HBoxContainer/LeftPanel/VBoxContainer/CrewSizeContainer/HSlider" to="." method="_on_crew_size_slider_value_changed"]
 [connection signal="pressed" from="HBoxContainer/LeftPanel/VBoxContainer/StartCampaignButton" to="." method="_on_start_campaign_button_pressed"]

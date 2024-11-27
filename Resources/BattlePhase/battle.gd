@@ -38,6 +38,10 @@ var is_tutorial_battle: bool = false
 var tutorial_step: int = 0
 var tutorial_objectives: Array[String] = []
 
+# Add resource management
+var _battle_resources: Dictionary = {}
+var _is_initialized: bool = false
+
 func _ready() -> void:
 	initialize_from_autoload()
 	setup_signals()
@@ -64,24 +68,35 @@ func initialize_from_autoload() -> void:
 	is_tutorial_battle = current_mission.mission_type == GlobalEnums.MissionType.TUTORIAL
 
 func initialize(game_state_manager: GameStateManager, mission: Mission) -> void:
+	if _is_initialized:
+		return
+		
 	self.game_state_manager = game_state_manager
 	current_mission = mission
-	is_tutorial_battle = mission.mission_type == GlobalEnums.MissionType.TUTORIAL
 	
-	if not battle_system:
-		battle_system = BattleSystem.new(game_state_manager.game_state)
-		add_child(battle_system)
+	_battle_resources = {
+		"battle_system": BattleSystem.new(game_state_manager.game_state),
+		"combat_manager": game_state_manager.combat_manager,
+		"ai_controller": $AIController
+	}
 	
-	if not combat_manager:
-		combat_manager = game_state_manager.combat_manager
-	
-	if not ai_controller:
-		ai_controller = $AIController
-		if not ai_controller:
-			push_error("Failed to get AIController")
-			return
-	
+	if not _validate_resources():
+		push_error("Failed to initialize battle resources")
+		return
+		
 	setup_battle()
+	_is_initialized = true
+
+func cleanup() -> void:
+	if _is_initialized:
+		for resource in _battle_resources.values():
+			if is_instance_valid(resource):
+				resource.queue_free()
+		_battle_resources.clear()
+		_is_initialized = false
+
+func _validate_resources() -> bool:
+	return _battle_resources.values().all(func(resource): return is_instance_valid(resource))
 
 # UI Setup and Management
 

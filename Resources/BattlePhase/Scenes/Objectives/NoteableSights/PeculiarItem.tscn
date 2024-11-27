@@ -1,0 +1,9 @@
+[gd_scene load_steps=2 format=3 uid="uid://ba0v3i23f5ba1"]
+
+[ext_resource type="Texture2D" uid="uid://by86oaorp36sc" path="res://assets/PNG/Default (64px)/dice_question.png" id="1_o1oxd"]
+
+[node name="PeculiarItem" type="Node2D"]
+
+[node name="DiceQuestion" type="Sprite2D" parent="."]
+position = Vector2(26, 28)
+texture = ExtResource("1_o1oxd")

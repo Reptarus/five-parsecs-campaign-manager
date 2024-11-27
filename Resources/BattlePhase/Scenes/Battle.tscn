@@ -1,9 +1,10 @@
-[gd_scene load_steps=5 format=3 uid="uid://chritb40fko8m"]
+[gd_scene load_steps=6 format=3 uid="uid://chritb40fko8m"]
 
 [ext_resource type="Script" path="res://Resources/BattlePhase/battle.gd" id="1_e8bb3"]
 [ext_resource type="Script" path="res://Resources/BattlePhase/CombatManager.gd" id="2_f9g7h"]
 [ext_resource type="Script" path="res://Resources/BattlePhase/BattlefieldGenerator.gd" id="3_k9l2m"]
 [ext_resource type="Script" path="res://Resources/GameData/AIController.gd" id="4_l9m3n"]
+[ext_resource type="Texture2D" uid="uid://do14t76dea7ds" path="res://assets/PNG/Grid.png" id="5_8okkq"]
 
 [node name="Battle" type="Node2D"]
 script = ExtResource("1_e8bb3")
@@ -19,8 +20,7 @@ script = ExtResource("4_l9m3n")
 
 [node name="Battlefield" type="Node2D" parent="."]
 
-[node name="TileMap" type="TileMap" parent="Battlefield"]
-format = 2
+[node name="TileMap" type="TileMapLayer" parent="Battlefield"]
 
 [node name="Units" type="Node2D" parent="Battlefield"]
 
@@ -29,6 +29,21 @@ format = 2
 [node name="Highlights" type="Node2D" parent="Battlefield"]
 
 [node name="BattleGrid" type="GridContainer" parent="Battlefield"]
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+offset_left = -227.0
+offset_top = -168.0
+offset_right = 1618.0
+offset_bottom = 1073.0
+grow_horizontal = 2
+grow_vertical = 2
+size_flags_horizontal = 3
+size_flags_vertical = 3
+
+[node name="TextureRect" type="TextureRect" parent="Battlefield/BattleGrid"]
+layout_mode = 2
+texture = ExtResource("5_8okkq")
 
 [node name="UI" type="CanvasLayer" parent="."]
 

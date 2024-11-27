@@ -1,0 +1,9 @@
+[gd_scene load_steps=2 format=3 uid="uid://ceo2voo2y51c5"]
+
+[ext_resource type="Texture2D" uid="uid://cnivgogihdmxl" path="res://assets/PNG/Default (64px)/pouch.png" id="1_gv6np"]
+
+[node name="ShinyBits" type="Node2D"]
+
+[node name="Pouch" type="Sprite2D" parent="."]
+position = Vector2(26, 32)
+texture = ExtResource("1_gv6np")

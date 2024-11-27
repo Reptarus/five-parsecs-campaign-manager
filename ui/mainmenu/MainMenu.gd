@@ -11,12 +11,17 @@ const NewCampaignTutorial = preload("res://Resources/CampaignManagement/Scenes/N
 @onready var bug_hunt_button: Button = $MenuButtons/BugHunt
 @onready var options_button: Button = $MenuButtons/Options
 @onready var library_button: Button = $MenuButtons/Library
-@onready var tutorial_popup: PopupPanel = $TutorialPopup
+@onready var tutorial_popup: Panel = $TutorialPopup
 
 var game_state_manager: GameStateManager
 
 func _ready() -> void:
 	setup_ui()
+	game_state_manager = get_node("/root/GameStateManager")
+	if not game_state_manager:
+		push_error("GameStateManager not found")
+		return
+		
 	call_deferred("initialize_game_systems")
 	tutorial_popup.hide()
 	_connect_tutorial_signals()
@@ -36,6 +41,8 @@ func _connect_tutorial_signals() -> void:
 	for button_name in buttons:
 		var button: Button = tutorial_container.get_node_or_null(button_name)
 		if button:
+			if button.is_connected("pressed", _on_tutorial_popup_button_pressed):
+				button.pressed.disconnect(_on_tutorial_popup_button_pressed)
 			button.pressed.connect(_on_tutorial_popup_button_pressed.bind(buttons[button_name]))
 
 func setup_ui():
@@ -90,14 +97,21 @@ func _on_new_campaign_pressed():
 	else:
 		_show_tutorial_popup()
 
-func _show_tutorial_popup():
-	tutorial_popup.show()
-	# Center the popup
-	tutorial_popup.position = (Vector2(get_viewport_rect().size) - Vector2(tutorial_popup.size)) / 2
+func _show_tutorial_popup() -> void:
+	if not tutorial_popup:
+		push_error("Tutorial popup not found")
+		return
+		
+	# Reset checkbox state
+	var checkbox = tutorial_popup.get_node_or_null("VBoxContainer/DisableTutorialCheckbox")
+	if checkbox:
+		checkbox.button_pressed = game_state_manager.settings.get("disable_tutorial_popup", false)
+	
+	tutorial_popup.visible = true
 
 func _change_to_new_campaign_scene():
 	game_state_manager.start_new_game()
-	transition_to_scene("res://Scenes/Scene Container/campaigncreation/scenes/CampaignSetupScreen.tscn")
+	transition_to_scene("res://Resources/CampaignManagement/Scenes/CampaignSetupScreen.tscn")
 
 func _on_coop_campaign_pressed():
 	_show_not_implemented_message("Co-op Campaign (Work in Progress)")
@@ -154,7 +168,7 @@ func transition_to_scene(scene_path):
 
 # Add this new function to handle the tutorial popup buttons
 func _on_tutorial_popup_button_pressed(choice: String):
-	tutorial_popup.hide()
+	tutorial_popup.visible = false
 	_on_tutorial_choice_made(choice)
 
 # Re-enable and update the tutorial toggle function

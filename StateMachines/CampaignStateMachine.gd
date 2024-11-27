@@ -17,25 +17,38 @@ func initialize(gsm: GameStateManager) -> void:
 
 func transition_to(new_state: int) -> void:
 	current_state = new_state
+	
+	# Check victory conditions before handling new state
+	if game_state_manager.check_campaign_victory_condition():
+		return  # Don't proceed with state transition if victory achieved
+	
 	match new_state:
 		GlobalEnums.CampaignPhase.UPKEEP:
 			handle_upkeep()
 		GlobalEnums.CampaignPhase.TRAVEL:
 			handle_travel()
+			state_changed.emit(GlobalEnums.CampaignPhase.TRAVEL)
 		GlobalEnums.CampaignPhase.PATRONS:
 			handle_patrons()
+			state_changed.emit(GlobalEnums.CampaignPhase.PATRONS)
 		GlobalEnums.CampaignPhase.POST_BATTLE:
 			handle_post_battle()
+			state_changed.emit(GlobalEnums.CampaignPhase.POST_BATTLE)
 		GlobalEnums.CampaignPhase.TRACK_RIVALS:
 			handle_track_rivals()
+			state_changed.emit(GlobalEnums.CampaignPhase.TRACK_RIVALS)
 		GlobalEnums.CampaignPhase.PATRON_JOB:
 			handle_patron_job()
+			state_changed.emit(GlobalEnums.CampaignPhase.PATRON_JOB)
 		GlobalEnums.CampaignPhase.RIVAL_ATTACK:
 			handle_rival_attack()
+			state_changed.emit(GlobalEnums.CampaignPhase.RIVAL_ATTACK)
 		GlobalEnums.CampaignPhase.ASSIGN_EQUIPMENT:
 			handle_assign_equipment()
+			state_changed.emit(GlobalEnums.CampaignPhase.ASSIGN_EQUIPMENT)
 		GlobalEnums.CampaignPhase.READY_FOR_BATTLE:
 			handle_ready_for_battle()
+			state_changed.emit(GlobalEnums.CampaignPhase.READY_FOR_BATTLE)
 	
 	state_changed.emit(new_state)
 
@@ -84,3 +97,8 @@ func handle_ready_for_battle() -> void:
 	# Prepare for battle
 	game_state_manager.battle_state_machine.prepare_for_battle()
 	state_changed.emit(GlobalEnums.CampaignPhase.READY_FOR_BATTLE)
+
+# Add victory handling
+func handle_campaign_victory(victory_type: GlobalEnums.CampaignVictoryType) -> void:
+	# Handle victory screen transition or other victory-related logic
+	game_state_manager.transition_to_state(GlobalEnums.GameState.CAMPAIGN_VICTORY)

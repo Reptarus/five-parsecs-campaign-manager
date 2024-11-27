@@ -4,9 +4,10 @@ extends Node
 enum GameState {
 	SETUP,
 	TUTORIAL,
-	CAMPAIGN, 
+	CAMPAIGN,
 	BATTLE,
-	GAME_OVER
+	GAME_OVER,
+	CAMPAIGN_VICTORY
 }
 
 # UI States
@@ -754,11 +755,13 @@ enum WorldTrait {
 }
 
 enum TutorialType {
+	INACTIVE,
 	QUICK_START,
 	ADVANCED,
-	BATTLE,
-	CAMPAIGN,
-	STORY
+	BATTLE_TUTORIAL,
+	CAMPAIGN_TUTORIAL,
+	STORY_TUTORIAL,
+	COMPLETED
 }
 
 enum TutorialStage {
@@ -777,4 +780,58 @@ enum TutorialTrack {
 	BUG_HUNT,
 	FREELANCER,
 	FIXER
+}
+
+# Update CampaignVictoryType enum with all conditions
+enum CampaignVictoryType {
+	NONE,                # No victory condition set
+	
+	# Wealth Based
+	WEALTH_5000,        # Accumulate 5000 credits
+	
+	# Reputation Based
+	REPUTATION_NOTORIOUS, # Become a notorious crew
+	
+	# Story Based
+	STORY_COMPLETE,      # Complete the 7-stage narrative campaign
+	
+	# Combat Based
+	BLACK_ZONE_MASTER,   # Complete 3 super-hard Black Zone jobs
+	RED_ZONE_VETERAN,    # Complete 5 high-risk Red Zone jobs
+	
+	# Quest Based
+	QUEST_MASTER,        # Complete 10 quests
+	
+	# Faction Based
+	FACTION_DOMINANCE,   # Become dominant in a faction
+	
+	# Fleet Based
+	FLEET_COMMANDER,     # Build up a significant fleet
+	
+	# Custom
+	CUSTOM              # Custom victory condition
+}
+
+# Add custom victory metrics enum
+enum CustomVictoryMetric {
+	CAMPAIGN_TURNS,     # Number of campaign turns completed
+	QUEST_COMPLETIONS,  # Number of quests completed
+	BATTLE_VICTORIES,   # Number of battles won
+	CREDITS_EARNED,     # Total credits accumulated
+	CHARACTER_LEVEL,    # Reach specific character level
+	REPUTATION_LEVEL,   # Reach specific reputation level
+	FLEET_SIZE,        # Build fleet to specific size
+	BLACK_ZONE_JOBS,   # Complete specific number of Black Zone jobs
+	RED_ZONE_JOBS,     # Complete specific number of Red Zone jobs
+	STORY_MISSIONS,    # Complete specific number of story missions
+	RIVAL_DEFEATS,     # Defeat specific number of rivals
+	FACTION_STANDING   # Reach specific standing with any faction
+}
+
+# Add victory progress tracking enum
+enum VictoryProgressStatus {
+	NOT_STARTED,
+	IN_PROGRESS,
+	COMPLETED,
+	FAILED
 }

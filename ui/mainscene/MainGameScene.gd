@@ -36,8 +36,8 @@ const SCENES: Dictionary = {
 
 var _current_scene_name: String = ""
 var _is_transitioning: bool = false
-var tutorial_content: TutorialContent
-var tutorial_state: TutorialState
+@export var tutorial_content: TutorialContent
+@export var tutorial_state: Resource
 
 func _ready() -> void:
 	if not game_state_manager:
@@ -49,8 +49,9 @@ func _ready() -> void:
 	change_scene("main_menu")
 	
 	# Initialize tutorial resources
-	tutorial_content = load("res://Resources/GameData/TutorialContent.tres")
+	tutorial_content = load("res://Resources/GameData/TutorialContent.tres") as TutorialContent
 	if not tutorial_content:
+		push_warning("Failed to load TutorialContent, creating new instance")
 		tutorial_content = TutorialContent.new()
 		
 	tutorial_state = load("res://Resources/GameData/TutorialState.tres")

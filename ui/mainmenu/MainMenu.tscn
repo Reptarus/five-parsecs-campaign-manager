@@ -1,8 +1,7 @@
-[gd_scene load_steps=4 format=3 uid="uid://5ws0uspoh6vk"]
+[gd_scene load_steps=3 format=3 uid="uid://5ws0uspoh6vk"]
 
 [ext_resource type="Script" path="res://ui/mainmenu/MainMenu.gd" id="1_eb6mc"]
 [ext_resource type="Texture2D" uid="uid://dpv5v3x1ujg66" path="res://assets/BookImages/Nov_15_cityatnight.jpg" id="1_jq64m"]
-[ext_resource type="Script" path="res://Resources/GameData/TutorialSystem.gd" id="4_lfg3x"]
 
 [node name="MainMenu" type="Control"]
 layout_mode = 3
@@ -164,53 +163,7 @@ layout_mode = 2
 size_flags_horizontal = 4
 text = "Don't show this again"
 
-[node name="TutorialSelection" type="Panel" parent="."]
-layout_mode = 1
-anchors_preset = 8
-anchor_left = 0.5
-anchor_top = 0.5
-anchor_right = 0.5
-anchor_bottom = 0.5
-offset_left = -300.0
-offset_top = -200.0
-offset_right = 300.0
-offset_bottom = 200.0
-grow_horizontal = 2
-grow_vertical = 2
-script = ExtResource("4_lfg3x")
-
-[node name="VBoxContainer" type="VBoxContainer" parent="TutorialSelection"]
-layout_mode = 1
-anchors_preset = 15
-anchor_right = 1.0
-anchor_bottom = 1.0
-grow_horizontal = 2
-grow_vertical = 2
-theme_override_constants/separation = 10
-
-[node name="TutorialText" type="Label" parent="TutorialSelection/VBoxContainer"]
-layout_mode = 2
-text = "Welcome to Five Parsecs From Home!
-
-You can choose to follow the Story Track tutorial, explore the Compendium, or skip the tutorial entirely.
-
-Story Track: Learn the basics of crew creation, ship management, and campaign play.
-Compendium: Explore detailed rules and lore of the game universe.
-Skip: Jump right into creating your crew and starting your adventure."
-autowrap_mode = 2
-
-[node name="StoryTrackButton" type="Button" parent="TutorialSelection/VBoxContainer"]
-layout_mode = 2
-text = "Story Track"
-
-[node name="CompendiumButton" type="Button" parent="TutorialSelection/VBoxContainer"]
-layout_mode = 2
-text = "Compendium"
-
-[node name="SkipButton" type="Button" parent="TutorialSelection/VBoxContainer"]
-layout_mode = 2
-text = "Skip Tutorial"
-
-[node name="DisableTutorialCheckbox" type="CheckBox" parent="TutorialSelection/VBoxContainer"]
-layout_mode = 2
-text = "Don't show this again"
+[connection signal="pressed" from="TutorialPopup/VBoxContainer/StoryTrackButton" to="." method="_on_tutorial_popup_button_pressed" binds= ["story_track"]]
+[connection signal="pressed" from="TutorialPopup/VBoxContainer/CompendiumButton" to="." method="_on_tutorial_popup_button_pressed" binds= ["compendium"]]
+[connection signal="pressed" from="TutorialPopup/VBoxContainer/SkipButton" to="." method="_on_tutorial_popup_button_pressed" binds= ["skip"]]
+[connection signal="toggled" from="TutorialPopup/VBoxContainer/DisableTutorialCheckbox" to="." method="_on_disable_tutorial_toggled"]

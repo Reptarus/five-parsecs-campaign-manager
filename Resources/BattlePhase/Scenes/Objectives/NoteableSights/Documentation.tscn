@@ -1,0 +1,9 @@
+[gd_scene load_steps=2 format=3 uid="uid://cai7t25kwu3gd"]
+
+[ext_resource type="Texture2D" uid="uid://bhqcmta11qnwp" path="res://assets/PNG/Default (64px)/book_closed.png" id="1_atelk"]
+
+[node name="Documentation" type="Node2D"]
+
+[node name="BookClosed" type="Sprite2D" parent="."]
+position = Vector2(33, 40)
+texture = ExtResource("1_atelk")

@@ -15,7 +15,25 @@ var current_battle_state: int = BattleState.SETUP
 var current_round_phase: int = GlobalEnums.BattlePhase.REACTION_ROLL
 var is_transitioning := false
 
+# Add frame budgeting for state transitions
+const MAX_TRANSITIONS_PER_FRAME := 3
+var _pending_transitions: Array = []
+
 func transition_to(new_state: int) -> void:
+	if OS.get_name() == "Android":
+		_pending_transitions.append(new_state)
+		_process_pending_transitions()
+	else:
+		_direct_transition(new_state)
+
+func _process_pending_transitions() -> void:
+	var processed := 0
+	while not _pending_transitions.is_empty() and processed < MAX_TRANSITIONS_PER_FRAME:
+		var next_state = _pending_transitions.pop_front()
+		_direct_transition(next_state)
+		processed += 1
+
+func _direct_transition(new_state: int) -> void:
 	if is_transitioning:
 		push_warning("State transition already in progress")
 		return

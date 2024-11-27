@@ -1,0 +1,27 @@
+[gd_resource type="GDScript" format=3 uid="uid://cxb8xetiui1un"]
+
+[resource]
+script/source = "extends Resource
+
+@export var completed_steps: Array[String] = []
+@export var completed_tracks: Array[String] = []
+@export var current_progress: Dictionary = {}
+
+func save_progress() -> void:
+	ResourceSaver.save(self, \"res://Resources/GameData/TutorialProgress.tres\")
+
+func complete_step(step_id: String) -> void:
+	if not step_id in completed_steps:
+		completed_steps.append(step_id)
+		save_progress()
+
+func complete_track(track_id: String) -> void:
+	if not track_id in completed_tracks:
+		completed_tracks.append(track_id)
+		save_progress()
+
+func mark_track_complete(type: String) -> void:
+	if not type in completed_tracks:
+		completed_tracks.append(type)
+		save_progress() 
+"

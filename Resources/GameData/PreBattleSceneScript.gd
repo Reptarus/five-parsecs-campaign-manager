@@ -1,5 +1,9 @@
 extends CampaignResponsiveLayout
 
+# Add deferred loading variables
+var _ui_components: Dictionary = {}
+var _is_initialized: bool = false
+
 @onready var title_label := $TitleLabel
 @onready var info_container := $HBoxContainer
 @onready var mission_info := $HBoxContainer/MissionInfoPanel
@@ -12,8 +16,25 @@ const PORTRAIT_INFO_HEIGHT_RATIO := 0.4  # Info panels take 40% in portrait mode
 
 func _ready() -> void:
 	super._ready()
+	initialize()
+
+func initialize() -> void:
+	if _is_initialized:
+		return
+		
+	_ui_components = {
+		"mission_info": preload("res://Resources/BattlePhase/Scenes/MissionInfoPanel.tscn"),
+		"enemy_info": preload("res://Resources/BattlePhase/Scenes/EnemyInfoPanel.tscn"),
+		"battlefield_preview": preload("res://Resources/BattlePhase/Scenes/BattlefieldPreview.tscn")
+	}
+	
 	_setup_pre_battle()
-	_connect_signals()
+	_is_initialized = true
+
+func cleanup() -> void:
+	if _is_initialized:
+		_ui_components.clear()
+		_is_initialized = false
 
 func _setup_pre_battle() -> void:
 	_setup_info_panels()

@@ -1,0 +1,9 @@
+[gd_scene load_steps=2 format=3 uid="uid://dsuceyfnblbhd"]
+
+[ext_resource type="Texture2D" uid="uid://bsbwqseyy3sg1" path="res://assets/PNG/Default (64px)/spinner.png" id="1_6fove"]
+
+[node name="PriorityTarget" type="Node2D"]
+
+[node name="Spinner" type="Sprite2D" parent="."]
+position = Vector2(30, 35)
+texture = ExtResource("1_6fove")

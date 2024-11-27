@@ -16,19 +16,40 @@ const PatronJobManager := preload("res://Resources/CampaignManagement/PatronJobM
 const Battle := preload("res://Resources/BattlePhase/battle.gd")
 const TutorialSystem := preload("res://Resources/GameData/TutorialSystem.gd")
 
-# Remove FringeWorldStrifeManager since it doesn't exist yet
-# We'll create a basic version of it
+# Platform-specific constants
+const PLATFORM_CONFIG := {
+	"Android": {
+		"max_fps": 60,
+		"vsync": true,
+		"save_path": "user://",
+		"texture_compression": true
+	},
+	"iOS": {
+		"max_fps": 60,
+		"vsync": true,
+		"save_path": "user://",
+		"texture_compression": true
+	},
+	"Windows": {
+		"max_fps": 0, # Unlimited
+		"vsync": true,
+		"save_path": "user://",
+		"texture_compression": false
+	}
+}
+
 class FringeWorldStrifeManager extends Node:
 	var strife_level: int = GlobalEnums.FringeWorldInstability.STABLE
 	
 	func update_strife() -> void:
-		# Basic implementation
 		pass
 
 # Scene constants
 const BATTLE_SCENE: PackedScene = preload("res://Resources/BattlePhase/Scenes/Battle.tscn")
 const POST_BATTLE_SCENE: PackedScene = preload("res://Resources/BattlePhase/PreBattle.tscn")
 const INITIAL_CREW_CREATION_SCENE: String = "res://Scenes/Management/InitialCrewCreation.tscn"
+const SETTINGS_FILE_PATH := "user://settings.save"
+const SAVE_GAME_FILE_PATH := "user://savegame.json"
 
 # Signals
 signal state_changed(new_state: GlobalEnums.GameState)
@@ -38,6 +59,7 @@ signal tutorial_track_completed(track_id: String)
 signal tutorial_step_completed
 signal tutorial_completed
 signal settings_changed
+signal campaign_victory_achieved(victory_type: GlobalEnums.CampaignVictoryType)
 
 # Singleton instance
 static var instance: GameStateManager
@@ -60,7 +82,7 @@ var battle_state: LocalBattleStateMachine
 var campaign_state: LocalCampaignStateMachine
 var main_game_state: LocalMainGameStateMachine
 
-# Settings with default values
+# Settings and state tracking
 var settings: Dictionary = {
 	"disable_tutorial_popup": false,
 	"difficulty": GlobalEnums.DifficultyMode.NORMAL,
@@ -68,41 +90,144 @@ var settings: Dictionary = {
 	"enable_tutorials": true
 }
 
-# Tutorial tracking
 var current_tutorial_type: GlobalEnums.TutorialType = GlobalEnums.TutorialType.QUICK_START
 var current_tutorial_stage: GlobalEnums.TutorialStage = GlobalEnums.TutorialStage.INTRODUCTION
 var current_tutorial_track: GlobalEnums.TutorialTrack = GlobalEnums.TutorialTrack.CORE_RULES
 var completed_tutorials: Dictionary = {}
+var campaign_victory_condition: GlobalEnums.CampaignVictoryType
 
-# File path constants
-const SETTINGS_FILE_PATH := "user://settings.save"
-const SAVE_GAME_FILE_PATH := "user://savegame.json"
+# Resource management
+var _resource_cache: Dictionary = {}
+var _pending_resources: Array = []
+var _android_initialized := false
+const MAX_RESOURCES_PER_FRAME := 5
+
+# Platform-specific properties
+var _current_platform: String
+var _is_mobile: bool
+var _screen_orientation: int = DisplayServer.SCREEN_ORIENTATION_LANDSCAPE
+var _safe_area: Rect2
 
 func _init() -> void:
 	if instance != null:
 		push_error("GameStateManager already exists!")
 		return
+	
 	instance = self
+	_initialize_platform()
+	_initialize_resource_cache()
+
+func _initialize_platform() -> void:
+	_current_platform = OS.get_name()
+	_is_mobile = _current_platform in ["Android", "iOS"]
+	
+	if _is_mobile:
+		_configure_mobile_platform()
+	else:
+		_configure_desktop_platform()
+
+func _configure_mobile_platform() -> void:
+	var config = PLATFORM_CONFIG[_current_platform]
+	
+	# Configure mobile-specific settings
+	Engine.max_fps = config.max_fps
+	DisplayServer.window_set_vsync_mode(DisplayServer.VSYNC_ENABLED if config.vsync else DisplayServer.VSYNC_DISABLED)
+	
+	# Handle safe area for notched devices
+	_safe_area = DisplayServer.get_display_safe_area()
+	get_tree().root.connect("size_changed", _update_safe_area)
+	
+	# Set up mobile-specific signal handling
+	if _current_platform == "Android":
+		get_tree().set_auto_accept_quit(false)
+	
+	# Configure orientation
+	DisplayServer.screen_set_orientation(_screen_orientation)
+	
+	# Enable mobile optimizations
+	RenderingServer.viewport_set_measure_render_time(get_viewport().get_viewport_rid(), true)
+	
+	# Setup touch controls
+	Input.use_accumulated_input = false
+
+func _configure_desktop_platform() -> void:
+	var config = PLATFORM_CONFIG[_current_platform]
+	Engine.max_fps = config.max_fps
+	DisplayServer.window_set_vsync_mode(DisplayServer.VSYNC_ENABLED if config.vsync else DisplayServer.VSYNC_DISABLED)
+
+func _update_safe_area() -> void:
+	_safe_area = DisplayServer.get_display_safe_area()
+	# Emit signal for UI adjustment if needed
+	if ui_manager and is_instance_valid(ui_manager):
+		ui_manager.update_layout()
 
 static func get_instance() -> GameStateManager:
 	return instance
 
 func _ready() -> void:
+	if OS.get_name() == "Android":
+		_setup_android_initialization()
+	else:
+		_initialize_game_systems()
+
+func _setup_android_initialization() -> void:
+	call_deferred("_initialize_game_systems")
+	
+	DisplayServer.window_set_vsync_mode(DisplayServer.VSYNC_ENABLED)
+	Engine.max_fps = 60
+	Engine.physics_jitter_fix = 0.0
+	
+	if not _android_initialized:
+		get_tree().set_auto_accept_quit(false)
+		get_tree().root.connect("size_changed", _on_window_size_changed)
+		_android_initialized = true
+
+func _initialize_game_systems() -> void:
 	game_state = GameStateResource.new()
+	game_state.current_state = GlobalEnums.GameState.SETUP
+	
 	initialize_managers()
 	initialize_state_machines()
-	_load_settings()
 	_initialize_tutorial_system()
-
-func _initialize_tutorial_system() -> void:
-	tutorial_system = TutorialSystem.new()
-	add_child(tutorial_system)
 	
-	# Connect tutorial signals
-	tutorial_system.tutorial_step_changed.connect(_on_tutorial_step_changed)
-	tutorial_system.tutorial_completed.connect(_on_tutorial_completed)
-	tutorial_system.tutorial_step_completed.connect(_on_tutorial_step_completed)
-	tutorial_system.tutorial_track_completed.connect(_on_tutorial_track_completed)
+	settings = _load_settings()
+
+func _notification(what: int) -> void:
+	match what:
+		NOTIFICATION_APP_PAUSED:
+			if _is_mobile:
+				_handle_mobile_pause()
+		NOTIFICATION_APP_RESUMED:
+			if _is_mobile:
+				_handle_mobile_resume()
+		NOTIFICATION_WM_GO_BACK_REQUEST:
+			_handle_back_button()
+
+func _handle_android_pause() -> void:
+	if game_state and is_instance_valid(game_state):
+		save_game()
+	
+	_cleanup_resources()
+	GC.collect()
+
+func _handle_back_button() -> void:
+	if game_state.current_state == GlobalEnums.GameState.BATTLE:
+		_show_exit_confirmation()
+	else:
+		get_tree().quit()
+
+func _cleanup_resources() -> void:
+	if current_battle and is_instance_valid(current_battle):
+		current_battle.cleanup()
+	
+	if combat_manager and is_instance_valid(combat_manager):
+		combat_manager.cleanup()
+	
+	_resource_cache.clear()
+
+func _on_window_size_changed() -> void:
+	if OS.get_name() == "Android" and ui_manager and is_instance_valid(ui_manager):
+		ui_manager.update_layout()
 
 func initialize_managers() -> void:
 	mission_generator = MissionGenerator.new(game_state)
@@ -127,6 +252,15 @@ func initialize_state_machines() -> void:
 	campaign_state.setup(self)
 	main_game_state.setup(self)
 
+func _initialize_tutorial_system() -> void:
+	tutorial_system = TutorialSystem.new()
+	add_child(tutorial_system)
+	
+	tutorial_system.tutorial_step_changed.connect(_on_tutorial_step_changed)
+	tutorial_system.tutorial_completed.connect(_on_tutorial_completed)
+	tutorial_system.tutorial_step_completed.connect(_on_tutorial_step_completed)
+	tutorial_system.tutorial_track_completed.connect(_on_tutorial_track_completed)
+
 func get_current_game_state() -> GlobalEnums.GameState:
 	return main_game_state.current_state
 
@@ -137,26 +271,27 @@ func transition_to_state(new_state: GlobalEnums.GameState) -> void:
 	game_state.current_state = new_state
 	state_changed.emit(new_state)
 
-func _load_settings() -> void:
+func _load_settings() -> Dictionary:
 	if not FileAccess.file_exists(SETTINGS_FILE_PATH):
-		return
+		return settings
 		
 	var file := FileAccess.open(SETTINGS_FILE_PATH, FileAccess.READ)
 	if file == null:
 		push_error("Failed to open settings file")
-		return
+		return settings
 		
 	var json := JSON.new()
 	var parse_result: Error = json.parse(file.get_as_text())
 	if parse_result == OK:
 		var data = json.get_data()
 		if data is Dictionary:
-			settings = data
-		else:
-			push_error("Invalid settings data format")
+			return data
+			
+	push_error("Invalid settings data format")
+	return settings
 
 func save_settings() -> void:
-	var file: FileAccess = FileAccess.open("user://settings.save", FileAccess.WRITE)
+	var file: FileAccess = FileAccess.open(SETTINGS_FILE_PATH, FileAccess.WRITE)
 	file.store_string(JSON.stringify(settings))
 	settings_changed.emit()
 
@@ -174,9 +309,9 @@ func _handle_battle_cleanup() -> void:
 
 func handle_game_over(victory: bool) -> void:
 	print("Game %s!" % ("Won" if victory else "Over"))
-	game_state.current_state = GlobalEnums.GameState.GAME_OVER
-	state_changed.emit(GlobalEnums.GameState.GAME_OVER)
+	transition_to_state(GlobalEnums.GameState.GAME_OVER)
 
+# Game state getters
 func get_game_state() -> GameStateResource:
 	return game_state
 
@@ -202,6 +337,7 @@ func remove_enemy(enemy: Character) -> void:
 		enemies.erase(enemy)
 		print("Enemy removed: ", enemy.name)
 
+# State machine classes
 class LocalBattleStateMachine extends Node:
 	var current_state: int = GlobalEnums.BattlePhase.SETUP
 	var game_manager: GameStateManager
@@ -238,7 +374,7 @@ class LocalMainGameStateMachine extends Node:
 	func setup(manager: GameStateManager) -> void:
 		game_manager = manager
 
-# Crew Management Functions
+# Crew Management
 func get_crew() -> Array:
 	return game_state.current_ship.crew if game_state and game_state.current_ship else []
 
@@ -256,23 +392,41 @@ func start_new_game() -> void:
 	transition_to_state(GlobalEnums.GameState.SETUP)
 
 func load_game() -> void:
-	if FileAccess.file_exists("user://savegame.json"):
-		var file = FileAccess.open("user://savegame.json", FileAccess.READ)
+	if FileAccess.file_exists(SAVE_GAME_FILE_PATH):
+		var file = FileAccess.open(SAVE_GAME_FILE_PATH, FileAccess.READ)
 		var json = JSON.new()
 		var parse_result = json.parse(file.get_as_text())
 		file.close()
 		
 		if parse_result == OK:
-			var save_data = json.get_data()
-			game_state.deserialize(save_data)
+			game_state.deserialize(json.get_data())
 			transition_to_state(GlobalEnums.GameState.CAMPAIGN)
 
 func save_game() -> void:
-	if game_state:
-		var save_data = game_state.serialize()
-		var file = FileAccess.open("user://savegame.json", FileAccess.WRITE)
-		file.store_string(JSON.stringify(save_data))
-		file.close()
+	if not game_state:
+		return
+	
+	var save_data := game_state.serialize()
+	var save_path := _get_save_file_path()
+	
+	# Ensure directory exists
+	DirAccess.make_dir_recursive_absolute(save_path.get_base_dir())
+	
+	var error := _write_save_file(save_path, save_data)
+	if error != OK:
+		push_error("Failed to save game: %d" % error)
+
+func _write_save_file(path: String, data: Dictionary) -> Error:
+	var file := FileAccess.open(path, FileAccess.WRITE)
+	if file == null:
+		return FileAccess.get_open_error()
+	
+	file.store_string(JSON.stringify(data))
+	return OK
+
+func _get_save_file_path() -> String:
+	var base_path := PLATFORM_CONFIG[_current_platform].save_path
+	return base_path.path_join("savegame.json")
 
 # Tutorial Management
 func start_tutorial_campaign(tutorial_type: GlobalEnums.TutorialType, track: GlobalEnums.TutorialTrack = GlobalEnums.TutorialTrack.CORE_RULES) -> void:
@@ -283,44 +437,74 @@ func start_tutorial_campaign(tutorial_type: GlobalEnums.TutorialType, track: Glo
 	
 	tutorial_system.start_tutorial(tutorial_type)
 	
-	match tutorial_type:
+	var setup = _get_tutorial_setup(tutorial_type)
+	_configure_tutorial_campaign(setup)
+
+func _get_tutorial_setup(type: int) -> Dictionary:
+	match type:
 		GlobalEnums.TutorialType.QUICK_START:
-			_setup_quick_start_tutorial()
+			return {
+				"crew_size": 3,
+				"difficulty": GlobalEnums.DifficultyMode.EASY,
+				"mission_type": GlobalEnums.MissionType.TUTORIAL,
+				"victory_condition": GlobalEnums.VictoryConditionType.TURNS
+			}
 		GlobalEnums.TutorialType.ADVANCED:
-			_setup_advanced_tutorial()
-		GlobalEnums.TutorialType.BATTLE:
-			_setup_battle_tutorial()
-		GlobalEnums.TutorialType.CAMPAIGN:
-			_setup_campaign_tutorial()
-		GlobalEnums.TutorialType.STORY:
-			_setup_story_tutorial()
+			return {
+				"crew_size": 5,
+				"difficulty": GlobalEnums.DifficultyMode.NORMAL,
+				"mission_type": GlobalEnums.MissionType.TUTORIAL,
+				"enable_advanced_features": true
+			}
+		GlobalEnums.TutorialType.BATTLE_TUTORIAL:
+			return {
+				"enemy_count": 2,
+				"terrain_type": GlobalEnums.TerrainType.CITY,
+				"objective": GlobalEnums.MissionObjective.DEFEND,
+				"mission_type": GlobalEnums.MissionType.TUTORIAL,
+				"difficulty": GlobalEnums.DifficultyMode.EASY
+			}
+		GlobalEnums.TutorialType.CAMPAIGN_TUTORIAL:
+			return {
+				"crew_size": 4,
+				"difficulty": GlobalEnums.DifficultyMode.NORMAL,
+				"victory_condition": GlobalEnums.VictoryConditionType.TURNS,
+				"mission_type": GlobalEnums.MissionType.TUTORIAL,
+				"enable_faction_mechanics": false
+			}
+		GlobalEnums.TutorialType.STORY_TUTORIAL:
+			var layout = story_track.get_story_layout("introduction")
+			return {
+				"type": GlobalEnums.MissionType.TUTORIAL,
+				"story_elements": layout.story_elements,
+				"battlefield": layout.terrain,
+				"objectives": layout.objectives,
+				"enemies": layout.enemies,
+				"crew_size": 3
+			}
+		_:
+			return {}
 
-func _setup_quick_start_tutorial() -> void:
-	# Basic setup with predefined crew and simple mission
-	var setup = {
-		"crew_size": 3,
-		"difficulty": GlobalEnums.DifficultyMode.EASY,
-		"mission_type": GlobalEnums.MissionType.TUTORIAL,
-		"victory_condition": GlobalEnums.VictoryConditionType.TURNS
-	}
-	_configure_tutorial_campaign(setup)
-
-func _setup_advanced_tutorial() -> void:
-	# More complex setup with full crew management
-	var setup = {
-		"crew_size": 5,
-		"difficulty": GlobalEnums.DifficultyMode.NORMAL,
-		"mission_type": GlobalEnums.MissionType.TUTORIAL,
-		"enable_advanced_features": true
-	}
-	_configure_tutorial_campaign(setup)
+func _configure_tutorial_campaign(setup: Dictionary) -> void:
+	game_state.crew_size = setup.get("crew_size", 4)
+	game_state.difficulty_mode = setup.get("difficulty", GlobalEnums.DifficultyMode.NORMAL)
+	game_state.victory_condition = setup.get("victory_condition", GlobalEnums.VictoryConditionType.TURNS)
+	
+	var mission = Mission.new()
+	mission.initialize_tutorial(setup)
+	
+	if game_state.current_ship.crew.is_empty():
+		var character_creation = load("res://Resources/CharacterCreationLogic.gd").new()
+		game_state.current_ship.add_crew_member(character_creation.create_tutorial_character())
+	
+	transition_to_state(GlobalEnums.GameState.TUTORIAL)
+	_start_tutorial_phase()
 
 func advance_tutorial_stage() -> void:
 	var current_stage = current_tutorial_stage
 	current_tutorial_stage = GlobalEnums.TutorialStage.values()[(current_stage + 1) % GlobalEnums.TutorialStage.size()]
 	
 	if current_tutorial_stage == GlobalEnums.TutorialStage.INTRODUCTION:
-		# We've wrapped around, tutorial is complete
 		complete_current_tutorial()
 
 func complete_current_tutorial() -> void:
@@ -331,11 +515,7 @@ func complete_current_tutorial() -> void:
 	game_state.is_tutorial_active = false
 	tutorial_completed.emit()
 	
-	# Transition to appropriate game phase
-	if current_tutorial_type == GlobalEnums.TutorialType.QUICK_START:
-		_start_world_phase()
-	else:
-		transition_to_state(GlobalEnums.GameState.CAMPAIGN)
+	transition_to_state(GlobalEnums.GameState.CAMPAIGN if current_tutorial_type != GlobalEnums.TutorialType.QUICK_START else GlobalEnums.GameState.WORLD_STEP)
 
 func reset_turn_specific_data() -> void:
 	game_state.reset_turn_specific_data()
@@ -349,61 +529,78 @@ func advance_campaign_phase() -> void:
 		story_track.progress_story(current_phase)
 	else:
 		var phases = GlobalEnums.CampaignPhase.values()
-		var next_phase_index = (phases.find(current_phase) + 1) % phases.size()
-		campaign_state.current_state = phases[next_phase_index]
+		campaign_state.current_state = phases[(phases.find(current_phase) + 1) % phases.size()]
 
-func _setup_battle_tutorial() -> void:
-	var setup = {
-		"enemy_count": 2,
-		"terrain_type": GlobalEnums.TerrainType.CITY,
-		"objective": GlobalEnums.MissionObjective.DEFEND,
-		"mission_type": GlobalEnums.MissionType.TUTORIAL,
-		"difficulty": GlobalEnums.DifficultyMode.EASY
-	}
-	_configure_tutorial_campaign(setup)
-
-func _setup_campaign_tutorial() -> void:
-	var setup = {
-		"crew_size": 4,
-		"difficulty": GlobalEnums.DifficultyMode.NORMAL,
-		"victory_condition": GlobalEnums.VictoryConditionType.TURNS,
-		"mission_type": GlobalEnums.MissionType.TUTORIAL,
-		"enable_faction_mechanics": false
-	}
-	_configure_tutorial_campaign(setup)
-
-func _setup_story_tutorial() -> void:
-	var layout = story_track.get_story_layout("introduction")
-	var setup = {
-		"type": GlobalEnums.MissionType.TUTORIAL,
-		"story_elements": layout.story_elements,
-		"battlefield": layout.terrain,
-		"objectives": layout.objectives,
-		"enemies": layout.enemies,
-		"crew_size": 3
-	}
-	_configure_tutorial_campaign(setup)
-
-func _configure_tutorial_campaign(setup: Dictionary) -> void:
-	# Configure game state
-	game_state.crew_size = setup.get("crew_size", 4)
-	game_state.difficulty_mode = setup.get("difficulty", GlobalEnums.DifficultyMode.NORMAL)
-	game_state.victory_condition = setup.get("victory_condition", GlobalEnums.VictoryConditionType.TURNS)
+func _start_tutorial_phase() -> void:
+	if not game_state:
+		push_error("Game state not initialized")
+		return
+		
+	game_state.current_state = GlobalEnums.GameState.TUTORIAL
+	game_state.is_tutorial_active = true
 	
-	# Initialize tutorial mission
-	var mission = Mission.new()
-	mission.initialize_tutorial(setup)
+	settings["difficulty"] = GlobalEnums.DifficultyMode.EASY
+	settings["enable_tutorials"] = true
 	
-	# Set up initial crew if needed
-	if game_state.current_ship.crew.is_empty():
-		var character_creation = load("res://Resources/CharacterCreationLogic.gd").new()
-		var tutorial_character = character_creation.create_tutorial_character()
-		game_state.current_ship.add_crew_member(tutorial_character)
+	match current_tutorial_type:
+		GlobalEnums.TutorialType.BATTLE_TUTORIAL:
+			main_game_state.current_campaign_phase = GlobalEnums.CampaignPhase.BATTLE
+		GlobalEnums.TutorialType.CAMPAIGN_TUTORIAL:
+			main_game_state.current_campaign_phase = GlobalEnums.CampaignPhase.WORLD_STEP
+		_:
+			main_game_state.current_campaign_phase = GlobalEnums.CampaignPhase.CREW_CREATION
 	
-	# Start tutorial phase
-	transition_to_state(GlobalEnums.GameState.TUTORIAL)
-	_start_tutorial_phase()
+	state_changed.emit(GlobalEnums.GameState.TUTORIAL)
 
+func check_campaign_victory_condition() -> bool:
+	if not game_state:
+		return false
+		
+	match campaign_victory_condition:
+		GlobalEnums.CampaignVictoryType.WEALTH_5000:
+			if game_state.credits >= 5000:
+				campaign_victory_achieved.emit(campaign_victory_condition)
+				return true
+		GlobalEnums.CampaignVictoryType.REPUTATION_NOTORIOUS:
+			if game_state.reputation >= 10:
+				campaign_victory_achieved.emit(campaign_victory_condition)
+				return true
+		GlobalEnums.CampaignVictoryType.STORY_COMPLETE:
+			if story_track.is_completed():
+				campaign_victory_achieved.emit(campaign_victory_condition)
+				return true
+		GlobalEnums.CampaignVictoryType.BLACK_ZONE_MASTER:
+			if game_state.completed_black_zone_jobs >= 3:
+				campaign_victory_achieved.emit(campaign_victory_condition)
+				return true
+		GlobalEnums.CampaignVictoryType.RED_ZONE_VETERAN:
+			if game_state.completed_red_zone_jobs >= 5:
+				campaign_victory_achieved.emit(campaign_victory_condition)
+				return true
+		GlobalEnums.CampaignVictoryType.QUEST_MASTER:
+			if game_state.completed_quests >= 10:
+				campaign_victory_achieved.emit(campaign_victory_condition)
+				return true
+	return false
+
+# Resource Management
+func get_cached_resource(category: String, id: String) -> Resource:
+	return _resource_cache.get(category, {}).get(id)
+
+func cache_resource(category: String, id: String, resource: Resource) -> void:
+	if not _resource_cache.has(category):
+		_resource_cache[category] = {}
+	_resource_cache[category][id] = resource
+
+func _initialize_resource_cache() -> void:
+	_resource_cache = {
+		"battle_scenes": {},
+		"ui_elements": {},
+		"effects": {},
+		"sounds": {}
+	}
+
+# Tutorial Signal Handlers
 func _on_tutorial_step_changed(step_id: String) -> void:
 	tutorial_step_changed.emit(step_id)
 
@@ -426,37 +623,21 @@ func _start_world_phase() -> void:
 	game_state.current_state = GlobalEnums.GameState.CAMPAIGN
 	main_game_state.current_campaign_phase = GlobalEnums.CampaignPhase.WORLD_STEP
 	
-	# Initialize world phase systems
 	world_generator.generate_current_world()
 	expanded_faction_manager.update_factions()
 	mission_generator.refresh_available_missions()
 	patron_job_manager.refresh_available_jobs()
 	
-	# Emit state change
 	state_changed.emit(GlobalEnums.GameState.CAMPAIGN)
 
-func _start_tutorial_phase() -> void:
-	if not game_state:
-		push_error("Game state not initialized")
-		return
-		
-	game_state.current_state = GlobalEnums.GameState.TUTORIAL
-	game_state.is_tutorial_active = true
+func _handle_mobile_pause() -> void:
+	save_game()
+	_cleanup_resources()
 	
-	# Initialize tutorial specific settings
-	settings["difficulty"] = GlobalEnums.DifficultyMode.EASY
-	settings["enable_tutorials"] = true
-	
-	# Setup initial tutorial state
-	match current_tutorial_type:
-		GlobalEnums.TutorialType.QUICK_START:
-			main_game_state.current_campaign_phase = GlobalEnums.CampaignPhase.CREW_CREATION
-		GlobalEnums.TutorialType.BATTLE:
-			main_game_state.current_campaign_phase = GlobalEnums.CampaignPhase.BATTLE
-		GlobalEnums.TutorialType.CAMPAIGN:
-			main_game_state.current_campaign_phase = GlobalEnums.CampaignPhase.WORLD_STEP
-		_:
-			main_game_state.current_campaign_phase = GlobalEnums.CampaignPhase.CREW_CREATION
-	
-	# Emit state change
-	state_changed.emit(GlobalEnums.GameState.TUTORIAL)
+	# Force garbage collection
+	GC.collect()
+
+func _handle_mobile_resume() -> void:
+	_initialize_resource_cache()
+	if game_state and is_instance_valid(game_state):
+		_reload_current_scene_resources()

@@ -1,4 +1,4 @@
-[gd_scene load_steps=3 format=3]
+[gd_scene load_steps=3 format=3 uid="uid://ul6dro6l70o8"]
 
 [ext_resource type="Script" path="res://Resources/BattlePhase/TerrainPiece.gd" id="1"]
 
@@ -16,4 +16,4 @@ shape = SubResource("1")
 [node name="HighlightArea" type="Area3D" parent="."]
 
 [node name="CollisionShape3D" type="CollisionShape3D" parent="HighlightArea"]
-shape = SubResource("1") 
+shape = SubResource("1")

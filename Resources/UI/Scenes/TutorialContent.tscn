@@ -1,6 +1,6 @@
-[gd_scene load_steps=2 format=3 uid="uid://..."]
+[gd_scene load_steps=2 format=3 uid="uid://c445gv52dvj6d"]
 
-[ext_resource type="Script" path="res://Resources/UI/TutorialContent.gd" id="1_..."]
+[ext_resource type="Script" path="res://Resources/GameData/TutorialContent.gd" id="1_..."]
 
 [node name="TutorialContent" type="PanelContainer"]
 anchors_preset = 15
@@ -46,4 +46,4 @@ text = "Next"
 
 [node name="SkipButton" type="Button" parent="MarginContainer/VBoxContainer/ButtonContainer"]
 layout_mode = 2
-text = "Skip Tutorial" 
+text = "Skip Tutorial"
