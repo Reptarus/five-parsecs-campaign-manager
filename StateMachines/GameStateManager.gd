@@ -15,6 +15,7 @@ const TerrainGenerator := preload("res://Resources/GameData/TerrainGenerator.gd"
 const PatronJobManager := preload("res://Resources/CampaignManagement/PatronJobManager.gd")
 const Battle := preload("res://Resources/BattlePhase/battle.gd")
 const TutorialSystem := preload("res://Resources/GameData/TutorialSystem.gd")
+const UIManager = preload("res://UI/UIManager.gd")
 
 # Platform-specific constants
 const PLATFORM_CONFIG := {
@@ -105,8 +106,15 @@ const MAX_RESOURCES_PER_FRAME := 5
 # Platform-specific properties
 var _current_platform: String
 var _is_mobile: bool
-var _screen_orientation: int = DisplayServer.SCREEN_ORIENTATION_LANDSCAPE
+var _screen_orientation: int = DisplayServer.SCREEN_PORTRAIT
 var _safe_area: Rect2
+
+# Add safe area and orientation constants
+const SAFE_AREA_MARGIN := 10
+const MIN_TOUCH_TARGET := 44  # Minimum touch target size in pixels
+
+# Add UI manager preload and variable
+var ui_manager: UIManager
 
 func _init() -> void:
 	if instance != null:
@@ -133,33 +141,93 @@ func _configure_mobile_platform() -> void:
 	Engine.max_fps = config.max_fps
 	DisplayServer.window_set_vsync_mode(DisplayServer.VSYNC_ENABLED if config.vsync else DisplayServer.VSYNC_DISABLED)
 	
-	# Handle safe area for notched devices
+	# Set default orientation
+	DisplayServer.window_set_mode(DisplayServer.WINDOW_MODE_FULLSCREEN)
+	DisplayServer.screen_set_orientation(DisplayServer.SCREEN_LANDSCAPE)
+	
+	# Keep screen on - using Window property instead
+	get_window().mode = Window.MODE_FULLSCREEN
+	get_window().keep_screen_on = true
+	
+	# Initialize safe area
 	_safe_area = DisplayServer.get_display_safe_area()
-	get_tree().root.connect("size_changed", _update_safe_area)
 	
-	# Set up mobile-specific signal handling
-	if _current_platform == "Android":
-		get_tree().set_auto_accept_quit(false)
+	# Configure touch settings
+	Input.use_accumulated_input = false  # Better touch response
 	
-	# Configure orientation
+	# Enable haptic feedback if available
+	if _is_mobile and OS.has_feature("vibrate"):
+		Input.vibrate_handheld(50)  # Short vibration to test availability
+
+func _update_safe_area() -> void:
+	_safe_area = DisplayServer.get_display_safe_area()
+	if is_instance_valid(ui_manager):
+		ui_manager.update_layout()
+
+func _handle_orientation_change() -> void:
+	if not _is_mobile:
+		return
+		
+	var window_size = DisplayServer.window_get_size()
+	var is_portrait = window_size.y > window_size.x
+	
+	# Update orientation using correct constants
+	_screen_orientation = DisplayServer.SCREEN_PORTRAIT if is_portrait else DisplayServer.SCREEN_LANDSCAPE
 	DisplayServer.screen_set_orientation(_screen_orientation)
 	
-	# Enable mobile optimizations
-	RenderingServer.viewport_set_measure_render_time(get_viewport().get_viewport_rid(), true)
+	# Update safe area and UI
+	_update_safe_area()
+	if is_instance_valid(ui_manager):
+		ui_manager.update_layout()
+
+# Single window size change handler
+func _on_window_size_changed() -> void:
+	if _is_mobile:
+		_handle_orientation_change()
+		_update_safe_area()
+		
+		if is_instance_valid(ui_manager):
+			ui_manager.update_layout()
 	
-	# Setup touch controls
-	Input.use_accumulated_input = false
+	# Always clear resource cache, regardless of platform
+	_resource_cache.clear()
+
+func trigger_haptic_feedback(feedback_type: String = "light") -> void:
+	if not _is_mobile or not OS.has_feature("vibrate"):
+		return
+		
+	match feedback_type:
+		"light":
+			Input.vibrate_handheld(50)
+		"medium":
+			Input.vibrate_handheld(100)
+		"heavy":
+			Input.vibrate_handheld(200)
+		"error":
+			Input.vibrate_handheld(250)
+
+func _handle_window_event(event: InputEvent) -> void:
+	if event is InputEventScreenTouch:
+		if event.pressed:
+			trigger_haptic_feedback("light")
+	elif event is InputEventScreenDrag:
+		# Handle drag events if needed
+		pass
+
+func _input(event: InputEvent) -> void:
+	if _is_mobile:
+		if event is InputEventScreenTouch:
+			if event.pressed:
+				trigger_haptic_feedback("light")
+		elif event is InputEventKey:
+			if event.keycode == KEY_BACK:
+				_handle_back_button()
+				get_viewport().set_input_as_handled()
 
 func _configure_desktop_platform() -> void:
 	var config = PLATFORM_CONFIG[_current_platform]
 	Engine.max_fps = config.max_fps
 	DisplayServer.window_set_vsync_mode(DisplayServer.VSYNC_ENABLED if config.vsync else DisplayServer.VSYNC_DISABLED)
-
-func _update_safe_area() -> void:
-	_safe_area = DisplayServer.get_display_safe_area()
-	# Emit signal for UI adjustment if needed
-	if ui_manager and is_instance_valid(ui_manager):
-		ui_manager.update_layout()
 
 static func get_instance() -> GameStateManager:
 	return instance
@@ -179,12 +247,18 @@ func _setup_android_initialization() -> void:
 	
 	if not _android_initialized:
 		get_tree().set_auto_accept_quit(false)
-		get_tree().root.connect("size_changed", _on_window_size_changed)
+		# Connect window size change signal only once
+		if not get_tree().root.is_connected("size_changed", _on_window_size_changed):
+			get_tree().root.connect("size_changed", _on_window_size_changed)
 		_android_initialized = true
 
 func _initialize_game_systems() -> void:
 	game_state = GameStateResource.new()
 	game_state.current_state = GlobalEnums.GameState.SETUP
+	
+	# Initialize UI manager first
+	ui_manager = UIManager.new()
+	add_child(ui_manager)
 	
 	initialize_managers()
 	initialize_state_machines()
@@ -194,10 +268,10 @@ func _initialize_game_systems() -> void:
 
 func _notification(what: int) -> void:
 	match what:
-		NOTIFICATION_APP_PAUSED:
+		NOTIFICATION_APPLICATION_PAUSED:
 			if _is_mobile:
 				_handle_mobile_pause()
-		NOTIFICATION_APP_RESUMED:
+		NOTIFICATION_APPLICATION_RESUMED:
 			if _is_mobile:
 				_handle_mobile_resume()
 		NOTIFICATION_WM_GO_BACK_REQUEST:
@@ -208,11 +282,14 @@ func _handle_android_pause() -> void:
 		save_game()
 	
 	_cleanup_resources()
-	GC.collect()
+	
+	# Request garbage collection via Engine singleton
+	if Engine.has_singleton("GarbageCollector"):
+		Engine.get_singleton("GarbageCollector").collect()
 
 func _handle_back_button() -> void:
 	if game_state.current_state == GlobalEnums.GameState.BATTLE:
-		_show_exit_confirmation()
+		_show_exit_dialog()
 	else:
 		get_tree().quit()
 
@@ -223,11 +300,19 @@ func _cleanup_resources() -> void:
 	if combat_manager and is_instance_valid(combat_manager):
 		combat_manager.cleanup()
 	
+	if ui_manager and is_instance_valid(ui_manager):
+		ui_manager.cleanup()
+	
+	# Clear resource cache
 	_resource_cache.clear()
-
-func _on_window_size_changed() -> void:
-	if OS.get_name() == "Android" and ui_manager and is_instance_valid(ui_manager):
-		ui_manager.update_layout()
+	
+	# Force immediate memory cleanup
+	Engine.get_main_loop().root.propagate_notification(NOTIFICATION_PREDELETE)
+	get_tree().call_group("cleanup_group", "cleanup")
+	
+	# Request garbage collection
+	if Engine.has_singleton("GarbageCollector"):
+		Engine.get_singleton("GarbageCollector").collect()
 
 func initialize_managers() -> void:
 	mission_generator = MissionGenerator.new(game_state)
@@ -251,6 +336,9 @@ func initialize_state_machines() -> void:
 	battle_state.setup(self)
 	campaign_state.setup(self)
 	main_game_state.setup(self)
+	
+	# Set initial campaign phase
+	main_game_state.current_campaign_phase = GlobalEnums.CampaignPhase.UPKEEP
 
 func _initialize_tutorial_system() -> void:
 	tutorial_system = TutorialSystem.new()
@@ -368,7 +456,7 @@ class LocalCampaignStateMachine extends Node:
 
 class LocalMainGameStateMachine extends Node:
 	var current_state: int = GlobalEnums.GameState.SETUP
-	var current_campaign_phase: int = GlobalEnums.CampaignPhase.WORLD_STEP
+	var current_campaign_phase: int = GlobalEnums.CampaignPhase.UPKEEP
 	var game_manager: GameStateManager
 	
 	func setup(manager: GameStateManager) -> void:
@@ -425,7 +513,7 @@ func _write_save_file(path: String, data: Dictionary) -> Error:
 	return OK
 
 func _get_save_file_path() -> String:
-	var base_path := PLATFORM_CONFIG[_current_platform].save_path
+	var base_path: String = PLATFORM_CONFIG[_current_platform].save_path
 	return base_path.path_join("savegame.json")
 
 # Tutorial Management
@@ -515,7 +603,11 @@ func complete_current_tutorial() -> void:
 	game_state.is_tutorial_active = false
 	tutorial_completed.emit()
 	
-	transition_to_state(GlobalEnums.GameState.CAMPAIGN if current_tutorial_type != GlobalEnums.TutorialType.QUICK_START else GlobalEnums.GameState.WORLD_STEP)
+	# Transition to appropriate state based on tutorial type
+	if current_tutorial_type == GlobalEnums.TutorialType.QUICK_START:
+		transition_to_state(GlobalEnums.GameState.CAMPAIGN)
+	else:
+		transition_to_state(GlobalEnums.GameState.CAMPAIGN)
 
 func reset_turn_specific_data() -> void:
 	game_state.reset_turn_specific_data()
@@ -523,13 +615,13 @@ func reset_turn_specific_data() -> void:
 	patron_job_manager.refresh_available_jobs()
 	fringe_world_strife_manager.update_strife()
 
-func advance_campaign_phase() -> void:
-	var current_phase = campaign_state.current_state
-	if game_state.is_tutorial_active:
-		story_track.progress_story(current_phase)
-	else:
-		var phases = GlobalEnums.CampaignPhase.values()
-		campaign_state.current_state = phases[(phases.find(current_phase) + 1) % phases.size()]
+func handle_campaign_phase(phase: GlobalEnums.CampaignPhase) -> void:
+	match phase:
+		GlobalEnums.CampaignPhase.WORLD_STEP:
+			_handle_world_step_phase()
+		_:
+			# Handle other phases
+			pass
 
 func _start_tutorial_phase() -> void:
 	if not game_state:
@@ -635,9 +727,47 @@ func _handle_mobile_pause() -> void:
 	_cleanup_resources()
 	
 	# Force garbage collection
-	GC.collect()
+	Engine.get_singleton("GarbageCollector").collect()
 
 func _handle_mobile_resume() -> void:
 	_initialize_resource_cache()
 	if game_state and is_instance_valid(game_state):
-		_reload_current_scene_resources()
+		_reload_game_resources()
+
+func _reload_game_resources() -> void:
+	if game_state.current_state == GlobalEnums.GameState.BATTLE:
+		get_tree().reload_current_scene()
+	else:
+		_initialize_resource_cache()
+
+func _show_exit_dialog() -> void:
+	if is_instance_valid(ui_manager):
+		var choice = await ui_manager.show_dialog(
+			"Exit Game",
+			"Are you sure you want to exit? Any unsaved progress will be lost.",
+			["Yes", "No"]
+		)
+		
+		if choice == "Yes":
+			get_tree().quit()
+
+# Update campaign phase transition to use correct enum
+func transition_to_campaign_phase(phase: GlobalEnums.CampaignPhase) -> void:
+	if phase == GlobalEnums.CampaignPhase.WORLD_STEP:
+		handle_world_step()
+	else:
+		handle_campaign_phase(phase)
+
+func handle_world_step() -> void:
+	# Handle world step specific logic
+	if game_state and is_instance_valid(game_state):
+		game_state.current_state = GlobalEnums.GameState.CAMPAIGN
+		state_changed.emit(GlobalEnums.GameState.CAMPAIGN)
+
+func _handle_world_step_phase() -> void:
+	if game_state and is_instance_valid(game_state):
+		# Set state to CAMPAIGN since we're in campaign flow
+		game_state.current_state = GlobalEnums.GameState.CAMPAIGN
+		state_changed.emit(GlobalEnums.GameState.CAMPAIGN)
+		# Handle world step specific logic here
+		pass

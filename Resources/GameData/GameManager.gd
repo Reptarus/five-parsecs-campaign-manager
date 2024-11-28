@@ -8,13 +8,16 @@ signal battlefield_generated(battlefield_data: Dictionary)
 const BattlefieldGeneratorScene := preload("res://Resources/BattlePhase/BattlefieldGenerator.gd")
 const GameOverScreenScene := preload("res://Resources/Utilities/GameOverScreen.tscn")
 const GameSettingsResource := preload("res://Resources/GameData/GameSettings.gd")
+const UIManager := preload("res://UI/UIManager.gd")
+const TerrainGenerator := preload("res://Resources/GameData/TerrainGenerator.gd")
+const GalacticWarManager := preload("res://Resources/CampaignManagement/GalacticWarManager.gd")
 
 var game_state: GameState
-var ui_manager: UIManager
-var terrain_generator: TerrainGenerator
-var galactic_war_manager: GalacticWarManager
+var ui_manager: Node
+var terrain_generator: Node
+var galactic_war_manager: Node
 var settings: GameSettingsResource
-var battlefield_generator: BattlefieldGeneratorScene
+var battlefield_generator: Node
 
 # Add deferred loading variables
 var _scenes_to_load: Dictionary = {}
@@ -24,13 +27,167 @@ var _is_initialized: bool = false
 var _loaded_resources := {}
 var _loading_queue := []
 
-func _init() -> void:
-	# Defer heavy resource loading
-	_scenes_to_load = {
-		"battlefield": "res://Resources/BattlePhase/Scenes/Battle.tscn",
-		"game_over": "res://Resources/Utilities/GameOverScreen.tscn",
-		"pre_battle": "res://Resources/BattlePhase/PreBattle.tscn"
+# Add platform-specific constants
+const PLATFORM_CONFIG := {
+	"Android": {
+		"max_fps": 60,
+		"vsync": true,
+		"save_path": "user://",
+		"texture_compression": true
+	},
+	"iOS": {
+		"max_fps": 60,
+		"vsync": true,
+		"save_path": "user://",
+		"texture_compression": true
+	},
+	"Windows": {
+		"max_fps": 0, # Unlimited
+		"vsync": true,
+		"save_path": "user://",
+		"texture_compression": false
 	}
+}
+
+# Add platform-specific properties
+var _current_platform: String
+var _is_mobile: bool
+var _screen_orientation: int = DisplayServer.WINDOW_MODE_FULLSCREEN
+var _safe_area: Rect2
+var _android_initialized := false
+
+# Update platform-specific constants to use correct DisplayServer enums
+const SCREEN_ORIENTATIONS := {
+	"PORTRAIT": 0,  # DisplayServer.SCREEN_VERTICAL
+	"LANDSCAPE": 1, # DisplayServer.SCREEN_HORIZONTAL
+	"REVERSE_LANDSCAPE": 2, # DisplayServer.SCREEN_HORIZONTAL_REVERSE
+	"SENSOR_LANDSCAPE": 3  # DisplayServer.SCREEN_SENSOR_LANDSCAPE 
+}
+
+# Add resource cache initialization
+var _resource_cache: Dictionary = {}
+
+func _init() -> void:
+	_current_platform = OS.get_name()
+	_is_mobile = _current_platform in ["Android", "iOS"]
+	
+	if _is_mobile:
+		_configure_mobile_platform()
+	else:
+		_configure_desktop_platform()
+
+func _configure_mobile_platform() -> void:
+	var config = PLATFORM_CONFIG[_current_platform]
+	
+	# Configure mobile-specific settings
+	Engine.max_fps = config.max_fps
+	DisplayServer.window_set_vsync_mode(DisplayServer.VSYNC_ENABLED if config.vsync else DisplayServer.VSYNC_DISABLED)
+	
+	# Set default orientation
+	DisplayServer.screen_set_orientation(_screen_orientation)
+	
+	# Initialize safe area
+	_safe_area = DisplayServer.get_display_safe_area()
+	
+	# Configure touch settings
+	Input.use_accumulated_input = false
+	
+	if _current_platform == "Android":
+		_setup_android_initialization()
+
+func _configure_desktop_platform() -> void:
+	var config = PLATFORM_CONFIG[_current_platform]
+	Engine.max_fps = config.max_fps
+	DisplayServer.window_set_vsync_mode(DisplayServer.VSYNC_ENABLED if config.vsync else DisplayServer.VSYNC_DISABLED)
+
+func _setup_android_initialization() -> void:
+	if not _android_initialized:
+		get_tree().set_auto_accept_quit(false)
+		if not get_tree().root.is_connected("size_changed", _on_window_size_changed):
+			get_tree().root.connect("size_changed", _on_window_size_changed)
+		_android_initialized = true
+
+func _on_window_size_changed() -> void:
+	if _is_mobile:
+		_handle_orientation_change()
+		_update_safe_area()
+		if ui_manager and is_instance_valid(ui_manager):
+			ui_manager.update_layout()
+
+func _handle_orientation_change() -> void:
+	if not _is_mobile:
+		return
+		
+	var window_size = DisplayServer.window_get_size()
+	var is_portrait = window_size.y > window_size.x
+	
+	# Use window mode instead of orientation
+	if is_portrait:
+		DisplayServer.window_set_mode(DisplayServer.WINDOW_MODE_FULLSCREEN)
+		get_window().mode = Window.MODE_FULLSCREEN
+	else:
+		DisplayServer.window_set_mode(DisplayServer.WINDOW_MODE_FULLSCREEN)
+		get_window().mode = Window.MODE_FULLSCREEN
+
+func _update_safe_area() -> void:
+	_safe_area = DisplayServer.get_display_safe_area()
+
+func _notification(what: int) -> void:
+	match what:
+		NOTIFICATION_APPLICATION_PAUSED:
+			if _is_mobile:
+				_handle_mobile_pause()
+		NOTIFICATION_APPLICATION_RESUMED:
+			if _is_mobile:
+				_handle_mobile_resume()
+		NOTIFICATION_WM_GO_BACK_REQUEST:
+			_handle_back_button()
+
+func _handle_mobile_pause() -> void:
+	save_settings()
+	_cleanup_resources()
+
+func _handle_mobile_resume() -> void:
+	_initialize_resource_cache()
+	if game_state and is_instance_valid(game_state):
+		_reload_game_resources()
+
+func _handle_back_button() -> void:
+	if game_state.current_state == GlobalEnums.GameState.BATTLE:
+		_show_exit_dialog()
+	else:
+		get_tree().quit()
+
+func _show_exit_dialog() -> void:
+	if ui_manager and is_instance_valid(ui_manager):
+		var choice = await ui_manager.show_dialog(
+			"Exit Game",
+			"Are you sure you want to exit? Any unsaved progress will be lost.",
+			["Yes", "No"]
+		)
+		
+		if choice == "Yes":
+			get_tree().quit()
+
+func _cleanup_resources() -> void:
+	_resource_cache.clear()
+	_loading_queue.clear()
+	
+	# Request garbage collection
+	if Engine.has_singleton("GarbageCollector"):
+		Engine.get_singleton("GarbageCollector").collect()
+
+func _reload_game_resources() -> void:
+	_initialize_resource_cache()
+	if _loading_queue.is_empty():
+		return
+	
+	# Reload essential resources
+	for path in _scenes_to_load.values():
+		if not path in _loading_queue:
+			_loading_queue.append(path)
+	
+	_process_loading_queue()
 
 func initialize() -> void:
 	if _is_initialized:
@@ -52,11 +209,29 @@ func cleanup() -> void:
 		_is_initialized = false
 
 func _ready() -> void:
+	_initialize_resource_cache()
+	
+	game_state = GameState.new()
 	game_state.current_state = GlobalEnums.GameState.SETUP
-	ui_manager = UIManager.new()
-	terrain_generator = TerrainGenerator.new()
-	galactic_war_manager = GalacticWarManager.new(game_state)
-	battlefield_generator = BattlefieldGeneratorScene.new()
+	
+	# Initialize managers as Nodes with their scripts
+	ui_manager = Node.new()
+	ui_manager.set_script(UIManager)
+	add_child(ui_manager)
+	
+	terrain_generator = Node.new()
+	terrain_generator.set_script(TerrainGenerator)
+	add_child(terrain_generator)
+	
+	galactic_war_manager = Node.new()
+	galactic_war_manager.set_script(GalacticWarManager)
+	galactic_war_manager.initialize(game_state)
+	add_child(galactic_war_manager)
+	
+	battlefield_generator = Node.new()
+	battlefield_generator.set_script(BattlefieldGeneratorScene)
+	add_child(battlefield_generator)
+	
 	settings = load_settings()
 
 func start_new_game() -> void:
@@ -239,3 +414,11 @@ func _process_loading_queue() -> void:
 			pass # Still loading
 		_:
 			_loading_queue.pop_front() # Error occurred
+
+func _initialize_resource_cache() -> void:
+	_resource_cache = {
+		"battle_scenes": {},
+		"ui_elements": {},
+		"effects": {},
+		"sounds": {}
+	}

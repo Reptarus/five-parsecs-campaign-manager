@@ -117,6 +117,5 @@ text = "View Full Character Sheet"
 [node name="CharacterSheetPopup" parent="." instance=ExtResource("3_sheet")]
 visible = false
 layout_mode = 1
-theme = null
 
 [connection signal="pressed" from="MainLayout/CharacterPanel/VBoxContainer/ViewCharacterSheetButton" to="." method="_on_character_sheet_button_pressed"]

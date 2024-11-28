@@ -1,86 +1,103 @@
 # UIManager.gd
-class_name UIManager
 extends Node
 
 const GlobalEnums = preload("res://Resources/GameData/GlobalEnums.gd")
+const GameStateResource = preload("res://Resources/GameData/GameState.gd")
+const GameStateManager = preload("res://StateMachines/GameStateManager.gd")
 
-signal screen_changed(new_screen: Control)
+signal screen_changed(screen)
 
-var current_screen: Control
 var screens: Dictionary = {}
-var game_state: GameState
-var game_manager: GameManager
+var current_screen: Control = null
+var game_state: GameStateResource
+var game_manager: GameStateManager
 
-func initialize(manager: GameManager):
+func initialize(manager: GameStateManager) -> void:
 	game_manager = manager
 	game_state = manager.game_state
 
-func _ready():
-	# Register all screens
-	register_screen("main_menu", $MainMenu)
-	register_screen("campaign_setup", $CampaignSetup)
-	register_screen("world_view", $WorldView)
-	register_screen("crew_management", $CrewManagement)
-	register_screen("mission_select", $MissionSelect)
-	register_screen("battle", $Battle)
-	register_screen("post_battle", $PostBattle)
-	
-	# Set initial screen
-	change_screen("main_menu")
+func _ready() -> void:
+	# Initialize with empty dictionary
+	screens = {}
 
-func register_screen(screen_name: String, screen: Control):
+func register_screen(screen_name: String, screen: Control) -> void:
+	if screen == null:
+		push_error("Attempting to register null screen: " + screen_name)
+		return
+		
 	screens[screen_name] = screen
-	screen.hide()
+	if screen.is_inside_tree():
+		screen.hide()
+	else:
+		# Wait for screen to enter tree before hiding
+		await screen.ready
+		screen.hide()
 
 func change_screen(screen_name: String) -> void:
-	if current_screen:
+	if not screen_name in screens:
+		push_error("Screen not found: " + screen_name)
+		return
+		
+	if current_screen != null and is_instance_valid(current_screen):
 		current_screen.hide()
-	
-	if screen_name in screens:
-		current_screen = screens[screen_name]
+		
+	current_screen = screens[screen_name]
+	if current_screen != null and is_instance_valid(current_screen):
 		current_screen.show()
 		screen_changed.emit(current_screen)
-	else:
-		push_error("Screen not found: " + screen_name)
 
-func update_crew_info():
-	if current_screen.has_method("update_crew_info"):
+func update_crew_info() -> void:
+	if current_screen != null and current_screen.has_method("update_crew_info"):
 		current_screen.update_crew_info()
 
-func update_mission_info():
-	if current_screen.has_method("update_mission_info"):
+func update_mission_info() -> void:
+	if current_screen != null and current_screen.has_method("update_mission_info"):
 		current_screen.update_mission_info()
 
-func update_world_info():
-	if current_screen.has_method("update_world_info"):
+func update_world_info() -> void:
+	if current_screen != null and current_screen.has_method("update_world_info"):
 		current_screen.update_world_info()
 
-func show_dialog(title: String, message: String, options: Array):
-	var dialog = $DialogBox
-	dialog.set_title(title)
-	dialog.set_message(message)
-	dialog.set_options(options)
-	dialog.show()
-
-func show_tooltip(control: Control, text: String):
-	var tooltip = $Tooltip
-	tooltip.set_text(text)
-	tooltip.set_position(control.get_global_position() + Vector2(0, control.get_size().y))
-	tooltip.show()
-
-func hide_tooltip():
-	$Tooltip.hide()
-
-func show_notification(message: String, duration: float = 2.0):
-	var notif = $Notification
-	notif.text = message
-	notif.show()
+func show_dialog(title: String, message: String, options: Array = []) -> String:
+	var dialog: ConfirmationDialog
 	
-	await get_tree().create_timer(duration).timeout
-	notif.hide()
+	if options.is_empty():
+		# Use AcceptDialog for simple OK dialogs
+		dialog = AcceptDialog.new()
+		dialog.ok_button_text = "OK"
+	else:
+		# Use ConfirmationDialog for dialogs with options
+		dialog = ConfirmationDialog.new()
+		dialog.ok_button_text = options[0] if options.size() > 0 else "OK"
+		dialog.cancel_button_text = options[1] if options.size() > 1 else "Cancel"
+		
+	dialog.title = title
+	dialog.dialog_text = message
+	dialog.initial_position = Window.WINDOW_INITIAL_POSITION_CENTER_MAIN_WINDOW_SCREEN
+	
+	add_child(dialog)
+	dialog.popup_centered()
+	
+	var choice = await dialog.confirmed if options.is_empty() else await dialog.get_ok_button().pressed
+	dialog.queue_free()
+	
+	return options[0] if choice and options.size() > 0 else "OK"
 
-func update_credits_display():
-	$HUD/CreditsLabel.text = "Credits: " + str(game_state.credits)
+func show_tooltip(text: String, position: Vector2) -> void:
+	# Implement tooltip functionality
+	pass
+
+func hide_tooltip() -> void:
+	# Implement tooltip hiding
+	pass
+
+func show_notification(text: String, duration: float = 2.0) -> void:
+	# Implement notification system
+	pass
+
+func update_credits_display(credits: int) -> void:
+	if current_screen != null and current_screen.has_method("update_credits"):
+		current_screen.update_credits(credits)
 
 func update_story_points_display():
 	$HUD/StoryPointsLabel.text = "Story Points: " + str(game_state.story_points)

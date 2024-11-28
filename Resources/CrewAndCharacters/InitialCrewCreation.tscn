@@ -1,12 +1,9 @@
-[gd_scene load_steps=14 format=3 uid="uid://bwptfwotqcpfc"]
+[gd_scene load_steps=8 format=3 uid="uid://bwptfwotqcpfc"]
 
-[ext_resource type="Theme" uid="uid://ddjoduj1ya6tp" path="res://assets/5PFH.tres" id="1_cswjv"]
-[ext_resource type="Script" path="res://Resources/CrewAndCharacters/InitialCrewCreation.gd" id="2_o4iij"]
+[ext_resource type="Script" path="res://Resources/CrewAndCharacters/InitialCrewCreation.gd" id="1_script"]
+[ext_resource type="Theme" uid="uid://ddjoduj1ya6tp" path="res://assets/5PFH.tres" id="1_theme"]
 [ext_resource type="Texture2D" uid="uid://rf8rruw1wr7" path="res://assets/BookImages/Nov_22_Driftingaway.png" id="3_8ygs4"]
 [ext_resource type="Texture2D" uid="uid://ddlh6oem4p2nc" path="res://assets/Basic assets/headerlabelbox.png" id="4_h350x"]
-[ext_resource type="Texture2D" uid="uid://b03o2n8a6q4qg" path="res://assets/Basic assets/Card X3/Card X6.png" id="5_7lwir"]
-[ext_resource type="Texture2D" uid="uid://cyda0ceu266ls" path="res://assets/Basic assets/Button 1/005.png" id="6_sxnwf"]
-[ext_resource type="Texture2D" uid="uid://bnalp0hnpiwx" path="res://assets/Basic assets/5PFHUIAssets/Sci-Fi-Infoboxes_0000s_0004s_0001_main.png" id="7_0qnps"]
 [ext_resource type="Texture2D" uid="uid://bat6jyibsalo8" path="res://assets/Basic assets/PanelBox.png" id="8_382gw"]
 
 [sub_resource type="StyleBoxTexture" id="StyleBoxTexture_i2bao"]
@@ -14,17 +11,6 @@ texture = ExtResource("4_h350x")
 texture_margin_top = 19.0
 texture_margin_bottom = 47.0
 region_rect = Rect2(138.772, 90.156, 516.929, 618.344)
-
-[sub_resource type="StyleBoxTexture" id="StyleBoxTexture_e3yi5"]
-texture = ExtResource("5_7lwir")
-region_rect = Rect2(14.0003, 33.0001, 668, 351)
-
-[sub_resource type="StyleBoxTexture" id="StyleBoxTexture_65ql5"]
-texture = ExtResource("6_sxnwf")
-region_rect = Rect2(163, 1303, 1098, 649)
-
-[sub_resource type="StyleBoxTexture" id="StyleBoxTexture_lyaem"]
-texture = ExtResource("7_0qnps")
 
 [sub_resource type="StyleBoxTexture" id="StyleBoxTexture_8qda8"]
 texture = ExtResource("8_382gw")
@@ -37,8 +23,8 @@ anchor_right = 1.0
 anchor_bottom = 1.0
 grow_horizontal = 2
 grow_vertical = 2
-theme = ExtResource("1_cswjv")
-script = ExtResource("2_o4iij")
+theme = ExtResource("1_theme")
+script = ExtResource("1_script")
 
 [node name="Background" type="TextureRect" parent="."]
 layout_mode = 1
@@ -50,7 +36,7 @@ grow_vertical = 2
 texture = ExtResource("3_8ygs4")
 expand_mode = 2
 
-[node name="HBoxContainer" type="HBoxContainer" parent="."]
+[node name="MainContainer" type="HBoxContainer" parent="."]
 layout_mode = 1
 anchors_preset = 15
 anchor_right = 1.0
@@ -63,7 +49,7 @@ grow_horizontal = 2
 grow_vertical = 2
 alignment = 1
 
-[node name="LeftPanel" type="MarginContainer" parent="HBoxContainer"]
+[node name="LeftPanel" type="MarginContainer" parent="MainContainer"]
 layout_mode = 2
 size_flags_horizontal = 3
 size_flags_stretch_ratio = 1.78
@@ -72,17 +58,17 @@ theme_override_constants/margin_top = 20
 theme_override_constants/margin_right = 10
 theme_override_constants/margin_bottom = 20
 
-[node name="Panel" type="Panel" parent="HBoxContainer/LeftPanel"]
+[node name="MainPanel" type="Panel" parent="MainContainer/LeftPanel"]
 layout_mode = 2
 theme_override_styles/panel = SubResource("StyleBoxTexture_i2bao")
 
-[node name="TitleLabel" type="Label" parent="HBoxContainer/LeftPanel/Panel"]
+[node name="TitleLabel" type="Label" parent="MainContainer/LeftPanel/MainPanel"]
 layout_mode = 2
 offset_left = 32.0
 offset_top = 16.0
 offset_right = 910.0
 offset_bottom = 81.0
-theme = ExtResource("1_cswjv")
+theme = ExtResource("1_theme")
 theme_type_variation = &"HeaderLarge"
 theme_override_font_sizes/font_size = 55
 text = "Initial Crew Creation"
@@ -90,333 +76,30 @@ horizontal_alignment = 1
 vertical_alignment = 1
 uppercase = true
 
-[node name="VBoxContainer" type="VBoxContainer" parent="HBoxContainer/LeftPanel/Panel"]
+[node name="MainVBox" type="VBoxContainer" parent="MainContainer/LeftPanel/MainPanel"]
 layout_mode = 1
-anchors_preset = 14
-anchor_top = 0.5
+anchors_preset = 15
 anchor_right = 1.0
-anchor_bottom = 0.5
+anchor_bottom = 1.0
 offset_left = 28.0
-offset_top = -419.0
+offset_top = 100.0
 offset_right = -26.0
-offset_bottom = 493.0
+offset_bottom = -20.0
 grow_horizontal = 2
 grow_vertical = 2
-size_flags_vertical = 4
 theme_override_constants/separation = 20
-alignment = 1
 
-[node name="CharacterColumns" type="HBoxContainer" parent="HBoxContainer/LeftPanel/Panel/VBoxContainer"]
+[node name="CharacterColumns" type="HBoxContainer" parent="MainContainer/LeftPanel/MainPanel/MainVBox"]
 layout_mode = 2
 size_flags_vertical = 3
-size_flags_stretch_ratio = 0.0
 theme_override_constants/separation = 10
 
-[node name="CharacterColumn1" type="VBoxContainer" parent="HBoxContainer/LeftPanel/Panel/VBoxContainer/CharacterColumns"]
-layout_mode = 2
-size_flags_horizontal = 3
-theme_override_constants/separation = 10
-
-[node name="CrewMember1" type="Panel" parent="HBoxContainer/LeftPanel/Panel/VBoxContainer/CharacterColumns/CharacterColumn1"]
-custom_minimum_size = Vector2(0, 100)
-layout_mode = 2
-theme_override_styles/panel = SubResource("StyleBoxTexture_e3yi5")
-
-[node name="HBoxContainer" type="HBoxContainer" parent="HBoxContainer/LeftPanel/Panel/VBoxContainer/CharacterColumns/CharacterColumn1/CrewMember1"]
-layout_mode = 1
-anchors_preset = 15
-anchor_right = 1.0
-anchor_bottom = 1.0
-offset_left = 21.0
-offset_top = 12.0
-offset_right = -35.0
-offset_bottom = -12.0
-grow_horizontal = 2
-grow_vertical = 2
-
-[node name="Portrait" type="TextureRect" parent="HBoxContainer/LeftPanel/Panel/VBoxContainer/CharacterColumns/CharacterColumn1/CrewMember1/HBoxContainer"]
-layout_mode = 2
-size_flags_horizontal = 3
-expand_mode = 1
-stretch_mode = 5
-
-[node name="VBoxContainer" type="VBoxContainer" parent="HBoxContainer/LeftPanel/Panel/VBoxContainer/CharacterColumns/CharacterColumn1/CrewMember1/HBoxContainer"]
-layout_mode = 2
-size_flags_horizontal = 3
-
-[node name="Name" type="Label" parent="HBoxContainer/LeftPanel/Panel/VBoxContainer/CharacterColumns/CharacterColumn1/CrewMember1/HBoxContainer/VBoxContainer"]
-layout_mode = 2
-text = "Name"
-
-[node name="Species" type="Label" parent="HBoxContainer/LeftPanel/Panel/VBoxContainer/CharacterColumns/CharacterColumn1/CrewMember1/HBoxContainer/VBoxContainer"]
-layout_mode = 2
-text = "Species"
-
-[node name="Class" type="Label" parent="HBoxContainer/LeftPanel/Panel/VBoxContainer/CharacterColumns/CharacterColumn1/CrewMember1/HBoxContainer/VBoxContainer"]
-layout_mode = 2
-text = "Class"
-
-[node name="CrewMember2" type="Panel" parent="HBoxContainer/LeftPanel/Panel/VBoxContainer/CharacterColumns/CharacterColumn1"]
-custom_minimum_size = Vector2(0, 100)
-layout_mode = 2
-theme_override_styles/panel = SubResource("StyleBoxTexture_65ql5")
-
-[node name="HBoxContainer" type="HBoxContainer" parent="HBoxContainer/LeftPanel/Panel/VBoxContainer/CharacterColumns/CharacterColumn1/CrewMember2"]
-layout_mode = 1
-anchors_preset = 15
-anchor_right = 1.0
-anchor_bottom = 1.0
-offset_top = 8.0
-grow_horizontal = 2
-grow_vertical = 2
-
-[node name="Portrait" type="TextureRect" parent="HBoxContainer/LeftPanel/Panel/VBoxContainer/CharacterColumns/CharacterColumn1/CrewMember2/HBoxContainer"]
-layout_mode = 2
-size_flags_horizontal = 3
-expand_mode = 1
-stretch_mode = 5
-
-[node name="VBoxContainer" type="VBoxContainer" parent="HBoxContainer/LeftPanel/Panel/VBoxContainer/CharacterColumns/CharacterColumn1/CrewMember2/HBoxContainer"]
-layout_mode = 2
-size_flags_horizontal = 3
-
-[node name="Name" type="Label" parent="HBoxContainer/LeftPanel/Panel/VBoxContainer/CharacterColumns/CharacterColumn1/CrewMember2/HBoxContainer/VBoxContainer"]
-layout_mode = 2
-text = "Name"
-
-[node name="Species" type="Label" parent="HBoxContainer/LeftPanel/Panel/VBoxContainer/CharacterColumns/CharacterColumn1/CrewMember2/HBoxContainer/VBoxContainer"]
-layout_mode = 2
-text = "Species"
-
-[node name="Class" type="Label" parent="HBoxContainer/LeftPanel/Panel/VBoxContainer/CharacterColumns/CharacterColumn1/CrewMember2/HBoxContainer/VBoxContainer"]
-layout_mode = 2
-text = "Class"
-
-[node name="CrewMember3" type="Panel" parent="HBoxContainer/LeftPanel/Panel/VBoxContainer/CharacterColumns/CharacterColumn1"]
-custom_minimum_size = Vector2(0, 100)
-layout_mode = 2
-theme_override_styles/panel = SubResource("StyleBoxTexture_lyaem")
-
-[node name="HBoxContainer" type="HBoxContainer" parent="HBoxContainer/LeftPanel/Panel/VBoxContainer/CharacterColumns/CharacterColumn1/CrewMember3"]
-layout_mode = 1
-anchors_preset = 15
-anchor_right = 1.0
-anchor_bottom = 1.0
-offset_left = 16.0
-offset_top = 11.0
-offset_right = -16.0
-offset_bottom = -12.0
-grow_horizontal = 2
-grow_vertical = 2
-
-[node name="Portrait" type="TextureRect" parent="HBoxContainer/LeftPanel/Panel/VBoxContainer/CharacterColumns/CharacterColumn1/CrewMember3/HBoxContainer"]
-layout_mode = 2
-size_flags_horizontal = 3
-expand_mode = 1
-stretch_mode = 5
-
-[node name="VBoxContainer" type="VBoxContainer" parent="HBoxContainer/LeftPanel/Panel/VBoxContainer/CharacterColumns/CharacterColumn1/CrewMember3/HBoxContainer"]
-layout_mode = 2
-size_flags_horizontal = 3
-
-[node name="Name" type="Label" parent="HBoxContainer/LeftPanel/Panel/VBoxContainer/CharacterColumns/CharacterColumn1/CrewMember3/HBoxContainer/VBoxContainer"]
-layout_mode = 2
-text = "Name"
-
-[node name="Species" type="Label" parent="HBoxContainer/LeftPanel/Panel/VBoxContainer/CharacterColumns/CharacterColumn1/CrewMember3/HBoxContainer/VBoxContainer"]
-layout_mode = 2
-text = "Species"
-
-[node name="Class" type="Label" parent="HBoxContainer/LeftPanel/Panel/VBoxContainer/CharacterColumns/CharacterColumn1/CrewMember3/HBoxContainer/VBoxContainer"]
-layout_mode = 2
-text = "Class"
-
-[node name="CrewMember4" type="Panel" parent="HBoxContainer/LeftPanel/Panel/VBoxContainer/CharacterColumns/CharacterColumn1"]
-custom_minimum_size = Vector2(0, 100)
-layout_mode = 2
-
-[node name="HBoxContainer" type="HBoxContainer" parent="HBoxContainer/LeftPanel/Panel/VBoxContainer/CharacterColumns/CharacterColumn1/CrewMember4"]
-layout_mode = 1
-anchors_preset = 15
-anchor_right = 1.0
-anchor_bottom = 1.0
-offset_left = 9.0
-offset_top = 10.0
-offset_right = -11.0
-offset_bottom = -7.0
-grow_horizontal = 2
-grow_vertical = 2
-
-[node name="Portrait" type="TextureRect" parent="HBoxContainer/LeftPanel/Panel/VBoxContainer/CharacterColumns/CharacterColumn1/CrewMember4/HBoxContainer"]
-layout_mode = 2
-size_flags_horizontal = 3
-expand_mode = 1
-stretch_mode = 5
-
-[node name="VBoxContainer" type="VBoxContainer" parent="HBoxContainer/LeftPanel/Panel/VBoxContainer/CharacterColumns/CharacterColumn1/CrewMember4/HBoxContainer"]
-layout_mode = 2
-size_flags_horizontal = 3
-
-[node name="Name" type="Label" parent="HBoxContainer/LeftPanel/Panel/VBoxContainer/CharacterColumns/CharacterColumn1/CrewMember4/HBoxContainer/VBoxContainer"]
-layout_mode = 2
-text = "Name"
-
-[node name="Species" type="Label" parent="HBoxContainer/LeftPanel/Panel/VBoxContainer/CharacterColumns/CharacterColumn1/CrewMember4/HBoxContainer/VBoxContainer"]
-layout_mode = 2
-text = "Species"
-
-[node name="Class" type="Label" parent="HBoxContainer/LeftPanel/Panel/VBoxContainer/CharacterColumns/CharacterColumn1/CrewMember4/HBoxContainer/VBoxContainer"]
-layout_mode = 2
-text = "Class"
-
-[node name="CharacterColumn2" type="VBoxContainer" parent="HBoxContainer/LeftPanel/Panel/VBoxContainer/CharacterColumns"]
+[node name="LeftColumn" type="VBoxContainer" parent="MainContainer/LeftPanel/MainPanel/MainVBox/CharacterColumns"]
 layout_mode = 2
 size_flags_horizontal = 3
 theme_override_constants/separation = 10
 
-[node name="CrewMember5" type="Panel" parent="HBoxContainer/LeftPanel/Panel/VBoxContainer/CharacterColumns/CharacterColumn2"]
-custom_minimum_size = Vector2(0, 100)
-layout_mode = 2
-
-[node name="HBoxContainer" type="HBoxContainer" parent="HBoxContainer/LeftPanel/Panel/VBoxContainer/CharacterColumns/CharacterColumn2/CrewMember5"]
-layout_mode = 1
-anchors_preset = 15
-anchor_right = 1.0
-anchor_bottom = 1.0
-grow_horizontal = 2
-grow_vertical = 2
-
-[node name="Portrait" type="TextureRect" parent="HBoxContainer/LeftPanel/Panel/VBoxContainer/CharacterColumns/CharacterColumn2/CrewMember5/HBoxContainer"]
-layout_mode = 2
-size_flags_horizontal = 3
-expand_mode = 1
-stretch_mode = 5
-
-[node name="VBoxContainer" type="VBoxContainer" parent="HBoxContainer/LeftPanel/Panel/VBoxContainer/CharacterColumns/CharacterColumn2/CrewMember5/HBoxContainer"]
-layout_mode = 2
-size_flags_horizontal = 3
-
-[node name="Name" type="Label" parent="HBoxContainer/LeftPanel/Panel/VBoxContainer/CharacterColumns/CharacterColumn2/CrewMember5/HBoxContainer/VBoxContainer"]
-layout_mode = 2
-text = "Name"
-
-[node name="Species" type="Label" parent="HBoxContainer/LeftPanel/Panel/VBoxContainer/CharacterColumns/CharacterColumn2/CrewMember5/HBoxContainer/VBoxContainer"]
-layout_mode = 2
-text = "Species"
-
-[node name="Class" type="Label" parent="HBoxContainer/LeftPanel/Panel/VBoxContainer/CharacterColumns/CharacterColumn2/CrewMember5/HBoxContainer/VBoxContainer"]
-layout_mode = 2
-text = "Class"
-
-[node name="CrewMember6" type="Panel" parent="HBoxContainer/LeftPanel/Panel/VBoxContainer/CharacterColumns/CharacterColumn2"]
-custom_minimum_size = Vector2(0, 100)
-layout_mode = 2
-
-[node name="HBoxContainer" type="HBoxContainer" parent="HBoxContainer/LeftPanel/Panel/VBoxContainer/CharacterColumns/CharacterColumn2/CrewMember6"]
-layout_mode = 1
-anchors_preset = 15
-anchor_right = 1.0
-anchor_bottom = 1.0
-grow_horizontal = 2
-grow_vertical = 2
-
-[node name="Portrait" type="TextureRect" parent="HBoxContainer/LeftPanel/Panel/VBoxContainer/CharacterColumns/CharacterColumn2/CrewMember6/HBoxContainer"]
-layout_mode = 2
-size_flags_horizontal = 3
-expand_mode = 1
-stretch_mode = 5
-
-[node name="VBoxContainer" type="VBoxContainer" parent="HBoxContainer/LeftPanel/Panel/VBoxContainer/CharacterColumns/CharacterColumn2/CrewMember6/HBoxContainer"]
-layout_mode = 2
-size_flags_horizontal = 3
-
-[node name="Name" type="Label" parent="HBoxContainer/LeftPanel/Panel/VBoxContainer/CharacterColumns/CharacterColumn2/CrewMember6/HBoxContainer/VBoxContainer"]
-layout_mode = 2
-text = "Name"
-
-[node name="Species" type="Label" parent="HBoxContainer/LeftPanel/Panel/VBoxContainer/CharacterColumns/CharacterColumn2/CrewMember6/HBoxContainer/VBoxContainer"]
-layout_mode = 2
-text = "Species"
-
-[node name="Class" type="Label" parent="HBoxContainer/LeftPanel/Panel/VBoxContainer/CharacterColumns/CharacterColumn2/CrewMember6/HBoxContainer/VBoxContainer"]
-layout_mode = 2
-text = "Class"
-
-[node name="CrewMember7" type="Panel" parent="HBoxContainer/LeftPanel/Panel/VBoxContainer/CharacterColumns/CharacterColumn2"]
-custom_minimum_size = Vector2(0, 100)
-layout_mode = 2
-
-[node name="HBoxContainer" type="HBoxContainer" parent="HBoxContainer/LeftPanel/Panel/VBoxContainer/CharacterColumns/CharacterColumn2/CrewMember7"]
-layout_mode = 1
-anchors_preset = 15
-anchor_right = 1.0
-anchor_bottom = 1.0
-grow_horizontal = 2
-grow_vertical = 2
-
-[node name="Portrait" type="TextureRect" parent="HBoxContainer/LeftPanel/Panel/VBoxContainer/CharacterColumns/CharacterColumn2/CrewMember7/HBoxContainer"]
-layout_mode = 2
-size_flags_horizontal = 3
-expand_mode = 1
-stretch_mode = 5
-
-[node name="VBoxContainer" type="VBoxContainer" parent="HBoxContainer/LeftPanel/Panel/VBoxContainer/CharacterColumns/CharacterColumn2/CrewMember7/HBoxContainer"]
-layout_mode = 2
-size_flags_horizontal = 3
-
-[node name="Name" type="Label" parent="HBoxContainer/LeftPanel/Panel/VBoxContainer/CharacterColumns/CharacterColumn2/CrewMember7/HBoxContainer/VBoxContainer"]
-layout_mode = 2
-text = "Name"
-
-[node name="Species" type="Label" parent="HBoxContainer/LeftPanel/Panel/VBoxContainer/CharacterColumns/CharacterColumn2/CrewMember7/HBoxContainer/VBoxContainer"]
-layout_mode = 2
-text = "Species"
-
-[node name="Class" type="Label" parent="HBoxContainer/LeftPanel/Panel/VBoxContainer/CharacterColumns/CharacterColumn2/CrewMember7/HBoxContainer/VBoxContainer"]
-layout_mode = 2
-text = "Class"
-
-[node name="CrewMember8" type="Panel" parent="HBoxContainer/LeftPanel/Panel/VBoxContainer/CharacterColumns/CharacterColumn2"]
-custom_minimum_size = Vector2(0, 100)
-layout_mode = 2
-
-[node name="HBoxContainer" type="HBoxContainer" parent="HBoxContainer/LeftPanel/Panel/VBoxContainer/CharacterColumns/CharacterColumn2/CrewMember8"]
-layout_mode = 1
-anchors_preset = 15
-anchor_right = 1.0
-anchor_bottom = 1.0
-grow_horizontal = 2
-grow_vertical = 2
-
-[node name="Portrait" type="TextureRect" parent="HBoxContainer/LeftPanel/Panel/VBoxContainer/CharacterColumns/CharacterColumn2/CrewMember8/HBoxContainer"]
-layout_mode = 2
-size_flags_horizontal = 3
-expand_mode = 1
-stretch_mode = 5
-
-[node name="VBoxContainer" type="VBoxContainer" parent="HBoxContainer/LeftPanel/Panel/VBoxContainer/CharacterColumns/CharacterColumn2/CrewMember8/HBoxContainer"]
-layout_mode = 2
-size_flags_horizontal = 3
-
-[node name="Name" type="Label" parent="HBoxContainer/LeftPanel/Panel/VBoxContainer/CharacterColumns/CharacterColumn2/CrewMember8/HBoxContainer/VBoxContainer"]
-layout_mode = 2
-text = "Name"
-
-[node name="Species" type="Label" parent="HBoxContainer/LeftPanel/Panel/VBoxContainer/CharacterColumns/CharacterColumn2/CrewMember8/HBoxContainer/VBoxContainer"]
-layout_mode = 2
-text = "Species"
-
-[node name="Class" type="Label" parent="HBoxContainer/LeftPanel/Panel/VBoxContainer/CharacterColumns/CharacterColumn2/CrewMember8/HBoxContainer/VBoxContainer"]
-layout_mode = 2
-text = "Class"
-
-[node name="ConfirmButton" type="Button" parent="HBoxContainer/LeftPanel/Panel/VBoxContainer"]
-layout_mode = 2
-size_flags_vertical = 6
-size_flags_stretch_ratio = 0.0
-text = "Confirm"
-
-[node name="RightPanel" type="MarginContainer" parent="HBoxContainer"]
+[node name="RightPanel" type="MarginContainer" parent="MainContainer"]
 layout_mode = 2
 size_flags_horizontal = 3
 theme_override_constants/margin_left = 10
@@ -424,47 +107,62 @@ theme_override_constants/margin_top = 20
 theme_override_constants/margin_right = 20
 theme_override_constants/margin_bottom = 20
 
-[node name="Panel" type="Panel" parent="HBoxContainer/RightPanel"]
+[node name="PreviewPanel" type="Panel" parent="MainContainer/RightPanel"]
 layout_mode = 2
-theme = ExtResource("1_cswjv")
 theme_override_styles/panel = SubResource("StyleBoxTexture_8qda8")
 
-[node name="TitleLabel" type="Label" parent="HBoxContainer/RightPanel/Panel"]
+[node name="PreviewVBox" type="VBoxContainer" parent="MainContainer/RightPanel/PreviewPanel"]
+layout_mode = 1
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+theme_override_constants/separation = 20
+
+[node name="PreviewTitle" type="Label" parent="MainContainer/RightPanel/PreviewPanel/PreviewVBox"]
 layout_mode = 2
-offset_left = 31.0
-offset_top = 22.0
-offset_right = 513.0
-offset_bottom = 70.0
-theme = ExtResource("1_cswjv")
 theme_override_font_sizes/font_size = 40
 text = "Crew Preview"
 horizontal_alignment = 1
 
-[node name="MarginContainer" type="MarginContainer" parent="HBoxContainer/RightPanel/Panel"]
-layout_mode = 1
-anchors_preset = -1
-anchor_top = 0.027
-anchor_right = 1.0
-anchor_bottom = 1.0
-offset_left = 23.0
-offset_top = 46.537
-offset_right = -25.0
-offset_bottom = -36.0
-grow_horizontal = 2
-grow_vertical = 2
-theme_override_constants/margin_left = 10
-theme_override_constants/margin_top = 10
-theme_override_constants/margin_right = 10
-theme_override_constants/margin_bottom = 10
-
-[node name="VBoxContainer" type="VBoxContainer" parent="HBoxContainer/RightPanel/Panel/MarginContainer"]
-layout_mode = 2
-
-[node name="ScrollContainer" type="ScrollContainer" parent="HBoxContainer/RightPanel/Panel/MarginContainer/VBoxContainer"]
+[node name="PreviewScroll" type="ScrollContainer" parent="MainContainer/RightPanel/PreviewPanel/PreviewVBox"]
 layout_mode = 2
 size_flags_vertical = 3
 
-[node name="CrewPreview" type="VBoxContainer" parent="HBoxContainer/RightPanel/Panel/MarginContainer/VBoxContainer/ScrollContainer"]
+[node name="CrewPreview" type="VBoxContainer" parent="MainContainer/RightPanel/PreviewPanel/PreviewVBox/PreviewScroll"]
 layout_mode = 2
 size_flags_horizontal = 3
 size_flags_vertical = 3
+
+[node name="MainContainer_LeftPanel_MainPanel_MainVBox_CharacterColumns_LeftColumn_CrewSlot0#CrewInfo" type="HBoxContainer" parent="."]
+layout_mode = 1
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+
+[node name="MainContainer_LeftPanel_MainPanel_MainVBox_CharacterColumns_LeftColumn_CrewSlot0_CrewInfo#Portrait" type="TextureRect" parent="."]
+layout_mode = 2
+size_flags_horizontal = 3
+expand_mode = 1
+stretch_mode = 5
+
+[node name="MainContainer_LeftPanel_MainPanel_MainVBox_CharacterColumns_LeftColumn_CrewSlot0_CrewInfo#Stats" type="VBoxContainer" parent="."]
+layout_mode = 2
+size_flags_horizontal = 3
+
+[node name="MainContainer_LeftPanel_MainPanel_MainVBox_CharacterColumns_LeftColumn_CrewSlot0_CrewInfo_Stats#Name" type="Label" parent="."]
+layout_mode = 2
+text = "Name"
+
+[node name="MainContainer_LeftPanel_MainPanel_MainVBox_CharacterColumns_LeftColumn_CrewSlot0_CrewInfo_Stats#Origin" type="Label" parent="."]
+layout_mode = 2
+text = "Origin"
+
+[node name="MainContainer_LeftPanel_MainPanel_MainVBox_CharacterColumns_LeftColumn_CrewSlot0_CrewInfo_Stats#Class" type="Label" parent="."]
+layout_mode = 2
+size_flags_horizontal = 3
+size_flags_vertical = 8
+text = "Confirm Crew"

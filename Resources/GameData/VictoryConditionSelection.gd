@@ -3,7 +3,7 @@ class_name VictoryConditionSelection
 extends Control
 
 # Define signals
-signal victory_selected(condition: GlobalEnums.CampaignVictoryType, custom_data: Dictionary)
+signal victory_selected(condition: int, custom_data: Dictionary)
 signal closed
 
 # Properly type all node references
@@ -100,14 +100,26 @@ var current_category: String
 var current_condition: Dictionary
 
 func _ready() -> void:
+	# First verify all nodes are present
 	if not _verify_nodes():
 		push_error("VictoryConditionSelection: Required nodes are missing!")
 		return
 	
-	_populate_categories()
-	_setup_custom_options()
-	_connect_signals()
+	# Initialize UI state
 	custom_container.hide()
+	visible = false
+	select_button.disabled = true
+	
+	# Setup initial state
+	_setup_custom_options()
+	_populate_categories()
+	
+	# Connect UI signals
+	category_list.item_selected.connect(_on_category_selected)
+	condition_list.item_selected.connect(_on_condition_selected)
+	custom_type_option.item_selected.connect(_on_custom_type_selected)
+	select_button.pressed.connect(_on_select_pressed)
+	close_button.pressed.connect(_on_close_button_pressed)
 
 func _verify_nodes() -> bool:
 	return category_list != null and \
@@ -130,26 +142,20 @@ func _setup_custom_options() -> void:
 		custom_type_option.add_item(type)
 	_update_custom_value_range()
 
-func _connect_signals() -> void:
-	if category_list:
-		category_list.item_selected.connect(_on_category_selected)
-	if condition_list:
-		condition_list.item_selected.connect(_on_condition_selected)
-	if custom_type_option:
-		custom_type_option.item_selected.connect(_on_custom_type_selected)
-	if select_button:
-		select_button.pressed.connect(_on_select_pressed)
-	if close_button:
-		close_button.pressed.connect(_on_close_button_pressed)
-
 func _on_category_selected(index: int) -> void:
+	if index < 0 or index >= category_list.item_count:
+		return
+		
 	current_category = category_list.get_item_text(index)
 	_populate_conditions(current_category)
 	
 	if current_category == "Custom":
 		custom_container.show()
+		custom_type_option.grab_focus()
 	else:
 		custom_container.hide()
+		if condition_list.item_count > 0:
+			condition_list.grab_focus()
 
 func _populate_conditions(category: String) -> void:
 	condition_list.clear()
@@ -157,11 +163,15 @@ func _populate_conditions(category: String) -> void:
 		condition_list.add_item(condition.name)
 
 func _on_condition_selected(index: int) -> void:
+	if index < 0 or index >= condition_list.item_count:
+		return
+		
 	var condition_name = condition_list.get_item_text(index)
 	for condition in VICTORY_CATEGORIES[current_category].values():
 		if condition.name == condition_name:
 			current_condition = condition
 			description_label.text = condition.description
+			select_button.disabled = false
 			break
 
 func _on_custom_type_selected(index: int) -> void:
@@ -175,18 +185,28 @@ func _update_custom_value_range() -> void:
 	custom_value_spin.value = range_data.default
 
 func _on_select_pressed() -> void:
+	if current_category.is_empty():
+		return
+		
 	if current_category == "Custom":
+		if custom_type_option.selected < 0:
+			return
+			
 		var custom_data = {
 			"type": custom_type_option.get_item_text(custom_type_option.selected),
 			"value": custom_value_spin.value
 		}
 		victory_selected.emit(GlobalEnums.CampaignVictoryType.CUSTOM, custom_data)
 	else:
+		if current_condition.is_empty():
+			return
+			
 		victory_selected.emit(current_condition.type, {})
-	visible = false
+	
+	hide()
 
 func _on_close_button_pressed() -> void:
-	visible = false
+	hide()
 	closed.emit()
 
 func get_condition_description(condition_type: GlobalEnums.CampaignVictoryType) -> String:
@@ -196,10 +216,19 @@ func get_condition_description(condition_type: GlobalEnums.CampaignVictoryType) 
 				return condition.description
 	return "Unknown condition"
 
-func _show() -> void:
-	visible = true
-	# Reset selection state
+func show_dialog() -> void:
+	# Reset UI state
 	category_list.deselect_all()
 	condition_list.clear()
 	description_label.text = "Select a victory condition"
 	custom_container.hide()
+	select_button.disabled = true
+	current_category = ""
+	current_condition = {}
+	
+	# Ensure categories are populated
+	if category_list.item_count == 0:
+		_populate_categories()
+	
+	# Show the dialog
+	show()

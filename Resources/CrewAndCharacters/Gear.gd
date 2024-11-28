@@ -2,7 +2,6 @@ extends Equipment
 class_name Gear
 
 @export var gear_type: int = GlobalEnums.ItemType.GEAR  # Fixed type hint
-@export var weight: float = 1.0
 
 func _init(p_name: String = "", p_description: String = "", p_gear_type: int = GlobalEnums.ItemType.GEAR, p_level: int = 1, p_weight: float = 1.0) -> void:
 	super._init(p_name, p_gear_type, p_level)

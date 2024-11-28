@@ -59,10 +59,11 @@ enum CharacterStatus {
 
 enum CharacterStats {
 	REACTIONS,
-	SPEED,
 	COMBAT_SKILL,
 	TOUGHNESS,
 	SAVVY,
+	SPEED,
+	WILL,
 	LUCK,
 	TECHNICAL,
 	AGILITY,
@@ -70,19 +71,25 @@ enum CharacterStats {
 	INTELLIGENCE,
 	SURVIVAL,
 	STEALTH,
-	PILOTING
+	PILOTING,
+	LEADERSHIP,
+	MEDICAL
 }
 
+# Character Origins (formerly Species)
 enum Origin {
-	MILITARY,
-	CORPORATE,
-	CRIMINAL,
-	COLONIST,
-	NOMAD,
-	ACADEMIC,
-	MUTANT,
-	HYBRID
+	HUMAN,
+	ENGINEER,
+	KERIN,
+	SOULLESS,
+	PRECURSOR,
+	FERAL,
+	SWIFT,
+	BOT
 }
+
+# Remove or comment out old Species enum if it exists
+# enum Species { ... }
 
 enum Background {
 	SOLDIER,
@@ -104,12 +111,49 @@ enum Motivation {
 
 enum Class {
 	WARRIOR,
-	TECH,
 	SCOUT,
+	TECH,
+	MEDIC,
 	LEADER,
 	SPECIALIST,
 	SUPPORT,
-	SOLDIER
+	GUNNER
+}
+
+# Character Creation and Advancement System
+enum CrewCreationCost {
+	BASIC = 100,      # Basic crew member cost
+	SPECIALIST = 150, # Specialist crew member cost
+	VETERAN = 200,    # Veteran crew member cost
+	ELITE = 300       # Elite crew member cost
+}
+
+enum CrewSizeLimit {
+	MINIMUM = 3,      # Minimum crew size to start campaign
+	MAXIMUM = 8,      # Maximum crew size allowed
+	STARTING = 5      # Default starting crew size
+}
+
+enum CharacterRecruitmentType {
+	RANDOM,           # Random character from available pool
+	SPECIFIC,         # Specific character type (if available)
+	STORY,            # Story-based recruitment
+	QUEST_REWARD      # Character gained as quest reward
+}
+
+enum CharacterAdvancement {
+	SKILL_INCREASE,   # Increase a specific skill
+	NEW_ABILITY,      # Gain a new ability
+	STAT_BOOST,       # Boost a core stat
+	SPECIALIZATION    # Gain a specialization
+}
+
+enum CharacterExperience {
+	NOVICE = 0,
+	EXPERIENCED = 5,
+	VETERAN = 10,
+	ELITE = 15,
+	LEGENDARY = 20
 }
 
 # Crew System

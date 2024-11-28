@@ -1,8 +1,7 @@
 # MainMenu.gd
 extends Control
-# At the top of the file, add the class reference
+
 const GameStateManager = preload("res://StateMachines/GameStateManager.gd")
-const NewCampaignTutorial = preload("res://Resources/CampaignManagement/Scenes/NewCampaignTutorial.tscn")
 
 @onready var continue_button: Button = $MenuButtons/Continue
 @onready var new_campaign_button: Button = $MenuButtons/NewCampaign
@@ -15,14 +14,12 @@ const NewCampaignTutorial = preload("res://Resources/CampaignManagement/Scenes/N
 
 var game_state_manager: GameStateManager
 
+func setup(manager: GameStateManager) -> void:
+	game_state_manager = manager
+	update_continue_button_visibility()
+
 func _ready() -> void:
 	setup_ui()
-	game_state_manager = get_node("/root/GameStateManager")
-	if not game_state_manager:
-		push_error("GameStateManager not found")
-		return
-		
-	call_deferred("initialize_game_systems")
 	tutorial_popup.hide()
 	_connect_tutorial_signals()
 
@@ -45,11 +42,11 @@ func _connect_tutorial_signals() -> void:
 				button.pressed.disconnect(_on_tutorial_popup_button_pressed)
 			button.pressed.connect(_on_tutorial_popup_button_pressed.bind(buttons[button_name]))
 
-func setup_ui():
+func setup_ui() -> void:
 	connect_buttons()
 	add_fade_in_animation()
 
-func connect_buttons():
+func connect_buttons() -> void:
 	if continue_button:
 		continue_button.pressed.connect(_on_continue_pressed)
 	if new_campaign_button:
@@ -65,35 +62,30 @@ func connect_buttons():
 	if library_button:
 		library_button.pressed.connect(_on_library_pressed)
 
-func add_fade_in_animation():
+func add_fade_in_animation() -> void:
 	modulate = Color(1, 1, 1, 0)
 	var tween = create_tween()
 	tween.tween_property(self, "modulate", Color(1, 1, 1, 1), 0.5)
 
-func initialize_game_systems():
-	# Since we're using @onready, we just need to check if it's valid
-	if !is_instance_valid(game_state_manager):
-		push_warning("GameStateManager not found. Retrying in 1 second.")
-		get_tree().create_timer(1.0).timeout.connect(initialize_game_systems)
-	else:
-		update_continue_button_visibility()
-
-func update_continue_button_visibility():
-	if game_state_manager and game_state_manager.get_current_ship():
-		var crew = game_state_manager.get_crew()
-		continue_button.visible = crew.size() > 0
+func update_continue_button_visibility() -> void:
+	if not game_state_manager:
+		continue_button.visible = false
+		return
+		
+	if game_state_manager.game_state and game_state_manager.game_state.current_ship:
+		continue_button.visible = game_state_manager.game_state.current_ship.crew.size() > 0
 	else:
 		continue_button.visible = false
 
-func _on_continue_pressed():
-	if game_state_manager and game_state_manager.game_state.current_ship.crew.size() > 0:
-		transition_to_scene("res://Scenes/Management/CrewManagement.tscn")
+func _on_continue_pressed() -> void:
+	if game_state_manager and game_state_manager.game_state.current_ship and game_state_manager.game_state.current_ship.crew.size() > 0:
+		request_scene_change("crew_management")
 	else:
-		print("No active campaign to continue")
+		show_message("No active campaign to continue")
 
-func _on_new_campaign_pressed():
+func _on_new_campaign_pressed() -> void:
 	if game_state_manager and game_state_manager.settings.get("disable_tutorial_popup", false):
-		_change_to_new_campaign_scene()
+		_start_new_campaign()
 	else:
 		_show_tutorial_popup()
 
@@ -102,82 +94,62 @@ func _show_tutorial_popup() -> void:
 		push_error("Tutorial popup not found")
 		return
 		
-	# Reset checkbox state
 	var checkbox = tutorial_popup.get_node_or_null("VBoxContainer/DisableTutorialCheckbox")
-	if checkbox:
+	if checkbox and game_state_manager:
 		checkbox.button_pressed = game_state_manager.settings.get("disable_tutorial_popup", false)
 	
 	tutorial_popup.visible = true
 
-func _change_to_new_campaign_scene():
-	game_state_manager.start_new_game()
-	transition_to_scene("res://Resources/CampaignManagement/Scenes/CampaignSetupScreen.tscn")
+func _start_new_campaign() -> void:
+	if game_state_manager:
+		game_state_manager.game_state.current_state = GlobalEnums.GameState.SETUP
+		request_scene_change("campaign_setup")
 
-func _on_coop_campaign_pressed():
-	_show_not_implemented_message("Co-op Campaign (Work in Progress)")
+func _on_tutorial_popup_button_pressed(choice: String) -> void:
+	tutorial_popup.visible = false
+	_handle_tutorial_choice(choice)
 
-func _on_battle_simulator_pressed():
-	transition_to_scene("res://Scenes/Management/Scenes/BattlefieldGenerator.tscn")
-
-func _on_bug_hunt_pressed():
-	_show_not_implemented_message("Bug Hunt (Work in Progress)")
-
-func _on_options_pressed():
-	transition_to_scene("res://assets/scenes/menus/options_menu/video_options_menu.tscn")
-
-func _on_library_pressed():
-	transition_to_scene("res://Scenes/Scene Container/RulesReference.tscn")
-
-func _show_not_implemented_message(feature: String):
-	var dialog = AcceptDialog.new()
-	dialog.dialog_text = feature + " is not implemented yet."
-	add_child(dialog)
-	dialog.popup_centered()
-
-func _on_tutorial_choice_made(choice):
+func _handle_tutorial_choice(choice: String) -> void:
+	if not game_state_manager:
+		return
+		
 	match choice:
-		"story_track":
+		"story_track", "compendium":
 			game_state_manager.game_state.is_tutorial_active = true
-			game_state_manager.story_track.start_tutorial()
-			transition_to_scene("res://Scenes/Scene Container/InitialCrewCreation.tscn")
-		"compendium":
-			game_state_manager.game_state.is_tutorial_active = true
-			game_state_manager.story_track.start_tutorial()
-			transition_to_scene("res://Scenes/Scene Container/InitialCrewCreation.tscn")
+			request_scene_change("tutorial_setup")
 		"skip":
 			game_state_manager.game_state.is_tutorial_active = false
-			_change_to_new_campaign_scene()
+			_start_new_campaign()
 
-func transition_to_scene(scene_path):
-	var tween = create_tween()
-	tween.tween_property(self, "modulate", Color(1, 1, 1, 0), 0.5)
-	tween.tween_callback(get_tree().change_scene_to_file.bind(scene_path))
-
-#func _on_disable_tutorial_toggled(button_pressed: bool):
-#	if game_state_manager:
-#		if "settings" in game_state_manager:
-#			if "disable_tutorial_popup" in game_state_manager.settings:
-#				game_state_manager.settings.disable_tutorial_popup = button_pressed
-#				game_state_manager.save_settings()
-#			else:
-#				push_error("disable_tutorial_popup not found in GameStateManager settings")
-#		else:
-#			push_error("settings not found in GameStateManager")
-#	else:
-#		push_error("GameStateManager not found")
-
-# Add this new function to handle the tutorial popup buttons
-func _on_tutorial_popup_button_pressed(choice: String):
-	tutorial_popup.visible = false
-	_on_tutorial_choice_made(choice)
-
-# Re-enable and update the tutorial toggle function
-func _on_disable_tutorial_toggled(button_pressed: bool):
+func _on_disable_tutorial_toggled(button_pressed: bool) -> void:
 	if game_state_manager:
 		game_state_manager.settings["disable_tutorial_popup"] = button_pressed
 		if game_state_manager.has_method("save_settings"):
 			game_state_manager.save_settings()
-		else:
-			push_warning("GameStateManager does not have save_settings method")
-	else:
-		push_warning("GameStateManager not found when toggling tutorial setting")
+
+# Additional button handlers
+func _on_coop_campaign_pressed() -> void:
+	show_message("Co-op Campaign feature is coming soon!")
+
+func _on_battle_simulator_pressed() -> void:
+	request_scene_change("battle_simulator")
+
+func _on_bug_hunt_pressed() -> void:
+	show_message("Bug Hunt feature is coming soon!")
+
+func _on_options_pressed() -> void:
+	request_scene_change("options")
+
+func _on_library_pressed() -> void:
+	request_scene_change("library")
+
+# Helper functions
+func show_message(text: String) -> void:
+	var dialog = AcceptDialog.new()
+	dialog.dialog_text = text
+	add_child(dialog)
+	dialog.popup_centered()
+
+func request_scene_change(scene_name: String) -> void:
+	# Emit signal that MainGameScene will handle
+	get_parent().get_parent().change_scene(scene_name)

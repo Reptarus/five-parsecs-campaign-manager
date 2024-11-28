@@ -15,7 +15,6 @@ var reactions: int = 2
 var enemy_category: int = GlobalEnums.EnemyCategory.CRIMINAL_ELEMENTS
 var enemy_rank: int = GlobalEnums.EnemyRank.REGULAR
 var special_rules: Array[int] = []
-var current_action: int = GlobalEnums.EnemyAction.NONE
 
 # Special rules variables
 var has_leg_it: bool = false
@@ -209,12 +208,9 @@ func _get_enemy_type_data(category: GlobalEnums.EnemyCategory, rank: GlobalEnums
 
 # Required by Character parent class
 func can_act() -> bool:
-	return status != GlobalEnums.CharacterStatus.CRITICAL and status != GlobalEnums.CharacterStatus.INJURED and current_action == GlobalEnums.EnemyAction.NONE
+	return super.can_act()
 
 func perform_actions() -> void:
-	if not can_act():
-		return
-		
 	match ai_behavior:
 		GlobalEnums.AIBehavior.CAUTIOUS:
 			current_action = GlobalEnums.EnemyAction.MOVE_AND_FIRE

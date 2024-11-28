@@ -1,9 +1,13 @@
-[gd_scene load_steps=2 format=3 uid="uid://351b266ico1d"]
+[gd_scene load_steps=3 format=3 uid="uid://b4jy1ry6g1x8n"]
 
-[ext_resource type="Script" path="res://ui/mainscene/MainGameScene.gd" id="1_twbvn"]
+[ext_resource type="Script" path="res://ui/mainscene/MainGameScene.gd" id="1_8ykjc"]
+[ext_resource type="Script" path="res://ui/UIManager.gd" id="2_rnx4k"]
 
 [node name="Main" type="Node"]
-script = ExtResource("1_twbvn")
+script = ExtResource("1_8ykjc")
+
+[node name="UIManager" type="Node" parent="."]
+script = ExtResource("2_rnx4k")
 
 [node name="SceneContainer" type="Control" parent="."]
 layout_mode = 3
@@ -12,6 +16,7 @@ anchor_right = 1.0
 anchor_bottom = 1.0
 grow_horizontal = 2
 grow_vertical = 2
+mouse_filter = 1
 
 [node name="TransitionOverlay" type="ColorRect" parent="."]
 anchors_preset = 15
@@ -19,4 +24,30 @@ anchor_right = 1.0
 anchor_bottom = 1.0
 grow_horizontal = 2
 grow_vertical = 2
+mouse_filter = 2
 color = Color(0, 0, 0, 0)
+
+[node name="LoadingScreen" type="ColorRect" parent="."]
+visible = false
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+mouse_filter = 2
+color = Color(0, 0, 0, 0.8)
+
+[node name="LoadingLabel" type="Label" parent="LoadingScreen"]
+layout_mode = 1
+anchors_preset = 8
+anchor_left = 0.5
+anchor_top = 0.5
+anchor_right = 0.5
+anchor_bottom = 0.5
+offset_left = -43.5
+offset_top = -13.0
+offset_right = 43.5
+offset_bottom = 13.0
+grow_horizontal = 2
+grow_vertical = 2
+text = "Loading..."
