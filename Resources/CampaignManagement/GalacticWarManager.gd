@@ -2,129 +2,190 @@
 class_name GalacticWarManager
 extends Node
 
-signal faction_action_resolved(faction_name: String, success: bool)
-signal faction_defeated(faction_name: String)
-signal faction_strength_increased(faction_name: String, new_strength: int)
+enum FringeWorldInstability {
+	STABLE,
+	UNREST,
+	CONFLICT,
+	REBELLION,
+	CIVIL_WAR
+}
 
-class Faction:
-	var name: String
-	var strength: int
-	var power: int
-	var actions: int
-	var influence: float = 0.0
+enum BattleOutcome {
+	VICTORY,
+	DEFEAT,
+	DRAW
+}
 
-	func _init(p_name: String, p_strength: int, p_power: int):
-		name = p_name
-		strength = p_strength
-		power = p_power
-		actions = 2 if p_strength <= 5 else 3
+signal war_status_changed(new_status: int)
+signal war_ended(victor: String)
 
-var factions: Array[Faction] = []
-var game_state: GameState
-
-func _init(_game_state: GameState) -> void:
-	if not _game_state:
-		push_error("GameState is required for GalacticWarManager")
-		return
-	game_state = _game_state
-	initialize_factions()
+var current_instability: FringeWorldInstability = FringeWorldInstability.STABLE
+var game_state: Node  # Will be cast to GameState at runtime
+var active_conflicts: Array[Dictionary] = []
+var faction_strengths: Dictionary = {}
 
 func _ready() -> void:
-	randomize()
-	game_state.connect("new_turn_started", Callable(self, "_on_new_campaign_turn"))
-
-# Faction Management
-func create_faction(faction_name: String, faction_strength: int = 0, faction_power: int = 0) -> Faction:
-	var final_strength = faction_strength if faction_strength > 0 else (randi() % 6 + 2)
-	var final_power = faction_power if faction_power > 0 else (randi() % 3 + 3)
+	game_state = get_node("/root/GameStateManager")
+	if not game_state:
+		push_error("GameStateManager instance not found")
+		queue_free()
+		return
 	
-	var faction = Faction.new(faction_name, final_strength, final_power)
-	factions.append(faction)
-	return faction
+	initialize_faction_strengths()
+	connect_signals()
 
-func resolve_faction_actions() -> void:
-	for faction in factions:
-		for i in range(faction.actions):
-			var success = randi() % 6 + 1 >= faction.power
-			faction_action_resolved.emit(faction.name, success)
-			if success:
-				game_state.fringe_world_strife_manager.update_world_strife(game_state.current_location)
+func initialize_faction_strengths() -> void:
+	faction_strengths = {
+		"rebels": 50,
+		"empire": 50,
+		"pirates": 30,
+		"merchants": 20
+	}
 
-# Invasion Management
-func check_war_progress() -> void:
-	for planet in game_state.invaded_planets:
-		var roll: int = GameManager.roll_dice(2, 6)
-		match roll:
-			2, 3, 4:
-				planet.status = GlobalEnums.FringeWorldInstability.CRISIS
-				game_state.invaded_planets.erase(planet)
-			5, 6, 7:
-				planet.status = GlobalEnums.FringeWorldInstability.CONFLICT
-			8, 9:
-				planet.status = GlobalEnums.FringeWorldInstability.UNREST
-				planet.unity_progress += 1
-			10, 11, 12:
-				planet.status = GlobalEnums.FringeWorldInstability.STABLE
-				game_state.invaded_planets.erase(planet)
-				planet.add_troop_presence()
+func connect_signals() -> void:
+	if game_state:
+		game_state.connect("battle_ended", _on_battle_ended)
+		game_state.connect("turn_ended", _on_turn_ended)
 
-func invade_planet(planet: Location) -> void:
-	if not game_state.invaded_planets.has(planet):
-		game_state.invaded_planets.append(planet)
-		planet.status = GlobalEnums.FringeWorldInstability.CRISIS
+func update_instability() -> void:
+	var previous_instability = current_instability
+	
+	# Calculate new instability based on faction strengths
+	var total_conflict_points = 0
+	for strength in faction_strengths.values():
+		if strength > 60:  # High strength factions generate more conflict
+			total_conflict_points += 2
+		elif strength < 30:  # Weak factions also contribute to instability
+			total_conflict_points += 1
+	
+	# Update instability level based on conflict points
+	current_instability = calculate_instability_level(total_conflict_points)
+	
+	if current_instability != previous_instability:
+		war_status_changed.emit(current_instability)
+		handle_instability_effects()
 
-func resolve_invasion(planet: Location) -> void:
-	var roll: int = GameManager.roll_dice(2, 6)
-	if roll >= 8:
-		game_state.invaded_planets.erase(planet)
-		planet.status = GlobalEnums.FringeWorldInstability.STABLE
+func calculate_instability_level(conflict_points: int) -> int:
+	if conflict_points <= 1:
+		return FringeWorldInstability.STABLE
+	elif conflict_points <= 3:
+		return FringeWorldInstability.UNREST
+	elif conflict_points <= 5:
+		return FringeWorldInstability.CONFLICT
+	elif conflict_points <= 7:
+		return FringeWorldInstability.REBELLION
 	else:
-		planet.status = GlobalEnums.FringeWorldInstability.CONFLICT
+		return FringeWorldInstability.CIVIL_WAR
 
-# Main Process Functions
-func process_galactic_war_turn() -> void:
-	check_war_progress()
-	resolve_faction_actions()
-	if factions.size() >= 2:
-		var attacker = factions[0]
-		var defender = factions[1]
-		var attack_roll = GameManager.roll_dice(2, 6) + attacker.strength
-		var defense_roll = GameManager.roll_dice(2, 6) + defender.strength
-		
-		if attack_roll > defense_roll:
-			defender.strength -= 1
-			faction_action_resolved.emit(attacker.name, true)
-		else:
-			attacker.strength -= 1
-			faction_action_resolved.emit(defender.name, true)
+func handle_instability_effects() -> void:
+	match current_instability:
+		FringeWorldInstability.STABLE:
+			_handle_stable_effects()
+		FringeWorldInstability.UNREST:
+			_handle_unrest_effects()
+		FringeWorldInstability.CONFLICT:
+			_handle_conflict_effects()
+		FringeWorldInstability.REBELLION:
+			_handle_rebellion_effects()
+		FringeWorldInstability.CIVIL_WAR:
+			_handle_civil_war_effects()
+
+func _handle_stable_effects() -> void:
+	# Implement stable world effects
+	pass
+
+func _handle_unrest_effects() -> void:
+	# Implement unrest effects
+	pass
+
+func _handle_conflict_effects() -> void:
+	# Implement conflict effects
+	pass
+
+func _handle_rebellion_effects() -> void:
+	# Implement rebellion effects
+	pass
+
+func _handle_civil_war_effects() -> void:
+	# Implement civil war effects
+	pass
+
+func update_faction_strength(faction: String, change: int) -> void:
+	if faction in faction_strengths:
+		faction_strengths[faction] = clamp(faction_strengths[faction] + change, 0, 100)
+		update_instability()
+
+func resolve_conflict(location: String, involved_factions: Array) -> void:
+	var battle_result = generate_battle_result(involved_factions)
+	apply_battle_results(battle_result, involved_factions)
+	check_war_end_conditions()
+
+func generate_battle_result(involved_factions: Array) -> Dictionary:
+	var result = {
+		"victor": "",
+		"outcome": BattleOutcome.DRAW,
+		"casualties": {}
+	}
 	
-	for faction in factions:
-		if randf() < 0.3:
-			faction.strength += 1
-			faction_action_resolved.emit(faction.name, true)
+	# Calculate battle outcome based on faction strengths
+	var highest_strength = 0
+	for faction in involved_factions:
+		var strength = faction_strengths.get(faction, 0)
+		if strength > highest_strength:
+			highest_strength = strength
+			result.victor = faction
+			result.outcome = BattleOutcome.VICTORY
 	
-	# Check for new invasions
-	for planet in game_state.planets:
-		if randf() < 0.1:
-			invade_planet(planet)
+	return result
+
+func apply_battle_results(result: Dictionary, involved_factions: Array) -> void:
+	if result.outcome == BattleOutcome.VICTORY:
+		# Strengthen victor, weaken others
+		update_faction_strength(result.victor, 5)
+		for faction in involved_factions:
+			if faction != result.victor:
+				update_faction_strength(faction, -3)
+
+func check_war_end_conditions() -> void:
+	for faction in faction_strengths:
+		if faction_strengths[faction] >= 80:
+			war_ended.emit(faction)
+			break
+
+func _on_battle_ended(battle_data: Dictionary) -> void:
+	if battle_data.has("faction_impacts"):
+		for faction in battle_data.faction_impacts:
+			update_faction_strength(faction, battle_data.faction_impacts[faction])
+
+func _on_turn_ended() -> void:
+	update_instability()
+	process_active_conflicts()
+
+func process_active_conflicts() -> void:
+	var resolved_conflicts = []
+	for conflict in active_conflicts:
+		if should_resolve_conflict(conflict):
+			resolve_conflict(conflict.location, conflict.factions)
+			resolved_conflicts.append(conflict)
 	
-	# Resolve ongoing invasions
-	for planet in game_state.invaded_planets.duplicate():
-		resolve_invasion(planet)
+	# Remove resolved conflicts
+	for conflict in resolved_conflicts:
+		active_conflicts.erase(conflict)
 
-func update_faction_influence(battle_outcome: GlobalEnums.BattleOutcome) -> void:
-	var faction_influence_change: float = 0.1
-	if battle_outcome == GlobalEnums.BattleOutcome.VICTORY:
-		game_state.player_faction.influence += faction_influence_change
-		game_state.enemy_faction.influence -= faction_influence_change
-	else:
-		game_state.player_faction.influence -= faction_influence_change
-		game_state.enemy_faction.influence += faction_influence_change
+func should_resolve_conflict(conflict: Dictionary) -> bool:
+	# Add logic to determine if a conflict should be resolved this turn
+	return randf() > 0.5  # 50% chance to resolve each turn
 
-func _on_new_campaign_turn() -> void:
-	process_galactic_war_turn()
+func get_current_instability() -> int:
+	return current_instability
 
-func initialize_factions() -> void:
-	create_faction("Galactic Empire")
-	create_faction("Rebel Alliance")
-	create_faction("Trade Federation")
+func get_faction_strength(faction: String) -> int:
+	return faction_strengths.get(faction, 0)
+
+func add_active_conflict(location: String, factions: Array) -> void:
+	active_conflicts.append({
+		"location": location,
+		"factions": factions,
+		"duration": 0
+	})
+	update_instability()

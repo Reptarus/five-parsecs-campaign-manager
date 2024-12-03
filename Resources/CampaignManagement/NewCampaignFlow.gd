@@ -11,6 +11,15 @@ enum FlowState {
 	FINISHED
 }
 
+enum CampaignPhase {
+	SETUP,
+	TRAVEL,
+	WORLD,
+	BATTLE,
+	POST_BATTLE,
+	CAMPAIGN_END
+}
+
 @onready var tutorial_selection: Control = $TutorialSelection
 @onready var crew_size_selection: Control = $CrewSizeSelection
 @onready var character_creator: Control = $CharacterCreation
@@ -18,8 +27,8 @@ enum FlowState {
 @onready var campaign_setup: Control = $CampaignSetup
 
 var current_state: FlowState = FlowState.TUTORIAL_SELECTION
-var game_state: GlobalEnums.CampaignPhase
-var game_manager: GameManager
+var game_state: CampaignPhase = CampaignPhase.SETUP
+var game_manager: Node  # Will be cast to GameManager at runtime
 
 func _connect_signals() -> void:
 	var nodes_to_connect: Array[Dictionary] = [

@@ -38,8 +38,8 @@ func set_default_stats() -> void:
 	character.initialize_default_stats()
 
 func equip_default_weapons() -> void:
-	var pistol = Weapon.new("Hand gun", GlobalEnums.WeaponType.HAND_GUN, 12, 1, 0)
-	var knife = Weapon.new("Blade", GlobalEnums.WeaponType.BLADE, 0, 1, 0)
+	var pistol = Weapon.new("Hand gun", GlobalEnums.WeaponType.PISTOL, 12, 1, 0)
+	var knife = Weapon.new("Blade", GlobalEnums.WeaponType.MELEE, 0, 1, 0)
 	character.inventory.append(pistol)
 	character.inventory.append(knife)
 
@@ -114,24 +114,11 @@ func serialize() -> Dictionary:
 
 static func deserialize(data: Dictionary) -> CrewMember:
 	var crew_member = CrewMember.new()
-	# First deserialize base Character data
-	var character_data = Character.deserialize(data)
-	crew_member.role = character_data.role
-	crew_member.character_name = character_data.character_name
-	crew_member.level = character_data.level
-	crew_member.health = character_data.health
-	crew_member.max_health = character_data.max_health
-	crew_member.status = character_data.status
-	crew_member.equipment_slots = character_data.equipment_slots
-	crew_member.skills = character_data.skills
-	crew_member.tutorial_progress = character_data.tutorial_progress
-	
-	# Then deserialize CrewMember specific data
-	crew_member.experience = data.get("experience", 0)
-	crew_member.specialization = data.get("specialization", "")
-	crew_member.traits = data.get("traits", [])
-	crew_member.relationships = data.get("relationships", {})
-	
+	var character = Character.new()
+	character.deserialize(data)
+	crew_member.role = character.role
+	crew_member.character_name = character.character_name
+	crew_member.level = character.level
 	return crew_member
 
 # Optional: Add a method to set all stats at once

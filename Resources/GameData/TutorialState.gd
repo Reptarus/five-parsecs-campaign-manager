@@ -1,10 +1,23 @@
 extends Resource
 class_name TutorialState
 
+enum TutorialTrack {
+	STORY_TRACK,
+	QUICK_START,
+	ADVANCED,
+	BATTLE
+}
+
+@export var current_track: TutorialTrack
 @export var current_step: String = "introduction"
 @export var completed_steps: Array[String] = []
-@export var tutorial_type: String = ""
 @export var is_active: bool = false
+@export var can_skip: bool = true
+
+# Track-specific state
+@export var story_progress: Dictionary = {}
+@export var battle_progress: Dictionary = {}
+@export var disabled_features: Array[String] = []
 
 func mark_step_complete(step_id: String) -> void:
 	if step_id not in completed_steps:
@@ -16,4 +29,6 @@ func is_step_completed(step_id: String) -> bool:
 func reset() -> void:
 	current_step = "introduction"
 	completed_steps.clear()
-	is_active = false 
+	is_active = false
+	story_progress.clear()
+	battle_progress.clear()

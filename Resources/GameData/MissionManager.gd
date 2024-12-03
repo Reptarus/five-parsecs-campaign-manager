@@ -2,60 +2,63 @@
 class_name MissionManager
 extends Node
 
-const Mission = preload("res://Resources/GameData/Mission.gd")
-const MissionGenerator = preload("res://Resources/GameData/MissionGenerator.gd")
-const GlobalEnums = preload("res://Resources/GameData/GlobalEnums.gd")
-const GameState = preload("res://Resources/GameData/GameState.gd")
-
-signal mission_added(mission: Mission)
+signal mission_generated(mission: Mission)
 signal mission_completed(mission: Mission)
 signal mission_failed(mission: Mission)
-signal mission_stage_advanced(mission: Mission, new_stage: int)
 
 var game_state: GameState
-var active_missions: Array[Mission] = []
-var completed_missions: Array[Mission] = []
-var failed_missions: Array[Mission] = []
-var mission_generator: MissionGenerator
+var rng := RandomNumberGenerator.new()
+
+const MIN_MISSIONS := 3
+const MAX_MISSIONS := 5
 
 func _init(_game_state: GameState) -> void:
 	game_state = _game_state
-	mission_generator = MissionGenerator.new(game_state)
+	rng.randomize()
 
 func generate_mission(mission_type: int = GlobalEnums.MissionType.OPPORTUNITY) -> Mission:
-	var mission = mission_generator.generate_mission(mission_type)
-	add_mission(mission)
+	var mission = Mission.new()
+	
+	# Set basic mission properties
+	mission.mission_type = mission_type
+	mission.objective = _generate_objective(mission_type)
+	mission.difficulty = _calculate_difficulty(mission_type)
+	mission.rewards = _generate_rewards(mission.difficulty)
+	
+	mission_generated.emit(mission)
 	return mission
 
-func add_mission(mission: Mission) -> void:
-	active_missions.append(mission)
-	mission_added.emit(mission)
+func update_available_missions() -> void:
+	# Remove expired missions
+	game_state.available_missions = game_state.available_missions.filter(
+		func(m): return not _is_mission_expired(m)
+	)
+	
+	# Generate new missions if needed
+	while game_state.available_missions.size() < MIN_MISSIONS:
+		var new_mission = generate_mission()
+		game_state.available_missions.append(new_mission)
 
-func complete_mission(mission: Mission) -> void:
-	if mission in active_missions:
-		active_missions.erase(mission)
-		completed_missions.append(mission)
-		mission.complete()
-		mission_completed.emit(mission)
+func cleanup_expired_missions() -> void:
+	game_state.available_missions = game_state.available_missions.filter(
+		func(m): return not _is_mission_expired(m)
+	)
 
-func fail_mission(mission: Mission) -> void:
-	if mission in active_missions:
-		active_missions.erase(mission)
-		failed_missions.append(mission)
-		mission.fail()
-		mission_failed.emit(mission)
+func _is_mission_expired(mission: Mission) -> bool:
+	# Implementation of mission expiration logic
+	return false
 
-func get_available_missions() -> Array[Mission]:
-	return active_missions
+func _generate_objective(mission_type: int) -> int:
+	# Implementation of objective generation
+	return GlobalEnums.MissionObjective.SURVIVE
 
-func serialize() -> Dictionary:
+func _calculate_difficulty(mission_type: int) -> int:
+	# Implementation of difficulty calculation
+	return 1
+
+func _generate_rewards(difficulty: int) -> Dictionary:
+	# Implementation of reward generation
 	return {
-		"active_missions": active_missions.map(func(m): return m.serialize()),
-		"completed_missions": completed_missions.map(func(m): return m.serialize()),
-		"failed_missions": failed_missions.map(func(m): return m.serialize())
+		"credits": difficulty * 100,
+		"reputation": difficulty
 	}
-
-func deserialize(data: Dictionary) -> void:
-	active_missions = data.get("active_missions", []).map(func(m): return Mission.deserialize(m))
-	completed_missions = data.get("completed_missions", []).map(func(m): return Mission.deserialize(m))
-	failed_missions = data.get("failed_missions", []).map(func(m): return Mission.deserialize(m))

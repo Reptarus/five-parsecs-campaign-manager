@@ -1,12 +1,33 @@
-class_name CampaignManager
-extends Node  # Add this line at the top of your script
+class_name GameCampaignManager
+extends Node
 
-signal phase_changed(new_phase: GlobalEnums.CampaignPhase)
+enum CampaignPhase {
+    SETUP,
+    WORLD,
+    BATTLE,
+    POST_BATTLE
+}
+
+enum SkillType {
+    COMBAT,
+    TECHNICAL,
+    SOCIAL,
+    SURVIVAL
+}
+
+enum VictoryType {
+    WEALTH,
+    REPUTATION,
+    POWER,
+    DISCOVERY
+}
+
+signal phase_changed(new_phase: CampaignPhase)
 signal turn_completed
-signal campaign_victory_achieved(victory_type: GlobalEnums.CampaignVictoryType)
+signal campaign_victory_achieved(victory_type: VictoryType)
 
 var game_state: GameState
-var current_phase: GlobalEnums.CampaignPhase = GlobalEnums.CampaignPhase.UPKEEP
+var current_phase: CampaignPhase = CampaignPhase.SETUP
 var use_expanded_missions: bool = false
 var story_track: StoryTrack
 var save_manager: SaveManager
@@ -77,7 +98,7 @@ func advance_phase() -> void:
     if game_state.is_tutorial_active:
         progress_story(current_phase)
     else:
-        current_phase = GlobalEnums.CampaignPhase.values()[(current_phase + 1) % GlobalEnums.CampaignPhase.size()]
+        current_phase = CampaignPhase.values()[(current_phase + 1) % CampaignPhase.size()]
     phase_changed.emit(current_phase)
 
 func perform_upkeep() -> bool:
@@ -115,7 +136,7 @@ func recruit_crew(recruit_index: int) -> bool:
         return game_state.current_crew.add_member(potential_recruits[recruit_index])
     return false
 
-func train_and_study(crew_index: int, skill: String, skill_type: GlobalEnums.SkillType) -> bool:
+func train_and_study(crew_index: int, skill: String, skill_type: SkillType) -> bool:
     if crew_index >= 0 and crew_index < game_state.current_crew.members.size():
         var crew_member = game_state.current_crew.members[crew_index]
         
@@ -217,16 +238,20 @@ func _on_load_requested(save_name: String) -> void:
     else:
         push_error("Failed to load game: " + save_name)
 
-func progress_story(phase: GlobalEnums.CampaignPhase) -> void:
+func progress_story(phase: CampaignPhase) -> void:
     if story_track:
-        story_track.progress_story(phase)
+        story_track.update_phase(phase)
     else:
         push_warning("Story track not initialized.")
+    
+    var game_state_manager = GameStateManager.get_instance()
+    if game_state_manager.check_campaign_victory_condition():
+        campaign_victory_achieved.emit(VictoryType.values()[game_state_manager.campaign_victory_condition])
 
 func check_victory_conditions() -> void:
     var game_state_manager = GameStateManager.get_instance()
     if game_state_manager.check_campaign_victory_condition():
-        campaign_victory_achieved.emit(game_state_manager.campaign_victory_condition)
+        campaign_victory_achieved.emit(VictoryType.values()[game_state_manager.campaign_victory_condition])
 
 # Add cleanup method for Android lifecycle management
 func cleanup() -> void:

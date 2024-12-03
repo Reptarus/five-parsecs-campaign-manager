@@ -1,6 +1,8 @@
 class_name Quest
 extends Resource
 
+const GlobalEnums = preload("res://Resources/GameData/GlobalEnums.gd")
+
 signal stage_advanced(new_stage: int)
 signal quest_completed
 signal quest_failed

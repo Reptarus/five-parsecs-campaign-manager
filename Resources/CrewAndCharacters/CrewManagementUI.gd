@@ -1,7 +1,9 @@
 class_name CrewManagementUI
 extends CampaignResponsiveLayout
 
-signal task_completed(character: Character, task: String, result: Dictionary)
+const GlobalEnums = preload("res://Resources/GameData/GlobalEnums.gd")
+
+signal task_completed(character: Character, task: GlobalEnums.CrewTask, result: Dictionary)
 
 const TOUCH_BUTTON_HEIGHT := 60
 const PORTRAIT_LIST_HEIGHT_RATIO := 0.4
@@ -12,13 +14,18 @@ const PORTRAIT_LIST_HEIGHT_RATIO := 0.4
 @onready var skill_info := $PanelContainer/MarginContainer/VBoxContainer/HSplitContainer/RightPanel/SkillInfoLabel as Label
 @onready var result_label := $PanelContainer/MarginContainer/VBoxContainer/HSplitContainer/RightPanel/ResultLabel as Label
 
-var crew_manager: CrewManager
+var crew_manager: CrewSystem
 var selected_character: Character
-var selected_task: String
+var selected_task: GlobalEnums.CrewTask
+var game_state: GameState
 
 func _ready() -> void:
     super._ready()
-    crew_manager = CrewManager.new()
+    game_state = get_node("/root/GameStateManager").get_game_state()
+    if not game_state:
+        push_error("Failed to get GameState")
+        return
+    crew_manager = CrewSystem.new(game_state)
     _setup_ui()
     _connect_signals()
 
@@ -34,7 +41,7 @@ func _setup_crew_list() -> void:
 func _setup_task_options() -> void:
     task_assignment.clear()
     for task in GlobalEnums.CrewTask.keys():
-        task_assignment.add_item(task)
+        task_assignment.add_item(task.capitalize())
 
 func _setup_buttons() -> void:
     var assign_button = $PanelContainer/MarginContainer/VBoxContainer/HSplitContainer/RightPanel/AssignButton as Button
@@ -64,8 +71,9 @@ func _on_crew_selected(index: int) -> void:
 
 func _on_task_selected(index: int) -> void:
     if index >= 0:
-        selected_task = GlobalEnums.CrewTask.values()[index]
-        task_description.text = crew_manager.get_task_description(GlobalEnums.CrewTask[selected_task])
+        var task_name = GlobalEnums.CrewTask.keys()[index]
+        selected_task = GlobalEnums.CrewTask[task_name]
+        task_description.text = crew_manager.get_task_description(selected_task)
 
 func _on_task_completed(character: Character, task: GlobalEnums.CrewTask) -> void:
     var result = _generate_task_result(character, task)
@@ -87,8 +95,10 @@ func _update_character_display() -> void:
     skill_info.text = "Skills:\n" + selected_character.get_skills_text()
     var current_task = crew_manager.active_tasks.get(selected_character, null)
     if current_task != null:
-        task_assignment.select(current_task)
-        task_assignment.disabled = true
+        var task_index = GlobalEnums.CrewTask.values().find(current_task)
+        if task_index != -1:
+            task_assignment.select(task_index)
+            task_assignment.disabled = true
     else:
         task_assignment.disabled = false
 
@@ -110,13 +120,11 @@ func _generate_task_result(character: Character, task: GlobalEnums.CrewTask) -> 
 
 # Missing function declarations
 func _on_assign_button_pressed() -> void:
-    if selected_character and selected_task:
-        if crew_manager.assign_task(selected_character, GlobalEnums.CrewTask[selected_task]):
+    if selected_character and selected_task != null:
+        if crew_manager.assign_task(selected_character, selected_task):
             _update_character_display()
 
 func _on_complete_button_pressed() -> void:
     if selected_character:
-        crew_manager.complete_task(selected_character)
-        _update_character_display()
         crew_manager.complete_task(selected_character)
         _update_character_display()

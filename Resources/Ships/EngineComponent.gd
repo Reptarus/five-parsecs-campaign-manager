@@ -1,9 +1,18 @@
 # Scripts/ShipAndCrew/EngineComponent.gd
 class_name EngineComponent
-extends ShipComponent
+extends Resource
 
+const GlobalEnums = preload("res://Resources/GameData/GlobalEnums.gd")
+
+@export var name: String = ""
+@export var description: String = ""
 @export var speed: int = 0
 @export var fuel_efficiency: float = 0.0
+@export var power_usage: int = 0
+@export var health: int = 100
+@export var max_health: int = 100
+@export var weight: float = 1.0
+@export var is_damaged: bool = false
 
 const MIN_SPEED: int = 1
 const MAX_EFFICIENCY: float = 1.0
@@ -15,7 +24,12 @@ func _init(p_name: String = "",
           p_weight: float = 1.0, 
           p_speed: int = 0, 
           p_fuel_efficiency: float = 0.0) -> void:
-	super(p_name, p_description, GlobalEnums.ShipComponentType.ENGINE, p_power_usage, p_health, p_weight)
+	name = p_name
+	description = p_description
+	power_usage = p_power_usage
+	health = p_health
+	max_health = p_health
+	weight = p_weight
 	speed = max(p_speed, MIN_SPEED)
 	fuel_efficiency = clamp(p_fuel_efficiency, 0.0, MAX_EFFICIENCY)
 
@@ -37,10 +51,17 @@ func modify_fuel_cost(base_cost: int) -> int:
 	return int(ceil(base_cost * (1.0 - fuel_efficiency)))
 
 func serialize() -> Dictionary:
-	var data = super.serialize()
-	data["speed"] = speed
-	data["fuel_efficiency"] = fuel_efficiency
-	return data
+	return {
+		"name": name,
+		"description": description,
+		"power_usage": power_usage,
+		"health": health,
+		"max_health": max_health,
+		"weight": weight,
+		"speed": speed,
+		"fuel_efficiency": fuel_efficiency,
+		"is_damaged": is_damaged
+	}
 
 static func deserialize(data: Dictionary) -> EngineComponent:
 	var component = EngineComponent.new(
@@ -57,12 +78,18 @@ static func deserialize(data: Dictionary) -> EngineComponent:
 	return component
 
 func repair(amount: int) -> void:
-	super.repair(amount)
-	if not is_damaged:
+	var old_health = health
+	health = min(health + amount, max_health)
+	is_damaged = health < max_health
+	
+	if not is_damaged and old_health < max_health:
 		print("Engine repaired and operational. Speed restored to: ", speed)
 
 func take_damage(amount: int) -> void:
-	super.take_damage(amount)
-	if is_damaged:
+	var old_health = health
+	health = max(0, health - amount)
+	is_damaged = health < max_health
+	
+	if is_damaged and not old_health < max_health:
 		speed = max(1, speed / 2.0)  # Reduce speed by half when damaged, minimum 1
 		print("Engine damaged. Speed reduced to: ", speed)

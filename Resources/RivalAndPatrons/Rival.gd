@@ -1,6 +1,8 @@
 class_name Rival
 extends Resource
 
+const GlobalEnums = preload("res://Resources/GameData/GlobalEnums.gd")
+
 signal hostility_changed(new_value: int)
 signal strength_changed(new_value: int)
 

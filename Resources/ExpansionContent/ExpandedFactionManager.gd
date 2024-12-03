@@ -12,6 +12,9 @@ var game_state_manager: GameStateManager
 var factions: Array[Dictionary] = []
 var faction_data: Dictionary
 
+# Add at top of file
+const GlobalEnums = preload("res://Resources/GameData/GlobalEnums.gd")
+
 func _init(_game_state_manager: GameStateManager = null) -> void:
 	game_state_manager = _game_state_manager
 	load_faction_data()
@@ -305,7 +308,7 @@ func update_faction_relations_global_event(event: GlobalEnums.GlobalEvent) -> vo
 			for faction in factions:
 				faction["strength"] = max(MIN_FACTION_STRENGTH, faction["strength"] - 2)
 				faction["influence"] = max(1, faction["influence"] - 1)
-		GlobalEnums.GlobalEvent.CORPORATE_WAR:
+		GlobalEnums.GlobalEvent.WAR_OUTBREAK:
 			if factions.size() >= 2:
 				var acquirer = factions[randi() % factions.size()]
 				var target = factions[randi() % factions.size()]

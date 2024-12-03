@@ -1,12 +1,32 @@
 # Scripts/ShipAndCrew/MedicalBayComponent.gd
 class_name MedicalBayComponent
-extends ShipComponent
+extends Resource
 
-@export var healing_capacity: int
+const GlobalEnums = preload("res://Resources/GameData/GlobalEnums.gd")
+
+@export var name: String = ""
+@export var description: String = ""
+@export var healing_capacity: int = 0
+@export var power_usage: int = 0
+@export var health: int = 100
+@export var max_health: int = 100
+@export var weight: float = 1.0
+@export var is_damaged: bool = false
+
 var patients: Array[Character] = []
 
-func _init(p_name: String, p_description: String, p_power_usage: int, p_health: int, p_weight: float = 1.0, p_healing_capacity: int = 0):
-	super(p_name, p_description, GlobalEnums.ShipComponentType.MEDICAL_BAY, p_power_usage, p_health, p_weight)
+func _init(p_name: String = "", 
+          p_description: String = "", 
+          p_power_usage: int = 0, 
+          p_health: int = 0, 
+          p_weight: float = 1.0, 
+          p_healing_capacity: int = 0) -> void:
+	name = p_name
+	description = p_description
+	power_usage = p_power_usage
+	health = p_health
+	max_health = p_health
+	weight = p_weight
 	healing_capacity = p_healing_capacity
 
 func process_turn() -> void:
@@ -36,10 +56,17 @@ func get_available_beds() -> int:
 	return healing_capacity - patients.size()
 
 func serialize() -> Dictionary:
-	var data = super.serialize()
-	data["healing_capacity"] = healing_capacity
-	data["patients"] = patients.map(func(p): return p.serialize())
-	return data
+	return {
+		"name": name,
+		"description": description,
+		"power_usage": power_usage,
+		"health": health,
+		"max_health": max_health,
+		"weight": weight,
+		"healing_capacity": healing_capacity,
+		"is_damaged": is_damaged,
+		"patients": patients.map(func(p): return p.serialize())
+	}
 
 static func deserialize(data: Dictionary) -> MedicalBayComponent:
 	var component = MedicalBayComponent.new(
@@ -52,7 +79,7 @@ static func deserialize(data: Dictionary) -> MedicalBayComponent:
 	)
 	component.max_health = data["max_health"]
 	component.is_damaged = data["is_damaged"]
-	component.patients = data["patients"].map(func(p): return Character.deserialize(p))
+	component.patients = data["patients"].map(func(p): return Character.new().deserialize(p))
 	return component
 
 func _to_string() -> String:

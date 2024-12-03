@@ -3,27 +3,18 @@ extends Resource
 
 const Character = preload("res://Resources/CrewAndCharacters/Character.gd")
 const GlobalEnums = preload("res://Resources/GameData/GlobalEnums.gd")
+const CharacterStats = preload("res://Resources/CrewAndCharacters/CharacterStats.gd")
 
 class CreationData extends RefCounted:
     var character_name: String
-    var origin: int  # GlobalEnums.Species
-    var background: int  # GlobalEnums.Background
-    var class_type: int  # GlobalEnums.Class
-    var motivation: int  # GlobalEnums.Motivation
-    var stats: Dictionary
+    var origin: int  # GlobalEnums.Origin
+    var background: int  # GlobalEnums.WorldTrait
+    var class_type: int  # GlobalEnums.CrewRole
+    var motivation: int  # GlobalEnums.FactionType
+    var stats: CharacterStats
     
     func _init() -> void:
-        stats = {
-            GlobalEnums.CharacterStats.LUCK: 0,
-            GlobalEnums.CharacterStats.TECHNICAL: 0,
-            GlobalEnums.CharacterStats.AGILITY: 0,
-            GlobalEnums.CharacterStats.STRENGTH: 0,
-            GlobalEnums.CharacterStats.INTELLIGENCE: 0,
-            GlobalEnums.CharacterStats.COMBAT_SKILL: 0,
-            GlobalEnums.CharacterStats.SURVIVAL: 0,
-            GlobalEnums.CharacterStats.STEALTH: 0,
-            GlobalEnums.CharacterStats.PILOTING: 0
-        }
+        stats = CharacterStats.new()
 
 var creation_data: CreationData
 
@@ -40,7 +31,7 @@ func edit_character(character: Character) -> void:
     creation_data.background = character.background
     creation_data.class_type = character.class_type
     creation_data.motivation = character.motivation
-    creation_data.stats = character.stats.duplicate()
+    creation_data.stats.deserialize(character.stats.serialize())
 
 func apply_changes_to_character(character: Character) -> void:
     if not character:
@@ -52,7 +43,7 @@ func apply_changes_to_character(character: Character) -> void:
     character.background = creation_data.background
     character.class_type = creation_data.class_type
     character.motivation = creation_data.motivation
-    character.stats = creation_data.stats.duplicate()
+    character.stats.deserialize(creation_data.stats.serialize())
 
 func validate_character_data() -> bool:
     return (
@@ -61,5 +52,5 @@ func validate_character_data() -> bool:
         creation_data.background >= 0 and
         creation_data.class_type >= 0 and
         creation_data.motivation >= 0 and
-        not creation_data.stats.is_empty()
+        creation_data.stats != null
     )

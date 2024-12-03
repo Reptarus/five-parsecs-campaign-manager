@@ -94,10 +94,10 @@ func _update_portrait() -> void:
 			portrait.texture = texture
 
 func _update_stats() -> void:
-	for stat in character.stats:
-		var stat_label = stats_container.get_node_or_null(str(stat) + "Label")
+	for stat in GlobalEnums.CharacterStats.values():
+		var stat_label = stats_container.get_node_or_null(str(GlobalEnums.CharacterStats.keys()[stat]) + "Label")
 		if stat_label:
-			stat_label.text = str(character.stats[stat])
+			stat_label.text = str(character.stats.get_stat(stat))
 
 func _update_skills() -> void:
 	for i in character.skills.size():

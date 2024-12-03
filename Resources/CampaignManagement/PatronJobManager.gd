@@ -1,14 +1,14 @@
 class_name PatronJobManager
 extends Resource
 
-var game_state_manager: GameState
-var validation_manager: ValidationManager
+var game_state_manager: Node
+var validation_manager: Node
 
-func _init(_game_state: GameState) -> void:
+func _init(_game_state: Node) -> void:
 	game_state_manager = _game_state
-	validation_manager = ValidationManager.new(_game_state)
+	validation_manager = Node.new()
 
-func accept_job(mission: Mission) -> bool:
+func accept_job(mission: Node) -> bool:
 	var validation_result = validation_manager.validate_mission_start(mission)
 	if not validation_result.valid:
 		return false
@@ -16,16 +16,25 @@ func accept_job(mission: Mission) -> bool:
 	game_state_manager.current_mission = mission
 	game_state_manager.remove_available_mission(mission)
 	return true
-
-func complete_job(mission: Mission) -> void:
+func complete_job(mission: Node) -> void:
+	if not mission:
+		push_error("Attempted to complete null mission")
+		return
+		
 	mission.complete()
 	_apply_job_rewards(mission)
-	mission.patron.change_relationship(10)
+	if mission.patron:
+		mission.patron.change_relationship(10)
 	game_state_manager.current_mission = null
 
-func fail_job(mission: Mission) -> void:
+func fail_job(mission: Node) -> void:
+	if not mission:
+		push_error("Attempted to fail null mission") 
+		return
+		
 	mission.fail()
-	mission.patron.change_relationship(-5)
+	if mission.patron:
+		mission.patron.change_relationship(-5)
 	game_state_manager.current_mission = null
 	_apply_failure_consequences(mission)
 
@@ -37,7 +46,7 @@ func update_job_timers() -> void:
 				game_state_manager.remove_available_mission(mission)
 				mission.patron.change_relationship(-2)
 
-func _apply_job_rewards(mission: Mission) -> void:
+func _apply_job_rewards(mission: Node) -> void:
 	game_state_manager.add_credits(mission.rewards["credits"])
 	game_state_manager.add_reputation(mission.rewards.get("reputation", 0))
 	
@@ -48,30 +57,30 @@ func _apply_job_rewards(mission: Mission) -> void:
 	if mission.rewards.has("influence"):
 		game_state_manager.add_influence(mission.rewards.influence)
 
-func _apply_failure_consequences(mission: Mission) -> void:
+func _apply_failure_consequences(mission: Node) -> void:
 	if mission.hazards.size() > 0:
 		game_state_manager.current_crew.apply_casualties()
 	
 	if mission.conditions.has("Reputation Required"):
 		game_state_manager.decrease_reputation(5)
 
-func generate_benefits_hazards_conditions(patron: Patron) -> Dictionary:
+func generate_benefits_hazards_conditions(patron: Node) -> Dictionary:
 	return {
 		"benefits": [generate_benefit()] if should_generate_benefit(patron) else [],
 		"hazards": [generate_hazard()] if should_generate_hazard(patron) else [],
 		"conditions": [generate_condition()] if should_generate_condition(patron) else []
 	}
 
-func should_generate_benefit(patron: Patron) -> bool:
-	var chance: float = 0.8 if patron.type in [GlobalEnums.Faction.CORPORATE, GlobalEnums.Faction.UNITY] else 0.5
+func should_generate_benefit(patron: Node) -> bool:
+	var chance: float = 0.8 if patron.type in ["CORPORATE", "UNITY"] else 0.5
 	return randf() < chance
 
-func should_generate_hazard(patron: Patron) -> bool:
-	var chance: float = 0.5 if patron.type == GlobalEnums.Faction.FRINGE else 0.8
+func should_generate_hazard(patron: Node) -> bool:
+	var chance: float = 0.5 if patron.type == "FRINGE" else 0.8
 	return randf() < chance
 
-func should_generate_condition(patron: Patron) -> bool:
-	var chance: float = 0.5 if patron.type == GlobalEnums.Faction.CORPORATE else 0.8
+func should_generate_condition(patron: Node) -> bool:
+	var chance: float = 0.5 if patron.type == "CORPORATE" else 0.8
 	return randf() < chance
 
 func generate_benefit() -> String:
@@ -83,14 +92,14 @@ func generate_hazard() -> String:
 func generate_condition() -> String:
 	return ["Vengeful", "Demanding", "Small Squad", "Full Squad", "Clean", "Busy", "One-time Contract", "Reputation Required"].pick_random()
 
-func add_mission(mission: Mission) -> void:
+func add_mission(mission: Node) -> void:
 	game_state_manager.add_available_mission(mission)
 
-func remove_mission(mission: Mission) -> void:
+func remove_mission(mission: Node) -> void:
 	game_state_manager.remove_available_mission(mission)
 
-func add_patron(patron: Patron) -> void:
+func add_patron(patron: Node) -> void:
 	game_state_manager.patrons.append(patron)
 
-func remove_patron(patron: Patron) -> void:
+func remove_patron(patron: Node) -> void:
 	game_state_manager.patrons.erase(patron)

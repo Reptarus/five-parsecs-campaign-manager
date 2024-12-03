@@ -1,9 +1,9 @@
 extends Equipment
 class_name Gear
 
-@export var gear_type: int = GlobalEnums.ItemType.GEAR  # Fixed type hint
+@export var gear_type: int = GlobalEnums.ItemType.TOOL  # Fixed type hint
 
-func _init(p_name: String = "", p_description: String = "", p_gear_type: int = GlobalEnums.ItemType.GEAR, p_level: int = 1, p_weight: float = 1.0) -> void:
+func _init(p_name: String = "", p_description: String = "", p_gear_type: int = GlobalEnums.ItemType.TOOL, p_level: int = 1, p_weight: float = 1.0) -> void:
 	super._init(p_name, p_gear_type, p_level)
 	description = p_description
 	weight = p_weight
@@ -19,7 +19,7 @@ static func deserialize(data: Dictionary) -> Equipment:
 	var gear = Gear.new(
 		data["name"],
 		data["description"],
-		 GlobalEnums.ItemType[data["gear_type"]],
+		GlobalEnums.ItemType[data["gear_type"]],
 		data["level"],
 		data["weight"]
 	)

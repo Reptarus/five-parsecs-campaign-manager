@@ -12,19 +12,19 @@ var templates := {
     "Solo Campaign": {
         "crew_size": 1,
         "difficulty": GlobalEnums.DifficultyMode.NORMAL,
-        "victory_condition": GlobalEnums.VictoryConditionType.QUESTS,
+        "victory_condition": GlobalEnums.CampaignVictoryType.CUSTOM,
         "mobile_friendly": true
     },
     "Standard Campaign": {
         "crew_size": 4,
         "difficulty": GlobalEnums.DifficultyMode.NORMAL,
-        "victory_condition": GlobalEnums.VictoryConditionType.TURNS,
+        "victory_condition": GlobalEnums.CampaignVictoryType.WEALTH_GOAL,
         "mobile_friendly": true
     },
     "Challenge Campaign": {
         "crew_size": 6,
-        "difficulty": GlobalEnums.DifficultyMode.CHALLENGING,
-        "victory_condition": GlobalEnums.VictoryConditionType.BATTLES,
+        "difficulty": GlobalEnums.DifficultyMode.EXTREME,
+        "victory_condition": GlobalEnums.CampaignVictoryType.SURVIVAL,
         "mobile_friendly": false
     }
 }

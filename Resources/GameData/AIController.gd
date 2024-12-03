@@ -11,7 +11,7 @@ signal ai_action_completed(action: Dictionary)
 
 const DEFAULT_SCORE := -1.0
 
-@export var ai_behavior: int = GlobalEnums.AIBehavior.AGGRESSIVE
+@export var ai_behavior: int = GlobalEnums.AIBehavior.CAUTIOUS
 
 var combat_manager: CombatManager
 var game_state_manager: GameStateManager
@@ -46,20 +46,30 @@ func set_ai_behavior(behavior: int) -> void:
 
 func perform_ai_turn(character: Character) -> void:
 	match ai_behavior:
-		GlobalEnums.AIBehavior.CAUTIOUS:
-			_perform_cautious_actions(character)
 		GlobalEnums.AIBehavior.AGGRESSIVE:
 			_perform_aggressive_actions(character)
-		GlobalEnums.AIBehavior.TACTICAL:
-			_perform_tactical_actions(character)
 		GlobalEnums.AIBehavior.DEFENSIVE:
 			_perform_defensive_actions(character)
+		GlobalEnums.AIBehavior.TACTICAL:
+			_perform_tactical_actions(character)
+		GlobalEnums.AIBehavior.SUPPORT:
+			_perform_support_actions(character)
+		GlobalEnums.AIBehavior.RANDOM:
+			_perform_random_actions(character)
+		GlobalEnums.AIBehavior.CAUTIOUS:
+			_perform_cautious_actions(character)
 		GlobalEnums.AIBehavior.RAMPAGE:
 			_perform_rampage_actions(character)
 		GlobalEnums.AIBehavior.BEAST:
 			_perform_beast_actions(character)
 		GlobalEnums.AIBehavior.GUARDIAN:
 			_perform_guardian_actions(character)
+		GlobalEnums.AIBehavior.PROTECTIVE:
+			_perform_protective_actions(character)
+		GlobalEnums.AIBehavior.EVASIVE:
+			_perform_evasive_actions(character)
+		GlobalEnums.AIBehavior.BERSERK:
+			_perform_berserk_actions(character)
 		_:
 			push_error("Invalid AI behavior: %d" % ai_behavior)
 
@@ -126,6 +136,26 @@ func _perform_guardian_actions(character: Character) -> void:
 	if target:
 		combat_manager.handle_attack(character, target)
 
+func _perform_support_actions(character: Character) -> void:
+	# Implementation for support behavior
+	pass
+
+func _perform_random_actions(character: Character) -> void:
+	# Implementation for random behavior
+	pass
+
+func _perform_protective_actions(character: Character) -> void:
+	# Implementation for protective behavior
+	pass
+
+func _perform_evasive_actions(character: Character) -> void:
+	# Implementation for evasive behavior
+	pass
+
+func _perform_berserk_actions(character: Character) -> void:
+	# Implementation for berserk behavior
+	pass
+
 func process_ai_updates() -> void:
 	if OS.get_name() == "Android":
 		var updates_this_frame := 0
@@ -182,3 +212,39 @@ func _monitor_performance() -> void:
 	elif frame_time < 8.33:  # Less than 1/120th of a second
 		target_updates = min(10, target_updates + 1)
 	_current_frame_budget = target_updates
+
+func _perform_combat_action(character: Character) -> void:
+	var best_action = _evaluate_combat_options(character)
+	match best_action.type:
+		"attack":
+			combat_manager.handle_attack(character, best_action.target)
+		"move":
+			combat_manager.handle_move(character, best_action.position)
+		"defend":
+			_perform_defensive_actions(character)
+
+func _evaluate_combat_options(character: Character) -> Dictionary:
+	var options = []
+	var enemies = combat_manager.find_valid_targets(character)
+	
+	for enemy in enemies:
+		var score = _calculate_attack_score(character, enemy)
+		options.append({
+			"type": "attack",
+			"target": enemy,
+			"score": score
+		})
+	
+	# Consider defensive positions
+	var cover_positions = combat_manager.find_nearby_cover(character)
+	for pos in cover_positions:
+		var score = _calculate_defensive_score(character, pos)
+		options.append({
+			"type": "move",
+			"position": pos,
+			"score": score
+		})
+	
+	# Sort by score and return best option
+	options.sort_custom(func(a, b): return a.score > b.score)
+	return options[0] if options else {"type": "defend"}

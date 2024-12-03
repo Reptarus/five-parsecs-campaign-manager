@@ -1,11 +1,21 @@
 class_name StatusEffect
 extends Resource
 
-@export var type: GlobalEnums.StatusEffectType
-@export var duration: int
-@export var intensity: int
+enum StatusEffectType {
+    STUN,
+    POISON,
+    BUFF,
+    DEBUFF,
+    NEUTRAL,
+    REGENERATION,
+    SHIELD
+}
 
-func _init(_type: GlobalEnums.StatusEffectType = GlobalEnums.StatusEffectType.STUN, _duration: int = 1, _intensity: int = 1) -> void:
+@export var type: StatusEffectType = StatusEffectType.STUN
+@export var duration: int = 1
+@export var intensity: int = 1
+
+func _init(_type: StatusEffectType = StatusEffectType.STUN, _duration: int = 1, _intensity: int = 1) -> void:
     type = _type
     duration = max(1, _duration)
     intensity = max(1, _intensity)
@@ -16,19 +26,19 @@ func process(character: Character) -> void:
         return
         
     match type:
-        GlobalEnums.StatusEffectType.STUN:
+        StatusEffectType.STUN:
             process_stunned(character)
-        GlobalEnums.StatusEffectType.POISON:
+        StatusEffectType.POISON:
             process_poisoned(character)
-        GlobalEnums.StatusEffectType.BUFF:
+        StatusEffectType.BUFF:
             process_buff(character)
-        GlobalEnums.StatusEffectType.DEBUFF:
+        StatusEffectType.DEBUFF:
             process_debuff(character)
-        GlobalEnums.StatusEffectType.NEUTRAL:
+        StatusEffectType.NEUTRAL:
             process_neutral(character)
-        GlobalEnums.StatusEffectType.REGENERATION:
+        StatusEffectType.REGENERATION:
             process_regeneration(character)
-        GlobalEnums.StatusEffectType.SHIELD:
+        StatusEffectType.SHIELD:
             process_shield(character)
     duration = max(0, duration - 1)
 
@@ -66,14 +76,14 @@ func process_shield(character: Character) -> void:
 
 func serialize() -> Dictionary:
     return {
-        "type": GlobalEnums.StatusEffectType.keys()[type],
+        "type": StatusEffectType.keys()[type],
         "duration": duration,
         "intensity": intensity
     }
 
 static func deserialize(data: Dictionary) -> StatusEffect:
     return StatusEffect.new(
-        GlobalEnums.StatusEffectType[data["type"]],
+        StatusEffectType[data["type"]],
         data["duration"],
         data["intensity"]
     )

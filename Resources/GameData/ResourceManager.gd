@@ -1,10 +1,12 @@
 class_name ResourceManager
 extends Node
 
+const GlobalEnums = preload("res://Resources/GameData/GlobalEnums.gd")
+
 signal resource_changed(type: GlobalEnums.ResourceType, amount: int)
 signal resource_depleted(type: GlobalEnums.ResourceType)
 
-const STARTING_RESOURCES := {
+const STARTING_RESOURCES = {
     GlobalEnums.ResourceType.CREDITS: 1000,
     GlobalEnums.ResourceType.FUEL: 100,
     GlobalEnums.ResourceType.SUPPLIES: 50,

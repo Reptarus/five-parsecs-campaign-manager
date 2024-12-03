@@ -1,173 +1,159 @@
 class_name BattleSystem
 extends Node
 
-const GlobalEnums = preload("res://Resources/GameData/GlobalEnums.gd")
-const Character = preload("res://Resources/CrewAndCharacters/Character.gd")
-const Mission = preload("res://Resources/GameData/Mission.gd")
-const GameState = preload("res://Resources/GameData/GameState.gd")
-
-signal battle_started
-signal battle_ended(victory: bool)
+signal battle_started(mission: Mission)
+signal battle_ended(result: Dictionary)
+signal phase_changed(new_phase: int)
 signal turn_started(character: Character)
 signal turn_ended(character: Character)
-signal phase_changed(new_phase: int)  # GlobalEnums.BattlePhase
-
-@export_group("Core Systems")
-@export var combat_manager: CombatManager
-@export var battlefield_generator: Node  # Will be typed when BattlefieldGenerator is available
-@export var enemy_deployment_manager: Node  # Will be typed when EnemyDeploymentManager is available
-@export var battle_event_manager: Node  # Will be typed when BattleEventManager is available
+signal slow_actions_started
+signal quick_actions_started
 
 var game_state: GameState
-var current_phase: int = GlobalEnums.BattlePhase.REACTION_ROLL
-var is_transitioning: bool = false
+var current_mission: Mission
+var current_phase: int = GlobalEnums.BattlePhase.SETUP
+var reaction_results: Dictionary = {}
+var current_round: int = 1
 
 func _init(_game_state: GameState) -> void:
-    if not _game_state:
-        push_error("Invalid game state provided to BattleSystem")
-        return
-        
     game_state = _game_state
-    _initialize_managers()
 
-func _initialize_managers() -> void:
-    if not combat_manager:
-        combat_manager = Node.new()  # Replace with actual manager when available
-        combat_manager.name = "CombatManager"
-    if not battlefield_generator:
-        battlefield_generator = Node.new()  # Replace with actual generator when available
-        battlefield_generator.name = "BattlefieldGenerator"
-    if not enemy_deployment_manager:
-        enemy_deployment_manager = Node.new()  # Replace with actual manager when available
-        enemy_deployment_manager.name = "EnemyDeploymentManager"
-    if not battle_event_manager:
-        battle_event_manager = Node.new()  # Replace with actual manager when available
-        battle_event_manager.name = "BattleEventManager"
+func initialize(mission: Mission) -> void:
+    current_mission = mission
+    current_phase = GlobalEnums.BattlePhase.SETUP
+    current_round = 1
+    reaction_results.clear()
+    battle_started.emit(mission)
 
-func start_battle(mission: Mission) -> void:
-    if not mission:
-        push_error("Invalid mission provided to start_battle")
+func start_battle() -> void:
+    if not current_mission:
+        push_error("No mission set for battle")
         return
-
-    var battlefield_data = await battlefield_generator.generate_battlefield(mission)
-    _deploy_forces(mission, battlefield_data)
-    combat_manager.start_combat()
-    current_phase = GlobalEnums.BattlePhase.REACTION_ROLL
-    phase_changed.emit(current_phase)
-    battle_started.emit()
-
-func _deploy_forces(mission: Mission, battlefield_data: Dictionary) -> void:
-    for character in game_state.current_crew.get_active_members():
-        var position = _get_deployment_position(battlefield_data.player_deployment_zone)
-        combat_manager.deploy_character(character, position)
     
-    enemy_deployment_manager.deploy_enemies(
-        mission.enemies, 
-        battlefield_data.enemy_deployment_zone
-    )
+    _setup_battle()
+    _start_round()
 
-func _get_deployment_position(deployment_zone: Array) -> Vector2:
-    if deployment_zone.is_empty():
-        push_error("Empty deployment zone")
-        return Vector2.ZERO
-    return deployment_zone[randi() % deployment_zone.size()]
+func end_battle(result: Dictionary) -> void:
+    battle_ended.emit(result)
+    cleanup()
 
-func advance_phase() -> void:
-    if is_transitioning:
-        return
-        
-    is_transitioning = true
-    _cleanup_current_phase()
-    
-    var phases = GlobalEnums.BattlePhase.values()
-    var current_index = phases.find(current_phase)
-    current_phase = phases[(current_index + 1) % phases.size()]
-    
-    phase_changed.emit(current_phase)
-    _initialize_new_phase()
-    is_transitioning = false
+func cleanup() -> void:
+    current_mission = null
+    current_phase = GlobalEnums.BattlePhase.SETUP
+    current_round = 1
+    reaction_results.clear()
 
-func _cleanup_current_phase() -> void:
-    match current_phase:
-        GlobalEnums.BattlePhase.REACTION_ROLL:
-            combat_manager.cleanup_reactions()
-        GlobalEnums.BattlePhase.QUICK_ACTIONS:
-            combat_manager.cleanup_quick_actions()
-        GlobalEnums.BattlePhase.ENEMY_ACTIONS:
-            combat_manager.cleanup_enemy_actions()
-        GlobalEnums.BattlePhase.SLOW_ACTIONS:
-            combat_manager.cleanup_slow_actions()
-        GlobalEnums.BattlePhase.END_PHASE:
-            combat_manager.cleanup_round()
+func start_round() -> void:
+    current_round += 1
+    _reset_reactions()
+    start_quick_actions()
 
-func _initialize_new_phase() -> void:
-    match current_phase:
-        GlobalEnums.BattlePhase.REACTION_ROLL:
-            _handle_reaction_phase()
-        GlobalEnums.BattlePhase.QUICK_ACTIONS:
-            _handle_quick_actions_phase()
-        GlobalEnums.BattlePhase.ENEMY_ACTIONS:
-            _handle_enemy_actions_phase()
-        GlobalEnums.BattlePhase.SLOW_ACTIONS:
-            _handle_slow_actions_phase()
-        GlobalEnums.BattlePhase.END_PHASE:
-            _handle_end_phase()
-
-func _handle_reaction_phase() -> void:
-    for character in combat_manager.get_active_characters():
-        var roll = character.roll_reaction()
-        combat_manager.set_character_initiative(character, roll)
-    combat_manager.sort_initiative_order()
-
-func _handle_quick_actions_phase() -> void:
-    for character in combat_manager.get_initiative_order():
-        if character.can_act():
-            turn_started.emit(character)
-            await character.perform_quick_actions()
-            turn_ended.emit(character)
-
-func _handle_enemy_actions_phase() -> void:
-    for enemy in combat_manager.get_enemy_units():
-        if enemy.can_act():
-            turn_started.emit(enemy)
-            await enemy.perform_actions()
-            turn_ended.emit(enemy)
-
-func _handle_slow_actions_phase() -> void:
-    for character in combat_manager.get_initiative_order():
-        if character.can_act():
-            turn_started.emit(character)
-            await character.perform_slow_actions()
-            turn_ended.emit(character)
-
-func _handle_end_phase() -> void:
-    combat_manager.cleanup_round()
+func end_round() -> void:
     if _check_battle_end():
-        var victory_type = GlobalEnums.BattleOutcome.VICTORY if _check_victory() else GlobalEnums.BattleOutcome.DEFEAT
-        end_battle(victory_type)
+        return
+    
+    _cleanup_round()
+    start_round()
+
+func handle_player_turn(character: Character) -> void:
+    if not character or not character.can_act():
+        return
+    
+    turn_started.emit(character)
+    await character.turn_completed
+    turn_ended.emit(character)
+
+func handle_enemy_turn(enemy: Character) -> void:
+    if not enemy or not enemy.can_act():
+        return
+    
+    turn_started.emit(enemy)
+    await get_tree().create_timer(0.5).timeout  # Small delay for visual feedback
+    turn_ended.emit(enemy)
+
+func start_quick_actions() -> void:
+    quick_actions_started.emit()
+    var quick_actors = _get_quick_actors()
+    for actor in quick_actors:
+        if not reaction_results[actor.id].has_acted:
+            if actor in game_state.get_active_crew():
+                await handle_player_turn(actor)
+            else:
+                await handle_enemy_turn(actor)
+    
+    start_slow_actions()
+
+func start_slow_actions() -> void:
+    slow_actions_started.emit()
+    var slow_actors = _get_slow_actors()
+    for actor in slow_actors:
+        if not reaction_results[actor.id].has_acted:
+            if actor in game_state.get_active_crew():
+                await handle_player_turn(actor)
+            else:
+                await handle_enemy_turn(actor)
+    
+    end_round()
+
+func _get_quick_actors() -> Array[Dictionary]:
+    var quick_actors: Array[Dictionary] = []
+    for id in reaction_results.keys():
+        if reaction_results[id].is_quick and not reaction_results[id].has_acted:
+            quick_actors.append(reaction_results[id])
+    return quick_actors
+
+func _get_slow_actors() -> Array[Dictionary]:
+    var slow_actors: Array[Dictionary] = []
+    for id in reaction_results.keys():
+        if not reaction_results[id].is_quick and not reaction_results[id].has_acted:
+            slow_actors.append(reaction_results[id])
+    return slow_actors
+
+func _setup_battle() -> void:
+    _reset_battle_state()
+    _initialize_reactions()
+    change_phase(GlobalEnums.BattlePhase.DEPLOYMENT)
+
+func _reset_battle_state() -> void:
+    current_round = 1
+    reaction_results.clear()
+
+func _initialize_reactions() -> void:
+    var all_characters = game_state.get_all_characters()
+    for character in all_characters:
+        reaction_results[character.id] = {
+            "character": character,
+            "is_quick": character.has_quick_reaction(),
+            "has_acted": false
+        }
+
+func _reset_reactions() -> void:
+    for result in reaction_results.values():
+        result.has_acted = false
+
+func _cleanup_round() -> void:
+    for character in game_state.get_all_characters():
+        character.reset_round_state()
 
 func _check_battle_end() -> bool:
-    return combat_manager.is_battle_over()
+    if current_round > current_mission.max_rounds:
+        end_battle({"outcome": "TIMEOUT"})
+        return true
+    
+    if game_state.get_active_enemies().is_empty():
+        end_battle({"outcome": "VICTORY"})
+        return true
+    
+    if game_state.get_active_crew().is_empty():
+        end_battle({"outcome": "DEFEAT"})
+        return true
+    
+    return false
 
-func _check_victory() -> bool:
-    return combat_manager.is_player_victory()
+func _start_round() -> void:
+    change_phase(GlobalEnums.BattlePhase.BATTLE)
+    start_quick_actions()
 
-func end_battle(victory: GlobalEnums.VictoryConditionType) -> void:
-    combat_manager.end_combat(victory)
-    battle_ended.emit(victory)
-
-# Combat Helper Functions
-func get_valid_move_positions(character: Character) -> Array[Vector2i]:
-    return combat_manager.get_valid_move_positions(character)
-
-func get_valid_attack_positions(character: Character) -> Array[Vector2i]:
-    return combat_manager.get_valid_attack_positions(character)
-
-func get_character_at_position(position: Vector2i) -> Character:
-    return combat_manager.get_character_at_position(position)
-
-func move_character(character: Character, target_position: Vector2i) -> void:
-    await combat_manager.move_character(character, target_position)
-
-func attack_character(attacker: Character, target: Character) -> void:
-    await combat_manager.attack_character(attacker, target)
+func change_phase(new_phase: int) -> void:
+    current_phase = new_phase
+    phase_changed.emit(new_phase)

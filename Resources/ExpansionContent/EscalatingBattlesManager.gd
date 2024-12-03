@@ -1,17 +1,17 @@
 class_name EscalatingBattlesManager
 extends Resource
 
-var game_state: GameState
-var difficulty_settings: DifficultySettings
+var game_state: Node
+var difficulty_settings: Resource
 
-func _init(_game_state: GameState):
+func _init(_game_state: Node) -> void:
 	game_state = _game_state
 
-func initialize(_game_state: GameState, _difficulty_settings: DifficultySettings):
+func initialize(_game_state: Node, _difficulty_settings: Resource) -> void:
 	game_state = _game_state
 	difficulty_settings = _difficulty_settings
 
-func apply_difficulty(_difficulty_settings: DifficultySettings):
+func apply_difficulty(_difficulty_settings: Resource):
 	difficulty_settings = _difficulty_settings
 
 func check_escalation(battle_state: Dictionary) -> Dictionary:
@@ -55,10 +55,10 @@ func _generate_escalation(battle_state: Dictionary) -> Dictionary:
 			escalation.description = "Unexpected psionic phenomenon occurs"
 			escalation.effect = {"psionic_boost": true, "target": "all"}
 			escalation.effect["psionic_intensity"] = 2
-		GlobalEnums.StrifeType.CRIMINAL_WARFARE:
+		GlobalEnums.StrifeType.CRIMINAL_UPRISING:
 			escalation.description = "Sudden environmental change"
 			escalation.effect = {"damage": 1, "target": "all"}
-		GlobalEnums.StrifeType.CORPORATE_RIVALRY:
+		GlobalEnums.StrifeType.CORPORATE_WAR:
 			escalation.description = "Random crew equipment malfunctions"
 			escalation.effect = {"disable_item": true, "target": "player"}
 	
@@ -109,26 +109,31 @@ func _apply_to_team(effect: Dictionary, team: Array) -> void:
 
 func generate_suspect(pursuit: bool) -> Dictionary:
 	var suspect = {}
-	var roll = GameManager.roll_dice(1, 6)
+	var roll = randi() % 6 + 1
 	
 	match roll:
 		1:
-			suspect = {"type": "Nothing interesting", "action": "Remove the marker"}
-		2:
-			if pursuit:
-				suspect = {"type": "Enemy", "action": "Replace with enemy figure"}
-			else:
-				suspect = {"type": "Nothing interesting", "action": "Remove the marker"}
-		3, 4, 5:
-			suspect = {"type": "Enemy", "action": "Replace with enemy figure"}
+			suspect.type = "civilian"
+			suspect.armed = false
+		2, 3:
+			suspect.type = "criminal"
+			suspect.armed = true
+		4, 5:
+			suspect.type = "gang_member"
+			suspect.armed = true
 		6:
-			suspect = {"type": "Ambush", "action": "Replace with enemy figure and place second enemy"}
+			if pursuit:
+				suspect.type = "elite"
+				suspect.armed = true
+			else:
+				suspect.type = "gang_member"
+				suspect.armed = true
 	
 	return suspect
 
-func handle_evasion(crew_member: Character, enemies_in_sight: Array) -> int:
+func handle_evasion(crew_member: Node, enemies_in_sight: Array) -> int:
 	if enemies_in_sight.is_empty():
-		var roll = GameManager.roll_dice(1, 6) + crew_member.savvy
-		return max(0, roll - 4)
+		var roll = randi() % 6 + 1
+		return maxi(0, roll + crew_member.savvy - 4)
 	return 0
 

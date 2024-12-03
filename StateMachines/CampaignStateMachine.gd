@@ -1,104 +1,112 @@
 class_name CampaignStateMachine
 extends Node
 
-const GlobalEnums = preload("res://Resources/GameData/GlobalEnums.gd")
-const WorldStepManager = preload("res://Resources/GameData/WorldStepManager.gd")
-const PostBattlePhase = preload("res://Resources/GameData/PostBattlePhase.gd")
-const GameState = preload("res://Resources/GameData/GameState.gd")
+signal state_changed(new_state: GlobalEnums.CampaignPhase)
+signal turn_completed
+signal event_generated(event: Dictionary)
 
-signal state_changed(new_state: int)  # GlobalEnums.CampaignPhase
-
+var game_state: GameState
 var game_state_manager: GameStateManager
-var current_state: int = GlobalEnums.CampaignPhase.UPKEEP
+var crew_system: CrewSystem
+var character_system: CharacterSystem
+var job_system: JobSystem
+
+# Campaign state tracking
+var current_phase: GlobalEnums.CampaignPhase = GlobalEnums.CampaignPhase.UPKEEP
+var current_turn: int = 1
 
 func initialize(gsm: GameStateManager) -> void:
 	game_state_manager = gsm
-	current_state = gsm.get_current_campaign_phase()
+	game_state = gsm.game_state
+	_initialize_systems()
 
-func transition_to(new_state: int) -> void:
-	current_state = new_state
+func _initialize_systems() -> void:
+	crew_system = CrewSystem.new(game_state)
+	character_system = CharacterSystem.new(game_state)
+	job_system = JobSystem.new(game_state)
+
+func transition_to(new_phase: GlobalEnums.CampaignPhase) -> void:
+	current_phase = new_phase
 	
-	# Check victory conditions before handling new state
-	if game_state_manager.check_campaign_victory_condition():
-		return  # Don't proceed with state transition if victory achieved
-	
-	match new_state:
+	match new_phase:
 		GlobalEnums.CampaignPhase.UPKEEP:
-			handle_upkeep()
+			handle_upkeep_phase()
+		GlobalEnums.CampaignPhase.WORLD_STEP:
+			handle_world_phase()
 		GlobalEnums.CampaignPhase.TRAVEL:
-			handle_travel()
-			state_changed.emit(GlobalEnums.CampaignPhase.TRAVEL)
+			handle_travel_phase()
 		GlobalEnums.CampaignPhase.PATRONS:
-			handle_patrons()
-			state_changed.emit(GlobalEnums.CampaignPhase.PATRONS)
+			handle_patron_phase()
+		GlobalEnums.CampaignPhase.BATTLE:
+			handle_battle_phase()
 		GlobalEnums.CampaignPhase.POST_BATTLE:
-			handle_post_battle()
-			state_changed.emit(GlobalEnums.CampaignPhase.POST_BATTLE)
-		GlobalEnums.CampaignPhase.TRACK_RIVALS:
-			handle_track_rivals()
-			state_changed.emit(GlobalEnums.CampaignPhase.TRACK_RIVALS)
-		GlobalEnums.CampaignPhase.PATRON_JOB:
-			handle_patron_job()
-			state_changed.emit(GlobalEnums.CampaignPhase.PATRON_JOB)
-		GlobalEnums.CampaignPhase.RIVAL_ATTACK:
-			handle_rival_attack()
-			state_changed.emit(GlobalEnums.CampaignPhase.RIVAL_ATTACK)
-		GlobalEnums.CampaignPhase.ASSIGN_EQUIPMENT:
-			handle_assign_equipment()
-			state_changed.emit(GlobalEnums.CampaignPhase.ASSIGN_EQUIPMENT)
-		GlobalEnums.CampaignPhase.READY_FOR_BATTLE:
-			handle_ready_for_battle()
-			state_changed.emit(GlobalEnums.CampaignPhase.READY_FOR_BATTLE)
+			handle_post_battle_phase()
+		GlobalEnums.CampaignPhase.MANAGEMENT:
+			handle_management_phase()
 	
-	state_changed.emit(new_state)
+	state_changed.emit(new_phase)
 
-# Phase handlers
-func handle_upkeep() -> void:
-	var world_step_manager = WorldStepManager.new(game_state_manager.game_state)
-	world_step_manager.process_step()
+func handle_upkeep_phase() -> void:
+	# Process crew upkeep costs
+	var upkeep_cost = crew_system.calculate_upkeep()
+	if not game_state.remove_credits(upkeep_cost):
+		crew_system.handle_failed_upkeep()
+	
+	# Process crew tasks
+	crew_system.process_task_results()
+	
+	# Check for events
+	if randf() < game_state.difficulty_settings.event_frequency:
+		var event = _generate_campaign_event()
+		event_generated.emit(event)
 
-func handle_travel() -> void:
-	# Handle travel phase
-	game_state_manager.world_generator.generate_new_location()
-	game_state_manager.story_track.story_clock.count_down(false)
-	state_changed.emit(GlobalEnums.CampaignPhase.TRAVEL)
+func handle_world_phase() -> void:
+	game_state.world_manager.process_world_events()
+	game_state.world_manager.update_world_resources()
 
-func handle_patrons() -> void:
-	# Handle patron interactions
-	game_state_manager.patron_job_manager.check_patrons()
-	state_changed.emit(GlobalEnums.CampaignPhase.PATRONS)
+func handle_travel_phase() -> void:
+	# Handle travel between locations
+	if game_state.current_location:
+		game_state.current_location.on_departure()
+	
+	# Generate new location options
+	game_state.world_manager.generate_location_options()
 
-func handle_post_battle() -> void:
-	var post_battle_manager = PostBattlePhase.new(game_state_manager.game_state)
-	post_battle_manager.process_post_battle()
-	state_changed.emit(GlobalEnums.CampaignPhase.POST_BATTLE)
+func handle_patron_phase() -> void:
+	# Process patron jobs
+	job_system.update_available_jobs()
+	
+	# Update patron relationships
+	game_state.faction_manager.update_faction_standings()
 
-func handle_track_rivals() -> void:
-	# Handle rival tracking
-	game_state_manager.expanded_faction_manager.update_factions()
-	state_changed.emit(GlobalEnums.CampaignPhase.TRACK_RIVALS)
-
-func handle_patron_job() -> void:
-	# Handle patron job assignment
-	game_state_manager.patron_job_manager.assign_jobs()
-	state_changed.emit(GlobalEnums.CampaignPhase.PATRON_JOB)
-
-func handle_rival_attack() -> void:
-	# Handle rival attacks
-	game_state_manager.expanded_faction_manager.resolve_faction_conflict()
-	state_changed.emit(GlobalEnums.CampaignPhase.RIVAL_ATTACK)
-
-func handle_assign_equipment() -> void:
-	# Handle equipment assignment
-	game_state_manager.equipment_manager.assign_equipment()
-	state_changed.emit(GlobalEnums.CampaignPhase.ASSIGN_EQUIPMENT)
-
-func handle_ready_for_battle() -> void:
+func handle_battle_phase() -> void:
 	# Prepare for battle
-	game_state_manager.battle_state_machine.prepare_for_battle()
-	state_changed.emit(GlobalEnums.CampaignPhase.READY_FOR_BATTLE)
+	game_state.combat_manager.prepare_battle()
+	game_state_manager.transition_to_state(GlobalEnums.GameState.BATTLE)
 
-# Add victory handling
-func handle_campaign_victory(victory_type: GlobalEnums.CampaignVictoryType) -> void:
-	# Handle victory screen transition or other victory-related logic
-	game_state_manager.transition_to_state(GlobalEnums.GameState.CAMPAIGN_VICTORY)
+func handle_post_battle_phase() -> void:
+	# Process battle results
+	game_state.combat_manager.process_battle_results()
+	
+	# Handle casualties and rewards
+	crew_system.handle_battle_aftermath()
+	
+	# Update story progress if needed
+	if game_state.story_track:
+		game_state.story_track.update_progress()
+
+func handle_management_phase() -> void:
+	# Process crew advancement
+	for character in crew_system.get_available_members():
+		character_system.check_advancement(character)
+	
+	# Handle equipment maintenance
+	game_state.equipment_manager.process_maintenance()
+
+func end_turn() -> void:
+	current_turn += 1
+	turn_completed.emit()
+
+func _generate_campaign_event() -> Dictionary:
+	# Implementation of event generation
+	return {}

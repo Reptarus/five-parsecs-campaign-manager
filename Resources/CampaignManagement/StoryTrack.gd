@@ -2,6 +2,13 @@
 class_name StoryTrack
 extends Node
 
+enum CampaignPhase {
+	UPKEEP,
+	BATTLE,
+	POST_BATTLE,
+	TRAVEL
+}
+
 signal event_triggered(event: StoryEvent)
 signal story_point_added(total: int)
 signal story_point_spent(total: int)
@@ -10,11 +17,10 @@ signal story_milestone_reached(milestone: int)
 const StoryClock = preload("res://Resources/CampaignManagement/StoryClock.gd")
 const StoryEvent = preload("res://Resources/CampaignManagement/StoryEvent.gd")
 const GameState = preload("res://Resources/GameData/GameState.gd")
-const GlobalEnums = preload("res://Resources/GameData/GlobalEnums.gd")
 
 var story_clock: StoryClock
 var game_state_manager: GameStateManager
-var internal_state: GameState
+var game_state: GameState
 var events: Array[StoryEvent] = []
 var current_event_index: int = -1
 var story_points: int = 0
@@ -27,7 +33,13 @@ func _init() -> void:
 
 func initialize(gsm: GameStateManager) -> void:
 	game_state_manager = gsm
-	internal_state = gsm.game_state
+	var state_node = gsm.get_game_state()
+	if state_node is GameState:
+		game_state = state_node
+	else:
+		push_error("Invalid game state type")
+		return
+		
 	story_clock = StoryClock.new()
 	if _is_initialized:
 		return
@@ -47,7 +59,8 @@ func _load_events() -> void:
 			_event_data = json.get_data()
 			events = []
 			for data in _event_data:
-				events.append(StoryEvent.new(data))
+				events.append(StoryEvent.new())
+				events[-1].deserialize(data)
 		else:
 			push_error("Failed to parse story events file")
 	else:
@@ -76,12 +89,12 @@ func apply_event_effects(event: StoryEvent) -> void:
 	event.setup_battle(game_state_manager.combat_manager)
 	event.apply_rewards(game_state_manager)
 
-func progress_story(phase: GlobalEnums.CampaignPhase) -> void:
+func progress_story(phase: CampaignPhase) -> void:
 	match phase:
-		GlobalEnums.CampaignPhase.UPKEEP:
+		CampaignPhase.UPKEEP:
 			# Handle upkeep phase
 			pass
-		GlobalEnums.CampaignPhase.BATTLE:
+		CampaignPhase.BATTLE:
 			# Handle battle phase
 			pass
 

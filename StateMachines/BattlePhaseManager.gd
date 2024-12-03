@@ -1,0 +1,134 @@
+class_name BattlePhaseController
+extends Node
+
+const GlobalEnums = preload("res://Resources/GameData/GlobalEnums.gd")
+const Character = preload("res://Resources/CrewAndCharacters/Character.gd")
+
+signal phase_started(phase: int)
+signal phase_ended(phase: int)
+signal action_points_changed(unit: Character, points: int)
+signal unit_activated(unit: Character)
+signal unit_deactivated(unit: Character)
+
+@export var battle_state_machine: BattleStateMachine
+@export var combat_resolver: Node
+
+var current_phase: int = GlobalEnums.BattlePhase.SETUP
+var active_units: Array[Character] = []
+var current_unit: Character = null
+var action_points: Dictionary = {}
+
+func _ready() -> void:
+	if battle_state_machine:
+		battle_state_machine.phase_changed.connect(_on_battle_phase_changed)
+
+func initialize_phase(phase: int) -> void:
+	current_phase = phase
+	phase_started.emit(phase)
+	
+	match phase:
+		GlobalEnums.BattlePhase.SETUP:
+			_handle_setup_phase()
+		GlobalEnums.BattlePhase.DEPLOYMENT:
+			_handle_deployment_phase()
+		GlobalEnums.BattlePhase.BATTLE:
+			_handle_battle_phase()
+		GlobalEnums.BattlePhase.RESOLUTION:
+			_handle_resolution_phase()
+		GlobalEnums.BattlePhase.CLEANUP:
+			_handle_cleanup_phase()
+
+func _handle_setup_phase() -> void:
+	active_units.clear()
+	action_points.clear()
+	current_unit = null
+	
+	# Initialize units and their action points
+	var units = battle_state_machine.active_units
+	for unit in units:
+		active_units.append(unit)
+		action_points[unit] = unit.get_max_action_points()
+
+func _handle_deployment_phase() -> void:
+	# Handle unit deployment logic
+	for unit in active_units:
+		if unit.needs_deployment():
+			await unit.handle_deployment()
+
+func _handle_battle_phase() -> void:
+	# Main battle phase logic
+	for unit in active_units:
+		if unit.is_alive():
+			current_unit = unit
+			unit_activated.emit(unit)
+			await _process_unit_turn(unit)
+			unit_deactivated.emit(unit)
+	current_unit = null
+
+func _handle_resolution_phase() -> void:
+	# Handle end of round resolution
+	for unit in active_units:
+		if unit.is_alive():
+			unit.end_turn()
+			action_points[unit] = 0
+			action_points_changed.emit(unit, 0)
+
+func _handle_cleanup_phase() -> void:
+	# Clean up phase resources
+	for unit in active_units:
+		unit.cleanup_battle_effects()
+	
+	active_units.clear()
+	action_points.clear()
+	current_unit = null
+
+func _process_unit_turn(unit: Character) -> void:
+	while action_points[unit] > 0 and unit.is_alive():
+		var action = await unit.get_next_action()
+		if action != null:
+			var cost = get_action_cost(action)
+			if can_perform_action(unit, action):
+				await perform_action(unit, action)
+				reduce_action_points(unit, cost)
+		else:
+			break
+
+func can_perform_action(unit: Character, action: int) -> bool:
+	if not unit.is_alive() or not action_points.has(unit):
+		return false
+	return action_points[unit] >= get_action_cost(action)
+
+func get_action_cost(action: int) -> int:
+	match action:
+		BattleStateMachine.UnitAction.MOVE:
+			return 1
+		BattleStateMachine.UnitAction.ATTACK:
+			return 2
+		BattleStateMachine.UnitAction.DASH:
+			return 1
+		BattleStateMachine.UnitAction.ITEMS:
+			return 1
+		BattleStateMachine.UnitAction.SNAP_FIRE:
+			return 1
+		BattleStateMachine.UnitAction.FREE_ACTION:
+			return 0
+		BattleStateMachine.UnitAction.BRAWL:
+			return 2
+		_:
+			return 1
+
+func perform_action(unit: Character, action: int) -> void:
+	if combat_resolver and action in [BattleStateMachine.UnitAction.ATTACK, BattleStateMachine.UnitAction.BRAWL]:
+		await combat_resolver.resolve_combat_action(unit, action)
+	else:
+		await battle_state_machine.perform_unit_action(unit, action)
+
+func reduce_action_points(unit: Character, amount: int) -> void:
+	if action_points.has(unit):
+		action_points[unit] = max(0, action_points[unit] - amount)
+		action_points_changed.emit(unit, action_points[unit])
+
+func _on_battle_phase_changed(new_phase: int) -> void:
+	if current_phase != new_phase:
+		phase_ended.emit(current_phase)
+		initialize_phase(new_phase) 

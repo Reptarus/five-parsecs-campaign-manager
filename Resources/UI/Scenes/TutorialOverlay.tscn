@@ -1,40 +1,11 @@
-[gd_scene load_steps=2 format=3 uid="uid://7a1l2ocanju3"]
+[gd_scene load_steps=2 format=3]
 
-[ext_resource type="Script" path="res://Resources/UI/TutorialOverlay.gd" id="1_..."]
+[ext_resource type="Script" path="res://Resources/UI/TutorialOverlay.gd" id="1_script"]
 
 [node name="TutorialOverlay" type="CanvasLayer"]
 layer = 128
-script = ExtResource("1_...")
+script = ExtResource("1_script")
 
 [node name="ContentPanel" type="PanelContainer" parent="."]
 offset_right = 300.0
 offset_bottom = 150.0
-
-[node name="MarginContainer" type="MarginContainer" parent="ContentPanel"]
-layout_mode = 2
-theme_override_constants/margin_left = 10
-theme_override_constants/margin_top = 10
-theme_override_constants/margin_right = 10
-theme_override_constants/margin_bottom = 10
-
-[node name="VBoxContainer" type="VBoxContainer" parent="ContentPanel/MarginContainer"]
-layout_mode = 2
-theme_override_constants/separation = 10
-
-[node name="ContentLabel" type="RichTextLabel" parent="ContentPanel/MarginContainer/VBoxContainer"]
-layout_mode = 2
-size_flags_vertical = 3
-bbcode_enabled = true
-text = "Tutorial content goes here"
-
-[node name="ButtonContainer" type="HBoxContainer" parent="ContentPanel/MarginContainer/VBoxContainer"]
-layout_mode = 2
-alignment = 2
-
-[node name="NextButton" type="Button" parent="ContentPanel/MarginContainer/VBoxContainer/ButtonContainer"]
-layout_mode = 2
-text = "Next"
-
-[node name="SkipButton" type="Button" parent="ContentPanel/MarginContainer/VBoxContainer/ButtonContainer"]
-layout_mode = 2
-text = "Skip"

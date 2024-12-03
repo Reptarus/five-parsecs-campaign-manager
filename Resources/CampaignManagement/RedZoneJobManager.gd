@@ -2,6 +2,35 @@
 class_name RedZoneJobManager
 extends Node
 
+enum RedZoneCondition {
+	COMMS_INTERFERENCE,
+	RADIATION,
+	TOXIC_ATMOSPHERE,
+	UNSTABLE_GROUND,
+	EXTREME_WEATHER,
+	MAGNETIC_STORMS
+}
+
+enum RedZoneTimeConstraint {
+	NONE,
+	IMMEDIATE,
+	ONE_HOUR,
+	ONE_DAY,
+	ONE_WEEK
+}
+
+enum RedZoneMissionObjective {
+	DESTROY_STRONGPOINT,
+	HOLD_POSITION,
+	ELIMINATE_TARGET,
+	DESTROY_PLATOON,
+	PENETRATE_LINES,
+	SABOTAGE,
+	RESCUE,
+	SECURE_INTEL,
+	CLEAR_ZONE
+}
+
 @onready var game_manager = get_node("/root/GameManager")
 
 var game_state: GameState
@@ -46,40 +75,38 @@ func apply_red_zone_modifiers(mission: Mission) -> void:
 	mission.improved_rewards()
 
 func generate_threat_condition() -> String:
-	var condition: GlobalEnums.RedZoneCondition = GlobalEnums.RedZoneCondition.values()[randi() % GlobalEnums.RedZoneCondition.size()]
+	var condition: RedZoneCondition = RedZoneCondition.values()[randi() % RedZoneCondition.size()]
 	match condition:
-		GlobalEnums.RedZoneCondition.COMMS_INTERFERENCE:
+		RedZoneCondition.COMMS_INTERFERENCE:
 			return "Comms Interference"
-		GlobalEnums.RedZoneCondition.ELITE_OPPOSITION:
-			return "Elite Opposition"
-		GlobalEnums.RedZoneCondition.PITCH_BLACK:
-			return "Pitch Black"
-		GlobalEnums.RedZoneCondition.HEAVY_OPPOSITION:
-			return "Heavy Opposition"
-		GlobalEnums.RedZoneCondition.ARMORED_OPPONENTS:
-			return "Armored Opponents"
-		GlobalEnums.RedZoneCondition.ENEMY_CAPTAIN:
-			return "Enemy Captain"
+		RedZoneCondition.RADIATION:
+			return "Radiation"
+		RedZoneCondition.TOXIC_ATMOSPHERE:
+			return "Toxic Atmosphere"
+		RedZoneCondition.UNSTABLE_GROUND:
+			return "Unstable Ground"
+		RedZoneCondition.EXTREME_WEATHER:
+			return "Extreme Weather"
+		RedZoneCondition.MAGNETIC_STORMS:
+			return "Magnetic Storms"
 		_:
-			return "Heavy Opposition" # Default case
+			return "Unknown Condition"
 
 func generate_time_constraint() -> String:
-	var constraint: GlobalEnums.RedZoneTimeConstraint = GlobalEnums.RedZoneTimeConstraint.values()[randi() % GlobalEnums.RedZoneTimeConstraint.size()]
+	var constraint: RedZoneTimeConstraint = RedZoneTimeConstraint.values()[randi() % RedZoneTimeConstraint.size()]
 	match constraint:
-		GlobalEnums.RedZoneTimeConstraint.NONE:
+		RedZoneTimeConstraint.NONE:
 			return "None"
-		GlobalEnums.RedZoneTimeConstraint.REINFORCEMENTS:
-			return "Reinforcements"
-		GlobalEnums.RedZoneTimeConstraint.SIGNIFICANT_REINFORCEMENTS:
-			return "Significant reinforcements"
-		GlobalEnums.RedZoneTimeConstraint.COUNT_DOWN:
-			return "Count down"
-		GlobalEnums.RedZoneTimeConstraint.EVAC_NOW:
-			return "Evac now!"
-		GlobalEnums.RedZoneTimeConstraint.ELITE_REINFORCEMENTS:
-			return "Elite reinforcements"
+		RedZoneTimeConstraint.IMMEDIATE:
+			return "Immediate"
+		RedZoneTimeConstraint.ONE_HOUR:
+			return "One Hour"
+		RedZoneTimeConstraint.ONE_DAY:
+			return "One Day"
+		RedZoneTimeConstraint.ONE_WEEK:
+			return "One Week"
 		_:
-			return "None" # Default case
+			return "Unknown Time Constraint"
 
 func generate_black_zone_job() -> Mission:
 	var mission: Mission = generate_red_zone_job()
@@ -139,26 +166,26 @@ func handle_mission_outcome(victory: bool) -> void:
 		generate_quest_rumor()
 	game_state.process_mission_results(victory)
 
-func _generate_objective() -> String:
-	var objective: GlobalEnums.MissionObjective = GlobalEnums.MissionObjective.values()[randi() % GlobalEnums.MissionObjective.size()]
+func generate_mission_objective() -> String:
+	var objective: RedZoneMissionObjective = RedZoneMissionObjective.values()[randi() % RedZoneMissionObjective.size()]
 	match objective:
-		GlobalEnums.MissionObjective.DESTROY_STRONGPOINT:
+		RedZoneMissionObjective.DESTROY_STRONGPOINT:
 			return "Destroy strong point"
-		GlobalEnums.MissionObjective.HOLD_POSITION:
+		RedZoneMissionObjective.HOLD_POSITION:
 			return "Hold against assault"
-		GlobalEnums.MissionObjective.ELIMINATE_TARGET:
+		RedZoneMissionObjective.ELIMINATE_TARGET:
 			return "Eliminate priority target"
-		GlobalEnums.MissionObjective.DESTROY_PLATOON:
+		RedZoneMissionObjective.DESTROY_PLATOON:
 			return "Destroy enemy platoon"
-		GlobalEnums.MissionObjective.PENETRATE_LINES:
+		RedZoneMissionObjective.PENETRATE_LINES:
 			return "Penetrate the lines"
-		GlobalEnums.MissionObjective.SABOTAGE:
+		RedZoneMissionObjective.SABOTAGE:
 			return "Plant sabotage device"
-		GlobalEnums.MissionObjective.RESCUE:
+		RedZoneMissionObjective.RESCUE:
 			return "Rescue captive"
-		GlobalEnums.MissionObjective.SECURE_INTEL:
+		RedZoneMissionObjective.SECURE_INTEL:
 			return "Secure intelligence"
-		GlobalEnums.MissionObjective.CLEAR_ZONE:
+		RedZoneMissionObjective.CLEAR_ZONE:
 			return "Clear red zone"
 		_:
 			return "Eliminate all opposition"

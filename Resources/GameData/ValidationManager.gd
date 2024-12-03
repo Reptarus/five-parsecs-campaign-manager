@@ -1,6 +1,8 @@
 class_name ValidationManager
 extends Resource
 
+const GlobalEnums = preload("res://Resources/GameData/GlobalEnums.gd")
+
 var game_state: GameState
 
 func _init(_game_state: GameState) -> void:
@@ -19,15 +21,15 @@ func validate_mission_start(mission: Mission) -> Dictionary:
     
     # Check mission type requirements
     match mission.type:
-        GlobalEnums.Type.RED_ZONE:
+        GlobalEnums.MissionType.RED_ZONE:
             if not _validate_red_zone_requirements():
                 result.valid = false
                 result.errors.append("Red Zone requirements not met")
-        GlobalEnums.Type.BLACK_ZONE:
+        GlobalEnums.MissionType.BLACK_ZONE:
             if not _validate_black_zone_requirements():
                 result.valid = false
                 result.errors.append("Black Zone requirements not met")
-        GlobalEnums.Type.PATRON:
+        GlobalEnums.MissionType.PATRON:
             if not _validate_patron_requirements(mission):
                 result.valid = false
                 result.errors.append("Patron requirements not met")
@@ -54,7 +56,7 @@ func _validate_deployment_requirements(deployment_type: GlobalEnums.DeploymentTy
     match deployment_type:
         GlobalEnums.DeploymentType.INFILTRATION, GlobalEnums.DeploymentType.CONCEALED:
             return game_state.current_crew.has_stealth_specialist()
-        GlobalEnums.DeploymentType.REINFORCED, GlobalEnums.DeploymentType.BOLSTERED_LINE:
+        GlobalEnums.DeploymentType.BOLSTERED_LINE, GlobalEnums.DeploymentType.LINE:
             return game_state.current_crew.get_member_count() >= 5
         _:
             return true

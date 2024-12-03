@@ -29,4 +29,6 @@ func get_max_armor_save() -> int:
 			return 4
 		GlobalEnums.ArmorType.SCREEN:
 			return 1
+		GlobalEnums.ArmorType.POWERED:
+			return 5
 	return 0

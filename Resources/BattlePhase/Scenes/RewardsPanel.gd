@@ -66,7 +66,7 @@ func _on_roll_status_pressed() -> void:
 	patron.adjust_reputation(reputation_change)
 	status_rolled.emit()
 
-func _try_add_to_inventory(item: Equipment) -> bool:
+func _try_add_to_inventory(item: LootItem) -> bool:
 	var ship_inventory = game_state_manager.game_state.current_ship.inventory
 	return ship_inventory.add_item(item)
 
@@ -77,7 +77,7 @@ func generate_battlefield_finds() -> Array:
 	
 	for _i in range(num_finds):
 		var item_name = possible_finds[randi() % possible_finds.size()]
-		var item = Equipment.new()
+		var item = LootItem.new()
 		item.name = item_name
 		item.weight = randf_range(1.0, 5.0)
 		item.value = randi_range(50, 200)
@@ -87,3 +87,13 @@ func generate_battlefield_finds() -> Array:
 
 func finalize_rewards() -> void:
 	game_state_manager.game_state.credits += total_payout
+
+class LootItem:
+	var name: String
+	var weight: float
+	var value: int
+	
+	func _init(item_name: String = "", item_weight: float = 1.0, item_value: int = 0) -> void:
+		name = item_name
+		weight = item_weight
+		value = item_value

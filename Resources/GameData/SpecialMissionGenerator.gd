@@ -55,3 +55,7 @@ func _setup_escort_mission(mission: Mission) -> void:
     mission.victory_condition = GlobalEnums.VictoryConditionType.EXTRACTION
     mission.ai_behavior = GlobalEnums.AIBehavior.TACTICAL
     mission.time_limit += 2
+
+# Override base class methods
+func _get_mission_config(mission_type: int) -> Dictionary:
+    return {}

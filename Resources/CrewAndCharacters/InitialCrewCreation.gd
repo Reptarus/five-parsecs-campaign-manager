@@ -114,7 +114,7 @@ func _update_slot_display(slot: Button, character: Character) -> void:
 	if character:
 		name_label.text = character.character_name
 		origin_label.text = GlobalEnums.Origin.keys()[character.origin].capitalize()
-		class_label.text = GlobalEnums.Class.keys()[character.class_type].capitalize()
+		class_label.text = GlobalEnums.CrewRole.keys()[character.role].capitalize()
 		
 		# Add visual indicator for captain
 		if character == captain:

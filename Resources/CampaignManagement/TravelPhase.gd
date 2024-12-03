@@ -22,14 +22,28 @@ signal step_completed
 signal phase_completed
 
 func _ready() -> void:
-	game_state_manager = GameStateManager.get_instance.call()
+	game_state_manager = get_node("/root/GameStateManager")
 	if not game_state_manager:
 		push_error("GameStateManager not found")
 		queue_free()
 		return
 	
-	game_state = game_state_manager.game_state
-	patron_job_manager = game_state_manager.patron_job_manager
+	var state_node = game_state_manager.get_game_state()
+	if state_node is GameState:
+		game_state = state_node
+	else:
+		push_error("Invalid game state type")
+		queue_free()
+		return
+	
+	var manager_node = game_state_manager.get_patron_job_manager()
+	if manager_node is PatronJobManager:
+		patron_job_manager = manager_node
+	else:
+		push_error("Invalid patron job manager type")
+		queue_free()
+		return
+	
 	_setup_current_step()
 
 func _setup_current_step() -> void:

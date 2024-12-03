@@ -1,15 +1,16 @@
 class_name PsionicManager
 extends Node
 
-signal psionic_ability_used(character: Character, ability: GlobalEnums.PsionicAbility)
-signal psionic_power_changed(character: Character, new_power: int)
+@export var game_state: GameState
+var psionic_characters: Dictionary = {}  # Character: Dictionary(ability, power_level)
 
+const GlobalEnums = preload("res://Resources/GameData/GlobalEnums.gd")
 const POWER_THRESHOLD := 10
 const POWER_INCREASE_CHANCE := 0.2
 const POWER_DECREASE_CHANCE := 0.1
 
-var game_state: GameState
-var psionic_characters: Dictionary = {}  # Character: Dictionary(ability, power_level)
+signal psionic_ability_used(character: Character, ability: GlobalEnums.PsionicAbility)
+signal psionic_power_changed(character: Character, new_power: int)
 
 func _init(_game_state: GameState) -> void:
     if not _game_state:

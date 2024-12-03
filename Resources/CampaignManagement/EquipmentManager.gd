@@ -1,173 +1,138 @@
-class_name EquipmentManager
+class_name GameEquipmentManager
 extends Node
 
-signal equipment_updated
+class ManagerEquipment:
+	var name: String
+	var description: String
+	var type: ItemType
+	var level: int
+	var value: int
+	
+	func _init(item_name: String, item_desc: String, item_type: ItemType, item_level: int) -> void:
+		name = item_name
+		description = item_desc
+		type = item_type
+		level = item_level
+		value = 0
+	
+	static func from_json(json_data: Dictionary) -> ManagerEquipment:
+		if not json_data:
+			return null
+		return ManagerEquipment.new(
+			json_data.get("name", ""),
+			json_data.get("description", ""),
+			ItemType.GEAR,
+			json_data.get("level", 1)
+		)
 
-const Weapon = preload("res://Resources/GameData/Weapon.gd")
-const WeaponSystem = preload("res://Resources/GameData/WeaponSystem.gd")
-const Gear = preload("res://Resources/CrewAndCharacters/Gear.gd")
-const GearDatabase = preload("res://Resources/CrewAndCharacters/GearDatabase.gd")
+class ManagerWeapon extends ManagerEquipment:
+	var damage: int = 0
+	var range: int = 1
+	
+	func _init(weapon_name: String, weapon_desc: String, weapon_damage: int, weapon_range: int) -> void:
+		super._init(weapon_name, weapon_desc, ItemType.WEAPON, 1)
+		damage = weapon_damage
+		range = weapon_range
 
-class ManagerArmor extends Equipment:
+class ManagerArmor extends ManagerEquipment:
 	var defense: int = 0
 	var traits: Array[int] = []
 	
-	func setup(armor_name: String, armor_defense: int, armor_value: int) -> void:
-		name = armor_name
+	func _init(armor_name: String, armor_desc: String, armor_defense: int) -> void:
+		super._init(armor_name, armor_desc, ItemType.ARMOR, 1)
 		defense = armor_defense
-		value = armor_value
-		type = GlobalEnums.ItemType.ARMOR
-	
-	func get_effectiveness() -> int:
-		return defense
+
+enum ItemType {
+	WEAPON,
+	ARMOR,
+	GEAR,
+	CONSUMABLE,
+	SPECIAL
+}
+
+enum Background {
+	SOLDIER,
+	SCOUT,
+	MEDIC,
+	ENGINEER,
+	TRADER,
+	OUTLAW
+}
+
+enum Motivation {
+	WEALTH,
+	REVENGE,
+	DISCOVERY,
+	POWER,
+	REDEMPTION
+}
+
+enum Class {
+	WARRIOR,
+	ROGUE,
+	TECH,
+	LEADER,
+	MYSTIC
+}
+
+signal equipment_updated
 
 var equipment_database: Dictionary = {}
 var game_state: GameState
-var gear_db: GearDatabase
-var weapon_system: WeaponSystem
 
-func _ready() -> void:
-	gear_db = GearDatabase.new()
-	weapon_system = WeaponSystem.new()
-	_load_equipment_database()
-
-func _load_equipment_database() -> void:
-	var file = FileAccess.open("res://data/equipment_database.json", FileAccess.READ)
-	if file:
-		var json = JSON.new()
-		var parse_result = json.parse(file.get_as_text())
-		if parse_result == OK:
-			var data = json.get_data()
-			for category in data.keys():
-				for item in data[category]:
-					var equipment: Equipment
-					match category:
-						"weapons":
-							equipment = _create_weapon_from_json(item)
-						"armor":
-							equipment = _create_armor_from_json(item)
-						"gear":
-							equipment = _create_gear_from_json(item)
-						_:
-							equipment = Equipment.from_json(item)
-					
-					if equipment:
-						equipment_database[equipment.name] = equipment
-		file.close()
-	else:
-		push_error("Failed to open equipment_database.json")
-
-func _create_weapon_from_json(json_data: Dictionary) -> Weapon:
-	var weapon: Weapon = weapon_system.create_weapon(
-		json_data.get("name", "Unknown Weapon"),
-		json_data.get("damage", 0),
-		json_data.get("range", 0),
-		json_data.get("shots", 1)
-	)
-	
-	weapon.description = json_data.get("description", "")
-	weapon.value = json_data.get("value", 0)
-	
-	# Convert traits from strings to enum values
-	var trait_strings: Array = json_data.get("traits", [])
-	for trait_str in trait_strings:
-		if trait_str in GlobalEnums.WeaponTrait:
-			weapon.traits.append(GlobalEnums.WeaponTrait[trait_str])
-	
-	return weapon
-
-func _create_armor_from_json(json_data: Dictionary) -> Equipment:
-	var armor := ManagerArmor.new()
-	armor.setup(
-		json_data.get("name", "Unknown Armor"),
-		json_data.get("defense", 0),
-		json_data.get("value", 0)
-	)
-	
-	armor.description = json_data.get("description", "")
-	
-	# Convert traits from strings to enum values
-	var trait_strings: Array = json_data.get("traits", [])
-	for trait_str in trait_strings:
-		if trait_str in GlobalEnums.ArmorType:
-			armor.traits.append(GlobalEnums.ArmorType[trait_str])
-	
-	return armor
-
-func _create_gear_from_json(json_data: Dictionary) -> Gear:
-	var gear_name = json_data.get("name", "Unknown Gear")
-	var gear: Gear = gear_db.get_gear(gear_name)
-	
-	if not gear:
-		# Create new gear if not found in database
-		gear = Gear.new(
+func create_gear_from_json(gear_name: String, json_data: Dictionary) -> ManagerEquipment:
+	if json_data:
+		var gear = ManagerEquipment.new(
 			gear_name,
 			json_data.get("description", ""),
-			GlobalEnums.ItemType.GEAR,
+			ItemType.GEAR,
 			json_data.get("level", 1)
 		)
 		gear.value = json_data.get("value", 0)
-		gear.effect = json_data.get("effect", "")
-		gear.uses = json_data.get("uses", -1)  # -1 for unlimited uses
-	
-	return gear
-
-func generate_equipment_from_background(background: GlobalEnums.Background) -> Array[Equipment]:
-	var equipment: Array[Equipment] = []
-	var background_data = GameStateManager.background_data[background]
-	if "starting_gear" in background_data:
-		for item_name in background_data.starting_gear:
-			var item = get_equipment(item_name)
-			if item:
-				equipment.append(item)
-	return equipment
-
-func generate_equipment_from_motivation(motivation: GlobalEnums.Motivation) -> Array[Equipment]:
-	var equipment: Array[Equipment] = []
-	var motivation_data = GameStateManager	.motivation_data[motivation]
-	if "starting_gear" in motivation_data:
-		for item_name in motivation_data.starting_gear:
-			var item = get_equipment(item_name)
-			if item:
-				equipment.append(item)
-	return equipment
-
-func generate_equipment_from_class(class_type: GlobalEnums.Class) -> Array[Equipment]:
-	var equipment: Array[Equipment] = []
-	var class_data = GameStateManager.class_data[class_type]
-	if "starting_gear" in class_data:
-		for item_name in class_data.starting_gear:
-			var item = get_equipment(item_name)
-			if item:
-				equipment.append(item)
-	return equipment
-
-func get_equipment(equipment_id: String) -> Equipment:
-	if equipment_id in equipment_database:
-		return equipment_database[equipment_id].create_copy()
-	push_error("Equipment not found: " + equipment_id)
+		return gear
 	return null
 
-func create_equipment(equipment_id: String) -> Equipment:
-	return get_equipment(equipment_id)
+func _create_weapon_from_json(json_data: Dictionary) -> ManagerWeapon:
+	return ManagerWeapon.new(
+		json_data.get("name", "Unknown Weapon"),
+		json_data.get("description", ""),
+		json_data.get("damage", 1),
+		json_data.get("range", 1)
+	)
 
-func initialize(game_state_ref: GameState) -> void:
-	game_state = game_state_ref
+func _create_armor_from_json(json_data: Dictionary) -> ManagerArmor:
+	return ManagerArmor.new(
+		json_data.get("name", "Unknown Armor"),
+		json_data.get("description", ""),
+		json_data.get("defense", 1)
+	)
 
-func repair_equipment(equipment: Equipment) -> void:
-	equipment.repair()
-	equipment_updated.emit()
+func generate_equipment_from_background(background: Background) -> Array[ManagerEquipment]:
+	var equipment: Array[ManagerEquipment] = []
+	var background_data = GameStateManager.background_data[background]
+	if "starting_gear" in background_data:
+		for gear_name in background_data.starting_gear:
+			var gear = create_gear_from_json(gear_name, background_data.starting_gear[gear_name])
+			if gear:
+				equipment.append(gear)
+	return equipment
 
-func damage_equipment(equipment: Equipment) -> void:
-	equipment.damage()
-	equipment_updated.emit()
+func generate_equipment_from_motivation(motivation: Motivation) -> Array[ManagerEquipment]:
+	var equipment: Array[ManagerEquipment] = []
+	var motivation_data = GameStateManager.motivation_data[motivation]
+	if "starting_gear" in motivation_data:
+		for gear_name in motivation_data.starting_gear:
+			var gear = create_gear_from_json(gear_name, motivation_data.starting_gear[gear_name])
+			if gear:
+				equipment.append(gear)
+	return equipment
 
-func get_equipment_by_type(type: GlobalEnums.ItemType) -> Array[Equipment]:
-	var filtered_equipment: Array[Equipment] = []
-	for equipment in equipment_database.values():
-		if equipment.type == type:
-			filtered_equipment.append(equipment)
-	return filtered_equipment
-
-func get_equipment_value(equipment: Equipment) -> int:
-	return equipment.get_effectiveness()
+func generate_equipment_from_class(class_type: Class) -> Array[ManagerEquipment]:
+	var equipment: Array[ManagerEquipment] = []
+	var class_data = GameStateManager.class_data[class_type]
+	if "starting_gear" in class_data:
+		for gear_name in class_data.starting_gear:
+			var gear = create_gear_from_json(gear_name, class_data.starting_gear[gear_name])
+			if gear:
+				equipment.append(gear)
+	return equipment

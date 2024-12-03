@@ -6,13 +6,7 @@ const ELITE_TOUGHNESS_BONUS: int = 1
 const ELITE_COMBAT_SKILL_BONUS: int = 1
 const ELITE_PANIC_REDUCTION: int = 1
 
-enum EliteAbility {
-	REGENERATION,
-	TELEPORT,
-	ENERGY_SHIELD,
-	BERSERKER,
-	CAMOUFLAGE
-}
+const GlobalEnums = preload("res://Resources/GameData/GlobalEnums.gd")
 
 var game_state: GameState
 
@@ -103,19 +97,19 @@ func _apply_elite_skills(enemy: Dictionary) -> Dictionary:
 
 func _apply_elite_ability(enemy: Dictionary) -> Dictionary:
 	var new_enemy := enemy.duplicate(true)
-	var ability: GlobalEnums.EliteAbility = GlobalEnums.EliteAbility.values()[randi() % GlobalEnums.EliteAbility.size()]
+	var ability: int = randi() % GlobalEnums.PsionicAbility.size()
 	
 	match ability:
-		GlobalEnums.EliteAbility.REGENERATION:
-			new_enemy.special_rules.append("Regeneration: At the end of each round, remove 1 Stun marker.")
-		GlobalEnums.EliteAbility.TELEPORT:
-			new_enemy.special_rules.append("Teleport: Once per battle, can move to any point on the battlefield as a free action.")
-		GlobalEnums.EliteAbility.ENERGY_SHIELD:
+		GlobalEnums.PsionicAbility.TELEPATHY:
+			new_enemy.special_rules.append("Mind Reading: Can detect enemy intentions at start of each round.")
+		GlobalEnums.PsionicAbility.TELEKINESIS:
+			new_enemy.special_rules.append("Telekinetic: Can move objects and enemies at range.")
+		GlobalEnums.PsionicAbility.BARRIER:
 			new_enemy.special_rules.append("Energy Shield: The first hit each round is automatically negated.")
-		GlobalEnums.EliteAbility.BERSERKER:
-			new_enemy.special_rules.append("Berserker: Gains +1 to all rolls when wounded.")
-		GlobalEnums.EliteAbility.CAMOUFLAGE:
-			new_enemy.special_rules.append("Camouflage: -1 to all enemy hit rolls against this enemy when in cover.")
+		GlobalEnums.PsionicAbility.PYROKINESIS:
+			new_enemy.special_rules.append("Pyrokinetic: Gains fire-based attacks.")
+		_:
+			new_enemy.special_rules.append("Enhanced: This enemy has mysterious powers.")
 	
 	return new_enemy
 

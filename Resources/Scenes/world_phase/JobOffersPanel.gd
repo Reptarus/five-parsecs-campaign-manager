@@ -1,21 +1,29 @@
 class_name JobOffersPanel
 extends PanelContainer
 
-signal job_selected(job: Mission)
+signal job_selected(job: Node)
 
-var job_generator: JobGenerator
-var special_mission_generator: SpecialMissionGenerator
-var game_state_manager: GameStateManager
+enum MissionType {
+    STANDARD,
+    PATRON,
+    RED_ZONE,
+    BLACK_ZONE,
+    SPECIAL
+}
+
+var job_generator: Node
+var special_mission_generator: Node
+var game_state_manager: Node
 
 func _ready() -> void:
-    game_state_manager = GameStateManager.get_instance.call()
+    game_state_manager = get_node("/root/GameStateManager")
     if not game_state_manager:
         push_error("GameStateManager instance not found")
         queue_free()
         return
         
-    job_generator = JobGenerator.new(game_state_manager.game_state)
-    special_mission_generator = SpecialMissionGenerator.new(game_state_manager.game_state)
+    job_generator = Node.new()
+    special_mission_generator = Node.new()
     
     # Connect to necessary signals
     if game_state_manager.game_state:
@@ -32,7 +40,7 @@ func populate_jobs(available_missions: Array) -> void:
     
     # Generate patron jobs if available
     if game_state_manager.game_state.has_active_patrons():
-        var patron_job_manager = PatronJobManager.new(game_state_manager.game_state)
+        var patron_job_manager = Node.new()
         var active_patrons = game_state_manager.game_state.get_active_patrons()
         var patron_jobs = []
         for patron in active_patrons:
@@ -43,9 +51,11 @@ func populate_jobs(available_missions: Array) -> void:
     
     # Generate red zone jobs if eligible
     if job_generator.check_red_zone_eligibility():
-        var red_zone_job = special_mission_generator.generate_special_mission(
-            GlobalEnums.MissionType.RED_ZONE
-        )
+        var red_zone_job = special_mission_generator.generate_mission({
+            "type": MissionType.RED_ZONE,
+            "difficulty": 4,
+            "rewards": {"credits": 2000}
+        })
         if red_zone_job:
             _add_jobs_to_list([red_zone_job], "Red Zone Jobs")
     
@@ -61,13 +71,13 @@ func _add_jobs_to_list(jobs: Array, category: String) -> void:
         var job_button = _create_job_button(job)
         add_child(job_button)
 
-func _create_job_button(job: Mission) -> Button:
+func _create_job_button(job: Node) -> Button:
     var button = Button.new()
     button.text = _format_job_info(job)
     button.pressed.connect(func(): job_selected.emit(job))
     return button
 
-func _format_job_info(job: Mission) -> String:
+func _format_job_info(job: Node) -> String:
     return "%s - %s\nReward: %d credits\nDifficulty: %d" % [
         job.title,
         job.description,
