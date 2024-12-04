@@ -37,17 +37,15 @@ func accept_job(job: Mission) -> bool:
     game_state.current_mission = job
     _remove_from_available_jobs(job)
     return true
-
 func complete_job(job: Mission) -> void:
-    job.complete()
+    job.complete(true) # Pass true to indicate successful completion
     _apply_job_rewards(job)
     if job.patron:
         job.patron.change_relationship(10)
     game_state.current_mission = null
     job_completed.emit(job)
-
 func fail_job(job: Mission) -> void:
-    job.fail()
+    job.fail(false) # Pass false to indicate failure
     if job.patron:
         job.patron.change_relationship(-5)
     game_state.current_mission = null

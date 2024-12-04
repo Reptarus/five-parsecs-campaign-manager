@@ -1,7 +1,7 @@
 [gd_scene load_steps=5 format=3 uid="uid://c1ipgkdm40l6c"]
 
 [ext_resource type="Theme" uid="uid://ddjoduj1ya6tp" path="res://assets/5PFH.tres" id="1_23rvc"]
-[ext_resource type="Script" path="res://Resources/GameData/CampaignSetupScreen.gd" id="1_sapom"]
+[ext_resource type="Script" path="res://Resources/UI/Screens/CampaignSetupScreen.gd" id="1_sapom"]
 [ext_resource type="Texture2D" uid="uid://cb3wc2cq0m72j" path="res://assets/BookImages/Dec_9_Gambling_Hall.jpg" id="3_mupwv"]
 [ext_resource type="PackedScene" uid="uid://dp66b6flafme3" path="res://Resources/CampaignManagement/Scenes/VictoryConditionSelection.tscn" id="3_victory"]
 

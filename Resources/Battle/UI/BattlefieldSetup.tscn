@@ -1,0 +1,138 @@
+[gd_scene load_steps=5 format=3 uid="uid://b8k4q6y3n0m8d"]
+
+[ext_resource type="Script" path="res://Resources/Battle/UI/BattlefieldSetup.gd" id="1_setup"]
+[ext_resource type="PackedScene" uid="uid://cnfbctdh8npq1" path="res://Resources/Battle/UI/BattlefieldPreview.tscn" id="2_preview"]
+[ext_resource type="PackedScene" uid="uid://0ve5q5brp1ci" path="res://Resources/Battle/UI/Panels/MissionInfoPanel.tscn" id="3_mission"]
+[ext_resource type="PackedScene" uid="uid://by2a06guscvle" path="res://Resources/Battle/UI/Panels/EnemyInfoPanel.tscn" id="4_enemy"]
+
+[node name="BattlefieldSetup" type="Control"]
+layout_mode = 3
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+script = ExtResource("1_setup")
+
+[node name="MarginContainer" type="MarginContainer" parent="."]
+layout_mode = 1
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+theme_override_constants/margin_left = 20
+theme_override_constants/margin_top = 20
+theme_override_constants/margin_right = 20
+theme_override_constants/margin_bottom = 20
+
+[node name="HBoxContainer" type="HBoxContainer" parent="MarginContainer"]
+layout_mode = 2
+theme_override_constants/separation = 20
+
+[node name="LeftPanel" type="VBoxContainer" parent="MarginContainer/HBoxContainer"]
+layout_mode = 2
+size_flags_horizontal = 3
+theme_override_constants/separation = 10
+
+[node name="MissionInfoPanel" parent="MarginContainer/HBoxContainer/LeftPanel" instance=ExtResource("3_mission")]
+unique_name_in_owner = true
+layout_mode = 2
+size_flags_vertical = 3
+
+[node name="EnemyInfoPanel" parent="MarginContainer/HBoxContainer/LeftPanel" instance=ExtResource("4_enemy")]
+unique_name_in_owner = true
+layout_mode = 2
+size_flags_vertical = 3
+
+[node name="CenterPanel" type="VBoxContainer" parent="MarginContainer/HBoxContainer"]
+layout_mode = 2
+size_flags_horizontal = 3
+size_flags_stretch_ratio = 2.0
+theme_override_constants/separation = 10
+
+[node name="BattlefieldPreview" parent="MarginContainer/HBoxContainer/CenterPanel" instance=ExtResource("2_preview")]
+unique_name_in_owner = true
+layout_mode = 2
+size_flags_vertical = 3
+
+[node name="GenerationProgress" type="ProgressBar" parent="MarginContainer/HBoxContainer/CenterPanel"]
+unique_name_in_owner = true
+layout_mode = 2
+size_flags_vertical = 8
+
+[node name="ProgressLabel" type="Label" parent="MarginContainer/HBoxContainer/CenterPanel/GenerationProgress"]
+unique_name_in_owner = true
+layout_mode = 1
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+horizontal_alignment = 1
+vertical_alignment = 1
+
+[node name="ButtonContainer" type="HBoxContainer" parent="MarginContainer/HBoxContainer/CenterPanel"]
+layout_mode = 2
+alignment = 1
+
+[node name="RegenerateButton" type="Button" parent="MarginContainer/HBoxContainer/CenterPanel/ButtonContainer"]
+unique_name_in_owner = true
+layout_mode = 2
+text = "Regenerate"
+
+[node name="StartMissionButton" type="Button" parent="MarginContainer/HBoxContainer/CenterPanel/ButtonContainer"]
+unique_name_in_owner = true
+layout_mode = 2
+text = "Start Mission"
+
+[node name="RightPanel" type="VBoxContainer" parent="MarginContainer/HBoxContainer"]
+layout_mode = 2
+size_flags_horizontal = 3
+
+[node name="TerrainSettings" type="PanelContainer" parent="MarginContainer/HBoxContainer/RightPanel"]
+layout_mode = 2
+
+[node name="VBoxContainer" type="VBoxContainer" parent="MarginContainer/HBoxContainer/RightPanel/TerrainSettings"]
+layout_mode = 2
+
+[node name="Label" type="Label" parent="MarginContainer/HBoxContainer/RightPanel/TerrainSettings/VBoxContainer"]
+layout_mode = 2
+text = "Terrain Settings"
+horizontal_alignment = 1
+
+[node name="GridSizeContainer" type="HBoxContainer" parent="MarginContainer/HBoxContainer/RightPanel/TerrainSettings/VBoxContainer"]
+layout_mode = 2
+
+[node name="Label" type="Label" parent="MarginContainer/HBoxContainer/RightPanel/TerrainSettings/VBoxContainer/GridSizeContainer"]
+layout_mode = 2
+text = "Grid Size:"
+
+[node name="GridSizeOption" type="OptionButton" parent="MarginContainer/HBoxContainer/RightPanel/TerrainSettings/VBoxContainer/GridSizeContainer"]
+unique_name_in_owner = true
+layout_mode = 2
+size_flags_horizontal = 3
+
+[node name="TerrainTypeContainer" type="HBoxContainer" parent="MarginContainer/HBoxContainer/RightPanel/TerrainSettings/VBoxContainer"]
+layout_mode = 2
+
+[node name="Label" type="Label" parent="MarginContainer/HBoxContainer/RightPanel/TerrainSettings/VBoxContainer/TerrainTypeContainer"]
+layout_mode = 2
+text = "Terrain Type:"
+
+[node name="TerrainTypeOption" type="OptionButton" parent="MarginContainer/HBoxContainer/RightPanel/TerrainSettings/VBoxContainer/TerrainTypeContainer"]
+unique_name_in_owner = true
+layout_mode = 2
+size_flags_horizontal = 3
+
+[node name="DensityContainer" type="VBoxContainer" parent="MarginContainer/HBoxContainer/RightPanel/TerrainSettings/VBoxContainer"]
+layout_mode = 2
+
+[node name="Label" type="Label" parent="MarginContainer/HBoxContainer/RightPanel/TerrainSettings/VBoxContainer/DensityContainer"]
+layout_mode = 2
+text = "Terrain Density"
+horizontal_alignment = 1
+
+[node name="DensitySliders" type="VBoxContainer" parent="MarginContainer/HBoxContainer/RightPanel/TerrainSettings/VBoxContainer/DensityContainer"]
+unique_name_in_owner = true
+layout_mode = 2 

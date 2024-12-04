@@ -1,7 +1,8 @@
-[gd_scene load_steps=3 format=3 uid="uid://crew_creation"]
+[gd_scene load_steps=4 format=3 uid="uid://crew_creation"]
 
 [ext_resource type="Theme" uid="uid://ddjoduj1ya6tp" path="res://assets/5PFH.tres" id="1_theme"]
 [ext_resource type="Script" path="res://Resources/CrewAndCharacters/CrewCreation.gd" id="1_script"]
+[ext_resource type="PackedScene" uid="uid://cxxx" path="res://Resources/CrewAndCharacters/Scenes/CharacterBox.tscn" id="3_char_box"]
 
 [node name="CrewCreation" type="Control"]
 layout_mode = 3
@@ -13,20 +14,150 @@ grow_vertical = 2
 theme = ExtResource("1_theme")
 script = ExtResource("1_script")
 
-[node name="ColorRect" type="ColorRect" parent="."]
+[node name="Background" type="ColorRect" parent="."]
 layout_mode = 1
 anchors_preset = 15
 anchor_right = 1.0
 anchor_bottom = 1.0
 grow_horizontal = 2
 grow_vertical = 2
-color = Color(0, 0, 0, 0.7)
+color = Color(0, 0, 0, 0.9)
 
-[node name="MainContainer" type="HBoxContainer" parent="."]
+[node name="MainContainer" type="VBoxContainer" parent="."]
 layout_mode = 1
 anchors_preset = 15
 anchor_right = 1.0
 anchor_bottom = 1.0
 grow_horizontal = 2
 grow_vertical = 2
-theme_override_constants/separation = 20 
+theme_override_constants/separation = 20
+
+[node name="HeaderPanel" type="PanelContainer" parent="MainContainer"]
+layout_mode = 2
+
+[node name="MarginContainer" type="MarginContainer" parent="MainContainer/HeaderPanel"]
+layout_mode = 2
+theme_override_constants/margin_left = 20
+theme_override_constants/margin_top = 10
+theme_override_constants/margin_right = 20
+theme_override_constants/margin_bottom = 10
+
+[node name="HeaderContent" type="HBoxContainer" parent="MainContainer/HeaderPanel/MarginContainer"]
+layout_mode = 2
+
+[node name="TitleLabel" type="Label" parent="MainContainer/HeaderPanel/MarginContainer/HeaderContent"]
+layout_mode = 2
+size_flags_horizontal = 3
+theme_override_font_sizes/font_size = 24
+text = "Crew Management"
+
+[node name="CrewInfoContainer" type="HBoxContainer" parent="MainContainer/HeaderPanel/MarginContainer/HeaderContent"]
+layout_mode = 2
+
+[node name="CrewSizeLabel" type="Label" parent="MainContainer/HeaderPanel/MarginContainer/HeaderContent/CrewInfoContainer"]
+layout_mode = 2
+text = "Crew Size: 0/6"
+
+[node name="VSeparator" type="VSeparator" parent="MainContainer/HeaderPanel/MarginContainer/HeaderContent/CrewInfoContainer"]
+layout_mode = 2
+theme_override_constants/separation = 20
+
+[node name="CreditsLabel" type="Label" parent="MainContainer/HeaderPanel/MarginContainer/HeaderContent/CrewInfoContainer"]
+layout_mode = 2
+text = "Credits: 1000"
+
+[node name="ContentContainer" type="HBoxContainer" parent="MainContainer"]
+layout_mode = 2
+size_flags_vertical = 3
+theme_override_constants/separation = 20
+
+[node name="LeftPanel" type="PanelContainer" parent="MainContainer/ContentContainer"]
+layout_mode = 2
+size_flags_horizontal = 3
+
+[node name="MarginContainer" type="MarginContainer" parent="MainContainer/ContentContainer/LeftPanel"]
+layout_mode = 2
+theme_override_constants/margin_left = 10
+theme_override_constants/margin_top = 10
+theme_override_constants/margin_right = 10
+theme_override_constants/margin_bottom = 10
+
+[node name="VBoxContainer" type="VBoxContainer" parent="MainContainer/ContentContainer/LeftPanel/MarginContainer"]
+layout_mode = 2
+theme_override_constants/separation = 10
+
+[node name="CrewListLabel" type="Label" parent="MainContainer/ContentContainer/LeftPanel/MarginContainer/VBoxContainer"]
+layout_mode = 2
+text = "Current Crew"
+
+[node name="CrewList" type="VBoxContainer" parent="MainContainer/ContentContainer/LeftPanel/MarginContainer/VBoxContainer"]
+layout_mode = 2
+size_flags_vertical = 3
+theme_override_constants/separation = 10
+
+[node name="RightPanel" type="PanelContainer" parent="MainContainer/ContentContainer"]
+layout_mode = 2
+size_flags_horizontal = 3
+
+[node name="MarginContainer" type="MarginContainer" parent="MainContainer/ContentContainer/RightPanel"]
+layout_mode = 2
+theme_override_constants/margin_left = 10
+theme_override_constants/margin_top = 10
+theme_override_constants/margin_right = 10
+theme_override_constants/margin_bottom = 10
+
+[node name="VBoxContainer" type="VBoxContainer" parent="MainContainer/ContentContainer/RightPanel/MarginContainer"]
+layout_mode = 2
+theme_override_constants/separation = 10
+
+[node name="ActionLabel" type="Label" parent="MainContainer/ContentContainer/RightPanel/MarginContainer/VBoxContainer"]
+layout_mode = 2
+text = "Actions"
+
+[node name="ActionButtons" type="VBoxContainer" parent="MainContainer/ContentContainer/RightPanel/MarginContainer/VBoxContainer"]
+layout_mode = 2
+theme_override_constants/separation = 10
+
+[node name="AddCrewMemberButton" type="Button" parent="MainContainer/ContentContainer/RightPanel/MarginContainer/VBoxContainer/ActionButtons"]
+custom_minimum_size = Vector2(0, 40)
+layout_mode = 2
+text = "Add Crew Member"
+
+[node name="RemoveCrewMemberButton" type="Button" parent="MainContainer/ContentContainer/RightPanel/MarginContainer/VBoxContainer/ActionButtons"]
+custom_minimum_size = Vector2(0, 40)
+layout_mode = 2
+text = "Remove Selected Member"
+
+[node name="HSeparator" type="HSeparator" parent="MainContainer/ContentContainer/RightPanel/MarginContainer/VBoxContainer"]
+layout_mode = 2
+
+[node name="SelectedMemberLabel" type="Label" parent="MainContainer/ContentContainer/RightPanel/MarginContainer/VBoxContainer"]
+layout_mode = 2
+text = "Selected Member"
+
+[node name="CharacterBox" parent="MainContainer/ContentContainer/RightPanel/MarginContainer/VBoxContainer" instance=ExtResource("3_char_box")]
+layout_mode = 2
+
+[node name="FooterPanel" type="PanelContainer" parent="MainContainer"]
+layout_mode = 2
+
+[node name="MarginContainer" type="MarginContainer" parent="MainContainer/FooterPanel"]
+layout_mode = 2
+theme_override_constants/margin_left = 20
+theme_override_constants/margin_top = 10
+theme_override_constants/margin_right = 20
+theme_override_constants/margin_bottom = 10
+
+[node name="HBoxContainer" type="HBoxContainer" parent="MainContainer/FooterPanel/MarginContainer"]
+layout_mode = 2
+alignment = 2
+
+[node name="BackButton" type="Button" parent="MainContainer/FooterPanel/MarginContainer/HBoxContainer"]
+custom_minimum_size = Vector2(120, 40)
+layout_mode = 2
+text = "Back"
+
+[node name="ConfirmButton" type="Button" parent="MainContainer/FooterPanel/MarginContainer/HBoxContainer"]
+custom_minimum_size = Vector2(120, 40)
+layout_mode = 2
+text = "Confirm"

@@ -1,0 +1,167 @@
+[gd_scene load_steps=3 format=3 uid="uid://character_progression"]
+
+[ext_resource type="Theme" uid="uid://ddjoduj1ya6tp" path="res://assets/5PFH.tres" id="1_theme"]
+[ext_resource type="Script" path="res://Resources/CrewAndCharacters/CharacterProgressionUI.gd" id="2_script"]
+
+[node name="CharacterProgression" type="Control"]
+layout_mode = 3
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+theme = ExtResource("1_theme")
+script = ExtResource("2_script")
+
+[node name="Background" type="ColorRect" parent="."]
+layout_mode = 1
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+color = Color(0, 0, 0, 0.9)
+
+[node name="MainContainer" type="VBoxContainer" parent="."]
+layout_mode = 1
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+theme_override_constants/separation = 20
+
+[node name="HeaderPanel" type="PanelContainer" parent="MainContainer"]
+layout_mode = 2
+
+[node name="MarginContainer" type="MarginContainer" parent="MainContainer/HeaderPanel"]
+layout_mode = 2
+theme_override_constants/margin_left = 20
+theme_override_constants/margin_top = 10
+theme_override_constants/margin_right = 20
+theme_override_constants/margin_bottom = 10
+
+[node name="HeaderContent" type="VBoxContainer" parent="MainContainer/HeaderPanel/MarginContainer"]
+layout_mode = 2
+
+[node name="TitleLabel" type="Label" parent="MainContainer/HeaderPanel/MarginContainer/HeaderContent"]
+layout_mode = 2
+theme_override_font_sizes/font_size = 24
+text = "Character Progression"
+horizontal_alignment = 1
+
+[node name="CharacterInfo" type="HBoxContainer" parent="MainContainer/HeaderPanel/MarginContainer/HeaderContent"]
+layout_mode = 2
+alignment = 1
+
+[node name="NameLabel" type="Label" parent="MainContainer/HeaderPanel/MarginContainer/HeaderContent/CharacterInfo"]
+layout_mode = 2
+text = "Character Name"
+
+[node name="VSeparator" type="VSeparator" parent="MainContainer/HeaderPanel/MarginContainer/HeaderContent/CharacterInfo"]
+layout_mode = 2
+theme_override_constants/separation = 20
+
+[node name="LevelLabel" type="Label" parent="MainContainer/HeaderPanel/MarginContainer/HeaderContent/CharacterInfo"]
+layout_mode = 2
+text = "Level: 1"
+
+[node name="VSeparator2" type="VSeparator" parent="MainContainer/HeaderPanel/MarginContainer/HeaderContent/CharacterInfo"]
+layout_mode = 2
+theme_override_constants/separation = 20
+
+[node name="XPLabel" type="Label" parent="MainContainer/HeaderPanel/MarginContainer/HeaderContent/CharacterInfo"]
+layout_mode = 2
+text = "XP: 0/100"
+
+[node name="XPBar" type="ProgressBar" parent="MainContainer/HeaderPanel/MarginContainer/HeaderContent"]
+custom_minimum_size = Vector2(0, 20)
+layout_mode = 2
+max_value = 1.0
+show_percentage = false
+
+[node name="ContentContainer" type="HBoxContainer" parent="MainContainer"]
+layout_mode = 2
+size_flags_vertical = 3
+theme_override_constants/separation = 20
+
+[node name="LeftPanel" type="PanelContainer" parent="MainContainer/ContentContainer"]
+layout_mode = 2
+size_flags_horizontal = 3
+
+[node name="MarginContainer" type="MarginContainer" parent="MainContainer/ContentContainer/LeftPanel"]
+layout_mode = 2
+theme_override_constants/margin_left = 10
+theme_override_constants/margin_top = 10
+theme_override_constants/margin_right = 10
+theme_override_constants/margin_bottom = 10
+
+[node name="VBoxContainer" type="VBoxContainer" parent="MainContainer/ContentContainer/LeftPanel/MarginContainer"]
+layout_mode = 2
+theme_override_constants/separation = 10
+
+[node name="StatsLabel" type="Label" parent="MainContainer/ContentContainer/LeftPanel/MarginContainer/VBoxContainer"]
+layout_mode = 2
+theme_override_font_sizes/font_size = 20
+text = "Stats"
+
+[node name="HSeparator" type="HSeparator" parent="MainContainer/ContentContainer/LeftPanel/MarginContainer/VBoxContainer"]
+layout_mode = 2
+
+[node name="StatsContainer" type="VBoxContainer" parent="MainContainer/ContentContainer/LeftPanel/MarginContainer/VBoxContainer"]
+layout_mode = 2
+theme_override_constants/separation = 10
+
+[node name="StatPointsLabel" type="Label" parent="MainContainer/ContentContainer/LeftPanel/MarginContainer/VBoxContainer"]
+layout_mode = 2
+text = "Available Stat Points: 0"
+
+[node name="RightPanel" type="PanelContainer" parent="MainContainer/ContentContainer"]
+layout_mode = 2
+size_flags_horizontal = 3
+
+[node name="MarginContainer" type="MarginContainer" parent="MainContainer/ContentContainer/RightPanel"]
+layout_mode = 2
+theme_override_constants/margin_left = 10
+theme_override_constants/margin_top = 10
+theme_override_constants/margin_right = 10
+theme_override_constants/margin_bottom = 10
+
+[node name="VBoxContainer" type="VBoxContainer" parent="MainContainer/ContentContainer/RightPanel/MarginContainer"]
+layout_mode = 2
+theme_override_constants/separation = 10
+
+[node name="SkillsLabel" type="Label" parent="MainContainer/ContentContainer/RightPanel/MarginContainer/VBoxContainer"]
+layout_mode = 2
+theme_override_font_sizes/font_size = 20
+text = "Skills"
+
+[node name="HSeparator" type="HSeparator" parent="MainContainer/ContentContainer/RightPanel/MarginContainer/VBoxContainer"]
+layout_mode = 2
+
+[node name="SkillPointsLabel" type="Label" parent="MainContainer/ContentContainer/RightPanel/MarginContainer/VBoxContainer"]
+layout_mode = 2
+text = "Available Skill Points: 0"
+
+[node name="SkillList" type="VBoxContainer" parent="MainContainer/ContentContainer/RightPanel/MarginContainer/VBoxContainer"]
+layout_mode = 2
+theme_override_constants/separation = 10
+
+[node name="FooterPanel" type="PanelContainer" parent="MainContainer"]
+layout_mode = 2
+
+[node name="MarginContainer" type="MarginContainer" parent="MainContainer/FooterPanel"]
+layout_mode = 2
+theme_override_constants/margin_left = 20
+theme_override_constants/margin_top = 10
+theme_override_constants/margin_right = 20
+theme_override_constants/margin_bottom = 10
+
+[node name="HBoxContainer" type="HBoxContainer" parent="MainContainer/FooterPanel/MarginContainer"]
+layout_mode = 2
+alignment = 2
+
+[node name="CloseButton" type="Button" parent="MainContainer/FooterPanel/MarginContainer/HBoxContainer"]
+custom_minimum_size = Vector2(120, 40)
+layout_mode = 2
+text = "Close" 

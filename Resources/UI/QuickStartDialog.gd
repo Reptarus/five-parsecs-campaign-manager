@@ -23,7 +23,7 @@ var templates := {
     },
     "Challenge Campaign": {
         "crew_size": 6,
-        "difficulty": GlobalEnums.DifficultyMode.EXTREME,
+        "difficulty": GlobalEnums.DifficultyMode.HARDCORE,
         "victory_condition": GlobalEnums.CampaignVictoryType.SURVIVAL,
         "mobile_friendly": false
     }

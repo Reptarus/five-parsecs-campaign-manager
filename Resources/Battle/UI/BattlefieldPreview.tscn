@@ -1,0 +1,135 @@
+[gd_scene load_steps=3 format=3 uid="uid://cnfbctdh8npq1"]
+
+[ext_resource type="Script" path="res://Resources/Battle/UI/BattlefieldPreview.gd" id="1_script"]
+[ext_resource type="Script" path="res://Resources/Battle/UI/GridOverlay.gd" id="2_grid"]
+
+[node name="BattlefieldPreview" type="PanelContainer"]
+theme_type_variation = &"BluePanelDark"
+script = ExtResource("1_script")
+
+[node name="MarginContainer" type="MarginContainer" parent="."]
+layout_mode = 2
+theme_override_constants/margin_left = 10
+theme_override_constants/margin_top = 10
+theme_override_constants/margin_right = 10
+theme_override_constants/margin_bottom = 10
+
+[node name="VBoxContainer" type="VBoxContainer" parent="MarginContainer"]
+layout_mode = 2
+theme_override_constants/separation = 10
+
+[node name="TopControls" type="HBoxContainer" parent="MarginContainer/VBoxContainer"]
+layout_mode = 2
+theme_override_constants/separation = 10
+
+[node name="VisualizationOptions" type="OptionButton" parent="MarginContainer/VBoxContainer/TopControls"]
+unique_name_in_owner = true
+layout_mode = 2
+size_flags_horizontal = 3
+
+[node name="InfoLabel" type="Label" parent="MarginContainer/VBoxContainer/TopControls"]
+unique_name_in_owner = true
+layout_mode = 2
+text = "Click a cell to analyze"
+
+[node name="BattlefieldContainer" type="PanelContainer" parent="MarginContainer/VBoxContainer"]
+layout_mode = 2
+theme_type_variation = &"DarkPanel"
+
+[node name="BattlefieldGrid" type="Control" parent="MarginContainer/VBoxContainer/BattlefieldContainer"]
+unique_name_in_owner = true
+custom_minimum_size = Vector2(768, 768)
+layout_mode = 2
+
+[node name="GridOverlay" type="Control" parent="MarginContainer/VBoxContainer/BattlefieldContainer/BattlefieldGrid"]
+unique_name_in_owner = true
+layout_mode = 1
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+mouse_filter = 2
+script = ExtResource("2_grid")
+
+[node name="BottomControls" type="HBoxContainer" parent="MarginContainer/VBoxContainer"]
+layout_mode = 2
+theme_override_constants/separation = 10
+
+[node name="MapLegend" type="VBoxContainer" parent="MarginContainer/VBoxContainer/BottomControls"]
+unique_name_in_owner = true
+layout_mode = 2
+size_flags_horizontal = 3
+theme_override_constants/separation = 5
+
+[node name="ButtonContainer" type="HBoxContainer" parent="MarginContainer/VBoxContainer/BottomControls"]
+layout_mode = 2
+theme_override_constants/separation = 10
+alignment = 1
+
+[node name="RegenerateButton" type="Button" parent="MarginContainer/VBoxContainer/BottomControls/ButtonContainer"]
+unique_name_in_owner = true
+layout_mode = 2
+text = "Regenerate"
+
+[node name="ExportPNGButton" type="Button" parent="MarginContainer/VBoxContainer/BottomControls/ButtonContainer"]
+unique_name_in_owner = true
+layout_mode = 2
+text = "Export PNG"
+
+[node name="ExportJSONButton" type="Button" parent="MarginContainer/VBoxContainer/BottomControls/ButtonContainer"]
+unique_name_in_owner = true
+layout_mode = 2
+text = "Export JSON"
+
+[node name="TerrainAnalysis" type="PanelContainer" parent="MarginContainer/VBoxContainer"]
+unique_name_in_owner = true
+layout_mode = 2
+
+[node name="VBoxContainer" type="VBoxContainer" parent="MarginContainer/VBoxContainer/TerrainAnalysis"]
+layout_mode = 2
+
+[node name="Label" type="Label" parent="MarginContainer/VBoxContainer/TerrainAnalysis/VBoxContainer"]
+layout_mode = 2
+text = "Terrain Analysis"
+horizontal_alignment = 1
+
+[node name="GridContainer" type="GridContainer" parent="MarginContainer/VBoxContainer/TerrainAnalysis/VBoxContainer"]
+layout_mode = 2
+columns = 2
+
+[node name="CoverLabel" type="Label" parent="MarginContainer/VBoxContainer/TerrainAnalysis/VBoxContainer/GridContainer"]
+layout_mode = 2
+text = "Cover Value:"
+
+[node name="CoverValue" type="Label" parent="MarginContainer/VBoxContainer/TerrainAnalysis/VBoxContainer/GridContainer"]
+unique_name_in_owner = true
+layout_mode = 2
+text = "0"
+
+[node name="MovementLabel" type="Label" parent="MarginContainer/VBoxContainer/TerrainAnalysis/VBoxContainer/GridContainer"]
+layout_mode = 2
+text = "Movement Cost:"
+
+[node name="MovementValue" type="Label" parent="MarginContainer/VBoxContainer/TerrainAnalysis/VBoxContainer/GridContainer"]
+unique_name_in_owner = true
+layout_mode = 2
+text = "1.0"
+
+[node name="HeightLabel" type="Label" parent="MarginContainer/VBoxContainer/TerrainAnalysis/VBoxContainer/GridContainer"]
+layout_mode = 2
+text = "Height:"
+
+[node name="HeightValue" type="Label" parent="MarginContainer/VBoxContainer/TerrainAnalysis/VBoxContainer/GridContainer"]
+unique_name_in_owner = true
+layout_mode = 2
+text = "0"
+
+[node name="LOSLabel" type="Label" parent="MarginContainer/VBoxContainer/TerrainAnalysis/VBoxContainer/GridContainer"]
+layout_mode = 2
+text = "Blocks LOS:"
+
+[node name="LOSValue" type="Label" parent="MarginContainer/VBoxContainer/TerrainAnalysis/VBoxContainer/GridContainer"]
+unique_name_in_owner = true
+layout_mode = 2
+text = "No"

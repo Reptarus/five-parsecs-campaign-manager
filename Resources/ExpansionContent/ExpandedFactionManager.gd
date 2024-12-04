@@ -28,7 +28,7 @@ func generate_factions(num_factions: int) -> void:
 	for i in range(num_factions):
 		factions.append(generate_faction())
 func generate_faction() -> Dictionary:
-	var faction_type = GlobalEnums.Faction.values()[randi() % GlobalEnums.Faction.size()]
+	var faction_type = GlobalEnums.FactionType.values()[randi() % GlobalEnums.FactionType.size()]
 	
 	return {
 		"name": generate_faction_name(),
@@ -315,9 +315,9 @@ func update_faction_relations_global_event(event: GlobalEnums.GlobalEvent) -> vo
 				while target == acquirer:
 					target = factions[randi() % factions.size()]
 				merge_factions(acquirer, target)
-		GlobalEnums.GlobalEvent.PIRATE_RAIDS:
+		GlobalEnums.GlobalEvent.NATURAL_DISASTER:
 			for faction in factions:
 				faction["power"] = max(MIN_FACTION_POWER, faction["power"] - 1)
 		GlobalEnums.GlobalEvent.PLAGUE_OUTBREAK:
 			for faction in factions:
-				faction["influence"] = max(1, min(5, faction["influence"] + randi() % 3 - 1))
+				faction["power"] = max(MIN_FACTION_POWER, faction["power"] - 1)

@@ -1,0 +1,182 @@
+[gd_scene load_steps=4 format=3 uid="uid://mjyn5vo5tq5r"]
+
+[ext_resource type="Script" path="res://Resources/Battle/Terrain/BattlefieldGenerator.gd" id="1_xyzab"]
+[ext_resource type="PackedScene" uid="uid://brtcei76t3lyl" path="res://Resources/Battle/Deployment/Units/BattlefieldGeneratorCrew.tscn" id="3_2l45i"]
+[ext_resource type="PackedScene" uid="uid://df2kj686kyw76" path="res://Resources/Battle/Deployment/Units/BattlefieldGeneratorEnemy.tscn" id="4_yyp3t"]
+
+[node name="BattlefieldGenerator" type="Control"]
+layout_mode = 3
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+script = ExtResource("1_xyzab")
+
+[node name="MarginContainer" type="MarginContainer" parent="."]
+layout_mode = 1
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+theme_override_constants/margin_left = 20
+theme_override_constants/margin_top = 20
+theme_override_constants/margin_right = 20
+theme_override_constants/margin_bottom = 20
+
+[node name="VBoxContainer" type="VBoxContainer" parent="MarginContainer"]
+layout_mode = 2
+
+[node name="HBoxContainer" type="HBoxContainer" parent="MarginContainer/VBoxContainer"]
+layout_mode = 2
+
+[node name="TableSizeLabel" type="Label" parent="MarginContainer/VBoxContainer/HBoxContainer"]
+layout_mode = 2
+text = "Table Size:"
+
+[node name="TableSizeOption" type="OptionButton" parent="MarginContainer/VBoxContainer/HBoxContainer"]
+unique_name_in_owner = true
+layout_mode = 2
+
+[node name="RegenerateButton" type="Button" parent="MarginContainer/VBoxContainer/HBoxContainer"]
+layout_mode = 2
+text = "Regenerate Battlefield"
+
+[node name="StartMissionButton" type="Button" parent="MarginContainer/VBoxContainer/HBoxContainer"]
+layout_mode = 2
+text = "Start Mission"
+
+[node name="DebugLabel" type="Label" parent="MarginContainer/VBoxContainer"]
+unique_name_in_owner = true
+layout_mode = 2
+
+[node name="BattlefieldArea" type="SubViewportContainer" parent="."]
+layout_mode = 2
+offset_left = 20.0
+offset_top = 51.0
+offset_right = 1900.0
+offset_bottom = 51.0
+
+[node name="SubViewport" type="SubViewport" parent="BattlefieldArea"]
+handle_input_locally = false
+render_target_update_mode = 4
+
+[node name="Camera2D" type="Camera2D" parent="BattlefieldArea/SubViewport"]
+
+[node name="BattlefieldTerrain" type="TileMapLayer" parent="BattlefieldArea/SubViewport"]
+
+[node name="Battleunits" type="Node2D" parent="BattlefieldArea/SubViewport"]
+
+[node name="Crew" type="Node2D" parent="BattlefieldArea/SubViewport/Battleunits"]
+
+[node name="BattlefieldGeneratorCrew" parent="BattlefieldArea/SubViewport/Battleunits/Crew" instance=ExtResource("3_2l45i")]
+
+[node name="BattlefieldGeneratorCrew2" parent="BattlefieldArea/SubViewport/Battleunits/Crew" instance=ExtResource("3_2l45i")]
+
+[node name="BattlefieldGeneratorCrew3" parent="BattlefieldArea/SubViewport/Battleunits/Crew" instance=ExtResource("3_2l45i")]
+
+[node name="BattlefieldGeneratorCrew4" parent="BattlefieldArea/SubViewport/Battleunits/Crew" instance=ExtResource("3_2l45i")]
+
+[node name="BattlefieldGeneratorCrew5" parent="BattlefieldArea/SubViewport/Battleunits/Crew" instance=ExtResource("3_2l45i")]
+
+[node name="BattlefieldGeneratorCrew6" parent="BattlefieldArea/SubViewport/Battleunits/Crew" instance=ExtResource("3_2l45i")]
+
+[node name="BattlefieldGeneratorCrew7" parent="BattlefieldArea/SubViewport/Battleunits/Crew" instance=ExtResource("3_2l45i")]
+
+[node name="BattlefieldGeneratorCrew8" parent="BattlefieldArea/SubViewport/Battleunits/Crew" instance=ExtResource("3_2l45i")]
+
+[node name="Enemy" type="Node2D" parent="BattlefieldArea/SubViewport/Battleunits"]
+
+[node name="BattlefieldGeneratorEnemy" parent="BattlefieldArea/SubViewport/Battleunits/Enemy" instance=ExtResource("4_yyp3t")]
+
+[node name="BattlefieldGeneratorEnemy2" parent="BattlefieldArea/SubViewport/Battleunits/Enemy" instance=ExtResource("4_yyp3t")]
+
+[node name="BattlefieldGeneratorEnemy3" parent="BattlefieldArea/SubViewport/Battleunits/Enemy" instance=ExtResource("4_yyp3t")]
+
+[node name="BattlefieldGeneratorEnemy4" parent="BattlefieldArea/SubViewport/Battleunits/Enemy" instance=ExtResource("4_yyp3t")]
+
+[node name="BattlefieldGeneratorEnemy5" parent="BattlefieldArea/SubViewport/Battleunits/Enemy" instance=ExtResource("4_yyp3t")]
+
+[node name="BattlefieldGeneratorEnemy6" parent="BattlefieldArea/SubViewport/Battleunits/Enemy" instance=ExtResource("4_yyp3t")]
+
+[node name="BattlefieldGeneratorEnemy7" parent="BattlefieldArea/SubViewport/Battleunits/Enemy" instance=ExtResource("4_yyp3t")]
+
+[node name="BattlefieldGeneratorEnemy8" parent="BattlefieldArea/SubViewport/Battleunits/Enemy" instance=ExtResource("4_yyp3t")]
+
+[node name="BattlefieldGeneratorEnemy9" parent="BattlefieldArea/SubViewport/Battleunits/Enemy" instance=ExtResource("4_yyp3t")]
+
+[node name="BattlefieldGeneratorEnemy10" parent="BattlefieldArea/SubViewport/Battleunits/Enemy" instance=ExtResource("4_yyp3t")]
+
+[node name="UnitActions" type="Control" parent="BattlefieldArea/SubViewport"]
+layout_mode = 3
+anchors_preset = 0
+offset_right = 40.0
+offset_bottom = 40.0
+
+[node name="Move" type="MenuButton" parent="BattlefieldArea/SubViewport/UnitActions"]
+layout_mode = 0
+offset_right = 8.0
+offset_bottom = 8.0
+
+[node name="Dash" type="TextureButton" parent="BattlefieldArea/SubViewport/UnitActions/Move"]
+layout_mode = 0
+offset_right = 40.0
+offset_bottom = 40.0
+
+[node name="Attack" type="MenuButton" parent="BattlefieldArea/SubViewport/UnitActions"]
+layout_mode = 0
+offset_right = 8.0
+offset_bottom = 8.0
+
+[node name="Brawl" type="TextureButton" parent="BattlefieldArea/SubViewport/UnitActions/Attack"]
+layout_mode = 0
+offset_right = 40.0
+offset_bottom = 40.0
+
+[node name="Shoot" type="TextureButton" parent="BattlefieldArea/SubViewport/UnitActions/Attack"]
+layout_mode = 0
+offset_right = 40.0
+offset_bottom = 40.0
+
+[node name="Node2D" type="Node2D" parent="BattlefieldArea/SubViewport/UnitActions/Attack"]
+
+[node name="Items" type="TextureButton" parent="BattlefieldArea/SubViewport/UnitActions"]
+layout_mode = 0
+offset_right = 8.0
+offset_bottom = 8.0
+
+[node name="Inventory" type="Panel" parent="BattlefieldArea/SubViewport/UnitActions/Items"]
+layout_mode = 0
+offset_right = 40.0
+offset_bottom = 40.0
+
+[node name="Other" type="MenuButton" parent="BattlefieldArea/SubViewport/UnitActions"]
+layout_mode = 0
+offset_right = 8.0
+offset_bottom = 8.0
+
+[node name="QuickAction" type="TextureButton" parent="BattlefieldArea/SubViewport/UnitActions/Other"]
+layout_mode = 0
+offset_right = 40.0
+offset_bottom = 40.0
+
+[node name="FreeAction" type="TextureButton" parent="BattlefieldArea/SubViewport/UnitActions/Other"]
+layout_mode = 0
+offset_right = 40.0
+offset_bottom = 40.0
+
+[node name="StunnedAction" type="TextureButton" parent="BattlefieldArea/SubViewport/UnitActions/Other"]
+layout_mode = 0
+offset_right = 40.0
+offset_bottom = 40.0
+
+[node name="ColorRect" type="ColorRect" parent="."]
+visible = false
+layout_mode = 0
+offset_right = 40.0
+offset_bottom = 40.0
+
+[connection signal="item_selected" from="MarginContainer/VBoxContainer/HBoxContainer/TableSizeOption" to="." method="_on_table_size_option_item_selected"]
+[connection signal="pressed" from="MarginContainer/VBoxContainer/HBoxContainer/RegenerateButton" to="." method="_on_regenerate_pressed"]
+[connection signal="pressed" from="MarginContainer/VBoxContainer/HBoxContainer/StartMissionButton" to="." method="_on_start_mission_pressed"]

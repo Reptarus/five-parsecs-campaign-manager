@@ -259,3 +259,16 @@ func cleanup() -> void:
         save_load_ui.queue_free()
         save_load_ui = null
     _is_initialized = false
+
+func save_campaign(save_name: String = "") -> bool:
+    if not game_state:
+        push_error("Cannot save: No active game state")
+        return false
+    
+    GameStateManager.save_game()
+    return true
+
+func load_campaign(save_name: String = "") -> bool:
+    GameStateManager.load_game()
+    game_state = GameStateManager.get_game_state()
+    return game_state != null

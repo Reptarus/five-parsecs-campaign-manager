@@ -1,45 +1,99 @@
 [gd_scene load_steps=2 format=3 uid="uid://cxxx"]
 
-[ext_resource type="Theme" uid="uid://ccpt5srj6tnbv" path="res://Resources/Utilities/sci_fi_theme.tres" id="1_vmo05"]
+[ext_resource type="Theme" uid="uid://ccpt5srj6tnbv" path="res://Resources/Utilities/sci_fi_theme.tres" id="1_theme"]
 
 [node name="CharacterBox" type="PanelContainer"]
-custom_minimum_size = Vector2(0, 100)
+custom_minimum_size = Vector2(0, 150)
+theme = ExtResource("1_theme")
 
 [node name="MarginContainer" type="MarginContainer" parent="."]
-custom_minimum_size = Vector2(200, 100)
 layout_mode = 2
-theme = ExtResource("1_vmo05")
 theme_override_constants/margin_left = 10
-theme_override_constants/margin_top = 5
+theme_override_constants/margin_top = 10
 theme_override_constants/margin_right = 10
-theme_override_constants/margin_bottom = 5
+theme_override_constants/margin_bottom = 10
 
 [node name="HBoxContainer" type="HBoxContainer" parent="MarginContainer"]
 layout_mode = 2
+theme_override_constants/separation = 15
 
-[node name="TextureRect" type="TextureRect" parent="MarginContainer/HBoxContainer"]
-custom_minimum_size = Vector2(80, 80)
+[node name="PortraitContainer" type="PanelContainer" parent="MarginContainer/HBoxContainer"]
+custom_minimum_size = Vector2(130, 130)
 layout_mode = 2
-stretch_mode = 4
+size_flags_horizontal = 4
+size_flags_vertical = 4
 
-[node name="VBoxContainer" type="VBoxContainer" parent="MarginContainer/HBoxContainer"]
+[node name="Portrait" type="TextureRect" parent="MarginContainer/HBoxContainer/PortraitContainer"]
 layout_mode = 2
-theme_override_constants/separation = 5
+expand_mode = 1
+stretch_mode = 5
 
-[node name="NameLabel" type="Label" parent="MarginContainer/HBoxContainer/VBoxContainer"]
+[node name="InfoContainer" type="VBoxContainer" parent="MarginContainer/HBoxContainer"]
 layout_mode = 2
-theme_override_font_sizes/font_size = 16
-text = "Name"
+size_flags_horizontal = 3
+theme_override_constants/separation = 8
 
-[node name="ClassLabel" type="Label" parent="MarginContainer/HBoxContainer/VBoxContainer"]
+[node name="NameLabel" type="Label" parent="MarginContainer/HBoxContainer/InfoContainer"]
 layout_mode = 2
-theme_override_font_sizes/font_size = 14
+theme_override_font_sizes/font_size = 20
+text = "Character Name"
+
+[node name="ClassLabel" type="Label" parent="MarginContainer/HBoxContainer/InfoContainer"]
+layout_mode = 2
+theme_override_colors/font_color = Color(0.8, 0.8, 0.8, 1)
 text = "Class"
 
-[node name="StatsContainer" type="Label" parent="MarginContainer/HBoxContainer/VBoxContainer"]
+[node name="HSeparator" type="HSeparator" parent="MarginContainer/HBoxContainer/InfoContainer"]
 layout_mode = 2
-theme_override_font_sizes/font_size = 12
-text = "Stats"
 
-[node name="ProgressBar" type="ProgressBar" parent="MarginContainer/HBoxContainer/VBoxContainer"]
+[node name="StatsContainer" type="GridContainer" parent="MarginContainer/HBoxContainer/InfoContainer"]
 layout_mode = 2
+columns = 2
+
+[node name="CombatLabel" type="Label" parent="MarginContainer/HBoxContainer/InfoContainer/StatsContainer"]
+layout_mode = 2
+size_flags_horizontal = 3
+text = "Combat:"
+
+[node name="CombatValue" type="Label" parent="MarginContainer/HBoxContainer/InfoContainer/StatsContainer"]
+layout_mode = 2
+text = "0"
+
+[node name="TechnicalLabel" type="Label" parent="MarginContainer/HBoxContainer/InfoContainer/StatsContainer"]
+layout_mode = 2
+size_flags_horizontal = 3
+text = "Technical:"
+
+[node name="TechnicalValue" type="Label" parent="MarginContainer/HBoxContainer/InfoContainer/StatsContainer"]
+layout_mode = 2
+text = "0"
+
+[node name="SocialLabel" type="Label" parent="MarginContainer/HBoxContainer/InfoContainer/StatsContainer"]
+layout_mode = 2
+size_flags_horizontal = 3
+text = "Social:"
+
+[node name="SocialValue" type="Label" parent="MarginContainer/HBoxContainer/InfoContainer/StatsContainer"]
+layout_mode = 2
+text = "0"
+
+[node name="SurvivalLabel" type="Label" parent="MarginContainer/HBoxContainer/InfoContainer/StatsContainer"]
+layout_mode = 2
+size_flags_horizontal = 3
+text = "Survival:"
+
+[node name="SurvivalValue" type="Label" parent="MarginContainer/HBoxContainer/InfoContainer/StatsContainer"]
+layout_mode = 2
+text = "0"
+
+[node name="StatusContainer" type="HBoxContainer" parent="MarginContainer/HBoxContainer/InfoContainer"]
+layout_mode = 2
+
+[node name="StatusLabel" type="Label" parent="MarginContainer/HBoxContainer/InfoContainer/StatusContainer"]
+layout_mode = 2
+text = "Status:"
+
+[node name="StatusValue" type="Label" parent="MarginContainer/HBoxContainer/InfoContainer/StatusContainer"]
+layout_mode = 2
+theme_override_colors/font_color = Color(0, 1, 0, 1)
+text = "Healthy"
