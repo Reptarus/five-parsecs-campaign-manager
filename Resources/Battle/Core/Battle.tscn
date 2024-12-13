@@ -1,96 +1,24 @@
-[gd_scene load_steps=6 format=3 uid="uid://chritb40fko8m"]
+[gd_scene load_steps=4 format=3 uid="uid://chritb40fko8m"]
 
-[ext_resource type="Script" path="res://Resources/Battle/Core/battle.gd" id="1_e8bb3"]
-[ext_resource type="Script" path="res://Resources/Battle/Core/CombatManager.gd" id="2_f9g7h"]
-[ext_resource type="Script" path="res://Resources/Battle/Terrain/BattlefieldGenerator.gd" id="3_k9l2m"]
-[ext_resource type="Script" path="res://Resources/Core/Systems/AIController.gd" id="4_l9m3n"]
-[ext_resource type="Texture2D" uid="uid://do14t76dea7ds" path="res://assets/PNG/Grid.png" id="5_8okkq"]
+[ext_resource type="Script" path="res://Resources/Battle/Core/BattleSystemManager.gd" id="1_script"]
+[ext_resource type="Script" path="res://Resources/Battle/Core/MainBattleController.gd" id="2_script"]
+[ext_resource type="Script" path="res://Resources/Battle/Terrain/UnifiedTerrainSystem.gd" id="3_script"]
 
-[node name="Battle" type="Node2D"]
-script = ExtResource("1_e8bb3")
+[node name="Battle" type="Node"]
+script = ExtResource("1_script")
 
-[node name="CombatManager" type="Node" parent="."]
-script = ExtResource("2_f9g7h")
+[node name="MainBattleController" type="Node" parent="."]
+script = ExtResource("2_script")
 
-[node name="BattlefieldGenerator" type="Node" parent="."]
-script = ExtResource("3_k9l2m")
+[node name="TerrainSystem" type="Node" parent="."]
+script = ExtResource("3_script")
 
-[node name="AIController" type="Node" parent="."]
-script = ExtResource("4_l9m3n")
+[node name="Units" type="Node" parent="."]
 
-[node name="Battlefield" type="Node2D" parent="."]
-
-[node name="TileMap" type="TileMapLayer" parent="Battlefield"]
-
-[node name="Units" type="Node2D" parent="Battlefield"]
-
-[node name="Terrain" type="Node2D" parent="Battlefield"]
-
-[node name="Highlights" type="Node2D" parent="Battlefield"]
-
-[node name="BattleGrid" type="GridContainer" parent="Battlefield"]
-anchors_preset = 15
-anchor_right = 1.0
-anchor_bottom = 1.0
-offset_left = -227.0
-offset_top = -168.0
-offset_right = 1618.0
-offset_bottom = 1073.0
-grow_horizontal = 2
-grow_vertical = 2
-size_flags_horizontal = 3
-size_flags_vertical = 3
-
-[node name="TextureRect" type="TextureRect" parent="Battlefield/BattleGrid"]
-layout_mode = 2
-texture = ExtResource("5_8okkq")
-
-[node name="UI" type="CanvasLayer" parent="."]
-
-[node name="SidePanel" type="Panel" parent="UI"]
-anchors_preset = 11
-anchor_left = 1.0
-anchor_right = 1.0
-anchor_bottom = 1.0
-offset_left = -300.0
-grow_horizontal = 0
-grow_vertical = 2
-
-[node name="VBoxContainer" type="VBoxContainer" parent="UI/SidePanel"]
-layout_mode = 1
+[node name="UI" type="Control" parent="."]
+layout_mode = 3
 anchors_preset = 15
 anchor_right = 1.0
 anchor_bottom = 1.0
 grow_horizontal = 2
 grow_vertical = 2
-
-[node name="TurnLabel" type="Label" parent="UI/SidePanel/VBoxContainer"]
-layout_mode = 2
-text = "Round: 1"
-
-[node name="CurrentCharacterLabel" type="Label" parent="UI/SidePanel/VBoxContainer"]
-layout_mode = 2
-text = "Current Character: "
-
-[node name="ActionButtons" type="VBoxContainer" parent="UI/SidePanel/VBoxContainer"]
-layout_mode = 2
-
-[node name="MoveButton" type="Button" parent="UI/SidePanel/VBoxContainer/ActionButtons"]
-layout_mode = 2
-text = "Move"
-
-[node name="AttackButton" type="Button" parent="UI/SidePanel/VBoxContainer/ActionButtons"]
-layout_mode = 2
-text = "Attack"
-
-[node name="EndTurnButton" type="Button" parent="UI/SidePanel/VBoxContainer/ActionButtons"]
-layout_mode = 2
-text = "End Turn"
-
-[node name="BattleLog" type="TextEdit" parent="UI/SidePanel/VBoxContainer"]
-layout_mode = 2
-size_flags_vertical = 3
-
-[connection signal="pressed" from="UI/SidePanel/VBoxContainer/ActionButtons/MoveButton" to="." method="_on_move_button_pressed"]
-[connection signal="pressed" from="UI/SidePanel/VBoxContainer/ActionButtons/AttackButton" to="." method="_on_attack_button_pressed"]
-[connection signal="pressed" from="UI/SidePanel/VBoxContainer/ActionButtons/EndTurnButton" to="." method="_on_end_turn_button_pressed"]

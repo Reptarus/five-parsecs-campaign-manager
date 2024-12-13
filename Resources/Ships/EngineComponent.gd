@@ -2,7 +2,7 @@
 class_name EngineComponent
 extends Resource
 
-const GlobalEnums = preload("res://Resources/GameData/GlobalEnums.gd")
+const GameEnums = preload("res://Resources/Core/Systems/GlobalEnums.gd")
 
 @export var name: String = ""
 @export var description: String = ""

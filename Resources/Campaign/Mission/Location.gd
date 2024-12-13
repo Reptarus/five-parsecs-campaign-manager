@@ -14,7 +14,7 @@ var stability_modifiers: Array[Dictionary] = []
 
 # World Data
 var traits: Array[String] = []
-var available_missions: Array[Mission] = []
+var available_missions: Array[MissionData] = []
 var local_events: Array[Dictionary] = []
 var resources: Dictionary = {}
 
@@ -137,22 +137,11 @@ func serialize() -> Dictionary:
     }
 
 static func deserialize(data: Dictionary) -> Location:
-    var location = Location.new(
-        data.get("name", ""),
-        data.get("type", GlobalEnums.TerrainType.CITY),
-        data.get("faction", GlobalEnums.FactionType.NEUTRAL),
-        data.get("instability", 0)
-    )
-    
-    location.instability_factors = data.get("instability_factors", {})
-    location.stability_modifiers = data.get("stability_modifiers", [])
-    location.current_events = data.get("current_events", [])
-    location.threat_level = data.get("threat_level", 1)
-    location.traits = data.get("traits", [])
+    var location = Location.new()
     
     if data.has("available_missions"):
         for mission_data in data.get("available_missions", []):
-            location.available_missions.append(Mission.deserialize(mission_data))
+            location.available_missions.append(MissionData.deserialize(mission_data))
     
     location.local_events = data.get("local_events", [])
     location.resources = data.get("resources", {})

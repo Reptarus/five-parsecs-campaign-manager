@@ -4,12 +4,12 @@ extends Node
 @export var game_state: GameState
 var psionic_characters: Dictionary = {}  # Character: Dictionary(ability, power_level)
 
-const GlobalEnums = preload("res://Resources/GameData/GlobalEnums.gd")
+const GameEnums = preload("res://Resources/Core/Systems/GlobalEnums.gd")
 const POWER_THRESHOLD := 10
 const POWER_INCREASE_CHANCE := 0.2
 const POWER_DECREASE_CHANCE := 0.1
 
-signal psionic_ability_used(character: Character, ability: GlobalEnums.PsionicAbility)
+signal psionic_ability_used(character: Character, ability: int)  # GameEnums.PsionicAbility
 signal psionic_power_changed(character: Character, new_power: int)
 
 func _init(_game_state: GameState) -> void:
@@ -18,7 +18,7 @@ func _init(_game_state: GameState) -> void:
         return
     game_state = _game_state
 
-func update_psionic_ability(character: Character, new_ability: GlobalEnums.PsionicAbility) -> void:
+func update_psionic_ability(character: Character, new_ability: int) -> void:  # GameEnums.PsionicAbility
     if not character:
         push_error("Character is required for psionic ability update")
         return

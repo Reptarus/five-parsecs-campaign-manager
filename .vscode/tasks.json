@@ -1,0 +1,43 @@
+{
+    "version": "2.0.0",
+    "tasks": [
+        {
+            "label": "build",
+            "group": {
+                "kind": "build",
+                "isDefault": true
+            },
+            "type": "shell",
+            "command": "godot",
+            "args": [
+                "--headless",
+                "--script",
+                "${workspaceFolder}/build.gd"
+            ],
+            "problemMatcher": []
+        },
+        {
+            "label": "run",
+            "type": "shell",
+            "command": "godot",
+            "args": [
+                "--path",
+                "${workspaceFolder}",
+                "--verbose"
+            ],
+            "problemMatcher": []
+        },
+        {
+            "label": "debug",
+            "type": "shell", 
+            "command": "godot",
+            "args": [
+                "--path",
+                "${workspaceFolder}",
+                "--verbose",
+                "--debug"
+            ],
+            "problemMatcher": []
+        }
+    ]
+}

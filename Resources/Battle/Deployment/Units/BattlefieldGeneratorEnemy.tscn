@@ -21,3 +21,7 @@ offset_right = 20.0
 offset_bottom = -26.0
 value = 100.0
 show_percentage = false
+
+[node name="HealthSystem" type="Node" parent="."]
+
+[node name="StatusEffects" type="Node" parent="."]

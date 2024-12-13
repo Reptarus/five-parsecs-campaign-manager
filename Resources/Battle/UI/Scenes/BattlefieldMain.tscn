@@ -1,0 +1,138 @@
+[gd_scene load_steps=3 format=3 uid="uid://dgjiaeho3u33v"]
+
+[ext_resource type="Script" path="res://Resources/Battle/UI/Scripts/BattlefieldManager.gd" id="1_script"]
+[ext_resource type="Theme" uid="uid://ddjoduj1ya6tp" path="res://assets/5PFH.tres" id="2_theme"]
+
+[node name="BattlefieldMain" type="Control"]
+layout_mode = 3
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+theme = ExtResource("2_theme")
+script = ExtResource("1_script")
+
+[node name="HSplitContainer" type="HSplitContainer" parent="."]
+layout_mode = 1
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+
+[node name="BattlefieldView" type="SubViewportContainer" parent="HSplitContainer"]
+layout_mode = 2
+size_flags_horizontal = 3
+size_flags_stretch_ratio = 2.0
+stretch = true
+
+[node name="SubViewport" type="SubViewport" parent="HSplitContainer/BattlefieldView"]
+handle_input_locally = false
+size = Vector2i(1274, 1080)
+render_target_update_mode = 4
+
+[node name="Battlefield" type="Node2D" parent="HSplitContainer/BattlefieldView/SubViewport"]
+
+[node name="Grid" type="Node2D" parent="HSplitContainer/BattlefieldView/SubViewport/Battlefield"]
+
+[node name="Terrain" type="Node2D" parent="HSplitContainer/BattlefieldView/SubViewport/Battlefield"]
+
+[node name="Units" type="Node2D" parent="HSplitContainer/BattlefieldView/SubViewport/Battlefield"]
+
+[node name="Highlights" type="Node2D" parent="HSplitContainer/BattlefieldView/SubViewport/Battlefield"]
+
+[node name="Camera2D" type="Camera2D" parent="HSplitContainer/BattlefieldView/SubViewport"]
+
+[node name="ControlPanel" type="PanelContainer" parent="HSplitContainer"]
+layout_mode = 2
+size_flags_horizontal = 3
+
+[node name="VBoxContainer" type="VBoxContainer" parent="HSplitContainer/ControlPanel"]
+layout_mode = 2
+
+[node name="ModePanel" type="PanelContainer" parent="HSplitContainer/ControlPanel/VBoxContainer"]
+layout_mode = 2
+
+[node name="VBoxContainer" type="VBoxContainer" parent="HSplitContainer/ControlPanel/VBoxContainer/ModePanel"]
+layout_mode = 2
+
+[node name="Label" type="Label" parent="HSplitContainer/ControlPanel/VBoxContainer/ModePanel/VBoxContainer"]
+layout_mode = 2
+text = "Battlefield Mode"
+horizontal_alignment = 1
+
+[node name="ModeButtons" type="HBoxContainer" parent="HSplitContainer/ControlPanel/VBoxContainer/ModePanel/VBoxContainer"]
+layout_mode = 2
+
+[node name="SetupButton" type="Button" parent="HSplitContainer/ControlPanel/VBoxContainer/ModePanel/VBoxContainer/ModeButtons"]
+layout_mode = 2
+size_flags_horizontal = 3
+text = "Setup"
+
+[node name="PreviewButton" type="Button" parent="HSplitContainer/ControlPanel/VBoxContainer/ModePanel/VBoxContainer/ModeButtons"]
+layout_mode = 2
+size_flags_horizontal = 3
+text = "Preview"
+
+[node name="DeployButton" type="Button" parent="HSplitContainer/ControlPanel/VBoxContainer/ModePanel/VBoxContainer/ModeButtons"]
+layout_mode = 2
+size_flags_horizontal = 3
+text = "Deploy"
+
+[node name="ToolPanel" type="PanelContainer" parent="HSplitContainer/ControlPanel/VBoxContainer"]
+layout_mode = 2
+
+[node name="VBoxContainer" type="VBoxContainer" parent="HSplitContainer/ControlPanel/VBoxContainer/ToolPanel"]
+layout_mode = 2
+
+[node name="Label" type="Label" parent="HSplitContainer/ControlPanel/VBoxContainer/ToolPanel/VBoxContainer"]
+layout_mode = 2
+text = "Tools"
+horizontal_alignment = 1
+
+[node name="TerrainTools" type="GridContainer" parent="HSplitContainer/ControlPanel/VBoxContainer/ToolPanel/VBoxContainer"]
+layout_mode = 2
+columns = 2
+
+[node name="AddCoverButton" type="Button" parent="HSplitContainer/ControlPanel/VBoxContainer/ToolPanel/VBoxContainer/TerrainTools"]
+layout_mode = 2
+size_flags_horizontal = 3
+text = "Add Cover"
+
+[node name="AddBuildingButton" type="Button" parent="HSplitContainer/ControlPanel/VBoxContainer/ToolPanel/VBoxContainer/TerrainTools"]
+layout_mode = 2
+size_flags_horizontal = 3
+text = "Add Building"
+
+[node name="AddElevatedButton" type="Button" parent="HSplitContainer/ControlPanel/VBoxContainer/ToolPanel/VBoxContainer/TerrainTools"]
+layout_mode = 2
+size_flags_horizontal = 3
+text = "Add Elevated"
+
+[node name="AddHazardButton" type="Button" parent="HSplitContainer/ControlPanel/VBoxContainer/ToolPanel/VBoxContainer/TerrainTools"]
+layout_mode = 2
+size_flags_horizontal = 3
+text = "Add Hazard"
+
+[node name="InfoPanel" type="PanelContainer" parent="HSplitContainer/ControlPanel/VBoxContainer"]
+layout_mode = 2
+size_flags_vertical = 3
+
+[node name="VBoxContainer" type="VBoxContainer" parent="HSplitContainer/ControlPanel/VBoxContainer/InfoPanel"]
+layout_mode = 2
+
+[node name="Label" type="Label" parent="HSplitContainer/ControlPanel/VBoxContainer/InfoPanel/VBoxContainer"]
+layout_mode = 2
+text = "Battlefield Information"
+horizontal_alignment = 1
+
+[node name="InfoContent" type="RichTextLabel" parent="HSplitContainer/ControlPanel/VBoxContainer/InfoPanel/VBoxContainer"]
+layout_mode = 2
+size_flags_vertical = 3
+bbcode_enabled = true
+text = "Select a tile or unit to see information"
+
+[node name="ConfirmButton" type="Button" parent="HSplitContainer/ControlPanel/VBoxContainer"]
+layout_mode = 2
+text = "Confirm Setup"

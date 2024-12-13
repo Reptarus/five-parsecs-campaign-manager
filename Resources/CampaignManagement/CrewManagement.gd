@@ -1,4 +1,5 @@
 extends Control
+class_name CrewManagementUI
 
 var game_state_manager: GameStateManager
 var selected_character: Character
@@ -10,6 +11,7 @@ var selected_character: Character
 @onready var equipment_panel = $MainLayout/CharacterPanel/Equipment
 @onready var equipment_panel2 = $MainLayout/CharacterPanel/Equipment2
 @onready var character_sheet_popup = $CharacterSheetPopup
+@onready var relationships_panel := $MainLayout/RelationshipsPanel
 
 func _ready() -> void:
 	game_state_manager = get_node("/root/GameStateManager")
@@ -18,6 +20,7 @@ func _ready() -> void:
 	# Connect signals from ShipInventory for equipment updates
 	game_state_manager.game_state.current_ship.inventory.item_added.connect(_on_inventory_updated)
 	game_state_manager.game_state.current_ship.inventory.item_removed.connect(_on_inventory_updated)
+	game_state_manager.game_state.current_crew.relationships_updated.connect(_on_relationships_updated)
 
 func update_crew_list() -> void:
 	for child in crew_list.get_children():
@@ -27,11 +30,14 @@ func update_crew_list() -> void:
 	for member in crew:
 		var crew_button = create_crew_button(member)
 		crew_list.add_child(crew_button)
+		
+	if relationships_panel:
+		relationships_panel.initialize(crew)
 
 func create_crew_button(character: Character) -> Button:
 	var button = Button.new()
 	button.custom_minimum_size = Vector2(200, 60)
-	button.text = "%s\n%s %s" % [character.name, character.species, character.class_type]
+	button.text = "%s\n%s %s" % [character.name, character.origin, character.class_type]
 	button.pressed.connect(_on_crew_button_pressed.bind(character))
 	return button
 
@@ -46,14 +52,32 @@ func update_character_display() -> void:
 	character_name_label.text = selected_character.name
 	character_portrait.texture = selected_character.portrait
 	
-	# Update basic info
+	# Update basic info using Core Rules stats
 	var info_text = """
-	SPECIES: %s
+	ORIGIN: %s
 	BACKGROUND: %s
 	MOTIVATION: %s
 	CLASS: %s
-	""" % [selected_character.species, selected_character.background, 
-		   selected_character.motivation, selected_character.class_type]
+	
+	STATS:
+	Reactions: %d
+	Speed: %d
+	Combat Skill: %+d
+	Toughness: %d
+	Savvy: %+d
+	Luck: %d
+	""" % [
+		GlobalEnums.Origin.keys()[selected_character.origin],
+		selected_character.background,
+		selected_character.motivation,
+		GlobalEnums.CharacterClass.keys()[selected_character.class_type],
+		selected_character.stats.reactions,
+		selected_character.stats.speed,
+		selected_character.stats.combat_skill,
+		selected_character.stats.toughness,
+		selected_character.stats.savvy,
+		selected_character.stats.luck
+	]
 	character_info.text = info_text
 	
 	# Update equipment displays
@@ -72,12 +96,29 @@ func update_equipment_display() -> void:
 		child.queue_free()
 		
 	if selected_character:
-		# Display current equipment
+		var equipment_text = ""
+		
+		# Display weapon if equipped
 		if selected_character.equipped_weapon:
-			var weapon_label = Label.new()
-			weapon_label.text = selected_character.equipped_weapon.name
-			equipment_panel.add_child(weapon_label)
-			
+			equipment_text += "Weapon: " + selected_character.equipped_weapon.name + "\n"
+		
+		# Display gear
+		if not selected_character.equipped_gear.is_empty():
+			equipment_text += "\nGear:\n"
+			for gear in selected_character.equipped_gear:
+				equipment_text += "- " + gear.name + "\n"
+		
+		# Display gadgets
+		if not selected_character.equipped_gadgets.is_empty():
+			equipment_text += "\nGadget:\n"
+			for gadget in selected_character.equipped_gadgets:
+				equipment_text += "- " + gadget.name + "\n"
+		
+		var equipment_label = Label.new()
+		equipment_label.text = equipment_text
+		equipment_panel.add_child(equipment_label)
+		
+		# Display armor if equipped
 		if selected_character.equipped_armor:
 			var armor_label = Label.new()
 			armor_label.text = selected_character.equipped_armor.name
@@ -87,8 +128,6 @@ func _on_inventory_updated(_item: Equipment) -> void:
 	if selected_character:
 		update_equipment_display()
 
-func update_character_info(character: Character) -> void:
-	# Updated to use new enums
-	var _species_text = GlobalEnums.Species.keys()[character.species]
-	var _class_text = GlobalEnums.Class.keys()[character.class_type]
-	# ... rest of the function
+func _on_relationships_updated() -> void:
+	if relationships_panel:
+		relationships_panel.initialize(game_state_manager.game_state.current_crew.members)

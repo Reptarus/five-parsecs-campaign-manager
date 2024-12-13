@@ -89,14 +89,24 @@ func setup_stat_distribution(parent):
 	stat_distribution.columns = 2
 	parent.add_child(stat_distribution)
 
-	var stats = ["Reactions", "Speed", "CombatSkill", "Toughness", "Savvy", "Luck"]
-	for stat in stats:
+	# Core Rules stats with their limits
+	var stats = {
+		"Reactions": {"min": 1, "max": 6},
+		"Speed": {"min": 4, "max": 8},
+		"CombatSkill": {"min": -3, "max": 3},
+		"Toughness": {"min": 3, "max": 6},
+		"Savvy": {"min": -3, "max": 3},
+		"Luck": {"min": 0, "max": 3}
+	}
+
+	for stat_name in stats:
 		var label = Label.new()
-		label.text = stat
+		label.text = stat_name.capitalize()
 		stat_distribution.add_child(label)
 
 		var spin_box = SpinBox.new()
-		spin_box.name = stat + "SpinBox"
-		spin_box.min_value = 0
-		spin_box.max_value = 10
+		spin_box.name = stat_name + "SpinBox"
+		spin_box.min_value = stats[stat_name]["min"]
+		spin_box.max_value = stats[stat_name]["max"]
+		spin_box.step = 1
 		stat_distribution.add_child(spin_box)

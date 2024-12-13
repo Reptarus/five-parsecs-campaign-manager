@@ -1,11 +1,13 @@
 class_name CrewTaskManager
 extends Node
 
-signal task_assigned(crew_member: CrewMember, task: GlobalEnums.CrewTask)
-signal task_completed(crew_member: CrewMember, task: GlobalEnums.CrewTask)
+const GameEnums = preload("res://Resources/Core/Systems/GlobalEnums.gd")
+
+signal task_assigned(crew_member: CrewMember, task: GameEnums.CrewTask)
+signal task_completed(crew_member: CrewMember, task: GameEnums.CrewTask)
 
 var game_state: GameState
-var active_tasks: Dictionary = {}  # CrewMember: GlobalEnums.CrewTask
+var active_tasks: Dictionary = {}  # CrewMember: GameEnums.CrewTask
 
 func _init(_game_state: GameState) -> void:
     if not _game_state:
@@ -13,7 +15,7 @@ func _init(_game_state: GameState) -> void:
         return
     game_state = _game_state
 
-func assign_task(crew_member: CrewMember, task: GlobalEnums.CrewTask) -> bool:
+func assign_task(crew_member: CrewMember, task: GameEnums.CrewTask) -> bool:
     if not crew_member:
         push_error("CrewMember is required for task assignment")
         return false

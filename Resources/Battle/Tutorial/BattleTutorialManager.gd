@@ -1,13 +1,17 @@
 class_name BattleTutorialManager
 extends Node
 
+const GameEnums = preload("res://Resources/Core/Systems/GlobalEnums.gd")
+const CombatManager = preload("res://Resources/Battle/Core/CombatManager.gd")
+const BattleTutorialLayout = preload("res://Resources/Battle/Tutorial/BattleTutorialLayout.gd")
+
 signal tutorial_objective_completed(objective_id: String)
 signal tutorial_step_completed(step_id: String)
 
 var current_layout: Dictionary
 var current_step: String = "movement_basics"
 var combat_manager: CombatManager
-var tutorial_overlay: TutorialOverlay
+var tutorial_overlay: Control
 
 func _ready() -> void:
     combat_manager = get_parent() as CombatManager
@@ -88,7 +92,7 @@ func get_step_guidance() -> Dictionary:
         _:
             return {}
 
-func _on_unit_moved(unit: Node, end_pos: Vector2) -> void:
+func _on_unit_moved(_unit: Node, end_pos: Vector2) -> void:
     if current_step == "movement_basics":
         var objective_pos = current_layout.objectives[0].position
         if end_pos.distance_to(objective_pos) < 1.0:

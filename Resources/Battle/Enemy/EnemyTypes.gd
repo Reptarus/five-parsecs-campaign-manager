@@ -51,7 +51,7 @@ static var ENEMY_TYPES: Dictionary = {
 		"speed": 6,
 		"combat_skill": 0,
 		"toughness": 4,
-		"ai": GlobalEnums.AIType.RAMPAGE,
+		"ai": GlobalEnums.AIType.AGGRESSIVE,
 		"weapons": "1 B",
 		"special_rules": ["Bad shots: Their shooting only Hits on a natural 6."]
 	},

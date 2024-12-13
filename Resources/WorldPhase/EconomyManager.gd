@@ -1,7 +1,9 @@
 class_name EconomyManager
 extends Node
 
-signal global_event_triggered(event: GlobalEnums.GlobalEvent)
+const GameEnums = preload("res://Resources/Core/Systems/GlobalEnums.gd")
+
+signal global_event_triggered(event: GameEnums.GlobalEvent)
 signal economy_updated
 
 const BASE_ITEM_MARKUP: float = 1.2

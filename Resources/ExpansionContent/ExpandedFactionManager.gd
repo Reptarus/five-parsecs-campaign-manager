@@ -3,17 +3,19 @@ class_name ExpandedFactionManager
 extends Resource
 
 # Use the GlobalEnums.Faction enum
-const MIN_FACTION_STRENGTH: int = 2
+const MIN_FACTION_STRENGTH: int = 1
 const MAX_FACTION_STRENGTH: int = 7
 const MIN_FACTION_POWER: int = 3
 const MAX_FACTION_POWER: int = 5
+const MAX_TECH_LEVEL := 5
+const MIN_RESOURCES := 0
 
 var game_state_manager: GameStateManager
 var factions: Array[Dictionary] = []
 var faction_data: Dictionary
 
 # Add at top of file
-const GlobalEnums = preload("res://Resources/GameData/GlobalEnums.gd")
+const GameEnums = preload("res://Resources/Core/Systems/GlobalEnums.gd")
 
 func _init(_game_state_manager: GameStateManager = null) -> void:
 	game_state_manager = _game_state_manager
@@ -28,7 +30,7 @@ func generate_factions(num_factions: int) -> void:
 	for i in range(num_factions):
 		factions.append(generate_faction())
 func generate_faction() -> Dictionary:
-	var faction_type = GlobalEnums.FactionType.values()[randi() % GlobalEnums.FactionType.size()]
+	var faction_type = GameEnums.FactionType.values()[randi() % GameEnums.FactionType.size()]
 	
 	return {
 		"name": generate_faction_name(),
@@ -299,25 +301,20 @@ func split_faction(faction: Dictionary) -> Array[Dictionary]:
 	add_faction(faction2)
 	return [faction1, faction2]
 
-func update_faction_relations_global_event(event: GlobalEnums.GlobalEvent) -> void:
+func update_faction_relations_global_event(event: int) -> void:
 	match event:
-		GlobalEnums.GlobalEvent.MARKET_CRASH:
+		GameEnums.GlobalEvent.MARKET_CRASH:
 			for faction in factions:
 				faction["influence"] = max(1, faction["influence"] - 1)
-		GlobalEnums.GlobalEvent.ALIEN_INVASION:
+		GameEnums.GlobalEvent.ALIEN_INVASION:
 			for faction in factions:
 				faction["strength"] = max(MIN_FACTION_STRENGTH, faction["strength"] - 2)
 				faction["influence"] = max(1, faction["influence"] - 1)
-		GlobalEnums.GlobalEvent.WAR_OUTBREAK:
-			if factions.size() >= 2:
-				var acquirer = factions[randi() % factions.size()]
-				var target = factions[randi() % factions.size()]
-				while target == acquirer:
-					target = factions[randi() % factions.size()]
-				merge_factions(acquirer, target)
-		GlobalEnums.GlobalEvent.NATURAL_DISASTER:
+		GameEnums.GlobalEvent.TECH_BREAKTHROUGH:
 			for faction in factions:
-				faction["power"] = max(MIN_FACTION_POWER, faction["power"] - 1)
-		GlobalEnums.GlobalEvent.PLAGUE_OUTBREAK:
+				faction["tech_level"] = min(MAX_TECH_LEVEL, faction["tech_level"] + 1)
+		GameEnums.GlobalEvent.RESOURCE_SHORTAGE:
 			for faction in factions:
-				faction["power"] = max(MIN_FACTION_POWER, faction["power"] - 1)
+				faction["resources"] = max(MIN_RESOURCES, faction["resources"] - 1)
+		_:
+			push_warning("Unhandled global event type: %s" % event)

@@ -1,147 +1,108 @@
-@tool
 class_name Crew
-extends SerializableResource
+extends Resource
 
-signal crew_changed
-signal morale_changed(new_morale: int)
-signal upkeep_failed
+const Character = preload("res://Resources/Core/Character/Base/Character.gd")
+const GlobalEnums = preload("res://Resources/Core/Systems/GlobalEnums.gd")
 
-const MAX_SIZE := 8
-const MIN_SIZE := 3
-const BASE_UPKEEP := 10
+signal member_added(character: Character)
+signal member_removed(character: Character)
+signal credits_changed(new_amount: int)
+
+const MAX_CREW_SIZE = 8
+const MIN_CREW_SIZE = 3
 
 @export var members: Array[Character] = []
-@export var captain: Character
-@export var crew_morale: int = 10
-@export var credits: int = 0
-
-# Core Rules crew tracking
-var total_battles: int = 0
-var battles_won: int = 0
-var crew_level: int = 1
-var story_points: int = 0
+@export var credits: int = 1000
+@export var name: String = ""
+@export var characteristic: String = ""
+@export var meeting_story: String = ""
 
 func _init() -> void:
-	pass
+	members = []
+	credits = 1000
 
 func add_member(character: Character) -> bool:
-	if members.size() >= MAX_SIZE:
+	if members.size() >= MAX_CREW_SIZE:
+		push_error("Cannot add member: Crew is at maximum capacity")
 		return false
-		
+	
+	if character in members:
+		push_error("Cannot add member: Character is already in crew")
+		return false
+	
 	members.append(character)
-	
-	# If this is the first member and no captain, make them captain
-	if members.size() == 1 and not captain:
-		set_captain(character)
-		
-	character.stats_changed.connect(_on_member_stats_changed)
-	character.status_changed.connect(_on_member_status_changed)
-	
-	crew_changed.emit()
+	member_added.emit(character)
 	return true
 
 func remove_member(character: Character) -> bool:
-	if members.size() <= MIN_SIZE:
+	if not character in members:
+		push_error("Cannot remove member: Character is not in crew")
 		return false
-		
-	var index = members.find(character)
-	if index != -1:
-		members.remove_at(index)
-		
-		if character == captain:
-			captain = null
-			# Try to assign new captain from remaining crew
-			for member in members:
-				if member.stats.leadership > 0:
-					set_captain(member)
-					break
-		
-		character.stats_changed.disconnect(_on_member_stats_changed)
-		character.status_changed.disconnect(_on_member_status_changed)
-		
-		crew_changed.emit()
-		return true
-	return false
-
-func set_captain(character: Character) -> void:
-	if character in members:
-		if captain:
-			captain.is_captain = false
-		captain = character
-		captain.is_captain = true
-		crew_changed.emit()
-
-func calculate_upkeep() -> int:
-	# Core Rules upkeep calculation
-	var total = BASE_UPKEEP
-	for member in members:
-		if member.character_class == GlobalEnums.Class.SPECIALIST:
-			total += 5
-		elif member.character_class == GlobalEnums.Class.LEADER:
-			total += 3
-	return total
-
-func handle_failed_upkeep() -> void:
-	# Core Rules failed upkeep consequences
-	modify_morale(-2)
-	for member in members:
-		if randf() < 0.2:  # 20% chance per member
-			member.status = GlobalEnums.CharacterStatus.STRESSED
-	upkeep_failed.emit()
-
-func modify_morale(amount: int) -> void:
-	crew_morale = clamp(crew_morale + amount, 0, 10)
-	morale_changed.emit(crew_morale)
-
-func get_active_members() -> Array[Character]:
-	return members.filter(func(m): return m.can_act())
-
-func get_injured_members() -> Array[Character]:
-	return members.filter(func(m): return m.status == GlobalEnums.CharacterStatus.INJURED)
+	
+	if members.size() <= MIN_CREW_SIZE:
+		push_error("Cannot remove member: Crew is at minimum size")
+		return false
+	
+	members.erase(character)
+	member_removed.emit(character)
+	return true
 
 func get_member_count() -> int:
 	return members.size()
 
-func has_skill(skill_name: String, minimum_level: int = 1) -> bool:
-	for member in members:
-		if member.stats.get_skill_level(skill_name) >= minimum_level:
-			return true
-	return false
+func get_member(index: int) -> Character:
+	if index < 0 or index >= members.size():
+		return null
+	return members[index]
 
-func _on_member_stats_changed() -> void:
-	crew_changed.emit()
+func get_members() -> Array[Character]:
+	return members
 
-func _on_member_status_changed(_new_status: int) -> void:
-	crew_changed.emit()
+func add_credits(amount: int) -> void:
+	credits += amount
+	credits_changed.emit(credits)
+
+func remove_credits(amount: int) -> bool:
+	if amount > credits:
+		return false
+	credits -= amount
+	credits_changed.emit(credits)
+	return true
+
+func has_credits(amount: int) -> bool:
+	return credits >= amount
 
 func serialize() -> Dictionary:
 	return {
-		"members": members.map(func(m): return m.serialize()),
-		"captain": captain.serialize() if captain else null,
-		"crew_morale": crew_morale,
+		"name": name,
 		"credits": credits,
-		"total_battles": total_battles,
-		"battles_won": battles_won,
-		"crew_level": crew_level,
-		"story_points": story_points
+		"characteristic": characteristic,
+		"meeting_story": meeting_story,
+		"members": members.map(func(m): return m.serialize())
 	}
 
 func deserialize(data: Dictionary) -> void:
+	name = data.get("name", "")
+	credits = data.get("credits", 1000)
+	characteristic = data.get("characteristic", "")
+	meeting_story = data.get("meeting_story", "")
+	
 	members.clear()
 	for member_data in data.get("members", []):
 		var character = Character.new()
 		character.deserialize(member_data)
 		add_member(character)
-	
-	if data.has("captain") and data.captain != null:
-		for member in members:
-			if member.serialize() == data.captain:
-				set_captain(member)
-				break
-	
-	crew_morale = data.get("crew_morale", 10)
-	credits = data.get("credits", 0)
-	total_battles = data.get("total_battles", 0)
-	battles_won = data.get("battles_won", 0)
-	crew_level = data.get("crew_level", 1)
-	story_points = data.get("story_points", 0)
+
+func get_total_combat_effectiveness() -> float:
+	var total = 0.0
+	for member in members:
+		if member.has_method("get_combat_effectiveness"):
+			total += member.get_combat_effectiveness()
+	return total
+
+func get_total_survival_chance() -> float:
+	var total = 0.0
+	for member in members:
+		if member.has_method("get_survival_chance"):
+			total += member.get_survival_chance()
+	return total / max(members.size(), 1) 

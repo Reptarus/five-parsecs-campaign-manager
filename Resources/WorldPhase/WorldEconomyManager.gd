@@ -8,11 +8,13 @@ var game_world: Location
 var economy_manager: EconomyManager
 var local_market: Array[Equipment] = []
 
-const BASE_UPKEEP_COST: int = 100  # Assuming 100 is the constant value for BASE_UPKEEP_COST
+const BASE_UPKEEP_COST: int = 100
 const LOCAL_EVENT_CHANCE: float = 0.2
 const ECONOMY_NORMALIZATION_RATE: float = 0.1
 const MAX_MARKET_ITEMS: int = 20
-const Crew = preload("res://Resources/CrewAndCharacters/Crew.gd")
+const GlobalEnums = preload("res://Resources/Core/Systems/GlobalEnums.gd")
+const CrewSystem = preload("res://Resources/Campaign/Crew/CrewSystem.gd")
+const Character = preload("res://Resources/Core/Character/Base/Character.gd")
 
 func _init(_game_world: Location, _economy_manager: EconomyManager) -> void:
 	game_world = _game_world
@@ -28,12 +30,19 @@ func _initialize_local_market() -> void:
 
 func calculate_upkeep() -> int:
 	var upkeep = BASE_UPKEEP_COST
+	
+	# Apply world trait modifiers
 	if GlobalEnums.WorldTrait.INDUSTRIAL_HUB in game_world.traits:
-		upkeep = int(upkeep * 1.5)
+		upkeep = int(upkeep * 1.5)  # Higher costs in industrial hubs
 	if GlobalEnums.WorldTrait.FRONTIER_WORLD in game_world.traits:
-		upkeep = int(upkeep * 0.8)
+		upkeep = int(upkeep * 0.8)  # Lower costs in frontier worlds
 	if GlobalEnums.WorldTrait.TRADE_CENTER in game_world.traits:
-		upkeep = int(upkeep * 1.2)
+		upkeep = int(upkeep * 1.2)  # Moderate increase in trade centers
+	if GlobalEnums.WorldTrait.TECH_CENTER in game_world.traits:
+		upkeep = int(upkeep * 1.3)  # Higher costs in tech centers
+	if GlobalEnums.WorldTrait.FREE_PORT in game_world.traits:
+		upkeep = int(upkeep * 0.9)  # Lower costs in free ports
+	
 	return upkeep
 
 func trigger_local_event() -> void:
@@ -57,7 +66,7 @@ func update_local_economy() -> void:
 	_update_market_items()
 	economy_updated.emit()
 
-func pay_upkeep(crew: Crew) -> bool:
+func pay_upkeep(crew: CrewSystem) -> bool:
 	var upkeep_cost = calculate_upkeep()
 	if crew.credits >= upkeep_cost:
 		crew.remove_credits(upkeep_cost)
@@ -67,9 +76,20 @@ func pay_upkeep(crew: Crew) -> bool:
 func get_item_price(item: Equipment) -> int:
 	var base_price = economy_manager.calculate_item_price(item, true)
 	var modifier = economy_manager.location_price_modifiers.get(game_world.name, 1.0)
+	
+	# Apply world trait price modifiers
+	if GlobalEnums.WorldTrait.TRADE_CENTER in game_world.traits:
+		modifier *= 0.9  # Better prices in trade centers
+	if GlobalEnums.WorldTrait.PIRATE_HAVEN in game_world.traits:
+		modifier *= 1.2  # Higher prices in pirate havens
+	if GlobalEnums.WorldTrait.FREE_PORT in game_world.traits:
+		modifier *= 0.85  # Best prices in free ports
+	if GlobalEnums.WorldTrait.CORPORATE_CONTROLLED in game_world.traits:
+		modifier *= 1.15  # Higher prices in corporate worlds
+	
 	return int(base_price * modifier)
 
-func buy_item(crew: Crew, item: Equipment) -> bool:
+func buy_item(crew: CrewSystem, item: Equipment) -> bool:
 	var price = get_item_price(item)
 	if crew.credits >= price and local_market.has(item):
 		crew.remove_credits(price)
@@ -78,7 +98,7 @@ func buy_item(crew: Crew, item: Equipment) -> bool:
 		return true
 	return false
 
-func sell_item(crew: Crew, item: Equipment) -> bool:
+func sell_item(crew: CrewSystem, item: Equipment) -> bool:
 	var sell_price = int(get_item_price(item) * 0.7)  # 70% of buy price
 	if crew.has_equipment(item):
 		crew.remove_equipment(item)

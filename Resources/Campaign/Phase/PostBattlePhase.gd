@@ -2,9 +2,9 @@
 class_name PostBattlePhase
 extends Control
 
-const GlobalEnums = preload("res://Resources/GameData/GlobalEnums.gd")
-const Character = preload("res://Resources/CrewAndCharacters/Character.gd")
-const GameState = preload("res://Resources/GameData/GameState.gd")
+const GameEnums = preload("res://Resources/Core/Systems/GlobalEnums.gd")
+const Character = preload("res://Resources/Core/Character/Base/Character.gd")
+const GameState = preload("res://Resources/Core/GameState/GameState.gd")
 
 signal phase_completed
 

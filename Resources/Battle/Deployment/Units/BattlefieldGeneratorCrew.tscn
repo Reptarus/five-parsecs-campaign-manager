@@ -1,6 +1,6 @@
 [gd_scene load_steps=3 format=3 uid="uid://brtcei76t3lyl"]
 
-[ext_resource type="Script" path="res://Resources/Campaign/Crew/CrewMember.gd" id="1_fx6fb"]
+[ext_resource type="Script" path="res://Resources/Core/Character/Base/Character.gd" id="1_fx6fb"]
 
 [sub_resource type="RectangleShape2D" id="RectangleShape2D_fq138"]
 
@@ -23,3 +23,7 @@ offset_right = 20.0
 offset_bottom = -26.0
 value = 100.0
 show_percentage = false
+
+[node name="HealthSystem" type="Node" parent="."]
+
+[node name="StatusEffects" type="Node" parent="."]

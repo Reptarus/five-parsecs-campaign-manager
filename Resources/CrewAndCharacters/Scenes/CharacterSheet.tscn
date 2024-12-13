@@ -43,6 +43,19 @@ horizontal_alignment = 1
 layout_mode = 2
 size_flags_vertical = 3
 bbcode_enabled = true
+text = "[b]Core Stats[/b]
+Reactions: %d
+Speed: %d
+Combat Skill: %d
+Toughness: %d
+Savvy: %d
+Luck: %d
+
+[b]Derived Stats[/b]
+Health: %d/%d
+Morale: %d
+Experience: %d
+Level: %d"
 
 [node name="TraitsDisplay" type="Label" parent="Panel/MarginContainer/VBoxContainer"]
 layout_mode = 2

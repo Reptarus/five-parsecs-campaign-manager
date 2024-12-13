@@ -1,3 +1,7 @@
 {
-    "godotTools.editorPath.godot4": "c:\\Users\\elija\\Desktop\\GoDot\\Godot_v4.3-stable_win64.exe\\Godot_v4.3-stable_win64.exe"
+    "godotTools.editorPath.godot4": "c:\\Users\\elija\\Desktop\\GoDot\\Godot_v4.3-stable_win64.exe\\Godot_v4.3-stable_win64.exe",
+    "godot.editor.port": 6007,
+    "godot.editor.host": "127.0.0.1",
+    "godot.editor.showOutputOnStart": true,
+    "godot.editor.reconnectOnStart": true
 }

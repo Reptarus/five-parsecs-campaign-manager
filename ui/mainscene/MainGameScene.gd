@@ -2,8 +2,8 @@
 extends Node
 
 # Only preload what we know exists
-const GameStateManager = preload("res://StateMachines/GameStateManager.gd")
-const GlobalEnums = preload("res://Resources/GameData/GlobalEnums.gd")
+const GameStateManager = preload("res://Resources/Core/GameState/GameStateManager.gd")
+const GlobalEnums = preload("res://Resources/Core/Systems/GlobalEnums.gd")
 const UIManager = preload("res://ui/UIManager.gd")
 
 signal scene_changed(scene_name: String)
@@ -16,11 +16,13 @@ var game_state_manager: GameStateManager
 
 # Scenes dictionary - we'll add more as we create them
 const SCENES: Dictionary = {
-	"main_menu": "res://ui/mainmenu/MainMenu.tscn",
-	"campaign_setup": "res://Resources/CampaignManagement/Scenes/CampaignSetupScreen.tscn",
+	"main_menu": "res://Scenes/MainMenu/MainMenu.tscn",
+	"campaign_setup": "res://Scenes/Management/Scenes/CampaignSetup.tscn",
+	"campaign_manager": "res://Scenes/Management/Scenes/CampaignManager.tscn",
+	"battle": "res://Resources/Battle/Core/Battle.tscn",
+	"post_battle": "res://Resources/Battle/UI/PostBattle.tscn",
 	"crew_management": "res://Scenes/Management/CrewManagement.tscn",
 	"tutorial_setup": "res://Scenes/Scene Container/InitialCrewCreation.tscn",
-	"battle_simulator": "res://Scenes/Management/Scenes/BattlefieldGenerator.tscn",
 	"options": "res://assets/scenes/menus/options_menu/video_options_menu.tscn",
 	"library": "res://Scenes/Scene Container/RulesReference.tscn"
 }

@@ -1,6 +1,8 @@
 class_name EscalatingBattlesManager
 extends Resource
 
+const GameEnums = preload("res://Resources/Core/Systems/GlobalEnums.gd")
+
 var game_state: Node
 var difficulty_settings: Resource
 
@@ -17,15 +19,15 @@ func apply_difficulty(_difficulty_settings: Resource):
 func check_escalation(battle_state: Dictionary) -> Dictionary:
 	var escalation = {}
 	if _should_escalate(battle_state):
-		escalation = _generate_escalation(battle_state)
+		escalation = _generate_escalation(battle_state.strife_type)
 	return escalation
 
 func _should_escalate(battle_state: Dictionary) -> bool:
 	var escalation_chance = 20  # Base 20% chance
 	
 	# Increase chance based on crew composition
-	escalation_chance += 5 if GlobalEnums.Origin.MUTANT in battle_state.crew_species else 0
-	escalation_chance += 5 if GlobalEnums.Origin.HYBRID in battle_state.crew_species else 0
+	escalation_chance += 5 if GameEnums.Origin.FERAL in battle_state.crew_species else 0
+	escalation_chance += 5 if GameEnums.Origin.SOULLESS in battle_state.crew_species else 0
 	
 	# Increase chance if psionics are present
 	escalation_chance += 10 if battle_state.has_psionics else 0
@@ -39,36 +41,23 @@ func _should_escalate(battle_state: Dictionary) -> bool:
 	# Roll for escalation
 	return randf() < (escalation_chance / 100.0)
 
-func _generate_escalation(battle_state: Dictionary) -> Dictionary:
-	var escalation_type = GlobalEnums.StrifeType.values()[randi() % GlobalEnums.StrifeType.size()]
-	var escalation = {
-		"type": escalation_type,
-		"description": "",
-		"effect": {}
-	}
+func _generate_escalation(strife_type: int) -> Dictionary:
+	var escalation := {}
 	
-	match escalation_type:
-		GlobalEnums.StrifeType.RESOURCE_CONFLICT:
+	match strife_type:
+		GameEnums.StrifeType.RESOURCE_CONFLICT:
 			escalation.description = "Enemy reinforcements arrive"
 			escalation.effect = {"add_units": randi_range(1, 3), "target": "enemy"}
-		GlobalEnums.StrifeType.POLITICAL_UNREST:
+		GameEnums.StrifeType.POLITICAL_UNREST:
 			escalation.description = "Unexpected psionic phenomenon occurs"
 			escalation.effect = {"psionic_boost": true, "target": "all"}
 			escalation.effect["psionic_intensity"] = 2
-		GlobalEnums.StrifeType.CRIMINAL_UPRISING:
+		GameEnums.StrifeType.CRIMINAL_UPRISING:
 			escalation.description = "Sudden environmental change"
 			escalation.effect = {"damage": 1, "target": "all"}
-		GlobalEnums.StrifeType.CORPORATE_WAR:
+		GameEnums.StrifeType.CORPORATE_WAR:
 			escalation.description = "Random crew equipment malfunctions"
 			escalation.effect = {"disable_item": true, "target": "player"}
-	
-	# Modify effect based on battle state
-	if GlobalEnums.Origin.MUTANT in battle_state.crew_species:
-		escalation.description += " (Mutants provide advantage)"
-		escalation.effect["mutant_bonus"] = true
-	if battle_state.has_psionics:
-		escalation.description += " (Psionic effects intensified)"
-		escalation.effect["psionic_intensity"] = 2
 	
 	return escalation
 
@@ -104,7 +93,7 @@ func _apply_to_team(effect: Dictionary, team: Array) -> void:
 				unit.boost_psionic_power()
 	if "mutant_bonus" in effect:
 		for unit in team:
-			if unit.species == GlobalEnums.Origin.MUTANT:
+			if unit.species == GameEnums.Origin.FERAL:
 				unit.apply_mutant_bonus()
 
 func generate_suspect(pursuit: bool) -> Dictionary:

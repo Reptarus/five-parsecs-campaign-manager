@@ -1,6 +1,8 @@
 class_name CampaignStateMachine
 extends Node
 
+const GlobalEnums = preload("res://Resources/Core/Systems/GlobalEnums.gd")
+
 signal state_changed(new_state: GlobalEnums.CampaignPhase)
 signal turn_completed
 signal event_generated(event: Dictionary)
@@ -8,8 +10,6 @@ signal event_generated(event: Dictionary)
 var game_state: GameState
 var game_state_manager: GameStateManager
 var crew_system: CrewSystem
-var character_system: CharacterSystem
-var job_system: JobSystem
 
 # Campaign state tracking
 var current_phase: GlobalEnums.CampaignPhase = GlobalEnums.CampaignPhase.UPKEEP
@@ -22,8 +22,6 @@ func initialize(gsm: GameStateManager) -> void:
 
 func _initialize_systems() -> void:
 	crew_system = CrewSystem.new(game_state)
-	character_system = CharacterSystem.new(game_state)
-	job_system = JobSystem.new(game_state)
 
 func transition_to(new_phase: GlobalEnums.CampaignPhase) -> void:
 	current_phase = new_phase
@@ -74,7 +72,7 @@ func handle_travel_phase() -> void:
 
 func handle_patron_phase() -> void:
 	# Process patron jobs
-	job_system.update_available_jobs()
+	game_state.job_manager.update_available_jobs()
 	
 	# Update patron relationships
 	game_state.faction_manager.update_faction_standings()
@@ -82,7 +80,7 @@ func handle_patron_phase() -> void:
 func handle_battle_phase() -> void:
 	# Prepare for battle
 	game_state.combat_manager.prepare_battle()
-	game_state_manager.transition_to_state(GlobalEnums.GameState.BATTLE)
+	game_state_manager.transition_to_state(GlobalEnums.CampaignPhase.BATTLE)
 
 func handle_post_battle_phase() -> void:
 	# Process battle results
@@ -98,7 +96,7 @@ func handle_post_battle_phase() -> void:
 func handle_management_phase() -> void:
 	# Process crew advancement
 	for character in crew_system.get_available_members():
-		character_system.check_advancement(character)
+		game_state.character_manager.check_advancement(character)
 	
 	# Handle equipment maintenance
 	game_state.equipment_manager.process_maintenance()

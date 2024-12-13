@@ -1,8 +1,8 @@
 class_name PathFinder
 extends Node
 
-const TerrainTypes = preload("res://Battle/TerrainTypes.gd")
-const BattlefieldManager = preload("res://Battle/BattlefieldManager.gd")
+const TerrainTypes = preload("res://Resources/Battle/Core/TerrainTypes.gd")
+const BattlefieldManager = preload("res://Resources/Battle/Core/BattlefieldManager.gd")
 
 signal path_found(path: Array[Vector2])
 signal path_not_found
@@ -74,7 +74,8 @@ func find_path(start_pos: Vector2, end_pos: Vector2, max_movement: float) -> Arr
 			if _is_in_closed_set(neighbor):
 				continue
 			
-			var movement_cost = _calculate_movement_cost(current_node, neighbor)
+			var terrain_type = battlefield_manager.terrain_map[neighbor.position.x][neighbor.position.y]
+			var movement_cost = _calculate_movement_cost(current_node.position, neighbor.position, terrain_type)
 			var new_cost_to_neighbor = current_node.g_cost + movement_cost
 			
 			if not _is_in_open_set(neighbor) or new_cost_to_neighbor < neighbor.g_cost:
@@ -108,13 +109,8 @@ func _get_neighbors(node: PathNode) -> Array[PathNode]:
 	
 	return neighbors
 
-func _calculate_movement_cost(from_node: PathNode, to_node: PathNode) -> float:
-	var terrain_type = battlefield_manager.terrain_map[to_node.position.x][to_node.position.y]
+func _calculate_movement_cost(from: Vector2i, to: Vector2i, terrain_type: int) -> float:
 	var base_cost = 1.0
-	
-	# Diagonal movement costs more
-	if from_node.position.x != to_node.position.x and from_node.position.y != to_node.position.y:
-		base_cost = 1.4  # Approximately sqrt(2)
 	
 	# Apply terrain movement cost
 	return base_cost * TerrainTypes.get_movement_cost(terrain_type)
@@ -143,9 +139,8 @@ func _calculate_path_cost(path: Array[Vector2]) -> float:
 	for i in range(1, path.size()):
 		var from_grid = battlefield_manager._world_to_grid(path[i-1])
 		var to_grid = battlefield_manager._world_to_grid(path[i])
-		var from_node = PathNode.new(from_grid)
-		var to_node = PathNode.new(to_grid)
-		total_cost += _calculate_movement_cost(from_node, to_node)
+		var terrain_type = battlefield_manager.terrain_map[to_grid.x][to_grid.y]
+		total_cost += _calculate_movement_cost(from_grid, to_grid, terrain_type)
 	
 	return total_cost
 

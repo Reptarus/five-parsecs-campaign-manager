@@ -1,6 +1,8 @@
 class_name WorldGenerator
 extends Object
 
+const GameEnums = preload("res://Resources/Core/Systems/GlobalEnums.gd")
+
 signal world_generated(world: World)
 signal generation_failed(error: String)
 
@@ -28,19 +30,17 @@ func generate_world() -> World:
         generation_failed.emit("GameStateManager not initialized")
         return null
         
-    var world_data := {
-        "name": generate_world_name(),
-        "type": GlobalEnums.TerrainType.CITY,
-        "faction": generate_faction(),
-        "instability": generate_strife_level()
-    }
-    
-    var world := World.new(world_data)
+    var world := World.new()
     if not world:
         push_error("Failed to create World instance")
         generation_failed.emit("World creation failed")
         return null
         
+    world.terrain_type = GameEnums.TerrainType.CITY
+    world.faction_type = generate_faction()
+    world.strife_type = generate_strife_level()
+    world.name = generate_world_name()
+    
     _add_world_traits(world)
     generated_world[world.name] = world.serialize()
     world_generated.emit(world)
@@ -63,17 +63,17 @@ func generate_world_name() -> String:
 func generate_licensing_requirement() -> int:
     var roll = game_state_manager.combat_manager.roll_dice(1, 6)
     if roll >= 5:
-        return GlobalEnums.FactionType.CORPORATE
-    return GlobalEnums.FactionType.NEUTRAL
+        return GameEnums.FactionType.CORPORATE
+    return GameEnums.FactionType.NEUTRAL
 
 func generate_world_trait() -> int:
-    return game_state_manager.combat_manager.roll_dice(1, GlobalEnums.TerrainType.size()) - 1
+    return game_state_manager.combat_manager.roll_dice(1, GameEnums.TerrainType.size()) - 1
 
 func generate_strife_level() -> int:
-    return game_state_manager.combat_manager.roll_dice(1, GlobalEnums.FactionType.size()) - 1
+    return game_state_manager.combat_manager.roll_dice(1, GameEnums.FactionType.size()) - 1
 
 func generate_faction() -> int:
-    return game_state_manager.combat_manager.roll_dice(1, GlobalEnums.FactionType.size()) - 1
+    return game_state_manager.combat_manager.roll_dice(1, GameEnums.FactionType.size()) - 1
 
 func save_world(world: Location) -> void:
     generated_world[world.name] = world.serialize()
@@ -87,6 +87,6 @@ func schedule_world_invasion() -> void:
     var current_location = game_state_manager.game_state.current_location
     var _invasion_turns: int = game_state_manager.combat_manager.roll_dice(1, 3)
     if current_location:
-        current_location.update_strife_level(GlobalEnums.FactionType.HOSTILE)
+        current_location.update_strife_level(GameEnums.FactionType.HOSTILE)
     else:
         push_error("Failed to schedule invasion: Current location is null")

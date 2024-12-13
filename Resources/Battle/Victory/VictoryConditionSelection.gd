@@ -2,7 +2,7 @@
 class_name VictoryConditionSelection
 extends Resource
 
-const GlobalEnums = preload("res://Resources/GameData/GlobalEnums.gd")
+const GlobalEnums = preload("res://Resources/Core/Systems/GlobalEnums.gd")
 
 signal victory_selected(type: GlobalEnums.CampaignVictoryType, data: Dictionary)
 
@@ -13,60 +13,6 @@ const VICTORY_CATEGORIES = {
 			"type": GlobalEnums.CampaignVictoryType.WEALTH_GOAL,
 			"name": "Wealthy Crew",
 			"description": "Accumulate 5000 credits through jobs, trade, and salvage"
-		}
-	},
-	"Reputation": {
-		"REPUTATION_NOTORIOUS": {
-			"type": GlobalEnums.CampaignVictoryType.REPUTATION_GOAL,
-			"name": "Notorious Reputation",
-			"description": "Become a notorious crew through successful missions and story events"
-		}
-	},
-	"Story": {
-		"STORY_COMPLETE": {
-			"type": GlobalEnums.CampaignVictoryType.STORY_COMPLETE,
-			"name": "Story Complete",
-			"description": "Complete the main story campaign"
-		}
-	},
-	"Combat": {
-		"BLACK_ZONE_MASTER": {
-			"type": GlobalEnums.CampaignVictoryType.SURVIVAL,
-			"name": "Black Zone Master",
-			"description": "Successfully complete 3 super-hard Black Zone jobs"
-		},
-		"RED_ZONE_VETERAN": {
-			"type": GlobalEnums.CampaignVictoryType.SURVIVAL,
-			"name": "Red Zone Veteran",
-			"description": "Successfully complete 5 high-risk Red Zone jobs"
-		}
-	},
-	"Quests": {
-		"QUEST_MASTER": {
-			"type": GlobalEnums.CampaignVictoryType.SURVIVAL,
-			"name": "Quest Master",
-			"description": "Complete 10 quests"
-		}
-	},
-	"Faction": {
-		"FACTION_DOMINANCE": {
-			"type": GlobalEnums.CampaignVictoryType.FACTION_DOMINANCE,
-			"name": "Faction Dominance",
-			"description": "Become dominant in a faction"
-		}
-	},
-	"Fleet": {
-		"FLEET_COMMANDER": {
-			"type": GlobalEnums.CampaignVictoryType.SURVIVAL,
-			"name": "Fleet Commander",
-			"description": "Build up a significant fleet"
-		}
-	},
-	"Custom": {
-		"CUSTOM": {
-			"type": GlobalEnums.CampaignVictoryType.SURVIVAL,
-			"name": "Custom Victory Condition",
-			"description": "Set your own victory condition"
 		}
 	}
 }

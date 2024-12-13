@@ -1,5 +1,7 @@
 extends Control
 
+const GameManager = preload("res://Resources/Core/GameState/GameStateManager.gd")
+
 @onready var difficulty_option: OptionButton = $DifficultyOption
 @onready var tutorial_toggle: CheckButton = $TutorialToggle
 @onready var auto_save_toggle: CheckButton = $AutoSaveToggle

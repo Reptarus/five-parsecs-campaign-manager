@@ -118,7 +118,7 @@ func apply_black_zone_modifiers(mission: Mission) -> void:
 		push_error("Mission is required for black zone modifiers")
 		return
 		
-	mission.enemy_type = GlobalEnums.EnemyType.ROVING_THREATS
+	mission.enemy_type = GlobalEnums.EnemyCategory.CRIMINAL_ELEMENTS
 	mission.objective = GlobalEnums.MissionObjective.ELIMINATE
 	mission.setup_black_zone_opposition()
 

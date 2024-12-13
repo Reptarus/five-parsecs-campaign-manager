@@ -1,8 +1,8 @@
 class_name BattlePhaseController
 extends Node
 
-const GlobalEnums = preload("res://Resources/GameData/GlobalEnums.gd")
-const Character = preload("res://Resources/CrewAndCharacters/Character.gd")
+const GameEnums = preload("res://Resources/Core/Systems/GlobalEnums.gd")
+const Character = preload("res://Resources/Core/Character/Base/Character.gd")
 
 signal phase_started(phase: int)
 signal phase_ended(phase: int)
@@ -13,7 +13,7 @@ signal unit_deactivated(unit: Character)
 @export var battle_state_machine: BattleStateMachine
 @export var combat_resolver: Node
 
-var current_phase: int = GlobalEnums.BattlePhase.SETUP
+var current_phase: int = GameEnums.BattlePhase.SETUP
 var active_units: Array[Character] = []
 var current_unit: Character = null
 var action_points: Dictionary = {}
@@ -27,15 +27,15 @@ func initialize_phase(phase: int) -> void:
 	phase_started.emit(phase)
 	
 	match phase:
-		GlobalEnums.BattlePhase.SETUP:
+		GameEnums.BattlePhase.SETUP:
 			_handle_setup_phase()
-		GlobalEnums.BattlePhase.DEPLOYMENT:
+		GameEnums.BattlePhase.DEPLOYMENT:
 			_handle_deployment_phase()
-		GlobalEnums.BattlePhase.BATTLE:
+		GameEnums.BattlePhase.BATTLE:
 			_handle_battle_phase()
-		GlobalEnums.BattlePhase.RESOLUTION:
+		GameEnums.BattlePhase.RESOLUTION:
 			_handle_resolution_phase()
-		GlobalEnums.BattlePhase.CLEANUP:
+		GameEnums.BattlePhase.CLEANUP:
 			_handle_cleanup_phase()
 
 func _handle_setup_phase() -> void:

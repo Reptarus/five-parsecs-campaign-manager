@@ -1,12 +1,13 @@
 class_name CharacterInventory
 extends Resource
 
-const GlobalEnums = preload("res://Resources/GameData/GlobalEnums.gd")
+const GameEnums = preload("res://Resources/Core/Systems/GlobalEnums.gd")
+const GameWeapon = preload("res://Resources/Core/Items/Weapons/Weapon.gd")
 
 signal inventory_changed
 signal weight_changed(new_weight: float)
 
-@export var weapons: Array[Weapon] = []
+@export var weapons: Array[GameWeapon] = []
 @export var armor: Array = []  # Will be Array[Armor] once implemented
 @export var items: Array = []  # Will be Array[Item] once implemented
 @export var max_weight: float = 20.0
@@ -22,7 +23,7 @@ func _init() -> void:
 	items = []
 	_calculate_total_weight()
 
-func add_weapon(weapon: Weapon) -> bool:
+func add_weapon(weapon: GameWeapon) -> bool:
 	if not weapon:
 		push_error("Attempting to add null weapon to inventory")
 		return false
@@ -35,7 +36,7 @@ func add_weapon(weapon: Weapon) -> bool:
 	inventory_changed.emit()
 	return true
 
-func remove_weapon(weapon: Weapon) -> void:
+func remove_weapon(weapon: GameWeapon) -> void:
 	if not weapon:
 		push_error("Attempting to remove null weapon from inventory")
 		return
@@ -44,10 +45,10 @@ func remove_weapon(weapon: Weapon) -> void:
 	_calculate_total_weight()
 	inventory_changed.emit()
 
-func get_all_weapons() -> Array[Weapon]:
+func get_all_weapons() -> Array[GameWeapon]:
 	return weapons
 
-func get_weapons_by_type(type: GlobalEnums.WeaponType) -> Array[Weapon]:
+func get_weapons_by_type(type: GameEnums.WeaponType) -> Array[GameWeapon]:
 	return weapons.filter(func(w): return w.type == type)
 
 func clear_weapons() -> void:
@@ -88,7 +89,7 @@ static func deserialize(data: Dictionary) -> CharacterInventory:
 	
 	if data.has("weapons"):
 		for weapon_data in data.weapons:
-			var weapon = Weapon.create_from_profile(weapon_data)
+			var weapon = GameWeapon.create_from_profile(weapon_data)
 			inventory.add_weapon(weapon)
 	
 	if data.has("max_weight"):

@@ -1,6 +1,6 @@
 [gd_scene load_steps=2 format=3 uid="uid://bd7apjh5qndjg"]
 
-[ext_resource type="Texture2D" uid="uid://d1xllikp0o4g0" path="res://assets/PNG/Double (128px)/tag_d6_cross.png" id="1_muhbs"]
+[ext_resource type="Texture2D" uid="uid://d1xllikp0o4g0" path="res://Assets/Textures/UI/tag_d6_cross.png" id="1_muhbs"]
 
 [node name="EnemyPriorityTarget" type="Node2D"]
 

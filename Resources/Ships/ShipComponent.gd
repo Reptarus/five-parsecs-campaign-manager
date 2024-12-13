@@ -2,9 +2,11 @@
 class_name ShipComponent
 extends Resource
 
-signal component_damaged
-signal component_repaired
+const GameEnums = preload("res://Resources/Core/Systems/GlobalEnums.gd")
+
 signal component_state_changed
+signal component_repaired
+signal component_damaged
 
 @export var name: String = ""
 @export var description: String = ""

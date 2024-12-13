@@ -121,9 +121,9 @@ func _validate_basic_requirements() -> bool:
 
 func _validate_mission_specific() -> bool:
     match current_mission.mission_type:
-        GlobalEnums.Type.RESCUE:
+        GlobalEnums.MissionType.RESCUE:
             return _validate_rescue_mission()
-        GlobalEnums.Type.SABOTAGE:
+        GlobalEnums.MissionType.SABOTAGE:
             return _validate_sabotage_mission()
         _:
             return true
@@ -163,10 +163,10 @@ func _create_checkpoint_data() -> Dictionary:
     }
     
     match current_mission.mission_type:
-        GlobalEnums.Type.RESCUE:
+        GlobalEnums.MissionType.RESCUE:
             data.mission_specific["rescued_units"] = _get_rescued_units()
             data.mission_specific["extraction_reached"] = _check_extraction_point()
-        GlobalEnums.Type.SABOTAGE:
+        GlobalEnums.MissionType.SABOTAGE:
             data.mission_specific["destroyed_targets"] = _get_destroyed_targets()
             data.mission_specific["stealth_maintained"] = _check_stealth_status()
     
@@ -176,9 +176,9 @@ func _create_checkpoint_data() -> Dictionary:
 
 func _add_mission_specific_inputs() -> void:
     match current_mission.mission_type:
-        GlobalEnums.Type.RESCUE:
+        GlobalEnums.MissionType.RESCUE:
             _add_rescue_mission_inputs()
-        GlobalEnums.Type.SABOTAGE:
+        GlobalEnums.MissionType.SABOTAGE:
             _add_sabotage_mission_inputs()
 
 func _add_rescue_mission_inputs() -> void:

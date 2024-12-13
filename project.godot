@@ -17,8 +17,17 @@ config/icon="res://icon.svg"
 
 [autoload]
 
-GameStateManager="*res://StateMachines/GameStateManager.gd"
-GlobalEnums="*res://Resources/GameData/GlobalEnums.gd"
+GameStateManager="*res://Resources/Core/GameState/GameStateManager.gd"
+GlobalEnums="*res://Resources/Core/Systems/GlobalEnums.gd"
+
+[debug]
+
+settings/stdout/print_fps=true
+settings/stdout/verbose_stdout=true
+gdscript/warnings/unused_variable=true
+gdscript/warnings/unused_signal=true
+gdscript/warnings/return_value_discarded=true
+shapes/collision/shape_color=Color(0, 0.6, 0.7, 0.3)
 
 [display]
 

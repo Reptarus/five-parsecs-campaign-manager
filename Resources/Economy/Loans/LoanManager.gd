@@ -9,8 +9,8 @@ const BASE_INTEREST_RATE := 0.1
 const LATE_PAYMENT_PENALTY := 0.2
 const MAX_LOAN_AMOUNT := 50000
 
-const GlobalEnums = preload("res://Resources/GameData/GlobalEnums.gd")
-const GameState = preload("res://Resources/GameData/GameState.gd")
+const GameEnums = preload("res://Resources/Core/Systems/GlobalEnums.gd")
+const GameState = preload("res://Resources/Core/GameState/GameState.gd")
 
 var game_state: GameState
 var active_loans: Array[Dictionary] = []

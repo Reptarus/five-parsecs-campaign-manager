@@ -1,7 +1,7 @@
-[gd_scene load_steps=4 format=3 uid="uid://dxxx"]
+[gd_scene load_steps=3 format=3 uid="uid://fai4eundogs5"]
 
-[ext_resource type="Script" path="res://Resources/CrewAndCharacters/CharacterCreator.gd" id="1"]
-[ext_resource type="PackedScene" uid="uid://xxxx" path="res://Resources/CrewAndCharacters/Scenes/CharacterBox.tscn" id="2"]
+[ext_resource type="Script" path="res://Resources/Core/Character/Generation/CharacterCreator.gd" id="1_aqxvr"]
+[ext_resource type="Theme" uid="uid://ddjoduj1ya6tp" path="res://assets/5PFH.tres" id="1_etehf"]
 
 [node name="CharacterCreator" type="Control"]
 layout_mode = 3
@@ -10,104 +10,331 @@ anchor_right = 1.0
 anchor_bottom = 1.0
 grow_horizontal = 2
 grow_vertical = 2
-script = ExtResource("1")
+theme = ExtResource("1_etehf")
+script = ExtResource("1_aqxvr")
 
-[node name="MainContainer" type="HBoxContainer" parent="."]
+[node name="MainPanel" type="PanelContainer" parent="."]
 layout_mode = 1
 anchors_preset = 15
 anchor_right = 1.0
 anchor_bottom = 1.0
 grow_horizontal = 2
 grow_vertical = 2
+
+[node name="MarginContainer" type="MarginContainer" parent="MainPanel"]
+layout_mode = 2
+theme_override_constants/margin_left = 20
+theme_override_constants/margin_top = 20
+theme_override_constants/margin_right = 20
+theme_override_constants/margin_bottom = 20
+
+[node name="HBoxContainer" type="HBoxContainer" parent="MainPanel/MarginContainer"]
+layout_mode = 2
 theme_override_constants/separation = 20
 
-[node name="LeftPanel" type="PanelContainer" parent="MainContainer"]
+[node name="CreationPanel" type="VBoxContainer" parent="MainPanel/MarginContainer/HBoxContainer"]
 layout_mode = 2
 size_flags_horizontal = 3
 
-[node name="VBoxContainer" type="VBoxContainer" parent="MainContainer/LeftPanel"]
+[node name="NameSection" type="VBoxContainer" parent="MainPanel/MarginContainer/HBoxContainer/CreationPanel"]
+layout_mode = 2
+
+[node name="Label" type="Label" parent="MainPanel/MarginContainer/HBoxContainer/CreationPanel/NameSection"]
+layout_mode = 2
+text = "Name"
+
+[node name="NameInput" type="LineEdit" parent="MainPanel/MarginContainer/HBoxContainer/CreationPanel/NameSection"]
+unique_name_in_owner = true
+layout_mode = 2
+placeholder_text = "Enter character name..."
+
+[node name="HSeparator" type="HSeparator" parent="MainPanel/MarginContainer/HBoxContainer/CreationPanel"]
+layout_mode = 2
+theme_override_constants/separation = 20
+
+[node name="OriginSection" type="VBoxContainer" parent="MainPanel/MarginContainer/HBoxContainer/CreationPanel"]
+layout_mode = 2
+
+[node name="Label" type="Label" parent="MainPanel/MarginContainer/HBoxContainer/CreationPanel/OriginSection"]
+layout_mode = 2
+text = "Origin"
+
+[node name="OriginOptions" type="OptionButton" parent="MainPanel/MarginContainer/HBoxContainer/CreationPanel/OriginSection"]
+unique_name_in_owner = true
+layout_mode = 2
+selected = 0
+item_count = 8
+popup/item_0/text = "Human"
+popup/item_1/text = "Engineer"
+popup/item_1/id = 1
+popup/item_2/text = "Kerin"
+popup/item_2/id = 2
+popup/item_3/text = "Soulless"
+popup/item_3/id = 3
+popup/item_4/text = "Precursor"
+popup/item_4/id = 4
+popup/item_5/text = "Feral"
+popup/item_5/id = 5
+popup/item_6/text = "Swift"
+popup/item_6/id = 6
+popup/item_7/text = "Bot"
+popup/item_7/id = 7
+
+[node name="HSeparator2" type="HSeparator" parent="MainPanel/MarginContainer/HBoxContainer/CreationPanel"]
+layout_mode = 2
+theme_override_constants/separation = 20
+
+[node name="BackgroundSection" type="VBoxContainer" parent="MainPanel/MarginContainer/HBoxContainer/CreationPanel"]
+layout_mode = 2
+
+[node name="Label" type="Label" parent="MainPanel/MarginContainer/HBoxContainer/CreationPanel/BackgroundSection"]
+layout_mode = 2
+text = "Background"
+
+[node name="BackgroundOptions" type="OptionButton" parent="MainPanel/MarginContainer/HBoxContainer/CreationPanel/BackgroundSection"]
+unique_name_in_owner = true
+layout_mode = 2
+selected = 0
+item_count = 25
+popup/item_0/text = "Peaceful High Tech Colony"
+popup/item_1/text = "Giant Overcrowded Dystopian City"
+popup/item_1/id = 1
+popup/item_2/text = "Low Tech Colony"
+popup/item_2/id = 2
+popup/item_3/text = "Mining Colony"
+popup/item_3/id = 3
+popup/item_4/text = "Military Brat"
+popup/item_4/id = 4
+popup/item_5/text = "Space Station"
+popup/item_5/id = 5
+popup/item_6/text = "Military Outpost"
+popup/item_6/id = 6
+popup/item_7/text = "Drifter"
+popup/item_7/id = 7
+popup/item_8/text = "Lower Megacity Class"
+popup/item_8/id = 8
+popup/item_9/text = "Wealthy Merchant Family"
+popup/item_9/id = 9
+popup/item_10/text = "Frontier Gang"
+popup/item_10/id = 10
+popup/item_11/text = "Religious Cult"
+popup/item_11/id = 11
+popup/item_12/text = "War Torn Hell Hole"
+popup/item_12/id = 12
+popup/item_13/text = "Tech Guild"
+popup/item_13/id = 13
+popup/item_14/text = "Subjugated Colony"
+popup/item_14/id = 14
+popup/item_15/text = "Long Term Space Mission"
+popup/item_15/id = 15
+popup/item_16/text = "Research Outpost"
+popup/item_16/id = 16
+popup/item_17/text = "Primitive World"
+popup/item_17/id = 17
+popup/item_18/text = "Orphan Utility Program"
+popup/item_18/id = 18
+popup/item_19/text = "Isolationist Enclave"
+popup/item_19/id = 19
+popup/item_20/text = "Comfortable Megacity Class"
+popup/item_20/id = 20
+popup/item_21/text = "Industrial World"
+popup/item_21/id = 21
+popup/item_22/text = "Bureaucrat"
+popup/item_22/id = 22
+popup/item_23/text = "Wasteland Nomads"
+popup/item_23/id = 23
+popup/item_24/text = "Alien Culture"
+popup/item_24/id = 24
+
+[node name="HSeparator3" type="HSeparator" parent="MainPanel/MarginContainer/HBoxContainer/CreationPanel"]
+layout_mode = 2
+theme_override_constants/separation = 20
+
+[node name="ClassSection" type="VBoxContainer" parent="MainPanel/MarginContainer/HBoxContainer/CreationPanel"]
+layout_mode = 2
+
+[node name="Label" type="Label" parent="MainPanel/MarginContainer/HBoxContainer/CreationPanel/ClassSection"]
+layout_mode = 2
+text = "Class"
+
+[node name="ClassOptions" type="OptionButton" parent="MainPanel/MarginContainer/HBoxContainer/CreationPanel/ClassSection"]
+unique_name_in_owner = true
+layout_mode = 2
+selected = 0
+item_count = 23
+popup/item_0/text = "Working Class"
+popup/item_1/text = "Technician"
+popup/item_1/id = 1
+popup/item_2/text = "Scientist"
+popup/item_2/id = 2
+popup/item_3/text = "Hacker"
+popup/item_3/id = 3
+popup/item_4/text = "Soldier"
+popup/item_4/id = 4
+popup/item_5/text = "Mercenary"
+popup/item_5/id = 5
+popup/item_6/text = "Agitator"
+popup/item_6/id = 6
+popup/item_7/text = "Primitive"
+popup/item_7/id = 7
+popup/item_8/text = "Artist"
+popup/item_8/id = 8
+popup/item_9/text = "Negotiator"
+popup/item_9/id = 9
+popup/item_10/text = "Trader"
+popup/item_10/id = 10
+popup/item_11/text = "Starship Crew"
+popup/item_11/id = 11
+popup/item_12/text = "Petty Criminal"
+popup/item_12/id = 12
+popup/item_13/text = "Ganger"
+popup/item_13/id = 13
+popup/item_14/text = "Scoundrel"
+popup/item_14/id = 14
+popup/item_15/text = "Enforcer"
+popup/item_15/id = 15
+popup/item_16/text = "Special Agent"
+popup/item_16/id = 16
+popup/item_17/text = "Troubleshooter"
+popup/item_17/id = 17
+popup/item_18/text = "Bounty Hunter"
+popup/item_18/id = 18
+popup/item_19/text = "Nomad"
+popup/item_19/id = 19
+popup/item_20/text = "Explorer"
+popup/item_20/id = 20
+popup/item_21/text = "Punk"
+popup/item_21/id = 21
+popup/item_22/text = "Scavenger"
+popup/item_22/id = 22
+
+[node name="HSeparator4" type="HSeparator" parent="MainPanel/MarginContainer/HBoxContainer/CreationPanel"]
+layout_mode = 2
+theme_override_constants/separation = 20
+
+[node name="MotivationSection" type="VBoxContainer" parent="MainPanel/MarginContainer/HBoxContainer/CreationPanel"]
+layout_mode = 2
+
+[node name="Label" type="Label" parent="MainPanel/MarginContainer/HBoxContainer/CreationPanel/MotivationSection"]
+layout_mode = 2
+text = "Motivation"
+
+[node name="MotivationOptions" type="OptionButton" parent="MainPanel/MarginContainer/HBoxContainer/CreationPanel/MotivationSection"]
+unique_name_in_owner = true
+layout_mode = 2
+selected = 0
+item_count = 17
+popup/item_0/text = "Wealth"
+popup/item_1/text = "Fame"
+popup/item_1/id = 1
+popup/item_2/text = "Glory"
+popup/item_2/id = 2
+popup/item_3/text = "Survival"
+popup/item_3/id = 3
+popup/item_4/text = "Escape"
+popup/item_4/id = 4
+popup/item_5/text = "Adventure"
+popup/item_5/id = 5
+popup/item_6/text = "Truth"
+popup/item_6/id = 6
+popup/item_7/text = "Technology"
+popup/item_7/id = 7
+popup/item_8/text = "Discovery"
+popup/item_8/id = 8
+popup/item_9/text = "Loyalty"
+popup/item_9/id = 9
+popup/item_10/text = "Revenge"
+popup/item_10/id = 10
+popup/item_11/text = "Romance"
+popup/item_11/id = 11
+popup/item_12/text = "Faith"
+popup/item_12/id = 12
+popup/item_13/text = "Political"
+popup/item_13/id = 13
+popup/item_14/text = "Power"
+popup/item_14/id = 14
+popup/item_15/text = "Order"
+popup/item_15/id = 15
+popup/item_16/text = "Freedom"
+popup/item_16/id = 16
+
+[node name="HSeparator5" type="HSeparator" parent="MainPanel/MarginContainer/HBoxContainer/CreationPanel"]
+layout_mode = 2
+theme_override_constants/separation = 20
+
+[node name="ButtonSection" type="HBoxContainer" parent="MainPanel/MarginContainer/HBoxContainer/CreationPanel"]
 layout_mode = 2
 theme_override_constants/separation = 10
 
-[node name="BasicInfoSection" type="VBoxContainer" parent="MainContainer/LeftPanel/VBoxContainer"]
-layout_mode = 2
-
-[node name="SectionTitle" type="Label" parent="MainContainer/LeftPanel/VBoxContainer/BasicInfoSection"]
-layout_mode = 2
-text = "Basic Information"
-
-[node name="NameLabel" type="Label" parent="MainContainer/LeftPanel/VBoxContainer/BasicInfoSection"]
-layout_mode = 2
-text = "Name:"
-
-[node name="NameInput" type="LineEdit" parent="MainContainer/LeftPanel/VBoxContainer/BasicInfoSection"]
-layout_mode = 2
-placeholder_text = "Enter character name"
-
-[node name="BackgroundLabel" type="Label" parent="MainContainer/LeftPanel/VBoxContainer/BasicInfoSection"]
-layout_mode = 2
-text = "Background:"
-
-[node name="BackgroundOption" type="OptionButton" parent="MainContainer/LeftPanel/VBoxContainer/BasicInfoSection"]
-layout_mode = 2
-
-[node name="ClassLabel" type="Label" parent="MainContainer/LeftPanel/VBoxContainer/BasicInfoSection"]
-layout_mode = 2
-text = "Class:"
-
-[node name="ClassOption" type="OptionButton" parent="MainContainer/LeftPanel/VBoxContainer/BasicInfoSection"]
-layout_mode = 2
-
-[node name="MotivationLabel" type="Label" parent="MainContainer/LeftPanel/VBoxContainer/BasicInfoSection"]
-layout_mode = 2
-text = "Motivation:"
-
-[node name="MotivationOption" type="OptionButton" parent="MainContainer/LeftPanel/VBoxContainer/BasicInfoSection"]
-layout_mode = 2
-
-[node name="StatsSection" type="VBoxContainer" parent="MainContainer/LeftPanel/VBoxContainer"]
-layout_mode = 2
-
-[node name="SectionTitle" type="Label" parent="MainContainer/LeftPanel/VBoxContainer/StatsSection"]
-layout_mode = 2
-text = "Character Stats"
-
-[node name="StatsGrid" type="GridContainer" parent="MainContainer/LeftPanel/VBoxContainer/StatsSection"]
-layout_mode = 2
-columns = 2
-
-[node name="RightPanel" type="PanelContainer" parent="MainContainer"]
-layout_mode = 2
-size_flags_horizontal = 3
-
-[node name="VBoxContainer" type="VBoxContainer" parent="MainContainer/RightPanel"]
-layout_mode = 2
-theme_override_constants/separation = 10
-
-[node name="PreviewTitle" type="Label" parent="MainContainer/RightPanel/VBoxContainer"]
-layout_mode = 2
-text = "Character Preview"
-
-[node name="CharacterBox" parent="MainContainer/RightPanel/VBoxContainer" instance=ExtResource("2")]
-layout_mode = 2
-
-[node name="PreviewInfo" type="RichTextLabel" parent="MainContainer/RightPanel/VBoxContainer"]
-layout_mode = 2
-size_flags_vertical = 3
-bbcode_enabled = true
-
-[node name="ButtonContainer" type="HBoxContainer" parent="MainContainer/RightPanel/VBoxContainer"]
-layout_mode = 2
-alignment = 1
-
-[node name="RandomizeButton" type="Button" parent="MainContainer/RightPanel/VBoxContainer/ButtonContainer"]
+[node name="RandomizeButton" type="Button" parent="MainPanel/MarginContainer/HBoxContainer/CreationPanel/ButtonSection"]
+unique_name_in_owner = true
 layout_mode = 2
 text = "Randomize"
 
-[node name="ConfirmButton" type="Button" parent="MainContainer/RightPanel/VBoxContainer/ButtonContainer"]
+[node name="ClearButton" type="Button" parent="MainPanel/MarginContainer/HBoxContainer/CreationPanel/ButtonSection"]
+unique_name_in_owner = true
 layout_mode = 2
-text = "Confirm"
+text = "Clear"
 
-[node name="CancelButton" type="Button" parent="MainContainer/RightPanel/VBoxContainer/ButtonContainer"]
+[node name="AddToCrewButton" type="Button" parent="MainPanel/MarginContainer/HBoxContainer/CreationPanel/ButtonSection"]
+unique_name_in_owner = true
 layout_mode = 2
-text = "Cancel" 
+disabled = true
+text = "Add to Crew"
+
+[node name="BackButton" type="Button" parent="MainPanel/MarginContainer/HBoxContainer/CreationPanel/ButtonSection"]
+unique_name_in_owner = true
+layout_mode = 2
+text = "Back"
+
+[node name="PreviewPanel" type="VBoxContainer" parent="MainPanel/MarginContainer/HBoxContainer"]
+layout_mode = 2
+size_flags_horizontal = 3
+
+[node name="Label" type="Label" parent="MainPanel/MarginContainer/HBoxContainer/PreviewPanel"]
+layout_mode = 2
+text = "Preview"
+
+[node name="PreviewInfo" type="RichTextLabel" parent="MainPanel/MarginContainer/HBoxContainer/PreviewPanel"]
+unique_name_in_owner = true
+layout_mode = 2
+size_flags_vertical = 3
+bbcode_enabled = true
+text = "[center][bgcolor=black][img=100x100]res://assets/BookImages/portrait_02.png[/img][/bgcolor]
+[url=select_portrait]Select Portrait[/url][/center]
+
+[color=lime]Name:[/color] 
+
+[color=lime]Origin:[/color] Human
+[color=#666666]Baseline humans are plain, ordinary people distributed across thousands of worlds, cultures and environments. Their appearance, customs and outlook on life can vary tremendously.[/color]
+
+[color=lime]Background:[/color] 
+
+[color=lime]Class:[/color] Soldier
+
+[color=lime]Motivation:[/color] 
+
+[color=lime]Stats:[/color]
+[color=yellow]Reactions:[/color] 1
+[color=yellow]Speed:[/color] 4\"
+[color=yellow]Combat Skill:[/color] +0
+[color=yellow]Toughness:[/color] 3
+[color=yellow]Savvy:[/color] +0
+[color=yellow]Luck:[/color] 0
+
+[color=lime]Equipment:[/color]
+[color=#666666]No weapon equipped[/color]
+
+[color=lime]Resources:[/color]
+[color=yellow]Credits:[/color] 0
+[color=yellow]Story Points:[/color] 0
+[color=yellow]Experience:[/color] 0"
+
+[node name="PortraitDialog" type="FileDialog" parent="."]
+unique_name_in_owner = true
+title = "Open a File"
+size = Vector2i(312, 175)
+ok_button_text = "Open"
+file_mode = 0
+access = 2
+filters = PackedStringArray("*.png", "*.jpg", "*.jpeg")

@@ -210,8 +210,8 @@ func _get_max_slots_for_type(item_type: int) -> int:
 			return 1  # Single armor piece
 		GlobalEnums.ItemType.TOOL:
 			return 3  # Multiple tools allowed
-		GlobalEnums.ItemType.DEVICE:
-			return 2  # Two device slots
+		GlobalEnums.ItemType.SPECIAL:
+			return 2  # Two special slots
 		GlobalEnums.ItemType.CONSUMABLE:
 			return 4  # Multiple consumables
 		GlobalEnums.ItemType.GEAR:

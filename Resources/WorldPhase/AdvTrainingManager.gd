@@ -2,9 +2,9 @@
 class_name AdvancedTrainingManager
 extends Node
 
-const GlobalEnums = preload("res://Resources/GameData/GlobalEnums.gd")
-const Character = preload("res://Resources/CrewAndCharacters/Character.gd")
-const GameState = preload("res://Resources/GameData/GameState.gd")
+const GameEnums = preload("res://Resources/Core/Systems/GlobalEnums.gd")
+const Character = preload("res://Resources/Core/Character/Base/Character.gd")
+const GameState = preload("res://Resources/Core/GameState/GameState.gd")
 
 signal training_completed(character: Character, course: int)  # GlobalEnums.AdvancedTrainingCourse
 signal training_failed(character: Character, course: int)  # GlobalEnums.AdvancedTrainingCourse
@@ -15,29 +15,29 @@ func _init(_game_state: GameState) -> void:
 	game_state = _game_state
 
 var ADVANCED_TRAINING_COURSES := {
-	GlobalEnums.AdvancedTrainingCourse.PILOT_TRAINING: {
+	GameEnums.AdvancedTrainingCourse.PILOT_TRAINING: {
 		"cost": 20,
-		"skill": GlobalEnums.SkillType.TECHNICAL,
+		"skill": GameEnums.SkillType.TECHNICAL,
 		"prerequisites": []
 	},
-	GlobalEnums.AdvancedTrainingCourse.COMBAT_SPECIALIST: {
+	GameEnums.AdvancedTrainingCourse.COMBAT_SPECIALIST: {
 		"cost": 15,
-		"skill": GlobalEnums.SkillType.COMBAT,
+		"skill": GameEnums.SkillType.COMBAT,
 		"prerequisites": []
 	},
-	GlobalEnums.AdvancedTrainingCourse.TECH_EXPERT: {
+	GameEnums.AdvancedTrainingCourse.TECH_EXPERT: {
 		"cost": 15,
-		"skill": GlobalEnums.SkillType.TECHNICAL,
+		"skill": GameEnums.SkillType.TECHNICAL,
 		"prerequisites": []
 	},
-	GlobalEnums.AdvancedTrainingCourse.SURVIVAL_EXPERT: {
+	GameEnums.AdvancedTrainingCourse.SURVIVAL_EXPERT: {
 		"cost": 15,
-		"skill": GlobalEnums.SkillType.SURVIVAL,
+		"skill": GameEnums.SkillType.SURVIVAL,
 		"prerequisites": []
 	},
-	GlobalEnums.AdvancedTrainingCourse.LEADERSHIP: {
+	GameEnums.AdvancedTrainingCourse.LEADERSHIP: {
 		"cost": 25,
-		"skill": GlobalEnums.SkillType.LEADERSHIP,
+		"skill": GameEnums.SkillType.LEADERSHIP,
 		"prerequisites": []
 	}
 }

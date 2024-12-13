@@ -1,0 +1,5 @@
+# Add to existing scene, after the CharacterPanel node
+[node name="RelationshipsPanel" parent="MainLayout" instance=ExtResource("crew_relationships_panel")]
+layout_mode = 2
+size_flags_horizontal = 3
+size_flags_vertical = 3 

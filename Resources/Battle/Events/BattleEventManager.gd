@@ -4,7 +4,7 @@ extends Node
 signal event_triggered(event: Dictionary)
 signal event_resolved(event: Dictionary, results: Dictionary)
 
-const BattleEventTypes = preload("res://Resources/BattlePhase/BattleEventTypes.gd")
+const BattleEventTypes = preload("res://Resources/Battle/Events/BattleEventTypes.gd")
 
 var active_events: Array[Dictionary] = []
 var event_history: Array[Dictionary] = []

@@ -1,7 +1,7 @@
 extends Control
 
-const GlobalEnums = preload("res://Resources/GameData/GlobalEnums.gd")
-const GameState = preload("res://Resources/GameData/GameState.gd")
+const GameEnums = preload("res://Resources/Core/Systems/GlobalEnums.gd")
+const GameState = preload("res://Resources/Core/GameState/GameState.gd")
 
 @onready var phase_label = $MarginContainer/VBoxContainer/HeaderPanel/HBoxContainer/PhaseLabel
 @onready var credits_label = $MarginContainer/VBoxContainer/HeaderPanel/HBoxContainer/CreditsLabel
@@ -117,7 +117,7 @@ func _update_display() -> void:
 		_populate_test_data()
 		return
 		
-	phase_label.text = "Current Phase: %s" % GlobalEnums.CampaignPhase.keys()[game_state.current_phase]
+	phase_label.text = "Current Phase: %s" % GameEnums.CampaignPhase.keys()[game_state.current_phase]
 	credits_label.text = "Credits: %d" % game_state.credits
 	story_points_label.text = "Story Points: %d" % game_state.story_points
 	

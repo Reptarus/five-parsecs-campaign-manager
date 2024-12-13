@@ -6,7 +6,9 @@ const ELITE_TOUGHNESS_BONUS: int = 1
 const ELITE_COMBAT_SKILL_BONUS: int = 1
 const ELITE_PANIC_REDUCTION: int = 1
 
-const GlobalEnums = preload("res://Resources/GameData/GlobalEnums.gd")
+const GameEnums = preload("res://Resources/Core/Systems/GlobalEnums.gd")
+const EnemyData = preload("../RivalAndPatrons/EnemyData.gd")
+const Equipment = preload("res://Resources/Core/Character/Equipment/Equipment.gd")
 
 var game_state: GameState
 
@@ -32,33 +34,35 @@ func generate_elite_enemy(enemy_type: String) -> Dictionary:
 	
 	return _apply_elite_modifications(elite_enemy)
 
-func _reduce_panic(panic: String) -> String:
-	var panic_values := panic.split("-")
-	if panic_values.size() == 2:
-		var lower := int(panic_values[0])
-		var upper := int(panic_values[1])
-		upper = maxi(lower, upper - ELITE_PANIC_REDUCTION)
-		return "%d-%d" % [lower, upper]
-	elif panic_values.size() == 1:
-		return str(maxi(0, int(panic_values[0]) - ELITE_PANIC_REDUCTION))
+func _reduce_panic(panic_value: String) -> String:
+	if "-" in panic_value:
+		var parts = panic_value.split("-")
+		var min_panic = int(parts[0])
+		var max_panic = int(parts[1])
+		max_panic = maxi(max_panic - ELITE_PANIC_REDUCTION, min_panic)
+		return "%d-%d" % [min_panic, max_panic]
 	else:
-		return panic  # Return original if format is unexpected
+		var panic = int(panic_value)
+		return str(maxi(panic - ELITE_PANIC_REDUCTION, 0))
 
 func _apply_elite_modifications(enemy: Dictionary) -> Dictionary:
-	var roll := randf()
+	var modifications = [
+		"apply_elite_weaponry",
+		"_apply_elite_armor",
+		"_apply_elite_skills",
+		"_apply_elite_ability",
+		"_apply_elite_leadership"
+	]
 	
-	if roll <= 0.2:
-		enemy = apply_elite_weaponry(enemy)
-	elif roll <= 0.4:
-		enemy = _apply_elite_armor(enemy)
-	elif roll <= 0.6:
-		enemy = _apply_elite_skills(enemy)
-	elif roll <= 0.8:
-		enemy = _apply_elite_ability(enemy)
-	else:
-		enemy = _apply_elite_leadership(enemy)
+	var num_mods = randi() % 2 + 1  # Apply 1-2 random modifications
+	modifications.shuffle()
 	
-	return enemy
+	var modified_enemy = enemy
+	for i in range(num_mods):
+		var method = modifications[i]
+		modified_enemy = call(method, modified_enemy)
+	
+	return modified_enemy
 
 func apply_elite_weaponry(enemy: Dictionary) -> Dictionary:
 	var new_enemy := enemy.duplicate(true)
@@ -97,16 +101,16 @@ func _apply_elite_skills(enemy: Dictionary) -> Dictionary:
 
 func _apply_elite_ability(enemy: Dictionary) -> Dictionary:
 	var new_enemy := enemy.duplicate(true)
-	var ability: int = randi() % GlobalEnums.PsionicAbility.size()
+	var ability: int = randi() % GameEnums.PsionicAbility.size()
 	
 	match ability:
-		GlobalEnums.PsionicAbility.TELEPATHY:
+		GameEnums.PsionicAbility.TELEPATHY:
 			new_enemy.special_rules.append("Mind Reading: Can detect enemy intentions at start of each round.")
-		GlobalEnums.PsionicAbility.TELEKINESIS:
+		GameEnums.PsionicAbility.TELEKINESIS:
 			new_enemy.special_rules.append("Telekinetic: Can move objects and enemies at range.")
-		GlobalEnums.PsionicAbility.BARRIER:
+		GameEnums.PsionicAbility.BARRIER:
 			new_enemy.special_rules.append("Energy Shield: The first hit each round is automatically negated.")
-		GlobalEnums.PsionicAbility.PYROKINESIS:
+		GameEnums.PsionicAbility.PYROKINESIS:
 			new_enemy.special_rules.append("Pyrokinetic: Gains fire-based attacks.")
 		_:
 			new_enemy.special_rules.append("Enhanced: This enemy has mysterious powers.")
@@ -128,25 +132,26 @@ func get_elite_enemy_reward(_enemy: Dictionary) -> Dictionary:
 	}
 
 func _generate_random_item() -> Equipment:
-	var item_types: Array[GlobalEnums.ItemType] = [
-		GlobalEnums.ItemType.WEAPON,
-		GlobalEnums.ItemType.ARMOR,
-		GlobalEnums.ItemType.GEAR,
-		GlobalEnums.ItemType.CONSUMABLE
+	var item_types = [
+		GameEnums.ItemType.WEAPON,
+		GameEnums.ItemType.ARMOR,
+		GameEnums.ItemType.GEAR,
+		GameEnums.ItemType.CONSUMABLE
 	]
-	var random_type: GlobalEnums.ItemType = item_types[randi() % item_types.size()]
+	var random_type: int = item_types[randi() % item_types.size()]
 	
 	match random_type:
-		GlobalEnums.ItemType.WEAPON:
+		GameEnums.ItemType.WEAPON:
 			return _generate_random_weapon()
-		GlobalEnums.ItemType.ARMOR:
+		GameEnums.ItemType.ARMOR:
 			return _generate_random_armor()
-		GlobalEnums.ItemType.GEAR:
+		GameEnums.ItemType.GEAR:
 			return _generate_random_gear()
-		GlobalEnums.ItemType.CONSUMABLE:
+		GameEnums.ItemType.CONSUMABLE:
 			return _generate_random_consumable()
-	
-	return null  # This should never happen, but satisfies the compiler
+		_:
+			push_error("Invalid item type")
+			return null
 
 func _generate_random_weapon() -> Equipment:
 	var weapons = [
@@ -159,7 +164,7 @@ func _generate_random_weapon() -> Equipment:
 	var weapon = weapons[randi() % weapons.size()]
 	var equipment = Equipment.new()
 	equipment.name = weapon.name
-	equipment.type = GlobalEnums.ItemType.WEAPON
+	equipment.type = GameEnums.ItemType.WEAPON
 	equipment.stats = {
 		"range": weapon.range,
 		"shots": weapon.shots,
@@ -177,36 +182,35 @@ func _generate_random_armor() -> Equipment:
 	var armor = armors[randi() % armors.size()]
 	var equipment = Equipment.new()
 	equipment.name = armor.name
-	equipment.type = GlobalEnums.ItemType.ARMOR
+	equipment.type = GameEnums.ItemType.ARMOR
 	equipment.stats = {
 		"toughness_bonus": armor.toughness_bonus
 	}
 	return equipment
 
 func _generate_random_gear() -> Equipment:
-	var gears = [
-		"Medkit",
-		"Grappling hook",
-		"Binoculars",
-		"Comms unit",
-		"Toolkit"
-	]
-	var gear_name = gears[randi() % gears.size()]
 	var equipment = Equipment.new()
-	equipment.name = gear_name
-	equipment.type = GlobalEnums.ItemType.GEAR
+	equipment.name = _generate_gear_name()
+	equipment.type = GameEnums.ItemType.GEAR
 	return equipment
 
-func _generate_random_consumable() -> Equipment:
-	var consumables = [
-		"Stim pack",
-		"Grenade",
-		"Repair kit",
-		"Antidote",
-		"Energy cell"
+func _generate_gear_name() -> String:
+	var gear_names = [
+		"Medkit",
+		"Grappling Hook",
+		"Binoculars",
+		"Comms Unit",
+		"Toolkit",
+		"Scanner",
+		"Repair Kit",
+		"Survival Pack",
+		"Hacking Device",
+		"Shield Generator"
 	]
-	var consumable_name = consumables[randi() % consumables.size()]
+	return gear_names[randi() % gear_names.size()]
+
+func _generate_random_consumable() -> Equipment:
 	var equipment = Equipment.new()
-	equipment.name = consumable_name
-	equipment.type = GlobalEnums.ItemType.CONSUMABLE
+	equipment.name = "Consumable Item"
+	equipment.type = GameEnums.ItemType.CONSUMABLE
 	return equipment

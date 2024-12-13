@@ -1,7 +1,7 @@
 class_name VictoryDescriptions
 extends Resource
 
-const GlobalEnums = preload("res://Resources/GameData/GlobalEnums.gd")
+const GlobalEnums = preload("res://Resources/Core/Systems/GlobalEnums.gd")
 
 const DESCRIPTIONS = {
 	GlobalEnums.CampaignVictoryType.WEALTH_GOAL: "Accumulate 5000 credits through jobs, trade, and salvage.",

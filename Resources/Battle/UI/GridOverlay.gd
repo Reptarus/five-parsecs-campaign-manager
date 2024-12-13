@@ -35,10 +35,10 @@ func _draw() -> void:
 
 	# Draw selected cell highlight
 	if selected_cell != Vector2i(-1, -1):
-		var rect = Rect2(selected_cell * cell_size, cell_size)
+		var rect = Rect2(Vector2(selected_cell) * cell_size, cell_size)
 		draw_rect(rect, SELECTED_COLOR)
 
 	# Draw hover cell highlight
 	if hover_cell != Vector2i(-1, -1):
-		var rect = Rect2(hover_cell * cell_size, cell_size)
+		var rect = Rect2(Vector2(hover_cell) * cell_size, cell_size)
 		draw_rect(rect, HOVER_COLOR) 

@@ -50,39 +50,57 @@ layout_mode = 2
 layout_mode = 2
 columns = 2
 
-[node name="CombatLabel" type="Label" parent="MarginContainer/HBoxContainer/InfoContainer/StatsContainer"]
+[node name="ReactionsLabel" type="Label" parent="MarginContainer/HBoxContainer/InfoContainer/StatsContainer"]
 layout_mode = 2
 size_flags_horizontal = 3
-text = "Combat:"
+text = "Reactions:"
 
-[node name="CombatValue" type="Label" parent="MarginContainer/HBoxContainer/InfoContainer/StatsContainer"]
+[node name="ReactionsValue" type="Label" parent="MarginContainer/HBoxContainer/InfoContainer/StatsContainer"]
 layout_mode = 2
 text = "0"
 
-[node name="TechnicalLabel" type="Label" parent="MarginContainer/HBoxContainer/InfoContainer/StatsContainer"]
+[node name="SpeedLabel" type="Label" parent="MarginContainer/HBoxContainer/InfoContainer/StatsContainer"]
 layout_mode = 2
 size_flags_horizontal = 3
-text = "Technical:"
+text = "Speed:"
 
-[node name="TechnicalValue" type="Label" parent="MarginContainer/HBoxContainer/InfoContainer/StatsContainer"]
+[node name="SpeedValue" type="Label" parent="MarginContainer/HBoxContainer/InfoContainer/StatsContainer"]
 layout_mode = 2
 text = "0"
 
-[node name="SocialLabel" type="Label" parent="MarginContainer/HBoxContainer/InfoContainer/StatsContainer"]
+[node name="CombatSkillLabel" type="Label" parent="MarginContainer/HBoxContainer/InfoContainer/StatsContainer"]
 layout_mode = 2
 size_flags_horizontal = 3
-text = "Social:"
+text = "Combat Skill:"
 
-[node name="SocialValue" type="Label" parent="MarginContainer/HBoxContainer/InfoContainer/StatsContainer"]
+[node name="CombatSkillValue" type="Label" parent="MarginContainer/HBoxContainer/InfoContainer/StatsContainer"]
 layout_mode = 2
 text = "0"
 
-[node name="SurvivalLabel" type="Label" parent="MarginContainer/HBoxContainer/InfoContainer/StatsContainer"]
+[node name="ToughnessLabel" type="Label" parent="MarginContainer/HBoxContainer/InfoContainer/StatsContainer"]
 layout_mode = 2
 size_flags_horizontal = 3
-text = "Survival:"
+text = "Toughness:"
 
-[node name="SurvivalValue" type="Label" parent="MarginContainer/HBoxContainer/InfoContainer/StatsContainer"]
+[node name="ToughnessValue" type="Label" parent="MarginContainer/HBoxContainer/InfoContainer/StatsContainer"]
+layout_mode = 2
+text = "0"
+
+[node name="SavvyLabel" type="Label" parent="MarginContainer/HBoxContainer/InfoContainer/StatsContainer"]
+layout_mode = 2
+size_flags_horizontal = 3
+text = "Savvy:"
+
+[node name="SavvyValue" type="Label" parent="MarginContainer/HBoxContainer/InfoContainer/StatsContainer"]
+layout_mode = 2
+text = "0"
+
+[node name="LuckLabel" type="Label" parent="MarginContainer/HBoxContainer/InfoContainer/StatsContainer"]
+layout_mode = 2
+size_flags_horizontal = 3
+text = "Luck:"
+
+[node name="LuckValue" type="Label" parent="MarginContainer/HBoxContainer/InfoContainer/StatsContainer"]
 layout_mode = 2
 text = "0"
 

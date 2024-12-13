@@ -1,24 +1,45 @@
 # UIManager.gd
 extends Node
 
-const GlobalEnums = preload("res://Resources/GameData/GlobalEnums.gd")
-const GameStateResource = preload("res://Resources/GameData/GameState.gd")
-const GameStateManager = preload("res://StateMachines/GameStateManager.gd")
+const GlobalEnums = preload("res://Resources/Core/Systems/GlobalEnums.gd")
+const GameState = preload("res://Resources/Core/GameState/GameState.gd")
+const GameStateManager = preload("res://Resources/Core/GameState/GameStateManager.gd")
 
-signal screen_changed(screen)
+signal screen_changed(screen: Control)
+
+@export var main_menu_scene: PackedScene
+@export var game_over_scene: PackedScene
+@export var hud_scene: PackedScene
 
 var screens: Dictionary = {}
 var current_screen: Control = null
-var game_state: GameStateResource
+var game_state: GameState
 var game_manager: GameStateManager
+var hud: Control
+
+func _ready() -> void:
+	screens = {}
+	if hud_scene:
+		hud = hud_scene.instantiate()
+		add_child(hud)
+		hud.hide()
 
 func initialize(manager: GameStateManager) -> void:
 	game_manager = manager
-	game_state = manager.game_state
-
-func _ready() -> void:
-	# Initialize with empty dictionary
-	screens = {}
+	game_state = manager.get_game_state()
+	
+	# Connect to all relevant signals
+	if game_manager:
+		game_manager.state_changed.connect(_on_game_state_changed)
+		game_manager.campaign_phase_changed.connect(_on_campaign_phase_changed)
+		game_manager.battle_phase_changed.connect(_on_battle_phase_changed)
+		game_manager.game_started.connect(_on_game_started)
+		game_manager.game_ended.connect(_on_game_ended)
+		game_manager.campaign_victory_achieved.connect(_on_campaign_victory_achieved)
+		
+		# Show HUD if game is already active
+		if game_manager.is_game_active():
+			hud.show()
 
 func register_screen(screen_name: String, screen: Control) -> void:
 	if screen == null:
@@ -29,7 +50,6 @@ func register_screen(screen_name: String, screen: Control) -> void:
 	if screen.is_inside_tree():
 		screen.hide()
 	else:
-		# Wait for screen to enter tree before hiding
 		await screen.ready
 		screen.hide()
 
@@ -46,90 +66,83 @@ func change_screen(screen_name: String) -> void:
 		current_screen.show()
 		screen_changed.emit(current_screen)
 
-func update_crew_info() -> void:
-	if current_screen != null and current_screen.has_method("update_crew_info"):
-		current_screen.update_crew_info()
-
-func update_mission_info() -> void:
-	if current_screen != null and current_screen.has_method("update_mission_info"):
-		current_screen.update_mission_info()
-
-func update_world_info() -> void:
-	if current_screen != null and current_screen.has_method("update_world_info"):
-		current_screen.update_world_info()
-
-func show_dialog(title: String, message: String, options: Array = []) -> String:
-	var dialog: ConfirmationDialog
-	
-	if options.is_empty():
-		# Use AcceptDialog for simple OK dialogs
-		dialog = AcceptDialog.new()
-		dialog.ok_button_text = "OK"
+func _on_game_started() -> void:
+	hud.show()
+	if game_manager.is_tutorial:
+		change_screen("tutorial")
 	else:
-		# Use ConfirmationDialog for dialogs with options
-		dialog = ConfirmationDialog.new()
-		dialog.ok_button_text = options[0] if options.size() > 0 else "OK"
-		dialog.cancel_button_text = options[1] if options.size() > 1 else "Cancel"
-		
-	dialog.title = title
-	dialog.dialog_text = message
-	dialog.initial_position = Window.WINDOW_INITIAL_POSITION_CENTER_MAIN_WINDOW_SCREEN
+		change_screen("setup")
+
+func _on_game_ended() -> void:
+	hud.hide()
+	hide_all_screens()
+	change_screen("main_menu")
+
+func _on_game_state_changed(new_state: GlobalEnums.GameState) -> void:
+	match new_state:
+		GlobalEnums.GameState.SETUP:
+			change_screen("setup")
+		GlobalEnums.GameState.CAMPAIGN:
+			change_screen("campaign")
+		GlobalEnums.GameState.BATTLE:
+			change_screen("battle")
+		GlobalEnums.GameState.GAME_OVER:
+			show_game_over_screen(game_state.victory_achieved)
+
+func _on_campaign_phase_changed(new_phase: GlobalEnums.CampaignPhase) -> void:
+	update_campaign_phase_display(new_phase)
+	if current_screen and current_screen.has_method("on_campaign_phase_changed"):
+		current_screen.on_campaign_phase_changed(new_phase)
+
+func _on_battle_phase_changed(new_phase: GlobalEnums.BattlePhase) -> void:
+	update_battle_phase_display(new_phase)
+	if current_screen and current_screen.has_method("on_battle_phase_changed"):
+		current_screen.on_battle_phase_changed(new_phase)
+
+func _on_campaign_victory_achieved(victory_type: GlobalEnums.CampaignVictoryType) -> void:
+	var victory_message := ""
+	match victory_type:
+		GlobalEnums.CampaignVictoryType.WEALTH_GOAL:
+			victory_message = "You've amassed great wealth!"
+		GlobalEnums.CampaignVictoryType.REPUTATION_GOAL:
+			victory_message = "Your reputation precedes you!"
+		GlobalEnums.CampaignVictoryType.FACTION_DOMINANCE:
+			victory_message = "You've become a dominant force!"
+		GlobalEnums.CampaignVictoryType.STORY_COMPLETE:
+			victory_message = "You've completed your epic journey!"
 	
-	add_child(dialog)
-	dialog.popup_centered()
-	
-	var choice = await dialog.confirmed if options.is_empty() else await dialog.get_ok_button().pressed
-	dialog.queue_free()
-	
-	return options[0] if choice and options.size() > 0 else "OK"
+	show_game_over_screen(true, victory_message)
 
-func show_tooltip(text: String, position: Vector2) -> void:
-	# Implement tooltip functionality
-	pass
+func update_campaign_phase_display(phase: GlobalEnums.CampaignPhase) -> void:
+	if has_node("HUD/PhaseLabel"):
+		$HUD/PhaseLabel.text = "Phase: " + str(GlobalEnums.CampaignPhase.keys()[phase])
 
-func hide_tooltip() -> void:
-	# Implement tooltip hiding
-	pass
+func update_battle_phase_display(phase: GlobalEnums.BattlePhase) -> void:
+	if has_node("HUD/BattlePhaseLabel"):
+		$HUD/BattlePhaseLabel.text = "Battle Phase: " + str(GlobalEnums.BattlePhase.keys()[phase])
 
-func show_notification(text: String, duration: float = 2.0) -> void:
-	# Implement notification system
-	pass
+func show_game_over_screen(victory: bool, message: String = "") -> void:
+	if has_node("GameOverScreen"):
+		$GameOverScreen/TitleLabel.text = "Victory!" if victory else "Game Over"
+		$GameOverScreen/MessageLabel.text = message if message else \
+			"Congratulations! You have achieved victory." if victory else \
+			"Your campaign has come to an end."
+		$GameOverScreen.show()
 
-func update_credits_display(credits: int) -> void:
-	if current_screen != null and current_screen.has_method("update_credits"):
-		current_screen.update_credits(credits)
+func hide_all_screens() -> void:
+	for screen in screens.values():
+		if is_instance_valid(screen):
+			screen.hide()
 
-func update_story_points_display():
-	$HUD/StoryPointsLabel.text = "Story Points: " + str(game_state.story_points)
+func hide_game_over_screen() -> void:
+	if has_node("GameOverScreen"):
+		$GameOverScreen.hide()
 
-func update_turn_display():
-	$HUD/TurnLabel.text = "Turn: " + str(game_state.campaign_turn)
+func update_tutorial_display(text: String) -> void:
+	if has_node("TutorialDisplay"):
+		$TutorialDisplay.text = text
+		$TutorialDisplay.show()
 
-func show_loading_screen():
-	$LoadingScreen.show()
-
-func hide_loading_screen():
-	$LoadingScreen.hide()
-
-func show_game_over_screen(victory: bool):
-	if victory:
-		$GameOverScreen/TitleLabel.text = "Victory!"
-		$GameOverScreen/MessageLabel.text = "Congratulations! You have achieved your victory condition."
-	else:
-		$GameOverScreen/TitleLabel.text = "Game Over"
-		$GameOverScreen/MessageLabel.text = "Your crew's adventure has come to an end."
-	
-	$GameOverScreen.show()
-
-func hide_game_over_screen():
-	$GameOverScreen.hide()
-
-func update_tutorial_display(text: String):
-	$TutorialDisplay.text = text
-	$TutorialDisplay.show()
-
-func hide_tutorial_display():
-	$TutorialDisplay.hide()
-
-func update_campaign_phase_display(phase: GlobalEnums.CampaignPhase):
-	$HUD/PhaseLabel.text = "Phase: " + GlobalEnums.CampaignPhase.keys()[phase]
+func hide_tutorial_display() -> void:
+	if has_node("TutorialDisplay"):
+		$TutorialDisplay.hide()

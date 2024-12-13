@@ -2,7 +2,7 @@
 class_name DifficultySettings
 extends Resource
 
-const GlobalEnums = preload("res://Resources/GameData/GlobalEnums.gd")
+const GameEnums = preload("res://Resources/Core/Systems/GlobalEnums.gd")
 
 @export var enemy_health_multiplier: float = 1.0
 @export var enemy_damage_multiplier: float = 1.0
@@ -13,9 +13,9 @@ const GlobalEnums = preload("res://Resources/GameData/GlobalEnums.gd")
 @export var unique_individual_chance: float = 0.0
 @export var stars_of_story_disabled: bool = false
 
-func apply_difficulty_settings(difficulty: GlobalEnums.DifficultyMode) -> void:
+func apply_difficulty_settings(difficulty: GameEnums.DifficultyMode) -> void:
 	match difficulty:
-		GlobalEnums.DifficultyMode.EASY:
+		GameEnums.DifficultyMode.EASY:
 			enemy_health_multiplier = 0.8
 			enemy_damage_multiplier = 0.8
 			loot_quantity_multiplier = 1.2
@@ -24,7 +24,7 @@ func apply_difficulty_settings(difficulty: GlobalEnums.DifficultyMode) -> void:
 			enemy_count_modifier = -1
 			unique_individual_chance = 0.05
 			stars_of_story_disabled = false
-		GlobalEnums.DifficultyMode.NORMAL:
+		GameEnums.DifficultyMode.NORMAL:
 			enemy_health_multiplier = 1.0
 			enemy_damage_multiplier = 1.0
 			loot_quantity_multiplier = 1.0
@@ -33,7 +33,7 @@ func apply_difficulty_settings(difficulty: GlobalEnums.DifficultyMode) -> void:
 			enemy_count_modifier = 0
 			unique_individual_chance = 0.1
 			stars_of_story_disabled = false
-		GlobalEnums.DifficultyMode.HARD:
+		GameEnums.DifficultyMode.HARD:
 			enemy_health_multiplier = 1.2
 			enemy_damage_multiplier = 1.2
 			loot_quantity_multiplier = 0.8
@@ -42,7 +42,7 @@ func apply_difficulty_settings(difficulty: GlobalEnums.DifficultyMode) -> void:
 			enemy_count_modifier = 1
 			unique_individual_chance = 0.15
 			stars_of_story_disabled = false
-		GlobalEnums.DifficultyMode.VETERAN:
+		GameEnums.DifficultyMode.VETERAN:
 			enemy_health_multiplier = 1.4
 			enemy_damage_multiplier = 1.4
 			loot_quantity_multiplier = 0.7
@@ -51,7 +51,7 @@ func apply_difficulty_settings(difficulty: GlobalEnums.DifficultyMode) -> void:
 			enemy_count_modifier = 2
 			unique_individual_chance = 0.2
 			stars_of_story_disabled = false
-		GlobalEnums.DifficultyMode.CHALLENGING:
+		GameEnums.DifficultyMode.CHALLENGING:
 			enemy_health_multiplier = 1.6
 			enemy_damage_multiplier = 1.6
 			loot_quantity_multiplier = 0.6
@@ -60,7 +60,7 @@ func apply_difficulty_settings(difficulty: GlobalEnums.DifficultyMode) -> void:
 			enemy_count_modifier = 3
 			unique_individual_chance = 0.25
 			stars_of_story_disabled = true
-		GlobalEnums.DifficultyMode.HARDCORE:
+		GameEnums.DifficultyMode.HARDCORE:
 			enemy_health_multiplier = 1.8
 			enemy_damage_multiplier = 1.8
 			loot_quantity_multiplier = 0.5
@@ -69,7 +69,7 @@ func apply_difficulty_settings(difficulty: GlobalEnums.DifficultyMode) -> void:
 			enemy_count_modifier = 4
 			unique_individual_chance = 0.3
 			stars_of_story_disabled = true
-		GlobalEnums.DifficultyMode.INSANITY:
+		GameEnums.DifficultyMode.INSANITY:
 			enemy_health_multiplier = 2.0
 			enemy_damage_multiplier = 2.0
 			loot_quantity_multiplier = 0.4

@@ -1,103 +1,50 @@
 class_name TutorialCrewTemplates
 extends Resource
 
-const TUTORIAL_CREWS = {
+const GameEnums = preload("res://Resources/Core/Systems/GlobalEnums.gd")
+const GameWeapon = preload("res://Resources/Core/Items/Weapons/Weapon.gd")
+const GameArmor = preload("res://Resources/Core/Character/Equipment/Armor.gd")
+const Character = preload("res://Resources/Core/Character/Base/Character.gd")
+const Crew = preload("res://Resources/Campaign/Crew/Crew.gd")
+
+var TUTORIAL_CREWS = {
     "beginner": {
         "name": "Rookie Explorers",
         "description": "A balanced crew perfect for learning the basics",
         "credits": 1000,
+        "characteristic": "DREAMERS",
+        "meeting_story": "Met at a starport looking for adventure",
         "members": [
             {
                 "name": "Captain Sarah",
-                "class": GlobalEnums.Class.LEADER,
-                "background": GlobalEnums.Background.SOLDIER,
+                "class": GameEnums.CharacterClass.SOLDIER,
+                "background": GameEnums.CharacterBackground.MILITARY_OUTPOST,
                 "stats": {
                     "combat": 2,
                     "technical": 1,
-                    "social": 3,
-                    "survival": 2
+                    "survival": 2,
+                    "leadership": 2
                 },
                 "equipment": {
-                    "weapon": "Basic Pistol",
+                    "weapon": "Standard Pistol",
                     "armor": "Light Armor"
                 }
             },
             {
                 "name": "Tech Specialist Alex",
-                "class": GlobalEnums.Class.TECH,
-                "background": GlobalEnums.Background.SCIENTIST,
+                "class": GameEnums.CharacterClass.TECHNICIAN,
+                "background": GameEnums.CharacterBackground.TECH_GUILD,
                 "stats": {
                     "combat": 1,
                     "technical": 3,
-                    "social": 2,
-                    "survival": 2
+                    "survival": 1,
+                    "leadership": 1
                 },
                 "equipment": {
-                    "weapon": "Utility Tool",
-                    "armor": "Tech Vest"
-                }
-            },
-            {
-                "name": "Combat Specialist Marcus",
-                "class": GlobalEnums.Class.WARRIOR,
-                "background": GlobalEnums.Background.SOLDIER,
-                "stats": {
-                    "combat": 3,
-                    "technical": 1,
-                    "social": 1,
-                    "survival": 3
-                },
-                "equipment": {
-                    "weapon": "Combat Rifle",
-                    "armor": "Combat Armor"
+                    "weapon": "Laser Pistol",
+                    "armor": "Light Armor"
                 }
             }
-        ]
-    },
-    "stealth": {
-        "name": "Shadow Operations",
-        "description": "A crew focused on stealth and subterfuge",
-        "credits": 1200,
-        "members": [
-            {
-                "name": "Captain Ghost",
-                "class": GlobalEnums.Class.SPECIALIST,
-                "background": GlobalEnums.Background.OUTLAW,
-                "stats": {
-                    "combat": 2,
-                    "technical": 2,
-                    "social": 2,
-                    "survival": 2
-                },
-                "equipment": {
-                    "weapon": "Silenced Pistol",
-                    "armor": "Stealth Suit"
-                }
-            },
-            # Add more stealth-focused members...
-        ]
-    },
-    "technical": {
-        "name": "Tech Salvagers",
-        "description": "A crew specializing in technical operations and salvage",
-        "credits": 1500,
-        "members": [
-            {
-                "name": "Captain Nova",
-                "class": GlobalEnums.Class.TECH,
-                "background": GlobalEnums.Background.SCIENTIST,
-                "stats": {
-                    "combat": 1,
-                    "technical": 3,
-                    "social": 2,
-                    "survival": 2
-                },
-                "equipment": {
-                    "weapon": "Tech Tool",
-                    "armor": "Engineer Suit"
-                }
-            },
-            # Add more tech-focused members...
         ]
     }
 }
@@ -110,7 +57,10 @@ func load_tutorial_crew(template_name: String) -> Crew:
     var crew = Crew.new()
     var template = TUTORIAL_CREWS[template_name]
     
+    crew.name = template.get("name", "")
     crew.credits = template.get("credits", 1000)
+    crew.characteristic = template.get("characteristic", "")
+    crew.meeting_story = template.get("meeting_story", "")
     
     for member_data in template.members:
         var character = Character.new()
@@ -128,44 +78,41 @@ func load_tutorial_crew(template_name: String) -> Crew:
         if member_data.has("equipment"):
             if member_data.equipment.has("weapon"):
                 var weapon = _create_weapon(member_data.equipment.weapon)
-                character.equipped_weapon = weapon
+                character.equip_weapon(weapon)
             
             if member_data.equipment.has("armor"):
                 var armor = _create_armor(member_data.equipment.armor)
-                character.equipped_armor = armor
+                character.equip_gear(armor)
         
         # Add to crew
         crew.add_member(character)
-        
-        # Set captain if this is the first member
-        if crew.get_member_count() == 1:
-            crew.set_captain(character)
     
     return crew
 
-func get_template_names() -> Array[String]:
-    return TUTORIAL_CREWS.keys()
-
-func get_template_info(template_name: String) -> Dictionary:
-    if not TUTORIAL_CREWS.has(template_name):
-        return {}
-    
-    var template = TUTORIAL_CREWS[template_name]
-    return {
-        "name": template.name,
-        "description": template.description,
-        "credits": template.credits,
-        "member_count": template.members.size()
-    }
-
-func _create_weapon(weapon_name: String) -> Weapon:
-    # This should be replaced with proper weapon creation from your game's weapon system
-    var weapon = Weapon.new()
-    weapon.name = weapon_name
+func _create_weapon(weapon_name: String) -> GameWeapon:
+    var weapon = GameWeapon.new()
+    # Set up weapon based on name
+    match weapon_name:
+        "Standard Pistol":
+            weapon.setup("Standard Pistol", GameEnums.WeaponType.PISTOL, 12, 1, 1)
+        "Laser Pistol":
+            weapon.setup("Laser Pistol", GameEnums.WeaponType.PISTOL, 14, 1, 2)
+        _:
+            weapon.setup("Basic Pistol", GameEnums.WeaponType.PISTOL, 10, 1, 1)
     return weapon
 
-func _create_armor(armor_name: String) -> Armor:
-    # This should be replaced with proper armor creation from your game's armor system
-    var armor = Armor.new()
-    armor.name = armor_name
+func _create_armor(armor_name: String) -> Equipment:
+    var armor = Equipment.new()
+    # Set up armor based on name
+    match armor_name:
+        "Light Armor":
+            armor.name = "Light Armor"
+            armor.type = GameEnums.ItemType.ARMOR
+            armor.value = 1
+            armor.description = "Basic protective gear"
+        _:
+            armor.name = "Basic Armor"
+            armor.type = GameEnums.ItemType.ARMOR
+            armor.value = 1
+            armor.description = "Simple protective gear"
     return armor 

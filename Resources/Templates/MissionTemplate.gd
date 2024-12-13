@@ -1,18 +1,20 @@
 class_name MissionTemplate
 extends Resource
 
+const GameEnums = preload("res://Resources/Core/Systems/GlobalEnums.gd")
+
 @export_group("Mission Details")
-@export var type: GlobalEnums.MissionType
+@export var type: GameEnums.MissionType
 @export var title_templates: Array[String] = []
 @export var description_templates: Array[String] = []
-@export var objective: GlobalEnums.MissionObjective
+@export var objective: GameEnums.MissionObjective
 @export var objective_description: String = ""
 
 @export_group("Requirements")
 @export var reward_range: Vector2 = Vector2(100, 1000)
 @export var difficulty_range: Vector2 = Vector2(1, 5)
-@export var required_skills: Array[GlobalEnums.SkillType] = []
-@export var enemy_types: Array[GlobalEnums.EnemyType] = []
+@export var required_skills: Array[int] = []
+@export var enemy_types: Array[int] = []
 
 @export_group("Chances")
 @export_range(0, 1) var deployment_condition_chance: float = 0.3

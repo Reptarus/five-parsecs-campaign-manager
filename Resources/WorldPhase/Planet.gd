@@ -202,7 +202,8 @@ func _generate_mission() -> Mission:
         return null
         
     if not _mission_generator:
-        _mission_generator = MissionGenerator.new(game_state)
+        _mission_generator = MissionGenerator.new()
+        _mission_generator.initialize(game_state)
     return _mission_generator.generate_mission_for_planet(self)
 
 func _generate_random_event() -> Dictionary:

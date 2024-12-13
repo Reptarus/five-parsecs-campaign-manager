@@ -1,4 +1,4 @@
-class_name Mission
+class_name MissionData
 extends Resource
 
 # Mission properties
@@ -92,8 +92,8 @@ func serialize() -> Dictionary:
 		"special_rules": special_rules
 	}
 
-static func deserialize(data: Dictionary) -> Mission:
-	var mission = Mission.new()
+static func deserialize(data: Dictionary) -> MissionData:
+	var mission = MissionData.new()
 	mission.mission_type = GlobalEnums.MissionType[data.mission_type]
 	mission.difficulty = data.difficulty
 	mission.location = data.location

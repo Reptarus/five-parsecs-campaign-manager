@@ -2,7 +2,8 @@
 class_name MedicalBayComponent
 extends Resource
 
-const GlobalEnums = preload("res://Resources/GameData/GlobalEnums.gd")
+const GameEnums = preload("res://Resources/Core/Systems/GlobalEnums.gd")
+const Character = preload("res://Resources/Core/Character/Base/Character.gd")
 
 @export var name: String = ""
 @export var description: String = ""
@@ -79,7 +80,11 @@ static func deserialize(data: Dictionary) -> MedicalBayComponent:
 	)
 	component.max_health = data["max_health"]
 	component.is_damaged = data["is_damaged"]
-	component.patients = data["patients"].map(func(p): return Character.new().deserialize(p))
+	component.patients = []
+	for patient_data in data["patients"]:
+		var patient = Character.new()
+		patient.deserialize(patient_data)
+		component.patients.append(patient)
 	return component
 
 func _to_string() -> String:

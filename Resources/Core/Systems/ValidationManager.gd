@@ -1,7 +1,7 @@
 class_name ValidationManager
 extends Resource
 
-const GlobalEnums = preload("res://Resources/GameData/GlobalEnums.gd")
+const GlobalEnums = preload("res://Resources/Core/Systems/GlobalEnums.gd")
 
 var game_state: GameState
 

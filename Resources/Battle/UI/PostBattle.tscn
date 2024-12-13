@@ -1,9 +1,8 @@
-[gd_scene load_steps=7 format=3 uid="uid://ylx5ovwlv3tn"]
+[gd_scene load_steps=6 format=3 uid="uid://ylx5ovwlv3tn"]
 
-[ext_resource type="Script" path="res://Resources/GameData/PostBattlePhase.gd" id="1_lqd0l"]
-[ext_resource type="PackedScene" path="res://Resources/BattlePhase/Scenes/MissionSummaryPanel.tscn" id="2_summary"]
-[ext_resource type="PackedScene" path="res://Resources/BattlePhase/Scenes/RewardsPanel.tscn" id="3_rewards"]
-[ext_resource type="PackedScene" path="res://Resources/BattlePhase/Scenes/CampaignStatusPanel.tscn" id="4_status"]
+[ext_resource type="Script" path="res://Resources/Campaign/Phase/PostBattlePhase.gd" id="1_lqd0l"]
+[ext_resource type="PackedScene" uid="uid://ckphew7q8ky0v" path="res://Resources/Battle/UI/Panels/MissionSummaryPanel.tscn" id="2_summary"]
+[ext_resource type="PackedScene" uid="uid://ccp7a6kfi1vwe" path="res://Resources/Battle/UI/Panels/RewardsPanel.tscn" id="3_rewards"]
 [ext_resource type="PackedScene" uid="uid://cxxx" path="res://Resources/CrewAndCharacters/Scenes/CharacterBox.tscn" id="5_char"]
 [ext_resource type="Theme" uid="uid://ccpt5srj6tnbv" path="res://Resources/Utilities/sci_fi_theme.tres" id="6_theme"]
 
@@ -53,12 +52,23 @@ alignment = 1
 [node name="MissionSummaryPanel" parent="HBoxContainer" instance=ExtResource("2_summary")]
 layout_mode = 2
 size_flags_horizontal = 3
+script = null
 
 [node name="RewardsPanel" parent="HBoxContainer" instance=ExtResource("3_rewards")]
 layout_mode = 2
 size_flags_horizontal = 3
+script = null
 
-[node name="CampaignStatusPanel" parent="HBoxContainer" instance=ExtResource("4_status")]
+[node name="CampaignStatusPanel" parent="HBoxContainer"]
+_import_path = NodePath("")
+unique_name_in_owner = false
+process_mode = 0
+process_priority = 0
+process_physics_priority = 0
+process_thread_group = 0
+physics_interpolation_mode = 0
+auto_translate_mode = 0
+editor_description = ""
 layout_mode = 2
 size_flags_horizontal = 3
 script = null

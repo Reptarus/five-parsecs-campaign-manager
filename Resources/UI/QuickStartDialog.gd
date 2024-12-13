@@ -12,7 +12,7 @@ var templates := {
     "Solo Campaign": {
         "crew_size": 1,
         "difficulty": GlobalEnums.DifficultyMode.NORMAL,
-        "victory_condition": GlobalEnums.CampaignVictoryType.CUSTOM,
+        "victory_condition": GlobalEnums.CampaignVictoryType.WEALTH_GOAL,
         "mobile_friendly": true
     },
     "Standard Campaign": {

@@ -1,7 +1,11 @@
 class_name EnemyDeploymentManager
 extends Node
 
-const GlobalEnums = preload("res://Resources/GameData/GlobalEnums.gd")
+const GlobalEnums = preload("res://Resources/Core/Systems/GlobalEnums.gd")
+const Character = preload("res://Resources/Core/Character/Base/Character.gd")
+
+signal enemy_deployment_generated(positions: Array)
+signal deployment_validated(success: bool)
 
 func get_deployment_type(ai_behavior: int) -> int:
 	var roll := randi() % 100 + 1

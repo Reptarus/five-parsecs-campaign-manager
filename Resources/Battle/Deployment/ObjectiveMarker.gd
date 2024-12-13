@@ -1,15 +1,20 @@
 class_name ObjectiveMarker
 extends Area3D
 
-signal objective_reached(by_unit: Node)
+const Character = preload("res://Resources/Core/Character/Base/Character.gd")
+
+signal objective_reached(by_unit: Character)
 signal objective_completed
+signal objective_failed
+signal objective_progress_updated(progress: float)
 
 @export var objective_type: String
 @export var required_turns := 0
 @export var capture_radius := 2.0
+@export var fail_on_enemy_capture := false
 
+var capturing_unit: Character = null
 var turns_held := 0
-var capturing_unit: Node
 
 func _ready() -> void:
     add_to_group("objectives")
@@ -18,8 +23,12 @@ func _ready() -> void:
 
 func _on_area_entered(area: Area3D) -> void:
     if area.is_in_group("units"):
-        capturing_unit = area
-        objective_reached.emit(area)
+        var node = area.get_parent()
+        if node is Character:
+            capturing_unit = node
+            if fail_on_enemy_capture and capturing_unit.is_enemy():
+                objective_failed.emit()
+            objective_reached.emit(capturing_unit)
 
 func _on_area_exited(area: Area3D) -> void:
     if area == capturing_unit:

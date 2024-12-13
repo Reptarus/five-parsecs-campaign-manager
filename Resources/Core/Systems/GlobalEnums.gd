@@ -1,120 +1,255 @@
 extends Node
 
-# Character and Crew Enums
-enum CharacterStatus {
-	ACTIVE,
-	HEALTHY,
-	INJURED,
-	RESTING,
-	CRITICAL,
-	DEAD,
-	MISSING
+enum CharacterBackground {
+	PEACEFUL_HIGH_TECH_COLONY,
+	GIANT_OVERCROWDED_DYSTOPIAN_CITY,
+	LOW_TECH_COLONY,
+	MINING_COLONY,
+	MILITARY_BRAT,
+	SPACE_STATION,
+	MILITARY_OUTPOST,
+	DRIFTER,
+	LOWER_MEGACITY_CLASS,
+	WEALTHY_MERCHANT_FAMILY,
+	FRONTIER_GANG,
+	RELIGIOUS_CULT,
+	WAR_TORN_HELL_HOLE,
+	TECH_GUILD,
+	SUBJUGATED_COLONY,
+	LONG_TERM_SPACE_MISSION,
+	RESEARCH_OUTPOST,
+	PRIMITIVE_WORLD,
+	ORPHAN_UTILITY_PROGRAM,
+	ISOLATIONIST_ENCLAVE,
+	COMFORTABLE_MEGACITY_CLASS,
+	INDUSTRIAL_WORLD,
+	BUREAUCRAT,
+	WASTELAND_NOMADS,
+	ALIEN_CULTURE
 }
 
-enum Class {
-	WARRIOR,
-	SCOUT,
-	MEDIC,
-	TECH,
-	LEADER,
-	SPECIALIST,
-	SUPPORT,
-	GUNNER
+enum CharacterMotivation {
+	WEALTH,
+	FAME,
+	GLORY,
+	SURVIVAL,
+	ESCAPE,
+	ADVENTURE,
+	TRUTH,
+	TECHNOLOGY,
+	DISCOVERY,
+	LOYALTY,
+	REVENGE,
+	ROMANCE,
+	FAITH,
+	POLITICAL,
+	POWER,
+	ORDER,
+	FREEDOM
 }
 
-enum Background {
-	SOLDIER,
-	MERCHANT,
+enum CharacterClass {
+	WORKING_CLASS,
+	TECHNICIAN,
 	SCIENTIST,
+	HACKER,
+	SOLDIER,
+	MERCENARY,
+	AGITATOR,
+	PRIMITIVE,
+	ARTIST,
+	NEGOTIATOR,
+	TRADER,
+	STARSHIP_CREW,
+	PETTY_CRIMINAL,
+	GANGER,
+	SCOUNDREL,
+	ENFORCER,
+	SPECIAL_AGENT,
+	TROUBLESHOOTER,
+	BOUNTY_HUNTER,
+	NOMAD,
 	EXPLORER,
-	OUTLAW,
-	DIPLOMAT,
-	COLONIST,
-	DRIFTER
+	PUNK,
+	SCAVENGER
 }
 
 enum Origin {
-	CORE_WORLDS,
-	FRONTIER,
-	DEEP_SPACE,
-	HIVE_WORLD,
-	FORGE_WORLD,
-	FERAL_WORLD
+	HUMAN,
+	ENGINEER,
+	KERIN,
+	SOULLESS,
+	PRECURSOR,
+	FERAL,
+	SWIFT,
+	BOT
 }
 
-enum Motivation {
-	WEALTH,
-	REVENGE,
-	DISCOVERY,
-	REDEMPTION,
-	POWER,
-	SURVIVAL
+enum CharacterStats {
+	REACTIONS,
+	SPEED,
+	COMBAT_SKILL,
+	TOUGHNESS,
+	SAVVY,
+	LUCK
 }
 
-enum CrewRole {
-	LEADER,
-	SPECIALIST,
-	SUPPORT,
-	COMBAT,
-	TECHNICAL,
-	MEDICAL
+enum CharacterStatus {
+	NORMAL,
+	INJURED,
+	STRESSED,
+	DEAD,
+	HEALTHY,
+	CRITICAL
 }
 
-# Equipment and Item Enums
-enum ItemType {
-	WEAPON,
-	ARMOR,
-	TOOL,
-	DEVICE,
-	CONSUMABLE,
-	GEAR
+enum CrewTask {
+	IDLE,
+	TRADE,
+	SCOUT,
+	TRAIN,
+	HEAL,
+	REPAIR,
+	RESEARCH,
+	GUARD,
+	EXPLORE,
+	RECRUIT,
+	FIND_PATRON,
+	REPAIR_KIT,
+	DECOY,
+	REST
+}
+
+enum MissionType {
+	STANDARD,
+	PATRON,
+	RED_ZONE,
+	BLACK_ZONE,
+	TUTORIAL,
+	ASSASSINATION,
+	SABOTAGE,
+	RESCUE,
+	DEFENSE,
+	ESCORT,
+	GREEN_ZONE
+}
+
+enum MissionObjective {
+	MOVE_THROUGH,
+	RETRIEVE,
+	CONTROL_POINT,
+	DEFEND,
+	ELIMINATE_TARGET,
+	PENETRATE_LINES,
+	SABOTAGE,
+	SECURE_INTEL,
+	CLEAR_ZONE,
+	RESCUE,
+	ELIMINATE,
+	DESTROY,
+	ESCORT,
+	SURVIVE,
+	DESTROY_STRONGPOINT,
+	WIN_BATTLE,
+	PROTECT_ASSET,
+	GATHER_INTEL,
+	EXPLORE_AREA,
+	HOLD_POSITION
 }
 
 enum WeaponType {
+	MELEE,
 	PISTOL,
 	RIFLE,
 	HEAVY,
-	MELEE,
-	EXPLOSIVE,
-	SPECIAL
+	LASER,
+	PLASMA,
+	MISSILE,
+	SHOTGUN
 }
 
-enum ArmorType {
-	LIGHT,
-	MEDIUM,
-	HEAVY,
-	POWERED,
-	SHIELD,
-	SPECIAL
+enum ItemType {
+	TOOL,
+	WEAPON,
+	ARMOR,
+	CONSUMABLE,
+	SPECIAL,
+	GEAR
 }
 
-# Campaign and Mission Enums
-enum CampaignPhase {
-	SETUP,
-	UPKEEP,
-	EVENT,
-	MISSION,
-	BATTLE,
-	POST_BATTLE,
-	CLEANUP
+enum ItemRarity {
+	COMMON,
+	UNCOMMON,
+	RARE,
+	EPIC,
+	LEGENDARY
 }
 
-enum GameState {
-	SETUP,
-	CAMPAIGN,
-	BATTLE,
-	GAME_OVER
+enum TerrainType {
+	CITY,
+	WILDERNESS,
+	SPACE,
+	STATION,
+	RUINS,
+	URBAN,
+	SPACE_STATION,
+	INDUSTRIAL,
+	WASTELAND,
+	FOREST,
+	DESERT
 }
 
-enum BattlePhase {
-	SETUP,
-	DEPLOYMENT,
-	BATTLE,
-	RESOLUTION,
-	CLEANUP
+enum TerrainFeature {
+	AREA,
+	INDIVIDUAL,
+	LINEAR,
+	GROUP,
+	SCATTER
 }
 
-# Difficulty Settings
+enum TerrainFeatureType {
+	EMPTY,
+	WALL,
+	COVER_LOW,
+	COVER_HIGH,
+	HIGH_GROUND,
+	WATER,
+	HAZARD,
+	DIFFICULT,
+	OPEN,
+	ELEVATION_HIGH,
+	INVALID
+}
+
+enum FactionType {
+	NEUTRAL,
+	FRIENDLY,
+	HOSTILE,
+	CORPORATE
+}
+
+enum StrifeType {
+	NONE,
+	RESOURCE_CONFLICT,
+	POLITICAL_UNREST,
+	CRIMINAL_UPRISING,
+	CORPORATE_WAR,
+	CIVIL_WAR,
+	INVASION
+}
+
+enum VictoryConditionType {
+	TURNS,
+	QUESTS,
+	SURVIVAL,
+	WEALTH_GOAL,
+	REPUTATION_GOAL,
+	FACTION_DOMINANCE,
+	STORY_COMPLETE,
+	ELIMINATION,
+	EXTRACTION
+}
+
 enum DifficultyMode {
 	EASY,
 	NORMAL,
@@ -125,85 +260,24 @@ enum DifficultyMode {
 	INSANITY
 }
 
-enum MissionType {
-	OPPORTUNITY,
-	GREEN_ZONE,
-	YELLOW_ZONE,
-	RED_ZONE,
-	BLACK_ZONE,
-	ASSASSINATION,
-	SABOTAGE,
-	RESCUE,
-	DEFENSE,
-	ESCORT
+enum EnemyType {
+	GRUNT,
+	ELITE,
+	BOSS,
+	MINION,
+	SUPPORT,
+	HEAVY,
+	SPECIALIST,
+	COMMANDER
 }
 
-enum MissionObjective {
-	MOVE_THROUGH,
-	RETRIEVE,
-	SURVIVE,
-	CONTROL_POINT,
-	DEFEND,
-	ELIMINATE,
-	DESTROY_STRONGPOINT,
-	ELIMINATE_TARGET,
-	PENETRATE_LINES,
-	SABOTAGE,
-	SECURE_INTEL,
-	CLEAR_ZONE,
-	RESCUE,
-	ESCORT,
-	DESTROY
-}
-
-enum VictoryConditionType {
-	ELIMINATION,
-	EXTRACTION,
-	SURVIVAL,
-	TURNS,
-	QUESTS
-}
-
-enum CampaignVictoryType {
-	NONE,
-	STORY_COMPLETE,
-	WEALTH_GOAL,
-	REPUTATION_GOAL,
-	FACTION_DOMINANCE,
-	SURVIVAL,
-	CUSTOM
-}
-
-# World and Location Enums
-enum TerrainType {
-	CITY,
-	URBAN,
-	WILDERNESS,
-	SPACE_STATION
-}
-
-enum TerrainFeature {
-	FIELD,
-	AREA,
-	INDIVIDUAL,
-	LINEAR
-}
-
-enum LocationType {
-	SPACEPORT,
-	SETTLEMENT,
-	RUINS,
-	WILDERNESS,
-	STATION,
-	SPECIAL
-}
-
-# Combat and Tactical Enums
 enum AIBehavior {
-	AGGRESSIVE,
 	CAUTIOUS,
+	AGGRESSIVE,
+	DEFENSIVE,
+	SUPPORT,
 	TACTICAL,
-	DEFENSIVE
+	RAMPAGE
 }
 
 enum DeploymentType {
@@ -216,148 +290,284 @@ enum DeploymentType {
 	REINFORCED,
 	BOLSTERED_LINE,
 	BOLSTERED_FLANK,
-	CONCEALED,
-	SURROUNDED,
-	ASYMMETRIC,
-	CORNER,
-	DIAGONAL,
-	RANDOM
+	CONCEALED
 }
 
-# Faction and Reputation Enums
-enum FactionType {
-	NEUTRAL,
-	FRIENDLY,
-	HOSTILE,
-	ALLIED,
-	ENEMY,
-	CORPORATE,
-	MILITARY,
-	MERCENARY,
-	OUTLAW,
-	SCAVENGER,
-	COLONIST,
-	TRADER
-}
-
-enum ReputationType {
-	ADMIRED = 2,    # Maximum reputation
-	TRUSTED = 1,    # High reputation
-	NEUTRAL = 0,    # Starting reputation
-	DISLIKED = -1,  # Low reputation
-	HATED = -2      # Minimum reputation
-}
-
-# Quest and Story Enums
 enum QuestType {
 	MAIN,
 	SIDE,
+	PATRON,
 	STORY,
-	FACTION,
-	SPECIAL
+	EVENT,
+	TUTORIAL
 }
 
 enum QuestStatus {
 	ACTIVE,
 	COMPLETED,
-	FAILED
+	FAILED,
+	EXPIRED
 }
 
-# Resource and Economy Enums
-enum ResourceType {
-	CREDITS,
-	FUEL,
-	SUPPLIES,
-	MATERIALS,
-	INFORMATION
+enum BattlePhase {
+	SETUP,
+	DEPLOYMENT,
+	BATTLE,
+	RESOLUTION,
+	CLEANUP
 }
 
-enum WorldTrait {
-	MILITARY_PRESENCE,
-	MILITARY_BASE,
-	PIRATE_HAVEN,
-	LAWLESS
+enum CampaignPhase {
+	SETUP,
+	UPKEEP,
+	WORLD_STEP,
+	TRAVEL,
+	PATRONS,
+	BATTLE,
+	POST_BATTLE,
+	MANAGEMENT
+}
+
+enum GameState {
+	SETUP,
+	CAMPAIGN,
+	BATTLE,
+	GAME_OVER
+}
+
+enum GlobalEvent {
+	NONE,
+	MARKET_CRASH,
+	ALIEN_INVASION,
+	TECH_BREAKTHROUGH,
+	RESOURCE_CONFLICT,
+	POLITICAL_UNREST,
+	CRIMINAL_UPRISING,
+	CORPORATE_WAR,
+	CIVIL_WAR,
+	INVASION
+}
+
+enum ShipComponentType {
+	HULL,
+	ENGINE,
+	MEDICAL_BAY,
+	WEAPON
+}
+
+enum ArmorType {
+	LIGHT,
+	MEDIUM,
+	HEAVY,
+	SCREEN,
+	POWERED
 }
 
 enum FringeWorldInstability {
 	STABLE,
-	UNREST,
-	CONFLICT,
-	CRISIS,
+	UNSTABLE,
+	CRITICAL,
 	COLLAPSE
 }
 
-# Character Stats
-enum CharacterStats {
-	COMBAT_SKILL,
-	SAVVY,
-	INTELLIGENCE,
-	SURVIVAL,
-	STEALTH,
+enum AdvancedTrainingCourse {
+	PILOT_TRAINING,
+	COMBAT_SPECIALIST,
+	TECH_EXPERT,
+	SURVIVAL_EXPERT,
 	LEADERSHIP
 }
 
-# Helper functions
-static func get_enum_keys(enum_name: String) -> Array:
-	var enum_dict = {}
-	match enum_name:
-		"AIBehavior": enum_dict = AIBehavior
-		"ArmorType": enum_dict = ArmorType
-		"Background": enum_dict = Background
-		"CampaignPhase": enum_dict = CampaignPhase
-		"CampaignVictoryType": enum_dict = CampaignVictoryType
-		"CharacterStatus": enum_dict = CharacterStatus
-		"CharacterStats": enum_dict = CharacterStats
-		"Class": enum_dict = Class
-		"CrewRole": enum_dict = CrewRole
-		"DeploymentType": enum_dict = DeploymentType
-		"DifficultyMode": enum_dict = DifficultyMode
-		"FactionType": enum_dict = FactionType
-		"ItemType": enum_dict = ItemType
-		"LocationType": enum_dict = LocationType
-		"MissionObjective": enum_dict = MissionObjective
-		"MissionType": enum_dict = MissionType
-		"Motivation": enum_dict = Motivation
-		"Origin": enum_dict = Origin
-		"QuestStatus": enum_dict = QuestStatus
-		"QuestType": enum_dict = QuestType
-		"ReputationType": enum_dict = ReputationType
-		"ResourceType": enum_dict = ResourceType
-		"TerrainFeature": enum_dict = TerrainFeature
-		"TerrainType": enum_dict = TerrainType
-		"VictoryConditionType": enum_dict = VictoryConditionType
-		"WeaponType": enum_dict = WeaponType
-		"WorldTrait": enum_dict = WorldTrait
-	return enum_dict.keys()
+enum SkillType {
+	TECHNICAL,
+	COMBAT,
+	SURVIVAL,
+	LEADERSHIP
+}
 
-static func get_enum_value(enum_name: String, key: String) -> int:
-	var enum_dict = {}
-	match enum_name:
-		"AIBehavior": enum_dict = AIBehavior
-		"ArmorType": enum_dict = ArmorType
-		"Background": enum_dict = Background
-		"CampaignPhase": enum_dict = CampaignPhase
-		"CampaignVictoryType": enum_dict = CampaignVictoryType
-		"CharacterStatus": enum_dict = CharacterStatus
-		"CharacterStats": enum_dict = CharacterStats
-		"Class": enum_dict = Class
-		"CrewRole": enum_dict = CrewRole
-		"DeploymentType": enum_dict = DeploymentType
-		"DifficultyMode": enum_dict = DifficultyMode
-		"FactionType": enum_dict = FactionType
-		"ItemType": enum_dict = ItemType
-		"LocationType": enum_dict = LocationType
-		"MissionObjective": enum_dict = MissionObjective
-		"MissionType": enum_dict = MissionType
-		"Motivation": enum_dict = Motivation
-		"Origin": enum_dict = Origin
-		"QuestStatus": enum_dict = QuestStatus
-		"QuestType": enum_dict = QuestType
-		"ReputationType": enum_dict = ReputationType
-		"ResourceType": enum_dict = ResourceType
-		"TerrainFeature": enum_dict = TerrainFeature
-		"TerrainType": enum_dict = TerrainType
-		"VictoryConditionType": enum_dict = VictoryConditionType
-		"WeaponType": enum_dict = WeaponType
-		"WorldTrait": enum_dict = WorldTrait
-	return enum_dict.get(key, 0)
+enum EnemyCategory {
+	CRIMINAL_ELEMENTS,
+	HIRED_MUSCLE,
+	INTERESTED_PARTIES
+}
+
+enum EnemySpecialRule {
+	FEROCIOUS,
+	QUICK_FEET
+}
+
+enum PsionicAbility {
+	TELEPATHY,
+	TELEKINESIS,
+	BARRIER,
+	PYROKINESIS
+}
+
+enum CrewRole {
+	COMBAT,
+	MEDIC,
+	ENGINEER,
+	PILOT,
+	SCOUT,
+	TECHNICIAN,
+	LEADER,
+	SPECIALIST,
+	SUPPORT,
+	TRADER
+}
+
+enum CampaignVictoryType {
+	WEALTH_GOAL,
+	REPUTATION_GOAL,
+	STORY_COMPLETE,
+	SURVIVAL,
+	FACTION_DOMINANCE
+}
+
+enum PlanetType {
+	CORE_WORLD,
+	FRONTIER,
+	COLONY,
+	MINING,
+	INDUSTRIAL,
+	AGRICULTURAL
+}
+
+enum ThreatType {
+	RAIDERS,
+	PIRATES,
+	HOSTILE_FAUNA,
+	NATURAL_HAZARDS,
+	DISEASE,
+	CIVIL_UNREST,
+	CORPORATE_CONFLICT,
+	ALIEN_PRESENCE
+}
+
+enum WorldTrait {
+	INDUSTRIAL_HUB,
+	FRONTIER_WORLD,
+	TRADE_CENTER,
+	MINING_COLONY,
+	AGRICULTURAL_WORLD,
+	TECH_CENTER,
+	MILITARY_OUTPOST,
+	RESEARCH_STATION,
+	PLEASURE_WORLD,
+	QUARANTINED,
+	RESTRICTED_ACCESS,
+	CORPORATE_CONTROLLED,
+	FREE_PORT,
+	PIRATE_HAVEN,
+	RELIGIOUS_CENTER
+}
+
+enum BattleType {
+	NONE,
+	STANDARD,
+	BOSS,
+	DEFENSE,
+	ASSAULT,
+	AMBUSH,
+	ESCORT,
+	EXTRACTION,
+	SABOTAGE,
+	ASSASSINATION
+}
+
+enum UnitAction {
+	NONE,
+	MOVE,
+	ATTACK,
+	BRAWL,
+	SNAP_FIRE,
+	OVERWATCH,
+	HUNKER,
+	USE_ITEM,
+	RELOAD
+}
+
+enum TerrainModifier {
+	NONE,
+	COVER_BONUS,
+	ELEVATION_BONUS,
+	MOVEMENT_PENALTY,
+	LINE_OF_SIGHT_BLOCKED,
+	HAZARDOUS,
+	DIFFICULT_TERRAIN,
+	HIGH_GROUND,
+	FULL_COVER,
+	PARTIAL_COVER,
+	WATER_HAZARD,
+	DESTRUCTIBLE
+}
+
+enum CrewExperienceLevel {
+	ROOKIE,
+	EXPERIENCED,
+	VETERAN,
+	ELITE,
+	LEGENDARY
+}
+
+enum CrewStatusEffect {
+	NONE,
+	WOUNDED,
+	EXHAUSTED,
+	INSPIRED,
+	DEMORALIZED,
+	FOCUSED,
+	STRESSED
+}
+
+enum CrewSpecialization {
+	NONE,
+	MARKSMAN,
+	HEAVY_WEAPONS,
+	CLOSE_COMBAT,
+	FIELD_MEDIC,
+	TECH_EXPERT,
+	DEMOLITIONS,
+	STEALTH,
+	LEADERSHIP,
+	SURVIVAL
+}
+
+enum ResourceType {
+	CREDITS,
+	FUEL,
+	AMMO,
+	MEDICAL,
+	FOOD,
+	PARTS,
+	INTEL,
+	RARE_MATERIALS,
+	CONTRABAND
+}
+
+enum BattleModifier {
+	NONE,
+	REINFORCEMENTS,
+	AMBUSH,
+	WEATHER_EFFECTS,
+	TERRAIN_ADVANTAGE,
+	SUPERIOR_INTEL,
+	ENEMY_DEBUFF,
+	FRIENDLY_BUFF,
+	RESTRICTED_DEPLOYMENT,
+	TIME_LIMIT
+}
+
+enum RelationshipType {
+	NEUTRAL,
+	FRIENDLY,
+	ALLIED,
+	HOSTILE,
+	NEMESIS,
+	INDEBTED,
+	DISTRUSTFUL
+}
+
+# Aliases for backward compatibility
+const Class = CharacterClass
+const Background = CharacterBackground

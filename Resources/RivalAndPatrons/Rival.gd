@@ -1,7 +1,7 @@
 class_name Rival
 extends Resource
 
-const GlobalEnums = preload("res://Resources/GameData/GlobalEnums.gd")
+const GameEnums = preload("res://Resources/Core/Systems/GlobalEnums.gd")
 
 signal hostility_changed(new_value: int)
 signal strength_changed(new_value: int)
@@ -22,7 +22,7 @@ signal strength_changed(new_value: int)
         location = value
         notify_property_list_changed()
 
-@export var threat_level: GlobalEnums.RivalThreatLevel = GlobalEnums.RivalThreatLevel.LOW:
+@export_enum("Low", "Medium", "High", "Extreme") var threat_level: int = GameEnums.DifficultyMode.EASY:
     get:
         return threat_level
     set(value):
