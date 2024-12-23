@@ -3,7 +3,7 @@ extends Resource
 
 const GameEnums = preload("res://src/core/systems/GlobalEnums.gd")
 const BattleRules = preload("res://src/core/battle/BattleRules.gd")
-const FiveParsecsGameState = preload("res://src/data/resources/GameState/GameState.gd")
+const FiveParsecsGameState = preload("res://src/core/state/GameState.gd")
 
 # Basic Properties
 @export var title: String = ""

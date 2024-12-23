@@ -3,9 +3,9 @@ extends Control
 
 # Dependencies
 const GameEnums = preload("res://src/core/systems/GlobalEnums.gd")
-const FiveParsecsGameState = preload("res://src/data/resources/GameState/GameState.gd")
+const FiveParsecsGameState = preload("res://src/core/state/GameState.gd")
 const Character = preload("res://src/core/character/Base/Character.gd")
-const CampaignPhaseManager = preload("res://src/data/resources/Campaign/Phase/CampaignPhaseManager.gd")
+const CampaignPhaseManager = preload("res://src/core/managers/CampaignPhaseManager.gd")
 
 # Campaign Turn Steps (as per core rules)
 enum CampaignStep {

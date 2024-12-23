@@ -1,4 +1,4 @@
-class_name InitialCrewCreation
+class_name InitialCrewCreationUI
 extends Control
 
 signal crew_created(crew_data: Dictionary)

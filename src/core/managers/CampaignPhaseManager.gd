@@ -2,7 +2,7 @@ class_name CampaignPhaseManager
 extends Resource
 
 const GameEnums := preload("res://src/core/systems/GlobalEnums.gd")
-const FiveParsecsGameState := preload("res://src/data/resources/GameState/GameState.gd")
+const FiveParsecsGameState := preload("res://src/core/state/GameState.gd")
 
 signal phase_changed(new_phase: GameEnums.CampaignPhase)
 signal phase_completed

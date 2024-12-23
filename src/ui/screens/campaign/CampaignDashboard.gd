@@ -1,10 +1,10 @@
-class_name CampaignDashboard
+class_name CampaignDashboardUI
 extends Control
 
 const GameEnums = preload("res://src/core/systems/GlobalEnums.gd")
-const GameState = preload("res://src/data/resources/Core/GameState/GameState.gd")
+const GameState = preload("res://src/core/state/GameState.gd")
 const Character = preload("res://src/core/character/Base/Character.gd")
-const VictoryProgressPanel = preload("res://src/data/resources/CampaignManagement/VictoryProgressPanel.tscn")
+const VictoryProgressPanel = preload("res://src/ui/components/VictoryProgressPanel.tscn")
 
 @onready var phase_label = $MarginContainer/VBoxContainer/HeaderPanel/HBoxContainer/PhaseLabel
 @onready var credits_label = $MarginContainer/VBoxContainer/HeaderPanel/HBoxContainer/CreditsLabel

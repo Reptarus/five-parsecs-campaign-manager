@@ -5,9 +5,9 @@ const GameEnums := preload("res://src/core/systems/GlobalEnums.gd")
 const StoryQuestData := preload("res://src/core/story/StoryQuestData.gd")
 const UnifiedStorySystem := preload("res://src/core/story/UnifiedStorySystem.gd")
 const FiveParcecsSystem := preload("res://src/core/systems/FiveParcecsSystem.gd")
-const FiveParsecsGameState := preload("res://src/data/resources/GameState/GameState.gd")
-const CampaignSystem := preload("res://src/data/resources/CampaignManagement/CampaignSystem.gd")
-const NewCampaignFlow := preload("res://src/data/resources/CampaignManagement/NewCampaignFlow.gd")
+const FiveParsecsGameState := preload("res://src/core/state/GameState.gd")
+const CampaignSystem := preload("res://src/core/campaign/CampaignSystem.gd")
+const NewCampaignFlow := preload("res://src/core/campaign/NewCampaignFlow.gd")
 
 signal campaign_initialized
 signal campaign_loaded
@@ -92,11 +92,11 @@ func _on_campaign_created(campaign: Resource) -> void:
 
 func _on_setup_completed() -> void:
     # Change to campaign dashboard
-    get_tree().change_scene_to_file("res://src/data/resources/CampaignManagement/Scenes/CampaignDashboard.tscn")
+    get_tree().change_scene_to_file("res://src/scenes/campaign/components/CampaignDashboard.tscn")
 
 func _on_campaign_started() -> void:
     # Update UI and game state for campaign start
-    get_tree().change_scene_to_file("res://src/data/resources/CampaignManagement/Scenes/CampaignDashboard.tscn")
+    get_tree().change_scene_to_file("res://src/scenes/campaign/components/CampaignDashboard.tscn")
 
 func _on_turn_completed() -> void:
     # Handle turn completion
@@ -105,9 +105,9 @@ func _on_turn_completed() -> void:
 
 func _on_victory_achieved(victory_type: GameEnums.CampaignVictoryType) -> void:
     # Handle campaign victory
-    get_tree().change_scene_to_file("res://src/data/resources/UI/Screens/VictoryScreen.tscn")
+    get_tree().change_scene_to_file("res://src/scenes/ui/VictoryScreen.tscn")
 
 func _on_tutorial_completed(tutorial_type: String) -> void:
     # Handle tutorial completion
     if tutorial_type == "basic":
-        get_tree().change_scene_to_file("res://src/data/resources/CampaignManagement/Scenes/CampaignDashboard.tscn") 
+        get_tree().change_scene_to_file("res://src/scenes/campaign/components/CampaignDashboard.tscn") 

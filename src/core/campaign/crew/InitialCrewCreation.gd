@@ -9,9 +9,9 @@ signal creation_cancelled
 const DEBUG := true
 const Character := preload("res://src/core/character/Base/Character.gd")
 const GlobalEnums := preload("res://src/core/systems/GlobalEnums.gd")
-const CrewSystem := preload("res://src/data/resources/Campaign/Crew/CrewSystem.gd")
+const CrewSystem := preload("res://src/core/campaign/crew/CrewSystem.gd")
 const CharacterCreator := preload("res://src/core/character/Generation/CharacterCreator.gd")
-const CaptainCreationScene := preload("res://src/data/resources/CrewAndCharacters/Scenes/CaptainCreation.tscn")
+const CaptainCreationScene := preload("res://src/scenes/character/CaptainCreation.tscn")
 
 # Crew composition limits
 const MIN_HUMAN_CREW := 3
@@ -435,7 +435,7 @@ func _on_confirm_pressed() -> void:
 	if game_state:
 		for member in current_crew:
 			game_state.add_crew_member(member)
-		get_tree().change_scene_to_file("res://src/data/resources/CampaignManagement/CampaignSetup.tscn")
+		get_tree().change_scene_to_file("res://src/scenes/campaign/setup/CampaignSetup.tscn")
 	else:
 		push_error("GameState not found when trying to save crew")
 

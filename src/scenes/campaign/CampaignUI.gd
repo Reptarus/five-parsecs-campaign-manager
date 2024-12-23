@@ -3,13 +3,13 @@ extends Control
 class_name CampaignUI
 
 # Dependencies
-const CampaignResponsiveLayout := preload("res://src/data/resources/UI/CampaignResponsiveLayout.gd")
-const CampaignManager := preload("res://src/data/resources/CampaignManagement/CampaignManager.gd")
+const CampaignResponsiveLayout := preload("res://src/ui/layouts/CampaignResponsiveLayout.gd")
+const CampaignManager := preload("res://src/core/campaign/CampaignManager.gd")
 const CampaignDashboard := preload("res://src/scenes/campaign/components/CampaignDashboard.tscn")
 const CampaignPhaseUI := preload("res://src/scenes/campaign/components/CampaignPhaseUI.tscn")
 const GameEnums := preload("res://src/core/systems/GlobalEnums.gd")
-const CampaignPhaseManager := preload("res://src/data/resources/Campaign/Phase/CampaignPhaseManager.gd")
-const FiveParsecsGameState := preload("res://src/data/resources/GameState/GameState.gd")
+const CampaignPhaseManager := preload("res://src/core/managers/CampaignPhaseManager.gd")
+const FiveParsecsGameState := preload("res://src/core/state/GameState.gd")
 
 # Child Nodes
 @onready var dashboard_tab: TabBar = $MainContent/HBoxContainer/MainTabs/Dashboard
@@ -274,3 +274,20 @@ func show_event_details(event_id: String) -> void:
 	if event_log:
 		events_tab.current_tab = events_tab.get_tab_idx_from_control(event_log)
 		event_log.show_event_details(event_id)
+
+func _on_setup_completed() -> void:
+	# Change to campaign dashboard
+	get_tree().change_scene_to_file("res://src/scenes/campaign/components/CampaignDashboard.tscn")
+
+func _on_campaign_started() -> void:
+	# Update UI and game state for campaign start
+	get_tree().change_scene_to_file("res://src/scenes/campaign/components/CampaignDashboard.tscn")
+
+func _on_victory_achieved(victory_type: GameEnums.CampaignVictoryType) -> void:
+	# Handle campaign victory
+	get_tree().change_scene_to_file("res://src/scenes/ui/VictoryScreen.tscn")
+
+func _on_tutorial_completed(tutorial_type: String) -> void:
+	# Handle tutorial completion
+	if tutorial_type == "basic":
+		get_tree().change_scene_to_file("res://src/scenes/campaign/components/CampaignDashboard.tscn")

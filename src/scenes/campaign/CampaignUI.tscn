@@ -1,10 +1,7 @@
-[gd_scene load_steps=8 format=3 uid="uid://c8qj5v2xv6n"]
+[gd_scene load_steps=5 format=3 uid="uid://c8qj5v2xv6n"]
 
 [ext_resource type="Script" path="res://src/scenes/campaign/CampaignUI.gd" id="1_script"]
-[ext_resource type="PackedScene" uid="uid://dp66b6flafme3" path="res://src/scenes/campaign/components/PhaseIndicator.tscn" id="2_phase"]
-[ext_resource type="PackedScene" uid="uid://dp66b6flafme3" path="res://src/scenes/campaign/components/ResourcePanel.tscn" id="3_resource"]
-[ext_resource type="PackedScene" uid="uid://dp66b6flafme3" path="res://src/scenes/campaign/components/ActionPanel.tscn" id="4_action"]
-[ext_resource type="PackedScene" uid="uid://dp66b6flafme3" path="res://src/scenes/campaign/components/EventLog.tscn" id="5_event"]
+[ext_resource type="PackedScene" uid="uid://dp66b6flafme3" path="res://src/ui/VictoryConditionSelection.tscn" id="5_event"]
 [ext_resource type="PackedScene" uid="uid://cq8qj5v2xv6n" path="res://src/scenes/campaign/components/CampaignPhaseUI.tscn" id="6_phase"]
 [ext_resource type="Theme" uid="uid://ddjoduj1ya6tp" path="res://assets/5PFH.tres" id="7_theme"]
 
@@ -25,7 +22,7 @@ anchor_right = 1.0
 offset_bottom = 60.0
 grow_horizontal = 2
 
-[node name="PhaseIndicator" parent="Header" instance=ExtResource("2_phase")]
+[node name="PhaseIndicator" parent="Header" instance=ExtResource("5_event")]
 layout_mode = 1
 anchors_preset = 8
 anchor_left = 0.5
@@ -36,8 +33,7 @@ offset_left = -100.0
 offset_top = -20.0
 offset_right = 100.0
 offset_bottom = 20.0
-grow_horizontal = 2
-grow_vertical = 2
+script = null
 
 [node name="MainContent" type="Control" parent="."]
 layout_mode = 1
@@ -68,26 +64,29 @@ anchor_bottom = 1.0
 grow_horizontal = 2
 grow_vertical = 2
 
-[node name="ResourcePanel" parent="MainContent/HBoxContainer/Sidebar/VBoxContainer" instance=ExtResource("3_resource")]
+[node name="ResourcePanel" parent="MainContent/HBoxContainer/Sidebar/VBoxContainer" instance=ExtResource("5_event")]
 layout_mode = 2
 size_flags_vertical = 3
+script = null
 
-[node name="ActionPanel" parent="MainContent/HBoxContainer/Sidebar/VBoxContainer" instance=ExtResource("4_action")]
+[node name="ActionPanel" parent="MainContent/HBoxContainer/Sidebar/VBoxContainer" instance=ExtResource("5_event")]
 layout_mode = 2
 size_flags_vertical = 3
+script = null
 
 [node name="MainTabs" type="TabContainer" parent="MainContent/HBoxContainer"]
 layout_mode = 2
 size_flags_horizontal = 3
+current_tab = 0
 
 [node name="Dashboard" type="TabBar" parent="MainContent/HBoxContainer/MainTabs"]
 layout_mode = 2
-tab_title = "Dashboard"
+metadata/_tab_index = 0
 
 [node name="Phase" type="TabBar" parent="MainContent/HBoxContainer/MainTabs"]
 visible = false
 layout_mode = 2
-tab_title = "Current Phase"
+metadata/_tab_index = 1
 
 [node name="CampaignPhaseUI" parent="MainContent/HBoxContainer/MainTabs/Phase" instance=ExtResource("6_phase")]
 layout_mode = 1
@@ -95,17 +94,18 @@ layout_mode = 1
 [node name="Characters" type="TabBar" parent="MainContent/HBoxContainer/MainTabs"]
 visible = false
 layout_mode = 2
-tab_title = "Characters"
+metadata/_tab_index = 2
 
 [node name="Resources" type="TabBar" parent="MainContent/HBoxContainer/MainTabs"]
 visible = false
 layout_mode = 2
-tab_title = "Resources"
+metadata/_tab_index = 3
 
 [node name="Events" type="TabBar" parent="MainContent/HBoxContainer/MainTabs"]
 visible = false
 layout_mode = 2
-tab_title = "Events"
+metadata/_tab_index = 4
 
 [node name="EventLog" parent="MainContent/HBoxContainer/MainTabs/Events" instance=ExtResource("5_event")]
-layout_mode = 1 
+layout_mode = 1
+script = null

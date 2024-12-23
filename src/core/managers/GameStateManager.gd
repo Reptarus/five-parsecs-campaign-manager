@@ -2,10 +2,10 @@ extends Node
 
 # Preload all required resources
 const GameEnums = preload("res://src/core/systems/GlobalEnums.gd")
-const FiveParsecsGameState = preload("res://src/data/resources/GameState/GameState.gd")
+const FiveParsecsGameState = preload("res://src/core/state/GameState.gd")
 const StoryQuestData = preload("res://src/core/story/StoryQuestData.gd")
 const Character = preload("res://src/core/character/Base/Character.gd")
-const SaveManager = preload("res://src/data/resources/Core/GameState/SaveManager.gd")
+const SaveManager = preload("res://src/core/state/SaveManager.gd")
 
 signal game_started
 signal game_ended
@@ -78,18 +78,11 @@ func change_battle_phase(new_phase: GameEnums.BattlePhase) -> void:
     battle_phase_changed.emit(new_phase)
 
 # Resource management
-func update_resource(resource_type: int, amount: int) -> void:
+func update_resource(resource_type: GameEnums.ResourceType, amount: int) -> void:
     if not game_state:
         return
         
-    match resource_type:
-        GameEnums.ResourceType.CREDITS:
-            game_state.credits += amount
-        GameEnums.ResourceType.SUPPLIES:
-            game_state.supplies += amount
-        GameEnums.ResourceType.STORY_POINTS:
-            game_state.story_points += amount
-    
+    game_state.add_resource(resource_type, amount)
     resource_updated.emit(resource_type, amount)
 
 # Difficulty management
@@ -187,20 +180,29 @@ func _handle_game_over_state() -> void:
     game_ended.emit()
 
 func _apply_loaded_data(data: Dictionary) -> void:
-    if data.has("game_state") and game_state:
-        game_state.deserialize(data.game_state)
+    if data.has("game_state"):
+        game_state.deserialize(data["game_state"])
     
-    if data.has("campaign_state") and campaign_manager:
-        campaign_manager.deserialize(data.campaign_state)
+    if data.has("current_state"):
+        current_state = data["current_state"]
     
-    if data.has("battle_state") and battle_state_machine:
-        battle_state_machine.deserialize(data.battle_state)
+    if data.has("current_campaign_phase"):
+        current_campaign_phase = data["current_campaign_phase"]
     
-    if data.has("world_state") and world_manager:
-        world_manager.deserialize(data.world_state)
+    if data.has("current_battle_phase"):
+        current_battle_phase = data["current_battle_phase"]
     
-    current_state = data.get("current_state", GameEnums.GameState.SETUP)
-    current_campaign_phase = data.get("current_campaign_phase", GameEnums.CampaignPhase.SETUP)
-    current_battle_phase = data.get("current_battle_phase", GameEnums.BattlePhase.SETUP)
-    difficulty_mode = data.get("difficulty_mode", GameEnums.DifficultyMode.NORMAL)
-    is_tutorial = data.get("is_tutorial", false)
+    if data.has("difficulty_mode"):
+        set_difficulty(data["difficulty_mode"])
+    
+    if data.has("is_tutorial"):
+        is_tutorial = data["is_tutorial"]
+    
+    if campaign_manager and data.has("campaign_state"):
+        campaign_manager.deserialize(data["campaign_state"])
+    
+    if battle_state_machine and data.has("battle_state"):
+        battle_state_machine.deserialize(data["battle_state"])
+    
+    if world_manager and data.has("world_state"):
+        world_manager.deserialize(data["world_state"])
