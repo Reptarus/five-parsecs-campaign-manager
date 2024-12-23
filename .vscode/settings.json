@@ -1,7 +1,51 @@
 {
+    "godot.editorPath": "c:\\Users\\elija\\Desktop\\GoDot\\Godot_v4.3-stable_win64.exe\\Godot_v4.3-stable_win64.exe",
     "godotTools.editorPath.godot4": "c:\\Users\\elija\\Desktop\\GoDot\\Godot_v4.3-stable_win64.exe\\Godot_v4.3-stable_win64.exe",
     "godot.editor.port": 6007,
     "godot.editor.host": "127.0.0.1",
     "godot.editor.showOutputOnStart": true,
-    "godot.editor.reconnectOnStart": true
+    "godot.editor.reconnectOnStart": true,
+    "godot.lsp.serverPort": 6008,
+    "godot.lsp.useDefaultHost": true,
+    "godot.lsp.useDefaultPort": false,
+    "godot.lsp.enableDiagnostics": true,
+    "godot.lsp.enableSignatureHelp": true,
+    "godot.lsp.enableHover": true,
+    "godot.lsp.enableCompletions": true,
+    "terminal.integrated.defaultProfile.windows": "PowerShell",
+    "terminal.integrated.profiles.windows": {
+        "PowerShell": {
+            "source": "PowerShell",
+            "icon": "terminal-powershell",
+            "path": "${env:windir}\\System32\\WindowsPowerShell\\v1.0\\powershell.exe",
+            "args": [
+                "-NoLogo",
+                "-NoExit",
+                "-ExecutionPolicy", 
+                "Bypass",
+                "-Command",
+                "Set-Location -LiteralPath '${workspaceFolder}'"
+            ]
+        }
+    },
+    "terminal.integrated.env.windows": {
+        "GODOT_PATH": "${env:GODOT_PATH}",
+        "PROJECT_ROOT": "${workspaceFolder}"
+    },
+    "terminal.integrated.cwd": "${workspaceFolder}",
+    "terminal.integrated.shellArgs.windows": [],
+    "terminal.integrated.persistentSessionReviveProcess": "never",
+    "terminal.integrated.enablePersistentSessions": false,
+    "terminal.integrated.gpuAcceleration": "off",
+    "terminal.integrated.windowsEnableConpty": false,
+    "terminal.integrated.defaultLocation": "editor",
+    "terminal.integrated.showExitAlert": false,
+    "terminal.integrated.allowChords": false,
+    "terminal.integrated.copyOnSelection": false,
+    "terminal.integrated.environmentChangesIndicator": "off",
+    "terminal.integrated.inheritEnv": true,
+    "accessibility.signals.terminalBell": {
+        "sound": "off"
+    },
+    "terminal.integrated.enableVisualBell": false
 }

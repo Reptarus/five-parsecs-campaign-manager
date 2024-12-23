@@ -1,0 +1,310 @@
+@tool
+class_name World
+extends Resource
+
+const GameEnums := preload("res://Resources/Core/Systems/GlobalEnums.gd")
+
+# World Properties
+@export_group("World Properties")
+@export var name: String = ""
+@export var terrain_type: GameEnums.TerrainType = GameEnums.TerrainType.CITY
+@export var faction_type: GameEnums.FactionType = GameEnums.FactionType.NEUTRAL
+@export var strife_level: GameEnums.StrifeType = GameEnums.StrifeType.NONE
+@export var world_features: Array[Dictionary] = []
+@export var resources: Dictionary = {}
+@export var market_prices: Dictionary = {}
+
+# Resource Types
+const RESOURCE_TYPES := {
+	"fuel": GameEnums.ResourceType.FUEL,
+	"supplies": GameEnums.ResourceType.FOOD,
+	"medical": GameEnums.ResourceType.MEDICAL,
+	"ammo": GameEnums.ResourceType.AMMO,
+	"spare_parts": GameEnums.ResourceType.PARTS
+}
+
+# Economy Constants
+const BASE_PRICES := {
+	"fuel": 50,
+	"supplies": 75,
+	"medical": 100,
+	"ammo": 80,
+	"spare_parts": 120
+}
+
+# World Limits and Thresholds
+const MAX_FEATURES := 3
+const UNITY_THRESHOLD := 10
+const MAX_RESOURCE_SUPPLY := 2.0
+const MIN_RESOURCE_SUPPLY := 0.5
+const PRICE_FLUCTUATION_RANGE := 0.2
+
+# World Generation Constants
+const STRIFE_INCREASE_CHANCE := 0.2
+const STRIFE_DECREASE_CHANCE := 0.1
+const INVASION_CHECK_CHANCE := 0.15
+
+# Price Modifiers
+const UNREST_PRICE_MODIFIER := 1.2
+const CONFLICT_PRICE_MODIFIER := 1.5
+const COLLAPSE_PRICE_MODIFIER := 2.0
+const TRADE_HUB_MODIFIER := 0.8
+const FRONTIER_MODIFIER := 1.5
+const STRIFE_DEMAND_MODIFIER := 0.3
+
+# Unity/Stability tracking
+var unity_progress: int = 0:
+	set(value):
+		unity_progress = clampi(value, 0, UNITY_THRESHOLD)
+		unity_progress_changed.emit(unity_progress)
+var invasion_risk: int = 0:
+	set(value):
+		invasion_risk = maxi(0, value)
+		invasion_risk_changed.emit(invasion_risk)
+var repair_limit: int = -1  # -1 means no limit
+
+# Signals
+signal strife_level_changed(new_level: GameEnums.StrifeType)
+signal unity_progress_changed(new_progress: int)
+signal market_updated(new_prices: Dictionary)
+signal feature_added(feature: Dictionary)
+signal feature_removed(feature: Dictionary)
+signal invasion_risk_changed(new_risk: int)
+signal world_state_changed
+func _init() -> void:
+	world_features = []
+	resources = {}
+	market_prices = BASE_PRICES.duplicate()
+
+func add_feature(feature: Dictionary) -> bool:
+	if not feature or world_features.size() >= MAX_FEATURES:
+		return false
+		
+	if not _is_valid_feature(feature) or world_features.has(feature):
+		return false
+		
+	world_features.append(feature)
+	_apply_feature_effects(feature)
+	feature_added.emit(feature)
+	world_state_changed.emit()
+	return true
+
+func _is_valid_feature(feature: Dictionary) -> bool:
+	if not feature.has("effect") or not feature.has("name"):
+		return false
+		
+	var effect := feature.get("effect") as Dictionary
+	if not effect or not effect.has("type"):
+		return false
+		
+	return true
+
+func remove_feature(feature: Dictionary) -> bool:
+	if not feature or not world_features.has(feature):
+		return false
+		
+	_remove_feature_effects(feature)
+	world_features.erase(feature)
+	feature_removed.emit(feature)
+	world_state_changed.emit()
+	return true
+
+func _apply_feature_effects(feature: Dictionary) -> void:
+	if not feature or not feature.has("effect"):
+		return
+		
+	var effect := feature.get("effect") as Dictionary
+	var effect_type := effect.get("type", "") as String
+	
+	match effect_type:
+		"invasion_modifier":
+			invasion_risk += effect.get("value", 0)
+		"repair_limit":
+			repair_limit = effect.get("value", -1)
+		"medical_care_cost":
+			market_prices["medical"] = effect.get("value", BASE_PRICES["medical"])
+			market_updated.emit(market_prices)
+		_:
+			push_warning("Unknown feature effect type: %s" % effect_type)
+
+func _remove_feature_effects(feature: Dictionary) -> void:
+	if not feature or not feature.has("effect"):
+		return
+		
+	var effect := feature.get("effect") as Dictionary
+	var effect_type := effect.get("type", "") as String
+	
+	match effect_type:
+		"invasion_modifier":
+			invasion_risk -= effect.get("value", 0)
+		"repair_limit":
+			repair_limit = -1
+		"medical_care_cost":
+			market_prices["medical"] = BASE_PRICES["medical"]
+			market_updated.emit(market_prices)
+		_:
+			push_warning("Unknown feature effect type: %s" % effect_type)
+
+func update_strife_level(new_level: GameEnums.StrifeType) -> bool:
+	if not GameEnums.StrifeType.values().has(new_level) or new_level == strife_level:
+		return false
+		
+	strife_level = new_level
+	strife_level_changed.emit(new_level)
+	_update_strife_effects()
+	world_state_changed.emit()
+	return true
+
+func _update_strife_effects() -> void:
+	match strife_level:
+		GameEnums.StrifeType.NONE:
+			_apply_stable_effects()
+		GameEnums.StrifeType.POLITICAL_UNREST:
+			_apply_unrest_effects()
+		GameEnums.StrifeType.CIVIL_WAR:
+			_apply_conflict_effects()
+		GameEnums.StrifeType.INVASION:
+			_apply_collapse_effects()
+		_:
+			push_warning("Unknown strife level: %s" % strife_level)
+
+func _apply_stable_effects() -> void:
+	for item in market_prices:
+		market_prices[item] = BASE_PRICES[item]
+	market_updated.emit(market_prices)
+
+func _apply_unrest_effects() -> void:
+	for item in market_prices:
+		market_prices[item] = BASE_PRICES[item] * UNREST_PRICE_MODIFIER
+	market_updated.emit(market_prices)
+
+func _apply_conflict_effects() -> void:
+	for item in market_prices:
+		market_prices[item] = BASE_PRICES[item] * CONFLICT_PRICE_MODIFIER
+	market_updated.emit(market_prices)
+
+func _apply_collapse_effects() -> void:
+	for item in market_prices:
+		market_prices[item] = BASE_PRICES[item] * COLLAPSE_PRICE_MODIFIER
+	market_updated.emit(market_prices)
+
+func update_unity_progress(progress: int) -> bool:
+	if progress < 0:
+		return false
+		
+	unity_progress = progress
+	
+	if unity_progress >= UNITY_THRESHOLD:
+		_reduce_strife_level()
+	
+	world_state_changed.emit()
+	return true
+
+func _reduce_strife_level() -> void:
+	if strife_level > GameEnums.StrifeType.NONE:
+		update_strife_level(strife_level - 1)
+		unity_progress = 0
+
+func update_market_prices(modifiers: Dictionary = {}) -> void:
+	if not modifiers:
+		modifiers = {}
+		
+	market_prices.clear()
+	
+	for item in BASE_PRICES:
+		var price := BASE_PRICES[item] as float
+		if modifiers.has(item):
+			price *= modifiers[item] as float
+		
+		# Apply strife effects
+		price *= (1.0 + (strife_level * 0.2))
+		
+		# Apply feature effects
+		for feature in world_features:
+			var effect := feature.get("effect", {}) as Dictionary
+			if effect.get("type", "") == "price_modifier" and effect.get("item", "") == item:
+				price *= effect.get("value", 1.0) as float
+		
+		market_prices[item] = price
+	
+	market_updated.emit(market_prices)
+	world_state_changed.emit()
+
+func get_price(item: String) -> int:
+	if not item or not BASE_PRICES.has(item):
+		push_warning("Invalid item requested: %s" % item)
+		return 0
+	return market_prices.get(item, BASE_PRICES.get(item, 0))
+
+func is_trade_hub() -> bool:
+	return faction_type == GameEnums.FactionType.CORPORATE
+
+func is_frontier() -> bool:
+	return faction_type == GameEnums.FactionType.HOSTILE
+
+func get_resource_supply(resource: String) -> float:
+	if not resource or not RESOURCE_TYPES.has(resource):
+		push_warning("Invalid resource requested: %s" % resource)
+		return 1.0
+	return resources.get(resource, 1.0)
+
+func get_resource_demand(resource: String) -> float:
+	if not resource or not RESOURCE_TYPES.has(resource):
+		push_warning("Invalid resource requested: %s" % resource)
+		return 1.0
+		
+	var base_demand := 1.0
+	
+	# Apply faction modifiers
+	if is_frontier():
+		base_demand *= FRONTIER_MODIFIER
+	elif is_trade_hub():
+		base_demand *= TRADE_HUB_MODIFIER
+	
+	# Apply strife modifiers
+	base_demand *= (1.0 + (strife_level * STRIFE_DEMAND_MODIFIER))
+	
+	# Apply feature modifiers
+	for feature in world_features:
+		var effect := feature.get("effect", {}) as Dictionary
+		if effect.get("type", "") == "demand_modifier" and effect.get("resource", "") == resource:
+			base_demand *= effect.get("value", 1.0) as float
+	
+	return base_demand
+
+func serialize() -> Dictionary:
+	return {
+		"name": name,
+		"terrain_type": terrain_type,
+		"faction_type": faction_type,
+		"strife_level": strife_level,
+		"world_features": world_features,
+		"resources": resources,
+		"market_prices": market_prices,
+		"unity_progress": unity_progress,
+		"invasion_risk": invasion_risk,
+		"repair_limit": repair_limit
+	}
+
+func deserialize(data: Dictionary) -> bool:
+	if not data:
+		push_error("Invalid data provided for deserialization")
+		return false
+		
+	name = data.get("name", "")
+	terrain_type = data.get("terrain_type", GameEnums.TerrainType.CITY)
+	faction_type = data.get("faction_type", GameEnums.FactionType.NEUTRAL)
+	strife_level = data.get("strife_level", GameEnums.StrifeType.NONE)
+	world_features = data.get("world_features", [])
+	resources = data.get("resources", {})
+	market_prices = data.get("market_prices", BASE_PRICES.duplicate())
+	unity_progress = data.get("unity_progress", 0)
+	invasion_risk = data.get("invasion_risk", 0)
+	repair_limit = data.get("repair_limit", -1)
+	
+	# Reapply feature effects
+	for feature in world_features:
+		_apply_feature_effects(feature)
+	
+	world_state_changed.emit()
+	return true

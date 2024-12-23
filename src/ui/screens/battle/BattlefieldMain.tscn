@@ -1,0 +1,66 @@
+[gd_scene load_steps=2 format=3 uid="uid://l8q7a6kfi2vwe"]
+
+[ext_resource type="Script" path="res://src/ui/screens/battle/BattlefieldMain.gd" id="1_script"]
+
+[node name="BattlefieldMain" type="Control"]
+layout_mode = 3
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+script = ExtResource("1_script")
+
+[node name="MarginContainer" type="MarginContainer" parent="."]
+layout_mode = 1
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+theme_override_constants/margin_left = 20
+theme_override_constants/margin_top = 20
+theme_override_constants/margin_right = 20
+theme_override_constants/margin_bottom = 20
+
+[node name="VBoxContainer" type="VBoxContainer" parent="MarginContainer"]
+layout_mode = 2
+theme_override_constants/separation = 20
+
+[node name="BattlefieldView" type="SubViewportContainer" parent="MarginContainer/VBoxContainer"]
+unique_name_in_owner = true
+layout_mode = 2
+size_flags_vertical = 3
+stretch = true
+
+[node name="SubViewport" type="SubViewport" parent="MarginContainer/VBoxContainer/BattlefieldView"]
+handle_input_locally = false
+size = Vector2i(1880, 940)
+render_target_update_mode = 4
+
+[node name="Camera3D" type="Camera3D" parent="MarginContainer/VBoxContainer/BattlefieldView/SubViewport"]
+unique_name_in_owner = true
+transform = Transform3D(1, 0, 0, 0, 0.707107, 0.707107, 0, -0.707107, 0.707107, 0, 10, 10)
+
+[node name="DirectionalLight3D" type="DirectionalLight3D" parent="MarginContainer/VBoxContainer/BattlefieldView/SubViewport"]
+transform = Transform3D(0.866025, -0.433013, 0.25, 0, 0.5, 0.866025, -0.5, -0.75, 0.433013, 0, 0, 0)
+shadow_enabled = true
+
+[node name="Battlefield" type="Node3D" parent="MarginContainer/VBoxContainer/BattlefieldView/SubViewport"]
+unique_name_in_owner = true
+
+[node name="ControlPanel" type="PanelContainer" parent="MarginContainer/VBoxContainer"]
+layout_mode = 2
+theme_type_variation = &"DarkPanel"
+
+[node name="HBoxContainer" type="HBoxContainer" parent="MarginContainer/VBoxContainer/ControlPanel"]
+layout_mode = 2
+theme_override_constants/separation = 20
+alignment = 2
+
+[node name="EndTurnButton" type="Button" parent="MarginContainer/VBoxContainer/ControlPanel/HBoxContainer"]
+unique_name_in_owner = true
+layout_mode = 2
+text = "End Turn"
+
+[connection signal="pressed" from="MarginContainer/VBoxContainer/ControlPanel/HBoxContainer/EndTurnButton" to="." method="_on_end_turn_pressed"] 

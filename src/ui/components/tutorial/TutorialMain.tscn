@@ -1,0 +1,18 @@
+[gd_scene load_steps=3 format=3 uid="uid://i8q7a6kfi9vwe"]
+
+[ext_resource type="PackedScene" path="res://src/ui/components/tutorial/TutorialContent.tscn" id="1_content"]
+[ext_resource type="PackedScene" path="res://src/ui/components/tutorial/TutorialUI.tscn" id="2_ui"]
+
+[node name="TutorialMain" type="Control"]
+layout_mode = 3
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+
+[node name="TutorialContent" parent="." instance=ExtResource("1_content")]
+layout_mode = 1
+
+[node name="TutorialUI" parent="." instance=ExtResource("2_ui")]
+layout_mode = 1 

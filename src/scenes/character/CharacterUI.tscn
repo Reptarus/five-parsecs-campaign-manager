@@ -1,0 +1,221 @@
+[gd_scene load_steps=3 format=3 uid="uid://b8k6jy5x8q6n"]
+
+[ext_resource type="Theme" uid="uid://ddjoduj1ya6tp" path="res://assets/5PFH.tres" id="1_p4ru0"]
+[ext_resource type="Script" path="res://src/scenes/character/CharacterUI.gd" id="2_oy01e"]
+
+[node name="CharacterUI" type="Control"]
+layout_mode = 3
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+theme = ExtResource("1_p4ru0")
+script = ExtResource("2_oy01e")
+
+[node name="Panel" type="Panel" parent="."]
+layout_mode = 1
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+
+[node name="HSplitContainer" type="HSplitContainer" parent="Panel"]
+layout_mode = 1
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+split_offset = 300
+
+[node name="CharacterList" type="VBoxContainer" parent="Panel/HSplitContainer"]
+layout_mode = 2
+
+[node name="Label" type="Label" parent="Panel/HSplitContainer/CharacterList"]
+layout_mode = 2
+text = "Characters"
+horizontal_alignment = 1
+
+[node name="ItemList" type="ItemList" parent="Panel/HSplitContainer/CharacterList"]
+layout_mode = 2
+size_flags_vertical = 3
+allow_reselect = true
+allow_rmb_select = true
+item_count = 1
+item_0/text = "No characters"
+
+[node name="ButtonContainer" type="HBoxContainer" parent="Panel/HSplitContainer/CharacterList"]
+layout_mode = 2
+alignment = 1
+
+[node name="AddButton" type="Button" parent="Panel/HSplitContainer/CharacterList/ButtonContainer"]
+custom_minimum_size = Vector2(120, 40)
+layout_mode = 2
+text = "Add"
+
+[node name="RemoveButton" type="Button" parent="Panel/HSplitContainer/CharacterList/ButtonContainer"]
+custom_minimum_size = Vector2(120, 40)
+layout_mode = 2
+disabled = true
+text = "Remove"
+
+[node name="CharacterDetails" type="VBoxContainer" parent="Panel/HSplitContainer"]
+layout_mode = 2
+
+[node name="TabContainer" type="TabContainer" parent="Panel/HSplitContainer/CharacterDetails"]
+layout_mode = 2
+size_flags_vertical = 3
+
+[node name="Stats" type="ScrollContainer" parent="Panel/HSplitContainer/CharacterDetails/TabContainer"]
+layout_mode = 2
+
+[node name="VBoxContainer" type="VBoxContainer" parent="Panel/HSplitContainer/CharacterDetails/TabContainer/Stats"]
+layout_mode = 2
+size_flags_horizontal = 3
+
+[node name="BasicInfo" type="GridContainer" parent="Panel/HSplitContainer/CharacterDetails/TabContainer/Stats/VBoxContainer"]
+layout_mode = 2
+columns = 2
+
+[node name="NameLabel" type="Label" parent="Panel/HSplitContainer/CharacterDetails/TabContainer/Stats/VBoxContainer/BasicInfo"]
+layout_mode = 2
+text = "Name:"
+
+[node name="NameValue" type="Label" parent="Panel/HSplitContainer/CharacterDetails/TabContainer/Stats/VBoxContainer/BasicInfo"]
+layout_mode = 2
+text = "-"
+
+[node name="OriginLabel" type="Label" parent="Panel/HSplitContainer/CharacterDetails/TabContainer/Stats/VBoxContainer/BasicInfo"]
+layout_mode = 2
+text = "Origin:"
+
+[node name="OriginValue" type="Label" parent="Panel/HSplitContainer/CharacterDetails/TabContainer/Stats/VBoxContainer/BasicInfo"]
+layout_mode = 2
+text = "-"
+
+[node name="ClassLabel" type="Label" parent="Panel/HSplitContainer/CharacterDetails/TabContainer/Stats/VBoxContainer/BasicInfo"]
+layout_mode = 2
+text = "Class:"
+
+[node name="ClassValue" type="Label" parent="Panel/HSplitContainer/CharacterDetails/TabContainer/Stats/VBoxContainer/BasicInfo"]
+layout_mode = 2
+text = "-"
+
+[node name="BackgroundLabel" type="Label" parent="Panel/HSplitContainer/CharacterDetails/TabContainer/Stats/VBoxContainer/BasicInfo"]
+layout_mode = 2
+text = "Background:"
+
+[node name="BackgroundValue" type="Label" parent="Panel/HSplitContainer/CharacterDetails/TabContainer/Stats/VBoxContainer/BasicInfo"]
+layout_mode = 2
+text = "-"
+
+[node name="MotivationLabel" type="Label" parent="Panel/HSplitContainer/CharacterDetails/TabContainer/Stats/VBoxContainer/BasicInfo"]
+layout_mode = 2
+text = "Motivation:"
+
+[node name="MotivationValue" type="Label" parent="Panel/HSplitContainer/CharacterDetails/TabContainer/Stats/VBoxContainer/BasicInfo"]
+layout_mode = 2
+text = "-"
+
+[node name="HSeparator" type="HSeparator" parent="Panel/HSplitContainer/CharacterDetails/TabContainer/Stats/VBoxContainer"]
+layout_mode = 2
+
+[node name="StatsGrid" type="GridContainer" parent="Panel/HSplitContainer/CharacterDetails/TabContainer/Stats/VBoxContainer"]
+layout_mode = 2
+columns = 2
+
+[node name="ReactionsLabel" type="Label" parent="Panel/HSplitContainer/CharacterDetails/TabContainer/Stats/VBoxContainer/StatsGrid"]
+layout_mode = 2
+text = "Reactions:"
+
+[node name="ReactionsValue" type="Label" parent="Panel/HSplitContainer/CharacterDetails/TabContainer/Stats/VBoxContainer/StatsGrid"]
+layout_mode = 2
+text = "-"
+
+[node name="SpeedLabel" type="Label" parent="Panel/HSplitContainer/CharacterDetails/TabContainer/Stats/VBoxContainer/StatsGrid"]
+layout_mode = 2
+text = "Speed:"
+
+[node name="SpeedValue" type="Label" parent="Panel/HSplitContainer/CharacterDetails/TabContainer/Stats/VBoxContainer/StatsGrid"]
+layout_mode = 2
+text = "-"
+
+[node name="CombatSkillLabel" type="Label" parent="Panel/HSplitContainer/CharacterDetails/TabContainer/Stats/VBoxContainer/StatsGrid"]
+layout_mode = 2
+text = "Combat Skill:"
+
+[node name="CombatSkillValue" type="Label" parent="Panel/HSplitContainer/CharacterDetails/TabContainer/Stats/VBoxContainer/StatsGrid"]
+layout_mode = 2
+text = "-"
+
+[node name="ToughnessLabel" type="Label" parent="Panel/HSplitContainer/CharacterDetails/TabContainer/Stats/VBoxContainer/StatsGrid"]
+layout_mode = 2
+text = "Toughness:"
+
+[node name="ToughnessValue" type="Label" parent="Panel/HSplitContainer/CharacterDetails/TabContainer/Stats/VBoxContainer/StatsGrid"]
+layout_mode = 2
+text = "-"
+
+[node name="SavvyLabel" type="Label" parent="Panel/HSplitContainer/CharacterDetails/TabContainer/Stats/VBoxContainer/StatsGrid"]
+layout_mode = 2
+text = "Savvy:"
+
+[node name="SavvyValue" type="Label" parent="Panel/HSplitContainer/CharacterDetails/TabContainer/Stats/VBoxContainer/StatsGrid"]
+layout_mode = 2
+text = "-"
+
+[node name="LuckLabel" type="Label" parent="Panel/HSplitContainer/CharacterDetails/TabContainer/Stats/VBoxContainer/StatsGrid"]
+layout_mode = 2
+text = "Luck:"
+
+[node name="LuckValue" type="Label" parent="Panel/HSplitContainer/CharacterDetails/TabContainer/Stats/VBoxContainer/StatsGrid"]
+layout_mode = 2
+text = "-"
+
+[node name="Equipment" type="ScrollContainer" parent="Panel/HSplitContainer/CharacterDetails/TabContainer"]
+visible = false
+layout_mode = 2
+
+[node name="VBoxContainer" type="VBoxContainer" parent="Panel/HSplitContainer/CharacterDetails/TabContainer/Equipment"]
+layout_mode = 2
+size_flags_horizontal = 3
+
+[node name="WeaponSection" type="VBoxContainer" parent="Panel/HSplitContainer/CharacterDetails/TabContainer/Equipment/VBoxContainer"]
+layout_mode = 2
+
+[node name="Label" type="Label" parent="Panel/HSplitContainer/CharacterDetails/TabContainer/Equipment/VBoxContainer/WeaponSection"]
+layout_mode = 2
+text = "Weapon"
+
+[node name="WeaponList" type="ItemList" parent="Panel/HSplitContainer/CharacterDetails/TabContainer/Equipment/VBoxContainer/WeaponSection"]
+custom_minimum_size = Vector2(0, 100)
+layout_mode = 2
+
+[node name="GearSection" type="VBoxContainer" parent="Panel/HSplitContainer/CharacterDetails/TabContainer/Equipment/VBoxContainer"]
+layout_mode = 2
+
+[node name="Label" type="Label" parent="Panel/HSplitContainer/CharacterDetails/TabContainer/Equipment/VBoxContainer/GearSection"]
+layout_mode = 2
+text = "Gear"
+
+[node name="GearList" type="ItemList" parent="Panel/HSplitContainer/CharacterDetails/TabContainer/Equipment/VBoxContainer/GearSection"]
+custom_minimum_size = Vector2(0, 200)
+layout_mode = 2
+
+[node name="InventorySection" type="VBoxContainer" parent="Panel/HSplitContainer/CharacterDetails/TabContainer/Equipment/VBoxContainer"]
+layout_mode = 2
+
+[node name="Label" type="Label" parent="Panel/HSplitContainer/CharacterDetails/TabContainer/Equipment/VBoxContainer/InventorySection"]
+layout_mode = 2
+text = "Inventory"
+
+[node name="InventoryList" type="ItemList" parent="Panel/HSplitContainer/CharacterDetails/TabContainer/Equipment/VBoxContainer/InventorySection"]
+custom_minimum_size = Vector2(0, 200)
+layout_mode = 2
+
+[connection signal="item_selected" from="Panel/HSplitContainer/CharacterList/ItemList" to="." method="_on_character_selected"]
+[connection signal="pressed" from="Panel/HSplitContainer/CharacterList/ButtonContainer/AddButton" to="." method="_on_add_pressed"]
+[connection signal="pressed" from="Panel/HSplitContainer/CharacterList/ButtonContainer/RemoveButton" to="." method="_on_remove_pressed"]
+</rewritten_file> 

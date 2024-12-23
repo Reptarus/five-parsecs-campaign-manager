@@ -1,0 +1,5 @@
+[node name="VictoryProgressContainer" type="PanelContainer" parent="MarginContainer/VBoxContainer"]
+layout_mode = 2
+size_flags_vertical = 0
+
+# ... existing code ... 

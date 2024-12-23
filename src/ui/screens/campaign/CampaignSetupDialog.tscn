@@ -1,0 +1,139 @@
+[gd_scene load_steps=2 format=3 uid="uid://b6x8j7y2n8q4v"]
+
+[ext_resource type="Script" path="res://src/data/resources/CampaignManagement/CampaignSetupDialog.gd" id="1_u2r3d"]
+
+[node name="CampaignSetupDialog" type="Control"]
+layout_mode = 3
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+script = ExtResource("1_u2r3d")
+
+[node name="Panel" type="Panel" parent="."]
+layout_mode = 1
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+
+[node name="MarginContainer" type="MarginContainer" parent="Panel"]
+layout_mode = 1
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+theme_override_constants/margin_left = 20
+theme_override_constants/margin_top = 20
+theme_override_constants/margin_right = 20
+theme_override_constants/margin_bottom = 20
+
+[node name="VBoxContainer" type="VBoxContainer" parent="Panel/MarginContainer"]
+layout_mode = 2
+theme_override_constants/separation = 20
+
+[node name="HeaderLabel" type="Label" parent="Panel/MarginContainer/VBoxContainer"]
+layout_mode = 2
+theme_override_font_sizes/font_size = 24
+text = "Campaign Setup"
+horizontal_alignment = 1
+
+[node name="SettingsContainer" type="GridContainer" parent="Panel/MarginContainer/VBoxContainer"]
+layout_mode = 2
+columns = 2
+
+[node name="CrewSizeLabel" type="Label" parent="Panel/MarginContainer/VBoxContainer/SettingsContainer"]
+layout_mode = 2
+text = "Crew Size:"
+
+[node name="CrewSizeSpinBox" type="SpinBox" parent="Panel/MarginContainer/VBoxContainer/SettingsContainer"]
+layout_mode = 2
+min_value = 4.0
+max_value = 6.0
+value = 4.0
+
+[node name="DifficultyLabel" type="Label" parent="Panel/MarginContainer/VBoxContainer/SettingsContainer"]
+layout_mode = 2
+text = "Difficulty:"
+
+[node name="DifficultyOptionButton" type="OptionButton" parent="Panel/MarginContainer/VBoxContainer/SettingsContainer"]
+layout_mode = 2
+item_count = 4
+popup/item_0/text = "Easy"
+popup/item_0/id = 0
+popup/item_1/text = "Normal"
+popup/item_1/id = 1
+popup/item_2/text = "Hard"
+popup/item_2/id = 2
+popup/item_3/text = "Ironman"
+popup/item_3/id = 3
+
+[node name="VictoryLabel" type="Label" parent="Panel/MarginContainer/VBoxContainer/SettingsContainer"]
+layout_mode = 2
+text = "Victory Condition:"
+
+[node name="VictoryOptionButton" type="OptionButton" parent="Panel/MarginContainer/VBoxContainer/SettingsContainer"]
+layout_mode = 2
+item_count = 8
+popup/item_0/text = "20 Turns"
+popup/item_0/id = 0
+popup/item_1/text = "50 Turns"
+popup/item_1/id = 1
+popup/item_2/text = "100 Turns"
+popup/item_2/id = 2
+popup/item_3/text = "3 Story Quests"
+popup/item_3/id = 3
+popup/item_4/text = "5 Story Quests"
+popup/item_4/id = 4
+popup/item_5/text = "10 Story Quests"
+popup/item_5/id = 5
+popup/item_6/text = "Story Complete"
+popup/item_6/id = 6
+popup/item_7/text = "Wealth Goal"
+popup/item_7/id = 7
+
+[node name="StoryTrackLabel" type="Label" parent="Panel/MarginContainer/VBoxContainer/SettingsContainer"]
+layout_mode = 2
+text = "Story Track:"
+
+[node name="StoryTrackCheckBox" type="CheckBox" parent="Panel/MarginContainer/VBoxContainer/SettingsContainer"]
+layout_mode = 2
+button_pressed = true
+text = "Enable Story Events"
+
+[node name="PermadeathLabel" type="Label" parent="Panel/MarginContainer/VBoxContainer/SettingsContainer"]
+layout_mode = 2
+text = "Permadeath:"
+
+[node name="PermadeathCheckBox" type="CheckBox" parent="Panel/MarginContainer/VBoxContainer/SettingsContainer"]
+layout_mode = 2
+text = "Enable Permadeath"
+
+[node name="StartingCreditsLabel" type="Label" parent="Panel/MarginContainer/VBoxContainer/SettingsContainer"]
+layout_mode = 2
+text = "Starting Credits:"
+
+[node name="StartingCreditsSpinBox" type="SpinBox" parent="Panel/MarginContainer/VBoxContainer/SettingsContainer"]
+layout_mode = 2
+min_value = 500.0
+max_value = 2000.0
+value = 1000.0
+rounded = true
+alignment = 1
+
+[node name="ButtonContainer" type="HBoxContainer" parent="Panel/MarginContainer/VBoxContainer"]
+layout_mode = 2
+size_flags_vertical = 10
+theme_override_constants/separation = 20
+alignment = 1
+
+[node name="BackButton" type="Button" parent="Panel/MarginContainer/VBoxContainer/ButtonContainer"]
+layout_mode = 2
+text = "Back"
+
+[node name="StartButton" type="Button" parent="Panel/MarginContainer/VBoxContainer/ButtonContainer"]
+layout_mode = 2
+text = "Start Campaign" 

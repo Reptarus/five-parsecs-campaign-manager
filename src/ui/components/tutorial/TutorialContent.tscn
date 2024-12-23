@@ -1,0 +1,64 @@
+[gd_scene load_steps=2 format=3 uid="uid://j8q7a6kfi0vwe"]
+
+[ext_resource type="Script" path="res://src/ui/components/tutorial/TutorialContent.gd" id="1_script"]
+
+[node name="TutorialContent" type="Control"]
+layout_mode = 3
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+script = ExtResource("1_script")
+
+[node name="MarginContainer" type="MarginContainer" parent="."]
+layout_mode = 1
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+theme_override_constants/margin_left = 20
+theme_override_constants/margin_top = 20
+theme_override_constants/margin_right = 20
+theme_override_constants/margin_bottom = 20
+
+[node name="VBoxContainer" type="VBoxContainer" parent="MarginContainer"]
+layout_mode = 2
+theme_override_constants/separation = 20
+
+[node name="TitleLabel" type="Label" parent="MarginContainer/VBoxContainer"]
+unique_name_in_owner = true
+layout_mode = 2
+theme_override_font_sizes/font_size = 24
+text = "Tutorial Title"
+horizontal_alignment = 1
+
+[node name="ContentLabel" type="RichTextLabel" parent="MarginContainer/VBoxContainer"]
+unique_name_in_owner = true
+layout_mode = 2
+size_flags_vertical = 3
+text = "Tutorial content goes here..."
+fit_content = true
+
+[node name="NavigationPanel" type="PanelContainer" parent="MarginContainer/VBoxContainer"]
+layout_mode = 2
+theme_type_variation = &"DarkPanel"
+
+[node name="HBoxContainer" type="HBoxContainer" parent="MarginContainer/VBoxContainer/NavigationPanel"]
+layout_mode = 2
+theme_override_constants/separation = 20
+alignment = 2
+
+[node name="PreviousButton" type="Button" parent="MarginContainer/VBoxContainer/NavigationPanel/HBoxContainer"]
+unique_name_in_owner = true
+layout_mode = 2
+text = "Previous"
+
+[node name="NextButton" type="Button" parent="MarginContainer/VBoxContainer/NavigationPanel/HBoxContainer"]
+unique_name_in_owner = true
+layout_mode = 2
+text = "Next"
+
+[connection signal="pressed" from="MarginContainer/VBoxContainer/NavigationPanel/HBoxContainer/PreviousButton" to="." method="_on_previous_pressed"]
+[connection signal="pressed" from="MarginContainer/VBoxContainer/NavigationPanel/HBoxContainer/NextButton" to="." method="_on_next_pressed"] 

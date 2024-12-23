@@ -1,0 +1,28 @@
+[gd_scene load_steps=2 format=3 uid="uid://b6x6pd5j6l5x"]
+
+[ext_resource type="Script" path="res://addons/gut/test_runner.gd" id="1_y8j4r"]
+
+[node name="TestRunner" type="Control"]
+layout_mode = 3
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+size_flags_horizontal = 3
+size_flags_vertical = 3
+
+[node name="GutRunner" type="Node" parent="."]
+script = ExtResource("1_y8j4r")
+directory1 = "res://tests"
+file_prefix = "test_"
+file_extension = ".gd"
+inner_class = false
+should_maximize = true
+should_print_to_console = true
+log_level = 1
+double_strategy = 1
+include_subdirectories = true
+config_file = "res://tests/gut_config.json"
+should_exit = true
+should_exit_on_success = true

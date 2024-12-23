@@ -1,0 +1,85 @@
+[gd_scene load_steps=6 format=3 uid="uid://cerfs74ne77rd"]
+
+[ext_resource type="Theme" uid="uid://ddjoduj1ya6tp" path="res://assets/5PFH.tres" id="1_unuw3"]
+[ext_resource type="Script" path="res://Resources/CampaignManagement/NewCampaignTutorial.gd" id="2_mt7xa"]
+[ext_resource type="Texture2D" uid="uid://bqw88gvv0saii" path="res://assets/Basic assets/5PFHUIAssets/Sci-Fi-Infoboxes_0000s_0005s_0033_11.png" id="3_pr5ho"]
+
+[sub_resource type="StyleBoxTexture" id="StyleBoxTexture_1fhnw"]
+texture = ExtResource("3_pr5ho")
+
+[node name="TutorialSelection" type="Control"]
+layout_mode = 3
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+theme = ExtResource("1_unuw3")
+script = ExtResource("2_mt7xa")
+
+[node name="Panel" type="Panel"]
+layout_mode = 1
+anchors_preset = 8
+anchor_left = 0.5
+anchor_top = 0.5
+anchor_right = 0.5
+anchor_bottom = 0.5
+offset_left = -400
+offset_top = -300
+offset_right = 400
+offset_bottom = 300
+grow_horizontal = 2
+grow_vertical = 2
+theme_override_styles/panel = SubResource("StyleBoxTexture_1fhnw")
+
+[node name="VBoxContainer" type="VBoxContainer"]
+layout_mode = 1
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+theme_override_constants/separation = 20
+
+[node name="TitleLabel" type="Label"]
+layout_mode = 2
+theme_override_font_sizes/font_size = 32
+text = "Welcome to Five Parsecs"
+horizontal_alignment = 1
+
+[node name="ContentLabel" type="Label"]
+layout_mode = 2
+theme_override_font_sizes/font_size = 18
+text = "Choose your tutorial experience"
+horizontal_alignment = 1
+autowrap_mode = 3
+
+[node name="HSeparator" type="HSeparator"]
+layout_mode = 2
+
+[node name="ButtonContainer" type="VBoxContainer"]
+layout_mode = 2
+size_flags_vertical = 3
+theme_override_constants/separation = 10
+alignment = 1
+
+[node name="NextButton" type="Button"]
+custom_minimum_size = Vector2(200, 50)
+layout_mode = 2
+size_flags_horizontal = 4
+text = "Next"
+
+[node name="BackButton" type="Button"]
+custom_minimum_size = Vector2(200, 50)
+layout_mode = 2
+size_flags_horizontal = 4
+text = "Back"
+
+[node name="HSeparator2" type="HSeparator"]
+layout_mode = 2
+
+[node name="SkipButton" type="Button"]
+custom_minimum_size = Vector2(200, 50)
+layout_mode = 2
+size_flags_horizontal = 4
+text = "Skip Tutorial"

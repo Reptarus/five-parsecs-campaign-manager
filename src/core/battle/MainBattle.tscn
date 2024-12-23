@@ -1,0 +1,146 @@
+[gd_scene load_steps=5 format=3]
+
+[ext_resource type="Script" path="res://src/core/battle/MainBattleController.gd" id="1_script"]
+[ext_resource type="PackedScene" path="res://src/core/battle/UI/Scenes/BattlefieldMain.tscn" id="2_battlefield"]
+[ext_resource type="Script" path="res://src/core/battle/FiveParcecsSystem.gd" id="3_state_machine"]
+[ext_resource type="Theme" uid="uid://ddjoduj1ya6tp" path="res://assets/5PFH.tres" id="4_theme"]
+
+[node name="MainBattle" type="Control"]
+layout_mode = 3
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+theme = ExtResource("4_theme")
+script = ExtResource("1_script")
+
+[node name="BattleLayout" type="VBoxContainer" parent="."]
+layout_mode = 1
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+
+[node name="TopBar" type="PanelContainer" parent="BattleLayout"]
+layout_mode = 2
+
+[node name="HBoxContainer" type="HBoxContainer" parent="BattleLayout/TopBar"]
+layout_mode = 2
+
+[node name="TurnLabel" type="Label" parent="BattleLayout/TopBar/HBoxContainer"]
+layout_mode = 2
+text = "Turn: 1"
+
+[node name="VSeparator" type="VSeparator" parent="BattleLayout/TopBar/HBoxContainer"]
+layout_mode = 2
+
+[node name="PhaseLabel" type="Label" parent="BattleLayout/TopBar/HBoxContainer"]
+layout_mode = 2
+text = "Phase: Setup"
+
+[node name="VSeparator2" type="VSeparator" parent="BattleLayout/TopBar/HBoxContainer"]
+layout_mode = 2
+
+[node name="ActiveUnitLabel" type="Label" parent="BattleLayout/TopBar/HBoxContainer"]
+layout_mode = 2
+text = "Active Unit: None"
+
+[node name="MainContent" type="HSplitContainer" parent="BattleLayout"]
+layout_mode = 2
+size_flags_vertical = 3
+
+[node name="BattlefieldMain" parent="BattleLayout/MainContent" instance=ExtResource("2_battlefield")]
+layout_mode = 2
+size_flags_horizontal = 3
+size_flags_stretch_ratio = 2.0
+
+[node name="SidePanel" type="PanelContainer" parent="BattleLayout/MainContent"]
+layout_mode = 2
+size_flags_horizontal = 3
+
+[node name="VBoxContainer" type="VBoxContainer" parent="BattleLayout/MainContent/SidePanel"]
+layout_mode = 2
+
+[node name="UnitInfo" type="PanelContainer" parent="BattleLayout/MainContent/SidePanel/VBoxContainer"]
+layout_mode = 2
+
+[node name="VBoxContainer" type="VBoxContainer" parent="BattleLayout/MainContent/SidePanel/VBoxContainer/UnitInfo"]
+layout_mode = 2
+
+[node name="Label" type="Label" parent="BattleLayout/MainContent/SidePanel/VBoxContainer/UnitInfo/VBoxContainer"]
+layout_mode = 2
+text = "Unit Information"
+horizontal_alignment = 1
+
+[node name="UnitStats" type="RichTextLabel" parent="BattleLayout/MainContent/SidePanel/VBoxContainer/UnitInfo/VBoxContainer"]
+layout_mode = 2
+size_flags_vertical = 3
+bbcode_enabled = true
+text = "Select a unit to view stats"
+
+[node name="ActionPanel" type="PanelContainer" parent="BattleLayout/MainContent/SidePanel/VBoxContainer"]
+layout_mode = 2
+
+[node name="VBoxContainer" type="VBoxContainer" parent="BattleLayout/MainContent/SidePanel/VBoxContainer/ActionPanel"]
+layout_mode = 2
+
+[node name="Label" type="Label" parent="BattleLayout/MainContent/SidePanel/VBoxContainer/ActionPanel/VBoxContainer"]
+layout_mode = 2
+text = "Actions"
+horizontal_alignment = 1
+
+[node name="ActionButtons" type="GridContainer" parent="BattleLayout/MainContent/SidePanel/VBoxContainer/ActionPanel/VBoxContainer"]
+layout_mode = 2
+columns = 2
+
+[node name="MoveButton" type="Button" parent="BattleLayout/MainContent/SidePanel/VBoxContainer/ActionPanel/VBoxContainer/ActionButtons"]
+layout_mode = 2
+size_flags_horizontal = 3
+text = "Move"
+
+[node name="AttackButton" type="Button" parent="BattleLayout/MainContent/SidePanel/VBoxContainer/ActionPanel/VBoxContainer/ActionButtons"]
+layout_mode = 2
+size_flags_horizontal = 3
+text = "Attack"
+
+[node name="DashButton" type="Button" parent="BattleLayout/MainContent/SidePanel/VBoxContainer/ActionPanel/VBoxContainer/ActionButtons"]
+layout_mode = 2
+size_flags_horizontal = 3
+text = "Dash"
+
+[node name="ItemsButton" type="Button" parent="BattleLayout/MainContent/SidePanel/VBoxContainer/ActionPanel/VBoxContainer/ActionButtons"]
+layout_mode = 2
+size_flags_horizontal = 3
+text = "Items"
+
+[node name="BrawlButton" type="Button" parent="BattleLayout/MainContent/SidePanel/VBoxContainer/ActionPanel/VBoxContainer/ActionButtons"]
+layout_mode = 2
+size_flags_horizontal = 3
+text = "Brawl"
+
+[node name="EndTurnButton" type="Button" parent="BattleLayout/MainContent/SidePanel/VBoxContainer/ActionPanel/VBoxContainer/ActionButtons"]
+layout_mode = 2
+size_flags_horizontal = 3
+text = "End Turn"
+
+[node name="BattleLog" type="PanelContainer" parent="BattleLayout/MainContent/SidePanel/VBoxContainer"]
+layout_mode = 2
+size_flags_vertical = 3
+
+[node name="VBoxContainer" type="VBoxContainer" parent="BattleLayout/MainContent/SidePanel/VBoxContainer/BattleLog"]
+layout_mode = 2
+
+[node name="Label" type="Label" parent="BattleLayout/MainContent/SidePanel/VBoxContainer/BattleLog/VBoxContainer"]
+layout_mode = 2
+text = "Battle Log"
+horizontal_alignment = 1
+
+[node name="LogContent" type="RichTextLabel" parent="BattleLayout/MainContent/SidePanel/VBoxContainer/BattleLog/VBoxContainer"]
+layout_mode = 2
+size_flags_vertical = 3
+bbcode_enabled = true
+
+[node name="FiveParcecsSystem" type="Node" parent="."]
+script = ExtResource("3_state_machine") 

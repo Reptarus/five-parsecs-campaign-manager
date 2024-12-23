@@ -11,14 +11,20 @@ config_version=5
 [application]
 
 config/name="Five Parsecs Campaign Manager"
-run/main_scene="res://ui/mainscene/Main.tscn"
-config/features=PackedStringArray("4.3", "GL Compatibility")
+config/version="0.1.0"
+run/main_scene="res://src/scenes/main/MainMenu.tscn"
+config/features=PackedStringArray("4.3", "Forward Plus")
 config/icon="res://icon.svg"
 
 [autoload]
 
-GameStateManager="*res://Resources/Core/GameState/GameStateManager.gd"
-GlobalEnums="*res://Resources/Core/Systems/GlobalEnums.gd"
+GlobalEnums="*res://src/core/systems/GlobalEnums.gd"
+GameStateManager="*res://src/core/managers/GameStateManager.gd"
+CharacterManager="*res://src/core/character/Management/CharacterManager.gd"
+PlanetCache="*res://src/core/world/PlanetCache.gd"
+WorldEconomyManager="*res://src/core/world/WorldEconomyManager.gd"
+ResourceSystem="*res://src/core/systems/ResourceSystem.gd"
+BattleStateMachine="*res://src/core/battle/state/BattleStateMachine.gd"
 
 [debug]
 
@@ -27,7 +33,6 @@ settings/stdout/verbose_stdout=true
 gdscript/warnings/unused_variable=true
 gdscript/warnings/unused_signal=true
 gdscript/warnings/return_value_discarded=true
-shapes/collision/shape_color=Color(0, 0.6, 0.7, 0.3)
 
 [display]
 
@@ -38,41 +43,10 @@ window/size/viewport_height=1080
 
 project/assembly_name="Five Parsecs Campaign Manager"
 
-[editor]
-
-version_control/plugin_name="GitPlugin"
-version_control/autoload_on_startup=true
-
 [editor_plugins]
 
-enabled=PackedStringArray()
-
-[file_customization]
-
-folder_colors={
-"res://Scenes/": "blue",
-"res://Scenes/Management/": "yellow",
-"res://Scenes/Utils/": "green",
-"res://Scenes/campaign/": "red",
-"res://Scripts/": "purple",
-"res://ui/mainmenu/": "orange"
-}
-
-[input]
-
-toggle_debug={
-"deadzone": 0.5,
-"events": [Object(InputEventKey,"resource_local_to_scene":false,"resource_name":"","device":-1,"window_id":0,"alt_pressed":false,"shift_pressed":false,"ctrl_pressed":false,"meta_pressed":false,"pressed":false,"keycode":0,"physical_keycode":4194334,"key_label":0,"unicode":0,"location":0,"echo":false,"script":null)
-]
-}
-
-[maaacks_menus_template]
-
-disable_plugin_dialogues=true
-copy_path="res://Assets"
+enabled=PackedStringArray("res://addons/gut/plugin.cfg")
 
 [rendering]
 
-renderer/rendering_method="gl_compatibility"
-renderer/rendering_method.mobile="gl_compatibility"
 textures/vram_compression/import_etc2_astc=true

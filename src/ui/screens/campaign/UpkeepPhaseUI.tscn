@@ -1,0 +1,179 @@
+[gd_scene load_steps=2 format=3 uid="uid://b6x8j7y2n8q4v"]
+
+[ext_resource type="Script" path="res://src/data/resources/CampaignManagement/UpkeepPhaseUI.gd" id="1_u2r3d"]
+
+[node name="UpkeepPhaseUI" type="Control"]
+layout_mode = 3
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+script = ExtResource("1_u2r3d")
+
+[node name="Panel" type="Panel" parent="."]
+layout_mode = 1
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+
+[node name="MarginContainer" type="MarginContainer" parent="Panel"]
+layout_mode = 1
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+theme_override_constants/margin_left = 20
+theme_override_constants/margin_top = 20
+theme_override_constants/margin_right = 20
+theme_override_constants/margin_bottom = 20
+
+[node name="VBoxContainer" type="VBoxContainer" parent="Panel/MarginContainer"]
+layout_mode = 2
+theme_override_constants/separation = 20
+
+[node name="HeaderLabel" type="Label" parent="Panel/MarginContainer/VBoxContainer"]
+layout_mode = 2
+theme_override_font_sizes/font_size = 24
+text = "Upkeep Phase"
+horizontal_alignment = 1
+
+[node name="UpkeepSection" type="VBoxContainer" parent="Panel/MarginContainer/VBoxContainer"]
+layout_mode = 2
+
+[node name="Label" type="Label" parent="Panel/MarginContainer/VBoxContainer/UpkeepSection"]
+layout_mode = 2
+text = "Crew & Ship Upkeep"
+
+[node name="UpkeepInfo" type="GridContainer" parent="Panel/MarginContainer/VBoxContainer/UpkeepSection"]
+layout_mode = 2
+columns = 2
+
+[node name="CrewUpkeepLabel" type="Label" parent="Panel/MarginContainer/VBoxContainer/UpkeepSection/UpkeepInfo"]
+layout_mode = 2
+text = "Crew Upkeep:"
+
+[node name="CrewUpkeepValue" type="Label" parent="Panel/MarginContainer/VBoxContainer/UpkeepSection/UpkeepInfo"]
+layout_mode = 2
+text = "0 credits"
+
+[node name="ShipMaintenanceLabel" type="Label" parent="Panel/MarginContainer/VBoxContainer/UpkeepSection/UpkeepInfo"]
+layout_mode = 2
+text = "Ship Maintenance:"
+
+[node name="ShipMaintenanceValue" type="Label" parent="Panel/MarginContainer/VBoxContainer/UpkeepSection/UpkeepInfo"]
+layout_mode = 2
+text = "0 credits"
+
+[node name="TotalLabel" type="Label" parent="Panel/MarginContainer/VBoxContainer/UpkeepSection/UpkeepInfo"]
+layout_mode = 2
+text = "Total Cost:"
+
+[node name="TotalValue" type="Label" parent="Panel/MarginContainer/VBoxContainer/UpkeepSection/UpkeepInfo"]
+layout_mode = 2
+text = "0 credits"
+
+[node name="PayUpkeepButton" type="Button" parent="Panel/MarginContainer/VBoxContainer/UpkeepSection"]
+layout_mode = 2
+text = "Pay Upkeep"
+
+[node name="SkipUpkeepButton" type="Button" parent="Panel/MarginContainer/VBoxContainer/UpkeepSection"]
+layout_mode = 2
+text = "Skip Upkeep (Apply Penalties)"
+
+[node name="ShipRepairSection" type="VBoxContainer" parent="Panel/MarginContainer/VBoxContainer"]
+layout_mode = 2
+
+[node name="Label" type="Label" parent="Panel/MarginContainer/VBoxContainer/ShipRepairSection"]
+layout_mode = 2
+text = "Ship Repairs"
+
+[node name="ShipInfo" type="GridContainer" parent="Panel/MarginContainer/VBoxContainer/ShipRepairSection"]
+layout_mode = 2
+columns = 2
+
+[node name="HullDamageLabel" type="Label" parent="Panel/MarginContainer/VBoxContainer/ShipRepairSection/ShipInfo"]
+layout_mode = 2
+text = "Hull Damage:"
+
+[node name="HullDamageValue" type="Label" parent="Panel/MarginContainer/VBoxContainer/ShipRepairSection/ShipInfo"]
+layout_mode = 2
+text = "0"
+
+[node name="RepairPointsLabel" type="Label" parent="Panel/MarginContainer/VBoxContainer/ShipRepairSection/ShipInfo"]
+layout_mode = 2
+text = "Repair Points:"
+
+[node name="RepairPointsSpinBox" type="SpinBox" parent="Panel/MarginContainer/VBoxContainer/ShipRepairSection/ShipInfo"]
+layout_mode = 2
+max_value = 10.0
+
+[node name="RepairButton" type="Button" parent="Panel/MarginContainer/VBoxContainer/ShipRepairSection"]
+layout_mode = 2
+text = "Repair Ship"
+
+[node name="MedicalSection" type="VBoxContainer" parent="Panel/MarginContainer/VBoxContainer"]
+layout_mode = 2
+
+[node name="Label" type="Label" parent="Panel/MarginContainer/VBoxContainer/MedicalSection"]
+layout_mode = 2
+text = "Medical Care"
+
+[node name="CrewList" type="ItemList" parent="Panel/MarginContainer/VBoxContainer/MedicalSection"]
+layout_mode = 2
+size_flags_vertical = 3
+
+[node name="MedicalInfo" type="GridContainer" parent="Panel/MarginContainer/VBoxContainer/MedicalSection"]
+layout_mode = 2
+columns = 2
+
+[node name="TurnsLabel" type="Label" parent="Panel/MarginContainer/VBoxContainer/MedicalSection/MedicalInfo"]
+layout_mode = 2
+text = "Turns to Reduce:"
+
+[node name="TurnsSpinBox" type="SpinBox" parent="Panel/MarginContainer/VBoxContainer/MedicalSection/MedicalInfo"]
+layout_mode = 2
+max_value = 10.0
+
+[node name="CostLabel" type="Label" parent="Panel/MarginContainer/VBoxContainer/MedicalSection/MedicalInfo"]
+layout_mode = 2
+text = "Cost:"
+
+[node name="CostValue" type="Label" parent="Panel/MarginContainer/VBoxContainer/MedicalSection/MedicalInfo"]
+layout_mode = 2
+text = "0 credits"
+
+[node name="ProvideCareButton" type="Button" parent="Panel/MarginContainer/VBoxContainer/MedicalSection"]
+layout_mode = 2
+text = "Provide Medical Care"
+
+[node name="TaskSection" type="VBoxContainer" parent="Panel/MarginContainer/VBoxContainer"]
+layout_mode = 2
+
+[node name="Label" type="Label" parent="Panel/MarginContainer/VBoxContainer/TaskSection"]
+layout_mode = 2
+text = "Crew Tasks"
+
+[node name="CrewList" type="ItemList" parent="Panel/MarginContainer/VBoxContainer/TaskSection"]
+layout_mode = 2
+size_flags_vertical = 3
+
+[node name="TaskOptionButton" type="OptionButton" parent="Panel/MarginContainer/VBoxContainer/TaskSection"]
+layout_mode = 2
+
+[node name="AssignTaskButton" type="Button" parent="Panel/MarginContainer/VBoxContainer/TaskSection"]
+layout_mode = 2
+text = "Assign Task"
+
+[node name="ButtonContainer" type="HBoxContainer" parent="Panel/MarginContainer/VBoxContainer"]
+layout_mode = 2
+size_flags_vertical = 10
+theme_override_constants/separation = 20
+alignment = 1
+
+[node name="CompletePhaseButton" type="Button" parent="Panel/MarginContainer/VBoxContainer/ButtonContainer"]
+layout_mode = 2
+text = "Complete Phase" 

@@ -1,0 +1,57 @@
+[gd_scene load_steps=2 format=3 uid="uid://c8q7a6kfi3vwe"]
+
+[ext_resource type="Script" path="res://src/ui/components/mission/MissionInfoPanel.gd" id="1_script"]
+
+[node name="MissionInfoPanel" type="PanelContainer"]
+theme_type_variation = &"DarkPanel"
+script = ExtResource("1_script")
+
+[node name="MarginContainer" type="MarginContainer" parent="."]
+layout_mode = 2
+theme_override_constants/margin_left = 10
+theme_override_constants/margin_top = 10
+theme_override_constants/margin_right = 10
+theme_override_constants/margin_bottom = 10
+
+[node name="VBoxContainer" type="VBoxContainer" parent="MarginContainer"]
+layout_mode = 2
+theme_override_constants/separation = 15
+
+[node name="TitleLabel" type="Label" parent="MarginContainer/VBoxContainer"]
+unique_name_in_owner = true
+layout_mode = 2
+theme_override_font_sizes/font_size = 24
+text = "Mission Title"
+horizontal_alignment = 1
+
+[node name="HSeparator" type="HSeparator" parent="MarginContainer/VBoxContainer"]
+layout_mode = 2
+
+[node name="DescriptionLabel" type="Label" parent="MarginContainer/VBoxContainer"]
+unique_name_in_owner = true
+layout_mode = 2
+text = "Mission description goes here..."
+autowrap_mode = 3
+
+[node name="DifficultyLabel" type="Label" parent="MarginContainer/VBoxContainer"]
+unique_name_in_owner = true
+layout_mode = 2
+text = "Difficulty: Normal"
+
+[node name="RewardsLabel" type="Label" parent="MarginContainer/VBoxContainer"]
+unique_name_in_owner = true
+layout_mode = 2
+text = "Rewards:
+• Credits: 1000
+• Items: Medical Supplies"
+autowrap_mode = 3
+
+[node name="HSeparator2" type="HSeparator" parent="MarginContainer/VBoxContainer"]
+layout_mode = 2
+
+[node name="AcceptButton" type="Button" parent="MarginContainer/VBoxContainer"]
+unique_name_in_owner = true
+layout_mode = 2
+text = "Accept Mission"
+
+[connection signal="pressed" from="MarginContainer/VBoxContainer/AcceptButton" to="." method="_on_accept_button_pressed"] 

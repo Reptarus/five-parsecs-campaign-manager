@@ -1,0 +1,23 @@
+{
+    "background_color": "262626",
+    "font_color": "cccccc",
+    "font_name": "CourierPrime",
+    "font_size": 16,
+    "hide_orphans": false,
+    "hide_output_text": false,
+    "hide_result_tree": false,
+    "hide_settings": false,
+    "output_font_name": "CourierPrime",
+    "output_font_size": 16,
+    "panel_options": {
+        "font_name": "CourierPrime",
+        "font_size": 16,
+        "hide_output_text": false,
+        "hide_result_tree": false,
+        "hide_settings": false,
+        "output_font_name": "CourierPrime",
+        "output_font_size": 16,
+        "use_colors": true
+    },
+    "use_colors": true
+} 

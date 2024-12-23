@@ -1,9 +1,9 @@
 class_name BattleStateMachine
 extends Node
 
-const GlobalEnums = preload("res://Resources/Core/Systems/GlobalEnums.gd")
-const Character = preload("res://Resources/Core/Character/Base/Character.gd")
-const GameStateManager = preload("res://Resources/Core/GameState/GameStateManager.gd")
+const GlobalEnums = preload("res://src/core/systems/GlobalEnums.gd")
+const Character = preload("res://src/core/character/Base/Character.gd")
+const GameStateManager = preload("res://src/data/resources/Core/GameState/GameStateManager.gd")
 
 signal state_changed(new_state: int)  # BattleState
 signal phase_changed(new_phase: int)  # BattlePhase
