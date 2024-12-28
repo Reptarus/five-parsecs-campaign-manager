@@ -7,14 +7,23 @@
                 "kind": "build",
                 "isDefault": true
             },
-            "type": "shell",
-            "command": "godot",
+            "type": "process",
+            "command": "C:\\Users\\elija\\Desktop\\GoDot\\Godot_v4.3-stable_win64.exe\\Godot_v4.3-stable_win64.exe",
             "args": [
                 "--headless",
                 "--script",
-                "${workspaceFolder}/build.gd"
+                "${workspaceFolder}\\build.gd"
             ],
-            "problemMatcher": []
+            "problemMatcher": {
+                "owner": "godot",
+                "fileLocation": ["relative", "${workspaceFolder}"],
+                "pattern": {
+                    "regexp": "^\\s*(.*):(\\d+):\\s+(.*)$",
+                    "file": 1,
+                    "line": 2,
+                    "message": 3
+                }
+            }
         },
         {
             "label": "run",
@@ -38,6 +47,26 @@
                 "--debug"
             ],
             "problemMatcher": []
+        },
+        {
+            "label": "validate",
+            "type": "process",
+            "command": "${config:godot.editorPath}",
+            "args": [
+                "--headless",
+                "--script",
+                "${workspaceFolder}\\build.gd"
+            ],
+            "problemMatcher": {
+                "owner": "godot",
+                "fileLocation": ["relative", "${workspaceFolder}"],
+                "pattern": {
+                    "regexp": "^\\s*(.*):(\\d+):\\s+(.*)$",
+                    "file": 1,
+                    "line": 2,
+                    "message": 3
+                }
+            }
         }
     ]
 }

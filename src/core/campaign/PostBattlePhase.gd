@@ -3,8 +3,8 @@ class_name PostBattlePhase
 extends Control
 
 const GameEnums = preload("res://src/core/systems/GlobalEnums.gd")
+const FiveParsecsGameState = preload("res://src/core/state/GameState.gd")
 const Character = preload("res://src/core/character/Base/Character.gd")
-const GameState = preload("res://src/data/resources/Core/GameState/GameState.gd")
 
 signal phase_completed
 signal level_up_triggered(character: Character)
@@ -25,10 +25,10 @@ var steps: Array[String] = [
 	"Record Experience"
 ]
 
-var game_state: GameState
-var loot_generator: Node  # Will be typed when LootGenerator is available
+var game_state: FiveParsecsGameState
+var loot_generator: Node # Will be typed when LootGenerator is available
 
-func _init(_game_state: GameState) -> void:
+func _init(_game_state: FiveParsecsGameState) -> void:
 	if not _game_state:
 		push_error("Invalid game state provided to PostBattlePhase")
 		return
@@ -100,10 +100,10 @@ func _record_experience() -> void:
 func _calculate_injury_severity(character: Character) -> int:
 	var health_percentage = (character.current_health / character.max_health) * 100
 	if health_percentage <= 25:
-		return 3  # Severe
+		return 3 # Severe
 	elif health_percentage <= 50:
-		return 2  # Moderate
-	return 1     # Light
+		return 2 # Moderate
+	return 1 # Light
 
 func _determine_injury_type(severity: int) -> String:
 	var injury_types = {

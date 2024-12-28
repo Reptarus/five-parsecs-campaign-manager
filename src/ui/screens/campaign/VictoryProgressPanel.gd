@@ -1,16 +1,17 @@
 extends PanelContainer
 
-const GameEnums := preload("res://src/core/systems/GlobalEnums.gd")
+const GameEnums = preload("res://src/core/systems/GlobalEnums.gd")
+const FiveParsecsGameState = preload("res://src/core/state/GameState.gd")
 
 @onready var progress_bar := $MarginContainer/VBoxContainer/ProgressBar
 @onready var progress_label := $MarginContainer/VBoxContainer/ProgressLabel
 @onready var milestone_container := $MarginContainer/VBoxContainer/MilestoneContainer
 
-var game_state: GameState
+var game_state: FiveParsecsGameState
 var campaign_manager: GameCampaignManager
 var victory_type: GameEnums.CampaignVictoryType
 var current_progress: float = 0.0
-var target_progress: float = 20.0  # Default for TURNS_20
+var target_progress: float = 20.0 # Default for TURNS_20
 var milestones: Array[float] = []
 
 func _ready() -> void:
@@ -77,7 +78,7 @@ func _setup_milestone_icons() -> void:
 	for i in range(3):
 		var milestone_icon = milestone_container.get_child(i)
 		if milestone_icon:
-			milestone_icon.modulate = Color(0.5, 0.5, 0.5)  # Dim by default
+			milestone_icon.modulate = Color(0.5, 0.5, 0.5) # Dim by default
 
 func update_display() -> void:
 	current_progress = _calculate_current_progress()
@@ -122,13 +123,13 @@ func _update_milestone_display() -> void:
 		var milestone_icon = milestone_container.get_child(i)
 		if milestone_icon and i < milestones.size():
 			if current_progress >= milestones[i]:
-				milestone_icon.modulate = Color(1, 1, 1)  # Full brightness for achieved
+				milestone_icon.modulate = Color(1, 1, 1) # Full brightness for achieved
 			else:
-				milestone_icon.modulate = Color(0.5, 0.5, 0.5)  # Dim for not achieved
+				milestone_icon.modulate = Color(0.5, 0.5, 0.5) # Dim for not achieved
 
 func _on_turn_completed() -> void:
 	update_display()
 
 func _on_progress_updated(progress: float) -> void:
 	current_progress = progress
-	update_display() 
+	update_display()

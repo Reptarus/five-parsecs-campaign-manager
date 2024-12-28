@@ -1,19 +1,21 @@
 class_name PatronManager
 extends Resource
 
+const FiveParsecsGameState = preload("res://src/core/state/GameState.gd")
+
 signal patron_encountered(patron: Dictionary)
 signal patron_reputation_changed(patron: Dictionary, change: int)
 signal patron_quest_offered(patron: Dictionary, quest: Dictionary)
 signal patron_quest_completed(patron: Dictionary, quest: Dictionary)
 signal patron_quest_failed(patron: Dictionary, quest: Dictionary)
 
-var game_state: GameState
+var game_state: FiveParsecsGameState
 var active_patrons: Array = []
-var patron_reputations: Dictionary = {}  # patron_id -> reputation
-var active_quests: Dictionary = {}  # quest_id -> quest
+var patron_reputations: Dictionary = {} # patron_id -> reputation
+var active_quests: Dictionary = {} # quest_id -> quest
 var completed_quests: Array = []
 
-func _init(_game_state: GameState) -> void:
+func _init(_game_state: FiveParsecsGameState) -> void:
     game_state = _game_state
 
 func generate_patron() -> Dictionary:
@@ -251,7 +253,7 @@ func _generate_quest_requirements(quest_type: String) -> Dictionary:
     return requirements
 
 func _calculate_time_limit(quest_type: String) -> int:
-    var base_time = 24 * 3600  # 24 hours in seconds
+    var base_time = 24 * 3600 # 24 hours in seconds
     
     match quest_type:
         "COMBAT":
@@ -378,4 +380,4 @@ func _apply_quest_penalties(quest: Dictionary) -> void:
         "DIPLOMACY":
             game_state.add_negotiation_failure()
         "EXPLORATION":
-            game_state.add_exploration_failure() 
+            game_state.add_exploration_failure()

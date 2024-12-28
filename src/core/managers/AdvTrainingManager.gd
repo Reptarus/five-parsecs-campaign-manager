@@ -3,9 +3,10 @@ class_name AdvancedTrainingManager
 extends Resource
 
 const GameEnums = preload("res://src/core/systems/GlobalEnums.gd")
-const FiveParsecsGameState = preload("res://src/data/resources/GameState/GameState.gd")
+const FiveParsecsGameState = preload("res://src/core/state/GameState.gd")
+const Character = preload("res://src/core/character/Base/Character.gd")
 
-signal training_completed(character: Resource)
+signal training_completed(character: Character, skill: String)
 signal training_failed(character: Resource, reason: String)
 signal training_cost_updated(new_cost: int)
 

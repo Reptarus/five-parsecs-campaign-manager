@@ -1,12 +1,17 @@
 class_name EnemyAIManager
 extends Resource
 
-const GlobalEnums = preload("res://src/core/systems/GlobalEnums.gd")
-const Enemy = preload("res://src/data/resources/Enemy/Base/Enemy.gd")
+const GameEnums = preload("res://src/core/systems/GlobalEnums.gd")
+const FiveParsecsGameState = preload("res://src/core/state/GameState.gd")
+const Enemy = preload("res://src/core/enemy/base/Enemy.gd")
+const UnifiedAISystem = preload("res://src/core/systems/UnifiedAISystem.gd")
+const AIController = preload("res://src/core/systems/AIController.gd")
+const Character = preload("res://src/core/character/Base/Character.gd")
+const SaveManager = preload("res://src/core/state/SaveManager.gd")
 
 # Signals
 signal ai_decision_made(enemy_ref: Enemy, decision: Dictionary)
-signal behavior_changed(enemy_ref: Enemy, new_behavior: GlobalEnums.AIBehavior)
+signal behavior_changed(enemy_ref: Enemy, new_behavior: GameEnums.AIBehavior)
 signal action_completed(enemy_ref: Enemy, action_type: String)
 
 # Constants for behavior weights
@@ -37,14 +42,14 @@ func unregister_enemy(enemy: Enemy) -> void:
 	active_enemies.erase(enemy)
 	tactical_memory.erase(enemy)
 
-func set_behavior_override(enemy: Enemy, behavior: GlobalEnums.AIBehavior) -> void:
+func set_behavior_override(enemy: Enemy, behavior: GameEnums.AIBehavior) -> void:
 	behavior_overrides[enemy] = behavior
 	behavior_changed.emit(enemy, behavior)
 
 func clear_behavior_override(enemy: Enemy) -> void:
 	behavior_overrides.erase(enemy)
 
-func get_current_behavior(enemy: Enemy) -> GlobalEnums.AIBehavior:
+func get_current_behavior(enemy: Enemy) -> GameEnums.AIBehavior:
 	return behavior_overrides.get(enemy, enemy.behavior)
 
 # Decision Making
@@ -65,7 +70,7 @@ func make_decision(enemy: Enemy) -> Dictionary:
 		var target = _get_best_target(enemy)
 		if target:
 			options.append({
-				"type": "attack", 
+				"type": "attack",
 				"priority": BEHAVIOR_WEIGHTS["attack"],
 				"target": target
 			})

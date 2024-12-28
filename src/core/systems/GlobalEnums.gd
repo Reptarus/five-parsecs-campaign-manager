@@ -10,7 +10,7 @@ enum CharacterStatus {
 
 enum Origin {
 	HUMAN,
-	ENGINEER, 
+	ENGINEER,
 	FERAL,
 	KERIN,
 	PRECURSOR,
@@ -151,12 +151,12 @@ enum TerrainModifier {
 ## Victory condition enums
 enum VictoryConditionType {
 	NONE,
-	ELIMINATION,        # Eliminate all enemies or specific targets
-	SURVIVAL,          # Survive for a specified number of turns
-	CONTROL_POINTS,    # Control specific points on the map
-	EXTRACTION,        # Get units/objectives to extraction point
-	OBJECTIVE,         # Complete specific mission objectives
-	TIME_LIMIT        # Complete objectives within time limit
+	ELIMINATION, # Eliminate all enemies or specific targets
+	SURVIVAL, # Survive for a specified number of turns
+	CONTROL_POINTS, # Control specific points on the map
+	EXTRACTION, # Get units/objectives to extraction point
+	OBJECTIVE, # Complete specific mission objectives
+	TIME_LIMIT # Complete objectives within time limit
 }
 
 ## Faction related enums
@@ -231,14 +231,14 @@ enum BattlefieldSize {
 
 enum BattlefieldFeature {
 	NONE,
-	COVER,              # Basic cover piece
-	BARRICADE,          # Linear cover
-	RUINS,              # Destroyed structure
-	HAZARD,             # Dangerous area
-	HIGH_GROUND,        # Elevated position
-	OBSTACLE,           # Impassable object
-	OBJECTIVE_MARKER,   # Mission objective
-	DEPLOYMENT_ZONE     # Starting area
+	COVER, # Basic cover piece
+	BARRICADE, # Linear cover
+	RUINS, # Destroyed structure
+	HAZARD, # Dangerous area
+	HIGH_GROUND, # Elevated position
+	OBSTACLE, # Impassable object
+	OBJECTIVE_MARKER, # Mission objective
+	DEPLOYMENT_ZONE # Starting area
 }
 
 enum BattlefieldZone {
@@ -389,26 +389,26 @@ enum BattlePhase {
 
 enum CampaignVictoryType {
     NONE,
-    TURNS_20,          # Survive 20 turns
-    TURNS_50,          # Survive 50 turns
-    TURNS_100,         # Survive 100 turns
-    QUESTS_3,          # Complete 3 story quests
-    QUESTS_5,          # Complete 5 story quests
-    QUESTS_10,         # Complete 10 story quests
-    STORY_COMPLETE,    # Complete main story track
-    WEALTH_GOAL,       # Accumulate specified wealth
-    REPUTATION_GOAL,   # Achieve specified reputation
-    FACTION_DOMINANCE  # Become dominant faction
+    TURNS_20, # Survive 20 turns
+    TURNS_50, # Survive 50 turns
+    TURNS_100, # Survive 100 turns
+    QUESTS_3, # Complete 3 story quests
+    QUESTS_5, # Complete 5 story quests
+    QUESTS_10, # Complete 10 story quests
+    STORY_COMPLETE, # Complete main story track
+    WEALTH_GOAL, # Accumulate specified wealth
+    REPUTATION_GOAL, # Achieve specified reputation
+    FACTION_DOMINANCE # Become dominant faction
 }
 
 enum MissionVictoryType {
     NONE,
-    ELIMINATION,       # Eliminate all enemies
-    OBJECTIVE,         # Complete specific objective
-    EXTRACTION,        # Reach extraction point
-    SURVIVAL,          # Survive specified duration
-    CONTROL_POINTS,    # Control specific points
-    CUSTOM            # Custom victory conditions
+    ELIMINATION, # Eliminate all enemies
+    OBJECTIVE, # Complete specific objective
+    EXTRACTION, # Reach extraction point
+    SURVIVAL, # Survive specified duration
+    CONTROL_POINTS, # Control specific points
+    CUSTOM # Custom victory conditions
 }
 
 enum ShipComponentType {
@@ -509,11 +509,11 @@ enum FringeWorldInstability {
 
 enum BattleEnvironment {
     NONE,
-    URBAN,           # City/built-up area
-    WILDERNESS,      # Natural environment
-    SPACE_STATION,   # Space station interior
-    SHIP_INTERIOR,   # Starship interior
-    INDUSTRIAL      # Factory/industrial area
+    URBAN, # City/built-up area
+    WILDERNESS, # Natural environment
+    SPACE_STATION, # Space station interior
+    SHIP_INTERIOR, # Starship interior
+    INDUSTRIAL # Factory/industrial area
 }
 
 enum BattleObjective {
@@ -539,7 +539,7 @@ enum TerrainFeatureType {
 enum CharacterBackground {
     NONE,
     MILITARY,
-    ACADEMIC, 
+    ACADEMIC,
     CRIMINAL
 }
 
@@ -559,7 +559,7 @@ enum DeploymentZone {
 
 enum CrewSize {
     FOUR = 4,
-    FIVE = 5, 
+    FIVE = 5,
     SIX = 6
 }
 

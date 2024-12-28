@@ -21,7 +21,7 @@
             "args": [
                 "-NoLogo",
                 "-NoExit",
-                "-ExecutionPolicy", 
+                "-ExecutionPolicy",
                 "Bypass",
                 "-Command",
                 "Set-Location -LiteralPath '${workspaceFolder}'"
@@ -47,5 +47,22 @@
     "accessibility.signals.terminalBell": {
         "sound": "off"
     },
-    "terminal.integrated.enableVisualBell": false
+    "terminal.integrated.enableVisualBell": false,
+    "problems.decorations.enabled": true,
+    "problems.autoReveal": true,
+    "godot.problemMatcher.watchFileRegex": "\\.gd$",
+    "godot.problemMatcher.problemPattern": {
+        "regexp": "^\\s*(.*):(\\d+):\\s+(.*)$",
+        "file": 1,
+        "line": 2,
+        "message": 3
+    },
+    "godot.lsp.checkOnSave": true,
+    "godot.lsp.checkOnType": true,
+    "godot.lsp.checkOnChange": true,
+    "editor.formatOnSave": true,
+    "editor.formatOnType": true,
+    "files.associations": {
+        "*.gd": "gdscript"
+    }
 }

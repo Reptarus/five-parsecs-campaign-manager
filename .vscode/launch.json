@@ -37,7 +37,12 @@
             "debug_navigation": false,
             "additional_options": "",
             "scene_file": "",
-            "debugServer": 6007
+            "debugServer": 6007,
+            "debug_mode": true,
+            "debug_output": true,
+            "env": {
+                "GODOT_DEBUG_ENABLED": "1"
+            }
         }
     ]
 }

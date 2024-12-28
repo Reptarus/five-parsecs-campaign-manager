@@ -1,8 +1,8 @@
 class_name PDFGenerator
 extends RefCounted
 
-const Character = preload("res://src/core/character/Base/Character.gd")
-const Crew = preload("res://src/data/resources/Campaign/Crew/Crew.gd")
+const Character = preload("res://src/core/character/Management/CharacterDataManager.gd")
+const Crew = preload("res://src/core/campaign/crew/Crew.gd")
 const GlobalEnums = preload("res://src/core/systems/GlobalEnums.gd")
 
 # Helper functions for crew roster generation
@@ -84,4 +84,3 @@ func add_footer(text: String) -> void:
 func save_to_file(path: String) -> Error:
     # Implementation for saving the document
     return OK
-    

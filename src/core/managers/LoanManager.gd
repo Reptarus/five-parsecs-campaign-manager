@@ -10,7 +10,9 @@ const LATE_PAYMENT_PENALTY := 0.2
 const MAX_LOAN_AMOUNT := 50000
 
 const GameEnums = preload("res://src/core/systems/GlobalEnums.gd")
-const FiveParsecsGameState = preload("res://src/data/resources/GameState/GameState.gd")
+const FiveParsecsGameState = preload("res://src/core/state/GameState.gd")
+const Character = preload("res://src/core/character/Management/CharacterDataManager.gd")
+const WorldEconomyManager = preload("res://src/core/managers/WorldEconomyManager.gd")
 
 var game_state: FiveParsecsGameState
 var active_loans: Array[Dictionary] = []

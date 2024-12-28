@@ -8,13 +8,11 @@ const ELITE_REACTIONS_BONUS: int = 1
 const ELITE_PANIC_REDUCTION: int = 1
 const ELITE_CREDIT_BONUS: int = 2
 
-const GlobalEnums = preload("res://src/core/systems/GlobalEnums.gd")
-const EnemyData = preload("res://src/data/resources/RivalAndPatrons/EnemyData.gd")
-const Equipment = preload("res://src/core/character/Equipment/Equipment.gd")
-const GameState = preload("res://src/data/resources/Core/GameState/GameState.gd")
-const FiveParsecsGameState = preload("res://src/data/resources/GameState/GameState.gd")
+const GameEnums = preload("res://src/core/systems/GlobalEnums.gd")
+const FiveParsecsGameState = preload("res://src/core/state/GameState.gd")
+const Enemy = preload("res://src/core/enemy/Enemy.gd")
 
-signal elite_enemy_spawned(enemy: Resource)
+signal elite_enemy_spawned(enemy: Enemy)
 signal elite_enemy_defeated(enemy: Resource)
 signal elite_enemy_escaped(enemy: Resource)
 signal elite_enemy_level_increased(enemy: Resource, new_level: int)
@@ -78,7 +76,7 @@ func _apply_elite_armor(enemy: EnemyData) -> void:
 	if enemy.has_armor_save():
 		enemy.improve_armor_save()
 	else:
-		enemy.add_armor_save(6)  # Base 6+ save
+		enemy.add_armor_save(6) # Base 6+ save
 	
 	enemy.special_rules.append("Elite Armor: This enemy has improved armor or defenses.")
 

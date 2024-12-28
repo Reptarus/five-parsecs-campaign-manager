@@ -3,10 +3,10 @@ extends Node
 
 const GlobalEnums = preload("res://src/core/systems/GlobalEnums.gd")
 const Character = preload("res://src/core/character/Base/Character.gd")
-const GameStateManager = preload("res://src/data/resources/Core/GameState/GameStateManager.gd")
+const GameStateManager = preload("res://src/core/managers/GameStateManager.gd")
 
-signal state_changed(new_state: int)  # BattleState
-signal phase_changed(new_phase: int)  # BattlePhase
+signal state_changed(new_state: int) # BattleState
+signal phase_changed(new_phase: int) # BattlePhase
 signal round_started(round_number: int)
 signal round_ended(round_number: int)
 signal unit_action_completed(unit: Character, action: int)

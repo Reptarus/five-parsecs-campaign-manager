@@ -82,4 +82,4 @@ func test_save_load():
 	assert_eq(game_state_manager.current_state, GameEnums.GameState.PLAYING,
 		"Loaded state should match saved state")
 	assert_eq(game_state_manager.current_difficulty, GameEnums.DifficultyMode.HARDCORE,
-		"Loaded difficulty should match saved difficulty") 
+		"Loaded difficulty should match saved difficulty")

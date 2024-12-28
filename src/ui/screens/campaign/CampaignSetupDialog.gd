@@ -38,9 +38,9 @@ func _connect_signals() -> void:
 
 func _initialize_ui() -> void:
 	# Set default values
-	crew_size_spin_box.value = 4
-	difficulty_option.select(1)  # Normal difficulty
-	victory_option.select(0)     # 20 turns
+	crew_size_spin_box.value = GameEnums.CrewSize.FOUR
+	difficulty_option.select(GameEnums.DifficultyMode.NORMAL) # Normal difficulty
+	victory_option.select(0) # 20 turns
 	story_track_check.button_pressed = true
 	permadeath_check.button_pressed = false
 	starting_credits_spin.value = 1000
@@ -49,8 +49,8 @@ func _initialize_ui() -> void:
 	_update_permadeath_state(difficulty_option.selected)
 
 func _update_permadeath_state(difficulty_index: int) -> void:
-	# Force permadeath on Ironman mode
-	if difficulty_index == GameEnums.DifficultyMode.IRONMAN:
+	# Force permadeath on Hardcore and Insanity modes
+	if difficulty_index == GameEnums.DifficultyMode.HARDCORE or difficulty_index == GameEnums.DifficultyMode.INSANITY:
 		permadeath_check.button_pressed = true
 		permadeath_check.disabled = true
 	else:
@@ -63,9 +63,11 @@ func _on_difficulty_changed(index: int) -> void:
 			starting_credits_spin.value = 1500
 		GameEnums.DifficultyMode.NORMAL:
 			starting_credits_spin.value = 1000
-		GameEnums.DifficultyMode.HARD:
+		GameEnums.DifficultyMode.CHALLENGING:
 			starting_credits_spin.value = 800
-		GameEnums.DifficultyMode.IRONMAN:
+		GameEnums.DifficultyMode.HARDCORE:
+			starting_credits_spin.value = 600
+		GameEnums.DifficultyMode.INSANITY:
 			starting_credits_spin.value = 500
 
 func _on_victory_changed(_index: int) -> void:
@@ -84,7 +86,7 @@ func _on_start_pressed() -> void:
 		"use_story_track": story_track_check.button_pressed,
 		"enable_permadeath": permadeath_check.button_pressed,
 		"starting_credits": starting_credits_spin.value,
-		"enable_tutorial": true  # Can be made configurable if needed
+		"enable_tutorial": true # Can be made configurable if needed
 	}
 	
 	setup_completed.emit(config)
@@ -94,4 +96,4 @@ func get_difficulty_name(difficulty: int) -> String:
 	return GameEnums.DifficultyMode.keys()[difficulty]
 
 func get_victory_condition_name(condition: int) -> String:
-	return GameEnums.CampaignVictoryType.keys()[condition] 
+	return GameEnums.CampaignVictoryType.keys()[condition]

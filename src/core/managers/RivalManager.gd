@@ -1,16 +1,18 @@
 class_name RivalManager
 extends Resource
 
+const FiveParsecsGameState = preload("res://src/core/state/GameState.gd")
+
 signal rival_encountered(rival: Dictionary)
 signal rival_reputation_changed(rival: Dictionary, change: int)
 signal rival_status_changed(rival: Dictionary, new_status: String)
 
-var game_state: GameState
+var game_state: FiveParsecsGameState
 var active_rivals: Array = []
-var rival_reputations: Dictionary = {}  # rival_id -> reputation
-var rival_statuses: Dictionary = {}  # rival_id -> status
+var rival_reputations: Dictionary = {} # rival_id -> reputation
+var rival_statuses: Dictionary = {} # rival_id -> status
 
-func _init(_game_state: GameState) -> void:
+func _init(_game_state: FiveParsecsGameState) -> void:
     game_state = _game_state
 
 func generate_rival() -> Dictionary:
@@ -134,7 +136,7 @@ func _calculate_negotiation_chance(rival: Dictionary) -> float:
     var reputation = get_rival_reputation(rival.id)
     
     # Modify based on reputation
-    base_chance += reputation / 200.0  # -0.5 to +0.5
+    base_chance += reputation / 200.0 # -0.5 to +0.5
     
     # Modify based on rival characteristics
     for characteristic in rival.characteristics:

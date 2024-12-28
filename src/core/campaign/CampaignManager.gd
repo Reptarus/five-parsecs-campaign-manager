@@ -11,6 +11,8 @@ signal crew_tasks_available(available_tasks: Array)
 signal job_offers_available(offers: Array)
 
 const Campaign = preload("res://src/core/campaign/Campaign.gd")
+const GameEnums = preload("res://src/core/systems/GlobalEnums.gd")
+const FiveParsecsGameState = preload("res://src/core/state/GameState.gd")
 const SAVE_DIR = "user://campaigns/"
 const SAVE_EXTENSION = ".campaign"
 
@@ -134,7 +136,7 @@ func get_current_campaign() -> Campaign:
 func set_current_campaign(campaign: Campaign) -> void:
 	if campaign and not active_campaigns.has(campaign):
 		active_campaigns.append(campaign)
-	current_campaign = campaign 
+	current_campaign = campaign
 
 func start_world_phase() -> void:
 	if not current_campaign:
@@ -154,10 +156,10 @@ func start_world_phase() -> void:
 
 func _process_upkeep_phase() -> void:
 	var crew_size = _get_active_crew_size()
-	var upkeep_cost = 1  # Base cost for 4-6 crew
+	var upkeep_cost = 1 # Base cost for 4-6 crew
 	
 	if crew_size > 6:
-		upkeep_cost += crew_size - 6  # +1 credit per crew over 6
+		upkeep_cost += crew_size - 6 # +1 credit per crew over 6
 		
 	upkeep_costs_due.emit(upkeep_cost)
 
@@ -215,7 +217,7 @@ func _generate_patron() -> Dictionary:
 		"name": _generate_patron_name(),
 		"type": randi() % GameEnums.PatronType.size() as int,
 		"relationship": 0,
-		"persistent": randf() < 0.2  # 20% chance for persistent patron
+		"persistent": randf() < 0.2 # 20% chance for persistent patron
 	}
 
 func _generate_patron_name() -> String:

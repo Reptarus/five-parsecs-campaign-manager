@@ -2,7 +2,7 @@ class_name StatDistribution
 extends Resource
 
 const GameEnums = preload("res://src/core/systems/GlobalEnums.gd")
-const StatusEffect = preload("res://src/data/resources/CampaignManagement/StatusEffects.gd")
+const StatusEffect = preload("res://src/ui/screens/campaign/StatusEffects.gd")
 
 signal stat_changed(stat: String, new_value: int)
 

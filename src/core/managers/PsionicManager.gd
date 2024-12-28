@@ -1,8 +1,10 @@
 class_name PsionicManager
 extends Resource
 
-const GameEnums := preload("res://src/core/systems/GlobalEnums.gd")
-const FiveParsecsGameState := preload("res://src/data/resources/GameState/GameState.gd")
+const GameEnums = preload("res://src/core/systems/GlobalEnums.gd")
+const FiveParsecsGameState = preload("res://src/core/state/GameState.gd")
+const Character = preload("res://src/core/character/Management/CharacterDataManager.gd")
+const SaveManager = preload("res://src/core/state/SaveManager.gd")
 
 @export var game_state: FiveParsecsGameState
 

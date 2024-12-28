@@ -2,17 +2,20 @@ class_name EquipmentManager
 extends Resource
 
 const GlobalEnums = preload("res://src/core/systems/GlobalEnums.gd")
-const EquipmentData = preload("res://src/data/resources/Economy/Loot/EquipmentData.gd")
-const WeaponData = preload("res://src/data/resources/Economy/Loot/WeaponData.gd")
-const ArmorData = preload("res://src/data/resources/Economy/Loot/ArmorData.gd")
+const EquipmentData = preload("res://src/core/economy/loot/EquipmentData.gd")
+const WeaponData = preload("res://src/core/economy/loot/WeaponData.gd")
+const ArmorData = preload("res://src/core/economy/loot/ArmorData.gd")
+const GameWeapon = preload("res://src/core/systems/items/Weapon.gd")
+const Equipment = preload("res://src/core/character/Equipment/Equipment.gd")
+const Armor = preload("res://src/core/character/Equipment/Armor.gd")
 
 signal equipment_equipped(crew_member, item)
 signal equipment_unequipped(crew_member, item)
 signal equipment_added(item)
 signal equipment_removed(item)
 
-var game_state: Resource  # Will be typed as GameState when available
-var equipped_items: Dictionary = {}  # crew_id: {item_id: item}
+var game_state: Resource # Will be typed as GameState when available
+var equipped_items: Dictionary = {} # crew_id: {item_id: item}
 var available_items: Array[EquipmentData] = []
 
 func _init(_game_state: Resource = null) -> void:

@@ -4,13 +4,15 @@ extends Node
 
 ## Dependencies
 const GameEnums = preload("res://src/core/systems/GlobalEnums.gd")
-const StoryQuestData = preload("res://src/core/story/StoryQuestData.gd")
-const GameState = preload("res://src/data/resources/Core/GameState/GameState.gd")
-const Character = preload("res://src/core/character/Base/Character.gd")
+const FiveParsecsGameState = preload("res://src/core/state/GameState.gd")
+const Character = preload("res://src/core/character/Management/CharacterDataManager.gd")
+const Mission = preload("res://src/core/systems/Mission.gd")
+const UnifiedTerrainSystem = preload("res://src/core/terrain/UnifiedTerrainSystem.gd")
+const PreBattleUI = preload("res://src/ui/screens/battle/PreBattleUI.gd")
 
 ## Optional dependencies that may not exist
-var _terrain_system_script = preload("res://src/data/resources/Terrain/UnifiedTerrainSystem.gd") if FileAccess.file_exists("res://src/data/resources/Terrain/UnifiedTerrainSystem.gd") else null
-var _battle_ui_script = preload("res://src/data/resources/UI/PreBattleUI.gd") if FileAccess.file_exists("res://src/data/resources/UI/PreBattleUI.gd") else null
+var _terrain_system_script = preload("res://src/core/terrain/UnifiedTerrainSystem.gd") if FileAccess.file_exists("res://src/core/terrain/UnifiedTerrainSystem.gd") else null
+var _battle_ui_script = preload("res://src/ui/screens/battle/PreBattleUI.gd") if FileAccess.file_exists("res://src/ui/screens/battle/PreBattleUI.gd") else null
 
 ## Signals
 signal battle_ready(mission_data: Dictionary)
@@ -18,16 +20,17 @@ signal phase_completed
 signal crew_selection_changed(crew: Array[Character])
 signal deployment_updated(zones: Array[Dictionary])
 signal error_occurred(message: String)
+signal pre_battle_completed
 
 ## Node references
-@onready var ui: Node = $UI  # Will be cast to PreBattleUI if available
-@onready var terrain_system: Node = $TerrainSystem  # Will be cast to UnifiedTerrainSystem if available
+@onready var ui: Node = $UI # Will be cast to PreBattleUI if available
+@onready var terrain_system: Node = $TerrainSystem # Will be cast to UnifiedTerrainSystem if available
 
 ## Mission data
 var current_mission: StoryQuestData
 var selected_crew: Array[Character]
 var deployment_zones: Array[Dictionary]
-var game_state: GameState
+var game_state: FiveParsecsGameState
 
 func _init() -> void:
 	selected_crew = []
@@ -61,7 +64,7 @@ func _connect_signals() -> void:
 		ui.deployment_confirmed.connect(_on_deployment_confirmed)
 
 ## Start the pre-battle phase with mission data
-func start_phase(mission: StoryQuestData, state: GameState) -> void:
+func start_phase(mission: StoryQuestData, state: FiveParsecsGameState) -> void:
 	if not mission or not state:
 		error_occurred.emit("Invalid mission or game state")
 		push_error("PreBattleLoop: Invalid mission or game state")

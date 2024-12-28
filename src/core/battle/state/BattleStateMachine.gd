@@ -2,7 +2,7 @@ extends Node
 
 const GlobalEnums = preload("res://src/core/systems/GlobalEnums.gd")
 const Character = preload("res://src/core/character/Base/Character.gd")
-const FiveParsecsGameStateManager = preload("res://src/core/managers/GameStateManager.gd")
+const GameStateManager = preload("res://src/core/managers/GameStateManager.gd")
 
 signal state_changed(new_state: int)  # BattleState
 signal phase_changed(new_phase: int)  # BattlePhase
@@ -16,7 +16,7 @@ signal action_points_changed(unit: Character, points: int)
 signal combat_effect_triggered(effect_name: String, source: Character, target: Character)
 signal reaction_opportunity(unit: Character, reaction_type: String, source: Character)
 
-@export var game_state_manager: FiveParsecsGameStateManager
+@export var game_state_manager: GameStateManager
 @export var battlefield_manager: Node
 @export var combat_resolver: Node
 

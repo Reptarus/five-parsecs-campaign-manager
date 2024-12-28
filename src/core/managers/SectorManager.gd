@@ -5,17 +5,23 @@ signal sector_generated(sector_name: String)
 signal planet_discovered(planet: Planet)
 signal sector_updated(sector_name: String)
 
-const SECTOR_SIZE := Vector2(5, 5)  # 5x5 grid of potential planet locations
+const SECTOR_SIZE := Vector2(5, 5) # 5x5 grid of potential planet locations
 const MIN_PLANETS_PER_SECTOR := 3
 const MAX_PLANETS_PER_SECTOR := 7
 
-var sectors: Dictionary = {}  # sector_name: Array[Planet]
-var discovered_planets: Dictionary = {}  # coordinates: Planet
+var sectors: Dictionary = {} # sector_name: Array[Planet]
+var discovered_planets: Dictionary = {} # coordinates: Planet
 var current_sector: String = ""
 
 # Planet name generation
-const PlanetNameGenerator = preload("res://src/data/resources/WorldPhase/PlanetNameGenerator.gd")
+const PlanetNameGenerator = preload("res://src/core/world/PlanetNameGenerator.gd")
 var name_generator: PlanetNameGenerator
+
+const GameEnums = preload("res://src/core/systems/GlobalEnums.gd")
+const FiveParsecsGameState = preload("res://src/core/state/GameState.gd")
+const Location = preload("res://src/core/world/Location.gd")
+const Mission = preload("res://src/core/systems/Mission.gd")
+const WorldManager = preload("res://src/core/world/WorldManager.gd")
 
 func _init() -> void:
     name_generator = PlanetNameGenerator.new()

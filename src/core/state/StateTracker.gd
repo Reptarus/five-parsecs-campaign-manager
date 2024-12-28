@@ -1,16 +1,18 @@
 class_name StateTracker
 extends Node
 
+const FiveParsecsGameState = preload("res://src/core/state/GameState.gd")
+
 signal state_changed(old_state: Dictionary, new_state: Dictionary)
 signal state_updated(state: Dictionary)
 signal state_reset
 
-var game_state: GameState
+var game_state: FiveParsecsGameState
 var current_state: Dictionary = {}
 var state_history: Array[Dictionary] = []
 var max_history_size: int = 100
 
-func _init(_game_state: GameState) -> void:
+func _init(_game_state: FiveParsecsGameState) -> void:
     game_state = _game_state
     _initialize_state()
 
@@ -65,4 +67,4 @@ func undo() -> bool:
     current_state = previous_state
     state_changed.emit(old_state, current_state)
     state_updated.emit(current_state)
-    return true 
+    return true

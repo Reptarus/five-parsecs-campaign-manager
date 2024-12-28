@@ -2,8 +2,13 @@ class_name BattleTutorialManager
 extends Node
 
 const GameEnums = preload("res://src/core/systems/GlobalEnums.gd")
+const FiveParsecsGameState = preload("res://src/core/state/GameState.gd")
+const Character = preload("res://src/core/character/Management/CharacterDataManager.gd")
+const Mission = preload("res://src/core/systems/Mission.gd")
+const UnifiedTerrainSystem = preload("res://src/core/terrain/UnifiedTerrainSystem.gd")
+const SaveManager = preload("res://src/core/state/SaveManager.gd")
 const CombatManager = preload("res://src/core/battle/CombatManager.gd")
-const BattleTutorialLayout = preload("res://src/data/resources/Tutorial/BattleTutorialLayout.gd")
+const BattleTutorialLayout = preload("res://src/core/tutorial/BattleTutorialLayout.gd")
 
 signal tutorial_objective_completed(objective_id: String)
 signal tutorial_step_completed(step_id: String)
@@ -120,4 +125,4 @@ func advance_tutorial() -> void:
             tutorial_step_completed.emit("battle_tutorial")
             return
             
-    load_current_step() 
+    load_current_step()

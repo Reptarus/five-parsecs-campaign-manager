@@ -2,7 +2,7 @@ class_name CampaignStateMachine
 extends Node
 
 const GameEnums := preload("res://src/core/systems/GlobalEnums.gd")
-const FiveParsecsGameState := preload("res://src/data/resources/GameState/GameState.gd")
+const FiveParsecsGameState := preload("res://src/core/state/GameState.gd")
 
 signal state_changed(new_state: GameEnums.GameState)
 

@@ -17,7 +17,7 @@ const MAX_PRICE_FLUCTUATION: float = 0.3
 const MIN_PRICE_MULTIPLIER: float = 0.5
 const MAX_PRICE_MULTIPLIER: float = 2.0
 
-var location_price_modifiers: Dictionary = {}  # location_name: float
+var location_price_modifiers: Dictionary = {} # location_name: float
 var global_economic_modifier: float = 1.0
 var trade_restricted_items: Array[String] = []
 var scarce_resources: Array[String] = []
@@ -55,13 +55,13 @@ func _update_market_state() -> void:
     match current_market_state:
         GlobalEnums.MarketState.NORMAL:
             if state_change_roll < 0.1:
-                current_market_state = GlobalEnums.MarketState.BOOM if randf() < 0.6 else GlobalEnums.MarketState.RECESSION
+                current_market_state = GlobalEnums.MarketState.BOOM if randf() < 0.6 else GlobalEnums.MarketState.RESTRICTED
         GlobalEnums.MarketState.BOOM:
             if state_change_roll < 0.2:
                 current_market_state = GlobalEnums.MarketState.NORMAL
             elif state_change_roll < 0.25:
                 current_market_state = GlobalEnums.MarketState.CRISIS
-        GlobalEnums.MarketState.RECESSION:
+        GlobalEnums.MarketState.RESTRICTED:
             if state_change_roll < 0.15:
                 current_market_state = GlobalEnums.MarketState.NORMAL
             elif state_change_roll < 0.2:
@@ -86,7 +86,7 @@ func _update_supply_demand() -> void:
         match current_market_state:
             GlobalEnums.MarketState.BOOM:
                 data.demand *= 1.2
-            GlobalEnums.MarketState.RECESSION:
+            GlobalEnums.MarketState.RESTRICTED:
                 data.demand *= 0.8
             GlobalEnums.MarketState.CRISIS:
                 data.supply *= 0.7
@@ -105,7 +105,7 @@ func _update_prices() -> void:
         match current_market_state:
             GlobalEnums.MarketState.BOOM:
                 base_modifier *= 1.3
-            GlobalEnums.MarketState.RECESSION:
+            GlobalEnums.MarketState.RESTRICTED:
                 base_modifier *= 0.7
             GlobalEnums.MarketState.CRISIS:
                 base_modifier *= 0.5

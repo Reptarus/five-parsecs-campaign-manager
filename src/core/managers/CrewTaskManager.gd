@@ -2,14 +2,15 @@ class_name CrewTaskManager
 extends Node
 
 const GameEnums = preload("res://src/core/systems/GlobalEnums.gd")
+const FiveParsecsGameState = preload("res://src/core/state/GameState.gd")
 
 signal task_assigned(crew_member: CrewMember, task: int)
 signal task_completed(crew_member: CrewMember, task: int)
 
-var game_state: GameState
-var active_tasks: Dictionary = {}  # CrewMember: int (task)
+var game_state: FiveParsecsGameState
+var active_tasks: Dictionary = {} # CrewMember: int (task)
 
-func _init(_game_state: GameState) -> void:
+func _init(_game_state: FiveParsecsGameState) -> void:
     if not _game_state:
         push_error("GameState is required for CrewTaskManager")
         return

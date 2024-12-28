@@ -1,6 +1,6 @@
 [gd_scene load_steps=3 format=3 uid="uid://uh4wvk7it6yd"]
 
-[ext_resource type="Script" path="res://src/data/resources/Campaign/Crew/CaptainCreation.gd" id="1_2k3yt"]
+[ext_resource type="Script" path="res://src/core/campaign/crew/CaptainCreation.gd" id="1_2k3yt"]
 [ext_resource type="Theme" uid="uid://ddjoduj1ya6tp" path="res://assets/5PFH.tres" id="1_etehf"]
 
 [node name="CaptainCreation" type="Control"]

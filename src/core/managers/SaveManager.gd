@@ -1,5 +1,7 @@
 extends Node
 
+const FiveParsecsGameState = preload("res://src/core/state/GameState.gd")
+
 signal save_completed(success: bool, message: String)
 signal load_completed(success: bool, message: String)
 signal backup_created(success: bool, message: String)
@@ -10,10 +12,10 @@ const BACKUP_DIR = "user://saves/backups/"
 const SAVE_FILE_EXTENSION = ".json"
 const MAX_AUTOSAVES = 5
 const MAX_BACKUPS = 3
-const SAVE_VERSION = "1.0.0"  # Current save format version
+const SAVE_VERSION = "1.0.0" # Current save format version
 
 var _last_autosave_time: float = 0.0
-var _autosave_interval: float = 300.0  # 5 minutes in seconds
+var _autosave_interval: float = 300.0 # 5 minutes in seconds
 
 func _ready() -> void:
 	_initialize_directories()
@@ -32,7 +34,7 @@ func _initialize_directories() -> void:
 
 func _setup_autosave_timer() -> void:
 	var timer = Timer.new()
-	timer.wait_time = 60.0  # Check every minute
+	timer.wait_time = 60.0 # Check every minute
 	timer.timeout.connect(_on_autosave_timer_timeout)
 	add_child(timer)
 	timer.start()
@@ -68,7 +70,7 @@ func _cleanup_old_autosaves() -> void:
 		for i in range(files.size() - MAX_AUTOSAVES):
 			dir.remove(SAVE_DIR + files[i].name)
 
-func save_game(game_state: GameState, save_name: String) -> Error:
+func save_game(game_state: FiveParsecsGameState, save_name: String) -> Error:
 	# Create backup of existing save if it exists
 	if FileAccess.file_exists(SAVE_DIR + save_name + SAVE_FILE_EXTENSION):
 		_create_backup(save_name)
@@ -83,7 +85,7 @@ func save_game(game_state: GameState, save_name: String) -> Error:
 		return ERR_INVALID_DATA
 	
 	var save_path = SAVE_DIR + save_name + SAVE_FILE_EXTENSION
-	var json_string = JSON.stringify(save_data, "\t")  # Pretty print JSON
+	var json_string = JSON.stringify(save_data, "\t") # Pretty print JSON
 	
 	var file = FileAccess.open(save_path, FileAccess.WRITE)
 	if file == null:
@@ -95,7 +97,7 @@ func save_game(game_state: GameState, save_name: String) -> Error:
 	save_completed.emit(true, "Game saved successfully")
 	return OK
 
-func load_game(save_name: String) -> GameState:
+func load_game(save_name: String) -> FiveParsecsGameState:
 	var save_path = SAVE_DIR + save_name + SAVE_FILE_EXTENSION
 	if not FileAccess.file_exists(save_path):
 		load_completed.emit(false, "Save file not found")
@@ -120,7 +122,7 @@ func load_game(save_name: String) -> GameState:
 		load_completed.emit(false, "Save data validation failed")
 		return null
 	
-	var game_state = GameState.new()
+	var game_state = FiveParsecsGameState.new()
 	game_state.deserialize(save_data)
 	
 	# Version compatibility check

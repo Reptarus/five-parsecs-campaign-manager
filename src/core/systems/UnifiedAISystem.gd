@@ -5,8 +5,8 @@ extends Node
 
 ## Dependencies
 const GameEnums = preload("res://src/core/systems/GlobalEnums.gd")
-const Character = preload("res://src/core/character/Base/Character.gd")
-const EnemyData = preload("res://src/data/resources/RivalAndPatrons/EnemyData.gd")
+const Character = preload("res://src/core/character/Management/CharacterDataManager.gd")
+const EnemyData = preload("res://src/core/rivals/EnemyData.gd")
 
 ## Emitted when an AI unit decides on an action
 signal action_decided(unit: Character, action: int, target_position: Vector2)
@@ -16,9 +16,9 @@ signal target_selected(unit: Character, target: Character)
 signal behavior_changed(unit: Character, new_behavior: int)
 
 ## Reference to the battlefield manager
-@export var battlefield_manager: Node  # Will be cast to BattlefieldManager
+@export var battlefield_manager: Node # Will be cast to BattlefieldManager
 ## Reference to the combat resolver
-@export var combat_resolver: Node      # Will be cast to CombatResolver
+@export var combat_resolver: Node # Will be cast to CombatResolver
 
 ## Maps units to their current AI behavior
 var unit_behaviors: Dictionary = {}
@@ -32,18 +32,18 @@ var threat_map: Dictionary = {}
 var current_unit: Character = null
 
 ## Squad formation settings
-const IDEAL_SPACING := 3.0            # Ideal distance between units
-const MAX_SUPPORT_RANGE := 12.0       # Maximum range for support calculations
-const OBJECTIVE_WEIGHT := 0.6         # Weight for objective-based decisions
+const IDEAL_SPACING := 3.0 # Ideal distance between units
+const MAX_SUPPORT_RANGE := 12.0 # Maximum range for support calculations
+const OBJECTIVE_WEIGHT := 0.6 # Weight for objective-based decisions
 
 ## AI tactical behaviors
 enum AITactic {
-	ENGAGE_CLOSE,     # Move closer to engage
-	MAINTAIN_RANGE,   # Keep optimal distance
-	SEEK_COVER,      # Move to cover
-	FLANK_TARGET,    # Move to flanking position
-	SUPPORT_ALLY,    # Move to support position
-	RETREAT          # Move away from danger
+	ENGAGE_CLOSE, # Move closer to engage
+	MAINTAIN_RANGE, # Keep optimal distance
+	SEEK_COVER, # Move to cover
+	FLANK_TARGET, # Move to flanking position
+	SUPPORT_ALLY, # Move to support position
+	RETREAT # Move away from danger
 }
 
 func _ready() -> void:
@@ -373,4 +373,4 @@ func process_enemy_turn(enemy: EnemyData) -> Dictionary:
 func _convert_enemy_to_character(enemy: EnemyData) -> Character:
 	# Implementation depends on your character system
 	# This should convert EnemyData to a Character instance
-	return null 
+	return null

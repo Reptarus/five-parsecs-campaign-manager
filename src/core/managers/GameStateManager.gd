@@ -30,9 +30,9 @@ var difficulty_mode: GameEnums.DifficultyMode = GameEnums.DifficultyMode.NORMAL
 
 # Core managers
 var save_manager: SaveManager
-var campaign_manager: Node  # Will be set at runtime
-var battle_state_machine: Node  # Will be set at runtime
-var world_manager: Node  # Will be set at runtime
+var campaign_manager: Node # Will be set at runtime
+var battle_state_machine: Node # Will be set at runtime
+var world_manager: Node # Will be set at runtime
 
 func _ready() -> void:
     save_manager = SaveManager.new()

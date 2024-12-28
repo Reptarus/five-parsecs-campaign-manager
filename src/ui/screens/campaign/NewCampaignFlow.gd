@@ -1,8 +1,8 @@
 extends Resource
 
-const GameEnums := preload("res://src/core/systems/GlobalEnums.gd")
-const FiveParsecsGameState := preload("res://src/data/resources/GameState/GameState.gd")
-const CampaignSetupDialog := preload("res://src/data/resources/CampaignManagement/CampaignSetupDialog.tscn")
+const GameEnums = preload("res://src/core/systems/GlobalEnums.gd")
+const FiveParsecsGameState = preload("res://src/core/state/GameState.gd")
+const CampaignSetupDialog = preload("res://src/ui/screens/campaign/CampaignSetupDialog.tscn")
 
 signal campaign_created(campaign: Resource)
 signal campaign_setup_completed

@@ -4,8 +4,12 @@ extends Node
 
 ## Dependencies
 const GameEnums = preload("res://src/core/systems/GlobalEnums.gd")
+const FiveParsecsGameState = preload("res://src/core/state/GameState.gd")
+const Character = preload("res://src/core/character/Management/CharacterDataManager.gd")
+const Mission = preload("res://src/core/systems/Mission.gd")
 const StoryQuestData = preload("res://src/core/story/StoryQuestData.gd")
-const FiveParsecsGameState: GDScript = preload("res://src/data/resources/GameState/GameState.gd")
+const Location = preload("res://src/core/world/Location.gd")
+const SaveManager = preload("res://src/core/state/SaveManager.gd")
 
 ## Emitted when a story event is triggered
 signal story_event_triggered(event: StoryQuestData)
@@ -36,8 +40,8 @@ var story_events: Array[StoryQuestData] = []
 
 ## Campaign state references
 var game_state: FiveParsecsGameState = null
-var campaign_manager: Node = null  # Will be cast to CampaignManager
-var event_manager: Node = null    # Will be cast to EventManager
+var campaign_manager: Node = null # Will be cast to CampaignManager
+var event_manager: Node = null # Will be cast to EventManager
 
 ## Story configuration constants
 const TICKS_PER_CHAPTER := 10
@@ -376,7 +380,7 @@ func _handle_market_crash() -> void:
 	if not game_state:
 		return
 		
-	game_state.modify_market_prices(0.75)  # 25% price reduction
+	game_state.modify_market_prices(0.75) # 25% price reduction
 	trigger_story_event(_create_market_crash_event())
 
 ## Handle alien invasion event
@@ -492,4 +496,4 @@ func deserialize(data: Dictionary) -> void:
 	for quest_data in data.get("available_quests", []):
 		var quest = StoryQuestData.new()
 		quest.deserialize(quest_data)
-		available_quests.append(quest) 
+		available_quests.append(quest)

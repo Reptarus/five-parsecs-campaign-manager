@@ -1,7 +1,7 @@
 extends Control
 
 const GameEnums := preload("res://src/core/systems/GlobalEnums.gd")
-const UpkeepPhaseManager := preload("res://src/data/resources/CampaignManagement/UpkeepPhaseManager.gd")
+const GameState := preload("res://src/core/state/GameState.gd")
 
 # UI References
 @onready var crew_upkeep_value := $Panel/MarginContainer/VBoxContainer/UpkeepSection/UpkeepInfo/CrewUpkeepValue
@@ -25,23 +25,32 @@ const UpkeepPhaseManager := preload("res://src/data/resources/CampaignManagement
 
 @onready var complete_phase_button := $Panel/MarginContainer/VBoxContainer/ButtonContainer/CompletePhaseButton
 
-var upkeep_manager: UpkeepPhaseManager
 var game_state: GameState
 var current_costs: Dictionary
 var selected_medical_crew: Resource
 var selected_task_crew: Resource
 
+enum CrewTask {
+    NONE,
+    REPAIR,
+    SCAVENGE,
+    GUARD,
+    TRADE,
+    MEDICAL,
+    MAINTENANCE,
+    TRAINING
+}
+
 func _ready() -> void:
-    game_state = get_node("/root/GameState")
+    game_state = get_node("/root/GameStateManager").game_state
     if not game_state:
         push_error("GameState not found")
         queue_free()
         return
     
-    upkeep_manager = UpkeepPhaseManager.new(game_state)
     _connect_signals()
     _initialize_ui()
-    upkeep_manager.start_upkeep_phase()
+    _calculate_upkeep()
 
 func _connect_signals() -> void:
     pay_upkeep_button.pressed.connect(_on_pay_upkeep_pressed)
@@ -54,19 +63,49 @@ func _connect_signals() -> void:
     medical_crew_list.item_selected.connect(_on_medical_crew_selected)
     task_crew_list.item_selected.connect(_on_task_crew_selected)
     medical_turns_spin.value_changed.connect(_on_medical_turns_changed)
-    
-    upkeep_manager.resource_updated.connect(_on_resource_updated)
-    upkeep_manager.crew_state_updated.connect(_on_crew_state_updated)
-    upkeep_manager.ship_state_updated.connect(_on_ship_state_updated)
-    upkeep_manager.upkeep_completed.connect(_on_upkeep_completed)
 
 func _initialize_ui() -> void:
-    current_costs = upkeep_manager._calculate_upkeep_costs()
     _update_cost_display()
     _update_ship_display()
     _update_crew_lists()
     _populate_task_options()
     _update_button_states()
+
+func _calculate_upkeep() -> void:
+    current_costs = {
+        "crew_upkeep": _calculate_crew_upkeep(),
+        "ship_maintenance": _calculate_ship_maintenance(),
+        "total": 0
+    }
+    current_costs.total = current_costs.crew_upkeep + current_costs.ship_maintenance
+
+func _calculate_crew_upkeep() -> int:
+    var base_cost := 0
+    for crew_member in game_state.current_crew:
+        if crew_member.is_active:
+            base_cost += 2 # Base upkeep per crew member
+    
+    # Apply difficulty modifiers
+    match game_state.difficulty_mode:
+        GameEnums.DifficultyMode.EASY:
+            base_cost = int(base_cost * 0.8)
+        GameEnums.DifficultyMode.CHALLENGING:
+            base_cost = int(base_cost * 1.2)
+        GameEnums.DifficultyMode.HARDCORE:
+            base_cost = int(base_cost * 1.5)
+        GameEnums.DifficultyMode.INSANITY:
+            base_cost = int(base_cost * 2.0)
+    
+    return base_cost
+
+func _calculate_ship_maintenance() -> int:
+    if not game_state.ship_hull_points:
+        return 0
+        
+    var base_cost := int(game_state.ship_hull_points / 10)
+    var damage_penalty := int((game_state.ship_hull_points - game_state.ship_hull_points) / 5)
+    
+    return base_cost + damage_penalty
 
 func _update_cost_display() -> void:
     crew_upkeep_value.text = str(current_costs.crew_upkeep) + " credits"
@@ -74,9 +113,9 @@ func _update_cost_display() -> void:
     total_value.text = str(current_costs.total) + " credits"
 
 func _update_ship_display() -> void:
-    if game_state.ship:
-        hull_damage_value.text = str(game_state.ship.hull_damage)
-        repair_points_spin.max_value = min(game_state.ship.hull_damage, game_state.credits)
+    if game_state.ship_hull_points:
+        hull_damage_value.text = str(game_state.ship_hull_points)
+        repair_points_spin.max_value = min(game_state.ship_hull_points, game_state.credits / 2)
     else:
         hull_damage_value.text = "No Ship"
         repair_points_spin.max_value = 0
@@ -85,42 +124,61 @@ func _update_crew_lists() -> void:
     medical_crew_list.clear()
     task_crew_list.clear()
     
-    for crew_member in game_state.crew:
-        if crew_member.is_in_sickbay:
+    for crew_member in game_state.current_crew:
+        if crew_member.status == GameEnums.CharacterStatus.INJURED:
             medical_crew_list.add_item(crew_member.character_name)
         
-        if not crew_member.is_in_sickbay and crew_member.current_task == GameEnums.CrewTask.NONE:
+        if crew_member.status == GameEnums.CharacterStatus.HEALTHY:
             task_crew_list.add_item(crew_member.character_name)
 
 func _populate_task_options() -> void:
     task_option.clear()
-    var tasks = upkeep_manager.get_available_tasks(selected_task_crew)
-    for task in tasks:
-        task_option.add_item(task.name, task.type)
+    task_option.add_item("None", CrewTask.NONE)
+    task_option.add_item("Repair", CrewTask.REPAIR)
+    task_option.add_item("Scavenge", CrewTask.SCAVENGE)
+    task_option.add_item("Guard", CrewTask.GUARD)
+    task_option.add_item("Trade", CrewTask.TRADE)
+    task_option.add_item("Medical", CrewTask.MEDICAL)
+    task_option.add_item("Maintenance", CrewTask.MAINTENANCE)
+    task_option.add_item("Training", CrewTask.TRAINING)
 
 func _update_button_states() -> void:
-    pay_upkeep_button.disabled = game_state.credits < current_costs.total or upkeep_manager.upkeep_paid
-    repair_button.disabled = not game_state.ship or game_state.ship.hull_damage == 0 or not upkeep_manager.upkeep_paid
-    provide_care_button.disabled = not selected_medical_crew or not upkeep_manager.upkeep_paid
-    assign_task_button.disabled = not selected_task_crew or not upkeep_manager.upkeep_paid
-    complete_phase_button.disabled = not upkeep_manager.check_phase_completion()
+    pay_upkeep_button.disabled = game_state.credits < current_costs.total
+    repair_button.disabled = not game_state.ship_hull_points or repair_points_spin.value == 0
+    provide_care_button.disabled = not selected_medical_crew
+    assign_task_button.disabled = not selected_task_crew or task_option.selected == CrewTask.NONE
+    complete_phase_button.disabled = game_state.credits < current_costs.total
 
 func _on_pay_upkeep_pressed() -> void:
-    if upkeep_manager.pay_upkeep(current_costs.total):
+    if game_state.credits >= current_costs.total:
+        game_state.credits -= current_costs.total
         _update_button_states()
 
 func _on_skip_upkeep_pressed() -> void:
-    upkeep_manager.skip_upkeep()
+    # Apply penalties for skipping upkeep
+    for crew_member in game_state.current_crew:
+        if crew_member.is_active and randf() < 0.2: # 20% chance per crew member
+            crew_member.status = GameEnums.CharacterStatus.INJURED
+    
+    if game_state.ship_hull_points and randf() < 0.3: # 30% chance of ship damage
+        game_state.ship_hull_points = max(0, game_state.ship_hull_points - 1)
+    
+    _update_crew_lists()
+    _update_ship_display()
     _update_button_states()
 
 func _on_repair_pressed() -> void:
     var points = repair_points_spin.value
-    upkeep_manager.maintain_ship(points)
-    _update_ship_display()
-    _update_button_states()
+    var cost = points * 2
+    
+    if game_state.credits >= cost:
+        game_state.credits -= cost
+        game_state.ship_hull_points = min(game_state.ship_hull_points + points, game_state.ship_hull_points)
+        _update_ship_display()
+        _update_button_states()
 
 func _on_medical_crew_selected(index: int) -> void:
-    selected_medical_crew = game_state.crew[index]
+    selected_medical_crew = game_state.current_crew[index]
     _update_medical_cost()
     _update_button_states()
 
@@ -133,36 +191,26 @@ func _update_medical_cost() -> void:
 
 func _on_provide_care_pressed() -> void:
     if selected_medical_crew:
-        upkeep_manager.process_medical_care(selected_medical_crew, medical_turns_spin.value)
-        _update_crew_lists()
-        _update_button_states()
+        var turns = medical_turns_spin.value
+        var cost = turns * 4
+        
+        if game_state.credits >= cost:
+            game_state.credits -= cost
+            if turns >= 2: # Full recovery requires at least 2 turns of care
+                selected_medical_crew.status = GameEnums.CharacterStatus.HEALTHY
+            _update_crew_lists()
+            _update_button_states()
 
 func _on_task_crew_selected(index: int) -> void:
-    selected_task_crew = game_state.crew[index]
-    _populate_task_options()
+    selected_task_crew = game_state.current_crew[index]
     _update_button_states()
 
 func _on_assign_task_pressed() -> void:
     if selected_task_crew:
-        var task_type = task_option.get_selected_id()
-        upkeep_manager.assign_crew_task(selected_task_crew, task_type)
+        var task = task_option.get_selected_id()
+        selected_task_crew.current_task = task
         _update_crew_lists()
         _update_button_states()
 
 func _on_complete_phase_pressed() -> void:
     queue_free()
-
-func _on_resource_updated(_type: int, _amount: int) -> void:
-    _update_cost_display()
-    _update_button_states()
-
-func _on_crew_state_updated(_crew_member: Resource) -> void:
-    _update_crew_lists()
-    _update_button_states()
-
-func _on_ship_state_updated() -> void:
-    _update_ship_display()
-    _update_button_states()
-
-func _on_upkeep_completed() -> void:
-    _update_button_states() 

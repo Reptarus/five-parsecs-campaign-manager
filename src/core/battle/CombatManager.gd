@@ -88,7 +88,7 @@ func _update_combat_state(character: Character) -> void:
 	
 	# Check height advantage
 	if battlefield_manager:
-		var terrain_data := battlefield_manager.get_terrain_at(position)
+		var terrain_data: Dictionary = battlefield_manager.get_terrain_at(position)
 		modifiers.height_advantage = terrain_data.get("elevation", 0) > 0
 	
 	# Check flanking

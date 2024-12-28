@@ -5,12 +5,12 @@ extends CampaignResponsiveLayout
 signal ship_created(ship: Ship)
 signal creation_cancelled
 
-const Ship = preload("res://src/data/resources/Ships/Ship.gd")
+const Ship = preload("res://src/core/ships/Ship.gd")
 const GameEnums = preload("res://src/core/systems/GlobalEnums.gd")
-const WeaponsComponent = preload("res://src/data/resources/Ships/WeaponsComponent.gd")
-const HullComponent = preload("res://src/data/resources/Ships/HullComponent.gd")
-const EngineComponent = preload("res://src/data/resources/Ships/EngineComponent.gd")
-const MedicalBayComponent = preload("res://src/data/resources/Ships/MedicalBayComponent.gd")
+const WeaponsComponent = preload("res://src/core/ships/components/WeaponsComponent.gd")
+const HullComponent = preload("res://src/core/ships/components/HullComponent.gd")
+const EngineComponent = preload("res://src/core/ships/components/EngineComponent.gd")
+const MedicalBayComponent = preload("res://src/core/ships/components/MedicalBayComponent.gd")
 
 # Core rules ship types and their base stats
 const SHIP_TYPES = {
@@ -91,9 +91,8 @@ const SHIP_TYPES = {
 @onready var ship_info_label := $VBoxContainer/ShipInfoLabel
 @onready var add_weapon_button := $VBoxContainer/ComponentsContainer/AddWeaponButton
 
-const TOUCH_BUTTON_HEIGHT := 60
-const PORTRAIT_COMPONENTS_RATIO := 0.6  # Components take 60% in portrait mode
-const MAX_WEAPONS := 4  # Maximum number of weapons a ship can have
+const PORTRAIT_COMPONENTS_RATIO := 0.6 # Components take 60% in portrait mode
+const MAX_WEAPONS := 4 # Maximum number of weapons a ship can have
 
 var current_ship: Ship
 var weapon_options: Array[OptionButton] = []
@@ -108,7 +107,7 @@ func _setup_ship_creation() -> void:
 	_setup_component_options()
 	_setup_buttons()
 	current_ship = Ship.new()
-	_add_weapon_option()  # Add initial weapon option
+	_add_weapon_option() # Add initial weapon option
 
 func _setup_ship_types() -> void:
 	for ship_type in SHIP_TYPES.keys():
@@ -260,23 +259,23 @@ func _update_ship_info() -> void:
 		weapons_info = "\n  None"
 	
 	var info = """
-	Ship Name: %s
-	Ship Type: %s
-	Base Debt: %d credits
-	Hull Points: %d
-	Traits: %s
+	Ship Name:%s
+	Ship Type:%s
+	Base Debt:%d credits
+	Hull Points:%d
+	Traits:%s
 	
 	Components:
-	- Hull: %s
-	- Engine: %s
-	- Weapons: %s
-	- Medical Bay: %s
+	- Hull:%s
+	- Engine:%s
+	- Weapons:%s
+	- Medical Bay:%s
 	
-	Cargo Capacity: %d
-	Crew Capacity: %d
-	Combat Rating: %d
-	Power Usage: %d
-	Maintenance Cost: %d
+	Cargo Capacity:%d
+	Crew Capacity:%d
+	Combat Rating:%d
+	Power Usage:%d
+	Maintenance Cost:%d
 	""" % [
 		current_ship.ship_name,
 		ship_type.capitalize().replace("_", " "),

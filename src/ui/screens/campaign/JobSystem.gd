@@ -1,17 +1,20 @@
 class_name JobSystem
 extends Node
 
+const FiveParsecsGameState = preload("res://src/core/state/GameState.gd")
+const GameEnums = preload("res://src/core/systems/GlobalEnums.gd")
+
 signal job_generated(job: Mission)
 signal job_completed(job: Mission)
 signal job_failed(job: Mission)
 
-var game_state: GameState
+var game_state: FiveParsecsGameState
 var patron_jobs: Array[Mission] = []
 var red_zone_jobs: Array[Mission] = []
 var black_zone_jobs: Array[Mission] = []
 
 # Consolidate from PatronJobManager and RedZoneJobManager
-func _init(_game_state: GameState) -> void:
+func _init(_game_state: FiveParsecsGameState) -> void:
     game_state = _game_state
 
 func generate_job(job_type: GlobalEnums.MissionType) -> Mission:
@@ -113,4 +116,4 @@ func _apply_failure_consequences(job: Mission) -> void:
 func _remove_from_available_jobs(job: Mission) -> void:
     patron_jobs.erase(job)
     red_zone_jobs.erase(job)
-    black_zone_jobs.erase(job) 
+    black_zone_jobs.erase(job)

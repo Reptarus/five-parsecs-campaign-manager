@@ -2,6 +2,8 @@ extends Control
 
 const Character = preload("res://src/core/character/Base/Character.gd")
 const CharacterCreator = preload("res://src/core/character/Generation/CharacterCreator.gd")
+const GameEnums = preload("res://src/core/systems/GlobalEnums.gd")
+const FiveParsecsGameState = preload("res://src/core/state/GameState.gd")
 
 @onready var character_list = $Panel/HSplitContainer/CharacterList/ItemList
 @onready var remove_button = $Panel/HSplitContainer/CharacterList/ButtonContainer/RemoveButton
@@ -153,4 +155,4 @@ func _on_character_removed(_character: Character) -> void:
 func _on_character_updated(_character: Character) -> void:
 	_refresh_character_list()
 	if selected_character and selected_character == _character:
-		_update_character_details(_character) 
+		_update_character_details(_character)

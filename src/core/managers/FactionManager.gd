@@ -2,16 +2,18 @@
 class_name FactionManager
 extends Node
 
+const FiveParsecsGameState = preload("res://src/core/state/GameState.gd")
+
 signal faction_relation_changed(faction_id: String, new_standing: float)
 signal faction_event_occurred(event: Dictionary)
 
-var game_state: GameState
+var game_state: FiveParsecsGameState
 var faction_standings: Dictionary = {}
 
 func _init() -> void:
     pass
 
-func setup(state: GameState) -> void:
+func setup(state: FiveParsecsGameState) -> void:
     game_state = state
 
 func process_faction_events() -> void:
@@ -28,4 +30,4 @@ func get_faction_standing(faction_id: String) -> float:
 func modify_faction_standing(faction_id: String, amount: float) -> void:
     var current = get_faction_standing(faction_id)
     faction_standings[faction_id] = clamp(current + amount, -100.0, 100.0)
-    faction_relation_changed.emit(faction_id, faction_standings[faction_id]) 
+    faction_relation_changed.emit(faction_id, faction_standings[faction_id])

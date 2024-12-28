@@ -2,7 +2,7 @@
 extends Node
 
 # Only preload what we know exists
-const GameStateManager = preload("res://src/data/resources/Core/GameState/GameStateManager.gd")
+const GameStateManager = preload("res://src/core/managers/GameStateManager.gd")
 const GlobalEnums = preload("res://src/core/systems/GlobalEnums.gd")
 const UIManager = preload("res://src/ui/screens/UIManager.gd")
 

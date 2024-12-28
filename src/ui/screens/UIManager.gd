@@ -2,8 +2,8 @@
 extends Node
 
 const GameEnums := preload("res://src/core/systems/GlobalEnums.gd")
-const FiveParsecsGameState := preload("res://src/data/resources/GameState/GameState.gd")
-const GameStateManager := preload("res://src/data/resources/Core/GameState/GameStateManager.gd")
+const FiveParsecsGameState := preload("res://src/core/state/GameState.gd")
+const GameStateManager := preload("res://src/core/managers/GameStateManager.gd")
 
 @warning_ignore("unused_signal")
 signal screen_changed(screen: Control)

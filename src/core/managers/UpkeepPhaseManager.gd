@@ -1,7 +1,7 @@
 extends Resource
 
 const GameEnums := preload("res://src/core/systems/GlobalEnums.gd")
-const FiveParsecsGameState := preload("res://src/data/resources/GameState/GameState.gd")
+const GameState := preload("res://src/core/state/GameState.gd")
 
 signal upkeep_completed
 signal upkeep_failed(reason: String)
@@ -11,7 +11,7 @@ signal ship_state_updated
 signal medical_care_available(crew_member: Resource, cost: int)
 signal task_available(crew_member: Resource, available_tasks: Array)
 
-var game_state: FiveParsecsGameState
+var game_state: GameState
 
 # Upkeep phase state tracking
 var upkeep_paid: bool = false
@@ -19,7 +19,7 @@ var ship_maintained: bool = false
 var medical_care_processed: bool = false
 var tasks_assigned: bool = false
 
-func _init(_game_state: FiveParsecsGameState) -> void:
+func _init(_game_state: GameState) -> void:
     game_state = _game_state
 
 func start_upkeep_phase() -> void:
@@ -45,10 +45,21 @@ func _calculate_upkeep_costs() -> Dictionary:
 
 func _calculate_crew_upkeep() -> int:
     var crew_size = game_state.crew.size()
-    var upkeep_cost = 1  # Base cost for 4-6 crew
+    var upkeep_cost = 1 # Base cost for 4-6 crew
     
     if crew_size > 6:
-        upkeep_cost += crew_size - 6  # +1 credit per crew over 6
+        upkeep_cost += crew_size - 6 # +1 credit per crew over 6
+    
+    # Apply difficulty modifiers
+    match game_state.difficulty_mode:
+        GameEnums.DifficultyMode.EASY:
+            upkeep_cost = int(upkeep_cost * 0.8)
+        GameEnums.DifficultyMode.CHALLENGING:
+            upkeep_cost = int(upkeep_cost * 1.2)
+        GameEnums.DifficultyMode.HARDCORE:
+            upkeep_cost = int(upkeep_cost * 1.5)
+        GameEnums.DifficultyMode.INSANITY:
+            upkeep_cost = int(upkeep_cost * 2.0)
     
     return upkeep_cost
 
@@ -58,14 +69,14 @@ func _calculate_ship_maintenance() -> int:
     
     # 1 point repairs automatically
     var remaining_damage = max(0, game_state.ship.hull_damage - 1)
-    return remaining_damage  # 1 credit per point of damage
+    return remaining_damage # 1 credit per point of damage
 
 func _calculate_medical_costs() -> Dictionary:
     var costs = {}
     
     for crew_member in game_state.crew:
         if crew_member.is_in_sickbay:
-            costs[crew_member] = 4  # 4 credits per turn reduction
+            costs[crew_member] = 4 # 4 credits per turn reduction
     
     return costs
 
@@ -112,14 +123,14 @@ func get_available_tasks(crew_member: Resource) -> Array:
         return []
     
     return [
-        {"name": "Find a Patron", "type": GameEnums.CrewTask.FIND_PATRON},
-        {"name": "Train", "type": GameEnums.CrewTask.TRAIN},
-        {"name": "Trade", "type": GameEnums.CrewTask.TRADE},
-        {"name": "Recruit", "type": GameEnums.CrewTask.RECRUIT},
-        {"name": "Explore", "type": GameEnums.CrewTask.EXPLORE},
-        {"name": "Track", "type": GameEnums.CrewTask.TRACK},
-        {"name": "Repair Kit", "type": GameEnums.CrewTask.REPAIR},
-        {"name": "Decoy", "type": GameEnums.CrewTask.DECOY}
+        {"name": "Find a Patron", "type": GameEnums.ResourceType.PATRON},
+        {"name": "Train", "type": GameEnums.ResourceType.XP},
+        {"name": "Trade", "type": GameEnums.ResourceType.CREDITS},
+        {"name": "Scavenge", "type": GameEnums.ResourceType.SUPPLIES},
+        {"name": "Explore", "type": GameEnums.ResourceType.QUEST_RUMOR},
+        {"name": "Track", "type": GameEnums.ResourceType.RIVAL},
+        {"name": "Repair", "type": GameEnums.ResourceType.SUPPLIES},
+        {"name": "Guard", "type": GameEnums.ResourceType.STORY_POINT}
     ]
 
 func assign_crew_task(crew_member: Resource, task: int) -> void:
@@ -132,7 +143,7 @@ func assign_crew_task(crew_member: Resource, task: int) -> void:
     # Check if all available crew have tasks assigned
     var all_tasks_assigned = true
     for member in game_state.crew:
-        if not member.is_in_sickbay and member.current_task == GameEnums.CrewTask.NONE:
+        if not member.is_in_sickbay and member.current_task == GameEnums.ResourceType.NONE:
             all_tasks_assigned = false
             break
     
@@ -154,4 +165,4 @@ func skip_upkeep() -> void:
     medical_care_processed = true
     tasks_assigned = true
     
-    upkeep_completed.emit() 
+    upkeep_completed.emit()

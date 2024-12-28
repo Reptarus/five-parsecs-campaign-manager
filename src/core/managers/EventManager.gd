@@ -4,9 +4,12 @@ class_name EventManager
 extends Node
 
 ## Dependencies
-const GameEnums := preload("res://src/core/systems/GlobalEnums.gd")
-const FiveParsecsGameState := preload("res://src/data/resources/GameState/GameState.gd")
-const StoryQuestData := preload("res://src/core/story/StoryQuestData.gd")
+const GameEnums = preload("res://src/core/systems/GlobalEnums.gd")
+const FiveParsecsGameState = preload("res://src/core/state/GameState.gd")
+const Character = preload("res://src/core/character/Management/CharacterDataManager.gd")
+const Mission = preload("res://src/core/systems/Mission.gd")
+const StoryQuestData = preload("res://src/core/story/StoryQuestData.gd")
+const Location = preload("res://src/core/world/Location.gd")
 
 ## Signals
 signal event_triggered(event_type: GameEnums.GlobalEvent)
@@ -19,16 +22,16 @@ var event_history: Array[Dictionary] = []
 var event_cooldowns: Dictionary = {}
 
 ## Configuration
-const MAX_HISTORY_SIZE := 100  # Limit event history size
-const MAX_ACTIVE_EVENTS := 5   # Limit concurrent active events
+const MAX_HISTORY_SIZE := 100 # Limit event history size
+const MAX_ACTIVE_EVENTS := 5 # Limit concurrent active events
 
 ## Game state reference
 var game_state: FiveParsecsGameState
 
 ## Event configuration
-const MIN_EVENT_INTERVAL := 3  # Minimum turns between events
-const BASE_EVENT_CHANCE := 0.2  # 20% chance per turn
-const COOLDOWN_DURATION := 10  # Turns before same event type can occur again
+const MIN_EVENT_INTERVAL := 3 # Minimum turns between events
+const BASE_EVENT_CHANCE := 0.2 # 20% chance per turn
+const COOLDOWN_DURATION := 10 # Turns before same event type can occur again
 
 ## Initialize the event manager
 func initialize(state: FiveParsecsGameState) -> void:
@@ -138,7 +141,7 @@ func _generate_event_effects(event_type: GameEnums.GlobalEvent) -> Dictionary:
 	match event_type:
 		GameEnums.GlobalEvent.MARKET_CRASH:
 			effects = {
-				"economy_modifier": -0.25,
+				"economy_modifier": - 0.25,
 				"trade_penalty": true
 			}
 		GameEnums.GlobalEvent.ALIEN_INVASION:
@@ -250,4 +253,4 @@ func serialize() -> Dictionary:
 func deserialize(data: Dictionary) -> void:
 	active_events = data.get("active_events", [])
 	event_history = data.get("event_history", [])
-	event_cooldowns = data.get("event_cooldowns", {}) 
+	event_cooldowns = data.get("event_cooldowns", {})

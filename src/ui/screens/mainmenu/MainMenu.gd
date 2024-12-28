@@ -1,7 +1,7 @@
 # MainMenu.gd
 extends Control
 
-const GameStateManager = preload("res://src/data/resources/Core/GameState/GameStateManager.gd")
+const GameStateManager = preload("res://src/core/managers/GameStateManager.gd")
 
 @onready var continue_button: Button = $MenuButtons/Continue
 @onready var new_campaign_button: Button = $MenuButtons/NewCampaign

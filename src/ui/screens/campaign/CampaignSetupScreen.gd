@@ -55,8 +55,9 @@ func _setup_difficulty_options() -> void:
     
     difficulty_option.add_item("Easy", GameEnums.DifficultyMode.EASY)
     difficulty_option.add_item("Normal", GameEnums.DifficultyMode.NORMAL)
-    difficulty_option.add_item("Hard", GameEnums.DifficultyMode.HARD)
-    difficulty_option.add_item("Ironman", GameEnums.DifficultyMode.IRONMAN)
+    difficulty_option.add_item("Challenging", GameEnums.DifficultyMode.CHALLENGING)
+    difficulty_option.add_item("Hardcore", GameEnums.DifficultyMode.HARDCORE)
+    difficulty_option.add_item("Insanity", GameEnums.DifficultyMode.INSANITY)
     
     difficulty_option.select(GameEnums.DifficultyMode.NORMAL)
 
@@ -106,7 +107,10 @@ func _on_crew_size_changed(index: int) -> void:
 
 func _on_difficulty_changed(index: int) -> void:
     campaign_config.difficulty_mode = difficulty_option.get_item_id(index)
-    campaign_config.enable_permadeath = campaign_config.difficulty_mode == GameEnums.DifficultyMode.IRONMAN
+    campaign_config.enable_permadeath = campaign_config.difficulty_mode in [
+        GameEnums.DifficultyMode.HARDCORE,
+        GameEnums.DifficultyMode.INSANITY
+    ]
     
     # Update victory conditions based on difficulty
     _setup_victory_options()
@@ -146,6 +150,11 @@ func _validate_config() -> bool:
             valid = false
             errors.append("Invalid victory condition for Easy difficulty")
     
+    # Validate permadeath for hardcore/insanity modes
+    if campaign_config.difficulty_mode in [GameEnums.DifficultyMode.HARDCORE, GameEnums.DifficultyMode.INSANITY] and not campaign_config.enable_permadeath:
+        valid = false
+        errors.append("Permadeath is required for Hardcore and Insanity modes")
+    
     # Update start button state
     start_campaign_button.disabled = not valid
     
@@ -162,16 +171,16 @@ func _update_summary() -> void:
     
     summary_label.text = """Campaign Setup Summary:
     
-    Crew Name: %s
+    Crew Name:%s
     %s
-    Difficulty: %s
-    Victory Condition: %s
-    Story Track: %s
-    Starting Credits: %d
-    Starting Supplies: %d
-    Tutorial: %s
-    Expanded Missions: %s
-    Permadeath: %s""" % [
+    Difficulty:%s
+    Victory Condition:%s
+    Story Track:%s
+    Starting Credits:%d
+    Starting Supplies:%d
+    Tutorial:%s
+    Expanded Missions:%s
+    Permadeath:%s""" % [
         campaign_config.crew_name,
         crew_text,
         difficulty_name,
@@ -200,7 +209,7 @@ func _get_victory_description(condition: int) -> String:
         GameEnums.CampaignVictoryType.TURNS_20:
             return "Complete 20 campaign turns"
         GameEnums.CampaignVictoryType.TURNS_50:
-            return "Complete 50 campaign turns" 
+            return "Complete 50 campaign turns"
         GameEnums.CampaignVictoryType.TURNS_100:
             return "Complete 100 campaign turns"
         GameEnums.CampaignVictoryType.QUESTS_3:

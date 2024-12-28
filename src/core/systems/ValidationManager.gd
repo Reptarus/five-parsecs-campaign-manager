@@ -1,8 +1,13 @@
 class_name ValidationManager
 extends Node
 
-const GameEnums := preload("res://src/core/systems/GlobalEnums.gd")
-const FiveParsecsGameState := preload("res://src/data/resources/GameState/GameState.gd")
+const GameEnums = preload("res://src/core/systems/GlobalEnums.gd")
+const FiveParsecsGameState = preload("res://src/core/state/GameState.gd")
+const Character = preload("res://src/core/character/Management/CharacterDataManager.gd")
+const Mission = preload("res://src/core/systems/Mission.gd")
+const StoryQuestData = preload("res://src/core/story/StoryQuestData.gd")
+const Location = preload("res://src/core/world/Location.gd")
+const SaveManager = preload("res://src/core/state/SaveManager.gd")
 
 var game_state: FiveParsecsGameState
 

@@ -2,7 +2,7 @@ class_name TutorialStateMachine
 extends Node
 
 const GameEnums := preload("res://src/core/systems/GlobalEnums.gd")
-const FiveParsecsGameState := preload("res://src/data/resources/GameState/GameState.gd")
+const FiveParsecsGameState := preload("res://src/core/state/GameState.gd")
 
 signal state_changed(new_state: int)
 signal track_changed(new_track: int)
@@ -223,4 +223,4 @@ func _setup_tutorial_mission(track: int) -> void:
 			]
 	
 	if game_state.has_method("start_tutorial_mission"):
-		game_state.start_tutorial_mission(mission) 
+		game_state.start_tutorial_mission(mission)

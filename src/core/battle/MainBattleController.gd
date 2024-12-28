@@ -1,6 +1,6 @@
 extends Control
 
-const BattleEventManager = preload("res://src/core/battle/BattleEventManager.gd")
+const BattleEventManager = preload("res://src/core/battle/events/BattleEventManager.gd")
 const GlobalEnums = preload("res://src/core/systems/GlobalEnums.gd")
 const Mission = preload("res://src/core/systems/Mission.gd")
 

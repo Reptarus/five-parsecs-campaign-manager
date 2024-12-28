@@ -4,14 +4,18 @@ extends Control
 
 signal creation_completed(crew_data: Dictionary)
 signal creation_cancelled
+signal initial_crew_created(crew_data: Dictionary)
+signal crew_created(crew_data: Dictionary)
 
 # Constants
 const DEBUG := true
+const GameEnums := preload("res://src/core/systems/GlobalEnums.gd")
 const Character := preload("res://src/core/character/Base/Character.gd")
-const GlobalEnums := preload("res://src/core/systems/GlobalEnums.gd")
+const FiveParsecsGameState := preload("res://src/core/state/GameState.gd")
+const CharacterBox := preload("res://src/ui/components/character/CharacterBox.tscn")
+const CharacterCreator := preload("res://src/ui/CharacterCreator.tscn")
+const CaptainCreation := preload("res://src/ui/CaptainCreation.tscn")
 const CrewSystem := preload("res://src/core/campaign/crew/CrewSystem.gd")
-const CharacterCreator := preload("res://src/core/character/Generation/CharacterCreator.gd")
-const CaptainCreationScene := preload("res://src/scenes/character/CaptainCreation.tscn")
 
 # Crew composition limits
 const MIN_HUMAN_CREW := 3
@@ -106,9 +110,9 @@ func _show_initial_guidance() -> void:
 	var guidance := """Start by creating your Captain - the most important crew member!
 
 Required crew composition:
-• %d Human crew members
-• Up to %d Primary Aliens
-• Up to %d Bot
+•%d Human crew members
+• Up to%d Primary Aliens
+• Up to%d Bot
 
 Your captain leads your crew in combat, makes key decisions, and cannot be lost through events.""" % [
 		MIN_HUMAN_CREW,
@@ -171,7 +175,7 @@ func _on_create_captain_pressed() -> void:
 	if captain_creator:
 		captain_creator.queue_free()
 	
-	captain_creator = CaptainCreationScene.instantiate()
+	captain_creator = CaptainCreation.instantiate()
 	if not captain_creator:
 		push_error("Failed to instantiate CaptainCreation scene")
 		return

@@ -3,10 +3,18 @@ extends Control
 
 signal crew_confirmed(crew: Crew)
 signal creation_cancelled
+signal crew_created(crew_data: Dictionary)
 
 const MAX_CREW_SIZE = 6
 const MIN_CREW_SIZE = 3
 const STARTING_CREDITS = 1000
+
+const GameEnums = preload("res://src/core/systems/GlobalEnums.gd")
+const Character = preload("res://src/core/character/Base/Character.gd")
+const FiveParsecsGameState = preload("res://src/core/state/GameState.gd")
+const CharacterBox = preload("res://src/ui/components/character/CharacterBox.tscn")
+const CharacterCreator = preload("res://src/ui/CharacterCreator.tscn")
+const CaptainCreation = preload("res://src/ui/CaptainCreation.tscn")
 
 @onready var crew_size_label = $MainContainer/HeaderPanel/MarginContainer/HeaderContent/CrewInfoContainer/CrewSizeLabel
 @onready var credits_label = $MainContainer/HeaderPanel/MarginContainer/HeaderContent/CrewInfoContainer/CreditsLabel
@@ -62,7 +70,7 @@ func _refresh_crew_list() -> void:
     
     # Add crew members
     for member in crew.members:
-        var member_box = preload("res://src/data/resources/CrewAndCharacters/Scenes/CharacterBox.tscn").instantiate()
+        var member_box = preload("res://src/ui/components/character/CharacterBox.tscn").instantiate()
         member_box.update_display(member)
         
         # Make it clickable
@@ -80,7 +88,7 @@ func _on_member_selected(member: Character) -> void:
 
 func _on_add_member_pressed() -> void:
     # Show character creation dialog
-    var creator = preload("res://src/data/resources/CrewAndCharacters/Scenes/CharacterCreator.tscn").instantiate()
+    var creator = preload("res://src/ui/CharacterCreator.tscn").instantiate()
     add_child(creator)
     creator.character_created.connect(_on_character_created)
     creator.creation_cancelled.connect(func(): creator.queue_free())
@@ -138,4 +146,4 @@ func setup_tutorial_crew() -> void:
 # Export functionality
 func export_crew_to_pdf() -> void:
     # TODO: Implement PDF export
-    pass 
+    pass

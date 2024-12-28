@@ -6,9 +6,10 @@ extends Control
 const GameEnums = preload("res://src/core/systems/GlobalEnums.gd")
 const StoryQuestData = preload("res://src/core/story/StoryQuestData.gd")
 const Character = preload("res://src/core/character/Base/Character.gd")
+const UnifiedTerrainSystem = preload("res://src/core/terrain/UnifiedTerrainSystem.gd")
 
 ## Optional dependencies that may not exist
-var _terrain_system_script = preload("res://src/data/resources/Terrain/UnifiedTerrainSystem.gd") if FileAccess.file_exists("res://src/data/resources/Terrain/UnifiedTerrainSystem.gd") else null
+var _terrain_system_script = preload("res://src/core/terrain/UnifiedTerrainSystem.gd") if FileAccess.file_exists("res://src/core/terrain/UnifiedTerrainSystem.gd") else null
 
 ## Signals
 signal crew_selected(crew: Array[Character])
@@ -28,7 +29,7 @@ signal preview_updated
 ## State
 var current_mission: StoryQuestData
 var selected_crew: Array[Character]
-var terrain_system: Node  # Will be cast to UnifiedTerrainSystem if available
+var terrain_system: Node # Will be cast to UnifiedTerrainSystem if available
 
 func _ready() -> void:
     _initialize_systems()
@@ -166,4 +167,4 @@ func cleanup() -> void:
     for child in crew_selection_panel.get_children():
         child.queue_free()
     for child in deployment_panel.get_children():
-        child.queue_free() 
+        child.queue_free()

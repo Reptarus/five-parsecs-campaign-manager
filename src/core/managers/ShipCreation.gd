@@ -1,0 +1,5 @@
+const GameEnums = preload("res://src/core/systems/GlobalEnums.gd")
+const FiveParsecsGameState = preload("res://src/core/state/GameState.gd")
+const Character = preload("res://src/core/character/Management/CharacterDataManager.gd")
+const SaveManager = preload("res://src/core/state/SaveManager.gd")
+const Ship = preload("res://src/core/ships/Ship.gd")

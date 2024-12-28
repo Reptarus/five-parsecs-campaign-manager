@@ -1,7 +1,7 @@
 extends "res://addons/gut/test.gd"
 
 const TutorialStateMachine := preload("res://StateMachines/TutorialStateMachine.gd")
-const FiveParsecsGameState := preload("res://src/data/resources/GameState/GameState.gd")
+const FiveParsecsGameState := preload("res://src/core/state/GameState.gd")
 const GlobalEnums := preload("res://src/core/systems/GlobalEnums.gd")
 
 var tutorial_state_machine: TutorialStateMachine

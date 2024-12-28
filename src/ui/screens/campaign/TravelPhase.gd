@@ -1,6 +1,9 @@
 class_name TravelPhase
 extends Control
 
+const FiveParsecsGameState = preload("res://src/core/state/GameState.gd")
+const GameStateManager = preload("res://src/core/managers/GameStateManager.gd")
+
 enum TravelStep {
 	UPKEEP,
 	PATRON_CHECK,
@@ -14,7 +17,7 @@ enum TravelStep {
 @export var mission_details: Control
 
 var current_step: TravelStep = TravelStep.UPKEEP
-var game_state: GameState
+var game_state: FiveParsecsGameState
 var game_state_manager: GameStateManager
 var patron_job_manager: PatronJobManager
 
@@ -29,7 +32,7 @@ func _ready() -> void:
 		return
 	
 	var state_node = game_state_manager.get_game_state()
-	if state_node is GameState:
+	if state_node is FiveParsecsGameState:
 		game_state = state_node
 	else:
 		push_error("Invalid game state type")
