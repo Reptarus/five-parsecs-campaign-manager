@@ -74,7 +74,8 @@ func load_campaign(campaign_id: String) -> Campaign:
 		return null
 	
 	var save_data = json.get_data()
-	current_campaign = Campaign.deserialize(save_data)
+	current_campaign = Campaign.new()
+	current_campaign.deserialize(save_data)
 	
 	if not active_campaigns.has(current_campaign):
 		active_campaigns.append(current_campaign)

@@ -5,6 +5,9 @@ const GameEnums = preload("res://src/core/systems/GlobalEnums.gd")
 const FiveParsecsGameState = preload("res://src/core/state/GameState.gd")
 const Character = preload("res://src/core/character/Base/Character.gd")
 const CrewSystem = preload("res://src/core/campaign/crew/CrewSystem.gd")
+const SaveManager = preload("res://src/core/state/SaveManager.gd")
+const NewCampaignFlow = preload("res://src/ui/screens/campaign/NewCampaignFlow.gd")
+const CampaignSystem = preload("res://src/core/campaign/CampaignSystem.gd")
 
 signal campaign_initialized
 signal campaign_loaded

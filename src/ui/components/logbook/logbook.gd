@@ -5,10 +5,8 @@ extends CampaignResponsiveLayout
 @onready var entry_list := $MarginContainer/HBoxContainer/Sidebar/EntryList
 @onready var entry_content := $MarginContainer/HBoxContainer/MainContent/EntryContent
 @onready var notes_edit := $MarginContainer/HBoxContainer/MainContent/NotesEdit
-@onready var sidebar := $MarginContainer/HBoxContainer/Sidebar
 
-const TOUCH_BUTTON_HEIGHT := 60
-const PORTRAIT_LIST_HEIGHT_RATIO := 0.4  # Crew list takes 40% in portrait mode
+const PORTRAIT_LIST_HEIGHT_RATIO := 0.4 # Crew list takes 40% in portrait mode
 
 func _ready() -> void:
     super._ready()
@@ -23,8 +21,8 @@ func _setup_logbook() -> void:
 func _apply_portrait_layout() -> void:
     super._apply_portrait_layout()
     
-    # Stack panels vertically using BaseContainer enum
-    main_container.set("orientation", BaseContainer.Orientation.VERTICAL)
+    # Stack panels vertically
+    main_container.set("vertical", true)
     
     # Adjust panel sizes for portrait mode
     var viewport_height = get_viewport_rect().size.y
@@ -36,8 +34,8 @@ func _apply_portrait_layout() -> void:
 func _apply_landscape_layout() -> void:
     super._apply_landscape_layout()
     
-    # Side by side layout using BaseContainer enum
-    main_container.set("orientation", BaseContainer.Orientation.HORIZONTAL)
+    # Side by side layout
+    main_container.set("vertical", false)
     
     # Reset panel sizes
     sidebar.custom_minimum_size = Vector2(300, 0)
@@ -76,4 +74,4 @@ func _setup_buttons() -> void:
 
 func _connect_signals() -> void:
     # Connect existing signals
-    pass 
+    pass

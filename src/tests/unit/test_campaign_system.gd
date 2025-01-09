@@ -1,8 +1,9 @@
-extends GutTest
+class_name TestCampaignSystem
+extends "res://addons/gut/test.gd"
 
 const GameEnums = preload("res://src/core/systems/GlobalEnums.gd")
-const FiveParsecsGameState = preload("res://src/data/resources/GameState/GameState.gd")
-const CampaignSystem = preload("res://src/data/resources/CampaignManagement/CampaignSystem.gd")
+const FiveParsecsGameState = preload("res://src/core/state/GameState.gd")
+const CampaignSystem = preload("res://src/core/campaign/CampaignSystem.gd")
 
 var game_state: FiveParsecsGameState
 var campaign_system: CampaignSystem
@@ -31,14 +32,14 @@ func test_campaign_initialization() -> void:
     assert_eq(game_state.campaign_victory_condition, GameEnums.CampaignVictoryType.TURNS_20)
 
 func test_difficulty_system() -> void:
-    campaign_system.set_difficulty(GameEnums.DifficultyMode.HARD)
+    campaign_system.set_difficulty(GameEnums.DifficultyMode.CHALLENGING)
     
-    assert_eq(game_state.difficulty_mode, GameEnums.DifficultyMode.HARD)
+    assert_eq(game_state.difficulty_mode, GameEnums.DifficultyMode.CHALLENGING)
     assert_eq(game_state.enemy_level_modifier, 1)
     assert_almost_eq(game_state.reward_modifier, 0.8, 0.01)
     assert_eq(game_state.injury_threshold, 6)
     
-    campaign_system.set_difficulty(GameEnums.DifficultyMode.IRONMAN)
+    campaign_system.set_difficulty(GameEnums.DifficultyMode.HARDCORE)
     assert_true(game_state.enable_permadeath)
 
 func test_tutorial_system() -> void:
@@ -82,7 +83,7 @@ func test_phase_transitions() -> void:
 
 func test_serialization() -> void:
     campaign_system.start_campaign({
-        "difficulty_mode": GameEnums.DifficultyMode.HARD,
+        "difficulty_mode": GameEnums.DifficultyMode.CHALLENGING,
         "crew_size": 6,
         "victory_condition": GameEnums.CampaignVictoryType.QUESTS_5
     })
@@ -116,4 +117,4 @@ func test_campaign_flow() -> void:
     assert_signal_emitted(campaign_system, "phase_requirements_updated")
     
     campaign_system.advance_phase()
-    assert_signal_emitted(campaign_system, "campaign_phase_changed") 
+    assert_signal_emitted(campaign_system, "campaign_phase_changed")

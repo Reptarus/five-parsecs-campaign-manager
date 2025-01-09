@@ -1,4 +1,5 @@
-extends Resource
+class_name NewCampaignFlow
+extends Node
 
 const GameEnums = preload("res://src/core/systems/GlobalEnums.gd")
 const FiveParsecsGameState = preload("res://src/core/state/GameState.gd")

@@ -22,10 +22,10 @@ const DEFAULT_OPTIONS := {
         "mute": false
     },
     "gameplay": {
-        "difficulty": 1,  # 0: Easy, 1: Normal, 2: Hard
+        "difficulty": 1, # 0: Easy, 1: Normal, 2: Hard
         "tutorial_enabled": true,
         "auto_save": true,
-        "auto_save_interval": 5,  # minutes
+        "auto_save_interval": 5, # minutes
         "show_tooltips": true,
         "show_grid": true
     },
@@ -40,7 +40,7 @@ const DEFAULT_OPTIONS := {
         "high_contrast": false,
         "screen_shake": true,
         "text_size": 1.0,
-        "color_blind_mode": 0,  # 0: Off, 1: Protanopia, 2: Deuteranopia, 3: Tritanopia
+        "color_blind_mode": 0, # 0: Off, 1: Protanopia, 2: Deuteranopia, 3: Tritanopia
         "dyslexic_font": false
     },
     "ui": {
@@ -48,7 +48,7 @@ const DEFAULT_OPTIONS := {
         "show_minimap": true,
         "ui_scale": 1.0,
         "chat_opacity": 0.8,
-        "hud_layout": 0  # 0: Default, 1: Minimal, 2: Custom
+        "hud_layout": 0 # 0: Default, 1: Minimal, 2: Custom
     }
 }
 
@@ -123,7 +123,7 @@ func _apply_options() -> void:
     _apply_ui_options()
 
 func _apply_graphics_options() -> void:
-    if OS.has_feature("pc"):  # Only apply on desktop platforms
+    if OS.has_feature("pc"): # Only apply on desktop platforms
         DisplayServer.window_set_mode(
             DisplayServer.WINDOW_MODE_FULLSCREEN if current_options.graphics.fullscreen
             else DisplayServer.WINDOW_MODE_WINDOWED
@@ -154,10 +154,12 @@ func _apply_gameplay_options() -> void:
 
 func _apply_control_options() -> void:
     Input.set_use_accumulated_input(true)
-    Input.set_mouse_sensitivity(current_options.controls.mouse_sensitivity)
+    # Mouse sensitivity is handled through project settings
+    ProjectSettings.set_setting("input/mouse_sensitivity", current_options.controls.mouse_sensitivity)
     
     if OS.has_feature("mobile"):
-        Input.set_use_touch_emulation(current_options.controls.touch_controls)
+        # Touch emulation is handled through project settings
+        ProjectSettings.set_setting("input/touch_emulation", current_options.controls.touch_controls)
 
 func _apply_accessibility_options() -> void:
     if current_options.accessibility.high_contrast:
@@ -177,4 +179,4 @@ func _apply_accessibility_options() -> void:
 func _apply_ui_options() -> void:
     var canvas_layer = get_tree().root.get_node("UILayer")
     if canvas_layer:
-        canvas_layer.scale = Vector2.ONE * current_options.ui.ui_scale 
+        canvas_layer.scale = Vector2.ONE * current_options.ui.ui_scale

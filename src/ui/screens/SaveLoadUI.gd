@@ -55,11 +55,11 @@ func _refresh_save_list() -> void:
         
         # Add tooltip with more details
         var tooltip = """
-        Name: %s
-        Date: %s
-        Game Version: %s
-        Save Version: %s
-        Campaign Turn: %d
+        Name:%s
+        Date:%s
+        Game Version:%s
+        Save Version:%s
+        Campaign Turn:%d
         """.strip_edges() % [save.name, save.date, save.version, save.save_version, save.campaign_turn]
         
         save_list.set_item_tooltip(save_list.get_item_count() - 1, tooltip)
@@ -71,7 +71,7 @@ func _get_save_icon(save: Dictionary) -> Texture2D:
     # Return different icons based on save type (autosave, regular save, etc.)
     # TODO: Replace with proper icons once created
     var icon_name = "autosave_icon" if save.name.begins_with("autosave_") else "save_icon"
-    var icon = load("res://icon.svg")  # Use default Godot icon as fallback
+    var icon = load("res://icon.svg") # Use default Godot icon as fallback
     if not icon:
         push_warning("Failed to load icon: " + icon_name)
         return null
@@ -133,7 +133,15 @@ func _on_save_pressed() -> void:
         _show_status("Game state not found", true)
         return
     
-    save_manager.save_game(game_state, current_save_name)
+    # Create save data dictionary
+    var save_data = {
+        "name": current_save_name,
+        "game_state": game_state.serialize()
+    }
+    
+    # Use slot 0 for now, can be enhanced to handle multiple slots
+    save_manager.save_game(save_data, 0)
+    # Result will be handled by save_completed signal
 
 func _on_load_pressed() -> void:
     var selected = save_list.get_selected_items()
@@ -163,11 +171,9 @@ func _on_delete_pressed() -> void:
     var dialog = ConfirmationDialog.new()
     dialog.dialog_text = "Are you sure you want to delete this save?\nA backup will be created before deletion."
     dialog.confirmed.connect(func():
-        if save_manager.delete_save(save_data.name):
-            _show_status("Save deleted")
-            _refresh_save_list()
-        else:
-            _show_status("Failed to delete save", true)
+        save_manager.delete_save(save_data.name)
+        _show_status("Save deleted")
+        _refresh_save_list()
     )
     add_child(dialog)
     dialog.popup_centered()
@@ -291,4 +297,4 @@ func _on_backup_list_pressed() -> void:
     close_button.pressed.connect(func(): dialog.queue_free())
     
     add_child(dialog)
-    dialog.popup_centered() 
+    dialog.popup_centered()

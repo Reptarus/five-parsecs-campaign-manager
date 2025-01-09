@@ -72,15 +72,13 @@ func _on_phase_changed(new_phase: GameEnums.CampaignPhase) -> void:
 		GameEnums.CampaignPhase.SETUP:
 			change_state(GameEnums.GameState.SETUP)
 		GameEnums.CampaignPhase.UPKEEP, \
-		GameEnums.CampaignPhase.WORLD_STEP, \
-		GameEnums.CampaignPhase.TRAVEL, \
-		GameEnums.CampaignPhase.PATRONS, \
-		GameEnums.CampaignPhase.MANAGEMENT:
+		GameEnums.CampaignPhase.STORY, \
+		GameEnums.CampaignPhase.CAMPAIGN, \
+		GameEnums.CampaignPhase.ADVANCEMENT:
 			change_state(GameEnums.GameState.CAMPAIGN)
-		GameEnums.CampaignPhase.BATTLE:
+		GameEnums.CampaignPhase.BATTLE_SETUP, \
+		GameEnums.CampaignPhase.BATTLE_RESOLUTION:
 			change_state(GameEnums.GameState.BATTLE)
-		GameEnums.CampaignPhase.POST_BATTLE:
-			change_state(GameEnums.GameState.CAMPAIGN)
 
 func _on_turn_completed() -> void:
 	if current_state != GameEnums.GameState.GAME_OVER:

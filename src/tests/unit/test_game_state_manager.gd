@@ -1,4 +1,5 @@
-extends GutTest
+class_name TestGameStateManager
+extends "res://addons/gut/test.gd"
 
 const GameEnums = preload("res://src/core/systems/GlobalEnums.gd")
 const GameStateManager = preload("res://src/core/managers/GameStateManager.gd")
@@ -65,20 +66,22 @@ func test_save_load():
 	game_state_manager.change_state(GameEnums.GameState.PLAYING)
 	game_state_manager.set_difficulty(GameEnums.DifficultyMode.HARDCORE)
 	
-	var save_data = game_state_manager.save_game()
-	assert_not_null(save_data,
-		"Save data should not be null")
-	assert_eq(save_data.current_state, GameEnums.GameState.PLAYING,
-		"Save data should contain correct state")
-	assert_eq(save_data.current_difficulty, GameEnums.DifficultyMode.HARDCORE,
-		"Save data should contain correct difficulty")
+	# Save game and verify through signals
+	var save_success = false
+	game_state_manager.save_completed.connect(func(): save_success = true)
+	game_state_manager.save_game()
+	assert_true(save_success, "Save operation should complete successfully")
 	
 	# Reset state
 	game_state_manager.change_state(GameEnums.GameState.SETUP)
 	game_state_manager.set_difficulty(GameEnums.DifficultyMode.NORMAL)
 	
 	# Load saved state
-	game_state_manager.load_game(save_data)
+	var load_success = false
+	game_state_manager.load_completed.connect(func(): load_success = true)
+	game_state_manager.load_game(0) # Load from slot 0
+	assert_true(load_success, "Load operation should complete successfully")
+	
 	assert_eq(game_state_manager.current_state, GameEnums.GameState.PLAYING,
 		"Loaded state should match saved state")
 	assert_eq(game_state_manager.current_difficulty, GameEnums.DifficultyMode.HARDCORE,

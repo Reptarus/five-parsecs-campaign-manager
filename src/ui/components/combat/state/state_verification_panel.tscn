@@ -1,0 +1,70 @@
+[gd_scene load_steps=2 format=3 uid="uid://d8k6y4n2x0m5q"]
+
+[ext_resource type="Script" path="res://src/ui/components/combat/state/state_verification_panel.gd" id="1_p4r3q"]
+
+[node name="StateVerificationPanel" type="PanelContainer"]
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+script = ExtResource("1_p4r3q")
+
+[node name="MarginContainer" type="MarginContainer" parent="."]
+layout_mode = 2
+theme_override_constants/margin_left = 8
+theme_override_constants/margin_top = 8
+theme_override_constants/margin_right = 8
+theme_override_constants/margin_bottom = 8
+
+[node name="VBoxContainer" type="VBoxContainer" parent="MarginContainer"]
+layout_mode = 2
+theme_override_constants/separation = 8
+
+[node name="Header" type="HBoxContainer" parent="MarginContainer/VBoxContainer"]
+layout_mode = 2
+theme_override_constants/separation = 16
+
+[node name="Title" type="Label" parent="MarginContainer/VBoxContainer/Header"]
+layout_mode = 2
+theme_type_variation = &"HeaderMedium"
+text = "State Verification"
+
+[node name="HSeparator" type="HSeparator" parent="MarginContainer/VBoxContainer/Header"]
+layout_mode = 2
+size_flags_horizontal = 3
+
+[node name="AutoVerifyCheck" type="CheckBox" parent="MarginContainer/VBoxContainer/Header"]
+unique_name_in_owner = true
+layout_mode = 2
+tooltip_text = "Automatically verify state changes"
+text = "Auto-verify"
+
+[node name="VerifyButton" type="Button" parent="MarginContainer/VBoxContainer/Header"]
+unique_name_in_owner = true
+layout_mode = 2
+tooltip_text = "Verify current state"
+text = "Verify"
+
+[node name="CorrectionButton" type="Button" parent="MarginContainer/VBoxContainer/Header"]
+unique_name_in_owner = true
+layout_mode = 2
+tooltip_text = "Apply correction for selected state"
+text = "Apply Correction"
+
+[node name="StateTree" type="Tree" parent="MarginContainer/VBoxContainer"]
+unique_name_in_owner = true
+layout_mode = 2
+size_flags_vertical = 3
+columns = 3
+column_titles_visible = true
+hide_root = true
+
+[node name="StateColumn" type="TreeItem" parent="MarginContainer/VBoxContainer/StateTree"]
+text = "State"
+
+[node name="CurrentColumn" type="TreeItem" parent="MarginContainer/VBoxContainer/StateTree"]
+text = "Current"
+
+[node name="ExpectedColumn" type="TreeItem" parent="MarginContainer/VBoxContainer/StateTree"]
+text = "Expected" 

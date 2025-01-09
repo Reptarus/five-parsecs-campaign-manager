@@ -9,12 +9,50 @@ enum TutorialMode {
     ADVANCED
 }
 
+class TutorialState:
+    var is_active: bool = false
+    var current_step: String = ""
+    var completed_steps: Array[String] = []
+    var current_mode: TutorialMode = TutorialMode.QUICK_START
+    var progress: float = 0.0
+
+    func _init() -> void:
+        completed_steps = []
+
+class TutorialProgress:
+    var steps_completed: int = 0
+    var total_steps: int = 0
+    var current_phase: String = ""
+    var is_complete: bool = false
+
+    func get_progress() -> float:
+        if total_steps == 0:
+            return 0.0
+        return float(steps_completed) / float(total_steps)
+
+class GameTutorialManager:
+    var current_state: TutorialState
+    var progress: TutorialProgress
+    
+    func _init() -> void:
+        current_state = TutorialState.new()
+        progress = TutorialProgress.new()
+    
+    func load_tutorial_content(tutorial_type: String) -> void:
+        # Implementation for loading tutorial content
+        pass
+
 # Tutorial System Integration
 class TutorialManager:
     var active_mode: TutorialMode
     var tutorial_state: TutorialState
     var tutorial_manager: GameTutorialManager
     var tutorial_progress: TutorialProgress
+    
+    func _init() -> void:
+        tutorial_state = TutorialState.new()
+        tutorial_manager = GameTutorialManager.new()
+        tutorial_progress = TutorialProgress.new()
     
     func get_tutorial_state() -> TutorialState:
         return tutorial_state
@@ -193,7 +231,7 @@ class TerrainSystem:
         "open": {"movement_cost": 1},
         "difficult": {"movement_cost": 2},
         "very_difficult": {"movement_cost": 3},
-        "impassable": {"movement_cost": -1},
+        "impassable": {"movement_cost": - 1},
         "cover": {
             "movement_cost": 1,
             "provides_cover": true,
@@ -226,7 +264,7 @@ class MovementSystem:
     const RUNNING_BONUS: float = 2.0
     
     var terrain_system: TerrainSystem
-    var parent_core_systems: CoreSystems  # Renamed to avoid confusion
+    var parent_core_systems: CoreSystems # Renamed to avoid confusion
     
     func calculate_movement_cost(distance: float, terrain_type: String) -> float:
         var terrain_effect = terrain_system.get_terrain_effect(terrain_type, "movement")

@@ -1,12 +1,12 @@
 class_name BaseContainer
 extends Container
 
-enum Orientation {
+enum ContainerOrientation {
     HORIZONTAL,
     VERTICAL
 }
 
-@export var orientation: Orientation = Orientation.HORIZONTAL
+@export var orientation: ContainerOrientation = ContainerOrientation.HORIZONTAL
 @export var spacing: float = 10.0
 
 func _ready() -> void:
@@ -20,17 +20,17 @@ func _on_sort_children() -> void:
         if not child is Control or not child.visible:
             continue
             
-        var child_min_size := child.get_combined_minimum_size()
+        var child_min_size: Vector2 = child.get_combined_minimum_size()
         var child_size := Vector2.ZERO
         
         match orientation:
-            Orientation.HORIZONTAL:
+            ContainerOrientation.HORIZONTAL:
                 child_size.x = child_min_size.x
                 child_size.y = available_size.y
                 if offset.x + child_size.x > available_size.x:
                     offset.x = 0
                     offset.y += child_min_size.y + spacing
-            Orientation.VERTICAL:
+            ContainerOrientation.VERTICAL:
                 child_size.x = available_size.x
                 child_size.y = child_min_size.y
                 if offset.y + child_size.y > available_size.y:
@@ -40,7 +40,7 @@ func _on_sort_children() -> void:
         fit_child_in_rect(child, Rect2(offset, child_size))
         
         match orientation:
-            Orientation.HORIZONTAL:
+            ContainerOrientation.HORIZONTAL:
                 offset.x += child_size.x + spacing
-            Orientation.VERTICAL:
-                offset.y += child_size.y + spacing 
+            ContainerOrientation.VERTICAL:
+                offset.y += child_size.y + spacing

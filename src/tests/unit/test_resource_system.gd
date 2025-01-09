@@ -1,9 +1,10 @@
-extends GutTest
+class_name TestResourceSystem
+extends "res://addons/gut/test.gd"
 
 const ResourceSystem = preload("res://src/core/systems/ResourceSystem.gd")
 
 var resource_system: ResourceSystem
-var test_resource_path = "res://src/core/systems/GlobalEnums.gd"  # Using an existing resource for testing
+var test_resource_path = "res://src/core/systems/GlobalEnums.gd" # Using an existing resource for testing
 
 func before_each():
 	resource_system = ResourceSystem.new()
@@ -100,4 +101,4 @@ func test_process_queue():
 	assert_eq(resource_system._resource_queue.size(), 0,
 		"Resource queue should be empty after processing")
 	assert_true(resource_system._loaded_resources.has(test_resource_path),
-		"Resource should be loaded after processing queue") 
+		"Resource should be loaded after processing queue")

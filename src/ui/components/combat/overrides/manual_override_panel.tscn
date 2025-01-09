@@ -1,0 +1,70 @@
+[gd_scene load_steps=2 format=3 uid="uid://b8r6x2j4y0m5q"]
+
+[ext_resource type="Script" path="res://src/ui/components/combat/overrides/manual_override_panel.gd" id="1_u4r3m"]
+
+[node name="ManualOverridePanel" type="PanelContainer"]
+anchors_preset = 8
+anchor_left = 0.5
+anchor_top = 0.5
+anchor_right = 0.5
+anchor_bottom = 0.5
+offset_left = -150.0
+offset_top = -100.0
+offset_right = 150.0
+offset_bottom = 100.0
+grow_horizontal = 2
+grow_vertical = 2
+script = ExtResource("1_u4r3m")
+
+[node name="MarginContainer" type="MarginContainer" parent="."]
+layout_mode = 2
+theme_override_constants/margin_left = 16
+theme_override_constants/margin_top = 16
+theme_override_constants/margin_right = 16
+theme_override_constants/margin_bottom = 16
+
+[node name="VBoxContainer" type="VBoxContainer" parent="MarginContainer"]
+layout_mode = 2
+theme_override_constants/separation = 16
+
+[node name="Title" type="Label" parent="MarginContainer/VBoxContainer"]
+layout_mode = 2
+theme_type_variation = &"HeaderLarge"
+text = "Manual Override"
+horizontal_alignment = 1
+
+[node name="OverrideTypeLabel" type="Label" parent="MarginContainer/VBoxContainer"]
+unique_name_in_owner = true
+layout_mode = 2
+text = "Override Type"
+horizontal_alignment = 1
+
+[node name="CurrentValueLabel" type="Label" parent="MarginContainer/VBoxContainer"]
+unique_name_in_owner = true
+layout_mode = 2
+text = "Current Value: 0"
+horizontal_alignment = 1
+
+[node name="OverrideValueSpinBox" type="SpinBox" parent="MarginContainer/VBoxContainer"]
+unique_name_in_owner = true
+layout_mode = 2
+min_value = 1.0
+max_value = 6.0
+value = 1.0
+alignment = 1
+update_on_text_changed = true
+
+[node name="ButtonContainer" type="HBoxContainer" parent="MarginContainer/VBoxContainer"]
+layout_mode = 2
+theme_override_constants/separation = 16
+alignment = 1
+
+[node name="ApplyButton" type="Button" parent="MarginContainer/VBoxContainer/ButtonContainer"]
+unique_name_in_owner = true
+layout_mode = 2
+text = "Apply"
+
+[node name="CancelButton" type="Button" parent="MarginContainer/VBoxContainer/ButtonContainer"]
+unique_name_in_owner = true
+layout_mode = 2
+text = "Cancel" 

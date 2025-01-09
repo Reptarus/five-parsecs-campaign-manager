@@ -19,17 +19,17 @@ signal battlefield_validated(result: Dictionary)
 signal terrain_placement_validated(result: Dictionary)
 
 # Configuration
-const MOVEMENT_BASE: int = 6  # Base movement from Core Rules
-const GRID_SIZE = Vector2i(24, 24)  # Standard battlefield size per core rules
-const CELL_SIZE = Vector2i(32, 32)  # Visual size of each grid cell
-const MIN_TERRAIN_PIECES = 4  # Core rules minimum terrain requirement
-const MAX_TERRAIN_PIECES = 12  # Core rules maximum terrain requirement
+const MOVEMENT_BASE: int = 6 # Base movement from Core Rules
+const GRID_SIZE = Vector2i(24, 24) # Standard battlefield size per core rules
+const CELL_SIZE = Vector2i(32, 32) # Visual size of each grid cell
+const MIN_TERRAIN_PIECES = 4 # Core rules minimum terrain requirement
+const MAX_TERRAIN_PIECES = 12 # Core rules maximum terrain requirement
 
 # Battlefield state
-var terrain_map: Array[Array] = []  # Array of TerrainTypes.Type
-var unit_positions: Dictionary = {}  # Character: Vector2i
-var cover_map: Array[Array] = []  # Array of float values
-var los_cache: Dictionary = {}  # String: bool
+var terrain_map: Array[Array] = [] # Array of TerrainTypes.Type
+var unit_positions: Dictionary = {} # Character: Vector2i
+var cover_map: Array[Array] = [] # Array of float values
+var los_cache: Dictionary = {} # String: bool
 var deployment_zones: Dictionary = {
 	GameEnums.DeploymentZone.PLAYER: [],
 	GameEnums.DeploymentZone.ENEMY: [],
@@ -261,7 +261,7 @@ func _can_place_unit(position: Vector2i) -> bool:
 	
 	# Check if terrain allows unit placement
 	var terrain_type = get_terrain(position)
-	return terrain_type != TerrainTypes.Type.INVALID and terrain_type != TerrainTypes.Type.BLOCKED
+	return terrain_type != TerrainTypes.Type.INVALID and terrain_type != TerrainTypes.Type.WALL
 
 func _get_adjacent_positions(position: Vector2i) -> Array[Vector2i]:
 	var adjacent: Array[Vector2i] = []
@@ -353,7 +353,7 @@ func _get_feature_type_for_terrain(terrain: TerrainTypes.Type) -> GameEnums.Terr
 			return GameEnums.TerrainFeatureType.COVER_LOW
 		TerrainTypes.Type.COVER_HIGH:
 			return GameEnums.TerrainFeatureType.COVER_HIGH
-		TerrainTypes.Type.ELEVATED:
+		TerrainTypes.Type.EMPTY:
 			return GameEnums.TerrainFeatureType.HIGH_GROUND
 		TerrainTypes.Type.WATER:
 			return GameEnums.TerrainFeatureType.WATER

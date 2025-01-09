@@ -1,0 +1,68 @@
+[gd_scene load_steps=2 format=3 uid="uid://c8q6y4n2x0m5q"]
+
+[ext_resource type="Script" path="res://src/ui/components/combat/log/combat_log_panel.gd" id="1_k4r3m"]
+
+[node name="CombatLogPanel" type="PanelContainer"]
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+script = ExtResource("1_k4r3m")
+
+[node name="MarginContainer" type="MarginContainer" parent="."]
+layout_mode = 2
+theme_override_constants/margin_left = 8
+theme_override_constants/margin_top = 8
+theme_override_constants/margin_right = 8
+theme_override_constants/margin_bottom = 8
+
+[node name="VBoxContainer" type="VBoxContainer" parent="MarginContainer"]
+layout_mode = 2
+theme_override_constants/separation = 8
+
+[node name="Header" type="HBoxContainer" parent="MarginContainer/VBoxContainer"]
+layout_mode = 2
+theme_override_constants/separation = 16
+
+[node name="Title" type="Label" parent="MarginContainer/VBoxContainer/Header"]
+layout_mode = 2
+theme_type_variation = &"HeaderMedium"
+text = "Combat Log"
+
+[node name="HSeparator" type="HSeparator" parent="MarginContainer/VBoxContainer/Header"]
+layout_mode = 2
+size_flags_horizontal = 3
+
+[node name="FilterOptions" type="OptionButton" parent="MarginContainer/VBoxContainer/Header"]
+unique_name_in_owner = true
+layout_mode = 2
+tooltip_text = "Filter log entries"
+item_count = 1
+selected = 0
+popup_hide_on_item_selection = false
+item_0/text = "All Events"
+item_0/id = 0
+
+[node name="AutoScrollCheck" type="CheckBox" parent="MarginContainer/VBoxContainer/Header"]
+unique_name_in_owner = true
+layout_mode = 2
+tooltip_text = "Automatically scroll to new entries"
+button_pressed = true
+text = "Auto-scroll"
+
+[node name="ClearButton" type="Button" parent="MarginContainer/VBoxContainer/Header"]
+unique_name_in_owner = true
+layout_mode = 2
+tooltip_text = "Clear the combat log"
+text = "Clear"
+
+[node name="LogList" type="ItemList" parent="MarginContainer/VBoxContainer"]
+unique_name_in_owner = true
+layout_mode = 2
+size_flags_vertical = 3
+allow_reselect = true
+allow_rmb_select = true
+auto_height = true
+item_count = 1
+item_0/text = "[12:34:56] Example log entry" 

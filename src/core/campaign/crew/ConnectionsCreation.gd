@@ -9,8 +9,7 @@ signal connections_cancelled
 @onready var extended_toggle := $VBoxContainer/ExtendedConnectionsToggle
 @onready var tutorial_label := $TutorialLabel
 
-const TOUCH_BUTTON_HEIGHT := 60
-const PORTRAIT_LIST_HEIGHT_RATIO := 0.5  # List takes 50% in portrait mode
+const PORTRAIT_LIST_HEIGHT_RATIO := 0.5 # List takes 50% in portrait mode
 
 var current_connections := []
 

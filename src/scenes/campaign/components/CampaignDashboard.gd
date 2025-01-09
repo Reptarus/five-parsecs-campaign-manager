@@ -1,5 +1,6 @@
 @tool
 extends Control
+class_name CampaignDashboard
 
 # Dependencies
 const GameEnums = preload("res://src/core/systems/GlobalEnums.gd")
@@ -9,10 +10,10 @@ const CampaignPhaseManager = preload("res://src/core/managers/CampaignPhaseManag
 
 # Campaign Turn Steps (as per core rules)
 enum CampaignStep {
-	TRAVEL,      # Step 1: Travel phase
-	WORLD,       # Step 2: World phase (upkeep, tasks, jobs)
-	BATTLE,      # Step 3: Tabletop battle
-	POST_BATTLE  # Step 4: Post-battle sequence
+	TRAVEL, # Step 1: Travel phase
+	WORLD, # Step 2: World phase (upkeep, tasks, jobs)
+	BATTLE, # Step 3: Tabletop battle
+	POST_BATTLE # Step 4: Post-battle sequence
 }
 
 # Signals
@@ -153,7 +154,7 @@ func _update_display() -> void:
 			character.reactions,
 			character.speed,
 			character.combat_skill,
-				character.toughness, 
+				character.toughness,
 			character.savvy,
 			character.experience
 		]

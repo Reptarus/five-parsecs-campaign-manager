@@ -151,21 +151,29 @@ enum TerrainModifier {
 ## Victory condition enums
 enum VictoryConditionType {
 	NONE,
-	ELIMINATION, # Eliminate all enemies or specific targets
-	SURVIVAL, # Survive for a specified number of turns
-	CONTROL_POINTS, # Control specific points on the map
-	EXTRACTION, # Get units/objectives to extraction point
-	OBJECTIVE, # Complete specific mission objectives
-	TIME_LIMIT # Complete objectives within time limit
+	STANDARD,
+	ELIMINATION,
+	EXTRACTION,
+	SURVIVAL,
+	CONTROL_POINTS,
+	OBJECTIVE,
+	TURNS_20,
+	WEALTH_GOAL,
+	REPUTATION_GOAL,
+	FACTION_DOMINANCE,
+	STORY_COMPLETE
 }
 
 ## Faction related enums
 enum FactionType {
+	NONE,
+	IMPERIAL,
+	REBEL,
+	MERCENARY,
+	PIRATE,
+	CORPORATE,
 	NEUTRAL,
-	FRIENDLY,
-	HOSTILE,
-	ALLIED,
-	ENEMY
+	HOSTILE
 }
 
 ## Type related enums
@@ -331,14 +339,40 @@ enum ItemRarity {
 
 ## Campaign related enums
 enum CampaignPhase {
-	SETUP,
-	UPKEEP,
-	WORLD_STEP,
-	TRAVEL,
-	PATRONS,
-	BATTLE,
-	POST_BATTLE,
-	MANAGEMENT
+	NONE = -1,
+	SETUP = 0,
+	UPKEEP = 1,
+	STORY = 2,
+	CAMPAIGN = 3,
+	BATTLE_SETUP = 4,
+	BATTLE = 5,
+	POST_BATTLE = 6,
+	MANAGEMENT = 7,
+	TRAVEL = 8,
+	BATTLE_RESOLUTION = 9,
+	ADVANCEMENT = 10
+}
+
+const PHASE_NAMES = {
+	CampaignPhase.NONE: "None",
+	CampaignPhase.SETUP: "Setup",
+	CampaignPhase.UPKEEP: "Upkeep",
+	CampaignPhase.STORY: "Story",
+	CampaignPhase.CAMPAIGN: "Campaign",
+	CampaignPhase.BATTLE_SETUP: "Battle Setup",
+	CampaignPhase.BATTLE_RESOLUTION: "Battle Resolution",
+	CampaignPhase.ADVANCEMENT: "Advancement"
+}
+
+const PHASE_DESCRIPTIONS = {
+	CampaignPhase.NONE: "No active phase",
+	CampaignPhase.SETUP: "Set up your crew and campaign parameters",
+	CampaignPhase.UPKEEP: "Handle maintenance costs and resource management",
+	CampaignPhase.STORY: "Check and resolve story events and world developments",
+	CampaignPhase.CAMPAIGN: "Manage crew, equipment, and select missions",
+	CampaignPhase.BATTLE_SETUP: "Prepare the battlefield and deploy your crew",
+	CampaignPhase.BATTLE_RESOLUTION: "Resolve combat outcomes and handle aftermath",
+	CampaignPhase.ADVANCEMENT: "Level up characters and update equipment"
 }
 
 ## Global event enums
@@ -389,16 +423,26 @@ enum BattlePhase {
 
 enum CampaignVictoryType {
     NONE,
-    TURNS_20, # Survive 20 turns
-    TURNS_50, # Survive 50 turns
-    TURNS_100, # Survive 100 turns
-    QUESTS_3, # Complete 3 story quests
-    QUESTS_5, # Complete 5 story quests
-    QUESTS_10, # Complete 10 story quests
-    STORY_COMPLETE, # Complete main story track
-    WEALTH_GOAL, # Accumulate specified wealth
-    REPUTATION_GOAL, # Achieve specified reputation
-    FACTION_DOMINANCE # Become dominant faction
+    STANDARD,
+    WEALTH,
+    REPUTATION,
+    CONQUEST,
+    STORY,
+    SURVIVAL,
+    TURNS_20,
+    TURNS_50,
+    TURNS_100,
+    QUESTS_3,
+    QUESTS_5,
+    QUESTS_10,
+    WEALTH_GOAL,
+    REPUTATION_GOAL,
+    FACTION_DOMINANCE,
+    STORY_COMPLETE,
+    ELIMINATION,
+    EXTRACTION,
+    CONTROL_POINTS,
+    OBJECTIVE
 }
 
 enum MissionVictoryType {
@@ -458,7 +502,13 @@ enum ResourceType {
     PATRON,
     RIVAL,
     QUEST_RUMOR,
-    XP
+    XP,
+    REPUTATION,
+    STORY_POINTS,
+    EXPERIENCE,
+    MATERIALS,
+    MEDICAL,
+    AMMUNITION
 }
 
 enum WorldTrait {
@@ -775,6 +825,54 @@ enum PlanetEnvironment {
     MOUNTAIN,
     SWAMP,
     WASTELAND
+}
+
+enum CrewTask {
+    NONE,
+    FIND_PATRON,
+    TRAIN,
+    TRADE,
+    RECRUIT,
+    EXPLORE,
+    TRACK,
+    REPAIR,
+    DECOY
+}
+
+enum JobType {
+    NONE,
+    BOUNTY,
+    ESCORT,
+    DELIVERY,
+    PROTECTION,
+    SABOTAGE,
+    INVESTIGATION,
+    RECOVERY,
+    ELIMINATION
+}
+
+enum PatronType {
+    NONE,
+    MERCHANT,
+    NOBLE,
+    CRIMINAL,
+    CORPORATE,
+    MILITARY,
+    REBEL,
+    MYSTERIOUS
+}
+
+enum TerrainTypes {
+    INVALID,
+    EMPTY,
+    WALL,
+    COVER_LOW,
+    COVER_HIGH,
+    WATER,
+    HAZARD,
+    DIFFICULT,
+    BLOCKED,
+    ELEVATED
 }
 
 static func get_enum_name(category: String, value: int) -> String:

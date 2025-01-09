@@ -1,4 +1,5 @@
-extends GutTest
+class_name TestCharacterManager
+extends "res://addons/gut/test.gd"
 
 const GameEnums = preload("res://src/core/systems/GlobalEnums.gd")
 const Character = preload("res://src/core/character/Base/Character.gd")
@@ -122,4 +123,3 @@ func test_experience_system():
 	
 	assert_eq(test_character.xp, initial_xp + 100,
 		"Character should gain correct amount of experience")
-</rewritten_file> 

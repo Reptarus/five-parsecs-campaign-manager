@@ -2,12 +2,6 @@
 class_name CombatManager
 extends Node
 
-## Required dependencies
-const GlobalEnums := preload("res://src/core/systems/GlobalEnums.gd")
-const Character := preload("res://src/core/character/Base/Character.gd")
-const BattleRules := preload("res://src/core/battle/BattleRules.gd")
-const TerrainTypes := preload("res://src/core/battle/TerrainTypes.gd")
-
 ## Combat-related signals
 signal combat_state_changed(new_state: Dictionary)
 signal character_position_updated(character: Character, new_position: Vector2i)
@@ -16,15 +10,39 @@ signal combat_result_calculated(attacker: Character, target: Character, result: 
 signal combat_advantage_changed(character: Character, advantage: GlobalEnums.CombatAdvantage)
 signal combat_status_changed(character: Character, status: GlobalEnums.CombatStatus)
 
+## Tabletop support signals
+signal manual_position_override_requested(character: Character, current_position: Vector2i)
+signal manual_advantage_override_requested(character: Character, current_advantage: int)
+signal manual_status_override_requested(character: Character, current_status: int)
+signal combat_state_verification_requested(state: Dictionary)
+signal terrain_verification_requested(position: Vector2i, current_modifiers: Array)
+signal house_rule_applied(rule_name: String, details: Dictionary)
+
+## Manual override properties
+var allow_position_overrides: bool = true
+var allow_advantage_overrides: bool = true
+var allow_status_overrides: bool = true
+var pending_overrides: Dictionary = {}
+
+## House rules support
+var active_house_rules: Dictionary = {}
+var house_rule_modifiers: Dictionary = {}
+
+## Required dependencies
+const GlobalEnums := preload("res://src/core/systems/GlobalEnums.gd")
+const Character := preload("res://src/core/character/Base/Character.gd")
+const BattleRules := preload("res://src/core/battle/BattleRules.gd")
+const TerrainTypes := preload("res://src/core/battle/TerrainTypes.gd")
+
 ## Reference to the battlefield manager
 @export var battlefield_manager: BattlefieldManager
 
 ## Combat state tracking
 var _active_combatants: Array[Character] = []
-var _combat_positions: Dictionary = {}  # Maps Character to Vector2i position
-var _terrain_modifiers: Dictionary = {}  # Maps Vector2i position to TerrainModifier
-var _combat_advantages: Dictionary = {}  # Maps Character to CombatAdvantage
-var _combat_statuses: Dictionary = {}  # Maps Character to CombatStatus
+var _combat_positions: Dictionary = {} # Maps Character to Vector2i position
+var _terrain_modifiers: Dictionary = {} # Maps Vector2i position to TerrainModifier
+var _combat_advantages: Dictionary = {} # Maps Character to CombatAdvantage
+var _combat_statuses: Dictionary = {} # Maps Character to CombatStatus
 
 class CombatState:
 	var character: Character
@@ -46,6 +64,103 @@ class CombatState:
 func _ready() -> void:
 	if not battlefield_manager:
 		push_warning("CombatManager: No battlefield manager assigned")
+
+## Manual override handling methods
+func request_position_override(character: Character, current_position: Vector2i) -> void:
+	if not allow_position_overrides or not character in _active_combatants:
+		return
+		
+	pending_overrides[character] = {
+		"type": "position",
+		"current": current_position,
+		"timestamp": Time.get_unix_time_from_system()
+	}
+	manual_position_override_requested.emit(character, current_position)
+
+func request_advantage_override(character: Character, current_advantage: int) -> void:
+	if not allow_advantage_overrides or not character in _active_combatants:
+		return
+		
+	pending_overrides[character] = {
+		"type": "advantage",
+		"current": current_advantage,
+		"timestamp": Time.get_unix_time_from_system()
+	}
+	manual_advantage_override_requested.emit(character, current_advantage)
+
+func request_status_override(character: Character, current_status: int) -> void:
+	if not allow_status_overrides or not character in _active_combatants:
+		return
+		
+	pending_overrides[character] = {
+		"type": "status",
+		"current": current_status,
+		"timestamp": Time.get_unix_time_from_system()
+	}
+	manual_status_override_requested.emit(character, current_status)
+
+func apply_manual_override(character: Character, override_value: Variant) -> void:
+	if not character in pending_overrides:
+		return
+		
+	var override_data: Dictionary = pending_overrides[character]
+	match override_data.get("type"):
+		"position":
+			if override_value is Vector2i:
+				_combat_positions[character] = override_value
+				character_position_updated.emit(character, override_value)
+		"advantage":
+			if override_value is int:
+				_combat_advantages[character] = override_value
+				combat_advantage_changed.emit(character, override_value)
+		"status":
+			if override_value is int:
+				_combat_statuses[character] = override_value
+				combat_status_changed.emit(character, override_value)
+	
+	pending_overrides.erase(character)
+
+## House rules management
+func add_house_rule(rule_name: String, rule_data: Dictionary) -> void:
+	active_house_rules[rule_name] = rule_data
+	if rule_data.has("modifiers"):
+		house_rule_modifiers[rule_name] = rule_data.modifiers
+	house_rule_applied.emit(rule_name, rule_data)
+
+func remove_house_rule(rule_name: String) -> void:
+	active_house_rules.erase(rule_name)
+	house_rule_modifiers.erase(rule_name)
+
+func get_active_house_rules() -> Dictionary:
+	return active_house_rules.duplicate()
+
+func apply_house_rule_modifiers(base_value: float, context: String) -> float:
+	var modified_value := base_value
+	
+	for rule_name in house_rule_modifiers:
+		var rule_mods: Dictionary = house_rule_modifiers[rule_name]
+		if rule_mods.has(context):
+			modified_value += rule_mods[context]
+	
+	return modified_value
+
+## State verification methods
+func request_combat_state_verification() -> void:
+	var current_state := {
+		"active_combatants": _active_combatants.duplicate(),
+		"positions": _combat_positions.duplicate(),
+		"advantages": _combat_advantages.duplicate(),
+		"statuses": _combat_statuses.duplicate(),
+		"terrain": _terrain_modifiers.duplicate(),
+		"house_rules": active_house_rules.duplicate()
+	}
+	combat_state_verification_requested.emit(current_state)
+
+func request_terrain_verification(position: Vector2i) -> void:
+	var current_modifiers := []
+	if position in _terrain_modifiers:
+		current_modifiers = [_terrain_modifiers[position]]
+	terrain_verification_requested.emit(position, current_modifiers)
 
 ## Registers a character for combat tracking
 func register_character(character: Character, position: Vector2i) -> void:
@@ -82,26 +197,30 @@ func _update_combat_state(character: Character) -> void:
 	var position := get_character_position(character)
 	var modifiers := BattleRules.CombatModifiers.new()
 	
-	# Check terrain modifiers
+	# Check terrain modifiers with house rules
 	var terrain_modifier := get_terrain_modifier(position)
 	modifiers.cover = terrain_modifier == GlobalEnums.TerrainModifier.COVER_BONUS
 	
-	# Check height advantage
+	# Check height advantage with house rules
 	if battlefield_manager:
 		var terrain_data: Dictionary = battlefield_manager.get_terrain_at(position)
-		modifiers.height_advantage = terrain_data.get("elevation", 0) > 0
+		var elevation := terrain_data.get("elevation", 0)
+		elevation = int(apply_house_rule_modifiers(float(elevation), "elevation"))
+		modifiers.height_advantage = elevation > 0
 	
-	# Check flanking
+	# Check flanking with house rules
 	modifiers.flanking = _check_flanking(character)
 	
 	# Update combat advantage
 	var new_advantage := _calculate_combat_advantage(modifiers)
+	new_advantage = int(apply_house_rule_modifiers(float(new_advantage), "final_advantage"))
 	if new_advantage != _combat_advantages[character]:
 		_combat_advantages[character] = new_advantage
 		combat_advantage_changed.emit(character, new_advantage)
 	
 	# Update combat status
 	var new_status := _calculate_combat_status(character, modifiers)
+	new_status = int(apply_house_rule_modifiers(float(new_status), "final_status"))
 	if new_status != _combat_statuses[character]:
 		_combat_statuses[character] = new_status
 		combat_status_changed.emit(character, new_status)
@@ -191,23 +310,33 @@ func resolve_combat(attacker: Character, target: Character, action: GlobalEnums.
 	if not attacker in _active_combatants or not target in _active_combatants:
 		return GlobalEnums.CombatResult.NONE
 		
-	var modifiers := BattleRules.CombatModifiers.new()
+	var modifiers: BattleRules.CombatModifiers = BattleRules.CombatModifiers.new()
 	
 	# Get terrain modifiers
-	var target_pos := get_character_position(target)
+	var target_pos: Vector2i = get_character_position(target)
 	modifiers.cover = get_terrain_modifier(target_pos) == GlobalEnums.TerrainModifier.COVER_BONUS
 	
-	# Get combat advantage
-	modifiers.combat_advantage = _combat_advantages.get(attacker, GlobalEnums.CombatAdvantage.NONE)
+	# Get combat advantage with house rules
+	var base_advantage: int = _combat_advantages.get(attacker, GlobalEnums.CombatAdvantage.NONE)
+	modifiers.combat_advantage = int(apply_house_rule_modifiers(float(base_advantage), "advantage"))
 	
-	# Get combat status
-	modifiers.combat_status = _combat_statuses.get(attacker, GlobalEnums.CombatStatus.NONE)
+	# Get combat status with house rules
+	var base_status: int = _combat_statuses.get(attacker, GlobalEnums.CombatStatus.NONE)
+	modifiers.combat_status = int(apply_house_rule_modifiers(float(base_status), "status"))
 	
-	# Calculate hit chance
-	var hit_chance := BattleRules.calculate_hit_chance(BattleRules.BASE_HIT_CHANCE, modifiers)
+	# Calculate base hit chance
+	var base_hit_chance: int = BattleRules.calculate_hit_chance(BattleRules.BASE_HIT_CHANCE, modifiers)
+	
+	# Apply house rules to hit chance
+	var final_hit_chance: int = int(apply_house_rule_modifiers(float(base_hit_chance), "hit_chance"))
 	
 	# Get combat result
-	return BattleRules.get_combat_result(hit_chance, modifiers)
+	var result: GlobalEnums.CombatResult = BattleRules.get_combat_result(final_hit_chance, modifiers)
+	
+	# Emit result for verification
+	combat_result_calculated.emit(attacker, target, result)
+	
+	return result
 
 ## Checks if a position is in melee range of another position
 func is_in_melee_range(pos1: Vector2, pos2: Vector2) -> bool:
@@ -235,6 +364,9 @@ func calculate_terrain_modifier(from_pos: Vector2i, to_pos: Vector2i) -> float:
 	# Apply terrain-specific modifiers
 	var terrain_type: TerrainTypes.Type = to_terrain.get("type", TerrainTypes.Type.NONE)
 	total_modifier += TerrainTypes.get_combat_modifier(terrain_type)
+	
+	# Apply house rules
+	total_modifier = apply_house_rule_modifiers(total_modifier, "terrain")
 	
 	return total_modifier
 

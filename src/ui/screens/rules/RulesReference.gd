@@ -1,8 +1,7 @@
 # RulesReference.gd
 extends CampaignResponsiveLayout
 
-const PORTRAIT_LIST_HEIGHT_RATIO := 0.4  # List takes 40% in portrait mode
-const TOUCH_BUTTON_HEIGHT := 60
+const PORTRAIT_LIST_HEIGHT_RATIO := 0.4 # List takes 40% in portrait mode
 
 var rules_data = {}
 var bookmarks = []

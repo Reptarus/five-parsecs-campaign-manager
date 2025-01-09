@@ -3,21 +3,38 @@ class_name CombatResolver
 extends Node
 
 ## Signals
-signal combat_started(attacker: Node, defender: Node)
+signal combat_started(attacker: Character, defender: Character)
 signal combat_ended(result: Dictionary)
 signal hit_calculated(hit_data: Dictionary)
 signal damage_calculated(damage_data: Dictionary)
 signal effects_applied(effect_data: Dictionary)
-signal target_invalid(attacker: Node, reason: String)
-signal target_selected(attacker: Node, target: Node)
-signal critical_hit(attacker: Node, defender: Node, multiplier: float)
+signal target_invalid(attacker: Character, reason: String)
+signal target_selected(attacker: Character, target: Character)
+signal critical_hit(attacker: Character, defender: Character, multiplier: float)
 signal special_effect_triggered(source: Node, target: Node, effect: String)
+signal combat_resolved(result: Dictionary)
+
+## Tabletop support signals
+signal dice_roll_requested(context: String, modifier: int)
+signal dice_roll_completed(result: int, context: String)
+signal modifier_applied(source: String, value: int, description: String)
+signal manual_override_requested(context: String, current_value: int)
+signal combat_log_updated(message: String, details: Dictionary)
+
+## Manual override properties
+var allow_manual_overrides: bool = true
+var pending_override_request: Dictionary = {}
+var manual_override_value: int = -1
+
+## Combat log properties
+var combat_log: Array[Dictionary] = []
+var detailed_modifier_log: Array[Dictionary] = []
 
 ## Required dependencies
-const GlobalEnums := preload("res://src/core/systems/GlobalEnums.gd")
+const GameEnums := preload("res://src/core/systems/GlobalEnums.gd")
 const Character := preload("res://src/core/character/Base/Character.gd")
 const BattlefieldManager := preload("res://src/core/battle/BattlefieldManager.gd")
-const BattleStateMachine = preload("res://src/core/battle/state/BattleStateMachine.gd")
+const BattleStateManager := preload("res://src/core/battle/state/BattleStateMachine.gd")
 const BattleRules = preload("res://src/core/battle/BattleRules.gd")
 
 ## Combat modifiers
@@ -27,15 +44,15 @@ const COVER_BONUS: int = 2
 const ELEVATION_BONUS: int = 1
 
 ## Status effect thresholds
-const STUN_THRESHOLD: float = 0.4  # 40% of max health
-const WOUND_THRESHOLD: float = 0.25  # 25% of max health
+const STUN_THRESHOLD: float = 0.4 # 40% of max health
+const WOUND_THRESHOLD: float = 0.25 # 25% of max health
 
 ## Reference to the battle state machine
-@export var battle_state_machine: BattleStateMachine  # Properly typed now
+@export var battle_state_machine: BattleStateManager # Properly typed now
 ## Reference to the battlefield manager
-@export var battlefield_manager: Node   # Will be cast to BattlefieldManager
+@export var battlefield_manager: Node # Will be cast to BattlefieldManager
 ## Reference to the combat manager
-@export var combat_manager: Node        # Will be cast to CombatManager
+@export var combat_manager: Node # Will be cast to CombatManager
 
 ## Cache for active status effects - maps Character to Array[String]
 var _active_effects: Dictionary = {}
@@ -50,6 +67,76 @@ func _ready() -> void:
 		push_warning("CombatResolver: No battle state machine assigned")
 	if not battlefield_manager:
 		push_warning("CombatResolver: No battlefield manager assigned")
+
+## Handles manual override requests for dice rolls and modifiers
+func request_manual_override(context: String, current_value: int) -> void:
+	if not allow_manual_overrides:
+		return
+		
+	pending_override_request = {
+		"context": context,
+		"current_value": current_value,
+		"timestamp": Time.get_unix_time_from_system()
+	}
+	manual_override_requested.emit(context, current_value)
+
+## Applies a manual override value
+func apply_manual_override(value: int) -> void:
+	if not pending_override_request:
+		return
+		
+	manual_override_value = value
+	var context: String = pending_override_request.get("context", "")
+	_log_combat_event("Manual Override", {
+		"context": context,
+		"original_value": pending_override_request.get("current_value"),
+		"override_value": value
+	})
+	pending_override_request.clear()
+
+## Logs a modifier application with details
+func log_modifier(source: String, value: int, description: String) -> void:
+	var modifier_data := {
+		"source": source,
+		"value": value,
+		"description": description,
+		"timestamp": Time.get_unix_time_from_system()
+	}
+	detailed_modifier_log.append(modifier_data)
+	modifier_applied.emit(source, value, description)
+
+## Logs a combat event with details
+func _log_combat_event(event_type: String, details: Dictionary) -> void:
+	var log_entry := {
+		"type": event_type,
+		"details": details,
+		"timestamp": Time.get_unix_time_from_system()
+	}
+	combat_log.append(log_entry)
+	combat_log_updated.emit(event_type, details)
+
+## Performs a dice roll with optional manual override
+func _roll_dice(context: String = "", modifier: int = 0) -> int:
+	dice_roll_requested.emit(context, modifier)
+	
+	if allow_manual_overrides and manual_override_value >= 0:
+		var roll := manual_override_value
+		manual_override_value = -1
+		dice_roll_completed.emit(roll, context)
+		return roll
+	
+	var roll := (randi() % 6) + 1
+	dice_roll_completed.emit(roll, context)
+	return roll
+
+## Gets the complete modifier log for a combat action
+func get_modifier_log() -> Array[Dictionary]:
+	return detailed_modifier_log
+
+## Clears the combat and modifier logs
+func clear_logs() -> void:
+	combat_log.clear()
+	detailed_modifier_log.clear()
 
 ## Resolves a combat action between an attacker and their target
 ## Parameters:
@@ -119,21 +206,61 @@ func _resolve_ranged_attack(attacker: Character, defender: Character) -> void:
 	var modifiers: int = _calculate_ranged_modifiers(attacker, defender)
 	var final_chance: int = base_hit_chance + modifiers
 	
-	var roll: int = _roll_to_hit()
+	# Log base accuracy and modifiers
+	log_modifier("Base Accuracy", base_hit_chance, "Character's base ranged accuracy")
+	log_modifier("Combat Modifiers", modifiers, "Combined situational modifiers")
+	
+	_log_combat_event("Ranged Attack Started", {
+		"attacker": attacker.get_name(),
+		"defender": defender.get_name(),
+		"base_chance": base_hit_chance,
+		"final_chance": final_chance
+	})
+	
+	var roll: int = _roll_dice("Ranged Attack", modifiers)
 	var hit: bool = roll <= final_chance
 	
 	if hit:
 		var damage: int = _calculate_ranged_damage(attacker, defender, roll)
-		_apply_damage(defender, damage)
 		
 		if roll >= CRITICAL_HIT_THRESHOLD:
 			var crit_multiplier: float = 2.0
 			critical_hit.emit(attacker, defender, crit_multiplier)
 			damage = int(damage * crit_multiplier)
+			_log_combat_event("Critical Hit", {
+				"roll": roll,
+				"multiplier": crit_multiplier,
+				"final_damage": damage
+			})
 		
-		combat_ended.emit(attacker, defender, true, damage)
+		_apply_damage(defender, damage)
+		_log_combat_event("Hit Resolved", {
+			"hit": true,
+			"roll": roll,
+			"damage": damage,
+			"target_health": defender.get_health()
+		})
+		combat_ended.emit({
+			"attacker": attacker,
+			"defender": defender,
+			"hit": true,
+			"damage": damage,
+			"roll": roll,
+			"modifiers": modifiers
+		})
 	else:
-		combat_ended.emit(attacker, defender, false, 0)
+		_log_combat_event("Attack Missed", {
+			"roll": roll,
+			"required": final_chance
+		})
+		combat_ended.emit({
+			"attacker": attacker,
+			"defender": defender,
+			"hit": false,
+			"damage": 0,
+			"roll": roll,
+			"modifiers": modifiers
+		})
 
 ## Resolves a melee attack between attacker and defender
 func _resolve_melee_attack(attacker: Character, defender: Character) -> void:
@@ -141,7 +268,18 @@ func _resolve_melee_attack(attacker: Character, defender: Character) -> void:
 	var modifiers: int = _calculate_melee_modifiers(attacker, defender)
 	var final_chance: int = base_hit_chance + modifiers
 	
-	var roll: int = _roll_to_hit()
+	# Log base accuracy and modifiers
+	log_modifier("Base Melee Accuracy", base_hit_chance, "Character's base melee accuracy")
+	log_modifier("Melee Modifiers", modifiers, "Combined melee situational modifiers")
+	
+	_log_combat_event("Melee Attack Started", {
+		"attacker": attacker.get_name(),
+		"defender": defender.get_name(),
+		"base_chance": base_hit_chance,
+		"final_chance": final_chance
+	})
+	
+	var roll: int = _roll_dice("Melee Attack", modifiers)
 	var hit: bool = roll <= final_chance
 	
 	if hit:
@@ -151,29 +289,110 @@ func _resolve_melee_attack(attacker: Character, defender: Character) -> void:
 			var crit_multiplier: float = _calculate_critical_multiplier(attacker)
 			critical_hit.emit(attacker, defender, crit_multiplier)
 			damage = int(damage * crit_multiplier)
+			_log_combat_event("Critical Hit", {
+				"roll": roll,
+				"multiplier": crit_multiplier,
+				"final_damage": damage
+			})
 			
 		_apply_damage(defender, damage)
 		_check_and_apply_status_effects(defender, damage)
-		combat_ended.emit(attacker, defender, true, damage)
+		
+		_log_combat_event("Melee Hit Resolved", {
+			"hit": true,
+			"roll": roll,
+			"damage": damage,
+			"target_health": defender.get_health()
+		})
+		
+		combat_ended.emit({
+			"attacker": attacker,
+			"defender": defender,
+			"hit": true,
+			"damage": damage,
+			"roll": roll,
+			"modifiers": modifiers
+		})
 	else:
-		combat_ended.emit(attacker, defender, false, 0)
+		_log_combat_event("Melee Attack Missed", {
+			"roll": roll,
+			"required": final_chance
+		})
+		combat_ended.emit({
+			"attacker": attacker,
+			"defender": defender,
+			"hit": false,
+			"damage": 0,
+			"roll": roll,
+			"modifiers": modifiers
+		})
 
 ## Resolves a snap fire attack between attacker and defender
 func _resolve_snap_fire(attacker: Character, defender: Character) -> void:
-	var base_hit_chance: int = attacker.get_ranged_accuracy() - 2  # Snap fire penalty
+	var base_hit_chance: int = attacker.get_ranged_accuracy() - 2 # Snap fire penalty
 	var modifiers: int = _calculate_ranged_modifiers(attacker, defender)
 	var final_chance: int = base_hit_chance + modifiers
 	
-	var roll: int = _roll_to_hit()
+	# Log base accuracy and modifiers
+	log_modifier("Base Snap Fire Accuracy", base_hit_chance, "Character's base accuracy with snap fire penalty")
+	log_modifier("Snap Fire Modifiers", modifiers, "Combined situational modifiers")
+	
+	_log_combat_event("Snap Fire Started", {
+		"attacker": attacker.get_name(),
+		"defender": defender.get_name(),
+		"base_chance": base_hit_chance,
+		"final_chance": final_chance
+	})
+	
+	var roll: int = _roll_dice("Snap Fire", modifiers)
 	var hit: bool = roll <= final_chance
 	
 	if hit:
 		var damage: int = _calculate_ranged_damage(attacker, defender, roll)
-		damage = int(damage * 0.75)  # Reduced snap fire damage
+		damage = int(damage * 0.75) # Reduced snap fire damage
+		
+		if roll >= CRITICAL_HIT_THRESHOLD:
+			var crit_multiplier: float = 1.5 # Reduced critical for snap fire
+			critical_hit.emit(attacker, defender, crit_multiplier)
+			damage = int(damage * crit_multiplier)
+			_log_combat_event("Snap Fire Critical", {
+				"roll": roll,
+				"multiplier": crit_multiplier,
+				"final_damage": damage
+			})
+		
 		_apply_damage(defender, damage)
-		combat_ended.emit(attacker, defender, true, damage)
+		_log_combat_event("Snap Fire Hit Resolved", {
+			"hit": true,
+			"roll": roll,
+			"damage": damage,
+			"target_health": defender.get_health()
+		})
+		
+		combat_ended.emit({
+			"attacker": attacker,
+			"defender": defender,
+			"hit": true,
+			"damage": damage,
+			"roll": roll,
+			"modifiers": modifiers,
+			"attack_type": "snap_fire"
+		})
 	else:
-		combat_ended.emit(attacker, defender, false, 0)
+		_log_combat_event("Snap Fire Missed", {
+			"roll": roll,
+			"required": final_chance
+		})
+		
+		combat_ended.emit({
+			"attacker": attacker,
+			"defender": defender,
+			"hit": false,
+			"damage": 0,
+			"roll": roll,
+			"modifiers": modifiers,
+			"attack_type": "snap_fire"
+		})
 
 ## Calculates modifiers for ranged attacks
 ## Returns: Total modifier value
@@ -188,7 +407,7 @@ func _calculate_ranged_modifiers(attacker: Character, defender: Character) -> in
 		Vector2i(attacker.position),
 		Vector2i(defender.position)
 	)
-	modifiers += int(terrain_mod * 2)  # Convert float modifier to int bonus
+	modifiers += int(terrain_mod * 2) # Convert float modifier to int bonus
 	
 	# Range modifiers
 	var distance: float = _get_distance_to_target(attacker, defender)
@@ -213,7 +432,7 @@ func _calculate_melee_modifiers(attacker: Character, defender: Character) -> int
 		Vector2i(attacker.position),
 		Vector2i(defender.position)
 	)
-	modifiers += int(terrain_mod * 2)  # Convert float modifier to int bonus
+	modifiers += int(terrain_mod * 2) # Convert float modifier to int bonus
 	
 	# Status effects
 	modifiers += _get_status_modifiers(attacker)
@@ -228,11 +447,11 @@ func _calculate_melee_modifiers(attacker: Character, defender: Character) -> int
 ## Returns: Range penalty value
 func _calculate_range_penalty(distance: float, max_range: float) -> float:
 	if distance <= max_range * 0.5:
-		return 0.0  # No penalty within half range
+		return 0.0 # No penalty within half range
 	elif distance <= max_range:
-		return -2.0  # Medium penalty within full range
+		return -2.0 # Medium penalty within full range
 	else:
-		return float(MAX_RANGE_PENALTY)  # Maximum penalty beyond range
+		return float(MAX_RANGE_PENALTY) # Maximum penalty beyond range
 
 ## Gets status effect modifiers for a character
 ## Returns: Total status effect modifier value
@@ -280,13 +499,13 @@ func _get_potential_targets(attacker: Character, action: int) -> Array[Character
 		if not unit is Character or unit == attacker or not unit.is_alive():
 			continue
 		
-		if attacker.is_enemy() != unit.is_enemy():  # Only target opposing forces
+		if attacker.is_enemy() != unit.is_enemy(): # Only target opposing forces
 			var distance: float = _get_distance_to_target(attacker, unit)
 			if distance <= max_range:
 				if action in [GlobalEnums.UnitAction.ATTACK, GlobalEnums.UnitAction.SNAP_FIRE]:
 					if battlefield_manager and battlefield_manager.check_line_of_sight(attacker, unit):
 						potential_targets.append(unit)
-				else:  # Melee doesn't require LOS
+				else: # Melee doesn't require LOS
 					potential_targets.append(unit)
 	
 	return potential_targets
@@ -300,7 +519,7 @@ func _get_max_range_for_action(attacker: Character, action: int) -> float:
 		GlobalEnums.UnitAction.SNAP_FIRE:
 			return attacker.get_weapon_range() * 0.75
 		GlobalEnums.UnitAction.BRAWL:
-			return 1.5  # Melee range with slight tolerance
+			return 1.5 # Melee range with slight tolerance
 		_:
 			return 0.0
 
@@ -358,7 +577,7 @@ func _calculate_ranged_damage(attacker: Character, defender: Character, roll: in
 	var base_damage: int = weapon.get_damage()
 	var armor_reduction: int = defender.get_armor()
 	
-	return max(1, base_damage - armor_reduction)  # Minimum 1 damage
+	return max(1, base_damage - armor_reduction) # Minimum 1 damage
 
 ## Calculates melee damage
 ## Returns: Final damage value
@@ -367,7 +586,7 @@ func _calculate_melee_damage(attacker: Character, defender: Character, roll: int
 	var base_damage: int = weapon.get_damage() if weapon else attacker.get_base_melee_damage()
 	var armor_reduction: int = defender.get_armor()
 	
-	return max(1, base_damage - armor_reduction)  # Minimum 1 damage
+	return max(1, base_damage - armor_reduction) # Minimum 1 damage
 
 ## Applies damage to a target and checks for status effects
 func _apply_damage(target: Character, damage: int) -> void:
@@ -404,10 +623,10 @@ func _calculate_hit_chance(attacker: Character, target: Character, weapon_data: 
 	
 	# Apply range modifiers
 	var distance := _get_distance_to_target(attacker, target)
-	var max_range: float = weapon_data.get("max_range", 24.0)  # Default max range of 24 units
+	var max_range: float = weapon_data.get("max_range", 24.0) # Default max range of 24 units
 	final_chance += _calculate_range_penalty(distance, max_range)
 	
-	return clamp(final_chance, 5, 95)  # Always at least 5% chance to hit, max 95%
+	return clamp(final_chance, 5, 95) # Always at least 5% chance to hit, max 95%
 
 func add_combat_modifier(character: Character, modifier: int) -> void:
 	if not character:
@@ -429,4 +648,3 @@ func remove_combat_modifier(character: Character, modifier: int) -> void:
 
 func get_active_modifiers(character: Character) -> Array:
 	return _combat_modifiers.get(character, [])
-	

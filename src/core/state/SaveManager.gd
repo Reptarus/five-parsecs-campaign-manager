@@ -1,3 +1,4 @@
+class_name SaveManager
 extends Node
 
 signal save_completed(success: bool, message: String)
@@ -126,4 +127,4 @@ func get_save_info(slot: int) -> Dictionary:
         "version": save_data.get("save_version", "unknown"),
         "date": save_data.get("save_date", "unknown"),
         "game_version": save_data.get("game_version", "unknown")
-    } 
+    }

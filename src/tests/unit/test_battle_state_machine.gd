@@ -1,4 +1,5 @@
-extends GutTest
+class_name TestBattleStateMachine
+extends "res://addons/gut/test.gd"
 
 const GameEnums = preload("res://src/core/systems/GlobalEnums.gd")
 const BattleStateMachine = preload("res://src/core/battle/state/BattleStateMachine.gd")
@@ -48,7 +49,7 @@ func test_battle_end():
 		func(): signal_emitted = true
 	)
 	
-	battle_state_machine.end_battle()
+	battle_state_machine.end_battle(GameEnums.VictoryConditionType.STANDARD)
 	assert_false(battle_state_machine.is_battle_active,
 		"Battle should not be active after ending")
 	assert_true(signal_emitted,
@@ -125,10 +126,10 @@ func test_state_persistence():
 	assert_not_null(save_data,
 		"Battle state should be saved successfully")
 	
-	battle_state_machine.end_battle()
+	battle_state_machine.end_battle(GameEnums.VictoryConditionType.STANDARD)
 	battle_state_machine.load_state(save_data)
 	
 	assert_true(battle_state_machine.is_battle_active,
 		"Battle should be active after loading state")
 	assert_has(battle_state_machine.active_combatants, test_character,
-		"Combatants should be restored after loading state") 
+		"Combatants should be restored after loading state")

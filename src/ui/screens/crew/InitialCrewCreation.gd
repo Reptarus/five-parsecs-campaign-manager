@@ -44,10 +44,11 @@ func _on_character_selected(character: Dictionary) -> void:
     
     _validate_crew()
 
-func _validate_crew() -> void:
+func _validate_crew() -> bool:
     var valid = not crew_data.name.strip_edges().is_empty() and crew_data.characters.size() == crew_data.size
     create_button.disabled = not valid
+    return valid
 
 func _on_create_pressed() -> void:
     if _validate_crew():
-        crew_created.emit(crew_data) 
+        crew_created.emit(crew_data)
