@@ -3,8 +3,8 @@ extends Node
 
 const GameEnums := preload("res://src/core/systems/GlobalEnums.gd")
 const Character := preload("res://src/core/character/Base/Character.gd")
-const TerrainTypes := preload("res://src/core/battle/TerrainTypes.gd")
-const TerrainRules := preload("res://src/core/battle/TerrainRules.gd")
+const TerrainTypes := preload("res://src/core/terrain/TerrainTypes.gd")
+const TerrainRules := preload("res://src/core/terrain/TerrainRules.gd")
 
 # Signals
 signal terrain_updated(position: Vector2i, new_type: TerrainTypes.Type)

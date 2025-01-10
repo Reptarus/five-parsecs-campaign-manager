@@ -110,8 +110,8 @@ func test_mission_setup() -> void:
 	assert_not_null(mission, "Mission should be created")
 	assert_eq(mission.mission_type, GlobalEnums.MissionType.TUTORIAL,
 		"Mission should be tutorial type")
-	assert_eq(mission.difficulty, GlobalEnums.DifficultyMode.NORMAL,
-		"Mission should be normal difficulty")
+	assert_eq(mission.difficulty, GlobalEnums.DifficultyLevel.NORMAL,
+		"Tutorial mission should have normal difficulty")
 	
 	var objectives = mission.objectives
 	assert_eq(objectives.size(), 1, "Quick start should have one objective")

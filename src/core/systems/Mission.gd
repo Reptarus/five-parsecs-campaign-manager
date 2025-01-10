@@ -7,7 +7,7 @@ const GameEnums := preload("res://src/core/systems/GlobalEnums.gd")
 # Core Mission Properties
 @export var mission_name: String = ""
 @export var mission_type: GameEnums.MissionType = GameEnums.MissionType.GREEN_ZONE
-@export var difficulty: GameEnums.DifficultyMode = GameEnums.DifficultyMode.NORMAL
+@export var difficulty: GameEnums.DifficultyLevel = GameEnums.DifficultyLevel.NORMAL
 @export var location: String = ""
 @export var deployment_type: GameEnums.DeploymentType = GameEnums.DeploymentType.STANDARD
 @export var objectives: Array[Dictionary] = []
@@ -30,9 +30,9 @@ var turn_started: int = -1
 var turn_completed: int = -1
 
 # Optional Properties
-var patron_id: String = ""  # Reference to patron by ID instead of direct reference
+var patron_id: String = "" # Reference to patron by ID instead of direct reference
 var story_id: String = ""
-var special_rules: Array[String] = []  # Array of rule IDs or descriptions
+var special_rules: Array[String] = [] # Array of rule IDs or descriptions
 
 func _init() -> void:
     reset_mission()
@@ -176,7 +176,7 @@ static func deserialize(data: Dictionary) -> Mission:
     # Core properties
     mission.mission_name = data.get("name", "")
     mission.mission_type = data.get("type", GameEnums.MissionType.GREEN_ZONE)
-    mission.difficulty = data.get("difficulty", GameEnums.DifficultyMode.NORMAL)
+    mission.difficulty = data.get("difficulty", GameEnums.DifficultyLevel.NORMAL)
     mission.location = data.get("location", "")
     mission.deployment_type = data.get("deployment_type", GameEnums.DeploymentType.STANDARD)
     mission.objectives = data.get("objectives", [])
@@ -197,4 +197,4 @@ static func deserialize(data: Dictionary) -> Mission:
     mission.story_id = data.get("story_id", "")
     mission.special_rules = data.get("special_rules", [])
     
-    return mission 
+    return mission

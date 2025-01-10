@@ -1,20 +1,12 @@
 class_name BattleEventTypes
 extends Resource
 
-# Core Rules event categories
-enum EventCategory {
-    COMBAT,
-    ENVIRONMENT,
-    MORALE,
-    TACTICAL,
-    EQUIPMENT,
-    SPECIAL
-}
+const GameEnums = preload("res://src/core/systems/GlobalEnums.gd")
 
 # Event definitions with their effects and requirements
 const BATTLE_EVENTS = {
     "CRITICAL_HIT": {
-        "category": EventCategory.COMBAT,
+        "category": GameEnums.EventCategory.COMBAT,
         "probability": 0.15,
         "effect": {
             "type": "damage_multiplier",
@@ -23,7 +15,7 @@ const BATTLE_EVENTS = {
         "requirements": ["attack_roll >= 6"]
     },
     "WEAPON_JAM": {
-        "category": EventCategory.EQUIPMENT,
+        "category": GameEnums.EventCategory.EQUIPMENT,
         "probability": 0.1,
         "effect": {
             "type": "disable_weapon",
@@ -32,7 +24,7 @@ const BATTLE_EVENTS = {
         "requirements": ["has_ranged_weapon", "attack_roll <= 1"]
     },
     "TAKE_COVER": {
-        "category": EventCategory.TACTICAL,
+        "category": GameEnums.EventCategory.TACTICAL,
         "probability": 0.2,
         "effect": {
             "type": "defense_bonus",
@@ -77,4 +69,4 @@ static func _compare_value(value: float, operator: String, target: float) -> boo
         ">": return value > target
         "<": return value < target
         "==": return value == target
-        _: return false 
+        _: return false

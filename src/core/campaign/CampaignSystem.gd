@@ -13,10 +13,11 @@ signal phase_completed(phase: GameEnums.CampaignPhase)
 signal resources_updated
 signal battle_ready
 signal battle_completed
+signal difficulty_changed(new_difficulty: GameEnums.DifficultyLevel)
 
 var game_state: FiveParsecsGameState
 var current_phase: GameEnums.CampaignPhase = GameEnums.CampaignPhase.NONE
-var difficulty_mode: GameEnums.DifficultyMode = GameEnums.DifficultyMode.NORMAL
+var difficulty_level: GameEnums.DifficultyLevel = GameEnums.DifficultyLevel.NORMAL
 var tutorial_active: bool = false
 var tutorial_type: String = ""
 var is_first_battle: bool = true
@@ -26,7 +27,7 @@ func _init(_game_state: FiveParsecsGameState) -> void:
 
 func start_campaign(config: Dictionary = {}) -> void:
 	# Initialize campaign with provided configuration
-	difficulty_mode = config.get("difficulty", GameEnums.DifficultyMode.NORMAL)
+	difficulty_level = config.get("difficulty", GameEnums.DifficultyLevel.NORMAL)
 	current_phase = GameEnums.CampaignPhase.SETUP
 	is_first_battle = true
 	
@@ -36,8 +37,8 @@ func start_campaign(config: Dictionary = {}) -> void:
 	campaign_started.emit()
 
 func _apply_campaign_config(config: Dictionary) -> void:
-	game_state.difficulty_mode = config.get("difficulty", GameEnums.DifficultyMode.NORMAL)
-	game_state.campaign_victory_condition = config.get("victory_condition", GameEnums.VictoryConditionType.STANDARD)
+	game_state.difficulty_level = config.get("difficulty", GameEnums.DifficultyLevel.NORMAL)
+	game_state.campaign_victory_condition = config.get("victory_condition", GameEnums.CampaignVictoryType.STANDARD)
 	game_state.use_story_track = config.get("use_story_track", true)
 	game_state.enable_permadeath = config.get("enable_permadeath", true)
 	game_state.credits = config.get("starting_credits", 1000)
@@ -68,7 +69,7 @@ func _process_setup_phase() -> void:
 	# Initialize campaign resources and state
 	if not game_state.is_initialized:
 		game_state.initialize_campaign({
-			"difficulty": difficulty_mode,
+			"difficulty": difficulty_level,
 			"enable_permadeath": game_state.enable_permadeath,
 			"use_story_track": game_state.use_story_track
 		})
@@ -235,21 +236,24 @@ func check_victory_conditions() -> void:
 	# Check if any victory conditions have been met
 	pass
 
-func set_difficulty(new_difficulty: GameEnums.DifficultyMode) -> void:
-	difficulty_mode = new_difficulty
-	game_state.difficulty_mode = new_difficulty
+func set_difficulty(new_difficulty: GameEnums.DifficultyLevel) -> void:
+	if difficulty_level != new_difficulty:
+		difficulty_level = new_difficulty
+		if game_state:
+			game_state.difficulty_level = new_difficulty
+		difficulty_changed.emit(new_difficulty)
 
 func serialize() -> Dictionary:
 	return {
 		"current_phase": current_phase,
-		"difficulty_mode": difficulty_mode,
+		"difficulty_level": difficulty_level,
 		"tutorial_active": tutorial_active,
 		"tutorial_type": tutorial_type
 	}
 
 func deserialize(data: Dictionary) -> void:
 	current_phase = data.get("current_phase", GameEnums.CampaignPhase.NONE)
-	difficulty_mode = data.get("difficulty_mode", GameEnums.DifficultyMode.NORMAL)
+	difficulty_level = data.get("difficulty_level", GameEnums.DifficultyLevel.NORMAL)
 	tutorial_active = data.get("tutorial_active", false)
 	tutorial_type = data.get("tutorial_type", "")
 

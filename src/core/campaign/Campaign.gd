@@ -1,14 +1,14 @@
 extends Resource
 class_name Campaign
 
-const GlobalEnums = preload("res://src/core/systems/GlobalEnums.gd")
+const GameEnums = preload("res://src/core/systems/GlobalEnums.gd")
 const Character = preload("res://src/core/character/Base/Character.gd")
 
 signal campaign_started(campaign_data: Dictionary)
 signal campaign_ended(result: Dictionary)
-signal phase_changed(new_phase: GlobalEnums.CampaignPhase)
-signal resource_changed(resource_type: GlobalEnums.ResourceType, amount: int)
-signal world_event_triggered(event_type: GlobalEnums.GlobalEvent)
+signal phase_changed(new_phase: GameEnums.CampaignPhase)
+signal resource_changed(resource_type: GameEnums.ResourceType, amount: int)
+signal world_event_triggered(event_type: GameEnums.GlobalEvent)
 signal location_changed(new_location: String)
 signal event_occurred(event_data: Dictionary)
 
@@ -19,11 +19,11 @@ signal event_occurred(event_data: Dictionary)
 @export var last_saved: String = ""
 
 # Campaign state
-@export var current_phase: GlobalEnums.CampaignPhase = GlobalEnums.CampaignPhase.SETUP
+@export var current_phase: GameEnums.CampaignPhase = GameEnums.CampaignPhase.SETUP
 @export var current_turn: int = 1
 @export var current_location: String = ""
 @export var is_active: bool = true
-@export var difficulty_mode: GlobalEnums.DifficultyMode = GlobalEnums.DifficultyMode.NORMAL
+@export var difficulty_level: GameEnums.DifficultyLevel = GameEnums.DifficultyLevel.NORMAL
 
 # Resources and progress tracking
 var resources: Dictionary = {}
@@ -38,10 +38,10 @@ func _init() -> void:
 
 func _initialize_resources() -> void:
 	resources = {
-		GlobalEnums.ResourceType.CREDITS: 0,
-		GlobalEnums.ResourceType.SUPPLIES: 0,
-		GlobalEnums.ResourceType.REPUTATION: 0,
-		GlobalEnums.ResourceType.STORY_POINTS: 0
+		GameEnums.ResourceType.CREDITS: 0,
+		GameEnums.ResourceType.SUPPLIES: 0,
+		GameEnums.ResourceType.REPUTATION: 0,
+		GameEnums.ResourceType.STORY_POINT: 0
 	}
 
 func _initialize_story_progress() -> void:
@@ -54,18 +54,18 @@ func _initialize_story_progress() -> void:
 
 func start_campaign(config: Dictionary = {}) -> void:
 	campaign_name = config.get("name", "New Campaign")
-	difficulty_mode = config.get("difficulty", GlobalEnums.DifficultyMode.NORMAL)
+	difficulty_level = config.get("difficulty", GameEnums.DifficultyLevel.NORMAL)
 	creation_date = Time.get_datetime_string_from_system()
 	is_active = true
-	current_phase = GlobalEnums.CampaignPhase.SETUP
+	current_phase = GameEnums.CampaignPhase.SETUP
 	
 	# Initialize starting resources
-	resources[GlobalEnums.ResourceType.CREDITS] = config.get("starting_credits", 1000)
-	resources[GlobalEnums.ResourceType.SUPPLIES] = config.get("starting_supplies", 5)
+	resources[GameEnums.ResourceType.CREDITS] = config.get("starting_credits", 1000)
+	resources[GameEnums.ResourceType.SUPPLIES] = config.get("starting_supplies", 5)
 	
 	campaign_started.emit({
 		"name": campaign_name,
-		"difficulty": difficulty_mode,
+		"difficulty": difficulty_level,
 		"start_date": creation_date
 	})
 
@@ -85,32 +85,32 @@ func advance_phase() -> void:
 	current_phase = next_phase
 	phase_changed.emit(next_phase)
 
-func modify_resource(resource_type: GlobalEnums.ResourceType, amount: int) -> void:
+func modify_resource(resource_type: GameEnums.ResourceType, amount: int) -> void:
 	if resource_type in resources:
 		resources[resource_type] += amount
 		resource_changed.emit(resource_type, amount)
 
-func trigger_world_event(event_type: GlobalEnums.GlobalEvent) -> void:
+func trigger_world_event(event_type: GameEnums.GlobalEvent) -> void:
 	world_event_triggered.emit(event_type)
 
-func _get_next_phase() -> GlobalEnums.CampaignPhase:
+func _get_next_phase() -> GameEnums.CampaignPhase:
 	match current_phase:
-		GlobalEnums.CampaignPhase.SETUP:
-			return GlobalEnums.CampaignPhase.UPKEEP
-		GlobalEnums.CampaignPhase.UPKEEP:
-			return GlobalEnums.CampaignPhase.STORY
-		GlobalEnums.CampaignPhase.STORY:
-			return GlobalEnums.CampaignPhase.CAMPAIGN
-		GlobalEnums.CampaignPhase.CAMPAIGN:
-			return GlobalEnums.CampaignPhase.BATTLE_SETUP
-		GlobalEnums.CampaignPhase.BATTLE_SETUP:
-			return GlobalEnums.CampaignPhase.BATTLE_RESOLUTION
-		GlobalEnums.CampaignPhase.BATTLE_RESOLUTION:
-			return GlobalEnums.CampaignPhase.ADVANCEMENT
-		GlobalEnums.CampaignPhase.ADVANCEMENT:
-			return GlobalEnums.CampaignPhase.UPKEEP
+		GameEnums.CampaignPhase.SETUP:
+			return GameEnums.CampaignPhase.UPKEEP
+		GameEnums.CampaignPhase.UPKEEP:
+			return GameEnums.CampaignPhase.STORY
+		GameEnums.CampaignPhase.STORY:
+			return GameEnums.CampaignPhase.CAMPAIGN
+		GameEnums.CampaignPhase.CAMPAIGN:
+			return GameEnums.CampaignPhase.BATTLE_SETUP
+		GameEnums.CampaignPhase.BATTLE_SETUP:
+			return GameEnums.CampaignPhase.BATTLE_RESOLUTION
+		GameEnums.CampaignPhase.BATTLE_RESOLUTION:
+			return GameEnums.CampaignPhase.ADVANCEMENT
+		GameEnums.CampaignPhase.ADVANCEMENT:
+			return GameEnums.CampaignPhase.UPKEEP
 		_:
-			return GlobalEnums.CampaignPhase.SETUP
+			return GameEnums.CampaignPhase.SETUP
 
 func get_resources() -> Dictionary:
 	return resources.duplicate()
@@ -136,7 +136,7 @@ func serialize() -> Dictionary:
 		"current_turn": current_turn,
 		"current_location": current_location,
 		"is_active": is_active,
-		"difficulty_mode": difficulty_mode,
+		"difficulty_level": difficulty_level,
 		"resources": resources.duplicate(),
 		"story_progress": story_progress.duplicate(),
 		"active_missions": active_missions.duplicate(),
@@ -149,11 +149,11 @@ func deserialize(data: Dictionary) -> void:
 	campaign_id = data.get("campaign_id", "")
 	creation_date = data.get("creation_date", "")
 	last_saved = data.get("last_saved", "")
-	current_phase = data.get("current_phase", GlobalEnums.CampaignPhase.SETUP)
+	current_phase = data.get("current_phase", GameEnums.CampaignPhase.SETUP)
 	current_turn = data.get("current_turn", 1)
 	current_location = data.get("current_location", "")
 	is_active = data.get("is_active", true)
-	difficulty_mode = data.get("difficulty_mode", GlobalEnums.DifficultyMode.NORMAL)
+	difficulty_level = data.get("difficulty_level", GameEnums.DifficultyLevel.NORMAL)
 	resources = data.get("resources", {}).duplicate()
 	story_progress = data.get("story_progress", {}).duplicate()
 	active_missions = data.get("active_missions", []).duplicate()

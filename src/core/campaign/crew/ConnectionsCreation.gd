@@ -1,7 +1,10 @@
-extends CampaignResponsiveLayout
+extends Control
 
 signal connections_completed(connections: Array)
 signal connections_cancelled
+
+const TOUCH_BUTTON_HEIGHT = 64
+const PORTRAIT_LIST_HEIGHT_RATIO = 0.5 # List takes 50% in portrait mode
 
 @onready var name_input := $VBoxContainer/HBoxContainer/NameInput
 @onready var relationship_dropdown := $VBoxContainer/HBoxContainer/RelationshipDropdown
@@ -9,12 +12,9 @@ signal connections_cancelled
 @onready var extended_toggle := $VBoxContainer/ExtendedConnectionsToggle
 @onready var tutorial_label := $TutorialLabel
 
-const PORTRAIT_LIST_HEIGHT_RATIO := 0.5 # List takes 50% in portrait mode
-
 var current_connections := []
 
 func _ready() -> void:
-	super._ready()
 	_setup_connections_ui()
 	_connect_signals()
 
@@ -24,8 +24,6 @@ func _setup_connections_ui() -> void:
 	_populate_relationship_types()
 
 func _apply_portrait_layout() -> void:
-	super._apply_portrait_layout()
-	
 	# Stack elements vertically
 	$VBoxContainer.set("vertical", true)
 	
@@ -41,8 +39,6 @@ func _apply_portrait_layout() -> void:
 	$VBoxContainer.add_theme_constant_override("margin_right", 10)
 
 func _apply_landscape_layout() -> void:
-	super._apply_landscape_layout()
-	
 	# Reset to default layout
 	$VBoxContainer.set("vertical", false)
 	

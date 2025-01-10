@@ -19,11 +19,11 @@ var credits: int = 1000
 var resources: Dictionary = {}
 
 # Crew Management
-var current_crew = null  # Will be set by CharacterManager
+var current_crew = null # Will be set by CharacterManager
 var faction_standings: Dictionary = {}
 
 # Campaign Settings
-var difficulty_mode: GameEnums.DifficultyMode = GameEnums.DifficultyMode.NORMAL
+var difficulty_level: GameEnums.DifficultyLevel = GameEnums.DifficultyLevel.NORMAL
 var has_red_zone_license: bool = false
 
 func _init() -> void:
@@ -49,7 +49,7 @@ func serialize() -> Dictionary:
         "credits": credits,
         "resources": resources,
         "faction_standings": faction_standings,
-        "difficulty_mode": difficulty_mode,
+        "difficulty_level": difficulty_level,
         "has_red_zone_license": has_red_zone_license
     }
 
@@ -66,7 +66,7 @@ func deserialize(data: Dictionary) -> void:
     credits = data.get("credits", 1000)
     resources = data.get("resources", {})
     faction_standings = data.get("faction_standings", {})
-    difficulty_mode = data.get("difficulty_mode", GameEnums.DifficultyMode.NORMAL)
+    difficulty_level = data.get("difficulty_level", GameEnums.DifficultyLevel.NORMAL)
     has_red_zone_license = data.get("has_red_zone_license", false)
 
 func get_resource(type: GameEnums.ResourceType) -> int:
@@ -86,4 +86,4 @@ func remove_resource(type: GameEnums.ResourceType, amount: int) -> bool:
     return false
 
 func has_enough_resource(type: GameEnums.ResourceType, amount: int) -> bool:
-    return get_resource(type) >= amount 
+    return get_resource(type) >= amount

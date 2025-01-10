@@ -1,7 +1,8 @@
+# Content from src/core/battle/PathFinder.gd
 class_name PathFinder
 extends Node
 
-const TerrainTypes = preload("res://src/core/battle/TerrainTypes.gd")
+const TerrainTypes = preload("res://src/core/terrain/TerrainTypes.gd")
 const BattlefieldManager = preload("res://src/core/battle/BattlefieldManager.gd")
 
 signal path_found(path: Array[Vector2])
@@ -9,8 +10,8 @@ signal path_not_found
 
 class PathNode:
 	var position: Vector2i
-	var g_cost: float = 0.0  # Cost from start to this node
-	var h_cost: float = 0.0  # Estimated cost from this node to end
+	var g_cost: float = 0.0 # Cost from start to this node
+	var h_cost: float = 0.0 # Estimated cost from this node to end
 	var parent: PathNode = null
 	
 	func _init(pos: Vector2i) -> void:
@@ -22,21 +23,21 @@ class PathNode:
 	func equals(other: PathNode) -> bool:
 		return position == other.position
 
-var battlefield_manager: Node  # Will be cast to BattlefieldManager
+var battlefield_manager: Node # Will be cast to BattlefieldManager
 var _open_set: Array[PathNode] = []
 var _closed_set: Array[PathNode] = []
 var _movement_directions := [
-	Vector2i(1, 0),   # Right
-	Vector2i(-1, 0),  # Left
-	Vector2i(0, 1),   # Down
-	Vector2i(0, -1),  # Up
-	Vector2i(1, 1),   # Down-Right
-	Vector2i(-1, 1),  # Down-Left
-	Vector2i(1, -1),  # Up-Right
-	Vector2i(-1, -1)  # Up-Left
+	Vector2i(1, 0), # Right
+	Vector2i(-1, 0), # Left
+	Vector2i(0, 1), # Down
+	Vector2i(0, -1), # Up
+	Vector2i(1, 1), # Down-Right
+	Vector2i(-1, 1), # Down-Left
+	Vector2i(1, -1), # Up-Right
+	Vector2i(-1, -1) # Up-Left
 ]
 
-func _init(battlefield: Node) -> void:  # Accept Node, will be BattlefieldManager
+func _init(battlefield: Node) -> void: # Accept Node, will be BattlefieldManager
 	battlefield_manager = battlefield
 
 func find_path(start_pos: Vector2, end_pos: Vector2, max_movement: float) -> Array[Vector2]:
@@ -137,7 +138,7 @@ func _calculate_path_cost(path: Array[Vector2]) -> float:
 	var total_cost := 0.0
 	
 	for i in range(1, path.size()):
-		var from_grid = battlefield_manager._world_to_grid(path[i-1])
+		var from_grid = battlefield_manager._world_to_grid(path[i - 1])
 		var to_grid = battlefield_manager._world_to_grid(path[i])
 		var terrain_type = battlefield_manager.terrain_map[to_grid.x][to_grid.y]
 		total_cost += _calculate_movement_cost(from_grid, to_grid, terrain_type)
@@ -154,4 +155,4 @@ func _is_in_closed_set(node: PathNode) -> bool:
 	for closed_node in _closed_set:
 		if closed_node.equals(node):
 			return true
-	return false 
+	return false

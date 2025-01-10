@@ -3,177 +3,190 @@
 class_name UnifiedTerrainSystem
 extends Node2D
 
-# Constants for terrain types
-const TERRAIN_TYPES = {
-	"OPEN": 0,
-	"COVER": 1,
-	"DIFFICULT": 2,
-	"IMPASSABLE": 3,
-	"HIGH_GROUND": 4,
-	"LINEAR": 5,
-	"INDIVIDUAL": 6,
-	"AREA": 7,
-	"FIELD": 8,
-	"BLOCK": 9,
-	"INTERIOR": 10
-}
+const TerrainTypes = preload("res://src/core/battle/TerrainTypes.gd")
+const GlobalEnums = preload("res://src/core/systems/GlobalEnums.gd")
+
+# Signals
+signal terrain_updated(position: Vector2i, terrain_type: int)
+signal terrain_effect_applied(target: Node, effect: String)
+signal terrain_state_changed(position: Vector2i, state: Dictionary)
+
+# Core components
+@onready var terrain_factory: TerrainFactory = $TerrainFactory
+@onready var terrain_effect_system: TerrainEffectSystem = $TerrainEffectSystem
+@onready var terrain_container: Node3D = $TerrainContainer
 
 # Terrain generation parameters
-var grid_size: Vector2i = Vector2i(24, 24)  # Standard battlefield size in grid squares
-var cell_size: Vector2i = Vector2i(32, 32)  # Size of each grid cell in pixels
+var grid_size: Vector2i = Vector2i(24, 24) # Standard battlefield size in grid squares
+var cell_size: Vector2i = Vector2i(32, 32) # Size of each grid cell in pixels
 
-# Reference to terrain pieces and map
-var terrain_map: Array = []
-var terrain_pieces: Array = []
+# Terrain state tracking
+var terrain_map: Array[Array] = []
+var terrain_pieces: Dictionary = {} # Grid position to TerrainPiece mapping
 var initialized: bool = false
 
 func _ready() -> void:
+	add_to_group("terrain_system")
+	_initialize_components()
 	initialize_terrain_system()
+
+func _initialize_components() -> void:
+	if not terrain_factory:
+		terrain_factory = TerrainFactory.new()
+		add_child(terrain_factory)
+	
+	if not terrain_effect_system:
+		terrain_effect_system = TerrainEffectSystem.new()
+		add_child(terrain_effect_system)
+	
+	if not terrain_container:
+		terrain_container = Node3D.new()
+		terrain_container.name = "TerrainContainer"
+		add_child(terrain_container)
+	
+	# Connect signals
+	terrain_factory.terrain_created.connect(_on_terrain_created)
+	terrain_factory.terrain_modified.connect(_on_terrain_modified)
+	terrain_factory.terrain_removed.connect(_on_terrain_removed)
+	
+	terrain_effect_system.effect_applied.connect(_on_effect_applied)
+	terrain_effect_system.terrain_state_changed.connect(_on_terrain_state_changed)
 
 func initialize_terrain_system() -> void:
 	if initialized:
 		return
-		
+	
 	# Initialize the terrain map
 	terrain_map.clear()
 	for x in range(grid_size.x):
-		var row = []
+		terrain_map.append([])
+		terrain_map[x].resize(grid_size.y)
 		for y in range(grid_size.y):
-			row.append(TERRAIN_TYPES.OPEN)
-		terrain_map.append(row)
+			terrain_map[x][y] = TerrainTypes.Type.EMPTY
 	
 	initialized = true
 
-func get_terrain_at_position(pos: Vector2i) -> int:
-	if not initialized:
-		push_error("Terrain system not initialized")
-		return TERRAIN_TYPES.OPEN
-		
-	if not is_position_valid(pos):
-		return TERRAIN_TYPES.IMPASSABLE
-		
-	return terrain_map[pos.x][pos.y]
+func place_terrain(position: Vector2i, terrain_type: int, feature_type: GlobalEnums.TerrainFeatureType = GlobalEnums.TerrainFeatureType.NONE) -> bool:
+	if not initialized or not is_position_valid(position):
+		return false
+	
+	var world_position = grid_to_world(position)
+	var terrain_piece = terrain_factory.create_terrain_piece(
+		terrain_type,
+		Vector3(world_position.x, 0, world_position.y)
+	)
+	
+	if not terrain_piece:
+		return false
+	
+	# Update terrain state
+	terrain_map[position.x][position.y] = terrain_type
+	terrain_pieces[position] = terrain_piece
+	terrain_container.add_child(terrain_piece)
+	
+	# Update terrain effects
+	terrain_effect_system.update_terrain_state(position, terrain_type, feature_type)
+	
+	terrain_updated.emit(position, terrain_type)
+	return true
 
-func is_position_valid(pos: Vector2i) -> bool:
-	return pos.x >= 0 and pos.x < grid_size.x and pos.y >= 0 and pos.y < grid_size.y
+func modify_terrain(position: Vector2i, new_type: int, feature_type: GlobalEnums.TerrainFeatureType = GlobalEnums.TerrainFeatureType.NONE) -> bool:
+	if not initialized or not is_position_valid(position):
+		return false
+	
+	var terrain_piece = terrain_pieces.get(position)
+	if not terrain_piece:
+		return false
+	
+	if terrain_factory.modify_terrain_piece(terrain_piece, new_type):
+		terrain_map[position.x][position.y] = new_type
+		terrain_effect_system.update_terrain_state(position, new_type, feature_type)
+		terrain_updated.emit(position, new_type)
+		return true
+	
+	return false
 
-func set_terrain_at_position(pos: Vector2i, terrain_type: int) -> void:
-	if not initialized:
-		push_error("Terrain system not initialized")
+func remove_terrain(position: Vector2i) -> void:
+	if not initialized or not is_position_valid(position):
 		return
-		
-	if not is_position_valid(pos):
+	
+	var terrain_piece = terrain_pieces.get(position)
+	if terrain_piece:
+		terrain_factory.remove_terrain_piece(terrain_piece)
+		terrain_pieces.erase(position)
+		terrain_map[position.x][position.y] = TerrainTypes.Type.EMPTY
+		terrain_effect_system.update_terrain_state(position, TerrainTypes.Type.EMPTY, GlobalEnums.TerrainFeatureType.NONE)
+		terrain_updated.emit(position, TerrainTypes.Type.EMPTY)
+
+func get_terrain_at_position(position: Vector2i) -> int:
+	if not initialized or not is_position_valid(position):
+		return TerrainTypes.Type.INVALID
+	return terrain_map[position.x][position.y]
+
+func get_terrain_state(position: Vector2i) -> Dictionary:
+	return terrain_effect_system.get_terrain_state(position)
+
+func apply_terrain_effects(target: Node, position: Vector2i) -> void:
+	if not initialized or not is_position_valid(position):
 		return
-		
-	terrain_map[pos.x][pos.y] = terrain_type
+	
+	var terrain_type = get_terrain_at_position(position)
+	var state = get_terrain_state(position)
+	terrain_effect_system.apply_terrain_effect(target, terrain_type, state.get("feature_type", GlobalEnums.TerrainFeatureType.NONE))
+
+func remove_terrain_effects(target: Node) -> void:
+	terrain_effect_system.remove_terrain_effects(target)
+
+func get_movement_cost(from: Vector2i, to: Vector2i) -> float:
+	return terrain_effect_system.calculate_movement_cost(from, to)
+
+func get_cover_value(position: Vector2i, target_position: Vector2i) -> float:
+	return terrain_effect_system.calculate_cover_value(position, target_position)
+
+func has_line_of_sight(from: Vector2i, to: Vector2i) -> bool:
+	return terrain_effect_system.has_line_of_sight(from, to)
 
 func clear_terrain() -> void:
 	if not initialized:
-		push_error("Terrain system not initialized")
 		return
-		
-	for x in range(grid_size.x):
-		for y in range(grid_size.y):
-			terrain_map[x][y] = TERRAIN_TYPES.OPEN
 	
-	# Clear terrain pieces
-	for piece in terrain_pieces:
-		if is_instance_valid(piece):
-			piece.queue_free()
+	for piece in terrain_pieces.values():
+		terrain_factory.remove_terrain_piece(piece)
+	
 	terrain_pieces.clear()
+	initialize_terrain_system()
+	terrain_effect_system.clear_states()
 
-func get_grid_position(world_position: Vector2) -> Vector2i:
-	return Vector2i(
-		int(world_position.x / cell_size.x),
-		int(world_position.y / cell_size.y)
-	)
+func is_position_valid(position: Vector2i) -> bool:
+	return position.x >= 0 and position.x < grid_size.x and position.y >= 0 and position.y < grid_size.y
 
-func get_world_position(grid_position: Vector2i) -> Vector2:
+func grid_to_world(grid_position: Vector2i) -> Vector2:
 	return Vector2(
 		grid_position.x * cell_size.x + cell_size.x / 2,
 		grid_position.y * cell_size.y + cell_size.y / 2
 	)
 
-func blocks_movement(pos: Vector2i) -> bool:
-	var terrain_type = get_terrain_at_position(pos)
-	return terrain_type == TERRAIN_TYPES.IMPASSABLE or terrain_type == TERRAIN_TYPES.BLOCK
+func world_to_grid(world_position: Vector2) -> Vector2i:
+	return Vector2i(
+		int(world_position.x / cell_size.x),
+		int(world_position.y / cell_size.y)
+	)
 
-func provides_cover(pos: Vector2i) -> bool:
-	var terrain_type = get_terrain_at_position(pos)
-	return terrain_type == TERRAIN_TYPES.COVER or terrain_type == TERRAIN_TYPES.AREA or terrain_type == TERRAIN_TYPES.BLOCK
+# Signal handlers
+func _on_terrain_created(piece: Node3D, type: int) -> void:
+	# Additional setup if needed
+	pass
 
-func is_difficult_terrain(pos: Vector2i) -> bool:
-	var terrain_type = get_terrain_at_position(pos)
-	return terrain_type == TERRAIN_TYPES.DIFFICULT
+func _on_terrain_modified(piece: Node3D, old_type: int, new_type: int) -> void:
+	# Handle terrain modification effects
+	pass
 
-func get_combat_modifiers(pos: Vector2i) -> Dictionary:
-	var terrain_type = get_terrain_at_position(pos)
-	var modifiers = {
-		"cover_bonus": 0,
-		"movement_penalty": 0,
-		"height_advantage": 0
-	}
-	
-	if provides_cover(pos):
-		modifiers.cover_bonus = 1
-	
-	if is_difficult_terrain(pos):
-		modifiers.movement_penalty = 1
-	
-	if terrain_type == TERRAIN_TYPES.HIGH_GROUND:
-		modifiers.height_advantage = 1
-		
-	return modifiers
+func _on_terrain_removed(piece: Node3D) -> void:
+	# Cleanup if needed
+	pass
 
-func get_line_of_sight(from_pos: Vector2i, to_pos: Vector2i) -> bool:
-	if not is_position_valid(from_pos) or not is_position_valid(to_pos):
-		return false
-		
-	# Use Bresenham's line algorithm for line of sight
-	var x0 = from_pos.x
-	var y0 = from_pos.y
-	var x1 = to_pos.x
-	var y1 = to_pos.y
-	
-	var dx = abs(x1 - x0)
-	var dy = abs(y1 - y0)
-	var x = x0
-	var y = y0
-	var n = 1 + dx + dy
-	var x_inc = 1 if x1 > x0 else -1
-	var y_inc = 1 if y1 > y0 else -1
-	var error = dx - dy
-	dx *= 2
-	dy *= 2
-	
-	while n > 0:
-		if x != x0 or y != y0:  # Don't check starting position
-			var terrain_type = get_terrain_at_position(Vector2i(x, y))
-			if terrain_type == TERRAIN_TYPES.BLOCK or terrain_type == TERRAIN_TYPES.IMPASSABLE:
-				return false
-		
-		if error > 0:
-			x += x_inc
-			error -= dy
-		elif error < 0:
-			y += y_inc
-			error += dx
-		else:
-			# Check both adjacent cells for corner cases
-			x += x_inc
-			error -= dy
-			y += y_inc
-			error += dx
-			n -= 1
-		
-		n -= 1
-	
-	return true
+func _on_effect_applied(target: Node, effect_type: String, _value: float) -> void:
+	terrain_effect_applied.emit(target, effect_type)
 
-func _to_string() -> String:
-	var output = ""
-	for y in range(grid_size.y):
-		for x in range(grid_size.x):
-			output += str(terrain_map[x][y]) + " "
-		output += "\n"
-	return output
+func _on_terrain_state_changed(position: Vector2i, state: Dictionary) -> void:
+	terrain_state_changed.emit(position, state)

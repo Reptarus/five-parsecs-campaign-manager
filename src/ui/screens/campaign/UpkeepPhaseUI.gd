@@ -86,14 +86,16 @@ func _calculate_crew_upkeep() -> int:
             base_cost += 2 # Base upkeep per crew member
     
     # Apply difficulty modifiers
-    match game_state.difficulty_mode:
-        GameEnums.DifficultyMode.EASY:
+    match game_state.difficulty_level:
+        GameEnums.DifficultyLevel.EASY:
             base_cost = int(base_cost * 0.8)
-        GameEnums.DifficultyMode.CHALLENGING:
+        GameEnums.DifficultyLevel.NORMAL:
+            base_cost = int(base_cost * 1.0)
+        GameEnums.DifficultyLevel.HARD:
             base_cost = int(base_cost * 1.2)
-        GameEnums.DifficultyMode.HARDCORE:
+        GameEnums.DifficultyLevel.VETERAN:
             base_cost = int(base_cost * 1.5)
-        GameEnums.DifficultyMode.INSANITY:
+        GameEnums.DifficultyLevel.ELITE:
             base_cost = int(base_cost * 2.0)
     
     return base_cost

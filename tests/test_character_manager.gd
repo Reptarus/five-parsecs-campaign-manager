@@ -9,6 +9,7 @@ const CharacterManager := preload("res://src/core/character/Management/Character
 var character_manager: CharacterManager
 var test_character: Character
 var error_messages: Array[String] = []
+var _created_nodes: Array[Node] = []
 
 func before_each() -> void:
     super.before_each()
@@ -21,15 +22,29 @@ func before_each() -> void:
     test_character.origin = GameEnums.Origin.HUMAN
     test_character.character_class = GameEnums.CharacterClass.SOLDIER
     
+    _created_nodes.append(test_character)
+    _created_nodes.append(character_manager)
     add_child(character_manager)
     error_messages.clear()
 
 func after_each() -> void:
     super.after_each()
-    if is_instance_valid(character_manager):
-        character_manager.queue_free()
-    test_character = null
+    for node in _created_nodes:
+        if is_instance_valid(node):
+            if node.is_inside_tree():
+                node.get_parent().remove_child(node)
+            node.queue_free()
+    _created_nodes.clear()
     error_messages.clear()
+
+func _create_character(name: String, id: String) -> Character:
+    var char := Character.new()
+    char.character_name = name
+    char.character_id = id
+    char.origin = GameEnums.Origin.HUMAN
+    char.character_class = GameEnums.CharacterClass.SOLDIER
+    _created_nodes.append(char)
+    return char
 
 func _on_character_error(message: String) -> void:
     error_messages.append(message)
@@ -89,6 +104,7 @@ func test_character_equipment() -> void:
     # Test weapon equipping
     var weapon := GameWeapon.new()
     weapon.weapon_name = "Test Weapon"
+    _created_nodes.append(weapon)
     assert_true(character_manager.equip_item(test_character, weapon))
     assert_not_null(test_character.equipped_weapon)
     assert_eq(test_character.equipped_weapon.weapon_name, "Test Weapon")
@@ -115,9 +131,7 @@ func test_character_save_load() -> void:
 
 func test_max_characters() -> void:
     for i in range(character_manager.MAX_CHARACTERS + 1):
-        var char := Character.new()
-        char.character_name = "Test Character %d" % i
-        char.character_id = "test_char_%d" % i
+        var char := _create_character("Test Character %d" % i, "test_char_%d" % i)
         if i < character_manager.MAX_CHARACTERS:
             assert_true(character_manager.add_character(char))
         else:
@@ -125,4 +139,4 @@ func test_max_characters() -> void:
     
     assert_eq(character_manager.get_active_character_count(), character_manager.MAX_CHARACTERS)
     assert_eq(error_messages.size(), 1)
-    assert_string_contains(error_messages[0], "Maximum number of characters reached") 
+    assert_string_contains(error_messages[0], "Maximum number of characters reached")

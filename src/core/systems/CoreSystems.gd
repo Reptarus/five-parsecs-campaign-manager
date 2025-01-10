@@ -226,7 +226,7 @@ class WeaponTraitSystem:
         if combat_action.get("type") == "brawl":
             combat_action["brawl_bonus"] = combat_action.get("brawl_bonus", 0) + 2
 
-class TerrainSystem:
+class TerrainSubsystem:
     var terrain_types: Dictionary = {
         "open": {"movement_cost": 1},
         "difficult": {"movement_cost": 2},
@@ -263,7 +263,7 @@ class MovementSystem:
     const DIFFICULT_TERRAIN_MODIFIER: float = 0.5
     const RUNNING_BONUS: float = 2.0
     
-    var terrain_system: TerrainSystem
+    var terrain_system: TerrainSubsystem
     var parent_core_systems: CoreSystems # Renamed to avoid confusion
     
     func calculate_movement_cost(distance: float, terrain_type: String) -> float:
@@ -281,13 +281,13 @@ class MovementSystem:
 # Core system variables
 var tutorial_manager: TutorialManager
 var weapon_system: WeaponTraitSystem
-var terrain_system: TerrainSystem
+var terrain_system: TerrainSubsystem
 var movement_system: MovementSystem
 
 func _ready() -> void:
     tutorial_manager = TutorialManager.new()
     weapon_system = WeaponTraitSystem.new()
-    terrain_system = TerrainSystem.new()
+    terrain_system = TerrainSubsystem.new()
     movement_system = MovementSystem.new()
     movement_system.terrain_system = terrain_system
     movement_system.parent_core_systems = self

@@ -1,30 +1,31 @@
 extends Node
 
-const GutRunner = preload("res://addons/gut/gut_cmdln.gd")
+var gut = null
 
-func _init() -> void:
-	var gut = GutRunner.new()
+func _ready():
+	gut = load("res://addons/gut/gut.gd").new()
 	add_child(gut)
 	
-	gut.set_unit_test_name("test_game_state_manager.gd")
-	gut.set_unit_test_name("test_character_manager.gd")
-	gut.set_unit_test_name("test_resource_system.gd")
-	gut.set_unit_test_name("test_battle_state_machine.gd")
-	gut.set_unit_test_name("test_campaign_system.gd")
-	gut.set_unit_test_name("test_manual_override_panel.gd")
-	gut.set_unit_test_name("test_combat_log_panel.gd")
-	gut.set_unit_test_name("test_house_rules_panel.gd")
-	gut.set_unit_test_name("test_state_verification_panel.gd")
-	gut.set_unit_test_name("test_override_controller.gd")
-	gut.set_unit_test_name("test_combat_log_controller.gd")
-	
+	# Basic settings
 	gut.set_should_print_to_console(true)
-	gut.set_log_level(2)
+	gut.set_log_level(2) # Detailed logging
 	gut.set_yield_between_tests(true)
-	gut.set_include_subdirectories(true)
 	
+	# Appearance settings
+	gut.set_font("CourierPrime")
+	gut.set_font_size(16)
+	gut.set_opacity(100)
+	
+	# Directory settings
+	gut.add_directory("res://src/tests")
+	gut.set_include_subdirectories(true) # Include unit/ subdirectory
+	gut.set_prefix("test_") # Only run files starting with "test_"
+	gut.set_suffix(".gd") # Only run .gd files
+	
+	# Run the tests
 	gut.test_scripts()
 	
+	# Print test results
 	var results = gut.get_test_results()
 	print("\nTest Results:")
 	print("Total Tests: ", results.get_test_count())
@@ -34,4 +35,6 @@ func _init() -> void:
 	print("Pending: ", results.get_pending_count())
 	print("Elapsed Time: ", results.get_elapsed_time(), " seconds")
 	
-	get_tree().quit()
+	# Export results if there were failures
+	if results.get_fail_count() > 0 or results.get_error_count() > 0:
+		gut.export_if_tests_failed()

@@ -60,4 +60,4 @@ func _validate_project() -> Array[String]:
 func _run_tests() -> void:
     print("Running tests...")
     var test_runner = TEST_RUNNER.new()
-    add_child(test_runner) 
+    root.add_child(test_runner)

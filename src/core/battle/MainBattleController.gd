@@ -17,6 +17,7 @@ var deployment_type: GlobalEnums.DeploymentType
 @onready var battle_log = $BattleLayout/MainContent/SidePanel/VBoxContainer/BattleLog/VBoxContainer/LogContent
 @onready var preview_panel = $BattleLayout/MainContent/SidePanel/VBoxContainer/PreviewPanel
 @onready var regenerate_button = $BattleLayout/MainContent/SidePanel/VBoxContainer/PreviewPanel/RegenerateButton
+@onready var battle_info_label := $BattleInfo/Label
 
 var game_state: Node
 var event_manager: BattleEventManager
@@ -90,7 +91,7 @@ func _update_preview_info() -> void:
 	info_text += "Deployment: " + GlobalEnums.DeploymentType.keys()[deployment_type] + "\n"
 	info_text += "Terrain: " + current_mission.terrain_type + "\n"
 	info_text += "Enemy Count: " + str(current_mission.enemy_count) + "\n"
-	info_text += "Difficulty: " + GlobalEnums.DifficultyMode.keys()[current_mission.difficulty] + "\n"
+	info_text += "Difficulty: " + GlobalEnums.DifficultyLevel.keys()[current_mission.difficulty] + "\n"
 	info_text += "\n[b]Objectives:[/b]\n"
 	
 	for objective in current_mission.objectives:
@@ -202,7 +203,7 @@ func _update_ui() -> void:
 	active_unit_label.text = "Active Unit: " + (active_unit.name if active_unit else "None")
 	
 	# Update action panel visibility
-	action_panel.visible = (five_parcecs_system.current_phase == GlobalEnums.BattlePhase.ACTIVATION and 
+	action_panel.visible = (five_parcecs_system.current_phase == GlobalEnums.BattlePhase.ACTIVATION and
 						   active_unit == selected_unit)
 	
 	_update_unit_info()
@@ -238,4 +239,13 @@ func add_to_battle_log(message: String) -> void:
 
 func _show_battle_summary(result: Dictionary) -> void:
 	# Implement battle summary UI
-	pass 
+	pass
+
+func _update_battle_info() -> void:
+	var info_text = "Mission: " + current_mission.mission_name + "\n"
+	info_text += "Type: " + GlobalEnums.MissionType.keys()[current_mission.mission_type] + "\n"
+	info_text += "Difficulty: " + GlobalEnums.DifficultyLevel.keys()[current_mission.difficulty] + "\n"
+	info_text += "Turn: " + str(five_parcecs_system.current_turn) + "\n"
+	info_text += "Phase: " + GlobalEnums.BattlePhase.keys()[five_parcecs_system.current_phase] + "\n"
+	
+	battle_info_label.text = info_text

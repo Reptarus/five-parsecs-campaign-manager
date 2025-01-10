@@ -2301,3 +2301,37 @@ func _calculate_repair_cost() -> int:
 	
 	# Calculate final cost
 	return int(base_repair_cost * damage_multiplier)
+
+func calculate_upkeep_cost(crew_size: int, difficulty: GameEnums.DifficultyLevel) -> int:
+	var base_cost = 100 * crew_size
+	
+	match difficulty:
+		GameEnums.DifficultyLevel.EASY:
+			base_cost = int(base_cost * 0.8)
+		GameEnums.DifficultyLevel.NORMAL:
+			base_cost = base_cost
+		GameEnums.DifficultyLevel.HARD:
+			base_cost = int(base_cost * 1.2)
+		GameEnums.DifficultyLevel.VETERAN:
+			base_cost = int(base_cost * 1.5)
+		GameEnums.DifficultyLevel.ELITE:
+			base_cost = int(base_cost * 2.0)
+	
+	return base_cost
+
+func calculate_resource_gain(base_amount: int, difficulty: GameEnums.DifficultyLevel) -> int:
+	var modified_amount = base_amount
+	
+	match difficulty:
+		GameEnums.DifficultyLevel.EASY:
+			modified_amount = int(base_amount * 1.2)
+		GameEnums.DifficultyLevel.NORMAL:
+			modified_amount = base_amount
+		GameEnums.DifficultyLevel.HARD:
+			modified_amount = int(base_amount * 0.8)
+		GameEnums.DifficultyLevel.VETERAN:
+			modified_amount = int(base_amount * 0.7)
+		GameEnums.DifficultyLevel.ELITE:
+			modified_amount = int(base_amount * 0.6)
+	
+	return modified_amount

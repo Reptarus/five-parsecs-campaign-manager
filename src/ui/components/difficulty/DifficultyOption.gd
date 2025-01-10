@@ -1,35 +1,40 @@
 class_name DifficultyOption
 extends Control
 
-signal value_changed(difficulty: GlobalEnums.DifficultyMode)
+signal value_changed(difficulty: GameEnums.DifficultyLevel)
 
-@onready var option_button := $OptionButton
-@onready var tooltip := $TooltipLabel
+const GameEnums = preload("res://src/core/systems/GlobalEnums.gd")
 
-var current_difficulty: GlobalEnums.DifficultyMode
+@onready var option_button = $OptionButton
+var current_difficulty: GameEnums.DifficultyLevel
 
 func _ready() -> void:
-    option_button.pressed.connect(_on_option_pressed)
-    tooltip.visible = false
+    _setup_options()
+    _connect_signals()
 
-func setup(difficulty: GlobalEnums.DifficultyMode, tooltip_text: String) -> void:
+func setup(difficulty: GameEnums.DifficultyLevel, tooltip_text: String) -> void:
     current_difficulty = difficulty
-    option_button.text = GlobalEnums.DifficultyMode.keys()[difficulty]
-    tooltip.text = tooltip_text
+    option_button.text = GameEnums.DifficultyLevel.keys()[difficulty]
+    option_button.tooltip_text = tooltip_text
 
-func _on_option_pressed() -> void:
-    value_changed.emit(current_difficulty)
+func _setup_options() -> void:
+    option_button.clear()
+    option_button.add_item("Easy", GameEnums.DifficultyLevel.EASY)
+    option_button.add_item("Normal", GameEnums.DifficultyLevel.NORMAL)
+    option_button.add_item("Hard", GameEnums.DifficultyLevel.HARD)
+    option_button.add_item("Veteran", GameEnums.DifficultyLevel.VETERAN)
+    option_button.add_item("Elite", GameEnums.DifficultyLevel.ELITE)
 
-func _on_mouse_entered() -> void:
-    tooltip.visible = true
+func _connect_signals() -> void:
+    option_button.item_selected.connect(_on_option_selected)
 
-func _on_mouse_exited() -> void:
-    tooltip.visible = false
-
-func get_difficulty() -> GlobalEnums.DifficultyMode:
+func get_difficulty() -> GameEnums.DifficultyLevel:
     return current_difficulty
 
-func set_difficulty(difficulty: GlobalEnums.DifficultyMode) -> void:
+func set_difficulty(difficulty: GameEnums.DifficultyLevel) -> void:
     current_difficulty = difficulty
-    option_button.text = GlobalEnums.DifficultyMode.keys()[difficulty]
-    value_changed.emit(difficulty) 
+    option_button.text = GameEnums.DifficultyLevel.keys()[difficulty]
+
+func _on_option_selected(index: int) -> void:
+    current_difficulty = index
+    value_changed.emit(current_difficulty)

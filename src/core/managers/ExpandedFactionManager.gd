@@ -11,13 +11,14 @@ const MIN_FACTION_POWER: int = 3
 const MAX_FACTION_POWER: int = 5
 const MAX_TECH_LEVEL: int = 5
 const MIN_TECH_LEVEL: int = 1
+const FACTION_TYPE_COUNT: int = 19 # Number of faction types in the enum
 
 # State
-var game_state_manager: GameStateManager
+@export var game_state_manager: Node # Will be cast to GameStateManager
 var factions: Array[Dictionary] = []
 var faction_data: Dictionary = {}
 
-func _init(_game_state_manager: GameStateManager = null) -> void:
+func _init(_game_state_manager: Node = null) -> void:
 	game_state_manager = _game_state_manager
 	load_faction_data()
 
@@ -31,7 +32,7 @@ func generate_factions(num_factions: int) -> void:
 		factions.append(generate_faction())
 
 func generate_faction() -> Dictionary:
-	var faction_type: GameEnums.FactionType = GameEnums.FactionType.values()[randi() % GameEnums.FactionType.size()]
+	var faction_type: int = randi() % FACTION_TYPE_COUNT
 	
 	return {
 		"name": generate_faction_name(),
@@ -53,6 +54,8 @@ func update_faction_relations(faction: Dictionary, change: float) -> void:
 	faction["influence"] = clamp(faction["influence"] + change, 1.0, 5.0)
 
 func get_faction_mission(faction: Dictionary) -> Mission:
+	if not game_state_manager:
+		return null
 	return game_state_manager.mission_generator.generate_mission_for_faction(faction)
 
 func resolve_faction_conflict() -> void:
@@ -140,28 +143,63 @@ func faction_struggle(faction: Dictionary) -> void:
 		resolve_faction_conflict()
 
 func office_party(faction: Dictionary) -> void:
-	for character in game_state_manager.game_state.get_crew():
-		var loyalty = character.get_faction_standing(faction["name"])
-		game_state_manager.game_state.credits += loyalty
+	if not game_state_manager or not game_state_manager.has_method("get_game_state"):
+		return
+		
+	var game_state = game_state_manager.get_game_state()
+	if not game_state:
+		return
+		
+	var crew = game_state.get_crew()
+	if not crew:
+		return
+		
+	for character in crew:
+		if character and character.has_method("get_faction_standing"):
+			var loyalty = character.get_faction_standing(faction["name"])
+			if loyalty > 0:
+				game_state.add_credits(loyalty)
 
 func plans_within_plans(faction: Dictionary) -> void:
+	if not game_state_manager or not game_state_manager.has_method("get_game_state"):
+		return
+		
+	var game_state = game_state_manager.get_game_state()
+	if not game_state:
+		return
+		
 	if faction["influence"] >= 3:
-		game_state_manager.game_state.add_quest(
-			game_state_manager.quest_generator.generate_quest_for_faction(faction)
-		)
+		var quest_generator = game_state_manager.get_quest_generator()
+		if quest_generator and quest_generator.has_method("generate_quest_for_faction"):
+			var quest = quest_generator.generate_quest_for_faction(faction)
+			if quest:
+				game_state.add_quest(quest)
 
 func day_to_day_operations(faction: Dictionary) -> void:
-	game_state_manager.game_state.add_job_offer(get_faction_mission(faction))
+	if not game_state_manager or not game_state_manager.has_method("get_game_state"):
+		return
+		
+	var game_state = game_state_manager.get_game_state()
+	if not game_state:
+		return
+		
+	var job = get_faction_mission(faction)
+	if job:
+		game_state.add_job_offer(job)
 
 func update_factions() -> void:
 	for faction in factions:
 		perform_faction_activity(faction)
 
 func get_faction_job(faction: Dictionary) -> bool:
-	if randi() % 6 + 1 <= faction["influence"]:
-		var job = get_faction_mission(faction)
-		game_state_manager.game_state.add_job_offer(job)
-		return true
+	if not game_state_manager or not game_state_manager.game_state:
+		return false
+		
+	if randi() % 6 + 1 <= faction.get("influence", 0):
+		var job := get_faction_mission(faction)
+		if job:
+			game_state_manager.game_state.add_job_offer(job)
+			return true
 	return false
 
 func gain_faction_loyalty(faction: Dictionary, character: CrewMember) -> void:
@@ -183,7 +221,7 @@ func serialize() -> Dictionary:
 	}
 
 static func deserialize(data: Dictionary) -> ExpandedFactionManager:
-	var manager = ExpandedFactionManager.new(null)  # MockGameState will be set later
+	var manager = ExpandedFactionManager.new(null) # MockGameState will be set later
 	manager.factions = data["factions"]
 	return manager
 
@@ -196,30 +234,39 @@ func get_faction_by_name(faction_name: String) -> Dictionary:
 			return faction
 	return {}
 
-func get_faction_by_type(faction_type: String) -> Dictionary:
+func get_faction_by_type(type_value: int) -> Dictionary:
 	for faction in factions:
-		if faction["type"] == faction_type:
+		if faction.get("type", -1) == type_value:
 			return faction
 	return {}
 
 func get_strongest_faction() -> Dictionary:
-	var strongest_faction = factions[0]
+	if factions.is_empty():
+		return {}
+		
+	var strongest_faction := factions[0]
 	for faction in factions:
-		if faction["strength"] > strongest_faction["strength"]:
+		if faction.get("strength", 0) > strongest_faction.get("strength", 0):
 			strongest_faction = faction
 	return strongest_faction
 
 func get_weakest_faction() -> Dictionary:
-	var weakest_faction = factions[0]
+	if factions.is_empty():
+		return {}
+		
+	var weakest_faction := factions[0]
 	for faction in factions:
-		if faction["strength"] < weakest_faction["strength"]:
+		if faction.get("strength", 0) < weakest_faction.get("strength", 0):
 			weakest_faction = faction
 	return weakest_faction
 
 func get_most_influential_faction() -> Dictionary:
-	var most_influential_faction = factions[0]
+	if factions.is_empty():
+		return {}
+		
+	var most_influential_faction := factions[0]
 	for faction in factions:
-		if faction["influence"] > most_influential_faction["influence"]:
+		if faction.get("influence", 0) > most_influential_faction.get("influence", 0):
 			most_influential_faction = faction
 	return most_influential_faction
 

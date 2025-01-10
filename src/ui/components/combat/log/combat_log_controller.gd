@@ -1,147 +1,219 @@
 @tool
 extends Node
 
-## Signals
-signal entry_selected(entry: Dictionary)
-signal context_action_requested(action: String, entry: Dictionary)
-signal verification_requested(entry: Dictionary)
+## Required dependencies
+const GlobalEnums := preload("res://src/core/systems/GlobalEnums.gd")
+const Character := preload("res://src/core/character/Base/Character.gd")
 
 ## Node references
-@onready var combat_log: PanelContainer = %CombatLogPanel
+@onready var combat_log_panel: PanelContainer = %CombatLogPanel
+@onready var combat_manager: Node = get_node("/root/CombatManager")
 
 ## Properties
-var combat_resolver: Node = null
-var combat_manager: Node = null
-var override_controller: Node = null
-var house_rules_panel: Node = null
-var active_filters: Array[String] = []
-var max_history: int = 1000
+var log_entries: Array = []
+var active_filters: Dictionary = {
+	"combat": true,
+	"movement": true,
+	"status": true,
+	"resource": true,
+	"override": true,
+	"verification": true
+}
 
 ## Called when the node enters scene tree
 func _ready() -> void:
-	if not Engine.is_editor_hint():
-		combat_log.log_entry_selected.connect(_on_log_entry_selected)
-		combat_log.log_cleared.connect(_on_log_cleared)
-
-## Sets up combat system references
-func setup_combat_system(resolver: Node, manager: Node, override_ctrl: Node, rules_panel: Node) -> void:
-	combat_resolver = resolver
-	combat_manager = manager
-	override_controller = override_ctrl
-	house_rules_panel = rules_panel
+	if not combat_log_panel or not combat_manager:
+		push_error("CombatLogController: Required nodes not found")
+		return
 	
-	# Connect combat system signals
-	if combat_resolver:
-		combat_resolver.dice_roll_requested.connect(_on_dice_roll_requested)
-		combat_resolver.dice_roll_completed.connect(_on_dice_roll_completed)
-		combat_resolver.override_requested.connect(_on_override_requested)
-		combat_resolver.modifier_applied.connect(_on_modifier_applied)
+	_connect_signals()
+	_load_saved_filters()
+
+## Connects all required signals
+func _connect_signals() -> void:
+	# Combat log panel signals
+	combat_log_panel.entry_selected.connect(_on_entry_selected)
+	combat_log_panel.filter_changed.connect(_on_filter_changed)
+	combat_log_panel.context_action_requested.connect(_on_context_action_requested)
+	combat_log_panel.verification_requested.connect(_on_verification_requested)
 	
-	if combat_manager:
-		combat_manager.combat_state_changed.connect(_on_combat_state_changed)
-		combat_manager.combat_action_completed.connect(_on_combat_action_completed)
-		combat_manager.critical_hit.connect(_on_critical_hit)
+	# Combat manager signals
+	combat_manager.combat_state_changed.connect(_on_combat_state_changed)
+	combat_manager.combat_result_calculated.connect(_on_combat_result_calculated)
+	combat_manager.combat_advantage_changed.connect(_on_combat_advantage_changed)
+	combat_manager.combat_status_changed.connect(_on_combat_status_changed)
+	combat_manager.manual_override_applied.connect(_on_manual_override_applied)
 	
-	if override_controller:
-		override_controller.override_applied.connect(_on_override_applied)
-		override_controller.override_cancelled.connect(_on_override_cancelled)
+	# Verification signals
+	combat_manager.verification_completed.connect(_on_verification_completed)
+	combat_manager.verification_failed.connect(_on_verification_failed)
+
+## Loads saved filters from game state
+func _load_saved_filters() -> void:
+	var game_state = get_node("/root/GameState")
+	if not game_state:
+		return
 	
-	if house_rules_panel:
-		house_rules_panel.rule_added.connect(_on_house_rule_added)
-		house_rules_panel.rule_modified.connect(_on_house_rule_modified)
-		house_rules_panel.rule_removed.connect(_on_house_rule_removed)
+	var saved_filters = game_state.get_combat_log_filters()
+	if saved_filters:
+		active_filters = saved_filters
 
-## Adds a combat event to the log
-func log_combat_event(event_type: String, message: String, details: Dictionary = {}) -> void:
-	if should_log_event(event_type):
-		combat_log.add_log_entry(event_type, message, details)
-
-## Checks if event should be logged based on filters
-func should_log_event(event_type: String) -> bool:
-	if active_filters.is_empty():
-		return true
-	return event_type in active_filters
-
-## Updates active filters
-func update_filters(filters: Array[String]) -> void:
-	active_filters = filters
-	# TODO: Refresh log display based on new filters
-
-## Clears the combat log
-func clear_log() -> void:
-	combat_log.clear_log()
-
-## Exports log to dictionary
-func export_log() -> Dictionary:
-	return {
-		"timestamp": Time.get_datetime_string_from_system(),
-		"entries": combat_log.log_entries
+## Adds a new log entry
+func add_log_entry(entry_type: String, entry_data: Dictionary) -> void:
+	var entry = {
+		"id": str(Time.get_unix_time_from_system()),
+		"type": entry_type,
+		"data": entry_data,
+		"timestamp": Time.get_datetime_string_from_system()
 	}
+	
+	log_entries.append(entry)
+	if _should_display_entry(entry):
+		combat_log_panel.add_entry(entry)
 
-## Signal handlers for combat system
-func _on_dice_roll_requested(context: String, modifiers: Dictionary) -> void:
-	var msg = "Rolling for %s" % context
-	if not modifiers.is_empty():
-		msg += " with modifiers"
-	log_combat_event("roll", msg, {"context": context, "modifiers": modifiers})
+## Checks if an entry should be displayed based on filters
+func _should_display_entry(entry: Dictionary) -> bool:
+	return active_filters.get(entry.type, true)
 
-func _on_dice_roll_completed(context: String, result: int) -> void:
-	log_combat_event("roll", "Roll result for %s: %d" % [context, result],
-		{"context": context, "result": result})
+## Updates the display based on current filters
+func _update_display() -> void:
+	combat_log_panel.clear_entries()
+	for entry in log_entries:
+		if _should_display_entry(entry):
+			combat_log_panel.add_entry(entry)
 
-func _on_override_requested(context: String, current_value: int) -> void:
-	log_combat_event("override", "Manual override requested for %s (Current: %d)" % [context, current_value],
-		{"context": context, "current_value": current_value})
+## Exports the combat log
+func export_log() -> void:
+	var export_data = {
+		"entries": log_entries,
+		"filters": active_filters,
+		"timestamp": Time.get_datetime_string_from_system()
+	}
+	
+	var file = FileAccess.open("user://combat_log_export.json", FileAccess.WRITE)
+	if file:
+		file.store_string(JSON.stringify(export_data))
+		file.close()
 
-func _on_override_applied(context: String, value: int) -> void:
-	log_combat_event("override", "Manual override applied to %s: %d" % [context, value],
-		{"context": context, "value": value})
+## Signal handlers
+func _on_entry_selected(entry_id: String) -> void:
+	for entry in log_entries:
+		if entry.id == entry_id:
+			combat_log_panel.show_entry_details(entry)
+			break
 
-func _on_override_cancelled(context: String) -> void:
-	log_combat_event("override", "Manual override cancelled for %s" % context,
-		{"context": context})
+func _on_filter_changed(filter_type: String, enabled: bool) -> void:
+	active_filters[filter_type] = enabled
+	_update_display()
 
-func _on_modifier_applied(source: String, value: int, description: String) -> void:
-	combat_log.log_modifier(source, value, description)
-
-func _on_combat_state_changed(new_state: Dictionary) -> void:
-	log_combat_event("state", "Combat state updated", {"state": new_state})
-
-func _on_combat_action_completed(action: Dictionary) -> void:
-	var msg = "Completed action: %s" % action.get("type", "Unknown")
-	log_combat_event("action", msg, action)
-
-func _on_critical_hit(attacker: String, target: String, multiplier: float) -> void:
-	combat_log.log_critical_hit(attacker, target, multiplier)
-
-## Signal handlers for house rules
-func _on_house_rule_added(rule: Dictionary) -> void:
-	log_combat_event("rule", "House rule added: %s" % rule.name, rule)
-
-func _on_house_rule_modified(rule: Dictionary) -> void:
-	log_combat_event("rule", "House rule modified: %s" % rule.name, rule)
-
-func _on_house_rule_removed(rule_id: String) -> void:
-	log_combat_event("rule", "House rule removed: %s" % rule_id, {"id": rule_id})
-
-## Signal handlers for log interaction
-func _on_log_entry_selected(entry: Dictionary) -> void:
-	entry_selected.emit(entry)
-
-func _on_log_cleared() -> void:
-	# Handle any cleanup needed when log is cleared
-	pass
-
-## Context action handlers
-func handle_context_action(action: String, entry: Dictionary) -> void:
+func _on_context_action_requested(entry_id: String, action: String) -> void:
+	var entry = null
+	for e in log_entries:
+		if e.id == entry_id:
+			entry = e
+			break
+	
+	if not entry:
+		return
+	
 	match action:
 		"verify":
-			verification_requested.emit(entry)
+			_verify_entry(entry)
+		"export":
+			_export_entry(entry)
+		"revert":
+			_revert_entry(entry)
+
+func _on_verification_requested(entry_id: String) -> void:
+	for entry in log_entries:
+		if entry.id == entry_id:
+			_verify_entry(entry)
+			break
+
+func _verify_entry(entry: Dictionary) -> void:
+	match entry.type:
+		"combat":
+			combat_manager.verify_state(GlobalEnums.VerificationType.COMBAT)
+		"movement":
+			combat_manager.verify_state(GlobalEnums.VerificationType.POSITION)
+		"status":
+			combat_manager.verify_state(GlobalEnums.VerificationType.STATUS)
+		"resource":
+			combat_manager.verify_state(GlobalEnums.VerificationType.RESOURCE)
 		"override":
-			if entry.type == "roll" and override_controller:
-				override_controller.request_override(
-					entry.details.context,
-					entry.details.get("result", 0)
-				)
-		_:
-			context_action_requested.emit(action, entry)
+			combat_manager.verify_state(GlobalEnums.VerificationType.OVERRIDE)
+
+func _export_entry(entry: Dictionary) -> void:
+	var file = FileAccess.open("user://combat_log_entry.json", FileAccess.WRITE)
+	if file:
+		file.store_string(JSON.stringify(entry))
+		file.close()
+
+func _revert_entry(entry: Dictionary) -> void:
+	match entry.type:
+		"override":
+			combat_manager.revert_override.emit(entry.data)
+		"status":
+			combat_manager.revert_status_change.emit(entry.data)
+		"resource":
+			combat_manager.revert_resource_change.emit(entry.data)
+
+## Combat manager signal handlers
+func _on_combat_state_changed(new_state: Dictionary) -> void:
+	add_log_entry("combat", {
+		"type": "state_change",
+		"state": new_state
+	})
+
+func _on_combat_result_calculated(attacker: Character, target: Character, result: GlobalEnums.CombatResult) -> void:
+	add_log_entry("combat", {
+		"type": "result",
+		"attacker": attacker.get_id(),
+		"target": target.get_id(),
+		"result": result
+	})
+
+func _on_combat_advantage_changed(character: Character, advantage: GlobalEnums.CombatAdvantage) -> void:
+	add_log_entry("combat", {
+		"type": "advantage",
+		"character": character.get_id(),
+		"advantage": advantage
+	})
+
+func _on_combat_status_changed(character: Character, status: GlobalEnums.CombatStatus) -> void:
+	add_log_entry("status", {
+		"type": "status_change",
+		"character": character.get_id(),
+		"status": status
+	})
+
+func _on_manual_override_applied(override_type: String, override_data: Dictionary) -> void:
+	add_log_entry("override", {
+		"type": override_type,
+		"data": override_data
+	})
+
+## Verification signal handlers
+func _on_verification_completed(verification_type: GlobalEnums.VerificationType, result: GlobalEnums.VerificationResult, details: Dictionary) -> void:
+	add_log_entry("verification", {
+		"type": verification_type,
+		"result": result,
+		"details": details
+	})
+	
+	combat_log_panel.show_verification_result(str(Time.get_unix_time_from_system()), {
+		"status": result,
+		"details": details
+	})
+
+func _on_verification_failed(verification_type: GlobalEnums.VerificationType, error: String) -> void:
+	add_log_entry("verification", {
+		"type": verification_type,
+		"result": GlobalEnums.VerificationResult.ERROR,
+		"details": {"error": error}
+	})
+	
+	combat_log_panel.show_verification_result(str(Time.get_unix_time_from_system()), {
+		"status": GlobalEnums.VerificationResult.ERROR,
+		"details": {"error": error}
+	})

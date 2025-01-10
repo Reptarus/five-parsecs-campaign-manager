@@ -3,13 +3,7 @@ extends PanelContainer
 
 signal job_selected(job: Node)
 
-enum MissionType {
-    STANDARD,
-    PATRON,
-    RED_ZONE,
-    BLACK_ZONE,
-    SPECIAL
-}
+const GlobalEnums = preload("res://src/core/systems/GlobalEnums.gd")
 
 var job_generator: Node
 var special_mission_generator: Node
@@ -52,7 +46,7 @@ func populate_jobs(available_missions: Array) -> void:
     # Generate red zone jobs if eligible
     if job_generator.check_red_zone_eligibility():
         var red_zone_job = special_mission_generator.generate_mission({
-            "type": MissionType.RED_ZONE,
+            "type": GlobalEnums.MissionType.RED_ZONE,
             "difficulty": 4,
             "rewards": {"credits": 2000}
         })
@@ -83,4 +77,4 @@ func _format_job_info(job: Node) -> String:
         job.description,
         job.rewards.get("credits", 0),
         job.difficulty
-    ] 
+    ]

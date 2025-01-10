@@ -3,42 +3,68 @@ extends Resource
 
 const GameEnums = preload("res://src/core/systems/GlobalEnums.gd")
 
-signal hostility_changed(new_value: int)
-signal strength_changed(new_value: int)
+@export var rival_name: String = ""
+@export var rival_type: String = ""
+@export var threat_level: GameEnums.DifficultyLevel = GameEnums.DifficultyLevel.NORMAL
+@export var reputation: int = 0
+@export var active: bool = true
+@export var last_encounter_turn: int = -1
 
-@export var name: String:
-    get:
-        return name
-    set(value):
-        if value.strip_edges().is_empty():
-            push_error("Rival name cannot be empty")
-            return
-        name = value
+var special_traits: Array[String] = []
+var resources: Dictionary = {}
+var encounter_history: Array[Dictionary] = []
 
-@export var location: Location = null:
-    get:
-        return location
-    set(value):
-        location = value
-        notify_property_list_changed()
+func _init() -> void:
+    _initialize_resources()
 
-@export_enum("Low", "Medium", "High", "Extreme") var threat_level: int = GameEnums.DifficultyMode.EASY:
-    get:
-        return threat_level
-    set(value):
-        threat_level = value
-        economic_influence = calculate_economic_influence()
-        strength_changed.emit(threat_level)
+func _initialize_resources() -> void:
+    resources = {
+        "credits": 1000,
+        "influence": 0,
+        "territory": 0
+    }
 
-@export_range(0, 100) var hostility: int = 0:
-    get:
-        return hostility
-    set(value):
-        hostility = clamp(value, 0, 100)
-        hostility_changed.emit(hostility)
+func get_threat_modifier() -> float:
+    match threat_level:
+        GameEnums.DifficultyLevel.EASY:
+            return 0.8
+        GameEnums.DifficultyLevel.NORMAL:
+            return 1.0
+        GameEnums.DifficultyLevel.HARD:
+            return 1.2
+        GameEnums.DifficultyLevel.VETERAN:
+            return 1.4
+        GameEnums.DifficultyLevel.ELITE:
+            return 1.6
+    return 1.0
 
-@export var economic_influence: float = 1.0
+func add_encounter(encounter_data: Dictionary) -> void:
+    encounter_data["turn"] = last_encounter_turn
+    encounter_history.append(encounter_data)
 
-func calculate_economic_influence() -> float:
-    # 25% impact increase per threat level
-    return 1.0 + (threat_level as int) * 0.25
+func get_encounter_history() -> Array[Dictionary]:
+    return encounter_history
+
+func serialize() -> Dictionary:
+    return {
+        "name": rival_name,
+        "type": rival_type,
+        "threat_level": threat_level,
+        "reputation": reputation,
+        "active": active,
+        "last_encounter_turn": last_encounter_turn,
+        "special_traits": special_traits,
+        "resources": resources,
+        "encounter_history": encounter_history
+    }
+
+func deserialize(data: Dictionary) -> void:
+    rival_name = data.get("name", "")
+    rival_type = data.get("type", "")
+    threat_level = data.get("threat_level", GameEnums.DifficultyLevel.NORMAL)
+    reputation = data.get("reputation", 0)
+    active = data.get("active", true)
+    last_encounter_turn = data.get("last_encounter_turn", -1)
+    special_traits = data.get("special_traits", [])
+    resources = data.get("resources", {})
+    encounter_history = data.get("encounter_history", [])

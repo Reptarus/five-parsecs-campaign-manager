@@ -1,130 +1,101 @@
 # Core Scripts Reference
 
-## Battle System
+## Battle System Components
 
 ### CombatResolver
-- Handles combat resolution and dice rolls
-- Supports manual overrides for tabletop play
-- Provides detailed combat logging
-- Integrates with house rules system
-- Emits signals for UI feedback
+- Location: `src/core/battle/CombatResolver.gd`
+- Purpose: Handles combat resolution mechanics, dice rolls, and modifiers
+- Key Features:
+  - Transparent dice roll system with manual override support
+  - Detailed modifier tracking and validation
+  - Combat event logging and verification
+  - Integration with house rules system
 
 ### CombatManager
-- Manages overall combat state
-- Handles turn sequencing
-- Integrates with state verification
-- Supports house rules application
-- Provides state validation
+- Location: `src/core/battle/CombatManager.gd`
+- Purpose: Manages overall combat state and flow
+- Key Features:
+  - State tracking and validation
+  - Combat phase management
+  - Integration with manual overrides
+  - House rules application
+  - Combat event broadcasting
 
 ### BattleRules
-- Defines base game rules
-- Supports house rule modifications
-- Handles rule validation
-- Manages combat modifiers
-- Provides rule query interface
+- Location: `src/core/battle/BattleRules.gd`
+- Purpose: Defines and enforces battle rules and modifiers
+- Key Features:
+  - Core rule definitions
+  - House rules support
+  - Modifier calculation and validation
+  - Rule state verification
 
 ## UI Components
 
 ### Manual Override Panel
-- Allows manual input of values
-- Provides context-aware overrides
-- Validates input against rules
-- Emits override signals
-- Supports multiple override types
+- Location: `src/ui/components/combat/overrides/manual_override_panel.gd`
+- Purpose: Provides interface for manual combat value overrides
+- Key Features:
+  - Value input and validation
+  - Override request handling
+  - Context-aware modifications
+  - Integration with combat system
 
-### Combat Log Panel
-- Displays combat events in real-time
-- Supports event filtering
-- Provides detailed event information
-- Auto-scrolls with new events
-- Allows event selection
+### Combat Log Controller
+- Location: `src/ui/components/combat/log/combat_log_controller.gd`
+- Purpose: Manages combat event logging and visualization
+- Key Features:
+  - Event filtering and categorization
+  - Detailed combat logging
+  - Export functionality
+  - State verification integration
+  - Manual override tracking
 
 ### House Rules Panel
-- Manages custom rule configurations
-- Supports rule categories
-- Provides rule editing interface
-- Validates rule consistency
-- Handles rule import/export
+- Location: `src/ui/components/combat/rules/house_rules_panel.gd`
+- Purpose: Interface for managing house rules
+- Key Features:
+  - Rule creation and modification
+  - Validation checks
+  - Combat system integration
+  - State tracking
 
 ### State Verification Panel
-- Displays current and expected states
-- Supports auto-verification
-- Provides manual correction interface
-- Color-codes state differences
-- Exports verification results
+- Location: `src/ui/components/combat/state/state_verification_panel.gd`
+- Purpose: Provides tools for verifying game state
+- Key Features:
+  - State comparison and validation
+  - Error reporting
+  - Manual correction tools
+  - Integration with combat system
 
 ## Core Systems
 
-### GameStateManager
-- Manages global game state
-- Handles state transitions
-- Provides state validation
-- Supports state serialization
-- Emits state change signals
+### GameState
+- Location: `src/core/systems/GameState.gd`
+- Purpose: Manages global game state
+- Key Features:
+  - State persistence
+  - Save/load functionality
+  - Event broadcasting
+  - System integration
 
 ### ResourceSystem
-- Manages game resources
-- Handles resource calculations
-- Provides resource validation
-- Supports resource modifications
-- Tracks resource history
+- Location: `src/core/systems/ResourceSystem.gd`
+- Purpose: Handles resource management
+- Key Features:
+  - Resource tracking
+  - Modification validation
+  - State persistence
+  - Event broadcasting
 
-### CampaignSystem
-- Manages campaign progression
-- Handles campaign events
-- Provides campaign validation
-- Supports campaign saving/loading
-- Tracks campaign history
+## Testing Framework
 
-## Utility Scripts
-
-### GlobalEnums
-- Defines game enumerations
-- Provides type definitions
-- Supports system integration
-- Ensures type consistency
-- Documents value meanings
-
-### ValidationUtils
-- Provides validation helpers
-- Supports type checking
-- Handles error reporting
-- Ensures data consistency
-- Provides format validation
-
-### StateUtils
-- Helps with state management
-- Provides state comparison
-- Supports state serialization
-- Handles state validation
-- Manages state history
-
-## Test Framework
-
-### TestRunner
-- Manages test execution
-- Provides test reporting
-- Supports async testing
-- Handles test cleanup
-- Reports test coverage
-
-### UnitTests
-- Tests individual components
-- Validates functionality
-- Ensures consistency
-- Provides coverage metrics
-- Documents expected behavior
-
-### IntegrationTests
-- Tests component interaction
-- Validates system flow
-- Ensures compatibility
-- Tests edge cases
-- Documents system behavior
-
-## Notes
-- All scripts follow GDScript best practices
-- Documentation is maintained inline
-- Signals are used for loose coupling
-- Error handling is consistent
-- Type hints are used where possible 
+### Test Runner
+- Location: `src/tests/run_tests.gd`
+- Purpose: Manages test execution and reporting
+- Key Features:
+  - Automated test discovery
+  - Result reporting
+  - Coverage tracking
+  - Integration tests support 

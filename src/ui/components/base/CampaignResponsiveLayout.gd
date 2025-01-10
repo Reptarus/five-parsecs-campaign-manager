@@ -1,9 +1,11 @@
 class_name CampaignResponsiveLayout
 extends ResponsiveContainer
 
-const PORTRAIT_SIDEBAR_HEIGHT_RATIO := 0.4  # Sidebar takes 40% in portrait mode
-const LANDSCAPE_SIDEBAR_WIDTH := 300.0  # Fixed sidebar width in landscape mode
-const TOUCH_BUTTON_HEIGHT := 60.0  # Height for touch-friendly buttons
+const VERTICAL = 1
+const HORIZONTAL = 0
+const PORTRAIT_SIDEBAR_HEIGHT_RATIO := 0.4 # Sidebar takes 40% in portrait mode
+const LANDSCAPE_SIDEBAR_WIDTH := 300.0 # Fixed sidebar width in landscape mode
+const TOUCH_BUTTON_HEIGHT := 60.0 # Height for touch-friendly buttons
 
 @onready var sidebar := $MainContainer/Sidebar if has_node("MainContainer/Sidebar") else null
 @onready var main_content := $MainContainer/MainContent if has_node("MainContainer/MainContent") else null
@@ -30,7 +32,7 @@ func _apply_portrait_layout() -> void:
         return
     
     # Stack panels vertically
-    main_container.set("orientation", BaseContainer.Orientation.VERTICAL)
+    main_container.set("orientation", VERTICAL)
     
     # Adjust panel sizes for portrait mode
     var viewport_height = get_viewport_rect().size.y
@@ -45,7 +47,7 @@ func _apply_landscape_layout() -> void:
         return
     
     # Side by side layout
-    main_container.set("orientation", BaseContainer.Orientation.HORIZONTAL)
+    main_container.set("orientation", HORIZONTAL)
     
     # Reset panel sizes
     sidebar.custom_minimum_size = Vector2(LANDSCAPE_SIDEBAR_WIDTH, 0)
@@ -66,4 +68,4 @@ func _adjust_touch_sizes(is_portrait: bool) -> void:
 
 func _on_back_pressed() -> void:
     # Override in child classes
-    pass 
+    pass

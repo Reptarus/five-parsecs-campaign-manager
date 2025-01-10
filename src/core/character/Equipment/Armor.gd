@@ -1,6 +1,8 @@
 class_name Armor
 extends Equipment
 
+const Equipment := preload("res://src/core/character/Equipment/Equipment.gd")
+
 @export var armor_type: GlobalEnums.ArmorType = GlobalEnums.ArmorType.NONE
 @export var armor_value: int = 0
 @export var movement_penalty: float = 0.0

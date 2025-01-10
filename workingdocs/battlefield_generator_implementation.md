@@ -1,113 +1,91 @@
-# Battlefield Generator Implementation Plan
+# Battlefield Generator Implementation
 
 ## Overview
-Implementation plan for the battlefield generation system based on core rulebook specifications and current project status.
+Implementation of the battlefield generation system for Five Parsecs, focusing on tabletop-accurate terrain placement and mission support.
 
 ## Core Requirements
 
-### 1. Battlefield Configuration
-- Support for multiple battlefield sizes (2x2, 2.5x2.5, 3x3 feet)
-- Digital scale conversion (2 units = 1 inch)
-- Configurable dimensions for special missions
-- Support for different environment types
+### 1. Terrain Generation
+- Terrain type definitions
+- Feature placement rules
+- Line of sight validation
+- Path verification
+- Deployment zones
 
-### 2. Implementation Status
+### 2. Mission Integration
+- Mission type support
+- Special objectives
+- Environmental conditions
+- Deployment variations
 
-#### Completed Systems ✓
-1. Core Framework
-   - ✓ Basic grid system
-   - ✓ Coordinate system
-   - ✓ Save/load integration
-   - ✓ State management
+### 3. Tabletop Support
+- Manual override options
+- Measurement tools
+- Line of sight tools
+- Movement validation
+- Combat position verification
 
-#### In Progress
-1. Feature System (60% complete)
-   - ⚠️ Feature type definitions
-   - ⚠️ Size calculations
-   - ⚠️ Placement validation
-   - ⚠️ Feature distribution
+## Implementation Phases
 
-2. Environment System (40% complete)
-   - ⚠️ Environment type definitions
-   - ⚠️ Terrain type mapping
-   - ⚠️ Environment-specific rules
-   - ⚠️ Feature compatibility
+### Phase 1: Core Generation (15 hours)
+1. Terrain System (8h)
+   - Terrain type definitions
+   - Feature size calculations
+   - Placement validation
+   - Distribution logic
+   - Core rulebook accuracy checks
 
-#### Pending Implementation
-1. Placement Logic
-   - Major feature placement
-   - Minor feature placement
-   - Line of sight validation
-   - Path verification
-   - Deployment zones
+2. Environment System (7h)
+   - Environment type definitions
+   - Terrain mapping
+   - Environment rules
+   - Feature compatibility
+   - Tabletop measurement support
 
-2. Mission Integration
-   - Mission type support
-   - Special objectives
+### Phase 2: Mission Support (20 hours)
+1. Mission Integration (10h)
+   - Mission type requirements
+   - Objective placement
+   - Deployment zone generation
+   - Special rules support
+   - Validation system
+
+2. Environment Effects (10h)
    - Environmental conditions
-   - Deployment variations
+   - Hazard placement
+   - Cover system
+   - Line of sight rules
+   - Movement modifiers
 
-### Updated Implementation Timeline
+### Phase 3: UI Components (15 hours)
+1. Battlefield Preview (8h)
+   - Grid overlay
+   - Terrain visualization
+   - Objective markers
+   - Deployment zone indicators
+   - Measurement tools
 
-#### Phase 1: Core Generation (20 remaining hours)
-1. Feature System Completion (10h)
-   - Complete feature type definitions
-   - Implement size calculations
-   - Add placement validation
-   - Finish distribution logic
-
-2. Environment System (10h)
-   - Complete environment types
-   - Implement terrain mapping
-   - Add environment rules
-   - Test feature compatibility
-
-#### Phase 2: Placement Logic (25 hours)
-1. Major Feature Placement (10h)
-   - Distribution algorithm
-   - Spacing validation
-   - Line of sight checks
-   - Path verification
-
-2. Minor Feature Placement (8h)
-   - Gap filling logic
-   - Cover point optimization
-   - Density management
-   - Accessibility checks
-
-3. Deployment Zones (7h)
-   - Zone size calculations
-   - Valid position checking
-   - Balance verification
-   - Special mission rules
-
-#### Phase 3: Integration (20 hours)
-1. Mission System Integration (8h)
-   - Mission type support
-   - Special objectives
-   - Environmental conditions
-   - Deployment variations
-
-2. UI Components (12h)
-   - Battlefield preview
-   - Generation controls
-   - Manual adjustments
+2. Control Interface (7h)
+   - Manual placement tools
+   - Terrain adjustment
+   - Environment controls
+   - Validation feedback
    - Debug visualization
 
-#### Phase 4: Testing & Validation (15 hours)
-1. Unit Testing (6h)
+### Phase 4: Testing & Validation (10 hours)
+1. Unit Testing (4h)
    - Generation consistency
    - Rule compliance
    - Edge cases
    - Performance benchmarks
 
-2. Integration Testing (5h)
+2. Integration Testing (4h)
    - Mission compatibility
    - Save/load functionality
    - UI interaction
    - State management
 
-3. Documentation & Polish (4h)
+3. Documentation (2h)
    - API documentation
    - Usage examples
    - Performance optimization
@@ -117,18 +95,20 @@ Implementation plan for the battlefield generation system based on core rulebook
 1. Generates valid battlefields matching core rules
 2. Maintains 60 FPS during generation
 3. Supports all mission types
-4. 100% test coverage for core systems
-5. Documented API for mission system integration
+4. Provides accurate tabletop measurements
+5. Allows manual adjustments
+6. Validates rule compliance
 
 ## Dependencies
 - TerrainManager (existing)
 - FeaturePlacer (in progress)
 - PathFinder (existing)
 - MissionManager (existing)
+- ValidationManager (existing)
 
 ## Next Steps
-1. Complete feature system implementation
-2. Finish environment system
-3. Begin placement logic implementation
-4. Start UI component development
-5. Begin testing framework setup 
+1. Complete terrain type definitions
+2. Implement core placement logic
+3. Add mission-specific requirements
+4. Create UI components
+5. Begin testing suite 

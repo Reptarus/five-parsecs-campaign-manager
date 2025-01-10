@@ -1,30 +1,11 @@
 extends Node
 
+const GameEnums = preload("res://src/core/systems/GlobalEnums.gd")
+
 signal event_triggered(event: Dictionary)
 signal event_resolved(event: Dictionary, results: Dictionary)
 signal deployment_condition_changed(condition: Dictionary)
 signal notable_sight_discovered(sight: Dictionary)
-
-# Core rules event types
-enum BattleEventType {
-    NONE,
-    COMBAT,
-    MOVEMENT,
-    OBJECTIVE,
-    DEPLOYMENT,
-    REACTION,
-    SPECIAL
-}
-
-# Core rules event categories
-enum EventCategory {
-    DEPLOYMENT,
-    OBJECTIVE,
-    ENEMY,
-    NOTABLE_SIGHT,
-    COMBAT,
-    RESOLUTION
-}
 
 var active_events: Array[Dictionary] = []
 var event_queue: Array[Dictionary] = []
@@ -45,7 +26,7 @@ func _get_deployment_condition(mission_type: int, roll: int) -> Dictionary:
     # Implementation based on core rules table
     var condition := {}
     match mission_type:
-        GlobalEnums.MissionType.PATRON:
+        GameEnums.MissionType.PATRON:
             if roll >= 91:
                 condition = {"type": "GLOOMY", "visibility": 9}
             elif roll >= 86:
@@ -64,7 +45,7 @@ func _get_notable_sight(mission_type: int, roll: int) -> Dictionary:
     # Implementation based on core rules table
     var sight := {}
     match mission_type:
-        GlobalEnums.MissionType.PATRON:
+        GameEnums.MissionType.PATRON:
             if roll >= 91:
                 sight = {"type": "CURIOUS_ITEM", "loot_roll_required": true}
             elif roll >= 81:

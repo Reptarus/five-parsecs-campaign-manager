@@ -33,7 +33,11 @@ func _ready() -> void:
 
 func initialize(manager: GameStateManager) -> void:
 	game_manager = manager
-	game_state = manager.get_game_state()
+	var state = manager.get_game_state()
+	if state is FiveParsecsGameState:
+		game_state = state
+	else:
+		push_error("Invalid game state type received from manager")
 	
 	# Connect to all relevant signals
 	if game_manager:

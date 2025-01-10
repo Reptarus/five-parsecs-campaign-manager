@@ -3,6 +3,7 @@ extends Node
 
 const GameEnums := preload("res://src/core/systems/GlobalEnums.gd")
 const FiveParsecsGameState := preload("res://src/core/state/GameState.gd")
+const Mission := preload("res://src/core/systems/Mission.gd")
 
 signal state_changed(new_state: int)
 signal track_changed(new_track: int)
@@ -170,7 +171,7 @@ func _enter_campaign_tutorial() -> void:
 	game_state.is_tutorial_active = true
 	var campaign_setup := {
 		"difficulty": GlobalEnums.DifficultyMode.NORMAL,
-		"victory_condition": GlobalEnums.CampaignVictoryType.TURNS_20,
+		"victory_condition": GlobalEnums.CampaignVictoryType.STORY_COMPLETE,
 		"crew_size": GlobalEnums.CrewSize.FOUR,
 		"use_story_track": false
 	}
@@ -191,16 +192,16 @@ func _setup_tutorial_mission(track: int) -> void:
 		push_error("Failed to create tutorial mission")
 		return
 		
-	mission.mission_type = GlobalEnums.MissionType.TUTORIAL
-	mission.difficulty = GlobalEnums.DifficultyMode.NORMAL
-	mission.deployment_type = GlobalEnums.DeploymentType.STANDARD
+	mission.mission_type = GameEnums.MissionType.GREEN_ZONE
+	mission.difficulty = GameEnums.DifficultyLevel.NORMAL
+	mission.deployment_type = GameEnums.DeploymentType.STANDARD
 	
 	# Add tutorial objectives based on track
 	match track:
 		TutorialTrack.QUICK_START:
 			mission.objectives = [
 				{
-					"type": GlobalEnums.MissionObjective.PATROL,
+					"type": GameEnums.MissionObjective.PATROL,
 					"description": "Learn basic movement and controls",
 					"completed": false
 				}
@@ -208,7 +209,7 @@ func _setup_tutorial_mission(track: int) -> void:
 		TutorialTrack.ADVANCED:
 			mission.objectives = [
 				{
-					"type": GlobalEnums.MissionObjective.SEEK_AND_DESTROY,
+					"type": GameEnums.MissionObjective.SEEK_AND_DESTROY,
 					"description": "Learn advanced combat mechanics",
 					"completed": false
 				}
@@ -216,7 +217,7 @@ func _setup_tutorial_mission(track: int) -> void:
 		TutorialTrack.STORY:
 			mission.objectives = [
 				{
-					"type": GlobalEnums.MissionObjective.PATROL,
+					"type": GameEnums.MissionObjective.PATROL,
 					"description": "Learn story and dialogue systems",
 					"completed": false
 				}

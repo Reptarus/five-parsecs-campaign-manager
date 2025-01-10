@@ -2,7 +2,7 @@ class_name BattlefieldGenerator
 extends Node
 
 const GameEnums := preload("res://src/core/systems/GlobalEnums.gd")
-const TerrainTypes := preload("res://src/core/battle/TerrainTypes.gd")
+const TerrainTypes := preload("res://src/core/terrain/TerrainTypes.gd")
 
 # Signals
 signal terrain_generated(terrain_data: Dictionary)
@@ -12,10 +12,10 @@ signal objectives_placed(objectives: Array[Dictionary])
 # Constants
 const MIN_BATTLEFIELD_SIZE := Vector2i(16, 16)
 const MAX_BATTLEFIELD_SIZE := Vector2i(32, 32)
-const MIN_COVER_DENSITY := 0.1  # 10% of tiles should be cover
-const MAX_COVER_DENSITY := 0.3  # 30% of tiles should be cover
-const MIN_DISTANCE_BETWEEN_COVER := 2  # Minimum tiles between cover pieces
-const MIN_DEPLOYMENT_ZONE_SIZE := 4  # Minimum size of deployment zones
+const MIN_COVER_DENSITY := 0.1 # 10% of tiles should be cover
+const MAX_COVER_DENSITY := 0.3 # 30% of tiles should be cover
+const MIN_DISTANCE_BETWEEN_COVER := 2 # Minimum tiles between cover pieces
+const MIN_DEPLOYMENT_ZONE_SIZE := 4 # Minimum size of deployment zones
 
 # Generation configuration
 var config: Dictionary = {
@@ -29,8 +29,8 @@ var config: Dictionary = {
 }
 
 # Battlefield state
-var terrain_grid: Array[Array] = []  # Array of Arrays of TerrainCell
-var deployment_zones: Dictionary = {}  # String: Array[Vector2i]
+var terrain_grid: Array[Array] = [] # Array of Arrays of TerrainCell
+var deployment_zones: Dictionary = {} # String: Array[Vector2i]
 var objectives: Array[Dictionary] = []
 var cover_points: Array[Vector2i] = []
 var walkable_tiles: Array[Vector2i] = []
@@ -308,9 +308,9 @@ func _get_valid_building_positions(size: Vector2i) -> Array[Vector2i]:
 			var valid: bool = true
 			
 			# Check if area is clear
-			for dx in range(size.x + 2):  # +2 for buffer
+			for dx in range(size.x + 2): # +2 for buffer
 				for dy in range(size.y + 2):
-					var check_x: int = x + dx - 1  # -1 for buffer
+					var check_x: int = x + dx - 1 # -1 for buffer
 					var check_y: int = y + dy - 1
 					
 					if check_x >= 0 and check_x < config.size.x and \
@@ -439,4 +439,4 @@ func is_position_cover(position: Vector2i) -> bool:
 	return position in cover_points
 
 func get_deployment_zone(zone_type: String) -> Array[Vector2i]:
-	return deployment_zones.get(zone_type, []) 
+	return deployment_zones.get(zone_type, [])

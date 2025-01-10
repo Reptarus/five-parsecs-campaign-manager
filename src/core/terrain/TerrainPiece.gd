@@ -3,7 +3,7 @@ extends StaticBody3D
 
 const TerrainTypes = preload("res://src/core/battle/TerrainTypes.gd")
 
-@export var terrain_type: TerrainTypes.Type = TerrainTypes.Type.EMPTY
+@export var terrain_type: int = TerrainTypes.Type.EMPTY
 @export var destructible := false
 @export var current_health := 100
 @export var max_health := 100
@@ -24,13 +24,13 @@ func _initialize_terrain_properties() -> void:
 	# Get terrain properties from type
 	match terrain_type:
 		TerrainTypes.Type.COVER_HIGH:
-			_combat_modifiers = {"cover": -2}
+			_combat_modifiers = {"cover": - 2}
 			_special_effects = {"blocks_los": true}
 		TerrainTypes.Type.COVER_LOW:
-			_combat_modifiers = {"cover": -1}
+			_combat_modifiers = {"cover": - 1}
 			_special_effects = {"blocks_los": false}
 		TerrainTypes.Type.DIFFICULT:
-			_combat_modifiers = {"movement": -1}
+			_combat_modifiers = {"movement": - 1}
 			_special_effects = {"difficult_terrain": true}
 		TerrainTypes.Type.EMPTY:
 			_combat_modifiers = {}
@@ -41,10 +41,10 @@ func _initialize_terrain_properties() -> void:
 	
 	# Set collision properties based on terrain type
 	if terrain_type in [TerrainTypes.Type.WALL, TerrainTypes.Type.COVER_HIGH]:
-		collision_layer = 1  # Collision layer for solid terrain
+		collision_layer = 1 # Collision layer for solid terrain
 		collision_mask = 1
 	else:
-		collision_layer = 2  # Collision layer for passable terrain
+		collision_layer = 2 # Collision layer for passable terrain
 		collision_mask = 2
 
 func get_cover_value() -> float:
@@ -118,7 +118,7 @@ func _handle_destruction() -> void:
 	else:
 		queue_free()
 
-func get_terrain_type() -> TerrainTypes.Type:
+func get_terrain_type() -> int:
 	return terrain_type
 
 func is_damaged() -> bool:

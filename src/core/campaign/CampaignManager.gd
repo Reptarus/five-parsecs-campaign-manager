@@ -201,7 +201,7 @@ func _generate_job_offer() -> Dictionary:
 	return {
 		"type": randi() % GameEnums.JobType.size() as int,
 		"payment": (randi() % 6 + 1) * 2,
-		"difficulty": randi() % GameEnums.DifficultyMode.size() as int,
+		"difficulty": randi() % GameEnums.DifficultyLevel.size() as int,
 		"patron": _generate_patron()
 	}
 
@@ -216,7 +216,7 @@ func _get_crew_searching_patrons() -> int:
 func _generate_patron() -> Dictionary:
 	return {
 		"name": _generate_patron_name(),
-		"type": randi() % GameEnums.PatronType.size() as int,
+		"type": randi() % GameEnums.FactionType.size() as int,
 		"relationship": 0,
 		"persistent": randf() < 0.2 # 20% chance for persistent patron
 	}

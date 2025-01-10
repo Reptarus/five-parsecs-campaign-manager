@@ -18,7 +18,7 @@ const PATHFINDING_THRESHOLD := 100
 # Test configuration
 const TEST_ITERATIONS := 10
 const MEMORY_TEST_ITERATIONS := 50
-const MEMORY_THRESHOLD_MB := 10  # 10MB
+const MEMORY_THRESHOLD_MB := 10 # 10MB
 const CLEANUP_DELAY_MS := 100
 
 func before_all() -> void:
@@ -66,7 +66,8 @@ func test_terrain_update_performance() -> void:
         # Update multiple terrain cells
         for j in range(10):
             var pos := Vector2i(randi() % battlefield.size.x, randi() % battlefield.size.y)
-            battlefield_manager.set_terrain(pos, TerrainTypes.Type.WALL)
+            var terrain_type: int = TerrainTypes.Type.WALL
+            battlefield_manager.set_terrain(pos, terrain_type)
         
         var end_time := Time.get_ticks_msec()
         total_time += (end_time - start_time)

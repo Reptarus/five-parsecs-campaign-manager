@@ -23,9 +23,9 @@ var stats: Dictionary = {
 # Combat equipment and status
 var equipped_weapons: Array[GameWeapon] = []
 var weapon_class: GlobalEnums.EnemyWeaponClass = GlobalEnums.EnemyWeaponClass.BASIC
-var armor_save: int = 0  # 0 means no save, otherwise represents X+ save
-var panic: int = 2  # Default panic value
-var morale: int = 10  # Default morale value
+var armor_save: int = 0 # 0 means no save, otherwise represents X+ save
+var panic: int = 2 # Default panic value
+var morale: int = 10 # Default morale value
 var deployment_pattern: GlobalEnums.EnemyDeploymentPattern = GlobalEnums.EnemyDeploymentPattern.STANDARD
 
 # Traits and characteristics
@@ -33,7 +33,7 @@ var characteristics: Array[GlobalEnums.EnemyCharacteristic] = []
 var special_rules: Array[String] = []
 
 # Rewards and loot
-var loot_table: Dictionary = {}  # Dictionary[GlobalEnums.EnemyReward, float]
+var loot_table: Dictionary = {} # Dictionary[GlobalEnums.EnemyReward, float]
 var experience_value: int = 0
 
 func _init(type: GlobalEnums.EnemyType = GlobalEnums.EnemyType.NONE,

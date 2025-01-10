@@ -3,7 +3,7 @@ extends Node
 
 const EXPORT_DIR = "user://exports/"
 
-signal export_completed(path: String)
+signal export_completed(success: bool, message: String)
 signal export_failed(error: String)
 
 var pdf_generator: PDFGenerator
@@ -27,7 +27,7 @@ func export_crew_to_pdf(crew: Crew, file_name: String = "") -> void:
     
     # Save to file
     if pdf_generator.save_to_file(file_path) == OK:
-        export_completed.emit(file_path)
+        export_completed.emit(true, "PDF file created successfully at " + file_path)
     else:
         export_failed.emit("Failed to create PDF file")
 
@@ -42,7 +42,7 @@ func export_character_sheet(character: Character, file_name: String = "") -> voi
     
     # Save to file
     if pdf_generator.save_to_file(file_path) == OK:
-        export_completed.emit(file_path)
+        export_completed.emit(true, "PDF file created successfully at " + file_path)
     else:
         export_failed.emit("Failed to create character sheet PDF")
 
@@ -83,6 +83,35 @@ func export_campaign_summary(campaign: CampaignSystem, file_name: String = "") -
     
     # Save to file
     if pdf_generator.save_to_file(file_path) == OK:
-        export_completed.emit(file_path)
+        export_completed.emit(true, "PDF file created successfully at " + file_path)
     else:
-        export_failed.emit("Failed to create campaign summary PDF") 
+        export_failed.emit("Failed to create campaign summary PDF")
+
+func export_crew_to_json(crew_data: Dictionary, file_path: String) -> void:
+    var file = FileAccess.open(file_path, FileAccess.WRITE)
+    if file:
+        var json_string = JSON.stringify(crew_data, "\t")
+        file.store_string(json_string)
+        file.close()
+        export_completed.emit(true, "Crew data exported successfully to " + file_path)
+    else:
+        export_completed.emit(false, "Failed to open file for writing: " + file_path)
+
+func import_crew_from_json(file_path: String) -> Dictionary:
+    var file = FileAccess.open(file_path, FileAccess.READ)
+    if file:
+        var json_string = file.get_as_text()
+        file.close()
+        
+        var json = JSON.new()
+        var error = json.parse(json_string)
+        if error == OK:
+            var crew_data = json.data
+            export_completed.emit(true, "Crew data imported successfully from " + file_path)
+            return crew_data
+        else:
+            export_completed.emit(false, "Failed to parse JSON data from " + file_path)
+            return {}
+    else:
+        export_completed.emit(false, "Failed to open file for reading: " + file_path)
+        return {}

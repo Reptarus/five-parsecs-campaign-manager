@@ -12,6 +12,7 @@ const BattleStateManager := preload("res://src/core/battle/state/BattleStateMach
 const FiveParsecsGameState := preload("res://src/core/state/GameState.gd")
 const WorldManager := preload("res://src/core/world/WorldManager.gd")
 const GameCampaignManager := preload("res://src/core/campaign/GameCampaignManager.gd")
+const Campaign = preload("res://src/core/campaign/Campaign.gd")
 
 ## Signals
 signal campaign_state_changed
@@ -27,8 +28,12 @@ signal campaign_started(campaign_data: Dictionary)
 signal campaign_ended(campaign_data: Dictionary)
 signal phase_changed(new_phase: int)
 signal turn_completed
-signal campaign_victory_achieved(victory_type: int)
+signal campaign_victory_achieved(victory_type: GameEnums.CampaignVictoryType)
 signal event_triggered(event_data: Dictionary)
+signal campaign_created(campaign_data: Dictionary)
+signal campaign_loaded(campaign_data: Dictionary)
+signal campaign_saved(campaign_data: Dictionary)
+signal campaign_deleted(campaign_id: String)
 
 ## Core Systems
 @export var game_state: FiveParsecsGameState
@@ -50,6 +55,8 @@ var campaign_progress: int = 0
 var campaign_milestones: Array[int] = []
 var is_tutorial_active: bool = false
 var current_tutorial_type: String = ""
+var active_campaign: Campaign = null
+var saved_campaigns: Dictionary = {}
 
 ## Campaign Configuration
 const TURNS_PER_CHAPTER := 10
@@ -58,13 +65,13 @@ const MAX_ACTIVE_MISSIONS := 5
 
 # Campaign configuration defaults
 const DEFAULT_USE_EXPANDED_MISSIONS := false
-const DEFAULT_DIFFICULTY_MODE := GameEnums.DifficultyMode.NORMAL
+const DEFAULT_DIFFICULTY := GameEnums.DifficultyLevel.NORMAL
 const DEFAULT_STARTING_CREDITS := 1000
 const DEFAULT_STARTING_SUPPLIES := 5
 const DEFAULT_ENABLE_PERMADEATH := false
 const DEFAULT_ENABLE_STORY_EVENTS := true
 const DEFAULT_CREW_SIZE := 5
-const DEFAULT_VICTORY_CONDITION := GameEnums.CampaignVictoryType.TURNS_20
+const DEFAULT_VICTORY_CONDITION = GameEnums.CampaignVictoryType.STANDARD
 
 func _ready() -> void:
 	if not campaign_manager:
@@ -86,7 +93,7 @@ func start_campaign(config: Dictionary = {}) -> void:
 	
 	# Apply configuration with defaults
 	use_expanded_missions = config.get("use_expanded_missions", DEFAULT_USE_EXPANDED_MISSIONS)
-	game_state.difficulty_mode = config.get("difficulty_mode", DEFAULT_DIFFICULTY_MODE)
+	game_state.difficulty_level = config.get("difficulty_level", DEFAULT_DIFFICULTY)
 	
 	# Initialize resources
 	game_state.credits = config.get("starting_credits", DEFAULT_STARTING_CREDITS)
@@ -277,4 +284,94 @@ func _check_faction_dominance() -> bool:
 	return false
 
 func _check_story_completion() -> bool:
-	return story_system and story_system.is_main_story_complete()
+	return false # Implement story completion check
+
+func create_new_campaign(config: Dictionary = {}) -> void:
+	var campaign := Campaign.new()
+	campaign.campaign_name = config.get("name", "New Campaign")
+	campaign.campaign_id = str(Time.get_unix_time_from_system())
+	campaign.difficulty_level = config.get("difficulty", GameEnums.DifficultyLevel.NORMAL)
+	
+	active_campaign = campaign
+	saved_campaigns[campaign.campaign_id] = campaign
+	
+	campaign_created.emit(campaign.serialize())
+
+func load_campaign(campaign_id: String) -> void:
+	if campaign_id in saved_campaigns:
+		active_campaign = saved_campaigns[campaign_id]
+		campaign_loaded.emit(active_campaign.serialize())
+
+func save_campaign() -> void:
+	if active_campaign:
+		saved_campaigns[active_campaign.campaign_id] = active_campaign
+		campaign_saved.emit(active_campaign.serialize())
+
+func delete_campaign(campaign_id: String) -> void:
+	if campaign_id in saved_campaigns:
+		saved_campaigns.erase(campaign_id)
+		campaign_deleted.emit(campaign_id)
+
+func get_active_campaign() -> Campaign:
+	return active_campaign
+
+func get_saved_campaigns() -> Array:
+	return saved_campaigns.values()
+
+func get_campaign_by_id(campaign_id: String) -> Campaign:
+	return saved_campaigns.get(campaign_id)
+
+func serialize() -> Dictionary:
+	var serialized_campaigns := {}
+	for id in saved_campaigns:
+		serialized_campaigns[id] = saved_campaigns[id].serialize()
+	
+	return {
+		"active_campaign_id": active_campaign.campaign_id if active_campaign else "",
+		"saved_campaigns": serialized_campaigns
+	}
+
+func deserialize(data: Dictionary) -> void:
+	saved_campaigns.clear()
+	active_campaign = null
+	
+	var serialized_campaigns: Dictionary = data.get("saved_campaigns", {})
+	for campaign_id in serialized_campaigns:
+		var campaign := Campaign.new()
+		campaign.deserialize(serialized_campaigns[campaign_id])
+		saved_campaigns[campaign_id] = campaign
+		
+		if campaign_id == data.get("active_campaign_id"):
+			active_campaign = campaign
+
+func check_victory_conditions() -> void:
+	if not active_campaign:
+		return
+		
+	var victory_type := _check_victory_type()
+	if victory_type != GameEnums.CampaignVictoryType.NONE:
+		campaign_victory_achieved.emit(victory_type)
+
+func _check_victory_type() -> GameEnums.CampaignVictoryType:
+	if _check_story_completion():
+		return GameEnums.CampaignVictoryType.STORY_COMPLETE
+		
+	if _check_reputation_threshold():
+		return GameEnums.CampaignVictoryType.REPUTATION_THRESHOLD
+		
+	if _check_credits_threshold():
+		return GameEnums.CampaignVictoryType.CREDITS_THRESHOLD
+		
+	if _check_mission_count():
+		return GameEnums.CampaignVictoryType.MISSION_COUNT
+		
+	return GameEnums.CampaignVictoryType.NONE
+
+func _check_reputation_threshold() -> bool:
+	return false # Implement reputation threshold check
+
+func _check_credits_threshold() -> bool:
+	return false # Implement credits threshold check
+
+func _check_mission_count() -> bool:
+	return false # Implement mission count check

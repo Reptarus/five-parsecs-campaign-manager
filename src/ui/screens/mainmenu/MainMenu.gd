@@ -2,6 +2,7 @@
 extends Control
 
 const GameStateManager = preload("res://src/core/managers/GameStateManager.gd")
+const GlobalEnums = preload("res://src/core/systems/GlobalEnums.gd")
 
 @onready var continue_button: Button = $MenuButtons/Continue
 @onready var new_campaign_button: Button = $MenuButtons/NewCampaign
@@ -12,9 +13,9 @@ const GameStateManager = preload("res://src/core/managers/GameStateManager.gd")
 @onready var library_button: Button = $MenuButtons/Library
 @onready var tutorial_popup: Panel = $TutorialPopup
 
-var game_state_manager: GameStateManager
+var game_state_manager: Node
 
-func setup(manager: GameStateManager) -> void:
+func setup(manager: Node) -> void:
 	game_state_manager = manager
 	update_continue_button_visibility()
 
@@ -68,17 +69,22 @@ func add_fade_in_animation() -> void:
 	tween.tween_property(self, "modulate", Color(1, 1, 1, 1), 0.5)
 
 func update_continue_button_visibility() -> void:
-	if not game_state_manager:
-		continue_button.visible = false
+	continue_button.visible = false
+	
+	if not is_instance_valid(game_state_manager):
 		return
 		
-	if game_state_manager.game_state and game_state_manager.game_state.current_ship:
-		continue_button.visible = game_state_manager.game_state.current_ship.crew.size() > 0
-	else:
-		continue_button.visible = false
+	if not game_state_manager.has_method("has_active_campaign"):
+		return
+		
+	continue_button.visible = game_state_manager.has_active_campaign()
 
 func _on_continue_pressed() -> void:
-	if game_state_manager and game_state_manager.game_state.current_ship and game_state_manager.game_state.current_ship.crew.size() > 0:
+	if not is_instance_valid(game_state_manager):
+		show_message("No active campaign to continue")
+		return
+		
+	if game_state_manager.has_method("has_active_campaign") and game_state_manager.has_active_campaign():
 		request_scene_change("crew_management")
 	else:
 		show_message("No active campaign to continue")
@@ -101,8 +107,11 @@ func _show_tutorial_popup() -> void:
 	tutorial_popup.visible = true
 
 func _start_new_campaign() -> void:
-	if game_state_manager:
-		game_state_manager.game_state.current_state = GlobalEnums.GameState.SETUP
+	if not is_instance_valid(game_state_manager):
+		return
+		
+	if game_state_manager.has_method("start_new_campaign"):
+		game_state_manager.start_new_campaign()
 		request_scene_change("campaign_setup")
 
 func _on_tutorial_popup_button_pressed(choice: String) -> void:
@@ -110,15 +119,18 @@ func _on_tutorial_popup_button_pressed(choice: String) -> void:
 	_handle_tutorial_choice(choice)
 
 func _handle_tutorial_choice(choice: String) -> void:
-	if not game_state_manager:
+	if not is_instance_valid(game_state_manager):
+		return
+		
+	if not game_state_manager.has_method("set_tutorial_state"):
 		return
 		
 	match choice:
 		"story_track", "compendium":
-			game_state_manager.game_state.is_tutorial_active = true
+			game_state_manager.set_tutorial_state(true)
 			request_scene_change("tutorial_setup")
 		"skip":
-			game_state_manager.game_state.is_tutorial_active = false
+			game_state_manager.set_tutorial_state(false)
 			_start_new_campaign()
 
 func _on_disable_tutorial_toggled(button_pressed: bool) -> void:

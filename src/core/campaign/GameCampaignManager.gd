@@ -16,6 +16,7 @@ signal campaign_ended
 signal campaign_setup_started
 signal campaign_setup_completed(config: Dictionary)
 signal phase_changed(new_phase: GameEnums.CampaignPhase)
+signal difficulty_changed(new_difficulty: GameEnums.DifficultyLevel)
 
 var game_state: FiveParsecsGameState
 var campaign_system: CampaignSystem
@@ -77,8 +78,10 @@ func start_tutorial(tutorial_type: String = "basic") -> void:
 func skip_tutorial() -> void:
 	campaign_system.complete_tutorial()
 
-func set_difficulty(difficulty: GameEnums.DifficultyMode) -> void:
-	campaign_system.set_difficulty(difficulty)
+func set_difficulty(difficulty: GameEnums.DifficultyLevel) -> void:
+	if game_state:
+		game_state.difficulty_level = difficulty
+		difficulty_changed.emit(difficulty)
 
 func process_current_phase() -> void:
 	campaign_system.process_current_phase()

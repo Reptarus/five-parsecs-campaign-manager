@@ -3,145 +3,134 @@ extends PanelContainer
 
 ## Signals
 signal rule_added(rule: Dictionary)
-signal rule_removed(rule_id: String)
 signal rule_modified(rule: Dictionary)
-signal rules_cleared
+signal rule_removed(rule_id: String)
+signal rule_applied(rule_id: String, context: String)
+signal validation_requested(rule: Dictionary, context: String)
 
-## Node references 
+## Node References
 @onready var rules_list: ItemList = %RulesList
-@onready var add_rule_button: Button = %AddRuleButton
-@onready var remove_rule_button: Button = %RemoveRuleButton
-@onready var edit_rule_button: Button = %EditRuleButton
-@onready var category_filter: OptionButton = %CategoryFilter
+@onready var rule_editor: PanelContainer = %RuleEditor
+@onready var validation_panel: PanelContainer = %ValidationPanel
 
 ## Properties
 var active_rules: Dictionary = {}
-var rule_categories: Dictionary = {
-	"combat": "Combat Rules",
-	"movement": "Movement Rules",
-	"terrain": "Terrain Effects",
-	"morale": "Morale Rules",
-	"equipment": "Equipment Rules"
+var rule_templates: Dictionary = {
+    "combat_modifier": {
+        "name": "Combat Modifier",
+        "type": "modifier",
+        "fields": ["value", "condition", "target"],
+        "validator": func(value: int, state: Dictionary) -> bool:
+            return value >= -3 and value <= 3
+    },
+    "resource_modifier": {
+        "name": "Resource Modifier",
+        "type": "resource",
+        "fields": ["resource_type", "value", "condition"],
+        "validator": func(value: int, state: Dictionary) -> bool:
+            return value >= -5 and value <= 5
+    },
+    "state_condition": {
+        "name": "State Condition",
+        "type": "condition",
+        "fields": ["state_key", "operator", "value"],
+        "validator": func(value: Variant, state: Dictionary) -> bool:
+            return true # Complex validation based on state
+    }
 }
 
-## Called when node enters scene tree
+## Called when the node enters scene tree
 func _ready() -> void:
-	if not Engine.is_editor_hint():
-		add_rule_button.pressed.connect(_on_add_rule_pressed)
-		remove_rule_button.pressed.connect(_on_remove_rule_pressed)
-		edit_rule_button.pressed.connect(_on_edit_rule_pressed)
-		category_filter.item_selected.connect(_on_category_filter_changed)
-		rules_list.item_selected.connect(_on_rule_selected)
-		
-		_setup_category_filter()
-		_update_button_states()
+    if not Engine.is_editor_hint():
+        _setup_signals()
+        _load_rule_templates()
+        _update_rules_list()
 
-## Sets up the category filter dropdown
-func _setup_category_filter() -> void:
-	category_filter.clear()
-	category_filter.add_item("All Categories", 0)
-	
-	var index = 1
-	for key in rule_categories:
-		category_filter.add_item(rule_categories[key], index)
-		category_filter.set_item_metadata(index, key)
-		index += 1
+## Sets up internal signals
+func _setup_signals() -> void:
+    rules_list.item_selected.connect(_on_rule_selected)
+    rule_editor.rule_saved.connect(_on_rule_saved)
+    rule_editor.rule_deleted.connect(_on_rule_deleted)
+    validation_panel.validation_completed.connect(_on_validation_completed)
+
+## Loads rule templates from configuration
+func _load_rule_templates() -> void:
+    # TODO: Load additional templates from config file
+    pass
+
+## Updates the rules list display
+func _update_rules_list() -> void:
+    rules_list.clear()
+    for rule_id in active_rules:
+        var rule = active_rules[rule_id]
+        rules_list.add_item(rule.name, null, true)
+        rules_list.set_item_metadata(-1, rule_id)
 
 ## Adds a new house rule
-func add_rule(rule_data: Dictionary) -> void:
-	if not _validate_rule_data(rule_data):
-		push_error("Invalid rule data provided")
-		return
-		
-	var rule_id = rule_data.get("id", str(Time.get_unix_time_from_system()))
-	active_rules[rule_id] = rule_data
-	_refresh_rules_list()
-	rule_added.emit(rule_data)
+func add_rule(rule_data: Dictionary) -> String:
+    var rule_id = str(Time.get_unix_time_from_system())
+    active_rules[rule_id] = rule_data
+    rule_added.emit(rule_data)
+    _update_rules_list()
+    return rule_id
+
+## Modifies an existing house rule
+func modify_rule(rule_id: String, rule_data: Dictionary) -> void:
+    if active_rules.has(rule_id):
+        active_rules[rule_id] = rule_data
+        rule_modified.emit(rule_data)
+        _update_rules_list()
 
 ## Removes a house rule
 func remove_rule(rule_id: String) -> void:
-	if active_rules.has(rule_id):
-		var rule = active_rules[rule_id]
-		active_rules.erase(rule_id)
-		_refresh_rules_list()
-		rule_removed.emit(rule_id)
-
-## Modifies an existing house rule
-func modify_rule(rule_id: String, new_data: Dictionary) -> void:
-	if active_rules.has(rule_id) and _validate_rule_data(new_data):
-		active_rules[rule_id] = new_data
-		_refresh_rules_list()
-		rule_modified.emit(new_data)
-
-## Validates rule data structure
-func _validate_rule_data(rule_data: Dictionary) -> bool:
-	var required_fields = ["name", "category", "description", "effects"]
-	for field in required_fields:
-		if not rule_data.has(field):
-			return false
-	return true
-
-## Updates the rules list display
-func _refresh_rules_list() -> void:
-	rules_list.clear()
-	var current_category = category_filter.get_selected_metadata()
-	
-	for rule_id in active_rules:
-		var rule = active_rules[rule_id]
-		if current_category == null or rule.category == current_category:
-			var text = "%s (%s)" % [rule.name, rule_categories[rule.category]]
-			rules_list.add_item(text)
-			rules_list.set_item_metadata(rules_list.item_count - 1, rule_id)
-
-## Updates button states based on selection
-func _update_button_states() -> void:
-	var has_selection = rules_list.get_selected_items().size() > 0
-	remove_rule_button.disabled = not has_selection
-	edit_rule_button.disabled = not has_selection
-
-## Button press handlers
-func _on_add_rule_pressed() -> void:
-	# TODO: Show rule creation dialog
-	pass
-
-func _on_remove_rule_pressed() -> void:
-	var selected = rules_list.get_selected_items()
-	if selected.size() > 0:
-		var rule_id = rules_list.get_item_metadata(selected[0])
-		remove_rule(rule_id)
-
-func _on_edit_rule_pressed() -> void:
-	var selected = rules_list.get_selected_items()
-	if selected.size() > 0:
-		var rule_id = rules_list.get_item_metadata(selected[0])
-		# TODO: Show rule edit dialog
-		pass
-
-func _on_category_filter_changed(_index: int) -> void:
-	_refresh_rules_list()
-
-func _on_rule_selected(_index: int) -> void:
-	_update_button_states()
+    if active_rules.has(rule_id):
+        active_rules.erase(rule_id)
+        rule_removed.emit(rule_id)
+        _update_rules_list()
 
 ## Gets all active rules
-func get_active_rules() -> Array:
-	return active_rules.values()
+func get_active_rules() -> Array[Dictionary]:
+    var rules: Array[Dictionary] = []
+    for rule in active_rules.values():
+        rules.append(rule)
+    return rules
 
-## Gets rules by category
-func get_rules_by_category(category: String) -> Array:
-	return active_rules.values().filter(func(rule): return rule.category == category)
+## Validates a rule against current state
+func validate_rule(rule: Dictionary, context: String) -> bool:
+    if not rule.has("type") or not rule_templates.has(rule.type):
+        return false
+    
+    var template = rule_templates[rule.type]
+    if not template.has("validator"):
+        return true
+    
+    validation_requested.emit(rule, context)
+    return template.validator.call(rule.value, {})
 
-## Clears all rules
-func clear_rules() -> void:
-	active_rules.clear()
-	_refresh_rules_list()
-	rules_cleared.emit()
+## Applies a rule to the current context
+func apply_rule(rule_id: String, context: String) -> void:
+    if active_rules.has(rule_id):
+        var rule = active_rules[rule_id]
+        if validate_rule(rule, context):
+            rule_applied.emit(rule_id, context)
 
-## Exports rules to dictionary
-func export_rules() -> Dictionary:
-	return active_rules.duplicate()
+## Signal Handlers
+func _on_rule_selected(index: int) -> void:
+    var rule_id = rules_list.get_item_metadata(index)
+    if active_rules.has(rule_id):
+        rule_editor.load_rule(rule_id, active_rules[rule_id])
 
-## Imports rules from dictionary
-func import_rules(rules: Dictionary) -> void:
-	active_rules = rules.duplicate()
-	_refresh_rules_list()
+func _on_rule_saved(rule_id: String, rule_data: Dictionary) -> void:
+    if rule_id.is_empty():
+        add_rule(rule_data)
+    else:
+        modify_rule(rule_id, rule_data)
+
+func _on_rule_deleted(rule_id: String) -> void:
+    remove_rule(rule_id)
+
+func _on_validation_completed(rule: Dictionary, context: String, is_valid: bool) -> void:
+    if is_valid:
+        validation_panel.show_success("Rule validation passed")
+    else:
+        validation_panel.show_error("Rule validation failed")

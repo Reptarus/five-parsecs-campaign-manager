@@ -1,4 +1,5 @@
-extends RefCounted
+## Global enums for the Five Parsecs battle system
+extends Node
 
 ## Character related enums
 enum CharacterStatus {
@@ -9,65 +10,85 @@ enum CharacterStatus {
 }
 
 enum Origin {
+	NONE,
 	HUMAN,
-	ENGINEER,
 	FERAL,
+	SOULLESS,
+	ALIEN,
+	ROBOT,
+	ENGINEER,
 	KERIN,
 	PRECURSOR,
-	SOULLESS,
 	SWIFT,
 	BOT
 }
 
 enum CharacterClass {
+	NONE,
 	SOLDIER,
 	MEDIC,
 	TECH,
+	ENGINEER,
 	SCOUT,
 	LEADER,
-	SPECIALIST
+	SPECIALIST,
+	GLORY
 }
 
-## Combat related enums
+## Unit actions in combat
 enum UnitAction {
-	NONE = 0,
-	MOVE = 1,
-	ATTACK = 2,
-	DASH = 3,
-	ITEMS = 4,
-	BRAWL = 5,
-	SNAP_FIRE = 6,
-	OVERWATCH = 7,
-	TAKE_COVER = 8,
-	RELOAD = 9,
-	INTERACT = 10
+	NONE,
+	MOVE,
+	ATTACK,
+	DASH,
+	ITEMS,
+	BRAWL,
+	SNAP_FIRE,
+	OVERWATCH,
+	TAKE_COVER,
+	RELOAD,
+	INTERACT,
+	PROTECT,
+	DEFEND
 }
 
+## Combat phases
 enum CombatPhase {
 	NONE,
 	SETUP,
 	DEPLOYMENT,
 	INITIATIVE,
-	UNIT_ACTION,
+	ACTION,
 	REACTION,
+	MOVEMENT,
 	END_TURN,
 	CLEANUP
 }
 
-enum CombatModifier {
-	NONE,
-	COVER_LIGHT,
-	COVER_HEAVY,
-	HIGH_GROUND,
-	LOW_GROUND,
-	FLANKING,
-	SUPPRESSED,
-	OVERWATCH,
-	WOUNDED,
-	INSPIRED,
-	FOCUSED
+## Battle phases
+enum BattlePhase {
+	SETUP,
+	DEPLOYMENT,
+	INITIATIVE,
+	ACTIVATION,
+	MOVEMENT,
+	ACTION,
+	REACTION,
+	CLEANUP,
+	END
 }
 
+## Combat tactics
+enum CombatTactic {
+	NONE,
+	AGGRESSIVE,
+	DEFENSIVE,
+	BALANCED,
+	EVASIVE,
+	SUPPORTIVE
+}
+
+## Combat results
 enum CombatResult {
 	NONE = 0,
 	HIT = 1,
@@ -79,122 +100,190 @@ enum CombatResult {
 	COUNTER = 7
 }
 
-## Mission related enums
-enum MissionType {
-	NONE,
-	PATROL,
-	RAID,
-	DEFENSE,
-	ESCORT,
-	SABOTAGE,
-	RESCUE,
-	ASSASSINATION,
-	INVESTIGATION,
-	GREEN_ZONE,
-	RED_ZONE,
-	BLACK_ZONE,
-	PATRON,
-	TUTORIAL,
-	STORY
-}
-
-enum MissionObjective {
-	NONE,
-	WIN_BATTLE,
-	MOVE_THROUGH,
-	PATROL,
-	SEEK_AND_DESTROY,
-	RECON,
-	RESCUE,
-	DEFEND,
-	ESCORT,
-	SABOTAGE,
-	ELIMINATE,
-	ELIMINATE_TARGET
-}
-
-enum DeploymentType {
-	STANDARD,
-	SCATTERED,
-	AMBUSH,
-	REINFORCEMENT,
-	DEFENSIVE,
-	OFFENSIVE,
-	INFILTRATION,
-	CONCEALED,
-	BOLSTERED_LINE,
-	LINE
-}
-
-enum DifficultyMode {
-	EASY,
-	NORMAL,
-	CHALLENGING,
-	HARDCORE,
-	INSANITY
-}
-
-## Terrain related enums
+## Terrain modifiers
 enum TerrainModifier {
 	NONE,
 	COVER_BONUS,
 	LINE_OF_SIGHT_BLOCKED,
 	DIFFICULT_TERRAIN,
+	WATER_HAZARD,
+	MOVEMENT_PENALTY,
+	ELEVATION_BONUS,
 	HAZARDOUS,
 	FULL_COVER,
-	PARTIAL_COVER,
-	ELEVATION_BONUS,
-	MOVEMENT_PENALTY,
-	WATER_HAZARD
+	PARTIAL_COVER
 }
 
-## Victory condition enums
-enum VictoryConditionType {
+## Terrain feature types
+enum TerrainFeatureType {
+	NONE,
+	COVER_HIGH,
+	COVER_LOW,
+	WALL,
+	WATER,
+	HAZARD,
+	HIGH_GROUND,
+	DIFFICULT
+}
+
+## Combat advantage states
+enum CombatAdvantage {
+	NONE,
+	MINOR,
+	MAJOR,
+	OVERWHELMING
+}
+
+## Combat status effects
+enum CombatStatus {
+	NONE,
+	STUNNED,
+	WOUNDED,
+	SUPPRESSED,
+	FLANKED,
+	PROTECTED,
+	PINNED,
+	SURROUNDED
+}
+
+## Mission types
+enum MissionType {
+	NONE,
+	TUTORIAL,
+	STORY,
+	SIDE,
+	PATROL,
+	BOUNTY,
+	RAID,
+	DEFENSE,
+	ESCORT,
+	GREEN_ZONE,
+	RED_ZONE,
+	BLACK_ZONE,
+	PATRON,
+	ASSASSINATION,
+	RESCUE,
+	SABOTAGE
+}
+
+## Mission objectives
+enum MissionObjective {
+	NONE,
+	PATROL,
+	SEEK_AND_DESTROY,
+	RESCUE,
+	DEFEND,
+	ESCORT,
+	SABOTAGE,
+	RECON,
+	MOVE_THROUGH,
+	WIN_BATTLE,
+	ELIMINATE,
+	CAPTURE_POINT,
+	SURVIVE,
+	PROTECT_VIP,
+	RETRIEVE_ITEM,
+	ESCAPE,
+	HOLD_POSITION
+}
+
+## Deployment types
+enum DeploymentType {
 	NONE,
 	STANDARD,
-	ELIMINATION,
-	EXTRACTION,
-	SURVIVAL,
-	CONTROL_POINTS,
-	OBJECTIVE,
-	TURNS_20,
-	WEALTH_GOAL,
-	REPUTATION_GOAL,
-	FACTION_DOMINANCE,
-	STORY_COMPLETE
+	LINE,
+	AMBUSH,
+	SCATTERED,
+	DEFENSIVE,
+	CONCEALED,
+	INFILTRATION,
+	REINFORCEMENT,
+	BOLSTERED_LINE,
+	OFFENSIVE
 }
 
-## Faction related enums
-enum FactionType {
+## Enemy types
+enum EnemyType {
 	NONE,
-	IMPERIAL,
-	REBEL,
-	MERCENARY,
-	PIRATE,
-	CORPORATE,
-	NEUTRAL,
-	HOSTILE
-}
-
-## Type related enums
-enum Type {
-	STORY,
-	SIDE_MISSION,
-	RANDOM_ENCOUNTER,
-	SPECIAL_EVENT,
-	CAMPAIGN_MISSION
-}
-
-## Equipment related enums
-enum ArmorType {
-	NONE,
-	LIGHT,
-	MEDIUM,
+	GRUNT,
+	ELITE,
 	HEAVY,
-	SCREEN,
-	POWERED
+	SPECIALIST,
+	BOSS,
+	GANGERS,
+	PIRATES,
+	ENFORCERS,
+	RAIDERS,
+	WAR_BOTS,
+	BLACK_OPS_TEAM,
+	ASSASSINS,
+	UNITY_GRUNTS,
+	BLACK_DRAGON_MERCS,
+	PUNKS,
+	CULTISTS,
+	PSYCHOS,
+	BRAT_GANG,
+	GENE_RENEGADES,
+	ANARCHISTS,
+	K_ERIN_OUTLAWS,
+	SKULKER_BRIGANDS,
+	TECH_GANGERS,
+	STARPORT_SCUM,
+	HULKER_GANG,
+	GUN_SLINGERS,
+	UNKNOWN_MERCS,
+	GUILD_TROOPS,
+	ROID_GANGERS,
+	SECRET_AGENTS,
+	SECURITY_BOTS,
+	RAGE_LIZARD_MERCS,
+	BLOOD_STORM_MERCS,
+	FERAL_MERCENARIES,
+	SKULKER_MERCENARIES,
+	CORPORATE_SECURITY,
+	MINION
 }
 
+## Enemy behavior patterns
+enum EnemyBehavior {
+	AGGRESSIVE,
+	CAUTIOUS,
+	TACTICAL,
+	DEFENSIVE,
+	BEAST,
+	RAMPAGE,
+	GUARDIAN
+}
+
+## Campaign phases
+enum CampaignPhase {
+	NONE,
+	SETUP,
+	UPKEEP,
+	STORY,
+	CAMPAIGN,
+	BATTLE_SETUP,
+	BATTLE,
+	POST_BATTLE,
+	MANAGEMENT,
+	TRAVEL,
+	BATTLE_RESOLUTION,
+	ADVANCEMENT
+}
+
+## Game states
+enum GameState {
+	NONE,
+	SETUP,
+	PLAYING,
+	PAUSED,
+	BATTLE,
+	CAMPAIGN,
+	ENDED,
+	GAME_OVER
+}
+
+## Equipment types
 enum ItemType {
 	NONE,
 	WEAPON,
@@ -203,133 +292,239 @@ enum ItemType {
 	CONSUMABLE,
 	QUEST_ITEM,
 	MODIFICATION,
-	SPECIAL,
-	EQUIPMENT,
-	ACCESSORY
+	SPECIAL
 }
 
-enum WeaponType {
-	NONE,
-	PISTOL,
-	RIFLE,
-	HEAVY,
-	MELEE,
-	SPECIAL,
-	BASIC,
-	ADVANCED,
-	ELITE
-}
-
-## Battlefield related enums
+## Battlefield types
 enum BattlefieldType {
 	NONE,
-	OPEN,
 	URBAN,
-	DENSE,
-	HAZARDOUS,
-	MIXED
+	WILDERNESS,
+	SPACE_STATION,
+	STARSHIP,
+	RUINS,
+	INDUSTRIAL,
+	OUTPOST,
+	SETTLEMENT
 }
 
-enum BattlefieldSize {
-	SMALL,
-	MEDIUM,
-	LARGE,
-	HUGE
-}
-
+## Battlefield features
 enum BattlefieldFeature {
 	NONE,
-	COVER, # Basic cover piece
-	BARRICADE, # Linear cover
-	RUINS, # Destroyed structure
-	HAZARD, # Dangerous area
-	HIGH_GROUND, # Elevated position
-	OBSTACLE, # Impassable object
-	OBJECTIVE_MARKER, # Mission objective
-	DEPLOYMENT_ZONE # Starting area
-}
-
-enum BattlefieldZone {
-	DEPLOYMENT,
-	NEUTRAL,
-	OBJECTIVE,
+	COVER,
+	BARRICADE,
+	RUINS,
 	HAZARD,
-	RESTRICTED
+	HIGH_GROUND,
+	OBSTACLE
 }
 
-## Combat system enums
-enum CombatRange {
-	POINT_BLANK = 0,
-	SHORT = 1,
-	MEDIUM = 2,
-	LONG = 3,
-	EXTREME = 4
+## Battlefield zones
+enum BattlefieldZone {
+	NONE,
+	DEPLOYMENT,
+	OBJECTIVE,
+	NEUTRAL,
+	HAZARDOUS,
+	RESTRICTED,
+	SPECIAL
 }
 
-enum CombatAdvantage {
-	NONE = 0,
-	MINOR = 1,
-	MAJOR = 2,
-	OVERWHELMING = 3
+## Character backgrounds
+enum CharacterBackground {
+	NONE,
+	MILITARY,
+	CRIMINAL,
+	ACADEMIC,
+	CORPORATE,
+	COLONIST,
+	DRIFTER
 }
 
-enum CombatStatus {
-	NONE = 0,
-	ENGAGED = 1,
-	PINNED = 2,
-	FLANKED = 3,
-	SURROUNDED = 4
+## Character motivations
+enum CharacterMotivation {
+	NONE,
+	GLORY,
+	WEALTH,
+	SURVIVAL,
+	REVENGE,
+	POWER,
+	KNOWLEDGE,
+	JUSTICE
 }
 
-enum CombatTactic {
-	NONE = 0,
-	AGGRESSIVE = 1,
-	DEFENSIVE = 2,
-	EVASIVE = 3,
-	SUPPORTIVE = 4
+## Battle types
+enum BattleType {
+	NONE,
+	STANDARD,
+	SKIRMISH,
+	RAID,
+	ASSAULT,
+	DEFENSE,
+	AMBUSH,
+	ESCORT,
+	SABOTAGE,
+	RESCUE,
+	INVESTIGATION
 }
 
-## Quest related enums
+## Enemy weapon classes
+enum EnemyWeaponClass {
+	NONE,
+	BASIC,
+	ADVANCED,
+	ELITE,
+	SPECIAL,
+	EXPERIMENTAL,
+	LEGENDARY
+}
+
+## Campaign victory types
+enum CampaignVictoryType {
+	NONE,
+	STANDARD,
+	REPUTATION_THRESHOLD,
+	CREDITS_THRESHOLD,
+	MISSION_COUNT,
+	STORY_COMPLETE,
+	FACTION_DOMINANCE,
+	WEALTH_GOAL,
+	REPUTATION_GOAL,
+	TURNS_20,
+	TURNS_50,
+	TURNS_100,
+	QUESTS_3,
+	QUESTS_5,
+	QUESTS_10
+}
+
+## Quest types
 enum QuestType {
 	NONE,
 	MAIN,
 	SIDE,
-	SPECIAL,
-	EVENT,
-	CAMPAIGN,
-	PATRON
-}
-
-enum QuestStatus {
-	NONE,
-	ACTIVE,
-	COMPLETED,
-	FAILED,
-	EXPIRED
-}
-
-enum BattleType {
-	NONE,
-	STANDARD,
-	BOSS,
-	AMBUSH,
-	DEFENSE,
-	RAID,
+	STORY,
+	FACTION,
+	PATRON,
 	SPECIAL
 }
 
-## AI behavior enums
-enum AIBehavior {
+## Strife levels for battle escalation
+enum StrifeType {
 	NONE,
-	AGGRESSIVE,
-	DEFENSIVE,
-	TACTICAL,
-	CAUTIOUS,
-	SUPPORTIVE
+	LOW,
+	MEDIUM,
+	HIGH,
+	CRITICAL,
+	RESOURCE_CONFLICT,
+	POLITICAL_UNREST,
+	CRIMINAL_UPRISING,
+	CORPORATE_WAR
 }
 
-## Item rarity enums
+## Planet types
+enum PlanetType {
+	NONE,
+	CORE_WORLD,
+	COLONY,
+	FRONTIER,
+	MINING_WORLD,
+	AGRICULTURAL,
+	INDUSTRIAL,
+	RESEARCH_STATION,
+	FRINGE_WORLD
+}
+
+## Fringe world instability
+enum FringeWorldInstability {
+	NONE,
+	STABLE,
+	UNREST,
+	CONFLICT,
+	CHAOS,
+	ANARCHY,
+	COLLAPSE
+}
+
+## Ship component types
+enum ShipComponentType {
+	NONE,
+	ENGINE,
+	WEAPONS,
+	SHIELDS,
+	CARGO,
+	LIFE_SUPPORT,
+	NAVIGATION,
+	SPECIAL
+}
+
+## Relation types
+enum RelationType {
+	NONE,
+	FRIENDLY,
+	NEUTRAL,
+	HOSTILE,
+	ALLIED,
+	WAR,
+	TRADE_PARTNER
+}
+
+## State verification types
+enum StateVerificationType {
+	NONE,
+	STATE_CHECK,
+	CONDITION_CHECK,
+	REQUIREMENT_CHECK,
+	RULE_CHECK,
+	SYSTEM_CHECK
+}
+
+## Resource types
+enum ResourceType {
+	NONE,
+	CREDITS,
+	STORY_POINT,
+	EXPERIENCE,
+	REPUTATION,
+	INFLUENCE,
+	SUPPLIES,
+	FUEL,
+	AMMO,
+	MEDICAL,
+	PATRON,
+	XP,
+	STORY_POINTS,
+	MEDICAL_SUPPLIES,
+	WEAPONS
+}
+
+## Weapon types
+enum WeaponType {
+	NONE,
+	BASIC,
+	ADVANCED,
+	ELITE,
+	SPECIAL,
+	RIFLE,
+	PISTOL,
+	MELEE,
+	HEAVY
+}
+
+## Armor types
+enum ArmorType {
+	NONE,
+	LIGHT,
+	MEDIUM,
+	HEAVY,
+	POWERED,
+	SHIELD,
+	SPECIAL
+}
+
+## Item rarity
 enum ItemRarity {
+	NONE,
 	COMMON,
 	UNCOMMON,
 	RARE,
@@ -337,47 +532,239 @@ enum ItemRarity {
 	LEGENDARY
 }
 
-## Campaign related enums
-enum CampaignPhase {
-	NONE = -1,
-	SETUP = 0,
-	UPKEEP = 1,
-	STORY = 2,
-	CAMPAIGN = 3,
-	BATTLE_SETUP = 4,
-	BATTLE = 5,
-	POST_BATTLE = 6,
-	MANAGEMENT = 7,
-	TRAVEL = 8,
-	BATTLE_RESOLUTION = 9,
-	ADVANCEMENT = 10
+## Item quality
+enum ItemQuality {
+	NONE,
+	POOR,
+	STANDARD,
+	GOOD,
+	EXCELLENT,
+	PRISTINE
 }
 
-const PHASE_NAMES = {
-	CampaignPhase.NONE: "None",
-	CampaignPhase.SETUP: "Setup",
-	CampaignPhase.UPKEEP: "Upkeep",
-	CampaignPhase.STORY: "Story",
-	CampaignPhase.CAMPAIGN: "Campaign",
-	CampaignPhase.BATTLE_SETUP: "Battle Setup",
-	CampaignPhase.BATTLE_RESOLUTION: "Battle Resolution",
-	CampaignPhase.ADVANCEMENT: "Advancement"
+## Mod slots
+enum ModSlot {
+	NONE,
+	WEAPON,
+	ARMOR,
+	GEAR,
+	SPECIAL
 }
 
-const PHASE_DESCRIPTIONS = {
-	CampaignPhase.NONE: "No active phase",
-	CampaignPhase.SETUP: "Set up your crew and campaign parameters",
-	CampaignPhase.UPKEEP: "Handle maintenance costs and resource management",
-	CampaignPhase.STORY: "Check and resolve story events and world developments",
-	CampaignPhase.CAMPAIGN: "Manage crew, equipment, and select missions",
-	CampaignPhase.BATTLE_SETUP: "Prepare the battlefield and deploy your crew",
-	CampaignPhase.BATTLE_RESOLUTION: "Resolve combat outcomes and handle aftermath",
-	CampaignPhase.ADVANCEMENT: "Level up characters and update equipment"
+## Damage types
+enum DamageType {
+	NONE,
+	KINETIC,
+	ENERGY,
+	EXPLOSIVE,
+	FIRE,
+	ACID,
+	POISON,
+	SPECIAL
 }
 
-## Global event enums
+## Status effect types
+enum StatusEffectType {
+	NONE,
+	BUFF,
+	DEBUFF,
+	CONDITION,
+	SPECIAL
+}
+
+## Skill types
+enum SkillType {
+	NONE,
+	COMBAT,
+	TECH,
+	MEDICAL,
+	SURVIVAL,
+	SOCIAL,
+	SPECIAL
+}
+
+## Experience sources
+enum ExperienceSource {
+	NONE,
+	COMBAT,
+	QUEST,
+	EXPLORATION,
+	CRAFTING,
+	SPECIAL
+}
+
+## Difficulty levels
+enum DifficultyLevel {
+	NONE,
+	EASY,
+	NORMAL,
+	HARD,
+	VETERAN,
+	ELITE
+}
+
+## Zone types
+enum ZoneType {
+	NONE,
+	SAFE,
+	DANGEROUS,
+	RESTRICTED,
+	SPECIAL
+}
+
+## Weather conditions
+enum WeatherCondition {
+	NONE,
+	CLEAR,
+	RAIN,
+	STORM,
+	FOG,
+	SNOW,
+	SANDSTORM,
+	SPECIAL
+}
+
+## Time of day
+enum TimeOfDay {
+	NONE,
+	DAWN,
+	DAY,
+	DUSK,
+	NIGHT
+}
+
+## Visibility conditions
+enum VisibilityCondition {
+	NONE,
+	CLEAR,
+	LIMITED,
+	POOR,
+	ZERO
+}
+
+## Battle event types
+enum BattleEventType {
+	NONE,
+	COMBAT,
+	MOVEMENT,
+	OBJECTIVE,
+	REINFORCEMENT,
+	ENVIRONMENT,
+	INJURY,
+	EQUIPMENT_LOSS,
+	RESOURCE_GAIN,
+	RESOURCE_LOSS,
+	MORALE_BOOST,
+	MORALE_DROP,
+	SPECIAL
+}
+
+## Event categories
+enum EventCategory {
+	NONE,
+	STORY,
+	COMBAT,
+	EXPLORATION,
+	TRADE,
+	SOCIAL,
+	SPECIAL,
+	EQUIPMENT,
+	TACTICAL
+}
+
+## Strange character types
+enum StrangeCharacterType {
+	NONE,
+	TRADER,
+	MERCENARY,
+	INFORMANT,
+	RIVAL,
+	ALLY,
+	ENEMY,
+	SPECIAL,
+	DE_CONVERTED,
+	UNITY_AGENT,
+	BOT,
+	ASSAULT_BOT,
+	PRECURSOR,
+	FERAL,
+	ALIEN
+}
+
+## Battle environments
+enum BattleEnvironment {
+	NONE,
+	URBAN,
+	WILDERNESS,
+	SPACE_STATION,
+	SHIP_INTERIOR,
+	UNDERGROUND,
+	WATER,
+	SPECIAL
+}
+
+## Faction types
+enum FactionType {
+	NONE,
+	MILITARY,
+	CRIMINAL,
+	CORPORATE,
+	REBEL,
+	NEUTRAL,
+	REBELS,
+	EMPIRE,
+	PIRATES,
+	MERCHANTS,
+	GUILD,
+	SYNDICATE,
+	CORPORATION,
+	CULT,
+	ENEMY,
+	HOSTILE,
+	FRIENDLY,
+	ALLIED,
+	SPECIAL
+}
+
+## Relationship status
+enum RelationshipStatus {
+	NONE,
+	FRIENDLY,
+	NEUTRAL,
+	HOSTILE,
+	ALLIED,
+	WAR
+}
+
+## Victory condition types
+enum VictoryConditionType {
+	NONE,
+	STANDARD,
+	ELIMINATION,
+	OBJECTIVE,
+	SURVIVAL,
+	EXTRACTION,
+	CONTROL_POINTS,
+	CUSTOM
+}
+
+## Rival involvement
+enum RivalInvolvement {
+	NONE,
+	DIRECT,
+	INDIRECT,
+	PASSIVE,
+	SPECIAL
+}
+
+## Global events
 enum GlobalEvent {
 	NONE,
+	STORY,
+	FACTION,
+	WORLD,
+	CREW,
+	SPECIAL,
 	MARKET_CRASH,
 	ALIEN_INVASION,
 	TECH_BREAKTHROUGH,
@@ -392,501 +779,429 @@ enum GlobalEvent {
 	RESOURCE_CONFLICT
 }
 
-# Add these missing enums
-enum GameState {
-    NONE,
-    SETUP,
-    PLAYING,
-    PAUSED,
-    BATTLE,
-    CAMPAIGN,
-    ENDED,
-    GAME_OVER
-}
-
+## Market states
 enum MarketState {
-    NORMAL,
-    CRISIS,
-    BOOM,
-    RESTRICTED
+	NONE,
+	NORMAL,
+	BOOM,
+	BUST,
+	CRISIS,
+	RESTRICTED
 }
 
-enum BattlePhase {
-    NONE = 0,
-    SETUP = 1,
-    DEPLOYMENT = 2,
-    INITIATIVE = 3,
-    ACTIVATION = 4,
-    REACTION = 5,
-    CLEANUP = 6
-}
-
-enum CampaignVictoryType {
-    NONE,
-    STANDARD,
-    WEALTH,
-    REPUTATION,
-    CONQUEST,
-    STORY,
-    SURVIVAL,
-    TURNS_20,
-    TURNS_50,
-    TURNS_100,
-    QUESTS_3,
-    QUESTS_5,
-    QUESTS_10,
-    WEALTH_GOAL,
-    REPUTATION_GOAL,
-    FACTION_DOMINANCE,
-    STORY_COMPLETE,
-    ELIMINATION,
-    EXTRACTION,
-    CONTROL_POINTS,
-    OBJECTIVE
-}
-
-enum MissionVictoryType {
-    NONE,
-    ELIMINATION, # Eliminate all enemies
-    OBJECTIVE, # Complete specific objective
-    EXTRACTION, # Reach extraction point
-    SURVIVAL, # Survive specified duration
-    CONTROL_POINTS, # Control specific points
-    CUSTOM # Custom victory conditions
-}
-
-enum ShipComponentType {
-    NONE,
-    # Hull types
-    HULL_LIGHT,
-    HULL_MEDIUM,
-    HULL_HEAVY,
-    # Engine types
-    ENGINE_BASIC,
-    ENGINE_IMPROVED,
-    ENGINE_ADVANCED,
-    # Weapon types
-    WEAPON_LIGHT,
-    WEAPON_MEDIUM,
-    WEAPON_HEAVY,
-    # Medical bay types
-    MEDICAL_BASIC,
-    MEDICAL_IMPROVED,
-    MEDICAL_ADVANCED
-}
-
-enum PlanetType {
-    NONE,
-    FRONTIER,
-    CORE_WORLD,
-    COLONY,
-    MINING_WORLD,
-    INDUSTRIAL,
-    AGRICULTURAL,
-    RESEARCH_STATION
-}
-
-enum ResourceType {
-    NONE,
-    MINERALS,
-    FUEL,
-    FOOD,
-    TECHNOLOGY,
-    LUXURY_GOODS,
-    MEDICAL_SUPPLIES,
-    WEAPONS,
-    RARE_MATERIALS,
-    CREDITS,
-    SUPPLIES,
-    STORY_POINT,
-    PATRON,
-    RIVAL,
-    QUEST_RUMOR,
-    XP,
-    REPUTATION,
-    STORY_POINTS,
-    EXPERIENCE,
-    MATERIALS,
-    MEDICAL,
-    AMMUNITION
-}
-
+## World traits
 enum WorldTrait {
-    NONE,
-    INDUSTRIAL_HUB,
-    FRONTIER_WORLD,
-    TRADE_CENTER,
-    PIRATE_HAVEN,
-    FREE_PORT,
-    CORPORATE_CONTROLLED,
-    TECH_CENTER,
-    MINING_COLONY,
-    AGRICULTURAL_WORLD
+	NONE,
+	PEACEFUL,
+	DANGEROUS,
+	WEALTHY,
+	POOR,
+	ADVANCED,
+	PRIMITIVE,
+	INDUSTRIAL_HUB,
+	FRONTIER_WORLD,
+	TRADE_CENTER,
+	PIRATE_HAVEN,
+	FREE_PORT,
+	CORPORATE_CONTROLLED,
+	TECH_CENTER,
+	MINING_COLONY,
+	AGRICULTURAL_WORLD,
+	SPECIAL
 }
 
-enum ThreatType {
-    NONE,
-    PIRATES,
-    RAIDERS,
-    HOSTILE_FAUNA,
-    NATURAL_DISASTERS,
-    DISEASE,
-    REBELLION,
-    INVASION,
-    CORRUPTION,
-    UNREST
-}
-
-enum StrifeType {
-    NONE,
-    LOW,
-    MEDIUM,
-    HIGH,
-    CRITICAL,
-    RESOURCE_CONFLICT,
-    POLITICAL_UNREST,
-    CRIMINAL_UPRISING,
-    CORPORATE_WAR
-}
-
-enum FringeWorldInstability {
-    STABLE,
-    UNREST,
-    UNSTABLE,
-    CHAOTIC,
-    COLLAPSING
-}
-
-enum BattleEnvironment {
-    NONE,
-    URBAN, # City/built-up area
-    WILDERNESS, # Natural environment
-    SPACE_STATION, # Space station interior
-    SHIP_INTERIOR, # Starship interior
-    INDUSTRIAL # Factory/industrial area
-}
-
-enum BattleObjective {
-    NONE,
-    CAPTURE_POINT,
-    DEFEND_POINT,
-    ELIMINATE_TARGET,
-    RETRIEVE_ITEM,
-    ESCAPE
-}
-
-enum TerrainFeatureType {
-    NONE,
-    WALL,
-    COVER_LOW,
-    COVER_HIGH,
-    HIGH_GROUND,
-    WATER,
-    HAZARD,
-    DIFFICULT
-}
-
-enum CharacterBackground {
-    NONE,
-    MILITARY,
-    ACADEMIC,
-    CRIMINAL
-}
-
-enum CharacterMotivation {
-    NONE,
-    GLORY,
-    WEALTH,
-    SURVIVAL
-}
-
-enum DeploymentZone {
-    PLAYER,
-    ENEMY,
-    NEUTRAL,
-    OBJECTIVE
-}
-
-enum CrewSize {
-    FOUR = 4,
-    FIVE = 5,
-    SIX = 6
-}
-
-enum CharacterStats {
-    REACTIONS,
-    SPEED,
-    COMBAT_SKILL,
-    TOUGHNESS,
-    SAVVY,
-    LUCK
-}
-
-enum EnemyType {
-    NONE,
-    GRUNT,
-    ELITE,
-    BOSS,
-    MINION,
-    GANGERS,
-    PUNKS,
-    RAIDERS,
-    CULTISTS,
-    PSYCHOS,
-    BRAT_GANG,
-    GENE_RENEGADES,
-    ANARCHISTS,
-    PIRATES,
-    K_ERIN_OUTLAWS,
-    SKULKER_BRIGANDS,
-    TECH_GANGERS,
-    STARPORT_SCUM,
-    HULKER_GANG,
-    GUN_SLINGERS,
-    UNKNOWN_MERCS,
-    ENFORCERS,
-    GUILD_TROOPS,
-    ROID_GANGERS,
-    BLACK_OPS_TEAM,
-    WAR_BOTS,
-    SECRET_AGENTS,
-    ASSASSINS,
-    CORPORATE_SECURITY,
-    UNITY_GRUNTS,
-    SECURITY_BOTS,
-    BLACK_DRAGON_MERCS,
-    RAGE_LIZARD_MERCS,
-    BLOOD_STORM_MERCS,
-    FERAL_MERCENARIES,
-    SKULKER_MERCENARIES
-}
-
-enum EnemyCategory {
-    CRIMINAL_ELEMENTS,
-    HIRED_MUSCLE,
-    MILITARY_FORCES,
-    ALIEN_THREATS
-}
-
-enum EnemyBehavior {
-    AGGRESSIVE,
-    CAUTIOUS,
-    TACTICAL,
-    DEFENSIVE,
-    BEAST,
-    RAMPAGE,
-    GUARDIAN
-}
-
-enum EnemyWeaponClass {
-    BASIC = 1,
-    ADVANCED = 2,
-    ELITE = 3
-}
-
-enum EnemyTrait {
-    FEARLESS,
-    STUBBORN,
-    CARELESS,
-    ALERT,
-    FEROCIOUS,
-    SCAVENGER,
-    QUICK,
-    GRUESOME,
-    INTRIGUE,
-    TOUGH_FIGHT,
-    SAVING_THROW,
-    BAD_SHOTS,
-    TRICK_SHOT,
-    LEG_IT,
-    AGGRO,
-    UP_CLOSE,
-    FRIDAY_NIGHT_WARRIORS
-}
-
-enum EnemyDeploymentPattern {
-    STANDARD,
-    LINE,
-    SCATTERED,
-    AMBUSH,
-    DEFENSIVE,
-    OFFENSIVE,
-    INFILTRATION,
-    CONCEALED,
-    REINFORCEMENT,
-    BOLSTERED_LINE
-}
-
-enum EnemyReward {
-    NONE,
-    CREDITS,
-    ITEM,
-    INFORMATION,
-    QUEST_RUMOR,
-    REPUTATION,
-    SPECIAL
-}
-
-enum RedZoneMissionObjective {
-    NONE,
-    DESTROY_STRONGPOINT,
-    HOLD_POSITION,
-    ELIMINATE_TARGET,
-    DESTROY_PLATOON,
-    PENETRATE_LINES,
-    SABOTAGE,
-    RESCUE,
-    SECURE_INTEL,
-    CLEAR_ZONE
-}
-
-enum EnemyCharacteristic {
-    NONE,
-    FEARLESS,
-    STUBBORN,
-    CARELESS,
-    ALERT,
-    FEROCIOUS,
-    SCAVENGER,
-    QUICK,
-    GRUESOME,
-    INTRIGUE,
-    TOUGH_FIGHT,
-    SAVING_THROW,
-    BAD_SHOTS,
-    TRICK_SHOT,
-    LEG_IT,
-    AGGRO,
-    UP_CLOSE,
-    FRIDAY_NIGHT_WARRIORS
-}
-
-enum TechLevel {
-    NONE,
-    PRIMITIVE,
-    BASIC,
-    STANDARD,
-    ADVANCED,
-    CUTTING_EDGE
-}
-
-enum PopulationLevel {
-    NONE,
-    OUTPOST,
-    SETTLEMENT,
-    COLONY,
-    CITY,
-    METROPOLIS
-}
-
-enum GovernmentType {
-    NONE,
-    ANARCHY,
-    DEMOCRACY,
-    OLIGARCHY,
-    CORPORATE,
-    MILITARY,
-    TECHNOCRACY
-}
-
-enum WeatherType {
-    NONE,
-    CLEAR,
-    CLOUDY,
-    RAIN,
-    STORM,
-    HAZARDOUS
-}
-
-enum RelationType {
-    NONE,
-    HOSTILE,
-    NEUTRAL,
-    FRIENDLY,
-    ALLIED
-}
-
-enum ShipCondition {
-    PERFECT,
-    GOOD,
-    DAMAGED,
-    BROKEN
-}
-
+## Planet environments
 enum PlanetEnvironment {
-    NONE,
-    DESERT,
-    JUNGLE,
-    ICE,
-    VOLCANIC,
-    URBAN,
-    OCEAN,
-    FOREST,
-    MOUNTAIN,
-    SWAMP,
-    WASTELAND
+	NONE,
+	TEMPERATE,
+	DESERT,
+	ICE,
+	JUNGLE,
+	OCEAN,
+	VOLCANIC,
+	URBAN,
+	FOREST,
+	SPECIAL
 }
 
+## Weather types
+enum WeatherType {
+	NONE,
+	CLEAR,
+	RAIN,
+	STORM,
+	SNOW,
+	SANDSTORM,
+	HAZARDOUS,
+	SPECIAL
+}
+
+## Enemy traits
+enum EnemyTrait {
+	NONE,
+	AGGRESSIVE,
+	CAUTIOUS,
+	TACTICAL,
+	DEFENSIVE,
+	CARELESS,
+	LEG_IT,
+	BAD_SHOTS,
+	FEARLESS,
+	AGGRO,
+	UP_CLOSE,
+	ALERT,
+	TOUGH_FIGHT,
+	TRICK_SHOT,
+	SPECIAL
+}
+
+## Mission victory types
+enum MissionVictoryType {
+	NONE,
+	ELIMINATION,
+	EXTRACTION,
+	OBJECTIVE_COMPLETE,
+	SURVIVAL,
+	ESCAPE,
+	OBJECTIVE,
+	CONTROL_POINTS
+}
+
+## Quest status
+enum QuestStatus {
+	NONE,
+	ACTIVE,
+	COMPLETED,
+	FAILED,
+	EXPIRED
+}
+
+## Ship conditions
+enum ShipCondition {
+	NONE,
+	PERFECT,
+	GOOD,
+	DAMAGED,
+	CRITICAL,
+	DESTROYED,
+	BROKEN
+}
+
+## Enemy categories
+enum EnemyCategory {
+	NONE,
+	INFANTRY,
+	HEAVY,
+	ELITE,
+	BOSS,
+	SPECIAL,
+	CRIMINAL_ELEMENTS,
+	HIRED_MUSCLE,
+	MILITARY_FORCES,
+	ALIEN_THREATS,
+	CORPORATE_SECURITY,
+	PIRATES,
+	CULTISTS,
+	ROBOTS
+}
+
+## Character stats
+enum CharacterStats {
+	NONE,
+	HEALTH,
+	ARMOR,
+	SPEED,
+	ACCURACY,
+	STRENGTH,
+	REACTIONS,
+	COMBAT_SKILL,
+	TOUGHNESS,
+	SAVVY,
+	LUCK,
+	SPECIAL
+}
+
+## Enemy deployment patterns
+enum EnemyDeploymentPattern {
+	STANDARD,
+	OFFENSIVE,
+	DEFENSIVE,
+	SCATTERED,
+	AMBUSH,
+	CONCEALED,
+	BOLSTERED_LINE
+}
+
+## Enemy characteristics
+enum EnemyCharacteristic {
+	NONE,
+	SCAVENGER,
+	TOUGH_FIGHT,
+	ALERT,
+	FEROCIOUS,
+	LEG_IT,
+	FRIDAY_NIGHT_WARRIORS,
+	AGGRO,
+	UP_CLOSE,
+	FEARLESS,
+	GRUESOME,
+	SAVING_THROW,
+	TRICK_SHOT
+}
+
+## Enemy rewards
+enum EnemyReward {
+	CREDITS,
+	EQUIPMENT,
+	INTEL,
+	RESOURCES,
+	REPUTATION,
+	SPECIAL_ITEM
+}
+
+## Combat ranges
+enum CombatRange {
+	NONE,
+	POINT_BLANK,
+	SHORT,
+	MEDIUM,
+	LONG,
+	EXTREME
+}
+
+## Combat modifiers
+enum CombatModifier {
+	NONE,
+	COVER,
+	ELEVATION,
+	FLANKING,
+	SUPPRESSED,
+	SPECIAL,
+	COVER_LIGHT,
+	COVER_HEAVY
+}
+
+## AI behaviors
+enum AIBehavior {
+	NONE,
+	TACTICAL,
+	AGGRESSIVE,
+	DEFENSIVE,
+	CAUTIOUS,
+	SUPPORTIVE
+}
+
+## Crew tasks
 enum CrewTask {
-    NONE,
-    FIND_PATRON,
-    TRAIN,
-    TRADE,
-    RECRUIT,
-    EXPLORE,
-    TRACK,
-    REPAIR,
-    DECOY
+	NONE,
+	FIND_PATRON,
+	TRAIN,
+	TRADE,
+	RECRUIT,
+	EXPLORE,
+	TRACK,
+	REPAIR,
+	DECOY,
+	COMBAT,
+	MEDICAL,
+	SCOUT,
+	SPECIAL
 }
 
+## Suspect types for investigations
+enum SuspectType {
+	CIVILIAN,
+	CRIMINAL,
+	GANG_MEMBER,
+	ELITE
+}
+
+## Status effects
+enum StatusEffect {
+	NONE,
+	HAZARD,
+	PSIONIC_BOOST,
+	DISABLED,
+	ENVIRONMENTAL_PROTECTION
+}
+
+## Event types
+enum EventType {
+	NONE,
+	UPKEEP_FAILED,
+	LOCAL_EVENTS,
+	NOTABLE_SIGHTS,
+	JOB_OFFERS,
+	BATTLE_SETUP,
+	PATRON_UPDATE,
+	MARKET_UPDATE,
+	FACTION_UPDATE,
+	POST_BATTLE_EVENTS
+}
+
+## Battle result types
+enum BattleResultType {
+	NONE,
+	VICTORY,
+	DEFEAT,
+	DRAW,
+	RETREAT,
+	SPECIAL
+}
+
+## Management action types
+enum ManagementActionType {
+	NONE,
+	CREW_MANAGEMENT,
+	EQUIPMENT_MANAGEMENT,
+	RESOURCE_ALLOCATION,
+	SHIP_UPGRADES,
+	STORY_PROGRESSION,
+	SPECIAL
+}
+
+## Threat types
+enum ThreatType {
+	NONE,
+	LOW,
+	MEDIUM,
+	HIGH,
+	CRITICAL,
+	SPECIAL
+}
+
+## Verification types
+enum VerificationType {
+	NONE,
+	COMBAT,
+	POSITION,
+	STATUS,
+	RESOURCE,
+	OVERRIDE,
+	RULE,
+	STATE,
+	RULES,
+	DEPLOYMENT,
+	MOVEMENT,
+	OBJECTIVES
+}
+
+## Verification scope
+enum VerificationScope {
+	NONE,
+	SINGLE,
+	UNIT,
+	SQUAD,
+	BATTLEFIELD,
+	GAME
+}
+
+## Verification result
+enum VerificationResult {
+	NONE,
+	SUCCESS,
+	WARNING,
+	ERROR,
+	CRITICAL
+}
+
+## AI tactical approaches
+enum AITactic {
+	NONE,
+	MAINTAIN_RANGE,
+	SEEK_COVER,
+	FLANK,
+	SUPPORT,
+	OVERWATCH,
+	RETREAT
+}
+
+## Crew sizes
+enum CrewSize {
+	NONE,
+	THREE,
+	FOUR,
+	FIVE,
+	SIX
+}
+
+## Battle objectives
+enum BattleObjective {
+	NONE,
+	CAPTURE_POINT,
+	HOLD_POSITION,
+	ELIMINATE_TARGET,
+	SECURE_AREA,
+	RETRIEVE_ITEM,
+	PROTECT_ASSET,
+	SABOTAGE,
+	ESCAPE,
+	SURVIVE
+}
+
+## Deployment zones
+enum DeploymentZone {
+	NONE,
+	PLAYER,
+	ENEMY,
+	NEUTRAL,
+	OBJECTIVE,
+	REINFORCEMENT,
+	SPECIAL
+}
+
+## Difficulty modes
+enum DifficultyMode {
+	NONE,
+	EASY,
+	NORMAL,
+	HARD,
+	HARDCORE,
+	IRONMAN,
+	CHALLENGING,
+	INSANITY
+}
+
+## Job types
 enum JobType {
-    NONE,
-    BOUNTY,
-    ESCORT,
-    DELIVERY,
-    PROTECTION,
-    SABOTAGE,
-    INVESTIGATION,
-    RECOVERY,
-    ELIMINATION
+	NONE,
+	COMBAT,
+	ESCORT,
+	DELIVERY,
+	PROTECTION,
+	SABOTAGE,
+	RESCUE,
+	INVESTIGATION,
+	SPECIAL
 }
 
-enum PatronType {
-    NONE,
-    MERCHANT,
-    NOBLE,
-    CRIMINAL,
-    CORPORATE,
-    MILITARY,
-    REBEL,
-    MYSTERIOUS
+# Campaign phase descriptions and names
+const PHASE_NAMES = {
+	CampaignPhase.NONE: "No Phase",
+	CampaignPhase.SETUP: "Setup Phase",
+	CampaignPhase.UPKEEP: "Upkeep Phase",
+	CampaignPhase.STORY: "Story Phase",
+	CampaignPhase.CAMPAIGN: "Campaign Phase",
+	CampaignPhase.BATTLE_SETUP: "Battle Setup",
+	CampaignPhase.BATTLE: "Battle Phase",
+	CampaignPhase.POST_BATTLE: "Post-Battle Phase",
+	CampaignPhase.MANAGEMENT: "Management Phase",
+	CampaignPhase.TRAVEL: "Travel Phase",
+	CampaignPhase.BATTLE_RESOLUTION: "Battle Resolution",
+	CampaignPhase.ADVANCEMENT: "Advancement Phase"
 }
 
-enum TerrainTypes {
-    INVALID,
-    EMPTY,
-    WALL,
-    COVER_LOW,
-    COVER_HIGH,
-    WATER,
-    HAZARD,
-    DIFFICULT,
-    BLOCKED,
-    ELEVATED
+const PHASE_DESCRIPTIONS = {
+	CampaignPhase.NONE: "No active phase",
+	CampaignPhase.SETUP: "Create your crew and prepare for the campaign",
+	CampaignPhase.UPKEEP: "Pay maintenance costs and manage resources",
+	CampaignPhase.STORY: "Progress through story events and quests",
+	CampaignPhase.CAMPAIGN: "Manage your campaign activities",
+	CampaignPhase.BATTLE_SETUP: "Prepare for upcoming battle",
+	CampaignPhase.BATTLE: "Engage in tactical combat",
+	CampaignPhase.POST_BATTLE: "Handle post-battle consequences",
+	CampaignPhase.MANAGEMENT: "Manage crew and resources",
+	CampaignPhase.TRAVEL: "Travel to new locations",
+	CampaignPhase.BATTLE_RESOLUTION: "Resolve battle outcomes",
+	CampaignPhase.ADVANCEMENT: "Advance characters and equipment"
 }
-
-static func get_enum_name(category: String, value: int) -> String:
-    match category:
-        "difficulty":
-            if value in DifficultyMode.values():
-                return DifficultyMode.keys()[value]
-        "species":
-            if value in Origin.values():
-                return Origin.keys()[value]
-        "class":
-            if value in CharacterClass.values():
-                return CharacterClass.keys()[value]
-        "victory":
-            if value in VictoryConditionType.values():
-                return VictoryConditionType.keys()[value]
-    return ""

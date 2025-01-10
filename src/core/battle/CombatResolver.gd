@@ -13,6 +13,10 @@ signal target_selected(attacker: Character, target: Character)
 signal critical_hit(attacker: Character, defender: Character, multiplier: float)
 signal special_effect_triggered(source: Node, target: Node, effect: String)
 signal combat_resolved(result: Dictionary)
+signal special_ability_activated(character: Character, ability: String, targets: Array)
+signal reaction_triggered(character: Character, reaction_type: String, trigger: Dictionary)
+signal group_action_started(leader: Character, group: Array[Character])
+signal coordinated_fire_started(attackers: Array[Character], target: Character)
 
 ## Tabletop support signals
 signal dice_roll_requested(context: String, modifier: int)
@@ -21,21 +25,25 @@ signal modifier_applied(source: String, value: int, description: String)
 signal manual_override_requested(context: String, current_value: int)
 signal combat_log_updated(message: String, details: Dictionary)
 
-## Manual override properties
-var allow_manual_overrides: bool = true
-var pending_override_request: Dictionary = {}
-var manual_override_value: int = -1
+## Special Abilities and Reactions
+enum SpecialAbility {
+	NONE,
+	LEADERSHIP,
+	TACTICAL_GENIUS,
+	MARKSMAN,
+	BERSERKER,
+	MEDIC,
+	TECH_EXPERT
+}
 
-## Combat log properties
-var combat_log: Array[Dictionary] = []
-var detailed_modifier_log: Array[Dictionary] = []
-
-## Required dependencies
-const GameEnums := preload("res://src/core/systems/GlobalEnums.gd")
-const Character := preload("res://src/core/character/Base/Character.gd")
-const BattlefieldManager := preload("res://src/core/battle/BattlefieldManager.gd")
-const BattleStateManager := preload("res://src/core/battle/state/BattleStateMachine.gd")
-const BattleRules = preload("res://src/core/battle/BattleRules.gd")
+enum ReactionType {
+	NONE,
+	OVERWATCH,
+	DODGE,
+	COUNTER_ATTACK,
+	PROTECT_ALLY,
+	SUPPRESSING_FIRE
+}
 
 ## Combat modifiers
 const CRITICAL_HIT_THRESHOLD: int = 6
@@ -46,6 +54,32 @@ const ELEVATION_BONUS: int = 1
 ## Status effect thresholds
 const STUN_THRESHOLD: float = 0.4 # 40% of max health
 const WOUND_THRESHOLD: float = 0.25 # 25% of max health
+
+## Special ability cooldowns (in turns)
+const ABILITY_COOLDOWNS = {
+	SpecialAbility.LEADERSHIP: 3,
+	SpecialAbility.TACTICAL_GENIUS: 4,
+	SpecialAbility.MARKSMAN: 2,
+	SpecialAbility.BERSERKER: 3,
+	SpecialAbility.MEDIC: 2,
+	SpecialAbility.TECH_EXPERT: 3
+}
+
+## Reaction chance modifiers
+const REACTION_MODIFIERS = {
+	ReactionType.OVERWATCH: - 1,
+	ReactionType.DODGE: 0,
+	ReactionType.COUNTER_ATTACK: - 2,
+	ReactionType.PROTECT_ALLY: - 1,
+	ReactionType.SUPPRESSING_FIRE: - 2
+}
+
+## Required dependencies
+const GameEnums := preload("res://src/core/systems/GlobalEnums.gd")
+const Character := preload("res://src/core/character/Base/Character.gd")
+const BattlefieldManager := preload("res://src/core/battle/BattlefieldManager.gd")
+const BattleStateManager := preload("res://src/core/battle/state/BattleStateMachine.gd")
+const BattleRules = preload("res://src/core/battle/BattleRules.gd")
 
 ## Reference to the battle state machine
 @export var battle_state_machine: BattleStateManager # Properly typed now
@@ -58,6 +92,22 @@ const WOUND_THRESHOLD: float = 0.25 # 25% of max health
 var _active_effects: Dictionary = {}
 ## Cache for combat modifiers - maps Character to Dictionary of modifiers
 var _combat_modifiers: Dictionary = {}
+## Cache for ability cooldowns - maps Character to Dictionary of ability timers
+var _ability_cooldowns: Dictionary = {}
+## Cache for reaction states - maps Character to Dictionary of reaction states
+var _reaction_states: Dictionary = {}
+
+## Manual override properties
+var allow_manual_overrides: bool = true
+var pending_override_request: Dictionary = {}
+var manual_override_value: int = -1
+
+## Combat log properties
+var combat_log: Array[Dictionary] = []
+var detailed_modifier_log: Array[Dictionary] = []
+
+## Active combatants in the current battle
+var _active_combatants: Array[Character] = []
 
 ## Called when the node enters the scene tree
 func _ready() -> void:
@@ -648,3 +698,306 @@ func remove_combat_modifier(character: Character, modifier: int) -> void:
 
 func get_active_modifiers(character: Character) -> Array:
 	return _combat_modifiers.get(character, [])
+
+## Activates a special ability for a character
+func activate_special_ability(character: Character, ability: SpecialAbility, targets: Array = []) -> bool:
+	if not character or ability == SpecialAbility.NONE:
+		return false
+		
+	if not _can_use_ability(character, ability):
+		return false
+	
+	var ability_result := _resolve_special_ability(character, ability, targets)
+	if ability_result:
+		_start_ability_cooldown(character, ability)
+		special_ability_activated.emit(character, ability, targets)
+		
+	return ability_result
+
+## Checks if a reaction can be triggered
+func can_trigger_reaction(character: Character, reaction_type: ReactionType, trigger: Dictionary) -> bool:
+	if not character or reaction_type == ReactionType.NONE:
+		return false
+		
+	if _reaction_states.get(character, {}).get("active_reaction", ReactionType.NONE) != ReactionType.NONE:
+		return false
+		
+	var base_chance: int = character.get_reaction_chance()
+	var modifier: int = REACTION_MODIFIERS.get(reaction_type, 0)
+	
+	return _roll_dice("Reaction Check", modifier) <= base_chance
+
+## Triggers a reaction for a character
+func trigger_reaction(character: Character, reaction_type: ReactionType, trigger: Dictionary) -> void:
+	if not can_trigger_reaction(character, reaction_type, trigger):
+		return
+		
+	_reaction_states[character] = {
+		"active_reaction": reaction_type,
+		"trigger": trigger,
+		"timestamp": Time.get_unix_time_from_system()
+	}
+	
+	reaction_triggered.emit(character, reaction_type, trigger)
+	_resolve_reaction(character, reaction_type, trigger)
+
+## Resolves a special ability
+func _resolve_special_ability(character: Character, ability: SpecialAbility, targets: Array) -> bool:
+	match ability:
+		SpecialAbility.LEADERSHIP:
+			return _resolve_leadership_ability(character, targets)
+		SpecialAbility.TACTICAL_GENIUS:
+			return _resolve_tactical_genius_ability(character)
+		SpecialAbility.MARKSMAN:
+			return _resolve_marksman_ability(character)
+		SpecialAbility.BERSERKER:
+			return _resolve_berserker_ability(character)
+		SpecialAbility.MEDIC:
+			return _resolve_medic_ability(character, targets)
+		SpecialAbility.TECH_EXPERT:
+			return _resolve_tech_expert_ability(character, targets)
+		_:
+			return false
+
+## Resolves a reaction
+func _resolve_reaction(character: Character, reaction_type: ReactionType, trigger: Dictionary) -> void:
+	match reaction_type:
+		ReactionType.OVERWATCH:
+			_resolve_overwatch_reaction(character, trigger)
+		ReactionType.DODGE:
+			_resolve_dodge_reaction(character, trigger)
+		ReactionType.COUNTER_ATTACK:
+			_resolve_counter_attack_reaction(character, trigger)
+		ReactionType.PROTECT_ALLY:
+			_resolve_protect_ally_reaction(character, trigger)
+		ReactionType.SUPPRESSING_FIRE:
+			_resolve_suppressing_fire_reaction(character, trigger)
+
+## Checks if a character can use an ability
+func _can_use_ability(character: Character, ability: SpecialAbility) -> bool:
+	if not character or ability == SpecialAbility.NONE:
+		return false
+		
+	var cooldowns: Dictionary = _ability_cooldowns.get(character, {})
+	return not cooldowns.has(ability) or cooldowns[ability] <= 0
+
+## Starts the cooldown for an ability
+func _start_ability_cooldown(character: Character, ability: SpecialAbility) -> void:
+	if not character or ability == SpecialAbility.NONE:
+		return
+		
+	if not _ability_cooldowns.has(character):
+		_ability_cooldowns[character] = {}
+		
+	_ability_cooldowns[character][ability] = ABILITY_COOLDOWNS.get(ability, 1)
+
+## Updates ability cooldowns at the end of a turn
+func update_cooldowns() -> void:
+	for character in _ability_cooldowns.keys():
+		var cooldowns: Dictionary = _ability_cooldowns[character]
+		for ability in cooldowns.keys():
+			cooldowns[ability] = max(0, cooldowns[ability] - 1)
+			
+	# Clear reaction states
+	_reaction_states.clear()
+
+## Resolves leadership ability
+func _resolve_leadership_ability(character: Character, targets: Array[Character]) -> bool:
+	if targets.is_empty():
+		return false
+		
+	for target in targets:
+		if target == character:
+			continue
+			
+		# Grant bonus action points and combat advantage
+		target.add_action_points(1)
+		_combat_modifiers[target] = _combat_modifiers.get(target, []) + ["leadership_bonus"]
+		
+	_log_combat_event("Leadership Ability", {
+		"leader": character.get_name(),
+		"targets": targets.map(func(t): return t.get_name()),
+		"bonus": "action_point_and_combat"
+	})
+	
+	return true
+
+## Resolves tactical genius ability
+func _resolve_tactical_genius_ability(character: Character) -> bool:
+	var nearby_allies := _get_nearby_allies(character, 3) # 3 tile radius
+	if nearby_allies.is_empty():
+		return false
+		
+	for ally in nearby_allies:
+		# Grant movement bonus and improved cover
+		_combat_modifiers[ally] = _combat_modifiers.get(ally, []) + ["tactical_bonus"]
+		
+	_log_combat_event("Tactical Genius", {
+		"tactician": character.get_name(),
+		"affected_allies": nearby_allies.map(func(a): return a.get_name()),
+		"bonus": "movement_and_cover"
+	})
+	
+	return true
+
+## Resolves marksman ability
+func _resolve_marksman_ability(character: Character) -> bool:
+	# Grant improved accuracy and critical hit chance
+	_combat_modifiers[character] = _combat_modifiers.get(character, []) + ["marksman_focus"]
+	
+	_log_combat_event("Marksman Focus", {
+		"character": character.get_name(),
+		"bonus": "accuracy_and_crit"
+	})
+	
+	return true
+
+## Resolves berserker ability
+func _resolve_berserker_ability(character: Character) -> bool:
+	# Grant extra melee damage and movement
+	_combat_modifiers[character] = _combat_modifiers.get(character, []) + ["berserker_rage"]
+	
+	_log_combat_event("Berserker Rage", {
+		"character": character.get_name(),
+		"bonus": "melee_and_movement"
+	})
+	
+	return true
+
+## Resolves medic ability
+func _resolve_medic_ability(character: Character, targets: Array[Character]) -> bool:
+	if targets.is_empty():
+		return false
+		
+	for target in targets:
+		if target.get_health() >= target.get_max_health():
+			continue
+			
+		# Heal target and remove negative status effects
+		var heal_amount := int(target.get_max_health() * 0.3) # 30% heal
+		target.heal(heal_amount)
+		_remove_negative_effects(target)
+		
+	_log_combat_event("Medical Aid", {
+		"medic": character.get_name(),
+		"targets": targets.map(func(t): return t.get_name()),
+		"heal_amount": "30%"
+	})
+	
+	return true
+
+## Resolves tech expert ability
+func _resolve_tech_expert_ability(character: Character, targets: Array[Character]) -> bool:
+	if targets.is_empty():
+		return false
+		
+	for target in targets:
+		# Grant tech bonus (improved equipment effectiveness)
+		_combat_modifiers[target] = _combat_modifiers.get(target, []) + ["tech_enhanced"]
+		
+	_log_combat_event("Tech Enhancement", {
+		"tech_expert": character.get_name(),
+		"targets": targets.map(func(t): return t.get_name()),
+		"bonus": "equipment_boost"
+	})
+	
+	return true
+
+## Resolves overwatch reaction
+func _resolve_overwatch_reaction(character: Character, trigger: Dictionary) -> void:
+	var target: Character = trigger.get("target")
+	if not target:
+		return
+		
+	# Perform reaction shot with penalty
+	var reaction_shot := {
+		"attacker": character,
+		"defender": target,
+		"modifier": REACTION_MODIFIERS[ReactionType.OVERWATCH]
+	}
+	_resolve_ranged_attack(reaction_shot.attacker, reaction_shot.defender)
+
+## Resolves dodge reaction
+func _resolve_dodge_reaction(character: Character, trigger: Dictionary) -> void:
+	# Grant temporary defense bonus
+	_combat_modifiers[character] = _combat_modifiers.get(character, []) + ["dodge_bonus"]
+	
+	_log_combat_event("Dodge Reaction", {
+		"character": character.get_name(),
+		"trigger": trigger,
+		"bonus": "defense"
+	})
+
+## Resolves counter attack reaction
+func _resolve_counter_attack_reaction(character: Character, trigger: Dictionary) -> void:
+	var attacker: Character = trigger.get("attacker")
+	if not attacker:
+		return
+		
+	# Perform counter attack with penalty
+	var counter_attack := {
+		"attacker": character,
+		"defender": attacker,
+		"modifier": REACTION_MODIFIERS[ReactionType.COUNTER_ATTACK]
+	}
+	_resolve_melee_attack(counter_attack.attacker, counter_attack.defender)
+
+## Resolves protect ally reaction
+func _resolve_protect_ally_reaction(character: Character, trigger: Dictionary) -> void:
+	var ally: Character = trigger.get("ally")
+	if not ally:
+		return
+		
+	# Move to protect ally and grant them cover bonus
+	if battlefield_manager:
+		var ally_pos: Vector2 = battlefield_manager.get_character_position(ally)
+		battlefield_manager.move_character(character, ally_pos)
+		_combat_modifiers[ally] = _combat_modifiers.get(ally, []) + ["protection_bonus"]
+	
+	_log_combat_event("Protect Ally", {
+		"protector": character.get_name(),
+		"ally": ally.get_name(),
+		"bonus": "cover"
+	})
+
+## Resolves suppressing fire reaction
+func _resolve_suppressing_fire_reaction(character: Character, trigger: Dictionary) -> void:
+	var target: Character = trigger.get("target")
+	if not target:
+		return
+		
+	# Apply suppression effect
+	_combat_modifiers[target] = _combat_modifiers.get(target, []) + ["suppressed"]
+	
+	_log_combat_event("Suppressing Fire", {
+		"suppressor": character.get_name(),
+		"target": target.get_name(),
+		"effect": "movement_penalty"
+	})
+
+## Gets nearby allies within radius
+func _get_nearby_allies(character: Character, radius: int) -> Array[Character]:
+	var nearby_allies: Array[Character] = []
+	
+	if not battlefield_manager:
+		return nearby_allies
+		
+	var char_pos: Vector2 = battlefield_manager.get_character_position(character)
+	for other in _active_combatants:
+		if other == character:
+			continue
+			
+		var other_pos: Vector2 = battlefield_manager.get_character_position(other)
+		var distance: float = char_pos.distance_to(other_pos)
+		if distance <= radius:
+			nearby_allies.append(other)
+			
+	return nearby_allies
+
+## Removes negative status effects from a character
+func _remove_negative_effects(character: Character) -> void:
+	var effects: Array = _active_effects.get(character, [])
+	var positive_effects: Array[String] = effects.filter(func(effect: String) -> bool:
+		return not effect.begins_with("negative_")
+	)
+	_active_effects[character] = positive_effects
