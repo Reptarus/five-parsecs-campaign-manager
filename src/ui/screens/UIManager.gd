@@ -91,16 +91,16 @@ func _on_game_ended() -> void:
 
 func _on_game_state_changed(new_state: int) -> void:
 	match new_state:
-		GlobalEnums.GameState.SETUP:
+		GameEnums.GameState.SETUP:
 			change_screen("setup")
-		GlobalEnums.GameState.CAMPAIGN:
+		GameEnums.GameState.CAMPAIGN:
 			change_screen("campaign")
-		GlobalEnums.GameState.BATTLE:
+		GameEnums.GameState.BATTLE:
 			change_screen("battle")
-		GlobalEnums.GameState.GAME_OVER:
+		GameEnums.GameState.GAME_OVER:
 			show_game_over_screen(game_state.victory_achieved)
 
-func _on_campaign_phase_changed(new_phase: GlobalEnums.CampaignPhase) -> void:
+func _on_campaign_phase_changed(new_phase: GameEnums.CampaignPhase) -> void:
 	update_campaign_phase_display(new_phase)
 	if current_screen and current_screen.has_method("on_campaign_phase_changed"):
 		current_screen.on_campaign_phase_changed(new_phase)
@@ -113,24 +113,24 @@ func _on_battle_phase_changed(new_phase: int) -> void:
 func _on_campaign_victory_achieved(victory_type: int) -> void:
 	var victory_message := ""
 	match victory_type:
-		GlobalEnums.CampaignVictoryType.WEALTH_GOAL:
+		GameEnums.CampaignVictoryType.WEALTH_GOAL:
 			victory_message = "You've amassed great wealth!"
-		GlobalEnums.CampaignVictoryType.REPUTATION_GOAL:
+		GameEnums.CampaignVictoryType.REPUTATION_GOAL:
 			victory_message = "Your reputation precedes you!"
-		GlobalEnums.CampaignVictoryType.FACTION_DOMINANCE:
+		GameEnums.CampaignVictoryType.FACTION_DOMINANCE:
 			victory_message = "You've become a dominant force!"
-		GlobalEnums.CampaignVictoryType.STORY_COMPLETE:
+		GameEnums.CampaignVictoryType.STORY_COMPLETE:
 			victory_message = "You've completed your epic journey!"
 	
 	show_game_over_screen(true, victory_message)
 
-func update_campaign_phase_display(phase: GlobalEnums.CampaignPhase) -> void:
+func update_campaign_phase_display(phase: GameEnums.CampaignPhase) -> void:
 	if has_node("HUD/PhaseLabel"):
-		$HUD/PhaseLabel.text = "Phase: " + str(GlobalEnums.CampaignPhase.keys()[phase])
+		$HUD/PhaseLabel.text = "Phase: " + str(GameEnums.CampaignPhase.keys()[phase])
 
-func update_battle_phase_display(phase: GlobalEnums.BattlePhase) -> void:
+func update_battle_phase_display(phase: GameEnums.BattlePhase) -> void:
 	if has_node("HUD/BattlePhaseLabel"):
-		$HUD/BattlePhaseLabel.text = "Battle Phase: " + str(GlobalEnums.BattlePhase.keys()[phase])
+		$HUD/BattlePhaseLabel.text = "Battle Phase: " + str(GameEnums.BattlePhase.keys()[phase])
 
 func show_game_over_screen(victory: bool, message: String = "") -> void:
 	if has_node("GameOverScreen"):

@@ -1,0 +1,117 @@
+{
+    "name": "mission_titles",
+    "entries": [
+        {
+            "roll_range": [
+                1,
+                20
+            ],
+            "result": "Operation: {ADJECTIVE} {NOUN}",
+            "weight": 1.0,
+            "tags": [
+                "operation"
+            ]
+        },
+        {
+            "roll_range": [
+                21,
+                40
+            ],
+            "result": "Mission: {ADJECTIVE} {NOUN}",
+            "weight": 1.0,
+            "tags": [
+                "mission"
+            ]
+        },
+        {
+            "roll_range": [
+                41,
+                60
+            ],
+            "result": "Task: {ADJECTIVE} {NOUN}",
+            "weight": 1.0,
+            "tags": [
+                "task"
+            ]
+        },
+        {
+            "roll_range": [
+                61,
+                80
+            ],
+            "result": "Project: {ADJECTIVE} {NOUN}",
+            "weight": 0.8,
+            "tags": [
+                "project"
+            ]
+        },
+        {
+            "roll_range": [
+                81,
+                100
+            ],
+            "result": "Directive: {ADJECTIVE} {NOUN}",
+            "weight": 0.8,
+            "tags": [
+                "directive"
+            ]
+        }
+    ],
+    "validation_rules": [],
+    "modifiers": [
+        {
+            "type": "mission_type_modifier",
+            "params": {
+                "RED_ZONE": {
+                    "adjectives": [
+                        "Burning",
+                        "Crimson",
+                        "Fierce",
+                        "Raging",
+                        "Violent"
+                    ],
+                    "nouns": [
+                        "Storm",
+                        "Fury",
+                        "Wrath",
+                        "Thunder",
+                        "Vengeance"
+                    ]
+                },
+                "BLACK_ZONE": {
+                    "adjectives": [
+                        "Silent",
+                        "Shadow",
+                        "Dark",
+                        "Hidden",
+                        "Secret"
+                    ],
+                    "nouns": [
+                        "Dagger",
+                        "Whisper",
+                        "Ghost",
+                        "Phantom",
+                        "Shade"
+                    ]
+                },
+                "PATRON": {
+                    "adjectives": [
+                        "Noble",
+                        "Golden",
+                        "Royal",
+                        "Honored",
+                        "Blessed"
+                    ],
+                    "nouns": [
+                        "Crown",
+                        "Shield",
+                        "Guard",
+                        "Watch",
+                        "Light"
+                    ]
+                }
+            }
+        }
+    ],
+    "default_result": "Mission: Unknown"
+}

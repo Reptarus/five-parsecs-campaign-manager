@@ -1,7 +1,7 @@
 class_name Patron
 extends Resource
 
-const GlobalEnums = preload("res://src/core/systems/GlobalEnums.gd")
+const GameEnums = preload("res://src/core/systems/GlobalEnums.gd")
 
 signal relationship_changed(new_value: int)
 signal missions_updated
@@ -11,7 +11,7 @@ signal patron_status_changed
 # Core patron properties
 @export var patron_name: String:
 	get: return _patron_name
-	set(value): 
+	set(value):
 		if value.strip_edges().is_empty():
 			push_error("Patron name cannot be empty")
 			return
@@ -20,7 +20,7 @@ signal patron_status_changed
 
 @export var location: Location:
 	get: return _location
-	set(value): 
+	set(value):
 		if not value:
 			push_error("Location cannot be null")
 			return
@@ -29,7 +29,7 @@ signal patron_status_changed
 
 @export var relationship: int:
 	get: return _relationship
-	set(value): 
+	set(value):
 		var old_value := _relationship
 		_relationship = clamp(value, -100, 100)
 		if old_value != _relationship:
@@ -37,15 +37,15 @@ signal patron_status_changed
 			_check_relationship_status()
 			notify_property_list_changed()
 
-@export var faction_type: GlobalEnums.FactionType:
+@export var faction_type: GameEnums.FactionType:
 	get: return _faction_type
-	set(value): 
+	set(value):
 		_faction_type = value
 		notify_property_list_changed()
 
 @export var economic_influence: float:
 	get: return _economic_influence
-	set(value): 
+	set(value):
 		_economic_influence = clamp(value, 0.1, 5.0)
 		notify_property_list_changed()
 
@@ -53,7 +53,7 @@ signal patron_status_changed
 var _patron_name: String = ""
 var _location: Location
 var _relationship: int = 0
-var _faction_type: GlobalEnums.FactionType = GlobalEnums.FactionType.NEUTRAL
+var _faction_type: GameEnums.FactionType = GameEnums.FactionType.NEUTRAL
 var _economic_influence: float = 1.0
 var _missions: Array[Mission] = []
 var _is_dismissed: bool = false
@@ -64,9 +64,9 @@ var characteristics: Array[String] = []
 var reputation_bonus: int = 0
 var mission_bonus: int = 0
 
-func _init(p_name: String = "", 
-		  p_location: Location = null, 
-		  p_faction: GlobalEnums.FactionType = GlobalEnums.FactionType.NEUTRAL) -> void:
+func _init(p_name: String = "",
+		  p_location: Location = null,
+		  p_faction: GameEnums.FactionType = GameEnums.FactionType.NEUTRAL) -> void:
 	patron_name = p_name
 	location = p_location
 	faction_type = p_faction
@@ -132,7 +132,7 @@ func complete_mission(mission: Mission) -> void:
 		return
 		
 	mission.complete(true)
-	change_relationship(2)  # Base relationship gain
+	change_relationship(2) # Base relationship gain
 	
 	if has_characteristic("Generous"):
 		change_relationship(1)
@@ -142,7 +142,7 @@ func fail_mission(mission: Mission) -> void:
 		return
 		
 	mission.fail(false)
-	change_relationship(-1)  # Base relationship loss
+	change_relationship(-1) # Base relationship loss
 	
 	if has_characteristic("Demanding"):
 		change_relationship(-1)
@@ -189,7 +189,7 @@ func serialize() -> Dictionary:
 		"name": _patron_name,
 		"location": _location.serialize() if _location else {} as Dictionary,
 		"relationship": _relationship,
-		"faction_type": GlobalEnums.FactionType.keys()[_faction_type],
+		"faction_type": GameEnums.FactionType.keys()[_faction_type],
 		"economic_influence": _economic_influence,
 		"missions": _missions.map(func(m): return m.serialize()),
 		"is_dismissed": _is_dismissed,
@@ -212,7 +212,7 @@ static func deserialize(data: Dictionary) -> Patron:
 		patron._location = null
 	
 	patron._relationship = data.get("relationship", 0)
-	patron._faction_type = GlobalEnums.FactionType[data.get("faction_type", "NEUTRAL")]
+	patron._faction_type = GameEnums.FactionType[data.get("faction_type", "NEUTRAL")]
 	patron._economic_influence = data.get("economic_influence", 1.0)
 	patron._is_dismissed = data.get("is_dismissed", false)
 	patron._last_mission_turn = data.get("last_mission_turn", 0)

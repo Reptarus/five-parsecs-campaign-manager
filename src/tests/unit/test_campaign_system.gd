@@ -26,8 +26,8 @@ func test_difficulty_change() -> void:
     campaign_system.set_difficulty(GameEnums.DifficultyLevel.HARD)
     assert_eq(game_state.difficulty_level, GameEnums.DifficultyLevel.HARD)
     
-    campaign_system.set_difficulty(GameEnums.DifficultyLevel.VETERAN)
-    assert_eq(game_state.difficulty_level, GameEnums.DifficultyLevel.VETERAN)
+    campaign_system.set_difficulty(GameEnums.DifficultyLevel.HARDCORE)
+    assert_eq(game_state.difficulty_level, GameEnums.DifficultyLevel.HARDCORE)
 
 func test_campaign_serialization() -> void:
     var config = {

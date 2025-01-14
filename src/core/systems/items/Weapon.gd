@@ -2,23 +2,23 @@
 extends Resource
 class_name GameWeapon
 
-const GlobalEnums = preload("res://src/core/systems/GlobalEnums.gd")
+const GameEnums = preload("res://src/core/systems/GlobalEnums.gd")
 
 @export var weapon_name: String = ""
-@export var weapon_type: GlobalEnums.WeaponType = GlobalEnums.WeaponType.NONE
+@export var weapon_type: GameEnums.WeaponType = GameEnums.WeaponType.NONE
 @export var weapon_range: int = 0
 @export var weapon_shots: int = 1
 @export var weapon_damage: int = 1
 @export var weapon_traits: Array[String] = []
 
-func initialize(name: String, type: GlobalEnums.WeaponType, range: int, shots: int, damage: int) -> void:
+func initialize(name: String, type: GameEnums.WeaponType, range: int, shots: int, damage: int) -> void:
 	weapon_name = name
 	weapon_type = type
 	weapon_range = range
 	weapon_shots = shots
 	weapon_damage = damage
 
-func get_type() -> GlobalEnums.WeaponType:
+func get_type() -> GameEnums.WeaponType:
 	return weapon_type
 
 func get_range() -> int:
@@ -44,10 +44,10 @@ func get_weight() -> int:
 	return base_weight
 
 func is_damaged() -> bool:
-	return false  # Implement damage system later
+	return false # Implement damage system later
 
 func get_rarity() -> int:
-	return 0  # Implement rarity system later
+	return 0 # Implement rarity system later
 
 func get_weapon_profile() -> Dictionary:
 	return {
@@ -63,13 +63,13 @@ static func create_from_profile(profile: Dictionary) -> GameWeapon:
 	var weapon := GameWeapon.new()
 	weapon.initialize(
 		profile.get("name", ""),
-		profile.get("type", GlobalEnums.WeaponType.NONE),
+		profile.get("type", GameEnums.WeaponType.NONE),
 		profile.get("range", 0),
 		profile.get("shots", 1),
 		profile.get("damage", 1)
 	)
 	weapon.weapon_traits = profile.get("traits", [])
-	return weapon 
+	return weapon
 
 func get_combat_value() -> int:
 	var value := 0

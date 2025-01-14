@@ -2,199 +2,190 @@
 class_name Mission
 extends Resource
 
+## Enums
 const GameEnums := preload("res://src/core/systems/GlobalEnums.gd")
 
-# Core Mission Properties
-@export var mission_name: String = ""
-@export var mission_type: GameEnums.MissionType = GameEnums.MissionType.GREEN_ZONE
-@export var difficulty: GameEnums.DifficultyLevel = GameEnums.DifficultyLevel.NORMAL
-@export var location: String = ""
-@export var deployment_type: GameEnums.DeploymentType = GameEnums.DeploymentType.STANDARD
+## Mission Properties
+@export var mission_id: String
+@export var mission_type: int = GameEnums.MissionType.NONE
+@export var mission_name: String
+@export var description: String
+@export var difficulty: int = 0
 @export var objectives: Array[Dictionary] = []
-@export var rewards: Dictionary = {}
-@export var enemy_force: Dictionary = {
-    "count": 5,
-    "composition": [],
-    "special_units": []
-}
+@export var rewards: Dictionary
+@export var special_rules: Array[String] = []
 
-# Mission Configuration
-@export var battle_environment: GameEnums.BattleEnvironment = GameEnums.BattleEnvironment.URBAN
+## Mission State
+@export var is_completed: bool = false
+@export var is_failed: bool = false
+@export var current_phase: String = "preparation"
+@export var completion_percentage: float = 0.0
+
+## Mission Points
 @export var deployment_points: Array[Vector2] = []
 @export var objective_points: Array[Vector2] = []
+@export var extraction_points: Array[Vector2] = []
 
-# Mission State
-var is_completed: bool = false
-var is_failed: bool = false
-var turn_started: int = -1
-var turn_completed: int = -1
+## Mission Requirements
+@export var required_skills: Array[String] = []
+@export var required_equipment: Array[String] = []
+@export var minimum_crew_size: int = 1
 
-# Optional Properties
-var patron_id: String = "" # Reference to patron by ID instead of direct reference
-var story_id: String = ""
-var special_rules: Array[String] = [] # Array of rule IDs or descriptions
+## Mission Modifiers
+@export var resource_multiplier: float = 1.0
+@export var difficulty_multiplier: float = 1.0
+@export var reputation_multiplier: float = 1.0
+
+## Signals
+signal objective_completed(objective: Dictionary)
+signal mission_completed
+signal mission_failed
+signal phase_changed(new_phase: String)
+signal progress_updated(percentage: float)
 
 func _init() -> void:
-    reset_mission()
+    mission_id = _generate_mission_id()
 
-func reset_mission() -> void:
-    objectives.clear()
-    deployment_points.clear()
-    objective_points.clear()
-    rewards.clear()
-    enemy_force = {
-        "count": 5,
-        "composition": [],
-        "special_units": []
-    }
-    special_rules.clear()
-    is_completed = false
-    is_failed = false
-    turn_started = -1
-    turn_completed = -1
+## Generate a unique mission ID
+func _generate_mission_id() -> String:
+    return str(Time.get_unix_time_from_system()) + "_" + str(randi() % 1000)
 
-func start(current_turn: int) -> void:
-    if current_turn < 1:
-        push_error("Invalid turn number provided to start mission")
-        return
-    turn_started = current_turn
+## Validate mission requirements against crew capabilities
+func validate_requirements(crew_capabilities: Dictionary) -> Dictionary:
+    var validation := {"valid": true, "missing": []}
+    
+    # Check required skills
+    for skill in required_skills:
+        if not crew_capabilities.get("skills", []).has(skill):
+            validation["valid"] = false
+            validation["missing"].append("Skill: " + skill)
+    
+    # Check required equipment
+    for equipment in required_equipment:
+        if not crew_capabilities.get("equipment", []).has(equipment):
+            validation["valid"] = false
+            validation["missing"].append("Equipment: " + equipment)
+    
+    # Check crew size
+    if crew_capabilities.get("crew_size", 0) < minimum_crew_size:
+        validation["valid"] = false
+        validation["missing"].append("Minimum Crew Size: " + str(minimum_crew_size))
+    
+    return validation
 
-func complete(current_turn: int) -> void:
-    if current_turn < turn_started:
-        push_error("Cannot complete mission: completion turn before start turn")
-        return
-    is_completed = true
-    turn_completed = current_turn
+## Complete an objective
+func complete_objective(objective_index: int) -> void:
+    if objective_index >= 0 and objective_index < objectives.size():
+        objectives[objective_index]["completed"] = true
+        objective_completed.emit(objectives[objective_index])
+        _update_completion_percentage()
+        _check_mission_completion()
 
-func fail(current_turn: int) -> void:
-    if current_turn < turn_started:
-        push_error("Cannot fail mission: failure turn before start turn")
-        return
-    is_failed = true
-    turn_completed = current_turn
-
-func is_expired(current_turn: int) -> bool:
-    if current_turn < 1:
-        push_error("Invalid turn number provided to check mission expiration")
-        return false
-    # Missions expire after 5 turns if not started
-    return turn_started == -1 and current_turn > 5
-
-func add_objective(objective_type: GameEnums.MissionObjective, position: Vector2) -> void:
-    if not objective_type in GameEnums.MissionObjective.values():
-        push_error("Invalid objective type provided")
-        return
-        
-    objectives.append({
-        "type": objective_type,
-        "position": position,
-        "completed": false,
-        "victory_condition": _get_victory_condition_for_objective(objective_type)
-    })
-    objective_points.append(position)
-
-func get_objective_positions() -> Array[Vector2]:
-    return objective_points
-
-func is_all_objectives_completed() -> bool:
+## Update mission progress
+func _update_completion_percentage() -> void:
+    var completed := 0
     for objective in objectives:
-        if not objective.get("completed", false):
-            return false
-    return true
+        if objective["completed"]:
+            completed += 1
+    
+    completion_percentage = float(completed) / max(1, objectives.size()) * 100.0
+    progress_updated.emit(completion_percentage)
 
-func get_objective_text() -> String:
-    var text: String = ""
-    for i in range(objectives.size()):
-        var objective: Dictionary = objectives[i]
-        var prefix: String = "Primary: " if i == 0 else "Secondary: "
-        text += prefix + get_objective_description(objective.get("type", GameEnums.MissionObjective.MOVE_THROUGH)) + "\n"
-    return text
+## Check if mission is complete
+func _check_mission_completion() -> void:
+    var all_completed := true
+    var primary_completed := false
+    
+    for objective in objectives:
+        if objective["is_primary"]:
+            primary_completed = objective["completed"]
+        if not objective["completed"]:
+            all_completed = false
+    
+    if primary_completed:
+        is_completed = true
+        mission_completed.emit()
 
-func _get_victory_condition_for_objective(objective_type: GameEnums.MissionObjective) -> GameEnums.VictoryConditionType:
-    match objective_type:
-        GameEnums.MissionObjective.SEEK_AND_DESTROY:
-            return GameEnums.VictoryConditionType.ELIMINATION
-        GameEnums.MissionObjective.RESCUE, GameEnums.MissionObjective.ESCORT:
-            return GameEnums.VictoryConditionType.EXTRACTION
-        GameEnums.MissionObjective.DEFEND:
-            return GameEnums.VictoryConditionType.SURVIVAL
-        GameEnums.MissionObjective.PATROL, GameEnums.MissionObjective.RECON:
-            return GameEnums.VictoryConditionType.CONTROL_POINTS
-        _:
-            return GameEnums.VictoryConditionType.OBJECTIVE
+## Fail the mission
+func fail_mission() -> void:
+    is_failed = true
+    mission_failed.emit()
 
-func get_objective_description(objective_type: GameEnums.MissionObjective) -> String:
-    match objective_type:
-        GameEnums.MissionObjective.PATROL:
-            return "Patrol and secure the area"
-        GameEnums.MissionObjective.SEEK_AND_DESTROY:
-            return "Locate and eliminate all hostiles"
-        GameEnums.MissionObjective.RESCUE:
-            return "Locate and extract target"
-        GameEnums.MissionObjective.DEFEND:
-            return "Hold position and protect assets"
-        GameEnums.MissionObjective.ESCORT:
-            return "Protect and escort target"
-        GameEnums.MissionObjective.SABOTAGE:
-            return "Destroy enemy assets"
-        GameEnums.MissionObjective.RECON:
-            return "Gather intelligence and report"
-        _:
-            return "Unknown objective"
+## Change mission phase
+func change_phase(new_phase: String) -> void:
+    current_phase = new_phase
+    phase_changed.emit(new_phase)
 
-func get_mission_data() -> Dictionary:
+## Get mission summary
+func get_summary() -> Dictionary:
     return {
+        "id": mission_id,
         "name": mission_name,
         "type": mission_type,
         "difficulty": difficulty,
-        "location": location,
-        "deployment_type": deployment_type,
-        "objectives": objectives.duplicate(),
-        "rewards": rewards.duplicate(),
-        "enemy_force": enemy_force.duplicate(),
-        "battle_environment": battle_environment,
-        "deployment_points": deployment_points.duplicate(),
-        "objective_points": objective_points.duplicate(),
-        "special_rules": special_rules.duplicate()
+        "completion": completion_percentage,
+        "status": _get_status(),
+        "objectives": objectives,
+        "rewards": rewards
     }
 
-func serialize() -> Dictionary:
-    var data: Dictionary = get_mission_data()
-    data.merge({
-        "is_completed": is_completed,
-        "is_failed": is_failed,
-        "turn_started": turn_started,
-        "turn_completed": turn_completed,
-        "patron_id": patron_id,
-        "story_id": story_id
-    })
-    return data
+## Get mission status
+func _get_status() -> String:
+    if is_completed:
+        return "completed"
+    elif is_failed:
+        return "failed"
+    else:
+        return current_phase
 
-static func deserialize(data: Dictionary) -> Mission:
-    var mission := Mission.new()
+## Calculate final rewards based on completion
+func calculate_final_rewards() -> Dictionary:
+    if not is_completed:
+        return {}
     
-    # Core properties
-    mission.mission_name = data.get("name", "")
-    mission.mission_type = data.get("type", GameEnums.MissionType.GREEN_ZONE)
-    mission.difficulty = data.get("difficulty", GameEnums.DifficultyLevel.NORMAL)
-    mission.location = data.get("location", "")
-    mission.deployment_type = data.get("deployment_type", GameEnums.DeploymentType.STANDARD)
-    mission.objectives = data.get("objectives", [])
-    mission.rewards = data.get("rewards", {})
-    mission.enemy_force = data.get("enemy_force", {"count": 5, "composition": [], "special_units": []})
-    mission.battle_environment = data.get("battle_environment", GameEnums.BattleEnvironment.URBAN)
-    mission.deployment_points = data.get("deployment_points", [])
-    mission.objective_points = data.get("objective_points", [])
+    var final_rewards := rewards.duplicate(true)
     
-    # State
-    mission.is_completed = data.get("is_completed", false)
-    mission.is_failed = data.get("is_failed", false)
-    mission.turn_started = data.get("turn_started", -1)
-    mission.turn_completed = data.get("turn_completed", -1)
+    # Apply modifiers
+    if final_rewards.has("credits"):
+        final_rewards["credits"] = roundi(final_rewards["credits"] * resource_multiplier)
     
-    # Optional properties
-    mission.patron_id = data.get("patron_id", "")
-    mission.story_id = data.get("story_id", "")
-    mission.special_rules = data.get("special_rules", [])
+    if final_rewards.has("reputation"):
+        final_rewards["reputation"] = roundi(final_rewards["reputation"] * reputation_multiplier)
     
-    return mission
+    # Add bonus for completing all objectives
+    var all_completed := true
+    for objective in objectives:
+        if not objective["completed"]:
+            all_completed = false
+            break
+    
+    if all_completed:
+        final_rewards["bonus_credits"] = roundi(final_rewards.get("credits", 0) * 0.2)
+        final_rewards["bonus_reputation"] = 1
+    
+    return final_rewards
+
+## Add a special rule
+func add_special_rule(rule: String) -> void:
+    if not special_rules.has(rule):
+        special_rules.append(rule)
+
+## Check if mission has a specific special rule
+func has_special_rule(rule: String) -> bool:
+    return special_rules.has(rule)
+
+## Get active objectives
+func get_active_objectives() -> Array[Dictionary]:
+    var active: Array[Dictionary] = []
+    for objective in objectives:
+        if not objective["completed"]:
+            active.append(objective)
+    return active
+
+## Get completed objectives
+func get_completed_objectives() -> Array[Dictionary]:
+    var completed: Array[Dictionary] = []
+    for objective in objectives:
+        if objective["completed"]:
+            completed.append(objective)
+    return completed

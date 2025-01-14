@@ -63,7 +63,7 @@ func _setup_ui_components() -> void:
 	_update_resource_display(GameEnums.ResourceType.CREDITS, 0)
 	_update_resource_display(GameEnums.ResourceType.SUPPLIES, 0)
 	_update_resource_display(GameEnums.ResourceType.REPUTATION, 0)
-	_update_resource_display(GameEnums.ResourceType.STORY_POINTS, 0)
+	_update_resource_display(GameEnums.ResourceType.TECH_PARTS, 0)
 
 	# Setup phase indicator
 	phase_indicator.initialize(_phase_manager)

@@ -1,7 +1,7 @@
 class_name TerrainPiece
 extends StaticBody3D
 
-const TerrainTypes = preload("res://src/core/battle/TerrainTypes.gd")
+const TerrainTypes = preload("res://src/core/terrain/TerrainTypes.gd")
 
 @export var terrain_type: int = TerrainTypes.Type.EMPTY
 @export var destructible := false

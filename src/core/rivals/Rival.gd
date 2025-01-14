@@ -32,7 +32,7 @@ func get_threat_modifier() -> float:
             return 1.0
         GameEnums.DifficultyLevel.HARD:
             return 1.2
-        GameEnums.DifficultyLevel.VETERAN:
+        GameEnums.DifficultyLevel.HARDCORE:
             return 1.4
         GameEnums.DifficultyLevel.ELITE:
             return 1.6

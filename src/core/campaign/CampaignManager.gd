@@ -1,31 +1,31 @@
 extends Node
 
-signal campaign_started(campaign: Campaign)
-signal campaign_ended(campaign: Campaign)
-signal campaign_saved(campaign: Campaign)
-signal campaign_loaded(campaign: Campaign)
+signal campaign_started(campaign: CampaignData)
+signal campaign_ended(campaign: CampaignData)
+signal campaign_saved(campaign: CampaignData)
+signal campaign_loaded(campaign: CampaignData)
 signal world_phase_started(location: String)
 signal world_phase_completed
 signal upkeep_costs_due(amount: int)
 signal crew_tasks_available(available_tasks: Array)
 signal job_offers_available(offers: Array)
 
-const Campaign = preload("res://src/core/campaign/Campaign.gd")
+const CampaignData = preload("res://src/core/campaign/Campaign.gd")
 const GameEnums = preload("res://src/core/systems/GlobalEnums.gd")
 const FiveParsecsGameState = preload("res://src/core/state/GameState.gd")
 const SAVE_DIR = "user://campaigns/"
 const SAVE_EXTENSION = ".campaign"
 
-var current_campaign: Campaign
-var active_campaigns: Array[Campaign] = []
+var current_campaign: CampaignData
+var active_campaigns: Array[CampaignData] = []
 
 func _ready() -> void:
 	# Ensure save directory exists
 	if not DirAccess.dir_exists_absolute(SAVE_DIR):
 		DirAccess.make_dir_absolute(SAVE_DIR)
 
-func start_new_campaign(campaign_name: String, starting_credits: int = 1000) -> Campaign:
-	current_campaign = Campaign.new()
+func start_new_campaign(campaign_name: String, starting_credits: int = 1000) -> CampaignData:
+	current_campaign = CampaignData.new()
 	current_campaign.start_new_campaign(campaign_name, starting_credits)
 	active_campaigns.append(current_campaign)
 	
@@ -38,7 +38,7 @@ func end_campaign() -> void:
 		campaign_ended.emit(current_campaign)
 		current_campaign = null
 
-func save_campaign(campaign: Campaign = null) -> void:
+func save_campaign(campaign: CampaignData = null) -> void:
 	if not campaign:
 		campaign = current_campaign
 	if not campaign:
@@ -55,7 +55,7 @@ func save_campaign(campaign: Campaign = null) -> void:
 	else:
 		push_error("Failed to save campaign: " + campaign.campaign_name)
 
-func load_campaign(campaign_id: String) -> Campaign:
+func load_campaign(campaign_id: String) -> CampaignData:
 	var save_path = SAVE_DIR.path_join(campaign_id + SAVE_EXTENSION)
 	
 	if not FileAccess.file_exists(save_path):
@@ -74,7 +74,7 @@ func load_campaign(campaign_id: String) -> Campaign:
 		return null
 	
 	var save_data = json.get_data()
-	current_campaign = Campaign.new()
+	current_campaign = CampaignData.new()
 	current_campaign.deserialize(save_data)
 	
 	if not active_campaigns.has(current_campaign):
@@ -83,8 +83,8 @@ func load_campaign(campaign_id: String) -> Campaign:
 	campaign_loaded.emit(current_campaign)
 	return current_campaign
 
-func get_all_campaigns() -> Array[Campaign]:
-	var campaigns: Array[Campaign] = []
+func get_all_campaigns() -> Array[CampaignData]:
+	var campaigns: Array[CampaignData] = []
 	var dir = DirAccess.open(SAVE_DIR)
 	
 	if dir:
@@ -119,7 +119,7 @@ func delete_campaign(campaign_id: String) -> void:
 			if current_campaign and current_campaign.campaign_id == campaign_id:
 				current_campaign = null
 
-func get_campaign_by_id(campaign_id: String) -> Campaign:
+func get_campaign_by_id(campaign_id: String) -> CampaignData:
 	for campaign in active_campaigns:
 		if campaign.campaign_id == campaign_id:
 			return campaign
@@ -131,10 +131,10 @@ func is_campaign_active(campaign_id: String) -> bool:
 	var campaign = get_campaign_by_id(campaign_id)
 	return campaign != null and campaign.is_active
 
-func get_current_campaign() -> Campaign:
+func get_current_campaign() -> CampaignData:
 	return current_campaign
 
-func set_current_campaign(campaign: Campaign) -> void:
+func set_current_campaign(campaign: CampaignData) -> void:
 	if campaign and not active_campaigns.has(campaign):
 		active_campaigns.append(campaign)
 	current_campaign = campaign

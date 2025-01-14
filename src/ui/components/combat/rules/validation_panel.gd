@@ -10,8 +10,8 @@ signal validation_completed(rule: Dictionary, context: String, is_valid: bool)
 @onready var icon_texture: TextureRect = %IconTexture
 
 ## Properties
-var success_icon: Texture2D = preload("res://assets/icons/success.png")
-var error_icon: Texture2D = preload("res://assets/icons/error.png")
+@onready var success_icon: Texture2D = preload("res://assets/ui/icons/success.png")
+@onready var error_icon: Texture2D = preload("res://assets/ui/icons/error.png")
 
 ## Called when the node enters scene tree
 func _ready() -> void:

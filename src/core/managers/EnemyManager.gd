@@ -1,6 +1,6 @@
 extends Node
 
-const GlobalEnums = preload("res://src/core/systems/GlobalEnums.gd")
+const GameEnums = preload("res://src/core/systems/GlobalEnums.gd")
 
 ## Core Rules enemy group sizes - maps EnemyType to base group size
 const GROUP_SIZES = {
@@ -49,7 +49,7 @@ func get_enemy_data() -> Dictionary:
 func _validate_enemy_force(force: Dictionary) -> bool:
 	if not force.has("type") or not force.has("groups"):
 		return false
-	if not force.type in GlobalEnums.EnemyType.values():
+	if not force.type in GameEnums.EnemyType.values():
 		return false
 	return true
 
@@ -68,7 +68,7 @@ func _generate_enemy_groups() -> Array[Dictionary]:
 	
 	if current_enemy_force.get("reinforcements", false):
 		groups.append({
-			"type": GlobalEnums.EnemyType.GANGERS,
+			"type": GameEnums.EnemyType.GANGERS,
 			"count": base_count / 2,
 			"equipment_level": maxi(1, current_enemy_force.get("equipment_level", 1) - 1)
 		})
@@ -108,4 +108,4 @@ func _get_random_position_in_zone(zone: Rect2) -> Vector2:
 	return Vector2(
 		zone.position.x + randf() * zone.size.x,
 		zone.position.y + randf() * zone.size.y
-	) 
+	)

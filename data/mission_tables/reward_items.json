@@ -1,0 +1,136 @@
+{
+    "name": "reward_items",
+    "entries": [
+        {
+            "roll_range": [
+                1,
+                30
+            ],
+            "result": {
+                "type": "EQUIPMENT",
+                "name": "Basic Equipment",
+                "value": 100,
+                "rarity": "common"
+            },
+            "weight": 1.0,
+            "tags": [
+                "common"
+            ]
+        },
+        {
+            "roll_range": [
+                31,
+                60
+            ],
+            "result": {
+                "type": "EQUIPMENT",
+                "name": "Standard Equipment",
+                "value": 200,
+                "rarity": "uncommon"
+            },
+            "weight": 0.8,
+            "tags": [
+                "uncommon"
+            ]
+        },
+        {
+            "roll_range": [
+                61,
+                80
+            ],
+            "result": {
+                "type": "EQUIPMENT",
+                "name": "Advanced Equipment",
+                "value": 400,
+                "rarity": "rare"
+            },
+            "weight": 0.5,
+            "tags": [
+                "rare"
+            ]
+        },
+        {
+            "roll_range": [
+                81,
+                95
+            ],
+            "result": {
+                "type": "EQUIPMENT",
+                "name": "Elite Equipment",
+                "value": 800,
+                "rarity": "very_rare"
+            },
+            "weight": 0.3,
+            "tags": [
+                "very_rare"
+            ]
+        },
+        {
+            "roll_range": [
+                96,
+                100
+            ],
+            "result": {
+                "type": "EQUIPMENT",
+                "name": "Legendary Equipment",
+                "value": 1500,
+                "rarity": "legendary"
+            },
+            "weight": 0.1,
+            "tags": [
+                "legendary"
+            ]
+        }
+    ],
+    "validation_rules": [],
+    "modifiers": [
+        {
+            "type": "mission_type_modifier",
+            "params": {
+                "RED_ZONE": {
+                    "value_multiplier": 1.2,
+                    "rarity_boost": 10
+                },
+                "BLACK_ZONE": {
+                    "value_multiplier": 1.5,
+                    "rarity_boost": 20
+                },
+                "PATRON": {
+                    "value_multiplier": 1.0,
+                    "rarity_boost": 5
+                }
+            }
+        },
+        {
+            "type": "difficulty_modifier",
+            "params": {
+                "EASY": {
+                    "value_multiplier": 1.0,
+                    "rarity_boost": 0
+                },
+                "NORMAL": {
+                    "value_multiplier": 1.2,
+                    "rarity_boost": 5
+                },
+                "HARD": {
+                    "value_multiplier": 1.5,
+                    "rarity_boost": 10
+                },
+                "VETERAN": {
+                    "value_multiplier": 2.0,
+                    "rarity_boost": 15
+                },
+                "ELITE": {
+                    "value_multiplier": 3.0,
+                    "rarity_boost": 20
+                }
+            }
+        }
+    ],
+    "default_result": {
+        "type": "EQUIPMENT",
+        "name": "Basic Equipment",
+        "value": 100,
+        "rarity": "common"
+    }
+}

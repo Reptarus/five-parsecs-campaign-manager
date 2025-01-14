@@ -1,0 +1,82 @@
+{
+    "name": "deployment_points",
+    "entries": [
+        {
+            "roll_range": [
+                1,
+                10
+            ],
+            "result": 2,
+            "weight": 0.5,
+            "tags": [
+                "minimal"
+            ]
+        },
+        {
+            "roll_range": [
+                11,
+                70
+            ],
+            "result": 3,
+            "weight": 1.0,
+            "tags": [
+                "standard"
+            ]
+        },
+        {
+            "roll_range": [
+                71,
+                90
+            ],
+            "result": 4,
+            "weight": 0.7,
+            "tags": [
+                "extended"
+            ]
+        },
+        {
+            "roll_range": [
+                91,
+                100
+            ],
+            "result": 5,
+            "weight": 0.3,
+            "tags": [
+                "maximum"
+            ]
+        }
+    ],
+    "validation_rules": [
+        {
+            "type": "mission_size_check",
+            "params": {
+                "small": {
+                    "max_points": 3
+                },
+                "medium": {
+                    "max_points": 4
+                },
+                "large": {
+                    "max_points": 5
+                }
+            }
+        }
+    ],
+    "modifiers": [
+        {
+            "type": "mission_type_modifier",
+            "params": {
+                "RED_ZONE": {
+                    "point_modifier": 1
+                },
+                "BLACK_ZONE": {
+                    "point_modifier": 0
+                },
+                "PATRON": {
+                    "point_modifier": 0
+                }
+            }
+        }
+    ],
+    "default_result": 3
+}

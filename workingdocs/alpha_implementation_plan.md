@@ -1,125 +1,201 @@
-# Alpha Implementation Plan
+# Five Parsecs Campaign Manager - Alpha Implementation Plan
 
-## Phase 1: Core Systems (Complete)
-- Project structure setup
-- Core system implementation
-- Basic UI framework
-- Test framework setup
-- State management system
+## Alpha Goals
+- Establish core table rolling framework
+- Implement basic campaign management
+- Create mobile-friendly UI foundation
+- Enable offline data persistence
+- Support essential game utilities
 
-## Phase 2: Campaign Management (85% Complete)
-- Campaign state tracking ✓
-- Phase system implementation ✓
-- Resource management (60%)
-- Mission generation (40%)
-- Campaign validation ✓
+## Core Features for Alpha
 
-## Phase 3: Character Systems (80% Complete)
-- Character creation system ✓
-- Skill system implementation ✓
-- Equipment management ✓
-- Character progression (70%)
-- State persistence ✓
+### 1. Table Rolling System (Priority 1)
+1. Framework Implementation
+   - Generic d100 table processor
+   - Table definition system
+   - Result validation
+   - Manual override support
+   - Roll history tracking
 
-## Phase 4: Battle Systems (90% Complete)
-- Combat resolution system ✓
-- Manual override support ✓
-- House rules integration ✓
-- State verification ✓
-- Combat logging ✓
+2. Basic Tables
+   - Character creation
+   - Mission generation
+   - Enemy composition
+   - Basic loot/rewards
+   - Planet/location details
 
-## Phase 5: Tabletop Support (85% Complete)
-### UI Components
-- Manual override panel ✓
-- Combat log panel ✓
-- House rules panel ✓
-- State verification panel ✓
-- Component integration (60%)
+3. Table Management
+   - Table data persistence
+   - Custom table support
+   - Roll modification
+   - Result logging
+   - Export capabilities
 
-### Combat System Enhancements
-- Dice roll visualization ✓
-- Modifier tracking ✓
-- Manual override system ✓
-- Combat logging ✓
-- State verification ✓
+### 2. Campaign Management (Priority 2)
+1. State Tracking
+   - Campaign metadata
+   - Turn management
+   - Resource tracking
+   - Event logging
+   - Progress markers
 
-### House Rules Support
-- Rule definition system ✓
-- Rule validation ✓
-- Rule application ✓
-- Rule persistence ✓
-- Rule UI integration (80%)
+2. Basic Features
+   - Campaign creation/loading
+   - Resource calculations
+   - Simple event handling
+   - Mission tracking
+   - State persistence
 
-### UI Enhancements
-- Combat feedback system ✓
-- State display improvements ✓
-- Manual override interface ✓
-- Log visualization ✓
-- Component integration (60%)
+3. Data Management
+   - Local storage
+   - Export/import
+   - State validation
+   - Version control
+   - Backup system
 
-## Phase 6: Polish and Documentation (Pending)
-- Performance optimization
-- UI polish
-- Documentation updates
-- Tutorial system
-- Help documentation
+### 3. Mobile UI Foundation (Priority 3)
+1. Core Components
+   - Navigation system
+   - Form controls
+   - Data displays
+   - Modal dialogs
+   - Touch controls
 
-## Hours Breakdown
+2. Layouts
+   - Responsive grids
+   - Flexible containers
+   - Portrait/landscape support
+   - Screen size adaptation
+   - Component scaling
 
-### Phase 1: Core Systems
-- Project setup: 8 hours
-- Core implementation: 24 hours
-- UI framework: 16 hours
-- Testing setup: 8 hours
-- Total: 56 hours
+3. User Experience
+   - Touch targets
+   - Gesture support
+   - Input methods
+   - Feedback systems
+   - Loading states
 
-### Phase 2: Campaign Management
-- State tracking: 16 hours
-- Phase system: 24 hours
-- Resource system: 20 hours
-- Mission system: 32 hours
-- Total: 92 hours
+### 4. Character Management (Priority 4)
+1. Basic Features
+   - Character creation
+   - Stat tracking
+   - Equipment management
+   - Status tracking
+   - Experience logging
 
-### Phase 3: Character Systems
-- Creation system: 24 hours
-- Skill system: 16 hours
-- Equipment system: 20 hours
-- Progression system: 24 hours
-- Total: 84 hours
+2. Crew Management
+   - Roster tracking
+   - Basic relationships
+   - Task assignment
+   - Status overview
+   - Resource allocation
 
-### Phase 4: Battle Systems
-- Combat resolution: 32 hours
-- Override support: 16 hours
-- House rules: 24 hours
-- State verification: 20 hours
-- Total: 92 hours
+3. Data Handling
+   - Character persistence
+   - Roster management
+   - State validation
+   - Import/export
+   - History tracking
 
-### Phase 5: Tabletop Support
-- UI components: 40 hours
-- Combat enhancements: 32 hours
-- House rules support: 24 hours
-- UI integration: 28 hours
-- Total: 124 hours
+## Technical Requirements
 
-### Phase 6: Polish and Documentation
-- Optimization: 16 hours
-- UI polish: 24 hours
-- Documentation: 20 hours
-- Tutorial system: 32 hours
-- Total: 92 hours
+### 1. Core Architecture
+1. Data Layer
+   - JSON storage
+   - State management
+   - Validation system
+   - Version control
+   - Migration support
 
-## Total Project Hours: 540
+2. Business Logic
+   - Table processor
+   - State machines
+   - Calculators
+   - Validators
+   - Event handlers
 
-## Current Focus
-- Complete UI component integration
-- Finalize tabletop support features
-- Begin campaign features implementation
-- Expand test coverage
-- Update documentation
+3. UI Layer
+   - Component library
+   - Theme system
+   - Layout engine
+   - Input handling
+   - State binding
 
-## Next Steps
-1. Complete UI component integration
-2. Implement remaining campaign features
-3. Finish character progression system
-4. Begin polish phase
-5. Create documentation and tutorials
+### 2. Mobile Support
+1. Interface
+   - Touch controls
+   - Responsive design
+   - Adaptive layouts
+   - Input methods
+   - Gesture support
+
+2. Performance
+   - Load optimization
+   - Memory management
+   - Battery efficiency
+   - Cache strategy
+   - Background tasks
+
+3. Offline Support
+   - Local storage
+   - State persistence
+   - Data integrity
+   - Sync management
+   - Error handling
+
+## Implementation Phases
+
+### Phase 1: Foundation (Weeks 1-2)
+1. Core Systems
+   - Table rolling framework
+   - Data persistence
+   - State management
+   - Basic UI components
+   - Mobile foundation
+
+2. Testing
+   - Unit tests
+   - Integration tests
+   - Mobile testing
+   - Performance testing
+   - State validation
+
+### Phase 2: Features (Weeks 3-4)
+1. Campaign Tools
+   - Campaign creation
+   - Resource tracking
+   - Mission generation
+   - Event handling
+   - State persistence
+
+2. Character Tools
+   - Character creation
+   - Roster management
+   - Equipment tracking
+   - Status management
+   - Data persistence
+
+### Phase 3: Polish (Weeks 5-6)
+1. UI Enhancement
+   - Navigation polish
+   - Input refinement
+   - Layout optimization
+   - Performance tuning
+   - Accessibility review
+
+2. Quality Assurance
+   - Bug fixes
+   - Performance optimization
+   - State validation
+   - Documentation
+   - User testing
+
+## Alpha Success Criteria
+- Core table rolling functions work reliably
+- Basic campaign management is functional
+- UI works effectively on mobile devices
+- Data persists correctly offline
+- Essential utilities are user-friendly
+- Performance is acceptable on mobile
+- Manual overrides work as expected
+- Basic documentation is complete

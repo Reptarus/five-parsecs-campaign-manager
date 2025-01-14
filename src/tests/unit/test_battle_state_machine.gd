@@ -49,7 +49,7 @@ func test_battle_end():
 		func(): signal_emitted = true
 	)
 	
-	battle_state_machine.end_battle(GameEnums.VictoryConditionType.STANDARD)
+	battle_state_machine.end_battle(GameEnums.VictoryConditionType.ELIMINATION)
 	assert_false(battle_state_machine.is_battle_active,
 		"Battle should not be active after ending")
 	assert_true(signal_emitted,
@@ -126,7 +126,7 @@ func test_state_persistence():
 	assert_not_null(save_data,
 		"Battle state should be saved successfully")
 	
-	battle_state_machine.end_battle(GameEnums.VictoryConditionType.STANDARD)
+	battle_state_machine.end_battle(GameEnums.VictoryConditionType.ELIMINATION)
 	battle_state_machine.load_state(save_data)
 	
 	assert_true(battle_state_machine.is_battle_active,

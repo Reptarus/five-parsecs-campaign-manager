@@ -1,0 +1,50 @@
+[gd_scene load_steps=2 format=3 uid="uid://b8r6g0c5rj3m4"]
+
+[ext_resource type="Script" path="res://src/ui/resource/ResourceItem.gd" id="1_2k3m4"]
+
+[node name="ResourceItem" type="Button"]
+custom_minimum_size = Vector2(0, 40)
+offset_right = 200.0
+offset_bottom = 40.0
+focus_mode = 0
+script = ExtResource("1_2k3m4")
+
+[node name="HBoxContainer" type="HBoxContainer" parent="."]
+layout_mode = 1
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+theme_override_constants/separation = 8
+
+[node name="IconTexture" type="TextureRect" parent="HBoxContainer"]
+custom_minimum_size = Vector2(32, 32)
+layout_mode = 2
+size_flags_vertical = 4
+expand_mode = 1
+stretch_mode = 5
+
+[node name="NameLabel" type="Label" parent="HBoxContainer"]
+layout_mode = 2
+size_flags_horizontal = 3
+text = "Resource"
+vertical_alignment = 1
+
+[node name="AmountLabel" type="Label" parent="HBoxContainer"]
+layout_mode = 2
+text = "0"
+horizontal_alignment = 2
+vertical_alignment = 1
+
+[node name="TrendLabel" type="Label" parent="HBoxContainer"]
+layout_mode = 2
+text = "→"
+horizontal_alignment = 1
+vertical_alignment = 1
+
+[node name="MarketLabel" type="Label" parent="HBoxContainer"]
+layout_mode = 2
+text = "(0)"
+horizontal_alignment = 2
+vertical_alignment = 1 

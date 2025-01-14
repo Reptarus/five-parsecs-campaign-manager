@@ -22,7 +22,7 @@ var deployment_type: GlobalEnums.DeploymentType
 var game_state: Node
 var event_manager: BattleEventManager
 var selected_unit: Node
-var selected_action: int = GlobalEnums.UnitAction.NONE
+var selected_action: int = GameEnums.UnitAction.NONE
 var current_mission: Mission
 
 func _ready() -> void:
@@ -55,11 +55,11 @@ func _connect_signals() -> void:
 	
 	# Action buttons
 	var action_buttons = $BattleLayout/MainContent/SidePanel/VBoxContainer/ActionPanel/VBoxContainer/ActionButtons
-	action_buttons.get_node("MoveButton").pressed.connect(_on_action_button_pressed.bind(GlobalEnums.UnitAction.MOVE))
-	action_buttons.get_node("AttackButton").pressed.connect(_on_action_button_pressed.bind(GlobalEnums.UnitAction.ATTACK))
-	action_buttons.get_node("DashButton").pressed.connect(_on_action_button_pressed.bind(GlobalEnums.UnitAction.DASH))
-	action_buttons.get_node("ItemsButton").pressed.connect(_on_action_button_pressed.bind(GlobalEnums.UnitAction.ITEMS))
-	action_buttons.get_node("BrawlButton").pressed.connect(_on_action_button_pressed.bind(GlobalEnums.UnitAction.BRAWL))
+	action_buttons.get_node("MoveButton").pressed.connect(_on_action_button_pressed.bind(GameEnums.UnitAction.MOVE))
+	action_buttons.get_node("AttackButton").pressed.connect(_on_action_button_pressed.bind(GameEnums.UnitAction.ATTACK))
+	action_buttons.get_node("DashButton").pressed.connect(_on_action_button_pressed.bind(GameEnums.UnitAction.DASH))
+	action_buttons.get_node("ItemsButton").pressed.connect(_on_action_button_pressed.bind(GameEnums.UnitAction.ITEMS))
+	action_buttons.get_node("BrawlButton").pressed.connect(_on_action_button_pressed.bind(GameEnums.UnitAction.BRAWL))
 	action_buttons.get_node("EndTurnButton").pressed.connect(_on_end_turn_pressed)
 
 func _on_battle_started() -> void:
@@ -117,21 +117,21 @@ func start_battle() -> void:
 	add_to_battle_log("Battle started!")
 
 func _on_phase_changed(new_phase: int) -> void:
-	phase_label.text = "Phase: " + GlobalEnums.BattlePhase.keys()[new_phase]
+	phase_label.text = "Phase: " + GameEnums.BattlePhase.keys()[new_phase]
 	_update_ui()
 	
 	match new_phase:
-		GlobalEnums.BattlePhase.SETUP:
+		GameEnums.BattlePhase.SETUP:
 			add_to_battle_log("Setting up battlefield...")
-		GlobalEnums.BattlePhase.DEPLOYMENT:
+		GameEnums.BattlePhase.DEPLOYMENT:
 			add_to_battle_log("Deployment phase - Position your units")
-		GlobalEnums.BattlePhase.INITIATIVE:
+		GameEnums.BattlePhase.INITIATIVE:
 			add_to_battle_log("Rolling for initiative...")
-		GlobalEnums.BattlePhase.ACTIVATION:
+		GameEnums.BattlePhase.ACTIVATION:
 			_handle_activation_phase()
-		GlobalEnums.BattlePhase.REACTION:
+		GameEnums.BattlePhase.REACTION:
 			add_to_battle_log("Reaction phase")
-		GlobalEnums.BattlePhase.CLEANUP:
+		GameEnums.BattlePhase.CLEANUP:
 			add_to_battle_log("Cleaning up turn effects")
 
 func _handle_activation_phase() -> void:
@@ -172,20 +172,20 @@ func _on_unit_selected(unit: Node) -> void:
 		var target_data = {"target": unit}
 		_try_perform_action(target_data)
 
-func _on_action_button_pressed(action: GlobalEnums.UnitAction) -> void:
+func _on_action_button_pressed(action: GameEnums.UnitAction) -> void:
 	selected_action = action
 	_update_ui()
 	
 	match action:
-		GlobalEnums.UnitAction.MOVE, GlobalEnums.UnitAction.DASH:
+		GameEnums.UnitAction.MOVE, GameEnums.UnitAction.DASH:
 			battlefield.show_movement_range(selected_unit)
-		GlobalEnums.UnitAction.ATTACK:
+		GameEnums.UnitAction.ATTACK:
 			battlefield.show_attack_range(selected_unit)
-		GlobalEnums.UnitAction.BRAWL:
+		GameEnums.UnitAction.BRAWL:
 			battlefield.show_brawl_range(selected_unit)
 
 func _on_end_turn_pressed() -> void:
-	if five_parcecs_system.current_phase == GlobalEnums.BattlePhase.ACTIVATION:
+	if five_parcecs_system.current_phase == GameEnums.BattlePhase.ACTIVATION:
 		five_parcecs_system.advance_phase()
 
 func _try_perform_action(target_data: Dictionary) -> void:
@@ -203,7 +203,7 @@ func _update_ui() -> void:
 	active_unit_label.text = "Active Unit: " + (active_unit.name if active_unit else "None")
 	
 	# Update action panel visibility
-	action_panel.visible = (five_parcecs_system.current_phase == GlobalEnums.BattlePhase.ACTIVATION and
+	action_panel.visible = (five_parcecs_system.current_phase == GameEnums.BattlePhase.ACTIVATION and
 						   active_unit == selected_unit)
 	
 	_update_unit_info()
@@ -221,13 +221,13 @@ func _update_unit_info() -> void:
 		unit_stats.text = "Select a unit to view stats"
 
 func _update_action_buttons() -> void:
-	if not selected_unit or five_parcecs_system.current_phase != GlobalEnums.BattlePhase.ACTIVATION:
+	if not selected_unit or five_parcecs_system.current_phase != GameEnums.BattlePhase.ACTIVATION:
 		return
 		
 	var buttons = $BattleLayout/MainContent/SidePanel/VBoxContainer/ActionPanel/VBoxContainer/ActionButtons
 	
-	for action in GlobalEnums.UnitAction.values():
-		var button = buttons.get_node(GlobalEnums.UnitAction.keys()[action].capitalize() + "Button")
+	for action in GameEnums.UnitAction.values():
+		var button = buttons.get_node(GameEnums.UnitAction.keys()[action].capitalize() + "Button")
 		if button:
 			button.disabled = not five_parcecs_system.can_perform_action(selected_unit, action)
 

@@ -32,8 +32,7 @@ const BATTLE_EVENTS = {
             "duration": 1
         },
         "requirements": ["near_cover"]
-    },
-    # Add more Core Rules events...
+    }
 }
 
 # Event trigger conditions

@@ -18,8 +18,8 @@ var campaign_presets = {
         "enable_permadeath": false
     },
     "veteran": {
-        "name": "Veteran Campaign",
-        "difficulty": GameEnums.DifficultyLevel.VETERAN,
+        "name": "Hardcore Campaign",
+        "difficulty": GameEnums.DifficultyLevel.HARDCORE,
         "enable_tutorial": false,
         "enable_permadeath": true
     }

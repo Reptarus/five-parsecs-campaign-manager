@@ -1,66 +1,59 @@
-class_name Armor
-extends Equipment
+@tool
+extends "res://src/core/character/Equipment/Equipment.gd"
 
-const Equipment := preload("res://src/core/character/Equipment/Equipment.gd")
-
-@export var armor_type: GlobalEnums.ArmorType = GlobalEnums.ArmorType.NONE
-@export var armor_value: int = 0
-@export var movement_penalty: float = 0.0
-@export var special_properties: Array[String] = []
+@export var armor_type: GameEnums.ArmorType = GameEnums.ArmorType.NONE
+@export var armor_save: int = 0
+@export var armor_bonus: int = 0
 
 func _init() -> void:
-	item_type = GlobalEnums.ItemType.ARMOR
+	item_type = GameEnums.ItemType.ARMOR
 
 func can_be_equipped_by(character: Resource) -> bool:
-	# Check if character meets armor requirements
-	# For example, powered armor might require special training
+	# Only Tech class can use powered armor
 	match armor_type:
-		GlobalEnums.ArmorType.POWERED:
-			return character.character_class == GlobalEnums.CharacterClass.TECH
+		GameEnums.ArmorType.POWERED:
+			return character.character_class == GameEnums.CharacterClass.TECH
 		_:
 			return true
 
 func apply_modifiers(character: Resource) -> void:
-	character.armor += armor_value
-	character.speed = max(1, character.speed - int(movement_penalty))
+	# Apply armor save and any other modifiers
+	character.armor_save = armor_save
+	character.armor_bonus = armor_bonus
 	
-	# Apply special properties
-	for property in special_properties:
-		match property:
-			"stealth":
-				character.add_combat_modifier(GlobalEnums.CombatModifier.COVER_LIGHT)
-			"hazard_protection":
-				character.add_combat_modifier(GlobalEnums.CombatModifier.NONE)
-			"shield":
-				character.add_combat_modifier(GlobalEnums.CombatModifier.COVER_HEAVY)
+	# Apply cover modifiers based on armor type
+	match armor_type:
+		GameEnums.ArmorType.LIGHT:
+			character.add_combat_modifier(GameEnums.CombatModifier.COVER_LIGHT)
+		GameEnums.ArmorType.MEDIUM:
+			character.add_combat_modifier(GameEnums.CombatModifier.NONE)
+		GameEnums.ArmorType.HEAVY:
+			character.add_combat_modifier(GameEnums.CombatModifier.COVER_HEAVY)
 
 func remove_modifiers(character: Resource) -> void:
-	character.armor -= armor_value
-	character.speed = min(character.speed + int(movement_penalty), character.max_speed)
+	# Remove armor save and any other modifiers
+	character.armor_save = 0
+	character.armor_bonus = 0
 	
-	# Remove special properties
-	for property in special_properties:
-		match property:
-			"stealth":
-				character.remove_combat_modifier(GlobalEnums.CombatModifier.COVER_LIGHT)
-			"hazard_protection":
-				character.remove_combat_modifier(GlobalEnums.CombatModifier.NONE)
-			"shield":
-				character.remove_combat_modifier(GlobalEnums.CombatModifier.COVER_HEAVY)
+	# Remove cover modifiers based on armor type
+	match armor_type:
+		GameEnums.ArmorType.LIGHT:
+			character.remove_combat_modifier(GameEnums.CombatModifier.COVER_LIGHT)
+		GameEnums.ArmorType.MEDIUM:
+			character.remove_combat_modifier(GameEnums.CombatModifier.NONE)
+		GameEnums.ArmorType.HEAVY:
+			character.remove_combat_modifier(GameEnums.CombatModifier.COVER_HEAVY)
 
 func get_display_name() -> String:
 	return "%s %s (%s)" % [
-		GlobalEnums.ArmorType.keys()[armor_type],
+		GameEnums.ArmorType.keys()[armor_type],
 		item_name,
-		GlobalEnums.ItemRarity.keys()[rarity]
+		GameEnums.ItemRarity.keys()[rarity]
 	]
 
 func get_description() -> String:
-	var desc := super.get_description()
-	desc += "\n\nArmor Type: %s" % GlobalEnums.ArmorType.keys()[armor_type]
-	desc += "\nArmor Value: %d" % armor_value
-	if movement_penalty > 0:
-		desc += "\nMovement Penalty: %.1f" % movement_penalty
-	if not special_properties.is_empty():
-		desc += "\nSpecial Properties: %s" % ", ".join(special_properties)
+	var desc = description
+	desc += "\n\nArmor Type: %s" % GameEnums.ArmorType.keys()[armor_type]
+	desc += "\nArmor Save: %d+" % armor_save if armor_save > 0 else ""
+	desc += "\nArmor Bonus: +%d" % armor_bonus if armor_bonus > 0 else ""
 	return desc

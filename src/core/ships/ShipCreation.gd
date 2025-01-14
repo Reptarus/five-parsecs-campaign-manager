@@ -119,19 +119,19 @@ func _setup_component_options() -> void:
 		option.add_to_group("touch_controls")
 	
 	# Populate hull options
-	for hull in GlobalEnums.ShipComponentType.values():
-		if str(GlobalEnums.ShipComponentType.keys()[hull]).begins_with("HULL_"):
-			hull_option.add_item(GlobalEnums.ShipComponentType.keys()[hull].trim_prefix("HULL_"))
+	for hull in GameEnums.ShipComponentType.values():
+		if str(GameEnums.ShipComponentType.keys()[hull]).begins_with("HULL_"):
+			hull_option.add_item(GameEnums.ShipComponentType.keys()[hull].trim_prefix("HULL_"))
 			
 	# Populate engine options
-	for engine in GlobalEnums.ShipComponentType.values():
-		if str(GlobalEnums.ShipComponentType.keys()[engine]).begins_with("ENGINE_"):
-			engine_option.add_item(GlobalEnums.ShipComponentType.keys()[engine].trim_prefix("ENGINE_"))
+	for engine in GameEnums.ShipComponentType.values():
+		if str(GameEnums.ShipComponentType.keys()[engine]).begins_with("ENGINE_"):
+			engine_option.add_item(GameEnums.ShipComponentType.keys()[engine].trim_prefix("ENGINE_"))
 			
 	# Populate medical bay options
-	for medical in GlobalEnums.ShipComponentType.values():
-		if str(GlobalEnums.ShipComponentType.keys()[medical]).begins_with("MEDICAL_"):
-			medical_option.add_item(GlobalEnums.ShipComponentType.keys()[medical].trim_prefix("MEDICAL_"))
+	for medical in GameEnums.ShipComponentType.values():
+		if str(GameEnums.ShipComponentType.keys()[medical]).begins_with("MEDICAL_"):
+			medical_option.add_item(GameEnums.ShipComponentType.keys()[medical].trim_prefix("MEDICAL_"))
 
 func _setup_buttons() -> void:
 	var create_button = $VBoxContainer/CreateShipButton
@@ -165,9 +165,9 @@ func _add_weapon_option() -> void:
 	weapon_option.add_to_group("touch_controls")
 	
 	# Populate weapon options
-	for weapon in GlobalEnums.ShipComponentType.values():
-		if str(GlobalEnums.ShipComponentType.keys()[weapon]).begins_with("WEAPON_"):
-			weapon_option.add_item(GlobalEnums.ShipComponentType.keys()[weapon].trim_prefix("WEAPON_"))
+	for weapon in GameEnums.ShipComponentType.values():
+		if str(GameEnums.ShipComponentType.keys()[weapon]).begins_with("WEAPON_"):
+			weapon_option.add_item(GameEnums.ShipComponentType.keys()[weapon].trim_prefix("WEAPON_"))
 	
 	var remove_button = Button.new()
 	remove_button.text = "X"
@@ -214,25 +214,25 @@ func _on_ship_type_selected(index: int) -> void:
 
 func _on_hull_selected(index: int) -> void:
 	var hull = HullComponent.new()
-	hull.component_type = GlobalEnums.ShipComponentType.values()[index]
+	hull.component_type = GameEnums.ShipComponentType.values()[index]
 	current_ship.add_component(hull)
 	_update_ship_info()
 
 func _on_engine_selected(index: int) -> void:
 	var engine = EngineComponent.new()
-	engine.component_type = GlobalEnums.ShipComponentType.values()[index]
+	engine.component_type = GameEnums.ShipComponentType.values()[index]
 	current_ship.add_component(engine)
 	_update_ship_info()
 
 func _on_weapon_selected(index: int, weapon_slot: int) -> void:
 	var weapon = WeaponsComponent.new()
-	weapon.component_type = GlobalEnums.ShipComponentType.values()[index]
+	weapon.component_type = GameEnums.ShipComponentType.values()[index]
 	current_ship.add_component(weapon)
 	_update_ship_info()
 
 func _on_medical_selected(index: int) -> void:
 	var medical = MedicalBayComponent.new()
-	medical.component_type = GlobalEnums.ShipComponentType.values()[index]
+	medical.component_type = GameEnums.ShipComponentType.values()[index]
 	current_ship.add_component(medical)
 	_update_ship_info()
 
@@ -317,8 +317,8 @@ func _validate_ship() -> bool:
 	
 	return true
 
-func _get_component_name(component_type: GlobalEnums.ShipComponentType) -> String:
-	var type_name = GlobalEnums.ShipComponentType.keys()[component_type]
+func _get_component_name(component_type: GameEnums.ShipComponentType) -> String:
+	var type_name = GameEnums.ShipComponentType.keys()[component_type]
 	var display_name = type_name.split("_")
 	if display_name.size() >= 2:
 		return "%s %s" % [display_name[0].capitalize(), display_name[1]]

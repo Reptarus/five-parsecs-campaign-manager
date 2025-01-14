@@ -6,7 +6,7 @@ const GameEnums := preload("res://src/core/systems/GlobalEnums.gd")
 
 const FIRST_NAMES: Array[String] = [
 	# Original names
-	"John", "Jane", "Alex", "Sarah", "Michael", "Emily", "Ivan", "Chris", 
+	"John", "Jane", "Alex", "Sarah", "Michael", "Emily", "Ivan", "Chris",
 	"Bill", "Jason", "Maria", "David", "Anna", "Robert", "Lisa",
 	"Marcus", "Elena", "Kai", "Zara", "Omar", "Nina", "Felix", "Maya",
 	"Dante", "Luna", "Atlas", "Nova", "Cora", "Rex", "Vera",

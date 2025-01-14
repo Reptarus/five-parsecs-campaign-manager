@@ -1,0 +1,131 @@
+{
+    "name": "mission_types",
+    "entries": [
+        {
+            "roll_range": [
+                1,
+                25
+            ],
+            "result": {
+                "type": "RED_ZONE",
+                "name": "Red Zone Operation",
+                "base_difficulty": 2,
+                "reward_multiplier": 1.0,
+                "available_objectives": [
+                    "SEARCH",
+                    "SECURE",
+                    "RETRIEVE",
+                    "ELIMINATE"
+                ],
+                "special_rules": [
+                    "standard_deployment",
+                    "basic_rewards"
+                ],
+                "description": "Standard mission in a contested area."
+            },
+            "weight": 1.0,
+            "tags": [
+                "standard",
+                "combat"
+            ]
+        },
+        {
+            "roll_range": [
+                26,
+                45
+            ],
+            "result": {
+                "type": "BLACK_ZONE",
+                "name": "Black Zone Operation",
+                "base_difficulty": 3,
+                "reward_multiplier": 1.5,
+                "available_objectives": [
+                    "INFILTRATE",
+                    "SABOTAGE",
+                    "EXTRACT",
+                    "ELIMINATE"
+                ],
+                "special_rules": [
+                    "stealth_option",
+                    "high_risk_rewards"
+                ],
+                "description": "High-risk mission in a heavily defended area."
+            },
+            "weight": 0.8,
+            "tags": [
+                "advanced",
+                "stealth"
+            ]
+        },
+        {
+            "roll_range": [
+                46,
+                60
+            ],
+            "result": {
+                "type": "PATRON",
+                "name": "Patron Contract",
+                "base_difficulty": 2,
+                "reward_multiplier": 1.2,
+                "available_objectives": [
+                    "PROTECT",
+                    "ESCORT",
+                    "RETRIEVE",
+                    "INVESTIGATE"
+                ],
+                "special_rules": [
+                    "patron_bonus",
+                    "reputation_rewards"
+                ],
+                "description": "Specialized mission for a paying client."
+            },
+            "weight": 0.6,
+            "tags": [
+                "special",
+                "patron"
+            ]
+        }
+    ],
+    "validation_rules": [
+        {
+            "type": "phase_requirement",
+            "params": {
+                "EARLY_GAME": {
+                    "allowed_types": [
+                        "RED_ZONE"
+                    ],
+                    "difficulty_modifier": 0.8
+                },
+                "MID_GAME": {
+                    "allowed_types": [
+                        "RED_ZONE",
+                        "PATRON"
+                    ],
+                    "difficulty_modifier": 1.0
+                },
+                "LATE_GAME": {
+                    "allowed_types": [
+                        "RED_ZONE",
+                        "BLACK_ZONE",
+                        "PATRON"
+                    ],
+                    "difficulty_modifier": 1.2
+                }
+            }
+        }
+    ],
+    "default_result": {
+        "type": "RED_ZONE",
+        "name": "Standard Operation",
+        "base_difficulty": 1,
+        "reward_multiplier": 1.0,
+        "available_objectives": [
+            "SEARCH",
+            "SECURE"
+        ],
+        "special_rules": [
+            "standard_deployment"
+        ],
+        "description": "Basic mission with standard parameters."
+    }
+}

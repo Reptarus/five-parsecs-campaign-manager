@@ -1,114 +1,203 @@
 # Battlefield Generator Implementation
 
 ## Overview
-Implementation of the battlefield generation system for Five Parsecs, focusing on tabletop-accurate terrain placement and mission support.
+Implementation of battlefield generation utilities focusing on table automation, setup assistance, and mobile-friendly reference tools.
 
-## Core Requirements
+## 1. Battlefield Generation System
 
-### 1. Terrain Generation
-- Terrain type definitions
-- Feature placement rules
-- Line of sight validation
-- Path verification
-- Deployment zones
+### Table Processing (Priority 1)
+1. Terrain Tables
+   - Terrain type tables
+   - Feature tables
+   - Hazard tables
+   - Cover tables
+   - Special rules tables
 
-### 2. Mission Integration
-- Mission type support
-- Special objectives
-- Environmental conditions
-- Deployment variations
+2. Result Processing
+   - D100 roll automation
+   - Result validation
+   - Manual override options
+   - Custom table support
+   - Roll history tracking
 
-### 3. Tabletop Support
-- Manual override options
-- Measurement tools
-- Line of sight tools
-- Movement validation
-- Combat position verification
-
-## Implementation Phases
-
-### Phase 1: Core Generation (15 hours)
-1. Terrain System (8h)
-   - Terrain type definitions
-   - Feature size calculations
-   - Placement validation
-   - Distribution logic
-   - Core rulebook accuracy checks
-
-2. Environment System (7h)
-   - Environment type definitions
-   - Terrain mapping
-   - Environment rules
-   - Feature compatibility
-   - Tabletop measurement support
-
-### Phase 2: Mission Support (20 hours)
-1. Mission Integration (10h)
-   - Mission type requirements
-   - Objective placement
-   - Deployment zone generation
-   - Special rules support
-   - Validation system
-
-2. Environment Effects (10h)
-   - Environmental conditions
+3. Layout Assembly
+   - Terrain placement
+   - Feature distribution
    - Hazard placement
-   - Cover system
-   - Line of sight rules
-   - Movement modifiers
+   - Cover positioning
+   - Rule application
 
-### Phase 3: UI Components (15 hours)
-1. Battlefield Preview (8h)
-   - Grid overlay
-   - Terrain visualization
+## 2. Setup Assistance
+
+### Core Features (Priority 2)
+1. Layout Guide
+   - Deployment zones
    - Objective markers
-   - Deployment zone indicators
-   - Measurement tools
+   - Terrain suggestions
+   - Cover placement
+   - Setup validation
 
-2. Control Interface (7h)
-   - Manual placement tools
-   - Terrain adjustment
-   - Environment controls
-   - Validation feedback
-   - Debug visualization
+2. Rule Integration
+   - Mission rules
+   - Terrain effects
+   - Special conditions
+   - Environmental rules
+   - Setup requirements
 
-### Phase 4: Testing & Validation (10 hours)
-1. Unit Testing (4h)
-   - Generation consistency
-   - Rule compliance
-   - Edge cases
-   - Performance benchmarks
+3. Reference Tools
+   - Quick rules lookup
+   - Terrain effects guide
+   - Setup checklist
+   - Validation helper
+   - Notes system
 
-2. Integration Testing (4h)
-   - Mission compatibility
-   - Save/load functionality
-   - UI interaction
-   - State management
+## 3. Mobile Interface
 
-3. Documentation (2h)
-   - API documentation
-   - Usage examples
-   - Performance optimization
-   - Bug fixes
+### UI Components (Priority 3)
+1. Layout Manager
+   - Terrain overview
+   - Feature display
+   - Zone markers
+   - Quick reference
+   - Setup guide
+
+2. Generation Tools
+   - Quick generation
+   - Custom parameters
+   - Result preview
+   - Manual overrides
+   - History access
+
+3. Reference Tools
+   - Rule lookup
+   - Effect viewer
+   - Setup assistant
+   - Notes system
+   - Settings panel
+
+## 4. Data Management
+
+### Core Systems (Priority 4)
+1. State Tracking
+   - Layout state
+   - Rule state
+   - Setup state
+   - History state
+   - Notes state
+
+2. Data Persistence
+   - Local storage
+   - State validation
+   - Change tracking
+   - Export support
+   - Backup system
+
+3. Offline Support
+   - Data caching
+   - State recovery
+   - Sync handling
+   - Conflict resolution
+   - Error management
+
+## Technical Implementation
+
+### 1. Table System
+1. Framework
+   - Generic processor
+   - Result mapper
+   - Validator
+   - Override handler
+   - History logger
+
+2. Data Structure
+   - Table definitions
+   - Result mappings
+   - Validation rules
+   - Override flags
+   - History records
+
+### 2. Mobile Optimization
+1. Interface Design
+   - Touch targets
+   - Gesture support
+   - Screen adaptation
+   - Input methods
+   - Feedback system
+
+2. Performance
+   - Load times
+   - Memory usage
+   - Battery impact
+   - Cache strategy
+   - Background tasks
+
+## Testing Strategy
+
+### 1. Core Testing
+1. Table Processing
+   - Roll validation
+   - Result accuracy
+   - Override handling
+   - History tracking
+   - Export/import
+
+2. Data Management
+   - State persistence
+   - Data integrity
+   - Sync handling
+   - Error recovery
+   - Version control
+
+### 2. Mobile Testing
+1. Interface
+   - Touch response
+   - Layout adaptation
+   - Input handling
+   - Performance
+   - Offline function
+
+2. User Experience
+   - Navigation flow
+   - Data entry
+   - Information access
+   - Error handling
+   - Feedback systems
 
 ## Success Criteria
-1. Generates valid battlefields matching core rules
-2. Maintains 60 FPS during generation
-3. Supports all mission types
-4. Provides accurate tabletop measurements
-5. Allows manual adjustments
-6. Validates rule compliance
+- Table automation works reliably
+- Layout generation is efficient
+- Setup assistance is helpful
+- Mobile interface is responsive
+- Data persists correctly
+- Offline function works
+- Manual overrides function
+- Export/import works properly
 
-## Dependencies
-- TerrainManager (existing)
-- FeaturePlacer (in progress)
-- PathFinder (existing)
-- MissionManager (existing)
-- ValidationManager (existing)
+## Implementation Schedule
 
-## Next Steps
-1. Complete terrain type definitions
-2. Implement core placement logic
-3. Add mission-specific requirements
-4. Create UI components
-5. Begin testing suite 
+### Week 1-2: Foundation
+- Table processing framework
+- Basic layout generation
+- Core UI components
+- Mobile optimization
+
+### Week 3-4: Features
+- Setup assistance
+- Rule integration
+- Reference tools
+- History logging
+
+### Week 5-6: Polish
+- UI refinement
+- Performance optimization
+- Testing completion
+- Documentation
+
+## Notes
+- Focus on utility over graphics
+- Prioritize mobile usability
+- Maintain offline capability
+- Support manual overrides
+- Keep interface simple
+- Document thoroughly
+- Test extensively 

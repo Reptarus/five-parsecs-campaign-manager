@@ -79,12 +79,12 @@ const GameEnums := preload("res://src/core/systems/GlobalEnums.gd")
 const Character := preload("res://src/core/character/Base/Character.gd")
 const BattlefieldManager := preload("res://src/core/battle/BattlefieldManager.gd")
 const BattleStateManager := preload("res://src/core/battle/state/BattleStateMachine.gd")
-const BattleRules = preload("res://src/core/battle/BattleRules.gd")
+const BattleRules := preload("res://src/core/battle/BattleRules.gd")
 
 ## Reference to the battle state machine
-@export var battle_state_machine: BattleStateManager # Properly typed now
+@export var battle_state_machine: BattleStateManager
 ## Reference to the battlefield manager
-@export var battlefield_manager: Node # Will be cast to BattlefieldManager
+@export var battlefield_manager: BattlefieldManager
 ## Reference to the combat manager
 @export var combat_manager: Node # Will be cast to CombatManager
 

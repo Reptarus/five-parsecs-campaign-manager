@@ -3,7 +3,7 @@ extends Resource
 
 const GameEnums = preload("res://src/core/systems/GlobalEnums.gd")
 const Character = preload("res://src/core/character/Base/Character.gd")
-const TerrainTypes = preload("res://src/core/battle/TerrainTypes.gd")
+const TerrainTypes = preload("res://src/core/terrain/TerrainTypes.gd")
 
 signal deployment_zones_generated(zones: Array)
 signal terrain_generated(terrain: Array)
@@ -108,12 +108,12 @@ func _generate_scattered_zones(size: Vector2) -> Array:
 	var crew_positions = [
 		Vector2(0, 0),
 		Vector2(0, grid_size.y - size.y),
-		Vector2(grid_size.x/2 - size.x/2, grid_size.y/2 - size.y/2)
+		Vector2(grid_size.x / 2 - size.x / 2, grid_size.y / 2 - size.y / 2)
 	]
 	var enemy_positions = [
 		Vector2(grid_size.x - size.x, 0),
 		Vector2(grid_size.x - size.x, grid_size.y - size.y),
-		Vector2(grid_size.x/2 - size.x/2, grid_size.y/2 - size.y/2)
+		Vector2(grid_size.x / 2 - size.x / 2, grid_size.y / 2 - size.y / 2)
 	]
 	
 	zones.append({
@@ -130,7 +130,7 @@ func _generate_defensive_zones(size: Vector2) -> Array:
 	return [
 		{
 			"type": "player",
-			"rect": Rect2(Vector2(grid_size.x/3, grid_size.y/3), size * 1.5)
+			"rect": Rect2(Vector2(grid_size.x / 3, grid_size.y / 3), size * 1.5)
 		},
 		{
 			"type": "enemy",
@@ -196,19 +196,19 @@ func _get_random_valid_position() -> Vector2:
 		return valid_positions[randi() % valid_positions.size()]
 	return Vector2.ZERO
 
-func _get_feature_size(feature_type: GameEnums.BattlefieldFeature) -> Vector2:
+func _get_feature_size(feature_type: GameEnums.TerrainFeatureType) -> Vector2:
 	match feature_type:
-		GameEnums.BattlefieldFeature.COVER:
+		GameEnums.TerrainFeatureType.COVER_LOW:
 			return Vector2(1, 1)
-		GameEnums.BattlefieldFeature.BARRICADE:
+		GameEnums.TerrainFeatureType.WALL:
 			return Vector2(2, 1)
-		GameEnums.BattlefieldFeature.RUINS:
+		GameEnums.TerrainFeatureType.COVER_HIGH:
 			return Vector2(2, 2)
-		GameEnums.BattlefieldFeature.HAZARD:
+		GameEnums.TerrainFeatureType.HAZARD:
 			return Vector2(2, 1)
-		GameEnums.BattlefieldFeature.HIGH_GROUND:
+		GameEnums.TerrainFeatureType.HIGH_GROUND:
 			return Vector2(2, 2)
-		GameEnums.BattlefieldFeature.OBSTACLE:
+		GameEnums.TerrainFeatureType.OBSTACLE:
 			return Vector2(3, 2)
 		_:
 			return Vector2(1, 1)
@@ -238,10 +238,10 @@ func _generate_line_terrain(features: Array) -> void:
 
 func _generate_scattered_terrain(features: Array) -> void:
 	var quadrants = [
-		Rect2(Vector2.ZERO, Vector2(grid_size.x/2, grid_size.y/2)),
-		Rect2(Vector2(grid_size.x/2, 0), Vector2(grid_size.x/2, grid_size.y/2)),
-		Rect2(Vector2(0, grid_size.y/2), Vector2(grid_size.x/2, grid_size.y/2)),
-		Rect2(Vector2(grid_size.x/2, grid_size.y/2), Vector2(grid_size.x/2, grid_size.y/2))
+		Rect2(Vector2.ZERO, Vector2(grid_size.x / 2, grid_size.y / 2)),
+		Rect2(Vector2(grid_size.x / 2, 0), Vector2(grid_size.x / 2, grid_size.y / 2)),
+		Rect2(Vector2(0, grid_size.y / 2), Vector2(grid_size.x / 2, grid_size.y / 2)),
+		Rect2(Vector2(grid_size.x / 2, grid_size.y / 2), Vector2(grid_size.x / 2, grid_size.y / 2))
 	]
 	
 	for feature in features:
@@ -255,4 +255,3 @@ func _generate_scattered_terrain(features: Array) -> void:
 			"position": position,
 			"size": _get_feature_size(feature)
 		})
-  

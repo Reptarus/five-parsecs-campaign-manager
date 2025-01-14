@@ -143,14 +143,14 @@ func _update_action_button() -> void:
 	match phase:
 		GameEnums.CampaignPhase.UPKEEP:
 			action_button.text = "Start Upkeep"
-		GameEnums.CampaignPhase.BATTLE:
+		GameEnums.CampaignPhase.BATTLE_SETUP:
 			action_button.text = "Start Battle"
-		GameEnums.CampaignPhase.POST_BATTLE:
+		GameEnums.CampaignPhase.BATTLE_RESOLUTION:
 			action_button.text = "Post-Battle"
-		GameEnums.CampaignPhase.MANAGEMENT:
-			action_button.text = "Management"
-		GameEnums.CampaignPhase.TRAVEL:
-			action_button.text = "Travel"
+		GameEnums.CampaignPhase.ADVANCEMENT:
+			action_button.text = "Advancement"
+		GameEnums.CampaignPhase.TRADE:
+			action_button.text = "Trade"
 		_:
 			action_button.text = "Next Phase"
 

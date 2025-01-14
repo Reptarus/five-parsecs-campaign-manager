@@ -22,8 +22,8 @@ func test_difficulty_change() -> void:
 	game_state_manager.set_difficulty(GameEnums.DifficultyLevel.HARD)
 	assert_eq(game_state_manager.get_difficulty(), GameEnums.DifficultyLevel.HARD)
 	
-	game_state_manager.set_difficulty(GameEnums.DifficultyLevel.VETERAN)
-	assert_eq(game_state_manager.get_difficulty(), GameEnums.DifficultyLevel.VETERAN)
+	game_state_manager.set_difficulty(GameEnums.DifficultyLevel.HARDCORE)
+	assert_eq(game_state_manager.get_difficulty(), GameEnums.DifficultyLevel.HARDCORE)
 	
 	game_state_manager.set_difficulty(GameEnums.DifficultyLevel.NORMAL)
 	assert_eq(game_state_manager.get_difficulty(), GameEnums.DifficultyLevel.NORMAL)

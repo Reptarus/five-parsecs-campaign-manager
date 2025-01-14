@@ -2,7 +2,7 @@
 class_name WeaponSystem
 extends Node
 
-const GlobalEnums = preload("res://src/core/systems/GlobalEnums.gd")
+const GameEnums = preload("res://src/core/systems/GlobalEnums.gd")
 const GameWeapon = preload("res://src/core/systems/items/Weapon.gd")
 
 var gear_db: Resource
@@ -31,7 +31,7 @@ func create_weapon_from_data(data: Dictionary) -> GameWeapon:
 	var weapon = GameWeapon.new()
 	weapon.setup(
 		data.get("name", "Unknown Weapon"),
-		GlobalEnums.WeaponType[data.get("type", "PISTOL")],
+		GameEnums.WeaponType[data.get("type", "PISTOL")],
 		data.get("range", 12),
 		data.get("shots", 1),
 		data.get("damage", 1)
@@ -44,7 +44,7 @@ func create_weapon_from_data(data: Dictionary) -> GameWeapon:
 	
 	return weapon
 
-func create_weapon(name: String, type: GlobalEnums.WeaponType, range: int, shots: int, damage: int) -> GameWeapon:
+func create_weapon(name: String, type: GameEnums.WeaponType, range: int, shots: int, damage: int) -> GameWeapon:
 	var weapon = GameWeapon.new()
 	weapon.setup(name, type, range, shots, damage)
 	return weapon

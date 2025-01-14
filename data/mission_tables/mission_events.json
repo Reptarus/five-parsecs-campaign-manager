@@ -1,0 +1,109 @@
+{
+    "name": "mission_events",
+    "entries": [
+        {
+            "roll_range": [
+                1,
+                20
+            ],
+            "result": [
+                "RIVAL_INTERFERENCE"
+            ],
+            "weight": 1.0,
+            "tags": [
+                "rival",
+                "combat"
+            ]
+        },
+        {
+            "roll_range": [
+                21,
+                35
+            ],
+            "result": [
+                "UNEXPECTED_ALLIES"
+            ],
+            "weight": 0.7,
+            "tags": [
+                "ally",
+                "combat"
+            ]
+        },
+        {
+            "roll_range": [
+                36,
+                60
+            ],
+            "result": [
+                "ENVIRONMENTAL_HAZARD"
+            ],
+            "weight": 1.2,
+            "tags": [
+                "environment",
+                "hazard"
+            ]
+        },
+        {
+            "roll_range": [
+                61,
+                70
+            ],
+            "result": [
+                "CRITICAL_INTEL"
+            ],
+            "weight": 0.5,
+            "tags": [
+                "intel",
+                "objective"
+            ]
+        },
+        {
+            "roll_range": [
+                71,
+                80
+            ],
+            "result": [
+                "RIVAL_INTERFERENCE",
+                "ENVIRONMENTAL_HAZARD"
+            ],
+            "weight": 0.3,
+            "tags": [
+                "rival",
+                "environment",
+                "combat",
+                "hazard"
+            ]
+        },
+        {
+            "roll_range": [
+                81,
+                90
+            ],
+            "result": [
+                "UNEXPECTED_ALLIES",
+                "CRITICAL_INTEL"
+            ],
+            "weight": 0.2,
+            "tags": [
+                "ally",
+                "intel",
+                "combat",
+                "objective"
+            ]
+        },
+        {
+            "roll_range": [
+                91,
+                100
+            ],
+            "result": [],
+            "weight": 1.0,
+            "tags": [
+                "none"
+            ]
+        }
+    ],
+    "validation_rules": [],
+    "modifiers": [],
+    "default_result": []
+}

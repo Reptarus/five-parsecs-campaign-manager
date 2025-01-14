@@ -3,7 +3,7 @@ extends Node
 
 const TerrainTypes := preload("res://src/core/terrain/TerrainTypes.gd")
 const TerrainRules := preload("res://src/core/terrain/TerrainRules.gd")
-const GlobalEnums := preload("res://src/core/systems/GlobalEnums.gd")
+const GameEnums := preload("res://src/core/systems/GlobalEnums.gd")
 
 # Signals
 signal effect_applied(target: Node, effect_type: String, value: float)
@@ -18,7 +18,7 @@ var terrain_rules: TerrainRules
 func _ready() -> void:
 	terrain_rules = TerrainRules.new()
 
-func apply_terrain_effect(target: Node, terrain_type: TerrainTypes.Type, feature_type: GlobalEnums.TerrainFeatureType) -> void:
+func apply_terrain_effect(target: Node, terrain_type: TerrainTypes.Type, feature_type: GameEnums.TerrainFeatureType) -> void:
 	if not target:
 		return
 	
@@ -48,7 +48,7 @@ func get_active_effects(target: Node) -> Dictionary:
 	var target_id = target.get_instance_id()
 	return _active_effects.get(target_id, {}).duplicate()
 
-func update_terrain_state(position: Vector2i, terrain_type: TerrainTypes.Type, feature_type: GlobalEnums.TerrainFeatureType) -> void:
+func update_terrain_state(position: Vector2i, terrain_type: TerrainTypes.Type, feature_type: GameEnums.TerrainFeatureType) -> void:
 	var old_state = _terrain_states.get(position, {})
 	var environment = _convert_terrain_to_environment(terrain_type)
 	var new_state = {
@@ -118,7 +118,7 @@ func has_line_of_sight(from: Vector2i, to: Vector2i) -> bool:
 	
 	return true
 
-func _get_terrain_modifiers(terrain_type: TerrainTypes.Type, feature_type: GlobalEnums.TerrainFeatureType) -> Dictionary:
+func _get_terrain_modifiers(terrain_type: TerrainTypes.Type, feature_type: GameEnums.TerrainFeatureType) -> Dictionary:
 	var modifiers = {}
 	
 	# Get terrain type modifiers
@@ -131,31 +131,31 @@ func _get_terrain_modifiers(terrain_type: TerrainTypes.Type, feature_type: Globa
 	var feature_mods = terrain_rules.get_feature_modifiers(feature_type)
 	for mod in feature_mods:
 		match mod:
-			GlobalEnums.TerrainModifier.DIFFICULT_TERRAIN:
+			GameEnums.TerrainModifier.DIFFICULT_TERRAIN:
 				modifiers["difficult_terrain"] = true
-			GlobalEnums.TerrainModifier.WATER_HAZARD:
+			GameEnums.TerrainModifier.WATER_HAZARD:
 				modifiers["water_hazard"] = true
-			GlobalEnums.TerrainModifier.MOVEMENT_PENALTY:
+			GameEnums.TerrainModifier.MOVEMENT_PENALTY:
 				modifiers["movement_penalty"] = true
-			GlobalEnums.TerrainModifier.FULL_COVER:
+			GameEnums.TerrainModifier.FULL_COVER:
 				modifiers["full_cover"] = true
-			GlobalEnums.TerrainModifier.PARTIAL_COVER:
+			GameEnums.TerrainModifier.PARTIAL_COVER:
 				modifiers["partial_cover"] = true
-			GlobalEnums.TerrainModifier.COVER_BONUS:
+			GameEnums.TerrainModifier.COVER_BONUS:
 				modifiers["cover_bonus"] = true
 	
 	return modifiers
 
-func _convert_terrain_to_environment(terrain_type: TerrainTypes.Type) -> GlobalEnums.BattleEnvironment:
+func _convert_terrain_to_environment(terrain_type: TerrainTypes.Type) -> GameEnums.PlanetEnvironment:
 	match terrain_type:
 		TerrainTypes.Type.WALL:
-			return GlobalEnums.BattleEnvironment.URBAN
+			return GameEnums.PlanetEnvironment.URBAN
 		TerrainTypes.Type.WATER:
-			return GlobalEnums.BattleEnvironment.WILDERNESS
+			return GameEnums.PlanetEnvironment.RAIN
 		TerrainTypes.Type.HAZARD:
-			return GlobalEnums.BattleEnvironment.SPACE_STATION
+			return GameEnums.PlanetEnvironment.HAZARDOUS
 		_:
-			return GlobalEnums.BattleEnvironment.NONE
+			return GameEnums.PlanetEnvironment.NONE
 
 func _calculate_angle_modifier(direction: Vector2) -> float:
 	# Calculate cover effectiveness based on angle

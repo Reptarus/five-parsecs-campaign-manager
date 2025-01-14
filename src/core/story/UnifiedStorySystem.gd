@@ -315,7 +315,7 @@ func _setup_market_crash_quest(quest: StoryQuestData) -> void:
 	if not quest:
 		return
 		
-	quest.objective = GameEnums.MissionObjective.RECON # Changed from RETRIEVE to RECON since RETRIEVE doesn't exist
+	quest.objective = GameEnums.MissionObjective.RECON
 	quest.story_point_reward = 2
 	quest.rewards = {
 		"credits": 1000,
@@ -327,7 +327,7 @@ func _setup_alien_invasion_quest(quest: StoryQuestData) -> void:
 	if not quest:
 		return
 		
-	quest.objective = GameEnums.MissionObjective.ELIMINATE
+	quest.objective = GameEnums.MissionObjective.WIN_BATTLE
 	quest.story_point_reward = 3
 	quest.rewards = {
 		"credits": 1500,
@@ -339,12 +339,12 @@ func _setup_tech_breakthrough_quest(quest: StoryQuestData) -> void:
 	if not quest:
 		return
 		
-	quest.objective = GameEnums.MissionObjective.RECON # Changed from SECURE_INTEL since it doesn't exist in GlobalEnums.MissionObjective
+	quest.objective = GameEnums.MissionObjective.RECON
 	quest.story_point_reward = 2
 	quest.rewards = {
 		"credits": 1200,
 		"reputation": 6,
-		"special": GameEnums.ItemType.SPECIAL
+		"special": GameEnums.ItemType.MISC
 	}
 
 ## Create a market crash event
@@ -455,7 +455,7 @@ func _apply_special_reward(effect: String) -> void:
 ## Generate a special quest
 func _generate_special_quest() -> StoryQuestData:
 	var quest := StoryQuestData.new()
-	quest.quest_type = GameEnums.QuestType.PATRON
+	quest.quest_type = GameEnums.QuestType.STORY
 	quest.story_point_reward = 5
 	return quest
 

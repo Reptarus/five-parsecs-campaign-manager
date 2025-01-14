@@ -1,7 +1,7 @@
 class_name EquipmentManager
 extends Resource
 
-const GlobalEnums = preload("res://src/core/systems/GlobalEnums.gd")
+const GameEnums = preload("res://src/core/systems/GlobalEnums.gd")
 const EquipmentData = preload("res://src/core/economy/loot/EquipmentData.gd")
 const WeaponData = preload("res://src/core/economy/loot/WeaponData.gd")
 const ArmorData = preload("res://src/core/economy/loot/ArmorData.gd")
@@ -103,10 +103,10 @@ func deserialize(data: Dictionary) -> void:
 				var item_data = data.equipped_items[crew_id][item_id]
 				var item: EquipmentData
 				
-				match item_data.get("type", GlobalEnums.ItemType.GEAR):
-					GlobalEnums.ItemType.WEAPON:
+				match item_data.get("type", GameEnums.ItemType.MISC):
+					GameEnums.ItemType.WEAPON:
 						item = WeaponData.new()
-					GlobalEnums.ItemType.ARMOR:
+					GameEnums.ItemType.ARMOR:
 						item = ArmorData.new()
 					_:
 						item = EquipmentData.new()
@@ -117,10 +117,10 @@ func deserialize(data: Dictionary) -> void:
 	if data.has("available_items"):
 		for item_data in data.available_items:
 			var item: EquipmentData
-			match item_data.get("type", GlobalEnums.ItemType.GEAR):
-				GlobalEnums.ItemType.WEAPON:
+			match item_data.get("type", GameEnums.ItemType.MISC):
+				GameEnums.ItemType.WEAPON:
 					item = WeaponData.new()
-				GlobalEnums.ItemType.ARMOR:
+				GameEnums.ItemType.ARMOR:
 					item = ArmorData.new()
 				_:
 					item = EquipmentData.new()

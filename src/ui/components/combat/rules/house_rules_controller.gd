@@ -1,7 +1,7 @@
 extends Node
 
 ## Required dependencies
-const GlobalEnums := preload("res://src/core/systems/GlobalEnums.gd")
+const GameEnums := preload("res://src/core/systems/GlobalEnums.gd")
 const Character := preload("res://src/core/character/Base/Character.gd")
 
 ## Node references
@@ -190,17 +190,17 @@ func _on_combat_state_changed(new_state: Dictionary) -> void:
 	for rule_id in active_rules:
 		_apply_rule_effect(rule_id, "combat_state_changed")
 
-func _on_combat_result_calculated(attacker: Character, target: Character, result: GlobalEnums.CombatResult) -> void:
+func _on_combat_result_calculated(attacker: Character, target: Character, result: GameEnums.CombatResult) -> void:
 	# Apply relevant rule effects to combat result
 	for rule_id in active_rules:
 		_apply_rule_effect(rule_id, "combat_result")
 
-func _on_combat_advantage_changed(character: Character, advantage: GlobalEnums.CombatAdvantage) -> void:
+func _on_combat_advantage_changed(character: Character, advantage: GameEnums.CombatAdvantage) -> void:
 	# Apply relevant rule effects to advantage changes
 	for rule_id in active_rules:
 		_apply_rule_effect(rule_id, "combat_advantage")
 
-func _on_combat_status_changed(character: Character, status: GlobalEnums.CombatStatus) -> void:
+func _on_combat_status_changed(character: Character, status: GameEnums.CombatStatus) -> void:
 	# Apply relevant rule effects to status changes
 	for rule_id in active_rules:
 		_apply_rule_effect(rule_id, "combat_status")

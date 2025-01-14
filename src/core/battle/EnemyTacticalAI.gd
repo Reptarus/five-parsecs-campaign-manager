@@ -8,7 +8,7 @@ signal tactic_changed(enemy: Character, new_tactic: int)
 signal group_coordination_updated(group: Array[Character], leader: Character)
 
 ## Dependencies
-const GlobalEnums := preload("res://src/core/systems/GlobalEnums.gd")
+const GameEnums := preload("res://src/core/systems/GlobalEnums.gd")
 const Character := preload("res://src/core/character/Base/Character.gd")
 const BattlefieldManager := preload("res://src/core/battle/BattlefieldManager.gd")
 
@@ -51,7 +51,7 @@ func _ready() -> void:
 func initialize_enemy_ai(enemy: Character, personality: AIPersonality = AIPersonality.TACTICAL) -> void:
     _enemy_personalities[enemy] = personality
     _tactical_states[enemy] = {
-        "current_tactic": GlobalEnums.CombatTactic.NONE,
+        "current_tactic": GameEnums.CombatTactic.NONE,
         "target": null,
         "group": null,
         "last_position": Vector2.ZERO,
@@ -128,9 +128,9 @@ func _make_aggressive_decision(enemy: Character) -> Dictionary:
     
     if best_target:
         return {
-            "action": GlobalEnums.UnitAction.ATTACK,
+            "action": GameEnums.UnitAction.ATTACK,
             "target": best_target,
-            "tactic": GlobalEnums.CombatTactic.AGGRESSIVE
+            "tactic": GameEnums.CombatTactic.AGGRESSIVE
         }
     
     return _make_default_decision(enemy)
@@ -147,9 +147,9 @@ func _make_cautious_decision(enemy: Character) -> Dictionary:
     if not safe_positions.is_empty():
         var best_pos: Vector2 = safe_positions[0]
         return {
-            "action": GlobalEnums.UnitAction.MOVE,
+            "action": GameEnums.UnitAction.MOVE,
             "position": best_pos,
-            "tactic": GlobalEnums.CombatTactic.DEFENSIVE
+            "tactic": GameEnums.CombatTactic.DEFENSIVE
         }
     
     return _make_default_decision(enemy)
@@ -182,9 +182,9 @@ func _make_protective_decision(enemy: Character) -> Dictionary:
     
     if threatened_ally:
         return {
-            "action": GlobalEnums.UnitAction.PROTECT,
+            "action": GameEnums.UnitAction.PROTECT,
             "target": threatened_ally,
-            "tactic": GlobalEnums.CombatTactic.DEFENSIVE
+            "tactic": GameEnums.CombatTactic.DEFENSIVE
         }
     
     return _make_default_decision(enemy)
@@ -204,8 +204,8 @@ func _make_unpredictable_decision(enemy: Character) -> Dictionary:
 ## Makes a default decision
 func _make_default_decision(enemy: Character) -> Dictionary:
     return {
-        "action": GlobalEnums.UnitAction.DEFEND,
-        "tactic": GlobalEnums.CombatTactic.BALANCED
+        "action": GameEnums.UnitAction.DEFEND,
+        "tactic": GameEnums.CombatTactic.BALANCED
     }
 
 ## Makes a group-coordinated decision
@@ -321,9 +321,9 @@ func _make_balanced_decision(enemy: Character) -> Dictionary:
     if not safe_positions.is_empty():
         var best_pos: Vector2 = safe_positions[0]
         return {
-            "action": GlobalEnums.UnitAction.MOVE,
+            "action": GameEnums.UnitAction.MOVE,
             "position": best_pos,
-            "tactic": GlobalEnums.CombatTactic.NONE
+            "tactic": GameEnums.CombatTactic.NONE
         }
     
     return _make_default_decision(enemy)
@@ -368,9 +368,9 @@ func _coordinate_group_attack(enemy: Character, group: Array[Character]) -> Dict
         return _make_default_decision(enemy)
     
     return {
-        "action": GlobalEnums.UnitAction.MOVE,
+        "action": GameEnums.UnitAction.MOVE,
         "target": target,
-        "tactic": GlobalEnums.CombatTactic.AGGRESSIVE,
+        "tactic": GameEnums.CombatTactic.AGGRESSIVE,
         "group_action": true
     }
 
@@ -379,9 +379,9 @@ func _coordinate_group_defense(enemy: Character, group: Array[Character]) -> Dic
     var defensive_position := _find_best_defensive_position(group)
     
     return {
-        "action": GlobalEnums.UnitAction.MOVE,
+        "action": GameEnums.UnitAction.MOVE,
         "position": defensive_position,
-        "tactic": GlobalEnums.CombatTactic.DEFENSIVE,
+        "tactic": GameEnums.CombatTactic.DEFENSIVE,
         "group_action": true
     }
 
@@ -394,10 +394,10 @@ func _coordinate_group_flanking(enemy: Character, group: Array[Character]) -> Di
     var flank_position := _calculate_flank_position(target, enemy)
     
     return {
-        "action": GlobalEnums.UnitAction.MOVE,
+        "action": GameEnums.UnitAction.MOVE,
         "position": flank_position,
         "target": target,
-        "tactic": GlobalEnums.CombatTactic.AGGRESSIVE,
+        "tactic": GameEnums.CombatTactic.AGGRESSIVE,
         "group_action": true
     }
 
@@ -408,9 +408,9 @@ func _coordinate_group_suppression(enemy: Character, group: Array[Character]) ->
         return _make_default_decision(enemy)
     
     return {
-        "action": GlobalEnums.UnitAction.MOVE,
+        "action": GameEnums.UnitAction.MOVE,
         "target": target,
-        "tactic": GlobalEnums.CombatTactic.DEFENSIVE,
+        "tactic": GameEnums.CombatTactic.DEFENSIVE,
         "suppressing": true,
         "group_action": true
     }

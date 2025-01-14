@@ -5,10 +5,10 @@ extends Node
 ## Combat-related signals
 signal combat_state_changed(new_state: Dictionary)
 signal character_position_updated(character: Character, new_position: Vector2i)
-signal terrain_modifier_applied(position: Vector2i, modifier: GlobalEnums.TerrainModifier)
-signal combat_result_calculated(attacker: Character, target: Character, result: GlobalEnums.CombatResult)
-signal combat_advantage_changed(character: Character, advantage: GlobalEnums.CombatAdvantage)
-signal combat_status_changed(character: Character, status: GlobalEnums.CombatStatus)
+signal terrain_modifier_applied(position: Vector2i, modifier: GameEnums.TerrainModifier)
+signal combat_result_calculated(attacker: Character, target: Character, result: GameEnums.CombatResult)
+signal combat_advantage_changed(character: Character, advantage: GameEnums.CombatAdvantage)
+signal combat_status_changed(character: Character, status: GameEnums.CombatStatus)
 
 ## Tabletop support signals
 signal manual_position_override_requested(character: Character, current_position: Vector2i)
@@ -20,9 +20,9 @@ signal house_rule_applied(rule_name: String, details: Dictionary)
 signal manual_override_applied(override_type: String, override_data: Dictionary)
 
 # Verification signals
-signal verify_state_requested(verification_type: GlobalEnums.VerificationType, scope: GlobalEnums.VerificationScope)
-signal verification_completed(verification_type: GlobalEnums.VerificationType, result: GlobalEnums.VerificationResult, details: Dictionary)
-signal verification_failed(verification_type: GlobalEnums.VerificationType, error: String)
+signal verify_state_requested(verification_type: GameEnums.VerificationType, scope: GameEnums.VerificationScope)
+signal verification_completed(verification_type: GameEnums.VerificationType, result: GameEnums.VerificationResult, details: Dictionary)
+signal verification_failed(verification_type: GameEnums.VerificationType, error: String)
 
 ## Manual override properties
 var allow_position_overrides: bool = true
@@ -54,17 +54,17 @@ class CombatState:
 	var character: Character
 	var position: Vector2i
 	var action_points: int
-	var combat_advantage: GlobalEnums.CombatAdvantage
-	var combat_status: GlobalEnums.CombatStatus
-	var combat_tactic: GlobalEnums.CombatTactic
+	var combat_advantage: GameEnums.CombatAdvantage
+	var combat_status: GameEnums.CombatStatus
+	var combat_tactic: GameEnums.CombatTactic
 	
 	func _init(char: Character) -> void:
 		character = char
 		position = Vector2i.ZERO
 		action_points = BattleRules.BASE_ACTION_POINTS
-		combat_advantage = GlobalEnums.CombatAdvantage.NONE
-		combat_status = GlobalEnums.CombatStatus.NONE
-		combat_tactic = GlobalEnums.CombatTactic.NONE
+		combat_advantage = GameEnums.CombatAdvantage.NONE
+		combat_status = GameEnums.CombatStatus.NONE
+		combat_tactic = GameEnums.CombatTactic.NONE
 
 ## Called when the node enters the scene tree
 func _ready() -> void:
@@ -151,29 +151,29 @@ func apply_house_rule_modifiers(base_value: float, context: String) -> float:
 	return modified_value
 
 ## State verification methods
-func verify_state(verification_type: GlobalEnums.VerificationType, scope: GlobalEnums.VerificationScope = GlobalEnums.VerificationScope.UNIT) -> void:
+func verify_state(verification_type: GameEnums.VerificationType, scope: GameEnums.VerificationScope = GameEnums.VerificationScope.SINGLE) -> void:
 	verify_state_requested.emit(verification_type, scope)
 
 func _verify_combat_state() -> Dictionary:
 	var result = {
-		"type": GlobalEnums.VerificationType.COMBAT,
-		"status": GlobalEnums.VerificationResult.SUCCESS,
+		"type": GameEnums.VerificationType.COMBAT,
+		"status": GameEnums.VerificationResult.SUCCESS,
 		"details": {}
 	}
 	
 	# Verify phase consistency
 	if not _verify_phase_consistency():
-		result.status = GlobalEnums.VerificationResult.ERROR
+		result.status = GameEnums.VerificationResult.ERROR
 		result.details["phase"] = "Phase state inconsistent"
 	
 	# Verify unit states
 	if not _verify_unit_states():
-		result.status = GlobalEnums.VerificationResult.ERROR
+		result.status = GameEnums.VerificationResult.ERROR
 		result.details["units"] = "Unit states inconsistent"
 	
 	# Verify modifiers
 	if not _verify_modifiers():
-		result.status = GlobalEnums.VerificationResult.WARNING
+		result.status = GameEnums.VerificationResult.WARNING
 		result.details["modifiers"] = "Modifier inconsistencies found"
 	
 	return result
@@ -191,25 +191,25 @@ func _verify_modifiers() -> bool:
 	return true
 
 ## Signal handlers
-func _on_verify_state_requested(verification_type: GlobalEnums.VerificationType, scope: GlobalEnums.VerificationScope) -> void:
+func _on_verify_state_requested(verification_type: GameEnums.VerificationType, scope: GameEnums.VerificationScope) -> void:
 	var result = {}
 	
 	match verification_type:
-		GlobalEnums.VerificationType.COMBAT:
+		GameEnums.VerificationType.COMBAT:
 			result = _verify_combat_state()
-		GlobalEnums.VerificationType.STATE:
+		GameEnums.VerificationType.STATE:
 			# Add state verification
 			pass
-		GlobalEnums.VerificationType.RULES:
+		GameEnums.VerificationType.RULES:
 			# Add rules verification
 			pass
-		GlobalEnums.VerificationType.DEPLOYMENT:
+		GameEnums.VerificationType.DEPLOYMENT:
 			# Add deployment verification
 			pass
-		GlobalEnums.VerificationType.MOVEMENT:
+		GameEnums.VerificationType.MOVEMENT:
 			# Add movement verification
 			pass
-		GlobalEnums.VerificationType.OBJECTIVES:
+		GameEnums.VerificationType.OBJECTIVES:
 			# Add objectives verification
 			pass
 	

@@ -5,18 +5,18 @@ const GameEnums := preload("res://src/core/systems/GlobalEnums.gd")
 
 # Core properties
 @export var planet_name: String = ""
-@export var planet_type: int = GameEnums.PlanetType.FRONTIER
+@export var planet_type: int = GameEnums.PlanetType.TEMPERATE
 @export var faction_type: int = GameEnums.FactionType.NEUTRAL
 @export var environment_type: int = GameEnums.PlanetEnvironment.NONE
 @export var world_features: Array[int] = []
-@export var resources: Dictionary = {}  # ResourceType: amount
+@export var resources: Dictionary = {} # ResourceType: amount
 @export var threats: Array[int] = []
 
 # State tracking
 @export var strife_level: int = GameEnums.StrifeType.NONE
-@export var instability: int = GameEnums.FringeWorldInstability.STABLE
+@export var instability: int = GameEnums.StrifeType.NONE
 @export var unity_progress: int = 0
-@export var market_prices: Dictionary = {}  # ItemType: price
+@export var market_prices: Dictionary = {} # ItemType: price
 
 func _init() -> void:
     reset_state()
@@ -27,7 +27,7 @@ func reset_state() -> void:
     world_features.clear()
     market_prices.clear()
     strife_level = GameEnums.StrifeType.NONE
-    instability = GameEnums.FringeWorldInstability.STABLE
+    instability = GameEnums.StrifeType.NONE
     unity_progress = 0
 
 func add_resource(resource_type: int, amount: int = 1) -> void:
@@ -96,11 +96,11 @@ func decrease_strife() -> void:
 
 func increase_instability() -> void:
     var current_index := instability
-    if current_index < GameEnums.FringeWorldInstability.size() - 1:
+    if current_index < GameEnums.StrifeType.size() - 1:
         instability = current_index + 1
 
 func decrease_instability() -> void:
-    if instability > GameEnums.FringeWorldInstability.STABLE:
+    if instability > GameEnums.StrifeType.NONE:
         instability -= 1
 
 func update_market_price(item_type: int, price: float) -> void:
@@ -157,7 +157,7 @@ func serialize() -> Dictionary:
         "resources": resources,
         "threats": threat_keys,
         "strife_level": GameEnums.StrifeType.keys()[strife_level],
-        "instability": GameEnums.FringeWorldInstability.keys()[instability],
+        "instability": GameEnums.StrifeType.keys()[instability],
         "unity_progress": unity_progress,
         "market_prices": market_prices
     }
@@ -168,7 +168,7 @@ static func deserialize(data: Dictionary) -> Planet:
     planet.planet_name = data.get("planet_name", "") as String
     
     # Validate and convert enum values
-    var planet_type_str: String = data.get("planet_type", "FRONTIER")
+    var planet_type_str: String = data.get("planet_type", "TEMPERATE")
     if planet_type_str in GameEnums.PlanetType.keys():
         planet.planet_type = GameEnums.PlanetType[planet_type_str]
         
@@ -198,9 +198,9 @@ static func deserialize(data: Dictionary) -> Planet:
     if strife_level_str in GameEnums.StrifeType.keys():
         planet.strife_level = GameEnums.StrifeType[strife_level_str]
         
-    var instability_str: String = data.get("instability", "STABLE")
-    if instability_str in GameEnums.FringeWorldInstability.keys():
-        planet.instability = GameEnums.FringeWorldInstability[instability_str]
+    var instability_str: String = data.get("instability", "NONE")
+    if instability_str in GameEnums.StrifeType.keys():
+        planet.instability = GameEnums.StrifeType[instability_str]
         
     planet.unity_progress = data.get("unity_progress", 0) as int
     planet.market_prices = data.get("market_prices", {})

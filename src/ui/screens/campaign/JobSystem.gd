@@ -17,14 +17,14 @@ var black_zone_jobs: Array[Mission] = []
 func _init(_game_state: FiveParsecsGameState) -> void:
     game_state = _game_state
 
-func generate_job(job_type: GlobalEnums.MissionType) -> Mission:
+func generate_job(job_type: GameEnums.MissionType) -> Mission:
     var job: Mission
     match job_type:
-        GlobalEnums.MissionType.PATRON:
+        GameEnums.MissionType.PATRON:
             job = _generate_patron_job()
-        GlobalEnums.MissionType.RED_ZONE:
+        GameEnums.MissionType.RED_ZONE:
             job = _generate_red_zone_job()
-        GlobalEnums.MissionType.BLACK_ZONE:
+        GameEnums.MissionType.BLACK_ZONE:
             job = _generate_black_zone_job()
         _:
             job = _generate_standard_job()
@@ -58,11 +58,11 @@ func fail_job(job: Mission) -> void:
 # Private helper methods
 func _validate_job_requirements(job: Mission) -> bool:
     match job.mission_type:
-        GlobalEnums.MissionType.RED_ZONE:
+        GameEnums.MissionType.RED_ZONE:
             return _check_red_zone_requirements()
-        GlobalEnums.MissionType.BLACK_ZONE:
+        GameEnums.MissionType.BLACK_ZONE:
             return _check_black_zone_requirements()
-        GlobalEnums.MissionType.PATRON:
+        GameEnums.MissionType.PATRON:
             return _check_patron_requirements(job)
         _:
             return true

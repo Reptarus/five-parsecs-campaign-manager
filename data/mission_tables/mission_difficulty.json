@@ -1,0 +1,87 @@
+{
+    "name": "mission_difficulty",
+    "entries": [
+        {
+            "roll_range": [
+                1,
+                40
+            ],
+            "result": 1,
+            "weight": 1.0,
+            "tags": [
+                "easy"
+            ]
+        },
+        {
+            "roll_range": [
+                41,
+                70
+            ],
+            "result": 2,
+            "weight": 1.0,
+            "tags": [
+                "normal"
+            ]
+        },
+        {
+            "roll_range": [
+                71,
+                85
+            ],
+            "result": 3,
+            "weight": 0.8,
+            "tags": [
+                "hard"
+            ]
+        },
+        {
+            "roll_range": [
+                86,
+                95
+            ],
+            "result": 4,
+            "weight": 0.5,
+            "tags": [
+                "veteran"
+            ]
+        },
+        {
+            "roll_range": [
+                96,
+                100
+            ],
+            "result": 5,
+            "weight": 0.2,
+            "tags": [
+                "elite"
+            ]
+        }
+    ],
+    "validation_rules": [
+        {
+            "type": "mission_type_check",
+            "params": {
+                "RED_ZONE": {
+                    "min_difficulty": 2
+                },
+                "BLACK_ZONE": {
+                    "min_difficulty": 3
+                },
+                "PATRON": {
+                    "max_difficulty": 4
+                }
+            }
+        }
+    ],
+    "modifiers": [
+        {
+            "type": "mission_type_modifier",
+            "params": {
+                "RED_ZONE": 1,
+                "BLACK_ZONE": 2,
+                "PATRON": 0
+            }
+        }
+    ],
+    "default_result": 1
+}

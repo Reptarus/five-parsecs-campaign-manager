@@ -3,7 +3,7 @@ extends Node
 
 # Only preload what we know exists
 const GameStateManager = preload("res://src/core/managers/GameStateManager.gd")
-const GlobalEnums = preload("res://src/core/systems/GlobalEnums.gd")
+const GameEnums = preload("res://src/core/systems/GlobalEnums.gd")
 const UIManager = preload("res://src/ui/screens/UIManager.gd")
 
 signal scene_changed(scene_name: String)

@@ -12,7 +12,7 @@ const BattleStateManager := preload("res://src/core/battle/state/BattleStateMach
 const FiveParsecsGameState := preload("res://src/core/state/GameState.gd")
 const WorldManager := preload("res://src/core/world/WorldManager.gd")
 const GameCampaignManager := preload("res://src/core/campaign/GameCampaignManager.gd")
-const Campaign = preload("res://src/core/campaign/Campaign.gd")
+const CampaignData := preload("res://src/core/campaign/Campaign.gd")
 
 ## Signals
 signal campaign_state_changed
@@ -55,7 +55,7 @@ var campaign_progress: int = 0
 var campaign_milestones: Array[int] = []
 var is_tutorial_active: bool = false
 var current_tutorial_type: String = ""
-var active_campaign: Campaign = null
+var active_campaign: CampaignData = null
 var saved_campaigns: Dictionary = {}
 
 ## Campaign Configuration
@@ -141,7 +141,7 @@ func _on_phase_changed(new_phase: GameEnums.CampaignPhase) -> void:
 			_check_campaign_progress()
 		GameEnums.CampaignPhase.BATTLE_SETUP:
 			is_battle_active = true
-		GameEnums.CampaignPhase.ADVANCEMENT:
+		GameEnums.CampaignPhase.BATTLE_RESOLUTION:
 			is_battle_active = false
 
 func _on_phase_completed() -> void:
@@ -287,7 +287,7 @@ func _check_story_completion() -> bool:
 	return false # Implement story completion check
 
 func create_new_campaign(config: Dictionary = {}) -> void:
-	var campaign := Campaign.new()
+	var campaign := CampaignData.new()
 	campaign.campaign_name = config.get("name", "New Campaign")
 	campaign.campaign_id = str(Time.get_unix_time_from_system())
 	campaign.difficulty_level = config.get("difficulty", GameEnums.DifficultyLevel.NORMAL)
@@ -312,13 +312,13 @@ func delete_campaign(campaign_id: String) -> void:
 		saved_campaigns.erase(campaign_id)
 		campaign_deleted.emit(campaign_id)
 
-func get_active_campaign() -> Campaign:
+func get_active_campaign() -> CampaignData:
 	return active_campaign
 
 func get_saved_campaigns() -> Array:
 	return saved_campaigns.values()
 
-func get_campaign_by_id(campaign_id: String) -> Campaign:
+func get_campaign_by_id(campaign_id: String) -> CampaignData:
 	return saved_campaigns.get(campaign_id)
 
 func serialize() -> Dictionary:
@@ -337,7 +337,7 @@ func deserialize(data: Dictionary) -> void:
 	
 	var serialized_campaigns: Dictionary = data.get("saved_campaigns", {})
 	for campaign_id in serialized_campaigns:
-		var campaign := Campaign.new()
+		var campaign := CampaignData.new()
 		campaign.deserialize(serialized_campaigns[campaign_id])
 		saved_campaigns[campaign_id] = campaign
 		

@@ -1,0 +1,193 @@
+{
+    "name": "mission_objectives",
+    "entries": [
+        {
+            "roll_range": [
+                1,
+                20
+            ],
+            "result": {
+                "type": "SEARCH",
+                "name": "Search and Recover",
+                "description": "Search the area for valuable items or information.",
+                "requirements": [
+                    "exploration_capability"
+                ],
+                "completion_conditions": [
+                    "reach_locations",
+                    "collect_items"
+                ],
+                "reward_modifier": 1.0
+            },
+            "weight": 1.0,
+            "tags": [
+                "exploration",
+                "basic"
+            ]
+        },
+        {
+            "roll_range": [
+                21,
+                40
+            ],
+            "result": {
+                "type": "SECURE",
+                "name": "Secure Location",
+                "description": "Clear and hold a strategic position.",
+                "requirements": [
+                    "combat_capability"
+                ],
+                "completion_conditions": [
+                    "eliminate_threats",
+                    "hold_position"
+                ],
+                "reward_modifier": 1.2
+            },
+            "weight": 1.0,
+            "tags": [
+                "combat",
+                "defense"
+            ]
+        },
+        {
+            "roll_range": [
+                41,
+                60
+            ],
+            "result": {
+                "type": "ELIMINATE",
+                "name": "Elimination",
+                "description": "Eliminate specific targets or hostile forces.",
+                "requirements": [
+                    "combat_capability",
+                    "tactical_advantage"
+                ],
+                "completion_conditions": [
+                    "eliminate_targets"
+                ],
+                "reward_modifier": 1.3
+            },
+            "weight": 0.8,
+            "tags": [
+                "combat",
+                "assassination"
+            ]
+        },
+        {
+            "roll_range": [
+                61,
+                75
+            ],
+            "result": {
+                "type": "PROTECT",
+                "name": "Protection Detail",
+                "description": "Protect an asset or VIP during the mission.",
+                "requirements": [
+                    "combat_capability",
+                    "defensive_equipment"
+                ],
+                "completion_conditions": [
+                    "protect_target",
+                    "reach_extraction"
+                ],
+                "reward_modifier": 1.4
+            },
+            "weight": 0.7,
+            "tags": [
+                "defense",
+                "escort"
+            ]
+        },
+        {
+            "roll_range": [
+                76,
+                85
+            ],
+            "result": {
+                "type": "SABOTAGE",
+                "name": "Sabotage Operation",
+                "description": "Disable or destroy specific targets.",
+                "requirements": [
+                    "tech_capability",
+                    "stealth_option"
+                ],
+                "completion_conditions": [
+                    "destroy_targets",
+                    "escape_area"
+                ],
+                "reward_modifier": 1.5
+            },
+            "weight": 0.6,
+            "tags": [
+                "stealth",
+                "technical"
+            ]
+        },
+        {
+            "roll_range": [
+                86,
+                95
+            ],
+            "result": {
+                "type": "INVESTIGATE",
+                "name": "Investigation",
+                "description": "Gather intelligence and investigate anomalies.",
+                "requirements": [
+                    "tech_capability",
+                    "exploration_capability"
+                ],
+                "completion_conditions": [
+                    "gather_intel",
+                    "analyze_data"
+                ],
+                "reward_modifier": 1.2
+            },
+            "weight": 0.5,
+            "tags": [
+                "exploration",
+                "technical"
+            ]
+        }
+    ],
+    "validation_rules": [
+        {
+            "type": "mission_type_requirement",
+            "params": {
+                "RED_ZONE": {
+                    "allowed_objectives": [
+                        "SEARCH",
+                        "SECURE",
+                        "ELIMINATE"
+                    ],
+                    "reward_modifier": 1.0
+                },
+                "BLACK_ZONE": {
+                    "allowed_objectives": [
+                        "ELIMINATE",
+                        "SABOTAGE",
+                        "INVESTIGATE"
+                    ],
+                    "reward_modifier": 1.3
+                },
+                "PATRON": {
+                    "allowed_objectives": [
+                        "PROTECT",
+                        "INVESTIGATE",
+                        "SECURE"
+                    ],
+                    "reward_modifier": 1.2
+                }
+            }
+        }
+    ],
+    "default_result": {
+        "type": "SEARCH",
+        "name": "Basic Search",
+        "description": "Search the area for items of interest.",
+        "requirements": [],
+        "completion_conditions": [
+            "reach_locations"
+        ],
+        "reward_modifier": 1.0
+    }
+}

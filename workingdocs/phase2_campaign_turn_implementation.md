@@ -1,146 +1,203 @@
 # Phase 2: Campaign Turn Implementation
 
 ## Overview
-Implementation plan for the campaign turn system, focusing on mission system and resource management integration.
+Implementation of campaign turn management focusing on table automation, bookkeeping assistance, and mobile-friendly campaign tracking.
 
-## Campaign Turn Structure (75% Complete)
+## 1. Campaign Turn Automation
 
-### Completed Components
-- [x] Phase system integration
-- [x] Basic turn flow
-- [x] Resource tracking
-- [x] State management
-- [x] Save/Load support
-- [x] Unit tests for core functionality
+### Table Processing (Priority 1)
+1. Event Tables
+   - Random event generation
+   - Story event tables
+   - Patron encounter tables
+   - News/rumors tables
+   - Location event tables
 
-### In Progress
-- [ ] Turn validation system (75%)
-- [ ] Event processing (65%)
-- [ ] Resource calculations (60%)
-- [ ] Mission generation (45%)
-- [ ] Test coverage expansion (70%)
+2. Result Processing
+   - D100 roll automation
+   - Result validation
+   - Manual override options
+   - Custom table support
+   - Roll history tracking
 
-### Pending
-- [ ] Advanced turn mechanics
-- [ ] Special events system
-- [ ] Turn history tracking
-- [ ] Analytics system
-- [ ] Integration test scenarios
+3. Turn Management
+   - Phase tracking
+   - Action resolution
+   - Event sequencing
+   - Result logging
+   - State persistence
 
-## Mission System (40% Complete)
+## 2. Campaign Tools
 
-### Completed Components
-- [x] Basic mission types
-- [x] Reward calculation
-- [x] Difficulty scaling
-- [x] Mission requirements
-- [x] Unit tests for core features
+### Core Features (Priority 2)
+1. Turn Structure
+   - Phase management
+   - Action tracking
+   - Event resolution
+   - Result calculation
+   - History logging
 
-### In Progress
-- [ ] Mission generation system (50%)
-- [ ] Enemy composition (40%)
-- [ ] Location integration (35%)
-- [ ] Special objectives (30%)
-- [ ] Test coverage for mission types (45%)
+2. Resource Management
+   - Credit tracking
+   - Supply management
+   - Equipment tracking
+   - Maintenance costs
+   - Transaction history
 
-### Pending
-- [ ] Advanced mission types
-- [ ] Dynamic objectives
-- [ ] Mission chains
-- [ ] Reputation impact
-- [ ] Performance optimization
+3. Event Handling
+   - Event generation
+   - Effect application
+   - Duration tracking
+   - Resolution system
+   - History recording
 
-## Resource Management (60% Complete)
+## 3. Mobile Interface
 
-### Completed Components
-- [x] Basic resource tracking
-- [x] Resource consumption
-- [x] Resource generation
-- [x] Storage system
-- [x] Unit tests for core functionality
+### UI Components (Priority 3)
+1. Turn Manager
+   - Phase indicators
+   - Action buttons
+   - Event display
+   - Result viewer
+   - Quick actions
 
-### In Progress
-- [ ] Market system (55%)
-- [ ] Trade mechanics (45%)
-- [ ] Resource events (40%)
-- [ ] Economy simulation (35%)
-- [ ] Test coverage for complex scenarios (50%)
+2. Campaign Dashboard
+   - Resource overview
+   - Event summary
+   - Action status
+   - Turn counter
+   - Quick access
 
-### Pending
-- [ ] Advanced trading
-- [ ] Resource conversion
-- [ ] Black market system
-- [ ] Resource optimization
-- [ ] Load testing
+3. Management Tools
+   - Resource calculator
+   - Event resolver
+   - History viewer
+   - Notes system
+   - Settings panel
 
-## UI Implementation (50% Complete)
+## 4. Data Management
 
-### Completed Components
-- [x] Turn indicator
-- [x] Resource display
-- [x] Basic mission UI
-- [x] Phase transitions
-- [x] Unit tests for basic components
+### Core Systems (Priority 4)
+1. State Tracking
+   - Turn state
+   - Resource state
+   - Event state
+   - Action state
+   - History state
 
-### In Progress
-- [ ] Mission interface (60%)
-- [ ] Resource management UI (55%)
-- [ ] Event display system (45%)
-- [ ] Market interface (40%)
-- [ ] UI component testing (50%)
+2. Data Persistence
+   - Local storage
+   - State validation
+   - Change tracking
+   - Export support
+   - Backup system
 
-### Pending
-- [ ] Advanced UI features
-- [ ] Analytics display
-- [ ] History viewer
-- [ ] Help system
-- [ ] User flow testing
+3. Offline Support
+   - Data caching
+   - State recovery
+   - Sync handling
+   - Conflict resolution
+   - Error management
 
-## Testing Progress (60%)
+## Technical Implementation
 
-### Completed Components
-- [x] Core turn mechanics tests
-- [x] Basic mission tests
-- [x] Resource system tests
-- [x] UI component tests
-- [x] State management tests
+### 1. Table System
+1. Framework
+   - Generic processor
+   - Result mapper
+   - Validator
+   - Override handler
+   - History logger
 
-### In Progress
-- [ ] Mission generation tests (45%)
-- [ ] Resource calculation tests (60%)
-- [ ] UI workflow tests (50%)
-- [ ] Integration tests (40%)
-- [ ] Performance tests (35%)
+2. Data Structure
+   - Table definitions
+   - Result mappings
+   - Validation rules
+   - Override flags
+   - History records
 
-### Pending
-- [ ] Advanced scenario tests
-- [ ] Edge case coverage
-- [ ] Load testing
-- [ ] User flow validation
-- [ ] Automated testing pipeline
+### 2. Mobile Optimization
+1. Interface Design
+   - Touch targets
+   - Gesture support
+   - Screen adaptation
+   - Input methods
+   - Feedback system
 
-## Next Steps
-1. Complete mission generation system
-2. Implement market mechanics
-3. Finish resource management UI
-4. Add event processing system
-5. Expand test coverage
-6. Begin campaign flow testing
+2. Performance
+   - Load times
+   - Memory usage
+   - Battery impact
+   - Cache strategy
+   - Background tasks
 
-## Known Issues
-1. Mission generation needs balancing
-2. Resource calculations need optimization
-3. UI needs responsive design
-4. Event system needs expansion
-5. Save system needs versioning
-6. Test coverage needs improvement
-7. Performance optimization needed
+## Testing Strategy
+
+### 1. Core Testing
+1. Table Processing
+   - Roll validation
+   - Result accuracy
+   - Override handling
+   - History tracking
+   - Export/import
+
+2. Data Management
+   - State persistence
+   - Data integrity
+   - Sync handling
+   - Error recovery
+   - Version control
+
+### 2. Mobile Testing
+1. Interface
+   - Touch response
+   - Layout adaptation
+   - Input handling
+   - Performance
+   - Offline function
+
+2. User Experience
+   - Navigation flow
+   - Data entry
+   - Information access
+   - Error handling
+   - Feedback systems
+
+## Success Criteria
+- Table automation works reliably
+- Turn management is efficient
+- Campaign tracking is intuitive
+- Mobile interface is responsive
+- Data persists correctly
+- Offline function works
+- Manual overrides function
+- Export/import works properly
+
+## Implementation Schedule
+
+### Week 1-2: Foundation
+- Table processing framework
+- Basic turn management
+- Core UI components
+- Mobile optimization
+
+### Week 3-4: Features
+- Event generation
+- Resource tracking
+- Action resolution
+- History logging
+
+### Week 5-6: Polish
+- UI refinement
+- Performance optimization
+- Testing completion
+- Documentation
 
 ## Notes
-- Focus on core gameplay loop
-- Maintain balance in resource economy
-- Keep UI intuitive and responsive
-- Document all systems thoroughly
-- Plan for future expansions
-- Ensure comprehensive test coverage
-- Follow GDScript best practices 
+- Focus on utility over graphics
+- Prioritize mobile usability
+- Maintain offline capability
+- Support manual overrides
+- Keep interface simple
+- Document thoroughly
+- Test extensively 

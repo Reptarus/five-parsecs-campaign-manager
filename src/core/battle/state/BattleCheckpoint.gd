@@ -22,6 +22,8 @@ var current_mission: Mission
 var initial_state: Dictionary
 var mission_specific_inputs: Dictionary = {}
 
+const GameEnums = preload("res://src/core/systems/GlobalEnums.gd")
+
 # Core Setup Functions
 
 func _ready() -> void:
@@ -121,9 +123,9 @@ func _validate_basic_requirements() -> bool:
 
 func _validate_mission_specific() -> bool:
     match current_mission.mission_type:
-        GlobalEnums.MissionType.RESCUE:
+        GameEnums.MissionType.RESCUE:
             return _validate_rescue_mission()
-        GlobalEnums.MissionType.SABOTAGE:
+        GameEnums.MissionType.SABOTAGE:
             return _validate_sabotage_mission()
         _:
             return true
@@ -163,10 +165,10 @@ func _create_checkpoint_data() -> Dictionary:
     }
     
     match current_mission.mission_type:
-        GlobalEnums.MissionType.RESCUE:
+        GameEnums.MissionType.RESCUE:
             data.mission_specific["rescued_units"] = _get_rescued_units()
             data.mission_specific["extraction_reached"] = _check_extraction_point()
-        GlobalEnums.MissionType.SABOTAGE:
+        GameEnums.MissionType.SABOTAGE:
             data.mission_specific["destroyed_targets"] = _get_destroyed_targets()
             data.mission_specific["stealth_maintained"] = _check_stealth_status()
     
@@ -176,9 +178,9 @@ func _create_checkpoint_data() -> Dictionary:
 
 func _add_mission_specific_inputs() -> void:
     match current_mission.mission_type:
-        GlobalEnums.MissionType.RESCUE:
+        GameEnums.MissionType.RESCUE:
             _add_rescue_mission_inputs()
-        GlobalEnums.MissionType.SABOTAGE:
+        GameEnums.MissionType.SABOTAGE:
             _add_sabotage_mission_inputs()
 
 func _add_rescue_mission_inputs() -> void:
@@ -287,4 +289,4 @@ func _check_stealth_status() -> bool:
         return false
     
     var stealth_check = sabotage_container.get_node("StealthCheckBox")
-    return stealth_check and stealth_check.button_pressed 
+    return stealth_check and stealth_check.button_pressed

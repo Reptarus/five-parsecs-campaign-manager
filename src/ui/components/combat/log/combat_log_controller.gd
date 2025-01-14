@@ -2,7 +2,7 @@
 extends Node
 
 ## Required dependencies
-const GlobalEnums := preload("res://src/core/systems/GlobalEnums.gd")
+const GameEnums := preload("res://src/core/systems/GlobalEnums.gd")
 const Character := preload("res://src/core/character/Base/Character.gd")
 
 ## Node references
@@ -133,15 +133,15 @@ func _on_verification_requested(entry_id: String) -> void:
 func _verify_entry(entry: Dictionary) -> void:
 	match entry.type:
 		"combat":
-			combat_manager.verify_state(GlobalEnums.VerificationType.COMBAT)
+			combat_manager.verify_state(GameEnums.VerificationType.COMBAT)
 		"movement":
-			combat_manager.verify_state(GlobalEnums.VerificationType.POSITION)
+			combat_manager.verify_state(GameEnums.VerificationType.MOVEMENT)
 		"status":
-			combat_manager.verify_state(GlobalEnums.VerificationType.STATUS)
+			combat_manager.verify_state(GameEnums.VerificationType.STATE)
 		"resource":
-			combat_manager.verify_state(GlobalEnums.VerificationType.RESOURCE)
+			combat_manager.verify_state(GameEnums.VerificationType.DEPLOYMENT)
 		"override":
-			combat_manager.verify_state(GlobalEnums.VerificationType.OVERRIDE)
+			combat_manager.verify_state(GameEnums.VerificationType.MOVEMENT)
 
 func _export_entry(entry: Dictionary) -> void:
 	var file = FileAccess.open("user://combat_log_entry.json", FileAccess.WRITE)
@@ -165,7 +165,7 @@ func _on_combat_state_changed(new_state: Dictionary) -> void:
 		"state": new_state
 	})
 
-func _on_combat_result_calculated(attacker: Character, target: Character, result: GlobalEnums.CombatResult) -> void:
+func _on_combat_result_calculated(attacker: Character, target: Character, result: GameEnums.CombatResult) -> void:
 	add_log_entry("combat", {
 		"type": "result",
 		"attacker": attacker.get_id(),
@@ -173,14 +173,14 @@ func _on_combat_result_calculated(attacker: Character, target: Character, result
 		"result": result
 	})
 
-func _on_combat_advantage_changed(character: Character, advantage: GlobalEnums.CombatAdvantage) -> void:
+func _on_combat_advantage_changed(character: Character, advantage: GameEnums.CombatAdvantage) -> void:
 	add_log_entry("combat", {
 		"type": "advantage",
 		"character": character.get_id(),
 		"advantage": advantage
 	})
 
-func _on_combat_status_changed(character: Character, status: GlobalEnums.CombatStatus) -> void:
+func _on_combat_status_changed(character: Character, status: GameEnums.CombatStatus) -> void:
 	add_log_entry("status", {
 		"type": "status_change",
 		"character": character.get_id(),
@@ -194,7 +194,7 @@ func _on_manual_override_applied(override_type: String, override_data: Dictionar
 	})
 
 ## Verification signal handlers
-func _on_verification_completed(verification_type: GlobalEnums.VerificationType, result: GlobalEnums.VerificationResult, details: Dictionary) -> void:
+func _on_verification_completed(verification_type: GameEnums.VerificationType, result: GameEnums.VerificationResult, details: Dictionary) -> void:
 	add_log_entry("verification", {
 		"type": verification_type,
 		"result": result,
@@ -206,14 +206,14 @@ func _on_verification_completed(verification_type: GlobalEnums.VerificationType,
 		"details": details
 	})
 
-func _on_verification_failed(verification_type: GlobalEnums.VerificationType, error: String) -> void:
+func _on_verification_failed(verification_type: GameEnums.VerificationType, error: String) -> void:
 	add_log_entry("verification", {
 		"type": verification_type,
-		"result": GlobalEnums.VerificationResult.ERROR,
+		"result": GameEnums.VerificationResult.ERROR,
 		"details": {"error": error}
 	})
 	
 	combat_log_panel.show_verification_result(str(Time.get_unix_time_from_system()), {
-		"status": GlobalEnums.VerificationResult.ERROR,
+		"status": GameEnums.VerificationResult.ERROR,
 		"details": {"error": error}
 	})

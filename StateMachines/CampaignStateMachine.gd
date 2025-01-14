@@ -74,7 +74,8 @@ func _on_phase_changed(new_phase: GameEnums.CampaignPhase) -> void:
 		GameEnums.CampaignPhase.UPKEEP, \
 		GameEnums.CampaignPhase.STORY, \
 		GameEnums.CampaignPhase.CAMPAIGN, \
-		GameEnums.CampaignPhase.ADVANCEMENT:
+		GameEnums.CampaignPhase.ADVANCEMENT, \
+		GameEnums.CampaignPhase.TRADE:
 			change_state(GameEnums.GameState.CAMPAIGN)
 		GameEnums.CampaignPhase.BATTLE_SETUP, \
 		GameEnums.CampaignPhase.BATTLE_RESOLUTION:

@@ -184,14 +184,14 @@ func _update_ship_info() -> void:
 	if game_state.ship:
 		var condition = ""
 		match game_state.ship.condition:
-			GameEnums.ShipCondition.PERFECT:
+			GameEnums.ShipCondition.PRISTINE:
 				condition = "Perfect"
 			GameEnums.ShipCondition.GOOD:
 				condition = "Good"
 			GameEnums.ShipCondition.DAMAGED:
 				condition = "Damaged"
-			GameEnums.ShipCondition.BROKEN:
-				condition = "Broken"
+			GameEnums.ShipCondition.CRITICAL:
+				condition = "Critical"
 		
 		ship_info.text = "Ship: %s\nCondition: %s\nHull: %d/%d\nDebt: %d credits" % [
 			game_state.ship.name,

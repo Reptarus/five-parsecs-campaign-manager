@@ -101,7 +101,7 @@ func _count_terrain_features() -> Dictionary:
 				features.total += 1
 				if feature_type in [GameEnums.TerrainFeatureType.COVER_LOW, GameEnums.TerrainFeatureType.COVER_HIGH]:
 					features.cover += 1
-				else:
+				elif feature_type == GameEnums.TerrainFeatureType.OBSTACLE:
 					features.obstacles += 1
 	
 	return features

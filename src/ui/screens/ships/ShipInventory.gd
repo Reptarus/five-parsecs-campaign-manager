@@ -2,7 +2,7 @@
 class_name ShipInventory
 extends Resource
 
-const GlobalEnums := preload("res://src/core/systems/GlobalEnums.gd")
+const GameEnums := preload("res://src/core/systems/GlobalEnums.gd")
 const Equipment := preload("res://src/core/character/Equipment/Equipment.gd")
 
 signal item_added(item: Equipment)
@@ -24,7 +24,7 @@ func add_item(item: Equipment) -> bool:
 		return false
 		
 	if current_weight + item.weight > max_weight_capacity:
-		push_error("Not enough capacity to add item to inventory (Current: %.1f, Max: %.1f, Item: %.1f)" % 
+		push_error("Not enough capacity to add item to inventory (Current: %.1f, Max: %.1f, Item: %.1f)" %
 				  [current_weight, max_weight_capacity, item.weight])
 		inventory_full.emit()
 		return false
@@ -92,10 +92,10 @@ func update_capacity(new_capacity: float) -> void:
 	elif is_empty():
 		inventory_empty.emit()
 
-func get_items_by_type(item_type: GlobalEnums.ItemType) -> Array[Equipment]:
+func get_items_by_type(item_type: GameEnums.ItemType) -> Array[Equipment]:
 	return items.filter(func(item): return item.item_type == item_type)
 
-func get_items_by_rarity(rarity: GlobalEnums.ItemRarity) -> Array[Equipment]:
+func get_items_by_rarity(rarity: GameEnums.ItemRarity) -> Array[Equipment]:
 	return items.filter(func(item): return item.rarity == rarity)
 
 func has_item(item: Equipment) -> bool:

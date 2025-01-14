@@ -40,8 +40,8 @@ func _get_difficulty_name(difficulty: int) -> String:
             return "Normal"
         GameEnums.DifficultyLevel.HARD:
             return "Hard"
-        GameEnums.DifficultyLevel.VETERAN:
-            return "Veteran"
+        GameEnums.DifficultyLevel.HARDCORE:
+            return "Hardcore"
         GameEnums.DifficultyLevel.ELITE:
             return "Elite"
         _:

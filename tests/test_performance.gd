@@ -2,8 +2,8 @@ extends "res://addons/gut/test.gd"
 
 const BattlefieldGenerator := preload("res://src/core/battle/BattlefieldGenerator.gd")
 const BattlefieldManager := preload("res://src/core/battle/BattlefieldManager.gd")
-const GlobalEnums := preload("res://src/core/systems/GlobalEnums.gd")
-const TerrainTypes := preload("res://src/core/battle/TerrainTypes.gd")
+const GameEnums := preload("res://src/core/systems/GlobalEnums.gd")
+const TerrainTypes := preload("res://src/core/terrain/TerrainTypes.gd")
 
 # Test variables
 var battlefield_generator: BattlefieldGenerator

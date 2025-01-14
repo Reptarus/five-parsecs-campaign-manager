@@ -27,7 +27,7 @@ func _setup_difficulty_options() -> void:
     difficulty_option.add_item("Easy", GameEnums.DifficultyLevel.EASY)
     difficulty_option.add_item("Normal", GameEnums.DifficultyLevel.NORMAL)
     difficulty_option.add_item("Hard", GameEnums.DifficultyLevel.HARD)
-    difficulty_option.add_item("Veteran", GameEnums.DifficultyLevel.VETERAN)
+    difficulty_option.add_item("Hardcore", GameEnums.DifficultyLevel.HARDCORE)
     difficulty_option.add_item("Elite", GameEnums.DifficultyLevel.ELITE)
     
     difficulty_option.select(GameEnums.DifficultyLevel.NORMAL)
@@ -48,7 +48,7 @@ func _update_ui_state() -> void:
     else:
         permadeath_toggle.disabled = false
     
-    if campaign_config.difficulty_level in [GameEnums.DifficultyLevel.VETERAN, GameEnums.DifficultyLevel.ELITE]:
+    if campaign_config.difficulty_level in [GameEnums.DifficultyLevel.HARDCORE, GameEnums.DifficultyLevel.ELITE]:
         permadeath_toggle.disabled = true
         permadeath_toggle.button_pressed = true
 
@@ -60,7 +60,7 @@ func _get_difficulty_description(difficulty: int) -> String:
             return "Standard difficulty with balanced challenges."
         GameEnums.DifficultyLevel.HARD:
             return "More enemies and tougher combat encounters."
-        GameEnums.DifficultyLevel.VETERAN:
+        GameEnums.DifficultyLevel.HARDCORE:
             return "Significantly harder with elite enemies. Permadeath enabled."
         GameEnums.DifficultyLevel.ELITE:
             return "The ultimate challenge. Elite enemies and permadeath."
@@ -83,7 +83,7 @@ func _on_story_track_toggled(enabled: bool) -> void:
     campaign_config.use_story_track = enabled
 
 func _on_start_pressed() -> void:
-    if campaign_config.difficulty_level in [GameEnums.DifficultyLevel.VETERAN, GameEnums.DifficultyLevel.ELITE] and not campaign_config.enable_permadeath:
+    if campaign_config.difficulty_level in [GameEnums.DifficultyLevel.HARDCORE, GameEnums.DifficultyLevel.ELITE] and not campaign_config.enable_permadeath:
         campaign_config.enable_permadeath = true
     
     campaign_started.emit(campaign_config)

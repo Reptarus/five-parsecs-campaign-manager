@@ -29,7 +29,7 @@ func _calculate_base_force_size(mission: Mission) -> int:
 	
 	# Adjust for mission type
 	match mission.mission_type:
-		GameEnums.MissionType.RAID, GameEnums.MissionType.DEFENSE:
+		GameEnums.MissionType.SABOTAGE, GameEnums.MissionType.RESCUE:
 			base_size += 2
 		GameEnums.MissionType.BLACK_ZONE:
 			base_size += 3
@@ -44,7 +44,7 @@ func _adjust_force_size_for_difficulty(base_size: int, difficulty: int) -> int:
 			return base_size
 		GameEnums.DifficultyLevel.HARD:
 			return base_size + 1
-		GameEnums.DifficultyLevel.VETERAN:
+		GameEnums.DifficultyLevel.HARDCORE:
 			return base_size + 2
 		GameEnums.DifficultyLevel.ELITE:
 			return base_size + 3
@@ -61,7 +61,7 @@ func _get_enemy_types(mission_type: int) -> Array[String]:
 			types.append_array(["Elite Guards", "Corporate Security", "Hired Guns"])
 		GameEnums.MissionType.BLACK_ZONE:
 			types.append_array(["Elite Commandos", "War Bots", "Alien Warriors"])
-		GameEnums.MissionType.PATRON:
+		GameEnums.MissionType.SABOTAGE:
 			types.append_array(["Professional Guards", "Security Bots", "Elite Guards"])
 	
 	return types
@@ -71,7 +71,7 @@ func _get_enemy_types_for_difficulty(base_types: Array[String], difficulty: int)
 	
 	# Add types based on difficulty
 	match difficulty:
-		GameEnums.DifficultyLevel.HARD, GameEnums.DifficultyLevel.VETERAN:
+		GameEnums.DifficultyLevel.HARD, GameEnums.DifficultyLevel.HARDCORE:
 			types.append_array(["Tech Gangers", "Gene Renegades", "Pirates"])
 		GameEnums.DifficultyLevel.ELITE:
 			types.append_array(["Elite Mercenaries", "Corporate Security", "Black Ops"])
@@ -83,7 +83,7 @@ func _determine_elite_units(mission: Mission) -> int:
 	
 	# Base on difficulty
 	match mission.difficulty:
-		GameEnums.DifficultyLevel.HARD, GameEnums.DifficultyLevel.VETERAN:
+		GameEnums.DifficultyLevel.HARD, GameEnums.DifficultyLevel.HARDCORE:
 			elite_count = 1
 		GameEnums.DifficultyLevel.ELITE:
 			elite_count = 2

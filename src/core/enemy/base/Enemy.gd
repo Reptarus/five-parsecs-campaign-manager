@@ -13,7 +13,7 @@ signal behavior_changed(new_behavior: GlobalEnums.EnemyBehavior)
 
 # Basic Properties
 @export var enemy_name: String = "Enemy"
-@export var enemy_type: GlobalEnums.EnemyType = GlobalEnums.EnemyType.GRUNT
+@export var enemy_type: GlobalEnums.EnemyType = GlobalEnums.EnemyType.MINION
 @export var enemy_category: GlobalEnums.EnemyCategory = GlobalEnums.EnemyCategory.CRIMINAL_ELEMENTS
 
 # Combat Stats
@@ -40,7 +40,7 @@ signal behavior_changed(new_behavior: GlobalEnums.EnemyBehavior)
 		behavior = value
 		behavior_changed.emit(value)
 
-@export var weapon_class: GlobalEnums.WeaponType = GlobalEnums.WeaponType.BASIC
+@export var weapon_class: GlobalEnums.WeaponType = GlobalEnums.WeaponType.PISTOL
 @export var characteristics: Array[GlobalEnums.EnemyCharacteristic] = []
 @export var special_rules: Array[String] = []
 
@@ -192,4 +192,4 @@ func deserialize(data: Dictionary) -> void:
 	in_cover = data.get("in_cover", in_cover)
 	
 	if not current_weapon:
-		setup_default_weapon() 
+		setup_default_weapon()

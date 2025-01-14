@@ -16,11 +16,13 @@ const PHASE_REQUIREMENTS = {
 	GameEnums.CampaignPhase.NONE: [],
 	GameEnums.CampaignPhase.SETUP: [], # Initial setup
 	GameEnums.CampaignPhase.UPKEEP: [], # Can always enter upkeep
-	GameEnums.CampaignPhase.STORY: ["upkeep_completed"], # Story events and world development
-	GameEnums.CampaignPhase.CAMPAIGN: ["story_resolved"], # Main campaign actions
-	GameEnums.CampaignPhase.BATTLE_SETUP: ["campaign_actions_completed"], # Prepare for battle
-	GameEnums.CampaignPhase.BATTLE_RESOLUTION: ["battle_completed"], # Resolve battle outcomes
-	GameEnums.CampaignPhase.ADVANCEMENT: ["resolution_completed"] # Character advancement and bookkeeping
+	GameEnums.CampaignPhase.STORY: ["upkeep_completed"], # Story events
+	GameEnums.CampaignPhase.CAMPAIGN: ["story_completed"], # Campaign activities
+	GameEnums.CampaignPhase.BATTLE_SETUP: ["mission_selected"], # Prepare for battle
+	GameEnums.CampaignPhase.BATTLE_RESOLUTION: ["setup_completed"], # Battle resolution
+	GameEnums.CampaignPhase.ADVANCEMENT: ["resolution_completed"], # Character advancement
+	GameEnums.CampaignPhase.TRADE: ["advancement_completed"], # Trading phase
+	GameEnums.CampaignPhase.END: ["trade_completed"] # End phase
 }
 
 # Simplified phase sequence matching tabletop flow
@@ -31,7 +33,9 @@ const PHASE_SEQUENCE = [
 	GameEnums.CampaignPhase.CAMPAIGN,
 	GameEnums.CampaignPhase.BATTLE_SETUP,
 	GameEnums.CampaignPhase.BATTLE_RESOLUTION,
-	GameEnums.CampaignPhase.ADVANCEMENT
+	GameEnums.CampaignPhase.ADVANCEMENT,
+	GameEnums.CampaignPhase.TRADE,
+	GameEnums.CampaignPhase.END
 ]
 
 var game_state: FiveParsecsGameState
@@ -115,9 +119,13 @@ func start_phase(phase: GameEnums.CampaignPhase) -> void:
 		GameEnums.CampaignPhase.BATTLE_SETUP:
 			_handle_battle_setup_phase()
 		GameEnums.CampaignPhase.BATTLE_RESOLUTION:
-			_handle_battle_resolution_phase()
+			_handle_battle_phase()
 		GameEnums.CampaignPhase.ADVANCEMENT:
 			_handle_advancement_phase()
+		GameEnums.CampaignPhase.TRADE:
+			_handle_trade_phase()
+		GameEnums.CampaignPhase.END:
+			_handle_end_phase()
 
 func _validate_phase_transition(next_phase: GameEnums.CampaignPhase) -> bool:
 	# Always allow transition to SETUP from any phase
@@ -237,13 +245,17 @@ func _can_enter_phase(phase: GameEnums.CampaignPhase) -> bool:
 		GameEnums.CampaignPhase.STORY:
 			return phase_actions_completed.upkeep_completed
 		GameEnums.CampaignPhase.CAMPAIGN:
-			return phase_actions_completed.story_resolved
+			return phase_actions_completed.story_completed
 		GameEnums.CampaignPhase.BATTLE_SETUP:
-			return phase_actions_completed.campaign_actions_completed
+			return phase_actions_completed.mission_selected
 		GameEnums.CampaignPhase.BATTLE_RESOLUTION:
-			return phase_actions_completed.battle_completed
+			return phase_actions_completed.setup_completed
 		GameEnums.CampaignPhase.ADVANCEMENT:
 			return phase_actions_completed.resolution_completed
+		GameEnums.CampaignPhase.TRADE:
+			return phase_actions_completed.advancement_completed
+		GameEnums.CampaignPhase.END:
+			return phase_actions_completed.trade_completed
 		_:
 			return false
 
@@ -295,7 +307,7 @@ func _handle_story_phase() -> void:
 			"sights": sights
 		})
 	
-	phase_actions_completed.upkeep_completed = true
+	phase_actions_completed.story_completed = true
 	phase_action_available.emit("complete_story", true)
 
 func _handle_campaign_phase() -> void:
@@ -310,7 +322,7 @@ func _handle_campaign_phase() -> void:
 	# Update patron relationships
 	_update_patron_relationships()
 	
-	phase_actions_completed.story_resolved = true
+	phase_actions_completed.upkeep_completed = true
 	phase_action_available.emit("complete_campaign", true)
 
 func _handle_battle_setup_phase() -> void:
@@ -333,10 +345,34 @@ func _handle_battle_setup_phase() -> void:
 		"battlefield": battlefield
 	})
 	
-	phase_actions_completed.campaign_actions_completed = false
+	phase_actions_completed.mission_selected = false
 	phase_action_available.emit("start_battle_setup", true)
 
-func _handle_battle_resolution_phase() -> void:
+func _handle_battle_phase() -> void:
+	# Process battle results
+	var results = _process_battle_results()
+	
+	# Update quest progress
+	_update_quest_progress(results)
+	
+	# Process rewards
+	_process_battle_rewards(results)
+	
+	# Check for injuries
+	_process_injuries()
+	
+	# Generate post-battle events
+	var events = _generate_post_battle_events(results)
+	if events:
+		event_triggered.emit({
+			"type": "POST_BATTLE_EVENTS",
+			"events": events
+		})
+	
+	phase_actions_completed.setup_completed = false
+	phase_action_available.emit("start_battle", true)
+
+func _handle_post_battle_phase() -> void:
 	# Process battle results
 	var results = _process_battle_results()
 	
@@ -358,7 +394,7 @@ func _handle_battle_resolution_phase() -> void:
 		})
 	
 	phase_actions_completed.battle_completed = false
-	phase_action_available.emit("start_battle_resolution", true)
+	phase_action_available.emit("start_post_battle", true)
 
 func _handle_advancement_phase() -> void:
 	# Process crew management
@@ -379,6 +415,19 @@ func _handle_advancement_phase() -> void:
 	phase_actions_completed.resolution_completed = true
 	phase_action_available.emit("complete_advancement", true)
 
+func _handle_trade_phase() -> void:
+	# Process automatic resource trading
+	if game_state.has_trade_routes:
+		for route in game_state.trade_routes:
+			if _can_execute_trade(route):
+				_execute_trade(route)
+	
+	phase_actions_completed.advancement_completed = true
+	phase_action_available.emit("complete_trade", true)
+
+func _handle_end_phase() -> void:
+	phase_completed.emit()
+
 func complete_phase() -> void:
 	match current_phase:
 		GameEnums.CampaignPhase.UPKEEP:
@@ -388,16 +437,22 @@ func complete_phase() -> void:
 			if not phase_actions_completed.upkeep_completed:
 				return
 		GameEnums.CampaignPhase.CAMPAIGN:
-			if not phase_actions_completed.story_resolved:
+			if not phase_actions_completed.story_completed:
 				return
 		GameEnums.CampaignPhase.BATTLE_SETUP:
-			if not phase_actions_completed.campaign_actions_completed:
+			if not phase_actions_completed.mission_selected:
 				return
 		GameEnums.CampaignPhase.BATTLE_RESOLUTION:
-			if not phase_actions_completed.battle_completed:
+			if not phase_actions_completed.setup_completed:
 				return
 		GameEnums.CampaignPhase.ADVANCEMENT:
 			if not phase_actions_completed.resolution_completed:
+				return
+		GameEnums.CampaignPhase.TRADE:
+			if not phase_actions_completed.advancement_completed:
+				return
+		GameEnums.CampaignPhase.END:
+			if not phase_actions_completed.trade_completed:
 				return
 	
 	phase_completed.emit()
@@ -423,14 +478,14 @@ func _calculate_upkeep_cost() -> int:
 	
 	# Apply difficulty modifiers
 	match game_state.difficulty:
-		GameEnums.DifficultyMode.EASY:
+		GameEnums.DifficultyLevel.EASY:
 			base_cost = int(base_cost * 0.8) # 20% discount on upkeep
-		GameEnums.DifficultyMode.CHALLENGING:
+		GameEnums.DifficultyLevel.NORMAL:
+			base_cost = int(base_cost * 1.0) # Normal upkeep
+		GameEnums.DifficultyLevel.HARD:
 			base_cost = int(base_cost * 1.2) # 20% increase in upkeep
-		GameEnums.DifficultyMode.HARDCORE:
+		GameEnums.DifficultyLevel.HARDCORE:
 			base_cost = int(base_cost * 1.5) # 50% increase in upkeep
-		GameEnums.DifficultyMode.INSANITY:
-			base_cost = int(base_cost * 2.0) # Double upkeep costs
 	
 	return base_cost
 
@@ -483,14 +538,14 @@ func _consume_resources() -> void:
 	
 	# Apply difficulty modifiers
 	match game_state.difficulty:
-		GameEnums.DifficultyMode.EASY:
+		GameEnums.DifficultyLevel.EASY:
 			supply_consumption = int(supply_consumption * 0.8)
-		GameEnums.DifficultyMode.CHALLENGING:
+		GameEnums.DifficultyLevel.NORMAL:
+			supply_consumption = int(supply_consumption * 1.0)
+		GameEnums.DifficultyLevel.HARD:
 			supply_consumption = int(supply_consumption * 1.2)
-		GameEnums.DifficultyMode.HARDCORE:
+		GameEnums.DifficultyLevel.HARDCORE:
 			supply_consumption = int(supply_consumption * 1.5)
-		GameEnums.DifficultyMode.INSANITY:
-			supply_consumption = int(supply_consumption * 2.0)
 	
 	# Ensure minimum consumption
 	supply_consumption = max(1, supply_consumption)
@@ -917,7 +972,8 @@ func _calculate_item_availability() -> Dictionary:
 		GameEnums.ItemType.ARMOR: 1.0,
 		GameEnums.ItemType.GEAR: 1.0,
 		GameEnums.ItemType.CONSUMABLE: 1.0,
-		GameEnums.ItemType.MODIFICATION: 1.0
+		GameEnums.ItemType.MODIFICATION: 1.0,
+		GameEnums.ItemType.MISC: 1.0
 	}
 	
 	# Modify availability based on market state
@@ -2312,7 +2368,7 @@ func calculate_upkeep_cost(crew_size: int, difficulty: GameEnums.DifficultyLevel
 			base_cost = base_cost
 		GameEnums.DifficultyLevel.HARD:
 			base_cost = int(base_cost * 1.2)
-		GameEnums.DifficultyLevel.VETERAN:
+		GameEnums.DifficultyLevel.HARDCORE:
 			base_cost = int(base_cost * 1.5)
 		GameEnums.DifficultyLevel.ELITE:
 			base_cost = int(base_cost * 2.0)
@@ -2329,7 +2385,7 @@ func calculate_resource_gain(base_amount: int, difficulty: GameEnums.DifficultyL
 			modified_amount = base_amount
 		GameEnums.DifficultyLevel.HARD:
 			modified_amount = int(base_amount * 0.8)
-		GameEnums.DifficultyLevel.VETERAN:
+		GameEnums.DifficultyLevel.HARDCORE:
 			modified_amount = int(base_amount * 0.7)
 		GameEnums.DifficultyLevel.ELITE:
 			modified_amount = int(base_amount * 0.6)

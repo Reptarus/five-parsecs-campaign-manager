@@ -1,0 +1,296 @@
+{
+    "name": "phase_events",
+    "entries": [
+        {
+            "roll_range": [
+                1,
+                20
+            ],
+            "result": {
+                "type": "RESOURCE_EVENT",
+                "name": "Resource Discovery",
+                "event_level": 1,
+                "resource_gain": 200,
+                "requirements": [
+                    "exploration_capability"
+                ],
+                "consequences": {
+                    "positive": [
+                        "bonus_resources",
+                        "equipment_find"
+                    ],
+                    "negative": [
+                        "rival_attention"
+                    ]
+                },
+                "description": "Discovery of valuable resources or equipment."
+            },
+            "weight": 1.0,
+            "tags": [
+                "resource",
+                "exploration"
+            ]
+        },
+        {
+            "roll_range": [
+                21,
+                40
+            ],
+            "result": {
+                "type": "CREW_EVENT",
+                "name": "Crew Development",
+                "event_level": 1,
+                "xp_gain": 100,
+                "requirements": [
+                    "active_crew"
+                ],
+                "consequences": {
+                    "positive": [
+                        "skill_improvement",
+                        "morale_boost"
+                    ],
+                    "negative": [
+                        "temporary_fatigue"
+                    ]
+                },
+                "description": "Event focusing on crew growth and development."
+            },
+            "weight": 1.0,
+            "tags": [
+                "crew",
+                "development"
+            ]
+        },
+        {
+            "roll_range": [
+                41,
+                60
+            ],
+            "result": {
+                "type": "REPUTATION_EVENT",
+                "name": "Reputation Challenge",
+                "event_level": 2,
+                "reputation_stake": 5,
+                "requirements": [
+                    "minimum_reputation"
+                ],
+                "consequences": {
+                    "positive": [
+                        "reputation_gain",
+                        "new_contacts"
+                    ],
+                    "negative": [
+                        "reputation_loss",
+                        "rival_creation"
+                    ]
+                },
+                "description": "Event that tests and potentially improves crew reputation."
+            },
+            "weight": 0.8,
+            "tags": [
+                "reputation",
+                "challenge"
+            ]
+        },
+        {
+            "roll_range": [
+                61,
+                75
+            ],
+            "result": {
+                "type": "RIVAL_EVENT",
+                "name": "Rival Encounter",
+                "event_level": 2,
+                "challenge_rating": 3,
+                "requirements": [
+                    "active_rivals"
+                ],
+                "consequences": {
+                    "positive": [
+                        "rival_defeat",
+                        "resource_gain"
+                    ],
+                    "negative": [
+                        "resource_loss",
+                        "crew_injury"
+                    ]
+                },
+                "description": "Confrontation with a rival crew or faction."
+            },
+            "weight": 0.7,
+            "tags": [
+                "rival",
+                "combat"
+            ]
+        },
+        {
+            "roll_range": [
+                76,
+                85
+            ],
+            "result": {
+                "type": "SPECIAL_MISSION",
+                "name": "Unique Operation",
+                "event_level": 3,
+                "reward_multiplier": 1.5,
+                "requirements": [
+                    "advanced_equipment"
+                ],
+                "consequences": {
+                    "positive": [
+                        "major_reward",
+                        "reputation_boost"
+                    ],
+                    "negative": [
+                        "equipment_loss",
+                        "crew_fatigue"
+                    ]
+                },
+                "description": "Special high-risk, high-reward mission opportunity."
+            },
+            "weight": 0.6,
+            "tags": [
+                "mission",
+                "special"
+            ]
+        },
+        {
+            "roll_range": [
+                86,
+                95
+            ],
+            "result": {
+                "type": "STORY_EVENT",
+                "name": "Campaign Milestone",
+                "event_level": 3,
+                "story_impact": "major",
+                "requirements": [
+                    "story_progress"
+                ],
+                "consequences": {
+                    "positive": [
+                        "story_advancement",
+                        "special_reward"
+                    ],
+                    "negative": [
+                        "increased_difficulty"
+                    ]
+                },
+                "description": "Major story development with lasting campaign impact."
+            },
+            "weight": 0.5,
+            "tags": [
+                "story",
+                "milestone"
+            ]
+        },
+        {
+            "roll_range": [
+                96,
+                100
+            ],
+            "result": {
+                "type": "LEGENDARY_EVENT",
+                "name": "Legendary Opportunity",
+                "event_level": 4,
+                "reward_multiplier": 2.0,
+                "requirements": [
+                    "high_reputation",
+                    "advanced_equipment"
+                ],
+                "consequences": {
+                    "positive": [
+                        "legendary_reward",
+                        "permanent_bonus"
+                    ],
+                    "negative": [
+                        "permanent_consequence"
+                    ]
+                },
+                "description": "Rare event with potential game-changing consequences."
+            },
+            "weight": 0.3,
+            "tags": [
+                "legendary",
+                "rare"
+            ]
+        }
+    ],
+    "validation_rules": [
+        {
+            "type": "phase_requirement",
+            "params": {
+                "EARLY_GAME": {
+                    "allowed_event_levels": [
+                        1
+                    ],
+                    "weight_modifiers": {
+                        "RESOURCE_EVENT": 1.5,
+                        "CREW_EVENT": 1.3
+                    }
+                },
+                "MID_GAME": {
+                    "allowed_event_levels": [
+                        1,
+                        2,
+                        3
+                    ],
+                    "weight_modifiers": {
+                        "RIVAL_EVENT": 1.3,
+                        "SPECIAL_MISSION": 1.2
+                    }
+                },
+                "LATE_GAME": {
+                    "allowed_event_levels": [
+                        2,
+                        3,
+                        4
+                    ],
+                    "weight_modifiers": {
+                        "STORY_EVENT": 1.4,
+                        "LEGENDARY_EVENT": 1.5
+                    }
+                }
+            }
+        }
+    ],
+    "modifiers": [
+        {
+            "type": "reputation_modifier",
+            "params": {
+                "low": {
+                    "event_quality": 0.8,
+                    "reward_multiplier": 0.9
+                },
+                "medium": {
+                    "event_quality": 1.0,
+                    "reward_multiplier": 1.0
+                },
+                "high": {
+                    "event_quality": 1.2,
+                    "reward_multiplier": 1.2
+                },
+                "legendary": {
+                    "event_quality": 1.5,
+                    "reward_multiplier": 1.5
+                }
+            }
+        }
+    ],
+    "default_result": {
+        "type": "RESOURCE_EVENT",
+        "name": "Basic Event",
+        "event_level": 1,
+        "resource_gain": 100,
+        "requirements": [],
+        "consequences": {
+            "positive": [
+                "minor_reward"
+            ],
+            "negative": [
+                "minor_setback"
+            ]
+        },
+        "description": "Basic campaign event."
+    }
+}

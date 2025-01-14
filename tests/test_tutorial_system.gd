@@ -2,7 +2,7 @@ extends "res://addons/gut/test.gd"
 
 const TutorialStateMachine := preload("res://StateMachines/TutorialStateMachine.gd")
 const FiveParsecsGameState := preload("res://src/core/state/GameState.gd")
-const GlobalEnums := preload("res://src/core/systems/GlobalEnums.gd")
+const GameEnums := preload("res://src/core/systems/GlobalEnums.gd")
 
 var tutorial_state_machine: TutorialStateMachine
 var game_state: FiveParsecsGameState
@@ -108,14 +108,14 @@ func test_mission_setup() -> void:
 	# Verify mission is set up with correct objectives
 	var mission = game_state.get_current_mission()
 	assert_not_null(mission, "Mission should be created")
-	assert_eq(mission.mission_type, GlobalEnums.MissionType.TUTORIAL,
-		"Mission should be tutorial type")
-	assert_eq(mission.difficulty, GlobalEnums.DifficultyLevel.NORMAL,
+	assert_eq(mission.mission_type, GameEnums.MissionType.PATROL,
+		"Mission should be patrol type for tutorial")
+	assert_eq(mission.difficulty, GameEnums.DifficultyLevel.NORMAL,
 		"Tutorial mission should have normal difficulty")
 	
 	var objectives = mission.objectives
 	assert_eq(objectives.size(), 1, "Quick start should have one objective")
-	assert_eq(objectives[0].type, GlobalEnums.MissionObjective.PATROL,
+	assert_eq(objectives[0].type, GameEnums.MissionObjective.PATROL,
 		"Quick start should have patrol objective")
 
 func test_tutorial_interruption() -> void:

@@ -157,8 +157,8 @@ func _enter_battle_tutorial() -> void:
 		
 	var battle_setup := {
 		"enemy_count": 2,
-		"battle_environment": GlobalEnums.BattleEnvironment.URBAN,
-		"objective": GlobalEnums.MissionObjective.DEFEND
+		"battle_environment": GameEnums.PlanetEnvironment.URBAN,
+		"objective": GameEnums.MissionObjective.DEFEND
 	}
 	game_state.is_tutorial_active = true
 	if game_state.has_method("start_tutorial_battle"):
@@ -170,9 +170,9 @@ func _enter_campaign_tutorial() -> void:
 		
 	game_state.is_tutorial_active = true
 	var campaign_setup := {
-		"difficulty": GlobalEnums.DifficultyMode.NORMAL,
-		"victory_condition": GlobalEnums.CampaignVictoryType.STORY_COMPLETE,
-		"crew_size": GlobalEnums.CrewSize.FOUR,
+		"difficulty": GameEnums.DifficultyLevel.NORMAL,
+		"victory_condition": GameEnums.CampaignVictoryType.STORY_COMPLETE,
+		"crew_size": GameEnums.CrewSize.FOUR,
 		"use_story_track": false
 	}
 	

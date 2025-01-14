@@ -53,7 +53,7 @@ func test_add_character() -> void:
     assert_true(character_manager.add_character(test_character))
     assert_eq(character_manager.get_active_character_count(), 1)
     
-    var loaded_character := character_manager.get_character(test_character.character_id)
+    var loaded_character: Character = character_manager.get_character(test_character.character_id)
     assert_not_null(loaded_character)
     assert_eq(loaded_character.character_name, "Test Character")
     assert_eq(error_messages.size(), 0)
@@ -75,7 +75,7 @@ func test_character_status_update() -> void:
     character_manager.add_character(test_character)
     character_manager.update_character_status(test_character, GameEnums.CharacterStatus.INJURED)
     
-    var loaded_character := character_manager.get_character(test_character.character_id)
+    var loaded_character: Character = character_manager.get_character(test_character.character_id)
     assert_eq(loaded_character.status, GameEnums.CharacterStatus.INJURED)
 
 func test_character_health_management() -> void:
@@ -123,7 +123,7 @@ func test_character_save_load() -> void:
     
     # Clear and reload
     character_manager.active_characters.clear()
-    var loaded_character := character_manager.load_character(test_character.character_id)
+    var loaded_character: Character = character_manager.load_character(test_character.character_id)
     
     assert_not_null(loaded_character)
     assert_eq(loaded_character.stats.combat_skill, 2)

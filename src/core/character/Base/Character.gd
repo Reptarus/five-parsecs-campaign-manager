@@ -1,9 +1,9 @@
 class_name Character
 extends Resource
 
-const GlobalEnums = preload("res://src/core/systems/GlobalEnums.gd")
+const GameEnums = preload("res://src/core/systems/GlobalEnums.gd")
 
-signal status_changed(new_status: GlobalEnums.CharacterStatus)
+signal status_changed(new_status: GameEnums.CharacterStatus)
 signal level_up(new_level: int)
 signal xp_gained(amount: int)
 signal equipment_changed(slot: String, item: Resource)
@@ -11,11 +11,11 @@ signal equipment_changed(slot: String, item: Resource)
 @export var character_name: String = ""
 @export var level: int = 1
 @export var xp: int = 0
-@export var status: GlobalEnums.CharacterStatus = GlobalEnums.CharacterStatus.HEALTHY
-@export var origin: GlobalEnums.Origin = GlobalEnums.Origin.HUMAN
-@export var character_class: GlobalEnums.CharacterClass = GlobalEnums.CharacterClass.SOLDIER
-@export var background: GlobalEnums.CharacterBackground = GlobalEnums.CharacterBackground.NONE
-@export var motivation: GlobalEnums.CharacterMotivation = GlobalEnums.CharacterMotivation.NONE
+@export var status: GameEnums.CharacterStatus = GameEnums.CharacterStatus.HEALTHY
+@export var origin: GameEnums.Origin = GameEnums.Origin.HUMAN
+@export var character_class: GameEnums.CharacterClass = GameEnums.CharacterClass.SOLDIER
+@export var background: GameEnums.CharacterBackground = GameEnums.CharacterBackground.NONE
+@export var motivation: GameEnums.CharacterMotivation = GameEnums.CharacterMotivation.NONE
 
 # Stats
 @export var health: int = 100
@@ -33,8 +33,8 @@ var equipment: Dictionary = {
 }
 
 # Combat state
-var combat_modifiers: Array[GlobalEnums.CombatModifier] = []
-var current_action: GlobalEnums.UnitAction = GlobalEnums.UnitAction.NONE
+var combat_modifiers: Array[GameEnums.CombatModifier] = []
+var current_action: GameEnums.UnitAction = GameEnums.UnitAction.NONE
 var action_points: int = 2
 var max_action_points: int = 2
 
@@ -68,79 +68,79 @@ func unequip_item(slot: String) -> void:
 		_unequip_slot(slot)
 		equipment_changed.emit(slot, null)
 
-func add_combat_modifier(modifier: GlobalEnums.CombatModifier) -> void:
+func add_combat_modifier(modifier: GameEnums.CombatModifier) -> void:
 	if not modifier in combat_modifiers:
 		combat_modifiers.append(modifier)
 
-func remove_combat_modifier(modifier: GlobalEnums.CombatModifier) -> void:
+func remove_combat_modifier(modifier: GameEnums.CombatModifier) -> void:
 	combat_modifiers.erase(modifier)
 
 func start_turn() -> void:
 	action_points = max_action_points
-	current_action = GlobalEnums.UnitAction.NONE
+	current_action = GameEnums.UnitAction.NONE
 
 func end_turn() -> void:
 	action_points = 0
-	current_action = GlobalEnums.UnitAction.NONE
+	current_action = GameEnums.UnitAction.NONE
 
-func can_perform_action(action: GlobalEnums.UnitAction) -> bool:
+func can_perform_action(action: GameEnums.UnitAction) -> bool:
 	if action_points <= 0:
 		return false
 	
 	match action:
-		GlobalEnums.UnitAction.MOVE:
+		GameEnums.UnitAction.MOVE:
 			return action_points >= 1
-		GlobalEnums.UnitAction.ATTACK:
+		GameEnums.UnitAction.ATTACK:
 			return action_points >= 1 and equipment.weapon != null
-		GlobalEnums.UnitAction.DASH:
+		GameEnums.UnitAction.DASH:
 			return action_points >= 2
-		GlobalEnums.UnitAction.ITEMS:
+		GameEnums.UnitAction.ITEMS:
 			return action_points >= 1 and not equipment.gear.is_empty()
-		GlobalEnums.UnitAction.BRAWL:
+		GameEnums.UnitAction.BRAWL:
 			return action_points >= 1
-		GlobalEnums.UnitAction.SNAP_FIRE:
+		GameEnums.UnitAction.SNAP_FIRE:
 			return action_points >= 1 and equipment.weapon != null
-		GlobalEnums.UnitAction.OVERWATCH:
+		GameEnums.UnitAction.OVERWATCH:
 			return action_points >= 2 and equipment.weapon != null
-		GlobalEnums.UnitAction.TAKE_COVER:
+		GameEnums.UnitAction.TAKE_COVER:
 			return action_points >= 1
-		GlobalEnums.UnitAction.RELOAD:
+		GameEnums.UnitAction.RELOAD:
 			return action_points >= 1 and equipment.weapon != null
-		GlobalEnums.UnitAction.INTERACT:
+		GameEnums.UnitAction.INTERACT:
 			return action_points >= 1
 		_:
 			return false
 
-func perform_action(action: GlobalEnums.UnitAction) -> void:
+func perform_action(action: GameEnums.UnitAction) -> void:
 	if can_perform_action(action):
 		current_action = action
 		match action:
-			GlobalEnums.UnitAction.MOVE, GlobalEnums.UnitAction.ATTACK, \
-			GlobalEnums.UnitAction.ITEMS, GlobalEnums.UnitAction.BRAWL, \
-			GlobalEnums.UnitAction.SNAP_FIRE, GlobalEnums.UnitAction.TAKE_COVER, \
-			GlobalEnums.UnitAction.RELOAD, GlobalEnums.UnitAction.INTERACT:
+			GameEnums.UnitAction.MOVE, GameEnums.UnitAction.ATTACK, \
+			GameEnums.UnitAction.ITEMS, GameEnums.UnitAction.BRAWL, \
+			GameEnums.UnitAction.SNAP_FIRE, GameEnums.UnitAction.TAKE_COVER, \
+			GameEnums.UnitAction.RELOAD, GameEnums.UnitAction.INTERACT:
 				action_points -= 1
-			GlobalEnums.UnitAction.DASH, GlobalEnums.UnitAction.OVERWATCH:
+			GameEnums.UnitAction.DASH, GameEnums.UnitAction.OVERWATCH:
 				action_points -= 2
 
 func _initialize_character() -> void:
 	health = max_health
 	action_points = max_action_points
 	combat_modifiers.clear()
-	current_action = GlobalEnums.UnitAction.NONE
+	current_action = GameEnums.UnitAction.NONE
 
 func _update_status() -> void:
-	var new_status: GlobalEnums.CharacterStatus
+	var new_status: GameEnums.CharacterStatus
 	var health_percent := float(health) / float(max_health)
 	
 	if health <= 0:
-		new_status = GlobalEnums.CharacterStatus.DEAD
+		new_status = GameEnums.CharacterStatus.DEAD
 	elif health_percent <= 0.25:
-		new_status = GlobalEnums.CharacterStatus.CRITICAL
+		new_status = GameEnums.CharacterStatus.CRITICAL
 	elif health_percent <= 0.5:
-		new_status = GlobalEnums.CharacterStatus.INJURED
+		new_status = GameEnums.CharacterStatus.INJURED
 	else:
-		new_status = GlobalEnums.CharacterStatus.HEALTHY
+		new_status = GameEnums.CharacterStatus.HEALTHY
 	
 	if new_status != status:
 		status = new_status

@@ -22,7 +22,7 @@ func _setup_options() -> void:
     option_button.add_item("Easy", GameEnums.DifficultyLevel.EASY)
     option_button.add_item("Normal", GameEnums.DifficultyLevel.NORMAL)
     option_button.add_item("Hard", GameEnums.DifficultyLevel.HARD)
-    option_button.add_item("Veteran", GameEnums.DifficultyLevel.VETERAN)
+    option_button.add_item("Hardcore", GameEnums.DifficultyLevel.HARDCORE)
     option_button.add_item("Elite", GameEnums.DifficultyLevel.ELITE)
 
 func _connect_signals() -> void:

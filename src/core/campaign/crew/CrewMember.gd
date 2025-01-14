@@ -2,7 +2,7 @@
 extends Node
 class_name CrewMember
 
-const GlobalEnums = preload("res://src/core/systems/GlobalEnums.gd")
+const GameEnums = preload("res://src/core/systems/GlobalEnums.gd")
 const Character = preload("res://src/core/character/Base/Character.gd")
 const GameWeapon = preload("res://src/core/systems/items/Weapon.gd")
 const Equipment = preload("res://src/core/character/Equipment/Equipment.gd")
@@ -28,12 +28,12 @@ const MAX_STAT_VALUE = 6
 
 @export var speed: int = 4:
 	set(value):
-		speed = clampi(value, 0, 8)  # Speed has a max of 8
+		speed = clampi(value, 0, 8) # Speed has a max of 8
 		stats_changed.emit()
 
 @export var combat_skill: int = 0:
 	set(value):
-		combat_skill = clampi(value, 0, 3)  # Combat skill has a max of 3
+		combat_skill = clampi(value, 0, 3) # Combat skill has a max of 3
 		stats_changed.emit()
 
 @export var toughness: int = 3:
@@ -43,12 +43,12 @@ const MAX_STAT_VALUE = 6
 
 @export var savvy: int = 0:
 	set(value):
-		savvy = clampi(value, 0, 3)  # Savvy has a max of 3
+		savvy = clampi(value, 0, 3) # Savvy has a max of 3
 		stats_changed.emit()
 
 @export var luck: int = 0:
 	set(value):
-		luck = clampi(value, 0, 3)  # Luck has a max of 3
+		luck = clampi(value, 0, 3) # Luck has a max of 3
 		stats_changed.emit()
 
 # Core Rules derived stats
@@ -62,7 +62,7 @@ const MAX_STAT_VALUE = 6
 @export var experience: int = 0
 @export var level: int = 1
 
-@export var class_type: int = GlobalEnums.CharacterClass.SOLDIER
+@export var class_type: int = GameEnums.CharacterClass.SOLDIER
 
 var character: Character
 var special_ability: String = ""
@@ -72,7 +72,14 @@ var traits: Array[String] = []
 var relationships: Dictionary = {}
 var inventory: CharacterInventory
 var active_weapon: GameWeapon
-var status: int = GlobalEnums.CharacterStatus.HEALTHY
+var status: int = GameEnums.CharacterStatus.HEALTHY
+
+@export var items: Array[Item] = []
+
+@export var character_class: int = GameEnums.CharacterClass.NONE
+@export var weapon_proficiencies: Array[int] = []
+@export var starting_items: Array[int] = []
+@export var starting_gadgets: Array[int] = []
 
 func _ready() -> void:
 	if not character:
@@ -90,22 +97,22 @@ func _init() -> void:
 
 func _apply_class_bonuses() -> void:
 	match class_type:
-		GlobalEnums.CharacterClass.SOLDIER:
+		GameEnums.CharacterClass.SOLDIER:
 			combat_skill += 1
 			toughness += 1
-		GlobalEnums.CharacterClass.TECH:
+		GameEnums.CharacterClass.TECH:
 			savvy += 1
 			speed += 1
-		GlobalEnums.CharacterClass.MEDIC:
+		GameEnums.CharacterClass.MEDIC:
 			savvy += 1
 			luck += 1
-		GlobalEnums.CharacterClass.SCOUT:
+		GameEnums.CharacterClass.SCOUT:
 			speed += 1
 			reactions += 1
-		GlobalEnums.CharacterClass.LEADER:
+		GameEnums.CharacterClass.LEADER:
 			combat_skill += 1
 			luck += 1
-		GlobalEnums.CharacterClass.SPECIALIST:
+		GameEnums.CharacterClass.SPECIALIST:
 			savvy += 1
 			combat_skill += 1
 
@@ -124,7 +131,7 @@ func set_default_stats() -> void:
 	# Set derived stats
 	health = max_health
 	morale = 10
-	status = GlobalEnums.CharacterStatus.HEALTHY
+	status = GameEnums.CharacterStatus.HEALTHY
 	
 	# Apply class bonuses
 	_apply_class_bonuses()
@@ -138,69 +145,69 @@ func equip_default_gear() -> void:
 	
 	# Default weapons based on class
 	match class_type:
-		GlobalEnums.CharacterClass.SOLDIER:
-			add_weapon("Combat Rifle", GlobalEnums.WeaponType.RIFLE, 24, 3, 2)
-			add_weapon("Combat Knife", GlobalEnums.WeaponType.MELEE, 1, 1, 1)
+		GameEnums.CharacterClass.SOLDIER:
+			add_weapon("Combat Rifle", GameEnums.WeaponType.RIFLE, 24, 3, 2)
+			add_weapon("Combat Knife", GameEnums.WeaponType.MELEE, 1, 1, 1)
 			if character:
 				var gear = Equipment.new()
-				gear.setup("Survival Kit", GlobalEnums.ItemType.GEAR, 1, "Basic survival equipment")
+				gear.setup("Survival Kit", GameEnums.ItemType.MISC, 1, "Basic survival equipment")
 				character.equip_gear(gear)
-		GlobalEnums.CharacterClass.TECH:
-			add_weapon("Heavy Gun", GlobalEnums.WeaponType.HEAVY, 18, 4, 3)
-			add_weapon("Pistol", GlobalEnums.WeaponType.PISTOL, 12, 2, 1)
+		GameEnums.CharacterClass.TECH:
+			add_weapon("Heavy Gun", GameEnums.WeaponType.HEAVY, 18, 4, 3)
+			add_weapon("Pistol", GameEnums.WeaponType.PISTOL, 12, 2, 1)
 			if character:
 				var gear = Equipment.new()
-				gear.setup("Toolkit", GlobalEnums.ItemType.GEAR, 1, "Basic repair tools")
+				gear.setup("Toolkit", GameEnums.ItemType.MISC, 1, "Basic repair tools")
 				character.equip_gear(gear)
 				var gadget = Equipment.new()
-				gadget.setup("Scanner", GlobalEnums.ItemType.SPECIAL, 1, "Advanced scanning device")
+				gadget.setup("Scanner", GameEnums.ItemType.MISC, 1, "Advanced scanning device")
 				character.equip_gear(gadget)
-		GlobalEnums.CharacterClass.MEDIC:
-			add_weapon("Pistol", GlobalEnums.WeaponType.PISTOL, 12, 2, 1)
-			add_weapon("Knife", GlobalEnums.WeaponType.MELEE, 1, 1, 1)
+		GameEnums.CharacterClass.MEDIC:
+			add_weapon("Pistol", GameEnums.WeaponType.PISTOL, 12, 2, 1)
+			add_weapon("Knife", GameEnums.WeaponType.MELEE, 1, 1, 1)
 			if character:
 				var gear = Equipment.new()
-				gear.setup("Medical Kit", GlobalEnums.ItemType.GEAR, 1, "Basic medical supplies")
+				gear.setup("Medical Kit", GameEnums.ItemType.MISC, 1, "Basic medical supplies")
 				character.equip_gear(gear)
 				var special = Equipment.new()
-				special.setup("Stim Pack", GlobalEnums.ItemType.SPECIAL, 1, "Emergency medical device")
+				special.setup("Stim Pack", GameEnums.ItemType.MISC, 1, "Emergency medical device")
 				character.equip_gear(special)
-		GlobalEnums.CharacterClass.SCOUT:
-			add_weapon("Rifle", GlobalEnums.WeaponType.RIFLE, 24, 2, 1)
-			add_weapon("Knife", GlobalEnums.WeaponType.MELEE, 1, 1, 1)
+		GameEnums.CharacterClass.SCOUT:
+			add_weapon("Rifle", GameEnums.WeaponType.RIFLE, 24, 2, 1)
+			add_weapon("Knife", GameEnums.WeaponType.MELEE, 1, 1, 1)
 			if character:
 				var gear = Equipment.new()
-				gear.setup("Recon Kit", GlobalEnums.ItemType.GEAR, 1, "Scouting equipment")
+				gear.setup("Recon Kit", GameEnums.ItemType.MISC, 1, "Scouting equipment")
 				character.equip_gear(gear)
 				var special = Equipment.new()
-				special.setup("Stealth Field", GlobalEnums.ItemType.SPECIAL, 1, "Stealth enhancement device")
+				special.setup("Stealth Field", GameEnums.ItemType.MISC, 1, "Stealth enhancement device")
 				character.equip_gear(special)
-		GlobalEnums.CharacterClass.LEADER:
-			add_weapon("Rifle", GlobalEnums.WeaponType.RIFLE, 24, 2, 2)
-			add_weapon("Pistol", GlobalEnums.WeaponType.PISTOL, 12, 2, 1)
+		GameEnums.CharacterClass.LEADER:
+			add_weapon("Rifle", GameEnums.WeaponType.RIFLE, 24, 2, 2)
+			add_weapon("Pistol", GameEnums.WeaponType.PISTOL, 12, 2, 1)
 			if character:
 				var gear = Equipment.new()
-				gear.setup("Command Kit", GlobalEnums.ItemType.GEAR, 1, "Leadership tools")
+				gear.setup("Command Kit", GameEnums.ItemType.MISC, 1, "Leadership tools")
 				character.equip_gear(gear)
 				var special = Equipment.new()
-				special.setup("Tactical Display", GlobalEnums.ItemType.SPECIAL, 1, "Advanced tactical interface")
+				special.setup("Tactical Display", GameEnums.ItemType.MISC, 1, "Advanced tactical interface")
 				character.equip_gear(special)
-		GlobalEnums.CharacterClass.SPECIALIST:
-			add_weapon("Special Weapon", GlobalEnums.WeaponType.SPECIAL, 18, 3, 2)
-			add_weapon("Pistol", GlobalEnums.WeaponType.PISTOL, 12, 2, 1)
+		GameEnums.CharacterClass.SPECIALIST:
+			add_weapon("Special Weapon", GameEnums.WeaponType.SPECIAL, 18, 3, 2)
+			add_weapon("Pistol", GameEnums.WeaponType.PISTOL, 12, 2, 1)
 			if character:
 				var gear = Equipment.new()
-				gear.setup("Specialist Kit", GlobalEnums.ItemType.GEAR, 1, "Specialized equipment")
+				gear.setup("Specialist Kit", GameEnums.ItemType.MISC, 1, "Specialized equipment")
 				character.equip_gear(gear)
 				var special = Equipment.new()
-				special.setup("Tech Device", GlobalEnums.ItemType.SPECIAL, 1, "Advanced technological device")
+				special.setup("Tech Device", GameEnums.ItemType.MISC, 1, "Advanced technological device")
 				character.equip_gear(special)
 		_:
-			add_weapon("Pistol", GlobalEnums.WeaponType.PISTOL, 12, 2, 1)
-			add_weapon("Knife", GlobalEnums.WeaponType.MELEE, 1, 1, 1)
+			add_weapon("Pistol", GameEnums.WeaponType.PISTOL, 12, 2, 1)
+			add_weapon("Knife", GameEnums.WeaponType.MELEE, 1, 1, 1)
 			if character:
 				var gear = Equipment.new()
-				gear.setup("Basic Kit", GlobalEnums.ItemType.GEAR, 1, "Basic equipment")
+				gear.setup("Basic Kit", GameEnums.ItemType.MISC, 1, "Basic equipment")
 				character.equip_gear(gear)
 	
 	if inventory.get_weapon_count() > 0:
@@ -234,13 +241,13 @@ func initialize(data: Dictionary) -> void:
 	health = data.get("health", health)
 	max_health = data.get("max_health", max_health)
 	class_type = data.get("class_type", class_type)
-	status = data.get("status", GlobalEnums.CharacterStatus.HEALTHY)
+	status = data.get("status", GameEnums.CharacterStatus.HEALTHY)
 	
 	if data.has("weapons"):
 		for weapon_info in data.weapons:
 			add_weapon(
 				weapon_info.get("name", "Unknown Weapon"),
-				weapon_info.get("type", GlobalEnums.WeaponType.PISTOL),
+				weapon_info.get("type", GameEnums.WeaponType.PISTOL),
 				weapon_info.get("range", 12),
 				weapon_info.get("shots", 1),
 				weapon_info.get("damage", 1)
@@ -285,7 +292,7 @@ func deserialize(data: Dictionary) -> void:
 	health = data.get("health", health)
 	max_health = data.get("max_health", max_health)
 	class_type = data.get("class_type", class_type)
-	status = data.get("status", GlobalEnums.CharacterStatus.HEALTHY)
+	status = data.get("status", GameEnums.CharacterStatus.HEALTHY)
 	
 	if data.has("character"):
 		if not character:
@@ -311,13 +318,114 @@ func get_survival_chance() -> float:
 	return (toughness * 0.4 + savvy * 0.3 + reactions * 0.3) / MAX_STAT_VALUE
 
 func is_busy() -> bool:
-	return status != GlobalEnums.CharacterStatus.HEALTHY
+	return status != GameEnums.CharacterStatus.HEALTHY
 
 func add_fatigue(amount: int) -> void:
-	if status == GlobalEnums.CharacterStatus.HEALTHY:
-		status = GlobalEnums.CharacterStatus.INJURED
+	if status == GameEnums.CharacterStatus.HEALTHY:
+		status = GameEnums.CharacterStatus.INJURED
 
 func heal(amount: int) -> void:
 	health = clampi(health + amount, 0, max_health)
-	if health > 0 and status == GlobalEnums.CharacterStatus.INJURED:
-		status = GlobalEnums.CharacterStatus.HEALTHY
+	if health > 0 and status == GameEnums.CharacterStatus.INJURED:
+		status = GameEnums.CharacterStatus.HEALTHY
+
+func get_gear() -> Array[Item]:
+	var gear_items: Array[Item] = []
+	for item in items:
+		if item.type == GameEnums.ItemType.MISC:
+			gear_items.append(item)
+	return gear_items
+
+func get_gadgets() -> Array[Item]:
+	var gadget_items: Array[Item] = []
+	for item in items:
+		if item.type == GameEnums.ItemType.MISC:
+			gadget_items.append(item)
+	return gadget_items
+
+func _init_specialist() -> void:
+	# Specialist setup
+	character_class = GameEnums.CharacterClass.SPECIALIST
+	weapon_proficiencies = [
+		GameEnums.WeaponType.RIFLE,
+		GameEnums.WeaponType.MELEE
+	]
+	starting_items = [
+		GameEnums.ItemType.MISC
+	]
+
+func _init_heavy() -> void:
+	# Heavy setup
+	weapon_proficiencies = [
+		GameEnums.WeaponType.HEAVY,
+		GameEnums.WeaponType.PISTOL
+	]
+	starting_items = [
+		GameEnums.ItemType.MISC
+	]
+	starting_gadgets = [
+		GameEnums.ItemType.MISC
+	]
+
+func _init_scout() -> void:
+	# Scout setup
+	weapon_proficiencies = [
+		GameEnums.WeaponType.PISTOL,
+		GameEnums.WeaponType.MELEE
+	]
+	starting_items = [
+		GameEnums.ItemType.MISC
+	]
+	starting_gadgets = [
+		GameEnums.ItemType.MISC
+	]
+
+func _init_medic() -> void:
+	# Medic setup
+	weapon_proficiencies = [
+		GameEnums.WeaponType.RIFLE,
+		GameEnums.WeaponType.MELEE
+	]
+	starting_items = [
+		GameEnums.ItemType.MISC
+	]
+	starting_gadgets = [
+		GameEnums.ItemType.MISC
+	]
+
+func _init_engineer() -> void:
+	# Engineer setup
+	weapon_proficiencies = [
+		GameEnums.WeaponType.RIFLE,
+		GameEnums.WeaponType.PISTOL
+	]
+	starting_items = [
+		GameEnums.ItemType.MISC
+	]
+	starting_gadgets = [
+		GameEnums.ItemType.MISC
+	]
+
+func _init_psyker() -> void:
+	# Psyker setup
+	character_class = GameEnums.CharacterClass.SPECIALIST
+	weapon_proficiencies = [
+		GameEnums.WeaponType.SPECIAL,
+		GameEnums.WeaponType.PISTOL
+	]
+	starting_items = [
+		GameEnums.ItemType.MISC
+	]
+	starting_gadgets = [
+		GameEnums.ItemType.MISC
+	]
+
+func _init_soldier() -> void:
+	# Soldier setup
+	weapon_proficiencies = [
+		GameEnums.WeaponType.PISTOL,
+		GameEnums.WeaponType.MELEE
+	]
+	starting_items = [
+		GameEnums.ItemType.MISC
+	]

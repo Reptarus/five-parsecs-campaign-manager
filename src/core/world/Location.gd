@@ -116,7 +116,7 @@ func get_travel_cost_to(destination: Location) -> float:
     
     return base_cost + (distance * 2) + (base_cost * danger_modifier)
 
-func get_resource_price(resource_type: GlobalEnums.ResourceType) -> float:
+func get_resource_price(resource_type: GameEnums.ResourceType) -> float:
     var base_price = resources.get(resource_type, 0)
     var modifier = price_modifiers.get(resource_type, 1.0)
     return base_price * modifier
@@ -187,4 +187,4 @@ static func deserialize(data: Dictionary) -> Location:
     location.is_accessible = data.get("is_accessible", true)
     location.current_threats = data.get("current_threats", [])
     location.active_effects = data.get("active_effects", [])
-    return location 
+    return location

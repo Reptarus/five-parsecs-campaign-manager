@@ -1,0 +1,258 @@
+{
+    "name": "cover_elements",
+    "entries": [
+        {
+            "roll_range": [
+                1,
+                20
+            ],
+            "result": {
+                "type": "NATURAL_LIGHT",
+                "name": "Light Natural Cover",
+                "protection_value": 1,
+                "size": "small",
+                "destructible": true,
+                "features": [
+                    "bushes",
+                    "small_rocks"
+                ],
+                "description": "Basic natural cover providing minimal protection."
+            },
+            "weight": 1.0,
+            "tags": [
+                "natural",
+                "light"
+            ]
+        },
+        {
+            "roll_range": [
+                21,
+                40
+            ],
+            "result": {
+                "type": "NATURAL_MEDIUM",
+                "name": "Medium Natural Cover",
+                "protection_value": 2,
+                "size": "medium",
+                "destructible": true,
+                "features": [
+                    "trees",
+                    "large_rocks"
+                ],
+                "description": "Moderate natural cover offering decent protection."
+            },
+            "weight": 0.8,
+            "tags": [
+                "natural",
+                "medium"
+            ]
+        },
+        {
+            "roll_range": [
+                41,
+                60
+            ],
+            "result": {
+                "type": "ARTIFICIAL_LIGHT",
+                "name": "Light Artificial Cover",
+                "protection_value": 2,
+                "size": "small",
+                "destructible": true,
+                "features": [
+                    "crates",
+                    "debris"
+                ],
+                "description": "Basic artificial cover with moderate protection."
+            },
+            "weight": 0.7,
+            "tags": [
+                "artificial",
+                "light"
+            ]
+        },
+        {
+            "roll_range": [
+                61,
+                75
+            ],
+            "result": {
+                "type": "ARTIFICIAL_MEDIUM",
+                "name": "Medium Artificial Cover",
+                "protection_value": 3,
+                "size": "medium",
+                "destructible": true,
+                "features": [
+                    "walls",
+                    "vehicles"
+                ],
+                "description": "Substantial artificial cover providing good protection."
+            },
+            "weight": 0.6,
+            "tags": [
+                "artificial",
+                "medium"
+            ]
+        },
+        {
+            "roll_range": [
+                76,
+                85
+            ],
+            "result": {
+                "type": "NATURAL_HEAVY",
+                "name": "Heavy Natural Cover",
+                "protection_value": 3,
+                "size": "large",
+                "destructible": false,
+                "features": [
+                    "cliff_faces",
+                    "large_hills"
+                ],
+                "description": "Heavy natural cover offering excellent protection."
+            },
+            "weight": 0.5,
+            "tags": [
+                "natural",
+                "heavy"
+            ]
+        },
+        {
+            "roll_range": [
+                86,
+                95
+            ],
+            "result": {
+                "type": "ARTIFICIAL_HEAVY",
+                "name": "Heavy Artificial Cover",
+                "protection_value": 4,
+                "size": "large",
+                "destructible": false,
+                "features": [
+                    "bunkers",
+                    "reinforced_walls"
+                ],
+                "description": "Heavy artificial cover providing superior protection."
+            },
+            "weight": 0.4,
+            "tags": [
+                "artificial",
+                "heavy"
+            ]
+        },
+        {
+            "roll_range": [
+                96,
+                100
+            ],
+            "result": {
+                "type": "SPECIAL",
+                "name": "Special Cover",
+                "protection_value": 5,
+                "size": "variable",
+                "destructible": false,
+                "features": [
+                    "force_fields",
+                    "energy_barriers"
+                ],
+                "description": "Unique cover elements with special properties."
+            },
+            "weight": 0.3,
+            "tags": [
+                "special"
+            ]
+        }
+    ],
+    "validation_rules": [
+        {
+            "type": "terrain_compatibility",
+            "params": {
+                "OPEN_GROUND": {
+                    "allowed_types": [
+                        "NATURAL_LIGHT",
+                        "NATURAL_MEDIUM",
+                        "ARTIFICIAL_LIGHT"
+                    ],
+                    "density_modifier": 0.7
+                },
+                "URBAN": {
+                    "allowed_types": [
+                        "ARTIFICIAL_LIGHT",
+                        "ARTIFICIAL_MEDIUM",
+                        "ARTIFICIAL_HEAVY"
+                    ],
+                    "density_modifier": 1.3
+                },
+                "FOREST": {
+                    "allowed_types": [
+                        "NATURAL_LIGHT",
+                        "NATURAL_MEDIUM",
+                        "NATURAL_HEAVY"
+                    ],
+                    "density_modifier": 1.5
+                },
+                "INDUSTRIAL": {
+                    "allowed_types": [
+                        "ARTIFICIAL_LIGHT",
+                        "ARTIFICIAL_MEDIUM",
+                        "ARTIFICIAL_HEAVY"
+                    ],
+                    "density_modifier": 1.2
+                },
+                "WASTELAND": {
+                    "allowed_types": [
+                        "NATURAL_LIGHT",
+                        "ARTIFICIAL_LIGHT",
+                        "ARTIFICIAL_MEDIUM"
+                    ],
+                    "density_modifier": 0.8
+                },
+                "UNDERGROUND": {
+                    "allowed_types": [
+                        "ARTIFICIAL_MEDIUM",
+                        "ARTIFICIAL_HEAVY",
+                        "SPECIAL"
+                    ],
+                    "density_modifier": 1.4
+                },
+                "SPACE_HULK": {
+                    "allowed_types": [
+                        "ARTIFICIAL_MEDIUM",
+                        "ARTIFICIAL_HEAVY",
+                        "SPECIAL"
+                    ],
+                    "density_modifier": 1.6
+                }
+            }
+        }
+    ],
+    "modifiers": [
+        {
+            "type": "mission_type_modifier",
+            "params": {
+                "RED_ZONE": {
+                    "protection_modifier": 0.8,
+                    "destructible_chance": 1.2
+                },
+                "BLACK_ZONE": {
+                    "protection_modifier": 1.2,
+                    "destructible_chance": 0.8
+                },
+                "PATRON": {
+                    "protection_modifier": 1.0,
+                    "destructible_chance": 1.0
+                }
+            }
+        }
+    ],
+    "default_result": {
+        "type": "NATURAL_LIGHT",
+        "name": "Basic Cover",
+        "protection_value": 1,
+        "size": "small",
+        "destructible": true,
+        "features": [
+            "basic_cover"
+        ],
+        "description": "Standard battlefield cover."
+    }
+}

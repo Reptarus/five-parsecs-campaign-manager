@@ -5,7 +5,7 @@ extends Control
 ## Dependencies
 const TerrainSystem := preload("res://src/core/terrain/TerrainSystem.gd")
 const TerrainEffects := preload("res://src/core/terrain/TerrainEffects.gd")
-const TerrainTypes := preload("res://src/core/battle/TerrainTypes.gd")
+const TerrainTypes := preload("res://src/core/terrain/TerrainTypes.gd")
 
 ## References to required systems
 @export var terrain_system: TerrainSystem

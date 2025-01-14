@@ -1,0 +1,281 @@
+{
+    "name": "hazard_features",
+    "entries": [
+        {
+            "roll_range": [
+                1,
+                30
+            ],
+            "result": {
+                "type": "ENVIRONMENTAL_MINOR",
+                "name": "Minor Environmental Hazard",
+                "danger_level": 1,
+                "effect_radius": 2,
+                "persistent": false,
+                "effects": [
+                    "movement_penalty",
+                    "visibility_reduction"
+                ],
+                "description": "Minor environmental effects that hinder movement and visibility."
+            },
+            "weight": 1.0,
+            "tags": [
+                "environmental",
+                "minor"
+            ]
+        },
+        {
+            "roll_range": [
+                31,
+                50
+            ],
+            "result": {
+                "type": "TOXIC_AREA",
+                "name": "Toxic Zone",
+                "danger_level": 2,
+                "effect_radius": 3,
+                "persistent": true,
+                "effects": [
+                    "damage_over_time",
+                    "armor_degradation"
+                ],
+                "description": "Area of toxic contamination causing gradual damage."
+            },
+            "weight": 0.8,
+            "tags": [
+                "toxic",
+                "persistent"
+            ]
+        },
+        {
+            "roll_range": [
+                51,
+                65
+            ],
+            "result": {
+                "type": "UNSTABLE_GROUND",
+                "name": "Unstable Territory",
+                "danger_level": 2,
+                "effect_radius": 4,
+                "persistent": false,
+                "effects": [
+                    "random_damage",
+                    "movement_restriction"
+                ],
+                "description": "Unstable ground that may collapse or explode."
+            },
+            "weight": 0.7,
+            "tags": [
+                "terrain",
+                "dangerous"
+            ]
+        },
+        {
+            "roll_range": [
+                66,
+                80
+            ],
+            "result": {
+                "type": "RADIATION_ZONE",
+                "name": "Radiation Field",
+                "danger_level": 3,
+                "effect_radius": 3,
+                "persistent": true,
+                "effects": [
+                    "shield_disruption",
+                    "equipment_malfunction"
+                ],
+                "description": "Area of intense radiation affecting equipment and shields."
+            },
+            "weight": 0.6,
+            "tags": [
+                "radiation",
+                "tech"
+            ]
+        },
+        {
+            "roll_range": [
+                81,
+                90
+            ],
+            "result": {
+                "type": "ENERGY_STORM",
+                "name": "Energy Storm",
+                "danger_level": 3,
+                "effect_radius": 5,
+                "persistent": false,
+                "effects": [
+                    "random_teleport",
+                    "energy_drain"
+                ],
+                "description": "Chaotic energy storm causing unpredictable effects."
+            },
+            "weight": 0.5,
+            "tags": [
+                "energy",
+                "chaotic"
+            ]
+        },
+        {
+            "roll_range": [
+                91,
+                95
+            ],
+            "result": {
+                "type": "TEMPORAL_ANOMALY",
+                "name": "Time Distortion",
+                "danger_level": 4,
+                "effect_radius": 2,
+                "persistent": true,
+                "effects": [
+                    "action_delay",
+                    "random_time_skip"
+                ],
+                "description": "Localized time distortions affecting actions and movement."
+            },
+            "weight": 0.4,
+            "tags": [
+                "temporal",
+                "special"
+            ]
+        },
+        {
+            "roll_range": [
+                96,
+                100
+            ],
+            "result": {
+                "type": "DIMENSIONAL_RIFT",
+                "name": "Reality Tear",
+                "danger_level": 5,
+                "effect_radius": 4,
+                "persistent": true,
+                "effects": [
+                    "instant_death",
+                    "reality_distortion"
+                ],
+                "description": "Dangerous tear in reality with severe consequences."
+            },
+            "weight": 0.3,
+            "tags": [
+                "dimensional",
+                "lethal"
+            ]
+        }
+    ],
+    "validation_rules": [
+        {
+            "type": "terrain_compatibility",
+            "params": {
+                "OPEN_GROUND": {
+                    "allowed_types": [
+                        "ENVIRONMENTAL_MINOR",
+                        "TOXIC_AREA"
+                    ],
+                    "max_danger_level": 2
+                },
+                "URBAN": {
+                    "allowed_types": [
+                        "UNSTABLE_GROUND",
+                        "RADIATION_ZONE"
+                    ],
+                    "max_danger_level": 3
+                },
+                "FOREST": {
+                    "allowed_types": [
+                        "ENVIRONMENTAL_MINOR",
+                        "TOXIC_AREA"
+                    ],
+                    "max_danger_level": 2
+                },
+                "INDUSTRIAL": {
+                    "allowed_types": [
+                        "TOXIC_AREA",
+                        "RADIATION_ZONE",
+                        "ENERGY_STORM"
+                    ],
+                    "max_danger_level": 4
+                },
+                "WASTELAND": {
+                    "allowed_types": [
+                        "TOXIC_AREA",
+                        "RADIATION_ZONE",
+                        "TEMPORAL_ANOMALY"
+                    ],
+                    "max_danger_level": 4
+                },
+                "UNDERGROUND": {
+                    "allowed_types": [
+                        "UNSTABLE_GROUND",
+                        "RADIATION_ZONE",
+                        "DIMENSIONAL_RIFT"
+                    ],
+                    "max_danger_level": 5
+                },
+                "SPACE_HULK": {
+                    "allowed_types": [
+                        "RADIATION_ZONE",
+                        "TEMPORAL_ANOMALY",
+                        "DIMENSIONAL_RIFT"
+                    ],
+                    "max_danger_level": 5
+                }
+            }
+        }
+    ],
+    "modifiers": [
+        {
+            "type": "mission_type_modifier",
+            "params": {
+                "RED_ZONE": {
+                    "danger_modifier": 1.2,
+                    "radius_modifier": 1.1
+                },
+                "BLACK_ZONE": {
+                    "danger_modifier": 1.5,
+                    "radius_modifier": 0.9
+                },
+                "PATRON": {
+                    "danger_modifier": 0.8,
+                    "radius_modifier": 1.0
+                }
+            }
+        },
+        {
+            "type": "difficulty_modifier",
+            "params": {
+                "EASY": {
+                    "danger_modifier": 0.7,
+                    "persistence_chance": 0.5
+                },
+                "NORMAL": {
+                    "danger_modifier": 1.0,
+                    "persistence_chance": 1.0
+                },
+                "HARD": {
+                    "danger_modifier": 1.3,
+                    "persistence_chance": 1.2
+                },
+                "VETERAN": {
+                    "danger_modifier": 1.5,
+                    "persistence_chance": 1.3
+                },
+                "ELITE": {
+                    "danger_modifier": 2.0,
+                    "persistence_chance": 1.5
+                }
+            }
+        }
+    ],
+    "default_result": {
+        "type": "ENVIRONMENTAL_MINOR",
+        "name": "Basic Hazard",
+        "danger_level": 1,
+        "effect_radius": 2,
+        "persistent": false,
+        "effects": [
+            "minor_penalty"
+        ],
+        "description": "Standard battlefield hazard."
+    }
+}

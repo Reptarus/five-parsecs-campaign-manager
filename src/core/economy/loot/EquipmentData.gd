@@ -6,13 +6,13 @@ const GlobalEnums = preload("res://src/core/systems/GlobalEnums.gd")
 @export var id: String = ""
 @export var name: String = ""
 @export var description: String = ""
-@export var type: int = GlobalEnums.ItemType.GEAR
+@export var type: int = GlobalEnums.ItemType.MISC
 @export var level: int = 1
 @export var value: int = 0
 @export var requirements: Dictionary = {}
 @export var bonuses: Dictionary = {}
 
-func _init(item_name: String = "", item_description: String = "", item_type: int = GlobalEnums.ItemType.GEAR, item_level: int = 1) -> void:
+func _init(item_name: String = "", item_description: String = "", item_type: int = GlobalEnums.ItemType.MISC, item_level: int = 1) -> void:
 	name = item_name
 	description = item_description
 	type = item_type
@@ -47,9 +47,9 @@ func deserialize(data: Dictionary) -> EquipmentData:
 	id = data.get("id", "")
 	name = data.get("name", "")
 	description = data.get("description", "")
-	type = data.get("type", GlobalEnums.ItemType.GEAR)
+	type = data.get("type", GlobalEnums.ItemType.MISC)
 	level = data.get("level", 1)
 	value = data.get("value", 0)
 	requirements = data.get("requirements", {}).duplicate()
 	bonuses = data.get("bonuses", {}).duplicate()
-	return self 
+	return self

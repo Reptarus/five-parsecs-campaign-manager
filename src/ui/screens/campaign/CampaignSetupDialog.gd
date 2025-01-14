@@ -19,7 +19,7 @@ func _setup_difficulty_options() -> void:
 	difficulty_option.add_item("Easy", GameEnums.DifficultyLevel.EASY)
 	difficulty_option.add_item("Normal", GameEnums.DifficultyLevel.NORMAL)
 	difficulty_option.add_item("Hard", GameEnums.DifficultyLevel.HARD)
-	difficulty_option.add_item("Veteran", GameEnums.DifficultyLevel.VETERAN)
+	difficulty_option.add_item("Hardcore", GameEnums.DifficultyLevel.HARDCORE)
 	difficulty_option.add_item("Elite", GameEnums.DifficultyLevel.ELITE)
 	difficulty_option.select(GameEnums.DifficultyLevel.NORMAL)
 
@@ -31,7 +31,7 @@ func _connect_signals() -> void:
 
 func _update_ui_state() -> void:
 	var difficulty_index = difficulty_option.get_selected_id()
-	if difficulty_index == GameEnums.DifficultyLevel.VETERAN or difficulty_index == GameEnums.DifficultyLevel.ELITE:
+	if difficulty_index == GameEnums.DifficultyLevel.HARDCORE or difficulty_index == GameEnums.DifficultyLevel.ELITE:
 		permadeath_toggle.button_pressed = true
 		permadeath_toggle.disabled = true
 	else:
@@ -45,7 +45,7 @@ func _get_difficulty_description(difficulty: int) -> String:
 			return "Standard difficulty with balanced challenges."
 		GameEnums.DifficultyLevel.HARD:
 			return "More enemies and tougher combat encounters."
-		GameEnums.DifficultyLevel.VETERAN:
+		GameEnums.DifficultyLevel.HARDCORE:
 			return "Significantly harder with elite enemies. Permadeath enabled."
 		GameEnums.DifficultyLevel.ELITE:
 			return "The ultimate challenge. Elite enemies and permadeath."

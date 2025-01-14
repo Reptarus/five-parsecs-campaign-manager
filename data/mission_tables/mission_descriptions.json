@@ -1,0 +1,102 @@
+{
+    "name": "mission_descriptions",
+    "entries": [
+        {
+            "roll_range": [
+                1,
+                20
+            ],
+            "result": "A straightforward {MISSION_TYPE} operation requiring {SKILL_TYPE} expertise. {OBJECTIVE_DESC}",
+            "weight": 1.0,
+            "tags": [
+                "basic"
+            ]
+        },
+        {
+            "roll_range": [
+                21,
+                40
+            ],
+            "result": "Intel suggests a challenging {MISSION_TYPE} situation. {OBJECTIVE_DESC} Caution advised.",
+            "weight": 0.8,
+            "tags": [
+                "challenging"
+            ]
+        },
+        {
+            "roll_range": [
+                41,
+                60
+            ],
+            "result": "High-priority {MISSION_TYPE} operation. {OBJECTIVE_DESC} Success is crucial.",
+            "weight": 0.7,
+            "tags": [
+                "priority"
+            ]
+        },
+        {
+            "roll_range": [
+                61,
+                80
+            ],
+            "result": "Complex {MISSION_TYPE} scenario requiring careful planning. {OBJECTIVE_DESC} Multiple objectives identified.",
+            "weight": 0.6,
+            "tags": [
+                "complex"
+            ]
+        },
+        {
+            "roll_range": [
+                81,
+                100
+            ],
+            "result": "Critical {MISSION_TYPE} operation with significant implications. {OBJECTIVE_DESC} Extreme caution required.",
+            "weight": 0.5,
+            "tags": [
+                "critical"
+            ]
+        }
+    ],
+    "validation_rules": [],
+    "modifiers": [
+        {
+            "type": "mission_type_modifier",
+            "params": {
+                "RED_ZONE": {
+                    "mission_type": "combat",
+                    "skill_type": "combat",
+                    "objective_desc": [
+                        "Enemy forces are heavily entrenched.",
+                        "Resistance is expected to be significant.",
+                        "Multiple hostile elements detected.",
+                        "Heavy opposition reported in the area.",
+                        "Armed resistance is guaranteed."
+                    ]
+                },
+                "BLACK_ZONE": {
+                    "mission_type": "covert",
+                    "skill_type": "stealth",
+                    "objective_desc": [
+                        "Stealth is paramount.",
+                        "Minimal contact preferred.",
+                        "Detection must be avoided.",
+                        "Secrecy is essential.",
+                        "Silent approach required."
+                    ]
+                },
+                "PATRON": {
+                    "mission_type": "contract",
+                    "skill_type": "specialized",
+                    "objective_desc": [
+                        "The client has specific requirements.",
+                        "Precision is essential.",
+                        "Client satisfaction is priority.",
+                        "Special handling requested.",
+                        "Detailed parameters provided."
+                    ]
+                }
+            }
+        }
+    ],
+    "default_result": "A standard mission requiring attention to detail."
+}

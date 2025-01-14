@@ -53,7 +53,7 @@ func _apply_difficulty_scaling(difficulty: GameEnums.DifficultyLevel) -> void:
 			armor_modifier = 1.1
 			count_modifier = 1.2
 			
-		GameEnums.DifficultyLevel.VETERAN:
+		GameEnums.DifficultyLevel.HARDCORE:
 			health_modifier = 1.4
 			damage_modifier = 1.3
 			armor_modifier = 1.2

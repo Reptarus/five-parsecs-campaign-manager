@@ -1,0 +1,99 @@
+{
+    "name": "credit_rewards",
+    "entries": [
+        {
+            "roll_range": [
+                1,
+                20
+            ],
+            "result": 500,
+            "weight": 1.0,
+            "tags": [
+                "low"
+            ]
+        },
+        {
+            "roll_range": [
+                21,
+                40
+            ],
+            "result": 750,
+            "weight": 1.0,
+            "tags": [
+                "low_medium"
+            ]
+        },
+        {
+            "roll_range": [
+                41,
+                60
+            ],
+            "result": 1000,
+            "weight": 1.0,
+            "tags": [
+                "medium"
+            ]
+        },
+        {
+            "roll_range": [
+                61,
+                80
+            ],
+            "result": 1500,
+            "weight": 0.8,
+            "tags": [
+                "medium_high"
+            ]
+        },
+        {
+            "roll_range": [
+                81,
+                95
+            ],
+            "result": 2000,
+            "weight": 0.5,
+            "tags": [
+                "high"
+            ]
+        },
+        {
+            "roll_range": [
+                96,
+                100
+            ],
+            "result": 3000,
+            "weight": 0.2,
+            "tags": [
+                "very_high"
+            ]
+        }
+    ],
+    "validation_rules": [],
+    "modifiers": [
+        {
+            "type": "difficulty_modifier",
+            "params": {
+                "EASY": 1.0,
+                "NORMAL": 1.2,
+                "HARD": 1.5,
+                "VETERAN": 2.0,
+                "ELITE": 3.0
+            }
+        },
+        {
+            "type": "mission_type_modifier",
+            "params": {
+                "RED_ZONE": {
+                    "reward_multiplier": 1.5
+                },
+                "BLACK_ZONE": {
+                    "reward_multiplier": 2.0
+                },
+                "PATRON": {
+                    "reward_multiplier": 1.0
+                }
+            }
+        }
+    ],
+    "default_result": 500
+}

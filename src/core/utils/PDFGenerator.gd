@@ -3,7 +3,7 @@ extends RefCounted
 
 const Character = preload("res://src/core/character/Management/CharacterDataManager.gd")
 const Crew = preload("res://src/core/campaign/crew/Crew.gd")
-const GlobalEnums = preload("res://src/core/systems/GlobalEnums.gd")
+const GameEnums = preload("res://src/core/systems/GlobalEnums.gd")
 
 # Helper functions for crew roster generation
 func generate_crew_roster(crew: Crew) -> void:
@@ -26,17 +26,17 @@ func generate_crew_roster(crew: Crew) -> void:
 
 func add_character_entry(character: Character) -> void:
     add_text("Name: " + character.character_name)
-    add_text("Class: " + str(GlobalEnums.CharacterClass.keys()[character.character_class]))
+    add_text("Class: " + str(GameEnums.CharacterClass.keys()[character.character_class]))
     add_text("Background: " + str(character.background))
     
     # Stats
     var stats_text = "Stats: "
-    stats_text += "Reactions: " + str(character.stats[GlobalEnums.CharacterStats.REACTIONS]) + ", "
-    stats_text += "Speed: " + str(character.stats[GlobalEnums.CharacterStats.SPEED]) + "\", "
-    stats_text += "Combat: " + str(character.stats[GlobalEnums.CharacterStats.COMBAT_SKILL]) + ", "
-    stats_text += "Toughness: " + str(character.stats[GlobalEnums.CharacterStats.TOUGHNESS]) + ", "
-    stats_text += "Savvy: " + str(character.stats[GlobalEnums.CharacterStats.SAVVY]) + ", "
-    stats_text += "Luck: " + str(character.stats[GlobalEnums.CharacterStats.LUCK])
+    stats_text += "Reactions: " + str(character.stats[GameEnums.CharacterStats.REACTIONS]) + ", "
+    stats_text += "Speed: " + str(character.stats[GameEnums.CharacterStats.SPEED]) + "\", "
+    stats_text += "Combat: " + str(character.stats[GameEnums.CharacterStats.COMBAT_SKILL]) + ", "
+    stats_text += "Toughness: " + str(character.stats[GameEnums.CharacterStats.TOUGHNESS]) + ", "
+    stats_text += "Savvy: " + str(character.stats[GameEnums.CharacterStats.SAVVY]) + ", "
+    stats_text += "Luck: " + str(character.stats[GameEnums.CharacterStats.LUCK])
     add_text(stats_text)
     
     # Equipment
@@ -45,7 +45,7 @@ func add_character_entry(character: Character) -> void:
     
     var gear_text = "Gear: "
     for item in character.equipped_gear:
-        if item.type != GlobalEnums.ItemType.SPECIAL:
+        if item.type != GameEnums.ItemType.MISC:
             gear_text += item.name + ", "
     add_text(gear_text.trim_suffix(", "))
     

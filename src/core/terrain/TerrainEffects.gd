@@ -9,7 +9,7 @@ signal environment_condition_changed(condition: String, intensity: float)
 signal hazard_damage_dealt(position: Vector2, damage: int)
 
 ## Dependencies
-const GlobalEnums := preload("res://src/core/systems/GlobalEnums.gd")
+const GameEnums := preload("res://src/core/systems/GlobalEnums.gd")
 const Character := preload("res://src/core/character/Base/Character.gd")
 
 ## Effect types

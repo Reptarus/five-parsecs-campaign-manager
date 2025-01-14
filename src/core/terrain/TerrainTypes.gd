@@ -4,7 +4,7 @@
 class_name TerrainTypes
 extends Node
 
-const GlobalEnums := preload("res://src/core/systems/GlobalEnums.gd")
+const GameEnums := preload("res://src/core/systems/GlobalEnums.gd")
 
 ## Terrain type enumeration
 enum Type {

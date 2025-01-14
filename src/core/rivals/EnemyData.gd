@@ -1,43 +1,44 @@
+@tool
 extends Resource
 class_name EnemyData
 
-const GlobalEnums = preload("res://src/core/systems/GlobalEnums.gd")
+const GameEnums = preload("res://src/core/systems/GlobalEnums.gd")
 const GameWeapon = preload("res://src/core/systems/items/Weapon.gd")
 
 # Core enemy properties
-@export var enemy_type: GlobalEnums.EnemyType = GlobalEnums.EnemyType.NONE
-@export var enemy_category: GlobalEnums.EnemyCategory = GlobalEnums.EnemyCategory.CRIMINAL_ELEMENTS
-@export var enemy_behavior: GlobalEnums.EnemyBehavior = GlobalEnums.EnemyBehavior.CAUTIOUS
+@export var enemy_type: int = GameEnums.EnemyType.NONE
+@export var enemy_category: int = GameEnums.EnemyCategory.CRIMINAL_ELEMENTS
+@export var enemy_behavior: int = GameEnums.EnemyBehavior.CAUTIOUS
 @export var character_name: String = ""
 
 # Combat properties
 var stats: Dictionary = {
-	GlobalEnums.CharacterStats.REACTIONS: 1,
-	GlobalEnums.CharacterStats.SPEED: 4,
-	GlobalEnums.CharacterStats.COMBAT_SKILL: 0,
-	GlobalEnums.CharacterStats.TOUGHNESS: 3,
-	GlobalEnums.CharacterStats.SAVVY: 0,
-	GlobalEnums.CharacterStats.LUCK: 0
+	GameEnums.CharacterStats.REACTIONS: 1,
+	GameEnums.CharacterStats.SPEED: 4,
+	GameEnums.CharacterStats.COMBAT_SKILL: 0,
+	GameEnums.CharacterStats.TOUGHNESS: 3,
+	GameEnums.CharacterStats.SAVVY: 0,
+	GameEnums.CharacterStats.LUCK: 0
 }
 
 # Combat equipment and status
 var equipped_weapons: Array[GameWeapon] = []
-var weapon_class: GlobalEnums.EnemyWeaponClass = GlobalEnums.EnemyWeaponClass.BASIC
+var weapon_class: int = GameEnums.EnemyWeaponClass.BASIC
 var armor_save: int = 0 # 0 means no save, otherwise represents X+ save
 var panic: int = 2 # Default panic value
 var morale: int = 10 # Default morale value
-var deployment_pattern: GlobalEnums.EnemyDeploymentPattern = GlobalEnums.EnemyDeploymentPattern.STANDARD
+var deployment_pattern: int = GameEnums.EnemyDeploymentPattern.STANDARD
 
 # Traits and characteristics
-var characteristics: Array[GlobalEnums.EnemyCharacteristic] = []
+var characteristics: Array[int] = []
 var special_rules: Array[String] = []
 
 # Rewards and loot
-var loot_table: Dictionary = {} # Dictionary[GlobalEnums.EnemyReward, float]
+var loot_table: Dictionary = {} # Dictionary[int, float]
 var experience_value: int = 0
 
-func _init(type: GlobalEnums.EnemyType = GlobalEnums.EnemyType.NONE,
-		  category: GlobalEnums.EnemyCategory = GlobalEnums.EnemyCategory.CRIMINAL_ELEMENTS) -> void:
+func _init(type: int = GameEnums.EnemyType.NONE,
+		  category: int = GameEnums.EnemyCategory.CRIMINAL_ELEMENTS) -> void:
 	enemy_type = type
 	enemy_category = category
 	_initialize_default_values()
@@ -48,13 +49,13 @@ func _initialize_default_values() -> void:
 	
 	# Then apply specific type modifications
 	match enemy_type:
-		GlobalEnums.EnemyType.ELITE:
+		GameEnums.EnemyType.ELITE:
 			_setup_elite()
-		GlobalEnums.EnemyType.BOSS:
+		GameEnums.EnemyType.BOSS:
 			_setup_boss()
-		GlobalEnums.EnemyType.MINION:
+		GameEnums.EnemyType.MINION:
 			_setup_minion()
-		GlobalEnums.EnemyType.NONE:
+		GameEnums.EnemyType.NONE:
 			push_warning("Initializing enemy with NONE type")
 			_setup_standard()
 		_:
@@ -62,142 +63,142 @@ func _initialize_default_values() -> void:
 
 func _setup_category_defaults() -> void:
 	match enemy_category:
-		GlobalEnums.EnemyCategory.CRIMINAL_ELEMENTS:
+		GameEnums.EnemyCategory.CRIMINAL_ELEMENTS:
 			morale = 8
-			weapon_class = GlobalEnums.EnemyWeaponClass.BASIC
-			add_characteristic(GlobalEnums.EnemyCharacteristic.SCAVENGER)
-		GlobalEnums.EnemyCategory.HIRED_MUSCLE:
+			weapon_class = GameEnums.EnemyWeaponClass.BASIC
+			add_characteristic(GameEnums.EnemyTrait.SCAVENGER)
+		GameEnums.EnemyCategory.HIRED_MUSCLE:
 			morale = 12
-			weapon_class = GlobalEnums.EnemyWeaponClass.ADVANCED
-			add_characteristic(GlobalEnums.EnemyCharacteristic.TOUGH_FIGHT)
-		GlobalEnums.EnemyCategory.MILITARY_FORCES:
+			weapon_class = GameEnums.EnemyWeaponClass.ADVANCED
+			add_characteristic(GameEnums.EnemyTrait.TOUGH_FIGHT)
+		GameEnums.EnemyCategory.MILITARY_FORCES:
 			morale = 15
-			weapon_class = GlobalEnums.EnemyWeaponClass.ELITE
-			add_characteristic(GlobalEnums.EnemyCharacteristic.ALERT)
-		GlobalEnums.EnemyCategory.ALIEN_THREATS:
+			weapon_class = GameEnums.EnemyWeaponClass.ELITE
+			add_characteristic(GameEnums.EnemyTrait.ALERT)
+		GameEnums.EnemyCategory.ALIEN_THREATS:
 			morale = 20
-			weapon_class = GlobalEnums.EnemyWeaponClass.ELITE
-			add_characteristic(GlobalEnums.EnemyCharacteristic.FEROCIOUS)
+			weapon_class = GameEnums.EnemyWeaponClass.ELITE
+			add_characteristic(GameEnums.EnemyTrait.FEROCIOUS)
 
 func _setup_specific_type() -> void:
 	match enemy_type:
-		GlobalEnums.EnemyType.GANGERS, GlobalEnums.EnemyType.PUNKS:
+		GameEnums.EnemyType.GANGERS, GameEnums.EnemyType.PUNKS:
 			_setup_gang_type()
-		GlobalEnums.EnemyType.RAIDERS, GlobalEnums.EnemyType.PIRATES:
+		GameEnums.EnemyType.RAIDERS, GameEnums.EnemyType.PIRATES:
 			_setup_raider_type()
-		GlobalEnums.EnemyType.CULTISTS, GlobalEnums.EnemyType.PSYCHOS:
+		GameEnums.EnemyType.CULTISTS, GameEnums.EnemyType.PSYCHOS:
 			_setup_fanatic_type()
-		GlobalEnums.EnemyType.WAR_BOTS, GlobalEnums.EnemyType.SECURITY_BOTS:
+		GameEnums.EnemyType.WAR_BOTS, GameEnums.EnemyType.SECURITY_BOTS:
 			_setup_robot_type()
-		GlobalEnums.EnemyType.BLACK_OPS_TEAM, GlobalEnums.EnemyType.SECRET_AGENTS:
+		GameEnums.EnemyType.BLACK_OPS_TEAM, GameEnums.EnemyType.SECRET_AGENTS:
 			_setup_elite_agent_type()
 		_:
 			_setup_standard()
 
 func _setup_gang_type() -> void:
-	stats[GlobalEnums.CharacterStats.COMBAT_SKILL] = 0
-	stats[GlobalEnums.CharacterStats.TOUGHNESS] = 3
-	add_characteristic(GlobalEnums.EnemyCharacteristic.LEG_IT)
-	add_characteristic(GlobalEnums.EnemyCharacteristic.FRIDAY_NIGHT_WARRIORS)
-	deployment_pattern = GlobalEnums.EnemyDeploymentPattern.SCATTERED
+	stats[GameEnums.CharacterStats.COMBAT_SKILL] = 0
+	stats[GameEnums.CharacterStats.TOUGHNESS] = 3
+	add_characteristic(GameEnums.EnemyTrait.LEG_IT)
+	add_characteristic(GameEnums.EnemyTrait.FRIDAY_NIGHT_WARRIORS)
+	deployment_pattern = GameEnums.EnemyDeploymentPattern.SCATTERED
 
 func _setup_raider_type() -> void:
-	stats[GlobalEnums.CharacterStats.COMBAT_SKILL] = 1
-	stats[GlobalEnums.CharacterStats.TOUGHNESS] = 4
-	add_characteristic(GlobalEnums.EnemyCharacteristic.AGGRO)
-	add_characteristic(GlobalEnums.EnemyCharacteristic.UP_CLOSE)
-	deployment_pattern = GlobalEnums.EnemyDeploymentPattern.AMBUSH
+	stats[GameEnums.CharacterStats.COMBAT_SKILL] = 1
+	stats[GameEnums.CharacterStats.TOUGHNESS] = 4
+	add_characteristic(GameEnums.EnemyTrait.AGGRO)
+	add_characteristic(GameEnums.EnemyTrait.UP_CLOSE)
+	deployment_pattern = GameEnums.EnemyDeploymentPattern.AMBUSH
 
 func _setup_fanatic_type() -> void:
-	stats[GlobalEnums.CharacterStats.COMBAT_SKILL] = 1
-	stats[GlobalEnums.CharacterStats.TOUGHNESS] = 3
-	add_characteristic(GlobalEnums.EnemyCharacteristic.FEARLESS)
-	add_characteristic(GlobalEnums.EnemyCharacteristic.GRUESOME)
-	deployment_pattern = GlobalEnums.EnemyDeploymentPattern.OFFENSIVE
+	stats[GameEnums.CharacterStats.COMBAT_SKILL] = 1
+	stats[GameEnums.CharacterStats.TOUGHNESS] = 3
+	add_characteristic(GameEnums.EnemyTrait.FEARLESS)
+	add_characteristic(GameEnums.EnemyTrait.GRUESOME)
+	deployment_pattern = GameEnums.EnemyDeploymentPattern.OFFENSIVE
 
 func _setup_robot_type() -> void:
-	stats[GlobalEnums.CharacterStats.COMBAT_SKILL] = 2
-	stats[GlobalEnums.CharacterStats.TOUGHNESS] = 5
-	add_characteristic(GlobalEnums.EnemyCharacteristic.SAVING_THROW)
-	deployment_pattern = GlobalEnums.EnemyDeploymentPattern.STANDARD
+	stats[GameEnums.CharacterStats.COMBAT_SKILL] = 2
+	stats[GameEnums.CharacterStats.TOUGHNESS] = 5
+	add_characteristic(GameEnums.EnemyTrait.SAVING_THROW)
+	deployment_pattern = GameEnums.EnemyDeploymentPattern.STANDARD
 
 func _setup_elite_agent_type() -> void:
-	stats[GlobalEnums.CharacterStats.COMBAT_SKILL] = 2
-	stats[GlobalEnums.CharacterStats.TOUGHNESS] = 4
-	add_characteristic(GlobalEnums.EnemyCharacteristic.TRICK_SHOT)
-	add_characteristic(GlobalEnums.EnemyCharacteristic.ALERT)
-	deployment_pattern = GlobalEnums.EnemyDeploymentPattern.CONCEALED
+	stats[GameEnums.CharacterStats.COMBAT_SKILL] = 2
+	stats[GameEnums.CharacterStats.TOUGHNESS] = 4
+	add_characteristic(GameEnums.EnemyTrait.TRICK_SHOT)
+	add_characteristic(GameEnums.EnemyTrait.ALERT)
+	deployment_pattern = GameEnums.EnemyDeploymentPattern.CONCEALED
 
 func _setup_elite() -> void:
-	stats[GlobalEnums.CharacterStats.COMBAT_SKILL] = 1
-	stats[GlobalEnums.CharacterStats.TOUGHNESS] = 4
+	stats[GameEnums.CharacterStats.COMBAT_SKILL] = 1
+	stats[GameEnums.CharacterStats.TOUGHNESS] = 4
 	armor_save = 5
 	morale = 12
 	experience_value = 2
-	weapon_class = GlobalEnums.EnemyWeaponClass.ADVANCED
-	deployment_pattern = GlobalEnums.EnemyDeploymentPattern.OFFENSIVE
+	weapon_class = GameEnums.EnemyWeaponClass.ADVANCED
+	deployment_pattern = GameEnums.EnemyDeploymentPattern.OFFENSIVE
 
 func _setup_boss() -> void:
-	stats[GlobalEnums.CharacterStats.COMBAT_SKILL] = 2
-	stats[GlobalEnums.CharacterStats.TOUGHNESS] = 5
+	stats[GameEnums.CharacterStats.COMBAT_SKILL] = 2
+	stats[GameEnums.CharacterStats.TOUGHNESS] = 5
 	armor_save = 4
 	morale = 15
 	experience_value = 3
-	weapon_class = GlobalEnums.EnemyWeaponClass.ELITE
-	deployment_pattern = GlobalEnums.EnemyDeploymentPattern.DEFENSIVE
+	weapon_class = GameEnums.EnemyWeaponClass.ELITE
+	deployment_pattern = GameEnums.EnemyDeploymentPattern.DEFENSIVE
 
 func _setup_minion() -> void:
-	stats[GlobalEnums.CharacterStats.COMBAT_SKILL] = 0
-	stats[GlobalEnums.CharacterStats.TOUGHNESS] = 2
+	stats[GameEnums.CharacterStats.COMBAT_SKILL] = 0
+	stats[GameEnums.CharacterStats.TOUGHNESS] = 2
 	morale = 8
 	experience_value = 1
-	weapon_class = GlobalEnums.EnemyWeaponClass.BASIC
-	deployment_pattern = GlobalEnums.EnemyDeploymentPattern.STANDARD
+	weapon_class = GameEnums.EnemyWeaponClass.BASIC
+	deployment_pattern = GameEnums.EnemyDeploymentPattern.STANDARD
 
 func _setup_standard() -> void:
-	stats[GlobalEnums.CharacterStats.COMBAT_SKILL] = 0
-	stats[GlobalEnums.CharacterStats.TOUGHNESS] = 3
+	stats[GameEnums.CharacterStats.COMBAT_SKILL] = 0
+	stats[GameEnums.CharacterStats.TOUGHNESS] = 3
 	morale = 10
 	experience_value = 1
-	weapon_class = GlobalEnums.EnemyWeaponClass.BASIC
-	deployment_pattern = GlobalEnums.EnemyDeploymentPattern.STANDARD
+	weapon_class = GameEnums.EnemyWeaponClass.BASIC
+	deployment_pattern = GameEnums.EnemyDeploymentPattern.STANDARD
 
 func validate_behavior_pattern() -> bool:
 	# Validate that deployment pattern matches behavior
 	match enemy_behavior:
-		GlobalEnums.EnemyBehavior.AGGRESSIVE:
+		GameEnums.EnemyBehavior.AGGRESSIVE:
 			return deployment_pattern in [
-				GlobalEnums.EnemyDeploymentPattern.OFFENSIVE,
-				GlobalEnums.EnemyDeploymentPattern.AMBUSH
+				GameEnums.EnemyDeploymentPattern.OFFENSIVE,
+				GameEnums.EnemyDeploymentPattern.AMBUSH
 			]
-		GlobalEnums.EnemyBehavior.DEFENSIVE:
+		GameEnums.EnemyBehavior.DEFENSIVE:
 			return deployment_pattern in [
-				GlobalEnums.EnemyDeploymentPattern.DEFENSIVE,
-				GlobalEnums.EnemyDeploymentPattern.BOLSTERED_LINE
+				GameEnums.EnemyDeploymentPattern.DEFENSIVE,
+				GameEnums.EnemyDeploymentPattern.BOLSTERED_LINE
 			]
-		GlobalEnums.EnemyBehavior.TACTICAL:
+		GameEnums.EnemyBehavior.TACTICAL:
 			return deployment_pattern in [
-				GlobalEnums.EnemyDeploymentPattern.STANDARD,
-				GlobalEnums.EnemyDeploymentPattern.CONCEALED
+				GameEnums.EnemyDeploymentPattern.STANDARD,
+				GameEnums.EnemyDeploymentPattern.CONCEALED
 			]
-		GlobalEnums.EnemyBehavior.BEAST:
+		GameEnums.EnemyBehavior.BEAST:
 			return deployment_pattern in [
-				GlobalEnums.EnemyDeploymentPattern.SCATTERED,
-				GlobalEnums.EnemyDeploymentPattern.AMBUSH
+				GameEnums.EnemyDeploymentPattern.SCATTERED,
+				GameEnums.EnemyDeploymentPattern.AMBUSH
 			]
-		GlobalEnums.EnemyBehavior.RAMPAGE:
-			return deployment_pattern == GlobalEnums.EnemyDeploymentPattern.OFFENSIVE
-		GlobalEnums.EnemyBehavior.GUARDIAN:
+		GameEnums.EnemyBehavior.RAMPAGE:
+			return deployment_pattern == GameEnums.EnemyDeploymentPattern.OFFENSIVE
+		GameEnums.EnemyBehavior.GUARDIAN:
 			return deployment_pattern in [
-				GlobalEnums.EnemyDeploymentPattern.DEFENSIVE,
-				GlobalEnums.EnemyDeploymentPattern.STANDARD
+				GameEnums.EnemyDeploymentPattern.DEFENSIVE,
+				GameEnums.EnemyDeploymentPattern.STANDARD
 			]
 	return true
 
-func get_stat(stat_type: GlobalEnums.CharacterStats) -> int:
+func get_stat(stat_type: int) -> int:
 	return stats.get(stat_type, 0)
 
-func set_stat(stat_type: GlobalEnums.CharacterStats, value: int) -> void:
+func set_stat(stat_type: int, value: int) -> void:
 	stats[stat_type] = value
 
 func add_weapon(weapon: GameWeapon) -> void:
@@ -210,26 +211,26 @@ func remove_weapon(weapon: GameWeapon) -> void:
 func get_weapons() -> Array[GameWeapon]:
 	return equipped_weapons
 
-func set_weapon_class(new_class: GlobalEnums.EnemyWeaponClass) -> void:
+func set_weapon_class(new_class: int) -> void:
 	weapon_class = new_class
 
-func get_weapon_class() -> GlobalEnums.EnemyWeaponClass:
+func get_weapon_class() -> int:
 	return weapon_class
 
-func set_deployment_pattern(pattern: GlobalEnums.EnemyDeploymentPattern) -> void:
+func set_deployment_pattern(pattern: int) -> void:
 	deployment_pattern = pattern
 
-func get_deployment_pattern() -> GlobalEnums.EnemyDeploymentPattern:
+func get_deployment_pattern() -> int:
 	return deployment_pattern
 
-func has_characteristic(characteristic: GlobalEnums.EnemyCharacteristic) -> bool:
+func has_characteristic(characteristic: int) -> bool:
 	return characteristic in characteristics
 
-func add_characteristic(characteristic: GlobalEnums.EnemyCharacteristic) -> void:
+func add_characteristic(characteristic: int) -> void:
 	if not has_characteristic(characteristic):
 		characteristics.append(characteristic)
 
-func remove_characteristic(characteristic: GlobalEnums.EnemyCharacteristic) -> void:
+func remove_characteristic(characteristic: int) -> void:
 	characteristics.erase(characteristic)
 
 func add_special_rule(rule: String) -> void:
@@ -239,10 +240,10 @@ func add_special_rule(rule: String) -> void:
 func remove_special_rule(rule: String) -> void:
 	special_rules.erase(rule)
 
-func add_loot_reward(reward_type: GlobalEnums.EnemyReward, probability: float) -> void:
+func add_loot_reward(reward_type: int, probability: float) -> void:
 	loot_table[reward_type] = probability
 
-func remove_loot_reward(reward_type: GlobalEnums.EnemyReward) -> void:
+func remove_loot_reward(reward_type: int) -> void:
 	loot_table.erase(reward_type)
 
 func get_loot_table() -> Dictionary:

@@ -1,0 +1,292 @@
+{
+    "name": "strategic_points",
+    "entries": [
+        {
+            "roll_range": [
+                1,
+                20
+            ],
+            "result": {
+                "type": "DEPLOYMENT_BASIC",
+                "name": "Standard Deployment Zone",
+                "strategic_value": 1,
+                "size": "medium",
+                "defensibility": 2,
+                "features": [
+                    "clear_los",
+                    "basic_cover"
+                ],
+                "description": "Basic deployment area with standard tactical options."
+            },
+            "weight": 1.0,
+            "tags": [
+                "deployment",
+                "basic"
+            ]
+        },
+        {
+            "roll_range": [
+                21,
+                40
+            ],
+            "result": {
+                "type": "OBJECTIVE_BASIC",
+                "name": "Standard Objective Point",
+                "strategic_value": 2,
+                "size": "small",
+                "defensibility": 3,
+                "features": [
+                    "defensible",
+                    "multiple_approaches"
+                ],
+                "description": "Standard objective location with tactical significance."
+            },
+            "weight": 0.9,
+            "tags": [
+                "objective",
+                "basic"
+            ]
+        },
+        {
+            "roll_range": [
+                41,
+                60
+            ],
+            "result": {
+                "type": "DEPLOYMENT_ADVANCED",
+                "name": "Advanced Deployment Zone",
+                "strategic_value": 3,
+                "size": "large",
+                "defensibility": 4,
+                "features": [
+                    "elevated",
+                    "fortified",
+                    "multiple_exits"
+                ],
+                "description": "Superior deployment area with tactical advantages."
+            },
+            "weight": 0.7,
+            "tags": [
+                "deployment",
+                "advanced"
+            ]
+        },
+        {
+            "roll_range": [
+                61,
+                75
+            ],
+            "result": {
+                "type": "OBJECTIVE_ADVANCED",
+                "name": "Critical Objective Point",
+                "strategic_value": 4,
+                "size": "medium",
+                "defensibility": 5,
+                "features": [
+                    "high_ground",
+                    "fortified",
+                    "resource_rich"
+                ],
+                "description": "High-value objective with significant strategic importance."
+            },
+            "weight": 0.6,
+            "tags": [
+                "objective",
+                "advanced"
+            ]
+        },
+        {
+            "roll_range": [
+                76,
+                85
+            ],
+            "result": {
+                "type": "DEPLOYMENT_ELITE",
+                "name": "Elite Deployment Zone",
+                "strategic_value": 5,
+                "size": "variable",
+                "defensibility": 5,
+                "features": [
+                    "shielded",
+                    "concealed",
+                    "multiple_levels"
+                ],
+                "description": "Premium deployment area with exceptional tactical options."
+            },
+            "weight": 0.4,
+            "tags": [
+                "deployment",
+                "elite"
+            ]
+        },
+        {
+            "roll_range": [
+                86,
+                95
+            ],
+            "result": {
+                "type": "OBJECTIVE_ELITE",
+                "name": "Elite Objective Point",
+                "strategic_value": 5,
+                "size": "large",
+                "defensibility": 5,
+                "features": [
+                    "automated_defenses",
+                    "energy_shield",
+                    "strategic_value"
+                ],
+                "description": "Elite objective location with superior strategic value."
+            },
+            "weight": 0.3,
+            "tags": [
+                "objective",
+                "elite"
+            ]
+        },
+        {
+            "roll_range": [
+                96,
+                100
+            ],
+            "result": {
+                "type": "STRATEGIC_CRITICAL",
+                "name": "Critical Strategic Point",
+                "strategic_value": 6,
+                "size": "variable",
+                "defensibility": 6,
+                "features": [
+                    "command_center",
+                    "resource_cache",
+                    "strategic_systems"
+                ],
+                "description": "Critical location with game-changing strategic importance."
+            },
+            "weight": 0.2,
+            "tags": [
+                "special",
+                "critical"
+            ]
+        }
+    ],
+    "validation_rules": [
+        {
+            "type": "mission_balance",
+            "params": {
+                "min_deployment_points": 2,
+                "max_deployment_points": 5,
+                "min_objective_points": 1,
+                "max_objective_points": 3,
+                "min_distance_between_points": 5
+            }
+        },
+        {
+            "type": "terrain_compatibility",
+            "params": {
+                "OPEN_GROUND": {
+                    "allowed_types": [
+                        "DEPLOYMENT_BASIC",
+                        "OBJECTIVE_BASIC"
+                    ],
+                    "defensibility_modifier": 0.8
+                },
+                "URBAN": {
+                    "allowed_types": [
+                        "DEPLOYMENT_ADVANCED",
+                        "OBJECTIVE_ADVANCED"
+                    ],
+                    "defensibility_modifier": 1.2
+                },
+                "FOREST": {
+                    "allowed_types": [
+                        "DEPLOYMENT_BASIC",
+                        "OBJECTIVE_ADVANCED"
+                    ],
+                    "defensibility_modifier": 1.1
+                },
+                "INDUSTRIAL": {
+                    "allowed_types": [
+                        "DEPLOYMENT_ADVANCED",
+                        "OBJECTIVE_ELITE"
+                    ],
+                    "defensibility_modifier": 1.3
+                },
+                "WASTELAND": {
+                    "allowed_types": [
+                        "DEPLOYMENT_BASIC",
+                        "OBJECTIVE_ADVANCED"
+                    ],
+                    "defensibility_modifier": 0.9
+                },
+                "UNDERGROUND": {
+                    "allowed_types": [
+                        "DEPLOYMENT_ELITE",
+                        "OBJECTIVE_ELITE"
+                    ],
+                    "defensibility_modifier": 1.4
+                },
+                "SPACE_HULK": {
+                    "allowed_types": [
+                        "DEPLOYMENT_ELITE",
+                        "STRATEGIC_CRITICAL"
+                    ],
+                    "defensibility_modifier": 1.5
+                }
+            }
+        }
+    ],
+    "modifiers": [
+        {
+            "type": "mission_type_modifier",
+            "params": {
+                "RED_ZONE": {
+                    "strategic_value_modifier": 1.2,
+                    "defensibility_modifier": 0.8
+                },
+                "BLACK_ZONE": {
+                    "strategic_value_modifier": 1.5,
+                    "defensibility_modifier": 1.2
+                },
+                "PATRON": {
+                    "strategic_value_modifier": 1.0,
+                    "defensibility_modifier": 1.0
+                }
+            }
+        },
+        {
+            "type": "difficulty_modifier",
+            "params": {
+                "EASY": {
+                    "strategic_value_modifier": 0.8,
+                    "defensibility_modifier": 1.2
+                },
+                "NORMAL": {
+                    "strategic_value_modifier": 1.0,
+                    "defensibility_modifier": 1.0
+                },
+                "HARD": {
+                    "strategic_value_modifier": 1.2,
+                    "defensibility_modifier": 0.9
+                },
+                "VETERAN": {
+                    "strategic_value_modifier": 1.4,
+                    "defensibility_modifier": 0.8
+                },
+                "ELITE": {
+                    "strategic_value_modifier": 1.6,
+                    "defensibility_modifier": 0.7
+                }
+            }
+        }
+    ],
+    "default_result": {
+        "type": "DEPLOYMENT_BASIC",
+        "name": "Basic Strategic Point",
+        "strategic_value": 1,
+        "size": "medium",
+        "defensibility": 2,
+        "features": [
+            "basic_position"
+        ],
+        "description": "Standard strategic position."
+    }
+}

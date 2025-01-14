@@ -3,7 +3,7 @@ class_name GearDatabase
 extends Resource
 
 const Gear = preload("res://src/core/character/Equipment/Gear.gd")
-const GlobalEnums = preload("res://src/core/systems/GlobalEnums.gd")
+const GameEnums = preload("res://src/core/systems/GlobalEnums.gd")
 const GameWeapon = preload("res://src/core/systems/items/Weapon.gd")
 
 var gears: Dictionary = {}
@@ -127,7 +127,7 @@ func load_gear_data() -> bool:
 				push_error("Invalid weapon data for: " + gear_data["name"])
 				continue
 				
-			var gear_type = GlobalEnums.ItemType[gear_data["gear_type"]]
+			var gear_type = GameEnums.ItemType[gear_data["gear_type"]]
 			var level = gear_data["level"] as int
 			var weight = _safe_float_conversion(gear_data["weight"])
 			
@@ -164,7 +164,7 @@ func _safe_float_conversion(value: Variant) -> float:
 	if value is String:
 		if value.is_valid_float():
 			return value.to_float()
-	return 1.0  # Default weight if conversion fails
+	return 1.0 # Default weight if conversion fails
 
 func _create_gear(gear_name: String, gear_data: Dictionary, gear_type: int, level: int, weight: float) -> Gear:
 	if not gear_data.has("name") or not gear_data.has("description"):
@@ -174,7 +174,7 @@ func _create_gear(gear_name: String, gear_data: Dictionary, gear_type: int, leve
 	# Create new gear instance
 	var new_gear = Gear.new()
 	new_gear.name = gear_data["name"]
-	new_gear.description = gear_data["description"] 
+	new_gear.description = gear_data["description"]
 	new_gear.type = gear_type
 	new_gear.level = level
 	new_gear.weight = weight
@@ -190,11 +190,11 @@ func _create_gear(gear_name: String, gear_data: Dictionary, gear_type: int, leve
 	
 	# Handle rarity with error checking
 	var rarity_str = gear_data.get("rarity", "COMMON")
-	if not rarity_str in GlobalEnums.ItemRarity.keys():
+	if not rarity_str in GameEnums.ItemRarity.keys():
 		push_warning("Invalid rarity for gear '%s': %s, defaulting to COMMON" % [gear_name, rarity_str])
-		new_gear.rarity = GlobalEnums.ItemRarity.COMMON
+		new_gear.rarity = GameEnums.ItemRarity.COMMON
 	else:
-		new_gear.rarity = GlobalEnums.ItemRarity[rarity_str]
+		new_gear.rarity = GameEnums.ItemRarity[rarity_str]
 	
 	return new_gear
 
@@ -206,7 +206,7 @@ func _safe_int_conversion(value: Variant) -> int:
 	if value is String:
 		if value.is_valid_int():
 			return value.to_int()
-	return 0  # Default value if conversion fails
+	return 0 # Default value if conversion fails
 
 func _validate_gear_data(data: Dictionary) -> bool:
 	# Required fields
@@ -226,7 +226,7 @@ func _validate_gear_data(data: Dictionary) -> bool:
 		return false
 	
 	# Validate gear type
-	if not data["gear_type"] in GlobalEnums.ItemType.keys():
+	if not data["gear_type"] in GameEnums.ItemType.keys():
 		push_error("Invalid gear_type: " + str(data["gear_type"]))
 		return false
 	
@@ -247,7 +247,7 @@ func _validate_gear_data(data: Dictionary) -> bool:
 			return false
 		
 	if data.has("rarity"):
-		if not data["rarity"] in GlobalEnums.ItemRarity.keys():
+		if not data["rarity"] in GameEnums.ItemRarity.keys():
 			push_error("Invalid rarity: " + str(data["rarity"]))
 			return false
 	
@@ -265,11 +265,11 @@ func get_gear(gear_name: String) -> Gear:
 func get_all_gears() -> Array[Gear]:
 	return gears.values()
 
-func get_gears_by_type(gear_type: GlobalEnums.ItemType) -> Array[Gear]:
+func get_gears_by_type(gear_type: GameEnums.ItemType) -> Array[Gear]:
 	return gears.values().filter(func(gear): return gear.gear_type == gear_type)
 
-func get_gear_types() -> Array[GlobalEnums.ItemType]:
-	var types: Array[GlobalEnums.ItemType] = []
+func get_gear_types() -> Array[GameEnums.ItemType]:
+	var types: Array[GameEnums.ItemType] = []
 	for gear in gears.values():
 		if not gear.gear_type in types:
 			types.append(gear.gear_type)
@@ -301,12 +301,12 @@ func save_gear_data() -> bool:
 		data[gear_name] = {
 			"name": gear.name,
 			"description": gear.description,
-			"gear_type": GlobalEnums.ItemType.keys()[gear.gear_type],
+			"gear_type": GameEnums.ItemType.keys()[gear.gear_type],
 			"level": gear.level,
 			"value": gear.value,
 			"weight": gear.weight,
 			"is_damaged": gear.is_damaged,
-			"rarity": GlobalEnums.ItemRarity.keys()[gear.rarity]
+			"rarity": GameEnums.ItemRarity.keys()[gear.rarity]
 		}
 
 	var json_string = JSON.stringify(data, "\t")
@@ -345,7 +345,7 @@ func update_gear(gear: Gear) -> bool:
 	gears[gear.name] = gear
 	return save_gear_data()
 
-func get_gears_by_rarity(rarity: GlobalEnums.ItemRarity) -> Array[Gear]:
+func get_gears_by_rarity(rarity: GameEnums.ItemRarity) -> Array[Gear]:
 	return gears.values().filter(func(gear): return gear.rarity == rarity)
 
 func repair_gear(gear_name: String) -> bool:
@@ -379,7 +379,7 @@ func roll_random_gear() -> Gear:
 
 func roll_random_gadget() -> Gear:
 	var roll = randi() % 100 + 1
-	var gadget_gears = get_gears_by_type(GlobalEnums.ItemType.SPECIAL)
+	var gadget_gears = get_gears_by_type(GameEnums.ItemType.MISC)
 	if gadget_gears.is_empty():
 		push_error("No gadgets available to roll")
 		return null

@@ -2,7 +2,7 @@
 class_name World
 extends Resource
 
-const GameEnums := preload("res://Resources/Core/Systems/GlobalEnums.gd")
+const GameEnums := preload("res://src/core/systems/GlobalEnums.gd")
 
 # World Properties
 @export_group("World Properties")

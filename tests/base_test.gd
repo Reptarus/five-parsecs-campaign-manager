@@ -2,7 +2,7 @@
 class_name BaseTest
 extends "res://addons/gut/test.gd"
 
-const GlobalEnums := preload("res://src/core/systems/GlobalEnums.gd")
+const GameEnums := preload("res://src/core/systems/GlobalEnums.gd")
 
 # Test lifecycle methods
 func before_all() -> void:

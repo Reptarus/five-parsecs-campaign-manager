@@ -1,16 +1,19 @@
-extends Resource
-class_name Campaign
+extends Node
 
 const GameEnums = preload("res://src/core/systems/GlobalEnums.gd")
 const Character = preload("res://src/core/character/Base/Character.gd")
 
+# Signals
 signal campaign_started(campaign_data: Dictionary)
 signal campaign_ended(result: Dictionary)
-signal phase_changed(new_phase: GameEnums.CampaignPhase)
-signal resource_changed(resource_type: GameEnums.ResourceType, amount: int)
-signal world_event_triggered(event_type: GameEnums.GlobalEvent)
+signal phase_changed(new_phase: int)
+signal resource_changed(resource_type: int, amount: int)
+signal world_event_triggered(event_type: int)
 signal location_changed(new_location: String)
 signal event_occurred(event_data: Dictionary)
+signal story_mission_started(mission)
+signal battle_setup_started(battle)
+signal battle_resolved(battle)
 
 # Campaign identification
 @export var campaign_name: String = ""
@@ -19,11 +22,11 @@ signal event_occurred(event_data: Dictionary)
 @export var last_saved: String = ""
 
 # Campaign state
-@export var current_phase: GameEnums.CampaignPhase = GameEnums.CampaignPhase.SETUP
+@export var current_phase: int = GameEnums.CampaignPhase.SETUP
 @export var current_turn: int = 1
 @export var current_location: String = ""
 @export var is_active: bool = true
-@export var difficulty_level: GameEnums.DifficultyLevel = GameEnums.DifficultyLevel.NORMAL
+@export var difficulty_level: int = GameEnums.DifficultyLevel.NORMAL
 
 # Resources and progress tracking
 var resources: Dictionary = {}
@@ -31,6 +34,8 @@ var story_progress: Dictionary = {}
 var active_missions: Array = []
 var completed_missions: Array = []
 var campaign_log: Array = []
+var current_story_mission = null
+var current_battle = null
 
 func _init() -> void:
 	_initialize_resources()
@@ -40,8 +45,8 @@ func _initialize_resources() -> void:
 	resources = {
 		GameEnums.ResourceType.CREDITS: 0,
 		GameEnums.ResourceType.SUPPLIES: 0,
-		GameEnums.ResourceType.REPUTATION: 0,
-		GameEnums.ResourceType.STORY_POINT: 0
+		GameEnums.ResourceType.TECH_PARTS: 0,
+		GameEnums.ResourceType.PATRON: 0
 	}
 
 func _initialize_story_progress() -> void:
@@ -108,6 +113,10 @@ func _get_next_phase() -> GameEnums.CampaignPhase:
 		GameEnums.CampaignPhase.BATTLE_RESOLUTION:
 			return GameEnums.CampaignPhase.ADVANCEMENT
 		GameEnums.CampaignPhase.ADVANCEMENT:
+			return GameEnums.CampaignPhase.TRADE
+		GameEnums.CampaignPhase.TRADE:
+			return GameEnums.CampaignPhase.END
+		GameEnums.CampaignPhase.END:
 			return GameEnums.CampaignPhase.UPKEEP
 		_:
 			return GameEnums.CampaignPhase.SETUP
@@ -159,3 +168,29 @@ func deserialize(data: Dictionary) -> void:
 	active_missions = data.get("active_missions", []).duplicate()
 	completed_missions = data.get("completed_missions", []).duplicate()
 	campaign_log = data.get("campaign_log", []).duplicate()
+
+func _on_phase_changed(new_phase: int) -> void:
+	match new_phase:
+		GameEnums.CampaignPhase.STORY:
+			_handle_story_phase()
+		GameEnums.CampaignPhase.BATTLE_SETUP:
+			_handle_battle_setup()
+		GameEnums.CampaignPhase.BATTLE_RESOLUTION:
+			_handle_battle_resolution()
+		_:
+			pass
+
+func _handle_story_phase() -> void:
+	# Handle story phase logic
+	if current_story_mission:
+		emit_signal("story_mission_started", current_story_mission)
+
+func _handle_battle_setup() -> void:
+	# Handle battle setup logic
+	if current_battle:
+		emit_signal("battle_setup_started", current_battle)
+
+func _handle_battle_resolution() -> void:
+	# Handle battle resolution logic
+	if current_battle:
+		emit_signal("battle_resolved", current_battle)

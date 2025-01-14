@@ -1,0 +1,128 @@
+{
+    "name": "bonus_rewards",
+    "entries": [
+        {
+            "roll_range": [
+                1,
+                20
+            ],
+            "result": {
+                "reputation": 1
+            },
+            "weight": 1.0,
+            "tags": [
+                "basic"
+            ]
+        },
+        {
+            "roll_range": [
+                21,
+                40
+            ],
+            "result": {
+                "reputation": 2,
+                "intel": 1
+            },
+            "weight": 0.8,
+            "tags": [
+                "intel"
+            ]
+        },
+        {
+            "roll_range": [
+                41,
+                60
+            ],
+            "result": {
+                "reputation": 1,
+                "item": {
+                    "type": "EQUIPMENT",
+                    "name": "Standard Equipment",
+                    "value": 100
+                }
+            },
+            "weight": 0.7,
+            "tags": [
+                "equipment"
+            ]
+        },
+        {
+            "roll_range": [
+                61,
+                80
+            ],
+            "result": {
+                "reputation": 2,
+                "intel": 1,
+                "item": {
+                    "type": "EQUIPMENT",
+                    "name": "Advanced Equipment",
+                    "value": 200
+                }
+            },
+            "weight": 0.5,
+            "tags": [
+                "advanced"
+            ]
+        },
+        {
+            "roll_range": [
+                81,
+                95
+            ],
+            "result": {
+                "reputation": 3,
+                "intel": 2,
+                "item": {
+                    "type": "EQUIPMENT",
+                    "name": "Rare Equipment",
+                    "value": 300
+                }
+            },
+            "weight": 0.3,
+            "tags": [
+                "rare"
+            ]
+        },
+        {
+            "roll_range": [
+                96,
+                100
+            ],
+            "result": {
+                "reputation": 4,
+                "intel": 3,
+                "item": {
+                    "type": "EQUIPMENT",
+                    "name": "Legendary Equipment",
+                    "value": 500
+                }
+            },
+            "weight": 0.1,
+            "tags": [
+                "legendary"
+            ]
+        }
+    ],
+    "validation_rules": [],
+    "modifiers": [
+        {
+            "type": "mission_type_modifier",
+            "params": {
+                "RED_ZONE": {
+                    "reputation_multiplier": 1.5
+                },
+                "BLACK_ZONE": {
+                    "reputation_multiplier": 2.0,
+                    "intel_multiplier": 1.5
+                },
+                "PATRON": {
+                    "item_value_multiplier": 1.5
+                }
+            }
+        }
+    ],
+    "default_result": {
+        "reputation": 1
+    }
+}

@@ -147,7 +147,7 @@ static var ENEMY_TYPES: Dictionary = {
 	},
 	"Brat Gang": {
 		"category": GlobalEnums.EnemyCategory.CRIMINAL_ELEMENTS,
-		"type": GlobalEnums.EnemyType.BRAT_GANG,
+		"type": GlobalEnums.EnemyType.MINION,
 		"numbers": 2,
 		"panic": "1-3",
 		"speed": 5,
@@ -162,7 +162,7 @@ static var ENEMY_TYPES: Dictionary = {
 	},
 	"Gene Renegades": {
 		"category": GlobalEnums.EnemyCategory.CRIMINAL_ELEMENTS,
-		"type": GlobalEnums.EnemyType.GENE_RENEGADES,
+		"type": GlobalEnums.EnemyType.ELITE,
 		"numbers": 1,
 		"panic": "1-2",
 		"speed": 5,
@@ -174,7 +174,7 @@ static var ENEMY_TYPES: Dictionary = {
 	},
 	"Anarchists": {
 		"category": GlobalEnums.EnemyCategory.CRIMINAL_ELEMENTS,
-		"type": GlobalEnums.EnemyType.ANARCHISTS,
+		"type": GlobalEnums.EnemyType.MINION,
 		"numbers": 2,
 		"panic": "1-2",
 		"speed": 5,
@@ -198,7 +198,7 @@ static var ENEMY_TYPES: Dictionary = {
 	},
 	"K'Erin Outlaws": {
 		"category": GlobalEnums.EnemyCategory.CRIMINAL_ELEMENTS,
-		"type": GlobalEnums.EnemyType.K_ERIN_OUTLAWS,
+		"type": GlobalEnums.EnemyType.ELITE,
 		"numbers": 1,
 		"panic": "1",
 		"speed": 4,
@@ -210,7 +210,7 @@ static var ENEMY_TYPES: Dictionary = {
 	},
 	"Skulker Brigands": {
 		"category": GlobalEnums.EnemyCategory.CRIMINAL_ELEMENTS,
-		"type": GlobalEnums.EnemyType.SKULKER_BRIGANDS,
+		"type": GlobalEnums.EnemyType.MINION,
 		"numbers": 3,
 		"panic": "1-2",
 		"speed": 6,
@@ -225,7 +225,7 @@ static var ENEMY_TYPES: Dictionary = {
 	},
 	"Tech Gangers": {
 		"category": GlobalEnums.EnemyCategory.CRIMINAL_ELEMENTS,
-		"type": GlobalEnums.EnemyType.TECH_GANGERS,
+		"type": GlobalEnums.EnemyType.ELITE,
 		"numbers": 1,
 		"panic": "1-2",
 		"speed": 4,
@@ -240,7 +240,7 @@ static var ENEMY_TYPES: Dictionary = {
 	},
 	"Starport Scum": {
 		"category": GlobalEnums.EnemyCategory.CRIMINAL_ELEMENTS,
-		"type": GlobalEnums.EnemyType.STARPORT_SCUM,
+		"type": GlobalEnums.EnemyType.MINION,
 		"numbers": 3,
 		"panic": "1-3",
 		"speed": 4,
@@ -252,7 +252,7 @@ static var ENEMY_TYPES: Dictionary = {
 	},
 	"Hulker Gang": {
 		"category": GlobalEnums.EnemyCategory.HIRED_MUSCLE,
-		"type": GlobalEnums.EnemyType.HULKER_GANG,
+		"type": GlobalEnums.EnemyType.ELITE,
 		"numbers": 0,
 		"panic": "1",
 		"speed": 4,
@@ -267,7 +267,7 @@ static var ENEMY_TYPES: Dictionary = {
 	},
 	"Gun Slingers": {
 		"category": GlobalEnums.EnemyCategory.HIRED_MUSCLE,
-		"type": GlobalEnums.EnemyType.GUN_SLINGERS,
+		"type": GlobalEnums.EnemyType.ELITE,
 		"numbers": 1,
 		"panic": "1-2",
 		"speed": 4,
@@ -279,7 +279,7 @@ static var ENEMY_TYPES: Dictionary = {
 	},
 	"Unknown Mercs": {
 		"category": GlobalEnums.EnemyCategory.HIRED_MUSCLE,
-		"type": GlobalEnums.EnemyType.UNKNOWN_MERCS,
+		"type": GlobalEnums.EnemyType.ELITE,
 		"numbers": 0,
 		"panic": "1-2",
 		"speed": 5,
@@ -303,7 +303,7 @@ static var ENEMY_TYPES: Dictionary = {
 	},
 	"Guild Troops": {
 		"category": GlobalEnums.EnemyCategory.HIRED_MUSCLE,
-		"type": GlobalEnums.EnemyType.GUILD_TROOPS,
+		"type": GlobalEnums.EnemyType.ELITE,
 		"numbers": 0,
 		"panic": "1-2",
 		"speed": 4,
@@ -315,7 +315,7 @@ static var ENEMY_TYPES: Dictionary = {
 	},
 	"Roid-gangers": {
 		"category": GlobalEnums.EnemyCategory.HIRED_MUSCLE,
-		"type": GlobalEnums.EnemyType.ROID_GANGERS,
+		"type": GlobalEnums.EnemyType.MINION,
 		"numbers": 1,
 		"panic": "1",
 		"speed": 4,
@@ -384,7 +384,7 @@ static var ENEMY_TYPES: Dictionary = {
 	},
 	"Feral Mercenaries": {
 		"category": GlobalEnums.EnemyCategory.ALIEN_THREATS,
-		"type": GlobalEnums.EnemyType.FERAL_MERCENARIES,
+		"type": GlobalEnums.EnemyType.MINION,
 		"numbers": 2,
 		"panic": "1-2",
 		"speed": 5,
@@ -396,7 +396,7 @@ static var ENEMY_TYPES: Dictionary = {
 	},
 	"Skulker Mercenaries": {
 		"category": GlobalEnums.EnemyCategory.ALIEN_THREATS,
-		"type": GlobalEnums.EnemyType.SKULKER_MERCENARIES,
+		"type": GlobalEnums.EnemyType.MINION,
 		"numbers": 3,
 		"panic": "1-2",
 		"speed": 7,
@@ -411,7 +411,7 @@ static var ENEMY_TYPES: Dictionary = {
 	},
 	"Corporate Security": {
 		"category": GlobalEnums.EnemyCategory.HIRED_MUSCLE,
-		"type": GlobalEnums.EnemyType.CORPORATE_SECURITY,
+		"type": GlobalEnums.EnemyType.ELITE,
 		"numbers": 1,
 		"panic": "1-2",
 		"speed": 4,
@@ -463,7 +463,7 @@ static var ENEMY_TYPES: Dictionary = {
 	},
 	"Rage Lizard Mercs": {
 		"category": GlobalEnums.EnemyCategory.ALIEN_THREATS,
-		"type": GlobalEnums.EnemyType.RAGE_LIZARD_MERCS,
+		"type": GlobalEnums.EnemyType.ELITE,
 		"numbers": 0,
 		"panic": "1-2",
 		"speed": 4,
@@ -475,7 +475,7 @@ static var ENEMY_TYPES: Dictionary = {
 	},
 	"Blood Storm Mercs": {
 		"category": GlobalEnums.EnemyCategory.ALIEN_THREATS,
-		"type": GlobalEnums.EnemyType.BLOOD_STORM_MERCS,
+		"type": GlobalEnums.EnemyType.ELITE,
 		"numbers": 0,
 		"panic": "1",
 		"speed": 4,

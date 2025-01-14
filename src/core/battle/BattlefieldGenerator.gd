@@ -20,8 +20,8 @@ const MIN_DEPLOYMENT_ZONE_SIZE := 4 # Minimum size of deployment zones
 # Generation configuration
 var config: Dictionary = {
 	"size": Vector2i(24, 24),
-	"battlefield_type": GameEnums.BattlefieldType.URBAN,
-	"environment": GameEnums.BattleEnvironment.URBAN,
+	"battlefield_type": GameEnums.PlanetEnvironment.URBAN,
+	"environment": GameEnums.PlanetEnvironment.URBAN,
 	"cover_density": 0.2,
 	"symmetrical": true,
 	"deployment_zone_size": 6,
@@ -41,8 +41,8 @@ class TerrainCell:
 	var cover: bool = false
 	var elevation: int = 0
 	var objective: bool = false
-	var feature: GameEnums.BattlefieldFeature = GameEnums.BattlefieldFeature.NONE
-	var zone: GameEnums.BattlefieldZone = GameEnums.BattlefieldZone.NEUTRAL
+	var feature: TerrainTypes.Type = TerrainTypes.Type.NONE
+	var zone: String = "neutral"
 
 	func serialize() -> Dictionary:
 		return {
@@ -121,14 +121,14 @@ func _serialize_terrain() -> Array[Dictionary]:
 
 func _generate_terrain() -> void:
 	match config.environment:
-		GameEnums.BattleEnvironment.URBAN:
+		GameEnums.PlanetEnvironment.URBAN:
 			_generate_urban_terrain()
-		GameEnums.BattleEnvironment.WILDERNESS:
+		GameEnums.PlanetEnvironment.FOREST:
 			_generate_wilderness_terrain()
-		GameEnums.BattleEnvironment.SPACE_STATION:
-			_generate_space_station_terrain()
-		GameEnums.BattleEnvironment.SHIP_INTERIOR:
-			_generate_ship_interior_terrain()
+		GameEnums.PlanetEnvironment.DESERT:
+			_generate_wilderness_terrain()
+		GameEnums.PlanetEnvironment.ICE:
+			_generate_wilderness_terrain()
 		_:
 			_generate_basic_terrain()
 	
@@ -175,7 +175,7 @@ func _place_objectives() -> void:
 		
 		var objective := {
 			"position": position,
-			"type": GameEnums.BattleObjective.CAPTURE_POINT,
+			"type": GameEnums.TerrainFeatureType.OBJECTIVE,
 			"radius": 2,
 			"control_points": 0,
 			"controlled_by": "none"

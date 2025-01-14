@@ -18,6 +18,7 @@ const Location = preload("res://src/core/world/Location.gd")
 const Mission = preload("res://src/core/systems/Mission.gd")
 const WorldManager = preload("res://src/core/world/WorldManager.gd")
 const SaveManager = preload("res://src/core/state/SaveManager.gd")
+const Equipment = preload("res://src/core/character/Equipment/Equipment.gd")
 
 func _init(_game_world: Location, _economy_manager: EconomyManager) -> void:
 	game_world = _game_world

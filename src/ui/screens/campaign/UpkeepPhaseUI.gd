@@ -93,7 +93,7 @@ func _calculate_crew_upkeep() -> int:
             base_cost = int(base_cost * 1.0)
         GameEnums.DifficultyLevel.HARD:
             base_cost = int(base_cost * 1.2)
-        GameEnums.DifficultyLevel.VETERAN:
+        GameEnums.DifficultyLevel.HARDCORE:
             base_cost = int(base_cost * 1.5)
         GameEnums.DifficultyLevel.ELITE:
             base_cost = int(base_cost * 2.0)

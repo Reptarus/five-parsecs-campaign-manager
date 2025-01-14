@@ -20,10 +20,10 @@ signal terrain_placement_validated(result: Dictionary)
 
 # Configuration
 const MOVEMENT_BASE: int = 6 # Base movement from Core Rules
-const GRID_SIZE = Vector2i(24, 24) # Standard battlefield size per core rules
-const CELL_SIZE = Vector2i(32, 32) # Visual size of each grid cell
-const MIN_TERRAIN_PIECES = 4 # Core rules minimum terrain requirement
-const MAX_TERRAIN_PIECES = 12 # Core rules maximum terrain requirement
+const GRID_SIZE := Vector2i(24, 24) # Standard battlefield size per core rules
+const CELL_SIZE := Vector2i(32, 32) # Visual size of each grid cell
+const MIN_TERRAIN_PIECES: int = 4 # Core rules minimum terrain requirement
+const MAX_TERRAIN_PIECES: int = 12 # Core rules maximum terrain requirement
 
 # Battlefield state
 var terrain_map: Array[Array] = [] # Array of TerrainTypes.Type
@@ -31,10 +31,10 @@ var unit_positions: Dictionary = {} # Character: Vector2i
 var cover_map: Array[Array] = [] # Array of float values
 var los_cache: Dictionary = {} # String: bool
 var deployment_zones: Dictionary = {
-	GameEnums.DeploymentZone.PLAYER: [],
-	GameEnums.DeploymentZone.ENEMY: [],
-	GameEnums.DeploymentZone.NEUTRAL: [],
-	GameEnums.DeploymentZone.OBJECTIVE: []
+	"player": [],
+	"enemy": [],
+	"neutral": [],
+	"objective": []
 }
 
 # Terrain rules from core rules
@@ -84,7 +84,7 @@ func set_terrain(position: Vector2i, type: TerrainTypes.Type) -> void:
 	if not _is_valid_position(position):
 		return
 	
-	var old_type = terrain_map[position.x][position.y]
+	var old_type: TerrainTypes.Type = terrain_map[position.x][position.y]
 	terrain_map[position.x][position.y] = type
 	
 	# Update cover and LOS
@@ -102,7 +102,7 @@ func set_terrain_feature(position: Vector2i, feature: GameEnums.TerrainFeatureTy
 	if not _is_valid_position(position):
 		return
 	
-	var terrain_type = _get_terrain_type_for_feature(feature)
+	var terrain_type := _get_terrain_type_for_feature(feature)
 	set_terrain(position, terrain_type)
 
 # Unit management
@@ -116,7 +116,7 @@ func add_unit(unit: Character, position: Vector2i) -> bool:
 
 func remove_unit(unit: Character) -> void:
 	if unit in unit_positions:
-		var position = unit_positions[unit]
+		var position: Vector2i = unit_positions[unit]
 		unit_positions.erase(unit)
 		unit_removed.emit(unit, position)
 
@@ -124,7 +124,7 @@ func move_unit(unit: Character, new_position: Vector2i) -> bool:
 	if not unit in unit_positions or not _can_place_unit(new_position):
 		return false
 	
-	var old_position = unit_positions[unit]
+	var old_position: Vector2i = unit_positions[unit]
 	unit_positions[unit] = new_position
 	unit_moved.emit(unit, old_position, new_position)
 	return true
@@ -143,23 +143,24 @@ func get_movement_cost(from: Vector2i, to: Vector2i) -> float:
 	if not _is_valid_position(from) or not _is_valid_position(to):
 		return INF
 	
-	var terrain_type = get_terrain(to)
-	var feature_type = _get_feature_type_for_terrain(terrain_type)
-	return terrain_rules.get_movement_cost(terrain_type, feature_type)
+	var terrain_type: TerrainTypes.Type = get_terrain(to)
+	var feature_type: GameEnums.TerrainFeatureType = _get_feature_type_for_terrain(terrain_type)
+	var environment: GameEnums.PlanetEnvironment = _terrain_to_environment(terrain_type)
+	return terrain_rules.get_movement_cost(environment, feature_type)
 
 func get_movement_range(unit: Character, movement_points: float) -> Array[Vector2i]:
 	if not unit in unit_positions:
 		return []
 	
-	var start_pos = unit_positions[unit]
-	var reachable = []
-	var visited = {}
-	var queue = [[start_pos, movement_points]]
+	var start_pos: Vector2i = unit_positions[unit]
+	var reachable: Array[Vector2i] = []
+	var visited: Dictionary = {}
+	var queue: Array = [[start_pos, movement_points]]
 	
 	while not queue.is_empty():
-		var current = queue.pop_front()
-		var pos = current[0]
-		var points = current[1]
+		var current: Array = queue.pop_front()
+		var pos: Vector2i = current[0]
+		var points: float = current[1]
 		
 		if pos in visited and visited[pos] >= points:
 			continue
@@ -168,8 +169,8 @@ func get_movement_range(unit: Character, movement_points: float) -> Array[Vector
 		reachable.append(pos)
 		
 		for neighbor in _get_adjacent_positions(pos):
-			var cost = get_movement_cost(pos, neighbor)
-			var remaining = points - cost
+			var cost: float = get_movement_cost(pos, neighbor)
+			var remaining: float = points - cost
 			if remaining >= 0:
 				queue.append([neighbor, remaining])
 	
@@ -181,11 +182,11 @@ func highlight_movement_range(unit: Character, movement_points: float) -> void:
 
 # Line of sight and cover
 func has_line_of_sight(from: Vector2i, to: Vector2i) -> bool:
-	var cache_key = "%d,%d-%d,%d" % [from.x, from.y, to.x, to.y]
+	var cache_key := "%d,%d-%d,%d" % [from.x, from.y, to.x, to.y]
 	if cache_key in los_cache:
 		return los_cache[cache_key]
 	
-	var result = _calculate_line_of_sight(from, to)
+	var result := _calculate_line_of_sight(from, to)
 	los_cache[cache_key] = result
 	return result
 
@@ -202,7 +203,7 @@ func set_deployment_zone(zone_type: int, positions: Array[Vector2i]) -> void:
 	deployment_zones[zone_type] = positions
 	deployment_zone_updated.emit(zone_type, positions)
 
-func is_valid_deployment_position(position: Vector2i, zone_type: int) -> bool:
+func is_valid_deployment_position(position: Vector2i, zone_type: String) -> bool:
 	if not zone_type in deployment_zones:
 		return false
 	return position in deployment_zones[zone_type]
@@ -239,7 +240,7 @@ func validate_deployment(units: Array[Character]) -> Dictionary:
 			continue
 		
 		var position = unit_positions[unit]
-		if not is_valid_deployment_position(position, GameEnums.DeploymentZone.PLAYER):
+		if not is_valid_deployment_position(position, "player"):
 			validation.valid = false
 			validation.messages.append("Unit outside deployment zone: %s" % unit.name)
 	
@@ -260,12 +261,12 @@ func _can_place_unit(position: Vector2i) -> bool:
 			return false
 	
 	# Check if terrain allows unit placement
-	var terrain_type = get_terrain(position)
+	var terrain_type := get_terrain(position)
 	return terrain_type != TerrainTypes.Type.INVALID and terrain_type != TerrainTypes.Type.WALL
 
 func _get_adjacent_positions(position: Vector2i) -> Array[Vector2i]:
 	var adjacent: Array[Vector2i] = []
-	var directions = [
+	var directions: Array[Vector2i] = [
 		Vector2i(1, 0), Vector2i(-1, 0),
 		Vector2i(0, 1), Vector2i(0, -1),
 		Vector2i(1, 1), Vector2i(-1, -1),
@@ -273,28 +274,29 @@ func _get_adjacent_positions(position: Vector2i) -> Array[Vector2i]:
 	]
 	
 	for dir in directions:
-		var new_pos = position + dir
+		var new_pos: Vector2i = position + dir
 		if _is_valid_position(new_pos):
 			adjacent.append(new_pos)
 	
 	return adjacent
 
 func _calculate_line_of_sight(from: Vector2i, to: Vector2i) -> bool:
-	var dx = abs(to.x - from.x)
-	var dy = abs(to.y - from.y)
-	var x = from.x
-	var y = from.y
-	var n = 1 + dx + dy
-	var x_inc = 1 if to.x > from.x else -1
-	var y_inc = 1 if to.y > from.y else -1
-	var error = dx - dy
+	var dx: int = abs(to.x - from.x)
+	var dy: int = abs(to.y - from.y)
+	var x: int = from.x
+	var y: int = from.y
+	var n: int = 1 + dx + dy
+	var x_inc: int = 1 if to.x > from.x else -1
+	var y_inc: int = 1 if to.y > from.y else -1
+	var error: int = dx - dy
 	dx *= 2
 	dy *= 2
 	
 	for _i in range(n):
-		var terrain_type = get_terrain(Vector2i(x, y))
-		var feature_type = _get_feature_type_for_terrain(terrain_type)
-		if terrain_rules.blocks_line_of_sight(terrain_type, feature_type):
+		var terrain_type: TerrainTypes.Type = get_terrain(Vector2i(x, y))
+		var feature_type: GameEnums.TerrainFeatureType = _get_feature_type_for_terrain(terrain_type)
+		var environment: GameEnums.PlanetEnvironment = _terrain_to_environment(terrain_type)
+		if terrain_rules.blocks_line_of_sight(environment, feature_type):
 			return false
 		
 		if error > 0:
@@ -310,9 +312,10 @@ func _update_cover_value(position: Vector2i) -> void:
 	if not _is_valid_position(position):
 		return
 	
-	var terrain_type = get_terrain(position)
-	var feature_type = _get_feature_type_for_terrain(terrain_type)
-	cover_map[position.x][position.y] = terrain_rules.get_cover_value(terrain_type, feature_type)
+	var terrain_type: TerrainTypes.Type = get_terrain(position)
+	var feature_type: GameEnums.TerrainFeatureType = _get_feature_type_for_terrain(terrain_type)
+	var environment: GameEnums.PlanetEnvironment = _terrain_to_environment(terrain_type)
+	cover_map[position.x][position.y] = terrain_rules.get_cover_value(environment, feature_type)
 	cover_changed.emit(position, cover_map[position.x][position.y])
 
 func _invalidate_los_cache() -> void:
@@ -363,3 +366,58 @@ func _get_feature_type_for_terrain(terrain: TerrainTypes.Type) -> GameEnums.Terr
 			return GameEnums.TerrainFeatureType.DIFFICULT
 		_:
 			return GameEnums.TerrainFeatureType.NONE
+
+# Add required functions
+func blocks_line_of_sight(from: Vector2, to: Vector2) -> bool:
+	# Check if line of sight is blocked between two points
+	var points = get_line(from, to)
+	for point in points:
+		var terrain = get_terrain_at(point)
+		if terrain == GameEnums.TerrainFeatureType.WALL:
+			return true
+	return false
+
+# Helper function for line of sight
+func get_line(from: Vector2, to: Vector2) -> Array[Vector2]:
+	var points: Array[Vector2] = []
+	var dx: float = to.x - from.x
+	var dy: float = to.y - from.y
+	var steps: int = int(max(abs(dx), abs(dy)))
+	
+	if steps == 0:
+		points.append(from)
+		return points
+	
+	var x_inc: float = dx / steps
+	var y_inc: float = dy / steps
+	
+	for i in range(steps + 1):
+		points.append(Vector2(
+			from.x + (x_inc * i),
+			from.y + (y_inc * i)
+		))
+	
+	return points
+
+func get_terrain_at(point: Vector2i) -> TerrainTypes.Type:
+	if not _is_valid_position(point):
+		return TerrainTypes.Type.INVALID
+	return terrain_map[point.x][point.y]
+
+# Add conversion function
+func _terrain_to_environment(terrain_type: TerrainTypes.Type) -> GameEnums.PlanetEnvironment:
+	match terrain_type:
+		TerrainTypes.Type.WALL:
+			return GameEnums.PlanetEnvironment.URBAN
+		TerrainTypes.Type.COVER_HIGH:
+			return GameEnums.PlanetEnvironment.URBAN
+		TerrainTypes.Type.COVER_LOW:
+			return GameEnums.PlanetEnvironment.URBAN
+		TerrainTypes.Type.WATER:
+			return GameEnums.PlanetEnvironment.RAIN
+		TerrainTypes.Type.HAZARD:
+			return GameEnums.PlanetEnvironment.HAZARDOUS
+		TerrainTypes.Type.DIFFICULT:
+			return GameEnums.PlanetEnvironment.FOREST
+		_:
+			return GameEnums.PlanetEnvironment.NONE

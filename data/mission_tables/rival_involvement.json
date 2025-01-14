@@ -1,0 +1,76 @@
+{
+    "name": "rival_involvement",
+    "entries": [
+        {
+            "roll_range": [
+                1,
+                70
+            ],
+            "result": false,
+            "weight": 1.0,
+            "tags": [
+                "none"
+            ]
+        },
+        {
+            "roll_range": [
+                71,
+                85
+            ],
+            "result": true,
+            "weight": 0.7,
+            "tags": [
+                "minor"
+            ]
+        },
+        {
+            "roll_range": [
+                86,
+                95
+            ],
+            "result": true,
+            "weight": 0.5,
+            "tags": [
+                "major"
+            ]
+        },
+        {
+            "roll_range": [
+                96,
+                100
+            ],
+            "result": true,
+            "weight": 0.3,
+            "tags": [
+                "critical"
+            ]
+        }
+    ],
+    "validation_rules": [
+        {
+            "type": "rival_status_check",
+            "params": {
+                "active_rivals_required": true,
+                "min_reputation": -50,
+                "max_reputation": 50
+            }
+        }
+    ],
+    "modifiers": [
+        {
+            "type": "mission_type_modifier",
+            "params": {
+                "RED_ZONE": {
+                    "involvement_chance": 1.5
+                },
+                "BLACK_ZONE": {
+                    "involvement_chance": 2.0
+                },
+                "PATRON": {
+                    "involvement_chance": 0.5
+                }
+            }
+        }
+    ],
+    "default_result": false
+}

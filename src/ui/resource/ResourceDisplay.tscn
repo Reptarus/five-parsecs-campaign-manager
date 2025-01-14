@@ -1,0 +1,64 @@
+[gd_scene load_steps=2 format=3 uid="uid://c4q8j0n5rk3m2"]
+
+[ext_resource type="Script" path="res://src/ui/resource/ResourceDisplay.gd" id="1_resource_display"]
+
+[node name="ResourceDisplay" type="Control"]
+layout_mode = 3
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+script = ExtResource("1_resource_display")
+
+[node name="MainContainer" type="VBoxContainer" parent="."]
+layout_mode = 1
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+theme_override_constants/separation = 16
+
+[node name="MarketContainer" type="VBoxContainer" parent="MainContainer"]
+layout_mode = 2
+
+[node name="MarketStateLabel" type="Label" parent="MainContainer/MarketContainer"]
+layout_mode = 2
+text = "Market State: Stable (0%)"
+horizontal_alignment = 1
+
+[node name="HSeparator" type="HSeparator" parent="MainContainer/MarketContainer"]
+layout_mode = 2
+
+[node name="ResourceContainer" type="VBoxContainer" parent="MainContainer"]
+layout_mode = 2
+theme_override_constants/separation = 8
+
+[node name="HistoryContainer" type="VBoxContainer" parent="MainContainer"]
+layout_mode = 2
+size_flags_vertical = 3
+
+[node name="FilterContainer" type="HBoxContainer" parent="MainContainer/HistoryContainer"]
+layout_mode = 2
+
+[node name="Label" type="Label" parent="MainContainer/HistoryContainer/FilterContainer"]
+layout_mode = 2
+text = "Filter:"
+
+[node name="FilterType" type="OptionButton" parent="MainContainer/HistoryContainer/FilterContainer"]
+layout_mode = 2
+size_flags_horizontal = 3
+
+[node name="ClearButton" type="Button" parent="MainContainer/HistoryContainer/FilterContainer"]
+layout_mode = 2
+text = "Clear History"
+
+[node name="TransactionList" type="ItemList" parent="MainContainer/HistoryContainer"]
+layout_mode = 2
+size_flags_vertical = 3
+auto_height = true
+
+[connection signal="pressed" from="MainContainer/HistoryContainer/FilterContainer/ClearButton" to="." method="_on_clear_history_pressed"]
+[connection signal="item_selected" from="MainContainer/HistoryContainer/FilterContainer/FilterType" to="." method="_on_filter_type_selected"]
+``` 

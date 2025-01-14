@@ -1,198 +1,203 @@
-# Phase 3: Crew Management Implementation Plan
+# Phase 3: Crew Management Implementation
 
 ## Overview
-Implementation of the complete crew management system, integrating character creation, equipment, and campaign systems.
+Implementation of crew management utilities focusing on table automation, bookkeeping assistance, and mobile-friendly interfaces.
 
-## 1. Character System Integration (20h)
+## 1. Character Generation System
 
-### Core Character Management (8h)
-1. Character Data Structure ✓
-   - ✓ Attribute system integration
-   - ✓ Background system completion
-   - ✓ Species implementation
-   - ✓ Class system integration
-   - ✓ Special abilities framework
-   - ✓ Unit tests for core functionality
+### Table Automation (Priority 1)
+1. Character Creation Tables
+   - Background generation
+   - Origin/species tables
+   - Class/profession tables
+   - Starting equipment tables
+   - Motivation tables
 
-2. State Management ✓
-   - ✓ Character state tracking
-   - ✓ Experience system
-   - ✓ Level-up mechanics
-   - ✓ Injury tracking
-   - ✓ Status effects
-   - ✓ State persistence tests
+2. Table Processing
+   - D100 roll automation
+   - Result validation
+   - Manual override options
+   - Custom table support
+   - Roll history tracking
 
-### Equipment Integration (7h)
-1. Equipment System
-   - ✓ Inventory management
-   - ✓ Equipment restrictions
-   - ⚠️ Loadout validation (75%)
-   - ⚠️ Ship equipment (40%)
-   - ⚠️ Equipment tests (60%)
+3. Data Management
+   - Result persistence
+   - Export capabilities
+   - Import support
+   - Version control
+   - Backup system
 
-2. Resource Management
-   - ✓ Equipment costs
-   - ✓ Resource limits
-   - ⚠️ Maintenance tracking (65%)
-   - ⚠️ Upgrade systems (35%)
-   - ⚠️ Resource tests (70%)
+## 2. Crew Management Tools
 
-### Campaign Integration (5h)
-1. Mission System
-   - ✓ Crew deployment
-   - ⚠️ Mission restrictions (70%)
-   - ⚠️ Special abilities (45%)
-   - ⚠️ Equipment requirements (50%)
-   - ⚠️ Integration tests (40%)
+### Core Features (Priority 2)
+1. Roster Management
+   - Character tracking
+   - Role assignment
+   - Status monitoring
+   - Experience logging
+   - Relationship tracking
 
-## 2. UI Implementation (15h)
+2. Resource Tracking
+   - Equipment inventory
+   - Resource allocation
+   - Cost calculations
+   - Maintenance tracking
+   - Transaction history
 
-### Character Management UI (6h)
-1. Character Screens
-   - ✓ Character creation
-   - ✓ Stat display
-   - ⚠️ Equipment management (65%)
-   - ⚠️ Skill tree (30%)
-   - ⚠️ UI tests (55%)
+3. Task Management
+   - Assignment system
+   - Progress tracking
+   - Result calculation
+   - History logging
+   - Report generation
+
+## 3. Mobile Interface
+
+### UI Components (Priority 3)
+1. Character Sheets
+   - Mobile-optimized layout
+   - Touch-friendly controls
+   - Quick edit support
+   - Status indicators
+   - History view
 
 2. Crew Overview
-   - ✓ Roster management
-   - ⚠️ Team composition (70%)
-   - ⚠️ Mission readiness (45%)
-   - ⚠️ Status effects (60%)
-   - ⚠️ Overview tests (50%)
+   - Roster display
+   - Resource summary
+   - Task dashboard
+   - Status board
+   - Quick actions
 
-### Equipment UI (5h)
-1. Equipment Management
-   - ✓ Inventory display
-   - ⚠️ Loadout system (65%)
-   - ⚠️ Equipment comparison (40%)
-   - ⚠️ Upgrade interface (30%)
-   - ⚠️ UI component tests (55%)
+3. Management Tools
+   - Equipment manager
+   - Task assigner
+   - Resource calculator
+   - Report viewer
+   - Settings panel
 
-2. Resource Display
-   - ✓ Resource tracking
-   - ⚠️ Cost calculation (70%)
-   - ⚠️ Maintenance overview (45%)
-   - ⚠️ Upgrade requirements (35%)
-   - ⚠️ Display tests (60%)
+## 4. Data Handling
 
-### Campaign Integration UI (4h)
-1. Mission Interface
-   - ⚠️ Crew selection (75%)
-   - ⚠️ Equipment loadout (60%)
-   - ⚠️ Mission requirements (45%)
-   - ⚠️ Special conditions (35%)
-   - ⚠️ Interface tests (50%)
+### Core Systems (Priority 4)
+1. State Management
+   - Local storage
+   - State validation
+   - Change tracking
+   - Conflict resolution
+   - Error handling
 
-## 3. Testing & Validation (10h)
+2. Import/Export
+   - Character data
+   - Crew configurations
+   - Custom tables
+   - History logs
+   - Settings
 
-### Unit Testing (4h)
-1. Character Systems
-   - ✓ Attribute calculations
-   - ✓ Experience tracking
-   - ✓ State management
-   - ⚠️ Equipment validation (70%)
-   - ⚠️ Resource integration (65%)
+3. Offline Support
+   - Data persistence
+   - State recovery
+   - Sync management
+   - Cache strategy
+   - Backup system
 
-2. Equipment Systems
-   - ✓ Inventory management
-   - ✓ Resource tracking
-   - ⚠️ Loadout validation (65%)
-   - ⚠️ Upgrade systems (40%)
-   - ⚠️ Performance tests (35%)
+## Technical Implementation
 
-### Integration Testing (4h)
-1. Campaign Integration
-   - ✓ Mission deployment
-   - ⚠️ Resource management (70%)
-   - ⚠️ Progress tracking (65%)
-   - ⚠️ State persistence (75%)
-   - ⚠️ Load testing (40%)
+### 1. Table Processing
+1. Framework
+   - Generic table processor
+   - Result calculator
+   - Validation system
+   - Override handler
+   - History logger
 
-2. UI Workflow
-   - ✓ Character creation
-   - ⚠️ Equipment management (65%)
-   - ⚠️ Mission preparation (45%)
-   - ⚠️ Campaign flow (60%)
-   - ⚠️ User flow tests (50%)
+2. Data Structure
+   - Table definitions
+   - Result mappings
+   - Validation rules
+   - Override flags
+   - History records
 
-### Documentation (2h)
-1. System Documentation
-   - ✓ API reference
-   - ⚠️ Usage examples (70%)
-   - ⚠️ UI workflows (45%)
-   - ⚠️ Integration guides (40%)
-   - ⚠️ Test documentation (55%)
+### 2. Mobile Optimization
+1. Interface Design
+   - Touch targets
+   - Gesture support
+   - Screen adaptation
+   - Input methods
+   - Feedback system
+
+2. Performance
+   - Load times
+   - Memory usage
+   - Battery impact
+   - Cache management
+   - Background tasks
+
+## Testing Strategy
+
+### 1. Core Testing
+1. Table Processing
+   - Roll validation
+   - Result accuracy
+   - Override handling
+   - History tracking
+   - Export/import
+
+2. Data Management
+   - State persistence
+   - Data integrity
+   - Sync handling
+   - Error recovery
+   - Version control
+
+### 2. Mobile Testing
+1. Interface
+   - Touch response
+   - Layout adaptation
+   - Input handling
+   - Performance
+   - Offline function
+
+2. User Experience
+   - Navigation flow
+   - Data entry
+   - Information access
+   - Error handling
+   - Feedback systems
 
 ## Success Criteria
-1. Character Management
-   - ✓ Complete character creation
-   - ✓ Working progression system
-   - ⚠️ Equipment integration (80%)
-   - ⚠️ Campaign integration (70%)
-   - ⚠️ Test coverage (75%)
+- Table automation works reliably
+- Character generation is efficient
+- Crew management is intuitive
+- Mobile interface is responsive
+- Data persists correctly
+- Offline function works
+- Manual overrides function
+- Export/import works properly
 
-2. UI Implementation
-   - ✓ Character screens
-   - ⚠️ Equipment interface (65%)
-   - ⚠️ Mission preparation (40%)
-   - ⚠️ Campaign integration (75%)
-   - ⚠️ UI test coverage (60%)
+## Implementation Schedule
 
-3. Testing Coverage
-   - ✓ Core character systems
-   - ⚠️ Equipment systems (80%)
-   - ⚠️ UI components (65%)
-   - ⚠️ Integration tests (70%)
-   - ⚠️ Performance tests (45%)
+### Week 1-2: Foundation
+- Table processing framework
+- Basic data management
+- Core UI components
+- Mobile optimization
 
-## Dependencies
-- GameStateManager
-- ResourceSystem
-- BattleStateMachine
-- MissionManager
-- UIManager
-- TestFramework
+### Week 3-4: Features
+- Character generation
+- Crew management
+- Resource tracking
+- Task management
 
-## Next Steps
-1. Complete loadout system implementation
-2. Finish equipment UI components
-3. Implement mission preparation interface
-4. Complete integration testing
-5. Update documentation
-6. Expand test coverage
-
-## Known Issues
-1. Equipment validation needs improvement
-2. Resource calculations need optimization
-3. UI responsiveness needs work
-4. Test coverage is incomplete
-5. Performance needs optimization
-6. Documentation needs updating
+### Week 5-6: Polish
+- UI refinement
+- Performance optimization
+- Testing completion
+- Documentation
 
 ## Notes
-- Focus on core functionality first
-- Maintain clean architecture
-- Keep UI responsive and intuitive
-- Document all systems thoroughly
-- Ensure comprehensive test coverage
-- Follow GDScript best practices
-- Plan for future expansions
-
-## Known Issues
-1. Equipment validation needs improvement
-2. Resource calculations need optimization
-3. UI responsiveness needs work
-4. Test coverage is incomplete
-5. Performance needs optimization
-6. Documentation needs updating
-
-## Notes
-- Focus on core functionality first
-- Maintain clean architecture
-- Keep UI responsive and intuitive
-- Document all systems thoroughly
-- Ensure comprehensive test coverage
-- Follow GDScript best practices
-- Plan for future expansions 
+- Focus on utility over graphics
+- Prioritize mobile usability
+- Maintain offline capability
+- Support manual overrides
+- Keep interface simple
+- Document thoroughly
+- Test extensively 
