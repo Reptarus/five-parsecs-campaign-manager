@@ -1,5 +1,8 @@
+## Base character class for all game characters
 class_name Character
-extends Resource
+extends Node
+
+const WeaponData := preload("res://src/core/economy/loot/WeaponData.gd")
 
 const GameEnums = preload("res://src/core/systems/GlobalEnums.gd")
 
@@ -27,7 +30,8 @@ signal equipment_changed(slot: String, item: Resource)
 
 # Equipment slots
 var equipment: Dictionary = {
-	"weapon": null,
+	"ranged_weapon": null,
+	"melee_weapon": null,
 	"armor": null,
 	"gear": []
 }
@@ -91,21 +95,21 @@ func can_perform_action(action: GameEnums.UnitAction) -> bool:
 		GameEnums.UnitAction.MOVE:
 			return action_points >= 1
 		GameEnums.UnitAction.ATTACK:
-			return action_points >= 1 and equipment.weapon != null
+			return action_points >= 1 and equipment["ranged_weapon"] != null
 		GameEnums.UnitAction.DASH:
 			return action_points >= 2
 		GameEnums.UnitAction.ITEMS:
-			return action_points >= 1 and not equipment.gear.is_empty()
+			return action_points >= 1 and not equipment["gear"].is_empty()
 		GameEnums.UnitAction.BRAWL:
-			return action_points >= 1
+			return action_points >= 1 and equipment["melee_weapon"] != null
 		GameEnums.UnitAction.SNAP_FIRE:
-			return action_points >= 1 and equipment.weapon != null
+			return action_points >= 1 and equipment["ranged_weapon"] != null
 		GameEnums.UnitAction.OVERWATCH:
-			return action_points >= 2 and equipment.weapon != null
+			return action_points >= 2 and equipment["ranged_weapon"] != null
 		GameEnums.UnitAction.TAKE_COVER:
 			return action_points >= 1
 		GameEnums.UnitAction.RELOAD:
-			return action_points >= 1 and equipment.weapon != null
+			return action_points >= 1 and equipment["ranged_weapon"] != null
 		GameEnums.UnitAction.INTERACT:
 			return action_points >= 1
 		_:
@@ -181,3 +185,35 @@ func _apply_equipment_stats(item: Resource) -> void:
 func _remove_equipment_stats(item: Resource) -> void:
 	# Add equipment stat removal logic here
 	pass
+
+func get_ranged_damage() -> int:
+	var damage: int = 0
+	if equipment.has("ranged_weapon") and equipment["ranged_weapon"] is WeaponData:
+		var weapon: WeaponData = equipment["ranged_weapon"]
+		damage = weapon.damage
+	return damage
+
+func get_armor_value() -> int:
+	var armor: int = 0
+	if equipment.has("armor"):
+		armor = equipment["armor"].armor_value
+	return armor
+
+func get_melee_damage() -> int:
+	var damage: int = 0
+	if equipment.has("melee_weapon") and equipment["melee_weapon"] is WeaponData:
+		var weapon: WeaponData = equipment["melee_weapon"]
+		damage = weapon.damage
+	return damage
+
+func get_ranged_skill() -> int:
+	return accuracy
+
+func get_melee_skill() -> int:
+	return accuracy - 10 # Melee is slightly harder than ranged by default
+
+func get_weapon_range() -> float:
+	if equipment.has("ranged_weapon") and equipment["ranged_weapon"] is WeaponData:
+		var weapon: WeaponData = equipment["ranged_weapon"]
+		return weapon.range
+	return 0.0

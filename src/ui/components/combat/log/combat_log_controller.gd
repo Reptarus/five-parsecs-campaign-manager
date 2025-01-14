@@ -13,10 +13,14 @@ const Character := preload("res://src/core/character/Base/Character.gd")
 var log_entries: Array = []
 var active_filters: Dictionary = {
 	"combat": true,
-	"movement": true,
-	"status": true,
-	"resource": true,
+	"ability": true,
+	"reaction": true,
+	"area": true,
+	"damage": true,
+	"modifier": true,
+	"critical": true,
 	"override": true,
+	"result": true,
 	"verification": true
 }
 
@@ -43,6 +47,9 @@ func _connect_signals() -> void:
 	combat_manager.combat_advantage_changed.connect(_on_combat_advantage_changed)
 	combat_manager.combat_status_changed.connect(_on_combat_status_changed)
 	combat_manager.manual_override_applied.connect(_on_manual_override_applied)
+	combat_manager.special_ability_activated.connect(_on_special_ability_activated)
+	combat_manager.reaction_triggered.connect(_on_reaction_triggered)
+	combat_manager.area_effect_applied.connect(_on_area_effect_applied)
 	
 	# Verification signals
 	combat_manager.verification_completed.connect(_on_verification_completed)
@@ -165,13 +172,12 @@ func _on_combat_state_changed(new_state: Dictionary) -> void:
 		"state": new_state
 	})
 
-func _on_combat_result_calculated(attacker: Character, target: Character, result: GameEnums.CombatResult) -> void:
-	add_log_entry("combat", {
-		"type": "result",
-		"attacker": attacker.get_id(),
-		"target": target.get_id(),
-		"result": result
-	})
+func _on_combat_result_calculated(attacker: Character, target: Character, result: Dictionary) -> void:
+	combat_log_panel.log_combat_result(
+		attacker.get_display_name(),
+		target.get_display_name(),
+		result
+	)
 
 func _on_combat_advantage_changed(character: Character, advantage: GameEnums.CombatAdvantage) -> void:
 	add_log_entry("combat", {
@@ -217,3 +223,29 @@ func _on_verification_failed(verification_type: GameEnums.VerificationType, erro
 		"status": GameEnums.VerificationResult.ERROR,
 		"details": {"error": error}
 	})
+
+## Signal handlers for new combat events
+func _on_special_ability_activated(character: Character, ability: String, targets: Array[Character], cooldown: int) -> void:
+	var target_names := targets.map(func(t): return t.get_display_name())
+	combat_log_panel.log_special_ability(
+		character.get_display_name(),
+		ability,
+		target_names,
+		cooldown
+	)
+
+func _on_reaction_triggered(character: Character, reaction: String, trigger: String) -> void:
+	combat_log_panel.log_reaction(
+		character.get_display_name(),
+		reaction,
+		trigger
+	)
+
+func _on_area_effect_applied(effect: String, center: Vector2, radius: float, affected: Array[Character]) -> void:
+	var affected_names := affected.map(func(c): return c.get_display_name())
+	combat_log_panel.log_area_effect(
+		effect,
+		center,
+		radius,
+		affected_names
+	)

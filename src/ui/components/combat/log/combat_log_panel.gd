@@ -27,6 +27,20 @@ const FILTER_OPTIONS = {
 	"critical": "Critical Hits"
 }
 
+## Entry filter types
+var filter_types := {
+	"all": true,
+	"combat": true,
+	"ability": true,
+	"reaction": true,
+	"area": true,
+	"damage": true,
+	"modifier": true,
+	"critical": true,
+	"override": true,
+	"result": true
+}
+
 ## Called when the node enters the scene tree
 func _ready() -> void:
 	if not Engine.is_editor_hint():
@@ -165,3 +179,76 @@ func log_critical_hit(attacker: String, target: String, multiplier: float) -> vo
 		"multiplier": multiplier
 	}
 	add_log_entry("critical", msg, details)
+
+## Adds a special ability entry
+func log_special_ability(character: String, ability: String, targets: Array, cooldown: int) -> void:
+	var msg := "%s uses %s" % [character, ability]
+	if not targets.is_empty():
+		msg += " on " + ", ".join(targets)
+	msg += " (Cooldown: %d)" % cooldown
+	var details := {
+		"character": character,
+		"ability": ability,
+		"targets": targets,
+		"cooldown": cooldown
+	}
+	add_log_entry("ability", msg, details)
+
+## Adds a reaction entry
+func log_reaction(character: String, reaction: String, trigger: String) -> void:
+	var msg := "%s reacts with %s to %s" % [character, reaction, trigger]
+	var details := {
+		"character": character,
+		"reaction": reaction,
+		"trigger": trigger
+	}
+	add_log_entry("reaction", msg, details)
+
+## Adds an area effect entry
+func log_area_effect(effect: String, center: Vector2, radius: float, affected: Array) -> void:
+	var msg := "%s affects %d targets in %.1f radius" % [effect, affected.size(), radius]
+	var details := {
+		"effect": effect,
+		"center": center,
+		"radius": radius,
+		"affected": affected
+	}
+	add_log_entry("area", msg, details)
+
+## Adds an enhanced combat result entry
+func log_combat_result(attacker: String, target: String, result: Dictionary) -> void:
+	var msg := "Combat Result: %s vs %s" % [attacker, target]
+	if result.has("hit"):
+		msg += " - " + ("Hit!" if result.hit else "Miss!")
+	if result.has("damage"):
+		msg += " (%d damage)" % result.damage
+	if result.has("effects"):
+		msg += " Effects: " + ", ".join(result.effects)
+	
+	add_log_entry("result", msg, result)
+
+## Updates the display with performance optimizations
+func _update_display() -> void:
+	if log_entries.size() > 1000:
+		# Trim old entries to maintain performance
+		log_entries = log_entries.slice(-1000)
+	
+	# Batch update the display
+	var entries_to_display := []
+	for entry in log_entries:
+		if _should_display_entry(entry):
+			entries_to_display.append(entry)
+	
+	# Update in chunks to avoid freezing
+	var chunk_size := 50
+	for i in range(0, entries_to_display.size(), chunk_size):
+		var chunk := entries_to_display.slice(i, i + chunk_size)
+		for entry in chunk:
+			_add_entry_to_list(entry)
+		await get_tree().process_frame
+
+## Checks if an entry should be displayed based on current filters
+func _should_display_entry(entry: Dictionary) -> bool:
+	if filter_types.get("all", true):
+		return true
+	return filter_types.get(entry.get("type", ""), true)

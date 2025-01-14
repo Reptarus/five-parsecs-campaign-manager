@@ -576,20 +576,19 @@ enum BattlePhase {
 	CLEANUP
 }
 
+## Unit Actions
 enum UnitAction {
 	NONE,
 	MOVE,
 	ATTACK,
-	DASH,
-	DEFEND,
 	OVERWATCH,
 	RELOAD,
 	ITEMS,
 	BRAWL,
-	PROTECT,
 	SNAP_FIRE,
+	SPECIAL_ABILITY,
 	TAKE_COVER,
-	INTERACT
+	END_TURN
 }
 
 enum CombatAdvantage {

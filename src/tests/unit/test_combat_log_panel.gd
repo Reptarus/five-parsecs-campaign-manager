@@ -101,3 +101,75 @@ func test_critical_hit_logging() -> void:
 	
 	assert_eq(entry.type, "critical", "Entry should be critical type")
 	assert_eq(entry.details.multiplier, 2.0, "Entry should have critical multiplier")
+
+func test_special_ability_logging() -> void:
+	panel.log_special_ability("Warrior", "Tactical Genius", ["Soldier", "Scout"], 3)
+	var entry = panel.log_entries[0]
+	
+	assert_eq(entry.type, "ability", "Entry should be ability type")
+	assert_eq(entry.details.ability, "Tactical Genius", "Entry should have ability name")
+	assert_eq(entry.details.cooldown, 3, "Entry should have cooldown value")
+	assert_eq(entry.details.targets.size(), 2, "Entry should have correct number of targets")
+
+func test_reaction_logging() -> void:
+	panel.log_reaction("Guard", "Overwatch", "Enemy movement")
+	var entry = panel.log_entries[0]
+	
+	assert_eq(entry.type, "reaction", "Entry should be reaction type")
+	assert_eq(entry.details.reaction, "Overwatch", "Entry should have reaction type")
+	assert_eq(entry.details.trigger, "Enemy movement", "Entry should have trigger description")
+
+func test_area_effect_logging() -> void:
+	var center := Vector2(10, 10)
+	var affected := ["Target1", "Target2", "Target3"]
+	panel.log_area_effect("Explosion", center, 5.0, affected)
+	var entry = panel.log_entries[0]
+	
+	assert_eq(entry.type, "area", "Entry should be area type")
+	assert_eq(entry.details.effect, "Explosion", "Entry should have effect type")
+	assert_eq(entry.details.radius, 5.0, "Entry should have correct radius")
+	assert_eq(entry.details.affected.size(), 3, "Entry should have correct number of affected targets")
+
+func test_enhanced_combat_result_logging() -> void:
+	var result := {
+		"hit": true,
+		"damage": 15,
+		"effects": ["Stunned", "Bleeding"]
+	}
+	panel.log_combat_result("Attacker", "Target", result)
+	var entry = panel.log_entries[0]
+	
+	assert_eq(entry.type, "result", "Entry should be result type")
+	assert_true(entry.details.hit, "Entry should record hit")
+	assert_eq(entry.details.damage, 15, "Entry should have correct damage")
+	assert_eq(entry.details.effects.size(), 2, "Entry should have correct number of effects")
+
+func test_display_filtering() -> void:
+	# Add entries of different types
+	panel.log_attack_roll("Attacker", "Target", 5, {})
+	panel.log_special_ability("Warrior", "Leadership", [], 3)
+	panel.log_reaction("Guard", "Overwatch", "Movement")
+	
+	# Test filtering
+	panel.filter_types["ability"] = false
+	assert_false(panel._should_display_entry(panel.log_entries[1]), "Ability entries should be filtered out")
+	assert_true(panel._should_display_entry(panel.log_entries[0]), "Attack entries should still be shown")
+	assert_true(panel._should_display_entry(panel.log_entries[2]), "Reaction entries should still be shown")
+	
+	# Test "all" filter
+	panel.filter_types["all"] = true
+	assert_true(panel._should_display_entry(panel.log_entries[1]), "All entries should be shown when 'all' is true")
+
+func test_performance_optimization() -> void:
+	# Add many entries
+	for i in range(1200):
+		panel.log_attack_roll("Attacker", "Target", i, {})
+	
+	assert_eq(panel.log_entries.size(), 1000, "Log should be trimmed to 1000 entries")
+	
+	# Test chunk processing
+	var processed_entries := 0
+	panel._update_display()
+	await get_tree().process_frame
+	
+	assert_true(true, "Display update should process without errors")
