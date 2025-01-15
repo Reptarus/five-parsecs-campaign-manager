@@ -82,4 +82,4 @@ func _on_long_press_timeout() -> void:
         var start_position = touch.start_position
         
         if current_position.distance_to(start_position) < MIN_SWIPE_DISTANCE:
-            long_press_detected.emit(current_position) 
+            long_press_detected.emit(current_position)

@@ -1046,4 +1046,67 @@ func _place_street_tile(position: Vector2i) -> void:
 	if not Vector2i(position.x, position.y) in walkable_tiles:
 		walkable_tiles.append(Vector2i(position.x, position.y))
 
+func _apply_environment_effects() -> void:
+	match config.environment:
+		GameEnums.PlanetEnvironment.URBAN:
+			_apply_urban_effects()
+		GameEnums.PlanetEnvironment.FOREST:
+			_apply_forest_effects()
+		GameEnums.PlanetEnvironment.DESERT:
+			_apply_desert_effects()
+		GameEnums.PlanetEnvironment.ICE:
+			_apply_ice_effects()
+
+func _distribute_dynamic_hazards() -> void:
+	var hazard_count := int(walkable_tiles.size() * 0.05) # 5% of walkable tiles
+	for _i in range(hazard_count):
+		var valid_positions := _get_valid_hazard_positions()
+		if valid_positions.is_empty():
+			break
+		var position := valid_positions[randi() % valid_positions.size()]
+		terrain_grid[position.x][position.y].type = TerrainTypes.Type.HAZARD
+		terrain_grid[position.x][position.y].walkable = false
+		walkable_tiles.erase(position)
+
+func _get_valid_hazard_positions() -> Array[Vector2i]:
+	var valid_positions: Array[Vector2i] = []
+	for pos in walkable_tiles:
+		if not pos in cover_points and not _is_near_objective(pos):
+			valid_positions.append(pos)
+	return valid_positions
+
+func _is_near_objective(position: Vector2i) -> bool:
+	for objective in objectives:
+		if position.distance_to(objective.position) < 3:
+			return true
+	return false
+
+func _apply_urban_effects() -> void:
+	# Add urban-specific effects like increased cover height
+	for x in range(config.size.x):
+		for y in range(config.size.y):
+			if terrain_grid[x][y].type == TerrainTypes.Type.WALL:
+				terrain_grid[x][y].elevation += 1
+
+func _apply_forest_effects() -> void:
+	# Add forest-specific effects like scattered vegetation
+	for x in range(config.size.x):
+		for y in range(config.size.y):
+			if terrain_grid[x][y].walkable and randf() < 0.2:
+				terrain_grid[x][y].type = TerrainTypes.Type.DIFFICULT
+
+func _apply_desert_effects() -> void:
+	# Add desert-specific effects like elevation changes
+	for x in range(config.size.x):
+		for y in range(config.size.y):
+			if terrain_grid[x][y].walkable and randf() < 0.15:
+				terrain_grid[x][y].elevation += 1
+
+func _apply_ice_effects() -> void:
+	# Add ice-specific effects like slippery terrain
+	for x in range(config.size.x):
+		for y in range(config.size.y):
+			if terrain_grid[x][y].walkable and randf() < 0.25:
+				terrain_grid[x][y].type = TerrainTypes.Type.DIFFICULT
+
 # ... existing code ...

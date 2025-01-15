@@ -1,6 +1,6 @@
 extends SceneTree
 
-const TEST_RUNNER = preload("res://src/tests/run_tests.gd")
+const TEST_RUNNER = preload("res://tests/fixtures/run_tests.gd")
 
 func _init() -> void:
     print("Starting build process...")

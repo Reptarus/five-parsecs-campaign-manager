@@ -182,7 +182,7 @@ func _make_protective_decision(enemy: Character) -> Dictionary:
     
     if threatened_ally:
         return {
-            "action": GameEnums.UnitAction.PROTECT,
+            "action": GameEnums.UnitAction.MOVE,
             "target": threatened_ally,
             "tactic": GameEnums.CombatTactic.DEFENSIVE
         }
@@ -204,7 +204,7 @@ func _make_unpredictable_decision(enemy: Character) -> Dictionary:
 ## Makes a default decision
 func _make_default_decision(enemy: Character) -> Dictionary:
     return {
-        "action": GameEnums.UnitAction.DEFEND,
+        "action": GameEnums.UnitAction.TAKE_COVER,
         "tactic": GameEnums.CombatTactic.BALANCED
     }
 

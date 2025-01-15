@@ -8,7 +8,7 @@ const CampaignManager = preload("res://src/core/campaign/CampaignManager.gd")
 const CampaignDashboard: PackedScene = preload("res://src/scenes/campaign/components/CampaignDashboard.tscn")
 const CampaignPhaseUI: PackedScene = preload("res://src/scenes/campaign/components/CampaignPhaseUI.tscn")
 const GameEnums = preload("res://src/core/systems/GlobalEnums.gd")
-const CampaignPhaseManager = preload("res://src/core/managers/CampaignPhaseManager.gd")
+const CampaignPhaseManager = preload("res://src/core/campaign/CampaignPhaseManager.gd")
 const FiveParsecsGameState = preload("res://src/core/state/GameState.gd")
 
 # Child Nodes

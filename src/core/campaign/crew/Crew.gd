@@ -11,11 +11,11 @@ signal credits_changed(new_amount: int)
 const MAX_CREW_SIZE = 8
 const MIN_CREW_SIZE = 3
 
-@export var members: Array[Character] = []
-@export var credits: int = 1000
-@export var name: String = ""
-@export var characteristic: String = ""
-@export var meeting_story: String = ""
+var members: Array[Character] = []
+var credits: int = 1000
+var name: String = ""
+var characteristic: String = ""
+var meeting_story: String = ""
 
 func _init() -> void:
 	members = []
@@ -105,4 +105,4 @@ func get_total_survival_chance() -> float:
 	for member in members:
 		if member.has_method("get_survival_chance"):
 			total += member.get_survival_chance()
-	return total / max(members.size(), 1) 
+	return total / max(members.size(), 1)

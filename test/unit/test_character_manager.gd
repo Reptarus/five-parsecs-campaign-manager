@@ -1,4 +1,4 @@
-extends "res://tests/base_test.gd"
+extends "res://tests/fixtures/base_test.gd"
 
 const Character := preload("res://src/core/character/Base/Character.gd")
 const GameWeapon := preload("res://src/core/systems/items/Weapon.gd")
@@ -19,6 +19,7 @@ func before_each() -> void:
 	test_character.character_class = GameEnums.CharacterClass.SOLDIER
 	
 	add_child(character_manager)
+	track_node(character_manager)
 	error_messages.clear()
 
 func after_each() -> void:
@@ -54,10 +55,9 @@ func test_remove_character() -> void:
 
 func test_character_status_update() -> void:
 	character_manager.add_character(test_character)
-	character_manager.update_character_status(test_character, GameEnums.CharacterStatus.INJURED)
+	character_manager.update_character_status(test_character.character_id, GameEnums.CharacterStatus.INJURED)
 	
-	var loaded_character: Character = character_manager.get_character("test_character")
-	assert_eq(loaded_character.status, GameEnums.CharacterStatus.INJURED)
+	assert_true(test_character.status == GameEnums.CharacterStatus.INJURED, "Character status should be updated to INJURED")
 
 func test_character_health_management() -> void:
 	character_manager.add_character(test_character)

@@ -57,7 +57,7 @@ func _connect_signals() -> void:
 	var action_buttons = $BattleLayout/MainContent/SidePanel/VBoxContainer/ActionPanel/VBoxContainer/ActionButtons
 	action_buttons.get_node("MoveButton").pressed.connect(_on_action_button_pressed.bind(GameEnums.UnitAction.MOVE))
 	action_buttons.get_node("AttackButton").pressed.connect(_on_action_button_pressed.bind(GameEnums.UnitAction.ATTACK))
-	action_buttons.get_node("DashButton").pressed.connect(_on_action_button_pressed.bind(GameEnums.UnitAction.DASH))
+	action_buttons.get_node("DashButton").pressed.connect(_on_action_button_pressed.bind(GameEnums.UnitAction.MOVE))
 	action_buttons.get_node("ItemsButton").pressed.connect(_on_action_button_pressed.bind(GameEnums.UnitAction.ITEMS))
 	action_buttons.get_node("BrawlButton").pressed.connect(_on_action_button_pressed.bind(GameEnums.UnitAction.BRAWL))
 	action_buttons.get_node("EndTurnButton").pressed.connect(_on_end_turn_pressed)
@@ -177,7 +177,7 @@ func _on_action_button_pressed(action: GameEnums.UnitAction) -> void:
 	_update_ui()
 	
 	match action:
-		GameEnums.UnitAction.MOVE, GameEnums.UnitAction.DASH:
+		GameEnums.UnitAction.MOVE:
 			battlefield.show_movement_range(selected_unit)
 		GameEnums.UnitAction.ATTACK:
 			battlefield.show_attack_range(selected_unit)

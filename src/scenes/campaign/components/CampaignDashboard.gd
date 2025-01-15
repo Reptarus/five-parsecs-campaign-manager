@@ -6,7 +6,7 @@ class_name CampaignDashboard
 const GameEnums = preload("res://src/core/systems/GlobalEnums.gd")
 const FiveParsecsGameState = preload("res://src/core/state/GameState.gd")
 const Character = preload("res://src/core/character/Base/Character.gd")
-const CampaignPhaseManager = preload("res://src/core/managers/CampaignPhaseManager.gd")
+const CampaignPhaseManager = preload("res://src/core/campaign/CampaignPhaseManager.gd")
 
 # Campaign Turn Steps (as per core rules)
 enum CampaignStep {
@@ -72,7 +72,8 @@ func setup(state: FiveParsecsGameState) -> void:
 	if game_state:
 		current_step = game_state.current_step
 		current_turn = game_state.current_turn
-		phase_manager = CampaignPhaseManager.new(game_state, game_state.campaign_manager)
+		phase_manager = CampaignPhaseManager.new()
+		phase_manager.initialize(game_state, game_state.campaign_manager)
 		phase_manager.phase_changed.connect(_on_phase_changed)
 		phase_manager.phase_completed.connect(_on_phase_completed)
 		_update_display()

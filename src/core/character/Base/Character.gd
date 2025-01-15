@@ -93,11 +93,9 @@ func can_perform_action(action: GameEnums.UnitAction) -> bool:
 	
 	match action:
 		GameEnums.UnitAction.MOVE:
-			return action_points >= 1
+			return action_points >= 2
 		GameEnums.UnitAction.ATTACK:
 			return action_points >= 1 and equipment["ranged_weapon"] != null
-		GameEnums.UnitAction.DASH:
-			return action_points >= 2
 		GameEnums.UnitAction.ITEMS:
 			return action_points >= 1 and not equipment["gear"].is_empty()
 		GameEnums.UnitAction.BRAWL:
@@ -110,8 +108,6 @@ func can_perform_action(action: GameEnums.UnitAction) -> bool:
 			return action_points >= 1
 		GameEnums.UnitAction.RELOAD:
 			return action_points >= 1 and equipment["ranged_weapon"] != null
-		GameEnums.UnitAction.INTERACT:
-			return action_points >= 1
 		_:
 			return false
 
@@ -122,9 +118,9 @@ func perform_action(action: GameEnums.UnitAction) -> void:
 			GameEnums.UnitAction.MOVE, GameEnums.UnitAction.ATTACK, \
 			GameEnums.UnitAction.ITEMS, GameEnums.UnitAction.BRAWL, \
 			GameEnums.UnitAction.SNAP_FIRE, GameEnums.UnitAction.TAKE_COVER, \
-			GameEnums.UnitAction.RELOAD, GameEnums.UnitAction.INTERACT:
+			GameEnums.UnitAction.RELOAD:
 				action_points -= 1
-			GameEnums.UnitAction.DASH, GameEnums.UnitAction.OVERWATCH:
+			GameEnums.UnitAction.OVERWATCH:
 				action_points -= 2
 
 func _initialize_character() -> void:

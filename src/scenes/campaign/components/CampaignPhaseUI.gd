@@ -2,6 +2,7 @@ class_name CampaignPhaseUI
 extends Control
 
 const GameEnums = preload("res://src/core/systems/GlobalEnums.gd")
+const CampaignPhaseManager = preload("res://src/core/campaign/CampaignPhaseManager.gd")
 
 signal action_requested(action_type: String)
 

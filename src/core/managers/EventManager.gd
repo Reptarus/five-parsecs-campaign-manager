@@ -141,7 +141,11 @@ const MISSION_EVENTS = {
 func initialize(state: FiveParsecsGameState) -> void:
 	game_state = state
 	resource_system = get_node("/root/Game/Systems/ResourceSystem")
-	mission_generator = get_node("/root/Game/Systems/MissionGenerator")
+	var mission_gen = get_node("/root/Game/Systems/MissionGenerator")
+	if mission_gen is MissionGenerator:
+		mission_generator = mission_gen
+	else:
+		push_error("Failed to get MissionGenerator node")
 	active_events.clear()
 	event_history.clear()
 	event_cooldowns.clear()

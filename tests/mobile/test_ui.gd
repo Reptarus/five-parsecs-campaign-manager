@@ -1,37 +1,48 @@
-extends "res://tests/base_test.gd"
+@tool
+extends BaseTest
 
 # Load required scripts
-var UIManager = load("res://src/ui/screens/UIManager.gd")
-var GameplayOptionsMenu = load("res://src/ui/screens/gameplay_options_menu.gd")
+const UIManager = preload("res://src/ui/screens/UIManager.gd")
+const GameplayOptionsMenu = preload("res://src/ui/screens/gameplay_options_menu.gd")
 
 # Test variables
 var ui_manager: Node
 var options_menu: Node
 
-func before_all():
+func before_all() -> void:
     super.before_all()
-    ui_manager = UIManager.new()
-    options_menu = GameplayOptionsMenu.new()
+    ui_manager = _create_ui_manager()
+    options_menu = _create_options_menu()
     add_child(ui_manager)
     add_child(options_menu)
+    track_node(ui_manager)
+    track_node(options_menu)
     
-func after_all():
+func after_all() -> void:
     super.after_all()
-    await cleanup_node(ui_manager)
-    await cleanup_node(options_menu)
 
-func before_each():
+func before_each() -> void:
     super.before_each()
     # Reset UI state before each test
     if ui_manager.has_method("reset"):
         ui_manager.reset()
 
+func _create_ui_manager() -> Node:
+    var manager := Node.new()
+    manager.set_script(UIManager)
+    return manager
+
+func _create_options_menu() -> Node:
+    var menu := Node.new()
+    menu.set_script(GameplayOptionsMenu)
+    return menu
+
 # UI Manager Tests
-func test_ui_manager_initialization():
+func test_ui_manager_initialization() -> void:
     assert_not_null(ui_manager, "UI Manager should be initialized")
     assert_true(ui_manager.is_inside_tree(), "UI Manager should be in scene tree")
 
-func test_screen_transitions():
+func test_screen_transitions() -> void:
     var transition_successful = ui_manager.transition_to_screen("main_menu")
     assert_true(transition_successful, "Should transition to main menu")
     assert_eq(ui_manager.get_current_screen(), "main_menu", "Current screen should be main menu")
@@ -94,4 +105,4 @@ func test_ui_responsiveness():
     await get_tree().create_timer(0.1).timeout
     var main_menu = ui_manager.get_current_screen_node()
     assert_true(main_menu.size.x <= viewport_size.x, "UI should fit viewport width")
-    assert_true(main_menu.size.y <= viewport_size.y, "UI should fit viewport height") 
+    assert_true(main_menu.size.y <= viewport_size.y, "UI should fit viewport height")

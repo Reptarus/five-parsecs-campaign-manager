@@ -1,6 +1,8 @@
 {
-    "dirs": ["res://tests/"],
-    "double_strategy": "partial",
+    "dirs": [
+        "res://tests/"
+    ],
+    "double_strategy": "script_only",
     "ignore_pause": true,
     "include_subdirs": true,
     "inner_class": false,
@@ -12,5 +14,6 @@
     "should_maximize": true,
     "suffix": ".gd",
     "tests": [],
-    "unit_test_name": ""
-} 
+    "unit_test_name": "",
+    "post_run_script": "res://tests/fixtures/post_run.gd",
+    "pre_run_script": "res://tests/fixtures

@@ -95,7 +95,8 @@ func test_character_status():
 		func(character): signal_emitted = true
 	)
 	
-	character_manager.update_character_status(test_character, GameEnums.CharacterStatus.INJURED)
+	var character_id = test_character.character_id
+	character_manager.update_character_status(character_id, GameEnums.CharacterStatus.INJURED)
 	
 	assert_true(signal_emitted,
 		"Character updated signal should be emitted")
@@ -123,3 +124,9 @@ func test_experience_system():
 	
 	assert_eq(test_character.xp, initial_xp + 100,
 		"Character should gain correct amount of experience")
+
+func test_character_status_update() -> void:
+	character_manager.add_character(test_character)
+	var character_id = test_character.character_id
+	character_manager.update_character_status(character_id, GameEnums.CharacterStatus.INJURED)
+	assert_true(test_character.status == GameEnums.CharacterStatus.INJURED, "Character status should be updated to INJURED")

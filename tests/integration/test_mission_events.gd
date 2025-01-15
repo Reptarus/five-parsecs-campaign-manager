@@ -1,33 +1,31 @@
-extends "res://addons/gut/test.gd"
+@tool
+extends BaseTest
 
-const GameEnums = preload("res://src/core/systems/GlobalEnums.gd")
+# Dependencies - only include what's not in BaseTest
 const Mission = preload("res://src/core/systems/Mission.gd")
-const EventManager = preload("res://src/core/managers/EventManager.gd")
-const MissionGenerator = preload("res://src/core/systems/MissionGenerator.gd")
 const TerrainSystem = preload("res://src/core/terrain/TerrainSystem.gd")
 const RivalSystem = preload("res://src/core/rivals/RivalSystem.gd")
 const PositionValidator = preload("res://src/core/systems/PositionValidator.gd")
-const ResourceSystem = preload("res://src/core/systems/ResourceSystem.gd")
-const FiveParsecsGameState = preload("res://src/core/state/GameState.gd")
 
-var _event_manager: EventManager
-var _mission_generator: MissionGenerator
+var _event_manager: Node
+var _mission_generator: Node
 var _terrain_system: TerrainSystem
 var _rival_system: RivalSystem
 var _position_validator: PositionValidator
-var _resource_system: ResourceSystem
-var _game_state: FiveParsecsGameState
+var _resource_system: Node
+var game_state: GameState
 
-func before_each():
-    _game_state = FiveParsecsGameState.new()
-    _event_manager = EventManager.new()
-    _mission_generator = MissionGenerator.new()
+func before_each() -> void:
+    super.before_each()
+    game_state = create_test_game_state()
+    _event_manager = _create_event_manager()
+    _mission_generator = _create_mission_generator()
     _terrain_system = TerrainSystem.new()
     _rival_system = RivalSystem.new()
     _position_validator = PositionValidator.new()
-    _resource_system = ResourceSystem.new()
+    _resource_system = _create_resource_system()
     
-    _event_manager.initialize(_game_state)
+    _event_manager.initialize(game_state)
     _mission_generator.setup(
         _terrain_system,
         _rival_system,
@@ -38,18 +36,34 @@ func before_each():
     
     add_child(_event_manager)
     add_child(_mission_generator)
+    track_node(_event_manager)
+    track_node(_mission_generator)
 
-func after_each():
-    _event_manager.queue_free()
-    _mission_generator.queue_free()
-    _terrain_system.queue_free()
-    _rival_system.queue_free()
-    _position_validator.queue_free()
-    _resource_system.queue_free()
-    _game_state.free()
+func after_each() -> void:
+    super.after_each()
+    _terrain_system.free()
+    _rival_system.free()
+    _position_validator.free()
 
-func test_mission_event_integration():
+func _create_event_manager() -> Node:
+    var manager := Node.new()
+    manager.set_script(load("res://src/core/managers/EventManager.gd"))
+    return manager
+
+func _create_mission_generator() -> Node:
+    var generator := Node.new()
+    generator.set_script(load("res://src/core/systems/MissionGenerator.gd"))
+    return generator
+
+func _create_resource_system() -> Node:
+    var system := Node.new()
+    system.set_script(load("res://src/core/systems/ResourceSystem.gd"))
+    return system
+
+# Test Cases
+func test_mission_event_integration() -> void:
     var mission = Mission.new()
+    track_resource(mission)
     mission.mission_type = GameEnums.MissionType.RED_ZONE
     mission.difficulty = GameEnums.DifficultyLevel.NORMAL
     
@@ -152,7 +166,7 @@ func test_event_resolution():
     _event_manager._process_mission_events()
     
     # Advance game state turns to force event resolution
-    _game_state.current_turn += 10
+    game_state.current_turn += 10
     _event_manager._process_mission_events()
     
     var final_difficulty = mission.get_effective_difficulty()
