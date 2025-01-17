@@ -30,7 +30,7 @@ const DEFAULT_CONFIG = {
 
 const EDITOR_CONFIG = {
 	"background_color": Color(0.2, 0.2, 0.2, 1),
-	"font": "CourierPrime",
+	"font": "",
 	"font_size": 16,
 	"hide_orphans": true,
 	"include_subdirs": true,
@@ -38,7 +38,6 @@ const EDITOR_CONFIG = {
 	"compact_mode": false,
 	"opacity": 100,
 	"panel_options": {
-		"font": "CourierPrime",
 		"font_size": 16
 	}
 }
@@ -115,6 +114,7 @@ extends Node
 
 func _init() -> void:
 	print("Running%s-test hook...")
+	await get_tree().process_frame
 
 func setup() -> void:
 	# Add your %s-test setup code here

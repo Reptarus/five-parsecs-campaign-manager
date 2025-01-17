@@ -1,5 +1,153 @@
-[node name="VictoryProgressContainer" type="PanelContainer" parent="MarginContainer/VBoxContainer"]
-layout_mode = 2
-size_flags_vertical = 0
+[gd_scene load_steps=2 format=3 uid="uid://b6x8y0q5n3j4w"]
 
-# ... existing code ... 
+[ext_resource type="Script" path="res://src/ui/screens/campaign/CampaignDashboard.gd" id="1_y4r2p"]
+
+[node name="CampaignDashboard" type="Control"]
+layout_mode = 3
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+script = ExtResource("1_y4r2p")
+
+[node name="Background" type="ColorRect" parent="."]
+layout_mode = 1
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+color = Color(0.12549, 0.12549, 0.12549, 1)
+
+[node name="MarginContainer" type="MarginContainer" parent="."]
+layout_mode = 1
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+theme_override_constants/margin_left = 20
+theme_override_constants/margin_top = 20
+theme_override_constants/margin_right = 20
+theme_override_constants/margin_bottom = 20
+
+[node name="VBoxContainer" type="VBoxContainer" parent="MarginContainer"]
+layout_mode = 2
+theme_override_constants/separation = 20
+
+[node name="Header" type="PanelContainer" parent="MarginContainer/VBoxContainer"]
+layout_mode = 2
+
+[node name="HBoxContainer" type="HBoxContainer" parent="MarginContainer/VBoxContainer/Header"]
+layout_mode = 2
+theme_override_constants/separation = 20
+alignment = 1
+
+[node name="PhaseLabel" type="Label" parent="MarginContainer/VBoxContainer/Header/HBoxContainer"]
+layout_mode = 2
+text = "Current Phase: Setup"
+
+[node name="ResourcesPanel" type="PanelContainer" parent="MarginContainer/VBoxContainer/Header/HBoxContainer"]
+layout_mode = 2
+
+[node name="HBoxContainer" type="HBoxContainer" parent="MarginContainer/VBoxContainer/Header/HBoxContainer/ResourcesPanel"]
+layout_mode = 2
+theme_override_constants/separation = 20
+
+[node name="CreditsLabel" type="Label" parent="MarginContainer/VBoxContainer/Header/HBoxContainer/ResourcesPanel/HBoxContainer"]
+layout_mode = 2
+text = "Credits: 0"
+
+[node name="StoryPointsLabel" type="Label" parent="MarginContainer/VBoxContainer/Header/HBoxContainer/ResourcesPanel/HBoxContainer"]
+layout_mode = 2
+text = "Story Points: 0"
+
+[node name="Content" type="HBoxContainer" parent="MarginContainer/VBoxContainer"]
+layout_mode = 2
+size_flags_vertical = 3
+theme_override_constants/separation = 20
+
+[node name="LeftPanel" type="VBoxContainer" parent="MarginContainer/VBoxContainer/Content"]
+layout_mode = 2
+size_flags_horizontal = 3
+theme_override_constants/separation = 20
+
+[node name="CrewPanel" type="PanelContainer" parent="MarginContainer/VBoxContainer/Content/LeftPanel"]
+layout_mode = 2
+size_flags_vertical = 3
+
+[node name="VBoxContainer" type="VBoxContainer" parent="MarginContainer/VBoxContainer/Content/LeftPanel/CrewPanel"]
+layout_mode = 2
+
+[node name="Label" type="Label" parent="MarginContainer/VBoxContainer/Content/LeftPanel/CrewPanel/VBoxContainer"]
+layout_mode = 2
+text = "Crew"
+horizontal_alignment = 1
+
+[node name="CrewList" type="ItemList" parent="MarginContainer/VBoxContainer/Content/LeftPanel/CrewPanel/VBoxContainer"]
+layout_mode = 2
+size_flags_vertical = 3
+
+[node name="ShipPanel" type="PanelContainer" parent="MarginContainer/VBoxContainer/Content/LeftPanel"]
+layout_mode = 2
+size_flags_vertical = 3
+
+[node name="VBoxContainer" type="VBoxContainer" parent="MarginContainer/VBoxContainer/Content/LeftPanel/ShipPanel"]
+layout_mode = 2
+
+[node name="Label" type="Label" parent="MarginContainer/VBoxContainer/Content/LeftPanel/ShipPanel/VBoxContainer"]
+layout_mode = 2
+text = "Ship"
+horizontal_alignment = 1
+
+[node name="ShipInfo" type="RichTextLabel" parent="MarginContainer/VBoxContainer/Content/LeftPanel/ShipPanel/VBoxContainer"]
+layout_mode = 2
+size_flags_vertical = 3
+bbcode_enabled = true
+text = "No Ship Data"
+
+[node name="RightPanel" type="VBoxContainer" parent="MarginContainer/VBoxContainer/Content"]
+layout_mode = 2
+size_flags_horizontal = 3
+theme_override_constants/separation = 20
+
+[node name="PhaseContent" type="PanelContainer" parent="MarginContainer/VBoxContainer/Content/RightPanel"]
+layout_mode = 2
+size_flags_vertical = 3
+
+[node name="ScrollContainer" type="ScrollContainer" parent="MarginContainer/VBoxContainer/Content/RightPanel/PhaseContent"]
+layout_mode = 2
+
+[node name="VBoxContainer" type="VBoxContainer" parent="MarginContainer/VBoxContainer/Content/RightPanel/PhaseContent/ScrollContainer"]
+layout_mode = 2
+size_flags_horizontal = 3
+size_flags_vertical = 3
+
+[node name="Footer" type="PanelContainer" parent="MarginContainer/VBoxContainer"]
+layout_mode = 2
+
+[node name="HBoxContainer" type="HBoxContainer" parent="MarginContainer/VBoxContainer/Footer"]
+layout_mode = 2
+theme_override_constants/separation = 20
+alignment = 1
+
+[node name="NextPhaseButton" type="Button" parent="MarginContainer/VBoxContainer/Footer/HBoxContainer"]
+layout_mode = 2
+text = "Next Phase"
+
+[node name="ManageCrewButton" type="Button" parent="MarginContainer/VBoxContainer/Footer/HBoxContainer"]
+layout_mode = 2
+text = "Manage Crew"
+
+[node name="SaveButton" type="Button" parent="MarginContainer/VBoxContainer/Footer/HBoxContainer"]
+layout_mode = 2
+text = "Save Campaign"
+
+[node name="LoadButton" type="Button" parent="MarginContainer/VBoxContainer/Footer/HBoxContainer"]
+layout_mode = 2
+text = "Load Campaign"
+
+[node name="QuitButton" type="Button" parent="MarginContainer/VBoxContainer/Footer/HBoxContainer"]
+layout_mode = 2
+text = "Quit Campaign" 

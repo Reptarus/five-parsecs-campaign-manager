@@ -1,196 +1,135 @@
-extends Node
+class_name Campaign
+extends Resource
 
 const GameEnums = preload("res://src/core/systems/GlobalEnums.gd")
 const Character = preload("res://src/core/character/Base/Character.gd")
 
-# Signals
-signal campaign_started(campaign_data: Dictionary)
-signal campaign_ended(result: Dictionary)
-signal phase_changed(new_phase: int)
-signal resource_changed(resource_type: int, amount: int)
-signal world_event_triggered(event_type: int)
-signal location_changed(new_location: String)
-signal event_occurred(event_data: Dictionary)
-signal story_mission_started(mission)
-signal battle_setup_started(battle)
-signal battle_resolved(battle)
+signal campaign_started
+signal campaign_ended
+signal phase_changed(new_phase: GameEnums.CampaignPhase)
+signal resources_changed(resource_type: GameEnums.ResourceType, amount: int)
 
-# Campaign identification
-@export var campaign_name: String = ""
-@export var campaign_id: String = ""
-@export var creation_date: String = ""
-@export var last_saved: String = ""
+# Campaign Data
+var campaign_name: String
+var difficulty: GameEnums.DifficultyLevel = GameEnums.DifficultyLevel.NORMAL
+var current_phase: GameEnums.CampaignPhase = GameEnums.CampaignPhase.SETUP
+var campaign_turn: int = 0
 
-# Campaign state
-@export var current_phase: int = GameEnums.CampaignPhase.SETUP
-@export var current_turn: int = 1
-@export var current_location: String = ""
-@export var is_active: bool = true
-@export var difficulty_level: int = GameEnums.DifficultyLevel.NORMAL
+# Crew Data
+var crew_members: Array[Character] = []
+var captain: Character
 
-# Resources and progress tracking
-var resources: Dictionary = {}
-var story_progress: Dictionary = {}
-var active_missions: Array = []
+# Resources
+var resources: Dictionary = {
+	GameEnums.ResourceType.CREDITS: 1000,
+	GameEnums.ResourceType.SUPPLIES: 5,
+	GameEnums.ResourceType.TECH_PARTS: 0,
+	GameEnums.ResourceType.PATRON: 0
+}
+
+# Campaign Progress
+var story_points: int = 0
 var completed_missions: Array = []
-var campaign_log: Array = []
-var current_story_mission = null
-var current_battle = null
+var available_missions: Array = []
+var faction_standings: Dictionary = {}
 
-func _init() -> void:
-	_initialize_resources()
-	_initialize_story_progress()
-
-func _initialize_resources() -> void:
-	resources = {
-		GameEnums.ResourceType.CREDITS: 0,
-		GameEnums.ResourceType.SUPPLIES: 0,
-		GameEnums.ResourceType.TECH_PARTS: 0,
-		GameEnums.ResourceType.PATRON: 0
-	}
-
-func _initialize_story_progress() -> void:
-	story_progress = {
-		"main_quest_stage": 0,
-		"side_quests_completed": 0,
-		"world_events_resolved": 0,
-		"story_milestones": []
-	}
-
-func start_campaign(config: Dictionary = {}) -> void:
+func start_campaign(config: Dictionary) -> void:
 	campaign_name = config.get("name", "New Campaign")
-	difficulty_level = config.get("difficulty", GameEnums.DifficultyLevel.NORMAL)
-	creation_date = Time.get_datetime_string_from_system()
-	is_active = true
-	current_phase = GameEnums.CampaignPhase.SETUP
+	difficulty = config.get("difficulty", GameEnums.DifficultyLevel.NORMAL)
 	
-	# Initialize starting resources
+	# Set initial resources based on difficulty
 	resources[GameEnums.ResourceType.CREDITS] = config.get("starting_credits", 1000)
 	resources[GameEnums.ResourceType.SUPPLIES] = config.get("starting_supplies", 5)
 	
-	campaign_started.emit({
-		"name": campaign_name,
-		"difficulty": difficulty_level,
-		"start_date": creation_date
-	})
+	# Set crew data
+	crew_members = config.get("crew", [])
+	captain = config.get("captain", null)
+	
+	campaign_started.emit()
 
 func end_campaign() -> void:
-	is_active = false
-	last_saved = Time.get_datetime_string_from_system()
+	campaign_ended.emit()
+
+func advance_phase(new_phase: GameEnums.CampaignPhase) -> void:
+	current_phase = new_phase
+	phase_changed.emit(new_phase)
+
+func get_resource(type: GameEnums.ResourceType) -> int:
+	return resources.get(type, 0)
+
+func set_resource(type: GameEnums.ResourceType, amount: int) -> void:
+	resources[type] = amount
+	resources_changed.emit(type, amount)
+
+func add_resource(type: GameEnums.ResourceType, amount: int) -> void:
+	var current = get_resource(type)
+	set_resource(type, current + amount)
+
+func remove_resource(type: GameEnums.ResourceType, amount: int) -> bool:
+	var current = get_resource(type)
+	if current >= amount:
+		set_resource(type, current - amount)
+		return true
+	return false
+
+func has_enough_resource(type: GameEnums.ResourceType, amount: int) -> bool:
+	return get_resource(type) >= amount
+
+func add_mission(mission: Dictionary) -> void:
+	available_missions.append(mission)
+
+func complete_mission(mission: Dictionary) -> void:
+	if mission in available_missions:
+		available_missions.erase(mission)
+		completed_missions.append(mission)
+
+func set_faction_standing(faction: String, value: float) -> void:
+	faction_standings[faction] = clampf(value, -100.0, 100.0)
+
+func get_faction_standing(faction: String) -> float:
+	return faction_standings.get(faction, 0.0)
+
+# Serialization
+func to_dictionary() -> Dictionary:
+	var crew_data = []
+	for member in crew_members:
+		crew_data.append(member.to_dictionary())
 	
-	campaign_ended.emit({
-		"name": campaign_name,
-		"turns_completed": current_turn,
-		"missions_completed": completed_missions.size(),
-		"final_resources": resources.duplicate()
-	})
-
-func advance_phase() -> void:
-	var next_phase := _get_next_phase()
-	current_phase = next_phase
-	phase_changed.emit(next_phase)
-
-func modify_resource(resource_type: GameEnums.ResourceType, amount: int) -> void:
-	if resource_type in resources:
-		resources[resource_type] += amount
-		resource_changed.emit(resource_type, amount)
-
-func trigger_world_event(event_type: GameEnums.GlobalEvent) -> void:
-	world_event_triggered.emit(event_type)
-
-func _get_next_phase() -> GameEnums.CampaignPhase:
-	match current_phase:
-		GameEnums.CampaignPhase.SETUP:
-			return GameEnums.CampaignPhase.UPKEEP
-		GameEnums.CampaignPhase.UPKEEP:
-			return GameEnums.CampaignPhase.STORY
-		GameEnums.CampaignPhase.STORY:
-			return GameEnums.CampaignPhase.CAMPAIGN
-		GameEnums.CampaignPhase.CAMPAIGN:
-			return GameEnums.CampaignPhase.BATTLE_SETUP
-		GameEnums.CampaignPhase.BATTLE_SETUP:
-			return GameEnums.CampaignPhase.BATTLE_RESOLUTION
-		GameEnums.CampaignPhase.BATTLE_RESOLUTION:
-			return GameEnums.CampaignPhase.ADVANCEMENT
-		GameEnums.CampaignPhase.ADVANCEMENT:
-			return GameEnums.CampaignPhase.TRADE
-		GameEnums.CampaignPhase.TRADE:
-			return GameEnums.CampaignPhase.END
-		GameEnums.CampaignPhase.END:
-			return GameEnums.CampaignPhase.UPKEEP
-		_:
-			return GameEnums.CampaignPhase.SETUP
-
-func get_resources() -> Dictionary:
-	return resources.duplicate()
-
-func get_story_progress() -> Dictionary:
-	return story_progress.duplicate()
-
-func add_campaign_log_entry(entry: Dictionary) -> void:
-	entry["timestamp"] = Time.get_unix_time_from_system()
-	campaign_log.append(entry)
-	event_occurred.emit(entry)
-
-func get_campaign_log() -> Array:
-	return campaign_log.duplicate()
-
-func serialize() -> Dictionary:
 	return {
 		"campaign_name": campaign_name,
-		"campaign_id": campaign_id,
-		"creation_date": creation_date,
-		"last_saved": last_saved,
+		"difficulty": difficulty,
 		"current_phase": current_phase,
-		"current_turn": current_turn,
-		"current_location": current_location,
-		"is_active": is_active,
-		"difficulty_level": difficulty_level,
+		"campaign_turn": campaign_turn,
+		"crew_members": crew_data,
+		"captain": captain.to_dictionary() if captain else null,
 		"resources": resources.duplicate(),
-		"story_progress": story_progress.duplicate(),
-		"active_missions": active_missions.duplicate(),
+		"story_points": story_points,
 		"completed_missions": completed_missions.duplicate(),
-		"campaign_log": campaign_log.duplicate()
+		"available_missions": available_missions.duplicate(),
+		"faction_standings": faction_standings.duplicate()
 	}
 
-func deserialize(data: Dictionary) -> void:
-	campaign_name = data.get("campaign_name", "")
-	campaign_id = data.get("campaign_id", "")
-	creation_date = data.get("creation_date", "")
-	last_saved = data.get("last_saved", "")
+func from_dictionary(data: Dictionary) -> void:
+	campaign_name = data.get("campaign_name", "New Campaign")
+	difficulty = data.get("difficulty", GameEnums.DifficultyLevel.NORMAL)
 	current_phase = data.get("current_phase", GameEnums.CampaignPhase.SETUP)
-	current_turn = data.get("current_turn", 1)
-	current_location = data.get("current_location", "")
-	is_active = data.get("is_active", true)
-	difficulty_level = data.get("difficulty_level", GameEnums.DifficultyLevel.NORMAL)
+	campaign_turn = data.get("campaign_turn", 0)
+	
+	# Load crew data
+	crew_members.clear()
+	for member_data in data.get("crew_members", []):
+		var member = Character.new()
+		member.from_dictionary(member_data)
+		crew_members.append(member)
+	
+	# Load captain data
+	var captain_data = data.get("captain")
+	if captain_data:
+		captain = Character.new()
+		captain.from_dictionary(captain_data)
+	
 	resources = data.get("resources", {}).duplicate()
-	story_progress = data.get("story_progress", {}).duplicate()
-	active_missions = data.get("active_missions", []).duplicate()
+	story_points = data.get("story_points", 0)
 	completed_missions = data.get("completed_missions", []).duplicate()
-	campaign_log = data.get("campaign_log", []).duplicate()
-
-func _on_phase_changed(new_phase: int) -> void:
-	match new_phase:
-		GameEnums.CampaignPhase.STORY:
-			_handle_story_phase()
-		GameEnums.CampaignPhase.BATTLE_SETUP:
-			_handle_battle_setup()
-		GameEnums.CampaignPhase.BATTLE_RESOLUTION:
-			_handle_battle_resolution()
-		_:
-			pass
-
-func _handle_story_phase() -> void:
-	# Handle story phase logic
-	if current_story_mission:
-		emit_signal("story_mission_started", current_story_mission)
-
-func _handle_battle_setup() -> void:
-	# Handle battle setup logic
-	if current_battle:
-		emit_signal("battle_setup_started", current_battle)
-
-func _handle_battle_resolution() -> void:
-	# Handle battle resolution logic
-	if current_battle:
-		emit_signal("battle_resolved", current_battle)
+	available_missions = data.get("available_missions", []).duplicate()
+	faction_standings = data.get("faction_standings", {}).duplicate()

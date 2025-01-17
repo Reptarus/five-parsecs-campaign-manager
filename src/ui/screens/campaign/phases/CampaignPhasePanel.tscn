@@ -1,0 +1,62 @@
+[gd_scene load_steps=2 format=3 uid="uid://d8x7y0q5n3j4w"]
+
+[ext_resource type="Script" path="res://src/ui/screens/campaign/phases/CampaignPhasePanel.gd" id="1_y4r2p"]
+
+[node name="CampaignPhasePanel" type="PanelContainer"]
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+script = ExtResource("1_y4r2p")
+
+[node name="VBoxContainer" type="VBoxContainer" parent="."]
+layout_mode = 2
+theme_override_constants/separation = 10
+
+[node name="TitleLabel" type="Label" parent="VBoxContainer"]
+layout_mode = 2
+text = "Campaign Phase"
+horizontal_alignment = 1
+
+[node name="HSeparator" type="HSeparator" parent="VBoxContainer"]
+layout_mode = 2
+
+[node name="LocationLabel" type="Label" parent="VBoxContainer"]
+layout_mode = 2
+text = "Checking current location..."
+horizontal_alignment = 1
+
+[node name="LocationDescription" type="RichTextLabel" parent="VBoxContainer"]
+layout_mode = 2
+size_flags_vertical = 3
+bbcode_enabled = true
+text = "Loading location details..."
+fit_content = true
+
+[node name="HSeparator2" type="HSeparator" parent="VBoxContainer"]
+layout_mode = 2
+
+[node name="MissionLabel" type="Label" parent="VBoxContainer"]
+layout_mode = 2
+text = "Available Missions"
+horizontal_alignment = 1
+
+[node name="MissionContainer" type="VBoxContainer" parent="VBoxContainer"]
+layout_mode = 2
+theme_override_constants/separation = 5
+
+[node name="MissionDetails" type="RichTextLabel" parent="VBoxContainer"]
+layout_mode = 2
+size_flags_vertical = 3
+bbcode_enabled = true
+text = "Select a mission to view details"
+fit_content = true
+
+[node name="HSeparator3" type="HSeparator" parent="VBoxContainer"]
+layout_mode = 2
+
+[node name="AcceptButton" type="Button" parent="VBoxContainer"]
+layout_mode = 2
+disabled = true
+text = "Accept Mission" 

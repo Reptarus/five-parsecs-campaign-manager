@@ -1,0 +1,103 @@
+[gd_scene load_steps=2 format=3 uid="uid://b3wc2cq0m72j"]
+
+[ext_resource type="Script" path="res://src/ui/screens/campaign/panels/ResourcePanel.gd" id="1_8ykjc"]
+
+[node name="ResourcePanel" type="Control"]
+layout_mode = 3
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+script = ExtResource("1_8ykjc")
+
+[node name="Content" type="VBoxContainer" parent="."]
+layout_mode = 1
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+theme_override_constants/separation = 20
+
+[node name="Title" type="Label" parent="Content"]
+layout_mode = 2
+theme_override_font_sizes/font_size = 24
+text = "Starting Resources"
+horizontal_alignment = 1
+
+[node name="Description" type="Label" parent="Content"]
+layout_mode = 2
+text = "These are your starting resources based on the selected difficulty level."
+horizontal_alignment = 1
+autowrap_mode = 2
+
+[node name="Resources" type="VBoxContainer" parent="Content"]
+layout_mode = 2
+size_flags_vertical = 3
+theme_override_constants/separation = 20
+alignment = 1
+
+[node name="Credits" type="HBoxContainer" parent="Content/Resources"]
+layout_mode = 2
+theme_override_constants/separation = 20
+alignment = 1
+
+[node name="Label" type="Label" parent="Content/Resources/Credits"]
+custom_minimum_size = Vector2(150, 0)
+layout_mode = 2
+text = "Credits:"
+horizontal_alignment = 2
+
+[node name="Value" type="Label" parent="Content/Resources/Credits"]
+custom_minimum_size = Vector2(100, 0)
+layout_mode = 2
+text = "1000"
+
+[node name="Supplies" type="HBoxContainer" parent="Content/Resources"]
+layout_mode = 2
+theme_override_constants/separation = 20
+alignment = 1
+
+[node name="Label" type="Label" parent="Content/Resources/Supplies"]
+custom_minimum_size = Vector2(150, 0)
+layout_mode = 2
+text = "Supplies:"
+horizontal_alignment = 2
+
+[node name="Value" type="Label" parent="Content/Resources/Supplies"]
+custom_minimum_size = Vector2(100, 0)
+layout_mode = 2
+text = "5"
+
+[node name="TechParts" type="HBoxContainer" parent="Content/Resources"]
+layout_mode = 2
+theme_override_constants/separation = 20
+alignment = 1
+
+[node name="Label" type="Label" parent="Content/Resources/TechParts"]
+custom_minimum_size = Vector2(150, 0)
+layout_mode = 2
+text = "Tech Parts:"
+horizontal_alignment = 2
+
+[node name="Value" type="Label" parent="Content/Resources/TechParts"]
+custom_minimum_size = Vector2(100, 0)
+layout_mode = 2
+text = "0"
+
+[node name="Patron" type="HBoxContainer" parent="Content/Resources"]
+layout_mode = 2
+theme_override_constants/separation = 20
+alignment = 1
+
+[node name="Label" type="Label" parent="Content/Resources/Patron"]
+custom_minimum_size = Vector2(150, 0)
+layout_mode = 2
+text = "Patron Level:"
+horizontal_alignment = 2
+
+[node name="Value" type="Label" parent="Content/Resources/Patron"]
+custom_minimum_size = Vector2(100, 0)
+layout_mode = 2
+text = "0" 

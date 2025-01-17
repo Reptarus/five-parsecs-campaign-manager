@@ -6,6 +6,7 @@ const GameEnums := preload("res://src/core/systems/GlobalEnums.gd")
 const GameState := preload("res://src/core/state/GameState.gd")
 const ResourceManager := preload("res://src/core/managers/ResourceManager.gd")
 const StoryQuestData := preload("res://src/core/story/StoryQuestData.gd")
+const GutUtils := preload("res://addons/gut/utils.gd")
 
 # Test configuration
 var _performance_monitoring := false
@@ -109,7 +110,7 @@ func assert_has(dict: Dictionary, key: String, message: String = "") -> void:
 
 func assert_valid_resource(resource: Resource, message: String = "") -> void:
 	assert_not_null(resource, "%s Expected resource to be valid" % [message if message else ""])
-	assert_true(is_instance_valid(resource), "%s Expected resource to be valid instance" % [message if message else ""])
+	assert_true(_utils.is_not_freed(resource), "%s Expected resource to be valid instance" % [message if message else ""])
 
 func assert_signal_emitted_with_data(obj: Object, signal_name: String, expected_data: Array, message: String = "") -> void:
 	assert_signal_emitted(obj, signal_name, message)
@@ -123,19 +124,19 @@ func assert_signal_emitted_with_data(obj: Object, signal_name: String, expected_
 # Resource Cleanup
 func _cleanup_test_resources() -> void:
 	for resource in _test_resources:
-		if is_instance_valid(resource):
+		if _utils.is_not_freed(resource):
 			resource.free()
 	_test_resources.clear()
 
 func _cleanup_test_nodes() -> void:
 	for node in _test_nodes:
-		if is_instance_valid(node):
+		if _utils.is_not_freed(node):
 			node.queue_free()
 	_test_nodes.clear()
 
 # State Validation
 func validate_game_state(state: GameState) -> bool:
-	if not is_instance_valid(state):
+	if not _utils.is_not_freed(state):
 		return false
 		
 	var is_valid := true
@@ -146,7 +147,7 @@ func validate_game_state(state: GameState) -> bool:
 	return is_valid
 
 func validate_resource_manager(manager: ResourceManager) -> bool:
-	if not is_instance_valid(manager):
+	if not _utils.is_not_freed(manager):
 		return false
 		
 	var is_valid := true

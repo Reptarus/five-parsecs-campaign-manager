@@ -1,17 +1,15 @@
 @tool
 extends BaseTest
 
-const GameCampaignManager = preload("res://src/core/campaign/GameCampaignManager.gd")
+const CampaignManager = preload("res://src/core/managers/CampaignManager.gd")
 const FiveParsecsGameState = preload("res://src/core/state/GameState.gd")
 
 var game_state: FiveParsecsGameState
-var campaign_manager: GameCampaignManager
+var campaign_manager: CampaignManager
 
 func before_each() -> void:
 	game_state = FiveParsecsGameState.new()
-	campaign_manager = GameCampaignManager.new(game_state)
-	add_child(campaign_manager)
-	track_node(campaign_manager)
+	campaign_manager = CampaignManager.new(game_state)
 	
 	game_state.current_phase = GameEnums.CampaignPhase.NONE
 	game_state.credits = 1000

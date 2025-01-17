@@ -563,7 +563,7 @@ func _apply_berserker_bonus(character: Character) -> void:
 	log_combat_event("%s entered berserker rage" % character.name)
 
 func _apply_medic_bonus(character: Character, target: Character) -> void:
-	if target and target.is_wounded():
+	if target and target.is_wounded:
 		var heal_amount := 2
 		target.heal_damage(heal_amount)
 		target.remove_status_effect("bleeding")

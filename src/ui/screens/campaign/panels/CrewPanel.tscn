@@ -1,0 +1,77 @@
+[gd_scene load_steps=3 format=3 uid="uid://ddmexnm0dog68"]
+
+[ext_resource type="Script" path="res://src/ui/screens/campaign/panels/CrewPanel.gd" id="1_3euny"]
+[ext_resource type="PackedScene" uid="uid://bm6c4rx645ove" path="res://src/core/character/Generation/CharacterCreator.tscn" id="2_kkjtj"]
+
+[node name="CrewPanel" type="Control"]
+layout_mode = 3
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+script = ExtResource("1_3euny")
+
+[node name="Content" type="VBoxContainer" parent="."]
+layout_mode = 1
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+theme_override_constants/separation = 20
+
+[node name="CrewSize" type="VBoxContainer" parent="Content"]
+layout_mode = 2
+
+[node name="Label" type="Label" parent="Content/CrewSize"]
+layout_mode = 2
+text = "Crew Size"
+
+[node name="OptionButton" type="OptionButton" parent="Content/CrewSize"]
+custom_minimum_size = Vector2(0, 50)
+layout_mode = 2
+
+[node name="CrewList" type="VBoxContainer" parent="Content"]
+layout_mode = 2
+size_flags_vertical = 3
+
+[node name="Label" type="Label" parent="Content/CrewList"]
+layout_mode = 2
+text = "Crew Members"
+
+[node name="ItemList" type="ItemList" parent="Content/CrewList"]
+layout_mode = 2
+size_flags_vertical = 3
+allow_reselect = true
+auto_height = true
+
+[node name="Controls" type="HBoxContainer" parent="Content"]
+layout_mode = 2
+theme_override_constants/separation = 20
+alignment = 1
+
+[node name="AddButton" type="Button" parent="Content/Controls"]
+custom_minimum_size = Vector2(150, 50)
+layout_mode = 2
+text = "Add Member"
+
+[node name="EditButton" type="Button" parent="Content/Controls"]
+custom_minimum_size = Vector2(150, 50)
+layout_mode = 2
+disabled = true
+text = "Edit Member"
+
+[node name="RemoveButton" type="Button" parent="Content/Controls"]
+custom_minimum_size = Vector2(150, 50)
+layout_mode = 2
+disabled = true
+text = "Remove Member"
+
+[node name="RandomizeButton" type="Button" parent="Content/Controls"]
+custom_minimum_size = Vector2(150, 50)
+layout_mode = 2
+text = "Randomize All"
+
+[node name="CharacterCreator" parent="." instance=ExtResource("2_kkjtj")]
+visible = false 

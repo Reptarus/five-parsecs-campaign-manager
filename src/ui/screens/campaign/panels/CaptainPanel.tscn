@@ -1,0 +1,62 @@
+[gd_scene load_steps=3 format=3 uid="uid://swd7rhnhcr41"]
+
+[ext_resource type="Script" path="res://src/ui/screens/campaign/panels/CaptainPanel.gd" id="1_yvr4t"]
+[ext_resource type="PackedScene" uid="uid://bm6c4rx645ove" path="res://src/core/character/Generation/CharacterCreator.tscn" id="2_kkjtj"]
+
+[node name="CaptainPanel" type="Control"]
+layout_mode = 3
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+script = ExtResource("1_yvr4t")
+
+[node name="Content" type="VBoxContainer" parent="."]
+layout_mode = 1
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+theme_override_constants/separation = 20
+
+[node name="Title" type="Label" parent="Content"]
+layout_mode = 2
+theme_override_font_sizes/font_size = 24
+text = "Captain Creation"
+horizontal_alignment = 1
+
+[node name="CaptainInfo" type="VBoxContainer" parent="Content"]
+layout_mode = 2
+size_flags_vertical = 3
+
+[node name="Label" type="Label" parent="Content/CaptainInfo"]
+layout_mode = 2
+text = "No captain created yet. Click 'Create Captain' to begin."
+horizontal_alignment = 1
+autowrap_mode = 2
+
+[node name="Controls" type="HBoxContainer" parent="Content"]
+layout_mode = 2
+theme_override_constants/separation = 20
+alignment = 1
+
+[node name="CreateButton" type="Button" parent="Content/Controls"]
+custom_minimum_size = Vector2(150, 50)
+layout_mode = 2
+text = "Create Captain"
+
+[node name="EditButton" type="Button" parent="Content/Controls"]
+visible = false
+custom_minimum_size = Vector2(150, 50)
+layout_mode = 2
+text = "Edit Captain"
+
+[node name="RandomizeButton" type="Button" parent="Content/Controls"]
+custom_minimum_size = Vector2(150, 50)
+layout_mode = 2
+text = "Random Captain"
+
+[node name="CharacterCreator" parent="." instance=ExtResource("2_kkjtj")]
+visible = false 

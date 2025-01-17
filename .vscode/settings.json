@@ -12,6 +12,10 @@
     "godot.lsp.enableSignatureHelp": true,
     "godot.lsp.enableHover": true,
     "godot.lsp.enableCompletions": true,
+    "debug.openDebug": "openOnDebugBreak",
+    "debug.internalConsoleOptions": "openOnSessionStart",
+    "debug.console.closeOnEnd": false,
+    "debug.showInStatusBar": "always",
     "terminal.integrated.defaultProfile.windows": "PowerShell",
     "terminal.integrated.profiles.windows": {
         "PowerShell": {
@@ -55,7 +59,8 @@
         "regexp": "^\\s*(.*):(\\d+):\\s+(.*)$",
         "file": 1,
         "line": 2,
-        "message": 3
+        "message": 3,
+        "severity": 4
     },
     "godot.lsp.checkOnSave": true,
     "godot.lsp.checkOnType": true,

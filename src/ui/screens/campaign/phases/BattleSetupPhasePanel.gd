@@ -1,0 +1,296 @@
+extends BasePhasePanel
+class_name BattleSetupPhasePanel
+
+const GameEnums = preload("res://src/core/systems/GlobalEnums.gd")
+const Character = preload("res://src/core/character/Base/Character.gd")
+
+@onready var mission_info = $VBoxContainer/MissionInfo
+@onready var deployment_container = $VBoxContainer/DeploymentContainer
+@onready var crew_list = $VBoxContainer/CrewList
+@onready var equipment_list = $VBoxContainer/EquipmentList
+@onready var start_battle_button = $VBoxContainer/StartBattleButton
+
+var deployment_manager: DeploymentManager
+var escalating_battles_manager: EscalatingBattlesManager
+var deployed_crew: Array[Character] = []
+var equipped_items: Dictionary = {}
+var deployment_zones: Array = []
+var current_deployment_type: GameEnums.DeploymentType = GameEnums.DeploymentType.STANDARD
+
+func _ready() -> void:
+	super._ready()
+	deployment_manager = DeploymentManager.new()
+	escalating_battles_manager = EscalatingBattlesManager.new(game_state)
+	
+	deployment_manager.deployment_zones_generated.connect(_on_deployment_zones_generated)
+	deployment_manager.terrain_generated.connect(_on_terrain_generated)
+	
+	_connect_signals()
+
+func _connect_signals() -> void:
+	start_battle_button.pressed.connect(_on_start_battle_pressed)
+	crew_list.item_selected.connect(_on_crew_selected)
+	crew_list.item_activated.connect(_on_crew_deployed)
+	equipment_list.item_selected.connect(_on_equipment_selected)
+
+func setup_phase() -> void:
+	super.setup_phase()
+	
+	# Clear previous state
+	deployed_crew.clear()
+	equipped_items.clear()
+	deployment_zones.clear()
+	
+	# Set deployment type based on mission
+	var mission = game_state.campaign.current_mission
+	current_deployment_type = _get_deployment_type_for_mission(mission)
+	
+	# Generate deployment zones
+	deployment_zones = deployment_manager.generate_deployment_zones(current_deployment_type)
+	
+	# Generate terrain based on location
+	var location = game_state.campaign.current_location
+	var terrain_features = _get_terrain_features_for_location(location)
+	deployment_manager.generate_terrain_layout(terrain_features)
+	
+	_setup_deployment_zones()
+	_load_mission_info()
+	_load_crew()
+	_load_equipment()
+	_update_ui()
+
+func _get_deployment_type_for_mission(mission: Resource) -> GameEnums.DeploymentType:
+	if mission.has("deployment_type"):
+		return mission.deployment_type
+	
+	# Default deployment types based on mission objectives
+	if "defend" in mission.objectives[0].to_lower():
+		return GameEnums.DeploymentType.DEFENSIVE
+	elif "ambush" in mission.objectives[0].to_lower():
+		return GameEnums.DeploymentType.AMBUSH
+	elif "stealth" in mission.objectives[0].to_lower():
+		return GameEnums.DeploymentType.CONCEALED
+	
+	return GameEnums.DeploymentType.STANDARD
+
+func _get_terrain_features_for_location(location: Dictionary) -> Array:
+	var features = []
+	
+	if location.has("terrain_features"):
+		return location.terrain_features
+	
+	# Default terrain based on location type
+	match location.type:
+		"urban":
+			features = [
+				GameEnums.TerrainFeatureType.COVER_HIGH,
+				GameEnums.TerrainFeatureType.COVER_LOW,
+				GameEnums.TerrainFeatureType.WALL
+			]
+		"wilderness":
+			features = [
+				GameEnums.TerrainFeatureType.COVER_LOW,
+				GameEnums.TerrainFeatureType.HIGH_GROUND,
+				GameEnums.TerrainFeatureType.HAZARD
+			]
+		"industrial":
+			features = [
+				GameEnums.TerrainFeatureType.COVER_HIGH,
+				GameEnums.TerrainFeatureType.OBSTACLE,
+				GameEnums.TerrainFeatureType.HAZARD
+			]
+		_:
+			features = [
+				GameEnums.TerrainFeatureType.COVER_LOW,
+				GameEnums.TerrainFeatureType.COVER_HIGH
+			]
+	
+	return features
+
+func _setup_deployment_zones() -> void:
+	# Clear existing zones
+	for child in deployment_container.get_children():
+		child.queue_free()
+	
+	# Create deployment zone buttons based on generated zones
+	for i in range(deployment_zones.size()):
+		var zone = deployment_zones[i]
+		var panel = PanelContainer.new()
+		var layout = VBoxContainer.new()
+		panel.add_child(layout)
+		
+		var label = Label.new()
+		label.text = "Zone %d (%s)" % [i + 1, zone.type]
+		label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+		layout.add_child(label)
+		
+		var crew_name = Label.new()
+		crew_name.text = "Empty"
+		crew_name.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+		layout.add_child(crew_name)
+		
+		panel.gui_input.connect(_on_zone_clicked.bind(i))
+		deployment_container.add_child(panel)
+
+func _load_mission_info() -> void:
+	var mission = game_state.campaign.current_mission
+	var location = game_state.campaign.current_location
+	
+	var info = "[b]Mission: %s[/b]\n" % mission.title
+	info += mission.description + "\n\n"
+	
+	info += "[b]Location: %s[/b]\n" % location.name
+	info += location.description + "\n\n"
+	
+	info += "[b]Deployment Type: %s[/b]\n" % current_deployment_type
+	info += _get_deployment_description(current_deployment_type) + "\n\n"
+	
+	info += "[b]Objectives:[/b]\n"
+	for objective in mission.objectives:
+		info += "• " + objective + "\n"
+	
+	info += "\n[b]Special Rules:[/b]\n"
+	for rule in location.special_rules:
+		info += "• " + rule + "\n"
+	
+	mission_info.text = info
+
+func _get_deployment_description(type: GameEnums.DeploymentType) -> String:
+	match type:
+		GameEnums.DeploymentType.STANDARD:
+			return "Standard deployment zones at opposite corners"
+		GameEnums.DeploymentType.LINE:
+			return "Linear deployment across the battlefield"
+		GameEnums.DeploymentType.AMBUSH:
+			return "Flanking positions for tactical advantage"
+		GameEnums.DeploymentType.SCATTERED:
+			return "Multiple small deployment zones across the map"
+		GameEnums.DeploymentType.DEFENSIVE:
+			return "Central defensive position with surrounding enemy zones"
+		GameEnums.DeploymentType.CONCEALED:
+			return "Hidden deployment zones near cover"
+		_:
+			return "Standard deployment configuration"
+
+func _load_crew() -> void:
+	crew_list.clear()
+	for member in game_state.campaign.crew_members:
+		if not member in deployed_crew:
+			var text = "%s (%s)" % [member.character_name, member.character_class]
+			crew_list.add_item(text)
+
+func _load_equipment() -> void:
+	equipment_list.clear()
+	for item in game_state.campaign.inventory:
+		if _can_equip_item(item):
+			equipment_list.add_item(item.name)
+
+func _can_equip_item(item: Dictionary) -> bool:
+	# Check if item is already equipped
+	if item.id in equipped_items.values():
+		return false
+	
+	# Check if item meets mission requirements
+	var mission = game_state.campaign.current_mission
+	if mission.has("restricted_items") and item.id in mission.restricted_items:
+		return false
+	
+	return true
+
+func _update_ui() -> void:
+	start_battle_button.disabled = deployed_crew.is_empty()
+	
+	# Update deployment zones
+	for i in range(deployment_container.get_child_count()):
+		var zone = deployment_container.get_child(i)
+		var crew_label = zone.get_child(0).get_child(1)
+		
+		if i < deployed_crew.size():
+			var member = deployed_crew[i]
+			var equipment = equipped_items.get(member.id, "None")
+			crew_label.text = "%s\n%s" % [member.character_name, equipment]
+		else:
+			crew_label.text = "Empty"
+
+func _on_crew_selected(index: int) -> void:
+	# Update equipment list based on selected crew member
+	var member = game_state.campaign.crew_members[index]
+	equipment_list.clear()
+	
+	for item in game_state.campaign.inventory:
+		if _can_equip_item(item) and member.can_use_item(item):
+			equipment_list.add_item(item.name)
+
+func _on_crew_deployed(index: int) -> void:
+	var member = game_state.campaign.crew_members[index]
+	if not member in deployed_crew and deployed_crew.size() < deployment_zones.size():
+		deployed_crew.append(member)
+		_load_crew()
+		_update_ui()
+
+func _on_equipment_selected(index: int) -> void:
+	var selected_crew_index = crew_list.get_selected_items()[0]
+	var member = game_state.campaign.crew_members[selected_crew_index]
+	var item = game_state.campaign.inventory[index]
+	
+	equipped_items[member.id] = item.id
+	_update_ui()
+
+func _on_zone_clicked(event: InputEvent, zone_index: int) -> void:
+	if event is InputEventMouseButton and event.pressed:
+		if event.button_index == MOUSE_BUTTON_LEFT:
+			# Handle crew deployment to zone
+			var selected_indices = crew_list.get_selected_items()
+			if not selected_indices.is_empty():
+				_on_crew_deployed(selected_indices[0])
+		elif event.button_index == MOUSE_BUTTON_RIGHT:
+			# Handle crew removal from zone
+			if zone_index < deployed_crew.size():
+				var removed_member = deployed_crew[zone_index]
+				deployed_crew.remove_at(zone_index)
+				equipped_items.erase(removed_member.id)
+				_load_crew()
+				_update_ui()
+
+func _on_start_battle_pressed() -> void:
+	if not deployed_crew.is_empty():
+		# Set up battle state
+		var battle_state = {
+			"crew_members": deployed_crew.duplicate(),
+			"equipment": equipped_items.duplicate(),
+			"deployment_zones": deployment_zones.duplicate(),
+			"terrain_layout": deployment_manager.terrain_layout.duplicate(),
+			"strife_type": game_state.campaign.current_mission.strife_type
+		}
+		
+		# Check for battle escalation
+		var escalation = escalating_battles_manager.check_escalation(battle_state)
+		if not escalation.is_empty():
+			battle_state["escalation"] = escalation
+		
+		game_state.campaign.battle_state = battle_state
+		complete_phase()
+
+func _on_deployment_zones_generated(zones: Array) -> void:
+	deployment_zones = zones
+	_setup_deployment_zones()
+
+func _on_terrain_generated(terrain: Array) -> void:
+	# Update mission info with terrain details
+	var current_text = mission_info.text
+	current_text += "\n[b]Terrain Features:[/b]\n"
+	for feature in terrain:
+		current_text += "• %s at position %s\n" % [feature.type, feature.position]
+	mission_info.text = current_text
+
+func validate_phase_requirements() -> bool:
+	if not game_state or not game_state.campaign:
+		return false
+	
+	if not game_state.campaign.current_mission:
+		return false
+	
+	if not game_state.campaign.crew_members or game_state.campaign.crew_members.is_empty():
+		return false
+	
+	return true

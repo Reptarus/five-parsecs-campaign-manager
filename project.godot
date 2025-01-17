@@ -40,6 +40,7 @@ gdscript/warnings/unsafe_call_argument=true
 gdscript/warnings/return_value_discarded=true
 gdscript/warnings/treat_warnings_as_errors=false
 gdscript/completion/autocomplete_setters_and_getters=true
+settings/run_on_load/test_scene="res://tests/GutTestScene.tscn"
 
 [display]
 
@@ -53,6 +54,14 @@ project/assembly_name="Five Parsecs Campaign Manager"
 [editor_plugins]
 
 enabled=PackedStringArray("res://addons/gut/plugin.cfg")
+
+[gut]
+
+directory="res://tests/unit"
+include_subdirectories=true
+log_level=3
+should_print_to_console=true
+double_strategy=1
 
 [rendering]
 

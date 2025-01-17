@@ -1,0 +1,120 @@
+[gd_scene load_steps=7 format=3 uid="uid://b4jy1ry6g1x8n"]
+
+[ext_resource type="Script" path="res://src/ui/screens/campaign/CampaignCreationUI.gd" id="1_8ykjc"]
+[ext_resource type="Theme" uid="uid://ddjoduj1ya6tp" path="res://assets/5PFH.tres" id="2_rnx4k"]
+[ext_resource type="PackedScene" uid="uid://c1ipgkdm40l6c" path="res://src/ui/screens/campaign/panels/ConfigPanel.tscn" id="3_mupwv"]
+[ext_resource type="PackedScene" uid="uid://ddmexnm0dog68" path="res://src/ui/screens/campaign/panels/CrewPanel.tscn" id="4_lrtqq"]
+[ext_resource type="PackedScene" uid="uid://swd7rhnhcr41" path="res://src/ui/screens/campaign/panels/CaptainPanel.tscn" id="5_l4k6d"]
+[ext_resource type="PackedScene" uid="uid://b3wc2cq0m72j" path="res://src/ui/screens/campaign/panels/ResourcePanel.tscn" id="6_2yj0n"]
+
+[node name="CampaignCreationUI" type="Control"]
+layout_mode = 3
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+theme = ExtResource("2_rnx4k")
+script = ExtResource("1_8ykjc")
+
+[node name="Background" type="ColorRect" parent="."]
+layout_mode = 1
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+color = Color(0.0784314, 0.0784314, 0.0784314, 1)
+
+[node name="MarginContainer" type="MarginContainer" parent="."]
+layout_mode = 1
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+theme_override_constants/margin_left = 20
+theme_override_constants/margin_top = 20
+theme_override_constants/margin_right = 20
+theme_override_constants/margin_bottom = 20
+
+[node name="VBoxContainer" type="VBoxContainer" parent="MarginContainer"]
+layout_mode = 2
+theme_override_constants/separation = 20
+
+[node name="Header" type="HBoxContainer" parent="MarginContainer/VBoxContainer"]
+layout_mode = 2
+
+[node name="Title" type="Label" parent="MarginContainer/VBoxContainer/Header"]
+layout_mode = 2
+size_flags_horizontal = 3
+theme_override_font_sizes/font_size = 32
+text = "Create New Campaign"
+
+[node name="StepLabel" type="Label" parent="MarginContainer/VBoxContainer/Header"]
+layout_mode = 2
+theme_override_font_sizes/font_size = 24
+text = "Step 1: Campaign Configuration"
+
+[node name="StepPanels" type="Control" parent="MarginContainer/VBoxContainer"]
+layout_mode = 2
+size_flags_vertical = 3
+
+[node name="ConfigPanel" parent="MarginContainer/VBoxContainer/StepPanels" instance=ExtResource("3_mupwv")]
+layout_mode = 1
+
+[node name="CrewPanel" parent="MarginContainer/VBoxContainer/StepPanels" instance=ExtResource("4_lrtqq")]
+visible = false
+layout_mode = 1
+
+[node name="CaptainPanel" parent="MarginContainer/VBoxContainer/StepPanels" instance=ExtResource("5_l4k6d")]
+visible = false
+layout_mode = 1
+
+[node name="ResourcePanel" parent="MarginContainer/VBoxContainer/StepPanels" instance=ExtResource("6_2yj0n")]
+visible = false
+layout_mode = 1
+
+[node name="FinalPanel" type="VBoxContainer" parent="MarginContainer/VBoxContainer/StepPanels"]
+visible = false
+layout_mode = 1
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+
+[node name="Label" type="Label" parent="MarginContainer/VBoxContainer/StepPanels/FinalPanel"]
+layout_mode = 2
+text = "Campaign Summary"
+horizontal_alignment = 1
+
+[node name="ScrollContainer" type="ScrollContainer" parent="MarginContainer/VBoxContainer/StepPanels/FinalPanel"]
+layout_mode = 2
+size_flags_vertical = 3
+
+[node name="SummaryContent" type="VBoxContainer" parent="MarginContainer/VBoxContainer/StepPanels/FinalPanel/ScrollContainer"]
+layout_mode = 2
+size_flags_horizontal = 3
+size_flags_vertical = 3
+theme_override_constants/separation = 10
+
+[node name="Navigation" type="HBoxContainer" parent="MarginContainer/VBoxContainer"]
+layout_mode = 2
+theme_override_constants/separation = 20
+alignment = 1
+
+[node name="BackButton" type="Button" parent="MarginContainer/VBoxContainer/Navigation"]
+custom_minimum_size = Vector2(150, 50)
+layout_mode = 2
+text = "Back"
+
+[node name="NextButton" type="Button" parent="MarginContainer/VBoxContainer/Navigation"]
+custom_minimum_size = Vector2(150, 50)
+layout_mode = 2
+text = "Next"
+
+[node name="FinishButton" type="Button" parent="MarginContainer/VBoxContainer/Navigation"]
+custom_minimum_size = Vector2(150, 50)
+layout_mode = 2
+text = "Start Campaign" 

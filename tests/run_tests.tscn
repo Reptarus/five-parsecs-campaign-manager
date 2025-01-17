@@ -1,0 +1,20 @@
+[gd_scene load_steps=5 format=3 uid="uid://bdpfdceci6p5d"]
+
+[ext_resource type="Script" path="res://tests/integration/test_campaign_manager.gd" id="1_2k3m1"]
+[ext_resource type="Script" path="res://tests/integration/test_campaign_phase_manager.gd" id="2_4k3m2"]
+[ext_resource type="Script" path="res://tests/integration/test_game_flow.gd" id="3_4k3m3"]
+[ext_resource type="Script" path="res://src/tests/test_terrain_layout.gd" id="4_4k3m4"]
+
+[node name="TestRunner" type="Node"]
+
+[node name="CampaignManagerTests" type="Node" parent="."]
+script = ExtResource("1_2k3m1")
+
+[node name="CampaignPhaseManagerTests" type="Node" parent="."]
+script = ExtResource("2_4k3m2")
+
+[node name="GameFlowTests" type="Node" parent="."]
+script = ExtResource("3_4k3m3")
+
+[node name="TerrainLayoutTests" type="Node" parent="."]
+script = ExtResource("4_4k3m4")

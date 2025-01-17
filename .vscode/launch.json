@@ -35,13 +35,52 @@
             "debug_collisions": false,
             "debug_paths": false,
             "debug_navigation": false,
-            "additional_options": "",
+            "additional_options": "--debug-collisions --verbose",
             "scene_file": "",
-            "debugServer": 6007,
+            "debugServer": 6008,
             "debug_mode": true,
             "debug_output": true,
             "env": {
-                "GODOT_DEBUG_ENABLED": "1"
+                "GODOT_DEBUG_ENABLED": "1",
+                "GODOT_DEBUG_COLLISIONS": "1",
+                "GODOT_PRINT_DEBUG_MESSAGES": "1"
+            }
+        },
+        {
+            "name": "Run GUT Tests",
+            "type": "godot",
+            "request": "launch",
+            "project": "${workspaceFolder}",
+            "port": 6007,
+            "address": "127.0.0.1",
+            "launch_game_instance": true,
+            "launch_scene": true,
+            "scene_file": "res://addons/gut/GutScene.tscn",
+            "debug_mode": true,
+            "debug_output": true,
+            "additional_options": "--verbose --debug",
+            "env": {
+                "GODOT_DEBUG_ENABLED": "1",
+                "GUT_TEST_MODE": "1"
+            }
+        },
+        {
+            "name": "Debug Current Test",
+            "type": "godot",
+            "request": "launch",
+            "project": "${workspaceFolder}",
+            "port": 6007,
+            "address": "127.0.0.1",
+            "launch_game_instance": true,
+            "launch_scene": true,
+            "scene_file": "res://addons/gut/GutScene.tscn",
+            "debug_mode": true,
+            "debug_output": true,
+            "additional_options": "--verbose --debug",
+            "env": {
+                "GODOT_DEBUG_ENABLED": "1",
+                "GUT_TEST_MODE": "1",
+                "GUT_CURRENT_TEST": "${file}"
             }
         }
     ]

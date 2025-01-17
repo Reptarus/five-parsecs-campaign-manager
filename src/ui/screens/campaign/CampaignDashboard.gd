@@ -3,185 +3,213 @@ extends Control
 
 const GameEnums = preload("res://src/core/systems/GlobalEnums.gd")
 const GameState = preload("res://src/core/state/GameState.gd")
-const Character = preload("res://src/core/character/Management/CharacterDataManager.gd")
-const VictoryProgressPanel = preload("res://src/ui/screens/campaign/VictoryProgressPanel.tscn")
+const CampaignPhaseManager = preload("res://src/core/campaign/CampaignPhaseManager.gd")
+const StoryPhasePanel = preload("res://src/ui/screens/campaign/phases/StoryPhasePanel.tscn")
+const CampaignPhasePanel = preload("res://src/ui/screens/campaign/phases/CampaignPhasePanel.tscn")
+const BattleSetupPhasePanel = preload("res://src/ui/screens/campaign/phases/BattleSetupPhasePanel.tscn")
+const BattleResolutionPhasePanel = preload("res://src/ui/screens/campaign/phases/BattleResolutionPhasePanel.tscn")
+const AdvancementPhasePanel = preload("res://src/ui/screens/campaign/phases/AdvancementPhasePanel.tscn")
+const TradePhasePanel = preload("res://src/ui/screens/campaign/phases/TradePhasePanel.tscn")
+const EndPhasePanel = preload("res://src/ui/screens/campaign/phases/EndPhasePanel.tscn")
 
-@onready var phase_label = $MarginContainer/VBoxContainer/HeaderPanel/HBoxContainer/PhaseLabel
-@onready var credits_label = $MarginContainer/VBoxContainer/HeaderPanel/HBoxContainer/CreditsLabel
-@onready var story_points_label = $MarginContainer/VBoxContainer/HeaderPanel/HBoxContainer/StoryPointsLabel
-@onready var crew_list = $MarginContainer/VBoxContainer/MainContent/LeftPanel/CrewPanel/VBoxContainer/CrewList
-@onready var ship_info = $MarginContainer/VBoxContainer/MainContent/LeftPanel/ShipPanel/VBoxContainer/ShipInfo
-@onready var quest_info = $MarginContainer/VBoxContainer/MainContent/RightPanel/QuestPanel/VBoxContainer/QuestInfo
-@onready var world_info = $MarginContainer/VBoxContainer/MainContent/RightPanel/WorldPanel/VBoxContainer/WorldInfo
-@onready var patron_list = $MarginContainer/VBoxContainer/MainContent/RightPanel/PatronPanel/VBoxContainer/PatronList
-@onready var victory_progress_container = $MarginContainer/VBoxContainer/VictoryProgressContainer
-
-@onready var action_button = $MarginContainer/VBoxContainer/ButtonContainer/ActionButton
-@onready var manage_crew_button = $MarginContainer/VBoxContainer/ButtonContainer/ManageCrewButton
-@onready var save_button = $MarginContainer/VBoxContainer/ButtonContainer/SaveButton
-@onready var load_button = $MarginContainer/VBoxContainer/ButtonContainer/LoadButton
-@onready var quit_button = $MarginContainer/VBoxContainer/ButtonContainer/QuitButton
+@onready var phase_label = $MarginContainer/VBoxContainer/Header/HBoxContainer/PhaseLabel
+@onready var resources_panel = $MarginContainer/VBoxContainer/Header/HBoxContainer/ResourcesPanel
+@onready var credits_label = $MarginContainer/VBoxContainer/Header/HBoxContainer/ResourcesPanel/HBoxContainer/CreditsLabel
+@onready var story_points_label = $MarginContainer/VBoxContainer/Header/HBoxContainer/ResourcesPanel/HBoxContainer/StoryPointsLabel
+@onready var crew_list = $MarginContainer/VBoxContainer/Content/LeftPanel/CrewPanel/VBoxContainer/CrewList
+@onready var ship_info = $MarginContainer/VBoxContainer/Content/LeftPanel/ShipPanel/VBoxContainer/ShipInfo
+@onready var phase_content = $MarginContainer/VBoxContainer/Content/RightPanel/PhaseContent/ScrollContainer/VBoxContainer
+@onready var next_phase_button = $MarginContainer/VBoxContainer/Footer/HBoxContainer/NextPhaseButton
+@onready var manage_crew_button = $MarginContainer/VBoxContainer/Footer/HBoxContainer/ManageCrewButton
+@onready var save_button = $MarginContainer/VBoxContainer/Footer/HBoxContainer/SaveButton
+@onready var load_button = $MarginContainer/VBoxContainer/Footer/HBoxContainer/LoadButton
+@onready var quit_button = $MarginContainer/VBoxContainer/Footer/HBoxContainer/QuitButton
+@onready var phase_container = $PhaseContainer
 
 var game_state: GameState
-var campaign_manager: GameCampaignManager
-var victory_progress_panel: Control
+var phase_manager: CampaignPhaseManager
+var current_phase_panel: BasePhasePanel
 
 func _ready() -> void:
-	campaign_manager = get_node("/root/CampaignManager")
-	if not campaign_manager:
-		push_error("CampaignManager not found")
-		queue_free()
-		return
-		
-	game_state = campaign_manager.game_state
-	if not game_state:
-		push_error("GameState not found")
-		queue_free()
-		return
-		
+	game_state = GameState.new()
+	phase_manager = CampaignPhaseManager.new()
+	
+	add_child(game_state)
+	add_child(phase_manager)
+	
 	_connect_signals()
-	_initialize_ui()
-	_setup_victory_progress()
-	_update_display()
+	_setup_phase_manager()
+	_update_ui()
 
 func _connect_signals() -> void:
-	if campaign_manager:
-		campaign_manager.campaign_system.campaign_phase_changed.connect(_on_phase_changed)
-		campaign_manager.campaign_system.campaign_turn_completed.connect(_on_turn_completed)
-		campaign_manager.campaign_saved.connect(_on_save_completed)
-		campaign_manager.campaign_loaded.connect(_on_load_completed)
+	phase_manager.phase_changed.connect(_on_phase_changed)
+	phase_manager.phase_completed.connect(_on_phase_completed)
+	phase_manager.phase_event_triggered.connect(_on_phase_event)
 	
-	action_button.pressed.connect(_on_action_pressed)
+	next_phase_button.pressed.connect(_on_next_phase_pressed)
 	manage_crew_button.pressed.connect(_on_manage_crew_pressed)
 	save_button.pressed.connect(_on_save_pressed)
 	load_button.pressed.connect(_on_load_pressed)
 	quit_button.pressed.connect(_on_quit_pressed)
 
-func _initialize_ui() -> void:
-	phase_label.text = "Current Phase: Campaign Setup"
-	credits_label.text = "Credits: 0"
-	story_points_label.text = "Story Points: 0"
-	ship_info.text = "No Ship Data"
-	quest_info.text = "No Active Quest"
-	world_info.text = "No World Data"
-	
-	crew_list.clear()
-	patron_list.clear()
-	
-	_update_button_states(true)
+func _setup_phase_manager() -> void:
+	phase_manager.setup(game_state)
+	phase_manager.start_phase(GameEnums.CampaignPhase.UPKEEP)
 
-func _setup_victory_progress() -> void:
-	if victory_progress_panel:
-		victory_progress_panel.queue_free()
-	
-	victory_progress_panel = VictoryProgressPanel.instantiate()
-	victory_progress_container.add_child(victory_progress_panel)
+func _on_phase_changed(old_phase: int, new_phase: int) -> void:
+	_update_phase_ui(new_phase)
+	_load_phase_content(new_phase)
 
-func _update_display() -> void:
-	if not game_state:
-		_initialize_ui()
+func _on_phase_completed() -> void:
+	next_phase_button.disabled = false
+
+func _on_phase_event(event: Dictionary) -> void:
+	match event.type:
+		"UPKEEP_STARTED":
+			_handle_upkeep_event(event)
+		"STORY_STARTED":
+			_handle_story_event(event)
+		"CAMPAIGN_STARTED":
+			_handle_campaign_event(event)
+		"BATTLE_SETUP_STARTED":
+			_handle_battle_setup_event(event)
+		"BATTLE_RESOLUTION_STARTED":
+			_handle_battle_resolution_event(event)
+		"ADVANCEMENT_STARTED":
+			_handle_advancement_event(event)
+		"TRADE_STARTED":
+			_handle_trade_event(event)
+		"END_PHASE_STARTED":
+			_handle_end_phase_event(event)
+
+func _on_next_phase_pressed() -> void:
+	var next_phase = _get_next_phase(phase_manager.current_phase)
+	if next_phase != GameEnums.CampaignPhase.NONE:
+		phase_manager.start_phase(next_phase)
+		next_phase_button.disabled = true
+
+func _update_phase_ui(phase: int) -> void:
+	phase_label.text = "Current Phase: " + GameEnums.CampaignPhase.keys()[phase]
+	next_phase_button.text = "Next Phase: " + GameEnums.CampaignPhase.keys()[_get_next_phase(phase)]
+
+func _update_ui() -> void:
+	if not game_state or not game_state.campaign:
 		return
-		
-	phase_label.text = "Current Phase: %s" % GameEnums.CampaignPhase.keys()[game_state.current_phase]
-	credits_label.text = "Credits: %d" % game_state.credits
-	story_points_label.text = "Story Points: %d" % game_state.story_points
+	
+	credits_label.text = "Credits: %d" % game_state.campaign.credits
+	story_points_label.text = "Story Points: %d" % game_state.campaign.story_points
 	
 	_update_crew_list()
 	_update_ship_info()
-	_update_quest_info()
-	_update_world_info()
-	_update_patron_list()
-	_update_button_states(true)
-	_update_action_button()
 
 func _update_crew_list() -> void:
 	crew_list.clear()
-	if not game_state or not game_state.crew:
+	if not game_state.campaign.crew_members:
 		crew_list.add_item("No Crew Members")
 		return
-		
-	for member in game_state.crew:
+	
+	for member in game_state.campaign.crew_members:
 		crew_list.add_item(member.character_name)
 
 func _update_ship_info() -> void:
-	if not game_state or not game_state.ship:
+	if not game_state.campaign.ship:
 		ship_info.text = "No Ship Data"
 		return
-		
-	ship_info.text = game_state.ship.get_info()
+	
+	ship_info.text = game_state.campaign.ship.get_info()
 
-func _update_quest_info() -> void:
-	if not game_state or not game_state.current_quest:
-		quest_info.text = "No Active Quest"
-		return
-		
-	quest_info.text = game_state.current_quest.get_description()
+func _load_phase_content(phase: int) -> void:
+	if current_phase_panel:
+		current_phase_panel.cleanup()
+		current_phase_panel.queue_free()
+	
+	var panel = _create_phase_panel(phase)
+	if panel:
+		current_phase_panel = panel
+		phase_content.add_child(panel)
+		panel.setup(game_state, phase_manager)
 
-func _update_world_info() -> void:
-	if not game_state or not game_state.current_world:
-		world_info.text = "No World Data"
-		return
-		
-	world_info.text = game_state.current_world.get_info()
-
-func _update_patron_list() -> void:
-	patron_list.clear()
-	if not game_state or not game_state.patrons:
-		patron_list.add_item("No Active Patrons")
-		return
-		
-	for patron in game_state.patrons:
-		patron_list.add_item(patron.name)
-
-func _update_button_states(has_game: bool) -> void:
-	action_button.disabled = not has_game
-	manage_crew_button.disabled = not has_game
-	save_button.disabled = not has_game
-
-func _update_action_button() -> void:
-	var phase = game_state.current_phase
+func _create_phase_panel(phase: int) -> BasePhasePanel:
 	match phase:
 		GameEnums.CampaignPhase.UPKEEP:
-			action_button.text = "Start Upkeep"
+			return UpkeepPhasePanel.instantiate()
+		GameEnums.CampaignPhase.STORY:
+			return StoryPhasePanel.instantiate()
+		GameEnums.CampaignPhase.CAMPAIGN:
+			return CampaignPhasePanel.instantiate()
 		GameEnums.CampaignPhase.BATTLE_SETUP:
-			action_button.text = "Start Battle"
+			return BattleSetupPhasePanel.instantiate()
 		GameEnums.CampaignPhase.BATTLE_RESOLUTION:
-			action_button.text = "Post-Battle"
+			return BattleResolutionPhasePanel.instantiate()
 		GameEnums.CampaignPhase.ADVANCEMENT:
-			action_button.text = "Advancement"
+			return AdvancementPhasePanel.instantiate()
 		GameEnums.CampaignPhase.TRADE:
-			action_button.text = "Trade"
+			return TradePhasePanel.instantiate()
+		GameEnums.CampaignPhase.END:
+			return EndPhasePanel.instantiate()
+		# Add other phase panels here as they are implemented
 		_:
-			action_button.text = "Next Phase"
+			push_warning("No panel implemented for phase: %s" % GameEnums.CampaignPhase.keys()[phase])
+			return null
 
-func _on_action_pressed() -> void:
-	if campaign_manager:
-		campaign_manager.process_current_phase()
+func _get_next_phase(current: int) -> int:
+	match current:
+		GameEnums.CampaignPhase.SETUP:
+			return GameEnums.CampaignPhase.UPKEEP
+		GameEnums.CampaignPhase.UPKEEP:
+			return GameEnums.CampaignPhase.STORY
+		GameEnums.CampaignPhase.STORY:
+			return GameEnums.CampaignPhase.CAMPAIGN
+		GameEnums.CampaignPhase.CAMPAIGN:
+			return GameEnums.CampaignPhase.BATTLE_SETUP
+		GameEnums.CampaignPhase.BATTLE_SETUP:
+			return GameEnums.CampaignPhase.BATTLE_RESOLUTION
+		GameEnums.CampaignPhase.BATTLE_RESOLUTION:
+			return GameEnums.CampaignPhase.ADVANCEMENT
+		GameEnums.CampaignPhase.ADVANCEMENT:
+			return GameEnums.CampaignPhase.TRADE
+		GameEnums.CampaignPhase.TRADE:
+			return GameEnums.CampaignPhase.END
+		GameEnums.CampaignPhase.END:
+			return GameEnums.CampaignPhase.UPKEEP
+		_:
+			return GameEnums.CampaignPhase.NONE
 
+# Event Handlers
+func _handle_upkeep_event(event: Dictionary) -> void:
+	_update_ui()
+
+func _handle_story_event(event: Dictionary) -> void:
+	_update_ui()
+
+func _handle_campaign_event(event: Dictionary) -> void:
+	_update_ui()
+
+func _handle_battle_setup_event(event: Dictionary) -> void:
+	_update_ui()
+
+func _handle_battle_resolution_event(event: Dictionary) -> void:
+	_update_ui()
+
+func _handle_advancement_event(event: Dictionary) -> void:
+	_update_ui()
+
+func _handle_trade_event(event: Dictionary) -> void:
+	_update_ui()
+
+func _handle_end_phase_event(event: Dictionary) -> void:
+	_update_ui()
+
+# Button Event Handlers
 func _on_manage_crew_pressed() -> void:
-	get_tree().change_scene_to_file("res://src/data/resources/CrewAndCharacters/Scenes/CrewManagement.tscn")
+	get_tree().change_scene_to_file("res://src/ui/screens/crew/CrewManagement.tscn")
 
 func _on_save_pressed() -> void:
-	if campaign_manager:
-		campaign_manager.save_campaign()
+	game_state.save_campaign()
 
 func _on_load_pressed() -> void:
-	get_tree().change_scene_to_file("res://src/data/resources/UI/Screens/LoadGameScreen.tscn")
+	get_tree().change_scene_to_file("res://src/ui/screens/campaign/LoadCampaign.tscn")
 
 func _on_quit_pressed() -> void:
-	if campaign_manager:
-		campaign_manager.end_campaign()
-	get_tree().change_scene_to_file("res://src/data/resources/UI/Screens/MainMenu.tscn")
-
-func _on_phase_changed(_new_phase: GameEnums.CampaignPhase) -> void:
-	_update_display()
-
-func _on_turn_completed() -> void:
-	_update_display()
-
-func _on_save_completed() -> void:
-	# Show save confirmation
-	pass
-
-func _on_load_completed() -> void:
-	_update_display()
+	game_state.end_campaign()
+	get_tree().change_scene_to_file("res://src/ui/screens/MainMenu.tscn")

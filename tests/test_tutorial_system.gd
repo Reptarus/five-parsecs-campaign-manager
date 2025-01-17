@@ -1,4 +1,4 @@
-extends "res://addons/gut/test.gd"
+extends Node
 
 const TutorialStateMachine := preload("res://StateMachines/TutorialStateMachine.gd")
 const FiveParsecsGameState := preload("res://src/core/state/GameState.gd")
@@ -7,22 +7,22 @@ const GameEnums := preload("res://src/core/systems/GlobalEnums.gd")
 var tutorial_state_machine: TutorialStateMachine
 var game_state: FiveParsecsGameState
 
-func before_each() -> void:
+func _init() -> void:
 	game_state = FiveParsecsGameState.new()
 	tutorial_state_machine = TutorialStateMachine.new(game_state)
 	add_child(tutorial_state_machine)
 
-func after_each() -> void:
+func _exit_tree() -> void:
 	if is_instance_valid(tutorial_state_machine):
 		tutorial_state_machine.queue_free()
 	game_state = null
 
 func test_initial_state() -> void:
-	assert_eq(tutorial_state_machine.current_state, TutorialStateMachine.TutorialState.NONE,
+	assert(tutorial_state_machine.current_state == TutorialStateMachine.TutorialState.NONE,
 		"Initial state should be NONE")
-	assert_eq(tutorial_state_machine.current_track, TutorialStateMachine.TutorialTrack.NONE,
+	assert(tutorial_state_machine.current_track == TutorialStateMachine.TutorialTrack.NONE,
 		"Initial track should be NONE")
-	assert_false(game_state.is_tutorial_active, "Tutorial should not be active initially")
+	assert(!game_state.is_tutorial_active, "Tutorial should not be active initially")
 
 func test_quick_start_tutorial() -> void:
 	var state_changes := []
@@ -37,47 +37,47 @@ func test_quick_start_tutorial() -> void:
 	
 	tutorial_state_machine.start_tutorial(TutorialStateMachine.TutorialTrack.QUICK_START)
 	
-	assert_eq(tutorial_state_machine.current_state, TutorialStateMachine.TutorialState.QUICK_START,
+	assert(tutorial_state_machine.current_state == TutorialStateMachine.TutorialState.QUICK_START,
 		"Should transition to QUICK_START state")
-	assert_eq(tutorial_state_machine.current_track, TutorialStateMachine.TutorialTrack.QUICK_START,
+	assert(tutorial_state_machine.current_track == TutorialStateMachine.TutorialTrack.QUICK_START,
 		"Should be on QUICK_START track")
-	assert_true(game_state.is_tutorial_active, "Tutorial should be active")
+	assert(game_state.is_tutorial_active, "Tutorial should be active")
 	
 	tutorial_state_machine.transition_to(TutorialStateMachine.TutorialState.COMPLETED)
 	
-	assert_eq(tutorial_state_machine.current_state, TutorialStateMachine.TutorialState.COMPLETED,
+	assert(tutorial_state_machine.current_state == TutorialStateMachine.TutorialState.COMPLETED,
 		"Should transition to COMPLETED state")
-	assert_eq(tutorial_state_machine.current_track, TutorialStateMachine.TutorialTrack.NONE,
+	assert(tutorial_state_machine.current_track == TutorialStateMachine.TutorialTrack.NONE,
 		"Track should be NONE after completion")
-	assert_false(game_state.is_tutorial_active, "Tutorial should not be active after completion")
+	assert(!game_state.is_tutorial_active, "Tutorial should not be active after completion")
 	
-	assert_eq(state_changes.size(), 2, "Should emit two state changes")
-	assert_eq(completed_tracks.size(), 1, "Should emit one track completion")
+	assert(state_changes.size() == 2, "Should emit two state changes")
+	assert(completed_tracks.size() == 1, "Should emit one track completion")
 
 func test_advanced_tutorial() -> void:
 	tutorial_state_machine.start_tutorial(TutorialStateMachine.TutorialTrack.ADVANCED)
 	
-	assert_eq(tutorial_state_machine.current_state, TutorialStateMachine.TutorialState.ADVANCED,
+	assert(tutorial_state_machine.current_state == TutorialStateMachine.TutorialState.ADVANCED,
 		"Should transition to ADVANCED state")
-	assert_eq(tutorial_state_machine.current_track, TutorialStateMachine.TutorialTrack.ADVANCED,
+	assert(tutorial_state_machine.current_track == TutorialStateMachine.TutorialTrack.ADVANCED,
 		"Should be on ADVANCED track")
-	assert_true(game_state.is_tutorial_active, "Tutorial should be active")
+	assert(game_state.is_tutorial_active, "Tutorial should be active")
 
 func test_battle_tutorial() -> void:
 	tutorial_state_machine.start_tutorial(TutorialStateMachine.TutorialTrack.BATTLE)
 	
-	assert_eq(tutorial_state_machine.current_state, TutorialStateMachine.TutorialState.BATTLE_TUTORIAL,
+	assert(tutorial_state_machine.current_state == TutorialStateMachine.TutorialState.BATTLE_TUTORIAL,
 		"Should transition to BATTLE_TUTORIAL state")
-	assert_eq(tutorial_state_machine.current_track, TutorialStateMachine.TutorialTrack.BATTLE,
+	assert(tutorial_state_machine.current_track == TutorialStateMachine.TutorialTrack.BATTLE,
 		"Should be on BATTLE track")
-	assert_true(game_state.is_tutorial_active, "Tutorial should be active")
+	assert(game_state.is_tutorial_active, "Tutorial should be active")
 
 func test_invalid_transitions() -> void:
 	# Try to complete tutorial without starting one
 	tutorial_state_machine.transition_to(TutorialStateMachine.TutorialState.COMPLETED)
-	assert_eq(tutorial_state_machine.current_state, TutorialStateMachine.TutorialState.COMPLETED,
+	assert(tutorial_state_machine.current_state == TutorialStateMachine.TutorialState.COMPLETED,
 		"Should allow transition to COMPLETED")
-	assert_eq(tutorial_state_machine.current_track, TutorialStateMachine.TutorialTrack.NONE,
+	assert(tutorial_state_machine.current_track == TutorialStateMachine.TutorialTrack.NONE,
 		"Track should remain NONE")
 	
 	# Try to transition to the same state
@@ -87,7 +87,7 @@ func test_invalid_transitions() -> void:
 	)
 	
 	tutorial_state_machine.transition_to(TutorialStateMachine.TutorialState.COMPLETED)
-	assert_eq(state_changes.size(), 0, "Should not emit state change for same state")
+	assert(state_changes.size() == 0, "Should not emit state change for same state")
 
 func test_cleanup() -> void:
 	var initial_memory := OS.get_static_memory_usage()
@@ -99,7 +99,7 @@ func test_cleanup() -> void:
 	OS.delay_msec(100) # Allow for cleanup
 	
 	var final_memory := OS.get_static_memory_usage()
-	assert_lt(abs(final_memory - initial_memory), 1024 * 1024,
+	assert(abs(final_memory - initial_memory) < 1024 * 1024,
 		"Tutorial system memory should be properly cleaned up")
 
 func test_mission_setup() -> void:
@@ -107,15 +107,15 @@ func test_mission_setup() -> void:
 	
 	# Verify mission is set up with correct objectives
 	var mission = game_state.get_current_mission()
-	assert_not_null(mission, "Mission should be created")
-	assert_eq(mission.mission_type, GameEnums.MissionType.PATROL,
+	assert(mission != null, "Mission should be created")
+	assert(mission.mission_type == GameEnums.MissionType.PATROL,
 		"Mission should be patrol type for tutorial")
-	assert_eq(mission.difficulty, GameEnums.DifficultyLevel.NORMAL,
+	assert(mission.difficulty == GameEnums.DifficultyLevel.NORMAL,
 		"Tutorial mission should have normal difficulty")
 	
 	var objectives = mission.objectives
-	assert_eq(objectives.size(), 1, "Quick start should have one objective")
-	assert_eq(objectives[0].type, GameEnums.MissionObjective.PATROL,
+	assert(objectives.size() == 1, "Quick start should have one objective")
+	assert(objectives[0].type == GameEnums.MissionObjective.PATROL,
 		"Quick start should have patrol objective")
 
 func test_tutorial_interruption() -> void:
@@ -124,7 +124,7 @@ func test_tutorial_interruption() -> void:
 	# Interrupt with a different tutorial
 	tutorial_state_machine.start_tutorial(TutorialStateMachine.TutorialTrack.ADVANCED)
 	
-	assert_eq(tutorial_state_machine.current_state, TutorialStateMachine.TutorialState.ADVANCED,
+	assert(tutorial_state_machine.current_state == TutorialStateMachine.TutorialState.ADVANCED,
 		"Should transition to new tutorial state")
-	assert_eq(tutorial_state_machine.current_track, TutorialStateMachine.TutorialTrack.ADVANCED,
+	assert(tutorial_state_machine.current_track == TutorialStateMachine.TutorialTrack.ADVANCED,
 		"Should be on new tutorial track")

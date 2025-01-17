@@ -1,5 +1,5 @@
 @tool
-class_name Campaign
+class_name CampaignSystem
 extends Node
 
 ## Signals
@@ -16,6 +16,12 @@ var active_crew: Array[Dictionary] = []
 var active_rivals: Array[Dictionary] = []
 var equipment: Array[Dictionary] = []
 var story_progress: int = 0
+
+## Constructor
+func _init(state: GameState = null) -> void:
+    if state:
+        # Initialize with game state if provided
+        pass
 
 ## Get the total number of completed missions
 func get_completed_missions_count() -> int:

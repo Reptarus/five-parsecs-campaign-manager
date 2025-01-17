@@ -1,7 +1,7 @@
 [gd_scene load_steps=3 format=3 uid="uid://swd7rhnhcr41"]
 
 [ext_resource type="Theme" uid="uid://ddjoduj1ya6tp" path="res://assets/5PFH.tres" id="1_p4ru0"]
-[ext_resource type="Script" path="res://src/data/resources/UI/Screens/SaveLoadUI.gd" id="2_oy01e"]
+[ext_resource type="Script" path="res://src/ui/screens/SaveLoadUI.gd" id="2_oy01e"]
 
 [node name="SaveLoadUI" type="Control"]
 layout_mode = 3
@@ -30,6 +30,12 @@ grow_horizontal = 2
 grow_vertical = 2
 theme_override_constants/separation = 10
 
+[node name="TitleLabel" type="Label" parent="Panel/VBoxContainer"]
+layout_mode = 2
+theme_override_font_sizes/font_size = 24
+text = "Save/Load Game"
+horizontal_alignment = 1
+
 [node name="SaveNameInput" type="LineEdit" parent="Panel/VBoxContainer"]
 custom_minimum_size = Vector2(0, 60)
 layout_mode = 2
@@ -48,6 +54,11 @@ alignment = 1
 custom_minimum_size = Vector2(200, 60)
 layout_mode = 2
 text = "Save Game"
+
+[node name="QuickSaveButton" type="Button" parent="Panel/VBoxContainer/ButtonContainer"]
+custom_minimum_size = Vector2(200, 60)
+layout_mode = 2
+text = "Quick Save"
 
 [node name="LoadButton" type="Button" parent="Panel/VBoxContainer/ButtonContainer"]
 custom_minimum_size = Vector2(200, 60)
@@ -74,9 +85,28 @@ custom_minimum_size = Vector2(200, 60)
 layout_mode = 2
 text = "View Backups"
 
+[node name="AutoSaveContainer" type="HBoxContainer" parent="Panel/VBoxContainer"]
+layout_mode = 2
+alignment = 1
+
+[node name="AutoSaveLabel" type="Label" parent="Panel/VBoxContainer/AutoSaveContainer"]
+layout_mode = 2
+text = "Auto-Save:"
+
+[node name="AutoSaveToggle" type="CheckButton" parent="Panel/VBoxContainer/AutoSaveContainer"]
+layout_mode = 2
+
 [node name="StatusLabel" type="Label" parent="Panel/VBoxContainer"]
 layout_mode = 2
 text = "Status: Ready"
 horizontal_alignment = 1
 
 [connection signal="item_selected" from="Panel/VBoxContainer/SaveList" to="." method="_on_save_selected"]
+[connection signal="pressed" from="Panel/VBoxContainer/ButtonContainer/SaveButton" to="." method="_on_save_pressed"]
+[connection signal="pressed" from="Panel/VBoxContainer/ButtonContainer/QuickSaveButton" to="." method="_on_quick_save_pressed"]
+[connection signal="pressed" from="Panel/VBoxContainer/ButtonContainer/LoadButton" to="." method="_on_load_pressed"]
+[connection signal="pressed" from="Panel/VBoxContainer/ButtonContainer/DeleteButton" to="." method="_on_delete_pressed"]
+[connection signal="pressed" from="Panel/VBoxContainer/ButtonContainer/ExportButton" to="." method="_on_export_pressed"]
+[connection signal="pressed" from="Panel/VBoxContainer/ButtonContainer/ImportButton" to="." method="_on_import_pressed"]
+[connection signal="pressed" from="Panel/VBoxContainer/ButtonContainer/BackupListButton" to="." method="_on_backup_list_pressed"]
+[connection signal="toggled" from="Panel/VBoxContainer/AutoSaveContainer/AutoSaveToggle" to="." method="_on_auto_save_toggled"]

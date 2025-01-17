@@ -157,7 +157,6 @@ func test_state_serialization_performance() -> void:
 			var save_data: Dictionary = game_state.save_state()
 			var new_state := GameState.new()
 			new_state.load_state(save_data)
-			track_resource(new_state)
 	)
 	
 	print("State serialization time (100 cycles): %.3f seconds" % execution_time)

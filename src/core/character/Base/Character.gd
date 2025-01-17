@@ -1,215 +1,189 @@
 ## Base character class for all game characters
 class_name Character
-extends Node
-
-const WeaponData := preload("res://src/core/economy/loot/WeaponData.gd")
+extends Resource
 
 const GameEnums = preload("res://src/core/systems/GlobalEnums.gd")
 
-signal status_changed(new_status: GameEnums.CharacterStatus)
-signal level_up(new_level: int)
-signal xp_gained(amount: int)
-signal equipment_changed(slot: String, item: Resource)
-
-@export var character_name: String = ""
-@export var level: int = 1
-@export var xp: int = 0
-@export var status: GameEnums.CharacterStatus = GameEnums.CharacterStatus.HEALTHY
-@export var origin: GameEnums.Origin = GameEnums.Origin.HUMAN
-@export var character_class: GameEnums.CharacterClass = GameEnums.CharacterClass.SOLDIER
-@export var background: GameEnums.CharacterBackground = GameEnums.CharacterBackground.NONE
-@export var motivation: GameEnums.CharacterMotivation = GameEnums.CharacterMotivation.NONE
+# Basic Info
+var character_name: String
+var character_class: int # GameEnums.CharacterClass
+var origin: int # GameEnums.Origin
+var background: int # GameEnums.Background
+var motivation: int # GameEnums.Motivation
 
 # Stats
-@export var health: int = 100
-@export var max_health: int = 100
-@export var armor: int = 0
-@export var speed: int = 6
-@export var accuracy: int = 70
-@export var evasion: int = 30
+var level: int = 1
+var experience: int = 0
+var health: int = 10
+var max_health: int = 10
+var reaction: int = 0
+var combat: int = 0
+var toughness: int = 0
+var savvy: int = 0
 
-# Equipment slots
-var equipment: Dictionary = {
-	"ranged_weapon": null,
-	"melee_weapon": null,
-	"armor": null,
-	"gear": []
-}
+# Equipment
+var weapons: Array = []
+var armor: Array = []
+var items: Array = []
 
-# Combat state
-var combat_modifiers: Array[GameEnums.CombatModifier] = []
-var current_action: GameEnums.UnitAction = GameEnums.UnitAction.NONE
-var action_points: int = 2
-var max_action_points: int = 2
+# Skills and Abilities
+var skills: Array = []
+var abilities: Array = []
+var traits: Array = []
+
+# Status
+var is_active: bool = true
+var is_wounded: bool = false
+var is_dead: bool = false
+var status_effects: Array = []
 
 func _init() -> void:
-	_initialize_character()
+	pass
 
-func take_damage(amount: int) -> void:
-	var actual_damage = max(0, amount - armor)
-	health = max(0, health - actual_damage)
-	_update_status()
+func apply_damage(amount: int) -> void:
+	health = maxi(0, health - amount)
+	is_wounded = health < max_health / 2
+	is_dead = health <= 0
 
 func heal(amount: int) -> void:
-	health = min(max_health, health + amount)
-	_update_status()
+	health = mini(max_health, health + amount)
+	is_wounded = health < max_health / 2
 
-func gain_xp(amount: int) -> void:
-	xp += amount
-	xp_gained.emit(amount)
-	_check_level_up()
-
-func equip_item(item: Resource, slot: String) -> void:
-	if _can_equip_item(item, slot):
-		_unequip_slot(slot)
-		equipment[slot] = item
-		_apply_equipment_stats(item)
-		equipment_changed.emit(slot, item)
-
-func unequip_item(slot: String) -> void:
-	if slot in equipment:
-		var item = equipment[slot]
-		_unequip_slot(slot)
-		equipment_changed.emit(slot, null)
-
-func add_combat_modifier(modifier: GameEnums.CombatModifier) -> void:
-	if not modifier in combat_modifiers:
-		combat_modifiers.append(modifier)
-
-func remove_combat_modifier(modifier: GameEnums.CombatModifier) -> void:
-	combat_modifiers.erase(modifier)
-
-func start_turn() -> void:
-	action_points = max_action_points
-	current_action = GameEnums.UnitAction.NONE
-
-func end_turn() -> void:
-	action_points = 0
-	current_action = GameEnums.UnitAction.NONE
-
-func can_perform_action(action: GameEnums.UnitAction) -> bool:
-	if action_points <= 0:
-		return false
+func add_experience(amount: int) -> bool:
+	var leveled_up = false
+	experience += amount
 	
-	match action:
-		GameEnums.UnitAction.MOVE:
-			return action_points >= 2
-		GameEnums.UnitAction.ATTACK:
-			return action_points >= 1 and equipment["ranged_weapon"] != null
-		GameEnums.UnitAction.ITEMS:
-			return action_points >= 1 and not equipment["gear"].is_empty()
-		GameEnums.UnitAction.BRAWL:
-			return action_points >= 1 and equipment["melee_weapon"] != null
-		GameEnums.UnitAction.SNAP_FIRE:
-			return action_points >= 1 and equipment["ranged_weapon"] != null
-		GameEnums.UnitAction.OVERWATCH:
-			return action_points >= 2 and equipment["ranged_weapon"] != null
-		GameEnums.UnitAction.TAKE_COVER:
-			return action_points >= 1
-		GameEnums.UnitAction.RELOAD:
-			return action_points >= 1 and equipment["ranged_weapon"] != null
+	# Check for level up
+	while experience >= get_experience_for_next_level():
+		level_up()
+		leveled_up = true
+	
+	return leveled_up
+
+func level_up() -> void:
+	level += 1
+	max_health += 2
+	health = max_health
+
+func get_experience_for_next_level() -> int:
+	return level * 1000
+
+func add_skill(skill_id: int) -> void:
+	if not skill_id in skills:
+		skills.append(skill_id)
+
+func has_skill(skill_id: int) -> bool:
+	return skill_id in skills
+
+func add_ability(ability_id: int) -> void:
+	if not ability_id in abilities:
+		abilities.append(ability_id)
+
+func has_ability(ability_id: int) -> bool:
+	return ability_id in abilities
+
+func add_trait(trait_id: int) -> void:
+	if not trait_id in traits:
+		traits.append(trait_id)
+
+func has_trait(trait_id: int) -> bool:
+	return trait_id in traits
+
+func add_status_effect(effect: Dictionary) -> void:
+	status_effects.append(effect)
+
+func remove_status_effect(effect_id: String) -> void:
+	for effect in status_effects:
+		if effect.id == effect_id:
+			status_effects.erase(effect)
+			break
+
+func has_status_effect(effect_id: String) -> bool:
+	for effect in status_effects:
+		if effect.id == effect_id:
+			return true
+	return false
+
+func add_item(item: Dictionary) -> void:
+	match item.type:
+		"weapon":
+			weapons.append(item)
+		"armor":
+			armor.append(item)
 		_:
-			return false
+			items.append(item)
 
-func perform_action(action: GameEnums.UnitAction) -> void:
-	if can_perform_action(action):
-		current_action = action
-		match action:
-			GameEnums.UnitAction.MOVE, GameEnums.UnitAction.ATTACK, \
-			GameEnums.UnitAction.ITEMS, GameEnums.UnitAction.BRAWL, \
-			GameEnums.UnitAction.SNAP_FIRE, GameEnums.UnitAction.TAKE_COVER, \
-			GameEnums.UnitAction.RELOAD:
-				action_points -= 1
-			GameEnums.UnitAction.OVERWATCH:
-				action_points -= 2
+func remove_item(item: Dictionary) -> void:
+	match item.type:
+		"weapon":
+			weapons.erase(item)
+		"armor":
+			armor.erase(item)
+		_:
+			items.erase(item)
 
-func _initialize_character() -> void:
-	health = max_health
-	action_points = max_action_points
-	combat_modifiers.clear()
-	current_action = GameEnums.UnitAction.NONE
+func has_item(item: Dictionary) -> bool:
+	match item.type:
+		"weapon":
+			return item in weapons
+		"armor":
+			return item in armor
+		_:
+			return item in items
 
-func _update_status() -> void:
-	var new_status: GameEnums.CharacterStatus
-	var health_percent := float(health) / float(max_health)
+# Serialization
+func to_dictionary() -> Dictionary:
+	return {
+		"character_name": character_name,
+		"character_class": character_class,
+		"origin": origin,
+		"background": background,
+		"motivation": motivation,
+		"level": level,
+		"experience": experience,
+		"health": health,
+		"max_health": max_health,
+		"reaction": reaction,
+		"combat": combat,
+		"toughness": toughness,
+		"savvy": savvy,
+		"weapons": weapons.duplicate(),
+		"armor": armor.duplicate(),
+		"items": items.duplicate(),
+		"skills": skills.duplicate(),
+		"abilities": abilities.duplicate(),
+		"traits": traits.duplicate(),
+		"is_active": is_active,
+		"is_wounded": is_wounded,
+		"is_dead": is_dead,
+		"status_effects": status_effects.duplicate()
+	}
+
+func from_dictionary(data: Dictionary) -> void:
+	character_name = data.get("character_name", "")
+	character_class = data.get("character_class", 0)
+	origin = data.get("origin", 0)
+	background = data.get("background", 0)
+	motivation = data.get("motivation", 0)
 	
-	if health <= 0:
-		new_status = GameEnums.CharacterStatus.DEAD
-	elif health_percent <= 0.25:
-		new_status = GameEnums.CharacterStatus.CRITICAL
-	elif health_percent <= 0.5:
-		new_status = GameEnums.CharacterStatus.INJURED
-	else:
-		new_status = GameEnums.CharacterStatus.HEALTHY
+	level = data.get("level", 1)
+	experience = data.get("experience", 0)
+	health = data.get("health", 10)
+	max_health = data.get("max_health", 10)
+	reaction = data.get("reaction", 0)
+	combat = data.get("combat", 0)
+	toughness = data.get("toughness", 0)
+	savvy = data.get("savvy", 0)
 	
-	if new_status != status:
-		status = new_status
-		status_changed.emit(new_status)
-
-func _check_level_up() -> void:
-	var xp_needed := level * 100
-	if xp >= xp_needed:
-		level += 1
-		xp -= xp_needed
-		level_up.emit(level)
-		_apply_level_up_bonuses()
-
-func _apply_level_up_bonuses() -> void:
-	max_health += 10
-	health = max_health
-	accuracy += 2
-	evasion += 1
-
-func _can_equip_item(item: Resource, slot: String) -> bool:
-	if not slot in equipment:
-		return false
+	weapons = data.get("weapons", []).duplicate()
+	armor = data.get("armor", []).duplicate()
+	items = data.get("items", []).duplicate()
 	
-	# Add specific equipment type checks here
-	return true
-
-func _unequip_slot(slot: String) -> void:
-	if slot in equipment:
-		var item = equipment[slot]
-		if item:
-			_remove_equipment_stats(item)
-		equipment[slot] = null
-
-func _apply_equipment_stats(item: Resource) -> void:
-	# Add equipment stat application logic here
-	pass
-
-func _remove_equipment_stats(item: Resource) -> void:
-	# Add equipment stat removal logic here
-	pass
-
-func get_ranged_damage() -> int:
-	var damage: int = 0
-	if equipment.has("ranged_weapon") and equipment["ranged_weapon"] is WeaponData:
-		var weapon: WeaponData = equipment["ranged_weapon"]
-		damage = weapon.damage
-	return damage
-
-func get_armor_value() -> int:
-	var armor: int = 0
-	if equipment.has("armor"):
-		armor = equipment["armor"].armor_value
-	return armor
-
-func get_melee_damage() -> int:
-	var damage: int = 0
-	if equipment.has("melee_weapon") and equipment["melee_weapon"] is WeaponData:
-		var weapon: WeaponData = equipment["melee_weapon"]
-		damage = weapon.damage
-	return damage
-
-func get_ranged_skill() -> int:
-	return accuracy
-
-func get_melee_skill() -> int:
-	return accuracy - 10 # Melee is slightly harder than ranged by default
-
-func get_weapon_range() -> float:
-	if equipment.has("ranged_weapon") and equipment["ranged_weapon"] is WeaponData:
-		var weapon: WeaponData = equipment["ranged_weapon"]
-		return weapon.range
-	return 0.0
+	skills = data.get("skills", []).duplicate()
+	abilities = data.get("abilities", []).duplicate()
+	traits = data.get("traits", []).duplicate()
+	
+	is_active = data.get("is_active", true)
+	is_wounded = data.get("is_wounded", false)
+	is_dead = data.get("is_dead", false)
+	status_effects = data.get("status_effects", []).duplicate()

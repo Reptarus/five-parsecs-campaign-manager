@@ -1,40 +1,13 @@
 {
     "dirs": [
-        "res://tests/"
+        "res://tests/unit/",
+        "res://tests/integration/"
     ],
     "include_subdirs": true,
     "ignore_pause": true,
     "log_level": 2,
-    "should_maximize": false,
-    "should_exit": true,
-    "opacity": 100,
+    "should_exit": false,
+    "should_maximize": true,
     "prefix": "test_",
-    "suffix": ".gd",
-    "double_strategy": "SCRIPT_ONLY",
-    "disable_colors": false,
-    "font_color": "CCCCCC",
-    "font_size": 16,
-    "font_name": "CourierPrime",
-    "hide_orphans": true,
-    "background_color": "262626",
-    "junit_xml_file": "res://tests/reports/junit_report.xml",
-    "junit_xml_timestamp": true,
-    "include_subdirs": true,
-    "inner_class_name_prefix": "Test",
-    "logs": {
-        "directory": "res://tests/logs",
-        "errors_only": false,
-        "timestamp": true,
-        "types": [
-            "test",
-            "script",
-            "summary"
-        ]
-    },
-    "categories": [
-        "unit",
-        "integration",
-        "performance",
-        "mobile"
-    ]
+    "suffix": ".gd"
 }

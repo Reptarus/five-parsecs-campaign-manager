@@ -8,6 +8,7 @@ const TEST_CATEGORIES := {
 }
 
 const GutRunner := preload("res://addons/gut/gut.gd")
+const GutUtils := preload("res://addons/gut/utils.gd")
 
 var gut = null
 var _start_time: int
@@ -15,8 +16,16 @@ var _category_results := {}
 var _parallel_runners := []
 var _tests_completed := 0
 var _total_tests := 0
+var _utils = null
+
+func _init() -> void:
+	_utils = GutUtils.new()
+	add_child(_utils)
 
 func _ready() -> void:
+	# Wait one frame to ensure proper initialization
+	await get_tree().process_frame
+	
 	_start_time = Time.get_ticks_msec()
 	
 	# Parse command line arguments
@@ -39,7 +48,7 @@ func _run_tests_sequential(categories: Array) -> void:
 			print("\nRunning %s tests..." % category)
 			gut.add_directory(TEST_CATEGORIES[category])
 			var category_start := Time.get_ticks_msec()
-			gut.test_scripts()
+			await gut.test_scripts()
 			_category_results[category] = {
 				"results": gut.get_test_results(),
 				"duration": (Time.get_ticks_msec() - category_start) / 1000.0
@@ -86,7 +95,6 @@ func _configure_gut(runner: Node) -> void:
 	runner.set_yield_between_tests(true)
 	
 	# Appearance settings
-	runner.set_font("CourierPrime")
 	runner.set_font_size(16)
 	runner.set_opacity(100)
 	
