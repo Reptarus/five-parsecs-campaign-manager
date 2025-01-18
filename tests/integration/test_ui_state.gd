@@ -1,19 +1,12 @@
 @tool
-extends BaseTest
+extends "res://tests/performance/perf_test_base.gd"
 
 const CampaignUI := preload("res://src/scenes/campaign/CampaignUI.gd")
 const TestHelper := preload("res://tests/fixtures/test_helper.gd")
+const GameState := preload("res://src/core/state/GameState.gd")
 
 var game_state: GameState
 var ui: CampaignUI
-
-func before_all() -> void:
-	super.before_all()
-	_performance_monitoring = true
-
-func after_all() -> void:
-	super.after_all()
-	_performance_monitoring = false
 
 func before_each() -> void:
 	super.before_each()
@@ -99,10 +92,7 @@ func test_event_log() -> void:
 
 # Test Cases - Performance
 func test_ui_update_performance() -> void:
-	if not _performance_monitoring:
-		return
-		
-	var execution_time := TestHelper.measure_execution_time(func():
+	var execution_time := time_block("UI Updates", func():
 		for i in range(10):
 			game_state.modify_credits(i * 100)
 			game_state.modify_resource(GameEnums.ResourceType.FUEL, i * 5)
@@ -110,18 +100,10 @@ func test_ui_update_performance() -> void:
 	)
 	
 	print("UI update time (10 updates): %.3f seconds" % execution_time)
-	assert_between(
-		execution_time,
-		0.0,
-		1.0,
-		"UI updates should complete within 1 second"
-	)
+	assert_lt(execution_time, PERFORMANCE_THRESHOLD, "UI updates should complete within threshold")
 
 func test_phase_transition_performance() -> void:
-	if not _performance_monitoring:
-		return
-		
-	var execution_time := TestHelper.measure_execution_time(func():
+	var execution_time := time_block("Phase Transitions", func():
 		for phase in [
 			GameEnums.CampaignPhase.SETUP,
 			GameEnums.CampaignPhase.UPKEEP,
@@ -134,9 +116,4 @@ func test_phase_transition_performance() -> void:
 	)
 	
 	print("Phase transition time (5 phases): %.3f seconds" % execution_time)
-	assert_between(
-		execution_time,
-		0.0,
-		1.0,
-		"Phase transitions should complete within 1 second"
-	)
+	assert_lt(execution_time, PERFORMANCE_THRESHOLD, "Phase transitions should complete within threshold")

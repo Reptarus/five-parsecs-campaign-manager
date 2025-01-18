@@ -3,7 +3,9 @@ extends Control
 
 const GameEnums = preload("res://src/core/systems/GlobalEnums.gd")
 const GameState = preload("res://src/core/state/GameState.gd")
-const CampaignPhaseManager = preload("res://src/core/campaign/CampaignPhaseManager.gd")
+const CampaignPhaseManagerScript = preload("res://src/core/campaign/CampaignPhaseManager.gd")
+
+const UpkeepPhasePanel = preload("res://src/ui/screens/campaign/phases/UpkeepPhasePanel.tscn")
 const StoryPhasePanel = preload("res://src/ui/screens/campaign/phases/StoryPhasePanel.tscn")
 const CampaignPhasePanel = preload("res://src/ui/screens/campaign/phases/CampaignPhasePanel.tscn")
 const BattleSetupPhasePanel = preload("res://src/ui/screens/campaign/phases/BattleSetupPhasePanel.tscn")
@@ -27,12 +29,16 @@ const EndPhasePanel = preload("res://src/ui/screens/campaign/phases/EndPhasePane
 @onready var phase_container = $PhaseContainer
 
 var game_state: GameState
-var phase_manager: CampaignPhaseManager
+var phase_manager: Node
 var current_phase_panel: BasePhasePanel
 
 func _ready() -> void:
 	game_state = GameState.new()
-	phase_manager = CampaignPhaseManager.new()
+	phase_manager = CampaignPhaseManagerScript.new()
+	
+	# Need to add nodes to scene tree before connecting signals
+	game_state.name = "GameState" # Give nodes names to help with debugging
+	phase_manager.name = "PhaseManager"
 	
 	add_child(game_state)
 	add_child(phase_manager)

@@ -1,19 +1,25 @@
 {
     "dirs": [
-        "res://tests/"
+        "res://tests/unit",
+        "res://tests/integration",
+        "res://tests/performance",
+        "res://tests/mobile"
     ],
-    "double_strategy": "script_only",
+    "double_strategy": "partial",
     "ignore_pause": true,
     "include_subdirs": true,
-    "inner_class": false,
-    "log_level": 1,
+    "log_level": 3,
     "prefix": "test_",
-    "selected": "",
     "should_exit": true,
-    "should_exit_on_success": true,
     "should_maximize": true,
+    "should_exit_on_success": true,
+    "export_path": "res://tests/reports/",
+    "junit_xml_file": "res://tests/reports/results.xml",
+    "junit_xml_timestamp": true,
+    "inner_class_name": "",
+    "opacity": 100,
+    "selected": "",
     "suffix": ".gd",
     "tests": [],
-    "unit_test_name": "",
-    "post_run_script": "res://tests/fixtures/post_run.gd",
-    "pre_run_script": "res://tests/fixtures
+    "unit_test_name": ""
+}

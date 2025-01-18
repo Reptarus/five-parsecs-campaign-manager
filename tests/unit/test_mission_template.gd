@@ -1,131 +1,135 @@
-extends "res://addons/gut/test.gd"
+@tool
+extends "../../tests/fixtures/base_test.gd"
 
-const MissionTemplate = preload("res://src/core/systems/MissionTemplate.gd")
-const GameEnums = preload("res://src/core/systems/GlobalEnums.gd")
+# MissionTemplate should extend Node for this test to work
+const MissionTemplate := preload("res://src/core/systems/MissionTemplate.gd")
 
 var template: MissionTemplate
 
 func before_each() -> void:
-    template = MissionTemplate.new()
-    
-    # Setup basic template properties
-    template.type = GameEnums.MissionType.RED_ZONE
-    template.title_templates = ["Mission: {LOCATION}", "Operation: {LOCATION}"]
-    template.description_templates = ["Search and secure {LOCATION}", "Investigate activity at {LOCATION}"]
-    template.objective = "SEARCH"
-    template.objective_description = "Search the area for valuable items"
-    template.reward_range = Vector2(100, 500)
-    template.difficulty_range = Vector2(1, 3)
-    template.required_skills = ["combat", "tech"]
-    template.enemy_types = ["standard", "elite"]
-    template.deployment_condition_chance = 0.3
-    template.notable_sight_chance = 0.2
-    template.economic_impact = 1.0
+	template = MissionTemplate.new()
+	add_child_autofree(template)
 
 func after_each() -> void:
-    template.free()
+	template.queue_free()
 
-func test_template_initialization() -> void:
-    assert_eq(template.type, GameEnums.MissionType.RED_ZONE, "Template type should be set")
-    assert_eq(template.title_templates.size(), 2, "Should have 2 title templates")
-    assert_eq(template.description_templates.size(), 2, "Should have 2 description templates")
-    assert_eq(template.objective, "SEARCH", "Objective should be set")
-    assert_eq(template.required_skills.size(), 2, "Should have 2 required skills")
+func test_initial_state() -> void:
+	assert_eq(template.mission_type, GameEnums.MissionType.NONE)
+	assert_eq(template.difficulty, 0)
+	assert_eq(template.reward_credits, 0)
+	assert_eq(template.reward_items.size(), 0)
 
-func test_template_validation() -> void:
-    # Test valid template
-    assert_true(template.validate(), "Valid template should pass validation")
-    
-    # Test invalid type
-    var original_type = template.type
-    template.type = GameEnums.MissionType.NONE
-    assert_false(template.validate(), "Invalid type should fail validation")
-    template.type = original_type
-    
-    # Test empty title templates
-    template.title_templates.clear()
-    assert_false(template.validate(), "Empty title templates should fail validation")
-    template.title_templates = ["Mission: {LOCATION}"]
-    
-    # Test invalid ranges
-    template.reward_range = Vector2(-100, 500)
-    assert_false(template.validate(), "Negative reward range should fail validation")
-    template.reward_range = Vector2(100, 500)
-    
-    template.difficulty_range = Vector2(3, 1)
-    assert_false(template.validate(), "Invalid difficulty range should fail validation")
-    template.difficulty_range = Vector2(1, 3)
-    
-    # Test invalid probabilities
-    template.deployment_condition_chance = -0.1
-    assert_false(template.validate(), "Invalid deployment chance should fail validation")
-    template.deployment_condition_chance = 0.3
-    
-    template.notable_sight_chance = 1.5
-    assert_false(template.validate(), "Invalid sight chance should fail validation")
-    template.notable_sight_chance = 0.2
+func test_set_mission_type() -> void:
+	template.mission_type = GameEnums.MissionType.PATROL
+	assert_eq(template.mission_type, GameEnums.MissionType.PATROL)
 
-func test_random_getters() -> void:
-    # Test random title
-    var title = template.get_random_title()
-    assert_true(template.title_templates.has(title), "Random title should be from templates")
-    
-    # Test random description
-    var description = template.get_random_description()
-    assert_true(template.description_templates.has(description), "Random description should be from templates")
-    
-    # Test random enemy type
-    var enemy = template.get_random_enemy_type()
-    assert_true(template.enemy_types.has(enemy), "Random enemy should be from types")
-    
-    # Test random difficulty
-    var difficulty = template.get_random_difficulty()
-    assert_true(difficulty >= template.difficulty_range.x and difficulty <= template.difficulty_range.y,
-        "Random difficulty should be within range")
-    
-    # Test random reward
-    var reward = template.get_random_reward()
-    assert_true(reward >= template.reward_range.x and reward <= template.reward_range.y,
-        "Random reward should be within range")
+func test_set_difficulty() -> void:
+	template.difficulty = 3
+	assert_eq(template.difficulty, 3)
 
-func test_skill_requirements() -> void:
-    assert_true(template.requires_skill("combat"), "Should require combat skill")
-    assert_true(template.requires_skill("tech"), "Should require tech skill")
-    assert_false(template.requires_skill("medical"), "Should not require medical skill")
+func test_set_reward_credits() -> void:
+	template.reward_credits = 100
+	assert_eq(template.reward_credits, 100)
 
-func test_chance_calculations() -> void:
-    var deployment_results := []
-    var sight_results := []
-    
-    # Test multiple times to account for randomness
-    for i in range(1000):
-        deployment_results.append(template.should_have_deployment_condition())
-        sight_results.append(template.should_have_notable_sight())
-    
-    # Calculate percentages
-    var deployment_percentage = deployment_results.count(true) / 1000.0
-    var sight_percentage = sight_results.count(true) / 1000.0
-    
-    # Allow for some variance due to randomness
-    assert_almost_eq(deployment_percentage, template.deployment_condition_chance, 0.1,
-        "Deployment condition chance should be approximately correct")
-    assert_almost_eq(sight_percentage, template.notable_sight_chance, 0.1,
-        "Notable sight chance should be approximately correct")
+func test_add_reward_item() -> void:
+	var item = {"name": "Test Item", "type": "weapon"}
+	template.add_reward_item(item)
+	assert_eq(template.reward_items.size(), 1)
+	assert_eq(template.reward_items[0], item)
 
-func test_dictionary_conversion() -> void:
-    var dict = template.to_dictionary()
-    
-    # Test dictionary contents
-    assert_eq(dict["type"], template.type, "Dictionary should contain correct type")
-    assert_eq(dict["title_templates"], template.title_templates, "Dictionary should contain title templates")
-    assert_eq(dict["objective"], template.objective, "Dictionary should contain objective")
-    assert_eq(dict["reward_range"]["min"], template.reward_range.x, "Dictionary should contain reward range min")
-    assert_eq(dict["reward_range"]["max"], template.reward_range.y, "Dictionary should contain reward range max")
-    
-    # Test conversion back to template
-    var new_template = MissionTemplate.from_dictionary(dict)
-    assert_eq(new_template.type, template.type, "Converted template should have same type")
-    assert_eq(new_template.title_templates, template.title_templates, "Converted template should have same titles")
-    assert_eq(new_template.objective, template.objective, "Converted template should have same objective")
-    assert_eq(new_template.reward_range, template.reward_range, "Converted template should have same reward range")
-    assert_eq(new_template.difficulty_range, template.difficulty_range, "Converted template should have same difficulty range")
+func test_remove_reward_item() -> void:
+	var item = {"name": "Test Item", "type": "weapon"}
+	template.add_reward_item(item)
+	template.remove_reward_item(0)
+	assert_eq(template.reward_items.size(), 0)
+
+func test_clear_reward_items() -> void:
+	var item1 = {"name": "Item 1", "type": "weapon"}
+	var item2 = {"name": "Item 2", "type": "armor"}
+	template.add_reward_item(item1)
+	template.add_reward_item(item2)
+	template.clear_reward_items()
+	assert_eq(template.reward_items.size(), 0)
+
+func test_set_mission_parameters() -> void:
+	var params = {
+		"type": GameEnums.MissionType.PATROL,
+		"difficulty": 2,
+		"credits": 150,
+		"items": [ {"name": "Test Item", "type": "weapon"}]
+	}
+	template.set_mission_parameters(params)
+	assert_eq(template.mission_type, GameEnums.MissionType.PATROL)
+	assert_eq(template.difficulty, 2)
+	assert_eq(template.reward_credits, 150)
+	assert_eq(template.reward_items.size(), 1)
+
+func test_get_mission_parameters() -> void:
+	template.mission_type = GameEnums.MissionType.PATROL
+	template.difficulty = 2
+	template.reward_credits = 150
+	var item = {"name": "Test Item", "type": "weapon"}
+	template.add_reward_item(item)
+	
+	var params = template.get_mission_parameters()
+	assert_eq(params.type, GameEnums.MissionType.PATROL)
+	assert_eq(params.difficulty, 2)
+	assert_eq(params.credits, 150)
+	assert_eq(params.items.size(), 1)
+
+func test_calculate_mission_time() -> void:
+	template.difficulty = 2
+	var base_time = 10
+	var expected_time = base_time * (1 + template.difficulty * 0.5)
+	assert_almost_eq(template.calculate_mission_time(base_time), expected_time, 0.001)
+
+func test_calculate_success_chance() -> void:
+	template.difficulty = 2
+	var base_chance = 0.8
+	var expected_chance = base_chance * (1 - template.difficulty * 0.1)
+	assert_almost_eq(template.calculate_success_chance(base_chance), expected_chance, 0.001)
+
+func test_validate_mission_parameters() -> void:
+	var valid_params = {
+		"type": GameEnums.MissionType.PATROL,
+		"difficulty": 2,
+		"credits": 150,
+		"items": [ {"name": "Test Item", "type": "weapon"}]
+	}
+	assert_true(template.validate_mission_parameters(valid_params))
+	
+	var invalid_params = {
+		"type": GameEnums.MissionType.NONE,
+		"difficulty": - 1,
+		"credits": - 100,
+		"items": null
+	}
+	assert_false(template.validate_mission_parameters(invalid_params))
+
+func test_clone_mission() -> void:
+	template.mission_type = GameEnums.MissionType.PATROL
+	template.difficulty = 2
+	template.reward_credits = 150
+	var item = {"name": "Test Item", "type": "weapon"}
+	template.add_reward_item(item)
+	
+	var clone = template.clone()
+	assert_eq(clone.mission_type, template.mission_type)
+	assert_eq(clone.difficulty, template.difficulty)
+	assert_eq(clone.reward_credits, template.reward_credits)
+	assert_eq(clone.reward_items.size(), template.reward_items.size())
+	assert_eq(clone.reward_items[0], template.reward_items[0])
+	clone.free()
+
+func test_to_string() -> void:
+	template.mission_type = GameEnums.MissionType.PATROL
+	template.difficulty = 2
+	template.reward_credits = 150
+	var item = {"name": "Test Item", "type": "weapon"}
+	template.add_reward_item(item)
+	
+	var str_rep = template.to_string()
+	assert_string_contains(str_rep, "PATROL")
+	assert_string_contains(str_rep, "2")
+	assert_string_contains(str_rep, "150")
+	assert_string_contains(str_rep, "Test Item")

@@ -4,9 +4,9 @@ extends Node
 const GameEnums := preload("res://src/core/systems/GlobalEnums.gd")
 const FiveParsecsGameState := preload("res://src/core/state/GameState.gd")
 
-signal state_changed(new_state: GameEnums.GameState)
+signal state_changed(new_state: int)
 
-var current_state: GameEnums.GameState = GameEnums.GameState.SETUP
+var current_state: int = GameEnums.GameState.SETUP
 var game_state: FiveParsecsGameState
 var campaign_manager: GameCampaignManager
 
@@ -18,7 +18,7 @@ func _init(_game_state: FiveParsecsGameState, _campaign_manager: GameCampaignMan
 	campaign_manager.phase_changed.connect(_on_phase_changed)
 	campaign_manager.turn_completed.connect(_on_turn_completed)
 
-func change_state(new_state: GameEnums.GameState) -> void:
+func change_state(new_state: int) -> void:
 	if new_state == current_state:
 		return
 		
@@ -29,7 +29,7 @@ func change_state(new_state: GameEnums.GameState) -> void:
 	_enter_state(new_state)
 	state_changed.emit(new_state)
 
-func _enter_state(state: GameEnums.GameState) -> void:
+func _enter_state(state: int) -> void:
 	match state:
 		GameEnums.GameState.SETUP:
 			_handle_setup()
@@ -40,7 +40,7 @@ func _enter_state(state: GameEnums.GameState) -> void:
 		GameEnums.GameState.GAME_OVER:
 			_handle_game_over()
 
-func _exit_state(state: GameEnums.GameState) -> void:
+func _exit_state(state: int) -> void:
 	match state:
 		GameEnums.GameState.SETUP:
 			game_state.save_setup_data()

@@ -11,11 +11,13 @@ signal crew_created(crew_data: Dictionary)
 const DEBUG := true
 const GameEnums := preload("res://src/core/systems/GlobalEnums.gd")
 const Character := preload("res://src/core/character/Base/Character.gd")
-const FiveParsecsGameState := preload("res://src/core/state/GameState.gd")
-const CharacterBox := preload("res://src/ui/components/character/CharacterBox.tscn")
-const CharacterCreator := preload("res://src/ui/CharacterCreator.tscn")
-const CaptainCreation := preload("res://src/ui/CaptainCreation.tscn")
+const CharacterStats := preload("res://src/core/character/Base/CharacterStats.gd")
+const CharacterTableRoller := preload("res://src/core/character/Generation/CharacterTableRoller.gd")
 const CrewSystem := preload("res://src/core/campaign/crew/CrewSystem.gd")
+const CaptainCreation := preload("res://src/core/campaign/crew/CaptainCreation.gd")
+const CrewCreation := preload("res://src/core/campaign/crew/CrewCreation.gd")
+const CrewRelationshipManager := preload("res://src/core/campaign/crew/CrewRelationshipManager.gd")
+const CrewPreviewList := preload("res://src/core/campaign/crew/CrewPreviewList.gd")
 
 # Crew composition limits
 const MIN_HUMAN_CREW := 3
@@ -37,10 +39,11 @@ const MAX_SAVVY := 3
 
 # UI References
 @onready var crew_columns: Container = $MainContainer/LeftPanel/MainPanel/MainVBox/CharacterColumns
-@onready var crew_preview: Node = $MainContainer/RightPanel/RightVBox/PreviewPanel/PreviewVBox/PreviewScroll/CrewPreview
+@onready var crew_preview: CrewPreviewList = $MainContainer/RightPanel/RightVBox/PreviewPanel/PreviewVBox/PreviewScroll/CrewPreview
 @onready var confirm_button: Button = $MainContainer/LeftPanel/MainPanel/MainVBox/ConfirmButton
 @onready var title_label: Label = $MainContainer/LeftPanel/MainPanel/TitleLabel
-@onready var character_creator: Node = $MainContainer/LeftPanel/MainPanel/CharacterCreator
+@onready var captain_creator: CaptainCreation = $MainContainer/LeftPanel/MainPanel/CaptainCreation
+@onready var crew_creator: CrewCreation = $MainContainer/LeftPanel/MainPanel/CrewCreation
 @onready var create_captain_button: Button = $MainContainer/RightPanel/RightVBox/CrewCreationPanel/CrewCreationButtons/CreateCaptainButton
 @onready var add_crew_member_button: Button = $MainContainer/RightPanel/RightVBox/CrewCreationPanel/CrewCreationButtons/AddCrewMemberButton
 @onready var confirm_crew_button: Button = $MainContainer/RightPanel/RightVBox/CrewCreationPanel/CrewCreationButtons/ConfirmCrewButton
@@ -48,39 +51,15 @@ const MAX_SAVVY := 3
 # State variables
 var crew_system: CrewSystem
 var campaign_config: Dictionary = {}
-var crew_slots: Array[Node] = []
 var current_crew: Array[Character] = []
 var captain: Character
-var captain_creator: Node
-
-func _print_node_tree(node: Node, indent: String = "") -> void:
-	if not DEBUG:
-		return
-		
-	var visibility_str := ""
-	if node is Window:
-		visibility_str = str(node.visible)
-	elif node is CanvasItem:
-		visibility_str = str(node.is_visible_in_tree())
-	else:
-		visibility_str = "N/A"
-		
-	print(indent + node.name + " (Visible: " + visibility_str + ") [" + node.get_class() + "]")
-	
-	# Skip certain node types that might cause issues
-	if node is Window and node.get_class() == "FileDialog":
-		return
-		
-	for child in node.get_children():
-		_print_node_tree(child, indent + "  ")
+var relationship_manager: CrewRelationshipManager
 
 func _ready() -> void:
 	if DEBUG:
 		print("[InitialCrewCreation] _ready called")
-		print("[InitialCrewCreation] Node tree structure:")
-		_print_node_tree(self)
 	
-	if not _initialize_game_state():
+	if not _initialize_systems():
 		return
 	
 	_setup_crew_creation()
@@ -89,21 +68,13 @@ func _ready() -> void:
 	_update_button_states()
 	_show_initial_guidance()
 
-func _initialize_game_state() -> bool:
-	var game_state_manager := get_node("/root/GameStateManager")
-	if not game_state_manager:
-		push_error("GameStateManager not found")
-		return false
-		
-	var game_state = game_state_manager.get_game_state()
-	if not game_state:
-		game_state = game_state_manager.create_new_game_state()
-		if not game_state:
-			push_error("Failed to create new game state")
-			return false
-	
+func _initialize_systems() -> bool:
 	crew_system = CrewSystem.new()
-	crew_system.initialize(game_state)
+	relationship_manager = CrewRelationshipManager.new()
+	
+	add_child(crew_system)
+	add_child(relationship_manager)
+	
 	return true
 
 func _show_initial_guidance() -> void:
@@ -126,11 +97,12 @@ func initialize(config: Dictionary) -> void:
 	var crew_size := config.get("crew_size", DEFAULT_CREW_SIZE) as int
 	crew_system.set_max_crew_size(crew_size)
 	
-	captain = config.get("captain") as Character
-	if captain:
-		current_crew.append(captain)
-		_update_crew_preview()
-		_update_button_states()
+	if config.has("captain"):
+		captain = config.captain as Character
+		if captain:
+			current_crew.append(captain)
+			_update_crew_preview()
+			_update_button_states()
 
 func _setup_crew_creation() -> void:
 	_setup_character_slots()
@@ -143,8 +115,7 @@ func _setup_character_slots() -> void:
 	for i in range(slot_count):
 		var slot := Button.new()
 		slot.text = "Add Crew Member"
-		slot.pressed.connect(_on_character_box_pressed.bind(slot))
-		crew_slots.append(slot)
+		slot.pressed.connect(_on_character_slot_pressed.bind(i))
 		crew_columns.add_child(slot)
 
 func _setup_buttons() -> void:
@@ -158,6 +129,24 @@ func _setup_buttons() -> void:
 	confirm_button.add_to_group("touch_buttons")
 	confirm_button.pressed.connect(_on_confirm_pressed)
 
+func _connect_signals() -> void:
+	if captain_creator:
+		captain_creator.captain_created.connect(_on_captain_created)
+		captain_creator.back_pressed.connect(_on_captain_creation_cancelled)
+	
+	if crew_creator:
+		crew_creator.crew_created.connect(_on_crew_member_created)
+		crew_creator.back_pressed.connect(_on_crew_creation_cancelled)
+	
+	if crew_preview:
+		crew_preview.crew_member_selected.connect(_on_crew_member_selected)
+	
+	if crew_system:
+		crew_system.crew_changed.connect(_on_crew_changed)
+	
+	if relationship_manager:
+		relationship_manager.relationship_changed.connect(_on_relationship_changed)
+
 func _update_button_states() -> void:
 	if not create_captain_button or not add_crew_member_button or not confirm_crew_button or not confirm_button:
 		push_error("Required buttons not found")
@@ -165,56 +154,31 @@ func _update_button_states() -> void:
 		
 	var has_captain := captain != null
 	create_captain_button.disabled = has_captain
-	add_crew_member_button.disabled = not has_captain
+	add_crew_member_button.disabled = not has_captain or current_crew.size() >= campaign_config.get("crew_size", DEFAULT_CREW_SIZE)
 	confirm_crew_button.disabled = not _validate_crew()
 	confirm_button.disabled = not _validate_crew()
 
 func _on_create_captain_pressed() -> void:
 	_debug_log("Create Captain button pressed")
-	
 	if captain_creator:
-		captain_creator.queue_free()
-	
-	captain_creator = CaptainCreation.instantiate()
-	if not captain_creator:
-		push_error("Failed to instantiate CaptainCreation scene")
-		return
-	
-	captain_creator.visible = false
-	$MainContainer/LeftPanel/MainPanel.add_child(captain_creator)
-	
-	if not captain_creator.captain_created.is_connected(_on_captain_created):
-		captain_creator.captain_created.connect(_on_captain_created)
-	if not captain_creator.back_pressed.is_connected(_on_captain_creation_cancelled):
-		captain_creator.back_pressed.connect(_on_captain_creation_cancelled)
-	
-	_handle_scene_transition(true, true)
+		captain_creator.show()
+		crew_creator.hide()
+		_handle_scene_transition(true, true)
 
-func _on_captain_created(new_captain: Character) -> void:
-	if not new_captain:
-		push_error("Received null captain")
-		return
-		
-	_debug_log("Captain created: " + new_captain.character_name)
+func _on_captain_created(captain_data: Dictionary) -> void:
+	_debug_log("Captain created: " + str(captain_data))
 	
-	captain = new_captain
+	captain = Character.new()
+	captain.initialize_from_data(captain_data)
+	captain.set_as_captain()
 	
-	var game_state_manager := get_node("/root/GameStateManager")
-	if game_state_manager:
-		var game_state = game_state_manager.get_game_state()
-		if game_state:
-			game_state.set_captain(captain)
-	
-	if not current_crew.has(captain):
-		current_crew.append(captain)
+	crew_system.set_captain(captain)
+	current_crew.append(captain)
 	
 	_update_crew_preview()
 	_update_button_states()
 	_handle_scene_transition(false, true)
 	_show_info_dialog("Captain created successfully! Now add crew members to complete your team.")
-
-func _on_captain_creation_cancelled() -> void:
-	_handle_scene_transition(false, true)
 
 func _on_add_crew_member_pressed() -> void:
 	_debug_log("Add Crew Member button pressed")
@@ -222,39 +186,116 @@ func _on_add_crew_member_pressed() -> void:
 		_show_error_dialog("You must create a captain first!")
 		return
 	
-	var max_crew_size := campaign_config.get("crew_size", DEFAULT_CREW_SIZE) as int
-	if current_crew.size() >= max_crew_size:
+	if current_crew.size() >= campaign_config.get("crew_size", DEFAULT_CREW_SIZE):
 		_show_error_dialog("Maximum crew size reached!")
 		return
 	
-	if not character_creator:
-		push_error("Character creator not found")
-		return
-		
-	character_creator.initialize(CharacterCreator.CreatorMode.INITIAL_CREW, self)
-	_handle_scene_transition(true)
+	if crew_creator:
+		captain_creator.hide()
+		crew_creator.show()
+		_handle_scene_transition(true)
 
-func _on_character_box_pressed(box: Button) -> void:
-	_debug_log("Character box pressed")
-	var slot_index := crew_slots.find(box)
-	if slot_index == -1:
-		push_error("Invalid character slot")
-		return
+func _on_crew_member_created(crew_data: Dictionary) -> void:
+	_debug_log("Crew member created: " + str(crew_data))
 	
-	if not character_creator:
-		push_error("Character creator not found")
-		return
+	var member := Character.new()
+	member.initialize_from_data(crew_data)
 	
-	if slot_index < current_crew.size():
-		var character := current_crew[slot_index]
-		_debug_log("Editing existing character at slot " + str(slot_index))
-		character_creator.edit_character(character)
+	if _validate_crew_member(member):
+		current_crew.append(member)
+		crew_system.add_crew_member(member)
+		relationship_manager.add_crew_member(member)
+		
+		_update_crew_preview()
+		_update_button_states()
+		_handle_scene_transition(false)
+		
+		if current_crew.size() < campaign_config.get("crew_size", DEFAULT_CREW_SIZE):
+			_show_info_dialog("Crew member added. Add more crew members or confirm your crew.")
+		else:
+			_show_info_dialog("Maximum crew size reached. Please confirm your crew.")
 	else:
-		_debug_log("Creating new character for slot " + str(slot_index))
-		character_creator.initialize(CharacterCreator.CreatorMode.INITIAL_CREW, self)
+		member.free()
+
+func _validate_crew_member(member: Character) -> bool:
+	if not member:
+		return false
+		
+	# Check species limits
+	var human_count := 0
+	var alien_count := 0
+	var bot_count := 0
 	
-	_debug_log("Transitioning to CharacterCreator")
-	_handle_scene_transition(true)
+	for crew in current_crew:
+		match crew.get_species():
+			"Human": human_count += 1
+			"Bot": bot_count += 1
+			_: alien_count += 1
+	
+	match member.get_species():
+		"Human": human_count += 1
+		"Bot": bot_count += 1
+		_: alien_count += 1
+	
+	if human_count < MIN_HUMAN_CREW:
+		_show_error_dialog("You need at least %d Human crew members." % MIN_HUMAN_CREW)
+		return false
+	
+	if alien_count > MAX_PRIMARY_ALIENS:
+		_show_error_dialog("You can have at most %d Primary Aliens." % MAX_PRIMARY_ALIENS)
+		return false
+	
+	if bot_count > MAX_BOTS:
+		_show_error_dialog("You can have at most %d Bot." % MAX_BOTS)
+		return false
+	
+	return true
+
+func _validate_crew() -> bool:
+	if current_crew.is_empty():
+		return false
+	
+	var human_count := 0
+	var alien_count := 0
+	var bot_count := 0
+	
+	for member in current_crew:
+		match member.get_species():
+			"Human": human_count += 1
+			"Bot": bot_count += 1
+			_: alien_count += 1
+	
+	if human_count < MIN_HUMAN_CREW:
+		return false
+	
+	if alien_count > MAX_PRIMARY_ALIENS:
+		return false
+	
+	if bot_count > MAX_BOTS:
+		return false
+	
+	var required_size := campaign_config.get("crew_size", DEFAULT_CREW_SIZE) as int
+	return current_crew.size() == required_size
+
+func _on_confirm_pressed() -> void:
+	if not _validate_crew():
+		return
+	
+	var crew_data := {
+		"captain": captain,
+		"crew_members": current_crew,
+		"relationships": relationship_manager.get_relationships()
+	}
+	
+	crew_system.finalize_crew(crew_data)
+	creation_completed.emit(crew_data)
+
+func _on_crew_changed(crew_data: Dictionary) -> void:
+	_update_crew_preview()
+	_update_button_states()
+
+func _on_relationship_changed(_relationship_data: Dictionary) -> void:
+	_update_crew_preview()
 
 func _handle_scene_transition(show_creator: bool, is_captain: bool = false) -> void:
 	_debug_log("Scene transition - show_creator: " + str(show_creator) + ", is_captain: " + str(is_captain))
@@ -262,279 +303,77 @@ func _handle_scene_transition(show_creator: bool, is_captain: bool = false) -> v
 	if show_creator:
 		if is_captain:
 			if captain_creator:
-				captain_creator.visible = true
 				captain_creator.show()
-			if character_creator:
-				character_creator.visible = false
-				character_creator.hide()
+			if crew_creator:
+				crew_creator.hide()
 		else:
 			if captain_creator:
-				captain_creator.visible = false
 				captain_creator.hide()
-			if character_creator:
-				character_creator.visible = true
-				character_creator.show()
+			if crew_creator:
+				crew_creator.show()
 				
 		if crew_columns:
-			crew_columns.visible = false
+			crew_columns.hide()
 		if confirm_button:
-			confirm_button.visible = false
+			confirm_button.hide()
 		if title_label:
-			title_label.visible = false
+			title_label.hide()
 	else:
 		if captain_creator:
-			captain_creator.visible = false
-		if character_creator:
-			character_creator.visible = false
+			captain_creator.hide()
+		if crew_creator:
+			crew_creator.hide()
 			
 		if crew_columns:
-			crew_columns.visible = true
+			crew_columns.show()
 		if confirm_button:
-			confirm_button.visible = true
+			confirm_button.show()
 		if title_label:
-			title_label.visible = true
-			
-	# Force update visibility
-	if captain_creator:
-		captain_creator.process_mode = Node.PROCESS_MODE_INHERIT if show_creator and is_captain else Node.PROCESS_MODE_DISABLED
-	if character_creator:
-		character_creator.process_mode = Node.PROCESS_MODE_INHERIT if show_creator and not is_captain else Node.PROCESS_MODE_DISABLED
+			title_label.show()
 
 func _update_crew_preview() -> void:
 	if crew_preview:
 		crew_preview.update_crew(current_crew)
-	_validate_crew()
-	_update_title()
-	_update_button_states()
-
-func _update_title() -> void:
-	if title_label:
-		title_label.text = "Initial Crew Creation"
-
-func _validate_character_stats(character: Character) -> bool:
-	if not character or not character.stats:
-		return false
-		
-	var stats = character.stats
-	
-	# Validate stat ranges
-	if stats.reactions < MIN_REACTIONS or stats.reactions > MAX_REACTIONS:
-		_show_error_dialog("Invalid Reactions value for %s. Must be between %d and %d." % [character.character_name, MIN_REACTIONS, MAX_REACTIONS])
-		return false
-		
-	if stats.speed < MIN_SPEED or stats.speed > MAX_SPEED:
-		_show_error_dialog("Invalid Speed value for %s. Must be between %d\" and %d\"." % [character.character_name, MIN_SPEED, MAX_SPEED])
-		return false
-		
-	if stats.combat_skill < MIN_COMBAT_SKILL or stats.combat_skill > MAX_COMBAT_SKILL:
-		_show_error_dialog("Invalid Combat Skill value for %s. Must be between +%d and +%d." % [character.character_name, MIN_COMBAT_SKILL, MAX_COMBAT_SKILL])
-		return false
-		
-	if stats.toughness < MIN_TOUGHNESS or stats.toughness > MAX_TOUGHNESS:
-		_show_error_dialog("Invalid Toughness value for %s. Must be between %d and %d." % [character.character_name, MIN_TOUGHNESS, MAX_TOUGHNESS])
-		return false
-		
-	if stats.savvy < MIN_SAVVY or stats.savvy > MAX_SAVVY:
-		_show_error_dialog("Invalid Savvy value for %s. Must be between +%d and +%d." % [character.character_name, MIN_SAVVY, MAX_SAVVY])
-		return false
-		
-	# Check required fields
-	if character.character_name.is_empty():
-		_show_error_dialog("Character name is required.")
-		return false
-		
-	# Get background and motivation as strings
-	var background := character.get_background() as String
-	var motivation := character.get_motivation() as String
-	
-	if background.is_empty():
-		_show_error_dialog("Character background is required.")
-		return false
-		
-	if motivation.is_empty():
-		_show_error_dialog("Character motivation is required.")
-		return false
-		
-	# Check equipment
-	if not character.equipped_weapon:
-		_show_error_dialog("Character must have a weapon equipped.")
-		return false
-		
-	return true
-
-func _validate_crew() -> bool:
-	if current_crew.is_empty():
-		return false
-		
-	var human_count := 0
-	var alien_count := 0
-	var bot_count := 0
-	
-	for member in current_crew:
-		if not member:
-			continue
-			
-		if not _validate_character_stats(member):
-			return false
-			
-		match member.get_species():
-			"Human": human_count += 1
-			"Bot": bot_count += 1
-			_: alien_count += 1
-	
-	if human_count < MIN_HUMAN_CREW:
-		_show_error_dialog("You need at least %d Human crew members." % MIN_HUMAN_CREW)
-		return false
-		
-	if alien_count > MAX_PRIMARY_ALIENS:
-		_show_error_dialog("You can have at most %d Primary Aliens." % MAX_PRIMARY_ALIENS)
-		return false
-		
-	if bot_count > MAX_BOTS:
-		_show_error_dialog("You can have at most %d Bot." % MAX_BOTS)
-		return false
-		
-	var required_size := campaign_config.get("crew_size", DEFAULT_CREW_SIZE) as int
-	var current_size := current_crew.size()
-	
-	if current_size < required_size:
-		_show_error_dialog("You need %d crew members. Currently have %d." % [required_size, current_size])
-		return false
-		
-	if current_size > required_size:
-		_show_error_dialog("You have too many crew members. Maximum is %d." % required_size)
-		return false
-	
-	return true
 
 func _show_error_dialog(message: String) -> void:
 	_debug_log("Showing error: " + message)
-	_show_dialog("Crew Creation Error", message)
-
-func _show_info_dialog(message: String) -> void:
-	_debug_log("Showing info: " + message)
-	_show_dialog("Crew Creation", message)
-
-func _show_dialog(title: String, message: String) -> void:
-	for child in get_children():
-		if child is AcceptDialog:
-			child.queue_free()
-	
 	var dialog := AcceptDialog.new()
 	dialog.dialog_text = message
-	dialog.title = title
+	dialog.title = "Crew Creation Error"
 	add_child(dialog)
 	dialog.popup_centered()
 
-func _on_confirm_pressed() -> void:
-	if not _validate_crew():
-		return
-		
-	var game_state_manager := get_node("/root/GameStateManager")
-	if not game_state_manager:
-		push_error("GameStateManager not found")
-		return
-		
-	var game_state = game_state_manager.get_game_state()
-	if game_state:
-		for member in current_crew:
-			game_state.add_crew_member(member)
-		get_tree().change_scene_to_file("res://src/scenes/campaign/setup/CampaignSetup.tscn")
-	else:
-		push_error("GameState not found when trying to save crew")
-
-func _on_cancel_pressed() -> void:
-	creation_cancelled.emit()
-
-func _connect_signals() -> void:
-	if character_creator:
-		if not character_creator.character_created.is_connected(_on_character_created):
-			character_creator.character_created.connect(_on_character_created)
-		if not character_creator.character_edited.is_connected(_on_character_edited):
-			character_creator.character_edited.connect(_on_character_edited)
-		if not character_creator.back_pressed.is_connected(_on_creator_back_pressed):
-			character_creator.back_pressed.connect(_on_creator_back_pressed)
-	
-	if crew_preview:
-		if not crew_preview.crew_member_selected.is_connected(_on_crew_member_selected):
-			crew_preview.crew_member_selected.connect(_on_crew_member_selected)
-
-func _on_creator_back_pressed() -> void:
-	_debug_log("Back button pressed in CharacterCreator")
-	_handle_scene_transition(false)
-
-func _on_character_created(character: Character) -> void:
-	_debug_log("Character created signal received")
-	if not character:
-		push_error("Received null character")
-		return
-		
-	if not _validate_character_stats(character):
-		_debug_log("Character validation failed")
-		return
-	
-	if not captain:
-		captain = character
-		current_crew.append(captain)
-		_update_crew_preview()
-		_debug_log("Captain added to crew")
-		
-		var dialog := AcceptDialog.new()
-		dialog.title = "Captain Created"
-		dialog.dialog_text = "Captain has been created. You can now add crew members."
-		add_child(dialog)
-		dialog.popup_centered()
-		_handle_scene_transition(false)
-	else:
-		var slot_index := current_crew.size()
-		if slot_index < crew_slots.size():
-			current_crew.append(character)
-			_update_crew_preview()
-			_debug_log("Character added to crew at slot " + str(slot_index))
-			
-			var dialog := ConfirmationDialog.new()
-			dialog.title = "Character Added"
-			dialog.dialog_text = "Character has been added to your crew. Would you like to create another character?"
-			dialog.get_ok_button().text = "Create Another"
-			dialog.get_cancel_button().text = "Back to Crew"
-			add_child(dialog)
-			
-			dialog.confirmed.connect(func():
-				dialog.queue_free()
-				if slot_index + 1 < crew_slots.size():
-					_on_character_box_pressed(crew_slots[slot_index + 1])
-			)
-			dialog.canceled.connect(func():
-				dialog.queue_free()
-				_handle_scene_transition(false)
-			)
-			
-			dialog.popup_centered()
-		else:
-			_debug_log("No available slot for new character")
-			_handle_scene_transition(false)
-
-func _on_character_edited(character: Character) -> void:
-	_debug_log("Character edited signal received")
-	if not character:
-		push_error("Received null character")
-		return
-		
-	var index := current_crew.find(character)
-	if index != -1:
-		current_crew[index] = character
-		_update_crew_preview()
-		_handle_scene_transition(false)
-	else:
-		push_error("Edited character not found in crew")
-
-func _on_crew_member_selected(index: int) -> void:
-	if index >= 0 and index < current_crew.size():
-		var character := current_crew[index]
-		if character and character_creator:
-			character_creator.edit_character(character)
-			_handle_scene_transition(true)
+func _show_info_dialog(message: String) -> void:
+	_debug_log("Showing info: " + message)
+	var dialog := AcceptDialog.new()
+	dialog.dialog_text = message
+	dialog.title = "Crew Creation"
+	add_child(dialog)
+	dialog.popup_centered()
 
 func _debug_log(message: String) -> void:
 	if DEBUG:
 		print("[InitialCrewCreation] " + message)
+
+func _on_character_slot_pressed(slot_index: int) -> void:
+	_debug_log("Character slot " + str(slot_index) + " pressed")
+	if slot_index < current_crew.size():
+		_show_info_dialog("This slot already has a crew member.")
+		return
+	
+	_on_add_crew_member_pressed()
+
+func _on_captain_creation_cancelled() -> void:
+	_debug_log("Captain creation cancelled")
+	_handle_scene_transition(false, true)
+
+func _on_crew_creation_cancelled() -> void:
+	_debug_log("Crew member creation cancelled")
+	_handle_scene_transition(false)
+
+func _on_crew_member_selected(index: int) -> void:
+	_debug_log("Crew member " + str(index) + " selected")
+	if index >= 0 and index < current_crew.size():
+		var member := current_crew[index]
+		if member:
+			_show_info_dialog("Selected crew member: " + member.character_name)

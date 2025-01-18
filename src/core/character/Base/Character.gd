@@ -11,15 +11,28 @@ var origin: int # GameEnums.Origin
 var background: int # GameEnums.Background
 var motivation: int # GameEnums.Motivation
 
-# Stats
+# Stats with property setters for enforcing limits
 var level: int = 1
 var experience: int = 0
 var health: int = 10
 var max_health: int = 10
-var reaction: int = 0
-var combat: int = 0
-var toughness: int = 0
-var savvy: int = 0
+
+var _reaction: int = 0
+var _combat: int = 0
+var _toughness: int = 0
+var _savvy: int = 0
+var _luck: int = 0
+var _training: int = GameEnums.Training.NONE
+
+# Maximum values for stats
+const MAX_STATS = {
+	"reaction": 6,
+	"combat": 5,
+	"speed": 8,
+	"savvy": 5,
+	"toughness": 6,
+	"luck": 1 # Humans can have 3
+}
 
 # Equipment
 var weapons: Array = []
@@ -37,6 +50,47 @@ var is_wounded: bool = false
 var is_dead: bool = false
 var status_effects: Array = []
 
+# Character Type Flags
+var is_bot: bool = false
+var is_soulless: bool = false
+var is_human: bool = false
+
+# Property getters/setters for stats
+var reaction: int:
+	get: return _reaction
+	set(value):
+		_reaction = mini(value, MAX_STATS.reaction)
+
+var combat: int:
+	get: return _combat
+	set(value):
+		_combat = mini(value, MAX_STATS.combat)
+
+var toughness: int:
+	get: return _toughness
+	set(value):
+		var max_toughness = 4 if character_class == GameEnums.CharacterClass.ENGINEER else MAX_STATS.toughness
+		_toughness = mini(value, max_toughness)
+
+var savvy: int:
+	get: return _savvy
+	set(value):
+		_savvy = mini(value, MAX_STATS.savvy)
+
+var luck: int:
+	get: return _luck
+	set(value):
+		var max_luck = 3 if is_human else MAX_STATS.luck
+		_luck = mini(value, max_luck)
+
+var training: int:
+	get: return _training
+	set(value):
+		if is_soulless:
+			return
+		if _training == GameEnums.Training.NONE:
+			_training = value
+
 func _init() -> void:
 	pass
 
@@ -50,6 +104,10 @@ func heal(amount: int) -> void:
 	is_wounded = health < max_health / 2
 
 func add_experience(amount: int) -> bool:
+	# Bots don't gain XP
+	if is_bot:
+		return false
+		
 	var leveled_up = false
 	experience += amount
 	
@@ -147,16 +205,21 @@ func to_dictionary() -> Dictionary:
 		"combat": combat,
 		"toughness": toughness,
 		"savvy": savvy,
+		"luck": luck,
 		"weapons": weapons.duplicate(),
 		"armor": armor.duplicate(),
 		"items": items.duplicate(),
 		"skills": skills.duplicate(),
 		"abilities": abilities.duplicate(),
 		"traits": traits.duplicate(),
+		"training": training,
 		"is_active": is_active,
 		"is_wounded": is_wounded,
 		"is_dead": is_dead,
-		"status_effects": status_effects.duplicate()
+		"status_effects": status_effects.duplicate(),
+		"is_bot": is_bot,
+		"is_soulless": is_soulless,
+		"is_human": is_human
 	}
 
 func from_dictionary(data: Dictionary) -> void:
@@ -174,6 +237,7 @@ func from_dictionary(data: Dictionary) -> void:
 	combat = data.get("combat", 0)
 	toughness = data.get("toughness", 0)
 	savvy = data.get("savvy", 0)
+	luck = data.get("luck", 0)
 	
 	weapons = data.get("weapons", []).duplicate()
 	armor = data.get("armor", []).duplicate()
@@ -182,8 +246,13 @@ func from_dictionary(data: Dictionary) -> void:
 	skills = data.get("skills", []).duplicate()
 	abilities = data.get("abilities", []).duplicate()
 	traits = data.get("traits", []).duplicate()
+	training = data.get("training", GameEnums.Training.NONE)
 	
 	is_active = data.get("is_active", true)
 	is_wounded = data.get("is_wounded", false)
 	is_dead = data.get("is_dead", false)
 	status_effects = data.get("status_effects", []).duplicate()
+	
+	is_bot = data.get("is_bot", false)
+	is_soulless = data.get("is_soulless", false)
+	is_human = data.get("is_human", false)

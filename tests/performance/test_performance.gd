@@ -1,39 +1,40 @@
-extends "res://addons/gut/test.gd"
+extends "res://tests/test_base.gd"
 
 const BattlefieldGenerator := preload("res://src/core/battle/BattlefieldGenerator.gd")
 const BattlefieldManager := preload("res://src/core/battle/BattlefieldManager.gd")
-const GameEnums := preload("res://src/core/systems/GlobalEnums.gd")
 const TerrainTypes := preload("res://src/core/terrain/TerrainTypes.gd")
 
-# Test variables
 var battlefield_generator: BattlefieldGenerator
 var battlefield_manager: BattlefieldManager
 
-# Performance thresholds (in milliseconds)
 const BATTLEFIELD_GEN_THRESHOLD := 100
 const TERRAIN_UPDATE_THRESHOLD := 50
 const LINE_OF_SIGHT_THRESHOLD := 16
 const PATHFINDING_THRESHOLD := 100
 
-# Test configuration
 const TEST_ITERATIONS := 10
 const MEMORY_TEST_ITERATIONS := 50
-const MEMORY_THRESHOLD_MB := 10 # 10MB
+const MEMORY_THRESHOLD_MB := 10
 const CLEANUP_DELAY_MS := 100
 
-func before_all() -> void:
-    super.before_all()
+func before_each() -> void:
+    super.before_each()
     battlefield_generator = BattlefieldGenerator.new()
-    battlefield_manager = BattlefieldManager.new()
     add_child(battlefield_generator)
+    battlefield_manager = BattlefieldManager.new()
     add_child(battlefield_manager)
 
-func after_all() -> void:
-    super.after_all()
+func after_each() -> void:
+    super.after_each()
     battlefield_generator.queue_free()
     battlefield_manager.queue_free()
 
-# Battlefield Generation Performance Tests
+func before_all() -> void:
+    super.before_all()
+
+func after_all() -> void:
+    super.after_all()
+
 func test_battlefield_generation_performance() -> void:
     var total_time := 0
     var success_count := 0
@@ -48,11 +49,7 @@ func test_battlefield_generation_performance() -> void:
             success_count += 1
     
     var average_time: float = total_time / float(success_count) if success_count > 0 else INF
-    assert_lt(average_time, BATTLEFIELD_GEN_THRESHOLD,
-        "Battlefield generation should complete within %d ms (got %d ms)" % [
-            BATTLEFIELD_GEN_THRESHOLD,
-            average_time
-        ])
+    assert_lt(average_time, BATTLEFIELD_GEN_THRESHOLD)
 
 # Terrain Update Performance Tests
 func test_terrain_update_performance() -> void:

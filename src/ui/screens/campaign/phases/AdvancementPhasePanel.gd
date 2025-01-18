@@ -12,11 +12,34 @@ const Character = preload("res://src/core/character/Base/Character.gd")
 var selected_crew_member: Character
 var available_advancements: Array = []
 var selected_advancement: Dictionary = {}
+
+# XP costs from core rules
 var advancement_costs: Dictionary = {
-	"STAT": 100,
-	"SKILL": 150,
-	"ABILITY": 200,
-	"TRAIT": 250
+	"REACTION": 7,
+	"COMBAT": 7,
+	"SPEED": 5,
+	"SAVVY": 5,
+	"TOUGHNESS": 6,
+	"LUCK": 10,
+	"TRAINING": {
+		"PILOT": 20,
+		"MECHANIC": 15,
+		"MEDICAL": 20,
+		"MERCHANT": 10,
+		"SECURITY": 10,
+		"BROKER": 15,
+		"BOT_TECH": 10
+	}
+}
+
+# Maximum values from core rules
+var max_stats: Dictionary = {
+	"REACTION": 6,
+	"COMBAT": 5,
+	"SPEED": 8,
+	"SAVVY": 5,
+	"TOUGHNESS": 6,
+	"LUCK": 1 # Humans can have 3
 }
 
 func _ready() -> void:
@@ -36,6 +59,10 @@ func setup_phase() -> void:
 func _load_crew() -> void:
 	crew_list.clear()
 	for member in game_state.campaign.crew_members:
+		# Bots don't get XP
+		if member.is_bot:
+			continue
+			
 		var text = "%s (Level %d)" % [member.character_name, member.level]
 		if member.experience >= member.get_experience_for_next_level():
 			text += " - LEVEL UP AVAILABLE"
@@ -62,10 +89,18 @@ func _update_character_info() -> void:
 	
 	info += "\n[b]Stats:[/b]\n"
 	info += "Health: %d/%d\n" % [selected_crew_member.health, selected_crew_member.max_health]
-	info += "Reaction: %d\n" % selected_crew_member.reaction
-	info += "Combat: %d\n" % selected_crew_member.combat
-	info += "Toughness: %d\n" % selected_crew_member.toughness
-	info += "Savvy: %d\n" % selected_crew_member.savvy
+	info += "Reaction: %d/%d\n" % [selected_crew_member.reaction, max_stats.REACTION]
+	info += "Combat: %d/%d\n" % [selected_crew_member.combat, max_stats.COMBAT]
+	info += "Speed: %d/%d\n" % [selected_crew_member.speed, max_stats.SPEED]
+	info += "Savvy: %d/%d\n" % [selected_crew_member.savvy, max_stats.SAVVY]
+	info += "Toughness: %d/%d\n" % [selected_crew_member.toughness, max_stats.TOUGHNESS]
+	info += "Luck: %d/%d\n" % [selected_crew_member.luck, max_stats.LUCK]
+	
+	info += "\n[b]Training:[/b]\n"
+	if selected_crew_member.training == GameEnums.Training.NONE:
+		info += "None\n"
+	else:
+		info += "• %s\n" % GameEnums.get_training_name(selected_crew_member.training)
 	
 	info += "\n[b]Skills:[/b]\n"
 	if selected_crew_member.skills.is_empty():
@@ -85,8 +120,8 @@ func _update_character_info() -> void:
 	if selected_crew_member.traits.is_empty():
 		info += "None\n"
 	else:
-		for trait in selected_crew_member.traits:
-			info += "• %s\n" % GameEnums.get_trait_name(trait )
+		for current_trait in selected_crew_member.traits:
+			info += "• %s\n" % GameEnums.get_trait_name(current_trait)
 	
 	character_info.text = info
 
@@ -96,7 +131,10 @@ func _update_advancement_options() -> void:
 	
 	for advancement in available_advancements:
 		var text = advancement.name
-		text += " (%d credits)" % advancement.cost
+		if selected_crew_member.is_bot:
+			text += " (%d credits)" % advancement.cost
+		else:
+			text += " (%d XP)" % advancement.cost
 		advancement_options.add_item(text)
 		
 		if not _can_apply_advancement(advancement):
@@ -115,260 +153,155 @@ func _get_available_advancements() -> Array:
 			"type": "STAT",
 			"stat": "reaction",
 			"amount": 1,
-			"cost": advancement_costs.STAT,
-			"requirements": {"min_level": 2}
+			"cost": advancement_costs.REACTION,
+			"max": max_stats.REACTION
 		},
 		{
 			"name": "Increase Combat",
 			"type": "STAT",
 			"stat": "combat",
 			"amount": 1,
-			"cost": advancement_costs.STAT,
-			"requirements": {"min_level": 2}
+			"cost": advancement_costs.COMBAT,
+			"max": max_stats.COMBAT
 		},
 		{
-			"name": "Increase Toughness",
+			"name": "Increase Speed",
 			"type": "STAT",
-			"stat": "toughness",
+			"stat": "speed",
 			"amount": 1,
-			"cost": advancement_costs.STAT,
-			"requirements": {"min_level": 2}
+			"cost": advancement_costs.SPEED,
+			"max": max_stats.SPEED
 		},
 		{
 			"name": "Increase Savvy",
 			"type": "STAT",
 			"stat": "savvy",
 			"amount": 1,
-			"cost": advancement_costs.STAT,
-			"requirements": {"min_level": 2}
+			"cost": advancement_costs.SAVVY,
+			"max": max_stats.SAVVY
+		},
+		{
+			"name": "Increase Toughness",
+			"type": "STAT",
+			"stat": "toughness",
+			"amount": 1,
+			"cost": advancement_costs.TOUGHNESS,
+			"max": max_stats.TOUGHNESS if selected_crew_member.character_class != GameEnums.CharacterClass.ENGINEER else 4
+		},
+		{
+			"name": "Increase Luck",
+			"type": "STAT",
+			"stat": "luck",
+			"amount": 1,
+			"cost": advancement_costs.LUCK,
+			"max": 3 if selected_crew_member.is_human else max_stats.LUCK
 		}
 	])
 	
-	# Add class-specific skills
-	match selected_crew_member.character_class:
-		GameEnums.CharacterClass.SOLDIER:
-			advancements.append_array(_get_soldier_advancements())
-		GameEnums.CharacterClass.MEDIC:
-			advancements.append_array(_get_medic_advancements())
-		GameEnums.CharacterClass.SCOUT:
-			advancements.append_array(_get_scout_advancements())
-		GameEnums.CharacterClass.TECH:
-			advancements.append_array(_get_tech_advancements())
-		GameEnums.CharacterClass.PSYKER:
-			advancements.append_array(_get_psyker_advancements())
-	
-	# Add general traits based on background
-	advancements.append_array(_get_background_traits())
+	# Add training options if character doesn't have any yet
+	if selected_crew_member.training == GameEnums.Training.NONE:
+		advancements.append_array([
+			{
+				"name": "Pilot Training",
+				"type": "TRAINING",
+				"training": GameEnums.Training.PILOT,
+				"cost": advancement_costs.TRAINING.PILOT
+			},
+			{
+				"name": "Mechanic Training",
+				"type": "TRAINING",
+				"training": GameEnums.Training.MECHANIC,
+				"cost": advancement_costs.TRAINING.MECHANIC
+			},
+			{
+				"name": "Medical Training",
+				"type": "TRAINING",
+				"training": GameEnums.Training.MEDICAL,
+				"cost": advancement_costs.TRAINING.MEDICAL
+			},
+			{
+				"name": "Merchant Training",
+				"type": "TRAINING",
+				"training": GameEnums.Training.MERCHANT,
+				"cost": advancement_costs.TRAINING.MERCHANT
+			},
+			{
+				"name": "Security Training",
+				"type": "TRAINING",
+				"training": GameEnums.Training.SECURITY,
+				"cost": advancement_costs.TRAINING.SECURITY
+			},
+			{
+				"name": "Broker Training",
+				"type": "TRAINING",
+				"training": GameEnums.Training.BROKER,
+				"cost": advancement_costs.TRAINING.BROKER
+			},
+			{
+				"name": "Bot Tech Training",
+				"type": "TRAINING",
+				"training": GameEnums.Training.BOT_TECH,
+				"cost": advancement_costs.TRAINING.BOT_TECH
+			}
+		])
 	
 	return advancements
 
-func _get_soldier_advancements() -> Array:
-	return [
-		{
-			"name": "Combat Training",
-			"type": "SKILL",
-			"skill": GameEnums.Skill.COMBAT_TRAINING,
-			"cost": advancement_costs.SKILL,
-			"requirements": {"min_level": 3}
-		},
-		{
-			"name": "Heavy Weapons",
-			"type": "SKILL",
-			"skill": GameEnums.Skill.HEAVY_WEAPONS,
-			"cost": advancement_costs.SKILL,
-			"requirements": {"min_level": 4}
-		},
-		{
-			"name": "Battle Hardened",
-			"type": "ABILITY",
-			"ability": GameEnums.Ability.BATTLE_HARDENED,
-			"cost": advancement_costs.ABILITY,
-			"requirements": {"min_level": 5}
-		}
-	]
-
-func _get_medic_advancements() -> Array:
-	return [
-		{
-			"name": "Field Medicine",
-			"type": "SKILL",
-			"skill": GameEnums.Skill.FIELD_MEDICINE,
-			"cost": advancement_costs.SKILL,
-			"requirements": {"min_level": 3}
-		},
-		{
-			"name": "Combat Medic",
-			"type": "SKILL",
-			"skill": GameEnums.Skill.COMBAT_MEDIC,
-			"cost": advancement_costs.SKILL,
-			"requirements": {"min_level": 4}
-		},
-		{
-			"name": "Miracle Worker",
-			"type": "ABILITY",
-			"ability": GameEnums.Ability.MIRACLE_WORKER,
-			"cost": advancement_costs.ABILITY,
-			"requirements": {"min_level": 5}
-		}
-	]
-
-func _get_scout_advancements() -> Array:
-	return [
-		{
-			"name": "Stealth",
-			"type": "SKILL",
-			"skill": GameEnums.Skill.STEALTH,
-			"cost": advancement_costs.SKILL,
-			"requirements": {"min_level": 3}
-		},
-		{
-			"name": "Survival",
-			"type": "SKILL",
-			"skill": GameEnums.Skill.SURVIVAL,
-			"cost": advancement_costs.SKILL,
-			"requirements": {"min_level": 4}
-		},
-		{
-			"name": "Ghost",
-			"type": "ABILITY",
-			"ability": GameEnums.Ability.GHOST,
-			"cost": advancement_costs.ABILITY,
-			"requirements": {"min_level": 5}
-		}
-	]
-
-func _get_tech_advancements() -> Array:
-	return [
-		{
-			"name": "Tech Repair",
-			"type": "SKILL",
-			"skill": GameEnums.Skill.TECH_REPAIR,
-			"cost": advancement_costs.SKILL,
-			"requirements": {"min_level": 3}
-		},
-		{
-			"name": "Hacking",
-			"type": "SKILL",
-			"skill": GameEnums.Skill.HACKING,
-			"cost": advancement_costs.SKILL,
-			"requirements": {"min_level": 4}
-		},
-		{
-			"name": "Tech Master",
-			"type": "ABILITY",
-			"ability": GameEnums.Ability.TECH_MASTER,
-			"cost": advancement_costs.ABILITY,
-			"requirements": {"min_level": 5}
-		}
-	]
-
-func _get_psyker_advancements() -> Array:
-	return [
-		{
-			"name": "Psychic Focus",
-			"type": "SKILL",
-			"skill": GameEnums.Skill.PSYCHIC_FOCUS,
-			"cost": advancement_costs.SKILL,
-			"requirements": {"min_level": 3}
-		},
-		{
-			"name": "Mind Control",
-			"type": "SKILL",
-			"skill": GameEnums.Skill.MIND_CONTROL,
-			"cost": advancement_costs.SKILL,
-			"requirements": {"min_level": 4}
-		},
-		{
-			"name": "Psychic Master",
-			"type": "ABILITY",
-			"ability": GameEnums.Ability.PSYCHIC_MASTER,
-			"cost": advancement_costs.ABILITY,
-			"requirements": {"min_level": 5}
-		}
-	]
-
-func _get_background_traits() -> Array:
-	var traits = []
-	
-	match selected_crew_member.background:
-		GameEnums.Background.MILITARY:
-			traits.append({
-				"name": "Tactical Mind",
-				"type": "TRAIT",
-				"trait": GameEnums.Trait.TACTICAL_MIND,
-				"cost": advancement_costs.TRAIT,
-				"requirements": {"min_level": 4}
-			})
-		GameEnums.Background.CRIMINAL:
-			traits.append({
-				"name": "Street Smart",
-				"type": "TRAIT",
-				"trait": GameEnums.Trait.STREET_SMART,
-				"cost": advancement_costs.TRAIT,
-				"requirements": {"min_level": 4}
-			})
-		GameEnums.Background.ACADEMIC:
-			traits.append({
-				"name": "Quick Learner",
-				"type": "TRAIT",
-				"trait": GameEnums.Trait.QUICK_LEARNER,
-				"cost": advancement_costs.TRAIT,
-				"requirements": {"min_level": 4}
-			})
-	
-	return traits
-
 func _can_apply_advancement(advancement: Dictionary) -> bool:
-	if not advancement.has("requirements"):
-		return true
+	# Check if bot or soulless for training restrictions
+	if advancement.type == "TRAINING":
+		if selected_crew_member.is_soulless:
+			return false
+		if selected_crew_member.is_bot and not game_state.campaign.credits >= advancement.cost:
+			return false
 	
-	var reqs = advancement.requirements
-	if reqs.has("min_level") and selected_crew_member.level < reqs.min_level:
+	# Check XP cost for non-bots
+	if not selected_crew_member.is_bot and selected_crew_member.experience < advancement.cost:
+		return false
+		
+	# Check credit cost for bots
+	if selected_crew_member.is_bot and game_state.campaign.credits < advancement.cost:
 		return false
 	
-	if advancement.cost > game_state.campaign.credits:
-		return false
-	
-	match advancement.type:
-		"SKILL":
-			if selected_crew_member.has_skill(advancement.skill):
-				return false
-		"ABILITY":
-			if selected_crew_member.has_ability(advancement.ability):
-				return false
-		"TRAIT":
-			if selected_crew_member.has_trait(advancement.trait):
-				return false
+	# Check stat maximums
+	if advancement.type == "STAT":
+		var current_value = selected_crew_member.get(advancement.stat)
+		if current_value >= advancement.max:
+			return false
+			
+		# Special case for engineer toughness limit
+		if advancement.stat == "toughness" and selected_crew_member.character_class == GameEnums.CharacterClass.ENGINEER and current_value >= 4:
+			return false
 	
 	return true
 
 func _get_requirement_tooltip(advancement: Dictionary) -> String:
-	var reasons = []
+	var tooltip = ""
 	
-	if advancement.cost > game_state.campaign.credits:
-		reasons.append("Not enough credits")
+	if advancement.type == "TRAINING":
+		if selected_crew_member.is_soulless:
+			tooltip = "Soulless characters cannot receive training"
+		elif selected_crew_member.is_bot and game_state.campaign.credits < advancement.cost:
+			tooltip = "Not enough credits (need %d)" % advancement.cost
 	
-	if advancement.has("requirements"):
-		var reqs = advancement.requirements
-		if reqs.has("min_level") and selected_crew_member.level < reqs.min_level:
-			reasons.append("Requires level %d" % reqs.min_level)
+	if not selected_crew_member.is_bot and selected_crew_member.experience < advancement.cost:
+		tooltip = "Not enough XP (need %d)" % advancement.cost
+		
+	if selected_crew_member.is_bot and game_state.campaign.credits < advancement.cost:
+		tooltip = "Not enough credits (need %d)" % advancement.cost
 	
-	match advancement.type:
-		"SKILL":
-			if selected_crew_member.has_skill(advancement.skill):
-				reasons.append("Already has this skill")
-		"ABILITY":
-			if selected_crew_member.has_ability(advancement.ability):
-				reasons.append("Already has this ability")
-		"TRAIT":
-			if selected_crew_member.has_trait(advancement.trait):
-				reasons.append("Already has this trait")
+	if advancement.type == "STAT":
+		var current_value = selected_crew_member.get(advancement.stat)
+		if current_value >= advancement.max:
+			tooltip = "Maximum value reached"
+			
+		if advancement.stat == "toughness" and selected_crew_member.character_class == GameEnums.CharacterClass.ENGINEER and current_value >= 4:
+			tooltip = "Engineers cannot raise Toughness above 4"
 	
-	return reasons.join("\n")
+	return tooltip
 
 func _on_crew_selected(index: int) -> void:
 	selected_crew_member = game_state.campaign.crew_members[index]
-	selected_advancement = {}
 	_update_ui()
 
 func _on_advancement_selected(index: int) -> void:
@@ -376,63 +309,19 @@ func _on_advancement_selected(index: int) -> void:
 	apply_button.disabled = not _can_apply_advancement(selected_advancement)
 
 func _on_apply_pressed() -> void:
-	if not selected_crew_member or selected_advancement.is_empty():
-		return
-	
 	if not _can_apply_advancement(selected_advancement):
 		return
-	
-	_apply_advancement()
-	_update_ui()
-	
-	# Check if we can complete the phase
-	if _check_all_advancements_complete():
-		complete_phase()
-
-func _apply_advancement() -> void:
+		
 	match selected_advancement.type:
 		"STAT":
-			match selected_advancement.stat:
-				"reaction":
-					selected_crew_member.reaction += selected_advancement.amount
-				"combat":
-					selected_crew_member.combat += selected_advancement.amount
-				"toughness":
-					selected_crew_member.toughness += selected_advancement.amount
-				"savvy":
-					selected_crew_member.savvy += selected_advancement.amount
-		"SKILL":
-			selected_crew_member.add_skill(selected_advancement.skill)
-		"ABILITY":
-			selected_crew_member.add_ability(selected_advancement.ability)
-		"TRAIT":
-			selected_crew_member.add_trait(selected_advancement.trait)
+			selected_crew_member.set(selected_advancement.stat, selected_crew_member.get(selected_advancement.stat) + selected_advancement.amount)
+		"TRAINING":
+			selected_crew_member.training = selected_advancement.training
 	
-	game_state.campaign.credits -= selected_advancement.cost
-	selected_crew_member.add_experience(50) # Bonus XP for advancement
+	# Deduct cost
+	if selected_crew_member.is_bot:
+		game_state.campaign.credits -= selected_advancement.cost
+	else:
+		selected_crew_member.experience -= selected_advancement.cost
 	
-	# Clear selection
-	selected_advancement = {}
-	apply_button.disabled = true
-
-func _check_all_advancements_complete() -> bool:
-	for member in game_state.campaign.crew_members:
-		# Check if any crew member has enough XP to level up
-		if member.experience >= member.get_experience_for_next_level():
-			return false
-		
-		# Check if any crew member has available advancements they can afford
-		for advancement in _get_available_advancements():
-			if _can_apply_advancement(advancement):
-				return false
-	
-	return true
-
-func validate_phase_requirements() -> bool:
-	if not game_state or not game_state.campaign:
-		return false
-	
-	if not game_state.campaign.crew_members or game_state.campaign.crew_members.is_empty():
-		return false
-	
-	return true
+	_update_ui()

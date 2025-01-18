@@ -30,10 +30,28 @@ var auto_save_enabled: bool = true
 var save_manager: SaveManager
 
 func _ready() -> void:
-	save_manager = get_node("/root/SaveManager")
+	save_manager = get_node_or_null("/root/SaveManager")
 	if save_manager:
 		save_manager.save_completed.connect(_on_save_manager_save_completed)
 		save_manager.load_completed.connect(_on_save_manager_load_completed)
+
+func _notification(what: int) -> void:
+	if what == NOTIFICATION_PREDELETE:
+		_cleanup()
+
+func _exit_tree() -> void:
+	_cleanup()
+
+func _cleanup() -> void:
+	if save_manager:
+		if save_manager.save_completed.is_connected(_on_save_manager_save_completed):
+			save_manager.save_completed.disconnect(_on_save_manager_save_completed)
+		if save_manager.load_completed.is_connected(_on_save_manager_load_completed):
+			save_manager.load_completed.disconnect(_on_save_manager_load_completed)
+	save_manager = null
+	
+	if current_campaign:
+		current_campaign = null
 
 func start_new_campaign(campaign: Campaign) -> void:
 	current_campaign = campaign

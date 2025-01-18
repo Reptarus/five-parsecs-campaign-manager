@@ -80,9 +80,9 @@ func _calculate_crew_member_upkeep(crew_member: Character) -> int:
 			base_cost += item.maintenance_cost
 	
 	# Apply any cost modifiers from traits or abilities
-	for trait in crew_member.traits:
-		if trait .has("upkeep_modifier"):
-			base_cost = base_cost * trait .upkeep_modifier
+	for current_trait in crew_member.traits:
+		if current_trait.has("upkeep_modifier"):
+			base_cost = base_cost * current_trait.upkeep_modifier
 	
 	return base_cost
 
@@ -111,12 +111,12 @@ func _handle_upkeep_effects() -> void:
 	# Apply any special effects from not being able to pay full upkeep
 	# or from traits/abilities that trigger during upkeep
 	for crew_member in game_state.campaign.crew_members:
-		for trait in crew_member.traits:
-			if trait .has("upkeep_effect"):
-				_apply_trait_upkeep_effect(crew_member, trait )
+		for current_trait in crew_member.traits:
+			if current_trait.has("upkeep_effect"):
+				_apply_trait_upkeep_effect(crew_member, current_trait)
 
-func _apply_trait_upkeep_effect(crew_member: Character, trait: Dictionary) -> void:
-	match trait .upkeep_effect:
+func _apply_trait_upkeep_effect(crew_member: Character, current_trait: Dictionary) -> void:
+	match current_trait.upkeep_effect:
 		"MORALE_BOOST":
 			crew_member.morale += 1
 		"MAINTENANCE_EXPERT":
@@ -126,3 +126,11 @@ func _apply_trait_upkeep_effect(crew_member: Character, trait: Dictionary) -> vo
 		"RESOURCE_DRAIN":
 			# Some traits might have negative effects
 			crew_member.morale -= 1
+
+func _on_phase_failed(error_message: String) -> void:
+	push_error("Upkeep phase failed: " + error_message)
+	var dialog = AcceptDialog.new()
+	dialog.title = "Upkeep Failed"
+	dialog.dialog_text = error_message
+	add_child(dialog)
+	dialog.popup_centered()

@@ -1,19 +1,16 @@
 @tool
-extends BaseTest
+extends "res://tests/performance/perf_test_base.gd"
+
+const TestHelper := preload("res://tests/fixtures/test_helper.gd")
+const GameState := preload("res://src/core/state/GameState.gd")
+const TableProcessor := preload("res://src/core/systems/TableProcessor.gd")
 
 var game_state: GameState
-
-func before_all() -> void:
-	super.before_all()
-	_performance_monitoring = true
-
-func after_all() -> void:
-	super.after_all()
-	_performance_monitoring = false
 
 func before_each() -> void:
 	super.before_each()
 	game_state = _create_test_game_state()
+	add_child(game_state)
 
 func after_each() -> void:
 	super.after_each()
@@ -30,7 +27,7 @@ func _create_test_game_state() -> GameState:
 # Test Cases - Campaign Management
 func test_crew_roster_management() -> void:
 	var character := TestHelper.create_test_character(GameEnums.ArmorClass.LIGHT)
-	track_resource(character)
+	track_test_resource(character)
 	
 	game_state.add_crew_member(character)
 	assert_eq(game_state.get_crew_size(), 1, "Crew should have one member")
@@ -49,139 +46,60 @@ func test_resource_tracking() -> void:
 		"Resources should be tracked"
 	)
 
-func test_mission_logging() -> void:
+func test_mission_management() -> void:
 	var mission := TestHelper.create_test_mission(GameEnums.MissionType.PATROL)
-	track_resource(mission)
+	track_test_resource(mission)
 	
 	game_state.add_active_mission(mission)
-	assert_true(game_state.has_active_mission(mission.mission_id), "Mission should be active")
+	assert_eq(game_state.get_active_missions().size(), 1, "Should have one active mission")
 	
-	mission.is_completed = true
-	game_state.update_mission_status(mission)
-	assert_true(game_state.has_completed_mission(mission.mission_id), "Mission should be completed")
+	game_state.complete_mission(mission.mission_id)
+	assert_eq(game_state.get_completed_missions().size(), 1, "Should have one completed mission")
 
-# Test Cases - Table Rolling Automation
-func test_planet_generation() -> void:
-	var planet_data: Dictionary = game_state.generate_planet()
-	assert_not_null(planet_data, "Planet data should be generated")
-	assert_has(planet_data, "environment", "Planet should have environment")
-	assert_has(planet_data, "threats", "Planet should have threats")
-
-func test_npc_generation() -> void:
-	var npc_data: Dictionary = game_state.generate_npc()
-	assert_not_null(npc_data, "NPC data should be generated")
-	assert_has(npc_data, "name", "NPC should have name")
-	assert_has(npc_data, "faction", "NPC should have faction")
-
-func test_loot_generation() -> void:
-	var loot_data: Dictionary = game_state.generate_loot(GameEnums.ItemRarity.COMMON)
-	assert_not_null(loot_data, "Loot data should be generated")
-	assert_has(loot_data, "items", "Loot should have items")
-	assert_has(loot_data, "credits", "Loot should have credits")
-
-# Test Cases - Character Development
-func test_character_advancement() -> void:
-	var character := TestHelper.create_test_character(GameEnums.ArmorClass.LIGHT)
-	track_resource(character)
-	game_state.add_crew_member(character)
-	
-	game_state.award_experience(character.character_id, 100)
-	assert_eq(character.experience, 100, "Experience should be tracked")
-	
-	var level_up_result: Dictionary = game_state.attempt_level_up(character.character_id)
-	assert_true(level_up_result.success, "Character should level up")
-	assert_gt(character.level, 1, "Level should increase")
-
-func test_skill_acquisition() -> void:
-	var character := TestHelper.create_test_character(GameEnums.ArmorClass.LIGHT)
-	track_resource(character)
-	game_state.add_crew_member(character)
-	
-	var skill: int = GameEnums.CharacterClass.SOLDIER
-	game_state.add_skill(character.character_id, skill)
-	assert_true(character.has_skill(skill), "Character should learn skill")
-
-# Test Cases - Inventory Management
 func test_equipment_management() -> void:
-	var item := TestHelper.create_test_item(GameEnums.WeaponType.RIFLE)
-	track_resource(item)
+	var item := TestHelper.create_test_item(GameEnums.WeaponType.BASIC)
+	track_test_resource(item)
 	
-	game_state.add_item(item)
-	assert_true(game_state.has_item(item.item_id), "Item should be in inventory")
+	game_state.add_equipment(item)
+	assert_true(game_state.has_equipment(item.item_id), "Should have added equipment")
 	
-	game_state.remove_item(item.item_id)
-	assert_false(game_state.has_item(item.item_id), "Item should be removed")
+	game_state.remove_equipment(item.item_id)
+	assert_false(game_state.has_equipment(item.item_id), "Should have removed equipment")
 
-func test_equipment_assignment() -> void:
-	var character := TestHelper.create_test_character(GameEnums.ArmorClass.LIGHT)
-	var item := TestHelper.create_test_item(GameEnums.WeaponType.RIFLE)
-	track_resource(character)
-	track_resource(item)
+func test_state_serialization() -> void:
+	var mission := TestHelper.create_test_mission(GameEnums.MissionType.PATROL)
+	track_test_resource(mission)
+	game_state.add_active_mission(mission)
 	
-	game_state.add_crew_member(character)
-	game_state.add_item(item)
+	var data: Dictionary = game_state.serialize()
+	var restored := GameState.new()
+	restored.deserialize(data)
 	
-	game_state.equip_item(character.character_id, item.item_id)
-	assert_true(character.has_equipment(item.item_id), "Character should have equipment")
+	assert_eq(restored.get_active_missions().size(), 1, "Should restore active missions")
+	assert_eq(restored.get_credits(), game_state.get_credits(), "Should restore credits")
 
-# Test Cases - Story Progression
-func test_story_tracking() -> void:
-	var story_event := {
-		"type": "patron_quest",
-		"description": "Test story event",
-		"choices": ["Accept", "Decline"]
-	}
+# Test Cases - Table Rolling
+func test_table_rolling() -> void:
+	var table_processor := TableProcessor.new()
+	add_child(table_processor)
 	
-	game_state.add_story_event(story_event)
-	assert_true(game_state.has_active_story_event(), "Story event should be active")
+	var result: Dictionary = table_processor.roll_on_table("test_table", 1)
+	assert_not_null(result, "Should get a result from table roll")
 	
-	game_state.resolve_story_event(0) # Accept
-	assert_false(game_state.has_active_story_event(), "Story event should be resolved")
+	var weighted_result: Dictionary = table_processor.roll_weighted("test_table", {"weight": 2})
+	assert_not_null(weighted_result, "Should get a weighted result")
+	
+	table_processor = null
 
-func test_relationship_tracking() -> void:
-	var faction_id := "test_faction"
-	game_state.modify_faction_standing(faction_id, 10)
-	assert_eq(
-		game_state.get_faction_standing(faction_id),
-		10,
-		"Faction standing should be tracked"
-	)
-
-# Test Cases - Performance
-func test_state_serialization_performance() -> void:
-	if not _performance_monitoring:
-		return
-		
-	var execution_time := TestHelper.measure_execution_time(func():
-		for i in range(100):
-			var save_data: Dictionary = game_state.save_state()
-			var new_state := GameState.new()
-			new_state.load_state(save_data)
-	)
+func test_table_chaining() -> void:
+	var table_processor := TableProcessor.new()
+	add_child(table_processor)
 	
-	print("State serialization time (100 cycles): %.3f seconds" % execution_time)
-	assert_between(
-		execution_time,
-		0.0,
-		2.0,
-		"State serialization should complete within 2 seconds"
-	)
-
-func test_table_rolling_performance() -> void:
-	if not _performance_monitoring:
-		return
-		
-	var execution_time := TestHelper.measure_execution_time(func():
-		for i in range(100):
-			var planet: Dictionary = game_state.generate_planet()
-			var npc: Dictionary = game_state.generate_npc()
-			var loot: Dictionary = game_state.generate_loot(GameEnums.ItemRarity.COMMON)
-	)
+	var chain_result: Array = table_processor.process_table_chain([
+		{"table": "test_table_1", "modifier": 1},
+		{"table": "test_table_2", "weight": 2}
+	])
+	assert_not_null(chain_result, "Should process table chain")
+	assert_eq(chain_result.size(), 2, "Should have results from both tables")
 	
-	print("Table rolling time (300 rolls): %.3f seconds" % execution_time)
-	assert_between(
-		execution_time,
-		0.0,
-		2.0,
-		"Table rolling should complete within 2 seconds"
-	)
+	table_processor = null

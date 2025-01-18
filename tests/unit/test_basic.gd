@@ -1,4 +1,4 @@
-extends "res://addons/gut/test.gd"
+extends "res://tests/test_base.gd"
 
 func test_assert_true():
 	assert_true(true, "This test should always pass")

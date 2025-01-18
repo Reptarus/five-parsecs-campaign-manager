@@ -10,8 +10,9 @@ signal validation_completed(rule: Dictionary, context: String, is_valid: bool)
 @onready var icon_texture: TextureRect = %IconTexture
 
 ## Properties
-@onready var success_icon: Texture2D = preload("res://assets/ui/icons/success.png")
-@onready var error_icon: Texture2D = preload("res://assets/ui/icons/error.png")
+# Using built-in Godot icons temporarily
+var success_icon: Texture2D = get_theme_icon("StatusSuccess", "EditorIcons")
+var error_icon: Texture2D = get_theme_icon("StatusError", "EditorIcons")
 
 ## Called when the node enters scene tree
 func _ready() -> void:

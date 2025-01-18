@@ -1,4 +1,4 @@
-extends "res://addons/gut/test.gd"
+extends "res://tests/test_base.gd"
 
 const TableProcessor = preload("res://src/core/systems/TableProcessor.gd")
 const TableLoader = preload("res://src/core/systems/TableLoader.gd")
@@ -8,11 +8,12 @@ var test_table: TableProcessor.Table
 var error_messages: Array[String] = []
 
 func before_each() -> void:
+	super.before_each()
 	processor = TableProcessor.new()
+	add_child(processor)
 	test_table = TableProcessor.Table.new("test_table")
 	error_messages.clear()
 	
-	# Add some test entries
 	test_table.add_entry(TableProcessor.TableEntry.new(1, 20, "Common Result"))
 	test_table.add_entry(TableProcessor.TableEntry.new(21, 40, "Uncommon Result"))
 	test_table.add_entry(TableProcessor.TableEntry.new(41, 60, "Rare Result"))
@@ -22,7 +23,8 @@ func before_each() -> void:
 	processor.register_table(test_table)
 
 func after_each() -> void:
-	processor.free()
+	super.after_each()
+	processor.queue_free()
 
 func test_table_registration() -> void:
 	assert_true(processor.has_table("test_table"))

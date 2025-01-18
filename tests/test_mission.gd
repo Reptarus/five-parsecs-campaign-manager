@@ -1,14 +1,16 @@
-extends "res://addons/gut/test.gd"
+extends "res://tests/test_base.gd"
 
 const Mission = preload("res://src/core/systems/Mission.gd")
-const GameEnums = preload("res://src/core/systems/GlobalEnums.gd")
 
 var mission: Mission
 
 func before_each() -> void:
+    super.before_each()
+    # Initialize and track mission resource
     mission = Mission.new()
+    track_test_resource(mission)
     
-    # Setup basic mission properties
+    # Setup default mission parameters
     mission.mission_name = "Test Mission"
     mission.mission_type = GameEnums.MissionType.RED_ZONE
     mission.difficulty = GameEnums.DifficultyLevel.NORMAL
@@ -32,7 +34,7 @@ func before_each() -> void:
     }
 
 func after_each() -> void:
-    mission.free()
+    super.after_each()
 
 func test_mission_initialization() -> void:
     assert_not_null(mission.mission_id, "Mission should have an ID")

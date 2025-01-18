@@ -92,9 +92,9 @@ func _validate_combat_requirements(attacker: Character, target: Character, actio
 			# Check if shot would endanger allies
 			if _shot_endangers_allies(attacker, target):
 				# Swift and Soulless can still shoot
-				if not (attacker.is_swift() or attacker.is_soulless()):
+				if not (attacker.is_swift() or attacker.soulless):
 					# Others need to roll 5+ to attempt
-					if not attacker.is_bot():
+					if not attacker.bot:
 						var roll := randi() % 6 + 1
 						if roll < 5:
 							return false

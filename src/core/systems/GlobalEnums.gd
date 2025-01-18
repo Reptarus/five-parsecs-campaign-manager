@@ -2,6 +2,14 @@
 class_name GameEnums
 extends Node
 
+## Edit Mode
+enum EditMode {
+	NONE,
+	CREATE,
+	EDIT,
+	VIEW
+}
+
 ## Phase Names and Descriptions
 const PHASE_NAMES = {
 	CampaignPhase.NONE: "None",
@@ -29,6 +37,17 @@ const PHASE_DESCRIPTIONS = {
 	CampaignPhase.END: "Campaign phase complete"
 }
 
+## Difficulty Levels
+enum DifficultyLevel {
+	NONE,
+	EASY,
+	NORMAL,
+	HARD,
+	NIGHTMARE,
+	HARDCORE,
+	ELITE
+}
+
 ## Character System
 enum ArmorCharacteristic {
 	NONE,
@@ -39,6 +58,86 @@ enum ArmorCharacteristic {
 	STEALTH,
 	HAZARD,
 	SHIELD
+}
+
+## Character Classes
+enum CharacterClass {
+	NONE,
+	SOLDIER,
+	MEDIC,
+	TECH,
+	SCOUT,
+	LEADER,
+	SPECIALIST,
+	CAPTAIN,
+	ENGINEER,
+	PILOT
+}
+
+## Character Origins
+enum Origin {
+	NONE,
+	HUMAN,
+	ENGINEER,
+	FERAL,
+	KERIN,
+	PRECURSOR,
+	SOULLESS,
+	SWIFT,
+	BOT,
+	CORE_WORLDS,
+	FRONTIER,
+	DEEP_SPACE,
+	COLONY,
+	HIVE_WORLD,
+	FORGE_WORLD
+}
+
+## Character Background
+enum Background {
+	NONE,
+	MILITARY,
+	MERCENARY,
+	CRIMINAL,
+	COLONIST,
+	ACADEMIC,
+	EXPLORER,
+	TRADER,
+	NOBLE,
+	OUTCAST,
+	SOLDIER,
+	MERCHANT
+}
+
+## Character Motivation
+enum Motivation {
+	NONE,
+	WEALTH,
+	REVENGE,
+	GLORY,
+	KNOWLEDGE,
+	POWER,
+	JUSTICE,
+	SURVIVAL,
+	LOYALTY,
+	FREEDOM,
+	DISCOVERY,
+	REDEMPTION,
+	DUTY
+}
+
+## Resource System
+enum ResourceType {
+	NONE,
+	CREDITS,
+	SUPPLIES,
+	TECH_PARTS,
+	PATRON,
+	FUEL,
+	MEDICAL_SUPPLIES,
+	WEAPONS,
+	STORY_POINT,
+	REPUTATION
 }
 
 ## Campaign System
@@ -81,20 +180,6 @@ enum MissionObjective {
 	DEFEND,
 	CAPTURE_POINT,
 	TUTORIAL
-}
-
-## Resource System
-enum ResourceType {
-	NONE,
-	CREDITS,
-	SUPPLIES,
-	TECH_PARTS,
-	PATRON,
-	FUEL,
-	MEDICAL_SUPPLIES,
-	WEAPONS,
-	STORY_POINT,
-	REPUTATION
 }
 
 ## Weather System
@@ -312,45 +397,6 @@ enum ItemRarity {
 	LEGENDARY
 }
 
-## Character Classes
-enum CharacterClass {
-	NONE,
-	SOLDIER,
-	MEDIC,
-	TECH,
-	SCOUT,
-	LEADER,
-	SPECIALIST
-}
-
-## Combat Modifiers
-enum CombatModifier {
-	NONE,
-	COVER_LIGHT,
-	COVER_MEDIUM,
-	COVER_HEAVY,
-	FLANKING,
-	ELEVATION,
-	SUPPRESSED,
-	PINNED,
-	STEALTH,
-	OVERWATCH
-}
-
-## Campaign Phases
-enum CampaignPhase {
-	NONE,
-	SETUP,
-	UPKEEP,
-	STORY,
-	CAMPAIGN,
-	BATTLE_SETUP,
-	BATTLE_RESOLUTION,
-	ADVANCEMENT,
-	TRADE,
-	END
-}
-
 ## Global Events
 enum GlobalEvent {
 	NONE,
@@ -402,28 +448,6 @@ enum MissionVictoryType {
 	SURVIVAL,
 	CONTROL_POINTS,
 	OBJECTIVE
-}
-
-## Difficulty Levels
-enum DifficultyLevel {
-	NONE,
-	EASY,
-	NORMAL,
-	HARD,
-	HARDCORE,
-	ELITE
-}
-
-## Character Status
-enum CharacterStatus {
-	NONE,
-	HEALTHY,
-	WOUNDED,
-	CRITICAL,
-	DEAD,
-	CAPTURED,
-	MISSING,
-	INJURED
 }
 
 ## World System
@@ -510,26 +534,32 @@ enum ArmorType {
 	SHIELD
 }
 
-## Character Origins
-enum Origin {
-	NONE,
-	HUMAN,
-	ENGINEER,
-	FERAL,
-	KERIN,
-	PRECURSOR,
-	SOULLESS,
-	SWIFT,
-	BOT
-}
-
-## Game States
-enum GameState {
+## Campaign Phases
+enum CampaignPhase {
 	NONE,
 	SETUP,
+	UPKEEP,
+	STORY,
 	CAMPAIGN,
-	BATTLE,
-	GAME_OVER
+	BATTLE_SETUP,
+	BATTLE_RESOLUTION,
+	ADVANCEMENT,
+	TRADE,
+	END
+}
+
+## Combat Modifiers
+enum CombatModifier {
+	NONE,
+	COVER_LIGHT,
+	COVER_MEDIUM,
+	COVER_HEAVY,
+	FLANKING,
+	ELEVATION,
+	SUPPRESSED,
+	PINNED,
+	STEALTH,
+	OVERWATCH
 }
 
 ## Combat Phases
@@ -806,4 +836,103 @@ enum EnemyCharacteristic {
 	TECH,
 	BERSERKER,
 	COMMANDER
+}
+
+## Game States
+enum GameState {
+	NONE,
+	SETUP,
+	CAMPAIGN,
+	BATTLE,
+	GAME_OVER
+}
+
+## Helper Functions
+static func get_character_class_name(class_type: CharacterClass) -> String:
+	return CharacterClass.keys()[class_type]
+
+static func get_skill_name(skill_type: int) -> String:
+	return Skill.keys()[skill_type]
+
+static func get_ability_name(ability_type: int) -> String:
+	return Ability.keys()[ability_type]
+
+static func get_trait_name(trait_type: int) -> String:
+	return Trait.keys()[trait_type]
+
+## Skills
+enum Skill {
+	NONE,
+	COMBAT_TRAINING,
+	HEAVY_WEAPONS,
+	FIELD_MEDICINE,
+	COMBAT_MEDIC,
+	STEALTH,
+	SURVIVAL,
+	TECH_REPAIR,
+	HACKING,
+	PSYCHIC_FOCUS,
+	MIND_CONTROL
+}
+
+## Abilities
+enum Ability {
+	NONE,
+	BATTLE_HARDENED,
+	MIRACLE_WORKER,
+	GHOST,
+	TECH_MASTER,
+	PSYCHIC_MASTER
+}
+
+## Traits
+enum Trait {
+	NONE,
+	TACTICAL_MIND,
+	STREET_SMART,
+	QUICK_LEARNER
+}
+
+## Advanced Training
+enum Training {
+	NONE,
+	PILOT,
+	MECHANIC,
+	MEDICAL,
+	MERCHANT,
+	SECURITY,
+	BROKER,
+	BOT_TECH
+}
+
+const TRAINING_NAMES = {
+	Training.NONE: "None",
+	Training.PILOT: "Pilot Training",
+	Training.MECHANIC: "Mechanic Training",
+	Training.MEDICAL: "Medical Training",
+	Training.MERCHANT: "Merchant Training",
+	Training.SECURITY: "Security Training",
+	Training.BROKER: "Broker Training",
+	Training.BOT_TECH: "Bot Tech Training"
+}
+
+static func get_training_name(training: Training) -> String:
+	return TRAINING_NAMES.get(training, "Unknown Training")
+
+enum CharacterStatus {
+	NONE,
+	HEALTHY,
+	INJURED,
+	CRITICAL,
+	DEAD,
+	CAPTURED,
+	MISSING
+}
+
+## Verification Status
+enum VerificationStatus {
+	NONE,
+	PENDING,
+	VERIFIED,
+	REJECTED
 }

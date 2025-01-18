@@ -16,7 +16,7 @@ signal attack_resolved(attacker: Character, target: Character, result: Dictionar
 signal reaction_opportunity(unit: Character, reaction_type: String, source: Character)
 signal combat_effect_triggered(effect_name: String, source: Character, target: Character)
 
-@export var game_state_manager: GameStateManager
+var game_state_manager: GameStateManager
 
 var current_state: int = GameEnums.BattleState.SETUP
 var current_phase: int = GameEnums.CombatPhase.NONE
@@ -28,7 +28,8 @@ var active_combatants: Array[Character] = []
 var _completed_actions: Dictionary = {}
 var _reaction_opportunities: Array[Dictionary] = []
 
-func _ready() -> void:
+func _init(p_game_state_manager: GameStateManager) -> void:
+	game_state_manager = p_game_state_manager
 	if not game_state_manager:
 		push_error("BattleStateMachine requires GameStateManager")
 

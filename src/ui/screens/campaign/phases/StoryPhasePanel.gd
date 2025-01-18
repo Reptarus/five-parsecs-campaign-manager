@@ -16,6 +16,7 @@ var event_manager: EventManager
 var available_events: Array[Dictionary] = []
 var selected_event: Dictionary
 var selected_choice: Dictionary
+var event_history: Array[Dictionary] = []
 
 func _ready() -> void:
 	super._ready()
@@ -249,11 +250,11 @@ func get_phase_data() -> Dictionary:
 
 # Event Manager Signal Handlers
 func _on_event_triggered(event_type: int) -> void:
-	if event_type == GameEnums.GlobalEvent.STORY_EVENT:
+	if event_type == GameEnums.GlobalEvent.NONE:
 		_update_ui()
 
 func _on_event_resolved(event_type: int) -> void:
-	if event_type == GameEnums.GlobalEvent.STORY_EVENT:
+	if event_type == GameEnums.GlobalEvent.NONE:
 		_update_ui()
 
 func _on_event_effects_applied(effects: Dictionary) -> void:

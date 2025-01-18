@@ -16,8 +16,8 @@ signal location_changed(location_data: Dictionary)
 @onready var mission_details: RichTextLabel = $VBoxContainer/MissionDetails
 @onready var accept_button: Button = $VBoxContainer/AcceptButton
 
-var campaign_manager: CampaignManager
-var world_economy: WorldEconomyManager
+var campaign_manager: Node
+var world_economy: Node
 var current_location: Dictionary = {}
 var available_missions: Array[StoryQuestData] = []
 var selected_mission: StoryQuestData
@@ -35,10 +35,14 @@ func _ready() -> void:
 		push_error("Failed to get WorldEconomyManager node")
 		return
 	
-	campaign_manager.mission_available.connect(_on_mission_available)
-	campaign_manager.validation_failed.connect(_on_validation_failed)
-	world_economy.local_event_triggered.connect(_on_local_event_triggered)
-	world_economy.economy_updated.connect(_on_economy_updated)
+	if campaign_manager.has_signal("mission_available"):
+		campaign_manager.mission_available.connect(_on_mission_available)
+	if campaign_manager.has_signal("validation_failed"):
+		campaign_manager.validation_failed.connect(_on_validation_failed)
+	if world_economy.has_signal("local_event_triggered"):
+		world_economy.local_event_triggered.connect(_on_local_event_triggered)
+	if world_economy.has_signal("economy_updated"):
+		world_economy.economy_updated.connect(_on_economy_updated)
 	
 	accept_button.pressed.connect(_on_accept_pressed)
 	accept_button.disabled = true

@@ -1,52 +1,60 @@
-extends "res://addons/gut/test.gd"
+@tool
+extends "../fixtures/base_test.gd"
 
-const GameEnums = preload("res://src/core/systems/GlobalEnums.gd")
-const MissionGenerator = preload("res://src/core/systems/MissionGenerator.gd")
-const TerrainSystem = preload("res://src/core/terrain/TerrainSystem.gd")
-const RivalSystem = preload("res://src/core/rivals/RivalSystem.gd")
+const MissionGenerator := preload("res://src/core/systems/MissionGenerator.gd")
+const TerrainSystem := preload("res://src/core/terrain/TerrainSystem.gd")
+const RivalSystem := preload("res://src/core/rivals/RivalSystem.gd")
+const MissionTemplate = preload("res://src/core/templates/MissionTemplate.gd")
 
 var _mission_generator: MissionGenerator
 var _terrain_system: TerrainSystem
 var _rival_system: RivalSystem
 
-func before_each():
+func before_each() -> void:
+	super.before_each()
 	_terrain_system = TerrainSystem.new()
 	_rival_system = RivalSystem.new()
 	_mission_generator = MissionGenerator.new()
+	
+	add_child(_terrain_system)
+	add_child(_mission_generator)
+	add_child(_rival_system)
+	
 	_mission_generator.terrain_system = _terrain_system
 	_mission_generator.rival_system = _rival_system
-	add_child(_mission_generator)
 
-func after_each():
-	_mission_generator.queue_free()
-	_terrain_system.queue_free()
-	_rival_system.queue_free()
+func after_each() -> void:
+	super.after_each()
 
-func test_mission_generation():
+func test_mission_generation() -> void:
 	var template = MissionTemplate.new()
 	template.type = GameEnums.MissionType.PATROL
 	template.difficulty_range = Vector2(1, 3)
 	template.reward_range = Vector2(100, 300)
 	template.title_templates = ["Test Mission"]
+	track_test_resource(template)
 	
+	watch_signals(_mission_generator)
 	var mission = _mission_generator.generate_mission(template)
+	
 	assert_not_null(mission, "Mission should be generated")
 	assert_eq(mission.mission_type, GameEnums.MissionType.PATROL, "Mission type should match template")
 	assert_true(mission.difficulty >= 1 and mission.difficulty <= 3, "Difficulty should be within range")
-	assert_true(mission.rewards.credits >= 100 and mission.rewards.credits <= 300, "Reward should be within range")
+	assert_true(mission.rewards.credits >= 100 and mission.rewards.credits <= 300, "Rewards should be within range")
+	track_test_resource(mission)
 
 func test_invalid_template():
 	var template = MissionTemplate.new()
-	# Don't set required fields
 	var mission = _mission_generator.generate_mission(template)
-	assert_null(mission, "Should return null for invalid template")
+	assert_null(mission)
 
-func test_rival_involvement():
+func test_rival_involvement() -> void:
 	var template = MissionTemplate.new()
 	template.type = GameEnums.MissionType.RAID
 	template.difficulty_range = Vector2(2, 4)
 	template.reward_range = Vector2(200, 400)
 	template.title_templates = ["Rival Test Mission"]
+	track_test_resource(template)
 	
 	# Set up rival data
 	_rival_system.add_rival({
@@ -54,9 +62,12 @@ func test_rival_involvement():
 		"force_composition": ["grunt", "grunt", "elite"]
 	})
 	
+	watch_signals(_mission_generator)
 	var mission = _mission_generator.generate_mission(template)
+	track_test_resource(mission)
+	
 	assert_not_null(mission.rival_involvement, "Mission should have rival involvement")
-	assert_true(mission.rival_involvement.rival_id == "test_rival", "Rival ID should match")
+	assert_eq(mission.rival_involvement.rival_id, "test_rival", "Rival ID should match")
 
 func test_terrain_generation():
 	var template = MissionTemplate.new()
@@ -66,11 +77,11 @@ func test_terrain_generation():
 	template.title_templates = ["Terrain Test Mission"]
 	
 	var mission = _mission_generator.generate_mission(template)
-	assert_not_null(mission, "Mission should be generated")
+	assert_not_null(mission)
 	
 	# Check if terrain features were generated
 	var terrain_features = _count_terrain_features()
-	assert_gt(terrain_features.total, 0, "Should have terrain features")
+	assert_gt(terrain_features.total, 0)
 
 func test_objective_placement():
 	var template = MissionTemplate.new()
@@ -80,20 +91,20 @@ func test_objective_placement():
 	template.title_templates = ["Objective Test Mission"]
 	
 	var mission = _mission_generator.generate_mission(template)
-	assert_not_null(mission, "Mission should be generated")
-	assert_gt(mission.objectives.size(), 0, "Mission should have objectives")
+	assert_not_null(mission)
+	assert_gt(mission.objectives.size(), 0)
 	
 	for objective in mission.objectives:
-		assert_true(_is_valid_position(objective.position), "Objective should be at valid position")
+		assert_true(_is_valid_position(objective.position))
 
 func _count_terrain_features() -> Dictionary:
-	var features = {
+	var features := {
 		"total": 0,
 		"cover": 0,
 		"obstacles": 0
 	}
 	
-	var grid_size = _terrain_system.get_grid_size()
+	var grid_size := _terrain_system.get_grid_size()
 	for x in range(grid_size.x):
 		for y in range(grid_size.y):
 			var feature_type = _terrain_system.get_terrain_type(Vector2(x, y))

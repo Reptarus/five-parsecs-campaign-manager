@@ -1,4 +1,4 @@
-class_name CampaignPhaseManager
+@tool
 extends Node
 
 signal phase_changed(old_phase: int, new_phase: int)

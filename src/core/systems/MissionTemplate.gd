@@ -1,6 +1,7 @@
 @tool
+extends Node
+
 class_name MissionTemplate
-extends Resource
 
 ## Dependencies
 const GameEnums := preload("res://src/core/systems/GlobalEnums.gd")
