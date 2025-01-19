@@ -7,11 +7,13 @@ const MissionTemplate := preload("res://src/core/systems/MissionTemplate.gd")
 var template: MissionTemplate
 
 func before_each() -> void:
+	super.before_each()
 	template = MissionTemplate.new()
-	add_child_autofree(template)
+	add_child(template)
+	track_test_node(template)
 
 func after_each() -> void:
-	template.queue_free()
+	super.after_each()
 
 func test_initial_state() -> void:
 	assert_eq(template.mission_type, GameEnums.MissionType.NONE)
@@ -81,13 +83,13 @@ func test_calculate_mission_time() -> void:
 	template.difficulty = 2
 	var base_time = 10
 	var expected_time = base_time * (1 + template.difficulty * 0.5)
-	assert_almost_eq(template.calculate_mission_time(base_time), expected_time, 0.001)
+	assert_eq(template.calculate_mission_time(base_time), expected_time)
 
 func test_calculate_success_chance() -> void:
 	template.difficulty = 2
 	var base_chance = 0.8
 	var expected_chance = base_chance * (1 - template.difficulty * 0.1)
-	assert_almost_eq(template.calculate_success_chance(base_chance), expected_chance, 0.001)
+	assert_eq(template.calculate_success_chance(base_chance), expected_chance)
 
 func test_validate_mission_parameters() -> void:
 	var valid_params = {
@@ -129,7 +131,7 @@ func test_to_string() -> void:
 	template.add_reward_item(item)
 	
 	var str_rep = template.to_string()
-	assert_string_contains(str_rep, "PATROL")
-	assert_string_contains(str_rep, "2")
-	assert_string_contains(str_rep, "150")
-	assert_string_contains(str_rep, "Test Item")
+	assert_true(str_rep.contains("PATROL"))
+	assert_true(str_rep.contains("2"))
+	assert_true(str_rep.contains("150"))
+	assert_true(str_rep.contains("Test Item"))

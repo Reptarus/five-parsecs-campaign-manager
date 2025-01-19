@@ -2,7 +2,6 @@
 extends "res://tests/test_base.gd"
 
 const StateVerificationPanel := preload("res://src/ui/components/combat/state/state_verification_panel.tscn")
-const TestHelper := preload("res://tests/fixtures/test_helper.gd")
 
 var panel: Node
 

@@ -1,7 +1,7 @@
 @tool
 extends "res://tests/fixtures/game_test.gd"
 
-const StateVerificationPanel := preload("res://src/ui/components/combat/state/state_verification_panel.gd")
+const ManualOverridePanel := preload("res://src/ui/components/combat/overrides/manual_override_panel.gd")
 
 # Test variables
 var panel: Node # Using Node type to avoid casting issues
@@ -9,7 +9,7 @@ var panel: Node # Using Node type to avoid casting issues
 # Lifecycle Methods
 func before_each() -> void:
 	await super.before_each()
-	panel = StateVerificationPanel.new()
+	panel = ManualOverridePanel.new()
 	add_child(panel)
 	track_test_node(panel)
 	await get_tree().process_frame
@@ -21,23 +21,23 @@ func after_each() -> void:
 # Test Methods
 func test_initial_state() -> void:
 	assert_false(panel.visible, "Panel should start hidden")
-	assert_eq(panel.verification_status, "", "Should start with empty verification status")
+	assert_eq(panel.override_value, 0, "Should start with zero override value")
 
-func test_set_verification_status() -> void:
+func test_set_override_value() -> void:
 	watch_signals(panel)
 	
-	panel.set_verification_status("Verified")
-	assert_eq(panel.verification_status, "Verified", "Should set verification status")
-	assert_signal_emitted(panel, "verification_status_changed")
+	panel.set_override_value(5)
+	assert_eq(panel.override_value, 5, "Should set override value")
+	assert_signal_emitted(panel, "override_value_changed")
 
-func test_reset_verification() -> void:
+func test_reset_override() -> void:
 	watch_signals(panel)
 	
-	panel.set_verification_status("Verified")
-	panel.reset_verification()
+	panel.set_override_value(5)
+	panel.reset_override()
 	
-	assert_eq(panel.verification_status, "", "Should reset verification status")
-	assert_signal_emitted(panel, "verification_reset")
+	assert_eq(panel.override_value, 0, "Should reset override value")
+	assert_signal_emitted(panel, "override_reset")
 
 func test_toggle_visibility() -> void:
 	watch_signals(panel)

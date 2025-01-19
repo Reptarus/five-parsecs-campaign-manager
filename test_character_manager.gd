@@ -1,8 +1,7 @@
 @tool
-extends "res://tests/test_base.gd"
+extends "res://tests/fixtures/game_test.gd"
 
 const CharacterManager := preload("res://src/core/character/Management/CharacterManager.gd")
-const TestHelper := preload("res://tests/fixtures/test_helper.gd")
 
 var character_manager: Node
 

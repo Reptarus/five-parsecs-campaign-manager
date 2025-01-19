@@ -1,77 +1,27 @@
+@tool
 extends "res://tests/fixtures/base_test.gd"
 
-# Game-specific test functionality
-class_name GameTest
+const TestHelper := preload("res://tests/fixtures/test_helper.gd")
+const GameState := preload("res://src/core/state/GameState.gd")
+const Character := preload("res://src/core/character/Base/Character.gd")
 
-const FiveParsecsGameState = preload("res://src/core/state/GameState.gd")
-const Character = preload("res://src/core/character/Base/Character.gd")
-const Campaign = preload("res://src/core/campaign/Campaign.gd")
+func _init() -> void:
+	if not Engine.is_editor_hint():
+		_was_ready_called = true
 
-# Game state setup
-func setup_game_state() -> FiveParsecsGameState:
-	var state = FiveParsecsGameState.new()
-	track_test_node(state)
-	
-	# Initialize state properties
-	state.credits = 1000
-	state.difficulty_level = GameEnums.DifficultyLevel.NORMAL
-	state.enable_permadeath = true
-	state.use_story_track = true
-	state.auto_save_enabled = true
-	
-	return state
+# Game-specific test helper functions
+func create_test_game_state() -> GameState:
+	var game_state := GameState.new()
+	var state_data = TestHelper.setup_test_game_state()
+	game_state.load_state(state_data)
+	return game_state
 
-# Character setup
-func setup_test_character(name: String = "Test Character") -> Character:
-	var character = Character.new()
-	track_test_resource(character)
-	
-	# Set basic info
-	character.character_name = name
-	character.character_class = GameEnums.CharacterClass.SOLDIER
-	character.origin = GameEnums.Origin.HUMAN
-	character.background = GameEnums.Background.MILITARY
-	character.motivation = GameEnums.Motivation.GLORY
-	
-	# Set base stats
-	character.level = 1
-	character.experience = 0
-	character.health = 10
-	character.max_health = 10
-	
-	return character
+func assert_valid_game_state(game_state: Node) -> void:
+	assert_not_null(game_state, "Game state should not be null")
+	assert_true(game_state.is_initialized(), "Game state should be initialized")
+	assert_not_null(game_state.campaign_state, "Campaign state should be initialized")
+	assert_not_null(game_state.character_manager, "Character manager should be initialized")
+	assert_not_null(game_state.resource_system, "Resource system should be initialized")
 
-# Campaign setup
-func setup_test_campaign() -> Campaign:
-	var campaign = Campaign.new()
-	track_test_resource(campaign)
-	
-	campaign.campaign_name = "Test Campaign"
-	campaign.starting_credits = 1000
-	campaign.starting_reputation = 0
-	
-	return campaign
-
-# Game-specific assertions
-func assert_valid_game_state(state: FiveParsecsGameState) -> void:
-	assert_node_valid(state)
-	assert_has_method(state, "save")
-	assert_has_method(state, "load")
-
-func assert_valid_character(character: Character) -> void:
-	assert_resource_valid(character)
-	assert_true(character.character_name.length() > 0, "Character should have a name")
-	assert_true(character.character_class in GameEnums.CharacterClass.values(), "Character should have valid class")
-	assert_true(character.origin in GameEnums.Origin.values(), "Character should have valid origin")
-
-func assert_valid_campaign(campaign: Campaign) -> void:
-	assert_resource_valid(campaign)
-	assert_true(campaign.campaign_name.length() > 0, "Campaign should have a name")
-	assert_true(campaign.starting_credits >= 0, "Campaign should have valid starting credits")
-
-# Game-specific utilities
-func simulate_combat_round() -> void:
-	await wait_frames(2) # Give time for combat calculations
-
-func simulate_campaign_turn() -> void:
-	await wait_frames(2) # Give time for turn processing
+func setup_test_character() -> Character:
+	return TestHelper.create_test_character()

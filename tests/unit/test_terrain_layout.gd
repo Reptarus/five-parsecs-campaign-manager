@@ -1,26 +1,31 @@
 @tool
-extends "res://tests/test_base.gd"
+extends "res://tests/fixtures/game_test.gd"
 
 const TerrainSystem := preload("res://src/core/terrain/TerrainSystem.gd")
 const TerrainLayout := preload("res://src/core/terrain/TerrainLayout.gd")
-const TestHelper := preload("res://tests/fixtures/test_helper.gd")
 
-var terrain_system: Node
-var terrain_layout: Node
+# Test variables
+var terrain_system: Node # Using Node type to avoid casting issues
+var terrain_layout: Node # Using Node type to avoid casting issues
 
+# Lifecycle Methods
 func before_each() -> void:
-	super.before_each()
+	await super.before_each()
 	terrain_system = TerrainSystem.new()
 	terrain_system.initialize_grid(Vector2(10, 10))
 	terrain_layout = TerrainLayout.new(terrain_system)
 	add_child(terrain_system)
 	add_child(terrain_layout)
+	track_test_node(terrain_system)
+	track_test_node(terrain_layout)
+	await get_tree().process_frame
 
 func after_each() -> void:
-	super.after_each()
+	await super.after_each()
 	terrain_system = null
 	terrain_layout = null
 
+# Test Methods
 func test_get_adjacent_positions() -> void:
 	var test_pos := Vector2(5, 5)
 	var adjacent_positions: Array[Vector2] = terrain_layout._get_adjacent_positions(test_pos, terrain_system)
@@ -59,6 +64,8 @@ func test_is_valid_position() -> void:
 	assert_false(terrain_layout._is_valid_position(Vector2(0, 10), terrain_system), "Out of bounds y should be invalid")
 
 func test_get_adjacent_positions_with_features() -> void:
+	watch_signals(terrain_system)
+	
 	# Set up some terrain features
 	terrain_system.set_terrain_feature(Vector2(5, 5), GameEnums.TerrainFeatureType.WALL)
 	terrain_system.set_terrain_feature(Vector2(5, 6), GameEnums.TerrainFeatureType.COVER_HIGH)
@@ -71,3 +78,5 @@ func test_get_adjacent_positions_with_features() -> void:
 	assert_has(adjacent_positions, Vector2(6, 4), "Should have right position")
 	assert_has(adjacent_positions, Vector2(5, 3), "Should have up position")
 	assert_does_not_have(adjacent_positions, Vector2(5, 5), "Should not have position with wall")
+	
+	assert_signal_emitted(terrain_system, "terrain_feature_changed")

@@ -1,120 +1,110 @@
+@tool
 extends "res://addons/gut/test.gd"
 
-# Base test functionality that all tests should inherit from
+# Base test class that all test scripts should extend from
 class_name BaseTest
 
-const GameEnums = preload("res://src/core/systems/GlobalEnums.gd")
-const GutMain = preload("res://addons/gut/gut.gd")
+const GutMain := preload("res://addons/gut/gut.gd")
 
-var gut: GutMain
-var _signal_watcher = null
-var _tracked_resources: Array[Resource] = []
+# Required GUT properties
+var _was_ready_called := false
+var _skip_script := false
+var _skip_reason := ""
+var _logger = null
+
+# This is the property that GUT will set directly
+var gut: GutMain:
+	get:
+		return _gut
+	set(value):
+		_gut = value
+
 var _tracked_nodes: Array[Node] = []
+var _tracked_resources: Array[Resource] = []
+var _signal_watcher = null
+var _gut: GutMain = null
+
+func get_gut() -> GutMain:
+	if not _gut:
+		_gut = get_parent() as GutMain
+	return _gut
+
+func set_gut(gut: GutMain) -> void:
+	_gut = gut
+
+func get_skip_reason() -> String:
+	return _skip_reason
+
+func should_skip_script() -> bool:
+	return _skip_script
+
+func _do_ready_stuff() -> void:
+	_was_ready_called = true
 
 # Signal handling
 func watch_signals(object: Object) -> void:
-	if not _signal_watcher and gut:
-		_signal_watcher = gut.get_signal_watcher()
-	if _signal_watcher:
-		_signal_watcher.watch_signals(object)
+	if not _signal_watcher:
+		_signal_watcher = get_gut().get_signal_watcher()
+	_signal_watcher.watch_signals(object)
 
 func clear_signal_watcher() -> void:
 	if _signal_watcher:
 		_signal_watcher.clear()
 	_signal_watcher = null
 
-# Signal assertion helpers
-func assert_signal_emitted(object: Object, signal_name: String, message: String = "") -> void:
-	if not _signal_watcher and gut:
-		_signal_watcher = gut.get_signal_watcher()
-	if _signal_watcher:
-		assert_true(_signal_watcher.did_emit(object, signal_name),
-			message if message else "Signal '%s' should have been emitted" % signal_name)
-
-func assert_signal_not_emitted(object: Object, signal_name: String, message: String = "") -> void:
-	if not _signal_watcher and gut:
-		_signal_watcher = gut.get_signal_watcher()
-	if _signal_watcher:
-		assert_false(_signal_watcher.did_emit(object, signal_name),
-			message if message else "Signal '%s' should not have been emitted" % signal_name)
-
-func assert_signal_emit_count(object: Object, signal_name: String, times: int, message: String = "") -> void:
-	if not _signal_watcher and gut:
-		_signal_watcher = gut.get_signal_watcher()
-	if _signal_watcher:
-		assert_eq(_signal_watcher.get_emit_count(object, signal_name), times,
-			message if message else "Signal '%s' should have been emitted %d times" % [signal_name, times])
-
-# Resource tracking
-func track_test_resource(resource: Resource) -> void:
-	if not resource:
+# Override GUT's signal assertion methods
+func assert_signal_emitted(object: Object, signal_name: String, text: String = "") -> void:
+	if not _signal_watcher:
+		assert_true(false, "Signal watcher not initialized. Did you call watch_signals()?")
 		return
-	if not _tracked_resources.has(resource):
-		_tracked_resources.append(resource)
+	var did_emit = _signal_watcher.did_emit(object, signal_name)
+	assert_true(did_emit, text if text else "Signal '%s' was not emitted" % signal_name)
 
-# Node tracking
-func track_test_node(node: Node) -> void:
-	if not node:
+func assert_signal_not_emitted(object: Object, signal_name: String, text: String = "") -> void:
+	if not _signal_watcher:
+		assert_true(false, "Signal watcher not initialized. Did you call watch_signals()?")
 		return
-	if not _tracked_nodes.has(node):
-		if not node.is_inside_tree() and not node.is_queued_for_deletion():
-			add_child(node)
-		_tracked_nodes.append(node)
+	var did_emit = _signal_watcher.did_emit(object, signal_name)
+	assert_false(did_emit, text if text else "Signal '%s' was emitted" % signal_name)
 
-# Cleanup helpers
-func _cleanup_resource(resource: Resource) -> void:
-	if not resource:
+func assert_signal_emit_count(object: Object, signal_name: String, times: int, text: String = "") -> void:
+	if not _signal_watcher:
+		assert_true(false, "Signal watcher not initialized. Did you call watch_signals()?")
 		return
-	if resource is RefCounted:
-		resource = null # Let reference counting handle cleanup
-	else:
-		if is_instance_valid(resource) and not resource.is_queued_for_deletion():
-			resource.free()
-
-func _cleanup_node(node: Node) -> void:
-	if not node:
-		return
-	if is_instance_valid(node):
-		if node.is_inside_tree() and not node.is_queued_for_deletion():
-			node.queue_free()
+	var count = _signal_watcher.get_emit_count(object, signal_name)
+	assert_eq(count, times, text if text else "Signal '%s' emit count %d != %d" % [signal_name, count, times])
 
 # Lifecycle methods
 func before_each() -> void:
-	super.before_each()
+	await super.before_each()
+	_tracked_nodes = []
+	_tracked_resources = []
+	_signal_watcher = null
 
 func after_each() -> void:
-	# Clean up tracked resources
-	for resource in _tracked_resources:
-		_cleanup_resource(resource)
-	_tracked_resources.clear()
-	
-	# Clean up tracked nodes
-	for node in _tracked_nodes:
-		_cleanup_node(node)
-	_tracked_nodes.clear()
-	
-	# Clean up signal watchers
+	await super.after_each()
 	clear_signal_watcher()
 	
-	super.after_each()
+	for node in _tracked_nodes:
+		if is_instance_valid(node) and node.is_inside_tree():
+			node.queue_free()
+	_tracked_nodes.clear()
+	
+	for resource in _tracked_resources:
+		if resource:
+			resource.free()
+	_tracked_resources.clear()
 
-# Common assertions
-func assert_has_method(obj: Object, method: String, message: String = "") -> void:
-	assert_true(obj.has_method(method), message if message else "Object should have method '%s'" % method)
+# Helper methods
+func track_test_node(node: Node) -> void:
+	_tracked_nodes.append(node)
 
-func assert_has_signal(obj: Object, signal_name: String, message: String = "") -> void:
-	assert_true(obj.has_signal(signal_name), message if message else "Object should have signal '%s'" % signal_name)
+func track_test_resource(resource: Resource) -> void:
+	_tracked_resources.append(resource)
 
-func assert_resource_valid(resource: Resource, message: String = "") -> void:
-	assert_not_null(resource, message if message else "Resource should not be null")
-	assert_true(is_instance_valid(resource), message if message else "Resource should be valid")
+func assert_valid_game_state(game_state: Node) -> void:
+	assert_not_null(game_state, "Game state should not be null")
+	assert_true(is_instance_valid(game_state), "Game state should be valid")
 
-func assert_node_valid(node: Node, message: String = "") -> void:
-	assert_not_null(node, message if message else "Node should not be null")
-	assert_true(is_instance_valid(node), message if message else "Node should be valid")
-	assert_true(node.is_inside_tree(), message if message else "Node should be in scene tree")
-
-# Utility methods
-func wait_frames(frames: int = 1) -> void:
-	for i in range(frames):
-		await get_tree().process_frame
+func set_logger(logger) -> void:
+	_logger = logger

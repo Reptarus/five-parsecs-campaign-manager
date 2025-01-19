@@ -2,7 +2,6 @@
 extends "res://tests/test_base.gd"
 
 const HouseRulesPanel := preload("res://src/ui/components/combat/rules/house_rules_panel.tscn")
-const TestHelper := preload("res://tests/fixtures/test_helper.gd")
 
 var panel: Node
 

@@ -2,7 +2,6 @@
 extends "res://tests/test_base.gd"
 
 const StateVerificationController := preload("res://src/ui/components/combat/state/state_verification_controller.tscn")
-const TestHelper := preload("res://tests/fixtures/test_helper.gd")
 
 var controller: Node
 var mock_combat_manager: Node

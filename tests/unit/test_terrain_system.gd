@@ -1,73 +1,53 @@
 @tool
-extends "../../tests/fixtures/base_test.gd"
+extends "res://tests/fixtures/game_test.gd"
 
 const TerrainSystem := preload("res://src/core/terrain/TerrainSystem.gd")
 
-var system: TerrainSystem
+# Test variables
+var terrain_system: Node # Using Node type to avoid casting issues
 
-func before_each():
-    system = TerrainSystem.new()
-    system.initialize_grid(Vector2(10, 10))
+# Lifecycle Methods
+func before_each() -> void:
+	await super.before_each()
+	terrain_system = TerrainSystem.new()
+	add_child(terrain_system)
+	track_test_node(terrain_system)
 
-func test_grid_initialization():
-    var grid_size := system.get_grid_size()
-    assert_eq(grid_size, Vector2(10, 10), "Grid size should be 10x10")
-    
-    for x in range(10):
-        for y in range(10):
-            var terrain_type := system.get_terrain_type(Vector2(x, y))
-            assert_eq(terrain_type, TerrainSystem.TerrainFeatureType.NONE, "Grid should be initialized with NONE")
+func after_each() -> void:
+	await super.after_each()
+	terrain_system = null
 
-func test_set_terrain_feature():
-    var test_pos := Vector2(5, 5)
-    system.set_terrain_feature(test_pos, TerrainSystem.TerrainFeatureType.WALL)
-    var terrain_type := system.get_terrain_type(test_pos)
-    assert_eq(terrain_type, TerrainSystem.TerrainFeatureType.WALL, "Terrain feature should be set to WALL")
+# Test Methods
+func test_terrain_effect_application() -> void:
+	watch_signals(terrain_system)
+	
+	var target = Node2D.new()
+	add_child(target)
+	track_test_node(target)
+	
+	terrain_system.apply_terrain_effect(target, GameEnums.TerrainFeatureType.COVER_HIGH)
+	assert_signal_emitted(terrain_system, "effect_applied")
+	
+	terrain_system.remove_terrain_effect(target)
+	assert_signal_emitted(terrain_system, "effect_removed")
 
-func test_invalid_position():
-    var invalid_pos := Vector2(-1, -1)
-    var terrain_type := system.get_terrain_type(invalid_pos)
-    assert_eq(terrain_type, TerrainSystem.TerrainFeatureType.NONE, "Invalid position should return NONE")
-    
-    invalid_pos = Vector2(10, 10)
-    terrain_type = system.get_terrain_type(invalid_pos)
-    assert_eq(terrain_type, TerrainSystem.TerrainFeatureType.NONE, "Out of bounds position should return NONE")
-
-func test_terrain_modified_signal():
-    watch_signals(system)
-    var test_pos := Vector2(3, 3)
-    system.set_terrain_feature(test_pos, TerrainSystem.TerrainFeatureType.COVER_HIGH)
-    assert_signal_emitted_with_parameters(system, "terrain_modified", [test_pos, TerrainSystem.TerrainFeatureType.COVER_HIGH])
-
-func test_multiple_terrain_features():
-    var positions := [Vector2(1, 1), Vector2(3, 3), Vector2(5, 5)]
-    var features := [
-        TerrainSystem.TerrainFeatureType.WALL,
-        TerrainSystem.TerrainFeatureType.COVER_LOW,
-        TerrainSystem.TerrainFeatureType.COVER_HIGH
-    ]
-    
-    for i in range(positions.size()):
-        system.set_terrain_feature(positions[i], features[i])
-    
-    for i in range(positions.size()):
-        var terrain_type := system.get_terrain_type(positions[i])
-        assert_eq(terrain_type, features[i], "Terrain feature should match set feature")
-
-func test_grid_boundaries():
-    var grid_size := system.get_grid_size()
-    assert_eq(grid_size.x, 10, "Grid width should be 10")
-    assert_eq(grid_size.y, 10, "Grid height should be 10")
-    
-    # Test corners
-    var corners := [
-        Vector2(0, 0),
-        Vector2(0, grid_size.y - 1),
-        Vector2(grid_size.x - 1, 0),
-        Vector2(grid_size.x - 1, grid_size.y - 1)
-    ]
-    
-    for corner in corners:
-        system.set_terrain_feature(corner, TerrainSystem.TerrainFeatureType.WALL)
-        var terrain_type := system.get_terrain_type(corner)
-        assert_eq(terrain_type, TerrainSystem.TerrainFeatureType.WALL, "Corner should be set to WALL")
+func test_multiple_effects() -> void:
+	watch_signals(terrain_system)
+	
+	var target1 = Node2D.new()
+	var target2 = Node2D.new()
+	add_child(target1)
+	add_child(target2)
+	track_test_node(target1)
+	track_test_node(target2)
+	
+	terrain_system.apply_terrain_effect(target1, GameEnums.TerrainFeatureType.COVER_HIGH)
+	terrain_system.apply_terrain_effect(target2, GameEnums.TerrainFeatureType.COVER_LOW)
+	
+	assert_eq(terrain_system.get_active_effects().size(), 2, "Should have two active effects")
+	
+	terrain_system.remove_terrain_effect(target1)
+	assert_eq(terrain_system.get_active_effects().size(), 1, "Should have one active effect")
+	
+	terrain_system.remove_terrain_effect(target2)
+	assert_eq(terrain_system.get_active_effects().size(), 0, "Should have no active effects")

@@ -1,22 +1,34 @@
 @tool
-extends "../fixtures/base_test.gd"
+extends "res://tests/fixtures/game_test.gd"
 
 const CombatLogController := preload("res://src/ui/components/combat/log/combat_log_controller.gd")
 
-var controller: Node
+# Test variables
+var controller: Node # Using Node type to avoid casting issues
 var _signals_received := {}
 
+# Lifecycle Methods
 func before_each() -> void:
+	await super.before_each()
 	controller = CombatLogController.new()
-	add_child_autoqfree(controller)
+	add_child(controller)
+	track_test_node(controller)
 	await get_tree().process_frame
 
+func after_each() -> void:
+	await super.after_each()
+	controller = null
+	_signals_received.clear()
+
+# Test Methods
 func test_initial_state() -> void:
 	assert_eq(controller.log_entries.size(), 0, "Should start with no log entries")
 	assert_eq(controller.active_filters.size(), 5, "Should have all filter types")
 	assert_false(controller.combat_log_panel.visible, "Combat log panel should start hidden")
 
 func test_add_log_entry() -> void:
+	watch_signals(controller)
+	
 	var test_entry = {
 		"type": "combat",
 		"data": {
@@ -31,8 +43,11 @@ func test_add_log_entry() -> void:
 	var entry = controller.log_entries[0]
 	assert_eq(entry.type, "combat", "Should set correct entry type")
 	assert_eq(entry.data.type, "state_change", "Should set correct data type")
+	assert_signal_emitted(controller, "log_entry_added")
 
 func test_filter_entries() -> void:
+	watch_signals(controller)
+	
 	var combat_entry = {
 		"type": "combat",
 		"data": {"type": "state_change"}
@@ -48,8 +63,11 @@ func test_filter_entries() -> void:
 	controller._on_filter_changed("combat", false)
 	assert_false(controller._should_display_entry(controller.log_entries[0]), "Combat entries should be filtered out")
 	assert_true(controller._should_display_entry(controller.log_entries[1]), "Status entries should still be shown")
+	assert_signal_emitted(controller, "filter_changed")
 
 func test_export_log() -> void:
+	watch_signals(controller)
+	
 	var test_entry = {
 		"type": "combat",
 		"data": {"type": "state_change"}
@@ -65,8 +83,11 @@ func test_export_log() -> void:
 		assert_not_null(content, "Export file should contain valid JSON")
 		assert_eq(content.entries.size(), 1, "Export should contain all entries")
 		file.close()
+	assert_signal_emitted(controller, "log_exported")
 
 func test_verify_combat_entry() -> void:
+	watch_signals(controller)
+	
 	var test_entry = {
 		"type": "combat",
 		"data": {
@@ -82,8 +103,11 @@ func test_verify_combat_entry() -> void:
 	# Note: We can't test the actual verification since we don't have a real combat manager
 	# Instead, we verify the handler was called without errors
 	assert_true(true, "Should handle combat entry verification without errors")
+	assert_signal_emitted(controller, "entry_verified")
 
 func test_verify_status_entry() -> void:
+	watch_signals(controller)
+	
 	var test_entry = {
 		"type": "status",
 		"data": {
@@ -97,8 +121,11 @@ func test_verify_status_entry() -> void:
 	controller._verify_entry(entry)
 	
 	assert_true(true, "Should handle status entry verification without errors")
+	assert_signal_emitted(controller, "entry_verified")
 
 func test_revert_override_entry() -> void:
+	watch_signals(controller)
+	
 	var test_entry = {
 		"type": "override",
 		"data": {
@@ -112,8 +139,11 @@ func test_revert_override_entry() -> void:
 	controller._revert_entry(entry)
 	
 	assert_true(true, "Should handle override entry reversion without errors")
+	assert_signal_emitted(controller, "entry_reverted")
 
 func test_combat_state_changed() -> void:
+	watch_signals(controller)
+	
 	var new_state = {"phase": GameEnums.BattlePhase.ACTIVATION, "round": 1}
 	controller._on_combat_state_changed(new_state)
 	
@@ -122,3 +152,4 @@ func test_combat_state_changed() -> void:
 	assert_eq(entry.type, "combat", "Should be combat type entry")
 	assert_eq(entry.data.type, "state_change", "Should be state change data")
 	assert_eq(entry.data.state.phase, GameEnums.BattlePhase.ACTIVATION, "Should store state data")
+	assert_signal_emitted(controller, "log_entry_added")

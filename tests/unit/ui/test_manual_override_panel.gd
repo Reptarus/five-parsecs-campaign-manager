@@ -2,7 +2,6 @@
 extends "res://tests/test_base.gd"
 
 const ManualOverridePanel := preload("res://src/ui/components/combat/overrides/manual_override_panel.tscn")
-const TestHelper := preload("res://tests/fixtures/test_helper.gd")
 
 var panel: Node
 

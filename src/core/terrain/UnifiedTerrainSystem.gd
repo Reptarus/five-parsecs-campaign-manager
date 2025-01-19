@@ -12,7 +12,7 @@ const GameEnums = preload("res://src/core/systems/GlobalEnums.gd")
 signal terrain_placed(position: Vector2i, terrain_type: TerrainTypes.Type)
 signal terrain_modified(position: Vector2i, old_type: TerrainTypes.Type, new_type: TerrainTypes.Type)
 signal terrain_removed(position: Vector2i)
-signal terrain_effect_applied(target: Node, effect: Dictionary)
+signal terrain_effect_applied(target: Node, effect: Dictionary) 
 
 # Properties
 var terrain_map: Dictionary = {}

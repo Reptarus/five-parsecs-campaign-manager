@@ -1,28 +1,21 @@
 @tool
-extends "res://tests/test_base.gd"
+extends "res://tests/fixtures/game_test.gd"
 
-# ==============================================================================
-# Variables
-# ==============================================================================
+# Test variables
 var _test_character: Character
 
-# ==============================================================================
 # Lifecycle Methods
-# ==============================================================================
 func before_each() -> void:
-	await get_tree().process_frame
-	super.before_each()
+	await super.before_each()
 	_test_character = setup_test_character()
 	track_test_resource(_test_character)
 	_setup_test_character()
 
 func after_each() -> void:
-	await get_tree().process_frame
-	super.after_each()
+	await super.after_each()
+	_test_character = null
 
-# ==============================================================================
 # Helper Methods
-# ==============================================================================
 func _setup_test_character() -> void:
 	_test_character.character_name = "Test Character"
 	_test_character.character_class = GameEnums.CharacterClass.SOLDIER
@@ -36,13 +29,11 @@ func _setup_test_character() -> void:
 	_test_character.toughness = 3
 	_test_character.luck = 0
 
-# ==============================================================================
 # Test Methods
-# ==============================================================================
 func test_character_initialization() -> void:
 	assert_not_null(_test_character, "Character should be initialized")
-	assert_str_eq(_test_character.character_name, "Test Character", "Character name should match")
-	assert_enum_eq(_test_character.character_class, GameEnums.CharacterClass.SOLDIER, "Character class should match")
+	assert_eq(_test_character.character_name, "Test Character", "Character name should match")
+	assert_eq(_test_character.character_class, GameEnums.CharacterClass.SOLDIER, "Character class should match")
 
 func test_character_stats() -> void:
 	assert_true(_test_character.reaction >= 0 and _test_character.reaction <= Character.MAX_STATS.reaction)

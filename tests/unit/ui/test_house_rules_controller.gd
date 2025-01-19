@@ -2,7 +2,6 @@
 extends "res://tests/test_base.gd"
 
 const HouseRulesController := preload("res://src/ui/components/combat/rules/house_rules_controller.tscn")
-const TestHelper := preload("res://tests/fixtures/test_helper.gd")
 
 var controller: Node
 

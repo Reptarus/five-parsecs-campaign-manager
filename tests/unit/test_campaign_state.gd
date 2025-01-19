@@ -1,39 +1,48 @@
 @tool
-extends BaseTest
+extends "res://tests/fixtures/game_test.gd"
 
-const CampaignManager = preload("res://src/core/managers/CampaignManager.gd")
-const FiveParsecsGameState = preload("res://src/core/state/GameState.gd")
+# Test variables
+var state: Node # Using Node type to avoid casting issues
 
-var game_state: FiveParsecsGameState
-var campaign_manager: CampaignManager
-
+# Lifecycle Methods
 func before_each() -> void:
-	game_state = FiveParsecsGameState.new()
-	campaign_manager = CampaignManager.new(game_state)
-	
-	game_state.current_phase = GameEnums.CampaignPhase.NONE
-	game_state.credits = 1000
-	game_state.resources = {
-		"fuel": 10,
-		"supplies": 20,
-		"spare_parts": 5
-	}
+	await super.before_each()
+	state = GameState.new()
+	add_child(state)
+	track_test_node(state)
+	await get_tree().process_frame
 
 func after_each() -> void:
-	super.after_each()
-	game_state = null
-	campaign_manager = null
+	await super.after_each()
+	state = null
 
-func test_campaign_state_initialization() -> void:
-	assert_eq(game_state.current_phase, GameEnums.CampaignPhase.NONE)
-	assert_eq(game_state.credits, 1000)
-	assert_eq(game_state.resources["fuel"], 10)
-	assert_eq(game_state.resources["supplies"], 20)
-	assert_eq(game_state.resources["spare_parts"], 5)
+# Test Methods
+func test_initial_state() -> void:
+	assert_eq(state.current_phase, GameEnums.CampaignPhase.NONE, "Should start with NONE phase")
+	assert_eq(state.credits, 0, "Should start with no credits")
+	assert_eq(state.resources.size(), 0, "Should start with no resources")
 
-func test_campaign_state_update() -> void:
-	game_state.credits = 2000
-	game_state.resources["fuel"] = 15
+func test_set_phase() -> void:
+	watch_signals(state)
 	
-	assert_eq(game_state.credits, 2000)
-	assert_eq(game_state.resources["fuel"], 15)
+	state.current_phase = GameEnums.CampaignPhase.CAMPAIGN
+	assert_eq(state.current_phase, GameEnums.CampaignPhase.CAMPAIGN, "Should set phase")
+	assert_signal_emitted(state, "phase_changed")
+
+func test_modify_credits() -> void:
+	watch_signals(state)
+	
+	state.credits = 100
+	assert_eq(state.credits, 100, "Should set credits")
+	assert_signal_emitted(state, "credits_changed")
+
+func test_modify_resources() -> void:
+	watch_signals(state)
+	
+	state.resources = {
+		"fuel": 10,
+		"supplies": 20
+	}
+	assert_eq(state.resources["fuel"], 10, "Should set fuel")
+	assert_eq(state.resources["supplies"], 20, "Should set supplies")
+	assert_signal_emitted(state, "resources_changed")

@@ -2,7 +2,6 @@
 extends "res://tests/test_base.gd"
 
 const OverrideController := preload("res://src/ui/components/combat/overrides/override_controller.tscn")
-const TestHelper := preload("res://tests/fixtures/test_helper.gd")
 
 var controller: Node
 var mock_resolver: Node

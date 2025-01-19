@@ -1,20 +1,19 @@
-extends "res://tests/fixtures/game_test.gd"
+@tool
+extends "res://tests/fixtures/base_test.gd"
 
-# This is the main test base class that all test files should extend from.
-# It provides access to both the base test functionality and game-specific test functionality.
+# This is a compatibility proxy for older test files
+# All test files should eventually be updated to extend from base_test.gd directly.
 
 var _logger = null
-var _was_ready_called := false
 
 # Required by GUT framework
 func set_logger(logger):
 	_logger = logger
 
-func _ready():
-	_was_ready_called = true
+func get_logger():
+	return _logger
 
-func should_skip_script() -> bool:
-	return false
-
-func get_skip_message() -> String:
-	return ""
+# Helper methods
+func add_child_autofree(node: Node) -> void:
+	add_child(node)
+	track_test_node(node)
