@@ -1,132 +1,163 @@
+## Test class for state verification panel functionality
+##
+## Tests the UI components and logic for game state verification
+## including state comparison, validation, and result tracking
 @tool
-extends "res://tests/test_base.gd"
+extends "res://tests/fixtures/base_test.gd"
 
-const StateVerificationPanel := preload("res://src/ui/components/combat/state/state_verification_panel.tscn")
+const StateVerificationPanel := preload("res://src/ui/components/combat/state/state_verification_panel.gd")
+const GameEnums := preload("res://src/core/systems/GlobalEnums.gd")
 
-var panel: Node
+var panel: StateVerificationPanel
 
 func before_each() -> void:
-    super.before_each()
-    panel = StateVerificationPanel.instantiate()
-    add_child(panel)
+	await super.before_each()
+	panel = StateVerificationPanel.new()
+	add_child(panel)
+	track_test_node(panel)
+	watch_signals(panel)
+	await get_tree().process_frame
 
 func after_each() -> void:
-    super.after_each()
-    panel = null
+	await super.after_each()
+	panel = null
 
-func test_initialization() -> void:
-    assert_not_null(panel, "State verification panel should be initialized")
-    assert_true(panel.has_method("show_verification_result"), "Should have show_verification_result method")
-    assert_true(panel.has_method("clear_results"), "Should have clear_results method")
+# Basic Panel Tests
+func test_initial_state() -> void:
+	assert_false(panel.visible, "Panel should start hidden")
+	assert_eq(panel.current_state, {}, "Should start with empty current state")
+	assert_eq(panel.expected_state, {}, "Should start with empty expected state")
+	assert_false(panel.auto_verify, "Should start with auto verify disabled")
 
-func test_show_verification_result() -> void:
-    var test_result = {
-        "status": GameEnums.VerificationResult.SUCCESS,
-        "message": "Test message",
-        "details": ["Detail 1", "Detail 2"]
-    }
-    panel.show_verification_result(test_result)
-    assert_true(panel.visible, "Panel should be visible after showing result")
-    assert_eq(panel.result_label.text, "Test message", "Should display result message")
+# State Management Tests
+func test_set_current_state() -> void:
+	var combat_state = {
+		"unit_position": Vector2(1, 1),
+		"action_points": 2,
+		"combat_status": GameEnums.CombatStatus.NONE,
+		"combat_modifiers": [GameEnums.CombatModifier.COVER_LIGHT]
+	}
+	
+	panel.current_state = combat_state
+	assert_eq(panel.current_state, combat_state, "Should set current combat state")
 
-func test_show_error_result() -> void:
-    var test_result = {
-        "status": GameEnums.VerificationResult.ERROR,
-        "message": "Error message",
-        "details": ["Error 1", "Error 2"]
-    }
-    panel.show_verification_result(test_result)
-    assert_true(panel.visible, "Panel should be visible after showing error")
-    assert_eq(panel.result_label.text, "Error message", "Should display error message")
-    assert_eq(panel.details_list.get_child_count(), 2, "Should display error details")
+func test_set_expected_state() -> void:
+	var expected_state = {
+		"unit_position": Vector2(2, 2),
+		"action_points": 1,
+		"combat_status": GameEnums.CombatStatus.SUPPRESSED,
+		"combat_modifiers": [GameEnums.CombatModifier.COVER_HEAVY]
+	}
+	
+	panel.expected_state = expected_state
+	assert_eq(panel.expected_state, expected_state, "Should set expected combat state")
 
-func test_show_warning_result() -> void:
-    var test_result = {
-        "status": GameEnums.VerificationResult.WARNING,
-        "message": "Warning message",
-        "details": ["Warning 1"]
-    }
-    panel.show_verification_result(test_result)
-    assert_true(panel.visible, "Panel should be visible after showing warning")
-    assert_eq(panel.result_label.text, "Warning message", "Should display warning message")
-    assert_eq(panel.details_list.get_child_count(), 1, "Should display warning details")
+# Verification Tests
+func test_state_verification_match() -> void:
+	var test_state = {
+		"unit_position": Vector2(1, 1),
+		"combat_status": GameEnums.CombatStatus.NONE
+	}
+	
+	panel.current_state = test_state.duplicate()
+	panel.expected_state = test_state.duplicate()
+	
+	panel.verify_button.emit_signal("pressed")
+	assert_signal_emitted(panel, "state_verified")
+	assert_signal_emitted(panel, "verification_completed")
 
-func test_clear_results() -> void:
-    var test_result = {
-        "status": GameEnums.VerificationResult.SUCCESS,
-        "message": "Test message",
-        "details": ["Detail 1"]
-    }
-    panel.show_verification_result(test_result)
-    panel.clear_results()
-    assert_false(panel.visible, "Panel should be hidden after clearing results")
-    assert_eq(panel.details_list.get_child_count(), 0, "Should clear result details")
+func test_state_verification_mismatch() -> void:
+	panel.current_state = {
+		"unit_position": Vector2(1, 1),
+		"combat_status": GameEnums.CombatStatus.NONE
+	}
+	
+	panel.expected_state = {
+		"unit_position": Vector2(2, 2),
+		"combat_status": GameEnums.CombatStatus.SUPPRESSED
+	}
+	
+	panel.verify_button.emit_signal("pressed")
+	assert_signal_emitted(panel, "state_mismatch_detected")
+	assert_signal_emitted(panel, "verification_completed")
 
-func test_auto_hide() -> void:
-    var test_result = {
-        "status": GameEnums.VerificationResult.SUCCESS,
-        "message": "Test message",
-        "details": []
-    }
-    panel.auto_hide = true
-    panel.show_verification_result(test_result)
-    await get_tree().create_timer(panel.auto_hide_delay + 0.1).timeout
-    assert_false(panel.visible, "Panel should auto-hide after delay")
+# Auto-Verification Tests
+func test_auto_verify_behavior() -> void:
+	panel.auto_verify = true
+	
+	var test_state = {
+		"unit_position": Vector2(1, 1),
+		"combat_status": GameEnums.CombatStatus.NONE
+	}
+	
+	# State changes should trigger automatic verification
+	panel.current_state = test_state.duplicate()
+	panel.expected_state = test_state.duplicate()
+	
+	assert_signal_emitted(panel, "verification_completed")
 
-func test_disable_auto_hide() -> void:
-    var test_result = {
-        "status": GameEnums.VerificationResult.SUCCESS,
-        "message": "Test message",
-        "details": []
-    }
-    panel.auto_hide = false
-    panel.show_verification_result(test_result)
-    await get_tree().create_timer(panel.auto_hide_delay + 0.1).timeout
-    assert_true(panel.visible, "Panel should not auto-hide when disabled")
+# Manual Correction Tests
+func test_manual_correction_request() -> void:
+	panel.current_state = {
+		"action_points": 1,
+		"combat_status": GameEnums.CombatStatus.NONE
+	}
+	
+	panel.expected_state = {
+		"action_points": 2,
+		"combat_status": GameEnums.CombatStatus.SUPPRESSED
+	}
+	
+	panel.correction_button.emit_signal("pressed")
+	assert_signal_emitted(panel, "manual_correction_requested")
 
-func test_close_button() -> void:
-    var test_result = {
-        "status": GameEnums.VerificationResult.SUCCESS,
-        "message": "Test message",
-        "details": []
-    }
-    panel.show_verification_result(test_result)
-    panel._on_close_button_pressed()
-    assert_false(panel.visible, "Panel should hide when close button is pressed")
+# UI State Tests
+func test_ui_state_management() -> void:
+	# Test visibility
+	panel.show()
+	assert_true(panel.visible, "Panel should be visible")
+	assert_signal_emitted(panel, "visibility_changed")
+	
+	panel.hide()
+	assert_false(panel.visible, "Panel should be hidden")
+	assert_signal_emitted(panel, "visibility_changed")
 
-func test_result_history() -> void:
-    var test_results = [
-        {
-            "status": GameEnums.VerificationResult.SUCCESS,
-            "message": "Success message",
-            "details": []
-        },
-        {
-            "status": GameEnums.VerificationResult.WARNING,
-            "message": "Warning message",
-            "details": ["Warning"]
-        },
-        {
-            "status": GameEnums.VerificationResult.ERROR,
-            "message": "Error message",
-            "details": ["Error"]
-        }
-    ]
-    
-    for result in test_results:
-        panel.show_verification_result(result)
-    
-    assert_eq(panel.result_history.size(), 3, "Should store result history")
-    assert_eq(panel.result_history[0].status, GameEnums.VerificationResult.SUCCESS, "Should store result status")
-    assert_eq(panel.result_history[1].status, GameEnums.VerificationResult.WARNING, "Should store result status")
-    assert_eq(panel.result_history[2].status, GameEnums.VerificationResult.ERROR, "Should store result status")
+# Error Condition Tests
+func test_invalid_states() -> void:
+	# Test setting invalid states
+	panel.current_state = {}
+	assert_eq(panel.current_state, {}, "Should handle empty current state")
+	
+	panel.expected_state = {}
+	assert_eq(panel.expected_state, {}, "Should handle empty expected state")
+	
+	# Test setting invalid state values
+	panel.current_state = {"invalid_key": ""}
+	assert_eq(panel.current_state, {"invalid_key": ""}, "Should handle invalid state values")
 
-func test_clear_history() -> void:
-    var test_result = {
-        "status": GameEnums.VerificationResult.SUCCESS,
-        "message": "Test message",
-        "details": []
-    }
-    panel.show_verification_result(test_result)
-    panel.clear_history()
-    assert_eq(panel.result_history.size(), 0, "Should clear result history")
+# Boundary Tests
+func test_large_state_objects() -> void:
+	var large_state = {}
+	for i in range(100):
+		large_state["key_%d" % i] = "value_%d" % i
+	
+	panel.current_state = large_state
+	panel.expected_state = large_state.duplicate()
+	
+	panel.verify_button.emit_signal("pressed")
+	assert_signal_emitted(panel, "state_verified")
+	assert_signal_emitted(panel, "verification_completed")
+
+func test_state_categories() -> void:
+	var categories = [
+		"combat",
+		"movement",
+		"resources",
+		"equipment"
+	]
+	
+	panel.state_categories = categories
+	assert_eq(panel.state_categories, categories, "Should set state categories")
+	
+	# Verify state tree is updated
+	assert_true(panel.state_tree.get_root() != null, "Should create category tree")

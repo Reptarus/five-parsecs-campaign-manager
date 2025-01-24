@@ -1,4 +1,5 @@
-extends "res://tests/test_base.gd"
+@tool
+extends "res://tests/fixtures/base_test.gd"
 
 const TableProcessor = preload("res://src/core/systems/TableProcessor.gd")
 const TableLoader = preload("res://src/core/systems/TableLoader.gd")

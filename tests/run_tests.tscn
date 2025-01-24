@@ -1,20 +1,35 @@
-[gd_scene load_steps=5 format=3 uid="uid://bdpfdceci6p5d"]
+[gd_scene load_steps=2 format=3 uid="uid://bdpfdceci6p5d"]
 
-[ext_resource type="Script" path="res://tests/integration/test_campaign_manager.gd" id="1_2k3m1"]
-[ext_resource type="Script" path="res://tests/integration/test_campaign_phase_manager.gd" id="2_4k3m2"]
-[ext_resource type="Script" path="res://tests/integration/test_game_flow.gd" id="3_4k3m3"]
-[ext_resource type="Script" path="res://src/tests/test_terrain_layout.gd" id="4_4k3m4"]
+[ext_resource type="Script" path="res://addons/gut/gut.gd" id="1_uvt3g"]
 
-[node name="TestRunner" type="Node"]
+[node name="TestRunner" type="Control"]
+layout_mode = 3
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
 
-[node name="CampaignManagerTests" type="Node" parent="."]
-script = ExtResource("1_2k3m1")
-
-[node name="CampaignPhaseManagerTests" type="Node" parent="."]
-script = ExtResource("2_4k3m2")
-
-[node name="GameFlowTests" type="Node" parent="."]
-script = ExtResource("3_4k3m3")
-
-[node name="TerrainLayoutTests" type="Node" parent="."]
-script = ExtResource("4_4k3m4")
+[node name="Gut" type="Control" parent="."]
+layout_mode = 1
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+script = ExtResource("1_uvt3g")
+_run_on_load = true
+_should_maximize = true
+_directory1 = "res://tests/unit"
+_directory2 = "res://tests/integration"
+_double_strategy = 1
+_include_subdirectories = true
+_prefix = "test_"
+_suffix = ".gd"
+_inner_class_name = "Test"
+_should_print_to_console = true
+_log_level = 3
+_export_path = "res://tests/reports/"
+_junit_xml_file = "res://tests/reports/results.xml"
+_junit_xml_timestamp = true
+_pre_run_script = "res://tests/fixtures/setup_gut.gd"

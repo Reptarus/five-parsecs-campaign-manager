@@ -1,6 +1,10 @@
 @tool
 extends Node
 
+const Character: GDScript = preload("res://src/core/character/Base/Character.gd")
+const TerrainTypes: GDScript = preload("res://src/core/terrain/TerrainTypes.gd")
+const GameEnums: GDScript = preload("res://src/core/systems/GlobalEnums.gd")
+
 ## Signals
 signal combat_started()
 signal combat_ended()

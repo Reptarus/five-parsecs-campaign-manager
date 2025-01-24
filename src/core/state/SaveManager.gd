@@ -1,6 +1,8 @@
 class_name SaveManager
 extends Node
 
+const GameEnums = preload("res://src/core/systems/GlobalEnums.gd")
+
 signal save_completed(success: bool, message: String)
 signal load_completed(success: bool, data: Dictionary)
 
@@ -8,6 +10,7 @@ const SAVE_DIR := "user://saves/"
 const SAVE_FILE_EXTENSION := ".save"
 const SAVE_VERSION := "1.0.0"
 const MAX_BACKUPS := 3
+const MAX_SAVE_SLOTS := 10
 
 func _ready() -> void:
     _ensure_save_directory()
@@ -17,6 +20,10 @@ func _ensure_save_directory() -> void:
         DirAccess.make_dir_absolute(SAVE_DIR)
 
 func save_game(save_data: Dictionary, slot: int = 0) -> void:
+    if slot < 0 or slot >= MAX_SAVE_SLOTS:
+        save_completed.emit(false, "Invalid save slot")
+        return
+        
     var save_path := _get_save_path(slot)
     
     # Create backup if file exists
@@ -39,6 +46,10 @@ func save_game(save_data: Dictionary, slot: int = 0) -> void:
     save_completed.emit(true, "Game saved successfully")
 
 func load_game(slot: int = 0) -> void:
+    if slot < 0 or slot >= MAX_SAVE_SLOTS:
+        load_completed.emit(false, {})
+        return
+        
     var save_path := _get_save_path(slot)
     
     if not FileAccess.file_exists(save_path):
@@ -56,6 +67,9 @@ func load_game(slot: int = 0) -> void:
     var json := JSON.new()
     var parse_result := json.parse(json_string)
     if parse_result != OK:
+        # Try to load backup
+        if _try_load_backup(slot):
+            return
         load_completed.emit(false, {})
         return
     
@@ -76,10 +90,39 @@ func _create_backup(slot: int) -> void:
     
     if FileAccess.file_exists(save_path):
         var file := FileAccess.open(save_path, FileAccess.READ)
+        if file == null:
+            return
+            
         var backup := FileAccess.open(backup_path, FileAccess.WRITE)
+        if backup == null:
+            file.close()
+            return
+            
         backup.store_string(file.get_as_text())
         file.close()
         backup.close()
+
+func _try_load_backup(slot: int) -> bool:
+    var backup_path := _get_save_path(slot) + ".backup"
+    
+    if not FileAccess.file_exists(backup_path):
+        return false
+    
+    var file := FileAccess.open(backup_path, FileAccess.READ)
+    if file == null:
+        return false
+    
+    var json_string := file.get_as_text()
+    file.close()
+    
+    var json := JSON.new()
+    var parse_result := json.parse(json_string)
+    if parse_result != OK:
+        return false
+    
+    var save_data: Dictionary = json.get_data()
+    load_completed.emit(true, save_data)
+    return true
 
 func get_save_slots() -> Array:
     var slots := []
@@ -95,6 +138,9 @@ func get_save_slots() -> Array:
     return slots
 
 func delete_save(slot: int) -> void:
+    if slot < 0 or slot >= MAX_SAVE_SLOTS:
+        return
+        
     var save_path := _get_save_path(slot)
     if FileAccess.file_exists(save_path):
         DirAccess.remove_absolute(save_path)
@@ -104,6 +150,8 @@ func delete_save(slot: int) -> void:
         DirAccess.remove_absolute(backup_path)
 
 func has_save(slot: int) -> bool:
+    if slot < 0 or slot >= MAX_SAVE_SLOTS:
+        return false
     return FileAccess.file_exists(_get_save_path(slot))
 
 func get_save_info(slot: int) -> Dictionary:

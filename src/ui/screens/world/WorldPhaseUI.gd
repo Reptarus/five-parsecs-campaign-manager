@@ -2,6 +2,8 @@ class_name WorldPhaseUI
 extends Control
 
 const GameEnums := preload("res://src/core/systems/GlobalEnums.gd")
+const WorldManager := preload("res://src/core/world/WorldManager.gd")
+const GameWorld := preload("res://src/core/world/GameWorld.gd")
 
 signal phase_completed
 signal phase_cancelled
@@ -99,4 +101,4 @@ func cleanup() -> void:
         if world_manager.economy_updated.is_connected(_on_economy_updated):
             world_manager.economy_updated.disconnect(_on_economy_updated)
         if world_manager.strife_level_changed.is_connected(_on_strife_level_changed):
-            world_manager.strife_level_changed.disconnect(_on_strife_level_changed) 
+            world_manager.strife_level_changed.disconnect(_on_strife_level_changed)

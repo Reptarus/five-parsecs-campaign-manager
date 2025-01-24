@@ -1,0 +1,42 @@
+{
+    "version": 1,
+    "log_level": "INFO",
+    "log_format": "[{timestamp}] {level}: {message}",
+    "timestamp_format": "%Y-%m-%d %H:%M:%S",
+    "output": {
+        "console": {
+            "enabled": true,
+            "level": "INFO"
+        },
+        "file": {
+            "enabled": true,
+            "level": "DEBUG",
+            "filename": "tests/logs/test_execution.log",
+            "max_size": 1048576,
+            "backup_count": 5
+        }
+    },
+    "categories": {
+        "unit_tests": {
+            "level": "DEBUG",
+            "handlers": [
+                "console",
+                "file"
+            ]
+        },
+        "integration_tests": {
+            "level": "DEBUG",
+            "handlers": [
+                "console",
+                "file"
+            ]
+        },
+        "performance_tests": {
+            "level": "INFO",
+            "handlers": [
+                "console",
+                "file"
+            ]
+        }
+    }
+}

@@ -1,11 +1,34 @@
 # Five Parsecs Campaign Manager Test Suite
 
 ## Test Organization
-- `unit/`: Individual component tests for isolated functionality
-- `integration/`: System interaction tests for component integration
-- `performance/`: Performance benchmarks and optimization tests
-- `mobile/`: Mobile-specific platform tests
-- `fixtures/`: Test data and helper files
+
+### Unit Tests (`unit/`)
+- `character/`: Character system tests (creation, advancement, stats)
+- `combat/`: Combat system tests (battlefield, mechanics, resolution)
+- `mission/`: Mission system tests (generation, objectives, rewards)
+- `terrain/`: Terrain system tests (generation, features, pathfinding)
+- `campaign/`: Campaign system tests (state, progression, resources)
+- `core/`: Core system tests (error handling, features)
+- `ui/`: UI component tests (panels, controllers, state)
+- `equipment/`: Equipment system tests (items, modifications)
+
+### Integration Tests (`integration/`)
+- `campaign_flow/`: Campaign phase interactions
+- `combat_flow/`: Combat system interactions
+- `mission_flow/`: Mission system interactions
+
+### Performance Tests (`performance/`)
+- `combat/`: Combat system benchmarks
+- `terrain/`: Terrain system benchmarks
+- `campaign/`: Campaign system benchmarks
+
+### Mobile Tests (`mobile/`)
+Platform-specific testing for mobile devices
+
+### Test Fixtures (`fixtures/`)
+- `base_test.gd`: Base test class with common functionality
+- `game_test.gd`: Game-specific test utilities
+- `mock_data/`: Mock data for testing
 
 ## Running Tests
 
@@ -28,66 +51,96 @@ godot --script res://tests/run_tests.gd
 
 ### Test Structure
 ```gdscript
-extends "res://tests/test_base.gd"
+@tool
+extends "res://tests/fixtures/base_test.gd"
 
-func before_each():
-    # Setup code runs before each test
-    pass
+## Test class for MyFeature functionality
+##
+## Tests feature creation, modification, and validation
 
-func after_each():
-    # Cleanup code runs after each test
-    pass
+const MyFeature = preload("res://src/core/my_feature.gd")
 
-func test_my_feature():
-    # Test case
-    assert_true(true, "Assertion message")
+var _instance: MyFeature
+
+func before_each() -> void:
+    await super.before_each()
+    _instance = MyFeature.new()
+    add_child(_instance)
+    track_test_node(_instance)
+
+func after_each() -> void:
+    await super.after_each()
+    _instance = null
+
+# Basic Functionality Tests
+func test_feature_initialization() -> void:
+    assert_not_null(_instance, "Feature should be created")
+
+# Error Condition Tests
+func test_invalid_input() -> void:
+    assert_false(_instance.process_input(null),
+        "Should handle null input gracefully")
+
+# Boundary Tests
+func test_value_boundaries() -> void:
+    assert_true(_instance.set_value(MIN_VALUE),
+        "Should accept minimum value")
 ```
 
 ### Best Practices
-1. One assertion per test when possible
-2. Clear, descriptive test names
-3. Use appropriate setup/teardown
-4. Mock external dependencies
-5. Keep tests independent
+1. **Test Organization**
+   - Group related tests with comments
+   - Use descriptive test names
+   - Follow the Arrange-Act-Assert pattern
 
-## Test Types
+2. **Resource Management**
+   - Use `track_test_node()` for nodes
+   - Use `track_test_resource()` for resources
+   - Clean up in `after_each()`
+
+3. **Error Handling**
+   - Test invalid inputs
+   - Test boundary conditions
+   - Test error recovery
+
+4. **Documentation**
+   - Document test class purpose
+   - Add descriptive assertion messages
+   - Comment complex test setups
+
+## Test Categories
 
 ### Unit Tests
 Test individual components in isolation:
-- Character systems
-- Campaign mechanics
-- Battle resolution
+- Basic functionality
+- Error conditions
+- Boundary cases
 - Resource management
 
 ### Integration Tests
 Test component interactions:
-- Campaign phase transitions
-- Battle system integration
-- UI state management
-- Save/load systems
+- System integration
+- State transitions
+- Data flow
+- Error propagation
 
 ### Performance Tests
 Benchmark critical systems:
-- Battle calculations
-- Path finding
-- Large data operations
+- Operation timing
+- Memory usage
 - Resource loading
+- State transitions
 
 ### Mobile Tests
 Platform-specific testing:
 - Touch input
-- Screen resolution
-- Performance on mobile
-- Platform-specific features
-
-## Fixtures
-- Sample game states
-- Test characters
-- Mock battle scenarios
-- Test resources
+- Screen adaptation
+- Performance
+- Platform features
 
 ## Reports
 Test reports are generated in `tests/reports/`:
-- JUnit XML reports
-- Performance benchmarks
-- Coverage reports (if enabled) 
+- Test results
+- Coverage data
+- Performance metrics
+- Error logs 

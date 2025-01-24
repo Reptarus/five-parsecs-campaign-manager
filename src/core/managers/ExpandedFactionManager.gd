@@ -3,6 +3,7 @@ class_name ExpandedFactionManager
 extends Node
 
 const GameEnums := preload("res://src/core/systems/GlobalEnums.gd")
+const CrewMember := preload("res://src/core/campaign/crew/CrewMember.gd")
 
 # Constants
 const MIN_FACTION_STRENGTH: int = 1

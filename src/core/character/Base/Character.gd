@@ -1,5 +1,5 @@
 ## Base character class for all game characters
-class_name Character
+class_name FiveParsecsCharacter
 extends Resource
 
 const GameEnums = preload("res://src/core/systems/GlobalEnums.gd")
@@ -35,20 +35,20 @@ const MAX_STATS = {
 }
 
 # Equipment
-var weapons: Array = []
-var armor: Array = []
-var items: Array = []
+var weapons: Array[GameWeapon] = []
+var armor: Array[Resource] = [] # Will be Array[Armor] once implemented
+var items: Array[Resource] = [] # Will be Array[Item] once implemented
 
 # Skills and Abilities
-var skills: Array = []
-var abilities: Array = []
-var traits: Array = []
+var skills: Array[String] = []
+var abilities: Array[String] = []
+var traits: Array[String] = []
 
 # Status
 var is_active: bool = true
 var is_wounded: bool = false
 var is_dead: bool = false
-var status_effects: Array = []
+var status_effects: Array[Dictionary] = []
 
 # Character Type Flags
 var is_bot: bool = false
@@ -188,6 +188,21 @@ func has_item(item: Dictionary) -> bool:
 			return item in armor
 		_:
 			return item in items
+
+func has_equipment(equipment_id: int) -> bool:
+	# Check weapons
+	for weapon in weapons:
+		if weapon.id == equipment_id:
+			return true
+	# Check armor
+	for armor_piece in armor:
+		if armor_piece.id == equipment_id:
+			return true
+	# Check other items
+	for item in items:
+		if item.id == equipment_id:
+			return true
+	return false
 
 # Serialization
 func to_dictionary() -> Dictionary:

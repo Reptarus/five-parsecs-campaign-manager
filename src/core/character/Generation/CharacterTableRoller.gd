@@ -1,7 +1,7 @@
-class_name CharacterTableRoller
+class_name FiveParsecsCharacterTableRoller
 extends RefCounted
 
-const FIRST_NAMES = [
+const FIRST_NAMES: Array[String] = [
 	"Alex", "Blake", "Casey", "Drew", "Ellis",
 	"Finn", "Gray", "Harper", "Indigo", "Jules",
 	"Kai", "Lee", "Morgan", "Nova", "Orion",
@@ -9,7 +9,7 @@ const FIRST_NAMES = [
 	"Uri", "Val", "Winter", "Xen", "Yuri", "Zephyr"
 ]
 
-const LAST_NAMES = [
+const LAST_NAMES: Array[String] = [
 	"Adler", "Blake", "Chen", "Drake", "Evans",
 	"Flynn", "Gray", "Hayes", "Ivanov", "Jones",
 	"Kim", "Lee", "Morgan", "Nash", "Ortiz",
@@ -17,7 +17,7 @@ const LAST_NAMES = [
 	"Udall", "Vega", "Ward", "Xu", "Yang", "Zhang"
 ]
 
-const TITLES = [
+const TITLES: Array[String] = [
 	"Captain", "Commander", "Doctor", "Lieutenant",
 	"Major", "Officer", "Pilot", "Ranger", "Scout",
 	"Sergeant", "Specialist", "Trooper", "Veteran"

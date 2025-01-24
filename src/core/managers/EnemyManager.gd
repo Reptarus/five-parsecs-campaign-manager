@@ -3,15 +3,15 @@ extends Node
 const GameEnums = preload("res://src/core/systems/GlobalEnums.gd")
 
 ## Core Rules enemy group sizes - maps EnemyType to base group size
-const GROUP_SIZES = {
-	"GRUNT": 4,
-	"ELITE": 2,
-	"BOSS": 1,
-	"MINION": 6,
-	"SUPPORT": 3,
-	"HEAVY": 2,
-	"SPECIALIST": 2,
-	"COMMANDER": 1
+const GROUP_SIZES := {
+	GameEnums.EnemyType.GANGERS: 4,
+	GameEnums.EnemyType.ELITE: 2,
+	GameEnums.EnemyType.BOSS: 1,
+	GameEnums.EnemyType.MINION: 6,
+	GameEnums.EnemyType.ENFORCERS: 3,
+	GameEnums.EnemyType.WAR_BOTS: 2,
+	GameEnums.EnemyType.ASSASSINS: 2,
+	GameEnums.EnemyType.BLACK_OPS_TEAM: 1
 }
 
 ## Current enemy force configuration
@@ -57,7 +57,7 @@ func _validate_enemy_force(force: Dictionary) -> bool:
 ## Returns: Array of group configurations
 func _generate_enemy_groups() -> Array[Dictionary]:
 	var groups: Array[Dictionary] = []
-	var base_count: int = GROUP_SIZES[str(current_enemy_force.type)]
+	var base_count: int = GROUP_SIZES.get(current_enemy_force.type, 4) # Default to 4 if type not found
 	var total_count: int = base_count + current_enemy_force.get("count_bonus", 0)
 	
 	groups.append({

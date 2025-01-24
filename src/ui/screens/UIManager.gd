@@ -113,13 +113,13 @@ func _on_battle_phase_changed(new_phase: int) -> void:
 func _on_campaign_victory_achieved(victory_type: int) -> void:
 	var victory_message := ""
 	match victory_type:
-		GameEnums.CampaignVictoryType.WEALTH_GOAL:
+		GameEnums.FiveParcsecsCampaignVictoryType.WEALTH_GOAL:
 			victory_message = "You've amassed great wealth!"
-		GameEnums.CampaignVictoryType.REPUTATION_GOAL:
+		GameEnums.FiveParcsecsCampaignVictoryType.REPUTATION_GOAL:
 			victory_message = "Your reputation precedes you!"
-		GameEnums.CampaignVictoryType.FACTION_DOMINANCE:
+		GameEnums.FiveParcsecsCampaignVictoryType.FACTION_DOMINANCE:
 			victory_message = "You've become a dominant force!"
-		GameEnums.CampaignVictoryType.STORY_COMPLETE:
+		GameEnums.FiveParcsecsCampaignVictoryType.STORY_COMPLETE:
 			victory_message = "You've completed your epic journey!"
 	
 	show_game_over_screen(true, victory_message)

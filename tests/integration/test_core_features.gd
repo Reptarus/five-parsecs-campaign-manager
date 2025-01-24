@@ -26,8 +26,6 @@ func test_initial_state() -> void:
 	assert_valid_game_state(game_state)
 
 func test_crew_management() -> void:
-	watch_signals(game_state)
-	
 	var character = setup_test_character()
 	game_state.add_crew_member(character)
 	assert_eq(game_state.get_crew_size(), 1, "Crew should have one member")
@@ -38,8 +36,6 @@ func test_crew_management() -> void:
 	assert_signal_emitted(game_state, "crew_updated")
 
 func test_resource_management() -> void:
-	watch_signals(game_state)
-	
 	game_state.credits = 1000
 	assert_eq(game_state.get_credits(), 1000, "Credits should be tracked")
 	assert_signal_emitted(game_state, "credits_changed")
@@ -49,8 +45,6 @@ func test_resource_management() -> void:
 	assert_signal_emitted(game_state, "resources_changed")
 
 func test_mission_management() -> void:
-	watch_signals(game_state)
-	
 	var mission = TestHelper.create_test_mission(GameEnums.MissionType.PATROL)
 	track_test_resource(mission)
 	game_state.add_mission(mission)

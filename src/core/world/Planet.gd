@@ -1,7 +1,8 @@
-class_name Planet
+class_name FiveParsecsPlanet
 extends Resource
 
-const GameEnums := preload("res://src/core/systems/GlobalEnums.gd")
+const GameEnums = preload("res://src/core/systems/GlobalEnums.gd")
+const FiveParsecsLocation = preload("res://src/core/world/Location.gd")
 
 # Core properties
 @export var planet_name: String = ""
@@ -162,8 +163,8 @@ func serialize() -> Dictionary:
         "market_prices": market_prices
     }
 
-static func deserialize(data: Dictionary) -> Planet:
-    var planet := Planet.new()
+static func deserialize(data: Dictionary) -> FiveParsecsPlanet:
+    var planet := FiveParsecsPlanet.new()
     
     planet.planet_name = data.get("planet_name", "") as String
     

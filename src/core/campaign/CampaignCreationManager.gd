@@ -1,30 +1,31 @@
+@tool
+class_name FiveParcsecsCampaignCreationManager
 extends Node
 
 const GameEnums = preload("res://src/core/systems/GlobalEnums.gd")
-const Campaign = preload("res://src/core/campaign/Campaign.gd")
+const FiveParcsecsCampaign = preload("res://src/core/campaign/Campaign.gd")
 const Character = preload("res://src/core/character/Base/Character.gd")
 const GameState = preload("res://src/core/state/GameState.gd")
 const SaveManager = preload("res://src/core/state/SaveManager.gd")
 
-# Signals for campaign creation flow
-signal creation_step_changed(step: int)
-signal campaign_config_completed(config: Dictionary)
-signal crew_creation_completed(crew_data: Array)
-signal character_creation_completed(character: Character)
-signal resources_initialized(resources: Dictionary)
-signal campaign_creation_completed(campaign: Campaign)
-
 enum CreationStep {
 	CAMPAIGN_CONFIG,
 	CREW_CREATION,
-	CAPTAIN_CREATION,
 	RESOURCE_SETUP,
-	FINAL_SETUP
+	FINALIZATION
 }
 
-var current_step: CreationStep = CreationStep.CAMPAIGN_CONFIG
+# Signals for campaign creation flow
+signal creation_step_changed(step: int)
+signal campaign_config_completed(config: Dictionary)
+signal crew_creation_completed(crew_data: Array[Dictionary])
+signal character_creation_completed(character: Character)
+signal resources_initialized(resources: Dictionary)
+signal campaign_creation_completed(campaign: FiveParcsecsCampaign)
+
+var current_step: int = CreationStep.CAMPAIGN_CONFIG
 var campaign_config: Dictionary = {}
-var crew_data: Array = []
+var crew_data: Array[Dictionary] = []
 var captain_data: Character
 var initial_resources: Dictionary = {}
 
@@ -37,21 +38,56 @@ func _init() -> void:
 	add_child(game_state)
 	add_child(save_manager)
 
-# Campaign Creation Flow
-func start_campaign_creation() -> void:
+func _ready() -> void:
+	reset_creation_data()
+
+func reset_creation_data() -> void:
 	current_step = CreationStep.CAMPAIGN_CONFIG
-	_reset_creation_data()
+	campaign_config.clear()
+	crew_data.clear()
+	initial_resources.clear()
+	captain_data = null
+
+func start_campaign_creation() -> void:
+	reset_creation_data()
+	advance_to_next_step()
+
+func advance_to_next_step() -> void:
+	match current_step:
+		CreationStep.CAMPAIGN_CONFIG:
+			current_step = CreationStep.CREW_CREATION
+		CreationStep.CREW_CREATION:
+			current_step = CreationStep.RESOURCE_SETUP
+		CreationStep.RESOURCE_SETUP:
+			current_step = CreationStep.FINALIZATION
+		CreationStep.FINALIZATION:
+			finalize_campaign_creation()
+			return
+	
 	creation_step_changed.emit(current_step)
 
-func submit_campaign_config(config: Dictionary) -> void:
-	campaign_config = config
-	campaign_config_completed.emit(config)
-	advance_to_next_step()
+func set_campaign_config(config: Dictionary) -> void:
+	campaign_config = config.duplicate()
+	campaign_config_completed.emit(campaign_config)
 
-func submit_crew_data(crew: Array) -> void:
-	crew_data = crew
-	crew_creation_completed.emit(crew)
-	advance_to_next_step()
+func set_crew_data(data: Array[Dictionary]) -> void:
+	crew_data = data.duplicate()
+	crew_creation_completed.emit(crew_data)
+
+func set_initial_resources(resources: Dictionary) -> void:
+	initial_resources = resources.duplicate()
+	resources_initialized.emit(initial_resources)
+
+func finalize_campaign_creation() -> FiveParcsecsCampaign:
+	var campaign = FiveParcsecsCampaign.new()
+	
+	# Configure campaign with collected data
+	campaign.configure(campaign_config)
+	campaign.set_crew(crew_data)
+	campaign.set_resources(initial_resources)
+	
+	campaign_creation_completed.emit(campaign)
+	return campaign
 
 func submit_captain_data(captain: Character) -> void:
 	captain_data = captain
@@ -62,54 +98,6 @@ func initialize_resources(difficulty: int) -> void:
 	initial_resources = _calculate_initial_resources(difficulty)
 	resources_initialized.emit(initial_resources)
 	advance_to_next_step()
-
-func finalize_campaign_creation() -> Campaign:
-	var campaign = Campaign.new()
-	
-	# Configure campaign with collected data
-	var complete_config = {
-		"name": campaign_config.get("name", "New Campaign"),
-		"difficulty": campaign_config.get("difficulty", GameEnums.DifficultyLevel.NORMAL),
-		"starting_credits": initial_resources.get(GameEnums.ResourceType.CREDITS, 1000),
-		"starting_supplies": initial_resources.get(GameEnums.ResourceType.SUPPLIES, 5),
-		"crew": crew_data,
-		"captain": captain_data
-	}
-	
-	campaign.start_campaign(complete_config)
-	
-	# Initialize game state with new campaign
-	game_state.start_new_campaign(campaign)
-	
-	# Auto-save the initial campaign state
-	var save_data = game_state.save_campaign()
-	save_manager.save_game(save_data)
-	
-	campaign_creation_completed.emit(campaign)
-	
-	return campaign
-
-func advance_to_next_step() -> void:
-	match current_step:
-		CreationStep.CAMPAIGN_CONFIG:
-			current_step = CreationStep.CREW_CREATION
-		CreationStep.CREW_CREATION:
-			current_step = CreationStep.CAPTAIN_CREATION
-		CreationStep.CAPTAIN_CREATION:
-			current_step = CreationStep.RESOURCE_SETUP
-		CreationStep.RESOURCE_SETUP:
-			current_step = CreationStep.FINAL_SETUP
-		CreationStep.FINAL_SETUP:
-			# Creation complete
-			pass
-	
-	creation_step_changed.emit(current_step)
-
-func _reset_creation_data() -> void:
-	campaign_config.clear()
-	crew_data.clear()
-	captain_data = null
-	initial_resources.clear()
 
 func _calculate_initial_resources(difficulty: int) -> Dictionary:
 	var resources = {
@@ -140,11 +128,9 @@ func can_advance_to_next_step() -> bool:
 			return _validate_campaign_config()
 		CreationStep.CREW_CREATION:
 			return _validate_crew_data()
-		CreationStep.CAPTAIN_CREATION:
-			return _validate_captain_data()
 		CreationStep.RESOURCE_SETUP:
 			return _validate_resources()
-		CreationStep.FINAL_SETUP:
+		CreationStep.FINALIZATION:
 			return true
 	return false
 
@@ -153,9 +139,6 @@ func _validate_campaign_config() -> bool:
 
 func _validate_crew_data() -> bool:
 	return crew_data.size() >= 4 and crew_data.size() <= 6
-
-func _validate_captain_data() -> bool:
-	return captain_data != null
 
 func _validate_resources() -> bool:
 	return not initial_resources.is_empty()

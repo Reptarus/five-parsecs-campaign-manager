@@ -1,166 +1,203 @@
 @tool
-extends "res://tests/test_base.gd"
+extends "res://tests/fixtures/base_test.gd"
 
-const HouseRulesController := preload("res://src/ui/components/combat/rules/house_rules_controller.tscn")
+const HouseRulesController := preload("res://src/ui/components/combat/rules/house_rules_controller.gd")
+const GameEnums := preload("res://src/core/systems/GlobalEnums.gd")
 
-var controller: Node
+var controller: HouseRulesController
 
 func before_each() -> void:
-    super.before_each()
-    controller = HouseRulesController.instantiate()
-    add_child(controller)
+	await super.before_each()
+	controller = HouseRulesController.new()
+	add_child(controller)
+	track_test_node(controller)
+	watch_signals(controller)
+	await get_tree().process_frame
 
 func after_each() -> void:
-    super.after_each()
-    controller = null
+	await super.after_each()
+	controller = null
 
+# Basic State Tests
 func test_initial_state() -> void:
-    assert_eq(controller.active_rules.size(), 0, "Should start with no active rules")
-    assert_eq(controller.rule_effects.size(), 0, "Should start with no rule effects")
-    assert_false(controller.house_rules_panel.visible, "House rules panel should start hidden")
+	assert_false(controller.house_rules_panel.visible, "Panel should start hidden")
+	assert_eq(controller.active_rules.size(), 0, "Should start with no active rules")
+	assert_eq(controller.get_edit_mode(), GameEnums.EditMode.NONE, "Should start in NONE edit mode")
 
-func test_add_rule() -> void:
-    var test_rule = {
-        "name": "Test Rule",
-        "type": "combat_modifier",
-        "fields": [
-            {"name": "value", "value": 2},
-            {"name": "condition", "value": 0},
-            {"name": "target", "value": 0}
-        ]
-    }
-    
-    controller._on_rule_added(test_rule)
-    
-    assert_eq(controller.active_rules.size(), 1, "Should add rule to active rules")
-    assert_eq(controller.rule_effects.size(), 1, "Should create rule effect")
-    
-    var rule_id = controller.active_rules.keys()[0]
-    var effect = controller.rule_effects[rule_id]
-    assert_eq(effect.value, 2, "Should set correct effect value")
-    assert_eq(effect.type, "combat_modifier", "Should set correct effect type")
+# Rule Management Tests
+func test_add_valid_rule() -> void:
+	var test_rule = {
+		"id": "test_rule",
+		"name": "Test Rule",
+		"description": "A test rule",
+		"enabled": true,
+		"type": GameEnums.VerificationType.COMBAT,
+		"priority": 1
+	}
+	
+	controller.add_rule(test_rule)
+	assert_eq(controller.active_rules.size(), 1, "Should have one active rule")
+	assert_signal_emitted(controller, "rule_added")
+	assert_eq(controller.active_rules[0].type, GameEnums.VerificationType.COMBAT, "Should preserve rule type")
 
-func test_modify_rule() -> void:
-    var test_rule = {
-        "name": "Test Rule",
-        "type": "combat_modifier",
-        "fields": [ {"name": "value", "value": 2}]
-    }
-    controller._on_rule_added(test_rule)
-    var rule_id = controller.active_rules.keys()[0]
-    
-    var modified_rule = test_rule.duplicate()
-    modified_rule.fields[0].value = 3
-    controller._on_rule_modified(modified_rule)
-    
-    var effect = controller.rule_effects[rule_id]
-    assert_eq(effect.value, 3, "Should update effect value")
+func test_add_invalid_rule() -> void:
+	var invalid_rules = [
+		{
+			"id": "",
+			"name": "",
+			"description": "",
+			"enabled": true,
+			"type": GameEnums.VerificationType.NONE
+		},
+		{
+			"id": "test",
+			"name": "Test",
+			"description": "Description",
+			"enabled": true,
+			"type": - 1
+		}
+	]
+	
+	for rule in invalid_rules:
+		controller.add_rule(rule)
+		assert_eq(controller.active_rules.size(), 0, "Should not add invalid rule")
+		assert_signal_not_emitted(controller, "rule_added")
 
 func test_remove_rule() -> void:
-    var test_rule = {
-        "name": "Test Rule",
-        "type": "combat_modifier",
-        "fields": []
-    }
-    controller._on_rule_added(test_rule)
-    var rule_id = controller.active_rules.keys()[0]
-    
-    controller._on_rule_removed(rule_id)
-    
-    assert_eq(controller.active_rules.size(), 0, "Should remove rule from active rules")
-    assert_eq(controller.rule_effects.size(), 0, "Should remove rule effect")
+	var test_rule = {
+		"id": "test_rule",
+		"name": "Test Rule",
+		"description": "A test rule",
+		"enabled": true,
+		"type": GameEnums.VerificationType.MOVEMENT
+	}
+	
+	controller.add_rule(test_rule)
+	controller.remove_rule("test_rule")
+	assert_eq(controller.active_rules.size(), 0, "Should have no active rules")
+	assert_signal_emitted(controller, "rule_removed")
 
-func test_validate_combat_modifier() -> void:
-    var valid_rule = {
-        "type": "combat_modifier",
-        "fields": [ {"name": "value", "value": 2}]
-    }
-    assert_true(controller._validate_rule(valid_rule, "test"), "Valid combat modifier should pass")
-    
-    var invalid_rule = {
-        "type": "combat_modifier",
-        "fields": [ {"name": "value", "value": 4}]
-    }
-    assert_false(controller._validate_rule(invalid_rule, "test"), "Invalid combat modifier should fail")
+func test_toggle_rule() -> void:
+	var test_rule = {
+		"id": "test_rule",
+		"enabled": true,
+		"type": GameEnums.VerificationType.COMBAT
+	}
+	controller.add_rule(test_rule)
+	
+	controller.toggle_rule("test_rule")
+	assert_false(controller.active_rules[0].enabled, "Should disable rule")
+	assert_signal_emitted(controller, "rule_toggled")
+	
+	controller.toggle_rule("test_rule")
+	assert_true(controller.active_rules[0].enabled, "Should enable rule")
+	assert_signal_emitted(controller, "rule_toggled")
 
-func test_validate_resource_modifier() -> void:
-    var valid_rule = {
-        "type": "resource_modifier",
-        "fields": [ {"name": "value", "value": - 3}]
-    }
-    assert_true(controller._validate_rule(valid_rule, "test"), "Valid resource modifier should pass")
-    
-    var invalid_rule = {
-        "type": "resource_modifier",
-        "fields": [ {"name": "value", "value": - 6}]
-    }
-    assert_false(controller._validate_rule(invalid_rule, "test"), "Invalid resource modifier should fail")
+# Rule Priority Tests
+func test_rule_priority_ordering() -> void:
+	var rules = [
+		{
+			"id": "rule1",
+			"name": "Rule 1",
+			"type": GameEnums.VerificationType.COMBAT,
+			"priority": 2,
+			"enabled": true
+		},
+		{
+			"id": "rule2",
+			"name": "Rule 2",
+			"type": GameEnums.VerificationType.MOVEMENT,
+			"priority": 1,
+			"enabled": true
+		}
+	]
+	
+	for rule in rules:
+		controller.add_rule(rule)
+	
+	assert_eq(controller.active_rules[0].priority, 1, "Rules should be ordered by priority")
+	assert_eq(controller.active_rules[1].priority, 2, "Rules should be ordered by priority")
 
-func test_apply_combat_modifier() -> void:
-    var test_rule = {
-        "name": "Test Rule",
-        "type": "combat_modifier",
-        "fields": [
-            {"name": "value", "value": 2},
-            {"name": "condition", "value": 0},
-            {"name": "target", "value": 0}
-        ]
-    }
-    controller._on_rule_added(test_rule)
-    var rule_id = controller.active_rules.keys()[0]
-    
-    controller._on_rule_applied(rule_id, "test")
-    
-    var effect = controller.rule_effects[rule_id]
-    assert_eq(effect.value, 2, "Should create correct effect value")
-    assert_eq(effect.type, "combat_modifier", "Should create correct effect type")
+# Rule Type Tests
+func test_rule_type_filtering() -> void:
+	var combat_rule = {
+		"id": "combat_rule",
+		"type": GameEnums.VerificationType.COMBAT,
+		"enabled": true
+	}
+	
+	var movement_rule = {
+		"id": "movement_rule",
+		"type": GameEnums.VerificationType.MOVEMENT,
+		"enabled": true
+	}
+	
+	controller.add_rule(combat_rule)
+	controller.add_rule(movement_rule)
+	
+	var combat_rules = controller.get_rules_by_type(GameEnums.VerificationType.COMBAT)
+	assert_eq(combat_rules.size(), 1, "Should filter combat rules")
+	assert_eq(combat_rules[0].id, "combat_rule", "Should return correct rule")
 
-func test_apply_resource_modifier() -> void:
-    var test_rule = {
-        "name": "Test Rule",
-        "type": "resource_modifier",
-        "fields": [
-            {"name": "value", "value": - 2},
-            {"name": "condition", "value": 0},
-            {"name": "target", "value": 0}
-        ]
-    }
-    controller._on_rule_added(test_rule)
-    var rule_id = controller.active_rules.keys()[0]
-    
-    controller._on_rule_applied(rule_id, "test")
-    
-    var effect = controller.rule_effects[rule_id]
-    assert_eq(effect.value, -2, "Should create correct effect value")
-    assert_eq(effect.type, "resource_modifier", "Should create correct effect type")
+# Panel Interaction Tests
+func test_panel_visibility() -> void:
+	controller.show_panel()
+	assert_true(controller.house_rules_panel.visible, "Panel should be visible")
+	assert_signal_emitted(controller, "panel_visibility_changed")
+	
+	controller.hide_panel()
+	assert_false(controller.house_rules_panel.visible, "Panel should be hidden")
+	assert_signal_emitted(controller, "panel_visibility_changed")
 
-func test_apply_state_condition() -> void:
-    var test_rule = {
-        "name": "Test Rule",
-        "type": "state_condition",
-        "fields": [
-            {"name": "value", "value": 1},
-            {"name": "condition", "value": "equals"},
-            {"name": "target", "value": "test_state"}
-        ]
-    }
-    controller._on_rule_added(test_rule)
-    var rule_id = controller.active_rules.keys()[0]
-    
-    controller._on_rule_applied(rule_id, "test")
-    
-    var effect = controller.rule_effects[rule_id]
-    assert_eq(effect.value, 1, "Should create correct effect value")
-    assert_eq(effect.type, "state_condition", "Should create correct effect type")
+func test_panel_edit_mode() -> void:
+	var test_rule = {
+		"id": "test_rule",
+		"type": GameEnums.VerificationType.COMBAT
+	}
+	
+	controller.add_rule(test_rule)
+	controller.edit_rule("test_rule")
+	assert_eq(controller.get_edit_mode(), GameEnums.EditMode.EDIT, "Should enter edit mode")
+	
+	controller.cancel_edit()
+	assert_eq(controller.get_edit_mode(), GameEnums.EditMode.NONE, "Should exit edit mode")
 
-func test_combat_state_changed() -> void:
-    var test_rule = {
-        "name": "Test Rule",
-        "type": "combat_modifier",
-        "fields": [ {"name": "value", "value": 2}]
-    }
-    controller._on_rule_added(test_rule)
-    
-    controller._on_combat_state_changed({})
-    
-    assert_true(true, "Should handle combat state change without errors")
+# Error Condition Tests
+func test_error_conditions() -> void:
+	# Test removing non-existent rule
+	controller.remove_rule("non_existent")
+	assert_signal_not_emitted(controller, "rule_removed")
+	
+	# Test toggling non-existent rule
+	controller.toggle_rule("non_existent")
+	assert_signal_not_emitted(controller, "rule_toggled")
+	
+	# Test editing non-existent rule
+	controller.edit_rule("non_existent")
+	assert_eq(controller.get_edit_mode(), GameEnums.EditMode.NONE, "Should not enter edit mode for non-existent rule")
+
+# Boundary Tests
+func test_rule_limit() -> void:
+	for i in range(100):
+		var rule = {
+			"id": "rule_%d" % i,
+			"type": GameEnums.VerificationType.COMBAT,
+			"enabled": true
+		}
+		controller.add_rule(rule)
+	
+	assert_true(controller.active_rules.size() <= 100, "Should not exceed reasonable rule limit")
+
+func test_rapid_operations() -> void:
+	var test_rule = {
+		"id": "test_rule",
+		"type": GameEnums.VerificationType.COMBAT,
+		"enabled": true
+	}
+	
+	# Rapid add/remove
+	for i in range(10):
+		controller.add_rule(test_rule)
+		controller.remove_rule("test_rule")
+	
+	assert_eq(controller.active_rules.size(), 0, "Should handle rapid operations correctly")

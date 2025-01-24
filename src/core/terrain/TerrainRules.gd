@@ -2,10 +2,11 @@
 ## TerrainRules
 # Enforces Core Rules terrain mechanics and validation.
 # Handles terrain placement rules, deployment zone validation, terrain-specific rules, and environment effects.
-class_name TerrainRules
+@tool
 extends Resource
 
-const GameEnums := preload("res://src/core/systems/GlobalEnums.gd")
+const GameEnums: GDScript = preload("res://src/core/systems/GlobalEnums.gd")
+const FiveParsecsTerrainTypes: GDScript = preload("res://src/core/terrain/TerrainTypes.gd")
 
 # Terrain type modifiers
 @export var terrain_modifiers: Dictionary = {
@@ -36,24 +37,17 @@ const GameEnums := preload("res://src/core/systems/GlobalEnums.gd")
 		GameEnums.TerrainModifier.FULL_COVER,
 		GameEnums.TerrainModifier.LINE_OF_SIGHT_BLOCKED
 	]),
-	GameEnums.TerrainFeatureType.COVER_LOW: PackedInt32Array([
+	GameEnums.TerrainFeatureType.COVER: PackedInt32Array([
 		GameEnums.TerrainModifier.PARTIAL_COVER
 	]),
-	GameEnums.TerrainFeatureType.COVER_HIGH: PackedInt32Array([
-		GameEnums.TerrainModifier.FULL_COVER
-	]),
-	GameEnums.TerrainFeatureType.HIGH_GROUND: PackedInt32Array([
+	GameEnums.TerrainFeatureType.OBSTACLE: PackedInt32Array([
+		GameEnums.TerrainModifier.DIFFICULT_TERRAIN,
 		GameEnums.TerrainModifier.ELEVATION_BONUS
 	]),
-	GameEnums.TerrainFeatureType.WATER: PackedInt32Array([
+	GameEnums.TerrainFeatureType.HAZARD: PackedInt32Array([
+		GameEnums.TerrainModifier.HAZARDOUS,
 		GameEnums.TerrainModifier.WATER_HAZARD,
 		GameEnums.TerrainModifier.MOVEMENT_PENALTY
-	]),
-	GameEnums.TerrainFeatureType.HAZARD: PackedInt32Array([
-		GameEnums.TerrainModifier.HAZARDOUS
-	]),
-	GameEnums.TerrainFeatureType.DIFFICULT: PackedInt32Array([
-		GameEnums.TerrainModifier.DIFFICULT_TERRAIN
 	])
 }
 

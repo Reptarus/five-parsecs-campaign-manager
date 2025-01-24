@@ -1,47 +1,30 @@
 class_name QuickStartDialog
 extends Control
 
+const GameEnums := preload("res://src/core/systems/GlobalEnums.gd")
+
 signal import_requested(data: Dictionary)
-signal template_selected(template: String)
+signal template_selected(template_name: String)
+signal victory_achieved(victory: bool, message: String)
 
 @onready var import_button := $VBoxContainer/ImportButton
 @onready var template_list := $VBoxContainer/TemplateList
 @onready var gesture_manager: GestureManager
 
-const GameEnums = preload("res://src/core/systems/GlobalEnums.gd")
-
-var templates := {
-    "Solo Campaign": {
-        "crew_size": GameEnums.CrewSize.FOUR,
-        "difficulty": GameEnums.DifficultyLevel.NORMAL,
-        "victory_condition": GameEnums.CampaignVictoryType.TURNS_20,
-        "mobile_friendly": true
-    },
-    "Standard Campaign": {
-        "crew_size": GameEnums.CrewSize.FIVE,
-        "difficulty": GameEnums.DifficultyLevel.NORMAL,
-        "victory_condition": GameEnums.CampaignVictoryType.TURNS_50,
-        "mobile_friendly": true
-    },
-    "Challenge Campaign": {
-        "crew_size": GameEnums.CrewSize.SIX,
-        "difficulty": GameEnums.DifficultyLevel.HARDCORE,
-        "victory_condition": GameEnums.CampaignVictoryType.QUESTS_10,
-        "mobile_friendly": false
-    }
-}
+var templates: Dictionary = {}
 
 func _ready() -> void:
     _setup_gesture_support()
     _setup_mobile_ui()
     import_button.pressed.connect(_on_import_pressed)
-    _populate_templates()
+    load_templates()
 
 func _setup_gesture_support() -> void:
-    gesture_manager = GestureManager.new()
-    add_child(gesture_manager)
-    gesture_manager.swipe_detected.connect(_on_swipe)
-    gesture_manager.long_press_detected.connect(_on_long_press)
+    if not Engine.is_editor_hint():
+        gesture_manager = GestureManager.new()
+        add_child(gesture_manager)
+        gesture_manager.swipe_detected.connect(_on_swipe)
+        gesture_manager.long_press_detected.connect(_on_long_press)
 
 func _setup_mobile_ui() -> void:
     if OS.has_feature("mobile"):
@@ -51,6 +34,29 @@ func _setup_mobile_ui() -> void:
         
         template_list.add_theme_constant_override("v_separation", 20)
         template_list.add_theme_constant_override("h_separation", 20)
+
+func load_templates() -> void:
+    templates = {
+        "Solo Campaign": {
+            "crew_size": GameEnums.CrewSize.FOUR,
+            "difficulty": GameEnums.DifficultyLevel.NORMAL,
+            "victory_condition": GameEnums.FiveParcsecsCampaignVictoryType.WEALTH_GOAL,
+            "mobile_friendly": true
+        },
+        "Standard Campaign": {
+            "crew_size": GameEnums.CrewSize.FIVE,
+            "difficulty": GameEnums.DifficultyLevel.NORMAL,
+            "victory_condition": GameEnums.FiveParcsecsCampaignVictoryType.REPUTATION_GOAL,
+            "mobile_friendly": true
+        },
+        "Challenge Campaign": {
+            "crew_size": GameEnums.CrewSize.SIX,
+            "difficulty": GameEnums.DifficultyLevel.HARDCORE,
+            "victory_condition": GameEnums.FiveParcsecsCampaignVictoryType.FACTION_DOMINANCE,
+            "mobile_friendly": false
+        }
+    }
+    _populate_templates()
 
 func _populate_templates() -> void:
     template_list.clear()
@@ -100,3 +106,17 @@ func _show_template_details(template_name: String) -> void:
         var details = templates[template_name]
         # Show details implementation
         pass
+
+func _on_campaign_victory_achieved(victory_type: int) -> void:
+    var victory_message := ""
+    match victory_type:
+        GameEnums.FiveParcsecsCampaignVictoryType.WEALTH_GOAL:
+            victory_message = "You've amassed great wealth!"
+        GameEnums.FiveParcsecsCampaignVictoryType.REPUTATION_GOAL:
+            victory_message = "Your reputation precedes you!"
+        GameEnums.FiveParcsecsCampaignVictoryType.FACTION_DOMINANCE:
+            victory_message = "You've become a dominant force!"
+        GameEnums.FiveParcsecsCampaignVictoryType.STORY_COMPLETE:
+            victory_message = "You've completed your epic journey!"
+    
+    victory_achieved.emit(true, victory_message)

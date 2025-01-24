@@ -1,6 +1,6 @@
 @tool
 extends Node
-class_name CrewMember
+class_name FiveParsecsCrewMember
 
 const GameEnums = preload("res://src/core/systems/GlobalEnums.gd")
 const Character = preload("res://src/core/character/Base/Character.gd")
@@ -11,14 +11,17 @@ const CharacterInventory = preload("res://src/core/character/Equipment/Character
 signal stats_changed
 signal health_changed(new_health: int)
 
-const MAX_STAT_VALUE = 6
+const MAX_STAT_VALUE: int = 6
 
 # Basic Character Info
 @export var character_name: String = "":
 	set(value):
-		character_name = value
+		if value == null or value.strip_edges().is_empty():
+			push_error("Character name cannot be empty")
+			return
+		character_name = value.strip_edges()
 		if character:
-			character.character_name = value
+			notify_property_list_changed()
 
 # Core Rules base stats
 @export var reactions: int = 1:
@@ -74,7 +77,7 @@ var inventory: CharacterInventory
 var active_weapon: GameWeapon
 var status: int = GameEnums.CharacterStatus.HEALTHY
 
-@export var items: Array[Item] = []
+@export var items: Array[Dictionary] = []
 
 @export var character_class: int = GameEnums.CharacterClass.NONE
 @export var weapon_proficiencies: Array[int] = []
@@ -100,19 +103,19 @@ func _apply_class_bonuses() -> void:
 		GameEnums.CharacterClass.SOLDIER:
 			combat_skill += 1
 			toughness += 1
-		GameEnums.CharacterClass.TECH:
+		GameEnums.CharacterClass.ENGINEER:
 			savvy += 1
 			speed += 1
 		GameEnums.CharacterClass.MEDIC:
 			savvy += 1
 			luck += 1
-		GameEnums.CharacterClass.SCOUT:
+		GameEnums.CharacterClass.PILOT:
 			speed += 1
 			reactions += 1
-		GameEnums.CharacterClass.LEADER:
+		GameEnums.CharacterClass.SECURITY:
 			combat_skill += 1
 			luck += 1
-		GameEnums.CharacterClass.SPECIALIST:
+		GameEnums.CharacterClass.BOT_TECH:
 			savvy += 1
 			combat_skill += 1
 
@@ -152,7 +155,7 @@ func equip_default_gear() -> void:
 				var gear = Equipment.new()
 				gear.setup("Survival Kit", GameEnums.ItemType.MISC, 1, "Basic survival equipment")
 				character.equip_gear(gear)
-		GameEnums.CharacterClass.TECH:
+		GameEnums.CharacterClass.ENGINEER:
 			add_weapon("Heavy Gun", GameEnums.WeaponType.HEAVY, 18, 4, 3)
 			add_weapon("Pistol", GameEnums.WeaponType.PISTOL, 12, 2, 1)
 			if character:
@@ -172,35 +175,35 @@ func equip_default_gear() -> void:
 				var special = Equipment.new()
 				special.setup("Stim Pack", GameEnums.ItemType.MISC, 1, "Emergency medical device")
 				character.equip_gear(special)
-		GameEnums.CharacterClass.SCOUT:
+		GameEnums.CharacterClass.PILOT:
 			add_weapon("Rifle", GameEnums.WeaponType.RIFLE, 24, 2, 1)
 			add_weapon("Knife", GameEnums.WeaponType.MELEE, 1, 1, 1)
 			if character:
 				var gear = Equipment.new()
-				gear.setup("Recon Kit", GameEnums.ItemType.MISC, 1, "Scouting equipment")
+				gear.setup("Navigation Kit", GameEnums.ItemType.MISC, 1, "Navigation equipment")
 				character.equip_gear(gear)
 				var special = Equipment.new()
-				special.setup("Stealth Field", GameEnums.ItemType.MISC, 1, "Stealth enhancement device")
+				special.setup("Flare Gun", GameEnums.ItemType.MISC, 1, "Emergency signaling device")
 				character.equip_gear(special)
-		GameEnums.CharacterClass.LEADER:
+		GameEnums.CharacterClass.SECURITY:
 			add_weapon("Rifle", GameEnums.WeaponType.RIFLE, 24, 2, 2)
 			add_weapon("Pistol", GameEnums.WeaponType.PISTOL, 12, 2, 1)
 			if character:
 				var gear = Equipment.new()
-				gear.setup("Command Kit", GameEnums.ItemType.MISC, 1, "Leadership tools")
+				gear.setup("Security Kit", GameEnums.ItemType.MISC, 1, "Security tools")
 				character.equip_gear(gear)
 				var special = Equipment.new()
 				special.setup("Tactical Display", GameEnums.ItemType.MISC, 1, "Advanced tactical interface")
 				character.equip_gear(special)
-		GameEnums.CharacterClass.SPECIALIST:
+		GameEnums.CharacterClass.BOT_TECH:
 			add_weapon("Special Weapon", GameEnums.WeaponType.SPECIAL, 18, 3, 2)
 			add_weapon("Pistol", GameEnums.WeaponType.PISTOL, 12, 2, 1)
 			if character:
 				var gear = Equipment.new()
-				gear.setup("Specialist Kit", GameEnums.ItemType.MISC, 1, "Specialized equipment")
+				gear.setup("Bot Tech Kit", GameEnums.ItemType.MISC, 1, "Bot maintenance equipment")
 				character.equip_gear(gear)
 				var special = Equipment.new()
-				special.setup("Tech Device", GameEnums.ItemType.MISC, 1, "Advanced technological device")
+				special.setup("Bot Control Unit", GameEnums.ItemType.MISC, 1, "Advanced bot control device")
 				character.equip_gear(special)
 		_:
 			add_weapon("Pistol", GameEnums.WeaponType.PISTOL, 12, 2, 1)
@@ -345,7 +348,7 @@ func get_gadgets() -> Array[Item]:
 
 func _init_specialist() -> void:
 	# Specialist setup
-	character_class = GameEnums.CharacterClass.SPECIALIST
+	character_class = GameEnums.CharacterClass.NONE
 	weapon_proficiencies = [
 		GameEnums.WeaponType.RIFLE,
 		GameEnums.WeaponType.MELEE
@@ -408,7 +411,7 @@ func _init_engineer() -> void:
 
 func _init_psyker() -> void:
 	# Psyker setup
-	character_class = GameEnums.CharacterClass.SPECIALIST
+	character_class = GameEnums.CharacterClass.NONE
 	weapon_proficiencies = [
 		GameEnums.WeaponType.SPECIAL,
 		GameEnums.WeaponType.PISTOL

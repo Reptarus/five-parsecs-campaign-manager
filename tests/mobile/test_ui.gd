@@ -1,5 +1,5 @@
 @tool
-extends "res://tests/test_base.gd"
+extends "res://tests/fixtures/base_test.gd"
 
 const UIManager := preload("res://src/ui/screens/UIManager.gd")
 const OptionsMenu := preload("res://src/ui/screens/gameplay_options_menu.gd")

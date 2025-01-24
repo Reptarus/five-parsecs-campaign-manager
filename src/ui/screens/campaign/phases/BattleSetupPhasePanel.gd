@@ -1,8 +1,8 @@
 extends BasePhasePanel
 class_name BattleSetupPhasePanel
 
-const GameEnums = preload("res://src/core/systems/GlobalEnums.gd")
-const Character = preload("res://src/core/character/Base/Character.gd")
+const GameEnums := preload("res://src/core/systems/GlobalEnums.gd")
+const Character := preload("res://src/core/character/Base/Character.gd")
 
 @onready var mission_info = $VBoxContainer/MissionInfo
 @onready var deployment_container = $VBoxContainer/DeploymentContainer
@@ -46,7 +46,7 @@ func setup_phase() -> void:
 	current_deployment_type = _get_deployment_type_for_mission(mission)
 	
 	# Generate deployment zones
-	deployment_zones = deployment_manager.generate_deployment_zones(current_deployment_type)
+	deployment_zones = deployment_manager.generate_deployment_zones()
 	
 	# Generate terrain based on location
 	var location = game_state.campaign.current_location
@@ -69,7 +69,11 @@ func _get_deployment_type_for_mission(mission: Resource) -> GameEnums.Deployment
 	elif "ambush" in mission.objectives[0].to_lower():
 		return GameEnums.DeploymentType.AMBUSH
 	elif "stealth" in mission.objectives[0].to_lower():
-		return GameEnums.DeploymentType.CONCEALED
+		return GameEnums.DeploymentType.INFILTRATION
+	elif "reinforce" in mission.objectives[0].to_lower():
+		return GameEnums.DeploymentType.REINFORCEMENT
+	elif "assault" in mission.objectives[0].to_lower():
+		return GameEnums.DeploymentType.OFFENSIVE
 	
 	return GameEnums.DeploymentType.STANDARD
 
@@ -83,26 +87,26 @@ func _get_terrain_features_for_location(location: Dictionary) -> Array:
 	match location.type:
 		"urban":
 			features = [
-				GameEnums.TerrainFeatureType.COVER_HIGH,
-				GameEnums.TerrainFeatureType.COVER_LOW,
-				GameEnums.TerrainFeatureType.WALL
+				GameEnums.TerrainFeatureType.WALL,
+				GameEnums.TerrainFeatureType.COVER,
+				GameEnums.TerrainFeatureType.OBSTACLE
 			]
 		"wilderness":
 			features = [
-				GameEnums.TerrainFeatureType.COVER_LOW,
-				GameEnums.TerrainFeatureType.HIGH_GROUND,
-				GameEnums.TerrainFeatureType.HAZARD
+				GameEnums.TerrainFeatureType.COVER,
+				GameEnums.TerrainFeatureType.HAZARD,
+				GameEnums.TerrainFeatureType.OBSTACLE
 			]
 		"industrial":
 			features = [
-				GameEnums.TerrainFeatureType.COVER_HIGH,
+				GameEnums.TerrainFeatureType.WALL,
 				GameEnums.TerrainFeatureType.OBSTACLE,
 				GameEnums.TerrainFeatureType.HAZARD
 			]
 		_:
 			features = [
-				GameEnums.TerrainFeatureType.COVER_LOW,
-				GameEnums.TerrainFeatureType.COVER_HIGH
+				GameEnums.TerrainFeatureType.COVER,
+				GameEnums.TerrainFeatureType.OBSTACLE
 			]
 	
 	return features
@@ -167,8 +171,12 @@ func _get_deployment_description(type: GameEnums.DeploymentType) -> String:
 			return "Multiple small deployment zones across the map"
 		GameEnums.DeploymentType.DEFENSIVE:
 			return "Central defensive position with surrounding enemy zones"
-		GameEnums.DeploymentType.CONCEALED:
-			return "Hidden deployment zones near cover"
+		GameEnums.DeploymentType.INFILTRATION:
+			return "Hidden deployment zones for stealth approach"
+		GameEnums.DeploymentType.REINFORCEMENT:
+			return "Staged deployment with reinforcement zones"
+		GameEnums.DeploymentType.OFFENSIVE:
+			return "Forward deployment for aggressive tactics"
 		_:
 			return "Standard deployment configuration"
 
@@ -194,6 +202,12 @@ func _can_equip_item(item: Dictionary) -> bool:
 	var mission = game_state.campaign.current_mission
 	if mission.has("restricted_items") and item.id in mission.restricted_items:
 		return false
+	
+	# Check if item is valid for current deployment type
+	if current_deployment_type == GameEnums.DeploymentType.INFILTRATION:
+		# Restrict noisy weapons in stealth missions
+		if item.has("properties") and "loud" in item.properties:
+			return false
 	
 	return true
 

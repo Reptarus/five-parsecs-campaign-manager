@@ -1,28 +1,33 @@
-class_name StatDistribution
+class_name FiveParsecsStatDistribution
 extends Resource
 
 const GameEnums = preload("res://src/core/systems/GlobalEnums.gd")
+const FiveParsecsCharacter = preload("res://src/core/character/Base/Character.gd")
 const StatusEffect = preload("res://src/ui/screens/campaign/StatusEffects.gd")
 
 signal stat_changed(stat: String, new_value: int)
 
-var character: Character
-var base_stats: Dictionary
-var temporary_modifiers: Dictionary
-var permanent_modifiers: Dictionary
+var character: FiveParsecsCharacter
+var base_stats: Dictionary = {}
+var temporary_modifiers: Dictionary = {}
+var permanent_modifiers: Dictionary = {}
 
-func _init(_character: Character):
-	character = _character
-	base_stats = {
-		"reactions": character.stats.reactions,
-		"speed": character.stats.speed,
-		"combat_skill": character.stats.combat_skill,
-		"toughness": character.stats.toughness,
-		"savvy": character.stats.savvy,
-		"luck": character.stats.luck
-	}
-	temporary_modifiers = {}
-	permanent_modifiers = {}
+func _init(character_instance: FiveParsecsCharacter = null) -> void:
+	character = character_instance
+	_initialize_stats()
+
+func _initialize_stats() -> void:
+	if character:
+		base_stats = {
+			"reactions": character.stats.reactions,
+			"speed": character.stats.speed,
+			"combat_skill": character.stats.combat_skill,
+			"toughness": character.stats.toughness,
+			"savvy": character.stats.savvy,
+			"luck": character.stats.luck
+		}
+		temporary_modifiers = {}
+		permanent_modifiers = {}
 
 # Core stat management functions
 func update_stat(stat: String, new_value: int) -> void:
@@ -91,8 +96,8 @@ func serialize() -> Dictionary:
 		"permanent_modifiers": permanent_modifiers
 	}
 
-static func deserialize(data_dict: Dictionary, character_instance: Character) -> StatDistribution:
-	var new_stat_distribution = StatDistribution.new(character_instance)
+static func deserialize(data_dict: Dictionary, character_instance: FiveParsecsCharacter) -> FiveParsecsStatDistribution:
+	var new_stat_distribution = FiveParsecsStatDistribution.new(character_instance)
 	if data_dict.has("base_stats"):
 		new_stat_distribution.base_stats = data_dict["base_stats"]
 	if data_dict.has("temporary_modifiers"):

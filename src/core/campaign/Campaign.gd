@@ -1,31 +1,46 @@
-class_name Campaign
+@tool
+class_name FiveParcsecsCampaign
 extends Resource
 
 const GameEnums = preload("res://src/core/systems/GlobalEnums.gd")
 const Character = preload("res://src/core/character/Base/Character.gd")
 
 signal campaign_started
-signal campaign_ended
-signal phase_changed(new_phase: GameEnums.CampaignPhase)
-signal resources_changed(resource_type: GameEnums.ResourceType, amount: int)
+signal campaign_ended(victory: bool)
+signal phase_changed(phase: int)
+signal resources_changed(resources: Dictionary)
 
-# Campaign Data
-var campaign_name: String
-var difficulty: GameEnums.DifficultyLevel = GameEnums.DifficultyLevel.NORMAL
-var current_phase: GameEnums.CampaignPhase = GameEnums.CampaignPhase.SETUP
-var campaign_turn: int = 0
+@export var campaign_name: String = "":
+	set(value):
+		if value.length() == 0:
+			push_error("Campaign name cannot be empty")
+			return
+		campaign_name = value
+
+@export var difficulty: int = GameEnums.DifficultyLevel.NORMAL:
+	set(value):
+		if not value in GameEnums.DifficultyLevel.values():
+			push_error("Invalid difficulty level")
+			return
+		difficulty = value
+
+@export var victory_condition: int = GameEnums.FiveParcsecsCampaignVictoryType.STANDARD
+@export var current_phase: int = GameEnums.CampaignPhase.NONE
+@export var resources: Dictionary = {}
+@export var crew_size: int = GameEnums.CrewSize.FOUR
+@export var use_story_track: bool = true
+
+var campaign_turn: int = 0:
+	set(value):
+		assert(value >= 0, "Campaign turn cannot be negative")
+		campaign_turn = value
 
 # Crew Data
 var crew_members: Array[Character] = []
-var captain: Character
-
-# Resources
-var resources: Dictionary = {
-	GameEnums.ResourceType.CREDITS: 1000,
-	GameEnums.ResourceType.SUPPLIES: 5,
-	GameEnums.ResourceType.TECH_PARTS: 0,
-	GameEnums.ResourceType.PATRON: 0
-}
+var captain: Character:
+	set(value):
+		assert(value != null, "Captain cannot be null")
+		captain = value
 
 # Campaign Progress
 var story_points: int = 0
@@ -33,47 +48,89 @@ var completed_missions: Array = []
 var available_missions: Array = []
 var faction_standings: Dictionary = {}
 
-func start_campaign(config: Dictionary) -> void:
-	campaign_name = config.get("name", "New Campaign")
-	difficulty = config.get("difficulty", GameEnums.DifficultyLevel.NORMAL)
-	
-	# Set initial resources based on difficulty
-	resources[GameEnums.ResourceType.CREDITS] = config.get("starting_credits", 1000)
-	resources[GameEnums.ResourceType.SUPPLIES] = config.get("starting_supplies", 5)
-	
-	# Set crew data
-	crew_members = config.get("crew", [])
-	captain = config.get("captain", null)
-	
+func _init() -> void:
+	if not Engine.is_editor_hint():
+		_initialize_campaign()
+
+func _initialize_campaign() -> void:
+	resources = {
+		"credits": 100,
+		"supplies": 50,
+		"fuel": 20,
+		"reputation": 0
+	}
+	resources_changed.emit(resources)
+
+func start_campaign() -> void:
+	current_phase = GameEnums.CampaignPhase.SETUP
 	campaign_started.emit()
+	phase_changed.emit(current_phase)
 
-func end_campaign() -> void:
-	campaign_ended.emit()
+func end_campaign(victory: bool = false) -> void:
+	current_phase = GameEnums.CampaignPhase.END
+	campaign_ended.emit(victory)
+	phase_changed.emit(current_phase)
 
-func advance_phase(new_phase: GameEnums.CampaignPhase) -> void:
+func change_phase(new_phase: int) -> void:
+	if new_phase == current_phase:
+		return
+	
+	if not new_phase in GameEnums.CampaignPhase.values():
+		push_error("Invalid campaign phase: %d" % new_phase)
+		return
+	
 	current_phase = new_phase
-	phase_changed.emit(new_phase)
+	phase_changed.emit(current_phase)
 
-func get_resource(type: GameEnums.ResourceType) -> int:
-	return resources.get(type, 0)
+func add_resources(resource_type: int, amount: int) -> void:
+	if not resource_type in GameEnums.ResourceType.values():
+		push_error("Invalid resource type: %d" % resource_type)
+		return
+	
+	if not resources.has(resource_type):
+		resources[resource_type] = 0
+	
+	resources[resource_type] += amount
+	resources_changed.emit(resources)
 
-func set_resource(type: GameEnums.ResourceType, amount: int) -> void:
-	resources[type] = amount
-	resources_changed.emit(type, amount)
+func remove_resources(resource_type: int, amount: int) -> bool:
+	if not resource_type in GameEnums.ResourceType.values():
+		push_error("Invalid resource type: %d" % resource_type)
+		return false
+	
+	if not resources.has(resource_type) or resources[resource_type] < amount:
+		return false
+	
+	resources[resource_type] -= amount
+	resources_changed.emit(resources)
+	return true
 
-func add_resource(type: GameEnums.ResourceType, amount: int) -> void:
-	var current = get_resource(type)
-	set_resource(type, current + amount)
+func get_resource(resource_type: int) -> int:
+	if not resource_type in GameEnums.ResourceType.values():
+		push_error("Invalid resource type: %d" % resource_type)
+		return 0
+	
+	return resources.get(resource_type, 0)
 
-func remove_resource(type: GameEnums.ResourceType, amount: int) -> bool:
-	var current = get_resource(type)
-	if current >= amount:
-		set_resource(type, current - amount)
-		return true
-	return false
+func serialize() -> Dictionary:
+	return {
+		"name": campaign_name,
+		"difficulty": difficulty,
+		"victory_condition": victory_condition,
+		"current_phase": current_phase,
+		"resources": resources.duplicate(),
+		"crew_size": crew_size,
+		"use_story_track": use_story_track
+	}
 
-func has_enough_resource(type: GameEnums.ResourceType, amount: int) -> bool:
-	return get_resource(type) >= amount
+func deserialize(data: Dictionary) -> void:
+	campaign_name = data.get("name", campaign_name)
+	difficulty = data.get("difficulty", difficulty)
+	victory_condition = data.get("victory_condition", victory_condition)
+	current_phase = data.get("current_phase", current_phase)
+	resources = data.get("resources", {}).duplicate()
+	crew_size = data.get("crew_size", crew_size)
+	use_story_track = data.get("use_story_track", use_story_track)
 
 func add_mission(mission: Dictionary) -> void:
 	available_missions.append(mission)
@@ -88,6 +145,15 @@ func set_faction_standing(faction: String, value: float) -> void:
 
 func get_faction_standing(faction: String) -> float:
 	return faction_standings.get(faction, 0.0)
+
+func get_crew_size() -> int:
+	return crew_members.size()
+
+func has_equipment(equipment_id: int) -> bool:
+	for member in crew_members:
+		if member.has_equipment(equipment_id):
+			return true
+	return false
 
 # Serialization
 func to_dictionary() -> Dictionary:

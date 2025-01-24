@@ -1,8 +1,10 @@
 ## Handles advanced terrain mechanics and positioning for the Five Parsecs battle system
-class_name TerrainSystem
+class_name FiveParsecsTerrainSystem
 extends Node
 
-const GameEnums = preload("res://src/core/systems/GlobalEnums.gd")
+const GameEnums: GDScript = preload("res://src/core/systems/GlobalEnums.gd")
+const FiveParcecsTerrainTypes: GDScript = preload("res://src/core/terrain/TerrainTypes.gd")
+const FiveParcecsTerrainRules: GDScript = preload("res://src/core/terrain/TerrainRules.gd")
 
 # Define TerrainFeatureType as a static enum within the class
 enum TerrainFeatureType {

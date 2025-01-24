@@ -333,18 +333,12 @@ func _get_terrain_type_for_feature(feature: GameEnums.TerrainFeatureType) -> Ter
 	match feature:
 		GameEnums.TerrainFeatureType.WALL:
 			return TerrainTypes.Type.WALL
-		GameEnums.TerrainFeatureType.COVER_LOW:
+		GameEnums.TerrainFeatureType.COVER:
 			return TerrainTypes.Type.COVER_LOW
-		GameEnums.TerrainFeatureType.COVER_HIGH:
+		GameEnums.TerrainFeatureType.OBSTACLE:
 			return TerrainTypes.Type.COVER_HIGH
-		GameEnums.TerrainFeatureType.HIGH_GROUND:
-			return TerrainTypes.Type.COVER_HIGH
-		GameEnums.TerrainFeatureType.WATER:
-			return TerrainTypes.Type.WATER
 		GameEnums.TerrainFeatureType.HAZARD:
 			return TerrainTypes.Type.HAZARD
-		GameEnums.TerrainFeatureType.DIFFICULT:
-			return TerrainTypes.Type.DIFFICULT
 		_:
 			return TerrainTypes.Type.EMPTY
 
@@ -353,17 +347,13 @@ func _get_feature_type_for_terrain(terrain: TerrainTypes.Type) -> GameEnums.Terr
 		TerrainTypes.Type.WALL:
 			return GameEnums.TerrainFeatureType.WALL
 		TerrainTypes.Type.COVER_LOW:
-			return GameEnums.TerrainFeatureType.COVER_LOW
+			return GameEnums.TerrainFeatureType.COVER
 		TerrainTypes.Type.COVER_HIGH:
-			return GameEnums.TerrainFeatureType.COVER_HIGH
+			return GameEnums.TerrainFeatureType.OBSTACLE
 		TerrainTypes.Type.EMPTY:
-			return GameEnums.TerrainFeatureType.HIGH_GROUND
-		TerrainTypes.Type.WATER:
-			return GameEnums.TerrainFeatureType.WATER
+			return GameEnums.TerrainFeatureType.NONE
 		TerrainTypes.Type.HAZARD:
 			return GameEnums.TerrainFeatureType.HAZARD
-		TerrainTypes.Type.DIFFICULT:
-			return GameEnums.TerrainFeatureType.DIFFICULT
 		_:
 			return GameEnums.TerrainFeatureType.NONE
 

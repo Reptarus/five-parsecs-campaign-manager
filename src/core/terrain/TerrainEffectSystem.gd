@@ -1,9 +1,10 @@
-class_name TerrainEffectSystem
+class_name FiveParsecsTerrainEffectSystem
 extends Node
 
-const TerrainTypes := preload("res://src/core/terrain/TerrainTypes.gd")
-const TerrainRules := preload("res://src/core/terrain/TerrainRules.gd")
-const GameEnums := preload("res://src/core/systems/GlobalEnums.gd")
+const GameEnums: GDScript = preload("res://src/core/systems/GlobalEnums.gd")
+const FiveParsecsTerrainTypes: GDScript = preload("res://src/core/terrain/TerrainTypes.gd")
+const FiveParsecsTerrainEffects: GDScript = preload("res://src/core/terrain/TerrainEffects.gd")
+const TerrainRules: GDScript = preload("res://src/core/terrain/TerrainRules.gd")
 
 # Signals
 signal effect_applied(target: Node, effect_type: String, value: float)
@@ -18,7 +19,7 @@ var terrain_rules: TerrainRules
 func _ready() -> void:
 	terrain_rules = TerrainRules.new()
 
-func apply_terrain_effect(target: Node, terrain_type: TerrainTypes.Type, feature_type: GameEnums.TerrainFeatureType) -> void:
+func apply_terrain_effect(target: Node, terrain_type: FiveParsecsTerrainTypes.Type, feature_type: GameEnums.TerrainFeatureType) -> void:
 	if not target:
 		return
 	
@@ -48,7 +49,7 @@ func get_active_effects(target: Node) -> Dictionary:
 	var target_id = target.get_instance_id()
 	return _active_effects.get(target_id, {}).duplicate()
 
-func update_terrain_state(position: Vector2i, terrain_type: TerrainTypes.Type, feature_type: GameEnums.TerrainFeatureType) -> void:
+func update_terrain_state(position: Vector2i, terrain_type: FiveParsecsTerrainTypes.Type, feature_type: GameEnums.TerrainFeatureType) -> void:
 	var old_state = _terrain_states.get(position, {})
 	var environment = _convert_terrain_to_environment(terrain_type)
 	var new_state = {
@@ -118,11 +119,11 @@ func has_line_of_sight(from: Vector2i, to: Vector2i) -> bool:
 	
 	return true
 
-func _get_terrain_modifiers(terrain_type: TerrainTypes.Type, feature_type: GameEnums.TerrainFeatureType) -> Dictionary:
+func _get_terrain_modifiers(terrain_type: FiveParsecsTerrainTypes.Type, feature_type: GameEnums.TerrainFeatureType) -> Dictionary:
 	var modifiers = {}
 	
 	# Get terrain type modifiers
-	var terrain_props = TerrainTypes.get_terrain_properties(terrain_type)
+	var terrain_props = FiveParsecsTerrainTypes.get_terrain_properties(terrain_type)
 	modifiers["blocks_movement"] = terrain_props.get("blocks_movement", false)
 	modifiers["blocks_los"] = terrain_props.get("blocks_los", false)
 	modifiers["provides_cover"] = terrain_props.get("provides_cover", false)
@@ -146,13 +147,13 @@ func _get_terrain_modifiers(terrain_type: TerrainTypes.Type, feature_type: GameE
 	
 	return modifiers
 
-func _convert_terrain_to_environment(terrain_type: TerrainTypes.Type) -> GameEnums.PlanetEnvironment:
+func _convert_terrain_to_environment(terrain_type: FiveParsecsTerrainTypes.Type) -> GameEnums.PlanetEnvironment:
 	match terrain_type:
-		TerrainTypes.Type.WALL:
+		FiveParsecsTerrainTypes.Type.WALL:
 			return GameEnums.PlanetEnvironment.URBAN
-		TerrainTypes.Type.WATER:
+		FiveParsecsTerrainTypes.Type.WATER:
 			return GameEnums.PlanetEnvironment.RAIN
-		TerrainTypes.Type.HAZARD:
+		FiveParsecsTerrainTypes.Type.HAZARD:
 			return GameEnums.PlanetEnvironment.HAZARDOUS
 		_:
 			return GameEnums.PlanetEnvironment.NONE

@@ -1,5 +1,9 @@
 extends Control
 
+const Character = preload("res://src/core/character/Base/Character.gd")
+const CrewRelationshipManager = preload("res://src/core/campaign/crew/CrewRelationshipManager.gd")
+const GameEnums = preload("res://src/core/systems/GlobalEnums.gd")
+
 @onready var crew_characteristic_label := $VBoxContainer/CrewCharacteristicLabel
 @onready var meeting_story_label := $VBoxContainer/MeetingStoryLabel
 @onready var relationships_container := $VBoxContainer/RelationshipsContainer
@@ -60,7 +64,7 @@ func _update_display() -> void:
 			# Remove button
 			var remove_button = Button.new()
 			remove_button.text = "Remove"
-			remove_button.pressed.connect(func(): 
+			remove_button.pressed.connect(func():
 				relationship_manager.remove_relationship(char1, char2)
 			)
 			rel_display.add_child(remove_button)
@@ -105,4 +109,4 @@ func serialize() -> Dictionary:
 
 func deserialize(data: Dictionary) -> void:
 	relationship_manager.deserialize(data)
-	_update_display() 
+	_update_display()

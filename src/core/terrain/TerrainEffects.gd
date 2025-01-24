@@ -1,5 +1,5 @@
 ## Handles dynamic terrain effects and environmental conditions
-class_name TerrainEffects
+class_name FiveParsecsTerrainEffects
 extends Node
 
 ## Signals
@@ -9,8 +9,9 @@ signal environment_condition_changed(condition: String, intensity: float)
 signal hazard_damage_dealt(position: Vector2, damage: int)
 
 ## Dependencies
-const GameEnums := preload("res://src/core/systems/GlobalEnums.gd")
-const Character := preload("res://src/core/character/Base/Character.gd")
+const GameEnums: GDScript = preload("res://src/core/systems/GlobalEnums.gd")
+const FiveParsecsTerrainTypes: GDScript = preload("res://src/core/terrain/TerrainTypes.gd")
+const FiveParsecsCharacter: GDScript = preload("res://src/core/character/Base/Character.gd")
 
 ## Effect types
 enum EffectType {
@@ -102,7 +103,7 @@ func _apply_effect_damage(position: Vector2, effect_type: EffectType) -> void:
         return
     
     var damage: int = EFFECT_DAMAGE[effect_type]
-    var characters: Array[Character] = battlefield_manager.get_characters_at_position(position)
+    var characters: Array[FiveParsecsCharacter] = battlefield_manager.get_characters_at_position(position)
     
     for character in characters:
         character.take_damage(damage)

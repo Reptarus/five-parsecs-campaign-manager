@@ -1,11 +1,12 @@
 @tool
-class_name CampaignPhaseManager
-extends Resource
+extends Node
+class_name FiveParsecsCampaignPhaseManager
 
-const GameEnums = preload("res://src/core/systems/GlobalEnums.gd")
-const FiveParsecsGameState = preload("res://src/core/state/GameState.gd")
-const ValidationManager = preload("res://src/core/systems/ValidationManager.gd")
-const ErrorLogger = preload("res://src/core/systems/ErrorLogger.gd")
+const GameEnums := preload("res://src/core/systems/GlobalEnums.gd")
+const Character := preload("res://src/core/character/Base/Character.gd")
+const FiveParsecsGameState := preload("res://src/core/state/GameState.gd")
+const ValidationManager := preload("res://src/core/systems/ValidationManager.gd")
+const ErrorLogger := preload("res://src/core/systems/ErrorLogger.gd")
 
 signal phase_changed(old_phase: int, new_phase: int)
 signal phase_completed(phase: int)
@@ -20,8 +21,20 @@ var validation_manager: ValidationManager
 var error_logger: ErrorLogger
 var phase_history: Array[Dictionary]
 var current_phase: int = GameEnums.CampaignPhase.NONE
-var previous_phase: int = GameEnums.CampaignPhase.NONE
-var _recovery_attempts: Dictionary = {}
+var previous_phase := GameEnums.CampaignPhase.NONE
+var _recovery_attempts := {}
+var active_characters: Array[Character] = []
+var phase_requirements: Dictionary = {
+	GameEnums.CampaignPhase.SETUP: [],
+	GameEnums.CampaignPhase.UPKEEP: ["has_crew"],
+	GameEnums.CampaignPhase.STORY: ["has_crew", "has_story_points"],
+	GameEnums.CampaignPhase.CAMPAIGN: ["has_crew", "has_resources"],
+	GameEnums.CampaignPhase.BATTLE_SETUP: ["has_crew", "has_mission"],
+	GameEnums.CampaignPhase.BATTLE_RESOLUTION: ["has_crew", "has_battle_results"],
+	GameEnums.CampaignPhase.ADVANCEMENT: ["has_crew", "has_experience"],
+	GameEnums.CampaignPhase.TRADE: ["has_crew", "has_credits"],
+	GameEnums.CampaignPhase.END: []
+}
 
 const MAX_PHASE_HISTORY = 50
 const MAX_RECOVERY_ATTEMPTS = 3
@@ -70,48 +83,25 @@ func _init(p_game_state: FiveParsecsGameState) -> void:
 	# Connect validation signals
 	validation_manager.validation_failed.connect(_on_validation_failed)
 
-func start_phase(new_phase: int) -> bool:
-	# Reset recovery attempts for new phase
-	_recovery_attempts[new_phase] = 0
+func start_phase(phase: int) -> void:
+	if not _validate_phase_transition(phase):
+		phase_failed.emit(phase, "Invalid phase transition")
+		return
 	
-	# Validate phase transition
-	if not _validate_phase_transition(new_phase):
-		return false
+	if not _check_phase_requirements(phase):
+		phase_failed.emit(phase, "Phase requirements not met")
+		return
 	
-	# Validate game state before phase transition
-	var validation_result = validation_manager.validate_game_state()
-	if not validation_result.valid:
-		_handle_validation_failure(validation_result, new_phase)
-		return false
-	
-	# Store current phase state before transition
-	if current_phase != GameEnums.CampaignPhase.NONE:
-		_store_phase_state(validation_result)
-	
-	previous_phase = current_phase
-	current_phase = new_phase
-	
-	phase_changed.emit(previous_phase, current_phase)
-	phase_started.emit(current_phase)
-	
-	return true
+	current_phase = phase
+	phase_started.emit(phase)
 
 func complete_phase() -> void:
 	if current_phase == GameEnums.CampaignPhase.NONE:
+		push_error("No active phase to complete")
 		return
 	
-	# Validate phase completion
-	var validation_result = _validate_phase_completion()
-	if not validation_result.valid:
-		_handle_validation_failure(validation_result, current_phase)
-		return
-	
-	_store_phase_state(validation_result)
 	phase_completed.emit(current_phase)
-	
-	var next_phase = _calculate_next_phase()
-	if next_phase != GameEnums.CampaignPhase.NONE:
-		start_phase(next_phase)
+	_advance_to_next_phase()
 
 func rollback_phase(reason: String = "") -> bool:
 	if phase_history.is_empty():
@@ -145,14 +135,101 @@ func rollback_phase(reason: String = "") -> bool:
 	return true
 
 func _validate_phase_transition(new_phase: int) -> bool:
-	if not _can_transition_to_phase(new_phase):
-		error_logger.log_error(
-			"Invalid phase transition from %s to %s" % [GameEnums.CampaignPhase.keys()[current_phase], GameEnums.CampaignPhase.keys()[new_phase]],
-			ErrorLogger.ErrorCategory.PHASE_TRANSITION,
-			ErrorLogger.ErrorSeverity.ERROR
-		)
+	if not new_phase in GameEnums.CampaignPhase.values():
 		return false
+	
+	# Check if the transition is valid based on current phase
+	match current_phase:
+		GameEnums.CampaignPhase.NONE:
+			return new_phase == GameEnums.CampaignPhase.SETUP
+		GameEnums.CampaignPhase.SETUP:
+			return new_phase == GameEnums.CampaignPhase.UPKEEP
+		GameEnums.CampaignPhase.UPKEEP:
+			return new_phase in [GameEnums.CampaignPhase.STORY, GameEnums.CampaignPhase.CAMPAIGN]
+		GameEnums.CampaignPhase.STORY:
+			return new_phase == GameEnums.CampaignPhase.CAMPAIGN
+		GameEnums.CampaignPhase.CAMPAIGN:
+			return new_phase in [GameEnums.CampaignPhase.BATTLE_SETUP, GameEnums.CampaignPhase.TRADE]
+		GameEnums.CampaignPhase.BATTLE_SETUP:
+			return new_phase == GameEnums.CampaignPhase.BATTLE_RESOLUTION
+		GameEnums.CampaignPhase.BATTLE_RESOLUTION:
+			return new_phase == GameEnums.CampaignPhase.ADVANCEMENT
+		GameEnums.CampaignPhase.ADVANCEMENT:
+			return new_phase in [GameEnums.CampaignPhase.TRADE, GameEnums.CampaignPhase.END]
+		GameEnums.CampaignPhase.TRADE:
+			return new_phase in [GameEnums.CampaignPhase.UPKEEP, GameEnums.CampaignPhase.END]
+		_:
+			return false
+
+func _check_phase_requirements(phase: int) -> bool:
+	var requirements = phase_requirements.get(phase, [])
+	for req in requirements:
+		match req:
+			"has_crew":
+				if active_characters.is_empty():
+					return false
+			"has_story_points":
+				if not _has_story_points():
+					return false
+			"has_resources":
+				if not _has_sufficient_resources():
+					return false
+			"has_mission":
+				if not _has_active_mission():
+					return false
+			"has_battle_results":
+				if not _has_battle_results():
+					return false
+			"has_experience":
+				if not _has_unspent_experience():
+					return false
+			"has_credits":
+				if not _has_credits():
+					return false
 	return true
+
+func _advance_to_next_phase() -> void:
+	var next_phase = _get_next_phase()
+	if next_phase != GameEnums.CampaignPhase.NONE:
+		start_phase(next_phase)
+
+func _get_next_phase() -> int:
+	match current_phase:
+		GameEnums.CampaignPhase.SETUP:
+			return GameEnums.CampaignPhase.UPKEEP
+		GameEnums.CampaignPhase.UPKEEP:
+			return GameEnums.CampaignPhase.CAMPAIGN
+		GameEnums.CampaignPhase.CAMPAIGN:
+			return GameEnums.CampaignPhase.BATTLE_SETUP
+		GameEnums.CampaignPhase.BATTLE_SETUP:
+			return GameEnums.CampaignPhase.BATTLE_RESOLUTION
+		GameEnums.CampaignPhase.BATTLE_RESOLUTION:
+			return GameEnums.CampaignPhase.ADVANCEMENT
+		GameEnums.CampaignPhase.ADVANCEMENT:
+			return GameEnums.CampaignPhase.TRADE
+		GameEnums.CampaignPhase.TRADE:
+			return GameEnums.CampaignPhase.UPKEEP
+		_:
+			return GameEnums.CampaignPhase.NONE
+
+# Requirement check methods
+func _has_story_points() -> bool:
+	return true # Implement based on game state
+
+func _has_sufficient_resources() -> bool:
+	return true # Implement based on game state
+
+func _has_active_mission() -> bool:
+	return true # Implement based on game state
+
+func _has_battle_results() -> bool:
+	return true # Implement based on game state
+
+func _has_unspent_experience() -> bool:
+	return true # Implement based on game state
+
+func _has_credits() -> bool:
+	return true # Implement based on game state
 
 func _validate_phase_completion() -> Dictionary:
 	var result = validation_manager.validate_phase_state()
@@ -522,51 +599,6 @@ func _restore_mission_state(mission_state: Dictionary) -> void:
 	# This might need to be implemented based on your mission system
 	pass
 
-func _can_transition_to_phase(new_phase: int) -> bool:
-	match new_phase:
-		GameEnums.CampaignPhase.SETUP:
-			return current_phase == GameEnums.CampaignPhase.NONE
-		GameEnums.CampaignPhase.UPKEEP:
-			return current_phase in [GameEnums.CampaignPhase.SETUP, GameEnums.CampaignPhase.END]
-		GameEnums.CampaignPhase.STORY:
-			return current_phase == GameEnums.CampaignPhase.UPKEEP
-		GameEnums.CampaignPhase.CAMPAIGN:
-			return current_phase == GameEnums.CampaignPhase.STORY
-		GameEnums.CampaignPhase.BATTLE_SETUP:
-			return current_phase == GameEnums.CampaignPhase.CAMPAIGN
-		GameEnums.CampaignPhase.BATTLE_RESOLUTION:
-			return current_phase == GameEnums.CampaignPhase.BATTLE_SETUP
-		GameEnums.CampaignPhase.ADVANCEMENT:
-			return current_phase == GameEnums.CampaignPhase.BATTLE_RESOLUTION
-		GameEnums.CampaignPhase.TRADE:
-			return current_phase == GameEnums.CampaignPhase.ADVANCEMENT
-		GameEnums.CampaignPhase.END:
-			return current_phase == GameEnums.CampaignPhase.TRADE
-		_:
-			return false
-
-func _calculate_next_phase() -> int:
-	match current_phase:
-		GameEnums.CampaignPhase.SETUP:
-			return GameEnums.CampaignPhase.UPKEEP
-		GameEnums.CampaignPhase.UPKEEP:
-			return GameEnums.CampaignPhase.STORY
-		GameEnums.CampaignPhase.STORY:
-			return GameEnums.CampaignPhase.CAMPAIGN
-		GameEnums.CampaignPhase.CAMPAIGN:
-			return GameEnums.CampaignPhase.BATTLE_SETUP
-		GameEnums.CampaignPhase.BATTLE_SETUP:
-			return GameEnums.CampaignPhase.BATTLE_RESOLUTION
-		GameEnums.CampaignPhase.BATTLE_RESOLUTION:
-			return GameEnums.CampaignPhase.ADVANCEMENT
-		GameEnums.CampaignPhase.ADVANCEMENT:
-			return GameEnums.CampaignPhase.TRADE
-		GameEnums.CampaignPhase.TRADE:
-			return GameEnums.CampaignPhase.END
-		GameEnums.CampaignPhase.END:
-			return GameEnums.CampaignPhase.UPKEEP
-	return GameEnums.CampaignPhase.NONE
-
 func _recover_battle_setup_phase() -> bool:
 	# Log recovery attempt
 	error_logger.log_error(
@@ -732,26 +764,26 @@ func _get_terrain_features_for_location(location: Dictionary) -> Array:
 	match location.type:
 		"urban":
 			return [
-				GameEnums.TerrainFeatureType.COVER_HIGH,
-				GameEnums.TerrainFeatureType.COVER_LOW,
-				GameEnums.TerrainFeatureType.WALL
+				GameEnums.TerrainFeatureType.WALL,
+				GameEnums.TerrainFeatureType.COVER,
+				GameEnums.TerrainFeatureType.OBSTACLE
 			]
 		"wilderness":
 			return [
-				GameEnums.TerrainFeatureType.COVER_LOW,
-				GameEnums.TerrainFeatureType.HIGH_GROUND,
+				GameEnums.TerrainFeatureType.COVER,
+				GameEnums.TerrainFeatureType.OBSTACLE,
 				GameEnums.TerrainFeatureType.HAZARD
 			]
 		"industrial":
 			return [
-				GameEnums.TerrainFeatureType.COVER_HIGH,
+				GameEnums.TerrainFeatureType.WALL,
 				GameEnums.TerrainFeatureType.OBSTACLE,
 				GameEnums.TerrainFeatureType.HAZARD
 			]
 	
 	return [
-		GameEnums.TerrainFeatureType.COVER_LOW,
-		GameEnums.TerrainFeatureType.COVER_HIGH
+		GameEnums.TerrainFeatureType.COVER,
+		GameEnums.TerrainFeatureType.OBSTACLE
 	]
 
 func _validate_deployment_zone(zone: Dictionary) -> bool:
@@ -774,22 +806,43 @@ func _validate_deployment_zone(zone: Dictionary) -> bool:
 	return true
 
 func _validate_terrain_layout(layout: Array) -> bool:
-	if layout.is_empty():
-		return false
+	var valid := true
+	var terrain_types := []
 	
 	for feature in layout:
-		if not feature is Dictionary:
-			return false
-		if not feature.has_all(["type", "position", "rotation"]):
-			return false
-		if not feature.type in GameEnums.TerrainFeatureType.values():
-			return false
-		if not feature.position is Vector2:
-			return false
-		if not feature.rotation is float:
-			return false
+		if not feature.has("type") or not feature.has("position"):
+			valid = false
+			break
+		
+		var type = feature["type"]
+		if type not in [
+			GameEnums.TerrainFeatureType.WALL,
+			GameEnums.TerrainFeatureType.COVER,
+			GameEnums.TerrainFeatureType.OBSTACLE,
+			GameEnums.TerrainFeatureType.HAZARD,
+			GameEnums.TerrainFeatureType.OBJECTIVE,
+			GameEnums.TerrainFeatureType.SPAWN_POINT,
+			GameEnums.TerrainFeatureType.EXIT_POINT
+		]:
+			valid = false
+			break
+		
+		terrain_types.append(type)
 	
-	return true
+	# Ensure we have at least one of each required type
+	var required_types := [
+		GameEnums.TerrainFeatureType.COVER,
+		GameEnums.TerrainFeatureType.OBSTACLE,
+		GameEnums.TerrainFeatureType.SPAWN_POINT,
+		GameEnums.TerrainFeatureType.EXIT_POINT
+	]
+	
+	for required in required_types:
+		if required not in terrain_types:
+			valid = false
+			break
+	
+	return valid
 
 func _validate_deployed_crew_member(crew_member: Dictionary) -> bool:
 	if not crew_member:
@@ -1084,3 +1137,24 @@ func _generate_rewards(mission: Resource, completed_objectives: Array, casualtie
 			})
 	
 	return rewards
+
+func _calculate_feature_count(difficulty: int) -> int:
+	# Base count is 5-8 features
+	var base_count := randi() % 4 + 5
+	
+	# Add more features based on difficulty
+	match difficulty:
+		GameEnums.DifficultyLevel.EASY:
+			base_count += 1
+		GameEnums.DifficultyLevel.NORMAL:
+			base_count += 2
+		GameEnums.DifficultyLevel.HARD:
+			base_count += 3
+		GameEnums.DifficultyLevel.NIGHTMARE:
+			base_count += 4
+		GameEnums.DifficultyLevel.HARDCORE:
+			base_count += 5
+		GameEnums.DifficultyLevel.ELITE:
+			base_count += 6
+	
+	return base_count

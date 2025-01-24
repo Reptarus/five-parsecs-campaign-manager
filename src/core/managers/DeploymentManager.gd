@@ -1,17 +1,24 @@
 class_name DeploymentManager
 extends Resource
 
-const GameEnums = preload("res://src/core/systems/GlobalEnums.gd")
-const Character = preload("res://src/core/character/Base/Character.gd")
-const TerrainTypes = preload("res://src/core/terrain/TerrainTypes.gd")
+const GameEnums := preload("res://src/core/systems/GlobalEnums.gd")
+const Character := preload("res://src/core/character/Base/Character.gd")
+const TerrainTypes := preload("res://src/core/terrain/TerrainTypes.gd")
 
-signal deployment_zones_generated(zones: Array)
-signal terrain_generated(terrain: Array)
+signal deployment_zones_generated(zones: Array[Dictionary])
+signal terrain_generated(terrain: Array[Dictionary])
 
+## Current deployment type being used
 var current_deployment_type: GameEnums.DeploymentType = GameEnums.DeploymentType.STANDARD
-var terrain_layout: Array = []
+## Current terrain layout
+var terrain_layout: Array[Dictionary] = []
+## Size of the deployment grid
 var grid_size: Vector2i = Vector2i(24, 24)
 
+## Returns the size of a deployment zone based on its type
+## Parameters:
+## - deployment_type: The type of deployment zone
+## Returns: Vector2 representing the size of the zone
 static func get_zone_size(deployment_type: GameEnums.DeploymentType) -> Vector2:
 	match deployment_type:
 		GameEnums.DeploymentType.STANDARD:
@@ -24,234 +31,164 @@ static func get_zone_size(deployment_type: GameEnums.DeploymentType) -> Vector2:
 			return Vector2(3, 3)
 		GameEnums.DeploymentType.DEFENSIVE:
 			return Vector2(5, 5)
+		GameEnums.DeploymentType.INFILTRATION:
+			return Vector2(4, 4)
+		GameEnums.DeploymentType.REINFORCEMENT:
+			return Vector2(6, 3)
+		GameEnums.DeploymentType.OFFENSIVE:
+			return Vector2(5, 4)
 		GameEnums.DeploymentType.CONCEALED:
 			return Vector2(4, 4)
+		GameEnums.DeploymentType.BOLSTERED_LINE:
+			return Vector2(10, 2)
 		_:
 			return Vector2(6, 4)
 
-func generate_deployment_zones(deployment_type: GameEnums.DeploymentType) -> Array:
-	current_deployment_type = deployment_type
-	var deployment_zones = []
-	var zone_size = get_zone_size(deployment_type)
-	
-	match deployment_type:
-		GameEnums.DeploymentType.STANDARD:
-			deployment_zones = _generate_standard_zones(zone_size)
-		GameEnums.DeploymentType.LINE:
-			deployment_zones = _generate_line_zones(zone_size)
-		GameEnums.DeploymentType.AMBUSH:
-			deployment_zones = _generate_flank_zones(zone_size)
-		GameEnums.DeploymentType.SCATTERED:
-			deployment_zones = _generate_scattered_zones(zone_size)
-		GameEnums.DeploymentType.DEFENSIVE:
-			deployment_zones = _generate_defensive_zones(zone_size)
-		GameEnums.DeploymentType.CONCEALED:
-			deployment_zones = _generate_concealed_zones(zone_size)
-	
-	deployment_zones_generated.emit(deployment_zones)
-	return deployment_zones
-
-func generate_terrain_layout(terrain_features: Array) -> void:
-	terrain_layout.clear()
+## Generates deployment zones based on the current deployment type
+## Returns: Array of deployment zone dictionaries
+func generate_deployment_zones() -> Array[Dictionary]:
+	var zones: Array[Dictionary] = []
+	var zone_size := get_zone_size(current_deployment_type)
 	
 	match current_deployment_type:
 		GameEnums.DeploymentType.STANDARD:
-			_generate_standard_terrain(terrain_features)
+			zones.append(_create_zone(Vector2(2, 2), zone_size, current_deployment_type))
+			zones.append(_create_zone(Vector2(grid_size.x - zone_size.x - 2, 2), zone_size, current_deployment_type))
 		GameEnums.DeploymentType.LINE:
-			_generate_line_terrain(terrain_features)
+			zones.append(_create_zone(Vector2(2, grid_size.y / 2 - zone_size.y / 2), zone_size, current_deployment_type))
+			zones.append(_create_zone(Vector2(grid_size.x - zone_size.x - 2, grid_size.y / 2 - zone_size.y / 2), zone_size, current_deployment_type))
+		GameEnums.DeploymentType.AMBUSH:
+			zones.append(_create_zone(Vector2(2, 2), zone_size, current_deployment_type))
+			zones.append(_create_zone(Vector2(grid_size.x - zone_size.x - 2, grid_size.y - zone_size.y - 2), zone_size, current_deployment_type))
 		GameEnums.DeploymentType.SCATTERED:
-			_generate_scattered_terrain(terrain_features)
-		_:
-			_generate_standard_terrain(terrain_features)
+			for i in range(4):
+				var pos := Vector2(
+					randf_range(2, grid_size.x - zone_size.x - 2),
+					randf_range(2, grid_size.y - zone_size.y - 2)
+				)
+				zones.append(_create_zone(pos, zone_size, current_deployment_type))
+		GameEnums.DeploymentType.DEFENSIVE:
+			zones.append(_create_zone(Vector2(grid_size.x / 2 - zone_size.x / 2, 2), zone_size, current_deployment_type))
+		GameEnums.DeploymentType.INFILTRATION:
+			zones.append(_create_zone(Vector2(2, 2), zone_size, current_deployment_type))
+			zones.append(_create_zone(Vector2(grid_size.x - zone_size.x - 2, grid_size.y - zone_size.y - 2), zone_size, current_deployment_type))
+		GameEnums.DeploymentType.REINFORCEMENT:
+			zones.append(_create_zone(Vector2(2, 2), zone_size, current_deployment_type))
+			zones.append(_create_zone(Vector2(grid_size.x / 2 - zone_size.x / 2, grid_size.y - zone_size.y - 2), zone_size, current_deployment_type))
+		GameEnums.DeploymentType.OFFENSIVE:
+			zones.append(_create_zone(Vector2(2, 2), zone_size, current_deployment_type))
+			zones.append(_create_zone(Vector2(grid_size.x - zone_size.x - 2, 2), zone_size, current_deployment_type))
+			zones.append(_create_zone(Vector2(grid_size.x / 2 - zone_size.x / 2, grid_size.y - zone_size.y - 2), zone_size, current_deployment_type))
+		GameEnums.DeploymentType.CONCEALED:
+			for i in range(3):
+				var pos := Vector2(
+					randf_range(2, grid_size.x - zone_size.x - 2),
+					randf_range(2, grid_size.y - zone_size.y - 2)
+				)
+				zones.append(_create_zone(pos, zone_size, current_deployment_type))
+		GameEnums.DeploymentType.BOLSTERED_LINE:
+			zones.append(_create_zone(Vector2(2, grid_size.y / 2 - zone_size.y / 2), zone_size, current_deployment_type))
+			zones.append(_create_zone(Vector2(grid_size.x - zone_size.x - 2, grid_size.y / 2 - zone_size.y / 2), zone_size, current_deployment_type))
+			zones.append(_create_zone(Vector2(grid_size.x / 2 - zone_size.x / 2, grid_size.y / 2 - zone_size.y / 2), zone_size, current_deployment_type))
+	
+	deployment_zones_generated.emit(zones)
+	return zones
+
+## Creates a deployment zone with the given parameters
+## Parameters:
+## - position: Position of the zone
+## - size: Size of the zone
+## - type: Type of deployment zone
+## Returns: Dictionary containing zone data
+func _create_zone(position: Vector2, size: Vector2, type: GameEnums.DeploymentType) -> Dictionary:
+	return {
+		"position": position,
+		"size": size,
+		"type": type
+	}
+
+## Generates terrain layout based on the current deployment type and terrain features
+## Parameters:
+## - terrain_features: Array of terrain feature types to include
+## Returns: Array of terrain feature dictionaries
+func generate_terrain_layout(terrain_features: Array[GameEnums.TerrainFeatureType]) -> Array[Dictionary]:
+	terrain_layout.clear()
+	
+	# Add required terrain features
+	_add_required_terrain_features()
+	
+	# Add optional terrain features
+	for feature_type in terrain_features:
+		var feature_count := _calculate_feature_count(feature_type)
+		for i in feature_count:
+			var pos := _get_valid_terrain_position()
+			if pos != Vector2.ZERO:
+				terrain_layout.append({
+					"type": feature_type,
+					"position": pos
+				})
 	
 	terrain_generated.emit(terrain_layout)
+	return terrain_layout
 
-# Private helper methods for zone generation
-func _generate_standard_zones(size: Vector2) -> Array:
-	return [
-		{
-			"type": "player",
-			"rect": Rect2(Vector2.ZERO, size)
-		},
-		{
-			"type": "enemy",
-			"rect": Rect2(Vector2(grid_size.x - size.x, grid_size.y - size.y), size)
-		}
-	]
-
-func _generate_line_zones(size: Vector2) -> Array:
-	return [
-		{
-			"type": "player",
-			"rect": Rect2(Vector2(0, 10), size)
-		},
-		{
-			"type": "enemy",
-			"rect": Rect2(Vector2(grid_size.x - size.x, 10), size)
-		}
-	]
-
-func _generate_flank_zones(size: Vector2) -> Array:
-	return [
-		{
-			"type": "player",
-			"rect": Rect2(Vector2(0, 0), size)
-		},
-		{
-			"type": "enemy",
-			"rect": Rect2(Vector2(grid_size.x - size.x, grid_size.y - size.y), size)
-		}
-	]
-
-func _generate_scattered_zones(size: Vector2) -> Array:
-	var zones = []
-	var crew_positions = [
-		Vector2(0, 0),
-		Vector2(0, grid_size.y - size.y),
-		Vector2(grid_size.x / 2 - size.x / 2, grid_size.y / 2 - size.y / 2)
-	]
-	var enemy_positions = [
-		Vector2(grid_size.x - size.x, 0),
-		Vector2(grid_size.x - size.x, grid_size.y - size.y),
-		Vector2(grid_size.x / 2 - size.x / 2, grid_size.y / 2 - size.y / 2)
-	]
-	
-	zones.append({
-		"type": "player",
-		"rect": Rect2(crew_positions[randi() % crew_positions.size()], size)
+## Adds required terrain features based on deployment type
+func _add_required_terrain_features() -> void:
+	# Add spawn points
+	terrain_layout.append({
+		"type": GameEnums.TerrainFeatureType.SPAWN_POINT,
+		"position": Vector2(2, 2)
 	})
-	zones.append({
-		"type": "enemy",
-		"rect": Rect2(enemy_positions[randi() % enemy_positions.size()], size)
+	
+	# Add exit points
+	terrain_layout.append({
+		"type": GameEnums.TerrainFeatureType.EXIT_POINT,
+		"position": Vector2(grid_size.x - 2, grid_size.y - 2)
 	})
-	return zones
-
-func _generate_defensive_zones(size: Vector2) -> Array:
-	return [
-		{
-			"type": "player",
-			"rect": Rect2(Vector2(grid_size.x / 3, grid_size.y / 3), size * 1.5)
-		},
-		{
-			"type": "enemy",
-			"rect": Rect2(Vector2.ZERO, Vector2(grid_size))
-		}
-	]
-
-func _generate_concealed_zones(size: Vector2) -> Array:
-	var zones = []
-	var possible_positions = []
 	
-	# Generate possible positions near cover/terrain
-	for x in range(0, grid_size.x - int(size.x), 4):
-		for y in range(0, grid_size.y - int(size.y), 4):
-			if _has_nearby_cover(Vector2(x, y)):
-				possible_positions.append(Vector2(x, y))
-	
-	# Select random positions for crew and enemy
-	if possible_positions.size() >= 2:
-		var crew_index = randi() % possible_positions.size()
-		var crew_pos = possible_positions[crew_index]
-		possible_positions.remove_at(crew_index)
+	# Add objectives based on deployment type
+	match current_deployment_type:
+		GameEnums.DeploymentType.DEFENSIVE:
+			terrain_layout.append({
+				"type": GameEnums.TerrainFeatureType.OBJECTIVE,
+				"position": Vector2(grid_size.x / 2, grid_size.y / 2)
+			})
+
+## Gets a valid position for terrain placement
+## Returns: Vector2 position that doesn't overlap with existing terrain
+func _get_valid_terrain_position() -> Vector2:
+	var attempts := 0
+	while attempts < 100:
+		var pos := Vector2(
+			randf_range(2, grid_size.x - 2),
+			randf_range(2, grid_size.y - 2)
+		)
 		
-		var enemy_index = randi() % possible_positions.size()
-		var enemy_pos = possible_positions[enemy_index]
+		var valid := true
+		for feature in terrain_layout:
+			if feature.position.distance_to(pos) < 2:
+				valid = false
+				break
 		
-		zones.append({
-			"type": "player",
-			"rect": Rect2(crew_pos, size)
-		})
-		zones.append({
-			"type": "enemy",
-			"rect": Rect2(enemy_pos, size)
-		})
-	else:
-		# Fallback to standard deployment if not enough valid positions
-		zones = _generate_standard_zones(size)
+		if valid:
+			return pos
+		
+		attempts += 1
 	
-	return zones
-
-func _has_nearby_cover(position: Vector2) -> bool:
-	for terrain in terrain_layout:
-		if terrain.type == GameEnums.TerrainFeatureType.COVER_HIGH or terrain.type == GameEnums.TerrainFeatureType.COVER_LOW:
-			var distance = position.distance_to(terrain.position)
-			if distance < 3:
-				return true
-	return false
-
-func _get_random_valid_position() -> Vector2:
-	var valid_positions = []
-	for x in range(grid_size.x):
-		for y in range(grid_size.y):
-			var pos = Vector2(x, y)
-			var is_valid = true
-			for terrain in terrain_layout:
-				if terrain.position == pos:
-					is_valid = false
-					break
-			if is_valid:
-				valid_positions.append(pos)
-	
-	if valid_positions.size() > 0:
-		return valid_positions[randi() % valid_positions.size()]
 	return Vector2.ZERO
 
-func _get_feature_size(feature_type: GameEnums.TerrainFeatureType) -> Vector2:
+## Calculates the number of features to generate based on type
+## Parameters:
+## - feature_type: The type of terrain feature
+## Returns: Number of features to generate
+func _calculate_feature_count(feature_type: GameEnums.TerrainFeatureType) -> int:
 	match feature_type:
-		GameEnums.TerrainFeatureType.COVER_LOW:
-			return Vector2(1, 1)
-		GameEnums.TerrainFeatureType.WALL:
-			return Vector2(2, 1)
-		GameEnums.TerrainFeatureType.COVER_HIGH:
-			return Vector2(2, 2)
-		GameEnums.TerrainFeatureType.HAZARD:
-			return Vector2(2, 1)
-		GameEnums.TerrainFeatureType.HIGH_GROUND:
-			return Vector2(2, 2)
+		GameEnums.TerrainFeatureType.COVER:
+			return 8
 		GameEnums.TerrainFeatureType.OBSTACLE:
-			return Vector2(3, 2)
+			return 6
+		GameEnums.TerrainFeatureType.HAZARD:
+			return 4
+		GameEnums.TerrainFeatureType.WALL:
+			return 3
 		_:
-			return Vector2(1, 1)
-
-func _generate_standard_terrain(features: Array) -> void:
-	for feature in features:
-		var position = _get_random_valid_position()
-		terrain_layout.append({
-			"type": feature,
-			"position": position,
-			"size": _get_feature_size(feature)
-		})
-
-func _generate_line_terrain(features: Array) -> void:
-	var center_line = grid_size.x / 2
-	
-	for feature in features:
-		var position = Vector2(
-			center_line + randf_range(-2, 2),
-			randf_range(4, grid_size.y - 4)
-		)
-		terrain_layout.append({
-			"type": feature,
-			"position": position,
-			"size": _get_feature_size(feature)
-		})
-
-func _generate_scattered_terrain(features: Array) -> void:
-	var quadrants = [
-		Rect2(Vector2.ZERO, Vector2(grid_size.x / 2, grid_size.y / 2)),
-		Rect2(Vector2(grid_size.x / 2, 0), Vector2(grid_size.x / 2, grid_size.y / 2)),
-		Rect2(Vector2(0, grid_size.y / 2), Vector2(grid_size.x / 2, grid_size.y / 2)),
-		Rect2(Vector2(grid_size.x / 2, grid_size.y / 2), Vector2(grid_size.x / 2, grid_size.y / 2))
-	]
-	
-	for feature in features:
-		var quadrant = quadrants[randi() % quadrants.size()]
-		var position = Vector2(
-			quadrant.position.x + randf() * quadrant.size.x,
-			quadrant.position.y + randf() * quadrant.size.y
-		)
-		terrain_layout.append({
-			"type": feature,
-			"position": position,
-			"size": _get_feature_size(feature)
-		})
+			return 0

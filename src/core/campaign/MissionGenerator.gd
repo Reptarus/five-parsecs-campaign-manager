@@ -1,22 +1,28 @@
+@tool
+class_name FiveParsecsMissionGenerator
 extends RefCounted
 
 const GameEnums := preload("res://src/core/systems/GlobalEnums.gd")
 const StoryQuestData := preload("res://src/core/story/StoryQuestData.gd")
+const GameState := preload("res://src/core/state/GameState.gd")
+const FiveParsecsWorldManager := preload("res://src/core/world/WorldManager.gd")
 
-var game_state: Node
-var world_manager: Node
+var game_state: GameState
+var world_manager: FiveParsecsWorldManager
 var mission_templates: Dictionary = {}
 var expanded_missions: Dictionary = {}
 
-func _init(state: Node, world: Node) -> void:
+func _init(state: GameState, world: FiveParsecsWorldManager) -> void:
 	game_state = state
 	world_manager = world
 	_load_mission_templates()
 
 func _load_mission_templates() -> void:
-	var mission_data = load_json_file("res://data/mission_templates.json")
-	if mission_data:
-		mission_templates = mission_data
+	var mission_data: Dictionary = load_json_file("res://data/mission_templates.json")
+	if mission_data.is_empty():
+		push_error("Failed to load mission templates data")
+		return
+	mission_templates = mission_data
 	
 	var expanded_data = load_json_file("res://data/expanded_missions.json")
 	if expanded_data:

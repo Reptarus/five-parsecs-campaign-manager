@@ -1,4 +1,5 @@
-extends "res://tests/test_base.gd"
+@tool
+extends "res://tests/fixtures/game_test.gd"
 
 const BattlefieldGenerator := preload("res://src/core/battle/BattlefieldGenerator.gd")
 const BattlefieldManager := preload("res://src/core/battle/BattlefieldManager.gd")

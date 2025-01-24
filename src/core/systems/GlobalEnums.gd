@@ -11,30 +11,43 @@ enum EditMode {
 }
 
 ## Phase Names and Descriptions
+enum FiveParcsecsCampaignPhase {
+	NONE,
+	SETUP,
+	UPKEEP,
+	STORY,
+	CAMPAIGN,
+	BATTLE_SETUP,
+	BATTLE_RESOLUTION,
+	ADVANCEMENT,
+	TRADE,
+	END
+}
+
 const PHASE_NAMES = {
-	CampaignPhase.NONE: "None",
-	CampaignPhase.SETUP: "Setup",
-	CampaignPhase.UPKEEP: "Upkeep",
-	CampaignPhase.STORY: "Story",
-	CampaignPhase.CAMPAIGN: "Campaign",
-	CampaignPhase.BATTLE_SETUP: "Battle Setup",
-	CampaignPhase.BATTLE_RESOLUTION: "Battle Resolution",
-	CampaignPhase.ADVANCEMENT: "Advancement",
-	CampaignPhase.TRADE: "Trade",
-	CampaignPhase.END: "End"
+	FiveParcsecsCampaignPhase.NONE: "None",
+	FiveParcsecsCampaignPhase.SETUP: "Setup",
+	FiveParcsecsCampaignPhase.UPKEEP: "Upkeep",
+	FiveParcsecsCampaignPhase.STORY: "Story",
+	FiveParcsecsCampaignPhase.CAMPAIGN: "Campaign",
+	FiveParcsecsCampaignPhase.BATTLE_SETUP: "Battle Setup",
+	FiveParcsecsCampaignPhase.BATTLE_RESOLUTION: "Battle Resolution",
+	FiveParcsecsCampaignPhase.ADVANCEMENT: "Advancement",
+	FiveParcsecsCampaignPhase.TRADE: "Trade",
+	FiveParcsecsCampaignPhase.END: "End"
 }
 
 const PHASE_DESCRIPTIONS = {
-	CampaignPhase.NONE: "No active phase",
-	CampaignPhase.SETUP: "Create your crew and prepare for adventure",
-	CampaignPhase.UPKEEP: "Maintain your crew and resources",
-	CampaignPhase.STORY: "Progress through story events",
-	CampaignPhase.CAMPAIGN: "Engage in campaign activities",
-	CampaignPhase.BATTLE_SETUP: "Prepare for combat",
-	CampaignPhase.BATTLE_RESOLUTION: "Handle battle aftermath",
-	CampaignPhase.ADVANCEMENT: "Improve your crew",
-	CampaignPhase.TRADE: "Buy and sell equipment",
-	CampaignPhase.END: "Campaign phase complete"
+	FiveParcsecsCampaignPhase.NONE: "No active phase",
+	FiveParcsecsCampaignPhase.SETUP: "Create your crew and prepare for adventure",
+	FiveParcsecsCampaignPhase.UPKEEP: "Maintain your crew and resources",
+	FiveParcsecsCampaignPhase.STORY: "Progress through story events",
+	FiveParcsecsCampaignPhase.CAMPAIGN: "Engage in campaign activities",
+	FiveParcsecsCampaignPhase.BATTLE_SETUP: "Prepare for combat",
+	FiveParcsecsCampaignPhase.BATTLE_RESOLUTION: "Handle battle aftermath",
+	FiveParcsecsCampaignPhase.ADVANCEMENT: "Improve your crew",
+	FiveParcsecsCampaignPhase.TRADE: "Buy and sell equipment",
+	FiveParcsecsCampaignPhase.END: "Campaign phase complete"
 }
 
 ## Difficulty Levels
@@ -65,14 +78,43 @@ enum CharacterClass {
 	NONE,
 	SOLDIER,
 	MEDIC,
-	TECH,
-	SCOUT,
-	LEADER,
-	SPECIALIST,
-	CAPTAIN,
 	ENGINEER,
-	PILOT
+	PILOT,
+	MERCHANT,
+	SECURITY,
+	BROKER,
+	BOT_TECH
 }
+
+## Training Levels
+enum Training {
+	NONE,
+	PILOT,
+	MECHANIC,
+	MEDICAL,
+	MERCHANT,
+	SECURITY,
+	BROKER,
+	BOT_TECH,
+	SPECIALIST,
+	ELITE
+}
+
+const TRAINING_NAMES = {
+	Training.NONE: "None",
+	Training.PILOT: "Pilot",
+	Training.MECHANIC: "Mechanic",
+	Training.MEDICAL: "Medical",
+	Training.MERCHANT: "Merchant",
+	Training.SECURITY: "Security",
+	Training.BROKER: "Broker",
+	Training.BOT_TECH: "Bot Tech",
+	Training.SPECIALIST: "Specialist",
+	Training.ELITE: "Elite"
+}
+
+static func get_training_name(training: Training) -> String:
+	return TRAINING_NAMES.get(training, "Unknown Training")
 
 ## Character Origins
 enum Origin {
@@ -141,7 +183,16 @@ enum ResourceType {
 }
 
 ## Campaign System
-enum CampaignVictoryType {
+enum FiveParcsecsCampaignType {
+	NONE,
+	STANDARD,
+	CUSTOM,
+	TUTORIAL,
+	STORY,
+	SANDBOX
+}
+
+enum FiveParcsecsCampaignVictoryType {
 	NONE,
 	STANDARD,
 	WEALTH_GOAL,
@@ -249,7 +300,8 @@ enum ThreatType {
 	LOW,
 	MEDIUM,
 	HIGH,
-	EXTREME
+	EXTREME,
+	BOSS
 }
 
 ## Relation Types
@@ -576,15 +628,16 @@ enum CombatPhase {
 ## Terrain Features
 enum TerrainFeatureType {
 	NONE,
-	COVER_LOW,
-	COVER_HIGH,
+	WALL,
+	DOOR,
+	WINDOW,
+	COVER,
 	OBSTACLE,
 	HAZARD,
 	OBJECTIVE,
-	WALL,
-	HIGH_GROUND,
-	WATER,
-	DIFFICULT
+	SPAWN_POINT,
+	EXIT_POINT,
+	SPECIAL
 }
 
 ## Battle States
@@ -711,16 +764,26 @@ enum CombatRange {
 	EXTREME
 }
 
+## Crew Tasks
 enum CrewTask {
 	NONE,
 	FIND_PATRON,
-	TRAIN,
-	TRADE,
 	RECRUIT,
 	EXPLORE,
 	TRACK,
+	DECOY,
+	GUARD,
+	SCOUT,
+	SABOTAGE,
+	GATHER_INFO,
 	REPAIR,
-	DECOY
+	HEAL,
+	TRAIN,
+	TRADE,
+	RESEARCH,
+	MAINTENANCE,
+	REST,
+	SPECIAL
 }
 
 enum JobType {
@@ -743,82 +806,6 @@ enum StrangeCharacterType {
 	ASSAULT_BOT,
 	PRECURSOR,
 	FERAL
-}
-
-enum CharacterBackground {
-	NONE,
-	MILITARY,
-	MERCENARY,
-	CRIMINAL,
-	COLONIST,
-	ACADEMIC,
-	EXPLORER,
-	TRADER,
-	NOBLE,
-	OUTCAST
-}
-
-enum CharacterMotivation {
-	NONE,
-	WEALTH,
-	REVENGE,
-	GLORY,
-	KNOWLEDGE,
-	POWER,
-	JUSTICE,
-	SURVIVAL,
-	LOYALTY,
-	FREEDOM
-}
-
-enum CrewSize {
-	NONE,
-	TWO,
-	THREE,
-	FOUR,
-	FIVE,
-	SIX
-}
-
-enum ShipComponentType {
-	NONE,
-	HULL_BASIC,
-	HULL_REINFORCED,
-	HULL_ADVANCED,
-	ENGINE_BASIC,
-	ENGINE_IMPROVED,
-	ENGINE_ADVANCED,
-	WEAPON_BASIC_LASER,
-	WEAPON_BASIC_KINETIC,
-	WEAPON_ADVANCED_LASER,
-	WEAPON_ADVANCED_KINETIC,
-	WEAPON_HEAVY_LASER,
-	WEAPON_HEAVY_KINETIC,
-	MEDICAL_BASIC,
-	MEDICAL_ADVANCED
-}
-
-enum CharacterStats {
-	NONE,
-	COMBAT_SKILL,
-	TOUGHNESS,
-	REACTIONS,
-	SAVVY,
-	LUCK,
-	SPEED
-}
-
-enum FactionType {
-	NONE,
-	NEUTRAL,
-	FRIENDLY,
-	HOSTILE,
-	CORPORATE,
-	PIRATE,
-	REBEL,
-	IMPERIAL,
-	ENEMY,
-	ALLIED
 }
 
 ## Enemy Characteristics
@@ -893,32 +880,7 @@ enum Trait {
 	QUICK_LEARNER
 }
 
-## Advanced Training
-enum Training {
-	NONE,
-	PILOT,
-	MECHANIC,
-	MEDICAL,
-	MERCHANT,
-	SECURITY,
-	BROKER,
-	BOT_TECH
-}
-
-const TRAINING_NAMES = {
-	Training.NONE: "None",
-	Training.PILOT: "Pilot Training",
-	Training.MECHANIC: "Mechanic Training",
-	Training.MEDICAL: "Medical Training",
-	Training.MERCHANT: "Merchant Training",
-	Training.SECURITY: "Security Training",
-	Training.BROKER: "Broker Training",
-	Training.BOT_TECH: "Bot Tech Training"
-}
-
-static func get_training_name(training: Training) -> String:
-	return TRAINING_NAMES.get(training, "Unknown Training")
-
+## Character Status
 enum CharacterStatus {
 	NONE,
 	HEALTHY,
@@ -935,4 +897,57 @@ enum VerificationStatus {
 	PENDING,
 	VERIFIED,
 	REJECTED
+}
+
+## Crew Size
+enum CrewSize {
+	NONE,
+	TWO,
+	THREE,
+	FOUR,
+	FIVE,
+	SIX
+}
+
+enum ShipComponentType {
+	NONE,
+	HULL_BASIC,
+	HULL_REINFORCED,
+	HULL_ADVANCED,
+	ENGINE_BASIC,
+	ENGINE_IMPROVED,
+	ENGINE_ADVANCED,
+	WEAPON_BASIC_LASER,
+	WEAPON_BASIC_KINETIC,
+	WEAPON_ADVANCED_LASER,
+	WEAPON_ADVANCED_KINETIC,
+	WEAPON_HEAVY_LASER,
+	WEAPON_HEAVY_KINETIC,
+	MEDICAL_BASIC,
+	MEDICAL_ADVANCED
+}
+
+## Character Stats
+enum CharacterStats {
+	NONE,
+	REACTIONS,
+	COMBAT_SKILL,
+	TOUGHNESS,
+	SAVVY,
+	TECH,
+	NAVIGATION,
+	SOCIAL
+}
+
+enum FactionType {
+	NONE,
+	NEUTRAL,
+	FRIENDLY,
+	HOSTILE,
+	CORPORATE,
+	PIRATE,
+	REBEL,
+	IMPERIAL,
+	ENEMY,
+	ALLIED
 }

@@ -1,6 +1,10 @@
+class_name FiveParsecsTerrainLayoutGenerator
 extends Node
 
-const TerrainSystem = preload("res://src/core/terrain/TerrainSystem.gd")
+const GameEnums: GDScript = preload("res://src/core/systems/GlobalEnums.gd")
+const FiveParsecsTerrainTypes: GDScript = preload("res://src/core/terrain/TerrainTypes.gd")
+const FiveParsecsTerrainLayout: GDScript = preload("res://src/core/terrain/TerrainLayout.gd")
+const TerrainSystem: GDScript = preload("res://src/core/terrain/TerrainSystem.gd")
 
 enum LayoutType {
     OPEN, # Sparse cover, good for ranged combat

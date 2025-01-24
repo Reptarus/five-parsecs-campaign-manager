@@ -1,10 +1,14 @@
+@tool
 extends Node
-class_name CrewRelationshipManager
+class_name FiveParsecsCrewRelationshipManager
+
+const GameEnums = preload("res://src/core/systems/GlobalEnums.gd")
+const Character = preload("res://src/core/character/Base/Character.gd")
 
 signal relationship_added(char1: Character, char2: Character, relationship_type: String)
 signal relationship_removed(char1: Character, char2: Character)
 
-const RELATIONSHIP_TYPES = {
+const RELATIONSHIP_TYPES: Dictionary = {
 	"HIRED": "Hired by",
 	"MOTIVATION": "Shares motivation with",
 	"AUTHORITY": "In trouble with authorities together",
@@ -18,7 +22,7 @@ const RELATIONSHIP_TYPES = {
 
 const CREW_CHARACTERISTICS = {
 	"ROGUES": "Lovable rogues",
-	"PROFESSIONALS": "Consummate professionals", 
+	"PROFESSIONALS": "Consummate professionals",
 	"OUTLAWS": "Cut-throat outlaws",
 	"DEFENDERS": "Defenders of the down-trodden",
 	"REBELS": "Hardened rebels",
@@ -28,7 +32,7 @@ const CREW_CHARACTERISTICS = {
 	"DREAMERS": "Living the dream"
 }
 
-var relationships: Dictionary = {}  # Dictionary of Character pairs to relationship type
+var relationships: Dictionary = {} # Dictionary of Character pairs to relationship type
 var crew_characteristic: String = ""
 var crew_meeting_story: String = ""
 
@@ -125,4 +129,4 @@ func deserialize(data: Dictionary) -> void:
 		relationships[pair_key] = data["relationships"][pair_key]
 	
 	crew_characteristic = data.get("crew_characteristic", "")
-	crew_meeting_story = data.get("crew_meeting_story", "") 
+	crew_meeting_story = data.get("crew_meeting_story", "")

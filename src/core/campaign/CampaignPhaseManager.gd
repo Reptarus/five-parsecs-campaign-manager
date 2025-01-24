@@ -1,28 +1,32 @@
 @tool
 extends Node
 
-signal phase_changed(old_phase: int, new_phase: int)
+const GameEnums = preload("res://src/core/systems/GlobalEnums.gd")
+const FiveParsecsGameState = preload("res://src/core/state/GameState.gd")
+
+# Import the enums directly for cleaner code
+const FiveParcsecsCampaignPhase = GameEnums.FiveParcsecsCampaignPhase
+
+signal phase_changed(old_phase: FiveParcsecsCampaignPhase, new_phase: FiveParcsecsCampaignPhase)
 signal phase_completed
-signal phase_started(phase: int)
+signal phase_started(phase: FiveParcsecsCampaignPhase)
 signal phase_action_completed(action: String)
 signal phase_event_triggered(event: Dictionary)
 
-const GameEnums = preload("res://src/core/systems/GlobalEnums.gd")
-const GameState = preload("res://src/core/state/GameState.gd")
-
-var game_state: GameState
-var current_phase: GameEnums.CampaignPhase = GameEnums.CampaignPhase.NONE
-var previous_phase: GameEnums.CampaignPhase = GameEnums.CampaignPhase.NONE
+var game_state: FiveParsecsGameState
+var current_phase: FiveParcsecsCampaignPhase = FiveParcsecsCampaignPhase.NONE
+var previous_phase: FiveParcsecsCampaignPhase = FiveParcsecsCampaignPhase.NONE
 
 # Phase tracking
 var phase_actions_completed: Dictionary = {}
 var phase_requirements: Dictionary = {}
 var phase_resources: Dictionary = {}
+var phase_events: Array = []
 
-func _init() -> void:
+func _ready() -> void:
 	reset_phase_tracking()
 
-func setup(state: GameState) -> void:
+func setup(state: FiveParsecsGameState) -> void:
 	game_state = state
 	reset_phase_tracking()
 
@@ -44,8 +48,11 @@ func reset_phase_tracking() -> void:
 	
 	phase_requirements.clear()
 	phase_resources.clear()
+	phase_events.clear()
+	current_phase = FiveParcsecsCampaignPhase.NONE
+	previous_phase = FiveParcsecsCampaignPhase.NONE
 
-func start_phase(new_phase: GameEnums.CampaignPhase) -> bool:
+func start_phase(new_phase: FiveParcsecsCampaignPhase) -> bool:
 	if not _can_transition_to_phase(new_phase):
 		return false
 	
@@ -73,64 +80,64 @@ func complete_phase_action(action: String) -> void:
 		if _are_phase_requirements_met():
 			phase_completed.emit()
 
-func _can_transition_to_phase(new_phase: GameEnums.CampaignPhase) -> bool:
+func _can_transition_to_phase(new_phase: FiveParcsecsCampaignPhase) -> bool:
 	match new_phase:
-		GameEnums.CampaignPhase.SETUP:
-			return current_phase == GameEnums.CampaignPhase.NONE
-		GameEnums.CampaignPhase.UPKEEP:
-			return current_phase in [GameEnums.CampaignPhase.SETUP, GameEnums.CampaignPhase.END]
-		GameEnums.CampaignPhase.STORY:
-			return current_phase == GameEnums.CampaignPhase.UPKEEP
-		GameEnums.CampaignPhase.CAMPAIGN:
-			return current_phase == GameEnums.CampaignPhase.STORY
-		GameEnums.CampaignPhase.BATTLE_SETUP:
-			return current_phase == GameEnums.CampaignPhase.CAMPAIGN
-		GameEnums.CampaignPhase.BATTLE_RESOLUTION:
-			return current_phase == GameEnums.CampaignPhase.BATTLE_SETUP
-		GameEnums.CampaignPhase.ADVANCEMENT:
-			return current_phase == GameEnums.CampaignPhase.BATTLE_RESOLUTION
-		GameEnums.CampaignPhase.TRADE:
-			return current_phase == GameEnums.CampaignPhase.ADVANCEMENT
-		GameEnums.CampaignPhase.END:
-			return current_phase == GameEnums.CampaignPhase.TRADE
+		FiveParcsecsCampaignPhase.SETUP:
+			return current_phase == FiveParcsecsCampaignPhase.NONE
+		FiveParcsecsCampaignPhase.UPKEEP:
+			return current_phase in [FiveParcsecsCampaignPhase.SETUP, FiveParcsecsCampaignPhase.END]
+		FiveParcsecsCampaignPhase.STORY:
+			return current_phase == FiveParcsecsCampaignPhase.UPKEEP
+		FiveParcsecsCampaignPhase.CAMPAIGN:
+			return current_phase == FiveParcsecsCampaignPhase.STORY
+		FiveParcsecsCampaignPhase.BATTLE_SETUP:
+			return current_phase == FiveParcsecsCampaignPhase.CAMPAIGN
+		FiveParcsecsCampaignPhase.BATTLE_RESOLUTION:
+			return current_phase == FiveParcsecsCampaignPhase.BATTLE_SETUP
+		FiveParcsecsCampaignPhase.ADVANCEMENT:
+			return current_phase == FiveParcsecsCampaignPhase.BATTLE_RESOLUTION
+		FiveParcsecsCampaignPhase.TRADE:
+			return current_phase == FiveParcsecsCampaignPhase.ADVANCEMENT
+		FiveParcsecsCampaignPhase.END:
+			return current_phase == FiveParcsecsCampaignPhase.TRADE
 		_:
 			return false
 
-func _setup_phase_requirements(phase: GameEnums.CampaignPhase) -> void:
+func _setup_phase_requirements(phase: FiveParcsecsCampaignPhase) -> void:
 	match phase:
-		GameEnums.CampaignPhase.UPKEEP:
+		FiveParcsecsCampaignPhase.UPKEEP:
 			phase_requirements = {
 				"upkeep_paid": true,
 				"tasks_assigned": true,
 				"events_resolved": true
 			}
-		GameEnums.CampaignPhase.STORY:
+		FiveParcsecsCampaignPhase.STORY:
 			phase_requirements = {
 				"events_resolved": true
 			}
-		GameEnums.CampaignPhase.CAMPAIGN:
+		FiveParcsecsCampaignPhase.CAMPAIGN:
 			phase_requirements = {
 				"location_checked": true,
 				"mission_selected": true
 			}
-		GameEnums.CampaignPhase.BATTLE_SETUP:
+		FiveParcsecsCampaignPhase.BATTLE_SETUP:
 			phase_requirements = {
 				"deployment_ready": true
 			}
-		GameEnums.CampaignPhase.BATTLE_RESOLUTION:
+		FiveParcsecsCampaignPhase.BATTLE_RESOLUTION:
 			phase_requirements = {
 				"battle_completed": true,
 				"rewards_calculated": true
 			}
-		GameEnums.CampaignPhase.ADVANCEMENT:
+		FiveParcsecsCampaignPhase.ADVANCEMENT:
 			phase_requirements = {
 				"advancement_completed": true
 			}
-		GameEnums.CampaignPhase.TRADE:
+		FiveParcsecsCampaignPhase.TRADE:
 			phase_requirements = {
 				"trade_completed": true
 			}
-		GameEnums.CampaignPhase.END:
+		FiveParcsecsCampaignPhase.END:
 			phase_requirements = {
 				"resources_updated": true
 			}
@@ -139,21 +146,21 @@ func _setup_phase_requirements(phase: GameEnums.CampaignPhase) -> void:
 
 func _execute_phase_start() -> void:
 	match current_phase:
-		GameEnums.CampaignPhase.UPKEEP:
+		FiveParcsecsCampaignPhase.UPKEEP:
 			_start_upkeep_phase()
-		GameEnums.CampaignPhase.STORY:
+		FiveParcsecsCampaignPhase.STORY:
 			_start_story_phase()
-		GameEnums.CampaignPhase.CAMPAIGN:
+		FiveParcsecsCampaignPhase.CAMPAIGN:
 			_start_campaign_phase()
-		GameEnums.CampaignPhase.BATTLE_SETUP:
+		FiveParcsecsCampaignPhase.BATTLE_SETUP:
 			_start_battle_setup()
-		GameEnums.CampaignPhase.BATTLE_RESOLUTION:
+		FiveParcsecsCampaignPhase.BATTLE_RESOLUTION:
 			_start_battle_resolution()
-		GameEnums.CampaignPhase.ADVANCEMENT:
+		FiveParcsecsCampaignPhase.ADVANCEMENT:
 			_start_advancement_phase()
-		GameEnums.CampaignPhase.TRADE:
+		FiveParcsecsCampaignPhase.TRADE:
 			_start_trade_phase()
-		GameEnums.CampaignPhase.END:
+		FiveParcsecsCampaignPhase.END:
 			_start_end_phase()
 
 func _are_phase_requirements_met() -> bool:

@@ -1,5 +1,7 @@
-class_name Location
+class_name FiveParsecsLocation
 extends Resource
+
+const GameEnums = preload("res://src/core/systems/GlobalEnums.gd")
 
 # Resource type constants
 const RESOURCE_CREDITS = 0
@@ -26,22 +28,27 @@ const MARKET_RESTRICTED = 3
 @export var danger_level: int = 1
 @export var resources: Dictionary = {}
 @export var connected_locations: Array[String] = []
-@export var available_missions: Array = []
-@export var local_events: Array = []
+@export var available_missions: Array[Dictionary] = []
+@export var local_events: Array[Dictionary] = []
 @export var market_modifiers: Dictionary = {}
-@export var special_features: Array = []
+@export var special_features: Array[String] = []
 
 # Economy and trade
 @export var market_state: int = MARKET_NORMAL
-@export var trade_goods: Array = []
+@export var trade_goods: Array[Dictionary] = []
 @export var black_market_active: bool = false
 @export var price_modifiers: Dictionary = {}
 
 # Status and conditions
 @export var is_discovered: bool = false
 @export var is_accessible: bool = true
-@export var current_threats: Array = []
-@export var active_effects: Array = []
+@export var current_threats: Array[Dictionary] = []
+@export var active_effects: Array[Dictionary] = []
+
+var _patron_name: String
+var _location: FiveParsecsLocation
+var _relationship: int
+var _faction_type: GameEnums.FactionType
 
 func _init() -> void:
     if not resources.is_empty():
@@ -81,7 +88,7 @@ func add_event(event_data: Dictionary) -> void:
         local_events.append(event_data)
 
 func clear_expired_events() -> void:
-    var current_events = []
+    var current_events: Array[Dictionary] = []
     for event in local_events:
         if not event.get("expired", false):
             current_events.append(event)
@@ -90,8 +97,8 @@ func clear_expired_events() -> void:
 func update_market_state() -> void:
     # Update prices based on market state and modifiers
     for resource in resources.keys():
-        var base_price = resources[resource]
-        var modifier = 1.0
+        var base_price: float = resources[resource]
+        var modifier: float = 1.0
         
         # Apply market state modifier
         match market_state:
@@ -109,16 +116,16 @@ func update_market_state() -> void:
         # Update price
         price_modifiers[resource] = modifier
 
-func get_travel_cost_to(destination: Location) -> float:
-    var base_cost = 10.0
-    var distance = coordinates.distance_to(destination.coordinates)
-    var danger_modifier = (danger_level + destination.danger_level) * 0.1
+func get_travel_cost_to(destination: FiveParsecsLocation) -> float:
+    var base_cost: float = 10.0
+    var distance: float = coordinates.distance_to(destination.coordinates)
+    var danger_modifier: float = (danger_level + destination.danger_level) * 0.1
     
     return base_cost + (distance * 2) + (base_cost * danger_modifier)
 
 func get_resource_price(resource_type: GameEnums.ResourceType) -> float:
-    var base_price = resources.get(resource_type, 0)
-    var modifier = price_modifiers.get(resource_type, 1.0)
+    var base_price: float = resources.get(resource_type, 0)
+    var modifier: float = price_modifiers.get(resource_type, 1.0)
     return base_price * modifier
 
 func add_threat(threat_data: Dictionary) -> void:
@@ -165,8 +172,8 @@ func serialize() -> Dictionary:
         "active_effects": active_effects
     }
 
-static func deserialize(data: Dictionary) -> Location:
-    var location = Location.new()
+static func deserialize(data: Dictionary) -> FiveParsecsLocation:
+    var location = FiveParsecsLocation.new()
     location.name = data.get("name", "")
     location.coordinates = Vector2(data.get("coordinates", {}).get("x", 0), data.get("coordinates", {}).get("y", 0))
     location.type = data.get("type", "")

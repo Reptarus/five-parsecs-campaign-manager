@@ -1,11 +1,15 @@
-class_name CrewTaskManager
+@tool
 extends Node
+class_name FiveParsecsCrewTaskManager
 
-const GameEnums = preload("res://src/core/systems/GlobalEnums.gd")
-const FiveParsecsGameState = preload("res://src/core/state/GameState.gd")
+const GameEnums := preload("res://src/core/systems/GlobalEnums.gd")
+const Character := preload("res://src/core/character/Base/Character.gd")
+const FiveParsecsGameState := preload("res://src/core/state/GameState.gd")
+const CrewMember := preload("res://src/core/campaign/crew/CrewMember.gd")
 
-signal task_assigned(crew_member: CrewMember, task: int)
-signal task_completed(crew_member: CrewMember, task: int)
+signal task_assigned(character: Character, task: int)
+signal task_completed(character: Character, task: int, success: bool)
+signal task_failed(character: Character, task: int, reason: String)
 
 var game_state: FiveParsecsGameState
 var active_tasks: Dictionary = {} # CrewMember: int (task)

@@ -4,9 +4,9 @@
 class_name CampaignManager
 extends Resource
 
-const GameEnums = preload("res://src/core/systems/GlobalEnums.gd")
-const FiveParsecsGameState = preload("res://src/core/state/GameState.gd")
-const StoryQuestData = preload("res://src/core/story/StoryQuestData.gd")
+const GameEnums := preload("res://src/core/systems/GlobalEnums.gd")
+const FiveParsecsGameState := preload("res://src/core/state/GameState.gd")
+const StoryQuestData := preload("res://src/core/story/StoryQuestData.gd")
 
 signal mission_started(mission: StoryQuestData)
 signal mission_completed(mission: StoryQuestData)
@@ -26,16 +26,16 @@ var active_missions: Array[StoryQuestData]
 var completed_missions: Array[StoryQuestData]
 var mission_history: Array[Dictionary]
 
-const MAX_ACTIVE_MISSIONS = 5
-const MIN_REPUTATION_FOR_PATRONS = 10
+const MAX_ACTIVE_MISSIONS := 5
+const MAX_COMPLETED_MISSIONS := 20
+const MAX_MISSION_HISTORY := 50
+const MIN_REPUTATION_FOR_PATRONS := 10
 
-# Campaign validation constants
-const MAX_COMPLETED_MISSIONS = 100 # Prevent memory issues from storing too many completed missions
-const MAX_MISSION_HISTORY = 200 # Limit mission history entries
-const REQUIRED_RESOURCES = [
-	GameEnums.ResourceType.CREDITS,
-	GameEnums.ResourceType.FUEL,
-	GameEnums.ResourceType.SUPPLIES
+# Required resources for campaign management
+const REQUIRED_RESOURCES := [
+	GameEnums.ResourceType.SUPPLIES,
+	GameEnums.ResourceType.MEDICAL_SUPPLIES,
+	GameEnums.ResourceType.FUEL
 ]
 
 func _init(p_game_state: FiveParsecsGameState) -> void:
@@ -80,6 +80,14 @@ func validate_campaign_state() -> Dictionary:
 	for resource in REQUIRED_RESOURCES:
 		if not game_state.has_resource(resource):
 			errors.append("Missing required resource: %s" % resource)
+		elif game_state.get_resource(resource) <= 0:
+			errors.append("Resource depleted: %s" % resource)
+	
+	# Validate active mission requirements
+	for mission in active_missions:
+		var mission_errors = _validate_mission_requirements(mission)
+		if not mission_errors.is_empty():
+			errors.append_array(mission_errors)
 	
 	# Check for mission duplicates
 	var mission_ids = {}
@@ -97,6 +105,33 @@ func validate_campaign_state() -> Dictionary:
 		"errors": errors,
 		"warnings": warnings
 	}
+
+func _validate_mission_requirements(mission: StoryQuestData) -> Array[String]:
+	var errors: Array[String] = []
+	
+	# Check crew size
+	if game_state.get_crew_size() < mission.required_crew_size:
+		errors.append("Insufficient crew size for mission %s: %d/%d" % [mission.mission_id, game_state.get_crew_size(), mission.required_crew_size])
+	
+	# Check equipment
+	for equipment in mission.required_equipment:
+		if not game_state.has_equipment(equipment):
+			errors.append("Missing required equipment for mission %s: %s" % [mission.mission_id, equipment])
+	
+	# Check resources
+	for resource_type in mission.required_resources:
+		var required_amount = mission.required_resources[resource_type]
+		if not game_state.has_resource(resource_type):
+			errors.append("Missing required resource for mission %s: %s" % [mission.mission_id, resource_type])
+		elif game_state.get_resource(resource_type) < required_amount:
+			errors.append("Insufficient resource for mission %s: %s (%d/%d)" % [
+				mission.mission_id,
+				resource_type,
+				game_state.get_resource(resource_type),
+				required_amount
+			])
+	
+	return errors
 
 func _validate_mission_state(mission: StoryQuestData, expected_state: String) -> bool:
 	match expected_state:
@@ -119,8 +154,23 @@ func cleanup_campaign_state() -> void:
 	if mission_history.size() > MAX_MISSION_HISTORY:
 		mission_history = mission_history.slice(-MAX_MISSION_HISTORY)
 
-func create_mission(mission_type: int, config: Dictionary = {}) -> StoryQuestData:
+func create_mission(mission_type: GameEnums.MissionType, config: Dictionary = {}) -> StoryQuestData:
 	var mission := StoryQuestData.create_mission(mission_type, config)
+	
+	# Configure the mission with its type-specific settings
+	mission.configure(mission_type)
+	
+	# Add default objective based on mission type
+	match mission_type:
+		GameEnums.MissionType.PATROL:
+			mission.add_objective(GameEnums.MissionObjective.PATROL, "Patrol the designated area", true)
+		GameEnums.MissionType.RESCUE:
+			mission.add_objective(GameEnums.MissionObjective.RESCUE, "Rescue the target", true)
+		GameEnums.MissionType.SABOTAGE:
+			mission.add_objective(GameEnums.MissionObjective.SABOTAGE, "Sabotage the target", true)
+		GameEnums.MissionType.PATRON:
+			# For patron missions, use a standard patrol objective for now
+			mission.add_objective(GameEnums.MissionObjective.PATROL, "Complete patron request", true)
 	
 	# Add to available missions if valid and campaign state is valid
 	var validation = mission.validate()
@@ -128,6 +178,7 @@ func create_mission(mission_type: int, config: Dictionary = {}) -> StoryQuestDat
 		var campaign_validation = validate_campaign_state()
 		if campaign_validation.is_valid:
 			available_missions.append(mission)
+			mission_available.emit(mission)
 		else:
 			push_warning("Cannot add mission - invalid campaign state: %s" % campaign_validation.errors)
 	else:
@@ -137,11 +188,16 @@ func create_mission(mission_type: int, config: Dictionary = {}) -> StoryQuestDat
 
 func start_mission(mission: StoryQuestData) -> bool:
 	if not mission in available_missions:
+		push_warning("Cannot start mission - not in available missions")
 		return false
 	
-	if not _can_start_mission(mission):
+	# Validate mission requirements
+	var requirement_errors = _validate_mission_requirements(mission)
+	if not requirement_errors.is_empty():
+		push_warning("Cannot start mission - requirements not met: %s" % requirement_errors)
 		return false
 	
+	# Validate campaign state
 	var validation = validate_campaign_state()
 	if not validation.is_valid:
 		push_warning("Cannot start mission - invalid campaign state: %s" % validation.errors)
@@ -155,38 +211,75 @@ func start_mission(mission: StoryQuestData) -> bool:
 	return true
 
 func complete_mission(mission: StoryQuestData, force_complete: bool = false) -> void:
+	# Check if mission is active
 	if not mission in active_missions:
+		push_warning("Cannot complete mission - not in active missions")
 		return
 	
+	# Check if mission can be completed
 	if not force_complete and not _is_mission_complete(mission):
+		push_warning("Cannot complete mission - objectives not met")
 		return
 	
+	# Validate campaign state
 	var validation = validate_campaign_state()
 	if not validation.is_valid:
 		push_warning("Cannot complete mission - invalid campaign state: %s" % validation.errors)
 		return
-		
+	
+	# Update mission state first
+	mission.is_completed = true
+	mission.is_active = false
+	
+	# Remove from active missions and add to completed missions
 	active_missions.erase(mission)
 	completed_missions.append(mission)
-	mission.is_completed = true
 	
+	# Apply rewards and consume resources
+	_apply_mission_rewards(mission)
+	_consume_mission_resources(mission)
+	
+	# Create and add history entry
 	var mission_data = _create_mission_history_entry(mission)
+	mission_data["rewards"] = {
+		"credits": mission.reward_credits,
+		"reputation": mission.reward_reputation,
+		"items": mission.reward_items
+	}
 	mission_history.append(mission_data)
 	
+	# Clean up and emit completion
 	cleanup_campaign_state()
-	_trigger_mission_completion_events(mission)
+	mission_completed.emit(mission)
 
 func fail_mission(mission: StoryQuestData) -> void:
+	# Check if mission is active
 	if not mission in active_missions:
+		push_warning("Cannot fail mission - not in active missions")
 		return
 	
-	active_missions.erase(mission)
+	# Update mission state first
 	mission.is_failed = true
+	mission.is_active = false
 	
+	# Remove from active missions
+	active_missions.erase(mission)
+	
+	# Consume resources even on failure (they were committed to the mission)
+	_consume_mission_resources(mission)
+	
+	# Create and add history entry
 	var mission_data = _create_mission_history_entry(mission)
+	mission_data["rewards"] = {
+		"credits": 0,
+		"reputation": 0,
+		"items": []
+	}
 	mission_history.append(mission_data)
 	
-	_trigger_mission_failure_events(mission)
+	# Clean up and emit failure
+	cleanup_campaign_state()
+	mission_failed.emit(mission)
 
 func get_available_missions() -> Array[StoryQuestData]:
 	return available_missions
@@ -259,24 +352,6 @@ func _calculate_risk_level() -> int:
 	
 	return clampi(base_risk, 1, 5)
 
-func _can_start_mission(mission: StoryQuestData) -> bool:
-	# Check if we have enough crew members
-	if game_state.get_crew_size() < mission.required_crew_size:
-		return false
-
-	# Check if we have required equipment
-	for equipment in mission.required_equipment:
-		if not game_state.has_equipment(equipment):
-			return false
-			
-	# Check if we have required resources
-	for resource_type in mission.required_resources:
-		var required_amount = mission.required_resources[resource_type]
-		if game_state.get_resource(resource_type) < required_amount:
-			return false
-			
-	return true
-
 func _is_mission_complete(mission: StoryQuestData) -> bool:
 	# Check primary objective
 	if mission.primary_objective != GameEnums.MissionObjective.NONE:
@@ -312,6 +387,8 @@ func _create_mission_history_entry(mission: StoryQuestData) -> Dictionary:
 		"is_failed": mission.is_failed,
 		"objectives_completed": mission.objectives.filter(func(obj): return obj.completed).size(),
 		"total_objectives": mission.objectives.size(),
+		"resources_consumed": mission.required_resources.duplicate(),
+		"crew_involved": game_state.get_crew_size(),
 		"timestamp": Time.get_unix_time_from_system()
 	}
 
@@ -319,9 +396,46 @@ func _trigger_mission_start_events(mission: StoryQuestData) -> void:
 	mission_started.emit(mission)
 
 func _trigger_mission_completion_events(mission: StoryQuestData) -> void:
+	# Apply mission rewards
+	_apply_mission_rewards(mission)
+	
+	# Consume mission resources
+	_consume_mission_resources(mission)
+	
+	# Update mission history
+	var mission_data = _create_mission_history_entry(mission)
+	mission_history.append(mission_data)
+	
 	mission_completed.emit(mission)
 
+func _apply_mission_rewards(mission: StoryQuestData) -> void:
+	# Apply credits reward
+	if mission.reward_credits > 0:
+		game_state.modify_credits(mission.reward_credits)
+	
+	# Apply reputation reward
+	if mission.reward_reputation > 0:
+		game_state.modify_reputation(mission.reward_reputation)
+	
+	# Apply item rewards
+	for item in mission.reward_items:
+		# TODO: Add item to inventory when inventory system is implemented
+		pass
+
+func _consume_mission_resources(mission: StoryQuestData) -> void:
+	# Consume required resources
+	for resource_type in mission.required_resources:
+		var amount = mission.required_resources[resource_type]
+		game_state.modify_resource(resource_type, -amount)
+
 func _trigger_mission_failure_events(mission: StoryQuestData) -> void:
+	# Consume resources even on failure (they were committed to the mission)
+	_consume_mission_resources(mission)
+	
+	# Update mission history
+	var mission_data = _create_mission_history_entry(mission)
+	mission_history.append(mission_data)
+	
 	mission_failed.emit(mission)
 
 func save_campaign_state() -> Dictionary:

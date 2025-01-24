@@ -1,178 +1,155 @@
 @tool
-extends "res://tests/test_base.gd"
+extends "res://addons/gut/test.gd"
 
-const CombatLogPanel := preload("res://src/ui/components/combat/log/combat_log_panel.tscn")
+const CombatLogPanel = preload("res://src/ui/components/combat/log/combat_log_panel.gd")
 
-var panel: Node
+var panel: CombatLogPanel
+var log_list: ItemList
+var clear_button: Button
+var filter_options: OptionButton
+var auto_scroll_check: CheckBox
 
 func before_each() -> void:
-    super.before_each()
-    panel = CombatLogPanel.instantiate()
-    add_child(panel)
+	panel = CombatLogPanel.new()
+	
+	# Create required nodes
+	log_list = ItemList.new()
+	log_list.name = "LogList"
+	log_list.set_meta("_edit_group_", true) # To make it unique for %
+	
+	clear_button = Button.new()
+	clear_button.name = "ClearButton"
+	clear_button.set_meta("_edit_group_", true)
+	
+	filter_options = OptionButton.new()
+	filter_options.name = "FilterOptions"
+	filter_options.set_meta("_edit_group_", true)
+	
+	auto_scroll_check = CheckBox.new()
+	auto_scroll_check.name = "AutoScrollCheck"
+	auto_scroll_check.set_meta("_edit_group_", true)
+	
+	# Set up hierarchy
+	add_child(panel)
+	panel.add_child(log_list)
+	panel.add_child(clear_button)
+	panel.add_child(filter_options)
+	panel.add_child(auto_scroll_check)
+	
+	# Force ready call after setup
+	panel._ready()
 
 func after_each() -> void:
-    super.after_each()
-    panel = null
+	panel.queue_free()
 
-func test_initialization() -> void:
-    assert_not_null(panel, "Combat log panel should be initialized")
-    assert_true(panel.has_method("add_log_entry"), "Should have add_log_entry method")
-    assert_true(panel.has_method("clear_log"), "Should have clear_log method")
+func test_initial_setup() -> void:
+	assert_not_null(panel.log_list)
+	assert_not_null(panel.clear_button)
+	assert_not_null(panel.filter_options)
+	assert_not_null(panel.auto_scroll_check)
+	
+	assert_eq(panel.max_entries, 100)
+	assert_true(panel.auto_scroll)
+	assert_eq(panel.current_filter, "all")
+	assert_eq(panel.log_entries.size(), 0)
+
+func test_filter_options_setup() -> void:
+	for key in panel.FILTER_OPTIONS:
+		var found := false
+		for i in range(filter_options.item_count):
+			if filter_options.get_item_metadata(i) == key:
+				found = true
+				break
+		assert_true(found, "Filter option '%s' should be in dropdown" % key)
 
 func test_add_log_entry() -> void:
-    var test_entry = {
-        "type": GameEnums.EventCategory.COMBAT,
-        "source": "Test Unit",
-        "target": "Enemy Unit",
-        "details": {
-            "damage": 5,
-            "hit_location": "Torso"
-        }
-    }
-    panel.add_log_entry(test_entry)
-    assert_eq(panel.log_entries.size(), 1, "Should add entry to log")
-    assert_eq(panel.log_entries[0].type, GameEnums.EventCategory.COMBAT, "Should store entry type")
+	panel.add_log_entry("combat", "Test combat message")
+	
+	assert_eq(panel.log_entries.size(), 1)
+	assert_eq(panel.log_entries[0].type, "combat")
+	assert_eq(panel.log_entries[0].message, "Test combat message")
+	assert_eq(log_list.item_count, 1)
 
-func test_add_multiple_entries() -> void:
-    var test_entries = [
-        {
-            "type": GameEnums.EventCategory.COMBAT,
-            "source": "Unit 1",
-            "target": "Enemy 1",
-            "details": {"damage": 3}
-        },
-        {
-            "type": GameEnums.EventCategory.TACTICAL,
-            "source": "Unit 2",
-            "details": {"distance": 2}
-        }
-    ]
-    
-    for entry in test_entries:
-        panel.add_log_entry(entry)
-    
-    assert_eq(panel.log_entries.size(), 2, "Should store multiple entries")
-    assert_eq(panel.log_entries[0].type, GameEnums.EventCategory.COMBAT, "Should store first entry type")
-    assert_eq(panel.log_entries[1].type, GameEnums.EventCategory.TACTICAL, "Should store second entry type")
+func test_max_entries_limit() -> void:
+	# Add more than max_entries
+	for i in range(panel.max_entries + 10):
+		panel.add_log_entry("test", "Entry %d" % i)
+	
+	assert_eq(panel.log_entries.size(), panel.max_entries)
+	assert_eq(log_list.item_count, panel.max_entries)
 
 func test_clear_log() -> void:
-    var test_entry = {
-        "type": GameEnums.EventCategory.COMBAT,
-        "source": "Test Unit",
-        "target": "Enemy Unit",
-        "details": {"damage": 5}
-    }
-    panel.add_log_entry(test_entry)
-    panel.clear_log()
-    assert_eq(panel.log_entries.size(), 0, "Should clear log entries")
+	# Add some entries
+	panel.add_log_entry("test", "Entry 1")
+	panel.add_log_entry("test", "Entry 2")
+	
+	# Clear the log
+	panel.clear_log()
+	
+	assert_eq(panel.log_entries.size(), 0)
+	assert_eq(log_list.item_count, 0)
 
-func test_filter_entries() -> void:
-    var test_entries = [
-        {
-            "type": GameEnums.EventCategory.COMBAT,
-            "source": "Unit 1",
-            "target": "Enemy 1",
-            "details": {"damage": 3}
-        },
-        {
-            "type": GameEnums.EventCategory.TACTICAL,
-            "source": "Unit 1",
-            "details": {"distance": 2}
-        },
-        {
-            "type": GameEnums.EventCategory.COMBAT,
-            "source": "Unit 2",
-            "target": "Enemy 2",
-            "details": {"damage": 4}
-        }
-    ]
-    
-    for entry in test_entries:
-        panel.add_log_entry(entry)
-    
-    var combat_entries = panel.filter_entries(GameEnums.EventCategory.COMBAT)
-    assert_eq(combat_entries.size(), 2, "Should filter combat entries")
-    assert_eq(combat_entries[0].source, "Unit 1", "Should preserve entry details")
-    
-    var tactical_entries = panel.filter_entries(GameEnums.EventCategory.TACTICAL)
-    assert_eq(tactical_entries.size(), 1, "Should filter tactical entries")
-    assert_eq(tactical_entries[0].source, "Unit 1", "Should preserve entry details")
+func test_filter_handling() -> void:
+	# Add entries of different types
+	panel.add_log_entry("combat", "Combat entry")
+	panel.add_log_entry("damage", "Damage entry")
+	
+	# Change filter to combat only
+	panel.current_filter = "combat"
+	panel._refresh_log_display()
+	
+	var visible_entries := 0
+	for i in range(log_list.item_count):
+		var entry = log_list.get_item_metadata(i)
+		if entry.type == "combat":
+			visible_entries += 1
+	
+	assert_eq(visible_entries, 1)
 
-func test_get_entries_by_unit() -> void:
-    var test_entries = [
-        {
-            "type": GameEnums.EventCategory.COMBAT,
-            "source": "Unit 1",
-            "target": "Enemy 1",
-            "details": {"damage": 3}
-        },
-        {
-            "type": GameEnums.EventCategory.TACTICAL,
-            "source": "Unit 1",
-            "details": {"distance": 2}
-        },
-        {
-            "type": GameEnums.EventCategory.COMBAT,
-            "source": "Unit 2",
-            "target": "Enemy 2",
-            "details": {"damage": 4}
-        }
-    ]
-    
-    for entry in test_entries:
-        panel.add_log_entry(entry)
-    
-    var unit1_entries = panel.get_entries_by_unit("Unit 1")
-    assert_eq(unit1_entries.size(), 2, "Should get all entries for Unit 1")
-    
-    var unit2_entries = panel.get_entries_by_unit("Unit 2")
-    assert_eq(unit2_entries.size(), 1, "Should get all entries for Unit 2")
+func test_combat_result_logging() -> void:
+	var result = {
+		"hit": true,
+		"damage": 15,
+		"effects": ["stunned", "bleeding"]
+	}
+	panel.log_combat_result("Warrior", "Dragon", result)
+	
+	assert_eq(panel.log_entries.size(), 1)
+	var entry = panel.log_entries[0]
+	assert_eq(entry.type, "result")
+	assert_true(entry.message.contains("Hit!"))
+	assert_true(entry.message.contains("15 damage"))
+	assert_true(entry.message.contains("stunned"))
+	assert_true(entry.message.contains("bleeding"))
 
-func test_auto_scroll() -> void:
-    panel.auto_scroll = true
-    var test_entry = {
-        "type": GameEnums.EventCategory.COMBAT,
-        "source": "Test Unit",
-        "target": "Enemy Unit",
-        "details": {"damage": 5}
-    }
-    panel.add_log_entry(test_entry)
-    assert_true(panel.is_scrolled_to_bottom(), "Should auto-scroll to bottom")
+func test_special_ability_logging() -> void:
+	panel.log_special_ability("Mage", "Fireball", ["Goblin", "Orc"], 3)
+	
+	assert_eq(panel.log_entries.size(), 1)
+	var entry = panel.log_entries[0]
+	assert_eq(entry.type, "ability")
+	assert_true(entry.message.contains("Mage"))
+	assert_true(entry.message.contains("Fireball"))
+	assert_true(entry.message.contains("Goblin"))
+	assert_true(entry.message.contains("Orc"))
+	assert_true(entry.message.contains("Cooldown: 3"))
 
-func test_disable_auto_scroll() -> void:
-    panel.auto_scroll = false
-    var test_entry = {
-        "type": GameEnums.EventCategory.COMBAT,
-        "source": "Test Unit",
-        "target": "Enemy Unit",
-        "details": {"damage": 5}
-    }
-    panel.add_log_entry(test_entry)
-    assert_false(panel.is_scrolled_to_bottom(), "Should not auto-scroll when disabled")
+func test_reaction_logging() -> void:
+	panel.log_reaction("Fighter", "Parry", "incoming_attack")
+	
+	assert_eq(panel.log_entries.size(), 1)
+	var entry = panel.log_entries[0]
+	assert_eq(entry.type, "reaction")
+	assert_true(entry.message.contains("Fighter"))
+	assert_true(entry.message.contains("Parry"))
+	assert_true(entry.message.contains("incoming_attack"))
 
-func test_max_entries() -> void:
-    panel.max_entries = 2
-    var test_entries = [
-        {
-            "type": GameEnums.EventCategory.COMBAT,
-            "source": "Unit 1",
-            "details": {"damage": 3}
-        },
-        {
-            "type": GameEnums.EventCategory.COMBAT,
-            "source": "Unit 2",
-            "details": {"damage": 4}
-        },
-        {
-            "type": GameEnums.EventCategory.COMBAT,
-            "source": "Unit 3",
-            "details": {"damage": 5}
-        }
-    ]
-    
-    for entry in test_entries:
-        panel.add_log_entry(entry)
-    
-    assert_eq(panel.log_entries.size(), 2, "Should maintain max entries limit")
-    assert_eq(panel.log_entries[0].source, "Unit 2", "Should remove oldest entry")
-    assert_eq(panel.log_entries[1].source, "Unit 3", "Should keep newest entry")
+func test_area_effect_logging() -> void:
+	panel.log_area_effect("Explosion", Vector2(100, 100), 5.0, ["Target1", "Target2"])
+	
+	assert_eq(panel.log_entries.size(), 1)
+	var entry = panel.log_entries[0]
+	assert_eq(entry.type, "area")
+	assert_true(entry.message.contains("Explosion"))
+	assert_true(entry.message.contains("2 targets"))
+	assert_true(entry.message.contains("5.0 radius"))

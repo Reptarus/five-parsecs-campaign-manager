@@ -1,7 +1,8 @@
-class_name TerrainPiece
+class_name FiveParsecsTerrainPiece
 extends StaticBody3D
 
-const TerrainTypes = preload("res://src/core/terrain/TerrainTypes.gd")
+const GameEnums: GDScript = preload("res://src/core/systems/GlobalEnums.gd")
+const TerrainTypes: GDScript = preload("res://src/core/terrain/TerrainTypes.gd")
 
 @export var terrain_type: int = TerrainTypes.Type.EMPTY
 @export var destructible := false

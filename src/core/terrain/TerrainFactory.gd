@@ -1,8 +1,10 @@
-class_name TerrainFactory
+class_name FiveParsecsTerrainFactory
 extends Node
 
-const TerrainTypes := preload("res://src/core/terrain/TerrainTypes.gd")
-const TerrainRules := preload("res://src/core/terrain/TerrainRules.gd")
+const GameEnums: GDScript = preload("res://src/core/systems/GlobalEnums.gd")
+const FiveParsecsTerrainPiece: GDScript = preload("res://src/core/terrain/TerrainPiece.gd")
+const TerrainTypes: GDScript = preload("res://src/core/terrain/TerrainTypes.gd")
+const TerrainRules: GDScript = preload("res://src/core/terrain/TerrainRules.gd")
 
 # Scene paths for terrain pieces
 const TERRAIN_SCENES := {

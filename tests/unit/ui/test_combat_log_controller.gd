@@ -1,156 +1,165 @@
 @tool
-extends "res://tests/test_base.gd"
+extends "res://tests/fixtures/base_test.gd"
 
-const CombatLogController := preload("res://src/ui/components/combat/log/combat_log_controller.tscn")
+const CombatLogController := preload("res://src/ui/components/combat/log/combat_log_controller.gd")
+const GameEnums := preload("res://src/core/systems/GlobalEnums.gd")
 
-var controller: Node
-var mock_combat_manager: Node
+var controller: CombatLogController
+var _signals_received := {}
 
 func before_each() -> void:
-    super.before_each()
-    controller = CombatLogController.instantiate()
-    mock_combat_manager = Node.new()
-    mock_combat_manager.name = "CombatManager"
-    add_child(mock_combat_manager)
-    add_child(controller)
+	await super.before_each()
+	controller = CombatLogController.new()
+	add_child(controller)
+	track_test_node(controller)
+	watch_signals(controller)
+	await get_tree().process_frame
 
 func after_each() -> void:
-    super.after_each()
-    controller = null
-    mock_combat_manager = null
+	await super.after_each()
+	controller = null
+	_signals_received.clear()
 
-func test_initialization() -> void:
-    assert_not_null(controller, "Combat log controller should be initialized")
-    assert_true(controller.has_method("log_combat_event"), "Should have log_combat_event method")
-    assert_true(controller.has_method("clear_log"), "Should have clear_log method")
+func create_test_entry(type: String, data: Dictionary) -> Dictionary:
+	return {
+		"type": type,
+		"data": data,
+		"timestamp": Time.get_unix_time_from_system()
+	}
 
-func test_log_combat_event() -> void:
-    var test_event = {
-        "type": GameEnums.EventCategory.COMBAT,
-        "source": "Test Unit",
-        "target": "Enemy Unit",
-        "details": {
-            "damage": 5,
-            "hit_location": "Torso"
-        }
-    }
-    controller.log_combat_event(test_event)
-    assert_eq(controller.combat_log.size(), 1, "Should add event to combat log")
-    assert_eq(controller.combat_log[0].type, GameEnums.EventCategory.COMBAT, "Should store event type")
+func test_initial_state() -> void:
+	assert_eq(controller.log_entries.size(), 0, "Should start with no log entries")
+	assert_eq(controller.active_filters.size(), 5, "Should have all filter types")
+	assert_false(controller.combat_log_panel.visible, "Combat log panel should start hidden")
+	assert_eq(controller.get_filter_types().size(), 5, "Should have correct number of filter types")
 
-func test_log_multiple_events() -> void:
-    var test_events = [
-        {
-            "type": GameEnums.EventCategory.COMBAT,
-            "source": "Unit 1",
-            "target": "Enemy 1",
-            "details": {"damage": 3}
-        },
-        {
-            "type": GameEnums.EventCategory.TACTICAL,
-            "source": "Unit 2",
-            "details": {"distance": 2}
-        }
-    ]
-    
-    for event in test_events:
-        controller.log_combat_event(event)
-    
-    assert_eq(controller.combat_log.size(), 2, "Should store multiple events")
-    assert_eq(controller.combat_log[0].type, GameEnums.EventCategory.COMBAT, "Should store first event type")
-    assert_eq(controller.combat_log[1].type, GameEnums.EventCategory.TACTICAL, "Should store second event type")
+func test_add_combat_log_entry() -> void:
+	var test_entry = create_test_entry("combat", {
+		"type": "state_change",
+		"state": {"phase": GameEnums.BattlePhase.ACTIVATION}
+	})
+	
+	controller.add_log_entry(test_entry.type, test_entry.data)
+	
+	assert_eq(controller.log_entries.size(), 1, "Should add entry to log")
+	var entry = controller.log_entries[0]
+	assert_eq(entry.type, "combat", "Should set correct entry type")
+	assert_eq(entry.data.type, "state_change", "Should set correct data type")
+	assert_eq(entry.data.state.phase, GameEnums.BattlePhase.ACTIVATION, "Should store state data")
+	assert_signal_emitted(controller, "log_entry_added")
 
-func test_clear_log() -> void:
-    var test_event = {
-        "type": GameEnums.EventCategory.COMBAT,
-        "source": "Test Unit",
-        "target": "Enemy Unit",
-        "details": {"damage": 5}
-    }
-    controller.log_combat_event(test_event)
-    controller.clear_log()
-    assert_eq(controller.combat_log.size(), 0, "Should clear combat log")
+func test_add_multiple_entries() -> void:
+	var entry_types = ["combat", "status", "override", "terrain", "system"]
+	
+	for type in entry_types:
+		var entry = create_test_entry(type, {"type": "test_%s" % type})
+		controller.add_log_entry(entry.type, entry.data)
+	
+	assert_eq(controller.log_entries.size(), entry_types.size(), "Should add all entries")
+	for i in range(entry_types.size()):
+		assert_eq(controller.log_entries[i].type, entry_types[i], "Should preserve entry order")
 
-func test_auto_logging() -> void:
-    watch_signals(controller)
-    controller.auto_logging = true
-    mock_combat_manager.combat_event_occurred.emit({
-        "type": GameEnums.EventCategory.COMBAT,
-        "source": "Test Unit",
-        "target": "Enemy Unit",
-        "details": {"damage": 5}
-    })
-    assert_signal_emitted(controller, "log_updated")
-    assert_eq(controller.combat_log.size(), 1, "Should automatically log combat events")
+func test_filter_management() -> void:
+	# Add entries of different types
+	var entry_types = ["combat", "status", "override"]
+	for type in entry_types:
+		controller.add_log_entry(type, {"type": "test"})
+	
+	# Test individual filter toggling
+	controller._on_filter_changed("combat", false)
+	assert_false(controller._should_display_entry(controller.log_entries[0]), "Combat entries should be filtered out")
+	assert_true(controller._should_display_entry(controller.log_entries[1]), "Status entries should still be shown")
+	assert_signal_emitted(controller, "filter_changed")
+	
+	# Test multiple filters
+	controller._on_filter_changed("status", false)
+	assert_false(controller._should_display_entry(controller.log_entries[0]), "Combat entries should remain filtered")
+	assert_false(controller._should_display_entry(controller.log_entries[1]), "Status entries should be filtered")
+	assert_true(controller._should_display_entry(controller.log_entries[2]), "Override entries should be shown")
 
-func test_disable_auto_logging() -> void:
-    controller.auto_logging = false
-    mock_combat_manager.combat_event_occurred.emit({
-        "type": GameEnums.EventCategory.COMBAT,
-        "source": "Test Unit",
-        "target": "Enemy Unit",
-        "details": {"damage": 5}
-    })
-    assert_eq(controller.combat_log.size(), 0, "Should not log events when auto-logging is disabled")
+func test_filter_persistence() -> void:
+	controller._on_filter_changed("combat", false)
+	var new_entry = create_test_entry("combat", {"type": "test"})
+	controller.add_log_entry(new_entry.type, new_entry.data)
+	
+	assert_false(controller._should_display_entry(controller.log_entries[0]),
+		"New entries should respect existing filters")
 
-func test_filter_events() -> void:
-    var test_events = [
-        {
-            "type": GameEnums.EventCategory.COMBAT,
-            "source": "Unit 1",
-            "target": "Enemy 1",
-            "details": {"damage": 3}
-        },
-        {
-            "type": GameEnums.EventCategory.TACTICAL,
-            "source": "Unit 1",
-            "details": {"distance": 2}
-        },
-        {
-            "type": GameEnums.EventCategory.COMBAT,
-            "source": "Unit 2",
-            "target": "Enemy 2",
-            "details": {"damage": 4}
-        }
-    ]
-    
-    for event in test_events:
-        controller.log_combat_event(event)
-    
-    var combat_events = controller.filter_events(GameEnums.EventCategory.COMBAT)
-    assert_eq(combat_events.size(), 2, "Should filter combat events")
-    assert_eq(combat_events[0].source, "Unit 1", "Should preserve event details")
-    
-    var tactical_events = controller.filter_events(GameEnums.EventCategory.TACTICAL)
-    assert_eq(tactical_events.size(), 1, "Should filter tactical events")
-    assert_eq(tactical_events[0].source, "Unit 1", "Should preserve event details")
+func test_log_export() -> void:
+	# Add various types of entries
+	var test_entries = [
+		create_test_entry("combat", {"type": "state_change", "state": {"phase": GameEnums.BattlePhase.ACTIVATION}}),
+		create_test_entry("status", {"type": "status_change", "status": "stunned"}),
+		create_test_entry("override", {"type": "manual", "value": 5})
+	]
+	
+	for entry in test_entries:
+		controller.add_log_entry(entry.type, entry.data)
+	
+	controller.export_log()
+	
+	var file = FileAccess.open("user://combat_log_export.json", FileAccess.READ)
+	assert_not_null(file, "Export file should be created")
+	if file:
+		var content = JSON.parse_string(file.get_as_text())
+		assert_not_null(content, "Export should contain valid JSON")
+		assert_eq(content.entries.size(), test_entries.size(), "Export should contain all entries")
+		assert_eq(content.entries[0].type, "combat", "Should preserve entry types")
+		assert_eq(content.entries[1].type, "status", "Should preserve entry order")
+		file.close()
+	assert_signal_emitted(controller, "log_exported")
 
-func test_get_events_by_unit() -> void:
-    var test_events = [
-        {
-            "type": GameEnums.EventCategory.COMBAT,
-            "source": "Unit 1",
-            "target": "Enemy 1",
-            "details": {"damage": 3}
-        },
-        {
-            "type": GameEnums.EventCategory.TACTICAL,
-            "source": "Unit 1",
-            "details": {"distance": 2}
-        },
-        {
-            "type": GameEnums.EventCategory.COMBAT,
-            "source": "Unit 2",
-            "target": "Enemy 2",
-            "details": {"damage": 4}
-        }
-    ]
-    
-    for event in test_events:
-        controller.log_combat_event(event)
-    
-    var unit1_events = controller.get_events_by_unit("Unit 1")
-    assert_eq(unit1_events.size(), 2, "Should get all events for Unit 1")
-    
-    var unit2_events = controller.get_events_by_unit("Unit 2")
-    assert_eq(unit2_events.size(), 1, "Should get all events for Unit 2")
+func test_entry_verification() -> void:
+	var test_entries = {
+		"combat": {"type": "state_change", "state": {"phase": GameEnums.BattlePhase.ACTIVATION}},
+		"status": {"type": "status_change", "status": "stunned"},
+		"override": {"type": "manual", "value": 5}
+	}
+	
+	for type in test_entries:
+		controller.add_log_entry(type, test_entries[type])
+		var entry = controller.log_entries[-1]
+		controller._verify_entry(entry)
+		assert_signal_emitted(controller, "entry_verified")
+
+func test_combat_state_changes() -> void:
+	var test_states = [
+		{"phase": GameEnums.BattlePhase.SETUP, "round": 0},
+		{"phase": GameEnums.BattlePhase.ACTIVATION, "round": 1},
+		{"phase": GameEnums.BattlePhase.CLEANUP, "round": 1}
+	]
+	
+	for state in test_states:
+		controller._on_combat_state_changed(state)
+		assert_eq(controller.log_entries[-1].type, "combat", "Should log combat state change")
+		assert_eq(controller.log_entries[-1].data.state.phase, state.phase, "Should store correct phase")
+		assert_eq(controller.log_entries[-1].data.state.round, state.round, "Should store correct round")
+		assert_signal_emitted(controller, "log_entry_added")
+
+func test_invalid_operations() -> void:
+	# Test adding invalid entry
+	controller.add_log_entry("invalid_type", {})
+	assert_eq(controller.log_entries.size(), 0, "Should not add entry with invalid type")
+	
+	# Test invalid filter
+	controller._on_filter_changed("invalid_filter", false)
+	assert_signal_not_emitted(controller, "filter_changed")
+	
+	# Test verifying invalid entry
+	var invalid_entry = create_test_entry("invalid", {})
+	controller._verify_entry(invalid_entry)
+	assert_signal_not_emitted(controller, "entry_verified")
+
+func test_large_log_handling() -> void:
+	var entry_count = 1000
+	var start_time = Time.get_unix_time_from_system()
+	
+	for i in range(entry_count):
+		var entry = create_test_entry("combat", {"type": "test", "index": i})
+		controller.add_log_entry(entry.type, entry.data)
+	
+	var end_time = Time.get_unix_time_from_system()
+	var time_taken = end_time - start_time
+	
+	assert_eq(controller.log_entries.size(), entry_count, "Should handle large number of entries")
+	assert_true(time_taken < 1.0, "Should process entries efficiently")

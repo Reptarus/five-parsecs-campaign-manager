@@ -151,7 +151,7 @@ func _can_accept_mission(mission: StoryQuestData) -> bool:
 	
 	# Check required resources
 	for resource in mission.required_resources:
-		if not game_state.has_resource(resource.type, resource.amount):
+		if not game_state.has_resource(resource.type) or game_state.get_resource(resource.type) < resource.amount:
 			return false
 	
 	# Check reputation requirement

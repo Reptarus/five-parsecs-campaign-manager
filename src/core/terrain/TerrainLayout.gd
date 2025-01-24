@@ -1,6 +1,9 @@
-extends Node
+class_name FiveParsecsTerrainLayout
+extends Resource
 
-const TerrainSystem = preload("res://src/core/terrain/TerrainSystem.gd")
+const GameEnums: GDScript = preload("res://src/core/systems/GlobalEnums.gd")
+const FiveParsecsTerrainTypes: GDScript = preload("res://src/core/terrain/TerrainTypes.gd")
+const TerrainSystem: GDScript = preload("res://src/core/terrain/TerrainSystem.gd")
 
 var _terrain_system: TerrainSystem
 

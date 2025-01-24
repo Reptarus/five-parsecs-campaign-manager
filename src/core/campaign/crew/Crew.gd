@@ -1,15 +1,16 @@
-class_name Crew
+@tool
+class_name FiveParsecsCrewData
 extends Resource
 
 const Character = preload("res://src/core/character/Base/Character.gd")
-const GlobalEnums = preload("res://src/core/systems/GlobalEnums.gd")
+const GameEnums = preload("res://src/core/systems/GlobalEnums.gd")
 
 signal member_added(character: Character)
 signal member_removed(character: Character)
 signal credits_changed(new_amount: int)
 
-const MAX_CREW_SIZE = 8
-const MIN_CREW_SIZE = 3
+const MAX_CREW_SIZE: int = 8
+const MIN_CREW_SIZE: int = 3
 
 var members: Array[Character] = []
 var credits: int = 1000

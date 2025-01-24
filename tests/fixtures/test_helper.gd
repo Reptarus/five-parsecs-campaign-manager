@@ -5,14 +5,25 @@ extends RefCounted
 const GameEnums := preload("res://src/core/systems/GlobalEnums.gd")
 
 # Resource Creation
-static func create_test_mission(mission_type: int = GameEnums.MissionType.NONE) -> Resource:
+static func create_test_mission(mission_type: int = GameEnums.MissionType.PATROL) -> Resource:
 	var mission = load("res://src/core/story/StoryQuestData.gd").new()
-	mission.configure(mission_type, {})
+	mission.configure(mission_type, {
+		"difficulty": GameEnums.DifficultyLevel.NORMAL,
+		"risk_level": 1,
+		"victory_type": GameEnums.MissionVictoryType.ELIMINATION
+	})
 	return mission
 
-static func create_test_character(armor_class: int = GameEnums.ArmorClass.NONE) -> Resource:
-	var character = load("res://src/core/character/Character.gd").new()
-	character.initialize(armor_class)
+static func create_test_character(armor_class: int = GameEnums.ArmorClass.LIGHT) -> Resource:
+	var character = load("res://src/core/character/Base/Character.gd").new()
+	character.character_name = "Test Character"
+	character.character_class = GameEnums.CharacterClass.SOLDIER
+	character.origin = GameEnums.Origin.CORE_WORLDS
+	character.background = GameEnums.Background.MILITARY
+	character.motivation = GameEnums.Motivation.REVENGE
+	character.training = GameEnums.Training.PILOT
+	character.status = GameEnums.CharacterStatus.HEALTHY
+	character.is_human = true
 	return character
 
 static func create_test_item(weapon_type: int = GameEnums.WeaponType.NONE) -> Resource:
@@ -23,27 +34,44 @@ static func create_test_item(weapon_type: int = GameEnums.WeaponType.NONE) -> Re
 # State Setup
 static func setup_test_game_state() -> Dictionary:
 	return {
+		"campaign": setup_test_campaign_state(),
 		"campaign_turn": 1,
-		"story_points": 0,
 		"credits": 1000,
-		"resources": {
-			GameEnums.ResourceType.FUEL: 10,
-			GameEnums.ResourceType.MEDICAL_SUPPLIES: 5,
-			GameEnums.ResourceType.WEAPONS: 20
-		},
-		"crew": [],
-		"missions": [],
-		"items": []
+		"reputation": 0,
+		"last_save_time": Time.get_unix_time_from_system(),
+		"difficulty_level": GameEnums.DifficultyLevel.NORMAL,
+		"enable_permadeath": true,
+		"use_story_track": true,
+		"auto_save_enabled": true
 	}
 
 static func setup_test_campaign_state() -> Dictionary:
+	var test_characters = generate_test_character_data(3) # Create 3 crew members
+	var captain_data = generate_test_character_data(1)[0] # Create a captain
+	captain_data.character_name = "Test Captain"
+	captain_data.character_class = GameEnums.CharacterClass.SOLDIER
+	captain_data.training = GameEnums.Training.PILOT
+	
 	return {
 		"campaign_name": "Test Campaign",
+		"difficulty": GameEnums.DifficultyLevel.NORMAL,
 		"current_phase": GameEnums.CampaignPhase.SETUP,
-		"phase_history": [],
-		"active_missions": [],
+		"campaign_turn": 1,
+		"crew_members": test_characters,
+		"captain": captain_data,
+		"resources": {
+			GameEnums.ResourceType.CREDITS: 1000,
+			GameEnums.ResourceType.SUPPLIES: 5,
+			GameEnums.ResourceType.FUEL: 10,
+			GameEnums.ResourceType.MEDICAL_SUPPLIES: 5,
+			GameEnums.ResourceType.TECH_PARTS: 0,
+			GameEnums.ResourceType.STORY_POINT: 0
+		},
+		"story_points": 0,
 		"completed_missions": [],
-		"mission_history": []
+		"available_missions": [],
+		"faction_standings": {},
+		"game_state": GameEnums.GameState.CAMPAIGN
 	}
 
 # Data Generation
@@ -55,11 +83,24 @@ static func generate_test_mission_data(count: int = 1) -> Array[Dictionary]:
 			"mission_type": GameEnums.MissionType.PATROL,
 			"name": "Test Mission %d" % i,
 			"description": "Test mission description %d" % i,
-			"objectives": ["Objective 1", "Objective 2"],
+			"difficulty": GameEnums.DifficultyLevel.NORMAL,
+			"victory_type": GameEnums.MissionVictoryType.ELIMINATION,
+			"objectives": [
+				{
+					"type": GameEnums.MissionObjective.PATROL,
+					"description": "Patrol the area",
+					"required": true,
+					"completed": false
+				}
+			],
 			"rewards": {
 				"credits": 100,
 				"reputation": 1,
 				"items": []
+			},
+			"required_resources": {
+				GameEnums.ResourceType.SUPPLIES: 5,
+				GameEnums.ResourceType.FUEL: 2
 			}
 		})
 	return missions
@@ -68,13 +109,35 @@ static func generate_test_character_data(count: int = 1) -> Array[Dictionary]:
 	var characters: Array[Dictionary] = []
 	for i in range(count):
 		characters.append({
-			"character_id": "TEST_CHAR_%d" % i,
-			"name": "Test Character %d" % i,
-			"armor_class": GameEnums.ArmorClass.LIGHT,
+			"character_name": "Test Character %d" % i,
+			"character_class": GameEnums.CharacterClass.SOLDIER,
+			"origin": GameEnums.Origin.CORE_WORLDS,
+			"background": GameEnums.Background.MILITARY,
+			"motivation": GameEnums.Motivation.REVENGE,
 			"level": 1,
 			"experience": 0,
+			"health": 10,
+			"max_health": 10,
+			"reaction": 2,
+			"combat": 2,
+			"toughness": 2,
+			"savvy": 2,
+			"luck": 1,
+			"weapons": [],
+			"armor": [],
+			"items": [],
 			"skills": [],
-			"equipment": []
+			"abilities": [],
+			"traits": [],
+			"training": GameEnums.Training.PILOT,
+			"status": GameEnums.CharacterStatus.HEALTHY,
+			"is_active": true,
+			"is_wounded": false,
+			"is_dead": false,
+			"status_effects": [],
+			"is_bot": false,
+			"is_soulless": false,
+			"is_human": true
 		})
 	return characters
 
@@ -82,37 +145,85 @@ static func generate_test_character_data(count: int = 1) -> Array[Dictionary]:
 static func validate_mission_data(mission: Dictionary) -> Array[String]:
 	var errors: Array[String] = []
 	
-	if not mission.has("mission_id"):
-		errors.append("Missing mission_id")
-	if not mission.has("mission_type"):
-		errors.append("Missing mission_type")
-	if not mission.has("name"):
-		errors.append("Missing name")
-	if not mission.has("description"):
-		errors.append("Missing description")
-	if not mission.has("objectives") or not mission.objectives is Array:
-		errors.append("Invalid or missing objectives")
-	if not mission.has("rewards") or not mission.rewards is Dictionary:
-		errors.append("Invalid or missing rewards")
-		
+	var required_fields = [
+		"mission_id",
+		"mission_type",
+		"name",
+		"description",
+		"difficulty",
+		"victory_type",
+		"objectives",
+		"rewards",
+		"required_resources"
+	]
+	
+	for field in required_fields:
+		if not mission.has(field):
+			errors.append("Missing required field: " + field)
+	
+	if mission.has("objectives"):
+		if not mission.objectives is Array:
+			errors.append("Objectives must be an array")
+		else:
+			for objective in mission.objectives:
+				if not objective is Dictionary:
+					errors.append("Each objective must be a dictionary")
+				elif not objective.has_all(["type", "description", "required", "completed"]):
+					errors.append("Objective missing required fields")
+	
 	return errors
 
 static func validate_character_data(character: Dictionary) -> Array[String]:
 	var errors: Array[String] = []
 	
-	if not character.has("character_id"):
-		errors.append("Missing character_id")
-	if not character.has("name"):
-		errors.append("Missing name")
-	if not character.has("armor_class"):
-		errors.append("Missing armor_class")
-	if not character.has("level") or character.level < 1:
-		errors.append("Invalid or missing level")
-	if not character.has("skills") or not character.skills is Array:
-		errors.append("Invalid or missing skills")
-	if not character.has("equipment") or not character.equipment is Array:
-		errors.append("Invalid or missing equipment")
-		
+	# Required fields for all characters
+	var required_fields = [
+		"character_name",
+		"character_class",
+		"origin",
+		"background",
+		"motivation",
+		"level",
+		"experience",
+		"health",
+		"max_health",
+		"reaction",
+		"combat",
+		"toughness",
+		"savvy",
+		"luck",
+		"is_active",
+		"is_wounded",
+		"is_dead",
+		"is_human",
+		"is_bot",
+		"is_soulless",
+		"training"
+	]
+	
+	for field in required_fields:
+		if not character.has(field):
+			errors.append("Missing required field: " + field)
+	
+	# Validate arrays
+	var array_fields = ["weapons", "armor", "items", "skills", "abilities", "traits", "status_effects"]
+	for field in array_fields:
+		if not character.has(field) or not character[field] is Array:
+			errors.append("Invalid or missing array field: " + field)
+	
+	# Validate numeric ranges
+	if character.has("level") and (character.level < 1 or character.level > 10):
+		errors.append("Level must be between 1 and 10")
+	
+	if character.has("experience") and character.experience < 0:
+		errors.append("Experience cannot be negative")
+	
+	if character.has("health") and character.health < 0:
+		errors.append("Health cannot be negative")
+	
+	if character.has("max_health") and character.max_health < 1:
+		errors.append("Max health must be positive")
+	
 	return errors
 
 # Performance Helpers

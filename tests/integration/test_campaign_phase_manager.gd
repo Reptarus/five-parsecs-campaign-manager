@@ -5,9 +5,9 @@ const CampaignPhaseManager := preload("res://src/core/campaign/CampaignPhaseMana
 const CampaignManager := preload("res://src/core/managers/CampaignManager.gd")
 
 # Test variables
-var manager: Node # Using Node type since CampaignPhaseManager extends Node
-var game_state: Node # Using Node type since GameState extends Node
-var campaign_manager: Resource # Using Resource type since CampaignManager extends Resource
+var manager: Node
+var game_state: Node
+var campaign_manager: Resource
 
 # Lifecycle Methods
 func before_each() -> void:

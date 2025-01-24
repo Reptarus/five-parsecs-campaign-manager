@@ -1,131 +1,80 @@
 extends BasePhasePanel
 class_name UpkeepPhasePanel
 
+const Character = preload("res://src/core/character/Base/Character.gd")
+
 @onready var upkeep_cost_label = $VBoxContainer/UpkeepCostLabel
 @onready var crew_list = $VBoxContainer/CrewList
 @onready var resources_list = $VBoxContainer/ResourcesList
 @onready var pay_upkeep_button = $VBoxContainer/PayUpkeepButton
 
 var total_upkeep_cost: int = 0
-var crew_upkeep_costs: Dictionary = {}
+var crew_members: Array[Character] = []
 
-func _setup_phase_ui() -> void:
-	var base_container = VBoxContainer.new()
-	base_container.add_theme_constant_override("separation", 10)
-	add_child(base_container)
-	
-	var title = Label.new()
-	title.text = "Upkeep Phase"
-	title.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
-	base_container.add_child(title)
-	
-	upkeep_cost_label = Label.new()
-	upkeep_cost_label.text = "Calculating upkeep costs..."
-	base_container.add_child(upkeep_cost_label)
-	
-	crew_list = ItemList.new()
-	crew_list.size_flags_vertical = Control.SIZE_EXPAND_FILL
-	base_container.add_child(crew_list)
-	
-	resources_list = ItemList.new()
-	resources_list.size_flags_vertical = Control.SIZE_EXPAND_FILL
-	base_container.add_child(resources_list)
-	
-	pay_upkeep_button = Button.new()
-	pay_upkeep_button.text = "Pay Upkeep"
-	pay_upkeep_button.disabled = true
-	base_container.add_child(pay_upkeep_button)
-
-func _connect_signals() -> void:
+func _ready() -> void:
+	super._ready()
 	pay_upkeep_button.pressed.connect(_on_pay_upkeep_pressed)
+	
+func setup_phase() -> void:
+	super.setup_phase()
+	_update_crew_list()
+	_calculate_upkeep()
+	_update_resources_list()
 
-func _on_phase_started() -> void:
-	_calculate_upkeep_costs()
-	_update_ui()
-
-func _validate_phase_requirements() -> Dictionary:
-	if not game_state or not game_state.campaign:
-		return {
-			"valid": false,
-			"error": "No active campaign found"
-		}
-	
-	if not game_state.campaign.crew_members or game_state.campaign.crew_members.is_empty():
-		return {
-			"valid": false,
-			"error": "No crew members found"
-		}
-	
-	return {
-		"valid": true,
-		"error": ""
-	}
-
-func _calculate_upkeep_costs() -> void:
-	total_upkeep_cost = 0
-	crew_upkeep_costs.clear()
-	
-	for crew_member in game_state.campaign.crew_members:
-		var member_cost = _calculate_crew_member_upkeep(crew_member)
-		crew_upkeep_costs[crew_member.id] = member_cost
-		total_upkeep_cost += member_cost
-
-func _calculate_crew_member_upkeep(crew_member: Character) -> int:
-	# Base upkeep cost is 1 credit per level
-	var base_cost = crew_member.level
-	
-	# Add equipment maintenance costs
-	for item in crew_member.equipment:
-		if item.has("maintenance_cost"):
-			base_cost += item.maintenance_cost
-	
-	# Apply any cost modifiers from traits or abilities
-	for current_trait in crew_member.traits:
-		if current_trait.has("upkeep_modifier"):
-			base_cost = base_cost * current_trait.upkeep_modifier
-	
-	return base_cost
-
-func _update_ui() -> void:
-	upkeep_cost_label.text = "Total Upkeep Cost: %d credits" % total_upkeep_cost
-	
+func _update_crew_list() -> void:
 	crew_list.clear()
-	for crew_member in game_state.campaign.crew_members:
-		var cost = crew_upkeep_costs[crew_member.id]
-		crew_list.add_item("%s - %d credits" % [crew_member.character_name, cost])
+	crew_members = game_state.campaign.get_active_crew_members()
 	
+	for crew_member in crew_members:
+		var crew_item = crew_list.add_item(crew_member.character_name)
+		if crew_member.is_wounded:
+			crew_item.modulate = Color.RED
+
+func _calculate_upkeep() -> void:
+	total_upkeep_cost = 0
+	
+	for crew_member in crew_members:
+		var member_cost = 6 # Base upkeep cost
+		
+		# Apply modifiers based on traits
+		if crew_member.has_trait(GameEnums.Trait.TACTICAL_MIND):
+			member_cost -= 1 # Tactical minds are more efficient with resources
+		if crew_member.has_trait(GameEnums.Trait.STREET_SMART):
+			member_cost -= 2 # Street smart characters know how to live cheaply
+			
+		total_upkeep_cost += member_cost
+	
+	upkeep_cost_label.text = "Total Upkeep Cost: " + str(total_upkeep_cost) + " credits"
+
+func _update_resources_list() -> void:
 	resources_list.clear()
-	resources_list.add_item("Available Credits: %d" % game_state.campaign.credits)
+	var credits = game_state.campaign.credits
+	resources_list.add_item("Credits: " + str(credits))
 	
-	pay_upkeep_button.disabled = game_state.campaign.credits < total_upkeep_cost
+	pay_upkeep_button.disabled = credits < total_upkeep_cost
 
 func _on_pay_upkeep_pressed() -> void:
-	if game_state.campaign.credits >= total_upkeep_cost:
-		game_state.campaign.credits -= total_upkeep_cost
-		_handle_upkeep_effects()
-		complete_phase()
-	else:
-		_on_phase_failed("Insufficient credits to pay upkeep")
+	game_state.campaign.credits -= total_upkeep_cost
+	_update_resources_list()
+	complete_phase()
+
+func validate_phase_requirements() -> bool:
+	return game_state.campaign.credits >= total_upkeep_cost
+
+func get_phase_data() -> Dictionary:
+	return {
+		"total_upkeep_cost": total_upkeep_cost,
+		"crew_count": crew_members.size(),
+		"can_pay": validate_phase_requirements()
+	}
 
 func _handle_upkeep_effects() -> void:
-	# Apply any special effects from not being able to pay full upkeep
-	# or from traits/abilities that trigger during upkeep
-	for crew_member in game_state.campaign.crew_members:
-		for current_trait in crew_member.traits:
-			if current_trait.has("upkeep_effect"):
-				_apply_trait_upkeep_effect(crew_member, current_trait)
-
-func _apply_trait_upkeep_effect(crew_member: Character, current_trait: Dictionary) -> void:
-	match current_trait.upkeep_effect:
-		"MORALE_BOOST":
-			crew_member.morale += 1
-		"MAINTENANCE_EXPERT":
-			# Refund some maintenance costs
-			var refund = crew_upkeep_costs[crew_member.id] * 0.25
+	# Apply any special effects from traits
+	for crew_member in crew_members:
+		if crew_member.has_trait(GameEnums.Trait.TACTICAL_MIND):
+			# Tactical minds can sometimes find ways to save money
+			var refund = total_upkeep_cost * 0.1
 			game_state.campaign.credits += int(refund)
-		"RESOURCE_DRAIN":
-			# Some traits might have negative effects
-			crew_member.morale -= 1
 
 func _on_phase_failed(error_message: String) -> void:
 	push_error("Upkeep phase failed: " + error_message)
@@ -134,3 +83,4 @@ func _on_phase_failed(error_message: String) -> void:
 	dialog.dialog_text = error_message
 	add_child(dialog)
 	dialog.popup_centered()
+

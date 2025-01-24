@@ -1,10 +1,12 @@
 # Content from src/core/battle/TerrainTypes.gd
 ## TerrainTypes
 # Defines terrain types and their properties for the Five Parsecs battle system.
-class_name TerrainTypes
-extends Node
+@tool
+extends Resource
 
-const GameEnums := preload("res://src/core/systems/GlobalEnums.gd")
+class_name FiveParsecsTerrainTypes
+
+const GameEnums = preload("res://src/core/systems/GlobalEnums.gd")
 
 ## Terrain type enumeration
 enum Type {

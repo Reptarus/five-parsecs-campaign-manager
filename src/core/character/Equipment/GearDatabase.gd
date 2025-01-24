@@ -1,8 +1,8 @@
 @tool
-class_name GearDatabase
+class_name FiveParsecsGearDatabase
 extends Resource
 
-const Gear = preload("res://src/core/character/Equipment/Gear.gd")
+const FiveParsecsGear = preload("res://src/core/character/Equipment/Gear.gd")
 const GameEnums = preload("res://src/core/systems/GlobalEnums.gd")
 const GameWeapon = preload("res://src/core/systems/items/Weapon.gd")
 
@@ -166,19 +166,18 @@ func _safe_float_conversion(value: Variant) -> float:
 			return value.to_float()
 	return 1.0 # Default weight if conversion fails
 
-func _create_gear(gear_name: String, gear_data: Dictionary, gear_type: int, level: int, weight: float) -> Gear:
+func _create_gear(gear_name: String, gear_data: Dictionary, gear_type: int, level: int, weight: float) -> FiveParsecsGear:
 	if not gear_data.has("name") or not gear_data.has("description"):
 		push_error("Missing required fields for gear: " + gear_name)
 		return null
 		
 	# Create new gear instance
-	var new_gear = Gear.new()
+	var new_gear = FiveParsecsGear.new()
 	new_gear.name = gear_data["name"]
 	new_gear.description = gear_data["description"]
 	new_gear.type = gear_type
 	new_gear.level = level
 	new_gear.weight = weight
-	
 	
 	if not is_instance_valid(new_gear):
 		push_error("Failed to create gear instance for: " + gear_name)
@@ -251,21 +250,17 @@ func _validate_gear_data(data: Dictionary) -> bool:
 			push_error("Invalid rarity: " + str(data["rarity"]))
 			return false
 	
-	if data.has("is_damaged") and not data["is_damaged"] is bool:
-		push_error("Invalid is_damaged: Must be boolean")
-		return false
-	
 	return true
 
-func get_gear(gear_name: String) -> Gear:
+func get_gear(gear_name: String) -> FiveParsecsGear:
 	if not gears.has(gear_name):
 		push_warning("Gear not found: " + gear_name)
 	return gears.get(gear_name)
 
-func get_all_gears() -> Array[Gear]:
+func get_all_gears() -> Array[FiveParsecsGear]:
 	return gears.values()
 
-func get_gears_by_type(gear_type: GameEnums.ItemType) -> Array[Gear]:
+func get_gears_by_type(gear_type: GameEnums.ItemType) -> Array[FiveParsecsGear]:
 	return gears.values().filter(func(gear): return gear.gear_type == gear_type)
 
 func get_gear_types() -> Array[GameEnums.ItemType]:
@@ -314,7 +309,7 @@ func save_gear_data() -> bool:
 	file.close()
 	return true
 
-func add_gear(gear: Gear) -> bool:
+func add_gear(gear: FiveParsecsGear) -> bool:
 	if not is_instance_valid(gear):
 		push_error("Cannot add invalid gear instance")
 		return false
@@ -333,7 +328,7 @@ func remove_gear(gear_name: String) -> bool:
 	gears.erase(gear_name)
 	return save_gear_data()
 
-func update_gear(gear: Gear) -> bool:
+func update_gear(gear: FiveParsecsGear) -> bool:
 	if not is_instance_valid(gear):
 		push_error("Cannot update invalid gear instance")
 		return false
@@ -345,7 +340,7 @@ func update_gear(gear: Gear) -> bool:
 	gears[gear.name] = gear
 	return save_gear_data()
 
-func get_gears_by_rarity(rarity: GameEnums.ItemRarity) -> Array[Gear]:
+func get_gears_by_rarity(rarity: GameEnums.ItemRarity) -> Array[FiveParsecsGear]:
 	return gears.values().filter(func(gear): return gear.rarity == rarity)
 
 func repair_gear(gear_name: String) -> bool:
@@ -364,7 +359,7 @@ func damage_gear(gear_name: String) -> bool:
 	gears[gear_name].is_damaged = true
 	return save_gear_data()
 
-func roll_random_gear() -> Gear:
+func roll_random_gear() -> FiveParsecsGear:
 	var roll = randi() % 100 + 1
 	var gear_names = get_gear_names()
 	if gear_names.is_empty():
@@ -377,7 +372,7 @@ func roll_random_gear() -> Gear:
 		gear.roll_result = roll
 	return gear
 
-func roll_random_gadget() -> Gear:
+func roll_random_gadget() -> FiveParsecsGear:
 	var roll = randi() % 100 + 1
 	var gadget_gears = get_gears_by_type(GameEnums.ItemType.MISC)
 	if gadget_gears.is_empty():

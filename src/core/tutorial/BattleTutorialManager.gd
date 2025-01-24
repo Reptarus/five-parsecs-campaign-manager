@@ -1,4 +1,4 @@
-class_name BattleTutorialManager
+class_name FiveParsecsBattleTutorialManager
 extends Node
 
 const GameEnums = preload("res://src/core/systems/GlobalEnums.gd")
@@ -8,7 +8,7 @@ const Mission = preload("res://src/core/systems/Mission.gd")
 const UnifiedTerrainSystem = preload("res://src/core/terrain/UnifiedTerrainSystem.gd")
 const SaveManager = preload("res://src/core/state/SaveManager.gd")
 const CombatManager = preload("res://src/core/battle/CombatManager.gd")
-const BattleTutorialLayout = preload("res://src/core/tutorial/BattleTutorialLayout.gd")
+const FiveParsecsBattleTutorialLayout = preload("res://src/core/tutorial/BattleTutorialLayout.gd")
 
 signal tutorial_objective_completed(objective_id: String)
 signal tutorial_step_completed(step_id: String)
@@ -34,7 +34,7 @@ func _connect_signals() -> void:
         combat_manager.objective_reached.connect(_on_objective_reached)
 
 func load_current_step() -> void:
-    current_layout = BattleTutorialLayout.get_layout(current_step)
+    current_layout = FiveParsecsBattleTutorialLayout.get_layout(current_step)
     setup_battlefield()
     show_step_guidance()
 

@@ -1,4 +1,5 @@
 @tool
+class_name FiveParsecsArmor
 extends "res://src/core/character/Equipment/Equipment.gd"
 
 @export var armor_type: GameEnums.ArmorType = GameEnums.ArmorType.NONE
@@ -8,15 +9,15 @@ extends "res://src/core/character/Equipment/Equipment.gd"
 func _init() -> void:
 	item_type = GameEnums.ItemType.ARMOR
 
-func can_be_equipped_by(character: Resource) -> bool:
-	# Only Tech class can use powered armor
+func can_be_equipped_by(character: FiveParsecsCharacter) -> bool:
+	# Only Engineer class can use powered armor
 	match armor_type:
 		GameEnums.ArmorType.POWERED:
-			return character.character_class == GameEnums.CharacterClass.TECH
+			return character.character_class == GameEnums.CharacterClass.ENGINEER
 		_:
 			return true
 
-func apply_modifiers(character: Resource) -> void:
+func apply_modifiers(character: FiveParsecsCharacter) -> void:
 	# Apply armor save and any other modifiers
 	character.armor_save = armor_save
 	character.armor_bonus = armor_bonus
@@ -30,7 +31,7 @@ func apply_modifiers(character: Resource) -> void:
 		GameEnums.ArmorType.HEAVY:
 			character.add_combat_modifier(GameEnums.CombatModifier.COVER_HEAVY)
 
-func remove_modifiers(character: Resource) -> void:
+func remove_modifiers(character: FiveParsecsCharacter) -> void:
 	# Remove armor save and any other modifiers
 	character.armor_save = 0
 	character.armor_bonus = 0

@@ -1,7 +1,8 @@
-class_name GameWorld
+class_name FiveParsecsGameWorld
 extends Resource
 
 const GameEnums = preload("res://src/core/systems/GlobalEnums.gd")
+const FiveParsecsPlanet = preload("res://src/core/world/Planet.gd")
 
 @export var name: String = ""
 @export var environment_type: GameEnums.PlanetEnvironment = GameEnums.PlanetEnvironment.URBAN

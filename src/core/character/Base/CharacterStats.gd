@@ -1,4 +1,4 @@
-class_name CharacterStats
+class_name FiveParsecsCharacterStats
 extends Resource
 
 # Base Stats

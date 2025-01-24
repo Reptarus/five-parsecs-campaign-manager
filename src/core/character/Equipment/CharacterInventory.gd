@@ -1,4 +1,4 @@
-class_name CharacterInventory
+class_name FiveParsecsCharacterInventory
 extends Resource
 
 const GameEnums = preload("res://src/core/systems/GlobalEnums.gd")
@@ -8,8 +8,8 @@ signal inventory_changed
 signal weight_changed(new_weight: float)
 
 @export var weapons: Array[GameWeapon] = []
-@export var armor: Array = []  # Will be Array[Armor] once implemented
-@export var items: Array = []  # Will be Array[Item] once implemented
+@export var armor: Array[Resource] = [] # Will be Array[Armor] once implemented
+@export var items: Array[Resource] = [] # Will be Array[Item] once implemented
 @export var max_weight: float = 20.0
 
 var total_weight: float = 0.0:
@@ -78,14 +78,14 @@ func get_weight_capacity_remaining() -> float:
 func serialize() -> Dictionary:
 	return {
 		"weapons": weapons.map(func(w): return w.get_weapon_profile()),
-		"armor": [],  # TODO: Implement armor serialization
-		"items": [],  # TODO: Implement item serialization
+		"armor": [], # TODO: Implement armor serialization
+		"items": [], # TODO: Implement item serialization
 		"max_weight": max_weight,
 		"total_weight": total_weight
 	}
 
-static func deserialize(data: Dictionary) -> CharacterInventory:
-	var inventory = CharacterInventory.new()
+static func deserialize(data: Dictionary) -> FiveParsecsCharacterInventory:
+	var inventory = FiveParsecsCharacterInventory.new()
 	
 	if data.has("weapons"):
 		for weapon_data in data.weapons:

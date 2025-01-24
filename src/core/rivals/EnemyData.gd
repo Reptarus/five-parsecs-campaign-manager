@@ -1,6 +1,6 @@
 @tool
 extends Resource
-class_name EnemyData
+class_name FiveParsecsEnemyData
 
 const GameEnums = preload("res://src/core/systems/GlobalEnums.gd")
 const GameWeapon = preload("res://src/core/systems/items/Weapon.gd")
@@ -14,11 +14,11 @@ const GameWeapon = preload("res://src/core/systems/items/Weapon.gd")
 # Combat properties
 var stats: Dictionary = {
 	GameEnums.CharacterStats.REACTIONS: 1,
-	GameEnums.CharacterStats.SPEED: 4,
+	GameEnums.CharacterStats.NAVIGATION: 4,
 	GameEnums.CharacterStats.COMBAT_SKILL: 0,
 	GameEnums.CharacterStats.TOUGHNESS: 3,
 	GameEnums.CharacterStats.SAVVY: 0,
-	GameEnums.CharacterStats.LUCK: 0
+	GameEnums.CharacterStats.SOCIAL: 0
 }
 
 # Combat equipment and status

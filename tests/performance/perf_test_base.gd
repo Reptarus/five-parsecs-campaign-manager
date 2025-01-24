@@ -1,4 +1,5 @@
-extends "res://tests/test_base.gd"
+@tool
+extends "res://tests/fixtures/base_test.gd"
 
 const PERFORMANCE_THRESHOLD = 1.0 # Default threshold in seconds
 

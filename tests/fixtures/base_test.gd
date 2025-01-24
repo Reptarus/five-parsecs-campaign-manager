@@ -5,6 +5,8 @@ extends "res://addons/gut/test.gd"
 class_name BaseTest
 
 const GutMain := preload("res://addons/gut/gut.gd")
+const GutUtils := preload("res://addons/gut/utils.gd")
+const GameEnums := preload("res://src/core/systems/GlobalEnums.gd")
 
 # Required GUT properties
 var _was_ready_called := false
@@ -44,7 +46,7 @@ func _do_ready_stuff() -> void:
 # Signal handling
 func watch_signals(object: Object) -> void:
 	if not _signal_watcher:
-		_signal_watcher = get_gut().get_signal_watcher()
+		_signal_watcher = GutUtils.SignalWatcher.new()
 	_signal_watcher.watch_signals(object)
 
 func clear_signal_watcher() -> void:
@@ -108,3 +110,15 @@ func assert_valid_game_state(game_state: Node) -> void:
 
 func set_logger(logger) -> void:
 	_logger = logger
+
+func get_logger():
+	return _logger
+
+func add_child_autofree(node: Node) -> Node:
+	add_child(node)
+	track_test_node(node)
+	return node
+
+func create_resource_autofree(resource: Resource) -> Resource:
+	track_test_resource(resource)
+	return resource

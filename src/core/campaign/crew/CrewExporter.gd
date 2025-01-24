@@ -2,6 +2,11 @@ class_name CrewExporter
 extends Node
 
 const EXPORT_DIR = "user://exports/"
+const PDFGenerator = preload("res://src/core/utils/PDFGenerator.gd")
+const Character = preload("res://src/core/character/Base/Character.gd")
+const Crew = preload("res://src/core/campaign/crew/Crew.gd")
+const CampaignSystem = preload("res://src/core/campaign/CampaignSystem.gd")
+const GameEnums = preload("res://src/core/systems/GlobalEnums.gd")
 
 signal export_completed(success: bool, message: String)
 signal export_failed(error: String)

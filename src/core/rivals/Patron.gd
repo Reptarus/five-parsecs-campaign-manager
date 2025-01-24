@@ -18,7 +18,7 @@ signal patron_status_changed
 		_patron_name = value
 		notify_property_list_changed()
 
-@export var location: Location:
+@export var location: FiveParsecsLocation:
 	get: return _location
 	set(value):
 		if not value:
@@ -51,7 +51,7 @@ signal patron_status_changed
 
 # Internal variables
 var _patron_name: String = ""
-var _location: Location
+var _location: FiveParsecsLocation
 var _relationship: int = 0
 var _faction_type: GameEnums.FactionType = GameEnums.FactionType.NEUTRAL
 var _economic_influence: float = 1.0
@@ -65,7 +65,7 @@ var reputation_bonus: int = 0
 var mission_bonus: int = 0
 
 func _init(p_name: String = "",
-		  p_location: Location = null,
+		  p_location: FiveParsecsLocation = null,
 		  p_faction: GameEnums.FactionType = GameEnums.FactionType.NEUTRAL) -> void:
 	patron_name = p_name
 	location = p_location
@@ -205,7 +205,7 @@ static func deserialize(data: Dictionary) -> Patron:
 	
 	var location_data = data.get("location", {})
 	if not location_data.is_empty():
-		var location = Location.new()
+		var location = FiveParsecsLocation.new()
 		location.deserialize(location_data)
 		patron._location = location
 	else:
