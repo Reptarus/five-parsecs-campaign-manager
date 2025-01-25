@@ -6,8 +6,6 @@
 @tool
 extends "res://tests/fixtures/base_test.gd"
 
-const GameEnums := preload("res://src/core/systems/GlobalEnums.gd")
-
 # Type definitions
 var core_features: Node
 var _test_features: Dictionary = {}

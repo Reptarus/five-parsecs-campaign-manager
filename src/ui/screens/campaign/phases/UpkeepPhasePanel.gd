@@ -83,4 +83,3 @@ func _on_phase_failed(error_message: String) -> void:
 	dialog.dialog_text = error_message
 	add_child(dialog)
 	dialog.popup_centered()
-

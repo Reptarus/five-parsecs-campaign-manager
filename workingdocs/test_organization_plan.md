@@ -1,248 +1,202 @@
 # Test Organization Plan
 
-## Directory Structure
+## Revised Testing Strategy
 
+### Phase 1: Core Stabilization
+```gdscript
+# Base test structure focusing on stability
+@tool
+extends "res://tests/fixtures/base_test.gd"
+
+const GUT_TIMEOUT := 5.0
+const TestedClass = preload("res://path/to/tested/class.gd")
+
+var _instance: TestedClass
+
+func before_each() -> void:
+    await super.before_each()
+    stabilize_test_environment()
+    _instance = TestedClass.new()
+    add_child(_instance)
+    track_test_node(_instance)
+
+func after_each() -> void:
+    await super.after_each()
+    _instance = null
+```
+
+### Phase 2: Core Systems Testing
+1. Campaign State Management
+   - Direct state verification
+   - Minimal signal dependencies
+   - Clear state transitions
+
+2. Combat Resolution
+   - Deterministic outcomes
+   - State-based verification
+   - Simplified flow
+
+3. Resource Management
+   - Direct resource tracking
+   - Clear ownership
+   - Explicit cleanup
+
+### Phase 3: Integration Testing
+1. Campaign Flow
+   - Linear progression
+   - State checkpoints
+   - Minimal async operations
+
+2. Mission Sequences
+   - Predictable outcomes
+   - State validation
+   - Clear dependencies
+
+### Phase 4: Mobile/Performance (Deferred)
+- Touch input simulation
+- Screen adaptation
+- Performance metrics
+
+## Directory Structure (Updated)
 ```
 tests/
-├── unit/                    # Unit tests for individual components
-│   ├── character/          # Character-related tests
+├── unit/                    # Core unit tests
+│   ├── campaign/           # Campaign system tests
 │   ├── combat/            # Combat system tests
-│   ├── mission/           # Mission system tests
-│   ├── terrain/           # Terrain system tests
-│   ├── campaign/          # Campaign system tests
-│   ├── core/             # Core system tests
-│   ├── ui/               # UI component tests
-│   └── equipment/         # Equipment system tests
-├── integration/            # Tests for component interactions
-│   ├── campaign_flow/     # Campaign phase interactions
-│   ├── combat_flow/       # Combat system interactions
-│   └── mission_flow/      # Mission system interactions
-├── performance/            # Performance benchmarks
-│   ├── combat/           # Combat system performance
-│   ├── terrain/          # Terrain system performance
-│   └── campaign/         # Campaign system performance
-├── mobile/                # Mobile-specific tests
-├── fixtures/              # Test helpers and shared resources
-│   ├── base_test.gd      # Base test class
-│   ├── game_test.gd      # Game-specific test utilities
-│   └── mock_data/        # Mock data for tests
-├── reports/               # Test results and coverage
-└── logs/                 # Test execution logs
+│   ├── resource/          # Resource management tests
+│   └── state/            # State management tests
+├── integration/            # Simplified integration tests
+│   ├── campaign_flow/     # Campaign progression
+│   └── mission_flow/      # Mission sequences
+├── deferred/              # Tests to implement later
+│   ├── mobile/           # Mobile-specific tests
+│   └── performance/      # Performance benchmarks
+└── fixtures/             # Test utilities
+    ├── base_test.gd     # Stabilized base test
+    └── game_test.gd     # Game-specific utilities
 ```
 
-## File Standardization Steps
+## Implementation Guidelines
 
-1. **Base Test Class Structure**
-   ```gdscript
-   @tool
-   extends "res://tests/fixtures/base_test.gd"
-   
-   const TestedClass = preload("res://path/to/tested/class.gd")
-   
-   var _instance: TestedClass
-   
-   func before_each() -> void:
-       await super.before_each()
-       _instance = TestedClass.new()
-       add_child(_instance)
-       track_test_node(_instance)
-   
-   func after_each() -> void:
-       await super.after_each()
-       _instance = null
-   ```
+### 1. Test Structure
+```gdscript
+func test_feature() -> void:
+    # Direct setup
+    var subject = setup_test_subject()
+    
+    # Immediate action
+    subject.do_something()
+    
+    # State verification
+    assert_eq(subject.state, expected_state)
+```
 
-2. **Test Method Naming**
-   - `test_feature_being_tested`
-   - `test_feature_specific_condition`
-   - `test_feature_error_condition`
+### 2. Async Handling
+```gdscript
+func test_async_feature() -> void:
+    var subject = setup_test_subject()
+    
+    # Use simplified async
+    await stabilize_async(func():
+        subject.do_async_thing()
+    )
+    
+    assert_eq(subject.state, expected_state)
+```
 
-3. **Resource Management**
-   - Use `track_test_node()` for nodes
-   - Use `track_test_resource()` for resources
-   - Clean up in `after_each()`
+### 3. Resource Management
+```gdscript
+# Explicit resource tracking
+func track_resource(resource: Resource) -> void:
+    _tracked_resources.append(resource)
+    
+# Automatic cleanup
+func cleanup_resources() -> void:
+    for resource in _tracked_resources:
+        if resource and not resource.is_queued_for_deletion():
+            resource.free()
+    _tracked_resources.clear()
+```
 
-## Migration Process
+## Test Stabilization Tools
 
-1. **Phase 1: Directory Setup**
-   - [x] Create unit test directories
-   - [x] Create integration test directories
-   - [x] Create performance test directories
-   - [x] Set up reports directory
-   - [x] Configure logging
+### 1. Environment Stabilization
+```gdscript
+func stabilize_test_environment() -> void:
+    Engine.set_physics_ticks_per_second(60)
+    Engine.set_max_fps(60)
+    get_tree().set_debug_collisions_hint(false)
+    await get_tree().physics_frame
+```
 
-2. **Phase 2: File Migration**
-   - [x] Move character tests
-     - [x] test_character_manager.gd → unit/character/
-     - [x] test_character_data_manager.gd → unit/character/
-   - [x] Move combat tests
-     - [x] test_battlefield_generator.gd → unit/combat/
-     - [x] test_combat_log_controller.gd → unit/combat/
-     - [x] test_combat_log_panel.gd → unit/combat/
-     - [x] test_battle_state_machine.gd → unit/combat/
-   - [x] Move mission tests
-     - [x] test_mission.gd → unit/mission/
-     - [x] test_mission_generator.gd → unit/mission/
-   - [x] Move terrain tests
-     - [x] test_terrain_layout.gd → unit/terrain/
-   - [ ] Move UI tests
-     - [ ] test_manual_override_panel.gd → unit/ui/
-     - [ ] test_house_rules_panel.gd → unit/ui/
-     - [ ] test_rule_editor.gd → unit/ui/
-     - [ ] test_state_verification_panel.gd → unit/ui/
-     - [ ] test_house_rules_controller.gd → unit/ui/
-     - [ ] test_ui_state.gd → unit/ui/
-   - [ ] Move campaign tests
-     - [ ] test_campaign_state.gd → unit/campaign/
-     - [ ] test_campaign_system.gd → unit/campaign/
-     - [ ] test_game_state_manager.gd → unit/campaign/
-     - [ ] test_resource_system.gd → unit/campaign/
-   - [ ] Move core tests
-     - [ ] test_error_logger.gd → unit/core/
-     - [ ] test_core_features.gd → unit/core/
+### 2. Signal Handling
+```gdscript
+func wait_for_signal(object: Object, signal_name: String) -> void:
+    var timer = get_tree().create_timer(GUT_TIMEOUT)
+    var done = false
+    object.connect(signal_name, func(): done = true, CONNECT_ONE_SHOT)
+    timer.timeout.connect(func(): done = true)
+    while not done:
+        await get_tree().process_frame
+```
 
-3. **Phase 3: File Updates**
-   - [x] Update base class references
-   - [ ] Fix resource paths
-   - [ ] Add missing lifecycle methods
-   - [x] Implement resource tracking
+### 3. State Verification
+```gdscript
+func verify_state(subject: Object, expected_states: Dictionary) -> void:
+    for property in expected_states:
+        assert_eq(subject[property], expected_states[property],
+            "Property %s should match expected state" % property)
+```
 
-4. **Phase 4: Test Coverage**
-   - [ ] Add missing enum tests
-   - [ ] Complete partial tests
-   - [ ] Add error condition tests
-   - [ ] Add boundary tests
+## Implementation Priority
 
-## GUT Integration
+1. **Week 1: Stabilization**
+   - Implement base test improvements
+   - Add stabilization tools
+   - Convert existing tests to new pattern
 
-1. **Configuration Updates**
-   ```json
-   {
-       "dirs": [
-           "res://tests/unit",
-           "res://tests/integration",
-           "res://tests/performance"
-       ],
-       "include_subdirs": true,
-       "prefix": "test_",
-       "suffix": ".gd"
-   }
-   ```
+2. **Week 2: Core Systems**
+   - Campaign state tests
+   - Combat resolution tests
+   - Resource management tests
 
-2. **Test Running**
-   - Configure test running scene
-   - Set up test shortcuts
-   - Configure test filters
+3. **Week 3: Integration**
+   - Campaign flow tests
+   - Mission sequence tests
+   - State transition tests
 
-## Implementation Order
-
-1. **Week 1: Infrastructure**
-   - Day 1: Directory structure
-   - Day 2: Base class updates
-   - Day 3: GUT configuration
-   - Day 4-5: File migration
-
-2. **Week 2: Test Updates**
-   - Day 1-2: Character system tests
-   - Day 3-4: Combat system tests
-   - Day 5: Mission system tests
-
-3. **Week 3: Coverage**
-   - Day 1-2: Add missing tests
-   - Day 3: Performance tests
-   - Day 4-5: Integration tests
-
-## Standards
-
-1. **File Naming**
-   - Unit tests: `test_<class_name>.gd`
-   - Integration tests: `test_<system>_flow.gd`
-   - Performance tests: `perf_test_<system>.gd`
-
-2. **Test Structure**
-   ```gdscript
-   # Test category
-   func test_feature_name() -> void:
-       # Arrange
-       var input = setup_test_data()
-       
-       # Act
-       var result = _instance.method_under_test(input)
-       
-       # Assert
-       assert_eq(result, expected_value, "Message explaining the test")
-   ```
-
-3. **Documentation**
-   ```gdscript
-   ## Test class for CharacterManager functionality
-   ##
-   ## Tests character creation, modification, and management
-   ```
-
-## Quality Checks
-
-1. **Before Committing**
-   - Run all tests
-   - Check coverage
-   - Verify naming
-   - Update documentation
-
-2. **Regular Maintenance**
-   - Weekly coverage review
-   - Test performance check
-   - Documentation updates
+4. **Future: Deferred Features**
+   - Mobile testing
+   - Performance benchmarks
+   - Advanced scenarios
 
 ## Success Criteria
 
-1. **Organization**
-   - All tests in correct directories
-   - Consistent file structure
-   - Clear naming scheme
+1. **Stability**
+   - Tests run consistently
+   - No random failures
+   - Clear error messages
 
 2. **Coverage**
-   - All enums tested
-   - Edge cases covered
-   - Error conditions tested
+   - Core systems tested
+   - Critical paths verified
+   - State transitions validated
 
-3. **Performance**
-   - Tests run under 5 minutes
-   - No resource leaks
-   - Clean test reports
+3. **Maintainability**
+   - Clear test structure
+   - Minimal complexity
+   - Easy to extend
 
-## Current Progress Tracking
+## Progress Tracking
 
-- ✅ Directory structure completed
-- ✅ Base test class defined
-- ✅ Character tests migrated
-- ✅ Combat tests migrated
-- ✅ Mission tests migrated
-- ✅ Terrain tests migrated
-- ⏳ UI tests pending
-- ⏳ Campaign tests pending
-- ⏳ Core tests pending
-- ❌ Integration tests pending
+- ⬜ Base test stabilization
+- ⬜ Core system tests
+- ⬜ Integration tests
+- ⬜ Documentation updates
+- ⬜ Cleanup old tests
 
 ## Next Steps
-1. Create missing directories:
-   - Create `/tests/unit/core/` directory
-   - Create `/tests/unit/ui/` directory if not exists
-
-2. Move remaining files:
-   - Move UI tests to `/tests/unit/ui/`
-   - Move campaign tests to `/tests/unit/campaign/`
-   - Move core tests to `/tests/unit/core/`
-
-3. Clean up:
-   - Remove test files (test_basic.gd, test_first.gd, test_simple.gd)
-   - Update any broken references in moved files
-
-4. Begin Phase 3:
-   - Review and fix resource paths in moved files
-   - Add missing lifecycle methods
-   - Ensure proper error handling
-
-5. Documentation:
-   - Update test README.md with new directory structure
-   - Document test patterns and standards
-   - Add examples of proper test structure 
+1. Implement base test improvements
+2. Add stabilization tools
+3. Convert existing tests
+4. Document new patterns 

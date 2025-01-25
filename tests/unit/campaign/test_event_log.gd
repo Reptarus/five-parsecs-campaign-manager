@@ -1,42 +1,25 @@
-extends "res://addons/gut/test.gd"
+@tool
+extends "res://tests/fixtures/game_test.gd"
 
 const EventLog = preload("res://src/scenes/campaign/components/EventLog.gd")
-const GameEnums = preload("res://src/core/systems/GlobalEnums.gd")
 
 var log: EventLog
-var event_added_signal_emitted := false
-var event_cleared_signal_emitted := false
-var last_event_data: EventLog.EventData
 
 func before_each() -> void:
+	await super.before_each()
 	log = EventLog.new()
-	add_child(log)
-	_reset_signals()
-	_connect_signals()
+	add_child_autofree(log)
+	watch_signals(log)
+	await stabilize_engine()
 
 func after_each() -> void:
-	log.queue_free()
-
-func _reset_signals() -> void:
-	event_added_signal_emitted = false
-	event_cleared_signal_emitted = false
-	last_event_data = null
-
-func _connect_signals() -> void:
-	log.event_added.connect(_on_event_added)
-	log.events_cleared.connect(_on_events_cleared)
-
-func _on_event_added(event_data: EventLog.EventData) -> void:
-	event_added_signal_emitted = true
-	last_event_data = event_data
-
-func _on_events_cleared() -> void:
-	event_cleared_signal_emitted = true
+	await super.after_each()
+	log = null
 
 func test_initial_setup() -> void:
-	assert_not_null(log)
-	assert_not_null(log.event_list)
-	assert_eq(log.get_event_count(), 0)
+	assert_not_null(log, "Event log should be initialized")
+	assert_not_null(log.event_list, "Event list should be initialized")
+	assert_eq(log.get_event_count(), 0, "Event count should start at 0")
 
 func test_add_event() -> void:
 	var test_event = EventLog.EventData.new(
@@ -49,10 +32,15 @@ func test_add_event() -> void:
 	
 	log.add_event(test_event)
 	
-	assert_true(event_added_signal_emitted)
-	assert_eq(last_event_data.title, test_event.title)
-	assert_eq(last_event_data.description, test_event.description)
-	assert_eq(log.get_event_count(), 1)
+	var event_added = await assert_async_signal(log, "event_added")
+	assert_true(event_added, "Event added signal should be emitted")
+	
+	# Get signal data
+	var signal_data = await wait_for_signal(log, "event_added")
+	var event_data = signal_data[0]
+	assert_eq(event_data.title, test_event.title, "Event title should match")
+	assert_eq(event_data.description, test_event.description, "Event description should match")
+	assert_eq(log.get_event_count(), 1, "Event count should be 1")
 
 func test_clear_events() -> void:
 	# Add some test events first
@@ -63,11 +51,13 @@ func test_clear_events() -> void:
 	
 	for event in test_events:
 		log.add_event(event)
+		var event_added = await assert_async_signal(log, "event_added")
+		assert_true(event_added, "Event added signal should be emitted")
 	
 	log.clear()
-	
-	assert_true(event_cleared_signal_emitted)
-	assert_eq(log.get_event_count(), 0)
+	var events_cleared = await assert_async_signal(log, "events_cleared")
+	assert_true(events_cleared, "Events cleared signal should be emitted")
+	assert_eq(log.get_event_count(), 0, "Event count should be 0 after clear")
 
 func test_event_filtering() -> void:
 	var test_events = [
@@ -77,14 +67,16 @@ func test_event_filtering() -> void:
 	
 	for event in test_events:
 		log.add_event(event)
+		var event_added = await assert_async_signal(log, "event_added")
+		assert_true(event_added, "Event added signal should be emitted")
 	
 	var combat_events = log.get_events_by_category("combat")
 	var story_events = log.get_events_by_category("story")
 	
-	assert_eq(combat_events.size(), 1)
-	assert_eq(story_events.size(), 1)
-	assert_true(combat_events[0].title == "Combat Event")
-	assert_true(story_events[0].title == "Story Event")
+	assert_eq(combat_events.size(), 1, "Should have one combat event")
+	assert_eq(story_events.size(), 1, "Should have one story event")
+	assert_eq(combat_events[0].title, "Combat Event", "Combat event title should match")
+	assert_eq(story_events[0].title, "Story Event", "Story event title should match")
 
 func test_event_sorting() -> void:
 	var first_event = EventLog.EventData.new(
@@ -104,12 +96,17 @@ func test_event_sorting() -> void:
 	second_event.timestamp = 2000
 	
 	log.add_event(first_event)
+	var first_added = await assert_async_signal(log, "event_added")
+	assert_true(first_added, "First event added signal should be emitted")
+	
 	log.add_event(second_event)
+	var second_added = await assert_async_signal(log, "event_added")
+	assert_true(second_added, "Second event added signal should be emitted")
 	
 	var events = log.get_all_events()
-	assert_eq(events.size(), 2)
-	assert_eq(events[0].timestamp, 2000) # Most recent first
-	assert_eq(events[1].timestamp, 1000)
+	assert_eq(events.size(), 2, "Should have two events")
+	assert_eq(events[0].timestamp, 2000, "Most recent event should be first")
+	assert_eq(events[1].timestamp, 1000, "Older event should be second")
 
 func test_invalid_event_handling() -> void:
 	var invalid_event = EventLog.EventData.new(
@@ -121,8 +118,9 @@ func test_invalid_event_handling() -> void:
 	
 	log.add_event(invalid_event)
 	
-	assert_false(event_added_signal_emitted)
-	assert_eq(log.get_event_count(), 0)
+	var event_added = await assert_async_signal(log, "event_added", 0.5) # Short timeout since we expect no signal
+	assert_false(event_added, "Event added signal should not be emitted for invalid event")
+	assert_eq(log.get_event_count(), 0, "Invalid event should not be added")
 
 func test_duplicate_event_handling() -> void:
 	var test_event = EventLog.EventData.new(
@@ -133,11 +131,13 @@ func test_duplicate_event_handling() -> void:
 	)
 	
 	log.add_event(test_event)
-	_reset_signals()
-	log.add_event(test_event) # Try to add the same event again
+	var first_added = await assert_async_signal(log, "event_added")
+	assert_true(first_added, "First event added signal should be emitted")
 	
-	assert_false(event_added_signal_emitted) # Should not emit signal for duplicate
-	assert_eq(log.get_event_count(), 1) # Should still only have one event
+	log.add_event(test_event) # Try to add the same event again
+	var duplicate_added = await assert_async_signal(log, "event_added", 0.5) # Short timeout since we expect no signal
+	assert_false(duplicate_added, "Event added signal should not be emitted for duplicate")
+	assert_eq(log.get_event_count(), 1, "Should still only have one event")
 
 func test_event_limit() -> void:
 	# Add more events than the maximum limit
@@ -150,7 +150,10 @@ func test_event_limit() -> void:
 		)
 		event.timestamp = Time.get_unix_time_from_system() + i
 		log.add_event(event)
+		var event_added = await assert_async_signal(log, "event_added")
+		assert_true(event_added, "Event added signal should be emitted")
 	
-	assert_eq(log.get_event_count(), log.max_events)
+	assert_eq(log.get_event_count(), log.max_events, "Event count should not exceed max limit")
 	var events = log.get_all_events()
-	assert_true(events[0].title.begins_with("Event %d" % (log.max_events + 4)))
+	assert_true(events[0].title.begins_with("Event %d" % (log.max_events + 4)),
+		"Most recent event should be at the top")

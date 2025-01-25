@@ -2,7 +2,7 @@
 extends "res://tests/fixtures/base_test.gd"
 
 const HouseRulesController := preload("res://src/ui/components/combat/rules/house_rules_controller.gd")
-const GameEnums := preload("res://src/core/systems/GlobalEnums.gd")
+
 
 var controller: HouseRulesController
 

@@ -79,7 +79,7 @@ func _update_ui() -> void:
 	_update_advancement_options()
 
 func _update_character_info() -> void:
-	var info = "[b]%s[/b]\n" % selected_crew_member.character_name
+	var info := "[b]%s[/b]\n" % selected_crew_member.character_name
 	info += "Class: %s\n" % GameEnums.get_character_class_name(selected_crew_member.character_class)
 	info += "Level: %d\n" % selected_crew_member.level
 	info += "Experience: %d/%d\n" % [
@@ -106,22 +106,22 @@ func _update_character_info() -> void:
 	if selected_crew_member.skills.is_empty():
 		info += "None\n"
 	else:
-		for skill in selected_crew_member.skills:
-			info += "• %s\n" % GameEnums.get_skill_name(skill)
+		for skill_name in selected_crew_member.skills:
+			info += "• %s\n" % skill_name
 	
 	info += "\n[b]Abilities:[/b]\n"
 	if selected_crew_member.abilities.is_empty():
 		info += "None\n"
 	else:
-		for ability in selected_crew_member.abilities:
-			info += "• %s\n" % GameEnums.get_ability_name(ability)
+		for ability_name in selected_crew_member.abilities:
+			info += "• %s\n" % ability_name
 	
 	info += "\n[b]Traits:[/b]\n"
 	if selected_crew_member.traits.is_empty():
 		info += "None\n"
 	else:
-		for current_trait in selected_crew_member.traits:
-			info += "• %s\n" % GameEnums.get_trait_name(current_trait)
+		for trait_name in selected_crew_member.traits:
+			info += "• %s\n" % trait_name
 	
 	character_info.text = info
 

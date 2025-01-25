@@ -8,8 +8,8 @@ const FiveParsecsGameState = preload("res://src/core/state/GameState.gd")
 @onready var milestone_container := $MarginContainer/VBoxContainer/MilestoneContainer
 
 var game_state: FiveParsecsGameState
-var campaign_manager: GameCampaignManager
-var victory_type: GameEnums.CampaignVictoryType
+var campaign_manager # Type will be inferred from CampaignManager singleton
+var victory_type: GameEnums.FiveParcsecsCampaignVictoryType
 var current_progress: float = 0.0
 var target_progress: float = 20.0 # Default for TURNS_20
 var milestones: Array[float] = []
@@ -40,34 +40,34 @@ func _initialize_victory_tracking() -> void:
 	victory_type = game_state.campaign_victory_condition
 	
 	match victory_type:
-		GameEnums.CampaignVictoryType.TURNS_20:
+		GameEnums.FiveParcsecsCampaignVictoryType.TURNS_20:
 			target_progress = 20.0
 			milestones = [5.0, 10.0, 15.0]
-		GameEnums.CampaignVictoryType.TURNS_50:
+		GameEnums.FiveParcsecsCampaignVictoryType.TURNS_50:
 			target_progress = 50.0
 			milestones = [15.0, 30.0, 45.0]
-		GameEnums.CampaignVictoryType.TURNS_100:
+		GameEnums.FiveParcsecsCampaignVictoryType.TURNS_100:
 			target_progress = 100.0
 			milestones = [25.0, 50.0, 75.0]
-		GameEnums.CampaignVictoryType.QUESTS_3:
+		GameEnums.FiveParcsecsCampaignVictoryType.QUESTS_3:
 			target_progress = 3.0
 			milestones = [1.0, 2.0, 3.0]
-		GameEnums.CampaignVictoryType.QUESTS_5:
+		GameEnums.FiveParcsecsCampaignVictoryType.QUESTS_5:
 			target_progress = 5.0
 			milestones = [2.0, 3.0, 4.0]
-		GameEnums.CampaignVictoryType.QUESTS_10:
+		GameEnums.FiveParcsecsCampaignVictoryType.QUESTS_10:
 			target_progress = 10.0
 			milestones = [3.0, 6.0, 9.0]
-		GameEnums.CampaignVictoryType.STORY_COMPLETE:
+		GameEnums.FiveParcsecsCampaignVictoryType.STORY_COMPLETE:
 			target_progress = 1.0
 			milestones = [0.3, 0.6, 0.9]
-		GameEnums.CampaignVictoryType.WEALTH_GOAL:
+		GameEnums.FiveParcsecsCampaignVictoryType.WEALTH_GOAL:
 			target_progress = 1000.0
 			milestones = [250.0, 500.0, 750.0]
-		GameEnums.CampaignVictoryType.REPUTATION_GOAL:
+		GameEnums.FiveParcsecsCampaignVictoryType.REPUTATION_GOAL:
 			target_progress = 100.0
 			milestones = [25.0, 50.0, 75.0]
-		GameEnums.CampaignVictoryType.FACTION_DOMINANCE:
+		GameEnums.FiveParcsecsCampaignVictoryType.FACTION_DOMINANCE:
 			target_progress = 100.0
 			milestones = [30.0, 60.0, 90.0]
 	
@@ -86,17 +86,17 @@ func update_display() -> void:
 	
 	var progress_text = ""
 	match victory_type:
-		GameEnums.CampaignVictoryType.TURNS_20, GameEnums.CampaignVictoryType.TURNS_50, GameEnums.CampaignVictoryType.TURNS_100:
+		GameEnums.FiveParcsecsCampaignVictoryType.TURNS_20, GameEnums.FiveParcsecsCampaignVictoryType.TURNS_50, GameEnums.FiveParcsecsCampaignVictoryType.TURNS_100:
 			progress_text = "Progress: %d/%d Turns" % [current_progress, target_progress]
-		GameEnums.CampaignVictoryType.QUESTS_3, GameEnums.CampaignVictoryType.QUESTS_5, GameEnums.CampaignVictoryType.QUESTS_10:
+		GameEnums.FiveParcsecsCampaignVictoryType.QUESTS_3, GameEnums.FiveParcsecsCampaignVictoryType.QUESTS_5, GameEnums.FiveParcsecsCampaignVictoryType.QUESTS_10:
 			progress_text = "Progress: %d/%d Quests" % [current_progress, target_progress]
-		GameEnums.CampaignVictoryType.STORY_COMPLETE:
+		GameEnums.FiveParcsecsCampaignVictoryType.STORY_COMPLETE:
 			progress_text = "Story Progress: %d%%" % (current_progress * 100)
-		GameEnums.CampaignVictoryType.WEALTH_GOAL:
+		GameEnums.FiveParcsecsCampaignVictoryType.WEALTH_GOAL:
 			progress_text = "Credits: %d/%d" % [current_progress, target_progress]
-		GameEnums.CampaignVictoryType.REPUTATION_GOAL:
+		GameEnums.FiveParcsecsCampaignVictoryType.REPUTATION_GOAL:
 			progress_text = "Reputation: %d/%d" % [current_progress, target_progress]
-		GameEnums.CampaignVictoryType.FACTION_DOMINANCE:
+		GameEnums.FiveParcsecsCampaignVictoryType.FACTION_DOMINANCE:
 			progress_text = "Faction Control: %d%%" % current_progress
 	
 	progress_label.text = progress_text
@@ -104,17 +104,17 @@ func update_display() -> void:
 
 func _calculate_current_progress() -> float:
 	match victory_type:
-		GameEnums.CampaignVictoryType.TURNS_20, GameEnums.CampaignVictoryType.TURNS_50, GameEnums.CampaignVictoryType.TURNS_100:
+		GameEnums.FiveParcsecsCampaignVictoryType.TURNS_20, GameEnums.FiveParcsecsCampaignVictoryType.TURNS_50, GameEnums.FiveParcsecsCampaignVictoryType.TURNS_100:
 			return float(game_state.campaign_turn)
-		GameEnums.CampaignVictoryType.QUESTS_3, GameEnums.CampaignVictoryType.QUESTS_5, GameEnums.CampaignVictoryType.QUESTS_10:
-			return float(game_state.completed_quests)
-		GameEnums.CampaignVictoryType.STORY_COMPLETE:
+		GameEnums.FiveParcsecsCampaignVictoryType.QUESTS_3, GameEnums.FiveParcsecsCampaignVictoryType.QUESTS_5, GameEnums.FiveParcsecsCampaignVictoryType.QUESTS_10:
+			return float(game_state.completed_quests.size())
+		GameEnums.FiveParcsecsCampaignVictoryType.STORY_COMPLETE:
 			return game_state.story_progress
-		GameEnums.CampaignVictoryType.WEALTH_GOAL:
+		GameEnums.FiveParcsecsCampaignVictoryType.WEALTH_GOAL:
 			return float(game_state.credits)
-		GameEnums.CampaignVictoryType.REPUTATION_GOAL:
+		GameEnums.FiveParcsecsCampaignVictoryType.REPUTATION_GOAL:
 			return float(game_state.reputation)
-		GameEnums.CampaignVictoryType.FACTION_DOMINANCE:
+		GameEnums.FiveParcsecsCampaignVictoryType.FACTION_DOMINANCE:
 			return game_state.faction_control
 	return 0.0
 

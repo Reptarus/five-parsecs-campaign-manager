@@ -11,7 +11,7 @@
 extends "res://tests/fixtures/base_test.gd"
 
 const ErrorLogger := preload("res://src/core/systems/ErrorLogger.gd")
-const GameEnums := preload("res://src/core/systems/GlobalEnums.gd")
+
 
 # Test variables
 var logger: ErrorLogger

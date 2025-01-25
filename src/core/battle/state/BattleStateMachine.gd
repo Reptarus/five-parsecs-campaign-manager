@@ -1,3 +1,4 @@
+@tool
 extends Node
 
 const GameEnums = preload("res://src/core/systems/GlobalEnums.gd")
@@ -16,7 +17,7 @@ signal attack_resolved(attacker: Character, target: Character, result: Dictionar
 signal reaction_opportunity(unit: Character, reaction_type: String, source: Character)
 signal combat_effect_triggered(effect_name: String, source: Character, target: Character)
 
-var game_state_manager: GameStateManager
+var game_state_manager: GameStateManager = null
 
 var current_state: int = GameEnums.BattleState.SETUP
 var current_phase: int = GameEnums.CombatPhase.NONE
@@ -28,10 +29,10 @@ var active_combatants: Array[Character] = []
 var _completed_actions: Dictionary = {}
 var _reaction_opportunities: Array[Dictionary] = []
 
-func _init(p_game_state_manager: GameStateManager) -> void:
+func _init(p_game_state_manager: GameStateManager = null) -> void:
 	game_state_manager = p_game_state_manager
-	if not game_state_manager:
-		push_error("BattleStateMachine requires GameStateManager")
+	if p_game_state_manager and not game_state_manager:
+		push_warning("BattleStateMachine initialized without GameStateManager")
 
 func start_battle() -> void:
 	current_state = GameEnums.BattleState.SETUP
@@ -85,7 +86,7 @@ func add_combatant(character: Character) -> void:
 
 func resolve_attack(attacker: Character, target: Character) -> void:
 	# Implement attack resolution logic
-	var result = {} # Add actual combat resolution logic
+	var result: Dictionary = {} # Add actual combat resolution logic
 	attack_resolved.emit(attacker, target, result)
 
 func trigger_reaction(unit: Character, reaction_type: String, source: Character) -> void:
@@ -113,7 +114,7 @@ func load_state(state: Dictionary) -> void:
 	_reaction_opportunities = state.get("reaction_opportunities", [])
 
 func advance_phase() -> void:
-	var next_phase = current_phase + 1
+	var next_phase: int = current_phase + 1
 	if next_phase >= GameEnums.CombatPhase.size():
 		next_phase = GameEnums.CombatPhase.NONE
 	transition_to_phase(next_phase)

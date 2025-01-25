@@ -1,9 +1,10 @@
 extends Node
 
 const GameEnums := preload("res://src/core/systems/GlobalEnums.gd")
+const GameState := preload("res://src/core/state/GameState.gd")
 
 signal game_state_changed(new_state: GameEnums.GameState)
-signal campaign_phase_changed(new_phase: GameEnums.CampaignPhase)
+signal campaign_phase_changed(new_phase: GameEnums.FiveParcsecsCampaignPhase)
 signal difficulty_changed(new_difficulty: GameEnums.DifficultyLevel)
 signal credits_changed(new_amount: int)
 signal supplies_changed(new_amount: int)
@@ -14,8 +15,8 @@ signal story_progress_changed(new_amount: int)
 @export var initial_supplies: int = 5
 @export var initial_reputation: int = 0
 
-var game_state: GameEnums.GameState = GameEnums.GameState.NONE
-var campaign_phase: GameEnums.CampaignPhase = GameEnums.CampaignPhase.NONE
+var game_state: GameState = null
+var campaign_phase: GameEnums.FiveParcsecsCampaignPhase = GameEnums.FiveParcsecsCampaignPhase.NONE
 var difficulty_level: GameEnums.DifficultyLevel = GameEnums.DifficultyLevel.NORMAL
 var credits: int = initial_credits
 var supplies: int = initial_supplies
@@ -30,12 +31,12 @@ func _ready() -> void:
 	set_story_progress(0)
 
 # State management
-func set_game_state(new_state: GameEnums.GameState) -> void:
+func set_game_state(new_state: GameState) -> void:
 	if game_state != new_state:
 		game_state = new_state
 		game_state_changed.emit(game_state)
 
-func set_campaign_phase(new_phase: GameEnums.CampaignPhase) -> void:
+func set_campaign_phase(new_phase: GameEnums.FiveParcsecsCampaignPhase) -> void:
 	if campaign_phase != new_phase:
 		campaign_phase = new_phase
 		campaign_phase_changed.emit(campaign_phase)
@@ -67,10 +68,10 @@ func set_story_progress(new_amount: int) -> void:
 		story_progress_changed.emit(story_progress)
 
 # Getters
-func get_game_state() -> GameEnums.GameState:
+func get_game_state() -> GameState:
 	return game_state
 
-func get_campaign_phase() -> GameEnums.CampaignPhase:
+func get_campaign_phase() -> GameEnums.FiveParcsecsCampaignPhase:
 	return campaign_phase
 
 func get_difficulty() -> GameEnums.DifficultyLevel:

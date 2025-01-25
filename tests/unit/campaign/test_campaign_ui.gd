@@ -1,74 +1,50 @@
-extends "res://addons/gut/test.gd"
+@tool
+extends "res://tests/fixtures/game_test.gd"
 
 const CampaignUI = preload("res://src/scenes/campaign/CampaignUI.gd")
-const GameEnums = preload("res://src/core/systems/GlobalEnums.gd")
 
 var ui: CampaignUI
-var phase_changed_signal_emitted := false
-var resource_updated_signal_emitted := false
-var event_occurred_signal_emitted := false
-var last_phase: GameEnums.CampaignPhase
-var last_resource_type: GameEnums.ResourceType
-var last_resource_value: int
-var last_event_data: Dictionary
 
 func before_each() -> void:
+	await super.before_each()
 	ui = CampaignUI.new()
-	add_child(ui)
-	_reset_signals()
-	_connect_signals()
+	add_child_autofree(ui)
+	watch_signals(ui)
+	await stabilize_engine()
 
 func after_each() -> void:
-	ui.queue_free()
-
-func _reset_signals() -> void:
-	phase_changed_signal_emitted = false
-	resource_updated_signal_emitted = false
-	event_occurred_signal_emitted = false
-	last_phase = GameEnums.CampaignPhase.SETUP
-	last_resource_type = GameEnums.ResourceType.CREDITS
-	last_resource_value = 0
-	last_event_data = {}
-
-func _connect_signals() -> void:
-	ui.phase_changed.connect(_on_phase_changed)
-	ui.resource_updated.connect(_on_resource_updated)
-	ui.event_occurred.connect(_on_event_occurred)
-
-func _on_phase_changed(new_phase: GameEnums.CampaignPhase) -> void:
-	phase_changed_signal_emitted = true
-	last_phase = new_phase
-
-func _on_resource_updated(resource_type: GameEnums.ResourceType, new_value: int) -> void:
-	resource_updated_signal_emitted = true
-	last_resource_type = resource_type
-	last_resource_value = new_value
-
-func _on_event_occurred(event_data: Dictionary) -> void:
-	event_occurred_signal_emitted = true
-	last_event_data = event_data
+	await super.after_each()
+	ui = null
 
 func test_initial_setup() -> void:
-	assert_not_null(ui)
-	assert_eq(ui._current_phase, GameEnums.CampaignPhase.SETUP)
-	assert_not_null(ui._layout)
+	assert_not_null(ui, "UI should be initialized")
+	assert_eq(ui._current_phase, GameEnums.CampaignPhase.SETUP, "Initial phase should be SETUP")
+	assert_not_null(ui._layout, "Layout should be initialized")
 
 func test_phase_change() -> void:
 	var new_phase = GameEnums.CampaignPhase.UPKEEP
 	ui._on_phase_changed(new_phase)
 	
-	assert_true(phase_changed_signal_emitted)
-	assert_eq(last_phase, new_phase)
-	assert_eq(ui._current_phase, new_phase)
+	var phase_changed = await assert_async_signal(ui, "phase_changed")
+	assert_true(phase_changed, "Phase changed signal should be emitted")
+	
+	# Get signal data
+	var signal_data = await wait_for_signal(ui, "phase_changed")
+	assert_eq(signal_data[0], new_phase, "Signal should contain new phase")
+	assert_eq(ui._current_phase, new_phase, "Current phase should be updated")
 
 func test_resource_update() -> void:
 	var resource_type = GameEnums.ResourceType.CREDITS
 	var new_value = 100
 	ui._on_resource_updated(resource_type, new_value)
 	
-	assert_true(resource_updated_signal_emitted)
-	assert_eq(last_resource_type, resource_type)
-	assert_eq(last_resource_value, new_value)
+	var resource_updated = await assert_async_signal(ui, "resource_updated")
+	assert_true(resource_updated, "Resource updated signal should be emitted")
+	
+	# Get signal data
+	var signal_data = await wait_for_signal(ui, "resource_updated")
+	assert_eq(signal_data[0], resource_type, "Signal should contain resource type")
+	assert_eq(signal_data[1], new_value, "Signal should contain new value")
 
 func test_event_logging() -> void:
 	var test_event = {
@@ -80,40 +56,46 @@ func test_event_logging() -> void:
 	
 	ui._on_event_occurred(test_event)
 	
-	assert_true(event_occurred_signal_emitted)
-	assert_eq(last_event_data.id, test_event.id)
-	assert_eq(last_event_data.title, test_event.title)
-	assert_eq(last_event_data.description, test_event.description)
-	assert_eq(last_event_data.category, test_event.category)
+	var event_occurred = await assert_async_signal(ui, "event_occurred")
+	assert_true(event_occurred, "Event occurred signal should be emitted")
+	
+	# Get signal data
+	var signal_data = await wait_for_signal(ui, "event_occurred")
+	var event_data = signal_data[0]
+	assert_eq(event_data.id, test_event.id, "Event ID should match")
+	assert_eq(event_data.title, test_event.title, "Event title should match")
+	assert_eq(event_data.description, test_event.description, "Event description should match")
+	assert_eq(event_data.category, test_event.category, "Event category should match")
 
 func test_phase_action_handling() -> void:
 	# Test crew creation action
 	ui._handle_crew_creation()
-	assert_eq(get_tree().current_scene.scene_file_path, "res://src/scenes/character/CrewCreation.tscn")
+	await stabilize_engine()
+	assert_eq(get_tree().current_scene.scene_file_path, "res://src/scenes/character/CrewCreation.tscn", "Should navigate to crew creation")
 	
 	# Test campaign selection action
 	ui._handle_campaign_selection()
-	assert_eq(get_tree().current_scene.scene_file_path, "res://src/scenes/campaign/CampaignSelection.tscn")
+	await stabilize_engine()
+	assert_eq(get_tree().current_scene.scene_file_path, "res://src/scenes/campaign/CampaignSelection.tscn", "Should navigate to campaign selection")
 	
 	# Test resource management action
 	ui._handle_resource_management()
-	assert_eq(get_tree().current_scene.scene_file_path, "res://src/scenes/resource/ResourceManagement.tscn")
+	await stabilize_engine()
+	assert_eq(get_tree().current_scene.scene_file_path, "res://src/scenes/resource/ResourceManagement.tscn", "Should navigate to resource management")
 
 func test_ui_components_setup() -> void:
 	ui._setup_ui_components()
+	await stabilize_engine()
 	
 	# Test resource panel setup
-	var credits_label = ui.resource_panel.get_node("credits_label")
-	var supplies_label = ui.resource_panel.get_node("supplies_label")
-	var reputation_label = ui.resource_panel.get_node("reputation_label")
-	var tech_parts_label = ui.resource_panel.get_node("tech_parts_label")
+	var resource_labels = {
+		"credits": "Credits: 0",
+		"supplies": "Supplies: 0",
+		"reputation": "Reputation: 0",
+		"tech_parts": "Tech Parts: 0"
+	}
 	
-	assert_not_null(credits_label)
-	assert_not_null(supplies_label)
-	assert_not_null(reputation_label)
-	assert_not_null(tech_parts_label)
-	
-	assert_eq(credits_label.text, "Credits: 0")
-	assert_eq(supplies_label.text, "Supplies: 0")
-	assert_eq(reputation_label.text, "Reputation: 0")
-	assert_eq(tech_parts_label.text, "Tech Parts: 0")
+	for label_name in resource_labels:
+		var label = ui.resource_panel.get_node("%s_label" % label_name)
+		assert_not_null(label, "%s label should exist" % label_name.capitalize())
+		assert_eq(label.text, resource_labels[label_name], "%s should start at 0" % label_name.capitalize())

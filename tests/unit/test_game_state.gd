@@ -3,13 +3,24 @@ extends "res://addons/gut/test.gd"
 const GameState = preload("res://src/core/state/GameState.gd")
 const GameEnums = preload("res://src/core/systems/GlobalEnums.gd")
 const Ship = preload("res://src/core/ships/Ship.gd")
+const TestHelper = preload("res://tests/fixtures/test_helper.gd")
 
 var state: GameState
 
 func before_each() -> void:
     state = GameState.new()
+    var state_data = TestHelper.setup_test_game_state()
+    
+    # Set up game state properties
+    state.difficulty_level = state_data.get("difficulty_level", GameEnums.DifficultyLevel.NORMAL)
+    state.enable_permadeath = state_data.get("enable_permadeath", true)
+    state.use_story_track = state_data.get("use_story_track", true)
+    state.auto_save_enabled = state_data.get("auto_save_enabled", true)
+    state.last_save_time = state_data.get("last_save_time", 0)
 
 func after_each() -> void:
+    if is_instance_valid(state):
+        state.queue_free()
     state = null
 
 func test_initialization() -> void:
@@ -22,6 +33,12 @@ func test_initialization() -> void:
     assert_eq(state.completed_quests.size(), 0, "Should initialize with no completed quests")
     assert_null(state.current_location, "Should initialize with no location")
     assert_null(state.player_ship, "Should initialize with no player ship")
+    
+    # Test initial settings
+    assert_eq(state.difficulty_level, GameEnums.DifficultyLevel.NORMAL, "Should initialize with normal difficulty")
+    assert_true(state.enable_permadeath, "Should initialize with permadeath enabled")
+    assert_true(state.use_story_track, "Should initialize with story track enabled")
+    assert_true(state.auto_save_enabled, "Should initialize with auto save enabled")
 
 func test_phase_management() -> void:
     # Test setting phase

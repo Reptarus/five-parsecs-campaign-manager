@@ -12,7 +12,7 @@ signal action_requested(action_type: String)
 @onready var progress_bar := $ProgressBar
 
 var phase_manager: CampaignPhaseManager
-var current_phase: GameEnums.CampaignPhase
+var current_phase: GameEnums.FiveParcsecsCampaignPhase
 var available_actions: Dictionary = {}
 
 func _ready() -> void:
@@ -36,7 +36,7 @@ func _connect_signals() -> void:
 	# Connect UI element signals here
 	pass
 
-func _update_phase_display(phase: GameEnums.CampaignPhase) -> void:
+func _update_phase_display(phase: GameEnums.FiveParcsecsCampaignPhase) -> void:
 	current_phase = phase
 	phase_label.text = GameEnums.PHASE_NAMES[phase]
 	description_label.text = GameEnums.PHASE_DESCRIPTIONS[phase]
@@ -62,70 +62,70 @@ func _update_progress_display() -> void:
 	
 	progress_bar.value = progress * 100
 
-func _get_required_actions(phase: GameEnums.CampaignPhase) -> Array:
+func _get_required_actions(phase: GameEnums.FiveParcsecsCampaignPhase) -> Array:
 	match phase:
-		GameEnums.CampaignPhase.SETUP:
+		GameEnums.FiveParcsecsCampaignPhase.SETUP:
 			return ["crew_created", "campaign_selected"]
-		GameEnums.CampaignPhase.UPKEEP:
+		GameEnums.FiveParcsecsCampaignPhase.UPKEEP:
 			return ["upkeep_paid", "resources_updated"]
-		GameEnums.CampaignPhase.STORY:
+		GameEnums.FiveParcsecsCampaignPhase.STORY:
 			return ["world_events_resolved", "location_checked"]
-		GameEnums.CampaignPhase.CAMPAIGN:
+		GameEnums.FiveParcsecsCampaignPhase.CAMPAIGN:
 			return ["tasks_assigned", "patron_selected"]
-		GameEnums.CampaignPhase.BATTLE_SETUP:
+		GameEnums.FiveParcsecsCampaignPhase.BATTLE_SETUP:
 			return ["deployment_ready"]
-		GameEnums.CampaignPhase.BATTLE_RESOLUTION:
+		GameEnums.FiveParcsecsCampaignPhase.BATTLE_RESOLUTION:
 			return ["battle_completed", "rewards_calculated"]
-		GameEnums.CampaignPhase.ADVANCEMENT:
+		GameEnums.FiveParcsecsCampaignPhase.ADVANCEMENT:
 			return ["management_completed"]
 		_:
 			return []
 
-func _update_available_actions(phase: GameEnums.CampaignPhase) -> void:
+func _update_available_actions(phase: GameEnums.FiveParcsecsCampaignPhase) -> void:
 	# Clear existing action buttons
 	for child in action_container.get_children():
 		child.queue_free()
 	
 	# Add new action buttons based on phase
 	match phase:
-		GameEnums.CampaignPhase.NONE:
+		GameEnums.FiveParcsecsCampaignPhase.NONE:
 			return
 			
-		GameEnums.CampaignPhase.SETUP:
+		GameEnums.FiveParcsecsCampaignPhase.SETUP:
 			_add_action_button("create_crew", "Create Crew")
 			_add_action_button("select_campaign", "Select Campaign")
 			_add_action_button("start_campaign", "Start Campaign", not _is_setup_complete())
 		
-		GameEnums.CampaignPhase.UPKEEP:
+		GameEnums.FiveParcsecsCampaignPhase.UPKEEP:
 			_add_action_button("pay_upkeep", "Pay Upkeep")
 			_add_action_button("manage_resources", "Manage Resources")
 			_add_action_button("check_crew", "Check Crew Status")
 			_add_action_button("complete_upkeep", "Complete Upkeep", not _can_complete_upkeep())
 		
-		GameEnums.CampaignPhase.STORY:
+		GameEnums.FiveParcsecsCampaignPhase.STORY:
 			_add_action_button("check_events", "Check Events")
 			_add_action_button("view_story", "View Story Progress")
 			_add_action_button("resolve_events", "Resolve Events")
 			_add_action_button("complete_story", "Complete Story Phase", not _can_complete_story())
 		
-		GameEnums.CampaignPhase.CAMPAIGN:
+		GameEnums.FiveParcsecsCampaignPhase.CAMPAIGN:
 			_add_action_button("view_missions", "View Available Missions")
 			_add_action_button("manage_crew", "Manage Crew")
 			_add_action_button("trade_equipment", "Trade Equipment")
 			_add_action_button("complete_campaign", "Complete Campaign Phase", not _can_complete_campaign())
 		
-		GameEnums.CampaignPhase.BATTLE_SETUP:
+		GameEnums.FiveParcsecsCampaignPhase.BATTLE_SETUP:
 			_add_action_button("setup_battlefield", "Setup Battlefield")
 			_add_action_button("deploy_crew", "Deploy Crew")
 			_add_action_button("start_battle", "Start Battle", not _can_start_battle())
 		
-		GameEnums.CampaignPhase.BATTLE_RESOLUTION:
+		GameEnums.FiveParcsecsCampaignPhase.BATTLE_RESOLUTION:
 			_add_action_button("resolve_combat", "Resolve Combat")
 			_add_action_button("check_casualties", "Check Casualties")
 			_add_action_button("collect_rewards", "Collect Rewards")
 			_add_action_button("complete_battle", "Complete Battle Phase", not _can_complete_battle())
 		
-		GameEnums.CampaignPhase.ADVANCEMENT:
+		GameEnums.FiveParcsecsCampaignPhase.ADVANCEMENT:
 			_add_action_button("level_up", "Level Up Characters")
 			_add_action_button("update_equipment", "Update Equipment")
 			_add_action_button("complete_turn", "Complete Turn", not _can_complete_turn())
@@ -169,7 +169,7 @@ func _on_action_button_pressed(action_type: String) -> void:
 	# Update UI state immediately for better responsiveness
 	_update_progress_display()
 
-func _on_phase_changed(new_phase: GameEnums.CampaignPhase) -> void:
+func _on_phase_changed(new_phase: GameEnums.FiveParcsecsCampaignPhase) -> void:
 	_update_phase_display(new_phase)
 
 func _on_phase_action_available(action_type: String, is_available: bool) -> void:

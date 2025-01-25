@@ -2,7 +2,8 @@
     "dirs": [
         "res://tests/unit",
         "res://tests/integration",
-        "res://tests/performance"
+        "res://tests/performance",
+        "res://tests/mobile"
     ],
     "double_strategy": "partial",
     "ignore_pause": true,
@@ -37,5 +38,10 @@
     "junit_xml_prefix": "",
     "junit_xml_timestamp_format": "%Y_%m_%d_%H_%M_%S",
     "log_format": "[{timestamp}] {level}: {message}",
-    "log_timestamp_format": "%Y-%m-%d %H:%M:%S"
+    "log_timestamp_format": "%Y-%m-%d %H:%M:%S",
+    "disable_strict_datatype_checks": false,
+    "should_maximize": true,
+    "should_use_colors": true,
+    "hide_orphans": true,
+    "errors_cause_failure": true
 }

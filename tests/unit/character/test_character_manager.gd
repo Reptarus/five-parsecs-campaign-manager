@@ -11,30 +11,33 @@
 extends "res://tests/fixtures/base_test.gd"
 
 const Character := preload("res://src/core/character/Base/Character.gd")
-const GameStateManager := preload("res://src/core/managers/GameStateManager.gd")
+const GameState := preload("res://src/core/state/GameState.gd")
 const CharacterManager := preload("res://src/core/character/Management/CharacterManager.gd")
+const CharacterBox := preload("res://src/core/character/Base/CharacterBox.gd")
 
 # Test Constants
 const MAX_CHARACTERS := 100
 const PERFORMANCE_TEST_ITERATIONS := 1000
 
-var game_state: GameStateManager
+var game_state: GameState
 var character_manager: CharacterManager
 var test_character: Character
 
 # Lifecycle Methods
 func before_each() -> void:
 	await super.before_each()
-	game_state = GameStateManager.new()
+	game_state = GameState.new()
 	character_manager = CharacterManager.new()
 	test_character = Character.new()
 	test_character.initialize_managers(game_state)
-	add_child(game_state)
-	add_child(character_manager)
+	add_child_autofree(game_state)
+	add_child_autofree(character_manager)
 	track_test_node(game_state)
 	track_test_node(character_manager)
 	watch_signals(game_state)
 	watch_signals(character_manager)
+	
+	await stabilize_engine()
 
 func after_each() -> void:
 	await super.after_each()

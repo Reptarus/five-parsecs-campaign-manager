@@ -1,144 +1,153 @@
 # Test Coverage Report
 
-## Overview
-Current test coverage analysis for Five Parsecs Campaign Manager, focusing on core systems and enum coverage.
+## Revised Coverage Strategy
 
-## Core Systems Coverage
+### Core Systems (Priority 1)
 
-### Character System (80% Coverage)
-✅ Character Stats
-✅ Character Status
-✅ Character Background
-✅ Character Motivation
-✅ Training System
-❌ Skills System (Partial)
-❌ Abilities System (Missing)
+#### Campaign State Management (40% → Target 90%)
+✅ Basic State Transitions
+✅ Campaign Creation
+❌ Phase Management
+❌ Resource Tracking
+❌ State Persistence
+❌ Error Recovery
 
-### Mission System (90% Coverage)
-✅ Mission Types
-✅ Mission Objectives
-✅ Victory Conditions
-✅ Reward Calculations
-✅ Requirements Validation
-❌ Mission Events (Partial)
-
-### Terrain System (85% Coverage)
-✅ Terrain Features
-✅ Line of Sight
-✅ Terrain Modifiers
-✅ Cell Management
-❌ Advanced Pathfinding
-
-### Combat System (40% Coverage)
+#### Combat Resolution (30% → Target 90%)
 ✅ Basic Combat Flow
-❌ Combat Modifiers
-❌ Combat Phases
-❌ Combat Status
-❌ Combat Tactics
+❌ State Transitions
+❌ Combat Outcomes
+❌ Resource Management
+❌ Error Handling
 
-### Campaign System (30% Coverage)
-✅ Basic Campaign Flow
-❌ Campaign Phases
-❌ Campaign Victory Types
-❌ Global Events
-❌ Story Integration
+#### Resource System (20% → Target 90%)
+✅ Basic Resource Creation
+❌ Resource Lifecycle
+❌ State Management
+❌ Cleanup Verification
+❌ Error Conditions
 
-### Equipment System (20% Coverage)
-❌ Weapon Types
-❌ Armor Types
-❌ Item Types
-❌ Item Rarity
-✅ Basic Equipment Validation
+### Integration Testing (Priority 2)
 
-## Enum Coverage Analysis
+#### Campaign Flow (30% → Target 80%)
+✅ Basic Flow
+❌ Phase Transitions
+❌ State Persistence
+❌ Error Recovery
 
-### Fully Tested Enums
-- GameEnums.CharacterStatus
-- GameEnums.Background
-- GameEnums.Motivation
-- GameEnums.MissionType
-- GameEnums.MissionObjective
-- GameEnums.TerrainFeatureType
-- GameEnums.TerrainModifier
-- GameEnums.Training
+#### Mission Sequences (40% → Target 80%)
+✅ Basic Mission Flow
+✅ Mission Setup
+❌ Mission Completion
+❌ Resource Management
+❌ Error Handling
 
-### Partially Tested Enums
-- GameEnums.CharacterClass (70%)
-- GameEnums.Origin (50%)
-- GameEnums.ResourceType (30%)
-- GameEnums.CombatModifier (20%)
-- GameEnums.BattlePhase (20%)
+### Deferred Testing
 
-### Missing Test Coverage
-- GameEnums.WeaponType
-- GameEnums.ArmorType
-- GameEnums.ItemType
-- GameEnums.ItemRarity
-- GameEnums.EnemyType
-- GameEnums.EnemyBehavior
-- GameEnums.EnemyRank
-- GameEnums.EnemyTrait
-- GameEnums.ShipComponentType
-- GameEnums.GlobalEvent
-- GameEnums.CampaignPhase
-- GameEnums.MarketState
+#### Mobile Features (On Hold)
+⏸️ Touch Input
+⏸️ Screen Adaptation
+⏸️ Performance Metrics
+⏸️ Device Compatibility
 
-## Priority Test Implementation Plan
+#### Performance Testing (On Hold)
+⏸️ Load Time Analysis
+⏸️ Memory Usage
+⏸️ Frame Rate Tests
+⏸️ Resource Consumption
 
-### High Priority
-1. Combat System Tests
-   - Combat Modifiers
-   - Combat Phases
-   - Status Effects
-   - Tactical Decisions
+## Test Stability Metrics
 
-2. Campaign System Tests
-   - Phase Transitions
-   - Victory Conditions
-   - Event Handling
+### Current Issues
+1. Signal Handling
+   - Inconsistent timeouts
+   - Race conditions
+   - Missing connections
 
-3. Equipment System Tests
-   - Weapon Management
-   - Armor System
-   - Item Interactions
+2. Resource Management
+   - Memory leaks
+   - Untracked resources
+   - Cleanup failures
 
-### Medium Priority
-1. Enemy System Tests
-   - Enemy Types
-   - Behavior Patterns
-   - Rank System
-   - Special Traits
+3. State Verification
+   - Incomplete checks
+   - Timing issues
+   - Missing validations
 
-2. Resource System Tests
-   - Resource Types
-   - Market States
-   - Trading System
+## Implementation Priority
 
-### Low Priority
-1. UI Component Tests
-2. Performance Tests
-3. Network Tests (if applicable)
+### Phase 1: Core Stabilization
+1. Base Test Framework
+   - [ ] Stabilize test environment
+   - [ ] Implement timeout handling
+   - [ ] Add resource tracking
 
-## Test Infrastructure Improvements Needed
+2. Signal Management
+   - [ ] Simplify signal handling
+   - [ ] Add timeout guards
+   - [ ] Improve error reporting
 
-1. Automated Test Running
-   - GitHub Actions Integration
-   - Automated Test Reports
+3. State Verification
+   - [ ] Add state assertions
+   - [ ] Implement checkpoints
+   - [ ] Add validation helpers
 
-2. Coverage Metrics
-   - Line Coverage
-   - Branch Coverage
-   - Function Coverage
+### Phase 2: Core Systems
+1. Campaign State
+   - [ ] Phase transitions
+   - [ ] Resource management
+   - [ ] Error handling
 
-3. Performance Benchmarks
-   - Load Time Tests
-   - Memory Usage Tests
-   - Frame Rate Tests
+2. Combat System
+   - [ ] State management
+   - [ ] Outcome verification
+   - [ ] Resource tracking
+
+3. Resource System
+   - [ ] Lifecycle management
+   - [ ] State persistence
+   - [ ] Cleanup verification
+
+### Phase 3: Integration
+1. Campaign Flow
+   - [ ] End-to-end tests
+   - [ ] State transitions
+   - [ ] Error recovery
+
+2. Mission System
+   - [ ] Mission sequences
+   - [ ] Resource handling
+   - [ ] State management
+
+## Success Metrics
+
+### Stability
+- Test success rate > 95%
+- No random failures
+- Clear error messages
+
+### Coverage
+- Core systems > 90%
+- Integration flows > 80%
+- Critical paths 100%
+
+### Performance
+- Test suite < 2 minutes
+- Memory stable
+- No resource leaks
 
 ## Next Steps
 
-1. Implement High Priority Tests
-2. Set up Automated Testing Pipeline
-3. Create Performance Benchmarks
-4. Document Test Patterns
-5. Regular Coverage Reviews 
+1. Immediate Actions
+   - [ ] Implement test stabilization
+   - [ ] Convert core tests
+   - [ ] Add state verification
+
+2. Short Term
+   - [ ] Complete core systems
+   - [ ] Add integration tests
+   - [ ] Improve error handling
+
+3. Long Term
+   - [ ] Mobile testing
+   - [ ] Performance metrics
+   - [ ] Advanced scenarios 

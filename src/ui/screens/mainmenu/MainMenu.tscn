@@ -1,6 +1,6 @@
 [gd_scene load_steps=3 format=3 uid="uid://5ws0uspoh6vk"]
 
-[ext_resource type="Script" path="res://ui/mainmenu/MainMenu.gd" id="1_eb6mc"]
+[ext_resource type="Script" path="res://src/ui/screens/mainmenu/MainMenu.gd" id="1_eb6mc"]
 [ext_resource type="Texture2D" uid="uid://dpv5v3x1ujg66" path="res://assets/BookImages/Nov_15_cityatnight.jpg" id="1_jq64m"]
 
 [node name="MainMenu" type="Control"]

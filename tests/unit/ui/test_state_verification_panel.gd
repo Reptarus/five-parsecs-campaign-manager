@@ -6,7 +6,7 @@
 extends "res://tests/fixtures/base_test.gd"
 
 const StateVerificationPanel := preload("res://src/ui/components/combat/state/state_verification_panel.gd")
-const GameEnums := preload("res://src/core/systems/GlobalEnums.gd")
+
 
 var panel: StateVerificationPanel
 

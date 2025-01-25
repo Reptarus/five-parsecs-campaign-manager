@@ -2,7 +2,7 @@
 extends "res://tests/fixtures/base_test.gd"
 
 const CombatLogController := preload("res://src/ui/components/combat/log/combat_log_controller.gd")
-const GameEnums := preload("res://src/core/systems/GlobalEnums.gd")
+
 
 var controller: CombatLogController
 var _signals_received := {}

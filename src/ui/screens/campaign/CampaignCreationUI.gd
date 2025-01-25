@@ -6,7 +6,6 @@ const GameEnums = preload("res://src/core/systems/GlobalEnums.gd")
 # UI Components
 @onready var config_panel = $StepPanels/ConfigPanel
 @onready var crew_panel = $StepPanels/CrewPanel
-@onready var captain_panel = $StepPanels/CaptainPanel
 @onready var resource_panel = $StepPanels/ResourcePanel
 @onready var final_panel = $StepPanels/FinalPanel
 
@@ -50,7 +49,6 @@ func _setup_panels() -> void:
 	# Connect panel signals
 	config_panel.config_updated.connect(_on_config_updated)
 	crew_panel.crew_updated.connect(_on_crew_updated)
-	captain_panel.captain_updated.connect(_on_captain_updated)
 	resource_panel.resources_updated.connect(_on_resources_updated)
 
 func _on_creation_step_changed(step: int) -> void:
@@ -70,19 +68,13 @@ func _on_creation_step_changed(step: int) -> void:
 			next_button.show()
 			finish_button.hide()
 		
-		CampaignCreationManager.CreationStep.CAPTAIN_CREATION:
-			current_panel = captain_panel
-			back_button.show()
-			next_button.show()
-			finish_button.hide()
-		
 		CampaignCreationManager.CreationStep.RESOURCE_SETUP:
 			current_panel = resource_panel
 			back_button.show()
 			next_button.show()
 			finish_button.hide()
 		
-		CampaignCreationManager.CreationStep.FINAL_SETUP:
+		CampaignCreationManager.CreationStep.FINALIZATION:
 			current_panel = final_panel
 			back_button.show()
 			next_button.hide()
@@ -103,9 +95,6 @@ func _on_next_pressed() -> void:
 		CampaignCreationManager.CreationStep.CREW_CREATION:
 			creation_manager.submit_crew_data(crew_panel.get_crew_data())
 		
-		CampaignCreationManager.CreationStep.CAPTAIN_CREATION:
-			creation_manager.submit_captain_data(captain_panel.get_captain_data())
-		
 		CampaignCreationManager.CreationStep.RESOURCE_SETUP:
 			creation_manager.initialize_resources(config_panel.get_config().difficulty)
 
@@ -124,9 +113,6 @@ func _on_config_updated(config: Dictionary) -> void:
 	_update_navigation()
 
 func _on_crew_updated(crew: Array) -> void:
-	_update_navigation()
-
-func _on_captain_updated(captain) -> void:
 	_update_navigation()
 
 func _on_resources_updated(resources: Dictionary) -> void:

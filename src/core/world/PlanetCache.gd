@@ -1,5 +1,6 @@
+@tool
 class_name FiveParsecsPlanetCache
-extends Resource
+extends Node
 
 const GameEnums = preload("res://src/core/systems/GlobalEnums.gd")
 const FiveParsecsPlanet = preload("res://src/core/world/Planet.gd")

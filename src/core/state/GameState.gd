@@ -39,7 +39,15 @@ var auto_save_enabled: bool = true
 var auto_save_frequency: int = 15
 
 # Campaign state
-var current_campaign: FiveParcsecsCampaign
+var _current_campaign: FiveParcsecsCampaign
+var current_campaign: FiveParcsecsCampaign:
+	get:
+		return _current_campaign
+	set(value):
+		_current_campaign = value
+		if value:
+			campaign_loaded.emit(value)
+			state_changed.emit()
 var visited_locations: Array[String] = []
 
 # Save system
@@ -189,7 +197,7 @@ func use_story_point() -> bool:
 
 # Save System
 func quick_save() -> void:
-	if not current_campaign or not save_manager:
+	if not _current_campaign or not save_manager:
 		return
 		
 	var save_name = "quicksave_%d" % turn_number
@@ -197,7 +205,7 @@ func quick_save() -> void:
 	save_manager.save_game(save_data, save_name)
 
 func _auto_save() -> void:
-	if not current_campaign or not auto_save_enabled or not save_manager:
+	if not _current_campaign or not auto_save_enabled or not save_manager:
 		return
 		
 	var save_name = "autosave_%d" % turn_number
@@ -253,8 +261,8 @@ func serialize() -> Dictionary:
 	if player_ship:
 		data["player_ship"] = player_ship.serialize()
 		
-	if current_campaign:
-		data["campaign"] = current_campaign.serialize()
+	if _current_campaign:
+		data["campaign"] = _current_campaign.serialize()
 	
 	return data
 
@@ -281,8 +289,8 @@ func deserialize(data: Dictionary) -> void:
 		player_ship.deserialize(data.player_ship)
 		
 	if data.has("campaign"):
-		current_campaign = FiveParcsecsCampaign.new()
-		current_campaign.deserialize(data.campaign)
+		_current_campaign = FiveParcsecsCampaign.new()
+		_current_campaign.deserialize(data.campaign)
 
 static func deserialize_new(data: Dictionary) -> GameState:
 	var state = GameState.new()
@@ -310,11 +318,11 @@ func _cleanup() -> void:
 			save_manager.load_completed.disconnect(_on_save_manager_load_completed)
 	save_manager = null
 	
-	if current_campaign:
-		current_campaign = null
+	if _current_campaign:
+		_current_campaign = null
 
 func start_new_campaign(campaign: FiveParcsecsCampaign) -> void:
-	current_campaign = campaign
+	_current_campaign = campaign
 	turn_number = 1
 	reputation = campaign.starting_reputation
 	state_changed.emit()
@@ -331,8 +339,8 @@ func load_campaign(save_data: Dictionary) -> void:
 		return
 	
 	var campaign_data = save_data.campaign
-	current_campaign = FiveParcsecsCampaign.new()
-	current_campaign.from_dictionary(campaign_data)
+	_current_campaign = FiveParcsecsCampaign.new()
+	_current_campaign.from_dictionary(campaign_data)
 	
 	# Load game state
 	turn_number = save_data.get("turn_number", 1)
@@ -345,20 +353,20 @@ func load_campaign(save_data: Dictionary) -> void:
 	use_story_track = save_data.get("use_story_track", true)
 	auto_save_enabled = save_data.get("auto_save_enabled", true)
 	
-	campaign_loaded.emit(current_campaign)
+	campaign_loaded.emit(_current_campaign)
 	state_changed.emit()
 	load_completed.emit(true, "Campaign loaded successfully")
 
 func save_campaign() -> Dictionary:
 	save_started.emit()
 	
-	if not current_campaign:
+	if not _current_campaign:
 		push_error("No campaign to save")
 		save_completed.emit(false, "No campaign to save")
 		return {}
 	
 	var save_data := {
-		"campaign": current_campaign.to_dictionary(),
+		"campaign": _current_campaign.to_dictionary(),
 		"turn_number": turn_number,
 		"reputation": reputation,
 		"last_save_time": Time.get_unix_time_from_system(),
@@ -372,19 +380,19 @@ func save_campaign() -> Dictionary:
 	return save_data
 
 func has_active_campaign() -> bool:
-	return current_campaign != null
+	return _current_campaign != null
 
 func end_campaign() -> void:
-	if current_campaign and auto_save_enabled:
+	if _current_campaign and auto_save_enabled:
 		_auto_save()
 	
-	current_campaign = null
+	_current_campaign = null
 	turn_number = 0
 	reputation = 0
 	state_changed.emit()
 
 func get_campaign() -> FiveParcsecsCampaign:
-	return current_campaign
+	return _current_campaign
 
 func modify_reputation(amount: int) -> void:
 	reputation += amount
@@ -405,13 +413,13 @@ func modify_resource(resource_type: int, amount: int) -> void:
 
 # Crew Management
 func get_crew_size() -> int:
-	if not current_campaign:
+	if not _current_campaign:
 		return 0
-	return current_campaign.get_crew_size()
+	return _current_campaign.get_crew_size()
 
 # Equipment Management
 func has_equipment(equipment_type: Variant) -> bool:
-	if not current_campaign:
+	if not _current_campaign:
 		return false
 	
 	# Convert string to int if needed
@@ -424,4 +432,4 @@ func has_equipment(equipment_type: Variant) -> bool:
 	else:
 		equipment_id = equipment_type
 	
-	return current_campaign.has_equipment(equipment_id)
+	return _current_campaign.has_equipment(equipment_id)

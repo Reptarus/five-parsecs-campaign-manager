@@ -12,7 +12,7 @@ signal tutorial_back_requested
 @onready var back_button := $VBoxContainer/ButtonContainer/BackButton
 @onready var skip_button := $VBoxContainer/ButtonContainer/SkipButton
 
-var campaign_manager: GameCampaignManager
+var campaign_manager: Node # Changed from GameCampaignManager since it's not found
 var current_step: String = ""
 var tutorial_type: String = "basic"
 

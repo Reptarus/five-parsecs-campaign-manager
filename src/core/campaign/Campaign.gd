@@ -7,7 +7,9 @@ const Character = preload("res://src/core/character/Base/Character.gd")
 
 signal campaign_started
 signal campaign_ended(victory: bool)
-signal phase_changed(phase: int)
+signal phase_changed(old_phase: int, new_phase: int)
+signal phase_completed(phase: int)
+signal phase_started(phase: int)
 signal resources_changed(resources: Dictionary)
 
 @export var campaign_name: String = "":
@@ -62,14 +64,18 @@ func _initialize_campaign() -> void:
 	resources_changed.emit(resources)
 
 func start_campaign() -> void:
+	var old_phase = current_phase
 	current_phase = GameEnums.CampaignPhase.SETUP
 	campaign_started.emit()
-	phase_changed.emit(current_phase)
+	phase_changed.emit(old_phase, current_phase)
+	phase_started.emit(current_phase)
 
 func end_campaign(victory: bool = false) -> void:
+	var old_phase = current_phase
+	phase_completed.emit(current_phase)
 	current_phase = GameEnums.CampaignPhase.END
+	phase_changed.emit(old_phase, current_phase)
 	campaign_ended.emit(victory)
-	phase_changed.emit(current_phase)
 
 func change_phase(new_phase: int) -> void:
 	if new_phase == current_phase:
@@ -79,8 +85,11 @@ func change_phase(new_phase: int) -> void:
 		push_error("Invalid campaign phase: %d" % new_phase)
 		return
 	
+	var old_phase = current_phase
+	phase_completed.emit(current_phase)
 	current_phase = new_phase
-	phase_changed.emit(current_phase)
+	phase_changed.emit(old_phase, new_phase)
+	phase_started.emit(current_phase)
 
 func add_resources(resource_type: int, amount: int) -> void:
 	if not resource_type in GameEnums.ResourceType.values():

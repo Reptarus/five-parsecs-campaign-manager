@@ -6,7 +6,6 @@
 extends "res://tests/fixtures/base_test.gd"
 
 const HouseRulesPanel := preload("res://src/ui/components/combat/rules/house_rules_panel.gd")
-const GameEnums := preload("res://src/core/systems/GlobalEnums.gd")
 
 var panel: HouseRulesPanel
 

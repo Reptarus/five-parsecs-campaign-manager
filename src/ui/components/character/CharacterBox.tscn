@@ -1,50 +1,105 @@
-[gd_scene load_steps=2 format=3]
+[gd_scene load_steps=2 format=3 uid="uid://c4q8j8y3yv2gw"]
 
-[ext_resource type="Script" path="res://Resources/Campaign/Crew/Scripts/CharacterBox.gd" id="1_script"]
+[ext_resource type="Script" path="res://src/core/character/Base/CharacterBox.gd" id="1_script"]
 
 [node name="CharacterBox" type="PanelContainer"]
-custom_minimum_size = Vector2(200, 100)
-anchors_preset = 15
-anchor_right = 1.0
-anchor_bottom = 1.0
-grow_horizontal = 2
-grow_vertical = 2
+offset_right = 40.0
+offset_bottom = 40.0
 script = ExtResource("1_script")
 
 [node name="MarginContainer" type="MarginContainer" parent="."]
 layout_mode = 2
-theme_override_constants/margin_left = 5
-theme_override_constants/margin_top = 5
-theme_override_constants/margin_right = 5
-theme_override_constants/margin_bottom = 5
+theme_override_constants/margin_left = 10
+theme_override_constants/margin_top = 10
+theme_override_constants/margin_right = 10
+theme_override_constants/margin_bottom = 10
 
-[node name="VBoxContainer" type="VBoxContainer" parent="MarginContainer"]
+[node name="HBoxContainer" type="HBoxContainer" parent="MarginContainer"]
+layout_mode = 2
+theme_override_constants/separation = 20
+
+[node name="PortraitContainer" type="PanelContainer" parent="MarginContainer/HBoxContainer"]
+custom_minimum_size = Vector2(100, 100)
 layout_mode = 2
 
-[node name="NameLabel" type="Label" parent="MarginContainer/VBoxContainer"]
+[node name="Portrait" type="TextureRect" parent="MarginContainer/HBoxContainer/PortraitContainer"]
 layout_mode = 2
+expand_mode = 1
+stretch_mode = 6
+
+[node name="InfoContainer" type="VBoxContainer" parent="MarginContainer/HBoxContainer"]
+layout_mode = 2
+size_flags_horizontal = 3
+
+[node name="NameLabel" type="Label" parent="MarginContainer/HBoxContainer/InfoContainer"]
+layout_mode = 2
+theme_override_font_sizes/font_size = 24
 text = "Character Name"
-horizontal_alignment = 1
 
-[node name="HSeparator" type="HSeparator" parent="MarginContainer/VBoxContainer"]
+[node name="ClassLabel" type="Label" parent="MarginContainer/HBoxContainer/InfoContainer"]
+layout_mode = 2
+theme_override_colors/font_color = Color(0.784314, 0.784314, 0.784314, 1)
+text = "Character Class"
+
+[node name="StatsContainer" type="GridContainer" parent="MarginContainer/HBoxContainer/InfoContainer"]
+layout_mode = 2
+columns = 6
+
+[node name="ReactionsLabel" type="Label" parent="MarginContainer/HBoxContainer/InfoContainer/StatsContainer"]
+layout_mode = 2
+text = "REA"
+
+[node name="ReactionsValue" type="Label" parent="MarginContainer/HBoxContainer/InfoContainer/StatsContainer"]
+layout_mode = 2
+text = "3"
+
+[node name="SpeedLabel" type="Label" parent="MarginContainer/HBoxContainer/InfoContainer/StatsContainer"]
+layout_mode = 2
+text = "SPD"
+
+[node name="SpeedValue" type="Label" parent="MarginContainer/HBoxContainer/InfoContainer/StatsContainer"]
+layout_mode = 2
+text = "3"
+
+[node name="CombatSkillLabel" type="Label" parent="MarginContainer/HBoxContainer/InfoContainer/StatsContainer"]
+layout_mode = 2
+text = "CS"
+
+[node name="CombatSkillValue" type="Label" parent="MarginContainer/HBoxContainer/InfoContainer/StatsContainer"]
+layout_mode = 2
+text = "+0"
+
+[node name="ToughnessLabel" type="Label" parent="MarginContainer/HBoxContainer/InfoContainer/StatsContainer"]
+layout_mode = 2
+text = "TGH"
+
+[node name="ToughnessValue" type="Label" parent="MarginContainer/HBoxContainer/InfoContainer/StatsContainer"]
+layout_mode = 2
+text = "3"
+
+[node name="SavvyLabel" type="Label" parent="MarginContainer/HBoxContainer/InfoContainer/StatsContainer"]
+layout_mode = 2
+text = "SAV"
+
+[node name="SavvyValue" type="Label" parent="MarginContainer/HBoxContainer/InfoContainer/StatsContainer"]
+layout_mode = 2
+text = "+0"
+
+[node name="LuckLabel" type="Label" parent="MarginContainer/HBoxContainer/InfoContainer/StatsContainer"]
+layout_mode = 2
+text = "LCK"
+
+[node name="LuckValue" type="Label" parent="MarginContainer/HBoxContainer/InfoContainer/StatsContainer"]
+layout_mode = 2
+text = "3"
+
+[node name="StatusContainer" type="HBoxContainer" parent="MarginContainer/HBoxContainer/InfoContainer"]
 layout_mode = 2
 
-[node name="StatsContainer" type="GridContainer" parent="MarginContainer/VBoxContainer"]
-layout_mode = 2
-columns = 2
-
-[node name="HealthLabel" type="Label" parent="MarginContainer/VBoxContainer/StatsContainer"]
-layout_mode = 2
-text = "Health:"
-
-[node name="HealthValue" type="Label" parent="MarginContainer/VBoxContainer/StatsContainer"]
-layout_mode = 2
-text = "10/10"
-
-[node name="StatusLabel" type="Label" parent="MarginContainer/VBoxContainer/StatsContainer"]
+[node name="StatusLabel" type="Label" parent="MarginContainer/HBoxContainer/InfoContainer/StatusContainer"]
 layout_mode = 2
 text = "Status:"
 
-[node name="StatusValue" type="Label" parent="MarginContainer/VBoxContainer/StatsContainer"]
+[node name="StatusValue" type="Label" parent="MarginContainer/HBoxContainer/InfoContainer/StatusContainer"]
 layout_mode = 2
 text = "Healthy" 

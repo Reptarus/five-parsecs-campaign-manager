@@ -4,6 +4,7 @@ class_name StrangeCharacters
 extends Resource
 
 const GameEnums = preload("res://src/core/systems/GlobalEnums.gd")
+const Character = preload("res://src/core/character/Base/Character.gd")
 
 var type: GameEnums.StrangeCharacterType
 var special_abilities: Array[String] = []

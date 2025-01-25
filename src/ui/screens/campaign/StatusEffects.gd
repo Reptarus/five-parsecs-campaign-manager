@@ -1,6 +1,8 @@
 class_name StatusEffect
 extends Resource
 
+const Character = preload("res://src/core/character/Base/Character.gd")
+
 enum StatusEffectType {
     STUN,
     POISON,

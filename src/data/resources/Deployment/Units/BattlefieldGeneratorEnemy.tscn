@@ -1,10 +1,10 @@
-[gd_scene load_steps=3 format=3 uid="uid://df2kj686kyw76"]
+[gd_scene load_steps=2 format=3 uid="uid://c4q8j8y3yv2gw"]
 
-[ext_resource type="Script" path="res://Resources/Battle/Enemy/Enemy.gd" id="1_8f41t"]
+[ext_resource type="Script" path="res://src/core/battle/enemy/Enemy.gd" id="1_8f41t"]
 
 [sub_resource type="RectangleShape2D" id="RectangleShape2D_b6b1w"]
 
-[node name="BattlefieldGeneratorEnemy" type="CharacterBody2D"]
+[node name="BattlefieldGeneratorEnemy" type="Node"]
 script = ExtResource("1_8f41t")
 
 [node name="Collision" type="CollisionShape2D" parent="."]

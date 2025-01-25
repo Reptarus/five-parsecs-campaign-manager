@@ -2,7 +2,7 @@
 extends "res://tests/fixtures/base_test.gd"
 
 const StateVerificationController: PackedScene = preload("res://src/ui/components/combat/state/state_verification_controller.tscn")
-const GameEnums := preload("res://src/core/systems/GlobalEnums.gd")
+
 
 var controller: Node
 var mock_combat_manager: Node

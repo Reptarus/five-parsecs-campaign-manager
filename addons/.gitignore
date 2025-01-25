@@ -1,4 +1,0 @@
-# Ignore all files and folders in the addons directory
-*
-# But don't ignore the .gitignore file itself
-!.gitignore
