@@ -1,10 +1,10 @@
 @tool
-extends GameTest
+extends "res://tests/fixtures/game_test.gd"
 
 const CampaignUI = preload("res://src/scenes/campaign/CampaignUI.gd")
 const GameStateManager = preload("res://src/core/managers/GameStateManager.gd")
 
-var game_state_manager
+var game_state_manager: GameStateManager
 var ui
 
 func before_each() -> void:
@@ -12,6 +12,7 @@ func before_each() -> void:
 	game_state_manager = GameStateManager.new()
 	add_child(game_state_manager)
 	track_test_node(game_state_manager)
+	await get_tree().process_frame
 	
 	ui = CampaignUI.new()
 	add_child(ui)
@@ -27,12 +28,10 @@ func after_each() -> void:
 	ui = null
 
 func test_initial_state() -> void:
-	assert_not_null(ui, "UI should be created")
-	assert_not_null(ui.resource_panel, "Resource panel should be initialized")
-	assert_not_null(ui.action_panel, "Action panel should be initialized")
-	assert_not_null(ui.phase_indicator, "Phase indicator should be initialized")
-	assert_not_null(ui.event_log, "Event log should be initialized")
-	assert_not_null(ui.phase_ui, "Phase UI should be initialized")
+	assert_not_null(game_state_manager, "Game state manager should be initialized")
+	assert_eq(game_state_manager.campaign_phase, GameEnums.FiveParcsecsCampaignPhase.NONE, "Should start in NONE phase")
+	assert_eq(game_state_manager.difficulty_level, GameEnums.DifficultyLevel.NORMAL, "Should start with NORMAL difficulty")
+	assert_eq(game_state_manager.game_state, GameEnums.GameState.NONE, "Should start in NONE game state")
 
 func test_resource_display() -> void:
 	watch_signals(ui)
@@ -46,16 +45,26 @@ func test_resource_display() -> void:
 	assert_eq(ui.resource_panel.get_resource(GameEnums.ResourceType.FUEL), 50, "Fuel display should update")
 	assert_signal_emitted(ui, "resources_updated")
 
-func test_phase_indicator() -> void:
-	watch_signals(ui)
+func test_campaign_phase_transitions() -> void:
+	watch_signals(game_state_manager)
 	
-	game_state_manager.set_campaign_phase(GameEnums.CampaignPhase.SETUP)
-	assert_eq(ui.phase_indicator.get_current_phase(), GameEnums.CampaignPhase.SETUP, "Phase indicator should update")
-	assert_signal_emitted(ui, "phase_changed")
+	var valid_phases = [
+		GameEnums.FiveParcsecsCampaignPhase.SETUP,
+		GameEnums.FiveParcsecsCampaignPhase.UPKEEP,
+		GameEnums.FiveParcsecsCampaignPhase.STORY,
+		GameEnums.FiveParcsecsCampaignPhase.CAMPAIGN,
+		GameEnums.FiveParcsecsCampaignPhase.BATTLE_SETUP,
+		GameEnums.FiveParcsecsCampaignPhase.BATTLE_RESOLUTION,
+		GameEnums.FiveParcsecsCampaignPhase.ADVANCEMENT,
+		GameEnums.FiveParcsecsCampaignPhase.TRADE
+	]
 	
-	game_state_manager.set_campaign_phase(GameEnums.CampaignPhase.UPKEEP)
-	assert_eq(ui.phase_indicator.get_current_phase(), GameEnums.CampaignPhase.UPKEEP, "Phase indicator should update")
-	assert_signal_emitted(ui, "phase_changed")
+	for phase in valid_phases:
+		game_state_manager.set_campaign_phase(phase)
+		assert_eq(game_state_manager.campaign_phase, phase, "Should transition to %s phase" % GameEnums.PHASE_NAMES[phase])
+		assert_signal_emitted(game_state_manager, "campaign_phase_changed")
+		assert_eq(game_state_manager.get_phase_name(), GameEnums.PHASE_NAMES[phase], "Should return correct phase name")
+		assert_eq(game_state_manager.get_phase_description(), GameEnums.PHASE_DESCRIPTIONS[phase], "Should return correct phase description")
 
 func test_event_log() -> void:
 	watch_signals(ui)

@@ -13,18 +13,19 @@ extends "res://tests/fixtures/game_test.gd"
 
 # Constants and preloads
 const BattleStateMachine := preload("res://src/core/battle/state/BattleStateMachine.gd")
-const MockGameStateManager := preload("res://tests/fixtures/mock_game_state_manager.gd")
+const GameStateManager := preload("res://src/core/managers/GameStateManager.gd")
 const TEST_TIMEOUT := 1000 # ms timeout for performance tests
 
 # Test instance variables
 var battle_state: BattleStateMachine
-var mock_game_state_manager: MockGameStateManager
+var game_state_manager: GameStateManager
 var _signal_count: int = 0
 
 # Helper methods
 func create_test_battle_state() -> BattleStateMachine:
-    var state := BattleStateMachine.new(mock_game_state_manager)
-    add_child(state)
+    var state := BattleStateMachine.new(game_state_manager)
+    add_child_autofree(state)
+    track_test_node(state)
     return state
 
 func setup_active_battle() -> void:
@@ -33,15 +34,21 @@ func setup_active_battle() -> void:
 
 # Test lifecycle methods
 func before_each() -> void:
-    mock_game_state_manager = MockGameStateManager.new()
-    add_child(mock_game_state_manager)
+    await super.before_each()
+    
+    game_state_manager = GameStateManager.new()
+    add_child_autofree(game_state_manager)
+    track_test_node(game_state_manager)
     
     battle_state = create_test_battle_state()
     _signal_count = 0
+    
+    await stabilize_engine()
 
 func after_each() -> void:
-    battle_state.queue_free()
-    mock_game_state_manager.queue_free()
+    await super.after_each()
+    battle_state = null
+    game_state_manager = null
 
 # Basic state tests
 func test_initial_state() -> void:
@@ -87,13 +94,14 @@ func test_phase_transitions() -> void:
     battle_state.transition_to_phase(GameEnums.CombatPhase.ACTION)
     assert_eq(battle_state.current_phase, GameEnums.CombatPhase.ACTION,
         "Should transition to action phase")
+
 func test_add_combatant() -> void:
-    var character = Character.new()
+    var character = create_test_character()
+    track_test_resource(character)
     battle_state.add_combatant(character)
     
     assert_true(battle_state.active_combatants.has(character),
         "Character should be added to active combatants")
-    character.queue_free()
 
 func test_save_and_load_state() -> void:
     battle_state.start_battle()
@@ -102,8 +110,9 @@ func test_save_and_load_state() -> void:
     var saved_state = battle_state.save_state()
     assert_not_null(saved_state, "Should create save state")
     
-    var new_battle_state := BattleStateMachine.new(mock_game_state_manager)
-    add_child(new_battle_state)
+    var new_battle_state := BattleStateMachine.new(game_state_manager)
+    add_child_autofree(new_battle_state)
+    track_test_node(new_battle_state)
     
     new_battle_state.load_state(saved_state)
     assert_eq(new_battle_state.current_phase, GameEnums.CombatPhase.ACTION,

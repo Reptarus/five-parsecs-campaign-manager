@@ -37,24 +37,24 @@ class ResourceTransaction:
 		}
 	
 	static func deserialize(data: Dictionary) -> ResourceTransaction:
-		var transaction = ResourceTransaction.new(
-			data["type"],
-			data["amount"],
-			data["transaction_type"],
-			data["source"],
-			data["balance"]
+		var transaction := ResourceTransaction.new(
+			int(data["type"]),
+			int(data["amount"]),
+			data["transaction_type"] as String,
+			data["source"] as String,
+			int(data["balance"])
 		)
-		transaction.timestamp = data["timestamp"]
+		transaction.timestamp = int(data["timestamp"])
 		return transaction
 
 # Resource Validation Rule class
 class ResourceValidationRule:
 	var min_value: int = 0
 	var max_value: int = -1 # -1 means no upper limit
-	var allowed_sources: Array = [] # Empty means all sources allowed
+	var allowed_sources: Array[String] = [] # Empty means all sources allowed
 	var validation_callback: Callable
 	
-	func _init(min_val: int = 0, max_val: int = -1, sources: Array = [], callback: Callable = Callable()) -> void:
+	func _init(min_val: int = 0, max_val: int = -1, sources: Array[String] = [], callback: Callable = Callable()) -> void:
 		min_value = min_val
 		max_value = max_val
 		allowed_sources = sources
@@ -66,7 +66,7 @@ class ResourceValidationRule:
 			return {"valid": false, "reason": "Invalid source: " + source}
 		
 		# Calculate new amount
-		var new_amount = current_amount + change_amount
+		var new_amount := current_amount + change_amount
 		
 		# Check minimum value
 		if new_amount < min_value:
@@ -78,7 +78,7 @@ class ResourceValidationRule:
 		
 		# Run custom validation if provided
 		if validation_callback.is_valid():
-			var custom_result = validation_callback.call(current_amount, change_amount, source)
+			var custom_result := validation_callback.call(current_amount, change_amount, source) as Dictionary
 			if not custom_result["valid"]:
 				return custom_result
 		
@@ -105,7 +105,7 @@ class ResourceTableEntry:
 		dependencies = deps
 	
 	func calculate_value(market_state: float = 0.0, dependency_values: Dictionary = {}) -> int:
-		var value = base_value
+		var value := base_value
 		
 		# Apply market volatility
 		if market_volatility > 0:
@@ -114,7 +114,7 @@ class ResourceTableEntry:
 		# Apply dependency effects
 		for dep_type in dependencies:
 			if dependency_values.has(dep_type):
-				var dep_effect = dependency_values[dep_type] - base_value
+				var dep_effect: int = dependency_values[dep_type] - base_value
 				value += int(dep_effect * 0.1) # 10% influence from each dependency
 		
 		# Ensure within bounds
@@ -138,7 +138,7 @@ class ResourceMarket:
 		resource_tables[entry.type] = entry
 	
 	func update_market_state() -> void:
-		var current_time = Time.get_unix_time_from_system()
+		var current_time := Time.get_unix_time_from_system()
 		if current_time - last_update_time < UPDATE_INTERVAL:
 			return
 			
@@ -155,7 +155,7 @@ class ResourceMarket:
 
 var _resources: Dictionary = {}
 var _resource_limits: Dictionary = {}
-var _transaction_history: Array = []
+var _transaction_history: Array[ResourceTransaction] = []
 var _validation_rules: Dictionary = {}
 const MAX_HISTORY_SIZE: int = 100
 
@@ -165,7 +165,7 @@ func _init() -> void:
 	_initialize_resources()
 
 func _initialize_resources() -> void:
-	for type in GameEnums.ResourceType.values():
+	for type: int in GameEnums.ResourceType.values():
 		_resources[type] = 0
 		_resource_limits[type] = -1 # -1 means no limit
 		_validation_rules[type] = ResourceValidationRule.new()
@@ -179,7 +179,7 @@ func validate_transaction(type: int, amount: int, source: String) -> Dictionary:
 	return _validation_rules[type].validate_transaction(_resources.get(type, 0), amount, source)
 
 func record_transaction(type: int, amount: int, t_type: String, source: String) -> void:
-	var transaction = ResourceTransaction.new(
+	var transaction := ResourceTransaction.new(
 		type,
 		amount,
 		t_type,
@@ -194,7 +194,7 @@ func record_transaction(type: int, amount: int, t_type: String, source: String) 
 	
 	transaction_recorded.emit(transaction)
 
-func get_transaction_history(type: int = -1) -> Array:
+func get_transaction_history(type: int = -1) -> Array[ResourceTransaction]:
 	if type == -1:
 		return _transaction_history.duplicate()
 	return _transaction_history.filter(func(t): return t.type == type)
@@ -210,16 +210,16 @@ func add_resource(type: int, amount: int, source: String = "system") -> void:
 		return
 	
 	# Validate transaction
-	var validation = validate_transaction(type, amount, source)
+	var validation := validate_transaction(type, amount, source)
 	if not validation["valid"]:
 		validation_failed.emit(type, amount, validation["reason"])
 		return
 		
-	var current = get_resource_amount(type)
-	var limit = _resource_limits[type]
+	var current := get_resource_amount(type)
+	var limit: int = _resource_limits[type]
 	
 	if limit >= 0:
-		amount = min(amount, limit - current)
+		amount = mini(amount, limit - current)
 		
 	if amount > 0:
 		_resources[type] = current + amount
@@ -232,12 +232,12 @@ func remove_resource(type: int, amount: int, source: String = "system") -> bool:
 		return true
 	
 	# Validate transaction
-	var validation = validate_transaction(type, -amount, source)
+	var validation := validate_transaction(type, -amount, source)
 	if not validation["valid"]:
 		validation_failed.emit(type, -amount, validation["reason"])
 		return false
 		
-	var current = get_resource_amount(type)
+	var current := get_resource_amount(type)
 	if current < amount:
 		return false
 		
@@ -254,7 +254,7 @@ func remove_resource(type: int, amount: int, source: String = "system") -> bool:
 func set_resource_limit(type: int, limit: int) -> void:
 	_resource_limits[type] = limit
 	if limit >= 0:
-		var current = get_resource_amount(type)
+		var current := get_resource_amount(type)
 		if current > limit:
 			remove_resource(type, current - limit, "limit_adjustment")
 
@@ -262,7 +262,7 @@ func get_resource_limit(type: int) -> int:
 	return _resource_limits.get(type, -1)
 
 func clear_resources() -> void:
-	for type in _resources.keys():
+	for type: int in _resources.keys():
 		if _resources[type] > 0:
 			record_transaction(type, _resources[type], "REMOVE", "clear")
 		_resources[type] = 0
@@ -270,14 +270,14 @@ func clear_resources() -> void:
 		resource_depleted.emit(type)
 
 func serialize() -> Dictionary:
-	var history = []
+	var history: Array = []
 	for transaction in _transaction_history:
 		history.append(transaction.serialize())
 	
-	var market_tables = {}
+	var market_tables: Dictionary = {}
 	for type in _market.resource_tables:
-		var entry = _market.resource_tables[type]
-		market_tables[type] = {
+		var entry := _market.resource_tables[type] as ResourceTableEntry
+		market_tables[str(type)] = {
 			"base_value": entry.base_value,
 			"min_value": entry.min_value,
 			"max_value": entry.max_value,
@@ -305,27 +305,27 @@ func deserialize(data: Dictionary) -> void:
 		for t_data in data["history"]:
 			_transaction_history.append(ResourceTransaction.deserialize(t_data))
 	if data.has("market_state"):
-		_market.market_state = data["market_state"]
+		_market.market_state = float(data["market_state"])
 	if data.has("last_update_time"):
-		_market.last_update_time = data["last_update_time"]
+		_market.last_update_time = int(data["last_update_time"])
 	if data.has("market_tables"):
 		_market.resource_tables.clear()
 		for type_str in data["market_tables"]:
-			var type = int(type_str)
-			var table_data = data["market_tables"][type_str]
+			var type := int(type_str)
+			var table_data := data["market_tables"][type_str] as Dictionary
 			setup_resource_table(
 				type,
-				table_data["base_value"],
-				table_data["min_value"],
-				table_data["max_value"],
-				table_data["rarity"],
-				table_data["market_volatility"],
-				table_data["dependencies"]
+				int(table_data["base_value"]),
+				int(table_data["min_value"]),
+				int(table_data["max_value"]),
+				float(table_data["rarity"]),
+				float(table_data["market_volatility"]),
+				table_data["dependencies"] as Array[int]
 			)
 
 func setup_resource_table(type: int, base_value: int, min_value: int = 0, max_value: int = -1,
 						 rarity: float = 0.5, volatility: float = 0.0, dependencies: Array[int] = []) -> void:
-	var entry = ResourceTableEntry.new(type, base_value, min_value, max_value, rarity, volatility, dependencies)
+	var entry := ResourceTableEntry.new(type, base_value, min_value, max_value, rarity, volatility, dependencies)
 	_market.add_resource_table(entry)
 
 func get_market_value(type: int) -> int:
@@ -333,7 +333,7 @@ func get_market_value(type: int) -> int:
 
 func update_market_resources() -> void:
 	_market.update_market_state()
-	for type in _market.resource_tables:
-		var new_value = _market.get_resource_value(type, _resources)
+	for type: int in _market.resource_tables:
+		var new_value := _market.get_resource_value(type, _resources)
 		if new_value != get_resource_amount(type):
 			add_resource(type, new_value - get_resource_amount(type), "market_update")

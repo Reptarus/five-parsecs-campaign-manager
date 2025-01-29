@@ -24,10 +24,12 @@ var current_phase: int = GameEnums.CombatPhase.NONE
 var current_round: int = 1
 var is_battle_active: bool = false
 var active_combatants: Array[Character] = []
+var current_unit_action: int = GameEnums.UnitAction.NONE
 
 # Track unit actions
 var _completed_actions: Dictionary = {}
 var _reaction_opportunities: Array[Dictionary] = []
+var _current_unit: Character = null
 
 func _init(p_game_state_manager: GameStateManager = null) -> void:
 	game_state_manager = p_game_state_manager
@@ -45,6 +47,30 @@ func start_battle() -> void:
 func end_battle(victory_type: int) -> void:
 	is_battle_active = false
 	battle_ended.emit(victory_type == GameEnums.VictoryConditionType.ELIMINATION)
+
+func start_unit_action(unit: Character, action: int) -> void:
+	_current_unit = unit
+	current_unit_action = action
+	unit_action_changed.emit(action)
+
+func complete_unit_action() -> void:
+	if _current_unit and current_unit_action != GameEnums.UnitAction.NONE:
+		unit_action_completed.emit(_current_unit, current_unit_action)
+		if not _completed_actions.has(_current_unit):
+			_completed_actions[_current_unit] = []
+		_completed_actions[_current_unit].append(current_unit_action)
+		current_unit_action = GameEnums.UnitAction.NONE
+		_current_unit = null
+
+func has_unit_completed_action(unit: Character, action: int) -> bool:
+	return _completed_actions.has(unit) and action in _completed_actions[unit]
+
+func get_available_actions(unit: Character) -> Array[int]:
+	var available: Array[int] = []
+	for action in GameEnums.UnitAction.values():
+		if not has_unit_completed_action(unit, action):
+			available.append(action)
+	return available
 
 func transition_to(new_state: int) -> void:
 	if new_state == current_state:
@@ -152,3 +178,20 @@ func _handle_reaction_phase() -> void:
 func _handle_end_phase() -> void:
 	# Implement end phase logic
 	pass
+
+func start_round() -> void:
+	current_round = max(1, current_round)
+	round_started.emit(current_round)
+	transition_to_phase(GameEnums.CombatPhase.INITIATIVE)
+
+func end_round() -> void:
+	round_ended.emit(current_round)
+	current_round += 1
+	if is_battle_active:
+		transition_to_phase(GameEnums.CombatPhase.END)
+
+func trigger_combat_effect(effect_name: String, source: Character, target: Character) -> void:
+	combat_effect_triggered.emit(effect_name, source, target)
+
+func trigger_reaction_opportunity(unit: Character, reaction_type: String, source: Character) -> void:
+	reaction_opportunity.emit(unit, reaction_type, source)

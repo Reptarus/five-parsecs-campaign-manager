@@ -1,4 +1,4 @@
-class_name ArmorData
+ kvnfdsq sqw/ws/  m nbggclass_name ArmorData
 extends EquipmentData
 
 @export var defense: int = 1

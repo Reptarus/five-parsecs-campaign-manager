@@ -10,19 +10,23 @@ var game_state: Node
 # Signal tracking
 var _received_signals: Array = []
 
+func _do_ready_stuff() -> void:
+	super._do_ready_stuff()
+
 func before_all() -> void:
-	super.before_all()
+	await super.before_all()
 
 func after_all() -> void:
-	super.after_all()
+	await super.after_all()
 
 func before_each() -> void:
-	super.before_each()
+	await super.before_each()
 	gut.p("Setting up test environment...")
 	
 	# Initialize game state using framework method
 	game_state = create_test_game_state()
 	add_child_autofree(game_state)
+	track_test_node(game_state)
 	
 	# Load test campaign before validation
 	load_test_campaign(game_state)
@@ -32,6 +36,7 @@ func before_each() -> void:
 	# Set up campaign system
 	campaign_system = FiveParsecsCampaignSystem.new()
 	add_child_autofree(campaign_system)
+	track_test_node(campaign_system)
 	_connect_mission_signals()
 	campaign_system.initialize(game_state)
 	get_tree().process_frame
@@ -46,6 +51,7 @@ func _connect_mission_signals() -> void:
 
 func _on_mission_created(mission: Node) -> void:
 	_received_signals.append("mission_created")
+	track_test_node(mission) # Track the created mission node
 	gut.p("Mission created: " + str(mission))
 
 func _on_mission_signal(signal_name: String) -> void:
@@ -64,26 +70,12 @@ func after_each() -> void:
 	if is_instance_valid(campaign_system):
 		_disconnect_mission_signals()
 	
-	# Let parent handle cleanup first
-	super.after_each()
-	
-	# Then handle node cleanup
-	if is_instance_valid(game_state):
-		remove_child(game_state)
-		game_state.queue_free()
-	if is_instance_valid(campaign_system):
-		remove_child(campaign_system)
-		campaign_system.queue_free()
-	
-	# Wait for nodes to be freed
-	await get_tree().process_frame
+	# Let parent handle cleanup of tracked nodes and resources
+	await super.after_each()
 	
 	# Clear references to allow RefCounted cleanup
 	campaign_system = null
 	game_state = null
-	
-	# Clear any tracked resources
-	_tracked_resources.clear()
 
 func _disconnect_mission_signals() -> void:
 	if not is_instance_valid(campaign_system):
@@ -108,6 +100,8 @@ func clear_signal_watcher() -> void:
 
 # Test function - must start with "test_"
 func test_campaign_mission_flow() -> void:
+	gut.p("Testing campaign mission flow...")
+	
 	# Start mission
 	campaign_system.start_mission()
 	
@@ -116,9 +110,11 @@ func test_campaign_mission_flow() -> void:
 	
 	# Verify signals were received in correct order
 	var expected_signals = ["mission_created", "mission_started", "mission_setup_complete"]
-	for expected in expected_signals:
-		assert_true(expected in _received_signals,
-			"Should have received %s signal" % expected)
+	for i in range(expected_signals.size()):
+		var expected = expected_signals[i]
+		assert_true(i < _received_signals.size(), "Should have enough signals")
+		assert_eq(_received_signals[i], expected,
+			"Signal %d should be %s" % [i, expected])
 	
 	# Verify mission state
 	var mission = campaign_system.get_current_mission()
@@ -144,3 +140,9 @@ func test_campaign_mission_flow() -> void:
 	# Verify cleanup
 	assert_null(campaign_system.get_current_mission(), "Mission should be cleaned up")
 	assert_false(campaign_system.is_mission_in_progress(), "Mission should not be in progress")
+	
+	# Verify signal count
+	assert_eq(_received_signals.size(), expected_signals.size() + 1,
+		"Should have received exactly %d signals" % (expected_signals.size() + 1))
+	
+	gut.p("Campaign mission flow test complete")

@@ -1,17 +1,16 @@
 @tool
-extends "res://addons/gut/test.gd"
-
-# Base test class that all test scripts should extend from
+extends GutTest
 class_name BaseTest
 
+# Base test class that all test scripts should extend from
 const GutMain := preload("res://addons/gut/gut.gd")
 const GutUtils := preload("res://addons/gut/utils.gd")
 const GameEnums := preload("res://src/core/systems/GlobalEnums.gd")
 
-const SIGNAL_TIMEOUT := 5.0 # Global timeout for all async operations
+const SIGNAL_TIMEOUT := 1.0 # seconds to wait for signals
 const FRAME_TIMEOUT := 3.0 # Timeout for frame-based operations
 const ASYNC_TIMEOUT := 5.0 # 5 second timeout for async operations
-const STABILIZATION_TIME := 0.1 # 100ms for engine stabilization
+const STABILIZATION_TIME := 0.1 # seconds to wait for engine to stabilize
 
 # Test environment configuration
 const TEST_CONFIG := {
@@ -63,6 +62,59 @@ var _gut: GutMain = null
 var _watched_signals := {}
 var _signal_emissions := {}
 
+# Inner class for signal watching
+class SignalWatcher:
+	var _watched_signals := {}
+	var _signal_emissions := {}
+	var _parent: Node
+	
+	func _init(parent: Node) -> void:
+		_parent = parent
+	
+	func watch_signals(emitter: Object) -> void:
+		if not _watched_signals.has(emitter):
+			_watched_signals[emitter] = []
+			_signal_emissions[emitter] = {}
+			
+			for signal_info in emitter.get_signal_list():
+				var signal_name = signal_info["name"]
+				_watched_signals[emitter].append(signal_name)
+				_signal_emissions[emitter][signal_name] = []
+				# Connect with CONNECT_DEFERRED to avoid immediate callback
+				emitter.connect(signal_name,
+					func(arg1 = null, arg2 = null, arg3 = null, arg4 = null, arg5 = null):
+						var args = [arg1, arg2, arg3, arg4, arg5]
+						# Remove null values from the end
+						while not args.is_empty() and args[-1] == null:
+							args.pop_back()
+						_on_signal_emitted.call_deferred(emitter, signal_name, args),
+					CONNECT_DEFERRED)
+	
+	func _on_signal_emitted(emitter: Object, signal_name: String, args: Array) -> void:
+		if _signal_emissions.has(emitter) and _signal_emissions[emitter].has(signal_name):
+			_signal_emissions[emitter][signal_name].append(args)
+	
+	func clear() -> void:
+		for emitter in _watched_signals:
+			if is_instance_valid(emitter):
+				for signal_name in _watched_signals[emitter]:
+					if emitter.has_signal(signal_name):
+						# Disconnect all signals
+						var connections = emitter.get_signal_connection_list(signal_name)
+						for connection in connections:
+							if connection.callable.get_object() == self:
+								emitter.disconnect(signal_name, connection.callable)
+		_watched_signals.clear()
+		_signal_emissions.clear()
+	
+	func has_signal_record(emitter: Object, signal_name: String) -> bool:
+		return _signal_emissions.has(emitter) and _signal_emissions[emitter].has(signal_name)
+	
+	func get_signal_records(emitter: Object, signal_name: String) -> Array:
+		if has_signal_record(emitter, signal_name):
+			return _signal_emissions[emitter][signal_name]
+		return []
+
 # GUT Required Methods
 func get_gut() -> GutMain:
 	if not _gut:
@@ -82,11 +134,17 @@ func _do_ready_stuff() -> void:
 	_was_ready_called = true
 
 # Lifecycle Methods
+func before_all() -> void:
+	await get_tree().process_frame
+
+func after_all() -> void:
+	cleanup_resources()
+	await get_tree().process_frame
+
 func before_each() -> void:
 	_tracked_nodes.clear()
 	_tracked_resources.clear()
-	if _signal_watcher:
-		_signal_watcher.clear()
+	clear_signal_watcher()
 	
 	# Store original engine configuration
 	_store_engine_config()
@@ -107,16 +165,15 @@ func after_each() -> void:
 	# Clean up nodes
 	cleanup_nodes()
 	
-	if _signal_watcher:
-		_signal_watcher.clear()
+	clear_signal_watcher()
 
 # Resource Management
 func track_test_node(node: Node) -> void:
-	if node:
+	if node and not _tracked_nodes.has(node):
 		_tracked_nodes.append(node)
 
 func track_test_resource(resource: Resource) -> void:
-	if resource:
+	if resource and not _tracked_resources.has(resource):
 		_tracked_resources.append(resource)
 
 func cleanup_nodes() -> void:
@@ -126,28 +183,55 @@ func cleanup_nodes() -> void:
 	_tracked_nodes.clear()
 
 func cleanup_resources() -> void:
+	# Clean up nodes first
+	for node in _tracked_nodes:
+		if is_instance_valid(node):
+			if node.get_parent():
+				node.get_parent().remove_child(node)
+			node.queue_free()
+	_tracked_nodes.clear()
+	
+	# Let engine process the node cleanup
+	await get_tree().process_frame
+	
+	# Now handle resources
 	for resource in _tracked_resources:
 		if resource and not resource.is_queued_for_deletion():
-			resource.free()
+			# Only unreference resources, don't try to free them
+			resource = null
 	_tracked_resources.clear()
 
 # Signal Management
 func watch_signals(emitter: Object) -> void:
-	if not _watched_signals.has(emitter):
-		_watched_signals[emitter] = []
-		_signal_emissions[emitter] = {}
-	
-	for signal_info in emitter.get_signal_list():
-		var signal_name = signal_info["name"]
-		if not signal_name in _watched_signals[emitter]:
-			_watched_signals[emitter].append(signal_name)
-			_signal_emissions[emitter][signal_name] = []
-			# warning-ignore:return_value_discarded
-			emitter.connect(signal_name, _on_watched_signal.bind(emitter, signal_name))
+	if not _signal_watcher:
+		_signal_watcher = SignalWatcher.new(self)
+	_signal_watcher.watch_signals(emitter)
 
-func _on_watched_signal(emitter: Object, signal_name: String, args := []) -> void:
-	if _signal_emissions.has(emitter) and _signal_emissions[emitter].has(signal_name):
-		_signal_emissions[emitter][signal_name].append(args)
+func clear_signal_watcher() -> void:
+	if _signal_watcher:
+		_signal_watcher.clear()
+		_signal_watcher = null
+
+func verify_signal_emitted(emitter: Object, signal_name: String, message: String = "") -> void:
+	if not _signal_watcher:
+		assert_false(true, "Signal watcher not initialized")
+		return
+	
+	var records = _signal_watcher.get_signal_records(emitter, signal_name)
+	assert_true(not records.is_empty(), message if message else "Signal '%s' was not emitted" % signal_name)
+
+func verify_signal_not_emitted(emitter: Object, signal_name: String, message: String = "") -> void:
+	if not _signal_watcher:
+		assert_false(true, "Signal watcher not initialized")
+		return
+	
+	var records = _signal_watcher.get_signal_records(emitter, signal_name)
+	assert_true(records.is_empty(), message if message else "Signal '%s' was emitted" % signal_name)
+
+func get_signal_emit_count(emitter: Object, signal_name: String) -> int:
+	if _signal_watcher:
+		return _signal_watcher.get_signal_records(emitter, signal_name).size()
+	return 0
 
 # State Management
 func verify_state(subject: Object, expected_states: Dictionary) -> void:
@@ -255,14 +339,14 @@ func assert_signal_emitted(object: Object, signal_name: String, text: String = "
 	if not _signal_watcher:
 		assert_true(false, "Signal watcher not initialized. Did you call watch_signals()?")
 		return
-	var did_emit = _signal_watcher.did_emit(object, signal_name)
+	var did_emit = _signal_watcher.assert_signal_emitted(object, signal_name)
 	assert_true(did_emit, text if text else "Signal '%s' was not emitted" % signal_name)
 
 func assert_signal_not_emitted(object: Object, signal_name: String, text: String = "") -> void:
 	if not _signal_watcher:
 		assert_true(false, "Signal watcher not initialized. Did you call watch_signals()?")
 		return
-	var did_emit = _signal_watcher.did_emit(object, signal_name)
+	var did_emit = _signal_watcher.assert_signal_not_emitted(object, signal_name)
 	assert_false(did_emit, text if text else "Signal '%s' was emitted" % signal_name)
 
 func assert_signal_emit_count(object: Object, signal_name: String, times: int, text: String = "") -> void:
@@ -372,18 +456,21 @@ func get_logger():
 	return _logger
 
 # Async signal assertions
-func assert_async_signal(emitter: Object, signal_name: String, timeout: float = ASYNC_TIMEOUT) -> bool:
-	watch_signals(emitter)
-	var start_time = Time.get_ticks_msec()
+func assert_async_signal(emitter: Object, signal_name: String, timeout: float = SIGNAL_TIMEOUT) -> bool:
+	var timer = get_tree().create_timer(timeout)
+	var signal_received = false
 	
-	while Time.get_ticks_msec() - start_time < timeout * 1000:
-		if _signal_emissions.has(emitter) and \
-		   _signal_emissions[emitter].has(signal_name) and \
-		   not _signal_emissions[emitter][signal_name].is_empty():
-			return true
+	# Connect to signal
+	var callable = func():
+		signal_received = true
+	emitter.connect(signal_name, callable, CONNECT_ONE_SHOT)
+	
+	# Wait for either signal or timeout
+	timer.timeout.connect(func(): signal_received = false, CONNECT_ONE_SHOT)
+	while not signal_received and not timer.is_stopped():
 		await get_tree().process_frame
 	
-	return false
+	return signal_received
 
 func assert_signal_emitted_with_args(emitter: Object, signal_name: String, args: Array, timeout: float = ASYNC_TIMEOUT) -> void:
 	watch_signals(emitter)
@@ -433,15 +520,41 @@ func await_signals(signals: Array, timeout: float = ASYNC_TIMEOUT) -> Array:
 	
 	return []
 
-func wait_for_signal(emitter: Object, signal_name: String, timeout: float = ASYNC_TIMEOUT) -> Array:
-	watch_signals(emitter)
-	var start_time = Time.get_ticks_msec()
+func wait_for_signal(emitter: Object, signal_name: String, timeout: float = SIGNAL_TIMEOUT) -> Array:
+	var timer = get_tree().create_timer(timeout)
+	var signal_data = []
+	var signal_received = false
+	var timer_expired = false
 	
-	while Time.get_ticks_msec() - start_time < timeout * 1000:
-		if _signal_emissions.has(emitter) and \
-		   _signal_emissions[emitter].has(signal_name) and \
-		   not _signal_emissions[emitter][signal_name].is_empty():
-			return _signal_emissions[emitter][signal_name].pop_front()
+	# Connect to signal
+	var callable = func(arg1 = null, arg2 = null, arg3 = null, arg4 = null, arg5 = null):
+		signal_received = true
+		var args = [arg1, arg2, arg3, arg4, arg5]
+		# Remove null values from the end
+		while not args.is_empty() and args[-1] == null:
+			args.pop_back()
+		signal_data = args
+	emitter.connect(signal_name, callable, CONNECT_ONE_SHOT)
+	
+	# Wait for either signal or timeout
+	timer.timeout.connect(func(): timer_expired = true, CONNECT_ONE_SHOT)
+	while not signal_received and not timer_expired:
 		await get_tree().process_frame
 	
-	return []
+	return signal_data
+
+# Required GUT methods
+func get_assert_count() -> int:
+	return gut.get_assert_count() if gut else 0
+
+func get_pass_count() -> int:
+	return gut.get_pass_count() if gut else 0
+
+func get_fail_count() -> int:
+	return gut.get_fail_count() if gut else 0
+
+func get_pending_count() -> int:
+	return gut.get_pending_count() if gut else 0
+
+func get_test_count() -> int:
+	return gut.get_test_count() if gut else 0

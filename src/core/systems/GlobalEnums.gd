@@ -330,8 +330,7 @@ enum VictoryConditionType {
 	ELIMINATION,
 	OBJECTIVE,
 	SURVIVAL,
-	EXTRACTION,
-	TIME_LIMIT
+	EXTRACTION
 }
 
 ## Enemy Ranks
@@ -664,13 +663,15 @@ enum UnitAction {
 	NONE,
 	MOVE,
 	ATTACK,
+	DEFEND,
 	OVERWATCH,
 	RELOAD,
-	ITEMS,
+	USE_ITEM,
+	SPECIAL,
+	TAKE_COVER,
+	DASH,
 	BRAWL,
 	SNAP_FIRE,
-	SPECIAL_ABILITY,
-	TAKE_COVER,
 	END_TURN
 }
 
@@ -950,4 +951,45 @@ enum FactionType {
 	IMPERIAL,
 	ENEMY,
 	ALLIED
+}
+
+const BATTLE_STATE_NAMES = {
+	BattleState.NONE: "None",
+	BattleState.SETUP: "Setup",
+	BattleState.ROUND: "Round",
+	BattleState.CLEANUP: "Cleanup"
+}
+
+const COMBAT_PHASE_NAMES = {
+	CombatPhase.NONE: "None",
+	CombatPhase.SETUP: "Setup",
+	CombatPhase.DEPLOYMENT: "Deployment",
+	CombatPhase.INITIATIVE: "Initiative",
+	CombatPhase.ACTION: "Action",
+	CombatPhase.REACTION: "Reaction",
+	CombatPhase.END: "End"
+}
+
+const UNIT_ACTION_NAMES = {
+	UnitAction.NONE: "None",
+	UnitAction.MOVE: "Move",
+	UnitAction.ATTACK: "Attack",
+	UnitAction.DEFEND: "Defend",
+	UnitAction.OVERWATCH: "Overwatch",
+	UnitAction.RELOAD: "Reload",
+	UnitAction.USE_ITEM: "Use Item",
+	UnitAction.SPECIAL: "Special",
+	UnitAction.TAKE_COVER: "Take Cover",
+	UnitAction.DASH: "Dash",
+	UnitAction.BRAWL: "Brawl",
+	UnitAction.SNAP_FIRE: "Snap Fire",
+	UnitAction.END_TURN: "End Turn"
+}
+
+const VICTORY_CONDITION_NAMES = {
+	VictoryConditionType.NONE: "None",
+	VictoryConditionType.ELIMINATION: "Elimination",
+	VictoryConditionType.OBJECTIVE: "Objective",
+	VictoryConditionType.SURVIVAL: "Survival",
+	VictoryConditionType.EXTRACTION: "Extraction"
 }

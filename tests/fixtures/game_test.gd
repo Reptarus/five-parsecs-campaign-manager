@@ -1,9 +1,9 @@
 @tool
-extends "res://tests/fixtures/base_test.gd"
+extends BaseTest
 class_name GameTest
 
 const Enemy := preload("res://src/core/enemy/base/Enemy.gd")
-const Character := preload("res://src/core/character/Base/CharacterBox.gd")
+const Character := preload("res://src/core/character/Base/Character.gd")
 const GameState := preload("res://src/core/state/GameState.gd")
 const FiveParcsecsCampaign := preload("res://src/core/campaign/Campaign.gd")
 const TestHelper := preload("res://tests/fixtures/test_helper.gd")

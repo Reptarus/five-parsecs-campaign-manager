@@ -57,8 +57,8 @@ func _connect_signals() -> void:
 	var action_buttons = $BattleLayout/MainContent/SidePanel/VBoxContainer/ActionPanel/VBoxContainer/ActionButtons
 	action_buttons.get_node("MoveButton").pressed.connect(_on_action_button_pressed.bind(GameEnums.UnitAction.MOVE))
 	action_buttons.get_node("AttackButton").pressed.connect(_on_action_button_pressed.bind(GameEnums.UnitAction.ATTACK))
-	action_buttons.get_node("DashButton").pressed.connect(_on_action_button_pressed.bind(GameEnums.UnitAction.MOVE))
-	action_buttons.get_node("ItemsButton").pressed.connect(_on_action_button_pressed.bind(GameEnums.UnitAction.ITEMS))
+	action_buttons.get_node("DashButton").pressed.connect(_on_action_button_pressed.bind(GameEnums.UnitAction.DASH))
+	action_buttons.get_node("ItemsButton").pressed.connect(_on_action_button_pressed.bind(GameEnums.UnitAction.USE_ITEM))
 	action_buttons.get_node("BrawlButton").pressed.connect(_on_action_button_pressed.bind(GameEnums.UnitAction.BRAWL))
 	action_buttons.get_node("EndTurnButton").pressed.connect(_on_end_turn_pressed)
 
@@ -181,8 +181,13 @@ func _on_action_button_pressed(action: GameEnums.UnitAction) -> void:
 			battlefield.show_movement_range(selected_unit)
 		GameEnums.UnitAction.ATTACK:
 			battlefield.show_attack_range(selected_unit)
+		GameEnums.UnitAction.DASH:
+			battlefield.show_movement_range(selected_unit)
 		GameEnums.UnitAction.BRAWL:
 			battlefield.show_brawl_range(selected_unit)
+		GameEnums.UnitAction.USE_ITEM:
+			# Show item selection UI
+			pass
 
 func _on_end_turn_pressed() -> void:
 	if five_parcecs_system.current_phase == GameEnums.BattlePhase.ACTIVATION:

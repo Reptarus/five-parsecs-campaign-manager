@@ -8,17 +8,20 @@ const Character = preload("res://src/core/character/Base/Character.gd")
 var _state_machine: BattleStateMachine
 var _game_state: GameStateManager
 
+func _do_ready_stuff() -> void:
+	super._do_ready_stuff()
+
 func before_each() -> void:
 	await super.before_each()
 	
 	# Create game state manager
 	_game_state = GameStateManager.new()
-	add_child(_game_state)
+	add_child_autofree(_game_state)
 	track_test_node(_game_state)
 	
 	# Create battle state machine with dependencies
 	_state_machine = BattleStateMachine.new(_game_state)
-	add_child(_state_machine)
+	add_child_autofree(_state_machine)
 	track_test_node(_state_machine)
 
 func after_each() -> void:
@@ -44,10 +47,12 @@ func _create_test_character(name: String) -> Character:
 		"savvy": 3,
 		"luck": 1
 	})
+	track_test_node(character)
 	return character
 
 # Battle State Tests
 func test_initial_battle_state() -> void:
+	gut.p("Testing initial battle state...")
 	assert_eq(_state_machine.current_state, GameEnums.BattleState.SETUP,
 		"Battle should start in setup state")
 	assert_eq(_state_machine.current_phase, GameEnums.CombatPhase.NONE,
@@ -59,125 +64,165 @@ func test_initial_battle_state() -> void:
 
 # Battle Flow Tests
 func test_battle_start_flow() -> void:
-	var battle_started_emitted = false
-	_state_machine.battle_started.connect(func(): battle_started_emitted = true)
+	gut.p("Testing battle start flow...")
+	watch_signals(_state_machine)
 	
-	_state_machine.emit_signal("battle_started")
+	# Start the battle through the proper method
+	_state_machine.start_battle()
 	
-	assert_true(battle_started_emitted, "Battle started signal should be emitted")
+	# Wait for and assert the signals
+	await wait_for_signal(_state_machine, "battle_started", SIGNAL_TIMEOUT)
+	verify_signal_emitted(_state_machine, "battle_started", "Battle started signal should be emitted")
 	assert_true(_state_machine.is_battle_active, "Battle should be active")
 
 func test_round_flow() -> void:
-	var round_started_emitted = false
-	var round_ended_emitted = false
-	var round_number = 0
+	gut.p("Testing round flow...")
+	watch_signals(_state_machine)
 	
-	_state_machine.round_started.connect(func(round):
-		round_started_emitted = true
-		round_number = round)
+	# Start battle first
+	_state_machine.start_battle()
+	await wait_for_signal(_state_machine, "battle_started", SIGNAL_TIMEOUT)
 	
-	_state_machine.round_ended.connect(func(round):
-		round_ended_emitted = true
-		assert_eq(round, round_number, "Round end should match round start"))
+	# Start round
+	_state_machine.start_round()
 	
-	_state_machine.emit_signal("round_started", 1)
-	assert_true(round_started_emitted, "Round started signal should be emitted")
-	assert_eq(round_number, 1, "Round number should be 1")
+	# Wait for round started signal
+	var round_data = await wait_for_signal(_state_machine, "round_started", SIGNAL_TIMEOUT)
+	verify_signal_emitted(_state_machine, "round_started", "Round started signal should be emitted")
+	assert_eq(round_data[0], 1, "Round number should be 1")
 	
-	_state_machine.emit_signal("round_ended", 1)
-	assert_true(round_ended_emitted, "Round ended signal should be emitted")
+	# End round
+	_state_machine.end_round()
+	
+	# Wait for round ended signal
+	var end_data = await wait_for_signal(_state_machine, "round_ended", SIGNAL_TIMEOUT)
+	verify_signal_emitted(_state_machine, "round_ended", "Round ended signal should be emitted")
+	assert_eq(end_data[0], 1, "Round end should match round start")
 
 # Phase Transition Tests
 func test_phase_transitions() -> void:
-	var phase_changes = []
-	_state_machine.phase_changed.connect(func(new_phase): phase_changes.append(new_phase))
+	gut.p("Testing phase transitions...")
+	watch_signals(_state_machine)
+	
+	# Start battle first
+	_state_machine.start_battle()
+	await wait_for_signal(_state_machine, "battle_started", SIGNAL_TIMEOUT)
 	
 	# Test setup to deployment transition
-	_state_machine.emit_signal("phase_changed", GameEnums.CombatPhase.SETUP)
+	_state_machine.transition_to_phase(GameEnums.CombatPhase.SETUP)
+	await wait_for_signal(_state_machine, "phase_changed", SIGNAL_TIMEOUT)
+	verify_signal_emitted(_state_machine, "phase_changed", "Phase changed signal should be emitted")
 	assert_eq(_state_machine.current_phase, GameEnums.CombatPhase.SETUP,
 		"Should transition to setup phase")
 	
 	# Test deployment to initiative transition
-	_state_machine.emit_signal("phase_changed", GameEnums.CombatPhase.INITIATIVE)
+	_state_machine.transition_to_phase(GameEnums.CombatPhase.INITIATIVE)
+	await wait_for_signal(_state_machine, "phase_changed", SIGNAL_TIMEOUT)
+	verify_signal_emitted(_state_machine, "phase_changed", "Phase changed signal should be emitted")
 	assert_eq(_state_machine.current_phase, GameEnums.CombatPhase.INITIATIVE,
 		"Should transition to initiative phase")
 	
 	# Test initiative to action transition
-	_state_machine.emit_signal("phase_changed", GameEnums.CombatPhase.ACTION)
+	_state_machine.transition_to_phase(GameEnums.CombatPhase.ACTION)
+	await wait_for_signal(_state_machine, "phase_changed", SIGNAL_TIMEOUT)
+	verify_signal_emitted(_state_machine, "phase_changed", "Phase changed signal should be emitted")
 	assert_eq(_state_machine.current_phase, GameEnums.CombatPhase.ACTION,
 		"Should transition to action phase")
-	
-	# Verify phase sequence
-	assert_eq(phase_changes, [
-		GameEnums.CombatPhase.SETUP,
-		GameEnums.CombatPhase.INITIATIVE,
-		GameEnums.CombatPhase.ACTION
-	], "Phase transitions should occur in correct sequence")
 
 # Unit Action Tests
 func test_unit_action_flow() -> void:
+	gut.p("Testing unit action flow...")
+	watch_signals(_state_machine)
 	var test_unit = _create_test_character("Test Unit")
-	var action_changed_emitted = false
-	var action_completed_emitted = false
 	
-	_state_machine.unit_action_changed.connect(func(action):
-		action_changed_emitted = true
-		assert_eq(action, GameEnums.UnitAction.MOVE, "Should emit correct action"))
+	# Start battle first
+	_state_machine.start_battle()
+	await wait_for_signal(_state_machine, "battle_started", SIGNAL_TIMEOUT)
 	
-	_state_machine.unit_action_completed.connect(func(unit, action):
-		action_completed_emitted = true
-		assert_eq(unit, test_unit, "Should emit correct unit")
-		assert_eq(action, GameEnums.UnitAction.MOVE, "Should emit correct action"))
+	# Start unit action
+	_state_machine.start_unit_action(test_unit, GameEnums.UnitAction.MOVE)
 	
-	_state_machine.emit_signal("unit_action_changed", GameEnums.UnitAction.MOVE)
-	assert_true(action_changed_emitted, "Action changed signal should be emitted")
+	# Wait for action changed signal
+	var action_data = await wait_for_signal(_state_machine, "unit_action_changed", SIGNAL_TIMEOUT)
+	verify_signal_emitted(_state_machine, "unit_action_changed", "Action changed signal should be emitted")
+	assert_eq(action_data[0], GameEnums.UnitAction.MOVE, "Should emit correct action")
 	
-	_state_machine.emit_signal("unit_action_completed", test_unit, GameEnums.UnitAction.MOVE)
-	assert_true(action_completed_emitted, "Action completed signal should be emitted")
+	# Complete unit action
+	_state_machine.complete_unit_action()
+	
+	# Wait for action completed signal
+	var completion_data = await wait_for_signal(_state_machine, "unit_action_completed", SIGNAL_TIMEOUT)
+	verify_signal_emitted(_state_machine, "unit_action_completed", "Action completed signal should be emitted")
+	assert_eq(completion_data[0], test_unit, "Should emit correct unit")
+	assert_eq(completion_data[1], GameEnums.UnitAction.MOVE, "Should emit correct action")
+	
+	# Verify action is marked as completed
+	assert_true(_state_machine.has_unit_completed_action(test_unit, GameEnums.UnitAction.MOVE),
+		"Action should be marked as completed")
+	
+	# Verify available actions
+	var available_actions = _state_machine.get_available_actions(test_unit)
+	assert_false(GameEnums.UnitAction.MOVE in available_actions,
+		"Move action should not be available after completion")
 
 # Battle End Tests
 func test_battle_end_flow() -> void:
-	var battle_ended_emitted = false
-	var victory_result = false
+	gut.p("Testing battle end flow...")
+	watch_signals(_state_machine)
 	
-	_state_machine.battle_ended.connect(func(victory):
-		battle_ended_emitted = true
-		victory_result = victory)
+	# Start battle first
+	_state_machine.start_battle()
+	await wait_for_signal(_state_machine, "battle_started", SIGNAL_TIMEOUT)
 	
-	_state_machine.emit_signal("battle_ended", true)
+	# End battle
+	_state_machine.end_battle(GameEnums.VictoryConditionType.ELIMINATION)
 	
-	assert_true(battle_ended_emitted, "Battle ended signal should be emitted")
-	assert_true(victory_result, "Victory result should be true")
+	# Wait for battle ended signal
+	var end_data = await wait_for_signal(_state_machine, "battle_ended", SIGNAL_TIMEOUT)
+	verify_signal_emitted(_state_machine, "battle_ended", "Battle ended signal should be emitted")
+	assert_true(end_data[0], "Victory result should be true")
 	assert_false(_state_machine.is_battle_active, "Battle should not be active after end")
 
 # Combat Effect Tests
 func test_combat_effect_flow() -> void:
-	var effect_triggered_emitted = false
+	gut.p("Testing combat effect flow...")
+	watch_signals(_state_machine)
 	var test_source = _create_test_character("Source")
 	var test_target = _create_test_character("Target")
 	var test_effect = "stun"
 	
-	_state_machine.combat_effect_triggered.connect(func(effect_name, source, target):
-		effect_triggered_emitted = true
-		assert_eq(effect_name, test_effect, "Should emit correct effect name")
-		assert_eq(source, test_source, "Should emit correct source")
-		assert_eq(target, test_target, "Should emit correct target"))
+	# Start battle first
+	_state_machine.start_battle()
+	await wait_for_signal(_state_machine, "battle_started", SIGNAL_TIMEOUT)
 	
-	_state_machine.emit_signal("combat_effect_triggered", test_effect, test_source, test_target)
-	assert_true(effect_triggered_emitted, "Combat effect signal should be emitted")
+	# Trigger combat effect
+	_state_machine.trigger_combat_effect(test_effect, test_source, test_target)
+	
+	# Wait for effect signal
+	var effect_data = await wait_for_signal(_state_machine, "combat_effect_triggered", SIGNAL_TIMEOUT)
+	verify_signal_emitted(_state_machine, "combat_effect_triggered", "Combat effect signal should be emitted")
+	assert_eq(effect_data[0], test_effect, "Should emit correct effect name")
+	assert_eq(effect_data[1], test_source, "Should emit correct source")
+	assert_eq(effect_data[2], test_target, "Should emit correct target")
 
 # Reaction Tests
 func test_reaction_opportunity_flow() -> void:
-	var reaction_emitted = false
+	gut.p("Testing reaction opportunity flow...")
+	watch_signals(_state_machine)
 	var test_unit = _create_test_character("Unit")
 	var test_source = _create_test_character("Source")
 	var test_reaction = "overwatch"
 	
-	_state_machine.reaction_opportunity.connect(func(unit, reaction_type, source):
-		reaction_emitted = true
-		assert_eq(unit, test_unit, "Should emit correct unit")
-		assert_eq(reaction_type, test_reaction, "Should emit correct reaction type")
-		assert_eq(source, test_source, "Should emit correct source"))
+	# Start battle first
+	_state_machine.start_battle()
+	await wait_for_signal(_state_machine, "battle_started", SIGNAL_TIMEOUT)
 	
-	_state_machine.emit_signal("reaction_opportunity", test_unit, test_reaction, test_source)
-	assert_true(reaction_emitted, "Reaction opportunity signal should be emitted")
+	# Trigger reaction opportunity
+	_state_machine.trigger_reaction_opportunity(test_unit, test_reaction, test_source)
+	
+	# Wait for reaction signal
+	var reaction_data = await wait_for_signal(_state_machine, "reaction_opportunity", SIGNAL_TIMEOUT)
+	verify_signal_emitted(_state_machine, "reaction_opportunity", "Reaction opportunity signal should be emitted")
+	assert_eq(reaction_data[0], test_unit, "Should emit correct unit")
+	assert_eq(reaction_data[1], test_reaction, "Should emit correct reaction type")
+	assert_eq(reaction_data[2], test_source, "Should emit correct source")
