@@ -110,3 +110,25 @@ func test_mobile_performance() -> void:
 	gut.p("- Memory Delta: %.2f KB" % results.memory_delta_kb)
 	gut.p("- Draw Calls Delta: %d" % results.draw_calls_delta)
 	gut.p("- Objects Delta: %d" % results.objects_delta)
+
+func simulate_touch_event(position: Vector2, pressed: bool) -> void:
+	var event := InputEventScreenTouch.new()
+	event.position = position
+	event.pressed = pressed
+	Input.parse_input_event(event)
+	await get_tree().process_frame
+
+func simulate_touch_drag(start_pos: Vector2, end_pos: Vector2, duration: float = 0.1) -> void:
+	await simulate_touch_event(start_pos, true)
+	
+	var steps := int(duration / 0.016) # ~60fps
+	for i in range(steps):
+		var t := float(i) / float(steps)
+		var current_pos := start_pos.lerp(end_pos, t)
+		var event := InputEventScreenDrag.new()
+		event.position = current_pos
+		event.relative = (end_pos - start_pos) / steps
+		Input.parse_input_event(event)
+		await get_tree().process_frame
+	
+	await simulate_touch_event(end_pos, false)

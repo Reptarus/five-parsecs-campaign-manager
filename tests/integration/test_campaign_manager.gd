@@ -1,12 +1,11 @@
 @tool
-extends "res://tests/fixtures/game_test.gd"
+extends GameTest
 
 # Core class dependencies - using variables instead of constants since preload isn't constant
 var CampaignManagerScript: GDScript = preload("res://src/core/managers/CampaignManager.gd")
 var StoryQuestDataScript: GDScript = preload("res://src/core/story/StoryQuestData.gd")
 var BattleDataScript: GDScript = preload("res://src/core/battle/BattleData.gd")
 var StoryEventDataScript: GDScript = preload("res://src/core/story/StoryEventData.gd")
-var GameStateScript: GDScript = preload("res://src/core/state/GameState.gd")
 
 # Test state variables
 var game_state: Node = null # Using Node since GameState extends Node
@@ -230,12 +229,12 @@ func _call_node_method_int(node: Variant, method: String, args: Array = [], defa
 	return _safe_cast_int(result, "Method did not return an int")
 
 # Helper function for safe node method calls
-func _call_node_method(node: Variant, method: String, args: Array = [], expected_type: int = TYPE_NIL, default_value: Variant = null) -> Variant:
-	var n := _safe_cast_node(node, "Cannot call method on non-Node")
+func _call_node_method(obj: Object, method: String, args: Array = [], default_value: Variant = null) -> Variant:
+	var n := _safe_cast_node(obj, "Cannot call method on non-Node")
 	if not n:
 		return default_value
 	
-	return _call_method_safe(n, method, args, expected_type, default_value)
+	return _call_method_safe(n, method, args, TYPE_NIL, default_value)
 
 # Helper function for safe resource method calls
 func _call_resource_method(resource: Variant, method: String, args: Array = [], expected_type: int = TYPE_NIL, default_value: Variant = null) -> Variant:
@@ -752,9 +751,11 @@ func watch_signals(emitter: Object) -> void:
 	if emitter.has_method("get_signal_list"):
 		super.watch_signals(emitter)
 
-func assert_signal_emitted(object: Object, signal_name: String, text: String = "") -> void:
+func assert_signal_emitted(object: Object, signal_name: String, text: String = "") -> bool:
 	if object.has_method("get_signal_list"):
 		super.verify_signal_emitted(object, signal_name, text)
+		return true
+	return false
 
 # Helper function to load test campaign data
 func load_test_campaign(state: Node) -> void:

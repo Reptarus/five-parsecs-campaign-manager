@@ -71,12 +71,11 @@ func _call_method_safe(obj: Variant, method: String, args: Array = [], expected_
 	return result
 
 # Helper function for safe node method calls
-func _call_node_method(node: Variant, method: String, args: Array = [], expected_type: int = TYPE_NIL, default_value: Variant = null) -> Variant:
-	var n: Node = _safe_cast_node(node, "Cannot call method on non-Node")
-	if not n:
+func _call_node_method(obj: Object, method: String, args: Array = [], default_value: Variant = null) -> Variant:
+	if not obj:
+		push_error("Cannot call method on null object")
 		return default_value
-	
-	return _call_method_safe(n, method, args, expected_type, default_value)
+	return TypeSafeMixin._safe_method_call_variant(obj, method, args, default_value)
 
 # Helper function for safe resource method calls
 func _call_resource_method(resource: Variant, method: String, args: Array = [], expected_type: int = TYPE_NIL, default_value: Variant = null) -> Variant:
@@ -199,8 +198,8 @@ func _set_window_size(size: Vector2) -> void:
 	if result != OK:
 		push_error("Failed to set window size: %s" % error_string(result))
 
-# Helper functions for mobile testing
-func simulate_mobile_environment(mode: String) -> void:
+# Mobile environment simulation
+func simulate_mobile_environment(mode: String, orientation: String = "portrait") -> void:
 	var resolution: Vector2
 	match mode:
 		"phone_portrait":
@@ -212,44 +211,32 @@ func simulate_mobile_environment(mode: String) -> void:
 		_:
 			resolution = Vector2(360, 640)
 	
-	_set_window_size(resolution)
+	DisplayServer.window_set_size(resolution)
 	await get_tree().process_frame
 
-func measure_mobile_performance(test_function: Callable) -> Dictionary:
-	var initial_memory: int = _get_monitor_value(Performance.MEMORY_STATIC)
-	var initial_objects: int = _get_monitor_value(Performance.OBJECT_COUNT)
-	var initial_draw_calls: int = _get_monitor_value(Performance.RENDER_TOTAL_DRAW_CALLS_IN_FRAME)
-	var fps_samples: Array[float] = []
+# Performance measurement
+func measure_mobile_performance(test_function: Callable, iterations: int = 100) -> Dictionary:
+	var results := {
+		"fps_samples": [],
+		"memory_samples": [],
+		"draw_calls": [],
+		"objects": []
+	}
 	
-	# Run the test function
-	await test_function.call()
-	
-	# Collect performance metrics
-	for i in range(60): # Sample over 60 frames
-		var frame_start := Time.get_ticks_usec()
-		await get_tree().process_frame
-		var frame_end := Time.get_ticks_usec()
-		var frame_time := (frame_end - frame_start) / 1000000.0 # Convert to seconds
-		fps_samples.append(1.0 / frame_time if frame_time > 0 else 0.0)
-	
-	# Calculate metrics
-	fps_samples.sort()
-	var avg_fps := 0.0
-	for fps in fps_samples:
-		avg_fps += fps
-	avg_fps /= fps_samples.size()
-	
-	var final_memory: int = _get_monitor_value(Performance.MEMORY_STATIC)
-	var final_draw_calls: int = _get_monitor_value(Performance.RENDER_TOTAL_DRAW_CALLS_IN_FRAME)
-	var final_objects: int = _get_monitor_value(Performance.OBJECT_COUNT)
+	for i in range(iterations):
+		await test_function.call()
+		results.fps_samples.append(Engine.get_frames_per_second())
+		results.memory_samples.append(Performance.get_monitor(Performance.MEMORY_STATIC))
+		results.draw_calls.append(Performance.get_monitor(Performance.RENDER_TOTAL_DRAW_CALLS_IN_FRAME))
+		results.objects.append(Performance.get_monitor(Performance.OBJECT_COUNT))
 	
 	return {
-		"average_fps": avg_fps,
-		"minimum_fps": fps_samples[0],
-		"95th_percentile_fps": fps_samples[int(fps_samples.size() * 0.95)],
-		"memory_delta_kb": (final_memory - initial_memory) / 1024.0,
-		"draw_calls_delta": final_draw_calls - initial_draw_calls,
-		"objects_delta": final_objects - initial_objects
+		"average_fps": _calculate_average(results.fps_samples),
+		"minimum_fps": _calculate_minimum(results.fps_samples),
+		"95th_percentile_fps": _calculate_percentile(results.fps_samples, 0.95),
+		"memory_delta_kb": (_calculate_maximum(results.memory_samples) - _calculate_minimum(results.memory_samples)) / 1024,
+		"draw_calls_delta": _calculate_maximum(results.draw_calls) - _calculate_minimum(results.draw_calls),
+		"objects_delta": _calculate_maximum(results.objects) - _calculate_minimum(results.objects)
 	}
 
 func before_each() -> void:
@@ -276,7 +263,7 @@ func before_each() -> void:
 		return
 	
 	# Initialize campaign system with game state using safe method call
-	var init_result_variant: Variant = _call_node_method(campaign_system_instance, "initialize", [state_node], TYPE_INT, ERR_UNAVAILABLE)
+	var init_result_variant: Variant = _call_node_method(campaign_system_instance, "initialize", [state_node])
 	var init_result: Error = _safe_cast_error(init_result_variant, "Failed to cast initialize result to Error")
 	if init_result != OK:
 		push_error("Failed to initialize campaign system: %s" % error_string(init_result))
@@ -320,8 +307,7 @@ func test_mobile_campaign_performance() -> void:
 	
 	watch_resource_signals(campaign_resource)
 	
-	var start_result: Variant = _call_resource_method(campaign_resource, "start_campaign", [], TYPE_BOOL, false)
-	var start_success := _safe_cast_bool(start_result, "Campaign start result must be boolean")
+	var start_success := _call_method_bool(campaign_resource, "start_campaign", [])
 	assert_true(start_success, "Campaign should start successfully")
 	
 	# Test campaign phase transitions under different mobile conditions
@@ -334,13 +320,11 @@ func test_mobile_campaign_performance() -> void:
 		
 		# Measure phase transition performance
 		var results: Dictionary = await measure_mobile_performance(func() -> void:
-			var phase_change_result: Variant = _call_resource_method(campaign_resource, "change_phase", [GameEnumsScript.FiveParcsecsCampaignPhase.UPKEEP], TYPE_BOOL, false)
-			var phase_success: bool = _safe_cast_bool(phase_change_result, "Phase change result must be boolean")
+			var phase_success := _call_method_bool(campaign_resource, "change_phase", [GameEnumsScript.FiveParcsecsCampaignPhase.UPKEEP])
 			assert_true(phase_success, "Should change to UPKEEP phase")
 			await get_tree().process_frame
 			
-			phase_change_result = _call_resource_method(campaign_resource, "change_phase", [GameEnumsScript.FiveParcsecsCampaignPhase.CAMPAIGN], TYPE_BOOL, false)
-			phase_success = _safe_cast_bool(phase_change_result, "Phase change result must be boolean")
+			phase_success = _call_method_bool(campaign_resource, "change_phase", [GameEnumsScript.FiveParcsecsCampaignPhase.CAMPAIGN])
 			assert_true(phase_success, "Should change to CAMPAIGN phase")
 			await get_tree().process_frame
 		)
@@ -390,8 +374,7 @@ func test_mobile_save_load() -> void:
 	
 	watch_resource_signals(campaign_resource)
 	
-	var start_result: Variant = _call_resource_method(campaign_resource, "start_campaign", [], TYPE_BOOL, false)
-	var start_success: bool = _safe_cast_bool(start_result, "Campaign start result must be boolean")
+	var start_success := _call_method_bool(campaign_resource, "start_campaign", [])
 	assert_true(start_success, "Campaign should start successfully")
 	
 	# Test save/load under different mobile conditions
@@ -404,16 +387,14 @@ func test_mobile_save_load() -> void:
 		
 		# Save campaign
 		var save_results: Dictionary = await measure_mobile_performance(func() -> void:
-			var save_result: Variant = _call_node_method(campaign_system_node, "save_campaign", [campaign_resource], TYPE_BOOL, false)
-			var save_success: bool = _safe_cast_bool(save_result, "Save result must be boolean")
+			var save_success := _call_method_bool(campaign_system_node, "save_campaign", [campaign_resource])
 			assert_true(save_success, "Should save campaign successfully")
 			await get_tree().process_frame
 		)
 		
 		# Load campaign
 		var load_results: Dictionary = await measure_mobile_performance(func() -> void:
-			var load_result: Variant = _call_node_method(campaign_system_node, "load_campaign", ["Mobile Save Test"], TYPE_BOOL, false)
-			var load_success: bool = _safe_cast_bool(load_result, "Load result must be boolean")
+			var load_success := _call_method_bool(campaign_system_node, "load_campaign", ["Mobile Save Test"])
 			assert_true(load_success, "Should load campaign successfully")
 			await get_tree().process_frame
 		)
@@ -431,9 +412,6 @@ func test_mobile_save_load() -> void:
 		print_debug("Save operation:")
 		print_debug("- Average FPS: %.2f" % save_fps)
 		print_debug("- Memory Delta: %.2f KB" % save_results.get("memory_delta_kb", 0.0))
-		print_debug("Load operation:")
-		print_debug("- Average FPS: %.2f" % load_fps)
-		print_debug("- Memory Delta: %.2f KB" % load_results.get("memory_delta_kb", 0.0))
 
 func test_mobile_input_handling() -> void:
 	print_debug("Testing mobile input handling")
@@ -460,7 +438,7 @@ func test_mobile_input_handling() -> void:
 	
 	watch_resource_signals(campaign_resource)
 	
-	var start_result: Variant = _call_resource_method(campaign_resource, "start_campaign", [], TYPE_BOOL, false)
+	var start_result: Variant = _call_resource_method(campaign_resource, "start_campaign", [])
 	var start_success: bool = _safe_cast_bool(start_result, "Campaign start result must be boolean")
 	assert_true(start_success, "Campaign should start successfully")
 	
@@ -562,3 +540,50 @@ func _safe_cast_bool(value: Variant, error_message: String = "") -> bool:
 		push_error("Cannot cast %s to bool: %s" % [typeof(value), error_message])
 		return false
 	return value
+
+# Helper functions for mobile testing
+func verify_mobile_ui_state(ui: Control, expected_state: Dictionary) -> void:
+	if not ui:
+		push_error("Cannot verify state of null UI")
+		return
+	
+	for property in expected_state:
+		var actual_value = _call_node_method(ui, "get_" + property, [])
+		assert_eq(actual_value, expected_state[property],
+			"UI property '%s' should be %s but was %s" % [property, expected_state[property], actual_value])
+
+func verify_mobile_input(input_node: Node, expected_input: Dictionary) -> void:
+	if not input_node:
+		push_error("Cannot verify input on null node")
+		return
+	
+	for action in expected_input:
+		var is_pressed = _call_node_method(input_node, "is_action_pressed", [action])
+		assert_eq(is_pressed, expected_input[action],
+			"Input action '%s' should be %s but was %s" % [action, expected_input[action], is_pressed])
+
+func verify_mobile_touch(touch_node: Node, expected_touch: Dictionary) -> void:
+	if not touch_node:
+		push_error("Cannot verify touch on null node")
+		return
+	
+	for property in expected_touch:
+		var actual_value = _call_node_method(touch_node, "get_" + property, [])
+		assert_eq(actual_value, expected_touch[property],
+			"Touch property '%s' should be %s but was %s" % [property, expected_touch[property], actual_value])
+
+# Helper functions for type-safe method calls
+func _call_method_with_type(obj: Object, method: String, args: Array, expected_type: int) -> Variant:
+	var result = _call_node_method(obj, method, args)
+	if typeof(result) != expected_type:
+		push_error("Method '%s' returned wrong type: expected %d, got %d" % [method, expected_type, typeof(result)])
+		return null
+	return result
+
+func _call_method_bool(obj: Object, method: String, args: Array) -> bool:
+	var result = _call_method_with_type(obj, method, args, TYPE_BOOL)
+	return result if result != null else false
+
+func _call_method_int(obj: Object, method: String, args: Array) -> int:
+	var result = _call_method_with_type(obj, method, args, TYPE_INT)
+	return result if result != null else 0

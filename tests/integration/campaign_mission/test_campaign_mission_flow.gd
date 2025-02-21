@@ -2,6 +2,7 @@
 extends GameTest
 
 const FiveParsecsCampaignSystem := preload("res://src/core/campaign/CampaignSystem.gd")
+const CampaignScript := preload("res://src/core/campaign/Campaign.gd")
 
 var campaign_system: FiveParsecsCampaignSystem
 var game_state: Node
@@ -15,6 +16,40 @@ func before_all() -> void:
 func after_all() -> void:
 	super.after_all()
 
+# Helper function to create a test campaign
+func create_test_campaign() -> Resource:
+	var campaign := Resource.new()
+	campaign.set_script(CampaignScript)
+	if not campaign:
+		push_error("Failed to create campaign instance")
+		return null
+	
+	# Initialize campaign with test data
+	TypeSafeMixin._safe_method_call_bool(campaign, "initialize", [])
+	track_test_resource(campaign)
+	return campaign
+
+# Helper function to validate game state
+func assert_valid_game_state(state: Node) -> void:
+	assert_not_null(state, "Game state should not be null")
+	assert_true(state.has_method("get"), "Game state should have get method")
+	
+	# Verify required properties
+	var campaign = TypeSafeMixin._safe_method_call_object(state, "get", ["current_campaign"])
+	assert_not_null(campaign, "Current campaign should be set")
+	
+	var difficulty = TypeSafeMixin._safe_method_call_int(state, "get", ["difficulty_level"])
+	assert_true(difficulty >= 0, "Difficulty level should be valid")
+	
+	# Verify boolean flags
+	var permadeath = TypeSafeMixin._safe_method_call_bool(state, "get", ["enable_permadeath"])
+	var story_track = TypeSafeMixin._safe_method_call_bool(state, "get", ["use_story_track"])
+	var auto_save = TypeSafeMixin._safe_method_call_bool(state, "get", ["auto_save_enabled"])
+	
+	assert_true(permadeath, "Permadeath should be enabled")
+	assert_true(story_track, "Story track should be enabled")
+	assert_true(auto_save, "Auto save should be enabled")
+
 # Helper function to load test campaign data
 func load_test_campaign(state: Node) -> void:
 	if not state:
@@ -26,11 +61,11 @@ func load_test_campaign(state: Node) -> void:
 		push_error("Failed to create test campaign")
 		return
 		
-	_set_state_property(state, "current_campaign", campaign)
-	_set_state_property(state, "difficulty_level", GameEnums.DifficultyLevel.NORMAL)
-	_set_state_property(state, "enable_permadeath", true)
-	_set_state_property(state, "use_story_track", true)
-	_set_state_property(state, "auto_save_enabled", true)
+	TypeSafeMixin._safe_method_call_bool(state, "set", ["current_campaign", campaign])
+	TypeSafeMixin._safe_method_call_bool(state, "set", ["difficulty_level", GameEnums.DifficultyLevel.NORMAL])
+	TypeSafeMixin._safe_method_call_bool(state, "set", ["enable_permadeath", true])
+	TypeSafeMixin._safe_method_call_bool(state, "set", ["use_story_track", true])
+	TypeSafeMixin._safe_method_call_bool(state, "set", ["auto_save_enabled", true])
 
 func before_each() -> void:
 	super.before_each()

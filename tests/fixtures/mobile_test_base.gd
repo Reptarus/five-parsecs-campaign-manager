@@ -52,7 +52,7 @@ func simulate_touch_release(position: Vector2) -> void:
 	event.pressed = false
 	Input.parse_input_event(event)
 
-func simulate_touch_drag(from: Vector2, to: Vector2, steps: int = 10) -> void:
+func simulate_touch_drag(from: Vector2, to: Vector2, steps: float = 10.0) -> void:
 	var step_size := (to - from) / steps
 	var current := from
 	
@@ -87,12 +87,16 @@ func assert_fits_screen(control: Control, message: String = "") -> void:
 	assert_true(control_size.x <= screen_size.x and control_size.y <= screen_size.y,
 		message if message else "Control should fit within screen bounds")
 
-func assert_touch_target_size(control: Control, message: String = "") -> void:
-	var min_touch_size := Vector2(44, 44) # Standard minimum touch target size
+func assert_touch_target_size(node: Node, min_size: Vector2 = Vector2(44, 44)) -> void:
+	if not node is Control:
+		push_error("Node must be a Control node")
+		return
+	
+	var control := node as Control
 	var control_size := control.get_rect().size
 	
-	assert_true(control_size.x >= min_touch_size.x and control_size.y >= min_touch_size.y,
-		message if message else "Control should meet minimum touch target size requirements")
+	assert_true(control_size.x >= min_size.x and control_size.y >= min_size.y,
+		"Control should meet minimum touch target size requirements")
 
 # Mobile-specific test utilities
 func add_child_autofree(node: Node) -> Node:

@@ -25,6 +25,15 @@ func load_test_campaign(state: Node) -> void:
 	_set_state_property(state, "use_story_track", true)
 	_set_state_property(state, "auto_save_enabled", true)
 
+func _set_state_property(state: Node, property: String, value: Variant) -> void:
+	if not state:
+		push_error("Cannot set property on null state")
+		return
+	if not state.has_method("set"):
+		push_error("State object does not have set method")
+		return
+	TypeSafeMixin._safe_method_call_bool(state, "set", [property, value])
+
 ## Safe Property Access Methods
 func _get_campaign_system_property(property: String, default_value: Variant = null) -> Variant:
 	if not campaign_system:
@@ -117,11 +126,19 @@ func _on_signal_received(signal_name: String) -> void:
 	_received_signals.append(signal_name)
 	print("Received signal: " + signal_name)
 
-func verify_campaign_state(expected_state: Dictionary) -> void:
+func _get_campaign_resource() -> Resource:
+	if not campaign_system:
+		push_error("Campaign system is null")
+		return null
+	return TypeSafeMixin._safe_method_call_resource(campaign_system, "get_campaign")
+
+func verify_campaign_state(campaign: Resource, expected_state: Dictionary) -> void:
+	if not campaign:
+		push_error("Cannot verify state of null campaign")
+		return
 	if expected_state.has("phase"):
 		assert_eq(_get_campaign_system_property("current_phase", -1), expected_state.phase,
 			"Campaign phase should match expected state")
-	
 	if expected_state.has("turn"):
 		assert_eq(_get_campaign_system_property("current_turn", -1), expected_state.turn,
 			"Campaign turn should match expected state")
@@ -143,18 +160,17 @@ func test_campaign_phase_transitions() -> void:
 	print("Testing campaign phase transitions...")
 	
 	# Verify initial state
-	verify_campaign_state({
+	verify_campaign_state(_get_campaign_resource(), {
 		"phase": GameEnums.FiveParcsecsCampaignPhase.SETUP,
 		"turn": 0
 	})
 	
 	# Start campaign
-	if campaign_system.has_method("start_campaign"):
-		campaign_system.start_campaign()
+	campaign_system.start_campaign()
 	await get_tree().create_timer(DEFAULT_TIMEOUT).timeout
 	
 	# Verify campaign started correctly
-	verify_campaign_state({
+	verify_campaign_state(_get_campaign_resource(), {
 		"phase": GameEnums.FiveParcsecsCampaignPhase.STORY,
 		"turn": 1
 	})
@@ -171,7 +187,7 @@ func test_campaign_phase_transitions() -> void:
 		campaign_system.next_phase()
 	await get_tree().create_timer(DEFAULT_TIMEOUT).timeout
 	
-	verify_campaign_state({
+	verify_campaign_state(_get_campaign_resource(), {
 		"phase": GameEnums.FiveParcsecsCampaignPhase.BATTLE_SETUP,
 		"turn": 1
 	})
@@ -181,7 +197,7 @@ func test_campaign_phase_transitions() -> void:
 		campaign_system.complete_phase()
 	await get_tree().create_timer(DEFAULT_TIMEOUT).timeout
 	
-	verify_campaign_state({
+	verify_campaign_state(_get_campaign_resource(), {
 		"phase": GameEnums.FiveParcsecsCampaignPhase.BATTLE_RESOLUTION,
 		"turn": 1
 	})
@@ -205,7 +221,7 @@ func test_invalid_phase_transitions() -> void:
 	await get_tree().create_timer(DEFAULT_TIMEOUT).timeout
 	
 	# Verify we're still in setup
-	verify_campaign_state({
+	verify_campaign_state(_get_campaign_resource(), {
 		"phase": GameEnums.FiveParcsecsCampaignPhase.SETUP,
 		"turn": 0
 	})
@@ -216,7 +232,7 @@ func test_invalid_phase_transitions() -> void:
 	await get_tree().create_timer(DEFAULT_TIMEOUT).timeout
 	
 	# Verify we're still in setup
-	verify_campaign_state({
+	verify_campaign_state(_get_campaign_resource(), {
 		"phase": GameEnums.FiveParcsecsCampaignPhase.SETUP,
 		"turn": 0
 	})
@@ -246,7 +262,7 @@ func test_campaign_turn_progression() -> void:
 		await get_tree().create_timer(DEFAULT_TIMEOUT).timeout
 	
 	# Verify turn incremented
-	verify_campaign_state({
+	verify_campaign_state(_get_campaign_resource(), {
 		"phase": GameEnums.FiveParcsecsCampaignPhase.STORY,
 		"turn": 2
 	})

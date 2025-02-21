@@ -5,37 +5,6 @@ const CampaignUIScript: GDScript = preload("res://src/scenes/campaign/CampaignUI
 
 var ui: Node = null
 
-# Helper function to wait for a signal with timeout
-func wait_for_signal(emitter: Object, signal_name: String, timeout: float = SIGNAL_TIMEOUT) -> Array:
-	if not emitter or not signal_name:
-		push_error("Invalid emitter or signal name for wait_for_signal")
-		return []
-		
-	var signal_args: Array = []
-	var timer: SceneTreeTimer = get_tree().create_timer(timeout)
-	var done: bool = false
-	
-	# Create a one-shot callable to capture signal arguments
-	var callable: Callable = func(arg1: Variant = null, arg2: Variant = null,
-			arg3: Variant = null, arg4: Variant = null) -> void:
-		signal_args = [arg1, arg2, arg3, arg4].filter(func(arg: Variant) -> bool: return arg != null)
-		done = true
-	
-	# Connect signal and timer
-	if emitter.has_signal(signal_name):
-		var err := emitter.connect(signal_name, callable, CONNECT_ONE_SHOT)
-		if err != OK:
-			push_error("Failed to connect signal %s" % signal_name)
-	var err := timer.timeout.connect(func() -> void: done = true, CONNECT_ONE_SHOT)
-	if err != OK:
-		push_error("Failed to connect timer timeout")
-	
-	# Wait for either signal or timeout
-	while not done:
-		await get_tree().process_frame
-	
-	return signal_args
-
 func before_each() -> void:
 	await super.before_each()
 	ui = CampaignUIScript.new()

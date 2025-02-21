@@ -1,7 +1,8 @@
 @tool
-extends GameTest
+extends "res://tests/fixtures/game_test.gd"
 
 const STABILIZE_TIME: float = 0.1
+const EnemyScript: GDScript = preload("res://src/core/battle/enemy/Enemy.gd")
 
 # Type-safe component references
 var _combat_manager: Node
@@ -50,7 +51,7 @@ func create_test_enemy(type: String = "NORMAL") -> Node:
 		push_error("Failed to set Enemy script")
 		return null
 	
-	_call_node_method(enemy, "initialize", [type])
+	_call_node_method_bool(enemy, "initialize", [type])
 	add_child_autofree(enemy)
 	track_test_node(enemy)
 	return enemy
@@ -64,15 +65,15 @@ func test_combat_initialization() -> void:
 
 func test_combat_turn_sequence() -> void:
 	var enemy: Node = create_test_enemy()
-	watch_signals(enemy)
+	_signal_watcher.watch_signals(enemy)
 	
 	# Start turn with type safety
-	_call_node_method(enemy, "start_turn")
+	_call_node_method_bool(enemy, "start_turn", [])
 	assert_true(_call_node_method_bool(enemy, "can_act"), "Enemy should be able to act on turn start")
 	verify_signal_emitted(enemy, "turn_started")
 	
 	# End turn with type safety
-	_call_node_method(enemy, "end_turn")
+	_call_node_method_bool(enemy, "end_turn", [])
 	assert_false(_call_node_method_bool(enemy, "can_act"), "Enemy should not be able to act after turn end")
 	verify_signal_emitted(enemy, "turn_ended")
 
@@ -80,35 +81,35 @@ func test_combat_turn_sequence() -> void:
 func test_attack_resolution() -> void:
 	var enemy: Node = create_test_enemy("ELITE")
 	var target: Node = _player_character
-	watch_signals(enemy)
+	_signal_watcher.watch_signals(enemy)
 	
-	_call_node_method(enemy, "attack", [target])
+	_call_node_method_bool(enemy, "attack", [target])
 	verify_signal_emitted(enemy, "attack_executed")
 	assert_false(_call_node_method_bool(enemy, "can_attack"), "Enemy should not be able to attack again immediately")
 
 func test_damage_application() -> void:
 	var enemy: Node = create_test_enemy()
-	var initial_health: int = _call_node_method_int(enemy, "get_health")
+	var initial_health: int = _call_node_method_int(enemy, "get_health", [])
 	
-	_call_node_method(enemy, "take_damage", [20])
-	assert_eq(_call_node_method_int(enemy, "get_health"), initial_health - 20, "Damage should be properly applied")
+	_call_node_method_bool(enemy, "take_damage", [20])
+	assert_eq(_call_node_method_int(enemy, "get_health", []), initial_health - 20, "Damage should be properly applied")
 	
-	_call_node_method(enemy, "heal", [10])
-	assert_eq(_call_node_method_int(enemy, "get_health"), initial_health - 10, "Healing should be properly applied")
+	_call_node_method_bool(enemy, "heal", [10])
+	assert_eq(_call_node_method_int(enemy, "get_health", []), initial_health - 10, "Healing should be properly applied")
 
 # Combat Status Tests
 func test_combat_status_effects() -> void:
 	var enemy: Node = create_test_enemy()
 	
 	# Test stun effect with type safety
-	_call_node_method(enemy, "apply_status_effect", ["stun", 2])
+	_call_node_method_bool(enemy, "apply_status_effect", ["stun", 2])
 	assert_false(_call_node_method_bool(enemy, "can_act"), "Stunned enemy should not be able to act")
 	
 	# Test poison effect with type safety
-	_call_node_method(enemy, "apply_status_effect", ["poison", 3])
-	var initial_health: int = _call_node_method_int(enemy, "get_health")
-	_call_node_method(enemy, "process_status_effects")
-	assert_true(_call_node_method_int(enemy, "get_health") < initial_health, "Poison should deal damage over time")
+	_call_node_method_bool(enemy, "apply_status_effect", ["poison", 3])
+	var initial_health: int = _call_node_method_int(enemy, "get_health", [])
+	_call_node_method_bool(enemy, "process_status_effects", [])
+	assert_true(_call_node_method_int(enemy, "get_health", []) < initial_health, "Poison should deal damage over time")
 
 # Combat Movement Tests
 func test_combat_movement() -> void:
@@ -116,29 +117,30 @@ func test_combat_movement() -> void:
 	var start_pos := Vector2(0, 0)
 	var end_pos := Vector2(100, 100)
 	
-	_set_property_safe(enemy, "position", start_pos)
-	watch_signals(enemy)
+	_call_node_method_bool(enemy, "set_position", [start_pos])
+	_signal_watcher.watch_signals(enemy)
 	
-	_call_node_method(enemy, "move_to", [end_pos])
+	_call_node_method_bool(enemy, "move_to", [end_pos])
 	verify_signal_emitted(enemy, "movement_completed")
-	assert_eq(_get_property_safe(enemy, "position"), end_pos, "Enemy should move to target position")
+	var current_pos = enemy.position
+	assert_eq(current_pos, end_pos, "Enemy should move to target position")
 
 func test_combat_reactions() -> void:
 	var enemy: Node = create_test_enemy()
 	var trigger: Node = create_test_enemy()
 	
-	watch_signals(enemy)
-	_call_node_method(enemy, "setup_reaction", ["attack", trigger])
+	_signal_watcher.watch_signals(enemy)
+	_call_node_method_bool(enemy, "setup_reaction", ["attack", trigger])
 	
-	_call_node_method(trigger, "move_to", [Vector2(50, 50)])
+	_call_node_method_bool(trigger, "move_to", [Vector2(50, 50)])
 	verify_signal_emitted(enemy, "reaction_triggered")
 
 # Combat AI Tests
 func test_combat_ai_decisions() -> void:
 	var enemy: Node = create_test_enemy()
-	var ai_manager: Node = _call_node_method(_combat_manager, "get_ai_manager")
+	var ai_manager = _combat_manager.get_node("AIManager")
 	
-	watch_signals(ai_manager)
+	_signal_watcher.watch_signals(ai_manager)
 	var decision: Dictionary = _call_node_method_dict(ai_manager, "make_combat_decision", [enemy])
 	
 	assert_not_null(decision, "AI should make a combat decision")
@@ -150,8 +152,8 @@ func test_group_combat_coordination() -> void:
 	var followers: Array[Node] = _create_follower_group(2)
 	var group: Array[Node] = [leader] + followers
 	
-	watch_signals(leader)
-	_call_node_method(_combat_manager, "coordinate_group_attack", [group, _player_character])
+	_signal_watcher.watch_signals(leader)
+	_call_node_method_bool(_combat_manager, "coordinate_group_attack", [group, _player_character])
 	
 	verify_signal_emitted(leader, "group_attack_coordinated")
 	for follower in followers:
@@ -160,11 +162,11 @@ func test_group_combat_coordination() -> void:
 # Cleanup and State Tests
 func test_combat_cleanup() -> void:
 	var enemy: Node = create_test_enemy()
-	_call_node_method(enemy, "apply_status_effect", ["poison", 2])
-	_call_node_method(enemy, "setup_reaction", ["attack", _player_character])
+	_call_node_method_bool(enemy, "apply_status_effect", ["poison", 2])
+	_call_node_method_bool(enemy, "setup_reaction", ["attack", _player_character])
 	
-	watch_signals(enemy)
-	_call_node_method(enemy, "cleanup_combat_state")
+	_signal_watcher.watch_signals(enemy)
+	_call_node_method_bool(enemy, "cleanup_combat_state", [])
 	
 	assert_false(_call_node_method_bool(enemy, "has_status_effects"), "Status effects should be cleared")
 	assert_false(_call_node_method_bool(enemy, "has_reactions"), "Reactions should be cleared")
@@ -188,9 +190,10 @@ func _setup_combat_scenario() -> Dictionary:
 	}
 
 func _simulate_combat_round(enemy: Node, target: Node) -> void:
-	_call_node_method(enemy, "start_turn")
+	_call_node_method_bool(enemy, "start_turn", [])
 	if _call_node_method_bool(enemy, "can_attack") and _call_node_method_bool(enemy, "is_in_range", [target]):
-		_call_node_method(enemy, "attack", [target])
+		_call_node_method_bool(enemy, "attack", [target])
 	elif _call_node_method_bool(enemy, "can_move"):
-		_call_node_method(enemy, "move_to", [_get_property_safe(target, "position")])
-	_call_node_method(enemy, "end_turn")
+		var target_pos = target.position
+		_call_node_method_bool(enemy, "move_to", [target_pos])
+	_call_node_method_bool(enemy, "end_turn", [])

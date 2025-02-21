@@ -1,11 +1,9 @@
 @tool
-extends GutTest
+extends GameTest
 
 const ResourcePanel = preload("res://src/scenes/campaign/components/ResourcePanel.gd")
-const GameEnums = preload("res://src/core/systems/GlobalEnums.gd")
-const TypeSafeMixin = preload("res://tests/fixtures/type_safe_test_mixin.gd")
 
-var panel: ResourcePanel
+var panel: Node = null
 var resource_updated_signal_emitted: bool = false
 var last_resource_type: GameEnums.ResourceType
 var last_resource_value: int

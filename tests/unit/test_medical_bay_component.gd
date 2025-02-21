@@ -22,23 +22,38 @@ func after_each() -> void:
     await super.after_each()
 
 # Type-safe property access
-func _get_medical_bay_property(property: String, default_value: Variant = null) -> Variant:
-    if not medical_bay:
-        push_error("Trying to access property '%s' on null medical bay" % property)
-        return default_value
-    if not property in medical_bay:
-        push_error("Medical bay missing required property: %s" % property)
-        return default_value
-    return medical_bay.get(property)
+func _get_medical_bay_property(property_or_node: Variant, property_name: String = "", default_value: Variant = null) -> Variant:
+    # Handle case where first argument is the property name (old usage)
+    if property_or_node is String:
+        if not medical_bay:
+            push_error("Trying to access property '%s' on null medical bay" % property_or_node)
+            return default_value
+        if not property_or_node in medical_bay:
+            push_error("Medical bay missing required property: %s" % property_or_node)
+            return default_value
+        return medical_bay.get(property_or_node)
+    
+    # Handle case where first argument is a node (new usage)
+    if property_or_node is Node:
+        if not property_or_node:
+            push_error("Trying to access property '%s' on null medical bay" % property_name)
+            return default_value
+        if not property_name in property_or_node:
+            push_error("Medical bay missing required property: %s" % property_name)
+            return default_value
+        return property_or_node.get(property_name)
+    
+    push_error("Invalid arguments to _get_medical_bay_property")
+    return default_value
 
 # Type-safe test methods
 func test_initialization() -> void:
     assert_not_null(medical_bay, "Medical bay should exist")
     
-    var name: String = _get_medical_bay_property("name", "")
-    var description: String = _get_medical_bay_property("description", "")
-    var cost: int = _safe_cast_int(_get_medical_bay_property("cost", 0), "Cost should be an integer")
-    var power_draw: int = _safe_cast_int(_get_medical_bay_property("power_draw", 0), "Power draw should be an integer")
+    var name: String = _get_medical_bay_property("name", "", "")
+    var description: String = _get_medical_bay_property("description", "", "")
+    var cost: int = _safe_cast_int(_get_medical_bay_property("cost", "", 0), "Cost should be an integer")
+    var power_draw: int = _safe_cast_int(_get_medical_bay_property("power_draw", "", 0), "Power draw should be an integer")
     
     assert_eq(name, "Medical Bay", "Should initialize with correct name")
     assert_eq(description, "Standard medical bay", "Should initialize with correct description")
@@ -46,11 +61,11 @@ func test_initialization() -> void:
     assert_eq(power_draw, 2, "Should initialize with correct power draw")
     
     # Test medical bay-specific properties
-    var healing_rate: float = _get_medical_bay_property("healing_rate", 0.0)
-    var treatment_capacity: int = _safe_cast_int(_get_medical_bay_property("treatment_capacity", 0), "Treatment capacity should be an integer")
-    var medical_supplies: int = _safe_cast_int(_get_medical_bay_property("medical_supplies", 0), "Medical supplies should be an integer")
-    var treatment_quality: float = _get_medical_bay_property("treatment_quality", 0.0)
-    var patients: Array = _safe_cast_array(_get_medical_bay_property("patients", []), "Patients should be an array")
+    var healing_rate: float = _get_medical_bay_property("healing_rate", "", 0.0)
+    var treatment_capacity: int = _safe_cast_int(_get_medical_bay_property("treatment_capacity", "", 0), "Treatment capacity should be an integer")
+    var medical_supplies: int = _safe_cast_int(_get_medical_bay_property("medical_supplies", "", 0), "Medical supplies should be an integer")
+    var treatment_quality: float = _get_medical_bay_property("treatment_quality", "", 0.0)
+    var patients: Array = _safe_cast_array(_get_medical_bay_property("patients", "", []), "Patients should be an array")
     
     assert_eq(healing_rate, 1.0, "Should initialize with base healing rate")
     assert_eq(treatment_capacity, 2, "Should initialize with base treatment capacity")
@@ -60,19 +75,19 @@ func test_initialization() -> void:
 
 func test_upgrade_effects() -> void:
     # Store initial values with type safety
-    var initial_healing_rate: float = _get_medical_bay_property("healing_rate", 0.0)
-    var initial_treatment_capacity: int = _safe_cast_int(_get_medical_bay_property("treatment_capacity", 0), "Treatment capacity should be an integer")
-    var initial_medical_supplies: int = _safe_cast_int(_get_medical_bay_property("medical_supplies", 0), "Medical supplies should be an integer")
-    var initial_treatment_quality: float = _get_medical_bay_property("treatment_quality", 0.0)
+    var initial_healing_rate: float = _get_medical_bay_property("healing_rate", "", 0.0)
+    var initial_treatment_capacity: int = _safe_cast_int(_get_medical_bay_property("treatment_capacity", "", 0), "Treatment capacity should be an integer")
+    var initial_medical_supplies: int = _safe_cast_int(_get_medical_bay_property("medical_supplies", "", 0), "Medical supplies should be an integer")
+    var initial_treatment_quality: float = _get_medical_bay_property("treatment_quality", "", 0.0)
     
     # Perform upgrade with type-safe method call
     _call_node_method(medical_bay, "upgrade")
     
     # Test improvements with type safety
-    var new_healing_rate: float = _get_medical_bay_property("healing_rate", 0.0)
-    var new_treatment_capacity: int = _safe_cast_int(_get_medical_bay_property("treatment_capacity", 0), "Treatment capacity should be an integer")
-    var new_medical_supplies: int = _safe_cast_int(_get_medical_bay_property("medical_supplies", 0), "Medical supplies should be an integer")
-    var new_treatment_quality: float = _get_medical_bay_property("treatment_quality", 0.0)
+    var new_healing_rate: float = _get_medical_bay_property("healing_rate", "", 0.0)
+    var new_treatment_capacity: int = _safe_cast_int(_get_medical_bay_property("treatment_capacity", "", 0), "Treatment capacity should be an integer")
+    var new_medical_supplies: int = _safe_cast_int(_get_medical_bay_property("medical_supplies", "", 0), "Medical supplies should be an integer")
+    var new_treatment_quality: float = _get_medical_bay_property("treatment_quality", "", 0.0)
     
     assert_eq(new_healing_rate, initial_healing_rate + 0.2, "Should increase healing rate on upgrade")
     assert_eq(new_treatment_capacity, initial_treatment_capacity + 1, "Should increase treatment capacity on upgrade")
@@ -110,12 +125,12 @@ func test_patient_management() -> void:
     assert_true(can_accept, "Should be able to accept patient when capacity available")
     
     _call_node_method(medical_bay, "add_patient", [test_patient])
-    var patients: Array = _safe_cast_array(_get_medical_bay_property("patients", []), "Patients should be an array")
+    var patients: Array = _safe_cast_array(_get_medical_bay_property("patients", "", []), "Patients should be an array")
     assert_eq(patients.size(), 1, "Should have one patient")
     assert_true(test_patient in patients, "Should contain added patient")
     
     # Test capacity limits
-    var treatment_capacity: int = _safe_cast_int(_get_medical_bay_property("treatment_capacity", 0), "Treatment capacity should be an integer")
+    var treatment_capacity: int = _safe_cast_int(_get_medical_bay_property("treatment_capacity", "", 0), "Treatment capacity should be an integer")
     var patients_to_fill: int = treatment_capacity - 1
     
     for i in range(patients_to_fill):
@@ -130,7 +145,7 @@ func test_patient_management() -> void:
     
     # Test removing patients
     _call_node_method(medical_bay, "remove_patient", [test_patient])
-    patients = _safe_cast_array(_get_medical_bay_property("patients", []), "Patients should be an array")
+    patients = _safe_cast_array(_get_medical_bay_property("patients", "", []), "Patients should be an array")
     assert_eq(patients.size(), patients_to_fill, "Should remove patient")
     assert_false(test_patient in patients, "Should not contain removed patient")
 
@@ -149,7 +164,7 @@ func test_healing_process() -> void:
     _call_node_method(medical_bay, "process_healing", [1.0]) # 1 second tick
     assert_eq(test_patient.health, 51, "Should heal patient by healing rate * delta")
     
-    var medical_supplies: int = _safe_cast_int(_get_medical_bay_property("medical_supplies", 0), "Medical supplies should be an integer")
+    var medical_supplies: int = _safe_cast_int(_get_medical_bay_property("medical_supplies", "", 0), "Medical supplies should be an integer")
     assert_eq(medical_supplies, 99, "Should consume medical supplies")
     
     # Test healing cap
@@ -213,15 +228,15 @@ func test_serialization() -> void:
     _call_node_method(new_medical_bay, "deserialize", [data])
     
     # Verify medical bay-specific properties with type safety
-    assert_eq(_get_medical_bay_property(new_medical_bay, "healing_rate"), 1.5, "Should preserve healing rate")
-    assert_eq(_safe_cast_int(_get_medical_bay_property(new_medical_bay, "treatment_capacity")), 3, "Should preserve treatment capacity")
-    assert_eq(_safe_cast_int(_get_medical_bay_property(new_medical_bay, "medical_supplies")), 75, "Should preserve medical supplies")
-    assert_eq(_get_medical_bay_property(new_medical_bay, "treatment_quality"), 1.2, "Should preserve treatment quality")
+    assert_eq(_get_medical_bay_property(new_medical_bay, "healing_rate", 1.5), 1.5, "Should preserve healing rate")
+    assert_eq(_safe_cast_int(_get_medical_bay_property(new_medical_bay, "treatment_capacity", 3)), 3, "Should preserve treatment capacity")
+    assert_eq(_safe_cast_int(_get_medical_bay_property(new_medical_bay, "medical_supplies", 75)), 75, "Should preserve medical supplies")
+    assert_eq(_get_medical_bay_property(new_medical_bay, "treatment_quality", 1.2), 1.2, "Should preserve treatment quality")
     
     var new_patients: Array = _safe_cast_array(_get_medical_bay_property(new_medical_bay, "patients", []), "Patients should be an array")
     assert_eq(new_patients.size(), 1, "Should preserve patients")
     
     # Verify inherited properties with type safety
-    assert_eq(_safe_cast_int(_get_medical_bay_property(new_medical_bay, "level")), 2, "Should preserve level")
-    assert_eq(_safe_cast_int(_get_medical_bay_property(new_medical_bay, "durability")), 75, "Should preserve durability")
-    assert_eq(_safe_cast_int(_get_medical_bay_property(new_medical_bay, "power_draw")), 2, "Should preserve power draw")
+    assert_eq(_safe_cast_int(_get_medical_bay_property(new_medical_bay, "level", 2)), 2, "Should preserve level")
+    assert_eq(_safe_cast_int(_get_medical_bay_property(new_medical_bay, "durability", 75)), 75, "Should preserve durability")
+    assert_eq(_safe_cast_int(_get_medical_bay_property(new_medical_bay, "power_draw", 2)), 2, "Should preserve power draw")

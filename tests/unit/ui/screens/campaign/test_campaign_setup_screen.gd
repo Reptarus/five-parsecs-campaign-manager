@@ -12,8 +12,9 @@ var last_setup_data: Dictionary
 func watch_signals(emitter: Object) -> void:
 	super.watch_signals(emitter)
 
-func assert_signal_emitted(object: Object, signal_name: String, text: String = "") -> void:
+func assert_signal_emitted(object: Object, signal_name: String, text: String = "") -> bool:
 	verify_signal_emitted(object, signal_name, text)
+	return true
 
 func before_each() -> void:
 	_instance = CampaignSetupScreen.new()

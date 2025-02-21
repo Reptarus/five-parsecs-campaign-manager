@@ -1,6 +1,9 @@
 @tool
 extends GameTest
-class_name EnemyTest
+class_name FiveParsecsEnemyTest
+
+# Core script references with type safety
+const EnemyScript: GDScript = preload("res://src/core/battle/enemy/Enemy.gd")
 
 # Constants for enemy testing
 const STABILIZE_TIME := 0.1
@@ -57,3 +60,17 @@ func verify_enemy_movement(enemy: Node, start_pos: Vector2, end_pos: Vector2) ->
 	# Verify movement
 	assert_eq(enemy.position, end_pos, "Enemy should move to target position")
 	verify_signal_emitted(enemy, "movement_completed")
+
+func verify_enemy_combat(enemy: Node, target: Node) -> void:
+	assert_not_null(enemy, "Enemy should exist")
+	assert_not_null(target, "Target should exist")
+	
+	# Watch for combat signals
+	watch_signals(enemy)
+	
+	# Execute attack
+	_call_node_method(enemy, "attack", [target])
+	
+	# Verify combat
+	verify_signal_emitted(enemy, "attack_executed")
+	assert_false(_call_node_method_bool(enemy, "can_attack"), "Enemy should not be able to attack again immediately")

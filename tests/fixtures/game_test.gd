@@ -1,585 +1,405 @@
-extends GutTest
+@tool
+extends "res://tests/fixtures/base_test.gd"
 class_name GameTest
 
-# Script constants with descriptive names to avoid shadowing
-const EnemyScript: GDScript = preload("res://src/core/enemy/base/Enemy.gd")
-const CharacterScript: GDScript = preload("res://src/core/character/Base/Character.gd")
+# Core game script references with type safety
 const GameStateScript: GDScript = preload("res://src/core/state/GameState.gd")
-const FiveParcsecsCampaignScript: GDScript = preload("res://src/core/campaign/Campaign.gd")
-const TestHelperScript: GDScript = preload("res://tests/fixtures/test_helper.gd")
 const TypeSafeMixin: GDScript = preload("res://tests/fixtures/type_safe_test_mixin.gd")
-const GameEnums: GDScript = preload("res://src/core/systems/GlobalEnums.gd")
 
-# Test configuration constants
-const STABILIZATION_TIME := 0.1
-const SIGNAL_TIMEOUT := 1.0
-
-# Campaign test configuration
-const DEFAULT_CAMPAIGN_CONFIG := {
-	"difficulty_level": 1, # Normal difficulty
-	"enable_permadeath": true,
-	"use_story_track": true,
-	"auto_save_enabled": true
-}
-
-# Game state references
-var _game_state: Node = null
-var _campaign_system: Node = null
-var _signal_watcher: SignalWatcher = null
-
-# Test tracking
-var _tracked_nodes: Array[Node] = []
-var _tracked_resources: Array[Resource] = []
-
-# Type-safe node operations
-func add_child_autofree(node: Node) -> Node:
-	if not node:
-		push_warning("Attempting to add null node")
-		return null
-		
-	if node.get_parent():
-		node.get_parent().remove_child(node)
-	
-	super.add_child(node)
-	track_test_node(node)
-	return node
-
-func track_test_node(node: Node) -> void:
-	if not node in _tracked_nodes:
-		_tracked_nodes.append(node)
-
-func track_test_resource(resource: Resource) -> void:
-	if not resource in _tracked_resources:
-		_tracked_resources.append(resource)
-
-# Type-safe cleanup methods
-func cleanup_tracked_nodes() -> void:
-	for node in _tracked_nodes:
-		if is_instance_valid(node) and node.is_inside_tree():
-			node.queue_free()
-	_tracked_nodes.clear()
-
-func cleanup_tracked_resources() -> void:
-	_tracked_resources.clear()
-
-# Type-safe property access
-func _get_property_safe(obj: Object, property: String, default_value: Variant = null) -> Variant:
-	if not obj:
-		push_warning("Attempting to get property from null object")
-		return default_value
-	if not property in obj:
-		return default_value
-	return obj.get(property)
-
-func _set_property_safe(obj: Object, property: String, value: Variant) -> void:
-	if not obj:
-		push_warning("Attempting to set property on null object")
-		return
-	if not property in obj:
-		push_warning("Property %s not found in object" % property)
-		return
-	obj.set(property, value)
-
-# Type-safe signal handling
-class SignalWatcher:
-	var _watched_signals: Dictionary = {}
-	var _signal_emissions: Dictionary = {}
-	var _parent: Node
-	
-	func _init(parent: Node) -> void:
-		_parent = parent
-	
-	func watch_signals(emitter: Object) -> void:
-		if not emitter:
-			push_warning("Attempting to watch signals on null emitter")
-			return
-			
-		if not _watched_signals.has(emitter):
-			_watched_signals[emitter] = []
-			_signal_emissions[emitter] = {}
-			
-			var signal_list: Array = emitter.get_signal_list()
-			for signal_info in signal_list:
-				if not signal_info is Dictionary:
-					continue
-					
-				var signal_name: String = signal_info.get("name", "")
-				if signal_name.is_empty():
-					continue
-				
-				if _watched_signals[emitter] is Array:
-					var signals: Array = _watched_signals[emitter]
-					if not signals.has(signal_name):
-						signals.append(signal_name)
-				_signal_emissions[emitter][signal_name] = []
-				
-				if emitter.has_signal(signal_name):
-					# Using explicit typing for the callback
-					var callback: Callable = func(arg1: Variant = null, arg2: Variant = null,
-							arg3: Variant = null, arg4: Variant = null,
-							arg5: Variant = null) -> void:
-						var args: Array = []
-						var arg_list: Array = [arg1, arg2, arg3, arg4, arg5]
-						for arg in arg_list:
-							if arg != null:
-								args.append(arg)
-						_on_signal_emitted.call_deferred(emitter, signal_name, args)
-					
-					# Connect returns void in Godot 4
-					if not emitter.is_connected(signal_name, callback):
-						emitter.connect(signal_name, callback, CONNECT_DEFERRED)
-	
-	func _on_signal_emitted(emitter: Object, signal_name: String, args: Array) -> void:
-		if _signal_emissions.has(emitter) and \
-		   _signal_emissions[emitter] is Dictionary and \
-		   _signal_emissions[emitter].has(signal_name) and \
-		   _signal_emissions[emitter][signal_name] is Array:
-			var emissions: Array = _signal_emissions[emitter][signal_name]
-			emissions.append(args)
-	
-	func check_signal_emission(object: Object, signal_name: String) -> bool:
-		if not object or not signal_name:
-			return false
-			
-		if not _signal_emissions.has(object):
-			return false
-		if not _signal_emissions[object].has(signal_name):
-			return false
-			
-		var emissions: Array = _signal_emissions[object][signal_name]
-		if not emissions is Array:
-			return false
-		return not emissions.is_empty()
-
-# Signal verification methods
-func watch_signals(emitter: Object) -> void:
-	if not emitter:
-		push_warning("Attempting to watch signals on null emitter")
-		return
-		
-	if not _signal_watcher:
-		_signal_watcher = SignalWatcher.new(self)
-	_signal_watcher.watch_signals(emitter)
-
-func verify_signal_emitted(emitter: Object, signal_name: String, message: String = "") -> void:
-	if not _signal_watcher:
-		assert_true(false, "Signal watcher not initialized. Did you call watch_signals()?")
-		return
-		
-	if not emitter or not signal_name:
-		assert_true(false, "Invalid emitter or signal name")
-		return
-		
-	var was_emitted: bool = _signal_watcher.check_signal_emission(emitter, signal_name)
-	assert_true(was_emitted, message if message else "Signal '%s' was not emitted" % signal_name)
-
-func verify_signal_not_emitted(emitter: Object, signal_name: String, message: String = "") -> void:
-	if not _signal_watcher:
-		assert_true(false, "Signal watcher not initialized. Did you call watch_signals()?")
-		return
-		
-	if not emitter or not signal_name:
-		assert_true(false, "Invalid emitter or signal name")
-		return
-		
-	var was_emitted: bool = _signal_watcher.check_signal_emission(emitter, signal_name)
-	assert_false(was_emitted, message if message else "Signal '%s' should not have been emitted" % signal_name)
-
-# Type-safe state property access
-func _get_state_property(state: Node, property: String, default_value: Variant = null) -> Variant:
-	if not state:
-		push_warning("Trying to access property '%s' on null game state" % property)
-		return default_value
-	if not property in state:
-		push_warning("Game state missing required property: %s" % property)
-		return default_value
-	return state.get(property)
-
-func _set_state_property(state: Node, property: String, value: Variant) -> void:
-	if not state:
-		push_warning("Trying to set property '%s' on null game state" % property)
-		return
-	if not property in state:
-		push_warning("Game state missing required property: %s" % property)
-		return
-	state.set(property, value)
-
-# Type-safe method calls for Resources
-func _call_resource_method(resource: Resource, method: String, args: Array = []) -> Variant:
-	if not resource:
-		push_warning("Attempting to call method '%s' on null resource" % method)
-		return null
-	if not resource.has_method(method):
-		push_warning("Resource missing required method: %s" % method)
-		return null
-	return resource.callv(method, args)
-
-func _call_resource_method_dict(resource: Resource, method: String, args: Array = [], default_value: Dictionary = {}) -> Dictionary:
-	var result: Variant = _call_resource_method(resource, method, args)
-	if not result is Dictionary:
-		push_warning("Method '%s' did not return a Dictionary" % method)
-		return default_value
-	return result
-
-func _call_resource_method_array(resource: Resource, method: String, args: Array = [], default_value: Array = []) -> Array:
-	var result: Variant = _call_resource_method(resource, method, args)
-	if not result is Array:
-		push_warning("Method '%s' did not return an Array" % method)
-		return default_value
-	return result
-
-func _call_resource_method_bool(resource: Resource, method: String, args: Array = [], default_value: bool = false) -> bool:
-	var result: Variant = _call_resource_method(resource, method, args)
-	if not result is bool:
-		push_warning("Method '%s' did not return a bool" % method)
-		return default_value
-	return result
-
-func _call_resource_method_int(resource: Resource, method: String, args: Array = [], default_value: int = 0) -> int:
-	var result: Variant = _call_resource_method(resource, method, args)
-	if not result is int:
-		push_warning("Method '%s' did not return an int" % method)
-		return default_value
-	return result
-
-# Type-safe method calls for Nodes
-func _call_node_method(node: Node, method: String, args: Array = []) -> Variant:
-	if not node:
-		push_warning("Attempting to call method '%s' on null node" % method)
-		return null
-	if not node.has_method(method):
-		push_warning("Node missing required method: %s" % method)
-		return null
-	return node.callv(method, args)
-
-func _call_node_method_dict(node: Node, method: String, args: Array = [], default_value: Dictionary = {}) -> Dictionary:
-	var result: Variant = _call_node_method(node, method, args)
-	if not result is Dictionary:
-		push_warning("Method '%s' did not return a Dictionary" % method)
-		return default_value
-	return result
-
-func _call_node_method_array(node: Node, method: String, args: Array = [], default_value: Array = []) -> Array:
-	var result: Variant = _call_node_method(node, method, args)
-	if not result is Array:
-		push_warning("Method '%s' did not return an Array" % method)
-		return default_value
-	return result
-
-func _call_node_method_bool(node: Node, method: String, args: Array = [], default_value: bool = false) -> bool:
-	var result: Variant = _call_node_method(node, method, args)
-	if not result is bool:
-		push_warning("Method '%s' did not return a bool" % method)
-		return default_value
-	return result
-
-func _call_node_method_int(node: Node, method: String, args: Array = [], default_value: int = 0) -> int:
-	var result: Variant = _call_node_method(node, method, args)
-	if not result is int:
-		push_warning("Method '%s' did not return an int" % method)
-		return default_value
-	return result
-
-# Dictionary helper methods
-func _get_dict_bool(dict: Dictionary, key: String, default_value: bool = false) -> bool:
-	if not dict.has(key):
-		return default_value
-	var value: Variant = dict.get(key)
-	if not value is bool:
-		return default_value
-	return value
-
-# Type-safe test setup methods
-func create_test_game_state() -> Node:
-	var state_instance: Node = Node.new()
-	if not state_instance:
-		push_warning("Failed to create game state instance")
-		return null
-		
-	state_instance.set_script(GameStateScript)
-	if not state_instance.get_script() == GameStateScript:
-		push_warning("Failed to set GameState script")
-		return null
-		
-	add_child_autofree(state_instance)
-	track_test_node(state_instance)
-	return state_instance
-
-func create_test_enemy() -> Node:
-	var enemy_instance: Node = Node.new()
-	if not enemy_instance:
-		push_warning("Failed to create enemy instance")
-		return null
-		
-	enemy_instance.set_script(EnemyScript)
-	if not enemy_instance.get_script() == EnemyScript:
-		push_warning("Failed to set Enemy script")
-		return null
-		
-	add_child_autofree(enemy_instance)
-	track_test_node(enemy_instance)
-	return enemy_instance
-
-func create_test_character() -> Node:
-	var character_instance: Node = Node.new()
-	if not character_instance:
-		push_warning("Failed to create character instance")
-		return null
-		
-	character_instance.set_script(CharacterScript)
-	if not character_instance.get_script() == CharacterScript:
-		push_warning("Failed to set Character script")
-		return null
-		
-	add_child_autofree(character_instance)
-	track_test_node(character_instance)
-	return character_instance
-
-func setup_campaign_system() -> Node:
-	var system_instance: Node = Node.new()
-	if not system_instance:
-		push_warning("Failed to create campaign system instance")
-		return null
-		
-	system_instance.name = "CampaignSystem"
-	add_child_autofree(system_instance)
-	track_test_node(system_instance)
-	return system_instance
-
-func create_test_campaign() -> Resource:
-	var campaign_instance: Resource = FiveParcsecsCampaignScript.new()
-	if not campaign_instance:
-		push_warning("Failed to create campaign instance")
-		return null
-		
-	track_test_resource(campaign_instance)
-	return campaign_instance
-
-# Type-safe state verification
-func assert_valid_game_state(game_state: Node) -> void:
-	assert_not_null_variant(game_state, "Game state should exist")
-	
-	var campaign: Resource = _get_state_property(game_state, "current_campaign")
-	assert_not_null_variant(campaign, "Campaign state should be initialized")
-	
-	var difficulty: int = _get_state_property(game_state, "difficulty_level", -1)
-	assert_eq_variant(difficulty, 1, "Difficulty should be set to normal")
-	
-	var permadeath: bool = _get_state_property(game_state, "enable_permadeath", false)
-	assert_true_variant(permadeath, "Permadeath should be enabled")
-	
-	var story_track: bool = _get_state_property(game_state, "use_story_track", false)
-	assert_true_variant(story_track, "Story track should be enabled")
-	
-	var auto_save: bool = _get_state_property(game_state, "auto_save_enabled", false)
-	assert_true_variant(auto_save, "Auto save should be enabled")
-
-# Type-safe utility methods
-func stabilize_engine(time: float = STABILIZATION_TIME) -> void:
-	await get_tree().create_timer(time).timeout
-
-func assert_async_signal(emitter: Object, signal_name: String, timeout: float = SIGNAL_TIMEOUT) -> bool:
-	if not emitter or not signal_name:
-		push_warning("Invalid emitter or signal name for async signal check")
-		return false
-		
-	var timer := get_tree().create_timer(timeout)
-	var signal_received := false
-	
-	var callable := func() -> void: signal_received = true
-	if not emitter.is_connected(signal_name, callable):
-		emitter.connect(signal_name, callable, CONNECT_ONE_SHOT)
-	
-	timer.timeout.connect(func() -> void: signal_received = false, CONNECT_ONE_SHOT)
-	while not signal_received and not timer.is_stopped():
-		await get_tree().process_frame
-	
-	return signal_received
-
-# Type-safe assertion methods
-func assert_eq_variant(got: Variant, expected: Variant, text: String = "") -> void:
-	# Ensure both values are of the same type before comparison
-	var got_type := typeof(got)
-	var expected_type := typeof(expected)
-	
-	if got_type != expected_type:
-		assert_false(true, "Type mismatch in assert_eq: got %s (%d), expected %s (%d). %s" % [
-			got, got_type, expected, expected_type, text
-		])
-		return
-	
-	# Now we can safely compare
-	assert_eq(got, expected, text)
-
-func assert_true_variant(got: Variant, text: String = "") -> void:
-	# Convert to boolean explicitly
-	var bool_value: bool = false
-	
-	match typeof(got):
-		TYPE_BOOL:
-			bool_value = bool(got)
-		TYPE_INT:
-			bool_value = int(got) != 0
-		TYPE_FLOAT:
-			bool_value = float(got) != 0.0
-		TYPE_STRING:
-			bool_value = String(got).length() > 0
-		TYPE_OBJECT:
-			bool_value = got != null
-		_:
-			bool_value = got != null
-	
-	assert_true(bool_value, text)
-
-func assert_false_variant(got: Variant, text: String = "") -> void:
-	assert_true_variant(not got, text)
-
-func assert_not_null_variant(got: Variant, text: String = "") -> void:
-	assert_true_variant(got != null, text)
-
-# Override base assertion methods to use type-safe variants
-func assert_eq(got: Variant, expected: Variant, text: String = "") -> void:
-	assert_eq_variant(got, expected, text)
-
-func assert_true(condition: Variant, text: String = "") -> void:
-	assert_true_variant(condition, text)
-
-func assert_false(condition: Variant, text: String = "") -> void:
-	assert_false_variant(condition, text)
-
-func assert_not_null(got: Variant, text: String = "") -> void:
-	assert_not_null_variant(got, text)
-
-# Type-safe error handling
-func _safe_cast_error(value: Variant, error_message: String = "") -> Error:
-	if not value is int:
-		push_warning("Cannot cast to Error: %s" % error_message)
-		return ERR_INVALID_DATA
-	return value # Error is an enum, which is an int, so this is safe
-
-func _handle_error(error: Error, context: String) -> void:
-	if error != OK:
-		push_warning("%s failed with error: %s" % [context, error_string(error)])
-
-# Type-safe casting functions
-func _safe_cast_object(value: Variant, error_message: String = "") -> Object:
-	if not value is Object:
-		push_error("Cannot cast to Object: %s" % error_message)
-		return null
-	return value
-
-func _safe_cast_node(value: Variant, error_message: String = "") -> Node:
-	if not value is Node:
-		push_error("Cannot cast to Node: %s" % error_message)
-		return null
-	return value
-
-func _safe_cast_resource(value: Variant, error_message: String = "") -> Resource:
-	if not value is Resource:
-		push_error("Cannot cast to Resource: %s" % error_message)
-		return null
-	return value
-
-func _safe_cast_array(value: Variant, error_message: String = "") -> Array:
-	if not value is Array:
-		push_error("Cannot cast to Array: %s" % error_message)
-		return []
-	return value
-
-func _safe_cast_dictionary(value: Variant, error_message: String = "") -> Dictionary:
-	if not value is Dictionary:
-		push_error("Cannot cast to Dictionary: %s" % error_message)
-		return {}
-	return value
-
-func _safe_cast_bool(value: Variant, error_message: String = "") -> bool:
-	if not value is bool:
-		push_error("Cannot cast to bool: %s" % error_message)
-		return false
-	return value
-
-func _safe_cast_int(value: Variant, error_message: String = "") -> int:
-	if not value is int:
-		push_error("Cannot cast to int: %s" % error_message)
-		return 0
-	return value
-
-func _safe_cast_float(value: Variant, error_message: String = "") -> float:
-	if not value is float:
-		push_error("Cannot cast to float: %s" % error_message)
-		return 0.0
-	return value
-
-func _safe_cast_string(value: Variant, error_message: String = "") -> String:
-	if not value is String:
-		push_error("Cannot cast to String: %s" % error_message)
-		return ""
-	return value
-
-# Type-safe node access
-func _get_node_safe(node: Node, path: String) -> Node:
-	if not node:
-		push_error("Attempting to get node from null parent")
-		return null
-	if not path:
-		push_error("Invalid node path")
-		return null
-		
-	var child := node.get_node(path)
-	if not child:
-		push_error("Node not found at path: %s" % path)
-		return null
-	return child
-
-# Type-safe helper methods
-func _safe_cast_to_resource(value: Variant, type: String, error_message: String = "") -> Resource:
-	return TypeSafeMixin._safe_cast_to_resource(value, type, error_message)
-
-func _safe_cast_to_node(value: Variant, type: String, error_message: String = "") -> Node:
-	return TypeSafeMixin._safe_cast_to_node(value, type, error_message)
-
-func _safe_cast_to_object(value: Variant, type: String, error_message: String = "") -> Object:
-	return TypeSafeMixin._safe_cast_to_object(value, type, error_message)
-
-func _safe_cast_to_string(value: Variant, error_message: String = "") -> String:
-	return TypeSafeMixin._safe_cast_to_string(value, error_message)
-
-func _safe_method_call_bool(obj: Object, method: String, args: Array = [], default: bool = false) -> bool:
-	return TypeSafeMixin._safe_method_call_bool(obj, method, args, default)
-
-func _safe_method_call_int(obj: Object, method: String, args: Array = [], default: int = 0) -> int:
-	return TypeSafeMixin._safe_method_call_int(obj, method, args, default)
-
-func _safe_method_call_array(obj: Object, method: String, args: Array = [], default: Array = []) -> Array:
-	return TypeSafeMixin._safe_method_call_array(obj, method, args, default)
-
-func _safe_method_call_string(obj: Object, method: String, args: Array = [], default: String = "") -> String:
-	return TypeSafeMixin._safe_method_call_string(obj, method, args, default)
-
-func _safe_method_call_resource(obj: Object, method: String, args: Array = [], default: Resource = null) -> Resource:
-	return TypeSafeMixin._safe_method_call_resource(obj, method, args, default)
-
-func _safe_method_call_dict(obj: Object, method: String, args: Array = [], default: Dictionary = {}) -> Dictionary:
-	return TypeSafeMixin._safe_method_call_dict(obj, method, args, default)
-
-func _safe_method_call_float(obj: Object, method: String, args: Array = [], default: float = 0.0) -> float:
-	return TypeSafeMixin._safe_method_call_float(obj, method, args, default)
-
-# Test lifecycle methods
-func before_all() -> void:
-	pass
-
-func after_all() -> void:
-	pass
+# Type-safe test state tracking
+var _test_nodes: Array[Node] = []
+var _test_resources: Array[Resource] = []
 
 func before_each() -> void:
 	await super.before_each()
-	_tracked_nodes.clear()
-	_tracked_resources.clear()
+	_test_nodes.clear()
+	_test_resources.clear()
+	_signal_watcher = SignalWatcher.new(self)
 
 func after_each() -> void:
-	cleanup_tracked_nodes()
-	cleanup_tracked_resources()
+	_cleanup_test_resources()
+	if _signal_watcher:
+		_signal_watcher.clear()
+		_signal_watcher = null
 	await super.after_each()
 
-# Test utilities
+func _cleanup_test_resources() -> void:
+	for node in _test_nodes:
+		if is_instance_valid(node) and node.is_inside_tree():
+			node.queue_free()
+	_test_nodes.clear()
+	
+	for resource in _test_resources:
+		if resource and not resource.is_queued_for_deletion():
+			resource.free()
+	_test_resources.clear()
+
+# Node management
+func add_child_autofree(node: Node) -> Node:
+	if not node:
+		push_error("Attempting to add null node")
+		return null
+	add_child(node)
+	_test_nodes.append(node)
+	return node
+
+func track_test_node(node: Node) -> void:
+	if not node:
+		push_error("Attempting to track null node")
+		return
+	if not node in _test_nodes:
+		_test_nodes.append(node)
+
+func track_test_resource(resource: Resource) -> void:
+	if not resource:
+		push_error("Attempting to track null resource")
+		return
+	if not resource in _test_resources:
+		_test_resources.append(resource)
+
+# Signal management
+func watch_signals(emitter: Object) -> void:
+	if not _signal_watcher:
+		push_error("Signal watcher not initialized")
+		return
+	_signal_watcher.watch_signals(emitter)
+
+func verify_signal_emitted(emitter: Object, signal_name: String, text: String = "") -> void:
+	if not _signal_watcher:
+		push_error("Signal watcher not initialized")
+		return
+	if not _signal_watcher.assert_signal_emitted(emitter, signal_name):
+		assert_false(true, "Signal '%s' was not emitted. %s" % [signal_name, text])
+
+func verify_signal_not_emitted(emitter: Object, signal_name: String, text: String = "") -> void:
+	if not _signal_watcher:
+		push_error("Signal watcher not initialized")
+		return
+	if _signal_watcher.assert_signal_emitted(emitter, signal_name):
+		assert_false(true, "Signal '%s' was emitted unexpectedly. %s" % [signal_name, text])
+
+func verify_signal_emit_count(emitter: Object, signal_name: String, count: int, text: String = "") -> void:
+	if not _signal_watcher:
+		push_error("Signal watcher not initialized")
+		return
+	var actual_count: int = _signal_watcher.get_emit_count(emitter, signal_name)
+	assert_eq(actual_count, count, "Expected signal '%s' to be emitted %d times, but was emitted %d times. %s" % [
+		signal_name, count, actual_count, text
+	])
+
+# Type-safe property access
+func _get_property_safe(obj: Object, property: String, default_value: Variant = null) -> Variant:
+	return TypeSafeMixin._get_property_safe(obj, property, default_value)
+
+func _set_property_safe(obj: Object, property: String, value: Variant) -> void:
+	TypeSafeMixin._set_property_safe(obj, property, value)
+
+# Type-safe method calls
+func _call_node_method(obj: Object, method: String, args: Array = [], default: Variant = null) -> Variant:
+	if not obj or not method:
+		push_error("Invalid object or method name")
+		return default
+	return TypeSafeMixin._call_node_method(obj, method, args)
+
+func _call_node_method_int(obj: Object, method: String, args: Array = [], default: int = 0) -> int:
+	if not obj or not method:
+		push_error("Invalid object or method name")
+		return default
+	return TypeSafeMixin._call_node_method_int(obj, method, args)
+
+func _call_node_method_bool(obj: Object, method: String, args: Array = [], default: bool = false) -> bool:
+	if not obj or not method:
+		push_error("Invalid object or method name")
+		return default
+	return TypeSafeMixin._call_node_method_bool(obj, method, args)
+
+func _call_node_method_array(obj: Object, method: String, args: Array = [], default: Array = []) -> Array:
+	if not obj or not method:
+		push_error("Invalid object or method name")
+		return default
+	return TypeSafeMixin._call_node_method_array(obj, method, args)
+
+func _call_node_method_dict(obj: Object, method: String, args: Array = [], default: Dictionary = {}) -> Dictionary:
+	if not obj or not method:
+		push_error("Invalid object or method name")
+		return default
+	return TypeSafeMixin._call_node_method_dict(obj, method, args)
+
+# Type-safe casting
+func _safe_cast_int(value: Variant, error_message: String = "") -> int:
+	return TypeSafeMixin._safe_cast_int(value, error_message)
+
+func _safe_cast_float(value: Variant, error_message: String = "") -> float:
+	return TypeSafeMixin._safe_cast_float(value, error_message)
+
+func _safe_cast_array(value: Variant, error_message: String = "") -> Array:
+	return TypeSafeMixin._safe_cast_array(value, error_message)
+
+func _safe_cast_to_node(value: Variant, expected_type: String = "") -> Node:
+	return TypeSafeMixin._safe_cast_to_node(value, expected_type)
+
+func _safe_cast_vector2(value: Variant, error_message: String = "") -> Vector2:
+	return TypeSafeMixin._safe_cast_vector2(value, error_message)
+
+# Engine stabilization helper
+func stabilize_engine(time: float = STABILIZATION_TIME) -> void:
+	await get_tree().create_timer(time).timeout
+
+# Type-safe game state creation
+func create_test_game_state() -> Node:
+	var state := Node.new()
+	state.set_script(GameStateScript)
+	if not state:
+		push_error("Failed to create game state")
+		return null
+	return state
+
+# Type-safe property access with casting
+func _get_property_with_cast(node: Node, property: String, type: int, default_value: Variant = null) -> Variant:
+	if not node or not property:
+		push_error("Invalid node or property")
+		return default_value
+	
+	if not property in node:
+		push_error("Property '%s' not found in node" % property)
+		return default_value
+	
+	var value = node.get(property)
+	if typeof(value) != type:
+		push_error("Property '%s' has wrong type: expected %d, got %d" % [property, type, typeof(value)])
+		return default_value
+	return value
+
+# Type-safe method calls with casting
+func _call_method_with_cast(obj: Object, method: String, args: Array, type: int, default_value: Variant = null) -> Variant:
+	if not obj or not method:
+		push_error("Invalid object or method")
+		return default_value
+	
+	if not obj.has_method(method):
+		push_error("Method '%s' not found in object" % method)
+		return default_value
+	
+	var result = obj.callv(method, args)
+	if typeof(result) != type:
+		push_error("Method '%s' returned wrong type: expected %d, got %d" % [method, type, typeof(result)])
+		return default_value
+	return result
+
+# Async signal helpers
+func assert_async_signal(emitter: Object, signal_name: String, timeout: float = SIGNAL_TIMEOUT) -> bool:
+	if not emitter or not signal_name:
+		push_error("Invalid emitter or signal name")
+		return false
+	
+	var start_time := Time.get_ticks_msec()
+	while Time.get_ticks_msec() - start_time < timeout * 1000:
+		if _signal_watcher and _signal_watcher.assert_signal_emitted(emitter, signal_name):
+			return true
+		await get_tree().process_frame
+	
+	return false
+
+func wait_for_signal(emitter: Object, signal_name: String, timeout: float = SIGNAL_TIMEOUT) -> Array:
+	if not emitter or not signal_name:
+		push_error("Invalid emitter or signal name")
+		return []
+	
+	var start_time := Time.get_ticks_msec()
+	while Time.get_ticks_msec() - start_time < timeout * 1000:
+		if _signal_watcher and _signal_watcher.assert_signal_emitted(emitter, signal_name):
+			return _signal_watcher.get_signal_records(emitter, signal_name)[-1]
+		await get_tree().process_frame
+	
+	push_error("Timeout waiting for signal '%s'" % signal_name)
+	return []
+
+# Resource method calls with type safety
+func _call_resource_method(resource: Resource, method: String, args: Array = []) -> Variant:
+	return TypeSafeMixin._call_node_method(resource, method, args)
+
+func _call_resource_method_int(resource: Resource, method: String, args: Array = []) -> int:
+	return TypeSafeMixin._call_node_method_int(resource, method, args)
+
+func _call_resource_method_bool(resource: Resource, method: String, args: Array = []) -> bool:
+	return TypeSafeMixin._call_node_method_bool(resource, method, args)
+
+func _call_resource_method_array(resource: Resource, method: String, args: Array = []) -> Array:
+	return TypeSafeMixin._call_node_method_array(resource, method, args)
+
+func _call_resource_method_dict(resource: Resource, method: String, args: Array = []) -> Dictionary:
+	return TypeSafeMixin._call_node_method_dict(resource, method, args)
+
+# Campaign state verification
+func verify_campaign_state(campaign: Resource, expected_state: Dictionary) -> void:
+	if not campaign:
+		push_error("Campaign not initialized")
+		return
+		
+	if expected_state.has("phase"):
+		var phase: int = _call_resource_method_int(campaign, "get_phase")
+		var expected_phase: int = TypeSafeMixin._safe_cast_int(expected_state.get("phase", 0))
+		assert_eq(phase, expected_phase, "Campaign phase should match expected state")
+	
+	if expected_state.has("resources"):
+		var resources: Dictionary = _call_resource_method_dict(campaign, "get_resources")
+		var expected_resources: Dictionary = expected_state.get("resources", {})
+		for key in expected_resources:
+			assert_eq(resources.get(key), expected_resources[key],
+				"Resource '%s' should match expected value" % key)
+
+# Game state verification
+func verify_game_state(state: Node, expected_state: Dictionary) -> void:
+	if not state:
+		push_error("Game state not initialized")
+		return
+		
+	assert_true(state.is_inside_tree(), "Game state should be in scene tree")
+	assert_true(state.is_processing(), "Game state should be processing")
+	
+	for key in expected_state:
+		var actual_value = _get_property_safe(state, key)
+		var expected_value = expected_state[key]
+		assert_eq(actual_value, expected_value,
+			"Game state property '%s' should be %s but was %s" % [key, expected_value, actual_value])
+
+# Mobile test helpers
+func simulate_touch_event(position: Vector2, is_pressed: bool) -> void:
+	var event := InputEventScreenTouch.new()
+	event.pressed = is_pressed
+	event.position = position
+	Input.parse_input_event(event)
+	await get_tree().process_frame
+
+func assert_fits_mobile_screen(node: Node, orientation: String = "") -> void:
+	if not node:
+		push_error("Node not initialized")
+		return
+		
+	var viewport_size := get_viewport().get_visible_rect().size
+	var node_size: Vector2 = node.get_rect().size
+	
+	assert_true(node_size.x <= viewport_size.x, "Node width should fit screen")
+	assert_true(node_size.y <= viewport_size.y, "Node height should fit screen")
+
+func assert_touch_target_size(node: Node, min_size: Vector2 = Vector2(44, 44)) -> void:
+	if not node:
+		push_error("Cannot check touch target size for null node")
+		return
+	
+	if not node is Control:
+		push_error("Node must be a Control node for touch target size check")
+		return
+	
+	var node_size := (node as Control).get_size()
+	assert_true(node_size.x >= min_size.x,
+		"Touch target width (%d) is smaller than minimum (%d)" % [node_size.x, min_size.x])
+	assert_true(node_size.y >= min_size.y,
+		"Touch target height (%d) is smaller than minimum (%d)" % [node_size.y, min_size.y])
+
+# Mobile testing helpers
+func simulate_mobile_environment(mode: String, orientation: String = "portrait") -> void:
+	var resolution: Vector2
+	match mode:
+		"phone":
+			resolution = Vector2(360, 640) if orientation == "portrait" else Vector2(640, 360)
+		"tablet":
+			resolution = Vector2(768, 1024) if orientation == "portrait" else Vector2(1024, 768)
+		_:
+			resolution = Vector2(360, 640)
+	
+	DisplayServer.window_set_size(resolution)
+	await get_tree().process_frame
+
+func measure_mobile_performance(test_function: Callable, iterations: int = 100) -> Dictionary:
+	var results := {
+		"fps_samples": [],
+		"memory_samples": [],
+		"draw_calls": [],
+		"objects": []
+	}
+	
+	for i in range(iterations):
+		await test_function.call()
+		results.fps_samples.append(Engine.get_frames_per_second())
+		results.memory_samples.append(Performance.get_monitor(Performance.MEMORY_STATIC))
+		results.draw_calls.append(Performance.get_monitor(Performance.RENDER_TOTAL_DRAW_CALLS_IN_FRAME))
+		results.objects.append(Performance.get_monitor(Performance.OBJECT_COUNT))
+	
+	return {
+		"average_fps": _calculate_average(results.fps_samples),
+		"minimum_fps": _calculate_minimum(results.fps_samples),
+		"95th_percentile_fps": _calculate_percentile(results.fps_samples, 0.95),
+		"memory_delta_kb": (_calculate_maximum(results.memory_samples) - _calculate_minimum(results.memory_samples)) / 1024,
+		"draw_calls_delta": _calculate_maximum(results.draw_calls) - _calculate_minimum(results.draw_calls),
+		"objects_delta": _calculate_maximum(results.objects) - _calculate_minimum(results.objects)
+	}
+
+# Statistical helper functions
+func _calculate_average(values: Array) -> float:
+	if values.is_empty():
+		return 0.0
+	var sum := 0.0
+	for value in values:
+		sum += float(value)
+	return sum / float(values.size())
+
+func _calculate_minimum(values: Array) -> float:
+	if values.is_empty():
+		return 0.0
+	var min_value := float(values[0])
+	for value in values:
+		min_value = min(min_value, float(value))
+	return min_value
+
+func _calculate_maximum(values: Array) -> float:
+	if values.is_empty():
+		return 0.0
+	var max_value := float(values[0])
+	for value in values:
+		max_value = max(max_value, float(value))
+	return max_value
+
+func _calculate_percentile(values: Array, percentile: float) -> float:
+	if values.is_empty():
+		return 0.0
+	var sorted_values := values.duplicate()
+	sorted_values.sort()
+	var index := int(float(sorted_values.size() - 1) * percentile)
+	return float(sorted_values[index])
+
+# Touch input helpers
+func simulate_touch_drag(start_pos: Vector2, end_pos: Vector2, duration: float = 0.1) -> void:
+	await simulate_touch_event(start_pos, true)
+	
+	var steps := int(duration / 0.016) # ~60fps
+	for i in range(steps):
+		var t := float(i) / float(steps)
+		var current_pos := start_pos.lerp(end_pos, t)
+		var event := InputEventScreenDrag.new()
+		event.position = current_pos
+		event.relative = (end_pos - start_pos) / steps
+		Input.parse_input_event(event)
+		await get_tree().process_frame
+	
+	await simulate_touch_event(end_pos, false)
+
+# Node access helper
+func _get_node_safe(parent: Node, path: String) -> Node:
+	if not parent:
+		push_error("Parent node is null")
+		return null
+	var node := parent.get_node(path)
+	if not node:
+		push_error("Failed to get node at path: %s" % path)
+	return node
+
+# State property helper
+func _set_state_property(state: Node, property: String, value: Variant) -> void:
+	if not state:
+		push_error("Cannot set property on null state")
+		return
+	if not state.has_method("set"):
+		push_error("State object does not have set method")
+		return
+	TypeSafeMixin._safe_method_call_bool(state, "set", [property, value])

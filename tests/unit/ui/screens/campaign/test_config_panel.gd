@@ -1,8 +1,7 @@
 @tool
-extends GutTest
+extends GameTest
 
 const ConfigPanel = preload("res://src/ui/screens/campaign/panels/ConfigPanel.tscn")
-const TypeSafeMixin = preload("res://tests/fixtures/type_safe_test_mixin.gd")
 
 var panel: Node = null
 

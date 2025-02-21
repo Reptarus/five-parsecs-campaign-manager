@@ -1,27 +1,28 @@
 @tool
-extends GutTest
-class_name BaseTest
+extends "res://addons/gut/test.gd"
 
-# Base test class that all test scripts should extend from
-const GutMainClass := preload("res://addons/gut/gut.gd")
-const GutUtilsClass := preload("res://addons/gut/utils.gd")
-const GlobalEnumsClass := preload("res://src/core/systems/GlobalEnums.gd")
+# Core test class that all test scripts should extend from
+const GutMainClass: GDScript = preload("res://addons/gut/gut.gd")
+const GutUtilsClass: GDScript = preload("res://addons/gut/utils.gd")
+const GlobalEnumsClass: GDScript = preload("res://src/core/systems/GlobalEnums.gd")
+const SignalWatcher: GDScript = preload("res://addons/gut/signal_watcher.gd")
 
-const SIGNAL_TIMEOUT := 1.0 # seconds to wait for signals
-const FRAME_TIMEOUT := 3.0 # Timeout for frame-based operations
-const ASYNC_TIMEOUT := 5.0 # 5 second timeout for async operations
-const STABILIZATION_TIME := 0.1 # seconds to wait for engine to stabilize
+# Test configuration constants
+const SIGNAL_TIMEOUT: float = 1.0
+const FRAME_TIMEOUT: float = 3.0
+const ASYNC_TIMEOUT: float = 5.0
+const STABILIZATION_TIME: float = 0.1
 
-# Test environment configuration
+# Type-safe test configuration
 const TEST_CONFIG := {
-	"physics_fps": 60,
-	"max_fps": 60,
-	"debug_collisions": false,
-	"debug_navigation": false,
-	"audio_enabled": false
+	"physics_fps": 60 as int,
+	"max_fps": 60 as int,
+	"debug_collisions": false as bool,
+	"debug_navigation": false as bool,
+	"audio_enabled": false as bool
 }
 
-# Mobile test constants
+# Type-safe mobile test configuration
 const MOBILE_RESOLUTIONS := {
 	"phone_portrait": Vector2i(1080, 1920),
 	"phone_landscape": Vector2i(1920, 1080),
@@ -30,127 +31,154 @@ const MOBILE_RESOLUTIONS := {
 }
 
 const MOBILE_DPI := {
-	"mdpi": 160,
-	"hdpi": 240,
-	"xhdpi": 320,
-	"xxhdpi": 480,
-	"xxxhdpi": 640
+	"mdpi": 160 as int,
+	"hdpi": 240 as int,
+	"xhdpi": 320 as int,
+	"xxhdpi": 480 as int,
+	"xxxhdpi": 640 as int
 }
 
-# Required GUT properties
+# Type-safe instance variables
 var _was_ready_called := false
 var _skip_script := false
 var _skip_reason := ""
 var _logger: Node = null
-var _original_engine_config: Dictionary = {}
-
-# This is the property that GUT will set directly
-var gut: GutMainClass:
-	get:
-		return _gut
-	set(value):
-		_gut = value
-
+var _original_engine_config := {}
 var _tracked_nodes: Array[Node] = []
 var _tracked_resources: Array[Resource] = []
-var _signal_watcher: SignalWatcher = null
+var _signal_watcher = null
+var _signal_emissions: Dictionary = {}
+var fps_samples: Array[float] = []
+
+# Signal watching functions
+func watch_signals(emitter: Object) -> void:
+	if not _signal_watcher:
+		_signal_watcher = SignalWatcher.new(self)
+	_signal_watcher.watch_signals(emitter)
+
+func assert_signal_emitted(emitter: Object, signal_name: String, text: String = "") -> bool:
+	if not _signal_watcher:
+		push_error("Signal watcher not initialized")
+		return false
+	return _signal_watcher.assert_signal_emitted(emitter, signal_name)
+
+func assert_signal_not_emitted(emitter: Object, signal_name: String, text: String = "") -> bool:
+	if not _signal_watcher:
+		push_error("Signal watcher not initialized")
+		return false
+	return not _signal_watcher.assert_signal_emitted(emitter, signal_name)
+
+func assert_signal_emit_count(emitter: Object, signal_name: String, count: int, text: String = "") -> bool:
+	if not _signal_watcher:
+		push_error("Signal watcher not initialized")
+		return false
+	return _signal_watcher.get_emit_count(emitter, signal_name) == count
+
+func get_signal_parameters(emitter: Object, signal_name: String, index: int = -1) -> Array:
+	if not _signal_watcher:
+		push_error("Signal watcher not initialized")
+		return []
+	return _signal_watcher.get_signal_parameters(emitter, signal_name, index)
+
+func get_signal_emit_count(emitter: Object, signal_name: String) -> int:
+	if not _signal_watcher:
+		push_error("Signal watcher not initialized")
+		return 0
+	return _signal_watcher.get_emit_count(emitter, signal_name)
+
+# Lifecycle functions
+func before_each() -> void:
+	await super.before_each()
+	_signal_watcher = SignalWatcher.new(self)
+	_apply_test_config()
+	await stabilize_engine()
+
+func after_each() -> void:
+	if _signal_watcher:
+		_signal_watcher.clear()
+		_signal_watcher = null
+	_restore_engine_config()
+	await super.after_each()
+
+# Performance monitoring with type safety
+var _performance_monitors := {
+	"memory": Performance.MEMORY_STATIC as int,
+	"draw_calls": Performance.RENDER_TOTAL_DRAW_CALLS_IN_FRAME as int,
+	"objects": Performance.OBJECT_NODE_COUNT as int
+}
+
+# Type-safe GUT property
+var gut: GutMainClass:
+	get: return _gut
+	set(value): _gut = value
 var _gut: GutMainClass = null
 
-# Signal tracking
-var _signal_emissions: Dictionary = {}
+# Type validation helpers
+static func _is_valid_number(value: Variant) -> bool:
+	var type := typeof(value)
+	return type == TYPE_INT or type == TYPE_FLOAT
 
-# Inner class for signal watching
-class SignalWatcher:
-	var _watched_signals: Dictionary = {}
-	var _signal_emissions: Dictionary = {}
-	var _parent: Node
-	
-	func _init(parent: Node) -> void:
-		_parent = parent
-	
-	func watch_signals(emitter: Object) -> void:
-		if not _watched_signals.has(emitter):
-			_watched_signals[emitter] = []
-			_signal_emissions[emitter] = {}
-			
-			for signal_info in emitter.get_signal_list():
-				var signal_name: String = signal_info.get("name", "")
-				if signal_name.is_empty():
-					continue
-				
-				if _watched_signals[emitter] is Array:
-					_watched_signals[emitter].append(signal_name)
-				_signal_emissions[emitter][signal_name] = []
-				
-				# Connect with CONNECT_DEFERRED to avoid immediate callback
-				if emitter.has_signal(signal_name):
-					var connect_result := emitter.connect(signal_name,
-						func(arg1: Variant = null, arg2: Variant = null, arg3: Variant = null,
-								arg4: Variant = null, arg5: Variant = null) -> void:
-							var args: Array = [arg1, arg2, arg3, arg4, arg5]
-							# Remove null values from the end
-							while not args.is_empty() and args[-1] == null:
-								args.pop_back()
-							_on_signal_emitted.call_deferred(emitter, signal_name, args),
-						CONNECT_DEFERRED)
-					if connect_result != OK:
-						push_warning("Failed to connect signal %s" % signal_name)
-	
-	func _on_signal_emitted(emitter: Object, signal_name: String, args: Array) -> void:
-		if _signal_emissions.has(emitter) and \
-		   _signal_emissions[emitter] is Dictionary and \
-		   _signal_emissions[emitter].has(signal_name) and \
-		   _signal_emissions[emitter][signal_name] is Array:
-			_signal_emissions[emitter][signal_name].append(args)
-	
-	func clear() -> void:
-		for emitter: Object in _watched_signals:
-			if is_instance_valid(emitter):
-				for signal_name: String in _watched_signals[emitter]:
-					if emitter.has_signal(signal_name):
-						# Disconnect all signals
-						var connections: Array = emitter.get_signal_connection_list(signal_name)
-						for connection: Dictionary in connections:
-							var callable: Callable = connection.get("callable", Callable())
-							if callable.is_valid() and callable.get_object() == self:
-								# Since disconnect() returns void, we just call it
-								emitter.disconnect(signal_name, callable)
-		_watched_signals.clear()
-		_signal_emissions.clear()
-	
-	func has_signal_record(emitter: Object, signal_name: String) -> bool:
-		return _signal_emissions.has(emitter) and _signal_emissions[emitter].has(signal_name)
-	
-	func get_signal_records(emitter: Object, signal_name: String) -> Array:
-		if has_signal_record(emitter, signal_name):
-			return _signal_emissions[emitter][signal_name]
-		return []
-	
-	func assert_signal_emitted(emitter: Object, signal_name: String) -> bool:
-		if has_signal_record(emitter, signal_name):
-			var records: Array = get_signal_records(emitter, signal_name)
-			return not records.is_empty()
-		return false
-	
-	func assert_signal_not_emitted(emitter: Object, signal_name: String) -> bool:
-		if has_signal_record(emitter, signal_name):
-			var records: Array = get_signal_records(emitter, signal_name)
-			return records.is_empty()
-		return true
-	
-	func get_emit_count(emitter: Object, signal_name: String) -> int:
-		if has_signal_record(emitter, signal_name):
-			return get_signal_records(emitter, signal_name).size()
-		return 0
+static func _is_valid_string(value: Variant) -> bool:
+	var type := typeof(value)
+	return type == TYPE_STRING or type == TYPE_STRING_NAME or type == TYPE_NODE_PATH
 
-# GUT Required Methods
+static func _is_valid_bool(value: Variant) -> bool:
+	var type := typeof(value)
+	return type == TYPE_BOOL or type == TYPE_INT or type == TYPE_FLOAT
+
+# Type conversion with validation
+static func _to_int_safe(value: Variant) -> int:
+	match typeof(value):
+		TYPE_INT:
+			return value
+		TYPE_BOOL:
+			return 1 if value else 0
+		TYPE_FLOAT:
+			var float_val: float = value
+			return int(float_val)
+		TYPE_STRING:
+			var str_val: String = value
+			if str_val.is_valid_int():
+				return str_val.to_int()
+	return 0
+
+static func _to_bool_safe(value: Variant) -> bool:
+	match typeof(value):
+		TYPE_BOOL:
+			return value
+		TYPE_INT:
+			var int_val: int = value
+			return int_val != 0
+		TYPE_FLOAT:
+			var float_val: float = value
+			return float_val != 0.0
+		TYPE_STRING:
+			var str_val: String = value
+			var lower: String = str_val.to_lower()
+			return lower == "true" or lower == "1" or lower == "yes" or lower == "on"
+	return false
+
+static func _to_string_safe(value: Variant) -> String:
+	match typeof(value):
+		TYPE_STRING:
+			return value
+		TYPE_STRING_NAME:
+			var str_name: StringName = value
+			return String(str_name)
+		TYPE_NODE_PATH:
+			var path: NodePath = value
+			return String(path)
+		_:
+			if _is_valid_number(value) or _is_valid_bool(value):
+				return str(value)
+	return ""
+
+# GUT Required Methods with type safety
 func get_gut() -> GutMainClass:
-	if not _gut:
-		_gut = get_parent() as GutMainClass
-	return _gut
+	return _gut if _gut else get_parent() as GutMainClass
 
-func set_gut(gut: GutMainClass) -> void:
-	_gut = gut
+func set_gut(new_gut: GutMainClass) -> void:
+	_gut = new_gut
 
 func get_skip_reason() -> String:
 	return _skip_reason
@@ -169,435 +197,561 @@ func after_all() -> void:
 	cleanup_resources()
 	await get_tree().process_frame
 
-func before_each() -> void:
-	_tracked_nodes.clear()
-	_tracked_resources.clear()
-	clear_signal_watcher()
-	
-	# Store original engine configuration
-	_store_engine_config()
-	
-	# Apply test configuration
-	_apply_test_config()
-	
-	# Wait for engine to stabilize
-	await stabilize_engine()
-
-func after_each() -> void:
-	# Restore engine configuration
-	_restore_engine_config()
-	
-	# Clean up resources
-	cleanup_resources()
-	
-	# Clean up nodes
-	cleanup_nodes()
-	
-	clear_signal_watcher()
-
-# Resource Management
+# Resource Management with type safety
 func track_test_node(node: Node) -> void:
-	if node and not _tracked_nodes.has(node):
-		_tracked_nodes.append(node)
+	if not node:
+		push_warning("Attempting to track null node")
+		return
+	if _tracked_nodes is Array and not node in _tracked_nodes:
+		_tracked_nodes.push_back(node)
 
 func track_test_resource(resource: Resource) -> void:
-	if resource and not _tracked_resources.has(resource):
-		_tracked_resources.append(resource)
+	if not resource:
+		push_warning("Attempting to track null resource")
+		return
+	if _tracked_resources is Array and not resource in _tracked_resources:
+		_tracked_resources.push_back(resource)
 
 func cleanup_nodes() -> void:
-	for node in _tracked_nodes:
-		if is_instance_valid(node) and not node.is_queued_for_deletion():
+	if not _tracked_nodes is Array:
+		return
+		
+	for node: Node in _tracked_nodes:
+		if node is Node and is_instance_valid(node) and not node.is_queued_for_deletion():
 			node.queue_free()
 	_tracked_nodes.clear()
 
 func cleanup_resources() -> void:
-	# Clean up nodes first
-	for node in _tracked_nodes:
-		if is_instance_valid(node):
-			if node.get_parent():
-				node.get_parent().remove_child(node)
-			node.queue_free()
-	_tracked_nodes.clear()
-	
-	# Let engine process the node cleanup
+	cleanup_nodes()
 	await get_tree().process_frame
 	
-	# Now handle resources
-	for resource in _tracked_resources:
-		if resource and not resource.is_queued_for_deletion():
-			# Only unreference resources, don't try to free them
+	if not _tracked_resources is Array:
+		return
+		
+	for resource: Resource in _tracked_resources:
+		if resource is Resource and not resource.is_queued_for_deletion():
 			resource = null
 	_tracked_resources.clear()
 
-# Signal Management
-func watch_signals(emitter: Object) -> void:
-	if not _signal_watcher:
-		_signal_watcher = SignalWatcher.new(self)
-	_signal_watcher.watch_signals(emitter)
+# Type-safe assertion helpers
+func _assert_eq_safe(got: Variant, expected: Variant, text: String = "") -> void:
+	var got_type := typeof(got)
+	var expected_type := typeof(expected)
+	
+	if got_type != expected_type:
+		var converted_got: Variant = got
+		match expected_type:
+			TYPE_INT:
+				if _is_valid_number(got):
+					converted_got = int(float(got))
+			TYPE_FLOAT:
+				if _is_valid_number(got):
+					converted_got = float(got)
+			TYPE_STRING:
+				if _is_valid_string(got):
+					converted_got = String(got)
+			TYPE_BOOL:
+				if _is_valid_bool(got):
+					converted_got = bool(got)
+		got = converted_got
+	
+	assert_eq(got, expected, text)
 
-func clear_signal_watcher() -> void:
-	if _signal_watcher:
-		_signal_watcher.clear()
-		_signal_watcher = null
+func verify_state(subject: Object, expected_states: Dictionary) -> void:
+	if not subject or not expected_states:
+		return
+		
+	for property_name: String in expected_states:
+		if not property_name is String:
+			continue
+			
+		var property: String = property_name
+		if property in subject:
+			var actual_value: Variant = subject.get(property)
+			var expected_value: Variant = expected_states[property]
+			_assert_eq_safe(actual_value, expected_value,
+				"Property %s should match expected state" % property)
 
+# Engine Stabilization with type safety
+func stabilize_engine(time: float = STABILIZATION_TIME) -> void:
+	var timer := get_tree().create_timer(time)
+	if timer:
+		await timer.timeout
+
+func wait_frames(frames: int) -> void:
+	var i := 0
+	while i < frames:
+		await get_tree().process_frame
+		i += 1
+
+func wait_physics_frames(frames: int) -> void:
+	var i := 0
+	while i < frames:
+		await get_tree().physics_frame
+		i += 1
+
+# Async Operation Helpers with type safety
+func with_timeout(operation: Callable, timeout: float = FRAME_TIMEOUT) -> Variant:
+	var timer := get_tree().create_timer(timeout)
+	if not timer:
+		push_error("Failed to create timer")
+		return null
+		
+	var result: Variant = null
+	var completed := false
+	
+	operation.call_deferred(func(value: Variant = null) -> void:
+		result = value
+		completed = true
+	)
+	
+	# Handle timeout
+	var timeout_handler := func() -> void: completed = true
+	var _connect_result := timer.timeout.connect(timeout_handler, CONNECT_ONE_SHOT)
+	
+	while not completed and timer and not timer.is_stopped():
+		await get_tree().process_frame
+	
+	return result
+
+# Performance Testing with type safety
+func measure_mobile_performance(callable: Callable, iterations: int = 100) -> Dictionary:
+	var monitors := {
+		"memory": Performance.MEMORY_STATIC as int,
+		"draw_calls": Performance.RENDER_TOTAL_DRAW_CALLS_IN_FRAME as int,
+		"objects": Performance.OBJECT_NODE_COUNT as int
+	}
+	
+	var start_values := _get_monitor_values_safe(monitors)
+	fps_samples.clear()
+	
+	for i in range(iterations):
+		var frame_time := await _measure_frame_time_safe(callable)
+		var fps := _calculate_fps_safe(frame_time)
+		fps_samples.push_back(fps)
+	
+	var end_values := _get_monitor_values_safe(monitors)
+	return _calculate_performance_metrics_safe(start_values, end_values, fps_samples)
+
+func _get_monitor_values_safe(monitors: Dictionary) -> Dictionary:
+	var values: Dictionary = {} as Dictionary
+	for key: String in monitors:
+		var monitor_id: int = monitors[key] as int
+		var value: int = _to_int_safe(Performance.get_monitor(monitor_id))
+		values[key] = value
+	return values
+
+func _measure_frame_time_safe(callable: Callable) -> float:
+	var start_time := Time.get_ticks_usec()
+	callable.call()
+	await get_tree().process_frame
+	var end_time := Time.get_ticks_usec()
+	return float(end_time - start_time) / 1000.0
+
+func _calculate_fps_safe(frame_time: float) -> float:
+	return 1000.0 / frame_time if frame_time > 0.0 else 0.0
+
+func _calculate_performance_metrics_safe(start_values: Dictionary, end_values: Dictionary, samples: Array[float]) -> Dictionary:
+	var metrics := {
+		"average_fps": 0.0,
+		"95th_percentile_fps": 0.0,
+		"minimum_fps": 0.0,
+		"memory_delta_kb": 0.0,
+		"draw_calls_delta": 0,
+		"objects_delta": 0,
+		"iterations": samples.size()
+	}
+	
+	if not samples.is_empty():
+		samples.sort()
+		metrics.average_fps = _calculate_average_safe(samples)
+		metrics["95th_percentile_fps"] = _calculate_percentile_safe(samples, 0.95)
+		metrics.minimum_fps = samples[0]
+	
+	for key in start_values:
+		var start := start_values[key] as int
+		var end := end_values[key] as int
+		var delta := end - start
+		
+		match key:
+			"memory":
+				metrics.memory_delta_kb = float(delta) / 1024.0
+			"draw_calls":
+				metrics.draw_calls_delta = delta
+			"objects":
+				metrics.objects_delta = delta
+	
+	return metrics
+
+func _calculate_average_safe(samples: Array[float]) -> float:
+	if samples.is_empty():
+		return 0.0
+	var total: float = samples.reduce(func(accum: float, val: float) -> float: return accum + val)
+	return total / float(samples.size())
+
+func _calculate_percentile_safe(samples: Array[float], percentile: float) -> float:
+	if samples.is_empty():
+		return 0.0
+	var index := int(float(samples.size()) * percentile)
+	return samples[index]
+
+# Enhanced Resource Management
+func _cleanup_tracked_resources() -> void:
+	var valid_resources: Array[Resource] = []
+	for resource in _tracked_resources:
+		if resource is Resource and not resource.is_queued_for_deletion():
+			resource.free()
+		else:
+			valid_resources.push_back(resource)
+	_tracked_resources = valid_resources
+	
+	var valid_nodes: Array[Node] = []
+	for node in _tracked_nodes:
+		if is_instance_valid(node) and node.is_inside_tree():
+			node.queue_free()
+		else:
+			valid_nodes.push_back(node)
+	_tracked_nodes = valid_nodes
+
+# Enhanced Engine Configuration Management
+func _store_engine_config() -> void:
+	_original_engine_config = {
+		"physics_fps": Engine.physics_ticks_per_second as int,
+		"max_fps": Engine.max_fps as int,
+		"debug_collisions": get_tree().debug_collisions_hint as bool,
+		"debug_navigation": get_tree().debug_navigation_hint as bool,
+		"audio_enabled": AudioServer.is_bus_mute(AudioServer.get_bus_index("Master")) as bool
+	}
+
+func _apply_test_config() -> void:
+	for key in TEST_CONFIG:
+		match key:
+			"physics_fps":
+				Engine.physics_ticks_per_second = TEST_CONFIG[key] as int
+			"max_fps":
+				Engine.max_fps = TEST_CONFIG[key] as int
+			"debug_collisions":
+				get_tree().set_debug_collisions_hint(TEST_CONFIG[key] as bool)
+			"debug_navigation":
+				get_tree().set_debug_navigation_hint(TEST_CONFIG[key] as bool)
+			"audio_enabled":
+				var master_bus := AudioServer.get_bus_index("Master")
+				if master_bus >= 0:
+					AudioServer.set_bus_mute(master_bus, TEST_CONFIG[key] as bool)
+
+func _restore_engine_config() -> void:
+	if not _original_engine_config is Dictionary:
+		return
+		
+	for key in _original_engine_config:
+		match key:
+			"physics_fps":
+				Engine.physics_ticks_per_second = _original_engine_config[key] as int
+			"max_fps":
+				Engine.max_fps = _original_engine_config[key] as int
+			"debug_collisions":
+				get_tree().set_debug_collisions_hint(_original_engine_config[key] as bool)
+			"debug_navigation":
+				get_tree().set_debug_navigation_hint(_original_engine_config[key] as bool)
+			"audio_enabled":
+				var master_bus := AudioServer.get_bus_index("Master")
+				if master_bus >= 0:
+					AudioServer.set_bus_mute(master_bus, _original_engine_config[key] as bool)
+
+# Signal verification with type safety
 func verify_signal_emitted(emitter: Object, signal_name: String, message: String = "") -> void:
 	if not _signal_watcher:
 		assert_false(true, "Signal watcher not initialized")
 		return
 	
-	var records: Array = _signal_watcher.get_signal_records(emitter, signal_name)
-	assert_true(not records.is_empty(), message if message else "Signal '%s' was not emitted" % signal_name)
+	assert_true(_signal_watcher.assert_signal_emitted(emitter, signal_name),
+		message if message else "Signal '%s' was not emitted" % signal_name)
 
 func verify_signal_not_emitted(emitter: Object, signal_name: String, message: String = "") -> void:
 	if not _signal_watcher:
 		assert_false(true, "Signal watcher not initialized")
 		return
 	
-	var records: Array = _signal_watcher.get_signal_records(emitter, signal_name)
-	assert_true(records.is_empty(), message if message else "Signal '%s' was emitted" % signal_name)
+	assert_false(_signal_watcher.assert_signal_emitted(emitter, signal_name),
+		message if message else "Signal '%s' was emitted" % signal_name)
 
-func get_signal_emit_count(emitter: Object, signal_name: String) -> int:
-	if _signal_watcher:
-		return _signal_watcher.get_emit_count(emitter, signal_name)
-	return 0
-
-# State Management
-func verify_state(subject: Object, expected_states: Dictionary) -> void:
-	for property: String in expected_states:
-		assert_eq(subject[property], expected_states[property],
-			"Property %s should match expected state" % property)
-
-# Engine Stabilization
-func stabilize_engine(time: float = STABILIZATION_TIME) -> void:
-	await get_tree().create_timer(time).timeout
-
-func wait_frames(frames: int) -> void:
-	for _i in range(frames):
-		await get_tree().process_frame
-
-func wait_physics_frames(frames: int) -> void:
-	for _i in range(frames):
-		await get_tree().physics_frame
-
-# Async Operation Helpers
-func with_timeout(operation: Callable, timeout: float = FRAME_TIMEOUT) -> Variant:
-	var timer: SceneTreeTimer = get_tree().create_timer(timeout)
-	var done := false
-	var result: Variant = null
+# Type-safe property access
+func _get_property_safe(obj: Object, property: String, default_value: Variant = null) -> Variant:
+	if not obj or not property:
+		push_error("Invalid object or property name")
+		return default_value
 	
-	operation.call_deferred(func(value: Variant = null) -> void:
-		result = value
-		done = true
-	)
+	if not property in obj:
+		push_error("Property '%s' not found in object" % property)
+		return default_value
 	
-	timer.timeout.connect(func() -> void: done = true, CONNECT_ONE_SHOT)
-	
-	while not done:
-		await get_tree().process_frame
-	
-	return result
+	return obj.get(property)
 
-# Performance Testing
-func measure_performance(callable: Callable, iterations: int = 1000) -> Dictionary:
-	var start_time: int = Time.get_ticks_msec()
-	var memory_start: float = Performance.get_monitor(Performance.MEMORY_STATIC)
-	
-	for _i in range(iterations):
-		callable.call()
-	
-	var end_time: int = Time.get_ticks_msec()
-	var memory_end: float = Performance.get_monitor(Performance.MEMORY_STATIC)
-	
-	return {
-		"duration_ms": end_time - start_time,
-		"avg_duration_ms": float(end_time - start_time) / float(iterations),
-		"memory_delta": memory_end - memory_start,
-		"iterations": iterations
-	}
-
-# Memory Leak Detection
-func assert_no_leaks() -> void:
-	var leaked_nodes: Array[Node] = []
-	for node in _tracked_nodes:
-		if is_instance_valid(node) and not node.is_queued_for_deletion():
-			leaked_nodes.append(node)
-	
-	var leaked_resources: Array[Resource] = []
-	for resource in _tracked_resources:
-		if resource and not resource.is_queued_for_deletion():
-			leaked_resources.append(resource)
-	
-	assert_eq(leaked_nodes.size(), 0, "Found %d leaked nodes" % leaked_nodes.size())
-	assert_eq(leaked_resources.size(), 0, "Found %d leaked resources" % leaked_resources.size())
-
-# Internal Helpers
-func _store_engine_config() -> void:
-	_original_engine_config = {
-		"physics_fps": Engine.physics_ticks_per_second,
-		"max_fps": Engine.max_fps,
-		"debug_collisions": get_tree().debug_collisions_hint,
-		"debug_navigation": get_tree().debug_navigation_hint,
-		"audio_enabled": AudioServer.is_bus_mute(AudioServer.get_bus_index("Master"))
-	}
-
-func _apply_test_config() -> void:
-	Engine.physics_ticks_per_second = TEST_CONFIG.physics_fps
-	Engine.max_fps = TEST_CONFIG.max_fps
-	get_tree().set_debug_collisions_hint(TEST_CONFIG.debug_collisions)
-	get_tree().set_debug_navigation_hint(TEST_CONFIG.debug_navigation)
-	
-	# Mute audio during tests
-	var master_bus_idx: int = AudioServer.get_bus_index("Master")
-	if master_bus_idx >= 0:
-		AudioServer.set_bus_mute(master_bus_idx, TEST_CONFIG.audio_enabled)
-
-func _restore_engine_config() -> void:
-	Engine.physics_ticks_per_second = _original_engine_config.physics_fps
-	Engine.max_fps = _original_engine_config.max_fps
-	get_tree().set_debug_collisions_hint(_original_engine_config.debug_collisions)
-	get_tree().set_debug_navigation_hint(_original_engine_config.debug_navigation)
-	
-	# Restore audio
-	var master_bus := AudioServer.get_bus_index("Master")
-	if master_bus >= 0:
-		AudioServer.set_bus_mute(master_bus, _original_engine_config.audio_enabled)
-
-# Standard Assertions
-func assert_signal_emitted(object: Object, signal_name: String, text: String = "") -> void:
-	if not _signal_watcher:
-		assert_true(false, "Signal watcher not initialized. Did you call watch_signals()?")
+func _set_property_safe(obj: Object, property: String, value: Variant) -> void:
+	if not obj or not property:
+		push_error("Invalid object or property name")
 		return
-	var did_emit: bool = _signal_watcher.assert_signal_emitted(object, signal_name)
-	assert_true(did_emit, text if text else "Signal '%s' was not emitted" % signal_name)
-
-func assert_signal_not_emitted(object: Object, signal_name: String, text: String = "") -> void:
-	if not _signal_watcher:
-		assert_true(false, "Signal watcher not initialized. Did you call watch_signals()?")
+	
+	if not property in obj:
+		push_error("Property '%s' not found in object" % property)
 		return
-	var did_emit: bool = _signal_watcher.assert_signal_not_emitted(object, signal_name)
-	assert_false(did_emit, text if text else "Signal '%s' was emitted" % signal_name)
+	
+	obj.set(property, value)
 
-func assert_signal_emit_count(object: Object, signal_name: String, times: int, text: String = "") -> void:
-	if not _signal_watcher:
-		assert_true(false, "Signal watcher not initialized. Did you call watch_signals()?")
+# Type-safe method calls
+func _call_node_method(obj: Object, method: String, args: Array = [], default_value: Variant = null) -> Variant:
+	if not obj or not method:
+		push_error("Invalid object or method name")
+		return default_value
+	
+	if not obj.has_method(method):
+		push_error("Method '%s' not found in object" % method)
+		return default_value
+	
+	return obj.callv(method, args)
+
+func _call_node_method_int(obj: Object, method: String, args: Array = [], default_value: int = 0) -> int:
+	var result = _call_node_method(obj, method, args, default_value)
+	if result is int:
+		return result
+	push_error("Method '%s' did not return an integer" % method)
+	return default_value
+
+func _call_node_method_bool(obj: Object, method: String, args: Array = [], default_value: bool = false) -> bool:
+	var result = _call_node_method(obj, method, args, default_value)
+	if result is bool:
+		return result
+	push_error("Method '%s' did not return a boolean" % method)
+	return default_value
+
+func _call_node_method_array(obj: Object, method: String, args: Array = [], default_value: Array = []) -> Array:
+	var result = _call_node_method(obj, method, args, default_value)
+	if result is Array:
+		return result
+	push_error("Method '%s' did not return an array" % method)
+	return default_value
+
+func _call_node_method_dict(obj: Object, method: String, args: Array = [], default_value: Dictionary = {}) -> Dictionary:
+	var result = _call_node_method(obj, method, args, default_value)
+	if result is Dictionary:
+		return result
+	push_error("Method '%s' did not return a dictionary" % method)
+	return default_value
+
+# Mobile testing functions
+func simulate_mobile_environment(resolution_key: String, dpi_key: String = "xhdpi") -> void:
+	if not resolution_key in MOBILE_RESOLUTIONS:
+		push_error("Invalid mobile resolution key: %s" % resolution_key)
 		return
-	var count: int = _signal_watcher.get_emit_count(object, signal_name)
-	assert_eq(count, times, text if text else "Signal '%s' emit count %d != %d" % [signal_name, count, times])
+	
+	if not dpi_key in MOBILE_DPI:
+		push_error("Invalid DPI key: %s" % dpi_key)
+		return
+	
+	var resolution: Vector2i = MOBILE_RESOLUTIONS[resolution_key]
+	var dpi: int = MOBILE_DPI[dpi_key]
+	
+	get_tree().root.content_scale_size = resolution
+	# Note: DPI is simulated through content scale factor in Godot 4.x
+	var scale_factor := float(dpi) / float(MOBILE_DPI["mdpi"])
+	get_tree().root.content_scale_factor = scale_factor
+	await stabilize_engine()
 
-func assert_valid_game_state(game_state: Node) -> void:
-	assert_not_null(game_state, "Game state should not be null")
-	assert_true(is_instance_valid(game_state), "Game state should be valid")
+func assert_fits_mobile_screen(node: Node, resolution_key: String = "phone_portrait") -> void:
+	if not node:
+		push_error("Cannot check fit for null node")
+		return
+	
+	if not resolution_key in MOBILE_RESOLUTIONS:
+		push_error("Invalid mobile resolution key: %s" % resolution_key)
+		return
+	
+	var screen_size: Vector2i = MOBILE_RESOLUTIONS[resolution_key]
+	var node_size: Vector2 = node.get_rect().size
+	
+	assert_true(node_size.x <= screen_size.x,
+		"Node width (%d) exceeds screen width (%d)" % [node_size.x, screen_size.x])
+	assert_true(node_size.y <= screen_size.y,
+		"Node height (%d) exceeds screen height (%d)" % [node_size.y, screen_size.y])
 
-# Utility Methods
+func assert_touch_target_size(node: Node, min_size: Vector2 = Vector2(44, 44)) -> void:
+	if not node:
+		push_error("Cannot check touch target size for null node")
+		return
+	
+	var node_size: Vector2 = node.get_rect().size
+	assert_true(node_size.x >= min_size.x,
+		"Touch target width (%d) is smaller than minimum (%d)" % [node_size.x, min_size.x])
+	assert_true(node_size.y >= min_size.y,
+		"Touch target height (%d) is smaller than minimum (%d)" % [node_size.y, min_size.y])
+
+# Game state validation
+func assert_valid_game_state(state: Node) -> void:
+	if not state:
+		push_error("Game state is null")
+		assert_false(true, "Game state is null")
+		return
+	
+	assert_true(state.is_inside_tree(), "Game state should be in scene tree")
+	assert_true(state.is_processing(), "Game state should be processing")
+	
+	var required_methods := [
+		"get_campaign_phase",
+		"get_difficulty_level",
+		"is_permadeath_enabled",
+		"is_story_track_enabled",
+		"is_auto_save_enabled"
+	]
+	
+	for method in required_methods:
+		assert_true(state.has_method(method),
+			"Game state missing required method: %s" % method)
+
+func verify_game_state(state: Node, expected_state: Dictionary) -> void:
+	if not state:
+		push_error("Cannot verify null game state")
+		return
+	
+	for property in expected_state:
+		var actual_value = _get_property_safe(state, property)
+		var expected_value = expected_state[property]
+		assert_eq(actual_value, expected_value,
+			"Game state %s should be %s but was %s" % [property, expected_value, actual_value])
+
+# Common test helper functions
+func create_test_game_state() -> Node:
+	var state: Node = Node.new()
+	if not state:
+		push_error("Failed to create game state node")
+		return null
+	
+	track_test_node(state)
+	return state
+
+func create_test_campaign() -> Resource:
+	var campaign: Resource = Resource.new()
+	if not campaign:
+		push_error("Failed to create campaign resource")
+		return null
+	
+	track_test_resource(campaign)
+	return campaign
+
+func create_test_mission() -> Resource:
+	var mission: Resource = Resource.new()
+	if not mission:
+		push_error("Failed to create mission resource")
+		return null
+	
+	track_test_resource(mission)
+	return mission
+
+func create_test_character() -> Node:
+	var character: Node = Node.new()
+	if not character:
+		push_error("Failed to create character node")
+		return null
+	
+	track_test_node(character)
+	return character
+
+# Enhanced node management
 func add_child_autofree(node: Node) -> Node:
+	if not node:
+		push_error("Cannot add null node")
+		return null
+	
 	add_child(node)
 	track_test_node(node)
 	return node
 
-func create_resource_autofree(resource: Resource) -> Resource:
-	if resource and not resource.is_connected("tree_exited", _on_resource_freed):
-		resource.connect("tree_exited", _on_resource_freed)
-	return resource
-
-func _on_resource_freed() -> void:
-	await get_tree().process_frame
-
-# Mobile test helpers
-func simulate_mobile_environment(resolution: String = "phone_portrait", dpi: String = "xhdpi") -> void:
-	var size: Vector2i = MOBILE_RESOLUTIONS.get(resolution, MOBILE_RESOLUTIONS.phone_portrait)
-	var screen_dpi: int = MOBILE_DPI.get(dpi, MOBILE_DPI.xhdpi)
-	
-	DisplayServer.window_set_size(size)
-	# Note: DPI can't be changed at runtime, this is for test verification only
-	assert_eq(DisplayServer.screen_get_dpi(), screen_dpi,
-		"Screen DPI should match target mobile density")
-
-func simulate_touch_event(position: Vector2, pressed: bool = true) -> void:
-	var event: InputEventScreenTouch = InputEventScreenTouch.new()
-	event.position = position
-	event.pressed = pressed
-	Input.parse_input_event(event)
-
-func simulate_touch_drag(from: Vector2, to: Vector2, steps: int = 10) -> void:
-	var event: InputEventScreenDrag = InputEventScreenDrag.new()
-	var step: Vector2 = (to - from) / float(steps)
-	
-	for i in range(steps):
-		event.position = from + step * float(i)
-		event.relative = step
-		Input.parse_input_event(event)
-		await get_tree().process_frame
-
-func assert_fits_mobile_screen(control: Control, resolution: String = "phone_portrait") -> void:
-	var size: Vector2i = MOBILE_RESOLUTIONS.get(resolution, MOBILE_RESOLUTIONS.phone_portrait)
-	assert_true(control.get_rect().size.x <= size.x,
-		"Control width should fit mobile screen")
-	assert_true(control.get_rect().size.y <= size.y,
-		"Control height should fit mobile screen")
-
-func assert_touch_target_size(control: Control) -> void:
-	var min_touch_size: Vector2 = Vector2(40, 40) # Minimum recommended touch target size
-	var size: Vector2 = control.get_rect().size
-	assert_true(size.x >= min_touch_size.x and size.y >= min_touch_size.y,
-		"Touch target size should be at least %s pixels" % str(min_touch_size))
-
-# Mobile performance helpers
-func measure_mobile_performance(callable: Callable, iterations: int = 100) -> Dictionary:
-	var fps_samples: Array[float] = []
-	var memory_start: float = Performance.get_monitor(Performance.MEMORY_STATIC)
-	var draw_calls_start: int = Performance.get_monitor(Performance.RENDER_TOTAL_DRAW_CALLS_IN_FRAME)
-	var objects_start: int = Performance.get_monitor(Performance.OBJECT_NODE_COUNT)
-	
-	for _i in range(iterations):
-		var start_time: int = Time.get_ticks_usec()
-		callable.call()
-		await get_tree().process_frame
-		var end_time: int = Time.get_ticks_usec()
-		var frame_time: float = float(end_time - start_time) / 1000.0 # Convert to milliseconds
-		fps_samples.append(frame_time > 0.0?1000.0 / frame_time: 0.0)
-	
-	var memory_end: float = Performance.get_monitor(Performance.MEMORY_STATIC)
-	var draw_calls_end: int = Performance.get_monitor(Performance.RENDER_TOTAL_DRAW_CALLS_IN_FRAME)
-	var objects_end: int = Performance.get_monitor(Performance.OBJECT_NODE_COUNT)
-	
-	# Calculate statistics
-	fps_samples.sort()
-	var avg_fps: float = fps_samples.reduce(func(accum: float, fps: float) -> float: return accum + fps, 0.0) / float(iterations)
-	var percentile_95_fps: float = fps_samples[int(float(iterations) * 0.95)]
-	var min_fps: float = fps_samples[0]
-	
-	return {
-		"average_fps": avg_fps,
-		"95th_percentile_fps": percentile_95_fps,
-		"minimum_fps": min_fps,
-		"memory_delta_kb": (memory_end - memory_start) / 1024.0,
-		"draw_calls_delta": draw_calls_end - draw_calls_start,
-		"objects_delta": objects_end - objects_start,
-		"iterations": iterations
-	}
-
-# Logger Methods
-func set_logger(logger: Node) -> void:
-	_logger = logger
-
-func get_logger() -> Node:
-	return _logger
-
-# Async signal assertions
+# Enhanced signal testing
 func assert_async_signal(emitter: Object, signal_name: String, timeout: float = SIGNAL_TIMEOUT) -> bool:
-	var timer: SceneTreeTimer = get_tree().create_timer(timeout)
+	if not emitter or not signal_name:
+		push_error("Invalid emitter or signal name")
+		return false
+	
+	var timer := get_tree().create_timer(timeout)
+	if not timer:
+		push_error("Failed to create timer")
+		return false
+	
 	var signal_received := false
 	
-	# Connect to signal
-	var callable := func() -> void:
-		signal_received = true
-	emitter.connect(signal_name, callable, CONNECT_ONE_SHOT)
-	
-	# Wait for either signal or timeout
-	timer.timeout.connect(func() -> void: signal_received = false, CONNECT_ONE_SHOT)
-	while not signal_received and not timer.is_stopped():
-		await get_tree().process_frame
+	if emitter.has_signal(signal_name):
+		var callable := func() -> void: signal_received = true
+		emitter.connect(signal_name, callable, CONNECT_ONE_SHOT)
+		timer.timeout.connect(func() -> void: signal_received = false, CONNECT_ONE_SHOT)
+		
+		while not signal_received and not timer.is_stopped():
+			await get_tree().process_frame
 	
 	return signal_received
 
-func assert_signal_emitted_with_args(emitter: Object, signal_name: String, expected_args: Array, timeout: float = ASYNC_TIMEOUT) -> void:
-	watch_signals(emitter)
-	var start_time: int = Time.get_ticks_msec()
+# Enhanced state verification
+func verify_campaign_state(campaign: Resource, expected_state: Dictionary) -> void:
+	if not campaign:
+		push_error("Cannot verify null campaign")
+		return
 	
-	while Time.get_ticks_msec() - start_time < timeout * 1000:
-		if _signal_emissions.has(emitter):
-			var emissions: Dictionary = _signal_emissions[emitter] as Dictionary
-			if emissions.has(signal_name):
-				var emission_list: Array = emissions[signal_name] as Array
-				for emission in emission_list:
-					if emission is Array and emission == expected_args:
-						assert_true(true, "Signal %s emitted with expected args" % signal_name)
-						return
-		await get_tree().process_frame
-	
-	assert_true(false, "Signal %s not emitted with expected args within %f seconds" % [signal_name, timeout])
+	for property in expected_state:
+		var actual_value = _get_property_safe(campaign, property)
+		var expected_value = expected_state[property]
+		assert_eq(actual_value, expected_value,
+			"Campaign %s should be %s but was %s" % [property, expected_value, actual_value])
 
-# Signal waiting utilities
-func await_signals(signals: Array[Array], timeout: float = ASYNC_TIMEOUT) -> Array[Array]:
-	var results: Array[Array] = []
-	var start_time: int = Time.get_ticks_msec()
+func verify_mission_state(mission: Resource, expected_state: Dictionary) -> void:
+	if not mission:
+		push_error("Cannot verify null mission")
+		return
 	
-	for signal_info in signals:
-		if signal_info.size() >= 2:
-			var emitter: Object = signal_info[0] as Object
-			var signal_name: String = signal_info[1] as String
-			if emitter and signal_name:
-				watch_signals(emitter)
+	for property in expected_state:
+		var actual_value = _get_property_safe(mission, property)
+		var expected_value = expected_state[property]
+		assert_eq(actual_value, expected_value,
+			"Mission %s should be %s but was %s" % [property, expected_value, actual_value])
+
+# Enhanced resource management
+func verify_resource_cleanup() -> void:
+	var resource_count := _tracked_resources.size()
+	cleanup_resources()
+	await get_tree().process_frame
+	assert_eq(_tracked_resources.size(), 0,
+		"All resources should be cleaned up (had %d tracked resources)" % resource_count)
+
+func verify_node_cleanup() -> void:
+	var node_count := _tracked_nodes.size()
+	cleanup_nodes()
+	await get_tree().process_frame
+	assert_eq(_tracked_nodes.size(), 0,
+		"All nodes should be cleaned up (had %d tracked nodes)" % node_count)
+
+# Enhanced error handling
+func verify_error_handling(callable: Callable, expected_error: String) -> void:
+	var error_messages: Array[String] = []
 	
-	while Time.get_ticks_msec() - start_time < timeout * 1000:
-		var all_received: bool = true
-		results.clear()
-		
-		for signal_info in signals:
-			if signal_info.size() < 2:
-				continue
-				
-			var emitter: Object = signal_info[0] as Object
-			var signal_name: String = signal_info[1] as String
-			
-			if emitter and signal_name and _signal_emissions.has(emitter):
-				var emissions: Dictionary = _signal_emissions[emitter] as Dictionary
-				if emissions.has(signal_name):
-					var emission_list: Array = emissions[signal_name] as Array
-					if not emission_list.is_empty():
-						results.append(emission_list.pop_front())
-						continue
-			all_received = false
+	# Create error collector
+	var error_collector := func(message: String) -> void:
+		error_messages.append(message)
+	
+	# Run the test
+	callable.call()
+	
+	# Verify error was received
+	var error_found := false
+	for message in error_messages:
+		if message == expected_error:
+			error_found = true
 			break
-		
-		if all_received:
-			return results
-		
-		await get_tree().process_frame
 	
-	return []
+	assert_true(error_found,
+		"Expected error '%s' was not received" % expected_error)
 
-func wait_for_signal(emitter: Object, signal_name: String, timeout: float = SIGNAL_TIMEOUT) -> Array:
-	var timer: SceneTreeTimer = get_tree().create_timer(timeout)
-	var signal_data: Array = []
-	var signal_received: bool = false
-	var timer_expired: bool = false
-	
-	# Connect to signal with strongly typed arguments
-	var callable := func(arg1: Variant = null, arg2: Variant = null, arg3: Variant = null,
-			arg4: Variant = null, arg5: Variant = null) -> void:
-		signal_received = true
-		var args: Array = []
-		for arg in [arg1, arg2, arg3, arg4, arg5]:
-			if arg != null:
-				args.append(arg)
-		signal_data = args
-	
-	# Handle connect result
-	var connect_result: Error = emitter.connect(signal_name, callable, CONNECT_ONE_SHOT)
-	if connect_result != OK:
-		push_warning("Failed to connect to signal %s" % signal_name)
-		return []
-	
-	# Wait for either signal or timeout
-	timer.timeout.connect(func() -> void: timer_expired = true, CONNECT_ONE_SHOT)
-	while not signal_received and timer and not timer.is_stopped():
-		await get_tree().process_frame
-	
-	return signal_data
-
-# Required GUT methods
-func get_assert_count() -> int:
-	return gut.get_assert_count() if gut else 0
-
-func get_pass_count() -> int:
-	return gut.get_pass_count() if gut else 0
-
-func get_fail_count() -> int:
-	return gut.get_fail_count() if gut else 0
-
-func get_pending_count() -> int:
-	return gut.get_pending_count() if gut else 0
-
-func get_test_count() -> int:
-	return gut.get_test_count() if gut else 0
+# Enhanced performance testing
+func verify_performance_metrics(metrics: Dictionary, requirements: Dictionary) -> void:
+	for key in requirements:
+		if key in metrics:
+			var actual = metrics[key]
+			var required = requirements[key]
+			assert_true(actual >= required,
+				"Performance metric '%s' (%s) does not meet requirement (%s)" % [key, actual, required])

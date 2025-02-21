@@ -18,9 +18,9 @@ var campaign_system: Node # Using Node type to avoid casting issues
 var game_state: GameState
 
 # Helper methods for common test scenarios
-func create_test_mission(mission_type: int) -> Node: # Using Node return type for flexibility
+func create_test_mission() -> Resource:
 	var mission = Mission.new()
-	mission.type = mission_type
+	mission.type = GameEnums.MissionType.PATROL
 	return mission
 
 func setup_basic_campaign_state() -> void:
@@ -80,12 +80,12 @@ func test_mission_tracking() -> void:
 	
 	assert_eq(game_state.completed_missions.size(), 0, "Should start with no completed missions")
 	
-	var patrol_mission := create_test_mission(GameEnums.MissionType.PATROL)
+	var patrol_mission := create_test_mission()
 	game_state.add_completed_mission(patrol_mission)
 	assert_eq(game_state.completed_missions.size(), 1, "Should track completed mission")
 	assert_signal_emitted(game_state, "mission_completed")
 	
-	var rescue_mission := create_test_mission(GameEnums.MissionType.RESCUE)
+	var rescue_mission := create_test_mission()
 	game_state.add_completed_mission(rescue_mission)
 	assert_eq(game_state.completed_missions.size(), 2, "Should accumulate completed missions")
 	assert_signal_emitted(game_state, "mission_completed")
@@ -95,7 +95,7 @@ func test_rapid_mission_completion() -> void:
 	watch_signals(game_state)
 	
 	for i in range(100):
-		var mission := create_test_mission(GameEnums.MissionType.PATROL)
+		var mission := create_test_mission()
 		game_state.add_completed_mission(mission)
 	
 	assert_true(game_state.completed_missions.size() <= 100, "Should handle rapid mission completions")
