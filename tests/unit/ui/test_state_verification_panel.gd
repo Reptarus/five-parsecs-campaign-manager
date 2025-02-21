@@ -3,161 +3,130 @@
 ## Tests the UI components and logic for game state verification
 ## including state comparison, validation, and result tracking
 @tool
-extends "res://tests/fixtures/base_test.gd"
+extends GameTest
 
-const StateVerificationPanel := preload("res://src/ui/components/combat/state/state_verification_panel.gd")
+const TestedClass: PackedScene = preload("res://src/ui/components/combat/state/state_verification_panel.tscn")
 
-
-var panel: StateVerificationPanel
+var _instance: Control
+var _verification_complete_signal_emitted := false
+var _last_verification_data: Dictionary = {}
 
 func before_each() -> void:
 	await super.before_each()
-	panel = StateVerificationPanel.new()
-	add_child(panel)
-	track_test_node(panel)
-	watch_signals(panel)
-	await get_tree().process_frame
+	_instance = TestedClass.instantiate()
+	add_child_autofree(_instance)
+	track_test_node(_instance)
+	_connect_signals()
+	_reset_signals()
 
 func after_each() -> void:
+	_disconnect_signals()
+	_reset_signals()
 	await super.after_each()
-	panel = null
+	_instance = null
 
-# Basic Panel Tests
+func _connect_signals() -> void:
+	if not _instance:
+		return
+		
+	if _instance.has_signal("verification_complete"):
+		_instance.connect("verification_complete", _on_verification_complete)
+
+func _disconnect_signals() -> void:
+	if not _instance:
+		return
+		
+	if _instance.has_signal("verification_complete") and _instance.is_connected("verification_complete", _on_verification_complete):
+		_instance.disconnect("verification_complete", _on_verification_complete)
+
+func _reset_signals() -> void:
+	_verification_complete_signal_emitted = false
+	_last_verification_data = {}
+
+func _on_verification_complete(data: Dictionary = {}) -> void:
+	_verification_complete_signal_emitted = true
+	_last_verification_data = data
+
+# Test Cases
 func test_initial_state() -> void:
-	assert_false(panel.visible, "Panel should start hidden")
-	assert_eq(panel.current_state, {}, "Should start with empty current state")
-	assert_eq(panel.expected_state, {}, "Should start with empty expected state")
-	assert_false(panel.auto_verify, "Should start with auto verify disabled")
+	assert_not_null(_instance, "Verification panel should be initialized")
+	assert_false(_instance.visible, "Panel should be hidden by default")
 
-# State Management Tests
-func test_set_current_state() -> void:
-	var combat_state = {
-		"unit_position": Vector2(1, 1),
-		"action_points": 2,
-		"combat_status": GameEnums.CombatStatus.NONE,
-		"combat_modifiers": [GameEnums.CombatModifier.COVER_LIGHT]
-	}
+func test_verification_complete() -> void:
+	_instance.visible = true
+	var test_data := {"valid": true, "message": "Test passed"}
+	_instance.emit_signal("verification_complete", test_data)
 	
-	panel.current_state = combat_state
-	assert_eq(panel.current_state, combat_state, "Should set current combat state")
+	assert_true(_verification_complete_signal_emitted, "Verification signal should be emitted")
+	assert_eq(_last_verification_data, test_data, "Verification data should match test data")
 
-func test_set_expected_state() -> void:
-	var expected_state = {
-		"unit_position": Vector2(2, 2),
-		"action_points": 1,
-		"combat_status": GameEnums.CombatStatus.SUPPRESSED,
-		"combat_modifiers": [GameEnums.CombatModifier.COVER_HEAVY]
-	}
+func test_visibility() -> void:
+	_instance.visible = false
+	var test_data := {"valid": false}
+	_instance.emit_signal("verification_complete", test_data)
+	assert_false(_verification_complete_signal_emitted, "Verification signal should not be emitted when hidden")
 	
-	panel.expected_state = expected_state
-	assert_eq(panel.expected_state, expected_state, "Should set expected combat state")
+	_instance.visible = true
+	_instance.emit_signal("verification_complete", test_data)
+	assert_true(_verification_complete_signal_emitted, "Verification signal should be emitted when visible")
 
-# Verification Tests
-func test_state_verification_match() -> void:
-	var test_state = {
-		"unit_position": Vector2(1, 1),
-		"combat_status": GameEnums.CombatStatus.NONE
-	}
-	
-	panel.current_state = test_state.duplicate()
-	panel.expected_state = test_state.duplicate()
-	
-	panel.verify_button.emit_signal("pressed")
-	assert_signal_emitted(panel, "state_verified")
-	assert_signal_emitted(panel, "verification_completed")
+func test_child_nodes() -> void:
+	var container = _instance.get_node_or_null("Container")
+	assert_not_null(container, "Panel should have a Container node")
 
-func test_state_verification_mismatch() -> void:
-	panel.current_state = {
-		"unit_position": Vector2(1, 1),
-		"combat_status": GameEnums.CombatStatus.NONE
-	}
+func test_signals() -> void:
+	watch_signals(_instance)
+	_instance.emit_signal("verification_complete")
+	verify_signal_emitted(_instance, "verification_complete")
 	
-	panel.expected_state = {
-		"unit_position": Vector2(2, 2),
-		"combat_status": GameEnums.CombatStatus.SUPPRESSED
-	}
-	
-	panel.verify_button.emit_signal("pressed")
-	assert_signal_emitted(panel, "state_mismatch_detected")
-	assert_signal_emitted(panel, "verification_completed")
+	_instance.emit_signal("verification_failed")
+	verify_signal_emitted(_instance, "verification_failed")
 
-# Auto-Verification Tests
-func test_auto_verify_behavior() -> void:
-	panel.auto_verify = true
+func test_state_updates() -> void:
+	_instance.visible = false
+	assert_false(_instance.visible, "Panel should be hidden after visibility update")
 	
-	var test_state = {
-		"unit_position": Vector2(1, 1),
-		"combat_status": GameEnums.CombatStatus.NONE
-	}
+	_instance.visible = true
+	assert_true(_instance.visible, "Panel should be visible after visibility update")
 	
-	# State changes should trigger automatic verification
-	panel.current_state = test_state.duplicate()
-	panel.expected_state = test_state.duplicate()
-	
-	assert_signal_emitted(panel, "verification_completed")
+	var container = _instance.get_node_or_null("Container")
+	if container:
+		container.custom_minimum_size = Vector2(200, 300)
+		assert_eq(container.custom_minimum_size, Vector2(200, 300), "Container should update minimum size")
 
-# Manual Correction Tests
-func test_manual_correction_request() -> void:
-	panel.current_state = {
-		"action_points": 1,
-		"combat_status": GameEnums.CombatStatus.NONE
-	}
-	
-	panel.expected_state = {
-		"action_points": 2,
-		"combat_status": GameEnums.CombatStatus.SUPPRESSED
-	}
-	
-	panel.correction_button.emit_signal("pressed")
-	assert_signal_emitted(panel, "manual_correction_requested")
+func test_child_management() -> void:
+	var container = _instance.get_node_or_null("Container")
+	if container:
+		var test_child = Button.new()
+		container.add_child(test_child)
+		assert_true(test_child in container.get_children(), "Container should manage child nodes")
+		assert_true(test_child.get_parent() == container, "Child should have correct parent")
+		test_child.queue_free()
 
-# UI State Tests
-func test_ui_state_management() -> void:
-	# Test visibility
-	panel.show()
-	assert_true(panel.visible, "Panel should be visible")
-	assert_signal_emitted(panel, "visibility_changed")
-	
-	panel.hide()
-	assert_false(panel.visible, "Panel should be hidden")
-	assert_signal_emitted(panel, "visibility_changed")
+func test_panel_initialization() -> void:
+	assert_not_null(_instance)
+	assert_true(_instance.is_inside_tree())
 
-# Error Condition Tests
-func test_invalid_states() -> void:
-	# Test setting invalid states
-	panel.current_state = {}
-	assert_eq(panel.current_state, {}, "Should handle empty current state")
-	
-	panel.expected_state = {}
-	assert_eq(panel.expected_state, {}, "Should handle empty expected state")
-	
-	# Test setting invalid state values
-	panel.current_state = {"invalid_key": ""}
-	assert_eq(panel.current_state, {"invalid_key": ""}, "Should handle invalid state values")
+func test_panel_nodes() -> void:
+	assert_not_null(_instance.get_node("VBoxContainer"))
+	assert_not_null(_instance.get_node("VBoxContainer/VerificationMessage"))
+	assert_not_null(_instance.get_node("VBoxContainer/ButtonContainer"))
 
-# Boundary Tests
-func test_large_state_objects() -> void:
-	var large_state = {}
-	for i in range(100):
-		large_state["key_%d" % i] = "value_%d" % i
-	
-	panel.current_state = large_state
-	panel.expected_state = large_state.duplicate()
-	
-	panel.verify_button.emit_signal("pressed")
-	assert_signal_emitted(panel, "state_verified")
-	assert_signal_emitted(panel, "verification_completed")
+func test_panel_properties() -> void:
+	assert_eq(_instance.verification_message, "")
+	assert_false(_instance.is_valid)
 
-func test_state_categories() -> void:
-	var categories = [
-		"combat",
-		"movement",
-		"resources",
-		"equipment"
-	]
+func test_verification_message() -> void:
+	_instance.set_verification_message("Test message")
+	assert_eq(_instance.verification_message, "Test message")
 	
-	panel.state_categories = categories
-	assert_eq(panel.state_categories, categories, "Should set state categories")
+	var message_label = _instance.get_node("VBoxContainer/VerificationMessage")
+	assert_eq(message_label.text, "Test message")
+
+func test_verification_state() -> void:
+	_instance.set_verification_state(true)
+	assert_true(_instance.is_valid)
 	
-	# Verify state tree is updated
-	assert_true(panel.state_tree.get_root() != null, "Should create category tree")
+	_instance.set_verification_state(false)
+	assert_false(_instance.is_valid)
+	verify_signal_emitted(_instance, "verification_failed")

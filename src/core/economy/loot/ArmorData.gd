@@ -1,9 +1,9 @@
- kvnfdsq sqw/ws/  m nbggclass_name ArmorData
+class_name ArmorData
 extends EquipmentData
 
 @export var defense: int = 1
 @export var armor_type: int = GlobalEnums.ArmorType.LIGHT
-@export var characteristics: Array[int] = []  # Array of GlobalEnums.ArmorCharacteristic
+@export var characteristics: Array[int] = [] # Array of GlobalEnums.ArmorCharacteristic
 @export var durability: int = 100
 @export var current_durability: int = 100
 
@@ -70,4 +70,4 @@ func deserialize(data: Dictionary) -> ArmorData:
 	characteristics = data.get("characteristics", [])
 	durability = data.get("durability", 100)
 	current_durability = data.get("current_durability", durability)
-	return self 
+	return self

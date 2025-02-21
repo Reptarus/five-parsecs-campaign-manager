@@ -1,43 +1,43 @@
 @tool
 extends RefCounted
 
-const GameEnums := preload("res://src/core/systems/GlobalEnums.gd")
-const Character := preload("res://src/core/character/Base/Character.gd")
-const FiveParcsecsCampaign := preload("res://src/core/campaign/Campaign.gd")
+const GameEnumsScript: GDScript = preload("res://src/core/systems/GlobalEnums.gd")
+const CharacterScript: GDScript = preload("res://src/core/character/Base/Character.gd")
+const FiveParcsecsCampaignScript: GDScript = preload("res://src/core/campaign/Campaign.gd")
 
 # Default test data
-const DEFAULT_GAME_STATE := {
-	"difficulty_level": GameEnums.DifficultyLevel.NORMAL,
+const DEFAULT_GAME_STATE: Dictionary = {
+	"difficulty_level": GameEnumsScript.DifficultyLevel.NORMAL,
 	"enable_permadeath": true,
 	"use_story_track": true,
 	"auto_save_enabled": true,
 	"last_save_time": 0
 }
 
-const DEFAULT_CHARACTER := {
+const DEFAULT_CHARACTER: Dictionary = {
 	"name": "Test Character",
-	"background": GameEnums.Background.MILITARY,
-	"motivation": GameEnums.Motivation.REVENGE,
+	"background": GameEnumsScript.Background.MILITARY,
+	"motivation": GameEnumsScript.Motivation.REVENGE,
 	"level": 1,
 	"experience": 0,
 	"health": 10,
 	"max_health": 10
 }
 
-const DEFAULT_CAMPAIGN := {
+const DEFAULT_CAMPAIGN: Dictionary = {
 	"name": "Test Campaign",
-	"difficulty": GameEnums.DifficultyLevel.NORMAL,
-	"victory_type": GameEnums.FiveParcsecsCampaignVictoryType.STANDARD,
-	"crew_size": GameEnums.CrewSize.FOUR,
+	"difficulty": GameEnumsScript.DifficultyLevel.NORMAL,
+	"victory_type": GameEnumsScript.FiveParcsecsCampaignVictoryType.STANDARD,
+	"crew_size": GameEnumsScript.CrewSize.FOUR,
 	"use_story_track": true,
-	"current_phase": GameEnums.FiveParcsecsCampaignPhase.SETUP,
+	"current_phase": GameEnumsScript.FiveParcsecsCampaignPhase.SETUP,
 	"turn": 1,
 	"credits": 1000
 }
 
 # Game state setup
 static func setup_test_game_state(config: Dictionary = {}) -> Dictionary:
-	var state = DEFAULT_GAME_STATE.duplicate(true)
+	var state: Dictionary = DEFAULT_GAME_STATE.duplicate(true)
 	state.merge(config)
 	
 	# Add campaign if not explicitly disabled
@@ -48,7 +48,7 @@ static func setup_test_game_state(config: Dictionary = {}) -> Dictionary:
 
 # Campaign setup
 static func setup_test_campaign(config: Dictionary = {}) -> Dictionary:
-	var campaign = DEFAULT_CAMPAIGN.duplicate(true)
+	var campaign: Dictionary = DEFAULT_CAMPAIGN.duplicate(true)
 	campaign.merge(config)
 	
 	# Add default crew if not disabled
@@ -63,33 +63,41 @@ static func setup_test_campaign(config: Dictionary = {}) -> Dictionary:
 
 # Character setup
 static func setup_test_character(config: Dictionary = {}) -> Dictionary:
-	var character = DEFAULT_CHARACTER.duplicate(true)
+	var character: Dictionary = DEFAULT_CHARACTER.duplicate(true)
 	character.merge(config)
 	return character
 
 # Create actual character instance
 static func create_test_character(config: Dictionary = {}) -> Resource:
-	var data = setup_test_character(config)
-	var character = Character.new()
+	var data: Dictionary = setup_test_character(config)
+	var character: Resource = CharacterScript.new()
+	if not character:
+		push_error("Failed to create character instance")
+		return null
 	
 	for key in data:
-		if character.has_method("set_" + key):
-			character.call("set_" + key, data[key])
+		var setter: String = "set_" + key
+		if character.has_method(setter):
+			character.call(setter, data[key])
 		else:
-			character[key] = data[key]
+			character.set(key, data[key])
 	
 	return character
 
 # Create actual campaign instance
 static func create_test_campaign(config: Dictionary = {}) -> Resource:
-	var data = setup_test_campaign(config)
-	var campaign = FiveParcsecsCampaign.new()
+	var data: Dictionary = setup_test_campaign(config)
+	var campaign: Resource = FiveParcsecsCampaignScript.new()
+	if not campaign:
+		push_error("Failed to create campaign instance")
+		return null
 	
 	for key in data:
-		if campaign.has_method("set_" + key):
-			campaign.call("set_" + key, data[key])
+		var setter: String = "set_" + key
+		if campaign.has_method(setter):
+			campaign.call(setter, data[key])
 		else:
-			campaign[key] = data[key]
+			campaign.set(key, data[key])
 	
 	return campaign
 
@@ -97,7 +105,7 @@ static func create_test_campaign(config: Dictionary = {}) -> Resource:
 static func setup_test_combat_state(config: Dictionary = {}) -> Dictionary:
 	return {
 		"turn": config.get("turn", 1),
-		"phase": config.get("phase", GameEnums.BattlePhase.SETUP),
+		"phase": config.get("phase", GameEnumsScript.BattlePhase.SETUP),
 		"active_character": config.get("active_character", null),
 		"characters": config.get("characters", []),
 		"terrain": config.get("terrain", []),
@@ -107,8 +115,8 @@ static func setup_test_combat_state(config: Dictionary = {}) -> Dictionary:
 # Mission setup helpers
 static func setup_test_mission(config: Dictionary = {}) -> Dictionary:
 	return {
-		"type": config.get("type", GameEnums.MissionType.PATROL),
-		"difficulty": config.get("difficulty", GameEnums.DifficultyLevel.NORMAL),
+		"type": config.get("type", GameEnumsScript.MissionType.PATROL),
+		"difficulty": config.get("difficulty", GameEnumsScript.DifficultyLevel.NORMAL),
 		"objectives": config.get("objectives", []),
 		"rewards": config.get("rewards", []),
 		"enemies": config.get("enemies", []),
@@ -125,19 +133,29 @@ static func generate_test_resources(amount: int = 1000) -> Dictionary:
 
 # State verification helpers
 static func verify_campaign_state(campaign: Resource, expected: Dictionary) -> bool:
+	if not campaign:
+		push_error("Cannot verify state of null campaign")
+		return false
+		
 	for key in expected:
-		if campaign.has_method("get_" + key):
-			if campaign.call("get_" + key) != expected[key]:
+		var getter: String = "get_" + key
+		if campaign.has_method(getter):
+			if campaign.call(getter) != expected[key]:
 				return false
-		elif campaign[key] != expected[key]:
+		elif campaign.get(key) != expected[key]:
 			return false
 	return true
 
 static func verify_character_state(character: Resource, expected: Dictionary) -> bool:
+	if not character:
+		push_error("Cannot verify state of null character")
+		return false
+		
 	for key in expected:
-		if character.has_method("get_" + key):
-			if character.call("get_" + key) != expected[key]:
+		var getter: String = "get_" + key
+		if character.has_method(getter):
+			if character.call(getter) != expected[key]:
 				return false
-		elif character[key] != expected[key]:
+		elif character.get(key) != expected[key]:
 			return false
 	return true

@@ -309,11 +309,19 @@ func deserialize(data: Dictionary) -> void:
 		if inventory.get_weapon_count() > 0:
 			active_weapon = inventory.weapons[0]
 
+## Safe weapon property access
+func _get_weapon_damage(weapon: GameWeapon) -> int:
+	if not weapon:
+		return 0
+	if not "damage" in weapon:
+		return 0
+	return weapon.get("damage")
+
 func get_combat_effectiveness() -> float:
 	# Core Rules: Combat effectiveness is primarily based on combat_skill and reactions
 	var base_effectiveness = combat_skill * 0.5 + reactions * 0.3 + speed * 0.2
 	if active_weapon:
-		base_effectiveness += active_weapon.damage
+		base_effectiveness += _get_weapon_damage(active_weapon)
 	return base_effectiveness
 
 func get_survival_chance() -> float:

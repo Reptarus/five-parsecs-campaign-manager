@@ -34,23 +34,48 @@ func _set_special_abilities() -> void:
 		GameEnums.StrangeCharacterType.FERAL:
 			special_abilities = ["Enhanced Senses", "Natural Weapons"]
 
+## Safe Property Access Methods
+func _get_character_property(character: Character, property: String, default_value = null) -> Variant:
+	if not character:
+		push_error("Trying to access property '%s' on null character" % property)
+		return default_value
+	if not property in character:
+		return default_value
+	return character.get(property)
+
+func _set_character_property(character: Character, property: String, value: Variant) -> void:
+	if not character:
+		push_error("Trying to set property '%s' on null character" % property)
+		return
+	if not property in character:
+		push_error("Character missing property: %s" % property)
+		return
+	character.set(property, value)
+
 func apply_special_abilities(character: Character) -> void:
+	if not character:
+		push_error("Cannot apply special abilities to null character")
+		return
+		
 	for ability in special_abilities:
+		if not "traits" in character:
+			push_error("Character missing traits array")
+			return
 		character.traits.append(ability)
 
 	match type:
 		GameEnums.StrangeCharacterType.BOT, GameEnums.StrangeCharacterType.ASSAULT_BOT, GameEnums.StrangeCharacterType.DE_CONVERTED:
-			character.toughness = saving_throw
+			_set_character_property(character, "toughness", saving_throw)
 		GameEnums.StrangeCharacterType.PRECURSOR:
-			character.has_extra_character_event_roll = true
+			_set_character_property(character, "has_extra_character_event_roll", true)
 		GameEnums.StrangeCharacterType.FERAL:
-			character.combat_skill = 1
-			character.toughness = 3
+			_set_character_property(character, "combat_skill", 1)
+			_set_character_property(character, "toughness", 3)
 
 func apply_feral_characteristics(character: Character) -> void:
 	if type == GameEnums.StrangeCharacterType.FERAL:
-			character.reactions = 1
-			character.speed = 4
-			character.combat_skill = 1
-			character.toughness = 3
-			character.savvy = 1
+		_set_character_property(character, "reactions", 1)
+		_set_character_property(character, "speed", 4)
+		_set_character_property(character, "combat_skill", 1)
+		_set_character_property(character, "toughness", 3)
+		_set_character_property(character, "savvy", 1)

@@ -189,19 +189,30 @@ func has_item(item: Dictionary) -> bool:
 		_:
 			return item in items
 
+## Safe item ID access
+func _get_item_id(item: Variant) -> int:
+	if not item:
+		return -1
+	if not "id" in item:
+		return -1
+	return item.get("id")
+
 func has_equipment(equipment_id: int) -> bool:
 	# Check weapons
 	for weapon in weapons:
-		if weapon.id == equipment_id:
+		if _get_item_id(weapon) == equipment_id:
 			return true
+			
 	# Check armor
 	for armor_piece in armor:
-		if armor_piece.id == equipment_id:
+		if _get_item_id(armor_piece) == equipment_id:
 			return true
+			
 	# Check other items
 	for item in items:
-		if item.id == equipment_id:
+		if _get_item_id(item) == equipment_id:
 			return true
+			
 	return false
 
 # Serialization
@@ -271,3 +282,50 @@ func from_dictionary(data: Dictionary) -> void:
 	is_bot = data.get("is_bot", false)
 	is_soulless = data.get("is_soulless", false)
 	is_human = data.get("is_human", false)
+
+## Gets the character's combat rating based on stats and equipment
+func get_combat_rating() -> float:
+	var rating: float = float(combat)
+	
+	# Add bonuses from weapons
+	for weapon in weapons:
+		if weapon and "get_combat_bonus" in weapon:
+			rating += weapon.get_combat_bonus()
+	
+	# Add bonuses from armor
+	for armor_piece in armor:
+		if armor_piece and "get_combat_bonus" in armor_piece:
+			rating += armor_piece.get_combat_bonus()
+	
+	# Add skill bonuses
+	if has_skill(GameEnums.Skill.COMBAT_TRAINING):
+		rating += 1.0
+	
+	return rating
+
+## Gets the character's current health
+func get_health() -> int:
+	return health
+
+## Gets the character's maximum health
+func get_max_health() -> int:
+	return max_health
+
+## Gets the character's movement range based on equipment and status
+func get_movement_range() -> int:
+	var base_range := 6 # Base movement from rules
+	
+	# Apply armor penalties
+	for armor_piece in armor:
+		if armor_piece and "get_movement_penalty" in armor_piece:
+			base_range -= armor_piece.get_movement_penalty()
+	
+	# Apply status effects
+	if is_wounded:
+		base_range = maxi(1, base_range - 2)
+	
+	# Apply skill bonuses
+	if has_skill(GameEnums.Skill.SURVIVAL):
+		base_range += 1
+	
+	return maxi(1, base_range) # Minimum movement of 1

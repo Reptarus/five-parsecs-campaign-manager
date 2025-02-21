@@ -3,7 +3,8 @@ extends "res://tests/fixtures/base_test.gd"
 
 const BattleStateMachine = preload("res://src/core/battle/state/BattleStateMachine.gd")
 const GameStateManager = preload("res://src/core/managers/GameStateManager.gd")
-const Character = preload("res://src/core/character/Base/Character.gd")
+const FiveParsecsCharacter = preload("res://src/core/character/Base/Character.gd")
+const BattleCharacter = preload("res://src/core/battle/BattleCharacter.gd")
 const CombatResolver = preload("res://src/core/battle/CombatResolver.gd")
 const BattlefieldManager = preload("res://src/core/battle/BattlefieldManager.gd")
 
@@ -13,38 +14,42 @@ var _combat_resolver: CombatResolver
 var _battlefield_manager: BattlefieldManager
 
 func before_each() -> void:
-	await super.before_each()
-	
-	# Create managers
-	_game_state = GameStateManager.new()
-	add_child(_game_state)
-	track_test_node(_game_state)
-	
-	_battlefield_manager = BattlefieldManager.new()
-	add_child(_battlefield_manager)
-	track_test_node(_battlefield_manager)
-	
-	_combat_resolver = CombatResolver.new()
-	_combat_resolver.battlefield_manager = _battlefield_manager
-	add_child(_combat_resolver)
-	track_test_node(_combat_resolver)
-	
-	_state_machine = BattleStateMachine.new(_game_state)
-	_state_machine.game_state_manager = _game_state
-	add_child(_state_machine)
-	track_test_node(_state_machine)
+	super.before_each()
+	setup_battle_system()
 
 func after_each() -> void:
-	await super.after_each()
+	cleanup_battle_system()
+	super.after_each()
+
+func setup_battle_system() -> void:
+	_state_machine = BattleStateMachine.new()
+	_game_state = GameStateManager.new()
+	_combat_resolver = CombatResolver.new()
+	_battlefield_manager = BattlefieldManager.new()
+	
+	_state_machine.game_state_manager = _game_state
+	_combat_resolver.battlefield_manager = _battlefield_manager
+	
+	add_child(_game_state)
+	track_test_node(_game_state)
+	add_child(_battlefield_manager)
+	track_test_node(_battlefield_manager)
+	add_child(_combat_resolver)
+	track_test_node(_combat_resolver)
+	add_child(_state_machine)
+	track_test_node(_state_machine)
+	stabilize_engine()
+
+func cleanup_battle_system() -> void:
 	_state_machine = null
 	_game_state = null
 	_combat_resolver = null
 	_battlefield_manager = null
 
 # Helper function to create test character
-func _create_test_character(name: String) -> Character:
-	var character = Character.new()
-	character.from_dictionary({
+func _create_test_character(name: String) -> BattleCharacter:
+	var character_data = FiveParsecsCharacter.new()
+	character_data.from_dictionary({
 		"character_name": name,
 		"character_class": GameEnums.CharacterClass.SOLDIER,
 		"origin": GameEnums.Origin.HUMAN,
@@ -59,11 +64,15 @@ func _create_test_character(name: String) -> Character:
 		"savvy": 3,
 		"luck": 1
 	})
-	return character
+	
+	var battle_character = BattleCharacter.new(character_data)
+	add_child_autofree(battle_character)
+	track_test_node(battle_character)
+	return battle_character
 
 # Helper function to create multiple test characters
-func _create_test_squad(size: int) -> Array[Character]:
-	var squad: Array[Character] = []
+func _create_test_squad(size: int) -> Array[BattleCharacter]:
+	var squad: Array[BattleCharacter] = []
 	for i in range(size):
 		squad.append(_create_test_character("Unit %d" % (i + 1)))
 	return squad

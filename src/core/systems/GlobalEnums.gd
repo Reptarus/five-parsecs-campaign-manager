@@ -672,7 +672,8 @@ enum UnitAction {
 	DASH,
 	BRAWL,
 	SNAP_FIRE,
-	END_TURN
+	END_TURN,
+	SPECIAL_ABILITY
 }
 
 enum CombatAdvantage {

@@ -56,12 +56,31 @@ func _initialize_systems() -> void:
 ## Connect to UI signals
 func _connect_signals() -> void:
 	if not ui:
+		push_error("PreBattleLoop: UI node not found")
 		return
 
-	if ui.has_signal("crew_selected") and not ui.crew_selected.is_connected(_on_crew_selected):
-		ui.crew_selected.connect(_on_crew_selected)
-	if ui.has_signal("deployment_confirmed") and not ui.deployment_confirmed.is_connected(_on_deployment_confirmed):
-		ui.deployment_confirmed.connect(_on_deployment_confirmed)
+	# Connect UI signals using safe connection methods
+	_connect_ui_signal("crew_selected", _on_crew_selected)
+	_connect_ui_signal("deployment_confirmed", _on_deployment_confirmed)
+
+## Safe signal connection helper
+func _connect_ui_signal(signal_name: String, callback: Callable) -> void:
+	if not ui:
+		push_error("PreBattleLoop: Cannot connect signal '%s' - UI node not found" % signal_name)
+		return
+		
+	if not ui.has_signal(signal_name):
+		push_warning("PreBattleLoop: UI missing signal '%s'" % signal_name)
+		return
+		
+	var signal_is_connected := false
+	for connection in ui.get_signal_connection_list(signal_name):
+		if connection.callable.get_method() == callback.get_method():
+			signal_is_connected = true
+			break
+			
+	if not signal_is_connected:
+		ui.connect(signal_name, callback)
 
 ## Start the pre-battle phase with mission data
 func start_phase(mission: StoryQuestData, state: FiveParsecsGameState) -> void:
@@ -80,18 +99,38 @@ func start_phase(mission: StoryQuestData, state: FiveParsecsGameState) -> void:
 	_setup_battle_preview()
 	_setup_crew_selection()
 
-## Validate mission data structure
-func _validate_mission(mission: StoryQuestData) -> bool:
+## Safe Property Access Methods
+func _get_mission_property(mission: StoryQuestData, property: String, default_value = null) -> Variant:
 	if not mission:
-		return false
-		
-	if not mission.battle_type in GameEnums.BattleType.values():
-		return false
-		
-	if mission.enemy_force.is_empty():
-		return false
-		
-	return true
+		push_error("Trying to access property '%s' on null mission" % property)
+		return default_value
+	if not property in mission:
+		return default_value
+	return mission.get(property)
+
+func _get_mission_title(mission: StoryQuestData) -> String:
+	return _get_mission_property(mission, "title", "Unknown Mission")
+
+func _get_mission_description(mission: StoryQuestData) -> String:
+	return _get_mission_property(mission, "description", "No description available")
+
+func _get_mission_battle_type(mission: StoryQuestData) -> int:
+	return _get_mission_property(mission, "battle_type", GameEnums.BattleType.NONE)
+
+func _get_mission_enemy_force(mission: StoryQuestData) -> Array:
+	return _get_mission_property(mission, "enemy_force", [])
+
+func _get_mission_deployment_rules(mission: StoryQuestData) -> Dictionary:
+	return _get_mission_property(mission, "deployment_rules", {})
+
+func _get_mission_victory_conditions(mission: StoryQuestData) -> Array:
+	return _get_mission_property(mission, "victory_conditions", [])
+
+func _get_mission_special_conditions(mission: StoryQuestData) -> Array:
+	return _get_mission_property(mission, "special_conditions", [])
+
+func _get_mission_difficulty(mission: StoryQuestData) -> int:
+	return _get_mission_property(mission, "difficulty", GameEnums.DifficultyLevel.NORMAL)
 
 ## Setup the battle preview
 func _setup_battle_preview() -> void:
@@ -100,14 +139,14 @@ func _setup_battle_preview() -> void:
 		return
 		
 	var preview_data := {
-		"title": current_mission.title,
-		"description": current_mission.description,
-		"battle_type": current_mission.battle_type,
-		"enemy_force": current_mission.enemy_force,
-		"deployment_rules": current_mission.deployment_rules,
-		"victory_conditions": current_mission.victory_conditions,
-		"special_conditions": current_mission.special_conditions,
-		"difficulty": current_mission.difficulty
+		"title": _get_mission_title(current_mission),
+		"description": _get_mission_description(current_mission),
+		"battle_type": _get_mission_battle_type(current_mission),
+		"enemy_force": _get_mission_enemy_force(current_mission),
+		"deployment_rules": _get_mission_deployment_rules(current_mission),
+		"victory_conditions": _get_mission_victory_conditions(current_mission),
+		"special_conditions": _get_mission_special_conditions(current_mission),
+		"difficulty": _get_mission_difficulty(current_mission)
 	}
 	
 	if ui.has_method("setup_preview"):
@@ -159,12 +198,12 @@ func _prepare_battle_data() -> Dictionary:
 		terrain_data = terrain_system.get_terrain_data()
 	
 	return {
-		"mission": current_mission.serialize(),
+		"mission": current_mission.serialize() if current_mission else {},
 		"crew": selected_crew,
 		"deployment_zones": deployment_zones,
 		"terrain_data": terrain_data,
-		"battle_type": current_mission.battle_type,
-		"difficulty": current_mission.difficulty
+		"battle_type": _get_mission_battle_type(current_mission),
+		"difficulty": _get_mission_difficulty(current_mission)
 	}
 
 ## Update deployment zones
@@ -190,3 +229,16 @@ func cleanup() -> void:
 	selected_crew.clear()
 	deployment_zones.clear()
 	game_state = null
+
+## Validate mission data structure
+func _validate_mission(mission: StoryQuestData) -> bool:
+	if not mission:
+		return false
+		
+	if _get_mission_battle_type(mission) == GameEnums.BattleType.NONE:
+		return false
+		
+	if _get_mission_enemy_force(mission).is_empty():
+		return false
+		
+	return true

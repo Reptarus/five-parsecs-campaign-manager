@@ -9,18 +9,45 @@ extends "res://src/core/character/Equipment/Equipment.gd"
 func _init() -> void:
 	item_type = GameEnums.ItemType.ARMOR
 
+## Safe Property Access Methods
+func _get_character_property(character: FiveParsecsCharacter, property: String, default_value = null) -> Variant:
+	if not character:
+		push_error("Trying to access property '%s' on null character" % property)
+		return default_value
+	if not property in character:
+		push_error("Character missing required property: %s" % property)
+		return default_value
+	return character.get(property)
+
+func _set_character_property(character: FiveParsecsCharacter, property: String, value: Variant) -> void:
+	if not character:
+		push_error("Trying to set property '%s' on null character" % property)
+		return
+	if not property in character:
+		push_error("Character missing required property: %s" % property)
+		return
+	character.set(property, value)
+
 func can_be_equipped_by(character: FiveParsecsCharacter) -> bool:
+	if not character:
+		return false
+		
+	var char_class = _get_character_property(character, "character_class", GameEnums.CharacterClass.NONE)
+	
 	# Only Engineer class can use powered armor
 	match armor_type:
 		GameEnums.ArmorType.POWERED:
-			return character.character_class == GameEnums.CharacterClass.ENGINEER
+			return char_class == GameEnums.CharacterClass.ENGINEER
 		_:
 			return true
 
 func apply_modifiers(character: FiveParsecsCharacter) -> void:
+	if not character:
+		return
+		
 	# Apply armor save and any other modifiers
-	character.armor_save = armor_save
-	character.armor_bonus = armor_bonus
+	_set_character_property(character, "armor_save", armor_save)
+	_set_character_property(character, "armor_bonus", armor_bonus)
 	
 	# Apply cover modifiers based on armor type
 	match armor_type:
@@ -32,9 +59,12 @@ func apply_modifiers(character: FiveParsecsCharacter) -> void:
 			character.add_combat_modifier(GameEnums.CombatModifier.COVER_HEAVY)
 
 func remove_modifiers(character: FiveParsecsCharacter) -> void:
+	if not character:
+		return
+		
 	# Remove armor save and any other modifiers
-	character.armor_save = 0
-	character.armor_bonus = 0
+	_set_character_property(character, "armor_save", 0)
+	_set_character_property(character, "armor_bonus", 0)
 	
 	# Remove cover modifiers based on armor type
 	match armor_type:

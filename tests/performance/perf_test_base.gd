@@ -1,5 +1,5 @@
 @tool
-extends "res://tests/fixtures/base_test.gd"
+extends FiveParsecsEnemyTest
 
 const PERFORMANCE_THRESHOLD = 1.0 # Default threshold in seconds
 

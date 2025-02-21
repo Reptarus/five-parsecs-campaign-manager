@@ -9,14 +9,14 @@ var state: GameState
 
 func before_each() -> void:
     state = GameState.new()
-    var state_data = TestHelper.setup_test_game_state()
+    var state_data := TestHelper.setup_test_game_state()
     
     # Set up game state properties
-    state.difficulty_level = state_data.get("difficulty_level", GameEnums.DifficultyLevel.NORMAL)
-    state.enable_permadeath = state_data.get("enable_permadeath", true)
-    state.use_story_track = state_data.get("use_story_track", true)
-    state.auto_save_enabled = state_data.get("auto_save_enabled", true)
-    state.last_save_time = state_data.get("last_save_time", 0)
+    state.difficulty_level = state_data.get("difficulty_level", GameEnums.DifficultyLevel.NORMAL) as int
+    state.enable_permadeath = state_data.get("enable_permadeath", true) as bool
+    state.use_story_track = state_data.get("use_story_track", true) as bool
+    state.auto_save_enabled = state_data.get("auto_save_enabled", true) as bool
+    state.last_save_time = state_data.get("last_save_time", 0) as int
 
 func after_each() -> void:
     if is_instance_valid(state):
@@ -59,7 +59,7 @@ func test_turn_management() -> void:
     assert_eq(state.turn_number, 1, "Should increment turn number")
     
     # Test turn events
-    var events = state.get_turn_events()
+    var events := state.get_turn_events() as Array
     assert_not_null(events, "Should generate turn events")
     
     # Test turn limits
@@ -81,7 +81,7 @@ func test_resource_management() -> void:
     assert_false(state.remove_resource(GameEnums.ResourceType.CREDITS, 100), "Should prevent removing more than available")
 
 func test_quest_management() -> void:
-    var test_quest = {
+    var test_quest := {
         "id": "quest_1",
         "title": "Test Quest",
         "type": GameEnums.QuestType.MAIN,
@@ -99,13 +99,13 @@ func test_quest_management() -> void:
     
     # Test quest limits
     for i in range(10):
-        var quest = test_quest.duplicate()
+        var quest := test_quest.duplicate()
         quest.id = "quest_%d" % (i + 2)
         state.add_quest(quest)
     assert_false(state.add_quest(test_quest), "Should prevent exceeding quest limit")
 
 func test_location_management() -> void:
-    var test_location = {
+    var test_location := {
         "id": "loc_1",
         "name": "Test Location",
         "type": GameEnums.LocationType.TRADE_CENTER,
@@ -127,14 +127,14 @@ func test_location_management() -> void:
              "Should apply location costs")
 
 func test_ship_management() -> void:
-    var ship = Ship.new()
+    var ship := Ship.new()
     
     # Test setting player ship
     state.set_player_ship(ship)
     assert_not_null(state.player_ship, "Should set player ship")
     
     # Test ship damage
-    var initial_hull = state.player_ship.get_component("hull").durability
+    var initial_hull := state.player_ship.get_component("hull").durability as int
     state.apply_ship_damage(20)
     assert_eq(state.player_ship.get_component("hull").durability, initial_hull - 20, "Should apply ship damage")
     
@@ -180,7 +180,7 @@ func test_serialization() -> void:
     state.reputation = 50
     state.add_resource(GameEnums.ResourceType.CREDITS, 1000)
     
-    var test_quest = {
+    var test_quest := {
         "id": "quest_1",
         "title": "Test Quest",
         "type": GameEnums.QuestType.MAIN,
@@ -188,7 +188,7 @@ func test_serialization() -> void:
     }
     state.add_quest(test_quest)
     
-    var test_location = {
+    var test_location := {
         "id": "loc_1",
         "name": "Test Location",
         "type": GameEnums.LocationType.TRADE_CENTER,
@@ -196,12 +196,12 @@ func test_serialization() -> void:
     }
     state.set_location(test_location)
     
-    var ship = Ship.new()
+    var ship := Ship.new()
     state.set_player_ship(ship)
     
     # Serialize and deserialize
-    var data = state.serialize()
-    var new_state = GameState.deserialize_new(data)
+    var data := state.serialize()
+    var new_state := GameState.deserialize_new(data)
     
     # Verify state
     assert_eq(new_state.current_phase, state.current_phase, "Should preserve current phase")

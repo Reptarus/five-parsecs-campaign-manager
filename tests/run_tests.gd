@@ -5,7 +5,8 @@ const GutRunner := preload("res://addons/gut/gut_cmdln.gd")
 const TEST_DIRS := [
 	"res://tests/unit",
 	"res://tests/integration",
-	"res://tests/performance"
+	"res://tests/performance",
+	"res://tests/mobile"
 ]
 
 const REPORT_TEMPLATE := """# Test Run Report

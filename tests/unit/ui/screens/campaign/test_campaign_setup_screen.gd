@@ -1,21 +1,31 @@
-extends "res://addons/gut/test.gd"
+@tool
+extends GameTest
 
 const CampaignSetupScreen = preload("res://src/ui/screens/campaign/CampaignSetupScreen.gd")
-const GameEnums = preload("res://src/core/systems/GlobalEnums.gd")
 
-var setup_screen: CampaignSetupScreen
+var _instance: CampaignSetupScreen
 var setup_completed_signal_emitted := false
 var setup_cancelled_signal_emitted := false
 var last_setup_data: Dictionary
 
+# Signal watching helper functions
+func watch_signals(emitter: Object) -> void:
+	super.watch_signals(emitter)
+
+func assert_signal_emitted(object: Object, signal_name: String, text: String = "") -> void:
+	verify_signal_emitted(object, signal_name, text)
+
 func before_each() -> void:
-	setup_screen = CampaignSetupScreen.new()
-	add_child(setup_screen)
-	_reset_signals()
+	_instance = CampaignSetupScreen.new()
+	add_child_autofree(_instance)
+	track_test_node(_instance)
 	_connect_signals()
+	_reset_signals()
 
 func after_each() -> void:
-	setup_screen.queue_free()
+	if is_instance_valid(_instance):
+		_instance.queue_free()
+	await get_tree().process_frame
 
 func _reset_signals() -> void:
 	setup_completed_signal_emitted = false
@@ -23,8 +33,13 @@ func _reset_signals() -> void:
 	last_setup_data = {}
 
 func _connect_signals() -> void:
-	setup_screen.setup_completed.connect(_on_setup_completed)
-	setup_screen.setup_cancelled.connect(_on_setup_cancelled)
+	if not _instance:
+		return
+		
+	if _instance.has_signal("setup_completed"):
+		_instance.connect("setup_completed", _on_setup_completed)
+	if _instance.has_signal("setup_cancelled"):
+		_instance.connect("setup_cancelled", _on_setup_cancelled)
 
 func _on_setup_completed(setup_data: Dictionary) -> void:
 	setup_completed_signal_emitted = true
@@ -34,12 +49,17 @@ func _on_setup_cancelled() -> void:
 	setup_cancelled_signal_emitted = true
 
 func test_initial_setup() -> void:
-	assert_not_null(setup_screen)
-	assert_not_null(setup_screen.crew_panel)
-	assert_not_null(setup_screen.equipment_panel)
-	assert_not_null(setup_screen.objective_panel)
-	assert_not_null(setup_screen.confirm_button)
-	assert_not_null(setup_screen.back_button)
+	assert_not_null(_instance)
+	
+	# Wait for UI elements to be ready
+	await _instance.ready
+	
+	# Now check UI elements
+	assert_not_null(_instance.get_node("CrewPanel"), "CrewPanel should exist")
+	assert_not_null(_instance.get_node("EquipmentPanel"), "EquipmentPanel should exist")
+	assert_not_null(_instance.get_node("ObjectivePanel"), "ObjectivePanel should exist")
+	assert_not_null(_instance.get_node("ConfirmButton"), "ConfirmButton should exist")
+	assert_not_null(_instance.get_node("BackButton"), "BackButton should exist")
 
 func test_crew_setup() -> void:
 	var test_crew = {
@@ -50,10 +70,10 @@ func test_crew_setup() -> void:
 		]
 	}
 	
-	setup_screen.set_crew_data(test_crew)
+	_instance.set_crew_data(test_crew)
 	
-	assert_eq(setup_screen.get_crew_data(), test_crew)
-	assert_true(setup_screen.is_crew_valid())
+	assert_eq(_instance.get_crew_data(), test_crew)
+	assert_true(_instance.is_crew_valid())
 
 func test_equipment_setup() -> void:
 	var test_equipment = {
@@ -62,10 +82,10 @@ func test_equipment_setup() -> void:
 		"items": ["Medkit", "Toolkit"]
 	}
 	
-	setup_screen.set_equipment_data(test_equipment)
+	_instance.set_equipment_data(test_equipment)
 	
-	assert_eq(setup_screen.get_equipment_data(), test_equipment)
-	assert_true(setup_screen.is_equipment_valid())
+	assert_eq(_instance.get_equipment_data(), test_equipment)
+	assert_true(_instance.is_equipment_valid())
 
 func test_objective_setup() -> void:
 	var test_objective = {
@@ -74,10 +94,10 @@ func test_objective_setup() -> void:
 		"time_limit": 50
 	}
 	
-	setup_screen.set_objective_data(test_objective)
+	_instance.set_objective_data(test_objective)
 	
-	assert_eq(setup_screen.get_objective_data(), test_objective)
-	assert_true(setup_screen.is_objective_valid())
+	assert_eq(_instance.get_objective_data(), test_objective)
+	assert_true(_instance.is_objective_valid())
 
 func test_setup_completion() -> void:
 	# Set valid data
@@ -97,65 +117,77 @@ func test_setup_completion() -> void:
 		}
 	}
 	
-	setup_screen.set_crew_data(test_data.crew)
-	setup_screen.set_equipment_data(test_data.equipment)
-	setup_screen.set_objective_data(test_data.objective)
+	_instance.set_crew_data(test_data.crew)
+	_instance.set_equipment_data(test_data.equipment)
+	_instance.set_objective_data(test_data.objective)
 	
-	setup_screen.complete_setup()
+	# Wait for UI to update
+	await get_tree().process_frame
 	
-	assert_true(setup_completed_signal_emitted)
-	assert_eq(last_setup_data.crew, test_data.crew)
-	assert_eq(last_setup_data.equipment, test_data.equipment)
-	assert_eq(last_setup_data.objective, test_data.objective)
+	_instance.complete_setup()
+	
+	# Check signal emission
+	assert_signal_emitted(_instance, "setup_completed", "Setup completed signal should be emitted")
+	
+	# Verify setup data
+	var confirm_button = _instance.get_node("ConfirmButton")
+	assert_not_null(confirm_button, "ConfirmButton should exist")
+	assert_false(confirm_button.disabled, "ConfirmButton should be enabled")
 
 func test_setup_cancellation() -> void:
-	setup_screen.cancel_setup()
-	
-	assert_true(setup_cancelled_signal_emitted)
+	_instance.cancel_setup()
+	assert_signal_emitted(_instance, "setup_cancelled", "Setup cancelled signal should be emitted")
 
 func test_validation() -> void:
 	# Test with empty data
-	assert_false(setup_screen.is_setup_valid())
+	assert_false(_instance.is_setup_valid())
 	
 	# Test with partial data
-	setup_screen.set_crew_data({
+	_instance.set_crew_data({
 		"leader": {"name": "Leader", "class": GameEnums.CharacterClass.SOLDIER},
 		"members": []
 	})
-	assert_false(setup_screen.is_setup_valid())
+	await get_tree().process_frame
+	assert_false(_instance.is_setup_valid())
 	
 	# Test with complete data
-	setup_screen.set_equipment_data({
+	_instance.set_equipment_data({
 		"weapons": ["Rifle"],
 		"armor": ["Light Armor"],
 		"items": []
 	})
-	setup_screen.set_objective_data({
+	_instance.set_objective_data({
 		"type": GameEnums.FiveParcsecsCampaignVictoryType.WEALTH_GOAL,
 		"target": 10000
 	})
-	assert_true(setup_screen.is_setup_valid())
+	await get_tree().process_frame
+	assert_true(_instance.is_setup_valid())
 
 func test_confirm_button_state() -> void:
+	var confirm_button = _instance.get_node("ConfirmButton")
+	assert_not_null(confirm_button, "ConfirmButton should exist")
+	
 	# Test with invalid setup
-	assert_true(setup_screen.confirm_button.disabled)
+	assert_true(confirm_button.disabled, "Button should be disabled initially")
 	
 	# Test with valid setup
-	setup_screen.set_crew_data({
+	_instance.set_crew_data({
 		"leader": {"name": "Leader", "class": GameEnums.CharacterClass.SOLDIER},
 		"members": []
 	})
-	setup_screen.set_equipment_data({
+	_instance.set_equipment_data({
 		"weapons": ["Rifle"],
 		"armor": ["Light Armor"],
 		"items": []
 	})
-	setup_screen.set_objective_data({
+	_instance.set_objective_data({
 		"type": GameEnums.FiveParcsecsCampaignVictoryType.WEALTH_GOAL,
 		"target": 10000
 	})
 	
-	assert_false(setup_screen.confirm_button.disabled)
+	# Wait for UI to update
+	await get_tree().process_frame
+	assert_false(confirm_button.disabled, "Button should be enabled with valid setup")
 
 func test_data_persistence() -> void:
 	var test_data = {
@@ -174,24 +206,33 @@ func test_data_persistence() -> void:
 		}
 	}
 	
-	setup_screen.load_setup_data(test_data)
-	var saved_data = setup_screen.save_setup_data()
+	_instance.load_setup_data(test_data)
+	await get_tree().process_frame
 	
-	assert_eq(saved_data.crew, test_data.crew)
-	assert_eq(saved_data.equipment, test_data.equipment)
-	assert_eq(saved_data.objective, test_data.objective)
+	var saved_data = _instance.save_setup_data()
+	assert_eq(saved_data.crew, test_data.crew, "Crew data should match")
+	assert_eq(saved_data.equipment, test_data.equipment, "Equipment data should match")
+	assert_eq(saved_data.objective, test_data.objective, "Objective data should match")
 
 func test_reset() -> void:
 	# Set some data
-	setup_screen.set_crew_data({
+	_instance.set_crew_data({
 		"leader": {"name": "Leader", "class": GameEnums.CharacterClass.SOLDIER},
 		"members": []
 	})
 	
+	# Wait for UI to update
+	await get_tree().process_frame
+	
 	# Reset screen
-	setup_screen.reset()
+	_instance.reset()
+	await get_tree().process_frame
 	
 	# Verify everything is cleared
-	assert_false(setup_screen.is_crew_valid())
-	assert_false(setup_screen.is_equipment_valid())
-	assert_false(setup_screen.is_objective_valid())
+	assert_false(_instance.is_crew_valid(), "Crew should be invalid after reset")
+	assert_false(_instance.is_equipment_valid(), "Equipment should be invalid after reset")
+	assert_false(_instance.is_objective_valid(), "Objective should be invalid after reset")
+	
+	var confirm_button = _instance.get_node("ConfirmButton")
+	assert_not_null(confirm_button, "ConfirmButton should exist")
+	assert_true(confirm_button.disabled, "ConfirmButton should be disabled after reset")

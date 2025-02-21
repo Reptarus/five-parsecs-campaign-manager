@@ -5,7 +5,7 @@
 ## - Class-specific limitations
 ## - Performance under various conditions
 @tool
-extends BaseTest
+extends FiveParsecsEnemyTest
 
 const Character = preload("res://src/core/character/Base/Character.gd")
 const MAX_EXPERIENCE := 10000

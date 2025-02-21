@@ -8,7 +8,7 @@
 ## - Signal verification
 ## - Error context handling
 @tool
-extends "res://tests/fixtures/base_test.gd"
+extends FiveParsecsEnemyTest
 
 const ErrorLogger := preload("res://src/core/systems/ErrorLogger.gd")
 
@@ -19,7 +19,7 @@ var logger: ErrorLogger
 # Helper Methods
 func create_test_error(message: String, category: int, severity: int, context: Dictionary = {}) -> void:
 	logger.log_error(message, category, severity, context)
-	assert_signal_emitted(logger, "error_logged")
+	verify_signal_emitted(logger, "error_logged")
 
 func verify_error_context(error_index: int, expected_context: Dictionary) -> void:
 	var error = logger.error_history[error_index]
@@ -30,12 +30,53 @@ func verify_error_context(error_index: int, expected_context: Dictionary) -> voi
 func before_each() -> void:
 	await super.before_each()
 	logger = ErrorLogger.new()
-	track_test_resource(logger)
+	var logger_node := _safe_cast_to_node(logger, "ErrorLogger")
+	add_child_autofree(logger_node)
+	track_test_node(logger_node)
 	watch_signals(logger)
 
 func after_each() -> void:
 	await super.after_each()
 	logger = null
+
+# Test Cases
+func test_basic_error_logging() -> void:
+	create_test_error("Test error", 0, 1)
+	assert_eq(logger.error_history.size(), 1, "Should have one error in history")
+	verify_signal_emitted(logger, "error_logged", "Error logged signal should be emitted")
+
+func test_error_with_context() -> void:
+	var context = {"source": "test", "details": "test details"}
+	create_test_error("Test error with context", 0, 1, context)
+	verify_error_context(0, context)
+	verify_signal_emitted(logger, "error_logged", "Error logged signal should be emitted")
+
+func test_multiple_errors() -> void:
+	create_test_error("First error", 0, 1)
+	create_test_error("Second error", 1, 2)
+	assert_eq(logger.error_history.size(), 2, "Should have two errors in history")
+	var emit_count: int = _signal_watcher.get_emit_count(logger, "error_logged")
+	assert_eq(emit_count, 2, "Should emit error_logged signal twice")
+
+func test_error_categories() -> void:
+	create_test_error("Category 0 error", 0, 1)
+	create_test_error("Category 1 error", 1, 1)
+	create_test_error("Category 2 error", 2, 1)
+	
+	assert_eq(logger.error_history[0].category, 0, "First error should be category 0")
+	assert_eq(logger.error_history[1].category, 1, "Second error should be category 1")
+	assert_eq(logger.error_history[2].category, 2, "Third error should be category 2")
+	verify_signal_emitted(logger, "error_logged", "Error logged signal should be emitted")
+
+func test_error_severity() -> void:
+	create_test_error("Low severity error", 0, 0)
+	create_test_error("Medium severity error", 0, 1)
+	create_test_error("High severity error", 0, 2)
+	
+	assert_eq(logger.error_history[0].severity, 0, "First error should be low severity")
+	assert_eq(logger.error_history[1].severity, 1, "Second error should be medium severity")
+	assert_eq(logger.error_history[2].severity, 2, "Third error should be high severity")
+	verify_signal_emitted(logger, "error_logged", "Error logged signal should be emitted")
 
 # Basic Error Logging Tests
 func test_initial_state() -> void:
@@ -46,14 +87,14 @@ func test_log_error() -> void:
 	assert_eq(logger.error_history.size(), 1, "Should have one error in history")
 	var error = logger.error_history[0]
 	assert_eq(error.message, "Test error", "Should store error message")
-	assert_signal_emitted(logger, "error_logged")
+	verify_signal_emitted(logger, "error_logged")
 
 func test_clear_errors() -> void:
 	logger.log_error("Test error", ErrorLogger.ErrorCategory.VALIDATION, ErrorLogger.ErrorSeverity.ERROR)
 	logger.clear_error_history()
 	
 	assert_eq(logger.error_history.size(), 0, "Should clear error history")
-	assert_signal_emitted(logger, "error_logged")
+	verify_signal_emitted(logger, "error_logged")
 
 # Error Categorization Tests
 func test_error_severity_levels() -> void:
@@ -62,7 +103,7 @@ func test_error_severity_levels() -> void:
 	
 	logger.log_error("Error", ErrorLogger.ErrorCategory.VALIDATION, ErrorLogger.ErrorSeverity.ERROR)
 	assert_eq(logger.error_history[1].severity, ErrorLogger.ErrorSeverity.ERROR, "Should store error severity")
-	assert_signal_emitted(logger, "error_logged")
+	verify_signal_emitted(logger, "error_logged")
 
 # Game State Validation Tests
 func test_phase_transition_errors() -> void:
@@ -122,7 +163,7 @@ func test_verification_errors() -> void:
 func test_empty_message_handling() -> void:
 	logger.log_error("", ErrorLogger.ErrorCategory.VALIDATION, ErrorLogger.ErrorSeverity.ERROR)
 	assert_eq(logger.error_history[0].message, "", "Should handle empty error messages")
-	assert_signal_emitted(logger, "error_logged")
+	verify_signal_emitted(logger, "error_logged")
 
 func test_invalid_category_handling() -> void:
 	# Test with an invalid category value
@@ -130,18 +171,13 @@ func test_invalid_category_handling() -> void:
 	assert_eq(logger.error_history[0].category, ErrorLogger.ErrorCategory.VALIDATION, "Should default to VALIDATION category for invalid values")
 
 # Performance Tests
-func test_large_error_history() -> void:
-	# Test logging many errors
+func test_large_error_count() -> void:
 	for i in range(1000):
-		logger.log_error(
-			"Error %d" % i,
-			ErrorLogger.ErrorCategory.VALIDATION,
-			ErrorLogger.ErrorSeverity.ERROR,
-			{"index": i}
-		)
+		logger.log_error("Error %d" % i, 0, 1)
 	
 	assert_true(logger.error_history.size() <= 1000, "Should handle large number of errors")
-	assert_signal_emit_count(logger, "error_logged", 1000)
+	var emit_count: int = _signal_watcher.get_emit_count(logger, "error_logged")
+	assert_eq(emit_count, 1000, "Should emit signal for each error")
 
 func test_concurrent_operations() -> void:
 	# Test logging and clearing concurrently

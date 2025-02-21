@@ -108,7 +108,7 @@ func _should_seek_cover(enemy: Enemy) -> bool:
 	var memory = tactical_memory.get(enemy, {})
 	return memory.get("damage_taken", 0) > 0
 
-func _get_optimal_position(enemy: Enemy) -> Vector3:
+func _get_optimal_position(enemy: Enemy) -> Vector2:
 	# Implementation depends on your game's spatial system
 	return enemy.global_position
 
@@ -116,7 +116,7 @@ func _get_best_target(enemy: Enemy) -> Node:
 	# Implementation depends on your target selection system
 	return null
 
-func _find_nearest_cover(enemy: Enemy) -> Vector3:
+func _find_nearest_cover(enemy: Enemy) -> Vector2:
 	# Implementation depends on your cover system
 	return enemy.global_position
 

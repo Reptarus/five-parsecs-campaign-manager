@@ -9,7 +9,7 @@
 ## - Performance considerations
 ## - Signal emissions
 @tool
-extends "res://tests/fixtures/base_test.gd"
+extends FiveParsecsEnemyTest
 
 const Character := preload("res://src/core/character/Base/Character.gd")
 const FiveParsecsGameState := preload("res://src/core/state/GameState.gd")
@@ -25,16 +25,17 @@ var data_manager: CharacterDataManager
 var test_character: Character
 
 # Helper methods
-func create_test_character(name: String = "Test Character") -> Character:
-	var character: Character = Character.new()
-	character.character_name = name
+func create_test_character() -> Node:
+	var character = Character.new()
+	character.character_name = "Test Character"
 	character.character_class = GameEnums.CharacterClass.SOLDIER
+	track_test_resource(character)
 	return character
 
 func create_batch_characters(count: int) -> Array[Character]:
 	var characters: Array[Character] = []
 	for i in range(count):
-		characters.append(create_test_character("Character %d" % i))
+		characters.append(create_test_character())
 	return characters
 
 # Setup and teardown
@@ -123,13 +124,13 @@ func test_signal_emission_order() -> void:
 	var character := create_test_character()
 	
 	data_manager.save_character_data(character)
-	assert_signal_emit_count(data_manager, "character_data_saved", 1)
+	assert_eq(_signal_watcher.get_emit_count(data_manager, "character_data_saved"), 1)
 	
 	data_manager.set_active_character(0)
-	assert_signal_emit_count(data_manager, "active_character_changed", 1)
+	assert_eq(_signal_watcher.get_emit_count(data_manager, "active_character_changed"), 1)
 	
 	data_manager.delete_character_data(0)
-	assert_signal_emit_count(data_manager, "character_data_deleted", 1)
+	assert_eq(_signal_watcher.get_emit_count(data_manager, "character_data_deleted"), 1)
 
 # Error boundary tests
 func test_invalid_character_operations() -> void:

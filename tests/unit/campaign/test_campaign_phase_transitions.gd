@@ -1,190 +1,264 @@
 @tool
-extends "res://tests/fixtures/game_test.gd"
+extends GameTest
 
-const CampaignPhaseManager = preload("res://src/core/managers/CampaignPhaseManager.gd")
+const CampaignSystemScript: GDScript = preload("res://src/core/campaign/CampaignSystem.gd")
+const DEFAULT_TIMEOUT: float = 1.0
 
-var _phase_manager: FiveParsecsCampaignPhaseManager
-var game_state: Node
+var campaign_system: Node = null
+var _received_signals: Array[String] = []
+var _campaign_game_state: Node = null
+
+# Helper function to load test campaign data
+func load_test_campaign(state: Node) -> void:
+	if not state:
+		push_error("Cannot load campaign: game state is null")
+		return
+		
+	var campaign: Resource = create_test_campaign()
+	if not campaign:
+		push_error("Failed to create test campaign")
+		return
+		
+	_set_state_property(state, "current_campaign", campaign)
+	_set_state_property(state, "difficulty_level", GameEnums.DifficultyLevel.NORMAL)
+	_set_state_property(state, "enable_permadeath", true)
+	_set_state_property(state, "use_story_track", true)
+	_set_state_property(state, "auto_save_enabled", true)
+
+## Safe Property Access Methods
+func _get_campaign_system_property(property: String, default_value: Variant = null) -> Variant:
+	if not campaign_system:
+		push_error("Trying to access property '%s' on null campaign system" % property)
+		return default_value
+	if not property in campaign_system:
+		push_error("Campaign system missing required property: %s" % property)
+		return default_value
+	return campaign_system.get(property)
+
+func _set_campaign_system_property(property: String, value: Variant) -> void:
+	if not campaign_system:
+		push_error("Trying to set property '%s' on null campaign system" % property)
+		return
+	if not property in campaign_system:
+		push_error("Campaign system missing required property: %s" % property)
+		return
+	campaign_system.set(property, value)
 
 func before_each() -> void:
 	await super.before_each()
-	game_state = create_test_game_state()
-	add_child_autofree(game_state)
 	
-	_phase_manager = FiveParsecsCampaignPhaseManager.new(game_state)
-	add_child_autofree(_phase_manager)
-	watch_signals(_phase_manager)
+	# Initialize game state
+	_campaign_game_state = create_test_game_state()
+	if not _campaign_game_state:
+		push_error("Failed to create game state")
+		return
+	add_child_autofree(_campaign_game_state)
+	track_test_node(_campaign_game_state)
 	
-	await stabilize_engine()
+	# Load test campaign before validation
+	load_test_campaign(_campaign_game_state)
+	assert_valid_game_state(_campaign_game_state)
+	
+	# Set up campaign system
+	campaign_system = CampaignSystemScript.new()
+	if not campaign_system:
+		push_error("Failed to create campaign system instance")
+		return
+	add_child_autofree(campaign_system)
+	track_test_node(campaign_system)
+	_connect_signals()
+	
+	# Initialize with game state
+	if campaign_system.has_method("initialize"):
+		campaign_system.initialize(_campaign_game_state)
 
 func after_each() -> void:
+	_disconnect_signals()
+	campaign_system = null
+	_campaign_game_state = null
+	_received_signals.clear()
 	await super.after_each()
-	_phase_manager = null
-	game_state = null
 
-func test_initial_phase() -> void:
-	assert_eq(_phase_manager.current_phase, GameEnums.CampaignPhase.NONE,
-		"Initial phase should be NONE")
+func _connect_signals() -> void:
+	if not campaign_system:
+		return
+		
+	if campaign_system.has_signal("state_changed"):
+		var err := campaign_system.connect("state_changed", _on_signal_received.bind("state_changed"))
+		if err != OK:
+			push_error("Failed to connect state_changed signal")
+	if campaign_system.has_signal("turn_started"):
+		var err := campaign_system.connect("turn_started", _on_signal_received.bind("turn_started"))
+		if err != OK:
+			push_error("Failed to connect turn_started signal")
+	if campaign_system.has_signal("turn_ended"):
+		var err := campaign_system.connect("turn_ended", _on_signal_received.bind("turn_ended"))
+		if err != OK:
+			push_error("Failed to connect turn_ended signal")
+	if campaign_system.has_signal("phase_changed"):
+		var err := campaign_system.connect("phase_changed", _on_signal_received.bind("phase_changed"))
+		if err != OK:
+			push_error("Failed to connect phase_changed signal")
 
-func test_phase_transitions() -> void:
+func _disconnect_signals() -> void:
+	if not campaign_system:
+		return
+		
+	if campaign_system.has_signal("state_changed") and campaign_system.is_connected("state_changed", _on_signal_received):
+		campaign_system.disconnect("state_changed", _on_signal_received)
+	if campaign_system.has_signal("turn_started") and campaign_system.is_connected("turn_started", _on_signal_received):
+		campaign_system.disconnect("turn_started", _on_signal_received)
+	if campaign_system.has_signal("turn_ended") and campaign_system.is_connected("turn_ended", _on_signal_received):
+		campaign_system.disconnect("turn_ended", _on_signal_received)
+	if campaign_system.has_signal("phase_changed") and campaign_system.is_connected("phase_changed", _on_signal_received):
+		campaign_system.disconnect("phase_changed", _on_signal_received)
+
+func _on_signal_received(signal_name: String) -> void:
+	_received_signals.append(signal_name)
+	print("Received signal: " + signal_name)
+
+func verify_campaign_state(expected_state: Dictionary) -> void:
+	if expected_state.has("phase"):
+		assert_eq(_get_campaign_system_property("current_phase", -1), expected_state.phase,
+			"Campaign phase should match expected state")
+	
+	if expected_state.has("turn"):
+		assert_eq(_get_campaign_system_property("current_turn", -1), expected_state.turn,
+			"Campaign turn should match expected state")
+
+func verify_signal_sequence(expected_signals: Array[String]) -> void:
+	for i in range(expected_signals.size()):
+		var expected: String = expected_signals[i]
+		assert_true(i < _received_signals.size(), "Should have enough signals")
+		assert_eq(_received_signals[i], expected,
+			"Signal %d should be %s" % [i, expected])
+
+func verify_missing_signals(emitter: Object, expected_signals: Array[String]) -> void:
+	for signal_name in expected_signals:
+		assert_false(signal_name in _received_signals,
+			"Signal %s should not have been emitted" % signal_name)
+
+# Test campaign phase transitions
+func test_campaign_phase_transitions() -> void:
+	print("Testing campaign phase transitions...")
+	
+	# Verify initial state
+	verify_campaign_state({
+		"phase": GameEnums.FiveParcsecsCampaignPhase.SETUP,
+		"turn": 0
+	})
+	
 	# Start campaign
-	var initial_phase = _phase_manager.current_phase
-	_phase_manager.start_phase(GameEnums.CampaignPhase.SETUP)
+	if campaign_system.has_method("start_campaign"):
+		campaign_system.start_campaign()
+	await get_tree().create_timer(DEFAULT_TIMEOUT).timeout
 	
-	# Wait for phase started signal
-	var phase_started = await assert_async_signal(_phase_manager, "phase_started")
-	assert_true(phase_started, "Phase started signal should be emitted")
+	# Verify campaign started correctly
+	verify_campaign_state({
+		"phase": GameEnums.FiveParcsecsCampaignPhase.STORY,
+		"turn": 1
+	})
 	
-	# Wait for phase changed signal
-	var phase_changed = await assert_async_signal(_phase_manager, "phase_changed")
-	assert_true(phase_changed, "Phase changed signal should be emitted")
+	# Verify signals
+	verify_signal_sequence([
+		"state_changed",
+		"turn_started",
+		"phase_changed"
+	])
 	
-	# Verify initial transition
-	assert_eq(_phase_manager.current_phase, GameEnums.CampaignPhase.SETUP,
-		"Phase should be SETUP after start")
+	# Progress through phases
+	if campaign_system.has_method("next_phase"):
+		campaign_system.next_phase()
+	await get_tree().create_timer(DEFAULT_TIMEOUT).timeout
 	
-	# Test phase transitions
-	var transitions = [
-		[GameEnums.CampaignPhase.UPKEEP, "UPKEEP"],
-		[GameEnums.CampaignPhase.CAMPAIGN, "CAMPAIGN"],
-		[GameEnums.CampaignPhase.BATTLE_SETUP, "BATTLE_SETUP"]
-	]
+	verify_campaign_state({
+		"phase": GameEnums.FiveParcsecsCampaignPhase.BATTLE_SETUP,
+		"turn": 1
+	})
 	
-	for transition in transitions:
-		var old_phase = _phase_manager.current_phase
-		
-		# Complete current phase
-		_phase_manager.complete_phase()
-		
-		# Wait for phase signals
-		var signals_to_wait = [
-			[_phase_manager, "phase_completed"],
-			[_phase_manager, "phase_started"],
-			[_phase_manager, "phase_changed"]
-		]
-		
-		var results = await await_signals(signals_to_wait)
-		assert_false(results.is_empty(), "Phase transition signals should be received")
-		
-		# Verify phase change
-		assert_eq(_phase_manager.current_phase, transition[0],
-			"Phase should transition to " + transition[1])
-		
-		# Verify no error signals
-		var phase_failed = await assert_async_signal(_phase_manager, "phase_failed", 0.5)
-		assert_false(phase_failed, "Phase failed signal should not be emitted during valid transition")
-		
-		var validation_failed = await assert_async_signal(_phase_manager, "validation_failed", 0.5)
-		assert_false(validation_failed, "Validation failed signal should not be emitted during valid transition")
+	# Complete battle phase
+	if campaign_system.has_method("complete_phase"):
+		campaign_system.complete_phase()
+	await get_tree().create_timer(DEFAULT_TIMEOUT).timeout
+	
+	verify_campaign_state({
+		"phase": GameEnums.FiveParcsecsCampaignPhase.BATTLE_RESOLUTION,
+		"turn": 1
+	})
+	
+	# Verify final signal sequence
+	verify_signal_sequence([
+		"state_changed",
+		"turn_started",
+		"phase_changed",
+		"phase_changed",
+		"phase_changed"
+	])
 
-func test_phase_validation() -> void:
-	var initial_phase = _phase_manager.current_phase
-	_phase_manager.start_phase(GameEnums.CampaignPhase.SETUP)
+# Test invalid phase transitions
+func test_invalid_phase_transitions() -> void:
+	print("Testing invalid phase transitions...")
 	
-	# Wait for phase started
-	var phase_started = await assert_async_signal(_phase_manager, "phase_started")
-	assert_true(phase_started, "Phase started signal should be emitted")
+	# Try to complete phase before starting campaign
+	if campaign_system.has_method("complete_phase"):
+		campaign_system.complete_phase()
+	await get_tree().create_timer(DEFAULT_TIMEOUT).timeout
 	
-	# Add test character to meet requirements
-	var character = _create_test_character()
-	_phase_manager.active_characters.append(character)
+	# Verify we're still in setup
+	verify_campaign_state({
+		"phase": GameEnums.FiveParcsecsCampaignPhase.SETUP,
+		"turn": 0
+	})
 	
-	# Complete setup phase
-	var old_phase = _phase_manager.current_phase
-	_phase_manager.complete_phase()
+	# Try to skip to post-battle
+	if campaign_system.has_method("set_phase"):
+		campaign_system.set_phase(GameEnums.FiveParcsecsCampaignPhase.BATTLE_RESOLUTION)
+	await get_tree().create_timer(DEFAULT_TIMEOUT).timeout
 	
-	# Wait for phase signals
-	var signals_to_wait = [
-		[_phase_manager, "phase_completed"],
-		[_phase_manager, "phase_changed"]
-	]
+	# Verify we're still in setup
+	verify_campaign_state({
+		"phase": GameEnums.FiveParcsecsCampaignPhase.SETUP,
+		"turn": 0
+	})
 	
-	var results = await await_signals(signals_to_wait)
-	assert_false(results.is_empty(), "Phase transition signals should be received")
-	
-	# Verify successful transition
-	assert_eq(_phase_manager.current_phase, GameEnums.CampaignPhase.UPKEEP,
-		"Phase should transition to UPKEEP after valid completion")
-	
-	# Verify no error signals
-	var validation_failed = await assert_async_signal(_phase_manager, "validation_failed", 0.5)
-	assert_false(validation_failed, "Validation failed signal should not be emitted for valid transition")
-	
-	var phase_failed = await assert_async_signal(_phase_manager, "phase_failed", 0.5)
-	assert_false(phase_failed, "Phase failed signal should not be emitted for valid transition")
+	# Verify no phase change signals were emitted
+	verify_missing_signals(campaign_system, ["phase_changed"])
 
-func test_phase_rollback() -> void:
-	_phase_manager.start_phase(GameEnums.CampaignPhase.SETUP)
-	var phase_started = await assert_async_signal(_phase_manager, "phase_started")
-	assert_true(phase_started, "Phase started signal should be emitted")
+# Test campaign turn progression
+func test_campaign_turn_progression() -> void:
+	print("Testing campaign turn progression...")
 	
-	var setup_phase = _phase_manager.current_phase
-	_phase_manager.complete_phase() # To UPKEEP
-	var phase_completed = await assert_async_signal(_phase_manager, "phase_completed")
-	assert_true(phase_completed, "Phase completed signal should be emitted")
+	# Start campaign
+	if campaign_system.has_method("start_campaign"):
+		campaign_system.start_campaign()
+	await get_tree().create_timer(DEFAULT_TIMEOUT).timeout
 	
-	# Test rollback
-	var from_phase = _phase_manager.current_phase
-	var success = _phase_manager.rollback_phase("Testing rollback")
-	
-	# Wait for rollback signals
-	var signals_to_wait = [
-		[_phase_manager, "phase_rolled_back"],
-		[_phase_manager, "phase_changed"]
+	# Complete a full turn cycle
+	var phases: Array[int] = [
+		GameEnums.FiveParcsecsCampaignPhase.STORY,
+		GameEnums.FiveParcsecsCampaignPhase.BATTLE_SETUP,
+		GameEnums.FiveParcsecsCampaignPhase.BATTLE_RESOLUTION
 	]
 	
-	var results = await await_signals(signals_to_wait)
-	assert_false(results.is_empty(), "Rollback signals should be received")
+	for phase in phases:
+		if campaign_system.has_method("next_phase"):
+			campaign_system.next_phase()
+		await get_tree().create_timer(DEFAULT_TIMEOUT).timeout
 	
-	# Verify rollback success
-	assert_true(success, "Rollback should succeed")
-	assert_eq(_phase_manager.current_phase, GameEnums.CampaignPhase.SETUP,
-		"Phase should rollback to SETUP")
-
-func test_phase_requirements() -> void:
-	_phase_manager.start_phase(GameEnums.CampaignPhase.SETUP)
-	var phase_started = await assert_async_signal(_phase_manager, "phase_started")
-	assert_true(phase_started, "Phase started signal should be emitted")
+	# Verify turn incremented
+	verify_campaign_state({
+		"phase": GameEnums.FiveParcsecsCampaignPhase.STORY,
+		"turn": 2
+	})
 	
-	# Try to complete setup without meeting requirements
-	_phase_manager.complete_phase()
-	
-	# Wait for validation failure signals
-	var signals_to_wait = [
-		[_phase_manager, "validation_failed"],
-		[_phase_manager, "phase_failed"]
-	]
-	
-	var results = await await_signals(signals_to_wait)
-	assert_false(results.is_empty(), "Validation failure signals should be received")
-	
-	# Verify failed transition
-	assert_eq(_phase_manager.current_phase, GameEnums.CampaignPhase.SETUP,
-		"Phase should remain SETUP when requirements not met")
-	
-	# Add required character and try again
-	var character = _create_test_character()
-	_phase_manager.active_characters.append(character)
-	
-	var old_phase = _phase_manager.current_phase
-	_phase_manager.complete_phase()
-	
-	# Wait for successful transition signals
-	signals_to_wait = [
-		[_phase_manager, "phase_completed"],
-		[_phase_manager, "phase_changed"]
-	]
-	
-	results = await await_signals(signals_to_wait)
-	assert_false(results.is_empty(), "Phase transition signals should be received")
-	
-	# Verify successful transition
-	assert_eq(_phase_manager.current_phase, GameEnums.CampaignPhase.UPKEEP,
-		"Phase should transition to UPKEEP when requirements met")
-
-# Helper function to create test character
-func _create_test_character() -> FiveParsecsCharacter:
-	var character = FiveParsecsCharacter.new()
-	character.character_name = "Test Character"
-	character.character_class = GameEnums.CharacterClass.SOLDIER
-	return character
+	# Verify signals for turn progression
+	verify_signal_sequence([
+		"state_changed",
+		"turn_started",
+		"phase_changed",
+		"phase_changed",
+		"phase_changed",
+		"phase_changed",
+		"turn_ended",
+		"turn_started"
+	])

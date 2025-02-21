@@ -1,27 +1,27 @@
 @tool
-extends "res://tests/fixtures/base_test.gd"
+extends FiveParsecsEnemyTest
 
 const BattleStateMachine = preload("res://src/core/battle/state/BattleStateMachine.gd")
 const Character = preload("res://src/core/character/Base/Character.gd")
 const GameStateManager = preload("res://src/core/managers/GameStateManager.gd")
 
 var _state_machine: BattleStateMachine
-var _game_state: GameStateManager
+var _test_game_state: GameStateManager
 
 func before_each() -> void:
 	await super.before_each()
-	_game_state = GameStateManager.new()
-	add_child(_game_state)
-	track_test_node(_game_state)
+	_test_game_state = GameStateManager.new()
+	add_child(_test_game_state)
+	track_test_node(_test_game_state)
 	
-	_state_machine = BattleStateMachine.new(_game_state)
+	_state_machine = BattleStateMachine.new(_test_game_state)
 	add_child(_state_machine)
 	track_test_node(_state_machine)
 
 func after_each() -> void:
 	await super.after_each()
 	_state_machine = null
-	_game_state = null
+	_test_game_state = null
 
 func test_battle_phase_transitions() -> void:
 	# Test initial state

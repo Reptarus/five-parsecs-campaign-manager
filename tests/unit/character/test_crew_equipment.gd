@@ -1,24 +1,60 @@
 @tool
-extends "res://tests/fixtures/base_test.gd"
+extends GameTest
 
-const Character = preload("res://src/core/character/Base/Character.gd")
+const FiveParsecsCharacter = preload("res://src/core/character/Base/Character.gd")
 
 var _character: FiveParsecsCharacter
 
 func before_each() -> void:
 	await super.before_each()
 	_character = FiveParsecsCharacter.new()
-	_character.character_name = "Test Character"
-	_character.character_class = GameEnums.CharacterClass.SOLDIER
+	track_test_resource(_character)
+	_setup_character()
 
 func after_each() -> void:
-	await super.after_each()
 	_character = null
+	await super.after_each()
+
+func _setup_character() -> void:
+	if not _character:
+		return
+		
+	_set_character_property("character_name", "Test Character")
+	_set_character_property("character_class", GameEnums.CharacterClass.SOLDIER)
+
+## Safe Property Access Methods
+func _get_character_property(property: String, default_value = null) -> Variant:
+	if not _character:
+		push_error("Trying to access property '%s' on null character" % property)
+		return default_value
+	if not property in _character:
+		push_error("Character missing required property: %s" % property)
+		return default_value
+	return _character.get(property)
+
+func _set_character_property(property: String, value: Variant) -> void:
+	if not _character:
+		push_error("Trying to set property '%s' on null character" % property)
+		return
+	if not property in _character:
+		push_error("Character missing required property: %s" % property)
+		return
+	_character.set(property, value)
+
+func _get_equipment_array(type: String) -> Array:
+	match type:
+		"weapon":
+			return _get_character_property("weapons", [])
+		"armor":
+			return _get_character_property("armor", [])
+		_:
+			push_error("Invalid equipment type: %s" % type)
+			return []
 
 func test_equipment_slots() -> void:
 	# Test initial state
-	assert_eq(_character.weapons.size(), 0)
-	assert_eq(_character.armor.size(), 0)
+	assert_eq(_get_equipment_array("weapon").size(), 0, "Initial weapons array should be empty")
+	assert_eq(_get_equipment_array("armor").size(), 0, "Initial armor array should be empty")
 	
 	# Create test equipment
 	var weapon = _create_test_weapon("Test Rifle")
@@ -26,17 +62,17 @@ func test_equipment_slots() -> void:
 	
 	# Test adding equipment
 	_character.add_item({"type": "weapon", "data": weapon})
-	assert_eq(_character.weapons.size(), 1)
+	assert_eq(_get_equipment_array("weapon").size(), 1, "Should have one weapon equipped")
 	
 	_character.add_item({"type": "armor", "data": armor})
-	assert_eq(_character.armor.size(), 1)
+	assert_eq(_get_equipment_array("armor").size(), 1, "Should have one armor equipped")
 	
 	# Test removing equipment
 	_character.remove_item({"type": "weapon", "data": weapon})
-	assert_eq(_character.weapons.size(), 0)
+	assert_eq(_get_equipment_array("weapon").size(), 0, "Weapons array should be empty after removal")
 	
 	_character.remove_item({"type": "armor", "data": armor})
-	assert_eq(_character.armor.size(), 0)
+	assert_eq(_get_equipment_array("armor").size(), 0, "Armor array should be empty after removal")
 
 func test_equipment_stats() -> void:
 	var weapon = _create_test_weapon("Combat Rifle")
@@ -53,24 +89,27 @@ func test_equipment_stats() -> void:
 	
 	# Test stat modifications
 	var combat_stats = _character.get_combat_stats()
-	assert_eq(combat_stats.base_damage, weapon.damage)
-	assert_eq(combat_stats.accuracy, weapon.accuracy)
-	assert_eq(combat_stats.defense, armor.defense)
-	assert_eq(combat_stats.mobility, _character.base_mobility + armor.mobility_penalty)
+	assert_not_null(combat_stats, "Combat stats should not be null")
+	assert_eq(combat_stats.base_damage, weapon.damage, "Base damage should match weapon damage")
+	assert_eq(combat_stats.accuracy, weapon.accuracy, "Accuracy should match weapon accuracy")
+	assert_eq(combat_stats.defense, armor.defense, "Defense should match armor defense")
+	
+	var base_mobility = _get_character_property("base_mobility", 0)
+	assert_eq(combat_stats.mobility, base_mobility + armor.mobility_penalty, "Mobility should be base + penalty")
 
 func test_equipment_requirements() -> void:
 	var heavy_weapon = _create_test_weapon("Heavy Weapon")
 	heavy_weapon.strength_requirement = 4
 	
 	# Test equipping with insufficient stats
-	_character.toughness = 3
+	_set_character_property("toughness", 3)
 	var can_equip = _character.can_equip_item({"type": "weapon", "data": heavy_weapon})
-	assert_false(can_equip)
+	assert_false(can_equip, "Should not be able to equip with insufficient stats")
 	
 	# Test equipping with sufficient stats
-	_character.toughness = 4
+	_set_character_property("toughness", 4)
 	can_equip = _character.can_equip_item({"type": "weapon", "data": heavy_weapon})
-	assert_true(can_equip)
+	assert_true(can_equip, "Should be able to equip with sufficient stats")
 
 func test_equipment_effects() -> void:
 	var weapon = _create_test_weapon("Effect Weapon")
@@ -88,10 +127,11 @@ func test_equipment_effects() -> void:
 	_character.add_item({"type": "weapon", "data": weapon})
 	var weapon_effects = _character.get_weapon_effects()
 	
-	assert_true(weapon_effects.has(GameEnums.ArmorCharacteristic.SHIELD))
-	assert_true(weapon_effects.has(GameEnums.ArmorCharacteristic.POWERED))
-	assert_eq(weapon_effects[GameEnums.ArmorCharacteristic.SHIELD], 2)
-	assert_eq(weapon_effects[GameEnums.ArmorCharacteristic.POWERED], 1)
+	assert_not_null(weapon_effects, "Weapon effects should not be null")
+	assert_true(weapon_effects.has(GameEnums.ArmorCharacteristic.SHIELD), "Should have shield effect")
+	assert_true(weapon_effects.has(GameEnums.ArmorCharacteristic.POWERED), "Should have powered effect")
+	assert_eq(weapon_effects[GameEnums.ArmorCharacteristic.SHIELD], 2, "Shield effect should have correct value")
+	assert_eq(weapon_effects[GameEnums.ArmorCharacteristic.POWERED], 1, "Powered effect should have correct value")
 
 func test_equipment_durability() -> void:
 	var weapon = _create_test_weapon("Durability Test Weapon")
@@ -102,16 +142,17 @@ func test_equipment_durability() -> void:
 	
 	# Test durability loss
 	_character.damage_item({"type": "weapon", "data": weapon}, 10)
-	assert_eq(weapon.current_durability, 90)
+	assert_eq(weapon.current_durability, 90, "Durability should decrease by damage amount")
 	
 	# Test breaking point
 	_character.damage_item({"type": "weapon", "data": weapon}, 90)
-	assert_eq(weapon.current_durability, 0)
-	assert_true(weapon.is_broken())
+	assert_eq(weapon.current_durability, 0, "Durability should not go below 0")
+	assert_true(weapon.is_broken(), "Weapon should be broken at 0 durability")
 	
 	# Test weapon effectiveness when broken
 	var combat_stats = _character.get_combat_stats()
-	assert_true(combat_stats.damage_penalty < 0)
+	assert_not_null(combat_stats, "Combat stats should not be null")
+	assert_true(combat_stats.damage_penalty < 0, "Broken weapon should apply damage penalty")
 
 # Helper function to create test weapons
 func _create_test_weapon(weapon_name: String) -> Resource:

@@ -50,17 +50,28 @@ func _connect_signals() -> void:
 	battlefield.connect("unit_selected", _on_unit_selected)
 	
 	# Preview signals
-	if regenerate_button:
+	if regenerate_button and "pressed" in regenerate_button:
 		regenerate_button.pressed.connect(_on_regenerate_pressed)
 	
 	# Action buttons
 	var action_buttons = $BattleLayout/MainContent/SidePanel/VBoxContainer/ActionPanel/VBoxContainer/ActionButtons
-	action_buttons.get_node("MoveButton").pressed.connect(_on_action_button_pressed.bind(GameEnums.UnitAction.MOVE))
-	action_buttons.get_node("AttackButton").pressed.connect(_on_action_button_pressed.bind(GameEnums.UnitAction.ATTACK))
-	action_buttons.get_node("DashButton").pressed.connect(_on_action_button_pressed.bind(GameEnums.UnitAction.DASH))
-	action_buttons.get_node("ItemsButton").pressed.connect(_on_action_button_pressed.bind(GameEnums.UnitAction.USE_ITEM))
-	action_buttons.get_node("BrawlButton").pressed.connect(_on_action_button_pressed.bind(GameEnums.UnitAction.BRAWL))
-	action_buttons.get_node("EndTurnButton").pressed.connect(_on_end_turn_pressed)
+	if action_buttons:
+		var buttons = {
+			"MoveButton": GameEnums.UnitAction.MOVE,
+			"AttackButton": GameEnums.UnitAction.ATTACK,
+			"DashButton": GameEnums.UnitAction.DASH,
+			"ItemsButton": GameEnums.UnitAction.USE_ITEM,
+			"BrawlButton": GameEnums.UnitAction.BRAWL,
+			"EndTurnButton": - 1
+		}
+		
+		for button_name in buttons:
+			var button = action_buttons.get_node_or_null(button_name)
+			if button and "pressed" in button:
+				if button_name == "EndTurnButton":
+					button.pressed.connect(_on_end_turn_pressed)
+				else:
+					button.pressed.connect(_on_action_button_pressed.bind(buttons[button_name]))
 
 func _on_battle_started() -> void:
 	_update_ui()
@@ -87,14 +98,15 @@ func _initialize_battlefield_preview() -> void:
 func _update_preview_info() -> void:
 	var preview_info = $BattleLayout/MainContent/SidePanel/VBoxContainer/PreviewPanel/PreviewInfo
 	var info_text = "[b]Mission Preview[/b]\n"
-	info_text += "Type: " + GlobalEnums.MissionType.keys()[mission_type] + "\n"
-	info_text += "Deployment: " + GlobalEnums.DeploymentType.keys()[deployment_type] + "\n"
-	info_text += "Terrain: " + current_mission.terrain_type + "\n"
-	info_text += "Enemy Count: " + str(current_mission.enemy_count) + "\n"
-	info_text += "Difficulty: " + GlobalEnums.DifficultyLevel.keys()[current_mission.difficulty] + "\n"
+	info_text += "Type: " + GlobalEnums.MissionType.keys()[_get_mission_property(current_mission, "mission_type", GameEnums.MissionType.NONE)] + "\n"
+	info_text += "Deployment: " + GlobalEnums.DeploymentType.keys()[_get_mission_property(current_mission, "deployment_type", GameEnums.DeploymentType.NONE)] + "\n"
+	info_text += "Terrain: " + str(_get_mission_property(current_mission, "terrain_type", "Unknown")) + "\n"
+	info_text += "Enemy Count: " + str(_get_mission_property(current_mission, "enemy_count", 0)) + "\n"
+	info_text += "Difficulty: " + GlobalEnums.DifficultyLevel.keys()[_get_mission_property(current_mission, "difficulty", GameEnums.DifficultyLevel.NONE)] + "\n"
 	info_text += "\n[b]Objectives:[/b]\n"
 	
-	for objective in current_mission.objectives:
+	var objectives = _get_mission_property(current_mission, "objectives", [])
+	for objective in objectives:
 		info_text += "- " + GlobalEnums.MissionObjective.keys()[objective.type] + "\n"
 	
 	preview_info.text = info_text
@@ -144,14 +156,14 @@ func _handle_activation_phase() -> void:
 func _on_combat_effect(effect_name: String, source: Node, target: Node) -> void:
 	var message = ""
 	if source:
-		message += source.name + " "
+		message += _get_character_name(source) + " "
 	message += effect_name
 	if target:
-		message += " on " + target.name
+		message += " on " + _get_character_name(target)
 	add_to_battle_log(message)
 
 func _on_reaction_opportunity(unit: Node, reaction_type: String, source: Node) -> void:
-	add_to_battle_log(unit.name + " has reaction opportunity: " + reaction_type)
+	add_to_battle_log(_get_character_name(unit) + " has reaction opportunity: " + reaction_type)
 	# Show reaction UI
 	_show_reaction_options(unit, reaction_type, source)
 
@@ -216,11 +228,14 @@ func _update_ui() -> void:
 
 func _update_unit_info() -> void:
 	if selected_unit:
-		var stats_text = "[b]" + selected_unit.name + "[/b]\n"
-		stats_text += "HP: " + str(selected_unit.current_hp) + "/" + str(selected_unit.max_hp) + "\n"
-		stats_text += "Action Points: " + str(selected_unit.action_points) + "\n"
-		stats_text += "Combat: " + str(selected_unit.combat) + "\n"
-		stats_text += "Savvy: " + str(selected_unit.savvy) + "\n"
+		var stats_text = "[b]" + _get_character_name(selected_unit) + "[/b]\n"
+		var health = _get_character_health(selected_unit)
+		var stats = _get_character_stats(selected_unit)
+		
+		stats_text += "HP: " + str(health.current) + "/" + str(health.max) + "\n"
+		stats_text += "Action Points: " + str(stats.action_points) + "\n"
+		stats_text += "Combat: " + str(stats.combat) + "\n"
+		stats_text += "Savvy: " + str(stats.savvy) + "\n"
 		unit_stats.text = stats_text
 	else:
 		unit_stats.text = "Select a unit to view stats"
@@ -232,25 +247,76 @@ func _update_action_buttons() -> void:
 	var buttons = $BattleLayout/MainContent/SidePanel/VBoxContainer/ActionPanel/VBoxContainer/ActionButtons
 	
 	for action in GameEnums.UnitAction.values():
-		var button = buttons.get_node(GameEnums.UnitAction.keys()[action].capitalize() + "Button")
+		var button = buttons.get_node_or_null(GameEnums.UnitAction.keys()[action].capitalize() + "Button")
 		if button:
 			button.disabled = not five_parcecs_system.can_perform_action(selected_unit, action)
 
 func add_to_battle_log(message: String) -> void:
+	if not battle_log or not "text" in battle_log:
+		push_error("Battle log missing or missing text property")
+		return
+		
 	var timestamp = Time.get_time_string_from_system()
 	battle_log.text += "\n[" + timestamp + "] " + message
 	# Auto-scroll to bottom
-	battle_log.scroll_to_line(battle_log.get_line_count() - 1)
+	if "get_line_count" in battle_log:
+		battle_log.scroll_to_line(battle_log.get_line_count() - 1)
 
 func _show_battle_summary(result: Dictionary) -> void:
 	# Implement battle summary UI
 	pass
 
 func _update_battle_info() -> void:
-	var info_text = "Mission: " + current_mission.mission_name + "\n"
-	info_text += "Type: " + GlobalEnums.MissionType.keys()[current_mission.mission_type] + "\n"
-	info_text += "Difficulty: " + GlobalEnums.DifficultyLevel.keys()[current_mission.difficulty] + "\n"
+	if not current_mission:
+		return
+		
+	var info_text = "Mission: " + _get_mission_property(current_mission, "mission_name", "Unknown") + "\n"
+	info_text += "Type: " + GlobalEnums.MissionType.keys()[_get_mission_property(current_mission, "mission_type", GameEnums.MissionType.NONE)] + "\n"
+	info_text += "Difficulty: " + GlobalEnums.DifficultyLevel.keys()[_get_mission_property(current_mission, "difficulty", GameEnums.DifficultyLevel.NONE)] + "\n"
 	info_text += "Turn: " + str(five_parcecs_system.current_turn) + "\n"
 	info_text += "Phase: " + GlobalEnums.BattlePhase.keys()[five_parcecs_system.current_phase] + "\n"
 	
-	battle_info_label.text = info_text
+	if battle_info_label and "text" in battle_info_label:
+		battle_info_label.text = info_text
+
+## Safe Property Access Methods
+func _get_character_name(character: Node) -> String:
+	if not character or not "character_name" in character:
+		push_error("Invalid character or missing character_name property")
+		return "Unknown"
+	return character.character_name
+
+func _get_character_health(character: Node) -> Dictionary:
+	var health_data := {"current": 0, "max": 0}
+	if not character:
+		push_error("Trying to access health of null character")
+		return health_data
+		
+	health_data.current = character.current_hp if "current_hp" in character else 0
+	health_data.max = character.max_hp if "max_hp" in character else 0
+	return health_data
+
+func _get_character_stats(character: Node) -> Dictionary:
+	var stats := {
+		"combat": 0,
+		"savvy": 0,
+		"action_points": 0
+	}
+	
+	if not character:
+		push_error("Trying to access stats of null character")
+		return stats
+		
+	stats.combat = character.combat if "combat" in character else 0
+	stats.savvy = character.savvy if "savvy" in character else 0
+	stats.action_points = character.action_points if "action_points" in character else 0
+	return stats
+
+func _get_mission_property(mission: Mission, property: String, default_value = null) -> Variant:
+	if not mission:
+		push_error("Trying to access property '%s' on null mission" % property)
+		return default_value
+	if not property in mission:
+		push_error("Mission missing required property: %s" % property)
+		return default_value
+	return mission.get(property)

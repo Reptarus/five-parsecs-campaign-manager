@@ -236,13 +236,13 @@ func validate_deployment(units: Array[Character]) -> Dictionary:
 	for unit in units:
 		if not unit in unit_positions:
 			validation.valid = false
-			validation.messages.append("Unit not placed: %s" % unit.name)
+			validation.messages.append("Unit not placed: %s" % _get_character_name(unit))
 			continue
 		
 		var position = unit_positions[unit]
 		if not is_valid_deployment_position(position, "player"):
 			validation.valid = false
-			validation.messages.append("Unit outside deployment zone: %s" % unit.name)
+			validation.messages.append("Unit outside deployment zone: %s" % _get_character_name(unit))
 	
 	battlefield_validated.emit(validation)
 	return validation
@@ -411,3 +411,70 @@ func _terrain_to_environment(terrain_type: TerrainTypes.Type) -> GameEnums.Plane
 			return GameEnums.PlanetEnvironment.FOREST
 		_:
 			return GameEnums.PlanetEnvironment.NONE
+
+## Gets the position of a character on the battlefield
+func get_character_position(character: FiveParsecsCharacter) -> Vector2:
+	if character in unit_positions:
+		return Vector2(unit_positions[character].x, unit_positions[character].y)
+	return Vector2.ZERO
+
+## Safe Property Access Methods
+func _get_character_name(character: Character) -> String:
+	if not character:
+		push_error("Trying to access name of null character")
+		return "Unknown"
+	return character.character_name if "character_name" in character else "Unknown"
+
+func _is_character_bot(character: Character) -> bool:
+	if not character:
+		push_error("Trying to access bot status of null character")
+		return false
+	return character.is_bot if "is_bot" in character else false
+
+## Gets all player characters on the battlefield
+func get_player_characters() -> Array[Character]:
+	var players: Array[Character] = []
+	for unit in unit_positions.keys():
+		if unit is Character and not _is_character_bot(unit):
+			players.append(unit)
+	return players
+
+## Gets all enemy characters on the battlefield
+func get_enemy_characters() -> Array[Character]:
+	var enemies: Array[Character] = []
+	for unit in unit_positions.keys():
+		if unit is Character and _is_character_bot(unit):
+			enemies.append(unit)
+	return enemies
+
+## Gets the cover value at a position
+func get_cover_at_position(position: Vector2) -> float:
+	var grid_pos := Vector2i(position)
+	if not _is_valid_position(grid_pos):
+		return 0.0
+	return cover_map[grid_pos.x][grid_pos.y]
+
+## Checks if a position has cover
+func position_has_cover(position: Vector2) -> bool:
+	return get_cover_at_position(position) > 0.0
+
+## Checks if a position is valid on the battlefield
+func is_valid_position(position: Vector2) -> bool:
+	var grid_pos := Vector2i(position)
+	return grid_pos.x >= 0 and grid_pos.x < GRID_SIZE.x and grid_pos.y >= 0 and grid_pos.y < GRID_SIZE.y
+
+## Checks line of sight between two positions
+func check_line_of_sight(from: Vector2, to: Vector2) -> bool:
+	var from_grid := Vector2i(from)
+	var to_grid := Vector2i(to)
+	return has_line_of_sight(from_grid, to_grid)
+
+## Gets characters within a radius of a position
+func get_characters_in_radius(center: Vector2, radius: float) -> Array[FiveParsecsCharacter]:
+	var in_range: Array[FiveParsecsCharacter] = []
+	for unit in unit_positions.keys():
+		if unit is FiveParsecsCharacter:
+			var unit_pos := Vector2(unit_positions[unit].x, unit_positions[unit].y)
+			if center.distance_to(unit_pos) <= radius:
+				in_range.append(unit)
+	return in_range

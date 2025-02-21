@@ -4,7 +4,7 @@
 ## through metadata management and game-specific feature flags.
 ## Includes performance testing and error boundary verification.
 @tool
-extends "res://tests/fixtures/base_test.gd"
+extends FiveParsecsEnemyTest
 
 # Type definitions
 var core_features: Node

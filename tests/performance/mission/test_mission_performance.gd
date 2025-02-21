@@ -1,5 +1,5 @@
 @tool
-extends "res://tests/fixtures/game_test.gd"
+extends GutTest
 
 ## Performance tests for mission systems
 ##
@@ -9,53 +9,69 @@ extends "res://tests/fixtures/game_test.gd"
 ## - Mission rewards calculation
 ## - Mission serialization and persistence
 
-const Mission = preload("res://src/core/systems/Mission.gd")
-const MissionGenerator = preload("res://src/core/systems/MissionGenerator.gd")
-const MissionTemplate = preload("res://src/core/templates/MissionTemplate.gd")
+const MissionScript: GDScript = preload("res://src/core/systems/Mission.gd")
+const MissionGeneratorScript: GDScript = preload("res://src/core/systems/MissionGenerator.gd")
+const MissionTemplateScript: GDScript = preload("res://src/core/templates/MissionTemplate.gd")
+const TypeSafeMixin: GDScript = preload("res://tests/fixtures/type_safe_test_mixin.gd")
 
 # Performance thresholds (in milliseconds)
-const GENERATION_THRESHOLD := 50
-const STATE_UPDATE_THRESHOLD := 10
-const SERIALIZATION_THRESHOLD := 20
-const BATCH_SIZE := 100
+const GENERATION_THRESHOLD: int = 50
+const STATE_UPDATE_THRESHOLD: int = 10
+const SERIALIZATION_THRESHOLD: int = 20
+const BATCH_SIZE: int = 100
 
-var _mission_generator: MissionGenerator
-var _template: Resource
+# Test variables with explicit types
+var _mission_generator: Node = null
+var _template: Resource = null
 
 # Helper methods
-func _get_template() -> MissionTemplate:
-	return _template as Object
+func _get_template() -> Resource:
+	return _template
 
 # Test lifecycle methods
 func before_each() -> void:
 	await super.before_each()
-	_mission_generator = MissionGenerator.new()
-	add_child(_mission_generator)
-	track_test_node(_mission_generator)
 	
-	_template = MissionTemplate.new()
-	var mission_template := _template as Object
-	if mission_template.has_method("set_mission_type"):
-		mission_template.set_mission_type(GameEnums.MissionType.PATROL)
-		mission_template.set_difficulty_range(1, 3)
-		mission_template.set_reward_range(100, 300)
-	track_test_resource(_template)
+	_mission_generator = TypeSafeMixin._safe_cast_to_node(MissionGeneratorScript.new(), "MissionGenerator")
+	if not _mission_generator:
+		push_error("Failed to create mission generator")
+		return
+	
+	add_child(_mission_generator)
+	
+	_template = TypeSafeMixin._safe_cast_to_resource(MissionTemplateScript.new(), "MissionTemplate")
+	if not _template:
+		push_error("Failed to create mission template")
+		return
+		
+	var template: Resource = _get_template()
+	TypeSafeMixin._safe_method_call_bool(template, "set_mission_type", [GameEnums.MissionType.PATROL])
+	TypeSafeMixin._safe_method_call_bool(template, "set_difficulty_range", [1, 3])
+	TypeSafeMixin._safe_method_call_bool(template, "set_reward_range", [100, 300])
 
 func after_each() -> void:
 	await super.after_each()
+	
+	if is_instance_valid(_mission_generator):
+		remove_child(_mission_generator)
+		_mission_generator.queue_free()
+	
 	_mission_generator = null
 	_template = null
 
 # Generation Performance Tests
 func test_batch_mission_generation() -> void:
-	var total_time := 0
-	var missions: Array[Mission] = []
-	var template := _get_template()
+	var total_time: int = 0
+	var missions: Array[Resource] = []
+	var template: Resource = _get_template()
 	
 	for i in range(BATCH_SIZE):
-		var start_time := Time.get_ticks_msec()
-		var mission = _mission_generator.generate_mission(template)
-		track_test_resource(mission)
+		var start_time: int = Time.get_ticks_msec()
+		var mission: Resource = TypeSafeMixin._safe_method_call_resource(_mission_generator, "generate_mission", [template])
+		if not mission:
+			push_error("Failed to generate mission %d" % i)
+			continue
+			
 		missions.append(mission)
 		total_time += Time.get_ticks_msec() - start_time
 	
@@ -65,23 +81,28 @@ func test_batch_mission_generation() -> void:
 
 # State Update Performance Tests
 func test_objective_update_performance() -> void:
-	var template := _get_template()
-	var mission = _mission_generator.generate_mission(template)
-	track_test_resource(mission)
-	
+	var template: Resource = _get_template()
+	var mission: Resource = TypeSafeMixin._safe_method_call_resource(_mission_generator, "generate_mission", [template])
+	if not mission:
+		push_error("Failed to generate mission")
+		return
+		
 	# Add many objectives
+	var objectives: Array = []
 	for i in range(BATCH_SIZE):
-		mission.objectives.append({
+		objectives.append({
 			"type": GameEnums.MissionObjective.PATROL,
 			"description": "Test objective %d" % i,
 			"completed": false,
 			"is_primary": false
 		})
 	
-	var total_time := 0
+	TypeSafeMixin._safe_method_call_bool(mission, "set", ["objectives", objectives])
+	
+	var total_time: int = 0
 	for i in range(BATCH_SIZE):
-		var start_time := Time.get_ticks_msec()
-		mission.complete_objective(i)
+		var start_time: int = Time.get_ticks_msec()
+		TypeSafeMixin._safe_method_call_bool(mission, "complete_objective", [i])
 		total_time += Time.get_ticks_msec() - start_time
 	
 	var average_time: float = total_time / float(BATCH_SIZE)
@@ -90,23 +111,28 @@ func test_objective_update_performance() -> void:
 
 # Serialization Performance Tests
 func test_mission_serialization_performance() -> void:
-	var template := _get_template()
-	var mission = _mission_generator.generate_mission(template)
-	track_test_resource(mission)
-	
+	var template: Resource = _get_template()
+	var mission: Resource = TypeSafeMixin._safe_method_call_resource(_mission_generator, "generate_mission", [template])
+	if not mission:
+		push_error("Failed to generate mission")
+		return
+		
 	# Add many objectives and rewards
+	var objectives: Array = []
 	for i in range(BATCH_SIZE):
-		mission.objectives.append({
+		objectives.append({
 			"type": GameEnums.MissionObjective.PATROL,
 			"description": "Test objective %d" % i,
 			"completed": false,
 			"is_primary": false
 		})
 	
-	var total_time := 0
+	TypeSafeMixin._safe_method_call_bool(mission, "set", ["objectives", objectives])
+	
+	var total_time: int = 0
 	for i in range(BATCH_SIZE):
-		var start_time := Time.get_ticks_msec()
-		var _save_data = mission.serialize()
+		var start_time: int = Time.get_ticks_msec()
+		var _save_data: Dictionary = TypeSafeMixin._safe_method_call_dict(mission, "serialize")
 		total_time += Time.get_ticks_msec() - start_time
 	
 	var average_time: float = total_time / float(BATCH_SIZE)
@@ -115,16 +141,19 @@ func test_mission_serialization_performance() -> void:
 
 # Memory Usage Tests
 func test_mission_memory_usage() -> void:
-	var template := _get_template()
-	var initial_memory := Performance.get_monitor(Performance.MEMORY_STATIC)
-	var missions: Array[Mission] = []
+	var template: Resource = _get_template()
+	var initial_memory: int = Performance.get_monitor(Performance.MEMORY_STATIC)
+	var missions: Array[Resource] = []
 	
 	for i in range(BATCH_SIZE):
-		var mission = _mission_generator.generate_mission(template)
-		track_test_resource(mission)
+		var mission: Resource = TypeSafeMixin._safe_method_call_resource(_mission_generator, "generate_mission", [template])
+		if not mission:
+			push_error("Failed to generate mission %d" % i)
+			continue
+			
 		missions.append(mission)
 	
-	var final_memory := Performance.get_monitor(Performance.MEMORY_STATIC)
+	var final_memory: int = Performance.get_monitor(Performance.MEMORY_STATIC)
 	var memory_per_mission: float = (final_memory - initial_memory) / float(BATCH_SIZE)
 	
 	print("Memory usage per mission: %.2f KB" % (memory_per_mission / 1024.0))
@@ -133,19 +162,21 @@ func test_mission_memory_usage() -> void:
 
 # Stress Tests
 func test_concurrent_mission_operations() -> void:
-	var template := _get_template()
-	var mission = _mission_generator.generate_mission(template)
-	track_test_resource(mission)
-	
-	var start_time := Time.get_ticks_msec()
+	var template: Resource = _get_template()
+	var mission: Resource = TypeSafeMixin._safe_method_call_resource(_mission_generator, "generate_mission", [template])
+	if not mission:
+		push_error("Failed to generate mission")
+		return
+		
+	var start_time: int = Time.get_ticks_msec()
 	for i in range(BATCH_SIZE):
 		# Simulate multiple operations happening in the same frame
-		mission.update_progress(float(i) / BATCH_SIZE * 100.0)
-		mission.calculate_rewards()
+		TypeSafeMixin._safe_method_call_bool(mission, "update_progress", [float(i) / BATCH_SIZE * 100.0])
+		TypeSafeMixin._safe_method_call_bool(mission, "calculate_rewards")
 		if i % 2 == 0:
-			mission.complete_objective(0)
-		mission.serialize()
+			TypeSafeMixin._safe_method_call_bool(mission, "complete_objective", [0])
+		TypeSafeMixin._safe_method_call_bool(mission, "serialize")
 	
-	var total_time := Time.get_ticks_msec() - start_time
+	var total_time: int = Time.get_ticks_msec() - start_time
 	assert_lt(total_time, BATCH_SIZE * STATE_UPDATE_THRESHOLD,
 		"Should handle concurrent operations efficiently")

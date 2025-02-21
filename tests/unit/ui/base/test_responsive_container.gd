@@ -20,7 +20,8 @@ func _reset_signals() -> void:
 	last_layout = ""
 
 func _connect_signals() -> void:
-	container.layout_changed.connect(_on_layout_changed)
+	if container.has_signal("layout_changed"):
+		container.connect("layout_changed", _on_layout_changed)
 
 func _on_layout_changed(new_layout: String) -> void:
 	layout_changed_signal_emitted = true
@@ -37,8 +38,8 @@ func test_layout_change() -> void:
 	container.size = Vector2(1920, 1080)
 	container._update_layout()
 	
-	assert_true(layout_changed_signal_emitted)
-	assert_eq(last_layout, "desktop")
+	assert_true(layout_changed_signal_emitted, "Layout changed signal should be emitted")
+	assert_eq(last_layout, "desktop", "Should change to desktop layout")
 	
 	# Reset signals
 	_reset_signals()
@@ -47,8 +48,8 @@ func test_layout_change() -> void:
 	container.size = Vector2(1024, 768)
 	container._update_layout()
 	
-	assert_true(layout_changed_signal_emitted)
-	assert_eq(last_layout, "tablet")
+	assert_true(layout_changed_signal_emitted, "Layout changed signal should be emitted")
+	assert_eq(last_layout, "tablet", "Should change to tablet layout")
 	
 	# Reset signals
 	_reset_signals()
@@ -57,8 +58,8 @@ func test_layout_change() -> void:
 	container.size = Vector2(480, 800)
 	container._update_layout()
 	
-	assert_true(layout_changed_signal_emitted)
-	assert_eq(last_layout, "mobile")
+	assert_true(layout_changed_signal_emitted, "Layout changed signal should be emitted")
+	assert_eq(last_layout, "mobile", "Should change to mobile layout")
 
 func test_minimum_size() -> void:
 	var min_size = Vector2(320, 480) # Typical minimum mobile size

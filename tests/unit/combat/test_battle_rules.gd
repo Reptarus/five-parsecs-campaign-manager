@@ -1,5 +1,5 @@
 @tool
-extends "res://tests/fixtures/base_test.gd"
+extends FiveParsecsEnemyTest
 
 const TestedClass = preload("res://src/core/battle/BattleRules.gd")
 

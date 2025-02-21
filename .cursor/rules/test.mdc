@@ -1,0 +1,179 @@
+---
+description: Project rules and coding standards for the Five Parsecs Campaign Manager project, including file organization, coding standards, testing requirements, state management, UI/UX standards, version control, performance standards, and security guidelines.
+globs: ["*.gd", "*.tscn", "*.tres", "*.res", "*.md", "*.json", "*.cfg", "*.import", "src/**/*", "tests/**/*", "assets/**/*", "docs/**/*"]
+---
+---
+description: Project rules and coding standards for the Five Parsecs Campaign Manager project, including file organization, coding standards, testing requirements, state management, UI/UX standards, version control, performance standards, and security guidelines.
+globs: ["*.gd", "*.tscn", "*.tres", "*.res", "*.md", "*.json", "*.cfg", "*.import", "src/**/*", "tests/**/*", "assets/**/*", "docs/**/*"]
+---
+
+# Five Parsecs Campaign Manager - Project Rules
+
+## File Organization
+
+### Directory Structure
+- Place all source code in `src/` directory
+- Place all scenes in appropriate subdirectories under `src/`
+- Store assets in `assets/` directory
+- Keep tests in `tests/` directory
+- Maintain documentation in `docs/` directory
+- Store working documents in `workingdocs/` directory
+
+### File Naming
+- Use PascalCase for scene files (.tscn)
+- Use PascalCase for GDScript class files (.gd)
+- Use snake_case for resource files
+- Use snake_case for test files with _test suffix
+- Prefix interface files with I (e.g., ICharacter.gd)
+
+## Coding Standards
+
+### GDScript Style
+- Use strict mode for all GDScript files
+- Use static typing for all variables and functions
+- Use snake_case for functions and variables
+- Use PascalCase for classes and custom types
+- Use SCREAMING_SNAKE_CASE for constants
+- Follow Godot 4.2 best practices for signal connections
+
+### Documentation
+- Document all public functions with GDScript doc comments
+- Include @description, @param, and @return tags
+- Document all signals with their purpose
+- Maintain README.md files in major directories
+- Document all exported variables
+- Include usage examples for complex functions
+
+### Node Organization
+- Use PascalCase for node names
+- Group related nodes under organizational nodes
+- Use clear, descriptive node names
+- Maintain consistent node hierarchy
+- Document node dependencies
+- Follow scene composition principles
+
+## Testing Requirements
+
+### Test Structure
+- Create matching test file for each source file
+- Maintain minimum 90% test coverage
+- Use GUT testing framework conventions
+- Include performance tests for critical systems
+- Document test dependencies
+- Follow the test organization plan in workingdocs/test_organization_plan.md
+
+### Test Stability
+- Implement test stabilization tools from test_organization_plan.md
+- Use consistent timeout values (GUT_TIMEOUT = 5.0)
+- Handle async operations properly
+- Track and clean up resources
+- Verify state transitions
+- Use simplified async patterns
+
+## State Management
+
+### Validation Rules
+- Validate all state changes through ValidationManager
+- Include error recovery mechanisms
+- Document state dependencies
+- Maintain state history for rollback
+- Log all validation failures
+- Follow phase implementation guidelines
+
+### Error Handling
+- Use structured error handling
+- Log all errors through ErrorLogger
+- Include error recovery mechanisms
+- Document error states
+- Provide user-friendly error messages
+- Implement proper error boundaries
+
+## UI/UX Standards
+
+### Component Organization
+- Use ResponsiveContainer base for UI components
+- Implement consistent theming
+- Follow mobile-first design principles
+- Document layout constraints
+- Maintain consistent padding/margins
+- Support both desktop and mobile interfaces
+
+### Input Handling
+- Use InputManager for all input processing
+- Support both mouse and touch input
+- Include input validation
+- Document input requirements
+- Handle input errors gracefully
+- Implement proper touch zones for mobile
+
+## Campaign Management
+
+### Phase Implementation
+- Follow phase implementation guidelines from phase_implementation.md
+- Implement proper state validation
+- Include error recovery
+- Document phase transitions
+- Maintain phase history
+- Support rollback capabilities
+
+### Resource Management
+- Implement proper resource cleanup
+- Use object pooling where appropriate
+- Monitor memory leaks
+- Document resource dependencies
+- Optimize asset loading
+- Follow resource lifecycle guidelines
+
+## Performance Standards
+
+### Optimization Rules
+- Profile all new features
+- Maintain 60 FPS target
+- Optimize resource loading
+- Document performance impacts
+- Monitor memory usage
+- Follow performance benchmarks
+
+### Memory Management
+- Implement proper cleanup
+- Use weak references where appropriate
+- Monitor memory usage
+- Document memory requirements
+- Implement pooling for frequent objects
+- Regular performance testing
+
+## Security Standards
+
+### Data Handling
+- Validate all user input
+- Sanitize file operations
+- Use secure storage for sensitive data
+- Document security requirements
+- Implement access controls
+- Follow data protection guidelines
+
+### Error Protection
+- Implement proper error boundaries
+- Prevent data corruption
+- Include data recovery mechanisms
+- Document security measures
+- Log security events
+- Regular security audits
+
+## Version Control
+
+### Commit Messages
+- Use conventional commits format
+- Include issue references
+- Provide clear descriptions
+- Document breaking changes
+- Include test coverage changes
+- Reference related documentation
+
+### Branch Management
+- Use feature branches
+- Require pull request reviews
+- Maintain clean commit history
+- Document deployment requirements
+- Include test results
+- Follow GitFlow conventions

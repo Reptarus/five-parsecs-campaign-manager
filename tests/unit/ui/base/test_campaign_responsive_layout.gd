@@ -20,7 +20,8 @@ func _reset_signals() -> void:
 	last_layout = ""
 
 func _connect_signals() -> void:
-	layout.layout_changed.connect(_on_layout_changed)
+	if layout.has_signal("layout_changed"):
+		layout.connect("layout_changed", _on_layout_changed)
 
 func _on_layout_changed(new_layout: String) -> void:
 	layout_changed_signal_emitted = true
@@ -37,9 +38,9 @@ func test_campaign_layout_change() -> void:
 	layout.size = Vector2(1920, 1080)
 	layout._update_layout()
 	
-	assert_true(layout_changed_signal_emitted)
-	assert_eq(last_layout, "desktop")
-	assert_true(layout.is_desktop_layout())
+	assert_true(layout_changed_signal_emitted, "Layout changed signal should be emitted")
+	assert_eq(last_layout, "desktop", "Should change to desktop layout")
+	assert_true(layout.is_desktop_layout(), "Should be in desktop layout")
 	
 	# Reset signals
 	_reset_signals()
@@ -48,9 +49,9 @@ func test_campaign_layout_change() -> void:
 	layout.size = Vector2(1024, 768)
 	layout._update_layout()
 	
-	assert_true(layout_changed_signal_emitted)
-	assert_eq(last_layout, "tablet")
-	assert_true(layout.is_tablet_layout())
+	assert_true(layout_changed_signal_emitted, "Layout changed signal should be emitted")
+	assert_eq(last_layout, "tablet", "Should change to tablet layout")
+	assert_true(layout.is_tablet_layout(), "Should be in tablet layout")
 	
 	# Reset signals
 	_reset_signals()
@@ -59,9 +60,9 @@ func test_campaign_layout_change() -> void:
 	layout.size = Vector2(480, 800)
 	layout._update_layout()
 	
-	assert_true(layout_changed_signal_emitted)
-	assert_eq(last_layout, "mobile")
-	assert_true(layout.is_mobile_layout())
+	assert_true(layout_changed_signal_emitted, "Layout changed signal should be emitted")
+	assert_eq(last_layout, "mobile", "Should change to mobile layout")
+	assert_true(layout.is_mobile_layout(), "Should be in mobile layout")
 
 func test_campaign_panel_layout() -> void:
 	var panel = Panel.new()

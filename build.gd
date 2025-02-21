@@ -11,15 +11,17 @@ func _init() -> void:
         _setup_debug_logging()
     
     # Validate project structure
-    var validation_result = _validate_project()
+    var validation_result := _validate_project()
     if not validation_result.is_empty():
         push_error("Project validation failed:")
         for error in validation_result:
             push_error("- " + error)
         quit(1)
+        return
     
     # Run tests if in test mode
-    if "--run-tests" in OS.get_cmdline_args():
+    var args := OS.get_cmdline_args()
+    if "--run-tests" in args:
         _run_tests()
     else:
         print("Build completed successfully")
@@ -33,7 +35,7 @@ func _validate_project() -> Array[String]:
     var errors: Array[String] = []
     
     # Validate core directories
-    var required_dirs = [
+    var required_dirs := [
         "res://src/core",
         "res://src/scenes",
         "res://src/tests",
@@ -45,7 +47,7 @@ func _validate_project() -> Array[String]:
             errors.append("Missing required directory: " + dir)
     
     # Validate core scripts
-    var required_scripts = [
+    var required_scripts := [
         "res://src/core/systems/GlobalEnums.gd",
         "res://src/core/managers/GameStateManager.gd",
         "res://src/core/character/Management/CharacterManager.gd"
@@ -59,5 +61,16 @@ func _validate_project() -> Array[String]:
 
 func _run_tests() -> void:
     print("Running tests...")
-    var test_runner = TEST_RUNNER.new()
-    root.add_child(test_runner)
+    var test_runner := TEST_RUNNER.new()
+    if not test_runner:
+        push_error("Failed to create test runner")
+        quit(1)
+        return
+        
+    var root_node := get_root()
+    if not root_node:
+        push_error("Failed to get root node")
+        quit(1)
+        return
+        
+    root_node.add_child(test_runner)

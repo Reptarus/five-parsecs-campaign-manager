@@ -53,45 +53,82 @@ func clear() -> void:
 	
 	_validate_character()
 
+## Safe Property Access Methods
+func _get_character_property(character: FiveParsecsCharacter, property: String, default_value = null) -> Variant:
+	if not character:
+		push_error("Trying to access property '%s' on null character" % property)
+		return default_value
+	if not property in character:
+		push_error("Character missing required property: %s" % property)
+		return default_value
+	return character.get(property)
+
+func _set_character_property(character: FiveParsecsCharacter, property: String, value: Variant) -> void:
+	if not character:
+		push_error("Trying to set property '%s' on null character" % property)
+		return
+	if not property in character:
+		push_error("Character missing required property: %s" % property)
+		return
+	character.set(property, value)
+
 func _load_character_data(character: FiveParsecsCharacter) -> void:
 	if not character:
 		push_error("Invalid character provided for editing")
 		return
 	
-	current_character.character_name = character.character_name
-	current_character.origin = character.origin
-	current_character.character_class = character.character_class
-	current_character.background = character.background
-	current_character.motivation = character.motivation
-	current_character.portrait_path = character.portrait_path
+	_set_character_property(current_character, "character_name", _get_character_property(character, "character_name", ""))
+	_set_character_property(current_character, "origin", _get_character_property(character, "origin", 0))
+	_set_character_property(current_character, "character_class", _get_character_property(character, "character_class", 0))
+	_set_character_property(current_character, "background", _get_character_property(character, "background", 0))
+	_set_character_property(current_character, "motivation", _get_character_property(character, "motivation", 0))
+	_set_character_property(current_character, "portrait_path", _get_character_property(character, "portrait_path", ""))
 	
-	if character.stats:
-		current_character.stats = character.stats.duplicate()
+	var stats = _get_character_property(character, "stats", null)
+	if stats:
+		_set_character_property(current_character, "stats", stats.duplicate())
 	
 	_validate_character()
 
 func _setup_captain_bonuses() -> void:
-	if not current_character or not current_character.stats:
+	if not current_character:
 		return
-	
+		
+	var stats = _get_character_property(current_character, "stats", null)
+	if not stats:
+		push_error("Character missing stats property")
+		return
+		
 	# Apply captain-specific bonuses
-	current_character.stats.combat_skill += 1
-	current_character.stats.luck += 1
+	_set_character_property(stats, "combat_skill", _get_character_property(stats, "combat_skill", 0) + 1)
+	_set_character_property(stats, "luck", _get_character_property(stats, "luck", 0) + 1)
 
 func _setup_initial_crew_bonuses() -> void:
-	if not current_character or not current_character.stats:
+	if not current_character:
 		return
-	
+		
+	var stats = _get_character_property(current_character, "stats", null)
+	if not stats:
+		push_error("Character missing stats property")
+		return
+		
 	# Initial crew members get standard starting stats
-	current_character.stats.reset_to_base_stats()
+	if "reset_to_base_stats" in stats:
+		stats.reset_to_base_stats()
 
 func _apply_background_bonuses(background_id: int) -> void:
-	if not current_character or not current_character.stats:
+	if not current_character:
+		return
+		
+	var stats = _get_character_property(current_character, "stats", null)
+	if not stats:
+		push_error("Character missing stats property")
 		return
 	
 	# Remove previous background bonuses
 	for stat in current_bonuses.background:
-		current_character.stats.apply_stat_bonus(stat, -current_bonuses.background[stat])
+		if "apply_stat_bonus" in stats:
+			stats.apply_stat_bonus(stat, -current_bonuses.background[stat])
 	
 	current_bonuses.background.clear()
 	
@@ -106,15 +143,22 @@ func _apply_background_bonuses(background_id: int) -> void:
 	
 	# Apply new bonuses
 	for stat in current_bonuses.background:
-		current_character.stats.apply_stat_bonus(stat, current_bonuses.background[stat])
+		if "apply_stat_bonus" in stats:
+			stats.apply_stat_bonus(stat, current_bonuses.background[stat])
 
 func _apply_class_bonuses(class_id: int) -> void:
-	if not current_character or not current_character.stats:
+	if not current_character:
+		return
+		
+	var stats = _get_character_property(current_character, "stats", null)
+	if not stats:
+		push_error("Character missing stats property")
 		return
 	
 	# Remove previous class bonuses
 	for stat in current_bonuses. class:
-		current_character.stats.apply_stat_bonus(stat, -current_bonuses. class [stat])
+		if "apply_stat_bonus" in stats:
+			stats.apply_stat_bonus(stat, -current_bonuses. class [stat])
 	
 	current_bonuses. class .clear()
 	
@@ -141,15 +185,22 @@ func _apply_class_bonuses(class_id: int) -> void:
 	
 	# Apply new bonuses
 	for stat in current_bonuses. class:
-		current_character.stats.apply_stat_bonus(stat, current_bonuses. class [stat])
+		if "apply_stat_bonus" in stats:
+			stats.apply_stat_bonus(stat, current_bonuses. class [stat])
 
 func _apply_motivation_bonuses(motivation_id: int) -> void:
-	if not current_character or not current_character.stats:
+	if not current_character:
+		return
+		
+	var stats = _get_character_property(current_character, "stats", null)
+	if not stats:
+		push_error("Character missing stats property")
 		return
 	
 	# Remove previous motivation bonuses
 	for stat in current_bonuses.motivation:
-		current_character.stats.apply_stat_bonus(stat, -current_bonuses.motivation[stat])
+		if "apply_stat_bonus" in stats:
+			stats.apply_stat_bonus(stat, -current_bonuses.motivation[stat])
 	
 	current_bonuses.motivation.clear()
 	
@@ -164,11 +215,15 @@ func _apply_motivation_bonuses(motivation_id: int) -> void:
 	
 	# Apply new bonuses
 	for stat in current_bonuses.motivation:
-		current_character.stats.apply_stat_bonus(stat, current_bonuses.motivation[stat])
+		if "apply_stat_bonus" in stats:
+			stats.apply_stat_bonus(stat, current_bonuses.motivation[stat])
 
 func _validate_character() -> bool:
-	var is_valid = current_character != null and \
-				   current_character.character_name.length() > 0
+	if not current_character:
+		return false
+		
+	var name = _get_character_property(current_character, "character_name", "")
+	var is_valid = name.length() > 0
 	
 	return is_valid
 
@@ -189,20 +244,20 @@ func _on_randomize_pressed() -> void:
 		return
 	
 	# Generate random character data
-	current_character.character_name = FiveParsecsCharacterTableRoller.generate_random_name()
-	current_character.origin = randi() % GameEnums.Origin.size()
-	current_character.character_class = randi() % GameEnums.CharacterClass.size()
+	_set_character_property(current_character, "character_name", FiveParsecsCharacterTableRoller.generate_random_name())
+	_set_character_property(current_character, "origin", randi() % GameEnums.Origin.size())
+	_set_character_property(current_character, "character_class", randi() % GameEnums.CharacterClass.size())
 	
 	# Generate background and motivation indices
 	var background_index = randi() % GameEnums.Background.size()
-	current_character.background = background_index
+	_set_character_property(current_character, "background", background_index)
 	
 	var motivation_index = randi() % GameEnums.Motivation.size()
-	current_character.motivation = motivation_index
+	_set_character_property(current_character, "motivation", motivation_index)
 	
 	# Apply bonuses
 	_apply_background_bonuses(background_index)
-	_apply_class_bonuses(current_character.character_class)
+	_apply_class_bonuses(_get_character_property(current_character, "character_class", 0))
 	_apply_motivation_bonuses(motivation_index)
 	
 	_validate_character()

@@ -3,6 +3,7 @@
 ## Test Organization
 
 ### Unit Tests (`unit/`)
+- `enemy/`: Enemy system tests (behavior, combat, state management)
 - `character/`: Character system tests (creation, advancement, stats)
 - `combat/`: Combat system tests (battlefield, mechanics, resolution)
 - `mission/`: Mission system tests (generation, objectives, rewards)
@@ -16,18 +17,30 @@
 - `campaign_flow/`: Campaign phase interactions
 - `combat_flow/`: Combat system interactions
 - `mission_flow/`: Mission system interactions
+- `enemy_interactions/`: Enemy system integration tests
 
 ### Performance Tests (`performance/`)
 - `combat/`: Combat system benchmarks
 - `terrain/`: Terrain system benchmarks
 - `campaign/`: Campaign system benchmarks
+- `enemy/`: Enemy system performance tests
 
 ### Mobile Tests (`mobile/`)
-Platform-specific testing for mobile devices
+Platform-specific testing for mobile devices:
+- Touch input handling
+- UI responsiveness
+- Performance optimization
+- Platform-specific features
+
+### Configuration (`config/`)
+- Test environment configuration
+- Test runner settings
+- Custom test utilities
 
 ### Test Fixtures (`fixtures/`)
 - `base_test.gd`: Base test class with common functionality
 - `game_test.gd`: Game-specific test utilities
+- `enemy_test.gd`: Enemy-specific test utilities
 - `mock_data/`: Mock data for testing
 
 ## Running Tests

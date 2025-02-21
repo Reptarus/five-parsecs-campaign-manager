@@ -28,8 +28,13 @@ func add_character(character: Character) -> bool:
 	if _characters.size() >= MAX_CHARACTERS:
 		return false
 		
-	_characters[character.id] = character
-	if character.is_active:
+	var char_id = _get_character_property(character, "id", "")
+	if char_id.is_empty():
+		push_error("Character missing required id property")
+		return false
+		
+	_characters[char_id] = character
+	if _get_character_property(character, "is_active", false):
 		_active_characters.append(character)
 	
 	character_added.emit(character)
@@ -37,6 +42,11 @@ func add_character(character: Character) -> bool:
 
 func update_character(character_id: String, character: Character) -> bool:
 	if not character_id in _characters:
+		return false
+		
+	var char_id = _get_character_property(character, "id", "")
+	if char_id.is_empty() or char_id != character_id:
+		push_error("Character id mismatch or missing")
 		return false
 		
 	_characters[character_id] = character
@@ -72,43 +82,70 @@ func set_character_class(character: Character, char_class: int) -> void:
 	if not character:
 		return
 		
-	character.character_class = char_class
+	_set_character_property(character, "character_class", char_class)
 	_initialize_class_stats(character)
-	update_character(character.id, character)
+	var char_id = _get_character_property(character, "id", "")
+	if not char_id.is_empty():
+		update_character(char_id, character)
 
 func improve_stat(character: Character, stat: int) -> void:
 	if not character:
 		return
 		
 	character.improve_stat(stat)
-	update_character(character.id, character)
+	var char_id = _get_character_property(character, "id", "")
+	if not char_id.is_empty():
+		update_character(char_id, character)
 
 func add_experience(character: Character, amount: int) -> void:
 	if not character:
 		return
 		
 	character.add_experience(amount)
-	update_character(character.id, character)
+	var char_id = _get_character_property(character, "id", "")
+	if not char_id.is_empty():
+		update_character(char_id, character)
 
 func level_up(character: Character) -> void:
 	if not character:
 		return
 		
 	character.level_up()
-	update_character(character.id, character)
+	var char_id = _get_character_property(character, "id", "")
+	if not char_id.is_empty():
+		update_character(char_id, character)
 
 func _update_active_characters() -> void:
 	_active_characters.clear()
 	for character in _characters.values():
-		if character.is_active:
+		if _get_character_property(character, "is_active", false):
 			_active_characters.append(character)
 
 func _initialize_class_stats(character: Character) -> void:
-	match character.character_class:
+	match _get_character_property(character, "character_class", GameEnums.CharacterClass.NONE):
 		GameEnums.CharacterClass.NONE:
-			character.set_base_stats({
+			_set_character_property(character, "base_stats", {
 				GameEnums.CharacterStats.COMBAT_SKILL: 2,
 				GameEnums.CharacterStats.TOUGHNESS: 3,
 				GameEnums.CharacterStats.REACTIONS: 3,
 				GameEnums.CharacterStats.TECH: 3
 			})
+
+## Safe Property Access Methods
+func _get_character_property(character: Character, property: String, default_value = null) -> Variant:
+	if not character:
+		push_error("Trying to access property '%s' on null character" % property)
+		return default_value
+	if not property in character:
+		push_error("Character missing required property: %s" % property)
+		return default_value
+	return character.get(property)
+
+func _set_character_property(character: Character, property: String, value: Variant) -> void:
+	if not character:
+		push_error("Trying to set property '%s' on null character" % property)
+		return
+	if not property in character:
+		push_error("Character missing required property: %s" % property)
+		return
+	character.set(property, value)

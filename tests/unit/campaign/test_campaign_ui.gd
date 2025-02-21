@@ -1,13 +1,47 @@
 @tool
 extends "res://tests/fixtures/game_test.gd"
 
-const CampaignUI = preload("res://src/scenes/campaign/CampaignUI.gd")
+const CampaignUIScript: GDScript = preload("res://src/scenes/campaign/CampaignUI.gd")
 
-var ui: CampaignUI
+var ui: Node = null
+
+# Helper function to wait for a signal with timeout
+func wait_for_signal(emitter: Object, signal_name: String, timeout: float = SIGNAL_TIMEOUT) -> Array:
+	if not emitter or not signal_name:
+		push_error("Invalid emitter or signal name for wait_for_signal")
+		return []
+		
+	var signal_args: Array = []
+	var timer: SceneTreeTimer = get_tree().create_timer(timeout)
+	var done: bool = false
+	
+	# Create a one-shot callable to capture signal arguments
+	var callable: Callable = func(arg1: Variant = null, arg2: Variant = null,
+			arg3: Variant = null, arg4: Variant = null) -> void:
+		signal_args = [arg1, arg2, arg3, arg4].filter(func(arg: Variant) -> bool: return arg != null)
+		done = true
+	
+	# Connect signal and timer
+	if emitter.has_signal(signal_name):
+		var err := emitter.connect(signal_name, callable, CONNECT_ONE_SHOT)
+		if err != OK:
+			push_error("Failed to connect signal %s" % signal_name)
+	var err := timer.timeout.connect(func() -> void: done = true, CONNECT_ONE_SHOT)
+	if err != OK:
+		push_error("Failed to connect timer timeout")
+	
+	# Wait for either signal or timeout
+	while not done:
+		await get_tree().process_frame
+	
+	return signal_args
 
 func before_each() -> void:
 	await super.before_each()
-	ui = CampaignUI.new()
+	ui = CampaignUIScript.new()
+	if not ui:
+		push_error("Failed to create UI instance")
+		return
 	add_child_autofree(ui)
 	watch_signals(ui)
 	await stabilize_engine()
@@ -18,77 +52,77 @@ func after_each() -> void:
 
 func test_initial_setup() -> void:
 	assert_not_null(ui, "UI should be initialized")
-	assert_eq(ui._current_phase, GameEnums.CampaignPhase.SETUP, "Initial phase should be SETUP")
-	assert_not_null(ui._layout, "Layout should be initialized")
+	assert_eq(_get_property_safe(ui, "_current_phase", -1), GameEnums.CampaignPhase.SETUP, "Initial phase should be SETUP")
+	assert_not_null(_get_property_safe(ui, "_layout"), "Layout should be initialized")
 
 func test_phase_change() -> void:
-	var new_phase = GameEnums.CampaignPhase.UPKEEP
-	ui._on_phase_changed(new_phase)
+	var new_phase: int = GameEnums.CampaignPhase.UPKEEP
+	_call_node_method(ui, "_on_phase_changed", [new_phase])
 	
-	var phase_changed = await assert_async_signal(ui, "phase_changed")
+	var phase_changed: bool = await assert_async_signal(ui, "phase_changed")
 	assert_true(phase_changed, "Phase changed signal should be emitted")
 	
 	# Get signal data
-	var signal_data = await wait_for_signal(ui, "phase_changed")
+	var signal_data: Array = await wait_for_signal(ui, "phase_changed")
 	assert_eq(signal_data[0], new_phase, "Signal should contain new phase")
-	assert_eq(ui._current_phase, new_phase, "Current phase should be updated")
+	assert_eq(_get_property_safe(ui, "_current_phase", -1), new_phase, "Current phase should be updated")
 
 func test_resource_update() -> void:
-	var resource_type = GameEnums.ResourceType.CREDITS
-	var new_value = 100
-	ui._on_resource_updated(resource_type, new_value)
+	var resource_type: int = GameEnums.ResourceType.CREDITS
+	var new_value: int = 100
+	_call_node_method(ui, "_on_resource_updated", [resource_type, new_value])
 	
-	var resource_updated = await assert_async_signal(ui, "resource_updated")
+	var resource_updated: bool = await assert_async_signal(ui, "resource_updated")
 	assert_true(resource_updated, "Resource updated signal should be emitted")
 	
 	# Get signal data
-	var signal_data = await wait_for_signal(ui, "resource_updated")
+	var signal_data: Array = await wait_for_signal(ui, "resource_updated")
 	assert_eq(signal_data[0], resource_type, "Signal should contain resource type")
 	assert_eq(signal_data[1], new_value, "Signal should contain new value")
 
 func test_event_logging() -> void:
-	var test_event = {
+	var test_event: Dictionary = {
 		"id": "test_event",
 		"title": "Test Event",
 		"description": "Test event description",
 		"category": "test"
 	}
 	
-	ui._on_event_occurred(test_event)
+	_call_node_method(ui, "_on_event_occurred", [test_event])
 	
-	var event_occurred = await assert_async_signal(ui, "event_occurred")
+	var event_occurred: bool = await assert_async_signal(ui, "event_occurred")
 	assert_true(event_occurred, "Event occurred signal should be emitted")
 	
 	# Get signal data
-	var signal_data = await wait_for_signal(ui, "event_occurred")
-	var event_data = signal_data[0]
-	assert_eq(event_data.id, test_event.id, "Event ID should match")
-	assert_eq(event_data.title, test_event.title, "Event title should match")
-	assert_eq(event_data.description, test_event.description, "Event description should match")
-	assert_eq(event_data.category, test_event.category, "Event category should match")
+	var signal_data: Array = await wait_for_signal(ui, "event_occurred")
+	var event_data: Dictionary = signal_data[0] as Dictionary
+	assert_eq(event_data.get("id", ""), test_event.id, "Event ID should match")
+	assert_eq(event_data.get("title", ""), test_event.title, "Event title should match")
+	assert_eq(event_data.get("description", ""), test_event.description, "Event description should match")
+	assert_eq(event_data.get("category", ""), test_event.category, "Event category should match")
 
 func test_phase_action_handling() -> void:
 	# Test crew creation action
-	ui._handle_crew_creation()
+	_call_node_method(ui, "_handle_crew_creation")
 	await stabilize_engine()
 	assert_eq(get_tree().current_scene.scene_file_path, "res://src/scenes/character/CrewCreation.tscn", "Should navigate to crew creation")
 	
 	# Test campaign selection action
-	ui._handle_campaign_selection()
+	_call_node_method(ui, "_handle_campaign_selection")
 	await stabilize_engine()
 	assert_eq(get_tree().current_scene.scene_file_path, "res://src/scenes/campaign/CampaignSelection.tscn", "Should navigate to campaign selection")
 	
 	# Test resource management action
-	ui._handle_resource_management()
+	_call_node_method(ui, "_handle_resource_management")
 	await stabilize_engine()
 	assert_eq(get_tree().current_scene.scene_file_path, "res://src/scenes/resource/ResourceManagement.tscn", "Should navigate to resource management")
 
 func test_ui_components_setup() -> void:
-	ui._setup_ui_components()
+	_call_node_method(ui, "_setup_ui_components")
 	await stabilize_engine()
 	
 	# Test resource panel setup
-	var resource_labels = {
+	var resource_labels: Dictionary = {
 		"credits": "Credits: 0",
 		"supplies": "Supplies: 0",
 		"reputation": "Reputation: 0",
@@ -96,6 +130,6 @@ func test_ui_components_setup() -> void:
 	}
 	
 	for label_name in resource_labels:
-		var label = ui.resource_panel.get_node("%s_label" % label_name)
+		var label: Node = _get_node_safe(ui.resource_panel, "%s_label" % label_name)
 		assert_not_null(label, "%s label should exist" % label_name.capitalize())
-		assert_eq(label.text, resource_labels[label_name], "%s should start at 0" % label_name.capitalize())
+		assert_eq(_get_property_safe(label, "text", ""), resource_labels[label_name], "%s should start at 0" % label_name.capitalize())

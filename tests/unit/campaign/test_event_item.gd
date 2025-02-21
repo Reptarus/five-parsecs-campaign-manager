@@ -1,114 +1,118 @@
+@tool
 extends "res://addons/gut/test.gd"
 
-const EventItem = preload("res://src/scenes/campaign/components/EventItem.gd")
+const TypeSafeMixin = preload("res://tests/fixtures/type_safe_test_mixin.gd")
+const EventItem: GDScript = preload("res://src/scenes/campaign/components/EventItem.gd")
 
-var item: EventItem
-var selected_signal_emitted := false
-var last_event_id: String
+# Test variables with explicit types
+var item: EventItem = null
+var value_changed_signal_emitted: bool = false
+var last_value: String = ""
 
 func before_each() -> void:
+	await super.before_each()
+	
 	item = EventItem.new()
+	if not item:
+		push_error("Failed to create event item instance")
+		return
 	add_child(item)
+	
 	_reset_signals()
 	_connect_signals()
+	
+	await get_tree().process_frame
 
 func after_each() -> void:
-	item.queue_free()
+	if is_instance_valid(item):
+		remove_child(item)
+		item.queue_free()
+	item = null
+	await super.after_each()
 
 func _reset_signals() -> void:
-	selected_signal_emitted = false
-	last_event_id = ""
+	value_changed_signal_emitted = false
+	last_value = ""
 
 func _connect_signals() -> void:
-	item.event_selected.connect(_on_event_selected)
+	if not item:
+		push_error("Cannot connect signals: item is null")
+		return
+		
+	if item.has_signal("value_changed"):
+		var err := item.connect("value_changed", _on_value_changed)
+		if err != OK:
+			push_error("Failed to connect value_changed signal")
 
-func _on_event_selected(event_id: String) -> void:
-	selected_signal_emitted = true
-	last_event_id = event_id
+func _on_value_changed(new_value: String) -> void:
+	value_changed_signal_emitted = true
+	last_value = new_value
 
 func test_initial_setup() -> void:
-	assert_not_null(item)
-	assert_not_null(item.title_label)
-	assert_not_null(item.description_label)
-	assert_not_null(item.timestamp_label)
-	assert_not_null(item.category_indicator)
-	assert_eq(item.event_id, "")
+	assert_not_null(item, "Event item should be initialized")
+	
+	var value_label: Label = item.value_label
+	var timestamp_label: Label = item.timestamp_label
+	
+	assert_not_null(value_label, "Value label should exist")
+	assert_not_null(timestamp_label, "Timestamp label should exist")
+	
+	var current_value: String = TypeSafeMixin._safe_method_call_string(item, "get_current_value", [], "")
+	assert_eq(current_value, "", "Initial value should be empty")
 
-func test_event_data_setup() -> void:
-	var test_id = "test_event_1"
-	var test_title = "Test Event"
-	var test_description = "Test Description"
-	var test_timestamp = Time.get_unix_time_from_system()
-	var test_color = Color(1, 0, 0) # Red
+func test_value_update() -> void:
+	var test_value: String = "Test Event"
+	TypeSafeMixin._safe_method_call_bool(item, "set_value", [test_value])
 	
-	item.setup(test_id, test_title, test_description, test_timestamp, test_color)
+	assert_true(value_changed_signal_emitted, "Value changed signal should be emitted")
+	assert_eq(last_value, test_value, "Last value should match test value")
 	
-	assert_eq(item.event_id, test_id)
-	assert_eq(item.title_label.text, test_title)
-	assert_eq(item.description_label.text, test_description)
-	assert_true(item.timestamp_label.text.length() > 0)
-	assert_eq(item.event_color, test_color)
+	var current_value: String = TypeSafeMixin._safe_method_call_string(item, "get_current_value", [], "")
+	var label_text: String = TypeSafeMixin._safe_method_call_string(item.value_label, "get_text", [], "")
+	
+	assert_eq(current_value, test_value, "Current value should be updated")
+	assert_eq(label_text, test_value, "Label should display the new value")
 
-func test_event_selection() -> void:
-	var test_id = "test_event_2"
-	item.setup(test_id, "Test Event", "Description", Time.get_unix_time_from_system(), Color.WHITE)
+func test_empty_value_handling() -> void:
+	TypeSafeMixin._safe_method_call_bool(item, "set_value", [""])
 	
-	var mouse_event = InputEventMouseButton.new()
-	mouse_event.button_index = MOUSE_BUTTON_LEFT
-	mouse_event.pressed = true
-	item._on_gui_input(mouse_event)
+	assert_true(value_changed_signal_emitted, "Value changed signal should be emitted")
+	assert_eq(last_value, "", "Last value should be empty")
 	
-	assert_true(selected_signal_emitted)
-	assert_eq(last_event_id, test_id)
-
-func test_long_text_handling() -> void:
-	var test_id = "test_event_3"
-	var long_title = "Very Long Event Title That Should Be Handled Properly"
-	var long_description = "This is a very long description that should be properly wrapped and displayed in the event item's description label without breaking the layout"
-	
-	item.setup(test_id, long_title, long_description, Time.get_unix_time_from_system(), Color.WHITE)
-	
-	assert_eq(item.title_label.text, long_title)
-	assert_eq(item.description_label.text, long_description)
-	assert_true(item.description_label.autowrap_mode > 0)
-
-func test_empty_values() -> void:
-	item.setup("", "", "", Time.get_unix_time_from_system(), Color.WHITE)
-	
-	assert_eq(item.event_id, "")
-	assert_eq(item.title_label.text, "")
-	assert_eq(item.description_label.text, "")
-	assert_true(item.timestamp_label.text.length() > 0)
+	var label_text: String = TypeSafeMixin._safe_method_call_string(item.value_label, "get_text", [], "")
+	assert_eq(label_text, "", "Label should be empty")
 
 func test_timestamp_formatting() -> void:
-	var test_timestamp = Time.get_unix_time_from_system()
-	item.setup("test_event_4", "Test Event", "Description", test_timestamp, Color.WHITE)
+	var test_timestamp: String = "2024-03-20 15:30:00"
+	TypeSafeMixin._safe_method_call_bool(item, "set_timestamp", [test_timestamp])
 	
-	var timestamp_text = item.timestamp_label.text
-	assert_true(timestamp_text.length() > 0)
-	assert_true(":" in timestamp_text) # Should be in HH:MM format
+	var timestamp_text: String = TypeSafeMixin._safe_method_call_string(item.timestamp_label, "get_text", [], "")
+	assert_true(timestamp_text.length() > 0, "Timestamp should be formatted")
+	assert_true("2024" in timestamp_text, "Timestamp should contain year")
 
 func test_color_handling() -> void:
-	var test_colors = [
-		Color(1, 0, 0), # Red
-		Color(0, 1, 0), # Green
-		Color(0, 0, 1), # Blue
-		Color(1, 1, 1), # White
-		Color(0, 0, 0) # Black
-	]
+	var test_color := Color(1, 0, 0, 1) # Red color
+	TypeSafeMixin._safe_method_call_bool(item, "set_text_color", [test_color])
 	
-	for color in test_colors:
-		item.setup("test_event", "Test Event", "Description", Time.get_unix_time_from_system(), color)
-		assert_eq(item.event_color, color)
-		assert_eq(item.category_indicator.color, color)
+	var value_label: Label = item.value_label
+	var timestamp_label: Label = item.timestamp_label
+	
+	assert_not_null(value_label, "Value label should exist")
+	assert_not_null(timestamp_label, "Timestamp label should exist")
+	
+	# Check if the color was applied to both labels
+	var value_label_color: Color = value_label.get_theme_color("font_color")
+	var timestamp_label_color: Color = timestamp_label.get_theme_color("font_color")
+	
+	assert_eq(value_label_color, test_color, "Value label color should match test color")
+	assert_eq(timestamp_label_color, test_color, "Timestamp label color should match test color")
 
-func test_animations() -> void:
-	item.setup("test_event_5", "Test Event", "Description", Time.get_unix_time_from_system(), Color.WHITE)
+func test_animation_handling() -> void:
+	TypeSafeMixin._safe_method_call_bool(item, "play_highlight_animation", [])
 	
-	# Test highlight animation
-	item.highlight(0.1) # Use shorter duration for testing
-	assert_eq(item.modulate.a, 0.5) # Should start fading
+	# Wait for animation to start
+	await get_tree().process_frame
 	
-	# Test fade in animation
-	item.fade_in(0.1) # Use shorter duration for testing
-	assert_eq(item.modulate.a, 0.0) # Should start invisible
+	var animation_player: AnimationPlayer = item.animation_player
+	assert_not_null(animation_player, "Animation player should exist")
+	assert_true(animation_player.is_playing(), "Animation should be playing")

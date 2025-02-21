@@ -17,13 +17,29 @@ func before_each() -> void:
 	
 	# Initialize game state
 	_test_game_state = create_test_game_state()
-	add_child_autofree(_test_game_state)
+	if not _test_game_state:
+		push_error("Failed to create test game state")
+		return
+		
+	var added_state := add_child_autofree(_test_game_state)
+	if not added_state:
+		push_error("Failed to add game state to scene tree")
+		return
+		
 	assert_valid_game_state(_test_game_state)
 	
 	# Initialize game state manager
 	game_state_manager = GameStateManager.new()
+	if not game_state_manager:
+		push_error("Failed to create game state manager")
+		return
+		
 	game_state_manager.game_state = _test_game_state
-	add_child_autofree(game_state_manager)
+	var added_manager := add_child_autofree(game_state_manager)
+	if not added_manager:
+		push_error("Failed to add game state manager to scene tree")
+		return
+		
 	watch_signals(game_state_manager)
 	
 	await stabilize_engine()
@@ -49,36 +65,47 @@ func after_each() -> void:
 	await super.after_each()
 	
 	# Clear any tracked resources
-	_tracked_resources.clear()
+	cleanup_tracked_resources()
 
 func test_initial_state() -> void:
 	assert_not_null(game_state_manager, "Game state manager should be initialized")
 	assert_not_null(game_state_manager.game_state, "Game state should be set")
-	assert_eq(game_state_manager.get_campaign_phase(), GameEnums.FiveParcsecsCampaignPhase.NONE, "Should start in NONE phase")
+	
+	var phase := _call_node_method_int(game_state_manager, "get_campaign_phase", [], GameEnums.FiveParcsecsCampaignPhase.NONE)
+	assert_eq(phase, GameEnums.FiveParcsecsCampaignPhase.NONE, "Should start in NONE phase")
+	
 	assert_valid_game_state(_test_game_state)
 
 func test_state_transition() -> void:
 	# Change to setup phase
-	game_state_manager.set_campaign_phase(GameEnums.FiveParcsecsCampaignPhase.SETUP)
-	var phase_changed = await assert_async_signal(game_state_manager, "phase_changed")
+	_call_node_method(game_state_manager, "set_campaign_phase", [GameEnums.FiveParcsecsCampaignPhase.SETUP])
+	var phase_changed: bool = await assert_async_signal(game_state_manager, "phase_changed")
 	assert_true(phase_changed, "Phase changed signal should be emitted")
-	assert_eq(game_state_manager.campaign_phase, GameEnums.FiveParcsecsCampaignPhase.SETUP, "Should transition to SETUP phase")
+	
+	var current_phase: int = _get_state_property(game_state_manager, "campaign_phase", GameEnums.FiveParcsecsCampaignPhase.NONE)
+	assert_eq(current_phase, GameEnums.FiveParcsecsCampaignPhase.SETUP, "Should transition to SETUP phase")
 	
 	# Change back to none phase
-	game_state_manager.set_campaign_phase(GameEnums.FiveParcsecsCampaignPhase.NONE)
+	_call_node_method(game_state_manager, "set_campaign_phase", [GameEnums.FiveParcsecsCampaignPhase.NONE])
 	phase_changed = await assert_async_signal(game_state_manager, "phase_changed")
 	assert_true(phase_changed, "Phase changed signal should be emitted")
-	assert_eq(game_state_manager.campaign_phase, GameEnums.FiveParcsecsCampaignPhase.NONE, "Should return to NONE phase")
+	
+	current_phase = _get_state_property(game_state_manager, "campaign_phase", GameEnums.FiveParcsecsCampaignPhase.NONE)
+	assert_eq(current_phase, GameEnums.FiveParcsecsCampaignPhase.NONE, "Should return to NONE phase")
 
 func test_invalid_state_transition() -> void:
 	# Try to transition to the same phase
-	game_state_manager.set_campaign_phase(GameEnums.FiveParcsecsCampaignPhase.NONE)
-	var phase_changed = await assert_async_signal(game_state_manager, "phase_changed", 0.5) # Short timeout since we expect no signal
+	_call_node_method(game_state_manager, "set_campaign_phase", [GameEnums.FiveParcsecsCampaignPhase.NONE])
+	var phase_changed: bool = await assert_async_signal(game_state_manager, "phase_changed", 0.5) # Short timeout since we expect no signal
 	assert_false(phase_changed, "Phase changed signal should not be emitted")
-	assert_eq(game_state_manager.campaign_phase, GameEnums.FiveParcsecsCampaignPhase.NONE, "Should stay in NONE phase")
+	
+	var current_phase: int = _get_state_property(game_state_manager, "campaign_phase", GameEnums.FiveParcsecsCampaignPhase.NONE)
+	assert_eq(current_phase, GameEnums.FiveParcsecsCampaignPhase.NONE, "Should stay in NONE phase")
 	
 	# Try to transition to an invalid phase
-	game_state_manager.set_campaign_phase(-1)
+	_call_node_method(game_state_manager, "set_campaign_phase", [-1])
 	phase_changed = await assert_async_signal(game_state_manager, "phase_changed", 0.5) # Short timeout since we expect no signal
 	assert_false(phase_changed, "Phase changed signal should not be emitted")
-	assert_eq(game_state_manager.campaign_phase, GameEnums.FiveParcsecsCampaignPhase.NONE, "Should stay in NONE phase")
+	
+	current_phase = _get_state_property(game_state_manager, "campaign_phase", GameEnums.FiveParcsecsCampaignPhase.NONE)
+	assert_eq(current_phase, GameEnums.FiveParcsecsCampaignPhase.NONE, "Should stay in NONE phase")

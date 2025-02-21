@@ -1,5 +1,5 @@
 @tool
-extends "res://tests/fixtures/base_test.gd"
+extends GameTest
 
 const TestedClass = preload("res://src/core/battle/EnemyScalingSystem.gd")
 
@@ -8,7 +8,7 @@ var _instance: TestedClass
 func before_each() -> void:
 	await super.before_each()
 	_instance = TestedClass.new()
-	add_child(_instance)
+	add_child_autofree(_instance)
 	track_test_node(_instance)
 
 func after_each() -> void:
@@ -51,6 +51,13 @@ func test_elite_difficulty_scaling() -> void:
 	assert_eq(result.armor, 6.5, "Elite difficulty should increase armor by 30%")
 	assert_eq(result.count_modifier, 1.4, "Elite difficulty should increase enemy count by 40%")
 
+func test_hardcore_difficulty_scaling() -> void:
+	var result = _instance.calculate_enemy_scaling(GameEnums.DifficultyLevel.HARDCORE, 1, GameEnums.MissionType.RED_ZONE)
+	assert_eq(result.health, _instance.base_health * 1.4 * 1.2 * 1.1,
+		"Hardcore difficulty in red zone should properly scale health")
+	assert_eq(result.damage, _instance.base_damage * 1.3 * 1.2 * 1.1,
+		"Hardcore difficulty in red zone should properly scale damage")
+
 # Mission Type Scaling Tests
 func test_green_zone_scaling() -> void:
 	var result = _instance.calculate_enemy_scaling(GameEnums.DifficultyLevel.NORMAL, 1, GameEnums.MissionType.GREEN_ZONE)
@@ -72,7 +79,7 @@ func test_black_zone_scaling() -> void:
 
 # Level Scaling Tests
 func test_level_scaling() -> void:
-	# Test level 1 (base case already tested in other tests)
+	# Test level 1 (base case)
 	var level1 = _instance.calculate_enemy_scaling(GameEnums.DifficultyLevel.NORMAL, 1, GameEnums.MissionType.NONE)
 	assert_eq(level1.health, 100.0, "Level 1 should have base health")
 	
@@ -87,3 +94,32 @@ func test_level_scaling() -> void:
 	assert_eq(level10.health, 200.0, "Level 10 should double health")
 	assert_eq(level10.damage, 20.0, "Level 10 should double damage")
 	assert_eq(level10.armor, 10.0, "Level 10 should double armor")
+
+# Combined Scaling Tests
+func test_combined_scaling() -> void:
+	var scaling = _instance.calculate_enemy_scaling(
+		GameEnums.DifficultyLevel.HARD,
+		3, # Level 3
+		GameEnums.MissionType.RED_ZONE
+	)
+	
+	# Verify combined scaling effects
+	assert_true(scaling.health > _instance.base_health,
+		"Combined scaling should increase health")
+	assert_true(scaling.damage > _instance.base_damage,
+		"Combined scaling should increase damage")
+	assert_true(scaling.count_modifier > 1.0,
+		"Combined scaling should increase enemy count")
+
+func test_extreme_scaling_combination() -> void:
+	var scaling = _instance.calculate_enemy_scaling(
+		GameEnums.DifficultyLevel.ELITE,
+		10, # Level 10
+		GameEnums.MissionType.BLACK_ZONE
+	)
+	
+	# Verify scaling doesn't go too extreme
+	assert_true(scaling.health < _instance.base_health * 5.0,
+		"Health scaling should have reasonable limits")
+	assert_true(scaling.damage < _instance.base_damage * 5.0,
+		"Damage scaling should have reasonable limits")
