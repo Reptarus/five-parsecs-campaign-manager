@@ -1,4 +1,3 @@
-class_name RivalManager
 extends Resource
 
 const FiveParsecsGameState = preload("res://src/core/state/GameState.gd")
@@ -161,4 +160,4 @@ func _improve_rival_relations(rival: Dictionary) -> void:
 
 func _worsen_rival_relations(rival: Dictionary) -> void:
     var reputation_loss = randi_range(5, 15)
-    update_rival_reputation(rival.id, -reputation_loss)
+    update_rival_reputation(rival.id, - reputation_loss)

@@ -1,5 +1,4 @@
 # PreBattleLoop.gd
-class_name PreBattleLoop
 extends Node
 
 ## Dependencies

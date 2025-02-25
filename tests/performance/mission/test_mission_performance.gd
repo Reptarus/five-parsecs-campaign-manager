@@ -1,5 +1,5 @@
 @tool
-extends GutTest
+extends "res://tests/fixtures/base/base_test.gd"
 
 ## Performance tests for mission systems
 ##
@@ -9,10 +9,12 @@ extends GutTest
 ## - Mission rewards calculation
 ## - Mission serialization and persistence
 
+# Required type declarations
+const GameEnums: GDScript = preload("res://src/core/systems/GlobalEnums.gd")
 const MissionScript: GDScript = preload("res://src/core/systems/Mission.gd")
 const MissionGeneratorScript: GDScript = preload("res://src/core/systems/MissionGenerator.gd")
-const MissionTemplateScript: GDScript = preload("res://src/core/templates/MissionTemplate.gd")
-const TypeSafeMixin: GDScript = preload("res://tests/fixtures/type_safe_test_mixin.gd")
+const MissionTemplateScript: GDScript = preload("res://src/core/systems/MissionTemplate.gd")
+const TypeSafeMixin: GDScript = preload("res://tests/fixtures/helpers/type_safe_test_mixin.gd")
 
 # Performance thresholds (in milliseconds)
 const GENERATION_THRESHOLD: int = 50

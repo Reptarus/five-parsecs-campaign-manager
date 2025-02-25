@@ -1,4 +1,3 @@
-class_name EconomyManager
 extends Node
 
 const GameEnums = preload("res://src/core/systems/GlobalEnums.gd")
@@ -112,7 +111,7 @@ func _update_prices() -> void:
                 base_modifier *= 0.5
         
         # Apply random fluctuation
-        base_modifier *= (1.0 + randf_range(-MAX_PRICE_FLUCTUATION, MAX_PRICE_FLUCTUATION))
+        base_modifier *= (1.0 + randf_range(- MAX_PRICE_FLUCTUATION, MAX_PRICE_FLUCTUATION))
         
         # Apply global modifier
         base_modifier *= global_economic_modifier

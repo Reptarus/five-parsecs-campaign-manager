@@ -1,5 +1,4 @@
 # Scripts/ShipAndCrew/Ship.gd
-class_name Ship
 extends Resource
 
 const ShipComponent = preload("res://src/core/ships/components/ShipComponent.gd")

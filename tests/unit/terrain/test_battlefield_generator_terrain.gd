@@ -1,5 +1,5 @@
 @tool
-extends "res://tests/fixtures/base_test.gd"
+extends "res://tests/fixtures/base/game_test.gd"
 
 const BattlefieldGenerator = preload("res://src/core/battle/BattlefieldGenerator.gd")
 const TerrainTypes = preload("res://src/core/terrain/TerrainTypes.gd")

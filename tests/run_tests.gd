@@ -1,44 +1,10 @@
 @tool
 extends EditorScript
 
-const GutRunner := preload("res://addons/gut/gut_cmdln.gd")
-const TEST_DIRS := [
-	"res://tests/unit",
-	"res://tests/integration",
-	"res://tests/performance",
-	"res://tests/mobile"
-]
+const GutScene: PackedScene = preload("res://tests/GutTestScene.tscn")
+const GutConfig: GDScript = preload("res://tests/config/gut_config.gd")
 
-const REPORT_TEMPLATE := """# Test Run Report
-Generated:{datetime}
-
-## Summary
-- Total Tests:{total_tests}
-- Passed:{passed_tests}
-- Failed:{failed_tests}
-- Errors:{error_tests}
-- Pending:{pending_tests}
-- Coverage:{coverage}%
-
-## Performance
-- Total Duration:{duration}s
-- Average Test Time:{avg_test_time}ms
-- Peak Memory:{peak_memory}MB
-
-## Failures
-{failures}
-
-## Errors
-{errors}
-
-## Performance Issues
-{performance_issues}
-
-## Recommendations
-{recommendations}
-"""
-
-var _gut: GutRunner
+var _gut: Node
 var _start_time: int
 var _peak_memory: int
 var _test_results := {}
@@ -48,26 +14,28 @@ func _run() -> void:
 	_start_time = Time.get_ticks_msec()
 	_peak_memory = Performance.get_monitor(Performance.MEMORY_STATIC)
 	
-	# Initialize GUT
-	_gut = await GutRunner.new()
-	_gut.set_should_exit(true)
-	_gut.set_should_maximize(true)
-	_gut.set_include_subdirectories(true)
-	_gut.set_unit_test_name("*test_*.gd")
+	# Initialize GUT using existing scene
+	var test_scene := GutScene.instantiate() as Control
+	_gut = test_scene.get_node("Gut")
+	
+	# Configure test environment
+	GutConfig.configure_test_dependencies(_gut)
 	
 	# Add test directories
-	for dir in TEST_DIRS:
+	var test_paths: Dictionary = GutConfig.get_test_paths()
+	for dir in test_paths.test_dirs.values():
 		_gut.add_directory(dir)
 	
 	# Connect signals
 	_gut.connect("tests_finished", _on_tests_finished)
 	_gut.connect("test_finished", _on_test_finished)
 	
-	# Run tests
+	# Add scene to tree and run tests
+	EditorInterface.get_editor_main_screen().add_child(test_scene)
 	_gut.test_scripts()
 
 func _on_test_finished(script: GDScript, test_name: String, passed: bool) -> void:
-	var result = {
+	var result := {
 		"passed": passed,
 		"duration": _gut.get_test_time(),
 		"memory": Performance.get_monitor(Performance.MEMORY_STATIC)
@@ -77,14 +45,19 @@ func _on_test_finished(script: GDScript, test_name: String, passed: bool) -> voi
 	_peak_memory = max(_peak_memory, result.memory)
 
 func _on_tests_finished() -> void:
-	var end_time = Time.get_ticks_msec()
-	var duration = (end_time - _start_time) / 1000.0
+	var end_time := Time.get_ticks_msec()
+	var duration := (end_time - _start_time) / 1000.0
 	
 	# Generate report
-	var report = _generate_report(duration)
+	var report := _generate_report(duration)
+	
+	# Create reports directory if it doesn't exist
+	var dir := DirAccess.open("res://tests")
+	if dir and not dir.dir_exists("reports"):
+		dir.make_dir("reports")
 	
 	# Save report
-	var file = FileAccess.open("res://tests/reports/test_run_%d.md" % Time.get_unix_time_from_system(), FileAccess.WRITE)
+	var file := FileAccess.open("res://tests/reports/test_run_%d.md" % Time.get_unix_time_from_system(), FileAccess.WRITE)
 	if file:
 		file.store_string(report)
 		file.close()
@@ -92,8 +65,8 @@ func _on_tests_finished() -> void:
 	print("Test run complete! Report saved.")
 	
 	# Exit editor if running from command line
-	if Engine.is_editor_hint():
-		EditorInterface.get_editor_main_screen().get_tree().quit()
+	if OS.has_feature("editor"):
+		get_editor_interface().get_editor_main_screen().get_tree().quit()
 
 func _generate_report(duration: float) -> String:
 	var total_tests := _test_results.size()
@@ -102,12 +75,12 @@ func _generate_report(duration: float) -> String:
 	var error_tests := 0
 	var pending_tests := 0
 	
-	var failures := []
-	var errors := []
-	var performance_issues := []
+	var failures: Array[String] = []
+	var errors: Array[String] = []
+	var performance_issues: Array[String] = []
 	
 	for test_path in _test_results:
-		var result = _test_results[test_path]
+		var result: Dictionary = _test_results[test_path]
 		
 		if result.passed:
 			passed_tests += 1
@@ -120,11 +93,11 @@ func _generate_report(duration: float) -> String:
 			performance_issues.append("- %s took %.2fs" % [test_path, result.duration / 1000.0])
 	
 	# Calculate metrics
-	var coverage = (passed_tests / float(total_tests)) * 100 if total_tests > 0 else 0
-	var avg_test_time = duration * 1000 / total_tests if total_tests > 0 else 0
+	var coverage := (passed_tests / float(total_tests)) * 100 if total_tests > 0 else 0.0
+	var avg_test_time := duration * 1000 / total_tests if total_tests > 0 else 0.0
 	
 	# Generate recommendations
-	var recommendations = []
+	var recommendations: Array[String] = []
 	if failed_tests > 0:
 		recommendations.append("- Fix failing tests first")
 	if performance_issues.size() > 0:
@@ -133,7 +106,34 @@ func _generate_report(duration: float) -> String:
 		recommendations.append("- Increase test coverage")
 	
 	# Format report
-	return REPORT_TEMPLATE.format({
+	return """# Test Run Report
+Generated: {datetime}
+
+## Summary
+- Total Tests: {total_tests}
+- Passed: {passed_tests}
+- Failed: {failed_tests}
+- Errors: {error_tests}
+- Pending: {pending_tests}
+- Coverage: {coverage}%
+
+## Performance
+- Total Duration: {duration}s
+- Average Test Time: {avg_test_time}ms
+- Peak Memory: {peak_memory}MB
+
+## Failures
+{failures}
+
+## Errors
+{errors}
+
+## Performance Issues
+{performance_issues}
+
+## Recommendations
+{recommendations}
+""".format({
 		"datetime": Time.get_datetime_string_from_system(),
 		"total_tests": total_tests,
 		"passed_tests": passed_tests,

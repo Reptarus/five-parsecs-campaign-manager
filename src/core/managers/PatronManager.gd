@@ -1,4 +1,3 @@
-class_name PatronManager
 extends Resource
 
 const FiveParsecsGameState = preload("res://src/core/state/GameState.gd")
@@ -367,7 +366,7 @@ func _apply_quest_rewards(quest: Dictionary) -> void:
 
 func _apply_quest_penalties(quest: Dictionary) -> void:
     # Reputation penalty
-    update_patron_reputation(quest.patron_id, -quest.rewards.reputation)
+    update_patron_reputation(quest.patron_id, - quest.rewards.reputation)
     
     # Additional penalties based on quest type
     match quest.type:

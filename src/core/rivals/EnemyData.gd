@@ -1,6 +1,5 @@
 @tool
 extends Resource
-class_name FiveParsecsEnemyData
 
 const GameEnums = preload("res://src/core/systems/GlobalEnums.gd")
 const GameWeapon = preload("res://src/core/systems/items/Weapon.gd")

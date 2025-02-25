@@ -1,5 +1,5 @@
 @tool
-extends GameTest
+extends "res://tests/fixtures/base/game_test.gd"
 
 # Type-safe constants with explicit typing
 const TerrainLayoutNode: GDScript = preload("res://src/core/terrain/TerrainLayoutNode.gd")

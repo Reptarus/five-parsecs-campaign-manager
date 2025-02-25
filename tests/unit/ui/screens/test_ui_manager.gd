@@ -1,12 +1,13 @@
 @tool
-extends GameTest
+extends "res://tests/fixtures/base/game_test.gd"
 
 # Type-safe constants with explicit typing
 const UIManagerScript: GDScript = preload("res://src/ui/screens/UIManager.gd")
+const GameState: GDScript = preload("res://src/core/state/GameState.gd")
 
 # Type-safe instance variables
-var _ui_manager: Node = null
-var _game_state: Node = null
+var _ui_manager: UIManagerScript
+var _mock_game_state: GameState
 
 # Type-safe signal tracking
 var _screen_changed_emitted: bool = false
@@ -23,11 +24,11 @@ func before_each() -> void:
 	await super.before_each()
 	
 	# Initialize game state with type safety
-	_game_state = create_test_game_state()
-	if not _game_state:
+	_mock_game_state = create_test_game_state()
+	if not _mock_game_state:
 		push_error("Failed to create game state")
 		return
-	add_child_autofree(_game_state)
+	add_child_autofree(_mock_game_state)
 	
 	# Initialize UI manager with type safety
 	_ui_manager = Node.new()
@@ -45,7 +46,7 @@ func after_each() -> void:
 	_cleanup_signals()
 	await super.after_each()
 	_ui_manager = null
-	_game_state = null
+	_mock_game_state = null
 
 # Type-safe signal management
 func _reset_signal_states() -> void:
@@ -96,7 +97,7 @@ func _verify_dialog_state(dialog_name: String, expected_dialog: String, message:
 # Type-safe test cases
 func test_initial_state() -> void:
 	assert_not_null(_ui_manager, "UI Manager should be initialized")
-	assert_not_null(_game_state, "Game State should be initialized")
+	assert_not_null(_mock_game_state, "Game State should be initialized")
 	assert_false(_screen_changed_emitted, "No screen change should be emitted initially")
 	assert_false(_dialog_opened_emitted, "No dialog open should be emitted initially")
 	assert_false(_dialog_closed_emitted, "No dialog close should be emitted initially")

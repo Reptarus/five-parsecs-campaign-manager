@@ -1,5 +1,4 @@
 @tool
-class_name FactionManager
 extends Node
 
 const FiveParsecsGameState = preload("res://src/core/state/GameState.gd")

@@ -1,14 +1,22 @@
-## Test class for core feature management functionality
-##
-## Tests the enabling, disabling, and toggling of core game features
-## through metadata management and game-specific feature flags.
-## Includes performance testing and error boundary verification.
+## Core Features Test Suite
+## Tests the functionality of the core game state features including:
+## - Game state transitions
+## - Campaign phase management
+## - Combat phase tracking
+## - Verification status handling
 @tool
-extends FiveParsecsEnemyTest
+extends "res://tests/fixtures/base/game_test.gd"
 
-# Type definitions
-var core_features: Node
+# Type-safe script references
+const GameStateManager: GDScript = preload("res://src/core/managers/GameStateManager.gd")
+
+# Type-safe constants
+const TEST_TIMEOUT := 2.0
+
+# Type-safe instance variables
 var _test_features: Dictionary = {}
+var _test_game_state: Node = null
+var game_state_manager: Node = null
 
 # Helper Methods
 func _setup_test_features() -> void:
@@ -21,185 +29,133 @@ func _setup_test_features() -> void:
 
 func _apply_test_features() -> void:
 	for feature_name: String in _test_features:
-		core_features.set_meta(feature_name, _test_features[feature_name])
+		TypeSafeMixin._safe_method_call_bool(game_state_manager, "set_state", [feature_name, _test_features[feature_name]])
 
-# Setup and Teardown
+# Test Lifecycle Methods
 func before_each() -> void:
 	await super.before_each()
-	core_features = Node.new()
-	add_child(core_features)
-	track_test_node(core_features)
-	await get_tree().process_frame
+	
+	# Initialize game state first
+	_test_game_state = create_test_game_state()
+	assert_valid_game_state(_test_game_state)
+	
+	# Initialize game state manager
+	game_state_manager = GameStateManager.new()
+	add_child_autofree(game_state_manager)
+	track_test_node(game_state_manager)
+	
+	# Set up initial state
+	game_state_manager.set_game_state(_test_game_state)
+	game_state_manager.set_campaign_phase(GameEnums.FiveParcsecsCampaignPhase.NONE)
+	
+	await stabilize_engine()
 
 func after_each() -> void:
-	await super.after_each()
-	core_features = null
+	if is_instance_valid(_test_game_state):
+		_test_game_state.queue_free()
+	if is_instance_valid(game_state_manager):
+		game_state_manager.queue_free()
+	
+	_test_game_state = null
+	game_state_manager = null
 	_test_features.clear()
+	await super.after_each()
 
-# Basic Feature Management Tests
+# Basic State Management Tests
 func test_initial_state() -> void:
-	assert_not_null(core_features, "Core features should be initialized")
-	assert_false(core_features.has_meta("test_feature"), "Should not have any features by default")
+	assert_not_null(_game_state, "Game state should be initialized")
+	var current_state: int = TypeSafeMixin._safe_method_call_int(_game_state, "get_state", [])
+	assert_eq(current_state, GameEnums.GameState.SETUP, "Should start in SETUP state")
 
-func test_enable_feature() -> void:
-	watch_signals(core_features)
-	
-	core_features.set_meta("test_feature", true)
-	assert_true(core_features.get_meta("test_feature"), "Feature should be enabled")
-
-func test_disable_feature() -> void:
-	watch_signals(core_features)
-	
-	core_features.set_meta("test_feature", true)
-	core_features.set_meta("test_feature", false)
-	assert_false(core_features.get_meta("test_feature"), "Feature should be disabled")
-
-# Game State Management Tests
-func test_game_state_features() -> void:
-	watch_signals(core_features)
+# Game State Tests
+func test_game_state_transitions() -> void:
+	watch_signals(_game_state)
 	
 	# Test game state transitions
-	var states = [
+	var states := [
 		GameEnums.GameState.SETUP,
 		GameEnums.GameState.CAMPAIGN,
 		GameEnums.GameState.BATTLE,
 		GameEnums.GameState.GAME_OVER
 	]
 	
-	for state in states:
-		core_features.set_meta("game_state", state)
-		assert_eq(core_features.get_meta("game_state"), state, "Should track game state correctly")
+	for state: int in states:
+		TypeSafeMixin._safe_method_call_bool(_game_state, "set_state", [state])
+		var current_state: int = TypeSafeMixin._safe_method_call_int(_game_state, "get_state", [])
+		assert_eq(current_state, state, "Should transition to correct state")
+		verify_signal_emitted(_game_state, "state_changed")
 
-func test_campaign_phase_features() -> void:
-	watch_signals(core_features)
+# Campaign Phase Tests
+func test_campaign_phase_transitions() -> void:
+	watch_signals(_game_state)
 	
-	# Test campaign phase tracking
-	var phases = [
+	# Set game state to campaign
+	TypeSafeMixin._safe_method_call_bool(_game_state, "set_state", [GameEnums.GameState.CAMPAIGN])
+	
+	# Test campaign phase transitions
+	var phases := [
 		GameEnums.CampaignPhase.SETUP,
 		GameEnums.CampaignPhase.UPKEEP,
 		GameEnums.CampaignPhase.STORY,
 		GameEnums.CampaignPhase.CAMPAIGN
 	]
 	
-	for phase in phases:
-		core_features.set_meta("campaign_phase", phase)
-		assert_eq(core_features.get_meta("campaign_phase"), phase, "Should track campaign phase correctly")
+	for phase: int in phases:
+		TypeSafeMixin._safe_method_call_bool(_game_state, "set_campaign_phase", [phase])
+		var current_phase: int = TypeSafeMixin._safe_method_call_int(_game_state, "get_campaign_phase", [])
+		assert_eq(current_phase, phase, "Should transition to correct campaign phase")
+		verify_signal_emitted(_game_state, "campaign_phase_changed")
 
-# Combat System Tests
-func test_combat_features() -> void:
-	watch_signals(core_features)
+# Combat Phase Tests
+func test_combat_phase_transitions() -> void:
+	watch_signals(_game_state)
 	
-	# Test combat phase tracking
-	var combat_phases = [
+	# Set game state to battle
+	TypeSafeMixin._safe_method_call_bool(_game_state, "set_state", [GameEnums.GameState.BATTLE])
+	
+	# Test combat phase transitions
+	var phases := [
 		GameEnums.CombatPhase.SETUP,
 		GameEnums.CombatPhase.DEPLOYMENT,
 		GameEnums.CombatPhase.INITIATIVE,
 		GameEnums.CombatPhase.ACTION
 	]
 	
-	for phase in combat_phases:
-		core_features.set_meta("combat_phase", phase)
-		assert_eq(core_features.get_meta("combat_phase"), phase, "Should track combat phase correctly")
+	for phase: int in phases:
+		TypeSafeMixin._safe_method_call_bool(_game_state, "set_combat_phase", [phase])
+		var current_phase: int = TypeSafeMixin._safe_method_call_int(_game_state, "get_combat_phase", [])
+		assert_eq(current_phase, phase, "Should transition to correct combat phase")
+		verify_signal_emitted(_game_state, "combat_phase_changed")
 
-# Verification System Tests
-func test_verification_features() -> void:
-	watch_signals(core_features)
+# State Validation Tests
+func test_invalid_state_transitions() -> void:
+	watch_signals(_game_state)
 	
-	# Test verification status tracking
-	var statuses = [
-		GameEnums.VerificationStatus.PENDING,
-		GameEnums.VerificationStatus.VERIFIED,
-		GameEnums.VerificationStatus.REJECTED
-	]
+	# Test invalid game state
+	var invalid_state := 9999
+	TypeSafeMixin._safe_method_call_bool(_game_state, "set_state", [invalid_state])
+	var current_state: int = TypeSafeMixin._safe_method_call_int(_game_state, "get_state", [])
+	assert_ne(current_state, invalid_state, "Should not transition to invalid state")
+	verify_signal_not_emitted(_game_state, "state_changed")
 	
-	for status in statuses:
-		core_features.set_meta("verification_status", status)
-		assert_eq(core_features.get_meta("verification_status"), status, "Should track verification status correctly")
-
-# Error Handling and Boundary Tests
-func test_remove_nonexistent_feature() -> void:
-	watch_signals(core_features)
+	# Test invalid campaign phase
+	TypeSafeMixin._safe_method_call_bool(_game_state, "set_campaign_phase", [invalid_state])
+	var current_phase: int = TypeSafeMixin._safe_method_call_int(_game_state, "get_campaign_phase", [])
+	assert_ne(current_phase, invalid_state, "Should not transition to invalid campaign phase")
+	verify_signal_not_emitted(_game_state, "campaign_phase_changed")
 	
-	core_features.remove_meta("nonexistent_feature")
-	assert_false(core_features.has_meta("nonexistent_feature"), "Should handle removing nonexistent features gracefully")
-
-func test_invalid_feature_value() -> void:
-	watch_signals(core_features)
-	
-	core_features.set_meta("test_feature", null)
-	assert_false(core_features.get_meta("test_feature", false), "Should handle invalid feature values gracefully")
+	# Test invalid combat phase
+	TypeSafeMixin._safe_method_call_bool(_game_state, "set_combat_phase", [invalid_state])
+	var current_combat_phase: int = TypeSafeMixin._safe_method_call_int(_game_state, "get_combat_phase", [])
+	assert_ne(current_combat_phase, invalid_state, "Should not transition to invalid combat phase")
+	verify_signal_not_emitted(_game_state, "combat_phase_changed")
 
 # Performance Tests
-func test_performance_bulk_operations() -> void:
-	watch_signals(core_features)
+func test_rapid_state_transitions() -> void:
+	watch_signals(_game_state)
+	var start_time := Time.get_ticks_msec()
 	
-	var start_time: float = Time.get_ticks_msec()
-	for i in range(1000):
-		_setup_test_features()
-		_apply_test_features()
-	var end_time: float = Time.get_ticks_msec()
-	
-	assert_true(end_time - start_time < 1000.0, "Bulk operations should complete within reasonable time")
-
-# Signal Verification Tests
-func test_feature_change_signals() -> void:
-	watch_signals(core_features)
-	var signal_count: int = 0
-	
-	core_features.connect("meta_changed", func(_meta: String): signal_count += 1)
-	
-	_setup_test_features()
-	_apply_test_features()
-	
-	assert_eq(signal_count, _test_features.size(), "Should emit correct number of signals")
-
-# Error Boundary Tests
-func test_error_boundaries() -> void:
-	watch_signals(core_features)
-	
-	# Test invalid enum values
-	var invalid_state: int = 9999
-	core_features.set_meta("game_state", invalid_state)
-	assert_ne(core_features.get_meta("game_state", GameEnums.GameState.SETUP),
-			 invalid_state,
-			 "Should handle invalid enum values gracefully")
-
-# Boundary Tests
-func test_multiple_features() -> void:
-	watch_signals(core_features)
-	
-	# Test managing multiple game-specific features
-	var features = {
-		"game_state": GameEnums.GameState.CAMPAIGN,
-		"campaign_phase": GameEnums.CampaignPhase.STORY,
-		"combat_phase": GameEnums.CombatPhase.INITIATIVE,
-		"verification_status": GameEnums.VerificationStatus.PENDING
-	}
-	
-	for feature_name in features:
-		core_features.set_meta(feature_name, features[feature_name])
-	
-	for feature_name in features:
-		assert_eq(core_features.get_meta(feature_name), features[feature_name], "Should handle multiple game features correctly")
-
-func test_feature_transitions() -> void:
-	watch_signals(core_features)
-	
-	# Test game state transitions with validation
-	core_features.set_meta("game_state", GameEnums.GameState.SETUP)
-	assert_eq(core_features.get_meta("game_state"), GameEnums.GameState.SETUP, "Should start in SETUP state")
-	
-	core_features.set_meta("game_state", GameEnums.GameState.CAMPAIGN)
-	assert_eq(core_features.get_meta("game_state"), GameEnums.GameState.CAMPAIGN, "Should transition to CAMPAIGN state")
-	
-	core_features.set_meta("campaign_phase", GameEnums.CampaignPhase.SETUP)
-	assert_eq(core_features.get_meta("campaign_phase"), GameEnums.CampaignPhase.SETUP, "Should track campaign phase in campaign state")
-
-func test_rapid_state_changes() -> void:
-	watch_signals(core_features)
-	
-	# Test rapid state transitions
-	var states = [
+	var states := [
 		GameEnums.GameState.SETUP,
 		GameEnums.GameState.CAMPAIGN,
 		GameEnums.GameState.BATTLE,
@@ -207,6 +163,27 @@ func test_rapid_state_changes() -> void:
 	]
 	
 	for i in range(100):
-		var state = states[i % states.size()]
-		core_features.set_meta("game_state", state)
-		assert_eq(core_features.get_meta("game_state"), state, "Should handle rapid state changes correctly")
+		var state: int = states[i % states.size()]
+		TypeSafeMixin._safe_method_call_bool(_game_state, "set_state", [state])
+		var current_state: int = TypeSafeMixin._safe_method_call_int(_game_state, "get_state", [])
+		assert_eq(current_state, state, "Should handle rapid state changes correctly")
+	
+	var duration := Time.get_ticks_msec() - start_time
+	assert_true(duration < 1000, "Should handle rapid state transitions efficiently")
+	verify_signal_emit_count(_game_state, "state_changed", 100)
+
+# State Dependency Tests
+func test_state_dependencies() -> void:
+	watch_signals(_game_state)
+	
+	# Test campaign phase only valid in campaign state
+	TypeSafeMixin._safe_method_call_bool(_game_state, "set_state", [GameEnums.GameState.SETUP])
+	TypeSafeMixin._safe_method_call_bool(_game_state, "set_campaign_phase", [GameEnums.CampaignPhase.STORY])
+	var campaign_phase: int = TypeSafeMixin._safe_method_call_int(_game_state, "get_campaign_phase", [])
+	assert_eq(campaign_phase, GameEnums.CampaignPhase.NONE, "Should not set campaign phase outside campaign state")
+	
+	# Test combat phase only valid in battle state
+	TypeSafeMixin._safe_method_call_bool(_game_state, "set_state", [GameEnums.GameState.CAMPAIGN])
+	TypeSafeMixin._safe_method_call_bool(_game_state, "set_combat_phase", [GameEnums.CombatPhase.ACTION])
+	var combat_phase: int = TypeSafeMixin._safe_method_call_int(_game_state, "get_combat_phase", [])
+	assert_eq(combat_phase, GameEnums.CombatPhase.NONE, "Should not set combat phase outside battle state")

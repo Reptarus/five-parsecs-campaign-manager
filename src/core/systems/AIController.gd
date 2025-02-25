@@ -1,4 +1,3 @@
-class_name AIController
 extends Node
 
 const GameEnums = preload("res://src/core/systems/GlobalEnums.gd")

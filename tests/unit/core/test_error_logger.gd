@@ -8,7 +8,7 @@
 ## - Signal verification
 ## - Error context handling
 @tool
-extends FiveParsecsEnemyTest
+extends "res://tests/fixtures/specialized/enemy_test_base.gd"
 
 const ErrorLogger := preload("res://src/core/systems/ErrorLogger.gd")
 

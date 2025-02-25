@@ -1,4 +1,3 @@
-class_name WeaponData
 extends EquipmentData
 
 # Core weapon stats

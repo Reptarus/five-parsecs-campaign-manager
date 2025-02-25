@@ -1,4 +1,3 @@
-class_name PatronJobManager
 extends Resource
 
 var game_state_manager: Node
@@ -29,7 +28,7 @@ func complete_job(mission: Node) -> void:
 
 func fail_job(mission: Node) -> void:
 	if not mission:
-		push_error("Attempted to fail null mission") 
+		push_error("Attempted to fail null mission")
 		return
 		
 	mission.fail()

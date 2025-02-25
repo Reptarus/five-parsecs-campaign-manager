@@ -1,5 +1,4 @@
 @tool
-class_name FiveParsecsCharacterManager
 extends Node
 
 signal character_added(character: Character)

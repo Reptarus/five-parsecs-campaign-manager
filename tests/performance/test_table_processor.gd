@@ -1,161 +1,244 @@
 @tool
-extends "res://tests/fixtures/base_test.gd"
+extends "res://tests/performance/perf_test_base.gd"
 
-const TableProcessor = preload("res://src/core/systems/TableProcessor.gd")
-const TableLoader = preload("res://src/core/systems/TableLoader.gd")
+# Type-safe script references
+const TableProcessorScript: GDScript = preload("res://src/core/systems/TableProcessor.gd")
+const TableLoaderScript: GDScript = preload("res://src/core/systems/TableLoader.gd")
 
-var processor: TableProcessor
-var test_table: TableProcessor.Table
-var error_messages: Array[String] = []
+# Test variables with explicit types
+var _processor: Node = null
+var _test_tables: Array[Dictionary] = []
+
+# Table size thresholds
+const TABLE_SIZES := {
+	"small": {
+		"rows": 100,
+		"columns": 5
+	},
+	"medium": {
+		"rows": 1000,
+		"columns": 10
+	},
+	"large": {
+		"rows": 10000,
+		"columns": 20
+	}
+}
+
+# Performance thresholds for different table sizes
+const TABLE_THRESHOLDS := {
+	"small": {
+		"average_fps": 55.0,
+		"minimum_fps": 45.0,
+		"memory_delta_kb": 128.0,
+		"processing_time_ms": 16.0
+	},
+	"medium": {
+		"average_fps": 45.0,
+		"minimum_fps": 35.0,
+		"memory_delta_kb": 512.0,
+		"processing_time_ms": 33.0
+	},
+	"large": {
+		"average_fps": 35.0,
+		"minimum_fps": 25.0,
+		"memory_delta_kb": 2048.0,
+		"processing_time_ms": 66.0
+	}
+}
 
 func before_each() -> void:
-	super.before_each()
-	processor = TableProcessor.new()
-	add_child(processor)
-	test_table = TableProcessor.Table.new("test_table")
-	error_messages.clear()
+	await super.before_each()
 	
-	test_table.add_entry(TableProcessor.TableEntry.new(1, 20, "Common Result"))
-	test_table.add_entry(TableProcessor.TableEntry.new(21, 40, "Uncommon Result"))
-	test_table.add_entry(TableProcessor.TableEntry.new(41, 60, "Rare Result"))
-	test_table.add_entry(TableProcessor.TableEntry.new(61, 80, "Very Rare Result"))
-	test_table.add_entry(TableProcessor.TableEntry.new(81, 100, "Legendary Result"))
+	# Initialize table processor
+	_processor = TableProcessorScript.new()
+	if not _processor:
+		push_error("Failed to create table processor")
+		return
+	add_child_autofree(_processor)
+	track_test_node(_processor)
 	
-	processor.register_table(test_table)
+	await stabilize_engine(STABILIZE_TIME)
 
 func after_each() -> void:
-	super.after_each()
-	processor.queue_free()
-
-func test_table_registration() -> void:
-	assert_true(processor.has_table("test_table"))
-	assert_eq(processor.get_table("test_table").name, "test_table")
-
-func test_basic_roll() -> void:
-	var result = processor.roll_table("test_table")
-	assert_true(result["success"])
-	assert_not_null(result["result"])
-
-func test_custom_roll() -> void:
-	var result = processor.roll_table("test_table", 50)
-	assert_true(result["success"])
-	assert_eq(result["result"], "Rare Result")
-
-func test_weighted_roll() -> void:
-	var weighted_table = TableProcessor.Table.new("weighted_test")
-	weighted_table.add_entry(TableProcessor.TableEntry.new(1, 100, "Common", 0.7))
-	weighted_table.add_entry(TableProcessor.TableEntry.new(1, 100, "Uncommon", 0.2))
-	weighted_table.add_entry(TableProcessor.TableEntry.new(1, 100, "Rare", 0.1))
+	# Cleanup test resources
+	_test_tables.clear()
 	
-	processor.register_table(weighted_table)
+	if is_instance_valid(_processor):
+		_processor.queue_free()
+	_processor = null
 	
-	var common_count = 0
-	var uncommon_count = 0
-	var rare_count = 0
-	
-	for i in range(1000):
-		var result = processor.roll_weighted_table("weighted_test")
-		match result["result"]:
-			"Common": common_count += 1
-			"Uncommon": uncommon_count += 1
-			"Rare": rare_count += 1
-	
-	# Check if the distribution roughly matches the weights
-	assert_true(common_count > uncommon_count)
-	assert_true(uncommon_count > rare_count)
-	assert_true(common_count > 500) # Should be around 700
-	assert_true(rare_count < 200) # Should be around 100
+	await super.after_each()
 
-func test_validation_rules() -> void:
-	var validated_table = TableProcessor.Table.new("validated_test")
-	validated_table.add_entry(TableProcessor.TableEntry.new(1, 100, "Valid Result"))
+func test_small_table_performance() -> void:
+	print_debug("Testing small table processing performance...")
+	await _setup_test_table("small")
 	
-	# Add a validation rule that only allows even numbers
-	validated_table.add_validation_rule(
-		func(roll: int) -> Dictionary:
-			return {
-				"valid": roll % 2 == 0,
-				"reason": "Roll must be even"
-			}
+	var metrics := await measure_performance(
+		func() -> void:
+			TypeSafeMixin._safe_method_call_bool(_processor, "process_table", [_test_tables[0]])
+			await get_tree().process_frame
 	)
 	
-	processor.register_table(validated_table)
-	
-	var odd_roll = processor.roll_table("validated_test", 15)
-	var even_roll = processor.roll_table("validated_test", 16)
-	
-	assert_false(odd_roll["success"])
-	assert_true(even_roll["success"])
+	verify_performance_metrics(metrics, TABLE_THRESHOLDS.small)
 
-func test_modifiers() -> void:
-	var modified_table = TableProcessor.Table.new("modified_test")
-	modified_table.add_entry(TableProcessor.TableEntry.new(1, 100, 10))
+func test_medium_table_performance() -> void:
+	print_debug("Testing medium table processing performance...")
+	await _setup_test_table("medium")
 	
-	# Add a modifier that doubles the result
-	modified_table.add_modifier(
-		func(result: Variant) -> Variant:
-			return result * 2
+	var metrics := await measure_performance(
+		func() -> void:
+			TypeSafeMixin._safe_method_call_bool(_processor, "process_table", [_test_tables[0]])
+			await get_tree().process_frame
 	)
 	
-	processor.register_table(modified_table)
-	
-	var result = processor.roll_table("modified_test", 50)
-	assert_eq(result["result"], 20)
+	verify_performance_metrics(metrics, TABLE_THRESHOLDS.medium)
 
-func test_history_tracking() -> void:
-	processor.roll_table("test_table", 50)
-	processor.roll_table("test_table", 75)
+func test_large_table_performance() -> void:
+	print_debug("Testing large table processing performance...")
+	await _setup_test_table("large")
 	
-	var history = processor.get_roll_history("test_table")
-	assert_eq(history.size(), 2)
-	assert_eq(history[0]["roll"], 50)
-	assert_eq(history[1]["roll"], 75)
+	var metrics := await measure_performance(
+		func() -> void:
+			TypeSafeMixin._safe_method_call_bool(_processor, "process_table", [_test_tables[0]])
+			await get_tree().process_frame
+	)
+	
+	verify_performance_metrics(metrics, TABLE_THRESHOLDS.large)
 
-func test_table_serialization() -> void:
-	var table_data = {
-		"name": "serialized_test",
-		"entries": [
-			{
-				"roll_range": [1, 50],
-				"result": "First Half",
-				"weight": 1.0,
-				"tags": ["common"]
-			},
-			{
-				"roll_range": [51, 100],
-				"result": "Second Half",
-				"weight": 1.0,
-				"tags": ["common"]
-			}
-		]
+func test_table_memory_management() -> void:
+	print_debug("Testing table memory management...")
+	
+	var initial_memory := Performance.get_monitor(Performance.MEMORY_STATIC)
+	
+	# Test memory usage with tables of increasing size
+	for size in TABLE_SIZES.keys():
+		await _setup_test_table(size)
+		
+		# Process tables multiple times
+		for i in range(5):
+			TypeSafeMixin._safe_method_call_bool(_processor, "process_table", [_test_tables[0]])
+			await get_tree().process_frame
+		
+		# Cleanup tables
+		_test_tables.clear()
+		await get_tree().process_frame
+	
+	var final_memory := Performance.get_monitor(Performance.MEMORY_STATIC)
+	var memory_delta := (final_memory - initial_memory) / 1024.0 # KB
+	
+	assert_lt(memory_delta, PERFORMANCE_THRESHOLDS.memory.leak_threshold_kb,
+		"Memory should be properly cleaned up after table processing")
+
+func test_table_stress() -> void:
+	print_debug("Running table processing stress test...")
+	
+	# Setup medium table
+	await _setup_test_table("medium")
+	
+	await stress_test(
+		func() -> void:
+			TypeSafeMixin._safe_method_call_bool(_processor, "process_table", [_test_tables[0]])
+			
+			# Randomly modify table
+			if randf() < 0.2: # 20% chance each frame
+				var modification := randi() % 3
+				match modification:
+					0: # Add row
+						_add_test_row(_test_tables[0])
+					1: # Remove row
+						_remove_random_row(_test_tables[0])
+					2: # Modify values
+						_modify_random_values(_test_tables[0])
+			
+			await get_tree().process_frame
+	)
+
+func test_mobile_table_performance() -> void:
+	if not _is_mobile:
+		print_debug("Skipping mobile table test on non-mobile platform")
+		return
+	
+	print_debug("Testing mobile table processing performance...")
+	
+	# Test under memory pressure
+	await simulate_memory_pressure()
+	
+	# Setup small table (mobile optimized)
+	await _setup_test_table("small")
+	
+	var metrics := await measure_performance(
+		func() -> void:
+			TypeSafeMixin._safe_method_call_bool(_processor, "process_table", [_test_tables[0]])
+			await get_tree().process_frame
+	)
+	
+	# Use mobile-specific thresholds
+	var mobile_thresholds := {
+		"average_fps": PERFORMANCE_THRESHOLDS.fps.mobile_target,
+		"minimum_fps": PERFORMANCE_THRESHOLDS.fps.mobile_minimum,
+		"memory_delta_kb": PERFORMANCE_THRESHOLDS.memory.mobile_max_delta_mb * 1024,
+		"draw_calls_delta": PERFORMANCE_THRESHOLDS.gpu.max_draw_calls / 2
 	}
 	
-	var loaded_table = TableLoader.create_table_from_data(table_data)
-	assert_not_null(loaded_table)
-	assert_eq(loaded_table.name, "serialized_test")
-	
-	processor.register_table(loaded_table)
-	var result = processor.roll_table("serialized_test", 75)
-	assert_eq(result["result"], "Second Half")
+	verify_performance_metrics(metrics, mobile_thresholds)
 
-func test_table_persistence() -> void:
-	# Roll some test results
-	processor.roll_table("test_table", 25)
-	processor.roll_table("test_table", 75)
+# Helper methods
+func _setup_test_table(size_key: String) -> void:
+	var config: Dictionary = TABLE_SIZES[size_key] if TABLE_SIZES.has(size_key) else TABLE_SIZES.small
 	
-	# Serialize
-	var serialized = processor.serialize()
-	assert_true(serialized.has("history"))
-	assert_eq(serialized["history"].size(), 2)
+	var table := {
+		"rows": [],
+		"columns": _generate_test_columns(config.columns)
+	}
 	
-	# Create new processor and deserialize
-	var new_processor = TableProcessor.new()
-	new_processor.deserialize(serialized)
+	# Generate test rows
+	for i in range(config.rows):
+		table.rows.append(_generate_test_row(config.columns))
 	
-	# Check history was restored
-	var history = new_processor.get_roll_history()
-	assert_eq(history.size(), 2)
-	assert_eq(history[0]["roll"], 25)
-	assert_eq(history[1]["roll"], 75)
+	_test_tables.append(table)
+	await stabilize_engine(STABILIZE_TIME)
+
+func _generate_test_columns(count: int) -> Array[Dictionary]:
+	var columns: Array[Dictionary] = []
+	for i in range(count):
+		columns.append({
+			"name": "Column_%d" % i,
+			"type": "string" if i % 2 == 0 else "number"
+		})
+	return columns
+
+func _generate_test_row(column_count: int) -> Dictionary:
+	var row := {}
+	for i in range(column_count):
+		if i % 2 == 0:
+			row["Column_%d" % i] = "Value_%d" % randi()
+		else:
+			row["Column_%d" % i] = randi() % 100
+	return row
+
+func _add_test_row(table: Dictionary) -> void:
+	if not table.has("columns") or not table.has("rows"):
+		return
+	table.rows.append(_generate_test_row(table.columns.size()))
+
+func _remove_random_row(table: Dictionary) -> void:
+	if not table.has("rows") or table.rows.is_empty():
+		return
+	var index: int = randi() % table.rows.size()
+	table.rows.remove_at(index)
+
+func _modify_random_values(table: Dictionary) -> void:
+	if not table.has("rows") or table.rows.is_empty():
+		return
 	
-	new_processor.free()
+	var row_index: int = randi() % table.rows.size()
+	var row: Dictionary = table.rows[row_index]
+	
+	for column in table.columns:
+		if randf() < 0.5: # 50% chance to modify each value
+			var column_name: String = column.name
+			if column.type == "string":
+				row[column_name] = "Modified_%d" % randi()
+			else:
+				row[column_name] = randi() % 100

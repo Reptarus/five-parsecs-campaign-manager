@@ -3,7 +3,7 @@
 ## Tests the UI components and logic for editing house rules
 ## including rule validation, modification, and state management
 @tool
-extends GameTest
+extends "res://tests/fixtures/base/game_test.gd"
 
 const TestedClass: PackedScene = preload("res://src/ui/components/combat/rules/rule_editor.tscn")
 

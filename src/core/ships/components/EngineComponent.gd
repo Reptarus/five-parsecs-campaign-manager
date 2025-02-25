@@ -1,5 +1,4 @@
 # Scripts/ShipAndCrew/EngineComponent.gd
-class_name EngineComponent
 extends ShipComponent
 
 @export var thrust: float = 1.0

@@ -1,5 +1,4 @@
 # PostBattle.gd
-class_name PostBattlePhase
 extends Control
 
 const GameEnums = preload("res://src/core/systems/GlobalEnums.gd")

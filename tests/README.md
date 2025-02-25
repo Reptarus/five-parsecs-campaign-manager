@@ -5,19 +5,39 @@
 ### Unit Tests (`unit/`)
 - `enemy/`: Enemy system tests (behavior, combat, state management)
 - `character/`: Character system tests (creation, advancement, stats)
-- `combat/`: Combat system tests (battlefield, mechanics, resolution)
+- `battle/`: Battle and combat system tests (battlefield, mechanics, resolution)
 - `mission/`: Mission system tests (generation, objectives, rewards)
 - `terrain/`: Terrain system tests (generation, features, pathfinding)
-- `campaign/`: Campaign system tests (state, progression, resources)
-- `core/`: Core system tests (error handling, features)
-- `ui/`: UI component tests (panels, controllers, state)
-- `equipment/`: Equipment system tests (items, modifications)
+- `campaign/`: Campaign system tests
+  - Story and quest systems
+  - Patron and rival management
+  - Campaign state and progression
+  - Resource management
+- `core/`: Core system tests
+  - Game state management
+  - Save/load functionality
+  - Settings and configuration
+  - Resource serialization
+- `ship/`: Ship system tests
+  - Ship creation and modification
+  - Component management
+  - Weapon systems
+  - Engine systems
+  - Hull systems
+  - Medical systems
+- `ui/`: UI component tests organized by feature
+  - `campaign/`: Campaign-specific UI components
+  - `battle/`: Battle-specific UI components
+  - `common/`: Shared UI components
 
 ### Integration Tests (`integration/`)
 - `campaign_flow/`: Campaign phase interactions
-- `combat_flow/`: Combat system interactions
+- `battle/`: Battle system interactions
 - `mission_flow/`: Mission system interactions
 - `enemy_interactions/`: Enemy system integration tests
+- `ui/`: UI integration tests
+  - `campaign/`: Campaign UI flows
+  - `battle/`: Battle UI flows
 
 ### Performance Tests (`performance/`)
 - `combat/`: Combat system benchmarks
@@ -121,6 +141,24 @@ func test_value_boundaries() -> void:
    - Add descriptive assertion messages
    - Comment complex test setups
 
+## Test Organization Guidelines
+
+### Component Tests
+- Individual component tests focus on specific functionality
+- System tests handle component interactions and management
+- UI tests are organized by feature domain
+
+### Test Consolidation
+- Related tests are consolidated by feature domain
+- Battle and combat tests are unified under `battle/`
+- UI tests are organized hierarchically by feature
+- Avoid duplicate test cases across directories
+
+### Test Naming Conventions
+- Individual component tests: `test_[component_name].gd`
+- System tests: `test_[system_name]_system.gd`
+- UI tests: `test_[feature]_[component].gd`
+
 ## Test Categories
 
 ### Unit Tests
@@ -156,4 +194,17 @@ Test reports are generated in `tests/reports/`:
 - Test results
 - Coverage data
 - Performance metrics
-- Error logs 
+- Error logs
+
+### Test File Organization
+Each test file should be placed in a directory that matches its primary functionality:
+- Component tests go in their respective system directories (e.g., `ship/`, `campaign/`)
+- Manager and system tests go in their respective feature directories
+- UI tests are organized by feature in the `ui/` directory
+- Core functionality tests go in the `core/` directory
+
+For example:
+- Ship component test: `unit/ship/test_weapon_component.gd`
+- Campaign system test: `unit/campaign/test_story_quest_data.gd`
+- Core system test: `unit/core/test_game_state.gd`
+- UI component test: `unit/ui/campaign/test_resource_panel.gd` 

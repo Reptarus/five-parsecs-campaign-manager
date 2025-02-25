@@ -1,5 +1,4 @@
 # Scripts/ShipAndCrew/ShipComponent.gd
-class_name ShipComponent
 extends Resource
 
 @export var name: String = ""

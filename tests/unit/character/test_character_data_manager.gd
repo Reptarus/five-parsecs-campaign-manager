@@ -9,133 +9,155 @@
 ## - Performance considerations
 ## - Signal emissions
 @tool
-extends FiveParsecsEnemyTest
+extends GameTest
 
-const Character := preload("res://src/core/character/Base/Character.gd")
-const FiveParsecsGameState := preload("res://src/core/state/GameState.gd")
-const CharacterDataManager := preload("res://src/core/character/Management/CharacterDataManager.gd")
-const GameStateManager := preload("res://src/core/managers/GameStateManager.gd")
+# Type-safe script references
+const Character: GDScript = preload("res://src/core/character/Base/Character.gd")
+const GameStateManager: GDScript = preload("res://src/core/managers/GameStateManager.gd")
+const CharacterDataManager: GDScript = preload("res://src/core/character/Management/CharacterDataManager.gd")
 
-# Test constants
+# Type-safe constants
 const TEST_BATCH_SIZE: int = 100
 const MAX_CHARACTERS: int = 1000
 
-var game_state: GameStateManager
-var data_manager: CharacterDataManager
-var test_character: Character
+# Type-safe instance variables
+var _data_manager: Node = null
+var _test_character: Node = null
 
 # Helper methods
-func create_test_character() -> Node:
-	var character = Character.new()
-	character.character_name = "Test Character"
-	character.character_class = GameEnums.CharacterClass.SOLDIER
-	track_test_resource(character)
+func _create_test_character() -> Node:
+	var character: Node = Character.new()
+	if not character:
+		push_error("Failed to create test character")
+		return null
+	TypeSafeMixin._safe_method_call_bool(character, "set_character_name", ["Test Character"])
+	TypeSafeMixin._safe_method_call_bool(character, "set_character_class", [GameEnums.CharacterClass.SOLDIER])
+	add_child_autofree(character)
+	track_test_node(character)
 	return character
 
-func create_batch_characters(count: int) -> Array[Character]:
-	var characters: Array[Character] = []
+func _create_batch_characters(count: int) -> Array[Node]:
+	var characters: Array[Node] = []
 	for i in range(count):
-		characters.append(create_test_character())
+		var character := _create_test_character()
+		if character:
+			characters.append(character)
 	return characters
 
 # Setup and teardown
 func before_each() -> void:
 	await super.before_each()
-	game_state = GameStateManager.new()
-	data_manager = CharacterDataManager.new(game_state)
-	test_character = Character.new()
-	test_character.initialize_managers(game_state)
-	add_child(game_state)
-	add_child(data_manager)
-	track_test_node(game_state)
-	track_test_node(data_manager)
-	watch_signals(game_state)
-	watch_signals(data_manager)
+	
+	# Initialize data manager
+	var data_manager_instance: Node = CharacterDataManager.new()
+	_data_manager = TypeSafeMixin._safe_cast_node(data_manager_instance)
+	if not _data_manager:
+		push_error("Failed to create data manager")
+		return
+	TypeSafeMixin._safe_method_call_bool(_data_manager, "initialize", [_game_state])
+	add_child_autofree(_data_manager)
+	track_test_node(_data_manager)
+	
+	# Create test character
+	_test_character = _create_test_character()
+	if not _test_character:
+		push_error("Failed to create test character")
+		return
+	
+	watch_signals(_game_state)
+	watch_signals(_data_manager)
+	await stabilize_engine(STABILIZE_TIME)
 
 func after_each() -> void:
+	_game_state = null
+	_data_manager = null
+	_test_character = null
 	await super.after_each()
-	if is_instance_valid(game_state):
-		game_state.queue_free()
-		game_state = null
-	if is_instance_valid(data_manager):
-		data_manager.queue_free()
-		data_manager = null
-	if is_instance_valid(test_character):
-		test_character.queue_free()
-		test_character = null
 
 # Basic functionality tests
 func test_initial_state() -> void:
-	assert_not_null(data_manager, "Data manager should be initialized")
-	assert_eq(data_manager.get_character_count(), 0, "Should start with no characters")
+	assert_not_null(_data_manager, "Data manager should be initialized")
+	var count: int = TypeSafeMixin._safe_method_call_int(_data_manager, "get_character_count", [])
+	assert_eq(count, 0, "Should start with no characters")
 
 func test_save_and_load_character() -> void:
 	# Setup test character
-	test_character.character_name = "Test Character"
-	test_character.character_class = GameEnums.CharacterClass.SOLDIER
-	test_character.origin = GameEnums.Origin.HUMAN
-	test_character.background = GameEnums.Background.MILITARY
-	test_character.motivation = GameEnums.Motivation.DUTY
+	TypeSafeMixin._safe_method_call_bool(_test_character, "set_character_name", ["Test Character"])
+	TypeSafeMixin._safe_method_call_bool(_test_character, "set_character_class", [GameEnums.CharacterClass.SOLDIER])
+	TypeSafeMixin._safe_method_call_bool(_test_character, "set_origin", [GameEnums.Origin.HUMAN])
+	TypeSafeMixin._safe_method_call_bool(_test_character, "set_background", [GameEnums.Background.MILITARY])
+	TypeSafeMixin._safe_method_call_bool(_test_character, "set_motivation", [GameEnums.Motivation.DUTY])
 	
 	# Save character
-	var file_name = "test_character"
-	data_manager.save_character(test_character, file_name)
+	var file_name := "test_character"
+	var save_result: bool = TypeSafeMixin._safe_method_call_bool(_data_manager, "save_character", [_test_character, file_name])
+	assert_true(save_result, "Should save character successfully")
 	
 	# Load character
-	var loaded_character = data_manager.load_character(file_name)
+	var loaded_character: Node = TypeSafeMixin._safe_method_call_node(_data_manager, "load_character", [file_name])
 	assert_not_null(loaded_character, "Should load character successfully")
 	
 	# Verify character data
-	assert_eq(loaded_character.character_name, test_character.character_name,
-		"Character name should match")
-	assert_eq(loaded_character.character_class, test_character.character_class,
-		"Character class should match")
-	assert_eq(loaded_character.origin, test_character.origin,
-		"Character origin should match")
-	assert_eq(loaded_character.background, test_character.background,
-		"Character background should match")
-	assert_eq(loaded_character.motivation, test_character.motivation,
-		"Character motivation should match")
+	var loaded_name: String = TypeSafeMixin._safe_method_call_string(loaded_character, "get_character_name", [])
+	var loaded_class: int = TypeSafeMixin._safe_method_call_int(loaded_character, "get_character_class", [])
+	var loaded_origin: int = TypeSafeMixin._safe_method_call_int(loaded_character, "get_origin", [])
+	var loaded_background: int = TypeSafeMixin._safe_method_call_int(loaded_character, "get_background", [])
+	var loaded_motivation: int = TypeSafeMixin._safe_method_call_int(loaded_character, "get_motivation", [])
+	
+	assert_eq(loaded_name, "Test Character", "Character name should match")
+	assert_eq(loaded_class, GameEnums.CharacterClass.SOLDIER, "Character class should match")
+	assert_eq(loaded_origin, GameEnums.Origin.HUMAN, "Character origin should match")
+	assert_eq(loaded_background, GameEnums.Background.MILITARY, "Character background should match")
+	assert_eq(loaded_motivation, GameEnums.Motivation.DUTY, "Character motivation should match")
 
 # Performance tests
 func test_batch_character_operations() -> void:
 	var start_time := Time.get_ticks_msec()
-	var characters := create_batch_characters(TEST_BATCH_SIZE)
+	var characters := _create_batch_characters(TEST_BATCH_SIZE)
 	
 	for character in characters:
-		data_manager.save_character_data(character)
+		var save_result: bool = TypeSafeMixin._safe_method_call_bool(_data_manager, "save_character_data", [character])
+		assert_true(save_result, "Should save character successfully")
 	
 	var end_time := Time.get_ticks_msec()
 	var duration := end_time - start_time
 	
-	assert_eq(data_manager.get_character_count(), TEST_BATCH_SIZE, "Should save all characters")
+	var count: int = TypeSafeMixin._safe_method_call_int(_data_manager, "get_character_count", [])
+	assert_eq(count, TEST_BATCH_SIZE, "Should save all characters")
 	assert_true(duration < 1000, "Batch operation should complete within 1 second")
 
 # Boundary tests
 func test_character_limit() -> void:
 	for i in range(MAX_CHARACTERS + 1):
-		var result = data_manager.save_character_data(create_test_character())
+		var character := _create_test_character()
+		var result: Node = TypeSafeMixin._safe_method_call_node(_data_manager, "save_character_data", [character])
 		if i >= MAX_CHARACTERS:
 			assert_null(result, "Should not save beyond maximum character limit")
 
 # Signal verification tests
 func test_signal_emission_order() -> void:
-	watch_signals(data_manager)
-	var character := create_test_character()
+	watch_signals(_data_manager)
+	var character := _create_test_character()
 	
-	data_manager.save_character_data(character)
-	assert_eq(_signal_watcher.get_emit_count(data_manager, "character_data_saved"), 1)
+	var save_result: bool = TypeSafeMixin._safe_method_call_bool(_data_manager, "save_character_data", [character])
+	assert_true(save_result, "Should save character successfully")
+	verify_signal_emitted(_data_manager, "character_data_saved")
 	
-	data_manager.set_active_character(0)
-	assert_eq(_signal_watcher.get_emit_count(data_manager, "active_character_changed"), 1)
+	var set_result: bool = TypeSafeMixin._safe_method_call_bool(_data_manager, "set_active_character", [0])
+	assert_true(set_result, "Should set active character successfully")
+	verify_signal_emitted(_data_manager, "active_character_changed")
 	
-	data_manager.delete_character_data(0)
-	assert_eq(_signal_watcher.get_emit_count(data_manager, "character_data_deleted"), 1)
+	var delete_result: bool = TypeSafeMixin._safe_method_call_bool(_data_manager, "delete_character_data", [0])
+	assert_true(delete_result, "Should delete character successfully")
+	verify_signal_emitted(_data_manager, "character_data_deleted")
 
 # Error boundary tests
 func test_invalid_character_operations() -> void:
-	assert_null(data_manager.get_character_data(-1), "Should handle invalid index")
-	assert_null(data_manager.get_character_data(9999), "Should handle out of bounds index")
+	var invalid_character: Node = TypeSafeMixin._safe_method_call_node(_data_manager, "get_character_data", [-1])
+	assert_null(invalid_character, "Should handle invalid index")
 	
-	var invalid_character = null
-	assert_null(data_manager.save_character_data(invalid_character), "Should handle null character")
+	invalid_character = TypeSafeMixin._safe_method_call_node(_data_manager, "get_character_data", [9999])
+	assert_null(invalid_character, "Should handle out of bounds index")
+	
+	var save_result: bool = TypeSafeMixin._safe_method_call_bool(_data_manager, "save_character_data", [null])
+	assert_false(save_result, "Should handle null character")

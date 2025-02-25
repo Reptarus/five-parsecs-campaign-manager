@@ -1,4 +1,3 @@
-class_name FiveParsecsCharacterTableRoller
 extends RefCounted
 
 const FIRST_NAMES: Array[String] = [

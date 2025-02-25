@@ -1,5 +1,5 @@
 @tool
-extends "res://tests/fixtures/base_test.gd"
+extends "res://tests/fixtures/base/base_test.gd"
 
 ## Mission System Unit Tests
 ##
@@ -12,6 +12,7 @@ extends "res://tests/fixtures/base_test.gd"
 ## - Signal handling and state transitions
 
 const Mission = preload("res://src/core/systems/Mission.gd")
+const GameEnums = preload("res://src/core/systems/GlobalEnums.gd")
 const TEST_SAVE_PATH := "user://test_mission_save.tres"
 
 # Helper variables

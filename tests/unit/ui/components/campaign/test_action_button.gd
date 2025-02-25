@@ -1,103 +1,119 @@
 @tool
-extends GameTest
+extends "res://tests/unit/ui/base/component_test_base.gd"
 
-const TestedClass: PackedScene = preload("res://src/scenes/campaign/components/ActionButton.tscn")
+const ActionButton: PackedScene = preload("res://src/scenes/campaign/components/ActionButton.tscn")
 
-var _instance: Control
-var _clicked_signal_emitted := false
-var _last_click_data: Dictionary = {}
+# Test variables with explicit types
+var clicked_signal_emitted: bool = false
+var last_click_data: Dictionary = {}
+
+# Override _create_component_instance to provide the specific component
+func _create_component_instance() -> Control:
+	return ActionButton.instantiate()
 
 func before_each() -> void:
 	await super.before_each()
-	_instance = TestedClass.instantiate()
-	add_child_autofree(_instance)
-	track_test_node(_instance)
-	_connect_signals()
 	_reset_signals()
+	_connect_signals()
 
 func after_each() -> void:
-	_disconnect_signals()
-	_reset_signals()
 	await super.after_each()
-	_instance = null
-
-func _connect_signals() -> void:
-	if not _instance:
-		return
-		
-	if _instance.has_signal("clicked"):
-		_instance.connect("clicked", _on_button_clicked)
-
-func _disconnect_signals() -> void:
-	if not _instance:
-		return
-		
-	if _instance.has_signal("clicked") and _instance.is_connected("clicked", _on_button_clicked):
-		_instance.disconnect("clicked", _on_button_clicked)
+	clicked_signal_emitted = false
+	last_click_data.clear()
 
 func _reset_signals() -> void:
-	_clicked_signal_emitted = false
-	_last_click_data = {}
+	clicked_signal_emitted = false
+	last_click_data.clear()
+
+func _connect_signals() -> void:
+	if not _component:
+		push_error("Cannot connect signals: component is null")
+		return
+		
+	if _component.has_signal("clicked"):
+		_component.clicked.connect(_on_button_clicked)
 
 func _on_button_clicked(data: Dictionary = {}) -> void:
-	_clicked_signal_emitted = true
-	_last_click_data = data
+	clicked_signal_emitted = true
+	last_click_data = data
 
-# Test Cases
 func test_initial_state() -> void:
-	assert_not_null(_instance, "Button should be initialized")
-	assert_false(_instance.disabled, "Button should be enabled by default")
-	assert_false(_instance.visible, "Button should be hidden by default")
+	assert_not_null(_component, "Button should be initialized")
+	assert_false(_component.disabled, "Button should be enabled by default")
+	assert_false(_component.visible, "Button should be hidden by default")
 
 func test_button_click() -> void:
-	_instance.visible = true
-	_instance.disabled = false
+	_component.visible = true
+	_component.disabled = false
 	
-	_instance.emit_signal("pressed")
-	assert_true(_clicked_signal_emitted, "Click signal should be emitted")
+	_component.emit_signal("pressed")
+	assert_true(clicked_signal_emitted, "Click signal should be emitted")
 
 func test_disabled_state() -> void:
-	_instance.disabled = true
-	_instance.emit_signal("pressed")
-	assert_false(_clicked_signal_emitted, "Click signal should not be emitted when disabled")
+	_component.disabled = true
+	_component.emit_signal("pressed")
+	assert_false(clicked_signal_emitted, "Click signal should not be emitted when disabled")
 
-func test_visibility() -> void:
-	_instance.visible = false
-	_instance.emit_signal("pressed")
-	assert_false(_clicked_signal_emitted, "Click signal should not be emitted when hidden")
+func test_button_text() -> void:
+	var test_text := "Test Button"
+	TypeSafeMixin._safe_method_call_bool(_component, "set_text", [test_text])
 	
-	_instance.visible = true
-	_instance.emit_signal("pressed")
-	assert_true(_clicked_signal_emitted, "Click signal should be emitted when visible")
+	var button_text: String = TypeSafeMixin._safe_method_call_string(_component, "get_text", [], "")
+	assert_eq(button_text, test_text, "Button text should match")
 
-func test_custom_data() -> void:
-	var test_data := {"action": "test", "value": 42}
-	_instance.set_meta("click_data", test_data)
+func test_button_icon() -> void:
+	var test_icon := PlaceholderTexture2D.new()
+	test_icon.size = Vector2(32, 32)
+	TypeSafeMixin._safe_method_call_bool(_component, "set_icon", [test_icon])
 	
-	_instance.visible = true
-	_instance.emit_signal("pressed")
-	
-	assert_true(_clicked_signal_emitted, "Click signal should be emitted")
-	assert_eq(_last_click_data, test_data, "Click data should match set data")
+	var button_icon: Texture2D = TypeSafeMixin._safe_method_call_resource(_component, "get_icon", [], null)
+	assert_eq(button_icon, test_icon, "Button icon should match")
 
-func test_child_nodes() -> void:
-	var label = _instance.get_node_or_null("Label")
-	assert_not_null(label, "Button should have a Label node")
+func test_button_style() -> void:
+	var test_style := "primary"
+	TypeSafeMixin._safe_method_call_bool(_component, "set_style", [test_style])
+	
+	var button_style: String = TypeSafeMixin._safe_method_call_string(_component, "get_style", [], "")
+	assert_eq(button_style, test_style, "Button style should match")
 
-func test_signals() -> void:
-	watch_signals(_instance)
-	_instance.emit_signal("pressed")
-	verify_signal_emitted(_instance, "pressed")
+func test_button_size() -> void:
+	var test_size := "large"
+	TypeSafeMixin._safe_method_call_bool(_component, "set_size", [test_size])
 	
-	_instance.emit_signal("clicked")
-	verify_signal_emitted(_instance, "clicked")
+	var button_size: String = TypeSafeMixin._safe_method_call_string(_component, "get_size", [], "")
+	assert_eq(button_size, test_size, "Button size should match")
 
-func test_state_updates() -> void:
-	_instance.disabled = true
-	assert_true(_instance.disabled, "Button should be disabled after state update")
+func test_button_tooltip() -> void:
+	var test_tooltip := "Test Tooltip"
+	TypeSafeMixin._safe_method_call_bool(_component, "set_tooltip", [test_tooltip])
 	
-	_instance.visible = false
-	assert_false(_instance.visible, "Button should be hidden after visibility update")
+	var button_tooltip: String = TypeSafeMixin._safe_method_call_string(_component, "get_tooltip", [], "")
+	assert_eq(button_tooltip, test_tooltip, "Button tooltip should match")
+
+# Add inherited component tests
+func test_component_structure() -> void:
+	await super.test_component_structure()
 	
-	_instance.visible = true
-	assert_true(_instance.visible, "Button should be visible after visibility update")
+	# Additional ActionButton-specific structure tests
+	assert_true(_component.has_method("set_text"), "Should have set_text method")
+	assert_true(_component.has_method("get_text"), "Should have get_text method")
+	assert_true(_component.has_method("set_icon"), "Should have set_icon method")
+	assert_true(_component.has_method("get_icon"), "Should have get_icon method")
+
+func test_component_theme() -> void:
+	await super.test_component_theme()
+	
+	# Additional ActionButton-specific theme tests
+	assert_true(_component.has_theme_stylebox("normal"), "Should have normal stylebox")
+	assert_true(_component.has_theme_stylebox("hover"), "Should have hover stylebox")
+	assert_true(_component.has_theme_stylebox("pressed"), "Should have pressed stylebox")
+	assert_true(_component.has_theme_stylebox("disabled"), "Should have disabled stylebox")
+
+func test_component_accessibility() -> void:
+	await super.test_component_accessibility()
+	
+	# Additional ActionButton-specific accessibility tests
+	assert_true(_component.focus_mode != Control.FOCUS_NONE,
+		"Button should be focusable for keyboard navigation")
+	assert_true(_component.size.x >= MIN_TOUCH_TARGET_SIZE and _component.size.y >= MIN_TOUCH_TARGET_SIZE,
+		"Button should meet minimum touch target size requirements")

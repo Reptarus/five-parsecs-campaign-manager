@@ -1,9 +1,10 @@
 @tool
-extends GameTest
-class_name EnemyTestScenarios
+extends "res://tests/fixtures/base/game_test.gd"
+
+const Enemy: GDScript = preload("res://src/core/enemy/base/Enemy.gd")
 
 # Common test scenarios
-const SCENARIOS := {
+const SCENARIOS: Dictionary = {
 	"BASIC_COMBAT": {
 		"enemies": [
 			{"type": "BASIC", "position": Vector2(0, 0)},
@@ -43,9 +44,9 @@ const SCENARIOS := {
 # Test data generation
 static func create_scenario(scenario_name: String, test_instance: Node) -> Dictionary:
 	assert(SCENARIOS.has(scenario_name), "Invalid scenario name")
-	var scenario = SCENARIOS[scenario_name]
+	var scenario: Dictionary = SCENARIOS[scenario_name]
 	
-	var result = {
+	var result: Dictionary = {
 		"enemies": [],
 		"terrain": [],
 		"objectives": []
@@ -53,7 +54,7 @@ static func create_scenario(scenario_name: String, test_instance: Node) -> Dicti
 	
 	# Create enemies
 	for enemy_data in scenario.enemies:
-		var enemy = test_instance.create_test_enemy(enemy_data.type)
+		var enemy: Enemy = test_instance.create_test_enemy(enemy_data.type)
 		enemy.position = enemy_data.position
 		if enemy_data.has("role"):
 			enemy.set_meta("role", enemy_data.role)
@@ -61,7 +62,7 @@ static func create_scenario(scenario_name: String, test_instance: Node) -> Dicti
 	
 	# Create terrain
 	for terrain_data in scenario.terrain:
-		var terrain = Node2D.new()
+		var terrain: Node2D = Node2D.new()
 		terrain.position = terrain_data.position
 		terrain.set_meta("type", terrain_data.type)
 		test_instance.add_child_autofree(terrain)
@@ -69,7 +70,7 @@ static func create_scenario(scenario_name: String, test_instance: Node) -> Dicti
 	
 	# Create objectives
 	for objective_data in scenario.objectives:
-		var objective = Node2D.new()
+		var objective: Node2D = Node2D.new()
 		objective.position = objective_data.position
 		objective.set_meta("type", objective_data.type)
 		test_instance.add_child_autofree(objective)
@@ -79,7 +80,7 @@ static func create_scenario(scenario_name: String, test_instance: Node) -> Dicti
 
 # Scenario validation
 static func validate_scenario_state(scenario: Dictionary, expected_state: Dictionary) -> bool:
-	var valid = true
+	var valid: bool = true
 	
 	# Validate enemy positions and states
 	if expected_state.has("enemy_positions"):

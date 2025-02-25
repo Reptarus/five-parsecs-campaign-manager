@@ -1,4 +1,3 @@
-class_name StateTracker
 extends Node
 
 const FiveParsecsGameState = preload("res://src/core/state/GameState.gd")

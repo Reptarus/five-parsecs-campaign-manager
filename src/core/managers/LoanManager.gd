@@ -1,4 +1,3 @@
-class_name LoanManager
 extends Resource
 
 signal loan_taken(amount: int, interest_rate: float)

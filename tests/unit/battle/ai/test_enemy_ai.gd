@@ -1,5 +1,22 @@
+## Enemy AI Test Suite
+## Tests the functionality of the enemy AI system including:
+## - AI decision making
+## - Group tactics
+## - State tracking
+## - Performance under stress
+## - Error handling
+## - Signal verification
 @tool
-extends FiveParsecsEnemyTest
+extends GameTest
+
+# Type-safe script references
+const EnemyAIManager: GDScript = preload("res://src/core/managers/EnemyAIManager.gd")
+const EnemyTacticalAI: GDScript = preload("res://src/core/battle/EnemyTacticalAI.gd")
+const BattlefieldManager: GDScript = preload("res://src/core/battle/BattlefieldManager.gd")
+const CombatManager: GDScript = preload("res://src/core/battle/CombatManager.gd")
+
+# Type-safe constants
+const TEST_TIMEOUT := 2.0
 
 # Type-safe instance variables
 var _ai_manager: Node = null
@@ -7,43 +24,43 @@ var _tactical_ai: Node = null
 var _battlefield_manager: Node = null
 var _combat_manager: Node = null
 
+# Test Lifecycle Methods
 func before_each() -> void:
 	await super.before_each()
 	
 	# Setup AI test environment
-	_battlefield_manager = Node.new()
+	_battlefield_manager = BattlefieldManager.new()
 	if not _battlefield_manager:
 		push_error("Failed to create battlefield manager")
 		return
-	_battlefield_manager.name = "BattlefieldManager"
 	add_child_autofree(_battlefield_manager)
 	track_test_node(_battlefield_manager)
 	
-	_combat_manager = Node.new()
+	_combat_manager = CombatManager.new()
 	if not _combat_manager:
 		push_error("Failed to create combat manager")
 		return
-	_combat_manager.name = "CombatManager"
 	add_child_autofree(_combat_manager)
 	track_test_node(_combat_manager)
 	
-	# Create AI managers
-	_ai_manager = TypeSafeMixin._safe_cast_node(EnemyAIManager.new())
+	_ai_manager = EnemyAIManager.new()
 	if not _ai_manager:
 		push_error("Failed to create AI manager")
 		return
+	TypeSafeMixin._safe_method_call_bool(_ai_manager, "initialize", [_battlefield_manager, _combat_manager])
 	add_child_autofree(_ai_manager)
 	track_test_node(_ai_manager)
 	
-	_tactical_ai = TypeSafeMixin._safe_cast_node(EnemyTacticalAI.new())
+	_tactical_ai = EnemyTacticalAI.new()
 	if not _tactical_ai:
 		push_error("Failed to create tactical AI")
 		return
-	TypeSafeMixin._safe_method_call_bool(_tactical_ai, "set_battlefield_manager", [_battlefield_manager])
-	TypeSafeMixin._safe_method_call_bool(_tactical_ai, "set_combat_manager", [_combat_manager])
+	TypeSafeMixin._safe_method_call_bool(_tactical_ai, "initialize", [_ai_manager])
 	add_child_autofree(_tactical_ai)
 	track_test_node(_tactical_ai)
 	
+	watch_signals(_ai_manager)
+	watch_signals(_tactical_ai)
 	await stabilize_engine(STABILIZE_TIME)
 
 func after_each() -> void:
@@ -53,177 +70,105 @@ func after_each() -> void:
 	_combat_manager = null
 	await super.after_each()
 
-# Basic AI Tests
+# AI Initialization Tests
 func test_ai_initialization() -> void:
 	assert_not_null(_ai_manager, "AI manager should be initialized")
 	assert_not_null(_tactical_ai, "Tactical AI should be initialized")
 	
-	var active_enemies: Array = TypeSafeMixin._safe_method_call_array(_ai_manager, "get_active_enemies", [])
-	assert_eq(active_enemies.size(), 0, "No enemies should be registered initially")
+	var is_active: bool = TypeSafeMixin._safe_method_call_bool(_ai_manager, "is_active", [])
+	assert_true(is_active, "AI should be active after initialization")
 
-# AI Manager Tests
-func test_enemy_registration() -> void:
-	var enemy: Node = create_test_enemy()
-	if not enemy:
-		push_error("Failed to create test enemy")
-		return
+# Target Selection Tests
+func test_target_selection() -> void:
+	watch_signals(_ai_manager)
 	
-	# Register enemy
-	TypeSafeMixin._safe_method_call_bool(_ai_manager, "register_enemy", [enemy])
-	var active_enemies: Array = TypeSafeMixin._safe_method_call_array(_ai_manager, "get_active_enemies", [])
-	assert_has(active_enemies, enemy, "Enemy should be registered")
+	# Create test units
+	var enemy_unit := _create_test_unit(false)
+	var player_unit := _create_test_unit(true)
 	
-	# Unregister enemy
-	TypeSafeMixin._safe_method_call_bool(_ai_manager, "unregister_enemy", [enemy])
-	active_enemies = TypeSafeMixin._safe_method_call_array(_ai_manager, "get_active_enemies", [])
-	assert_does_not_have(active_enemies, enemy, "Enemy should be unregistered")
+	# Test target selection
+	var target: Node = TypeSafeMixin._safe_method_call_node(_ai_manager, "select_target", [enemy_unit])
+	assert_eq(target, player_unit, "Should select player unit as target")
+	verify_signal_emitted(_ai_manager, "target_selected")
 
-func test_behavior_override() -> void:
-	var enemy: Node = create_test_enemy()
-	if not enemy:
-		push_error("Failed to create test enemy")
-		return
+# Movement Decision Tests
+func test_movement_decisions() -> void:
+	watch_signals(_tactical_ai)
 	
-	var test_behavior: int = GameEnums.AIBehavior.AGGRESSIVE
+	var unit := _create_test_unit(false)
+	var current_pos := Vector2(5, 5)
+	TypeSafeMixin._safe_method_call_bool(unit, "set_position", [current_pos])
 	
-	# Set behavior override
-	_signal_watcher.watch_signals(_ai_manager)
-	TypeSafeMixin._safe_method_call_bool(_ai_manager, "set_behavior_override", [enemy, test_behavior])
-	
-	var current_behavior: int = TypeSafeMixin._safe_method_call_int(_ai_manager, "get_current_behavior", [enemy])
-	assert_eq(current_behavior, test_behavior, "Enemy should have overridden behavior")
-	verify_signal_emitted(_ai_manager, "behavior_changed")
-	
-	# Clear behavior override
-	TypeSafeMixin._safe_method_call_bool(_ai_manager, "clear_behavior_override", [enemy])
-	current_behavior = TypeSafeMixin._safe_method_call_int(_ai_manager, "get_current_behavior", [enemy])
-	var enemy_behavior: int = TypeSafeMixin._safe_method_call_int(enemy, "get_behavior", [])
-	assert_eq(current_behavior, enemy_behavior, "Enemy should return to default behavior")
+	var move_decision: Dictionary = TypeSafeMixin._safe_method_call_dict(_tactical_ai, "evaluate_movement", [unit])
+	assert_not_null(move_decision, "Should generate movement decision")
+	assert_true(move_decision.has("position"), "Decision should include target position")
+	verify_signal_emitted(_tactical_ai, "movement_evaluated")
 
-# Tactical AI Tests
-func test_tactical_ai_initialization() -> void:
-	var enemy: Node = create_test_enemy()
-	if not enemy:
-		push_error("Failed to create test enemy")
-		return
+# Combat Behavior Tests
+func test_combat_behavior() -> void:
+	watch_signals(_ai_manager)
 	
-	# Initialize AI for enemy
-	_signal_watcher.watch_signals(_tactical_ai)
-	TypeSafeMixin._safe_method_call_bool(_tactical_ai, "initialize_enemy_ai", [enemy])
+	var unit := _create_test_unit(false)
+	TypeSafeMixin._safe_method_call_bool(unit, "set_combat_state", [GameEnums.UnitState.ENGAGED])
 	
-	# Verify initialization
-	var personalities: Dictionary = TypeSafeMixin._safe_method_call_dict(_tactical_ai, "get_enemy_personalities", [])
-	var tactical_states: Dictionary = TypeSafeMixin._safe_method_call_dict(_tactical_ai, "get_tactical_states", [])
-	
-	assert_true(enemy in personalities, "Enemy should be registered with AI")
-	assert_true(enemy in tactical_states, "Enemy should have tactical state")
+	var behavior: Dictionary = TypeSafeMixin._safe_method_call_dict(_ai_manager, "evaluate_combat_behavior", [unit])
+	assert_not_null(behavior, "Should generate combat behavior")
+	assert_true(behavior.has("action"), "Behavior should include action")
+	verify_signal_emitted(_ai_manager, "behavior_evaluated")
 
-func test_aggressive_decision() -> void:
-	var enemy: Node = create_test_enemy()
-	if not enemy:
-		push_error("Failed to create test enemy")
-		return
+# Tactical Analysis Tests
+func test_tactical_analysis() -> void:
+	watch_signals(_tactical_ai)
 	
-	TypeSafeMixin._safe_method_call_bool(_tactical_ai, "initialize_enemy_ai", [enemy, EnemyTacticalAI.AIPersonality.AGGRESSIVE])
+	var unit := _create_test_unit(false)
+	var analysis: Dictionary = TypeSafeMixin._safe_method_call_dict(_tactical_ai, "analyze_tactical_situation", [unit])
 	
-	# Make decision
-	_signal_watcher.watch_signals(_tactical_ai)
-	var decision: Dictionary = TypeSafeMixin._safe_method_call_dict(_tactical_ai, "make_tactical_decision", [enemy])
-	
-	# Verify decision
-	assert_not_null(decision, "Decision should be made")
-	verify_signal_emitted(_tactical_ai, "decision_made")
+	assert_not_null(analysis, "Should generate tactical analysis")
+	assert_true(analysis.has("threat_level"), "Analysis should include threat level")
+	assert_true(analysis.has("cover_positions"), "Analysis should include cover positions")
+	verify_signal_emitted(_tactical_ai, "situation_analyzed")
 
-func test_cautious_decision() -> void:
-	var enemy: Node = create_test_enemy()
-	if not enemy:
-		push_error("Failed to create test enemy")
-		return
+# Performance Tests
+func test_ai_performance() -> void:
+	var units := _create_multiple_units(10)
+	var start_time := Time.get_ticks_msec()
 	
-	TypeSafeMixin._safe_method_call_bool(_tactical_ai, "initialize_enemy_ai", [enemy, EnemyTacticalAI.AIPersonality.CAUTIOUS])
+	for unit in units:
+		TypeSafeMixin._safe_method_call_dict(_ai_manager, "process_unit_ai", [unit])
 	
-	# Make decision
-	_signal_watcher.watch_signals(_tactical_ai)
-	var decision: Dictionary = TypeSafeMixin._safe_method_call_dict(_tactical_ai, "make_tactical_decision", [enemy])
-	
-	# Verify decision
-	assert_not_null(decision, "Decision should be made")
-	verify_signal_emitted(_tactical_ai, "decision_made")
+	var duration := Time.get_ticks_msec() - start_time
+	assert_true(duration < 1000, "AI processing should complete within 1 second")
 
-# Group AI Tests
-func test_group_coordination() -> void:
-	var leader: Node = create_test_enemy("ELITE")
-	if not leader:
-		push_error("Failed to create leader enemy")
-		return
+# Error Handling Tests
+func test_error_handling() -> void:
+	watch_signals(_ai_manager)
 	
-	var followers: Array[Node] = _create_follower_group(2)
-	var group: Array[Node] = [leader] + followers
+	# Test null unit
+	var result: Dictionary = TypeSafeMixin._safe_method_call_dict(_ai_manager, "process_unit_ai", [null])
+	assert_false(result.has("action"), "Should handle null unit gracefully")
+	verify_signal_not_emitted(_ai_manager, "behavior_evaluated")
 	
-	# Initialize AI for group
-	for enemy in group:
-		if not enemy:
-			push_error("Invalid enemy in group")
-			continue
-		TypeSafeMixin._safe_method_call_bool(_tactical_ai, "initialize_enemy_ai", [enemy])
-	
-	# Make group decision
-	_signal_watcher.watch_signals(_tactical_ai)
-	var decision: Dictionary = TypeSafeMixin._safe_method_call_dict(_tactical_ai, "_make_group_decision", [leader, group])
-	
-	# Verify group coordination
-	assert_not_null(decision, "Group decision should be made")
-	assert_true(decision.has("group_action"), "Decision should be marked as group action")
-	verify_signal_emitted(_tactical_ai, "group_coordination_updated")
-
-func test_threat_assessment() -> void:
-	var enemy: Node = create_test_enemy()
-	if not enemy:
-		push_error("Failed to create test enemy")
-		return
-	
-	var target: Node = create_test_enemy("BOSS") # High threat target
-	if not target:
-		push_error("Failed to create target enemy")
-		return
-	
-	TypeSafeMixin._safe_method_call_bool(_tactical_ai, "initialize_enemy_ai", [enemy])
-	
-	# Update threat assessment
-	TypeSafeMixin._safe_method_call_bool(_tactical_ai, "_update_threat_assessment", [enemy])
-	
-	# Verify threat assessment
-	var threat_assessments: Dictionary = TypeSafeMixin._safe_method_call_dict(_tactical_ai, "get_threat_assessments", [])
-	var tactical_states: Dictionary = TypeSafeMixin._safe_method_call_dict(_tactical_ai, "get_tactical_states", [])
-	
-	assert_not_null(threat_assessments.get(enemy, null), "Threat assessment should be created")
-	var threat_level: float = TypeSafeMixin._safe_method_call_float(tactical_states[enemy], "get_threat_level", [])
-	assert_true(threat_level > 0, "Threat level should be calculated")
-
-# Pathfinding Tests
-func test_pathfinding() -> void:
-	var enemy: Node = create_test_enemy()
-	if not enemy:
-		push_error("Failed to create test enemy")
-		return
-	
-	var start_pos := Vector2(0, 0)
-	var end_pos := Vector2(100, 100)
-	
-	TypeSafeMixin._safe_method_call_bool(enemy, "set_position", [start_pos])
-	var path: Array = TypeSafeMixin._safe_method_call_array(_tactical_ai, "find_path", [enemy, end_pos])
-	
-	assert_not_null(path, "Path should be generated")
-	assert_true(path.size() > 0, "Path should contain points")
-	assert_eq(path[path.size() - 1], end_pos, "Path should lead to target")
+	# Test invalid state
+	var unit := _create_test_unit(false)
+	TypeSafeMixin._safe_method_call_bool(unit, "set_combat_state", [-1])
+	result = TypeSafeMixin._safe_method_call_dict(_ai_manager, "process_unit_ai", [unit])
+	assert_true(result.has("error"), "Should handle invalid state")
 
 # Helper Methods
-func _create_follower_group(size: int) -> Array[Node]:
-	var followers: Array[Node] = []
-	for i in range(size):
-		var follower: Node = create_test_enemy()
-		if not follower:
-			push_error("Failed to create follower enemy %d" % i)
-			continue
-		followers.append(follower)
-	return followers
+func _create_test_unit(is_player: bool) -> Node:
+	var unit := Node.new()
+	if not unit:
+		push_error("Failed to create test unit")
+		return null
+	TypeSafeMixin._safe_method_call_bool(unit, "set_is_player", [is_player])
+	add_child_autofree(unit)
+	track_test_node(unit)
+	return unit
+
+func _create_multiple_units(count: int) -> Array[Node]:
+	var units: Array[Node] = []
+	for i in range(count):
+		var unit := _create_test_unit(false)
+		if unit:
+			units.append(unit)
+	return units

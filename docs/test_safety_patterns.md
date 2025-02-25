@@ -2,194 +2,187 @@
 
 This document outlines the test safety patterns and best practices used in the Five Parsecs Campaign Manager project.
 
-## Type-Safe Method Calls
+## Test Hierarchy
 
-### Base Pattern
-
-All test files should extend either:
-- `res://tests/fixtures/game_test.gd` (for general game tests)
-- `res://tests/fixtures/enemy_test.gd` (for enemy-specific tests)
-
-These base classes provide type-safe methods for interacting with objects under test.
-
-### Available Methods
-
-Instead of using `TypeSafeMixin` directly, use these inherited methods:
+All test files MUST follow this inheritance hierarchy:
 
 ```gdscript
-# Boolean methods
-_call_node_method_bool(obj: Object, method: String, args: Array = []) -> bool
-
-# Integer methods
-_call_node_method_int(obj: Object, method: String, args: Array = []) -> int
-
-# Float methods
-_call_node_method_float(obj: Object, method: String, args: Array = []) -> float
-
-# String methods
-_call_node_method_string(obj: Object, method: String, args: Array = []) -> String
-
-# Dictionary methods
-_call_node_method_dict(obj: Object, method: String, args: Array = []) -> Dictionary
-
-# Array methods
-_call_node_method_array(obj: Object, method: String, args: Array = []) -> Array
-
-# Generic variant method
-_call_node_method(obj: Object, method: String, args: Array = []) -> Variant
+GutTest (from addon/gut/test.gd)
+└── BaseTest (from tests/fixtures/base/base_test.gd)
+    └── GameTest (from tests/fixtures/base/game_test.gd)
+        ├── UITest (from tests/fixtures/specialized/ui_test.gd)
+        ├── BattleTest (from tests/fixtures/specialized/battle_test.gd)
+        ├── CampaignTest (from tests/fixtures/specialized/campaign_test.gd)
+        ├── MobileTest (from tests/fixtures/specialized/mobile_test.gd)
+        └── EnemyTest (from tests/fixtures/specialized/enemy_test.gd)
 ```
 
-### Example Usage
+### Class Extension Rules
 
-```gdscript
-# ❌ Don't use TypeSafeMixin directly
-var result = TypeSafeMixin._safe_method_call_bool(enemy, "can_attack", [])
+1. ALL test files MUST extend from one of these specialized classes:
+   - `UITest` - For UI component tests
+   - `BattleTest` - For battle system tests
+   - `CampaignTest` - For campaign system tests
+   - `MobileTest` - For mobile-specific tests
+   - `EnemyTest` - For enemy-specific tests
+   - `GameTest` - For general game logic tests (only when no specialized class fits)
 
-# ✅ Use inherited methods instead
-var result = _call_node_method_bool(enemy, "can_attack", [])
+2. Use class_name-based extension:
+   ```gdscript
+   @tool
+   extends BattleTest  # Instead of "res://tests/fixtures/specialized/battle_test.gd"
+   ```
+
+3. DO NOT create new specialized test classes unless absolutely necessary
+4. DO NOT mix inheritance - stick to one specialized class per test file
+5. DO NOT extend from raw GutTest, BaseTest or GameTest directly when a specialized class is appropriate
+
+### File Organization
+
+```
+tests/
+├── fixtures/
+│   ├── base/
+│   │   ├── base_test.gd      # Core test functionality
+│   │   └── game_test.gd      # Game-specific test functionality
+│   ├── specialized/
+│   │   ├── ui_test.gd        # UI testing functionality
+│   │   ├── battle_test.gd    # Battle testing functionality
+│   │   ├── campaign_test.gd  # Campaign testing functionality
+│   │   ├── mobile_test.gd    # Mobile testing functionality
+│   │   └── enemy_test.gd     # Enemy testing functionality
+│   ├── helpers/              # Test helper functions
+│   └── scenarios/            # Common test scenarios
+├── unit/                     # Unit tests
+├── integration/              # Integration tests
+└── performance/              # Performance tests
 ```
 
-## Property Access
+### Base Class Responsibilities
 
-Use these methods for safe property access:
+1. BaseTest (base_test.gd)
+   - Core testing utilities
+   - Resource tracking and cleanup
+   - Signal handling
+   - Type safety
+   - Engine stabilization
 
-```gdscript
-# Get property safely
-_get_property_safe(obj: Object, property: String, default_value: Variant = null) -> Variant
+2. GameTest (game_test.gd)
+   - Game state management
+   - Game-specific assertions
+   - Scene tree management
+   - Game signal verification
+   - Game resource management
 
-# Set property safely
-_set_property_safe(obj: Object, property: String, value: Variant) -> void
-```
+3. Specialized Test Classes
+   - UITest: UI component testing
+   - BattleTest: Battle system testing
+   - CampaignTest: Campaign system testing
+   - MobileTest: Mobile-specific testing
 
-## Node Management
+## Test File Template
 
-### Node Creation and Cleanup
-
-```gdscript
-# Create and track a test node
-var node = Node.new()
-add_child_autofree(node)  # Will be automatically freed
-track_test_node(node)     # For tracking in tests
-
-# Create and track a test resource
-var resource = Resource.new()
-track_test_resource(resource)  # For tracking in tests
-```
-
-### Signal Handling
+Every test file MUST follow this template:
 
 ```gdscript
-# Watch signals
-_signal_watcher.watch_signals(node)
+@tool
+extends "res://tests/fixtures/base/game_test.gd"  # Or other specialized test base
 
-# Verify signal emission
-verify_signal_emitted(node, "signal_name")
+# Type-safe script references
+const TestedClass := preload("res://path/to/tested/class.gd")
 
-# Wait for async signals
-var signal_emitted = await assert_async_signal(node, "signal_name", timeout)
-```
+# Test constants
+const TEST_TIMEOUT := 1.0
 
-## Test Structure Best Practices
+# Type-safe instance variables
+var _instance: Node
+var _dependencies: Array[Node]
 
-### 1. Type-Safe Instance Variables
-
-```gdscript
-# Declare instance variables with explicit types
-var game_state_manager: GameStateManager = null
-var _test_game_state: Node = null
-```
-
-### 2. Proper Setup and Teardown
-
-```gdscript
 func before_each() -> void:
     await super.before_each()
-    # Initialize test components
-    # Add type checks and error handling
+    
+    # Initialize test instance
+    _instance = TestedClass.new()
+    add_child_autofree(_instance)
+    
+    await stabilize_engine()
 
 func after_each() -> void:
-    # Clean up in reverse order
-    # Clear references
+    _instance = null
     await super.after_each()
+
+func test_example() -> void:
+    # Given
+    watch_signals(_instance)
+    
+    # When
+    var result := _call_node_method_bool(_instance, "some_method")
+    
+    # Then
+    assert_true(result)
+    verify_signal_emitted(_instance, "some_signal")
 ```
 
-### 3. Error Handling
+## Type Safety Rules
 
-```gdscript
-# Always check initialization
-if not node:
-    push_error("Failed to create node")
-    return
+1. Always use type hints for variables and parameters
+2. Use type-safe method calls from base classes
+3. Use type-safe property access methods
+4. Use type-safe signal verification methods
 
-# Verify critical operations
-var added_node := add_child_autofree(node)
-if not added_node:
-    push_error("Failed to add node to scene tree")
-    return
-```
+## Resource Management Rules
 
-### 4. State Verification
+1. Always use `add_child_autofree()` for nodes
+2. Always track resources with `track_test_resource()`
+3. Clean up resources in reverse order
+4. Use type-safe resource creation methods
 
-```gdscript
-# Verify object state
-verify_state(node, {
-    "is_inside_tree": true,
-    "is_processing": true
-})
+## Signal Testing Rules
 
-# Verify specific conditions
-assert_true(_call_node_method_bool(node, "is_ready"), "Node should be ready")
-```
+1. Always use `watch_signals()` before testing signals
+2. Use type-safe signal verification methods
+3. Verify signal parameters when relevant
+4. Use appropriate timeouts for signal waits
 
-## Integration Test Patterns
+## State Management Rules
 
-### 1. Component Isolation
+1. Always use `create_test_game_state()` for game state
+2. Verify state with `verify_game_state()`
+3. Use `assert_valid_game_state()` after state changes
+4. Clean up state in `after_each()`
 
-```gdscript
-# Create mock components
-var mock_manager = Node.new()
-add_child_autofree(mock_manager)
-track_test_node(mock_manager)
-```
+## Performance Testing Rules
 
-### 2. Async Testing
+1. Use type-safe performance monitoring
+2. Measure FPS, memory, and draw calls
+3. Use appropriate stabilization times
+4. Clean up after performance tests
 
-```gdscript
-# Wait for engine stabilization
-await stabilize_engine()
+## Mobile Testing Rules
 
-# Test async operations
-var result = await assert_async_signal(node, "operation_completed")
-assert_true(result, "Operation should complete successfully")
-```
+1. Use mobile-specific test base class
+2. Test multiple screen sizes
+3. Verify touch input
+4. Test orientation changes
 
-### 3. Resource Management
+## Best Practices
 
-```gdscript
-# Track and clean up resources
-track_test_resource(resource)
-_cleanup_tracked_resources()  # Called in after_each
-```
+1. One test file per class/feature
+2. Clear test names describing behavior
+3. Given-When-Then pattern in tests
+4. Clean up all resources
+5. Use type-safe methods
+6. Verify all signal emissions
+7. Test edge cases
+8. Test error conditions
+9. Use appropriate timeouts
+10. Document complex test setups
 
-## Common Pitfalls to Avoid
-
-1. Never use `TypeSafeMixin` directly in test files
-2. Always call `super` methods in `before_each` and `after_each`
-3. Don't forget to track nodes and resources
-4. Always provide default values for type-safe method calls
-5. Handle null checks and error cases explicitly
-
-## Testing Hierarchy
-
-```
-GameTest (base class)
-├── FiveParsecsEnemyTest (enemy-specific base)
-├── Integration Tests
-│   ├── test_game_flow.gd
-│   ├── test_enemy_combat_integration.gd
-│   └── ...
-└── Unit Tests
-    ├── test_enemy.gd
-    ├── test_game_settings.gd
-    └── ...
+Remember:
+- Keep tests focused and maintainable
+- Use descriptive names
+- Clean up resources properly
+- Monitor performance
+- Test edge cases
+- Document complex scenarios
 ``` 

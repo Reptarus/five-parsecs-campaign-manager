@@ -1,5 +1,4 @@
 @tool
-class_name FiveParsecsGameCampaignManager
 extends Node
 
 const GameEnums = preload("res://src/core/systems/GlobalEnums.gd")

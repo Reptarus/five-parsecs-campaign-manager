@@ -1,11 +1,13 @@
-class_name Item
+@tool
 extends Resource
 
+const GameEnums = preload("res://src/core/systems/GlobalEnums.gd")
+
 @export var name: String
-@export var type: int = GlobalEnums.ItemType.MISC
+@export var type: int = GameEnums.ItemType.MISC
 @export var effect: Callable
 
-func _init(_name: String = "", item_type: int = GlobalEnums.ItemType.MISC, _effect: Callable = Callable()):
+func _init(_name: String = "", item_type: int = GameEnums.ItemType.MISC, _effect: Callable = Callable()):
 	name = _name
 	type = item_type
 	effect = _effect
@@ -20,60 +22,60 @@ func serialize() -> Dictionary:
 		"effect": effect.get_method()
 	}
 
-static func deserialize(data: Dictionary) -> Item:
+static func deserialize(data: Dictionary) -> Resource:
 	return Item.new(data["name"], data["type"], Callable(Item, data["effect"]))
 
 static func create_item_database() -> Dictionary:
 	return {
 		# Consumables
-		"Booster pills": Item.new("Booster pills", GlobalEnums.ItemType.CONSUMABLE, Callable(Item, "effect_booster_pills")),
-		"Combat serum": Item.new("Combat serum", GlobalEnums.ItemType.CONSUMABLE, Callable(Item, "effect_combat_serum")),
-		"Kiranin crystals": Item.new("Kiranin crystals", GlobalEnums.ItemType.CONSUMABLE, Callable(Item, "effect_kiranin_crystals")),
-		"Rage out": Item.new("Rage out", GlobalEnums.ItemType.CONSUMABLE, Callable(Item, "effect_rage_out")),
-		"Still": Item.new("Still", GlobalEnums.ItemType.CONSUMABLE, Callable(Item, "effect_still")),
-		"Stim-pack": Item.new("Stim-pack", GlobalEnums.ItemType.CONSUMABLE, Callable(Item, "effect_stim_pack")),
-		"Reflective dust": Item.new("Reflective dust", GlobalEnums.ItemType.CONSUMABLE, Callable(Item, "effect_reflective_dust")),
+		"Booster pills": Item.new("Booster pills", GameEnums.ItemType.CONSUMABLE, Callable(Item, "effect_booster_pills")),
+		"Combat serum": Item.new("Combat serum", GameEnums.ItemType.CONSUMABLE, Callable(Item, "effect_combat_serum")),
+		"Kiranin crystals": Item.new("Kiranin crystals", GameEnums.ItemType.CONSUMABLE, Callable(Item, "effect_kiranin_crystals")),
+		"Rage out": Item.new("Rage out", GameEnums.ItemType.CONSUMABLE, Callable(Item, "effect_rage_out")),
+		"Still": Item.new("Still", GameEnums.ItemType.CONSUMABLE, Callable(Item, "effect_still")),
+		"Stim-pack": Item.new("Stim-pack", GameEnums.ItemType.CONSUMABLE, Callable(Item, "effect_stim_pack")),
+		"Reflective dust": Item.new("Reflective dust", GameEnums.ItemType.CONSUMABLE, Callable(Item, "effect_reflective_dust")),
 		
 		# Protective
-		"Battle dress": Item.new("Battle dress", GlobalEnums.ItemType.ARMOR, Callable(Item, "effect_battle_dress")),
-		"Camo cloak": Item.new("Camo cloak", GlobalEnums.ItemType.ARMOR, Callable(Item, "effect_camo_cloak")),
-		"Combat armor": Item.new("Combat armor", GlobalEnums.ItemType.ARMOR, Callable(Item, "effect_combat_armor")),
-		"Deflector field": Item.new("Deflector field", GlobalEnums.ItemType.MISC, Callable(Item, "effect_deflector_field")),
-		"Flak screen": Item.new("Flak screen", GlobalEnums.ItemType.MISC, Callable(Item, "effect_flak_screen")),
-		"Flex-armor": Item.new("Flex-armor", GlobalEnums.ItemType.ARMOR, Callable(Item, "effect_flex_armor")),
-		"Frag vest": Item.new("Frag vest", GlobalEnums.ItemType.ARMOR, Callable(Item, "effect_frag_vest")),
-		"Screen generator": Item.new("Screen generator", GlobalEnums.ItemType.MISC, Callable(Item, "effect_screen_generator")),
-		"Stealth gear": Item.new("Stealth gear", GlobalEnums.ItemType.MISC, Callable(Item, "effect_stealth_gear")),
+		"Battle dress": Item.new("Battle dress", GameEnums.ItemType.ARMOR, Callable(Item, "effect_battle_dress")),
+		"Camo cloak": Item.new("Camo cloak", GameEnums.ItemType.ARMOR, Callable(Item, "effect_camo_cloak")),
+		"Combat armor": Item.new("Combat armor", GameEnums.ItemType.ARMOR, Callable(Item, "effect_combat_armor")),
+		"Deflector field": Item.new("Deflector field", GameEnums.ItemType.MISC, Callable(Item, "effect_deflector_field")),
+		"Flak screen": Item.new("Flak screen", GameEnums.ItemType.MISC, Callable(Item, "effect_flak_screen")),
+		"Flex-armor": Item.new("Flex-armor", GameEnums.ItemType.ARMOR, Callable(Item, "effect_flex_armor")),
+		"Frag vest": Item.new("Frag vest", GameEnums.ItemType.ARMOR, Callable(Item, "effect_frag_vest")),
+		"Screen generator": Item.new("Screen generator", GameEnums.ItemType.MISC, Callable(Item, "effect_screen_generator")),
+		"Stealth gear": Item.new("Stealth gear", GameEnums.ItemType.MISC, Callable(Item, "effect_stealth_gear")),
 		
 		# Implants
-		"AI companion": Item.new("AI companion", GlobalEnums.ItemType.MISC, Callable(Item, "effect_ai_companion")),
-		"Body wire": Item.new("Body wire", GlobalEnums.ItemType.MISC, Callable(Item, "effect_body_wire")),
-		"Boosted arm": Item.new("Boosted arm", GlobalEnums.ItemType.MISC, Callable(Item, "effect_boosted_arm")),
-		"Boosted leg": Item.new("Boosted leg", GlobalEnums.ItemType.MISC, Callable(Item, "effect_boosted_leg")),
-		"Cyber hand": Item.new("Cyber hand", GlobalEnums.ItemType.MISC, Callable(Item, "effect_cyber_hand")),
-		"Genetic defenses": Item.new("Genetic defenses", GlobalEnums.ItemType.MISC, Callable(Item, "effect_genetic_defenses")),
-		"Health boost": Item.new("Health boost", GlobalEnums.ItemType.MISC, Callable(Item, "effect_health_boost")),
-		"Nerve adjuster": Item.new("Nerve adjuster", GlobalEnums.ItemType.MISC, Callable(Item, "effect_nerve_adjuster")),
-		"Neural optimization": Item.new("Neural optimization", GlobalEnums.ItemType.MISC, Callable(Item, "effect_neural_optimization")),
-		"Night sight": Item.new("Night sight", GlobalEnums.ItemType.MISC, Callable(Item, "effect_night_sight")),
-		"Pain suppressor": Item.new("Pain suppressor", GlobalEnums.ItemType.MISC, Callable(Item, "effect_pain_suppressor")),
+		"AI companion": Item.new("AI companion", GameEnums.ItemType.MISC, Callable(Item, "effect_ai_companion")),
+		"Body wire": Item.new("Body wire", GameEnums.ItemType.MISC, Callable(Item, "effect_body_wire")),
+		"Boosted arm": Item.new("Boosted arm", GameEnums.ItemType.MISC, Callable(Item, "effect_boosted_arm")),
+		"Boosted leg": Item.new("Boosted leg", GameEnums.ItemType.MISC, Callable(Item, "effect_boosted_leg")),
+		"Cyber hand": Item.new("Cyber hand", GameEnums.ItemType.MISC, Callable(Item, "effect_cyber_hand")),
+		"Genetic defenses": Item.new("Genetic defenses", GameEnums.ItemType.MISC, Callable(Item, "effect_genetic_defenses")),
+		"Health boost": Item.new("Health boost", GameEnums.ItemType.MISC, Callable(Item, "effect_health_boost")),
+		"Nerve adjuster": Item.new("Nerve adjuster", GameEnums.ItemType.MISC, Callable(Item, "effect_nerve_adjuster")),
+		"Neural optimization": Item.new("Neural optimization", GameEnums.ItemType.MISC, Callable(Item, "effect_neural_optimization")),
+		"Night sight": Item.new("Night sight", GameEnums.ItemType.MISC, Callable(Item, "effect_night_sight")),
+		"Pain suppressor": Item.new("Pain suppressor", GameEnums.ItemType.MISC, Callable(Item, "effect_pain_suppressor")),
 		
 		# Utility
-		"Fog generator": Item.new("Fog generator", GlobalEnums.ItemType.MISC, Callable(Item, "effect_fog_generator")),
-		"Teleportation device": Item.new("Teleportation device", GlobalEnums.ItemType.MISC, Callable(Item, "effect_teleportation_device")),
-		"Bot upgrade": Item.new("Bot upgrade", GlobalEnums.ItemType.MISC, Callable(Item, "effect_bot_upgrade")),
+		"Fog generator": Item.new("Fog generator", GameEnums.ItemType.MISC, Callable(Item, "effect_fog_generator")),
+		"Teleportation device": Item.new("Teleportation device", GameEnums.ItemType.MISC, Callable(Item, "effect_teleportation_device")),
+		"Bot upgrade": Item.new("Bot upgrade", GameEnums.ItemType.MISC, Callable(Item, "effect_bot_upgrade")),
 		
 		# Onboard
-		"Ship part": Item.new("Ship part", GlobalEnums.ItemType.MISC, Callable(Item, "effect_ship_part")),
-		"Analyzer": Item.new("Analyzer", GlobalEnums.ItemType.MISC, Callable(Item, "effect_analyzer")),
-		"Colonist ration packs": Item.new("Colonist ration packs", GlobalEnums.ItemType.CONSUMABLE, Callable(Item, "effect_colonist_ration_packs")),
-		"Duplicator": Item.new("Duplicator", GlobalEnums.ItemType.MISC, Callable(Item, "effect_duplicator")),
-		"Fake ID": Item.new("Fake ID", GlobalEnums.ItemType.MISC, Callable(Item, "effect_fake_id")),
-		"Fixer": Item.new("Fixer", GlobalEnums.ItemType.MISC, Callable(Item, "effect_fixer")),
-		"Genetic reconfiguration kit": Item.new("Genetic reconfiguration kit", GlobalEnums.ItemType.MISC, Callable(Item, "effect_genetic_reconfiguration_kit")),
+		"Ship part": Item.new("Ship part", GameEnums.ItemType.MISC, Callable(Item, "effect_ship_part")),
+		"Analyzer": Item.new("Analyzer", GameEnums.ItemType.MISC, Callable(Item, "effect_analyzer")),
+		"Colonist ration packs": Item.new("Colonist ration packs", GameEnums.ItemType.CONSUMABLE, Callable(Item, "effect_colonist_ration_packs")),
+		"Duplicator": Item.new("Duplicator", GameEnums.ItemType.MISC, Callable(Item, "effect_duplicator")),
+		"Fake ID": Item.new("Fake ID", GameEnums.ItemType.MISC, Callable(Item, "effect_fake_id")),
+		"Fixer": Item.new("Fixer", GameEnums.ItemType.MISC, Callable(Item, "effect_fixer")),
+		"Genetic reconfiguration kit": Item.new("Genetic reconfiguration kit", GameEnums.ItemType.MISC, Callable(Item, "effect_genetic_reconfiguration_kit")),
 		
 		# Psionic
-		"Psionic amplifier": Item.new("Psionic amplifier", GlobalEnums.ItemType.MISC, Callable(Item, "effect_psionic_amplifier")),
+		"Psionic amplifier": Item.new("Psionic amplifier", GameEnums.ItemType.MISC, Callable(Item, "effect_psionic_amplifier")),
 	}
 
 static func effect_booster_pills(user, _target):
@@ -204,44 +206,44 @@ static func effect_genetic_reconfiguration_kit(user, _target):
 func from_dict(data: Dictionary) -> void:
 	type = data.get("type", GlobalEnums.ItemType.MISC)
 
-static func get_all_items() -> Array[Item]:
-	var items: Array[Item] = []
+static func get_all_items() -> Array[Resource]:
+	var items: Array[Resource] = []
 	
 	# Gear items
-	items.append(Item.new("Medkit", GlobalEnums.ItemType.MISC, Callable(Item, "effect_medkit")))
-	items.append(Item.new("Stimpak", GlobalEnums.ItemType.MISC, Callable(Item, "effect_stimpak")))
+	items.append(Item.new("Medkit", GameEnums.ItemType.MISC, Callable(Item, "effect_medkit")))
+	items.append(Item.new("Stimpak", GameEnums.ItemType.MISC, Callable(Item, "effect_stimpak")))
 	
 	# Consumables
-	items.append(Item.new("Genetic Reconfiguration Kit", GlobalEnums.ItemType.MISC, Callable(Item, "effect_genetic_reconfiguration_kit")))
-	items.append(Item.new("Neural Enhancer", GlobalEnums.ItemType.MISC, Callable(Item, "effect_neural_enhancer")))
+	items.append(Item.new("Genetic Reconfiguration Kit", GameEnums.ItemType.MISC, Callable(Item, "effect_genetic_reconfiguration_kit")))
+	items.append(Item.new("Neural Enhancer", GameEnums.ItemType.MISC, Callable(Item, "effect_neural_enhancer")))
 	
 	# Tech items
-	items.append(Item.new("Shield Generator", GlobalEnums.ItemType.MISC, Callable(Item, "effect_shield_generator")))
-	items.append(Item.new("Stealth Field", GlobalEnums.ItemType.MISC, Callable(Item, "effect_stealth_field")))
-	items.append(Item.new("Targeting System", GlobalEnums.ItemType.MISC, Callable(Item, "effect_targeting_system")))
-	items.append(Item.new("Jump Pack", GlobalEnums.ItemType.MISC, Callable(Item, "effect_jump_pack")))
-	items.append(Item.new("Combat Scanner", GlobalEnums.ItemType.MISC, Callable(Item, "effect_combat_scanner")))
-	items.append(Item.new("Energy Shield", GlobalEnums.ItemType.MISC, Callable(Item, "effect_energy_shield")))
-	items.append(Item.new("Repair Kit", GlobalEnums.ItemType.MISC, Callable(Item, "effect_repair_kit")))
-	items.append(Item.new("Hacking Tool", GlobalEnums.ItemType.MISC, Callable(Item, "effect_hacking_tool")))
-	items.append(Item.new("Cloaking Device", GlobalEnums.ItemType.MISC, Callable(Item, "effect_cloaking_device")))
+	items.append(Item.new("Shield Generator", GameEnums.ItemType.MISC, Callable(Item, "effect_shield_generator")))
+	items.append(Item.new("Stealth Field", GameEnums.ItemType.MISC, Callable(Item, "effect_stealth_field")))
+	items.append(Item.new("Targeting System", GameEnums.ItemType.MISC, Callable(Item, "effect_targeting_system")))
+	items.append(Item.new("Jump Pack", GameEnums.ItemType.MISC, Callable(Item, "effect_jump_pack")))
+	items.append(Item.new("Combat Scanner", GameEnums.ItemType.MISC, Callable(Item, "effect_combat_scanner")))
+	items.append(Item.new("Energy Shield", GameEnums.ItemType.MISC, Callable(Item, "effect_energy_shield")))
+	items.append(Item.new("Repair Kit", GameEnums.ItemType.MISC, Callable(Item, "effect_repair_kit")))
+	items.append(Item.new("Hacking Tool", GameEnums.ItemType.MISC, Callable(Item, "effect_hacking_tool")))
+	items.append(Item.new("Cloaking Device", GameEnums.ItemType.MISC, Callable(Item, "effect_cloaking_device")))
 	
 	# Support items
-	items.append(Item.new("Drone Controller", GlobalEnums.ItemType.MISC, Callable(Item, "effect_drone_controller")))
-	items.append(Item.new("Turret Control", GlobalEnums.ItemType.MISC, Callable(Item, "effect_turret_control")))
-	items.append(Item.new("Beacon", GlobalEnums.ItemType.MISC, Callable(Item, "effect_beacon")))
+	items.append(Item.new("Drone Controller", GameEnums.ItemType.MISC, Callable(Item, "effect_drone_controller")))
+	items.append(Item.new("Turret Control", GameEnums.ItemType.MISC, Callable(Item, "effect_turret_control")))
+	items.append(Item.new("Beacon", GameEnums.ItemType.MISC, Callable(Item, "effect_beacon")))
 	
 	# Utility items
-	items.append(Item.new("Grappling Hook", GlobalEnums.ItemType.MISC, Callable(Item, "effect_grappling_hook")))
-	items.append(Item.new("Jetpack", GlobalEnums.ItemType.MISC, Callable(Item, "effect_jetpack")))
+	items.append(Item.new("Grappling Hook", GameEnums.ItemType.MISC, Callable(Item, "effect_grappling_hook")))
+	items.append(Item.new("Jetpack", GameEnums.ItemType.MISC, Callable(Item, "effect_jetpack")))
 	
 	# Special items
-	items.append(Item.new("Quantum Stabilizer", GlobalEnums.ItemType.MISC, Callable(Item, "effect_quantum_stabilizer")))
-	items.append(Item.new("Phase Shifter", GlobalEnums.ItemType.MISC, Callable(Item, "effect_phase_shifter")))
-	items.append(Item.new("Time Dilator", GlobalEnums.ItemType.MISC, Callable(Item, "effect_time_dilator")))
-	items.append(Item.new("Reality Anchor", GlobalEnums.ItemType.MISC, Callable(Item, "effect_reality_anchor")))
+	items.append(Item.new("Quantum Stabilizer", GameEnums.ItemType.MISC, Callable(Item, "effect_quantum_stabilizer")))
+	items.append(Item.new("Phase Shifter", GameEnums.ItemType.MISC, Callable(Item, "effect_phase_shifter")))
+	items.append(Item.new("Time Dilator", GameEnums.ItemType.MISC, Callable(Item, "effect_time_dilator")))
+	items.append(Item.new("Reality Anchor", GameEnums.ItemType.MISC, Callable(Item, "effect_reality_anchor")))
 	
 	# Rare items
-	items.append(Item.new("Ancient Artifact", GlobalEnums.ItemType.MISC, Callable(Item, "effect_ancient_artifact")))
+	items.append(Item.new("Ancient Artifact", GameEnums.ItemType.MISC, Callable(Item, "effect_ancient_artifact")))
 	
 	return items

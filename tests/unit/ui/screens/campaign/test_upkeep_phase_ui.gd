@@ -1,6 +1,6 @@
 # Tests for the UpkeepPhaseUI functionality
 @tool
-extends GameTest
+extends "res://tests/fixtures/base/game_test.gd"
 
 const UpkeepPhaseUI = preload("res://src/ui/screens/campaign/UpkeepPhaseUI.gd")
 

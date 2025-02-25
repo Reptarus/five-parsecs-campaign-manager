@@ -1,4 +1,3 @@
-class_name FiveParsecsWorldManager
 extends Node
 
 const GameEnums = preload("res://src/core/systems/GlobalEnums.gd")

@@ -1,12 +1,11 @@
 @tool
-extends GameTest
+extends "res://tests/fixtures/base/game_test.gd"
 
 const CampaignDashboard: GDScript = preload("res://src/ui/screens/campaign/CampaignDashboard.gd")
 const GameState: GDScript = preload("res://src/core/state/GameState.gd")
 
 # Type-safe instance variables
 var _instance: Node = null
-var _game_state: Node = null
 var campaign_updated_signal_emitted: bool = false
 var last_campaign_data: Dictionary = {}
 

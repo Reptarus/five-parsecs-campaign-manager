@@ -1,5 +1,4 @@
 # CharacterNameGenerator.gd
-class_name FiveParsecsCharacterNameGenerator
 extends RefCounted
 
 const GameEnums := preload("res://src/core/systems/GlobalEnums.gd")

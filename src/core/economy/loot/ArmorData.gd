@@ -1,4 +1,3 @@
-class_name ArmorData
 extends EquipmentData
 
 @export var defense: int = 1

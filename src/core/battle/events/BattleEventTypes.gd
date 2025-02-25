@@ -1,4 +1,4 @@
-class_name BattleEventTypes
+class_name FiveParsecsBattleEventTypes
 extends Resource
 
 const GameEnums = preload("res://src/core/systems/GlobalEnums.gd")

@@ -1,5 +1,5 @@
 @tool
-extends GameTest
+extends "res://tests/fixtures/base/game_test.gd"
 
 const ConfigPanel = preload("res://src/ui/screens/campaign/panels/ConfigPanel.tscn")
 

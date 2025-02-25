@@ -1,6 +1,6 @@
 @tool
 extends Node2D
-class_name BattleCharacter
+class_name FiveParsecsBattleCharacter
 
 const FiveParsecsCharacter = preload("res://src/core/character/Base/Character.gd")
 
@@ -36,9 +36,9 @@ var available_actions: Array[int] = []
 func initialize_for_battle() -> void:
 	is_active = true
 	current_action = GameEnums.UnitAction.NONE
-	available_actions = []  # Will be populated by battle system
+	available_actions = [] # Will be populated by battle system
 
 func cleanup_battle() -> void:
 	is_active = false
 	current_action = GameEnums.UnitAction.NONE
-	available_actions.clear() 
+	available_actions.clear()

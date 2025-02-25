@@ -1,10 +1,12 @@
 @tool
-extends GutTest
+extends "res://tests/fixtures/base/base_test.gd"
 
+# Required type declarations
+const GameEnums: GDScript = preload("res://src/core/systems/GlobalEnums.gd")
 const BattlefieldGeneratorScript: GDScript = preload("res://src/core/battle/BattlefieldGenerator.gd")
 const BattlefieldManagerScript: GDScript = preload("res://src/core/battle/BattlefieldManager.gd")
 const TerrainTypesScript: GDScript = preload("res://src/core/terrain/TerrainTypes.gd")
-const TypeSafeMixin: GDScript = preload("res://tests/fixtures/type_safe_test_mixin.gd")
+const TypeSafeMixin: GDScript = preload("res://tests/fixtures/helpers/type_safe_test_mixin.gd")
 
 # Performance thresholds with explicit types
 const BATTLEFIELD_GEN_THRESHOLD: int = 100
@@ -87,125 +89,165 @@ func test_battlefield_generation_performance() -> void:
 			"objective_count": 1
 		}
 		
-		var battlefield: Resource = TypeSafeMixin._safe_method_call_resource(
-			battlefield_generator,
-			"generate_battlefield",
-			[config]
-		)
-		assert_not_null(battlefield, "Battlefield should be generated")
+		var battlefield: Node = TypeSafeMixin._safe_method_call_node(battlefield_generator, "generate_battlefield", [config])
+		assert_not_null(battlefield, "Should generate battlefield")
 		
-		# Calculate metrics
-		var generation_time: int = Time.get_ticks_msec() - start_time
-		var memory_used: int = OS.get_static_memory_usage() - start_memory
+		var end_time: int = Time.get_ticks_msec()
+		var end_memory: int = OS.get_static_memory_usage()
 		
-		total_time += generation_time
-		total_memory += memory_used
+		total_time += end_time - start_time
+		total_memory += end_memory - start_memory
 		
-		await get_tree().process_frame
+		# Clean up
+		if is_instance_valid(battlefield):
+			battlefield.queue_free()
+		await get_tree().create_timer(CLEANUP_DELAY_MS / 1000.0).timeout
 	
 	var average_time: float = total_time / float(TEST_ITERATIONS)
-	var average_memory: float = total_memory / float(TEST_ITERATIONS)
+	var average_memory: float = total_memory / float(TEST_ITERATIONS) / 1024.0 / 1024.0 # Convert to MB
 	
-	assert_true(average_time < BATTLEFIELD_GEN_THRESHOLD,
-		"Average generation time (%d ms) should be under threshold" % average_time)
-	assert_true(average_memory < MEMORY_THRESHOLD_MB * 1024 * 1024,
-		"Average memory usage (%d bytes) should be under threshold" % average_memory)
+	assert_lt(average_time, BATTLEFIELD_GEN_THRESHOLD,
+		"Battlefield generation should complete within threshold")
+	assert_lt(average_memory, MEMORY_THRESHOLD_MB,
+		"Memory usage should be within threshold")
 
 func test_terrain_update_performance() -> void:
+	var config: Dictionary = {
+		"size": Vector2i(24, 24),
+		"battlefield_type": GameEnums.PlanetEnvironment.URBAN,
+		"environment": GameEnums.PlanetEnvironment.URBAN,
+		"cover_density": 0.2,
+		"symmetrical": true,
+		"deployment_zone_size": 6,
+		"objective_count": 1
+	}
+	
+	var battlefield: Node = TypeSafeMixin._safe_method_call_node(battlefield_generator, "generate_battlefield", [config])
+	assert_not_null(battlefield, "Should generate battlefield")
+	
 	var total_time: int = 0
 	
 	for i in TEST_ITERATIONS:
 		var start_time: int = Time.get_ticks_msec()
 		
 		# Update terrain
-		TypeSafeMixin._safe_method_call_bool(battlefield_manager, "update_terrain")
+		TypeSafeMixin._safe_method_call_bool(battlefield_manager, "update_terrain", [battlefield])
 		
-		# Calculate metrics
-		var update_time: int = Time.get_ticks_msec() - start_time
-		total_time += update_time
-		
-		await get_tree().process_frame
+		var end_time: int = Time.get_ticks_msec()
+		total_time += end_time - start_time
 	
 	var average_time: float = total_time / float(TEST_ITERATIONS)
 	
-	assert_true(average_time < TERRAIN_UPDATE_THRESHOLD,
-		"Average update time (%d ms) should be under threshold" % average_time)
+	assert_lt(average_time, TERRAIN_UPDATE_THRESHOLD,
+		"Terrain updates should complete within threshold")
+	
+	if is_instance_valid(battlefield):
+		battlefield.queue_free()
 
 func test_line_of_sight_performance() -> void:
+	var config: Dictionary = {
+		"size": Vector2i(24, 24),
+		"battlefield_type": GameEnums.PlanetEnvironment.URBAN,
+		"environment": GameEnums.PlanetEnvironment.URBAN,
+		"cover_density": 0.2,
+		"symmetrical": true,
+		"deployment_zone_size": 6,
+		"objective_count": 1
+	}
+	
+	var battlefield: Node = TypeSafeMixin._safe_method_call_node(battlefield_generator, "generate_battlefield", [config])
+	assert_not_null(battlefield, "Should generate battlefield")
+	
 	var total_time: int = 0
+	var start_pos := Vector2(2, 2)
+	var end_pos := Vector2(22, 22)
 	
 	for i in TEST_ITERATIONS:
 		var start_time: int = Time.get_ticks_msec()
 		
-		# Check line of sight between random points
-		var start_pos: Vector2 = Vector2(randf_range(0, 10), randf_range(0, 10))
-		var end_pos: Vector2 = Vector2(randf_range(0, 10), randf_range(0, 10))
-		var has_los: bool = TypeSafeMixin._safe_method_call_bool(
-			battlefield_manager,
-			"check_line_of_sight",
-			[start_pos, end_pos]
-		)
+		# Check line of sight
+		TypeSafeMixin._safe_method_call_bool(battlefield_manager, "has_line_of_sight", [
+			battlefield,
+			start_pos,
+			end_pos
+		])
 		
-		# Calculate metrics
-		var check_time: int = Time.get_ticks_msec() - start_time
-		total_time += check_time
-		
-		await get_tree().process_frame
+		var end_time: int = Time.get_ticks_msec()
+		total_time += end_time - start_time
 	
 	var average_time: float = total_time / float(TEST_ITERATIONS)
 	
-	assert_true(average_time < LINE_OF_SIGHT_THRESHOLD,
-		"Average line of sight check time (%d ms) should be under threshold" % average_time)
+	assert_lt(average_time, LINE_OF_SIGHT_THRESHOLD,
+		"Line of sight checks should complete within threshold")
+	
+	if is_instance_valid(battlefield):
+		battlefield.queue_free()
 
 func test_pathfinding_performance() -> void:
+	var config: Dictionary = {
+		"size": Vector2i(24, 24),
+		"battlefield_type": GameEnums.PlanetEnvironment.URBAN,
+		"environment": GameEnums.PlanetEnvironment.URBAN,
+		"cover_density": 0.2,
+		"symmetrical": true,
+		"deployment_zone_size": 6,
+		"objective_count": 1
+	}
+	
+	var battlefield: Node = TypeSafeMixin._safe_method_call_node(battlefield_generator, "generate_battlefield", [config])
+	assert_not_null(battlefield, "Should generate battlefield")
+	
 	var total_time: int = 0
+	var start_pos := Vector2(2, 2)
+	var end_pos := Vector2(22, 22)
 	
 	for i in TEST_ITERATIONS:
 		var start_time: int = Time.get_ticks_msec()
 		
-		# Find path between random points
-		var start_pos: Vector2 = Vector2(randf_range(0, 10), randf_range(0, 10))
-		var end_pos: Vector2 = Vector2(randf_range(0, 10), randf_range(0, 10))
-		var path: Array = TypeSafeMixin._safe_method_call_array(
-			battlefield_manager,
-			"find_path",
-			[start_pos, end_pos]
-		)
+		# Find path
+		var path: Array = TypeSafeMixin._safe_method_call_array(battlefield_manager, "find_path", [
+			battlefield,
+			start_pos,
+			end_pos
+		])
+		assert_not_null(path, "Should find path")
 		
-		# Calculate metrics
-		var pathfinding_time: int = Time.get_ticks_msec() - start_time
-		total_time += pathfinding_time
-		
-		await get_tree().process_frame
+		var end_time: int = Time.get_ticks_msec()
+		total_time += end_time - start_time
 	
 	var average_time: float = total_time / float(TEST_ITERATIONS)
 	
-	assert_true(average_time < PATHFINDING_THRESHOLD,
-		"Average pathfinding time (%d ms) should be under threshold" % average_time)
+	assert_lt(average_time, PATHFINDING_THRESHOLD,
+		"Pathfinding should complete within threshold")
+	
+	if is_instance_valid(battlefield):
+		battlefield.queue_free()
 
-# Memory Usage Tests
 func test_memory_usage() -> void:
-	var initial_memory: int = OS.get_static_memory_usage()
+	var start_memory: int = OS.get_static_memory_usage()
+	var peak_memory: int = start_memory
 	
-	# Perform memory-intensive operations
-	for i in range(MEMORY_TEST_ITERATIONS):
-		var battlefield: Resource = TypeSafeMixin._safe_method_call_resource(
-			battlefield_generator,
-			"generate_battlefield"
-		)
-		if not battlefield:
-			push_error("Failed to generate battlefield %d" % i)
-			continue
-		# Let the battlefield go out of scope naturally
+	for i in MEMORY_TEST_ITERATIONS:
+		var config: Dictionary = {
+			"size": Vector2i(24, 24),
+			"battlefield_type": GameEnums.PlanetEnvironment.URBAN,
+			"environment": GameEnums.PlanetEnvironment.URBAN,
+			"cover_density": 0.2,
+			"symmetrical": true,
+			"deployment_zone_size": 6,
+			"objective_count": 1
+		}
+		
+		var battlefield: Node = TypeSafeMixin._safe_method_call_node(battlefield_generator, "generate_battlefield", [config])
+		assert_not_null(battlefield, "Should generate battlefield")
+		
+		var current_memory: int = OS.get_static_memory_usage()
+		peak_memory = max(peak_memory, current_memory)
+		
+		if is_instance_valid(battlefield):
+			battlefield.queue_free()
+		await get_tree().create_timer(CLEANUP_DELAY_MS / 1000.0).timeout
 	
-	# Force garbage collection
-	OS.delay_msec(CLEANUP_DELAY_MS)
-	
-	var final_memory: int = OS.get_static_memory_usage()
-	var memory_increase: int = final_memory - initial_memory
-	
-	assert_lt(memory_increase, MEMORY_THRESHOLD_MB * 1024 * 1024,
-		"Memory usage increase should be less than %dMB (got %.2f MB)" % [
-			MEMORY_THRESHOLD_MB,
-			memory_increase / (1024.0 * 1024.0)
-		])
+	var memory_increase: float = (peak_memory - start_memory) / 1024.0 / 1024.0 # Convert to MB
+	assert_lt(memory_increase, MEMORY_THRESHOLD_MB,
+		"Memory usage increase should be within threshold")

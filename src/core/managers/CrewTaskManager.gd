@@ -1,6 +1,5 @@
 @tool
 extends Node
-class_name FiveParsecsCrewTaskManager
 
 const GameEnums := preload("res://src/core/systems/GlobalEnums.gd")
 const Character := preload("res://src/core/character/Base/Character.gd")

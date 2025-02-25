@@ -1,153 +1,117 @@
-extends "res://addons/gut/test.gd"
+@tool
+extends "res://tests/unit/ui/base/component_test_base.gd"
 
-const CampaignResponsiveLayout = preload("res://src/ui/components/base/CampaignResponsiveLayout.gd")
+const CampaignResponsiveLayout: GDScript = preload("res://src/ui/components/base/CampaignResponsiveLayout.gd")
 
-var layout: CampaignResponsiveLayout
-var layout_changed_signal_emitted := false
-var last_layout: String
+# Test variables with explicit types
+var layout_changed_signal_emitted: bool = false
+var last_layout: String = ""
+
+# Override _create_component_instance to provide the specific component
+func _create_component_instance() -> Control:
+	return CampaignResponsiveLayout.new()
 
 func before_each() -> void:
-	layout = CampaignResponsiveLayout.new()
-	add_child(layout)
+	await super.before_each()
 	_reset_signals()
 	_connect_signals()
 
 func after_each() -> void:
-	layout.queue_free()
+	await super.after_each()
+	layout_changed_signal_emitted = false
+	last_layout = ""
 
 func _reset_signals() -> void:
 	layout_changed_signal_emitted = false
 	last_layout = ""
 
 func _connect_signals() -> void:
-	if layout.has_signal("layout_changed"):
-		layout.connect("layout_changed", _on_layout_changed)
+	if not _component:
+		push_error("Cannot connect signals: component is null")
+		return
+		
+	if _component.has_signal("layout_changed"):
+		_component.layout_changed.connect(_on_layout_changed)
 
 func _on_layout_changed(new_layout: String) -> void:
 	layout_changed_signal_emitted = true
 	last_layout = new_layout
 
 func test_initial_setup() -> void:
-	assert_not_null(layout)
-	assert_true(layout is Control)
-	assert_true(layout.size.x > 0)
-	assert_true(layout.size.y > 0)
+	assert_not_null(_component, "Layout should be initialized")
+	assert_true(_component is Control, "Layout should be a Control node")
+	assert_true(_component.size.x > 0, "Layout should have width")
+	assert_true(_component.size.y > 0, "Layout should have height")
 
-func test_campaign_layout_change() -> void:
-	# Test desktop layout
-	layout.size = Vector2(1920, 1080)
-	layout._update_layout()
-	
+func test_layout_changes() -> void:
+	# Test phone layout
+	_component.size = Vector2(360, 640)
+	await get_tree().process_frame
 	assert_true(layout_changed_signal_emitted, "Layout changed signal should be emitted")
-	assert_eq(last_layout, "desktop", "Should change to desktop layout")
-	assert_true(layout.is_desktop_layout(), "Should be in desktop layout")
-	
-	# Reset signals
-	_reset_signals()
+	assert_eq(last_layout, "phone", "Layout should be phone")
 	
 	# Test tablet layout
-	layout.size = Vector2(1024, 768)
-	layout._update_layout()
-	
-	assert_true(layout_changed_signal_emitted, "Layout changed signal should be emitted")
-	assert_eq(last_layout, "tablet", "Should change to tablet layout")
-	assert_true(layout.is_tablet_layout(), "Should be in tablet layout")
-	
-	# Reset signals
-	_reset_signals()
-	
-	# Test mobile layout
-	layout.size = Vector2(480, 800)
-	layout._update_layout()
-	
-	assert_true(layout_changed_signal_emitted, "Layout changed signal should be emitted")
-	assert_eq(last_layout, "mobile", "Should change to mobile layout")
-	assert_true(layout.is_mobile_layout(), "Should be in mobile layout")
-
-func test_campaign_panel_layout() -> void:
-	var panel = Panel.new()
-	layout.add_child(panel)
+	_component.size = Vector2(768, 1024)
+	await get_tree().process_frame
+	assert_eq(last_layout, "tablet", "Layout should be tablet")
 	
 	# Test desktop layout
-	layout.size = Vector2(1920, 1080)
-	layout._update_layout()
-	
-	assert_true(panel.size.x <= layout.size.x)
-	assert_true(panel.size.y <= layout.size.y)
-	
-	# Test mobile layout
-	layout.size = Vector2(320, 480)
-	layout._update_layout()
-	
-	assert_true(panel.size.x <= layout.size.x)
-	assert_true(panel.size.y <= layout.size.y)
+	_component.size = Vector2(1920, 1080)
+	await get_tree().process_frame
+	assert_eq(last_layout, "desktop", "Layout should be desktop")
 
-func test_campaign_layout_persistence() -> void:
-	# Set desktop layout
-	layout.size = Vector2(1920, 1080)
-	layout._update_layout()
-	var initial_layout = last_layout
+func test_orientation_changes() -> void:
+	# Test phone portrait
+	_component.size = Vector2(360, 640)
+	await get_tree().process_frame
+	assert_true(TypeSafeMixin._safe_method_call_bool(_component, "is_portrait", []), "Should be portrait")
 	
-	# Resize slightly but stay in desktop range
-	layout.size = Vector2(1800, 1000)
-	layout._update_layout()
-	
-	assert_eq(last_layout, initial_layout)
-	assert_true(layout.is_desktop_layout())
+	# Test phone landscape
+	_component.size = Vector2(640, 360)
+	await get_tree().process_frame
+	assert_false(TypeSafeMixin._safe_method_call_bool(_component, "is_portrait", []), "Should be landscape")
 
-func test_campaign_layout_thresholds() -> void:
-	# Test desktop threshold
-	layout.size = Vector2(1366, 768)
-	layout._update_layout()
-	assert_eq(last_layout, "desktop")
-	assert_true(layout.is_desktop_layout())
+func test_breakpoints() -> void:
+	var breakpoints: Dictionary = TypeSafeMixin._safe_method_call_dict(_component, "get_breakpoints", [], {})
+	assert_true(breakpoints.has("phone"), "Should have phone breakpoint")
+	assert_true(breakpoints.has("tablet"), "Should have tablet breakpoint")
+	assert_true(breakpoints.has("desktop"), "Should have desktop breakpoint")
 	
-	# Test tablet threshold
-	layout.size = Vector2(768, 1024)
-	layout._update_layout()
-	assert_eq(last_layout, "tablet")
-	assert_true(layout.is_tablet_layout())
-	
-	# Test mobile threshold
-	layout.size = Vector2(320, 480)
-	layout._update_layout()
-	assert_eq(last_layout, "mobile")
-	assert_true(layout.is_mobile_layout())
+	assert_true(breakpoints.phone > 0, "Phone breakpoint should be positive")
+	assert_true(breakpoints.tablet > breakpoints.phone, "Tablet breakpoint should be larger than phone")
+	assert_true(breakpoints.desktop > breakpoints.tablet, "Desktop breakpoint should be larger than tablet")
 
-func test_campaign_orientation_change() -> void:
-	# Test landscape
-	layout.size = Vector2(1024, 768)
-	layout._update_layout()
-	var landscape_layout = last_layout
+func test_layout_queries() -> void:
+	_component.size = Vector2(360, 640)
+	await get_tree().process_frame
 	
-	# Test portrait
-	layout.size = Vector2(768, 1024)
-	layout._update_layout()
-	var portrait_layout = last_layout
-	
-	assert_ne(landscape_layout, portrait_layout)
+	assert_true(TypeSafeMixin._safe_method_call_bool(_component, "is_phone", []), "Should be phone layout")
+	assert_false(TypeSafeMixin._safe_method_call_bool(_component, "is_tablet", []), "Should not be tablet layout")
+	assert_false(TypeSafeMixin._safe_method_call_bool(_component, "is_desktop", []), "Should not be desktop layout")
 
-func test_campaign_layout_helpers() -> void:
-	# Test desktop
-	layout.size = Vector2(1920, 1080)
-	layout._update_layout()
+# Add inherited component tests
+func test_component_structure() -> void:
+	await super.test_component_structure()
 	
-	assert_true(layout.is_desktop_layout())
-	assert_false(layout.is_tablet_layout())
-	assert_false(layout.is_mobile_layout())
+	# Additional CampaignResponsiveLayout-specific structure tests
+	assert_true(_component.has_method("is_phone"), "Should have is_phone method")
+	assert_true(_component.has_method("is_tablet"), "Should have is_tablet method")
+	assert_true(_component.has_method("is_desktop"), "Should have is_desktop method")
+	assert_true(_component.has_method("is_portrait"), "Should have is_portrait method")
+
+func test_component_theme() -> void:
+	await super.test_component_theme()
 	
-	# Test tablet
-	layout.size = Vector2(1024, 768)
-	layout._update_layout()
+	# Additional CampaignResponsiveLayout-specific theme tests
+	assert_true(_component.has_theme_constant("phone_breakpoint"), "Should have phone breakpoint constant")
+	assert_true(_component.has_theme_constant("tablet_breakpoint"), "Should have tablet breakpoint constant")
+	assert_true(_component.has_theme_constant("desktop_breakpoint"), "Should have desktop breakpoint constant")
+
+func test_component_accessibility() -> void:
+	await super.test_component_accessibility()
 	
-	assert_false(layout.is_desktop_layout())
-	assert_true(layout.is_tablet_layout())
-	assert_false(layout.is_mobile_layout())
-	
-	# Test mobile
-	layout.size = Vector2(320, 480)
-	layout._update_layout()
-	
-	assert_false(layout.is_desktop_layout())
-	assert_false(layout.is_tablet_layout())
-	assert_true(layout.is_mobile_layout())
+	# Additional CampaignResponsiveLayout-specific accessibility tests
+	assert_true(_component.mouse_filter == Control.MOUSE_FILTER_IGNORE,
+		"Should ignore mouse events as it's a layout container")
+	assert_true(_component.clip_contents,
+		"Should clip contents for better visual clarity")

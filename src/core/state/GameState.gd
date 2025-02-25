@@ -1,4 +1,3 @@
-class_name GameState
 extends Node
 
 const GameEnums = preload("res://src/core/systems/GlobalEnums.gd")
@@ -16,6 +15,8 @@ signal resources_changed
 signal turn_advanced
 signal quest_added(quest: Dictionary)
 signal quest_completed(quest_id: String)
+signal game_started()
+signal game_ended()
 
 # Core state
 var current_phase: GameEnums.FiveParcsecsCampaignPhase = GameEnums.FiveParcsecsCampaignPhase.NONE

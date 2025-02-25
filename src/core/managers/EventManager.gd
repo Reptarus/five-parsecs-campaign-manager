@@ -1,6 +1,5 @@
 ## EventManager
 ## Manages game events and their effects on the game state
-class_name EventManager
 extends Node
 
 ## Dependencies
@@ -346,7 +345,7 @@ func deserialize(data: Dictionary) -> void:
 ## Trim event history to prevent unbounded growth
 func _trim_event_history() -> void:
 	if event_history.size() > MAX_HISTORY_SIZE:
-		event_history = event_history.slice(-MAX_HISTORY_SIZE)
+		event_history = event_history.slice(- MAX_HISTORY_SIZE)
 
 ## Update event cooldowns
 func _update_cooldowns() -> void:
@@ -512,11 +511,11 @@ func _remove_event_effects(effects: Dictionary) -> void:
 	for effect in effects:
 		match effect:
 			"economy_modifier":
-				game_state.apply_economy_modifier(-effects[effect])
+				game_state.apply_economy_modifier(- effects[effect])
 			"combat_difficulty":
 				game_state.modify_combat_difficulty(1.0 / effects[effect])
 			"tech_discount":
-				game_state.apply_tech_discount(-effects[effect])
+				game_state.apply_tech_discount(- effects[effect])
 
 ## Compare two values with an operator
 func _compare_value(value: float, operator: String, target: float) -> bool:

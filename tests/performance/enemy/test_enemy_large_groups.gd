@@ -1,5 +1,5 @@
 @tool
-extends FiveParsecsEnemyTest
+extends "res://tests/fixtures/specialized/enemy_test_base.gd"
 
 const LARGE_GROUP_SIZE := 100
 const PERFORMANCE_THRESHOLD := 16.67 # ms (targeting 60 FPS)
@@ -19,7 +19,7 @@ func before_each() -> void:
 	_test_battlefield.name = "TestBattlefield"
 	add_child_autofree(_test_battlefield)
 	
-	await stabilize_engine(STABILIZE_TIME)
+	await stabilize_engine()
 
 func after_each() -> void:
 	_performance_monitor = null

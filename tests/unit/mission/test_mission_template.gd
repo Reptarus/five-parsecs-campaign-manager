@@ -1,5 +1,5 @@
 @tool
-extends "res://tests/fixtures/base_test.gd"
+extends "res://tests/fixtures/base/game_test.gd"
 
 ## Unit tests for MissionTemplate class
 ## Tests mission parameter handling, reward management, and mission calculations

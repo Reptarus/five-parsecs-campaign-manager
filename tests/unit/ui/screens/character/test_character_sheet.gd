@@ -1,5 +1,5 @@
 @tool
-extends GameTest
+extends "res://tests/fixtures/base/game_test.gd"
 
 const CharacterSheetScript: GDScript = preload("res://src/ui/components/character/CharacterSheet.gd")
 const GameEnumsScript: GDScript = preload("res://src/core/systems/GlobalEnums.gd")
@@ -161,7 +161,7 @@ func test_character_data_saving() -> void:
 	
 	assert_true(character_updated_signal_emitted, "Character updated signal should be emitted")
 	assert_eq(last_character_data.name, "New Character", "Saved name should match input")
-	assert_eq(last_character_data. class , GameEnumsScript.CharacterClass.MEDIC, "Saved class should match selection")
+	assert_eq(last_character_data.class , GameEnumsScript.CharacterClass.MEDIC, "Saved class should match selection")
 	assert_eq(last_character_data.stats.health, 80, "Saved health should match input")
 	assert_eq(last_character_data.stats.armor, 30, "Saved armor should match input")
 	assert_eq(last_character_data.stats.speed, 40, "Saved speed should match input")

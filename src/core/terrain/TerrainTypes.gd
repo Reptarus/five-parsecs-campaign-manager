@@ -4,8 +4,6 @@
 @tool
 extends Resource
 
-class_name FiveParsecsTerrainTypes
-
 const GameEnums = preload("res://src/core/systems/GlobalEnums.gd")
 
 ## Terrain type enumeration

@@ -1,5 +1,4 @@
 @tool
-class_name GameEnums
 extends Node
 
 ## Edit Mode

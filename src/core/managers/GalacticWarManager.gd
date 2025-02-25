@@ -1,5 +1,4 @@
 # GalacticWarManager.gd
-class_name GalacticWarManager
 extends Node
 
 enum FringeWorldInstability {
@@ -20,7 +19,7 @@ signal war_status_changed(new_status: int)
 signal war_ended(victor: String)
 
 var current_instability: FringeWorldInstability = FringeWorldInstability.STABLE
-var game_state: Node  # Will be cast to GameState at runtime
+var game_state: Node # Will be cast to GameState at runtime
 var active_conflicts: Array[Dictionary] = []
 var faction_strengths: Dictionary = {}
 
@@ -53,9 +52,9 @@ func update_instability() -> void:
 	# Calculate new instability based on faction strengths
 	var total_conflict_points = 0
 	for strength in faction_strengths.values():
-		if strength > 60:  # High strength factions generate more conflict
+		if strength > 60: # High strength factions generate more conflict
 			total_conflict_points += 2
-		elif strength < 30:  # Weak factions also contribute to instability
+		elif strength < 30: # Weak factions also contribute to instability
 			total_conflict_points += 1
 	
 	# Update instability level based on conflict points
@@ -174,7 +173,7 @@ func process_active_conflicts() -> void:
 
 func should_resolve_conflict(conflict: Dictionary) -> bool:
 	# Add logic to determine if a conflict should be resolved this turn
-	return randf() > 0.5  # 50% chance to resolve each turn
+	return randf() > 0.5 # 50% chance to resolve each turn
 
 func get_current_instability() -> int:
 	return current_instability

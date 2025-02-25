@@ -1,6 +1,5 @@
 @tool
 extends Node
-class_name FiveParsecsCampaignPhaseManager
 
 const GameEnums := preload("res://src/core/systems/GlobalEnums.gd")
 const Character := preload("res://src/core/character/Base/Character.gd")
@@ -564,7 +563,7 @@ func _store_phase_state(validation_result: Dictionary = {}) -> void:
 	
 	# Trim history if needed
 	if phase_history.size() > MAX_PHASE_HISTORY:
-		phase_history = phase_history.slice(-MAX_PHASE_HISTORY)
+		phase_history = phase_history.slice(- MAX_PHASE_HISTORY)
 
 func _restore_phase_state(state: Dictionary) -> void:
 	_restore_resources(state.resources)

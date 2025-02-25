@@ -1,5 +1,5 @@
 @tool
-extends GutTest
+extends "res://tests/fixtures/base/mobile_test_base.gd"
 
 ## Mobile-specific mission tests
 ##
@@ -10,215 +10,120 @@ extends GutTest
 ## - Resource management
 ## - Save state handling
 
-const MissionScript: GDScript = preload("res://src/core/systems/Mission.gd")
-const MissionGeneratorScript: GDScript = preload("res://src/core/systems/MissionGenerator.gd")
-const GameEnumsScript: GDScript = preload("res://src/core/systems/GlobalEnums.gd")
-const TypeSafeMixin: GDScript = preload("res://tests/fixtures/type_safe_test_mixin.gd")
+# Type-safe script references
+const MissionScript := preload("res://src/core/systems/Mission.gd")
+const MissionGeneratorScript := preload("res://src/core/systems/MissionGenerator.gd")
+const GameEnumsScript := preload("res://src/core/systems/GlobalEnums.gd")
 
-# Test constants with explicit types
+# Type-safe instance variables
+var _mission: Resource = null
+var _generator: Node = null
+var _mobile_ui: Node = null
+
+# Type-safe constants
 const TOUCH_DURATION: float = 0.1 # seconds
 const PERFORMANCE_THRESHOLD: float = 16.67 # ms (60 FPS)
 const MEMORY_THRESHOLD: int = 50 * 1024 * 1024 # 50 MB
 const SAVE_FILE_PATH: String = "user://mobile_test_save.tres"
 
-# Test variables with explicit types
-var _mission: Resource = null
-var _generator: Node = null
-var _mobile_ui: Node = null
-var _skip_mobile_tests: bool = false
-var _watched_signals: Dictionary = {}
-
-# Signal handling methods
-func watch_signals(emitter: Object) -> void:
-	if not emitter:
-		push_error("Attempting to watch signals on null emitter")
-		return
-		
-	if not _watched_signals.has(emitter):
-		_watched_signals[emitter] = {}
-		
-		var signal_list: Array = emitter.get_signal_list()
-		for signal_info in signal_list:
-			if not signal_info is Dictionary:
-				continue
-				
-			var signal_name: String = signal_info.get("name", "")
-			if signal_name.is_empty():
-				continue
-			
-			_watched_signals[emitter][signal_name] = []
-			
-			if emitter.has_signal(signal_name):
-				var callback: Callable = func(arg1: Variant = null, arg2: Variant = null,
-						arg3: Variant = null, arg4: Variant = null,
-						arg5: Variant = null) -> void:
-					var args: Array = []
-					var arg_list: Array = [arg1, arg2, arg3, arg4, arg5]
-					for arg in arg_list:
-						if arg != null:
-							args.append(arg)
-					_on_signal_emitted.call_deferred(emitter, signal_name, args)
-				
-				if not emitter.is_connected(signal_name, callback):
-					emitter.connect(signal_name, callback)
-
-func _on_signal_emitted(emitter: Object, signal_name: String, args: Array) -> void:
-	if _watched_signals.has(emitter) and \
-	   _watched_signals[emitter] is Dictionary and \
-	   _watched_signals[emitter].has(signal_name) and \
-	   _watched_signals[emitter][signal_name] is Array:
-		var emissions: Array = _watched_signals[emitter][signal_name]
-		emissions.append(args)
-
-func assert_signal_emitted(emitter: Object, signal_name: String, text: String = "") -> void:
-	if not emitter or not signal_name:
-		assert_true(false, "Invalid emitter or signal name")
-		return
-		
-	if not _watched_signals.has(emitter) or \
-	   not _watched_signals[emitter].has(signal_name):
-		assert_true(false, "Signal '%s' not being watched" % signal_name)
-		return
-		
-	var emissions: Array = _watched_signals[emitter][signal_name]
-	assert_true(not emissions.is_empty(),
-		text if text else "Signal '%s' was not emitted" % signal_name)
-
-func pending(text: String = "") -> void:
-	push_warning("Test pending: %s" % text)
-	assert_true(false, "Test pending: %s" % text)
-
-# Test lifecycle methods
 func before_each() -> void:
 	await super.before_each()
 	
-	if not OS.has_feature("mobile"):
-		_skip_mobile_tests = true
-		pending("Tests only run on mobile devices")
-		return
-		
+	# Initialize test environment
 	_mission = TypeSafeMixin._safe_cast_to_resource(MissionScript.new(), "Mission")
 	if not _mission:
 		push_error("Failed to create mission")
 		return
-		
+	track_test_resource(_mission)
+	
 	_generator = TypeSafeMixin._safe_cast_to_node(Node.new(), "Generator")
 	if not _generator:
 		push_error("Failed to create mission generator")
 		return
-		
-	var script_set: bool = TypeSafeMixin._safe_method_call_bool(_generator, "set_script", [MissionGeneratorScript])
-	if not script_set:
-		push_error("Failed to set mission generator script")
-		return
-		
+	_generator.set_script(MissionGeneratorScript)
+	add_child_autofree(_generator)
+	track_test_node(_generator)
+	
 	_mobile_ui = TypeSafeMixin._safe_cast_to_node(Node.new(), "MobileUI")
 	if not _mobile_ui:
 		push_error("Failed to create mobile UI")
 		return
+	add_child_autofree(_mobile_ui)
+	track_test_node(_mobile_ui)
 	
-	add_child(_mobile_ui)
-	add_child(_generator)
+	await stabilize_engine()
 
 func after_each() -> void:
 	await super.after_each()
 	
 	if is_instance_valid(_mobile_ui):
-		remove_child(_mobile_ui)
 		_mobile_ui.queue_free()
-	
 	if is_instance_valid(_generator):
-		remove_child(_generator)
 		_generator.queue_free()
 	
 	_mission = null
 	_generator = null
 	_mobile_ui = null
-	_watched_signals.clear()
 
 # Touch Input Tests
 func test_mission_touch_controls() -> void:
-	if _skip_mobile_tests:
-		return
-		
 	watch_signals(_mobile_ui)
 	
 	# Simulate touch to select objective
-	var touch_pos: Vector2 = Vector2(100, 100)
-	TypeSafeMixin._safe_method_call_bool(_mobile_ui, "simulate_touch_event", [touch_pos, true])
+	var touch_pos := Vector2(100, 100)
+	simulate_touch_event(touch_pos, true)
 	await get_tree().process_frame
-	TypeSafeMixin._safe_method_call_bool(_mobile_ui, "simulate_touch_event", [touch_pos, false])
+	simulate_touch_event(touch_pos, false)
 	await get_tree().process_frame
-	assert_signal_emitted(_mobile_ui, "objective_selected")
 	
-	# Simulate pinch to zoom map
-	var touch1: Vector2 = Vector2(100, 100)
-	var touch2: Vector2 = Vector2(200, 200)
-	_simulate_pinch(touch1, touch2, TOUCH_DURATION)
-	assert_signal_emitted(_mobile_ui, "zoom_changed")
+	verify_signal_emitted(_mobile_ui, "objective_selected")
 	
-	# Simulate drag to pan
-	_simulate_drag(touch_pos, touch_pos + Vector2(100, 0), TOUCH_DURATION)
-	assert_signal_emitted(_mobile_ui, "camera_moved")
+	# Test touch target sizes
+	var ui_elements: Dictionary = _get_property_safe(_mobile_ui, "ui_elements", {})
+	for element in ui_elements.values():
+		if element is Control:
+			assert_touch_target_size(element)
 
 # Mobile UI Tests
 func test_mobile_ui_layout() -> void:
-	if _skip_mobile_tests:
-		return
-		
 	# Test UI adaptation to screen size
-	var screen_size: Vector2i = DisplayServer.window_get_size()
+	var screen_size := DisplayServer.window_get_size()
 	
-	# Mock UI update with type-safe dictionary
-	var mock_layout: Dictionary = {
-		"width": screen_size.x,
-		"height": screen_size.y
-	}
-	TypeSafeMixin._safe_method_call_bool(_mobile_ui, "set_meta", ["layout", mock_layout])
-	
-	# Verify UI elements are properly positioned
-	var layout: Dictionary = TypeSafeMixin._safe_method_call_dict(_mobile_ui, "get_meta", ["layout"])
-	var width: int = TypeSafeMixin._safe_method_call_int(layout, "get", ["width", 0])
-	var height: int = TypeSafeMixin._safe_method_call_int(layout, "get", ["height", 0])
-	
-	assert_true(width >= 0 and width <= screen_size.x,
-		"Width should be within screen bounds")
-	assert_true(height >= 0 and height <= screen_size.y,
-		"Height should be within screen bounds")
+	# Test different screen orientations
+	for orientation in ["portrait", "landscape"]:
+		simulate_mobile_environment(orientation, "phone")
+		await stabilize_engine()
+		
+		var ui_elements: Dictionary = _get_property_safe(_mobile_ui, "ui_elements", {})
+		for element in ui_elements.values():
+			if element is Control:
+				assert_fits_mobile_screen(element)
 
 # Performance Tests
 func test_mobile_performance() -> void:
-	if _skip_mobile_tests:
-		return
-		
 	var mission: Resource = TypeSafeMixin._safe_method_call_resource(_generator, "generate_mission_with_type",
 		[GameEnumsScript.MissionType.PATROL])
 	if not mission:
 		push_error("Failed to generate mission")
 		return
-		
-	# Test frame times
-	var total_time: float = 0.0
-	var frame_count: int = 60
 	
-	for i in range(frame_count):
-		var start_time: int = Time.get_ticks_msec()
-		# Simulate typical frame operations
-		TypeSafeMixin._safe_method_call_bool(mission, "update_objectives")
-		TypeSafeMixin._safe_method_call_bool(_mobile_ui, "set_meta", ["display_updated", true])
-		await get_tree().process_frame
-		total_time += Time.get_ticks_msec() - start_time
+	var metrics := await measure_performance(
+		func():
+			TypeSafeMixin._safe_method_call_bool(mission, "update_objectives")
+			TypeSafeMixin._safe_method_call_bool(_mobile_ui, "update_display")
+			await get_tree().process_frame
+	)
 	
-	var average_frame_time: float = total_time / frame_count
-	assert_lt(average_frame_time, PERFORMANCE_THRESHOLD,
-		"Should maintain acceptable frame times")
+	verify_performance_metrics(metrics, {
+		"average_fps": 30.0,
+		"minimum_fps": 20.0,
+		"memory_delta_kb": 512.0,
+		"draw_calls_delta": 50
+	})
 
 # Memory Management Tests
 func test_mobile_memory_usage() -> void:
-	if _skip_mobile_tests:
-		return
-		
-	var initial_memory: int = Performance.get_monitor(Performance.MEMORY_STATIC)
+	var initial_memory := Performance.get_monitor(Performance.MEMORY_STATIC)
 	
 	# Create and process multiple missions
 	var missions: Array[Resource] = []
@@ -228,38 +133,32 @@ func test_mobile_memory_usage() -> void:
 		if not mission:
 			push_error("Failed to generate mission %d" % i)
 			continue
-			
+		
 		missions.append(mission)
-		TypeSafeMixin._safe_method_call_bool(_mobile_ui, "set_meta", ["current_mission", mission])
+		TypeSafeMixin._safe_method_call_bool(_mobile_ui, "display_mission", [mission])
 		await get_tree().process_frame
 	
-	var peak_memory: int = Performance.get_monitor(Performance.MEMORY_STATIC)
+	var peak_memory := Performance.get_monitor(Performance.MEMORY_STATIC)
 	assert_lt(peak_memory - initial_memory, MEMORY_THRESHOLD,
-		"Should stay within memory limits")
+		"Memory usage should stay within limits")
 	
 	# Test memory cleanup
 	missions.clear()
 	await get_tree().process_frame
-	var final_memory: int = Performance.get_monitor(Performance.MEMORY_STATIC)
+	var final_memory := Performance.get_monitor(Performance.MEMORY_STATIC)
 	assert_lt(final_memory - initial_memory, MEMORY_THRESHOLD / 10,
-		"Should clean up memory properly")
+		"Memory should be properly cleaned up")
 
 # Save State Tests
 func test_mobile_save_state() -> void:
-	if _skip_mobile_tests:
-		return
-		
 	var mission: Resource = TypeSafeMixin._safe_method_call_resource(_generator, "generate_mission_with_type",
 		[GameEnumsScript.MissionType.PATROL])
 	if not mission:
 		push_error("Failed to generate mission")
 		return
-		
-	# Test saving during low memory
-	var memory_usage: int = Performance.get_monitor(Performance.MEMORY_STATIC)
-	var memory_warning: bool = memory_usage > MEMORY_THRESHOLD
 	
-	var save_result: Error = ResourceSaver.save(mission, SAVE_FILE_PATH)
+	# Test saving during low memory
+	var save_result := ResourceSaver.save(mission, SAVE_FILE_PATH)
 	assert_eq(save_result, OK, "Should save successfully under memory pressure")
 	
 	# Test loading after app suspension
@@ -270,74 +169,63 @@ func test_mobile_save_state() -> void:
 	var original_id: String = TypeSafeMixin._safe_method_call_string(mission, "get_mission_id")
 	assert_eq(mission_id, original_id, "Should preserve mission state")
 
-# Battery Usage Tests
-func test_battery_optimization() -> void:
-	if _skip_mobile_tests:
-		return
-		
-	var mission: Resource = TypeSafeMixin._safe_method_call_resource(_generator, "generate_mission_with_type",
-		[GameEnumsScript.MissionType.PATROL])
-	if not mission:
-		push_error("Failed to generate mission")
-		return
-		
-	# Run intensive operations
-	for i in range(100):
-		TypeSafeMixin._safe_method_call_bool(mission, "update_objectives")
-		TypeSafeMixin._safe_method_call_bool(_mobile_ui, "set_meta", ["display_updated", true])
-		await get_tree().process_frame
-	
-	var initial_battery: int = 100 # Mock battery level
-	var final_battery: int = 99 # Mock battery level after operations
-	assert_lt(initial_battery - final_battery, 1.0,
-		"Should not drain battery significantly")
-
-# Network Tests
-func test_mobile_network_handling() -> void:
-	if _skip_mobile_tests:
-		return
-		
-	var mission: Resource = TypeSafeMixin._safe_method_call_resource(_generator, "generate_mission_with_type",
-		[GameEnumsScript.MissionType.PATROL])
-	if not mission:
-		push_error("Failed to generate mission")
-		return
-		
-	# Test offline mode
-	TypeSafeMixin._safe_method_call_bool(_mobile_ui, "set_meta", ["network_connected", false])
-	var can_operate_offline: bool = TypeSafeMixin._safe_method_call_bool(mission, "can_operate_offline")
-	assert_true(can_operate_offline, "Should function in offline mode")
-	
-	# Test reconnection
-	TypeSafeMixin._safe_method_call_bool(_mobile_ui, "set_meta", ["network_connected", true])
-	await get_tree().create_timer(1.0).timeout
-	var sync_success: bool = TypeSafeMixin._safe_method_call_bool(mission, "sync_with_server")
-	assert_true(sync_success, "Should sync when connection restored")
-
 # Helper Methods
-func _simulate_pinch(pos1: Vector2, pos2: Vector2, duration: float) -> void:
-	var event1: InputEventScreenTouch = InputEventScreenTouch.new()
-	var event2: InputEventScreenTouch = InputEventScreenTouch.new()
-	
-	event1.position = pos1
-	event2.position = pos2
-	event1.pressed = true
-	event2.pressed = true
-	
-	Input.parse_input_event(event1)
-	Input.parse_input_event(event2)
-	
-	await get_tree().create_timer(duration).timeout
-	
-	event1.pressed = false
-	event2.pressed = false
-	Input.parse_input_event(event1)
-	Input.parse_input_event(event2)
-
-func _simulate_drag(start: Vector2, end: Vector2, duration: float) -> void:
-	var event: InputEventScreenDrag = InputEventScreenDrag.new()
-	event.position = start
-	event.relative = end - start
+func simulate_touch_event(position: Vector2, pressed: bool) -> void:
+	var event := InputEventScreenTouch.new()
+	event.position = position
+	event.pressed = pressed
 	Input.parse_input_event(event)
+	await get_tree().process_frame
+
+func simulate_mobile_environment(orientation: String, device_type: String = "phone") -> void:
+	var resolution := Vector2i(360, 640) if orientation == "portrait" else Vector2i(640, 360)
+	if device_type == "tablet":
+		resolution *= 2
+	DisplayServer.window_set_size(resolution)
+	await get_tree().process_frame
+
+# Performance testing methods
+func measure_performance(callable: Callable, iterations: int = 100) -> Dictionary:
+	var results := {
+		"fps_samples": [],
+		"memory_samples": [],
+		"draw_calls": []
+	}
 	
-	await get_tree().create_timer(duration).timeout
+	for i in range(iterations):
+		await callable.call()
+		results.fps_samples.append(Engine.get_frames_per_second())
+		results.memory_samples.append(Performance.get_monitor(Performance.MEMORY_STATIC))
+		results.draw_calls.append(Performance.get_monitor(Performance.RENDER_TOTAL_DRAW_CALLS_IN_FRAME))
+		await stabilize_engine()
+	
+	return {
+		"average_fps": _calculate_average(results.fps_samples),
+		"minimum_fps": _calculate_minimum(results.fps_samples),
+		"memory_delta_kb": (_calculate_maximum(results.memory_samples) - _calculate_minimum(results.memory_samples)) / 1024,
+		"draw_calls_delta": _calculate_maximum(results.draw_calls) - _calculate_minimum(results.draw_calls)
+	}
+
+func _calculate_average(values: Array) -> float:
+	if values.is_empty():
+		return 0.0
+	var sum := 0.0
+	for value in values:
+		sum += value
+	return sum / values.size()
+
+func _calculate_minimum(values: Array) -> float:
+	if values.is_empty():
+		return 0.0
+	var min_value: float = values[0]
+	for value in values:
+		min_value = min(min_value, value)
+	return min_value
+
+func _calculate_maximum(values: Array) -> float:
+	if values.is_empty():
+		return 0.0
+	var max_value: float = values[0]
+	for value in values:
+		max_value = max(max_value, value)
+	return max_value

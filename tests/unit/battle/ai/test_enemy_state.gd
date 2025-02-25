@@ -1,16 +1,16 @@
 @tool
-extends FiveParsecsEnemyTest
+extends "res://tests/fixtures/specialized/enemy_test_base.gd"
 
 # Type-safe instance variables
-var _save_manager: Node
-var _test_enemies: Array[Enemy]
+var _save_manager: Node = null
+var _test_enemies: Array[Enemy] = []
 
 # Type-safe lifecycle methods
 func before_each() -> void:
 	await super.before_each()
 	
 	# Setup save system test environment
-	_save_manager = Node.new()
+	_save_manager = TypeSafeMixin._safe_cast_node(Node.new())
 	if not _save_manager:
 		push_error("Failed to create save manager")
 		return
@@ -19,9 +19,9 @@ func before_each() -> void:
 	track_test_node(_save_manager)
 	
 	# Create test enemies
-	_test_enemies = []
+	_test_enemies.clear()
 	for i in range(3):
-		var enemy = create_test_enemy()
+		var enemy: Enemy = create_test_enemy()
 		if not enemy:
 			push_error("Failed to create test enemy %d" % i)
 			continue
@@ -62,7 +62,7 @@ func _capture_group_states(group: Array[Enemy]) -> Array[Dictionary]:
 func _create_test_group(size: int = 3) -> Array[Enemy]:
 	var group: Array[Enemy] = []
 	for i in range(size):
-		var enemy = create_test_enemy()
+		var enemy: Enemy = create_test_enemy()
 		if not enemy:
 			push_error("Failed to create test group enemy %d" % i)
 			continue
@@ -72,7 +72,7 @@ func _create_test_group(size: int = 3) -> Array[Enemy]:
 
 # Basic State Tests
 func test_basic_state() -> void:
-	var enemy = create_test_enemy()
+	var enemy: Enemy = create_test_enemy()
 	if not enemy:
 		push_error("Failed to create enemy for basic state test")
 		return
@@ -96,13 +96,13 @@ func test_basic_state() -> void:
 
 # State Persistence Tests
 func test_state_persistence() -> void:
-	var enemy = create_test_enemy()
+	var enemy: Enemy = create_test_enemy()
 	if not enemy:
 		push_error("Failed to create enemy for state persistence test")
 		return
 	track_test_node(enemy)
 	
-	var initial_state = _capture_enemy_state(enemy)
+	var initial_state: Dictionary = _capture_enemy_state(enemy)
 	
 	# Modify state
 	TypeSafeMixin._safe_method_call_bool(enemy, "take_damage", [20])
@@ -112,7 +112,7 @@ func test_state_persistence() -> void:
 	var saved_state: Dictionary = TypeSafeMixin._safe_method_call_dict(enemy, "save", [])
 	
 	# Create new enemy and load state
-	var new_enemy = create_test_enemy()
+	var new_enemy: Enemy = create_test_enemy()
 	if not new_enemy:
 		push_error("Failed to create new enemy for state persistence test")
 		return
@@ -131,8 +131,8 @@ func test_state_persistence() -> void:
 
 # Group State Tests
 func test_group_state_persistence() -> void:
-	var group = _create_test_group()
-	var group_states = _capture_group_states(group)
+	var group: Array[Enemy] = _create_test_group()
+	var group_states: Array[Dictionary] = _capture_group_states(group)
 	
 	# Modify group states
 	for enemy in group:
@@ -153,7 +153,7 @@ func test_group_state_persistence() -> void:
 		saved_states.append(state)
 	
 	# Create new group and restore states
-	var new_group = _create_test_group()
+	var new_group: Array[Enemy] = _create_test_group()
 	for i in range(new_group.size()):
 		if i >= saved_states.size():
 			break
@@ -180,7 +180,7 @@ func test_group_state_persistence() -> void:
 
 # Combat State Tests
 func test_combat_state_persistence() -> void:
-	var enemy = create_test_enemy()
+	var enemy: Enemy = create_test_enemy()
 	if not enemy:
 		push_error("Failed to create enemy for combat state test")
 		return
@@ -190,7 +190,7 @@ func test_combat_state_persistence() -> void:
 	TypeSafeMixin._safe_method_call_bool(enemy, "take_damage", [20])
 	TypeSafeMixin._safe_method_call_bool(enemy, "apply_status_effect", ["poison", 3])
 	
-	var target = create_test_enemy()
+	var target: Enemy = create_test_enemy()
 	if not target:
 		push_error("Failed to create target enemy")
 		return
@@ -201,7 +201,7 @@ func test_combat_state_persistence() -> void:
 	var saved_state: Dictionary = TypeSafeMixin._safe_method_call_dict(enemy, "save", [])
 	
 	# Create new enemy and load state
-	var new_enemy = create_test_enemy()
+	var new_enemy: Enemy = create_test_enemy()
 	if not new_enemy:
 		push_error("Failed to create new enemy for combat state test")
 		return
@@ -221,7 +221,7 @@ func test_combat_state_persistence() -> void:
 
 # AI State Tests
 func test_ai_state_persistence() -> void:
-	var enemy = create_test_enemy()
+	var enemy: Enemy = create_test_enemy()
 	if not enemy:
 		push_error("Failed to create enemy for AI state test")
 		return
@@ -235,7 +235,7 @@ func test_ai_state_persistence() -> void:
 	var saved_state: Dictionary = TypeSafeMixin._safe_method_call_dict(enemy, "save", [])
 	
 	# Create new enemy and load state
-	var new_enemy = create_test_enemy()
+	var new_enemy: Enemy = create_test_enemy()
 	if not new_enemy:
 		push_error("Failed to create new enemy for AI state test")
 		return
@@ -254,13 +254,13 @@ func test_ai_state_persistence() -> void:
 
 # Equipment State Tests
 func test_equipment_persistence() -> void:
-	var enemy = create_test_enemy()
+	var enemy: Enemy = create_test_enemy()
 	if not enemy:
 		push_error("Failed to create enemy for equipment test")
 		return
 	track_test_node(enemy)
 	
-	var weapon = GameWeapon.new()
+	var weapon: GameWeapon = GameWeapon.new()
 	if not weapon:
 		push_error("Failed to create test weapon")
 		return
@@ -273,7 +273,7 @@ func test_equipment_persistence() -> void:
 	var saved_state: Dictionary = TypeSafeMixin._safe_method_call_dict(enemy, "save", [])
 	
 	# Create new enemy and load state
-	var new_enemy = create_test_enemy()
+	var new_enemy: Enemy = create_test_enemy()
 	if not new_enemy:
 		push_error("Failed to create new enemy for equipment test")
 		return
@@ -291,7 +291,7 @@ func test_equipment_persistence() -> void:
 
 # Invalid State Tests
 func test_invalid_state_handling() -> void:
-	var enemy = create_test_enemy()
+	var enemy: Enemy = create_test_enemy()
 	if not enemy:
 		push_error("Failed to create enemy for invalid state test")
 		return

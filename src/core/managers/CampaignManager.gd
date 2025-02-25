@@ -1,7 +1,5 @@
-## CampaignManager
 ## Manages campaign flow, missions, and game progression
 @tool
-class_name CampaignManager
 extends Resource
 
 const GameEnums := preload("res://src/core/systems/GlobalEnums.gd")
@@ -148,11 +146,11 @@ func _validate_mission_state(mission: StoryQuestData, expected_state: String) ->
 func cleanup_campaign_state() -> void:
 	# Remove excess completed missions
 	if completed_missions.size() > MAX_COMPLETED_MISSIONS:
-		completed_missions = completed_missions.slice(-MAX_COMPLETED_MISSIONS)
+		completed_missions = completed_missions.slice(- MAX_COMPLETED_MISSIONS)
 	
 	# Trim mission history
 	if mission_history.size() > MAX_MISSION_HISTORY:
-		mission_history = mission_history.slice(-MAX_MISSION_HISTORY)
+		mission_history = mission_history.slice(- MAX_MISSION_HISTORY)
 
 func create_mission(mission_type: GameEnums.MissionType, config: Dictionary = {}) -> StoryQuestData:
 	var mission := StoryQuestData.create_mission(mission_type, config)
@@ -426,7 +424,7 @@ func _consume_mission_resources(mission: StoryQuestData) -> void:
 	# Consume required resources
 	for resource_type in mission.required_resources:
 		var amount = mission.required_resources[resource_type]
-		game_state.modify_resource(resource_type, -amount)
+		game_state.modify_resource(resource_type, - amount)
 
 func _trigger_mission_failure_events(mission: StoryQuestData) -> void:
 	# Consume resources even on failure (they were committed to the mission)

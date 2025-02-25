@@ -1,15 +1,14 @@
 # ExtendedConnectionsManager.gd
-class_name ExtendedConnectionsManager
 extends Resource
 
 signal connection_established(connection: Dictionary)
 signal connection_broken(connection: Dictionary)
 signal connection_applied(connection: Dictionary)
 
-var game_state: Node  # Will be cast to GameState at runtime
+var game_state: Node # Will be cast to GameState at runtime
 var connections_data: Dictionary = {}
 
-func _init(_game_state: Node) -> void:  # Will accept GameState at runtime
+func _init(_game_state: Node) -> void: # Will accept GameState at runtime
 	game_state = _game_state
 	_load_connections_data()
 
@@ -85,8 +84,8 @@ func _apply_effect(effect: Dictionary) -> void:
 			var military_bonus = effect.value
 			game_state.apply_military_bonus(military_bonus)
 
-func generate_mission_from_connection(connection: Dictionary) -> Node:  # Will return Mission at runtime
-	var mission_generator = Node.new()  # Will be replaced with MissionGenerator at runtime
+func generate_mission_from_connection(connection: Dictionary) -> Node: # Will return Mission at runtime
+	var mission_generator = Node.new() # Will be replaced with MissionGenerator at runtime
 	var mission = mission_generator.generate_mission(connection.id)
 	
 	# Modify mission based on connection type
@@ -96,7 +95,7 @@ func generate_mission_from_connection(connection: Dictionary) -> Node:  # Will r
 			
 	return mission
 
-func _apply_mission_modifier(mission: Node, modifier: Dictionary) -> void:  # Will accept Mission at runtime
+func _apply_mission_modifier(mission: Node, modifier: Dictionary) -> void: # Will accept Mission at runtime
 	match modifier.type:
 		"REWARD_BOOST":
 			mission.rewards.credits *= modifier.value

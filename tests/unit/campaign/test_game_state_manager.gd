@@ -2,7 +2,7 @@
 ## Tests state transitions, resource management, and game progression
 ## @class TestGameStateManager
 @tool
-extends "res://tests/fixtures/game_test.gd"
+extends "res://tests/fixtures/base/game_test.gd"
 
 const GameStateManager = preload("res://src/core/managers/GameStateManager.gd")
 const MAX_CREDITS := 999999

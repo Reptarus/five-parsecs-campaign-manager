@@ -1,5 +1,5 @@
 @tool
-extends GameTest
+extends "res://tests/fixtures/base/game_test.gd"
 
 const TestedClass = preload("res://src/ui/components/combat/log/combat_log_controller.gd")
 

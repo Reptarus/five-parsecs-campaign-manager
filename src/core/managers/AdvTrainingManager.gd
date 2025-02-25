@@ -1,7 +1,6 @@
 # AdvancedTrainingManager.gd
 @tool
 extends Node
-class_name FiveParsecsAdvTrainingManager
 
 const GameEnums := preload("res://src/core/systems/GlobalEnums.gd")
 const FiveParsecsGameState := preload("res://src/core/state/GameState.gd")

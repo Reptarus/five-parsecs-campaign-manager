@@ -5,123 +5,136 @@
 ## - Class-specific limitations
 ## - Performance under various conditions
 @tool
-extends FiveParsecsEnemyTest
+extends GameTest
 
-const Character = preload("res://src/core/character/Base/Character.gd")
-const MAX_EXPERIENCE := 10000
+# Type-safe script references
+const Character: GDScript = preload("res://src/core/character/Base/Character.gd")
 
-# Training levels
-enum Training {
-	NONE,
-	PILOT,
-	MECHANIC,
-	MEDICAL,
-	MERCHANT,
-	SECURITY,
-	BROKER,
-	BOT_TECH,
-	SPECIALIST,
-	ELITE
-}
+# Type-safe constants
+const MAX_EXPERIENCE: int = 10000
 
-# Character classes
-enum CharacterClass {
-	NONE,
-	SOLDIER,
-	MEDIC,
-	ENGINEER,
-	PILOT,
-	MERCHANT,
-	SECURITY,
-	BROKER,
-	BOT_TECH
-}
-
-var MAX_TRAINING_LEVEL: int = Training.ELITE
-
-# Test variables
-var _test_character: Character
+# Type-safe instance variables
+var _test_character: Node = null
 
 # Helper Methods
-func setup_character_with_class(char_class: int) -> void:
-	_test_character.character_class = char_class
-	_test_character.is_bot = false
-	_test_character.is_soulless = false
+func _setup_character_with_class(char_class: int) -> void:
+	if not _test_character:
+		push_error("Cannot setup character class: character is null")
+		return
+	TypeSafeMixin._safe_method_call_bool(_test_character, "set_character_class", [char_class])
+	TypeSafeMixin._safe_method_call_bool(_test_character, "set_is_bot", [false])
+	TypeSafeMixin._safe_method_call_bool(_test_character, "set_is_soulless", [false])
 
-func setup_character_with_training(training: int) -> void:
-	_test_character.training = training
-	_test_character.is_bot = false
-	_test_character.is_soulless = false
+func _setup_character_with_training(training: int) -> void:
+	if not _test_character:
+		push_error("Cannot setup character training: character is null")
+		return
+	TypeSafeMixin._safe_method_call_bool(_test_character, "set_training", [training])
+	TypeSafeMixin._safe_method_call_bool(_test_character, "set_is_bot", [false])
+	TypeSafeMixin._safe_method_call_bool(_test_character, "set_is_soulless", [false])
 
 # Lifecycle Methods
 func before_each() -> void:
-	super.before_each()
-	_test_character = Character.new()
-	track_test_resource(_test_character)
+	await super.before_each()
+	var character_instance: Node = Character.new()
+	_test_character = TypeSafeMixin._safe_cast_node(character_instance)
+	if not _test_character:
+		push_error("Failed to create test character")
+		return
+	add_child_autofree(_test_character)
+	track_test_node(_test_character)
+	watch_signals(_test_character)
+	await stabilize_engine(STABILIZE_TIME)
 
 func after_each() -> void:
-	super.after_each()
 	_test_character = null
+	await super.after_each()
 
 # Experience Tests
 func test_bot_experience_rules() -> void:
-	_test_character.is_bot = true
-	assert_false(_test_character.add_experience(100), "Bots should not gain experience")
-	assert_eq(_test_character.experience, 0, "Bot experience should remain at 0")
+	TypeSafeMixin._safe_method_call_bool(_test_character, "set_is_bot", [true])
+	var result: bool = TypeSafeMixin._safe_method_call_bool(_test_character, "add_experience", [100])
+	assert_false(result, "Bots should not gain experience")
+	
+	var exp: int = TypeSafeMixin._safe_method_call_int(_test_character, "get_experience", [])
+	assert_eq(exp, 0, "Bot experience should remain at 0")
 
 func test_experience_limits() -> void:
-	_test_character.add_experience(MAX_EXPERIENCE + 100)
-	assert_eq(_test_character.experience, MAX_EXPERIENCE, "Experience should not exceed maximum")
+	TypeSafeMixin._safe_method_call_bool(_test_character, "add_experience", [MAX_EXPERIENCE + 100])
+	var exp: int = TypeSafeMixin._safe_method_call_int(_test_character, "get_experience", [])
+	assert_eq(exp, MAX_EXPERIENCE, "Experience should not exceed maximum")
+	verify_signal_emitted(_test_character, "experience_changed")
 
 # Training Tests
 func test_soulless_training_restrictions() -> void:
-	_test_character.is_soulless = true
-	_test_character.training = Training.NONE
-	_test_character.training = Training.PILOT
-	assert_eq(_test_character.training, Training.NONE,
-		"Soulless characters should not be able to receive training")
+	TypeSafeMixin._safe_method_call_bool(_test_character, "set_is_soulless", [true])
+	TypeSafeMixin._safe_method_call_bool(_test_character, "set_training", [GameEnums.Training.NONE])
+	TypeSafeMixin._safe_method_call_bool(_test_character, "set_training", [GameEnums.Training.PILOT])
+	
+	var training: int = TypeSafeMixin._safe_method_call_int(_test_character, "get_training", [])
+	assert_eq(training, GameEnums.Training.NONE, "Soulless characters should not be able to receive training")
 
 func test_training_progression() -> void:
-	_test_character.training = Training.NONE
-	assert_eq(_test_character.training, Training.NONE, "Initial training should be NONE")
+	watch_signals(_test_character)
 	
-	_test_character.training = Training.PILOT
-	assert_eq(_test_character.training, Training.PILOT, "Should accept PILOT training")
+	TypeSafeMixin._safe_method_call_bool(_test_character, "set_training", [GameEnums.Training.NONE])
+	var training: int = TypeSafeMixin._safe_method_call_int(_test_character, "get_training", [])
+	assert_eq(training, GameEnums.Training.NONE, "Initial training should be NONE")
 	
-	_test_character.training = Training.SPECIALIST
-	assert_eq(_test_character.training, Training.SPECIALIST, "Should accept SPECIALIST training")
+	TypeSafeMixin._safe_method_call_bool(_test_character, "set_training", [GameEnums.Training.PILOT])
+	training = TypeSafeMixin._safe_method_call_int(_test_character, "get_training", [])
+	assert_eq(training, GameEnums.Training.PILOT, "Should accept PILOT training")
+	verify_signal_emitted(_test_character, "training_changed")
 	
-	_test_character.training = Training.ELITE
-	assert_eq(_test_character.training, Training.ELITE, "Should accept ELITE training")
+	TypeSafeMixin._safe_method_call_bool(_test_character, "set_training", [GameEnums.Training.SPECIALIST])
+	training = TypeSafeMixin._safe_method_call_int(_test_character, "get_training", [])
+	assert_eq(training, GameEnums.Training.SPECIALIST, "Should accept SPECIALIST training")
+	verify_signal_emitted(_test_character, "training_changed")
+	
+	TypeSafeMixin._safe_method_call_bool(_test_character, "set_training", [GameEnums.Training.ELITE])
+	training = TypeSafeMixin._safe_method_call_int(_test_character, "get_training", [])
+	assert_eq(training, GameEnums.Training.ELITE, "Should accept ELITE training")
+	verify_signal_emitted(_test_character, "training_changed")
 
 # Class Limit Tests
 func test_engineer_toughness_limit() -> void:
-	setup_character_with_class(CharacterClass.ENGINEER)
-	_test_character.toughness = 4
-	_test_character.add_experience(1000)
-	_test_character.toughness += 1
-	assert_eq(_test_character.toughness, 4,
-		"Engineers should not be able to raise Toughness above 4")
+	_setup_character_with_class(GameEnums.CharacterClass.ENGINEER)
+	TypeSafeMixin._safe_method_call_bool(_test_character, "set_toughness", [4])
+	TypeSafeMixin._safe_method_call_bool(_test_character, "add_experience", [1000])
+	TypeSafeMixin._safe_method_call_bool(_test_character, "increase_toughness", [])
+	
+	var toughness: int = TypeSafeMixin._safe_method_call_int(_test_character, "get_toughness", [])
+	assert_eq(toughness, 4, "Engineers should not be able to raise Toughness above 4")
 
 # Performance Tests
 func test_rapid_experience_gain() -> void:
+	watch_signals(_test_character)
 	var start_time := Time.get_ticks_msec()
 	
 	for i in range(1000):
-		_test_character.add_experience(10)
+		TypeSafeMixin._safe_method_call_bool(_test_character, "add_experience", [10])
 	
 	var duration := Time.get_ticks_msec() - start_time
 	assert_true(duration < 1000, "Should handle rapid experience gains efficiently")
+	verify_signal_emit_count(_test_character, "experience_changed", 1000)
 
 # Error Boundary Tests
 func test_invalid_training_transitions() -> void:
-	_test_character.training = Training.NONE
-	_test_character.training = Training.ELITE
-	assert_eq(_test_character.training, Training.NONE,
-		"Should not allow skipping training levels")
+	watch_signals(_test_character)
+	
+	TypeSafeMixin._safe_method_call_bool(_test_character, "set_training", [GameEnums.Training.NONE])
+	TypeSafeMixin._safe_method_call_bool(_test_character, "set_training", [GameEnums.Training.ELITE])
+	
+	var training: int = TypeSafeMixin._safe_method_call_int(_test_character, "get_training", [])
+	assert_eq(training, GameEnums.Training.NONE, "Should not allow skipping training levels")
+	verify_signal_not_emitted(_test_character, "training_changed")
 
 func test_invalid_experience_values() -> void:
-	assert_false(_test_character.add_experience(-100), "Should reject negative experience")
-	assert_eq(_test_character.experience, 0, "Experience should remain unchanged")
-
-# ... existing code ...
+	watch_signals(_test_character)
+	
+	var result: bool = TypeSafeMixin._safe_method_call_bool(_test_character, "add_experience", [-100])
+	assert_false(result, "Should reject negative experience")
+	
+	var exp: int = TypeSafeMixin._safe_method_call_int(_test_character, "get_experience", [])
+	assert_eq(exp, 0, "Experience should remain unchanged")
+	verify_signal_not_emitted(_test_character, "experience_changed")

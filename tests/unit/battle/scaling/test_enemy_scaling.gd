@@ -1,16 +1,16 @@
 @tool
-extends GameTest
+extends "res://tests/fixtures/specialized/enemy_test_base.gd"
 
 # Type-safe constants with explicit typing
 const TestedClass: GDScript = preload("res://src/core/battle/EnemyScalingSystem.gd")
 
 # Type-safe instance variables
-var _instance: Node
+var _instance: Node = null
 
 # Type-safe lifecycle methods
 func before_each() -> void:
 	await super.before_each()
-	_instance = TestedClass.new()
+	_instance = TypeSafeMixin._safe_cast_node(TestedClass.new())
 	if not _instance:
 		push_error("Failed to create EnemyScalingSystem instance")
 		return
@@ -25,16 +25,16 @@ func after_each() -> void:
 # Type-safe helper methods
 func _verify_scaling_result(result: Dictionary, expected: Dictionary, message: String) -> void:
 	for key in expected:
-		var got = TypeSafeMixin._safe_method_call_float(result, "get", [key, 0.0])
-		var want = TypeSafeMixin._safe_method_call_float(expected, "get", [key, 0.0])
+		var got: float = TypeSafeMixin._safe_method_call_float(result, "get", [key, 0.0])
+		var want: float = TypeSafeMixin._safe_method_call_float(expected, "get", [key, 0.0])
 		assert_eq(got, want, "%s: %s should be %f" % [message, key, want])
 
 # Base Value Tests
 func test_base_values() -> void:
-	var base_health: float = TypeSafeMixin._safe_method_call_float(_instance, "get", ["base_health", 0.0])
-	var base_damage: float = TypeSafeMixin._safe_method_call_float(_instance, "get", ["base_damage", 0.0])
-	var base_armor: float = TypeSafeMixin._safe_method_call_float(_instance, "get", ["base_armor", 0.0])
-	var base_speed: float = TypeSafeMixin._safe_method_call_float(_instance, "get", ["base_speed", 0.0])
+	var base_health: float = TypeSafeMixin._safe_method_call_float(_instance, "get_base_health", [])
+	var base_damage: float = TypeSafeMixin._safe_method_call_float(_instance, "get_base_damage", [])
+	var base_armor: float = TypeSafeMixin._safe_method_call_float(_instance, "get_base_armor", [])
+	var base_speed: float = TypeSafeMixin._safe_method_call_float(_instance, "get_base_speed", [])
 	
 	assert_eq(base_health, 100.0, "Base health should be 100")
 	assert_eq(base_damage, 10.0, "Base damage should be 10")
@@ -99,8 +99,8 @@ func test_elite_difficulty_scaling() -> void:
 	}, "Elite difficulty scaling")
 
 func test_hardcore_difficulty_scaling() -> void:
-	var base_health: float = TypeSafeMixin._safe_method_call_float(_instance, "get", ["base_health", 0.0])
-	var base_damage: float = TypeSafeMixin._safe_method_call_float(_instance, "get", ["base_damage", 0.0])
+	var base_health: float = TypeSafeMixin._safe_method_call_float(_instance, "get_base_health", [])
+	var base_damage: float = TypeSafeMixin._safe_method_call_float(_instance, "get_base_damage", [])
 	
 	var result: Dictionary = TypeSafeMixin._safe_method_call_dict(_instance, "calculate_enemy_scaling", [
 		GameEnums.DifficultyLevel.HARDCORE,
@@ -191,8 +191,8 @@ func test_level_scaling() -> void:
 
 # Combined Scaling Tests
 func test_combined_scaling() -> void:
-	var base_health: float = TypeSafeMixin._safe_method_call_float(_instance, "get", ["base_health", 0.0])
-	var base_damage: float = TypeSafeMixin._safe_method_call_float(_instance, "get", ["base_damage", 0.0])
+	var base_health: float = TypeSafeMixin._safe_method_call_float(_instance, "get_base_health", [])
+	var base_damage: float = TypeSafeMixin._safe_method_call_float(_instance, "get_base_damage", [])
 	
 	var scaling: Dictionary = TypeSafeMixin._safe_method_call_dict(_instance, "calculate_enemy_scaling", [
 		GameEnums.DifficultyLevel.HARD,
@@ -210,8 +210,8 @@ func test_combined_scaling() -> void:
 	assert_true(count_modifier > 1.0, "Combined scaling should increase enemy count")
 
 func test_extreme_scaling_combination() -> void:
-	var base_health: float = TypeSafeMixin._safe_method_call_float(_instance, "get", ["base_health", 0.0])
-	var base_damage: float = TypeSafeMixin._safe_method_call_float(_instance, "get", ["base_damage", 0.0])
+	var base_health: float = TypeSafeMixin._safe_method_call_float(_instance, "get_base_health", [])
+	var base_damage: float = TypeSafeMixin._safe_method_call_float(_instance, "get_base_damage", [])
 	
 	var scaling: Dictionary = TypeSafeMixin._safe_method_call_dict(_instance, "calculate_enemy_scaling", [
 		GameEnums.DifficultyLevel.ELITE,

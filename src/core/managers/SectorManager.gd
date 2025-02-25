@@ -1,4 +1,3 @@
-class_name SectorManager
 extends Node
 
 signal sector_generated(sector_name: String)

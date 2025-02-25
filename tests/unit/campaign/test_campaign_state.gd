@@ -2,61 +2,84 @@
 ## Tests the functionality of the game state management specifically for campaigns,
 ## including initialization, loading, and settings management.
 @tool
-extends "res://tests/fixtures/game_test.gd"
+extends GameTest
 
-const Campaign = preload("res://src/core/campaign/Campaign.gd")
+# Type-safe script references
+const Campaign := preload("res://src/core/campaign/Campaign.gd")
 
-# Type hints for better safety
-var game_state: GameState
+# Type-safe instance variables
+var _campaign_state: GameState = null
 
 ## Test Lifecycle Methods
 func before_each() -> void:
 	await super.before_each()
-	game_state = create_test_game_state()
-	add_child(game_state)
-	track_test_node(game_state)
-	await get_tree().process_frame
+	_campaign_state = create_test_game_state()
+	if not _campaign_state:
+		push_error("Failed to create game state")
+		return
+	add_child_autofree(_campaign_state)
+	track_test_node(_campaign_state)
+	await stabilize_engine()
 
 func after_each() -> void:
+	_campaign_state = null
 	await super.after_each()
-	game_state = null
 
 ## Initial State Tests
 func test_initial_state() -> void:
-	assert_not_null(game_state, "Game state should be initialized")
-	assert_false(game_state.has_active_campaign(), "Should start with no active campaign")
-	assert_eq(game_state.credits, 0, "Should start with 0 credits")
-	assert_eq(game_state.reputation, 0, "Should start with 0 reputation")
+	assert_not_null(_campaign_state, "Game state should be initialized")
+	
+	var has_campaign: bool = TypeSafeMixin._safe_method_call_bool(_campaign_state, "has_active_campaign", [])
+	var credits: int = TypeSafeMixin._safe_method_call_int(_campaign_state, "get_credits", [])
+	var reputation: int = TypeSafeMixin._safe_method_call_int(_campaign_state, "get_reputation", [])
+	
+	assert_false(has_campaign, "Should start with no active campaign")
+	assert_eq(credits, 0, "Should start with 0 credits")
+	assert_eq(reputation, 0, "Should start with 0 reputation")
 
 ## Campaign Management Tests
 func test_campaign_loading() -> void:
-	watch_signals(game_state)
+	watch_signals(_campaign_state)
 	
-	var campaign: Campaign = Campaign.new()
-	campaign.campaign_name = "Test Campaign"
-	campaign.difficulty = GameEnums.DifficultyLevel.NORMAL
+	var campaign: Resource = TypeSafeMixin._safe_cast_resource(Campaign.new())
+	if not campaign:
+		push_error("Failed to create campaign")
+		return
+	track_test_resource(campaign)
 	
-	game_state.set_active_campaign(campaign)
-	assert_true(game_state.has_active_campaign(), "Campaign should be loaded")
-	assert_eq(game_state.get_active_campaign().campaign_name, "Test Campaign", "Campaign name should match")
-	assert_signal_emitted(game_state, "campaign_changed")
+	TypeSafeMixin._safe_method_call_bool(campaign, "set_campaign_name", ["Test Campaign"])
+	TypeSafeMixin._safe_method_call_bool(campaign, "set_difficulty", [GameEnums.DifficultyLevel.NORMAL])
+	
+	TypeSafeMixin._safe_method_call_bool(_campaign_state, "set_active_campaign", [campaign])
+	
+	var has_campaign: bool = TypeSafeMixin._safe_method_call_bool(_campaign_state, "has_active_campaign", [])
+	var active_campaign: Resource = TypeSafeMixin._safe_method_call_resource(_campaign_state, "get_active_campaign", [])
+	var campaign_name: String = TypeSafeMixin._safe_method_call_string(active_campaign, "get_campaign_name", [])
+	
+	assert_true(has_campaign, "Campaign should be loaded")
+	assert_eq(campaign_name, "Test Campaign", "Campaign name should match")
+	verify_signal_emitted(_campaign_state, "campaign_changed")
 
 ## Game Settings Tests
 func test_game_settings() -> void:
-	watch_signals(game_state)
+	watch_signals(_campaign_state)
 	
-	game_state.set_difficulty_level(GameEnums.DifficultyLevel.HARD)
-	assert_eq(game_state.difficulty_level, GameEnums.DifficultyLevel.HARD, "Difficulty should be HARD")
-	assert_signal_emitted(game_state, "difficulty_changed")
+	TypeSafeMixin._safe_method_call_bool(_campaign_state, "set_difficulty_level", [GameEnums.DifficultyLevel.HARD])
+	var difficulty: int = TypeSafeMixin._safe_method_call_int(_campaign_state, "get_difficulty_level", [])
+	assert_eq(difficulty, GameEnums.DifficultyLevel.HARD, "Difficulty should be HARD")
+	verify_signal_emitted(_campaign_state, "difficulty_changed")
 	
-	game_state.set_permadeath_enabled(false)
-	assert_false(game_state.is_permadeath_enabled(), "Permadeath should be disabled")
-	assert_signal_emitted(game_state, "settings_changed")
+	TypeSafeMixin._safe_method_call_bool(_campaign_state, "set_permadeath_enabled", [false])
+	var permadeath: bool = TypeSafeMixin._safe_method_call_bool(_campaign_state, "is_permadeath_enabled", [])
+	assert_false(permadeath, "Permadeath should be disabled")
+	verify_signal_emitted(_campaign_state, "settings_changed")
 	
-	game_state.set_story_track_enabled(false)
-	assert_false(game_state.is_story_track_enabled(), "Story track should be disabled")
-	assert_signal_emitted(game_state, "settings_changed")
+	TypeSafeMixin._safe_method_call_bool(_campaign_state, "set_story_track_enabled", [false])
+	var story_track: bool = TypeSafeMixin._safe_method_call_bool(_campaign_state, "is_story_track_enabled", [])
+	assert_false(story_track, "Story track should be disabled")
+	verify_signal_emitted(_campaign_state, "settings_changed")
 	
-	game_state.set_auto_save_enabled(false)
-	assert_false(game_state.is_auto_save_enabled(), "Auto save should be disabled")
-	assert_signal_emitted(game_state, "settings_changed")
+	TypeSafeMixin._safe_method_call_bool(_campaign_state, "set_auto_save_enabled", [false])
+	var auto_save: bool = TypeSafeMixin._safe_method_call_bool(_campaign_state, "is_auto_save_enabled", [])
+	assert_false(auto_save, "Auto save should be disabled")
+	verify_signal_emitted(_campaign_state, "settings_changed")

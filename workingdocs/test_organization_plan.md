@@ -1,202 +1,194 @@
 # Test Organization Plan
 
-## Revised Testing Strategy
+## Current Test Framework Structure
 
-### Phase 1: Core Stabilization
+### Base Test Classes
 ```gdscript
-# Base test structure focusing on stability
+# Base test class with core functionality
 @tool
-extends "res://tests/fixtures/base_test.gd"
+extends GameTest
 
-const GUT_TIMEOUT := 5.0
-const TestedClass = preload("res://path/to/tested/class.gd")
+# Inherited variables from GameTest:
+# - _game_state: Node
+# - STABILIZE_TIME: float
+# - TEST_TIMEOUT: float
 
-var _instance: TestedClass
-
+# Common test lifecycle
 func before_each() -> void:
     await super.before_each()
-    stabilize_test_environment()
-    _instance = TestedClass.new()
-    add_child(_instance)
-    track_test_node(_instance)
+    await stabilize_engine(STABILIZE_TIME)
 
 func after_each() -> void:
     await super.after_each()
-    _instance = null
 ```
 
-### Phase 2: Core Systems Testing
-1. Campaign State Management
-   - Direct state verification
-   - Minimal signal dependencies
-   - Clear state transitions
+### Specialized Test Bases
+```gdscript
+# Specialized test base for enemy-related tests
+@tool
+extends GameTest
+class_name EnemyTestBase
 
-2. Combat Resolution
-   - Deterministic outcomes
-   - State-based verification
-   - Simplified flow
+# Additional enemy-specific utilities
+func create_test_enemy(type: String) -> Node:
+    # Enemy creation logic
+```
 
-3. Resource Management
-   - Direct resource tracking
-   - Clear ownership
-   - Explicit cleanup
-
-### Phase 3: Integration Testing
-1. Campaign Flow
-   - Linear progression
-   - State checkpoints
-   - Minimal async operations
-
-2. Mission Sequences
-   - Predictable outcomes
-   - State validation
-   - Clear dependencies
-
-### Phase 4: Mobile/Performance (Deferred)
-- Touch input simulation
-- Screen adaptation
-- Performance metrics
-
-## Directory Structure (Updated)
+## Directory Structure (Current)
 ```
 tests/
-├── unit/                    # Core unit tests
-│   ├── campaign/           # Campaign system tests
-│   ├── combat/            # Combat system tests
-│   ├── resource/          # Resource management tests
-│   └── state/            # State management tests
-├── integration/            # Simplified integration tests
-│   ├── campaign_flow/     # Campaign progression
-│   └── mission_flow/      # Mission sequences
-├── deferred/              # Tests to implement later
-│   ├── mobile/           # Mobile-specific tests
-│   └── performance/      # Performance benchmarks
-└── fixtures/             # Test utilities
-    ├── base_test.gd     # Stabilized base test
-    └── game_test.gd     # Game-specific utilities
+├── fixtures/                # Test utilities and base classes
+│   ├── base/              # Core test classes
+│   ├── helpers/           # Test helper functions
+│   ├── runner/           # Test execution utilities
+│   ├── setup/           # Test environment setup
+│   └── specialized/     # Domain-specific test bases
+├── unit/                 # Unit tests by domain
+│   ├── campaign/        # Campaign system tests
+│   ├── battle/         # Battle system tests
+│   ├── character/      # Character system tests
+│   ├── core/          # Core system tests
+│   ├── enemy/         # Enemy system tests
+│   ├── mission/       # Mission system tests
+│   ├── ship/          # Ship system tests
+│   ├── terrain/       # Terrain system tests
+│   ├── tutorial/      # Tutorial system tests
+│   └── ui/            # UI component tests
+├── integration/         # Integration tests by domain
+│   ├── battle/        # Battle flow tests
+│   ├── campaign/      # Campaign flow tests
+│   ├── core/          # Core system integration
+│   ├── enemy/         # Enemy system integration
+│   ├── game/          # Game flow tests
+│   ├── mission/       # Mission flow tests
+│   ├── terrain/       # Terrain system integration
+│   └── ui/            # UI flow tests
+├── mobile/             # Mobile-specific tests
+└── performance/        # Performance benchmarks
 ```
 
 ## Implementation Guidelines
 
-### 1. Test Structure
+### 1. Test Class Structure
 ```gdscript
-func test_feature() -> void:
-    # Direct setup
-    var subject = setup_test_subject()
-    
-    # Immediate action
-    subject.do_something()
-    
-    # State verification
-    assert_eq(subject.state, expected_state)
+@tool
+extends GameTest  # or appropriate specialized base
+
+# Type-safe script references
+const TestedScript := preload("res://path/to/script.gd")
+
+# Type-safe instance variables
+# Document inherited variables
+# Note: _game_state is inherited from GameTest base class
+var _test_instance: Node
+
+# Type-safe constants
+const TEST_TIMEOUT := 2.0
+
+func before_each() -> void:
+    await super.before_each()
+    _setup_test_environment()
+    await stabilize_engine(STABILIZE_TIME)
+
+func after_each() -> void:
+    _cleanup_test_environment()
+    await super.after_each()
 ```
 
-### 2. Async Handling
+### 2. Resource Management
 ```gdscript
-func test_async_feature() -> void:
-    var subject = setup_test_subject()
-    
-    # Use simplified async
-    await stabilize_async(func():
-        subject.do_async_thing()
-    )
-    
-    assert_eq(subject.state, expected_state)
+# Use provided utility methods
+add_child_autofree(node)  # Auto-freed on cleanup
+track_test_node(node)     # Tracked for cleanup
+track_test_resource(resource)  # Tracked for cleanup
 ```
 
-### 3. Resource Management
+### 3. Type Safety
 ```gdscript
-# Explicit resource tracking
-func track_resource(resource: Resource) -> void:
-    _tracked_resources.append(resource)
-    
-# Automatic cleanup
-func cleanup_resources() -> void:
-    for resource in _tracked_resources:
-        if resource and not resource.is_queued_for_deletion():
-            resource.free()
-    _tracked_resources.clear()
+# Use TypeSafeMixin for safe method calls
+var result: bool = TypeSafeMixin._safe_method_call_bool(
+    instance,
+    "method_name",
+    [arg1, arg2]
+)
 ```
 
-## Test Stabilization Tools
+## Test Categories
 
-### 1. Environment Stabilization
-```gdscript
-func stabilize_test_environment() -> void:
-    Engine.set_physics_ticks_per_second(60)
-    Engine.set_max_fps(60)
-    get_tree().set_debug_collisions_hint(false)
-    await get_tree().physics_frame
-```
+### 1. Unit Tests
+- Individual component testing
+- Minimal dependencies
+- Clear state verification
+- Type-safe method calls
 
-### 2. Signal Handling
-```gdscript
-func wait_for_signal(object: Object, signal_name: String) -> void:
-    var timer = get_tree().create_timer(GUT_TIMEOUT)
-    var done = false
-    object.connect(signal_name, func(): done = true, CONNECT_ONE_SHOT)
-    timer.timeout.connect(func(): done = true)
-    while not done:
-        await get_tree().process_frame
-```
+### 2. Integration Tests
+- System interaction testing
+- State flow verification
+- Resource lifecycle management
+- Error handling verification
 
-### 3. State Verification
-```gdscript
-func verify_state(subject: Object, expected_states: Dictionary) -> void:
-    for property in expected_states:
-        assert_eq(subject[property], expected_states[property],
-            "Property %s should match expected state" % property)
-```
+### 3. Performance Tests
+- Resource usage monitoring
+- Frame rate verification
+- Memory management
+- Load time analysis
+
+### 4. Mobile Tests
+- Touch input handling
+- Screen adaptation
+- Platform-specific features
 
 ## Implementation Priority
 
-1. **Week 1: Stabilization**
-   - Implement base test improvements
-   - Add stabilization tools
-   - Convert existing tests to new pattern
+1. **Current Focus**
+   - Stabilize test framework
+   - Remove duplicate code
+   - Improve type safety
+   - Document inherited functionality
 
-2. **Week 2: Core Systems**
-   - Campaign state tests
-   - Combat resolution tests
-   - Resource management tests
+2. **Short Term**
+   - Complete campaign system tests
+   - Enhance battle system coverage
+   - Improve UI test coverage
 
-3. **Week 3: Integration**
-   - Campaign flow tests
-   - Mission sequence tests
-   - State transition tests
-
-4. **Future: Deferred Features**
-   - Mobile testing
+3. **Medium Term**
+   - Integration test coverage
    - Performance benchmarks
-   - Advanced scenarios
+   - Mobile platform support
 
 ## Success Criteria
 
-1. **Stability**
-   - Tests run consistently
-   - No random failures
-   - Clear error messages
+### 1. Code Quality
+- No duplicate declarations
+- Type-safe method calls
+- Clear inheritance structure
+- Documented base functionality
 
-2. **Coverage**
-   - Core systems tested
-   - Critical paths verified
-   - State transitions validated
+### 2. Test Coverage
+- Core systems > 90%
+- Integration paths > 80%
+- UI components > 85%
+- Error handling > 90%
 
-3. **Maintainability**
-   - Clear test structure
-   - Minimal complexity
-   - Easy to extend
-
-## Progress Tracking
-
-- ⬜ Base test stabilization
-- ⬜ Core system tests
-- ⬜ Integration tests
-- ⬜ Documentation updates
-- ⬜ Cleanup old tests
+### 3. Performance
+- Test suite execution < 2 minutes
+- No memory leaks
+- Stable frame rate
+- Clean resource cleanup
 
 ## Next Steps
-1. Implement base test improvements
-2. Add stabilization tools
-3. Convert existing tests
-4. Document new patterns 
+
+1. **Immediate**
+   - [ ] Document inherited variables
+   - [ ] Remove duplicate declarations
+   - [ ] Add type safety checks
+
+2. **This Week**
+   - [ ] Complete campaign tests
+   - [ ] Update battle tests
+   - [ ] Enhance UI coverage
+
+3. **Next Week**
+   - [ ] Integration test updates
+   - [ ] Performance benchmarks
+   - [ ] Mobile test setup 

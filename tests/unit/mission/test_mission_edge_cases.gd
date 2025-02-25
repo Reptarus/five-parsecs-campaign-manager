@@ -1,5 +1,5 @@
 @tool
-extends "res://tests/fixtures/game_test.gd"
+extends "res://tests/fixtures/base/game_test.gd"
 
 ## Edge case tests for mission system
 ##
@@ -10,8 +10,8 @@ extends "res://tests/fixtures/game_test.gd"
 ## - Extreme value testing
 ## - Error recovery mechanisms
 
-const Mission := preload("res://src/core/systems/Mission.gd")
-const MissionTemplate := preload("res://src/core/systems/MissionTemplate.gd")
+const Mission: GDScript = preload("res://src/core/systems/Mission.gd")
+const MissionTemplate: GDScript = preload("res://src/core/systems/MissionTemplate.gd")
 
 var _template: MissionTemplate
 var _mission: Mission

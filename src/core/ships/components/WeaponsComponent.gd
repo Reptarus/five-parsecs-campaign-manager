@@ -1,5 +1,4 @@
 # Scripts/ShipAndCrew/WeaponsComponent.gd
-class_name WeaponsComponent
 extends ShipComponent
 
 @export var damage: int = 10

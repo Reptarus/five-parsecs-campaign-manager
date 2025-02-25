@@ -1,4 +1,3 @@
-class_name SystemEnhancements
 extends Node
 
 # Enhance existing battle system

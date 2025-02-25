@@ -1,5 +1,5 @@
 @tool
-extends GameTest
+extends "res://tests/fixtures/base/game_test.gd"
 
 const TestedClass: PackedScene = preload("res://src/ui/components/character/CharacterBox.tscn")
 

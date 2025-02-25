@@ -1,6 +1,5 @@
 @tool
 extends Resource
-class_name StoryEventData
 
 ## Story event data class for managing campaign story events
 ##
@@ -66,4 +65,4 @@ func get_event_outcome() -> Dictionary:
         "selected_choice": selected_choice,
         "rewards": rewards,
         "consequences": consequences
-    } 
+    }

@@ -1,5 +1,4 @@
 @tool
-class_name FiveParsecsMissionGenerator
 extends RefCounted
 
 const GameEnums := preload("res://src/core/systems/GlobalEnums.gd")

@@ -1,5 +1,5 @@
 @tool
-extends "res://tests/fixtures/base_test.gd"
+extends "res://tests/fixtures/base/base_test.gd"
 
 const BattleStateMachine = preload("res://src/core/battle/state/BattleStateMachine.gd")
 const GameStateManager = preload("res://src/core/managers/GameStateManager.gd")
@@ -7,6 +7,7 @@ const FiveParsecsCharacter = preload("res://src/core/character/Base/Character.gd
 const BattleCharacter = preload("res://src/core/battle/BattleCharacter.gd")
 const CombatResolver = preload("res://src/core/battle/CombatResolver.gd")
 const BattlefieldManager = preload("res://src/core/battle/BattlefieldManager.gd")
+const GameEnums = preload("res://src/core/systems/GlobalEnums.gd")
 
 var _state_machine: BattleStateMachine
 var _game_state: GameStateManager

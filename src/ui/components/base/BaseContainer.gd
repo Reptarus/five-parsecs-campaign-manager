@@ -1,5 +1,9 @@
-class_name BaseContainer
+@tool
 extends Container
+class_name BaseContainer
+
+## Base container class for UI layout management
+## Provides horizontal and vertical layout capabilities with spacing
 
 enum ContainerOrientation {
     HORIZONTAL,

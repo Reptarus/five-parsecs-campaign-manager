@@ -1,5 +1,5 @@
 @tool
-extends "res://tests/fixtures/game_test.gd"
+extends "res://tests/fixtures/base/game_test.gd"
 
 const TerrainSystem: GDScript = preload("res://src/core/terrain/TerrainSystem.gd")
 const TerrainTypes: GDScript = preload("res://src/core/terrain/TerrainTypes.gd")
@@ -48,7 +48,7 @@ func test_grid_size() -> void:
 	assert_eq(terrain_system.get_grid_size(), size)
 
 func test_terrain_effect_application() -> void:
-	var target = Node2D.new()
+	var target := Node2D.new()
 	add_child(target)
 	track_test_node(target)
 	
@@ -59,8 +59,8 @@ func test_terrain_effect_application() -> void:
 	assert_signal_emitted(terrain_system, "effect_removed")
 
 func test_multiple_effects() -> void:
-	var target1 = Node2D.new()
-	var target2 = Node2D.new()
+	var target1 := Node2D.new()
+	var target2 := Node2D.new()
 	add_child(target1)
 	add_child(target2)
 	track_test_node(target1)

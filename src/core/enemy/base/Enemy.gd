@@ -1,6 +1,5 @@
 @tool
 extends CharacterBody2D
-class_name Enemy
 
 const GameEnums = preload("res://src/core/systems/GlobalEnums.gd")
 

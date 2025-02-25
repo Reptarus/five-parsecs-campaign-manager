@@ -1,191 +1,118 @@
 @tool
 extends Node
-class_name TestRunner # Changed from TestSuite to avoid conflict with test.gd
 
-# Use a different name to avoid shadowing
-const GutRunnerScript: GDScript = preload("res://addons/gut/gut.gd")
-const GutUtilsScript: GDScript = preload("res://addons/gut/utils.gd")
-
-# Test Categories with type hints
-const TEST_CATEGORIES: Dictionary = {
+# Type-safe test categories
+const TEST_CATEGORIES := {
 	"unit": "res://tests/unit",
 	"integration": "res://tests/integration",
 	"performance": "res://tests/performance",
 	"mobile": "res://tests/mobile"
 }
 
-# Test configuration constants
-const DEFAULT_LOG_LEVEL: int = 2
-const DEFAULT_FONT_SIZE: int = 16
-const DEFAULT_OPACITY: int = 100
-const REPORT_DIR: String = "res://tests/reports"
-const PARALLEL_TIMEOUT: float = 30.0
-const MAX_PARALLEL_RUNNERS: int = 4
+# Type-safe test configuration
+const TEST_CONFIG := {
+	"parallel_tests": true,
+	"max_parallel_tests": 4,
+	"timeout": 30.0,
+	"export_results": true,
+	"export_format": "json",
+	"export_path": "res://test_results"
+}
 
-# Test Runner Configuration
+# Type-safe instance variables
 var _gut: Node = null
-var _current_category: String = ""
-var _category_results: Dictionary = {}
 var _parallel_runners: Array[Node] = []
 var _pending_tests: Array[String] = []
 var _active_test_count: int = 0
+var _current_category: String = ""
+var _category_results: Dictionary = {}
 var _test_start_time: float = 0.0
 
-# Signals - connect to these in _ready to avoid unused signal warning
-signal tests_completed(success: bool)
-signal category_completed(category: String, success: bool)
+# Lifecycle Methods
+func _init() -> void:
+	_test_start_time = Time.get_unix_time_from_system()
 
 func _ready() -> void:
-	# Connect signals to internal handlers to avoid unused signal warnings
-	var err1 := tests_completed.connect(_on_tests_completed)
-	var err2 := category_completed.connect(_on_category_completed)
-	
-	if err1 != OK or err2 != OK:
-		push_error("Failed to connect test signals")
-		return
-	
-	_test_start_time = Time.get_unix_time_from_system()
-	
-	if not _initialize_gut():
-		push_error("Failed to initialize GUT. Aborting test execution.")
-		return
-		
-	if not _ensure_report_directory():
-		push_error("Failed to create report directory. Reports will not be saved.")
-	
-	# Parse command line arguments
-	var args := OS.get_cmdline_args()
-	var categories := _parse_categories(args)
-	
-	# Run tests based on configuration
-	if _should_run_parallel(args):
-		_run_tests_parallel.call_deferred(categories)
-	else:
-		_run_tests_sequential.call_deferred(categories)
+	_initialize_gut()
+	_setup_test_environment()
 
-func _on_tests_completed(success: bool) -> void:
-	print("All tests completed with success: %s" % success)
+func _exit_tree() -> void:
+	_cleanup_parallel_runners()
 
-func _on_category_completed(category: String, success: bool) -> void:
-	print("Category %s completed with success: %s" % [category, success])
-
-func _initialize_gut() -> bool:
-	_gut = Node.new()
+# Test Suite Setup
+func _initialize_gut() -> void:
+	_gut = preload("res://addons/gut/gut.gd").new()
 	if not _gut:
 		push_error("Failed to create GUT instance")
-		return false
-		
-	_gut.set_script(GutRunnerScript)
-	if not _gut.get_script() == GutRunnerScript:
-		push_error("Failed to set GutRunner script")
-		return false
-		
+		return
+	
 	add_child(_gut)
-	
-	# Configure GUT with proper method calls
-	if _gut.has_method("set_should_print_to_console"):
-		_gut.call("set_should_print_to_console", true)
-	if _gut.has_method("set_log_level"):
-		_gut.call("set_log_level", DEFAULT_LOG_LEVEL)
-	if _gut.has_method("set_yield_between_tests"):
-		_gut.call("set_yield_between_tests", true)
-	if _gut.has_method("set_include_subdirectories"):
-		_gut.call("set_include_subdirectories", true)
-	if _gut.has_method("set_font"):
-		_gut.call("set_font", "CourierPrime")
-	if _gut.has_method("set_font_size"):
-		_gut.call("set_font_size", DEFAULT_FONT_SIZE)
-	if _gut.has_method("set_opacity"):
-		_gut.call("set_opacity", DEFAULT_OPACITY)
-	
-	return true
+	_configure_gut()
 
-func _ensure_report_directory() -> bool:
-	var dir := DirAccess.open("res://")
-	if not dir:
-		push_error("Failed to access root directory")
-		return false
-		
-	if not dir.dir_exists(REPORT_DIR):
-		var err := dir.make_dir_recursive(REPORT_DIR)
-		if err != OK:
-			push_error("Failed to create report directory: %s" % error_string(err))
-			return false
-	return true
+func _configure_gut() -> void:
+	if not _gut:
+		return
+	
+	_gut.set_should_print_to_console(true)
+	_gut.set_yield_between_tests(true)
+	_gut.set_log_level(2) # Warning level
+	_gut.set_include_subdirectories(true)
 
-func _parse_categories(args: PackedStringArray) -> Array[String]:
-	var categories: Array[String] = []
+func _setup_test_environment() -> void:
+	# Configure test environment
+	Engine.physics_ticks_per_second = 60
+	Engine.max_fps = 60
+	get_tree().set_debug_collisions_hint(false)
+	get_tree().set_debug_navigation_hint(false)
 	
-	for arg in args:
-		if arg.begins_with("--category="):
-			var category: String = arg.split("=")[1]
-			if _is_valid_category(category):
-				categories.append(category)
-			else:
-				push_warning("Invalid test category: %s" % category)
+	# Disable audio for tests
+	var master_bus := AudioServer.get_bus_index("Master")
+	if master_bus >= 0:
+		AudioServer.set_bus_mute(master_bus, true)
+
+# Test Execution
+func run_tests(categories: Array[String] = []) -> void:
+	print("Starting test suite...")
 	
-	# If no valid categories specified, run all
 	if categories.is_empty():
-		categories = ["unit", "integration", "performance", "mobile"]
+		categories = TEST_CATEGORIES.keys()
 	
-	return categories
-
-func _is_valid_category(category: String) -> bool:
-	return category in ["unit", "integration", "performance", "mobile"]
-
-func _should_run_parallel(args: PackedStringArray) -> bool:
-	return "--parallel" in args
-
-func _run_tests_sequential(categories: Array[String]) -> void:
-	print("\nRunning tests sequentially...")
-	
-	var overall_success := true
 	for category in categories:
-		var success := _run_category(category)
-		overall_success = overall_success and success
-		category_completed.emit(category, success)
+		if not category in TEST_CATEGORIES:
+			push_warning("Unknown test category: %s" % category)
+			continue
+		
+		if TEST_CONFIG.parallel_tests:
+			await _run_category_parallel(category)
+		else:
+			await _run_category(category)
 	
 	_print_results()
-	tests_completed.emit(overall_success)
+	if TEST_CONFIG.export_results:
+		_export_results()
 
-func _run_tests_parallel(categories: Array[String]) -> void:
-	print("\nRunning tests in parallel...")
+func _run_category_parallel(category: String) -> void:
+	_current_category = category
+	print("\nRunning %s tests in parallel..." % category.capitalize())
 	
-	# Initialize test queue
-	_pending_tests.clear()
+	var test_files := _get_category_tests(category)
+	if test_files.is_empty():
+		push_warning("No test files found for category: %s" % category)
+		return
+	
+	_pending_tests = test_files
 	_active_test_count = 0
-	for category in categories:
-		_pending_tests.append_array(_get_category_tests(category))
 	
 	# Create parallel runners
-	var num_runners := mini(OS.get_processor_count(), MAX_PARALLEL_RUNNERS)
-	for i in range(num_runners):
+	for i in range(TEST_CONFIG.max_parallel_tests):
 		var runner := _create_parallel_runner()
 		if runner:
 			_parallel_runners.append(runner)
+			_assign_next_test(runner)
 	
-	if _parallel_runners.is_empty():
-		push_error("Failed to create any parallel test runners. Falling back to sequential execution.")
-		_run_tests_sequential.call_deferred(categories)
-		return
-	
-	# Start parallel execution
-	print("Starting %d parallel test runners..." % num_runners)
-	for runner in _parallel_runners:
-		_assign_next_test(runner)
-	
-	# Wait for completion with timeout
-	var timeout := Time.get_unix_time_from_system() + PARALLEL_TIMEOUT
-	while _active_test_count > 0 and Time.get_unix_time_from_system() < timeout:
+	# Wait for all tests to complete
+	while _active_test_count > 0 or not _pending_tests.is_empty():
 		await get_tree().process_frame
-	
-	var success := _active_test_count == 0
-	if not success:
-		push_error("Parallel test execution timed out after %.1f seconds" % PARALLEL_TIMEOUT)
-	
-	_cleanup_parallel_runners()
-	_print_results()
-	tests_completed.emit(success)
 
 func _create_parallel_runner() -> Node:
 	var runner := _gut.duplicate()
@@ -220,46 +147,20 @@ func _assign_next_test(runner: Node) -> void:
 	runner.call("add_script", next_test)
 	runner.call("test_scripts")
 
-func _on_parallel_test_finished(runner: Node) -> void:
-	_active_test_count -= 1
-	
-	if not runner.has_method("get_test_results"):
-		push_error("Runner missing get_test_results method")
-		return
-		
-	var results: Dictionary = {}
-	var raw_results = runner.call("get_test_results")
-	if raw_results is Dictionary:
-		results = raw_results
-	
-	if results.is_empty():
-		push_warning("Empty test results received")
-		return
-		
-	var elapsed: float = 0.0
-	if results.has("elapsed"):
-		elapsed = results.elapsed as float
-	
-	_category_results[_current_category] = {
-		"results": results,
-		"duration": elapsed
-	}
-	
-	_assign_next_test(runner)
-
 func _get_category_tests(category: String) -> Array[String]:
+	var tests: Array[String] = []
 	match category:
 		"unit":
-			return [TEST_CATEGORIES["unit"]]
+			tests.append(TEST_CATEGORIES.unit)
 		"integration":
-			return [TEST_CATEGORIES["integration"]]
+			tests.append(TEST_CATEGORIES.integration)
 		"performance":
-			return [TEST_CATEGORIES["performance"]]
+			tests.append(TEST_CATEGORIES.performance)
 		"mobile":
-			return [TEST_CATEGORIES["mobile"]]
+			tests.append(TEST_CATEGORIES.mobile)
 		_:
 			push_warning("Unknown test category: %s" % category)
-			return []
+	return tests
 
 func _run_category(category: String) -> bool:
 	_current_category = category
@@ -291,6 +192,7 @@ func _run_category(category: String) -> bool:
 	
 	return success
 
+# Results Handling
 func _print_results() -> void:
 	print("\n=== Test Results ===")
 	
@@ -336,61 +238,73 @@ func _print_results() -> void:
 	print("  Total Failed: %d" % total_failed)
 	print("  Total Errors: %d" % total_errors)
 	print("  Success Rate: %.1f%%" % (float(total_passed) / total_tests * 100 if total_tests > 0 else 0.0))
-	
-	# Export results if there were failures or if explicitly requested
-	if total_failed > 0 or total_errors > 0 or "--export-results" in OS.get_cmdline_args():
-		_export_results()
 
 func _export_results() -> void:
-	var timestamp := Time.get_datetime_string_from_system().replace(":", "-")
-	var report_path := "%s/test_report_%s.txt" % [REPORT_DIR, timestamp]
+	var export_dir: DirAccess = DirAccess.open(TEST_CONFIG.export_path)
+	if not export_dir:
+		if DirAccess.make_dir_recursive_absolute(TEST_CONFIG.export_path) != OK:
+			push_error("Failed to create export directory")
+			return
 	
-	var report := FileAccess.open(report_path, FileAccess.WRITE)
-	if not report:
-		push_error("Failed to create test report file")
+	var timestamp: String = Time.get_datetime_string_from_system().replace(":", "-")
+	var filename: String = "test_results_%s.%s" % [timestamp, TEST_CONFIG.export_format]
+	var filepath: String = TEST_CONFIG.export_path.path_join(filename)
+	
+	var file: FileAccess = FileAccess.open(filepath, FileAccess.WRITE)
+	if not file:
+		push_error("Failed to create results file: %s" % filepath)
+		return
+	
+	match TEST_CONFIG.export_format:
+		"json":
+			file.store_string(JSON.stringify(_category_results, "  "))
+		"txt":
+			for category in _category_results:
+				var results: Dictionary = _category_results[category].results
+				file.store_string("\n%s Tests:\n" % category.capitalize())
+				file.store_string("  Total: %d\n" % results.get("tests", 0))
+				file.store_string("  Passed: %d\n" % results.get("passing", 0))
+				file.store_string("  Failed: %d\n" % results.get("failing", 0))
+				file.store_string("  Errors: %d\n" % results.get("errors", 0))
+				
+				if results.get("failing", 0) > 0:
+					file.store_string("\n  Failed Tests:\n")
+					var failures: Array = results.get("failures", [])
+					for failure in failures:
+						file.store_string("    - %s\n" % str(failure))
+				
+				if results.get("errors", 0) > 0:
+					file.store_string("\n  Errors:\n")
+					var errors: Array = results.get("errors", [])
+					for error in errors:
+						file.store_string("    - %s\n" % str(error))
+	
+	file.close()
+	print("\nTest results exported to: %s" % filepath)
+
+func _on_parallel_test_finished(runner: Node) -> void:
+	_active_test_count -= 1
+	
+	if not runner.has_method("get_test_results"):
+		push_error("Runner missing get_test_results method")
 		return
 		
-	report.store_string("Test Report - %s\n\n" % timestamp)
-	report.store_string("Test Environment:\n")
-	report.store_string("  OS: %s\n" % OS.get_name())
-	report.store_string("  CPU Cores: %d\n" % OS.get_processor_count())
-	report.store_string("  Engine Version: %s\n\n" % Engine.get_version_info().string)
+	var results: Dictionary = {}
+	var raw_results: Variant = runner.call("get_test_results")
+	if raw_results is Dictionary:
+		results = raw_results
 	
-	for category in _category_results:
-		var result_data: Dictionary = _category_results[category]
-		var results: Dictionary = result_data.get("results", {})
-		var duration: float = result_data.get("duration", 0.0)
+	if results.is_empty():
+		push_warning("Empty test results received")
+		return
 		
-		if results.is_empty():
-			continue
-		
-		var test_count := results.get("tests", 0) as int
-		var pass_count := results.get("passing", 0) as int
-		var fail_count := results.get("failing", 0) as int
-		var error_count := results.get("errors", 0) as int
-		
-		report.store_string("%s Tests:\n" % category.capitalize())
-		report.store_string("  Duration: %.2f seconds\n" % duration)
-		report.store_string("  Total: %d\n" % test_count)
-		report.store_string("  Passed: %d\n" % pass_count)
-		report.store_string("  Failed: %d\n" % fail_count)
-		report.store_string("  Errors: %d\n\n" % error_count)
-		
-		# Store failure details
-		if fail_count > 0:
-			report.store_string("  Failed Tests:\n")
-			var failures: Array = results.get("failures", [])
-			for failure in failures:
-				report.store_string("    - %s\n" % str(failure))
-			report.store_string("\n")
-		
-		# Store error details
-		if error_count > 0:
-			report.store_string("  Errors:\n")
-			var errors: Array = results.get("errors", [])
-			for error in errors:
-				report.store_string("    - %s\n" % str(error))
-			report.store_string("\n")
+	var elapsed: float = 0.0
+	if results.has("elapsed"):
+		elapsed = results.elapsed
 	
-	report.close()
-	print("\nTest report exported to: %s" % report_path)
+	_category_results[_current_category] = {
+		"results": results,
+		"duration": elapsed
+	}
+	
+	_assign_next_test(runner)

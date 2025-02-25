@@ -1,5 +1,4 @@
 @tool
-class_name ResourceManager
 extends Resource
 
 const GameEnums = preload("res://src/core/systems/GlobalEnums.gd")
@@ -113,7 +112,7 @@ func _add_history_entry(resource_type: int, old_value: int, new_value: int, sour
 func _prune_history_if_needed(resource_type: int) -> void:
 	var history = resource_history[resource_type]
 	if history.size() > HISTORY_PRUNE_THRESHOLD:
-		history = history.slice(-MAX_HISTORY_ENTRIES)
+		history = history.slice(- MAX_HISTORY_ENTRIES)
 		resource_history[resource_type] = history
 
 func get_resource_history(resource_type: int, limit: int = -1) -> Array:
@@ -122,7 +121,7 @@ func get_resource_history(resource_type: int, limit: int = -1) -> Array:
 	
 	var history = resource_history[resource_type]
 	if limit > 0:
-		history = history.slice(-limit)
+		history = history.slice(- limit)
 	
 	return history.map(_create_history_entry_dict)
 

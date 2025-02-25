@@ -1,12 +1,11 @@
 @tool
-extends GameTest
+extends "res://tests/fixtures/base/game_test.gd"
 
 const GameOverScreen: GDScript = preload("res://src/ui/screens/GameOverScreen.gd")
 const GameState: GDScript = preload("res://src/core/state/GameState.gd")
 
 # Type-safe instance variables
 var _instance: Node = null
-var _game_state: Node = null
 var victory_achieved_signal_emitted: bool = false
 var last_victory_data: Dictionary = {}
 
@@ -83,7 +82,7 @@ func _set_property_safe(obj: Object, property: String, value: Variant) -> void:
 # Test cases
 func test_initial_state() -> void:
 	assert_not_null(_instance, "GameOverScreen should be initialized")
-	assert_false(TypeSafeMixin._safe_method_call_bool(_instance, "get", ["visible"]), "Screen should be hidden initially")
+	assert_false(TypeSafeMixin._call_node_method_bool(_instance, "get", ["visible"]), "Screen should be hidden initially")
 
 # Display Tests
 func test_show_game_over() -> void:
@@ -96,12 +95,12 @@ func test_show_game_over() -> void:
 			{"type": "credits_earned", "value": 1000}
 		]
 	}
-	TypeSafeMixin._safe_method_call_bool(_game_state, "set", ["campaign", campaign_data])
+	TypeSafeMixin._call_node_method_bool(_game_state, "set", ["campaign", campaign_data])
 	
-	TypeSafeMixin._safe_method_call_bool(_instance, "show_game_over", [GameEnums.GameState.GAME_OVER])
+	TypeSafeMixin._call_node_method_bool(_instance, "show_game_over", [GameEnums.GameState.GAME_OVER])
 	await get_tree().process_frame
 	
-	assert_true(TypeSafeMixin._safe_method_call_bool(_instance, "get", ["visible"]), "Screen should be visible after game over")
+	assert_true(TypeSafeMixin._call_node_method_bool(_instance, "get", ["visible"]), "Screen should be visible after game over")
 	
 	var victory_points_label: Label = _get_node_safe(_instance, "StatsContainer/VictoryPointsLabel")
 	var battles_label: Label = _get_node_safe(_instance, "StatsContainer/BattlesLabel")
@@ -109,16 +108,16 @@ func test_show_game_over() -> void:
 	assert_not_null(victory_points_label, "Victory points label should exist")
 	assert_not_null(battles_label, "Battles label should exist")
 	
-	var points_text: String = TypeSafeMixin._safe_method_call_string(victory_points_label, "get", ["text"])
-	var battles_text: String = TypeSafeMixin._safe_method_call_string(battles_label, "get", ["text"])
+	var points_text: String = TypeSafeMixin._safe_cast_to_string(TypeSafeMixin._call_node_method(victory_points_label, "get", ["text"]))
+	var battles_text: String = TypeSafeMixin._safe_cast_to_string(TypeSafeMixin._call_node_method(battles_label, "get", ["text"]))
 	
 	assert_eq(points_text, "Victory Points: 100", "Should display correct victory points")
 	assert_eq(battles_text, "Total Battles: 10", "Should display correct battle count")
 
 func test_victory_display() -> void:
 	# Set up victory state in game state
-	TypeSafeMixin._safe_method_call_bool(_game_state, "set", ["victory_achieved", true])
-	TypeSafeMixin._safe_method_call_bool(_instance, "show_game_over", [GameEnums.GameState.GAME_OVER])
+	TypeSafeMixin._call_node_method_bool(_game_state, "set", ["victory_achieved", true])
+	TypeSafeMixin._call_node_method_bool(_instance, "show_game_over", [GameEnums.GameState.GAME_OVER])
 	await get_tree().process_frame
 	
 	var victory_label: Label = _get_node_safe(_instance, "VictoryLabel")
@@ -127,16 +126,16 @@ func test_victory_display() -> void:
 	assert_not_null(victory_label, "Victory label should exist")
 	assert_not_null(defeat_label, "Defeat label should exist")
 	
-	var victory_visible: bool = TypeSafeMixin._safe_method_call_bool(victory_label, "get", ["visible"])
-	var defeat_visible: bool = TypeSafeMixin._safe_method_call_bool(defeat_label, "get", ["visible"])
+	var victory_visible: bool = TypeSafeMixin._call_node_method_bool(victory_label, "get", ["visible"])
+	var defeat_visible: bool = TypeSafeMixin._call_node_method_bool(defeat_label, "get", ["visible"])
 	
 	assert_true(victory_visible, "Victory label should be visible for victory")
 	assert_false(defeat_visible, "Defeat label should be hidden for victory")
 
 func test_defeat_display() -> void:
 	# Set up defeat state in game state
-	TypeSafeMixin._safe_method_call_bool(_game_state, "set", ["victory_achieved", false])
-	TypeSafeMixin._safe_method_call_bool(_instance, "show_game_over", [GameEnums.GameState.GAME_OVER])
+	TypeSafeMixin._call_node_method_bool(_game_state, "set", ["victory_achieved", false])
+	TypeSafeMixin._call_node_method_bool(_instance, "show_game_over", [GameEnums.GameState.GAME_OVER])
 	await get_tree().process_frame
 	
 	var victory_label: Label = _get_node_safe(_instance, "VictoryLabel")
@@ -145,15 +144,15 @@ func test_defeat_display() -> void:
 	assert_not_null(victory_label, "Victory label should exist")
 	assert_not_null(defeat_label, "Defeat label should exist")
 	
-	var victory_visible: bool = TypeSafeMixin._safe_method_call_bool(victory_label, "get", ["visible"])
-	var defeat_visible: bool = TypeSafeMixin._safe_method_call_bool(defeat_label, "get", ["visible"])
+	var victory_visible: bool = TypeSafeMixin._call_node_method_bool(victory_label, "get", ["visible"])
+	var defeat_visible: bool = TypeSafeMixin._call_node_method_bool(defeat_label, "get", ["visible"])
 	
 	assert_true(defeat_visible, "Defeat label should be visible for defeat")
 	assert_false(victory_visible, "Victory label should be hidden for defeat")
 
 # Navigation Tests
 func test_navigation_buttons() -> void:
-	TypeSafeMixin._safe_method_call_bool(_instance, "show_game_over", [GameEnums.GameState.GAME_OVER])
+	TypeSafeMixin._call_node_method_bool(_instance, "show_game_over", [GameEnums.GameState.GAME_OVER])
 	await get_tree().process_frame
 	
 	var restart_button: Button = _get_node_safe(_instance, "ButtonContainer/RestartButton")
@@ -163,12 +162,12 @@ func test_navigation_buttons() -> void:
 	assert_not_null(main_menu_button, "Main menu button should exist")
 	
 	# Test restart button
-	TypeSafeMixin._safe_method_call_bool(restart_button, "emit_signal", ["pressed"])
+	TypeSafeMixin._call_node_method_bool(restart_button, "emit_signal", ["pressed"])
 	await get_tree().process_frame
 	verify_signal_emitted(get_tree(), "scene_restarted", "Scene restart signal should be emitted")
 	
 	# Test main menu button
-	TypeSafeMixin._safe_method_call_bool(main_menu_button, "emit_signal", ["pressed"])
+	TypeSafeMixin._call_node_method_bool(main_menu_button, "emit_signal", ["pressed"])
 	await get_tree().process_frame
 	verify_signal_emitted(get_tree(), "main_menu_requested", "Main menu signal should be emitted")
 
@@ -181,9 +180,9 @@ func test_stats_display() -> void:
 			"credits_earned": 1000
 		}
 	}
-	TypeSafeMixin._safe_method_call_bool(_game_state, "set", ["campaign", campaign_data])
+	TypeSafeMixin._call_node_method_bool(_game_state, "set", ["campaign", campaign_data])
 	
-	TypeSafeMixin._safe_method_call_bool(_instance, "show_game_over", [GameEnums.GameState.GAME_OVER])
+	TypeSafeMixin._call_node_method_bool(_instance, "show_game_over", [GameEnums.GameState.GAME_OVER])
 	await get_tree().process_frame
 	
 	var stats_container: Control = _get_node_safe(_instance, "StatsContainer")
@@ -191,13 +190,13 @@ func test_stats_display() -> void:
 	var credits_earned_label: Label = _get_node_safe(_instance, "StatsContainer/CreditsEarnedLabel")
 	
 	assert_not_null(stats_container, "Stats container should exist")
-	assert_true(TypeSafeMixin._safe_method_call_bool(stats_container, "get", ["visible"]), "Stats container should be visible")
+	assert_true(TypeSafeMixin._call_node_method_bool(stats_container, "get", ["visible"]), "Stats container should be visible")
 	
 	assert_not_null(enemies_defeated_label, "Enemies defeated label should exist")
 	assert_not_null(credits_earned_label, "Credits earned label should exist")
 	
-	var enemies_text: String = TypeSafeMixin._safe_method_call_string(enemies_defeated_label, "get", ["text"])
-	var credits_text: String = TypeSafeMixin._safe_method_call_string(credits_earned_label, "get", ["text"])
+	var enemies_text: String = TypeSafeMixin._safe_cast_to_string(TypeSafeMixin._call_node_method(enemies_defeated_label, "get", ["text"]))
+	var credits_text: String = TypeSafeMixin._safe_cast_to_string(TypeSafeMixin._call_node_method(credits_earned_label, "get", ["text"]))
 	
 	assert_eq(enemies_text, "Enemies Defeated: 20", "Should display correct enemies defeated")
 	assert_eq(credits_text, "Credits Earned: 1000", "Should display correct credits earned")
@@ -207,8 +206,8 @@ func test_screen_transitions() -> void:
 	var start_time := Time.get_ticks_msec()
 	
 	for i in range(100):
-		TypeSafeMixin._safe_method_call_bool(_instance, "show")
-		TypeSafeMixin._safe_method_call_bool(_instance, "hide")
+		TypeSafeMixin._call_node_method_bool(_instance, "show")
+		TypeSafeMixin._call_node_method_bool(_instance, "hide")
 		await get_tree().process_frame
 	
 	var duration: int = Time.get_ticks_msec() - start_time
@@ -216,25 +215,25 @@ func test_screen_transitions() -> void:
 
 # Error Cases Tests
 func test_null_campaign_data() -> void:
-	TypeSafeMixin._safe_method_call_bool(_game_state, "set", ["campaign", null])
-	TypeSafeMixin._safe_method_call_bool(_instance, "show_game_over", [GameEnums.GameState.GAME_OVER])
+	TypeSafeMixin._call_node_method_bool(_game_state, "set", ["campaign", null])
+	TypeSafeMixin._call_node_method_bool(_instance, "show_game_over", [GameEnums.GameState.GAME_OVER])
 	await get_tree().process_frame
 	
 	var victory_points_label: Label = _get_node_safe(_instance, "StatsContainer/VictoryPointsLabel")
 	
-	assert_true(TypeSafeMixin._safe_method_call_bool(_instance, "get", ["visible"]), "Screen should still show with null campaign data")
+	assert_true(TypeSafeMixin._call_node_method_bool(_instance, "get", ["visible"]), "Screen should still show with null campaign data")
 	assert_not_null(victory_points_label, "Victory points label should exist")
-	assert_eq(TypeSafeMixin._safe_method_call_string(victory_points_label, "get", ["text"]), "Victory Points: 0", "Should show default values for null campaign")
+	assert_eq(TypeSafeMixin._safe_cast_to_string(TypeSafeMixin._call_node_method(victory_points_label, "get", ["text"])), "Victory Points: 0", "Should show default values for null campaign")
 
 # Cleanup Tests
 func test_cleanup() -> void:
-	TypeSafeMixin._safe_method_call_bool(_instance, "show_game_over", [GameEnums.GameState.GAME_OVER])
+	TypeSafeMixin._call_node_method_bool(_instance, "show_game_over", [GameEnums.GameState.GAME_OVER])
 	await get_tree().process_frame
 	
-	TypeSafeMixin._safe_method_call_bool(_instance, "cleanup")
+	TypeSafeMixin._call_node_method_bool(_instance, "cleanup")
 	await get_tree().process_frame
 	
-	assert_false(TypeSafeMixin._safe_method_call_bool(_instance, "get", ["visible"]), "Screen should be hidden after cleanup")
+	assert_false(TypeSafeMixin._call_node_method_bool(_instance, "get", ["visible"]), "Screen should be hidden after cleanup")
 	
 	var victory_label: Label = _get_node_safe(_instance, "VictoryLabel")
 	var defeat_label: Label = _get_node_safe(_instance, "DefeatLabel")
@@ -242,8 +241,8 @@ func test_cleanup() -> void:
 	assert_not_null(victory_label, "Victory label should exist")
 	assert_not_null(defeat_label, "Defeat label should exist")
 	
-	var victory_visible: bool = TypeSafeMixin._safe_method_call_bool(victory_label, "get", ["visible"])
-	var defeat_visible: bool = TypeSafeMixin._safe_method_call_bool(defeat_label, "get", ["visible"])
+	var victory_visible: bool = TypeSafeMixin._call_node_method_bool(victory_label, "get", ["visible"])
+	var defeat_visible: bool = TypeSafeMixin._call_node_method_bool(defeat_label, "get", ["visible"])
 	
 	assert_false(victory_visible, "Victory label should be hidden after cleanup")
 	assert_false(defeat_visible, "Defeat label should be hidden after cleanup")

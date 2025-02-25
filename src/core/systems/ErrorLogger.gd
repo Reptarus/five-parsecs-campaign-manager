@@ -1,4 +1,3 @@
-class_name ErrorLogger
 extends Resource
 
 signal error_logged(error: Dictionary)
@@ -35,7 +34,7 @@ func log_error(message: String, category: ErrorCategory, severity: ErrorSeverity
     
     # Trim history if needed
     if error_history.size() > MAX_ERROR_HISTORY:
-        error_history = error_history.slice(-MAX_ERROR_HISTORY)
+        error_history = error_history.slice(- MAX_ERROR_HISTORY)
     
     error_logged.emit(error)
 

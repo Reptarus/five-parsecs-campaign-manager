@@ -1,5 +1,4 @@
 # ExpandedFactionManager.gd
-class_name ExpandedFactionManager
 extends Node
 
 const GameEnums := preload("res://src/core/systems/GlobalEnums.gd")

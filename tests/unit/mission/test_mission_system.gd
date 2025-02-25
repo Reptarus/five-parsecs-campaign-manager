@@ -1,12 +1,12 @@
 @tool
-extends "res://tests/fixtures/game_test.gd"
+extends "res://tests/fixtures/base/game_test.gd"
 
 ## Mission system test suite
 ## Tests core functionality, edge cases, and performance of the mission system
 ## @class TestMissionSystem
 ## @description Validates mission lifecycle, objectives, rewards, and state management
 
-const Mission = preload("res://src/core/systems/Mission.gd")
+const Mission: GDScript = preload("res://src/core/systems/Mission.gd")
 
 var mission: Mission
 

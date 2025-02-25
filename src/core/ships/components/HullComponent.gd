@@ -1,5 +1,4 @@
 # Scripts/ShipAndCrew/HullComponent.gd
-class_name HullComponent
 extends ShipComponent
 
 @export var armor: int = 10

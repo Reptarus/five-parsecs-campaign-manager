@@ -1,5 +1,4 @@
 extends Node2D
-class_name World
 
 @export var generator: Generator
 @export var debug_region: Region
