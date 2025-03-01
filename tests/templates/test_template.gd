@@ -1,131 +1,125 @@
 @tool
-extends "res://tests/fixtures/specialized/battle_test.gd" # Choose the appropriate specialized test class path:
-                                                         # "res://tests/fixtures/specialized/ui_test.gd"
-                                                         # "res://tests/fixtures/specialized/battle_test.gd"
-                                                         # "res://tests/fixtures/specialized/campaign_test.gd"
-                                                         # "res://tests/fixtures/specialized/mobile_test.gd"
-                                                         # "res://tests/fixtures/specialized/enemy_test.gd"
-                                                         # "res://tests/fixtures/base/game_test.gd"
+extends GameTest # Replace with appropriate base class: UITest, BattleTest, CampaignTest, EnemyTest, MobileTest
 
-## [TEST_NAME] Test Suite
+## Template Test Class
 ##
-## Tests the functionality of the [FEATURE] including:
-## - [TEST_ASPECT_1]
-## - [TEST_ASPECT_2]
-## - [TEST_ASPECT_3]
+## This is a template for creating new test files.
+## Replace this comment with a description of what you're testing.
 
-# Type-safe script references (use actual script paths)
-const TestedClass: GDScript = preload("res://path/to/tested/class.gd")
-const DependencyClass: GDScript = preload("res://path/to/dependency.gd")
+# Type-safe script references - replace with actual path
+# const TestedClass: GDScript = preload("res://path/to/class.gd") 
 
-# Type-safe constants with explicit typing
-const TEST_TIMEOUT := 1.0 as float
-const DEFAULT_VALUE := "test" as String
-const TEST_DATA := {
-	"id": "test_id" as String,
-	"value": 42 as int,
-	"enabled": true as bool
-}
+# Type-safe constants
+const TEST_TIMEOUT: float = 2.0
+# STABILIZE_TIME is already defined in GameTest, so don't redefine it
 
 # Type-safe instance variables
 var _instance: Node = null
-var _dependency: Node = null
-
-## Lifecycle methods
 
 func before_each() -> void:
-	# Always call super first
 	await super.before_each()
 	
-	# Create test instance
-	_instance = TestedClass.new()
-	if not _instance:
-		push_error("Failed to create test instance")
-		return
-	add_child_autofree(_instance)
-	track_test_node(_instance)
+	# Create the instance being tested
+	# Uncomment and replace with actual instantiation
+	# _instance = TestedClass.new()
+	# add_child_autofree(_instance)
 	
-	# Setup test dependencies
-	_dependency = DependencyClass.new()
-	if not _dependency:
-		push_error("Failed to create dependency")
-		return
-	add_child_autofree(_dependency)
-	track_test_node(_dependency)
-	
-	# Configure test instance
-	TypeSafeMixin._call_node_method_bool(_instance, "initialize", [TEST_DATA])
-	
-	# Wait for system to stabilize
-	await stabilize_engine()
+	# Wait for engine to stabilize
+	await stabilize_engine(STABILIZE_TIME)
 
 func after_each() -> void:
-	# Clean up test state
 	_instance = null
-	_dependency = null
-	
-	# Always call super last
 	await super.after_each()
 
-## Test methods
+# BASIC FUNCTIONALITY TESTS
+# ------------------------------------------------------------------------
 
 func test_initialization() -> void:
 	# Given
-	var data := TEST_DATA.duplicate()
-	data.value = 100
+	assert_not_null(_instance, "Instance should be created")
 	
 	# When
-	TypeSafeMixin._call_node_method_bool(_instance, "initialize", [data])
+	# No specific action for this test
 	
 	# Then
-	assert_eq(
-		TypeSafeMixin._call_node_method_int(_instance, "get_value", []),
-		100,
-		"Instance should be initialized with correct value"
-	)
+	# Add appropriate assertions about the initial state
+	pass
 
-func test_functionality() -> void:
+# STATE MANAGEMENT TESTS
+# ------------------------------------------------------------------------
+
+func test_state_changes() -> void:
 	# Given
 	watch_signals(_instance)
-	var expected_result := 42
 	
 	# When
-	var result := TypeSafeMixin._call_node_method_int(_instance, "calculate", [10, 32])
+	TypeSafeMixin._call_node_method_bool(_instance, "set_state", ["new_state"])
 	
 	# Then
-	assert_eq(result, expected_result, "Calculation should return expected result")
-	assert_signal_emitted(_instance, "calculation_completed")
+	var current_state: String = TypeSafeMixin._safe_cast_to_string(
+		TypeSafeMixin._call_node_method(_instance, "get_state", [])
+	)
+	assert_eq(current_state, "new_state", "State should be updated")
+	verify_signal_emitted(_instance, "state_changed")
+
+# ERROR HANDLING TESTS
+# ------------------------------------------------------------------------
 
 func test_error_handling() -> void:
 	# Given
-	var invalid_input := -1
+	watch_signals(_instance)
 	
-	# When/Then
-	assert_false(
-		TypeSafeMixin._call_node_method_bool(_instance, "validate", [invalid_input]),
-		"Validation should fail for invalid input"
-	)
+	# When
+	var result: bool = TypeSafeMixin._call_node_method_bool(_instance, "invalid_operation", [])
 	
-	# Verify error state
-	assert_true(
-		TypeSafeMixin._call_node_method_bool(_instance, "has_error", []),
-		"Error flag should be set after invalid input"
-	)
+	# Then
+	assert_false(result, "Invalid operation should return false")
+	verify_signal_emitted(_instance, "error_occurred")
 
-## Helper methods
+# RESOURCE MANAGEMENT TESTS
+# ------------------------------------------------------------------------
 
-func _create_test_data(variant: String = "default") -> Dictionary:
-	var data := TEST_DATA.duplicate()
+func test_resource_management() -> void:
+	# Given
+	var resource := Resource.new()
+	track_test_resource(resource)
 	
-	match variant:
-		"special":
-			data.id = "special_test"
-			data.value = 99
-		"minimal":
-			data.erase("value")
-			data.erase("enabled")
-		_:
-			# Use defaults
-			pass
+	# When
+	TypeSafeMixin._call_node_method_bool(_instance, "set_resource", [resource])
 	
-	return data
+	# Then
+	var current_resource: Resource = TypeSafeMixin._safe_cast_to_object(
+		TypeSafeMixin._call_node_method(_instance, "get_resource", []),
+		"Resource"
+	)
+	assert_eq(current_resource, resource, "Resource should be stored correctly")
+
+# PERFORMANCE TESTS
+# ------------------------------------------------------------------------
+
+func test_performance() -> void:
+	# Setup test conditions
+	var test_data := _create_large_test_dataset()
+	
+	# Measure performance using standard testing patterns
+	# Replace with appropriate performance testing approach in your framework
+	var start_time := Time.get_ticks_msec()
+	TypeSafeMixin._call_node_method_bool(_instance, "process_data", [test_data])
+	var end_time := Time.get_ticks_msec()
+	
+	# Verify metrics
+	var elapsed := end_time - start_time
+	assert_lt(elapsed, 1000, "Operation should complete in less than 1 second")
+
+# HELPER METHODS
+# ------------------------------------------------------------------------
+
+func _create_large_test_dataset() -> Array:
+	var dataset := []
+	for i in range(100):
+		dataset.append({
+			"id": i,
+			"name": "Item %d" % i,
+			"value": randf()
+		})
+	return dataset

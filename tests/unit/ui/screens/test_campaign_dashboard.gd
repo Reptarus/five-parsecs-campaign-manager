@@ -1,5 +1,5 @@
 @tool
-extends "res://tests/fixtures/base/game_test.gd"
+extends "res://tests/fixtures/specialized/ui_test.gd"
 
 const CampaignDashboard: GDScript = preload("res://src/ui/screens/campaign/CampaignDashboard.gd")
 const GameState: GDScript = preload("res://src/core/state/GameState.gd")
@@ -93,7 +93,7 @@ func test_initial_state() -> void:
 	assert_not_null(game_state, "Game state should be initialized")
 	assert_not_null(phase_manager, "Phase manager should be initialized")
 	
-	var current_phase: int = TypeSafeMixin._safe_method_call_int(phase_manager, "get_current_phase", [])
+	var current_phase: int = TypeSafeMixin._call_node_method_int(phase_manager, "get_current_phase", [])
 	assert_eq(current_phase, GameEnums.CampaignPhase.UPKEEP, "Should start in upkeep phase")
 
 # Phase Transition Tests
@@ -104,18 +104,18 @@ func test_phase_transitions() -> void:
 	if _signal_watcher:
 		_signal_watcher.watch_signals(phase_manager)
 	
-	TypeSafeMixin._safe_method_call_bool(_instance, "_on_next_phase_pressed", [])
+	TypeSafeMixin._call_node_method_bool(_instance, "_on_next_phase_pressed", [])
 	await get_tree().process_frame
 	
 	verify_signal_emitted(phase_manager, "phase_changed")
 	
-	var current_phase: int = TypeSafeMixin._safe_method_call_int(phase_manager, "get_current_phase", [])
+	var current_phase: int = TypeSafeMixin._call_node_method_int(phase_manager, "get_current_phase", [])
 	assert_eq(current_phase, GameEnums.CampaignPhase.STORY, "Should transition to story phase")
 	
-	TypeSafeMixin._safe_method_call_bool(_instance, "_on_next_phase_pressed", [])
+	TypeSafeMixin._call_node_method_bool(_instance, "_on_next_phase_pressed", [])
 	await get_tree().process_frame
 	
-	current_phase = TypeSafeMixin._safe_method_call_int(phase_manager, "get_current_phase", [])
+	current_phase = TypeSafeMixin._call_node_method_int(phase_manager, "get_current_phase", [])
 	assert_eq(current_phase, GameEnums.CampaignPhase.CAMPAIGN, "Should transition to campaign phase")
 
 # UI Update Tests
@@ -128,9 +128,9 @@ func test_ui_updates() -> void:
 			{"character_name": "Test Character"}
 		]
 	}
-	TypeSafeMixin._safe_method_call_bool(_game_state, "set_campaign", [campaign_data])
+	TypeSafeMixin._call_node_method_bool(_game_state, "set_campaign", [campaign_data])
 	
-	TypeSafeMixin._safe_method_call_bool(_instance, "_update_ui", [])
+	TypeSafeMixin._call_node_method_bool(_instance, "_update_ui", [])
 	await get_tree().process_frame
 	
 	var credits_label: Node = _get_node_safe(_instance, "CreditsLabel")
@@ -141,23 +141,23 @@ func test_ui_updates() -> void:
 	assert_not_null(story_points_label, "Story points label should exist")
 	assert_not_null(crew_list, "Crew list should exist")
 	
-	var credits_text: String = TypeSafeMixin._safe_method_call_string(credits_label, "get_text", [])
+	var credits_text: String = TypeSafeMixin._safe_cast_to_string(TypeSafeMixin._call_node_method(credits_label, "get_text", []))
 	assert_eq(credits_text, "Credits: 1000", "Credits label should update")
 	
-	var points_text: String = TypeSafeMixin._safe_method_call_string(story_points_label, "get_text", [])
+	var points_text: String = TypeSafeMixin._safe_cast_to_string(TypeSafeMixin._call_node_method(story_points_label, "get_text", []))
 	assert_eq(points_text, "Story Points: 5", "Story points label should update")
 	
-	var item_count: int = TypeSafeMixin._safe_method_call_int(crew_list, "get_item_count", [])
+	var item_count: int = TypeSafeMixin._call_node_method_int(crew_list, "get_item_count", [])
 	assert_eq(item_count, 1, "Crew list should show one member")
 
 # Phase Panel Tests
 func test_phase_panel_creation() -> void:
-	var panel: Node = TypeSafeMixin._safe_method_call_node(_instance, "_create_phase_panel", [GameEnums.CampaignPhase.UPKEEP])
+	var panel: Node = TypeSafeMixin._call_node_method(_instance, "_create_phase_panel", [GameEnums.CampaignPhase.UPKEEP]) as Node
 	assert_not_null(panel, "Should create upkeep phase panel")
 	if panel:
 		panel.queue_free()
 	
-	panel = TypeSafeMixin._safe_method_call_node(_instance, "_create_phase_panel", [GameEnums.CampaignPhase.STORY])
+	panel = TypeSafeMixin._call_node_method(_instance, "_create_phase_panel", [GameEnums.CampaignPhase.STORY]) as Node
 	assert_not_null(panel, "Should create story phase panel")
 	if panel:
 		panel.queue_free()
@@ -170,16 +170,16 @@ func test_phase_event_handling() -> void:
 	var next_phase_button: Node = _get_node_safe(_instance, "NextPhaseButton")
 	assert_not_null(next_phase_button, "Next phase button should exist")
 	
-	TypeSafeMixin._safe_method_call_bool(_instance, "_on_phase_event", [ {"type": "UPKEEP_STARTED"}])
+	TypeSafeMixin._call_node_method_bool(_instance, "_on_phase_event", [ {"type": "UPKEEP_STARTED"}])
 	await get_tree().process_frame
 	
-	var is_visible: bool = TypeSafeMixin._safe_method_call_bool(next_phase_button, "is_visible", [])
+	var is_visible: bool = TypeSafeMixin._call_node_method_bool(next_phase_button, "is_visible", [])
 	assert_true(is_visible, "Next phase button should be visible after upkeep start")
 	
-	TypeSafeMixin._safe_method_call_bool(_instance, "_on_phase_completed", [])
+	TypeSafeMixin._call_node_method_bool(_instance, "_on_phase_completed", [])
 	await get_tree().process_frame
 	
-	var is_disabled: bool = TypeSafeMixin._safe_method_call_bool(next_phase_button, "is_disabled", [])
+	var is_disabled: bool = TypeSafeMixin._call_node_method_bool(next_phase_button, "is_disabled", [])
 	assert_false(is_disabled, "Next phase button should be enabled after phase completion")
 
 # Navigation Tests
@@ -187,11 +187,11 @@ func test_navigation_buttons() -> void:
 	if _signal_watcher:
 		_signal_watcher.watch_signals(get_tree())
 	
-	TypeSafeMixin._safe_method_call_bool(_instance, "_on_manage_crew_pressed", [])
+	TypeSafeMixin._call_node_method_bool(_instance, "_on_manage_crew_pressed", [])
 	await get_tree().process_frame
 	verify_signal_emitted(get_tree(), "change_scene_to_file")
 	
-	TypeSafeMixin._safe_method_call_bool(_instance, "_on_quit_pressed", [])
+	TypeSafeMixin._call_node_method_bool(_instance, "_on_quit_pressed", [])
 	await get_tree().process_frame
 	verify_signal_emitted(get_tree(), "change_scene_to_file")
 
@@ -203,7 +203,7 @@ func test_rapid_phase_transitions() -> void:
 	var start_time := Time.get_ticks_msec()
 	
 	for i in range(10):
-		TypeSafeMixin._safe_method_call_bool(_instance, "_on_next_phase_pressed", [])
+		TypeSafeMixin._call_node_method_bool(_instance, "_on_next_phase_pressed", [])
 		await get_tree().process_frame
 	
 	var duration: int = Time.get_ticks_msec() - start_time
@@ -214,11 +214,11 @@ func test_invalid_phase_transitions() -> void:
 	var phase_manager: Node = _get_node_safe(_instance, "PhaseManager")
 	assert_not_null(phase_manager, "Phase manager should exist")
 	
-	TypeSafeMixin._safe_method_call_bool(phase_manager, "set_current_phase", [GameEnums.CampaignPhase.NONE])
-	TypeSafeMixin._safe_method_call_bool(_instance, "_on_next_phase_pressed", [])
+	TypeSafeMixin._call_node_method_bool(phase_manager, "set_current_phase", [GameEnums.CampaignPhase.NONE])
+	TypeSafeMixin._call_node_method_bool(_instance, "_on_next_phase_pressed", [])
 	await get_tree().process_frame
 	
-	var current_phase: int = TypeSafeMixin._safe_method_call_int(phase_manager, "get_current_phase", [])
+	var current_phase: int = TypeSafeMixin._call_node_method_int(phase_manager, "get_current_phase", [])
 	assert_eq(current_phase, GameEnums.CampaignPhase.NONE, "Should not transition from invalid phase")
 
 # Save/Load Tests
@@ -228,10 +228,10 @@ func test_save_load_operations() -> void:
 		_signal_watcher.watch_signals(game_state)
 		_signal_watcher.watch_signals(get_tree())
 	
-	TypeSafeMixin._safe_method_call_bool(_instance, "_on_save_pressed", [])
+	TypeSafeMixin._call_node_method_bool(_instance, "_on_save_pressed", [])
 	await get_tree().process_frame
 	verify_signal_emitted(game_state, "save_campaign")
 	
-	TypeSafeMixin._safe_method_call_bool(_instance, "_on_load_pressed")
+	TypeSafeMixin._call_node_method_bool(_instance, "_on_load_pressed", [])
 	await get_tree().process_frame
 	verify_signal_emitted(get_tree(), "change_scene_to_file")

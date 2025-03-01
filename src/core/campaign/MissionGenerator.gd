@@ -1,5 +1,9 @@
 @tool
+class_name MissionGenerator
 extends RefCounted
+
+## Core mission generator for Five Parsecs.
+## This class handles the generation of missions based on templates.
 
 const GameEnums := preload("res://src/core/systems/GlobalEnums.gd")
 const StoryQuestData := preload("res://src/core/story/StoryQuestData.gd")
@@ -27,45 +31,47 @@ func _load_mission_templates() -> void:
 	if expanded_data:
 		expanded_missions = expanded_data
 
-func generate_mission(mission_type: int, config: Dictionary = {}) -> StoryQuestData:
-	var mission := StoryQuestData.new()
+func generate_mission(mission_type: int, config: Dictionary = {}) -> Object:
+	var mission_instance = StoryQuestData.new()
 	var template := _get_mission_template(mission_type)
 	
 	if not template:
 		push_error("No template found for mission type: %d" % mission_type)
 		return null
 	
-	_configure_mission(mission, template, config)
-	_apply_difficulty_modifiers(mission, config.get("difficulty", GameEnums.DifficultyLevel.NORMAL))
-	_generate_objectives(mission, template)
-	_generate_rewards(mission, template)
-	_apply_location_effects(mission, config.get("location", null))
+	_configure_mission(mission_instance, template, config)
+	_apply_difficulty_modifiers(mission_instance, config.get("difficulty", GameEnums.DifficultyLevel.NORMAL))
+	_generate_objectives(mission_instance, template)
+	_generate_rewards(mission_instance, template)
+	_apply_location_effects(mission_instance, config.get("location", null))
 	
-	return mission
+	return mission_instance
 
 func _get_mission_template(mission_type: int) -> Dictionary:
 	var template_key: String = GameEnums.MissionType.keys()[mission_type]
 	return mission_templates.get(template_key, {})
 
-func _configure_mission(mission: StoryQuestData, template: Dictionary, config: Dictionary) -> void:
-	mission.mission_type = config.get("type", GameEnums.MissionType.NONE)
-	mission.name = template.get("name", "Unknown Mission")
-	mission.description = template.get("description", "")
-	mission.turn_limit = template.get("turn_limit", -1)
-	mission.required_reputation = template.get("required_reputation", 0)
-	mission.risk_level = template.get("risk_level", 1)
-	
-	# Apply configuration overrides
-	for key in config:
-		if mission.has_method("set_" + key):
-			mission.call("set_" + key, config[key])
+func _configure_mission(mission: Object, template: Dictionary, config: Dictionary) -> void:
+	if mission:
+		mission.mission_type = config.get("type", GameEnums.MissionType.NONE)
+		mission.name = template.get("name", "Unknown Mission")
+		mission.description = template.get("description", "")
+		mission.turn_limit = template.get("turn_limit", -1)
+		mission.required_reputation = template.get("required_reputation", 0)
+		mission.risk_level = template.get("risk_level", 1)
+		
+		# Apply configuration overrides
+		for key in config:
+			if mission.has_method("set_" + key):
+				mission.call("set_" + key, config[key])
 
-func _apply_difficulty_modifiers(mission: StoryQuestData, difficulty: int) -> void:
-	var modifiers := _get_difficulty_modifiers(difficulty)
-	
-	mission.enemy_count *= modifiers.get("enemy_multiplier", 1.0)
-	mission.reward_credits *= modifiers.get("reward_multiplier", 1.0)
-	mission.risk_level = mini(5, mission.risk_level + modifiers.get("risk_modifier", 0))
+func _apply_difficulty_modifiers(mission: Object, difficulty: int) -> void:
+	if mission:
+		var modifiers := _get_difficulty_modifiers(difficulty)
+		
+		mission.enemy_count *= modifiers.get("enemy_multiplier", 1.0)
+		mission.reward_credits *= modifiers.get("reward_multiplier", 1.0)
+		mission.risk_level = mini(5, mission.risk_level + modifiers.get("risk_modifier", 0))
 
 func _get_difficulty_modifiers(difficulty: int) -> Dictionary:
 	match difficulty:
@@ -100,35 +106,37 @@ func _get_difficulty_modifiers(difficulty: int) -> Dictionary:
 				"risk_modifier": 0
 			}
 
-func _generate_objectives(mission: StoryQuestData, template: Dictionary) -> void:
-	var objectives = template.get("objectives", [])
-	
-	for obj in objectives:
-		var objective := {
-			"type": obj.get("type", GameEnums.MissionObjective.NONE),
-			"description": obj.get("description", ""),
-			"required": obj.get("required", true),
-			"completed": false,
-			"progress": 0,
-			"target": obj.get("target", 1)
-		}
+func _generate_objectives(mission: Object, template: Dictionary) -> void:
+	if mission:
+		var objectives = template.get("objectives", [])
 		
-		mission.objectives.append(objective)
+		for obj in objectives:
+			var objective := {
+				"type": obj.get("type", GameEnums.MissionObjective.NONE),
+				"description": obj.get("description", ""),
+				"required": obj.get("required", true),
+				"completed": false,
+				"progress": 0,
+				"target": obj.get("target", 1)
+			}
+			
+			mission.objectives.append(objective)
 
-func _generate_rewards(mission: StoryQuestData, template: Dictionary) -> void:
-	var base_rewards = template.get("rewards", {})
-	
-	mission.reward_credits = base_rewards.get("credits", 0)
-	mission.reward_reputation = base_rewards.get("reputation", 0)
-	mission.reward_items = base_rewards.get("items", [])
-	
-	# Add bonus rewards based on risk level
-	var bonus_multiplier: float = 1.0 + (mission.risk_level * 0.2)
-	mission.reward_credits = int(mission.reward_credits * bonus_multiplier)
-	mission.reward_reputation = int(mission.reward_reputation * bonus_multiplier)
+func _generate_rewards(mission: Object, template: Dictionary) -> void:
+	if mission:
+		var base_rewards = template.get("rewards", {})
+		
+		mission.reward_credits = base_rewards.get("credits", 0)
+		mission.reward_reputation = base_rewards.get("reputation", 0)
+		mission.reward_items = base_rewards.get("items", [])
+		
+		# Add bonus rewards based on risk level
+		var bonus_multiplier: float = 1.0 + (mission.risk_level * 0.2)
+		mission.reward_credits = int(mission.reward_credits * bonus_multiplier)
+		mission.reward_reputation = int(mission.reward_reputation * bonus_multiplier)
 
-func _apply_location_effects(mission: StoryQuestData, location: Dictionary) -> void:
-	if not location:
+func _apply_location_effects(mission: Object, location: Dictionary) -> void:
+	if not mission or not location:
 		return
 	
 	var location_type = location.get("type", GameEnums.LocationType.NONE)

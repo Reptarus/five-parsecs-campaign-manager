@@ -1,5 +1,5 @@
 @tool
-extends "res://tests/fixtures/specialized/enemy_test_base.gd"
+extends "res://tests/fixtures/specialized/enemy_test.gd"
 
 ## Enemy Combat System Tests
 ##
@@ -47,7 +47,7 @@ func after_each() -> void:
 
 # Combat Initialization Tests
 func test_enemy_combat_initialization() -> void:
-	var enemy: Node = create_test_enemy("ELITE")
+	var enemy: Node = create_test_enemy(EnemyTestType.ELITE)
 	assert_not_null(enemy, "Should create elite enemy")
 	add_child_autofree(enemy)
 	
@@ -55,12 +55,12 @@ func test_enemy_combat_initialization() -> void:
 	verify_enemy_combat_state(enemy)
 	
 	# Verify initial combat capabilities
-	var can_attack: bool = TypeSafeMixin._safe_method_call_bool(enemy, "can_attack", [])
+	var can_attack: bool = _call_node_method_bool(enemy, "can_attack", [])
 	assert_true(can_attack, "Elite enemy should be able to attack")
 
 # Combat Action Tests
 func test_enemy_basic_attack() -> void:
-	var enemy: Node = create_test_enemy("ELITE")
+	var enemy: Node = create_test_enemy(EnemyTestType.ELITE)
 	assert_not_null(enemy, "Should create elite enemy")
 	add_child_autofree(enemy)
 	
@@ -72,7 +72,7 @@ func test_enemy_basic_attack() -> void:
 	verify_enemy_combat(enemy, target)
 
 func test_enemy_attack_cooldown() -> void:
-	var enemy: Node = create_test_enemy("ELITE")
+	var enemy: Node = create_test_enemy(EnemyTestType.ELITE)
 	assert_not_null(enemy, "Should create elite enemy")
 	add_child_autofree(enemy)
 	
@@ -82,22 +82,22 @@ func test_enemy_attack_cooldown() -> void:
 	
 	# First attack
 	watch_signals(enemy)
-	var attack_result: bool = TypeSafeMixin._safe_method_call_bool(enemy, "attack", [target])
+	var attack_result: bool = _call_node_method_bool(enemy, "attack", [target])
 	assert_true(attack_result, "Should successfully execute first attack")
 	verify_signal_emitted(enemy, "attack_executed")
 	
 	# Verify cooldown
-	var can_attack: bool = TypeSafeMixin._safe_method_call_bool(enemy, "can_attack", [])
+	var can_attack: bool = _call_node_method_bool(enemy, "can_attack", [])
 	assert_false(can_attack, "Should not be able to attack during cooldown")
 	
 	# Wait for cooldown
 	await get_tree().create_timer(1.0).timeout
-	can_attack = TypeSafeMixin._safe_method_call_bool(enemy, "can_attack", [])
+	can_attack = _call_node_method_bool(enemy, "can_attack", [])
 	assert_true(can_attack, "Should be able to attack after cooldown")
 
 # Combat Range Tests
 func test_enemy_attack_range() -> void:
-	var enemy: Node = create_test_enemy("ELITE")
+	var enemy: Node = create_test_enemy(EnemyTestType.ELITE)
 	assert_not_null(enemy, "Should create elite enemy")
 	add_child_autofree(enemy)
 	
@@ -108,16 +108,16 @@ func test_enemy_attack_range() -> void:
 	# Test out of range
 	enemy.position = Vector2.ZERO
 	target.position = Vector2(1000, 1000)
-	var in_range: bool = TypeSafeMixin._safe_method_call_bool(enemy, "is_target_in_range", [target])
+	var in_range: bool = _call_node_method_bool(enemy, "is_target_in_range", [target])
 	assert_false(in_range, "Target should be out of range")
 	
 	# Test in range
 	target.position = Vector2(50, 50)
-	in_range = TypeSafeMixin._safe_method_call_bool(enemy, "is_target_in_range", [target])
+	in_range = _call_node_method_bool(enemy, "is_target_in_range", [target])
 	assert_true(in_range, "Target should be in range")
 
 func test_enemy_attack_angle() -> void:
-	var enemy: Node = create_test_enemy("ELITE")
+	var enemy: Node = create_test_enemy(EnemyTestType.ELITE)
 	assert_not_null(enemy, "Should create elite enemy")
 	add_child_autofree(enemy)
 	
@@ -128,17 +128,17 @@ func test_enemy_attack_angle() -> void:
 	# Test front attack
 	enemy.rotation = 0
 	target.position = Vector2(50, 0)
-	var can_hit: bool = TypeSafeMixin._safe_method_call_bool(enemy, "can_hit_target", [target])
+	var can_hit: bool = _call_node_method_bool(enemy, "can_hit_target", [target])
 	assert_true(can_hit, "Should be able to hit target in front")
 	
 	# Test rear attack
 	target.position = Vector2(-50, 0)
-	can_hit = TypeSafeMixin._safe_method_call_bool(enemy, "can_hit_target", [target])
+	can_hit = _call_node_method_bool(enemy, "can_hit_target", [target])
 	assert_false(can_hit, "Should not be able to hit target from behind")
 
 # Combat Damage Tests
 func test_enemy_damage_dealing() -> void:
-	var enemy: Node = create_test_enemy("ELITE")
+	var enemy: Node = create_test_enemy(EnemyTestType.ELITE)
 	assert_not_null(enemy, "Should create elite enemy")
 	add_child_autofree(enemy)
 	
@@ -147,21 +147,21 @@ func test_enemy_damage_dealing() -> void:
 	add_child_autofree(target)
 	
 	# Setup target health
-	TypeSafeMixin._safe_method_call_bool(target, "set_health", [100.0])
-	var initial_health: float = TypeSafeMixin._safe_method_call_float(target, "get_health", [])
+	_call_node_method_bool(target, "set_health", [100.0])
+	var initial_health: float = _call_node_method_float(target, "get_health", [])
 	
 	# Execute attack
 	watch_signals(enemy)
-	TypeSafeMixin._safe_method_call_bool(enemy, "attack", [target])
+	_call_node_method_bool(enemy, "attack", [target])
 	verify_signal_emitted(enemy, "attack_executed")
 	
 	# Verify damage
-	var final_health: float = TypeSafeMixin._safe_method_call_float(target, "get_health", [])
+	var final_health: float = _call_node_method_float(target, "get_health", [])
 	assert_true(final_health < initial_health, "Target should take damage from attack")
 
 # Combat AI Tests
 func test_enemy_target_selection() -> void:
-	var enemy: Node = create_test_enemy("ELITE")
+	var enemy: Node = create_test_enemy(EnemyTestType.ELITE)
 	assert_not_null(enemy, "Should create elite enemy")
 	add_child_autofree(enemy)
 	
@@ -173,16 +173,16 @@ func test_enemy_target_selection() -> void:
 	# Setup targets
 	target1.position = Vector2(50, 0) # Close target
 	target2.position = Vector2(200, 0) # Far target
-	TypeSafeMixin._safe_method_call_bool(target1, "set_health", [50.0]) # Weak target
-	TypeSafeMixin._safe_method_call_bool(target2, "set_health", [100.0]) # Strong target
+	_call_node_method_bool(target1, "set_health", [50.0]) # Weak target
+	_call_node_method_bool(target2, "set_health", [100.0]) # Strong target
 	
 	# Test target selection
-	var selected_target: Node2D = TypeSafeMixin._safe_method_call(enemy, "select_best_target", [[target1, target2]])
+	var selected_target: Node2D = _call_node_method(enemy, "select_best_target", [[target1, target2]])
 	assert_eq(selected_target, target1, "Should select closer, weaker target")
 
 # Mobile Performance Tests
 func test_enemy_combat_performance() -> void:
-	var enemy: Node = create_test_enemy("ELITE")
+	var enemy: Node = create_test_enemy(EnemyTestType.ELITE)
 	assert_not_null(enemy, "Should create elite enemy")
 	add_child_autofree(enemy)
 	
@@ -218,3 +218,13 @@ func verify_enemy_combat_state(enemy: Node) -> void:
 		"target_lost"
 	]
 	verify_enemy_signals(enemy, required_signals)
+
+# Helper method to verify that the enemy has the expected signals
+func verify_enemy_signals(enemy: Node, required_signals: Array) -> void:
+	if not enemy:
+		push_error("Enemy not initialized")
+		return
+		
+	for signal_name in required_signals:
+		assert_true(enemy.has_signal(signal_name),
+			"Enemy should have signal: %s" % signal_name)

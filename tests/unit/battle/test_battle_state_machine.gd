@@ -40,8 +40,8 @@ func create_test_battle_state() -> Node:
 		return null
 		
 	state.set_script(BattleStateMachine)
-	var added_node := add_child_autofree(state)
-	if not added_node:
+	add_child_autofree(state)
+	if not state:
 		push_error("Failed to add battle state node")
 		return null
 		
@@ -53,8 +53,8 @@ func setup_active_battle() -> void:
 		push_error("Cannot setup battle: battle state is null")
 		return
 		
-	TypeSafeMixin._safe_method_call_bool(battle_state, "start_battle", [])
-	TypeSafeMixin._safe_method_call_bool(battle_state, "transition_to_phase", [GameEnums.CombatPhase.INITIATIVE])
+	TypeSafeMixin._call_node_method_bool(battle_state, "start_battle", [])
+	TypeSafeMixin._call_node_method_bool(battle_state, "transition_to_phase", [GameEnums.CombatPhase.INITIATIVE])
 
 # Type-safe lifecycle methods
 func before_each() -> void:
@@ -107,16 +107,16 @@ func _on_phase_transition_test() -> void:
 func test_battle_state_initialization() -> void:
 	assert_not_null(battle_state, "Battle state should be initialized")
 	
-	var current_state: int = TypeSafeMixin._safe_method_call_int(battle_state, "get_current_state", [], GameEnums.BattleState.NONE)
+	var current_state: int = TypeSafeMixin._call_node_method_int(battle_state, "get_current_state", [], GameEnums.BattleState.NONE)
 	assert_eq(current_state, GameEnums.BattleState.SETUP, "Battle should start in SETUP state")
 	
-	var current_phase: int = TypeSafeMixin._safe_method_call_int(battle_state, "get_current_phase", [], GameEnums.CombatPhase.NONE)
+	var current_phase: int = TypeSafeMixin._call_node_method_int(battle_state, "get_current_phase", [], GameEnums.CombatPhase.NONE)
 	assert_eq(current_phase, GameEnums.CombatPhase.NONE, "Combat phase should start as NONE")
 	
-	var current_round: int = TypeSafeMixin._safe_method_call_int(battle_state, "get_current_round", [], 0)
+	var current_round: int = TypeSafeMixin._call_node_method_int(battle_state, "get_current_round", [], 0)
 	assert_eq(current_round, 1, "Battle should start at round 1")
 	
-	var is_active: bool = TypeSafeMixin._safe_method_call_bool(battle_state, "is_battle_active", [], false)
+	var is_active: bool = TypeSafeMixin._call_node_method_bool(battle_state, "is_battle_active", [], false)
 	assert_false(is_active, "Battle should not be active initially")
 
 func test_start_battle() -> void:
@@ -125,27 +125,27 @@ func test_start_battle() -> void:
 		push_error("Failed to connect battle_started signal")
 		return
 	
-	TypeSafeMixin._safe_method_call_bool(battle_state, "start_battle", [])
+	TypeSafeMixin._call_node_method_bool(battle_state, "start_battle", [])
 	
-	var is_active: bool = TypeSafeMixin._safe_method_call_bool(battle_state, "is_battle_active", [], false)
+	var is_active: bool = TypeSafeMixin._call_node_method_bool(battle_state, "is_battle_active", [], false)
 	assert_true(is_active, "Battle should be active after starting")
 	
 	assert_true(_signal_data.has("battle_started"), "Battle started signal should be emitted")
 	
-	var current_state: int = TypeSafeMixin._safe_method_call_int(battle_state, "get_current_state", [], GameEnums.BattleState.NONE)
+	var current_state: int = TypeSafeMixin._call_node_method_int(battle_state, "get_current_state", [], GameEnums.BattleState.NONE)
 	assert_eq(current_state, GameEnums.BattleState.ROUND, "Battle should transition to ROUND state")
 
 func test_end_battle() -> void:
-	TypeSafeMixin._safe_method_call_bool(battle_state, "start_battle", [])
+	TypeSafeMixin._call_node_method_bool(battle_state, "start_battle", [])
 	
 	var connect_result: Error = battle_state.connect("battle_ended", _on_battle_ended)
 	if connect_result != OK:
 		push_error("Failed to connect battle_ended signal")
 		return
 	
-	TypeSafeMixin._safe_method_call_bool(battle_state, "end_battle", [GameEnums.VictoryConditionType.ELIMINATION])
+	TypeSafeMixin._call_node_method_bool(battle_state, "end_battle", [GameEnums.VictoryConditionType.ELIMINATION])
 	
-	var is_active: bool = TypeSafeMixin._safe_method_call_bool(battle_state, "is_battle_active", [], true)
+	var is_active: bool = TypeSafeMixin._call_node_method_bool(battle_state, "is_battle_active", [], true)
 	assert_false(is_active, "Battle should not be active after ending")
 	
 	assert_true(_signal_data.has("battle_ended"), "Battle ended signal should be emitted")
@@ -153,16 +153,16 @@ func test_end_battle() -> void:
 		"Victory type should be passed to signal")
 
 func test_phase_transitions() -> void:
-	TypeSafeMixin._safe_method_call_bool(battle_state, "start_battle", [])
+	TypeSafeMixin._call_node_method_bool(battle_state, "start_battle", [])
 	
 	var connect_result: Error = battle_state.connect("phase_changed", _on_phase_changed)
 	if connect_result != OK:
 		push_error("Failed to connect phase_changed signal")
 		return
 	
-	TypeSafeMixin._safe_method_call_bool(battle_state, "transition_to_phase", [GameEnums.CombatPhase.INITIATIVE])
+	TypeSafeMixin._call_node_method_bool(battle_state, "transition_to_phase", [GameEnums.CombatPhase.INITIATIVE])
 	
-	var current_phase: int = TypeSafeMixin._safe_method_call_int(battle_state, "get_current_phase", [], GameEnums.CombatPhase.NONE)
+	var current_phase: int = TypeSafeMixin._call_node_method_int(battle_state, "get_current_phase", [], GameEnums.CombatPhase.NONE)
 	assert_eq(current_phase, GameEnums.CombatPhase.INITIATIVE, "Should transition to initiative phase")
 	
 	assert_true(_signal_data.has("phase_changed"), "Phase changed signal should be emitted")
@@ -172,9 +172,9 @@ func test_phase_transitions() -> void:
 		"New phase should be INITIATIVE")
 	
 	_signal_data.clear()
-	TypeSafeMixin._safe_method_call_bool(battle_state, "transition_to_phase", [GameEnums.CombatPhase.ACTION])
+	TypeSafeMixin._call_node_method_bool(battle_state, "transition_to_phase", [GameEnums.CombatPhase.ACTION])
 	
-	current_phase = TypeSafeMixin._safe_method_call_int(battle_state, "get_current_phase", [], GameEnums.CombatPhase.NONE)
+	current_phase = TypeSafeMixin._call_node_method_int(battle_state, "get_current_phase", [], GameEnums.CombatPhase.NONE)
 	assert_eq(current_phase, GameEnums.CombatPhase.ACTION, "Should transition to action phase")
 	
 	var from_phase: int = _signal_data.get("from_phase", GameEnums.CombatPhase.NONE)
@@ -188,16 +188,16 @@ func test_add_combatant() -> void:
 		return
 		
 	track_test_node(character)
-	TypeSafeMixin._safe_method_call_bool(battle_state, "add_combatant", [character])
+	TypeSafeMixin._call_node_method_bool(battle_state, "add_combatant", [character])
 	
-	var active_combatants: Array = TypeSafeMixin._safe_method_call_array(battle_state, "get_active_combatants", [])
+	var active_combatants: Array = TypeSafeMixin._call_node_method_array(battle_state, "get_active_combatants", [])
 	assert_true(active_combatants.has(character), "Character should be added to active combatants")
 
 func test_save_and_load_state() -> void:
-	TypeSafeMixin._safe_method_call_bool(battle_state, "start_battle", [])
-	TypeSafeMixin._safe_method_call_bool(battle_state, "transition_to_phase", [GameEnums.CombatPhase.ACTION])
+	TypeSafeMixin._call_node_method_bool(battle_state, "start_battle", [])
+	TypeSafeMixin._call_node_method_bool(battle_state, "transition_to_phase", [GameEnums.CombatPhase.ACTION])
 	
-	var saved_state: Dictionary = TypeSafeMixin._safe_method_call_dict(battle_state, "save_state", [])
+	var saved_state: Dictionary = TypeSafeMixin._call_node_method_dict(battle_state, "save_state", [])
 	assert_not_null(saved_state, "Should create save state")
 	
 	var new_battle_state: Node = Node.new()
@@ -208,12 +208,12 @@ func test_save_and_load_state() -> void:
 	add_child_autofree(new_battle_state)
 	track_test_node(new_battle_state)
 	
-	TypeSafeMixin._safe_method_call_bool(new_battle_state, "load_state", [saved_state])
+	TypeSafeMixin._call_node_method_bool(new_battle_state, "load_state", [saved_state])
 	
-	var loaded_phase: int = TypeSafeMixin._safe_method_call_int(new_battle_state, "get_current_phase", [], GameEnums.CombatPhase.NONE)
+	var loaded_phase: int = TypeSafeMixin._call_node_method_int(new_battle_state, "get_current_phase", [], GameEnums.CombatPhase.NONE)
 	assert_eq(loaded_phase, GameEnums.CombatPhase.ACTION, "Should load correct phase")
 	
-	var loaded_round: int = TypeSafeMixin._safe_method_call_int(new_battle_state, "get_current_round", [], 0)
+	var loaded_round: int = TypeSafeMixin._call_node_method_int(new_battle_state, "get_current_round", [], 0)
 	assert_eq(loaded_round, 1, "Should load correct round")
 
 # Performance tests
@@ -223,8 +223,8 @@ func test_rapid_state_transitions() -> void:
 	var start_time := Time.get_ticks_msec()
 	
 	for i in range(100):
-		TypeSafeMixin._safe_method_call_bool(battle_state, "transition_to_phase", [GameEnums.CombatPhase.INITIATIVE])
-		TypeSafeMixin._safe_method_call_bool(battle_state, "transition_to_phase", [GameEnums.CombatPhase.ACTION])
+		TypeSafeMixin._call_node_method_bool(battle_state, "transition_to_phase", [GameEnums.CombatPhase.INITIATIVE])
+		TypeSafeMixin._call_node_method_bool(battle_state, "transition_to_phase", [GameEnums.CombatPhase.ACTION])
 	
 	var duration := Time.get_ticks_msec() - start_time
 	assert_true(duration < TEST_TIMEOUT, "Should handle rapid state transitions efficiently")
@@ -232,13 +232,13 @@ func test_rapid_state_transitions() -> void:
 # Error boundary tests
 func test_invalid_phase_transition() -> void:
 	_signal_watcher.watch_signals(battle_state)
-	TypeSafeMixin._safe_method_call_bool(battle_state, "transition_to_phase", [GameEnums.CombatPhase.ACTION])
+	TypeSafeMixin._call_node_method_bool(battle_state, "transition_to_phase", [GameEnums.CombatPhase.ACTION])
 	
-	var current_phase: int = TypeSafeMixin._safe_method_call_int(battle_state, "get_current_phase", [], GameEnums.CombatPhase.NONE)
+	var current_phase: int = TypeSafeMixin._call_node_method_int(battle_state, "get_current_phase", [], GameEnums.CombatPhase.NONE)
 	assert_eq(current_phase, GameEnums.CombatPhase.NONE, "Should not allow phase transition before battle starts")
 
 func test_invalid_battle_start() -> void:
-	TypeSafeMixin._safe_method_call_bool(battle_state, "start_battle", [])
+	TypeSafeMixin._call_node_method_bool(battle_state, "start_battle", [])
 	
 	var connect_result: Error = battle_state.connect("battle_started", _on_battle_started)
 	if connect_result != OK:
@@ -246,7 +246,7 @@ func test_invalid_battle_start() -> void:
 		return
 	
 	_signal_data.clear()
-	TypeSafeMixin._safe_method_call_bool(battle_state, "start_battle", [])
+	TypeSafeMixin._call_node_method_bool(battle_state, "start_battle", [])
 	assert_false(_signal_data.has("battle_started"), "Should not emit signal when starting an already active battle")
 
 # Signal verification tests
@@ -259,6 +259,6 @@ func test_phase_transition_signals() -> void:
 		push_error("Failed to connect phase_changed signal")
 		return
 		
-	TypeSafeMixin._safe_method_call_bool(battle_state, "transition_to_phase", [GameEnums.CombatPhase.ACTION])
+	TypeSafeMixin._call_node_method_bool(battle_state, "transition_to_phase", [GameEnums.CombatPhase.ACTION])
 	
 	assert_eq(_signal_data.get("phase_transition", false), true, "Should emit phase_changed signal once")

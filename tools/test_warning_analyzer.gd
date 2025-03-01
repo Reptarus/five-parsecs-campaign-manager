@@ -142,6 +142,7 @@ func suggest_method_call_fix(line: String) -> String:
 		var method_name = method_match.get_string(1)
 		var obj_name = line.split(".")[0].strip_edges()
 		return "if " + obj_name + " and " + obj_name + ".has_method(\"" + method_name + "\"):\\n\\t" + line
+	return line
 
 func suggest_property_access_fix(line: String) -> String:
 	var prop_match = RegEx.create_from_string("\\.(\\w+)\\s*=").search(line)
@@ -149,6 +150,7 @@ func suggest_property_access_fix(line: String) -> String:
 		var prop_name = prop_match.get_string(1)
 		var obj_name = line.split(".")[0].strip_edges()
 		return "if " + obj_name + " and \"" + prop_name + "\" in " + obj_name + ":\\n\\t" + line
+	return line
 
 func suggest_type_annotation_fix(line: String) -> String:
 	var var_match = RegEx.create_from_string("var\\s+(\\w+)").search(line)

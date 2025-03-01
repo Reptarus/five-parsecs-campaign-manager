@@ -1,12 +1,19 @@
-class_name FiveParsecsPlanet
+@tool
+class_name GamePlanet
 extends Resource
 
 const GameEnums = preload("res://src/core/systems/GlobalEnums.gd")
-const FiveParsecsLocation = preload("res://src/core/world/Location.gd")
+const GameLocation = preload("res://src/game/world/Location.gd")
+
+signal planet_updated(property, value)
 
 # Core properties
+@export var planet_id: String = ""
 @export var planet_name: String = ""
-@export var planet_type: int = GameEnums.PlanetType.TEMPERATE
+@export var sector: String = ""
+@export var coordinates: Vector2 = Vector2.ZERO
+@export var planet_type: int = GameEnums.PlanetType.NONE
+@export var description: String = ""
 @export var faction_type: int = GameEnums.FactionType.NEUTRAL
 @export var environment_type: int = GameEnums.PlanetEnvironment.NONE
 @export var world_features: Array[int] = []
@@ -18,6 +25,10 @@ const FiveParsecsLocation = preload("res://src/core/world/Location.gd")
 @export var instability: int = GameEnums.StrifeType.NONE
 @export var unity_progress: int = 0
 @export var market_prices: Dictionary = {} # ItemType: price
+@export var faction_control: int = GameEnums.FactionType.NONE
+@export var locations: Array = []
+@export var visited: bool = false
+@export var discovered: bool = false
 
 func _init() -> void:
     reset_state()
@@ -150,8 +161,12 @@ func serialize() -> Dictionary:
         threat_keys.append(GameEnums.ThreatType.keys()[t])
         
     return {
+        "planet_id": planet_id,
         "planet_name": planet_name,
+        "sector": sector,
+        "coordinates": coordinates,
         "planet_type": GameEnums.PlanetType.keys()[planet_type],
+        "description": description,
         "faction_type": GameEnums.FactionType.keys()[faction_type],
         "environment_type": GameEnums.PlanetEnvironment.keys()[environment_type],
         "world_features": feature_keys,
@@ -160,16 +175,23 @@ func serialize() -> Dictionary:
         "strife_level": GameEnums.StrifeType.keys()[strife_level],
         "instability": GameEnums.StrifeType.keys()[instability],
         "unity_progress": unity_progress,
-        "market_prices": market_prices
+        "market_prices": market_prices,
+        "faction_control": GameEnums.FactionType.keys()[faction_control],
+        "locations": locations,
+        "visited": visited,
+        "discovered": discovered
     }
 
-static func deserialize(data: Dictionary) -> FiveParsecsPlanet:
-    var planet := FiveParsecsPlanet.new()
+static func deserialize(data: Dictionary) -> GamePlanet:
+    var planet := GamePlanet.new()
     
+    planet.planet_id = data.get("planet_id", "") as String
     planet.planet_name = data.get("planet_name", "") as String
+    planet.sector = data.get("sector", "") as String
+    planet.coordinates = data.get("coordinates", Vector2.ZERO) as Vector2
     
     # Validate and convert enum values
-    var planet_type_str: String = data.get("planet_type", "TEMPERATE")
+    var planet_type_str: String = data.get("planet_type", "NONE")
     if planet_type_str in GameEnums.PlanetType.keys():
         planet.planet_type = GameEnums.PlanetType[planet_type_str]
         
@@ -180,6 +202,8 @@ static func deserialize(data: Dictionary) -> FiveParsecsPlanet:
     var environment_type_str: String = data.get("environment_type", "NONE")
     if environment_type_str in GameEnums.PlanetEnvironment.keys():
         planet.environment_type = GameEnums.PlanetEnvironment[environment_type_str]
+    
+    planet.description = data.get("description", "") as String
     
     # Convert and validate feature strings back to enum values
     var features: Array = data.get("world_features", [])
@@ -205,5 +229,10 @@ static func deserialize(data: Dictionary) -> FiveParsecsPlanet:
         
     planet.unity_progress = data.get("unity_progress", 0) as int
     planet.market_prices = data.get("market_prices", {})
+    
+    planet.faction_control = data.get("faction_control", GameEnums.FactionType.NONE)
+    planet.locations = data.get("locations", [])
+    planet.visited = data.get("visited", false)
+    planet.discovered = data.get("discovered", false)
     
     return planet

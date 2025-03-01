@@ -1,5 +1,5 @@
 @tool
-extends "res://src/core/mission/base/mission_base.gd"
+extends "res://src/base/mission/mission_base.gd"
 class_name FiveParsecsMission
 
 ## Five Parsecs Mission Implementation

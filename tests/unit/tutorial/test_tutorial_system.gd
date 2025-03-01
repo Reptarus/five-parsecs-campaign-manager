@@ -23,11 +23,11 @@ func before_each() -> void:
 	
 	# Initialize tutorial state machine
 	var tutorial_instance: Node = TutorialStateMachine.new()
-	_tutorial_state_machine = TypeSafeMixin._safe_cast_node(tutorial_instance)
+	_tutorial_state_machine = TypeSafeMixin._safe_cast_to_node(tutorial_instance)
 	if not _tutorial_state_machine:
 		push_error("Failed to create tutorial state machine")
 		return
-	TypeSafeMixin._safe_method_call_bool(_tutorial_state_machine, "initialize", [_game_state])
+	TypeSafeMixin._call_node_method_bool(_tutorial_state_machine, "initialize", [_game_state])
 	add_child_autofree(_tutorial_state_machine)
 	track_test_node(_tutorial_state_machine)
 	
@@ -41,22 +41,22 @@ func after_each() -> void:
 func test_initialization() -> void:
 	assert_not_null(_tutorial_state_machine, "Tutorial state machine should be initialized")
 	
-	var current_state: int = TypeSafeMixin._safe_method_call_int(_tutorial_state_machine, "get_current_state", [], GameEnums.TutorialState.NONE)
+	var current_state: int = TypeSafeMixin._call_node_method_int(_tutorial_state_machine, "get_current_state", [], GameEnums.TutorialState.NONE)
 	assert_eq(current_state, GameEnums.TutorialState.NONE, "Initial state should be NONE")
 	
-	var is_active: bool = TypeSafeMixin._safe_method_call_bool(_tutorial_state_machine, "is_active", [], false)
+	var is_active: bool = TypeSafeMixin._call_node_method_bool(_tutorial_state_machine, "is_active", [], false)
 	assert_false(is_active, "Tutorial should not be active initially")
 
 func test_state_transitions() -> void:
 	# Transition to quick start
-	var transition_result: bool = TypeSafeMixin._safe_method_call_bool(
+	var transition_result: bool = TypeSafeMixin._call_node_method_bool(
 		_tutorial_state_machine,
 		"transition_to",
 		[GameEnums.TutorialState.QUICK_START]
 	)
 	assert_true(transition_result, "Should successfully transition to QUICK_START")
 	
-	var current_state: int = TypeSafeMixin._safe_method_call_int(
+	var current_state: int = TypeSafeMixin._call_node_method_int(
 		_tutorial_state_machine,
 		"get_current_state",
 		[],
@@ -69,14 +69,14 @@ func test_state_transitions() -> void:
 
 func test_invalid_transitions() -> void:
 	# Try to transition to invalid state
-	var invalid_transition: bool = TypeSafeMixin._safe_method_call_bool(
+	var invalid_transition: bool = TypeSafeMixin._call_node_method_bool(
 		_tutorial_state_machine,
 		"transition_to",
 		[-1] # Invalid state
 	)
 	assert_false(invalid_transition, "Should reject invalid state transition")
 	
-	var current_state: int = TypeSafeMixin._safe_method_call_int(
+	var current_state: int = TypeSafeMixin._call_node_method_int(
 		_tutorial_state_machine,
 		"get_current_state",
 		[],
@@ -86,14 +86,14 @@ func test_invalid_transitions() -> void:
 
 func test_tutorial_completion() -> void:
 	# Complete tutorial
-	var completion_result: bool = TypeSafeMixin._safe_method_call_bool(
+	var completion_result: bool = TypeSafeMixin._call_node_method_bool(
 		_tutorial_state_machine,
 		"complete_tutorial",
 		[]
 	)
 	assert_true(completion_result, "Should successfully complete tutorial")
 	
-	var is_completed: bool = TypeSafeMixin._safe_method_call_bool(
+	var is_completed: bool = TypeSafeMixin._call_node_method_bool(
 		_tutorial_state_machine,
 		"is_completed",
 		[],

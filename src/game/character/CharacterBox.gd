@@ -1,90 +1,36 @@
 class_name FiveParsecsCharacterBox
-extends Node
+extends "res://src/core/character/Base/CharacterBox.gd"
 
-const GameEnums := preload("res://src/core/systems/GlobalEnums.gd")
+## Game-specific character box implementation
+##
+## Extends the core character box with game-specific
+## functionality for the Five Parsecs From Home implementation.
 
-@export var character_data: FiveParsecsCharacter
+# Additional game-specific UI components
+@onready var morale_value = $MarginContainer/HBoxContainer/InfoContainer/GameStatsContainer/MoraleValue
+@onready var credits_value = $MarginContainer/HBoxContainer/InfoContainer/GameStatsContainer/CreditsValue
+@onready var missions_value = $MarginContainer/HBoxContainer/InfoContainer/GameStatsContainer/MissionsValue
 
+# Override _ready to initialize game-specific components
 func _ready() -> void:
-    if not character_data:
-        character_data = FiveParsecsCharacter.new()
+	super._ready()
+	
+	# Initialize game-specific UI components
+	if character_data:
+		update_game_specific_ui()
 
-@onready var portrait = $MarginContainer/HBoxContainer/PortraitContainer/Portrait
-@onready var name_label = $MarginContainer/HBoxContainer/InfoContainer/NameLabel
-@onready var class_label = $MarginContainer/HBoxContainer/InfoContainer/ClassLabel
-@onready var reactions_value = $MarginContainer/HBoxContainer/InfoContainer/StatsContainer/ReactionsValue
-@onready var speed_value = $MarginContainer/HBoxContainer/InfoContainer/StatsContainer/SpeedValue
-@onready var combat_skill_value = $MarginContainer/HBoxContainer/InfoContainer/StatsContainer/CombatSkillValue
-@onready var toughness_value = $MarginContainer/HBoxContainer/InfoContainer/StatsContainer/ToughnessValue
-@onready var savvy_value = $MarginContainer/HBoxContainer/InfoContainer/StatsContainer/SavvyValue
-@onready var luck_value = $MarginContainer/HBoxContainer/InfoContainer/StatsContainer/LuckValue
-@onready var status_value = $MarginContainer/HBoxContainer/InfoContainer/StatusContainer/StatusValue
+# Game-specific method to update UI elements
+func update_game_specific_ui() -> void:
+	if morale_value and character_data:
+		morale_value.text = str(character_data.morale)
+	
+	if credits_value and character_data:
+		credits_value.text = str(character_data.credits_earned)
+		
+	if missions_value and character_data:
+		missions_value.text = str(character_data.missions_completed)
 
-## Safe Property Access Methods
-func _get_character_property(data: Resource, property: String, default_value = null) -> Variant:
-    if not data:
-        push_error("Trying to access property '%s' on null character data" % property)
-        return default_value
-    if not property in data:
-        push_error("Character data missing required property: %s" % property)
-        return default_value
-    return data.get(property)
-
-func _get_stats_property(stats: Resource, property: String, default_value = 0) -> int:
-    if not stats:
-        push_error("Trying to access property '%s' on null stats" % property)
-        return default_value
-    if not property in stats:
-        push_error("Stats missing required property: %s" % property)
-        return default_value
-    return stats.get(property)
-
+# Override the update_ui method to include game-specific updates
 func update_display(data: Resource) -> void:
-    if not data:
-        push_error("CharacterBox: Received null CharacterData")
-        return
-        
-    character_data = data
-    
-    name_label.text = _get_character_property(data, "character_name", "Unknown")
-    var origin = _get_character_property(data, "origin", 0)
-    var char_class = _get_character_property(data, "character_class", 0)
-    var origin_text: String = GlobalEnums.Origin.keys()[origin]
-    var class_text: String = GlobalEnums.CharacterClass.keys()[char_class]
-    class_label.text = "%s %s" % [origin_text, class_text]
-    
-    # Update Core Rules stats
-    var stats = _get_character_property(data, "stats", null)
-    if stats:
-        reactions_value.text = str(_get_stats_property(stats, "reactions"))
-        speed_value.text = str(_get_stats_property(stats, "speed"))
-        combat_skill_value.text = "%+d" % _get_stats_property(stats, "combat_skill")
-        toughness_value.text = str(_get_stats_property(stats, "toughness"))
-        savvy_value.text = "%+d" % _get_stats_property(stats, "savvy")
-        luck_value.text = str(_get_stats_property(stats, "luck"))
-    
-    # Update status
-    var status = _get_character_property(data, "status", GlobalEnums.CharacterStatus.HEALTHY)
-    status_value.text = GlobalEnums.CharacterStatus.keys()[status]
-    _update_status_color(status)
-    
-    # Update portrait if available
-    var portrait_texture = _get_character_property(data, "portrait", null)
-    if portrait_texture:
-        portrait.texture = portrait_texture
-
-func _update_status_color(status: GlobalEnums.CharacterStatus) -> void:
-    var color = Color.WHITE
-    match status:
-        GlobalEnums.CharacterStatus.HEALTHY:
-            color = Color(0, 1, 0, 1) # Green
-        GlobalEnums.CharacterStatus.INJURED:
-            color = Color(1, 0.5, 0, 1) # Orange
-        GlobalEnums.CharacterStatus.CRITICAL:
-            color = Color(1, 0, 0, 1) # Red
-        GlobalEnums.CharacterStatus.DEAD:
-            color = Color(0.5, 0.5, 0.5, 1) # Gray
-    status_value.add_theme_color_override("font_color", color)
-
-func get_character_data() -> Resource:
-    return character_data
+	super.update_display(data)
+	update_game_specific_ui()

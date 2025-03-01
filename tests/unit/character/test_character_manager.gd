@@ -30,8 +30,8 @@ func _create_character_resource(name: String = "Test Character", char_class: int
 	if not character:
 		push_error("Failed to create character resource")
 		return null
-	TypeSafeMixin._safe_method_call_bool(character, "set_character_name", [name])
-	TypeSafeMixin._safe_method_call_bool(character, "set_character_class", [char_class])
+	TypeSafeMixin._call_node_method_bool(character, "set_character_name", [name])
+	TypeSafeMixin._call_node_method_bool(character, "set_character_class", [char_class])
 	add_child_autofree(character)
 	track_test_node(character)
 	return character
@@ -63,11 +63,11 @@ func before_each() -> void:
 	
 	# Initialize character manager
 	var manager_instance: Node = CharacterManager.new()
-	_character_manager = TypeSafeMixin._safe_cast_node(manager_instance)
+	_character_manager = TypeSafeMixin._safe_cast_to_node(manager_instance)
 	if not _character_manager:
 		push_error("Failed to create character manager")
 		return
-	TypeSafeMixin._safe_method_call_bool(_character_manager, "initialize", [_game_state])
+	TypeSafeMixin._call_node_method_bool(_character_manager, "initialize", [_game_state])
 	add_child_autofree(_character_manager)
 	track_test_node(_character_manager)
 	
@@ -115,10 +115,10 @@ func _reset_signal_data() -> void:
 func test_initial_state() -> void:
 	assert_not_null(_character_manager, "Character manager should be initialized")
 	
-	var count: int = TypeSafeMixin._safe_method_call_int(_character_manager, "get_character_count", [])
+	var count: int = TypeSafeMixin._call_node_method_int(_character_manager, "get_character_count", [])
 	assert_eq(count, 0, "Should start with no characters")
 	
-	var active_characters: Array = TypeSafeMixin._safe_method_call_array(_character_manager, "get_active_characters", [])
+	var active_characters: Array = TypeSafeMixin._call_node_method_array(_character_manager, "get_active_characters", [])
 	assert_eq(active_characters.size(), 0, "Should have no active characters")
 
 # Character Management Tests
@@ -126,32 +126,32 @@ func test_add_character() -> void:
 	var character := _create_character_resource()
 	_reset_signal_data()
 	
-	var add_result: bool = TypeSafeMixin._safe_method_call_bool(_character_manager, "add_character", [character])
+	var add_result: bool = TypeSafeMixin._call_node_method_bool(_character_manager, "add_character", [character])
 	assert_true(add_result, "Should add character successfully")
 	
-	var character_id: String = TypeSafeMixin._safe_method_call_string(character, "get_id", [])
-	var has_character: bool = TypeSafeMixin._safe_method_call_bool(_character_manager, "has_character", [character_id])
+	var character_id: String = TypeSafeMixin._safe_cast_to_string(TypeSafeMixin._call_node_method(character, "get_id", []))
+	var has_character: bool = TypeSafeMixin._call_node_method_bool(_character_manager, "has_character", [character_id])
 	assert_true(has_character, "Should find character by ID")
 	
 	assert_true(_signal_data.has("character_added"), "Character added signal should be emitted")
 	assert_eq(_signal_data["last_character_added"], character, "Last added character should match")
 	
-	var retrieved: Node = TypeSafeMixin._safe_method_call_node(_character_manager, "get_character", [character_id])
+	var retrieved: Node = TypeSafeMixin._safe_cast_to_node(TypeSafeMixin._call_node_method(_character_manager, "get_character", [character_id]))
 	assert_not_null(retrieved, "Should retrieve added character")
 	
-	var retrieved_name: String = TypeSafeMixin._safe_method_call_string(retrieved, "get_character_name", [])
+	var retrieved_name: String = TypeSafeMixin._safe_cast_to_string(TypeSafeMixin._call_node_method(retrieved, "get_character_name", []))
 	assert_eq(retrieved_name, "Test Character", "Character name should match")
 
 func test_remove_character() -> void:
 	var character := _create_character_resource()
-	TypeSafeMixin._safe_method_call_bool(_character_manager, "add_character", [character])
-	var character_id: String = TypeSafeMixin._safe_method_call_string(character, "get_id", [])
+	TypeSafeMixin._call_node_method_bool(_character_manager, "add_character", [character])
+	var character_id: String = TypeSafeMixin._safe_cast_to_string(TypeSafeMixin._call_node_method(character, "get_id", []))
 	
 	_reset_signal_data()
-	var remove_result: bool = TypeSafeMixin._safe_method_call_bool(_character_manager, "remove_character", [character_id])
+	var remove_result: bool = TypeSafeMixin._call_node_method_bool(_character_manager, "remove_character", [character_id])
 	assert_true(remove_result, "Should remove character successfully")
 	
-	var has_character: bool = TypeSafeMixin._safe_method_call_bool(_character_manager, "has_character", [character_id])
+	var has_character: bool = TypeSafeMixin._call_node_method_bool(_character_manager, "has_character", [character_id])
 	assert_false(has_character, "Should not find removed character")
 	
 	assert_true(_signal_data.has("character_removed"), "Character removed signal should be emitted")
@@ -163,10 +163,10 @@ func test_bulk_character_operations() -> void:
 	var characters := _create_multiple_characters(100)
 	
 	for character in characters:
-		var add_result: bool = TypeSafeMixin._safe_method_call_bool(_character_manager, "add_character", [character])
+		var add_result: bool = TypeSafeMixin._call_node_method_bool(_character_manager, "add_character", [character])
 		assert_true(add_result, "Should add character successfully")
 	
-	var count: int = TypeSafeMixin._safe_method_call_int(_character_manager, "get_character_count", [])
+	var count: int = TypeSafeMixin._call_node_method_int(_character_manager, "get_character_count", [])
 	assert_eq(count, 100, "Should handle bulk additions")
 	assert_true(Time.get_ticks_msec() - start_time < 1000, "Bulk operation should complete within 1 second")
 
@@ -174,29 +174,29 @@ func test_bulk_character_operations() -> void:
 func test_invalid_character_operations() -> void:
 	_reset_signal_data()
 	
-	var add_result: bool = TypeSafeMixin._safe_method_call_bool(_character_manager, "add_character", [null])
+	var add_result: bool = TypeSafeMixin._call_node_method_bool(_character_manager, "add_character", [null])
 	assert_false(add_result, "Should handle null character")
 	assert_false(_signal_data.has("character_added"), "Should not emit signal for null character")
 	
-	var update_result: bool = TypeSafeMixin._safe_method_call_bool(_character_manager, "update_character", ["invalid_id", _test_character])
+	var update_result: bool = TypeSafeMixin._call_node_method_bool(_character_manager, "update_character", ["invalid_id", _test_character])
 	assert_false(update_result, "Should handle invalid ID")
 	assert_false(_signal_data.has("character_updated"), "Should not emit signal for invalid ID")
 	
-	var remove_result: bool = TypeSafeMixin._safe_method_call_bool(_character_manager, "remove_character", ["nonexistent_id"])
+	var remove_result: bool = TypeSafeMixin._call_node_method_bool(_character_manager, "remove_character", ["nonexistent_id"])
 	assert_false(remove_result, "Should handle nonexistent ID")
 	assert_false(_signal_data.has("character_removed"), "Should not emit signal for nonexistent ID")
 
 # State Persistence Tests
 func test_save_and_load_state() -> void:
 	var character := _create_character_resource()
-	TypeSafeMixin._safe_method_call_bool(_character_manager, "add_character", [character])
+	TypeSafeMixin._call_node_method_bool(_character_manager, "add_character", [character])
 	
-	var save_data: Dictionary = TypeSafeMixin._safe_method_call_dict(_character_manager, "save_state", [])
+	var save_data: Dictionary = TypeSafeMixin._call_node_method_dict(_character_manager, "save_state", [])
 	assert_not_null(save_data, "Should create save state")
 	
-	var load_result: bool = TypeSafeMixin._safe_method_call_bool(_character_manager, "load_state", [save_data])
+	var load_result: bool = TypeSafeMixin._call_node_method_bool(_character_manager, "load_state", [save_data])
 	assert_true(load_result, "Should load state successfully")
 	
-	var character_id: String = TypeSafeMixin._safe_method_call_string(character, "get_id", [])
-	var has_character: bool = TypeSafeMixin._safe_method_call_bool(_character_manager, "has_character", [character_id])
+	var character_id: String = TypeSafeMixin._safe_cast_to_string(TypeSafeMixin._call_node_method(character, "get_id", []))
+	var has_character: bool = TypeSafeMixin._call_node_method_bool(_character_manager, "has_character", [character_id])
 	assert_true(has_character, "Should restore character after load")

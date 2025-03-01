@@ -1,8 +1,6 @@
 @tool
 extends "res://src/game/ships/components/ShipComponent.gd"
 
-const GameEnums = preload("res://src/core/systems/GlobalEnums.gd")
-
 var healing_rate: int = 1
 var capacity: int = 2
 
@@ -28,11 +26,11 @@ func serialize() -> Dictionary:
     data["capacity"] = capacity
     return data
 
-static func deserialize(data: Dictionary) -> Resource:
-    var component = MedicalBayComponent.new()
-    var base_data = super.deserialize(data)
-    for key in base_data:
-        component.set(key, base_data[key])
-    component.healing_rate = data.get("healing_rate", 1)
-    component.capacity = data.get("capacity", 2)
-    return component 
+static func deserialize(data: Dictionary) -> Dictionary:
+    var base_data = GameShipComponent.deserialize(data)
+    
+    # Add medical bay specific properties
+    base_data["healing_rate"] = data.get("healing_rate", 1)
+    base_data["capacity"] = data.get("capacity", 2)
+    
+    return base_data

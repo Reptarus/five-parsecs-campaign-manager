@@ -1,5 +1,6 @@
 # Scripts/ShipAndCrew/Ship.gd
 extends Resource
+class_name Ship
 
 const ShipComponent = preload("res://src/core/ships/components/ShipComponent.gd")
 const EngineComponent = preload("res://src/core/ships/components/EngineComponent.gd")
@@ -111,7 +112,7 @@ func update_power_state() -> void:
 	if not is_powered:
 		# Disable non-essential components
 		for component in components:
-			if component != hull_component:  # Keep hull systems online
+			if component != hull_component: # Keep hull systems online
 				component.deactivate()
 	else:
 		# Re-enable components

@@ -1,32 +1,37 @@
 @tool
-extends Resource
+extends "res://src/base/items/equipment.gd"
+class_name BaseEquipment
 
-const GameEnums = preload("res://src/core/systems/GlobalEnums.gd")
+## Core implementation of base equipment
+##
+## Extends the base equipment with core-specific functionality.
 
-@export var item_name: String = ""
-@export var item_type: GameEnums.ItemType = GameEnums.ItemType.NONE
-@export var rarity: GameEnums.ItemRarity = GameEnums.ItemRarity.COMMON
-@export var description: String = ""
-@export var cost: int = 0
-@export var weight: int = 0
+# Core-specific properties
+var durability: int = 100
+var requires_proficiency: bool = false
 
 func _init() -> void:
-	pass
+	super._init()
 
-func get_rarity() -> int:
-	return rarity
+## Core-specific method to check if item is damaged
+func is_damaged() -> bool:
+	return durability < 50
 
-func set_rarity(new_rarity: int) -> void:
-	rarity = new_rarity
+## Core-specific method to repair item
+func repair() -> void:
+	durability = 100
 
-func get_type() -> int:
-	return item_type
-
-func get_item_name() -> String:
-	return item_name
-
-func get_description() -> String:
-	return description
-
+## Override get_display_name to include durability info
 func get_display_name() -> String:
-	return "%s (%s)" % [item_name, GameEnums.ItemRarity.keys()[rarity]]
+	var display_name = super.get_display_name()
+	if is_damaged():
+		display_name += " (Damaged)"
+	return display_name
+
+## Override get_description to include durability info
+func get_description() -> String:
+	var desc = super.get_description()
+	desc += "\nDurability: %d/100" % durability
+	if requires_proficiency:
+		desc += "\nRequires Proficiency"
+	return desc

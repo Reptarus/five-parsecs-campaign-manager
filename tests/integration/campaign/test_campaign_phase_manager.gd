@@ -1,5 +1,5 @@
 @tool
-extends "res://tests/fixtures/specialized/enemy_test_base.gd"
+extends "res://tests/fixtures/specialized/campaign_test.gd"
 
 # Type-safe script references
 const CampaignPhaseManager := preload("res://src/core/campaign/CampaignPhaseManager.gd")
@@ -80,13 +80,39 @@ func _setup_test_enemies() -> void:
 	# Create a mix of enemy types
 	var enemy_types := ["BASIC", "ELITE", "BOSS"]
 	for type in enemy_types:
-		var enemy := create_test_enemy(type)
+		var enemy := _create_test_enemy(type)
 		if not enemy:
 			push_error("Failed to create enemy of type: %s" % type)
 			continue
 		_test_enemies.append(enemy)
 		add_child_autofree(enemy)
 		track_test_node(enemy)
+
+# Helper method to create test enemies since CampaignTest doesn't have this method
+func _create_test_enemy(type: String) -> Node:
+	var enemy := Node.new()
+	enemy.name = "TestEnemy_" + type
+	
+	# Add some basic enemy properties based on type
+	match type:
+		"BASIC":
+			enemy.set_meta("enemy_type", "grunt")
+			enemy.set_meta("health", 50)
+			enemy.set_meta("damage", 5)
+		"ELITE":
+			enemy.set_meta("enemy_type", "elite")
+			enemy.set_meta("health", 100)
+			enemy.set_meta("damage", 10)
+		"BOSS":
+			enemy.set_meta("enemy_type", "boss")
+			enemy.set_meta("health", 200)
+			enemy.set_meta("damage", 20)
+		_:
+			enemy.set_meta("enemy_type", "unknown")
+			enemy.set_meta("health", 25)
+			enemy.set_meta("damage", 2)
+	
+	return enemy
 
 func _cleanup_test_enemies() -> void:
 	for enemy in _test_enemies:
@@ -187,7 +213,7 @@ func test_campaign_integration():
 	)
 	
 	# Register an enemy
-	var enemy = create_test_enemy("BASIC")
+	var enemy = _create_test_enemy("BASIC")
 	assert_true(
 		_call_node_method_bool(_campaign_manager, "register_enemy", [enemy]),
 		"Should be able to register an enemy"
@@ -267,7 +293,7 @@ func test_full_campaign_cycle():
 	assert_true(_call_node_method_bool(_campaign_manager, "setup_battle", []))
 	
 	# Register an enemy
-	var enemy = create_test_enemy("BASIC")
+	var enemy = _create_test_enemy("BASIC")
 	assert_true(_call_node_method_bool(_campaign_manager, "register_enemy", [enemy]))
 	
 	# 3. Battle Resolution
@@ -294,3 +320,11 @@ func test_full_campaign_cycle():
 	
 	var final_results: Dictionary = _call_node_method_dict(_campaign_manager, "get_campaign_results", [])
 	assert_not_null(final_results)
+
+func test_campaign_manager_hooks() -> void:
+	# Register an enemy
+	var enemy = _create_test_enemy("BASIC")
+	assert_true(
+		_call_node_method_bool(_campaign_manager, "register_enemy", [enemy]),
+		"Should be able to register an enemy"
+	)

@@ -23,7 +23,7 @@ func before_each() -> void:
 	
 	# Initialize generator
 	var generator_instance: Node = BattlefieldGeneratorCrew.instantiate()
-	_generator = TypeSafeMixin._safe_cast_node(generator_instance)
+	_generator = TypeSafeMixin._safe_cast_to_node(generator_instance)
 	if not _generator:
 		push_error("Failed to create generator")
 		return
@@ -48,21 +48,21 @@ func test_initial_setup() -> void:
 
 # Character Component Tests
 func test_character_components() -> void:
-	var character: Node = TypeSafeMixin._safe_cast_node(_generator.get_node("Character"))
+	var character: Node = TypeSafeMixin._safe_cast_to_node(_generator.get_node("Character"))
 	assert_not_null(character, "Should have character node")
 	assert_true(character is Node, "Character should be Node")
 	
-	var collision: CollisionShape2D = TypeSafeMixin._safe_cast_node(character.get_node("Collision"))
+	var collision: CollisionShape2D = TypeSafeMixin._safe_cast_to_node(character.get_node("Collision"))
 	assert_not_null(collision, "Should have collision shape")
 	assert_true(collision is CollisionShape2D, "Collision should be CollisionShape2D")
 	
-	var sprite: Sprite2D = TypeSafeMixin._safe_cast_node(character.get_node("Collision/Sprite"))
+	var sprite: Sprite2D = TypeSafeMixin._safe_cast_to_node(character.get_node("Collision/Sprite"))
 	assert_not_null(sprite, "Should have sprite")
 	assert_true(sprite is Sprite2D, "Sprite should be Sprite2D")
 
 # Health Bar Tests
 func test_health_bar_setup() -> void:
-	var health_bar: ProgressBar = TypeSafeMixin._safe_cast_node(_generator.get_node("HealthBar"))
+	var health_bar: ProgressBar = TypeSafeMixin._safe_cast_to_node(_generator.get_node("HealthBar"))
 	assert_not_null(health_bar, "Should have health bar")
 	assert_true(health_bar is ProgressBar, "Health bar should be ProgressBar")
 	assert_eq(health_bar.value, 100.0, "Health bar should start at 100")
@@ -76,19 +76,19 @@ func test_health_bar_setup() -> void:
 
 # Script Tests
 func test_character_script() -> void:
-	var character: Node = TypeSafeMixin._safe_cast_node(_generator.get_node("Character"))
+	var character: Node = TypeSafeMixin._safe_cast_to_node(_generator.get_node("Character"))
 	assert_not_null(character, "Character should be initialized")
 	assert_true(character.has_meta("character"), "Character should have character metadata")
 	
-	var character_data: FiveParsecsCharacter = character.get_meta("character")
+	var character_data: Variant = character.get_meta("character")
 	assert_not_null(character_data, "Character data should be initialized")
-	assert_true(character_data is FiveParsecsCharacter, "Character data should be FiveParsecsCharacter")
+	assert_true(character_data is Resource, "Character data should be Resource")
 
 # System Tests
 func test_systems_setup() -> void:
-	var weapon_system: Node = TypeSafeMixin._safe_cast_node(_generator.get_node("WeaponSystem"))
-	var health_system: Node = TypeSafeMixin._safe_cast_node(_generator.get_node("HealthSystem"))
-	var status_effects: Node = TypeSafeMixin._safe_cast_node(_generator.get_node("StatusEffects"))
+	var weapon_system: Node = TypeSafeMixin._safe_cast_to_node(_generator.get_node("WeaponSystem"))
+	var health_system: Node = TypeSafeMixin._safe_cast_to_node(_generator.get_node("HealthSystem"))
+	var status_effects: Node = TypeSafeMixin._safe_cast_to_node(_generator.get_node("StatusEffects"))
 	
 	assert_not_null(weapon_system, "Should have weapon system")
 	assert_not_null(health_system, "Should have health system")

@@ -1,11 +1,5 @@
 @tool
-class_name TestEnemyPathfinding
-extends EnemyTestBase
-
-# Required type declarations
-const Enemy: GDScript = preload("res://src/core/battle/enemy/Enemy.gd")
-const EnemyData: GDScript = preload("res://src/core/rivals/EnemyData.gd")
-const PathfindingSystem: GDScript = preload("res://src/core/systems/PathfindingSystem.gd")
+extends "res://tests/fixtures/specialized/enemy_test.gd"
 
 # Type-safe instance variables for pathfinding testing
 var _navigation_manager: Node = null
@@ -18,6 +12,7 @@ var _test_obstacles: Array[Node2D] = []
 const TEST_START_POS := Vector2(0, 0)
 const TEST_END_POS := Vector2(10, 10)
 const TEST_PATH := [Vector2(0, 0), Vector2(5, 5), Vector2(10, 10)]
+const TEST_COMPLEX_PATH := [Vector2(0, 0), Vector2(2, 2), Vector2(4, 4), Vector2(4, 6), Vector2(6, 8), Vector2(8, 8), Vector2(10, 10)]
 const OBSTACLE_SIZE := Vector2(2, 2)
 
 # Lifecycle Methods
@@ -60,7 +55,7 @@ func test_path_calculation() -> void:
 	assert_not_null(enemy, "Enemy should be created for path calculation")
 	
 	enemy.position = TEST_START_POS
-	var path: Array = TypeSafeMixin._safe_method_call_array(enemy, "calculate_path", [TEST_END_POS])
+	var path: Array = _call_node_method_array(enemy, "calculate_path", [TEST_END_POS])
 	
 	assert_not_null(path, "Path should be calculated")
 	assert_true(path.size() > 0, "Path should contain points")
@@ -72,7 +67,7 @@ func test_path_following() -> void:
 	assert_not_null(enemy, "Enemy should be created for path following")
 	
 	enemy.position = TEST_PATH[0]
-	var success: bool = TypeSafeMixin._safe_method_call_bool(enemy, "follow_path", [TEST_PATH])
+	var success: bool = _call_node_method_bool(enemy, "follow_path", [TEST_PATH])
 	
 	assert_true(success, "Enemy should start following path")
 	assert_true(enemy.is_moving(), "Enemy should be in moving state")
@@ -95,7 +90,7 @@ func test_obstacle_avoidance() -> void:
 	# Test path around obstacle
 	enemy.position = TEST_START_POS
 	obstacle.position = (TEST_START_POS + TEST_END_POS) / 2
-	var path: Array = TypeSafeMixin._safe_method_call_array(enemy, "calculate_path", [TEST_END_POS])
+	var path: Array = _call_node_method_array(enemy, "calculate_path", [TEST_END_POS])
 	
 	assert_not_null(path, "Path should be calculated around obstacle")
 	assert_true(path.size() > 2, "Path should have additional points to avoid obstacle")
@@ -105,7 +100,7 @@ func test_path_recalculation() -> void:
 	assert_not_null(enemy, "Enemy should be created for path recalculation")
 	
 	enemy.position = TEST_START_POS
-	var initial_path: Array = TypeSafeMixin._safe_method_call_array(enemy, "calculate_path", [TEST_END_POS])
+	var initial_path: Array = _call_node_method_array(enemy, "calculate_path", [TEST_END_POS])
 	
 	# Add obstacle to force recalculation
 	var obstacle: StaticBody2D = StaticBody2D.new()
@@ -118,7 +113,7 @@ func test_path_recalculation() -> void:
 	track_test_node(obstacle)
 	
 	obstacle.position = initial_path[initial_path.size() / 2]
-	var new_path: Array = TypeSafeMixin._safe_method_call_array(enemy, "calculate_path", [TEST_END_POS])
+	var new_path: Array = _call_node_method_array(enemy, "calculate_path", [TEST_END_POS])
 	
 	assert_not_null(new_path, "New path should be calculated")
 	assert_ne(initial_path, new_path, "New path should be different from initial path")
@@ -130,7 +125,7 @@ func test_movement_cost() -> void:
 	
 	enemy.position = TEST_START_POS
 	var start_time: float = Time.get_ticks_msec()
-	var path: Array = TypeSafeMixin._safe_method_call_array(enemy, "calculate_path", [TEST_END_POS])
+	var path: Array = _call_node_method_array(enemy, "calculate_path", [TEST_END_POS])
 	var end_time: float = Time.get_ticks_msec()
 	
 	assert_not_null(path, "Path should be calculated for movement cost")
@@ -144,7 +139,37 @@ func test_invalid_path() -> void:
 	
 	# Test with invalid destination
 	var invalid_pos := Vector2(-1000, -1000)
-	var path: Array = TypeSafeMixin._safe_method_call_array(enemy, "calculate_path", [invalid_pos])
+	var path: Array = _call_node_method_array(enemy, "calculate_path", [invalid_pos])
 	
 	assert_true(path.is_empty(), "Path should be empty for invalid destination")
 	assert_false(enemy.is_moving(), "Enemy should not move with invalid path")
+
+func test_path_cost() -> void:
+	var enemy: Enemy = create_test_enemy()
+	assert_not_null(enemy, "Enemy should be created for path cost calculation")
+	
+	enemy.position = TEST_START_POS
+	var cost: float = _call_node_method_float(enemy, "calculate_path_cost", [TEST_END_POS])
+	
+	assert_gt(cost, 0.0, "Path cost should be positive")
+	assert_le(cost, 1000.0, "Path cost should be reasonable")
+
+func test_path_validation() -> void:
+	var enemy: Enemy = create_test_enemy()
+	assert_not_null(enemy, "Enemy should be created for path validation")
+	
+	enemy.position = TEST_START_POS
+	var is_valid: bool = _call_node_method_bool(enemy, "is_path_valid", [TEST_PATH])
+	
+	assert_true(is_valid, "Path should be valid")
+
+func test_path_simplification() -> void:
+	var enemy: Enemy = create_test_enemy()
+	assert_not_null(enemy, "Enemy should be created for path simplification")
+	
+	var simplified: Array = _call_node_method_array(enemy, "simplify_path", [TEST_COMPLEX_PATH])
+	
+	assert_not_null(simplified, "Simplified path should be calculated")
+	assert_true(simplified.size() > 0, "Simplified path should contain points")
+	assert_true(simplified.size() < TEST_COMPLEX_PATH.size(),
+		"Simplified path should have fewer points than complex path")

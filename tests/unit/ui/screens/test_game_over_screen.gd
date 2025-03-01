@@ -1,5 +1,5 @@
 @tool
-extends "res://tests/fixtures/base/game_test.gd"
+extends "res://tests/fixtures/specialized/ui_test.gd"
 
 const GameOverScreen: GDScript = preload("res://src/ui/screens/GameOverScreen.gd")
 const GameState: GDScript = preload("res://src/core/state/GameState.gd")

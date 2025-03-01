@@ -22,7 +22,7 @@ func before_each() -> void:
 	await super.before_each()
 	
 	var character_instance: Node = Character.new()
-	_character = TypeSafeMixin._safe_cast_node(character_instance)
+	_character = character_instance
 	if not _character:
 		push_error("Failed to create character")
 		return
@@ -41,8 +41,8 @@ func _setup_character() -> void:
 		push_error("Cannot setup character: character is null")
 		return
 	
-	TypeSafeMixin._safe_method_call_bool(_character, "set_character_name", ["Test Character"])
-	TypeSafeMixin._safe_method_call_bool(_character, "set_character_class", [GameEnums.CharacterClass.SOLDIER])
+	TypeSafeMixin._call_node_method_bool(_character, "set_character_name", ["Test Character"])
+	TypeSafeMixin._call_node_method_bool(_character, "set_character_class", [GameEnums.CharacterClass.SOLDIER])
 
 # Helper Functions
 func _create_test_weapon(weapon_name: String) -> Resource:
@@ -65,10 +65,10 @@ func _create_test_armor(armor_name: String) -> Resource:
 # Equipment Slot Tests
 func test_equipment_slots() -> void:
 	# Test initial state
-	var weapons: Array = TypeSafeMixin._safe_method_call_array(_character, "get_weapons", [])
+	var weapons: Array = TypeSafeMixin._call_node_method_array(_character, "get_weapons", [])
 	assert_eq(weapons.size(), 0, "Initial weapons array should be empty")
 	
-	var armor: Array = TypeSafeMixin._safe_method_call_array(_character, "get_armor", [])
+	var armor: Array = TypeSafeMixin._call_node_method_array(_character, "get_armor", [])
 	assert_eq(armor.size(), 0, "Initial armor array should be empty")
 	
 	# Create test equipment
@@ -76,25 +76,25 @@ func test_equipment_slots() -> void:
 	var armor_item := _create_test_armor("Test Armor")
 	
 	# Test adding equipment
-	var add_weapon_result: bool = TypeSafeMixin._safe_method_call_bool(_character, "add_item", [ {"type": "weapon", "data": weapon}])
+	var add_weapon_result: bool = TypeSafeMixin._call_node_method_bool(_character, "add_item", [ {"type": "weapon", "data": weapon}])
 	assert_true(add_weapon_result, "Should add weapon successfully")
-	weapons = TypeSafeMixin._safe_method_call_array(_character, "get_weapons", [])
+	weapons = TypeSafeMixin._call_node_method_array(_character, "get_weapons", [])
 	assert_eq(weapons.size(), 1, "Should have one weapon equipped")
 	
-	var add_armor_result: bool = TypeSafeMixin._safe_method_call_bool(_character, "add_item", [ {"type": "armor", "data": armor_item}])
+	var add_armor_result: bool = TypeSafeMixin._call_node_method_bool(_character, "add_item", [ {"type": "armor", "data": armor_item}])
 	assert_true(add_armor_result, "Should add armor successfully")
-	armor = TypeSafeMixin._safe_method_call_array(_character, "get_armor", [])
+	armor = TypeSafeMixin._call_node_method_array(_character, "get_armor", [])
 	assert_eq(armor.size(), 1, "Should have one armor equipped")
 	
 	# Test removing equipment
-	var remove_weapon_result: bool = TypeSafeMixin._safe_method_call_bool(_character, "remove_item", [ {"type": "weapon", "data": weapon}])
+	var remove_weapon_result: bool = TypeSafeMixin._call_node_method_bool(_character, "remove_item", [ {"type": "weapon", "data": weapon}])
 	assert_true(remove_weapon_result, "Should remove weapon successfully")
-	weapons = TypeSafeMixin._safe_method_call_array(_character, "get_weapons", [])
+	weapons = TypeSafeMixin._call_node_method_array(_character, "get_weapons", [])
 	assert_eq(weapons.size(), 0, "Weapons array should be empty after removal")
 	
-	var remove_armor_result: bool = TypeSafeMixin._safe_method_call_bool(_character, "remove_item", [ {"type": "armor", "data": armor_item}])
+	var remove_armor_result: bool = TypeSafeMixin._call_node_method_bool(_character, "remove_item", [ {"type": "armor", "data": armor_item}])
 	assert_true(remove_armor_result, "Should remove armor successfully")
-	armor = TypeSafeMixin._safe_method_call_array(_character, "get_armor", [])
+	armor = TypeSafeMixin._call_node_method_array(_character, "get_armor", [])
 	assert_eq(armor.size(), 0, "Armor array should be empty after removal")
 
 # Equipment Stats Tests
@@ -108,17 +108,17 @@ func test_equipment_stats() -> void:
 	armor_item.set_meta("mobility_penalty", -1)
 	
 	# Add equipment
-	TypeSafeMixin._safe_method_call_bool(_character, "add_item", [ {"type": "weapon", "data": weapon}])
-	TypeSafeMixin._safe_method_call_bool(_character, "add_item", [ {"type": "armor", "data": armor_item}])
+	TypeSafeMixin._call_node_method_bool(_character, "add_item", [ {"type": "weapon", "data": weapon}])
+	TypeSafeMixin._call_node_method_bool(_character, "add_item", [ {"type": "armor", "data": armor_item}])
 	
 	# Test stat modifications
-	var combat_stats: Dictionary = TypeSafeMixin._safe_method_call_dict(_character, "get_combat_stats", [])
+	var combat_stats: Dictionary = TypeSafeMixin._call_node_method_dict(_character, "get_combat_stats", [])
 	assert_not_null(combat_stats, "Combat stats should not be null")
 	assert_eq(combat_stats.base_damage, 10, "Base damage should match weapon damage")
 	assert_eq(combat_stats.accuracy, 75, "Accuracy should match weapon accuracy")
 	assert_eq(combat_stats.defense, 5, "Defense should match armor defense")
 	
-	var base_mobility: int = TypeSafeMixin._safe_method_call_int(_character, "get_base_mobility", [])
+	var base_mobility: int = TypeSafeMixin._call_node_method_int(_character, "get_base_mobility", [])
 	assert_eq(combat_stats.mobility, base_mobility - 1, "Mobility should be base + penalty")
 
 # Equipment Requirements Tests
@@ -127,13 +127,13 @@ func test_equipment_requirements() -> void:
 	heavy_weapon.set_meta("strength_requirement", 4)
 	
 	# Test equipping with insufficient stats
-	TypeSafeMixin._safe_method_call_bool(_character, "set_toughness", [3])
-	var can_equip: bool = TypeSafeMixin._safe_method_call_bool(_character, "can_equip_item", [ {"type": "weapon", "data": heavy_weapon}])
+	TypeSafeMixin._call_node_method_bool(_character, "set_toughness", [3])
+	var can_equip: bool = TypeSafeMixin._call_node_method_bool(_character, "can_equip_item", [ {"type": "weapon", "data": heavy_weapon}])
 	assert_false(can_equip, "Should not be able to equip with insufficient stats")
 	
 	# Test equipping with sufficient stats
-	TypeSafeMixin._safe_method_call_bool(_character, "set_toughness", [4])
-	can_equip = TypeSafeMixin._safe_method_call_bool(_character, "can_equip_item", [ {"type": "weapon", "data": heavy_weapon}])
+	TypeSafeMixin._call_node_method_bool(_character, "set_toughness", [4])
+	can_equip = TypeSafeMixin._call_node_method_bool(_character, "can_equip_item", [ {"type": "weapon", "data": heavy_weapon}])
 	assert_true(can_equip, "Should be able to equip with sufficient stats")
 
 # Equipment Effects Tests
@@ -150,8 +150,8 @@ func test_equipment_effects() -> void:
 		}
 	])
 	
-	TypeSafeMixin._safe_method_call_bool(_character, "add_item", [ {"type": "weapon", "data": weapon}])
-	var weapon_effects: Dictionary = TypeSafeMixin._safe_method_call_dict(_character, "get_weapon_effects", [])
+	TypeSafeMixin._call_node_method_bool(_character, "add_item", [ {"type": "weapon", "data": weapon}])
+	var weapon_effects: Dictionary = TypeSafeMixin._call_node_method_dict(_character, "get_weapon_effects", [])
 	
 	assert_not_null(weapon_effects, "Weapon effects should not be null")
 	assert_true(weapon_effects.has(GameEnums.ArmorCharacteristic.SHIELD), "Should have shield effect")
@@ -165,22 +165,22 @@ func test_equipment_durability() -> void:
 	weapon.set_meta("max_durability", 100)
 	weapon.set_meta("current_durability", 100)
 	
-	TypeSafeMixin._safe_method_call_bool(_character, "add_item", [ {"type": "weapon", "data": weapon}])
+	TypeSafeMixin._call_node_method_bool(_character, "add_item", [ {"type": "weapon", "data": weapon}])
 	
 	# Test durability loss
-	var damage_result: bool = TypeSafeMixin._safe_method_call_bool(_character, "damage_item", [ {"type": "weapon", "data": weapon}, 10])
+	var damage_result: bool = TypeSafeMixin._call_node_method_bool(_character, "damage_item", [ {"type": "weapon", "data": weapon}, 10])
 	assert_true(damage_result, "Should damage item successfully")
 	assert_eq(weapon.get_meta("current_durability"), 90, "Durability should decrease by damage amount")
 	
 	# Test breaking point
-	damage_result = TypeSafeMixin._safe_method_call_bool(_character, "damage_item", [ {"type": "weapon", "data": weapon}, 90])
+	damage_result = TypeSafeMixin._call_node_method_bool(_character, "damage_item", [ {"type": "weapon", "data": weapon}, 90])
 	assert_true(damage_result, "Should damage item successfully")
 	assert_eq(weapon.get_meta("current_durability"), 0, "Durability should not go below 0")
 	
-	var is_broken: bool = TypeSafeMixin._safe_method_call_bool(weapon, "is_broken", [])
+	var is_broken: bool = TypeSafeMixin._call_node_method_bool(weapon, "is_broken", [])
 	assert_true(is_broken, "Weapon should be broken at 0 durability")
 	
 	# Test weapon effectiveness when broken
-	var combat_stats: Dictionary = TypeSafeMixin._safe_method_call_dict(_character, "get_combat_stats", [])
+	var combat_stats: Dictionary = TypeSafeMixin._call_node_method_dict(_character, "get_combat_stats", [])
 	assert_not_null(combat_stats, "Combat stats should not be null")
 	assert_true(combat_stats.damage_penalty < 0, "Broken weapon should apply damage penalty")

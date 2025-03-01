@@ -1,5 +1,5 @@
 @tool
-extends ComponentTestBase
+extends "res://tests/unit/ui/base/component_test_base.gd"
 
 const TerrainTooltip := preload("res://src/ui/components/combat/TerrainTooltip.gd")
 

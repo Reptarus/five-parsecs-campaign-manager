@@ -30,7 +30,7 @@ func verify_error_context(error_index: int, expected_context: Dictionary) -> voi
 func before_each() -> void:
 	await super.before_each()
 	logger = ErrorLogger.new()
-	var logger_node := _safe_cast_to_node(logger, "ErrorLogger")
+	var logger_node: Node = TypeSafeMixin._safe_cast_to_node(logger, "ErrorLogger")
 	add_child_autofree(logger_node)
 	track_test_node(logger_node)
 	watch_signals(logger)

@@ -22,8 +22,8 @@ func before_each() -> void:
 		push_error("Failed to create test game state")
 		return
 		
-	var added_state := add_child_autofree(_test_game_state)
-	if not added_state:
+	add_child_autofree(_test_game_state)
+	if not _test_game_state:
 		push_error("Failed to add game state to scene tree")
 		return
 		
@@ -39,8 +39,8 @@ func before_each() -> void:
 		return
 		
 	game_state_manager.game_state = _test_game_state
-	var added_manager := add_child_autofree(game_state_manager)
-	if not added_manager:
+	add_child_autofree(game_state_manager)
+	if not game_state_manager:
 		push_error("Failed to add game state manager to scene tree")
 		return
 		

@@ -1,16 +1,9 @@
 @tool
-class_name TestEnemyGroupBehavior
-extends EnemyTestBase
-
-# Required type declarations
-const Enemy: GDScript = preload("res://src/core/battle/enemy/Enemy.gd")
-const EnemyData: GDScript = preload("res://src/core/rivals/EnemyData.gd")
-const EnemyGroup: GDScript = preload("res://src/core/enemy/group/EnemyGroup.gd")
+extends "res://tests/fixtures/specialized/enemy_test.gd"
 
 # Type-safe instance variables for group behavior testing
 var _group_manager: Node = null
 var _test_group: Array[Enemy] = []
-var _test_enemies: Array[Enemy] = []
 var _test_leader: Enemy = null
 
 # Constants for group behavior tests
@@ -50,14 +43,14 @@ func after_each() -> void:
 
 # Formation Tests
 func test_group_formation() -> void:
-	var leader: Enemy = create_test_enemy("ELITE")
+	var leader: Enemy = create_test_enemy(EnemyTestType.ELITE)
 	assert_not_null(leader, "Leader should be created")
 	
 	var followers: Array[Enemy] = _create_follower_group(2)
 	assert_eq(followers.size(), 2, "Should create correct number of followers")
 	
 	# Test formation setup
-	var formation_success: bool = TypeSafeMixin._safe_method_call_bool(leader, "setup_formation", [followers, FORMATION_SPACING])
+	var formation_success: bool = _call_node_method_bool(leader, "setup_formation", [followers, FORMATION_SPACING])
 	assert_true(formation_success, "Formation should be set up successfully")
 	
 	# Verify formation positions
@@ -76,7 +69,7 @@ func test_group_coordination() -> void:
 	
 	# Test group movement coordination
 	var target_pos := Vector2(10, 10)
-	var move_success: bool = TypeSafeMixin._safe_method_call_bool(leader, "coordinate_group_movement", [group, target_pos])
+	var move_success: bool = _call_node_method_bool(leader, "coordinate_group_movement", [group, target_pos])
 	assert_true(move_success, "Group should coordinate movement")
 	
 	# Verify group is moving together
@@ -84,7 +77,7 @@ func test_group_coordination() -> void:
 		assert_true(enemy.is_moving(), "All group members should be moving")
 
 func test_leader_following() -> void:
-	var leader: Enemy = create_test_enemy("ELITE")
+	var leader: Enemy = create_test_enemy(EnemyTestType.ELITE)
 	assert_not_null(leader, "Leader should be created")
 	
 	var followers: Array[Enemy] = _create_follower_group(2)
@@ -92,7 +85,7 @@ func test_leader_following() -> void:
 	
 	# Setup following behavior
 	for follower in followers:
-		var follow_success: bool = TypeSafeMixin._safe_method_call_bool(follower, "follow_leader", [leader, FOLLOW_DISTANCE])
+		var follow_success: bool = _call_node_method_bool(follower, "follow_leader", [leader, FOLLOW_DISTANCE])
 		assert_true(follow_success, "Follower should start following leader")
 	
 	# Move leader and verify followers update
@@ -114,7 +107,7 @@ func test_group_combat_behavior() -> void:
 	
 	# Test group combat coordination
 	var leader: Enemy = group[0]
-	var combat_success: bool = TypeSafeMixin._safe_method_call_bool(leader, "coordinate_group_combat", [group, target])
+	var combat_success: bool = _call_node_method_bool(leader, "coordinate_group_combat", [group, target])
 	assert_true(combat_success, "Group should coordinate combat")
 	
 	# Verify combat states
@@ -130,12 +123,12 @@ func test_group_morale() -> void:
 	assert_not_null(leader, "Leader should be available")
 	
 	# Test morale influence
-	var base_morale: float = TypeSafeMixin._safe_method_call_float(leader, "get_morale", [])
+	var base_morale: float = _call_node_method_float(leader, "get_morale", [])
 	leader.take_damage(5) # Simulate leader taking damage
 	
 	# Verify group morale effects
 	for enemy in group:
-		var current_morale: float = TypeSafeMixin._safe_method_call_float(enemy, "get_morale", [])
+		var current_morale: float = _call_node_method_float(enemy, "get_morale", [])
 		assert_true(current_morale < base_morale,
 			"Group morale should be affected by leader damage")
 
@@ -147,7 +140,7 @@ func test_group_dispersion() -> void:
 	assert_not_null(leader, "Leader should be available")
 	
 	# Test group dispersion
-	var disperse_success: bool = TypeSafeMixin._safe_method_call_bool(leader, "disperse_group", [group, DISPERSION_RADIUS])
+	var disperse_success: bool = _call_node_method_bool(leader, "disperse_group", [group, DISPERSION_RADIUS])
 	assert_true(disperse_success, "Group should disperse")
 	
 	# Verify dispersion
@@ -165,10 +158,10 @@ func test_group_reformation() -> void:
 	assert_not_null(leader, "Leader should be available")
 	
 	# Disperse then reform group
-	var disperse_success: bool = TypeSafeMixin._safe_method_call_bool(leader, "disperse_group", [group, DISPERSION_RADIUS])
+	var disperse_success: bool = _call_node_method_bool(leader, "disperse_group", [group, DISPERSION_RADIUS])
 	assert_true(disperse_success, "Group should disperse")
 	
-	var reform_success: bool = TypeSafeMixin._safe_method_call_bool(leader, "reform_group", [group])
+	var reform_success: bool = _call_node_method_bool(leader, "reform_group", [group])
 	assert_true(reform_success, "Group should reform")
 	
 	# Verify reformation
@@ -180,7 +173,7 @@ func test_group_reformation() -> void:
 # Helper Methods
 func _create_test_group(size: int = GROUP_SIZE) -> Array[Enemy]:
 	var group: Array[Enemy] = []
-	var leader: Enemy = create_test_enemy("ELITE")
+	var leader: Enemy = create_test_enemy(EnemyTestType.ELITE)
 	if not leader:
 		push_error("Failed to create leader")
 		return group

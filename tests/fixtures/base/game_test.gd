@@ -282,7 +282,6 @@ func get_game_property(obj: Object, property: String, default_value = null):
 	var result = TypeSafeMixin._call_node_method(obj, "get_" + property, [])
 	return result if result != null else default_value
 
-func add_child_autofree(node: Node) -> Node:
+func add_child_autofree(node: Node) -> void:
 	add_child(node)
 	node.queue_free_on_exit = true
-	return node

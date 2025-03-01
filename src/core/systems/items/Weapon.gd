@@ -1,5 +1,6 @@
 @tool
 extends Resource
+class_name GameWeapon
 
 const GameEnums = preload("res://src/core/systems/GlobalEnums.gd")
 

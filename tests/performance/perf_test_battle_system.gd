@@ -70,7 +70,7 @@ func test_small_battle_performance() -> void:
     
     var metrics := await measure_performance(
         func() -> void:
-            TypeSafeMixin._safe_method_call_bool(_battle_system, "process_round", [])
+            TypeSafeMixin._call_node_method_bool(_battle_system, "process_round", [])
             await get_tree().process_frame
     )
     
@@ -82,7 +82,7 @@ func test_medium_battle_performance() -> void:
     
     var metrics := await measure_performance(
         func() -> void:
-            TypeSafeMixin._safe_method_call_bool(_battle_system, "process_round", [])
+            TypeSafeMixin._call_node_method_bool(_battle_system, "process_round", [])
             await get_tree().process_frame
     )
     
@@ -94,7 +94,7 @@ func test_large_battle_performance() -> void:
     
     var metrics := await measure_performance(
         func() -> void:
-            TypeSafeMixin._safe_method_call_bool(_battle_system, "process_round", [])
+            TypeSafeMixin._call_node_method_bool(_battle_system, "process_round", [])
             await get_tree().process_frame
     )
     
@@ -111,7 +111,7 @@ func test_battle_memory_management() -> void:
         
         # Run battle simulation
         for i in range(5):
-            TypeSafeMixin._safe_method_call_bool(_battle_system, "process_round", [])
+            TypeSafeMixin._call_node_method_bool(_battle_system, "process_round", [])
             await get_tree().process_frame
         
         # Cleanup after battle
@@ -132,7 +132,7 @@ func test_battle_stress() -> void:
     
     await stress_test(
         func() -> void:
-            TypeSafeMixin._safe_method_call_bool(_battle_system, "process_round", [])
+            TypeSafeMixin._call_node_method_bool(_battle_system, "process_round", [])
             
             # Randomly add/remove combatants
             if randf() < 0.2: # 20% chance each frame
@@ -160,7 +160,7 @@ func test_mobile_battle_performance() -> void:
     
     var metrics := await measure_performance(
         func() -> void:
-            TypeSafeMixin._safe_method_call_bool(_battle_system, "process_round", [])
+            TypeSafeMixin._call_node_method_bool(_battle_system, "process_round", [])
             await get_tree().process_frame
     )
     
@@ -194,14 +194,14 @@ func _add_character_to_battle(is_player: bool) -> void:
     
     # Setup character
     character.name = "Character_%d" % _characters.size()
-    TypeSafeMixin._safe_method_call_bool(character, "set_is_player", [is_player])
+    TypeSafeMixin._call_node_method_bool(character, "set_is_player", [is_player])
     
     # Add weapon
     var weapon: Resource = WeaponScript.new()
     if not weapon:
         push_error("Failed to create weapon")
         return
-    TypeSafeMixin._safe_method_call_bool(character, "equip_weapon", [weapon])
+    TypeSafeMixin._call_node_method_bool(character, "equip_weapon", [weapon])
     
     # Add to battle
     add_child_autofree(character)
@@ -209,5 +209,5 @@ func _add_character_to_battle(is_player: bool) -> void:
     _characters.append(character)
     _weapons.append(weapon)
     
-    TypeSafeMixin._safe_method_call_bool(_battle_system, "add_character", [character])
+    TypeSafeMixin._call_node_method_bool(_battle_system, "add_character", [character])
     await get_tree().process_frame

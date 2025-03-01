@@ -6,7 +6,6 @@ const GameEnums: GDScript = preload("res://src/core/systems/GlobalEnums.gd")
 const BattlefieldGeneratorScript: GDScript = preload("res://src/core/battle/BattlefieldGenerator.gd")
 const BattlefieldManagerScript: GDScript = preload("res://src/core/battle/BattlefieldManager.gd")
 const TerrainTypesScript: GDScript = preload("res://src/core/terrain/TerrainTypes.gd")
-const TypeSafeMixin: GDScript = preload("res://tests/fixtures/helpers/type_safe_test_mixin.gd")
 
 # Performance thresholds with explicit types
 const BATTLEFIELD_GEN_THRESHOLD: int = 100
@@ -89,7 +88,7 @@ func test_battlefield_generation_performance() -> void:
 			"objective_count": 1
 		}
 		
-		var battlefield: Node = TypeSafeMixin._safe_method_call_node(battlefield_generator, "generate_battlefield", [config])
+		var battlefield: Node = TypeSafeMixin._safe_cast_to_node(TypeSafeMixin._call_node_method(battlefield_generator, "generate_battlefield", [config]))
 		assert_not_null(battlefield, "Should generate battlefield")
 		
 		var end_time: int = Time.get_ticks_msec()
@@ -122,7 +121,7 @@ func test_terrain_update_performance() -> void:
 		"objective_count": 1
 	}
 	
-	var battlefield: Node = TypeSafeMixin._safe_method_call_node(battlefield_generator, "generate_battlefield", [config])
+	var battlefield: Node = TypeSafeMixin._safe_cast_to_node(TypeSafeMixin._call_node_method(battlefield_generator, "generate_battlefield", [config]))
 	assert_not_null(battlefield, "Should generate battlefield")
 	
 	var total_time: int = 0
@@ -131,7 +130,7 @@ func test_terrain_update_performance() -> void:
 		var start_time: int = Time.get_ticks_msec()
 		
 		# Update terrain
-		TypeSafeMixin._safe_method_call_bool(battlefield_manager, "update_terrain", [battlefield])
+		TypeSafeMixin._call_node_method_bool(battlefield_manager, "update_terrain", [battlefield])
 		
 		var end_time: int = Time.get_ticks_msec()
 		total_time += end_time - start_time
@@ -155,7 +154,7 @@ func test_line_of_sight_performance() -> void:
 		"objective_count": 1
 	}
 	
-	var battlefield: Node = TypeSafeMixin._safe_method_call_node(battlefield_generator, "generate_battlefield", [config])
+	var battlefield: Node = TypeSafeMixin._safe_cast_to_node(TypeSafeMixin._call_node_method(battlefield_generator, "generate_battlefield", [config]))
 	assert_not_null(battlefield, "Should generate battlefield")
 	
 	var total_time: int = 0
@@ -166,7 +165,7 @@ func test_line_of_sight_performance() -> void:
 		var start_time: int = Time.get_ticks_msec()
 		
 		# Check line of sight
-		TypeSafeMixin._safe_method_call_bool(battlefield_manager, "has_line_of_sight", [
+		TypeSafeMixin._call_node_method_bool(battlefield_manager, "has_line_of_sight", [
 			battlefield,
 			start_pos,
 			end_pos
@@ -194,7 +193,7 @@ func test_pathfinding_performance() -> void:
 		"objective_count": 1
 	}
 	
-	var battlefield: Node = TypeSafeMixin._safe_method_call_node(battlefield_generator, "generate_battlefield", [config])
+	var battlefield: Node = TypeSafeMixin._safe_cast_to_node(TypeSafeMixin._call_node_method(battlefield_generator, "generate_battlefield", [config]))
 	assert_not_null(battlefield, "Should generate battlefield")
 	
 	var total_time: int = 0
@@ -205,7 +204,7 @@ func test_pathfinding_performance() -> void:
 		var start_time: int = Time.get_ticks_msec()
 		
 		# Find path
-		var path: Array = TypeSafeMixin._safe_method_call_array(battlefield_manager, "find_path", [
+		var path: Array = TypeSafeMixin._call_node_method_array(battlefield_manager, "find_path", [
 			battlefield,
 			start_pos,
 			end_pos
@@ -238,7 +237,7 @@ func test_memory_usage() -> void:
 			"objective_count": 1
 		}
 		
-		var battlefield: Node = TypeSafeMixin._safe_method_call_node(battlefield_generator, "generate_battlefield", [config])
+		var battlefield: Node = TypeSafeMixin._safe_cast_to_node(TypeSafeMixin._call_node_method(battlefield_generator, "generate_battlefield", [config]))
 		assert_not_null(battlefield, "Should generate battlefield")
 		
 		var current_memory: int = OS.get_static_memory_usage()
@@ -251,3 +250,103 @@ func test_memory_usage() -> void:
 	var memory_increase: float = (peak_memory - start_memory) / 1024.0 / 1024.0 # Convert to MB
 	assert_lt(memory_increase, MEMORY_THRESHOLD_MB,
 		"Memory usage increase should be within threshold")
+
+# Battlefield Methods
+func create_empty_battlefield(size: Vector2i = Vector2i(10, 10)) -> Node:
+	var battlefield_manager = BattlefieldManagerScript.new()
+	if not battlefield_manager:
+		push_error("Failed to create battlefield manager")
+		return null
+		
+	var battlefield: Node = TypeSafeMixin._safe_cast_to_node(TypeSafeMixin._call_node_method(battlefield_manager, "create_battlefield", [size]))
+	if not battlefield:
+		push_error("Failed to create battlefield")
+		return null
+		
+	add_child_autofree(battlefield_manager)
+	track_test_node(battlefield_manager)
+	track_test_node(battlefield)
+	return battlefield
+
+func populate_battlefield(battlefield: Node, unit_count: int) -> void:
+	if not battlefield:
+		push_error("Cannot populate null battlefield")
+		return
+		
+	for i in range(unit_count):
+		var unit_node: Node = Node.new()
+		unit_node.name = "TestUnit%d" % i
+		if not unit_node:
+			push_error("Failed to create test unit")
+			continue
+			
+		var unit: Node = TypeSafeMixin._safe_cast_to_node(TypeSafeMixin._call_node_method(battlefield, "add_unit", [unit_node, Vector2i(i % 10, i / 10)]))
+		if not unit:
+			push_error("Failed to add unit to battlefield")
+			continue
+			
+		TypeSafeMixin._call_node_method_bool(unit, "set_team", [i % 2])
+		track_test_node(unit)
+
+func create_unit_array(count: int) -> Array:
+	var units := []
+	for i in range(count):
+		var unit: Node = Node.new()
+		unit.name = "TestUnit%d" % i
+		if not unit:
+			push_error("Failed to create test unit")
+			continue
+			
+		var battlefield_unit: Node = TypeSafeMixin._safe_cast_to_node(TypeSafeMixin._call_node_method(unit, "initialize", []))
+		if not battlefield_unit:
+			push_error("Failed to initialize battlefield unit")
+			continue
+			
+		add_child_autofree(battlefield_unit)
+		track_test_node(battlefield_unit)
+		units.append(battlefield_unit)
+	return units
+
+# Terrain Methods
+func create_test_terrain(type: int = 0) -> Node:
+	var terrain_system = TerrainTypesScript.new()
+	if not terrain_system:
+		push_error("Failed to create terrain system")
+		return null
+		
+	var terrain: Node = TypeSafeMixin._safe_cast_to_node(TypeSafeMixin._call_node_method(terrain_system, "create_terrain", [type]))
+	if not terrain:
+		push_error("Failed to create terrain")
+		return null
+		
+	add_child_autofree(terrain_system)
+	track_test_node(terrain_system)
+	track_test_node(terrain)
+	return terrain
+
+func populate_terrain(terrain: Node, feature_count: int) -> void:
+	if not terrain:
+		push_error("Cannot populate null terrain")
+		return
+		
+	for i in range(feature_count):
+		var terrain_feature: Array = TypeSafeMixin._call_node_method_array(terrain, "get_available_features", [])
+		if terrain_feature.is_empty():
+			push_error("No available features")
+			continue
+			
+		TypeSafeMixin._call_node_method_bool(terrain, "add_feature", [terrain_feature[0], Vector2i(i % 10, i / 10)])
+
+# Pathfinding Methods
+func create_test_pathfinding_grid(size: Vector2i = Vector2i(10, 10)) -> Node:
+	var battlefield = create_empty_battlefield(size)
+	if not battlefield:
+		push_error("Failed to create battlefield for pathfinding")
+		return null
+		
+	var pathfinding: Node = TypeSafeMixin._safe_cast_to_node(TypeSafeMixin._call_node_method(battlefield, "get_pathfinding", []))
+	if not pathfinding:
+		push_error("Failed to get pathfinding from battlefield")
+		return null
+		
+	return pathfinding

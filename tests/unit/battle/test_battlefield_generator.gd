@@ -7,7 +7,7 @@
 ## - Error boundary testing
 ## - Signal emission verification
 @tool
-extends GameTest
+extends BattleTest
 
 # Type-safe script references
 const BattlefieldGenerator: GDScript = preload("res://src/core/battle/BattlefieldGenerator.gd")
@@ -144,7 +144,7 @@ func _create_battlefield(config: Dictionary) -> BattlefieldData:
 		push_error("BattlefieldGenerator missing generate_battlefield method")
 		return null
 	
-	var battlefield_dict: Dictionary = TypeSafeMixin._safe_method_call_dict(_instance, "generate_battlefield", [config])
+	var battlefield_dict: Dictionary = TypeSafeMixin._call_node_method_dict(_instance, "generate_battlefield", [config])
 	if battlefield_dict.is_empty():
 		return null
 		
@@ -213,7 +213,7 @@ func before_each() -> void:
 	
 	# Initialize battlefield generator
 	var instance_node: Node = BattlefieldGenerator.new()
-	_instance = TypeSafeMixin._safe_cast_node(instance_node)
+	_instance = TypeSafeMixin._safe_cast_to_node(instance_node)
 	if not _instance:
 		push_error("Failed to create battlefield generator")
 		return
@@ -222,7 +222,7 @@ func before_each() -> void:
 	
 	# Initialize terrain rules
 	var terrain_rules_node: Node = TerrainRules.new()
-	_terrain_rules = TypeSafeMixin._safe_cast_node(terrain_rules_node)
+	_terrain_rules = TypeSafeMixin._safe_cast_to_node(terrain_rules_node)
 	if not _terrain_rules:
 		push_error("Failed to create terrain rules")
 		return
@@ -295,6 +295,11 @@ func test_deployment_zones() -> void:
 	# Check deployment zone separation
 	var min_distance: float = _get_min_distance_between_zones(player_zone, enemy_zone)
 	assert_gt(min_distance, 3, "Deployment zones should be separated by at least 3 tiles")
+	
+	# Test that there are clear paths between deployment zones
+	if player_zone.size() > 0 and enemy_zone.size() > 0:
+		var paths: Array[Vector2] = TypeSafeMixin._call_node_method_array(_instance, "find_clear_paths", [player_zone[0], enemy_zone[0]])
+		assert_gt(paths.size(), 0, "Should have at least one clear path between deployment zones")
 
 # Mission Type Tests
 func test_mission_specific_terrain() -> void:
@@ -347,7 +352,7 @@ func test_line_of_sight_paths() -> void:
 	
 	# Test that there are clear paths between deployment zones
 	if player_zone.size() > 0 and enemy_zone.size() > 0:
-		var paths: Array[Vector2] = TypeSafeMixin._safe_method_call_array(_instance, "find_clear_paths", [player_zone[0], enemy_zone[0]])
+		var paths: Array[Vector2] = TypeSafeMixin._call_node_method_array(_instance, "find_clear_paths", [player_zone[0], enemy_zone[0]])
 		assert_gt(paths.size(), 0, "Should have at least one clear path between deployment zones")
 
 # Terrain Effects Tests
@@ -361,24 +366,24 @@ func test_terrain_effects() -> void:
 		var feature_type: int = _get_terrain_property(feature, "type", -1)
 		match feature_type:
 			TerrainTypes.Type.COVER_HIGH:
-				var modifiers: Array[int] = TypeSafeMixin._safe_method_call_array(_terrain_rules, "get_feature_modifiers", [GameEnums.TerrainFeatureType.OBSTACLE])
+				var modifiers: Array[int] = TypeSafeMixin._call_node_method_array(_terrain_rules, "get_feature_modifiers", [GameEnums.TerrainFeatureType.OBSTACLE])
 				assert_true(GameEnums.TerrainModifier.FULL_COVER in modifiers,
 					"High cover should provide full cover")
 			
 			TerrainTypes.Type.COVER_LOW:
-				var modifiers: Array[int] = TypeSafeMixin._safe_method_call_array(_terrain_rules, "get_feature_modifiers", [GameEnums.TerrainFeatureType.COVER])
+				var modifiers: Array[int] = TypeSafeMixin._call_node_method_array(_terrain_rules, "get_feature_modifiers", [GameEnums.TerrainFeatureType.COVER])
 				assert_true(GameEnums.TerrainModifier.PARTIAL_COVER in modifiers,
 					"Low cover should provide partial cover")
 			
 			TerrainTypes.Type.HAZARD:
-				var modifiers: Array[int] = TypeSafeMixin._safe_method_call_array(_terrain_rules, "get_feature_modifiers", [GameEnums.TerrainFeatureType.HAZARD])
+				var modifiers: Array[int] = TypeSafeMixin._call_node_method_array(_terrain_rules, "get_feature_modifiers", [GameEnums.TerrainFeatureType.HAZARD])
 				assert_true(GameEnums.TerrainModifier.HAZARDOUS in modifiers,
 					"Hazard should be hazardous")
 				assert_true(GameEnums.TerrainModifier.MOVEMENT_PENALTY in modifiers,
 					"Hazard should penalize movement")
 			
 			TerrainTypes.Type.DIFFICULT:
-				var modifiers: Array[int] = TypeSafeMixin._safe_method_call_array(_terrain_rules, "get_feature_modifiers", [GameEnums.TerrainFeatureType.OBSTACLE])
+				var modifiers: Array[int] = TypeSafeMixin._call_node_method_array(_terrain_rules, "get_feature_modifiers", [GameEnums.TerrainFeatureType.OBSTACLE])
 				assert_true(GameEnums.TerrainModifier.DIFFICULT_TERRAIN in modifiers,
 					"Difficult terrain should have movement penalty")
 
@@ -394,7 +399,7 @@ func test_environment_types() -> void:
 		return
 	
 	# Check that urban environment has appropriate modifiers
-	var urban_modifiers: Array[int] = TypeSafeMixin._safe_method_call_array(_terrain_rules, "get_terrain_modifiers", [GameEnums.PlanetEnvironment.URBAN])
+	var urban_modifiers: Array[int] = TypeSafeMixin._call_node_method_array(_terrain_rules, "get_terrain_modifiers", [GameEnums.PlanetEnvironment.URBAN])
 	assert_true(GameEnums.TerrainModifier.COVER_BONUS in urban_modifiers,
 		"Urban environment should provide cover bonus")
 	assert_true(GameEnums.TerrainModifier.LINE_OF_SIGHT_BLOCKED in urban_modifiers,
@@ -406,7 +411,7 @@ func test_environment_types() -> void:
 	if not forest_battlefield:
 		push_error("Failed to create forest battlefield")
 		return
-	var forest_modifiers: Array[int] = TypeSafeMixin._safe_method_call_array(_terrain_rules, "get_terrain_modifiers", [GameEnums.PlanetEnvironment.FOREST])
+	var forest_modifiers: Array[int] = TypeSafeMixin._call_node_method_array(_terrain_rules, "get_terrain_modifiers", [GameEnums.PlanetEnvironment.FOREST])
 	assert_true(GameEnums.TerrainModifier.DIFFICULT_TERRAIN in forest_modifiers,
 		"Forest should be difficult terrain")
 	assert_true(GameEnums.TerrainModifier.COVER_BONUS in forest_modifiers,
@@ -418,7 +423,7 @@ func test_environment_types() -> void:
 	if not hazard_battlefield:
 		push_error("Failed to create hazardous battlefield")
 		return
-	var hazard_modifiers: Array[int] = TypeSafeMixin._safe_method_call_array(_terrain_rules, "get_terrain_modifiers", [GameEnums.PlanetEnvironment.HAZARDOUS])
+	var hazard_modifiers: Array[int] = TypeSafeMixin._call_node_method_array(_terrain_rules, "get_terrain_modifiers", [GameEnums.PlanetEnvironment.HAZARDOUS])
 	assert_true(GameEnums.TerrainModifier.HAZARDOUS in hazard_modifiers,
 		"Hazardous environment should be hazardous")
 	assert_true(GameEnums.TerrainModifier.MOVEMENT_PENALTY in hazard_modifiers,
@@ -453,7 +458,8 @@ func test_battlefield_size() -> void:
 	if mission is Resource:
 		track_test_resource(mission)
 	
-	var size_data: Vector2i = TypeSafeMixin._safe_method_call_vector2i(_instance, "get_battlefield_size", [mission])
+	var result = TypeSafeMixin._call_node_method(_instance, "get_battlefield_size", [mission])
+	var size_data: Vector2i = result as Vector2i
 	
 	assert_true(size_data.x > 0 and size_data.y > 0, "Battlefield should have positive dimensions")
 	assert_true(size_data.x <= DEFAULT_MAX_SIZE.x and size_data.y <= DEFAULT_MAX_SIZE.y,
@@ -556,5 +562,5 @@ func test_signals_generation_completed() -> void:
 # Error Tests
 func test_error_invalid_mission_type() -> void:
 	var mission: TestMission = _create_test_mission(-1)
-	var result: Dictionary = TypeSafeMixin._safe_method_call_dict(_instance, "generate_battlefield_for_mission", [mission])
+	var result: Dictionary = TypeSafeMixin._call_node_method_dict(_instance, "generate_battlefield_for_mission", [mission])
 	assert_true(result.is_empty(), "Invalid mission type should return empty result")

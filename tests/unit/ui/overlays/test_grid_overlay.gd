@@ -1,5 +1,5 @@
 @tool
-extends ComponentTestBase
+extends "res://tests/unit/ui/base/component_test_base.gd"
 
 const GridOverlay := preload("res://src/ui/components/grid/GridOverlay.gd")
 

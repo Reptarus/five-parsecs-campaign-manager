@@ -92,7 +92,7 @@ func test_small_group_performance() -> void:
     
     var metrics := await measure_performance(
         func() -> void:
-            TypeSafeMixin._safe_method_call_bool(_ai_system, "process_group", [_enemy_group])
+            TypeSafeMixin._call_node_method_bool(_ai_system, "process_group", [_enemy_group])
             await get_tree().process_frame
     )
     
@@ -104,7 +104,7 @@ func test_medium_group_performance() -> void:
     
     var metrics := await measure_performance(
         func() -> void:
-            TypeSafeMixin._safe_method_call_bool(_ai_system, "process_group", [_enemy_group])
+            TypeSafeMixin._call_node_method_bool(_ai_system, "process_group", [_enemy_group])
             await get_tree().process_frame
     )
     
@@ -116,7 +116,7 @@ func test_large_group_performance() -> void:
     
     var metrics := await measure_performance(
         func() -> void:
-            TypeSafeMixin._safe_method_call_bool(_ai_system, "process_group", [_enemy_group])
+            TypeSafeMixin._call_node_method_bool(_ai_system, "process_group", [_enemy_group])
             await get_tree().process_frame
     )
     
@@ -132,7 +132,7 @@ func test_massive_group_performance() -> void:
     
     var metrics := await measure_performance(
         func() -> void:
-            TypeSafeMixin._safe_method_call_bool(_ai_system, "process_group", [_enemy_group])
+            TypeSafeMixin._call_node_method_bool(_ai_system, "process_group", [_enemy_group])
             await get_tree().process_frame
     )
     
@@ -149,7 +149,7 @@ func test_group_memory_management() -> void:
         
         # Process group actions
         for i in range(5):
-            TypeSafeMixin._safe_method_call_bool(_ai_system, "process_group", [_enemy_group])
+            TypeSafeMixin._call_node_method_bool(_ai_system, "process_group", [_enemy_group])
             await get_tree().process_frame
         
         # Cleanup group
@@ -173,7 +173,7 @@ func test_group_stress() -> void:
     
     await stress_test(
         func() -> void:
-            TypeSafeMixin._safe_method_call_bool(_ai_system, "process_group", [_enemy_group])
+            TypeSafeMixin._call_node_method_bool(_ai_system, "process_group", [_enemy_group])
             
             # Randomly add/remove enemies
             if randf() < 0.2: # 20% chance each frame
@@ -200,7 +200,7 @@ func test_mobile_group_performance() -> void:
     
     var metrics := await measure_performance(
         func() -> void:
-            TypeSafeMixin._safe_method_call_bool(_ai_system, "process_group", [_enemy_group])
+            TypeSafeMixin._call_node_method_bool(_ai_system, "process_group", [_enemy_group])
             await get_tree().process_frame
     )
     

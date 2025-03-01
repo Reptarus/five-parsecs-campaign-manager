@@ -56,38 +56,38 @@ func test_disabled_state() -> void:
 
 func test_button_text() -> void:
 	var test_text := "Test Button"
-	TypeSafeMixin._safe_method_call_bool(_component, "set_text", [test_text])
+	_call_node_method_bool(_component, "set_text", [test_text])
 	
-	var button_text: String = TypeSafeMixin._safe_method_call_string(_component, "get_text", [], "")
+	var button_text: String = _call_node_method_string(_component, "get_text", [], "")
 	assert_eq(button_text, test_text, "Button text should match")
 
 func test_button_icon() -> void:
 	var test_icon := PlaceholderTexture2D.new()
 	test_icon.size = Vector2(32, 32)
-	TypeSafeMixin._safe_method_call_bool(_component, "set_icon", [test_icon])
+	_call_node_method_bool(_component, "set_icon", [test_icon])
 	
-	var button_icon: Texture2D = TypeSafeMixin._safe_method_call_resource(_component, "get_icon", [], null)
+	var button_icon: Texture2D = _call_node_method_object(_component, "get_icon", [], null) as Texture2D
 	assert_eq(button_icon, test_icon, "Button icon should match")
 
 func test_button_style() -> void:
 	var test_style := "primary"
-	TypeSafeMixin._safe_method_call_bool(_component, "set_style", [test_style])
+	_call_node_method_bool(_component, "set_style", [test_style])
 	
-	var button_style: String = TypeSafeMixin._safe_method_call_string(_component, "get_style", [], "")
+	var button_style: String = _call_node_method_string(_component, "get_style", [], "")
 	assert_eq(button_style, test_style, "Button style should match")
 
 func test_button_size() -> void:
 	var test_size := "large"
-	TypeSafeMixin._safe_method_call_bool(_component, "set_size", [test_size])
+	_call_node_method_bool(_component, "set_size", [test_size])
 	
-	var button_size: String = TypeSafeMixin._safe_method_call_string(_component, "get_size", [], "")
+	var button_size: String = _call_node_method_string(_component, "get_size", [], "")
 	assert_eq(button_size, test_size, "Button size should match")
 
 func test_button_tooltip() -> void:
 	var test_tooltip := "Test Tooltip"
-	TypeSafeMixin._safe_method_call_bool(_component, "set_tooltip", [test_tooltip])
+	_call_node_method_bool(_component, "set_tooltip", [test_tooltip])
 	
-	var button_tooltip: String = TypeSafeMixin._safe_method_call_string(_component, "get_tooltip", [], "")
+	var button_tooltip: String = _call_node_method_string(_component, "get_tooltip", [], "")
 	assert_eq(button_tooltip, test_tooltip, "Button tooltip should match")
 
 # Add inherited component tests

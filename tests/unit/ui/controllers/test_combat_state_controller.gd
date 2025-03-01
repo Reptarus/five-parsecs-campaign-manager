@@ -26,10 +26,16 @@ func _reset_signals() -> void:
 	last_verification_data.clear()
 
 func _connect_signals() -> void:
-	_controller.verification_updated.connect(func(data: Dictionary):
-		verification_updated_signal_emitted = true
-		last_verification_data = data.duplicate()
-	)
+	if _controller:
+		_controller.verification_updated.connect(_on_verification_updated)
+		_controller.verification_completed.connect(_on_verification_completed)
+
+func _on_verification_updated(verification_data: Dictionary) -> void:
+	verification_updated_signal_emitted = true
+	last_verification_data = verification_data
+
+func _on_verification_completed() -> void:
+	pass
 
 func _get_test_data(type: int) -> Dictionary:
 	match type:
@@ -52,15 +58,15 @@ func test_initialization() -> void:
 	assert_not_null(_controller, "State verification controller should be initialized")
 	assert_true(_controller.has_method("request_verification"), "Should have request_verification method")
 	
-	var rules: Dictionary = TypeSafeMixin._safe_method_call_dict(_controller, "get_verification_rules", [], {})
-	var auto_verify: bool = TypeSafeMixin._safe_method_call_bool(_controller, "get_auto_verify", [], false)
+	var rules: Dictionary = TypeSafeMixin._call_node_method_dict(_controller, "get_verification_rules", [])
+	var auto_verify: bool = TypeSafeMixin._call_node_method_bool(_controller, "get_auto_verify", [])
 	
 	assert_true(rules.size() > 0, "Should have default verification rules")
 	assert_false(auto_verify, "Should start with auto verify disabled")
 
 # Rule Management Tests
 func test_verification_rules() -> void:
-	var rules: Dictionary = TypeSafeMixin._safe_method_call_dict(_controller, "get_verification_rules", [], {})
+	var rules: Dictionary = TypeSafeMixin._call_node_method_dict(_controller, "get_verification_rules", [])
 	
 	var has_combat: bool = rules.has(GameEnums.VerificationType.COMBAT)
 	var has_state: bool = rules.has(GameEnums.VerificationType.STATE)
@@ -79,46 +85,46 @@ func test_add_verification_rule() -> void:
 		"error_message": "Test error"
 	}
 	
-	var result: bool = TypeSafeMixin._safe_method_call_bool(
+	var result: bool = TypeSafeMixin._call_node_method_bool(
 		_controller,
 		"add_verification_rule",
 		[GameEnums.VerificationType.RULES, test_rule]
 	)
 	assert_true(result, "Should successfully add rule")
 	
-	var rules: Dictionary = TypeSafeMixin._safe_method_call_dict(_controller, "get_verification_rules", [], {})
+	var rules: Dictionary = TypeSafeMixin._call_node_method_dict(_controller, "get_verification_rules", [])
 	assert_true(rules.has(GameEnums.VerificationType.RULES), "Should have rules rule")
 
 func test_remove_verification_rule() -> void:
-	var result: bool = TypeSafeMixin._safe_method_call_bool(
+	var result: bool = TypeSafeMixin._call_node_method_bool(
 		_controller,
 		"remove_verification_rule",
 		[GameEnums.VerificationType.COMBAT]
 	)
 	assert_true(result, "Should successfully remove rule")
 	
-	var rules: Dictionary = TypeSafeMixin._safe_method_call_dict(_controller, "get_verification_rules", [], {})
+	var rules: Dictionary = TypeSafeMixin._call_node_method_dict(_controller, "get_verification_rules", [])
 	assert_false(rules.has(GameEnums.VerificationType.COMBAT), "Should not have combat rule")
 
 func test_verification_request() -> void:
 	var test_data: Dictionary = _get_test_data(GameEnums.VerificationType.COMBAT)
-	var result: bool = TypeSafeMixin._safe_method_call_bool(_controller, "request_verification", [test_data])
+	var result: bool = TypeSafeMixin._call_node_method_bool(_controller, "request_verification", [test_data])
 	
 	assert_true(result, "Should successfully request verification")
 	assert_true(verification_updated_signal_emitted, "Should emit verification updated signal")
 	assert_eq(last_verification_data.type, GameEnums.VerificationType.COMBAT, "Should pass correct verification type")
 
 func test_auto_verify_toggle() -> void:
-	var result: bool = TypeSafeMixin._safe_method_call_bool(_controller, "set_auto_verify", [true])
+	var result: bool = TypeSafeMixin._call_node_method_bool(_controller, "set_auto_verify", [true])
 	assert_true(result, "Should successfully enable auto verify")
 	
-	var auto_verify: bool = TypeSafeMixin._safe_method_call_bool(_controller, "get_auto_verify", [], false)
+	var auto_verify: bool = TypeSafeMixin._call_node_method_bool(_controller, "get_auto_verify", [])
 	assert_true(auto_verify, "Auto verify should be enabled")
 	
-	result = TypeSafeMixin._safe_method_call_bool(_controller, "set_auto_verify", [false])
+	result = TypeSafeMixin._call_node_method_bool(_controller, "set_auto_verify", [false])
 	assert_true(result, "Should successfully disable auto verify")
 	
-	auto_verify = TypeSafeMixin._safe_method_call_bool(_controller, "get_auto_verify", [], true)
+	auto_verify = TypeSafeMixin._call_node_method_bool(_controller, "get_auto_verify", [])
 	assert_false(auto_verify, "Auto verify should be disabled")
 
 # Add inherited controller tests
@@ -135,10 +141,10 @@ func test_controller_state() -> void:
 	await super.test_controller_state()
 	
 	# Additional StateVerificationController-specific state tests
-	var rules: Dictionary = TypeSafeMixin._safe_method_call_dict(_controller, "get_verification_rules", [], {})
+	var rules: Dictionary = TypeSafeMixin._call_node_method_dict(_controller, "get_verification_rules", [])
 	assert_true(rules.size() > 0, "Should have default verification rules")
 	
-	var auto_verify: bool = TypeSafeMixin._safe_method_call_bool(_controller, "get_auto_verify", [], false)
+	var auto_verify: bool = TypeSafeMixin._call_node_method_bool(_controller, "get_auto_verify", [])
 	assert_false(auto_verify, "Should start with auto verify disabled")
 
 func test_controller_signals() -> void:

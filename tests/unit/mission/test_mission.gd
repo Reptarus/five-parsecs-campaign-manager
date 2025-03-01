@@ -1,5 +1,5 @@
 @tool
-extends "res://tests/fixtures/base/base_test.gd"
+extends GameTest
 
 ## Mission System Unit Tests
 ##
@@ -11,8 +11,7 @@ extends "res://tests/fixtures/base/base_test.gd"
 ## - Performance under stress conditions
 ## - Signal handling and state transitions
 
-const Mission = preload("res://src/core/systems/Mission.gd")
-const GameEnums = preload("res://src/core/systems/GlobalEnums.gd")
+const Mission = preload("res://src/core/mission/base/mission.gd")
 const TEST_SAVE_PATH := "user://test_mission_save.tres"
 
 # Helper variables
@@ -21,9 +20,11 @@ var _received_signals: Array[String] = []
 
 # Helper methods
 func _connect_mission_signals() -> void:
-	_mission.objective_completed.connect(_on_objective_completed)
-	_mission.mission_completed.connect(_on_mission_completed)
-	_mission.mission_failed.connect(_on_mission_failed)
+	var mission_object = _mission as Object
+	if mission_object:
+		TypeSafeMixin._safe_connect(mission_object, "objective_completed", _on_objective_completed)
+		TypeSafeMixin._safe_connect(mission_object, "mission_completed", _on_mission_completed)
+		TypeSafeMixin._safe_connect(mission_object, "mission_failed", _on_mission_failed)
 
 func _on_objective_completed(index: int) -> void:
 	_received_signals.append("objective_completed")

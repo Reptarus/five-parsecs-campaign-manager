@@ -1,13 +1,12 @@
 @tool
 class_name CampaignMissionGenerator
-extends RefCounted
+extends MissionGenerator
 
 ## Campaign-specific mission generator for Five Parsecs.
 ## This class handles the generation of campaign missions, including
 ## story quests, random encounters, and special events.
 ##
-## This implementation is specific to the Five Parsecs campaign system
-## and should be used instead of the generic mission generator.
+## This implementation extends the core MissionGenerator with campaign-specific functionality.
 
 const GameEnums := preload("res://src/core/systems/GlobalEnums.gd")
 const _StoryQuestScript := preload("res://src/core/story/StoryQuestData.gd")
@@ -19,10 +18,16 @@ var world_manager: FiveParsecsWorldManager
 var mission_templates: Dictionary = {}
 var expanded_missions: Dictionary = {}
 
+# Campaign-specific constants and variables
+var campaign_mission_types: Array[int] = []
+var last_generated_mission: StoryQuestData = null
+
 func _init(state: GameState, world: FiveParsecsWorldManager) -> void:
+	super(state, world)
 	game_state = state
 	world_manager = world
 	_load_mission_templates()
+	_load_campaign_missions()
 
 func _load_mission_templates() -> void:
 	var mission_data: Dictionary = load_json_file("res://data/mission_templates.json")
@@ -35,21 +40,103 @@ func _load_mission_templates() -> void:
 	if expanded_data:
 		expanded_missions = expanded_data
 
-func generate_mission(mission_type: int, config: Dictionary = {}) -> Object:
-	var mission = _StoryQuestScript.new()
-	var template := _get_mission_template(mission_type)
+## Load campaign-specific missions
+func _load_campaign_missions() -> void:
+	var campaign_data: Dictionary = load_json_file("res://data/campaign_missions.json")
+	if not campaign_data.is_empty():
+		for mission_key in campaign_data:
+			if not mission_templates.has(mission_key):
+				mission_templates[mission_key] = campaign_data[mission_key]
 	
-	if not template:
-		push_error("No template found for mission type: %d" % mission_type)
+	# Initialize the campaign mission types list
+	_update_available_mission_types()
+
+## Get available mission types for the current campaign state
+func get_available_mission_types() -> Array[int]:
+	return campaign_mission_types
+
+## Update the list of available mission types based on campaign state
+func _update_available_mission_types() -> void:
+	campaign_mission_types.clear()
+	
+	# Add all mission types that meet the requirements
+	for mission_type in GameEnums.MissionType.values():
+		if _check_mission_requirements(mission_type):
+			campaign_mission_types.append(mission_type)
+
+## Check if mission requirements are met in the current campaign state
+func _check_mission_requirements(mission_type: int) -> bool:
+	var template := _get_mission_template(mission_type)
+	if template.is_empty():
+		return false
+	
+	# Check reputation requirement
+	var required_rep = template.get("required_reputation", 0)
+	if required_rep > game_state.get_crew_reputation():
+		return false
+	
+	# Check location requirement
+	var required_location = template.get("required_location_type", -1)
+	if required_location != -1 and required_location != world_manager.get_current_location_type():
+		return false
+	
+	# Check story progression requirement
+	var required_story_progress = template.get("required_story_progress", -1)
+	if required_story_progress != -1 and required_story_progress > game_state.get_story_progress():
+		return false
+	
+	return true
+
+## Generate a random campaign mission
+func generate_random_mission() -> StoryQuestData:
+	if campaign_mission_types.is_empty():
+		_update_available_mission_types()
+	
+	if campaign_mission_types.is_empty():
+		push_error("No available mission types for current campaign state")
 		return null
 	
-	_configure_mission(mission, template, config)
-	_apply_difficulty_modifiers(mission, config.get("difficulty", GameEnums.DifficultyLevel.NORMAL))
-	_generate_objectives(mission, template)
-	_generate_rewards(mission, template)
-	_apply_location_effects(mission, config.get("location", null))
+	var random_index := randi() % campaign_mission_types.size()
+	var random_mission_type: int = campaign_mission_types[random_index]
 	
+	last_generated_mission = generate_mission(random_mission_type)
+	return last_generated_mission
+
+## Generate a specific campaign mission with additional campaign-specific configuration
+func generate_campaign_mission(mission_type: int, campaign_config: Dictionary = {}) -> StoryQuestData:
+	var mission := super.generate_mission(mission_type, campaign_config)
+	
+	# Apply campaign-specific modifications
+	if mission and campaign_config.has("campaign_faction"):
+		_apply_faction_effects(mission, campaign_config.get("campaign_faction"))
+	
+	last_generated_mission = mission
 	return mission
+
+## Apply faction-specific effects to a mission
+func _apply_faction_effects(mission: StoryQuestData, faction_id: String) -> void:
+	var faction_data = game_state.get_faction_data(faction_id)
+	if not faction_data:
+		return
+	
+	# Apply faction-specific modifiers
+	var relation_level = game_state.get_faction_relation(faction_id)
+	
+	match relation_level:
+		0: # HOSTILE
+			mission.enemy_count += 2
+			mission.risk_level += 1
+		1: # UNFRIENDLY
+			mission.enemy_count += 1
+		2: # FRIENDLY
+			mission.reward_credits *= 1.1
+		3: # ALLIED
+			mission.reward_credits *= 1.2
+			mission.reward_reputation += 1
+
+## Override the parent method to ensure proper return type
+func generate_mission(mission_type: int, config: Dictionary = {}) -> StoryQuestData:
+	return super.generate_mission(mission_type, config)
 
 func _get_mission_template(mission_type: int) -> Dictionary:
 	var template_key: String = GameEnums.MissionType.keys()[mission_type]

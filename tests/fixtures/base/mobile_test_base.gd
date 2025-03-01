@@ -206,7 +206,6 @@ func create_test_game_state() -> Node:
 	return state
 
 # Mobile-specific test utilities
-func add_child_autofree(node: Node) -> Node:
+func add_child_autofree(node: Node) -> void:
 	add_child(node)
 	node.queue_free_on_exit = true
-	return node

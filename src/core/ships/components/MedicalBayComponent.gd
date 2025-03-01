@@ -1,5 +1,6 @@
 # Scripts/ShipAndCrew/MedicalBayComponent.gd
 extends ShipComponent
+class_name MedicalBayComponent
 
 @export var healing_rate: float = 1.0
 @export var capacity: int = 2

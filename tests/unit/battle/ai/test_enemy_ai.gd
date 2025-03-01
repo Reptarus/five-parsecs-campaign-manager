@@ -47,7 +47,7 @@ func before_each() -> void:
 	if not _ai_manager:
 		push_error("Failed to create AI manager")
 		return
-	TypeSafeMixin._safe_method_call_bool(_ai_manager, "initialize", [_battlefield_manager, _combat_manager])
+	TypeSafeMixin._call_node_method_bool(_ai_manager, "initialize", [_battlefield_manager, _combat_manager])
 	add_child_autofree(_ai_manager)
 	track_test_node(_ai_manager)
 	
@@ -55,7 +55,7 @@ func before_each() -> void:
 	if not _tactical_ai:
 		push_error("Failed to create tactical AI")
 		return
-	TypeSafeMixin._safe_method_call_bool(_tactical_ai, "initialize", [_ai_manager])
+	TypeSafeMixin._call_node_method_bool(_tactical_ai, "initialize", [_ai_manager])
 	add_child_autofree(_tactical_ai)
 	track_test_node(_tactical_ai)
 	
@@ -75,7 +75,7 @@ func test_ai_initialization() -> void:
 	assert_not_null(_ai_manager, "AI manager should be initialized")
 	assert_not_null(_tactical_ai, "Tactical AI should be initialized")
 	
-	var is_active: bool = TypeSafeMixin._safe_method_call_bool(_ai_manager, "is_active", [])
+	var is_active: bool = TypeSafeMixin._call_node_method_bool(_ai_manager, "is_active", [])
 	assert_true(is_active, "AI should be active after initialization")
 
 # Target Selection Tests
@@ -87,7 +87,7 @@ func test_target_selection() -> void:
 	var player_unit := _create_test_unit(true)
 	
 	# Test target selection
-	var target: Node = TypeSafeMixin._safe_method_call_node(_ai_manager, "select_target", [enemy_unit])
+	var target: Node = TypeSafeMixin._safe_cast_to_node(TypeSafeMixin._call_node_method(_ai_manager, "select_target", [enemy_unit]))
 	assert_eq(target, player_unit, "Should select player unit as target")
 	verify_signal_emitted(_ai_manager, "target_selected")
 
@@ -97,9 +97,9 @@ func test_movement_decisions() -> void:
 	
 	var unit := _create_test_unit(false)
 	var current_pos := Vector2(5, 5)
-	TypeSafeMixin._safe_method_call_bool(unit, "set_position", [current_pos])
+	TypeSafeMixin._call_node_method_bool(unit, "set_position", [current_pos])
 	
-	var move_decision: Dictionary = TypeSafeMixin._safe_method_call_dict(_tactical_ai, "evaluate_movement", [unit])
+	var move_decision: Dictionary = TypeSafeMixin._call_node_method_dict(_tactical_ai, "evaluate_movement", [unit])
 	assert_not_null(move_decision, "Should generate movement decision")
 	assert_true(move_decision.has("position"), "Decision should include target position")
 	verify_signal_emitted(_tactical_ai, "movement_evaluated")
@@ -109,9 +109,9 @@ func test_combat_behavior() -> void:
 	watch_signals(_ai_manager)
 	
 	var unit := _create_test_unit(false)
-	TypeSafeMixin._safe_method_call_bool(unit, "set_combat_state", [GameEnums.UnitState.ENGAGED])
+	TypeSafeMixin._call_node_method_bool(unit, "set_combat_state", [GameEnums.UnitState.ENGAGED])
 	
-	var behavior: Dictionary = TypeSafeMixin._safe_method_call_dict(_ai_manager, "evaluate_combat_behavior", [unit])
+	var behavior: Dictionary = TypeSafeMixin._call_node_method_dict(_ai_manager, "evaluate_combat_behavior", [unit])
 	assert_not_null(behavior, "Should generate combat behavior")
 	assert_true(behavior.has("action"), "Behavior should include action")
 	verify_signal_emitted(_ai_manager, "behavior_evaluated")
@@ -121,7 +121,7 @@ func test_tactical_analysis() -> void:
 	watch_signals(_tactical_ai)
 	
 	var unit := _create_test_unit(false)
-	var analysis: Dictionary = TypeSafeMixin._safe_method_call_dict(_tactical_ai, "analyze_tactical_situation", [unit])
+	var analysis: Dictionary = TypeSafeMixin._call_node_method_dict(_tactical_ai, "analyze_tactical_situation", [unit])
 	
 	assert_not_null(analysis, "Should generate tactical analysis")
 	assert_true(analysis.has("threat_level"), "Analysis should include threat level")
@@ -134,7 +134,7 @@ func test_ai_performance() -> void:
 	var start_time := Time.get_ticks_msec()
 	
 	for unit in units:
-		TypeSafeMixin._safe_method_call_dict(_ai_manager, "process_unit_ai", [unit])
+		TypeSafeMixin._call_node_method_dict(_ai_manager, "process_unit_ai", [unit])
 	
 	var duration := Time.get_ticks_msec() - start_time
 	assert_true(duration < 1000, "AI processing should complete within 1 second")
@@ -144,14 +144,14 @@ func test_error_handling() -> void:
 	watch_signals(_ai_manager)
 	
 	# Test null unit
-	var result: Dictionary = TypeSafeMixin._safe_method_call_dict(_ai_manager, "process_unit_ai", [null])
+	var result: Dictionary = TypeSafeMixin._call_node_method_dict(_ai_manager, "process_unit_ai", [null])
 	assert_false(result.has("action"), "Should handle null unit gracefully")
 	verify_signal_not_emitted(_ai_manager, "behavior_evaluated")
 	
 	# Test invalid state
 	var unit := _create_test_unit(false)
-	TypeSafeMixin._safe_method_call_bool(unit, "set_combat_state", [-1])
-	result = TypeSafeMixin._safe_method_call_dict(_ai_manager, "process_unit_ai", [unit])
+	TypeSafeMixin._call_node_method_bool(unit, "set_combat_state", [-1])
+	result = TypeSafeMixin._call_node_method_dict(_ai_manager, "process_unit_ai", [unit])
 	assert_true(result.has("error"), "Should handle invalid state")
 
 # Helper Methods
@@ -160,7 +160,7 @@ func _create_test_unit(is_player: bool) -> Node:
 	if not unit:
 		push_error("Failed to create test unit")
 		return null
-	TypeSafeMixin._safe_method_call_bool(unit, "set_is_player", [is_player])
+	TypeSafeMixin._call_node_method_bool(unit, "set_is_player", [is_player])
 	add_child_autofree(unit)
 	track_test_node(unit)
 	return unit

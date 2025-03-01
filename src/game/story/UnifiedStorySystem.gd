@@ -8,7 +8,7 @@ const FiveParsecsGameState = preload("res://src/core/state/GameState.gd")
 const Character = preload("res://src/core/character/Management/CharacterDataManager.gd")
 const Mission = preload("res://src/core/systems/Mission.gd")
 const StoryQuestData = preload("res://src/core/story/StoryQuestData.gd")
-const FiveParsecsLocation = preload("res://src/core/world/Location.gd")
+const GameLocation = preload("res://src/game/world/Location.gd")
 const SaveManager = preload("res://src/core/state/SaveManager.gd")
 
 ## Emitted when a story event is triggered
@@ -295,7 +295,7 @@ func _create_related_quest(event: StoryQuestData) -> StoryQuestData:
 	if not event:
 		return null
 		
-	var quest := StoryQuestData.new()
+	var quest = StoryQuestData.new()
 	
 	# Set quest properties based on event type
 	match event.event_type:
@@ -349,28 +349,28 @@ func _setup_tech_breakthrough_quest(quest: StoryQuestData) -> void:
 
 ## Create a market crash event
 func _create_market_crash_event() -> StoryQuestData:
-	var event := StoryQuestData.new()
+	var event = StoryQuestData.new()
 	event.event_type = GameEnums.GlobalEvent.MARKET_CRASH
 	event.description = "Economic instability has caused a market crash!"
 	return event
 
 ## Create an alien invasion event
 func _create_alien_invasion_event() -> StoryQuestData:
-	var event := StoryQuestData.new()
+	var event = StoryQuestData.new()
 	event.event_type = GameEnums.GlobalEvent.ALIEN_INVASION
 	event.description = "Hostile alien forces have been detected!"
 	return event
 
 ## Create a tech breakthrough event
 func _create_tech_breakthrough_event() -> StoryQuestData:
-	var event := StoryQuestData.new()
+	var event = StoryQuestData.new()
 	event.event_type = GameEnums.GlobalEvent.TECH_BREAKTHROUGH
 	event.description = "A significant technological advancement has been made!"
 	return event
 
 ## Create a generic event based on type
 func _create_generic_event(event_type: int) -> StoryQuestData:
-	var event := StoryQuestData.new()
+	var event = StoryQuestData.new()
 	event.event_type = event_type
 	event.description = "A significant event has occurred!"
 	return event
@@ -454,7 +454,7 @@ func _apply_special_reward(effect: String) -> void:
 
 ## Generate a special quest
 func _generate_special_quest() -> StoryQuestData:
-	var quest := StoryQuestData.new()
+	var quest = StoryQuestData.new()
 	quest.quest_type = GameEnums.QuestType.STORY
 	quest.story_point_reward = 5
 	return quest

@@ -1,5 +1,5 @@
 @tool
-extends ControllerTestBase
+extends "res://tests/unit/ui/base/controller_test_base.gd"
 
 const TestedClass := preload("res://src/core/battle/state/BattleStateMachine.gd")
 const Character := preload("res://src/core/battle/BattleCharacter.gd")

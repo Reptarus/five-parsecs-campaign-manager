@@ -26,14 +26,14 @@ func after_each() -> void:
 func test_initialization() -> void:
     assert_not_null(component, "Ship component should be initialized")
     
-    var name: String = TypeSafeMixin._safe_method_call_string(component, "get_name", [], "")
-    var description: String = TypeSafeMixin._safe_method_call_string(component, "get_description", [], "")
-    var cost: int = TypeSafeMixin._safe_method_call_int(component, "get_cost", [], 0)
-    var power_draw: int = TypeSafeMixin._safe_method_call_int(component, "get_power_draw", [], 0)
-    var level: int = TypeSafeMixin._safe_method_call_int(component, "get_level", [], 0)
-    var durability: int = TypeSafeMixin._safe_method_call_int(component, "get_durability", [], 0)
-    var efficiency: float = TypeSafeMixin._safe_method_call_float(component, "get_efficiency", [], 0.0)
-    var is_active: bool = TypeSafeMixin._safe_method_call_bool(component, "is_active", [], false)
+    var name: String = TypeSafeMixin._safe_cast_to_string(TypeSafeMixin._call_node_method(component, "get_name", []))
+    var description: String = TypeSafeMixin._safe_cast_to_string(TypeSafeMixin._call_node_method(component, "get_description", []))
+    var cost: int = TypeSafeMixin._call_node_method_int(component, "get_cost", [])
+    var power_draw: int = TypeSafeMixin._call_node_method_int(component, "get_power_draw", [])
+    var level: int = TypeSafeMixin._call_node_method_int(component, "get_level", [])
+    var durability: int = TypeSafeMixin._call_node_method_int(component, "get_durability", [])
+    var efficiency: float = TypeSafeMixin._safe_cast_float(TypeSafeMixin._call_node_method(component, "get_efficiency", []))
+    var is_active: bool = TypeSafeMixin._call_node_method_bool(component, "is_active", [])
     
     assert_ne(name, "", "Should initialize with a name")
     assert_ne(description, "", "Should initialize with a description")

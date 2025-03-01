@@ -6,7 +6,7 @@ extends "res://tests/fixtures/base/game_test.gd"
 ## @class TestMissionTemplate
 ## @description Verifies core functionality of the mission template system
 
-const MissionTemplate := preload("res://src/core/systems/MissionTemplate.gd")
+const MissionTemplate := preload("res://src/core/templates/MissionTemplate.gd")
 
 var template: MissionTemplate
 
@@ -25,8 +25,7 @@ func create_valid_params() -> Dictionary:
 func before_each() -> void:
 	super.before_each()
 	template = MissionTemplate.new()
-	add_child(template)
-	track_test_node(template)
+	track_test_resource(template)
 
 func after_each() -> void:
 	super.after_each()

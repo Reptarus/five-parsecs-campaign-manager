@@ -1,5 +1,5 @@
 @tool
-extends ControllerTestBase
+extends "res://tests/unit/ui/base/controller_test_base.gd"
 
 const TestedClass := preload("res://src/ui/components/combat/overrides/override_controller.gd")
 

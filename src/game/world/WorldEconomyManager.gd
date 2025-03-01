@@ -1,5 +1,9 @@
-class_name FiveParsecsWorldEconomyManager
+@tool
 extends Node
+
+## Economy in Five Parsecs from Home
+## - Trade activities are conducted via missions
+## - For item prices, main rules state "normal price per item"
 
 signal economy_updated
 signal transaction_completed(amount: int, type: String)
@@ -8,8 +12,8 @@ var _current_credits: int = 0
 var _transaction_history: Array = []
 
 const GameEnums = preload("res://src/core/systems/GlobalEnums.gd")
-const FiveParsecsPlanet = preload("res://src/core/world/Planet.gd")
-const FiveParsecsLocation = preload("res://src/core/world/Location.gd")
+const GamePlanet = preload("res://src/game/world/Planet.gd")
+const GameLocation = preload("res://src/game/world/Location.gd")
 
 func _init() -> void:
 	_current_credits = 1000 # Starting credits
@@ -26,7 +30,7 @@ func add_credits(amount: int) -> void:
 func remove_credits(amount: int) -> bool:
 	if amount > 0 and _current_credits >= amount:
 		_current_credits -= amount
-		_record_transaction(-amount, "debit")
+		_record_transaction(- amount, "debit")
 		economy_updated.emit()
 		return true
 	return false

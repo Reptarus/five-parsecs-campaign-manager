@@ -1,9 +1,7 @@
 @tool
-extends "res://tests/fixtures/specialized/enemy_test_base.gd"
+extends EnemyTest
 
-# Required type declarations
-const Enemy: GDScript = preload("res://src/core/battle/enemy/Enemy.gd")
-const EnemyData: GDScript = preload("res://src/core/rivals/EnemyData.gd")
+# These are already declared in the parent class - no need to redeclare
 
 ## Core enemy functionality tests
 ##
@@ -14,7 +12,7 @@ const EnemyData: GDScript = preload("res://src/core/rivals/EnemyData.gd")
 const TEST_ENEMY_DATA = {
 	"id": "test_enemy",
 	"name": "Test Enemy",
-	"type": GameEnums.EnemyType.STANDARD,
+	"type": GameEnums.EnemyType.RAIDERS,
 	"health": 100,
 	"armor": 0,
 	"movement": 6,
@@ -41,7 +39,6 @@ func before_each() -> void:
 		return
 	
 	add_child_autofree(_test_target)
-	track_test_node(_test_target)
 	
 	await stabilize_engine(STABILIZE_TIME)
 
@@ -80,37 +77,37 @@ func test_enemy_combat() -> void:
 
 # Health System Tests
 func test_enemy_health_system() -> void:
-	var enemy := create_test_enemy("BOSS") as Enemy
+	var enemy := create_test_enemy(EnemyTestType.BOSS) as Enemy
 	assert_not_null(enemy, "Should create boss enemy")
 	add_child_autofree(enemy)
 	
-	var initial_health: float = enemy.get_health()
+	var initial_health: float = TypeSafeMixin._safe_cast_float(TypeSafeMixin._call_node_method(enemy, "get_health", []))
 	
 	# Test damage
 	watch_signals(enemy)
-	enemy.take_damage(50.0)
+	TypeSafeMixin._call_node_method_bool(enemy, "take_damage", [50.0])
 	
-	var current_health: float = enemy.get_health()
+	var current_health: float = TypeSafeMixin._safe_cast_float(TypeSafeMixin._call_node_method(enemy, "get_health", []))
 	assert_eq(current_health, initial_health - 50.0, "Health should be reduced by damage")
 	verify_signal_emitted(enemy, "health_changed")
 	
 	# Test healing
 	watch_signals(enemy)
-	enemy.heal(20.0)
+	TypeSafeMixin._call_node_method_bool(enemy, "heal", [20.0])
 	
-	current_health = enemy.get_health()
+	current_health = TypeSafeMixin._safe_cast_float(TypeSafeMixin._call_node_method(enemy, "get_health", []))
 	assert_eq(current_health, initial_health - 30.0, "Health should be increased by healing")
 	verify_signal_emitted(enemy, "health_changed")
 
 func test_enemy_death() -> void:
-	var enemy := create_test_enemy("BOSS") as Enemy
+	var enemy := create_test_enemy(EnemyTestType.BOSS) as Enemy
 	assert_not_null(enemy, "Should create boss enemy")
 	add_child_autofree(enemy)
 	
 	watch_signals(enemy)
-	enemy.take_damage(1000.0)
+	TypeSafeMixin._call_node_method_bool(enemy, "take_damage", [1000.0])
 	
-	var current_health: float = enemy.get_health()
+	var current_health: float = TypeSafeMixin._safe_cast_float(TypeSafeMixin._call_node_method(enemy, "get_health", []))
 	assert_eq(current_health, 0.0, "Health should not go below 0")
 	verify_signal_emitted(enemy, "died")
 
@@ -122,42 +119,42 @@ func test_enemy_turn_system() -> void:
 	
 	# Start turn
 	watch_signals(enemy)
-	TypeSafeMixin._safe_method_call_bool(enemy, "start_turn", [])
+	TypeSafeMixin._call_node_method_bool(enemy, "start_turn", [])
 	
-	assert_true(TypeSafeMixin._safe_method_call_bool(enemy, "is_active", []),
+	assert_true(TypeSafeMixin._call_node_method_bool(enemy, "is_active", []),
 		"Enemy should be active after turn start")
-	assert_true(TypeSafeMixin._safe_method_call_bool(enemy, "can_move", []),
+	assert_true(TypeSafeMixin._call_node_method_bool(enemy, "can_move", []),
 		"Enemy should be able to move after turn start")
 	verify_signal_emitted(enemy, "turn_started")
 	
 	# End turn
 	watch_signals(enemy)
-	TypeSafeMixin._safe_method_call_bool(enemy, "end_turn", [])
+	TypeSafeMixin._call_node_method_bool(enemy, "end_turn", [])
 	
-	assert_false(TypeSafeMixin._safe_method_call_bool(enemy, "is_active", []),
+	assert_false(TypeSafeMixin._call_node_method_bool(enemy, "is_active", []),
 		"Enemy should not be active after turn end")
-	assert_false(TypeSafeMixin._safe_method_call_bool(enemy, "can_move", []),
+	assert_false(TypeSafeMixin._call_node_method_bool(enemy, "can_move", []),
 		"Enemy should not be able to move after turn end")
 	verify_signal_emitted(enemy, "turn_ended")
 
 # Combat Rating Tests
 func test_enemy_combat_rating() -> void:
-	var enemy: Enemy = create_test_enemy("ELITE")
+	var enemy: Enemy = create_test_enemy(EnemyTestType.ELITE)
 	assert_not_null(enemy, "Should create elite enemy")
 	add_child_autofree(enemy)
 	
-	var initial_rating: float = TypeSafeMixin._safe_method_call_float(enemy, "get_combat_rating", [])
+	var initial_rating: float = TypeSafeMixin._safe_cast_float(TypeSafeMixin._call_node_method(enemy, "get_combat_rating", []))
 	
 	# Test rating with damage
-	TypeSafeMixin._safe_method_call_bool(enemy, "take_damage", [75.0]) # 50% health remaining
-	var damaged_rating: float = TypeSafeMixin._safe_method_call_float(enemy, "get_combat_rating", [])
+	TypeSafeMixin._call_node_method_bool(enemy, "take_damage", [75.0]) # 50% health remaining
+	var damaged_rating: float = TypeSafeMixin._safe_cast_float(TypeSafeMixin._call_node_method(enemy, "get_combat_rating", []))
 	
 	assert_true(damaged_rating < initial_rating,
 		"Combat rating should decrease with damage")
 	
 	# Test rating with healing
-	TypeSafeMixin._safe_method_call_bool(enemy, "heal", [75.0]) # Back to full health
-	var healed_rating: float = TypeSafeMixin._safe_method_call_float(enemy, "get_combat_rating", [])
+	TypeSafeMixin._call_node_method_bool(enemy, "heal", [75.0]) # Back to full health
+	var healed_rating: float = TypeSafeMixin._safe_cast_float(TypeSafeMixin._call_node_method(enemy, "get_combat_rating", []))
 	
 	assert_eq(healed_rating, initial_rating,
 		"Combat rating should return to initial value after healing")
@@ -170,7 +167,7 @@ func test_enemy_error_handling() -> void:
 
 # Mobile Performance Tests
 func test_enemy_mobile_performance() -> void:
-	var enemy: Enemy = create_test_enemy("ELITE")
+	var enemy: Enemy = create_test_enemy(EnemyTestType.ELITE)
 	assert_not_null(enemy, "Should create elite enemy")
 	add_child_autofree(enemy)
 	
@@ -215,3 +212,28 @@ func test_enemy_signals() -> void:
 	
 	enemy.set_behavior(GameEnums.AIBehavior.AGGRESSIVE)
 	verify_signal_emitted(enemy, "behavior_changed")
+
+# Add the missing functions
+func verify_enemy_error_handling(enemy: Enemy) -> void:
+	# Test invalid damage values
+	var initial_health = TypeSafeMixin._call_node_method_int(enemy, "get_health", [], 0)
+	TypeSafeMixin._call_node_method_bool(enemy, "take_damage", [-10])
+	var health_after_invalid = TypeSafeMixin._call_node_method_int(enemy, "get_health", [], 0)
+	assert_eq(initial_health, health_after_invalid, "Should not change health with invalid damage value")
+	
+	# Test invalid heal values
+	TypeSafeMixin._call_node_method_bool(enemy, "take_damage", [10])
+	var reduced_health = TypeSafeMixin._call_node_method_int(enemy, "get_health", [], 0)
+	TypeSafeMixin._call_node_method_bool(enemy, "heal", [-5])
+	var health_after_invalid_heal = TypeSafeMixin._call_node_method_int(enemy, "get_health", [], 0)
+	assert_eq(reduced_health, health_after_invalid_heal, "Should not change health with invalid heal value")
+
+func verify_enemy_touch_interaction(enemy: Enemy) -> void:
+	# Test touch interaction signals
+	watch_signals(enemy)
+	TypeSafeMixin._call_node_method_bool(enemy, "handle_touch", [Vector2(0, 0)])
+	assert_signal_emitted(enemy, "enemy_touched")
+	
+	# Test long press interaction
+	TypeSafeMixin._call_node_method_bool(enemy, "handle_long_press", [Vector2(0, 0)])
+	assert_signal_emitted(enemy, "enemy_selected")

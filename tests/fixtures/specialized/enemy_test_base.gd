@@ -153,7 +153,7 @@ func verify_enemy_state(enemy: Enemy, expected_state: Dictionary) -> void:
 		return
 	
 	for property in expected_state:
-		var actual_value: float = TypeSafeMixin._safe_method_call_float(enemy, "get_" + property, [])
+		var actual_value: float = TypeSafeMixin._safe_cast_float(TypeSafeMixin._call_node_method(enemy, "get_" + property, []))
 		var expected_value: float = expected_state[property]
 		assert_eq(actual_value, expected_value,
 			"Enemy %s should be %s, got %s" % [property, expected_value, actual_value])
@@ -165,7 +165,7 @@ func verify_enemy_movement(enemy: Enemy, start_pos: Vector2, end_pos: Vector2) -
 		return
 	
 	enemy.position = start_pos
-	TypeSafeMixin._safe_method_call_bool(enemy, "move_to", [end_pos])
+	TypeSafeMixin._call_node_method_bool(enemy, "move_to", [end_pos])
 	assert_true(enemy.position.distance_to(end_pos) < 1.0,
 		"Enemy should move to target position")
 
@@ -175,8 +175,8 @@ func verify_enemy_combat(enemy: Enemy, target: Enemy) -> void:
 		assert_false(true, "Enemy or target is null")
 		return
 	
-	TypeSafeMixin._safe_method_call_bool(enemy, "engage_target", [target])
-	assert_true(TypeSafeMixin._safe_method_call_bool(enemy, "is_in_combat", []),
+	TypeSafeMixin._call_node_method_bool(enemy, "engage_target", [target])
+	assert_true(TypeSafeMixin._call_node_method_bool(enemy, "is_in_combat", []),
 		"Enemy should be in combat state")
 
 func verify_enemy_error_handling(enemy: Enemy) -> void:
@@ -187,11 +187,11 @@ func verify_enemy_error_handling(enemy: Enemy) -> void:
 	
 	# Test invalid movement
 	var invalid_pos := Vector2(-1000, -1000)
-	assert_false(TypeSafeMixin._safe_method_call_bool(enemy, "move_to", [invalid_pos]),
+	assert_false(TypeSafeMixin._call_node_method_bool(enemy, "move_to", [invalid_pos]),
 		"Enemy should handle invalid movement")
 	
 	# Test invalid target
-	assert_false(TypeSafeMixin._safe_method_call_bool(enemy, "engage_target", [null]),
+	assert_false(TypeSafeMixin._call_node_method_bool(enemy, "engage_target", [null]),
 		"Enemy should handle invalid target")
 
 func verify_enemy_touch_interaction(enemy: Enemy) -> void:
@@ -201,7 +201,7 @@ func verify_enemy_touch_interaction(enemy: Enemy) -> void:
 		return
 	
 	_signal_watcher.watch_signals(enemy)
-	TypeSafeMixin._safe_method_call_bool(enemy, "handle_touch", [Vector2.ZERO])
+	TypeSafeMixin._call_node_method_bool(enemy, "handle_touch", [Vector2.ZERO])
 	verify_signal_emitted(enemy, "touch_handled")
 
 # Enhanced performance testing methods
@@ -228,14 +228,14 @@ func setup_campaign_test() -> void:
 
 # Common test data creation
 func create_test_enemy_data(enemy_type: String = "BASIC") -> Resource:
-	var data = _enemy_data_script.new()
+	var data: Resource = EnemyData.new()
 	if not data:
 		push_error("Failed to create enemy data")
 		return null
-		
+	
 	var state = TEST_ENEMY_STATES[enemy_type] if TEST_ENEMY_STATES.has(enemy_type) else TEST_ENEMY_STATES.BASIC
 	for key in state:
-		TypeSafeMixin._safe_method_call_bool(data, "set_" + key, [state[key]])
+		TypeSafeMixin._call_node_method_bool(data, "set_" + key, [state[key]])
 	
 	track_test_resource(data)
 	return data

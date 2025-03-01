@@ -23,7 +23,7 @@ func before_each() -> void:
 	
 	# Initialize generator
 	var generator_instance: Node = BattlefieldGeneratorEnemy.instantiate()
-	_generator = TypeSafeMixin._safe_cast_node(generator_instance)
+	_generator = TypeSafeMixin._safe_cast_to_node(generator_instance)
 	if not _generator:
 		push_error("Failed to create generator")
 		return
@@ -52,17 +52,17 @@ func test_enemy_components() -> void:
 	assert_true(_generator.has_node("Collision"), "Should have collision node")
 	assert_true(_generator.has_node("Collision/Enemy"), "Should have enemy sprite")
 	
-	var collision: CollisionShape2D = TypeSafeMixin._safe_cast_node(_generator.get_node("Collision"))
+	var collision: CollisionShape2D = TypeSafeMixin._safe_cast_to_node(_generator.get_node("Collision"))
 	assert_not_null(collision, "Should have collision shape")
 	assert_true(collision is CollisionShape2D, "Collision should be CollisionShape2D")
 	
-	var sprite: Sprite2D = TypeSafeMixin._safe_cast_node(_generator.get_node("Collision/Enemy"))
+	var sprite: Sprite2D = TypeSafeMixin._safe_cast_to_node(_generator.get_node("Collision/Enemy"))
 	assert_not_null(sprite, "Should have sprite")
 	assert_true(sprite is Sprite2D, "Sprite should be Sprite2D")
 
 # Health Bar Tests
 func test_health_bar_setup() -> void:
-	var health_bar: ProgressBar = TypeSafeMixin._safe_cast_node(_generator.get_node("HealthBar"))
+	var health_bar: ProgressBar = TypeSafeMixin._safe_cast_to_node(_generator.get_node("HealthBar"))
 	assert_not_null(health_bar, "Should have health bar")
 	assert_true(health_bar is ProgressBar, "Health bar should be ProgressBar")
 	assert_eq(health_bar.value, 100.0, "Health bar should start at 100")
@@ -86,9 +86,9 @@ func test_enemy_script() -> void:
 
 # System Tests
 func test_systems_setup() -> void:
-	var weapon_system: Node = TypeSafeMixin._safe_cast_node(_generator.get_node("WeaponSystem"))
-	var health_system: Node = TypeSafeMixin._safe_cast_node(_generator.get_node("HealthSystem"))
-	var status_effects: Node = TypeSafeMixin._safe_cast_node(_generator.get_node("StatusEffects"))
+	var weapon_system: Node = TypeSafeMixin._safe_cast_to_node(_generator.get_node("WeaponSystem"))
+	var health_system: Node = TypeSafeMixin._safe_cast_to_node(_generator.get_node("HealthSystem"))
+	var status_effects: Node = TypeSafeMixin._safe_cast_to_node(_generator.get_node("StatusEffects"))
 	
 	assert_not_null(weapon_system, "Should have weapon system")
 	assert_not_null(health_system, "Should have health system")

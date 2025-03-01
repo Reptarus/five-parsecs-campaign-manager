@@ -54,7 +54,7 @@ func before_each() -> void:
 	
 	# Initialize combat manager
 	var combat_manager_instance: Node = CombatManager.new()
-	_combat_manager = TypeSafeMixin._safe_cast_node(combat_manager_instance)
+	_combat_manager = TypeSafeMixin._safe_cast_to_node(combat_manager_instance)
 	if not _combat_manager:
 		push_error("Failed to create combat manager")
 		return
@@ -63,11 +63,11 @@ func before_each() -> void:
 	
 	# Initialize battle rules
 	var battle_rules_instance: Node = BattleRules.new()
-	_battle_rules = TypeSafeMixin._safe_cast_node(battle_rules_instance)
+	_battle_rules = TypeSafeMixin._safe_cast_to_node(battle_rules_instance)
 	if not _battle_rules:
 		push_error("Failed to create battle rules")
 		return
-	TypeSafeMixin._safe_method_call_bool(_battle_rules, "initialize", [_combat_manager])
+	TypeSafeMixin._call_node_method_bool(_battle_rules, "initialize", [_combat_manager])
 	add_child_autofree(_battle_rules)
 	track_test_node(_battle_rules)
 	
@@ -85,7 +85,7 @@ func test_basic_attack_resolution() -> void:
 	var attacker := _create_test_unit(10, 2) # Attack 10, Defense 2
 	var defender := _create_test_unit(5, 5) # Attack 5, Defense 5
 	
-	var result: Dictionary = TypeSafeMixin._safe_method_call_dict(_battle_rules, "resolve_attack", [attacker, defender])
+	var result: Dictionary = TypeSafeMixin._call_node_method_dict(_battle_rules, "resolve_attack", [attacker, defender])
 	assert_not_null(result, "Attack resolution should return result")
 	assert_true(result.has("damage"), "Result should include damage")
 	assert_true(result.has("hit"), "Result should include hit status")
@@ -95,7 +95,7 @@ func test_critical_hits() -> void:
 	var defender := _create_test_unit(5, 5)
 	
 	watch_signals(_battle_rules)
-	var result: Dictionary = TypeSafeMixin._safe_method_call_dict(_battle_rules, "resolve_attack", [attacker, defender, {"critical_threshold": 18}])
+	var result: Dictionary = TypeSafeMixin._call_node_method_dict(_battle_rules, "resolve_attack", [attacker, defender, {"critical_threshold": 18}])
 	
 	if result.get("critical", false):
 		verify_signal_emitted(_battle_rules, "critical_hit")
@@ -106,15 +106,15 @@ func test_damage_calculation() -> void:
 	var base_damage := 10
 	var armor := 5
 	
-	var damage: int = TypeSafeMixin._safe_method_call_int(_battle_rules, "calculate_damage", [base_damage, armor])
+	var damage: int = TypeSafeMixin._call_node_method_int(_battle_rules, "calculate_damage", [base_damage, armor])
 	assert_true(damage < base_damage, "Armor should reduce damage")
 	assert_true(damage >= 0, "Damage should not be negative")
 
 func test_damage_modifiers() -> void:
 	var attacker := _create_test_unit(10, 2)
-	TypeSafeMixin._safe_method_call_bool(attacker, "add_damage_modifier", [2, GameEnums.DamageType.PHYSICAL])
+	TypeSafeMixin._call_node_method_bool(attacker, "add_damage_modifier", [2, GameEnums.DamageType.PHYSICAL])
 	
-	var result: Dictionary = TypeSafeMixin._safe_method_call_dict(_battle_rules, "calculate_modified_damage", [attacker, 10])
+	var result: Dictionary = TypeSafeMixin._call_node_method_dict(_battle_rules, "calculate_modified_damage", [attacker, 10])
 	assert_eq(result.get("final_damage", 0), 12, "Damage modifier should be applied")
 
 # Status Effect Tests
@@ -127,11 +127,11 @@ func test_status_effect_application() -> void:
 	}
 	
 	watch_signals(_battle_rules)
-	var result: bool = TypeSafeMixin._safe_method_call_bool(_battle_rules, "apply_status_effect", [target, effect])
+	var result: bool = TypeSafeMixin._call_node_method_bool(_battle_rules, "apply_status_effect", [target, effect])
 	assert_true(result, "Status effect should be applied")
 	verify_signal_emitted(_battle_rules, "status_effect_applied")
 	
-	var active_effects: Array = TypeSafeMixin._safe_method_call_array(target, "get_active_effects", [])
+	var active_effects: Array = TypeSafeMixin._call_node_method_array(target, "get_active_effects", [])
 	assert_true(active_effects.size() > 0, "Target should have active effect")
 
 # Turn Order Tests
@@ -142,13 +142,13 @@ func test_initiative_calculation() -> void:
 		_create_test_unit(10, 2, 3) # Speed 3
 	]
 	
-	var initiative_order: Array = TypeSafeMixin._safe_method_call_array(_battle_rules, "calculate_initiative", [units])
+	var initiative_order: Array = TypeSafeMixin._call_node_method_array(_battle_rules, "calculate_initiative", [units])
 	assert_eq(initiative_order.size(), units.size(), "All units should be in initiative order")
 	
 	# Verify descending speed order
 	for i in range(1, initiative_order.size()):
-		var prev_speed: int = TypeSafeMixin._safe_method_call_int(initiative_order[i - 1], "get_speed", [])
-		var curr_speed: int = TypeSafeMixin._safe_method_call_int(initiative_order[i], "get_speed", [])
+		var prev_speed: int = TypeSafeMixin._call_node_method_int(initiative_order[i - 1], "get_speed", [])
+		var curr_speed: int = TypeSafeMixin._call_node_method_int(initiative_order[i], "get_speed", [])
 		assert_true(prev_speed >= curr_speed, "Units should be ordered by descending speed")
 
 # Special Ability Tests
@@ -161,19 +161,19 @@ func test_special_ability_activation() -> void:
 	}
 	
 	watch_signals(_battle_rules)
-	TypeSafeMixin._safe_method_call_bool(unit, "add_ability", [ability])
+	TypeSafeMixin._call_node_method_bool(unit, "add_ability", [ability])
 	
-	var result: Dictionary = TypeSafeMixin._safe_method_call_dict(_battle_rules, "activate_ability", [unit, ability.id])
+	var result: Dictionary = TypeSafeMixin._call_node_method_dict(_battle_rules, "activate_ability", [unit, ability.id])
 	assert_not_null(result, "Ability activation should return result")
 	verify_signal_emitted(_battle_rules, "ability_activated")
 
 # Error Handling Tests
 func test_invalid_attack_parameters() -> void:
-	var result: Dictionary = TypeSafeMixin._safe_method_call_dict(_battle_rules, "resolve_attack", [null, null])
+	var result: Dictionary = TypeSafeMixin._call_node_method_dict(_battle_rules, "resolve_attack", [null, null])
 	assert_true(result.has("error"), "Should handle null units")
 	
 	var attacker := _create_test_unit(10, 2)
-	result = TypeSafeMixin._safe_method_call_dict(_battle_rules, "resolve_attack", [attacker, null])
+	result = TypeSafeMixin._call_node_method_dict(_battle_rules, "resolve_attack", [attacker, null])
 	assert_true(result.has("error"), "Should handle null defender")
 
 # Helper Methods
@@ -183,9 +183,9 @@ func _create_test_unit(attack: int, defense: int, speed: int = 5) -> Node:
 		push_error("Failed to create test unit")
 		return null
 	
-	TypeSafeMixin._safe_method_call_bool(unit, "set_attack", [attack])
-	TypeSafeMixin._safe_method_call_bool(unit, "set_defense", [defense])
-	TypeSafeMixin._safe_method_call_bool(unit, "set_speed", [speed])
+	TypeSafeMixin._call_node_method_bool(unit, "set_attack", [attack])
+	TypeSafeMixin._call_node_method_bool(unit, "set_defense", [defense])
+	TypeSafeMixin._call_node_method_bool(unit, "set_speed", [speed])
 	
 	add_child_autofree(unit)
 	track_test_node(unit)
@@ -193,11 +193,11 @@ func _create_test_unit(attack: int, defense: int, speed: int = 5) -> Node:
 
 # Core Constants Tests
 func test_core_constants() -> void:
-	var actual_movement: int = TypeSafeMixin._safe_method_call_int(_battle_rules, "get_base_movement", [], 0)
-	var actual_action_points: int = TypeSafeMixin._safe_method_call_int(_battle_rules, "get_base_action_points", [], 0)
-	var actual_attack_range: int = TypeSafeMixin._safe_method_call_int(_battle_rules, "get_base_attack_range", [], 0)
-	var actual_hit_chance: float = TypeSafeMixin._safe_method_call_float(_battle_rules, "get_base_hit_chance", [], 0.0)
-	var actual_damage: int = TypeSafeMixin._safe_method_call_int(_battle_rules, "get_base_damage", [], 0)
+	var actual_movement: int = TypeSafeMixin._call_node_method_int(_battle_rules, "get_base_movement", [])
+	var actual_action_points: int = TypeSafeMixin._call_node_method_int(_battle_rules, "get_base_action_points", [])
+	var actual_attack_range: int = TypeSafeMixin._call_node_method_int(_battle_rules, "get_base_attack_range", [])
+	var actual_hit_chance: float = TypeSafeMixin._safe_cast_float(TypeSafeMixin._call_node_method(_battle_rules, "get_base_hit_chance", []))
+	var actual_damage: int = TypeSafeMixin._call_node_method_int(_battle_rules, "get_base_damage", [])
 	
 	assert_eq(actual_movement, BASE_MOVEMENT, "Base movement should be %d inches" % BASE_MOVEMENT)
 	assert_eq(actual_action_points, BASE_ACTION_POINTS, "Base action points should be %d" % BASE_ACTION_POINTS)
@@ -207,10 +207,10 @@ func test_core_constants() -> void:
 
 # Combat Modifier Tests
 func test_combat_modifiers() -> void:
-	var actual_cover: float = TypeSafeMixin._safe_method_call_float(_battle_rules, "get_cover_modifier", [], 0.0)
-	var actual_height: float = TypeSafeMixin._safe_method_call_float(_battle_rules, "get_height_modifier", [], 0.0)
-	var actual_flank: float = TypeSafeMixin._safe_method_call_float(_battle_rules, "get_flank_modifier", [], 0.0)
-	var actual_suppression: float = TypeSafeMixin._safe_method_call_float(_battle_rules, "get_suppression_modifier", [], 0.0)
+	var actual_cover: float = TypeSafeMixin._safe_cast_float(TypeSafeMixin._call_node_method(_battle_rules, "get_cover_modifier", []))
+	var actual_height: float = TypeSafeMixin._safe_cast_float(TypeSafeMixin._call_node_method(_battle_rules, "get_height_modifier", []))
+	var actual_flank: float = TypeSafeMixin._safe_cast_float(TypeSafeMixin._call_node_method(_battle_rules, "get_flank_modifier", []))
+	var actual_suppression: float = TypeSafeMixin._safe_cast_float(TypeSafeMixin._call_node_method(_battle_rules, "get_suppression_modifier", []))
 	
 	assert_eq(actual_cover, COVER_MODIFIER, "Cover modifier should be %.2f" % COVER_MODIFIER)
 	assert_eq(actual_height, HEIGHT_MODIFIER, "Height modifier should be %.2f" % HEIGHT_MODIFIER)
@@ -219,9 +219,9 @@ func test_combat_modifiers() -> void:
 
 # Range Modifier Tests
 func test_range_modifiers() -> void:
-	var actual_optimal: float = TypeSafeMixin._safe_method_call_float(_battle_rules, "get_optimal_range_bonus", [], 0.0)
-	var actual_long: float = TypeSafeMixin._safe_method_call_float(_battle_rules, "get_long_range_penalty", [], 0.0)
-	var actual_extreme: float = TypeSafeMixin._safe_method_call_float(_battle_rules, "get_extreme_range_penalty", [], 0.0)
+	var actual_optimal: float = TypeSafeMixin._safe_cast_float(TypeSafeMixin._call_node_method(_battle_rules, "get_optimal_range_bonus", []))
+	var actual_long: float = TypeSafeMixin._safe_cast_float(TypeSafeMixin._call_node_method(_battle_rules, "get_long_range_penalty", []))
+	var actual_extreme: float = TypeSafeMixin._safe_cast_float(TypeSafeMixin._call_node_method(_battle_rules, "get_extreme_range_penalty", []))
 	
 	assert_eq(actual_optimal, OPTIMAL_RANGE_BONUS, "Optimal range bonus should be %.2f" % OPTIMAL_RANGE_BONUS)
 	assert_eq(actual_long, LONG_RANGE_PENALTY, "Long range penalty should be %.2f" % LONG_RANGE_PENALTY)
@@ -229,10 +229,10 @@ func test_range_modifiers() -> void:
 
 # Status Effect Threshold Tests
 func test_status_effect_thresholds() -> void:
-	var actual_critical: float = TypeSafeMixin._safe_method_call_float(_battle_rules, "get_critical_threshold", [], 0.0)
-	var actual_graze: float = TypeSafeMixin._safe_method_call_float(_battle_rules, "get_graze_threshold", [], 0.0)
-	var actual_min_hit: float = TypeSafeMixin._safe_method_call_float(_battle_rules, "get_minimum_hit_chance", [], 0.0)
-	var actual_max_hit: float = TypeSafeMixin._safe_method_call_float(_battle_rules, "get_maximum_hit_chance", [], 0.0)
+	var actual_critical: float = TypeSafeMixin._safe_cast_float(TypeSafeMixin._call_node_method(_battle_rules, "get_critical_threshold", []))
+	var actual_graze: float = TypeSafeMixin._safe_cast_float(TypeSafeMixin._call_node_method(_battle_rules, "get_graze_threshold", []))
+	var actual_min_hit: float = TypeSafeMixin._safe_cast_float(TypeSafeMixin._call_node_method(_battle_rules, "get_minimum_hit_chance", []))
+	var actual_max_hit: float = TypeSafeMixin._safe_cast_float(TypeSafeMixin._call_node_method(_battle_rules, "get_maximum_hit_chance", []))
 	
 	assert_eq(actual_critical, CRITICAL_THRESHOLD, "Critical threshold should be %.2f" % CRITICAL_THRESHOLD)
 	assert_eq(actual_graze, GRAZE_THRESHOLD, "Graze threshold should be %.2f" % GRAZE_THRESHOLD)
@@ -241,9 +241,9 @@ func test_status_effect_thresholds() -> void:
 
 # Action Point Cost Tests
 func test_action_point_costs() -> void:
-	var actual_move: int = TypeSafeMixin._safe_method_call_int(_battle_rules, "get_move_cost", [], 0)
-	var actual_attack: int = TypeSafeMixin._safe_method_call_int(_battle_rules, "get_attack_cost", [], 0)
-	var actual_defend: int = TypeSafeMixin._safe_method_call_int(_battle_rules, "get_defend_cost", [], 0)
+	var actual_move: int = TypeSafeMixin._call_node_method_int(_battle_rules, "get_move_cost", [])
+	var actual_attack: int = TypeSafeMixin._call_node_method_int(_battle_rules, "get_attack_cost", [])
+	var actual_defend: int = TypeSafeMixin._call_node_method_int(_battle_rules, "get_defend_cost", [])
 	
 	assert_eq(actual_move, MOVE_COST, "Move cost should be %d" % MOVE_COST)
 	assert_eq(actual_attack, ATTACK_COST, "Attack cost should be %d" % ATTACK_COST)

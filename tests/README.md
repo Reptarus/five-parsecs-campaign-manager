@@ -1,210 +1,208 @@
 # Five Parsecs Campaign Manager Test Suite
 
-## Test Organization
+## Current Test Structure
 
-### Unit Tests (`unit/`)
-- `enemy/`: Enemy system tests (behavior, combat, state management)
-- `character/`: Character system tests (creation, advancement, stats)
-- `battle/`: Battle and combat system tests (battlefield, mechanics, resolution)
-- `mission/`: Mission system tests (generation, objectives, rewards)
-- `terrain/`: Terrain system tests (generation, features, pathfinding)
-- `campaign/`: Campaign system tests
-  - Story and quest systems
-  - Patron and rival management
-  - Campaign state and progression
-  - Resource management
-- `core/`: Core system tests
-  - Game state management
-  - Save/load functionality
-  - Settings and configuration
-  - Resource serialization
-- `ship/`: Ship system tests
-  - Ship creation and modification
-  - Component management
-  - Weapon systems
-  - Engine systems
-  - Hull systems
-  - Medical systems
-- `ui/`: UI component tests organized by feature
-  - `campaign/`: Campaign-specific UI components
-  - `battle/`: Battle-specific UI components
-  - `common/`: Shared UI components
+```
+GutTest (from addon/gut/test.gd)
+└── BaseTest (from tests/fixtures/base/base_test.gd)
+    └── GameTest (from tests/fixtures/base/game_test.gd)
+        ├── UITest (from tests/fixtures/specialized/ui_test.gd)
+        ├── BattleTest (from tests/fixtures/specialized/battle_test.gd)
+        ├── CampaignTest (from tests/fixtures/specialized/campaign_test.gd)
+        ├── MobileTest (from tests/fixtures/specialized/mobile_test.gd)
+        └── EnemyTest (from tests/fixtures/specialized/enemy_test.gd)
+```
 
-### Integration Tests (`integration/`)
-- `campaign_flow/`: Campaign phase interactions
-- `battle/`: Battle system interactions
-- `mission_flow/`: Mission system interactions
-- `enemy_interactions/`: Enemy system integration tests
-- `ui/`: UI integration tests
-  - `campaign/`: Campaign UI flows
-  - `battle/`: Battle UI flows
+## Directory Structure
 
-### Performance Tests (`performance/`)
-- `combat/`: Combat system benchmarks
-- `terrain/`: Terrain system benchmarks
-- `campaign/`: Campaign system benchmarks
-- `enemy/`: Enemy system performance tests
+```
+tests/
+├── fixtures/                # Test utilities and base classes
+│   ├── base/              # Core test classes
+│   │   ├── base_test.gd   # Base test with core utilities
+│   │   └── game_test.gd   # Game-specific test functionality
+│   ├── specialized/       # Domain-specific test bases
+│   │   ├── ui_test.gd     # UI testing functionality
+│   │   ├── battle_test.gd # Battle testing functionality
+│   │   ├── campaign_test.gd # Campaign testing functionality
+│   │   ├── mobile_test.gd # Mobile testing functionality
+│   │   └── enemy_test.gd  # Enemy testing functionality
+│   ├── helpers/           # Test helper functions
+│   └── scenarios/         # Common test scenarios
+├── unit/                  # Unit tests by domain
+│   ├── campaign/         # Campaign system tests
+│   ├── battle/          # Battle system tests
+│   ├── character/       # Character system tests
+│   ├── core/           # Core system tests
+│   ├── enemy/          # Enemy system tests
+│   ├── mission/        # Mission system tests
+│   ├── ship/           # Ship system tests
+│   ├── terrain/        # Terrain system tests
+│   ├── tutorial/       # Tutorial system tests
+│   └── ui/             # UI component tests
+├── integration/          # Integration tests by domain
+├── mobile/              # Mobile-specific tests
+└── performance/         # Performance benchmarks
+```
 
-### Mobile Tests (`mobile/`)
-Platform-specific testing for mobile devices:
-- Touch input handling
-- UI responsiveness
-- Performance optimization
-- Platform-specific features
+## Standardized Test File Template
 
-### Configuration (`config/`)
-- Test environment configuration
-- Test runner settings
-- Custom test utilities
+```gdscript
+@tool
+extends EnemyTest  # Use class_name, not path reference
 
-### Test Fixtures (`fixtures/`)
-- `base_test.gd`: Base test class with common functionality
-- `game_test.gd`: Game-specific test utilities
-- `enemy_test.gd`: Enemy-specific test utilities
-- `mock_data/`: Mock data for testing
+## Test class for MyFeature functionality
+##
+## Tests feature creation, modification, and validation
+
+# Type-safe script references
+const MyFeature: GDScript = preload("res://src/core/my_feature.gd")
+
+# Type-safe instance variables
+var _instance: Node = null
+
+func before_each() -> void:
+    await super.before_each()
+    _instance = MyFeature.new()
+    add_child_autofree(_instance)
+    await stabilize_engine(STABILIZE_TIME)
+
+func after_each() -> void:
+    _instance = null
+    await super.after_each()
+
+func test_feature_initialization() -> void:
+    # Given
+    assert_not_null(_instance, "Feature should be created")
+    
+    # When
+    watch_signals(_instance)
+    TypeSafeMixin._safe_method_call_bool(_instance, "initialize", [])
+    
+    # Then
+    assert_true(_instance.is_initialized)
+    verify_signal_emitted(_instance, "initialized")
+```
+
+## Base Test Class Selection Guide
+
+When writing a new test, use this guide to select the appropriate base class:
+
+1. UI Component Tests → `extends UITest`
+2. Battle System Tests → `extends BattleTest`
+3. Campaign System Tests → `extends CampaignTest`
+4. Enemy System Tests → `extends EnemyTest`
+5. Mobile-Specific Tests → `extends MobileTest`
+6. General Game Tests → `extends GameTest`
+
+## Type Safety Best Practices
+
+Always use type-safe method calls and signal verification:
+
+```gdscript
+# Instead of direct calls:
+instance.method(arg)
+
+# Use type-safe calls:
+TypeSafeMixin._safe_method_call_bool(instance, "method", [arg])
+
+# For signals:
+watch_signals(instance)
+verify_signal_emitted(instance, "signal_name")
+```
+
+## Resource Management
+
+Properly track and clean up resources in all tests:
+
+```gdscript
+# For nodes:
+add_child_autofree(node)  # Auto-freed on cleanup
+
+# For resources:
+track_test_resource(resource)  # Tracked for cleanup
+```
+
+## Current Migration Status
+
+We are in the process of standardizing all test files according to the defined hierarchy. The migration includes:
+
+1. Updating extends statements to use class_name-based extension
+2. Ensuring proper super.before_each() and super.after_each() calls
+3. Refactoring to use type-safe methods
+4. Organizing tests according to the standard directory structure
 
 ## Running Tests
 
 ### Via Editor
 1. Open the project in Godot
-2. Load `tests/run_tests.tscn`
-3. Press F6 or click the Play Scene button
+2. Run `tests/run_tests.gd` as an EditorScript
 
 ### Via Command Line
 ```bash
 godot --script res://tests/run_tests.gd
 ```
 
-### Via GUT Panel
-1. Open the GUT panel in the editor (View -> GUT)
-2. Configure test directories if needed
-3. Click "Run All"
+## Test File Organization Guidelines
 
-## Writing Tests
+1. Place tests in domain-specific directories
+2. Name files according to the pattern `test_[feature].gd`
+3. Group related tests with descriptive comments
+4. Follow the Given-When-Then (Arrange-Act-Assert) pattern
+5. Use descriptive assertion messages
 
-### Test Structure
+## Performance Testing
+
+For performance-critical code, include performance tests:
+
 ```gdscript
-@tool
-extends "res://tests/fixtures/base_test.gd"
-
-## Test class for MyFeature functionality
-##
-## Tests feature creation, modification, and validation
-
-const MyFeature = preload("res://src/core/my_feature.gd")
-
-var _instance: MyFeature
-
-func before_each() -> void:
-    await super.before_each()
-    _instance = MyFeature.new()
-    add_child(_instance)
-    track_test_node(_instance)
-
-func after_each() -> void:
-    await super.after_each()
-    _instance = null
-
-# Basic Functionality Tests
-func test_feature_initialization() -> void:
-    assert_not_null(_instance, "Feature should be created")
-
-# Error Condition Tests
-func test_invalid_input() -> void:
-    assert_false(_instance.process_input(null),
-        "Should handle null input gracefully")
-
-# Boundary Tests
-func test_value_boundaries() -> void:
-    assert_true(_instance.set_value(MIN_VALUE),
-        "Should accept minimum value")
+func test_performance() -> void:
+    var metrics := await measure_performance(func(): perform_operation())
+    verify_performance_metrics(metrics, {
+        "average_fps": 30.0,
+        "minimum_fps": 20.0,
+        "memory_delta_kb": 1024.0
+    })
 ```
 
-### Best Practices
-1. **Test Organization**
-   - Group related tests with comments
-   - Use descriptive test names
-   - Follow the Arrange-Act-Assert pattern
+## Integration Testing
 
-2. **Resource Management**
-   - Use `track_test_node()` for nodes
-   - Use `track_test_resource()` for resources
-   - Clean up in `after_each()`
+Integration tests should focus on system interactions:
 
-3. **Error Handling**
-   - Test invalid inputs
-   - Test boundary conditions
-   - Test error recovery
+```gdscript
+func test_systems_integration() -> void:
+    # Given
+    var system_a := SystemA.new()
+    var system_b := SystemB.new()
+    add_child_autofree(system_a)
+    add_child_autofree(system_b)
+    
+    # When
+    watch_signals(system_a)
+    TypeSafeMixin._safe_method_call_bool(system_a, "interact_with", [system_b])
+    
+    # Then
+    verify_signal_emitted(system_a, "interaction_complete")
+    assert_true(TypeSafeMixin._safe_method_call_bool(system_b, "was_modified", []))
+```
 
-4. **Documentation**
-   - Document test class purpose
-   - Add descriptive assertion messages
-   - Comment complex test setups
+## Mobile Testing
 
-## Test Organization Guidelines
+Mobile tests should verify touch input and screen adaptation:
 
-### Component Tests
-- Individual component tests focus on specific functionality
-- System tests handle component interactions and management
-- UI tests are organized by feature domain
+```gdscript
+func test_touch_interaction() -> void:
+    var component := UIComponent.new()
+    add_child_autofree(component)
+    
+    simulate_touch_event(component, Vector2(50, 50))
+    verify_signal_emitted(component, "touch_detected")
+```
 
-### Test Consolidation
-- Related tests are consolidated by feature domain
-- Battle and combat tests are unified under `battle/`
-- UI tests are organized hierarchically by feature
-- Avoid duplicate test cases across directories
+## Test Reports
 
-### Test Naming Conventions
-- Individual component tests: `test_[component_name].gd`
-- System tests: `test_[system_name]_system.gd`
-- UI tests: `test_[feature]_[component].gd`
-
-## Test Categories
-
-### Unit Tests
-Test individual components in isolation:
-- Basic functionality
-- Error conditions
-- Boundary cases
-- Resource management
-
-### Integration Tests
-Test component interactions:
-- System integration
-- State transitions
-- Data flow
-- Error propagation
-
-### Performance Tests
-Benchmark critical systems:
-- Operation timing
-- Memory usage
-- Resource loading
-- State transitions
-
-### Mobile Tests
-Platform-specific testing:
-- Touch input
-- Screen adaptation
-- Performance
-- Platform features
-
-## Reports
-Test reports are generated in `tests/reports/`:
+Test reports are automatically generated in `tests/reports/` with details on:
 - Test results
 - Coverage data
 - Performance metrics
-- Error logs
-
-### Test File Organization
-Each test file should be placed in a directory that matches its primary functionality:
-- Component tests go in their respective system directories (e.g., `ship/`, `campaign/`)
-- Manager and system tests go in their respective feature directories
-- UI tests are organized by feature in the `ui/` directory
-- Core functionality tests go in the `core/` directory
-
-For example:
-- Ship component test: `unit/ship/test_weapon_component.gd`
-- Campaign system test: `unit/campaign/test_story_quest_data.gd`
-- Core system test: `unit/core/test_game_state.gd`
-- UI component test: `unit/ui/campaign/test_resource_panel.gd` 
+- Error logs 

@@ -1,6 +1,6 @@
 extends SceneTree
 
-const TEST_RUNNER = preload("res://tests/fixtures/run_tests.gd")
+const TEST_RUNNER = preload("res://tests/fixtures/runner/run_tests.gd")
 
 func _init() -> void:
     print("Starting build process...")
@@ -61,7 +61,7 @@ func _validate_project() -> Array[String]:
 
 func _run_tests() -> void:
     print("Running tests...")
-    var test_runner := TEST_RUNNER.new()
+    var test_runner: Node = TEST_RUNNER.new()
     if not test_runner:
         push_error("Failed to create test runner")
         quit(1)

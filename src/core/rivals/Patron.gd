@@ -1,6 +1,9 @@
 extends Resource
+class_name Patron
 
 const GameEnums = preload("res://src/core/systems/GlobalEnums.gd")
+const Mission = preload("res://src/core/systems/Mission.gd")
+const FiveParsecsLocation = preload("res://src/core/rivals/FiveParsecsLocation.gd")
 
 signal relationship_changed(new_value: int)
 signal missions_updated

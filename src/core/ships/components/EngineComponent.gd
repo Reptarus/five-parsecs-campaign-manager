@@ -1,5 +1,6 @@
 # Scripts/ShipAndCrew/EngineComponent.gd
 extends ShipComponent
+class_name EngineComponent
 
 @export var thrust: float = 1.0
 @export var fuel_efficiency: float = 1.0

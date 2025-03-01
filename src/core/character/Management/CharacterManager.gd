@@ -1,16 +1,17 @@
 @tool
 extends Node
 
-signal character_added(character: Character)
-signal character_updated(character: Character)
+signal character_added(character)
+signal character_updated(character)
 signal character_removed(character_id: String)
 
-const Character := preload("res://src/core/character/Base/Character.gd")
-const CharacterBox := preload("res://src/core/character/Base/CharacterBox.gd")
-const MAX_CHARACTERS := 100
+const Character = preload("res://src/core/character/Base/Character.gd")
+const CharacterBox = preload("res://src/core/character/Base/CharacterBox.gd")
+const GameEnums = preload("res://src/core/systems/GlobalEnums.gd")
+const MAX_CHARACTERS = 100
 
 var _characters: Dictionary = {}
-var _active_characters: Array[Character] = []
+var _active_characters: Array = []
 
 func _ready() -> void:
 	pass
@@ -20,7 +21,7 @@ func create_character() -> Character:
 	add_character(character)
 	return character
 
-func add_character(character: Character) -> bool:
+func add_character(character) -> bool:
 	if not character:
 		return false
 		
@@ -39,7 +40,7 @@ func add_character(character: Character) -> bool:
 	character_added.emit(character)
 	return true
 
-func update_character(character_id: String, character: Character) -> bool:
+func update_character(character_id: String, character) -> bool:
 	if not character_id in _characters:
 		return false
 		
@@ -65,7 +66,7 @@ func remove_character(character_id: String) -> bool:
 	character_removed.emit(character_id)
 	return true
 
-func get_character(character_id: String) -> Character:
+func get_character(character_id: String):
 	return _characters.get(character_id)
 
 func has_character(character_id: String) -> bool:
@@ -74,10 +75,10 @@ func has_character(character_id: String) -> bool:
 func get_character_count() -> int:
 	return _characters.size()
 
-func get_active_characters() -> Array[Character]:
+func get_active_characters() -> Array:
 	return _active_characters.duplicate()
 
-func set_character_class(character: Character, char_class: int) -> void:
+func set_character_class(character, char_class: int) -> void:
 	if not character:
 		return
 		
@@ -87,7 +88,7 @@ func set_character_class(character: Character, char_class: int) -> void:
 	if not char_id.is_empty():
 		update_character(char_id, character)
 
-func improve_stat(character: Character, stat: int) -> void:
+func improve_stat(character, stat: int) -> void:
 	if not character:
 		return
 		
@@ -96,7 +97,7 @@ func improve_stat(character: Character, stat: int) -> void:
 	if not char_id.is_empty():
 		update_character(char_id, character)
 
-func add_experience(character: Character, amount: int) -> void:
+func add_experience(character, amount: int) -> void:
 	if not character:
 		return
 		
@@ -105,7 +106,7 @@ func add_experience(character: Character, amount: int) -> void:
 	if not char_id.is_empty():
 		update_character(char_id, character)
 
-func level_up(character: Character) -> void:
+func level_up(character) -> void:
 	if not character:
 		return
 		
@@ -120,7 +121,7 @@ func _update_active_characters() -> void:
 		if _get_character_property(character, "is_active", false):
 			_active_characters.append(character)
 
-func _initialize_class_stats(character: Character) -> void:
+func _initialize_class_stats(character) -> void:
 	match _get_character_property(character, "character_class", GameEnums.CharacterClass.NONE):
 		GameEnums.CharacterClass.NONE:
 			_set_character_property(character, "base_stats", {
@@ -131,7 +132,7 @@ func _initialize_class_stats(character: Character) -> void:
 			})
 
 ## Safe Property Access Methods
-func _get_character_property(character: Character, property: String, default_value = null) -> Variant:
+func _get_character_property(character, property: String, default_value = null):
 	if not character:
 		push_error("Trying to access property '%s' on null character" % property)
 		return default_value
@@ -140,7 +141,7 @@ func _get_character_property(character: Character, property: String, default_val
 		return default_value
 	return character.get(property)
 
-func _set_character_property(character: Character, property: String, value: Variant) -> void:
+func _set_character_property(character, property: String, value) -> void:
 	if not character:
 		push_error("Trying to set property '%s' on null character" % property)
 		return

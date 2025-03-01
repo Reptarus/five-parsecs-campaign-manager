@@ -1,8 +1,6 @@
 @tool
 extends "res://src/game/ships/components/ShipComponent.gd"
 
-const GameEnums = preload("res://src/core/systems/GlobalEnums.gd")
-
 var damage: int = 2
 var range: int = 3
 var accuracy: float = 0.7
@@ -31,12 +29,12 @@ func serialize() -> Dictionary:
     data["accuracy"] = accuracy
     return data
 
-static func deserialize(data: Dictionary) -> Resource:
-    var component = WeaponsComponent.new()
-    var base_data = super.deserialize(data)
-    for key in base_data:
-        component.set(key, base_data[key])
-    component.damage = data.get("damage", 2)
-    component.range = data.get("range", 3)
-    component.accuracy = data.get("accuracy", 0.7)
-    return component
+static func deserialize(data: Dictionary) -> Dictionary:
+    var base_data = GameShipComponent.deserialize(data)
+    
+    # Add weapon-specific properties
+    base_data["damage"] = data.get("damage", 2)
+    base_data["range"] = data.get("range", 3)
+    base_data["accuracy"] = data.get("accuracy", 0.7)
+    
+    return base_data

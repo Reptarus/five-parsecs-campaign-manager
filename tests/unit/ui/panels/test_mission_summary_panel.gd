@@ -1,5 +1,5 @@
 @tool
-extends PanelTestBase
+extends "res://tests/unit/ui/base/panel_test_base.gd"
 
 const MissionSummaryPanel := preload("res://src/ui/components/mission/MissionSummaryPanel.gd")
 

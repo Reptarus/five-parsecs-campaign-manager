@@ -25,7 +25,7 @@ func before_each() -> void:
 	
 	# Initialize ship components
 	var component_instance = ShipComponentScript.new()
-	_ship_components = TypeSafeMixin._safe_cast_node(component_instance)
+	_ship_components = component_instance
 	if not _ship_components:
 		push_error("Failed to create ship components")
 		return
@@ -43,10 +43,10 @@ func after_each() -> void:
 func test_component_initialization() -> void:
 	assert_not_null(_ship_components, "Ship components should be initialized")
 	
-	var components: Dictionary = TypeSafeMixin._safe_method_call_dict(_ship_components, "get_all_components", [])
+	var components: Dictionary = TypeSafeMixin._call_node_method_dict(_ship_components, "get_all_components", [])
 	assert_true(components.size() > 0, "Should have default components")
 	
-	var is_initialized: bool = TypeSafeMixin._safe_method_call_bool(_ship_components, "is_initialized", [])
+	var is_initialized: bool = TypeSafeMixin._call_node_method_bool(_ship_components, "is_initialized", [])
 	assert_true(is_initialized, "System should be initialized")
 
 # Component Management Tests
@@ -61,16 +61,16 @@ func test_component_management() -> void:
 		"power": 100
 	}
 	
-	var success: bool = TypeSafeMixin._safe_method_call_bool(_ship_components, "add_component", [component_data])
+	var success: bool = TypeSafeMixin._call_node_method_bool(_ship_components, "add_component", [component_data])
 	assert_true(success, "Should add component")
 	verify_signal_emitted(_ship_components, "component_added")
 	
 	# Test component retrieval
-	var component: Dictionary = TypeSafeMixin._safe_method_call_dict(_ship_components, "get_component", ["test_engine"])
+	var component: Dictionary = TypeSafeMixin._call_node_method_dict(_ship_components, "get_component", ["test_engine"])
 	assert_eq(component.name, "Test Engine", "Component data should match")
 	
 	# Test component removal
-	success = TypeSafeMixin._safe_method_call_bool(_ship_components, "remove_component", ["test_engine"])
+	success = TypeSafeMixin._call_node_method_bool(_ship_components, "remove_component", ["test_engine"])
 	assert_true(success, "Should remove component")
 	verify_signal_emitted(_ship_components, "component_removed")
 
@@ -85,12 +85,12 @@ func test_component_types() -> void:
 		"slots": ["engine_bay"]
 	}
 	
-	var success: bool = TypeSafeMixin._safe_method_call_bool(_ship_components, "register_component_type", [type_data])
+	var success: bool = TypeSafeMixin._call_node_method_bool(_ship_components, "register_component_type", [type_data])
 	assert_true(success, "Should register component type")
 	verify_signal_emitted(_ship_components, "type_registered")
 	
 	# Test type info
-	var info: Dictionary = TypeSafeMixin._safe_method_call_dict(_ship_components, "get_type_info", [GameEnums.ShipComponentType.ENGINE_BASIC])
+	var info: Dictionary = TypeSafeMixin._call_node_method_dict(_ship_components, "get_type_info", [GameEnums.ShipComponentType.ENGINE_BASIC])
 	assert_eq(info.name, "Basic Engine", "Type info should match")
 
 # Component Slot Tests
@@ -104,12 +104,12 @@ func test_component_slots() -> void:
 		"allowed_types": [GameEnums.ShipComponentType.ENGINE_BASIC]
 	}
 	
-	var success: bool = TypeSafeMixin._safe_method_call_bool(_ship_components, "register_slot", [slot_data])
+	var success: bool = TypeSafeMixin._call_node_method_bool(_ship_components, "register_slot", [slot_data])
 	assert_true(success, "Should register slot")
 	verify_signal_emitted(_ship_components, "slot_registered")
 	
 	# Test slot info
-	var info: Dictionary = TypeSafeMixin._safe_method_call_dict(_ship_components, "get_slot_info", ["engine_bay"])
+	var info: Dictionary = TypeSafeMixin._call_node_method_dict(_ship_components, "get_slot_info", ["engine_bay"])
 	assert_eq(info.name, "Engine Bay", "Slot info should match")
 
 # Component Installation Tests
@@ -122,21 +122,21 @@ func test_component_installation() -> void:
 		"type": GameEnums.ShipComponentType.ENGINE_BASIC,
 		"name": "Test Engine"
 	}
-	TypeSafeMixin._safe_method_call_bool(_ship_components, "add_component", [component_data])
+	TypeSafeMixin._call_node_method_bool(_ship_components, "add_component", [component_data])
 	
 	var slot_data := {
 		"id": "engine_bay",
 		"allowed_types": [GameEnums.ShipComponentType.ENGINE_BASIC]
 	}
-	TypeSafeMixin._safe_method_call_bool(_ship_components, "register_slot", [slot_data])
+	TypeSafeMixin._call_node_method_bool(_ship_components, "register_slot", [slot_data])
 	
 	# Test installation
-	var success: bool = TypeSafeMixin._safe_method_call_bool(_ship_components, "install_component", ["test_engine", "engine_bay"])
+	var success: bool = TypeSafeMixin._call_node_method_bool(_ship_components, "install_component", ["test_engine", "engine_bay"])
 	assert_true(success, "Should install component")
 	verify_signal_emitted(_ship_components, "component_installed")
 	
 	# Test installed component
-	var installed_id: String = TypeSafeMixin._safe_method_call_string(_ship_components, "get_installed_component", ["engine_bay"])
+	var installed_id: String = TypeSafeMixin._safe_cast_to_string(TypeSafeMixin._call_node_method(_ship_components, "get_installed_component", ["engine_bay"]))
 	assert_eq(installed_id, "test_engine", "Installed component should match")
 
 # Component Status Tests
@@ -149,20 +149,20 @@ func test_component_status() -> void:
 		"type": GameEnums.ShipComponentType.ENGINE_BASIC,
 		"health": 100
 	}
-	TypeSafeMixin._safe_method_call_bool(_ship_components, "add_component", [component_data])
+	TypeSafeMixin._call_node_method_bool(_ship_components, "add_component", [component_data])
 	
 	# Test damage
-	var success: bool = TypeSafeMixin._safe_method_call_bool(_ship_components, "damage_component", ["test_engine", 50])
+	var success: bool = TypeSafeMixin._call_node_method_bool(_ship_components, "damage_component", ["test_engine", 50])
 	assert_true(success, "Should damage component")
 	verify_signal_emitted(_ship_components, "component_damaged")
 	
 	# Test repair
-	success = TypeSafeMixin._safe_method_call_bool(_ship_components, "repair_component", ["test_engine", 25])
+	success = TypeSafeMixin._call_node_method_bool(_ship_components, "repair_component", ["test_engine", 25])
 	assert_true(success, "Should repair component")
 	verify_signal_emitted(_ship_components, "component_repaired")
 	
 	# Test health
-	var health: int = TypeSafeMixin._safe_method_call_int(_ship_components, "get_component_health", ["test_engine"])
+	var health: int = TypeSafeMixin._call_node_method_int(_ship_components, "get_component_health", ["test_engine"])
 	assert_eq(health, 75, "Component health should match")
 
 # Component Power Tests
@@ -175,15 +175,15 @@ func test_component_power() -> void:
 		"type": GameEnums.ShipComponentType.ENGINE_BASIC,
 		"power_draw": 50
 	}
-	TypeSafeMixin._safe_method_call_bool(_ship_components, "add_component", [component_data])
+	TypeSafeMixin._call_node_method_bool(_ship_components, "add_component", [component_data])
 	
 	# Test power allocation
-	var success: bool = TypeSafeMixin._safe_method_call_bool(_ship_components, "allocate_power", ["test_engine", 50])
+	var success: bool = TypeSafeMixin._call_node_method_bool(_ship_components, "allocate_power", ["test_engine", 50])
 	assert_true(success, "Should allocate power")
 	verify_signal_emitted(_ship_components, "power_allocated")
 	
 	# Test power usage
-	var power_usage: int = TypeSafeMixin._safe_method_call_int(_ship_components, "get_power_usage", ["test_engine"])
+	var power_usage: int = TypeSafeMixin._call_node_method_int(_ship_components, "get_power_usage", ["test_engine"])
 	assert_eq(power_usage, 50, "Power usage should match")
 
 # Component Compatibility Tests
@@ -196,16 +196,16 @@ func test_component_compatibility() -> void:
 		"type": GameEnums.ShipComponentType.ENGINE_BASIC,
 		"requirements": ["power_core"]
 	}
-	TypeSafeMixin._safe_method_call_bool(_ship_components, "add_component", [component_data])
+	TypeSafeMixin._call_node_method_bool(_ship_components, "add_component", [component_data])
 	
 	var power_core_data := {
 		"id": "power_core",
 		"type": GameEnums.ShipComponentType.HULL_BASIC
 	}
-	TypeSafeMixin._safe_method_call_bool(_ship_components, "add_component", [power_core_data])
+	TypeSafeMixin._call_node_method_bool(_ship_components, "add_component", [power_core_data])
 	
 	# Test compatibility check
-	var is_compatible: bool = TypeSafeMixin._safe_method_call_bool(_ship_components, "check_compatibility", ["test_engine", "power_core"])
+	var is_compatible: bool = TypeSafeMixin._call_node_method_bool(_ship_components, "check_compatibility", ["test_engine", "power_core"])
 	assert_true(is_compatible, "Components should be compatible")
 
 # Component Persistence Tests
@@ -218,19 +218,19 @@ func test_component_persistence() -> void:
 		"type": GameEnums.ShipComponentType.ENGINE_BASIC,
 		"name": "Test Engine"
 	}
-	TypeSafeMixin._safe_method_call_bool(_ship_components, "add_component", [component_data])
+	TypeSafeMixin._call_node_method_bool(_ship_components, "add_component", [component_data])
 	
 	# Test state saving
-	var save_data: Dictionary = TypeSafeMixin._safe_method_call_dict(_ship_components, "save_state", [])
+	var save_data: Dictionary = TypeSafeMixin._call_node_method_dict(_ship_components, "save_state", [])
 	assert_true(save_data.has("components"), "Should save component data")
 	verify_signal_emitted(_ship_components, "state_saved")
 	
 	# Test state loading
-	var success: bool = TypeSafeMixin._safe_method_call_bool(_ship_components, "load_state", [save_data])
+	var success: bool = TypeSafeMixin._call_node_method_bool(_ship_components, "load_state", [save_data])
 	assert_true(success, "Should load component data")
 	verify_signal_emitted(_ship_components, "state_loaded")
 	
-	var loaded_component: Dictionary = TypeSafeMixin._safe_method_call_dict(_ship_components, "get_component", ["test_engine"])
+	var loaded_component: Dictionary = TypeSafeMixin._call_node_method_dict(_ship_components, "get_component", ["test_engine"])
 	assert_eq(loaded_component.name, "Test Engine", "Component data should be restored")
 
 # Error Handling Tests
@@ -238,12 +238,12 @@ func test_error_handling() -> void:
 	watch_signals(_ship_components)
 	
 	# Test invalid component
-	var success: bool = TypeSafeMixin._safe_method_call_bool(_ship_components, "add_component", [null])
+	var success: bool = TypeSafeMixin._call_node_method_bool(_ship_components, "add_component", [null])
 	assert_false(success, "Should not add invalid component")
 	verify_signal_not_emitted(_ship_components, "component_added")
 	
 	# Test invalid slot
-	success = TypeSafeMixin._safe_method_call_bool(_ship_components, "install_component", ["test_engine", "invalid_slot"])
+	success = TypeSafeMixin._call_node_method_bool(_ship_components, "install_component", ["test_engine", "invalid_slot"])
 	assert_false(success, "Should not install to invalid slot")
 	verify_signal_not_emitted(_ship_components, "component_installed")
 
@@ -252,13 +252,13 @@ func test_system_state() -> void:
 	watch_signals(_ship_components)
 	
 	# Test system pause
-	TypeSafeMixin._safe_method_call_bool(_ship_components, "pause_system", [])
-	var is_paused: bool = TypeSafeMixin._safe_method_call_bool(_ship_components, "is_paused", [])
+	TypeSafeMixin._call_node_method_bool(_ship_components, "pause_system", [])
+	var is_paused: bool = TypeSafeMixin._call_node_method_bool(_ship_components, "is_paused", [])
 	assert_true(is_paused, "System should be paused")
 	verify_signal_emitted(_ship_components, "system_paused")
 	
 	# Test system resume
-	TypeSafeMixin._safe_method_call_bool(_ship_components, "resume_system", [])
-	is_paused = TypeSafeMixin._safe_method_call_bool(_ship_components, "is_paused", [])
+	TypeSafeMixin._call_node_method_bool(_ship_components, "resume_system", [])
+	is_paused = TypeSafeMixin._call_node_method_bool(_ship_components, "is_paused", [])
 	assert_false(is_paused, "System should be resumed")
 	verify_signal_emitted(_ship_components, "system_resumed")

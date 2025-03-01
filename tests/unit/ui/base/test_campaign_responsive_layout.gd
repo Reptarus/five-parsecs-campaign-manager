@@ -64,15 +64,15 @@ func test_orientation_changes() -> void:
 	# Test phone portrait
 	_component.size = Vector2(360, 640)
 	await get_tree().process_frame
-	assert_true(TypeSafeMixin._safe_method_call_bool(_component, "is_portrait", []), "Should be portrait")
+	assert_true(TypeSafeMixin._call_node_method_bool(_component, "is_portrait", []), "Should be portrait")
 	
 	# Test phone landscape
 	_component.size = Vector2(640, 360)
 	await get_tree().process_frame
-	assert_false(TypeSafeMixin._safe_method_call_bool(_component, "is_portrait", []), "Should be landscape")
+	assert_false(TypeSafeMixin._call_node_method_bool(_component, "is_portrait", []), "Should be landscape")
 
 func test_breakpoints() -> void:
-	var breakpoints: Dictionary = TypeSafeMixin._safe_method_call_dict(_component, "get_breakpoints", [], {})
+	var breakpoints: Dictionary = TypeSafeMixin._call_node_method_dict(_component, "get_breakpoints", [], {})
 	assert_true(breakpoints.has("phone"), "Should have phone breakpoint")
 	assert_true(breakpoints.has("tablet"), "Should have tablet breakpoint")
 	assert_true(breakpoints.has("desktop"), "Should have desktop breakpoint")
@@ -85,9 +85,9 @@ func test_layout_queries() -> void:
 	_component.size = Vector2(360, 640)
 	await get_tree().process_frame
 	
-	assert_true(TypeSafeMixin._safe_method_call_bool(_component, "is_phone", []), "Should be phone layout")
-	assert_false(TypeSafeMixin._safe_method_call_bool(_component, "is_tablet", []), "Should not be tablet layout")
-	assert_false(TypeSafeMixin._safe_method_call_bool(_component, "is_desktop", []), "Should not be desktop layout")
+	assert_true(TypeSafeMixin._call_node_method_bool(_component, "is_phone", []), "Should be phone layout")
+	assert_false(TypeSafeMixin._call_node_method_bool(_component, "is_tablet", []), "Should not be tablet layout")
+	assert_false(TypeSafeMixin._call_node_method_bool(_component, "is_desktop", []), "Should not be desktop layout")
 
 # Add inherited component tests
 func test_component_structure() -> void:

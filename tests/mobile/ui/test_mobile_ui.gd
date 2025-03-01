@@ -1,5 +1,5 @@
 @tool
-extends "res://tests/fixtures/base/mobile_test_base.gd"
+extends "res://tests/fixtures/specialized/mobile_test.gd"
 
 # Type-safe script references
 const UIManagerScript := preload("res://src/ui/screens/UIManager.gd")
@@ -92,23 +92,23 @@ func after_each() -> void:
 
 func test_initial_state() -> void:
 	assert_false(_options_menu.visible, "Options menu should start hidden")
-	assert_true(TypeSafeMixin._safe_method_call_bool(_ui_manager, "has_method", ["show_options"]),
+	assert_true(TypeSafeMixin._call_node_method_bool(_ui_manager, "has_method", ["show_options"]),
 		"UI Manager should have show_options method")
 	assert_fits_mobile_screen(_options_menu)
 
 func test_show_options() -> void:
-	TypeSafeMixin._safe_method_call_bool(_ui_manager, "show_options", [])
+	TypeSafeMixin._call_node_method_bool(_ui_manager, "show_options", [])
 	assert_true(_options_menu.visible, "Options menu should be visible")
 	assert_fits_mobile_screen(_options_menu)
 
 func test_hide_options() -> void:
-	TypeSafeMixin._safe_method_call_bool(_ui_manager, "show_options", [])
-	TypeSafeMixin._safe_method_call_bool(_ui_manager, "hide_options", [])
+	TypeSafeMixin._call_node_method_bool(_ui_manager, "show_options", [])
+	TypeSafeMixin._call_node_method_bool(_ui_manager, "hide_options", [])
 	assert_false(_options_menu.visible, "Options menu should be hidden")
 
 func test_touch_interaction() -> void:
 	# Test basic touch interaction
-	var button: Control = TypeSafeMixin._safe_cast_to_control(_options_menu.get_node("OptionsButton"), "OptionsButton")
+	var button: Control = TypeSafeMixin._safe_cast_to_node(_options_menu.get_node("OptionsButton"), "OptionsButton") as Control
 	if not button:
 		push_error("Failed to get options button")
 		return
@@ -126,24 +126,28 @@ func test_touch_interaction() -> void:
 		if child is BaseButton:
 			assert_touch_target_size(child)
 
-func test_responsive_layout() -> void:
+func test_responsive_layout(control: Control = null) -> void:
+	# If no control is provided, use the options menu
+	if not control:
+		control = _options_menu
+		
 	# Test portrait mode
 	await simulate_mobile_environment("phone_portrait")
 	await stabilize_engine(STABILIZE_TIME)
-	assert_fits_mobile_screen(_options_menu)
+	assert_fits_mobile_screen(control)
 	
 	# Test landscape mode
 	await simulate_mobile_environment("phone_landscape")
 	await stabilize_engine(STABILIZE_TIME)
-	assert_fits_mobile_screen(_options_menu)
+	assert_fits_mobile_screen(control)
 	
 	# Test tablet mode
 	await simulate_mobile_environment("tablet_portrait")
 	await stabilize_engine(STABILIZE_TIME)
-	assert_fits_mobile_screen(_options_menu)
+	assert_fits_mobile_screen(control)
 
 func test_scroll_behavior() -> void:
-	var scroll_container: ScrollContainer = TypeSafeMixin._safe_cast_to_node(_options_menu.get_node("ScrollContainer"), "ScrollContainer")
+	var scroll_container: ScrollContainer = TypeSafeMixin._safe_cast_to_node(_options_menu.get_node("ScrollContainer"), "ScrollContainer") as ScrollContainer
 	if not scroll_container:
 		push_error("Failed to get scroll container")
 		return
@@ -159,9 +163,9 @@ func test_scroll_behavior() -> void:
 func test_mobile_performance() -> void:
 	var metrics: Dictionary = await measure_performance(
 		func() -> void:
-			TypeSafeMixin._safe_method_call_bool(_ui_manager, "show_options", [])
+			TypeSafeMixin._call_node_method_bool(_ui_manager, "show_options", [])
 			await get_tree().process_frame
-			TypeSafeMixin._safe_method_call_bool(_ui_manager, "hide_options", [])
+			TypeSafeMixin._call_node_method_bool(_ui_manager, "hide_options", [])
 			await get_tree().process_frame
 	)
 	

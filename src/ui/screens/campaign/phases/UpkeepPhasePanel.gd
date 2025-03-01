@@ -2,6 +2,7 @@ extends BasePhasePanel
 class_name UpkeepPhasePanel
 
 const Character = preload("res://src/core/character/Base/Character.gd")
+const GameEnums = preload("res://src/core/systems/GlobalEnums.gd")
 
 @onready var upkeep_cost_label = $VBoxContainer/UpkeepCostLabel
 @onready var crew_list = $VBoxContainer/CrewList
@@ -36,10 +37,10 @@ func _calculate_upkeep() -> void:
 	for crew_member in crew_members:
 		var member_cost = 6 # Base upkeep cost
 		
-		# Apply modifiers based on traits
-		if crew_member.has_trait(GameEnums.Trait.TACTICAL_MIND):
+		# Apply modifiers based on traits - convert enum to string
+		if crew_member.has_trait("TACTICAL_MIND"): # Using string value instead of enum
 			member_cost -= 1 # Tactical minds are more efficient with resources
-		if crew_member.has_trait(GameEnums.Trait.STREET_SMART):
+		if crew_member.has_trait("STREET_SMART"): # Using string value instead of enum
 			member_cost -= 2 # Street smart characters know how to live cheaply
 			
 		total_upkeep_cost += member_cost
@@ -71,7 +72,7 @@ func get_phase_data() -> Dictionary:
 func _handle_upkeep_effects() -> void:
 	# Apply any special effects from traits
 	for crew_member in crew_members:
-		if crew_member.has_trait(GameEnums.Trait.TACTICAL_MIND):
+		if crew_member.has_trait("TACTICAL_MIND"): # Using string value instead of enum
 			# Tactical minds can sometimes find ways to save money
 			var refund = total_upkeep_cost * 0.1
 			game_state.campaign.credits += int(refund)

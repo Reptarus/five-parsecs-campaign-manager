@@ -35,7 +35,7 @@ func before_each() -> void:
 		return
 	
 	# Initialize campaign system with game state
-	var init_result: Error = TypeSafeMixin._safe_method_call_error(_campaign_system, "initialize", [_game_state])
+	var init_result: Error = TypeSafeMixin._call_node_method_int(_campaign_system, "initialize", [_game_state])
 	if init_result != OK:
 		push_error("Failed to initialize campaign system: %s" % error_string(init_result))
 		return
@@ -110,14 +110,14 @@ func test_mobile_campaign_performance() -> void:
 		"use_story_track": true
 	}
 	
-	_campaign = TypeSafeMixin._safe_method_call_resource(_campaign_system, "create_campaign", [campaign_config])
+	_campaign = TypeSafeMixin._call_node_method(_campaign_system, "create_campaign", [campaign_config]) as Resource
 	if not _campaign:
 		assert_true(false, "Campaign should be created successfully")
 		return
 	
 	watch_signals(_campaign)
 	
-	var start_success: bool = TypeSafeMixin._safe_method_call_bool(_campaign, "start_campaign", [])
+	var start_success: bool = TypeSafeMixin._call_node_method_bool(_campaign, "start_campaign", [])
 	assert_true(start_success, "Campaign should start successfully")
 	
 	# Test campaign phase transitions under different mobile conditions
@@ -131,12 +131,12 @@ func test_mobile_campaign_performance() -> void:
 		# Measure phase transition performance
 		var metrics: Dictionary = await measure_performance(
 			func() -> void:
-				var phase_success: bool = TypeSafeMixin._safe_method_call_bool(_campaign, "change_phase",
+				var phase_success: bool = TypeSafeMixin._call_node_method_bool(_campaign, "change_phase",
 					[GameEnumsScript.FiveParcsecsCampaignPhase.UPKEEP])
 				assert_true(phase_success, "Should change to UPKEEP phase")
 				await get_tree().process_frame
 				
-				phase_success = TypeSafeMixin._safe_method_call_bool(_campaign, "change_phase",
+				phase_success = TypeSafeMixin._call_node_method_bool(_campaign, "change_phase",
 					[GameEnumsScript.FiveParcsecsCampaignPhase.CAMPAIGN])
 				assert_true(phase_success, "Should change to CAMPAIGN phase")
 				await get_tree().process_frame
@@ -169,14 +169,14 @@ func test_mobile_save_load() -> void:
 		"use_story_track": true
 	}
 	
-	_campaign = TypeSafeMixin._safe_method_call_resource(_campaign_system, "create_campaign", [campaign_config])
+	_campaign = TypeSafeMixin._call_node_method(_campaign_system, "create_campaign", [campaign_config]) as Resource
 	if not _campaign:
 		assert_true(false, "Campaign should be created successfully")
 		return
 	
 	watch_signals(_campaign)
 	
-	var start_success: bool = TypeSafeMixin._safe_method_call_bool(_campaign, "start_campaign", [])
+	var start_success: bool = TypeSafeMixin._call_node_method_bool(_campaign, "start_campaign", [])
 	assert_true(start_success, "Campaign should start successfully")
 	
 	# Test save/load under different mobile conditions
@@ -190,7 +190,7 @@ func test_mobile_save_load() -> void:
 		# Save campaign
 		var save_metrics: Dictionary = await measure_performance(
 			func() -> void:
-				var save_success: bool = TypeSafeMixin._safe_method_call_bool(_campaign_system, "save_campaign", [_campaign])
+				var save_success: bool = TypeSafeMixin._call_node_method_bool(_campaign_system, "save_campaign", [_campaign])
 				assert_true(save_success, "Should save campaign successfully")
 				await get_tree().process_frame
 		)
@@ -198,7 +198,7 @@ func test_mobile_save_load() -> void:
 		# Load campaign
 		var load_metrics: Dictionary = await measure_performance(
 			func() -> void:
-				var load_success: bool = TypeSafeMixin._safe_method_call_bool(_campaign_system, "load_campaign", ["Mobile Save Test"])
+				var load_success: bool = TypeSafeMixin._call_node_method_bool(_campaign_system, "load_campaign", ["Mobile Save Test"])
 				assert_true(load_success, "Should load campaign successfully")
 				await get_tree().process_frame
 		)
@@ -237,14 +237,14 @@ func test_mobile_input_handling() -> void:
 		"use_story_track": true
 	}
 	
-	_campaign = TypeSafeMixin._safe_method_call_resource(_campaign_system, "create_campaign", [campaign_config])
+	_campaign = TypeSafeMixin._call_node_method(_campaign_system, "create_campaign", [campaign_config]) as Resource
 	if not _campaign:
 		assert_true(false, "Campaign should be created successfully")
 		return
 	
 	watch_signals(_campaign)
 	
-	var start_success: bool = TypeSafeMixin._safe_method_call_bool(_campaign, "start_campaign", [])
+	var start_success: bool = TypeSafeMixin._call_node_method_bool(_campaign, "start_campaign", [])
 	assert_true(start_success, "Campaign should start successfully")
 	
 	# Test touch input for common campaign actions
@@ -286,3 +286,20 @@ func test_mobile_input_handling() -> void:
 		print_debug("Touch response performance for %s:" % action_name)
 		print_debug("- Average FPS: %.2f" % response_metrics.get("average_fps", 0.0))
 		print_debug("- Response Time: %.2f ms" % (1000.0 / response_metrics.get("average_fps", 60.0)))
+
+# Helper function to simulate touch events for mobile tests
+func simulate_touch_event(position: Vector2, is_pressed: bool) -> void:
+	# Create a screen touch event
+	var touch_event := InputEventScreenTouch.new()
+	touch_event.position = position
+	touch_event.pressed = is_pressed
+	Input.parse_input_event(touch_event)
+	
+	# Also simulate a mouse event for platforms that don't fully support touch
+	var mouse_event := InputEventMouseButton.new()
+	mouse_event.position = position
+	mouse_event.button_index = MOUSE_BUTTON_LEFT
+	mouse_event.pressed = is_pressed
+	Input.parse_input_event(mouse_event)
+	
+	await get_tree().process_frame

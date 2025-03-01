@@ -1,5 +1,5 @@
 @tool
-extends "res://tests/fixtures/game_test.gd"
+extends "res://tests/fixtures/base/game_test.gd"
 
 const SectorManager: GDScript = preload("res://src/core/managers/SectorManager.gd")
 
@@ -15,30 +15,30 @@ func before_each() -> void:
     await get_tree().process_frame
 
 func test_initialization() -> void:
-    var sectors: Array = TypeSafeMixin._safe_method_call_array(sector_manager, "get_sectors", [], [])
+    var sectors: Array = _call_node_method(sector_manager, "get_sectors", [])
     assert_eq(sectors.size(), 0, "Should start with no sectors")
 
 func test_sector_generation() -> void:
     var sector_count: int = 5
-    TypeSafeMixin._safe_method_call_void(sector_manager, "generate_sectors", [sector_count])
-    var sectors: Array = TypeSafeMixin._safe_method_call_array(sector_manager, "get_sectors", [], [])
+    _call_node_method_bool(sector_manager, "generate_sectors", [sector_count])
+    var sectors: Array = _call_node_method(sector_manager, "get_sectors", [])
     assert_eq(sectors.size(), sector_count, "Should generate requested number of sectors")
 
 func test_sector_connections() -> void:
-    TypeSafeMixin._safe_method_call_void(sector_manager, "generate_sectors", [3])
-    var sectors: Array = TypeSafeMixin._safe_method_call_array(sector_manager, "get_sectors", [], [])
+    _call_node_method_bool(sector_manager, "generate_sectors", [3])
+    var sectors: Array = _call_node_method(sector_manager, "get_sectors", [])
     for sector in sectors:
-        var connections: Array = TypeSafeMixin._safe_method_call_array(sector, "get_connections", [], [])
+        var connections: Array = _call_node_method(sector, "get_connections", [])
         assert_gt(connections.size(), 0, "Each sector should have at least one connection")
 
 func test_serialization() -> void:
-    TypeSafeMixin._safe_method_call_void(sector_manager, "generate_sectors", [3])
-    var original_sectors: Array = TypeSafeMixin._safe_method_call_array(sector_manager, "get_sectors", [], [])
-    var serialized: Dictionary = TypeSafeMixin._safe_method_call_dictionary(sector_manager, "serialize", [], {})
+    _call_node_method_bool(sector_manager, "generate_sectors", [3])
+    var original_sectors: Array = _call_node_method(sector_manager, "get_sectors", [])
+    var serialized: Dictionary = _call_node_method_dict(sector_manager, "serialize", [], {})
     var new_manager: Resource = SectorManager.new()
     track_test_resource(new_manager)
-    TypeSafeMixin._safe_method_call_void(new_manager, "deserialize", [serialized])
-    var deserialized_sectors: Array = TypeSafeMixin._safe_method_call_array(new_manager, "get_sectors", [], [])
+    _call_node_method_bool(new_manager, "deserialize", [serialized])
+    var deserialized_sectors: Array = _call_node_method(new_manager, "get_sectors", [])
     assert_eq(deserialized_sectors.size(), original_sectors.size(), "Should maintain sector count after serialization")
 
 func test_generate_sector() -> void:

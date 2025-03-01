@@ -11,8 +11,8 @@ extends "res://tests/fixtures/base/mobile_test_base.gd"
 ## - Save state handling
 
 # Type-safe script references
-const MissionScript := preload("res://src/core/systems/Mission.gd")
-const MissionGeneratorScript := preload("res://src/core/systems/MissionGenerator.gd")
+const MissionScript := preload("res://src/core/mission/base/mission.gd")
+const MissionGeneratorScript: GDScript = preload("res://src/core/campaign/MissionGenerator.gd")
 const GameEnumsScript := preload("res://src/core/systems/GlobalEnums.gd")
 
 # Type-safe instance variables
@@ -101,16 +101,16 @@ func test_mobile_ui_layout() -> void:
 
 # Performance Tests
 func test_mobile_performance() -> void:
-	var mission: Resource = TypeSafeMixin._safe_method_call_resource(_generator, "generate_mission_with_type",
-		[GameEnumsScript.MissionType.PATROL])
+	var mission: Resource = TypeSafeMixin._call_node_method(_generator, "generate_mission_with_type",
+		[GameEnumsScript.MissionType.PATROL]) as Resource
 	if not mission:
 		push_error("Failed to generate mission")
 		return
 	
 	var metrics := await measure_performance(
 		func():
-			TypeSafeMixin._safe_method_call_bool(mission, "update_objectives")
-			TypeSafeMixin._safe_method_call_bool(_mobile_ui, "update_display")
+			TypeSafeMixin._call_node_method_bool(mission, "update_objectives")
+			TypeSafeMixin._call_node_method_bool(_mobile_ui, "update_display")
 			await get_tree().process_frame
 	)
 	
@@ -128,14 +128,14 @@ func test_mobile_memory_usage() -> void:
 	# Create and process multiple missions
 	var missions: Array[Resource] = []
 	for i in range(10):
-		var mission: Resource = TypeSafeMixin._safe_method_call_resource(_generator, "generate_mission_with_type",
-			[GameEnumsScript.MissionType.PATROL])
+		var mission: Resource = TypeSafeMixin._call_node_method(_generator, "generate_mission_with_type",
+			[GameEnumsScript.MissionType.PATROL]) as Resource
 		if not mission:
 			push_error("Failed to generate mission %d" % i)
 			continue
 		
 		missions.append(mission)
-		TypeSafeMixin._safe_method_call_bool(_mobile_ui, "display_mission", [mission])
+		TypeSafeMixin._call_node_method_bool(_mobile_ui, "display_mission", [mission])
 		await get_tree().process_frame
 	
 	var peak_memory := Performance.get_monitor(Performance.MEMORY_STATIC)
@@ -151,8 +151,8 @@ func test_mobile_memory_usage() -> void:
 
 # Save State Tests
 func test_mobile_save_state() -> void:
-	var mission: Resource = TypeSafeMixin._safe_method_call_resource(_generator, "generate_mission_with_type",
-		[GameEnumsScript.MissionType.PATROL])
+	var mission: Resource = TypeSafeMixin._call_node_method(_generator, "generate_mission_with_type",
+		[GameEnumsScript.MissionType.PATROL]) as Resource
 	if not mission:
 		push_error("Failed to generate mission")
 		return
@@ -165,8 +165,8 @@ func test_mobile_save_state() -> void:
 	var loaded_mission: Resource = load(SAVE_FILE_PATH) as Resource
 	assert_not_null(loaded_mission, "Should load successfully after suspension")
 	
-	var mission_id: String = TypeSafeMixin._safe_method_call_string(loaded_mission, "get_mission_id")
-	var original_id: String = TypeSafeMixin._safe_method_call_string(mission, "get_mission_id")
+	var mission_id: String = TypeSafeMixin._safe_cast_to_string(TypeSafeMixin._call_node_method(loaded_mission, "get_mission_id"))
+	var original_id: String = TypeSafeMixin._safe_cast_to_string(TypeSafeMixin._call_node_method(mission, "get_mission_id"))
 	assert_eq(mission_id, original_id, "Should preserve mission state")
 
 # Helper Methods

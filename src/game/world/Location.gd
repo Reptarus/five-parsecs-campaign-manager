@@ -1,7 +1,10 @@
-class_name FiveParsecsLocation
+@tool
+class_name GameLocation
 extends Resource
 
 const GameEnums = preload("res://src/core/systems/GlobalEnums.gd")
+
+signal location_updated(property, value)
 
 # Resource type constants
 const RESOURCE_CREDITS = 0
@@ -20,18 +23,20 @@ const MARKET_CRISIS = 1
 const MARKET_BOOM = 2
 const MARKET_RESTRICTED = 3
 
-@export var name: String = ""
-@export var coordinates: Vector2 = Vector2.ZERO
-@export var type: String = ""
+@export var location_id: String = ""
+@export var location_name: String = ""
+@export var location_type: int = GameEnums.LocationType.NONE
 @export var description: String = ""
-@export var faction: String = ""
-@export var danger_level: int = 1
+@export var coordinates: Vector2 = Vector2.ZERO
+@export var connected_locations: Array = []
 @export var resources: Dictionary = {}
-@export var connected_locations: Array[String] = []
-@export var available_missions: Array[Dictionary] = []
-@export var local_events: Array[Dictionary] = []
-@export var market_modifiers: Dictionary = {}
-@export var special_features: Array[String] = []
+@export var points_of_interest: Array = []
+@export var active_missions: Array = []
+@export var visited: bool = false
+@export var discovered: bool = false
+@export var danger_level: int = 0
+@export var faction_control: int = GameEnums.FactionType.NONE
+@export var strife_level: int = GameEnums.StrifeType.NONE
 
 # Economy and trade
 @export var market_state: int = MARKET_NORMAL
@@ -40,13 +45,12 @@ const MARKET_RESTRICTED = 3
 @export var price_modifiers: Dictionary = {}
 
 # Status and conditions
-@export var is_discovered: bool = false
 @export var is_accessible: bool = true
 @export var current_threats: Array[Dictionary] = []
 @export var active_effects: Array[Dictionary] = []
 
 var _patron_name: String
-var _location: FiveParsecsLocation
+var _location: GameLocation
 var _relationship: int
 var _faction_type: GameEnums.FactionType
 
@@ -77,22 +81,22 @@ func is_connected_to(location_name: String) -> bool:
     return connected_locations.has(location_name)
 
 func add_mission(mission_data: Dictionary) -> void:
-    if not available_missions.has(mission_data):
-        available_missions.append(mission_data)
+    if not active_missions.has(mission_data):
+        active_missions.append(mission_data)
 
 func remove_mission(mission_data: Dictionary) -> void:
-    available_missions.erase(mission_data)
+    active_missions.erase(mission_data)
 
 func add_event(event_data: Dictionary) -> void:
-    if not local_events.has(event_data):
-        local_events.append(event_data)
+    if not points_of_interest.has(event_data):
+        points_of_interest.append(event_data)
 
 func clear_expired_events() -> void:
     var current_events: Array[Dictionary] = []
-    for event in local_events:
+    for event in points_of_interest:
         if not event.get("expired", false):
             current_events.append(event)
-    local_events = current_events
+    points_of_interest = current_events
 
 func update_market_state() -> void:
     # Update prices based on market state and modifiers
@@ -110,13 +114,13 @@ func update_market_state() -> void:
                 modifier *= 1.5
         
         # Apply local modifiers
-        if resource in market_modifiers:
-            modifier *= market_modifiers[resource]
+        if resource in price_modifiers:
+            modifier *= price_modifiers[resource]
             
         # Update price
         price_modifiers[resource] = modifier
 
-func get_travel_cost_to(destination: FiveParsecsLocation) -> float:
+func get_travel_cost_to(destination: GameLocation) -> float:
     var base_cost: float = 10.0
     var distance: float = coordinates.distance_to(destination.coordinates)
     var danger_modifier: float = (danger_level + destination.danger_level) * 0.1
@@ -142,55 +146,57 @@ func remove_threat(threat_data: Dictionary) -> void:
         danger_level = maxi(danger_level, threat.get("threat_level", 1))
 
 func add_special_feature(feature: String) -> void:
-    if not special_features.has(feature):
-        special_features.append(feature)
+    if not points_of_interest.has(feature):
+        points_of_interest.append(feature)
 
 func has_special_feature(feature: String) -> bool:
-    return special_features.has(feature)
+    return points_of_interest.has(feature)
 
 func serialize() -> Dictionary:
     return {
-        "name": name,
-        "coordinates": {"x": coordinates.x, "y": coordinates.y},
-        "type": type,
+        "location_id": location_id,
+        "location_name": location_name,
+        "location_type": location_type,
         "description": description,
-        "faction": faction,
-        "danger_level": danger_level,
-        "resources": resources,
+        "coordinates": {"x": coordinates.x, "y": coordinates.y},
         "connected_locations": connected_locations,
-        "available_missions": available_missions,
-        "local_events": local_events,
-        "market_modifiers": market_modifiers,
-        "special_features": special_features,
+        "resources": resources,
+        "points_of_interest": points_of_interest,
+        "active_missions": active_missions,
+        "visited": visited,
+        "discovered": discovered,
+        "danger_level": danger_level,
+        "faction_control": faction_control,
+        "strife_level": strife_level,
         "market_state": market_state,
         "trade_goods": trade_goods,
         "black_market_active": black_market_active,
         "price_modifiers": price_modifiers,
-        "is_discovered": is_discovered,
         "is_accessible": is_accessible,
         "current_threats": current_threats,
         "active_effects": active_effects
     }
 
-static func deserialize(data: Dictionary) -> FiveParsecsLocation:
-    var location = FiveParsecsLocation.new()
-    location.name = data.get("name", "")
-    location.coordinates = Vector2(data.get("coordinates", {}).get("x", 0), data.get("coordinates", {}).get("y", 0))
-    location.type = data.get("type", "")
+static func deserialize(data: Dictionary) -> GameLocation:
+    var location = GameLocation.new()
+    location.location_id = data.get("location_id", "")
+    location.location_name = data.get("location_name", "")
+    location.location_type = data.get("location_type", GameEnums.LocationType.NONE)
     location.description = data.get("description", "")
-    location.faction = data.get("faction", "")
-    location.danger_level = data.get("danger_level", 1)
-    location.resources = data.get("resources", {})
+    location.coordinates = Vector2(data.get("coordinates", {}).get("x", 0), data.get("coordinates", {}).get("y", 0))
     location.connected_locations = data.get("connected_locations", [])
-    location.available_missions = data.get("available_missions", [])
-    location.local_events = data.get("local_events", [])
-    location.market_modifiers = data.get("market_modifiers", {})
-    location.special_features = data.get("special_features", [])
+    location.resources = data.get("resources", {})
+    location.points_of_interest = data.get("points_of_interest", [])
+    location.active_missions = data.get("active_missions", [])
+    location.visited = data.get("visited", false)
+    location.discovered = data.get("discovered", false)
+    location.danger_level = data.get("danger_level", 0)
+    location.faction_control = data.get("faction_control", GameEnums.FactionType.NONE)
+    location.strife_level = data.get("strife_level", GameEnums.StrifeType.NONE)
     location.market_state = data.get("market_state", MARKET_NORMAL)
     location.trade_goods = data.get("trade_goods", [])
     location.black_market_active = data.get("black_market_active", false)
     location.price_modifiers = data.get("price_modifiers", {})
-    location.is_discovered = data.get("is_discovered", false)
     location.is_accessible = data.get("is_accessible", true)
     location.current_threats = data.get("current_threats", [])
     location.active_effects = data.get("active_effects", [])

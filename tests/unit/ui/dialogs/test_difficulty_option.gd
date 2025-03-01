@@ -1,5 +1,5 @@
 @tool
-extends ComponentTestBase
+extends "res://tests/unit/ui/base/component_test_base.gd"
 
 const DifficultyOption := preload("res://src/ui/components/difficulty/DifficultyOption.gd")
 

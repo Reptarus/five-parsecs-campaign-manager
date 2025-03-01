@@ -1,150 +1,47 @@
 @tool
-extends Node
+extends "res://src/core/character/Management/CharacterManager.gd"
+class_name FiveParsecsCharacterManager
 
-signal character_added(character: Character)
-signal character_updated(character: Character)
-signal character_removed(character_id: String)
+## Game-specific character manager implementation
+##
+## Extends the core character manager with game-specific
+## functionality for the Five Parsecs From Home implementation.
 
-const Character := preload("res://src/game/character/Character.gd")
-const CharacterBox := preload("res://src/game/character/CharacterBox.gd")
-const MAX_CHARACTERS := 100
+# Define game-specific character class reference
+const FPCharacter = preload("res://src/game/character/Character.gd")
 
-var _characters: Dictionary = {}
-var _active_characters: Array[Character] = []
+# Game-specific properties
+var _faction_relations: Dictionary = {}
+var _character_relationships: Dictionary = {}
 
 func _ready() -> void:
-	pass
+	super._ready()
 
+## Override create_character to use game-specific character class
 func create_character() -> Character:
-	var character = Character.new()
+	var character = FPCharacter.new()
 	add_character(character)
 	return character
 
-func add_character(character: Character) -> bool:
-	if not character:
-		return false
-		
-	if _characters.size() >= MAX_CHARACTERS:
-		return false
-		
-	var char_id = _get_character_property(character, "id", "")
-	if char_id.is_empty():
-		push_error("Character missing required id property")
-		return false
-		
-	_characters[char_id] = character
-	if _get_character_property(character, "is_active", false):
-		_active_characters.append(character)
+## Game-specific methods for managing relationships
+func add_relationship(char_id1: String, char_id2: String, relation_type: int) -> void:
+	if not _character_relationships.has(char_id1):
+		_character_relationships[char_id1] = {}
 	
-	character_added.emit(character)
-	return true
+	_character_relationships[char_id1][char_id2] = relation_type
 
-func update_character(character_id: String, character: Character) -> bool:
-	if not character_id in _characters:
-		return false
-		
-	var char_id = _get_character_property(character, "id", "")
-	if char_id.is_empty() or char_id != character_id:
-		push_error("Character id mismatch or missing")
-		return false
-		
-	_characters[character_id] = character
-	_update_active_characters()
+func get_relationship(char_id1: String, char_id2: String) -> int:
+	if not _character_relationships.has(char_id1):
+		return 0
 	
-	character_updated.emit(character)
-	return true
+	return _character_relationships[char_id1].get(char_id2, 0)
 
-func remove_character(character_id: String) -> bool:
-	if not character_id in _characters:
-		return false
-		
-	var character = _characters[character_id]
-	_characters.erase(character_id)
-	_active_characters.erase(character)
+## Game-specific method for calculating morale bonuses
+func calculate_crew_morale() -> int:
+	var total_morale = 0
 	
-	character_removed.emit(character_id)
-	return true
-
-func get_character(character_id: String) -> Character:
-	return _characters.get(character_id)
-
-func has_character(character_id: String) -> bool:
-	return character_id in _characters
-
-func get_character_count() -> int:
-	return _characters.size()
-
-func get_active_characters() -> Array[Character]:
-	return _active_characters.duplicate()
-
-func set_character_class(character: Character, char_class: int) -> void:
-	if not character:
-		return
-		
-	_set_character_property(character, "character_class", char_class)
-	_initialize_class_stats(character)
-	var char_id = _get_character_property(character, "id", "")
-	if not char_id.is_empty():
-		update_character(char_id, character)
-
-func improve_stat(character: Character, stat: int) -> void:
-	if not character:
-		return
-		
-	character.improve_stat(stat)
-	var char_id = _get_character_property(character, "id", "")
-	if not char_id.is_empty():
-		update_character(char_id, character)
-
-func add_experience(character: Character, amount: int) -> void:
-	if not character:
-		return
-		
-	character.add_experience(amount)
-	var char_id = _get_character_property(character, "id", "")
-	if not char_id.is_empty():
-		update_character(char_id, character)
-
-func level_up(character: Character) -> void:
-	if not character:
-		return
-		
-	character.level_up()
-	var char_id = _get_character_property(character, "id", "")
-	if not char_id.is_empty():
-		update_character(char_id, character)
-
-func _update_active_characters() -> void:
-	_active_characters.clear()
-	for character in _characters.values():
-		if _get_character_property(character, "is_active", false):
-			_active_characters.append(character)
-
-func _initialize_class_stats(character: Character) -> void:
-	match _get_character_property(character, "character_class", GameEnums.CharacterClass.NONE):
-		GameEnums.CharacterClass.NONE:
-			_set_character_property(character, "base_stats", {
-				GameEnums.CharacterStats.COMBAT_SKILL: 2,
-				GameEnums.CharacterStats.TOUGHNESS: 3,
-				GameEnums.CharacterStats.REACTIONS: 3,
-				GameEnums.CharacterStats.TECH: 3
-			})
-
-## Safe Property Access Methods
-func _get_character_property(character: Character, property: String, default_value = null) -> Variant:
-	if not character:
-		push_error("Trying to access property '%s' on null character" % property)
-		return default_value
-	if not property in character:
-		push_error("Character missing required property: %s" % property)
-		return default_value
-	return character.get(property)
-
-func _set_character_property(character: Character, property: String, value: Variant) -> void:
-	if not character:
-		push_error("Trying to set property '%s' on null character" % property)
-		return
-	if not property in character:
-		push_error("Character missing required property: %s" % property)
-		return
-	character.set(property, value)
+	for character in _active_characters:
+		var char_morale = _get_character_property(character, "morale", 0)
+		total_morale += char_morale
+	
+	return total_morale

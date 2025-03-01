@@ -46,42 +46,42 @@ func test_initial_setup() -> void:
 	assert_not_null(value_label, "Value label should exist")
 	assert_not_null(timestamp_label, "Timestamp label should exist")
 	
-	var current_value: String = TypeSafeMixin._safe_method_call_string(_component, "get_current_value", [], "")
+	var current_value: String = TypeSafeMixin._safe_cast_to_string(TypeSafeMixin._call_node_method(_component, "get_current_value", []))
 	assert_eq(current_value, "", "Initial value should be empty")
 
 func test_value_update() -> void:
 	var test_value: String = "Test Event"
-	TypeSafeMixin._safe_method_call_bool(_component, "set_value", [test_value])
+	TypeSafeMixin._call_node_method_bool(_component, "set_value", [test_value])
 	
 	assert_true(value_changed_signal_emitted, "Value changed signal should be emitted")
 	assert_eq(last_value, test_value, "Last value should match test value")
 	
-	var current_value: String = TypeSafeMixin._safe_method_call_string(_component, "get_current_value", [], "")
-	var label_text: String = TypeSafeMixin._safe_method_call_string(_component.value_label, "get_text", [], "")
+	var current_value: String = TypeSafeMixin._safe_cast_to_string(TypeSafeMixin._call_node_method(_component, "get_current_value", []))
+	var label_text: String = TypeSafeMixin._safe_cast_to_string(TypeSafeMixin._call_node_method(_component.value_label, "get_text", []))
 	
 	assert_eq(current_value, test_value, "Current value should be updated")
 	assert_eq(label_text, test_value, "Label should display the new value")
 
 func test_empty_value_handling() -> void:
-	TypeSafeMixin._safe_method_call_bool(_component, "set_value", [""])
+	TypeSafeMixin._call_node_method_bool(_component, "set_value", [""])
 	
 	assert_true(value_changed_signal_emitted, "Value changed signal should be emitted")
 	assert_eq(last_value, "", "Last value should be empty")
 	
-	var label_text: String = TypeSafeMixin._safe_method_call_string(_component.value_label, "get_text", [], "")
+	var label_text: String = TypeSafeMixin._safe_cast_to_string(TypeSafeMixin._call_node_method(_component.value_label, "get_text", []))
 	assert_eq(label_text, "", "Label should be empty")
 
 func test_timestamp_formatting() -> void:
 	var test_timestamp: String = "2024-03-20 15:30:00"
-	TypeSafeMixin._safe_method_call_bool(_component, "set_timestamp", [test_timestamp])
+	TypeSafeMixin._call_node_method_bool(_component, "set_timestamp", [test_timestamp])
 	
-	var timestamp_text: String = TypeSafeMixin._safe_method_call_string(_component.timestamp_label, "get_text", [], "")
+	var timestamp_text: String = TypeSafeMixin._safe_cast_to_string(TypeSafeMixin._call_node_method(_component.timestamp_label, "get_text", []))
 	assert_true(timestamp_text.length() > 0, "Timestamp should be formatted")
 	assert_true("2024" in timestamp_text, "Timestamp should contain year")
 
 func test_color_handling() -> void:
 	var test_color := Color(1, 0, 0, 1) # Red color
-	TypeSafeMixin._safe_method_call_bool(_component, "set_text_color", [test_color])
+	TypeSafeMixin._call_node_method_bool(_component, "set_text_color", [test_color])
 	
 	var value_label: Label = _component.value_label
 	var timestamp_label: Label = _component.timestamp_label
@@ -97,7 +97,7 @@ func test_color_handling() -> void:
 	assert_eq(timestamp_label_color, test_color, "Timestamp label color should match test color")
 
 func test_animation_handling() -> void:
-	TypeSafeMixin._safe_method_call_bool(_component, "play_highlight_animation", [])
+	TypeSafeMixin._call_node_method_bool(_component, "play_highlight_animation", [])
 	
 	# Wait for animation to start
 	await get_tree().process_frame

@@ -1,5 +1,5 @@
 @tool
-extends "res://tests/fixtures/base/game_test.gd"
+extends "res://tests/fixtures/specialized/ui_test.gd"
 
 const CampaignCreationUI: GDScript = preload("res://src/ui/screens/campaign/CampaignCreationUI.gd")
 const GameState: GDScript = preload("res://src/core/state/GameState.gd")
@@ -48,7 +48,7 @@ func _get_ui_property(property: String, default_value: Variant = null) -> Varian
     if not property in _ui:
         push_error("Creation UI missing required property: %s" % property)
         return default_value
-    return TypeSafeMixin._safe_method_call_variant(_ui, "get", [property], default_value)
+    return TypeSafeMixin._call_node_method(_ui, "get", [property]) if _ui.has_method("get") else default_value
 
 func _set_ui_property(property: String, value: Variant) -> void:
     if not _ui:
@@ -57,7 +57,7 @@ func _set_ui_property(property: String, value: Variant) -> void:
     if not property in _ui:
         push_error("Creation UI missing required property: %s" % property)
         return
-    TypeSafeMixin._safe_method_call_bool(_ui, "set", [property, value])
+    TypeSafeMixin._call_node_method_bool(_ui, "set", [property, value])
 
 # Test cases
 func test_initial_state() -> void:
@@ -74,12 +74,12 @@ func test_campaign_settings() -> void:
     var difficulty_selector: Node = _get_ui_property("difficulty_selector")
     
     if name_input and "text" in name_input:
-        TypeSafeMixin._safe_method_call_bool(name_input, "set", ["text", "Test Campaign"])
+        TypeSafeMixin._call_node_method_bool(name_input, "set", ["text", "Test Campaign"])
     if difficulty_selector and "selected" in difficulty_selector:
-        TypeSafeMixin._safe_method_call_bool(difficulty_selector, "set", ["selected", GameEnums.DifficultyLevel.NORMAL])
+        TypeSafeMixin._call_node_method_bool(difficulty_selector, "set", ["selected", GameEnums.DifficultyLevel.NORMAL])
     
     if "update_settings" in _ui:
-        TypeSafeMixin._safe_method_call_bool(_ui, "update_settings")
+        TypeSafeMixin._call_node_method_bool(_ui, "update_settings")
     
     assert_true(_get_ui_property("is_campaign_valid", false),
         "Campaign should be valid with name and difficulty")
@@ -95,17 +95,17 @@ func test_campaign_validation() -> void:
     
     # Test empty name
     if name_input and "text" in name_input:
-        TypeSafeMixin._safe_method_call_bool(name_input, "set", ["text", ""])
+        TypeSafeMixin._call_node_method_bool(name_input, "set", ["text", ""])
     if "update_settings" in _ui:
-        TypeSafeMixin._safe_method_call_bool(_ui, "update_settings")
+        TypeSafeMixin._call_node_method_bool(_ui, "update_settings")
     assert_false(_get_ui_property("is_campaign_valid", false),
         "Campaign should be invalid with empty name")
     
     # Test valid name
     if name_input and "text" in name_input:
-        TypeSafeMixin._safe_method_call_bool(name_input, "set", ["text", "Valid Name"])
+        TypeSafeMixin._call_node_method_bool(name_input, "set", ["text", "Valid Name"])
     if "update_settings" in _ui:
-        TypeSafeMixin._safe_method_call_bool(_ui, "update_settings")
+        TypeSafeMixin._call_node_method_bool(_ui, "update_settings")
     assert_true(_get_ui_property("is_campaign_valid", false),
         "Campaign should be valid with proper name")
 
@@ -116,15 +116,15 @@ func test_campaign_creation_flow() -> void:
     
     # Setup valid campaign
     if name_input and "text" in name_input:
-        TypeSafeMixin._safe_method_call_bool(name_input, "set", ["text", "Test Campaign"])
+        TypeSafeMixin._call_node_method_bool(name_input, "set", ["text", "Test Campaign"])
     if difficulty_selector and "selected" in difficulty_selector:
-        TypeSafeMixin._safe_method_call_bool(difficulty_selector, "set", ["selected", GameEnums.DifficultyLevel.NORMAL])
+        TypeSafeMixin._call_node_method_bool(difficulty_selector, "set", ["selected", GameEnums.DifficultyLevel.NORMAL])
     if "update_settings" in _ui:
-        TypeSafeMixin._safe_method_call_bool(_ui, "update_settings")
+        TypeSafeMixin._call_node_method_bool(_ui, "update_settings")
     
     # Test creation
     if "create_campaign" in _ui:
-        TypeSafeMixin._safe_method_call_bool(_ui, "create_campaign")
+        TypeSafeMixin._call_node_method_bool(_ui, "create_campaign")
     
     verify_signal_emitted(_ui, "campaign_created")
     assert_not_null(_get_ui_property("campaign", null),
@@ -137,15 +137,15 @@ func test_ui_interactions() -> void:
     
     # Test difficulty change
     if difficulty_selector and "selected" in difficulty_selector:
-        TypeSafeMixin._safe_method_call_bool(difficulty_selector, "set", ["selected", GameEnums.DifficultyLevel.HARD])
+        TypeSafeMixin._call_node_method_bool(difficulty_selector, "set", ["selected", GameEnums.DifficultyLevel.HARD])
         if "on_difficulty_changed" in _ui:
-            TypeSafeMixin._safe_method_call_bool(_ui, "on_difficulty_changed", [GameEnums.DifficultyLevel.HARD])
+            TypeSafeMixin._call_node_method_bool(_ui, "on_difficulty_changed", [GameEnums.DifficultyLevel.HARD])
     
     # Test name change
     if name_input and "text" in name_input:
-        TypeSafeMixin._safe_method_call_bool(name_input, "set", ["text", "New Name"])
+        TypeSafeMixin._call_node_method_bool(name_input, "set", ["text", "New Name"])
         if "on_name_changed" in _ui:
-            TypeSafeMixin._safe_method_call_bool(_ui, "on_name_changed", ["New Name"])
+            TypeSafeMixin._call_node_method_bool(_ui, "on_name_changed", ["New Name"])
     
     var settings: Dictionary = _get_ui_property("campaign_settings", {})
     if not settings.is_empty():
@@ -158,24 +158,24 @@ func test_error_cases() -> void:
     
     # Test invalid characters in name
     if name_input and "text" in name_input:
-        TypeSafeMixin._safe_method_call_bool(name_input, "set", ["text", "Test/Campaign"])
+        TypeSafeMixin._call_node_method_bool(name_input, "set", ["text", "Test/Campaign"])
     if "update_settings" in _ui:
-        TypeSafeMixin._safe_method_call_bool(_ui, "update_settings")
+        TypeSafeMixin._call_node_method_bool(_ui, "update_settings")
     assert_false(_get_ui_property("is_campaign_valid", false),
         "Should reject names with invalid characters")
     
     # Test extremely long name
     if name_input and "text" in name_input:
-        TypeSafeMixin._safe_method_call_bool(name_input, "set", ["text", "A".repeat(100)])
+        TypeSafeMixin._call_node_method_bool(name_input, "set", ["text", "A".repeat(100)])
     if "update_settings" in _ui:
-        TypeSafeMixin._safe_method_call_bool(_ui, "update_settings")
+        TypeSafeMixin._call_node_method_bool(_ui, "update_settings")
     assert_false(_get_ui_property("is_campaign_valid", false),
         "Should reject extremely long names")
 
 # Navigation Tests
 func test_navigation() -> void:
     if "cancel_creation" in _ui:
-        TypeSafeMixin._safe_method_call_bool(_ui, "cancel_creation")
+        TypeSafeMixin._call_node_method_bool(_ui, "cancel_creation")
     verify_signal_emitted(_ui, "campaign_cancelled")
 
 # Cleanup Tests
@@ -185,17 +185,16 @@ func test_cleanup() -> void:
     
     # Set some values
     if name_input and "text" in name_input:
-        TypeSafeMixin._safe_method_call_bool(name_input, "set", ["text", "Test"])
+        TypeSafeMixin._call_node_method_bool(name_input, "set", ["text", "Test"])
     if difficulty_selector and "selected" in difficulty_selector:
-        TypeSafeMixin._safe_method_call_bool(difficulty_selector, "set", ["selected", GameEnums.DifficultyLevel.HARD])
+        TypeSafeMixin._call_node_method_bool(difficulty_selector, "set", ["selected", GameEnums.DifficultyLevel.HARD])
     
     # Reset UI
     if "reset" in _ui:
-        TypeSafeMixin._safe_method_call_bool(_ui, "reset")
+        TypeSafeMixin._call_node_method_bool(_ui, "reset")
     
     # Verify reset
     if name_input and "text" in name_input:
-        assert_eq(TypeSafeMixin._safe_method_call_string(name_input, "get", ["text"]), "", "Should clear campaign name")
+        assert_eq(TypeSafeMixin._safe_cast_to_string(TypeSafeMixin._call_node_method(name_input, "get", ["text"])), "", "Should clear campaign name")
     if difficulty_selector and "selected" in difficulty_selector:
-        assert_eq(TypeSafeMixin._safe_method_call_int(difficulty_selector, "get", ["selected"]), GameEnums.DifficultyLevel.NORMAL,
-            "Should reset difficulty to normal")
+        assert_eq(TypeSafeMixin._call_node_method_int(difficulty_selector, "get", ["selected"]), GameEnums.DifficultyLevel.NORMAL, "Should reset difficulty to normal")

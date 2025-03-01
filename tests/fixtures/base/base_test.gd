@@ -10,7 +10,7 @@ const SignalWatcher: GDScript = preload("res://addons/gut/signal_watcher.gd")
 const TypeSafeMixin := preload("res://tests/fixtures/helpers/type_safe_test_mixin.gd")
 
 # Test configuration constants
-const SIGNAL_TIMEOUT: float = 1.0
+const BASE_SIGNAL_TIMEOUT: float = 1.0
 const FRAME_TIMEOUT: float = 3.0
 const ASYNC_TIMEOUT: float = 5.0
 const STABILIZATION_TIME: float = 0.1
@@ -42,7 +42,7 @@ var _original_engine_config := {}
 var _tracked_nodes: Array[Node] = []
 var _tracked_resources: Array[Resource] = []
 var _tracked_signals: Dictionary = {}
-var _signal_watcher: SignalWatcher = null
+var _internal_signal_watcher: SignalWatcher = null
 var _signal_emissions: Dictionary = {}
 var fps_samples: Array[float] = []
 var _error_count: int = 0
@@ -61,8 +61,8 @@ func _init() -> void:
 		push_error("Failed to initialize logger")
 		return
 	_logger.set_gut(self)
-	_signal_watcher = SignalWatcher.new(self)
-	if not _signal_watcher:
+	_internal_signal_watcher = SignalWatcher.new(self)
+	if not _internal_signal_watcher:
 		push_error("Failed to create signal watcher")
 		return
 
@@ -124,41 +124,44 @@ func watch_signals(emitter: Object) -> void:
 	if not emitter:
 		push_error("Cannot watch signals for null emitter")
 		return
-	if not _signal_watcher:
+	if not _internal_signal_watcher:
 		push_error("Signal watcher not initialized")
 		return
-	_signal_watcher.watch_signals(emitter)
+	_internal_signal_watcher.watch_signals(emitter)
 	_tracked_signals[emitter] = true
 
-func assert_signal_emitted(emitter: Object, signal_name: String, text: String = "") -> bool:
-	if not _signal_watcher:
+func assert_signal_emitted(emitter: Object, signal_name: String, text: String = "") -> void:
+	if not _internal_signal_watcher:
 		push_error("Signal watcher not initialized")
-		return false
-	return _signal_watcher.assert_signal_emitted(emitter, signal_name)
+		return
+	
+	_internal_signal_watcher.assert_signal_emitted(emitter, signal_name)
 
-func assert_signal_not_emitted(emitter: Object, signal_name: String, text: String = "") -> bool:
-	if not _signal_watcher:
+func assert_signal_not_emitted(emitter: Object, signal_name: String, text: String = "") -> void:
+	if not _internal_signal_watcher:
 		push_error("Signal watcher not initialized")
-		return false
-	return not _signal_watcher.assert_signal_emitted(emitter, signal_name)
+		return
+	
+	_internal_signal_watcher.assert_signal_not_emitted(emitter, signal_name)
 
-func assert_signal_emit_count(emitter: Object, signal_name: String, count: int, text: String = "") -> bool:
-	if not _signal_watcher:
+func assert_signal_emit_count(emitter: Object, signal_name: String, count: int, text: String = "") -> void:
+	if not _internal_signal_watcher:
 		push_error("Signal watcher not initialized")
-		return false
-	return _signal_watcher.get_emit_count(emitter, signal_name) == count
+		return
+	
+	_internal_signal_watcher.assert_signal_emit_count(emitter, signal_name, count, text)
 
 func get_signal_parameters(emitter: Object, signal_name: String, index: int = -1) -> Array:
-	if not _signal_watcher:
+	if not _internal_signal_watcher:
 		push_error("Signal watcher not initialized")
 		return []
-	return _signal_watcher.get_signal_parameters(emitter, signal_name, index)
+	return _internal_signal_watcher.get_signal_parameters(emitter, signal_name, index)
 
 func get_signal_emit_count(emitter: Object, signal_name: String) -> int:
-	if not _signal_watcher:
+	if not _internal_signal_watcher:
 		push_error("Signal watcher not initialized")
 		return 0
-	return _signal_watcher.get_emit_count(emitter, signal_name)
+	return _internal_signal_watcher.get_emit_count(emitter, signal_name)
 
 
 # Performance monitoring with type safety
@@ -511,7 +514,7 @@ func verify_signal_emitted(emitter: Object, signal_name: String, message: String
 		push_error("Invalid emitter or signal name")
 		return
 	
-	assert_true(_signal_watcher.did_emit(emitter, signal_name),
+	assert_true(_internal_signal_watcher.did_emit(emitter, signal_name),
 		message if message else "Signal %s should have been emitted" % signal_name)
 
 func verify_signal_not_emitted(emitter: Object, signal_name: String, message: String = "") -> void:
@@ -519,7 +522,7 @@ func verify_signal_not_emitted(emitter: Object, signal_name: String, message: St
 		push_error("Invalid emitter or signal name")
 		return
 	
-	assert_false(_signal_watcher.did_emit(emitter, signal_name),
+	assert_false(_internal_signal_watcher.did_emit(emitter, signal_name),
 		message if message else "Signal %s should not have been emitted" % signal_name)
 
 # Type-safe property access
@@ -677,17 +680,16 @@ func create_test_character() -> Node:
 	return character
 
 # Enhanced node management
-func add_child_autofree(node: Node) -> Node:
+func add_child_autofree(node: Node) -> void:
 	if not node:
 		push_error("Cannot add null node")
-		return null
+		return
 	
 	add_child(node)
-	track_test_node(node)
-	return node
+	_tracked_nodes.append(node)
 
 # Enhanced signal testing
-func assert_async_signal(emitter: Object, signal_name: String, timeout: float = SIGNAL_TIMEOUT) -> bool:
+func assert_async_signal(emitter: Object, signal_name: String, timeout: float = BASE_SIGNAL_TIMEOUT) -> bool:
 	if not emitter or not signal_name:
 		push_error("Invalid emitter or signal name")
 		return false
@@ -785,8 +787,8 @@ func _reset_tracking() -> void:
 	_warning_count = 0
 	_last_error = ""
 	
-	if _signal_watcher:
-		_signal_watcher.clear()
+	if _internal_signal_watcher:
+		_internal_signal_watcher.clear()
 
 func _setup_test_environment() -> void:
 	Engine.physics_ticks_per_second = TEST_CONFIG.physics_fps
@@ -832,11 +834,11 @@ func push_test_warning(warning: String) -> void:
 	push_warning(warning)
 
 # Type-safe utility methods
-func wait_for_signal(emitter: Object, signal_name: String, timeout: float = SIGNAL_TIMEOUT) -> bool:
+func wait_for_signal(emitter: Object, signal_name: String, timeout: float = BASE_SIGNAL_TIMEOUT) -> bool:
 	if not emitter or not signal_name:
 		push_test_error("Invalid emitter or signal name")
 		return false
-	return await _signal_watcher.wait_for_signal(emitter, signal_name, timeout)
+	return await _internal_signal_watcher.wait_for_signal(emitter, signal_name, timeout)
 
 # Performance monitoring
 func start_performance_monitoring() -> void:
@@ -878,7 +880,26 @@ func _call_node_method_string(obj: Object, method: String, args: Array = [], def
 		return default
 	if result is String:
 		return result
-	return str(result)
+	push_error(ERROR_TYPE_MISMATCH % ["String", TypeSafeMixin.typeof_as_string(result)])
+	return default
+
+func _call_node_method_object(obj: Object, method: String, args: Array = [], default: Object = null) -> Object:
+	var result = _call_node_method(obj, method, args)
+	if result == null:
+		return default
+	if result is Object:
+		return result
+	push_error(ERROR_TYPE_MISMATCH % ["Object", TypeSafeMixin.typeof_as_string(result)])
+	return default
+	
+func _call_node_method_vector2(obj: Object, method: String, args: Array = [], default: Vector2 = Vector2.ZERO) -> Vector2:
+	var result = _call_node_method(obj, method, args)
+	if result == null:
+		return default
+	if result is Vector2:
+		return result
+	push_error(ERROR_TYPE_MISMATCH % ["Vector2", TypeSafeMixin.typeof_as_string(result)])
+	return default
 
 # Mobile test configuration
 const MOBILE_RESOLUTIONS := {

@@ -1,7 +1,9 @@
 extends Node
+class_name GameState
 
 const GameEnums = preload("res://src/core/systems/GlobalEnums.gd")
-const FiveParcsecsCampaign = preload("res://src/core/campaign/Campaign.gd")
+const FiveParcsecsCampaign = preload("res://src/game/campaign/Campaign.gd")
+const Ship = preload("res://src/core/ships/Ship.gd")
 const SaveManager = preload("res://src/core/managers/SaveManager.gd")
 
 signal state_changed

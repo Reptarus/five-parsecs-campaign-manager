@@ -1,5 +1,6 @@
 # Scripts/ShipAndCrew/WeaponsComponent.gd
 extends ShipComponent
+class_name WeaponsComponent
 
 @export var damage: int = 10
 @export var range: float = 100.0
@@ -26,7 +27,7 @@ func _apply_upgrade_effects() -> void:
     accuracy += 0.05
     fire_rate += 0.1
     ammo_capacity += 25
-    if level % 2 == 0:  # Every other level
+    if level % 2 == 0: # Every other level
         weapon_slots += 1
     current_ammo = ammo_capacity
 

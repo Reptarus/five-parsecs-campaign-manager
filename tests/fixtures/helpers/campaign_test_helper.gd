@@ -1,5 +1,5 @@
 @tool
-extends GameTest
+extends "res://tests/fixtures/base/game_test.gd"
 
 # Type-safe error handling
 const ERROR_CAMPAIGN_NULL := "Campaign is null"
@@ -89,7 +89,7 @@ func verify_campaign_phase_transition(campaign: Resource, from_phase: int, to_ph
 		push_error(ERROR_CAMPAIGN_NULL)
 		return
 		
-	var current_phase := _call_resource_method_int(campaign, "get_phase")
+	var current_phase := TypeSafeMixin._call_node_method_int(campaign, "get_current_phase", [])
 	assert_eq(current_phase, from_phase,
 		ERROR_PHASE_MISMATCH % [from_phase, current_phase])
 	
@@ -97,10 +97,10 @@ func verify_campaign_phase_transition(campaign: Resource, from_phase: int, to_ph
 	watch_signals(campaign)
 	
 	# Attempt phase transition
-	_call_resource_method(campaign, "transition_to_phase", [to_phase])
+	TypeSafeMixin._call_node_method_bool(campaign, "set_phase", [to_phase])
 	
 	# Verify the phase changed
-	current_phase = _call_resource_method_int(campaign, "get_phase")
+	current_phase = TypeSafeMixin._call_node_method_int(campaign, "get_current_phase", [])
 	assert_eq(current_phase, to_phase,
 		ERROR_PHASE_MISMATCH % [to_phase, current_phase])
 	verify_signal_emitted(campaign, "phase_changed")
@@ -110,7 +110,7 @@ func verify_invalid_phase_transition(campaign: Resource, from_phase: int, to_pha
 		push_error(ERROR_CAMPAIGN_NULL)
 		return
 		
-	var current_phase := _call_resource_method_int(campaign, "get_phase")
+	var current_phase := TypeSafeMixin._call_node_method_int(campaign, "get_current_phase", [])
 	assert_eq(current_phase, from_phase,
 		ERROR_PHASE_MISMATCH % [from_phase, current_phase])
 	
@@ -118,10 +118,10 @@ func verify_invalid_phase_transition(campaign: Resource, from_phase: int, to_pha
 	watch_signals(campaign)
 	
 	# Attempt invalid phase transition
-	_call_resource_method(campaign, "transition_to_phase", [to_phase])
+	TypeSafeMixin._call_node_method_bool(campaign, "set_phase", [to_phase])
 	
 	# Verify phase did not change
-	current_phase = _call_resource_method_int(campaign, "get_phase")
+	current_phase = TypeSafeMixin._call_node_method_int(campaign, "get_current_phase", [])
 	assert_eq(current_phase, from_phase,
 		ERROR_PHASE_MISMATCH % [from_phase, current_phase])
 	verify_signal_not_emitted(campaign, "phase_changed")
@@ -133,7 +133,7 @@ func verify_campaign_resources(campaign: Resource, expected_resources: Dictionar
 		return
 		
 	for resource_name in expected_resources:
-		var actual_value := _call_resource_method_int(campaign, "get_%s" % resource_name, [])
+		var actual_value := TypeSafeMixin._call_node_method_int(campaign, "get_%s" % resource_name, [])
 		var expected_value: int = expected_resources[resource_name]
 		assert_eq(actual_value, expected_value,
 			ERROR_RESOURCE_MISMATCH % [resource_name, expected_value, actual_value])
@@ -157,7 +157,7 @@ func verify_story_progression(campaign: Resource, story_event: String) -> void:
 		return
 		
 	watch_signals(campaign)
-	var success: bool = _call_resource_method_bool(campaign, "trigger_story_event", [story_event])
+	var success: bool = TypeSafeMixin._call_node_method_bool(campaign, "trigger_story_event", [story_event])
 	assert_true(success, "Story event should trigger successfully")
 	verify_signal_emitted(campaign, "story_event_completed")
 
@@ -169,7 +169,7 @@ func verify_campaign_state(campaign: Resource, expected_state: Dictionary) -> vo
 		
 	# Verify phase
 	var phase: int = expected_state.get("phase", GameEnums.FiveParcsecsCampaignPhase.SETUP)
-	assert_eq(_call_resource_method_int(campaign, "get_phase"), phase,
+	assert_eq(TypeSafeMixin._call_node_method_int(campaign, "get_current_phase", []), phase,
 		"Campaign should be in correct phase")
 	
 	# Verify resources
@@ -208,11 +208,11 @@ func setup_test_campaign_state(state_key: String) -> void:
 		return
 		
 	var state: Dictionary = TEST_CAMPAIGN_STATES[state_key]
-	_call_resource_method(_campaign, "set_phase", [state.phase])
+	TypeSafeMixin._call_node_method_bool(_campaign, "set_phase", [state.phase])
 	
 	for resource_name in state.resources:
 		var value: int = state.resources[resource_name]
-		_call_resource_method(_campaign, "set_%s" % resource_name, [value])
+		TypeSafeMixin._call_node_method_bool(_campaign, "set_%s" % resource_name, [value])
 
 # Performance Testing Methods
 func measure_campaign_performance(test_function: Callable, iterations: int = 100) -> Dictionary:
@@ -257,3 +257,41 @@ func _create_test_manager(manager_name: String) -> Node:
 	add_child_autofree(manager)
 	track_test_node(manager)
 	return manager
+
+# Campaign test helper methods
+
+# Campaign Phase Tests
+func test_campaign_initial_phase() -> void:
+	var campaign := _campaign
+	if not campaign:
+		push_error(ERROR_CAMPAIGN_NULL)
+		return
+		
+	var current_phase: int = TypeSafeMixin._call_node_method_int(campaign, "get_current_phase", [])
+	assert_eq(current_phase, GameEnums.FiveParcsecsCampaignPhase.NONE, "Initial phase should be NONE")
+
+func test_campaign_phase_transition() -> void:
+	var campaign := _campaign
+	if not campaign:
+		push_error(ERROR_CAMPAIGN_NULL)
+		return
+		
+	# Transition to UPKEEP phase
+	TypeSafeMixin._call_node_method_bool(campaign, "set_phase", [GameEnums.FiveParcsecsCampaignPhase.UPKEEP])
+	var current_phase: int = TypeSafeMixin._call_node_method_int(campaign, "get_current_phase", [])
+	assert_eq(current_phase, GameEnums.FiveParcsecsCampaignPhase.UPKEEP, "Current phase should be UPKEEP")
+	
+	# Transition to BATTLE_SETUP phase
+	TypeSafeMixin._call_node_method_bool(campaign, "set_phase", [GameEnums.FiveParcsecsCampaignPhase.BATTLE_SETUP])
+	current_phase = TypeSafeMixin._call_node_method_int(campaign, "get_current_phase", [])
+	assert_eq(current_phase, GameEnums.FiveParcsecsCampaignPhase.BATTLE_SETUP, "Current phase should be BATTLE_SETUP")
+
+# Campaign Progress Tests
+func test_campaign_progress() -> void:
+	var campaign := _campaign
+	if not campaign:
+		push_error(ERROR_CAMPAIGN_NULL)
+		return
+		
+	var actual_value: int = TypeSafeMixin._call_node_method_int(campaign, "get_progress_value", ["reputation"])
+	assert_eq(actual_value, 0, "Initial reputation should be 0")

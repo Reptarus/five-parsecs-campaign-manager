@@ -54,40 +54,40 @@ func test_filter_options_setup() -> void:
 
 func test_log_entry_addition() -> void:
 	var test_message := "Test combat log entry"
-	TypeSafeMixin._safe_method_call_bool(_panel, "add_log_entry", [test_message])
+	TypeSafeMixin._call_node_method_bool(_panel, "add_log_entry", [test_message])
 	
 	assert_eq(log_list.get_item_count(), 1, "Should have one log entry")
 	assert_true(log_list.get_item_text(0).contains(test_message), "Entry should contain test message")
 
 func test_max_entries_limit() -> void:
 	for i in range(_panel.max_entries + 10):
-		TypeSafeMixin._safe_method_call_bool(_panel, "add_log_entry", ["Entry %d" % i])
+		TypeSafeMixin._call_node_method_bool(_panel, "add_log_entry", ["Entry %d" % i])
 	
 	assert_eq(log_list.get_item_count(), _panel.max_entries,
 		"Should not exceed max entries limit")
 
 func test_clear_functionality() -> void:
-	TypeSafeMixin._safe_method_call_bool(_panel, "add_log_entry", ["Test entry"])
-	TypeSafeMixin._safe_method_call_bool(_panel, "clear_log", [])
+	TypeSafeMixin._call_node_method_bool(_panel, "add_log_entry", ["Test entry"])
+	TypeSafeMixin._call_node_method_bool(_panel, "clear_log", [])
 	
 	assert_eq(log_list.get_item_count(), 0, "Should clear all entries")
 	assert_eq(_panel.log_entries.size(), 0, "Should clear internal log entries")
 
 func test_filter_functionality() -> void:
-	TypeSafeMixin._safe_method_call_bool(_panel, "add_log_entry", ["Combat: Attack", "combat"])
-	TypeSafeMixin._safe_method_call_bool(_panel, "add_log_entry", ["System: Ready", "system"])
+	TypeSafeMixin._call_node_method_bool(_panel, "add_log_entry", ["Combat: Attack", "combat"])
+	TypeSafeMixin._call_node_method_bool(_panel, "add_log_entry", ["System: Ready", "system"])
 	
-	TypeSafeMixin._safe_method_call_bool(_panel, "set_filter", ["combat"])
+	TypeSafeMixin._call_node_method_bool(_panel, "set_filter", ["combat"])
 	assert_eq(log_list.get_item_count(), 1, "Should show only combat entries")
 	
-	TypeSafeMixin._safe_method_call_bool(_panel, "set_filter", ["all"])
+	TypeSafeMixin._call_node_method_bool(_panel, "set_filter", ["all"])
 	assert_eq(log_list.get_item_count(), 2, "Should show all entries")
 
 func test_auto_scroll_functionality() -> void:
-	TypeSafeMixin._safe_method_call_bool(_panel, "set_auto_scroll", [false])
+	TypeSafeMixin._call_node_method_bool(_panel, "set_auto_scroll", [false])
 	assert_false(_panel.auto_scroll, "Auto scroll should be disabled")
 	
-	TypeSafeMixin._safe_method_call_bool(_panel, "set_auto_scroll", [true])
+	TypeSafeMixin._call_node_method_bool(_panel, "set_auto_scroll", [true])
 	assert_true(_panel.auto_scroll, "Auto scroll should be enabled")
 
 # Add inherited panel tests

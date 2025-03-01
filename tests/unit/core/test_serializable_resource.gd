@@ -53,16 +53,16 @@ func _create_test_data() -> Dictionary:
 # Base SerializableResource tests
 func test_initialization() -> void:
 	assert_not_null(test_resource, "Should create resource instance")
-	var id: String = TypeSafeMixin._safe_method_call_string(test_resource, "get_id", [], "")
+	var id: String = TypeSafeMixin._safe_cast_to_string(TypeSafeMixin._call_node_method(test_resource, "get_id", []))
 	assert_ne(id, "", "Should initialize with an ID")
 
 func test_serialization() -> void:
-	var original_id: String = TypeSafeMixin._safe_method_call_string(test_resource, "get_id", [], "")
-	var serialized: Dictionary = TypeSafeMixin._safe_method_call_dictionary(test_resource, "serialize", [], {})
+	var original_id: String = TypeSafeMixin._safe_cast_to_string(TypeSafeMixin._call_node_method(test_resource, "get_id", []))
+	var serialized: Dictionary = TypeSafeMixin._call_node_method_dict(test_resource, "serialize", [])
 	var new_resource: Resource = _SerializableScript.new()
 	track_test_resource(new_resource)
-	TypeSafeMixin._safe_method_call_void(new_resource, "deserialize", [serialized])
-	var deserialized_id: String = TypeSafeMixin._safe_method_call_string(new_resource, "get_id", [], "")
+	TypeSafeMixin._call_node_method(new_resource, "deserialize", [serialized])
+	var deserialized_id: String = TypeSafeMixin._safe_cast_to_string(TypeSafeMixin._call_node_method(new_resource, "get_id", []))
 	assert_eq(deserialized_id, original_id, "Should maintain ID after serialization")
 
 func test_id_uniqueness() -> void:
@@ -70,8 +70,8 @@ func test_id_uniqueness() -> void:
 	var resource2: Resource = _SerializableScript.new()
 	track_test_resource(resource1)
 	track_test_resource(resource2)
-	var id1: String = TypeSafeMixin._safe_method_call_string(resource1, "get_id", [], "")
-	var id2: String = TypeSafeMixin._safe_method_call_string(resource2, "get_id", [], "")
+	var id1: String = TypeSafeMixin._safe_cast_to_string(TypeSafeMixin._call_node_method(resource1, "get_id", []))
+	var id2: String = TypeSafeMixin._safe_cast_to_string(TypeSafeMixin._call_node_method(resource2, "get_id", []))
 	assert_ne(id1, id2, "Should generate unique IDs for different instances")
 
 # Extended TestResource tests

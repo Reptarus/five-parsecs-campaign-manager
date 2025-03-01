@@ -1,5 +1,5 @@
 @tool
-extends ComponentTestBase
+extends "res://tests/unit/ui/base/component_test_base.gd"
 
 const QuickStartDialog := preload("res://src/ui/components/dialogs/QuickStartDialog.gd")
 

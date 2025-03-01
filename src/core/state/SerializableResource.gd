@@ -1,4 +1,5 @@
 extends Resource
+class_name SerializableResource
 
 const GameEnums = preload("res://src/core/systems/GlobalEnums.gd")
 

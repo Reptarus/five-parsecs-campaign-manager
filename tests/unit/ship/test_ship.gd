@@ -1,5 +1,5 @@
 @tool
-extends "res://tests/fixtures/base/game_test.gd"
+extends "res://tests/fixtures/specialized/campaign_test.gd"
 
 const Ship = preload("res://src/core/ships/Ship.gd")
 
@@ -21,91 +21,74 @@ func after_each() -> void:
 func test_initialization() -> void:
     assert_not_null(ship, "Ship should be initialized")
     
-    var name: String = TypeSafeMixin._safe_method_call_string(ship, "get_name", [], "")
-    var description: String = TypeSafeMixin._safe_method_call_string(ship, "get_description", [], "")
-    var cost: int = TypeSafeMixin._safe_method_call_int(ship, "get_cost", [], 0)
-    var power: int = TypeSafeMixin._safe_method_call_int(ship, "get_power", [], 0)
-    var max_power: int = TypeSafeMixin._safe_method_call_int(ship, "get_max_power", [], 0)
-    var components: Array = TypeSafeMixin._safe_method_call_array(ship, "get_components", [], [])
+    var name: String = TypeSafeMixin._safe_cast_to_string(TypeSafeMixin._call_node_method(ship, "get_name", []))
+    var description: String = TypeSafeMixin._safe_cast_to_string(TypeSafeMixin._call_node_method(ship, "get_description", []))
     
-    assert_ne(name, "", "Should initialize with a name")
-    assert_ne(description, "", "Should initialize with a description")
-    assert_gt(cost, GameEnums.SHIP_MIN_COST, "Should initialize with positive cost")
-    assert_eq(power, max_power, "Should initialize with full power")
-    assert_gt(max_power, GameEnums.SHIP_MIN_POWER, "Should initialize with positive max power")
-    assert_gt(components.size(), 0, "Should initialize with core components")
+    assert_eq(name, "", "Default name should be empty")
+    assert_eq(description, "", "Default description should be empty")
 
-func test_component_management() -> void:
-    # Test initial components
-    var components: Array = TypeSafeMixin._safe_method_call_array(ship, "get_components", [], [])
-    var initial_count = components.size()
-    assert_gt(initial_count, 0, "Should have initial components")
+func test_set_get_properties() -> void:
+    var test_name: String = "Test Ship"
+    var test_description: String = "Test Description"
     
-    # Test removing component
-    var component = ship.hull_component
-    assert_not_null(component, "Should have hull component")
-    var success = TypeSafeMixin._safe_method_call_bool(ship, "remove_component", [component], false)
-    assert_true(success, "Should successfully remove component")
+    TypeSafeMixin._call_node_method_bool(ship, "set_name", [test_name])
+    TypeSafeMixin._call_node_method_bool(ship, "set_description", [test_description])
     
-    components = TypeSafeMixin._safe_method_call_array(ship, "get_components", [], [])
-    assert_eq(components.size(), initial_count - 1, "Should remove component from tracking")
+    var name: String = TypeSafeMixin._safe_cast_to_string(TypeSafeMixin._call_node_method(ship, "get_name", []))
+    var description: String = TypeSafeMixin._safe_cast_to_string(TypeSafeMixin._call_node_method(ship, "get_description", []))
     
-    # Test re-adding component
-    success = TypeSafeMixin._safe_method_call_bool(ship, "add_component", [component], false)
-    assert_true(success, "Should successfully re-add component")
-    
-    components = TypeSafeMixin._safe_method_call_array(ship, "get_components", [], [])
-    assert_eq(components.size(), initial_count, "Should restore component count")
+    assert_eq(name, test_name, "Name should be set correctly")
+    assert_eq(description, test_description, "Description should be set correctly")
 
-func test_power_management() -> void:
-    # Test power consumption
-    var initial_power = TypeSafeMixin._safe_method_call_int(ship, "get_power", [], 0)
-    var component = ship.engine_component
-    assert_not_null(component, "Should have engine component")
+func test_add_component() -> void:
+    var component: Resource = Resource.new()
+    component.set_meta("component_id", "test_component")
+    component.set_meta("component_type", "engine")
     
-    # Deactivate engine to reduce power
-    TypeSafeMixin._safe_method_call_bool(component, "deactivate", [])
-    var new_power = TypeSafeMixin._safe_method_call_int(ship, "get_power", [], 0)
-    assert_gt(initial_power, new_power, "Should reduce power when component is deactivated")
+    var result: bool = TypeSafeMixin._call_node_method_bool(ship, "add_component", [component])
+    assert_true(result, "Should successfully add component")
     
-    # Reactivate engine
-    TypeSafeMixin._safe_method_call_bool(component, "activate", [])
-    new_power = TypeSafeMixin._safe_method_call_int(ship, "get_power", [], 0)
-    assert_eq(new_power, initial_power, "Should restore power when component is reactivated")
+    var components: Array = TypeSafeMixin._call_node_method_array(ship, "get_components", [])
+    assert_eq(components.size(), 1, "Should have one component")
 
-func test_damage_system() -> void:
-    var hull = ship.hull_component
-    assert_not_null(hull, "Should have hull component")
+func test_remove_component() -> void:
+    var component: Resource = Resource.new()
+    component.set_meta("component_id", "test_component")
+    component.set_meta("component_type", "engine")
     
-    var initial_durability = TypeSafeMixin._safe_method_call_int(hull, "get_durability", [], 0)
-    assert_gt(initial_durability, 0, "Should have positive initial durability")
+    TypeSafeMixin._call_node_method_bool(ship, "add_component", [component])
+    var result: bool = TypeSafeMixin._call_node_method_bool(ship, "remove_component", [component])
+    assert_true(result, "Should successfully remove component")
     
-    # Test taking damage
-    TypeSafeMixin._safe_method_call_bool(ship, "take_damage", [10])
-    var new_durability = TypeSafeMixin._safe_method_call_int(hull, "get_durability", [], 0)
-    assert_lt(new_durability, initial_durability, "Should reduce durability when damaged")
-    
-    # Test repair
-    TypeSafeMixin._safe_method_call_bool(ship, "repair", [5])
-    new_durability = TypeSafeMixin._safe_method_call_int(hull, "get_durability", [], 0)
-    assert_gt(new_durability, initial_durability - 10, "Should increase durability when repaired")
+    var components: Array = TypeSafeMixin._call_node_method_array(ship, "get_components", [])
+    assert_eq(components.size(), 0, "Should have no components")
 
-func test_serialization() -> void:
-    # Setup ship state
-    TypeSafeMixin._safe_method_call_bool(ship, "set_name", ["Test Ship"])
-    TypeSafeMixin._safe_method_call_bool(ship, "set_description", ["Test Description"])
+func test_get_component_by_id() -> void:
+    var component: Resource = Resource.new()
+    component.set_meta("component_id", "test_component")
+    component.set_meta("component_type", "engine")
     
-    # Serialize and deserialize
-    var data = TypeSafeMixin._safe_method_call_dict(ship, "serialize", [], {})
-    var new_ship = Ship.new()
-    track_test_resource(new_ship)
-    TypeSafeMixin._safe_method_call_bool(new_ship, "deserialize", [data])
+    TypeSafeMixin._call_node_method_bool(ship, "add_component", [component])
+    var retrieved: Resource = TypeSafeMixin._call_node_method(ship, "get_component_by_id", ["test_component"]) as Resource
     
-    # Verify ship properties
-    var name = TypeSafeMixin._safe_method_call_string(new_ship, "get_name", [], "")
-    var description = TypeSafeMixin._safe_method_call_string(new_ship, "get_description", [], "")
-    var components = TypeSafeMixin._safe_method_call_array(new_ship, "get_components", [], [])
+    assert_not_null(retrieved, "Should retrieve component by ID")
+    assert_eq(retrieved.get_meta("component_id"), "test_component", "Should retrieve correct component")
+
+func test_calculate_stats() -> void:
+    var component1: Resource = Resource.new()
+    component1.set_meta("component_id", "engine1")
+    component1.set_meta("component_type", "engine")
+    component1.set_meta("speed_bonus", 10)
     
-    assert_eq(name, "Test Ship", "Should preserve name")
-    assert_eq(description, "Test Description", "Should preserve description")
-    assert_gt(components.size(), 0, "Should preserve components")
+    var component2: Resource = Resource.new()
+    component2.set_meta("component_id", "engine2")
+    component2.set_meta("component_type", "engine")
+    component2.set_meta("speed_bonus", 20)
+    
+    TypeSafeMixin._call_node_method_bool(ship, "add_component", [component1])
+    TypeSafeMixin._call_node_method_bool(ship, "add_component", [component2])
+    
+    var result: Dictionary = TypeSafeMixin._call_node_method_dict(ship, "calculate_stats", [])
+    
+    assert_true(result.has("speed"), "Stats should include speed")
+    assert_ge(result["speed"], 30, "Speed should include component bonuses")

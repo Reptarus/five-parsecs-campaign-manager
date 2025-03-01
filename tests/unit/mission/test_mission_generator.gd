@@ -1,5 +1,5 @@
 @tool
-extends "res://tests/fixtures/base/game_test.gd"
+extends GameTest
 
 ## Unit tests for the MissionGenerator system
 ##
@@ -11,10 +11,12 @@ extends "res://tests/fixtures/base/game_test.gd"
 ## - State persistence and recovery
 ## - Signal emission verification
 
-const MissionGenerator := preload("res://src/core/systems/MissionGenerator.gd")
+const MissionGenerator := preload("res://src/core/campaign/MissionGenerator.gd")
 const TerrainSystem := preload("res://src/core/terrain/TerrainSystem.gd")
 const RivalSystem := preload("res://src/core/rivals/RivalSystem.gd")
 const MissionTemplate = preload("res://src/core/templates/MissionTemplate.gd")
+const GameState = preload("res://src/core/state/GameState.gd")
+const WorldManager = preload("res://src/core/world/WorldManager.gd")
 
 # Test helper methods
 const TEST_TIMEOUT := 1000
@@ -23,23 +25,28 @@ const STRESS_TEST_ITERATIONS := 100
 var _mission_generator: MissionGenerator
 var _terrain_system: TerrainSystem
 var _rival_system: RivalSystem
+var _world_manager: WorldManager
+var _test_game_state: GameState
 
 func before_each() -> void:
 	await super.before_each()
+	_test_game_state = GameState.new()
+	_world_manager = WorldManager.new()
 	_terrain_system = TerrainSystem.new()
 	_rival_system = RivalSystem.new()
-	_mission_generator = MissionGenerator.new()
 	
-	add_child(_terrain_system)
-	add_child(_mission_generator)
-	add_child(_rival_system)
+	add_child_autofree(_test_game_state)
+	add_child_autofree(_world_manager)
+	add_child_autofree(_terrain_system)
+	add_child_autofree(_rival_system)
 	
-	track_test_node(_terrain_system)
-	track_test_node(_mission_generator)
-	track_test_node(_rival_system)
+	# Create mission generator after adding other nodes to the scene tree
+	_mission_generator = MissionGenerator.new(_test_game_state, _world_manager)
+	# Don't add to scene tree since it's a RefCounted, not a Node
 	
-	_mission_generator.set_terrain_system(_terrain_system)
-	_mission_generator.set_rival_system(_rival_system)
+	# Set required systems
+	TypeSafeMixin._call_node_method_bool(_mission_generator, "set_game_state", [_test_game_state])
+	TypeSafeMixin._call_node_method_bool(_mission_generator, "set_world_manager", [_world_manager])
 
 func after_each() -> void:
 	await super.after_each()
@@ -81,7 +88,8 @@ func test_rapid_mission_generation() -> void:
 	watch_signals(_mission_generator)
 	
 	for i in range(STRESS_TEST_ITERATIONS):
-		var mission = _mission_generator.generate_mission(template)
+		var mission_type = GameEnums.MissionType.PATROL
+		var mission = _mission_generator.generate_mission(mission_type)
 		assert_not_null(mission, "Should generate mission in iteration %d" % i)
 		track_test_resource(mission)
 	
@@ -94,19 +102,22 @@ func test_concurrent_generation_performance() -> void:
 	# Generate multiple missions concurrently
 	var missions = []
 	for i in range(10):
-		var mission = _mission_generator.generate_mission(template)
+		var mission_type = GameEnums.MissionType.PATROL
+		var mission = _mission_generator.generate_mission(mission_type)
 		missions.append(mission)
 		track_test_resource(mission)
 	
 	var duration := Time.get_ticks_msec() - start_time
 	assert_lt(duration, TEST_TIMEOUT, "Mission generation should complete within timeout")
+
 #endregion
 
 #region State Persistence Tests
 
 func test_mission_state_persistence() -> void:
 	var template := create_basic_template()
-	var mission = _mission_generator.generate_mission(template)
+	var mission_type = GameEnums.MissionType.PATROL
+	var mission = _mission_generator.generate_mission(mission_type)
 	track_test_resource(mission)
 	
 	# Save and reload mission state
@@ -116,15 +127,13 @@ func test_mission_state_persistence() -> void:
 	
 	assert_eq(loaded_mission.get_mission_type(), mission.get_mission_type())
 	assert_eq(loaded_mission.get_difficulty(), mission.get_difficulty())
-#endregion
-
-#region Signal Verification Tests
 
 func test_mission_generation_signals() -> void:
 	var template := create_basic_template()
 	watch_signals(_mission_generator)
 	
-	var mission = _mission_generator.generate_mission(template)
+	var mission_type = GameEnums.MissionType.PATROL
+	var mission = _mission_generator.generate_mission(mission_type)
 	track_test_resource(mission)
 	
 	assert_signal_emitted(_mission_generator, "generation_started")
@@ -221,7 +230,9 @@ func test_generation_with_invalid_rewards() -> void:
 	assert_null(mission, "Should not generate mission with invalid reward range")
 
 func test_generation_with_missing_systems() -> void:
-	var standalone_generator = MissionGenerator.new()
+	var terrain_system_mock = TerrainSystem.new()
+	var rival_system_mock = RivalSystem.new()
+	var standalone_generator = MissionGenerator.new(terrain_system_mock, rival_system_mock)
 	add_child(standalone_generator)
 	track_test_node(standalone_generator)
 	

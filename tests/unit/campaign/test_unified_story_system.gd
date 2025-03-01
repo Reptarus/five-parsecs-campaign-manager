@@ -69,7 +69,7 @@ func test_story_initialization() -> void:
 		"quests": []
 	}
 	
-	TypeSafeMixin._safe_method_call_bool(story_system, "initialize_story", [test_data])
+	TypeSafeMixin._call_node_method_bool(story_system, "initialize_story", [test_data])
 	
 	assert_true(signal_received, "Story updated signal should be emitted")
 	assert_eq(last_signal_data.title, test_data.title, "Story title should match")
@@ -81,9 +81,9 @@ func test_quest_addition() -> void:
 	test_quest.title = "Test Quest"
 	test_quest.description = "A test quest"
 	
-	TypeSafeMixin._safe_method_call_bool(story_system, "add_quest", [test_quest])
+	TypeSafeMixin._call_node_method_bool(story_system, "add_quest", [test_quest])
 	
-	var quests: Array = TypeSafeMixin._safe_method_call_array(story_system, "get_quests", [])
+	var quests: Array = TypeSafeMixin._call_node_method_array(story_system, "get_quests", [])
 	assert_eq(quests.size(), 1, "Should have one quest")
 	
 	var quest: StoryQuestData = quests[0]
@@ -93,9 +93,9 @@ func test_quest_addition() -> void:
 func test_quest_completion() -> void:
 	var test_quest: StoryQuestData = StoryQuestData.new()
 	test_quest.id = "test_quest"
-	TypeSafeMixin._safe_method_call_bool(story_system, "add_quest", [test_quest])
+	TypeSafeMixin._call_node_method_bool(story_system, "add_quest", [test_quest])
 	
-	TypeSafeMixin._safe_method_call_bool(story_system, "complete_quest", ["test_quest"])
+	TypeSafeMixin._call_node_method_bool(story_system, "complete_quest", ["test_quest"])
 	
 	assert_true(signal_received, "Quest completed signal should be emitted")
 	assert_eq(last_signal_data.quest_id, "test_quest", "Completed quest ID should match")
@@ -104,9 +104,9 @@ func test_quest_completion() -> void:
 func test_quest_failure() -> void:
 	var test_quest: StoryQuestData = StoryQuestData.new()
 	test_quest.id = "test_quest"
-	TypeSafeMixin._safe_method_call_bool(story_system, "add_quest", [test_quest])
+	TypeSafeMixin._call_node_method_bool(story_system, "add_quest", [test_quest])
 	
-	TypeSafeMixin._safe_method_call_bool(story_system, "fail_quest", ["test_quest"])
+	TypeSafeMixin._call_node_method_bool(story_system, "fail_quest", ["test_quest"])
 	
 	assert_true(signal_received, "Quest failed signal should be emitted")
 	assert_eq(last_signal_data.quest_id, "test_quest", "Failed quest ID should match")
@@ -120,60 +120,60 @@ func test_quest_dependencies() -> void:
 	quest2.id = "quest2"
 	quest2.dependencies = ["quest1"]
 	
-	TypeSafeMixin._safe_method_call_bool(story_system, "add_quest", [quest1])
-	TypeSafeMixin._safe_method_call_bool(story_system, "add_quest", [quest2])
+	TypeSafeMixin._call_node_method_bool(story_system, "add_quest", [quest1])
+	TypeSafeMixin._call_node_method_bool(story_system, "add_quest", [quest2])
 	
-	var is_available: bool = TypeSafeMixin._safe_method_call_bool(story_system, "is_quest_available", ["quest2"])
+	var is_available: bool = TypeSafeMixin._call_node_method_bool(story_system, "is_quest_available", ["quest2"])
 	assert_false(is_available, "Quest2 should not be available until Quest1 is completed")
 	
-	TypeSafeMixin._safe_method_call_bool(story_system, "complete_quest", ["quest1"])
-	is_available = TypeSafeMixin._safe_method_call_bool(story_system, "is_quest_available", ["quest2"])
+	TypeSafeMixin._call_node_method_bool(story_system, "complete_quest", ["quest1"])
+	is_available = TypeSafeMixin._call_node_method_bool(story_system, "is_quest_available", ["quest2"])
 	assert_true(is_available, "Quest2 should be available after Quest1 is completed")
 
 func test_quest_state_persistence() -> void:
 	var test_quest: StoryQuestData = StoryQuestData.new()
 	test_quest.id = "test_quest"
-	TypeSafeMixin._safe_method_call_bool(story_system, "add_quest", [test_quest])
+	TypeSafeMixin._call_node_method_bool(story_system, "add_quest", [test_quest])
 	
-	TypeSafeMixin._safe_method_call_bool(story_system, "complete_quest", ["test_quest"])
+	TypeSafeMixin._call_node_method_bool(story_system, "complete_quest", ["test_quest"])
 	
-	var state: Dictionary = TypeSafeMixin._safe_method_call_dict(story_system, "get_story_state", [])
+	var state: Dictionary = TypeSafeMixin._call_node_method_dict(story_system, "get_story_state", [])
 	assert_true(state.has("quests"), "Story state should have quests")
 	assert_true(state.quests.has("test_quest"), "Story state should have test quest")
 	assert_eq(state.quests.test_quest.status, "completed", "Quest status should be persisted")
 
 func test_invalid_quest_operations() -> void:
 	# Test completing non-existent quest
-	TypeSafeMixin._safe_method_call_bool(story_system, "complete_quest", ["invalid_quest"])
+	TypeSafeMixin._call_node_method_bool(story_system, "complete_quest", ["invalid_quest"])
 	assert_false(signal_received, "Should not emit signal for invalid quest")
 	
 	# Test failing non-existent quest
 	_reset_signals()
-	TypeSafeMixin._safe_method_call_bool(story_system, "fail_quest", ["invalid_quest"])
+	TypeSafeMixin._call_node_method_bool(story_system, "fail_quest", ["invalid_quest"])
 	assert_false(signal_received, "Should not emit signal for invalid quest")
 	
 	# Test adding duplicate quest
 	var test_quest: StoryQuestData = StoryQuestData.new()
 	test_quest.id = "test_quest"
-	TypeSafeMixin._safe_method_call_bool(story_system, "add_quest", [test_quest])
+	TypeSafeMixin._call_node_method_bool(story_system, "add_quest", [test_quest])
 	
 	_reset_signals()
-	TypeSafeMixin._safe_method_call_bool(story_system, "add_quest", [test_quest])
+	TypeSafeMixin._call_node_method_bool(story_system, "add_quest", [test_quest])
 	assert_false(signal_received, "Should not emit signal for duplicate quest")
 
 func test_quest_validation() -> void:
 	var invalid_quest: StoryQuestData = StoryQuestData.new()
 	# Missing required ID
-	TypeSafeMixin._safe_method_call_bool(story_system, "add_quest", [invalid_quest])
+	TypeSafeMixin._call_node_method_bool(story_system, "add_quest", [invalid_quest])
 	
-	var quests: Array = TypeSafeMixin._safe_method_call_array(story_system, "get_quests", [])
+	var quests: Array = TypeSafeMixin._call_node_method_array(story_system, "get_quests", [])
 	assert_eq(quests.size(), 0, "Should not add invalid quest")
 	
 	# Invalid dependency
 	var quest: StoryQuestData = StoryQuestData.new()
 	quest.id = "test_quest"
 	quest.dependencies = ["non_existent_quest"]
-	TypeSafeMixin._safe_method_call_bool(story_system, "add_quest", [quest])
+	TypeSafeMixin._call_node_method_bool(story_system, "add_quest", [quest])
 	
-	quests = TypeSafeMixin._safe_method_call_array(story_system, "get_quests", [])
+	quests = TypeSafeMixin._call_node_method_array(story_system, "get_quests", [])
 	assert_eq(quests.size(), 0, "Should not add quest with invalid dependencies")

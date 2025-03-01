@@ -1,8 +1,8 @@
 @tool
-extends "res://tests/fixtures/base/game_test.gd"
+extends GameTest
 
 # Type-safe script references
-const Mission: GDScript = preload("res://src/core/systems/Mission.gd")
+const Mission: GDScript = preload("res://src/core/mission/base/mission.gd")
 
 # Type-safe instance variables
 var _mission_manager: Node = null

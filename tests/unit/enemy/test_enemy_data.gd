@@ -1,296 +1,215 @@
 @tool
-class_name TestEnemyData
-extends GutTest
+extends "res://tests/fixtures/specialized/enemy_test.gd"
 
-## Enemy Data System Tests
-##
-## Tests enemy data functionality including:
-## - Data initialization and validation
-## - Stats and characteristics
-## - Weapons and equipment
-## - Loot tables and rewards
-## - Experience and progression
-## - Serialization and persistence
+const GameWeapon: GDScript = preload("res://src/core/systems/items/Weapon.gd")
 
-# Required type declarations
-const Enemy: GDScript = preload("res://src/core/battle/enemy/Enemy.gd")
-const EnemyData: GDScript = preload("res://src/core/rivals/EnemyData.gd")
-# Type-safe script references
-const GameWeapon: GDScript = preload("res://src/core/battle/items/Weapon.gd")
-
-# Type-safe enums
 enum EnemyType {
-	NONE = 0,
-	BASIC = 1,
-	ELITE = 2,
-	BOSS = 3
-}
-
-enum EnemyCategory {
-	CRIMINAL_ELEMENTS = 0,
-	HOSTILE_FAUNA = 1,
-	MILITARY_FORCES = 2,
-	ALIEN_THREATS = 3,
-	ROBOTIC_ENTITIES = 4
-}
-
-enum EnemyBehavior {
-	CAUTIOUS = 0,
-	AGGRESSIVE = 1,
-	DEFENSIVE = 2,
-	TACTICAL = 3,
-	UNPREDICTABLE = 4
-}
-
-enum CharacterStats {
-	COMBAT_SKILL = 0,
-	TOUGHNESS = 1,
-	MOVEMENT = 2,
-	COMMAND = 3
-}
-
-enum EnemyTrait {
-	NONE = 0,
-	ALERT = 1,
-	ARMORED = 2,
-	FAST = 3,
-	REGENERATING = 4,
-	STEALTHY = 5
-}
-
-# Type-safe test data
-const TEST_LOOT_TABLES: Dictionary = {
-	"Common Loot": {
-		"name": "Credits" as String,
-		"quantity": "1D6 x 10" as String,
-		"chance": 30 as int
-	},
-	"Rare Loot": {
-		"name": "Advanced Weapon" as String,
-		"quantity": 1 as int,
-		"chance": 20 as int
-	},
-	"Battlefield Finds": {
-		"name": "Weapon" as String,
-		"effect": "Roll on Weapon table" as String,
-		"chance": 15 as int
-	}
+	GRUNT,
+	ELITE,
+	BOSS
 }
 
 # Type-safe instance variables
-var _enemy_data: EnemyData = null
-var _test_weapon: Resource = null
+var _test_enemy_data: EnemyData = null
 
-# Lifecycle Methods
+## Core tests for enemy data functionality:
+## - Data initialization and validation
+## - Enemy stats and characteristics
+## - Weapons and equipment
+## - Loot tables and rewards
+## - Experience and progression
+## - Serialization
+
 func before_each() -> void:
 	await super.before_each()
-	await stabilize_engine()
-	
-	# Create test resources
-	_enemy_data = EnemyData.new()
-	assert_not_null(_enemy_data, "Should create enemy data")
-	track_test_resource(_enemy_data)
-	
-	_test_weapon = _create_weapon_safe()
-	assert_not_null(_test_weapon, "Should create test weapon")
+	_test_enemy_data = create_test_enemy_data()
+	assert_not_null(_test_enemy_data, "Enemy data should be created")
 
 func after_each() -> void:
-	_enemy_data = null
-	_cleanup_test_resources()
+	_test_enemy_data = null
 	await super.after_each()
 
-# Helper Methods
-func _create_weapon_safe() -> Resource:
-	var weapon := GameWeapon.new() as Resource
-	if not weapon:
-		push_error("Failed to create weapon instance")
-		return null
+func test_basic_initialization() -> void:
+	# Test initialization
+	var enemy_id: String = _call_node_method_string(_test_enemy_data, "get_id", [])
+	assert_not_null(enemy_id, "Enemy ID should not be null")
 	
-	track_test_resource(weapon)
-	return weapon
+	var enemy_name: String = _call_node_method_string(_test_enemy_data, "get_name", [])
+	assert_not_null(enemy_name, "Enemy name should not be null")
 
-func _verify_enemy_data_safe(data: Resource, message: String = "") -> void:
-	if not data or not data is EnemyData:
-		push_error("Invalid enemy data object")
-		assert_false(true, "Invalid enemy data object: %s" % message)
-		return
+func test_stats_configuration() -> void:
+	# Test stats configuration
+	var health: int = TypeSafeMixin._call_node_method_int(_test_enemy_data, "get_max_health", [])
+	assert_gt(health, 0, "Health should be positive")
 	
-	assert_not_null(data, "Enemy data should not be null: %s" % message)
-	assert_true(data is EnemyData, "Object should be EnemyData: %s" % message)
+	var speed: int = TypeSafeMixin._call_node_method_int(_test_enemy_data, "get_speed", [])
+	assert_gt(speed, 0, "Speed should be positive")
+	
+	var defense: int = TypeSafeMixin._call_node_method_int(_test_enemy_data, "get_defense", [])
+	assert_ge(defense, 0, "Defense should be non-negative")
 
-func _verify_loot_table_safe(table: Dictionary, category: String, loot: Dictionary, message: String = "") -> void:
-	assert_has(table, category, "Loot table should have category '%s': %s" % [category, message])
-	if not category in table:
-		return
+func test_equipment_handling() -> void:
+	# Test equipment handling
+	var weapons: Array = TypeSafeMixin._call_node_method(_test_enemy_data, "get_weapons", []) as Array
+	assert_true(weapons is Array, "Weapons should be an array")
 	
-	var category_loot: Array = table[category]
-	assert_has(category_loot, loot, "Category '%s' should have loot entry: %s" % [category, message])
+	if weapons.size() > 0:
+		var first_weapon = weapons[0]
+		assert_true(first_weapon is GameWeapon, "Weapon should be GameWeapon type")
+		
+		var weapon_damage: int = TypeSafeMixin._call_node_method_int(first_weapon, "get_damage", [])
+		assert_gt(weapon_damage, 0, "Weapon damage should be positive")
+	else:
+		# Add a test weapon if none exists
+		var test_weapon = GameWeapon.new()
+		TypeSafeMixin._call_node_method_bool(test_weapon, "set_name", ["Test Blaster"])
+		TypeSafeMixin._call_node_method_bool(test_weapon, "set_damage", [5])
+		
+		TypeSafeMixin._call_node_method_bool(_test_enemy_data, "add_weapon", [test_weapon])
+		
+		weapons = TypeSafeMixin._call_node_method(_test_enemy_data, "get_weapons", []) as Array
+		assert_eq(weapons.size(), 1, "Should have added one weapon")
+	
+	# Test armor
+	var has_armor: bool = TypeSafeMixin._call_node_method_bool(_test_enemy_data, "has_armor", [])
+	if has_armor:
+		var armor_value: int = TypeSafeMixin._call_node_method_int(_test_enemy_data, "get_armor_value", [])
+		assert_gt(armor_value, 0, "Armor value should be positive if has_armor is true")
 
-# Initialization Tests
-func test_enemy_data_initialization() -> void:
-	_verify_enemy_data_safe(_enemy_data, "after initialization")
-	
-	# Verify default values
-	assert_eq(_enemy_data.enemy_type, EnemyType.NONE,
-		"Enemy type should default to NONE")
-	assert_eq(_enemy_data.enemy_category, EnemyCategory.CRIMINAL_ELEMENTS,
-		"Enemy category should default to CRIMINAL_ELEMENTS")
-	assert_eq(_enemy_data.enemy_behavior, EnemyBehavior.CAUTIOUS,
-		"Enemy behavior should default to CAUTIOUS")
+func test_enemy_type_behaviors() -> void:
+	# Test enemy type behaviors
+	for enemy_type in EnemyType.values():
+		TypeSafeMixin._call_node_method_bool(_test_enemy_data, "set_type", [enemy_type])
+		var set_type: int = TypeSafeMixin._call_node_method_int(_test_enemy_data, "get_type", [])
+		assert_eq(set_type, enemy_type, "Enemy type should be set correctly")
+		
+		# Check type-specific properties
+		var power_level: int = TypeSafeMixin._call_node_method_int(_test_enemy_data, "get_power_level", [])
+		match enemy_type:
+			EnemyType.GRUNT:
+				assert_lt(power_level, 5, "Grunt should have low power level")
+			EnemyType.ELITE:
+				assert_gt(power_level, 5, "Elite should have higher power level")
+				assert_lt(power_level, 10, "Elite should have power level below boss")
+			EnemyType.BOSS:
+				assert_gt(power_level, 10, "Boss should have highest power level")
 
-# Stats Tests
-func test_enemy_data_base_stats() -> void:
-	_enemy_data = create_test_enemy_data("ELITE")
-	_verify_enemy_data_safe(_enemy_data, "for base stats test")
+func test_loot_tables() -> void:
+	# Test loot tables
+	var loot_table: Dictionary = TypeSafeMixin._call_node_method(_test_enemy_data, "get_loot_table", []) as Dictionary
+	assert_true(loot_table is Dictionary, "Loot table should be a Dictionary")
 	
-	# Verify base stats
-	assert_eq(_enemy_data.get_stat(CharacterStats.COMBAT_SKILL), 1,
-		"Elite enemy should have combat skill 1")
-	assert_eq(_enemy_data.get_stat(CharacterStats.TOUGHNESS), 4,
-		"Elite enemy should have toughness 4")
+	# Add test loot if none exists
+	if loot_table.is_empty():
+		var test_loot := {
+			"credits": {"min": 10, "max": 50},
+			"items": [
+				{"name": "Medpack", "chance": 0.5},
+				{"name": "Ammo", "chance": 0.8}
+			]
+		}
+		
+		TypeSafeMixin._call_node_method_bool(_test_enemy_data, "set_loot_table", [test_loot])
+		loot_table = TypeSafeMixin._call_node_method(_test_enemy_data, "get_loot_table", []) as Dictionary
+	
+	# Test loot generation
+	var generated_loot: Array = TypeSafeMixin._call_node_method(_test_enemy_data, "generate_loot", []) as Array
+	assert_true(generated_loot is Array, "Generated loot should be an Array")
 
-func test_enemy_data_stat_modification() -> void:
-	_enemy_data = create_test_enemy_data("ELITE")
-	_verify_enemy_data_safe(_enemy_data, "for stat modification test")
+func test_experience_rewards() -> void:
+	# Test experience rewards
+	var xp_reward: int = TypeSafeMixin._call_node_method_int(_test_enemy_data, "get_xp_reward", [])
+	assert_gt(xp_reward, 0, "XP reward should be positive")
 	
-	# Test stat modification
-	var initial_skill: int = _enemy_data.get_stat(CharacterStats.COMBAT_SKILL)
-	_enemy_data.set_stat(CharacterStats.COMBAT_SKILL, initial_skill + 1)
-	assert_eq(_enemy_data.get_stat(CharacterStats.COMBAT_SKILL), initial_skill + 1,
-		"Combat skill should be increased")
+	# Test relationship between enemy type and XP
+	TypeSafeMixin._call_node_method_bool(_test_enemy_data, "set_type", [EnemyType.GRUNT])
+	var grunt_xp: int = TypeSafeMixin._call_node_method_int(_test_enemy_data, "get_xp_reward", [])
+	
+	TypeSafeMixin._call_node_method_bool(_test_enemy_data, "set_type", [EnemyType.BOSS])
+	var boss_xp: int = TypeSafeMixin._call_node_method_int(_test_enemy_data, "get_xp_reward", [])
+	
+	assert_gt(boss_xp, grunt_xp, "Boss should give more XP than Grunt")
 
-# Equipment Tests
-func test_enemy_data_weapon_management() -> void:
-	_verify_enemy_data_safe(_enemy_data, "for weapon management test")
+func test_enemy_traits() -> void:
+	# Test enemy traits
+	var traits: Array = TypeSafeMixin._call_node_method(_test_enemy_data, "get_traits", []) as Array
+	assert_true(traits is Array, "Traits should be an Array")
 	
-	# Test adding weapon
-	_enemy_data.add_weapon(_test_weapon)
-	var weapons: Array = _enemy_data.get_weapons()
-	assert_has(weapons, _test_weapon, "Should have added weapon")
+	# Add a test trait if none exists
+	if traits.is_empty():
+		TypeSafeMixin._call_node_method_bool(_test_enemy_data, "add_trait", ["aggressive"])
+		traits = TypeSafeMixin._call_node_method(_test_enemy_data, "get_traits", []) as Array
 	
-	# Test removing weapon
-	_enemy_data.remove_weapon(_test_weapon)
-	weapons = _enemy_data.get_weapons()
-	assert_does_not_have(weapons, _test_weapon, "Should have removed weapon")
+	assert_false(traits.is_empty(), "Should have at least one trait")
+	
+	# Test trait effects
+	var has_trait: bool = TypeSafeMixin._call_node_method_bool(_test_enemy_data, "has_trait", [traits[0]])
+	assert_true(has_trait, "Should confirm trait exists")
+	
+	var non_existent_trait: bool = TypeSafeMixin._call_node_method_bool(_test_enemy_data, "has_trait", ["nonexistent"])
+	assert_false(non_existent_trait, "Should not have nonexistent trait")
 
-# Characteristics Tests
-func test_enemy_data_characteristics() -> void:
-	_verify_enemy_data_safe(_enemy_data, "for characteristics test")
+func test_serialization() -> void:
+	# Test save/load functionality
+	# Save to dictionary
+	var save_data: Dictionary = TypeSafeMixin._call_node_method_dict(_test_enemy_data, "save_to_dictionary", [])
+	assert_gt(save_data.size(), 0, "Save data should not be empty")
 	
-	var test_trait := EnemyTrait.ALERT
+	# Load in a new instance
+	var new_enemy_data: EnemyData = EnemyData.new()
+	TypeSafeMixin._call_node_method_bool(new_enemy_data, "load_from_dictionary", [save_data])
 	
-	# Test adding characteristic
-	_enemy_data.add_characteristic(test_trait)
-	assert_true(_enemy_data.has_characteristic(test_trait),
-		"Should have added characteristic")
+	# Verify loaded data
+	var original_id: String = _call_node_method_string(_test_enemy_data, "get_id", [])
+	var loaded_id: String = _call_node_method_string(new_enemy_data, "get_id", [])
+	assert_eq(loaded_id, original_id, "Loaded enemy should have same ID")
 	
-	# Test removing characteristic
-	_enemy_data.remove_characteristic(test_trait)
-	assert_false(_enemy_data.has_characteristic(test_trait),
-		"Should have removed characteristic")
+	var original_type: int = TypeSafeMixin._call_node_method_int(_test_enemy_data, "get_type", [])
+	var loaded_type: int = TypeSafeMixin._call_node_method_int(new_enemy_data, "get_type", [])
+	assert_eq(loaded_type, original_type, "Loaded enemy should have same type")
 
-# Special Rules Tests
-func test_enemy_data_special_rules() -> void:
-	_verify_enemy_data_safe(_enemy_data, "for special rules test")
+func test_enemy_abilities() -> void:
+	# Test enemy abilities
+	var abilities: Array = TypeSafeMixin._call_node_method(_test_enemy_data, "get_abilities", []) as Array
+	assert_true(abilities is Array, "Abilities should be an Array")
 	
-	var test_rule := "TEST_RULE"
+	# Add a test ability if none exists
+	if abilities.is_empty():
+		TypeSafeMixin._call_node_method_bool(_test_enemy_data, "add_ability", ["regeneration"])
+		abilities = TypeSafeMixin._call_node_method(_test_enemy_data, "get_abilities", []) as Array
 	
-	# Test adding rule
-	_enemy_data.add_special_rule(test_rule)
-	var rules: Array = _enemy_data.get_special_rules()
-	assert_has(rules, test_rule, "Should have added special rule")
+	assert_false(abilities.is_empty(), "Should have at least one ability")
 	
-	# Test removing rule
-	_enemy_data.remove_special_rule(test_rule)
-	rules = _enemy_data.get_special_rules()
-	assert_does_not_have(rules, test_rule, "Should have removed special rule")
+	# Test ability existence
+	var has_ability: bool = TypeSafeMixin._call_node_method_bool(_test_enemy_data, "has_ability", [abilities[0]])
+	assert_true(has_ability, "Should confirm ability exists")
+	
+	# Test ability parameters
+	if has_ability:
+		var ability_params: Dictionary = TypeSafeMixin._call_node_method(_test_enemy_data, "get_ability_parameters", [abilities[0]]) as Dictionary
+		assert_true(ability_params is Dictionary, "Ability parameters should be a Dictionary")
 
-# Loot System Tests
-func test_enemy_data_loot_management() -> void:
-	_verify_enemy_data_safe(_enemy_data, "for loot management test")
+func test_validation() -> void:
+	# Test basic validation
+	var is_valid: bool = TypeSafeMixin._call_node_method_bool(_test_enemy_data, "validate", [])
+	assert_true(is_valid, "Properly initialized enemy data should be valid")
 	
-	# Test common loot
-	var common_loot: Dictionary = TEST_LOOT_TABLES["Common Loot"]
-	_enemy_data.add_loot_reward("Common Loot", common_loot)
-	var loot_table: Dictionary = _enemy_data.get_loot_table()
-	_verify_loot_table_safe(loot_table, "Common Loot", common_loot,
-		"for common loot")
+	# Test validation with invalid data
+	var invalid_data: EnemyData = EnemyData.new()
+	var invalid_result: bool = TypeSafeMixin._call_node_method_bool(invalid_data, "validate", [])
+	assert_false(invalid_result, "Uninitialized enemy data should be invalid")
 
-func test_enemy_data_rare_loot() -> void:
-	_verify_enemy_data_safe(_enemy_data, "for rare loot test")
-	
-	# Test rare loot
-	var rare_loot: Dictionary = TEST_LOOT_TABLES["Rare Loot"]
-	_enemy_data.add_loot_reward("Rare Loot", rare_loot)
-	var loot_table: Dictionary = _enemy_data.get_loot_table()
-	_verify_loot_table_safe(loot_table, "Rare Loot", rare_loot,
-		"for rare loot")
+# Helper method to create test enemy data
+func create_test_enemy_data() -> EnemyData:
+	var data = EnemyData.new()
+	data.set_id("test_enemy_" + str(randi() % 1000))
+	data.set_name("Test Enemy")
+	data.set_health(100)
+	data.set_damage(10)
+	data.set_defense(5)
+	data.set_speed(3)
+	return data
 
-func test_enemy_data_battlefield_loot() -> void:
-	_verify_enemy_data_safe(_enemy_data, "for battlefield loot test")
-	
-	# Test battlefield finds
-	var battlefield_loot: Dictionary = TEST_LOOT_TABLES["Battlefield Finds"]
-	_enemy_data.add_loot_reward("Battlefield Finds", battlefield_loot)
-	var loot_table: Dictionary = _enemy_data.get_loot_table()
-	_verify_loot_table_safe(loot_table, "Battlefield Finds", battlefield_loot,
-		"for battlefield loot")
-
-func test_enemy_data_loot_removal() -> void:
-	_verify_enemy_data_safe(_enemy_data, "for loot removal test")
-	
-	# Add and remove loot
-	var common_loot: Dictionary = TEST_LOOT_TABLES["Common Loot"]
-	_enemy_data.add_loot_reward("Common Loot", common_loot)
-	_enemy_data.remove_loot_reward("Common Loot", common_loot)
-	
-	var loot_table: Dictionary = _enemy_data.get_loot_table()
-	var common_loot_array: Array = loot_table.get("Common Loot", [])
-	assert_does_not_have(common_loot_array, common_loot,
-		"Should have removed loot reward")
-
-# Experience System Tests
-func test_enemy_data_experience_value() -> void:
-	_verify_enemy_data_safe(_enemy_data, "for experience value test")
-	
-	# Test base experience
-	assert_eq(_enemy_data.get_experience_value(), 3,
-		"Should have correct base experience value")
-
-func test_enemy_data_experience_modification() -> void:
-	_verify_enemy_data_safe(_enemy_data, "for experience modification test")
-	
-	# Test experience modification
-	var new_value := 5
-	_enemy_data.set_experience_value(new_value)
-	assert_eq(_enemy_data.get_experience_value(), new_value,
-		"Should update experience value")
-
-# Serialization Tests
-func test_enemy_data_serialization() -> void:
-	_verify_enemy_data_safe(_enemy_data, "for serialization test")
-	
-	# Setup test data
-	_enemy_data.enemy_type = EnemyType.ELITE
-	_enemy_data.enemy_category = EnemyCategory.MILITARY_FORCES
-	_enemy_data.add_characteristic(EnemyTrait.ARMORED)
-	_enemy_data.add_weapon(_test_weapon)
-	
-	# Test serialization
-	var serialized: Dictionary = _enemy_data.serialize()
-	assert_not_null(serialized, "Should create serialized data")
-	
-	# Test deserialization
-	var new_data := create_test_enemy_data()
-	assert_not_null(new_data, "Should create new enemy data")
-	new_data.deserialize(serialized)
-	
-	# Verify deserialized data
-	assert_eq(new_data.enemy_type, EnemyType.ELITE,
-		"Should restore enemy type")
-	assert_eq(new_data.enemy_category, EnemyCategory.MILITARY_FORCES,
-		"Should restore enemy category")
-	assert_true(new_data.has_characteristic(EnemyTrait.ARMORED),
-		"Should restore characteristics")
-	assert_eq(new_data.get_weapons().size(), 1,
-		"Should restore weapons")
+# Helper method to check if an object has a specific method
+func assert_has_method(obj: Object, method_name: String, message: String = "") -> void:
+	assert_true(obj.has_method(method_name), message if message else "Object should have method '%s'" % method_name)

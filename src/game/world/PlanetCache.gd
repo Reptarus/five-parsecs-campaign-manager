@@ -1,9 +1,9 @@
 @tool
-class_name FiveParsecsPlanetCache
+class_name GamePlanetCache
 extends Node
 
 const GameEnums = preload("res://src/core/systems/GlobalEnums.gd")
-const FiveParsecsPlanet = preload("res://src/core/world/Planet.gd")
+const GamePlanet = preload("res://src/game/world/Planet.gd")
 
 signal cache_updated
 
@@ -17,7 +17,7 @@ var dirty: bool = false
 func _init() -> void:
     load_cache()
 
-func add_planet(planet: FiveParsecsPlanet) -> void:
+func add_planet(planet: GamePlanet) -> void:
     var planet_id = _generate_planet_id(planet)
     cached_planets[planet_id] = planet
     cache_timestamps[planet_id] = Time.get_unix_time_from_system()
@@ -26,11 +26,11 @@ func add_planet(planet: FiveParsecsPlanet) -> void:
     save_cache()
     cache_updated.emit()
 
-func get_planet(sector: String, coordinates: Vector2) -> FiveParsecsPlanet:
+func get_planet(sector: String, coordinates: Vector2) -> GamePlanet:
     var planet_id = _generate_id(sector, coordinates)
     return cached_planets.get(planet_id)
 
-func update_planet(planet: FiveParsecsPlanet) -> void:
+func update_planet(planet: GamePlanet) -> void:
     var planet_id = _generate_planet_id(planet)
     if cached_planets.has(planet_id):
         cached_planets[planet_id] = planet
@@ -39,7 +39,7 @@ func update_planet(planet: FiveParsecsPlanet) -> void:
         save_cache()
         cache_updated.emit()
 
-func _generate_planet_id(planet: FiveParsecsPlanet) -> String:
+func _generate_planet_id(planet: GamePlanet) -> String:
     return _generate_id(planet.sector, planet.coordinates)
 
 func _generate_id(sector: String, coordinates: Vector2) -> String:
@@ -94,4 +94,4 @@ func load_cache() -> void:
         cache_timestamps = cache_data.timestamps
         
         for planet_id in cache_data.planets:
-            cached_planets[planet_id] = FiveParsecsPlanet.deserialize(cache_data.planets[planet_id])
+            cached_planets[planet_id] = GamePlanet.deserialize(cache_data.planets[planet_id])
