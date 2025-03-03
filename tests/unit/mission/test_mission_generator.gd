@@ -11,12 +11,12 @@ extends GameTest
 ## - State persistence and recovery
 ## - Signal emission verification
 
-const MissionGenerator := preload("res://src/core/campaign/MissionGenerator.gd")
+const MissionGenerator := preload("res://src/game/campaign/FiveParsecsMissionGenerator.gd")
 const TerrainSystem := preload("res://src/core/terrain/TerrainSystem.gd")
 const RivalSystem := preload("res://src/core/rivals/RivalSystem.gd")
 const MissionTemplate = preload("res://src/core/templates/MissionTemplate.gd")
 const GameState = preload("res://src/core/state/GameState.gd")
-const WorldManager = preload("res://src/core/world/WorldManager.gd")
+const WorldManager = preload("res://src/game/world/GameWorldManager.gd")
 
 # Test helper methods
 const TEST_TIMEOUT := 1000
@@ -41,7 +41,7 @@ func before_each() -> void:
 	add_child_autofree(_rival_system)
 	
 	# Create mission generator after adding other nodes to the scene tree
-	_mission_generator = MissionGenerator.new(_test_game_state, _world_manager)
+	_mission_generator = MissionGenerator.new()
 	# Don't add to scene tree since it's a RefCounted, not a Node
 	
 	# Set required systems
@@ -232,7 +232,7 @@ func test_generation_with_invalid_rewards() -> void:
 func test_generation_with_missing_systems() -> void:
 	var terrain_system_mock = TerrainSystem.new()
 	var rival_system_mock = RivalSystem.new()
-	var standalone_generator = MissionGenerator.new(terrain_system_mock, rival_system_mock)
+	var standalone_generator = MissionGenerator.new()
 	add_child(standalone_generator)
 	track_test_node(standalone_generator)
 	

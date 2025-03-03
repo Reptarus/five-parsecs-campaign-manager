@@ -3,7 +3,6 @@ extends Resource
 
 const FiveParsecsGear = preload("implementations/five_parsecs_gear.gd")
 const GameEnums = preload("res://src/core/systems/GlobalEnums.gd")
-const GameWeapon = preload("res://src/core/systems/items/Weapon.gd")
 
 var gears: Dictionary = {}
 

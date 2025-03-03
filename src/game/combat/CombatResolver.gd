@@ -4,6 +4,7 @@ extends Node
 const CharacterScript: GDScript = preload("res://src/core/character/Base/Character.gd")
 const TerrainTypesScript: GDScript = preload("res://src/core/terrain/TerrainTypes.gd")
 const GameEnumsScript: GDScript = preload("res://src/core/systems/GlobalEnums.gd")
+const BaseCombatManager := preload("res://src/base/combat/BaseCombatManager.gd")
 
 ## Terrain Types (loaded from TerrainTypesScript)
 var TERRAIN_TYPE_WATER: int
@@ -158,7 +159,7 @@ const FOCUS_THRESHOLD := 7
 const ABILITY_COOLDOWN := 3
 
 ## Variables
-var combat_manager: Node = null
+var combat_manager: BaseCombatManager = null
 var battlefield_manager: Node = null
 var active_combatants: Array[CharacterScript] = []
 var combat_log: Array[String] = []
@@ -166,7 +167,7 @@ var manual_overrides: Dictionary = {}
 
 ## Functions
 func _ready() -> void:
-	combat_manager = get_node_or_null("/root/CombatManager")
+	combat_manager = get_node_or_null("/root/CombatManager") as BaseCombatManager
 	battlefield_manager = get_node_or_null("/root/BattlefieldManager")
 	_load_terrain_types()
 	_validate_character_interface()
@@ -471,7 +472,7 @@ func _resolve_ranged_attack(attacker: CharacterScript, target: CharacterScript) 
 				_apply_retreat(target, retreat_distance, _get_character_position(attacker))
 				
 			if "Stun" in weapon.traits:
-				target.apply_status_effect("stunned", 1)
+				target.apply_status_effect({"effect": "stunned", "duration": 1})
 
 func _calculate_hit_modifier(attacker: CharacterScript, target: CharacterScript) -> int:
 	var modifier := 0
@@ -609,11 +610,11 @@ func _calculate_damage(attacker: CharacterScript, target: CharacterScript, hit_r
 func _apply_combat_effects(attacker: CharacterScript, target: CharacterScript, hit_roll: int) -> void:
 	# Status effects based on hit roll
 	if hit_roll >= STUN_THRESHOLD:
-		target.apply_status_effect("stun", 1)
+		target.apply_status_effect({"effect": "stun", "duration": 1})
 		emit_signal(&"combat_effect_applied", target, "stun")
 		log_combat_event("%s was stunned" % _get_character_name(target))
 	elif hit_roll >= SUPPRESS_THRESHOLD:
-		target.apply_status_effect("suppress", 1)
+		target.apply_status_effect({"effect": "suppress", "duration": 1})
 		emit_signal(&"combat_effect_applied", target, "suppress")
 		log_combat_event("%s was suppressed" % _get_character_name(target))
 	
@@ -624,13 +625,13 @@ func _apply_combat_effects(attacker: CharacterScript, target: CharacterScript, h
 			_apply_knockback(target, _get_character_position(attacker), 2)
 			emit_signal(&"combat_effect_applied", target, "knockback")
 		if "Disarm" in weapon.traits and hit_roll >= 5:
-			target.apply_status_effect("disarmed", 1)
+			target.apply_status_effect({"effect": "disarmed", "duration": 1})
 			emit_signal(&"combat_effect_applied", target, "disarmed")
 		if "Stagger" in weapon.traits:
 			target.reduce_action_points(1)
 			emit_signal(&"combat_effect_applied", target, "stagger")
 		if "Bleed" in weapon.traits and not target.is_mechanical():
-			target.apply_status_effect("bleeding", 2)
+			target.apply_status_effect({"effect": "bleeding", "duration": 2})
 			emit_signal(&"combat_effect_applied", target, "bleeding")
 
 func _apply_knockback(target: CharacterScript, from_position: Vector2i, distance: int) -> void:
@@ -755,23 +756,23 @@ func _select_ai_target(attacker: CharacterScript, valid_targets: Array[Character
 func _apply_leadership_bonus(character: CharacterScript) -> void:
 	var allies: Array[CharacterScript] = _get_nearby_allies(character)
 	for ally in allies:
-		ally.apply_status_effect("inspire", 2) # Lasts 2 turns
+		ally.apply_status_effect({"effect": "inspire", "duration": 2}) # Lasts 2 turns
 		log_combat_event("%s inspired by %s's leadership" % [_get_character_name(ally), _get_character_name(character)])
 
 func _apply_tactical_bonus(character: CharacterScript) -> void:
 	var allies: Array[CharacterScript] = _get_nearby_allies(character)
 	for ally in allies:
-		ally.apply_status_effect("focus", 2) # Lasts 2 turns
+		ally.apply_status_effect({"effect": "focus", "duration": 2}) # Lasts 2 turns
 		ally.add_action_points(1) # Bonus action point
 		log_combat_event("%s gained tactical advantage from %s" % [_get_character_name(ally), _get_character_name(character)])
 
 func _apply_marksman_bonus(character: CharacterScript) -> void:
-	character.apply_status_effect("focus", 3) # Extended focus duration
+	character.apply_status_effect({"effect": "focus", "duration": 3}) # Extended focus duration
 	character.add_combat_modifier(GameEnumsScript.CombatModifier.ELEVATION) # Elevation bonus for marksman
 	log_combat_event("%s entered marksman stance" % _get_character_name(character))
 
 func _apply_berserker_bonus(character: CharacterScript) -> void:
-	character.apply_status_effect("rage", 2) # Lasts 2 turns
+	character.apply_status_effect({"effect": "rage", "duration": 2}) # Lasts 2 turns
 	character.add_combat_modifier(GameEnumsScript.CombatModifier.FLANKING) # Flanking bonus for berserker
 	character.add_action_points(2) # Two bonus action points
 	log_combat_event("%s entered berserker rage" % _get_character_name(character))
@@ -785,7 +786,7 @@ func _apply_medic_bonus(character: CharacterScript, target: CharacterScript) -> 
 		log_combat_event("%s healed %s for %d damage" % [_get_character_name(character), _get_character_name(target), heal_amount])
 
 func _apply_tech_bonus(character: CharacterScript) -> void:
-	character.apply_status_effect("tech_boost", 2) # Lasts 2 turns
+	character.apply_status_effect({"effect": "tech_boost", "duration": 2}) # Lasts 2 turns
 	character.add_combat_modifier(GameEnumsScript.CombatModifier.STEALTH) # Stealth bonus for tech
 	# Repair nearby mechanical allies
 	var allies: Array[CharacterScript] = _get_nearby_allies(character)

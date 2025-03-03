@@ -1,0 +1,164 @@
+{
+    "fuel": {
+        "id": "fuel",
+        "name": "Fuel",
+        "description": "Spacecraft fuel used for interstellar travel.",
+        "base_value": 50,
+        "rarity": "common",
+        "tags": [
+            "essential",
+            "tradable"
+        ],
+        "max_quantity": 100,
+        "weight_per_unit": 1
+    },
+    "supplies": {
+        "id": "supplies",
+        "name": "Basic Supplies",
+        "description": "General provisions and necessities for crew survival.",
+        "base_value": 30,
+        "rarity": "common",
+        "tags": [
+            "essential",
+            "tradable"
+        ],
+        "max_quantity": 100,
+        "weight_per_unit": 1
+    },
+    "food": {
+        "id": "food",
+        "name": "Food",
+        "description": "Edible provisions for crew consumption.",
+        "base_value": 20,
+        "rarity": "common",
+        "tags": [
+            "essential",
+            "tradable",
+            "perishable"
+        ],
+        "max_quantity": 100,
+        "weight_per_unit": 1
+    },
+    "water": {
+        "id": "water",
+        "name": "Water",
+        "description": "Potable water for crew consumption and life support.",
+        "base_value": 15,
+        "rarity": "common",
+        "tags": [
+            "essential",
+            "tradable"
+        ],
+        "max_quantity": 100,
+        "weight_per_unit": 1
+    },
+    "minerals": {
+        "id": "minerals",
+        "name": "Minerals",
+        "description": "Common minerals used in manufacturing and construction.",
+        "base_value": 40,
+        "rarity": "common",
+        "tags": [
+            "tradable",
+            "industrial"
+        ],
+        "max_quantity": 100,
+        "weight_per_unit": 2
+    },
+    "rare_materials": {
+        "id": "rare_materials",
+        "name": "Rare Materials",
+        "description": "Uncommon elements and compounds with specialized applications.",
+        "base_value": 100,
+        "rarity": "uncommon",
+        "tags": [
+            "tradable",
+            "industrial",
+            "valuable"
+        ],
+        "max_quantity": 50,
+        "weight_per_unit": 1
+    },
+    "luxury_goods": {
+        "id": "luxury_goods",
+        "name": "Luxury Goods",
+        "description": "High-value items sought after by wealthy individuals.",
+        "base_value": 150,
+        "rarity": "uncommon",
+        "tags": [
+            "tradable",
+            "valuable"
+        ],
+        "max_quantity": 30,
+        "weight_per_unit": 1
+    },
+    "medical_supplies": {
+        "id": "medical_supplies",
+        "name": "Medical Supplies",
+        "description": "Medicines, equipment, and materials for treating injuries and illnesses.",
+        "base_value": 80,
+        "rarity": "uncommon",
+        "tags": [
+            "essential",
+            "tradable"
+        ],
+        "max_quantity": 50,
+        "weight_per_unit": 1
+    },
+    "technology": {
+        "id": "technology",
+        "name": "Technology",
+        "description": "Advanced technological components and devices.",
+        "base_value": 120,
+        "rarity": "uncommon",
+        "tags": [
+            "tradable",
+            "industrial",
+            "valuable"
+        ],
+        "max_quantity": 40,
+        "weight_per_unit": 1
+    },
+    "weapons": {
+        "id": "weapons",
+        "name": "Weapons",
+        "description": "Various armaments and ammunition.",
+        "base_value": 200,
+        "rarity": "rare",
+        "tags": [
+            "tradable",
+            "restricted",
+            "valuable"
+        ],
+        "max_quantity": 30,
+        "weight_per_unit": 2
+    },
+    "contraband": {
+        "id": "contraband",
+        "name": "Contraband",
+        "description": "Illegal goods with high black market value.",
+        "base_value": 250,
+        "rarity": "rare",
+        "tags": [
+            "tradable",
+            "illegal",
+            "valuable"
+        ],
+        "max_quantity": 20,
+        "weight_per_unit": 1
+    },
+    "artifacts": {
+        "id": "artifacts",
+        "name": "Artifacts",
+        "description": "Ancient or alien objects with mysterious properties.",
+        "base_value": 500,
+        "rarity": "very_rare",
+        "tags": [
+            "tradable",
+            "valuable",
+            "unique"
+        ],
+        "max_quantity": 10,
+        "weight_per_unit": 1
+    }
+}

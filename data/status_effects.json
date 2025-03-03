@@ -1,0 +1,333 @@
+{
+    "name": "status_effects",
+    "effects": [
+        {
+            "id": "wounded",
+            "name": "Wounded",
+            "description": "Character has sustained injuries that impair their performance.",
+            "icon": "res://assets/icons/status/wounded.png",
+            "stat_modifiers": {
+                "speed": -1,
+                "combat": -1
+            },
+            "special_rules": [
+                "Cannot use special abilities",
+                "Cannot run"
+            ],
+            "recovery": {
+                "type": "time",
+                "value": "1D3"
+            },
+            "treatment": {
+                "item": "medical_supplies",
+                "difficulty": 7,
+                "success_effect": "reduce_duration",
+                "success_value": 1
+            },
+            "tags": [
+                "injury",
+                "common"
+            ]
+        },
+        {
+            "id": "seriously_wounded",
+            "name": "Seriously Wounded",
+            "description": "Character has sustained severe injuries that significantly impair their performance.",
+            "icon": "res://assets/icons/status/seriously_wounded.png",
+            "stat_modifiers": {
+                "speed": -2,
+                "combat": -2,
+                "toughness": -1
+            },
+            "special_rules": [
+                "Cannot use special abilities",
+                "Cannot run",
+                "Cannot use heavy weapons"
+            ],
+            "recovery": {
+                "type": "time",
+                "value": "2D3"
+            },
+            "treatment": {
+                "item": "advanced_medical_kit",
+                "difficulty": 9,
+                "success_effect": "reduce_severity",
+                "success_value": "wounded"
+            },
+            "tags": [
+                "injury",
+                "severe"
+            ]
+        },
+        {
+            "id": "critically_wounded",
+            "name": "Critically Wounded",
+            "description": "Character is on the brink of death and requires immediate medical attention.",
+            "icon": "res://assets/icons/status/critically_wounded.png",
+            "stat_modifiers": {
+                "speed": -3,
+                "combat": -3,
+                "toughness": -2,
+                "savvy": -1
+            },
+            "special_rules": [
+                "Cannot use special abilities",
+                "Cannot move more than half speed",
+                "Cannot use weapons heavier than a pistol",
+                "Must roll 4+ each turn or collapse"
+            ],
+            "recovery": {
+                "type": "time",
+                "value": "3D3"
+            },
+            "treatment": {
+                "item": "advanced_medical_kit",
+                "difficulty": 11,
+                "success_effect": "reduce_severity",
+                "success_value": "seriously_wounded"
+            },
+            "death_risk": {
+                "check_frequency": "daily",
+                "survival_roll": 7,
+                "modifier_stat": "toughness"
+            },
+            "tags": [
+                "injury",
+                "critical"
+            ]
+        },
+        {
+            "id": "stunned",
+            "name": "Stunned",
+            "description": "Character is temporarily disoriented and confused.",
+            "icon": "res://assets/icons/status/stunned.png",
+            "stat_modifiers": {
+                "combat": -2,
+                "savvy": -2
+            },
+            "special_rules": [
+                "Cannot use special abilities",
+                "Acts last in initiative order"
+            ],
+            "recovery": {
+                "type": "time",
+                "value": 1
+            },
+            "treatment": {
+                "item": "stim_pack",
+                "difficulty": 5,
+                "success_effect": "remove",
+                "success_value": null
+            },
+            "tags": [
+                "temporary",
+                "common"
+            ]
+        },
+        {
+            "id": "poisoned",
+            "name": "Poisoned",
+            "description": "Character has been exposed to toxins that are affecting their system.",
+            "icon": "res://assets/icons/status/poisoned.png",
+            "stat_modifiers": {
+                "toughness": -1,
+                "speed": -1
+            },
+            "special_rules": [
+                "Takes 1 damage at the start of each turn",
+                "Cannot recover health naturally"
+            ],
+            "recovery": {
+                "type": "roll",
+                "value": {
+                    "stat": "toughness",
+                    "target": 8,
+                    "frequency": "daily"
+                }
+            },
+            "treatment": {
+                "item": "antidote",
+                "difficulty": 7,
+                "success_effect": "remove",
+                "success_value": null
+            },
+            "tags": [
+                "toxin",
+                "debuff"
+            ]
+        },
+        {
+            "id": "infected",
+            "name": "Infected",
+            "description": "Character's wounds have become infected, causing ongoing health issues.",
+            "icon": "res://assets/icons/status/infected.png",
+            "stat_modifiers": {
+                "toughness": -1,
+                "speed": -1,
+                "combat": -1
+            },
+            "special_rules": [
+                "Cannot recover from other injuries while infected",
+                "Toughness checks are at -2"
+            ],
+            "recovery": {
+                "type": "none"
+            },
+            "treatment": {
+                "item": "antibiotics",
+                "difficulty": 8,
+                "success_effect": "remove",
+                "success_value": null
+            },
+            "progression": {
+                "target_effect": "seriously_wounded",
+                "check_frequency": "daily",
+                "progression_roll": 8,
+                "modifier_stat": "toughness"
+            },
+            "tags": [
+                "disease",
+                "debuff"
+            ]
+        },
+        {
+            "id": "broken_limb",
+            "name": "Broken Limb",
+            "description": "Character has a broken arm or leg that severely limits their capabilities.",
+            "icon": "res://assets/icons/status/broken_limb.png",
+            "stat_modifiers": {
+                "speed": -2,
+                "combat": -2
+            },
+            "special_rules": [
+                "Cannot use two-handed weapons",
+                "Cannot climb or jump",
+                "Movement reduced by half"
+            ],
+            "recovery": {
+                "type": "time",
+                "value": "2D6"
+            },
+            "treatment": {
+                "item": "bone_setter",
+                "difficulty": 9,
+                "success_effect": "reduce_duration",
+                "success_value": "1D3"
+            },
+            "tags": [
+                "injury",
+                "severe"
+            ]
+        },
+        {
+            "id": "malfunctioning",
+            "name": "Malfunctioning",
+            "description": "Bot or cybernetic component is not operating correctly.",
+            "icon": "res://assets/icons/status/malfunctioning.png",
+            "stat_modifiers": {
+                "combat": -1,
+                "savvy": -1
+            },
+            "special_rules": [
+                "Must roll 4+ to use special abilities",
+                "50% chance of action failure"
+            ],
+            "recovery": {
+                "type": "none"
+            },
+            "treatment": {
+                "item": "repair_kit",
+                "difficulty": 7,
+                "success_effect": "remove",
+                "success_value": null
+            },
+            "tags": [
+                "mechanical",
+                "bot"
+            ]
+        },
+        {
+            "id": "overheated",
+            "name": "Overheated",
+            "description": "Bot or cybernetic system is running too hot and risks shutdown.",
+            "icon": "res://assets/icons/status/overheated.png",
+            "stat_modifiers": {
+                "speed": -1,
+                "combat": -1
+            },
+            "special_rules": [
+                "Cannot use energy weapons",
+                "Takes 1 damage if performing more than one action per turn"
+            ],
+            "recovery": {
+                "type": "time",
+                "value": 1
+            },
+            "treatment": {
+                "item": "coolant",
+                "difficulty": 6,
+                "success_effect": "remove",
+                "success_value": null
+            },
+            "tags": [
+                "mechanical",
+                "bot",
+                "temporary"
+            ]
+        },
+        {
+            "id": "inspired",
+            "name": "Inspired",
+            "description": "Character is performing at their peak due to inspiration or adrenaline.",
+            "icon": "res://assets/icons/status/inspired.png",
+            "stat_modifiers": {
+                "combat": 1,
+                "savvy": 1
+            },
+            "special_rules": [
+                "Can reroll one failed roll per turn"
+            ],
+            "recovery": {
+                "type": "time",
+                "value": 1
+            },
+            "treatment": {
+                "item": null,
+                "difficulty": null,
+                "success_effect": null,
+                "success_value": null
+            },
+            "tags": [
+                "buff",
+                "temporary"
+            ]
+        }
+    ],
+    "effect_interactions": [
+        {
+            "effect1": "wounded",
+            "effect2": "seriously_wounded",
+            "result": "seriously_wounded",
+            "duration": "max"
+        },
+        {
+            "effect1": "wounded",
+            "effect2": "critically_wounded",
+            "result": "critically_wounded",
+            "duration": "max"
+        },
+        {
+            "effect1": "seriously_wounded",
+            "effect2": "critically_wounded",
+            "result": "critically_wounded",
+            "duration": "max"
+        },
+        {
+            "effect1": "stunned",
+            "effect2": "inspired",
+            "result": "none",
+            "duration": "none"
+        }
+    ],
+    "default_recovery_time": 1
+}

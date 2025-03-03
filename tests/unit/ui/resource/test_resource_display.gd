@@ -2,16 +2,20 @@
 extends "res://tests/fixtures/base/game_test.gd"
 
 const ResourceDisplay = preload("res://src/ui/resource/ResourceDisplay.gd")
+const WorldDataMigration = preload("res://src/core/migration/WorldDataMigration.gd")
 
 var display: ResourceDisplay
+var migration: WorldDataMigration
 var resource_updated_signal_emitted := false
 var last_resource_type: GameEnums.ResourceType = GameEnums.ResourceType.NONE
 var last_resource_value: int = 0
+var last_resource_id: String = ""
 
 # Type-safe test lifecycle
 func before_each() -> void:
 	await super.before_each()
 	display = ResourceDisplay.new()
+	migration = WorldDataMigration.new()
 	add_child_autofree(display)
 	track_test_node(display)
 	_reset_signals()
@@ -23,6 +27,7 @@ func after_each() -> void:
 	if display:
 		display.queue_free()
 		display = null
+	migration = null
 	await super.after_each()
 
 # Type-safe signal handling
@@ -30,6 +35,7 @@ func _reset_signals() -> void:
 	resource_updated_signal_emitted = false
 	last_resource_type = GameEnums.ResourceType.NONE
 	last_resource_value = 0
+	last_resource_id = ""
 
 func _connect_signals() -> void:
 	if not display:
@@ -49,6 +55,7 @@ func _on_resource_updated(resource_type: GameEnums.ResourceType, new_value: int)
 	resource_updated_signal_emitted = true
 	last_resource_type = resource_type
 	last_resource_value = new_value
+	last_resource_id = migration.convert_resource_type_to_id(resource_type)
 
 # Type-safe test methods
 func test_initial_setup() -> void:
@@ -70,11 +77,14 @@ func test_resource_addition() -> void:
 	
 	for resource_type in test_resources:
 		var value: int = test_resources[resource_type]
+		var resource_id = migration.convert_resource_type_to_id(resource_type)
+		
 		_call_node_method(display, "add_resource", [resource_type, value])
 		
 		assert_true(resource_updated_signal_emitted, "Resource updated signal should be emitted")
 		assert_eq(last_resource_type, resource_type, "Resource type should match")
 		assert_eq(last_resource_value, value, "Resource value should match")
+		assert_eq(last_resource_id, resource_id, "Resource ID should match converted enum")
 		
 		var has_resource: bool = _call_node_method_bool(display, "has_resource", [resource_type])
 		assert_true(has_resource, "Should have added resource")
@@ -86,11 +96,13 @@ func test_resource_update() -> void:
 	_reset_signals()
 	
 	var new_value := 200
+	var resource_id = migration.convert_resource_type_to_id(GameEnums.ResourceType.CREDITS)
 	_call_node_method(display, "update_resource", [GameEnums.ResourceType.CREDITS, new_value])
 	
 	assert_true(resource_updated_signal_emitted, "Resource updated signal should be emitted")
 	assert_eq(last_resource_type, GameEnums.ResourceType.CREDITS, "Resource type should match")
 	assert_eq(last_resource_value, new_value, "Resource value should match")
+	assert_eq(last_resource_id, resource_id, "Resource ID should match converted enum")
 	
 	var current_value: int = _call_node_method_int(display, "get_resource_value", [GameEnums.ResourceType.CREDITS])
 	assert_eq(current_value, new_value, "Resource value should be updated")
@@ -126,6 +138,9 @@ func test_multiple_resources() -> void:
 		
 		var value: int = _call_node_method_int(display, "get_resource_value", [resource_type])
 		assert_eq(value, test_resources[resource_type], "Resource %s should have correct value" % resource_type)
+		
+		var resource_id = migration.convert_resource_type_to_id(resource_type)
+		assert_ne(resource_id, "", "Resource ID should not be empty for %s" % resource_type)
 
 func test_resource_layout() -> void:
 	_call_node_method(display, "add_resource", [GameEnums.ResourceType.CREDITS, 100])

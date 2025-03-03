@@ -53,7 +53,7 @@ func initialize(state: GameState) -> void:
 	
 	# Load active campaign from game state if it exists
 	if game_state.current_campaign:
-		active_campaign = game_state.current_campaign
+		active_campaign = game_state.current_campaign as Campaign
 		campaign_loaded.emit(active_campaign)
 
 ## Get the total number of completed missions

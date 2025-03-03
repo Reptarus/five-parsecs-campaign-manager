@@ -1,0 +1,355 @@
+{
+    "spaceport": {
+        "id": "spaceport",
+        "name": "Spaceport",
+        "description": "A bustling hub of interstellar commerce and travel, featuring docking bays, repair facilities, and trading posts.",
+        "default_traits": [
+            "trade_center",
+            "high_security"
+        ],
+        "possible_traits": [
+            "corporate_controlled",
+            "black_market",
+            "industrial_hub",
+            "refugee_center"
+        ],
+        "resource_modifiers": {
+            "fuel": 0.2,
+            "supplies": 0.1,
+            "technology": 0.1
+        },
+        "encounter_modifiers": {
+            "merchants": 0.3,
+            "security": 0.2,
+            "criminals": -0.1
+        }
+    },
+    "settlement": {
+        "id": "settlement",
+        "name": "Settlement",
+        "description": "A small to medium-sized community of colonists or natives, with basic infrastructure and services.",
+        "default_traits": [
+            "frontier_world"
+        ],
+        "possible_traits": [
+            "agricultural_world",
+            "mining_world",
+            "research_outpost",
+            "religious_community"
+        ],
+        "resource_modifiers": {
+            "supplies": 0.2,
+            "minerals": 0.1
+        },
+        "encounter_modifiers": {
+            "locals": 0.3,
+            "merchants": 0.1,
+            "security": -0.1
+        }
+    },
+    "industrial_complex": {
+        "id": "industrial_complex",
+        "name": "Industrial Complex",
+        "description": "A large facility dedicated to manufacturing and production.",
+        "default_traits": [
+            "industrial_hub"
+        ],
+        "possible_traits": [
+            "corporate_world",
+            "mining_world"
+        ],
+        "resource_modifiers": {
+            "minerals": 2,
+            "technology": 1,
+            "fuel": 1
+        }
+    },
+    "research_facility": {
+        "id": "research_facility",
+        "name": "Research Facility",
+        "description": "A scientific installation focused on advanced research.",
+        "default_traits": [
+            "research_outpost"
+        ],
+        "possible_traits": [
+            "corporate_world"
+        ],
+        "resource_modifiers": {
+            "technology": 3,
+            "medical_supplies": 1
+        }
+    },
+    "military_outpost": {
+        "id": "military_outpost",
+        "name": "Military Outpost",
+        "description": "A fortified base housing military personnel and equipment.",
+        "default_traits": [
+            "military_base"
+        ],
+        "possible_traits": [
+            "industrial_hub"
+        ],
+        "resource_modifiers": {
+            "weapons": 2,
+            "fuel": 1,
+            "supplies": 1
+        }
+    },
+    "trading_post": {
+        "id": "trading_post",
+        "name": "Trading Post",
+        "description": "A commercial center focused on buying, selling, and trading goods between different factions and travelers.",
+        "default_traits": [
+            "trade_center",
+            "free_port"
+        ],
+        "possible_traits": [
+            "black_market",
+            "corporate_controlled",
+            "frontier_world"
+        ],
+        "resource_modifiers": {
+            "luxury_goods": 0.3,
+            "supplies": 0.2,
+            "rare_materials": 0.1
+        },
+        "encounter_modifiers": {
+            "merchants": 0.4,
+            "criminals": 0.1,
+            "security": -0.1
+        }
+    },
+    "mining_operation": {
+        "id": "mining_operation",
+        "name": "Mining Operation",
+        "description": "A facility dedicated to extracting valuable resources.",
+        "default_traits": [
+            "mining_world"
+        ],
+        "possible_traits": [
+            "industrial_hub"
+        ],
+        "resource_modifiers": {
+            "minerals": 3,
+            "rare_materials": 1,
+            "fuel": 1
+        }
+    },
+    "agricultural_center": {
+        "id": "agricultural_center",
+        "name": "Agricultural Center",
+        "description": "A region focused on food production and farming.",
+        "default_traits": [
+            "agricultural_world"
+        ],
+        "possible_traits": [
+            "frontier_world"
+        ],
+        "resource_modifiers": {
+            "food": 3,
+            "water": 1,
+            "medical_supplies": 1
+        }
+    },
+    "smuggler_den": {
+        "id": "smuggler_den",
+        "name": "Smuggler Den",
+        "description": "A hidden base for illegal activities and black market trade.",
+        "default_traits": [
+            "pirate_haven"
+        ],
+        "possible_traits": [
+            "free_port"
+        ],
+        "resource_modifiers": {
+            "weapons": 2,
+            "luxury_goods": 2,
+            "rare_materials": 1
+        }
+    },
+    "corporate_headquarters": {
+        "id": "corporate_headquarters",
+        "name": "Corporate Headquarters",
+        "description": "The central administrative complex of a major corporation, featuring offices, research labs, and security installations.",
+        "default_traits": [
+            "corporate_controlled",
+            "high_security"
+        ],
+        "possible_traits": [
+            "industrial_hub",
+            "research_outpost",
+            "trade_center"
+        ],
+        "resource_modifiers": {
+            "technology": 0.3,
+            "luxury_goods": 0.2,
+            "credits": 0.3
+        },
+        "encounter_modifiers": {
+            "executives": 0.4,
+            "security": 0.3,
+            "criminals": -0.2
+        }
+    },
+    "ruins": {
+        "id": "ruins",
+        "name": "Ruins",
+        "description": "The remains of an ancient civilization or abandoned settlement, potentially containing valuable artifacts or dangerous secrets.",
+        "default_traits": [
+            "frontier_world",
+            "dangerous_wildlife"
+        ],
+        "possible_traits": [
+            "research_outpost",
+            "pirate_haven",
+            "religious_community"
+        ],
+        "resource_modifiers": {
+            "rare_materials": 0.3,
+            "technology": 0.2,
+            "supplies": -0.2
+        },
+        "encounter_modifiers": {
+            "explorers": 0.3,
+            "criminals": 0.2,
+            "security": -0.3
+        }
+    },
+    "orbital_station": {
+        "id": "orbital_station",
+        "name": "Orbital Station",
+        "description": "A space station in orbit around the planet.",
+        "default_traits": [
+            "trade_center"
+        ],
+        "possible_traits": [
+            "research_outpost",
+            "military_base"
+        ],
+        "resource_modifiers": {
+            "fuel": 2,
+            "technology": 1,
+            "supplies": 1
+        }
+    },
+    "military_base": {
+        "id": "military_base",
+        "name": "Military Base",
+        "description": "A fortified installation housing military personnel, equipment, and defensive systems.",
+        "default_traits": [
+            "high_security",
+            "restricted_access"
+        ],
+        "possible_traits": [
+            "corporate_controlled",
+            "research_outpost",
+            "industrial_hub"
+        ],
+        "resource_modifiers": {
+            "weapons": 0.3,
+            "technology": 0.2,
+            "medical_supplies": 0.1
+        },
+        "encounter_modifiers": {
+            "security": 0.4,
+            "merchants": -0.2,
+            "criminals": -0.3
+        }
+    },
+    "mining_facility": {
+        "id": "mining_facility",
+        "name": "Mining Facility",
+        "description": "An industrial complex dedicated to extracting and processing valuable minerals and resources.",
+        "default_traits": [
+            "mining_world",
+            "industrial_hub"
+        ],
+        "possible_traits": [
+            "corporate_controlled",
+            "high_security",
+            "frontier_world"
+        ],
+        "resource_modifiers": {
+            "minerals": 0.4,
+            "rare_materials": 0.2,
+            "fuel": 0.1
+        },
+        "encounter_modifiers": {
+            "workers": 0.3,
+            "security": 0.1,
+            "merchants": -0.1
+        }
+    },
+    "research_station": {
+        "id": "research_station",
+        "name": "Research Station",
+        "description": "A scientific facility focused on studying local phenomena, developing new technologies, or conducting experiments.",
+        "default_traits": [
+            "research_outpost",
+            "restricted_access"
+        ],
+        "possible_traits": [
+            "corporate_controlled",
+            "high_security",
+            "frontier_world"
+        ],
+        "resource_modifiers": {
+            "technology": 0.4,
+            "medical_supplies": 0.2,
+            "rare_materials": 0.1
+        },
+        "encounter_modifiers": {
+            "scientists": 0.4,
+            "security": 0.2,
+            "merchants": -0.2
+        }
+    },
+    "pirate_hideout": {
+        "id": "pirate_hideout",
+        "name": "Pirate Hideout",
+        "description": "A secretive base used by pirates, smugglers, and other outlaws to plan operations and store contraband.",
+        "default_traits": [
+            "pirate_haven",
+            "black_market"
+        ],
+        "possible_traits": [
+            "frontier_world",
+            "free_port",
+            "dangerous_wildlife"
+        ],
+        "resource_modifiers": {
+            "weapons": 0.3,
+            "luxury_goods": 0.2,
+            "technology": 0.1
+        },
+        "encounter_modifiers": {
+            "criminals": 0.5,
+            "merchants": 0.1,
+            "security": -0.4
+        }
+    },
+    "religious_site": {
+        "id": "religious_site",
+        "name": "Religious Site",
+        "description": "A location of spiritual significance, such as a temple, monastery, or pilgrimage destination.",
+        "default_traits": [
+            "religious_community",
+            "restricted_access"
+        ],
+        "possible_traits": [
+            "frontier_world",
+            "free_port",
+            "agricultural_world"
+        ],
+        "resource_modifiers": {
+            "medical_supplies": 0.2,
+            "luxury_goods": 0.1,
+            "technology": -0.1
+        },
+        "encounter_modifiers": {
+            "pilgrims": 0.4,
+            "locals": 0.2,
+            "criminals": -0.2
+        }
+    }
+}

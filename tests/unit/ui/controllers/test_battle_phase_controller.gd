@@ -2,7 +2,7 @@
 extends "res://tests/unit/ui/base/controller_test_base.gd"
 
 const TestedClass := preload("res://src/core/battle/state/BattleStateMachine.gd")
-const Character := preload("res://src/core/battle/BattleCharacter.gd")
+const Character := preload("res://src/game/combat/BattleCharacter.gd")
 
 # Type-safe instance variables
 var _last_phase: int

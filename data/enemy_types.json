@@ -1,376 +1,831 @@
 {
-  "enemy_types": [
-	{
-	  "name": "Gangers",
-	  "numbers": 2,
-	  "panic": "1-2",
-	  "speed": 4,
-	  "combat_skill": 0,
-	  "toughness": 3,
-	  "ai": "A",
-	  "weapons": "1 A",
-	  "special_rules": ["Leg it: When a ganger is hit by a shot, they will retreat 3\" away from the shooter."]
+	"name": "enemy_types",
+	"enemy_categories": [
+		{
+			"id": "raiders",
+			"name": "Raiders",
+			"description": "Opportunistic bandits and pirates who prey on the weak.",
+			"threat_level": 1,
+			"common_traits": [
+				"aggressive",
+				"unorganized",
+				"greedy"
+			],
+			"typical_equipment": [
+				"basic_weapons",
+				"light_armor",
+				"scavenged_gear"
+			],
+			"tactics": "Raiders prefer ambushes and quick strikes, retreating if they face significant resistance.",
+			"enemies": [
+				{
+					"id": "raider_grunt",
+					"name": "Raider Grunt",
+					"description": "Common bandit armed with basic weapons.",
+					"stats": {
+						"combat": 3,
+						"toughness": 3,
+						"speed": 5,
+						"savvy": 2
+					},
+					"equipment": {
+						"weapons": [
+							"Service pistol",
+							"Carbine"
+						],
+						"armor": "Trooper Armor",
+						"gear": [
+							"Stim-pack"
+						]
+					},
+					"abilities": [],
+					"xp_value": 1,
+					"loot_table": "common",
+					"tags": [
+						"human",
+						"common"
+					]
+				},
+				{
+					"id": "raider_veteran",
+					"name": "Raider Veteran",
+					"description": "Experienced bandit with better equipment and combat skills.",
+					"stats": {
+						"combat": 4,
+						"toughness": 4,
+						"speed": 5,
+						"savvy": 3
+					},
+					"equipment": {
+						"weapons": [
+							"Combat rifle",
+							"Hand cannon"
+						],
+						"armor": "Heavy Armor",
+						"gear": [
+							"Stim-pack",
+							"Frag grenade"
+						]
+					},
+					"abilities": [
+						{
+							"name": "Battle Hardened",
+							"description": "Can reroll one failed combat roll per battle."
+						}
+					],
+					"xp_value": 2,
+					"loot_table": "uncommon",
+					"tags": [
+						"human",
+						"veteran"
+					]
+				},
+				{
+					"id": "raider_boss",
+					"name": "Raider Boss",
+					"description": "Leader of a raider band, dangerous and well-equipped.",
+					"stats": {
+						"combat": 5,
+						"toughness": 5,
+						"speed": 4,
+						"savvy": 4
+					},
+					"equipment": {
+						"weapons": [
+							"Light machine gun",
+							"Hand cannon"
+						],
+						"armor": "Heavy Armor",
+						"gear": [
+							"Stim-pack",
+							"Frag grenade",
+							"Medkit"
+						]
+					},
+					"abilities": [
+						{
+							"name": "Command",
+							"description": "Nearby raiders gain +1 to combat rolls."
+						},
+						{
+							"name": "Tough",
+							"description": "Ignores the first wound suffered in battle."
+						}
+					],
+					"xp_value": 4,
+					"loot_table": "rare",
+					"tags": [
+						"human",
+						"leader"
+					]
+				}
+			]
+		},
+		{
+			"id": "corporate_security",
+			"name": "Corporate Security",
+			"description": "Professional security forces employed by megacorporations.",
+			"threat_level": 2,
+			"common_traits": [
+				"disciplined",
+				"well-equipped",
+				"trained"
+			],
+			"typical_equipment": [
+				"corporate_weapons",
+				"standard_armor",
+				"tactical_gear"
+			],
+			"tactics": "Corporate security uses coordinated tactics and maintains discipline under fire.",
+			"enemies": [
+				{
+					"id": "security_guard",
+					"name": "Security Guard",
+					"description": "Standard corporate security personnel.",
+					"stats": {
+						"combat": 4,
+						"toughness": 3,
+						"speed": 4,
+						"savvy": 3
+					},
+					"equipment": {
+						"weapons": [
+							"Combat rifle",
+							"Service pistol"
+						],
+						"armor": "Trooper Armor",
+						"gear": [
+							"Comm-link"
+						]
+					},
+					"abilities": [
+						{
+							"name": "Coordinated Fire",
+							"description": "Gains +1 to hit when adjacent to another security guard."
+						}
+					],
+					"xp_value": 2,
+					"loot_table": "common",
+					"tags": [
+						"human",
+						"corporate"
+					]
+				},
+				{
+					"id": "security_specialist",
+					"name": "Security Specialist",
+					"description": "Elite corporate security with specialized training.",
+					"stats": {
+						"combat": 5,
+						"toughness": 4,
+						"speed": 5,
+						"savvy": 4
+					},
+					"equipment": {
+						"weapons": [
+							"Sniper rifle",
+							"Hand cannon"
+						],
+						"armor": "Powered Armor",
+						"gear": [
+							"Comm-link",
+							"Medkit"
+						]
+					},
+					"abilities": [
+						{
+							"name": "Tactical Training",
+							"description": "Can perform a special action and still attack in the same turn."
+						}
+					],
+					"xp_value": 3,
+					"loot_table": "uncommon",
+					"tags": [
+						"human",
+						"elite"
+					]
+				},
+				{
+					"id": "security_bot",
+					"name": "Security Bot",
+					"description": "Automated security robot with integrated weapons.",
+					"stats": {
+						"combat": 4,
+						"toughness": 6,
+						"speed": 3,
+						"savvy": 2
+					},
+					"equipment": {
+						"weapons": [
+							"Integrated Weapon System"
+						],
+						"armor": "Reinforced Chassis",
+						"gear": []
+					},
+					"abilities": [
+						{
+							"name": "Targeting Systems",
+							"description": "Ignores penalties for cover when shooting."
+						}
+					],
+					"xp_value": 3,
+					"loot_table": "tech_parts",
+					"tags": [
+						"bot",
+						"corporate"
+					]
+				}
+			]
+		},
+		{
+			"id": "alien_creatures",
+			"name": "Alien Creatures",
+			"description": "Dangerous non-sentient lifeforms encountered on frontier worlds.",
+			"threat_level": 2,
+			"common_traits": [
+				"territorial",
+				"predatory",
+				"resilient"
+			],
+			"typical_equipment": [
+				"natural_weapons",
+				"tough_hide"
+			],
+			"tactics": "Alien creatures rely on instinct, often using pack tactics or ambush predation.",
+			"enemies": [
+				{
+					"id": "stalker_beast",
+					"name": "Stalker Beast",
+					"description": "Agile predator that hunts in packs.",
+					"stats": {
+						"combat": 4,
+						"toughness": 3,
+						"speed": 7,
+						"savvy": 2
+					},
+					"equipment": {
+						"weapons": [
+							"Natural Weapons"
+						],
+						"armor": "Tough Hide",
+						"gear": []
+					},
+					"abilities": [
+						{
+							"name": "Pack Hunter",
+							"description": "Gains +1 to combat for each other Stalker Beast within 3\"."
+						},
+						{
+							"name": "Pounce",
+							"description": "Can move and attack in the same turn."
+						}
+					],
+					"xp_value": 2,
+					"loot_table": "creature_parts",
+					"tags": [
+						"beast",
+						"predator"
+					]
+				},
+				{
+					"id": "toxic_lurker",
+					"name": "Toxic Lurker",
+					"description": "Venomous creature that ambushes from hiding.",
+					"stats": {
+						"combat": 3,
+						"toughness": 4,
+						"speed": 4,
+						"savvy": 3
+					},
+					"equipment": {
+						"weapons": [
+							"Venomous Fangs"
+						],
+						"armor": "Chitinous Plates",
+						"gear": []
+					},
+					"abilities": [
+						{
+							"name": "Venom",
+							"description": "Successful attacks cause the Poisoned status effect."
+						},
+						{
+							"name": "Camouflage",
+							"description": "Cannot be detected until it attacks or moves."
+						}
+					],
+					"xp_value": 3,
+					"loot_table": "creature_parts",
+					"tags": [
+						"beast",
+						"venomous"
+					]
+				},
+				{
+					"id": "behemoth",
+					"name": "Behemoth",
+					"description": "Massive creature with incredible strength and durability.",
+					"stats": {
+						"combat": 5,
+						"toughness": 8,
+						"speed": 3,
+						"savvy": 1
+					},
+					"equipment": {
+						"weapons": [
+							"Crushing Limbs"
+						],
+						"armor": "Armored Hide",
+						"gear": []
+					},
+					"abilities": [
+						{
+							"name": "Devastating Charge",
+							"description": "Deals double damage when charging."
+						},
+						{
+							"name": "Thick Hide",
+							"description": "Reduces all damage taken by 1."
+						}
+					],
+					"xp_value": 5,
+					"loot_table": "rare_creature_parts",
+					"tags": [
+						"beast",
+						"massive"
+					]
+				}
+			]
+		},
+		{
+			"id": "cultists",
+			"name": "Cultists",
+			"description": "Fanatical followers of strange beliefs or alien entities.",
+			"threat_level": 3,
+			"common_traits": [
+				"fanatical",
+				"unpredictable",
+				"sacrificial"
+			],
+			"typical_equipment": [
+				"ritual_weapons",
+				"ceremonial_garb",
+				"strange_artifacts"
+			],
+			"tactics": "Cultists fight with religious fervor, often disregarding their own safety.",
+			"enemies": [
+				{
+					"id": "cult_follower",
+					"name": "Cult Follower",
+					"description": "Devoted member of a dangerous cult.",
+					"stats": {
+						"combat": 3,
+						"toughness": 3,
+						"speed": 4,
+						"savvy": 2
+					},
+					"equipment": {
+						"weapons": [
+							"Ritual Dagger",
+							"Service pistol"
+						],
+						"armor": "Ceremonial Robes",
+						"gear": [
+							"Strange Charm"
+						]
+					},
+					"abilities": [
+						{
+							"name": "Fanatical",
+							"description": "Ignores morale effects and fear."
+						}
+					],
+					"xp_value": 1,
+					"loot_table": "cultist_items",
+					"tags": [
+						"human",
+						"cultist"
+					]
+				},
+				{
+					"id": "cult_adept",
+					"name": "Cult Adept",
+					"description": "Higher-ranking cultist with access to strange powers.",
+					"stats": {
+						"combat": 4,
+						"toughness": 3,
+						"speed": 4,
+						"savvy": 5
+					},
+					"equipment": {
+						"weapons": [
+							"Ritual Staff",
+							"Hand cannon"
+						],
+						"armor": "Warded Robes",
+						"gear": [
+							"Eldritch Focus",
+							"Ritual Components"
+						]
+					},
+					"abilities": [
+						{
+							"name": "Mind Blast",
+							"description": "Can attack a target's mind, causing the Stunned status effect."
+						},
+						{
+							"name": "Dark Protection",
+							"description": "Has a 5+ save against all attacks."
+						}
+					],
+					"xp_value": 3,
+					"loot_table": "uncommon_cultist_items",
+					"tags": [
+						"human",
+						"psyker"
+					]
+				},
+				{
+					"id": "cult_leader",
+					"name": "Cult Leader",
+					"description": "Charismatic and dangerous leader of a cult.",
+					"stats": {
+						"combat": 4,
+						"toughness": 4,
+						"speed": 4,
+						"savvy": 6
+					},
+					"equipment": {
+						"weapons": [
+							"Eldritch Weapon",
+							"Plasma rifle"
+						],
+						"armor": "Warded Armor",
+						"gear": [
+							"Ancient Artifact",
+							"Ritual Components"
+						]
+					},
+					"abilities": [
+						{
+							"name": "Command the Faithful",
+							"description": "All cultists within 6\" gain +1 to all stats."
+						},
+						{
+							"name": "Eldritch Powers",
+							"description": "Can use one of three special abilities each turn: Mind Control, Energy Blast, or Summon Minion."
+						}
+					],
+					"xp_value": 5,
+					"loot_table": "rare_cultist_items",
+					"tags": [
+						"human",
+						"leader",
+						"psyker"
+					]
+				}
+			]
+		},
+		{
+			"id": "military",
+			"name": "Military Forces",
+			"description": "Professional soldiers from various factions and governments.",
+			"threat_level": 3,
+			"common_traits": [
+				"disciplined",
+				"well-equipped",
+				"tactical"
+			],
+			"typical_equipment": [
+				"military_weapons",
+				"combat_armor",
+				"tactical_gear"
+			],
+			"tactics": "Military forces use advanced tactics, coordinated fire, and maintain discipline under pressure.",
+			"enemies": [
+				{
+					"id": "soldier",
+					"name": "Soldier",
+					"description": "Standard military infantry.",
+					"stats": {
+						"combat": 4,
+						"toughness": 4,
+						"speed": 4,
+						"savvy": 3
+					},
+					"equipment": {
+						"weapons": [
+							"Combat rifle",
+							"Service pistol"
+						],
+						"armor": "Trooper Armor",
+						"gear": [
+							"Frag grenade",
+							"Comm-link"
+						]
+					},
+					"abilities": [
+						{
+							"name": "Combat Training",
+							"description": "Can perform a special action and still attack in the same turn."
+						}
+					],
+					"xp_value": 2,
+					"loot_table": "military_gear",
+					"tags": [
+						"human",
+						"military"
+					]
+				},
+				{
+					"id": "special_forces",
+					"name": "Special Forces",
+					"description": "Elite military operatives with advanced training.",
+					"stats": {
+						"combat": 6,
+						"toughness": 5,
+						"speed": 5,
+						"savvy": 4
+					},
+					"equipment": {
+						"weapons": [
+							"Hyper blaster",
+							"Hand cannon"
+						],
+						"armor": "Powered Armor",
+						"gear": [
+							"Frag grenade",
+							"Medkit",
+							"Comm-link"
+						]
+					},
+					"abilities": [
+						{
+							"name": "Advanced Training",
+							"description": "Can perform two actions per turn."
+						},
+						{
+							"name": "Tactical Movement",
+							"description": "Ignores difficult terrain penalties."
+						}
+					],
+					"xp_value": 4,
+					"loot_table": "uncommon_military_gear",
+					"tags": [
+						"human",
+						"elite"
+					]
+				},
+				{
+					"id": "combat_mech",
+					"name": "Combat Mech",
+					"description": "Piloted mechanical war machine with heavy weapons.",
+					"stats": {
+						"combat": 5,
+						"toughness": 7,
+						"speed": 3,
+						"savvy": 3
+					},
+					"equipment": {
+						"weapons": [
+							"Heavy Cannon",
+							"Missile Launcher"
+						],
+						"armor": "Reinforced Plating",
+						"gear": []
+					},
+					"abilities": [
+						{
+							"name": "Heavy Weapons",
+							"description": "Attacks affect all targets in a 2\" radius."
+						},
+						{
+							"name": "Armored",
+							"description": "Reduces all damage taken by 2."
+						}
+					],
+					"xp_value": 5,
+					"loot_table": "rare_military_gear",
+					"tags": [
+						"mech",
+						"heavy"
+					]
+				}
+			]
+		}
+	],
+	"enemy_loot_tables": {
+		"tech_parts": {
+			"common": [
+				"Power Cell",
+				"Circuit Board",
+				"Optical Sensor"
+			],
+			"uncommon": [
+				"Advanced Processor",
+				"Targeting Module",
+				"Shield Generator"
+			],
+			"rare": [
+				"AI Core",
+				"Experimental Power Source",
+				"Quantum Processor"
+			]
+		},
+		"creature_parts": {
+			"common": [
+				"Hide",
+				"Teeth",
+				"Claws"
+			],
+			"uncommon": [
+				"Venom Sac",
+				"Armored Scales",
+				"Neural Tissue"
+			],
+			"rare": [
+				"Apex Predator Heart",
+				"Crystallized Essence",
+				"Mutated Organ"
+			]
+		},
+		"rare_creature_parts": {
+			"common": [
+				"Massive Hide",
+				"Giant Teeth",
+				"Reinforced Claws"
+			],
+			"uncommon": [
+				"Regenerative Tissue",
+				"Armored Plates",
+				"Specialized Organ"
+			],
+			"rare": [
+				"Alpha Specimen Heart",
+				"Pure Genetic Material",
+				"Evolutionary Anomaly"
+			]
+		},
+		"cultist_items": {
+			"common": [
+				"Strange Symbol",
+				"Ritual Candle",
+				"Occult Text"
+			],
+			"uncommon": [
+				"Forbidden Scroll",
+				"Sacrificial Dagger",
+				"Warded Amulet"
+			],
+			"rare": [
+				"Ancient Artifact",
+				"Eldritch Focus",
+				"Dimensional Key"
+			]
+		},
+		"uncommon_cultist_items": {
+			"common": [
+				"Ritual Components",
+				"Occult Manuscript",
+				"Warded Charm"
+			],
+			"uncommon": [
+				"Psychic Focus",
+				"Alien Relic",
+				"Mind-Altering Substance"
+			],
+			"rare": [
+				"Psionic Amplifier",
+				"Reality Shard",
+				"Consciousness Fragment"
+			]
+		},
+		"rare_cultist_items": {
+			"common": [
+				"Leader's Symbol",
+				"Cult Manifesto",
+				"Ceremonial Weapon"
+			],
+			"uncommon": [
+				"Alien Technology",
+				"Dimensional Anchor",
+				"Consciousness Vessel"
+			],
+			"rare": [
+				"Reality-Warping Artifact",
+				"Godhood Fragment",
+				"Dimensional Gateway"
+			]
+		},
+		"military_gear": {
+			"common": [
+				"Standard Issue Ammo",
+				"Rations",
+				"Basic Medkit"
+			],
+			"uncommon": [
+				"Tactical Gear",
+				"Combat Stimulant",
+				"Encrypted Comm Device"
+			],
+			"rare": [
+				"Experimental Weapon",
+				"Advanced Armor Module",
+				"Military AI Assistant"
+			]
+		},
+		"uncommon_military_gear": {
+			"common": [
+				"Special Forces Ammo",
+				"Combat Drugs",
+				"Advanced Medkit"
+			],
+			"uncommon": [
+				"Stealth Field Generator",
+				"Tactical HUD",
+				"Experimental Grenade"
+			],
+			"rare": [
+				"Prototype Weapon",
+				"Active Camouflage System",
+				"Neural Interface"
+			]
+		},
+		"rare_military_gear": {
+			"common": [
+				"Heavy Weapon Components",
+				"Mech Repair Kit",
+				"Power Armor Fragment"
+			],
+			"uncommon": [
+				"Targeting Computer",
+				"Shield Generator",
+				"Jump Jet System"
+			],
+			"rare": [
+				"Experimental Weapons System",
+				"Advanced AI Module",
+				"Fusion Power Core"
+			]
+		}
 	},
-	{
-	  "name": "Punks",
-	  "numbers": 3,
-	  "panic": "1-3",
-	  "speed": 4,
-	  "combat_skill": 0,
-	  "toughness": 3,
-	  "ai": "A",
-	  "weapons": "1 A",
-	  "special_rules": [
-		"Careless: You are +1 to Seize the Initiative.",
-		"Bad shots: Their shooting only Hits on a natural 6."
-	  ]
-	},
-	{
-	  "name": "Raiders",
-	  "numbers": 1,
-	  "panic": "1-2",
-	  "speed": 4,
-	  "combat_skill": 1,
-	  "toughness": 3,
-	  "ai": "A",
-	  "weapons": "2 A",
-	  "special_rules": ["Scavengers: Roll twice on the Battlefield Finds Table."]
-	},
-	{
-	  "name": "Cultists",
-	  "numbers": 2,
-	  "panic": "1",
-	  "speed": 4,
-	  "combat_skill": 0,
-	  "toughness": 3,
-	  "ai": "A",
-	  "weapons": "1 A",
-	  "special_rules": ["Intrigue: Roll 2D6 and add +1 if you killed a Lieutenant and/or Unique Individual. On a 9+, you obtain a Quest Rumor."]
-	},
-	{
-	  "name": "Psychos",
-	  "numbers": 2,
-	  "panic": "1",
-	  "speed": 6,
-	  "combat_skill": 0,
-	  "toughness": 4,
-	  "ai": "R",
-	  "weapons": "1 B",
-	  "special_rules": ["Bad shots: Their shooting only Hits on a natural 6."]
-	},
-	{
-	  "name": "Brat Gang",
-	  "numbers": 2,
-	  "panic": "1-3",
-	  "speed": 5,
-	  "combat_skill": 0,
-	  "toughness": 4,
-	  "ai": "A",
-	  "weapons": "2 C",
-	  "special_rules": [
-		"Careless: You are +1 to Seize the Initiative.",
-		"6+ Saving Throw."
-	  ]
-	},
-	{
-	  "name": "Gene Renegades",
-	  "numbers": 1,
-	  "panic": "1-2",
-	  "speed": 5,
-	  "combat_skill": 0,
-	  "toughness": 4,
-	  "ai": "C",
-	  "weapons": "1 B",
-	  "special_rules": ["Alert: You are -1 to Seize the Initiative."]
-	},
-	{
-	  "name": "Anarchists",
-	  "numbers": 2,
-	  "panic": "1-2",
-	  "speed": 5,
-	  "combat_skill": 0,
-	  "toughness": 3,
-	  "ai": "A",
-	  "weapons": "2 B",
-	  "special_rules": ["Stubborn: They ignore the first casualty of the battle when making a Morale check."]
-	},
-	{
-	  "name": "Pirates",
-	  "numbers": 2,
-	  "panic": "1-3",
-	  "speed": 5,
-	  "combat_skill": 0,
-	  "toughness": 4,
-	  "ai": "A",
-	  "weapons": "2 A",
-	  "special_rules": ["Loot: Gain an extra Loot roll if Holding the Field."]
-	},
-	{
-	  "name": "K'Erin Outlaws",
-	  "numbers": 1,
-	  "panic": "1",
-	  "speed": 4,
-	  "combat_skill": 1,
-	  "toughness": 4,
-	  "ai": "A",
-	  "weapons": "2 A",
-	  "special_rules": ["Stubborn: They ignore the first casualty when making a Morale check."]
-	},
-	{
-	  "name": "Skulker Brigands",
-	  "numbers": 3,
-	  "panic": "1-2",
-	  "speed": 6,
-	  "combat_skill": 0,
-	  "toughness": 3,
-	  "ai": "C",
-	  "weapons": "1 B",
-	  "special_rules": [
-		"Alert: You are -1 to Seize the Initiative.",
-		"Scavengers: Roll twice on the Battlefield Finds Table."
-	  ]
-	},
-	{
-	  "name": "Tech Gangers",
-	  "numbers": 1,
-	  "panic": "1-2",
-	  "speed": 4,
-	  "combat_skill": 0,
-	  "toughness": 5,
-	  "ai": "T",
-	  "weapons": "3 C",
-	  "special_rules": [
-		"Loot: Gain an extra Loot roll if Holding the Field.",
-		"6+ Saving Throw."
-	  ]
-	},
-	{
-	  "name": "Starport Scum",
-	  "numbers": 3,
-	  "panic": "1-3",
-	  "speed": 4,
-	  "combat_skill": 0,
-	  "toughness": 3,
-	  "ai": "D",
-	  "weapons": "1 A",
-	  "special_rules": ["Friday Night Warriors: When a scum is slain, all allies within 6\" will retreat a standard move at their base speed directly back towards their own battlefield edge."]
-	},
-	{
-	  "name": "Hulker Gang",
-	  "numbers": 0,
-	  "panic": "1",
-	  "speed": 4,
-	  "combat_skill": 1,
-	  "toughness": 5,
-	  "ai": "A",
-	  "weapons": "1 A",
-	  "special_rules": [
-		"Ferocious: +1 to Brawling rolls when initiating combat.",
-		"Aggro: If Hit by a shot and surviving, immediately move 1\" towards the shooter."
-	  ]
-	},
-	{
-	  "name": "Gun Slingers",
-	  "numbers": 1,
-	  "panic": "1-2",
-	  "speed": 4,
-	  "combat_skill": 1,
-	  "toughness": 3,
-	  "ai": "T",
-	  "weapons": "1 B",
-	  "special_rules": ["Trick shot: Any natural 6 when they shoot allows an additional shot against the same target or another target within 2\"."]
-	},
-	{
-	  "name": "Unknown Mercs",
-	  "numbers": 0,
-	  "panic": "1-2",
-	  "speed": 5,
-	  "combat_skill": 1,
-	  "toughness": 4,
-	  "ai": "T",
-	  "weapons": "2 B",
-	  "special_rules": ["Lets just call it a day: If they are down to 1 or 2 figures remaining, they will accept ending the fight at the end of any round. Neither side Holds the Field in this case."]
-	},
-	{
-	  "name": "Enforcers",
-	  "numbers": 0,
-	  "panic": "1-2",
-	  "speed": 4,
-	  "combat_skill": 1,
-	  "toughness": 4,
-	  "ai": "T",
-	  "weapons": "2 A",
-	  "special_rules": ["Cop killer: If you ever fight Enforcers as Rivals, add +2 to their numbers."]
-	},
-	{
-	  "name": "Guild Troops",
-	  "numbers": 0,
-	  "panic": "1-2",
-	  "speed": 4,
-	  "combat_skill": 1,
-	  "toughness": 4,
-	  "ai": "T",
-	  "weapons": "2 C",
-	  "special_rules": ["Intrigue: Roll 2D6, and add +1 if you killed a Lieutenant and/or Unique Individual. On a 9+, you obtain a Quest Rumor."]
-	},
-	{
-	  "name": "Roid-gangers",
-	  "numbers": 1,
-	  "panic": "1",
-	  "speed": 4,
-	  "combat_skill": 0,
-	  "toughness": 5,
-	  "ai": "A",
-	  "weapons": "1 A",
-	  "special_rules": ["Careless: You are +1 to Seize the Initiative (for a final modifier of 0)."]
-	},
-	{
-	  "name": "Black Ops Team",
-	  "numbers": 0,
-	  "panic": "1",
-	  "speed": 6,
-	  "combat_skill": 2,
-	  "toughness": 5,
-	  "ai": "T",
-	  "weapons": "3 A",
-	  "special_rules": ["Tough fight: A random survivor gains +1 XP."]
-	},
-	{
-	  "name": "War Bots",
-	  "numbers": 0,
-	  "panic": "0",
-	  "speed": 3,
-	  "combat_skill": 1,
-	  "toughness": 4,
-	  "ai": "A",
-	  "weapons": "3 C",
-	  "special_rules": [
-		"Fearless: Never affected by Morale.",
-		"5+ Saving Throw."
-	  ]
-	},
-	{
-	  "name": "Secret Agents",
-	  "numbers": 0,
-	  "panic": "1-2",
-	  "speed": 5,
-	  "combat_skill": 1,
-	  "toughness": 4,
-	  "ai": "C",
-	  "weapons": "2 C",
-	  "special_rules": [
-		"Loot: Gain an extra Loot roll if Holding the Field.",
-		"Intrigue: Roll 2D6, and add +1 if you killed a Lieutenant and/or Unique Individual. On a 9+, you obtain a Quest Rumor."
-	  ]
-	},
-	{
-	  "name": "Assassins",
-	  "numbers": 0,
-	  "panic": "1",
-	  "speed": 6,
-	  "combat_skill": 2,
-	  "toughness": 3,
-	  "ai": "A",
-	  "weapons": "1 B",
-	  "special_rules": [
-		"Gruesome: Characters rolling for post-battle Injuries must apply a -5 to the roll.",
-		"Tough fight: A random survivor gains +1 XP."
-	  ]
-	},
-	{
-	  "name": "Feral Mercenaries",
-	  "numbers": 2,
-	  "panic": "1-2",
-	  "speed": 5,
-	  "combat_skill": 0,
-	  "toughness": 4,
-	  "ai": "A",
-	  "weapons": "2 B",
-	  "special_rules": ["Quick feet: They add +1\" to the distance for any Dash move."]
-	},
-	{
-	  "name": "Skulker Mercenaries",
-	  "numbers": 3,
-	  "panic": "1-2",
-	  "speed": 7,
-	  "combat_skill": 0,
-	  "toughness": 3,
-	  "ai": "C",
-	  "weapons": "2 C",
-	  "special_rules": [
-		"Alert: You are -1 to Seize the Initiative (for a total of -2).",
-		"Scavengers: Roll twice on the Battlefield Finds Table."
-	  ]
-	},
-	{
-	  "name": "Corporate Security",
-	  "numbers": 1,
-	  "panic": "1-2",
-	  "speed": 4,
-	  "combat_skill": 1,
-	  "toughness": 4,
-	  "ai": "D",
-	  "weapons": "2 B",
-	  "special_rules": ["6+ Saving Throw."]
-	},
-	{
-	  "name": "Unity Grunts",
-	  "numbers": 1,
-	  "panic": "1",
-	  "speed": 5,
-	  "combat_skill": 1,
-	  "toughness": 4,
-	  "ai": "T",
-	  "weapons": "2 C",
-	  "special_rules": ["6+ Saving Throw."]
-	},
-	{
-	  "name": "Security Bots",
-	  "numbers": 1,
-	  "panic": "0",
-	  "speed": 3,
-	  "combat_skill": 0,
-	  "toughness": 5,
-	  "ai": "D",
-	  "weapons": "2 A",
-	  "special_rules": [
-		"Careless: You are +1 to Seize the Initiative (for a total of 0).",
-		"Fearless: Never affected by Morale.",
-		"6+ Saving Throw."
-	  ]
-	},
-	{
-	  "name": "Black Dragon Mercs",
-	  "numbers": 1,
-	  "panic": "1-2",
-	  "speed": 5,
-	  "combat_skill": 1,
-	  "toughness": 4,
-	  "ai": "T",
-	  "weapons": "2 C",
-	  "special_rules": ["Stubborn: They ignore the first casualty of the battle when making a Morale check."]
-	},
-	{
-	  "name": "Rage Lizard Mercs",
-	  "numbers": 0,
-	  "panic": "1-2",
-	  "speed": 4,
-	  "combat_skill": 1,
-	  "toughness": 5,
-	  "ai": "T",
-	  "weapons": "3 B",
-	  "special_rules": ["Up close: If a Rage Lizard is within 1\" of terrain, they may add +1 to Brawling rolls."]
-	},
-	{
-	  "name": "Blood Storm Mercs",
-	  "numbers": 0,
-	  "panic": "1",
-	  "speed": 4,
-	  "combat_skill": 1,
-	  "toughness": 4,
-	  "ai": "A",
-	  "weapons": "2 B",
-	  "special_rules": ["Ferocious: +1 to Brawling rolls when initiating combat."]
+	"enemy_spawn_rules": {
+		"mission_type": {
+			"RED_ZONE": {
+				"primary": [
+					"raiders",
+					"alien_creatures"
+				],
+				"secondary": [
+					"corporate_security",
+					"cultists"
+				],
+				"excluded": []
+			},
+			"BLACK_ZONE": {
+				"primary": [
+					"military",
+					"cultists"
+				],
+				"secondary": [
+					"corporate_security",
+					"raiders"
+				],
+				"excluded": []
+			},
+			"PATRON": {
+				"primary": [
+					"corporate_security",
+					"raiders"
+				],
+				"secondary": [
+					"military",
+					"alien_creatures"
+				],
+				"excluded": []
+			}
+		},
+		"difficulty": {
+			"EASY": {
+				"max_threat_level": 1,
+				"enemy_count_modifier": 0.7
+			},
+			"NORMAL": {
+				"max_threat_level": 2,
+				"enemy_count_modifier": 1.0
+			},
+			"HARD": {
+				"max_threat_level": 3,
+				"enemy_count_modifier": 1.3
+			},
+			"VETERAN": {
+				"max_threat_level": 3,
+				"enemy_count_modifier": 1.5
+			},
+			"ELITE": {
+				"max_threat_level": 3,
+				"enemy_count_modifier": 2.0
+			}
+		}
 	}
-  ]
 }

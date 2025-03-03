@@ -1,6 +1,8 @@
-[gd_scene load_steps=2 format=3 uid="uid://b6x8y0q5n3j4w"]
+[gd_scene load_steps=3 format=3 uid="uid://b4q8j6q8j6q8j"]
 
-[ext_resource type="Script" path="res://src/ui/screens/campaign/CampaignDashboard.gd" id="1_y4r2p"]
+[ext_resource type="Theme" uid="uid://ddjoduj1ya6tp" path="res://assets/5PFH.tres" id="1_ubhx7"]
+[ext_resource type="Script" path="res://src/ui/screens/campaign/CampaignDashboard.gd" id="2_e34t7"]
+[ext_resource type="Texture2D" uid="uid://dwtv722eqpn51" path="res://assets/BookImages/Nov_24_Cityview_.jpg" id="3_w2v87"]
 
 [node name="CampaignDashboard" type="Control"]
 layout_mode = 3
@@ -9,16 +11,19 @@ anchor_right = 1.0
 anchor_bottom = 1.0
 grow_horizontal = 2
 grow_vertical = 2
-script = ExtResource("1_y4r2p")
+theme = ExtResource("1_ubhx7")
+script = ExtResource("2_e34t7")
 
-[node name="Background" type="ColorRect" parent="."]
+[node name="Background" type="TextureRect" parent="."]
 layout_mode = 1
 anchors_preset = 15
 anchor_right = 1.0
 anchor_bottom = 1.0
 grow_horizontal = 2
 grow_vertical = 2
-color = Color(0.12549, 0.12549, 0.12549, 1)
+texture = ExtResource("3_w2v87")
+expand_mode = 3
+metadata/_edit_use_anchors_ = true
 
 [node name="MarginContainer" type="MarginContainer" parent="."]
 layout_mode = 1
@@ -34,120 +39,132 @@ theme_override_constants/margin_bottom = 20
 
 [node name="VBoxContainer" type="VBoxContainer" parent="MarginContainer"]
 layout_mode = 2
-theme_override_constants/separation = 20
+theme_override_constants/separation = 10
 
-[node name="Header" type="PanelContainer" parent="MarginContainer/VBoxContainer"]
+[node name="HeaderPanel" type="PanelContainer" parent="MarginContainer/VBoxContainer"]
 layout_mode = 2
 
-[node name="HBoxContainer" type="HBoxContainer" parent="MarginContainer/VBoxContainer/Header"]
-layout_mode = 2
-theme_override_constants/separation = 20
-alignment = 1
-
-[node name="PhaseLabel" type="Label" parent="MarginContainer/VBoxContainer/Header/HBoxContainer"]
-layout_mode = 2
-text = "Current Phase: Setup"
-
-[node name="ResourcesPanel" type="PanelContainer" parent="MarginContainer/VBoxContainer/Header/HBoxContainer"]
+[node name="HBoxContainer" type="HBoxContainer" parent="MarginContainer/VBoxContainer/HeaderPanel"]
 layout_mode = 2
 
-[node name="HBoxContainer" type="HBoxContainer" parent="MarginContainer/VBoxContainer/Header/HBoxContainer/ResourcesPanel"]
+[node name="PhaseLabel" type="Label" parent="MarginContainer/VBoxContainer/HeaderPanel/HBoxContainer"]
 layout_mode = 2
-theme_override_constants/separation = 20
+size_flags_horizontal = 3
+theme_override_font_sizes/font_size = 24
+text = "Current Phase"
 
-[node name="CreditsLabel" type="Label" parent="MarginContainer/VBoxContainer/Header/HBoxContainer/ResourcesPanel/HBoxContainer"]
+[node name="CreditsLabel" type="Label" parent="MarginContainer/VBoxContainer/HeaderPanel/HBoxContainer"]
 layout_mode = 2
 text = "Credits: 0"
 
-[node name="StoryPointsLabel" type="Label" parent="MarginContainer/VBoxContainer/Header/HBoxContainer/ResourcesPanel/HBoxContainer"]
+[node name="StoryPointsLabel" type="Label" parent="MarginContainer/VBoxContainer/HeaderPanel/HBoxContainer"]
 layout_mode = 2
 text = "Story Points: 0"
 
-[node name="Content" type="HBoxContainer" parent="MarginContainer/VBoxContainer"]
+[node name="MainContent" type="HBoxContainer" parent="MarginContainer/VBoxContainer"]
 layout_mode = 2
 size_flags_vertical = 3
-theme_override_constants/separation = 20
 
-[node name="LeftPanel" type="VBoxContainer" parent="MarginContainer/VBoxContainer/Content"]
+[node name="LeftPanel" type="VBoxContainer" parent="MarginContainer/VBoxContainer/MainContent"]
 layout_mode = 2
 size_flags_horizontal = 3
-theme_override_constants/separation = 20
 
-[node name="CrewPanel" type="PanelContainer" parent="MarginContainer/VBoxContainer/Content/LeftPanel"]
-layout_mode = 2
-size_flags_vertical = 3
-
-[node name="VBoxContainer" type="VBoxContainer" parent="MarginContainer/VBoxContainer/Content/LeftPanel/CrewPanel"]
+[node name="CrewPanel" type="PanelContainer" parent="MarginContainer/VBoxContainer/MainContent/LeftPanel"]
 layout_mode = 2
 
-[node name="Label" type="Label" parent="MarginContainer/VBoxContainer/Content/LeftPanel/CrewPanel/VBoxContainer"]
+[node name="VBoxContainer" type="VBoxContainer" parent="MarginContainer/VBoxContainer/MainContent/LeftPanel/CrewPanel"]
+layout_mode = 2
+
+[node name="CrewLabel" type="Label" parent="MarginContainer/VBoxContainer/MainContent/LeftPanel/CrewPanel/VBoxContainer"]
 layout_mode = 2
 text = "Crew"
-horizontal_alignment = 1
 
-[node name="CrewList" type="ItemList" parent="MarginContainer/VBoxContainer/Content/LeftPanel/CrewPanel/VBoxContainer"]
+[node name="CrewList" type="ItemList" parent="MarginContainer/VBoxContainer/MainContent/LeftPanel/CrewPanel/VBoxContainer"]
 layout_mode = 2
 size_flags_vertical = 3
 
-[node name="ShipPanel" type="PanelContainer" parent="MarginContainer/VBoxContainer/Content/LeftPanel"]
-layout_mode = 2
-size_flags_vertical = 3
-
-[node name="VBoxContainer" type="VBoxContainer" parent="MarginContainer/VBoxContainer/Content/LeftPanel/ShipPanel"]
+[node name="ShipPanel" type="PanelContainer" parent="MarginContainer/VBoxContainer/MainContent/LeftPanel"]
 layout_mode = 2
 
-[node name="Label" type="Label" parent="MarginContainer/VBoxContainer/Content/LeftPanel/ShipPanel/VBoxContainer"]
+[node name="VBoxContainer" type="VBoxContainer" parent="MarginContainer/VBoxContainer/MainContent/LeftPanel/ShipPanel"]
+layout_mode = 2
+
+[node name="ShipLabel" type="Label" parent="MarginContainer/VBoxContainer/MainContent/LeftPanel/ShipPanel/VBoxContainer"]
 layout_mode = 2
 text = "Ship"
-horizontal_alignment = 1
 
-[node name="ShipInfo" type="RichTextLabel" parent="MarginContainer/VBoxContainer/Content/LeftPanel/ShipPanel/VBoxContainer"]
+[node name="ShipInfo" type="Label" parent="MarginContainer/VBoxContainer/MainContent/LeftPanel/ShipPanel/VBoxContainer"]
 layout_mode = 2
-size_flags_vertical = 3
-bbcode_enabled = true
-text = "No Ship Data"
+text = "Ship Info"
 
-[node name="RightPanel" type="VBoxContainer" parent="MarginContainer/VBoxContainer/Content"]
+[node name="RightPanel" type="VBoxContainer" parent="MarginContainer/VBoxContainer/MainContent"]
 layout_mode = 2
 size_flags_horizontal = 3
-theme_override_constants/separation = 20
+size_flags_stretch_ratio = 1.5
 
-[node name="PhaseContent" type="PanelContainer" parent="MarginContainer/VBoxContainer/Content/RightPanel"]
+[node name="QuestPanel" type="PanelContainer" parent="MarginContainer/VBoxContainer/MainContent/RightPanel"]
+layout_mode = 2
+
+[node name="VBoxContainer" type="VBoxContainer" parent="MarginContainer/VBoxContainer/MainContent/RightPanel/QuestPanel"]
+layout_mode = 2
+
+[node name="QuestLabel" type="Label" parent="MarginContainer/VBoxContainer/MainContent/RightPanel/QuestPanel/VBoxContainer"]
+layout_mode = 2
+text = "Current Quest"
+
+[node name="QuestInfo" type="Label" parent="MarginContainer/VBoxContainer/MainContent/RightPanel/QuestPanel/VBoxContainer"]
+layout_mode = 2
+text = "Quest Info"
+
+[node name="WorldPanel" type="PanelContainer" parent="MarginContainer/VBoxContainer/MainContent/RightPanel"]
+layout_mode = 2
+
+[node name="VBoxContainer" type="VBoxContainer" parent="MarginContainer/VBoxContainer/MainContent/RightPanel/WorldPanel"]
+layout_mode = 2
+
+[node name="WorldLabel" type="Label" parent="MarginContainer/VBoxContainer/MainContent/RightPanel/WorldPanel/VBoxContainer"]
+layout_mode = 2
+text = "Current World"
+
+[node name="WorldInfo" type="Label" parent="MarginContainer/VBoxContainer/MainContent/RightPanel/WorldPanel/VBoxContainer"]
+layout_mode = 2
+text = "World Info"
+
+[node name="PatronPanel" type="PanelContainer" parent="MarginContainer/VBoxContainer/MainContent/RightPanel"]
+layout_mode = 2
+
+[node name="VBoxContainer" type="VBoxContainer" parent="MarginContainer/VBoxContainer/MainContent/RightPanel/PatronPanel"]
+layout_mode = 2
+
+[node name="PatronLabel" type="Label" parent="MarginContainer/VBoxContainer/MainContent/RightPanel/PatronPanel/VBoxContainer"]
+layout_mode = 2
+text = "Patrons"
+
+[node name="PatronList" type="ItemList" parent="MarginContainer/VBoxContainer/MainContent/RightPanel/PatronPanel/VBoxContainer"]
 layout_mode = 2
 size_flags_vertical = 3
 
-[node name="ScrollContainer" type="ScrollContainer" parent="MarginContainer/VBoxContainer/Content/RightPanel/PhaseContent"]
+[node name="ButtonContainer" type="HBoxContainer" parent="MarginContainer/VBoxContainer"]
 layout_mode = 2
-
-[node name="VBoxContainer" type="VBoxContainer" parent="MarginContainer/VBoxContainer/Content/RightPanel/PhaseContent/ScrollContainer"]
-layout_mode = 2
-size_flags_horizontal = 3
-size_flags_vertical = 3
-
-[node name="Footer" type="PanelContainer" parent="MarginContainer/VBoxContainer"]
-layout_mode = 2
-
-[node name="HBoxContainer" type="HBoxContainer" parent="MarginContainer/VBoxContainer/Footer"]
-layout_mode = 2
-theme_override_constants/separation = 20
+theme_override_constants/separation = 10
 alignment = 1
 
-[node name="NextPhaseButton" type="Button" parent="MarginContainer/VBoxContainer/Footer/HBoxContainer"]
+[node name="ActionButton" type="Button" parent="MarginContainer/VBoxContainer/ButtonContainer"]
 layout_mode = 2
-text = "Next Phase"
+text = "Action"
 
-[node name="ManageCrewButton" type="Button" parent="MarginContainer/VBoxContainer/Footer/HBoxContainer"]
+[node name="ManageCrewButton" type="Button" parent="MarginContainer/VBoxContainer/ButtonContainer"]
 layout_mode = 2
 text = "Manage Crew"
 
-[node name="SaveButton" type="Button" parent="MarginContainer/VBoxContainer/Footer/HBoxContainer"]
+[node name="SaveButton" type="Button" parent="MarginContainer/VBoxContainer/ButtonContainer"]
 layout_mode = 2
-text = "Save Campaign"
+text = "Save Game"
 
-[node name="LoadButton" type="Button" parent="MarginContainer/VBoxContainer/Footer/HBoxContainer"]
+[node name="LoadButton" type="Button" parent="MarginContainer/VBoxContainer/ButtonContainer"]
 layout_mode = 2
-text = "Load Campaign"
+text = "Load Game"
 
-[node name="QuitButton" type="Button" parent="MarginContainer/VBoxContainer/Footer/HBoxContainer"]
+[node name="QuitButton" type="Button" parent="MarginContainer/VBoxContainer/ButtonContainer"]
 layout_mode = 2
-text = "Quit Campaign" 
+text = "Quit to Main Menu"

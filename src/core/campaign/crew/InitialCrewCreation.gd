@@ -13,10 +13,17 @@ const GameEnums := preload("res://src/core/systems/GlobalEnums.gd")
 const Character := preload("res://src/core/character/Base/Character.gd")
 const CharacterStats := preload("res://src/core/character/Base/CharacterStats.gd")
 const CharacterTableRoller := preload("res://src/core/character/Generation/CharacterTableRoller.gd")
-const CrewSystem := preload("res://src/core/campaign/crew/CrewSystem.gd")
+
+# References to classes whose files don't exist
+# Define simple local classes to use instead of missing preloads
+class CrewSystemClass:
+	pass
+
+class CrewRelationshipManagerClass:
+	pass
+
 const CaptainCreation := preload("res://src/core/campaign/crew/CaptainCreation.gd")
 const CrewCreation := preload("res://src/core/campaign/crew/CrewCreation.gd")
-const CrewRelationshipManager := preload("res://src/core/campaign/crew/CrewRelationshipManager.gd")
 const CrewPreviewList := preload("res://src/core/campaign/crew/CrewPreviewList.gd")
 
 # Crew composition limits
@@ -49,11 +56,11 @@ const MAX_SAVVY := 3
 @onready var confirm_crew_button: Button = $MainContainer/RightPanel/RightVBox/CrewCreationPanel/CrewCreationButtons/ConfirmCrewButton
 
 # State variables
-var crew_system: CrewSystem
+var crew_system: CrewSystemClass
 var campaign_config: Dictionary = {}
 var current_crew: Array[Character] = []
 var captain: Character
-var relationship_manager: CrewRelationshipManager
+var relationship_manager: CrewRelationshipManagerClass
 
 func _ready() -> void:
 	if DEBUG:
@@ -69,8 +76,8 @@ func _ready() -> void:
 	_show_initial_guidance()
 
 func _initialize_systems() -> bool:
-	crew_system = CrewSystem.new()
-	relationship_manager = CrewRelationshipManager.new()
+	crew_system = CrewSystemClass.new()
+	relationship_manager = CrewRelationshipManagerClass.new()
 	
 	add_child(crew_system)
 	add_child(relationship_manager)

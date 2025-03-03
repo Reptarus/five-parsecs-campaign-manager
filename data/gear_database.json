@@ -1,292 +1,821 @@
 {
-  "races": [
-	{
-	  "id": "human",
-	  "name": "Human",
-	  "description": "Adaptable and resourceful, humans are found throughout the galaxy.",
-	  "base_stats": {},
-	  "special_abilities": []
-	},
-	{
-	  "id": "engineer",
-	  "name": "Engineer",
-	  "description": "Cybernetically enhanced humans with an innate understanding of technology.",
-	  "base_stats": {
-		"toughness": -1,
-		"savvy": 1
-	  },
-	  "special_abilities": ["repair_bonus"],
-	  "max_toughness": 4
-	},
-	{
-	  "id": "kerin",
-	  "name": "K'Erin",
-	  "description": "Hulking aliens with a natural affinity for close combat.",
-	  "base_stats": {
-		"toughness": 1
-	  },
-	  "special_abilities": ["brawling_advantage", "must_engage_brawl"]
-	},
-	{
-	  "id": "soulless",
-	  "name": "Soulless",
-	  "description": "Mysterious beings with enhanced physical and mental capabilities.",
-	  "base_stats": {
-		"toughness": 1,
-		"savvy": 1
-	  },
-	  "special_abilities": ["armor_save_6", "bot_injury_table", "no_consumables", "no_implants"]
-	},
-	{
-	  "id": "precursor",
-	  "name": "Precursor",
-	  "description": "Ancient race with advanced technology and mysterious abilities.",
-	  "base_stats": {
-		"speed": 1
-	  },
-	  "special_abilities": ["extra_character_event"]
-	},
-	{
-	  "id": "feral",
-	  "name": "Feral",
-	  "description": "Wild and unpredictable beings with heightened instincts.",
-	  "base_stats": {},
-	  "special_abilities": ["ignore_initiative_penalties", "priority_reaction"]
-	},
-	{
-	  "id": "swift",
-	  "name": "Swift",
-	  "description": "Agile and quick, with natural gliding abilities.",
-	  "base_stats": {
-		"speed": 1
-	  },
-	  "special_abilities": ["gliding", "free_jumping", "multi_shot_restriction"]
-	},
-	{
-	  "id": "bot",
-	  "name": "Bot",
-	  "description": "Artificial beings with enhanced physical capabilities but limited growth.",
-	  "base_stats": {
-		"reactions": 1,
-		"combat_skill": 1,
-		"toughness": 1,
-		"savvy": 2
-	  },
-	  "special_abilities": ["armor_save_6", "bot_injury_table", "no_experience", "no_consumables", "no_implants", "no_character_events"]
-	}
-  ],
-  "backgrounds": [
-	{
-	  "id": "high_tech_colony",
-	  "name": "High-Tech Colony",
-	  "description": "Raised in an advanced technological environment.",
-	  "stat_bonuses": {
-		"savvy": 1
-	  },
-	  "starting_credits": 6
-	},
-	{
-	  "id": "overcrowded_city",
-	  "name": "Overcrowded City",
-	  "description": "Grew up navigating the chaos of densely populated urban centers.",
-	  "stat_bonuses": {
-		"speed": 1
-	  },
-	  "starting_credits": 0
-	},
-	{
-	  "id": "low_tech_colony",
-	  "name": "Low-Tech Colony",
-	  "description": "Raised in a resource-poor environment, relying on outdated technology.",
-	  "stat_bonuses": {},
-	  "starting_gear": ["low_tech_weapon"],
-	  "starting_credits": 0
-	},
-	{
-	  "id": "mining_colony",
-	  "name": "Mining Colony",
-	  "description": "Grew up in the harsh conditions of a resource extraction outpost.",
-	  "stat_bonuses": {
-		"toughness": 1
-	  },
-	  "starting_credits": 0
-	},
-	{
-	  "id": "military_brat",
-	  "name": "Military Brat",
-	  "description": "Raised in a military family, moving between various postings.",
-	  "stat_bonuses": {
-		"combat_skill": 1
-	  },
-	  "starting_credits": 0
-	},
-	{
-	  "id": "space_station",
-	  "name": "Space Station",
-	  "description": "Born and raised on a bustling orbital habitat.",
-	  "stat_bonuses": {},
-	  "starting_gear": ["basic_gear"],
-	  "starting_credits": 0
-	}
-  ],
-  "motivations": [
-	{
-	  "id": "wealth",
-	  "name": "Wealth",
-	  "description": "Driven by the pursuit of riches and financial security.",
-	  "effect": {
-		"starting_credits": 6
-	  }
-	},
-	{
-	  "id": "fame",
-	  "name": "Fame",
-	  "description": "Seeks recognition and renown across the galaxy.",
-	  "effect": {
-		"story_points": 1
-	  }
-	},
-	{
-	  "id": "glory",
-	  "name": "Glory",
-	  "description": "Pursues heroic deeds and legendary status.",
-	  "effect": {
-		"combat_skill": 1,
-		"starting_gear": ["military_weapon"]
-	  }
-	},
-	{
-	  "id": "survival",
-	  "name": "Survival",
-	  "description": "Focused on staying alive in a hostile universe.",
-	  "effect": {
-		"toughness": 1
-	  }
-	},
-	{
-	  "id": "escape",
-	  "name": "Escape",
-	  "description": "Fleeing from a troubled past or pursuing freedom.",
-	  "effect": {
-		"speed": 1
-	  }
-	},
-	{
-	  "id": "adventure",
-	  "name": "Adventure",
-	  "description": "Seeking excitement and new experiences across the stars.",
-	  "effect": {
-		"starting_credits": 6,
-		"starting_gear": ["low_tech_weapon"]
-	  }
-	}
-  ],
-  "classes": [
-	{
-	  "id": "working_class",
-	  "name": "Working Class",
-	  "description": "Skilled laborers and everyday workers.",
-	  "stat_bonuses": {
-		"savvy": 1,
-		"luck": 1
-	  }
-	},
-	{
-	  "id": "technician",
-	  "name": "Technician",
-	  "description": "Experts in maintaining and repairing complex machinery.",
-	  "stat_bonuses": {
-		"savvy": 1
-	  },
-	  "starting_gear": ["repair_kit"]
-	},
-	{
-	  "id": "scientist",
-	  "name": "Scientist",
-	  "description": "Researchers and innovators pushing the boundaries of knowledge.",
-	  "stat_bonuses": {
-		"savvy": 1
-	  },
-	  "starting_gear": ["gadget"]
-	},
-	{
-	  "id": "hacker",
-	  "name": "Hacker",
-	  "description": "Skilled in manipulating and exploiting computer systems.",
-	  "stat_bonuses": {
-		"savvy": 1
-	  },
-	  "effect": {
-		"rival": 1
-	  }
-	},
-	{
-	  "id": "soldier",
-	  "name": "Soldier",
-	  "description": "Trained combatants with military experience.",
-	  "stat_bonuses": {
-		"combat_skill": 1
-	  },
-	  "starting_credits": 6
-	},
-	{
-	  "id": "mercenary",
-	  "name": "Mercenary",
-	  "description": "Professional fighters for hire.",
-	  "stat_bonuses": {
-		"combat_skill": 1
-	  },
-	  "starting_gear": ["military_weapon"]
-	}
-  ],
-  "skills": [
-	{
-	  "id": "melee",
-	  "name": "Melee",
-	  "type": "combat",
-	  "description": "Proficiency in close-quarters combat."
-	},
-	{
-	  "id": "ranged",
-	  "name": "Ranged",
-	  "type": "combat",
-	  "description": "Skill with ranged weapons and marksmanship."
-	},
-	{
-	  "id": "stealth",
-	  "name": "Stealth",
-	  "type": "general",
-	  "description": "Ability to move undetected and avoid notice."
-	},
-	{
-	  "id": "tech",
-	  "name": "Tech",
-	  "type": "general",
-	  "description": "Knowledge and skill with various technologies."
-	},
-	{
-	  "id": "navigation",
-	  "name": "Navigation",
-	  "type": "general",
-	  "description": "Expertise in plotting courses and reading star charts."
-	},
-	{
-	  "id": "leadership",
-	  "name": "Leadership",
-	  "type": "general",
-	  "description": "Ability to inspire and direct others effectively."
-	},
-	{
-	  "id": "medicine",
-	  "name": "Medicine",
-	  "type": "general",
-	  "description": "Knowledge of medical procedures and treatments."
-	},
-	{
-	  "id": "negotiation",
-	  "name": "Negotiation",
-	  "type": "general",
-	  "description": "Skill in diplomacy and bargaining."
-	}
-  ]
+	"races": [
+		{
+			"id": "human",
+			"name": "Human",
+			"description": "Adaptable and resourceful, humans are found throughout the galaxy.",
+			"base_stats": {
+				"reactions": 1,
+				"speed": 4,
+				"combat_skill": 0,
+				"toughness": 3,
+				"savvy": 0
+			},
+			"special_abilities": [
+				"adaptable"
+			],
+			"starting_gear": [
+				"basic_pistol",
+				"utility_knife"
+			],
+			"lore": "Humans have spread across countless worlds, adapting to various environments and establishing themselves as a dominant species in the galaxy. Their adaptability and resourcefulness have allowed them to thrive in even the harshest conditions."
+		},
+		{
+			"id": "engineer",
+			"name": "Engineer",
+			"description": "Cybernetically enhanced humans with an innate understanding of technology.",
+			"base_stats": {
+				"reactions": 1,
+				"speed": 4,
+				"combat_skill": 0,
+				"toughness": 2,
+				"savvy": 1
+			},
+			"special_abilities": [
+				"repair_bonus",
+				"tech_affinity"
+			],
+			"max_toughness": 4,
+			"starting_gear": [
+				"repair_kit",
+				"basic_pistol"
+			],
+			"lore": "Engineers are humans who have undergone extensive cybernetic enhancement, integrating technology directly into their nervous systems. This gives them an intuitive understanding of machines and electronics, making them invaluable for maintaining and repairing equipment."
+		},
+		{
+			"id": "kerin",
+			"name": "K'Erin",
+			"description": "Hulking aliens with a natural affinity for close combat.",
+			"base_stats": {
+				"reactions": 1,
+				"speed": 4,
+				"combat_skill": 0,
+				"toughness": 4,
+				"savvy": 0
+			},
+			"special_abilities": [
+				"brawling_advantage",
+				"must_engage_brawl"
+			],
+			"starting_gear": [
+				"combat_knife",
+				"light_armor"
+			],
+			"lore": "The K'Erin are a proud warrior race known for their physical prowess and code of honor. They prefer close combat and consider ranged weapons to be somewhat dishonorable, though pragmatism often wins out over tradition in the harsh reality of the frontier."
+		},
+		{
+			"id": "soulless",
+			"name": "Soulless",
+			"description": "Mysterious beings with enhanced physical and mental capabilities.",
+			"base_stats": {
+				"reactions": 1,
+				"speed": 4,
+				"combat_skill": 0,
+				"toughness": 4,
+				"savvy": 1
+			},
+			"special_abilities": [
+				"armor_save_6",
+				"bot_injury_table",
+				"no_consumables",
+				"no_implants"
+			],
+			"starting_gear": [
+				"energy_pistol"
+			],
+			"lore": "The Soulless are a cybernetic species connected to a hive intelligence. Individual units maintain autonomy but share information across their network. Their origins are shrouded in mystery, with some believing they were created as weapons in a forgotten war."
+		},
+		{
+			"id": "precursor",
+			"name": "Precursor",
+			"description": "Ancient race with advanced technology and mysterious abilities.",
+			"base_stats": {
+				"reactions": 1,
+				"speed": 5,
+				"combat_skill": 0,
+				"toughness": 2,
+				"savvy": 0
+			},
+			"special_abilities": [
+				"extra_character_event",
+				"ancient_knowledge"
+			],
+			"starting_gear": [
+				"precursor_artifact",
+				"light_armor"
+			],
+			"lore": "The Precursors are an ancient species that explored the stars when most other races were still primitive. Their advanced technology and understanding of the universe give them unique insights, but their numbers are few, and they guard their secrets closely."
+		},
+		{
+			"id": "feral",
+			"name": "Feral",
+			"description": "Genetically engineered humanoid-animal hybrids with enhanced physical abilities.",
+			"base_stats": {
+				"reactions": 1,
+				"speed": 4,
+				"combat_skill": 0,
+				"toughness": 3,
+				"savvy": 0
+			},
+			"special_abilities": [
+				"initiative_advantage",
+				"predator_instinct"
+			],
+			"starting_gear": [
+				"hunting_rifle",
+				"natural_weapons"
+			],
+			"lore": "Ferals were originally created as specialized soldiers, combining human intelligence with animal traits for enhanced combat capabilities. After gaining independence, they established their own communities and culture, though they still face prejudice in many parts of the galaxy."
+		},
+		{
+			"id": "swift",
+			"name": "Swift",
+			"description": "Agile, winged humanoids with exceptional mobility.",
+			"base_stats": {
+				"reactions": 1,
+				"speed": 5,
+				"combat_skill": 0,
+				"toughness": 3,
+				"savvy": 0
+			},
+			"special_abilities": [
+				"gliding",
+				"leap",
+				"fall_immunity",
+				"target_focus"
+			],
+			"starting_gear": [
+				"light_pistol",
+				"light_armor"
+			],
+			"lore": "The Swift are diminutive, winged humanoids known for their erratic, jerky movements. Their ability to glide and leap great distances makes them excellent scouts and infiltrators. They have a unique perspective on the world, often seeing patterns that others miss."
+		},
+		{
+			"id": "bot",
+			"name": "Bot",
+			"description": "Autonomous robotic units with specialized programming and capabilities.",
+			"base_stats": {
+				"reactions": 2,
+				"speed": 4,
+				"combat_skill": 0,
+				"toughness": 4,
+				"savvy": 0
+			},
+			"special_abilities": [
+				"armor_save_6",
+				"bot_injury_table",
+				"no_xp",
+				"no_consumables",
+				"no_implants",
+				"no_character_events"
+			],
+			"starting_gear": [
+				"integrated_weapon"
+			],
+			"lore": "Bots come in countless configurations, from combat models to utility units. While most are simple automatons, some advanced models develop a form of sentience over time. These units are often viewed with suspicion, but their reliability makes them valuable crew members."
+		}
+	],
+	"backgrounds": [
+		{
+			"id": "high_tech_colony",
+			"name": "High-Tech Colony",
+			"description": "Raised in an advanced technological environment.",
+			"stat_bonuses": {
+				"savvy": 1
+			},
+			"starting_credits": 6
+		},
+		{
+			"id": "overcrowded_city",
+			"name": "Overcrowded City",
+			"description": "Grew up navigating the chaos of densely populated urban centers.",
+			"stat_bonuses": {
+				"speed": 1
+			},
+			"starting_credits": 0
+		},
+		{
+			"id": "low_tech_colony",
+			"name": "Low-Tech Colony",
+			"description": "Raised in a resource-poor environment, relying on outdated technology.",
+			"stat_bonuses": {},
+			"starting_gear": [
+				"low_tech_weapon"
+			],
+			"starting_credits": 0
+		},
+		{
+			"id": "mining_colony",
+			"name": "Mining Colony",
+			"description": "Grew up in the harsh conditions of a resource extraction outpost.",
+			"stat_bonuses": {
+				"toughness": 1
+			},
+			"starting_credits": 0
+		},
+		{
+			"id": "military_brat",
+			"name": "Military Brat",
+			"description": "Raised in a military family, moving between various postings.",
+			"stat_bonuses": {
+				"combat_skill": 1
+			},
+			"starting_credits": 0
+		},
+		{
+			"id": "space_station",
+			"name": "Space Station",
+			"description": "Born and raised on a bustling orbital habitat.",
+			"stat_bonuses": {},
+			"starting_gear": [
+				"basic_gear"
+			],
+			"starting_credits": 0
+		}
+	],
+	"motivations": [
+		{
+			"id": "wealth",
+			"name": "Wealth",
+			"description": "Driven by the pursuit of riches and financial security.",
+			"effect": {
+				"starting_credits": 6
+			}
+		},
+		{
+			"id": "fame",
+			"name": "Fame",
+			"description": "Seeks recognition and renown across the galaxy.",
+			"effect": {
+				"story_points": 1
+			}
+		},
+		{
+			"id": "glory",
+			"name": "Glory",
+			"description": "Pursues heroic deeds and legendary status.",
+			"effect": {
+				"combat_skill": 1,
+				"starting_gear": [
+					"military_weapon"
+				]
+			}
+		},
+		{
+			"id": "survival",
+			"name": "Survival",
+			"description": "Focused on staying alive in a hostile universe.",
+			"effect": {
+				"toughness": 1
+			}
+		},
+		{
+			"id": "escape",
+			"name": "Escape",
+			"description": "Fleeing from a troubled past or pursuing freedom.",
+			"effect": {
+				"speed": 1
+			}
+		},
+		{
+			"id": "adventure",
+			"name": "Adventure",
+			"description": "Seeking excitement and new experiences across the stars.",
+			"effect": {
+				"starting_credits": 6,
+				"starting_gear": [
+					"low_tech_weapon"
+				]
+			}
+		}
+	],
+	"classes": [
+		{
+			"id": "soldier",
+			"name": "Soldier",
+			"description": "Trained combatant specializing in weapons and tactics.",
+			"stat_bonuses": {
+				"combat_skill": 1
+			},
+			"starting_skills": [
+				"combat_training",
+				"tactics"
+			],
+			"special_abilities": [
+				"weapon_specialist"
+			],
+			"starting_gear": [
+				"assault_rifle",
+				"combat_armor",
+				"frag_grenade"
+			],
+			"advancement_options": [
+				"heavy_weapons",
+				"leadership",
+				"stealth_tactics"
+			]
+		},
+		{
+			"id": "security",
+			"name": "Security",
+			"description": "Law enforcement or private security specialist.",
+			"stat_bonuses": {
+				"reactions": 2
+			},
+			"starting_skills": [
+				"investigation",
+				"intimidation"
+			],
+			"special_abilities": [
+				"quick_draw"
+			],
+			"starting_gear": [
+				"shotgun",
+				"stun_baton",
+				"combat_armor"
+			],
+			"advancement_options": [
+				"forensics",
+				"negotiation",
+				"tactical_movement"
+			]
+		},
+		{
+			"id": "broker",
+			"name": "Broker",
+			"description": "Deal-maker and negotiator with extensive contacts.",
+			"stat_bonuses": {
+				"savvy": 1
+			},
+			"starting_skills": [
+				"negotiation",
+				"streetwise"
+			],
+			"special_abilities": [
+				"valuable_contacts"
+			],
+			"starting_gear": [
+				"light_pistol",
+				"comm_device",
+				"fine_clothing"
+			],
+			"advancement_options": [
+				"black_market_access",
+				"information_gathering",
+				"persuasion"
+			]
+		},
+		{
+			"id": "engineer",
+			"name": "Engineer",
+			"description": "Technical specialist who can repair and modify equipment.",
+			"stat_bonuses": {
+				"savvy": 1
+			},
+			"starting_skills": [
+				"repair",
+				"electronics"
+			],
+			"special_abilities": [
+				"jury_rig"
+			],
+			"starting_gear": [
+				"repair_kit",
+				"scanner",
+				"light_pistol"
+			],
+			"advancement_options": [
+				"weapon_modifications",
+				"droid_programming",
+				"advanced_electronics"
+			]
+		},
+		{
+			"id": "medic",
+			"name": "Medic",
+			"description": "Healthcare professional specializing in field medicine.",
+			"stat_bonuses": {
+				"savvy": 1
+			},
+			"starting_skills": [
+				"first_aid",
+				"diagnosis"
+			],
+			"special_abilities": [
+				"emergency_treatment"
+			],
+			"starting_gear": [
+				"medkit",
+				"stim_pack",
+				"light_pistol"
+			],
+			"advancement_options": [
+				"combat_medicine",
+				"xenobiology",
+				"pharmaceutical_knowledge"
+			]
+		},
+		{
+			"id": "bot_tech",
+			"name": "Bot Tech",
+			"description": "Specialist in robotic systems and AI.",
+			"stat_bonuses": {
+				"toughness": 4,
+				"speed": 3
+			},
+			"starting_skills": [
+				"robotics",
+				"programming"
+			],
+			"special_abilities": [
+				"bot_repair"
+			],
+			"starting_gear": [
+				"repair_kit",
+				"hacking_tool",
+				"light_pistol"
+			],
+			"advancement_options": [
+				"ai_programming",
+				"combat_drones",
+				"cybernetic_enhancements"
+			]
+		},
+		{
+			"id": "merchant",
+			"name": "Merchant",
+			"description": "Trader and entrepreneur with business acumen.",
+			"stat_bonuses": {
+				"reactions": 2,
+				"combat_skill": 1
+			},
+			"starting_skills": [
+				"appraisal",
+				"negotiation"
+			],
+			"special_abilities": [
+				"haggling"
+			],
+			"starting_gear": [
+				"light_pistol",
+				"scanner",
+				"trade_goods"
+			],
+			"advancement_options": [
+				"market_analysis",
+				"smuggling",
+				"valuable_connections"
+			]
+		},
+		{
+			"id": "pilot",
+			"name": "Pilot",
+			"description": "Skilled vehicle and spacecraft operator.",
+			"stat_bonuses": {
+				"reactions": 2,
+				"savvy": 1
+			},
+			"starting_skills": [
+				"piloting",
+				"navigation"
+			],
+			"special_abilities": [
+				"evasive_maneuvers"
+			],
+			"starting_gear": [
+				"light_pistol",
+				"navigation_tools",
+				"flight_suit"
+			],
+			"advancement_options": [
+				"combat_piloting",
+				"ship_systems",
+				"astrogation"
+			]
+		}
+	],
+	"skills": [
+		{
+			"id": "combat_training",
+			"name": "Combat Training",
+			"description": "Proficiency in various combat techniques and weapons.",
+			"stat_used": "combat_skill",
+			"effects": [
+				"+1 to hit with all weapons"
+			],
+			"advancement_levels": [
+				{
+					"level": 1,
+					"effect": "+1 to hit with all weapons"
+				},
+				{
+					"level": 2,
+					"effect": "+1 damage with primary weapon"
+				},
+				{
+					"level": 3,
+					"effect": "One free attack per battle"
+				}
+			]
+		},
+		{
+			"id": "tactics",
+			"name": "Tactics",
+			"description": "Knowledge of battlefield strategies and positioning.",
+			"stat_used": "savvy",
+			"effects": [
+				"+1 to initiative rolls"
+			],
+			"advancement_levels": [
+				{
+					"level": 1,
+					"effect": "+1 to initiative rolls"
+				},
+				{
+					"level": 2,
+					"effect": "Reposition one ally per turn"
+				},
+				{
+					"level": 3,
+					"effect": "Identify enemy weaknesses"
+				}
+			]
+		},
+		{
+			"id": "repair",
+			"name": "Repair",
+			"description": "Ability to fix damaged equipment and machinery.",
+			"stat_used": "savvy",
+			"effects": [
+				"Repair 1D6 damage to equipment"
+			],
+			"advancement_levels": [
+				{
+					"level": 1,
+					"effect": "Repair 1D6 damage to equipment"
+				},
+				{
+					"level": 2,
+					"effect": "Improvise repairs with limited materials"
+				},
+				{
+					"level": 3,
+					"effect": "Upgrade equipment performance"
+				}
+			]
+		},
+		{
+			"id": "first_aid",
+			"name": "First Aid",
+			"description": "Medical knowledge for treating injuries in the field.",
+			"stat_used": "savvy",
+			"effects": [
+				"Heal 1D6 health points"
+			],
+			"advancement_levels": [
+				{
+					"level": 1,
+					"effect": "Heal 1D6 health points"
+				},
+				{
+					"level": 2,
+					"effect": "Stabilize critically wounded characters"
+				},
+				{
+					"level": 3,
+					"effect": "Treat serious injuries without penalty"
+				}
+			]
+		},
+		{
+			"id": "piloting",
+			"name": "Piloting",
+			"description": "Skill in operating vehicles and spacecraft.",
+			"stat_used": "reactions",
+			"effects": [
+				"+2 to all vehicle operation checks"
+			],
+			"advancement_levels": [
+				{
+					"level": 1,
+					"effect": "+2 to all vehicle operation checks"
+				},
+				{
+					"level": 2,
+					"effect": "Perform evasive maneuvers"
+				},
+				{
+					"level": 3,
+					"effect": "Expert navigation in hazardous conditions"
+				}
+			]
+		},
+		{
+			"id": "stealth",
+			"name": "Stealth",
+			"description": "Ability to move undetected and avoid notice.",
+			"stat_used": "reactions",
+			"effects": [
+				"+2 to stealth checks"
+			],
+			"advancement_levels": [
+				{
+					"level": 1,
+					"effect": "+2 to stealth checks"
+				},
+				{
+					"level": 2,
+					"effect": "Silent movement"
+				},
+				{
+					"level": 3,
+					"effect": "Disappear from sight during combat"
+				}
+			]
+		},
+		{
+			"id": "negotiation",
+			"name": "Negotiation",
+			"description": "Skill in bargaining and reaching favorable agreements.",
+			"stat_used": "savvy",
+			"effects": [
+				"+2 to all negotiation checks"
+			],
+			"advancement_levels": [
+				{
+					"level": 1,
+					"effect": "+2 to all negotiation checks"
+				},
+				{
+					"level": 2,
+					"effect": "Reduce prices by 20%"
+				},
+				{
+					"level": 3,
+					"effect": "Negotiate favorable terms in any deal"
+				}
+			]
+		},
+		{
+			"id": "hacking",
+			"name": "Hacking",
+			"description": "Ability to bypass electronic security and access protected systems.",
+			"stat_used": "savvy",
+			"effects": [
+				"+2 to all hacking attempts"
+			],
+			"advancement_levels": [
+				{
+					"level": 1,
+					"effect": "+2 to all hacking attempts"
+				},
+				{
+					"level": 2,
+					"effect": "Bypass standard security systems"
+				},
+				{
+					"level": 3,
+					"effect": "Control automated defenses"
+				}
+			]
+		},
+		{
+			"id": "survival",
+			"name": "Survival",
+			"description": "Knowledge of techniques for surviving in hostile environments.",
+			"stat_used": "savvy",
+			"effects": [
+				"+2 to all survival checks"
+			],
+			"advancement_levels": [
+				{
+					"level": 1,
+					"effect": "+2 to all survival checks"
+				},
+				{
+					"level": 2,
+					"effect": "Find food and water in any environment"
+				},
+				{
+					"level": 3,
+					"effect": "Immunity to environmental hazards"
+				}
+			]
+		},
+		{
+			"id": "leadership",
+			"name": "Leadership",
+			"description": "Ability to inspire and direct others effectively.",
+			"stat_used": "savvy",
+			"effects": [
+				"+1 to all ally morale checks"
+			],
+			"advancement_levels": [
+				{
+					"level": 1,
+					"effect": "+1 to all ally morale checks"
+				},
+				{
+					"level": 2,
+					"effect": "Grant one ally an extra action"
+				},
+				{
+					"level": 3,
+					"effect": "Coordinate team attacks for bonus damage"
+				}
+			]
+		}
+	],
+	"special_abilities": [
+		{
+			"id": "adaptable",
+			"name": "Adaptable",
+			"description": "Humans can exceed 1 point of Luck and adapt quickly to new situations.",
+			"effects": [
+				"Can exceed 1 point of Luck",
+				"+1 to rolls when attempting something for the first time"
+			]
+		},
+		{
+			"id": "repair_bonus",
+			"name": "Technical Aptitude",
+			"description": "Engineers have an innate understanding of technology.",
+			"effects": [
+				"+1 to all repair rolls",
+				"+2 to identify technological artifacts"
+			]
+		},
+		{
+			"id": "brawling_advantage",
+			"name": "Born Fighter",
+			"description": "K'Erin are natural brawlers with a talent for close combat.",
+			"effects": [
+				"Roll twice for Brawling and pick the better result",
+				"+1 damage with melee weapons"
+			]
+		},
+		{
+			"id": "armor_save_6",
+			"name": "Reinforced Construction",
+			"description": "Bots and Soulless have reinforced bodies that provide natural protection.",
+			"effects": [
+				"6+ Armor Saving Throw",
+				"Reduced damage from physical attacks"
+			]
+		},
+		{
+			"id": "gliding",
+			"name": "Gliding",
+			"description": "Swift can use their wings to glide safely from heights.",
+			"effects": [
+				"Can glide down safely at distance equal to height difference",
+				"No falling damage"
+			]
+		},
+		{
+			"id": "weapon_specialist",
+			"name": "Weapon Specialist",
+			"description": "Soldiers are experts with their chosen weapons.",
+			"effects": [
+				"+1 damage with preferred weapon type",
+				"Reduced chance of weapon malfunction"
+			]
+		},
+		{
+			"id": "jury_rig",
+			"name": "Jury Rig",
+			"description": "Engineers can create temporary fixes with limited materials.",
+			"effects": [
+				"Repair equipment with improvised materials",
+				"Create temporary tools or weapons"
+			]
+		},
+		{
+			"id": "emergency_treatment",
+			"name": "Emergency Treatment",
+			"description": "Medics can stabilize critical injuries in the field.",
+			"effects": [
+				"Prevent death from critical injuries",
+				"Reduce recovery time by half"
+			]
+		},
+		{
+			"id": "haggling",
+			"name": "Haggling",
+			"description": "Merchants are skilled at negotiating better prices.",
+			"effects": [
+				"Reduce purchase prices by 15%",
+				"Increase selling prices by 15%"
+			]
+		},
+		{
+			"id": "evasive_maneuvers",
+			"name": "Evasive Maneuvers",
+			"description": "Pilots can perform complex maneuvers to avoid danger.",
+			"effects": [
+				"+2 to all evasion rolls when piloting",
+				"Escape from dangerous situations"
+			]
+		}
+	]
 }

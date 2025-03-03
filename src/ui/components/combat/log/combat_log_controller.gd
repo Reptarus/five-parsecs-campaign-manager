@@ -4,10 +4,11 @@ extends Node
 ## Required dependencies
 const GameEnums := preload("res://src/core/systems/GlobalEnums.gd")
 const Character := preload("res://src/core/character/Base/Character.gd")
+const BaseCombatManager := preload("res://src/base/combat/BaseCombatManager.gd")
 
 ## Node references
 @onready var combat_log_panel: PanelContainer = %CombatLogPanel
-@onready var combat_manager: Node = get_node("/root/CombatManager")
+@onready var combat_manager: BaseCombatManager = get_node("/root/CombatManager")
 
 ## Properties
 var log_entries: Array = []

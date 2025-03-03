@@ -7,7 +7,6 @@ const ELITE_REACTIONS_BONUS: int = 1
 
 const GameEnums = preload("res://src/core/systems/GlobalEnums.gd")
 const Enemy = preload("res://src/core/enemy/base/Enemy.gd")
-const Weapon = preload("res://src/core/systems/items/Weapon.gd")
 
 ## Upgrades a regular enemy to an elite version
 ## Parameters:
@@ -29,16 +28,17 @@ func upgrade_enemy_to_elite(enemy: Enemy) -> void:
 ## Upgrades a weapon's rarity to the next tier
 ## Parameters:
 ## - weapon: The weapon to upgrade
-func upgrade_weapon_rarity(weapon: Weapon) -> void:
-	match weapon.get_rarity():
-		GameEnums.ItemRarity.COMMON:
-			weapon.set_rarity(GameEnums.ItemRarity.UNCOMMON)
-		GameEnums.ItemRarity.UNCOMMON:
-			weapon.set_rarity(GameEnums.ItemRarity.RARE)
-		GameEnums.ItemRarity.RARE:
-			weapon.set_rarity(GameEnums.ItemRarity.EPIC)
-		GameEnums.ItemRarity.EPIC:
-			weapon.set_rarity(GameEnums.ItemRarity.LEGENDARY)
+func upgrade_weapon_rarity(weapon: Resource) -> void:
+	if weapon.has_method("get_rarity") and weapon.has_method("set_rarity"):
+		match weapon.get_rarity():
+			GameEnums.ItemRarity.COMMON:
+				weapon.set_rarity(GameEnums.ItemRarity.UNCOMMON)
+			GameEnums.ItemRarity.UNCOMMON:
+				weapon.set_rarity(GameEnums.ItemRarity.RARE)
+			GameEnums.ItemRarity.RARE:
+				weapon.set_rarity(GameEnums.ItemRarity.EPIC)
+			GameEnums.ItemRarity.EPIC:
+				weapon.set_rarity(GameEnums.ItemRarity.LEGENDARY)
 
 func upgrade_enemy_to_boss(enemy: Enemy) -> void:
 	# First make them elite

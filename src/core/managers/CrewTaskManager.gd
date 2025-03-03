@@ -4,14 +4,13 @@ extends Node
 const GameEnums := preload("res://src/core/systems/GlobalEnums.gd")
 const Character := preload("res://src/core/character/Base/Character.gd")
 const FiveParsecsGameState := preload("res://src/core/state/GameState.gd")
-const CrewMember := preload("res://src/core/campaign/crew/CrewMember.gd")
 
 signal task_assigned(character: Character, task: int)
 signal task_completed(character: Character, task: int, success: bool)
 signal task_failed(character: Character, task: int, reason: String)
 
 var game_state: FiveParsecsGameState
-var active_tasks: Dictionary = {} # CrewMember: int (task)
+var active_tasks: Dictionary = {} # Character: int (task)
 
 func _init(_game_state: FiveParsecsGameState) -> void:
     if not _game_state:
@@ -19,7 +18,7 @@ func _init(_game_state: FiveParsecsGameState) -> void:
         return
     game_state = _game_state
 
-func assign_task(crew_member: CrewMember, task: int) -> bool:
+func assign_task(crew_member: Character, task: int) -> bool:
     if not crew_member:
         push_error("CrewMember is required for task assignment")
         return false
@@ -32,7 +31,7 @@ func assign_task(crew_member: CrewMember, task: int) -> bool:
     task_assigned.emit(crew_member, task)
     return true
 
-func complete_task(crew_member: CrewMember) -> void:
+func complete_task(crew_member: Character) -> void:
     if not active_tasks.has(crew_member):
         push_error("CrewMember has no active task")
         return

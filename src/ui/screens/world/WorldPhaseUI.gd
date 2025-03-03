@@ -2,8 +2,8 @@ class_name WorldPhaseUI
 extends Control
 
 const GameEnums := preload("res://src/core/systems/GlobalEnums.gd")
-const WorldManager := preload("res://src/core/world/WorldManager.gd")
-const GameWorld := preload("res://src/core/world/GameWorld.gd")
+const WorldManager := preload("res://src/game/world/GameWorldManager.gd")
+const GameWorld := preload("res://src/game/world/GameWorld.gd")
 
 signal phase_completed
 signal phase_cancelled

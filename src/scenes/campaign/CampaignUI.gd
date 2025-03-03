@@ -4,7 +4,7 @@ class_name CampaignUI
 
 # Dependencies
 const CampaignResponsiveLayout = preload("res://src/ui/components/base/CampaignResponsiveLayout.gd")
-const CampaignManager = preload("res://src/core/campaign/CampaignManager.gd")
+const CampaignManager = preload("res://src/core/managers/CampaignManager.gd")
 const GameCampaignManager = preload("res://src/core/campaign/GameCampaignManager.gd")
 const CampaignDashboard: PackedScene = preload("res://src/ui/screens/campaign/CampaignDashboard.tscn")
 const CampaignPhaseUI: PackedScene = preload("res://src/scenes/campaign/components/CampaignPhaseUI.tscn")

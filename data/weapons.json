@@ -1,0 +1,785 @@
+{
+    "name": "weapons",
+    "description": "Weapons available for characters in Five Parsecs from Home",
+    "weapon_categories": [
+        {
+            "id": "pistols",
+            "name": "Pistols",
+            "description": "Compact, one-handed ranged weapons suitable for close quarters combat."
+        },
+        {
+            "id": "rifles",
+            "name": "Rifles",
+            "description": "Two-handed ranged weapons with good accuracy and range."
+        },
+        {
+            "id": "heavy_weapons",
+            "name": "Heavy Weapons",
+            "description": "Powerful two-handed weapons that often require setup or have limited ammunition."
+        },
+        {
+            "id": "melee_weapons",
+            "name": "Melee Weapons",
+            "description": "Weapons designed for close combat."
+        },
+        {
+            "id": "grenades",
+            "name": "Grenades and Explosives",
+            "description": "Thrown weapons that affect an area."
+        },
+        {
+            "id": "special_weapons",
+            "name": "Special Weapons",
+            "description": "Unique or exotic weapons with unusual effects."
+        }
+    ],
+    "weapons": [
+        {
+            "id": "laser_pistol",
+            "name": "Laser Pistol",
+            "category": "pistols",
+            "description": "A standard energy sidearm that fires a focused beam of light.",
+            "damage": "1D6",
+            "range": {
+                "short": "0-8\"",
+                "medium": "8-16\"",
+                "long": "16-24\""
+            },
+            "traits": [
+                "Reliable",
+                "Silent"
+            ],
+            "modifiers": {
+                "short_range": 0,
+                "medium_range": -1,
+                "long_range": -2
+            },
+            "ammo_capacity": 12,
+            "reload_time": "1 action",
+            "cost": {
+                "credits": 75,
+                "rarity": "Common"
+            },
+            "special_rules": "On a natural roll of 6 for damage, add +1 to the damage total.",
+            "tags": [
+                "energy",
+                "silent",
+                "common"
+            ]
+        },
+        {
+            "id": "slug_pistol",
+            "name": "Slug Pistol",
+            "category": "pistols",
+            "description": "A projectile weapon that fires solid bullets using chemical propellant.",
+            "damage": "1D6+1",
+            "range": {
+                "short": "0-6\"",
+                "medium": "6-12\"",
+                "long": "12-18\""
+            },
+            "traits": [
+                "Reliable",
+                "Loud"
+            ],
+            "modifiers": {
+                "short_range": 0,
+                "medium_range": -1,
+                "long_range": -2
+            },
+            "ammo_capacity": 8,
+            "reload_time": "1 action",
+            "cost": {
+                "credits": 50,
+                "rarity": "Common"
+            },
+            "special_rules": "Firing this weapon alerts all enemies within 24\".",
+            "tags": [
+                "projectile",
+                "loud",
+                "common"
+            ]
+        },
+        {
+            "id": "plasma_pistol",
+            "name": "Plasma Pistol",
+            "category": "pistols",
+            "description": "An advanced energy weapon that fires superheated plasma.",
+            "damage": "1D6+2",
+            "range": {
+                "short": "0-6\"",
+                "medium": "6-12\"",
+                "long": "12-18\""
+            },
+            "traits": [
+                "Unstable",
+                "Hot"
+            ],
+            "modifiers": {
+                "short_range": 0,
+                "medium_range": -1,
+                "long_range": -2
+            },
+            "ammo_capacity": 6,
+            "reload_time": "1 action",
+            "cost": {
+                "credits": 150,
+                "rarity": "Uncommon"
+            },
+            "special_rules": "On a natural attack roll of 1, the weapon overheats and cannot be used for 1 turn.",
+            "tags": [
+                "energy",
+                "hot",
+                "unstable",
+                "uncommon"
+            ]
+        },
+        {
+            "id": "laser_rifle",
+            "name": "Laser Rifle",
+            "category": "rifles",
+            "description": "A standard two-handed energy weapon with good range and accuracy.",
+            "damage": "1D6+1",
+            "range": {
+                "short": "0-12\"",
+                "medium": "12-24\"",
+                "long": "24-36\""
+            },
+            "traits": [
+                "Reliable",
+                "Silent",
+                "Two-handed"
+            ],
+            "modifiers": {
+                "short_range": 0,
+                "medium_range": 0,
+                "long_range": -1
+            },
+            "ammo_capacity": 20,
+            "reload_time": "1 action",
+            "cost": {
+                "credits": 150,
+                "rarity": "Common"
+            },
+            "special_rules": "On a natural roll of 6 for damage, add +1 to the damage total.",
+            "tags": [
+                "energy",
+                "silent",
+                "common"
+            ]
+        },
+        {
+            "id": "assault_rifle",
+            "name": "Assault Rifle",
+            "category": "rifles",
+            "description": "A rapid-firing projectile weapon with good all-around performance.",
+            "damage": "1D6+1",
+            "range": {
+                "short": "0-12\"",
+                "medium": "12-24\"",
+                "long": "24-36\""
+            },
+            "traits": [
+                "Reliable",
+                "Loud",
+                "Two-handed",
+                "Rapid Fire"
+            ],
+            "modifiers": {
+                "short_range": 0,
+                "medium_range": 0,
+                "long_range": -1
+            },
+            "ammo_capacity": 30,
+            "reload_time": "1 action",
+            "cost": {
+                "credits": 120,
+                "rarity": "Common"
+            },
+            "special_rules": "Can fire in burst mode, making 3 attacks but with -1 to hit on each attack.",
+            "tags": [
+                "projectile",
+                "loud",
+                "rapid_fire",
+                "common"
+            ]
+        },
+        {
+            "id": "sniper_rifle",
+            "name": "Sniper Rifle",
+            "category": "rifles",
+            "description": "A precision long-range weapon designed for accuracy at extreme distances.",
+            "damage": "1D6+3",
+            "range": {
+                "short": "12-24\"",
+                "medium": "24-48\"",
+                "long": "48-72\""
+            },
+            "traits": [
+                "Accurate",
+                "Loud",
+                "Two-handed",
+                "Slow"
+            ],
+            "modifiers": {
+                "short_range": -1,
+                "medium_range": 0,
+                "long_range": 0
+            },
+            "ammo_capacity": 5,
+            "reload_time": "1 action",
+            "cost": {
+                "credits": 250,
+                "rarity": "Uncommon"
+            },
+            "special_rules": "When using the Aim action, gain +3 to hit instead of +2. Ignores light cover.",
+            "tags": [
+                "projectile",
+                "loud",
+                "accurate",
+                "uncommon"
+            ]
+        },
+        {
+            "id": "shotgun",
+            "name": "Shotgun",
+            "category": "rifles",
+            "description": "A weapon that fires shells containing multiple projectiles, devastating at close range.",
+            "damage": "2D6",
+            "range": {
+                "short": "0-6\"",
+                "medium": "6-12\"",
+                "long": "12-18\""
+            },
+            "traits": [
+                "Reliable",
+                "Loud",
+                "Two-handed",
+                "Spread"
+            ],
+            "modifiers": {
+                "short_range": +1,
+                "medium_range": 0,
+                "long_range": -2
+            },
+            "ammo_capacity": 6,
+            "reload_time": "1 action",
+            "cost": {
+                "credits": 100,
+                "rarity": "Common"
+            },
+            "special_rules": "At short range, gain +1 to hit. At long range, damage is reduced to 1D6.",
+            "tags": [
+                "projectile",
+                "loud",
+                "spread",
+                "common"
+            ]
+        },
+        {
+            "id": "heavy_machine_gun",
+            "name": "Heavy Machine Gun",
+            "category": "heavy_weapons",
+            "description": "A large, belt-fed automatic weapon capable of sustained fire.",
+            "damage": "1D6+2",
+            "range": {
+                "short": "0-18\"",
+                "medium": "18-36\"",
+                "long": "36-54\""
+            },
+            "traits": [
+                "Heavy",
+                "Loud",
+                "Two-handed",
+                "Rapid Fire",
+                "Suppressive"
+            ],
+            "modifiers": {
+                "short_range": 0,
+                "medium_range": 0,
+                "long_range": -1
+            },
+            "ammo_capacity": 100,
+            "reload_time": "2 actions",
+            "cost": {
+                "credits": 350,
+                "rarity": "Uncommon"
+            },
+            "special_rules": "Can make 4 attacks per action. Can perform Suppressive Fire as an action, forcing all enemies in a 6\" radius to pass a Toughness check (7+) or be unable to move in their next turn.",
+            "tags": [
+                "projectile",
+                "loud",
+                "heavy",
+                "suppressive",
+                "uncommon"
+            ]
+        },
+        {
+            "id": "rocket_launcher",
+            "name": "Rocket Launcher",
+            "category": "heavy_weapons",
+            "description": "A shoulder-fired weapon that launches explosive projectiles.",
+            "damage": "3D6",
+            "range": {
+                "short": "6-18\"",
+                "medium": "18-36\"",
+                "long": "36-54\""
+            },
+            "traits": [
+                "Heavy",
+                "Loud",
+                "Two-handed",
+                "Explosive",
+                "Limited Ammo"
+            ],
+            "modifiers": {
+                "short_range": -1,
+                "medium_range": 0,
+                "long_range": -1
+            },
+            "ammo_capacity": 1,
+            "reload_time": "2 actions",
+            "cost": {
+                "credits": 400,
+                "rarity": "Rare"
+            },
+            "special_rules": "Affects all targets within 3\" of the impact point. Targets in the blast radius can make a Speed check (7+) to halve the damage.",
+            "tags": [
+                "explosive",
+                "loud",
+                "heavy",
+                "area_effect",
+                "rare"
+            ]
+        },
+        {
+            "id": "plasma_cannon",
+            "name": "Plasma Cannon",
+            "category": "heavy_weapons",
+            "description": "A heavy energy weapon that fires large bolts of superheated plasma.",
+            "damage": "2D6+2",
+            "range": {
+                "short": "0-12\"",
+                "medium": "12-24\"",
+                "long": "24-36\""
+            },
+            "traits": [
+                "Heavy",
+                "Two-handed",
+                "Hot",
+                "Unstable"
+            ],
+            "modifiers": {
+                "short_range": 0,
+                "medium_range": 0,
+                "long_range": -1
+            },
+            "ammo_capacity": 5,
+            "reload_time": "2 actions",
+            "cost": {
+                "credits": 500,
+                "rarity": "Rare"
+            },
+            "special_rules": "On a natural attack roll of 1, the weapon overheats and cannot be used for 1D3 turns. Ignores standard armor saves.",
+            "tags": [
+                "energy",
+                "hot",
+                "unstable",
+                "armor_piercing",
+                "rare"
+            ]
+        },
+        {
+            "id": "combat_knife",
+            "name": "Combat Knife",
+            "category": "melee_weapons",
+            "description": "A sturdy blade designed for close-quarters combat.",
+            "damage": "1D6-1",
+            "range": {
+                "short": "Melee",
+                "medium": "N/A",
+                "long": "N/A"
+            },
+            "traits": [
+                "Reliable",
+                "Silent",
+                "Light"
+            ],
+            "modifiers": {
+                "short_range": 0,
+                "medium_range": "N/A",
+                "long_range": "N/A"
+            },
+            "ammo_capacity": "N/A",
+            "reload_time": "N/A",
+            "cost": {
+                "credits": 25,
+                "rarity": "Common"
+            },
+            "special_rules": "Can be used as a backup weapon even when wielding a two-handed weapon.",
+            "tags": [
+                "melee",
+                "silent",
+                "light",
+                "common"
+            ]
+        },
+        {
+            "id": "vibro_sword",
+            "name": "Vibro-Sword",
+            "category": "melee_weapons",
+            "description": "A sword with a vibrating edge that increases cutting power.",
+            "damage": "1D6+2",
+            "range": {
+                "short": "Melee",
+                "medium": "N/A",
+                "long": "N/A"
+            },
+            "traits": [
+                "Reliable",
+                "Powered",
+                "One-handed"
+            ],
+            "modifiers": {
+                "short_range": 0,
+                "medium_range": "N/A",
+                "long_range": "N/A"
+            },
+            "ammo_capacity": "Power cell (100 uses)",
+            "reload_time": "1 action to replace power cell",
+            "cost": {
+                "credits": 200,
+                "rarity": "Uncommon"
+            },
+            "special_rules": "Reduces armor saves by 1.",
+            "tags": [
+                "melee",
+                "powered",
+                "armor_piercing",
+                "uncommon"
+            ]
+        },
+        {
+            "id": "power_axe",
+            "name": "Power Axe",
+            "category": "melee_weapons",
+            "description": "A two-handed axe surrounded by an energy field that can cleave through armor.",
+            "damage": "2D6",
+            "range": {
+                "short": "Melee",
+                "medium": "N/A",
+                "long": "N/A"
+            },
+            "traits": [
+                "Powered",
+                "Two-handed",
+                "Heavy"
+            ],
+            "modifiers": {
+                "short_range": 0,
+                "medium_range": "N/A",
+                "long_range": "N/A"
+            },
+            "ammo_capacity": "Power cell (50 uses)",
+            "reload_time": "1 action to replace power cell",
+            "cost": {
+                "credits": 350,
+                "rarity": "Rare"
+            },
+            "special_rules": "Ignores standard armor saves. On a natural attack roll of 6, the target suffers an additional wound.",
+            "tags": [
+                "melee",
+                "powered",
+                "heavy",
+                "armor_piercing",
+                "rare"
+            ]
+        },
+        {
+            "id": "frag_grenade",
+            "name": "Frag Grenade",
+            "category": "grenades",
+            "description": "An explosive device that sprays shrapnel when detonated.",
+            "damage": "2D6",
+            "range": {
+                "short": "Thrown (0-6\")",
+                "medium": "N/A",
+                "long": "N/A"
+            },
+            "traits": [
+                "Thrown",
+                "Explosive",
+                "One-use",
+                "Loud"
+            ],
+            "modifiers": {
+                "short_range": 0,
+                "medium_range": "N/A",
+                "long_range": "N/A"
+            },
+            "ammo_capacity": "1 (one-use)",
+            "reload_time": "N/A",
+            "cost": {
+                "credits": 50,
+                "rarity": "Common"
+            },
+            "special_rules": "Affects all targets within 3\" of the impact point. Targets in the blast radius can make a Speed check (7+) to halve the damage.",
+            "tags": [
+                "explosive",
+                "thrown",
+                "area_effect",
+                "common"
+            ]
+        },
+        {
+            "id": "smoke_grenade",
+            "name": "Smoke Grenade",
+            "category": "grenades",
+            "description": "A non-lethal grenade that creates a dense cloud of smoke.",
+            "damage": "None",
+            "range": {
+                "short": "Thrown (0-6\")",
+                "medium": "N/A",
+                "long": "N/A"
+            },
+            "traits": [
+                "Thrown",
+                "Non-lethal",
+                "One-use"
+            ],
+            "modifiers": {
+                "short_range": 0,
+                "medium_range": "N/A",
+                "long_range": "N/A"
+            },
+            "ammo_capacity": "1 (one-use)",
+            "reload_time": "N/A",
+            "cost": {
+                "credits": 30,
+                "rarity": "Common"
+            },
+            "special_rules": "Creates a smoke cloud with 4\" radius that blocks line of sight. Lasts for 1D3+1 turns.",
+            "tags": [
+                "utility",
+                "thrown",
+                "area_effect",
+                "common"
+            ]
+        },
+        {
+            "id": "neural_disruptor",
+            "name": "Neural Disruptor",
+            "category": "special_weapons",
+            "description": "A weapon that emits waves that disrupt neural activity, incapacitating targets without killing them.",
+            "damage": "Special",
+            "range": {
+                "short": "0-6\"",
+                "medium": "6-12\"",
+                "long": "N/A"
+            },
+            "traits": [
+                "Non-lethal",
+                "Silent",
+                "One-handed"
+            ],
+            "modifiers": {
+                "short_range": 0,
+                "medium_range": -1,
+                "long_range": "N/A"
+            },
+            "ammo_capacity": 5,
+            "reload_time": "1 action",
+            "cost": {
+                "credits": 300,
+                "rarity": "Rare"
+            },
+            "special_rules": "Instead of dealing damage, target must make a Toughness check (8+) or be stunned for 1D3 turns. Stunned characters cannot take actions.",
+            "tags": [
+                "non_lethal",
+                "silent",
+                "stun",
+                "rare"
+            ]
+        },
+        {
+            "id": "psionic_amplifier",
+            "name": "Psionic Amplifier",
+            "category": "special_weapons",
+            "description": "A device that enhances the user's psychic abilities, allowing them to project mental attacks.",
+            "damage": "1D6+Savvy modifier",
+            "range": {
+                "short": "0-8\"",
+                "medium": "8-16\"",
+                "long": "16-24\""
+            },
+            "traits": [
+                "Psionic",
+                "Silent",
+                "One-handed"
+            ],
+            "modifiers": {
+                "short_range": 0,
+                "medium_range": -1,
+                "long_range": -2
+            },
+            "ammo_capacity": "Power cell (20 uses)",
+            "reload_time": "1 action to replace power cell",
+            "cost": {
+                "credits": 400,
+                "rarity": "Very Rare"
+            },
+            "special_rules": "Can only be used by characters with the 'Psyker' trait. Ignores armor saves. After each use, roll 1D6. On a 1, the user suffers 1 damage from psychic backlash.",
+            "tags": [
+                "psionic",
+                "silent",
+                "armor_piercing",
+                "very_rare"
+            ]
+        },
+        {
+            "id": "flamethrower",
+            "name": "Flamethrower",
+            "category": "special_weapons",
+            "description": "A weapon that projects a stream of burning fuel, engulfing targets in flames.",
+            "damage": "1D6+1",
+            "range": {
+                "short": "Template (8\" long, 2\" wide)",
+                "medium": "N/A",
+                "long": "N/A"
+            },
+            "traits": [
+                "Template",
+                "Two-handed",
+                "Heavy",
+                "Loud",
+                "Hot"
+            ],
+            "modifiers": {
+                "short_range": 0,
+                "medium_range": "N/A",
+                "long_range": "N/A"
+            },
+            "ammo_capacity": 6,
+            "reload_time": "2 actions",
+            "cost": {
+                "credits": 250,
+                "rarity": "Uncommon"
+            },
+            "special_rules": "Automatically hits all targets under the template. Targets that are hit must make a Toughness check (7+) or catch fire, suffering 1D6 damage at the start of each of their turns until they spend an action to extinguish the flames.",
+            "tags": [
+                "fire",
+                "template",
+                "area_effect",
+                "loud",
+                "uncommon"
+            ]
+        }
+    ],
+    "weapon_traits": [
+        {
+            "id": "reliable",
+            "name": "Reliable",
+            "description": "The weapon rarely malfunctions and performs consistently."
+        },
+        {
+            "id": "silent",
+            "name": "Silent",
+            "description": "The weapon makes little to no noise when fired."
+        },
+        {
+            "id": "loud",
+            "name": "Loud",
+            "description": "The weapon makes a significant amount of noise when fired, potentially alerting enemies."
+        },
+        {
+            "id": "hot",
+            "name": "Hot",
+            "description": "The weapon generates significant heat when used, risking overheating."
+        },
+        {
+            "id": "unstable",
+            "name": "Unstable",
+            "description": "The weapon has a chance to malfunction or misfire."
+        },
+        {
+            "id": "two_handed",
+            "name": "Two-handed",
+            "description": "The weapon requires both hands to use effectively."
+        },
+        {
+            "id": "rapid_fire",
+            "name": "Rapid Fire",
+            "description": "The weapon can fire multiple shots in quick succession."
+        },
+        {
+            "id": "accurate",
+            "name": "Accurate",
+            "description": "The weapon is designed for precision and accuracy."
+        },
+        {
+            "id": "slow",
+            "name": "Slow",
+            "description": "The weapon takes time to aim or reload between shots."
+        },
+        {
+            "id": "spread",
+            "name": "Spread",
+            "description": "The weapon fires multiple projectiles in a spread pattern."
+        },
+        {
+            "id": "heavy",
+            "name": "Heavy",
+            "description": "The weapon is particularly heavy, reducing mobility."
+        },
+        {
+            "id": "suppressive",
+            "name": "Suppressive",
+            "description": "The weapon is effective at suppressing enemy movement and actions."
+        },
+        {
+            "id": "explosive",
+            "name": "Explosive",
+            "description": "The weapon causes explosions that affect an area."
+        },
+        {
+            "id": "limited_ammo",
+            "name": "Limited Ammo",
+            "description": "The weapon has very limited ammunition."
+        },
+        {
+            "id": "light",
+            "name": "Light",
+            "description": "The weapon is particularly light and easy to carry."
+        },
+        {
+            "id": "powered",
+            "name": "Powered",
+            "description": "The weapon requires power cells to function."
+        },
+        {
+            "id": "thrown",
+            "name": "Thrown",
+            "description": "The weapon is thrown at the target."
+        },
+        {
+            "id": "one_use",
+            "name": "One-use",
+            "description": "The weapon can only be used once."
+        },
+        {
+            "id": "non_lethal",
+            "name": "Non-lethal",
+            "description": "The weapon is designed to incapacitate rather than kill."
+        },
+        {
+            "id": "psionic",
+            "name": "Psionic",
+            "description": "The weapon channels or amplifies psychic energy."
+        },
+        {
+            "id": "template",
+            "name": "Template",
+            "description": "The weapon affects all targets in a specific area or pattern."
+        }
+    ]
+}

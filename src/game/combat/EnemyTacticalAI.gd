@@ -11,6 +11,7 @@ signal group_coordination_updated(group: Array[FiveParsecsCharacter], leader: Fi
 const GlobalEnums := preload("res://src/core/systems/GlobalEnums.gd")
 const Character := preload("res://src/core/character/Base/Character.gd")
 const BattlefieldMgr := preload("res://src/core/battle/BattlefieldManager.gd")
+const BaseCombatManager := preload("res://src/base/combat/BaseCombatManager.gd")
 
 ## AI Personality types
 enum AIPersonality {
@@ -32,7 +33,7 @@ enum GroupTactic {
 
 ## References to required systems
 @export var battlefield_manager: BattlefieldMgr
-@export var combat_manager: Node # Will be cast to CombatManager
+@export var combat_manager: BaseCombatManager # Combat system reference
 
 ## AI state tracking
 var _enemy_personalities: Dictionary = {}
@@ -274,7 +275,12 @@ func _find_most_threatened_ally(allies: Array[FiveParsecsCharacter]) -> FivePars
 ## Analyzes the battlefield situation
 func _analyze_battlefield_situation(enemy: FiveParsecsCharacter) -> String:
 	var enemy_strength: float = _calculate_force_strength([enemy])
-	var player_strength: float = _calculate_force_strength(battlefield_manager.get_player_characters())
+	# Convert the array to the expected type
+	var player_characters = battlefield_manager.get_player_characters()
+	var player_characters_converted: Array[FiveParsecsCharacter] = []
+	for character in player_characters:
+		player_characters_converted.append(character as FiveParsecsCharacter)
+	var player_strength: float = _calculate_force_strength(player_characters_converted)
 	
 	var strength_ratio: float = enemy_strength / max(1.0, player_strength)
 	

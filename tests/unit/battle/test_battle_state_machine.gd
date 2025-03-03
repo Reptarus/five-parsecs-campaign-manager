@@ -14,7 +14,7 @@ extends GameTest
 # Constants and preloads
 const BattleStateMachine: GDScript = preload("res://src/core/battle/state/BattleStateMachine.gd")
 const GameStateManager: GDScript = preload("res://src/core/managers/GameStateManager.gd")
-const BattleCharacterScript: GDScript = preload("res://src/core/battle/BattleCharacter.gd")
+const BattleCharacterScript: GDScript = preload("res://src/game/combat/BattleCharacter.gd")
 const TEST_TIMEOUT: float = 1.0 # seconds timeout for performance tests
 
 # Type-safe instance variables

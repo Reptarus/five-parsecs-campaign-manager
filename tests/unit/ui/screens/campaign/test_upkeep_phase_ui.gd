@@ -3,12 +3,15 @@
 extends "res://tests/fixtures/base/game_test.gd"
 
 const UpkeepPhaseUI = preload("res://src/ui/screens/campaign/UpkeepPhaseUI.gd")
+const WorldDataMigration = preload("res://src/core/migration/WorldDataMigration.gd")
 
 var phase_ui: UpkeepPhaseUI
+var migration: WorldDataMigration
 var phase_completed_signal_emitted := false
 var resource_updated_signal_emitted := false
 var last_resource_type: GameEnums.ResourceType = GameEnums.ResourceType.NONE
 var last_resource_value: int = 0
+var last_resource_id: String = ""
 
 # Type-safe property access
 func _get_ui_property(property: String, default_value: Variant = null) -> Variant:
@@ -33,6 +36,7 @@ func _set_ui_property(property: String, value: Variant) -> void:
 func before_each() -> void:
 	await super.before_each()
 	phase_ui = UpkeepPhaseUI.new()
+	migration = WorldDataMigration.new()
 	add_child_autofree(phase_ui)
 	track_test_node(phase_ui)
 	_reset_signals()
@@ -44,6 +48,7 @@ func after_each() -> void:
 	if phase_ui:
 		phase_ui.queue_free()
 		phase_ui = null
+	migration = null
 	await super.after_each()
 
 # Type-safe signal handling
@@ -52,6 +57,7 @@ func _reset_signals() -> void:
 	resource_updated_signal_emitted = false
 	last_resource_type = GameEnums.ResourceType.NONE
 	last_resource_value = 0
+	last_resource_id = ""
 
 func _connect_signals() -> void:
 	if not phase_ui:
@@ -78,6 +84,7 @@ func _on_resource_updated(resource_type: GameEnums.ResourceType, new_value: int)
 	resource_updated_signal_emitted = true
 	last_resource_type = resource_type
 	last_resource_value = new_value
+	last_resource_id = migration.convert_resource_type_to_id(resource_type)
 
 # Type-safe test methods
 func test_initial_setup() -> void:
@@ -100,11 +107,12 @@ func test_upkeep_costs() -> void:
 	# Set initial resources
 	for resource_type in test_resources:
 		var value: int = test_resources[resource_type]
+		var resource_id = migration.convert_resource_type_to_id(resource_type)
 		_call_node_method(phase_ui, "update_resource", [resource_type, value])
 		
 		var resource_values: Dictionary = _get_ui_property("resource_values", {})
 		var current_value: int = resource_values.get(resource_type, 0)
-		assert_eq(current_value, value, "Resource %s should be set correctly" % resource_type)
+		assert_eq(current_value, value, "Resource %s should be set correctly" % resource_id)
 	
 	# Apply upkeep costs
 	_call_node_method(phase_ui, "apply_upkeep_costs")
@@ -114,7 +122,8 @@ func test_upkeep_costs() -> void:
 	for resource_type in test_resources:
 		var new_value: int = resource_values.get(resource_type, 0)
 		var original_value: int = test_resources[resource_type]
-		assert_true(new_value < original_value, "Resource %s should be reduced after upkeep" % resource_type)
+		var resource_id = migration.convert_resource_type_to_id(resource_type)
+		assert_true(new_value < original_value, "Resource %s should be reduced after upkeep" % resource_id)
 
 func test_maintenance_action() -> void:
 	# Set up initial resources
@@ -126,6 +135,7 @@ func test_maintenance_action() -> void:
 	
 	assert_true(resource_updated_signal_emitted, "Resource updated signal should be emitted")
 	assert_eq(last_resource_type, GameEnums.ResourceType.CREDITS, "Credits should be updated")
+	assert_eq(last_resource_id, migration.convert_resource_type_to_id(GameEnums.ResourceType.CREDITS), "Credits ID should match")
 	assert_true(last_resource_value < 1000, "Credits should be reduced")
 
 func test_resupply_action() -> void:
@@ -139,6 +149,7 @@ func test_resupply_action() -> void:
 	
 	assert_true(resource_updated_signal_emitted, "Resource updated signal should be emitted")
 	assert_eq(last_resource_type, GameEnums.ResourceType.SUPPLIES, "Supplies should be updated")
+	assert_eq(last_resource_id, migration.convert_resource_type_to_id(GameEnums.ResourceType.SUPPLIES), "Supplies ID should match")
 	assert_true(last_resource_value > 0, "Supplies should be increased")
 
 func test_phase_completion() -> void:
@@ -203,6 +214,8 @@ func test_resource_validation() -> void:
 	var resource_values: Dictionary = _get_ui_property("resource_values", {})
 	assert_eq(resource_values.get(GameEnums.ResourceType.CREDITS, 0), -50,
 		"Should allow negative resource values")
+	assert_eq(last_resource_id, migration.convert_resource_type_to_id(GameEnums.ResourceType.CREDITS),
+		"Resource ID should match for negative values")
 
 func test_phase_reset() -> void:
 	# Complete some actions
@@ -215,4 +228,4 @@ func test_phase_reset() -> void:
 	# Verify everything is reset
 	assert_false(_get_ui_property("is_maintenance_complete"), "Maintenance should be reset")
 	assert_false(_get_ui_property("is_resupply_complete"), "Resupply should be reset")
-	assert_false(_get_ui_property("is_upkeep_complete"), "Upkeep should be reset")
+	assert_false(_get_ui_property("is_upkeep_complete"), "Upkeep should be reset") 

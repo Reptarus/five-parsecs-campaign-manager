@@ -1,0 +1,182 @@
+[gd_scene load_steps=3 format=3 uid="uid://bs1iq1g2qhnvk"]
+
+[ext_resource type="Script" path="res://src/ui/components/base/CampaignResponsiveLayoutTest.gd" id="1_8xj7r"]
+[ext_resource type="Theme" uid="uid://ccpt5srj6tnbv" path="res://Resources/Utilities/sci_fi_theme.tres" id="2_rfjcy"]
+
+[node name="CampaignResponsiveLayoutTest" type="Control"]
+layout_mode = 3
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+script = ExtResource("1_8xj7r")
+
+[node name="ColorRect" type="ColorRect" parent="."]
+layout_mode = 1
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+color = Color(0.129412, 0.145098, 0.184314, 1)
+
+[node name="MainContainer" type="HBoxContainer" parent="."]
+layout_mode = 1
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+theme = ExtResource("2_rfjcy")
+
+[node name="Sidebar" type="PanelContainer" parent="MainContainer"]
+layout_mode = 2
+size_flags_horizontal = 3
+size_flags_stretch_ratio = 0.3
+
+[node name="VBoxContainer" type="VBoxContainer" parent="MainContainer/Sidebar"]
+layout_mode = 2
+
+[node name="Label" type="Label" parent="MainContainer/Sidebar/VBoxContainer"]
+layout_mode = 2
+text = "Campaign Sidebar"
+horizontal_alignment = 1
+
+[node name="HSeparator" type="HSeparator" parent="MainContainer/Sidebar/VBoxContainer"]
+layout_mode = 2
+
+[node name="InfoLabel" type="Label" parent="MainContainer/Sidebar/VBoxContainer"]
+layout_mode = 2
+text = "This is a test scene for the CampaignResponsiveLayout.
+
+It extends ResponsiveContainer and adds campaign-specific layout behaviors."
+autowrap_mode = 3
+
+[node name="OrientationLabel" type="Label" parent="MainContainer/Sidebar/VBoxContainer"]
+unique_name_in_owner = true
+layout_mode = 2
+text = "Current Mode: Landscape"
+horizontal_alignment = 1
+
+[node name="HSeparator2" type="HSeparator" parent="MainContainer/Sidebar/VBoxContainer"]
+layout_mode = 2
+
+[node name="Button" type="Button" parent="MainContainer/Sidebar/VBoxContainer" groups=["touch_buttons"]]
+layout_mode = 2
+text = "Campaign Menu"
+
+[node name="Button2" type="Button" parent="MainContainer/Sidebar/VBoxContainer" groups=["touch_buttons"]]
+layout_mode = 2
+text = "Characters"
+
+[node name="Button3" type="Button" parent="MainContainer/Sidebar/VBoxContainer" groups=["touch_buttons"]]
+layout_mode = 2
+text = "Equipment"
+
+[node name="Button4" type="Button" parent="MainContainer/Sidebar/VBoxContainer" groups=["touch_buttons"]]
+layout_mode = 2
+text = "Missions"
+
+[node name="HSeparator3" type="HSeparator" parent="MainContainer/Sidebar/VBoxContainer"]
+layout_mode = 2
+
+[node name="BackButton" type="Button" parent="MainContainer/Sidebar/VBoxContainer" groups=["touch_buttons"]]
+layout_mode = 2
+text = "Back"
+
+[node name="MainContent" type="PanelContainer" parent="MainContainer"]
+layout_mode = 2
+size_flags_horizontal = 3
+size_flags_stretch_ratio = 0.7
+
+[node name="VBoxContainer" type="VBoxContainer" parent="MainContainer/MainContent"]
+layout_mode = 2
+
+[node name="Label" type="Label" parent="MainContainer/MainContent/VBoxContainer"]
+layout_mode = 2
+text = "Campaign Content Panel"
+horizontal_alignment = 1
+
+[node name="HSeparator" type="HSeparator" parent="MainContainer/MainContent/VBoxContainer"]
+layout_mode = 2
+
+[node name="ScrollContainer" type="ScrollContainer" parent="MainContainer/MainContent/VBoxContainer"]
+layout_mode = 2
+size_flags_vertical = 3
+
+[node name="VBoxContainer" type="VBoxContainer" parent="MainContainer/MainContent/VBoxContainer/ScrollContainer"]
+layout_mode = 2
+size_flags_horizontal = 3
+size_flags_vertical = 3
+
+[node name="SizeLabel" type="Label" parent="MainContainer/MainContent/VBoxContainer/ScrollContainer/VBoxContainer"]
+unique_name_in_owner = true
+layout_mode = 2
+text = "Current Size: 0 x 0"
+
+[node name="DescriptionLabel" type="Label" parent="MainContainer/MainContent/VBoxContainer/ScrollContainer/VBoxContainer"]
+layout_mode = 2
+text = "The CampaignResponsiveLayout class extends ResponsiveContainer and provides:
+
+1. Sidebar and main content layout management
+2. Touch-friendly controls that adjust based on device and orientation
+3. Signal handling for campaign UI navigation"
+autowrap_mode = 3
+
+[node name="HSeparator" type="HSeparator" parent="MainContainer/MainContent/VBoxContainer/ScrollContainer/VBoxContainer"]
+layout_mode = 2
+
+[node name="LayoutSettings" type="GridContainer" parent="MainContainer/MainContent/VBoxContainer/ScrollContainer/VBoxContainer"]
+layout_mode = 2
+columns = 2
+
+[node name="SidebarWidthLabel" type="Label" parent="MainContainer/MainContent/VBoxContainer/ScrollContainer/VBoxContainer/LayoutSettings"]
+layout_mode = 2
+text = "Landscape Sidebar Width:"
+
+[node name="SidebarWidthValue" type="Label" parent="MainContainer/MainContent/VBoxContainer/ScrollContainer/VBoxContainer/LayoutSettings"]
+unique_name_in_owner = true
+layout_mode = 2
+text = "300.0"
+
+[node name="SidebarHeightRatioLabel" type="Label" parent="MainContainer/MainContent/VBoxContainer/ScrollContainer/VBoxContainer/LayoutSettings"]
+layout_mode = 2
+text = "Portrait Sidebar Height Ratio:"
+
+[node name="SidebarHeightRatioValue" type="Label" parent="MainContainer/MainContent/VBoxContainer/ScrollContainer/VBoxContainer/LayoutSettings"]
+unique_name_in_owner = true
+layout_mode = 2
+text = "0.4"
+
+[node name="TouchButtonHeightLabel" type="Label" parent="MainContainer/MainContent/VBoxContainer/ScrollContainer/VBoxContainer/LayoutSettings"]
+layout_mode = 2
+text = "Touch Button Height:"
+
+[node name="TouchButtonHeightValue" type="Label" parent="MainContainer/MainContent/VBoxContainer/ScrollContainer/VBoxContainer/LayoutSettings"]
+unique_name_in_owner = true
+layout_mode = 2
+text = "60.0"
+
+[node name="ItemList" type="ItemList" parent="MainContainer/MainContent/VBoxContainer/ScrollContainer/VBoxContainer" groups=["touch_lists"]]
+layout_mode = 2
+size_flags_vertical = 3
+fixed_icon_size = Vector2i(32, 32)
+
+[node name="Item1" type="Button" parent="MainContent/VBoxContainer/ScrollContainer/VBoxContainer/ItemList"]
+layout_mode = 0
+offset_right = 8.0
+offset_bottom = 8.0
+text = "List Item 1"
+
+[node name="Item2" type="Button" parent="MainContent/VBoxContainer/ScrollContainer/VBoxContainer/ItemList"]
+layout_mode = 0
+offset_right = 8.0
+offset_bottom = 8.0
+text = "List Item 2"
+
+[node name="Item3" type="Button" parent="MainContent/VBoxContainer/ScrollContainer/VBoxContainer/ItemList"]
+layout_mode = 0
+offset_right = 8.0
+offset_bottom = 8.0
+text = "List Item 3" 

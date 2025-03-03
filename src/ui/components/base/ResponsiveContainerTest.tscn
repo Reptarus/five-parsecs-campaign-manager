@@ -1,0 +1,119 @@
+[gd_scene load_steps=3 format=3 uid="uid://cyxrfdyum5hlu"]
+
+[ext_resource type="Script" path="res://src/ui/components/base/ResponsiveContainerTest.gd" id="1_yj7nr"]
+[ext_resource type="Theme" uid="uid://ccpt5srj6tnbv" path="res://Resources/Utilities/sci_fi_theme.tres" id="2_kl8c5"]
+
+[node name="ResponsiveContainerTest" type="Control"]
+layout_mode = 3
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+script = ExtResource("1_yj7nr")
+
+[node name="ColorRect" type="ColorRect" parent="."]
+layout_mode = 1
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+color = Color(0.129412, 0.145098, 0.184314, 1)
+
+[node name="MainContainer" type="HBoxContainer" parent="."]
+layout_mode = 1
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+theme = ExtResource("2_kl8c5")
+
+[node name="Sidebar" type="PanelContainer" parent="MainContainer"]
+layout_mode = 2
+size_flags_horizontal = 3
+size_flags_stretch_ratio = 0.3
+
+[node name="VBoxContainer" type="VBoxContainer" parent="MainContainer/Sidebar"]
+layout_mode = 2
+
+[node name="Label" type="Label" parent="MainContainer/Sidebar/VBoxContainer"]
+layout_mode = 2
+text = "Sidebar Panel"
+horizontal_alignment = 1
+
+[node name="HSeparator" type="HSeparator" parent="MainContainer/Sidebar/VBoxContainer"]
+layout_mode = 2
+
+[node name="InfoLabel" type="Label" parent="MainContainer/Sidebar/VBoxContainer"]
+layout_mode = 2
+text = "This is a test scene for the ResponsiveContainer.
+
+Resize the window to see how it adapts between landscape and portrait modes."
+autowrap_mode = 3
+
+[node name="OrientationLabel" type="Label" parent="MainContainer/Sidebar/VBoxContainer"]
+unique_name_in_owner = true
+layout_mode = 2
+text = "Current Mode: Landscape"
+horizontal_alignment = 1
+
+[node name="MainContent" type="PanelContainer" parent="MainContainer"]
+layout_mode = 2
+size_flags_horizontal = 3
+size_flags_stretch_ratio = 0.7
+
+[node name="VBoxContainer" type="VBoxContainer" parent="MainContainer/MainContent"]
+layout_mode = 2
+
+[node name="Label" type="Label" parent="MainContainer/MainContent/VBoxContainer"]
+layout_mode = 2
+text = "Main Content Panel"
+horizontal_alignment = 1
+
+[node name="HSeparator" type="HSeparator" parent="MainContainer/MainContent/VBoxContainer"]
+layout_mode = 2
+
+[node name="ScrollContainer" type="ScrollContainer" parent="MainContainer/MainContent/VBoxContainer"]
+layout_mode = 2
+size_flags_vertical = 3
+
+[node name="VBoxContainer" type="VBoxContainer" parent="MainContainer/MainContent/VBoxContainer/ScrollContainer"]
+layout_mode = 2
+size_flags_horizontal = 3
+size_flags_vertical = 3
+
+[node name="SizeLabel" type="Label" parent="MainContainer/MainContent/VBoxContainer/ScrollContainer/VBoxContainer"]
+unique_name_in_owner = true
+layout_mode = 2
+text = "Current Size: 0 x 0"
+
+[node name="DescriptionLabel" type="Label" parent="MainContainer/MainContent/VBoxContainer/ScrollContainer/VBoxContainer"]
+layout_mode = 2
+text = "The ResponsiveContainer class automatically adapts the UI layout based on the screen size and orientation.
+
+It detects when the container should switch between landscape and portrait modes, and emits a signal when this occurs."
+autowrap_mode = 3
+
+[node name="ResponsiveSettings" type="GridContainer" parent="MainContainer/MainContent/VBoxContainer/ScrollContainer/VBoxContainer"]
+layout_mode = 2
+columns = 2
+
+[node name="PortraitThresholdLabel" type="Label" parent="MainContainer/MainContent/VBoxContainer/ScrollContainer/VBoxContainer/ResponsiveSettings"]
+layout_mode = 2
+text = "Portrait Threshold:"
+
+[node name="PortraitThresholdValue" type="Label" parent="MainContainer/MainContent/VBoxContainer/ScrollContainer/VBoxContainer/ResponsiveSettings"]
+unique_name_in_owner = true
+layout_mode = 2
+text = "1.0"
+
+[node name="MinWidthLabel" type="Label" parent="MainContainer/MainContent/VBoxContainer/ScrollContainer/VBoxContainer/ResponsiveSettings"]
+layout_mode = 2
+text = "Min Width:"
+
+[node name="MinWidthValue" type="Label" parent="MainContainer/MainContent/VBoxContainer/ScrollContainer/VBoxContainer/ResponsiveSettings"]
+unique_name_in_owner = true
+layout_mode = 2
+text = "300.0" 

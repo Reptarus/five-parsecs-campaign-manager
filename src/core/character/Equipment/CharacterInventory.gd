@@ -3,9 +3,9 @@ extends Resource
 class_name CharacterInventory # Changed to avoid conflicts
 
 const GameEnums = preload("res://src/core/systems/GlobalEnums.gd")
-const GameWeapon = preload("res://src/core/systems/items/Weapon.gd")
-const BaseArmor = preload("res://src/core/character/Equipment/Armor.gd")
-const BaseGear = preload("res://src/core/character/Equipment/Gear.gd")
+const GameWeapon = preload("res://src/core/systems/items/GameWeapon.gd")
+const BaseArmor = preload("res://src/core/systems/items/GameArmor.gd")
+const BaseGear = preload("res://src/core/character/Equipment/base/gear.gd")
 
 signal inventory_changed
 signal weight_changed(new_weight: float)

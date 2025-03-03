@@ -1,6 +1,8 @@
 @tool
 extends Node
 
+class_name WorldEconomyManager
+
 signal local_event_triggered(event_description: String)
 signal economy_updated
 
@@ -12,18 +14,19 @@ const MAX_MARKET_ITEMS: int = 20
 const GameEnums = preload("res://src/core/systems/GlobalEnums.gd")
 const FiveParsecsGameState = preload("res://src/core/state/GameState.gd")
 const Character = preload("res://src/core/character/Management/CharacterDataManager.gd")
-const FiveParsecsLocation = preload("res://src/core/world/Location.gd")
+const GameLocation = preload("res://src/game/world/GameLocation.gd")
 const Mission = preload("res://src/core/systems/Mission.gd")
 const WorldManager = preload("res://src/core/world/WorldManager.gd")
 const SaveManager = preload("res://src/core/state/SaveManager.gd")
-const Equipment = preload("res://src/core/character/Equipment/Equipment.gd")
+const Equipment = preload("res://src/core/character/Equipment.gd")
 const CrewSystem = preload("res://src/core/campaign/crew/CrewSystem.gd")
+const EconomyManager = preload("res://src/core/managers/EconomyManager.gd")
 
-var game_world: FiveParsecsLocation
+var game_world: GameLocation
 var economy_manager: EconomyManager
-var local_market: Array[Equipment] = []
+var local_market: Array = []
 
-func _init(_game_world: FiveParsecsLocation, _economy_manager: EconomyManager) -> void:
+func _init(_game_world: GameLocation, _economy_manager: EconomyManager) -> void:
 	game_world = _game_world
 	economy_manager = _economy_manager
 	_initialize_local_market()
@@ -31,28 +34,32 @@ func _init(_game_world: FiveParsecsLocation, _economy_manager: EconomyManager) -
 func _initialize_local_market() -> void:
 	local_market.clear()
 	for i in range(MAX_MARKET_ITEMS):
-		var item: Equipment = economy_manager.generate_random_equipment()
+		var item = economy_manager.generate_random_equipment()
 		if item:
 			local_market.append(item)
+
+## Get the location being managed
+func get_location() -> GameLocation:
+	return game_world
 
 ## Calculates the upkeep cost based on world traits
 ## Returns: The total upkeep cost
 func calculate_upkeep() -> int:
 	var upkeep: int = BASE_UPKEEP_COST
 	
-	# Apply world trait modifiers
-	if GameEnums.WorldTrait.INDUSTRIAL_HUB in game_world.traits:
+	# Apply world trait modifiers for GameLocation
+	if game_world.has_trait("industrial_hub"):
 		upkeep = int(upkeep * 1.5) # Higher costs in industrial hubs
-	if GameEnums.WorldTrait.FRONTIER_WORLD in game_world.traits:
+	if game_world.has_trait("frontier_world"):
 		upkeep = int(upkeep * 0.8) # Lower costs in frontier worlds
-	if GameEnums.WorldTrait.TRADE_CENTER in game_world.traits:
+	if game_world.has_trait("trade_center"):
 		upkeep = int(upkeep * 1.2) # Moderate increase in trade centers
 	
 	return upkeep
 
 ## Triggers a random local economic event
 func trigger_local_event() -> void:
-	var events: Array[Callable] = [
+	var events = [
 		_market_flourish,
 		_market_struggle,
 		_new_trade_route,
@@ -61,7 +68,7 @@ func trigger_local_event() -> void:
 		_resource_discovery,
 		_economic_scandal
 	]
-	var event: Callable = events[randi() % events.size()]
+	var event = events[randi() % events.size()]
 	event.call()
 
 ## Updates the local economy state
@@ -88,18 +95,19 @@ func pay_upkeep(crew: CrewSystem) -> bool:
 ## Parameters:
 ## - item: The item to price
 ## Returns: The final price of the item
-func get_item_price(item: Equipment) -> int:
+func get_item_price(item) -> int:
 	var base_price: int = economy_manager.calculate_item_price(item, true)
-	var modifier: float = economy_manager.location_price_modifiers.get(game_world.name, 1.0)
+	var location_name = game_world.location_name
+	var modifier: float = economy_manager.location_price_modifiers.get(location_name, 1.0)
 	
-	# Apply world trait price modifiers
-	if GameEnums.WorldTrait.TRADE_CENTER in game_world.traits:
+	# Apply world trait price modifiers for GameLocation
+	if game_world.has_trait("trade_center"):
 		modifier *= 0.9 # Better prices in trade centers
-	if GameEnums.WorldTrait.PIRATE_HAVEN in game_world.traits:
+	if game_world.has_trait("pirate_haven"):
 		modifier *= 1.2 # Higher prices in pirate havens
-	if GameEnums.WorldTrait.FREE_PORT in game_world.traits:
+	if game_world.has_trait("free_port"):
 		modifier *= 0.85 # Best prices in free ports
-	if GameEnums.WorldTrait.CORPORATE_CONTROLLED in game_world.traits:
+	if game_world.has_trait("corporate_world"):
 		modifier *= 1.15 # Higher prices in corporate worlds
 	
 	return int(base_price * modifier)
@@ -109,7 +117,7 @@ func get_item_price(item: Equipment) -> int:
 ## - crew: The crew system buying the item
 ## - item: The item to buy
 ## Returns: Whether the purchase was successful
-func buy_item(crew: CrewSystem, item: Equipment) -> bool:
+func buy_item(crew: CrewSystem, item) -> bool:
 	var price: int = get_item_price(item)
 	if crew.credits >= price and local_market.has(item):
 		crew.remove_credits(price)
@@ -123,7 +131,7 @@ func buy_item(crew: CrewSystem, item: Equipment) -> bool:
 ## - crew: The crew system selling the item
 ## - item: The item to sell
 ## Returns: Whether the sale was successful
-func sell_item(crew: CrewSystem, item: Equipment) -> bool:
+func sell_item(crew: CrewSystem, item) -> bool:
 	var sell_price: int = int(get_item_price(item) * 0.7) # 70% of buy price
 	if crew.has_equipment(item):
 		crew.remove_equipment(item)
@@ -133,21 +141,42 @@ func sell_item(crew: CrewSystem, item: Equipment) -> bool:
 		return true
 	return false
 
+## Add a resource to the location
+func add_resource(resource_id: int, amount: int = 1) -> bool:
+	game_world.add_resource(resource_id, amount)
+	return true
+
+## Remove a resource from the location
+func remove_resource(resource_id: int, amount: int = 1) -> bool:
+	return game_world.remove_resource(resource_id, amount)
+
+## Set the market state of the location
+func set_market_state(state: int) -> bool:
+	game_world.set_market_state(state)
+	return true
+
+## Update market prices based on the current market state
+func update_market_prices() -> bool:
+	game_world.update_market_state()
+	return true
+
 ## Event: Market flourish - temporarily decreases prices
 func _market_flourish() -> void:
-	economy_manager.location_price_modifiers[game_world.name] *= 0.9
+	var location_name = game_world.location_name
+	economy_manager.location_price_modifiers[location_name] *= 0.9
 	local_event_triggered.emit("Local market flourish: Temporary decrease in prices")
 
 ## Event: Market struggle - temporarily increases prices
 func _market_struggle() -> void:
-	economy_manager.location_price_modifiers[game_world.name] *= 1.1
+	var location_name = game_world.location_name
+	economy_manager.location_price_modifiers[location_name] *= 1.1
 	local_event_triggered.emit("Local market struggle: Temporary increase in prices")
 
 ## Event: New trade route - adds more items to the market
 func _new_trade_route() -> void:
 	for i in range(5):
 		if local_market.size() < MAX_MARKET_ITEMS:
-			var item: Equipment = economy_manager.generate_random_equipment()
+			var item = economy_manager.generate_random_equipment()
 			if item:
 				local_market.append(item)
 	local_event_triggered.emit("New trade route established: More items available")
@@ -161,15 +190,15 @@ func _trade_route_disruption() -> void:
 
 ## Event: Local festival - increases prices of certain items
 func _local_festival() -> void:
-	var festival_items: Array[String] = ["Food", "Drink", "Entertainment", "Decorations"]
+	var festival_items = ["Food", "Drink", "Entertainment", "Decorations"]
 	for item in local_market:
 		if item.name in festival_items:
-			economy_manager.location_price_modifiers[game_world.name] *= 1.2
+			economy_manager.location_price_modifiers[game_world.location_name] *= 1.2
 	local_event_triggered.emit("Local festival: Increased demand for certain items")
 
 ## Event: Resource discovery - adds a new cheap resource
 func _resource_discovery() -> void:
-	var new_resource: Equipment = economy_manager.generate_random_equipment()
+	var new_resource = economy_manager.generate_random_equipment()
 	if new_resource:
 		new_resource.value *= 0.5 # The new resource is cheaper due to abundance
 		local_market.append(new_resource)
@@ -177,13 +206,15 @@ func _resource_discovery() -> void:
 
 ## Event: Economic scandal - increases all prices
 func _economic_scandal() -> void:
-	economy_manager.location_price_modifiers[game_world.name] *= 1.15
+	var location_name = game_world.location_name
+	economy_manager.location_price_modifiers[location_name] *= 1.15
 	local_event_triggered.emit("Economic scandal: General increase in prices")
 
 ## Normalizes the local economy over time
 func _normalize_economy() -> void:
-	economy_manager.location_price_modifiers[game_world.name] = lerpf(
-		economy_manager.location_price_modifiers[game_world.name],
+	var location_name = game_world.location_name
+	economy_manager.location_price_modifiers[location_name] = lerpf(
+		economy_manager.location_price_modifiers.get(location_name, 1.0),
 		1.0,
 		ECONOMY_NORMALIZATION_RATE
 	)
@@ -199,6 +230,6 @@ func _update_market_items() -> void:
 	var add_count: int = randi() % 4
 	for i in range(add_count):
 		if local_market.size() < MAX_MARKET_ITEMS:
-			var item: Equipment = economy_manager.generate_random_equipment()
+			var item = economy_manager.generate_random_equipment()
 			if item:
 				local_market.append(item)

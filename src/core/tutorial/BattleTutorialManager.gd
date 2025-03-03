@@ -1,4 +1,4 @@
-class_name FiveParsecsBattleTutorialManager
+class_name CoreBattleTutorialManager
 extends Node
 
 const GameEnums = preload("res://src/core/systems/GlobalEnums.gd")
@@ -7,7 +7,7 @@ const Character = preload("res://src/core/character/Management/CharacterDataMana
 const Mission = preload("res://src/core/systems/Mission.gd")
 const UnifiedTerrainSystem = preload("res://src/core/terrain/UnifiedTerrainSystem.gd")
 const SaveManager = preload("res://src/core/state/SaveManager.gd")
-const CombatManager = preload("res://src/core/battle/CombatManager.gd")
+const BaseCombatManager = preload("res://src/base/combat/BaseCombatManager.gd")
 const FiveParsecsBattleTutorialLayout = preload("res://src/core/tutorial/BattleTutorialLayout.gd")
 
 signal tutorial_objective_completed(objective_id: String)
@@ -15,13 +15,13 @@ signal tutorial_step_completed(step_id: String)
 
 var current_layout: Dictionary
 var current_step: String = "movement_basics"
-var combat_manager: CombatManager
+var combat_manager: BaseCombatManager
 var tutorial_overlay: Control
 
 func _ready() -> void:
-    combat_manager = get_parent() as CombatManager
+    combat_manager = get_parent() as BaseCombatManager
     if not combat_manager:
-        push_error("BattleTutorialManager must be a child of CombatManager")
+        push_error("BattleTutorialManager must be a child of BaseCombatManager")
         return
         
     _connect_signals()

@@ -1,0 +1,415 @@
+{
+    "name": "battle_rules",
+    "core_rules": {
+        "turn_sequence": [
+            {
+                "phase": "Initiative Phase",
+                "description": "Determine which side acts first this turn.",
+                "rules": [
+                    "Each side rolls 1D6 and adds their highest Savvy modifier.",
+                    "The side with the highest total acts first.",
+                    "In case of a tie, the side that went second in the previous turn goes first."
+                ]
+            },
+            {
+                "phase": "Movement Phase",
+                "description": "Characters move around the battlefield.",
+                "rules": [
+                    "Characters can move up to their Speed value in inches.",
+                    "Difficult terrain costs double movement to traverse.",
+                    "Characters can climb vertical surfaces at half speed.",
+                    "Characters can jump gaps equal to half their Speed value in inches."
+                ]
+            },
+            {
+                "phase": "Action Phase",
+                "description": "Characters perform actions such as attacking, using items, or special abilities.",
+                "rules": [
+                    "Each character can perform one action per turn.",
+                    "Actions include: Attack, Use Item, Special Ability, or Second Move.",
+                    "Some abilities or equipment may grant additional actions."
+                ]
+            },
+            {
+                "phase": "Reaction Phase",
+                "description": "Characters may react to enemy actions.",
+                "rules": [
+                    "Characters who have not yet acted this turn may perform a reaction.",
+                    "Reactions include: Dodge, Overwatch, or Counter-attack.",
+                    "A character who performs a reaction cannot take a normal action later in the turn."
+                ]
+            },
+            {
+                "phase": "End Phase",
+                "description": "Resolve end-of-turn effects and check for battle conclusion.",
+                "rules": [
+                    "Apply any ongoing effects (poison, bleeding, etc.).",
+                    "Check for mission objectives or victory conditions.",
+                    "Check for morale effects if applicable."
+                ]
+            }
+        ],
+        "combat_rules": {
+            "attack_procedure": [
+                "Attacker rolls 1D6 and adds their Combat stat.",
+                "Apply modifiers for range, cover, equipment, and abilities.",
+                "If the total equals or exceeds 7, the attack hits.",
+                "For each point the attack exceeds 7, add +1 to damage."
+            ],
+            "damage_resolution": [
+                "Attacker rolls damage based on their weapon (typically 1D6 plus modifiers).",
+                "Target rolls 1D6 and adds their Toughness stat.",
+                "If the damage roll exceeds the toughness roll, the target is wounded.",
+                "If the target has armor, they may make an armor save to negate the wound."
+            ],
+            "armor_saves": [
+                "When a character is wounded, they may roll for their armor save if they have armor.",
+                "Roll 1D6. If the result equals or exceeds the armor's save value, the wound is negated.",
+                "Some weapons have the 'Piercing' trait, which reduces the armor save by 1.",
+                "Critical hits (natural 6 on attack roll) reduce armor saves by 1."
+            ],
+            "wound_effects": [
+                "The first wound a character suffers applies the 'Wounded' status effect.",
+                "The second wound applies the 'Seriously Wounded' status effect.",
+                "The third wound applies the 'Critically Wounded' status effect.",
+                "A fourth wound removes the character from battle (death or incapacitation)."
+            ]
+        },
+        "terrain_rules": {
+            "cover": [
+                {
+                    "type": "Light Cover",
+                    "effect": "-1 to hit for attacks targeting a character in light cover.",
+                    "examples": [
+                        "Bushes",
+                        "Smoke",
+                        "Debris"
+                    ]
+                },
+                {
+                    "type": "Heavy Cover",
+                    "effect": "-2 to hit for attacks targeting a character in heavy cover.",
+                    "examples": [
+                        "Walls",
+                        "Large Rocks",
+                        "Barricades"
+                    ]
+                },
+                {
+                    "type": "Full Cover",
+                    "effect": "Cannot be targeted by direct attacks.",
+                    "examples": [
+                        "Inside Buildings",
+                        "Behind Solid Walls"
+                    ]
+                }
+            ],
+            "difficult_terrain": [
+                {
+                    "type": "Rough Ground",
+                    "effect": "Movement cost is doubled.",
+                    "examples": [
+                        "Rubble",
+                        "Dense Vegetation",
+                        "Shallow Water"
+                    ]
+                },
+                {
+                    "type": "Hazardous Terrain",
+                    "effect": "Movement cost is doubled and character must pass a Toughness check (7+) or suffer 1 damage.",
+                    "examples": [
+                        "Toxic Pools",
+                        "Fire",
+                        "Electrified Areas"
+                    ]
+                },
+                {
+                    "type": "Impassable Terrain",
+                    "effect": "Cannot be traversed except with special equipment or abilities.",
+                    "examples": [
+                        "Deep Water",
+                        "Lava",
+                        "Chasms"
+                    ]
+                }
+            ],
+            "elevation": [
+                "Characters at higher elevation gain +1 to hit targets at lower elevation.",
+                "Characters at higher elevation can see over intervening terrain that is lower than their elevation.",
+                "Falling from elevation causes 1 damage per 2 inches fallen, with a Toughness check (7+) to reduce damage by half."
+            ]
+        },
+        "special_actions": [
+            {
+                "name": "Aim",
+                "description": "Character spends their action to aim carefully at a target.",
+                "effect": "+2 to hit on their next attack."
+            },
+            {
+                "name": "Overwatch",
+                "description": "Character readies their weapon to fire at any enemy that moves within line of sight.",
+                "effect": "Can make an attack as a reaction when an enemy moves within line of sight."
+            },
+            {
+                "name": "Dodge",
+                "description": "Character focuses on avoiding incoming attacks.",
+                "effect": "Enemies suffer -2 to hit when targeting this character until the character's next turn."
+            },
+            {
+                "name": "Run",
+                "description": "Character focuses solely on movement.",
+                "effect": "Double movement distance but cannot perform any other actions."
+            },
+            {
+                "name": "First Aid",
+                "description": "Character attempts to treat an adjacent wounded ally.",
+                "effect": "Roll 1D6 + Savvy. On a 7+, remove one wound from the target."
+            },
+            {
+                "name": "Suppressive Fire",
+                "description": "Character fires wildly at an area to keep enemies pinned down.",
+                "effect": "All enemies in a 3\" radius must pass a Toughness check (7+) or be unable to move next turn."
+            }
+        ],
+        "morale_rules": {
+            "morale_checks": [
+                "When a side loses 25% of their starting force, they must make a morale check.",
+                "When a side loses 50% of their starting force, they must make a morale check with a -1 penalty.",
+                "When a leader is killed or incapacitated, the side must make a morale check."
+            ],
+            "morale_check_procedure": [
+                "Roll 1D6 and add the highest Savvy modifier in the force.",
+                "On a 4+, the force passes the morale check and continues fighting normally.",
+                "On a failure, all members of the force suffer -1 to all stats until the end of the battle."
+            ],
+            "routing": [
+                "If a force fails two consecutive morale checks, they are considered to be routing.",
+                "Routing forces must move toward the nearest board edge each turn and cannot perform attacks.",
+                "Routing forces can attempt to rally by making a morale check at the start of their turn."
+            ]
+        }
+    },
+    "advanced_rules": {
+        "psionics": {
+            "psionic_powers": [
+                {
+                    "name": "Mind Blast",
+                    "description": "A direct attack on the target's mind.",
+                    "effect": "Target must pass a Savvy check (7+) or suffer 1D6 damage that ignores armor."
+                },
+                {
+                    "name": "Telekinesis",
+                    "description": "Moving objects with the power of the mind.",
+                    "effect": "Can move an object up to 5\" or throw it at a target for 1D6 damage."
+                },
+                {
+                    "name": "Psychic Shield",
+                    "description": "Creating a barrier of psychic energy.",
+                    "effect": "Grants a 4+ save against all attacks until the psyker's next turn."
+                },
+                {
+                    "name": "Mind Control",
+                    "description": "Temporarily taking control of an enemy's actions.",
+                    "effect": "Target must pass a Savvy check (9+) or be controlled by the psyker for one turn."
+                }
+            ],
+            "psionic_rules": [
+                "To use a psionic power, a character must have the 'Psyker' trait.",
+                "Using a psionic power counts as an action.",
+                "After using a psionic power, roll 1D6. On a 1, the psyker suffers 1 damage from psychic backlash.",
+                "A psyker can use a number of powers per battle equal to their Savvy stat."
+            ]
+        },
+        "stealth_rules": {
+            "stealth_actions": [
+                {
+                    "name": "Hide",
+                    "description": "Character attempts to conceal themselves from enemies.",
+                    "effect": "Roll 1D6 + Speed. On a 7+, the character is hidden until they move or attack."
+                },
+                {
+                    "name": "Silent Movement",
+                    "description": "Character moves carefully to avoid detection.",
+                    "effect": "Move at half speed but remain hidden if already hidden."
+                },
+                {
+                    "name": "Backstab",
+                    "description": "Character attacks an unaware enemy from hiding.",
+                    "effect": "+2 to hit and +2 to damage when attacking from hiding."
+                }
+            ],
+            "detection_rules": [
+                "To detect a hidden character, an enemy must make an awareness check.",
+                "Awareness check: Roll 1D6 + Savvy. The target number is 7 + the hidden character's Speed modifier.",
+                "A character automatically detects hidden enemies within 2\" regardless of awareness checks.",
+                "Firing a weapon or performing a loud action while hidden automatically reveals the character."
+            ]
+        },
+        "vehicle_rules": {
+            "vehicle_stats": [
+                {
+                    "stat": "Armor",
+                    "description": "The vehicle's resistance to damage.",
+                    "effect": "Provides a save value against attacks."
+                },
+                {
+                    "stat": "Speed",
+                    "description": "How fast the vehicle can move.",
+                    "effect": "Determines movement distance in inches per turn."
+                },
+                {
+                    "stat": "Handling",
+                    "description": "How maneuverable the vehicle is.",
+                    "effect": "Modifier for piloting checks."
+                },
+                {
+                    "stat": "Structure",
+                    "description": "How much damage the vehicle can sustain.",
+                    "effect": "Number of critical hits the vehicle can take before being destroyed."
+                }
+            ],
+            "vehicle_combat": [
+                "Vehicles use their mounted weapons' stats for attacks.",
+                "Vehicles can be targeted by infantry weapons, but small arms (pistols, rifles) are at -2 to damage.",
+                "Heavy weapons (machine guns, launchers) attack vehicles normally.",
+                "When a vehicle is hit, roll on the vehicle damage table instead of applying normal wound effects."
+            ],
+            "vehicle_damage_table": [
+                {
+                    "roll": "1-2",
+                    "result": "Glancing Hit",
+                    "effect": "Vehicle suffers -1 to Speed until repaired."
+                },
+                {
+                    "roll": "3-4",
+                    "result": "System Damage",
+                    "effect": "One weapon or system is disabled until repaired."
+                },
+                {
+                    "roll": "5",
+                    "result": "Critical Hit",
+                    "effect": "Vehicle suffers 1 Structure damage and -2 to Speed and Handling."
+                },
+                {
+                    "roll": "6",
+                    "result": "Catastrophic Damage",
+                    "effect": "Vehicle suffers 2 Structure damage and may explode on a further roll of 5+."
+                }
+            ]
+        }
+    },
+    "mission_rules": {
+        "objective_types": [
+            {
+                "type": "Retrieval",
+                "description": "Recover a specific item or person from the battlefield.",
+                "victory_conditions": [
+                    "The item or person must be picked up by a character.",
+                    "The character carrying the objective must exit the battlefield via their deployment zone.",
+                    "If the carrier is incapacitated, another character can pick up the objective."
+                ]
+            },
+            {
+                "type": "Elimination",
+                "description": "Defeat a specific enemy or group of enemies.",
+                "victory_conditions": [
+                    "The target enemy or enemies must be removed from the battlefield (killed or incapacitated).",
+                    "If multiple targets are specified, all must be eliminated for full success.",
+                    "Partial success may be achieved by eliminating some but not all targets."
+                ]
+            },
+            {
+                "type": "Control",
+                "description": "Secure and hold specific areas of the battlefield.",
+                "victory_conditions": [
+                    "A character must end their turn within 2\" of the control point and no enemies can be within 2\".",
+                    "The control point is then considered secured for that turn.",
+                    "Victory requires holding the control point for a specified number of consecutive turns."
+                ]
+            },
+            {
+                "type": "Survival",
+                "description": "Survive for a specified number of turns against enemy forces.",
+                "victory_conditions": [
+                    "At least half of the starting force must remain on the battlefield after the specified number of turns.",
+                    "Characters who exit the battlefield via their deployment zone count as survivors.",
+                    "Characters who are wounded but not incapacitated count as survivors."
+                ]
+            },
+            {
+                "type": "Escort",
+                "description": "Protect a specific character or vehicle as they move across the battlefield.",
+                "victory_conditions": [
+                    "The escorted character or vehicle must reach a specified location on the battlefield.",
+                    "If the escorted character or vehicle is incapacitated or destroyed, the mission fails.",
+                    "The escorted character or vehicle must survive with at least half of their wounds remaining for full success."
+                ]
+            }
+        ],
+        "deployment_types": [
+            {
+                "type": "Standard Deployment",
+                "description": "Forces deploy on opposite sides of the battlefield.",
+                "rules": [
+                    "Each force deploys within 6\" of their table edge.",
+                    "Forces alternate placing one character at a time.",
+                    "Characters with the 'Scout' ability can deploy anywhere on the battlefield that is more than 12\" from an enemy deployment zone."
+                ]
+            },
+            {
+                "type": "Ambush Deployment",
+                "description": "One force is ambushing the other.",
+                "rules": [
+                    "The ambushing force deploys second, after seeing where the ambushed force has deployed.",
+                    "The ambushing force can deploy anywhere on the battlefield that is more than 6\" from any enemy character.",
+                    "The ambushing force automatically wins initiative on the first turn."
+                ]
+            },
+            {
+                "type": "Scattered Deployment",
+                "description": "Forces are scattered across the battlefield.",
+                "rules": [
+                    "The battlefield is divided into 9 equal sections (3x3 grid).",
+                    "Each player rolls 1D6 for each of their characters to determine which section they deploy in (reroll if the result is 7-9).",
+                    "Characters must deploy more than 6\" from any enemy character if possible."
+                ]
+            },
+            {
+                "type": "Reinforcement Deployment",
+                "description": "Forces arrive as reinforcements over time.",
+                "rules": [
+                    "Each force starts with half of their characters on the battlefield, deployed according to Standard Deployment rules.",
+                    "At the start of turn 2 and each subsequent turn, roll 1D6 for each character not yet on the battlefield. On a 4+, they arrive this turn.",
+                    "Reinforcements enter from their force's table edge and can move normally on the turn they arrive."
+                ]
+            }
+        ],
+        "mission_special_rules": [
+            {
+                "name": "Time Limit",
+                "description": "The mission must be completed within a specified number of turns.",
+                "effect": "If the objective is not completed by the end of the specified turn, the mission is a failure."
+            },
+            {
+                "name": "Environmental Hazards",
+                "description": "The battlefield contains environmental dangers.",
+                "effect": "At the start of each turn, roll 1D6 for each character in contact with a hazard. On a 4+, they suffer 1 damage."
+            },
+            {
+                "name": "Limited Visibility",
+                "description": "Darkness, fog, or smoke limits visibility.",
+                "effect": "Maximum range for all attacks is reduced to 12\". All attacks beyond 6\" suffer an additional -1 to hit."
+            },
+            {
+                "name": "Reinforcements",
+                "description": "Additional enemies arrive during the battle.",
+                "effect": "At the start of turn 3, additional enemy forces arrive from a randomly determined table edge."
+            },
+            {
+                "name": "Civilian Presence",
+                "description": "Civilians are present on the battlefield.",
+                "effect": "Civilian models are placed on the battlefield. They move randomly each turn. Any attack that hits a civilian results in mission failure."
+            }
+        ]
+    }
+}

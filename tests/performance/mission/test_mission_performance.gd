@@ -12,7 +12,7 @@ extends "res://tests/fixtures/base/base_test.gd"
 # Required type declarations
 const GameEnums: GDScript = preload("res://src/core/systems/GlobalEnums.gd")
 const MissionScript: GDScript = preload("res://src/core/mission/base/Mission.gd")
-const MissionGeneratorScript: GDScript = preload("res://src/core/campaign/MissionGenerator.gd")
+const MissionGeneratorScript: GDScript = preload("res://src/game/campaign/FiveParsecsMissionGenerator.gd")
 const MissionTemplateScript: GDScript = preload("res://src/core/templates/MissionTemplate.gd")
 
 # Performance thresholds (in milliseconds)

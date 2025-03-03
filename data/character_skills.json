@@ -1,0 +1,486 @@
+{
+    "name": "character_skills",
+    "skills": [
+        {
+            "id": "tactics",
+            "name": "Tactics",
+            "description": "Knowledge of combat strategies and battlefield management.",
+            "primary_stat": "savvy",
+            "secondary_stat": "combat",
+            "effects": [
+                {
+                    "type": "combat_bonus",
+                    "description": "Provides +1 to initiative rolls when leading a squad.",
+                    "value": 1
+                },
+                {
+                    "type": "special_action",
+                    "description": "Can analyze enemy positions to identify weaknesses.",
+                    "action_name": "Tactical Analysis"
+                }
+            ],
+            "skill_checks": [
+                {
+                    "name": "Battlefield Assessment",
+                    "description": "Identify advantageous positions and enemy weaknesses.",
+                    "difficulty": "moderate"
+                },
+                {
+                    "name": "Ambush Planning",
+                    "description": "Set up an effective ambush position.",
+                    "difficulty": "hard"
+                }
+            ],
+            "advancement": {
+                "level_2": {
+                    "xp_required": 10,
+                    "bonus_effect": "Can reposition one ally during setup phase."
+                },
+                "level_3": {
+                    "xp_required": 25,
+                    "bonus_effect": "Squad members gain +1 to hit when following your orders."
+                }
+            },
+            "tags": [
+                "combat",
+                "leadership",
+                "analysis"
+            ]
+        },
+        {
+            "id": "stealth",
+            "name": "Stealth",
+            "description": "Ability to move quietly and remain undetected.",
+            "primary_stat": "speed",
+            "secondary_stat": "savvy",
+            "effects": [
+                {
+                    "type": "stealth_bonus",
+                    "description": "Provides +2 to all stealth checks.",
+                    "value": 2
+                },
+                {
+                    "type": "special_action",
+                    "description": "Can attempt to move through enemy territory undetected.",
+                    "action_name": "Shadow Movement"
+                }
+            ],
+            "skill_checks": [
+                {
+                    "name": "Silent Movement",
+                    "description": "Move without making noise.",
+                    "difficulty": "moderate"
+                },
+                {
+                    "name": "Concealment",
+                    "description": "Hide from enemy detection.",
+                    "difficulty": "moderate"
+                }
+            ],
+            "advancement": {
+                "level_2": {
+                    "xp_required": 10,
+                    "bonus_effect": "Can move at normal speed while remaining stealthy."
+                },
+                "level_3": {
+                    "xp_required": 25,
+                    "bonus_effect": "Can perform a silent takedown on unaware enemies."
+                }
+            },
+            "tags": [
+                "movement",
+                "covert",
+                "infiltration"
+            ]
+        },
+        {
+            "id": "tech",
+            "name": "Tech",
+            "description": "Knowledge of technology, electronics, and mechanical systems.",
+            "primary_stat": "savvy",
+            "secondary_stat": null,
+            "effects": [
+                {
+                    "type": "repair_bonus",
+                    "description": "Provides +2 to all repair and tech-related checks.",
+                    "value": 2
+                },
+                {
+                    "type": "special_action",
+                    "description": "Can attempt to hack electronic systems.",
+                    "action_name": "System Hack"
+                }
+            ],
+            "skill_checks": [
+                {
+                    "name": "Repair",
+                    "description": "Fix damaged equipment or systems.",
+                    "difficulty": "moderate"
+                },
+                {
+                    "name": "Electronic Bypass",
+                    "description": "Bypass electronic security systems.",
+                    "difficulty": "hard"
+                }
+            ],
+            "advancement": {
+                "level_2": {
+                    "xp_required": 10,
+                    "bonus_effect": "Can repair one equipment item per battle."
+                },
+                "level_3": {
+                    "xp_required": 25,
+                    "bonus_effect": "Can modify weapons to add one trait temporarily."
+                }
+            },
+            "tags": [
+                "technical",
+                "repair",
+                "electronics"
+            ]
+        },
+        {
+            "id": "medicine",
+            "name": "Medicine",
+            "description": "Knowledge of medical procedures and treatment of injuries.",
+            "primary_stat": "savvy",
+            "secondary_stat": null,
+            "effects": [
+                {
+                    "type": "healing_bonus",
+                    "description": "Provides +2 to all medical treatment checks.",
+                    "value": 2
+                },
+                {
+                    "type": "special_action",
+                    "description": "Can attempt to stabilize a critically wounded ally.",
+                    "action_name": "Emergency Treatment"
+                }
+            ],
+            "skill_checks": [
+                {
+                    "name": "First Aid",
+                    "description": "Treat minor injuries in the field.",
+                    "difficulty": "easy"
+                },
+                {
+                    "name": "Surgery",
+                    "description": "Perform complex medical procedures.",
+                    "difficulty": "very_hard"
+                }
+            ],
+            "advancement": {
+                "level_2": {
+                    "xp_required": 10,
+                    "bonus_effect": "Can remove one minor status effect per battle."
+                },
+                "level_3": {
+                    "xp_required": 25,
+                    "bonus_effect": "Healing items are 50% more effective when used by you."
+                }
+            },
+            "tags": [
+                "healing",
+                "support",
+                "treatment"
+            ]
+        },
+        {
+            "id": "survival",
+            "name": "Survival",
+            "description": "Knowledge of wilderness survival and resource gathering.",
+            "primary_stat": "toughness",
+            "secondary_stat": "savvy",
+            "effects": [
+                {
+                    "type": "survival_bonus",
+                    "description": "Provides +2 to all survival-related checks.",
+                    "value": 2
+                },
+                {
+                    "type": "special_action",
+                    "description": "Can forage for supplies in the wilderness.",
+                    "action_name": "Foraging"
+                }
+            ],
+            "skill_checks": [
+                {
+                    "name": "Navigation",
+                    "description": "Find your way in unfamiliar territory.",
+                    "difficulty": "moderate"
+                },
+                {
+                    "name": "Resource Gathering",
+                    "description": "Find food, water, or other resources in the wild.",
+                    "difficulty": "moderate"
+                }
+            ],
+            "advancement": {
+                "level_2": {
+                    "xp_required": 10,
+                    "bonus_effect": "Can create improvised tools from natural materials."
+                },
+                "level_3": {
+                    "xp_required": 25,
+                    "bonus_effect": "Immune to environmental hazards and extreme conditions."
+                }
+            },
+            "tags": [
+                "wilderness",
+                "resourceful",
+                "adaptation"
+            ]
+        },
+        {
+            "id": "pilot",
+            "name": "Pilot",
+            "description": "Skill in operating vehicles and spacecraft.",
+            "primary_stat": "speed",
+            "secondary_stat": "savvy",
+            "effects": [
+                {
+                    "type": "piloting_bonus",
+                    "description": "Provides +2 to all piloting checks.",
+                    "value": 2
+                },
+                {
+                    "type": "special_action",
+                    "description": "Can perform evasive maneuvers to avoid enemy fire.",
+                    "action_name": "Evasive Action"
+                }
+            ],
+            "skill_checks": [
+                {
+                    "name": "Vehicle Operation",
+                    "description": "Operate ground vehicles in difficult conditions.",
+                    "difficulty": "moderate"
+                },
+                {
+                    "name": "Spacecraft Navigation",
+                    "description": "Navigate spacecraft through hazardous regions.",
+                    "difficulty": "hard"
+                }
+            ],
+            "advancement": {
+                "level_2": {
+                    "xp_required": 10,
+                    "bonus_effect": "Can perform one special maneuver per battle when in a vehicle."
+                },
+                "level_3": {
+                    "xp_required": 25,
+                    "bonus_effect": "Vehicle weapons gain +1 to hit when you're piloting."
+                }
+            },
+            "tags": [
+                "vehicles",
+                "spacecraft",
+                "operation"
+            ]
+        },
+        {
+            "id": "streetwise",
+            "name": "Streetwise",
+            "description": "Knowledge of criminal elements and urban survival.",
+            "primary_stat": "savvy",
+            "secondary_stat": null,
+            "effects": [
+                {
+                    "type": "social_bonus",
+                    "description": "Provides +2 to all interactions with criminal elements.",
+                    "value": 2
+                },
+                {
+                    "type": "special_action",
+                    "description": "Can attempt to find black market goods or information.",
+                    "action_name": "Black Market Contact"
+                }
+            ],
+            "skill_checks": [
+                {
+                    "name": "Criminal Contacts",
+                    "description": "Find and negotiate with criminal elements.",
+                    "difficulty": "moderate"
+                },
+                {
+                    "name": "Urban Navigation",
+                    "description": "Find your way through dangerous urban environments.",
+                    "difficulty": "easy"
+                }
+            ],
+            "advancement": {
+                "level_2": {
+                    "xp_required": 10,
+                    "bonus_effect": "Can purchase illegal goods at a 10% discount."
+                },
+                "level_3": {
+                    "xp_required": 25,
+                    "bonus_effect": "Can call in one criminal favor per campaign phase."
+                }
+            },
+            "tags": [
+                "urban",
+                "criminal",
+                "social"
+            ]
+        },
+        {
+            "id": "negotiation",
+            "name": "Negotiation",
+            "description": "Skill in bargaining, diplomacy, and persuasion.",
+            "primary_stat": "savvy",
+            "secondary_stat": null,
+            "effects": [
+                {
+                    "type": "social_bonus",
+                    "description": "Provides +2 to all negotiation and persuasion checks.",
+                    "value": 2
+                },
+                {
+                    "type": "special_action",
+                    "description": "Can attempt to negotiate better terms for a contract.",
+                    "action_name": "Haggling"
+                }
+            ],
+            "skill_checks": [
+                {
+                    "name": "Bargaining",
+                    "description": "Negotiate better prices or terms.",
+                    "difficulty": "moderate"
+                },
+                {
+                    "name": "Diplomacy",
+                    "description": "Resolve conflicts through discussion.",
+                    "difficulty": "hard"
+                }
+            ],
+            "advancement": {
+                "level_2": {
+                    "xp_required": 10,
+                    "bonus_effect": "Can purchase goods at a 15% discount."
+                },
+                "level_3": {
+                    "xp_required": 25,
+                    "bonus_effect": "Can convince hostile NPCs to stand down once per battle."
+                }
+            },
+            "tags": [
+                "social",
+                "commerce",
+                "diplomacy"
+            ]
+        },
+        {
+            "id": "discipline",
+            "name": "Discipline",
+            "description": "Mental fortitude and resistance to fear and manipulation.",
+            "primary_stat": "toughness",
+            "secondary_stat": "savvy",
+            "effects": [
+                {
+                    "type": "mental_bonus",
+                    "description": "Provides +2 to all resistance checks against fear or manipulation.",
+                    "value": 2
+                },
+                {
+                    "type": "special_action",
+                    "description": "Can maintain focus under extreme stress.",
+                    "action_name": "Steely Resolve"
+                }
+            ],
+            "skill_checks": [
+                {
+                    "name": "Fear Resistance",
+                    "description": "Resist effects that cause fear or panic.",
+                    "difficulty": "moderate"
+                },
+                {
+                    "name": "Mental Fortitude",
+                    "description": "Maintain focus during extreme conditions.",
+                    "difficulty": "hard"
+                }
+            ],
+            "advancement": {
+                "level_2": {
+                    "xp_required": 10,
+                    "bonus_effect": "Immune to fear effects."
+                },
+                "level_3": {
+                    "xp_required": 25,
+                    "bonus_effect": "Can inspire allies to ignore fear effects once per battle."
+                }
+            },
+            "tags": [
+                "mental",
+                "resistance",
+                "focus"
+            ]
+        }
+    ],
+    "skill_categories": [
+        {
+            "id": "combat",
+            "name": "Combat Skills",
+            "skills": [
+                "tactics"
+            ]
+        },
+        {
+            "id": "technical",
+            "name": "Technical Skills",
+            "skills": [
+                "tech",
+                "medicine"
+            ]
+        },
+        {
+            "id": "physical",
+            "name": "Physical Skills",
+            "skills": [
+                "stealth",
+                "survival"
+            ]
+        },
+        {
+            "id": "social",
+            "name": "Social Skills",
+            "skills": [
+                "streetwise",
+                "negotiation"
+            ]
+        },
+        {
+            "id": "mental",
+            "name": "Mental Skills",
+            "skills": [
+                "discipline",
+                "pilot"
+            ]
+        }
+    ],
+    "difficulty_levels": {
+        "very_easy": {
+            "target_number": 3,
+            "description": "A task that almost anyone could accomplish."
+        },
+        "easy": {
+            "target_number": 5,
+            "description": "A task that requires minimal skill or effort."
+        },
+        "moderate": {
+            "target_number": 7,
+            "description": "A task that requires some skill or training."
+        },
+        "hard": {
+            "target_number": 9,
+            "description": "A task that requires significant skill or training."
+        },
+        "very_hard": {
+            "target_number": 11,
+            "description": "A task that requires exceptional skill or training."
+        },
+        "nearly_impossible": {
+            "target_number": 13,
+            "description": "A task that only the most skilled individuals could hope to accomplish."
+        }
+    }
+}

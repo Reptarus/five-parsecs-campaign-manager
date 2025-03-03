@@ -23,6 +23,16 @@ enum FiveParcsecsCampaignPhase {
 	END
 }
 
+## Campaign Sub-Phases for more granular campaign flow management
+enum CampaignSubPhase {
+	NONE,
+	TRAVEL,
+	WORLD_ARRIVAL,
+	WORLD_EVENTS,
+	PATRON_CONTACT,
+	MISSION_SELECTION
+}
+
 const PHASE_NAMES = {
 	FiveParcsecsCampaignPhase.NONE: "None",
 	FiveParcsecsCampaignPhase.SETUP: "Setup",

@@ -5,13 +5,16 @@ extends Node
 signal override_applied(context: String, value: int)
 signal override_cancelled(context: String)
 
+## Required dependencies
+const BaseCombatManager := preload("res://src/base/combat/BaseCombatManager.gd")
+
 ## Node references
 @onready var override_panel: PanelContainer = %ManualOverridePanel
 
 ## Properties
 var active_context: String = ""
 var combat_resolver: Node = null
-var combat_manager: Node = null
+var combat_manager: BaseCombatManager = null
 
 ## Called when the node enters scene tree
 func _ready() -> void:
@@ -20,7 +23,7 @@ func _ready() -> void:
 		override_panel.override_cancelled.connect(_on_override_cancelled)
 
 ## Sets up combat system references
-func setup_combat_system(resolver: Node, manager: Node) -> void:
+func setup_combat_system(resolver: Node, manager: BaseCombatManager) -> void:
 	combat_resolver = resolver
 	combat_manager = manager
 	

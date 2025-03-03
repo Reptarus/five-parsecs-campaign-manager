@@ -4,7 +4,7 @@ extends "res://tests/performance/base/perf_test_base.gd"
 # Type-safe script references
 const BattleSystemScript: GDScript = preload("res://src/core/battle/state/BattleStateMachine.gd")
 const CharacterScript: GDScript = preload("res://src/core/character/Base/Character.gd")
-const WeaponScript: GDScript = preload("res://src/core/systems/items/Weapon.gd")
+const WeaponScript: GDScript = preload("res://src/core/systems/items/GameWeapon.gd")
 
 # Test variables with explicit types
 var _battle_system: Node = null

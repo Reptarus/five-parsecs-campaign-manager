@@ -1,0 +1,177 @@
+{
+    "desert": {
+        "id": "desert",
+        "name": "Desert World",
+        "description": "A harsh, arid world with vast deserts and scarce water resources.",
+        "default_traits": [
+            "frontier_world"
+        ],
+        "possible_traits": [
+            "mining_world",
+            "pirate_haven",
+            "military_base"
+        ],
+        "resource_modifiers": {
+            "water": -2,
+            "minerals": 1,
+            "fuel": 1
+        }
+    },
+    "temperate": {
+        "id": "temperate",
+        "name": "Temperate World",
+        "description": "A world with moderate climate and diverse ecosystems.",
+        "default_traits": [
+            "agricultural_world"
+        ],
+        "possible_traits": [
+            "trade_center",
+            "corporate_world",
+            "free_port"
+        ],
+        "resource_modifiers": {
+            "food": 2,
+            "water": 1,
+            "medical_supplies": 1
+        }
+    },
+    "ice": {
+        "id": "ice",
+        "name": "Ice World",
+        "description": "A frozen world covered in ice and snow with extreme cold temperatures.",
+        "default_traits": [
+            "research_outpost"
+        ],
+        "possible_traits": [
+            "mining_world",
+            "military_base"
+        ],
+        "resource_modifiers": {
+            "water": 2,
+            "technology": 1,
+            "food": -1
+        }
+    },
+    "volcanic": {
+        "id": "volcanic",
+        "name": "Volcanic World",
+        "description": "A world with active volcanoes, lava flows, and toxic atmosphere.",
+        "default_traits": [
+            "mining_world"
+        ],
+        "possible_traits": [
+            "industrial_hub",
+            "research_outpost"
+        ],
+        "resource_modifiers": {
+            "minerals": 3,
+            "rare_materials": 2,
+            "food": -2,
+            "water": -2
+        }
+    },
+    "jungle": {
+        "id": "jungle",
+        "name": "Jungle World",
+        "description": "A lush world covered in dense jungles and rainforests.",
+        "default_traits": [
+            "agricultural_world"
+        ],
+        "possible_traits": [
+            "research_outpost",
+            "pirate_haven"
+        ],
+        "resource_modifiers": {
+            "food": 2,
+            "water": 2,
+            "medical_supplies": 1
+        }
+    },
+    "ocean": {
+        "id": "ocean",
+        "name": "Ocean World",
+        "description": "A world covered almost entirely by vast oceans with few landmasses.",
+        "default_traits": [
+            "research_outpost"
+        ],
+        "possible_traits": [
+            "trade_center",
+            "free_port"
+        ],
+        "resource_modifiers": {
+            "water": 3,
+            "food": 2,
+            "minerals": -1
+        }
+    },
+    "gas_giant": {
+        "id": "gas_giant",
+        "name": "Gas Giant",
+        "description": "A massive planet composed primarily of hydrogen and helium with no solid surface.",
+        "default_traits": [
+            "mining_world"
+        ],
+        "possible_traits": [
+            "research_outpost",
+            "free_port"
+        ],
+        "resource_modifiers": {
+            "fuel": 3,
+            "rare_materials": 1,
+            "food": -3
+        }
+    },
+    "barren": {
+        "id": "barren",
+        "name": "Barren World",
+        "description": "A lifeless world with minimal atmosphere and resources.",
+        "default_traits": [
+            "frontier_world"
+        ],
+        "possible_traits": [
+            "mining_world",
+            "military_base"
+        ],
+        "resource_modifiers": {
+            "minerals": 1,
+            "food": -2,
+            "water": -2
+        }
+    },
+    "urban": {
+        "id": "urban",
+        "name": "Urban World",
+        "description": "A heavily populated world covered in sprawling cities and industrial complexes.",
+        "default_traits": [
+            "industrial_hub"
+        ],
+        "possible_traits": [
+            "trade_center",
+            "corporate_world",
+            "military_base"
+        ],
+        "resource_modifiers": {
+            "technology": 2,
+            "luxury_goods": 2,
+            "food": -1
+        }
+    },
+    "asteroid_belt": {
+        "id": "asteroid_belt",
+        "name": "Asteroid Belt",
+        "description": "A region of space filled with countless asteroids and mining operations.",
+        "default_traits": [
+            "mining_world"
+        ],
+        "possible_traits": [
+            "pirate_haven",
+            "free_port"
+        ],
+        "resource_modifiers": {
+            "minerals": 3,
+            "rare_materials": 2,
+            "food": -2,
+            "water": -2
+        }
+    }
+}

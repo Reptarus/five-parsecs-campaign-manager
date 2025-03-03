@@ -12,7 +12,7 @@ extends "res://tests/fixtures/base/mobile_test_base.gd"
 
 # Type-safe script references
 const MissionScript := preload("res://src/core/mission/base/mission.gd")
-const MissionGeneratorScript: GDScript = preload("res://src/core/campaign/MissionGenerator.gd")
+const MissionGeneratorScript: GDScript = preload("res://src/game/campaign/FiveParsecsMissionGenerator.gd")
 const GameEnumsScript := preload("res://src/core/systems/GlobalEnums.gd")
 
 # Type-safe instance variables

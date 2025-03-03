@@ -8,7 +8,6 @@ class_name CoreCharacter
 ## the Five Parsecs From Home rule system.
 
 const GameEnums = preload("res://src/core/systems/GlobalEnums.gd")
-const GameWeapon = preload("res://src/core/systems/items/Weapon.gd")
 
 # Five Parsecs specific character properties
 var character_class: int = GameEnums.CharacterClass.NONE
@@ -22,9 +21,9 @@ var _luck: int = 0
 var _training: int = GameEnums.Training.NONE
 
 # Equipment specific to Five Parsecs
-var weapons: Array[GameWeapon] = []
-var armor: Array[Resource] = [] # Will be Array[Armor] once implemented
-var items: Array[Resource] = [] # Will be Array[Item] once implemented
+var weapons: Array[Resource] = [] # Weapon resources
+var armor: Array[Resource] = [] # Armor resources
+var items: Array[Resource] = [] # Item resources
 
 # Character type flags for Five Parsecs
 var is_bot: bool = false

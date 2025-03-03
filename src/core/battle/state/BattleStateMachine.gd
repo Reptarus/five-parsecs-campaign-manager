@@ -2,7 +2,7 @@
 extends Node
 
 const GameEnums = preload("res://src/core/systems/GlobalEnums.gd")
-const BattleCharacter = preload("res://src/core/battle/BattleCharacter.gd")
+const BattleCharacter = preload("res://src/game/combat/BattleCharacter.gd")
 const GameStateManager = preload("res://src/core/managers/GameStateManager.gd")
 
 signal state_changed(new_state: int)

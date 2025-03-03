@@ -28,7 +28,7 @@ func start_campaign(config: FiveParcsecsCampaign) -> void:
 	
 	current_campaign = config
 	current_phase = GameEnums.CampaignPhase.SETUP
-	gamestate.start_new_campaign(config)
+	gamestate.start_new_campaign(config as FiveParcsecsCampaign)
 	campaign_started.emit(config)
 
 func end_campaign(victory: bool = false) -> void:

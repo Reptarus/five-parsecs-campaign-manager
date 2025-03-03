@@ -1,166 +1,411 @@
 {
-  "weapons": [
-	{
-	  "name": "Assault Rifle",
-	  "type": "Military",
-	  "damage": 2,
-	  "range": 24,
-	  "shots": 3,
-	  "traits": ["Rapid Fire"]
-	},
-	{
-	  "name": "Sniper Rifle",
-	  "type": "Military",
-	  "damage": 3,
-	  "range": 36,
-	  "shots": 1,
-	  "traits": ["Accurate"]
-	},
-	{
-	  "name": "Shotgun",
-	  "type": "Military",
-	  "damage": 3,
-	  "range": 12,
-	  "shots": 2,
-	  "traits": ["Spread"]
-	},
-	{
-	  "name": "Plasma Pistol",
-	  "type": "High-Tech",
-	  "damage": 3,
-	  "range": 12,
-	  "shots": 1,
-	  "traits": ["Pistol", "Energy"]
-	},
-	{
-	  "name": "Laser Rifle",
-	  "type": "High-Tech",
-	  "damage": 2,
-	  "range": 30,
-	  "shots": 2,
-	  "traits": ["Energy", "Accurate"]
-	},
-	{
-	  "name": "Vibro-Blade",
-	  "type": "Melee",
-	  "damage": 3,
-	  "range": 0,
-	  "shots": 0,
-	  "traits": ["Melee", "Piercing"]
-	},
-	{
-	  "name": "Rocket Launcher",
-	  "type": "Heavy",
-	  "damage": 4,
-	  "range": 36,
-	  "shots": 1,
-	  "traits": ["Blast", "Heavy"]
-	}
-  ],
-  "armor": [
-	{
-	  "name": "Combat Vest",
-	  "type": "Light",
-	  "defense": 1,
-	  "traits": ["Light"]
-	},
-	{
-	  "name": "Battle Suit",
-	  "type": "Medium",
-	  "defense": 2,
-	  "traits": ["Powered"]
-	},
-	{
-	  "name": "Heavy Plating",
-	  "type": "Heavy",
-	  "defense": 3,
-	  "traits": ["Heavy", "Cumbersome"]
-	},
-	{
-	  "name": "Energy Shield",
-	  "type": "High-Tech",
-	  "defense": 2,
-	  "traits": ["Energy", "Rechargeable"]
-	}
-  ],
-  "gear": [
-	{
-	  "name": "Medkit",
-	  "type": "Medical",
-	  "effect": "Heal 2 wounds",
-	  "uses": 3
-	},
-	{
-	  "name": "Grappling Hook",
-	  "type": "Utility",
-	  "effect": "Climb vertical surfaces",
-	  "uses": -1
-	},
-	{
-	  "name": "Holo-Projector",
-	  "type": "Tech",
-	  "effect": "Create illusory duplicate",
-	  "uses": 2
-	},
-	{
-	  "name": "Stealth Field Generator",
-	  "type": "Tech",
-	  "effect": "Become invisible for one turn",
-	  "uses": 1
-	},
-	{
-	  "name": "Jet Pack",
-	  "type": "Mobility",
-	  "effect": "Fly 12\" in any direction",
-	  "uses": 3
-	}
-  ],
-  "consumables": [
-	{
-	  "name": "Stim Pack",
-	  "type": "Medical",
-	  "effect": "Remove all Stun markers and gain +1 to all rolls for one turn",
-	  "uses": 1
-	},
-	{
-	  "name": "Frag Grenade",
-	  "type": "Explosive",
-	  "effect": "3\" radius, 2D6 damage",
-	  "uses": 1
-	},
-	{
-	  "name": "Repair Nanites",
-	  "type": "Tech",
-	  "effect": "Repair 2 damage to armor or equipment",
-	  "uses": 1
-	},
-	{
-	  "name": "Smoke Bomb",
-	  "type": "Utility",
-	  "effect": "Create 4\" radius of smoke, blocking line of sight",
-	  "uses": 1
-	}
-  ],
-  "implants": [
-	{
-	  "name": "Subdermal Armor",
-	  "type": "Defensive",
-	  "effect": "+1 to all saving throws"
-	},
-	{
-	  "name": "Reflex Enhancer",
-	  "type": "Combat",
-	  "effect": "+1 to initiative rolls"
-	},
-	{
-	  "name": "Targeting Array",
-	  "type": "Combat",
-	  "effect": "+1 to hit rolls with ranged weapons"
-	},
-	{
-	  "name": "Neural Processor",
-	  "type": "Utility",
-	  "effect": "+1 to all Savvy-based skill checks"
-	}
-  ]
+	"weapons": [
+		{
+			"id": "assault_rifle",
+			"name": "Assault Rifle",
+			"type": "Military",
+			"damage": 2,
+			"range": 24,
+			"shots": 3,
+			"traits": [
+				"Rapid Fire"
+			],
+			"cost": 50,
+			"rarity": "Common",
+			"description": "Standard military-grade assault rifle with good all-around performance."
+		},
+		{
+			"id": "sniper_rifle",
+			"name": "Sniper Rifle",
+			"type": "Military",
+			"damage": 3,
+			"range": 36,
+			"shots": 1,
+			"traits": [
+				"Accurate",
+				"Scope"
+			],
+			"cost": 75,
+			"rarity": "Uncommon",
+			"description": "Long-range precision rifle with excellent accuracy at distance."
+		},
+		{
+			"id": "shotgun",
+			"name": "Shotgun",
+			"type": "Military",
+			"damage": 3,
+			"range": 12,
+			"shots": 2,
+			"traits": [
+				"Spread",
+				"Knockback"
+			],
+			"cost": 45,
+			"rarity": "Common",
+			"description": "Close-range weapon with devastating stopping power."
+		},
+		{
+			"id": "plasma_pistol",
+			"name": "Plasma Pistol",
+			"type": "High-Tech",
+			"damage": 3,
+			"range": 12,
+			"shots": 1,
+			"traits": [
+				"Pistol",
+				"Energy",
+				"Overheat"
+			],
+			"cost": 65,
+			"rarity": "Uncommon",
+			"description": "Advanced sidearm that fires superheated plasma bolts."
+		},
+		{
+			"id": "laser_rifle",
+			"name": "Laser Rifle",
+			"type": "High-Tech",
+			"damage": 2,
+			"range": 30,
+			"shots": 2,
+			"traits": [
+				"Energy",
+				"Accurate",
+				"Silent"
+			],
+			"cost": 80,
+			"rarity": "Uncommon",
+			"description": "Precision energy weapon with excellent range and accuracy."
+		},
+		{
+			"id": "vibro_blade",
+			"name": "Vibro-Blade",
+			"type": "Melee",
+			"damage": 3,
+			"range": 0,
+			"shots": 0,
+			"traits": [
+				"Melee",
+				"Piercing",
+				"Silent"
+			],
+			"cost": 40,
+			"rarity": "Common",
+			"description": "High-frequency blade that can cut through most materials."
+		},
+		{
+			"id": "pulse_cannon",
+			"name": "Pulse Cannon",
+			"type": "High-Tech",
+			"damage": 4,
+			"range": 18,
+			"shots": 1,
+			"traits": [
+				"Energy",
+				"Heavy",
+				"Area Effect"
+			],
+			"cost": 120,
+			"rarity": "Rare",
+			"description": "Heavy energy weapon that emits devastating pulses of energy."
+		},
+		{
+			"id": "gauss_rifle",
+			"name": "Gauss Rifle",
+			"type": "Military",
+			"damage": 3,
+			"range": 30,
+			"shots": 2,
+			"traits": [
+				"Piercing",
+				"Accurate"
+			],
+			"cost": 90,
+			"rarity": "Rare",
+			"description": "Electromagnetic rifle that fires metal projectiles at extreme velocities."
+		},
+		{
+			"id": "flamethrower",
+			"name": "Flamethrower",
+			"type": "Military",
+			"damage": 2,
+			"range": 8,
+			"shots": 2,
+			"traits": [
+				"Area Effect",
+				"Burn",
+				"Heavy"
+			],
+			"cost": 70,
+			"rarity": "Uncommon",
+			"description": "Weapon that projects streams of ignited fuel, setting targets ablaze."
+		},
+		{
+			"id": "neural_disruptor",
+			"name": "Neural Disruptor",
+			"type": "High-Tech",
+			"damage": 1,
+			"range": 12,
+			"shots": 1,
+			"traits": [
+				"Stun",
+				"Non-lethal",
+				"Energy"
+			],
+			"cost": 60,
+			"rarity": "Uncommon",
+			"description": "Non-lethal weapon that temporarily disrupts neural functions."
+		}
+	],
+	"armor": [
+		{
+			"id": "light_armor",
+			"name": "Light Armor",
+			"type": "Personal",
+			"protection": 1,
+			"mobility_penalty": 0,
+			"traits": [
+				"Light",
+				"Flexible"
+			],
+			"cost": 30,
+			"rarity": "Common",
+			"description": "Basic protection that doesn't restrict movement."
+		},
+		{
+			"id": "combat_armor",
+			"name": "Combat Armor",
+			"type": "Military",
+			"protection": 2,
+			"mobility_penalty": 1,
+			"traits": [
+				"Durable",
+				"Environmental"
+			],
+			"cost": 75,
+			"rarity": "Common",
+			"description": "Standard military-grade armor with good all-around protection."
+		},
+		{
+			"id": "heavy_armor",
+			"name": "Heavy Armor",
+			"type": "Military",
+			"protection": 3,
+			"mobility_penalty": 2,
+			"traits": [
+				"Heavy",
+				"Reinforced"
+			],
+			"cost": 120,
+			"rarity": "Uncommon",
+			"description": "Heavy-duty armor that provides excellent protection at the cost of mobility."
+		},
+		{
+			"id": "powered_armor",
+			"name": "Powered Armor",
+			"type": "High-Tech",
+			"protection": 4,
+			"mobility_penalty": 0,
+			"traits": [
+				"Powered",
+				"Environmental",
+				"Strength Boost"
+			],
+			"cost": 200,
+			"rarity": "Rare",
+			"description": "Advanced exoskeleton that enhances strength while providing superior protection."
+		},
+		{
+			"id": "stealth_suit",
+			"name": "Stealth Suit",
+			"type": "High-Tech",
+			"protection": 1,
+			"mobility_penalty": 0,
+			"traits": [
+				"Stealth",
+				"Light",
+				"Sensor Dampening"
+			],
+			"cost": 150,
+			"rarity": "Rare",
+			"description": "Specialized suit that reduces visibility to sensors and the naked eye."
+		},
+		{
+			"id": "hazard_suit",
+			"name": "Hazard Suit",
+			"type": "Specialist",
+			"protection": 2,
+			"mobility_penalty": 1,
+			"traits": [
+				"Environmental",
+				"Radiation Resistant",
+				"Chemical Resistant"
+			],
+			"cost": 90,
+			"rarity": "Uncommon",
+			"description": "Specialized protection against environmental hazards and contamination."
+		}
+	],
+	"gear": [
+		{
+			"id": "medkit",
+			"name": "Medkit",
+			"type": "Medical",
+			"effect": "Heal 1D6 health points",
+			"uses": 3,
+			"cost": 40,
+			"rarity": "Common",
+			"description": "Standard medical kit for treating injuries in the field."
+		},
+		{
+			"id": "repair_kit",
+			"name": "Repair Kit",
+			"type": "Technical",
+			"effect": "Repair damaged equipment or restore 1D6 health to bots",
+			"uses": 3,
+			"cost": 35,
+			"rarity": "Common",
+			"description": "Tools and parts for field repairs of equipment and mechanical units."
+		},
+		{
+			"id": "scanner",
+			"name": "Scanner",
+			"type": "Technical",
+			"effect": "Detect hidden objects and lifeforms within 12 inches",
+			"uses": "Unlimited",
+			"cost": 50,
+			"rarity": "Common",
+			"description": "Handheld device that can detect various signatures through walls and obstacles."
+		},
+		{
+			"id": "grapple_gun",
+			"name": "Grapple Gun",
+			"type": "Mobility",
+			"effect": "Move to any point within 18 inches that can support your weight",
+			"uses": 3,
+			"cost": 45,
+			"rarity": "Uncommon",
+			"description": "Launches a grappling hook that allows rapid vertical and horizontal movement."
+		},
+		{
+			"id": "stim_pack",
+			"name": "Stim Pack",
+			"type": "Medical",
+			"effect": "+1 to all stats for one turn, then -1 to all stats for one turn",
+			"uses": 1,
+			"cost": 30,
+			"rarity": "Uncommon",
+			"description": "Combat stimulant that temporarily enhances performance followed by a crash."
+		},
+		{
+			"id": "cloaking_device",
+			"name": "Cloaking Device",
+			"type": "High-Tech",
+			"effect": "Become invisible to visual detection for 1D3 turns",
+			"uses": 1,
+			"cost": 100,
+			"rarity": "Rare",
+			"description": "Personal stealth field generator that bends light around the user."
+		},
+		{
+			"id": "energy_shield",
+			"name": "Energy Shield",
+			"type": "High-Tech",
+			"effect": "+2 protection against all attacks for 1D3 turns",
+			"uses": 2,
+			"cost": 85,
+			"rarity": "Rare",
+			"description": "Portable energy barrier that provides temporary protection from attacks."
+		},
+		{
+			"id": "hacking_tool",
+			"name": "Hacking Tool",
+			"type": "Technical",
+			"effect": "Bypass electronic locks or control automated systems",
+			"uses": 3,
+			"cost": 60,
+			"rarity": "Uncommon",
+			"description": "Advanced device for interfacing with and overriding electronic systems."
+		}
+	],
+	"attachments": [
+		{
+			"id": "scope",
+			"name": "Weapon Scope",
+			"compatible_with": [
+				"assault_rifle",
+				"sniper_rifle",
+				"gauss_rifle"
+			],
+			"effect": "+1 to hit at long range",
+			"cost": 25,
+			"rarity": "Common",
+			"description": "Optical enhancement that improves accuracy at long distances."
+		},
+		{
+			"id": "silencer",
+			"name": "Silencer",
+			"compatible_with": [
+				"assault_rifle",
+				"sniper_rifle",
+				"plasma_pistol"
+			],
+			"effect": "Weapon becomes silent",
+			"cost": 20,
+			"rarity": "Common",
+			"description": "Suppresses the sound of weapon discharge."
+		},
+		{
+			"id": "extended_magazine",
+			"name": "Extended Magazine",
+			"compatible_with": [
+				"assault_rifle",
+				"shotgun",
+				"plasma_pistol"
+			],
+			"effect": "+1 shot per turn",
+			"cost": 15,
+			"rarity": "Common",
+			"description": "Increases ammunition capacity, allowing for more shots before reloading."
+		},
+		{
+			"id": "targeting_system",
+			"name": "Targeting System",
+			"compatible_with": [
+				"assault_rifle",
+				"sniper_rifle",
+				"laser_rifle",
+				"gauss_rifle"
+			],
+			"effect": "+1 to hit on all ranges",
+			"cost": 40,
+			"rarity": "Uncommon",
+			"description": "Advanced aiming assistance that improves accuracy at all ranges."
+		},
+		{
+			"id": "bayonet",
+			"name": "Bayonet",
+			"compatible_with": [
+				"assault_rifle",
+				"shotgun",
+				"laser_rifle"
+			],
+			"effect": "Can be used as a melee weapon (damage 1)",
+			"cost": 10,
+			"rarity": "Common",
+			"description": "Blade attachment that allows the weapon to be used in close combat."
+		},
+		{
+			"id": "stabilizer",
+			"name": "Stabilizer",
+			"compatible_with": [
+				"pulse_cannon",
+				"flamethrower",
+				"gauss_rifle"
+			],
+			"effect": "Reduce recoil penalty by 1",
+			"cost": 30,
+			"rarity": "Uncommon",
+			"description": "Reduces weapon recoil, improving control during sustained fire."
+		}
+	]
 }

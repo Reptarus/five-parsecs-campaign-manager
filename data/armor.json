@@ -1,0 +1,777 @@
+{
+    "name": "armor",
+    "description": "Armor and protective equipment available for characters in Five Parsecs from Home",
+    "armor_categories": [
+        {
+            "id": "light_armor",
+            "name": "Light Armor",
+            "description": "Lightweight protection that offers minimal encumbrance but limited protection."
+        },
+        {
+            "id": "medium_armor",
+            "name": "Medium Armor",
+            "description": "Balanced protection that offers moderate encumbrance and decent protection."
+        },
+        {
+            "id": "heavy_armor",
+            "name": "Heavy Armor",
+            "description": "Heavy-duty protection that offers significant encumbrance but excellent protection."
+        },
+        {
+            "id": "powered_armor",
+            "name": "Powered Armor",
+            "description": "Mechanically assisted armor that offers excellent protection with reduced encumbrance."
+        },
+        {
+            "id": "shields",
+            "name": "Shields",
+            "description": "Portable barriers that provide additional protection."
+        },
+        {
+            "id": "specialized_protection",
+            "name": "Specialized Protection",
+            "description": "Equipment designed to protect against specific threats or environments."
+        }
+    ],
+    "armor": [
+        {
+            "id": "padded_jacket",
+            "name": "Padded Jacket",
+            "category": "light_armor",
+            "description": "A reinforced jacket with impact-absorbing materials sewn into key areas.",
+            "armor_save": "6+",
+            "encumbrance": 0,
+            "coverage": [
+                "Torso"
+            ],
+            "traits": [
+                "Lightweight",
+                "Concealable"
+            ],
+            "special_rules": "Can be worn under other clothing without detection.",
+            "cost": {
+                "credits": 50,
+                "rarity": "Common"
+            },
+            "tags": [
+                "civilian",
+                "concealable",
+                "common"
+            ]
+        },
+        {
+            "id": "mesh_vest",
+            "name": "Mesh Vest",
+            "category": "light_armor",
+            "description": "A flexible vest made of interlocking synthetic fibers that absorb and disperse impact energy.",
+            "armor_save": "5+",
+            "encumbrance": 0,
+            "coverage": [
+                "Torso"
+            ],
+            "traits": [
+                "Lightweight",
+                "Flexible"
+            ],
+            "special_rules": "Provides +1 to armor save against projectile weapons.",
+            "cost": {
+                "credits": 100,
+                "rarity": "Common"
+            },
+            "tags": [
+                "security",
+                "flexible",
+                "common"
+            ]
+        },
+        {
+            "id": "stealth_suit",
+            "name": "Stealth Suit",
+            "category": "light_armor",
+            "description": "A full-body suit made of sound-dampening and light-absorbing materials.",
+            "armor_save": "6+",
+            "encumbrance": 0,
+            "coverage": [
+                "Full Body"
+            ],
+            "traits": [
+                "Lightweight",
+                "Stealth",
+                "Environmental"
+            ],
+            "special_rules": "Grants +2 to all Stealth checks. Provides protection against extreme temperatures.",
+            "cost": {
+                "credits": 250,
+                "rarity": "Uncommon"
+            },
+            "tags": [
+                "stealth",
+                "environmental",
+                "uncommon"
+            ]
+        },
+        {
+            "id": "combat_armor",
+            "name": "Combat Armor",
+            "category": "medium_armor",
+            "description": "Standard military-grade armor with reinforced plates over vital areas.",
+            "armor_save": "4+",
+            "encumbrance": 1,
+            "coverage": [
+                "Torso",
+                "Arms",
+                "Legs"
+            ],
+            "traits": [
+                "Durable",
+                "Modular"
+            ],
+            "special_rules": "Can attach up to 2 armor modifications.",
+            "cost": {
+                "credits": 200,
+                "rarity": "Common"
+            },
+            "tags": [
+                "military",
+                "modular",
+                "common"
+            ]
+        },
+        {
+            "id": "security_armor",
+            "name": "Security Armor",
+            "category": "medium_armor",
+            "description": "Armor designed for law enforcement and corporate security personnel.",
+            "armor_save": "4+",
+            "encumbrance": 1,
+            "coverage": [
+                "Torso",
+                "Arms",
+                "Legs"
+            ],
+            "traits": [
+                "Durable",
+                "Intimidating"
+            ],
+            "special_rules": "Grants +1 to Intimidation checks. Includes built-in comm system.",
+            "cost": {
+                "credits": 225,
+                "rarity": "Common"
+            },
+            "tags": [
+                "security",
+                "intimidating",
+                "common"
+            ]
+        },
+        {
+            "id": "hazard_suit",
+            "name": "Hazard Suit",
+            "category": "medium_armor",
+            "description": "A sealed suit designed to protect against environmental hazards.",
+            "armor_save": "5+",
+            "encumbrance": 1,
+            "coverage": [
+                "Full Body"
+            ],
+            "traits": [
+                "Environmental",
+                "Sealed"
+            ],
+            "special_rules": "Provides immunity to poison, disease, and radiation. Includes 4 hours of air supply.",
+            "cost": {
+                "credits": 300,
+                "rarity": "Uncommon"
+            },
+            "tags": [
+                "environmental",
+                "sealed",
+                "uncommon"
+            ]
+        },
+        {
+            "id": "heavy_combat_armor",
+            "name": "Heavy Combat Armor",
+            "category": "heavy_armor",
+            "description": "Reinforced military armor with thick plating and enhanced protection.",
+            "armor_save": "3+",
+            "encumbrance": 2,
+            "coverage": [
+                "Full Body"
+            ],
+            "traits": [
+                "Heavy",
+                "Durable",
+                "Intimidating"
+            ],
+            "special_rules": "Reduces movement by 2\". Provides +1 to armor save against explosive weapons.",
+            "cost": {
+                "credits": 400,
+                "rarity": "Uncommon"
+            },
+            "tags": [
+                "military",
+                "heavy",
+                "uncommon"
+            ]
+        },
+        {
+            "id": "riot_armor",
+            "name": "Riot Armor",
+            "category": "heavy_armor",
+            "description": "Armor designed to protect against blunt force trauma and melee attacks.",
+            "armor_save": "3+",
+            "encumbrance": 2,
+            "coverage": [
+                "Full Body"
+            ],
+            "traits": [
+                "Heavy",
+                "Impact Resistant",
+                "Intimidating"
+            ],
+            "special_rules": "Provides +2 to armor save against melee attacks. Reduces movement by 2\".",
+            "cost": {
+                "credits": 350,
+                "rarity": "Uncommon"
+            },
+            "tags": [
+                "security",
+                "impact_resistant",
+                "uncommon"
+            ]
+        },
+        {
+            "id": "exo_armor",
+            "name": "Exo-Armor",
+            "category": "heavy_armor",
+            "description": "A non-powered exoskeleton frame with heavy armor plating.",
+            "armor_save": "2+",
+            "encumbrance": 3,
+            "coverage": [
+                "Full Body"
+            ],
+            "traits": [
+                "Very Heavy",
+                "Durable",
+                "Strength Enhancing"
+            ],
+            "special_rules": "Reduces movement by 3\". Provides +1 to Strength checks. Cannot use Stealth.",
+            "cost": {
+                "credits": 600,
+                "rarity": "Rare"
+            },
+            "tags": [
+                "military",
+                "very_heavy",
+                "rare"
+            ]
+        },
+        {
+            "id": "light_power_armor",
+            "name": "Light Power Armor",
+            "category": "powered_armor",
+            "description": "A lightweight powered armor system that enhances mobility and protection.",
+            "armor_save": "3+",
+            "encumbrance": 0,
+            "coverage": [
+                "Full Body"
+            ],
+            "traits": [
+                "Powered",
+                "Enhanced Mobility",
+                "Sealed"
+            ],
+            "special_rules": "Increases movement by 2\". Provides immunity to poison and disease. Requires power cells that last for 48 hours of operation.",
+            "cost": {
+                "credits": 800,
+                "rarity": "Rare"
+            },
+            "tags": [
+                "military",
+                "powered",
+                "rare"
+            ]
+        },
+        {
+            "id": "assault_power_armor",
+            "name": "Assault Power Armor",
+            "category": "powered_armor",
+            "description": "Military-grade powered armor designed for frontline combat operations.",
+            "armor_save": "2+",
+            "encumbrance": 0,
+            "coverage": [
+                "Full Body"
+            ],
+            "traits": [
+                "Powered",
+                "Strength Enhancing",
+                "Sealed",
+                "Integrated Systems"
+            ],
+            "special_rules": "Provides +2 to Strength checks. Includes built-in targeting system (+1 to hit). Requires power cells that last for 24 hours of operation.",
+            "cost": {
+                "credits": 1200,
+                "rarity": "Very Rare"
+            },
+            "tags": [
+                "military",
+                "powered",
+                "integrated_systems",
+                "very_rare"
+            ]
+        },
+        {
+            "id": "heavy_power_armor",
+            "name": "Heavy Power Armor",
+            "category": "powered_armor",
+            "description": "The heaviest class of powered armor, essentially a walking tank.",
+            "armor_save": "2+",
+            "encumbrance": 1,
+            "coverage": [
+                "Full Body"
+            ],
+            "traits": [
+                "Powered",
+                "Very Heavy",
+                "Strength Enhancing",
+                "Sealed",
+                "Integrated Systems",
+                "Weapon Mounts"
+            ],
+            "special_rules": "Provides +3 to Strength checks. Includes built-in targeting system (+1 to hit). Can mount one heavy weapon. Reduces damage from explosives by half. Requires power cells that last for 12 hours of operation.",
+            "cost": {
+                "credits": 2000,
+                "rarity": "Very Rare"
+            },
+            "tags": [
+                "military",
+                "powered",
+                "very_heavy",
+                "weapon_mount",
+                "very_rare"
+            ]
+        },
+        {
+            "id": "combat_shield",
+            "name": "Combat Shield",
+            "category": "shields",
+            "description": "A portable energy shield that can be activated to block incoming attacks.",
+            "armor_save": "4+ (in direction faced)",
+            "encumbrance": 1,
+            "coverage": [
+                "Directional"
+            ],
+            "traits": [
+                "Directional",
+                "Powered",
+                "One-handed"
+            ],
+            "special_rules": "Must be held in one hand. Provides protection only against attacks from the front. Has 10 charges; each successful save uses 1 charge.",
+            "cost": {
+                "credits": 300,
+                "rarity": "Uncommon"
+            },
+            "tags": [
+                "shield",
+                "directional",
+                "powered",
+                "uncommon"
+            ]
+        },
+        {
+            "id": "riot_shield",
+            "name": "Riot Shield",
+            "category": "shields",
+            "description": "A large physical shield made of transparent, impact-resistant material.",
+            "armor_save": "3+ (in direction faced)",
+            "encumbrance": 2,
+            "coverage": [
+                "Directional"
+            ],
+            "traits": [
+                "Directional",
+                "Heavy",
+                "One-handed",
+                "Transparent"
+            ],
+            "special_rules": "Must be held in one hand. Provides protection only against attacks from the front. User can see through the shield.",
+            "cost": {
+                "credits": 150,
+                "rarity": "Common"
+            },
+            "tags": [
+                "shield",
+                "directional",
+                "transparent",
+                "common"
+            ]
+        },
+        {
+            "id": "energy_shield_generator",
+            "name": "Energy Shield Generator",
+            "category": "shields",
+            "description": "A device that projects an energy field around the wearer.",
+            "armor_save": "5+",
+            "encumbrance": 1,
+            "coverage": [
+                "Full Body"
+            ],
+            "traits": [
+                "Powered",
+                "Regenerating"
+            ],
+            "special_rules": "Provides a 5+ save against all attacks. If the shield fails a save, it deactivates for 1 turn while it recharges.",
+            "cost": {
+                "credits": 500,
+                "rarity": "Rare"
+            },
+            "tags": [
+                "shield",
+                "powered",
+                "regenerating",
+                "rare"
+            ]
+        },
+        {
+            "id": "radiation_suit",
+            "name": "Radiation Suit",
+            "category": "specialized_protection",
+            "description": "A suit designed to protect against radiation exposure.",
+            "armor_save": "6+",
+            "encumbrance": 1,
+            "coverage": [
+                "Full Body"
+            ],
+            "traits": [
+                "Environmental",
+                "Sealed",
+                "Specialized"
+            ],
+            "special_rules": "Provides immunity to radiation. Includes 4 hours of air supply.",
+            "cost": {
+                "credits": 200,
+                "rarity": "Common"
+            },
+            "tags": [
+                "environmental",
+                "radiation",
+                "common"
+            ]
+        },
+        {
+            "id": "thermal_suit",
+            "name": "Thermal Suit",
+            "category": "specialized_protection",
+            "description": "A suit designed to protect against extreme temperatures.",
+            "armor_save": "6+",
+            "encumbrance": 1,
+            "coverage": [
+                "Full Body"
+            ],
+            "traits": [
+                "Environmental",
+                "Specialized"
+            ],
+            "special_rules": "Provides immunity to extreme heat and cold.",
+            "cost": {
+                "credits": 150,
+                "rarity": "Common"
+            },
+            "tags": [
+                "environmental",
+                "thermal",
+                "common"
+            ]
+        },
+        {
+            "id": "psionic_dampening_helmet",
+            "name": "Psionic Dampening Helmet",
+            "category": "specialized_protection",
+            "description": "A helmet designed to protect against psychic attacks.",
+            "armor_save": "N/A",
+            "encumbrance": 0,
+            "coverage": [
+                "Head"
+            ],
+            "traits": [
+                "Specialized",
+                "Psionic"
+            ],
+            "special_rules": "Provides a 4+ save against all psychic attacks and abilities.",
+            "cost": {
+                "credits": 350,
+                "rarity": "Rare"
+            },
+            "tags": [
+                "psionic",
+                "specialized",
+                "rare"
+            ]
+        }
+    ],
+    "armor_traits": [
+        {
+            "id": "lightweight",
+            "name": "Lightweight",
+            "description": "The armor is particularly light and causes minimal encumbrance."
+        },
+        {
+            "id": "concealable",
+            "name": "Concealable",
+            "description": "The armor can be worn under normal clothing without being detected."
+        },
+        {
+            "id": "flexible",
+            "name": "Flexible",
+            "description": "The armor is highly flexible and does not restrict movement."
+        },
+        {
+            "id": "stealth",
+            "name": "Stealth",
+            "description": "The armor is designed to minimize noise and visibility."
+        },
+        {
+            "id": "environmental",
+            "name": "Environmental",
+            "description": "The armor provides protection against environmental hazards."
+        },
+        {
+            "id": "durable",
+            "name": "Durable",
+            "description": "The armor is particularly resistant to damage and wear."
+        },
+        {
+            "id": "modular",
+            "name": "Modular",
+            "description": "The armor can be customized with various attachments and modifications."
+        },
+        {
+            "id": "intimidating",
+            "name": "Intimidating",
+            "description": "The armor's appearance is designed to intimidate others."
+        },
+        {
+            "id": "sealed",
+            "name": "Sealed",
+            "description": "The armor forms a sealed environment, protecting against airborne hazards."
+        },
+        {
+            "id": "heavy",
+            "name": "Heavy",
+            "description": "The armor is heavy and may restrict movement."
+        },
+        {
+            "id": "very_heavy",
+            "name": "Very Heavy",
+            "description": "The armor is extremely heavy and significantly restricts movement."
+        },
+        {
+            "id": "impact_resistant",
+            "name": "Impact Resistant",
+            "description": "The armor is particularly effective against blunt force trauma."
+        },
+        {
+            "id": "strength_enhancing",
+            "name": "Strength Enhancing",
+            "description": "The armor enhances the wearer's physical strength."
+        },
+        {
+            "id": "powered",
+            "name": "Powered",
+            "description": "The armor is powered by energy cells and includes mechanical assistance."
+        },
+        {
+            "id": "enhanced_mobility",
+            "name": "Enhanced Mobility",
+            "description": "The armor enhances the wearer's speed and agility."
+        },
+        {
+            "id": "integrated_systems",
+            "name": "Integrated Systems",
+            "description": "The armor includes built-in systems such as targeting, communications, or medical."
+        },
+        {
+            "id": "weapon_mounts",
+            "name": "Weapon Mounts",
+            "description": "The armor includes mounts for attaching weapons."
+        },
+        {
+            "id": "directional",
+            "name": "Directional",
+            "description": "The protection is only effective from certain directions."
+        },
+        {
+            "id": "one_handed",
+            "name": "One-handed",
+            "description": "The item must be held in one hand to be effective."
+        },
+        {
+            "id": "transparent",
+            "name": "Transparent",
+            "description": "The item is transparent, allowing visibility through it."
+        },
+        {
+            "id": "regenerating",
+            "name": "Regenerating",
+            "description": "The protection can regenerate or recharge after being depleted."
+        },
+        {
+            "id": "specialized",
+            "name": "Specialized",
+            "description": "The item is designed for a specific purpose or against a specific threat."
+        },
+        {
+            "id": "psionic",
+            "name": "Psionic",
+            "description": "The item interacts with or protects against psychic energy."
+        }
+    ],
+    "armor_modifications": [
+        {
+            "id": "reinforced_plating",
+            "name": "Reinforced Plating",
+            "description": "Additional armor plating that improves protection.",
+            "effects": "Improves armor save by 1 (e.g., 4+ becomes 3+). Increases encumbrance by 1.",
+            "compatible_categories": [
+                "medium_armor",
+                "heavy_armor",
+                "powered_armor"
+            ],
+            "cost": {
+                "credits": 150,
+                "rarity": "Common"
+            }
+        },
+        {
+            "id": "lightweight_materials",
+            "name": "Lightweight Materials",
+            "description": "Advanced materials that reduce the armor's weight without sacrificing protection.",
+            "effects": "Reduces encumbrance by 1 (minimum 0). Does not affect armor save.",
+            "compatible_categories": [
+                "medium_armor",
+                "heavy_armor"
+            ],
+            "cost": {
+                "credits": 200,
+                "rarity": "Uncommon"
+            }
+        },
+        {
+            "id": "auto_medicator",
+            "name": "Auto-Medicator",
+            "description": "A system that automatically administers medical treatment when the wearer is wounded.",
+            "effects": "Once per battle, when the wearer suffers a wound, they may immediately make a Toughness check (7+). If successful, the wound is negated.",
+            "compatible_categories": [
+                "medium_armor",
+                "heavy_armor",
+                "powered_armor"
+            ],
+            "cost": {
+                "credits": 250,
+                "rarity": "Uncommon"
+            }
+        },
+        {
+            "id": "stealth_coating",
+            "name": "Stealth Coating",
+            "description": "A coating that reduces the armor's visibility to sensors and the naked eye.",
+            "effects": "Grants +1 to all Stealth checks. Incompatible with 'Intimidating' trait.",
+            "compatible_categories": [
+                "light_armor",
+                "medium_armor"
+            ],
+            "cost": {
+                "credits": 200,
+                "rarity": "Uncommon"
+            }
+        },
+        {
+            "id": "enhanced_power_cells",
+            "name": "Enhanced Power Cells",
+            "description": "Improved power cells that extend the operational duration of powered armor.",
+            "effects": "Doubles the operational duration of powered armor or powered shields.",
+            "compatible_categories": [
+                "powered_armor",
+                "shields"
+            ],
+            "cost": {
+                "credits": 300,
+                "rarity": "Rare"
+            }
+        },
+        {
+            "id": "reactive_plating",
+            "name": "Reactive Plating",
+            "description": "Armor plating that reacts to incoming attacks, providing additional protection.",
+            "effects": "Once per turn, when the wearer fails an armor save, they may reroll it.",
+            "compatible_categories": [
+                "medium_armor",
+                "heavy_armor",
+                "powered_armor"
+            ],
+            "cost": {
+                "credits": 350,
+                "rarity": "Rare"
+            }
+        },
+        {
+            "id": "integrated_jetpack",
+            "name": "Integrated Jetpack",
+            "description": "A jetpack built into the armor that allows for short bursts of flight.",
+            "effects": "Once per turn, the wearer may move an additional 6\" in any direction, including vertically.",
+            "compatible_categories": [
+                "medium_armor",
+                "powered_armor"
+            ],
+            "cost": {
+                "credits": 400,
+                "rarity": "Rare"
+            }
+        },
+        {
+            "id": "camouflage_system",
+            "name": "Camouflage System",
+            "description": "A system that actively changes the armor's appearance to match the surroundings.",
+            "effects": "Grants +2 to all Stealth checks. When stationary, enemies suffer -2 to hit the wearer.",
+            "compatible_categories": [
+                "light_armor",
+                "medium_armor",
+                "powered_armor"
+            ],
+            "cost": {
+                "credits": 350,
+                "rarity": "Rare"
+            }
+        },
+        {
+            "id": "enhanced_targeting",
+            "name": "Enhanced Targeting",
+            "description": "A targeting system integrated into the armor's helmet.",
+            "effects": "Grants +1 to hit with ranged attacks.",
+            "compatible_categories": [
+                "medium_armor",
+                "heavy_armor",
+                "powered_armor"
+            ],
+            "cost": {
+                "credits": 250,
+                "rarity": "Uncommon"
+            }
+        },
+        {
+            "id": "environmental_seals",
+            "name": "Environmental Seals",
+            "description": "Seals and filters that protect against environmental hazards.",
+            "effects": "Grants the 'Sealed' trait. Provides immunity to airborne toxins and allows breathing in vacuum for up to 1 hour.",
+            "compatible_categories": [
+                "medium_armor",
+                "heavy_armor"
+            ],
+            "cost": {
+                "credits": 200,
+                "rarity": "Common"
+            }
+        }
+    ]
+}

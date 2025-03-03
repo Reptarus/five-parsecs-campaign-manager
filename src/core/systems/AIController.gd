@@ -6,13 +6,13 @@ const GameStateManager = preload("res://src/core/managers/GameStateManager.gd")
 const Character = preload("res://src/core/character/Management/CharacterDataManager.gd")
 const Mission = preload("res://src/core/systems/Mission.gd")
 const UnifiedAISystem = preload("res://src/core/systems/UnifiedAISystem.gd")
-const CombatManager = preload("res://src/core/battle/CombatManager.gd")
+const BaseCombatManager = preload("res://src/base/combat/BaseCombatManager.gd")
 
 signal ai_action_completed(action: Dictionary)
 
 @export var ai_behavior: int = GameEnums.AIBehavior.CAUTIOUS
 
-var combat_manager: CombatManager
+var combat_manager: BaseCombatManager
 var game_state_manager: GameStateManager
 var enemy_deployment_manager: Node # Will be typed when EnemyDeploymentManager is available
 

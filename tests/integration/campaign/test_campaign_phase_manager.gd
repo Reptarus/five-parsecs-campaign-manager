@@ -4,7 +4,7 @@ extends "res://tests/fixtures/specialized/campaign_test.gd"
 # Type-safe script references
 const CampaignPhaseManager := preload("res://src/core/campaign/CampaignPhaseManager.gd")
 const GameStateManager := preload("res://src/core/managers/GameStateManager.gd")
-const CampaignManagerScript := preload("res://src/core/campaign/CampaignManager.gd")
+const CampaignManagerScript := preload("res://src/core/managers/CampaignManager.gd")
 const CampaignPhaseManagerScript := preload("res://src/core/campaign/CampaignPhaseManager.gd")
 
 # Type-safe enums

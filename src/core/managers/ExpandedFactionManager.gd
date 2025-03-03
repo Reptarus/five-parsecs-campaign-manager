@@ -2,7 +2,7 @@
 extends Node
 
 const GameEnums := preload("res://src/core/systems/GlobalEnums.gd")
-const CrewMember := preload("res://src/core/campaign/crew/CrewMember.gd")
+const Character := preload("res://src/core/campaign/crew/Character.gd")
 
 # Constants
 const MIN_FACTION_STRENGTH: int = 1
@@ -202,12 +202,12 @@ func get_faction_job(faction: Dictionary) -> bool:
 			return true
 	return false
 
-func gain_faction_loyalty(faction: Dictionary, character: CrewMember) -> void:
+func gain_faction_loyalty(faction: Dictionary, character: Character) -> void:
 	var current_loyalty = character.get_faction_standing(faction["name"])
 	if randi() % 6 + 1 > current_loyalty:
 		character.set_faction_standing(faction["name"], current_loyalty + 1)
 
-func call_in_faction_favor(faction: Dictionary, character: CrewMember) -> bool:
+func call_in_faction_favor(faction: Dictionary, character: Character) -> bool:
 	var current_loyalty = character.get_faction_standing(faction["name"])
 	var roll = randi() % 6 + 1
 	if roll <= current_loyalty:

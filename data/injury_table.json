@@ -1,140 +1,172 @@
 {
-  "injury_tables": {
-	"human_injury_table": [
-	  {
-		"roll_range": [1, 5],
-		"result": "Gruesome fate",
-		"effects": [
-		  "Character is dead",
-		  "All carried equipment is damaged"
+	"injury_tables": {
+		"human_injury_table": [
+			{
+				"roll_range": [
+					1,
+					5
+				],
+				"name": "Gruesome fate",
+				"effects": [
+					"Character is dead",
+					"All carried equipment is damaged"
+				],
+				"recovery_time": 0
+			},
+			{
+				"roll_range": [
+					6,
+					15
+				],
+				"name": "Death or permanent injury",
+				"effects": [
+					"Player chooses: Character dies or is removed from the campaign"
+				],
+				"recovery_time": 0
+			},
+			{
+				"roll_range": [
+					16,
+					16
+				],
+				"name": "Miraculous escape",
+				"effects": [
+					"Character survives but loses all carried items"
+				],
+				"recovery_time": "1D3"
+			},
+			{
+				"roll_range": [
+					17,
+					25
+				],
+				"name": "Crippling wound",
+				"effects": [
+					"Permanent reduction to one stat",
+					"Cannot use special abilities"
+				],
+				"recovery_time": "2D6"
+			},
+			{
+				"roll_range": [
+					26,
+					40
+				],
+				"name": "Serious injury",
+				"effects": [
+					"Cannot use special abilities",
+					"Combat penalty -1"
+				],
+				"recovery_time": "1D6"
+			},
+			{
+				"roll_range": [
+					41,
+					60
+				],
+				"name": "Moderate wound",
+				"effects": [
+					"Movement reduced by half",
+					"Combat penalty -1"
+				],
+				"recovery_time": "1D3"
+			},
+			{
+				"roll_range": [
+					61,
+					85
+				],
+				"name": "Light injury",
+				"effects": [
+					"Combat penalty -1"
+				],
+				"recovery_time": "1D3"
+			},
+			{
+				"roll_range": [
+					86,
+					100
+				],
+				"name": "Knocked out",
+				"effects": [
+					"Recovers after battle"
+				],
+				"recovery_time": 1
+			}
 		],
-		"recovery_time": "N/A"
-	  },
-	  {
-		"roll_range": [6, 15],
-		"result": "Death or permanent injury",
-		"effects": [
-		  "Character is either dead or permanently removed from the campaign (player's choice)",
-		  "If removed, they may keep one carried item, the rest are lost"
-		],
-		"recovery_time": "N/A"
-	  },
-	  {
-		"roll_range": [16, 16],
-		"result": "Miraculous escape",
-		"effects": [
-		  "Character survives against all odds",
-		  "Gain +1 Luck",
-		  "All carried items are permanently lost"
-		],
-		"recovery_time": "1D3 campaign turns"
-	  },
-	  {
-		"roll_range": [17, 30],
-		"result": "Equipment loss",
-		"effects": [
-		  "One random carried item is damaged"
-		],
-		"recovery_time": "Immediate"
-	  },
-	  {
-		"roll_range": [31, 45],
-		"result": "Crippling wound",
-		"effects": [
-		  "Require 1D6 credits of surgery immediately",
-		  "If surgery not performed, suffer -1 permanent reduction to highest of Speed or Toughness"
-		],
-		"recovery_time": "1D6 campaign turns"
-	  },
-	  {
-		"roll_range": [46, 54],
-		"result": "Serious injury",
-		"effects": [
-		  "No long-term effect, but character is out of action for some time"
-		],
-		"recovery_time": "1D3+1 campaign turns"
-	  },
-	  {
-		"roll_range": [55, 80],
-		"result": "Minor injuries",
-		"effects": [
-		  "No long-term effect, but character needs some rest"
-		],
-		"recovery_time": "1 campaign turn"
-	  },
-	  {
-		"roll_range": [81, 95],
-		"result": "Knocked out",
-		"effects": [
-		  "Character regains consciousness after the battle",
-		  "No long-term effect"
-		],
-		"recovery_time": "Immediate"
-	  },
-	  {
-		"roll_range": [96, 100],
-		"result": "School of hard knocks",
-		"effects": [
-		  "Character learns from the close call",
-		  "Gain 1 XP"
-		],
-		"recovery_time": "Immediate"
-	  }
-	],
-	"bot_injury_table": [
-	  {
-		"roll_range": [1, 5],
-		"result": "Obliterated",
-		"effects": [
-		  "Bot is destroyed beyond repair",
-		  "All carried equipment is damaged"
-		],
-		"repair_time": "N/A"
-	  },
-	  {
-		"roll_range": [6, 15],
-		"result": "Destroyed",
-		"effects": [
-		  "Bot is destroyed but may be salvageable",
-		  "Requires 2D6 x 10 credits in parts to repair"
-		],
-		"repair_time": "2D6 campaign turns"
-	  },
-	  {
-		"roll_range": [16, 30],
-		"result": "Equipment loss",
-		"effects": [
-		  "One random carried item is damaged"
-		],
-		"repair_time": "Immediate"
-	  },
-	  {
-		"roll_range": [31, 45],
-		"result": "Severe damage",
-		"effects": [
-		  "Bot is non-functional until repaired",
-		  "Requires 1D6 x 5 credits in parts to repair"
-		],
-		"repair_time": "1D6 campaign turns"
-	  },
-	  {
-		"roll_range": [46, 65],
-		"result": "Minor damage",
-		"effects": [
-		  "Bot is functional but at reduced capacity",
-		  "-1 to all rolls until repaired"
-		],
-		"repair_time": "1 campaign turn"
-	  },
-	  {
-		"roll_range": [66, 100],
-		"result": "Just a few dents",
-		"effects": [
-		  "No significant damage",
-		  "Bot remains fully operational"
-		],
-		"repair_time": "Immediate"
-	  }
-	]
-  }
+		"bot_injury_table": [
+			{
+				"roll_range": [
+					1,
+					5
+				],
+				"name": "Obliterated",
+				"effects": [
+					"Bot is destroyed beyond repair",
+					"All components lost"
+				],
+				"recovery_time": 0
+			},
+			{
+				"roll_range": [
+					6,
+					15
+				],
+				"name": "Destroyed",
+				"effects": [
+					"Bot may be salvageable",
+					"Requires 1D6 parts to repair"
+				],
+				"repair_time": "2D6"
+			},
+			{
+				"roll_range": [
+					16,
+					30
+				],
+				"name": "Severe damage",
+				"effects": [
+					"Core systems compromised",
+					"Cannot use special functions"
+				],
+				"repair_time": "1D6"
+			},
+			{
+				"roll_range": [
+					31,
+					50
+				],
+				"name": "Moderate damage",
+				"effects": [
+					"Movement systems impaired",
+					"Combat systems at -1"
+				],
+				"repair_time": "1D3"
+			},
+			{
+				"roll_range": [
+					51,
+					75
+				],
+				"name": "Light damage",
+				"effects": [
+					"Minor systems offline",
+					"Combat systems at -1"
+				],
+				"repair_time": "1D3"
+			},
+			{
+				"roll_range": [
+					76,
+					100
+				],
+				"name": "Superficial damage",
+				"effects": [
+					"Cosmetic damage only",
+					"Fully functional"
+				],
+				"repair_time": 1
+			}
+		]
+	}
 }

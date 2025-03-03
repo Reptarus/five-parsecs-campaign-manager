@@ -1,7 +1,7 @@
 @tool
 extends "res://tests/fixtures/specialized/enemy_test.gd"
 
-const GameWeapon: GDScript = preload("res://src/core/systems/items/Weapon.gd")
+const GameWeapon: GDScript = preload("res://src/core/systems/items/GameWeapon.gd")
 
 enum EnemyType {
 	GRUNT,

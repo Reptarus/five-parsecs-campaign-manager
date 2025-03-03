@@ -1,164 +1,228 @@
 {
-  "mission_templates": [
-	{
-	  "type": "OPPORTUNITY",
-	  "title_templates": [
-		"Salvage Operation: {LOCATION}",
-		"Exploration of {LOCATION}",
-		"Mysterious Signal at {LOCATION}",
-		"Abandoned Facility in {LOCATION}"
-	  ],
-	  "description_templates": [
-		"An abandoned site at {LOCATION} holds valuable salvage. Your mission is to {OBJECTIVE}.",
-		"A mysterious signal from {LOCATION} requires investigation. Your task is to {OBJECTIVE}.",
-		"Reports of strange activities at {LOCATION} have surfaced. You must {OBJECTIVE}.",
-		"A long-lost facility has been discovered in {LOCATION}. Your goal is to {OBJECTIVE}."
-	  ],
-	  "objectives": [
+	"mission_templates": [
 		{
-		  "type": "SEARCH",
-		  "description": "Search the area for valuable artifacts or information"
+			"type": "OPPORTUNITY",
+			"title_templates": [
+				"Salvage Operation: {LOCATION}",
+				"Exploration of {LOCATION}",
+				"Mysterious Signal at {LOCATION}",
+				"Abandoned Facility in {LOCATION}"
+			],
+			"description_templates": [
+				"An abandoned site at {LOCATION} holds valuable salvage. Your mission is to {OBJECTIVE}.",
+				"A mysterious signal from {LOCATION} requires investigation. Your task is to {OBJECTIVE}.",
+				"Reports of strange activities at {LOCATION} have surfaced. You must {OBJECTIVE}.",
+				"A long-lost facility has been discovered in {LOCATION}. Your goal is to {OBJECTIVE}."
+			],
+			"objectives": [
+				{
+					"type": "SEARCH",
+					"description": "Search the area for valuable artifacts or information"
+				},
+				{
+					"type": "SECURE",
+					"description": "Secure the location and neutralize any threats"
+				},
+				{
+					"type": "RETRIEVE",
+					"description": "Retrieve a specific item or data from the location"
+				},
+				{
+					"type": "INVESTIGATE",
+					"description": "Investigate the anomalies and report your findings"
+				}
+			],
+			"reward_range": {
+				"min": 100,
+				"max": 500
+			},
+			"difficulty_range": {
+				"min": 1,
+				"max": 3
+			},
+			"required_skills": [
+				"Savvy",
+				"Combat",
+				"Tech"
+			],
+			"enemy_types": [
+				"Gangers",
+				"Security Bots",
+				"Rival Scavengers",
+				"Local Wildlife"
+			],
+			"deployment_condition_chance": 0.3,
+			"notable_sight_chance": 0.2,
+			"economic_impact": 1.0
 		},
 		{
-		  "type": "SECURE",
-		  "description": "Secure the location and neutralize any threats"
+			"type": "PATRON",
+			"title_templates": [
+				"Corporate Espionage at {LOCATION}",
+				"VIP Escort through {LOCATION}",
+				"Sabotage Mission in {LOCATION}",
+				"Data Theft from {LOCATION}"
+			],
+			"description_templates": [
+				"A powerful corporation needs you to {OBJECTIVE} at {LOCATION}. Discretion is key.",
+				"A high-profile client requires safe passage through {LOCATION}. Your job is to {OBJECTIVE}.",
+				"An influential patron wants you to disrupt operations at {LOCATION}. You must {OBJECTIVE}.",
+				"Sensitive data needs to be extracted from {LOCATION}. Your mission is to {OBJECTIVE}."
+			],
+			"objectives": [
+				{
+					"type": "INFILTRATE",
+					"description": "Infiltrate the target location without raising alarms"
+				},
+				{
+					"type": "PROTECT",
+					"description": "Ensure the safety of the VIP throughout the journey"
+				},
+				{
+					"type": "SABOTAGE",
+					"description": "Sabotage key systems or operations at the target location"
+				},
+				{
+					"type": "EXTRACT",
+					"description": "Extract valuable data or assets from the target location"
+				}
+			],
+			"reward_range": {
+				"min": 300,
+				"max": 800
+			},
+			"difficulty_range": {
+				"min": 2,
+				"max": 4
+			},
+			"required_skills": [
+				"Stealth",
+				"Combat",
+				"Tech",
+				"Social"
+			],
+			"enemy_types": [
+				"Corporate Security",
+				"Rival Agents",
+				"Local Law Enforcement",
+				"Automated Defenses"
+			],
+			"deployment_condition_chance": 0.4,
+			"notable_sight_chance": 0.3,
+			"economic_impact": 1.2
 		},
 		{
-		  "type": "RETRIEVE",
-		  "description": "Retrieve a specific item or data from the location"
+			"type": "QUEST",
+			"title_templates": [
+				"The Lost Artifact of {LOCATION}",
+				"Uncovering the Truth at {LOCATION}",
+				"Ancient Mystery in {LOCATION}",
+				"The {LOCATION} Incident"
+			],
+			"description_templates": [
+				"An ancient artifact is rumored to be hidden in {LOCATION}. Your quest is to {OBJECTIVE}.",
+				"Strange occurrences at {LOCATION} need investigation. Your mission is to {OBJECTIVE} and uncover the truth.",
+				"A long-forgotten mystery surrounding {LOCATION} has resurfaced. You must {OBJECTIVE} to solve it.",
+				"An unexplained incident at {LOCATION} has raised concerns. Your task is to {OBJECTIVE} and report your findings."
+			],
+			"objectives": [
+				{
+					"type": "RECOVER",
+					"description": "Recover the lost artifact and return it safely"
+				},
+				{
+					"type": "INVESTIGATE",
+					"description": "Investigate the strange occurrences and uncover the truth"
+				},
+				{
+					"type": "EXPLORE",
+					"description": "Explore the ancient ruins and decipher their secrets"
+				},
+				{
+					"type": "RESOLVE",
+					"description": "Resolve the incident and mitigate its consequences"
+				}
+			],
+			"reward_range": {
+				"min": 500,
+				"max": 1500
+			},
+			"difficulty_range": {
+				"min": 3,
+				"max": 5
+			},
+			"required_skills": [
+				"Savvy",
+				"Combat",
+				"Tech",
+				"Social",
+				"Survival"
+			],
+			"enemy_types": [
+				"Cultists",
+				"Alien Threat",
+				"Rogue AI",
+				"Interdimensional Entities"
+			],
+			"deployment_condition_chance": 0.5,
+			"notable_sight_chance": 0.4,
+			"economic_impact": 1.5
 		},
 		{
-		  "type": "INVESTIGATE",
-		  "description": "Investigate the anomalies and report your findings"
+			"type": "RIVAL",
+			"title_templates": [
+				"Showdown at {LOCATION}",
+				"Sabotage Mission: {LOCATION}",
+				"Heist at {LOCATION}",
+				"Ambush in {LOCATION}"
+			],
+			"description_templates": [
+				"Your rival has challenged you to a final confrontation at {LOCATION}. Prepare to {OBJECTIVE}.",
+				"Strike a blow against your rival's operations at {LOCATION}. Your goal is to {OBJECTIVE}.",
+				"Your rival is planning a major heist at {LOCATION}. You must {OBJECTIVE} to foil their plans.",
+				"Intelligence suggests your rival is setting up an ambush in {LOCATION}. Your mission is to {OBJECTIVE}."
+			],
+			"objectives": [
+				{
+					"type": "ELIMINATE",
+					"description": "Defeat your rival or significantly hamper their operations"
+				},
+				{
+					"type": "SABOTAGE",
+					"description": "Sabotage your rival's key assets or operations"
+				},
+				{
+					"type": "INTERCEPT",
+					"description": "Intercept and prevent your rival's heist"
+				},
+				{
+					"type": "COUNTER_AMBUSH",
+					"description": "Turn the tables on your rival's ambush plans"
+				}
+			],
+			"reward_range": {
+				"min": 400,
+				"max": 1000
+			},
+			"difficulty_range": {
+				"min": 3,
+				"max": 5
+			},
+			"required_skills": [
+				"Combat",
+				"Tactics",
+				"Stealth",
+				"Tech"
+			],
+			"enemy_types": [
+				"Rival Crew",
+				"Elite Mercenaries",
+				"Hired Guns",
+				"Specialized Combat Droids"
+			],
+			"deployment_condition_chance": 0.6,
+			"notable_sight_chance": 0.3,
+			"economic_impact": 1.3
 		}
-	  ],
-	  "reward_range": {"min": 100, "max": 500},
-	  "difficulty_range": {"min": 1, "max": 3},
-	  "required_skills": ["Savvy", "Combat", "Tech"],
-	  "enemy_types": ["Gangers", "Security Bots", "Rival Scavengers", "Local Wildlife"],
-	  "deployment_condition_chance": 0.3,
-	  "notable_sight_chance": 0.2,
-	  "economic_impact": 1.0
-	},
-	{
-	  "type": "PATRON",
-	  "title_templates": [
-		"Corporate Espionage at {LOCATION}",
-		"VIP Escort through {LOCATION}",
-		"Sabotage Mission in {LOCATION}",
-		"Data Theft from {LOCATION}"
-	  ],
-	  "description_templates": [
-		"A powerful corporation needs you to {OBJECTIVE} at {LOCATION}. Discretion is key.",
-		"A high-profile client requires safe passage through {LOCATION}. Your job is to {OBJECTIVE}.",
-		"An influential patron wants you to disrupt operations at {LOCATION}. You must {OBJECTIVE}.",
-		"Sensitive data needs to be extracted from {LOCATION}. Your mission is to {OBJECTIVE}."
-	  ],
-	  "objectives": [
-		{
-		  "type": "INFILTRATE",
-		  "description": "Infiltrate the target location without raising alarms"
-		},
-		{
-		  "type": "PROTECT",
-		  "description": "Ensure the safety of the VIP throughout the journey"
-		},
-		{
-		  "type": "SABOTAGE",
-		  "description": "Sabotage key systems or operations at the target location"
-		},
-		{
-		  "type": "EXTRACT",
-		  "description": "Extract valuable data or assets from the target location"
-		}
-	  ],
-	  "reward_range": {"min": 300, "max": 800},
-	  "difficulty_range": {"min": 2, "max": 4},
-	  "required_skills": ["Stealth", "Combat", "Tech", "Social"],
-	  "enemy_types": ["Corporate Security", "Rival Agents", "Local Law Enforcement", "Automated Defenses"],
-	  "deployment_condition_chance": 0.4,
-	  "notable_sight_chance": 0.3,
-	  "economic_impact": 1.2
-	},
-	{
-	  "type": "QUEST",
-	  "title_templates": [
-		"The Lost Artifact of {LOCATION}",
-		"Uncovering the Truth at {LOCATION}",
-		"Ancient Mystery in {LOCATION}",
-		"The {LOCATION} Incident"
-	  ],
-	  "description_templates": [
-		"An ancient artifact is rumored to be hidden in {LOCATION}. Your quest is to {OBJECTIVE}.",
-		"Strange occurrences at {LOCATION} need investigation. Your mission is to {OBJECTIVE} and uncover the truth.",
-		"A long-forgotten mystery surrounding {LOCATION} has resurfaced. You must {OBJECTIVE} to solve it.",
-		"An unexplained incident at {LOCATION} has raised concerns. Your task is to {OBJECTIVE} and report your findings."
-	  ],
-	  "objectives": [
-		{
-		  "type": "RECOVER",
-		  "description": "Recover the lost artifact and return it safely"
-		},
-		{
-		  "type": "INVESTIGATE",
-		  "description": "Investigate the strange occurrences and uncover the truth"
-		},
-		{
-		  "type": "EXPLORE",
-		  "description": "Explore the ancient ruins and decipher their secrets"
-		},
-		{
-		  "type": "RESOLVE",
-		  "description": "Resolve the incident and mitigate its consequences"
-		}
-	  ],
-	  "reward_range": {"min": 500, "max": 1500},
-	  "difficulty_range": {"min": 3, "max": 5},
-	  "required_skills": ["Savvy", "Combat", "Tech", "Social", "Survival"],
-	  "enemy_types": ["Cultists", "Alien Threat", "Rogue AI", "Interdimensional Entities"],
-	  "deployment_condition_chance": 0.5,
-	  "notable_sight_chance": 0.4,
-	  "economic_impact": 1.5
-	},
-	{
-	  "type": "RIVAL",
-	  "title_templates": [
-		"Showdown at {LOCATION}",
-		"Sabotage Mission: {LOCATION}",
-		"Heist at {LOCATION}",
-		"Ambush in {LOCATION}"
-	  ],
-	  "description_templates": [
-		"Your rival has challenged you to a final confrontation at {LOCATION}. Prepare to {OBJECTIVE}.",
-		"Strike a blow against your rival's operations at {LOCATION}. Your goal is to {OBJECTIVE}.",
-		"Your rival is planning a major heist at {LOCATION}. You must {OBJECTIVE} to foil their plans.",
-		"Intelligence suggests your rival is setting up an ambush in {LOCATION}. Your mission is to {OBJECTIVE}."
-	  ],
-	  "objectives": [
-		{
-		  "type": "ELIMINATE",
-		  "description": "Defeat your rival or significantly hamper their operations"
-		},
-		{
-		  "type": "SABOTAGE",
-		  "description": "Sabotage your rival's key assets or operations"
-		},
-		{
-		  "type": "INTERCEPT",
-		  "description": "Intercept and prevent your rival's heist"
-		},
-		{
-		  "type": "COUNTER_AMBUSH",
-		  "description": "Turn the tables on your rival's ambush plans"
-		}
-	  ],
-	  "reward_range": {"min": 400, "max": 1000},
-	  "difficulty_range": {"min": 3, "max": 5},
-	  "required_skills": ["Combat", "Tactics", "Stealth", "Tech"],
-	  "enemy_types": ["Rival Crew", "Elite Mercenaries", "Hired Guns", "Specialized Combat Droids"],
-	  "deployment_condition_chance": 0.6,
-	  "notable_sight_chance": 0.3,
-	  "economic_impact": 1.3
-	}
-  ]
+	]
 }

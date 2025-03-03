@@ -11,9 +11,9 @@ extends GameTest
 
 # Type-safe script references
 const EnemyAIManager: GDScript = preload("res://src/core/managers/EnemyAIManager.gd")
-const EnemyTacticalAI: GDScript = preload("res://src/core/battle/EnemyTacticalAI.gd")
-const BattlefieldManager: GDScript = preload("res://src/core/battle/BattlefieldManager.gd")
-const CombatManager: GDScript = preload("res://src/core/battle/CombatManager.gd")
+const EnemyTacticalAI: GDScript = preload("res://src/game/combat/EnemyTacticalAI.gd")
+const BattlefieldManager: GDScript = preload("res://src/base/combat/battlefield/BaseBattlefieldManager.gd")
+const BaseCombatManager: GDScript = preload("res://src/base/combat/BaseCombatManager.gd")
 
 # Type-safe constants
 const TEST_TIMEOUT := 2.0
@@ -36,7 +36,7 @@ func before_each() -> void:
 	add_child_autofree(_battlefield_manager)
 	track_test_node(_battlefield_manager)
 	
-	_combat_manager = CombatManager.new()
+	_combat_manager = BaseCombatManager.new()
 	if not _combat_manager:
 		push_error("Failed to create combat manager")
 		return

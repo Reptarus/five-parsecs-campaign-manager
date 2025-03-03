@@ -1,25 +1,29 @@
 @tool
 extends "res://tests/fixtures/base/game_test.gd"
 
-const BattlefieldGenerator = preload("res://src/core/battle/BattlefieldGenerator.gd")
+const BattlefieldGenerator = preload("res://src/core/systems/BattlefieldGenerator.gd")
 const TerrainTypes = preload("res://src/core/terrain/TerrainTypes.gd")
+const WorldDataMigration = preload("res://src/core/migration/WorldDataMigration.gd")
 
 var _generator: BattlefieldGenerator
+var _migration: WorldDataMigration
 
 func before_each() -> void:
 	await super.before_each()
 	_generator = BattlefieldGenerator.new()
+	_migration = WorldDataMigration.new()
 	add_child(_generator)
 	track_test_node(_generator)
 
 func after_each() -> void:
 	await super.after_each()
 	_generator = null
+	_migration = null
 
 func test_terrain_generation_basic() -> void:
 	var config = {
 		"size": Vector2i(24, 24),
-		"environment": GameEnums.PlanetEnvironment.URBAN,
+		"environment": _migration.convert_planet_environment_to_id(GameEnums.PlanetEnvironment.URBAN),
 		"cover_density": 0.2
 	}
 	
@@ -36,7 +40,7 @@ func test_terrain_generation_basic() -> void:
 func test_terrain_feature_distribution() -> void:
 	var config = {
 		"size": Vector2i(24, 24),
-		"environment": GameEnums.PlanetEnvironment.URBAN,
+		"environment": _migration.convert_planet_environment_to_id(GameEnums.PlanetEnvironment.URBAN),
 		"cover_density": 0.2
 	}
 	
@@ -60,7 +64,7 @@ func test_terrain_feature_distribution() -> void:
 func test_terrain_validation() -> void:
 	var config = {
 		"size": Vector2i(24, 24),
-		"environment": GameEnums.PlanetEnvironment.URBAN,
+		"environment": _migration.convert_planet_environment_to_id(GameEnums.PlanetEnvironment.URBAN),
 		"cover_density": 0.2
 	}
 	
@@ -90,14 +94,15 @@ func test_environment_specific_generation() -> void:
 	]
 	
 	for env in environments:
+		var env_id = _migration.convert_planet_environment_to_id(env)
 		var config = {
 			"size": Vector2i(24, 24),
-			"environment": env,
+			"environment": env_id,
 			"cover_density": 0.2
 		}
 		
 		var battlefield = _generator.generate_battlefield(config)
-		assert_not_null(battlefield, "Should generate battlefield for environment: " + str(env))
+		assert_not_null(battlefield, "Should generate battlefield for environment: " + str(env_id))
 		
 		# Verify environment-specific features
 		match env:
@@ -111,7 +116,7 @@ func test_environment_specific_generation() -> void:
 func test_terrain_connectivity() -> void:
 	var config = {
 		"size": Vector2i(24, 24),
-		"environment": GameEnums.PlanetEnvironment.URBAN,
+		"environment": _migration.convert_planet_environment_to_id(GameEnums.PlanetEnvironment.URBAN),
 		"cover_density": 0.2
 	}
 	

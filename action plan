@@ -1,0 +1,204 @@
+# Updated Prioritized Action Plan for Five Parsecs Campaign Manager
+
+## ✅ Phase 1: Core Game Loop Implementation (COMPLETED)
+All high-priority components from Phase 1 have been successfully implemented, including:
+- Campaign Phase Management with Victory Condition Tracking
+- World Generation Tables
+- Mission Generation and React Tables
+- Battle Results Recording
+- Equipment and Loot System
+- Rival and Patron System
+
+## ✅ Phase 2: Equipment and Resource Management (COMPLETED)
+
+### 1. Item and Equipment System (Medium Priority) ✅
+- **Equipment Management**
+  - **File:** `src/core/character/Equipment/EquipmentManager.gd`
+  - **Task:** Enhance equipment handling (equipping, trading, upgrading) from p.56-74
+  - **Data Integration:** Use `data/weapons.json`, `data/armor.json`, and `data/gear_database.json`
+  - **Status:** Implemented
+
+- **Resource Tracking** ✅
+  - **File:** `src/core/state/GameState.gd`
+  - **Task:** Implement tracking for credits, resources, and items from p.45-46
+  - **Data Integration:** Use `data/resources.json`
+  - **Status:** Implemented
+
+### 2. Ship Management (Medium Priority) ✅
+- **Ship System Implementation**
+  - **File:** `src/core/ships/Ship.gd`
+  - **Task:** Implement ship types, upgrades and maintenance from p.75-77
+  - **Data Integration:** Use `data/ship_components.json`
+  - **Status:** Implemented
+
+- **Crew Assignments and Ship Roles** ✅
+  - **File:** `src/game/ships/FiveParsecsShipRoles.gd`
+  - **Task:** Implement crew assignment to ship roles
+  - **Data Integration:** Use crew information from character system
+  - **Status:** Implemented
+
+## 🔄 Phase 3: UI Implementation and Data Binding (IN PROGRESS)
+
+### 1. UI Architecture Cleanup (High Priority) ✅
+- **UI File Organization** ✅
+  - **Task:** Organize UI files into logical directory structure
+  - **Status:** Completed with scripts for organization and reference updates
+
+- **UI Documentation** ✅
+  - **Files:** Created documentation in `docs/` directory
+  - **Task:** Document UI structure, standards, and cleanup process
+  - **Status:** Completed with comprehensive documentation files
+
+- **UI Reference Management** ✅
+  - **Task:** Update references to UI files after reorganization
+  - **Status:** Completed with reference detection and update scripts
+
+### 2. Phase-Specific UI Panels (High Priority) 🔄
+- **Campaign Dashboard Completion**
+  - **File:** `src/ui/screens/campaign/CampaignDashboard.tscn` and related scripts
+  - **Task:** Complete the main dashboard with all campaign information
+  - **Data Integration:** Bind to campaign state data
+  - **Status:** In progress
+
+- **Phase Panel Implementation**
+  - **Files:** Various `src/ui/screens/campaign/phases/*.gd` files
+  - **Task:** Complete all phase-specific UI panels
+  - **Data Integration:** Connect each panel to relevant game data
+  - **Status:** In progress
+
+### 3. Mission and Story System (Medium Priority) 🔄
+- **Mission Generation and Management UI**
+  - **File:** `src/core/mission/MissionManager.gd` and related UI files
+  - **Task:** Implement mission generation UI and tracking from p.89-91
+  - **Data Integration:** Use `data/mission_templates.json` and `data/mission_tables/`
+  - **Status:** Core functionality implemented, UI integration in progress
+
+- **Patron and Connection System UI**
+  - **Files:** `src/game/campaign/PatronManager.gd` and related UI files
+  - **Task:** Implement patron and connection UI from p.92-94
+  - **Data Integration:** Use `data/patron_types.json` and `data/expanded_connections.json`
+  - **Status:** Core functionality implemented, UI integration in progress
+
+### 4. Component Standardization (Medium Priority)
+- **ResponsiveContainer Consolidation**
+  - **File:** Create standardized `src/ui/components/base/ResponsiveContainer.gd`
+  - **Task:** Standardize container components and update implementations
+  - **Status:** Planning phase
+
+- **UI Component Library**
+  - **File:** Various files in `src/ui/components/`
+  - **Task:** Create reusable UI components with consistent APIs
+  - **Status:** Planning phase
+
+## Phase 4: State Management and Persistence (2-3 weeks)
+
+### 1. Save/Load System (High Priority)
+- **Enhanced Save System**
+  - **File:** `src/core/state/SaveManager.gd`
+  - **Task:** Complete save/load functionality with validation
+  - **Data Integration:** Ensure all game state data is properly serialized
+  - **Gap Being Filled:** Save system incomplete
+
+- **Campaign State Validation**
+  - **File:** Create new file `src/core/state/ValidationManager.gd`
+  - **Task:** Implement state validation for all game systems
+  - **Data Integration:** Validate against data files for correctness
+  - **Gap Being Filled:** State validation missing
+
+### 2. Error Handling and Recovery (Medium Priority)
+- **Error Recovery System**
+  - **File:** Create new file `src/core/state/ErrorRecoveryManager.gd`
+  - **Task:** Implement error detection and recovery
+  - **Gap Being Filled:** Error recovery missing
+
+- **Campaign History**
+  - **File:** Create new file `src/core/state/CampaignHistory.gd`
+  - **Task:** Implement full campaign history tracking
+  - **Rulebook Alignment:** Record elements recommended in rulebook for campaign narrative
+  - **Gap Being Filled:** History tracking may be minimal
+
+## Phase 5: Testing and Refinement (Ongoing)
+
+### 1. Integration Testing (High Priority)
+- **Campaign Flow Tests**
+  - **File:** Create tests in `tests/integration/campaign/`
+  - **Task:** Test full campaign flow from creation to completion
+  - **Gap Being Filled:** Integration tests incomplete
+
+- **Character Management Tests**
+  - **File:** Create tests in `tests/integration/character/`
+  - **Task:** Test character creation, advancement, and equipment management
+  - **Gap Being Filled:** Character tests incomplete
+
+- **Rules Compliance Tests**
+  - **File:** Create tests in `tests/rules/`
+  - **Task:** Create tests that verify compliance with specific rulebook mechanics
+  - **Rulebook Alignment:** Test against specific rule examples from rulebook
+  - **Gap Being Filled:** Rules compliance testing may be missing
+
+### 2. Performance Optimization (Low Priority)
+- **Resource Management**
+  - **File:** Various core system files
+  - **Task:** Implement proper resource cleanup and optimization
+  - **Gap Being Filled:** Performance optimization missing
+
+## Implementation Notes
+
+### Core Rules Integration
+1. **Campaign Turn Sequence**: Follow the exact flow from p.78-100 of core_rules.md
+   - Travel Steps (ship movement)
+   - New World Arrival (world generation)
+   - World Steps (story events, missions, trading)
+
+2. **Character System**: Implement according to p.26-41
+   - Start with the crew creation process
+   - Follow the exact stat blocks and mechanics
+
+3. **Battle Results**: Focus on recording results rather than simulation
+   - Players will handle the physical battle on the table
+   - App should focus on setup and outcome recording
+
+4. **Rulebook Accuracy**: For each system, directly reference the corresponding rulebook pages
+   - Copy exact tables and algorithms where possible
+   - Match the exact terminology used in the rulebook
+   - When in doubt, prioritize rulebook accuracy over implementation convenience
+
+### Data Utilization Strategy
+1. Use the extensive JSON data files in the `/data` directory as primary sources:
+   - `character_creation_data.json` for character generation
+   - `mission_templates.json` for mission creation
+   - `planet_types.json` and `location_types.json` for world generation
+   - `weapons.json` and `armor.json` for equipment
+
+2. Create data loaders for each major system that:
+   - Load and validate data at startup
+   - Provide efficient access methods
+   - Include error handling for missing or corrupt data
+
+### UI Standards (Updated)
+1. **File Organization**:
+   - **Screens**: All UI screens should be placed in `src/ui/screens/` and organized by feature
+   - **Components**: Reusable UI components should be placed in `src/ui/components/`
+   - **Resources**: UI resources (themes, styles, etc.) should be placed in `src/ui/resource/`
+
+2. **Component Design**:
+   - Components should have clear separation of concerns
+   - Components should be designed for reusability
+   - Complex screens should be composed of smaller components
+
+3. **Responsive Design**:
+   - Use the standardized ResponsiveContainer for responsive layouts
+   - Design UI for multiple screen sizes and orientations
+
+4. **Documentation**:
+   - Each directory should have a README.md file
+   - Each component should have clear usage examples
+   - Document the purpose and integration points for complex UI screens
+
+### Rulebook Mechanics Already Implemented
+Several key rulebook mechanics have already been successfully implemented:
+- **✓ Experience Calculation** - Updated to match rulebook's XP system (character advancement)
+- **✓ Injury Tables** - Added detailed injury tables with proper outcomes and recovery times
+- **✓ Loot Generation** - Updated to use the appropriate loot tables from rulebook
+- **✓ Rival System** - Added proper rival generation mechanics per rulebook
+- **✓ Patron Relationships** - Added patron relationship tracking per rulebook 

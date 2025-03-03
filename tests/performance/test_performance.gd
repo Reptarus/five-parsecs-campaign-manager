@@ -3,8 +3,8 @@ extends "res://tests/fixtures/base/base_test.gd"
 
 # Required type declarations
 const GameEnums: GDScript = preload("res://src/core/systems/GlobalEnums.gd")
-const BattlefieldGeneratorScript: GDScript = preload("res://src/core/battle/BattlefieldGenerator.gd")
-const BattlefieldManagerScript: GDScript = preload("res://src/core/battle/BattlefieldManager.gd")
+const BattlefieldGeneratorScript: GDScript = preload("res://src/core/systems/BattlefieldGenerator.gd")
+const BattlefieldManagerScript: GDScript = preload("res://src/base/combat/battlefield/BaseBattlefieldManager.gd")
 const TerrainTypesScript: GDScript = preload("res://src/core/terrain/TerrainTypes.gd")
 
 # Performance thresholds with explicit types

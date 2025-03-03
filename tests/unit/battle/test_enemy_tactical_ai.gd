@@ -10,8 +10,8 @@
 extends GameTest
 
 # Type-safe script references
-const EnemyTacticalAI: GDScript = preload("res://src/core/battle/EnemyTacticalAI.gd")
-const BattlefieldManager: GDScript = preload("res://src/core/battle/BattlefieldManager.gd")
+const EnemyTacticalAI: GDScript = preload("res://src/game/combat/EnemyTacticalAI.gd")
+const BattlefieldManager: GDScript = preload("res://src/base/combat/battlefield/BaseBattlefieldManager.gd")
 const Character: GDScript = preload("res://src/core/character/Base/Character.gd")
 
 # Type-safe constants

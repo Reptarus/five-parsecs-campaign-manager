@@ -1,0 +1,610 @@
+{
+    "name": "character_backgrounds",
+    "backgrounds": [
+        {
+            "id": "military",
+            "name": "Military Veteran",
+            "description": "You served in a military or security force, gaining combat experience and discipline.",
+            "stat_bonuses": {
+                "combat": 1,
+                "toughness": 1
+            },
+            "stat_penalties": {
+                "savvy": -1
+            },
+            "starting_skills": [
+                "Tactics",
+                "Discipline"
+            ],
+            "starting_gear": [
+                {
+                    "type": "weapon",
+                    "options": [
+                        "Combat rifle",
+                        "Carbine"
+                    ]
+                },
+                {
+                    "type": "armor",
+                    "options": [
+                        "Trooper Armor"
+                    ]
+                },
+                {
+                    "type": "gear",
+                    "options": [
+                        "Medkit",
+                        "Comm-link"
+                    ]
+                }
+            ],
+            "special_abilities": [
+                {
+                    "name": "Combat Training",
+                    "description": "Once per battle, you can reroll a failed combat roll."
+                }
+            ],
+            "background_events": [
+                "Served with distinction in a major conflict",
+                "Survived a disastrous campaign",
+                "Trained elite units",
+                "Court-martialed but later exonerated",
+                "Witnessed war crimes that still haunt you",
+                "Decorated for valor in combat"
+            ],
+            "suitable_species": [
+                "Human",
+                "Soulless",
+                "Ardan",
+                "Precursor",
+                "Mechanic"
+            ],
+            "tags": [
+                "combat",
+                "disciplined",
+                "trained"
+            ]
+        },
+        {
+            "id": "criminal",
+            "name": "Criminal",
+            "description": "You've lived outside the law, developing street smarts and survival skills.",
+            "stat_bonuses": {
+                "savvy": 1,
+                "speed": 1
+            },
+            "stat_penalties": {
+                "toughness": -1
+            },
+            "starting_skills": [
+                "Stealth",
+                "Streetwise"
+            ],
+            "starting_gear": [
+                {
+                    "type": "weapon",
+                    "options": [
+                        "Hand cannon",
+                        "Service pistol"
+                    ]
+                },
+                {
+                    "type": "armor",
+                    "options": [
+                        "Stealth Suit"
+                    ]
+                },
+                {
+                    "type": "gear",
+                    "options": [
+                        "Lockpick Set",
+                        "Stim-pack"
+                    ]
+                }
+            ],
+            "special_abilities": [
+                {
+                    "name": "Underworld Contacts",
+                    "description": "You can find black market goods at a 10% discount."
+                }
+            ],
+            "background_events": [
+                "Pulled off a legendary heist",
+                "Served time in a brutal prison",
+                "Betrayed by a partner",
+                "Former gang leader",
+                "On the run from powerful enemies",
+                "Reformed but still haunted by past deeds"
+            ],
+            "suitable_species": [
+                "Human",
+                "Soulless",
+                "Ardan",
+                "Mechanic",
+                "Precursor"
+            ],
+            "tags": [
+                "stealth",
+                "streetwise",
+                "outlaw"
+            ]
+        },
+        {
+            "id": "scientist",
+            "name": "Scientist",
+            "description": "You've dedicated your life to research and discovery, gaining technical expertise.",
+            "stat_bonuses": {
+                "savvy": 2
+            },
+            "stat_penalties": {
+                "combat": -1
+            },
+            "starting_skills": [
+                "Tech",
+                "Medicine"
+            ],
+            "starting_gear": [
+                {
+                    "type": "weapon",
+                    "options": [
+                        "Service pistol"
+                    ]
+                },
+                {
+                    "type": "armor",
+                    "options": [
+                        "Hazard Suit"
+                    ]
+                },
+                {
+                    "type": "gear",
+                    "options": [
+                        "Data-slate",
+                        "Medkit"
+                    ]
+                }
+            ],
+            "special_abilities": [
+                {
+                    "name": "Technical Expertise",
+                    "description": "You can analyze unknown technology with a +2 bonus to Savvy rolls."
+                }
+            ],
+            "background_events": [
+                "Made a groundbreaking discovery",
+                "Research was weaponized against your wishes",
+                "Escaped from a research facility disaster",
+                "Exiled for controversial theories",
+                "Searching for a stolen invention",
+                "Trying to undo a scientific catastrophe you caused"
+            ],
+            "suitable_species": [
+                "Human",
+                "Soulless",
+                "Ardan",
+                "Precursor"
+            ],
+            "tags": [
+                "technical",
+                "educated",
+                "analytical"
+            ]
+        },
+        {
+            "id": "mercenary",
+            "name": "Mercenary",
+            "description": "You've sold your combat skills to the highest bidder, becoming a hardened fighter.",
+            "stat_bonuses": {
+                "combat": 1,
+                "speed": 1
+            },
+            "stat_penalties": {
+                "savvy": -1
+            },
+            "starting_skills": [
+                "Tactics",
+                "Survival"
+            ],
+            "starting_gear": [
+                {
+                    "type": "weapon",
+                    "options": [
+                        "Shot gun",
+                        "Light machine gun"
+                    ]
+                },
+                {
+                    "type": "armor",
+                    "options": [
+                        "Heavy Armor"
+                    ]
+                },
+                {
+                    "type": "gear",
+                    "options": [
+                        "Medkit",
+                        "Survival Kit"
+                    ]
+                }
+            ],
+            "special_abilities": [
+                {
+                    "name": "Hardened Fighter",
+                    "description": "You gain +1 to all saving throws against injury."
+                }
+            ],
+            "background_events": [
+                "Sole survivor of a mercenary company massacre",
+                "Betrayed an employer for ethical reasons",
+                "Legendary reputation in certain sectors",
+                "Hunted by a former client",
+                "Fought in a notorious corporate war",
+                "Specialized in high-risk extraction missions"
+            ],
+            "suitable_species": [
+                "Human",
+                "Soulless",
+                "Ardan",
+                "Mechanic"
+            ],
+            "tags": [
+                "combat",
+                "tough",
+                "independent"
+            ]
+        },
+        {
+            "id": "colonist",
+            "name": "Frontier Colonist",
+            "description": "You grew up on the fringes of civilization, learning to survive with limited resources.",
+            "stat_bonuses": {
+                "toughness": 1,
+                "savvy": 1
+            },
+            "stat_penalties": {
+                "combat": -1
+            },
+            "starting_skills": [
+                "Survival",
+                "Tech"
+            ],
+            "starting_gear": [
+                {
+                    "type": "weapon",
+                    "options": [
+                        "Carbine",
+                        "Shot gun"
+                    ]
+                },
+                {
+                    "type": "armor",
+                    "options": [
+                        "Trooper Armor"
+                    ]
+                },
+                {
+                    "type": "gear",
+                    "options": [
+                        "Survival Kit",
+                        "Repair Kit"
+                    ]
+                }
+            ],
+            "special_abilities": [
+                {
+                    "name": "Resourceful",
+                    "description": "You can improvise equipment from scrap with a successful Savvy roll."
+                }
+            ],
+            "background_events": [
+                "Survived a colony disaster",
+                "Defended settlement against raiders",
+                "Discovered valuable resource that changed colony's fortune",
+                "Lost family to frontier dangers",
+                "Led an evacuation during crisis",
+                "Grew up as the only human among aliens"
+            ],
+            "suitable_species": [
+                "Human",
+                "Soulless",
+                "Ardan",
+                "Precursor"
+            ],
+            "tags": [
+                "survivor",
+                "resourceful",
+                "adaptable"
+            ]
+        },
+        {
+            "id": "pilot",
+            "name": "Pilot",
+            "description": "You've spent your life flying spacecraft or vehicles, developing quick reflexes and technical knowledge.",
+            "stat_bonuses": {
+                "speed": 1,
+                "savvy": 1
+            },
+            "stat_penalties": {
+                "toughness": -1
+            },
+            "starting_skills": [
+                "Pilot",
+                "Tech"
+            ],
+            "starting_gear": [
+                {
+                    "type": "weapon",
+                    "options": [
+                        "Service pistol",
+                        "Carbine"
+                    ]
+                },
+                {
+                    "type": "armor",
+                    "options": [
+                        "Stealth Suit"
+                    ]
+                },
+                {
+                    "type": "gear",
+                    "options": [
+                        "Comm-link",
+                        "Holo-map"
+                    ]
+                }
+            ],
+            "special_abilities": [
+                {
+                    "name": "Quick Reflexes",
+                    "description": "You gain +1 to initiative rolls and dodge attempts."
+                }
+            ],
+            "background_events": [
+                "Famous for an impossible landing",
+                "Survived multiple crash landings",
+                "Smuggled goods through blockades",
+                "Set speed records on dangerous routes",
+                "Former military pilot dishonorably discharged",
+                "Escaped pursuit by flying through hazardous terrain"
+            ],
+            "suitable_species": [
+                "Human",
+                "Soulless",
+                "Ardan",
+                "Mechanic"
+            ],
+            "tags": [
+                "quick",
+                "technical",
+                "daring"
+            ]
+        },
+        {
+            "id": "corporate",
+            "name": "Corporate Agent",
+            "description": "You worked for a powerful corporation, gaining connections and specialized training.",
+            "stat_bonuses": {
+                "savvy": 1,
+                "combat": 1
+            },
+            "stat_penalties": {
+                "speed": -1
+            },
+            "starting_skills": [
+                "Negotiation",
+                "Tech"
+            ],
+            "starting_gear": [
+                {
+                    "type": "weapon",
+                    "options": [
+                        "Service pistol",
+                        "Hand cannon"
+                    ]
+                },
+                {
+                    "type": "armor",
+                    "options": [
+                        "Trooper Armor"
+                    ]
+                },
+                {
+                    "type": "gear",
+                    "options": [
+                        "Data-slate",
+                        "Comm-link"
+                    ]
+                }
+            ],
+            "special_abilities": [
+                {
+                    "name": "Corporate Connections",
+                    "description": "You can call in a corporate favor once per campaign phase."
+                }
+            ],
+            "background_events": [
+                "Involved in corporate espionage",
+                "Witnessed illegal experiments",
+                "Specialized in hostile takeovers",
+                "Faked your death to escape corporate control",
+                "Stole valuable corporate secrets",
+                "Rose quickly through ranks before a sudden fall"
+            ],
+            "suitable_species": [
+                "Human",
+                "Soulless",
+                "Ardan",
+                "Mechanic"
+            ],
+            "tags": [
+                "connected",
+                "trained",
+                "professional"
+            ]
+        },
+        {
+            "id": "bot",
+            "name": "Combat Bot",
+            "description": "You are a machine designed for warfare, with integrated weapons and tactical systems.",
+            "stat_bonuses": {
+                "combat": 2,
+                "toughness": 1
+            },
+            "stat_penalties": {
+                "savvy": -2
+            },
+            "starting_skills": [
+                "Tactics",
+                "Tech"
+            ],
+            "starting_gear": [
+                {
+                    "type": "weapon",
+                    "options": [
+                        "Integrated Weapon System"
+                    ]
+                },
+                {
+                    "type": "armor",
+                    "options": [
+                        "Reinforced Chassis"
+                    ]
+                },
+                {
+                    "type": "gear",
+                    "options": [
+                        "Self-Repair Module"
+                    ]
+                }
+            ],
+            "special_abilities": [
+                {
+                    "name": "Integrated Systems",
+                    "description": "You cannot be disarmed and have built-in night vision."
+                }
+            ],
+            "background_events": [
+                "Achieved sentience during combat operation",
+                "Last of your production line",
+                "Reprogrammed to value life",
+                "Experimental prototype with unique capabilities",
+                "Served multiple owners with varying ethics",
+                "Memory core contains classified military data"
+            ],
+            "suitable_species": [
+                "Mechanic"
+            ],
+            "tags": [
+                "mechanical",
+                "combat",
+                "durable"
+            ]
+        }
+    ],
+    "validation_rules": [
+        {
+            "type": "species_compatibility",
+            "params": {
+                "Human": {
+                    "allowed_backgrounds": [
+                        "military",
+                        "criminal",
+                        "scientist",
+                        "mercenary",
+                        "colonist",
+                        "pilot",
+                        "corporate"
+                    ]
+                },
+                "Soulless": {
+                    "allowed_backgrounds": [
+                        "military",
+                        "criminal",
+                        "scientist",
+                        "mercenary",
+                        "colonist",
+                        "pilot",
+                        "corporate"
+                    ]
+                },
+                "Ardan": {
+                    "allowed_backgrounds": [
+                        "military",
+                        "criminal",
+                        "scientist",
+                        "mercenary",
+                        "colonist",
+                        "pilot",
+                        "corporate"
+                    ]
+                },
+                "Mechanic": {
+                    "allowed_backgrounds": [
+                        "military",
+                        "criminal",
+                        "mercenary",
+                        "pilot",
+                        "corporate",
+                        "bot"
+                    ]
+                },
+                "Precursor": {
+                    "allowed_backgrounds": [
+                        "military",
+                        "criminal",
+                        "scientist",
+                        "colonist"
+                    ]
+                }
+            }
+        }
+    ],
+    "default_background": {
+        "id": "drifter",
+        "name": "Drifter",
+        "description": "You've wandered from place to place, picking up various skills along the way.",
+        "stat_bonuses": {},
+        "stat_penalties": {},
+        "starting_skills": [
+            "Survival"
+        ],
+        "starting_gear": [
+            {
+                "type": "weapon",
+                "options": [
+                    "Service pistol"
+                ]
+            },
+            {
+                "type": "armor",
+                "options": [
+                    "Trooper Armor"
+                ]
+            },
+            {
+                "type": "gear",
+                "options": [
+                    "Survival Kit"
+                ]
+            }
+        ],
+        "special_abilities": [],
+        "background_events": [
+            "Lived in many different settlements",
+            "Picked up odd jobs to survive",
+            "Witnessed many strange things in your travels"
+        ],
+        "suitable_species": [
+            "Human",
+            "Soulless",
+            "Ardan",
+            "Precursor",
+            "Mechanic"
+        ],
+        "tags": [
+            "adaptable",
+            "experienced",
+            "survivor"
+        ]
+    }
+}

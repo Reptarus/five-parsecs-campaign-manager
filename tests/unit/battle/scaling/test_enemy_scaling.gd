@@ -2,7 +2,7 @@
 extends "res://tests/fixtures/specialized/enemy_test_base.gd"
 
 # Type-safe constants with explicit typing
-const TestedClass: GDScript = preload("res://src/core/battle/EnemyScalingSystem.gd")
+const TestedClass: GDScript = preload("res://src/base/combat/enemy/BaseEnemyScalingSystem.gd")
 
 # Type-safe instance variables
 var _instance: Node = null

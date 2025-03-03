@@ -2,7 +2,7 @@ extends Node
 class_name GameState
 
 const GameEnums = preload("res://src/core/systems/GlobalEnums.gd")
-const FiveParcsecsCampaign = preload("res://src/game/campaign/Campaign.gd")
+const FiveParcsecsCampaign = preload("res://src/game/campaign/FiveParsecsCampaign.gd")
 const Ship = preload("res://src/core/ships/Ship.gd")
 const SaveManager = preload("res://src/core/managers/SaveManager.gd")
 
@@ -436,3 +436,216 @@ func has_equipment(equipment_type: Variant) -> bool:
 		equipment_id = equipment_type
 	
 	return _current_campaign.has_equipment(equipment_id)
+
+## Enhanced Resource Management (Five Parsecs rulebook p.45-46)
+
+## Add credits to the player's balance
+func add_credits(amount: int) -> bool:
+	if amount <= 0:
+		return false
+		
+	return add_resource(GameEnums.ResourceType.CREDITS, amount)
+
+## Remove credits from the player's balance
+func remove_credits(amount: int) -> bool:
+	if amount <= 0:
+		return false
+		
+	return remove_resource(GameEnums.ResourceType.CREDITS, amount)
+
+## Get current credit balance
+func get_credits() -> int:
+	return get_resource(GameEnums.ResourceType.CREDITS)
+
+## Add fuel to the player's resources
+func add_fuel(amount: int) -> bool:
+	if amount <= 0:
+		return false
+		
+	return add_resource(GameEnums.ResourceType.FUEL, amount)
+
+## Remove fuel from the player's resources
+func remove_fuel(amount: int) -> bool:
+	if amount <= 0:
+		return false
+		
+	return remove_resource(GameEnums.ResourceType.FUEL, amount)
+
+## Get current fuel level
+func get_fuel() -> int:
+	return get_resource(GameEnums.ResourceType.FUEL)
+
+## Add materials to the player's resources
+func add_materials(amount: int) -> bool:
+	if amount <= 0:
+		return false
+		
+	return add_resource(GameEnums.ResourceType.TECH_PARTS, amount)
+
+## Remove materials from the player's resources
+func remove_materials(amount: int) -> bool:
+	if amount <= 0:
+		return false
+		
+	return remove_resource(GameEnums.ResourceType.TECH_PARTS, amount)
+
+## Get current materials amount
+func get_materials() -> int:
+	return get_resource(GameEnums.ResourceType.TECH_PARTS)
+
+## Add medical supplies to the player's resources
+func add_medical_supplies(amount: int) -> bool:
+	if amount <= 0:
+		return false
+		
+	return add_resource(GameEnums.ResourceType.MEDICAL_SUPPLIES, amount)
+
+## Remove medical supplies from the player's resources
+func remove_medical_supplies(amount: int) -> bool:
+	if amount <= 0:
+		return false
+		
+	return remove_resource(GameEnums.ResourceType.MEDICAL_SUPPLIES, amount)
+
+## Get current medical supplies amount
+func get_medical_supplies() -> int:
+	return get_resource(GameEnums.ResourceType.MEDICAL_SUPPLIES)
+
+## Calculate total value of resources
+func calculate_total_resource_value() -> int:
+	var total_value = 0
+	
+	# Credit value is direct
+	total_value += get_credits()
+	
+	# Other resources have market values based on rulebook
+	total_value += get_fuel() * 10 # Each fuel unit worth 10 credits
+	total_value += get_materials() * 15 # Each material unit worth 15 credits
+	total_value += get_medical_supplies() * 25 # Each medical unit worth 25 credits
+	
+	# Calculate other resources if they exist
+	for resource_type in resources.keys():
+		if resource_type not in [GameEnums.ResourceType.CREDITS,
+								GameEnums.ResourceType.FUEL,
+								GameEnums.ResourceType.TECH_PARTS,
+								GameEnums.ResourceType.MEDICAL_SUPPLIES]:
+			# Generic resources valued at 5 credits
+			total_value += resources[resource_type] * 5
+	
+	return total_value
+
+## Check if player can afford a purchase with specific resource
+func can_afford(amount: int, resource_type: GameEnums.ResourceType = GameEnums.ResourceType.CREDITS) -> bool:
+	return get_resource(resource_type) >= amount
+
+## Make a purchase using credits
+func make_purchase(cost: int) -> bool:
+	if can_afford(cost):
+		return remove_credits(cost)
+	return false
+
+## Resource Transaction System (Five Parsecs rulebook p.47-50)
+
+## Trade one resource for another at the specified exchange rate
+func trade_resources(source_type: GameEnums.ResourceType, target_type: GameEnums.ResourceType, amount: int, exchange_rate: float = 1.0) -> bool:
+	if amount <= 0:
+		return false
+	
+	# Check if we have enough of the source resource
+	if not can_afford(amount, source_type):
+		return false
+	
+	# Calculate how much of the target resource will be gained
+	var target_amount = int(amount * exchange_rate)
+	
+	# Perform the exchange
+	if remove_resource(source_type, amount):
+		add_resource(target_type, target_amount)
+		return true
+	
+	return false
+
+## Market Prices Based on Location (Five Parsecs rulebook p.64-66)
+
+## Get the current market price for a resource type based on location
+func get_market_price(resource_type: GameEnums.ResourceType) -> int:
+	# Base prices from rulebook
+	var base_prices = {
+		GameEnums.ResourceType.FUEL: 10,
+		GameEnums.ResourceType.TECH_PARTS: 15,
+		GameEnums.ResourceType.MEDICAL_SUPPLIES: 25,
+		GameEnums.ResourceType.SUPPLIES: 5,
+		GameEnums.ResourceType.WEAPONS: 20
+	}
+	
+	# If resource not defined, default to 10
+	var base_price = base_prices.get(resource_type, 10)
+	
+	# Adjust price based on current location
+	if current_location:
+		var location_type = current_location.get("type", GameEnums.WorldTrait.NONE)
+		
+		match location_type:
+			GameEnums.WorldTrait.TRADE_CENTER:
+				# Trade centers have cheaper resources
+				base_price = int(base_price * 0.8)
+			GameEnums.WorldTrait.INDUSTRIAL_HUB:
+				# Industrial hubs have cheaper materials
+				if resource_type == GameEnums.ResourceType.TECH_PARTS:
+					base_price = int(base_price * 0.7)
+			GameEnums.WorldTrait.FRONTIER_WORLD:
+				# Frontier worlds have more expensive resources
+				base_price = int(base_price * 1.3)
+			GameEnums.WorldTrait.TECH_CENTER:
+				# Tech centers have cheaper luxury goods
+				if resource_type == GameEnums.ResourceType.WEAPONS:
+					base_price = int(base_price * 0.8)
+				elif resource_type == GameEnums.ResourceType.MEDICAL_SUPPLIES:
+					base_price = int(base_price * 0.9)
+			GameEnums.WorldTrait.MINING_COLONY:
+				# Mining colonies have cheaper materials but expensive food
+				if resource_type == GameEnums.ResourceType.TECH_PARTS:
+					base_price = int(base_price * 0.6)
+				elif resource_type == GameEnums.ResourceType.SUPPLIES:
+					base_price = int(base_price * 1.2)
+	
+	# Apply random market fluctuation (+/- 20%)
+	var fluctuation = randf_range(0.8, 1.2)
+	var final_price = int(base_price * fluctuation)
+	
+	# Ensure minimum price
+	return max(1, final_price)
+
+## Calculate the selling price for a resource
+func get_resource_sell_price(resource_type: GameEnums.ResourceType) -> int:
+	# Selling price is always less than buying price (75% of market value)
+	return int(get_market_price(resource_type) * 0.75)
+
+## Buy resources from the market
+func buy_resources(resource_type: GameEnums.ResourceType, amount: int) -> bool:
+	if amount <= 0:
+		return false
+	
+	var price_per_unit = get_market_price(resource_type)
+	var total_cost = price_per_unit * amount
+	
+	if make_purchase(total_cost):
+		add_resource(resource_type, amount)
+		return true
+	
+	return false
+
+## Sell resources to the market
+func sell_resources(resource_type: GameEnums.ResourceType, amount: int) -> bool:
+	if amount <= 0 or not can_afford(amount, resource_type):
+		return false
+	
+	var price_per_unit = get_resource_sell_price(resource_type)
+	var total_value = price_per_unit * amount
+	
+	if remove_resource(resource_type, amount):
+		add_credits(total_value)
+		return true
+	
+	return false
+  

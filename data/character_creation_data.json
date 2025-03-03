@@ -10,8 +10,20 @@
                 "TOUGHNESS": 3,
                 "SAVVY": 0
             },
-            "characteristics": ["Can exceed 1 point of Luck"],
-            "starting_gear": []
+            "characteristics": [
+                "Can exceed 1 point of Luck",
+                "Adaptable: +1 to rolls when attempting something for the first time"
+            ],
+            "starting_gear": [
+                "Basic Pistol",
+                "Utility Knife",
+                "Comm Unit"
+            ],
+            "background_options": [
+                "Colony Born: +1 to Survival checks",
+                "Core Worlder: +1 to Social checks",
+                "Spacer: +1 to Zero-G operations"
+            ]
         },
         "ENGINEER": {
             "name": "Engineer",
@@ -21,13 +33,23 @@
                 "SPEED": 4,
                 "COMBAT_SKILL": 0,
                 "TOUGHNESS": 2,
-                "SAVVY": 0
+                "SAVVY": 1
             },
             "characteristics": [
                 "+1 to repair rolls",
+                "+2 to identify technological artifacts",
                 "Cannot exceed Toughness 4"
             ],
-            "starting_gear": []
+            "starting_gear": [
+                "Repair Kit",
+                "Basic Pistol",
+                "Scanner"
+            ],
+            "background_options": [
+                "Corporate Trained: +1 to Electronics",
+                "Self-Taught: +1 to Improvisation",
+                "Military Engineer: +1 to Weapon Maintenance"
+            ]
         },
         "KERIN": {
             "name": "K'Erin",
@@ -41,9 +63,19 @@
             },
             "characteristics": [
                 "Roll twice for Brawling, pick better result",
-                "Must move to engage enemies within base movement in Brawling"
+                "Must move to engage enemies within base movement in Brawling",
+                "+1 damage with melee weapons"
             ],
-            "starting_gear": []
+            "starting_gear": [
+                "Combat Knife",
+                "Light Armor",
+                "Trophy Collection"
+            ],
+            "background_options": [
+                "Warrior Caste: +1 to Intimidation",
+                "Exile: +1 to Survival",
+                "Honor Guard: +1 to Leadership"
+            ]
         },
         "SOULLESS": {
             "name": "Soulless",
@@ -53,7 +85,7 @@
                 "SPEED": 4,
                 "COMBAT_SKILL": 0,
                 "TOUGHNESS": 4,
-                "SAVVY": 0
+                "SAVVY": 1
             },
             "characteristics": [
                 "6+ Armor Saving Throw",
@@ -62,7 +94,16 @@
                 "Can learn from experience and receive XP normally",
                 "Can have Bot Upgrades at 1.5x cost"
             ],
-            "starting_gear": []
+            "starting_gear": [
+                "Energy Pistol",
+                "Integrated Tool",
+                "Data Storage Unit"
+            ],
+            "background_options": [
+                "Combat Unit: +1 to Tactical Analysis",
+                "Technical Unit: +1 to Repair",
+                "Scout Unit: +1 to Reconnaissance"
+            ]
         },
         "PRECURSOR": {
             "name": "Precursor",
@@ -72,13 +113,23 @@
                 "SPEED": 5,
                 "COMBAT_SKILL": 0,
                 "TOUGHNESS": 2,
-                "SAVVY": 0
+                "SAVVY": 1
             },
             "characteristics": [
                 "Roll twice for Character Events and pick preferred result",
-                "Can avoid Character Event by spending 1 story point after rolling twice"
+                "Can avoid Character Event by spending 1 story point after rolling twice",
+                "Ancient Knowledge: +2 to checks involving ancient technology or history"
             ],
-            "starting_gear": []
+            "starting_gear": [
+                "Precursor Artifact",
+                "Light Armor",
+                "Ancient Text"
+            ],
+            "background_options": [
+                "Scholar: +1 to Research",
+                "Explorer: +1 to Navigation",
+                "Guardian: +1 to Ancient Weapons"
+            ]
         },
         "FERAL": {
             "name": "Feral",
@@ -92,9 +143,19 @@
             },
             "characteristics": [
                 "Ignore enemy-imposed penalties to Seize the Initiative rolls",
-                "Must be given single 1 on Reaction Roll if possible"
+                "Must be given single 1 on Reaction Roll if possible",
+                "Predator Instinct: +1 to tracking and hunting checks"
             ],
-            "starting_gear": []
+            "starting_gear": [
+                "Hunting Rifle",
+                "Natural Weapons",
+                "Scent Markers"
+            ],
+            "background_options": [
+                "Pack Hunter: +1 when fighting alongside allies",
+                "Lone Wolf: +1 when operating alone",
+                "Alpha: +1 to Leadership among other Ferals"
+            ]
         },
         "SWIFT": {
             "name": "Swift",
@@ -112,7 +173,16 @@
                 "Can jump from any height without damage",
                 "Must direct all weapon shots at same target"
             ],
-            "starting_gear": []
+            "starting_gear": [
+                "Light Pistol",
+                "Light Armor",
+                "Climbing Gear"
+            ],
+            "background_options": [
+                "Scout: +1 to Reconnaissance",
+                "Messenger: +1 to Speed when delivering messages",
+                "Nest Defender: +1 when defending home territory"
+            ]
         },
         "BOT": {
             "name": "Bot",
@@ -131,7 +201,391 @@
                 "Cannot use implants or consumables",
                 "Cannot be subject to Character Events"
             ],
-            "starting_gear": []
+            "starting_gear": [
+                "Integrated Weapon",
+                "Tool Attachment",
+                "Sensor Suite"
+            ],
+            "background_options": [
+                "Military Model: +1 to Combat Operations",
+                "Service Model: +1 to Assistance Tasks",
+                "Exploration Model: +1 to Environmental Analysis"
+            ]
         }
-    }
-}
+    },
+    "backgrounds": {
+        "MILITARY": {
+            "name": "Military",
+            "description": "Former member of a military organization, with training in combat and tactics.",
+            "stat_bonuses": {
+                "COMBAT_SKILL": 1
+            },
+            "skill_bonuses": [
+                "Tactics",
+                "Discipline"
+            ],
+            "starting_gear": [
+                "Military ID",
+                "Combat Knife",
+                "Rations"
+            ],
+            "special_abilities": [
+                "Combat Training: +1 to hit with military weapons"
+            ]
+        },
+        "CRIMINAL": {
+            "name": "Criminal",
+            "description": "Former or current member of the criminal underworld, with connections and street smarts.",
+            "stat_bonuses": {
+                "REACTIONS": 1
+            },
+            "skill_bonuses": [
+                "Stealth",
+                "Streetwise"
+            ],
+            "starting_gear": [
+                "Lockpicks",
+                "Concealed Weapon",
+                "Fake ID"
+            ],
+            "special_abilities": [
+                "Underworld Contacts: +2 to find illegal goods or information"
+            ]
+        },
+        "ACADEMIC": {
+            "name": "Academic",
+            "description": "Educated in formal institutions, with knowledge in various scientific fields.",
+            "stat_bonuses": {
+                "SAVVY": 1
+            },
+            "skill_bonuses": [
+                "Research",
+                "Medicine"
+            ],
+            "starting_gear": [
+                "Data Pad",
+                "Research Notes",
+                "Stimulants"
+            ],
+            "special_abilities": [
+                "Scientific Method: +2 to analyze unknown phenomena"
+            ]
+        },
+        "COLONIST": {
+            "name": "Colonist",
+            "description": "Raised on a frontier colony, with practical skills for survival.",
+            "stat_bonuses": {
+                "TOUGHNESS": 1
+            },
+            "skill_bonuses": [
+                "Survival",
+                "Repair"
+            ],
+            "starting_gear": [
+                "Multi-tool",
+                "Water Purifier",
+                "Local Map"
+            ],
+            "special_abilities": [
+                "Resourceful: Can improvise tools from available materials"
+            ]
+        },
+        "CORPORATE": {
+            "name": "Corporate",
+            "description": "Former employee of a major corporation, with business acumen and connections.",
+            "stat_bonuses": {
+                "SAVVY": 1
+            },
+            "skill_bonuses": [
+                "Negotiation",
+                "Administration"
+            ],
+            "starting_gear": [
+                "Corporate ID",
+                "Business Attire",
+                "Credit Chit"
+            ],
+            "special_abilities": [
+                "Corporate Connections: +2 to acquire legal goods or services"
+            ]
+        },
+        "DRIFTER": {
+            "name": "Drifter",
+            "description": "Wanderer who has traveled extensively, picking up various skills along the way.",
+            "stat_bonuses": {
+                "REACTIONS": 1
+            },
+            "skill_bonuses": [
+                "Survival",
+                "Streetwise"
+            ],
+            "starting_gear": [
+                "Worn Backpack",
+                "Utility Knife",
+                "Star Chart"
+            ],
+            "special_abilities": [
+                "Adaptable: +1 to all rolls in unfamiliar situations"
+            ]
+        }
+    },
+    "skills": {
+        "COMBAT": [
+            {
+                "id": "MELEE",
+                "name": "Melee Combat",
+                "description": "Proficiency with close combat weapons and unarmed fighting.",
+                "levels": [
+                    {
+                        "level": 1,
+                        "effect": "+1 to hit with melee weapons"
+                    },
+                    {
+                        "level": 2,
+                        "effect": "+1 damage with melee weapons"
+                    },
+                    {
+                        "level": 3,
+                        "effect": "Parry: Reduce incoming melee damage by 1"
+                    }
+                ]
+            },
+            {
+                "id": "SHOOTING",
+                "name": "Shooting",
+                "description": "Skill with ranged weapons and marksmanship.",
+                "levels": [
+                    {
+                        "level": 1,
+                        "effect": "+1 to hit with ranged weapons"
+                    },
+                    {
+                        "level": 2,
+                        "effect": "Aim: +2 to hit when spending an action to aim"
+                    },
+                    {
+                        "level": 3,
+                        "effect": "Called Shot: Target specific body parts"
+                    }
+                ]
+            },
+            {
+                "id": "TACTICS",
+                "name": "Tactics",
+                "description": "Knowledge of battlefield strategies and positioning.",
+                "levels": [
+                    {
+                        "level": 1,
+                        "effect": "+1 to initiative rolls"
+                    },
+                    {
+                        "level": 2,
+                        "effect": "Coordinate: Grant +1 to an ally's attack"
+                    },
+                    {
+                        "level": 3,
+                        "effect": "Battlefield Control: Reposition one enemy or ally"
+                    }
+                ]
+            }
+        ],
+        "TECHNICAL": [
+            {
+                "id": "REPAIR",
+                "name": "Repair",
+                "description": "Ability to fix damaged equipment and machinery.",
+                "levels": [
+                    {
+                        "level": 1,
+                        "effect": "Repair 1D6 damage to equipment"
+                    },
+                    {
+                        "level": 2,
+                        "effect": "Field Repair: Repair without proper tools"
+                    },
+                    {
+                        "level": 3,
+                        "effect": "Upgrade: Improve equipment performance"
+                    }
+                ]
+            },
+            {
+                "id": "ELECTRONICS",
+                "name": "Electronics",
+                "description": "Knowledge of electronic systems and computers.",
+                "levels": [
+                    {
+                        "level": 1,
+                        "effect": "+2 to operate or bypass electronic systems"
+                    },
+                    {
+                        "level": 2,
+                        "effect": "Hack: Access secured computer systems"
+                    },
+                    {
+                        "level": 3,
+                        "effect": "Override: Take control of automated systems"
+                    }
+                ]
+            },
+            {
+                "id": "MEDICINE",
+                "name": "Medicine",
+                "description": "Knowledge of medical procedures and treatments.",
+                "levels": [
+                    {
+                        "level": 1,
+                        "effect": "Heal 1D6 health points"
+                    },
+                    {
+                        "level": 2,
+                        "effect": "Stabilize: Prevent death from critical injuries"
+                    },
+                    {
+                        "level": 3,
+                        "effect": "Surgery: Treat serious injuries without penalty"
+                    }
+                ]
+            }
+        ],
+        "KNOWLEDGE": [
+            {
+                "id": "SCIENCE",
+                "name": "Science",
+                "description": "Knowledge of scientific principles and research methods.",
+                "levels": [
+                    {
+                        "level": 1,
+                        "effect": "+2 to analyze unknown phenomena"
+                    },
+                    {
+                        "level": 2,
+                        "effect": "Research: Gain information about specific topics"
+                    },
+                    {
+                        "level": 3,
+                        "effect": "Breakthrough: Develop new solutions to problems"
+                    }
+                ]
+            },
+            {
+                "id": "XENOLOGY",
+                "name": "Xenology",
+                "description": "Knowledge of alien species, cultures, and biology.",
+                "levels": [
+                    {
+                        "level": 1,
+                        "effect": "+2 to identify alien species and their traits"
+                    },
+                    {
+                        "level": 2,
+                        "effect": "Communication: Understand alien languages"
+                    },
+                    {
+                        "level": 3,
+                        "effect": "Cultural Expert: Predict alien behavior and customs"
+                    }
+                ]
+            },
+            {
+                "id": "NAVIGATION",
+                "name": "Navigation",
+                "description": "Skill in plotting courses and reading star charts.",
+                "levels": [
+                    {
+                        "level": 1,
+                        "effect": "+2 to navigate unfamiliar terrain or space"
+                    },
+                    {
+                        "level": 2,
+                        "effect": "Shortcut: Find faster routes between locations"
+                    },
+                    {
+                        "level": 3,
+                        "effect": "Stellar Cartography: Map unknown regions accurately"
+                    }
+                ]
+            }
+        ],
+        "SOCIAL": [
+            {
+                "id": "NEGOTIATION",
+                "name": "Negotiation",
+                "description": "Skill in bargaining and reaching favorable agreements.",
+                "levels": [
+                    {
+                        "level": 1,
+                        "effect": "+2 to all negotiation checks"
+                    },
+                    {
+                        "level": 2,
+                        "effect": "Haggle: Reduce prices by 20%"
+                    },
+                    {
+                        "level": 3,
+                        "effect": "Deal Maker: Negotiate favorable terms in any deal"
+                    }
+                ]
+            },
+            {
+                "id": "LEADERSHIP",
+                "name": "Leadership",
+                "description": "Ability to inspire and direct others effectively.",
+                "levels": [
+                    {
+                        "level": 1,
+                        "effect": "+1 to all ally morale checks"
+                    },
+                    {
+                        "level": 2,
+                        "effect": "Inspire: Grant one ally an extra action"
+                    },
+                    {
+                        "level": 3,
+                        "effect": "Command: Coordinate team attacks for bonus damage"
+                    }
+                ]
+            },
+            {
+                "id": "STREETWISE",
+                "name": "Streetwise",
+                "description": "Knowledge of criminal elements and urban survival.",
+                "levels": [
+                    {
+                        "level": 1,
+                        "effect": "+2 to find information or contacts in urban areas"
+                    },
+                    {
+                        "level": 2,
+                        "effect": "Black Market: Access to illegal goods and services"
+                    },
+                    {
+                        "level": 3,
+                        "effect": "Criminal Network: Call in favors from criminal contacts"
+                    }
+                ]
+            }
+        ],
+        "SURVIVAL": [
+            {
+                "id": "STEALTH",
+                "name": "Stealth",
+                "description": "Ability to move undetected and avoid notice.",
+                "levels": [
+                    {
+                        "level": 1,
+                        "effect": "+2 to stealth checks"
+                    },
+                    {
+                        "level": 2,
+                        "effect": "Silent Movement: Move without making noise"
+                    },
+                    {
+                        "level": 3,
+                        "effect": "Vanish: Disappear from sight during combat"
+                    }
+                ]
+            },
+            {
+                "id": "SURVIVAL",
+                "name":

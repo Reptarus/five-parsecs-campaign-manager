@@ -10,7 +10,7 @@
 extends BattleTest
 
 # Type-safe script references
-const BattlefieldGenerator: GDScript = preload("res://src/core/battle/BattlefieldGenerator.gd")
+const BattlefieldGenerator: GDScript = preload("res://src/core/systems/BattlefieldGenerator.gd")
 const TerrainTypes: GDScript = preload("res://src/core/terrain/TerrainTypes.gd")
 const TerrainRules: GDScript = preload("res://src/core/terrain/TerrainRules.gd")
 

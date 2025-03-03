@@ -9,8 +9,8 @@
 extends "res://tests/fixtures/base/game_test.gd"
 
 # Type-safe script references
-const BattleRules: GDScript = preload("res://src/core/battle/BattleRules.gd")
-const CombatManager: GDScript = preload("res://src/core/battle/CombatManager.gd")
+const BaseBattleRules: GDScript = preload("res://src/base/combat/BaseBattleRules.gd")
+const BaseCombatManager: GDScript = preload("res://src/base/combat/BaseCombatManager.gd")
 
 # Type-safe constants
 const TEST_TIMEOUT: float = 2.0
@@ -53,7 +53,7 @@ func before_each() -> void:
 	await super.before_each()
 	
 	# Initialize combat manager
-	var combat_manager_instance: Node = CombatManager.new()
+	var combat_manager_instance: Node = BaseCombatManager.new()
 	_combat_manager = TypeSafeMixin._safe_cast_to_node(combat_manager_instance)
 	if not _combat_manager:
 		push_error("Failed to create combat manager")
@@ -62,7 +62,7 @@ func before_each() -> void:
 	track_test_node(_combat_manager)
 	
 	# Initialize battle rules
-	var battle_rules_instance: Node = BattleRules.new()
+	var battle_rules_instance: Node = BaseBattleRules.new()
 	_battle_rules = TypeSafeMixin._safe_cast_to_node(battle_rules_instance)
 	if not _battle_rules:
 		push_error("Failed to create battle rules")

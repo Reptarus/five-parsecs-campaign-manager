@@ -4,7 +4,7 @@ extends "res://tests/fixtures/specialized/enemy_test_base.gd"
 # Type-safe script references
 const CampaignManagerScript := preload("res://src/core/managers/CampaignManager.gd")
 const GameStateManagerScript := preload("res://src/core/managers/GameStateManager.gd")
-const SaveManagerScript := preload("res://src/core/managers/SaveManager.gd")
+const SaveManagerScript := preload("res://src/core/state/SaveManager.gd")
 
 # Type-safe instance variables
 # Note: _game_state is inherited from GameTest base class

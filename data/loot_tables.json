@@ -1,36 +1,324 @@
 {
-  "loot_tables": [
-	{
-	  "name": "Common Loot",
-	  "items": [
-		{"name": "Credits", "quantity": "1D6 x 10", "chance": 30},
-		{"name": "Medkit", "quantity": 1, "chance": 20},
-		{"name": "Ammo Pack", "quantity": 1, "chance": 25},
-		{"name": "Rations", "quantity": "1D3", "chance": 15},
-		{"name": "Toolkit", "quantity": 1, "chance": 10}
-	  ]
+	"name": "loot_tables",
+	"tables": {
+		"common": [
+			{
+				"roll_range": [
+					1,
+					20
+				],
+				"result": {
+					"name": "Credits",
+					"description": "Standard currency used throughout the galaxy.",
+					"effect": "1D6 x 10 credits",
+					"quantity": "1D6 x 10"
+				},
+				"weight": 1.0,
+				"tags": [
+					"currency",
+					"common"
+				]
+			},
+			{
+				"roll_range": [
+					21,
+					40
+				],
+				"result": {
+					"name": "Ammunition",
+					"description": "Standard ammunition for various weapons.",
+					"effect": "Replenish 1D3 ammunition for one weapon",
+					"quantity": "1D3"
+				},
+				"weight": 1.0,
+				"tags": [
+					"consumable",
+					"common"
+				]
+			},
+			{
+				"roll_range": [
+					41,
+					60
+				],
+				"result": {
+					"name": "Medical Supplies",
+					"description": "Basic medical supplies for treating injuries.",
+					"effect": "Heal 1D3 light injuries immediately",
+					"quantity": "1D3"
+				},
+				"weight": 1.0,
+				"tags": [
+					"consumable",
+					"common"
+				]
+			},
+			{
+				"roll_range": [
+					61,
+					80
+				],
+				"result": {
+					"name": "Food Rations",
+					"description": "Standard food rations for sustenance.",
+					"effect": "Sustain crew for 1D6 days",
+					"quantity": "1D6"
+				},
+				"weight": 1.0,
+				"tags": [
+					"consumable",
+					"common"
+				]
+			},
+			{
+				"roll_range": [
+					81,
+					100
+				],
+				"result": {
+					"name": "Basic Equipment",
+					"description": "Common tools and equipment.",
+					"effect": "Random basic gear item",
+					"quantity": 1
+				},
+				"weight": 1.0,
+				"tags": [
+					"equipment",
+					"common"
+				]
+			}
+		],
+		"uncommon": [
+			{
+				"roll_range": [
+					1,
+					20
+				],
+				"result": {
+					"name": "Credits",
+					"description": "Larger sum of currency.",
+					"effect": "2D6 x 10 credits",
+					"quantity": "2D6 x 10"
+				},
+				"weight": 1.0,
+				"tags": [
+					"currency",
+					"uncommon"
+				]
+			},
+			{
+				"roll_range": [
+					21,
+					40
+				],
+				"result": {
+					"name": "Rare Ammunition",
+					"description": "Specialized ammunition for advanced weapons.",
+					"effect": "Replenish 1D3 ammunition for one weapon and add +1 to hit for next battle",
+					"quantity": "1D3"
+				},
+				"weight": 1.0,
+				"tags": [
+					"consumable",
+					"uncommon"
+				]
+			},
+			{
+				"roll_range": [
+					41,
+					60
+				],
+				"result": {
+					"name": "Advanced Medical Kit",
+					"description": "High-quality medical supplies for treating serious injuries.",
+					"effect": "Heal one serious injury immediately",
+					"quantity": 1
+				},
+				"weight": 1.0,
+				"tags": [
+					"consumable",
+					"uncommon"
+				]
+			},
+			{
+				"roll_range": [
+					61,
+					80
+				],
+				"result": {
+					"name": "Weapon Attachment",
+					"description": "Modification for a weapon to improve its performance.",
+					"effect": "Add one random trait to a weapon",
+					"quantity": 1
+				},
+				"weight": 1.0,
+				"tags": [
+					"equipment",
+					"uncommon"
+				]
+			},
+			{
+				"roll_range": [
+					81,
+					100
+				],
+				"result": {
+					"name": "Armor Upgrade",
+					"description": "Component to improve armor protection.",
+					"effect": "Improve armor save by +1 for one character",
+					"quantity": 1
+				},
+				"weight": 1.0,
+				"tags": [
+					"equipment",
+					"uncommon"
+				]
+			}
+		],
+		"rare": [
+			{
+				"roll_range": [
+					1,
+					20
+				],
+				"result": {
+					"name": "Credits",
+					"description": "Substantial sum of currency.",
+					"effect": "3D6 x 10 credits",
+					"quantity": "3D6 x 10"
+				},
+				"weight": 1.0,
+				"tags": [
+					"currency",
+					"rare"
+				]
+			},
+			{
+				"roll_range": [
+					21,
+					40
+				],
+				"result": {
+					"name": "Experimental Weapon",
+					"description": "Cutting-edge weapon with unique capabilities.",
+					"effect": "New weapon with 1D3 special traits",
+					"quantity": 1
+				},
+				"weight": 1.0,
+				"tags": [
+					"weapon",
+					"rare"
+				]
+			},
+			{
+				"roll_range": [
+					41,
+					60
+				],
+				"result": {
+					"name": "Rare Armor",
+					"description": "Exceptional armor with advanced protection.",
+					"effect": "New armor with save of 3+ and one special ability",
+					"quantity": 1
+				},
+				"weight": 1.0,
+				"tags": [
+					"armor",
+					"rare"
+				]
+			},
+			{
+				"roll_range": [
+					61,
+					80
+				],
+				"result": {
+					"name": "Valuable Artifact",
+					"description": "Ancient or exotic item of significant value.",
+					"effect": "Can be sold for 5D6 x 10 credits or used to gain favor with a patron",
+					"quantity": 1
+				},
+				"weight": 1.0,
+				"tags": [
+					"artifact",
+					"rare"
+				]
+			},
+			{
+				"roll_range": [
+					81,
+					100
+				],
+				"result": {
+					"name": "Advanced Technology",
+					"description": "Sophisticated technological device with unique capabilities.",
+					"effect": "Grants one special ability to the crew for the next 1D3 battles",
+					"quantity": 1
+				},
+				"weight": 1.0,
+				"tags": [
+					"technology",
+					"rare"
+				]
+			}
+		]
 	},
-	{
-	  "name": "Rare Loot",
-	  "items": [
-		{"name": "Advanced Weapon", "quantity": 1, "chance": 20},
-		{"name": "Alien Artifact", "quantity": 1, "chance": 15},
-		{"name": "Ship Upgrade Component", "quantity": 1, "chance": 25},
-		{"name": "Rare Mineral Sample", "quantity": "1D3", "chance": 30},
-		{"name": "Experimental Tech", "quantity": 1, "chance": 10}
-	  ]
-	},
-	{
-	  "name": "Battlefield Finds",
-	  "items": [
-		{"name": "Weapon", "effect": "Roll on Weapon table", "chance": 15},
-		{"name": "Usable goods", "effect": "Roll on Gear table", "chance": 10},
-		{"name": "Curious data stick", "effect": "Gain Quest Rumor", "chance": 10},
-		{"name": "Starship part", "effect": "Gain 2 Hull repair", "chance": 15},
-		{"name": "Personal trinket", "effect": "No game effect", "chance": 15},
-		{"name": "Debris", "effect": "Gain 1D3 credits", "chance": 20},
-		{"name": "Vital info", "effect": "Gain Quest Rumor", "chance": 15}
-	  ]
+	"validation_rules": [
+		{
+			"type": "mission_difficulty_modifier",
+			"params": {
+				"EASY": {
+					"table_shift": 0
+				},
+				"NORMAL": {
+					"table_shift": 0
+				},
+				"HARD": {
+					"table_shift": 1
+				},
+				"VETERAN": {
+					"table_shift": 1
+				},
+				"ELITE": {
+					"table_shift": 2
+				}
+			}
+		},
+		{
+			"type": "mission_type_modifier",
+			"params": {
+				"RED_ZONE": {
+					"quantity_modifier": 1.0
+				},
+				"BLACK_ZONE": {
+					"quantity_modifier": 1.5
+				},
+				"PATRON": {
+					"quantity_modifier": 1.2
+				}
+			}
+		}
+	],
+	"modifiers": [
+		{
+			"type": "reputation_modifier",
+			"params": {
+				"low": {
+					"table_shift": -1
+				},
+				"medium": {
+					"table_shift": 0
+				},
+				"high": {
+					"table_shift": 1
+				}
+			}
+		}
+	],
+	"default_result": {
+		"name": "Basic Loot",
+		"description": "Standard salvage from a mission.",
+		"effect": "1D6 x 5 credits",
+		"quantity": "1D6 x 5"
 	}
-  ]
 }

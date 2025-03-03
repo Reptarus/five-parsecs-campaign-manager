@@ -5,7 +5,7 @@ extends GameTest
 const BattleStateMachine := preload("res://src/core/battle/state/BattleStateMachine.gd")
 const GameStateManager := preload("res://src/core/managers/GameStateManager.gd")
 const ParsecsCharacter := preload("res://src/core/character/Base/Character.gd")
-const BattleUnit := preload("res://src/core/battle/BattleCharacter.gd")
+const BattleUnit := preload("res://src/game/combat/BattleCharacter.gd")
 
 # Type-safe instance variables
 var _battle_state_machine: BattleStateMachine

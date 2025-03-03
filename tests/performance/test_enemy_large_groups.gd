@@ -2,10 +2,10 @@
 extends "res://tests/performance/base/perf_test_base.gd"
 
 # Type-safe script references
-const EnemyScript: GDScript = preload("res://src/core/battle/BattleCharacter.gd")
+const EnemyScript: GDScript = preload("res://src/game/combat/BattleCharacter.gd")
 const EnemyDataScript: GDScript = preload("res://src/core/rivals/EnemyData.gd")
 const UnifiedAISystemScript: GDScript = preload("res://src/core/systems/UnifiedAISystem.gd")
-const BattlefieldManagerScript: GDScript = preload("res://src/core/battle/BattlefieldManager.gd")
+const BattlefieldManagerScript: GDScript = preload("res://src/base/combat/battlefield/BaseBattlefieldManager.gd")
 
 # Test variables with explicit types
 var _enemy_group: Array[Node] = []
