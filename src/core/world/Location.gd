@@ -1,4 +1,3 @@
-class_name FiveParsecsLocation
 extends Resource
 
 const GameEnums = preload("res://src/core/systems/GlobalEnums.gd")
@@ -47,7 +46,7 @@ const MARKET_RESTRICTED = 3
 @export var active_effects: Array[Dictionary] = []
 
 var _patron_name: String
-var _location: FiveParsecsLocation
+var _location: Resource
 var _relationship: int
 var _faction_type: GameEnums.FactionType
 
@@ -160,7 +159,7 @@ func _convert_market_state(old_state: int) -> int:
 		MARKET_RESTRICTED: return GameLocation.MARKET_STATE_BLOCKADE
 		_: return GameLocation.MARKET_STATE_NORMAL
 
-func get_travel_cost_to(destination: FiveParsecsLocation) -> float:
+func get_travel_cost_to(destination: Resource) -> float:
 	var base_cost: float = 10.0
 	var distance: float = coordinates.distance_to(destination.coordinates)
 	var danger_modifier: float = (danger_level + destination.danger_level) * 0.1
@@ -339,8 +338,8 @@ func serialize() -> Dictionary:
 	
 	return data
 
-static func deserialize(data: Dictionary) -> FiveParsecsLocation:
-	var location = FiveParsecsLocation.new()
+static func deserialize(data: Dictionary) -> Resource:
+	var location = load("res://src/core/world/Location.gd").new()
 	location.name = data.get("name", "")
 	location.coordinates = Vector2(data.get("coordinates", {}).get("x", 0), data.get("coordinates", {}).get("y", 0))
 	location.type = data.get("type", "")

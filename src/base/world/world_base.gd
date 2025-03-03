@@ -1,4 +1,3 @@
-class_name BaseWorld
 extends Resource
 
 ## Base class for all world implementations

@@ -1,5 +1,4 @@
 ## Handles advanced terrain mechanics and positioning for the Five Parsecs battle system
-class_name FiveParsecsTerrainSystem
 extends Node
 
 const GameEnums: GDScript = preload("res://src/core/systems/GlobalEnums.gd")

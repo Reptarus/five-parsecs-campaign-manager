@@ -2,12 +2,11 @@ extends Node
 class_name GameState
 
 const GameEnums = preload("res://src/core/systems/GlobalEnums.gd")
-const FiveParcsecsCampaign = preload("res://src/game/campaign/FiveParsecsCampaign.gd")
+const FiveParsecsCampaign = preload("res://src/game/campaign/FiveParsecsCampaign.gd")
 const Ship = preload("res://src/core/ships/Ship.gd")
-const SaveManager = preload("res://src/core/managers/SaveManager.gd")
 
 signal state_changed
-signal campaign_loaded(campaign: FiveParcsecsCampaign)
+signal campaign_loaded(campaign: FiveParsecsCampaign)
 signal campaign_saved
 signal save_started
 signal save_completed(success: bool, message: String)
@@ -42,8 +41,8 @@ var auto_save_enabled: bool = true
 var auto_save_frequency: int = 15
 
 # Campaign state
-var _current_campaign: FiveParcsecsCampaign
-var current_campaign: FiveParcsecsCampaign:
+var _current_campaign: FiveParsecsCampaign
+var current_campaign: FiveParsecsCampaign:
 	get:
 		return _current_campaign
 	set(value):
@@ -54,7 +53,7 @@ var current_campaign: FiveParcsecsCampaign:
 var visited_locations: Array[String] = []
 
 # Save system
-var save_manager: SaveManager
+var save_manager: Node
 var last_save_time: int = 0
 
 func _init() -> void:
@@ -292,7 +291,7 @@ func deserialize(data: Dictionary) -> void:
 		player_ship.deserialize(data.player_ship)
 		
 	if data.has("campaign"):
-		_current_campaign = FiveParcsecsCampaign.new()
+		_current_campaign = FiveParsecsCampaign.new()
 		_current_campaign.deserialize(data.campaign)
 
 static func deserialize_new(data: Dictionary) -> GameState:
@@ -324,7 +323,7 @@ func _cleanup() -> void:
 	if _current_campaign:
 		_current_campaign = null
 
-func start_new_campaign(campaign: FiveParcsecsCampaign) -> void:
+func start_new_campaign(campaign: FiveParsecsCampaign) -> void:
 	_current_campaign = campaign
 	turn_number = 1
 	reputation = campaign.starting_reputation
@@ -342,7 +341,7 @@ func load_campaign(save_data: Dictionary) -> void:
 		return
 	
 	var campaign_data = save_data.campaign
-	_current_campaign = FiveParcsecsCampaign.new()
+	_current_campaign = FiveParsecsCampaign.new()
 	_current_campaign.from_dictionary(campaign_data)
 	
 	# Load game state
@@ -394,7 +393,7 @@ func end_campaign() -> void:
 	reputation = 0
 	state_changed.emit()
 
-func get_campaign() -> FiveParcsecsCampaign:
+func get_campaign() -> FiveParsecsCampaign:
 	return _current_campaign
 
 func modify_reputation(amount: int) -> void:

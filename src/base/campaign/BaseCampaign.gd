@@ -1,5 +1,4 @@
 @tool
-class_name BaseCampaign
 extends Resource
 
 signal campaign_started

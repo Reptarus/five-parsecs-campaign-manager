@@ -1,5 +1,4 @@
 @tool
-class_name StoryQuestData
 extends Resource
 
 signal reward_calculated(rewards: Dictionary)
@@ -16,6 +15,7 @@ const FiveParsecsGameState := preload("res://src/core/state/GameState.gd")
 @export var turn_limit: int = -1
 @export var required_reputation: int = 0
 @export var risk_level: int = 1
+@export var event_type: int = 0
 
 # Mission Parameters
 @export var enemy_count: int
@@ -65,6 +65,13 @@ var is_custom_mission: bool = false
 var custom_mission_data: Dictionary = {}
 var custom_validation_rules: Array[Dictionary] = []
 var custom_reward_rules: Array[Dictionary] = []
+
+# Quest specific properties
+@export var quest_type: int = 0
+@export var story_point_reward: int = 0
+@export var objective: int = 0
+@export var patron: Resource = null
+@export var patron_faction: int = 0
 
 func _init() -> void:
 	mission_id = str(randi())

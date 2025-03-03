@@ -18,7 +18,7 @@ func generate_crew_roster(crew: Dictionary) -> void:
     
     # Members
     add_subheader("Crew Members")
-    for member in crew.get_members():
+    for member in crew:
         add_character_entry(member)
     
     # Footer

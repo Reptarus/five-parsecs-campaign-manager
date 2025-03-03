@@ -3,6 +3,7 @@ extends Node
 
 const FiveParsecsGameEnums = preload("res://src/core/systems/GlobalEnums.gd")
 const FiveParsecsGameState = preload("res://src/core/state/GameState.gd")
+const GameCampaignManager = preload("res://src/core/campaign/GameCampaignManager.gd")
 
 # Import the enums directly for cleaner code
 const FiveParcsecsCampaignPhase = FiveParsecsGameEnums.FiveParcsecsCampaignPhase
@@ -11,9 +12,9 @@ signal state_changed(new_state: int)
 
 var current_state: int = FiveParsecsGameEnums.GameState.SETUP
 var game_state: FiveParsecsGameState
-var campaign_manager: FiveParsecsGameCampaignManager
+var campaign_manager: GameCampaignManager
 
-func _init(_game_state: FiveParsecsGameState, _campaign_manager: FiveParsecsGameCampaignManager) -> void:
+func _init(_game_state: FiveParsecsGameState, _campaign_manager: GameCampaignManager) -> void:
 	game_state = _game_state
 	campaign_manager = _campaign_manager
 	

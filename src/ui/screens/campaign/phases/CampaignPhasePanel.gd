@@ -1,7 +1,6 @@
 extends BasePhasePanel
 class_name CampaignPhasePanel
 
-const GameEnums = preload("res://src/core/systems/GlobalEnums.gd")
 const CampaignManager = preload("res://src/core/managers/CampaignManager.gd")
 const WorldEconomyManager = preload("res://src/core/managers/WorldEconomyManager.gd")
 const StoryQuestData = preload("res://src/core/story/StoryQuestData.gd")

@@ -1,5 +1,7 @@
 extends Node
 
+const GamePlanet = preload("res://src/game/world/GamePlanet.gd")
+
 signal sector_generated(sector_name: String)
 signal planet_discovered(planet: GamePlanet)
 signal sector_updated(sector_name: String)
@@ -20,7 +22,6 @@ const GameEnums = preload("res://src/core/systems/GlobalEnums.gd")
 const FiveParsecsGameState = preload("res://src/core/state/GameState.gd")
 const Mission = preload("res://src/core/systems/Mission.gd")
 const WorldManager = preload("res://src/game/world/GameWorldManager.gd")
-const GamePlanet = preload("res://src/game/world/GamePlanet.gd")
 const GameLocation = preload("res://src/game/world/GameLocation.gd")
 const WorldDataMigration = preload("res://src/core/migration/WorldDataMigration.gd")
 

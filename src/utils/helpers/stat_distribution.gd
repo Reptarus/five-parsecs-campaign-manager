@@ -1,4 +1,8 @@
-class_name FiveParsecsStatDistribution
+# REMOVED: class_name FiveParsecsStatDistribution
+# This class previously used class_name FiveParsecsStatDistribution but it was removed to prevent conflicts
+# The authoritative FiveParsecsStatDistribution class is in src/core/utils/stat_distribution.gd
+# This file should be considered deprecated and will be removed in future updates
+# Use the core version directly: preload("res://src/core/utils/stat_distribution.gd")
 extends Resource
 
 const GameEnums = preload("res://src/core/systems/GlobalEnums.gd")

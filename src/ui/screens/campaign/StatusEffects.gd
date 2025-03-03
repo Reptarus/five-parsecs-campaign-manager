@@ -48,7 +48,7 @@ func is_expired() -> bool:
     return duration <= 0
 
 func process_stunned(character: Character) -> void:
-    character.apply_status_effect("stunned", intensity)
+    character.apply_status_effect({"type": "stunned", "value": intensity})
     character.reactions -= 1
     character.speed -= 1
 
@@ -57,23 +57,23 @@ func process_poisoned(character: Character) -> void:
     character.toughness -= 1
 
 func process_buff(character: Character) -> void:
-    character.apply_status_effect("buffed", intensity)
+    character.apply_status_effect({"type": "buffed", "value": intensity})
     character.combat_skill += 1
     character.toughness += 1
 
 func process_debuff(character: Character) -> void:
-    character.apply_status_effect("debuffed", intensity)
+    character.apply_status_effect({"type": "debuffed", "value": intensity})
     character.combat_skill -= 1
     character.toughness -= 1
 
 func process_neutral(character: Character) -> void:
-    character.apply_status_effect("neutral", intensity)
+    character.apply_status_effect({"type": "neutral", "value": intensity})
 
 func process_regeneration(character: Character) -> void:
     character.heal(intensity)
 
 func process_shield(character: Character) -> void:
-    character.apply_status_effect("shielded", intensity)
+    character.apply_status_effect({"type": "shielded", "value": intensity})
     character.toughness += intensity
 
 func serialize() -> Dictionary:

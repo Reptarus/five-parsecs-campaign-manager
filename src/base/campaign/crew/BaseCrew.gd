@@ -1,5 +1,4 @@
 @tool
-class_name BaseCrew
 extends Resource
 
 signal member_added(character)

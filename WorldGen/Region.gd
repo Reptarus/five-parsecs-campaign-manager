@@ -1,5 +1,4 @@
 extends Resource
-class_name Region
 
 @export var progression_rooms: Array[Tile]
 @export var optional_rooms: Array[Tile]

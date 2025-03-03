@@ -3,6 +3,7 @@ extends Control
 
 const FiveParsecsGameState = preload("res://src/core/state/GameState.gd")
 const GameStateManager = preload("res://src/core/managers/GameStateManager.gd")
+const PatronJobManager = preload("res://src/core/campaign/PatronJobManager.gd")
 
 enum TravelStep {
 	UPKEEP,

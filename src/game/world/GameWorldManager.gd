@@ -1,8 +1,6 @@
 @tool
 extends Node
 
-class_name GameWorldManager
-
 const GameEnums = preload("res://src/core/systems/GlobalEnums.gd")
 const GamePlanet = preload("res://src/game/world/GamePlanet.gd")
 const GameLocation = preload("res://src/game/world/GameLocation.gd")

@@ -1,4 +1,3 @@
-class_name CrewCreation
 extends Control
 
 signal crew_created(crew_data: Dictionary)

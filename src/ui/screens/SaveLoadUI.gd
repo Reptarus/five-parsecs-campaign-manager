@@ -18,7 +18,8 @@ signal ui_closed
 @onready var quick_save_button: Button = $Panel/VBoxContainer/ButtonContainer/QuickSaveButton
 @onready var auto_save_toggle: CheckButton = $Panel/VBoxContainer/AutoSaveToggle
 
-var save_manager: SaveManager
+# Use Node as a placeholder until SaveManager is properly implemented
+var save_manager: Node
 var game_state: GameState
 var current_save_name: String = ""
 var _status_timer: SceneTreeTimer

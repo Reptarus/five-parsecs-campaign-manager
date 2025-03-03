@@ -1,7 +1,8 @@
 extends BasePhasePanel
+class_name FiveParsecsBattleSetupPanel
 
-const GameEnums := preload("res://src/core/systems/GlobalEnums.gd")
-const Character := preload("res://src/core/character/Base/Character.gd")
+const GameEnums = preload("res://src/core/systems/GlobalEnums.gd")
+const Character = preload("res://src/core/character/Base/Character.gd")
 
 @onready var mission_info = $VBoxContainer/MissionInfo
 @onready var deployment_container = $VBoxContainer/DeploymentContainer
@@ -9,8 +10,8 @@ const Character := preload("res://src/core/character/Base/Character.gd")
 @onready var equipment_list = $VBoxContainer/EquipmentList
 @onready var start_battle_button = $VBoxContainer/StartBattleButton
 
-var deployment_manager: DeploymentManager
-var escalating_battles_manager: EscalatingBattlesManager
+var deployment_manager = null
+var escalating_battles_manager = null
 var deployed_crew: Array[Character] = []
 var equipped_items: Dictionary = {}
 var deployment_zones: Array = []
@@ -58,12 +59,7 @@ func _get_location_property(property: String, default_value = null) -> Variant:
 
 func _ready() -> void:
 	super._ready()
-	deployment_manager = DeploymentManager.new()
-	escalating_battles_manager = EscalatingBattlesManager.new(game_state)
-	
-	deployment_manager.deployment_zones_generated.connect(_on_deployment_zones_generated)
-	deployment_manager.terrain_generated.connect(_on_terrain_generated)
-	
+	# Will be replaced with proper implementation when manager classes are created
 	_connect_signals()
 
 func _connect_signals() -> void:
@@ -339,18 +335,6 @@ func _on_start_battle_pressed() -> void:
 		
 		_get_campaign_property("battle_state", {}).merge(battle_state)
 		complete_phase()
-
-func _on_deployment_zones_generated(zones: Array) -> void:
-	deployment_zones = zones
-	_setup_deployment_zones()
-
-func _on_terrain_generated(terrain: Array) -> void:
-	# Update mission info with terrain details
-	var current_text = mission_info.text
-	current_text += "\n[b]Terrain Features:[/b]\n"
-	for feature in terrain:
-		current_text += "• %s at position %s\n" % [feature.type, feature.position]
-	mission_info.text = current_text
 
 func validate_phase_requirements() -> bool:
 	if not game_state:

@@ -1,6 +1,7 @@
 @tool
 extends Node2D
-class_name Grid
+
+const Tile = preload("res://WorldGen/Tile.gd")
 
 signal tile_added(tile: Tile, position: Vector2i)
 signal tile_removed(position: Vector2i)
@@ -91,7 +92,7 @@ func get_used_rect() -> Rect2i:
 		return Rect2i()
 		
 	var min_pos := Vector2i(INF, INF)
-	var max_pos := Vector2i(-INF, -INF)
+	var max_pos := Vector2i(- INF, - INF)
 	
 	for pos in grid:
 		min_pos.x = mini(min_pos.x, pos.x)

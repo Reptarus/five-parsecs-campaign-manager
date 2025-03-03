@@ -16,11 +16,23 @@ const CharacterTableRoller := preload("res://src/core/character/Generation/Chara
 
 # References to classes whose files don't exist
 # Define simple local classes to use instead of missing preloads
-class CrewSystemClass:
-	pass
+class CrewSystemClass extends Node:
+	signal crew_changed
+	
+	func set_max_crew_size(_size: int) -> void:
+		pass
+		
+	func set_captain(_captain) -> void:
+		pass
+		
+	func add_crew_member(_member) -> void:
+		pass
 
-class CrewRelationshipManagerClass:
-	pass
+class CrewRelationshipManagerClass extends Node:
+	signal relationship_changed
+	
+	func add_crew_member(_member) -> void:
+		pass
 
 const CaptainCreation := preload("res://src/core/campaign/crew/CaptainCreation.gd")
 const CrewCreation := preload("res://src/core/campaign/crew/CrewCreation.gd")

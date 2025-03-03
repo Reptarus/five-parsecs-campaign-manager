@@ -32,6 +32,9 @@ enum CrewCharacteristic {
 	COLONISTS = 9
 }
 
+# Current crew characteristic as enum value
+var crew_characteristic_enum: CrewCharacteristic = CrewCharacteristic.MERCENARY
+
 func _init() -> void:
 	# Initialize the relationship types dictionary
 	RELATIONSHIP_TYPES = {
@@ -63,7 +66,9 @@ func _init() -> void:
 
 func roll_crew_characteristic() -> String:
 	var roll = randi() % 10
-	return CREW_CHARACTERISTICS[roll]
+	crew_characteristic_enum = roll as CrewCharacteristic
+	crew_characteristic = CREW_CHARACTERISTICS[roll]
+	return crew_characteristic
 
 func roll_meeting_story() -> String:
 	var stories = [
@@ -89,23 +94,22 @@ func generate_initial_relationships(crew_members: Array) -> void:
 	_apply_characteristic_effects(crew_members)
 
 func _apply_characteristic_effects(crew_members: Array) -> void:
-	# Apply effects based on crew characteristic
-	match crew_characteristic:
-		CREW_CHARACTERISTICS[CrewCharacteristic.MERCENARY]:
-			# Mercenaries have more business-like relationships
-			_adjust_relationships_for_mercenaries(crew_members)
-		CREW_CHARACTERISTICS[CrewCharacteristic.EXPLORERS]:
-			# Explorers have more adventurous bonds
-			_adjust_relationships_for_explorers(crew_members)
-		CREW_CHARACTERISTICS[CrewCharacteristic.BOUNTY_HUNTERS]:
-			# Bounty hunters have more competitive relationships
-			_adjust_relationships_for_bounty_hunters(crew_members)
-		CREW_CHARACTERISTICS[CrewCharacteristic.REBELS]:
-			# Rebels have stronger comradery
-			_adjust_relationships_for_rebels(crew_members)
-		CREW_CHARACTERISTICS[CrewCharacteristic.SMUGGLERS]:
-			# Smugglers have more secretive relationships
-			_adjust_relationships_for_smugglers(crew_members)
+	# Apply effects based on crew characteristic using if/elif instead of match
+	if crew_characteristic_enum == CrewCharacteristic.MERCENARY:
+		# Mercenaries have more business-like relationships
+		_adjust_relationships_for_mercenaries(crew_members)
+	elif crew_characteristic_enum == CrewCharacteristic.EXPLORERS:
+		# Explorers have more adventurous bonds
+		_adjust_relationships_for_explorers(crew_members)
+	elif crew_characteristic_enum == CrewCharacteristic.BOUNTY_HUNTERS:
+		# Bounty hunters have more competitive relationships
+		_adjust_relationships_for_bounty_hunters(crew_members)
+	elif crew_characteristic_enum == CrewCharacteristic.REBELS:
+		# Rebels have stronger comradery
+		_adjust_relationships_for_rebels(crew_members)
+	elif crew_characteristic_enum == CrewCharacteristic.SMUGGLERS:
+		# Smugglers have more secretive relationships
+		_adjust_relationships_for_smugglers(crew_members)
 
 func _adjust_relationships_for_mercenaries(crew_members: Array) -> void:
 	# Mercenaries tend to have more business-like relationships
@@ -182,76 +186,74 @@ func get_relationship_description(char1, char2) -> String:
 	var name2 = char2.character_name if char2.has("character_name") else "Character 2"
 	
 	# Generate description based on relationship type
-	match relationship:
-		RELATIONSHIP_TYPES[RelationshipType.FRIENDS]:
-			return "%s and %s are close friends who trust each other implicitly." % [name1, name2]
-		RELATIONSHIP_TYPES[RelationshipType.RIVALS]:
-			return "%s and %s are rivals who constantly try to outdo each other." % [name1, name2]
-		RELATIONSHIP_TYPES[RelationshipType.FAMILY]:
-			return "%s and %s are family members who look out for each other." % [name1, name2]
-		RELATIONSHIP_TYPES[RelationshipType.PARTNERS]:
-			return "%s and %s are partners who work exceptionally well together." % [name1, name2]
-		RELATIONSHIP_TYPES[RelationshipType.MENTOR_STUDENT]:
-			return "%s is mentoring %s, passing on valuable knowledge and skills." % [name1, name2]
-		RELATIONSHIP_TYPES[RelationshipType.COMRADES]:
-			return "%s and %s are comrades who have fought side by side many times." % [name1, name2]
-		RELATIONSHIP_TYPES[RelationshipType.UNEASY_ALLIES]:
-			return "%s and %s are uneasy allies who work together out of necessity." % [name1, name2]
-		RELATIONSHIP_TYPES[RelationshipType.FORMER_ENEMIES]:
-			return "%s and %s were once enemies but now work together despite their past." % [name1, name2]
-		RELATIONSHIP_TYPES[RelationshipType.BUSINESS_ASSOCIATES]:
-			return "%s and %s have a strictly professional relationship." % [name1, name2]
-		RELATIONSHIP_TYPES[RelationshipType.STRANGERS]:
-			return "%s and %s barely know each other and keep their distance." % [name1, name2]
-		_:
-			return "%s and %s have a complex relationship." % [name1, name2]
+	if relationship == RELATIONSHIP_TYPES[RelationshipType.FRIENDS]:
+		return "%s and %s are close friends who trust each other implicitly." % [name1, name2]
+	elif relationship == RELATIONSHIP_TYPES[RelationshipType.RIVALS]:
+		return "%s and %s are rivals who constantly try to outdo each other." % [name1, name2]
+	elif relationship == RELATIONSHIP_TYPES[RelationshipType.FAMILY]:
+		return "%s and %s are family members who look out for each other." % [name1, name2]
+	elif relationship == RELATIONSHIP_TYPES[RelationshipType.PARTNERS]:
+		return "%s and %s are partners who work exceptionally well together." % [name1, name2]
+	elif relationship == RELATIONSHIP_TYPES[RelationshipType.MENTOR_STUDENT]:
+		return "%s is mentoring %s, passing on valuable knowledge and skills." % [name1, name2]
+	elif relationship == RELATIONSHIP_TYPES[RelationshipType.COMRADES]:
+		return "%s and %s are comrades who have fought side by side many times." % [name1, name2]
+	elif relationship == RELATIONSHIP_TYPES[RelationshipType.UNEASY_ALLIES]:
+		return "%s and %s are uneasy allies who work together out of necessity." % [name1, name2]
+	elif relationship == RELATIONSHIP_TYPES[RelationshipType.FORMER_ENEMIES]:
+		return "%s and %s were once enemies but now work together despite their past." % [name1, name2]
+	elif relationship == RELATIONSHIP_TYPES[RelationshipType.BUSINESS_ASSOCIATES]:
+		return "%s and %s have a strictly professional relationship." % [name1, name2]
+	elif relationship == RELATIONSHIP_TYPES[RelationshipType.STRANGERS]:
+		return "%s and %s barely know each other and keep their distance." % [name1, name2]
+	else:
+		return "%s and %s have a complex relationship." % [name1, name2]
 
 func evolve_relationship(char1, char2, event_type: String) -> void:
 	# Evolve relationships based on events
 	var current_relationship = get_relationship(char1, char2)
 	var new_relationship = current_relationship
 	
-	match event_type:
-		"combat_success":
-			# Successful combat tends to strengthen bonds
-			if current_relationship == RELATIONSHIP_TYPES[RelationshipType.STRANGERS]:
-				new_relationship = RELATIONSHIP_TYPES[RelationshipType.BUSINESS_ASSOCIATES]
-			elif current_relationship == RELATIONSHIP_TYPES[RelationshipType.BUSINESS_ASSOCIATES]:
-				new_relationship = RELATIONSHIP_TYPES[RelationshipType.COMRADES]
-			elif current_relationship == RELATIONSHIP_TYPES[RelationshipType.UNEASY_ALLIES]:
-				new_relationship = RELATIONSHIP_TYPES[RelationshipType.COMRADES]
-			elif current_relationship == RELATIONSHIP_TYPES[RelationshipType.RIVALS]:
-				new_relationship = RELATIONSHIP_TYPES[RelationshipType.UNEASY_ALLIES]
-		"combat_failure":
-			# Failed combat can strain relationships
-			if current_relationship == RELATIONSHIP_TYPES[RelationshipType.BUSINESS_ASSOCIATES]:
-				new_relationship = RELATIONSHIP_TYPES[RelationshipType.STRANGERS]
-			elif current_relationship == RELATIONSHIP_TYPES[RelationshipType.COMRADES]:
-				new_relationship = RELATIONSHIP_TYPES[RelationshipType.UNEASY_ALLIES]
-			elif current_relationship == RELATIONSHIP_TYPES[RelationshipType.FRIENDS]:
-				new_relationship = RELATIONSHIP_TYPES[RelationshipType.COMRADES]
-		"saved_life":
-			# Saving someone's life creates strong bonds
-			if current_relationship == RELATIONSHIP_TYPES[RelationshipType.STRANGERS]:
-				new_relationship = RELATIONSHIP_TYPES[RelationshipType.UNEASY_ALLIES]
-			elif current_relationship == RELATIONSHIP_TYPES[RelationshipType.BUSINESS_ASSOCIATES]:
-				new_relationship = RELATIONSHIP_TYPES[RelationshipType.COMRADES]
-			elif current_relationship == RELATIONSHIP_TYPES[RelationshipType.RIVALS]:
-				new_relationship = RELATIONSHIP_TYPES[RelationshipType.UNEASY_ALLIES]
-			elif current_relationship == RELATIONSHIP_TYPES[RelationshipType.UNEASY_ALLIES]:
-				new_relationship = RELATIONSHIP_TYPES[RelationshipType.FRIENDS]
-			elif current_relationship == RELATIONSHIP_TYPES[RelationshipType.FORMER_ENEMIES]:
-				new_relationship = RELATIONSHIP_TYPES[RelationshipType.COMRADES]
-		"betrayal":
-			# Betrayal damages relationships severely
-			if current_relationship == RELATIONSHIP_TYPES[RelationshipType.BUSINESS_ASSOCIATES]:
-				new_relationship = RELATIONSHIP_TYPES[RelationshipType.RIVALS]
-			elif current_relationship == RELATIONSHIP_TYPES[RelationshipType.COMRADES]:
-				new_relationship = RELATIONSHIP_TYPES[RelationshipType.FORMER_ENEMIES]
-			elif current_relationship == RELATIONSHIP_TYPES[RelationshipType.FRIENDS]:
-				new_relationship = RELATIONSHIP_TYPES[RelationshipType.RIVALS]
-			elif current_relationship == RELATIONSHIP_TYPES[RelationshipType.PARTNERS]:
-				new_relationship = RELATIONSHIP_TYPES[RelationshipType.FORMER_ENEMIES]
+	if event_type == "combat_success":
+		# Successful combat tends to strengthen bonds
+		if current_relationship == RELATIONSHIP_TYPES[RelationshipType.STRANGERS]:
+			new_relationship = RELATIONSHIP_TYPES[RelationshipType.BUSINESS_ASSOCIATES]
+		elif current_relationship == RELATIONSHIP_TYPES[RelationshipType.BUSINESS_ASSOCIATES]:
+			new_relationship = RELATIONSHIP_TYPES[RelationshipType.COMRADES]
+		elif current_relationship == RELATIONSHIP_TYPES[RelationshipType.UNEASY_ALLIES]:
+			new_relationship = RELATIONSHIP_TYPES[RelationshipType.COMRADES]
+		elif current_relationship == RELATIONSHIP_TYPES[RelationshipType.RIVALS]:
+			new_relationship = RELATIONSHIP_TYPES[RelationshipType.UNEASY_ALLIES]
+	elif event_type == "combat_failure":
+		# Failed combat can strain relationships
+		if current_relationship == RELATIONSHIP_TYPES[RelationshipType.BUSINESS_ASSOCIATES]:
+			new_relationship = RELATIONSHIP_TYPES[RelationshipType.STRANGERS]
+		elif current_relationship == RELATIONSHIP_TYPES[RelationshipType.COMRADES]:
+			new_relationship = RELATIONSHIP_TYPES[RelationshipType.UNEASY_ALLIES]
+		elif current_relationship == RELATIONSHIP_TYPES[RelationshipType.FRIENDS]:
+			new_relationship = RELATIONSHIP_TYPES[RelationshipType.COMRADES]
+	elif event_type == "saved_life":
+		# Saving someone's life creates strong bonds
+		if current_relationship == RELATIONSHIP_TYPES[RelationshipType.STRANGERS]:
+			new_relationship = RELATIONSHIP_TYPES[RelationshipType.UNEASY_ALLIES]
+		elif current_relationship == RELATIONSHIP_TYPES[RelationshipType.BUSINESS_ASSOCIATES]:
+			new_relationship = RELATIONSHIP_TYPES[RelationshipType.COMRADES]
+		elif current_relationship == RELATIONSHIP_TYPES[RelationshipType.RIVALS]:
+			new_relationship = RELATIONSHIP_TYPES[RelationshipType.UNEASY_ALLIES]
+		elif current_relationship == RELATIONSHIP_TYPES[RelationshipType.UNEASY_ALLIES]:
+			new_relationship = RELATIONSHIP_TYPES[RelationshipType.FRIENDS]
+		elif current_relationship == RELATIONSHIP_TYPES[RelationshipType.FORMER_ENEMIES]:
+			new_relationship = RELATIONSHIP_TYPES[RelationshipType.COMRADES]
+	elif event_type == "betrayal":
+		# Betrayal damages relationships severely
+		if current_relationship == RELATIONSHIP_TYPES[RelationshipType.BUSINESS_ASSOCIATES]:
+			new_relationship = RELATIONSHIP_TYPES[RelationshipType.RIVALS]
+		elif current_relationship == RELATIONSHIP_TYPES[RelationshipType.COMRADES]:
+			new_relationship = RELATIONSHIP_TYPES[RelationshipType.FORMER_ENEMIES]
+		elif current_relationship == RELATIONSHIP_TYPES[RelationshipType.FRIENDS]:
+			new_relationship = RELATIONSHIP_TYPES[RelationshipType.RIVALS]
+		elif current_relationship == RELATIONSHIP_TYPES[RelationshipType.PARTNERS]:
+			new_relationship = RELATIONSHIP_TYPES[RelationshipType.FORMER_ENEMIES]
 	
 	# Update the relationship if it changed
 	if new_relationship != current_relationship:

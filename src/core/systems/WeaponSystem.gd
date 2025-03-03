@@ -3,7 +3,7 @@ class_name WeaponSystem
 extends Node
 
 const GameEnums = preload("res://src/core/systems/GlobalEnums.gd")
-const GameWeapon = preload("res://src/core/systems/items/Weapon.gd")
+const GameWeapon = preload("res://src/core/systems/items/GameWeapon.gd")
 
 var gear_db: Resource
 

@@ -3,7 +3,7 @@ class_name FiveParsecsPathFinder
 extends Node
 
 const TerrainTypes = preload("res://src/core/terrain/TerrainTypes.gd")
-const BattlefieldManager = preload("res://src/core/battle/BattlefieldManager.gd")
+const BattlefieldManagerClass = preload("res://src/core/battle/BattlefieldManager.gd")
 const GameEnums = preload("res://src/core/systems/GlobalEnums.gd")
 
 signal path_found(path: Array[Vector2])

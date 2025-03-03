@@ -1,5 +1,4 @@
 @tool
-class_name GameDataManager
 extends Node
 
 signal data_loaded(data_type)

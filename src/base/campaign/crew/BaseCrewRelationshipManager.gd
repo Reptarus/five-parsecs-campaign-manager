@@ -1,5 +1,4 @@
 @tool
-class_name BaseCrewRelationshipManager
 extends Node
 
 signal relationship_added(char1, char2, relationship_type: String)

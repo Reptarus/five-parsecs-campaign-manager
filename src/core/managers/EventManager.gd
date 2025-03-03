@@ -10,7 +10,7 @@ const Mission = preload("res://src/core/systems/Mission.gd")
 const StoryQuestData = preload("res://src/core/story/StoryQuestData.gd")
 const GameLocation = preload("res://src/game/world/GameLocation.gd")
 const ResourceSystem = preload("res://src/core/systems/ResourceSystem.gd")
-const MissionGenerator = preload("res://src/core/systems/MissionGenerator.gd")
+const MissionGeneratorClass = preload("res://src/core/systems/MissionGenerator.gd")
 
 ## Signals
 signal event_triggered(event_type: GameEnums.GlobalEvent)
@@ -35,7 +35,7 @@ const MAX_ACTIVE_EVENTS := 5 # Limit concurrent active events
 ## Game state reference
 var game_state: FiveParsecsGameState
 var resource_system: ResourceSystem
-var mission_generator: MissionGenerator
+var mission_generator: Node
 
 ## Event configuration
 const MIN_EVENT_INTERVAL := 3 # Minimum turns between events
@@ -141,7 +141,7 @@ func initialize(state: FiveParsecsGameState) -> void:
 	game_state = state
 	resource_system = get_node("/root/Game/Systems/ResourceSystem")
 	var mission_gen = get_node("/root/Game/Systems/MissionGenerator")
-	if mission_gen is MissionGenerator:
+	if mission_gen is MissionGeneratorClass:
 		mission_generator = mission_gen
 	else:
 		push_error("Failed to get MissionGenerator node")

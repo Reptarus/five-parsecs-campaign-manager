@@ -1,4 +1,3 @@
-class_name BaseCrewExporter
 extends Node
 
 const EXPORT_DIR = "user://exports/"

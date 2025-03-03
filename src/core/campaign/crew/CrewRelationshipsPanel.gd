@@ -12,7 +12,8 @@ const GameEnums = preload("res://src/core/systems/GlobalEnums.gd")
 @onready var character2_dropdown := $VBoxContainer/AddRelationshipPanel/Character2Dropdown
 @onready var relationship_type_dropdown := $VBoxContainer/AddRelationshipPanel/RelationshipTypeDropdown
 
-var relationship_manager: CrewRelationshipManager
+# Use Node type as a fallback if CrewRelationshipManager doesn't have a class_name defined
+var relationship_manager: Node
 var crew_members: Array[Character] = []
 
 func _ready() -> void:

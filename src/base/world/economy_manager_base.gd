@@ -1,4 +1,3 @@
-class_name BaseEconomyManager
 extends Node
 
 ## Base class for all economy manager implementations

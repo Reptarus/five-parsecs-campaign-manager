@@ -1,4 +1,3 @@
-class_name CaptainCreation
 extends Control
 
 const Character = preload("res://src/core/character/Base/Character.gd")

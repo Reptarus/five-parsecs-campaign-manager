@@ -4,7 +4,7 @@ extends Resource
 
 const GameEnums := preload("res://src/core/systems/GlobalEnums.gd")
 const FiveParsecsGameState := preload("res://src/core/state/GameState.gd")
-const StoryQuestData := preload("res://src/core/story/StoryQuestData.gd")
+const StoryQuestData = preload("res://src/game/story/StoryQuestData.gd")
 
 signal mission_started(mission: StoryQuestData)
 signal mission_completed(mission: StoryQuestData)

@@ -1,5 +1,4 @@
 @tool
-class_name BaseCrewSystem
 extends Node
 
 signal crew_changed(crew_data: Dictionary)

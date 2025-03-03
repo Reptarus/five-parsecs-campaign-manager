@@ -2,12 +2,12 @@
 extends Node
 
 const GameEnums = preload("res://src/core/systems/GlobalEnums.gd")
-const FiveParcsecsCampaign = preload("res://src/core/campaign/Campaign.gd")
+const FiveParsecsCampaign = preload("res://src/game/campaign/FiveParsecsCampaign.gd")
 const GameState = preload("res://src/core/state/GameState.gd")
 
 ## Signals
-signal campaign_created(campaign: FiveParcsecsCampaign)
-signal campaign_loaded(campaign: FiveParcsecsCampaign)
+signal campaign_created(campaign: FiveParsecsCampaign)
+signal campaign_loaded(campaign: FiveParsecsCampaign)
 signal campaign_saved(save_data: Dictionary)
 signal campaign_deleted(campaign_id: String)
 signal story_progressed(progress: int)
@@ -30,7 +30,7 @@ var active_crew: Array[Dictionary] = []
 var active_rivals: Array[Dictionary] = []
 var equipment: Array[Dictionary] = []
 var story_progress: int = 0
-var active_campaign: FiveParcsecsCampaign = null
+var active_campaign: FiveParsecsCampaign = null
 var game_state: GameState = null
 
 ## Mission state
@@ -53,7 +53,7 @@ func initialize(state: GameState) -> void:
 	
 	# Load active campaign from game state if it exists
 	if game_state.current_campaign:
-		active_campaign = game_state.current_campaign as Campaign
+		active_campaign = game_state.current_campaign
 		campaign_loaded.emit(active_campaign)
 
 ## Get the total number of completed missions
@@ -126,8 +126,8 @@ func advance_story() -> void:
 	story_progress += 1
 	story_progressed.emit(story_progress)
 
-func create_campaign(config: Dictionary) -> FiveParcsecsCampaign:
-	var campaign = FiveParcsecsCampaign.new()
+func create_campaign(config: Dictionary) -> FiveParsecsCampaign:
+	var campaign = FiveParsecsCampaign.new()
 	campaign.campaign_name = config.get("name", "New Campaign")
 	campaign.difficulty = config.get("difficulty", GameEnums.DifficultyLevel.NORMAL)
 	campaign.victory_condition = config.get("victory_condition", GameEnums.FiveParcsecsCampaignVictoryType.STANDARD)
@@ -138,8 +138,8 @@ func create_campaign(config: Dictionary) -> FiveParcsecsCampaign:
 	campaign_created.emit(campaign)
 	return campaign
 
-func load_campaign(save_data: Dictionary) -> FiveParcsecsCampaign:
-	var campaign = FiveParcsecsCampaign.new()
+func load_campaign(save_data: Dictionary) -> FiveParsecsCampaign:
+	var campaign = FiveParsecsCampaign.new()
 	campaign.deserialize(save_data)
 	active_campaign = campaign
 	campaign_loaded.emit(campaign)
@@ -161,7 +161,7 @@ func delete_campaign(campaign_id: String) -> void:
 	# Add deletion logic here
 	campaign_deleted.emit(campaign_id)
 
-func get_active_campaign() -> FiveParcsecsCampaign:
+func get_active_campaign() -> FiveParsecsCampaign:
 	return active_campaign
 
 func _exit_tree() -> void:

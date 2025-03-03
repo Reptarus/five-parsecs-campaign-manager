@@ -1,8 +1,6 @@
 @tool
 extends Resource
 
-class_name GameLocation
-
 # Basic location properties
 @export var location_id: String = ""
 @export var location_name: String = ""

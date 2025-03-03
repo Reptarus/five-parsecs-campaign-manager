@@ -1,5 +1,8 @@
 extends Node2D
 
+const Generator = preload("res://WorldGen/Generator.gd")
+const Region = preload("res://WorldGen/Region.gd")
+
 @export var generator: Generator
 @export var debug_region: Region
 

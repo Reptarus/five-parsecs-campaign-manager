@@ -1,8 +1,6 @@
 @tool
 extends Node
 
-class_name WorldEconomyManager
-
 signal local_event_triggered(event_description: String)
 signal economy_updated
 
@@ -16,10 +14,7 @@ const FiveParsecsGameState = preload("res://src/core/state/GameState.gd")
 const Character = preload("res://src/core/character/Management/CharacterDataManager.gd")
 const GameLocation = preload("res://src/game/world/GameLocation.gd")
 const Mission = preload("res://src/core/systems/Mission.gd")
-const WorldManager = preload("res://src/core/world/WorldManager.gd")
 const SaveManager = preload("res://src/core/state/SaveManager.gd")
-const Equipment = preload("res://src/core/character/Equipment.gd")
-const CrewSystem = preload("res://src/core/campaign/crew/CrewSystem.gd")
 const EconomyManager = preload("res://src/core/managers/EconomyManager.gd")
 
 var game_world: GameLocation
@@ -84,7 +79,7 @@ func update_local_economy() -> void:
 ## Parameters:
 ## - crew: The crew system to pay from
 ## Returns: Whether the payment was successful
-func pay_upkeep(crew: CrewSystem) -> bool:
+func pay_upkeep(crew: Node) -> bool:
 	var upkeep_cost: int = calculate_upkeep()
 	if crew.credits >= upkeep_cost:
 		crew.remove_credits(upkeep_cost)
@@ -117,7 +112,7 @@ func get_item_price(item) -> int:
 ## - crew: The crew system buying the item
 ## - item: The item to buy
 ## Returns: Whether the purchase was successful
-func buy_item(crew: CrewSystem, item) -> bool:
+func buy_item(crew: Node, item) -> bool:
 	var price: int = get_item_price(item)
 	if crew.credits >= price and local_market.has(item):
 		crew.remove_credits(price)
@@ -131,7 +126,7 @@ func buy_item(crew: CrewSystem, item) -> bool:
 ## - crew: The crew system selling the item
 ## - item: The item to sell
 ## Returns: Whether the sale was successful
-func sell_item(crew: CrewSystem, item) -> bool:
+func sell_item(crew: Node, item) -> bool:
 	var sell_price: int = int(get_item_price(item) * 0.7) # 70% of buy price
 	if crew.has_equipment(item):
 		crew.remove_equipment(item)

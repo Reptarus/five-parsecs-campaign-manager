@@ -1,4 +1,5 @@
-
+@tool
+class_name CoreSystems
 extends Node
 
 # Based on Core Rules tutorial mechanics

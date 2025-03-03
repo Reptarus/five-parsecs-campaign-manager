@@ -1,5 +1,4 @@
 @tool
-class_name BasePostBattlePhase
 extends Resource
 
 signal post_battle_phase_started

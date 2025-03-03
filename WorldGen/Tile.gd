@@ -1,5 +1,4 @@
 extends Resource
-class_name Tile
 
 @export var name: String = ''
 @export var biome: Biome = Biome.None

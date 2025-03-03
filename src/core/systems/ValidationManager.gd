@@ -1,4 +1,3 @@
-class_name ValidationManager
 extends Resource
 
 signal validation_completed(result: Dictionary)

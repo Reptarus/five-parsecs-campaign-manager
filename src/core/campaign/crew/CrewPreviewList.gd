@@ -1,4 +1,3 @@
-class_name CrewPreviewList
 extends Control
 
 signal crew_preview_selected(crew_data: Dictionary)

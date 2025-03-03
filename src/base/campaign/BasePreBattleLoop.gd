@@ -1,5 +1,4 @@
 @tool
-class_name BasePreBattleLoop
 extends Resource
 
 signal pre_battle_phase_started

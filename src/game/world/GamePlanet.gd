@@ -1,5 +1,4 @@
 @tool
-class_name GamePlanet
 extends Resource
 
 const GameEnums = preload("res://src/core/systems/GlobalEnums.gd")

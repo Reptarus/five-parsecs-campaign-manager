@@ -1,14 +1,20 @@
 # Content from src/core/battle/PathFinder.gd
-class_name FiveParsecsPathFinder
+# REMOVED: class_name FiveParsecsPathFinder
+# This class previously used class_name FiveParsecsPathFinder but it was removed to prevent conflicts
+# The authoritative FiveParsecsPathFinder class is in src/core/utils/PathFinder.gd
+# This file should be considered deprecated and will be removed in future updates
+# Use the core version directly: preload("res://src/core/utils/PathFinder.gd")
 extends Node
 
 const TerrainTypes = preload("res://src/core/terrain/TerrainTypes.gd")
 const BattlefieldManager = preload("res://src/core/battle/BattlefieldManager.gd")
 const GameEnums = preload("res://src/core/systems/GlobalEnums.gd")
+const AuthPathFinder = preload("res://src/core/utils/PathFinder.gd")
 
 signal path_found(path: Array[Vector2])
 signal path_not_found
 
+# Local version of PathNode to prevent errors since class_name was removed
 class PathNode:
 	var position: Vector2i
 	var g_cost: float = 0.0 # Cost from start to this node
@@ -23,6 +29,10 @@ class PathNode:
 	
 	func equals(other: PathNode) -> bool:
 		return position == other.position
+
+# Factory method to create PathNode instances
+func create_path_node(pos: Vector2i) -> PathNode:
+	return PathNode.new(pos)
 
 var battlefield_manager: Node # Will be cast to BattlefieldManager
 var _open_set: Array[PathNode] = []
@@ -40,6 +50,7 @@ var _movement_directions := [
 
 func _init(battlefield: Node) -> void: # Accept Node, will be BattlefieldManager
 	battlefield_manager = battlefield
+	push_warning("Using deprecated PathFinder from utils/helpers. Use core/utils/PathFinder.gd instead.")
 
 func find_path(start_pos: Vector2, end_pos: Vector2, max_movement: float) -> Array[Vector2]:
 	# Convert world positions to grid positions
@@ -51,8 +62,8 @@ func find_path(start_pos: Vector2, end_pos: Vector2, max_movement: float) -> Arr
 	_closed_set.clear()
 	
 	# Create start and end nodes
-	var start_node = PathNode.new(start_grid)
-	var end_node = PathNode.new(end_grid)
+	var start_node = create_path_node(start_grid)
+	var end_node = create_path_node(end_grid)
 	
 	# Add start node to open set
 	_open_set.append(start_node)
@@ -107,7 +118,7 @@ func _get_neighbors(node: PathNode) -> Array[PathNode]:
 		if battlefield_manager._is_valid_grid_position(neighbor_pos):
 			var terrain_type = battlefield_manager.terrain_map[neighbor_pos.x][neighbor_pos.y]
 			if not TerrainTypes.blocks_movement(terrain_type):
-				neighbors.append(PathNode.new(neighbor_pos))
+				neighbors.append(create_path_node(neighbor_pos))
 	
 	return neighbors
 

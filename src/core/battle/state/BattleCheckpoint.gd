@@ -1,4 +1,3 @@
-class_name BattleCheckpoint
 extends Control
 
 signal checkpoint_validated(result: Dictionary)

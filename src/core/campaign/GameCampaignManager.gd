@@ -3,16 +3,16 @@ extends Node
 
 const GameEnums = preload("res://src/core/systems/GlobalEnums.gd")
 const GameState = preload("res://src/core/state/GameState.gd")
-const FiveParcsecsCampaign = preload("res://src/core/campaign/Campaign.gd")
+const FiveParsecsCampaign = preload("res://src/game/campaign/FiveParsecsCampaign.gd")
 
 signal event_occurred(event_data: Dictionary)
 signal phase_changed(phase: int)
-signal campaign_started(campaign: FiveParcsecsCampaign)
+signal campaign_started(campaign: FiveParsecsCampaign)
 signal campaign_ended(victory: bool)
 
 var gamestate: GameState = null
 var current_phase: int = GameEnums.CampaignPhase.SETUP
-var current_campaign: FiveParcsecsCampaign = null
+var current_campaign: FiveParsecsCampaign = null
 
 func _init() -> void:
 	gamestate = GameState.new()
@@ -21,14 +21,14 @@ func _init() -> void:
 	else:
 		push_error("Failed to initialize GameState")
 
-func start_campaign(config: FiveParcsecsCampaign) -> void:
+func start_campaign(config: FiveParsecsCampaign) -> void:
 	if not config:
 		push_error("Invalid campaign configuration provided")
 		return
 	
 	current_campaign = config
 	current_phase = GameEnums.CampaignPhase.SETUP
-	gamestate.start_new_campaign(config as FiveParcsecsCampaign)
+	gamestate.start_new_campaign(config)
 	campaign_started.emit(config)
 
 func end_campaign(victory: bool = false) -> void:

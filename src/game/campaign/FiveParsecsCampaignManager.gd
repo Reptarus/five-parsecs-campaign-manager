@@ -1,10 +1,28 @@
 @tool
-class_name FiveParsecsCampaignManager
 extends BaseCampaignManager
 
-const FiveParsecsCampaign = preload("res://src/game/campaign/FiveParsecsCampaign.gd")
-const GameEnums = preload("res://src/core/systems/GlobalEnums.gd")
+# Use load() instead of preload() to handle circular dependencies
+var FiveParsecsCampaignScript = load("res://src/game/campaign/FiveParsecsCampaign.gd")
+const FiveParsecsGameEnums = preload("res://src/game/campaign/crew/FiveParsecsGameEnums.gd")
+const GlobalEnums = preload("res://src/core/systems/GlobalEnums.gd")
 const FiveParsecsGameState = preload("res://src/core/state/GameState.gd")
+
+# Define patron and rival types directly
+enum PatronType {
+	CORPORATE,
+	GOVERNMENT,
+	OUTLAW,
+	MERCENARY,
+	INDEPENDENT
+}
+
+enum RivalType {
+	GANG,
+	MERCENARY,
+	BOUNTY_HUNTER,
+	CORPORATE,
+	MILITARY
+}
 
 # Five Parsecs specific properties
 var available_patrons: Array = []
@@ -24,7 +42,7 @@ func _initialize_galaxy_systems() -> void:
 	]
 
 func create_campaign(name: String = "New Campaign") -> Variant:
-	var campaign = FiveParsecsCampaign.new(name)
+	var campaign = FiveParsecsCampaignScript.new(name)
 	active_campaigns.append(campaign)
 	return campaign
 
@@ -47,7 +65,7 @@ func generate_patrons() -> void:
 		var patron = {
 			"id": str(randi()),
 			"name": _generate_random_name(),
-			"type": randi() % GameEnums.PatronType.size(),
+			"type": randi() % PatronType.size(),
 			"reputation": randi() % 5 + 1,
 			"jobs": []
 		}
@@ -83,7 +101,7 @@ func generate_rivals() -> void:
 		var rival = {
 			"id": str(randi()),
 			"name": _generate_random_name(),
-			"type": randi() % GameEnums.RivalType.size(),
+			"type": randi() % RivalType.size(),
 			"threat_level": randi() % 5 + 1,
 			"location": galaxy_systems[randi() % galaxy_systems.size()],
 			"crew_size": randi() % 5 + 3
@@ -106,7 +124,7 @@ func generate_missions() -> void:
 			"id": str(randi()),
 			"title": _generate_mission_title(),
 			"description": _generate_mission_description(),
-			"type": randi() % GameEnums.MissionType.size(),
+			"type": randi() % GlobalEnums.MissionType.size(),
 			"difficulty": randi() % 5 + 1,
 			"reward": (randi() % 15 + 10) * 100,
 			"location": galaxy_systems[randi() % galaxy_systems.size()],

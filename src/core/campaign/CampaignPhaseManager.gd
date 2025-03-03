@@ -4,7 +4,7 @@ extends Node
 const GameEnums = preload("res://src/core/systems/GlobalEnums.gd")
 const FiveParsecsGameState = preload("res://src/core/state/GameState.gd")
 const FiveParsecsCampaign = preload("res://src/game/campaign/FiveParsecsCampaign.gd")
-const ValidationManager = preload("res://src/core/state/StateValidator.gd")
+const ValidationManager = preload("res://src/core/systems/ValidationManager.gd")
 
 # Import the enums directly for cleaner code
 const FiveParcsecsCampaignPhase = GameEnums.FiveParcsecsCampaignPhase
@@ -30,13 +30,14 @@ var phase_requirements: Dictionary = {}
 var phase_resources: Dictionary = {}
 var phase_events: Array = []
 var phase_errors: Array = []
-var validator: ValidationManager = ValidationManager.new()
+var validator: ValidationManager
 
 func _ready() -> void:
 	reset_phase_tracking()
 
 func setup(state: FiveParsecsGameState) -> void:
 	game_state = state
+	validator = ValidationManager.new(game_state)
 	reset_phase_tracking()
 	
 	# Connect to campaign signals if available
@@ -54,10 +55,11 @@ func _connect_to_campaign(campaign: FiveParsecsCampaign) -> void:
 
 func _on_campaign_state_changed(_property: String) -> void:
 	# Validate current state after a change
-	var validation_result = validator.validate_campaign_state(game_state.current_campaign)
-	if not validation_result.is_valid:
-		phase_error.emit(validation_result.error_message, validation_result.is_critical)
-		phase_errors.append(validation_result.error_message)
+	var validation_result = validator.validate_campaign()
+	if not validation_result.valid:
+		var error_message = validation_result.errors.join(", ")
+		phase_error.emit(error_message, validation_result.errors.size() > 1)
+		phase_errors.append(error_message)
 
 func _on_campaign_resource_changed(resource_type: String, amount: int) -> void:
 	# Update phase resources
@@ -540,3 +542,16 @@ func _generate_trade_options() -> Array:
 func _generate_turn_summary() -> Dictionary:
 	# Stub: Generate turn summary
 	return {}
+
+func validate_current_campaign() -> bool:
+	if not validator or not game_state:
+		phase_errors.append("Cannot validate campaign: validator or game state not ready")
+		return false
+	
+	var validation_result = validator.validate_campaign()
+	
+	if not validation_result.valid and validation_result.errors.size() > 0:
+		phase_errors.append_array(validation_result.errors)
+		return false
+	
+	return true

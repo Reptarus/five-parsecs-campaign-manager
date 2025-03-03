@@ -1,16 +1,18 @@
 extends BasePhasePanel
-class_name BattleResolutionPhasePanel
+class_name FiveParsecsBattleResolutionPanel
 
 const GameEnums = preload("res://src/core/systems/GlobalEnums.gd")
 const Character = preload("res://src/core/character/Base/Character.gd")
 
-@onready var battle_summary = $VBoxContainer/BattleSummary
-@onready var objectives_list = $VBoxContainer/ObjectivesList
-@onready var casualties_list = $VBoxContainer/CasualtiesList
-@onready var rewards_list = $VBoxContainer/RewardsList
+# Preload required resources
+@onready var results_container = $VBoxContainer/ResultsContainer
+@onready var objectives_container = $VBoxContainer/ObjectivesContainer
+@onready var casualty_container = $VBoxContainer/CasualtyContainer
 @onready var complete_button = $VBoxContainer/CompleteButton
 
-var escalating_battles_manager: EscalatingBattlesManager
+# Create placeholder for missing battle manager
+# TODO: Implement proper integration once battle managers are created
+var escalating_battles_manager = null
 var completed_objectives: Array = []
 var failed_objectives: Array = []
 var casualties: Array = []
@@ -19,11 +21,11 @@ var battle_state: Dictionary = {}
 
 func _ready() -> void:
 	super._ready()
-	escalating_battles_manager = EscalatingBattlesManager.new(game_state)
+	# Will be replaced with proper implementation when battle managers are created
 	_connect_signals()
 
 func _connect_signals() -> void:
-	complete_button.pressed.connect(_on_complete_pressed)
+	complete_button.pressed.connect(_on_complete_button_pressed)
 
 func setup_phase() -> void:
 	super.setup_phase()
@@ -62,7 +64,7 @@ func _resolve_battle() -> void:
 			})
 
 func _apply_escalation(escalation: Dictionary) -> void:
-	var summary_text = battle_summary.text
+	var summary_text = results_container.text
 	summary_text += "\n[b]Battle Escalation:[/b]\n"
 	summary_text += escalation.description + "\n"
 	
@@ -81,7 +83,7 @@ func _apply_escalation(escalation: Dictionary) -> void:
 			for objective in game_state.campaign.current_mission.objectives:
 				objective.difficulty += 1
 	
-	battle_summary.text = summary_text
+	results_container.text = summary_text
 
 func _apply_escalation_effect(crew_member: Character, effect: Dictionary) -> void:
 	if effect.has("damage"):
@@ -240,35 +242,35 @@ func _update_battle_summary() -> void:
 		summary += "Deaths: %d\n" % deaths
 		summary += "Injuries: %d\n" % injuries
 	
-	battle_summary.text = summary
+	results_container.text = summary
 
 func _update_objectives() -> void:
-	objectives_list.clear()
+	objectives_container.clear()
 	
 	for objective in completed_objectives:
-		objectives_list.add_item("✓ " + objective.description)
-		objectives_list.set_item_custom_fg_color(objectives_list.item_count - 1, Color(0, 1, 0))
+		objectives_container.add_item("✓ " + objective.description)
+		objectives_container.set_item_custom_fg_color(objectives_container.item_count - 1, Color(0, 1, 0))
 		if objective.has("bonus_credits"):
-			objectives_list.add_item("  Bonus: %d credits" % objective.bonus_credits)
+			objectives_container.add_item("  Bonus: %d credits" % objective.bonus_credits)
 	
 	for objective in failed_objectives:
-		objectives_list.add_item("✗ " + objective.description)
-		objectives_list.set_item_custom_fg_color(objectives_list.item_count - 1, Color(1, 0, 0))
+		objectives_container.add_item("✗ " + objective.description)
+		objectives_container.set_item_custom_fg_color(objectives_container.item_count - 1, Color(1, 0, 0))
 
 func _update_casualties() -> void:
-	casualties_list.clear()
+	casualty_container.clear()
 	
 	if casualties.is_empty():
-		casualties_list.add_item("No casualties")
+		casualty_container.add_item("No casualties")
 		return
 	
 	for casualty in casualties:
 		var text = "%s - %s" % [casualty.member.character_name, casualty.type]
 		if casualty.type == "INJURY":
 			text += " (Recovery: %d days)" % _calculate_recovery_time(casualty.member)
-		casualties_list.add_item(text)
-		casualties_list.set_item_custom_fg_color(
-			casualties_list.item_count - 1,
+		casualty_container.add_item(text)
+		casualty_container.set_item_custom_fg_color(
+			casualty_container.item_count - 1,
 			Color(1, 0, 0) if casualty.type == "DEATH" else Color(1, 0.5, 0)
 		)
 
@@ -279,14 +281,14 @@ func _calculate_recovery_time(member: Character) -> int:
 	return base_time
 
 func _update_rewards() -> void:
-	rewards_list.clear()
+	results_container.clear()
 	
-	rewards_list.add_item("Credits: %d" % rewards.credits)
+	results_container.add_item("Credits: %d" % rewards.credits)
 	
 	if rewards.has("items"):
-		rewards_list.add_item("\nLoot:")
+		results_container.add_item("\nLoot:")
 		for item in rewards.items:
-			rewards_list.add_item("• %s x%d" % [item.name, item.quantity])
+			results_container.add_item("• %s x%d" % [item.name, item.quantity])
 
 func _apply_battle_results() -> void:
 	# Update campaign credits
@@ -314,7 +316,7 @@ func _apply_battle_results() -> void:
 	# Clear battle state
 	game_state.campaign.battle_state = {}
 
-func _on_complete_pressed() -> void:
+func _on_complete_button_pressed() -> void:
 	_apply_battle_results()
 	complete_phase()
 

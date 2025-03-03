@@ -1,4 +1,3 @@
-class_name FiveParsecsTerrainPiece
 extends StaticBody3D
 
 const GameEnums: GDScript = preload("res://src/core/systems/GlobalEnums.gd")

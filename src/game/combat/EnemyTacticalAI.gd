@@ -10,7 +10,7 @@ signal group_coordination_updated(group: Array[FiveParsecsCharacter], leader: Fi
 ## Dependencies
 const GlobalEnums := preload("res://src/core/systems/GlobalEnums.gd")
 const Character := preload("res://src/core/character/Base/Character.gd")
-const BattlefieldMgr := preload("res://src/core/battle/BattlefieldManager.gd")
+const BattlefieldManagerClass := preload("res://src/core/battle/BattlefieldManager.gd")
 const BaseCombatManager := preload("res://src/base/combat/BaseCombatManager.gd")
 
 ## AI Personality types
@@ -32,7 +32,7 @@ enum GroupTactic {
 }
 
 ## References to required systems
-@export var battlefield_manager: BattlefieldMgr
+@export var battlefield_manager: Node
 @export var combat_manager: BaseCombatManager # Combat system reference
 
 ## AI state tracking
@@ -444,7 +444,7 @@ func _find_best_defensive_position(group: Array[FiveParsecsCharacter]) -> Vector
 		for y in range(-5, 6):
 			var test_pos := Vector2(center.x + x, center.y + y)
 			if battlefield_manager.is_valid_position(test_pos):
-				var cover := battlefield_manager.get_cover_value(test_pos)
+				var cover: float = float(battlefield_manager.get_cover_value(test_pos))
 				if cover > best_cover:
 					best_cover = cover
 					best_pos = test_pos
@@ -480,3 +480,22 @@ func _find_nearest_valid_position(position: Vector2) -> Vector2:
 		radius += 1
 	
 	return position # Return original position if no valid position found
+
+func _find_best_cover_position(character: Character, center: Vector2, radius: float) -> Vector2:
+	var best_cover: float = 0.0
+	var best_pos: Vector2 = center
+	
+	# Check positions in a grid within the radius
+	for x in range(- int(radius), int(radius) + 1):
+		for y in range(- int(radius), int(radius) + 1):
+			if Vector2(x, y).length() > radius:
+				continue
+				
+			var test_pos := Vector2(center.x + x, center.y + y)
+			if battlefield_manager.is_valid_position(test_pos):
+				var cover: float = float(battlefield_manager.get_cover_value(test_pos))
+				if cover > best_cover:
+					best_cover = cover
+					best_pos = test_pos
+	
+	return best_pos

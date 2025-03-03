@@ -1,4 +1,3 @@
-class_name BaseStrangeCharacters
 extends Resource
 
 var type: int # Will be defined by game-specific enums

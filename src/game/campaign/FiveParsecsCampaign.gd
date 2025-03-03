@@ -1,12 +1,11 @@
 @tool
-class_name FiveParsecsCampaign
 extends BaseCampaign
 
-const GameEnums = preload("res://src/core/systems/GlobalEnums.gd")
+const FiveParsecsGameEnums = preload("res://src/game/campaign/crew/FiveParsecsGameEnums.gd")
 const FiveParsecsCrew = preload("res://src/game/campaign/crew/FiveParsecsCrew.gd")
 
 # Five Parsecs specific properties
-var crew: FiveParsecsCrew
+var crew
 var galaxy_map: Dictionary = {
 	"current_system": "",
 	"visited_systems": [],

@@ -1,6 +1,5 @@
 # Scripts/ShipAndCrew/MedicalBayComponent.gd
 extends ShipComponent
-class_name MedicalBayComponent
 
 @export var healing_rate: float = 1.0
 @export var capacity: int = 2
@@ -81,9 +80,9 @@ func serialize() -> Dictionary:
 	data["treatment_progress"] = treatment_progress.duplicate()
 	return data
 
-static func deserialize(data: Dictionary) -> MedicalBayComponent:
-	var component = MedicalBayComponent.new()
-	var base_data = super.deserialize(data)
+static func deserialize(data: Dictionary):
+	var component = load("res://src/core/ships/components/MedicalBayComponent.gd").new()
+	var base_data = ShipComponent.deserialize(data)
 	component.name = base_data.name
 	component.description = base_data.description
 	component.cost = base_data.cost

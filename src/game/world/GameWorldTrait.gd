@@ -1,5 +1,4 @@
 @tool
-class_name GameWorldTrait
 extends Resource
 
 ## A class representing a world trait that can be applied to planets and locations

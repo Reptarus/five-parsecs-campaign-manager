@@ -1,6 +1,5 @@
 # Scripts/ShipAndCrew/ShipComponent.gd
 extends Resource
-class_name ShipComponent
 
 @export var name: String = ""
 @export var description: String = ""
@@ -243,8 +242,8 @@ func serialize() -> Dictionary:
         "status_effects": status_effects
     }
 
-static func deserialize(data: Dictionary) -> ShipComponent:
-    var component = ShipComponent.new()
+static func deserialize(data: Dictionary):
+    var component = load("res://src/core/ships/components/ShipComponent.gd").new()
     component.name = data.get("name", "")
     component.description = data.get("description", "")
     component.cost = data.get("cost", 0)

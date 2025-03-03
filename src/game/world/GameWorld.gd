@@ -1,4 +1,3 @@
-class_name FiveParsecsGameWorld
 extends Resource
 
 const GameEnums = preload("res://src/core/systems/GlobalEnums.gd")

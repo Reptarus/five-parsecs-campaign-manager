@@ -1,5 +1,4 @@
 @tool
-class_name BaseCrewMember
 extends Node
 
 signal stats_changed

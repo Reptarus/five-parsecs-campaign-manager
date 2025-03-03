@@ -1,6 +1,5 @@
 @tool
 extends BaseBattleData
-class_name FiveParsecsBattleData
 
 ## Five Parsecs implementation of battle data
 ##
