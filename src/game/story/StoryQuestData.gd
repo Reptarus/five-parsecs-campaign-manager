@@ -1,4 +1,5 @@
 @tool
+class_name StoryQuestData
 extends Resource
 
 signal reward_calculated(rewards: Dictionary)

@@ -1,6 +1,6 @@
 ## UnifiedAISystem
 ## Manages AI behavior and decision making for units in the Five Parsecs battle system.
-class_name UnifiedAISystem
+class_name FPCM_UnifiedAISystem
 extends Node
 
 ## Dependencies
@@ -204,7 +204,7 @@ func _find_best_target(unit: Character) -> Character:
 		return null
 		
 	var best_target: Character = null
-	var best_score := -INF
+	var best_score := - INF
 	
 	for potential_target in battlefield_manager.unit_positions.keys():
 		if potential_target.is_enemy() != unit.is_enemy():
@@ -275,7 +275,7 @@ func _calculate_threat_level(unit: Character) -> float:
 ## Evaluate a target's score for targeting priority
 func _evaluate_target_score(unit: Character, target: Character) -> float:
 	if not unit or not target or not battlefield_manager:
-		return -INF
+		return - INF
 		
 	var distance: float = battlefield_manager.unit_positions[unit].distance_to(
 		battlefield_manager.unit_positions[target]

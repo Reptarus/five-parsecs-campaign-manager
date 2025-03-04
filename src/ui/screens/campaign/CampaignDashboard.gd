@@ -1,4 +1,4 @@
-class_name CampaignDashboardUI
+class_name FPCM_CampaignDashboardUI
 extends Control
 
 const GameEnums = preload("res://src/core/systems/GlobalEnums.gd")

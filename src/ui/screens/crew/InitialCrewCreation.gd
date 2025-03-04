@@ -1,4 +1,4 @@
-class_name InitialCrewCreationUI
+class_name FPCM_InitialCrewCreationUI
 extends Control
 
 signal crew_created(crew_data: Dictionary)

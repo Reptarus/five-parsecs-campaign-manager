@@ -1,5 +1,5 @@
 extends BasePhasePanel
-class_name TradePhasePanel
+class_name FPCM_TradePhasePanel
 
 signal item_purchased(item_data: Dictionary)
 signal item_sold(item_data: Dictionary)

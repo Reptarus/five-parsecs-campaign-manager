@@ -1,4 +1,4 @@
-class_name DifficultyOption
+class_name FPCM_DifficultyOption
 extends Control
 
 signal value_changed(difficulty: GameEnums.DifficultyLevel)

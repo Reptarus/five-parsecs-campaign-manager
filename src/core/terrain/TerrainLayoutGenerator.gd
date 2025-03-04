@@ -1,10 +1,10 @@
-class_name FiveParsecsTerrainLayoutGenerator
+@tool
 extends Node
 
-const GameEnums: GDScript = preload("res://src/core/systems/GlobalEnums.gd")
-const FiveParsecsTerrainTypes: GDScript = preload("res://src/core/terrain/TerrainTypes.gd")
-const FiveParsecsTerrainLayout: GDScript = preload("res://src/core/terrain/TerrainLayout.gd")
-const TerrainSystem: GDScript = preload("res://src/core/terrain/TerrainSystem.gd")
+const GameEnums = preload("res://src/core/systems/GlobalEnums.gd")
+const TerrainTypes = preload("res://src/core/terrain/TerrainTypes.gd")
+const TerrainLayout = preload("res://src/core/terrain/TerrainLayout.gd")
+const TerrainSystem = preload("res://src/core/terrain/TerrainSystem.gd")
 
 enum LayoutType {
     OPEN, # Sparse cover, good for ranged combat
@@ -46,14 +46,14 @@ func _generate_open_layout() -> void:
     for i in range(cover_count):
         var pos := _find_random_position()
         if pos != Vector2.ZERO:
-            _set_terrain_feature(pos, TerrainSystem.TerrainFeatureType.COVER_LOW)
+            _set_terrain_feature(pos, GameEnums.TerrainFeatureType.COVER)
     
     # Add a few high cover pieces
     var high_cover_count := cover_count / 4
     for i in range(high_cover_count):
         var pos := _find_random_position()
         if pos != Vector2.ZERO:
-            _set_terrain_feature(pos, TerrainSystem.TerrainFeatureType.COVER_HIGH)
+            _set_terrain_feature(pos, GameEnums.TerrainFeatureType.OBSTACLE)
 
 func _generate_dense_layout() -> void:
     var grid_size := _terrain_system.get_grid_size()
@@ -64,14 +64,14 @@ func _generate_dense_layout() -> void:
     for i in range(cover_count):
         var pos := _find_random_position()
         if pos != Vector2.ZERO:
-            _set_terrain_feature(pos, TerrainSystem.TerrainFeatureType.COVER_HIGH)
+            _set_terrain_feature(pos, GameEnums.TerrainFeatureType.OBSTACLE)
     
     # Add some walls for additional cover
     var wall_count := cover_count / 3
     for i in range(wall_count):
         var pos := _find_random_position()
         if pos != Vector2.ZERO:
-            _set_terrain_feature(pos, TerrainSystem.TerrainFeatureType.WALL)
+            _set_terrain_feature(pos, GameEnums.TerrainFeatureType.WALL)
 
 func _generate_asymmetric_layout() -> void:
     var grid_size := _terrain_system.get_grid_size()
@@ -82,14 +82,14 @@ func _generate_asymmetric_layout() -> void:
         for y in range(int(grid_size.y)):
             if randf() < _cover_density * 1.5:
                 var pos := Vector2(x, y)
-                _set_terrain_feature(pos, TerrainSystem.TerrainFeatureType.COVER_HIGH)
+                _set_terrain_feature(pos, GameEnums.TerrainFeatureType.OBSTACLE)
     
     # Open side (right)
     for x in range(mid_x, int(grid_size.x)):
         for y in range(int(grid_size.y)):
             if randf() < _cover_density * 0.5:
                 var pos := Vector2(x, y)
-                _set_terrain_feature(pos, TerrainSystem.TerrainFeatureType.COVER_LOW)
+                _set_terrain_feature(pos, GameEnums.TerrainFeatureType.COVER)
 
 func _generate_corridor_layout() -> void:
     var grid_size := _terrain_system.get_grid_size()
@@ -98,13 +98,13 @@ func _generate_corridor_layout() -> void:
     for x in range(int(grid_size.x)):
         for y in range(int(grid_size.y)):
             if (y % 3 == 0 or y % 3 == 2) and randf() < 0.7:
-                _set_terrain_feature(Vector2(x, y), TerrainSystem.TerrainFeatureType.WALL)
+                _set_terrain_feature(Vector2(x, y), GameEnums.TerrainFeatureType.WALL)
     
     # Add choke points
     for i in range(_choke_points):
         var x := randi() % int(grid_size.x)
         var y := randi() % (int(grid_size.y) / 3) * 3 + 1
-        _set_terrain_feature(Vector2(x, y), TerrainSystem.TerrainFeatureType.COVER_HIGH)
+        _set_terrain_feature(Vector2(x, y), GameEnums.TerrainFeatureType.OBSTACLE)
 
 func _generate_scattered_layout() -> void:
     var grid_size := _terrain_system.get_grid_size()
@@ -133,7 +133,7 @@ func _find_random_position() -> Vector2:
         var y := randi() % int(grid_size.y)
         var pos := Vector2(x, y)
         
-        if _terrain_system.get_terrain_type(pos) == TerrainSystem.TerrainFeatureType.NONE:
+        if _terrain_system.is_position_empty(pos):
             return pos
             
         attempt += 1
@@ -142,21 +142,21 @@ func _find_random_position() -> Vector2:
 
 func _get_random_feature_type() -> int:
     var types := [
-        TerrainSystem.TerrainFeatureType.COVER_LOW,
-        TerrainSystem.TerrainFeatureType.COVER_HIGH,
-        TerrainSystem.TerrainFeatureType.WALL
+        GameEnums.TerrainFeatureType.COVER,
+        GameEnums.TerrainFeatureType.OBSTACLE,
+        GameEnums.TerrainFeatureType.WALL
     ]
     return types[randi() % types.size()]
 
-func _get_adjacent_positions(pos: Vector2) -> Array[Vector2]:
-    var adjacent: Array[Vector2] = []
+func _get_adjacent_positions(pos: Vector2) -> Array:
+    var adjacent := []
     var offsets := [
         Vector2(-1, 0), Vector2(1, 0),
         Vector2(0, -1), Vector2(0, 1)
     ]
     
     for offset in offsets:
-        var adjacent_pos: Vector2 = pos + offset
+        var adjacent_pos := Vector2(pos.x + offset.x, pos.y + offset.y)
         if _is_valid_position(adjacent_pos):
             adjacent.append(adjacent_pos)
     

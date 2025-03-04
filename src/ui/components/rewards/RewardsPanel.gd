@@ -1,4 +1,4 @@
-class_name RewardsPanel
+class_name FPCM_RewardsPanel
 extends Control
 
 signal rewards_confirmed(selected_rewards: Array)
@@ -136,4 +136,4 @@ func _on_confirm_pressed() -> void:
     rewards_confirmed.emit(selected_rewards)
 
 func get_selected_rewards() -> Array:
-    return selected_rewards 
+    return selected_rewards

@@ -1,4 +1,4 @@
-class_name FiveParsecsTerrainLayout
+class_name FPCM_TerrainLayout
 extends Resource
 
 const GameEnums: GDScript = preload("res://src/core/systems/GlobalEnums.gd")

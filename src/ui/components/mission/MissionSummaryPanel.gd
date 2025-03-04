@@ -1,4 +1,4 @@
-class_name MissionSummaryPanel
+class_name FPCM_MissionSummaryPanel
 extends Control
 
 signal continue_pressed
@@ -122,4 +122,4 @@ func _format_crew_status(status: Array) -> String:
     return text.strip_edges()
 
 func _on_continue_pressed() -> void:
-    continue_pressed.emit() 
+    continue_pressed.emit()

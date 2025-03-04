@@ -1,4 +1,4 @@
-class_name FiveParcsecsCampaignStateMachine
+class_name FPCM_CampaignStateMachine
 extends Node
 
 const FiveParsecsGameEnums = preload("res://src/core/systems/GlobalEnums.gd")

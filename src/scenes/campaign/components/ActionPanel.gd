@@ -1,6 +1,6 @@
 @tool
 extends Panel
-class_name ActionPanel
+class_name FPCM_ActionPanel
 
 # Signals
 signal action_selected(action_name: String)
@@ -10,37 +10,37 @@ signal phase_action_completed(phase_name: String)
 # Constants
 const PHASE_CATEGORIES = {
 	"upkeep": {
-		"color": Color(0.2, 0.8, 0.2),  # Green
+		"color": Color(0.2, 0.8, 0.2), # Green
 		"icon": "res://assets/icons/upkeep.png",
 		"description": "Handle crew upkeep and ship maintenance"
 	},
 	"world_step": {
-		"color": Color(0.4, 0.6, 0.9),  # Light Blue
+		"color": Color(0.4, 0.6, 0.9), # Light Blue
 		"icon": "res://assets/icons/world.png",
 		"description": "Handle world events and local activities"
 	},
 	"travel": {
-		"color": Color(0.8, 0.6, 0.2),  # Orange
+		"color": Color(0.8, 0.6, 0.2), # Orange
 		"icon": "res://assets/icons/travel.png",
 		"description": "Travel between locations and handle travel events"
 	},
 	"patrons": {
-		"color": Color(0.9, 0.8, 0.2),  # Gold
+		"color": Color(0.9, 0.8, 0.2), # Gold
 		"icon": "res://assets/icons/patron.png",
 		"description": "Interact with patrons and handle job offers"
 	},
 	"battle": {
-		"color": Color(0.8, 0.2, 0.2),  # Red
+		"color": Color(0.8, 0.2, 0.2), # Red
 		"icon": "res://assets/icons/battle.png",
 		"description": "Engage in tactical combat missions"
 	},
 	"post_battle": {
-		"color": Color(0.6, 0.4, 0.8),  # Purple
+		"color": Color(0.6, 0.4, 0.8), # Purple
 		"icon": "res://assets/icons/post_battle.png",
 		"description": "Handle post-battle resolution and rewards"
 	},
 	"management": {
-		"color": Color(0.2, 0.6, 1.0),  # Blue
+		"color": Color(0.2, 0.6, 1.0), # Blue
 		"icon": "res://assets/icons/management.png",
 		"description": "Manage crew, equipment, and resources"
 	}
@@ -113,7 +113,7 @@ class ActionData:
 	var name: String
 	var description: String
 	var requirements: Array[ActionRequirement]
-	var costs: Dictionary  # Resource costs
+	var costs: Dictionary # Resource costs
 	var category: String
 	var enabled: bool
 	var phase: String
@@ -168,11 +168,11 @@ func _setup_phase_requirements() -> void:
 		"travel": [
 			ActionRequirement.new(RequirementType.SUPPLIES, 2, "Requires supplies for travel")
 		],
-		"patrons": [],  # No special requirements for patron interactions
+		"patrons": [], # No special requirements for patron interactions
 		"battle": [
 			ActionRequirement.new(RequirementType.SUPPLIES, 1, "Requires supplies for battle")
 		],
-		"post_battle": [],  # No special requirements for post-battle
+		"post_battle": [], # No special requirements for post-battle
 		"management": [
 			ActionRequirement.new(RequirementType.CREDITS, 50, "Requires credits for management actions")
 		]
@@ -412,4 +412,4 @@ func execute_action(action_name: String, campaign_state: Dictionary) -> Dictiona
 
 func _execute_action_logic(action: ActionData, campaign_state: Dictionary) -> Dictionary:
 	# Implement action execution logic
-	return {"success": true, "message": "Action executed successfully"} 
+	return {"success": true, "message": "Action executed successfully"}

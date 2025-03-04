@@ -1,5 +1,5 @@
 extends Control
-class_name BasePhasePanel
+class_name FPCM_BasePhasePanel
 
 const FiveParsecsGameState = preload("res://src/core/state/GameState.gd")
 const GameEnums = preload("res://src/core/systems/GlobalEnums.gd")

@@ -1,5 +1,5 @@
 ## Handles tactical decision making for enemy units in combat
-class_name FiveParsecsEnemyTacticalAI
+class_name FPCM_EnemyTacticalAI
 extends Node
 
 ## Signals

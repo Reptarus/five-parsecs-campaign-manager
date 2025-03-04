@@ -1,28 +1,88 @@
 @tool
-class_name FiveParsecsCrewExporter
-extends BaseCrewExporter
+extends Node
+class_name FPCM_CrewExporter
 
-const FiveParsecsCrew = preload("res://src/game/campaign/crew/FiveParsecsCrew.gd")
-const FiveParsecsCrewMember = preload("res://src/game/campaign/crew/FiveParsecsCrewMember.gd")
+# These files need to be created or renamed
+# const FPCM_Crew = preload("res://src/game/campaign/crew/FiveParsecsCrew.gd")
+# const FPCM_CrewMember = preload("res://src/game/campaign/crew/FiveParsecsCrewMember.gd")
 const GameEnums = preload("res://src/core/systems/GlobalEnums.gd")
 const FiveParsecsGameEnums = preload("res://src/game/campaign/crew/FiveParsecsGameEnums.gd")
 const PDFGenerator = preload("res://src/core/utils/PDFGenerator.gd")
 
+# Constants from BaseCrewExporter
+const EXPORT_DIR = "user://exports/"
+
+# Signals from BaseCrewExporter
+signal export_completed(success: bool, message: String)
+signal export_failed(error: String)
+
+# Properties from BaseCrewExporter
+var pdf_generator = null
+
 func _init() -> void:
-	super._init()
+	_initialize_pdf_generator()
 
 func _initialize_pdf_generator() -> void:
 	pdf_generator = PDFGenerator.new()
 	pdf_generator.set_template("res://assets/templates/five_parsecs_template.tres")
 
-func export_crew_to_pdf(crew: FiveParsecsCrew, file_name: String = "") -> void:
-	if not crew is FiveParsecsCrew:
-		export_failed.emit("Invalid crew type. Expected FiveParsecsCrew.")
+func export_crew_to_pdf(crew, file_name: String = "") -> void:
+	if not crew.get_class() == "FPCM_Crew":
+		export_failed.emit("Invalid crew type. Expected FPCM_Crew.")
 		return
 		
-	super.export_crew_to_pdf(crew, file_name)
+	if not pdf_generator:
+		_initialize_pdf_generator()
+	
+	var actual_file_name = file_name
+	if actual_file_name.is_empty():
+		actual_file_name = "crew_roster_%s.pdf" % Time.get_datetime_string_from_system().replace(":", "-")
+	
+	# Generate the PDF content
+	_generate_crew_roster_content(crew)
+	
+	# Save the document
+	var save_path = EXPORT_DIR + actual_file_name
+	var dir = DirAccess.open(EXPORT_DIR.get_base_dir())
+	if not dir:
+		dir = DirAccess.open("user://")
+		dir.make_dir("exports")
+	
+	var result = pdf_generator.save_to_file(save_path)
+	if result == OK:
+		export_completed.emit(true, "Crew roster exported to %s" % save_path)
+	else:
+		export_failed.emit("Failed to save PDF file: %s" % error_string(result))
 
-func _generate_crew_roster_content(crew: FiveParsecsCrew) -> void:
+func export_character_sheet(character, file_name: String = "") -> void:
+	if not character.get_class() == "FPCM_CrewMember":
+		export_failed.emit("Invalid character type. Expected FPCM_CrewMember.")
+		return
+	
+	if not pdf_generator:
+		_initialize_pdf_generator()
+	
+	var actual_file_name = file_name
+	if actual_file_name.is_empty():
+		actual_file_name = "character_sheet_%s.pdf" % character.character_name.replace(" ", "_")
+	
+	# Generate the PDF content
+	_generate_character_sheet_content(character)
+	
+	# Save the document
+	var save_path = EXPORT_DIR + actual_file_name
+	var dir = DirAccess.open(EXPORT_DIR.get_base_dir())
+	if not dir:
+		dir = DirAccess.open("user://")
+		dir.make_dir("exports")
+	
+	var result = pdf_generator.save_to_file(save_path)
+	if result == OK:
+		export_completed.emit(true, "Character sheet exported to %s" % save_path)
+	else:
+		export_failed.emit("Failed to save PDF file: %s" % error_string(result))
+
+func _generate_crew_roster_content(crew) -> void:
 	if not pdf_generator:
 		export_failed.emit("PDF generator not initialized")
 		return
@@ -49,7 +109,7 @@ func _generate_crew_roster_content(crew: FiveParsecsCrew) -> void:
 	pdf_generator.add_section("Crew Members")
 	
 	for member in crew.members:
-		if member is FiveParsecsCrewMember:
+		if member.get_class() == "FPCM_CrewMember":
 			pdf_generator.add_subsection(member.character_name)
 			
 			# Add character class
@@ -121,14 +181,7 @@ func _generate_crew_roster_content(crew: FiveParsecsCrew) -> void:
 			
 			pdf_generator.add_separator()
 
-func export_character_sheet(character: FiveParsecsCrewMember, file_name: String = "") -> void:
-	if not character is FiveParsecsCrewMember:
-		export_failed.emit("Invalid character type. Expected FiveParsecsCrewMember.")
-		return
-		
-	super.export_character_sheet(character, file_name)
-
-func _generate_character_sheet_content(character: FiveParsecsCrewMember) -> void:
+func _generate_character_sheet_content(character) -> void:
 	if not pdf_generator:
 		export_failed.emit("PDF generator not initialized")
 		return

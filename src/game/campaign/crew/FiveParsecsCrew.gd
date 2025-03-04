@@ -1,8 +1,9 @@
 @tool
-class_name FiveParsecsCrew
+class_name FPCM_Crew
 extends BaseCrew
 
-const FiveParsecsCrewMember = preload("res://src/game/campaign/crew/FiveParsecsCrewMember.gd")
+const BaseCrew = preload("res://src/base/campaign/crew/BaseCrew.gd")
+const FPCM_CrewMember = preload("res://src/game/campaign/crew/FiveParsecsCrewMember.gd")
 const GameEnums = preload("res://src/core/systems/GlobalEnums.gd")
 const FiveParsecsGameEnums = preload("res://src/game/campaign/crew/FiveParsecsGameEnums.gd")
 
@@ -25,8 +26,8 @@ func _init() -> void:
 
 func add_member(character) -> bool:
 	# Override to ensure we're adding FiveParsecsCrewMember instances
-	if not character is FiveParsecsCrewMember:
-		push_error("Can only add FiveParsecsCrewMember instances to a FiveParsecsCrew")
+	if not character is FPCM_CrewMember:
+		push_error("Can only add FPCM_CrewMember instances to a FPCM_Crew")
 		return false
 	
 	return super.add_member(character)
@@ -37,7 +38,7 @@ func generate_random_crew(size: int = 5) -> void:
 	
 	# Generate new members
 	for i in range(size):
-		var member = FiveParsecsCrewMember.new()
+		var member = FPCM_CrewMember.new()
 		
 		# Randomize class
 		member.character_class = randi() % FiveParsecsGameEnums.CharacterClass.size()
@@ -191,6 +192,6 @@ func from_dict(data: Dictionary) -> void:
 	if data.has("members"):
 		members.clear()
 		for member_data in data.members:
-			var member = FiveParsecsCrewMember.new()
+			var member = FPCM_CrewMember.new()
 			member.from_dict(member_data)
 			add_member(member)

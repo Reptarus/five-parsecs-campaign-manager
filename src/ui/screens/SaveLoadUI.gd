@@ -1,4 +1,4 @@
-class_name SaveLoadUI
+class_name FPCM_SaveLoadUI
 extends Control
 
 signal save_completed

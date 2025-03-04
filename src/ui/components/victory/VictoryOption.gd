@@ -1,4 +1,4 @@
-class_name VictoryOption
+class_name FPCM_VictoryOption
 extends Control
 
 signal value_changed(condition: GameEnums.FiveParcsecsCampaignVictoryType)

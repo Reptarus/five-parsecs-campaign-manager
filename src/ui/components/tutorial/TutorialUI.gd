@@ -1,4 +1,4 @@
-class_name TutorialUI
+class_name FPCM_TutorialUI
 extends Control
 
 signal tutorial_completed
@@ -95,4 +95,4 @@ func _on_tutorial_skipped() -> void:
         tutorial_progress[current_tutorial] = {"completed": true, "skipped": true}
         _save_tutorial_progress()
         tutorial_skipped.emit()
-        current_tutorial = "" 
+        current_tutorial = ""

@@ -1,8 +1,7 @@
 extends BasePhasePanel
-class_name UpkeepPhasePanel
+class_name FPCM_UpkeepPhasePanel
 
 const Character = preload("res://src/core/character/Base/Character.gd")
-const GameEnums = preload("res://src/core/systems/GlobalEnums.gd")
 
 @onready var upkeep_cost_label = $VBoxContainer/UpkeepCostLabel
 @onready var crew_list = $VBoxContainer/CrewList

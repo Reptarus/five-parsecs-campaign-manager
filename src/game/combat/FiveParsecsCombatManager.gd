@@ -1,6 +1,6 @@
 @tool
 extends BaseCombatManager
-class_name FiveParsecsCombatManager
+class_name FPCM_CombatManager
 
 ## Five Parsecs implementation of the combat manager
 ##
@@ -28,10 +28,31 @@ class CombatState extends BaseCombatState:
     
     func _init(char: Character) -> void:
         super._init(char)
-        action_points = FiveParsecsCombatManager.BASE_ACTION_POINTS
+        action_points = BASE_ACTION_POINTS
         combat_advantage = 0 # NONE
         combat_status = 0 # NONE
         combat_tactic = 0 # NONE
+
+# Factory method to create a CombatState instance without direct instantiation
+func create_combat_state(character: Character) -> BaseCombatState:
+    # Create a base combat state and manually add our properties
+    var state = BaseCombatState.new(character)
+    
+    # Set Five Parsecs specific properties
+    state.action_points = BASE_ACTION_POINTS
+    state.combat_advantage = 0 # NONE
+    state.combat_status = 0 # NONE
+    state.combat_tactic = 0 # NONE
+    
+    # Add our custom properties using the 'set' method since we can't directly
+    # add new properties to an existing object
+    state.set("reaction_used", false)
+    state.set("cover_level", 0)
+    state.set("height_advantage", false)
+    state.set("flanking", false)
+    state.set("suppressed", false)
+    
+    return state
 
 ## Called when the node enters the scene tree
 func _ready() -> void:
@@ -59,7 +80,7 @@ func initialize_combat(combatants: Array[Character], battlefield: Node) -> void:
     
     # Initialize combat state for each combatant
     for combatant in _active_combatants:
-        var state = CombatState.new(combatant)
+        var state = create_combat_state(combatant)
         _combat_positions[combatant] = state.position
         _combat_advantages[combatant] = state.combat_advantage
         _combat_statuses[combatant] = state.combat_status
@@ -220,7 +241,7 @@ func _on_character_activated(character: Character) -> void:
         return
     
     # Reset action points for the activated character
-    var state = CombatState.new(character)
+    var state = create_combat_state(character)
     state.position = _combat_positions.get(character, Vector2i.ZERO)
     state.action_points = BASE_ACTION_POINTS
     state.combat_advantage = _combat_advantages.get(character, 0)
@@ -229,7 +250,7 @@ func _on_character_activated(character: Character) -> void:
     # Apply house rule modifiers if any
     state.action_points = int(apply_house_rule_modifiers(state.action_points, "action_points"))
     
-    # Update combat state
+    # Update tracking dictionaries
     _combat_positions[character] = state.position
     _combat_advantages[character] = state.combat_advantage
     _combat_statuses[character] = state.combat_status
@@ -237,10 +258,7 @@ func _on_character_activated(character: Character) -> void:
     # Emit signal that combat state has changed
     combat_state_changed.emit({
         "active_character": character,
-        "position": state.position,
-        "action_points": state.action_points,
-        "advantage": state.combat_advantage,
-        "status": state.combat_status
+        "state": state
     })
 
 func _on_character_deactivated(character: Character) -> void:
@@ -248,23 +266,20 @@ func _on_character_deactivated(character: Character) -> void:
         return
     
     # Reset reaction flag for the deactivated character
-    var state = CombatState.new(character)
+    var state = create_combat_state(character)
     state.position = _combat_positions.get(character, Vector2i.ZERO)
     state.action_points = 0 # No actions left
     state.combat_advantage = _combat_advantages.get(character, 0)
     state.combat_status = _combat_statuses.get(character, 0)
-    state.reaction_used = false
+    state.set("reaction_used", false) # Reset for next turn
     
-    # Update combat state
+    # Update tracking dictionaries
     _combat_positions[character] = state.position
     _combat_advantages[character] = state.combat_advantage
     _combat_statuses[character] = state.combat_status
     
     # Emit signal that combat state has changed
     combat_state_changed.emit({
-        "active_character": character,
-        "position": state.position,
-        "action_points": state.action_points,
-        "advantage": state.combat_advantage,
-        "status": state.combat_status
+        "deactivated_character": character,
+        "state": state
     })

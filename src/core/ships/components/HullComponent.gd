@@ -1,111 +1,115 @@
 # Scripts/ShipAndCrew/HullComponent.gd
+@tool
 extends ShipComponent
 class_name HullComponent
 
-@export var armor: int = 10
-@export var shield: int = 0
-@export var cargo_capacity: int = 100
-@export var crew_capacity: int = 4
-@export var shield_recharge_rate: float = 0.1
-
-var current_shield: int = 0
-var current_cargo: int = 0
-var current_crew: int = 0
+@export var hull_durability: int = 100
+@export var armor: int = 5
+@export var shield_strength: int = 0
+@export var shield_recharge_rate: float = 0.0
+@export var has_shields: bool = false
+@export var current_shield: int = 0
+@export var has_emergency_bulkheads: bool = false
+@export var breach_resistance: float = 0.5
 
 func _init() -> void:
 	super()
 	name = "Hull"
-	description = "Standard ship hull"
-	cost = 500
+	description = "Basic hull structure"
+	cost = 400
 	power_draw = 1
-	current_shield = shield
-
+	
 func _apply_upgrade_effects() -> void:
 	super()
-	armor += 5
-	shield += 5
-	cargo_capacity += 25
-	crew_capacity += 1
-	shield_recharge_rate += 0.05
-	current_shield = shield
+	hull_durability += 25
+	armor += 2
+	if has_shields:
+		shield_strength += 10
+		shield_recharge_rate += 0.2
+	breach_resistance += 0.1
 
-func get_armor() -> int:
-	return ceili(armor * get_efficiency())
-
-func get_shield() -> int:
-	return ceili(shield * get_efficiency())
-
-func get_cargo_capacity() -> int:
-	return ceili(cargo_capacity * get_efficiency())
-
-func get_crew_capacity() -> int:
-	return crew_capacity
-
-func get_shield_recharge_rate() -> float:
-	return shield_recharge_rate * get_efficiency()
-
-func take_damage(amount: int) -> void:
-	var remaining_damage = amount
+func get_damage_reduction(damage_type: int = 0) -> float:
+	var reduction = armor * 0.1 * get_efficiency()
 	
-	# Shield absorbs damage first
-	if current_shield > 0:
-		var shield_damage = mini(current_shield, remaining_damage)
-		current_shield -= shield_damage
-		remaining_damage -= shield_damage
+	# Different damage types could have different effectiveness against armor
+	match damage_type:
+		1: # Energy weapons - less effective against armor
+			reduction *= 0.8
+		2: # Kinetic weapons - standard
+			pass
+		3: # Explosive - more effective against armor
+			reduction *= 0.6
 	
-	# Remaining damage affects durability
-	if remaining_damage > 0:
-		super.take_damage(remaining_damage)
+	return reduction
 
-func recharge_shield(delta: float) -> void:
-	if current_shield < shield and is_active:
-		current_shield = mini(shield, current_shield + ceili(shield_recharge_rate * delta))
+func damage_hull(amount: int, damage_type: int = 0) -> int:
+	var damage_reduction = get_damage_reduction(damage_type)
+	var actual_damage = max(0, amount - damage_reduction)
+	
+	# Apply damage to the ship component
+	damage(actual_damage)
+	
+	# Check for breach
+	if actual_damage > 0 and randf() > breach_resistance:
+		_trigger_hull_breach()
+	
+	return actual_damage
 
-func add_cargo(amount: int) -> bool:
-	if current_cargo + amount <= get_cargo_capacity():
-		current_cargo += amount
-		return true
-	return false
+func damage_shield(amount: int) -> int:
+	if not has_shields or current_shield <= 0:
+		return 0
+		
+	var before = current_shield
+	current_shield = max(0, current_shield - amount)
+	
+	return before - current_shield
 
-func remove_cargo(amount: int) -> bool:
-	if current_cargo >= amount:
-		current_cargo -= amount
-		return true
-	return false
+# Process shield recharge
+func process_shields(delta: float) -> void:
+	if has_shields and current_shield < shield_strength and is_active:
+		var recharge = shield_recharge_rate * delta * get_efficiency()
+		current_shield = min(shield_strength, current_shield + recharge)
 
-func add_crew(amount: int) -> bool:
-	if current_crew + amount <= get_crew_capacity():
-		current_crew += amount
-		return true
-	return false
+func _trigger_hull_breach() -> void:
+	if has_emergency_bulkheads and randf() < breach_resistance:
+		# Emergency bulkheads prevented a hull breach
+		return
+		
+	# Hull breach effects would go here
+	# Add status effects or other consequences
+	var breach_effect = {
+		"id": "hull_breach",
+		"name": "Hull Breach",
+		"duration": 3,
+		"effect": "reduced_efficiency",
+		"value": 0.5
+	}
+	add_status_effect(breach_effect)
 
-func remove_crew(amount: int) -> bool:
-	if current_crew >= amount:
-		current_crew -= amount
-		return true
-	return false
+func is_shield_active() -> bool:
+	return has_shields and current_shield > 0 and is_active
 
-func get_cargo_space_available() -> int:
-	return get_cargo_capacity() - current_cargo
-
-func get_crew_space_available() -> int:
-	return get_crew_capacity() - current_crew
+func initialize_shields() -> void:
+	if has_shields:
+		current_shield = shield_strength
 
 func serialize() -> Dictionary:
 	var data = super()
 	data["armor"] = armor
-	data["shield"] = shield
-	data["cargo_capacity"] = cargo_capacity
-	data["crew_capacity"] = crew_capacity
+	data["shield_strength"] = shield_strength
 	data["shield_recharge_rate"] = shield_recharge_rate
+	data["has_shields"] = has_shields
 	data["current_shield"] = current_shield
-	data["current_cargo"] = current_cargo
-	data["current_crew"] = current_crew
+	data["has_emergency_bulkheads"] = has_emergency_bulkheads
+	data["breach_resistance"] = breach_resistance
 	return data
 
-static func deserialize(data: Dictionary) -> HullComponent:
+# Factory method to create HullComponent from data
+static func create_from_data(data: Dictionary) -> HullComponent:
 	var component = HullComponent.new()
-	var base_data = super.deserialize(data)
+	var base_data = ShipComponent.deserialize(data)
+	
+	# Copy base data
 	component.name = base_data.name
 	component.description = base_data.description
 	component.cost = base_data.cost
@@ -114,18 +118,32 @@ static func deserialize(data: Dictionary) -> HullComponent:
 	component.is_active = base_data.is_active
 	component.upgrade_cost = base_data.upgrade_cost
 	component.maintenance_cost = base_data.maintenance_cost
-	component.durability = base_data.durability
+	component.hull_durability = base_data.durability
 	component.max_durability = base_data.max_durability
 	component.efficiency = base_data.efficiency
 	component.power_draw = base_data.power_draw
 	component.status_effects = base_data.status_effects
 	
-	component.armor = data.get("armor", 10)
-	component.shield = data.get("shield", 0)
-	component.cargo_capacity = data.get("cargo_capacity", 100)
-	component.crew_capacity = data.get("crew_capacity", 4)
-	component.shield_recharge_rate = data.get("shield_recharge_rate", 0.1)
-	component.current_shield = data.get("current_shield", component.shield)
-	component.current_cargo = data.get("current_cargo", 0)
-	component.current_crew = data.get("current_crew", 0)
+	# Hull-specific properties
+	component.armor = data.get("armor", 5)
+	component.shield_strength = data.get("shield_strength", 0)
+	component.shield_recharge_rate = data.get("shield_recharge_rate", 0.0)
+	component.has_shields = data.get("has_shields", false)
+	component.current_shield = data.get("current_shield", 0)
+	component.has_emergency_bulkheads = data.get("has_emergency_bulkheads", false)
+	component.breach_resistance = data.get("breach_resistance", 0.5)
+	
 	return component
+
+# Return serialized data with proper hull type
+static func deserialize(data: Dictionary) -> Dictionary:
+	var base_data = ShipComponent.deserialize(data)
+	base_data["component_type"] = "hull"
+	base_data["armor"] = data.get("armor", 5)
+	base_data["shield_strength"] = data.get("shield_strength", 0)
+	base_data["shield_recharge_rate"] = data.get("shield_recharge_rate", 0.0)
+	base_data["has_shields"] = data.get("has_shields", false)
+	base_data["current_shield"] = data.get("current_shield", 0)
+	base_data["has_emergency_bulkheads"] = data.get("has_emergency_bulkheads", false)
+	base_data["breach_resistance"] = data.get("breach_resistance", 0.5)
+	return base_data

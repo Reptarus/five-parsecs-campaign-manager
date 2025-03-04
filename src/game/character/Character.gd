@@ -1,6 +1,6 @@
 @tool
 extends "res://src/core/character/Base/Character.gd"
-class_name FiveParsecsCharacter
+class_name FPCM_Character
 
 ## Game implementation of the Five Parsecs character
 ##

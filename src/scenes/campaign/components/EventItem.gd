@@ -1,6 +1,6 @@
 @tool
 extends Control
-class_name EventItem
+class_name FPCM_EventItem
 
 # Signals
 signal event_selected(event_id: String)
@@ -83,4 +83,4 @@ func fade_in(delay: float = 0.0) -> void:
 	var tween = create_tween()
 	if delay > 0:
 		tween.tween_interval(delay)
-	tween.tween_property(self, "modulate:a", 1.0, 0.3) 
+	tween.tween_property(self, "modulate:a", 1.0, 0.3)

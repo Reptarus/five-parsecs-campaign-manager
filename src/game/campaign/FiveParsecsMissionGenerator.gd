@@ -2,6 +2,7 @@
 class_name FiveParsecsMissionGenerator
 extends BaseMissionGenerator
 
+const BaseMissionGenerator = preload("res://src/base/campaign/BaseMissionGenerator.gd")
 const GameEnums = preload("res://src/core/systems/GlobalEnums.gd")
 
 # Five Parsecs specific mission types

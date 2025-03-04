@@ -1,6 +1,6 @@
 @tool
 extends BaseBattleCharacter
-class_name FiveParsecsBattleCharacter
+class_name FPCM_BattleCharacter
 
 const FiveParsecsCharacter = preload("res://src/game/character/Character.gd")
 # We'll assume GameEnums is defined elsewhere and accessible globally

@@ -1,5 +1,5 @@
 # Content from src/core/battle/PathFinder.gd
-class_name FiveParsecsPathFinder
+class_name FPCM_PathFinder
 extends Node
 
 const TerrainTypes = preload("res://src/core/terrain/TerrainTypes.gd")
@@ -9,24 +9,30 @@ const GameEnums = preload("res://src/core/systems/GlobalEnums.gd")
 signal path_found(path: Array[Vector2])
 signal path_not_found
 
-class PathNode:
-	var position: Vector2i
-	var g_cost: float = 0.0 # Cost from start to this node
-	var h_cost: float = 0.0 # Estimated cost from this node to end
-	var parent: PathNode = null
-	
-	func _init(pos: Vector2i) -> void:
+# PathNode class definition moved outside of PathFinder to reduce caching issues
+const PATH_NODE_SCRIPT = """
+extends RefCounted
+var position: Vector2i
+var g_cost: float = 0.0 # Cost from start to this node
+var h_cost: float = 0.0 # Estimated cost from this node to end
+var parent = null # PathNode - can't type this properly in GDScript
+
+func _init(pos = null) -> void:
+	if pos != null:
 		position = pos
-	
-	func f_cost() -> float:
-		return g_cost + h_cost
-	
-	func equals(other: PathNode) -> bool:
-		return position == other.position
+
+func f_cost() -> float:
+	return g_cost + h_cost
+
+func equals(other) -> bool:
+	if other == null:
+		return false
+	return position == other.position
+"""
 
 var battlefield_manager: Node # Will be cast to BattlefieldManager
-var _open_set: Array[PathNode] = []
-var _closed_set: Array[PathNode] = []
+var _open_set = [] # Array of PathNodes
+var _closed_set = [] # Array of PathNodes
 var _movement_directions := [
 	Vector2i(1, 0), # Right
 	Vector2i(-1, 0), # Left
@@ -38,8 +44,21 @@ var _movement_directions := [
 	Vector2i(-1, -1) # Up-Left
 ]
 
+var _path_node_script = null
+
 func _init(battlefield: Node) -> void: # Accept Node, will be BattlefieldManager
 	battlefield_manager = battlefield
+	_setup_path_node_script()
+
+func _setup_path_node_script() -> void:
+	_path_node_script = GDScript.new()
+	_path_node_script.source_code = PATH_NODE_SCRIPT
+	_path_node_script.reload()
+
+# Function to create a new PathNode without direct class reference
+func create_path_node(pos: Vector2i):
+	var node = _path_node_script.new(pos)
+	return node
 
 func find_path(start_pos: Vector2, end_pos: Vector2, max_movement: float) -> Array[Vector2]:
 	# Convert world positions to grid positions
@@ -51,8 +70,8 @@ func find_path(start_pos: Vector2, end_pos: Vector2, max_movement: float) -> Arr
 	_closed_set.clear()
 	
 	# Create start and end nodes
-	var start_node = PathNode.new(start_grid)
-	var end_node = PathNode.new(end_grid)
+	var start_node = create_path_node(start_grid)
+	var end_node = create_path_node(end_grid)
 	
 	# Add start node to open set
 	_open_set.append(start_node)
@@ -107,7 +126,7 @@ func _get_neighbors(node: PathNode) -> Array[PathNode]:
 		if battlefield_manager._is_valid_grid_position(neighbor_pos):
 			var terrain_type = battlefield_manager.terrain_map[neighbor_pos.x][neighbor_pos.y]
 			if not TerrainTypes.blocks_movement(terrain_type):
-				neighbors.append(PathNode.new(neighbor_pos))
+				neighbors.append(create_path_node(neighbor_pos))
 	
 	return neighbors
 

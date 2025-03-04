@@ -1,5 +1,5 @@
 # VictoryConditionSelection.gd
-class_name FiveParsecsVictoryConditionSelection
+class_name FPCM_VictoryConditionSelection
 extends Resource
 
 const GameEnums = preload("res://src/core/systems/GlobalEnums.gd")

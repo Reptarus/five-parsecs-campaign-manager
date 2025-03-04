@@ -1,4 +1,4 @@
-class_name ResourceDisplay
+class_name FPCM_ResourceDisplay
 extends Control
 
 const GameEnums = preload("res://src/core/systems/GlobalEnums.gd")

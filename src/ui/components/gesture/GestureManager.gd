@@ -1,4 +1,4 @@
-class_name GestureManager
+class_name FPCM_GestureManager
 extends Node
 
 signal swipe_detected(direction: Vector2)

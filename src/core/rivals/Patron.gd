@@ -1,5 +1,5 @@
 extends Resource
-class_name Patron
+class_name FPCM_Patron
 
 const GameEnums = preload("res://src/core/systems/GlobalEnums.gd")
 const Mission = preload("res://src/core/systems/Mission.gd")
@@ -201,8 +201,8 @@ func serialize() -> Dictionary:
 		"mission_bonus": mission_bonus
 	}
 
-static func deserialize(data: Dictionary) -> Patron:
-	var patron = Patron.new()
+static func deserialize(data: Dictionary) -> Resource:
+	var patron = new() # Create a new instance without referencing the class name
 	patron._patron_name = data.get("name", "")
 	
 	var location_data = data.get("location", {})

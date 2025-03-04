@@ -1,7 +1,8 @@
 @tool
-class_name FiveParsecsCrewMember
+class_name FPCM_CrewMember
 extends BaseCrewMember
 
+const BaseCrewMember = preload("res://src/base/campaign/crew/BaseCrewMember.gd")
 const GameEnums = preload("res://src/core/systems/GlobalEnums.gd")
 const FiveParsecsGameEnums = preload("res://src/game/campaign/crew/FiveParsecsGameEnums.gd")
 const Character = preload("res://src/core/character/Base/Character.gd")

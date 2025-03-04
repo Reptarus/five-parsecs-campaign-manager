@@ -1,4 +1,4 @@
-class_name JobOffersPanel
+class_name FPCM_JobOffersPanel
 extends PanelContainer
 
 signal job_selected(job: Node)

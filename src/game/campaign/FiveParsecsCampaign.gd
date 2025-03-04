@@ -1,6 +1,8 @@
 @tool
 extends BaseCampaign
+class_name FiveParsecsCampaign
 
+const BaseCampaign = preload("res://src/base/campaign/BaseCampaign.gd")
 const FiveParsecsGameEnums = preload("res://src/game/campaign/crew/FiveParsecsGameEnums.gd")
 const FiveParsecsCrew = preload("res://src/game/campaign/crew/FiveParsecsCrew.gd")
 

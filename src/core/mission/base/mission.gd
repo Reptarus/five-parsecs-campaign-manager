@@ -1,13 +1,11 @@
 @tool
 extends "res://src/base/mission/mission_base.gd"
-class_name FiveParsecsMission
+class_name FPCM_Mission
 
 ## Five Parsecs Mission Implementation
 ##
 ## Extends the base mission system with Five Parsecs specific functionality
 ## including resource multipliers, deployment points, and campaign-specific features.
-
-const GameEnums = preload("res://src/core/systems/GlobalEnums.gd")
 
 # Five Parsecs specific properties
 var resource_multiplier: float = 1.0

@@ -1,5 +1,9 @@
 @tool
 extends Resource
+class_name GameWorldTrait
+
+const GameDataManager = preload("res://src/core/managers/GameDataManager.gd")
+const GameEnums = preload("res://src/core/systems/GlobalEnums.gd")
 
 ## A class representing a world trait that can be applied to planets and locations
 ## These traits define special characteristics, modifiers, and effects
@@ -38,60 +42,65 @@ func initialize_from_id(id: String) -> bool:
 		
 	var trait_data = _data_manager.get_world_trait(id)
 	if trait_data.is_empty():
-		push_error("Failed to find world trait with ID: " + id)
+		push_error("GameWorldTrait: Could not find trait with ID '%s'" % id)
 		return false
 		
 	return initialize_from_data(trait_data)
 
-## Initialize this trait from a data dictionary
+## Initialize from data dictionary
 func initialize_from_data(data: Dictionary) -> bool:
 	if data.is_empty():
-		push_error("Cannot initialize world trait from empty data")
 		return false
 		
 	trait_id = data.get("id", "")
 	trait_name = data.get("name", "")
 	trait_description = data.get("description", "")
+	effects = data.get("effects", [])
 	
-	# Handle effects
-	effects = []
-	var effects_data = data.get("effects", [])
-	if effects_data is Array:
-		for effect in effects_data:
-			effects.append(effect)
-	
-	# Handle encounter modifiers
+	# Handle complex data
 	encounter_modifiers = data.get("encounter_modifiers", {})
-	
-	# Handle resource modifiers
 	resource_modifiers = data.get("resource_modifiers", {})
-	
-	# Handle optional data
 	faction_influence = data.get("faction_influence", {})
 	tech_requirements = data.get("tech_requirements", {})
-	
-	# Handle tags
-	tags = []
-	var tags_data = data.get("tags", [])
-	if tags_data is Array:
-		for tag in tags_data:
-			tags.append(tag)
+	tags = data.get("tags", [])
 	
 	return true
 
-## Get a specific resource modifier value
-func get_resource_modifier(resource_key: String) -> float:
-	return resource_modifiers.get(resource_key, 0.0)
+## Get resource modifier for a specific resource type
+func get_resource_modifier(resource_type: int) -> float:
+	var resource_key = str(resource_type)
+	return resource_modifiers.get(resource_key, 1.0)
 
-## Get a specific encounter modifier value
-func get_encounter_modifier(encounter_key: String) -> int:
-	return encounter_modifiers.get(encounter_key, 0)
+## Get encounter modifier for a specific encounter type
+func get_encounter_modifier(encounter_type: int) -> float:
+	var encounter_key = str(encounter_type)
+	return encounter_modifiers.get(encounter_key, 1.0)
+
+## Get faction influence modifier for a specific faction
+func get_faction_influence(faction_type: int) -> int:
+	var faction_key = str(faction_type)
+	return faction_influence.get(faction_key, 0)
 
 ## Check if this trait has a specific tag
 func has_tag(tag: String) -> bool:
 	return tag in tags
 
-## Serialize this trait into a dictionary
+## Check if this trait meets tech requirements
+func meets_tech_requirements(available_tech: Dictionary) -> bool:
+	for tech_id in tech_requirements:
+		var required_level = tech_requirements[tech_id]
+		var available_level = available_tech.get(tech_id, 0)
+		
+		if available_level < required_level:
+			return false
+			
+	return true
+
+## Convert trait to string representation
+func _to_string() -> String:
+	return "%s (%s)" % [trait_name, trait_id]
+
+## Serialize trait to dictionary
 func serialize() -> Dictionary:
 	return {
 		"id": trait_id,
@@ -104,10 +113,6 @@ func serialize() -> Dictionary:
 		"tech_requirements": tech_requirements,
 		"tags": tags
 	}
-
-## For backward compatibility
-func to_dict() -> Dictionary:
-	return serialize()
 
 ## Create a GameWorldTrait instance from serialized data
 static func deserialize(data: Dictionary) -> GameWorldTrait:

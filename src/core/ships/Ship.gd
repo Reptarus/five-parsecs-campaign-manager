@@ -245,8 +245,10 @@ func set_ship_class(new_class: ShipClass) -> void:
 			
 		if "weapons" in template.components:
 			var weapons_config = template.components.weapons
-			weapons_component.attack = weapons_config.attack
-			weapons_component.damage = weapons_config.damage
+			if "attack" in weapons_config:
+				weapons_component.weapon_damage = weapons_config.attack
+			else:
+				weapons_component.weapon_damage = weapons_config.damage
 		
 		# Set the class
 		ship_class = str(new_class) # Store as string for serialization
@@ -404,8 +406,8 @@ func calculate_fuel_consumption(distance: int) -> int:
 # Get battle bonuses from ship systems and crew roles
 func get_battle_bonuses() -> Dictionary:
 	var bonuses = {
-		"attack": weapons_component.attack,
-		"damage": weapons_component.damage,
+		"attack": weapons_component.weapon_damage,
+		"damage": weapons_component.weapon_damage,
 		"defense": hull_component.armor,
 		"medical": medical_component.tech_level
 	}

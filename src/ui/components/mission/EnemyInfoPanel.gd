@@ -1,4 +1,4 @@
-class_name EnemyInfoPanel
+class_name FPCM_EnemyInfoPanel
 extends Control
 
 @onready var enemy_list := $EnemyList
@@ -58,4 +58,4 @@ func _get_threat_text(level: int) -> String:
         1: return "Medium"
         2: return "High"
         3: return "Extreme"
-        _: return "Unknown" 
+        _: return "Unknown"

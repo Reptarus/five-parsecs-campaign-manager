@@ -1,6 +1,6 @@
 @tool
 extends Control
-class_name ResourceItem
+class_name FPCM_ResourceItem
 
 # Signals
 signal resource_clicked(resource_name: String, current_value: int)
@@ -45,7 +45,7 @@ func _update_display() -> void:
 		
 	if value_label:
 		value_label.text = str(current_value)
-		if max_value != 9999:  # Don't show max for credits
+		if max_value != 9999: # Don't show max for credits
 			value_label.text += "/" + str(max_value)
 			
 	if progress_bar:
@@ -60,13 +60,13 @@ func _update_trend_indicator() -> void:
 		return
 		
 	match trend:
-		1:  # Increasing
+		1: # Increasing
 			trend_indicator.rotation_degrees = 0
 			trend_indicator.modulate.a = 1.0
-		-1:  # Decreasing
+		-1: # Decreasing
 			trend_indicator.rotation_degrees = 180
 			trend_indicator.modulate.a = 1.0
-		_:  # Stable
+		_: # Stable
 			trend_indicator.modulate.a = 0.0
 
 # Public methods
@@ -96,10 +96,10 @@ func highlight(duration: float = 0.3) -> void:
 func animate_value_change(new_value: int, duration: float = 0.5) -> void:
 	var tween = create_tween()
 	tween.tween_method(
-		func(val: int): 
+		func(val: int):
 			current_value = val
 			_update_display(),
 		current_value,
 		new_value,
 		duration
-	) 
+	)

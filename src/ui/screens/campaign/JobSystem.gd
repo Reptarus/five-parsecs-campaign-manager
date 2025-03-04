@@ -1,4 +1,4 @@
-class_name JobSystem
+class_name FPCM_JobSystem
 extends Node
 
 const FiveParsecsGameState = preload("res://src/core/state/GameState.gd")

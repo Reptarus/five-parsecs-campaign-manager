@@ -1,5 +1,5 @@
-class_name CharacterSheet
+class_name FPCM_CharacterSheet
 extends Control
 
 func _ready() -> void:
-    pass 
+    pass

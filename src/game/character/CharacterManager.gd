@@ -1,6 +1,6 @@
 @tool
 extends "res://src/core/character/Management/CharacterManager.gd"
-class_name FiveParsecsCharacterManager
+class_name FPCM_CharacterManager
 
 ## Game-specific character manager implementation
 ##
@@ -8,7 +8,7 @@ class_name FiveParsecsCharacterManager
 ## functionality for the Five Parsecs From Home implementation.
 
 # Define game-specific character class reference
-const FPCharacter = preload("res://src/game/character/Character.gd")
+const FPCM_Character = preload("res://src/game/character/Character.gd")
 
 # Game-specific properties
 var _faction_relations: Dictionary = {}
@@ -19,7 +19,7 @@ func _ready() -> void:
 
 ## Override create_character to use game-specific character class
 func create_character() -> Character:
-	var character = FPCharacter.new()
+	var character = FPCM_Character.new()
 	add_character(character)
 	return character
 

@@ -1,9 +1,9 @@
 @tool
-class_name FiveParsecsCrewSystem
-extends BaseCrewSystem
+class_name FPCM_CrewSystem
+extends "res://src/base/campaign/crew/BaseCrewSystem.gd"
 
-const FiveParsecsCrew = preload("res://src/game/campaign/crew/FiveParsecsCrew.gd")
-const FiveParsecsCrewMember = preload("res://src/game/campaign/crew/FiveParsecsCrewMember.gd")
+const FPCM_Crew = preload("res://src/game/campaign/crew/FiveParsecsCrew.gd")
+const FPCM_CrewMember = preload("res://src/game/campaign/crew/FiveParsecsCrewMember.gd")
 const FiveParsecsStrangeCharacters = preload("res://src/game/campaign/crew/FiveParsecsStrangeCharacters.gd")
 const GameEnums = preload("res://src/core/systems/GlobalEnums.gd")
 const FiveParsecsGameEnums = preload("res://src/game/campaign/crew/FiveParsecsGameEnums.gd")
@@ -74,8 +74,8 @@ func _initialize_five_parsecs_campaign() -> void:
 		"total_days": 0
 	}
 
-func create_new_crew(crew_name: String = "New Crew") -> FiveParsecsCrew:
-	var crew = FiveParsecsCrew.new()
+func create_new_crew(crew_name: String = "New Crew") -> FPCM_Crew:
+	var crew = FPCM_Crew.new()
 	crew.name = crew_name
 	
 	# Generate random crew members
@@ -96,9 +96,9 @@ func create_new_crew(crew_name: String = "New Crew") -> FiveParsecsCrew:
 	crew_changed.emit(current_crew)
 	return crew
 
-func add_strange_character(character_type: int = -1) -> FiveParsecsCrewMember:
+func add_strange_character(character_type: int = -1) -> FPCM_CrewMember:
 	# Create a new crew member
-	var member = FiveParsecsCrewMember.new()
+	var member = FPCM_CrewMember.new()
 	
 	# Randomize class
 	member.character_class = randi() % GameEnums.CharacterClass.size()

@@ -1,6 +1,6 @@
 @tool
-extends "res://src/core/mission/base/mission.gd"
-class_name GameFiveParsecsMission
+extends "res://src/base/mission/mission_base.gd"
+class_name FPCM_Mission
 
 ## Game-specific Five Parsecs Mission Implementation
 ##

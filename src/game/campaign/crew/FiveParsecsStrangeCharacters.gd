@@ -2,6 +2,7 @@
 class_name FiveParsecsStrangeCharacters
 extends BaseStrangeCharacters
 
+const BaseStrangeCharacters = preload("res://src/base/campaign/crew/BaseStrangeCharacters.gd")
 const GameEnums = preload("res://src/core/systems/GlobalEnums.gd")
 const GameStateManager = preload("res://src/core/managers/GameStateManager.gd")
 

@@ -1,6 +1,6 @@
 @tool
 extends Control
-class_name CampaignUI
+class_name FPCM_CampaignUI
 
 # Dependencies
 const CampaignResponsiveLayout = preload("res://src/ui/components/base/CampaignResponsiveLayout.gd")

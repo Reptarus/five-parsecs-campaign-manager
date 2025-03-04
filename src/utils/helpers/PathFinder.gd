@@ -4,7 +4,9 @@
 # The authoritative FiveParsecsPathFinder class is in src/core/utils/PathFinder.gd
 # This file should be considered deprecated and will be removed in future updates
 # Use the core version directly: preload("res://src/core/utils/PathFinder.gd")
+@tool
 extends Node
+class_name FPCM_PathFinder
 
 const TerrainTypes = preload("res://src/core/terrain/TerrainTypes.gd")
 const BattlefieldManager = preload("res://src/core/battle/BattlefieldManager.gd")
@@ -29,6 +31,9 @@ class PathNode:
 	
 	func equals(other: PathNode) -> bool:
 		return position == other.position
+
+	func _to_string() -> String:
+		return "PathNode(" + str(position) + ")"
 
 # Factory method to create PathNode instances
 func create_path_node(pos: Vector2i) -> PathNode:
@@ -117,7 +122,7 @@ func _get_neighbors(node: PathNode) -> Array[PathNode]:
 		
 		if battlefield_manager._is_valid_grid_position(neighbor_pos):
 			var terrain_type = battlefield_manager.terrain_map[neighbor_pos.x][neighbor_pos.y]
-			if not TerrainTypes.blocks_movement(terrain_type):
+			if TerrainTypes.is_traversable(terrain_type):
 				neighbors.append(create_path_node(neighbor_pos))
 	
 	return neighbors

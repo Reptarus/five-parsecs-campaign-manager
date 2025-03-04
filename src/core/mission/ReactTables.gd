@@ -1,6 +1,6 @@
 @tool
 extends Node
-class_name ReactTables
+class_name FPCM_ReactTables
 
 ## React Tables Implementation for Five Parsecs From Home
 ## Implements React tables for enemy generation (rulebook p.124-129)
@@ -20,7 +20,7 @@ const ELITE_ENEMY_TYPES_PATH = "res://data/elite_enemy_types.json"
 var _react_tables: Dictionary = {}
 var _enemy_types: Dictionary = {}
 var _elite_enemy_types: Array = []
-var _data_manager: GameDataManager
+var _data_manager = null
 
 # React Tables
 enum ReactTable {

@@ -1,5 +1,5 @@
 extends Node
-class_name FiveParsecsTerrainLayoutNode
+class_name FPCM_TerrainLayoutNode
 
 const TerrainLayout = preload("res://src/core/terrain/TerrainLayout.gd")
 const TerrainSystem = preload("res://src/core/terrain/TerrainSystem.gd")

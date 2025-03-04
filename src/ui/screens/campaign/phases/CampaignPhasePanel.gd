@@ -1,5 +1,5 @@
 extends BasePhasePanel
-class_name CampaignPhasePanel
+class_name FPCM_CampaignPhasePanel
 
 const CampaignManager = preload("res://src/core/managers/CampaignManager.gd")
 const WorldEconomyManager = preload("res://src/core/managers/WorldEconomyManager.gd")

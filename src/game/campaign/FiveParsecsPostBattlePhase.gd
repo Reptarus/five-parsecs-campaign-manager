@@ -2,6 +2,7 @@
 class_name FiveParsecsPostBattlePhase
 extends BasePostBattlePhase
 
+const BasePostBattlePhase = preload("res://src/base/campaign/BasePostBattlePhase.gd")
 const GameEnums = preload("res://src/core/systems/GlobalEnums.gd")
 const FiveParsecsCrewMember = preload("res://src/game/campaign/crew/FiveParsecsCrewMember.gd")
 

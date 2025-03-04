@@ -1,7 +1,6 @@
 extends BasePhasePanel
-class_name StoryPhasePanel
+class_name FPCM_StoryPhasePanel
 
-const GameEnums = preload("res://src/core/systems/GlobalEnums.gd")
 const EventManager = preload("res://src/core/managers/EventManager.gd")
 
 signal story_event_selected(event_data: Dictionary)

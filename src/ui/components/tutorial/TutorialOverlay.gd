@@ -1,4 +1,4 @@
-class_name TutorialOverlay
+class_name FPCM_TutorialOverlay
 extends CanvasLayer
 
 signal tutorial_completed
@@ -90,8 +90,8 @@ func _get_global_rect(node: Node) -> Rect2:
         return node.get_global_rect()
     elif node is Node2D:
         var transform = node.get_global_transform()
-        var size = Vector2(50, 50)  # Default size for Node2D
-        return Rect2(transform.origin - size/2, size)
+        var size = Vector2(50, 50) # Default size for Node2D
+        return Rect2(transform.origin - size / 2, size)
     return Rect2()
 
 func _animate_highlight(target_rect: Rect2) -> void:
@@ -139,4 +139,4 @@ func complete_tutorial() -> void:
 func hide_overlay() -> void:
     highlight_rect.visible = false
     dimmed_rect.visible = false
-    tooltip_panel.visible = false 
+    tooltip_panel.visible = false

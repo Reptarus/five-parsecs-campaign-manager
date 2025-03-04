@@ -1,4 +1,4 @@
-class_name FiveParsecsCharacterBox
+class_name FPCM_CharacterBox
 extends "res://src/core/character/Base/CharacterBox.gd"
 
 ## Game-specific character box implementation

@@ -1,10 +1,10 @@
-class_name ResponsiveContainer
+class_name FPCM_ResponsiveContainer
 extends Control
 
 signal orientation_changed(is_portrait: bool)
 
-@export var portrait_threshold := 1.0  # Width/Height ratio threshold for portrait mode
-@export var min_width := 300.0  # Minimum width before switching to portrait mode
+@export var portrait_threshold := 1.0 # Width/Height ratio threshold for portrait mode
+@export var min_width := 300.0 # Minimum width before switching to portrait mode
 
 var is_portrait := false
 var main_container: Container
@@ -46,4 +46,4 @@ func _apply_landscape_layout() -> void:
     pass
 
 func is_in_portrait_mode() -> bool:
-    return is_portrait 
+    return is_portrait

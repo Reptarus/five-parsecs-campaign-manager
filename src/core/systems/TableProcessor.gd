@@ -1,4 +1,4 @@
-class_name TableProcessor
+class_name FPCM_TableProcessor
 extends Node
 
 signal roll_processed(table_name: String, result: Dictionary)
@@ -299,13 +299,26 @@ func serialize() -> Dictionary:
 		"categories": _history_categories
 	}
 
+# Factory method to instantiate a new Table instance
+func _create_table(table_name: String) -> Table:
+	# Create a table object without using the class directly
+	var table = Table.new(table_name)
+	table.name = table_name
+	return table
+
 func deserialize(data: Dictionary) -> void:
 	if data.has("tables"):
 		_tables.clear()
 		for table_name in data.tables:
 			var table_data = data.tables[table_name]
-			var table = Table.new(table_name)
-			# Implement table deserialization
+			
+			# Create a table instance directly
+			var table_name_to_use = table_name if table_name != "" else "unnamed_table"
+			var table = Table.new(table_name_to_use)
+			
+			# Implement table deserialization with the existing Table class
+			# Load entries from table_data here if needed
+			
 			_tables[table_name] = table
 	
 	if data.has("history"):

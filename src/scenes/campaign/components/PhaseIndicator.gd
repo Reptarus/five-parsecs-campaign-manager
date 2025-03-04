@@ -1,17 +1,17 @@
 @tool
 extends Control
-class_name PhaseIndicator
+class_name FPCM_PhaseIndicator
 
 # Signals
 signal phase_clicked(phase_name: String)
 
 # Constants
 const PHASE_COLORS = {
-	"preparation": Color(0.2, 0.6, 1.0),  # Blue
-	"campaign": Color(0.2, 0.8, 0.2),     # Green
-	"battle": Color(0.8, 0.2, 0.2),       # Red
-	"resolution": Color(0.8, 0.8, 0.2),   # Yellow
-	"downtime": Color(0.6, 0.4, 0.8)      # Purple
+	"preparation": Color(0.2, 0.6, 1.0), # Blue
+	"campaign": Color(0.2, 0.8, 0.2), # Green
+	"battle": Color(0.8, 0.2, 0.2), # Red
+	"resolution": Color(0.8, 0.8, 0.2), # Yellow
+	"downtime": Color(0.6, 0.4, 0.8) # Purple
 }
 
 # Node references
@@ -113,4 +113,4 @@ func highlight_phase(duration: float = 0.3) -> void:
 func set_phase_data(phase_name: String, progress: float = 0.0, description: String = "") -> void:
 	current_phase = phase_name
 	phase_progress = progress
-	phase_description_text = description 
+	phase_description_text = description

@@ -1,6 +1,6 @@
 @tool
 extends Container
-class_name BaseContainer
+class_name FPCM_BaseContainer
 
 ## Base container class for UI layout management
 ## Provides horizontal and vertical layout capabilities with spacing

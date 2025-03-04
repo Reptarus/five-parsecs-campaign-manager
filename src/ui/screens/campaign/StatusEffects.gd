@@ -1,4 +1,4 @@
-class_name StatusEffect
+class_name FPCM_StatusEffect
 extends Resource
 
 const Character = preload("res://src/core/character/Base/Character.gd")
@@ -83,8 +83,8 @@ func serialize() -> Dictionary:
         "intensity": intensity
     }
 
-static func deserialize(data: Dictionary) -> StatusEffect:
-    return StatusEffect.new(
+static func deserialize(data: Dictionary) -> FPCM_StatusEffect:
+    return FPCM_StatusEffect.new(
         StatusEffectType[data["type"]],
         data["duration"],
         data["intensity"]

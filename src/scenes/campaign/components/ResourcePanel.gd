@@ -1,6 +1,6 @@
 @tool
 extends Panel
-class_name ResourcePanel
+class_name FPCM_ResourcePanel
 
 # Signals
 signal resource_clicked(resource_name: String, current_value: int)
@@ -29,7 +29,7 @@ class ResourceData:
 	var name: String
 	var current_value: int
 	var max_value: int
-	var trend: int  # -1 for decreasing, 0 for stable, 1 for increasing
+	var trend: int # -1 for decreasing, 0 for stable, 1 for increasing
 	var icon: Texture
 	var color: Color
 	var description: String
@@ -37,19 +37,19 @@ class ResourceData:
 	func _init(p_name: String, p_current: int = 0, p_max: int = -1, p_trend: int = 0) -> void:
 		name = p_name
 		current_value = p_current
-		max_value = p_max  # -1 means no maximum
+		max_value = p_max # -1 means no maximum
 		trend = p_trend
 		color = _get_resource_color(p_name)
 		description = RESOURCE_DESCRIPTIONS[p_name]
 		
 	func _get_resource_color(res_name: String) -> Color:
 		match res_name:
-			"credits": return Color(0.9, 0.8, 0.2)  # Gold
-			"story_points": return Color(0.8, 0.4, 1.0)  # Purple
-			"reputation": return Color(0.2, 0.6, 1.0)  # Blue
-			"supplies": return Color(0.2, 0.8, 0.2)  # Green
-			"intel": return Color(0.4, 0.8, 0.8)  # Cyan
-			"salvage": return Color(0.8, 0.6, 0.2)  # Orange
+			"credits": return Color(0.9, 0.8, 0.2) # Gold
+			"story_points": return Color(0.8, 0.4, 1.0) # Purple
+			"reputation": return Color(0.2, 0.6, 1.0) # Blue
+			"supplies": return Color(0.2, 0.8, 0.2) # Green
+			"intel": return Color(0.4, 0.8, 0.8) # Cyan
+			"salvage": return Color(0.8, 0.6, 0.2) # Orange
 			_: return Color.WHITE
 
 # Node references
@@ -73,12 +73,12 @@ func _setup_ui() -> void:
 	_update_display()
 
 func _initialize_default_resources() -> void:
-	add_resource("credits", 1000)  # Starting credits
-	add_resource("story_points", 3)  # Starting story points
-	add_resource("reputation", 0)  # Starting reputation
-	add_resource("supplies", 10)  # Starting supplies
-	add_resource("intel", 0)  # Starting intel
-	add_resource("salvage", 0)  # Starting salvage
+	add_resource("credits", 1000) # Starting credits
+	add_resource("story_points", 3) # Starting story points
+	add_resource("reputation", 0) # Starting reputation
+	add_resource("supplies", 10) # Starting supplies
+	add_resource("intel", 0) # Starting intel
+	add_resource("salvage", 0) # Starting salvage
 
 func _update_display() -> void:
 	if not is_inside_tree() or not resources_container:
@@ -154,4 +154,4 @@ func get_all_resources() -> Dictionary:
 	var resources = {}
 	for name in _resources:
 		resources[name] = _resources[name].current_value
-	return resources 
+	return resources

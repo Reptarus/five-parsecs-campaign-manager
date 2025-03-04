@@ -7,6 +7,9 @@ const FiveParsecsMissionGenerator = preload("res://src/game/campaign/FiveParsecs
 const BattleResultsManager = preload("res://src/core/battle/BattleResultsManager.gd")
 const FiveParsecsGameState = preload("res://src/core/state/GameState.gd")
 
+# Import the mission type enum directly to avoid reference issues
+const FiveParsecsMissionType = FiveParsecsMissionGenerator.FiveParsecsMissionType
+
 # Signal declarations
 signal missions_generated(missions: Array)
 signal mission_selected(mission: Dictionary)
@@ -254,7 +257,7 @@ func _get_appropriate_mission_type(world_type: int) -> int:
 
 func _generate_patron_mission(patron_data: Dictionary) -> Dictionary:
 	var difficulty = patron_data.get("tier", 2) + 1
-	var mission = mission_generator.generate_mission(difficulty, FiveParsecsMissionGenerator.FiveParsecsMissionType.PATRON_JOB)
+	var mission = mission_generator.generate_mission(difficulty, FiveParsecsMissionType.PATRON_JOB)
 	
 	# Customize mission based on patron
 	mission["is_patron"] = true
@@ -282,12 +285,12 @@ func _generate_battlefield_data() -> Dictionary:
 	
 	# Customize based on mission type
 	match mission_type:
-		FiveParsecsMissionGenerator.FiveParsecsMissionType.SALVAGE_RUN:
+		FiveParsecsMissionType.SALVAGE_RUN:
 			battlefield["terrain_type"] = "industrial"
 			battlefield["special_features"].append("salvage_points")
-		FiveParsecsMissionGenerator.FiveParsecsMissionType.RESCUE_OPERATION:
+		FiveParsecsMissionType.RESCUE_OPERATION:
 			battlefield["special_features"].append("hostages")
-		FiveParsecsMissionGenerator.FiveParsecsMissionType.DEFENSE:
+		FiveParsecsMissionType.DEFENSE:
 			battlefield["special_features"].append("defensive_positions")
 	
 	# Randomize some aspects
@@ -364,19 +367,19 @@ func _generate_deployment_options() -> Array:
 	
 	# Add mission-specific deployment options
 	match mission_type:
-		FiveParsecsMissionGenerator.FiveParsecsMissionType.BATTLE:
+		FiveParsecsMissionType.BATTLE:
 			deployment_options.append({
 				"name": "Line Deployment",
 				"type": GameEnums.DeploymentType.LINE,
 				"description": "Deploy your forces in a line formation."
 			})
-		FiveParsecsMissionGenerator.FiveParsecsMissionType.SALVAGE_RUN:
+		FiveParsecsMissionType.SALVAGE_RUN:
 			deployment_options.append({
 				"name": "Scattered Deployment",
 				"type": GameEnums.DeploymentType.SCATTERED,
 				"description": "Deploy your forces in a scattered pattern around salvage points."
 			})
-		FiveParsecsMissionGenerator.FiveParsecsMissionType.DEFENSE:
+		FiveParsecsMissionType.DEFENSE:
 			deployment_options.append({
 				"name": "Defensive Deployment",
 				"type": GameEnums.DeploymentType.DEFENSIVE,

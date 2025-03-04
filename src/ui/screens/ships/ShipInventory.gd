@@ -1,5 +1,5 @@
 # Scripts/ShipAndCrew/ShipInventory.gd
-class_name ShipInventory
+class_name FPCM_ShipInventory
 extends Resource
 
 const GameEnums := preload("res://src/core/systems/GlobalEnums.gd")
@@ -187,12 +187,12 @@ func serialize() -> Dictionary:
 		"items": items.map(func(item): return item.serialize())
 	}
 
-static func deserialize(data: Dictionary) -> ShipInventory:
+static func deserialize(data: Dictionary) -> FPCM_ShipInventory:
 	if not data.has_all(["max_weight_capacity", "current_weight", "items"]):
 		push_error("Invalid inventory data for deserialization")
 		return null
 		
-	var inventory = ShipInventory.new(data["max_weight_capacity"])
+	var inventory = FPCM_ShipInventory.new(data["max_weight_capacity"])
 	inventory.current_weight = data["current_weight"]
 	
 	for item_data in data["items"]:

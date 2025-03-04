@@ -1,6 +1,6 @@
 @tool
 extends Control
-class_name EventLog
+class_name FPCM_EventLog
 
 # Signals
 signal event_selected(event_id: String)
@@ -10,47 +10,47 @@ signal event_action_triggered(event_id: String, action: String)
 # Constants
 const EVENT_CATEGORIES = {
 	"upkeep": {
-		"color": Color(0.2, 0.8, 0.2),  # Green
+		"color": Color(0.2, 0.8, 0.2), # Green
 		"icon": "res://assets/icons/upkeep.png",
 		"description": "Crew and ship maintenance events"
 	},
 	"world_step": {
-		"color": Color(0.4, 0.6, 0.9),  # Light Blue
+		"color": Color(0.4, 0.6, 0.9), # Light Blue
 		"icon": "res://assets/icons/world.png",
 		"description": "Local events and world activities"
 	},
 	"travel": {
-		"color": Color(0.8, 0.6, 0.2),  # Orange
+		"color": Color(0.8, 0.6, 0.2), # Orange
 		"icon": "res://assets/icons/travel.png",
 		"description": "Travel and exploration events"
 	},
 	"patrons": {
-		"color": Color(0.9, 0.8, 0.2),  # Gold
+		"color": Color(0.9, 0.8, 0.2), # Gold
 		"icon": "res://assets/icons/patron.png",
 		"description": "Patron interactions and job offers"
 	},
 	"battle": {
-		"color": Color(0.8, 0.2, 0.2),  # Red
+		"color": Color(0.8, 0.2, 0.2), # Red
 		"icon": "res://assets/icons/battle.png",
 		"description": "Combat and mission events"
 	},
 	"post_battle": {
-		"color": Color(0.6, 0.4, 0.8),  # Purple
+		"color": Color(0.6, 0.4, 0.8), # Purple
 		"icon": "res://assets/icons/post_battle.png",
 		"description": "Post-combat outcomes and rewards"
 	},
 	"management": {
-		"color": Color(0.2, 0.6, 1.0),  # Blue
+		"color": Color(0.2, 0.6, 1.0), # Blue
 		"icon": "res://assets/icons/management.png",
 		"description": "Crew and resource management events"
 	},
 	"story": {
-		"color": Color(0.8, 0.4, 1.0),  # Bright Purple
+		"color": Color(0.8, 0.4, 1.0), # Bright Purple
 		"icon": "res://assets/icons/story.png",
 		"description": "Campaign story developments"
 	},
 	"system": {
-		"color": Color(0.7, 0.7, 0.7),  # Gray
+		"color": Color(0.7, 0.7, 0.7), # Gray
 		"icon": "res://assets/icons/system.png",
 		"description": "Game system notifications"
 	}
@@ -77,7 +77,7 @@ var filtered_events: Array[Dictionary] = []
 var active_filters: Array[String] = []
 var search_query: String = ""
 var current_phase: String = ""
-var max_events: int = 100  # Maximum number of events to store
+var max_events: int = 100 # Maximum number of events to store
 
 # Event item scene
 var event_item_scene = preload("res://src/scenes/campaign/components/EventItem.tscn")
@@ -335,4 +335,4 @@ func update_event(event_id: String, updates: Dictionary) -> bool:
 			events[i].merge(updates)
 			_update_event_list()
 			return true
-	return false 
+	return false

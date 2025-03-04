@@ -1,7 +1,6 @@
 extends BasePhasePanel
-class_name FiveParsecsBattleResolutionPanel
+class_name FPCM_BattleResolutionPhasePanel
 
-const GameEnums = preload("res://src/core/systems/GlobalEnums.gd")
 const Character = preload("res://src/core/character/Base/Character.gd")
 
 # Preload required resources

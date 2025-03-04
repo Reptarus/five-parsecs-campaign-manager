@@ -2,6 +2,7 @@
 class_name FiveParsecsPreBattleLoop
 extends BasePreBattleLoop
 
+const BasePreBattleLoop = preload("res://src/base/campaign/BasePreBattleLoop.gd")
 const FiveParsecsMissionGenerator = preload("res://src/game/campaign/FiveParsecsMissionGenerator.gd")
 const GameEnums = preload("res://src/core/systems/GlobalEnums.gd")
 

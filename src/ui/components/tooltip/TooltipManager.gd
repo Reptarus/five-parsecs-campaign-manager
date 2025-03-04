@@ -1,4 +1,4 @@
-class_name TooltipManager
+class_name FPCM_TooltipManager
 extends CanvasLayer
 
 const TOOLTIP_OFFSET := Vector2(10, 10)
@@ -99,4 +99,4 @@ func _on_node_removed(node: Node) -> void:
     if node == current_control:
         current_control = null
         tooltip_panel.visible = false
-        set_process(false) 
+        set_process(false)

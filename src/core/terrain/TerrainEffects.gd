@@ -1,5 +1,5 @@
 ## Handles dynamic terrain effects and environmental conditions
-class_name FiveParsecsTerrainEffects
+class_name FPCM_TerrainEffects
 extends Node
 
 ## Signals

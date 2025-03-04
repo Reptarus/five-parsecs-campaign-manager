@@ -1,6 +1,8 @@
 @tool
 extends Resource
+class_name GamePlanet
 
+const GameDataManager = preload("res://src/core/managers/GameDataManager.gd")
 const GameEnums = preload("res://src/core/systems/GlobalEnums.gd")
 const GameLocation = preload("res://src/game/world/GameLocation.gd")
 const GameWorldTrait = preload("res://src/game/world/GameWorldTrait.gd")

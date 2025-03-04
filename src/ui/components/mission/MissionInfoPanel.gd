@@ -1,4 +1,4 @@
-class_name MissionInfoPanel
+class_name FPCM_MissionInfoPanel
 extends Control
 
 signal mission_selected(mission_data: Dictionary)
@@ -43,4 +43,4 @@ func _on_accept_button_pressed() -> void:
     mission_selected.emit({
         "title": title_label.text,
         "description": description_label.text
-    }) 
+    })

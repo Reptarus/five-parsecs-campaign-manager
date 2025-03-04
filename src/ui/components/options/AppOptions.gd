@@ -1,4 +1,4 @@
-class_name AppOptions
+class_name FPCM_AppOptions
 extends Control
 
 signal options_saved

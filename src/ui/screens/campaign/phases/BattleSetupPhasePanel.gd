@@ -1,7 +1,6 @@
 extends BasePhasePanel
-class_name FiveParsecsBattleSetupPanel
+class_name FPCM_BattleSetupPhasePanel
 
-const GameEnums = preload("res://src/core/systems/GlobalEnums.gd")
 const Character = preload("res://src/core/character/Base/Character.gd")
 
 @onready var mission_info = $VBoxContainer/MissionInfo

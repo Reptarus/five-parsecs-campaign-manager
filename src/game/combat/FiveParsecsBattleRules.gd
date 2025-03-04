@@ -1,6 +1,6 @@
 @tool
 extends BaseBattleRules
-class_name FiveParsecsBattleRules
+class_name FPCM_BattleRules
 
 ## Five Parsecs implementation of battle rules
 ##

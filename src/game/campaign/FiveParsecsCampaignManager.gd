@@ -1,6 +1,8 @@
 @tool
 extends BaseCampaignManager
 
+const BaseCampaignManager = preload("res://src/base/campaign/BaseCampaignManager.gd")
+
 # Use load() instead of preload() to handle circular dependencies
 var FiveParsecsCampaignScript = load("res://src/game/campaign/FiveParsecsCampaign.gd")
 const FiveParsecsGameEnums = preload("res://src/game/campaign/crew/FiveParsecsGameEnums.gd")

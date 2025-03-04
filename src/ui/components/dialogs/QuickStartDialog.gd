@@ -1,4 +1,4 @@
-class_name QuickStartDialog
+class_name FPCM_QuickStartDialog
 extends Control
 
 const GameEnums := preload("res://src/core/systems/GlobalEnums.gd")

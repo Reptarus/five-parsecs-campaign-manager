@@ -1,5 +1,10 @@
 @tool
 extends Resource
+class_name GameLocation
+
+const GameDataManager = preload("res://src/core/managers/GameDataManager.gd")
+const GameEnums = preload("res://src/core/systems/GlobalEnums.gd")
+const GameWorldTrait = preload("res://src/game/world/GameWorldTrait.gd")
 
 # Basic location properties
 @export var location_id: String = ""
@@ -190,14 +195,14 @@ func remove_resource(resource_type: int, amount: int = 1) -> bool:
     return false
 
 ## Get the total resource modifier from all world traits
-func get_resource_modifier(resource_type: String) -> float:
+func get_resource_modifier(resource_type: int) -> float:
     var total_modifier = 0.0
     for trait_item in world_traits:
         total_modifier += trait_item.get_resource_modifier(resource_type)
     return total_modifier
 
 ## Get the total modifier value for a specific encounter type from all world traits
-func get_encounter_modifier(encounter_type: String) -> float:
+func get_encounter_modifier(encounter_type: int) -> float:
     var total_modifier = 0.0
     for trait_item in world_traits:
         total_modifier += trait_item.get_encounter_modifier(encounter_type)

@@ -1,8 +1,8 @@
 @tool
-class_name FiveParsecsCrewRelationshipManager
-extends BaseCrewRelationshipManager
+class_name FPCM_CrewRelationshipManager
+extends "res://src/base/campaign/crew/BaseCrewRelationshipManager.gd"
 
-const FiveParsecsCrewMember = preload("res://src/game/campaign/crew/FiveParsecsCrewMember.gd")
+const FPCM_CrewMember = preload("res://src/game/campaign/crew/FiveParsecsCrewMember.gd")
 
 # Five Parsecs specific relationship types
 enum RelationshipType {

@@ -1,5 +1,5 @@
 ## PreBattleUI manages the pre-battle setup interface
-class_name PreBattleUI
+class_name FPCM_PreBattleUI
 extends Control
 
 ## Dependencies

@@ -1,4 +1,4 @@
-class_name FiveParsecsPDFGenerator
+class_name FPCM_PDFGenerator
 extends Node
 
 const Character = preload("res://src/core/character/Management/CharacterDataManager.gd")

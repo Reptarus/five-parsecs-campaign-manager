@@ -1,16 +1,19 @@
 # Scripts/ShipAndCrew/ShipComponent.gd
+@tool
 extends Resource
+class_name FPCM_ShipComponent
 
-@export var name: String = ""
+@export var name: String = "Component"
 @export var description: String = ""
-@export var cost: int = 0
+@export var component_id: String = ""
+@export var cost: int = 100
 @export var level: int = 1
 @export var max_level: int = 3
 @export var is_active: bool = true
 @export var upgrade_cost: int = 100
 @export var maintenance_cost: int = 10
-@export var durability: int = 100
-@export var max_durability: int = 100
+@export var durability: float = 100.0
+@export var max_durability: float = 100.0
 @export var efficiency: float = 1.0
 @export var power_draw: int = 1
 
@@ -33,16 +36,16 @@ signal wear_increased(new_level: int)
 signal component_upgraded(new_level: int)
 
 func _init() -> void:
-    name = ""
+    name = "Component"
     description = ""
-    cost = 0
+    cost = 100
     level = 1
     max_level = 3
     is_active = true
     upgrade_cost = 100
     maintenance_cost = 10
-    durability = 100
-    max_durability = 100
+    durability = 100.0
+    max_durability = 100.0
     efficiency = 1.0
     power_draw = 1
     
@@ -66,12 +69,13 @@ func upgrade() -> bool:
     component_upgraded.emit(level)
     return true
 
-func repair(amount: int) -> void:
-    var old_durability = durability
-    durability = mini(durability + amount, max_durability)
-    var actual_repair = durability - old_durability
+func repair(amount: float) -> float:
+    var before = durability
+    durability = min(durability + amount, max_durability)
+    var actual_repair = durability - before
     if actual_repair > 0:
         component_repaired.emit(actual_repair)
+    return actual_repair
 
 # Full repair (used during maintenance)
 func repair_full() -> void:
@@ -79,10 +83,10 @@ func repair_full() -> void:
     if repair_amount > 0:
         repair(repair_amount)
 
-func take_damage(amount: int) -> void:
-    var old_durability = durability
-    durability = maxi(0, durability - amount)
-    var actual_damage = old_durability - durability
+func damage(amount: float) -> float:
+    var before = durability
+    durability = max(durability - amount, 0)
+    var actual_damage = before - durability
     
     # Potentially increase wear level based on damage
     if actual_damage > 0:
@@ -95,6 +99,7 @@ func take_damage(amount: int) -> void:
     
     if durability == 0:
         deactivate()
+    return actual_damage
 
 func activate() -> void:
     is_active = true
@@ -213,7 +218,8 @@ func clear_status_effects() -> void:
     status_effects.clear()
 
 func _apply_upgrade_effects() -> void:
-    efficiency += 0.2
+    durability = max_durability
+    efficiency += 0.1
     max_durability += 25
     durability = max_durability
     maintenance_cost = get_maintenance_cost()
@@ -224,6 +230,7 @@ func serialize() -> Dictionary:
     return {
         "name": name,
         "description": description,
+        "component_id": component_id,
         "cost": cost,
         "level": level,
         "max_level": max_level,
@@ -242,27 +249,25 @@ func serialize() -> Dictionary:
         "status_effects": status_effects
     }
 
-static func deserialize(data: Dictionary):
-    var component = load("res://src/core/ships/components/ShipComponent.gd").new()
-    component.name = data.get("name", "")
-    component.description = data.get("description", "")
-    component.cost = data.get("cost", 0)
-    component.level = data.get("level", 1)
-    component.max_level = data.get("max_level", 3)
-    component.is_active = data.get("is_active", true)
-    component.upgrade_cost = data.get("upgrade_cost", 100)
-    component.maintenance_cost = data.get("maintenance_cost", 10)
-    component.durability = data.get("durability", 100)
-    component.max_durability = data.get("max_durability", 100)
-    component.efficiency = data.get("efficiency", 1.0)
-    component.power_draw = data.get("power_draw", 1)
-    
-    # Deserialize Five Parsecs specific attributes
-    component.wear_level = data.get("wear_level", 0)
-    component.quality_level = data.get("quality_level", 2)
-    component.component_type = data.get("component_type", "")
-    component.is_scavenged = data.get("is_scavenged", false)
-    component.tech_level = data.get("tech_level", 1)
-    
-    component.status_effects = data.get("status_effects", [])
-    return component
+static func deserialize(data: Dictionary) -> Dictionary:
+    return {
+        "name": data.get("name", "Component"),
+        "description": data.get("description", ""),
+        "component_id": data.get("component_id", ""),
+        "cost": data.get("cost", 100),
+        "level": data.get("level", 1),
+        "max_level": data.get("max_level", 3),
+        "is_active": data.get("is_active", true),
+        "upgrade_cost": data.get("upgrade_cost", 100),
+        "maintenance_cost": data.get("maintenance_cost", 10),
+        "durability": data.get("durability", 100.0),
+        "max_durability": data.get("max_durability", 100.0),
+        "efficiency": data.get("efficiency", 1.0),
+        "power_draw": data.get("power_draw", 1),
+        "wear_level": data.get("wear_level", 0),
+        "quality_level": data.get("quality_level", 2),
+        "component_type": data.get("component_type", ""),
+        "is_scavenged": data.get("is_scavenged", false),
+        "tech_level": data.get("tech_level", 1),
+        "status_effects": data.get("status_effects", [])
+    }

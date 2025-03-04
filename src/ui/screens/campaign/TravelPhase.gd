@@ -1,4 +1,4 @@
-class_name TravelPhase
+class_name FPCM_TravelPhase
 extends Control
 
 const FiveParsecsGameState = preload("res://src/core/state/GameState.gd")

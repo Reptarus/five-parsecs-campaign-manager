@@ -6,6 +6,8 @@ extends Resource
 ## Provides core functionality and type safety for the mission system.
 ## All mission-related classes should extend from this.
 
+const GameEnums = preload("res://src/core/systems/GlobalEnums.gd")
+
 # Type-safe signals
 signal mission_state_changed(new_state: int)
 signal objective_completed(index: int)

@@ -1,6 +1,6 @@
 @tool
 extends Control
-class_name ActionButton
+class_name FPCM_ActionButton
 
 # Signals
 signal action_pressed
@@ -130,4 +130,4 @@ func set_progress(progress: float) -> void:
 
 func reset_cooldown() -> void:
 	cooldown_progress = 1.0
-	is_enabled = true 
+	is_enabled = true

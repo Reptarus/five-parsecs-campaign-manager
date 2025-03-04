@@ -1,7 +1,6 @@
 extends BasePhasePanel
-class_name AdvancementPhasePanel
+class_name FPCM_AdvancementPhasePanel
 
-const GameEnums = preload("res://src/core/systems/GlobalEnums.gd")
 const Character = preload("res://src/core/character/Base/Character.gd")
 
 @onready var crew_list = $VBoxContainer/CrewList
