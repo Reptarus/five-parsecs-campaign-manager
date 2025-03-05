@@ -1,6 +1,7 @@
-[gd_scene load_steps=2 format=3 uid="uid://l8q7a6kfi2vwe"]
+[gd_scene load_steps=2 format=3 uid="uid://njli0sntham3"]
 
-[ext_resource type="Script" path="res://src/ui/screens/battle/BattlefieldMain.gd" id="1_script"]
+[sub_resource type="Resource" id="Resource_0aeqa"]
+metadata/__load_path__ = "res://src/ui/screens/battle/BattlefieldMain.gd"
 
 [node name="BattlefieldMain" type="Control"]
 layout_mode = 3
@@ -9,7 +10,7 @@ anchor_right = 1.0
 anchor_bottom = 1.0
 grow_horizontal = 2
 grow_vertical = 2
-script = ExtResource("1_script")
+script = SubResource("Resource_0aeqa")
 
 [node name="MarginContainer" type="MarginContainer" parent="."]
 layout_mode = 1
@@ -63,4 +64,4 @@ unique_name_in_owner = true
 layout_mode = 2
 text = "End Turn"
 
-[connection signal="pressed" from="MarginContainer/VBoxContainer/ControlPanel/HBoxContainer/EndTurnButton" to="." method="_on_end_turn_pressed"] 
+[connection signal="pressed" from="MarginContainer/VBoxContainer/ControlPanel/HBoxContainer/EndTurnButton" to="." method="_on_end_turn_pressed"]

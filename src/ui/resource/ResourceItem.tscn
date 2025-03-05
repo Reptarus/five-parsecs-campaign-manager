@@ -1,6 +1,6 @@
 [gd_scene load_steps=2 format=3 uid="uid://b8r6g0c5rj3m4"]
 
-[ext_resource type="Script" path="res://src/ui/resource/ResourceItem.gd" id="1_2k3m4"]
+[ext_resource type="Script" uid="uid://uau5takfjw4o" path="res://src/ui/resource/ResourceItem.gd" id="1_2k3m4"]
 
 [node name="ResourceItem" type="Button"]
 custom_minimum_size = Vector2(0, 40)
@@ -47,4 +47,4 @@ vertical_alignment = 1
 layout_mode = 2
 text = "(0)"
 horizontal_alignment = 2
-vertical_alignment = 1 
+vertical_alignment = 1

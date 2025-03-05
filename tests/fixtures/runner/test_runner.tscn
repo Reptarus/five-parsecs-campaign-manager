@@ -1,6 +1,7 @@
 [gd_scene load_steps=2 format=3 uid="uid://b6x6pd5j6l5x"]
 
-[ext_resource type="Script" path="res://addons/gut/test_runner.gd" id="1_y8j4r"]
+[sub_resource type="Resource" id="Resource_00nch"]
+metadata/__load_path__ = "res://addons/gut/test_runner.gd"
 
 [node name="TestRunner" type="Control"]
 layout_mode = 3
@@ -13,7 +14,7 @@ size_flags_horizontal = 3
 size_flags_vertical = 3
 
 [node name="GutRunner" type="Node" parent="."]
-script = ExtResource("1_y8j4r")
+script = SubResource("Resource_00nch")
 directory1 = "res://tests"
 file_prefix = "test_"
 file_extension = ".gd"

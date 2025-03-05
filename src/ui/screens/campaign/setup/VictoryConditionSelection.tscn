@@ -1,6 +1,7 @@
 [gd_scene load_steps=2 format=3 uid="uid://dp66b6flafme3"]
 
-[ext_resource type="Script" path="res://Resources/Battle/Victory/VictoryConditionSelection.gd" id="1_script"]
+[sub_resource type="Resource" id="Resource_0470l"]
+metadata/__load_path__ = "res://Resources/Battle/Victory/VictoryConditionSelection.gd"
 
 [node name="VictoryConditionSelection" type="Control"]
 layout_mode = 3
@@ -9,7 +10,7 @@ anchor_right = 1.0
 anchor_bottom = 1.0
 grow_horizontal = 2
 grow_vertical = 2
-script = ExtResource("1_script")
+script = SubResource("Resource_0470l")
 
 [node name="ColorRect" type="ColorRect" parent="."]
 layout_mode = 1

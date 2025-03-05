@@ -1,8 +1,10 @@
 [gd_scene load_steps=4 format=3 uid="uid://css3jafhkpmdr"]
 
 [ext_resource type="Theme" uid="uid://ddjoduj1ya6tp" path="res://assets/5PFH.tres" id="1_ilopa"]
-[ext_resource type="Script" path="res://src/data/resources/Ships/ShipCreation.gd" id="2_8nciy"]
 [ext_resource type="Texture2D" uid="uid://b203npbw1qtvy" path="res://assets/BookImages/Dec_12_escape_.jpg" id="3_iolqo"]
+
+[sub_resource type="Resource" id="Resource_e4a73"]
+metadata/__load_path__ = "res://src/data/resources/Ships/ShipCreation.gd"
 
 [node name="ShipCreation" type="Control"]
 layout_mode = 3
@@ -12,7 +14,7 @@ anchor_bottom = 1.0
 grow_horizontal = 2
 grow_vertical = 2
 theme = ExtResource("1_ilopa")
-script = ExtResource("2_8nciy")
+script = SubResource("Resource_e4a73")
 
 [node name="Background" type="TextureRect" parent="."]
 layout_mode = 1

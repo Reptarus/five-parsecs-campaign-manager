@@ -1,6 +1,6 @@
 [gd_scene load_steps=2 format=3 uid="uid://b8q7a6kfi2vwe"]
 
-[ext_resource type="Script" path="res://src/ui/components/mission/MissionSummaryPanel.gd" id="1_script"]
+[ext_resource type="Script" uid="uid://d4cjmyixp58ok" path="res://src/ui/components/mission/MissionSummaryPanel.gd" id="1_script"]
 
 [node name="MissionSummaryPanel" type="PanelContainer"]
 theme_type_variation = &"DarkPanel"
@@ -63,4 +63,4 @@ unique_name_in_owner = true
 layout_mode = 2
 text = "Continue"
 
-[connection signal="pressed" from="MarginContainer/VBoxContainer/ContinueButton" to="." method="_on_continue_pressed"] 
+[connection signal="pressed" from="MarginContainer/VBoxContainer/ContinueButton" to="." method="_on_continue_pressed"]

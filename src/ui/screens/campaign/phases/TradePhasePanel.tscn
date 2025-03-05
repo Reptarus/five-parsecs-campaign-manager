@@ -1,6 +1,6 @@
-[gd_scene load_steps=2 format=3 uid="uid://h8x7y0q5n3j4w"]
+[gd_scene load_steps=2 format=3 uid="uid://i5hsvwnjosme"]
 
-[ext_resource type="Script" path="res://src/ui/screens/campaign/phases/TradePhasePanel.gd" id="1_y4r2p"]
+[ext_resource type="Script" uid="uid://b3qqdjbno1kal" path="res://src/ui/screens/campaign/phases/TradePhasePanel.gd" id="1_y4r2p"]
 
 [node name="TradePhasePanel" type="PanelContainer"]
 anchors_preset = 15
@@ -83,4 +83,4 @@ layout_mode = 2
 
 [node name="CompleteButton" type="Button" parent="VBoxContainer"]
 layout_mode = 2
-text = "Complete Trading" 
+text = "Complete Trading"

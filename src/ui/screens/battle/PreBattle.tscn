@@ -1,6 +1,6 @@
-[gd_scene load_steps=2 format=3 uid="uid://f8q7a6kfi6vwe"]
+[gd_scene load_steps=2 format=3 uid="uid://cedco4m5xy05m"]
 
-[ext_resource type="Script" path="res://src/ui/screens/battle/PreBattleUI.gd" id="1_script"]
+[ext_resource type="Script" uid="uid://begj0iwjkg7w3" path="res://src/ui/screens/battle/PreBattleUI.gd" id="1_script"]
 
 [node name="PreBattle" type="Control"]
 layout_mode = 3
@@ -176,4 +176,4 @@ text = "Back"
 [node name="ConfirmButton" type="Button" parent="MarginContainer/VBoxContainer/FooterPanel/HBoxContainer"]
 unique_name_in_owner = true
 layout_mode = 2
-text = "Confirm Deployment" 
+text = "Confirm Deployment"

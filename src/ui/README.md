@@ -1,55 +1,116 @@
-# Five Parsecs Campaign Manager UI
+# Five Parsecs Campaign Manager UI System
 
-This directory contains all user interface components for the Five Parsecs Campaign Manager.
+This directory contains the UI components and systems for the Five Parsecs Campaign Manager application. The UI system has been enhanced to leverage Godot 4.4's improved theme capabilities, responsive design, and accessibility features.
 
 ## Directory Structure
 
-- `components/` - Reusable UI components used across multiple screens
-  - `base/` - Base UI component classes
-  - `character/` - Character-related UI components
-  - `combat/` - Combat UI components
-  - `mission/` - Mission UI components
-  - `tutorial/` - Tutorial UI components 
-  - and others...
-- `screens/` - Full application screens
-  - `campaign/` - Campaign screens and panels
-  - `battle/` - Battle screens
-  - `mainmenu/` - Main menu screens
-  - and others...
-- `resource/` - Resource display and UI resource components
-- `themes/` - UI themes and styling resources
+- `components/`: Reusable UI components
+- `dialogs/`: Dialog windows and popups
+- `screens/`: Main application screens
+- `themes/`: Theme resources and theme management
 
-## Root TSCN Files
+## Key Components
 
-The `.tscn` files in the root directory are being migrated to their proper locations in the subdirectories. 
-**DO NOT ADD NEW FILES TO THIS DIRECTORY**.
+### Theme System
 
-## Organization Guidelines
+The theme system provides a centralized way to manage application themes, including:
 
-1. **File Placement**:
-   - Place all new UI components in the appropriate subdirectory
-   - Follow the established directory structure
+- Multiple theme variants (Default, Dark, Light, High Contrast)
+- Dynamic theme switching
+- UI scaling
+- Accessibility features (high contrast mode, reduced animations)
 
-2. **Component Reuse**:
-   - Utilize components from the `components/` directory when building screens
-   - Avoid duplicating functionality
+Key files:
+- `themes/ThemeManager.gd`: Central manager for theme handling
+- `themes/base_theme.tres`: Base theme resource
+- `themes/dark_theme.tres`: Dark theme variant
+- `themes/light_theme.tres`: Light theme variant
+- `themes/high_contrast_theme.tres`: High contrast theme for accessibility
 
-3. **Naming Conventions**:
-   - Use PascalCase for scene files (.tscn) and GDScript class files (.gd)
-   - Use snake_case for resource files (.tres, .res)
+### UI Manager
 
-4. **Documentation**:
-   - Document public methods, signals, and important functionality
-   - Add README files to document complex components or subsystems
+The UI Manager coordinates all UI components and screens, handling:
 
-## UI Manager
+- Screen transitions
+- Dialog management
+- HUD updates
+- Theme application
+- Responsive UI adjustments
 
-The UI system uses the `UIManager` class (found in `screens/UIManager.gd`) to manage screen transitions and UI state. All screens should register with and be managed by this class.
+Key files:
+- `screens/UIManager.gd`: Main UI coordination
+- `dialogs/SettingsDialog.gd`: Settings dialog for theme and accessibility options
 
-## Responsive Design
+### Responsive Components
 
-The UI is designed to be responsive and work on multiple platforms and screen sizes. Use the responsive container components in `components/base/` to ensure your UI adapts correctly.
+The UI system includes components that automatically adapt to different screen sizes and device capabilities:
 
-## Theme Customization
+- `components/ResponsiveContainer.gd`: A container that switches between horizontal and vertical layouts based on available space
 
-Use the theme resources in the `themes/` directory for consistent styling. Custom controls should follow the established visual style. 
+## Usage Examples
+
+### Applying Themes
+
+```gdscript
+# Get the theme manager
+var theme_manager = get_node("/root/ThemeManager")
+
+# Change the theme
+theme_manager.apply_theme_variant(ThemeManager.ThemeVariant.DARK)
+
+# Adjust scale
+theme_manager.set_scale_factor(1.2)
+
+# Enable accessibility features
+theme_manager.set_high_contrast_mode(true)
+theme_manager.set_reduced_animation_mode(true)
+```
+
+### Using Responsive Containers
+
+```gdscript
+# Create a responsive container
+var container = ResponsiveContainer.new()
+container.min_width_for_horizontal = 800
+container.register_with_ui_manager()
+
+# Add children
+var button1 = Button.new()
+var button2 = Button.new()
+container.add_child(button1)
+container.add_child(button2)
+
+# Listen for layout changes
+container.layout_changed.connect(func(is_compact):
+    print("Layout changed to: " + ("compact" if is_compact else "expanded"))
+)
+```
+
+### Opening Settings Dialog
+
+```gdscript
+# Get the UI manager
+var ui_manager = get_node("/root/UIManager")
+
+# Show settings dialog
+ui_manager.show_settings()
+```
+
+## Accessibility Features
+
+The UI system includes several accessibility features:
+
+1. **High Contrast Mode**: Enhances visibility with stronger contrast and larger text
+2. **UI Scaling**: Allows users to adjust the size of UI elements
+3. **Reduced Animation**: Minimizes animations for users sensitive to motion
+4. **Keyboard Navigation**: Improved focus handling for keyboard-only navigation
+
+## Godot 4.4 Enhancements
+
+This UI system leverages several Godot 4.4 features:
+
+- Enhanced theme property system
+- Improved font handling
+- Better control over UI scaling
+- More efficient UI updates with batched processing
+- Improved signal connections with type annotations 

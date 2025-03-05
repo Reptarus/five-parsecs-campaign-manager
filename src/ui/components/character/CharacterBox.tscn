@@ -1,6 +1,6 @@
 [gd_scene load_steps=2 format=3 uid="uid://c4q8j8y3yv2gw"]
 
-[ext_resource type="Script" path="res://src/core/character/Base/CharacterBox.gd" id="1_script"]
+[ext_resource type="Script" uid="uid://cmlgqs8w4tmtt" path="res://src/core/character/Base/CharacterBox.gd" id="1_script"]
 
 [node name="CharacterBox" type="PanelContainer"]
 offset_right = 40.0
@@ -102,4 +102,4 @@ text = "Status:"
 
 [node name="StatusValue" type="Label" parent="MarginContainer/HBoxContainer/InfoContainer/StatusContainer"]
 layout_mode = 2
-text = "Healthy" 
+text = "Healthy"

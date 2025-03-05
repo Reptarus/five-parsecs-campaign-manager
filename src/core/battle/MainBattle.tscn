@@ -1,9 +1,15 @@
-[gd_scene load_steps=5 format=3]
+[gd_scene load_steps=5 format=3 uid="uid://c2g6ac605tsxe"]
 
-[ext_resource type="Script" path="res://src/core/battle/MainBattleController.gd" id="1_script"]
-[ext_resource type="PackedScene" path="res://src/core/battle/UI/Scenes/BattlefieldMain.tscn" id="2_battlefield"]
-[ext_resource type="Script" path="res://src/core/battle/FiveParcecsSystem.gd" id="3_state_machine"]
 [ext_resource type="Theme" uid="uid://ddjoduj1ya6tp" path="res://assets/5PFH.tres" id="4_theme"]
+
+[sub_resource type="Resource" id="Resource_b0s5q"]
+metadata/__load_path__ = "res://src/core/battle/MainBattleController.gd"
+
+[sub_resource type="Resource" id="Resource_ya708"]
+metadata/__load_path__ = "res://src/core/battle/UI/Scenes/BattlefieldMain.tscn"
+
+[sub_resource type="Resource" id="Resource_5vb0e"]
+metadata/__load_path__ = "res://src/core/battle/FiveParcecsSystem.gd"
 
 [node name="MainBattle" type="Control"]
 layout_mode = 3
@@ -13,7 +19,7 @@ anchor_bottom = 1.0
 grow_horizontal = 2
 grow_vertical = 2
 theme = ExtResource("4_theme")
-script = ExtResource("1_script")
+script = SubResource("Resource_b0s5q")
 
 [node name="BattleLayout" type="VBoxContainer" parent="."]
 layout_mode = 1
@@ -51,7 +57,7 @@ text = "Active Unit: None"
 layout_mode = 2
 size_flags_vertical = 3
 
-[node name="BattlefieldMain" parent="BattleLayout/MainContent" instance=ExtResource("2_battlefield")]
+[node name="BattlefieldMain" parent="BattleLayout/MainContent"]
 layout_mode = 2
 size_flags_horizontal = 3
 size_flags_stretch_ratio = 2.0
@@ -143,4 +149,4 @@ size_flags_vertical = 3
 bbcode_enabled = true
 
 [node name="FiveParcecsSystem" type="Node" parent="."]
-script = ExtResource("3_state_machine") 
+script = SubResource("Resource_5vb0e")

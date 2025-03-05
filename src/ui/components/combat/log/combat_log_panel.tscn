@@ -1,6 +1,6 @@
 [gd_scene load_steps=2 format=3 uid="uid://c8q6y4n2x0m5q"]
 
-[ext_resource type="Script" path="res://src/ui/components/combat/log/combat_log_panel.gd" id="1_k4r3m"]
+[ext_resource type="Script" uid="uid://ci3dt4fhgnu4o" path="res://src/ui/components/combat/log/combat_log_panel.gd" id="1_k4r3m"]
 
 [node name="CombatLogPanel" type="PanelContainer"]
 anchors_preset = 15
@@ -65,4 +65,4 @@ allow_reselect = true
 allow_rmb_select = true
 auto_height = true
 item_count = 1
-item_0/text = "[12:34:56] Example log entry" 
+item_0/text = "[12:34:56] Example log entry"

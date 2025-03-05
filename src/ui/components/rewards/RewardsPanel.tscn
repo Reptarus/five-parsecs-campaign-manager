@@ -1,6 +1,6 @@
 [gd_scene load_steps=2 format=3 uid="uid://ccp7a6kfi1vwe"]
 
-[ext_resource type="Script" path="res://src/ui/components/rewards/RewardsPanel.gd" id="1_script"]
+[ext_resource type="Script" uid="uid://cbcvqblbfliq0" path="res://src/ui/components/rewards/RewardsPanel.gd" id="1_script"]
 
 [node name="RewardsPanel" type="PanelContainer"]
 theme_type_variation = &"DarkPanel"
@@ -104,4 +104,4 @@ text = "• Patron: Simon - Impressed (+1 Rep)
 fit_content = true
 
 [connection signal="pressed" from="MarginContainer/VBoxContainer/LootContainer/HBoxContainer/RollLootButton" to="." method="_on_roll_loot_pressed"]
-[connection signal="pressed" from="MarginContainer/VBoxContainer/StatusContainer/HBoxContainer/RollStatusButton" to="." method="_on_roll_status_pressed"] 
+[connection signal="pressed" from="MarginContainer/VBoxContainer/StatusContainer/HBoxContainer/RollStatusButton" to="." method="_on_roll_status_pressed"]

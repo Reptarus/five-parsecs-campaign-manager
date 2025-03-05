@@ -1,6 +1,6 @@
-[gd_scene load_steps=2 format=3 uid="uid://g8x7y0q5n3j4w"]
+[gd_scene load_steps=2 format=3 uid="uid://dekdextv3vod5"]
 
-[ext_resource type="Script" path="res://src/ui/screens/campaign/phases/AdvancementPhasePanel.gd" id="1_y4r2p"]
+[ext_resource type="Script" uid="uid://dfli6hg6kigoe" path="res://src/ui/screens/campaign/phases/AdvancementPhasePanel.gd" id="1_y4r2p"]
 
 [node name="AdvancementPhasePanel" type="PanelContainer"]
 anchors_preset = 15
@@ -59,4 +59,4 @@ layout_mode = 2
 [node name="ApplyButton" type="Button" parent="VBoxContainer"]
 layout_mode = 2
 disabled = true
-text = "Apply Advancement" 
+text = "Apply Advancement"

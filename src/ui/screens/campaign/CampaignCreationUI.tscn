@@ -1,6 +1,6 @@
 [gd_scene load_steps=7 format=3 uid="uid://b4jy1ry6g1x8n"]
 
-[ext_resource type="Script" path="res://src/ui/screens/campaign/CampaignCreationUI.gd" id="1_8ykjc"]
+[ext_resource type="Script" uid="uid://8iweqgi3k6et" path="res://src/ui/screens/campaign/CampaignCreationUI.gd" id="1_8ykjc"]
 [ext_resource type="Theme" uid="uid://ddjoduj1ya6tp" path="res://assets/5PFH.tres" id="2_rnx4k"]
 [ext_resource type="PackedScene" uid="uid://c1ipgkdm40l6c" path="res://src/ui/screens/campaign/panels/ConfigPanel.tscn" id="3_mupwv"]
 [ext_resource type="PackedScene" uid="uid://ddmexnm0dog68" path="res://src/ui/screens/campaign/panels/CrewPanel.tscn" id="4_lrtqq"]
@@ -117,4 +117,4 @@ text = "Next"
 [node name="FinishButton" type="Button" parent="MarginContainer/VBoxContainer/Navigation"]
 custom_minimum_size = Vector2(150, 50)
 layout_mode = 2
-text = "Start Campaign" 
+text = "Start Campaign"

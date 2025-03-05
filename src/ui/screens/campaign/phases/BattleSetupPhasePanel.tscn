@@ -1,6 +1,6 @@
-[gd_scene load_steps=2 format=3 uid="uid://e8x7y0q5n3j4w"]
+[gd_scene load_steps=2 format=3 uid="uid://bekdextv3vod5"]
 
-[ext_resource type="Script" path="res://src/ui/screens/campaign/phases/BattleSetupPhasePanel.gd" id="1_y4r2p"]
+[ext_resource type="Script" uid="uid://dwdgju1gp717q" path="res://src/ui/screens/campaign/phases/BattleSetupPhasePanel.gd" id="1_y4r2p"]
 
 [node name="BattleSetupPhasePanel" type="PanelContainer"]
 anchors_preset = 15
@@ -72,4 +72,4 @@ layout_mode = 2
 [node name="StartBattleButton" type="Button" parent="VBoxContainer"]
 layout_mode = 2
 disabled = true
-text = "Start Battle" 
+text = "Start Battle"

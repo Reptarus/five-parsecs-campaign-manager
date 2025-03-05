@@ -1,8 +1,8 @@
-[gd_scene load_steps=4 format=3 uid="uid://e8q7a6kfi5vwe"]
+[gd_scene load_steps=4 format=3 uid="uid://bedco4m5xx05m"]
 
-[ext_resource type="Script" path="res://src/ui/screens/battle/TestPreBattle.gd" id="1_script"]
-[ext_resource type="PackedScene" path="res://src/ui/components/mission/MissionInfoPanel.tscn" id="2_mission_info"]
-[ext_resource type="PackedScene" path="res://src/ui/components/mission/EnemyInfoPanel.tscn" id="3_enemy_info"]
+[ext_resource type="Script" uid="uid://bj08846scdhgv" path="res://src/ui/screens/battle/TestPreBattle.gd" id="1_script"]
+[ext_resource type="PackedScene" uid="uid://c8q7a6kfi3vwe" path="res://src/ui/components/mission/MissionInfoPanel.tscn" id="2_mission_info"]
+[ext_resource type="PackedScene" uid="uid://edco4m5xw05m" path="res://src/ui/components/mission/EnemyInfoPanel.tscn" id="3_enemy_info"]
 
 [node name="TestPreBattle" type="Control"]
 layout_mode = 3
@@ -33,4 +33,4 @@ size_flags_horizontal = 3
 [node name="CrewSelection" type="PanelContainer" parent="HBoxContainer"]
 layout_mode = 2
 size_flags_horizontal = 3
-theme_type_variation = &"DarkPanel" 
+theme_type_variation = &"DarkPanel"

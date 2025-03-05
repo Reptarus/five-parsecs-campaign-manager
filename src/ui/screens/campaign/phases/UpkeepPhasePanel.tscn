@@ -1,6 +1,6 @@
 [gd_scene load_steps=2 format=3 uid="uid://b6x8y0q5n3j4w"]
 
-[ext_resource type="Script" path="res://src/ui/screens/campaign/phases/UpkeepPhasePanel.gd" id="1_y4r2p"]
+[ext_resource type="Script" uid="uid://t7y63c48muqk" path="res://src/ui/screens/campaign/phases/UpkeepPhasePanel.gd" id="1_y4r2p"]
 
 [node name="UpkeepPhasePanel" type="PanelContainer"]
 anchors_preset = 15
@@ -65,4 +65,4 @@ layout_mode = 2
 
 [node name="PayUpkeepButton" type="Button" parent="VBoxContainer"]
 layout_mode = 2
-text = "Pay Upkeep" 
+text = "Pay Upkeep"

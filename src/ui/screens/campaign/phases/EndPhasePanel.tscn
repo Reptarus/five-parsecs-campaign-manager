@@ -1,6 +1,6 @@
 [gd_scene load_steps=2 format=3 uid="uid://b8k7x0q5n3j4w"]
 
-[ext_resource type="Script" path="res://src/ui/screens/campaign/phases/EndPhasePanel.gd" id="1_y4r2p"]
+[ext_resource type="Script" uid="uid://c261nakdskhug" path="res://src/ui/screens/campaign/phases/EndPhasePanel.gd" id="1_y4r2p"]
 
 [node name="EndPhasePanel" type="PanelContainer"]
 anchors_preset = 15
@@ -36,4 +36,4 @@ text = "Save Campaign"
 [node name="ContinueButton" type="Button" parent="VBoxContainer"]
 layout_mode = 2
 disabled = true
-text = "Continue to Next Cycle" 
+text = "Continue to Next Cycle"

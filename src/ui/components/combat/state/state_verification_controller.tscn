@@ -1,6 +1,6 @@
-[gd_scene load_steps=2 format=3 uid="uid://state_verification_controller"]
+[gd_scene load_steps=2 format=3 uid="uid://fph1r162jwf5"]
 
-[ext_resource type="Script" path="res://src/ui/components/combat/state/state_verification_controller.gd" id="1_state_verification"]
+[ext_resource type="Script" uid="uid://duehlikrp2suk" path="res://src/ui/components/combat/state/state_verification_controller.gd" id="1_state_verification"]
 
 [node name="StateVerificationController" type="Node"]
-script = ExtResource("1_state_verification") 
+script = ExtResource("1_state_verification")

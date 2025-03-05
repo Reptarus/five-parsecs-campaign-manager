@@ -1,6 +1,6 @@
-[gd_scene load_steps=2 format=3 uid="uid://f8x7y0q5n3j4w"]
+[gd_scene load_steps=2 format=3 uid="uid://cekdextv3vod5"]
 
-[ext_resource type="Script" path="res://src/ui/screens/campaign/phases/BattleResolutionPhasePanel.gd" id="1_y4r2p"]
+[ext_resource type="Script" uid="uid://bfux4371uexud" path="res://src/ui/screens/campaign/phases/BattleResolutionPhasePanel.gd" id="1_y4r2p"]
 
 [node name="BattleResolutionPhasePanel" type="PanelContainer"]
 anchors_preset = 15
@@ -73,4 +73,4 @@ layout_mode = 2
 
 [node name="CompleteButton" type="Button" parent="VBoxContainer"]
 layout_mode = 2
-text = "Complete Battle" 
+text = "Complete Battle"

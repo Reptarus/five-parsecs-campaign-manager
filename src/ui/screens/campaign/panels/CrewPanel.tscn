@@ -1,7 +1,7 @@
 [gd_scene load_steps=3 format=3 uid="uid://ddmexnm0dog68"]
 
-[ext_resource type="Script" path="res://src/ui/screens/campaign/panels/CrewPanel.gd" id="1_3euny"]
-[ext_resource type="PackedScene" uid="uid://bm6c4rx645ove" path="res://src/core/character/Generation/CharacterCreator.tscn" id="2_kkjtj"]
+[ext_resource type="Script" uid="uid://2omxjg1p5h8" path="res://src/ui/screens/campaign/panels/CrewPanel.gd" id="1_3euny"]
+[ext_resource type="Texture2D" uid="uid://bm6c4rx645ove" path="res://assets/BookImages/Nov_23_Sunset2_.png" id="2_kkjtj"]
 
 [node name="CrewPanel" type="Control"]
 layout_mode = 3
@@ -73,5 +73,5 @@ custom_minimum_size = Vector2(150, 50)
 layout_mode = 2
 text = "Randomize All"
 
-[node name="CharacterCreator" parent="." instance=ExtResource("2_kkjtj")]
-visible = false 
+[node name="CharacterCreator" parent="."]
+visible = false

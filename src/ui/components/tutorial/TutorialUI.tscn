@@ -1,6 +1,6 @@
-[gd_scene load_steps=2 format=3 uid="uid://k8q7a6kfi1vwe"]
+[gd_scene load_steps=2 format=3 uid="uid://dixg32pwem5eu"]
 
-[ext_resource type="Script" path="res://src/ui/components/tutorial/TutorialUI.gd" id="1_script"]
+[ext_resource type="Script" uid="uid://c0bc276c8e04t" path="res://src/ui/components/tutorial/TutorialUI.gd" id="1_script"]
 
 [node name="TutorialUI" type="Control"]
 layout_mode = 3
@@ -9,4 +9,4 @@ anchor_right = 1.0
 anchor_bottom = 1.0
 grow_horizontal = 2
 grow_vertical = 2
-script = ExtResource("1_script") 
+script = ExtResource("1_script")

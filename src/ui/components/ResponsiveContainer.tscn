@@ -1,0 +1,15 @@
+[gd_scene load_steps=2 format=3 uid="uid://dn4d1t8bdkq3g"]
+
+[ext_resource type="Script" path="res://src/ui/components/ResponsiveContainer.gd" id="1_ybnpx"]
+
+[node name="ResponsiveContainer" type="Container"]
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+script = ExtResource("1_ybnpx")
+min_width_for_horizontal = 800
+horizontal_spacing = 15
+vertical_spacing = 15
+padding = 20 

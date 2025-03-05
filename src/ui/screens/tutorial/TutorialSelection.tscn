@@ -1,8 +1,10 @@
-[gd_scene load_steps=6 format=3 uid="uid://cerfs74ne77rd"]
+[gd_scene load_steps=5 format=3 uid="uid://cerfs74ne77rd"]
 
 [ext_resource type="Theme" uid="uid://ddjoduj1ya6tp" path="res://assets/5PFH.tres" id="1_unuw3"]
-[ext_resource type="Script" path="res://Resources/CampaignManagement/NewCampaignTutorial.gd" id="2_mt7xa"]
 [ext_resource type="Texture2D" uid="uid://bqw88gvv0saii" path="res://assets/Basic assets/5PFHUIAssets/Sci-Fi-Infoboxes_0000s_0005s_0033_11.png" id="3_pr5ho"]
+
+[sub_resource type="Resource" id="Resource_5m8dh"]
+metadata/__load_path__ = "res://Resources/CampaignManagement/NewCampaignTutorial.gd"
 
 [sub_resource type="StyleBoxTexture" id="StyleBoxTexture_1fhnw"]
 texture = ExtResource("3_pr5ho")
@@ -15,7 +17,7 @@ anchor_bottom = 1.0
 grow_horizontal = 2
 grow_vertical = 2
 theme = ExtResource("1_unuw3")
-script = ExtResource("2_mt7xa")
+script = SubResource("Resource_5m8dh")
 
 [node name="Panel" type="Panel"]
 layout_mode = 1

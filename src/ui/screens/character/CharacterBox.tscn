@@ -1,6 +1,6 @@
 [gd_scene load_steps=2 format=3 uid="uid://cxxx"]
 
-[ext_resource type="Theme" uid="uid://ccpt5srj6tnbv" path="res://Resources/Utilities/sci_fi_theme.tres" id="1_theme"]
+[ext_resource type="Theme" uid="uid://ccpt5srj6tnbv" path="res://src/ui/themes/sci_fi_theme.tres" id="1_theme"]
 
 [node name="CharacterBox" type="PanelContainer"]
 custom_minimum_size = Vector2(0, 150)

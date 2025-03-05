@@ -1,7 +1,9 @@
-[gd_scene load_steps=3 format=3 uid="uid://character_progression"]
+[gd_scene load_steps=3 format=3 uid="uid://byib6f4w8jlfj"]
 
 [ext_resource type="Theme" uid="uid://ddjoduj1ya6tp" path="res://assets/5PFH.tres" id="1_theme"]
-[ext_resource type="Script" path="res://Resources/CrewAndCharacters/CharacterProgressionUI.gd" id="2_script"]
+
+[sub_resource type="Resource" id="Resource_bskvh"]
+metadata/__load_path__ = "res://Resources/CrewAndCharacters/CharacterProgressionUI.gd"
 
 [node name="CharacterProgression" type="Control"]
 layout_mode = 3
@@ -11,7 +13,7 @@ anchor_bottom = 1.0
 grow_horizontal = 2
 grow_vertical = 2
 theme = ExtResource("1_theme")
-script = ExtResource("2_script")
+script = SubResource("Resource_bskvh")
 
 [node name="Background" type="ColorRect" parent="."]
 layout_mode = 1
@@ -164,4 +166,4 @@ alignment = 2
 [node name="CloseButton" type="Button" parent="MainContainer/FooterPanel/MarginContainer/HBoxContainer"]
 custom_minimum_size = Vector2(120, 40)
 layout_mode = 2
-text = "Close" 
+text = "Close"

@@ -3,7 +3,6 @@ description: Project rules and coding standards for the Five Parsecs Campaign Ma
 globs: ["*.gd", "*.tscn", "*.tres", "*.res", "*.md", "*.json", "*.cfg", "*.import", "src/**/*", "tests/**/*", "assets/**/*", "docs/**/*"]
 alwaysApply: false
 ---
----
 description: Project rules and coding standards for the Five Parsecs Campaign Manager project, including file organization, coding standards, testing requirements, state management, UI/UX standards, version control, performance standards, and security guidelines.
 globs: ["*.gd", "*.tscn", "*.tres", "*.res", "*.md", "*.json", "*.cfg", "*.import", "src/**/*", "tests/**/*", "assets/**/*", "docs/**/*"]
 ---
@@ -35,6 +34,10 @@ globs: ["*.gd", "*.tscn", "*.tres", "*.res", "*.md", "*.json", "*.cfg", "*.impor
   - `src/data/`: Data definitions and containers
   - `src/scenes/`: Scene implementations
   - `src/ui/`: User interface components
+  - `src/shaders/`: GPU shaders and materials
+  - `src/ai/`: AI behavior trees and navigation systems
+  - `src/accessibility/`: Accessibility features and settings
+  - `src/networking/`: Networking and multiplayer components (if relevant)
 - **Asset Management**:
   - Store assets in `assets/` directory with appropriate subdirectories
   - Maintain optimized assets in version control
@@ -71,6 +74,62 @@ globs: ["*.gd", "*.tscn", "*.tres", "*.res", "*.md", "*.json", "*.cfg", "*.impor
   - Store game-specific enums in designated enum classes (e.g., `FiveParsecsGameEnums`)
 - Implement proper signal connections using typed callbacks
 
+### Godot 4.4 Type Safety Enhancements
+- Use strongly-typed arrays and collections for better type safety:
+  ```gdscript
+  # Prefer strongly-typed arrays
+  var items: Array[Item] = []
+  var points: PackedVector2Array = []
+  ```
+- Implement typesafe Dictionary usage where appropriate:
+  ```gdscript
+  # For complex dictionaries, create custom resources instead
+  var level_data: Dictionary = {"name": "Level 1", "difficulty": 3} # Only for simple cases
+  ```
+- Utilize new language features properly:
+  ```gdscript
+  # Lambda functions
+  var filtered_items = items.filter(func(item): return item.level > 3)
+  
+  # Pattern matching with type patterns
+  match value:
+      var v as String: # Type pattern
+          print("String: ", v)
+      [var x, var y] if x is int and y is int: # Array pattern with guard
+          print("Point: ", x, ", ", y)
+  ```
+
+### Async Programming
+- Prefer await over callbacks when possible
+- Structure functions to return values when using await
+- Handle cancellation appropriately in async functions
+- Document async behavior clearly in function comments
+- Use timeout patterns for async operations that might hang
+```gdscript
+## Fetches data asynchronously with timeout safety
+## @param url: The URL to fetch from
+## @param timeout: Maximum time to wait in seconds
+## @return: The fetched data or null if timed out
+func fetch_data(url: String, timeout: float = 5.0) -> Variant:
+    var start_time = Time.get_ticks_msec()
+    var http_request = HTTPRequest.new()
+    add_child(http_request)
+    http_request.request(url)
+    
+    # Wait for completion with timeout
+    while http_request.get_http_client_status() != HTTPClient.STATUS_BODY and \
+          (Time.get_ticks_msec() - start_time) < timeout * 1000:
+        await get_tree().process_frame
+        
+    if (Time.get_ticks_msec() - start_time) >= timeout * 1000:
+        http_request.queue_free()
+        return null
+        
+    var response = await http_request.request_completed
+    http_request.queue_free()
+    return response[3]
+```
+
 ### Documentation
 - Document all public functions with GDScript doc comments:
 ```gdscript
@@ -93,6 +152,40 @@ func update_character_status(character: Character, damage: int) -> bool:
 - Document node dependencies and required configurations
 - Implement proper scene composition with reusable components
 - Minimize deep nesting of nodes when possible
+- Use unique_name_in_owner for key nodes that need direct access:
+  ```gdscript
+  # In scene setup
+  $MainCamera.unique_name_in_owner = true
+  
+  # Accessing from anywhere
+  %MainCamera.current = true
+  ```
+
+### Scene Instantiation
+- Use preload for frequently used scenes
+- Implement scene_changed signal handlers
+- Document required node structure for scenes
+- Follow the ResourcePreloader pattern for complex scene sets
+- Utilize SceneTree.create_tween for scene transitions
+```gdscript
+# Preload scenes
+const CharacterScene := preload("res://src/game/character/Character.tscn")
+
+# Instance with type safety
+func spawn_character(data: CharacterData) -> Character:
+    var character: Character = CharacterScene.instantiate()
+    character.initialize(data)
+    return character
+    
+# Scene transitions
+func transition_to_scene(next_scene: PackedScene) -> void:
+    var tween = create_tween()
+    tween.tween_property($FadeOverlay, "modulate:a", 1.0, 0.5)
+    await tween.finished
+    get_tree().change_scene_to_packed(next_scene)
+    tween = create_tween()
+    tween.tween_property($FadeOverlay, "modulate:a", 0.0, 0.5)
+```
 
 ## Game Systems Implementation
 
@@ -119,6 +212,32 @@ func update_character_status(character: Character, damage: int) -> bool:
 - Validate ship state changes and modifications
 - Implement proper ship resource management
 
+## Resource Management
+- Use sub-resources for complex nested data
+- Implement custom resources with type-safe properties
+- Leverage ResourceLoader.load_threaded for background loading
+- Use unique_name_in_owner to reference key nodes
+- Implement proper dependency tracking in custom resources
+```gdscript
+# Custom resource with proper type safety
+class_name WeaponData
+extends Resource
+
+@export var name: String
+@export var damage: int
+@export var range_meters: float
+@export var ammo_type: AmmoType
+@export var effects: Array[StatusEffect] = []
+
+# Background loading
+func preload_assets() -> void:
+    var loader = ResourceLoader.load_threaded_request("res://assets/models/weapons.glb")
+    # Continue game initialization
+    while ResourceLoader.load_threaded_get_status(loader) == ResourceLoader.THREAD_LOAD_IN_PROGRESS:
+        await get_tree().process_frame
+    var weapon_models = ResourceLoader.load_threaded_get(loader)
+```
+
 ## Testing Requirements
 
 ### Test Structure
@@ -129,6 +248,32 @@ func update_character_status(character: Character, damage: int) -> bool:
 - Document test coverage and gaps
 - Target 85% overall code coverage with critical paths at 100%
 
+### Signal Testing
+- Test signal connection integrity
+- Verify signal parameter types
+- Implement wait_for_signal patterns in async tests
+- Document expected signal emission sequences
+- Test signal disconnection to prevent memory leaks
+```gdscript
+# Signal testing pattern
+func test_character_damaged_signal() -> void:
+    var character = Character.new()
+    add_child(character)
+    
+    var signal_emitted = false
+    var damage_amount = 0
+    
+    character.damaged.connect(func(amount): 
+        signal_emitted = true
+        damage_amount = amount
+    )
+    
+    character.take_damage(5)
+    
+    assert_true(signal_emitted, "damaged signal should be emitted")
+    assert_eq(damage_amount, 5, "Signal should pass correct damage amount")
+```
+
 ### Test Stability
 - Implement deterministic test runs with fixed random seeds
 - Use proper test setup and teardown processes
@@ -136,6 +281,7 @@ func update_character_status(character: Character, damage: int) -> bool:
 - Track and clean up resources to prevent test pollution
 - Verify state transitions with assertions
 - Implement proper test timeouts and error handling
+- Use SceneTree.process_frame for frame-precise testing
 
 ## State Management
 
@@ -165,6 +311,26 @@ func update_character_status(character: Character, damage: int) -> bool:
 - Use appropriate font sizes and contrast ratios for accessibility
 - Follow the Five Parsecs aesthetic for all UI elements
 
+### Container and Layout
+- Use FlowContainer for adaptive layouts
+- Implement proper UI scaling that respects DPI
+- Utilize SubViewport for rendering-intensive UI elements
+- Implement theme variations for UI component states
+- Design with accessibility features from the start
+```gdscript
+# Responsive container setup
+func setup_responsive_container() -> void:
+    var container = FlowContainer.new()
+    container.vertical = true
+    container.add_theme_constant_override("h_separation", 10)
+    container.add_theme_constant_override("v_separation", 10)
+    
+    # Theme variation for different states
+    var button = Button.new()
+    button.theme_type_variation = "AccentButton"
+    container.add_child(button)
+```
+
 ### Input Management
 - Support both mouse/keyboard and touch inputs
 - Implement proper input validation and debouncing
@@ -190,6 +356,29 @@ func update_character_status(character: Character, damage: int) -> bool:
 - Implement reference counting where appropriate
 - Optimize asset usage to reduce memory footprint
 - Perform regular performance testing on target platforms
+
+### Performance Tools
+- Use SceneTree.process_frame for frame-precise testing
+- Leverage GPU-based particle systems over CPU
+- Monitor VRAM usage with the new rendering profiler
+- Implement threading for compute-intensive operations
+- Document performance test results in standardized format
+```gdscript
+# Performance monitoring example
+func measure_performance(func_to_test: Callable) -> Dictionary:
+    var start_time = Time.get_ticks_usec()
+    var start_memory = OS.get_static_memory_usage()
+    
+    func_to_test.call()
+    
+    var end_time = Time.get_ticks_usec()
+    var end_memory = OS.get_static_memory_usage()
+    
+    return {
+        "execution_time_ms": (end_time - start_time) / 1000.0,
+        "memory_usage_kb": (end_memory - start_memory) / 1024.0
+    }
+```
 
 ## Security Standards
 
@@ -257,4 +446,4 @@ func update_character_status(character: Character, damage: int) -> bool:
 - Document technical debt and refactoring needs
 - Plan for scalability and extensibility
 - Consider modding support in architecture decisions
-- Maintain balance between new features and stability
+- Maintain balance between new features and stability 

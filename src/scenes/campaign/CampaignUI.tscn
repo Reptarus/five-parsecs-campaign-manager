@@ -1,6 +1,6 @@
 [gd_scene load_steps=5 format=3 uid="uid://c8qj5v2xv6n"]
 
-[ext_resource type="Script" path="res://src/scenes/campaign/CampaignUI.gd" id="1_script"]
+[ext_resource type="Script" uid="uid://b3l4kfjh1mgrb" path="res://src/scenes/campaign/CampaignUI.gd" id="1_script"]
 [ext_resource type="PackedScene" uid="uid://dp66b6flafme3" path="res://src/ui/screens/campaign/setup/VictoryConditionSelection.tscn" id="5_event"]
 [ext_resource type="PackedScene" uid="uid://cq8qj5v2xv6n" path="res://src/scenes/campaign/components/CampaignPhaseUI.tscn" id="6_phase"]
 [ext_resource type="Theme" uid="uid://ddjoduj1ya6tp" path="res://assets/5PFH.tres" id="7_theme"]

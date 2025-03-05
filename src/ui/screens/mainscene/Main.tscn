@@ -1,13 +1,16 @@
 [gd_scene load_steps=3 format=3 uid="uid://b4jy1ry6g1x8n"]
 
-[ext_resource type="Script" path="res://ui/mainscene/MainGameScene.gd" id="1_8ykjc"]
-[ext_resource type="Script" path="res://ui/UIManager.gd" id="2_rnx4k"]
+[sub_resource type="Resource" id="Resource_4xilf"]
+metadata/__load_path__ = "res://ui/mainscene/MainGameScene.gd"
+
+[sub_resource type="Resource" id="Resource_ujc8u"]
+metadata/__load_path__ = "res://ui/UIManager.gd"
 
 [node name="Main" type="Node"]
-script = ExtResource("1_8ykjc")
+script = SubResource("Resource_4xilf")
 
 [node name="UIManager" type="Node" parent="."]
-script = ExtResource("2_rnx4k")
+script = SubResource("Resource_ujc8u")
 
 [node name="SceneContainer" type="Control" parent="."]
 layout_mode = 3

@@ -1,6 +1,7 @@
-[gd_scene load_steps=2 format=3 uid="uid://crew_relationships_panel"]
+[gd_scene load_steps=2 format=3 uid="uid://b0dleo1n7pcen"]
 
-[ext_resource type="Script" path="res://Resources/Campaign/Crew/CrewRelationshipsPanel.gd" id="1_script"]
+[sub_resource type="Resource" id="Resource_8rqb3"]
+metadata/__load_path__ = "res://Resources/Campaign/Crew/CrewRelationshipsPanel.gd"
 
 [node name="CrewRelationshipsPanel" type="Control"]
 layout_mode = 3
@@ -9,7 +10,7 @@ anchor_right = 1.0
 anchor_bottom = 1.0
 grow_horizontal = 2
 grow_vertical = 2
-script = ExtResource("1_script")
+script = SubResource("Resource_8rqb3")
 
 [node name="VBoxContainer" type="VBoxContainer" parent="."]
 layout_mode = 1
@@ -81,4 +82,4 @@ layout_mode = 2
 layout_mode = 2
 text = "Confirm Relationship"
 
-[connection signal="pressed" from="VBoxContainer/AddRelationshipPanel/VBoxContainer/ConfirmButton" to="." method="_on_confirm_relationship_pressed"] 
+[connection signal="pressed" from="VBoxContainer/AddRelationshipPanel/VBoxContainer/ConfirmButton" to="." method="_on_confirm_relationship_pressed"]

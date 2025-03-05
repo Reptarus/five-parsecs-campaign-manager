@@ -1,7 +1,7 @@
 [gd_scene load_steps=3 format=3 uid="uid://swd7rhnhcr41"]
 
-[ext_resource type="Script" path="res://src/ui/screens/campaign/panels/CaptainPanel.gd" id="1_yvr4t"]
-[ext_resource type="PackedScene" uid="uid://bm6c4rx645ove" path="res://src/core/character/Generation/CharacterCreator.tscn" id="2_kkjtj"]
+[ext_resource type="Script" uid="uid://bgooi1a18i7kc" path="res://src/ui/screens/campaign/panels/CaptainPanel.gd" id="1_yvr4t"]
+[ext_resource type="Texture2D" uid="uid://bm6c4rx645ove" path="res://assets/BookImages/Nov_23_Sunset2_.png" id="2_kkjtj"]
 
 [node name="CaptainPanel" type="Control"]
 layout_mode = 3
@@ -58,5 +58,5 @@ custom_minimum_size = Vector2(150, 50)
 layout_mode = 2
 text = "Random Captain"
 
-[node name="CharacterCreator" parent="." instance=ExtResource("2_kkjtj")]
-visible = false 
+[node name="CharacterCreator" parent="."]
+visible = false

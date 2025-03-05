@@ -4,15 +4,18 @@ extends "res://tests/fixtures/base/game_test.gd"
 # Type-safe constants with explicit typing
 const UIManagerScript: GDScript = preload("res://src/ui/screens/UIManager.gd")
 const GameState: GDScript = preload("res://src/core/state/GameState.gd")
+const ThemeManagerScript: GDScript = preload("res://src/ui/themes/ThemeManager.gd")
 
 # Type-safe instance variables
 var _ui_manager: UIManagerScript
 var _mock_game_state: GameState
+var _theme_manager: ThemeManagerScript
 
 # Type-safe signal tracking
 var _screen_changed_emitted: bool = false
 var _dialog_opened_emitted: bool = false
 var _dialog_closed_emitted: bool = false
+var _theme_applied_emitted: bool = false
 var _last_signal_data: Dictionary = {
 	"screen_name": "" as String,
 	"dialog_name": "" as String,
@@ -38,6 +41,13 @@ func before_each() -> void:
 	_ui_manager.set_script(UIManagerScript)
 	add_child_autofree(_ui_manager)
 	
+	# Initialize theme manager with type safety
+	_theme_manager = ThemeManagerScript.new()
+	if not _theme_manager:
+		push_error("Failed to create theme manager")
+		return
+	add_child_autofree(_theme_manager)
+	
 	# Reset signal tracking
 	_reset_signal_states()
 	_connect_signals()
@@ -47,25 +57,33 @@ func after_each() -> void:
 	await super.after_each()
 	_ui_manager = null
 	_mock_game_state = null
+	_theme_manager = null
 
 # Type-safe signal management
 func _reset_signal_states() -> void:
 	_screen_changed_emitted = false
 	_dialog_opened_emitted = false
 	_dialog_closed_emitted = false
+	_theme_applied_emitted = false
 	_last_signal_data = {
-		"screen_name": "" as String,
-		"dialog_name": "" as String,
-		"dialog_data": {} as Dictionary
+		"screen_name": "",
+		"dialog_name": "",
+		"dialog_data": {}
 	}
 
 func _connect_signals() -> void:
-	if not _ui_manager:
-		push_error("Cannot connect signals: UI manager is null")
-		return
-	
-	if _signal_watcher:
-		_signal_watcher.watch_signals(_ui_manager)
+	if _ui_manager != null:
+		if _ui_manager.has_signal("screen_changed"):
+			_ui_manager.screen_changed.connect(self._on_screen_changed)
+			
+		if _ui_manager.has_signal("dialog_opened"):
+			_ui_manager.dialog_opened.connect(self._on_dialog_opened)
+			
+		if _ui_manager.has_signal("dialog_closed"):
+			_ui_manager.dialog_closed.connect(self._on_dialog_closed)
+			
+		if _ui_manager.has_signal("theme_applied"):
+			_ui_manager.theme_applied.connect(self._on_theme_applied)
 
 func _cleanup_signals() -> void:
 	if _signal_watcher:
@@ -84,6 +102,10 @@ func _on_dialog_opened(dialog_name: String, dialog_data: Dictionary = {}) -> voi
 func _on_dialog_closed(dialog_name: String) -> void:
 	_dialog_closed_emitted = true
 	_last_signal_data["dialog_name"] = dialog_name
+
+func _on_theme_applied(theme_name: String) -> void:
+	_theme_applied_emitted = true
+	_last_signal_data["theme_name"] = theme_name
 
 # Type-safe test helper methods
 func _verify_ui_manager_state(screen_name: String, expected_screen: String, message: String) -> void:
@@ -194,3 +216,60 @@ func test_cleanup() -> void:
 		"Should clear current screen")
 	assert_false(_ui_manager.has_modal, "Should clear modals")
 	assert_eq(_ui_manager.screen_stack.size(), 0, "Should clear screen stack")
+
+# Additional tests for theme support
+func test_theme_manager_integration() -> void:
+	# Test connecting the theme manager
+	_ui_manager.connect_theme_manager(_theme_manager)
+	assert_not_null(_ui_manager.theme_manager, "Theme manager should be connected to UI manager")
+
+func test_theme_application() -> void:
+	# Test applying a theme
+	_ui_manager.apply_theme("dark")
+	
+	# Verify signal emission and theme change
+	assert_true(_theme_applied_emitted, "theme_applied signal should be emitted")
+	assert_eq(_last_signal_data["theme_name"], "dark", "Correct theme name should be in signal data")
+	assert_eq(_theme_manager.current_theme_name, "dark", "Theme should be changed on the theme manager")
+
+func test_ui_scale_setting() -> void:
+	# Test setting UI scale
+	var test_scale = 1.2
+	_ui_manager.set_ui_scale(test_scale)
+	
+	# Verify scale change
+	assert_eq(_theme_manager.ui_scale, test_scale, "UI scale should be updated on the theme manager")
+
+func test_accessibility_settings() -> void:
+	# Test high contrast setting
+	_ui_manager.set_high_contrast(true)
+	assert_true(_theme_manager.high_contrast_enabled, "High contrast should be enabled")
+	
+	# Test animations setting
+	_ui_manager.toggle_animations(false)
+	assert_false(_theme_manager.animations_enabled, "Animations should be disabled")
+	
+	# Test text size setting
+	_ui_manager.set_text_size("large")
+	assert_eq(_theme_manager.get_text_scale(), 1.4, "Text scale should be set to large")
+
+func test_theme_persistence() -> void:
+	# Set theme and verify it's saved
+	_ui_manager.apply_theme("dark")
+	assert_eq(_ui_manager.get_current_theme(), "dark", "Current theme should be correctly reported")
+	
+	# Test persisting settings
+	_ui_manager.save_ui_settings()
+	
+	# Create a new UI manager to simulate app restart
+	var new_ui_manager = UIManagerScript.new()
+	add_child(new_ui_manager)
+	new_ui_manager.connect_theme_manager(_theme_manager)
+	
+	# Load settings and verify theme is restored
+	new_ui_manager.load_ui_settings()
+	assert_eq(new_ui_manager.get_current_theme(), "dark", "Theme should be restored from saved settings")
+	
+	# Clean up
+	new_ui_manager.queue_free()
+	_theme_manager.queue_free()

@@ -1,6 +1,14 @@
+@tool
 class_name FPCM_TableProcessor
 extends Node
 
+## Forward declarations for dependencies
+## This helps avoid circular references and clarifies dependencies
+const ErrorLogger = preload("res://src/core/systems/ErrorLogger.gd")
+const GameEnums = preload("res://src/core/systems/GlobalEnums.gd")
+
+## Signals for table operations
+## Now documented with proper types for Godot 4.4
 signal roll_processed(table_name: String, result: Dictionary)
 signal validation_failed(table_name: String, reason: String)
 signal custom_roll_processed(table_name: String, roll: int, result: Dictionary)

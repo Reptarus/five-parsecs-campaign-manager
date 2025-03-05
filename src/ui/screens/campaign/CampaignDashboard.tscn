@@ -1,7 +1,7 @@
-[gd_scene load_steps=3 format=3 uid="uid://b4q8j6q8j6q8j"]
+[gd_scene load_steps=4 format=3 uid="uid://b4q8j6q8j6q8j"]
 
 [ext_resource type="Theme" uid="uid://ddjoduj1ya6tp" path="res://assets/5PFH.tres" id="1_ubhx7"]
-[ext_resource type="Script" path="res://src/ui/screens/campaign/CampaignDashboard.gd" id="2_e34t7"]
+[ext_resource type="Script" uid="uid://coorx85tp2aps" path="res://src/ui/screens/campaign/CampaignDashboard.gd" id="2_e34t7"]
 [ext_resource type="Texture2D" uid="uid://dwtv722eqpn51" path="res://assets/BookImages/Nov_24_Cityview_.jpg" id="3_w2v87"]
 
 [node name="CampaignDashboard" type="Control"]

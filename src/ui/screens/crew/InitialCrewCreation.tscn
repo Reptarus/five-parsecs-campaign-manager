@@ -1,6 +1,6 @@
-[gd_scene load_steps=2 format=3 uid="uid://n8q7a6kfi4vwe"]
+[gd_scene load_steps=2 format=3 uid="uid://cnjli0sntjam3"]
 
-[ext_resource type="Script" path="res://src/ui/screens/crew/InitialCrewCreation.gd" id="1_script"]
+[ext_resource type="Script" uid="uid://e1e5cyysxjtx" path="res://src/ui/screens/crew/InitialCrewCreation.gd" id="1_script"]
 
 [node name="InitialCrewCreation" type="Control"]
 layout_mode = 3
@@ -146,4 +146,4 @@ text = "Create Crew"
 [connection signal="text_changed" from="MarginContainer/VBoxContainer/TitlePanel/VBoxContainer/CrewNameInput" to="." method="_on_crew_name_changed"]
 [connection signal="item_selected" from="MarginContainer/VBoxContainer/TitlePanel/VBoxContainer/CrewSizeOption" to="." method="_on_crew_size_changed"]
 [connection signal="pressed" from="MarginContainer/VBoxContainer/FooterPanel/HBoxContainer/BackButton" to="." method="_on_back_pressed"]
-[connection signal="pressed" from="MarginContainer/VBoxContainer/FooterPanel/HBoxContainer/CreateButton" to="." method="_on_create_pressed"] 
+[connection signal="pressed" from="MarginContainer/VBoxContainer/FooterPanel/HBoxContainer/CreateButton" to="." method="_on_create_pressed"]

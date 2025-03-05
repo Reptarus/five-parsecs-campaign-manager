@@ -25,6 +25,7 @@ Contains all user interface related code.
 - `/components` - Reusable UI components
 - `/screens` - Full screen UI implementations
 - `/themes` - UI themes and styles
+- `/dialogs` - Dialog windows and popups
 
 ### `/data`
 Contains data management and storage related code.
@@ -43,6 +44,12 @@ Contains game scenes.
 - `/main` - Main game scenes
 - `/battle` - Battle scenes
 - `/menus` - Menu scenes
+
+### `/core`
+Contains core systems and managers.
+- `/systems` - Core game systems
+- `/state` - State management
+- `/terrain` - Terrain systems
 
 ## Naming Conventions
 
@@ -74,3 +81,25 @@ The corresponding test structure can be found in the `/tests` directory, which m
 - `/integration` - Integration tests
 - `/performance` - Performance tests
 - `/mobile` - Mobile-specific tests 
+
+## Godot 4.4 Enhancements
+
+The project has been optimized for Godot 4.4 with several key enhancements:
+
+### UI System Improvements
+- **Theme Management**: A new `ThemeManager` class provides centralized theme handling with support for multiple theme variants, dynamic switching, and accessibility features.
+- **Responsive Design**: Enhanced responsive containers automatically adapt to different screen sizes and orientations.
+- **Accessibility Features**: Support for high contrast mode, UI scaling, and reduced animations.
+- **Performance Optimizations**: Batched UI updates and more efficient theme application.
+
+### Resource Management
+- **Background Loading**: Improved resource loading with background thread support.
+- **Resource Caching**: Smart caching system for frequently used resources.
+- **Memory Management**: Better memory usage through optimized resource handling.
+
+### State Management
+- **Enhanced Save System**: Improved save/load functionality with backup support.
+- **Error Handling**: Comprehensive error handling for file operations.
+- **Type Safety**: Stronger type annotations throughout the codebase.
+
+For more details on the UI enhancements, see the [UI README](ui/README.md). 

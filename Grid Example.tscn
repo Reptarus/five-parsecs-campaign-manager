@@ -1,6 +1,6 @@
 [gd_scene load_steps=2 format=3 uid="uid://pph58tngsd7w"]
 
-[ext_resource type="Script" path="res://addons/grid_display/grid_display.gd" id="1_qchgr"]
+[ext_resource type="Script" uid="uid://tkcj435jk3bl" path="res://addons/grid_display/grid_display.gd" id="1_qchgr"]
 
 [node name="Node2D" type="Node2D"]
 

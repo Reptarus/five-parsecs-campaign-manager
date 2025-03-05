@@ -1,0 +1,14 @@
+[gd_scene load_steps=6 format=3 uid="uid://qewpsmnyoafh"]
+
+[ext_resource type="Script" path="res://src/ui/themes/ThemeManager.gd" id="1_ybnpx"]
+[ext_resource type="Theme" path="res://src/ui/themes/base_theme.tres" id="2_bnpx1"]
+[ext_resource type="Theme" path="res://src/ui/themes/dark_theme.tres" id="3_bnpx2"]
+[ext_resource type="Theme" path="res://src/ui/themes/light_theme.tres" id="4_bnpx3"]
+[ext_resource type="Theme" path="res://src/ui/themes/high_contrast_theme.tres" id="5_bnpx4"]
+
+[node name="ThemeManager" type="Node"]
+script = ExtResource("1_ybnpx")
+base_theme = ExtResource("2_bnpx1")
+dark_theme = ExtResource("3_bnpx2")
+light_theme = ExtResource("4_bnpx3")
+high_contrast_theme = ExtResource("5_bnpx4") 

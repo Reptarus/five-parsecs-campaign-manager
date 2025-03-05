@@ -1,6 +1,6 @@
 [gd_scene load_steps=2 format=3 uid="uid://b3wc2cq0m72j"]
 
-[ext_resource type="Script" path="res://src/ui/screens/campaign/panels/ResourcePanel.gd" id="1_8ykjc"]
+[ext_resource type="Script" uid="uid://dx6d0hinejh6o" path="res://src/ui/screens/campaign/panels/ResourcePanel.gd" id="1_8ykjc"]
 
 [node name="ResourcePanel" type="Control"]
 layout_mode = 3
@@ -100,4 +100,4 @@ horizontal_alignment = 2
 [node name="Value" type="Label" parent="Content/Resources/Patron"]
 custom_minimum_size = Vector2(100, 0)
 layout_mode = 2
-text = "0" 
+text = "0"

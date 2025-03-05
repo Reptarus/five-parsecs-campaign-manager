@@ -1,6 +1,6 @@
-[gd_scene load_steps=2 format=3]
+[gd_scene load_steps=2 format=3 uid="uid://derxnk5yo1pr8"]
 
-[ext_resource type="Script" path="res://src/ui/components/ErrorDisplay.gd" id="1_y4k3d"]
+[ext_resource type="Script" uid="uid://4qwwosvkm6wf" path="res://src/ui/components/ErrorDisplay.gd" id="1_y4k3d"]
 
 [node name="ErrorDisplay" type="Control"]
 layout_mode = 3
@@ -90,4 +90,4 @@ text = "Clear Resolved"
 
 [node name="ExportLogs" type="Button" parent="Panel/MarginContainer/VBoxContainer/Actions"]
 layout_mode = 2
-text = "Export Logs" 
+text = "Export Logs"

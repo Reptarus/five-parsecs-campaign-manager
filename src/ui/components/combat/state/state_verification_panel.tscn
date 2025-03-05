@@ -1,6 +1,6 @@
-[gd_scene load_steps=2 format=3 uid="uid://d8k6y4n2x0m5q"]
+[gd_scene load_steps=2 format=3 uid="uid://d6ce2qtesrey"]
 
-[ext_resource type="Script" path="res://src/ui/components/combat/state/state_verification_panel.gd" id="1_p4r3q"]
+[ext_resource type="Script" uid="uid://d28jg3twx74w7" path="res://src/ui/components/combat/state/state_verification_panel.gd" id="1_p4r3q"]
 
 [node name="StateVerificationPanel" type="PanelContainer"]
 anchors_preset = 15
@@ -67,4 +67,4 @@ text = "State"
 text = "Current"
 
 [node name="ExpectedColumn" type="TreeItem" parent="MarginContainer/VBoxContainer/StateTree"]
-text = "Expected" 
+text = "Expected"

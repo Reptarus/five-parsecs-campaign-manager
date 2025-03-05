@@ -1,6 +1,6 @@
-[gd_scene load_steps=2 format=3 uid="uid://e8q6y4n2x5m6w"]
+[gd_scene load_steps=2 format=3 uid="uid://bedce2qtexrf5"]
 
-[ext_resource type="Script" path="res://src/scenes/campaign/components/ActionButton.gd" id="1_a5m3r"]
+[ext_resource type="Script" uid="uid://dj7thr3r10x4d" path="res://src/scenes/campaign/components/ActionButton.gd" id="1_a5m3r"]
 
 [node name="ActionButton" type="Control"]
 custom_minimum_size = Vector2(200, 40)
@@ -72,4 +72,4 @@ grow_vertical = 2
 max_value = 100.0
 value = 50.0
 fill_mode = 4
-nine_patch_stretch = true 
+nine_patch_stretch = true

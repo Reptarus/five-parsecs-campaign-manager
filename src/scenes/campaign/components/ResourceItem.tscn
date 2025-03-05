@@ -1,6 +1,6 @@
 [gd_scene load_steps=2 format=3 uid="uid://b8q6y4n2x5m6w"]
 
-[ext_resource type="Script" path="res://src/scenes/campaign/components/ResourceItem.gd" id="1_r5m3r"]
+[ext_resource type="Script" uid="uid://cqfpq27q7dtmf" path="res://src/scenes/campaign/components/ResourceItem.gd" id="1_r5m3r"]
 
 [node name="ResourceItem" type="Control"]
 custom_minimum_size = Vector2(0, 40)
@@ -68,4 +68,4 @@ grow_vertical = 0
 theme_override_constants/outline_size = 0
 max_value = 1.0
 value = 0.5
-show_percentage = false 
+show_percentage = false

@@ -1,9 +1,9 @@
 [gd_scene load_steps=5 format=3 uid="uid://c3y3llij1lp8y"]
 
-[ext_resource type="Script" path="res://WorldGen/World.gd" id="1_r044a"]
+[ext_resource type="Script" uid="uid://dvhxun651ia2w" path="res://WorldGen/World.gd" id="1_r044a"]
 [ext_resource type="Resource" uid="uid://c3ss4jkviodej" path="res://Example/region.tres" id="2_7d8ru"]
-[ext_resource type="Script" path="res://WorldGen/Generator.gd" id="3_baeyn"]
-[ext_resource type="Script" path="res://WorldGen/Grid.gd" id="4_5x00f"]
+[ext_resource type="Script" uid="uid://bpcg4hlnkoale" path="res://WorldGen/Generator.gd" id="3_baeyn"]
+[ext_resource type="Script" uid="uid://kj1r1mf4ypt6" path="res://WorldGen/Grid.gd" id="4_5x00f"]
 
 [node name="World" type="Node2D" node_paths=PackedStringArray("generator")]
 position = Vector2(993, 29)

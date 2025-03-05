@@ -1,7 +1,7 @@
-[gd_scene load_steps=3 format=3 uid="uid://g8q7a6kfi7vwe"]
+[gd_scene load_steps=3 format=3 uid="uid://dedco4m5x005m"]
 
-[ext_resource type="PackedScene" path="res://src/ui/components/mission/MissionSummaryPanel.tscn" id="1_summary"]
-[ext_resource type="PackedScene" path="res://src/ui/components/rewards/RewardsPanel.tscn" id="2_rewards"]
+[ext_resource type="PackedScene" uid="uid://b8q7a6kfi2vwe" path="res://src/ui/components/mission/MissionSummaryPanel.tscn" id="1_summary"]
+[ext_resource type="PackedScene" uid="uid://ccp7a6kfi1vwe" path="res://src/ui/components/rewards/RewardsPanel.tscn" id="2_rewards"]
 
 [node name="PostBattle" type="Control"]
 layout_mode = 3
@@ -33,4 +33,4 @@ size_flags_horizontal = 3
 
 [node name="Rewards" parent="MarginContainer/HBoxContainer" instance=ExtResource("2_rewards")]
 layout_mode = 2
-size_flags_horizontal = 3 
+size_flags_horizontal = 3

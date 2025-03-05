@@ -1,6 +1,7 @@
 [gd_scene load_steps=2 format=3 uid="uid://dxxx"]
 
-[ext_resource type="Script" path="res://src/data/resources/CrewAndCharacters/CharacterSheet.gd" id="1_script"]
+[sub_resource type="Resource" id="Resource_02b86"]
+metadata/__load_path__ = "res://src/data/resources/CrewAndCharacters/CharacterSheet.gd"
 
 [node name="CharacterSheet" type="Control"]
 layout_mode = 3
@@ -9,7 +10,7 @@ anchor_right = 1.0
 anchor_bottom = 1.0
 grow_horizontal = 2
 grow_vertical = 2
-script = ExtResource("1_script")
+script = SubResource("Resource_02b86")
 
 [node name="Panel" type="Panel" parent="."]
 layout_mode = 1

@@ -1,6 +1,6 @@
 [gd_scene load_steps=2 format=3 uid="uid://c8x7y0q5n3j4w"]
 
-[ext_resource type="Script" path="res://src/ui/screens/campaign/phases/StoryPhasePanel.gd" id="1_y4r2p"]
+[ext_resource type="Script" uid="uid://cbshc3l6hhfii" path="res://src/ui/screens/campaign/phases/StoryPhasePanel.gd" id="1_y4r2p"]
 
 [node name="StoryPhasePanel" type="PanelContainer"]
 anchors_preset = 15
@@ -50,4 +50,4 @@ layout_mode = 2
 [node name="ResolveButton" type="Button" parent="VBoxContainer"]
 layout_mode = 2
 disabled = true
-text = "Resolve Event" 
+text = "Resolve Event"

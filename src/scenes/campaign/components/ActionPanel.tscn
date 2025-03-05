@@ -1,6 +1,6 @@
-[gd_scene load_steps=2 format=3 uid="uid://f8q6y4n2x5m6w"]
+[gd_scene load_steps=2 format=3 uid="uid://cedce2qtexrf5"]
 
-[ext_resource type="Script" path="res://src/scenes/campaign/components/ActionPanel.gd" id="1_p5m3r"]
+[ext_resource type="Script" uid="uid://b6qknf0scw6or" path="res://src/scenes/campaign/components/ActionPanel.gd" id="1_p5m3r"]
 
 [node name="ActionPanel" type="Panel"]
 anchors_preset = 15
@@ -93,4 +93,4 @@ theme_override_constants/margin_bottom = 5
 
 [node name="CostContainer" type="VBoxContainer" parent="VBoxContainer/CostPanel/MarginContainer"]
 layout_mode = 2
-theme_override_constants/separation = 5 
+theme_override_constants/separation = 5

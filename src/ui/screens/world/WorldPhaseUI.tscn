@@ -1,11 +1,13 @@
 [gd_scene load_steps=7 format=3 uid="uid://b8cqdvcppb5lt"]
 
 [ext_resource type="Theme" uid="uid://ddjoduj1ya6tp" path="res://assets/5PFH.tres" id="1_kafme"]
-[ext_resource type="Script" path="res://Resources/GameData/WorldStep.gd" id="2_xac28"]
 [ext_resource type="Texture2D" uid="uid://rf8rruw1wr7" path="res://assets/BookImages/Nov_22_Driftingaway.png" id="3_oi7jl"]
 [ext_resource type="Texture2D" uid="uid://4b7oasvcfbv3" path="res://assets/Basic assets/5PFHUIAssets/Sci-Fi-Infoboxes_0001s_0001s_0001s_0008_Brush.png" id="4_kw3be"]
 [ext_resource type="Texture2D" uid="uid://clpch605bgcka" path="res://assets/Basic assets/5PFHUIAssets/Sci-Fi-Infoboxes_0002s_0002s_0000s_0000s_0001_moving-part.png" id="5_yp2y1"]
 [ext_resource type="Texture2D" uid="uid://cac7q24qi2e5c" path="res://assets/Basic assets/5PFHUIAssets/Sci-Fi-Infoboxes_0000s_0003s_0002s_0001s_0000_empty.png" id="6_lxk4d"]
+
+[sub_resource type="Resource" id="Resource_nij3r"]
+metadata/__load_path__ = "res://Resources/GameData/WorldStep.gd"
 
 [node name="WorldPhaseUI" type="Control"]
 layout_mode = 3
@@ -15,7 +17,7 @@ anchor_bottom = 1.0
 grow_horizontal = 2
 grow_vertical = 2
 theme = ExtResource("1_kafme")
-script = ExtResource("2_xac28")
+script = SubResource("Resource_nij3r")
 
 [node name="Background" type="TextureRect" parent="."]
 layout_mode = 1

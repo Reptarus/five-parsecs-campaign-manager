@@ -1,10 +1,14 @@
+@tool
 extends Node
 class_name GameState
 
+## Dependencies - explicit loading to avoid circular references
 const GameEnums = preload("res://src/core/systems/GlobalEnums.gd")
 const FiveParsecsCampaign = preload("res://src/game/campaign/FiveParsecsCampaign.gd")
 const Ship = preload("res://src/core/ships/Ship.gd")
+const ErrorLogger = preload("res://src/core/systems/ErrorLogger.gd")
 
+## Signals with proper type annotations
 signal state_changed
 signal campaign_loaded(campaign: FiveParsecsCampaign)
 signal campaign_saved
@@ -18,8 +22,18 @@ signal quest_added(quest: Dictionary)
 signal quest_completed(quest_id: String)
 signal game_started()
 signal game_ended()
+signal backup_created(success: bool, file_path: String)
+signal autosave_triggered
 
-# Core state
+## Backup and autosave configurations
+const MAX_BACKUP_FILES: int = 5
+const AUTOSAVE_FILE_NAME: String = "autosave"
+const SAVE_FILE_EXTENSION: String = "json"
+const BACKUP_FILE_EXTENSION: String = "bak"
+const MAX_SAVE_ATTEMPTS: int = 3
+const SAVE_RETRY_DELAY: float = 0.5
+
+## Core state properties
 var current_phase: GameEnums.FiveParcsecsCampaignPhase = GameEnums.FiveParcsecsCampaignPhase.NONE
 var turn_number: int = 0
 var story_points: int = 0
@@ -29,8 +43,9 @@ var active_quests: Array[Dictionary] = []
 var completed_quests: Array[Dictionary] = []
 var current_location = null
 var player_ship = null
+var visited_locations: Array[String] = []
 
-# Limits and settings
+## Limits and settings
 var max_turns: int = 100
 var max_story_points: int = 5
 var max_reputation: int = 100
@@ -40,7 +55,7 @@ var use_story_track: bool = true
 var auto_save_enabled: bool = true
 var auto_save_frequency: int = 15
 
-# Campaign state
+## Campaign state with property accessor
 var _current_campaign: FiveParsecsCampaign
 var current_campaign: FiveParsecsCampaign:
 	get:
@@ -50,11 +65,288 @@ var current_campaign: FiveParsecsCampaign:
 		if value:
 			campaign_loaded.emit(value)
 			state_changed.emit()
-var visited_locations: Array[String] = []
 
-# Save system
+## Save system
 var save_manager: Node
 var last_save_time: int = 0
+
+## Current save operations tracking
+var _save_operation_in_progress: bool = false
+var _load_operation_in_progress: bool = false
+var _save_retry_count: int = 0
+var _save_queue: Array[Dictionary] = []
+
+## File operations
+## Save the current game state to a file
+## @param save_name: Name of the save file
+## @param create_backup: Whether to create a backup of existing save
+## @return: Whether the save was successful
+func save_game(save_name: String, create_backup: bool = true) -> bool:
+	if _save_operation_in_progress:
+		# Queue this save for later
+		_save_queue.append({
+			"save_name": save_name,
+			"create_backup": create_backup
+		})
+		return false
+		
+	_save_operation_in_progress = true
+	_save_retry_count = 0
+	save_started.emit()
+	
+	# Ensure save directory exists
+	var save_dir := "user://saves/"
+	if not DirAccess.dir_exists_absolute(save_dir):
+		DirAccess.make_dir_recursive_absolute(save_dir)
+	
+	# Format file paths
+	var file_path := save_dir + save_name + "." + SAVE_FILE_EXTENSION
+	
+	# Create backup if needed
+	if create_backup and FileAccess.file_exists(file_path):
+		var backup_success := _create_backup(file_path)
+		if not backup_success:
+			push_warning("Failed to create backup before saving")
+	
+	# Gather save data
+	var save_data := _gather_save_data()
+	
+	# Save to temporary file first for safety
+	var temp_path := file_path + ".temp"
+	var save_success := _write_save_file(temp_path, save_data)
+	
+	if not save_success:
+		_handle_save_failure("Failed to write save data", file_path)
+		return false
+	
+	# Replace the original file with the temp file
+	var move_success := _replace_file(temp_path, file_path)
+	
+	if not move_success:
+		_handle_save_failure("Failed to finalize save file", file_path)
+		return false
+	
+	_save_operation_in_progress = false
+	last_save_time = Time.get_unix_time_from_system()
+	save_completed.emit(true, "Game saved successfully")
+	campaign_saved.emit()
+	
+	# Process any queued saves
+	if not _save_queue.is_empty():
+		var next_save = _save_queue.pop_front()
+		save_game(next_save.save_name, next_save.create_backup)
+		
+	return true
+
+## Handle save failure with retry mechanism
+func _handle_save_failure(error_message: String, file_path: String) -> void:
+	_save_retry_count += 1
+	
+	if _save_retry_count < MAX_SAVE_ATTEMPTS:
+		# Retry after delay
+		await get_tree().create_timer(SAVE_RETRY_DELAY).timeout
+		
+		# Attempt save again
+		var retry_path := file_path + ".retry" + str(_save_retry_count)
+		var save_data := _gather_save_data()
+		var retry_success := _write_save_file(retry_path, save_data)
+		
+		if retry_success:
+			var move_success := _replace_file(retry_path, file_path)
+			if move_success:
+				_save_operation_in_progress = false
+				last_save_time = Time.get_unix_time_from_system()
+				save_completed.emit(true, "Game saved successfully after retry")
+				campaign_saved.emit()
+				return
+	
+	# All retries failed or not attempting retry
+	_save_operation_in_progress = false
+	save_completed.emit(false, error_message)
+	
+	# Log the error
+	push_error("Save failure: " + error_message)
+	
+	# Log using ErrorLogger with correct parameters
+	var err_logger = ErrorLogger.new()
+	err_logger.log_error(
+		error_message,
+		ErrorLogger.ErrorCategory.PERSISTENCE,
+		ErrorLogger.ErrorSeverity.ERROR,
+		{"file_path": file_path, "retry_count": _save_retry_count}
+	)
+
+## Create a backup of a save file with rotation
+## @param file_path: Path to the file to back up
+## @return: Whether the backup was successful
+func _create_backup(file_path: String) -> bool:
+	if not FileAccess.file_exists(file_path):
+		return false
+		
+	var timestamp := Time.get_datetime_dict_from_system()
+	var save_dir := "user://saves/backups/"
+	
+	# Ensure backup directory exists
+	if not DirAccess.dir_exists_absolute(save_dir):
+		DirAccess.make_dir_recursive_absolute(save_dir)
+	
+	# Extract the filename without path
+	var filename := file_path.get_file()
+	var backup_name := "%s.%04d-%02d-%02d-%02d-%02d-%02d.%s" % [
+		save_dir + filename.get_basename(),
+		timestamp.year, timestamp.month, timestamp.day,
+		timestamp.hour, timestamp.minute, timestamp.second,
+		BACKUP_FILE_EXTENSION
+	]
+	
+	var dir := DirAccess.open("user://saves/")
+	if dir:
+		var error := dir.copy(file_path, backup_name)
+		var success := error == OK
+		
+		if success:
+			# Manage backup rotation - limit the number of backups
+			_rotate_backups(filename.get_basename())
+		
+		backup_created.emit(success, backup_name)
+		return success
+		
+	return false
+
+## Rotate backups to keep only MAX_BACKUP_FILES
+## @param base_name: Base name of the save file
+func _rotate_backups(base_name: String) -> void:
+	var backups_dir := "user://saves/backups/"
+	var dir := DirAccess.open(backups_dir)
+	if not dir:
+		return
+		
+	var backups := []
+	
+	# List all files in the backup directory
+	dir.list_dir_begin()
+	var file_name := dir.get_next()
+	while file_name != "":
+		if not dir.current_is_dir() and file_name.begins_with(base_name) and file_name.ends_with(BACKUP_FILE_EXTENSION):
+			backups.append({
+				"name": file_name,
+				"path": backups_dir + file_name,
+				"modified": FileAccess.get_modified_time(backups_dir + file_name)
+			})
+		file_name = dir.get_next()
+	dir.list_dir_end()
+	
+	# Sort backups by modification time (newest first)
+	backups.sort_custom(func(a, b): return a.modified > b.modified)
+	
+	# Remove oldest backups beyond the limit
+	if backups.size() > MAX_BACKUP_FILES:
+		var dir_remove := DirAccess.open(backups_dir)
+		if dir_remove:
+			for i in range(MAX_BACKUP_FILES, backups.size()):
+				dir_remove.remove(backups[i].name)
+
+## Replace one file with another
+## @param source_path: Path to the source file
+## @param target_path: Path to the target file
+## @return: Whether the replacement was successful
+func _replace_file(source_path: String, target_path: String) -> bool:
+	if not FileAccess.file_exists(source_path):
+		return false
+		
+	var dir_path := target_path.get_base_dir()
+	var dir := DirAccess.open(dir_path)
+	if dir:
+		# Remove the target file if it exists
+		if FileAccess.file_exists(target_path):
+			var del_error := dir.remove(target_path.get_file())
+			if del_error != OK:
+				push_error("Failed to remove existing save file: " + str(del_error))
+				return false
+				
+		# Rename the temp file to the target file
+		var rename_error := dir.rename(source_path.get_file(), target_path.get_file())
+		return rename_error == OK
+		
+	return false
+
+## Write save data to file
+## @param file_path: Path to write the file
+## @param save_data: Dictionary containing save data
+## @return: Whether the write was successful
+func _write_save_file(file_path: String, save_data: Dictionary) -> bool:
+	var file := FileAccess.open(file_path, FileAccess.WRITE)
+	if not file:
+		var error = FileAccess.get_open_error()
+		push_error("Failed to open save file for writing: %s (Error: %d)" % [file_path, error])
+		return false
+	
+	# Use JSON.stringify with error handling
+	var json_string: String = ""
+	var json_error: Error = OK
+	
+	# Try to stringify with pretty formatting
+	json_string = JSON.stringify(save_data, "    ")
+	
+	if json_string.is_empty():
+		push_error("Failed to stringify save data")
+		return false
+		
+	file.store_string(json_string)
+	file.close()
+	
+	# Verify the file was written correctly
+	if not FileAccess.file_exists(file_path):
+		push_error("File does not exist after writing: " + file_path)
+		return false
+		
+	var file_size: int = 0
+	# Get file size after writing
+	var check_file = FileAccess.open(file_path, FileAccess.READ)
+	if check_file:
+		file_size = check_file.get_length()
+		check_file.close()
+		
+	if file_size <= 0:
+		push_error("File size is zero after writing: " + file_path)
+		return false
+	
+	return true
+
+## Gather all data to be saved
+## @return: Dictionary containing all save data
+func _gather_save_data() -> Dictionary:
+	var save_data := {
+		"version": ProjectSettings.get_setting("application/config/version", "1.0.0"),
+		"timestamp": Time.get_unix_time_from_system(),
+		"game_state": {
+			"current_phase": current_phase,
+			"turn_number": turn_number,
+			"story_points": story_points,
+			"reputation": reputation,
+			"resources": resources.duplicate(true),
+			"active_quests": active_quests.duplicate(true),
+			"completed_quests": completed_quests.duplicate(true),
+			"visited_locations": visited_locations.duplicate(),
+			"settings": {
+				"difficulty_level": difficulty_level,
+				"enable_permadeath": enable_permadeath,
+				"use_story_track": use_story_track,
+				"auto_save_enabled": auto_save_enabled,
+				"auto_save_frequency": auto_save_frequency
+			}
+		}
+	}
+	
+	# Add campaign data if available
+	if current_campaign:
+		save_data["campaign"] = current_campaign.serialize()
+		
+	# Add ship data if available
+	if player_ship:
+		save_data["ship"] = player_ship.serialize()
+		
+	return save_data
 
 func _init() -> void:
 	pass

@@ -1,6 +1,6 @@
 [gd_scene load_steps=2 format=3 uid="uid://b22barcuw8q4m"]
 
-[ext_resource type="Texture2D" uid="uid://ibtxblf77as4" path="res://Assets/Textures/UI/tag_shield.png" id="1_7gmo3"]
+[ext_resource type="Texture2D" uid="uid://ibtxblf77as4" path="res://assets/PNG/Double (128px)/tag_shield.png" id="1_7gmo3"]
 
 [node name="CrewEscortTarget" type="Node2D"]
 

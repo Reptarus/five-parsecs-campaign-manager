@@ -1,6 +1,6 @@
-[gd_scene load_steps=2 format=3 uid="uid://h8q6y4n2x5m6w"]
+[gd_scene load_steps=2 format=3 uid="uid://ixgs0tktqvoe"]
 
-[ext_resource type="Script" path="res://src/scenes/campaign/components/EventLog.gd" id="1_l5m3r"]
+[ext_resource type="Script" uid="uid://ccyhutr86fgpr" path="res://src/scenes/campaign/components/EventLog.gd" id="1_l5m3r"]
 
 [node name="EventLog" type="Control"]
 layout_mode = 3
@@ -82,4 +82,4 @@ theme_override_constants/margin_bottom = 10
 layout_mode = 2
 bbcode_enabled = true
 text = "Select an event to see details"
-fit_content = true 
+fit_content = true

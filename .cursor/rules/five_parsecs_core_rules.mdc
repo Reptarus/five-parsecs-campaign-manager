@@ -1,0 +1,939 @@
+---
+description: Core rules reference for Five Parsecs from Home, with implementation guidance for the digital campaign manager. This document maps tabletop mechanics to GDScript implementation patterns.
+globs: src/game/**/*.gd", "src/core/**/*.gd
+alwaysApply: false
+---
+---
+description: Core rules reference for Five Parsecs from Home, with implementation guidance for the digital campaign manager. This document maps tabletop mechanics to GDScript implementation patterns.
+globs: ["src/game/**/*.gd", "src/core/**/*.gd"]
+---
+
+# Five Parsecs from Home - Core Rules Reference Guide
+
+This document provides implementation guidance for the digital adaptation of Five Parsecs from Home. It focuses on critical game mechanics and their GDScript implementations, serving as a bridge between the tabletop rulebook and code.
+
+## Character System
+
+### Character Creation (Rulebook p.12-17)
+
+- **Stats & Attributes**
+  - Characters have 6 core attributes: Combat, Reaction, Toughness, Savvy, Tech, and Move
+  - Valid attribute ranges: 2-6 initially, can exceed 6 through advancement
+  - Characters have max health based on Toughness
+
+```gdscript
+## Creates a new character based on Five Parsecs rules
+## @param background: Character background enum value
+## @param motivation: Character motivation enum value 
+## @param character_class: CharacterClass enum value
+## @return Character: The newly created character
+func create_character(background: int, motivation: int, 
+                     character_class: int) -> Character:
+    var character = Character.new()
+    
+    # Roll initial stats (represented as 2d6/3 rounded up in tabletop)
+    character.combat = _generate_attribute_value()
+    character.reaction = _generate_attribute_value()
+    character.toughness = _generate_attribute_value()
+    character.savvy = _generate_attribute_value() 
+    character.tech = _generate_attribute_value()
+    character.move = _generate_attribute_value()
+    
+    # Set health based on toughness
+    character.max_health = character.toughness + 2
+    character.current_health = character.max_health
+    
+    # Apply character class bonuses
+    _apply_class_bonuses(character, character_class)
+    
+    return character
+```
+
+- **Skills & Abilities**
+  - Characters get 1-2 starting skills based on background
+  - Valid skills include: Medical, Mechanical, Hacking, Leadership, etc.
+  - Each skill adds +1 to related attribute rolls when applicable
+
+- **Character Relationships** 
+  - Characters can develop bonds (positive) or rivalries (negative) with each other
+  - Maximum of 3 relationships per character
+  - Relationships modify certain rolls when characters are working together
+
+### Character Advancement (Rulebook p.95-98)
+
+- **Experience Points**
+  - Characters earn 1 XP per battle survived
+  - Additional XP from mission completion and story events
+  - 5 XP allows an advancement roll
+
+- **Advancement Rolls**
+  - Roll on advancement table based on character type
+  - Results include stat increases, new skills, special abilities
+  - Some results must be re-rolled if not applicable (already at max, etc.)
+
+```gdscript
+## Performs an advancement roll for a character
+## @param character: The character to advance
+## @return Dictionary: The advancement results
+func perform_advancement_roll(character: Character) -> Dictionary:
+    # Check if character has enough XP
+    if character.experience_points < 5:
+        return {"success": false, "reason": "Not enough XP"}
+    
+    # Deduct XP cost
+    character.experience_points -= 5
+    
+    # Get appropriate table based on character class
+    var table_name = "advancement_%s" % CharacterClass.keys()[character.character_class].to_lower()
+    var advancement_table = TableLoader.load_table_from_file("res://src/data/tables/%s.json" % table_name)
+    
+    # Roll on the table
+    var result = advancement_table.roll()
+    
+    # Apply the result to the character
+    _apply_advancement_result(character, result)
+    
+    return {
+        "success": true,
+        "rolled_result": result,
+        "applied_changes": _get_advancement_summary(character, result)
+    }
+```
+
+- **Injury & Recovery**
+  - Serious injuries affect attributes until healed
+  - Medical attention can speed recovery
+  - Some injuries cause permanent attribute reductions
+  - Death occurs if Toughness reaches 0
+
+## Campaign Structure
+
+### Campaign Turn (Rulebook p.34-52)
+
+- **Campaign Turn Sequence**
+  1. **Upkeep Phase**: Maintenance costs, ship payments, etc.
+  2. **Story Phase**: Progress personal stories and campaign arcs
+  3. **Campaign Phase**: Travel, patrons, jobs, world events
+  4. **Battle Phase**: Combat encounters
+  5. **Resolution Phase**: Injury recovery, loot, advancement
+  
+- **Travel Rules**
+  - Each travel roll incurs costs (fuel, supplies)
+  - Travel events determined by system type (Core, Colony, Fringe)
+  - Jump distances modify event probabilities
+
+```gdscript
+## Processes a travel step in the campaign
+## @param campaign: The current campaign
+## @param jump_distance: Number of sectors traveled
+## @return Dictionary: Travel results and events
+func process_travel(campaign: Campaign, jump_distance: int) -> Dictionary:
+    # Calculate fuel consumption
+    var fuel_used = campaign.ship.calc_fuel_consumption(jump_distance)
+    campaign.resources.consume_fuel(fuel_used)
+    
+    # Determine travel event probability
+    var event_chance = 20 + (jump_distance * 5) # Base 20% + 5% per sector
+    
+    # Roll for travel event
+    var roll = randi() % 100 + 1
+    var has_event = roll <= event_chance
+    
+    var event_data = {}
+    if has_event:
+        # System type affects event table used
+        var system_type = campaign.current_location.system_type
+        var event_table = TableLoader.load_table_from_file("res://src/data/tables/travel_events_%s.json" % system_type)
+        event_data = event_table.roll()
+    
+    return {
+        "distance": jump_distance,
+        "fuel_used": fuel_used,
+        "has_event": has_event,
+        "event_data": event_data
+    }
+```
+
+- **World Arrival**
+  - New worlds require generation of terrain, settlements, patrons
+  - World type affects available jobs and encounter types
+  - Arrival events may include customs, local conflicts, etc.
+
+- **Story Points**
+  - Campaign earns Story Points through specific achievements
+  - Story Points can be spent to re-roll certain events
+  - Maximum of 5 Story Points at any time
+
+### World Generation (Rulebook p.53-58)
+
+- **World Types**
+  - Core Worlds: High-tech, well-policed, limited opportunities
+  - Colony Worlds: Moderate tech, mixed law enforcement
+  - Fringe Worlds: Low-tech, lawless, dangerous but profitable
+  
+- **World Attributes**
+  - Government Type: Corporate, Democracy, Dictatorial, Lawless, etc.
+  - Tech Level: 1-5, affects available equipment and services
+  - Threat Level: 1-5, affects encounter difficulty
+  - Special Features: Mining world, Resort world, Religious center, etc.
+
+```gdscript
+## Generates a new world using Five Parsecs rules
+## @param campaign: The current campaign
+## @param system_type: Type of system (Core, Colony, Fringe)
+## @return WorldData: The newly generated world
+func generate_world(campaign: Campaign, system_type: int) -> WorldData:
+    var world = WorldData.new()
+    world.system_type = system_type
+    
+    # Generate world attributes based on system type
+    var attributes_table = TableLoader.load_table_from_file("res://src/data/tables/world_attributes_%s.json" % SystemType.keys()[system_type].to_lower())
+    var attributes = attributes_table.roll()
+    
+    world.government_type = attributes.government_type
+    world.tech_level = attributes.tech_level
+    world.threat_level = attributes.threat_level
+    
+    # Generate special features
+    var features_table = TableLoader.load_table_from_file("res://src/data/tables/world_features.json")
+    world.special_features = features_table.roll_multiple(randi() % 2 + 1) # 1-2 features
+    
+    # Generate settlements
+    var num_settlements = _calculate_settlement_count(world)
+    for i in range(num_settlements):
+        var settlement = _generate_settlement(world)
+        world.settlements.append(settlement)
+    
+    return world
+```
+
+## Combat System
+
+### Battle Setup (Rulebook p.59-70)
+
+- **Terrain Generation**
+  - Terrain density determined by world type
+  - Minimum requirements: 6-10 pieces for standard table
+  - Placement follows specific spacing rules
+  
+- **Deployment Rules**
+  - Players deploy within 3" of their table edge
+  - Enemies deploy according to scenario rules
+  - Some scenarios have special deployment zones
+
+- **Encounter Generation**
+  - Enemy type determined by mission type and world
+  - Enemy count scales with crew size and threat level
+  - Special enemies (rivals, bosses) have enhanced stats
+
+```gdscript
+## Generates an encounter based on mission parameters
+## @param mission: The current mission
+## @param campaign: The current campaign
+## @return Encounter: The generated encounter
+func generate_encounter(mission: Mission, campaign: Campaign) -> Encounter:
+    var encounter = Encounter.new()
+    
+    # Determine base enemy type
+    var enemy_table = TableLoader.load_table_from_file("res://src/data/tables/enemies_%s.json" % mission.type)
+    var enemy_type = enemy_table.roll()
+    
+    # Calculate number of enemies based on crew size and threat level
+    var crew_size = campaign.characters.size()
+    var threat_level = campaign.current_location.threat_level
+    var enemy_count = _calculate_enemy_count(crew_size, threat_level)
+    
+    # Generate enemies
+    for i in range(enemy_count):
+        var enemy = _generate_enemy(enemy_type, campaign.current_location)
+        encounter.enemies.append(enemy)
+    
+    # Check for special enemies (bosses, etc.)
+    if mission.has_boss:
+        var boss = _generate_boss(enemy_type, campaign.current_location)
+        encounter.enemies.append(boss)
+    
+    # Set deployment zones
+    encounter.player_deployment_zone = _calculate_player_deployment(mission.type)
+    encounter.enemy_deployment_zone = _calculate_enemy_deployment(mission.type)
+    
+    return encounter
+```
+
+### Combat Resolution (Rulebook p.71-84)
+
+- **Initiative**
+  - Each character rolls Reaction attribute
+  - Character with highest value goes first, then alternate sides
+  - Ties broken by individual Reaction values
+
+- **Actions Per Turn**
+  - Standard: Each character gets 2 actions per turn
+  - Actions include: Move, Shoot, Fight, Recovery, Special
+  - Some abilities grant bonus actions or special action types
+
+- **Movement**
+  - Move value in inches (converted to tiles in digital version)
+  - Difficult terrain costs double movement
+  - Climbing and jumping have special rules
+
+- **Attacking**
+  - Roll d10 + Combat skill + modifiers vs. target number (usually 4+)
+  - Cover provides -2 penalty to attack rolls
+  - Range bands: Point Blank (+1), Short (0), Medium (-1), Long (-2)
+
+```gdscript
+## Resolves an attack according to Five Parsecs rules
+## @param attacker: The attacking character
+## @param defender: The defending character
+## @param weapon: The weapon being used
+## @param distance: Distance in game units
+## @return Dictionary: Attack results including hit and damage
+func resolve_attack(attacker: Character, defender: Character, 
+                   weapon: Weapon, distance: float) -> Dictionary:
+    # Determine base target number (4+)
+    var target_number = 4
+    
+    # Calculate range modifiers
+    var range_band = _determine_range_band(weapon, distance)
+    var range_modifier = _get_range_modifier(range_band)
+    
+    # Apply modifiers
+    if defender.has_cover():
+        target_number += 2  # Harder to hit (+2 to target)
+    
+    if attacker.has_height_advantage():
+        target_number -= 1  # Easier to hit (-1 to target)
+    
+    # Apply range modifiers
+    target_number -= range_modifier  # Negative because modifier adjusts roll, not target
+    
+    # Apply weapon special effects
+    _apply_weapon_special_effects(attacker, defender, weapon, target_number)
+    
+    # Roll d10
+    var roll = randi() % 10 + 1
+    
+    # Apply combat skill
+    roll += attacker.combat
+    
+    # Determine if hit was successful
+    var success = roll >= target_number
+    
+    # Calculate damage if hit
+    var damage = 0
+    var critical = false
+    if success:
+        damage = weapon.damage_value
+        
+        # Critical hit on natural 10
+        if roll - attacker.combat == 10:
+            critical = true
+            damage += weapon.critical_damage
+    
+    return {
+        "success": success,
+        "roll": roll,
+        "target": target_number,
+        "damage": damage,
+        "critical": critical,
+        "range_band": range_band
+    }
+```
+
+- **Damage & Injury**
+  - Damage reduces Health
+  - At 0 Health, roll on the Injury table
+  - Serious Injuries affect attributes and require recovery time
+  - Critical hits add +1 to Injury roll (more severe)
+
+### Post-Battle (Rulebook p.85-94)
+
+- **Recovery**
+  - Roll for each injured character
+  - Medical attention provides +1 to recovery rolls
+  - Some injuries become permanent if not properly treated
+  
+- **Loot**
+  - Roll on Loot table based on enemy type
+  - Special enemies provide better loot chances
+  - Some items require Tech rolls to salvage
+
+```gdscript
+## Process post-battle recovery and loot
+## @param campaign: The current campaign
+## @param battle_result: Results from the battle
+## @return Dictionary: Post-battle status
+func process_post_battle(campaign: Campaign, battle_result: Dictionary) -> Dictionary:
+    var results = {
+        "recovery_results": [],
+        "loot_found": [],
+        "experience_gained": []
+    }
+    
+    # Process recovery for injured characters
+    for character in campaign.characters:
+        if character.current_health <= 0:
+            var recovery_result = process_recovery(character, campaign.has_medic())
+            results.recovery_results.append(recovery_result)
+    
+    # Process loot based on enemy types defeated
+    for enemy in battle_result.defeated_enemies:
+        var loot_table = TableLoader.load_table_from_file("res://src/data/tables/loot_%s.json" % enemy.type)
+        var loot = loot_table.roll()
+        
+        if loot.item_id:
+            results.loot_found.append(loot)
+    
+    # Award experience points to survivors
+    for character in campaign.characters:
+        if character.current_health > 0:
+            character.experience_points += 1
+            results.experience_gained.append({
+                "character_id": character.id,
+                "xp_gained": 1
+            })
+    
+    # Additional experience for mission completion
+    if battle_result.mission_completed:
+        for character in campaign.characters:
+            if character.current_health > 0:
+                character.experience_points += 1
+                results.experience_gained.find(func(item): return item.character_id == character.id).xp_gained += 1
+    
+    return results
+```
+
+## Items and Equipment
+
+### Weapons (Rulebook p.116-124)
+
+- **Weapon Categories**
+  - Sidearms: Short range, usually one-handed
+  - Rifles: Medium-long range, two-handed
+  - Heavy Weapons: Special rules, high damage
+  - Melee Weapons: Close combat only
+  
+- **Weapon Attributes**
+  - Range: Maximum effective distance in inches
+  - Damage: Amount of health points removed on hit
+  - Special: Unique weapon properties (Rapid Fire, Blast, etc.)
+  - Ammo Type: Type of ammunition required
+  
+- **Special Weapon Rules**
+  - Rapid Fire: Roll twice for attacks
+  - Blast: Hits multiple targets in area
+  - Hazardous: May malfunction on low rolls
+  - Brutal: +1 to injury rolls
+
+```gdscript
+## Creates a weapon based on Five Parsecs rulebook stats
+## @param weapon_id: The ID of the weapon to create
+## @return Weapon: The created weapon instance
+func create_weapon(weapon_id: String) -> Weapon:
+    var weapon_data = _load_weapon_data(weapon_id)
+    
+    var weapon = Weapon.new()
+    weapon.id = weapon_id
+    weapon.name = weapon_data.name
+    weapon.category = weapon_data.category
+    weapon.damage_value = weapon_data.damage
+    weapon.short_range = weapon_data.range.short
+    weapon.medium_range = weapon_data.range.medium
+    weapon.long_range = weapon_data.range.long
+    weapon.ammo_type = weapon_data.ammo_type
+    
+    # Set special properties
+    for special in weapon_data.special:
+        weapon.add_special_property(special)
+    
+    return weapon
+```
+
+### Armor (Rulebook p.125-128)
+
+- **Armor Types**
+  - Light: +1 Toughness, no penalties
+  - Medium: +2 Toughness, -1 Move
+  - Heavy: +3 Toughness, -2 Move
+  - Powered: +3 Toughness, +1 Combat, no penalties
+  
+- **Special Armor Rules**
+  - Environmental protection for hazardous worlds
+  - Some armors grant resistance to specific damage types
+  - Helmets provide separate benefits
+
+### Equipment Acquisition (Rulebook p.129-135)
+
+- **Availability**
+  - Equipment availability depends on world Tech Level
+  - Higher Tech Level worlds have better equipment
+  - Core worlds have more restrictions on military gear
+  
+- **Costs**
+  - Equipment costs vary by type and quality
+  - Prices fluctuate based on Supply and Demand tables
+  - Guild membership can reduce costs
+
+```gdscript
+## Determines if an item is available for purchase
+## @param item_id: ID of the item to check
+## @param world: Current world data
+## @return Dictionary: Availability status and price
+func check_item_availability(item_id: String, world: WorldData) -> Dictionary:
+    var item_data = _load_item_data(item_id)
+    
+    # Check tech level requirements
+    if item_data.required_tech_level > world.tech_level:
+        return {
+            "available": false,
+            "reason": "Insufficient tech level",
+            "price": 0
+        }
+    
+    # Check legality based on world type
+    if world.system_type == SystemType.CORE and item_data.restricted:
+        return {
+            "available": false,
+            "reason": "Restricted item in Core World",
+            "price": 0  
+        }
+    
+    # Calculate base price
+    var base_price = item_data.base_price
+    
+    # Apply supply/demand modifier
+    var supply_demand_table = TableLoader.load_table_from_file("res://src/data/tables/supply_demand.json")
+    var modifier = supply_demand_table.roll()
+    var price = base_price * modifier.price_multiplier
+    
+    return {
+        "available": true,
+        "price": price,
+        "quantity_available": modifier.quantity
+    }
+```
+
+## Dice and Randomization
+
+### Dice Roll Patterns (Various pages)
+
+- **D6 System** (six-sided dice)
+  - Used for attribute generation (2d6/3 rounded up) 
+  - Used for many tables and random events
+  
+- **D10 System** (ten-sided dice)
+  - Used for combat resolution (4+ to hit)
+  - Used for critical tables
+  
+- **D66 System** (two d6, read as tens and ones)
+  - Used for name generation, background details
+  - Values range from 11-66 (36 possibilities)
+
+```gdscript
+## Simulates various Five Parsecs dice rolling mechanics
+class DiceSystem:
+    ## Roll a d6 (1-6)
+    static func d6() -> int:
+        return randi() % 6 + 1
+    
+    ## Roll a d10 (1-10)
+    static func d10() -> int:
+        return randi() % 10 + 1
+    
+    ## Roll multiple dice and sum them
+    ## @param dice_count: Number of dice to roll
+    ## @param dice_size: Size of dice (6 for d6, 10 for d10, etc)
+    ## @return: Sum of all dice rolled
+    static func roll_dice(dice_count: int, dice_size: int) -> int:
+        var total = 0
+        for i in range(dice_count):
+            total += randi() % dice_size + 1
+        return total
+    
+    ## Roll a d66 (11-66)
+    ## @return: A value from 11-66
+    static func d66() -> int:
+        var tens = randi() % 6 + 1
+        var ones = randi() % 6 + 1
+        return tens * 10 + ones
+    
+    ## Generate a Five Parsecs attribute (2d6/3 rounded up)
+    ## @return: An attribute value (typically 2-6)
+    static func generate_attribute() -> int:
+        var roll = roll_dice(2, 6)
+        return ceili(float(roll) / 3.0)
+```
+
+### Table Lookup Patterns
+
+- **Random Tables**
+  - Most game events use lookup tables
+  - Some tables have modifiers based on character skills
+  - Table results should be pre-loaded from JSON files
+  
+- **Result Application**
+  - Table results often need interpretation
+  - Some results require additional rolls or choices
+  - Context-sensitive results should be parsed appropriately
+
+```gdscript
+## Loads and processes a result from a Five Parsecs table
+## @param table_name: Name of the table to roll on
+## @param modifiers: Optional modifiers to apply to the roll
+## @return: Processed result from the table
+func roll_on_table(table_name: String, modifiers: Dictionary = {}) -> Dictionary:
+    var table = TableLoader.load_table_from_file("res://src/data/tables/%s.json" % table_name)
+    
+    # Apply modifiers to the roll if provided
+    if modifiers.size() > 0:
+        return table.roll_with_modifiers(modifiers)
+    else:
+        return table.roll()
+```
+
+## Starships
+
+### Ship Management (Rulebook p.136-144)
+
+- **Ship Types**
+  - Cargo Hauler: More cargo capacity, higher upkeep
+  - Explorer: Balanced stats, medium upkeep
+  - Fighter: Combat bonuses, limited cargo
+  
+- **Ship Attributes**
+  - Cargo Capacity: Maximum items/units that can be carried
+  - Jump Capacity: Maximum jump distance
+  - Combat Rating: Bonus in space combat scenarios
+  - Upkeep Cost: Credits required per turn
+
+- **Ship Upgrades**
+  - Engine upgrades increase Jump Capacity
+  - Weapon upgrades improve Combat Rating
+  - Hold upgrades increase Cargo Capacity
+  - Each ship can have maximum 3 upgrades
+
+```gdscript
+## Creates a new ship based on Five Parsecs rules
+## @param ship_type: Type of ship to create
+## @return Ship: The created ship
+func create_ship(ship_type: int) -> Ship:
+    var ship = Ship.new()
+    ship.type = ship_type
+    
+    # Set base attributes based on ship type
+    match ship_type:
+        ShipType.CARGO_HAULER:
+            ship.cargo_capacity = 8
+            ship.jump_capacity = 2
+            ship.combat_rating = 1
+            ship.upkeep_cost = 3
+        ShipType.EXPLORER:
+            ship.cargo_capacity = 5
+            ship.jump_capacity = 3
+            ship.combat_rating = 2
+            ship.upkeep_cost = 2
+        ShipType.FIGHTER:
+            ship.cargo_capacity = 3
+            ship.jump_capacity = 2
+            ship.combat_rating = 3
+            ship.upkeep_cost = 2
+    
+    return ship
+```
+
+### Ship Encounters (Rulebook p.145-148)
+
+- **Space Combat**
+  - Uses simplified combat system
+  - Ship Combat Rating adds to rolls
+  - Crew skills can provide bonuses
+  - Damage can affect ship capabilities
+
+- **Special Encounters**
+  - Customs Inspection: Roll to avoid contraband detection
+  - Pirate Attack: Combat or payment to avoid damage
+  - Rescue Missions: Potential crew or reward
+
+## Implementation Patterns
+
+### State Machine Pattern for Campaign Phases
+
+```gdscript
+## Implementation pattern for phase transitions in Five Parsecs
+class CampaignStateMachine:
+    var current_phase: int = FiveParcsecsCampaignPhase.NONE
+    var current_subphase: int = CampaignSubPhase.NONE
+    var phase_history: Array[Dictionary] = []
+    
+    ## Transition to a new phase following rulebook flow
+    ## @param new_phase: The phase to transition to
+    ## @return bool: Whether transition was successful
+    func transition_to(new_phase: int) -> bool:
+        # Check if transition is allowed based on rulebook
+        if not _is_valid_transition(current_phase, new_phase):
+            return false
+        
+        # Save current phase to history for undo functionality
+        phase_history.append({
+            "phase": current_phase,
+            "subphase": current_subphase,
+            "timestamp": Time.get_unix_time_from_system()
+        })
+        
+        # Update current phase
+        var old_phase = current_phase
+        current_phase = new_phase
+        current_subphase = CampaignSubPhase.NONE
+        
+        # Reset subphase when changing phases
+        if old_phase != new_phase:
+            current_subphase = CampaignSubPhase.NONE
+        
+        # Execute phase entry actions
+        _execute_phase_entry(new_phase)
+        
+        return true
+    
+    ## Private method to check valid transitions based on rulebook
+    func _is_valid_transition(from_phase: int, to_phase: int) -> bool:
+        # Phase transition rules from Five Parsecs rulebook
+        if from_phase == FiveParcsecsCampaignPhase.NONE:
+            # Can only go to SETUP from NONE
+            return to_phase == FiveParcsecsCampaignPhase.SETUP
+            
+        elif from_phase == FiveParcsecsCampaignPhase.SETUP:
+            # After setup, go to CAMPAIGN 
+            return to_phase == FiveParcsecsCampaignPhase.CAMPAIGN
+            
+        elif from_phase == FiveParcsecsCampaignPhase.CAMPAIGN:
+            # Campaign can go to BATTLE_SETUP or UPKEEP
+            return to_phase == FiveParcsecsCampaignPhase.BATTLE_SETUP or to_phase == FiveParcsecsCampaignPhase.UPKEEP
+        
+        # Continue with other valid transitions...
+        return false
+```
+
+### Resource Manager for Game Tables
+
+```gdscript
+## Pattern for managing Five Parsecs game tables
+class FiveParsecsTableManager:
+    var _tables: Dictionary = {}
+    
+    ## Initialize all tables needed for Five Parsecs rules
+    func initialize() -> void:
+        # Load core tables required by rulebook
+        _load_table("character_background")
+        _load_table("character_motivation")
+        _load_table("character_skills")
+        _load_table("advancement_soldier")
+        _load_table("advancement_medic")
+        # Continue with other tables...
+        
+        # Load world generation tables
+        _load_table("world_government")
+        _load_table("world_tech_level")
+        _load_table("world_threat_level")
+        
+        # Load combat tables
+        _load_table("combat_injury")
+        _load_table("combat_critical_hit")
+    
+    ## Helper to load a specific table
+    func _load_table(table_name: String) -> void:
+        var path = "res://src/data/tables/%s.json" % table_name
+        _tables[table_name] = TableLoader.load_table_from_file(path)
+    
+    ## Roll on a table following rulebook rules
+    ## @param table_name: Name of the table to use
+    ## @param modifiers: Optional modifiers to apply
+    ## @return: The table result
+    func roll_on_table(table_name: String, modifiers: Dictionary = {}) -> Dictionary:
+        if not _tables.has(table_name):
+            _load_table(table_name)
+            
+        if modifiers.size() > 0:
+            return _tables[table_name].roll_with_modifiers(modifiers)
+        else:
+            return _tables[table_name].roll()
+```
+
+### Turn Management Pattern
+
+```gdscript
+## Pattern for managing Five Parsecs turn structure 
+class BattleTurnManager:
+    var active_characters: Array[Character] = []
+    var current_character_index: int = -1
+    var current_side: int = GameEnums.BattleSide.NONE
+    var turn_count: int = 0
+    
+    ## Initialize a new battle turn following rulebook
+    ## @param player_characters: Player-controlled characters
+    ## @param enemy_characters: Enemy characters
+    func initialize_battle(player_characters: Array[Character], 
+                          enemy_characters: Array[Character]) -> void:
+        # Clear previous state
+        active_characters.clear()
+        turn_count = 0
+        
+        # Determine initiative order (rulebook p.72)
+        var player_initiative = _roll_initiative(player_characters)
+        var enemy_initiative = _roll_initiative(enemy_characters)
+        
+        # Set starting side based on initiative
+        if player_initiative >= enemy_initiative:
+            current_side = GameEnums.BattleSide.PLAYER
+        else:
+            current_side = GameEnums.BattleSide.ENEMY
+            
+        # Set up the character list in proper order
+        if current_side == GameEnums.BattleSide.PLAYER:
+            _setup_alternating_sides(player_characters, enemy_characters)
+        else:
+            _setup_alternating_sides(enemy_characters, player_characters)
+            
+        # Start with first character
+        current_character_index = 0
+    
+    ## Roll initiative for a side as per rulebook
+    func _roll_initiative(characters: Array[Character]) -> int:
+        var highest_reaction = 0
+        for character in characters:
+            highest_reaction = max(highest_reaction, character.reaction)
+        
+        # Roll d10 + highest reaction value
+        return DiceSystem.d10() + highest_reaction
+    
+    ## Set up characters in alternating order as per rulebook
+    func _setup_alternating_sides(first_side: Array[Character], 
+                                second_side: Array[Character]) -> void:
+        # We need to alternate sides according to the rulebook
+        var first_index = 0
+        var second_index = 0
+        
+        while first_index < first_side.size() or second_index < second_side.size():
+            if first_index < first_side.size():
+                active_characters.append(first_side[first_index])
+                first_index += 1
+                
+            if second_index < second_side.size():
+                active_characters.append(second_side[second_index])
+                second_index += 1
+    
+    ## Get the current active character according to turn rules
+    func get_current_character() -> Character:
+        if current_character_index < 0 or current_character_index >= active_characters.size():
+            return null
+        return active_characters[current_character_index]
+    
+    ## Advance to the next character in the turn order
+    ## @return: The next active character or null if turn is over
+    func next_character() -> Character:
+        current_character_index += 1
+        
+        # Check if we've completed a turn
+        if current_character_index >= active_characters.size():
+            _end_turn()
+            return null
+            
+        return get_current_character()
+    
+    ## End the current turn and start a new one
+    func _end_turn() -> void:
+        turn_count += 1
+        current_character_index = 0
+        
+        # Remove incapacitated characters
+        _update_active_characters()
+        
+        # Process end of turn effects as per rulebook
+        for character in active_characters:
+            _process_end_of_turn_effects(character)
+    
+    ## Update the character list to remove defeated characters
+    func _update_active_characters() -> void:
+        active_characters = active_characters.filter(func(character): 
+            return character.current_health > 0
+        )
+    
+    ## Process end of turn effects for a character
+    func _process_end_of_turn_effects(character: Character) -> void:
+        # Process status effects that trigger at end of turn
+        # This follows the rulebook rules for effects like Burning, etc.
+        for effect in character.status_effects:
+            if effect.triggers_at_end_of_turn:
+                _apply_end_of_turn_effect(character, effect)
+    
+    ## Apply an end-of-turn effect to a character
+    func _apply_end_of_turn_effect(character: Character, effect: StatusEffect) -> void:
+        # Implementation depends on the specific effect
+        match effect.type:
+            GameEnums.StatusEffectType.BURNING:
+                # Burning deals 1 damage at end of turn
+                character.take_damage(1)
+            # Handle other effects...
+```
+
+## Edge Cases & Special Rules
+
+- **Revival** (Rulebook p.87)
+  - Characters that suffer Out Cold result can be revived during battle
+  - Requires another character to spend 1 action adjacent to them
+  - Revived character returns with 1 Health
+
+- **Morale** (Rulebook p.82)
+  - Enemy groups must test morale when reduced to 50% strength
+  - Rivals and special enemies are exempt from morale rules
+  - Failed morale causes retreat or surrender
+
+- **Salvage** (Rulebook p.88)
+  - Tech rolls required to salvage certain equipment
+  - Critical failures can cause injury
+  - Maximum 1 salvage attempt per item
+
+- **Reinforcements** (Rulebook p.77)
+  - Some scenarios have reinforcement rules
+  - Usually triggered by specific events or turn count
+  - Reinforcements enter from designated table edge
+
+```gdscript
+## Handles special morale rules from Five Parsecs
+## @param enemy_group: Group of enemies to check morale for
+## @param original_count: Original number of enemies in group
+## @return Dictionary: Morale check results
+func check_enemy_morale(enemy_group: Array[Enemy], original_count: int) -> Dictionary:
+    # Don't check if not at 50% casualties yet
+    if enemy_group.size() > original_count / 2:
+        return {"check_needed": false}
+    
+    # Rivals and special enemies don't use morale rules
+    if enemy_group[0].is_rival or enemy_group[0].is_special:
+        return {"check_needed": false}
+    
+    # Roll for morale (d10 + enemy competence modifier)
+    var roll = DiceSystem.d10() + enemy_group[0].competence_bonus
+    
+    # Check result against target
+    var morale_result = roll >= 7
+    
+    if not morale_result:
+        return {
+            "check_needed": true,
+            "passed": false,
+            "result": "retreat" if roll >= 4 else "surrender"
+        }
+    else:
+        return {
+            "check_needed": true,
+            "passed": true,
+            "result": "continue"
+        }
+```
+
+## References
+
+- Five Parsecs from Home Core Rulebook, 3rd Edition
+- Five Parsecs from Home Compendium
+- Official Five Parsecs FAQ and Errata (if available) 

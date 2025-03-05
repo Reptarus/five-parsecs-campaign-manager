@@ -1,6 +1,6 @@
-[gd_scene load_steps=2 format=3 uid="uid://g8q6y4n2x5m6w"]
+[gd_scene load_steps=2 format=3 uid="uid://dedce2qtexrf5"]
 
-[ext_resource type="Script" path="res://src/scenes/campaign/components/EventItem.gd" id="1_e5m3r"]
+[ext_resource type="Script" uid="uid://vsg1vs65run6" path="res://src/scenes/campaign/components/EventItem.gd" id="1_e5m3r"]
 
 [node name="EventItem" type="Control"]
 custom_minimum_size = Vector2(0, 80)
@@ -69,4 +69,4 @@ theme_override_colors/font_color = Color(1, 1, 1, 0.8)
 theme_override_font_sizes/font_size = 14
 text = "Event description goes here and can span multiple lines if needed."
 autowrap_mode = 2
-text_overrun_behavior = 3 
+text_overrun_behavior = 3

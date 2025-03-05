@@ -1,6 +1,7 @@
 [gd_scene load_steps=2 format=3 uid="uid://d1you1rrwuu48"]
 
-[ext_resource type="Script" path="res://Resources/GameData/GameOverScreen.gd" id="1_klyi4"]
+[sub_resource type="Resource" id="Resource_ag27r"]
+metadata/__load_path__ = "res://Resources/GameData/GameOverScreen.gd"
 
 [node name="GameOverScreen" type="Control"]
 layout_mode = 3
@@ -9,7 +10,7 @@ anchor_right = 1.0
 anchor_bottom = 1.0
 grow_horizontal = 2
 grow_vertical = 2
-script = ExtResource("1_klyi4")
+script = SubResource("Resource_ag27r")
 
 [node name="VictoryLabel" type="Label" parent="."]
 layout_mode = 1

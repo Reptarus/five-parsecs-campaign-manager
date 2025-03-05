@@ -1,6 +1,6 @@
-[gd_scene load_steps=2 format=3 uid="uid://d8q7a6kfi4vwe"]
+[gd_scene load_steps=2 format=3 uid="uid://edco4m5xw05m"]
 
-[ext_resource type="Script" path="res://src/ui/components/mission/EnemyInfoPanel.gd" id="1_script"]
+[ext_resource type="Script" uid="uid://cu61rckorxb5a" path="res://src/ui/components/mission/EnemyInfoPanel.gd" id="1_script"]
 
 [node name="EnemyInfoPanel" type="PanelContainer"]
 theme_type_variation = &"DarkPanel"
@@ -48,4 +48,4 @@ layout_mode = 2
 [node name="RulesLabel" type="Label" parent="MarginContainer/VBoxContainer/SpecialRules"]
 layout_mode = 2
 text = "Special Rules"
-horizontal_alignment = 1 
+horizontal_alignment = 1

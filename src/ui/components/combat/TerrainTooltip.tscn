@@ -1,6 +1,6 @@
 [gd_scene load_steps=2 format=3 uid="uid://c4n8y2q4n3m5x"]
 
-[ext_resource type="Script" path="res://src/ui/components/combat/TerrainTooltip.gd" id="1_kj4m2"]
+[ext_resource type="Script" uid="uid://bqkjgequbgey3" path="res://src/ui/components/combat/TerrainTooltip.gd" id="1_kj4m2"]
 
 [node name="TerrainTooltip" type="Control"]
 layout_mode = 3
@@ -51,4 +51,4 @@ layout_mode = 2
 [node name="ModifiersLabel" type="Label" parent="Panel/VBoxContainer"]
 layout_mode = 2
 theme_override_font_sizes/font_size = 12
-text = "Modifiers:" 
+text = "Modifiers:"

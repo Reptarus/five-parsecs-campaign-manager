@@ -1,5 +1,5 @@
 Contents
-INTRODUCTION
+INTRODUCTION
 WELCOME
 You’re about to enter Fringe Space.
 Behind you, a few jumps from this decrepit
@@ -36,7 +36,7 @@ certainly remember your face. Nobody
 makes it very far on their own.
 Of course, you may not live to spend
 Introduction
-your ill-gotten gains. Maybe you end up
+your ill-gotten gains. Maybe you end up
 face-down in the radioactive sand after a
 shoot-out. Maybe you’re collateral damage
 in a Galactic War invasion. Maybe you try to
@@ -189,10 +189,9 @@ Ivan Sorensen
 nordicweaselgames@icloud.com
 7
 Adventure Wargaming
-CONVENTIONS OF THE GAME
+CONVENTIONS OF THE GAME
 Game Length
-Five Parsecs from Home is played in
-campaign turns.After creating a crew of
+Five Parsecs from Home is played in campaign turns.After creating a crew of
 characters, each turn allows you to explore the
 location they are in, travel to new worlds, and
 trade for equipment using these rules and

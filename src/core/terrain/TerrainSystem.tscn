@@ -1,8 +1,8 @@
-[gd_scene load_steps=4 format=3]
+[gd_scene load_steps=4 format=3 uid="uid://sjokhh3t3g1o"]
 
-[ext_resource type="Script" path="res://src/core/terrain/UnifiedTerrainSystem.gd" id="1"]
-[ext_resource type="Script" path="res://src/core/terrain/TerrainFactory.gd" id="2"]
-[ext_resource type="Script" path="res://src/core/terrain/TerrainEffectSystem.gd" id="3"]
+[ext_resource type="Script" uid="uid://hjxg3wxahr5" path="res://src/core/terrain/UnifiedTerrainSystem.gd" id="1"]
+[ext_resource type="Script" uid="uid://dq6taw6tasjcu" path="res://src/core/terrain/TerrainFactory.gd" id="2"]
+[ext_resource type="Script" uid="uid://drwvax8opaph8" path="res://src/core/terrain/TerrainEffectSystem.gd" id="3"]
 
 [node name="TerrainSystem" type="Node2D"]
 script = ExtResource("1")
@@ -13,4 +13,4 @@ script = ExtResource("2")
 [node name="TerrainEffectSystem" type="Node" parent="."]
 script = ExtResource("3")
 
-[node name="TerrainContainer" type="Node3D" parent="."] 
+[node name="TerrainContainer" type="Node3D" parent="."]

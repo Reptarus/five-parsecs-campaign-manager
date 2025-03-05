@@ -41,7 +41,7 @@ static func _get_test_files_in_dir(path: String) -> Array[String]:
 		while file_name != "":
 			if dir.current_is_dir() and file_name != "." and file_name != "..":
 				files.append_array(_get_test_files_in_dir(path.path_join(file_name)))
-			elif file_name.ends_with("_test.gd"):
+			elif file_name.begins_with("test_") and file_name.ends_with(".gd"):
 				files.append(path.path_join(file_name))
 			file_name = dir.get_next()
 	return files
@@ -61,6 +61,6 @@ static func configure_test_dependencies(gut_instance: Node) -> void:
 		# Set common test configuration
 		gut_instance.set_should_maximize(true)
 		gut_instance.set_include_subdirectories(true)
-		gut_instance.set_unit_test_name("*_test.gd")
+		gut_instance.set_unit_test_name("test_*.gd")
 		gut_instance.set_double_strategy(1) # DOUBLE_STRATEGY.PARTIAL
 		gut_instance.set_log_level(2) # LOG_LEVEL_ALL_ASSERTS

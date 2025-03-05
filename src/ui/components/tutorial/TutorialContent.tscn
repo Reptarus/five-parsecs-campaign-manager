@@ -1,6 +1,7 @@
-[gd_scene load_steps=2 format=3 uid="uid://j8q7a6kfi0vwe"]
+[gd_scene load_steps=2 format=3 uid="uid://cixg32pwel5eu"]
 
-[ext_resource type="Script" path="res://src/ui/components/tutorial/TutorialContent.gd" id="1_script"]
+[sub_resource type="Resource" id="Resource_oyf6d"]
+metadata/__load_path__ = "res://src/ui/components/tutorial/TutorialContent.gd"
 
 [node name="TutorialContent" type="Control"]
 layout_mode = 3
@@ -9,7 +10,7 @@ anchor_right = 1.0
 anchor_bottom = 1.0
 grow_horizontal = 2
 grow_vertical = 2
-script = ExtResource("1_script")
+script = SubResource("Resource_oyf6d")
 
 [node name="MarginContainer" type="MarginContainer" parent="."]
 layout_mode = 1
@@ -61,4 +62,4 @@ layout_mode = 2
 text = "Next"
 
 [connection signal="pressed" from="MarginContainer/VBoxContainer/NavigationPanel/HBoxContainer/PreviousButton" to="." method="_on_previous_pressed"]
-[connection signal="pressed" from="MarginContainer/VBoxContainer/NavigationPanel/HBoxContainer/NextButton" to="." method="_on_next_pressed"] 
+[connection signal="pressed" from="MarginContainer/VBoxContainer/NavigationPanel/HBoxContainer/NextButton" to="." method="_on_next_pressed"]
