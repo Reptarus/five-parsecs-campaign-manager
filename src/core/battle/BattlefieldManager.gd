@@ -43,7 +43,7 @@ func _setup_battlefield() -> void:
 		elevation_map.append([])
 		
 		for y in range(battlefield_height):
-			terrain_map[x].append(TerrainTypes.TerrainType.OPEN)
+			terrain_map[x].append(TerrainTypes.Type.EMPTY)
 			cover_map[x].append(0)
 			elevation_map[x].append(0)
 
@@ -51,7 +51,7 @@ func _setup_battlefield() -> void:
 func reset_battlefield() -> void:
 	for x in range(battlefield_width):
 		for y in range(battlefield_height):
-			terrain_map[x][y] = TerrainTypes.TerrainType.OPEN
+			terrain_map[x][y] = TerrainTypes.Type.EMPTY
 			cover_map[x][y] = 0
 			elevation_map[x][y] = 0
 	
@@ -156,7 +156,7 @@ func get_terrain_type(position: Vector2) -> int:
 	if _is_valid_grid_position(grid_pos):
 		return terrain_map[grid_pos.x][grid_pos.y]
 	
-	return TerrainTypes.TerrainType.INVALID
+	return TerrainTypes.Type.EMPTY
 
 ## Set terrain type at specific position
 func set_terrain_type(position: Vector2, terrain_type: int) -> void:
@@ -225,9 +225,9 @@ func _generate_standard_terrain(density: float) -> void:
 		for y in range(battlefield_height):
 			if randf() < density * 0.7:
 				if randf() < 0.7:
-					terrain_map[x][y] = TerrainTypes.TerrainType.DIFFICULT
+					terrain_map[x][y] = TerrainTypes.Type.DIFFICULT
 				else:
-					terrain_map[x][y] = TerrainTypes.TerrainType.OBSTACLE
+					terrain_map[x][y] = TerrainTypes.Type.OBSTACLE
 	
 	# Add some light and medium cover
 	for x in range(battlefield_width):
@@ -246,9 +246,9 @@ func _generate_desert_terrain(density: float) -> void:
 		for y in range(battlefield_height):
 			if randf() < density * 0.5:
 				if randf() < 0.8:
-					terrain_map[x][y] = TerrainTypes.TerrainType.DIFFICULT
+					terrain_map[x][y] = TerrainTypes.Type.DIFFICULT
 				else:
-					terrain_map[x][y] = TerrainTypes.TerrainType.OBSTACLE
+					terrain_map[x][y] = TerrainTypes.Type.OBSTACLE
 	
 	# Add some cover from rocks and debris
 	for x in range(battlefield_width):
@@ -277,9 +277,9 @@ func _generate_urban_terrain(density: float) -> void:
 						
 						if tx < battlefield_width and ty < battlefield_height:
 							if randf() < 0.9:
-								terrain_map[tx][ty] = TerrainTypes.TerrainType.IMPASSABLE
+								terrain_map[tx][ty] = TerrainTypes.Type.OBSTACLE
 							else:
-								terrain_map[tx][ty] = TerrainTypes.TerrainType.OBSTACLE
+								terrain_map[tx][ty] = TerrainTypes.Type.OBSTACLE
 							
 							# Add heavy cover around buildings
 							cover_map[tx][ty] = 3
@@ -287,26 +287,26 @@ func _generate_urban_terrain(density: float) -> void:
 	# Add streets and alleys
 	for x in range(0, battlefield_width, 3):
 		for y in range(battlefield_height):
-			if terrain_map[x][y] != TerrainTypes.TerrainType.OPEN:
-				terrain_map[x][y] = TerrainTypes.TerrainType.OPEN
+			if terrain_map[x][y] != TerrainTypes.Type.EMPTY:
+				terrain_map[x][y] = TerrainTypes.Type.EMPTY
 	
 	for y in range(0, battlefield_height, 3):
 		for x in range(battlefield_width):
-			if terrain_map[x][y] != TerrainTypes.TerrainType.OPEN:
-				terrain_map[x][y] = TerrainTypes.TerrainType.OPEN
+			if terrain_map[x][y] != TerrainTypes.Type.EMPTY:
+				terrain_map[x][y] = TerrainTypes.Type.EMPTY
 
 ## Generate forest terrain
 func _generate_forest_terrain(density: float) -> void:
 	# Start with difficult terrain (underbrush)
 	for x in range(battlefield_width):
 		for y in range(battlefield_height):
-			terrain_map[x][y] = TerrainTypes.TerrainType.DIFFICULT
+			terrain_map[x][y] = TerrainTypes.Type.DIFFICULT
 	
 	# Add trees and dense foliage
 	for x in range(battlefield_width):
 		for y in range(battlefield_height):
 			if randf() < density:
-				terrain_map[x][y] = TerrainTypes.TerrainType.OBSTACLE
+				terrain_map[x][y] = TerrainTypes.Type.OBSTACLE
 				cover_map[x][y] = 2
 			elif randf() < density * 1.5:
 				cover_map[x][y] = 1
@@ -321,7 +321,7 @@ func _generate_forest_terrain(density: float) -> void:
 			for y in range(center_y - radius, center_y + radius):
 				if x >= 0 and x < battlefield_width and y >= 0 and y < battlefield_height:
 					if Vector2(center_x, center_y).distance_to(Vector2(x, y)) < radius:
-						terrain_map[x][y] = TerrainTypes.TerrainType.OPEN
+						terrain_map[x][y] = TerrainTypes.Type.EMPTY
 						cover_map[x][y] = 0
 
 ## Generate space station terrain
@@ -329,7 +329,7 @@ func _generate_space_station_terrain(density: float) -> void:
 	# Start with all impassable (space voids)
 	for x in range(battlefield_width):
 		for y in range(battlefield_height):
-			terrain_map[x][y] = TerrainTypes.TerrainType.IMPASSABLE
+			terrain_map[x][y] = TerrainTypes.Type.OBSTACLE
 	
 	# Create rooms and corridors
 	var visited = []
@@ -347,7 +347,7 @@ func _generate_space_station_terrain(density: float) -> void:
 	for x in range(center_x - room_size_x / 2, center_x + room_size_x / 2):
 		for y in range(center_y - room_size_y / 2, center_y + room_size_y / 2):
 			if x >= 0 and x < battlefield_width and y >= 0 and y < battlefield_height:
-				terrain_map[x][y] = TerrainTypes.TerrainType.OPEN
+				terrain_map[x][y] = TerrainTypes.Type.EMPTY
 				visited[x][y] = true
 	
 	# Add more rooms
@@ -399,7 +399,7 @@ func _generate_space_station_terrain(density: float) -> void:
 		for x in range(new_room_x - new_room_size_x / 2, new_room_x + new_room_size_x / 2):
 			for y in range(new_room_y - new_room_size_y / 2, new_room_y + new_room_size_y / 2):
 				if x >= 0 and x < battlefield_width and y >= 0 and y < battlefield_height:
-					terrain_map[x][y] = TerrainTypes.TerrainType.OPEN
+					terrain_map[x][y] = TerrainTypes.Type.EMPTY
 					
 					# Add some cover in rooms
 					if randf() < density:
@@ -413,19 +413,19 @@ func _generate_space_station_terrain(density: float) -> void:
 			0: # Top
 				for y in range(corridor_y, new_room_y + new_room_size_y / 2 + 1):
 					if y >= 0 and y < battlefield_height:
-						terrain_map[corridor_x][y] = TerrainTypes.TerrainType.OPEN
+						terrain_map[corridor_x][y] = TerrainTypes.Type.EMPTY
 			1: # Right
 				for x in range(corridor_x, new_room_x - new_room_size_x / 2 - 1, -1):
 					if x >= 0 and x < battlefield_width:
-						terrain_map[x][corridor_y] = TerrainTypes.TerrainType.OPEN
+						terrain_map[x][corridor_y] = TerrainTypes.Type.EMPTY
 			2: # Bottom
 				for y in range(corridor_y, new_room_y - new_room_size_y / 2 - 1, -1):
 					if y >= 0 and y < battlefield_height:
-						terrain_map[corridor_x][y] = TerrainTypes.TerrainType.OPEN
+						terrain_map[corridor_x][y] = TerrainTypes.Type.EMPTY
 			3: # Left
 				for x in range(corridor_x, new_room_x + new_room_size_x / 2 + 1):
 					if x >= 0 and x < battlefield_width:
-						terrain_map[x][corridor_y] = TerrainTypes.TerrainType.OPEN
+						terrain_map[x][corridor_y] = TerrainTypes.Type.EMPTY
 		
 		# Add to list of rooms
 		rooms.append([new_room_x, new_room_y, new_room_size_x, new_room_size_y])
@@ -433,9 +433,9 @@ func _generate_space_station_terrain(density: float) -> void:
 	# Add obstacles and cover
 	for x in range(battlefield_width):
 		for y in range(battlefield_height):
-			if terrain_map[x][y] == TerrainTypes.TerrainType.OPEN:
+			if terrain_map[x][y] == TerrainTypes.Type.EMPTY:
 				if randf() < density * 0.4:
-					terrain_map[x][y] = TerrainTypes.TerrainType.OBSTACLE
+					terrain_map[x][y] = TerrainTypes.Type.OBSTACLE
 					cover_map[x][y] = 2
 				elif randf() < density * 0.7:
 					cover_map[x][y] = 1

@@ -14,13 +14,14 @@ signal victory_condition_reached(condition_type: int, details: Dictionary)
 signal victory_progress_updated(condition_type: int, current: int, required: int)
 
 # Private variables
-var _data_manager: GameDataManager
+var _data_manager: Object
 var _active_conditions: Dictionary = {}
 var _campaign_data: Dictionary = {}
 
 # Initialize the tracker
 func _init():
-	_data_manager = GameDataManager.new()
+	_data_manager = GameDataManager.get_instance()
+	GameDataManager.ensure_data_loaded()
 	_load_data()
 
 # Load necessary data

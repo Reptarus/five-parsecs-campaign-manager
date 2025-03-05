@@ -23,22 +23,21 @@ const GameEnums = preload("res://src/core/systems/GlobalEnums.gd")
 @export var tech_requirements: Dictionary = {}
 @export var tags: Array[String] = []
 
-var _data_manager: GameDataManager = null
+var _data_manager: Object = null
 
 func _init() -> void:
 	if Engine.is_editor_hint():
 		return
 		
-	# Create the data manager instance if needed
-	if _data_manager == null:
-		_data_manager = GameDataManager.new()
-		_data_manager.load_world_traits()
+	# Use the singleton instance
+	_data_manager = GameDataManager.get_instance()
+	GameDataManager.ensure_data_loaded()
 
 ## Initialize this trait from a trait ID in the database
 func initialize_from_id(id: String) -> bool:
 	if _data_manager == null:
-		_data_manager = GameDataManager.new()
-		_data_manager.load_world_traits()
+		_data_manager = GameDataManager.get_instance()
+		GameDataManager.ensure_data_loaded()
 		
 	var trait_data = _data_manager.get_world_trait(id)
 	if trait_data.is_empty():

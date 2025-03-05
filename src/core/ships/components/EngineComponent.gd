@@ -1,6 +1,6 @@
 # Scripts/ShipAndCrew/EngineComponent.gd
 @tool
-extends ShipComponent
+extends FPCM_ShipComponent
 class_name EngineComponent
 
 @export var speed: float = 5.0
@@ -73,7 +73,7 @@ func serialize() -> Dictionary:
 # Factory method to create EngineComponent from data
 static func create_from_data(data: Dictionary) -> EngineComponent:
 	var component = EngineComponent.new()
-	var base_data = ShipComponent.deserialize(data)
+	var base_data = FPCM_ShipComponent.deserialize(data)
 	
 	# Copy base data
 	component.name = base_data.name
@@ -102,7 +102,7 @@ static func create_from_data(data: Dictionary) -> EngineComponent:
 
 # Return serialized data with proper engine type
 static func deserialize(data: Dictionary) -> Dictionary:
-	var base_data = ShipComponent.deserialize(data)
+	var base_data = FPCM_ShipComponent.deserialize(data)
 	base_data["component_type"] = "engine"
 	base_data["speed"] = data.get("speed", 5.0)
 	base_data["fuel_efficiency"] = data.get("fuel_efficiency", 1.0)

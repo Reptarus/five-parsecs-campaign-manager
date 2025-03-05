@@ -1,5 +1,12 @@
 # Updated Prioritized Action Plan for Five Parsecs Campaign Manager
 
+## Documentation Consolidation (March 2024)
+The project documentation has been consolidated and organized:
+- Created `docs/docs_summary.md` as a central index of all documentation
+- Archived completed/obsolete documentation in `docs/archive/`
+- Updated references to archived documents
+- Standardized documentation format and organization
+
 ## ✅ Phase 1: Core Game Loop Implementation (COMPLETED)
 All high-priority components from Phase 1 have been successfully implemented, including:
 - Campaign Phase Management with Victory Condition Tracking
@@ -68,7 +75,7 @@ All high-priority components from Phase 1 have been successfully implemented, in
     - TerrainSystem should always be loaded from `src/core/terrain/`
     - Fixed class_name conflicts in TerrainSystem.gd
 
-- **Dependency Management** 🆕
+- **Dependency Management** 🔄
   - **Task:** Audit and refine script dependencies to prevent circular references
   - **Implementation:** Use systematic approach to organize script hierarchy
   - **Status:** In progress
@@ -77,10 +84,10 @@ All high-priority components from Phase 1 have been successfully implemented, in
     - Use forward declarations where possible
     - Consider using dependency injection pattern for complex systems
 
-- **Script Organization Review** 🆕
+- **Script Organization Review** 🔄
   - **Task:** Review script locations and organization for clarity and maintainability
   - **Implementation:** Document script organization and enforce consistent patterns
-  - **Status:** Planning phase
+  - **Status:** In progress
   - **Guidelines:**
     - Ensure scripts are in appropriate directories based on functionality
     - Use consistent naming patterns for related scripts
@@ -106,7 +113,7 @@ All high-priority components from Phase 1 have been successfully implemented, in
   - **Task:** Complete the main dashboard with all campaign information
   - **Data Integration:** Bind to campaign state data
   - **Status:** In progress
-  - **Implementation Guidelines:** 🆕
+  - **Implementation Guidelines:**
     - Implement MVC pattern for UI components
     - Create data binding utilities to simplify connections between UI and data
     - Add validation for data displayed in UI elements
@@ -117,7 +124,7 @@ All high-priority components from Phase 1 have been successfully implemented, in
   - **Task:** Complete all phase-specific UI panels
   - **Data Integration:** Connect each panel to relevant game data
   - **Status:** In progress
-  - **Implementation Guidelines:** 🆕
+  - **Implementation Guidelines:**
     - Create consistent interfaces for all phase panels
     - Implement stepwise verification before transitions between phases
     - Add progress indicators for multi-step processes
@@ -129,7 +136,7 @@ All high-priority components from Phase 1 have been successfully implemented, in
   - **Task:** Implement mission generation UI and tracking from p.89-91
   - **Data Integration:** Use `data/mission_templates.json` and `data/mission_tables/`
   - **Status:** Core functionality implemented, UI integration in progress
-  - **Implementation Guidelines:** 🆕
+  - **Implementation Guidelines:**
     - Create clear separation between mission data and UI representation
     - Implement progressive disclosure for complex mission information
     - Add mission history tracking and visualization
@@ -139,7 +146,7 @@ All high-priority components from Phase 1 have been successfully implemented, in
   - **Task:** Implement patron and connection UI from p.92-94
   - **Data Integration:** Use `data/patron_types.json` and `data/expanded_connections.json`
   - **Status:** Core functionality implemented, UI integration in progress
-  - **Implementation Guidelines:** 🆕
+  - **Implementation Guidelines:**
     - Create relationship visualization tools
     - Implement patron interaction history tracking
     - Add context-sensitive actions based on patron relationships
@@ -149,7 +156,7 @@ All high-priority components from Phase 1 have been successfully implemented, in
   - **File:** Create standardized `src/ui/components/base/ResponsiveContainer.gd`
   - **Task:** Standardize container components and update implementations
   - **Status:** Planning phase
-  - **Implementation Guidelines:** 🆕
+  - **Implementation Guidelines:**
     - Create clear documentation with usage examples
     - Implement responsive sizing based on viewport changes
     - Add layout options for different screen orientations
@@ -158,13 +165,13 @@ All high-priority components from Phase 1 have been successfully implemented, in
   - **File:** Various files in `src/ui/components/`
   - **Task:** Create reusable UI components with consistent APIs
   - **Status:** Planning phase
-  - **Implementation Guidelines:** 🆕
+  - **Implementation Guidelines:**
     - Create component inventory with categorization
     - Implement consistent API patterns across components
     - Add automated tests for component behavior
     - Include accessibility features in core components
 
-### 5. Testing and Verification for Phase 3 🆕
+### 5. Testing and Verification for Phase 3
 - **UI Integration Testing**
   - **Task:** Create tests to verify UI elements correctly display and update data
   - **Implementation:** Add testing utilities for UI components
@@ -191,7 +198,7 @@ All high-priority components from Phase 1 have been successfully implemented, in
   - **Task:** Complete save/load functionality with validation
   - **Data Integration:** Ensure all game state data is properly serialized
   - **Gap Being Filled:** Save system incomplete
-  - **Implementation Guidelines:** 🆕
+  - **Implementation Guidelines:**
     - Create versioned save format for future compatibility
     - Implement incremental saving for large campaigns
     - Add save data compression and encryption options
@@ -201,7 +208,7 @@ All high-priority components from Phase 1 have been successfully implemented, in
   - **Task:** Implement state validation for all game systems
   - **Data Integration:** Validate against data files for correctness
   - **Gap Being Filled:** State validation missing
-  - **Implementation Guidelines:** 🆕
+  - **Implementation Guidelines:**
     - Create schema validation for campaign data
     - Implement error correction for common data issues
     - Add validation reports for debugging
@@ -211,7 +218,7 @@ All high-priority components from Phase 1 have been successfully implemented, in
   - **File:** Create new file `src/core/state/ErrorRecoveryManager.gd`
   - **Task:** Implement error detection and recovery
   - **Gap Being Filled:** Error recovery missing
-  - **Implementation Guidelines:** 🆕
+  - **Implementation Guidelines:**
     - Create error classification system
     - Implement recovery strategies by error type
     - Add telemetry for error frequency and patterns
@@ -221,7 +228,7 @@ All high-priority components from Phase 1 have been successfully implemented, in
   - **Task:** Implement full campaign history tracking
   - **Rulebook Alignment:** Record elements recommended in rulebook for campaign narrative
   - **Gap Being Filled:** History tracking may be minimal
-  - **Implementation Guidelines:** 🆕
+  - **Implementation Guidelines:**
     - Create event-based history recording
     - Implement filtering and search for history entries
     - Add visualization tools for campaign timeline
@@ -233,7 +240,7 @@ All high-priority components from Phase 1 have been successfully implemented, in
   - **File:** Create tests in `tests/integration/campaign/`
   - **Task:** Test full campaign flow from creation to completion
   - **Gap Being Filled:** Integration tests incomplete
-  - **Implementation Guidelines:** 🆕
+  - **Implementation Guidelines:**
     - Create test scenarios for common campaign paths
     - Implement regression tests for fixed bugs
     - Add stress tests for edge cases and unusual configurations
@@ -242,7 +249,7 @@ All high-priority components from Phase 1 have been successfully implemented, in
   - **File:** Create tests in `tests/integration/character/`
   - **Task:** Test character creation, advancement, and equipment management
   - **Gap Being Filled:** Character tests incomplete
-  - **Implementation Guidelines:** 🆕
+  - **Implementation Guidelines:**
     - Create comprehensive test suite for character lifecycle
     - Test character interactions with other systems
     - Implement performance tests for character operations
@@ -252,7 +259,7 @@ All high-priority components from Phase 1 have been successfully implemented, in
   - **Task:** Create tests that verify compliance with specific rulebook mechanics
   - **Rulebook Alignment:** Test against specific rule examples from rulebook
   - **Gap Being Filled:** Rules compliance testing may be missing
-  - **Implementation Guidelines:** 🆕
+  - **Implementation Guidelines:**
     - Create test cases directly from rulebook examples
     - Implement verification against calculation examples
     - Add traceability between tests and rulebook sections
@@ -262,7 +269,7 @@ All high-priority components from Phase 1 have been successfully implemented, in
   - **File:** Various core system files
   - **Task:** Implement proper resource cleanup and optimization
   - **Gap Being Filled:** Performance optimization missing
-  - **Implementation Guidelines:** 🆕
+  - **Implementation Guidelines:**
     - Profile resource usage in key systems
     - Implement memory optimization for large campaigns
     - Add background processing for intensive operations
@@ -320,7 +327,7 @@ All high-priority components from Phase 1 have been successfully implemented, in
    - Each component should have clear usage examples
    - Document the purpose and integration points for complex UI screens
 
-### Script Architecture Lessons Learned 🆕
+### Script Architecture Lessons Learned
 1. **Class Name Management**:
    - Avoid using `class_name` for scripts that might be referenced in multiple places
    - Use explicit preload/load references with absolute paths

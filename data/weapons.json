@@ -50,8 +50,8 @@
                 "Silent"
             ],
             "modifiers": {
-                "short_range": 0,
-                "medium_range": -1,
+                "short_range": 1,
+                "medium_range": 0,
                 "long_range": -2
             },
             "ammo_capacity": 12,
@@ -258,7 +258,7 @@
                 "Spread"
             ],
             "modifiers": {
-                "short_range": +1,
+                "short_range": 1,
                 "medium_range": 0,
                 "long_range": -2
             },

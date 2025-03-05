@@ -20,15 +20,18 @@ const WORLD_TRAITS_PATH = "res://data/world_traits.json"
 var _planet_types: Array = []
 var _location_types: Array = []
 var _world_traits: Array = []
+var _world_data: Dictionary = {}
+var _sector_data: Array[Dictionary] = []
+var _data_manager: Object
 
 # Generator settings
 var _danger_level_modifier: int = 0
 var _use_specific_planet_type: bool = false
 var _specific_planet_type: String = ""
-var _data_manager: GameDataManager
 
 func _init() -> void:
-    _data_manager = GameDataManager.new()
+    _data_manager = GameDataManager.get_instance()
+    GameDataManager.ensure_data_loaded()
     _load_data()
 
 func _ready() -> void:

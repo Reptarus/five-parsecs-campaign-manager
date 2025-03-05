@@ -1,5 +1,5 @@
 class_name FPCM_CampaignResponsiveLayout
-extends ResponsiveContainer
+extends FPCM_ResponsiveContainer
 
 const VERTICAL = 1
 const HORIZONTAL = 0
@@ -26,6 +26,23 @@ func _setup_touch_controls() -> void:
 func _connect_signals() -> void:
     if sidebar and sidebar.has_signal("back_pressed"):
         sidebar.back_pressed.connect(_on_back_pressed)
+
+func initialize(parent_control: Control) -> void:
+    # Connect to the parent control and set up responsive behavior
+    var parent_size = parent_control.size
+    size = parent_size
+    
+    # Connect to parent resizing
+    parent_control.resized.connect(func():
+        size = parent_control.size
+    )
+    
+    # Add this layout to the parent
+    if not is_inside_tree():
+        parent_control.add_child(self)
+    
+    # Force layout update
+    _check_orientation()
 
 func _apply_portrait_layout() -> void:
     if not main_container or not sidebar or not main_content:

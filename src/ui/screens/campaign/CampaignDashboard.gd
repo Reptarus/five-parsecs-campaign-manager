@@ -4,6 +4,7 @@ extends Control
 const GameEnums = preload("res://src/core/systems/GlobalEnums.gd")
 const GameState = preload("res://src/core/state/GameState.gd")
 const CampaignPhaseManagerScript = preload("res://src/core/campaign/CampaignPhaseManager.gd")
+const FPCM_BasePhasePanel = preload("res://src/ui/screens/campaign/phases/BasePhasePanel.gd")
 
 const UpkeepPhasePanel = preload("res://src/ui/screens/campaign/phases/UpkeepPhasePanel.tscn")
 const StoryPhasePanel = preload("res://src/ui/screens/campaign/phases/StoryPhasePanel.tscn")
@@ -30,7 +31,7 @@ const EndPhasePanel = preload("res://src/ui/screens/campaign/phases/EndPhasePane
 
 var game_state: GameState
 var phase_manager: Node
-var current_phase_panel: BasePhasePanel
+var current_phase_panel: FPCM_BasePhasePanel
 
 func _ready() -> void:
 	game_state = GameState.new()
@@ -135,7 +136,7 @@ func _load_phase_content(phase: int) -> void:
 		phase_content.add_child(panel)
 		panel.setup(game_state, phase_manager)
 
-func _create_phase_panel(phase: int) -> BasePhasePanel:
+func _create_phase_panel(phase: int) -> FPCM_BasePhasePanel:
 	match phase:
 		GameEnums.CampaignPhase.UPKEEP:
 			return UpkeepPhasePanel.instantiate()

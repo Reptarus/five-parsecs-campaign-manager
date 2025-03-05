@@ -1,4 +1,4 @@
-extends BasePhasePanel
+extends FPCM_BasePhasePanel
 class_name FPCM_StoryPhasePanel
 
 const EventManager = preload("res://src/core/managers/EventManager.gd")

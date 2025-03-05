@@ -2,16 +2,16 @@
 extends Resource
 class_name Ship
 
-const ShipComponent = preload("res://src/core/ships/components/ShipComponent.gd")
+const FPCM_ShipComponent = preload("res://src/core/ships/components/ShipComponent.gd")
 const EngineComponent = preload("res://src/core/ships/components/EngineComponent.gd")
 const MedicalBayComponent = preload("res://src/core/ships/components/MedicalBayComponent.gd")
 const HullComponent = preload("res://src/core/ships/components/HullComponent.gd")
 const WeaponsComponent = preload("res://src/core/ships/components/WeaponsComponent.gd")
 const FiveParsecsShipRoles = preload("res://src/game/ships/FiveParsecsShipRoles.gd")
 
-signal component_added(component: ShipComponent)
-signal component_removed(component: ShipComponent)
-signal component_upgraded(component: ShipComponent)
+signal component_added(component: FPCM_ShipComponent)
+signal component_removed(component: FPCM_ShipComponent)
+signal component_upgraded(component: FPCM_ShipComponent)
 signal ship_damaged(amount: int)
 signal ship_repaired(amount: int)
 signal power_state_changed(available: int, required: int)
@@ -41,7 +41,7 @@ signal ship_class_changed(old_class: String, new_class: String)
 # Ship state
 var is_powered: bool = true
 var power_usage: int = 0
-var components: Array[ShipComponent] = []
+var components: Array[FPCM_ShipComponent] = []
 var ship_roles: FiveParsecsShipRoles
 
 # Five Parsecs Ship Classes (based on rulebook p.75-76)
@@ -259,7 +259,7 @@ func set_ship_class(new_class: ShipClass) -> void:
 		# Update power state
 		update_power_state()
 
-func add_component(component: ShipComponent) -> bool:
+func add_component(component: FPCM_ShipComponent) -> bool:
 	if component == null:
 		push_error("Cannot add null component")
 		return false
@@ -274,7 +274,7 @@ func add_component(component: ShipComponent) -> bool:
 	component_added.emit(component)
 	return true
 
-func remove_component(component: ShipComponent) -> bool:
+func remove_component(component: FPCM_ShipComponent) -> bool:
 	if component == null:
 		push_error("Cannot remove null component")
 		return false
@@ -289,7 +289,7 @@ func remove_component(component: ShipComponent) -> bool:
 	component_removed.emit(component)
 	return true
 
-func upgrade_component(component: ShipComponent) -> bool:
+func upgrade_component(component: FPCM_ShipComponent) -> bool:
 	if component == null or not component in components:
 		return false
 		
@@ -347,14 +347,14 @@ func get_power_available() -> int:
 func get_component_count() -> int:
 	return components.size()
 
-func get_active_components() -> Array[ShipComponent]:
+func get_active_components() -> Array[FPCM_ShipComponent]:
 	var active = []
 	for component in components:
 		if component.is_active:
 			active.append(component)
 	return active
 
-func get_inactive_components() -> Array[ShipComponent]:
+func get_inactive_components() -> Array[FPCM_ShipComponent]:
 	var inactive = []
 	for component in components:
 		if not component.is_active:

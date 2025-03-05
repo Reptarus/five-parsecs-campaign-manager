@@ -33,13 +33,13 @@ var current_location_id: String = ""
 var sectors: Dictionary = {} # sector_name: {coordinates: Vector2, planets: Array}
 
 # Data manager for loading traits
-var _data_manager: GameDataManager = null
+var _data_manager: Object = null
 
 func _init() -> void:
-    # Create the data manager instance
+    # Use the singleton instance
     if not Engine.is_editor_hint():
-        _data_manager = GameDataManager.new()
-        _data_manager.load_all_data()
+        _data_manager = GameDataManager.get_instance()
+        GameDataManager.ensure_data_loaded()
 
 ## Generate a new game world with the specified number of sectors
 func generate_world(num_sectors: int = 1) -> void:

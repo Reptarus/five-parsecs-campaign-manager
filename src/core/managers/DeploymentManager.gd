@@ -4,6 +4,11 @@ const GameEnums := preload("res://src/core/systems/GlobalEnums.gd")
 const Character := preload("res://src/core/character/Base/Character.gd")
 const TerrainTypes := preload("res://src/core/terrain/TerrainTypes.gd")
 
+# Local constants for terrain feature types not defined in GameEnums
+const TERRAIN_FEATURE_SPAWN_POINT = 100
+const TERRAIN_FEATURE_EXIT_POINT = 101
+const TERRAIN_FEATURE_OBJECTIVE = 102
+
 signal deployment_zones_generated(zones: Array[Dictionary])
 signal terrain_generated(terrain: Array[Dictionary])
 
@@ -134,13 +139,13 @@ func generate_terrain_layout(terrain_features: Array[GameEnums.TerrainFeatureTyp
 func _add_required_terrain_features() -> void:
 	# Add spawn points
 	terrain_layout.append({
-		"type": GameEnums.TerrainFeatureType.SPAWN_POINT,
+		"type": TERRAIN_FEATURE_SPAWN_POINT,
 		"position": Vector2(2, 2)
 	})
 	
 	# Add exit points
 	terrain_layout.append({
-		"type": GameEnums.TerrainFeatureType.EXIT_POINT,
+		"type": TERRAIN_FEATURE_EXIT_POINT,
 		"position": Vector2(grid_size.x - 2, grid_size.y - 2)
 	})
 	
@@ -148,7 +153,7 @@ func _add_required_terrain_features() -> void:
 	match current_deployment_type:
 		GameEnums.DeploymentType.DEFENSIVE:
 			terrain_layout.append({
-				"type": GameEnums.TerrainFeatureType.OBJECTIVE,
+				"type": TERRAIN_FEATURE_OBJECTIVE,
 				"position": Vector2(grid_size.x / 2, grid_size.y / 2)
 			})
 

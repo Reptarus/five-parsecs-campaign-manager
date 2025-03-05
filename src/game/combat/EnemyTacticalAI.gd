@@ -3,9 +3,9 @@ class_name FPCM_EnemyTacticalAI
 extends Node
 
 ## Signals
-signal decision_made(enemy: FiveParsecsCharacter, action: Dictionary)
-signal tactic_changed(enemy: FiveParsecsCharacter, new_tactic: int)
-signal group_coordination_updated(group: Array[FiveParsecsCharacter], leader: FiveParsecsCharacter)
+signal decision_made(enemy: Object, action: Dictionary)
+signal tactic_changed(enemy: Object, new_tactic: int)
+signal group_coordination_updated(group: Array, leader: Object)
 
 ## Dependencies
 const GlobalEnums := preload("res://src/core/systems/GlobalEnums.gd")
@@ -89,7 +89,7 @@ func make_tactical_decision(enemy: Character) -> Dictionary:
 			return _make_default_decision(enemy)
 
 ## Updates threat assessment for an enemy
-func _update_threat_assessment(enemy: FiveParsecsCharacter) -> void:
+func _update_threat_assessment(enemy: Object) -> void:
 	var threats: Dictionary = {}
 	var enemy_pos: Vector2 = battlefield_manager.get_character_position(enemy)
 	
@@ -103,7 +103,7 @@ func _update_threat_assessment(enemy: FiveParsecsCharacter) -> void:
 	_tactical_states[enemy].threat_level = threats.values().max()
 
 ## Calculates threat score for a target
-func _calculate_threat_score(target: FiveParsecsCharacter, distance: float) -> float:
+func _calculate_threat_score(target: Object, distance: float) -> float:
 	var base_threat: float = target.get_combat_rating()
 	var distance_factor: float = 1.0 / max(1.0, distance)
 	var health_factor: float = float(target.get_health()) / float(target.get_max_health())
@@ -111,11 +111,11 @@ func _calculate_threat_score(target: FiveParsecsCharacter, distance: float) -> f
 	return base_threat * distance_factor * health_factor
 
 ## Makes a decision for aggressive personality
-func _make_aggressive_decision(enemy: FiveParsecsCharacter) -> Dictionary:
+func _make_aggressive_decision(enemy: Object) -> Dictionary:
 	var threats: Dictionary = _threat_assessments[enemy]
 	
 	# Find closest high-threat target
-	var best_target: FiveParsecsCharacter = null
+	var best_target: Object = null
 	var highest_threat: float = 0.0
 	
 	for target in threats:
@@ -134,7 +134,7 @@ func _make_aggressive_decision(enemy: FiveParsecsCharacter) -> Dictionary:
 	return _make_default_decision(enemy)
 
 ## Makes a decision for cautious personality
-func _make_cautious_decision(enemy: FiveParsecsCharacter) -> Dictionary:
+func _make_cautious_decision(enemy: Object) -> Dictionary:
 	var safe_positions: Array[Vector2] = _find_safe_positions(enemy)
 	
 	if not safe_positions.is_empty():
@@ -148,7 +148,7 @@ func _make_cautious_decision(enemy: FiveParsecsCharacter) -> Dictionary:
 	return _make_default_decision(enemy)
 
 ## Makes a decision for tactical personality
-func _make_tactical_decision(enemy: FiveParsecsCharacter) -> Dictionary:
+func _make_tactical_decision(enemy: Object) -> Dictionary:
 	# Analyze battlefield situation
 	var situation: String = _analyze_battlefield_situation(enemy)
 	
@@ -163,10 +163,10 @@ func _make_tactical_decision(enemy: FiveParsecsCharacter) -> Dictionary:
 	return _make_default_decision(enemy)
 
 ## Makes a decision for protective personality
-func _make_protective_decision(enemy: FiveParsecsCharacter) -> Dictionary:
+func _make_protective_decision(enemy: Object) -> Dictionary:
 	# Find allies to protect
-	var allies: Array[FiveParsecsCharacter] = _find_nearby_allies(enemy)
-	var threatened_ally: FiveParsecsCharacter = _find_most_threatened_ally(allies)
+	var allies: Array = _find_nearby_allies(enemy)
+	var threatened_ally: Object = _find_most_threatened_ally(allies)
 	
 	if threatened_ally:
 		return {
@@ -178,7 +178,7 @@ func _make_protective_decision(enemy: FiveParsecsCharacter) -> Dictionary:
 	return _make_default_decision(enemy)
 
 ## Makes an unpredictable decision
-func _make_unpredictable_decision(enemy: FiveParsecsCharacter) -> Dictionary:
+func _make_unpredictable_decision(enemy: Object) -> Dictionary:
 	var decisions: Array[Callable] = [
 		func() -> Dictionary: return _make_aggressive_decision(enemy),
 		func() -> Dictionary: return _make_cautious_decision(enemy),
@@ -189,14 +189,14 @@ func _make_unpredictable_decision(enemy: FiveParsecsCharacter) -> Dictionary:
 	return decisions[randi() % decisions.size()].call()
 
 ## Makes a default decision
-func _make_default_decision(enemy: FiveParsecsCharacter) -> Dictionary:
+func _make_default_decision(enemy: Object) -> Dictionary:
 	return {
 		"action": GlobalEnums.UnitAction.TAKE_COVER,
 		"tactic": GlobalEnums.CombatTactic.BALANCED
 	}
 
 ## Makes a group-coordinated decision
-func _make_group_decision(enemy: FiveParsecsCharacter, group: Array[FiveParsecsCharacter]) -> Dictionary:
+func _make_group_decision(enemy: Object, group: Array) -> Dictionary:
 	var group_state: Dictionary = _analyze_group_state(group)
 	var group_tactic: GroupTactic = _determine_group_tactic(group_state)
 	
@@ -213,7 +213,7 @@ func _make_group_decision(enemy: FiveParsecsCharacter, group: Array[FiveParsecsC
 			return _make_default_decision(enemy)
 
 ## Finds safe positions for a unit
-func _find_safe_positions(enemy: FiveParsecsCharacter) -> Array[Vector2]:
+func _find_safe_positions(enemy: Object) -> Array[Vector2]:
 	var safe_positions: Array[Vector2] = []
 	var current_pos: Vector2 = battlefield_manager.get_character_position(enemy)
 	var movement_range: int = enemy.get_movement_range()
@@ -228,7 +228,7 @@ func _find_safe_positions(enemy: FiveParsecsCharacter) -> Array[Vector2]:
 	return safe_positions
 
 ## Checks if a position is safe
-func _is_position_safe(enemy: FiveParsecsCharacter, position: Vector2) -> bool:
+func _is_position_safe(enemy: Object, position: Vector2) -> bool:
 	if not battlefield_manager.is_valid_position(position):
 		return false
 		
@@ -245,8 +245,8 @@ func _is_position_safe(enemy: FiveParsecsCharacter, position: Vector2) -> bool:
 	return has_cover and not exposed_to_enemies
 
 ## Finds nearby allies
-func _find_nearby_allies(enemy: FiveParsecsCharacter) -> Array[FiveParsecsCharacter]:
-	var allies: Array[FiveParsecsCharacter] = []
+func _find_nearby_allies(enemy: Object) -> Array:
+	var allies: Array = []
 	var enemy_pos: Vector2 = battlefield_manager.get_character_position(enemy)
 	
 	for other in battlefield_manager.get_enemy_characters():
@@ -260,8 +260,8 @@ func _find_nearby_allies(enemy: FiveParsecsCharacter) -> Array[FiveParsecsCharac
 	return allies
 
 ## Finds the most threatened ally
-func _find_most_threatened_ally(allies: Array[FiveParsecsCharacter]) -> FiveParsecsCharacter:
-	var most_threatened: FiveParsecsCharacter = null
+func _find_most_threatened_ally(allies: Array) -> Object:
+	var most_threatened: Object = null
 	var highest_threat: float = 0.0
 	
 	for ally in allies:
@@ -273,13 +273,13 @@ func _find_most_threatened_ally(allies: Array[FiveParsecsCharacter]) -> FivePars
 	return most_threatened
 
 ## Analyzes the battlefield situation
-func _analyze_battlefield_situation(enemy: FiveParsecsCharacter) -> String:
+func _analyze_battlefield_situation(enemy: Object) -> String:
 	var enemy_strength: float = _calculate_force_strength([enemy])
 	# Convert the array to the expected type
 	var player_characters = battlefield_manager.get_player_characters()
-	var player_characters_converted: Array[FiveParsecsCharacter] = []
+	var player_characters_converted: Array = []
 	for character in player_characters:
-		player_characters_converted.append(character as FiveParsecsCharacter)
+		player_characters_converted.append(character)
 	var player_strength: float = _calculate_force_strength(player_characters_converted)
 	
 	var strength_ratio: float = enemy_strength / max(1.0, player_strength)
@@ -292,7 +292,7 @@ func _analyze_battlefield_situation(enemy: FiveParsecsCharacter) -> String:
 		return "neutral"
 
 ## Calculates total force strength
-func _calculate_force_strength(forces: Array[FiveParsecsCharacter]) -> float:
+func _calculate_force_strength(forces: Array) -> float:
 	var total_strength := 0.0
 	
 	for unit in forces:
@@ -302,7 +302,7 @@ func _calculate_force_strength(forces: Array[FiveParsecsCharacter]) -> float:
 	return total_strength
 
 ## Makes a balanced decision
-func _make_balanced_decision(enemy: FiveParsecsCharacter) -> Dictionary:
+func _make_balanced_decision(enemy: Object) -> Dictionary:
 	var safe_positions: Array[Vector2] = _find_safe_positions(enemy)
 	
 	if not safe_positions.is_empty():
@@ -316,7 +316,7 @@ func _make_balanced_decision(enemy: FiveParsecsCharacter) -> Dictionary:
 	return _make_default_decision(enemy)
 
 ## Analyzes the state of a group
-func _analyze_group_state(group: Array[FiveParsecsCharacter]) -> Dictionary:
+func _analyze_group_state(group: Array) -> Dictionary:
 	var group_health := 0.0
 	var group_strength := 0.0
 	var group_positions: Array[Vector2] = []
@@ -349,7 +349,7 @@ func _determine_group_tactic(group_state: Dictionary) -> GroupTactic:
 		return GroupTactic.SUPPRESSION_PATTERN
 
 ## Coordinates a group attack
-func _coordinate_group_attack(enemy: FiveParsecsCharacter, group: Array[FiveParsecsCharacter]) -> Dictionary:
+func _coordinate_group_attack(enemy: Object, group: Array) -> Dictionary:
 	var target := _find_best_group_target(group)
 	if not target:
 		return _make_default_decision(enemy)
@@ -362,7 +362,7 @@ func _coordinate_group_attack(enemy: FiveParsecsCharacter, group: Array[FivePars
 	}
 
 ## Coordinates group defense
-func _coordinate_group_defense(enemy: FiveParsecsCharacter, group: Array[FiveParsecsCharacter]) -> Dictionary:
+func _coordinate_group_defense(enemy: Object, group: Array) -> Dictionary:
 	var defensive_position := _find_best_defensive_position(group)
 	
 	return {
@@ -373,7 +373,7 @@ func _coordinate_group_defense(enemy: FiveParsecsCharacter, group: Array[FivePar
 	}
 
 ## Coordinates group flanking
-func _coordinate_group_flanking(enemy: FiveParsecsCharacter, group: Array[FiveParsecsCharacter]) -> Dictionary:
+func _coordinate_group_flanking(enemy: Object, group: Array) -> Dictionary:
 	var target := _find_best_group_target(group)
 	if not target:
 		return _make_default_decision(enemy)
@@ -389,7 +389,7 @@ func _coordinate_group_flanking(enemy: FiveParsecsCharacter, group: Array[FivePa
 	}
 
 ## Coordinates group suppression
-func _coordinate_group_suppression(enemy: FiveParsecsCharacter, group: Array[FiveParsecsCharacter]) -> Dictionary:
+func _coordinate_group_suppression(enemy: Object, group: Array) -> Dictionary:
 	var target := _find_best_group_target(group)
 	if not target:
 		return _make_default_decision(enemy)
@@ -403,8 +403,8 @@ func _coordinate_group_suppression(enemy: FiveParsecsCharacter, group: Array[Fiv
 	}
 
 ## Finds the best target for a group
-func _find_best_group_target(group: Array[FiveParsecsCharacter]) -> FiveParsecsCharacter:
-	var best_target: FiveParsecsCharacter = null
+func _find_best_group_target(group: Array) -> Object:
+	var best_target: Object = null
 	var highest_priority := 0.0
 	
 	for target in battlefield_manager.get_player_characters():
@@ -416,7 +416,7 @@ func _find_best_group_target(group: Array[FiveParsecsCharacter]) -> FiveParsecsC
 	return best_target
 
 ## Calculates target priority for a group
-func _calculate_group_target_priority(target: FiveParsecsCharacter, group: Array[FiveParsecsCharacter]) -> float:
+func _calculate_group_target_priority(target: Object, group: Array) -> float:
 	var priority: float = 0.0
 	
 	for member in group:
@@ -428,7 +428,7 @@ func _calculate_group_target_priority(target: FiveParsecsCharacter, group: Array
 	return priority / float(group.size())
 
 ## Finds best defensive position for a group
-func _find_best_defensive_position(group: Array[FiveParsecsCharacter]) -> Vector2:
+func _find_best_defensive_position(group: Array) -> Vector2:
 	var center := Vector2.ZERO
 	
 	for member in group:
@@ -452,7 +452,7 @@ func _find_best_defensive_position(group: Array[FiveParsecsCharacter]) -> Vector
 	return best_pos
 
 ## Calculates flanking position
-func _calculate_flank_position(target: FiveParsecsCharacter, flanker: FiveParsecsCharacter) -> Vector2:
+func _calculate_flank_position(target: Object, flanker: Object) -> Vector2:
 	var target_pos: Vector2 = battlefield_manager.get_character_position(target)
 	var flanker_pos: Vector2 = battlefield_manager.get_character_position(flanker)
 	

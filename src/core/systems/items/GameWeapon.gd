@@ -18,22 +18,23 @@ const GameEnums = preload("res://src/core/systems/GlobalEnums.gd")
 @export var weapon_cost: Dictionary = {"credits": 0, "rarity": "Common"}
 @export var weapon_tags: Array[String] = []
 @export var weapon_ammo: Dictionary = {"type": "", "capacity": 0, "current": 0}
+@export var is_two_handed: bool = false
+@export var durability: int = 100
 
-var _data_manager: GameDataManager = null
+var _data_manager: Object = null
 
 func _init() -> void:
 	if Engine.is_editor_hint():
 		return
 		
-	# Create the data manager instance if needed
-	if _data_manager == null:
-		_data_manager = GameDataManager.new()
-		_data_manager.load_weapons_database()
+	# Use the shared GameDataManager instance
+	_data_manager = GameDataManager.get_instance()
+	GameDataManager.ensure_data_loaded()
 
 func initialize_from_id(id: String) -> bool:
 	if _data_manager == null:
-		_data_manager = GameDataManager.new()
-		_data_manager.load_weapons_database()
+		_data_manager = GameDataManager.get_instance()
+		GameDataManager.ensure_data_loaded()
 		
 	var weapon_data = _data_manager.get_weapon(id)
 	if weapon_data.is_empty():

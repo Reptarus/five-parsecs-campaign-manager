@@ -8,6 +8,7 @@ extends Resource
 const GameEnums = preload("res://src/core/systems/GlobalEnums.gd")
 const FiveParsecsCharacter = preload("res://src/core/character/Base/Character.gd")
 const StatusEffect = preload("res://src/ui/screens/campaign/StatusEffects.gd")
+const CoreStatDistribution = preload("res://src/core/utils/stat_distribution.gd")
 
 signal stat_changed(stat: String, new_value: int)
 
@@ -100,8 +101,8 @@ func serialize() -> Dictionary:
 		"permanent_modifiers": permanent_modifiers
 	}
 
-static func deserialize(data_dict: Dictionary, character_instance: FiveParsecsCharacter) -> FiveParsecsStatDistribution:
-	var new_stat_distribution = FiveParsecsStatDistribution.new(character_instance)
+static func deserialize(data_dict: Dictionary, character_instance: FiveParsecsCharacter) -> Resource:
+	var new_stat_distribution = load("res://src/utils/helpers/stat_distribution.gd").new(character_instance)
 	if data_dict.has("base_stats"):
 		new_stat_distribution.base_stats = data_dict["base_stats"]
 	if data_dict.has("temporary_modifiers"):

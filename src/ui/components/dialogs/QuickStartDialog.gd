@@ -2,6 +2,7 @@ class_name FPCM_QuickStartDialog
 extends Control
 
 const GameEnums := preload("res://src/core/systems/GlobalEnums.gd")
+const GestureManager = preload("res://src/ui/components/gesture/GestureManager.gd")
 
 signal import_requested(data: Dictionary)
 signal template_selected(template_name: String)
@@ -9,7 +10,7 @@ signal victory_achieved(victory: bool, message: String)
 
 @onready var import_button := $VBoxContainer/ImportButton
 @onready var template_list := $VBoxContainer/TemplateList
-@onready var gesture_manager: GestureManager
+@onready var gesture_manager: Object
 
 var templates: Dictionary = {}
 

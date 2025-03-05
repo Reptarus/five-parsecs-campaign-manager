@@ -50,7 +50,7 @@ const MARKET_STATE_SURPLUS = 4
 const MARKET_STATE_BLOCKADE = 5
 
 # Data manager for loading traits
-var _data_manager: GameDataManager = null
+var _data_manager: Object = null
 
 # Signal for location updates
 signal location_updated
@@ -72,10 +72,10 @@ func _init() -> void:
     # Initialize market prices
     update_market_state()
     
-    # Create the data manager instance
+    # Use the singleton instance
     if not Engine.is_editor_hint():
-        _data_manager = GameDataManager.new()
-        _data_manager.load_all_data()
+        _data_manager = GameDataManager.get_instance()
+        GameDataManager.ensure_data_loaded()
 
 ## Add a world trait to the location by its ID
 func add_world_trait_by_id(trait_id: String) -> void:

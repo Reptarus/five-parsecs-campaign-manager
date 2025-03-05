@@ -3,7 +3,7 @@ extends Control
 class_name FPCM_CampaignUI
 
 # Dependencies
-const CampaignResponsiveLayout = preload("res://src/ui/components/base/CampaignResponsiveLayout.gd")
+const FPCM_CampaignResponsiveLayout = preload("res://src/ui/components/base/CampaignResponsiveLayout.gd")
 const CampaignManager = preload("res://src/core/managers/CampaignManager.gd")
 const GameCampaignManager = preload("res://src/core/campaign/GameCampaignManager.gd")
 const CampaignDashboard: PackedScene = preload("res://src/ui/screens/campaign/CampaignDashboard.tscn")
@@ -33,7 +33,7 @@ signal event_occurred(event_data: Dictionary)
 
 # Internal state
 var _current_phase: GameEnums.CampaignPhase = GameEnums.CampaignPhase.SETUP
-var _layout: CampaignResponsiveLayout
+var _layout: FPCM_CampaignResponsiveLayout
 var _campaign_manager: GameCampaignManager
 var _phase_manager: CampaignPhaseManager
 
@@ -45,7 +45,7 @@ func _ready() -> void:
 	_setup_phase_manager()
 
 func _initialize_layout() -> void:
-	_layout = CampaignResponsiveLayout.new()
+	_layout = FPCM_CampaignResponsiveLayout.new()
 	_layout.initialize(self)
 
 func _setup_dashboard() -> void:

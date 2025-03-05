@@ -16,22 +16,22 @@ const GameEnums = preload("res://src/core/systems/GlobalEnums.gd")
 @export var item_uses: int = 1
 @export var item_cost: Dictionary = {"credits": 0, "rarity": "Common"}
 @export var item_tags: Array[String] = []
+@export var item_requirements: Dictionary = {}
 
-var _data_manager: GameDataManager = null
+var _data_manager: Object = null
 
 func _init() -> void:
 	if Engine.is_editor_hint():
 		return
 		
-	# Create the data manager instance if needed
-	if _data_manager == null:
-		_data_manager = GameDataManager.new()
-		_data_manager.load_gear_database()
+	# Use the singleton instance
+	_data_manager = GameDataManager.get_instance()
+	GameDataManager.ensure_data_loaded()
 
 func initialize_from_id(id: String) -> bool:
 	if _data_manager == null:
-		_data_manager = GameDataManager.new()
-		_data_manager.load_gear_database()
+		_data_manager = GameDataManager.get_instance()
+		GameDataManager.ensure_data_loaded()
 		
 	var item_data = _data_manager.get_gear_item(id)
 	if item_data.is_empty():

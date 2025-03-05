@@ -588,4 +588,23 @@
             },
             {
                 "id": "SURVIVAL",
-                "name":
+                "name": "Survival",
+                "description": "Skills focusing on surviving in hostile environments",
+                "skills": [
+                    {
+                        "id": "tracking",
+                        "name": "Tracking",
+                        "description": "Ability to track enemies and wildlife",
+                        "effect": "Gain advantage when pursuing targets"
+                    },
+                    {
+                        "id": "foraging",
+                        "name": "Foraging",
+                        "description": "Find food and supplies in the wilderness",
+                        "effect": "Recover resources during travel"
+                    }
+                ]
+            }
+        ]
+    }
+}

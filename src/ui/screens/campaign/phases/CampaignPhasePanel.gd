@@ -1,4 +1,4 @@
-extends BasePhasePanel
+extends FPCM_BasePhasePanel
 class_name FPCM_CampaignPhasePanel
 
 const CampaignManager = preload("res://src/core/managers/CampaignManager.gd")

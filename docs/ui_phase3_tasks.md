@@ -137,8 +137,8 @@ This document outlines the specific tasks needed to complete Phase 3 of the Five
 
 ## Resources
 
-- [UI Refactoring Guide](ui_refactoring_guide.md)
-- [Duplicate Files Reference](ui_duplicate_files.md)
-- [UI Cleanup Progress](ui_cleanup_progress.md)
+- [UI Cleanup Summary](ui_cleanup_summary.md)
+- [Duplicate Files Reference](archive/ui_duplicate_files.md) (archived)
+- [UI Cleanup Progress](archive/ui_cleanup_progress.md) (archived)
 - [UI Standards](#) - To be created
 - [GDScript Style Guide](https://docs.godotengine.org/en/stable/tutorials/scripting/gdscript/gdscript_styleguide.html) 

@@ -2,6 +2,8 @@ class_name FPCM_ResourceDisplay
 extends Control
 
 const GameEnums = preload("res://src/core/systems/GlobalEnums.gd")
+const ResourceItem = preload("res://src/ui/resource/ResourceItem.gd")
+const ResourceSystem = preload("res://src/core/systems/ResourceSystem.gd")
 
 @onready var resource_container: VBoxContainer = $MainContainer/ResourceContainer
 @onready var history_container: VBoxContainer = $MainContainer/HistoryContainer

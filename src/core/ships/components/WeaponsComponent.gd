@@ -1,6 +1,6 @@
 # Scripts/ShipAndCrew/WeaponsComponent.gd
 @tool
-extends ShipComponent
+extends FPCM_ShipComponent
 class_name WeaponsComponent
 
 @export var weapon_damage: int = 10
@@ -53,7 +53,7 @@ func serialize() -> Dictionary:
 # Factory method to create WeaponsComponent from data
 static func create_from_data(data: Dictionary) -> WeaponsComponent:
 	var component = WeaponsComponent.new()
-	var base_data = ShipComponent.deserialize(data)
+	var base_data = FPCM_ShipComponent.deserialize(data)
 	
 	# Copy base data
 	component.name = base_data.name
@@ -85,7 +85,7 @@ static func create_from_data(data: Dictionary) -> WeaponsComponent:
 
 # Return serialized data with proper weapons type
 static func deserialize(data: Dictionary) -> Dictionary:
-	var base_data = ShipComponent.deserialize(data)
+	var base_data = FPCM_ShipComponent.deserialize(data)
 	base_data["component_type"] = "weapons"
 	base_data["weapon_damage"] = data.get("weapon_damage", 10)
 	if data.has("damage"): # For backward compatibility

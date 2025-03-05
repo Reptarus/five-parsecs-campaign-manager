@@ -1,10 +1,11 @@
 @tool
-class_name FiveParsecsPostBattlePhase
 extends BasePostBattlePhase
+class_name FiveParsecsPostBattlePhase
 
 const BasePostBattlePhase = preload("res://src/base/campaign/BasePostBattlePhase.gd")
 const GameEnums = preload("res://src/core/systems/GlobalEnums.gd")
 const FiveParsecsCrewMember = preload("res://src/game/campaign/crew/FiveParsecsCrewMember.gd")
+const GameDataManager = preload("res://src/core/managers/GameDataManager.gd")
 
 # Battle outcome constants
 enum BattleOutcome {
@@ -62,9 +63,9 @@ var battle_data: Dictionary = {}
 
 func _init() -> void:
 	super()
-	# Create the data manager instance
-	data_manager = load("res://src/core/managers/GameDataManager.gd").new()
-	data_manager.load_all_data()
+	# Use the global GameDataManager singleton
+	data_manager = load("res://src/core/managers/GameDataManager.gd").get_instance()
+	GameDataManager.ensure_data_loaded()
 
 func start_post_battle_phase(battle_data_param: Dictionary) -> void:
 	super.start_post_battle_phase(battle_data_param)

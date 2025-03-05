@@ -43,7 +43,8 @@ var _campaign_difficulty_mod: int = 0
 var _mission_danger_mod: int = 0
 
 func _init() -> void:
-    _data_manager = GameDataManager.new()
+    _data_manager = GameDataManager.get_instance()
+    GameDataManager.ensure_data_loaded()
     _load_data()
 
 func _ready() -> void:
@@ -327,11 +328,40 @@ func set_mission_danger_modifier(modifier: int) -> void:
 
 ## Create an enemy based on type and faction
 func _create_enemy(enemy_type: String, faction: String) -> Dictionary:
-    if not _enemy_types.has(enemy_type) or not _enemy_types[enemy_type].has(faction):
-        push_error("Invalid enemy type or faction: " + enemy_type + ", " + faction)
+    # Check if we have the needed data structure
+    if not _enemy_types.has("enemy_categories"):
+        push_error("Invalid enemy_types data structure: missing enemy_categories")
+        return {}
+        
+    # Find the faction in enemy_categories
+    var faction_found = false
+    var enemy_category = null
+    
+    for category in _enemy_types.enemy_categories:
+        if category.get("id") == faction:
+            faction_found = true
+            enemy_category = category
+            break
+    
+    if not faction_found or not enemy_category:
+        push_error("Invalid faction: " + faction)
         return {}
     
-    var enemy_template = _enemy_types[enemy_type][faction].duplicate()
-    _adjust_enemy_stats(enemy_template)
+    # Find the enemy type in the enemies array
+    if not enemy_category.has("enemies"):
+        push_error("Invalid enemy category: missing enemies array")
+        return {}
+        
+    var enemy_template = null
+    for enemy in enemy_category.enemies:
+        # Match by enemy type category (grunt, elite, boss, etc.)
+        if enemy.get("tags", []).has(enemy_type):
+            enemy_template = enemy.duplicate(true)
+            break
     
+    if not enemy_template:
+        push_error("Enemy type not found: " + enemy_type + " in faction " + faction)
+        return {}
+    
+    _adjust_enemy_stats(enemy_template)
     return enemy_template

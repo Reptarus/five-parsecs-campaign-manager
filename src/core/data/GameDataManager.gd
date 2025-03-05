@@ -1,6 +1,6 @@
 @tool
 extends Resource
-class_name GameDataManager
+class_name FPCM_GameDataManager
 
 # Paths to data files
 const ARMOR_DATA_PATH = "res://data/equipment/armor.json"

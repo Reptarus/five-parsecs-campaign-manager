@@ -1,6 +1,6 @@
 # Scripts/ShipAndCrew/MedicalBayComponent.gd
 @tool
-extends ShipComponent
+extends FPCM_ShipComponent
 class_name MedicalBayComponent
 
 @export var healing_rate: float = 1.0
@@ -110,7 +110,7 @@ func serialize() -> Dictionary:
 # Factory method to create MedicalBayComponent from data
 static func create_from_data(data: Dictionary) -> MedicalBayComponent:
 	var component = MedicalBayComponent.new()
-	var base_data = ShipComponent.deserialize(data)
+	var base_data = FPCM_ShipComponent.deserialize(data)
 	
 	# Copy base data
 	component.name = base_data.name
@@ -140,7 +140,7 @@ static func create_from_data(data: Dictionary) -> MedicalBayComponent:
 
 # Return serialized data with proper medical bay type
 static func deserialize(data: Dictionary) -> Dictionary:
-	var base_data = ShipComponent.deserialize(data)
+	var base_data = FPCM_ShipComponent.deserialize(data)
 	base_data["component_type"] = "medical_bay"
 	base_data["healing_rate"] = data.get("healing_rate", 1.0)
 	base_data["capacity"] = data.get("capacity", 2)

@@ -1,6 +1,7 @@
 @tool
 extends BaseEquipment
 
+const FiveParsecsCharacter = preload("res://src/core/character/Base/Character.gd")
 @export var armor_type: GameEnums.ArmorType = GameEnums.ArmorType.NONE
 @export var armor_save: int = 0
 @export var armor_bonus: int = 0

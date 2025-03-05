@@ -17,9 +17,9 @@ This document summarizes the completed work and next steps for the UI cleanup of
   - `src/ui/screens/tutorial/README.md`
   - `src/ui/screens/connections/README.md`
 
-- **Reorganization Guidelines**: Created `docs/ui_refactoring_guide.md` with detailed guidelines for the cleanup process
+- **Reorganization Guidelines**: Created `docs/archive/ui_refactoring_guide.md` with detailed guidelines for the cleanup process (now archived)
 
-- **Duplicate Resolution Plans**: Created `docs/ui_duplicate_files.md` that identifies all duplicate files and provides resolution strategies
+- **Duplicate Resolution Plans**: Created `docs/archive/ui_duplicate_files.md` that identifies all duplicate files and provides resolution strategies (now archived)
 
 - **Progress Tracking**: Created `docs/ui_cleanup_progress.md` to track the ongoing progress of the cleanup
 
@@ -101,8 +101,14 @@ This document summarizes the completed work and next steps for the UI cleanup of
 
 ## Resources
 
-- [UI Refactoring Guide](docs/ui_refactoring_guide.md)
-- [Duplicate Files Reference](docs/ui_duplicate_files.md)
-- [UI Cleanup Progress](docs/ui_cleanup_progress.md)
+- [UI Refactoring Guide](archive/ui_refactoring_guide.md) (archived)
+- [Duplicate Files Reference](archive/ui_duplicate_files.md) (archived)
+- [UI Cleanup Progress](archive/ui_cleanup_progress.md) (archived)
 - [Organization Scripts](scripts/organize_ui_files.bat)
-- [Reference Detection](scripts/find_ui_references.py) 
+- [Reference Detection](scripts/find_ui_references.py)
+
+## Related Documentation
+
+- [UI Refactoring Guide](archive/ui_refactoring_guide.md) (archived)
+- [Duplicate Files Reference](archive/ui_duplicate_files.md) (archived)
+- [UI Cleanup Progress](archive/ui_cleanup_progress.md) (archived) 

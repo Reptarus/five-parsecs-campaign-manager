@@ -10,11 +10,12 @@ const GamePlanet = preload("res://src/game/world/GamePlanet.gd")
 const GameLocation = preload("res://src/game/world/GameLocation.gd")
 const GameWorldTrait = preload("res://src/game/world/GameWorldTrait.gd")
 
-var _data_manager: GameDataManager
+var _last_migration_version: String = "0.1.0"
+var _data_manager: Object
 
 func _init() -> void:
-	_data_manager = GameDataManager.new()
-	_data_manager.load_all_data()
+	_data_manager = GameDataManager.get_instance()
+	GameDataManager.ensure_data_loaded()
 
 ## Migrate a FiveParsecsPlanet to a GamePlanet
 ## Returns a new GamePlanet instance with data from the FiveParsecsPlanet

@@ -18,22 +18,23 @@ const GameEnums = preload("res://src/core/systems/GlobalEnums.gd")
 @export var armor_special_rules: Array[Dictionary] = []
 @export var armor_cost: Dictionary = {"credits": 0, "rarity": "Common"}
 @export var armor_tags: Array[String] = []
+@export var weight: float = 1.0
+@export var durability: int = 100
 
-var _data_manager: GameDataManager = null
+var _data_manager: Object = null
 
 func _init() -> void:
 	if Engine.is_editor_hint():
 		return
 		
-	# Create the data manager instance if needed
-	if _data_manager == null:
-		_data_manager = GameDataManager.new()
-		_data_manager.load_armor_database()
+	# Use the shared GameDataManager instance
+	_data_manager = GameDataManager.get_instance()
+	GameDataManager.ensure_data_loaded()
 
 func initialize_from_id(id: String) -> bool:
 	if _data_manager == null:
-		_data_manager = GameDataManager.new()
-		_data_manager.load_armor_database()
+		_data_manager = GameDataManager.get_instance()
+		GameDataManager.ensure_data_loaded()
 		
 	var armor_data = _data_manager.get_armor(id)
 	if armor_data.is_empty():

@@ -56,7 +56,7 @@ func _setup_path_node_script() -> void:
 	_path_node_script.reload()
 
 # Function to create a new PathNode without direct class reference
-func create_path_node(pos: Vector2i):
+func create_path_node(pos: Vector2i) -> Variant:
 	var node = _path_node_script.new(pos)
 	return node
 
@@ -110,15 +110,15 @@ func find_path(start_pos: Vector2, end_pos: Vector2, max_movement: float) -> Arr
 	path_not_found.emit()
 	return []
 
-func _get_lowest_f_cost_node() -> PathNode:
+func _get_lowest_f_cost_node() -> Variant:
 	var lowest_node = _open_set[0]
 	for node in _open_set:
 		if node.f_cost() < lowest_node.f_cost():
 			lowest_node = node
 	return lowest_node
 
-func _get_neighbors(node: PathNode) -> Array[PathNode]:
-	var neighbors: Array[PathNode] = []
+func _get_neighbors(node: Variant) -> Array:
+	var neighbors = []
 	
 	for direction in _movement_directions:
 		var neighbor_pos = node.position + direction
@@ -142,7 +142,7 @@ func _calculate_heuristic(pos: Vector2i, target: Vector2i) -> float:
 	var dy = abs(target.y - pos.y)
 	return 1.0 * max(dx, dy) + (1.4 - 1.0) * min(dx, dy)
 
-func _retrace_path(start_node: PathNode, end_node: PathNode) -> Array[Vector2]:
+func _retrace_path(start_node: Variant, end_node: Variant) -> Array[Vector2]:
 	var path: Array[Vector2] = []
 	var current_node = end_node
 	
@@ -165,13 +165,13 @@ func _calculate_path_cost(path: Array[Vector2]) -> float:
 	
 	return total_cost
 
-func _is_in_open_set(node: PathNode) -> bool:
+func _is_in_open_set(node: Variant) -> bool:
 	for open_node in _open_set:
 		if open_node.equals(node):
 			return true
 	return false
 
-func _is_in_closed_set(node: PathNode) -> bool:
+func _is_in_closed_set(node: Variant) -> bool:
 	for closed_node in _closed_set:
 		if closed_node.equals(node):
 			return true

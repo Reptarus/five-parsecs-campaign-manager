@@ -1,6 +1,6 @@
 # Scripts/ShipAndCrew/HullComponent.gd
 @tool
-extends ShipComponent
+extends FPCM_ShipComponent
 class_name HullComponent
 
 @export var hull_durability: int = 100
@@ -107,7 +107,7 @@ func serialize() -> Dictionary:
 # Factory method to create HullComponent from data
 static func create_from_data(data: Dictionary) -> HullComponent:
 	var component = HullComponent.new()
-	var base_data = ShipComponent.deserialize(data)
+	var base_data = FPCM_ShipComponent.deserialize(data)
 	
 	# Copy base data
 	component.name = base_data.name
@@ -137,7 +137,7 @@ static func create_from_data(data: Dictionary) -> HullComponent:
 
 # Return serialized data with proper hull type
 static func deserialize(data: Dictionary) -> Dictionary:
-	var base_data = ShipComponent.deserialize(data)
+	var base_data = FPCM_ShipComponent.deserialize(data)
 	base_data["component_type"] = "hull"
 	base_data["armor"] = data.get("armor", 5)
 	base_data["shield_strength"] = data.get("shield_strength", 0)

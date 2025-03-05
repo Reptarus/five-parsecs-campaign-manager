@@ -1,16 +1,19 @@
 class_name FPCM_TutorialUI
 extends Control
 
+const TutorialOverlay = preload("res://src/ui/components/tutorial/TutorialOverlay.gd")
+
 signal tutorial_completed
 signal tutorial_skipped
 
-@onready var overlay := TutorialOverlay.new()
+@onready var overlay: Object
 @onready var tutorial_data := {}
 
 var current_tutorial: String
 var tutorial_progress: Dictionary
 
 func _ready() -> void:
+    overlay = TutorialOverlay.new()
     add_child(overlay)
     _connect_signals()
     _load_tutorial_progress()

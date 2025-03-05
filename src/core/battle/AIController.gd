@@ -243,7 +243,7 @@ func _has_line_of_sight(from_unit: CharacterUnit, to_unit: CharacterUnit) -> boo
 		# Skip checking the starting and ending positions
 		if Vector2i(x0, y0) != from_pos and Vector2i(x0, y0) != to_pos:
 			var terrain_type = battlefield_manager.get_terrain_type(battlefield_manager._grid_to_world(Vector2i(x0, y0)))
-			if TerrainTypes.get_los_blocking(terrain_type) > 0.8: # Threshold for blocking
+			if TerrainTypes.blocks_line_of_sight(terrain_type): # Using the correct method
 				return false
 	
 	return true

@@ -6,7 +6,7 @@
 # Use the core version directly: preload("res://src/core/utils/PathFinder.gd")
 @tool
 extends Node
-class_name FPCM_PathFinder
+class_name FPCM_HelperPathFinder
 
 const TerrainTypes = preload("res://src/core/terrain/TerrainTypes.gd")
 const BattlefieldManager = preload("res://src/core/battle/BattlefieldManager.gd")
@@ -16,32 +16,32 @@ const AuthPathFinder = preload("res://src/core/utils/PathFinder.gd")
 signal path_found(path: Array[Vector2])
 signal path_not_found
 
-# Local version of PathNode to prevent errors since class_name was removed
-class PathNode:
-	var position: Vector2i
-	var g_cost: float = 0.0 # Cost from start to this node
-	var h_cost: float = 0.0 # Estimated cost from this node to end
-	var parent: PathNode = null
-	
-	func _init(pos: Vector2i) -> void:
+# PathNode script approach to avoid conflicts
+const PATH_NODE_SCRIPT = """
+extends RefCounted
+var position: Vector2i
+var g_cost: float = 0.0 # Cost from start to this node
+var h_cost: float = 0.0 # Estimated cost from this node to end
+var parent = null # Can't type this properly in GDScript
+
+func _init(pos = null) -> void:
+	if pos != null:
 		position = pos
-	
-	func f_cost() -> float:
-		return g_cost + h_cost
-	
-	func equals(other: PathNode) -> bool:
-		return position == other.position
 
-	func _to_string() -> String:
-		return "PathNode(" + str(position) + ")"
+func f_cost() -> float:
+	return g_cost + h_cost
 
-# Factory method to create PathNode instances
-func create_path_node(pos: Vector2i) -> PathNode:
-	return PathNode.new(pos)
+func equals(other) -> bool:
+	if other == null:
+		return false
+	return position == other.position
+"""
+
+var _path_node_script = null
 
 var battlefield_manager: Node # Will be cast to BattlefieldManager
-var _open_set: Array[PathNode] = []
-var _closed_set: Array[PathNode] = []
+var _open_set = [] # Array of PathNodes
+var _closed_set = [] # Array of PathNodes
 var _movement_directions := [
 	Vector2i(1, 0), # Right
 	Vector2i(-1, 0), # Left
@@ -56,6 +56,17 @@ var _movement_directions := [
 func _init(battlefield: Node) -> void: # Accept Node, will be BattlefieldManager
 	battlefield_manager = battlefield
 	push_warning("Using deprecated PathFinder from utils/helpers. Use core/utils/PathFinder.gd instead.")
+	_setup_path_node_script()
+
+func _setup_path_node_script() -> void:
+	_path_node_script = GDScript.new()
+	_path_node_script.source_code = PATH_NODE_SCRIPT
+	_path_node_script.reload()
+
+# Function to create a new PathNode without direct class reference
+func create_path_node(pos: Vector2i) -> Variant:
+	var node = _path_node_script.new(pos)
+	return node
 
 func find_path(start_pos: Vector2, end_pos: Vector2, max_movement: float) -> Array[Vector2]:
 	# Convert world positions to grid positions
@@ -107,15 +118,15 @@ func find_path(start_pos: Vector2, end_pos: Vector2, max_movement: float) -> Arr
 	path_not_found.emit()
 	return []
 
-func _get_lowest_f_cost_node() -> PathNode:
+func _get_lowest_f_cost_node() -> Variant:
 	var lowest_node = _open_set[0]
 	for node in _open_set:
 		if node.f_cost() < lowest_node.f_cost():
 			lowest_node = node
 	return lowest_node
 
-func _get_neighbors(node: PathNode) -> Array[PathNode]:
-	var neighbors: Array[PathNode] = []
+func _get_neighbors(node: Variant) -> Array:
+	var neighbors = []
 	
 	for direction in _movement_directions:
 		var neighbor_pos = node.position + direction
@@ -139,7 +150,7 @@ func _calculate_heuristic(pos: Vector2i, target: Vector2i) -> float:
 	var dy = abs(target.y - pos.y)
 	return 1.0 * max(dx, dy) + (1.4 - 1.0) * min(dx, dy)
 
-func _retrace_path(start_node: PathNode, end_node: PathNode) -> Array[Vector2]:
+func _retrace_path(start_node: Variant, end_node: Variant) -> Array[Vector2]:
 	var path: Array[Vector2] = []
 	var current_node = end_node
 	
@@ -162,13 +173,13 @@ func _calculate_path_cost(path: Array[Vector2]) -> float:
 	
 	return total_cost
 
-func _is_in_open_set(node: PathNode) -> bool:
+func _is_in_open_set(node: Variant) -> bool:
 	for open_node in _open_set:
 		if open_node.equals(node):
 			return true
 	return false
 
-func _is_in_closed_set(node: PathNode) -> bool:
+func _is_in_closed_set(node: Variant) -> bool:
 	for closed_node in _closed_set:
 		if closed_node.equals(node):
 			return true

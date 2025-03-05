@@ -12,13 +12,14 @@ config_version=5
 
 config/name="Five Parsecs Campaign Manager"
 config/version="0.1.0"
-run/main_scene="res://src/scenes/main/MainMenu.tscn"
+run/main_scene="res://src/ui/screens/mainmenu/MainMenu.tscn"
 config/features=PackedStringArray("4.3", "Forward Plus")
 config/icon="res://icon.svg"
 
 [autoload]
 
 GlobalEnums="*res://src/core/systems/GlobalEnums.gd"
+GameDataManager="*res://src/core/managers/GameDataManager.gd"
 GameStateManager="*res://src/core/managers/GameStateManager.gd"
 CharacterManager="*res://src/core/character/Management/CharacterManager.gd"
 PlanetCache="*res://src/core/world/PlanetCache.gd"

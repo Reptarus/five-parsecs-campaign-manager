@@ -1,4 +1,4 @@
-extends BasePhasePanel
+extends FPCM_BasePhasePanel
 class_name FPCM_AdvancementPhasePanel
 
 const Character = preload("res://src/core/character/Base/Character.gd")

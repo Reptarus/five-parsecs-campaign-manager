@@ -647,7 +647,11 @@ enum TerrainFeatureType {
 	RADIATION,
 	FIRE,
 	ACID,
-	SMOKE
+	SMOKE,
+	SPAWN_POINT,
+	EXIT_POINT,
+	OBJECTIVE,
+	SPECIAL
 }
 
 ## Battle States

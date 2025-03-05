@@ -33,15 +33,15 @@ signal planet_updated(property, value)
 @export var discovered: bool = false
 
 # Data manager for loading traits
-var _data_manager: GameDataManager = null
+var _data_manager: Object = null
 
 func _init() -> void:
     reset_state()
     
-    # Create the data manager instance if needed
-    if not Engine.is_editor_hint() and _data_manager == null:
-        _data_manager = GameDataManager.new()
-        _data_manager.load_world_traits()
+    # Use the singleton instance
+    if not Engine.is_editor_hint():
+        _data_manager = GameDataManager.get_instance()
+        GameDataManager.ensure_data_loaded()
 
 func reset_state() -> void:
     resources.clear()
@@ -55,8 +55,8 @@ func reset_state() -> void:
 ## Add a world trait to this planet by ID
 func add_world_trait_by_id(trait_id: String) -> bool:
     if _data_manager == null:
-        _data_manager = GameDataManager.new()
-        _data_manager.load_world_traits()
+        _data_manager = GameDataManager.get_instance()
+        GameDataManager.ensure_data_loaded()
         
     # Check if we already have this trait
     for trait_item in world_traits:

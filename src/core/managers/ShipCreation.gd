@@ -5,10 +5,7 @@ const FiveParsecsGameState = preload("res://src/core/state/GameState.gd")
 const Character = preload("res://src/core/character/Management/CharacterDataManager.gd")
 const SaveManager = preload("res://src/core/state/SaveManager.gd")
 const Ship = preload("res://src/core/ships/Ship.gd")
-const WeaponsComponent = preload("res://src/core/ships/components/WeaponsComponent.gd")
-const EngineComponent = preload("res://src/core/ships/components/EngineComponent.gd")
-const HullComponent = preload("res://src/core/ships/components/HullComponent.gd")
-const MedicalBayComponent = preload("res://src/core/ships/components/MedicalBayComponent.gd")
+const FPCM_ShipComponent = preload("res://src/core/ships/components/ShipComponent.gd")
 
 # Create a ship from the provided data
 func create_ship(ship_data: Dictionary) -> Ship:
@@ -40,59 +37,59 @@ func create_component(component_data: Dictionary) -> Resource:
     
     match component_type:
         GameEnums.ShipComponentType.WEAPON_BASIC_LASER:
-            component = WeaponsComponent.new()
+            component = FPCM_ShipComponent.new()
             component.attack = component_data.get("damage", 0)
             component.damage = component_data.get("damage", 0)
         GameEnums.ShipComponentType.WEAPON_ADVANCED_LASER:
-            component = WeaponsComponent.new()
+            component = FPCM_ShipComponent.new()
             component.attack = component_data.get("damage", 0)
             component.damage = component_data.get("damage", 0)
         GameEnums.ShipComponentType.WEAPON_HEAVY_LASER:
-            component = WeaponsComponent.new()
+            component = FPCM_ShipComponent.new()
             component.attack = component_data.get("damage", 0)
             component.damage = component_data.get("damage", 0)
         GameEnums.ShipComponentType.WEAPON_BASIC_KINETIC:
-            component = WeaponsComponent.new()
+            component = FPCM_ShipComponent.new()
             component.attack = component_data.get("damage", 0)
             component.damage = component_data.get("damage", 0)
         GameEnums.ShipComponentType.WEAPON_ADVANCED_KINETIC:
-            component = WeaponsComponent.new()
+            component = FPCM_ShipComponent.new()
             component.attack = component_data.get("damage", 0)
             component.damage = component_data.get("damage", 0)
         GameEnums.ShipComponentType.WEAPON_HEAVY_KINETIC:
-            component = WeaponsComponent.new()
+            component = FPCM_ShipComponent.new()
             component.attack = component_data.get("damage", 0)
             component.damage = component_data.get("damage", 0)
         GameEnums.ShipComponentType.ENGINE_BASIC:
-            component = EngineComponent.new()
+            component = FPCM_ShipComponent.new()
             component.speed = component_data.get("speed", 0)
             component.reliability = component_data.get("reliability", 0)
         GameEnums.ShipComponentType.ENGINE_IMPROVED:
-            component = EngineComponent.new()
+            component = FPCM_ShipComponent.new()
             component.speed = component_data.get("speed", 0)
             component.reliability = component_data.get("reliability", 0)
         GameEnums.ShipComponentType.ENGINE_ADVANCED:
-            component = EngineComponent.new()
+            component = FPCM_ShipComponent.new()
             component.speed = component_data.get("speed", 0)
             component.reliability = component_data.get("reliability", 0)
         GameEnums.ShipComponentType.HULL_BASIC:
-            component = HullComponent.new()
+            component = FPCM_ShipComponent.new()
             component.durability = component_data.get("hull_points", 0)
             component.armor = component_data.get("armor", 0)
         GameEnums.ShipComponentType.HULL_REINFORCED:
-            component = HullComponent.new()
+            component = FPCM_ShipComponent.new()
             component.durability = component_data.get("hull_points", 0)
             component.armor = component_data.get("armor", 0)
         GameEnums.ShipComponentType.HULL_ADVANCED:
-            component = HullComponent.new()
+            component = FPCM_ShipComponent.new()
             component.durability = component_data.get("hull_points", 0)
             component.armor = component_data.get("armor", 0)
         GameEnums.ShipComponentType.MEDICAL_BASIC:
-            component = MedicalBayComponent.new()
+            component = FPCM_ShipComponent.new()
             component.capacity = component_data.get("capacity", 0)
             component.tech_level = component_data.get("tech_level", 0)
         GameEnums.ShipComponentType.MEDICAL_ADVANCED:
-            component = MedicalBayComponent.new()
+            component = FPCM_ShipComponent.new()
             component.capacity = component_data.get("capacity", 0)
             component.tech_level = component_data.get("tech_level", 0)
         _:
