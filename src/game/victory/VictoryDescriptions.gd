@@ -1,6 +1,8 @@
-class_name FPCM_VictoryDescriptions
+# This file should be referenced via preload
+# Use explicit preloads instead of global class names
 extends Resource
 
+const Self = preload("res://src/game/victory/VictoryDescriptions.gd")
 const GameEnums = preload("res://src/core/systems/GlobalEnums.gd")
 
 var CAMPAIGN_DESCRIPTIONS: Dictionary = {

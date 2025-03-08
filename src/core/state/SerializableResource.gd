@@ -1,5 +1,9 @@
+@tool
 extends Resource
-class_name SerializableResource
+# This file should be referenced via preload
+# Use explicit preloads instead of global class names
+
+const Self = preload("res://src/core/state/SerializableResource.gd")
 
 const GameEnums = preload("res://src/core/systems/GlobalEnums.gd")
 
@@ -26,8 +30,8 @@ func deserialize(data: Dictionary) -> void:
     resource_description = data.get("resource_description", "")
 
 # Static factory method
-static func from_dict(data: Dictionary) -> SerializableResource:
-    var instance = SerializableResource.new()
+static func from_dict(data: Dictionary) -> Resource:
+    var instance = Self.new()
     instance.deserialize(data)
     return instance
 
@@ -36,14 +40,16 @@ func validate() -> bool:
     return resource_id != "" and display_name != ""
 
 # Helper method to create a deep copy with serialization
-func create_copy() -> SerializableResource:
-    var copy = SerializableResource.new()
+func create_copy() -> Resource:
+    var copy = Self.new()
     copy.deserialize(serialize())
     return copy
 
 # Helper method to compare two resources
-func equals(other: SerializableResource) -> bool:
+func equals(other: Resource) -> bool:
     if not other:
+        return false
+    if not other.has_method("serialize"):
         return false
     return serialize().hash() == other.serialize().hash()
 

@@ -1,7 +1,9 @@
 @tool
+# This file should be referenced via preload
+# Use explicit preloads instead of global class names
 extends Node
-class_name FPCM_TutorialStateMachine
 
+const Self = preload("res://StateMachines/TutorialStateMachine.gd")
 const GameEnums := preload("res://src/core/systems/GlobalEnums.gd")
 const FiveParsecsGameState := preload("res://src/core/state/GameState.gd")
 const Mission := preload("res://src/core/systems/Mission.gd")

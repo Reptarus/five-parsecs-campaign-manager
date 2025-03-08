@@ -1,41 +1,49 @@
 @tool
 extends "res://tests/fixtures/base/game_test.gd"
 
+# Type-safe constants with explicit typing
 const CharacterSheetScript: GDScript = preload("res://src/ui/components/character/CharacterSheet.gd")
 const GameEnumsScript: GDScript = preload("res://src/core/systems/GlobalEnums.gd")
 
-var character_sheet: Node
-var character_updated_signal_emitted := false
-var character_deleted_signal_emitted := false
+# Type-safe instance variables
+var character_sheet: Control = null
+var mock_game_state: Node = null
+
+# Type-safe signal tracking
+var character_updated_signal_emitted: bool = false
+var character_deleted_signal_emitted: bool = false
 var last_character_data: Dictionary = {}
 
-# Type-safe test lifecycle
+# Type-safe lifecycle methods
 func before_each() -> void:
 	await super.before_each()
-	character_sheet = Node.new()
+	
+	# Initialize character sheet with type safety
+	character_sheet = Control.new()
 	character_sheet.set_script(CharacterSheetScript)
-	if not character_sheet.get_script() == CharacterSheetScript:
-		push_error("Failed to set CharacterSheet script")
+	if not character_sheet:
+		push_error("Failed to create character sheet")
 		return
 	add_child_autofree(character_sheet)
-	track_test_node(character_sheet)
+	
+	# Reset signal states
 	_reset_signals()
 	_connect_signals()
 
 func after_each() -> void:
 	_disconnect_signals()
-	_reset_signals()
-	character_sheet = null
 	await super.after_each()
+	character_sheet = null
+	mock_game_state = null
 
-# Type-safe property access
-func _get_sheet_property(property: String, default_value: Variant = null) -> Variant:
+# Type-safe helper methods
+func _get_sheet_property(property: String, default: Variant = null) -> Variant:
 	if not character_sheet:
-		push_error("Trying to access property '%s' on null character sheet" % property)
-		return default_value
+		push_error("Trying to get property '%s' from null character sheet" % property)
+		return default
 	if not property in character_sheet:
 		push_error("Character sheet missing required property: %s" % property)
-		return default_value
+		return default
 	return character_sheet.get(property)
 
 func _set_sheet_property(property: String, value: Variant) -> void:
@@ -53,18 +61,18 @@ func _connect_signals() -> void:
 		return
 		
 	if character_sheet.has_signal("character_updated"):
-		character_sheet.connect("character_updated", _on_character_updated)
+		character_sheet.character_updated.connect(self._on_character_updated)
 	if character_sheet.has_signal("character_deleted"):
-		character_sheet.connect("character_deleted", _on_character_deleted)
+		character_sheet.character_deleted.connect(self._on_character_deleted)
 
 func _disconnect_signals() -> void:
 	if not character_sheet:
 		return
 		
-	if character_sheet.has_signal("character_updated") and character_sheet.is_connected("character_updated", _on_character_updated):
-		character_sheet.disconnect("character_updated", _on_character_updated)
-	if character_sheet.has_signal("character_deleted") and character_sheet.is_connected("character_deleted", _on_character_deleted):
-		character_sheet.disconnect("character_deleted", _on_character_deleted)
+	if character_sheet.has_signal("character_updated") and character_sheet.is_connected("character_updated", self._on_character_updated):
+		character_sheet.disconnect("character_updated", self._on_character_updated)
+	if character_sheet.has_signal("character_deleted") and character_sheet.is_connected("character_deleted", self._on_character_deleted):
+		character_sheet.disconnect("character_deleted", self._on_character_deleted)
 
 func _on_character_updated(character_data: Dictionary) -> void:
 	character_updated_signal_emitted = true
@@ -82,7 +90,7 @@ func _reset_signals() -> void:
 func test_initial_setup() -> void:
 	assert_not_null(character_sheet, "Character sheet should exist")
 	
-	var required_nodes := {
+	var required_nodes: Dictionary = {
 		"name_input": "LineEdit node for character name",
 		"class_option": "OptionButton for character class",
 		"stats_container": "Container for character stats",
@@ -96,19 +104,19 @@ func test_initial_setup() -> void:
 		assert_not_null(node, required_nodes[node_name] + " should exist")
 
 func test_character_data_loading() -> void:
-	var test_character := {
-		"name": "Test Character",
+	var test_character: Dictionary = {
+		"name": "Test Character" as String,
 		"class": GameEnumsScript.CharacterClass.SOLDIER,
 		"stats": {
-			"health": 100,
-			"armor": 50,
-			"speed": 30
-		},
+			"health": 100 as int,
+			"armor": 50 as int,
+			"speed": 30 as int
+		} as Dictionary,
 		"equipment": {
-			"weapon": "Rifle",
-			"armor": "Light Armor",
-			"items": ["Medkit", "Ammo"]
-		}
+			"weapon": "Rifle" as String,
+			"armor": "Light Armor" as String,
+			"items": ["Medkit" as String, "Ammo" as String]
+		} as Dictionary
 	}
 	
 	_call_node_method(character_sheet, "load_character", [test_character])
@@ -135,6 +143,45 @@ func test_character_data_loading() -> void:
 	var equipment: Dictionary = _call_node_method_dict(character_sheet, "get_equipment", [])
 	assert_eq(equipment, test_character.equipment, "Equipment should match test data")
 
+func _get_property_safe(object: Object, property: String, default_value: Variant = null) -> Variant:
+	if not object:
+		push_error("Trying to get property '%s' on null object" % property)
+		return default_value
+	if not property in object:
+		push_error("Object missing required property: %s" % property)
+		return default_value
+	return object.get(property)
+
+func _set_property_safe(object: Object, property: String, value: Variant) -> void:
+	if not object:
+		push_error("Trying to set property '%s' on null object" % property)
+		return
+	if not property in object:
+		push_error("Object missing required property: %s" % property)
+		return
+	object.set(property, value)
+
+func _call_node_method(object: Object, method: String, args: Array = []) -> Variant:
+	if not object:
+		push_error("Trying to call method '%s' on null object" % method)
+		return null
+	if not object.has_method(method):
+		push_error("Object missing required method: %s" % method)
+		return null
+	return object.callv(method, args)
+
+func _call_node_method_bool(object: Object, method: String, args: Array = [], default: bool = false) -> bool:
+	var result: Variant = _call_node_method(object, method, args)
+	return bool(result) if result != null else default
+
+func _call_node_method_int(object: Object, method: String, args: Array = [], default: int = 0) -> int:
+	var result: Variant = _call_node_method(object, method, args)
+	return int(result) if result != null else default
+
+func _call_node_method_dict(object: Object, method: String, args: Array = [], default: Dictionary = {}) -> Dictionary:
+	var result: Variant = _call_node_method(object, method, args)
+	return result as Dictionary if result is Dictionary else default
+
 func test_character_data_saving() -> void:
 	var name_input: Node = _get_sheet_property("name_input")
 	var class_option: Node = _get_sheet_property("class_option")
@@ -149,10 +196,10 @@ func test_character_data_saving() -> void:
 	_call_node_method(character_sheet, "set_stat", ["armor", 30])
 	_call_node_method(character_sheet, "set_stat", ["speed", 40])
 	
-	var equipment := {
-		"weapon": "Pistol",
-		"armor": "Medium Armor",
-		"items": ["Bandages"]
+	var equipment: Dictionary = {
+		"weapon": "Pistol" as String,
+		"armor": "Medium Armor" as String,
+		"items": ["Bandages" as String]
 	}
 	_call_node_method(character_sheet, "set_equipment", [equipment])
 	
@@ -191,13 +238,71 @@ func test_validation() -> void:
 	if class_option:
 		_set_property_safe(class_option, "selected", GameEnumsScript.CharacterClass.NONE)
 	is_valid = _call_node_method_bool(character_sheet, "is_valid")
-	assert_false(is_valid, "Should be invalid with NONE class")
+	assert_false(is_valid, "Should be invalid with no class")
 	
 	# Test valid class
 	if class_option:
 		_set_property_safe(class_option, "selected", GameEnumsScript.CharacterClass.SOLDIER)
 	is_valid = _call_node_method_bool(character_sheet, "is_valid")
 	assert_true(is_valid, "Should be valid with proper class")
+
+func test_stat_manipulation() -> void:
+	# Test setting and getting stats
+	_call_node_method(character_sheet, "set_stat", ["health", 90])
+	var health: int = _call_node_method_int(character_sheet, "get_stat", ["health"])
+	assert_eq(health, 90, "Health stat should be updated")
+	
+	# Test stat validation
+	var is_valid_stat: bool = _call_node_method_bool(character_sheet, "is_valid_stat", ["health", 90])
+	assert_true(is_valid_stat, "Valid health stat should pass validation")
+	
+	is_valid_stat = _call_node_method_bool(character_sheet, "is_valid_stat", ["health", -10])
+	assert_false(is_valid_stat, "Negative health stat should fail validation")
+	
+	is_valid_stat = _call_node_method_bool(character_sheet, "is_valid_stat", ["health", 1000])
+	assert_false(is_valid_stat, "Excessively high health stat should fail validation")
+	
+	is_valid_stat = _call_node_method_bool(character_sheet, "is_valid_stat", ["nonexistent", 50])
+	assert_false(is_valid_stat, "Nonexistent stat should fail validation")
+
+func test_equipment_validation() -> void:
+	# Test valid equipment
+	var valid_equipment: Dictionary = {
+		"weapon": "Rifle" as String,
+		"armor": "Light Armor" as String,
+		"items": ["Medkit" as String, "Ammo" as String]
+	}
+	
+	var is_valid_equipment: bool = _call_node_method_bool(character_sheet, "is_valid_equipment", [valid_equipment])
+	assert_true(is_valid_equipment, "Valid equipment should pass validation")
+	
+	# Test invalid equipment
+	var invalid_equipment: Dictionary = {
+		"weapon": "" as String, # Empty weapon
+		"armor": "Light Armor" as String,
+		"items": ["Medkit" as String]
+	}
+	
+	is_valid_equipment = _call_node_method_bool(character_sheet, "is_valid_equipment", [invalid_equipment])
+	assert_false(is_valid_equipment, "Empty weapon should fail validation")
+	
+	invalid_equipment = {
+		"weapon": "Rifle" as String,
+		"armor": "" as String, # Empty armor
+		"items": ["Medkit" as String]
+	}
+	
+	is_valid_equipment = _call_node_method_bool(character_sheet, "is_valid_equipment", [invalid_equipment])
+	assert_false(is_valid_equipment, "Empty armor should fail validation")
+	
+	invalid_equipment = {
+		"weapon": "Rifle" as String,
+		"armor": "Light Armor" as String,
+		"invalid_field": "Something" as String # Extra field
+	}
+	
+	is_valid_equipment = _call_node_method_bool(character_sheet, "is_valid_equipment", [invalid_equipment])
+	assert_false(is_valid_equipment, "Equipment with extra fields should fail validation")
 
 func test_stat_limits() -> void:
 	# Test minimum stat values

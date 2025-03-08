@@ -1,6 +1,8 @@
-extends FPCM_BasePhasePanel
-class_name FPCM_BattleSetupPhasePanel
+extends "res://src/ui/screens/campaign/phases/BasePhasePanel.gd"
+# This file should be referenced via preload
+# Use explicit preloads instead of global class names
 
+const ThisClass = preload("res://src/ui/screens/campaign/phases/BattleSetupPhasePanel.gd")
 const Character = preload("res://src/core/character/Base/Character.gd")
 
 @onready var mission_info = $VBoxContainer/MissionInfo
@@ -350,3 +352,4 @@ func validate_phase_requirements() -> bool:
 		return false
 	
 	return true
+

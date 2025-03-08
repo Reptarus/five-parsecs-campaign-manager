@@ -1,5 +1,5 @@
 @tool
-extends GameTest
+extends "res://tests/fixtures/base/game_test.gd"
 
 const Patron: GDScript = preload("res://src/core/rivals/Patron.gd")
 

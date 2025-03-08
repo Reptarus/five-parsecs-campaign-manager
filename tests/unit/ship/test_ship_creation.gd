@@ -1,5 +1,6 @@
 @tool
-extends GameTest
+extends "res://tests/fixtures/base/game_test.gd"
+# Use explicit preloads instead of global class names
 
 # Type definitions
 const ShipCreationScript: GDScript = preload("res://src/core/managers/ShipCreation.gd")

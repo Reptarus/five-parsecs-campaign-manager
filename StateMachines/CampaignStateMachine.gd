@@ -1,6 +1,8 @@
-class_name FPCM_CampaignStateMachine
+# This file should be referenced via preload
+# Use explicit preloads instead of global class names
 extends Node
 
+const Self = preload("res://StateMachines/CampaignStateMachine.gd")
 const FiveParsecsGameEnums = preload("res://src/core/systems/GlobalEnums.gd")
 const FiveParsecsGameState = preload("res://src/core/state/GameState.gd")
 const GameCampaignManager = preload("res://src/core/campaign/GameCampaignManager.gd")

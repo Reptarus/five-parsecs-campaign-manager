@@ -1,5 +1,8 @@
-class_name FPCM_TooltipManager
+# This file should be referenced via preload
+# Use explicit preloads instead of global class names
 extends CanvasLayer
+
+const Self = preload("res://src/ui/components/tooltip/TooltipManager.gd")
 
 const TOOLTIP_OFFSET := Vector2(10, 10)
 const TOOLTIP_MARGIN := Vector2(5, 5)

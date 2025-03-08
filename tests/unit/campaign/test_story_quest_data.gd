@@ -1,5 +1,6 @@
 @tool
-extends GameTest
+extends "res://tests/fixtures/base/game_test.gd"
+# Use explicit preloads instead of global class names
 
 const StoryQuestData: GDScript = preload("res://src/core/story/StoryQuestData.gd")
 

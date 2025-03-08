@@ -1,6 +1,8 @@
-class_name FPCM_QuickStartDialog
+# This file should be referenced via preload
+# Use explicit preloads instead of global class names
 extends Control
 
+const Self = preload("res://src/ui/components/dialogs/QuickStartDialog.gd")
 const GameEnums := preload("res://src/core/systems/GlobalEnums.gd")
 const GestureManager = preload("res://src/ui/components/gesture/GestureManager.gd")
 

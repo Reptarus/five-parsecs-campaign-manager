@@ -1,5 +1,8 @@
 extends Control
 
+const GameStateManager = preload("res://src/core/managers/GameStateManager.gd")
+const Mission = preload("res://src/core/systems/Mission.gd")
+
 signal checkpoint_validated(result: Dictionary)
 signal checkpoint_failed(reason: String)
 signal checkpoint_completed
@@ -31,7 +34,7 @@ func _ready() -> void:
     connect_signals()
 
 func initialize_from_autoload() -> void:
-    game_state_manager = get_node("/root/GameStateManager") as GameStateManager
+    game_state_manager = get_node_or_null("/root/GameStateManager") as GameStateManager
     if not game_state_manager:
         push_error("Failed to get GameStateManager")
         return

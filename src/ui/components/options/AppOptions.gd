@@ -1,5 +1,8 @@
-class_name FPCM_AppOptions
+# This file should be referenced via preload
+# Use explicit preloads instead of global class names
 extends Control
+
+const Self = preload("res://src/ui/components/options/AppOptions.gd")
 
 signal options_saved
 signal options_reset

@@ -5,7 +5,8 @@
 ## - Health bar functionality
 ## - Script and system verification
 @tool
-extends GameTest
+extends "res://tests/fixtures/base/game_test.gd"
+# Use explicit preloads instead of global class names
 
 # Type-safe script references
 const BattlefieldGeneratorCrew := preload("res://src/data/resources/Deployment/Units/BattlefieldGeneratorCrew.tscn")

@@ -1,6 +1,9 @@
 @tool
 extends Control
-class_name FPCM_ResourceItem
+# This file should be referenced via preload
+# Use explicit preloads instead of global class names
+
+const Self = preload("res://src/scenes/campaign/components/ResourceItem.gd")
 
 # Signals
 signal resource_clicked(resource_name: String, current_value: int)

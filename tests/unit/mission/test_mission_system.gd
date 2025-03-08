@@ -1,5 +1,5 @@
 @tool
-extends GameTest
+extends "res://tests/fixtures/base/game_test.gd"
 
 ## Mission system test suite
 ## Tests core functionality, edge cases, and performance of the mission system

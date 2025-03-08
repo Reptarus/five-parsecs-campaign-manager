@@ -1,6 +1,9 @@
 @tool
 extends Resource
-class_name ConsolidatedArmor
+# This file should be referenced via preload
+# Use explicit preloads instead of global class names
+
+const Self = preload("res://src/core/character/Equipment/ConsolidatedArmor.gd")
 
 ## Consolidated Armor Implementation
 ##
@@ -106,7 +109,7 @@ func serialize() -> Dictionary:
     }
     return data
 
-func deserialize(data: Dictionary) -> ConsolidatedArmor:
+func deserialize(data: Dictionary) -> Resource:
     armor_id = data.get("armor_id", "")
     armor_name = data.get("armor_name", "")
     armor_description = data.get("armor_description", "")

@@ -1,7 +1,9 @@
 # Scripts/ShipAndCrew/ShipInventory.gd
-class_name FPCM_ShipInventory
+# This file should be referenced via preload
+# Use explicit preloads instead of global class names
 extends Resource
 
+const Self = preload("res://src/ui/screens/ships/ShipInventory.gd")
 const GameEnums := preload("res://src/core/systems/GlobalEnums.gd")
 
 signal item_added(item: Resource)
@@ -187,12 +189,13 @@ func serialize() -> Dictionary:
 		"items": items.map(func(item): return item.serialize())
 	}
 
-static func deserialize(data: Dictionary) -> FPCM_ShipInventory:
+static func deserialize(data: Dictionary) -> Resource:
 	if not data.has_all(["max_weight_capacity", "current_weight", "items"]):
 		push_error("Invalid inventory data for deserialization")
 		return null
 		
-	var inventory = FPCM_ShipInventory.new(data["max_weight_capacity"])
+	var script = load("res://src/ui/screens/ships/ShipInventory.gd")
+	var inventory = script.new(data["max_weight_capacity"])
 	inventory.current_weight = data["current_weight"]
 	
 	for item_data in data["items"]:

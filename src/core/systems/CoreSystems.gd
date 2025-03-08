@@ -1,6 +1,11 @@
-@tool
-class_name CoreSystems
+# This file should be referenced via preload
+# Use explicit preloads instead of global class names
 extends Node
+
+const Self = preload("res://src/core/systems/CoreSystems.gd")
+
+# Game system dependencies
+const GameEnums = preload("res://src/core/systems/GlobalEnums.gd")
 
 # Based on Core Rules tutorial mechanics
 enum TutorialMode {
@@ -249,7 +254,7 @@ class TerrainSubsystem:
         var terrain = terrain_types.get(type, {})
         match action_type:
             "movement":
-                return {"cost": terrain.get("movement_cost", 1)}
+                return {"cost": terrain.get("movement_cost", 1.0)}
             "combat":
                 return {
                     "cover": terrain.get("provides_cover", false),

@@ -1,6 +1,9 @@
 @tool
 extends Control
-class_name FPCM_EventLog
+# This file should be referenced via preload
+# Use explicit preloads instead of global class names
+
+const Self = preload("res://src/scenes/campaign/components/EventLog.gd")
 
 # Signals
 signal event_selected(event_id: String)
@@ -82,66 +85,75 @@ var max_events: int = 100 # Maximum number of events to store
 # Event item scene
 var event_item_scene = preload("res://src/scenes/campaign/components/EventItem.tscn")
 
-class EventData:
-	var id: String
-	var title: String
-	var description: String
-	var category: String
-	var timestamp: int
-	var priority: EventPriority
-	var phase: String
-	var actions: Array[Dictionary]
-	var metadata: Dictionary
+# Factory functions for creating events instead of classes
+
+# Generate a unique ID for events
+static func _generate_event_id() -> String:
+	return "%d_%d" % [Time.get_unix_time_from_system(), randi() % 1000000]
+
+# Create a new event
+static func create_event(
+	p_title: String,
+	p_description: String,
+	p_category: String,
+	p_phase: String = "",
+	p_priority: int = EventPriority.NORMAL
+) -> Dictionary:
+	return {
+		"id": _generate_event_id(),
+		"title": p_title,
+		"description": p_description,
+		"category": p_category,
+		"phase": p_phase,
+		"priority": p_priority,
+		"timestamp": Time.get_unix_time_from_system(),
+		"actions": [],
+		"metadata": {}
+	}
+
+# Add an action to an event
+static func add_action(event: Dictionary, action: String) -> void:
+	if not action in event.actions:
+		event.actions.append(action)
+
+# Add metadata to an event
+static func add_metadata(event: Dictionary, key: String, value: Variant) -> void:
+	event.metadata[key] = value
+
+# Convert event to a serializable dictionary
+static func event_to_dictionary(event: Dictionary) -> Dictionary:
+	return event.duplicate(true)
+
+# Create an event from a dictionary
+static func event_from_dictionary(data: Dictionary) -> Dictionary:
+	var event = create_event(
+		data.title,
+		data.description,
+		data.category,
+		data.get("phase", ""),
+		data.get("priority", EventPriority.NORMAL)
+	)
 	
-	func _init(
-		p_title: String,
-		p_description: String,
-		p_category: String,
-		p_phase: String,
-		p_priority: EventPriority = EventPriority.NORMAL
-	) -> void:
-		id = str(Time.get_unix_time_from_system()) + "_" + str(randi())
-		title = p_title
-		description = p_description
-		category = p_category
-		phase = p_phase
-		priority = p_priority
-		timestamp = Time.get_unix_time_from_system()
-		actions = []
-		metadata = {}
+	event.id = data.get("id", event.id)
+	event.timestamp = data.get("timestamp", event.timestamp)
+	event.actions = data.get("actions", [])
+	event.metadata = data.get("metadata", {})
 	
-	func add_action(action_name: String, action_description: String) -> void:
-		actions.append({
-			"name": action_name,
-			"description": action_description
-		})
-	
-	func to_dictionary() -> Dictionary:
-		return {
-			"id": id,
-			"title": title,
-			"description": description,
-			"category": category,
-			"phase": phase,
-			"priority": priority,
-			"timestamp": timestamp,
-			"actions": actions,
-			"metadata": metadata
-		}
-	
-	static func from_dictionary(data: Dictionary) -> EventData:
-		var event = EventData.new(
-			data.title,
-			data.description,
-			data.category,
-			data.phase,
-			data.priority
-		)
-		event.id = data.id
-		event.timestamp = data.timestamp
-		event.actions = data.actions
-		event.metadata = data.metadata
-		return event
+	return event
+
+# Get formatted time string from event
+static func get_formatted_time(event: Dictionary) -> String:
+	var datetime = Time.get_datetime_dict_from_unix_time(event.timestamp)
+	return "%02d:%02d:%02d" % [datetime.hour, datetime.minute, datetime.second]
+
+# Get formatted date string from event
+static func get_formatted_date(event: Dictionary) -> String:
+	var datetime = Time.get_datetime_dict_from_unix_time(event.timestamp)
+	return "%04d-%02d-%02d" % [datetime.year, datetime.month, datetime.day]
+
+# Get formatted date and time string from event
+static func get_formatted_datetime(event: Dictionary) -> String:
+	return get_formatted_date(event) + " " + get_formatted_time(event)
 
 func _ready() -> void:
 	_setup_ui()
@@ -248,7 +260,7 @@ func _show_event_details(event_id: String) -> void:
 	if not event.actions.is_empty():
 		text += "\n\n[b]Available Actions:[/b]"
 		for action in event.actions:
-			text += "\n• %s: %s" % [action.name, action.description]
+			text += "\n• %s" % action
 	
 	if detail_text:
 		detail_text.text = text
@@ -268,9 +280,8 @@ func _on_search_text_changed(new_text: String) -> void:
 	_update_event_list()
 
 # Public methods
-func add_event(event: EventData) -> void:
-	var event_dict = event.to_dictionary()
-	events.append(event_dict)
+func add_event(event: Dictionary) -> void:
+	events.append(event_to_dictionary(event))
 	
 	# Maintain maximum event count
 	while events.size() > max_events:
@@ -284,7 +295,7 @@ func add_phase_event(
 	category: String,
 	priority: EventPriority = EventPriority.NORMAL
 ) -> void:
-	var event = EventData.new(title, description, category, current_phase, priority)
+	var event = create_event(title, description, category, current_phase, priority)
 	add_event(event)
 
 func add_story_event(
@@ -292,7 +303,7 @@ func add_story_event(
 	description: String,
 	priority: EventPriority = EventPriority.HIGH
 ) -> void:
-	var event = EventData.new(title, description, "story", current_phase, priority)
+	var event = create_event(title, description, "story", current_phase, priority)
 	add_event(event)
 
 func add_system_event(
@@ -300,7 +311,7 @@ func add_system_event(
 	description: String,
 	priority: EventPriority = EventPriority.LOW
 ) -> void:
-	var event = EventData.new(title, description, "system", current_phase, priority)
+	var event = create_event(title, description, "system", current_phase, priority)
 	add_event(event)
 
 func clear_events() -> void:

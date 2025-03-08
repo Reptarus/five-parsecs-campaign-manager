@@ -172,8 +172,11 @@ func to_dict() -> Dictionary:
 	}
 	return data
 
-func from_dict(data: Dictionary) -> void:
+func from_dict(data: Dictionary) -> bool:
 	# Base implementation for deserialization
+	if not data is Dictionary or data.is_empty():
+		return false
+		
 	if data.has("character_name"): character_name = data.character_name
 	if data.has("reactions"): reactions = data.reactions
 	if data.has("speed"): speed = data.speed
@@ -190,8 +193,10 @@ func from_dict(data: Dictionary) -> void:
 	if data.has("special_ability"): special_ability = data.special_ability
 	if data.has("advances_available"): advances_available = data.advances_available
 	if data.has("specialization"): specialization = data.specialization
-	if data.has("traits"): traits = data.traits
-	if data.has("relationships"): relationships = data.relationships
-	if data.has("items"): items = data.items
-	if data.has("weapon_proficiencies"): weapon_proficiencies = data.weapon_proficiencies
+	if data.has("traits"): traits = data.traits.duplicate()
+	if data.has("relationships"): relationships = data.relationships.duplicate()
+	if data.has("items"): items = data.items.duplicate()
+	if data.has("weapon_proficiencies"): weapon_proficiencies = data.weapon_proficiencies.duplicate()
 	if data.has("status"): status = data.status
+	
+	return true

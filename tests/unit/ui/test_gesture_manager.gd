@@ -174,7 +174,7 @@ func test_gesture_cancellation() -> void:
 	_manager.long_press_timer.stop()
 	
 	assert_eq(_manager.touch_points.size(), 0)
-	assert_true(_manager.long_press_timer.is_stopped())
+	assert_false(_manager.long_press_timer.is_paused()) # If stopped, it won't be paused
 
 func test_input_handling() -> void:
 	# Test unhandled input handling

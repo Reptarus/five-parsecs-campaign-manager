@@ -1,5 +1,8 @@
-extends FPCM_BasePhasePanel
-class_name FPCM_TradePhasePanel
+extends "res://src/ui/screens/campaign/phases/BasePhasePanel.gd"
+# This file should be referenced via preload
+# Use explicit preloads instead of global class names
+
+const ThisClass = preload("res://src/ui/screens/campaign/phases/TradePhasePanel.gd")
 
 signal item_purchased(item_data: Dictionary)
 signal item_sold(item_data: Dictionary)

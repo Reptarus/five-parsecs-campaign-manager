@@ -1,6 +1,8 @@
 @tool
 extends BaseBattleCharacter
-class_name FPCM_BattleCharacter
+# This file should be referenced via preload
+# Use explicit preloads instead of global class names
+const Self = preload("res://src/game/combat/BattleCharacter.gd")
 
 const FiveParsecsCharacter = preload("res://src/game/character/Character.gd")
 # We'll assume GameEnums is defined elsewhere and accessible globally
@@ -73,3 +75,10 @@ func take_damage(amount: int) -> void:
 func heal(amount: int) -> void:
 	health = min(max_health, health + amount)
 	# Additional game-specific healing logic
+
+# Public API methods that tests can use
+func get_health() -> int:
+	return _get_health()
+	
+func set_health(value: int) -> void:
+	_set_health(value)

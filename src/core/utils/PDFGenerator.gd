@@ -1,9 +1,9 @@
-class_name FPCM_PDFGenerator
 extends Node
 
+const Self = preload("res://src/core/utils/PDFGenerator.gd")
 const Character = preload("res://src/core/character/Management/CharacterDataManager.gd")
 const GameEnums = preload("res://src/core/systems/GlobalEnums.gd")
-const FiveParsecsCharacter = preload("res://src/core/character/Base/Character.gd")
+const FiveParsecsCharacter = preload("res://src/base/character/character_base.gd")
 
 # Helper functions for crew roster generation
 func generate_crew_roster(crew: Dictionary) -> void:

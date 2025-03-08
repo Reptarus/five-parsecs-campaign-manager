@@ -1,5 +1,8 @@
-class_name FPCM_GestureManager
+# This file should be referenced via preload
+# Use explicit preloads instead of global class names
 extends Node
+
+const Self = preload("res://src/ui/components/gesture/GestureManager.gd")
 
 signal swipe_detected(direction: Vector2)
 signal long_press_detected(position: Vector2)

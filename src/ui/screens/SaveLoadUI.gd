@@ -1,5 +1,10 @@
-class_name FPCM_SaveLoadUI
+# This file should be referenced via preload
+# Use explicit preloads instead of global class names
 extends Control
+
+const Self = preload("res://src/ui/screens/SaveLoadUI.gd")
+const GameState = preload("res://src/core/state/GameState.gd")
+const SaveManager = preload("res://src/core/state/SaveManager.gd")
 
 signal save_completed
 signal load_completed
@@ -18,7 +23,7 @@ signal ui_closed
 @onready var quick_save_button: Button = $Panel/VBoxContainer/ButtonContainer/QuickSaveButton
 @onready var auto_save_toggle: CheckButton = $Panel/VBoxContainer/AutoSaveToggle
 
-# Use Node as a placeholder until SaveManager is properly implemented
+# Manager instances
 var save_manager: Node
 var game_state: GameState
 var current_save_name: String = ""
@@ -27,8 +32,18 @@ var _current_dialog: ConfirmationDialog
 var _recovery_dialog: Window
 
 func _ready() -> void:
-	save_manager = get_node("/root/SaveManager")
-	game_state = get_node("/root/GameState")
+	# Try to get SaveManager from autoload first
+	save_manager = get_node_or_null("/root/SaveManager")
+	
+	# If SaveManager is not an autoload, create a new instance
+	if not save_manager:
+		save_manager = SaveManager.new()
+		add_child(save_manager)
+	
+	# Try to get GameState from autoload
+	game_state = get_node_or_null("/root/GameState")
+	if not game_state:
+		game_state = get_node_or_null("/root/GameStateManager")
 	
 	if not save_manager or not game_state:
 		push_error("Required nodes not found")

@@ -1,6 +1,9 @@
 @tool
 extends Control
-class_name FPCM_ActionButton
+# This file should be referenced via preload
+# Use explicit preloads instead of global class names
+
+const Self = preload("res://src/scenes/campaign/components/ActionButton.gd")
 
 # Signals
 signal action_pressed

@@ -1,6 +1,8 @@
-extends FPCM_BasePhasePanel
-class_name FPCM_CampaignPhasePanel
+extends "res://src/ui/screens/campaign/phases/BasePhasePanel.gd"
+# This file should be referenced via preload
+# Use explicit preloads instead of global class names
 
+const ThisClass = preload("res://src/ui/screens/campaign/phases/CampaignPhasePanel.gd")
 const CampaignManager = preload("res://src/core/managers/CampaignManager.gd")
 const WorldEconomyManager = preload("res://src/core/managers/WorldEconomyManager.gd")
 const StoryQuestData = preload("res://src/core/story/StoryQuestData.gd")
@@ -23,8 +25,17 @@ var selected_mission: StoryQuestData
 
 func _ready() -> void:
 	super._ready()
-	campaign_manager = get_node("/root/Game/Managers/CampaignManager")
-	world_economy = get_node("/root/Game/Managers/WorldEconomyManager")
+	
+	# Try to get managers from autoload first
+	campaign_manager = get_node_or_null("/root/CampaignManager")
+	if not campaign_manager:
+		# Try fallback path
+		campaign_manager = get_node_or_null("/root/Game/Managers/CampaignManager")
+		
+	world_economy = get_node_or_null("/root/WorldEconomyManager")
+	if not world_economy:
+		# Try fallback path
+		world_economy = get_node_or_null("/root/Game/Managers/WorldEconomyManager")
 	
 	if not campaign_manager:
 		push_error("Failed to get CampaignManager node")

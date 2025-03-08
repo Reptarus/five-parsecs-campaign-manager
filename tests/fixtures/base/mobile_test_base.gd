@@ -1,6 +1,7 @@
 @tool
-extends GameTest
-class_name MobileTestBase
+extends "res://tests/fixtures/base/game_test.gd"
+# Use explicit preloads instead of global class names
+const MobileTestBaseScript = preload("res://tests/fixtures/base/mobile_test_base.gd")
 
 # Type-safe constants for mobile testing
 const DEFAULT_TOUCH_TARGET_SIZE := Vector2(44, 44)
@@ -30,6 +31,11 @@ func before_each() -> void:
 	await stabilize_engine()
 
 func after_each() -> void:
+	# Disconnect any signals that might be connected
+	for node in _tracked_nodes:
+		if is_instance_valid(node):
+			disconnect_all_signals(node)
+	
 	# Restore original settings
 	restore_resolution()
 	restore_device_dpi()
@@ -194,18 +200,79 @@ func _calculate_maximum(values: Array) -> float:
 func _calculate_percentile(values: Array, percentile: float) -> float:
 	if values.is_empty():
 		return 0.0
-	var sorted := values.duplicate()
+	var sorted: Array = values.duplicate()
 	sorted.sort()
-	var index := int(sorted.size() * percentile)
-	return sorted[index]
+	
+	# Ensure percentile is within valid range
+	var min_value: float = 0.0
+	var max_value: float = 1.0
+	var safe_percentile: float = max(min_value, min(percentile, max_value))
+	
+	# Calculate index safely
+	var array_size: int = sorted.size()
+	var calculated_index: int = int(float(array_size) * safe_percentile)
+	var safe_index: int = min(calculated_index, array_size - 1)
+	
+	return sorted[safe_index]
 
 # Mobile test helpers
 func create_test_game_state() -> Node:
 	var state := Node.new()
+	if not state:
+		push_error("Failed to create game state node")
+		return null
+		
 	add_child_autofree(state)
+	# add_child_autofree already calls track_test_node
 	return state
 
 # Mobile-specific test utilities
 func add_child_autofree(node: Node) -> void:
+	if not node:
+		push_error("Cannot add null node to scene")
+		return
+		
 	add_child(node)
-	node.queue_free_on_exit = true
+	# Track the node for automatic cleanup
+	track_test_node(node)
+
+# Helper method to safely disconnect signals
+func disconnect_all_signals(obj: Object) -> void:
+	if not is_instance_valid(obj):
+		return
+		
+	# In Godot 4.4, we need to use get_signal_list and then check connections
+	for signal_info in obj.get_signal_list():
+		var signal_name: StringName = signal_info["name"]
+		# Get all connections for this signal
+		var connections = obj.get_signal_connection_list(signal_name)
+		
+		for connection in connections:
+			var callable: Callable = connection["callable"]
+			if obj.is_connected(signal_name, callable):
+				obj.disconnect(signal_name, callable)
+
+# Improved error handling wrapper for test methods
+func run_test_with_error_handling(test_method: Callable) -> void:
+	# Setup error capture
+	var had_error := false
+	var error_message := ""
+	
+	# Attempt to run the test
+	await test_method.call()
+	
+	# Check if any errors were pushed during test execution
+	if _error_count > 0:
+		had_error = true
+		error_message = _last_error
+	
+	# Always ensure cleanup happens
+	_cleanup_test_resources()
+	
+	# Report failure if needed
+	if had_error:
+		assert_false(true, "Test failed with error: " + error_message)
+		
+# Helper to assert test failure with message
+func assert_fail(message: String) -> void:
+	assert_false(true, message)

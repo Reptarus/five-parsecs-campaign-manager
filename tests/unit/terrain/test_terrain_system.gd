@@ -1,5 +1,6 @@
 @tool
-extends GameTest
+extends "res://tests/fixtures/base/game_test.gd"
+# Use explicit preloads instead of global class names
 
 const TerrainSystem: GDScript = preload("res://src/core/terrain/TerrainSystem.gd")
 const TerrainTypes: GDScript = preload("res://src/core/terrain/TerrainTypes.gd")

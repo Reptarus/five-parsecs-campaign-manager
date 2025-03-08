@@ -1,5 +1,5 @@
 extends Node
-class_name FPCM_TerrainLayoutNode
+const Self = preload("res://src/core/terrain/TerrainLayoutNode.gd")
 
 const TerrainLayout = preload("res://src/core/terrain/TerrainLayout.gd")
 const TerrainSystem = preload("res://src/core/terrain/TerrainSystem.gd")

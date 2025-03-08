@@ -1,16 +1,19 @@
-class_name FPCM_JobOffersPanel
+# This file should be referenced via preload
+# Use explicit preloads instead of global class names
 extends PanelContainer
 
-signal job_selected(job: Node)
-
+const Self = preload("res://src/scenes/campaign/world_phase/JobOffersPanel.gd")
 const GameEnums = preload("res://src/core/systems/GlobalEnums.gd")
+const GameStateManager = preload("res://src/core/managers/GameStateManager.gd")
+
+signal job_selected(job: Node)
 
 var job_generator: Node
 var special_mission_generator: Node
 var game_state_manager: Node
 
 func _ready() -> void:
-    game_state_manager = get_node("/root/GameStateManager")
+    game_state_manager = get_node_or_null("/root/GameStateManager")
     if not game_state_manager:
         push_error("GameStateManager instance not found")
         queue_free()

@@ -1,6 +1,7 @@
 @tool
 extends "res://addons/gut/test.gd"
-class_name BaseTest
+# Use explicit preloads instead of global class names
+const BaseTestScript = preload("res://tests/fixtures/base/base_test.gd")
 
 # Core test class that all test scripts should extend from
 const GutMainClass: GDScript = preload("res://addons/gut/gut.gd")
@@ -30,19 +31,19 @@ const ERROR_INVALID_PROPERTY := "Invalid property name provided"
 const ERROR_INVALID_METHOD := "Invalid method name provided"
 const ERROR_PROPERTY_NOT_FOUND := "Property '%s' not found in object"
 const ERROR_METHOD_NOT_FOUND := "Method '%s' not found in object"
-const ERROR_TYPE_MISMATCH := "Type mismatch: expected %s but got %s"
+const ERROR_TYPE_MISMATCH := "Expected %s but got %s"
 const ERROR_CAST_FAILED := "Failed to cast %s to %s: %s"
 
 # Type-safe instance variables
-var _was_ready_called := false
-var _skip_script := false
-var _skip_reason := ""
-var _logger: Node = null
-var _original_engine_config := {}
+var _was_ready_called: bool = false
+var _skip_script: bool = false
+var _skip_reason: String = ""
+var _logger: RefCounted = null # Changed from Node to RefCounted
+var _original_engine_config: Dictionary = {}
 var _tracked_nodes: Array[Node] = []
 var _tracked_resources: Array[Resource] = []
 var _tracked_signals: Dictionary = {}
-var _internal_signal_watcher: SignalWatcher = null
+var _internal_signal_watcher: RefCounted = null # Changed from SignalWatcher to RefCounted
 var _signal_emissions: Dictionary = {}
 var fps_samples: Array[float] = []
 var _error_count: int = 0
@@ -56,12 +57,30 @@ var gut: GutMainClass:
 var _gut: GutMainClass = null
 
 func _init() -> void:
-	_logger = GutUtilsClass.get_logger()
+	var utils_instance = GDScript.new()
+	utils_instance.source_code = GutUtilsClass.source_code
+	
+	# Get logger using type-safe approach
+	_logger = null # Initialize to null first
+	if GutUtilsClass.has_method("get_logger"):
+		_logger = GutUtilsClass.get_logger() as RefCounted
+	
 	if not _logger:
 		push_error("Failed to initialize logger")
 		return
-	_logger.set_gut(self)
-	_internal_signal_watcher = SignalWatcher.new(self)
+		
+	# Set gut on logger if method exists
+	if _logger.has_method("set_gut"):
+		_logger.set_gut(self)
+	
+	# Create signal watcher with type safety
+	_internal_signal_watcher = null # Initialize to null first
+	if SignalWatcher:
+		# When instantiating, use proper type checks
+		var watcher_instance = SignalWatcher.new(self)
+		if watcher_instance is RefCounted:
+			_internal_signal_watcher = watcher_instance
+	
 	if not _internal_signal_watcher:
 		push_error("Failed to create signal watcher")
 		return
@@ -112,57 +131,88 @@ func _call_node_method_bool(obj: Object, method: String, args: Array = [], defau
 	push_error(ERROR_TYPE_MISMATCH % ["bool", TypeSafeMixin.typeof_as_string(result)])
 	return default
 
-func set_logger(logger: Node) -> void:
+func set_logger(logger: RefCounted) -> void: # Changed parameter type to RefCounted
 	if not logger:
 		push_error("Cannot set null logger")
 		return
 	_logger = logger
-	_logger.set_gut(self)
+	
+	# Check if the logger has the set_gut method before calling it
+	if _logger.has_method("set_gut"):
+		_logger.set_gut(self)
 
 # Signal watching functions
 func watch_signals(emitter: Object) -> void:
 	if not emitter:
 		push_error("Cannot watch signals for null emitter")
 		return
+		
+	# If signal watcher isn't initialized, create it
 	if not _internal_signal_watcher:
-		push_error("Signal watcher not initialized")
-		return
-	_internal_signal_watcher.watch_signals(emitter)
-	_tracked_signals[emitter] = true
+		# Try to create signal watcher with type safety
+		if SignalWatcher:
+			# When instantiating, use proper type checks
+			var watcher_instance = SignalWatcher.new(self)
+			if watcher_instance is RefCounted:
+				_internal_signal_watcher = watcher_instance
+		
+		if not _internal_signal_watcher:
+			push_error("Failed to initialize signal watcher")
+			return
+		
+	# Check if the signal watcher has the watch_signals method before calling it
+	if _internal_signal_watcher.has_method("watch_signals"):
+		_internal_signal_watcher.watch_signals(emitter)
+		_tracked_signals[emitter] = true
 
 func assert_signal_emitted(emitter: Object, signal_name: String, text: String = "") -> void:
 	if not _internal_signal_watcher:
 		push_error("Signal watcher not initialized")
 		return
 	
-	_internal_signal_watcher.assert_signal_emitted(emitter, signal_name)
+	# Check if the signal watcher has the assert_signal_emitted method before calling it
+	if _internal_signal_watcher.has_method("assert_signal_emitted"):
+		_internal_signal_watcher.assert_signal_emitted(emitter, signal_name)
 
 func assert_signal_not_emitted(emitter: Object, signal_name: String, text: String = "") -> void:
 	if not _internal_signal_watcher:
 		push_error("Signal watcher not initialized")
 		return
 	
-	_internal_signal_watcher.assert_signal_not_emitted(emitter, signal_name)
+	# Check if the signal watcher has the assert_signal_not_emitted method before calling it
+	if _internal_signal_watcher.has_method("assert_signal_not_emitted"):
+		_internal_signal_watcher.assert_signal_not_emitted(emitter, signal_name)
 
 func assert_signal_emit_count(emitter: Object, signal_name: String, count: int, text: String = "") -> void:
 	if not _internal_signal_watcher:
 		push_error("Signal watcher not initialized")
 		return
 	
-	_internal_signal_watcher.assert_signal_emit_count(emitter, signal_name, count, text)
+	# Check if the signal watcher has the assert_signal_emit_count method before calling it
+	if _internal_signal_watcher.has_method("assert_signal_emit_count"):
+		_internal_signal_watcher.assert_signal_emit_count(emitter, signal_name, count, text)
 
 func get_signal_parameters(emitter: Object, signal_name: String, index: int = -1) -> Array:
 	if not _internal_signal_watcher:
 		push_error("Signal watcher not initialized")
 		return []
-	return _internal_signal_watcher.get_signal_parameters(emitter, signal_name, index)
+		
+	# Check if the signal watcher has the get_signal_parameters method before calling it
+	if _internal_signal_watcher.has_method("get_signal_parameters"):
+		return _internal_signal_watcher.get_signal_parameters(emitter, signal_name, index)
+	
+	return []
 
 func get_signal_emit_count(emitter: Object, signal_name: String) -> int:
 	if not _internal_signal_watcher:
 		push_error("Signal watcher not initialized")
 		return 0
-	return _internal_signal_watcher.get_emit_count(emitter, signal_name)
-
+		
+	# Check if the signal watcher has the get_emit_count method before calling it
+	if _internal_signal_watcher.has_method("get_emit_count"):
+		return _internal_signal_watcher.get_emit_count(emitter, signal_name)
+	
+	return 0
 
 # Performance monitoring with type safety
 var _performance_monitors := {
@@ -170,7 +220,6 @@ var _performance_monitors := {
 	"draw_calls": Performance.RENDER_TOTAL_DRAW_CALLS_IN_FRAME as int,
 	"objects": Performance.OBJECT_NODE_COUNT as int
 }
-
 
 # Type validation helpers
 static func _is_valid_number(value: Variant) -> bool:
@@ -248,7 +297,6 @@ func should_skip_script() -> bool:
 func _do_ready_stuff() -> void:
 	_was_ready_called = true
 
-
 # Resource Management with type safety
 func track_test_node(node: Node) -> void:
 	if not node:
@@ -268,10 +316,11 @@ func cleanup_nodes() -> void:
 	if not _tracked_nodes is Array:
 		return
 		
-	for node: Node in _tracked_nodes:
+	for i in range(_tracked_nodes.size() - 1, -1, -1):
+		var node: Node = _tracked_nodes[i]
 		if node is Node and is_instance_valid(node) and not node.is_queued_for_deletion():
 			node.queue_free()
-	_tracked_nodes.clear()
+		_tracked_nodes.remove_at(i)
 
 func cleanup_resources() -> void:
 	cleanup_nodes()
@@ -280,10 +329,11 @@ func cleanup_resources() -> void:
 	if not _tracked_resources is Array:
 		return
 		
-	for resource: Resource in _tracked_resources:
+	for i in range(_tracked_resources.size() - 1, -1, -1):
+		var resource: Resource = _tracked_resources[i]
 		if resource is Resource and not resource.is_queued_for_deletion():
 			resource = null
-	_tracked_resources.clear()
+		_tracked_resources.remove_at(i)
 
 # Type-safe assertion helpers
 func _assert_eq_safe(got: Variant, expected: Variant, text: String = "") -> void:
@@ -359,7 +409,7 @@ func with_timeout(operation: Callable, timeout: float = FRAME_TIMEOUT) -> Varian
 	var timeout_handler := func() -> void: completed = true
 	var _connect_result := timer.timeout.connect(timeout_handler, CONNECT_ONE_SHOT)
 	
-	while not completed and timer and not timer.is_stopped():
+	while not completed:
 		await get_tree().process_frame
 	
 	return result
@@ -403,13 +453,13 @@ func _calculate_fps_safe(frame_time: float) -> float:
 
 func _calculate_performance_metrics_safe(start_values: Dictionary, end_values: Dictionary, samples: Array[float]) -> Dictionary:
 	var metrics := {
-		"average_fps": 0.0,
-		"95th_percentile_fps": 0.0,
-		"minimum_fps": 0.0,
-		"memory_delta_kb": 0.0,
-		"draw_calls_delta": 0,
-		"objects_delta": 0,
-		"iterations": samples.size()
+		"average_fps": 0.0 as float,
+		"95th_percentile_fps": 0.0 as float,
+		"minimum_fps": 0.0 as float,
+		"memory_delta_kb": 0.0 as float,
+		"draw_calls_delta": 0 as int,
+		"objects_delta": 0 as int,
+		"iterations": samples.size() as int
 	}
 	
 	if not samples.is_empty():
@@ -514,7 +564,12 @@ func verify_signal_emitted(emitter: Object, signal_name: String, message: String
 		push_error("Invalid emitter or signal name")
 		return
 	
-	assert_true(_internal_signal_watcher.did_emit(emitter, signal_name),
+	if not _internal_signal_watcher or not _internal_signal_watcher.has_method("did_emit"):
+		push_error("Signal watcher not properly initialized")
+		return
+		
+	var did_emit: bool = _internal_signal_watcher.did_emit(emitter, signal_name)
+	assert_true(did_emit,
 		message if message else "Signal %s should have been emitted" % signal_name)
 
 func verify_signal_not_emitted(emitter: Object, signal_name: String, message: String = "") -> void:
@@ -522,13 +577,22 @@ func verify_signal_not_emitted(emitter: Object, signal_name: String, message: St
 		push_error("Invalid emitter or signal name")
 		return
 	
-	assert_false(_internal_signal_watcher.did_emit(emitter, signal_name),
+	if not _internal_signal_watcher or not _internal_signal_watcher.has_method("did_emit"):
+		push_error("Signal watcher not properly initialized")
+		return
+		
+	var did_emit: bool = _internal_signal_watcher.did_emit(emitter, signal_name)
+	assert_false(did_emit,
 		message if message else "Signal %s should not have been emitted" % signal_name)
 
 # Type-safe property access
 func _get_property_safe(obj: Object, property: String, default_value: Variant = null) -> Variant:
-	if not obj or not property:
-		push_error("Invalid object or property name")
+	if not is_instance_valid(obj):
+		push_error("Invalid object provided")
+		return default_value
+	
+	if not property or property.is_empty():
+		push_error("Invalid property name")
 		return default_value
 	
 	if not property in obj:
@@ -538,8 +602,12 @@ func _get_property_safe(obj: Object, property: String, default_value: Variant = 
 	return obj.get(property)
 
 func _set_property_safe(obj: Object, property: String, value: Variant) -> void:
-	if not obj or not property:
-		push_error("Invalid object or property name")
+	if not is_instance_valid(obj):
+		push_error("Invalid object provided")
+		return
+	
+	if not property or property.is_empty():
+		push_error("Invalid property name")
 		return
 	
 	if not property in obj:
@@ -549,28 +617,35 @@ func _set_property_safe(obj: Object, property: String, value: Variant) -> void:
 	obj.set(property, value)
 
 # Type-safe method calls
-
-
 func _call_node_method_int(obj: Object, method: String, args: Array = [], default_value: int = 0) -> int:
-	var result = _call_node_method(obj, method, args)
+	var result: Variant = _call_node_method(obj, method, args)
+	if result == null:
+		return default_value
 	if result is int:
 		return result
-	push_error("Method '%s' did not return an integer" % method)
+	if result is float:
+		return int(result)
+	if result is String and result.is_valid_int():
+		return result.to_int()
+	push_error("Expected int but got %s" % TypeSafeMixin.typeof_as_string(result))
 	return default_value
 
-
 func _call_node_method_array(obj: Object, method: String, args: Array = [], default_value: Array = []) -> Array:
-	var result = _call_node_method(obj, method, args)
+	var result: Variant = _call_node_method(obj, method, args)
+	if result == null:
+		return default_value
 	if result is Array:
 		return result
-	push_error("Method '%s' did not return an array" % method)
+	push_error("Expected Array but got %s" % TypeSafeMixin.typeof_as_string(result))
 	return default_value
 
 func _call_node_method_dict(obj: Object, method: String, args: Array = [], default_value: Dictionary = {}) -> Dictionary:
-	var result = _call_node_method(obj, method, args)
+	var result: Variant = _call_node_method(obj, method, args)
+	if result == null:
+		return default_value
 	if result is Dictionary:
 		return result
-	push_error("Method '%s' did not return a dictionary" % method)
+	push_error("Expected Dictionary but got %s" % TypeSafeMixin.typeof_as_string(result))
 	return default_value
 
 # Mobile testing functions
@@ -700,13 +775,14 @@ func assert_async_signal(emitter: Object, signal_name: String, timeout: float = 
 		return false
 	
 	var signal_received := false
+	var timeout_reached := false
 	
 	if emitter.has_signal(signal_name):
 		var callable := func() -> void: signal_received = true
 		emitter.connect(signal_name, callable, CONNECT_ONE_SHOT)
-		timer.timeout.connect(func() -> void: signal_received = false, CONNECT_ONE_SHOT)
+		timer.timeout.connect(func() -> void: timeout_reached = true, CONNECT_ONE_SHOT)
 		
-		while not signal_received and not timer.is_stopped():
+		while not signal_received and not timeout_reached:
 			await get_tree().process_frame
 	
 	return signal_received
@@ -761,7 +837,7 @@ func verify_error_handling(callable: Callable, expected_error: String) -> void:
 	callable.call()
 	
 	# Verify error was received
-	var error_found := false
+	var error_found: bool = false
 	for message in error_messages:
 		if message == expected_error:
 			error_found = true
@@ -787,12 +863,12 @@ func _reset_tracking() -> void:
 	_warning_count = 0
 	_last_error = ""
 	
-	if _internal_signal_watcher:
+	if _internal_signal_watcher and _internal_signal_watcher.has_method("clear"):
 		_internal_signal_watcher.clear()
 
 func _setup_test_environment() -> void:
-	Engine.physics_ticks_per_second = TEST_CONFIG.physics_fps
-	Engine.max_fps = TEST_CONFIG.max_fps
+	Engine.physics_ticks_per_second = TEST_CONFIG.physics_fps as int
+	Engine.max_fps = TEST_CONFIG.max_fps as int
 	
 	# Store original engine configuration
 	_original_engine_config = {
@@ -838,7 +914,24 @@ func wait_for_signal(emitter: Object, signal_name: String, timeout: float = BASE
 	if not emitter or not signal_name:
 		push_test_error("Invalid emitter or signal name")
 		return false
-	return await _internal_signal_watcher.wait_for_signal(emitter, signal_name, timeout)
+	
+	var timer := get_tree().create_timer(timeout)
+	if not timer:
+		push_test_error("Failed to create timer")
+		return false
+	
+	var signal_received := false
+	var timeout_reached := false
+	
+	if emitter.has_signal(signal_name):
+		var callable := func() -> void: signal_received = true
+		emitter.connect(signal_name, callable, CONNECT_ONE_SHOT)
+		timer.timeout.connect(func() -> void: timeout_reached = true, CONNECT_ONE_SHOT)
+		
+		while not signal_received and not timeout_reached:
+			await get_tree().process_frame
+	
+	return signal_received
 
 # Performance monitoring
 func start_performance_monitoring() -> void:
@@ -855,51 +948,53 @@ func stop_performance_monitoring() -> Dictionary:
 		avg_fps /= fps_samples.size()
 	
 	return {
-		"average_fps": avg_fps,
-		"memory_usage": Performance.get_monitor(Performance.MEMORY_STATIC),
-		"draw_calls": Performance.get_monitor(Performance.RENDER_TOTAL_DRAW_CALLS_IN_FRAME)
+		"average_fps": avg_fps as float,
+		"memory_usage": Performance.get_monitor(Performance.MEMORY_STATIC) as int,
+		"draw_calls": Performance.get_monitor(Performance.RENDER_TOTAL_DRAW_CALLS_IN_FRAME) as int
 	}
 
 # Additional type-safe method calls
-func _call_node_method_float(obj: Object, method: String, args: Array = [], default: float = 0.0) -> float:
-	var result = _call_node_method(obj, method, args)
+func _call_node_method_float(obj: Object, method: String, args: Array = [], default_value: float = 0.0) -> float:
+	var result: Variant = _call_node_method(obj, method, args)
 	if result == null:
-		return default
+		return default_value
 	if result is float:
 		return result
 	if result is int:
 		return float(result)
 	if result is String and result.is_valid_float():
 		return result.to_float()
-	push_error(ERROR_TYPE_MISMATCH % ["float", TypeSafeMixin.typeof_as_string(result)])
-	return default
+	push_error("Expected float but got %s" % TypeSafeMixin.typeof_as_string(result))
+	return default_value
 
-func _call_node_method_string(obj: Object, method: String, args: Array = [], default: String = "") -> String:
-	var result = _call_node_method(obj, method, args)
+func _call_node_method_string(obj: Object, method: String, args: Array = [], default_value: String = "") -> String:
+	var result: Variant = _call_node_method(obj, method, args)
 	if result == null:
-		return default
+		return default_value
 	if result is String:
 		return result
-	push_error(ERROR_TYPE_MISMATCH % ["String", TypeSafeMixin.typeof_as_string(result)])
-	return default
+	if result is StringName:
+		return String(result)
+	push_error("Expected String but got %s" % TypeSafeMixin.typeof_as_string(result))
+	return default_value
 
-func _call_node_method_object(obj: Object, method: String, args: Array = [], default: Object = null) -> Object:
-	var result = _call_node_method(obj, method, args)
+func _call_node_method_object(obj: Object, method: String, args: Array = [], default_value: Object = null) -> Object:
+	var result: Variant = _call_node_method(obj, method, args)
 	if result == null:
-		return default
+		return default_value
 	if result is Object:
 		return result
-	push_error(ERROR_TYPE_MISMATCH % ["Object", TypeSafeMixin.typeof_as_string(result)])
-	return default
+	push_error("Expected Object but got %s" % TypeSafeMixin.typeof_as_string(result))
+	return default_value
 	
-func _call_node_method_vector2(obj: Object, method: String, args: Array = [], default: Vector2 = Vector2.ZERO) -> Vector2:
-	var result = _call_node_method(obj, method, args)
+func _call_node_method_vector2(obj: Object, method: String, args: Array = [], default_value: Vector2 = Vector2.ZERO) -> Vector2:
+	var result: Variant = _call_node_method(obj, method, args)
 	if result == null:
-		return default
+		return default_value
 	if result is Vector2:
 		return result
-	push_error(ERROR_TYPE_MISMATCH % ["Vector2", TypeSafeMixin.typeof_as_string(result)])
-	return default
+	push_error("Expected Vector2 but got %s" % TypeSafeMixin.typeof_as_string(result))
+	return default_value
 
 # Mobile test configuration
 const MOBILE_RESOLUTIONS := {
@@ -919,3 +1014,10 @@ const MOBILE_DPI := {
 
 # Note: Touch target testing functionality moved to mobile_test.gd
 # to avoid duplicate function declarations
+
+# Add this method to clear signal watcher state for GUT compatibility
+func clear_signal_watcher() -> void:
+	if _internal_signal_watcher and _internal_signal_watcher.has_method("clear"):
+		_internal_signal_watcher.clear()
+	_signal_emissions.clear()
+	_tracked_signals.clear()

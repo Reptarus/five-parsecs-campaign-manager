@@ -1,5 +1,8 @@
-class_name FPCM_MissionInfoPanel
+# This file should be referenced via preload
+# Use explicit preloads instead of global class names
 extends Control
+
+const Self = preload("res://src/ui/components/mission/MissionInfoPanel.gd")
 
 signal mission_selected(mission_data: Dictionary)
 

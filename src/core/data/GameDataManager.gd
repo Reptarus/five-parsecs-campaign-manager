@@ -1,6 +1,9 @@
 @tool
 extends Resource
-class_name FPCM_GameDataManager
+# This file should be referenced via preload
+# Use explicit preloads instead of global class names
+
+const Self = preload("res://src/core/data/GameDataManager.gd")
 
 # Paths to data files
 const ARMOR_DATA_PATH = "res://data/equipment/armor.json"

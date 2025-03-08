@@ -1,13 +1,30 @@
 @tool
-extends GameTest # Replace with appropriate base class: UITest, BattleTest, CampaignTest, EnemyTest, MobileTest
+# Choose the appropriate base class for your test
+# Replace with one of:
+# - extends "res://tests/fixtures/base/game_test.gd" (general game tests)
+# - extends "res://tests/fixtures/specialized/ui_test.gd" (UI component tests)
+# - extends "res://tests/fixtures/specialized/battle_test.gd" (battle system tests)
+# - extends "res://tests/fixtures/specialized/campaign_test.gd" (campaign system tests)
+# - extends "res://tests/fixtures/specialized/enemy_test.gd" (enemy system tests)
+# - extends "res://tests/fixtures/specialized/mobile_test.gd" (mobile-specific tests)
+extends "res://tests/fixtures/base/game_test.gd"
 
 ## Template Test Class
 ##
 ## This is a template for creating new test files.
+## To use this template:
+## 1. Copy this file to the appropriate tests directory (tests/unit/, tests/integration/, etc.)
+## 2. Rename it following the pattern test_[what_you_are_testing].gd
+## 3. Update the extends statement as needed
+## 4. Replace the TestedClass preload with the class you're testing
+## 5. Implement appropriate test cases
 ## Replace this comment with a description of what you're testing.
 
-# Type-safe script references - replace with actual path
-# const TestedClass: GDScript = preload("res://path/to/class.gd") 
+# Use explicit preloads instead of global class names
+# UNCOMMENT AND UPDATE THE PATH BELOW when replacing this template
+# const TestedClass = preload("res://path/to/class/being/tested.gd")
+# Example of a valid preload using a core class that exists:
+const TestedClass := preload("res://src/core/systems/GlobalEnums.gd")
 
 # Type-safe constants
 const TEST_TIMEOUT: float = 2.0
@@ -20,9 +37,10 @@ func before_each() -> void:
 	await super.before_each()
 	
 	# Create the instance being tested
-	# Uncomment and replace with actual instantiation
-	# _instance = TestedClass.new()
-	# add_child_autofree(_instance)
+	# Example instantiation for demonstration purposes - update as needed:
+	_instance = Node.new() # Replace with TestedClass.new() when you update the preload
+	add_child_autofree(_instance)
+	track_test_node(_instance)
 	
 	# Wait for engine to stabilize
 	await stabilize_engine(STABILIZE_TIME)

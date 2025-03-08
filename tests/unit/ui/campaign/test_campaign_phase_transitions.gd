@@ -1,7 +1,8 @@
 ## Campaign Phase Transitions Test Suite
 ## Tests the transitions between different campaign phases and their effects
 @tool
-extends GameTest
+extends "res://tests/fixtures/base/game_test.gd"
+# Use explicit preloads instead of global class names
 
 # Type-safe script references
 const CampaignPhaseManager := preload("res://src/core/campaign/CampaignPhaseManager.gd")

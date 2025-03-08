@@ -1,8 +1,15 @@
 @tool
-class_name MissionGenerator
 extends Node
+# This file should be referenced via preload
+# Use explicit preloads instead of global class names
 
+const Self = preload("res://src/core/systems/MissionGenerator.gd")
+
+# Import necessary classes
 const GameEnums = preload("res://src/core/systems/GlobalEnums.gd")
+const Mission = preload("res://src/core/systems/Mission.gd")
+const TableLoader = preload("res://src/core/systems/TableLoader.gd")
+const TableProcessor = preload("res://src/core/systems/TableProcessor.gd")
 const FiveParsecsGameState = preload("res://src/core/state/GameState.gd")
 
 ## Signals

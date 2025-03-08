@@ -1,6 +1,9 @@
 @tool
 extends Panel
-class_name FPCM_ResourcePanel
+# This file should be referenced via preload
+# Use explicit preloads instead of global class names
+
+const Self = preload("res://src/scenes/campaign/components/ResourcePanel.gd")
 
 # Signals
 signal resource_clicked(resource_name: String, current_value: int)

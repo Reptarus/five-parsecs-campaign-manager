@@ -2,31 +2,34 @@
 extends "res://addons/gut/test.gd"
 
 # Type-safe script references
-const ThemeManagerScript := preload("res://src/ui/themes/ThemeManager.gd")
-const ThemeManagerScene := preload("res://src/ui/themes/ThemeManager.tscn")
+const ThemeManagerScript: GDScript = preload("res://src/ui/themes/ThemeManager.gd")
+const ThemeManagerScene: PackedScene = preload("res://src/ui/themes/ThemeManager.tscn")
 
 # Theme resources
-const BaseTheme := preload("res://src/ui/themes/base_theme.tres")
-const DarkTheme := preload("res://src/ui/themes/dark_theme.tres")
-const LightTheme := preload("res://src/ui/themes/light_theme.tres")
-const HighContrastTheme := preload("res://src/ui/themes/high_contrast_theme.tres")
+const BaseTheme: Theme = preload("res://src/ui/themes/base_theme.tres")
+const DarkTheme: Theme = preload("res://src/ui/themes/dark_theme.tres")
+const LightTheme: Theme = preload("res://src/ui/themes/light_theme.tres")
+const HighContrastTheme: Theme = preload("res://src/ui/themes/high_contrast_theme.tres")
 
 # Test constants
-const TEST_SCALE := 1.2
-const SMALL_TEXT_SCALE := 0.9
-const LARGE_TEXT_SCALE := 1.4
+const TEST_SCALE: float = 1.2
+const SMALL_TEXT_SCALE: float = 0.9
+const LARGE_TEXT_SCALE: float = 1.4
 
 # Instance variables
-var theme_manager: ThemeManagerScript
-var test_control: Control
+var theme_manager: ThemeManagerScript = null
+var test_control: Control = null
 
 # Signal tracking
-var theme_changed_emitted := false
-var scale_changed_emitted := false
-var accessibility_changed_emitted := false
+var theme_changed_emitted: bool = false
+var scale_changed_emitted: bool = false
+var accessibility_changed_emitted: bool = false
 
-func before_each():
-	theme_manager = ThemeManagerScene.instantiate()
+func before_each() -> void:
+	theme_manager = ThemeManagerScene.instantiate() as ThemeManagerScript
+	if not theme_manager:
+		push_error("Failed to instantiate theme manager")
+		return
 	add_child(theme_manager)
 	
 	# Create a test control to verify theme application
@@ -37,14 +40,14 @@ func before_each():
 	_reset_signal_states()
 	_connect_signals()
 
-func after_each():
-	_cleanup_signals()
-	
-	if is_instance_valid(test_control):
-		test_control.queue_free()
-	
+func after_each() -> void:
+	_disconnect_signals()
 	if is_instance_valid(theme_manager):
 		theme_manager.queue_free()
+	if is_instance_valid(test_control):
+		test_control.queue_free()
+	theme_manager = null
+	test_control = null
 
 func _reset_signal_states() -> void:
 	theme_changed_emitted = false
@@ -61,7 +64,7 @@ func _connect_signals() -> void:
 	if theme_manager != null and theme_manager.has_signal("accessibility_changed"):
 		theme_manager.accessibility_changed.connect(_on_accessibility_changed)
 
-func _cleanup_signals() -> void:
+func _disconnect_signals() -> void:
 	if theme_manager != null:
 		if theme_manager.has_signal("theme_changed") and theme_manager.theme_changed.is_connected(_on_theme_changed):
 			theme_manager.theme_changed.disconnect(_on_theme_changed)

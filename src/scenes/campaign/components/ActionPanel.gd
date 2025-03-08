@@ -1,6 +1,9 @@
 @tool
 extends Panel
-class_name FPCM_ActionPanel
+# This file should be referenced via preload
+# Use explicit preloads instead of global class names
+
+const Self = preload("res://src/scenes/campaign/components/ActionPanel.gd")
 
 # Signals
 signal action_selected(action_name: String)
@@ -74,70 +77,54 @@ var phase_requirements: Dictionary = {}
 # Action button scene
 var action_button_scene = preload("res://src/scenes/campaign/components/ActionButton.tscn")
 
-class ActionRequirement:
-	var type: RequirementType
-	var value: Variant
-	var description: String
-	
-	func _init(p_type: RequirementType, p_value: Variant, p_description: String = "") -> void:
-		type = p_type
-		value = p_value
-		description = p_description
-	
-	func is_met(campaign_state: Dictionary) -> bool:
-		match type:
-			RequirementType.CREDITS:
-				return campaign_state.get("credits", 0) >= value
-			RequirementType.STORY_POINTS:
-				return campaign_state.get("story_points", 0) >= value
-			RequirementType.REPUTATION:
-				return campaign_state.get("reputation", 0) >= value
-			RequirementType.SUPPLIES:
-				return campaign_state.get("supplies", 0) >= value
-			RequirementType.INTEL:
-				return campaign_state.get("intel", 0) >= value
-			RequirementType.SALVAGE:
-				return campaign_state.get("salvage", 0) >= value
-			RequirementType.CHARACTER_STAT:
-				# Implement character stat check
-				return true
-			RequirementType.ITEM:
-				# Implement item check
-				return true
-			RequirementType.LOCATION_TYPE:
-				# Implement location type check
-				return true
-		return false
+# Factory functions for creating objects instead of classes
 
-class ActionData:
-	var name: String
-	var description: String
-	var requirements: Array[ActionRequirement]
-	var costs: Dictionary # Resource costs
-	var category: String
-	var enabled: bool
-	var phase: String
-	
-	func _init(p_name: String, p_description: String, p_category: String, p_phase: String) -> void:
-		name = p_name
-		description = p_description
-		category = p_category
-		phase = p_phase
-		requirements = []
-		costs = {}
-		enabled = true
-	
-	func add_requirement(requirement: ActionRequirement) -> void:
-		requirements.append(requirement)
-	
-	func add_cost(resource: String, amount: int) -> void:
-		costs[resource] = amount
-	
-	func can_execute(campaign_state: Dictionary) -> bool:
-		for req in requirements:
-			if not req.is_met(campaign_state):
-				return false
-		return true
+# Create an action requirement
+static func create_requirement(p_type: int, p_value: Variant, p_description: String = "") -> Dictionary:
+	return {
+		"type": p_type,
+		"value": p_value,
+		"description": p_description
+	}
+
+# Check if a requirement is met by the given state
+static func requirement_is_met(requirement: Dictionary, state: Dictionary) -> bool:
+	match requirement.type:
+		RequirementType.CREDITS:
+			return state.get("credits", 0) >= requirement.value
+		RequirementType.STORY_POINTS:
+			return state.get("story_points", 0) >= requirement.value
+		RequirementType.REPUTATION:
+			return state.get("reputation", 0) >= requirement.value
+		RequirementType.SUPPLIES:
+			return state.get("supplies", 0) >= requirement.value
+		RequirementType.INTEL:
+			return state.get("intel", 0) >= requirement.value
+		RequirementType.SALVAGE:
+			return state.get("salvage", 0) >= requirement.value
+		# Add other types as needed
+	return false
+
+# Create an action data object
+static func create_action(p_name: String, p_description: String, p_icon: String, p_category: String) -> Dictionary:
+	return {
+		"name": p_name,
+		"description": p_description,
+		"icon": p_icon,
+		"category": p_category,
+		"requirements": []
+	}
+
+# Add a requirement to an action
+static func add_requirement(action: Dictionary, requirement: Dictionary) -> void:
+	action.requirements.append(requirement)
+
+# Check if an action meets all requirements
+static func meets_requirements(action: Dictionary, state: Dictionary) -> bool:
+	for req in action.requirements:
+		if not requirement_is_met(req, state):
+			return false
+	return true
 
 func _ready() -> void:
 	_setup_ui()
@@ -160,21 +147,21 @@ func _setup_ui() -> void:
 func _setup_phase_requirements() -> void:
 	phase_requirements = {
 		"upkeep": [
-			ActionRequirement.new(RequirementType.CREDITS, 10, "Requires credits for upkeep")
+			create_requirement(RequirementType.CREDITS, 10, "Requires credits for upkeep")
 		],
 		"world_step": [
-			ActionRequirement.new(RequirementType.SUPPLIES, 1, "Requires supplies for local activities")
+			create_requirement(RequirementType.SUPPLIES, 1, "Requires supplies for local activities")
 		],
 		"travel": [
-			ActionRequirement.new(RequirementType.SUPPLIES, 2, "Requires supplies for travel")
+			create_requirement(RequirementType.SUPPLIES, 2, "Requires supplies for travel")
 		],
 		"patrons": [], # No special requirements for patron interactions
 		"battle": [
-			ActionRequirement.new(RequirementType.SUPPLIES, 1, "Requires supplies for battle")
+			create_requirement(RequirementType.SUPPLIES, 1, "Requires supplies for battle")
 		],
 		"post_battle": [], # No special requirements for post-battle
 		"management": [
-			ActionRequirement.new(RequirementType.CREDITS, 50, "Requires credits for management actions")
+			create_requirement(RequirementType.CREDITS, 50, "Requires credits for management actions")
 		]
 	}
 
@@ -201,8 +188,8 @@ func _update_available_actions() -> void:
 	for action in phase_actions:
 		_add_action_button(action)
 
-func _get_phase_actions(phase: String) -> Array[ActionData]:
-	var actions: Array[ActionData] = []
+func _get_phase_actions(phase: String) -> Array:
+	var actions: Array = []
 	
 	match phase:
 		"upkeep":
@@ -222,175 +209,171 @@ func _get_phase_actions(phase: String) -> Array[ActionData]:
 	
 	return actions
 
-func _create_upkeep_actions() -> Array[ActionData]:
-	var actions: Array[ActionData] = []
+func _create_upkeep_actions() -> Array:
+	var actions: Array = []
 	
-	var maintain = ActionData.new(
+	var maintain = create_action(
 		"Maintain Equipment",
 		"Perform routine maintenance on equipment",
-		"maintenance",
-		"upkeep"
+		"res://assets/icons/upkeep.png",
+		"maintenance"
 	)
-	maintain.add_cost("credits", 10)
+	add_requirement(maintain, create_requirement(RequirementType.CREDITS, 10, "Requires credits for upkeep"))
 	actions.append(maintain)
 	
-	var resupply = ActionData.new(
+	var resupply = create_action(
 		"Resupply",
 		"Purchase necessary supplies",
-		"logistics",
-		"upkeep"
+		"res://assets/icons/upkeep.png",
+		"logistics"
 	)
-	resupply.add_cost("credits", 20)
+	add_requirement(resupply, create_requirement(RequirementType.CREDITS, 20, "Requires credits for resupply"))
 	actions.append(resupply)
 	
 	return actions
 
-func _create_world_actions() -> Array[ActionData]:
-	var actions: Array[ActionData] = []
+func _create_world_actions() -> Array:
+	var actions: Array = []
 	
-	var explore = ActionData.new(
+	var explore = create_action(
 		"Explore Area",
 		"Search the local area for opportunities",
-		"exploration",
-		"world_step"
+		"res://assets/icons/world.png",
+		"exploration"
 	)
-	explore.add_cost("supplies", 1)
+	add_requirement(explore, create_requirement(RequirementType.SUPPLIES, 1, "Requires supplies for exploration"))
 	actions.append(explore)
 	
-	var gather = ActionData.new(
+	var gather = create_action(
 		"Gather Intel",
 		"Collect information about the area",
-		"information",
-		"world_step"
+		"res://assets/icons/world.png",
+		"information"
 	)
-	gather.add_cost("credits", 10)
+	add_requirement(gather, create_requirement(RequirementType.CREDITS, 10, "Requires credits for gathering intel"))
 	actions.append(gather)
 	
 	return actions
 
-func _create_travel_actions() -> Array[ActionData]:
-	var actions: Array[ActionData] = []
+func _create_travel_actions() -> Array:
+	var actions: Array = []
 	
-	var travel = ActionData.new(
+	var travel = create_action(
 		"Travel to Location",
 		"Move to a new location",
-		"travel",
+		"res://assets/icons/travel.png",
 		"travel"
 	)
-	travel.add_cost("supplies", 2)
+	add_requirement(travel, create_requirement(RequirementType.SUPPLIES, 2, "Requires supplies for travel"))
 	actions.append(travel)
 	
 	return actions
 
-func _create_patron_actions() -> Array[ActionData]:
-	var actions: Array[ActionData] = []
+func _create_patron_actions() -> Array:
+	var actions: Array = []
 	
-	var meet = ActionData.new(
+	var meet = create_action(
 		"Meet Patron",
 		"Discuss potential jobs and opportunities",
-		"social",
-		"patrons"
+		"res://assets/icons/patron.png",
+		"social"
 	)
 	actions.append(meet)
 	
-	var negotiate = ActionData.new(
+	var negotiate = create_action(
 		"Negotiate Contract",
 		"Negotiate terms for a new contract",
-		"social",
-		"patrons"
+		"res://assets/icons/patron.png",
+		"social"
 	)
-	negotiate.add_requirement(ActionRequirement.new(
-		RequirementType.REPUTATION,
-		10,
-		"Requires reputation to negotiate"
-	))
+	add_requirement(negotiate, create_requirement(RequirementType.REPUTATION, 10, "Requires reputation to negotiate"))
 	actions.append(negotiate)
 	
 	return actions
 
-func _create_battle_actions() -> Array[ActionData]:
-	var actions: Array[ActionData] = []
+func _create_battle_actions() -> Array:
+	var actions: Array = []
 	
-	var combat = ActionData.new(
+	var combat = create_action(
 		"Enter Combat",
 		"Engage in tactical combat",
-		"combat",
-		"battle"
+		"res://assets/icons/battle.png",
+		"combat"
 	)
-	combat.add_cost("supplies", 1)
+	add_requirement(combat, create_requirement(RequirementType.SUPPLIES, 1, "Requires supplies for combat"))
 	actions.append(combat)
 	
 	return actions
 
-func _create_post_battle_actions() -> Array[ActionData]:
-	var actions: Array[ActionData] = []
+func _create_post_battle_actions() -> Array:
+	var actions: Array = []
 	
-	var loot = ActionData.new(
+	var loot = create_action(
 		"Collect Loot",
 		"Search the battlefield for valuable items",
-		"salvage",
-		"post_battle"
+		"res://assets/icons/post_battle.png",
+		"salvage"
 	)
 	actions.append(loot)
 	
-	var treat = ActionData.new(
+	var treat = create_action(
 		"Treat Injuries",
 		"Provide medical treatment to injured crew",
-		"medical",
-		"post_battle"
+		"res://assets/icons/post_battle.png",
+		"medical"
 	)
-	treat.add_cost("credits", 20)
+	add_requirement(treat, create_requirement(RequirementType.CREDITS, 20, "Requires credits for medical treatment"))
 	actions.append(treat)
 	
 	return actions
 
-func _create_management_actions() -> Array[ActionData]:
-	var actions: Array[ActionData] = []
+func _create_management_actions() -> Array:
+	var actions: Array = []
 	
-	var train = ActionData.new(
+	var train = create_action(
 		"Train Crew",
 		"Improve crew skills and abilities",
-		"training",
-		"management"
+		"res://assets/icons/management.png",
+		"training"
 	)
-	train.add_cost("credits", 50)
+	add_requirement(train, create_requirement(RequirementType.CREDITS, 50, "Requires credits for training"))
 	actions.append(train)
 	
-	var upgrade = ActionData.new(
+	var upgrade = create_action(
 		"Upgrade Equipment",
 		"Improve and modify equipment",
-		"equipment",
-		"management"
+		"res://assets/icons/management.png",
+		"equipment"
 	)
-	upgrade.add_cost("credits", 100)
-	upgrade.add_cost("salvage", 2)
+	add_requirement(upgrade, create_requirement(RequirementType.CREDITS, 100, "Requires credits for equipment upgrade"))
+	add_requirement(upgrade, create_requirement(RequirementType.SALVAGE, 2, "Requires salvage for equipment upgrade"))
 	actions.append(upgrade)
 	
 	return actions
 
-func _add_action_button(action: ActionData) -> void:
+func _add_action_button(action: Dictionary) -> void:
 	var button = action_button_scene.instantiate()
 	action_container.add_child(button)
-	button.setup(action.name, action.description, PHASE_CATEGORIES[action.phase].color)
+	button.setup(action.name, action.description, PHASE_CATEGORIES[action.category].color)
 	button.pressed.connect(_on_action_button_pressed.bind(action.name))
-	button.disabled = not action.enabled
+	button.disabled = not meets_requirements(action, available_actions.get(action.name, {}))
 
 func _on_action_button_pressed(action_name: String) -> void:
 	selected_action = action_name
 	var action = available_actions[action_name]
 	
 	description_label.text = action.description
-	_update_cost_display(action.costs)
+	_update_cost_display(action.requirements)
 	
 	emit_signal("action_selected", action_name)
 
-func _update_cost_display(costs: Dictionary) -> void:
+func _update_cost_display(requirements: Array) -> void:
 	for child in cost_container.get_children():
 		child.queue_free()
 	
-	for resource in costs:
+	for req in requirements:
 		var cost_label = Label.new()
-		cost_label.text = "%s: %d" % [resource.capitalize(), costs[resource]]
+		cost_label.text = "%s: %d" % [req.description, req.value]
 		cost_container.add_child(cost_label)
 
 func execute_action(action_name: String, campaign_state: Dictionary) -> Dictionary:
@@ -398,18 +381,18 @@ func execute_action(action_name: String, campaign_state: Dictionary) -> Dictiona
 		return {"success": false, "message": "Invalid action"}
 	
 	var action = available_actions[action_name]
-	if not action.can_execute(campaign_state):
+	if not meets_requirements(action, campaign_state):
 		return {"success": false, "message": "Requirements not met"}
 	
 	# Execute action and return result
 	var result = _execute_action_logic(action, campaign_state)
 	emit_signal("action_executed", action_name, result)
 	
-	if result.success and action.phase == current_phase:
+	if result.success and action.category == current_phase:
 		emit_signal("phase_action_completed", current_phase)
 	
 	return result
 
-func _execute_action_logic(action: ActionData, campaign_state: Dictionary) -> Dictionary:
+func _execute_action_logic(action: Dictionary, campaign_state: Dictionary) -> Dictionary:
 	# Implement action execution logic
 	return {"success": true, "message": "Action executed successfully"}

@@ -1,6 +1,8 @@
-class_name FPCM_ResourceDisplay
+# This file should be referenced via preload
+# Use explicit preloads instead of global class names
 extends Control
 
+const Self = preload("res://src/ui/resource/ResourceDisplay.gd")
 const GameEnums = preload("res://src/core/systems/GlobalEnums.gd")
 const ResourceItem = preload("res://src/ui/resource/ResourceItem.gd")
 const ResourceSystem = preload("res://src/core/systems/ResourceSystem.gd")
@@ -23,8 +25,16 @@ const RESOURCE_ITEM_SCENE = preload("res://src/ui/resource/ResourceItem.tscn")
 var update_timer: Timer
 
 func _ready() -> void:
-	# Get reference to resource system
-	resource_system = get_node("/root/Game/Systems/ResourceSystem")
+	# Get reference to resource system - try autoload first
+	resource_system = get_node_or_null("/root/ResourceSystem")
+	
+	# Try fallback path if not found
+	if not resource_system:
+		resource_system = get_node_or_null("/root/Game/Systems/ResourceSystem")
+	
+	if not resource_system:
+		push_error("ResourceSystem not found")
+		return
 	
 	# Connect signals
 	resource_system.resource_changed.connect(_on_resource_changed)

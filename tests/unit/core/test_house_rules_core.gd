@@ -4,7 +4,8 @@
 ## - Rule state management
 ## - Rule effects and interactions
 @tool
-extends GameTest
+extends "res://tests/fixtures/base/game_test.gd"
+# Use explicit preloads instead of global class names
 
 # Type-safe script references
 const HouseRulesController := preload("res://src/ui/components/combat/rules/house_rules_controller.gd")

@@ -1,6 +1,7 @@
 @tool
 extends "res://src/base/mission/mission_base.gd"
-class_name FPCM_Mission
+# This file should be referenced via preload
+# Use explicit preloads instead of global class names
 
 ## Five Parsecs Mission Implementation
 ##

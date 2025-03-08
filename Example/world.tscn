@@ -1,20 +1,37 @@
-[gd_scene load_steps=5 format=3 uid="uid://c3y3llij1lp8y"]
+[gd_scene load_steps=3 format=3 uid="uid://c3y3llij1lp8y"]
 
-[ext_resource type="Script" uid="uid://dvhxun651ia2w" path="res://WorldGen/World.gd" id="1_r044a"]
-[ext_resource type="Resource" uid="uid://c3ss4jkviodej" path="res://Example/region.tres" id="2_7d8ru"]
-[ext_resource type="Script" uid="uid://bpcg4hlnkoale" path="res://WorldGen/Generator.gd" id="3_baeyn"]
-[ext_resource type="Script" uid="uid://kj1r1mf4ypt6" path="res://WorldGen/Grid.gd" id="4_5x00f"]
+[ext_resource type="Script" path="res://src/core/campaign/WorldGenerator.gd" id="1_r4s4a"]
+[ext_resource type="Script" path="res://Example/WorldExampleController.gd" id="2_f7d0x"]
 
-[node name="World" type="Node2D" node_paths=PackedStringArray("generator")]
+[node name="World" type="Node2D"]
 position = Vector2(993, 29)
-script = ExtResource("1_r044a")
-generator = NodePath("Generator")
-debug_region = ExtResource("2_7d8ru")
 
-[node name="Generator" type="Node2D" parent="." node_paths=PackedStringArray("grid")]
-script = ExtResource("3_baeyn")
-grid = NodePath("../Grid")
+[node name="WorldGenerator" type="Node" parent="."]
+script = ExtResource("1_r4s4a")
 
-[node name="Grid" type="Node2D" parent="."]
-script = ExtResource("4_5x00f")
-size = 64
+[node name="GeneratedWorldDisplay" type="Control" parent="."]
+layout_mode = 3
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+
+[node name="Panel" type="Panel" parent="GeneratedWorldDisplay"]
+layout_mode = 1
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+
+[node name="VBoxContainer" type="VBoxContainer" parent="GeneratedWorldDisplay/Panel"]
+layout_mode = 1
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+
+[node name="ExampleController" type="Node" parent="."]
+script = ExtResource("2_f7d0x")

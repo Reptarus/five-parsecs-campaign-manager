@@ -6,13 +6,13 @@ const GameStateManager = preload("res://src/core/managers/GameStateManager.gd")
 const FiveParsecsCharacter = preload("res://src/core/character/Base/Character.gd")
 const BattleCharacter = preload("res://src/game/combat/BattleCharacter.gd")
 const CombatResolver = preload("res://src/game/combat/CombatResolver.gd")
-const BattlefieldManager = preload("res://src/base/combat/battlefield/BaseBattlefieldManager.gd")
+const BaseBattlefieldManager = preload("res://src/base/combat/battlefield/BaseBattlefieldManager.gd")
 const GameEnums = preload("res://src/core/systems/GlobalEnums.gd")
 
 var _state_machine: BattleStateMachine
 var _game_state: GameStateManager
 var _combat_resolver: CombatResolver
-var _battlefield_manager: BattlefieldManager
+var _battlefield_manager: BaseBattlefieldManager
 
 func before_each() -> void:
 	super.before_each()
@@ -26,7 +26,7 @@ func setup_battle_system() -> void:
 	_state_machine = BattleStateMachine.new()
 	_game_state = GameStateManager.new()
 	_combat_resolver = CombatResolver.new()
-	_battlefield_manager = BattlefieldManager.new()
+	_battlefield_manager = BaseBattlefieldManager.new()
 	
 	_state_machine.game_state_manager = _game_state
 	_combat_resolver.battlefield_manager = _battlefield_manager

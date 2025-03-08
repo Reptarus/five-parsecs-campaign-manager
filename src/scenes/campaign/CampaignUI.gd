@@ -1,6 +1,9 @@
 @tool
 extends Control
-class_name FPCM_CampaignUI
+# This file should be referenced via preload
+# Use explicit preloads instead of global class names
+
+const Self = preload("res://src/scenes/campaign/CampaignUI.gd")
 
 # Dependencies
 const FPCM_CampaignResponsiveLayout = preload("res://src/ui/components/base/CampaignResponsiveLayout.gd")

@@ -1,6 +1,9 @@
 @tool
 extends "res://src/base/character/character_base.gd"
-class_name CoreCharacter
+# This file should be referenced via preload
+# Use explicit preloads instead of global class names
+
+const Self = preload("res://src/core/character/Base/Character.gd")
 
 ## Core implementation of character for Five Parsecs
 ##

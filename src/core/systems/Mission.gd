@@ -1,7 +1,11 @@
 @tool
 extends Resource
-class_name Mission
+# This file should be referenced via preload
+# Use explicit preloads instead of global class names
 
+const Self = preload("res://src/core/systems/Mission.gd")
+
+# Import necessary classes
 const GameEnums = preload("res://src/core/systems/GlobalEnums.gd")
 
 signal mission_completed
@@ -44,7 +48,7 @@ func serialize() -> Dictionary:
 		"turn_offered": turn_offered
 	}
 
-func deserialize(data: Dictionary) -> Mission:
+func deserialize(data: Dictionary) -> Resource:
 	mission_id = data.get("mission_id", "")
 	mission_title = data.get("mission_title", "")
 	mission_description = data.get("mission_description", "")
@@ -55,3 +59,8 @@ func deserialize(data: Dictionary) -> Mission:
 	is_failed = data.get("is_failed", false)
 	turn_offered = data.get("turn_offered", 0)
 	return self
+
+static func create_from_data(data: Dictionary) -> Resource:
+	var mission = Self.new()
+	mission.deserialize(data)
+	return mission

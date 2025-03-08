@@ -1,6 +1,8 @@
-extends FPCM_BasePhasePanel
-class_name FPCM_AdvancementPhasePanel
+extends "res://src/ui/screens/campaign/phases/BasePhasePanel.gd"
+# This file should be referenced via preload
+# Use explicit preloads instead of global class names
 
+const ThisClass = preload("res://src/ui/screens/campaign/phases/AdvancementPhasePanel.gd")
 const Character = preload("res://src/core/character/Base/Character.gd")
 
 @onready var crew_list = $VBoxContainer/CrewList
@@ -324,3 +326,4 @@ func _on_apply_pressed() -> void:
 		selected_crew_member.experience -= selected_advancement.cost
 	
 	_update_ui()
+

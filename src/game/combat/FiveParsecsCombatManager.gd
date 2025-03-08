@@ -1,6 +1,9 @@
 @tool
 extends BaseCombatManager
-class_name FPCM_CombatManager
+# This file should be referenced via preload
+# Use explicit preloads instead of global class names
+
+const Self = preload("res://src/game/combat/FiveParsecsCombatManager.gd")
 
 ## Five Parsecs implementation of the combat manager
 ##

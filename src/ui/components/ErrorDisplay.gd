@@ -1,6 +1,8 @@
-class_name FPCM_ErrorDisplay
+# This file should be referenced via preload
+# Use explicit preloads instead of global class names
 extends Control
 
+const Self = preload("res://src/ui/components/ErrorDisplay.gd")
 const ErrorLogger = preload("res://src/core/systems/ErrorLogger.gd")
 
 @onready var error_list: ItemList = $ErrorList

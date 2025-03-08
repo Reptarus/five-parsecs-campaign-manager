@@ -1,5 +1,8 @@
-class_name FPCM_TutorialOverlay
+# This file should be referenced via preload
+# Use explicit preloads instead of global class names
 extends CanvasLayer
+
+const Self = preload("res://src/ui/components/tutorial/TutorialOverlay.gd")
 
 signal tutorial_completed
 signal tutorial_skipped

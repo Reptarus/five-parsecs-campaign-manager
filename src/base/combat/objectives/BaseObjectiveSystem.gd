@@ -1,6 +1,7 @@
 @tool
 extends Node
-class_name BaseObjectiveSystem
+# Use explicit preloads instead of global class names
+const Self = preload("res://src/base/combat/objectives/BaseObjectiveSystem.gd")
 
 # Signals
 signal objective_added(objective: Dictionary)

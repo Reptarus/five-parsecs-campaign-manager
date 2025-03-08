@@ -1,7 +1,9 @@
-class_name ObjectiveMarker
+# Don't use class_name to avoid global class conflicts
+# Use explicit preloads instead
 extends Area3D
 
-const Character = preload("res://src/core/character/Base/Character.gd")
+const Self = preload("res://src/data/resources/Deployment/ObjectiveMarker.gd")
+const Character = preload("res://src/base/character/character_base.gd")
 
 signal objective_reached(by_unit: Character)
 signal objective_completed
@@ -39,4 +41,4 @@ func process_turn() -> void:
     if capturing_unit:
         turns_held += 1
         if turns_held >= required_turns:
-            objective_completed.emit() 
+            objective_completed.emit()

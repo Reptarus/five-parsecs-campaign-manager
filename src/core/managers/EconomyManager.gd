@@ -1,6 +1,7 @@
 extends Node
 
 const GameEnums = preload("res://src/core/systems/GlobalEnums.gd")
+const GameStateManager = preload("res://src/core/managers/GameStateManager.gd")
 
 signal global_event_triggered(event: GameEnums.GlobalEvent)
 signal economy_updated
@@ -124,23 +125,23 @@ func _update_prices() -> void:
 
 func calculate_item_price(item: Resource, is_buying: bool) -> int:
     if not item:
-        push_error("Item is required for price calculation")
         return 0
         
     var base_price: int = item.value
-    var location_modifier: float = location_price_modifiers.get(
-        get_node("/root/GameStateManager").game_state.current_location.name,
-        1.0
-    )
+    var game_state_manager = get_node_or_null("/root/GameStateManager")
+    var location_name = ""
     
+    if game_state_manager and game_state_manager.game_state and game_state_manager.game_state.current_location:
+        location_name = game_state_manager.game_state.current_location.name
+    
+    var location_modifier: float = location_price_modifiers.get(location_name, 1.0)
     var market_modifier: float = market_prices.get(item.type, 1.0)
     
+    # Calculate markup/markdown
     if is_buying:
-        base_price = int(base_price * BASE_ITEM_MARKUP * location_modifier * market_modifier)
+        return int(base_price * BASE_ITEM_MARKUP * location_modifier * market_modifier)
     else:
-        base_price = int(base_price * BASE_ITEM_MARKDOWN * location_modifier * market_modifier)
-    
-    return max(1, base_price)
+        return int(base_price * BASE_ITEM_MARKDOWN * location_modifier * market_modifier)
 
 func can_trade_item(item: Resource) -> bool:
     if not item:
@@ -160,7 +161,13 @@ func process_transaction(item: Resource, is_buying: bool, quantity: int = 1) -> 
         return false
         
     var price := calculate_item_price(item, is_buying) * quantity
-    var game_state = get_node("/root/GameStateManager").game_state
+    var game_state_manager = get_node_or_null("/root/GameStateManager")
+    
+    if not game_state_manager or not game_state_manager.game_state:
+        transaction_failed.emit("Cannot access game state")
+        return false
+    
+    var game_state = game_state_manager.game_state
     
     if is_buying:
         if game_state.credits < price:

@@ -1,6 +1,9 @@
 @tool
 extends "res://src/base/mission/mission_base.gd"
-class_name FPCM_GameMission
+# This file should be referenced via preload
+# Use explicit preloads instead of global class names
+
+const Self = preload("res://src/game/mission/five_parsecs_mission.gd")
 
 ## Game-specific Five Parsecs Mission Implementation
 ##

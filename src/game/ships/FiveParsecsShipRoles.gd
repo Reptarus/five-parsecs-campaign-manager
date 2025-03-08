@@ -1,5 +1,8 @@
 extends Resource
-class_name FPCM_ShipRoles
+# This file should be referenced via preload
+# Use explicit preloads instead of global class names
+
+const Self = preload("res://src/game/ships/FiveParsecsShipRoles.gd")
 
 # Preloads
 const GameEnums = preload("res://src/core/systems/GlobalEnums.gd")

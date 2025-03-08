@@ -1,113 +1,34 @@
 @tool
-extends GameTest
+extends "res://tests/fixtures/base/game_test.gd"
+# Use explicit preloads instead of global class names
+# Skip self-reference preload since it causes linter errors
 
 # Create a mock HullComponent class for testing purposes
-class MockHullComponent:
-    extends RefCounted
-    
+class MockHullComponent extends RefCounted:
     var name: String = "Hull"
-    var description: String = "Ship hull structure"
-    var cost: int = 300
-    var power_draw: int = 0 # Hull typically doesn't draw power
-    var armor: int = 100
-    var integrity: int = 1000
-    var max_integrity: int = 1000
+    var description: String = "Standard ship hull"
+    var cost: int = 200
+    var armor: int = 5
+    var shield_capacity: int = 100
+    var weight: float = 25.0
+    var hull_strength: int = 100
     var level: int = 1
-    var durability: int = 100
-    var efficiency: float = 1.0
-    var damage_resistance: float = 0.2
-    var weight: int = 500
+    var size: int = 3
+    var slots: Dictionary = {"weapon": 2, "utility": 3}
+    var current_damage: int = 0
     
     func get_name() -> String: return name
     func get_description() -> String: return description
     func get_cost() -> int: return cost
-    func get_power_draw() -> int: return power_draw
     func get_armor() -> int: return armor
-    func get_integrity() -> int: return integrity
-    func get_max_integrity() -> int: return max_integrity
+    func get_shield_capacity() -> int: return shield_capacity
+    func get_weight() -> float: return weight
+    func get_hull_strength() -> int: return hull_strength - current_damage
     func get_level() -> int: return level
-    func get_durability() -> int: return durability
-    func get_damage_resistance() -> float: return damage_resistance * efficiency
-    func get_weight() -> int: return weight
-    
-    func set_efficiency(value: float) -> bool:
-        efficiency = value
-        return true
-        
-    func upgrade() -> bool:
-        armor += 20
-        max_integrity += 200
-        damage_resistance += 0.05
-        level += 1
-        return true
-        
-    func set_armor(value: int) -> bool:
-        armor = value
-        return true
-    
-    func set_integrity(value: int) -> bool:
-        integrity = min(value, max_integrity)
-        return true
-    
-    func set_max_integrity(value: int) -> bool:
-        max_integrity = value
-        integrity = min(integrity, max_integrity)
-        return true
-    
-    func set_level(value: int) -> bool:
-        level = value
-        return true
-    
-    func set_durability(value: int) -> bool:
-        durability = value
-        return true
-        
-    func set_damage_resistance(value: float) -> bool:
-        damage_resistance = value
-        return true
-        
-    func set_weight(value: int) -> bool:
-        weight = value
-        return true
-        
-    func take_damage(amount: int) -> int:
-        var actual_damage = int(amount * (1.0 - damage_resistance * efficiency))
-        integrity = max(0, integrity - actual_damage)
-        return actual_damage
-        
-    func repair(amount: int) -> int:
-        var old_integrity = integrity
-        integrity = min(max_integrity, integrity + amount)
-        return integrity - old_integrity
-        
-    func serialize() -> Dictionary:
-        return {
-            "name": name,
-            "description": description,
-            "cost": cost,
-            "power_draw": power_draw,
-            "armor": armor,
-            "integrity": integrity,
-            "max_integrity": max_integrity,
-            "level": level,
-            "durability": durability,
-            "damage_resistance": damage_resistance,
-            "weight": weight
-        }
-        
-    func deserialize(data: Dictionary) -> bool:
-        name = data.get("name", name)
-        description = data.get("description", description)
-        cost = data.get("cost", cost)
-        power_draw = data.get("power_draw", power_draw)
-        armor = data.get("armor", armor)
-        integrity = data.get("integrity", integrity)
-        max_integrity = data.get("max_integrity", max_integrity)
-        level = data.get("level", level)
-        durability = data.get("durability", durability)
-        damage_resistance = data.get("damage_resistance", damage_resistance)
-        weight = data.get("weight", weight)
-        return true
+    func get_size() -> int: return size
+    func get_slots() -> Dictionary: return slots
+    func get_available_slots() -> Dictionary: return slots.duplicate()
+    func get_damage_percentage() -> float: return float(current_damage) / float(hull_strength) * 100.0
 
 # Create a mockup of GameEnums
 class HullGameEnumsMock:

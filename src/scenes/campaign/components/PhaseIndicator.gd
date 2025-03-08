@@ -1,6 +1,9 @@
 @tool
 extends Control
-class_name FPCM_PhaseIndicator
+# This file should be referenced via preload
+# Use explicit preloads instead of global class names
+
+const Self = preload("res://src/scenes/campaign/components/PhaseIndicator.gd")
 
 # Signals
 signal phase_clicked(phase_name: String)

@@ -1,6 +1,6 @@
-class_name FPCM_TerrainLayout
 extends Resource
 
+const Self = preload("res://src/core/terrain/TerrainLayout.gd")
 const GameEnums: GDScript = preload("res://src/core/systems/GlobalEnums.gd")
 const FiveParsecsTerrainTypes: GDScript = preload("res://src/core/terrain/TerrainTypes.gd")
 const TerrainSystem: GDScript = preload("res://src/core/terrain/TerrainSystem.gd")

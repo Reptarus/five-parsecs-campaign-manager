@@ -1,7 +1,9 @@
-## UnifiedAISystem
-## Manages AI behavior and decision making for units in the Five Parsecs battle system.
-class_name FPCM_UnifiedAISystem
+@tool
 extends Node
+# This file should be referenced via preload
+# Use explicit preloads instead of global class names
+
+const Self = preload("res://src/core/systems/UnifiedAISystem.gd")
 
 ## Dependencies
 const GameEnums = preload("res://src/core/systems/GlobalEnums.gd")

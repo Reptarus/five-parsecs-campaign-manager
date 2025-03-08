@@ -2,7 +2,8 @@
 ## Tests the functionality of the ship component management system, including
 ## component registration, installation, power management, and system-wide operations
 @tool
-extends GameTest
+extends "res://tests/fixtures/base/game_test.gd"
+# Use explicit preloads instead of global class names
 
 # Type-safe script references
 const ShipComponentScript := preload("res://src/core/ships/components/ShipComponent.gd")

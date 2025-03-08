@@ -1,6 +1,9 @@
 @tool
-class_name StoryQuestData
+# This file should be referenced via preload
+# Use explicit preloads instead of global class names
 extends Resource
+
+const Self = preload("res://src/game/story/StoryQuestData.gd")
 
 signal reward_calculated(rewards: Dictionary)
 signal validation_failed(errors: Array[String])
@@ -340,8 +343,8 @@ func calculate_rewards() -> Dictionary:
 	reward_calculated.emit(rewards)
 	return rewards
 
-static func create_mission(p_mission_type: int, p_config: Dictionary = {}) -> StoryQuestData:
-	var mission := StoryQuestData.new()
+static func create_mission(p_mission_type: int, p_config: Dictionary = {}) -> Resource:
+	var mission := Self.new()
 	mission.configure(p_mission_type, p_config)
 	return mission
 

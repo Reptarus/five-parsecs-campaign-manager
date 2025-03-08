@@ -1,7 +1,10 @@
 @tool
-class_name FPCM_Crew
+# REMOVED: class_name FPCM_Crew
+# The authoritative version should be referenced via preload. Use explicit preloads instead of global class name.
 extends BaseCrew
 
+# Self-reference constant for external scripts
+const Self = preload("res://src/game/campaign/crew/FiveParsecsCrew.gd")
 const BaseCrew = preload("res://src/base/campaign/crew/BaseCrew.gd")
 const FPCM_CrewMember = preload("res://src/game/campaign/crew/FiveParsecsCrewMember.gd")
 const GameEnums = preload("res://src/core/systems/GlobalEnums.gd")
@@ -173,19 +176,23 @@ func to_dict() -> Dictionary:
 	
 	return data
 
-func from_dict(data: Dictionary) -> void:
-	super.from_dict(data)
+func from_dict(data: Dictionary) -> bool:
+	if not data is Dictionary or data.is_empty():
+		return false
+		
+	if not super.from_dict(data):
+		return false
 	
 	# Load Five Parsecs specific data
 	if data.has("ship_name"): ship_name = data.ship_name
 	if data.has("ship_type"): ship_type = data.ship_type
 	if data.has("reputation"): reputation = data.reputation
-	if data.has("patrons"): patrons = data.patrons
-	if data.has("rivals"): rivals = data.rivals
+	if data.has("patrons"): patrons = data.patrons.duplicate()
+	if data.has("rivals"): rivals = data.rivals.duplicate()
 	if data.has("campaign_progress"): campaign_progress = data.campaign_progress
 	if data.has("campaign_type"): campaign_type = data.campaign_type
 	if data.has("current_system"): current_system = data.current_system
-	if data.has("visited_systems"): visited_systems = data.visited_systems
+	if data.has("visited_systems"): visited_systems = data.visited_systems.duplicate()
 	if data.has("story_points"): story_points = data.story_points
 	
 	# Load crew members
@@ -193,5 +200,11 @@ func from_dict(data: Dictionary) -> void:
 		members.clear()
 		for member_data in data.members:
 			var member = FPCM_CrewMember.new()
-			member.from_dict(member_data)
-			add_member(member)
+			if not member.from_dict(member_data):
+				push_error("Failed to load crew member data")
+				return false
+			if not add_member(member):
+				push_error("Failed to add crew member")
+				return false
+	
+	return true

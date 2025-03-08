@@ -1,6 +1,8 @@
-class_name FPCM_StatusEffect
+# This file should be referenced via preload
+# Use explicit preloads instead of global class names
 extends Resource
 
+const Self = preload("res://src/ui/screens/campaign/StatusEffects.gd")
 const Character = preload("res://src/core/character/Base/Character.gd")
 
 enum StatusEffectType {
@@ -83,8 +85,9 @@ func serialize() -> Dictionary:
         "intensity": intensity
     }
 
-static func deserialize(data: Dictionary) -> FPCM_StatusEffect:
-    return FPCM_StatusEffect.new(
+static func deserialize(data: Dictionary) -> Resource:
+    var script := load("res://src/ui/screens/campaign/StatusEffects.gd")
+    return script.new(
         StatusEffectType[data["type"]],
         data["duration"],
         data["intensity"]

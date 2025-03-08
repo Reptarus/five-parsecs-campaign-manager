@@ -2,7 +2,9 @@
 extends "res://src/core/state/SerializableResource.gd"
 
 ## Test implementation of SerializableResource for unit testing
-class_name TestResource
+## This is used for testing serialization/deserialization functionality
+# Use explicit preloads instead of global class names
+const TestResourceSelf = preload("res://tests/fixtures/specialized/test_resource.gd")
 
 # Type-safe properties
 var test_value: String = ""

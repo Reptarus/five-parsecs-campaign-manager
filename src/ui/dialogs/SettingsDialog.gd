@@ -1,6 +1,9 @@
 @tool
-class_name SettingsDialog
+# This file should be referenced via preload
+# Use explicit preloads instead of global class names
 extends Window
+
+const Self = preload("res://src/ui/dialogs/SettingsDialog.gd")
 
 ## Settings dialog for Five Parsecs Campaign Manager
 ##

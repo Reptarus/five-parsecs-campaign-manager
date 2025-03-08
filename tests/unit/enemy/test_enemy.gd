@@ -1,5 +1,6 @@
 @tool
-extends EnemyTest
+extends "res://tests/fixtures/specialized/enemy_test.gd"
+# Use explicit preloads instead of global class names
 
 # These are already declared in the parent class - no need to redeclare
 

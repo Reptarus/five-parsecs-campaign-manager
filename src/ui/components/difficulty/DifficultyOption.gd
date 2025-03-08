@@ -1,5 +1,8 @@
-class_name FPCM_DifficultyOption
+# This file should be referenced via preload
+# Use explicit preloads instead of global class names
 extends Control
+
+const Self = preload("res://src/ui/components/difficulty/DifficultyOption.gd")
 
 signal value_changed(difficulty: GameEnums.DifficultyLevel)
 

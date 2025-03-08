@@ -1,6 +1,9 @@
 @tool
 extends Resource
-class_name GameWorldTrait
+# This file should be referenced via preload
+# Use explicit preloads instead of global class names
+
+const GameWorldTraitSelf = preload("res://src/game/world/GameWorldTrait.gd")
 
 const GameDataManager = preload("res://src/core/managers/GameDataManager.gd")
 const GameEnums = preload("res://src/core/systems/GlobalEnums.gd")
@@ -114,7 +117,7 @@ func serialize() -> Dictionary:
 	}
 
 ## Create a GameWorldTrait instance from serialized data
-static func deserialize(data: Dictionary) -> GameWorldTrait:
-	var world_trait = GameWorldTrait.new()
+static func deserialize(data: Dictionary) -> Resource:
+	var world_trait = GameWorldTraitSelf.new()
 	world_trait.initialize_from_data(data)
 	return world_trait

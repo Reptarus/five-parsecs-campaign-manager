@@ -255,12 +255,22 @@ func get_state() -> Dictionary:
 func get_state_value(key: String, default_value = null):
     return current_state.get(key, default_value)
 
-func reset_state() -> void:
-    var old_state = current_state.duplicate()
+func reset_tracker_state() -> void:
+    var old_state = current_state.duplicate(true)
+    
+    # Clear the state
     current_state.clear()
+    
+    # Initialize fresh state
     _initialize_state()
-    state_changed.emit(old_state, current_state)
+    
+    # Apply validators
+    validate_state()
+    
+    # Emit the reset signal
     state_reset.emit()
+    state_changed.emit(old_state, current_state)
+    state_updated.emit(current_state)
 
 func get_history() -> Array[Dictionary]:
     return state_history.duplicate()

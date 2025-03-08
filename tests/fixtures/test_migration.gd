@@ -299,7 +299,8 @@ func generate_migration_instructions() -> String:
 	instructions += "1. Update the extends statement to use the proper class_name:\n"
 	instructions += "   ```gdscript\n"
 	instructions += "   @tool\n"
-	instructions += "   extends UITest  # Instead of extends \"res://tests/fixtures/specialized/ui_test.gd\"\n"
+	instructions += "   extends \"res://tests/fixtures/specialized/ui_test.gd\"  # Instead of extends UITest\n"
+	instructions += "   # Use explicit preloads instead of global class names\n"
 	instructions += "   ```\n\n"
 	
 	instructions += "2. Ensure proper super calls in lifecycle methods:\n"

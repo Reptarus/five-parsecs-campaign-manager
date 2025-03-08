@@ -1,7 +1,8 @@
 ## Phase Indicator Test Suite
 ## Tests the functionality of the campaign phase indicator UI component
 @tool
-extends GameTest
+# Test file for PhaseIndicator UI component
+extends "res://tests/fixtures/base/game_test.gd"
 
 # Type-safe script references
 const PhaseIndicator := preload("res://src/scenes/campaign/components/PhaseIndicator.gd")

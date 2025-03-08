@@ -5,7 +5,8 @@
 ## - Campaign state management
 ## - Signal handling for campaign events
 @tool
-extends GameTest
+extends "res://tests/fixtures/base/game_test.gd"
+# Use explicit preloads instead of global class names
 
 # Type-safe script references
 const Mission := preload("res://src/core/mission/base/mission.gd")

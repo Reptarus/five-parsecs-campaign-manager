@@ -1,6 +1,8 @@
-class_name FPCM_RewardsPanel
+# This file should be referenced via preload
+# Use explicit preloads instead of global class names
 extends Control
 
+const Self = preload("res://src/ui/components/rewards/RewardsPanel.gd")
 const TooltipManager = preload("res://src/ui/components/tooltip/TooltipManager.gd")
 
 signal rewards_confirmed(selected_rewards: Array)

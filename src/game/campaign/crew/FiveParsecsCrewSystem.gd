@@ -1,7 +1,9 @@
 @tool
-class_name FPCM_CrewSystem
+# This file should be referenced via preload
+# Use explicit preloads instead of global class names
 extends "res://src/base/campaign/crew/BaseCrewSystem.gd"
 
+const Self = preload("res://src/game/campaign/crew/FiveParsecsCrewSystem.gd")
 const FPCM_Crew = preload("res://src/game/campaign/crew/FiveParsecsCrew.gd")
 const FPCM_CrewMember = preload("res://src/game/campaign/crew/FiveParsecsCrewMember.gd")
 const FiveParsecsStrangeCharacters = preload("res://src/game/campaign/crew/FiveParsecsStrangeCharacters.gd")

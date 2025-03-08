@@ -1,6 +1,8 @@
 @tool
 extends BasePostBattlePhase
-class_name FiveParsecsPostBattlePhase
+# This file should be referenced via preload
+# Use explicit preloads instead of global class names
+const Self = preload("res://src/game/campaign/FiveParsecsPostBattlePhase.gd")
 
 const BasePostBattlePhase = preload("res://src/base/campaign/BasePostBattlePhase.gd")
 const GameEnums = preload("res://src/core/systems/GlobalEnums.gd")

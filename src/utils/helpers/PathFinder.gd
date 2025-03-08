@@ -5,9 +5,11 @@
 # This file should be considered deprecated and will be removed in future updates
 # Use the core version directly: preload("res://src/core/utils/PathFinder.gd")
 @tool
+# This file should be referenced via preload
+# Use explicit preloads instead of global class names
 extends Node
-class_name FPCM_HelperPathFinder
 
+const Self = preload("res://src/utils/helpers/PathFinder.gd")
 const TerrainTypes = preload("res://src/core/terrain/TerrainTypes.gd")
 const BattlefieldManager = preload("res://src/core/battle/BattlefieldManager.gd")
 const GameEnums = preload("res://src/core/systems/GlobalEnums.gd")

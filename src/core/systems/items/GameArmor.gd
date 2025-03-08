@@ -1,8 +1,10 @@
 @tool
 extends Resource
-class_name GameArmor
+# This file should be referenced via preload
+# Use explicit preloads instead of global class names
 
-# Import necessary classes
+const Self = preload("res://src/core/systems/items/GameArmor.gd")
+
 const GameDataManager = preload("res://src/core/managers/GameDataManager.gd")
 
 const GameEnums = preload("res://src/core/systems/GlobalEnums.gd")
@@ -168,9 +170,25 @@ func get_armor_profile() -> Dictionary:
 		"tags": armor_tags
 	}
 
-static func create_from_profile(profile: Dictionary) -> GameArmor:
-	var armor = GameArmor.new()
-	armor.initialize_from_data(profile)
+static func create_from_data(data: Dictionary) -> Resource:
+	var armor = Self.new()
+	
+	# Initialize basic properties
+	armor.armor_id = data.get("id", "")
+	armor.armor_name = data.get("name", "")
+	armor.armor_category = data.get("category", "")
+	armor.armor_description = data.get("description", "")
+	armor.armor_save = data.get("armor_save", 0)
+	armor.armor_encumbrance = data.get("encumbrance", 0)
+	armor.armor_coverage = data.get("coverage", [])
+	armor.weight = data.get("weight", 1.0)
+	armor.armor_cost = data.get("cost", {"credits": 0, "rarity": "Common"})
+	armor.armor_rarity = data.get("rarity", "Common")
+	armor.armor_traits = data.get("traits", [])
+	armor.armor_special_rules = data.get("special_rules", [])
+	armor.armor_tags = data.get("tags", [])
+	armor.durability = 100
+	
 	return armor
 
 func serialize() -> Dictionary:

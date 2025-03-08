@@ -1,5 +1,5 @@
 @tool
-extends GameTest
+extends "res://tests/fixtures/base/game_test.gd"
 
 ## Edge case tests for mission system
 ##

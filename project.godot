@@ -48,10 +48,6 @@ settings/run_on_load/test_scene="res://tests/GutTestScene.tscn"
 window/size/viewport_width=1920
 window/size/viewport_height=1080
 
-[dotnet]
-
-project/assembly_name="Five Parsecs Campaign Manager"
-
 [editor_plugins]
 
 enabled=PackedStringArray("res://addons/gut/plugin.cfg")

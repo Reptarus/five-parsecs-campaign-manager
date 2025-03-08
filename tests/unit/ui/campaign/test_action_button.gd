@@ -1,7 +1,13 @@
 ## Action Button Test Suite
 ## Tests the functionality of individual action buttons in the campaign UI
+## 
+## NOTE: This is the preferred implementation for testing ActionButton components directly with GameTest.
+## There is a duplicate test in tests/unit/ui/components/campaign/test_action_button.gd that uses component_test_base
+## and tests a different aspect (the scene instance rather than the script). Both tests are kept until full testing
+## strategy alignment is complete.
 @tool
-extends GameTest
+extends "res://tests/fixtures/base/game_test.gd"
+# Use explicit preloads instead of global class names
 
 # Type-safe script references
 const ActionButton := preload("res://src/scenes/campaign/components/ActionButton.gd")

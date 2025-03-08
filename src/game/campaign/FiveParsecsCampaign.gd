@@ -1,6 +1,8 @@
 @tool
 extends BaseCampaign
-class_name FiveParsecsCampaign
+# This file should be referenced via preload
+# Use explicit preloads instead of global class names
+const Self = preload("res://src/game/campaign/FiveParsecsCampaign.gd")
 
 const BaseCampaign = preload("res://src/base/campaign/BaseCampaign.gd")
 const FiveParsecsGameEnums = preload("res://src/game/campaign/crew/FiveParsecsGameEnums.gd")
@@ -154,27 +156,34 @@ func serialize() -> Dictionary:
 	
 	return data
 
-func deserialize(data: Dictionary) -> void:
-	super.deserialize(data)
+func deserialize(data: Dictionary) -> Dictionary:
+	# Call parent deserialize first and check if it succeeded
+	var result = super.deserialize(data)
+	if not result.success:
+		return result
 	
 	# Load Five Parsecs specific data
 	if data.has("crew"):
-		crew.from_dict(data.crew)
+		# Try to load crew data safely
+		if crew.from_dict(data.crew) != true:
+			return {"success": false, "message": "Failed to load crew data"}
 	
 	if data.has("galaxy_map"):
-		galaxy_map = data.galaxy_map
+		galaxy_map = data.galaxy_map.duplicate()
 	
 	if data.has("battle_stats"):
-		battle_stats = data.battle_stats
+		battle_stats = data.battle_stats.duplicate()
 	
 	if data.has("current_mission"):
-		current_mission = data.current_mission
+		current_mission = data.current_mission.duplicate()
 	
 	if data.has("completed_missions"):
-		completed_missions = data.completed_missions
+		completed_missions = data.completed_missions.duplicate()
 	
 	if data.has("patrons"):
-		patrons = data.patrons
+		patrons = data.patrons.duplicate()
 	
 	if data.has("rivals"):
-		rivals = data.rivals
+		rivals = data.rivals.duplicate()
+	
+	return {"success": true, "message": "Five Parsecs campaign data loaded successfully"}

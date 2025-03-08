@@ -6,7 +6,8 @@
 ## - Signal handling and verification
 ## - Performance and boundary conditions
 @tool
-extends GameTest
+extends "res://tests/fixtures/base/game_test.gd"
+# Use explicit preloads instead of global class names
 
 # Type-safe script references
 const ObjectiveMarker := preload("res://src/data/resources/Deployment/ObjectiveMarker.gd")

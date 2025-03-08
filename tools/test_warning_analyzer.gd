@@ -37,19 +37,15 @@ const WARNING_PATTERNS = {
 	}
 }
 
-class WarningInfo:
-	var file_path: String
-	var line_number: int
-	var warning_type: String
-	var code_line: String
-	var suggested_fix: String
-
-	func _init(p_path: String, p_line: int, p_type: String, p_code: String, p_fix: String = "") -> void:
-		file_path = p_path
-		line_number = p_line
-		warning_type = p_type
-		code_line = p_code
-		suggested_fix = p_fix
+# Create a warning info Dictionary factory instead of a class
+func create_warning_info(p_path: String, p_line: int, p_type: String, p_code: String, p_fix: String = "") -> Dictionary:
+	return {
+		"file_path": p_path,
+		"line_number": p_line,
+		"warning_type": p_type,
+		"code_line": p_code,
+		"suggested_fix": p_fix
+	}
 
 func _run() -> void:
 	print("Analyzing test files for warnings...")
@@ -57,8 +53,8 @@ func _run() -> void:
 	generate_report(warnings)
 	print("Analysis complete. Check 'res://tools/test_warnings_report.md' for results.")
 
-func analyze_test_files() -> Array[WarningInfo]:
-	var warnings: Array[WarningInfo] = []
+func analyze_test_files() -> Array:
+	var warnings = []
 	var test_files = find_test_files("res://tests")
 	
 	for file_path in test_files:
@@ -75,8 +71,8 @@ func analyze_test_files() -> Array[WarningInfo]:
 	
 	return warnings
 
-func find_test_files(path: String) -> Array[String]:
-	var files: Array[String] = []
+func find_test_files(path: String) -> Array:
+	var files = []
 	var dir = DirAccess.open(path)
 	if not dir:
 		return files
@@ -94,15 +90,15 @@ func find_test_files(path: String) -> Array[String]:
 	
 	return files
 
-func analyze_line(file_path: String, line_number: int, line: String) -> Array[WarningInfo]:
-	var warnings: Array[WarningInfo] = []
+func analyze_line(file_path: String, line_number: int, line: String) -> Array:
+	var warnings = []
 	
 	for warning_type in WARNING_PATTERNS:
 		var patterns = WARNING_PATTERNS[warning_type]["patterns"]
 		for pattern in patterns:
 			if RegEx.create_from_string(pattern).search(line):
 				var suggested_fix = suggest_fix(warning_type, line)
-				warnings.append(WarningInfo.new(
+				warnings.append(create_warning_info(
 					file_path,
 					line_number,
 					warning_type,
@@ -164,7 +160,7 @@ func suggest_type_annotation_fix(line: String) -> String:
 			return line.replace(var_name, var_name + ": Variant")
 	return line
 
-func generate_report(warnings: Array[WarningInfo]) -> void:
+func generate_report(warnings: Array) -> void:
 	var report = FileAccess.open("res://tools/test_warnings_report.md", FileAccess.WRITE)
 	if not report:
 		return
@@ -173,17 +169,17 @@ func generate_report(warnings: Array[WarningInfo]) -> void:
 	
 	var warnings_by_type = {}
 	for warning in warnings:
-		if not warnings_by_type.has(warning.warning_type):
-			warnings_by_type[warning.warning_type] = []
-		warnings_by_type[warning.warning_type].append(warning)
+		if not warnings_by_type.has(warning["warning_type"]):
+			warnings_by_type[warning["warning_type"]] = []
+		warnings_by_type[warning["warning_type"]].append(warning)
 	
 	for warning_type in warnings_by_type:
 		var type_warnings = warnings_by_type[warning_type]
 		report.store_string("## " + warning_type + " (" + str(type_warnings.size()) + " occurrences)\n\n")
 		
 		for warning in type_warnings:
-			report.store_string("### " + warning.file_path + ":" + str(warning.line_number) + "\n")
-			report.store_string("```gdscript\n" + warning.code_line + "\n```\n")
-			if warning.suggested_fix:
-				report.store_string("Suggested fix:\n```gdscript\n" + warning.suggested_fix + "\n```\n")
+			report.store_string("### " + warning["file_path"] + ":" + str(warning["line_number"]) + "\n")
+			report.store_string("```gdscript\n" + warning["code_line"] + "\n```\n")
+			if warning["suggested_fix"]:
+				report.store_string("Suggested fix:\n```gdscript\n" + warning["suggested_fix"] + "\n```\n")
 			report.store_string("\n")

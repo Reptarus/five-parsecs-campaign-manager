@@ -1,10 +1,12 @@
 @tool
 extends Resource
-class_name GameWeapon
+# This file should be referenced via preload
+# Use explicit preloads instead of global class names
+
+const GameWeaponSelf = preload("res://src/core/systems/items/GameWeapon.gd")
 
 # Import necessary classes
 const GameDataManager = preload("res://src/core/managers/GameDataManager.gd")
-
 const GameEnums = preload("res://src/core/systems/GlobalEnums.gd")
 
 @export var weapon_id: String = ""
@@ -254,8 +256,8 @@ func get_weapon_profile() -> Dictionary:
 		"ammo": weapon_ammo
 	}
 
-static func create_from_profile(profile: Dictionary) -> GameWeapon:
-	var weapon = GameWeapon.new()
+static func create_from_profile(profile: Dictionary) -> Resource:
+	var weapon = GameWeaponSelf.new()
 	weapon.initialize_from_data(profile)
 	return weapon
 

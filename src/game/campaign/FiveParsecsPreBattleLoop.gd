@@ -1,7 +1,9 @@
 @tool
-class_name FiveParsecsPreBattleLoop
+# This file should be referenced via preload
+# Use explicit preloads instead of global class names
 extends BasePreBattleLoop
 
+const Self = preload("res://src/game/campaign/FiveParsecsPreBattleLoop.gd")
 const BasePreBattleLoop = preload("res://src/base/campaign/BasePreBattleLoop.gd")
 const FiveParsecsMissionGenerator = preload("res://src/game/campaign/FiveParsecsMissionGenerator.gd")
 const GameEnums = preload("res://src/core/systems/GlobalEnums.gd")

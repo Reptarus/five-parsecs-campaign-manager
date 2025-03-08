@@ -1,6 +1,7 @@
 @tool
 extends Node
-class_name UnifiedTerrainSystem
+# This class should be referenced using preload or load instead of class_name
+# to avoid conflicts with global script classes
 
 ## A unified system for managing terrain in a grid-based environment
 ##

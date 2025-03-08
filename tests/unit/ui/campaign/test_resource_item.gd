@@ -1,5 +1,5 @@
 @tool
-extends GameTest
+extends "res://tests/fixtures/base/game_test.gd"
 
 # Type-safe script references
 const ResourceItem := preload("res://src/scenes/campaign/components/ResourceItem.gd")

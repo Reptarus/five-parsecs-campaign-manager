@@ -1,6 +1,9 @@
 @tool
 extends Node
-class_name FPCM_ReactTables
+# This file should be referenced via preload
+# Use explicit preloads instead of global class names
+
+const Self = preload("res://src/core/mission/ReactTables.gd")
 
 ## React Tables Implementation for Five Parsecs From Home
 ## Implements React tables for enemy generation (rulebook p.124-129)

@@ -7,7 +7,8 @@
 ## - Error handling
 ## - Signal verification
 @tool
-extends GameTest
+extends "res://tests/fixtures/base/game_test.gd"
+# Use explicit preloads instead of global class names
 
 # Type-safe script references
 const EnemyTacticalAI: GDScript = preload("res://src/game/combat/EnemyTacticalAI.gd")

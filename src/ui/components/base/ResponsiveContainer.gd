@@ -1,5 +1,8 @@
-class_name FPCM_ResponsiveContainer
+# This file should be referenced via preload
+# Use explicit preloads instead of global class names
 extends Control
+
+const Self = preload("res://src/ui/components/base/ResponsiveContainer.gd")
 
 signal orientation_changed(is_portrait: bool)
 

@@ -1,6 +1,9 @@
 @tool
-class_name ResponsiveContainer
+# This file should be referenced via preload
+# Use explicit preloads instead of global class names
 extends Container
+
+const Self = preload("res://src/ui/components/ResponsiveContainer.gd")
 
 ## A container that adapts its layout based on screen size and theme settings
 ##

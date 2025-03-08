@@ -1,9 +1,17 @@
 @tool
-class_name FiveParsecsMissionGenerator
+# This file should be referenced via preload
+# Use explicit preloads instead of global class names
 extends BaseMissionGenerator
 
+const Self = preload("res://src/game/campaign/FiveParsecsMissionGenerator.gd")
 const BaseMissionGenerator = preload("res://src/base/campaign/BaseMissionGenerator.gd")
 const GameEnums = preload("res://src/core/systems/GlobalEnums.gd")
+
+# Signals for mission generation events
+signal mission_generated(mission)
+
+# Mission type mapping for display
+var mission_types: Dictionary = {}
 
 # Five Parsecs specific mission types
 enum FiveParsecsMissionType {
@@ -159,10 +167,10 @@ func generate_mission_description(type: int, difficulty: int) -> String:
 	return type_desc + " " + difficulty_desc
 
 func calculate_mission_reward(difficulty: int, type: int) -> int:
-	# Base calculation from parent class
-	var base_reward = super.calculate_mission_reward(difficulty, type)
+	# Basic reward calculation based on difficulty
+	var base_reward = difficulty * 100
 	
-	# Five Parsecs specific adjustments
+	# Adjust based on mission type
 	match type:
 		FiveParsecsMissionType.PATRON_JOB:
 			base_reward *= 1.5 # Patron jobs pay more
@@ -171,14 +179,7 @@ func calculate_mission_reward(difficulty: int, type: int) -> int:
 		FiveParsecsMissionType.RIVAL_ENCOUNTER:
 			base_reward *= 1.3 # Rival encounters have good rewards
 		FiveParsecsMissionType.SALVAGE_RUN:
-			base_reward *= 1.2 # Salvage runs have decent rewards
-	
-	# Random variation (±10%)
-	var variation = randf_range(0.9, 1.1)
-	base_reward = int(base_reward * variation)
-	
-	# Round to nearest 50
-	base_reward = int(round(base_reward / 50.0) * 50)
+			base_reward *= 1.2 # Salvage missions have slightly higher rewards
 	
 	return base_reward
 
@@ -321,14 +322,16 @@ func generate_loot_table(difficulty: int) -> Array:
 	return loot_table
 
 func serialize_mission(mission_data: Dictionary) -> Dictionary:
-	var data = super.serialize_mission(mission_data)
+	# Create serialized copy of mission data
+	var data = mission_data.duplicate(true)
 	
 	# Add any Five Parsecs specific serialization logic here
 	
 	return data
 
 func deserialize_mission(serialized_data: Dictionary) -> Dictionary:
-	var mission = super.deserialize_mission(serialized_data)
+	# Create mission from serialized data
+	var mission = serialized_data.duplicate(true)
 	
 	# Add any Five Parsecs specific deserialization logic here
 	

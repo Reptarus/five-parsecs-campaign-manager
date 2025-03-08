@@ -2,7 +2,8 @@
 ## Tests the functionality of the game state management specifically for campaigns,
 ## including initialization, loading, and settings management.
 @tool
-extends CampaignTest
+extends "res://tests/fixtures/specialized/campaign_test.gd"
+# Use explicit preloads instead of global class names
 
 # Type-safe script references
 const Campaign := preload("res://src/core/campaign/Campaign.gd")

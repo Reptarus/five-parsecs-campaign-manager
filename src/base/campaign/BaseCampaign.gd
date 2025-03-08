@@ -122,13 +122,21 @@ func serialize() -> Dictionary:
 	}
 	return data
 
-func deserialize(data: Dictionary) -> void:
+func deserialize(data: Dictionary) -> Dictionary:
+	if data == null or not data is Dictionary:
+		return {"success": false, "message": "Invalid data format"}
+	
+	if not "campaign_name" in data:
+		return {"success": false, "message": "Missing required campaign data"}
+	
 	if data.has("campaign_name"): campaign_name = data.campaign_name
 	if data.has("campaign_type"): campaign_type = data.campaign_type
 	if data.has("campaign_difficulty"): campaign_difficulty = data.campaign_difficulty
 	if data.has("current_phase"): current_phase = data.current_phase
 	if data.has("completed_phases"): completed_phases = data.completed_phases
-	if data.has("resources"): resources = data.resources
-	if data.has("start_date"): start_date = data.start_date
-	if data.has("current_date"): current_date = data.current_date
+	if data.has("resources"): resources = data.resources.duplicate() # Use duplicate to avoid reference issues
+	if data.has("start_date"): start_date = data.start_date.duplicate()
+	if data.has("current_date"): current_date = data.current_date.duplicate()
 	if data.has("total_days"): total_days = data.total_days
+	
+	return {"success": true, "message": "Campaign data deserialized successfully"}

@@ -1,10 +1,10 @@
 @tool
-extends GameTest
+extends "res://tests/fixtures/base/game_test.gd"
+# Use explicit preloads instead of global class names
+# Skip self-reference preload since it causes linter errors
 
 # Create a mock EngineComponent class for testing purposes
-class MockEngineComponent:
-    extends RefCounted
-    
+class MockEngineComponent extends RefCounted:
     var name: String = "Engine"
     var description: String = "Standard ship engine"
     var cost: int = 100

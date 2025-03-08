@@ -1,6 +1,10 @@
 @tool
 extends "res://src/core/character/Base/Character.gd"
-class_name FPCM_Character
+# This file should be referenced via preload
+# Use explicit preloads instead of global class names
+
+# Use a different constant name to avoid conflicts with parent's Self constant
+const GameCharacterSelf = preload("res://src/game/character/Character.gd")
 
 ## Game implementation of the Five Parsecs character
 ##

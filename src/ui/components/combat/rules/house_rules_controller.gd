@@ -4,6 +4,7 @@ extends Node
 const GameEnums := preload("res://src/core/systems/GlobalEnums.gd")
 const Character := preload("res://src/core/character/Base/Character.gd")
 const BaseCombatManager := preload("res://src/base/combat/BaseCombatManager.gd")
+const GameState := preload("res://src/core/state/GameState.gd")
 
 ## Node references
 @onready var house_rules_panel: PanelContainer = %HouseRulesPanel
@@ -39,7 +40,7 @@ func _connect_signals() -> void:
 
 ## Loads saved house rules from game state
 func _load_saved_rules() -> void:
-	var game_state = get_node("/root/GameState")
+	var game_state = get_node_or_null("/root/GameState")
 	if not game_state:
 		return
 	

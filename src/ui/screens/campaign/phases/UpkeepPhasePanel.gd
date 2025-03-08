@@ -1,6 +1,8 @@
-extends FPCM_BasePhasePanel
-class_name FPCM_UpkeepPhasePanel
+extends "res://src/ui/screens/campaign/phases/BasePhasePanel.gd"
+# This file should be referenced via preload
+# Use explicit preloads instead of global class names
 
+const ThisClass = preload("res://src/ui/screens/campaign/phases/UpkeepPhasePanel.gd")
 const Character = preload("res://src/core/character/Base/Character.gd")
 
 @onready var upkeep_cost_label = $VBoxContainer/UpkeepCostLabel
@@ -83,3 +85,4 @@ func _on_phase_failed(error_message: String) -> void:
 	dialog.dialog_text = error_message
 	add_child(dialog)
 	dialog.popup_centered()
+

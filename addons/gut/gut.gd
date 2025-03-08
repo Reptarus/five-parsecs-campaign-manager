@@ -1,5 +1,6 @@
 @tool
-class_name GutMain
+# This class should be referenced using preload or load instead of class_name
+# to avoid conflicts with global script classes
 extends 'res://addons/gut/gut_to_move.gd'
 
 ## The GUT brains.
@@ -762,7 +763,6 @@ func _test_the_scripts(indexes = []):
 
 			if ((_unit_test_name != '' and _current_test.name.find(_unit_test_name) > -1) or
 				(_unit_test_name == '')):
-
 				var ticks_before := Time.get_ticks_usec()
 
 				if (_current_test.arg_count > 1):

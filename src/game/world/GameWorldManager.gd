@@ -1,6 +1,9 @@
 @tool
-class_name GameWorldManager
+# This file should be referenced via preload
+# Use explicit preloads instead of global class names
 extends Node
+
+const Self = preload("res://src/game/world/GameWorldManager.gd")
 
 ## Manager class for world generation and management
 

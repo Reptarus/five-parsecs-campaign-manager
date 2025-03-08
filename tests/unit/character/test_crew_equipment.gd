@@ -1,5 +1,7 @@
 @tool
-extends GameTest
+extends "res://tests/fixtures/base/game_test.gd"
+# Use explicit preloads instead of global class names
+# Skip self-reference preload since it causes linter errors
 
 ## Ship Components Test Suite
 ## Tests the functionality of ship components and their management

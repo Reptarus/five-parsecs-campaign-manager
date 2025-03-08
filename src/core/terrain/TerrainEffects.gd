@@ -1,17 +1,21 @@
-## Handles dynamic terrain effects and environmental conditions
-class_name FPCM_TerrainEffects
+@tool
 extends Node
+# This file should be referenced via preload
+# Use explicit preloads instead of global class names
+
+const Self = preload("res://src/core/terrain/TerrainEffects.gd")
+
+const GameEnums = preload("res://src/core/systems/GlobalEnums.gd")
+const FiveParsecsTerrainTypes = preload("res://src/core/terrain/TerrainTypes.gd")
+const FiveParsecsCharacter = preload("res://src/core/character/Base/Character.gd")
+
+## Handles dynamic terrain effects and environmental conditions
 
 ## Signals
-signal effect_applied(position: Vector2, effect_type: String)
-signal effect_removed(position: Vector2, effect_type: String)
+signal terrain_effect_applied(effect_type: String, position: Vector2, intensity: float)
+signal terrain_effect_removed(effect_type: String, position: Vector2)
 signal environment_condition_changed(condition: String, intensity: float)
 signal hazard_damage_dealt(position: Vector2, damage: int)
-
-## Dependencies
-const GameEnums: GDScript = preload("res://src/core/systems/GlobalEnums.gd")
-const FiveParsecsTerrainTypes: GDScript = preload("res://src/core/terrain/TerrainTypes.gd")
-const FiveParsecsCharacter: GDScript = preload("res://src/core/character/Base/Character.gd")
 
 ## Effect types
 enum EffectType {
@@ -65,7 +69,7 @@ func apply_effect(position: Vector2, effect_type: EffectType) -> void:
     if not effect_type in _active_effects[position]:
         _active_effects[position].append(effect_type)
         _effect_timers[position][effect_type] = EFFECT_DURATIONS.get(effect_type, 1)
-        effect_applied.emit(position, EffectType.keys()[effect_type])
+        terrain_effect_applied.emit(EffectType.keys()[effect_type], position, 1.0)
 
 ## Removes a terrain effect at a position
 func remove_effect(position: Vector2, effect_type: EffectType) -> void:
@@ -77,7 +81,7 @@ func remove_effect(position: Vector2, effect_type: EffectType) -> void:
             _active_effects.erase(position)
             _effect_timers.erase(position)
         
-        effect_removed.emit(position, EffectType.keys()[effect_type])
+        terrain_effect_removed.emit(EffectType.keys()[effect_type], position)
 
 ## Updates effect durations and applies effects
 func update_effects() -> void:

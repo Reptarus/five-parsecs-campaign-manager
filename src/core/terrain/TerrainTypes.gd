@@ -3,7 +3,8 @@
 # Defines terrain types and their properties for the Five Parsecs battle system.
 @tool
 extends Resource
-class_name FPCM_TerrainTypes
+# Use explicit preloads instead of global class names
+const Self = preload("res://src/core/terrain/TerrainTypes.gd")
 
 ## Terrain Type Definitions
 enum Type {

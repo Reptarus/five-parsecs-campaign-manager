@@ -1,6 +1,6 @@
-class_name CoreBattleTutorialManager
 extends Node
 
+const Self = preload("res://src/core/tutorial/BattleTutorialManager.gd")
 const GameEnums = preload("res://src/core/systems/GlobalEnums.gd")
 const FiveParsecsGameState = preload("res://src/core/state/GameState.gd")
 const Character = preload("res://src/core/character/Management/CharacterDataManager.gd")

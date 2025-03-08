@@ -363,7 +363,7 @@ static func deserialize(data: Dictionary) -> Resource:
 	
 	# If there's GameLocation data, deserialize it
 	if data.has("game_location_data"):
-		location._game_location = GameLocation.deserialize(data.get("game_location_data"))
+		location._game_location = preload("res://src/game/world/GameLocation.gd").deserialize(data.get("game_location_data"))
 	else:
 		# Otherwise, sync our state to the GameLocation
 		location._sync_to_game_location()

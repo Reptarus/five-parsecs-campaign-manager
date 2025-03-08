@@ -1,6 +1,9 @@
 @tool
-class_name FPCM_ResourceSystem
 extends Node
+# This file should be referenced via preload
+# Use explicit preloads instead of global class names
+
+const Self = preload("res://src/core/systems/ResourceSystem.gd")
 
 ## A comprehensive system for managing game resources with advanced features
 ##

@@ -1,3 +1,9 @@
+## Action Button Component Test Suite
+## Tests the ActionButton component based on the component_test_base framework
+##
+## NOTE: This is an alternative implementation for testing ActionButton components using component_test_base.
+## There is another test in tests/unit/ui/campaign/test_action_button.gd that extends GameTest directly.
+## This test may be consolidated with the other one in future testing framework cleanup.
 @tool
 extends "res://tests/unit/ui/base/component_test_base.gd"
 

@@ -41,7 +41,16 @@ func save_campaign() -> Dictionary:
 	return gamestate.save_campaign()
 
 func load_campaign(save_data: Dictionary) -> void:
-	gamestate.load_campaign(save_data)
+	# Create campaign from data directly instead of using the file loading path
+	var campaign = FiveParsecsCampaign.new()
+	var load_result = campaign.deserialize(save_data)
+	
+	if not load_result.success:
+		push_error("Failed to load campaign: " + load_result.message)
+		return
+	
+	# Set as current campaign in gamestate
+	gamestate.set_current_campaign(campaign)
 	current_phase = save_data.get("current_phase", GameEnums.CampaignPhase.SETUP)
 
 func update_resource(resource_type: int, amount: int) -> void:

@@ -2,6 +2,7 @@ extends Control
 
 const GameEnums := preload("res://src/core/systems/GlobalEnums.gd")
 const GameState := preload("res://src/core/state/GameState.gd")
+const GameStateManager := preload("res://src/core/managers/GameStateManager.gd")
 
 # UI References
 @onready var crew_upkeep_value := $Panel/MarginContainer/VBoxContainer/UpkeepSection/UpkeepInfo/CrewUpkeepValue
@@ -42,7 +43,18 @@ enum CrewTask {
 }
 
 func _ready() -> void:
-    game_state = get_node("/root/GameStateManager").game_state
+    # Try to get GameState from GameStateManager first
+    var game_state_manager = get_node_or_null("/root/GameStateManager")
+    if game_state_manager and game_state_manager.has_method("get_game_state"):
+        game_state = game_state_manager.get_game_state()
+    else:
+        # Fallback to direct access if the method doesn't exist
+        game_state = game_state_manager.game_state if game_state_manager else null
+    
+    # If still no game_state, try other methods
+    if not game_state:
+        game_state = get_node_or_null("/root/GameState")
+    
     if not game_state:
         push_error("GameState not found")
         queue_free()

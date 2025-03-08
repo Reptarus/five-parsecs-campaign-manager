@@ -1,5 +1,8 @@
-class_name FPCM_EnemyInfoPanel
+# This file should be referenced via preload
+# Use explicit preloads instead of global class names
 extends Control
+
+const Self = preload("res://src/ui/components/mission/EnemyInfoPanel.gd")
 
 @onready var enemy_list := $EnemyList
 @onready var threat_level := $ThreatLevel

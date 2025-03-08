@@ -1,7 +1,12 @@
 # WeaponSystem.gd
-class_name FPCM_WeaponSystem
+@tool
 extends Node
+# This file should be referenced via preload
+# Use explicit preloads instead of global class names
 
+const Self = preload("res://src/core/systems/WeaponSystem.gd")
+
+# Import necessary classes
 const GameEnums = preload("res://src/core/systems/GlobalEnums.gd")
 const GameWeapon = preload("res://src/core/systems/items/GameWeapon.gd")
 

@@ -1,7 +1,8 @@
 ## Event Log Test Suite
 ## Tests the functionality of the campaign event logging system
 @tool
-extends GameTest
+# Test file for EventLog component
+extends "res://tests/fixtures/base/game_test.gd"
 
 # Type-safe script references
 const EventLog := preload("res://src/scenes/campaign/components/EventLog.gd")

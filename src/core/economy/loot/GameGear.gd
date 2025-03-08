@@ -1,6 +1,9 @@
 @tool
 extends Resource
-class_name GameGear
+# This file should be referenced via preload
+# Use explicit preloads instead of global class names
+
+const Self = preload("res://src/core/economy/loot/GameGear.gd")
 
 # Import necessary classes
 const GameDataManager = preload("res://src/core/managers/GameDataManager.gd")
@@ -169,8 +172,8 @@ func get_gear_profile() -> Dictionary:
 		"requirements": gear_requirements
 	}
 
-static func create_from_profile(profile: Dictionary) -> GameGear:
-	var gear = GameGear.new()
+static func create_from_profile(profile: Dictionary) -> Resource:
+	var gear = Self.new()
 	gear.initialize_from_data(profile)
 	return gear
 

@@ -1,6 +1,9 @@
 @tool
 extends Resource
-class_name GameLocation
+# This file should be referenced via preload
+# Use explicit preloads instead of global class names
+
+const GameLocationSelf = preload("res://src/game/world/GameLocation.gd")
 
 const GameDataManager = preload("res://src/core/managers/GameDataManager.gd")
 const GameEnums = preload("res://src/core/systems/GlobalEnums.gd")
@@ -16,7 +19,7 @@ const GameWorldTrait = preload("res://src/game/world/GameWorldTrait.gd")
 @export var resources: Dictionary = {}
 @export var points_of_interest: Array = []
 @export var active_missions: Array = []
-@export var world_traits: Array[GameWorldTrait] = []
+@export var world_traits: Array = []
 
 # State tracking
 @export var visited: bool = false
@@ -272,8 +275,8 @@ func serialize() -> Dictionary:
     }
 
 ## Create a GameLocation instance from serialized data
-static func deserialize(data: Dictionary) -> GameLocation:
-    var location = GameLocation.new()
+static func deserialize(data: Dictionary) -> Resource:
+    var location = GameLocationSelf.new()
     
     location.location_id = data.get("location_id", "")
     location.location_name = data.get("location_name", "")

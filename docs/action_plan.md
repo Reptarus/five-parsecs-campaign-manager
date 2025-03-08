@@ -57,6 +57,19 @@ All high-priority components from Phase 1 have been successfully implemented, in
     - Prefer `load()` over `preload()` when dealing with potential circular dependencies
     - Document classes that have had class_name removed in a central location
 
+- **Cache Errors and Script Resolution** 🔄
+  - **Task:** Address "Error while getting cache for script" errors throughout the codebase
+  - **Implementation:** Replace inner classes with factory functions returning dictionaries
+  - **Status:** In progress (ActionPanel.gd, EventLog.gd, and test files fixed)
+  - **Guidelines:**
+    - Avoid using nested classes that might conflict with global scripts
+    - Use factory functions that return dictionaries instead of class instances
+    - Structure code to use data objects (dictionaries) instead of class instances where possible
+    - Use static helper functions for operations on data objects
+    - Document refactoring patterns used to address cache errors
+    - For test files, ensure proper inheritance paths are used in extends statements
+    - Be cautious when using track_test_resource() with non-Resource objects
+
 - **Component Duplication Resolution** ✅
   - **Task:** Consolidate duplicate ship components to a single implementation
   - **Implementation:** Removed duplicate components from game directory, keeping the core versions
@@ -347,6 +360,18 @@ All high-priority components from Phase 1 have been successfully implemented, in
    - Maintain clear separation between base classes and implementations
    - Use consistent naming conventions across the project
    - Organize scripts by functionality rather than inheritance
+
+5. **Cache Error Prevention**:
+   - Avoid using nested inner classes in scripts, especially when they're instantiated frequently
+   - Use dictionary-based factory functions instead of class constructors (examples in ActionPanel.gd, EventLog.gd)
+   - When refactoring existing code with cache errors:
+     - Replace classes with static factory functions that return dictionaries
+     - Add helper functions for common operations that would have been class methods
+     - Structure object interfaces to be explicit about available properties
+   - In test files:
+     - Use absolute paths in extends statements (e.g., extends "res://tests/fixtures/specialized/battle_test.gd")
+     - Be careful with track_test_resource() when using dictionaries instead of Resources
+     - Create specific test utility methods that work with dictionary-based data objects
 
 ### Rulebook Mechanics Already Implemented
 Several key rulebook mechanics have already been successfully implemented:

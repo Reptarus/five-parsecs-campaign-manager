@@ -1,5 +1,8 @@
-class_name FPCM_CharacterBox
+# This file should be referenced via preload
+# Use explicit preloads instead of global class names
 extends "res://src/core/character/Base/CharacterBox.gd"
+
+const Self = preload("res://src/game/character/CharacterBox.gd")
 
 ## Game-specific character box implementation
 ##

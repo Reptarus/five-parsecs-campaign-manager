@@ -1,6 +1,9 @@
 @tool
 extends Resource
-class_name CharacterInventory # Changed to avoid conflicts
+# This file should be referenced via preload
+# Use explicit preloads instead of global class names
+
+const Self = preload("res://src/core/character/Equipment/CharacterInventory.gd")
 
 const GameEnums = preload("res://src/core/systems/GlobalEnums.gd")
 const GameWeapon = preload("res://src/core/systems/items/GameWeapon.gd")
@@ -87,8 +90,8 @@ func serialize() -> Dictionary:
 		"total_weight": total_weight
 	}
 
-static func deserialize(data: Dictionary) -> CharacterInventory:
-	var inventory = CharacterInventory.new()
+static func deserialize(data: Dictionary):
+	var inventory = Self.new()
 	
 	if data.has("weapons"):
 		for weapon_data in data.weapons:

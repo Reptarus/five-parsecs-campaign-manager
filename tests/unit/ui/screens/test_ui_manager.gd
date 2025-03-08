@@ -7,7 +7,7 @@ const GameState: GDScript = preload("res://src/core/state/GameState.gd")
 const ThemeManagerScript: GDScript = preload("res://src/ui/themes/ThemeManager.gd")
 
 # Type-safe instance variables
-var _ui_manager: UIManagerScript
+var _ui_manager: Node
 var _mock_game_state: GameState
 var _theme_manager: ThemeManagerScript
 
@@ -35,10 +35,10 @@ func before_each() -> void:
 	
 	# Initialize UI manager with type safety
 	_ui_manager = Node.new()
+	_ui_manager.set_script(UIManagerScript)
 	if not _ui_manager:
 		push_error("Failed to create UI manager")
 		return
-	_ui_manager.set_script(UIManagerScript)
 	add_child_autofree(_ui_manager)
 	
 	# Initialize theme manager with type safety

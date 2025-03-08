@@ -4,11 +4,24 @@ extends "res://tests/unit/ui/base/ui_test_base.gd"
 # Base class for component testing
 # Do not use class_name to avoid conflicts
 
+const ThemeManager = preload("res://src/ui/themes/ThemeManager.gd")
+const ThemeTestHelper = preload("res://tests/unit/ui/themes/theme_test_helper.gd")
+
 # Type-safe instance variables
 var _component: Control
+var _theme_manager: ThemeManager
+
+# Add a print_warning function since it's not in the base class
+func print_warning(message: String) -> void:
+	push_warning(message)
 
 func before_each() -> void:
 	await super.before_each()
+	
+	# Create theme manager if needed
+	_theme_manager = ThemeManager.new()
+	add_child_autofree(_theme_manager)
+	
 	_setup_component()
 
 func after_each() -> void:
@@ -23,6 +36,11 @@ func _setup_component() -> void:
 	add_child_autofree(_component)
 	track_test_node(_component)
 	await stabilize_engine()
+	
+	# Register component with theme manager for theme-aware testing
+	if _theme_manager:
+		_theme_manager.register_themeable(_component)
+		await stabilize_engine()
 
 func _cleanup_component() -> void:
 	_component = null
@@ -172,3 +190,106 @@ func assert_component_theme_color(color_name: String, type: String = "") -> void
 func assert_component_theme_font(font_name: String, type: String = "") -> void:
 	var font := _component.get_theme_font(font_name, type)
 	assert_not_null(font, "Theme font %s should exist" % font_name)
+
+# Enhanced Theme Testing
+func test_component_theme_switching() -> void:
+	if not _theme_manager:
+		push_error("Theme manager is required for theme switching tests")
+		return
+		
+	# Get original theme
+	var original_theme := _component.theme
+	assert_not_null(original_theme, "Component should have an initial theme")
+	
+	# Test switching to dark theme
+	var success = await ThemeTestHelper.test_theme_switching(_component, _theme_manager, "dark", self)
+	assert_true(success, "Component should respond to theme switching to dark theme")
+	
+	# Test switching to light theme
+	success = await ThemeTestHelper.test_theme_switching(_component, _theme_manager, "light", self)
+	assert_true(success, "Component should respond to theme switching to light theme")
+	
+	# Test switching to high contrast theme
+	success = await ThemeTestHelper.test_theme_switching(_component, _theme_manager, "high_contrast", self)
+	assert_true(success, "Component should respond to theme switching to high contrast theme")
+	
+	# Return to original theme
+	_theme_manager.set_active_theme("base")
+	await stabilize_engine()
+
+func test_component_high_contrast_mode() -> void:
+	if not _theme_manager:
+		push_error("Theme manager is required for high contrast tests")
+		return
+		
+	var success = await ThemeTestHelper.test_high_contrast_mode(_component, _theme_manager, self)
+	assert_true(success, "Component should respond to high contrast mode changes")
+
+func test_component_text_scaling() -> void:
+	if not _theme_manager:
+		push_error("Theme manager is required for text scaling tests")
+		return
+		
+	# Find all Label nodes in the component
+	var labels := _find_child_nodes_of_type(_component, Label)
+	if labels.is_empty():
+		print_warning("No Label nodes found for text scaling test on %s" % _component.name)
+		return
+		
+	var labels_array: Array[Label] = []
+	for label in labels:
+		labels_array.append(label)
+		
+	var success = await ThemeTestHelper.test_text_scaling(_component, _theme_manager, labels_array, self)
+	assert_true(success, "Component should respond to text scaling changes")
+
+func test_component_animation_settings() -> void:
+	if not _theme_manager:
+		push_error("Theme manager is required for animation settings tests")
+		return
+		
+	# Find nodes with animations
+	var animated_nodes := _find_animated_nodes(_component)
+	if animated_nodes.is_empty():
+		print_warning("No animated nodes found for animation settings test on %s" % _component.name)
+		return
+		
+	var nodes_array: Array[Node] = []
+	for node in animated_nodes:
+		nodes_array.append(node)
+		
+	var success = await ThemeTestHelper.test_animation_settings(_component, _theme_manager, nodes_array, self)
+	assert_true(success, "Component should respond to animation settings changes")
+
+# Helper method to find child nodes of a specific type
+func _find_child_nodes_of_type(parent: Node, type_class) -> Array:
+	var result := []
+	
+	if is_instance_of(parent, type_class):
+		result.append(parent)
+		
+	for child in parent.get_children():
+		var child_results := _find_child_nodes_of_type(child, type_class)
+		result.append_array(child_results)
+		
+	return result
+
+# Helper method to find nodes with animations
+func _find_animated_nodes(parent: Node) -> Array:
+	var result := []
+	
+	# Check if this node has animation properties
+	if parent.has_node("AnimationPlayer") or parent.has_node("AnimationTree") or parent.has_method("is_animating"):
+		result.append(parent)
+		
+	# Check for animation properties in children
+	for child in parent.get_children():
+		var child_results := _find_animated_nodes(child)
+		result.append_array(child_results)
+		
+	return result
+
+# Helper method to wait for theme changes to propagate
+func await_theme_propagation() -> void:
+	await get_tree().process_frame
+	await get_tree().process_frame

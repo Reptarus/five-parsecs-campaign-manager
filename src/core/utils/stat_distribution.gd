@@ -1,8 +1,8 @@
-class_name FPCM_StatDistribution
 extends Resource
 
+const Self = preload("res://src/core/utils/stat_distribution.gd")
 const GameEnums = preload("res://src/core/systems/GlobalEnums.gd")
-const FiveParsecsCharacter = preload("res://src/core/character/Base/Character.gd")
+const FiveParsecsCharacter = preload("res://src/base/character/character_base.gd")
 const StatusEffect = preload("res://src/ui/screens/campaign/StatusEffects.gd")
 
 signal stat_changed(stat: String, new_value: int)

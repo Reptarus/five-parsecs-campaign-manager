@@ -1,6 +1,8 @@
 @tool
 extends "res://src/core/character/Management/CharacterManager.gd"
-class_name FPCM_CharacterManager
+# This file should be referenced via preload
+# Use explicit preloads instead of global class names
+const Self = preload("res://src/game/character/CharacterManager.gd")
 
 ## Game-specific character manager implementation
 ##

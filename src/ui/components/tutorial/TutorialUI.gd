@@ -1,6 +1,8 @@
-class_name FPCM_TutorialUI
+# This file should be referenced via preload
+# Use explicit preloads instead of global class names
 extends Control
 
+const Self = preload("res://src/ui/components/tutorial/TutorialUI.gd")
 const TutorialOverlay = preload("res://src/ui/components/tutorial/TutorialOverlay.gd")
 
 signal tutorial_completed

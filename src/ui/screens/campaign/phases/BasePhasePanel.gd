@@ -1,8 +1,11 @@
 extends Control
-class_name FPCM_BasePhasePanel
+# This file should be referenced via preload
+# Use explicit preloads instead of global class names
 
+const Self = preload("res://src/ui/screens/campaign/phases/BasePhasePanel.gd")
 const FiveParsecsGameState = preload("res://src/core/state/GameState.gd")
 const GameEnums = preload("res://src/core/systems/GlobalEnums.gd")
+const GameStateManager = preload("res://src/core/managers/GameStateManager.gd")
 
 signal phase_completed(phase_data: Dictionary)
 signal phase_failed(reason: String)
@@ -16,7 +19,11 @@ var current_phase: int = -1
 ## Base ready function
 func _ready() -> void:
 	# Connect to the game state
-	var state_manager = get_node("/root/Game/Managers/GameStateManager")
+	var state_manager = get_node_or_null("/root/GameStateManager")
+	if not state_manager:
+		# Try fallback path
+		state_manager = get_node_or_null("/root/Game/Managers/GameStateManager")
+	
 	if state_manager:
 		var state_node = state_manager.get_game_state()
 		if state_node is FiveParsecsGameState:

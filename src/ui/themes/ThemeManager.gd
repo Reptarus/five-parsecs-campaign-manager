@@ -1,6 +1,9 @@
 @tool
-class_name ThemeManager
+# This file should be referenced via preload
+# Use explicit preloads instead of global class names
 extends Node
+
+const Self = preload("res://src/ui/themes/ThemeManager.gd")
 
 ## A centralized manager for handling application themes with Godot 4.4 features
 ##

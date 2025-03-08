@@ -1,6 +1,8 @@
-extends FPCM_BasePhasePanel
-class_name FPCM_BattleResolutionPhasePanel
+extends "res://src/ui/screens/campaign/phases/BasePhasePanel.gd"
+# This file should be referenced via preload
+# Use explicit preloads instead of global class names
 
+const ThisClass = preload("res://src/ui/screens/campaign/phases/BattleResolutionPhasePanel.gd")
 const Character = preload("res://src/core/character/Base/Character.gd")
 
 # Preload required resources

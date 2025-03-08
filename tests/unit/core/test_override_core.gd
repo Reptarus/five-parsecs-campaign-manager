@@ -4,7 +4,8 @@
 ## - Override state management
 ## - Override effects and interactions
 @tool
-extends GameTest
+extends "res://tests/fixtures/base/game_test.gd"
+# Use explicit preloads instead of global class names
 
 # Type-safe script references
 const OverrideController := preload("res://src/ui/components/combat/overrides/override_controller.gd")

@@ -1,5 +1,8 @@
 extends Resource
-class_name GameSettings
+# This file should be referenced via preload
+# Use explicit preloads instead of global class names
+
+const Self = preload("res://src/core/state/GameSettings.gd")
 
 const GameEnums = preload("res://src/core/systems/GlobalEnums.gd")
 
@@ -138,7 +141,7 @@ func deserialize(data: Dictionary) -> void:
     music_enabled = data.get("music_enabled", true)
     music_volume = data.get("music_volume", 1.0)
 
-static func deserialize_new(data: Dictionary) -> GameSettings:
-    var settings = GameSettings.new()
+static func deserialize_new(data: Dictionary) -> Resource:
+    var settings = Self.new()
     settings.deserialize(data)
     return settings

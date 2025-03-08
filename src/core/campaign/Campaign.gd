@@ -131,7 +131,14 @@ func serialize() -> Dictionary:
 		"use_story_track": use_story_track
 	}
 
-func deserialize(data: Dictionary) -> void:
+func deserialize(data: Dictionary) -> Dictionary:
+	if data == null or not data is Dictionary:
+		return {"success": false, "message": "Invalid data format"}
+	
+	# GDScript doesn't have try-except, so we'll handle errors manually
+	if not "name" in data or not "difficulty" in data or not "current_phase" in data:
+		return {"success": false, "message": "Missing required campaign data fields"}
+	
 	campaign_name = data.get("name", campaign_name)
 	difficulty = data.get("difficulty", difficulty)
 	victory_condition = data.get("victory_condition", victory_condition)
@@ -139,6 +146,8 @@ func deserialize(data: Dictionary) -> void:
 	resources = data.get("resources", {}).duplicate()
 	crew_size = data.get("crew_size", crew_size)
 	use_story_track = data.get("use_story_track", use_story_track)
+	
+	return {"success": true, "message": "Campaign data deserialized successfully"}
 
 func add_mission(mission: Dictionary) -> void:
 	available_missions.append(mission)

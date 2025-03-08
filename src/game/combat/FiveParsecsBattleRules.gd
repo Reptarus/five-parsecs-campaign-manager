@@ -1,6 +1,9 @@
 @tool
 extends BaseBattleRules
-class_name FPCM_BattleRules
+# This file should be referenced via preload
+# Use explicit preloads instead of global class names
+
+const Self = preload("res://src/game/combat/FiveParsecsBattleRules.gd")
 
 ## Five Parsecs implementation of battle rules
 ##

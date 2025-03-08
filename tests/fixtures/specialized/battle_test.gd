@@ -1,6 +1,7 @@
 @tool
 extends "res://tests/fixtures/base/game_test.gd"
-class_name BattleTest
+# Use explicit preloads instead of global class names
+const BattleTestScript = preload("res://tests/fixtures/specialized/battle_test.gd")
 
 ## Base class for battle system tests
 ##

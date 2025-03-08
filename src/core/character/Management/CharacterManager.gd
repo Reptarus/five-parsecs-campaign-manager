@@ -13,6 +13,7 @@ signal character_advanced(character, improvements: Dictionary)
 const Character = preload("res://src/core/character/Base/Character.gd")
 const CharacterBox = preload("res://src/core/character/Base/CharacterBox.gd")
 const GameEnums = preload("res://src/core/systems/GlobalEnums.gd")
+const GameWeapon = preload("res://src/core/systems/items/GameWeapon.gd")
 const MAX_CHARACTERS = 100
 
 # Character status constants

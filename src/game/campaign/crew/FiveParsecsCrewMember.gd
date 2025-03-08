@@ -1,7 +1,9 @@
 @tool
-class_name FPCM_CrewMember
+# This file should be referenced via preload
+# Use explicit preloads instead of global class names
 extends BaseCrewMember
 
+const Self = preload("res://src/game/campaign/crew/FiveParsecsCrewMember.gd")
 const BaseCrewMember = preload("res://src/base/campaign/crew/BaseCrewMember.gd")
 const GameEnums = preload("res://src/core/systems/GlobalEnums.gd")
 const FiveParsecsGameEnums = preload("res://src/game/campaign/crew/FiveParsecsGameEnums.gd")
@@ -209,3 +211,36 @@ func get_stat_modifier(stat_name: String) -> int:
 				modifier -= 3
 	
 	return modifier
+
+func from_dict(data: Dictionary) -> bool:
+	if not data is Dictionary or data.is_empty():
+		return false
+		
+	if not super.from_dict(data):
+		return false
+	
+	# Five Parsecs Specific data
+	if data.has("recovery_time"): recovery_time = data.recovery_time
+	if data.has("is_inspired"): is_inspired = data.is_inspired
+	if data.has("is_focused"): is_focused = data.is_focused
+	if data.has("is_enraged"): is_enraged = data.is_enraged
+	
+	# Setup character and inventory if needed
+	_initialize_character()
+	
+	# Load character data if available
+	if data.has("character") and character != null and character.has_method("from_dictionary"):
+		if not character.from_dictionary(data.character):
+			push_error("Failed to load character data")
+			return false
+	
+	# Load inventory data if available
+	if data.has("inventory") and inventory != null and inventory.has_method("from_dictionary"):
+		if not inventory.from_dictionary(data.inventory):
+			push_error("Failed to load inventory data")
+			return false
+	
+	# Apply class bonuses if not already applied
+	_apply_class_bonuses()
+	
+	return true

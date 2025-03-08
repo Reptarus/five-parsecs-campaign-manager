@@ -5,15 +5,21 @@
 @tool
 extends "res://tests/fixtures/base/game_test.gd"
 
+# Type-safe constants with explicit typing
 const TestedClass: PackedScene = preload("res://src/ui/components/combat/rules/rule_editor.tscn")
 
-var _instance: Control
-var _rule_updated_signal_emitted := false
+# Type-safe instance variables
+var _instance: Control = null
+var _rule_updated_signal_emitted: bool = false
 var _last_rule_data: Dictionary = {}
 
+# Type-safe lifecycle methods
 func before_each() -> void:
 	await super.before_each()
-	_instance = TestedClass.instantiate()
+	_instance = TestedClass.instantiate() as Control
+	if not _instance:
+		push_error("Failed to instantiate rule editor")
+		return
 	add_child_autofree(_instance)
 	track_test_node(_instance)
 	_connect_signals()
@@ -25,27 +31,28 @@ func after_each() -> void:
 	await super.after_each()
 	_instance = null
 
+# Type-safe signal handling
 func _connect_signals() -> void:
 	if not _instance:
 		return
 		
 	if _instance.has_signal("rule_updated"):
-		_instance.connect("rule_updated", _on_rule_updated)
+		_instance.rule_updated.connect(self._on_rule_updated)
 
 func _disconnect_signals() -> void:
 	if not _instance:
 		return
 		
-	if _instance.has_signal("rule_updated") and _instance.is_connected("rule_updated", _on_rule_updated):
-		_instance.disconnect("rule_updated", _on_rule_updated)
+	if _instance.has_signal("rule_updated") and _instance.is_connected("rule_updated", self._on_rule_updated):
+		_instance.disconnect("rule_updated", self._on_rule_updated)
 
 func _reset_signals() -> void:
 	_rule_updated_signal_emitted = false
 	_last_rule_data = {}
 
-func _on_rule_updated(data: Dictionary = {}) -> void:
+func _on_rule_updated(rule_data: Dictionary) -> void:
 	_rule_updated_signal_emitted = true
-	_last_rule_data = data
+	_last_rule_data = rule_data
 
 # Test Cases
 func test_initial_state() -> void:
@@ -54,7 +61,7 @@ func test_initial_state() -> void:
 
 func test_rule_update() -> void:
 	_instance.visible = true
-	var test_data := {"name": "Test Rule", "enabled": true}
+	var test_data: Dictionary = {"name": "Test Rule", "enabled": true}
 	_instance.emit_signal("rule_updated", test_data)
 	
 	assert_true(_rule_updated_signal_emitted, "Rule update signal should be emitted")
@@ -62,7 +69,7 @@ func test_rule_update() -> void:
 
 func test_visibility() -> void:
 	_instance.visible = false
-	var test_data := {"name": "Test"}
+	var test_data: Dictionary = {"name": "Test"}
 	_instance.emit_signal("rule_updated", test_data)
 	assert_false(_rule_updated_signal_emitted, "Rule signal should not be emitted when hidden")
 	

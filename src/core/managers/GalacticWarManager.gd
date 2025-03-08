@@ -1,6 +1,8 @@
 # GalacticWarManager.gd
 extends Node
 
+const GameStateManager = preload("res://src/core/managers/GameStateManager.gd")
+
 enum FringeWorldInstability {
 	STABLE,
 	UNREST,
@@ -24,7 +26,7 @@ var active_conflicts: Array[Dictionary] = []
 var faction_strengths: Dictionary = {}
 
 func _ready() -> void:
-	game_state = get_node("/root/GameStateManager")
+	game_state = get_node_or_null("/root/GameStateManager")
 	if not game_state:
 		push_error("GameStateManager instance not found")
 		queue_free()

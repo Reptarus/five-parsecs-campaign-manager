@@ -1,8 +1,10 @@
 # ExpandedFactionManager.gd
 @tool
-class_name ExpandedFactionManager
+# This file should be referenced via preload
+# Use explicit preloads instead of global class names
 extends Node
 
+const Self = preload("res://src/core/managers/ExpandedFactionManager.gd")
 const GameEnums := preload("res://src/core/systems/GlobalEnums.gd")
 # Using a temporary character reference until Character is properly implemented
 
@@ -234,8 +236,8 @@ func serialize() -> Dictionary:
 		"factions": factions
 	}
 
-static func deserialize(data: Dictionary) -> ExpandedFactionManager:
-	var manager = ExpandedFactionManager.new(null) # MockGameState will be set later
+static func deserialize(data: Dictionary) -> Node:
+	var manager = Self.new(null) # MockGameState will be set later
 	manager.factions = data["factions"]
 	return manager
 

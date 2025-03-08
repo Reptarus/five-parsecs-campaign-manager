@@ -1,6 +1,9 @@
 ## Handles tooltips for terrain features and effects
-class_name FPCM_TerrainTooltip
+# This file should be referenced via preload
+# Use explicit preloads instead of global class names
 extends Control
+
+const Self = preload("res://src/ui/components/combat/TerrainTooltip.gd")
 
 ## Dependencies
 const TerrainSystem := preload("res://src/core/terrain/TerrainSystem.gd")

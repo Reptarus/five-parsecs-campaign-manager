@@ -1,6 +1,6 @@
-class_name FiveParsecsTerrainFactory
 extends Node
 
+const Self = preload("res://src/core/terrain/TerrainFactory.gd")
 const GameEnums: GDScript = preload("res://src/core/systems/GlobalEnums.gd")
 const FiveParsecsTerrainPiece: GDScript = preload("res://src/core/terrain/TerrainPiece.gd")
 const TerrainTypes: GDScript = preload("res://src/core/terrain/TerrainTypes.gd")

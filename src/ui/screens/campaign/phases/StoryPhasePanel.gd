@@ -1,6 +1,8 @@
-extends FPCM_BasePhasePanel
-class_name FPCM_StoryPhasePanel
+extends "res://src/ui/screens/campaign/phases/BasePhasePanel.gd"
+# This file should be referenced via preload
+# Use explicit preloads instead of global class names
 
+const ThisClass = preload("res://src/ui/screens/campaign/phases/StoryPhasePanel.gd")
 const EventManager = preload("res://src/core/managers/EventManager.gd")
 
 signal story_event_selected(event_data: Dictionary)
@@ -19,7 +21,13 @@ var event_history: Array[Dictionary] = []
 
 func _ready() -> void:
 	super._ready()
-	event_manager = get_node("/root/Game/Managers/EventManager")
+	
+	# Try to get manager from autoload first
+	event_manager = get_node_or_null("/root/EventManager")
+	if not event_manager:
+		# Try fallback path
+		event_manager = get_node_or_null("/root/Game/Managers/EventManager")
+		
 	if not event_manager:
 		push_error("Failed to get EventManager node")
 		return

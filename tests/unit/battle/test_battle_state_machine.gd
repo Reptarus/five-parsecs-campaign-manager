@@ -9,7 +9,8 @@
 ## - Error handling
 ## - Signal verification
 @tool
-extends GameTest
+extends "res://tests/fixtures/base/game_test.gd"
+# Use explicit preloads instead of global class names
 
 # Constants and preloads
 const BattleStateMachine: GDScript = preload("res://src/core/battle/state/BattleStateMachine.gd")

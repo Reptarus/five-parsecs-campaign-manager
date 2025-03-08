@@ -1,16 +1,18 @@
 @tool
-class_name GameTest
-extends BaseTest
+extends "res://tests/fixtures/base/base_test.gd"
+# Use explicit preloads instead of global class names
+const GameTestScript = preload("res://tests/fixtures/base/game_test.gd")
 
 ## Base class for game-specific tests
 ##
 ## Provides common functionality for testing game features, state management,
 ## and game-specific assertions.
 
-# Type-safe script references
+# Type-safe script references with null checks
 const GameStateScript: GDScript = preload("res://src/core/state/GameState.gd")
 const GameEnums: GDScript = preload("res://src/core/systems/GlobalEnums.gd")
 const TestHelper: GDScript = preload("res://tests/fixtures/helpers/test_helper.gd")
+# TypeSafeMixin is already imported in the parent class
 
 # Game test constants with explicit types
 const STABILIZE_TIME: float = 0.1 as float
@@ -98,10 +100,32 @@ func _cleanup_game_resources() -> void:
 ## Resource management
 
 func create_test_game_state() -> Node:
-	var state_instance: Node = GameStateScript.new()
+	if not GameStateScript:
+		push_error("GameStateScript is null, cannot create game state")
+		return null
+		
+	# Create a new state instance
+	var state_instance: Node = null
+	
+	# Safely create an instance
+	state_instance = GameStateScript.new()
 	if not state_instance:
 		push_error("Failed to create game state instance")
 		return null
+	
+	# Verify the instance has the required methods
+	var required_methods = [
+		"set_difficulty_level",
+		"set_enable_permadeath",
+		"set_use_story_track",
+		"set_auto_save_enabled",
+		"set_last_save_time"
+	]
+	
+	for method in required_methods:
+		if not state_instance.has_method(method):
+			push_error("Game state instance missing required method: %s" % method)
+			return null
 	
 	# Initialize with default state
 	TypeSafeMixin._call_node_method_bool(state_instance, "set_difficulty_level", [DEFAULT_GAME_STATE.difficulty_level])
@@ -164,9 +188,34 @@ func verify_game_state(state: Node, expected_state: Dictionary) -> void:
 		push_error("Cannot verify null game state")
 		return
 	
+	if not expected_state:
+		push_error("Expected state dictionary is empty or null")
+		return
+	
 	for property in expected_state:
-		var actual_value = TypeSafeMixin._call_node_method(state, "get_" + property, [])
+		# Ensure the property is a string for method construction
+		var property_name: String = property as String
+		if property_name.is_empty():
+			push_error("Invalid property name in expected state")
+			continue
+			
+		# Try to get method name
+		var method_name: String = "get_" + property_name
+		
+		# Check if the method exists
+		if not state.has_method(method_name):
+			push_error("State object missing method: %s" % method_name)
+			continue
+			
+		# Get values and compare
+		var actual_value = TypeSafeMixin._call_node_method(state, method_name, [])
 		var expected_value = expected_state[property]
+		
+		# Handle null values
+		if actual_value == null:
+			push_warning("State property '%s' returned null" % property_name)
+			
+		# Perform the comparison with detailed error message
 		assert_eq(actual_value, expected_value,
 			"Game state %s should be %s but was %s" % [property, expected_value, actual_value])
 
@@ -200,9 +249,24 @@ func stabilize_game_state(time: float = STABILIZE_TIME) -> void:
 ## Game-specific assertions
 
 func assert_game_property(obj: Object, property: String, expected_value, message: String = "") -> void:
-	var actual_value = TypeSafeMixin._call_node_method(obj, "get_" + property, [])
+	if not obj:
+		push_error("Cannot assert property on null object")
+		assert_true(false, "Object is null")
+		return
+		
+	if property.is_empty():
+		push_error("Property name cannot be empty")
+		assert_true(false, "Empty property name")
+		return
+		
+	# Try to get the property value using our helper method
+	var actual_value = get_game_property(obj, property)
+	
+	# Generate a default message if none provided
 	if message.is_empty():
 		message = "Game property %s should be %s but was %s" % [property, expected_value, actual_value]
+		
+	# Perform the comparison
 	assert_eq(actual_value, expected_value, message)
 
 func assert_game_state(state_value: int, message: String = "") -> void:
@@ -230,23 +294,31 @@ func assert_game_turn(turn_value: int, message: String = "") -> void:
 ## Performance testing
 
 func measure_game_performance(test_function: Callable, iterations: int = 30) -> Dictionary:
+	if not test_function.is_valid():
+		push_error("Invalid test function provided")
+		return {}
+		
+	if iterations <= 0:
+		push_error("Iterations must be > 0")
+		return {}
+		
 	_fps_samples.clear()
-	var memory_before := Performance.get_monitor(Performance.MEMORY_STATIC)
-	var draw_calls_before := Performance.get_monitor(Performance.RENDER_TOTAL_DRAW_CALLS_IN_FRAME)
+	var memory_before: int = Performance.get_monitor(Performance.MEMORY_STATIC)
+	var draw_calls_before: int = Performance.get_monitor(Performance.RENDER_TOTAL_DRAW_CALLS_IN_FRAME)
 	
-	var start_time := Time.get_ticks_msec()
+	var start_time: int = Time.get_ticks_msec()
 	
 	for i in range(iterations):
 		await test_function.call()
 		_fps_samples.append(Engine.get_frames_per_second())
 	
-	var end_time := Time.get_ticks_msec()
-	var memory_after := Performance.get_monitor(Performance.MEMORY_STATIC)
-	var draw_calls_after := Performance.get_monitor(Performance.RENDER_TOTAL_DRAW_CALLS_IN_FRAME)
+	var end_time: int = Time.get_ticks_msec()
+	var memory_after: int = Performance.get_monitor(Performance.MEMORY_STATIC)
+	var draw_calls_after: int = Performance.get_monitor(Performance.RENDER_TOTAL_DRAW_CALLS_IN_FRAME)
 	
 	# Calculate metrics
-	var total_fps := 0.0
-	var min_fps := 1000.0
+	var total_fps: float = 0.0
+	var min_fps: float = 1000.0
 	for fps in _fps_samples:
 		total_fps += fps
 		min_fps = min(min_fps, fps)
@@ -260,8 +332,18 @@ func measure_game_performance(test_function: Callable, iterations: int = 30) -> 
 	}
 
 func verify_performance_metrics(metrics: Dictionary, thresholds: Dictionary) -> void:
+	if metrics == null or thresholds == null:
+		push_error("Cannot verify null metrics or thresholds")
+		return
+		
 	for key in thresholds:
-		assert_true(metrics.has(key), "Performance metrics should include %s" % key)
+		if not metrics.has(key):
+			push_error("Performance metrics missing required key: %s" % key)
+			assert_true(false, "Performance metrics should include %s" % key)
+			continue
+			
+		var metric_value = metrics[key]
+		var threshold_value = thresholds[key]
 		
 		match key:
 			"average_fps", "minimum_fps":
@@ -276,12 +358,61 @@ func verify_performance_metrics(metrics: Dictionary, thresholds: Dictionary) -> 
 ## Helper methods
 
 func set_game_property(obj: Object, property: String, value) -> void:
-	TypeSafeMixin._call_node_method_bool(obj, "set_" + property, [value])
+	if not obj:
+		push_error("Cannot set property on null object")
+		return
+		
+	if property.is_empty():
+		push_error("Property name cannot be empty")
+		return
+		
+	# Check if the object has the method directly, or try a generic setter
+	if obj.has_method("set_" + property):
+		TypeSafeMixin._call_node_method_bool(obj, "set_" + property, [value])
+	elif obj.has_method("set"):
+		TypeSafeMixin._call_node_method_bool(obj, "set", [property, value])
+	else:
+		# If no setter method exists, try direct property assignment
+		if property in obj:
+			obj[property] = value
+		else:
+			push_error("No method 'set_%s' or property '%s' found on object" % [property, property])
 
-func get_game_property(obj: Object, property: String, default_value = null):
-	var result = TypeSafeMixin._call_node_method(obj, "get_" + property, [])
+func get_game_property(obj: Object, property: String, default_value = null) -> Variant:
+	if not obj:
+		push_error("Cannot get property from null object")
+		return default_value
+		
+	if property.is_empty():
+		push_error("Property name cannot be empty")
+		return default_value
+		
+	# Check if the object has the method directly, or try a generic getter
+	var result = null
+	if obj.has_method("get_" + property):
+		result = TypeSafeMixin._call_node_method(obj, "get_" + property, [])
+	elif obj.has_method("get"):
+		result = TypeSafeMixin._call_node_method(obj, "get", [property])
+	elif property in obj:
+		# Direct property access
+		result = obj.get(property)
+	else:
+		push_error("No method 'get_%s' or property '%s' found on object" % [property, property])
+		
 	return result if result != null else default_value
 
 func add_child_autofree(node: Node) -> void:
+	if not node:
+		push_error("Cannot add null node")
+		return
+		
 	add_child(node)
-	node.queue_free_on_exit = true
+	track_test_node(node) # This will ensure the node gets freed during cleanup
+
+func _init() -> void:
+	# Verify critical dependencies
+	if not GameStateScript:
+		push_warning("GameStateScript dependency is not loaded")
+		
+	if not GameEnums:
+		push_warning("GameEnums dependency is not loaded")

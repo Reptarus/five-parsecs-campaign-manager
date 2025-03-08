@@ -1,6 +1,8 @@
-class_name FPCM_VictoryOption
+# This file should be referenced via preload
+# Use explicit preloads instead of global class names
 extends Control
 
+const Self = preload("res://src/ui/components/victory/VictoryOption.gd")
 const GameEnums = preload("res://src/core/systems/GlobalEnums.gd")
 
 signal value_changed(condition: GameEnums.FiveParcsecsCampaignVictoryType)

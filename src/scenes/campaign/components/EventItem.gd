@@ -1,6 +1,9 @@
 @tool
 extends Control
-class_name FPCM_EventItem
+# This file should be referenced via preload
+# Use explicit preloads instead of global class names
+
+const Self = preload("res://src/scenes/campaign/components/EventItem.gd")
 
 # Signals
 signal event_selected(event_id: String)

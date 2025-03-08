@@ -1,6 +1,9 @@
 ## Handles tactical decision making for enemy units in combat
-class_name FPCM_EnemyTacticalAI
+# This file should be referenced via preload
+# Use explicit preloads instead of global class names
 extends Node
+
+const Self = preload("res://src/game/combat/EnemyTacticalAI.gd")
 
 ## Signals
 signal decision_made(enemy: Object, action: Dictionary)

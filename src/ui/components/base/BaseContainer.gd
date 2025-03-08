@@ -1,6 +1,9 @@
 @tool
+# This file should be referenced via preload
+# Use explicit preloads instead of global class names
 extends Container
-class_name FPCM_BaseContainer
+
+const Self = preload("res://src/ui/components/base/BaseContainer.gd")
 
 ## Base container class for UI layout management
 ## Provides horizontal and vertical layout capabilities with spacing

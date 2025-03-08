@@ -6,6 +6,8 @@ signal validation_failed(errors: Array[String])
 
 const GameEnums := preload("res://src/core/systems/GlobalEnums.gd")
 const FiveParsecsGameState := preload("res://src/core/state/GameState.gd")
+# Add self-reference for use in static methods
+const Self = preload("res://src/core/story/StoryQuestData.gd")
 
 # Basic Mission Info
 @export var mission_id: String
@@ -331,8 +333,8 @@ func calculate_rewards() -> Dictionary:
 	reward_calculated.emit(rewards)
 	return rewards
 
-static func create_mission(p_mission_type: int, p_config: Dictionary = {}) -> StoryQuestData:
-	var mission := StoryQuestData.new()
+static func create_mission(p_mission_type: int, p_config: Dictionary = {}) -> Resource:
+	var mission := Self.new()
 	mission.configure(p_mission_type, p_config)
 	return mission
 

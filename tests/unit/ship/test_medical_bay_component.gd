@@ -1,31 +1,31 @@
 @tool
-extends GameTest
+extends "res://tests/fixtures/base/game_test.gd"
+# Use explicit preloads instead of global class names
+const MedicalBayComponentTestScript = preload("res://tests/unit/ship/test_medical_bay_component.gd")
 
 # Create a mock MedicalBayComponent class for testing purposes
-class MockMedicalBayComponent:
-    extends RefCounted
-    
+class MockMedicalBayComponent extends RefCounted:
     var name: String = "Medical Bay"
     var description: String = "Ship medical facility"
-    var cost: int = 200
-    var power_draw: int = 15
-    var healing_rate: float = 2.0
-    var max_patients: int = 2
-    var current_patients: int = 0
+    var cost: int = 150
+    var power_draw: int = 5
+    var healing_capacity: int = 3 # Number of crew that can be treated simultaneously
+    var healing_rate: float = 1.0 # Health points recovered per day
+    var surgical_capability: bool = true
     var level: int = 1
-    var durability: int = 100
     var efficiency: float = 1.0
-    var is_active: bool = true
+    var capacity_used: int = 0
     
     func get_name() -> String: return name
     func get_description() -> String: return description
     func get_cost() -> int: return cost
     func get_power_draw() -> int: return power_draw
+    func get_healing_capacity() -> int: return healing_capacity
+    func get_available_capacity() -> int: return healing_capacity - capacity_used
     func get_healing_rate() -> float: return healing_rate * efficiency
-    func get_max_patients() -> int: return max_patients
-    func get_current_patients() -> int: return current_patients
+    func has_surgical_capability() -> bool: return surgical_capability
     func get_level() -> int: return level
-    func get_durability() -> int: return durability
+    func get_efficiency() -> float: return efficiency
     
     func set_efficiency(value: float) -> bool:
         efficiency = value
@@ -33,7 +33,7 @@ class MockMedicalBayComponent:
         
     func upgrade() -> bool:
         healing_rate += 0.5
-        max_patients += 1
+        healing_capacity += 1
         level += 1
         return true
         
@@ -42,37 +42,33 @@ class MockMedicalBayComponent:
         return true
     
     func set_max_patients(value: int) -> bool:
-        max_patients = value
+        healing_capacity = value
         return true
     
     func set_level(value: int) -> bool:
         level = value
         return true
     
-    func set_durability(value: int) -> bool:
-        durability = value
-        return true
-        
-    func set_is_active(value: bool) -> bool:
-        is_active = value
+    func set_surgical_capability(value: bool) -> bool:
+        surgical_capability = value
         return true
         
     func add_patient() -> bool:
-        if current_patients >= max_patients:
+        if capacity_used >= healing_capacity:
             return false
-        current_patients += 1
+        capacity_used += 1
         return true
         
     func remove_patient() -> bool:
-        if current_patients <= 0:
+        if capacity_used <= 0:
             return false
-        current_patients -= 1
+        capacity_used -= 1
         return true
         
     func process_healing(time_delta: float) -> float:
-        if not is_active or current_patients <= 0:
+        if not surgical_capability or capacity_used <= 0:
             return 0.0
-        return healing_rate * efficiency * current_patients
+        return healing_rate * efficiency * capacity_used
         
     func serialize() -> Dictionary:
         return {
@@ -81,10 +77,11 @@ class MockMedicalBayComponent:
             "cost": cost,
             "power_draw": power_draw,
             "healing_rate": healing_rate,
-            "max_patients": max_patients,
-            "current_patients": current_patients,
+            "healing_capacity": healing_capacity,
+            "capacity_used": capacity_used,
             "level": level,
-            "durability": durability
+            "efficiency": efficiency,
+            "surgical_capability": surgical_capability
         }
         
     func deserialize(data: Dictionary) -> bool:
@@ -93,10 +90,11 @@ class MockMedicalBayComponent:
         cost = data.get("cost", cost)
         power_draw = data.get("power_draw", power_draw)
         healing_rate = data.get("healing_rate", healing_rate)
-        max_patients = data.get("max_patients", max_patients)
-        current_patients = data.get("current_patients", current_patients)
+        healing_capacity = data.get("healing_capacity", healing_capacity)
+        capacity_used = data.get("capacity_used", capacity_used)
         level = data.get("level", level)
-        durability = data.get("durability", durability)
+        efficiency = data.get("efficiency", efficiency)
+        surgical_capability = data.get("surgical_capability", surgical_capability)
         return true
 
 # Create a mockup of GameEnums
@@ -172,8 +170,8 @@ func test_initialization() -> void:
     
     # Test medical bay-specific properties
     var healing_rate: float = _call_node_method_float(medical_bay, "get_healing_rate", [], 0.0)
-    var max_patients: int = _call_node_method_int(medical_bay, "get_max_patients", [], 0)
-    var current_patients: int = _call_node_method_int(medical_bay, "get_current_patients", [], 0)
+    var max_patients: int = _call_node_method_int(medical_bay, "get_healing_capacity", [], 0)
+    var current_patients: int = _call_node_method_int(medical_bay, "get_available_capacity", [], 0)
     
     assert_eq(healing_rate, medical_enums.MEDICAL_BAY_BASE_HEALING_RATE, "Should initialize with base healing rate")
     assert_eq(max_patients, medical_enums.MEDICAL_BAY_BASE_MAX_PATIENTS, "Should initialize with base max patients")
@@ -182,14 +180,14 @@ func test_initialization() -> void:
 func test_upgrade_effects() -> void:
     # Store initial values
     var initial_healing_rate: float = _call_node_method_float(medical_bay, "get_healing_rate", [], 0.0)
-    var initial_max_patients: int = _call_node_method_int(medical_bay, "get_max_patients", [], 0)
+    var initial_max_patients: int = _call_node_method_int(medical_bay, "get_healing_capacity", [], 0)
     
     # Perform upgrade
     _call_node_method_bool(medical_bay, "upgrade", [])
     
     # Test improvements
     var new_healing_rate: float = _call_node_method_float(medical_bay, "get_healing_rate", [], 0.0)
-    var new_max_patients: int = _call_node_method_int(medical_bay, "get_max_patients", [], 0)
+    var new_max_patients: int = _call_node_method_int(medical_bay, "get_healing_capacity", [], 0)
     
     assert_eq(new_healing_rate, initial_healing_rate + medical_enums.MEDICAL_BAY_UPGRADE_HEALING_RATE, "Should increase healing rate on upgrade")
     assert_eq(new_max_patients, initial_max_patients + medical_enums.MEDICAL_BAY_UPGRADE_MAX_PATIENTS, "Should increase max patients on upgrade")
@@ -197,7 +195,7 @@ func test_upgrade_effects() -> void:
 func test_efficiency_effects() -> void:
     # Test base values at full efficiency
     var base_healing_rate: float = _call_node_method_float(medical_bay, "get_healing_rate", [], 0.0)
-    var base_max_patients: int = _call_node_method_int(medical_bay, "get_max_patients", [], 0)
+    var base_max_patients: int = _call_node_method_int(medical_bay, "get_healing_capacity", [], 0)
     
     assert_eq(base_healing_rate, medical_enums.MEDICAL_BAY_BASE_HEALING_RATE, "Should return base healing rate at full efficiency")
     assert_eq(base_max_patients, medical_enums.MEDICAL_BAY_BASE_MAX_PATIENTS, "Should return base max patients at full efficiency")
@@ -206,7 +204,7 @@ func test_efficiency_effects() -> void:
     _call_node_method_bool(medical_bay, "set_efficiency", [medical_enums.HALF_EFFICIENCY])
     
     var reduced_healing_rate: float = _call_node_method_float(medical_bay, "get_healing_rate", [], 0.0)
-    var reduced_max_patients: int = _call_node_method_int(medical_bay, "get_max_patients", [], 0)
+    var reduced_max_patients: int = _call_node_method_int(medical_bay, "get_healing_capacity", [], 0)
     
     assert_eq(reduced_healing_rate, medical_enums.MEDICAL_BAY_BASE_HEALING_RATE * medical_enums.HALF_EFFICIENCY, "Should reduce healing rate with efficiency")
     assert_eq(reduced_max_patients, medical_enums.MEDICAL_BAY_BASE_MAX_PATIENTS, "Should not reduce max patients with efficiency")
@@ -216,40 +214,40 @@ func test_patient_management() -> void:
     var success: bool = _call_node_method_bool(medical_bay, "add_patient", [], false)
     assert_true(success, "Should successfully add patient within capacity")
     
-    var current_patients: int = _call_node_method_int(medical_bay, "get_current_patients", [], 0)
+    var current_patients: int = _call_node_method_int(medical_bay, "get_available_capacity", [], 0)
     assert_eq(current_patients, 1, "Should update current patients")
     
     success = _call_node_method_bool(medical_bay, "add_patient", [], false)
     assert_true(success, "Should successfully add second patient")
     
-    current_patients = _call_node_method_int(medical_bay, "get_current_patients", [], 0)
+    current_patients = _call_node_method_int(medical_bay, "get_available_capacity", [], 0)
     assert_eq(current_patients, 2, "Should update current patients")
     
     # Test patient capacity limit
     success = _call_node_method_bool(medical_bay, "add_patient", [], false)
     assert_false(success, "Should fail to add patient beyond capacity")
     
-    current_patients = _call_node_method_int(medical_bay, "get_current_patients", [], 0)
+    current_patients = _call_node_method_int(medical_bay, "get_available_capacity", [], 0)
     assert_eq(current_patients, medical_enums.MEDICAL_BAY_BASE_MAX_PATIENTS, "Should not change patients on failed add")
     
     # Test removing patients
     success = _call_node_method_bool(medical_bay, "remove_patient", [], false)
     assert_true(success, "Should successfully remove patient")
     
-    current_patients = _call_node_method_int(medical_bay, "get_current_patients", [], 0)
+    current_patients = _call_node_method_int(medical_bay, "get_available_capacity", [], 0)
     assert_eq(current_patients, 1, "Should update current patients after removal")
     
     success = _call_node_method_bool(medical_bay, "remove_patient", [], false)
     assert_true(success, "Should successfully remove last patient")
     
-    current_patients = _call_node_method_int(medical_bay, "get_current_patients", [], 0)
+    current_patients = _call_node_method_int(medical_bay, "get_available_capacity", [], 0)
     assert_eq(current_patients, 0, "Should update current patients after removal")
     
     # Test removing when empty
     success = _call_node_method_bool(medical_bay, "remove_patient", [], false)
     assert_false(success, "Should fail to remove patient when empty")
     
-    current_patients = _call_node_method_int(medical_bay, "get_current_patients", [], 0)
+    current_patients = _call_node_method_int(medical_bay, "get_available_capacity", [], 0)
     assert_eq(current_patients, 0, "Should not change patients on failed removal")
 
 func test_healing_process() -> void:
@@ -271,7 +269,7 @@ func test_healing_process() -> void:
     assert_eq(healing_done, medical_enums.MEDICAL_BAY_BASE_HEALING_RATE, "Should heal at reduced rate with reduced efficiency")
     
     # Test no healing when inactive
-    _call_node_method_bool(medical_bay, "set_is_active", [false])
+    _call_node_method_bool(medical_bay, "set_surgical_capability", [false])
     healing_done = _call_node_method_float(medical_bay, "process_healing", [medical_enums.HEALING_TICK_TIME], 0.0)
     assert_eq(healing_done, 0.0, "Should not heal when inactive")
 
@@ -282,7 +280,7 @@ func test_serialization() -> void:
     _call_node_method_bool(medical_bay, "add_patient", [])
     _call_node_method_bool(medical_bay, "add_patient", [])
     _call_node_method_bool(medical_bay, "set_level", [medical_enums.MEDICAL_BAY_MAX_LEVEL])
-    _call_node_method_bool(medical_bay, "set_durability", [medical_enums.MEDICAL_BAY_MAX_DURABILITY])
+    _call_node_method_bool(medical_bay, "set_efficiency", [medical_enums.HALF_EFFICIENCY])
     
     # Serialize and deserialize
     var data: Dictionary = _call_node_method_dict(medical_bay, "serialize", [], {})
@@ -292,8 +290,8 @@ func test_serialization() -> void:
     
     # Verify medical bay-specific properties
     var healing_rate: float = _call_node_method_float(new_medical_bay, "get_healing_rate", [], 0.0)
-    var max_patients: int = _call_node_method_int(new_medical_bay, "get_max_patients", [], 0)
-    var current_patients: int = _call_node_method_int(new_medical_bay, "get_current_patients", [], 0)
+    var max_patients: int = _call_node_method_int(new_medical_bay, "get_healing_capacity", [], 0)
+    var current_patients: int = _call_node_method_int(new_medical_bay, "get_available_capacity", [], 0)
     
     assert_eq(healing_rate, medical_enums.MEDICAL_BAY_MAX_HEALING_RATE, "Should preserve healing rate")
     assert_eq(max_patients, medical_enums.MEDICAL_BAY_MAX_PATIENTS, "Should preserve max patients")
@@ -301,9 +299,9 @@ func test_serialization() -> void:
     
     # Verify inherited properties
     var level: int = _call_node_method_int(new_medical_bay, "get_level", [], 0)
-    var durability: int = _call_node_method_int(new_medical_bay, "get_durability", [], 0)
+    var efficiency: float = _call_node_method_float(new_medical_bay, "get_efficiency", [], 0.0)
     var power_draw: int = _call_node_method_int(new_medical_bay, "get_power_draw", [], 0)
     
     assert_eq(level, medical_enums.MEDICAL_BAY_MAX_LEVEL, "Should preserve level")
-    assert_eq(durability, medical_enums.MEDICAL_BAY_MAX_DURABILITY, "Should preserve durability")
+    assert_eq(efficiency, medical_enums.HALF_EFFICIENCY, "Should preserve efficiency")
     assert_eq(power_draw, medical_enums.MEDICAL_BAY_POWER_DRAW, "Should preserve power draw")

@@ -9,7 +9,8 @@
 ## - Performance considerations
 ## - Signal emissions
 @tool
-extends GameTest
+extends "res://tests/fixtures/base/game_test.gd"
+# Use explicit preloads instead of global class names
 
 # Type-safe script references
 const Character: GDScript = preload("res://src/core/character/Base/Character.gd")

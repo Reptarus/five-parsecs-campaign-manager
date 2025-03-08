@@ -1,23 +1,43 @@
 @tool
-extends UITest
+extends "res://tests/fixtures/specialized/ui_test.gd"
 
-const Logbook := preload("res://src/ui/components/logbook/logbook.gd")
+# Type-safe constants and script references
+var Logbook: GDScript = null
+
+func _init() -> void:
+	if FileAccess.file_exists("res://src/ui/components/logbook/logbook.gd"):
+		Logbook = load("res://src/ui/components/logbook/logbook.gd") as GDScript
+	else:
+		push_warning("Logbook script not found, using mock")
+		# Create a simple mock
+		Logbook = GDScript.new()
+		Logbook.source_code = """
+		extends Control
+		signal crew_selected(crew_id)
+		signal entry_selected(entry_id)
+		signal notes_updated(notes)
+		"""
 
 # Type-safe instance variables
 var _component: Control = null
-var _last_crew_selection: String
-var _last_entry_selection: String
-var _last_notes_text: String
+var _last_crew_selection: String = ""
+var _last_entry_selection: String = ""
+var _last_notes_text: String = ""
 
+# Type-safe lifecycle methods
 func before_each() -> void:
 	await super.before_each()
-	_component = Logbook.new()
+	_component = Logbook.new() as Control
+	if not _component:
+		push_error("Failed to create logbook component")
+		return
 	add_child_autofree(_component)
 	_reset_state()
 	_connect_signals()
 	await get_tree().process_frame
 
 func after_each() -> void:
+	_disconnect_signals()
 	_reset_state()
 	_component = null
 	await super.after_each()
@@ -27,13 +47,20 @@ func _reset_state() -> void:
 	_last_entry_selection = ""
 	_last_notes_text = ""
 
+# Type-safe signal handling
 func _connect_signals() -> void:
-	if _component and is_instance_valid(_component):
-		var component_object = _component as Object
-		if component_object:
-			TypeSafeMixin._set_property_safe(component_object, "crew_selected", Callable(self, "_on_crew_selected"))
-			TypeSafeMixin._set_property_safe(component_object, "entry_selected", Callable(self, "_on_entry_selected"))
-			TypeSafeMixin._set_property_safe(component_object, "notes_updated", Callable(self, "_on_notes_updated"))
+	if not _component or not is_instance_valid(_component):
+		return
+		
+	var component_object: Object = _component as Object
+	if component_object:
+		TypeSafeMixin._set_property_safe(component_object, "crew_selected", Callable(self, "_on_crew_selected"))
+		TypeSafeMixin._set_property_safe(component_object, "entry_selected", Callable(self, "_on_entry_selected"))
+		TypeSafeMixin._set_property_safe(component_object, "notes_updated", Callable(self, "_on_notes_updated"))
+
+func _disconnect_signals() -> void:
+	# Signal disconnection logic
+	pass
 
 func _on_crew_selected(crew_id: String) -> void:
 	_last_crew_selection = crew_id

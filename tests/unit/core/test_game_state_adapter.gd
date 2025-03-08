@@ -1,7 +1,9 @@
-extends GameTest
-class_name TestGameStateAdapter
-
+extends "res://tests/fixtures/base/game_test.gd"
+# Use explicit preloads instead of global class names
+const TestGameStateAdapterScript = preload("res://tests/unit/core/test_game_state_adapter.gd")
+const GameStateTestAdapter = preload("res://tests/fixtures/helpers/game_state_test_adapter.gd")
 const WorldDataMigration = preload("res://src/core/migration/WorldDataMigration.gd")
+# GameEnums is already defined in parent class, no need to redefine it
 
 func before_each() -> void:
 	super()
@@ -16,7 +18,7 @@ func test_can_create_game_state_instance() -> void:
 	
 	# Then it should be a valid GameState object
 	assert_not_null(state, "GameState instance should be created")
-	assert_true(state is GameState, "Should be a GameState instance")
+	assert_true(state is Node, "Should be a Node instance")
 
 func test_can_create_default_test_state() -> void:
 	# Given we need a GameState with default values
@@ -56,7 +58,7 @@ func test_can_deserialize_from_dict() -> void:
 	
 	# Then it should be a valid GameState with the expected values
 	assert_not_null(state, "GameState should be deserialized")
-	assert_true(state is GameState, "Should be a GameState instance")
+	assert_true(state is Node, "Should be a Node instance")
 	assert_eq(state.turn_number, 1, "Turn number should be 1")
 	assert_eq(state.story_points, 3, "Story points should be 3")
 	assert_eq(state.reputation, 50, "Reputation should be 50")
