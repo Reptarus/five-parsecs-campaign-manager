@@ -44,40 +44,40 @@ func test_quest_management() -> void:
 	assert_eq(quest_count, 1, "Should update quest count")
 	
 	# Test quest limit
-	for i in range(GameEnums.MAX_PATRON_QUESTS - 1):
+	for i in range(TestEnums.MAX_PATRON_QUESTS - 1):
 		TypeSafeMixin._call_node_method_bool(patron, "add_quest", [], false)
 	
 	success = TypeSafeMixin._call_node_method_bool(patron, "add_quest", [], false)
 	assert_false(success, "Should fail to add quest beyond limit")
 	
 	quest_count = TypeSafeMixin._call_node_method_int(patron, "get_quest_count", [], 0)
-	assert_eq(quest_count, GameEnums.MAX_PATRON_QUESTS, "Should not exceed quest limit")
+	assert_eq(quest_count, TestEnums.MAX_PATRON_QUESTS, "Should not exceed quest limit")
 	
 	# Test completing quests
 	success = TypeSafeMixin._call_node_method_bool(patron, "complete_quest", [], false)
 	assert_true(success, "Should successfully complete quest")
 	
 	quest_count = TypeSafeMixin._call_node_method_int(patron, "get_quest_count", [], 0)
-	assert_eq(quest_count, GameEnums.MAX_PATRON_QUESTS - 1, "Should update quest count after completion")
+	assert_eq(quest_count, TestEnums.MAX_PATRON_QUESTS - 1, "Should update quest count after completion")
 	
 	# Test failing quests
 	success = TypeSafeMixin._call_node_method_bool(patron, "fail_quest", [], false)
 	assert_true(success, "Should successfully fail quest")
 	
 	quest_count = TypeSafeMixin._call_node_method_int(patron, "get_quest_count", [], 0)
-	assert_eq(quest_count, GameEnums.MAX_PATRON_QUESTS - 2, "Should update quest count after failure")
+	assert_eq(quest_count, TestEnums.MAX_PATRON_QUESTS - 2, "Should update quest count after failure")
 
 func test_reputation_effects() -> void:
 	# Test reputation changes
 	var initial_reputation: int = TypeSafeMixin._call_node_method_int(patron, "get_reputation", [], 0)
 	
-	TypeSafeMixin._call_node_method_bool(patron, "add_reputation", [GameEnums.REPUTATION_GAIN_AMOUNT])
+	TypeSafeMixin._call_node_method_bool(patron, "add_reputation", [TestEnums.REPUTATION_GAIN_AMOUNT])
 	var new_reputation: int = TypeSafeMixin._call_node_method_int(patron, "get_reputation", [], 0)
-	assert_eq(new_reputation, initial_reputation + GameEnums.REPUTATION_GAIN_AMOUNT, "Should increase reputation")
+	assert_eq(new_reputation, initial_reputation + TestEnums.REPUTATION_GAIN_AMOUNT, "Should increase reputation")
 	
-	TypeSafeMixin._call_node_method_bool(patron, "remove_reputation", [GameEnums.REPUTATION_LOSS_AMOUNT])
+	TypeSafeMixin._call_node_method_bool(patron, "remove_reputation", [TestEnums.REPUTATION_LOSS_AMOUNT])
 	new_reputation = TypeSafeMixin._call_node_method_int(patron, "get_reputation", [], 0)
-	assert_eq(new_reputation, initial_reputation + GameEnums.REPUTATION_GAIN_AMOUNT - GameEnums.REPUTATION_LOSS_AMOUNT, "Should decrease reputation")
+	assert_eq(new_reputation, initial_reputation + TestEnums.REPUTATION_GAIN_AMOUNT - TestEnums.REPUTATION_LOSS_AMOUNT, "Should decrease reputation")
 	
 	# Test activation based on reputation
 	var reputation_requirement: int = TypeSafeMixin._call_node_method_int(patron, "get_reputation_requirement", [], 0)
@@ -94,31 +94,31 @@ func test_influence_effects() -> void:
 	# Test influence changes
 	var initial_influence: int = TypeSafeMixin._call_node_method_int(patron, "get_influence", [], 0)
 	
-	TypeSafeMixin._call_node_method_bool(patron, "add_influence", [GameEnums.INFLUENCE_GAIN_AMOUNT])
+	TypeSafeMixin._call_node_method_bool(patron, "add_influence", [TestEnums.INFLUENCE_GAIN_AMOUNT])
 	var new_influence: int = TypeSafeMixin._call_node_method_int(patron, "get_influence", [], 0)
-	assert_eq(new_influence, initial_influence + GameEnums.INFLUENCE_GAIN_AMOUNT, "Should increase influence")
+	assert_eq(new_influence, initial_influence + TestEnums.INFLUENCE_GAIN_AMOUNT, "Should increase influence")
 	
-	TypeSafeMixin._call_node_method_bool(patron, "remove_influence", [GameEnums.INFLUENCE_LOSS_AMOUNT])
+	TypeSafeMixin._call_node_method_bool(patron, "remove_influence", [TestEnums.INFLUENCE_LOSS_AMOUNT])
 	new_influence = TypeSafeMixin._call_node_method_int(patron, "get_influence", [], 0)
-	assert_eq(new_influence, initial_influence + GameEnums.INFLUENCE_GAIN_AMOUNT - GameEnums.INFLUENCE_LOSS_AMOUNT, "Should decrease influence")
+	assert_eq(new_influence, initial_influence + TestEnums.INFLUENCE_GAIN_AMOUNT - TestEnums.INFLUENCE_LOSS_AMOUNT, "Should decrease influence")
 	
 	# Test influence limits
-	TypeSafeMixin._call_node_method_bool(patron, "remove_influence", [GameEnums.MAX_INFLUENCE])
+	TypeSafeMixin._call_node_method_bool(patron, "remove_influence", [TestEnums.MAX_INFLUENCE])
 	new_influence = TypeSafeMixin._call_node_method_int(patron, "get_influence", [], 0)
 	assert_eq(new_influence, 0, "Should not reduce influence below 0")
 	
-	TypeSafeMixin._call_node_method_bool(patron, "add_influence", [GameEnums.MAX_INFLUENCE])
+	TypeSafeMixin._call_node_method_bool(patron, "add_influence", [TestEnums.MAX_INFLUENCE])
 	new_influence = TypeSafeMixin._call_node_method_int(patron, "get_influence", [], 0)
-	assert_eq(new_influence, GameEnums.MAX_INFLUENCE, "Should not increase influence above maximum")
+	assert_eq(new_influence, TestEnums.MAX_INFLUENCE, "Should not increase influence above maximum")
 
 func test_quest_rewards() -> void:
 	# Test base reward calculation
 	var base_reward: int = TypeSafeMixin._call_node_method_int(patron, "calculate_quest_reward", [], 0)
 	var influence: int = TypeSafeMixin._call_node_method_int(patron, "get_influence", [], 0)
-	assert_eq(base_reward, influence * GameEnums.QUEST_REWARD_MULTIPLIER, "Should calculate base reward from influence")
+	assert_eq(base_reward, influence * TestEnums.QUEST_REWARD_MULTIPLIER, "Should calculate base reward from influence")
 	
 	# Test reward scaling with reputation
-	TypeSafeMixin._call_node_method_bool(patron, "set_reputation", [GameEnums.REPUTATION_REWARD_THRESHOLD])
+	TypeSafeMixin._call_node_method_bool(patron, "set_reputation", [TestEnums.REPUTATION_REWARD_THRESHOLD])
 	var scaled_reward: int = TypeSafeMixin._call_node_method_int(patron, "calculate_quest_reward", [], 0)
 	assert_gt(scaled_reward, base_reward, "Should scale reward with reputation")
 	
@@ -132,9 +132,9 @@ func test_serialization() -> void:
 	# Modify patron state
 	TypeSafeMixin._call_node_method_bool(patron, "set_name", ["Test Patron"])
 	TypeSafeMixin._call_node_method_bool(patron, "set_description", ["Test Description"])
-	TypeSafeMixin._call_node_method_bool(patron, "set_influence", [GameEnums.DEFAULT_INFLUENCE])
-	TypeSafeMixin._call_node_method_bool(patron, "set_reputation", [GameEnums.DEFAULT_REPUTATION])
-	TypeSafeMixin._call_node_method_bool(patron, "set_reputation_requirement", [GameEnums.MIN_REPUTATION_REQUIREMENT])
+	TypeSafeMixin._call_node_method_bool(patron, "set_influence", [TestEnums.DEFAULT_INFLUENCE])
+	TypeSafeMixin._call_node_method_bool(patron, "set_reputation", [TestEnums.DEFAULT_REPUTATION])
+	TypeSafeMixin._call_node_method_bool(patron, "set_reputation_requirement", [TestEnums.MIN_REPUTATION_REQUIREMENT])
 	TypeSafeMixin._call_node_method_bool(patron, "add_quest", [])
 	TypeSafeMixin._call_node_method_bool(patron, "add_quest", [])
 	
@@ -155,8 +155,8 @@ func test_serialization() -> void:
 	
 	assert_eq(name, "Test Patron", "Should preserve name")
 	assert_eq(description, "Test Description", "Should preserve description")
-	assert_eq(influence, GameEnums.DEFAULT_INFLUENCE, "Should preserve influence")
-	assert_eq(reputation, GameEnums.DEFAULT_REPUTATION, "Should preserve reputation")
-	assert_eq(reputation_requirement, GameEnums.MIN_REPUTATION_REQUIREMENT, "Should preserve reputation requirement")
+	assert_eq(influence, TestEnums.DEFAULT_INFLUENCE, "Should preserve influence")
+	assert_eq(reputation, TestEnums.DEFAULT_REPUTATION, "Should preserve reputation")
+	assert_eq(reputation_requirement, TestEnums.MIN_REPUTATION_REQUIREMENT, "Should preserve reputation requirement")
 	assert_eq(quest_count, 2, "Should preserve quest count")
 	assert_true(is_active, "Should preserve active state")

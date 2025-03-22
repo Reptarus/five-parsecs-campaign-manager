@@ -1,18 +1,29 @@
 @tool
 extends "res://tests/fixtures/base/game_test.gd"
+## Base class for mobile-specific testing
+## Provides utilities for simulating mobile environments, touch inputs, and performance testing
+## @class MobileTestBase
+
 # Use explicit preloads instead of global class names
 const MobileTestBaseScript = preload("res://tests/fixtures/base/mobile_test_base.gd")
 
 # Type-safe constants for mobile testing
+## Default minimum touch target size recommended for mobile interfaces
 const DEFAULT_TOUCH_TARGET_SIZE := Vector2(44, 44)
+## Default screen DPI for testing calculations
 const DEFAULT_SCREEN_DPI := 160
+## Default resolution for mobile device simulation
 const DEFAULT_RESOLUTION := Vector2i(1920, 1080)
 
 # Type-safe instance variables
+## Original resolution before test modifications
 var _original_resolution: Vector2i
+## Original DPI before test modifications
 var _original_dpi: int
 
-# Lifecycle Methods
+## Initializes the mobile test environment
+## Stores original resolution and DPI, and sets up the test game state
+## Must be called by subclasses using await super.before_each()
 func before_each() -> void:
 	await super.before_each()
 	
@@ -30,6 +41,9 @@ func before_each() -> void:
 	
 	await stabilize_engine()
 
+## Cleans up the mobile test environment
+## Disconnects signals and restores original settings
+## Must be called by subclasses using await super.after_each()
 func after_each() -> void:
 	# Disconnect any signals that might be connected
 	for node in _tracked_nodes:
@@ -44,6 +58,10 @@ func after_each() -> void:
 	await super.after_each()
 
 # Screen Resolution Methods
+
+## Sets the test window resolution
+## @param width: Window width in pixels
+## @param height: Window height in pixels
 func set_test_resolution(width: int, height: int) -> void:
 	var window := get_window()
 	if not window:
@@ -53,6 +71,8 @@ func set_test_resolution(width: int, height: int) -> void:
 	window.size = Vector2i(width, height)
 	await stabilize_engine()
 
+## Restores the original window resolution
+## Called automatically during after_each()
 func restore_resolution() -> void:
 	var window := get_window()
 	if not window:
@@ -63,6 +83,9 @@ func restore_resolution() -> void:
 	await stabilize_engine()
 
 # Device Simulation Methods
+
+## Simulates a device with the specified DPI
+## @param dpi: The DPI value to simulate
 func simulate_device_dpi(dpi: int) -> void:
 	# Store original DPI
 	_original_dpi = DisplayServer.screen_get_dpi()
@@ -73,6 +96,8 @@ func simulate_device_dpi(dpi: int) -> void:
 	
 	await stabilize_engine()
 
+## Restores the original device DPI
+## Called automatically during after_each()
 func restore_device_dpi() -> void:
 	# Restore original DPI
 	# Note: This is a mock implementation
@@ -81,6 +106,9 @@ func restore_device_dpi() -> void:
 	await stabilize_engine()
 
 # Touch Input Methods
+
+## Simulates a touch press event at the specified position
+## @param position: Screen position of the touch event
 func simulate_touch_press(position: Vector2) -> void:
 	var event := InputEventScreenTouch.new()
 	event.position = position
@@ -88,6 +116,8 @@ func simulate_touch_press(position: Vector2) -> void:
 	Input.parse_input_event(event)
 	await stabilize_engine()
 
+## Simulates a touch release event at the specified position
+## @param position: Screen position of the touch event
 func simulate_touch_release(position: Vector2) -> void:
 	var event := InputEventScreenTouch.new()
 	event.position = position
@@ -95,6 +125,10 @@ func simulate_touch_release(position: Vector2) -> void:
 	Input.parse_input_event(event)
 	await stabilize_engine()
 
+## Simulates a touch drag from one position to another
+## @param from: Starting position of the drag
+## @param to: Ending position of the drag
+## @param steps: Number of intermediate points in the drag simulation
 func simulate_touch_drag(from: Vector2, to: Vector2, steps: float = 10.0) -> void:
 	var step_size := (to - from) / steps
 	var current := from
@@ -112,12 +146,15 @@ func simulate_touch_drag(from: Vector2, to: Vector2, steps: float = 10.0) -> voi
 	simulate_touch_release(to)
 
 # Orientation Methods
+
+## Simulates device orientation change to portrait mode
 func simulate_portrait_orientation() -> void:
 	var current_size := DisplayServer.window_get_size()
 	if current_size.x > current_size.y:
 		set_test_resolution(current_size.y, current_size.x)
 	await stabilize_engine()
 
+## Simulates device orientation change to landscape mode
 func simulate_landscape_orientation() -> void:
 	var current_size := DisplayServer.window_get_size()
 	if current_size.x < current_size.y:
@@ -125,6 +162,10 @@ func simulate_landscape_orientation() -> void:
 	await stabilize_engine()
 
 # Mobile-specific Assertions
+
+## Asserts that a control fits within the current screen bounds
+## @param control: The control to check
+## @param message: Optional custom assertion message
 func assert_fits_screen(control: Control, message: String = "") -> void:
 	if not control:
 		push_error("Control is null")
@@ -136,6 +177,9 @@ func assert_fits_screen(control: Control, message: String = "") -> void:
 	assert_true(control_size.x <= screen_size.x and control_size.y <= screen_size.y,
 		message if message else "Control should fit within screen bounds")
 
+## Asserts that a control node meets minimum touch target size requirements
+## @param node: The node to check
+## @param min_size: Minimum acceptable size for touch targets
 func assert_touch_target_size(node: Node, min_size: Vector2 = DEFAULT_TOUCH_TARGET_SIZE) -> void:
 	if not node is Control:
 		push_error("Node must be a Control node")
@@ -148,6 +192,11 @@ func assert_touch_target_size(node: Node, min_size: Vector2 = DEFAULT_TOUCH_TARG
 		"Control should meet minimum touch target size requirements")
 
 # Performance Testing Methods
+
+## Measures mobile performance metrics over multiple iterations
+## @param test_function: The function to test
+## @param iterations: Number of iterations to run
+## @return Dictionary containing performance metrics
 func measure_mobile_performance(test_function: Callable, iterations: int = 100) -> Dictionary:
 	var results := {
 		"fps_samples": [],
@@ -173,6 +222,10 @@ func measure_mobile_performance(test_function: Callable, iterations: int = 100) 
 	}
 
 # Statistical Helper Methods
+
+## Calculates the average of an array of values
+## @param values: Array of numeric values
+## @return The average value
 func _calculate_average(values: Array) -> float:
 	if values.is_empty():
 		return 0.0
@@ -181,6 +234,9 @@ func _calculate_average(values: Array) -> float:
 		sum += value
 	return sum / values.size()
 
+## Calculates the minimum value in an array
+## @param values: Array of numeric values
+## @return The minimum value
 func _calculate_minimum(values: Array) -> float:
 	if values.is_empty():
 		return 0.0
@@ -189,6 +245,9 @@ func _calculate_minimum(values: Array) -> float:
 		min_value = min(min_value, value)
 	return min_value
 
+## Calculates the maximum value in an array
+## @param values: Array of numeric values
+## @return The maximum value
 func _calculate_maximum(values: Array) -> float:
 	if values.is_empty():
 		return 0.0
@@ -197,6 +256,10 @@ func _calculate_maximum(values: Array) -> float:
 		max_value = max(max_value, value)
 	return max_value
 
+## Calculates a percentile value from an array
+## @param values: Array of numeric values
+## @param percentile: The percentile to calculate (0.0-1.0)
+## @return The value at the specified percentile
 func _calculate_percentile(values: Array, percentile: float) -> float:
 	if values.is_empty():
 		return 0.0
@@ -216,6 +279,9 @@ func _calculate_percentile(values: Array, percentile: float) -> float:
 	return sorted[safe_index]
 
 # Mobile test helpers
+
+## Creates a test game state node for mobile testing
+## @return The created game state node
 func create_test_game_state() -> Node:
 	var state := Node.new()
 	if not state:
@@ -227,16 +293,21 @@ func create_test_game_state() -> Node:
 	return state
 
 # Mobile-specific test utilities
-func add_child_autofree(node: Node) -> void:
+
+## Adds a child node and registers it for automatic cleanup
+## @param node: The node to add
+## @param call_ready: Whether to call the node's _ready method
+func add_child_autofree(node: Node, call_ready: bool = true) -> void:
 	if not node:
 		push_error("Cannot add null node to scene")
 		return
 		
-	add_child(node)
+	add_child(node, call_ready)
 	# Track the node for automatic cleanup
 	track_test_node(node)
 
-# Helper method to safely disconnect signals
+## Safely disconnects all signals from an object
+## @param obj: The object to disconnect signals from
 func disconnect_all_signals(obj: Object) -> void:
 	if not is_instance_valid(obj):
 		return
@@ -252,7 +323,8 @@ func disconnect_all_signals(obj: Object) -> void:
 			if obj.is_connected(signal_name, callable):
 				obj.disconnect(signal_name, callable)
 
-# Improved error handling wrapper for test methods
+## Runs a test method with error handling and cleanup
+## @param test_method: The test method to run
 func run_test_with_error_handling(test_method: Callable) -> void:
 	# Setup error capture
 	var had_error := false
@@ -273,6 +345,7 @@ func run_test_with_error_handling(test_method: Callable) -> void:
 	if had_error:
 		assert_false(true, "Test failed with error: " + error_message)
 		
-# Helper to assert test failure with message
+## Forces a test to fail with the specified message
+## @param message: The failure message to report
 func assert_fail(message: String) -> void:
 	assert_false(true, message)

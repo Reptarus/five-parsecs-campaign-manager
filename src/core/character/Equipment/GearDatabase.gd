@@ -1,7 +1,7 @@
 @tool
 extends Resource
 
-const FiveParsecsGear = preload("implementations/five_parsecs_gear.gd")
+const FiveParsecsGear = preload("res://src/core/character/Equipment/implementations/five_parsecs_gear.gd")
 const GameEnums = preload("res://src/core/systems/GlobalEnums.gd")
 
 var gears: Dictionary = {}

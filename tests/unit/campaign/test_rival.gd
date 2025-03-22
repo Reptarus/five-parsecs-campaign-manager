@@ -31,72 +31,72 @@ func test_initialization() -> void:
 	
 	assert_ne(name, "", "Should initialize with a name")
 	assert_ne(description, "", "Should initialize with a description")
-	assert_gt(threat_level, GameEnums.MIN_THREAT_LEVEL, "Should initialize with positive threat level")
-	assert_eq(hostility, GameEnums.NEUTRAL_HOSTILITY, "Should initialize with neutral hostility")
-	assert_gt(resources, GameEnums.MIN_RESOURCES, "Should initialize with positive resources")
+	assert_gt(threat_level, TestEnums.MIN_THREAT_LEVEL, "Should initialize with positive threat level")
+	assert_eq(hostility, TestEnums.NEUTRAL_HOSTILITY, "Should initialize with neutral hostility")
+	assert_gt(resources, TestEnums.MIN_RESOURCES, "Should initialize with positive resources")
 	assert_true(is_active, "Should initialize as active")
 
 func test_hostility_management() -> void:
 	# Test increasing hostility
 	var initial_hostility: int = TypeSafeMixin._call_node_method_int(rival, "get_hostility", [], 0)
 	
-	TypeSafeMixin._call_node_method_bool(rival, "increase_hostility", [GameEnums.HOSTILITY_INCREASE_AMOUNT])
+	TypeSafeMixin._call_node_method_bool(rival, "increase_hostility", [TestEnums.HOSTILITY_INCREASE_AMOUNT])
 	var new_hostility: int = TypeSafeMixin._call_node_method_int(rival, "get_hostility", [], 0)
-	assert_eq(new_hostility, initial_hostility + GameEnums.HOSTILITY_INCREASE_AMOUNT, "Should increase hostility")
+	assert_eq(new_hostility, initial_hostility + TestEnums.HOSTILITY_INCREASE_AMOUNT, "Should increase hostility")
 	
 	# Test decreasing hostility
-	TypeSafeMixin._call_node_method_bool(rival, "decrease_hostility", [GameEnums.HOSTILITY_DECREASE_AMOUNT])
+	TypeSafeMixin._call_node_method_bool(rival, "decrease_hostility", [TestEnums.HOSTILITY_DECREASE_AMOUNT])
 	new_hostility = TypeSafeMixin._call_node_method_int(rival, "get_hostility", [], 0)
-	assert_eq(new_hostility, initial_hostility + GameEnums.HOSTILITY_INCREASE_AMOUNT - GameEnums.HOSTILITY_DECREASE_AMOUNT, "Should decrease hostility")
+	assert_eq(new_hostility, initial_hostility + TestEnums.HOSTILITY_INCREASE_AMOUNT - TestEnums.HOSTILITY_DECREASE_AMOUNT, "Should decrease hostility")
 	
 	# Test hostility limits
-	TypeSafeMixin._call_node_method_bool(rival, "increase_hostility", [GameEnums.MAX_HOSTILITY])
+	TypeSafeMixin._call_node_method_bool(rival, "increase_hostility", [TestEnums.MAX_HOSTILITY])
 	new_hostility = TypeSafeMixin._call_node_method_int(rival, "get_hostility", [], 0)
-	assert_eq(new_hostility, GameEnums.MAX_HOSTILITY, "Should not exceed maximum hostility")
+	assert_eq(new_hostility, TestEnums.MAX_HOSTILITY, "Should not exceed maximum hostility")
 	
-	TypeSafeMixin._call_node_method_bool(rival, "decrease_hostility", [GameEnums.MAX_HOSTILITY * 2])
+	TypeSafeMixin._call_node_method_bool(rival, "decrease_hostility", [TestEnums.MAX_HOSTILITY * 2])
 	new_hostility = TypeSafeMixin._call_node_method_int(rival, "get_hostility", [], 0)
-	assert_eq(new_hostility, GameEnums.MIN_HOSTILITY, "Should not fall below minimum hostility")
+	assert_eq(new_hostility, TestEnums.MIN_HOSTILITY, "Should not fall below minimum hostility")
 
 func test_threat_level_management() -> void:
 	# Test increasing threat level
 	var initial_threat: int = TypeSafeMixin._call_node_method_int(rival, "get_threat_level", [], 0)
 	
-	TypeSafeMixin._call_node_method_bool(rival, "increase_threat_level", [GameEnums.THREAT_LEVEL_INCREASE])
+	TypeSafeMixin._call_node_method_bool(rival, "increase_threat_level", [TestEnums.THREAT_LEVEL_INCREASE])
 	var new_threat: int = TypeSafeMixin._call_node_method_int(rival, "get_threat_level", [], 0)
-	assert_eq(new_threat, initial_threat + GameEnums.THREAT_LEVEL_INCREASE, "Should increase threat level")
+	assert_eq(new_threat, initial_threat + TestEnums.THREAT_LEVEL_INCREASE, "Should increase threat level")
 	
 	# Test decreasing threat level
-	TypeSafeMixin._call_node_method_bool(rival, "decrease_threat_level", [GameEnums.THREAT_LEVEL_DECREASE])
+	TypeSafeMixin._call_node_method_bool(rival, "decrease_threat_level", [TestEnums.THREAT_LEVEL_DECREASE])
 	new_threat = TypeSafeMixin._call_node_method_int(rival, "get_threat_level", [], 0)
 	assert_eq(new_threat, initial_threat, "Should decrease threat level")
 	
 	# Test threat level limits
-	TypeSafeMixin._call_node_method_bool(rival, "decrease_threat_level", [GameEnums.MAX_THREAT_LEVEL])
+	TypeSafeMixin._call_node_method_bool(rival, "decrease_threat_level", [TestEnums.MAX_THREAT_LEVEL])
 	new_threat = TypeSafeMixin._call_node_method_int(rival, "get_threat_level", [], 0)
-	assert_eq(new_threat, GameEnums.MIN_THREAT_LEVEL, "Should not fall below minimum threat level")
+	assert_eq(new_threat, TestEnums.MIN_THREAT_LEVEL, "Should not fall below minimum threat level")
 	
-	TypeSafeMixin._call_node_method_bool(rival, "increase_threat_level", [GameEnums.MAX_THREAT_LEVEL])
+	TypeSafeMixin._call_node_method_bool(rival, "increase_threat_level", [TestEnums.MAX_THREAT_LEVEL])
 	new_threat = TypeSafeMixin._call_node_method_int(rival, "get_threat_level", [], 0)
-	assert_eq(new_threat, GameEnums.MAX_THREAT_LEVEL, "Should not exceed maximum threat level")
+	assert_eq(new_threat, TestEnums.MAX_THREAT_LEVEL, "Should not exceed maximum threat level")
 
 func test_resource_management() -> void:
 	# Test gaining resources
 	var initial_resources: int = TypeSafeMixin._call_node_method_int(rival, "get_resources", [], 0)
 	
-	TypeSafeMixin._call_node_method_bool(rival, "add_resources", [GameEnums.RESOURCE_GAIN_AMOUNT])
+	TypeSafeMixin._call_node_method_bool(rival, "add_resources", [TestEnums.RESOURCE_GAIN_AMOUNT])
 	var new_resources: int = TypeSafeMixin._call_node_method_int(rival, "get_resources", [], 0)
-	assert_eq(new_resources, initial_resources + GameEnums.RESOURCE_GAIN_AMOUNT, "Should increase resources")
+	assert_eq(new_resources, initial_resources + TestEnums.RESOURCE_GAIN_AMOUNT, "Should increase resources")
 	
 	# Test spending resources
-	TypeSafeMixin._call_node_method_bool(rival, "spend_resources", [GameEnums.RESOURCE_SPEND_AMOUNT])
+	TypeSafeMixin._call_node_method_bool(rival, "spend_resources", [TestEnums.RESOURCE_SPEND_AMOUNT])
 	new_resources = TypeSafeMixin._call_node_method_int(rival, "get_resources", [], 0)
-	assert_eq(new_resources, initial_resources + GameEnums.RESOURCE_GAIN_AMOUNT - GameEnums.RESOURCE_SPEND_AMOUNT, "Should decrease resources")
+	assert_eq(new_resources, initial_resources + TestEnums.RESOURCE_GAIN_AMOUNT - TestEnums.RESOURCE_SPEND_AMOUNT, "Should decrease resources")
 	
 	# Test resource limits
-	TypeSafeMixin._call_node_method_bool(rival, "spend_resources", [new_resources + GameEnums.MAX_RESOURCES])
+	TypeSafeMixin._call_node_method_bool(rival, "spend_resources", [new_resources + TestEnums.MAX_RESOURCES])
 	new_resources = TypeSafeMixin._call_node_method_int(rival, "get_resources", [], 0)
-	assert_eq(new_resources, GameEnums.MIN_RESOURCES, "Should not fall below zero resources")
+	assert_eq(new_resources, TestEnums.MIN_RESOURCES, "Should not fall below zero resources")
 
 func test_activity_status() -> void:
 	# Test deactivation
@@ -131,10 +131,10 @@ func test_encounter_generation() -> void:
 	assert_has(encounter, "reward", "Encounter should have reward")
 	
 	var difficulty: int = encounter.get("difficulty", 0)
-	assert_gt(difficulty, GameEnums.MIN_ENCOUNTER_DIFFICULTY, "Encounter difficulty should scale with threat level")
+	assert_gt(difficulty, TestEnums.MIN_ENCOUNTER_DIFFICULTY, "Encounter difficulty should scale with threat level")
 	
 	# Test encounter scaling with higher threat
-	TypeSafeMixin._call_node_method_bool(rival, "increase_threat_level", [GameEnums.THREAT_LEVEL_INCREASE])
+	TypeSafeMixin._call_node_method_bool(rival, "increase_threat_level", [TestEnums.THREAT_LEVEL_INCREASE])
 	var harder_encounter: Dictionary = TypeSafeMixin._call_node_method_dict(rival, "generate_encounter", [], {})
 	var harder_difficulty: int = harder_encounter.get("difficulty", 0)
 	
@@ -149,9 +149,9 @@ func test_serialization() -> void:
 	# Modify rival state
 	TypeSafeMixin._call_node_method_bool(rival, "set_name", ["Test Rival"])
 	TypeSafeMixin._call_node_method_bool(rival, "set_description", ["Test Description"])
-	TypeSafeMixin._call_node_method_bool(rival, "set_threat_level", [GameEnums.DEFAULT_THREAT_LEVEL])
-	TypeSafeMixin._call_node_method_bool(rival, "set_hostility", [GameEnums.DEFAULT_HOSTILITY])
-	TypeSafeMixin._call_node_method_bool(rival, "set_resources", [GameEnums.DEFAULT_RESOURCES])
+	TypeSafeMixin._call_node_method_bool(rival, "set_threat_level", [TestEnums.DEFAULT_THREAT_LEVEL])
+	TypeSafeMixin._call_node_method_bool(rival, "set_hostility", [TestEnums.DEFAULT_HOSTILITY])
+	TypeSafeMixin._call_node_method_bool(rival, "set_resources", [TestEnums.DEFAULT_RESOURCES])
 	TypeSafeMixin._call_node_method_bool(rival, "set_active", [true])
 	
 	# Serialize and deserialize
@@ -170,7 +170,7 @@ func test_serialization() -> void:
 	
 	assert_eq(name, "Test Rival", "Should preserve name")
 	assert_eq(description, "Test Description", "Should preserve description")
-	assert_eq(threat_level, GameEnums.DEFAULT_THREAT_LEVEL, "Should preserve threat level")
-	assert_eq(hostility, GameEnums.DEFAULT_HOSTILITY, "Should preserve hostility")
-	assert_eq(resources, GameEnums.DEFAULT_RESOURCES, "Should preserve resources")
+	assert_eq(threat_level, TestEnums.DEFAULT_THREAT_LEVEL, "Should preserve threat level")
+	assert_eq(hostility, TestEnums.DEFAULT_HOSTILITY, "Should preserve hostility")
+	assert_eq(resources, TestEnums.DEFAULT_RESOURCES, "Should preserve resources")
 	assert_true(is_active, "Should preserve active state")

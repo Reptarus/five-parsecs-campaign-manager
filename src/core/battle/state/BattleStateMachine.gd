@@ -2,41 +2,53 @@
 extends Node
 
 const GameEnums = preload("res://src/core/systems/GlobalEnums.gd")
-const BattleCharacter = preload("res://src/game/combat/BattleCharacter.gd")
-const GameStateManager = preload("res://src/core/managers/GameStateManager.gd")
+# Avoid circular class references by using a weak type reference
+var BattleCharacter = null
+var GameStateManager = null
 
 signal state_changed(new_state: int)
 signal phase_changed(new_phase: int)
 signal round_started(round_number: int)
 signal round_ended(round_number: int)
 signal unit_action_changed(action: int)
-signal unit_action_completed(unit: BattleCharacter, action: int)
+signal unit_action_completed(unit, action: int)
 signal battle_started
 signal battle_ended(victory: bool)
-signal attack_resolved(attacker: BattleCharacter, target: BattleCharacter, result: Dictionary)
-signal reaction_opportunity(unit: BattleCharacter, reaction_type: String, source: BattleCharacter)
-signal combat_effect_triggered(effect_name: String, source: BattleCharacter, target: BattleCharacter)
+signal attack_resolved(attacker, target, result: Dictionary)
+signal reaction_opportunity(unit, reaction_type: String, source)
+signal combat_effect_triggered(effect_name: String, source, target)
 
-var game_state_manager: GameStateManager = null
+var game_state_manager = null
 
 var current_state: int = GameEnums.BattleState.SETUP
 var current_phase: int = GameEnums.CombatPhase.NONE
 var current_round: int = 1
 var is_battle_active: bool = false
-var active_combatants: Array[BattleCharacter] = []
+var active_combatants: Array = []
 var current_unit_action: int = GameEnums.UnitAction.NONE
 
 # Track unit actions
 var _completed_actions: Dictionary = {}
-var _reaction_opportunities: Array[Dictionary] = []
-var _current_unit: BattleCharacter = null
+var _reaction_opportunities: Array = []
+var _current_unit = null
 
-func _init(p_game_state_manager: GameStateManager = null) -> void:
+func _init() -> void:
+	# Load classes to avoid circular references
+	BattleCharacter = load("res://src/core/battle/CharacterUnit.gd")
+	GameStateManager = load("res://src/core/managers/GameStateManager.gd")
+	
+func _ready() -> void:
+	# Ensure we have valid references
+	if not BattleCharacter:
+		BattleCharacter = load("res://src/core/battle/CharacterUnit.gd")
+	
+	if not GameStateManager:
+		GameStateManager = load("res://src/core/managers/GameStateManager.gd")
+
+func set_game_state_manager(p_game_state_manager) -> void:
 	game_state_manager = p_game_state_manager
-	if p_game_state_manager and not game_state_manager:
-		push_warning("BattleStateMachine initialized without GameStateManager")
 
-func add_character(character: BattleCharacter) -> void:
+func add_character(character) -> void:
 	if not character in active_combatants:
 		active_combatants.append(character)
 		# Only add to scene tree if not already there and not already has a parent
@@ -44,14 +56,11 @@ func add_character(character: BattleCharacter) -> void:
 			add_child(character)
 
 func add_combatant(character: Node) -> void:
-	if character is BattleCharacter and not character in active_combatants:
+	if character and not character in active_combatants:
 		add_character(character)
 
-func get_active_combatants() -> Array[Node]:
-	var result: Array[Node] = []
-	for combatant in active_combatants:
-		result.append(combatant)
-	return result
+func get_active_combatants() -> Array:
+	return active_combatants.duplicate()
 
 func start_battle() -> void:
 	current_state = GameEnums.BattleState.SETUP
@@ -68,7 +77,7 @@ func end_battle(victory_type: int) -> void:
 	transition_to(GameEnums.BattleState.CLEANUP)
 	battle_ended.emit(victory_type == GameEnums.VictoryConditionType.ELIMINATION)
 
-func start_unit_action(unit: BattleCharacter, action: int) -> void:
+func start_unit_action(unit, action: int) -> void:
 	_current_unit = unit
 	current_unit_action = action
 	unit_action_changed.emit(action)
@@ -76,17 +85,17 @@ func start_unit_action(unit: BattleCharacter, action: int) -> void:
 func complete_unit_action() -> void:
 	if _current_unit and current_unit_action != GameEnums.UnitAction.NONE:
 		unit_action_completed.emit(_current_unit, current_unit_action)
-		if not _completed_actions.has(_current_unit):
+		if not _current_unit in _completed_actions:
 			_completed_actions[_current_unit] = []
 		_completed_actions[_current_unit].append(current_unit_action)
 		current_unit_action = GameEnums.UnitAction.NONE
 		_current_unit = null
 
-func has_unit_completed_action(unit: BattleCharacter, action: int) -> bool:
-	return _completed_actions.has(unit) and action in _completed_actions[unit]
+func has_unit_completed_action(unit, action: int) -> bool:
+	return unit in _completed_actions and action in _completed_actions[unit]
 
-func get_available_actions(unit: BattleCharacter) -> Array[int]:
-	var available: Array[int] = []
+func get_available_actions(unit) -> Array:
+	var available = []
 	for action in GameEnums.UnitAction.values():
 		if not has_unit_completed_action(unit, action):
 			available.append(action)
@@ -126,15 +135,15 @@ func transition_to_phase(new_phase: int) -> void:
 	current_phase = new_phase
 	phase_changed.emit(new_phase)
 
-func resolve_attack(attacker: BattleCharacter, target: BattleCharacter) -> void:
+func resolve_attack(attacker, target) -> void:
 	# Implement attack resolution logic
 	var result: Dictionary = {} # Add actual combat resolution logic
 	attack_resolved.emit(attacker, target, result)
 
-func trigger_reaction(unit: BattleCharacter, reaction_type: String, source: BattleCharacter) -> void:
+func trigger_reaction(unit, reaction_type: String, source) -> void:
 	reaction_opportunity.emit(unit, reaction_type, source)
 
-func apply_combat_effect(effect_name: String, source: BattleCharacter, target: BattleCharacter) -> void:
+func apply_combat_effect(effect_name: String, source, target) -> void:
 	combat_effect_triggered.emit(effect_name, source, target)
 
 func save_state() -> Dictionary:
@@ -163,9 +172,18 @@ func advance_phase() -> void:
 
 # Private helper functions
 func _handle_setup_state() -> void:
+	# Initialize all characters for battle
+	for character in active_combatants:
+		if character.get_method_list().any(func(method): return method.name == "initialize_for_battle"):
+			character.initialize_for_battle()
+	
+	# Reset action tracking
 	_completed_actions.clear()
-	_reaction_opportunities.clear()
-	current_phase = GameEnums.CombatPhase.NONE
+	current_round = 1
+	
+	for character in active_combatants:
+		if not character in _completed_actions:
+			_completed_actions[character] = []
 
 func _handle_round_state() -> void:
 	round_started.emit(current_round)
@@ -178,7 +196,9 @@ func _handle_cleanup_state() -> void:
 
 func _handle_initiative_phase() -> void:
 	for character in active_combatants:
-		character.initialize_for_battle()
+		# Check if the character has the method
+		if character.get_method_list().any(func(method): return method.name == "initialize_for_battle"):
+			character.initialize_for_battle()
 
 func _handle_deployment_phase() -> void:
 	# Position characters on battlefield
@@ -187,7 +207,7 @@ func _handle_deployment_phase() -> void:
 func _handle_action_phase() -> void:
 	# Reset action points and available actions
 	for character in active_combatants:
-		if not _completed_actions.has(character):
+		if not character in _completed_actions:
 			_completed_actions[character] = []
 
 func _handle_reaction_phase() -> void:
@@ -208,8 +228,5 @@ func end_round() -> void:
 	if is_battle_active:
 		transition_to_phase(GameEnums.CombatPhase.END)
 
-func trigger_combat_effect(effect_name: String, source: BattleCharacter, target: BattleCharacter) -> void:
+func trigger_combat_effect(effect_name: String, source, target) -> void:
 	combat_effect_triggered.emit(effect_name, source, target)
-
-func trigger_reaction_opportunity(unit: BattleCharacter, reaction_type: String, source: BattleCharacter) -> void:
-	reaction_opportunity.emit(unit, reaction_type, source)

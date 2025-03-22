@@ -213,3 +213,16 @@ func create_test_enemy_data() -> EnemyData:
 # Helper method to check if an object has a specific method
 func assert_has_method(obj: Object, method_name: String, message: String = "") -> void:
 	assert_true(obj.has_method(method_name), message if message else "Object should have method '%s'" % method_name)
+
+# Add missing assertion functions directly in this file
+func assert_ge(a, b, text: String = "") -> void:
+	if text.length() > 0:
+		assert_true(a >= b, text)
+	else:
+		assert_true(a >= b, "Expected %s >= %s" % [a, b])
+
+func assert_le(a, b, text: String = "") -> void:
+	if text.length() > 0:
+		assert_true(a <= b, text)
+	else:
+		assert_true(a <= b, "Expected %s <= %s" % [a, b])

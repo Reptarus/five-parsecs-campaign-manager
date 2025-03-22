@@ -1,6 +1,6 @@
 # Scripts/ShipAndCrew/EngineComponent.gd
 @tool
-extends FPCM_ShipComponent
+extends "res://src/core/ships/components/ShipComponent.gd"
 class_name EngineComponent
 
 @export var speed: float = 5.0
@@ -11,14 +11,14 @@ class_name EngineComponent
 @export var jump_capability: bool = false
 
 func _init() -> void:
-	super()
+	super ()
 	name = "Engine"
 	description = "Standard propulsion system"
 	cost = 300
 	power_draw = 5
 	
 func _apply_upgrade_effects() -> void:
-	super()
+	super ()
 	speed += 1.0
 	fuel_efficiency += 0.1
 	maneuverability += 0.05
@@ -61,7 +61,7 @@ func perform_jump() -> bool:
 	return true
 
 func serialize() -> Dictionary:
-	var data = super()
+	var data = super ()
 	data["speed"] = speed
 	data["fuel_efficiency"] = fuel_efficiency
 	data["maneuverability"] = maneuverability

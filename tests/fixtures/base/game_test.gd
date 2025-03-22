@@ -2,6 +2,14 @@
 extends "res://tests/fixtures/base/base_test.gd"
 # Use explicit preloads instead of global class names
 const GameTestScript = preload("res://tests/fixtures/base/game_test.gd")
+const TestHelperScript = preload("res://tests/fixtures/base/test_helper.gd")
+
+# Make GameEnums a reference to GlobalEnums for backward compatibility
+# All test code should use GameEnums or GlobalEnums consistently
+const GameEnums = preload("res://src/core/systems/GlobalEnums.gd")
+
+# Add TestEnums constant to make the test helper available to all tests
+const TestEnums = preload("res://tests/fixtures/base/test_helper.gd")
 
 ## Base class for game-specific tests
 ##
@@ -10,7 +18,6 @@ const GameTestScript = preload("res://tests/fixtures/base/game_test.gd")
 
 # Type-safe script references with null checks
 const GameStateScript: GDScript = preload("res://src/core/state/GameState.gd")
-const GameEnums: GDScript = preload("res://src/core/systems/GlobalEnums.gd")
 const TestHelper: GDScript = preload("res://tests/fixtures/helpers/test_helper.gd")
 # TypeSafeMixin is already imported in the parent class
 
@@ -93,8 +100,10 @@ func _cleanup_game_resources() -> void:
 	
 	for i in range(_test_resources.size() - 1, -1, -1):
 		var resource := _test_resources[i]
-		if resource and not resource.is_queued_for_deletion():
-			resource.free()
+		if resource:
+			# Don't try to free RefCounted resources - just remove the reference
+			# and let reference counting handle cleanup
+			resource = null
 		_test_resources.remove_at(i)
 
 ## Resource management
@@ -229,10 +238,10 @@ func assert_valid_game_state(state: Node) -> void:
 	assert_true(state.is_processing(), "Game state should be processing")
 	
 	# Verify essential properties
-	var phase: int = TypeSafeMixin._call_node_method_int(state, "get_current_phase", [], GameEnums.FiveParcsecsCampaignPhase.NONE)
+	var phase: int = TypeSafeMixin._call_node_method_int(state, "get_current_phase", [], GlobalEnums.FiveParcsecsCampaignPhase.NONE)
 	var turn: int = TypeSafeMixin._call_node_method_int(state, "get_turn_number", [], 0)
 	
-	assert_true(phase >= GameEnums.FiveParcsecsCampaignPhase.NONE, "Invalid game phase")
+	assert_true(phase >= GlobalEnums.FiveParcsecsCampaignPhase.NONE, "Invalid game phase")
 	assert_true(turn >= 0, "Invalid turn number")
 
 ## Stabilization helpers
@@ -275,7 +284,7 @@ func assert_game_state(state_value: int, message: String = "") -> void:
 		assert_false(true, "Game state is null")
 		return
 	
-	var current_state: int = TypeSafeMixin._call_node_method_int(_game_state, "get_current_phase", [], GameEnums.FiveParcsecsCampaignPhase.NONE)
+	var current_state: int = TypeSafeMixin._call_node_method_int(_game_state, "get_current_phase", [], GlobalEnums.FiveParcsecsCampaignPhase.NONE)
 	if message.is_empty():
 		message = "Game state should be %s but was %s" % [state_value, current_state]
 	assert_eq(current_state, state_value, message)
@@ -401,18 +410,15 @@ func get_game_property(obj: Object, property: String, default_value = null) -> V
 		
 	return result if result != null else default_value
 
-func add_child_autofree(node: Node) -> void:
+func add_child_autofree(node: Node, call_ready: bool = true) -> void:
 	if not node:
 		push_error("Cannot add null node")
 		return
 		
-	add_child(node)
+	add_child(node, call_ready)
 	track_test_node(node) # This will ensure the node gets freed during cleanup
 
 func _init() -> void:
 	# Verify critical dependencies
 	if not GameStateScript:
 		push_warning("GameStateScript dependency is not loaded")
-		
-	if not GameEnums:
-		push_warning("GameEnums dependency is not loaded")

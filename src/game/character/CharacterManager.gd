@@ -20,7 +20,8 @@ func _ready() -> void:
 	super._ready()
 
 ## Override create_character to use game-specific character class
-func create_character() -> Character:
+## Returns a character instance with game-specific implementation
+func create_character():
 	var character = FPCM_Character.new()
 	add_character(character)
 	return character

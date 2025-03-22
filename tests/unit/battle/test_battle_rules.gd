@@ -112,16 +112,27 @@ func test_damage_calculation() -> void:
 
 func test_damage_modifiers() -> void:
 	var attacker := _create_test_unit(10, 2)
-	TypeSafeMixin._call_node_method_bool(attacker, "add_damage_modifier", [2, GameEnums.DamageType.PHYSICAL])
+	TypeSafeMixin._call_node_method_bool(attacker, "add_damage_modifier", [2, TestEnums.DamageType.PHYSICAL])
 	
 	var result: Dictionary = TypeSafeMixin._call_node_method_dict(_battle_rules, "calculate_modified_damage", [attacker, 10])
 	assert_eq(result.get("final_damage", 0), 12, "Damage modifier should be applied")
+
+	var target := _create_test_unit(10, 2)
+	var effect := {
+		"type": TestEnums.StatusEffect.STUNNED,
+		"duration": 2,
+		"potency": 1
+	}
+	
+	TypeSafeMixin._call_node_method_bool(target, "apply_status_effect", [effect])
+	result = TypeSafeMixin._call_node_method_dict(_battle_rules, "calculate_modified_damage", [attacker, 10, target])
+	assert_eq(result.get("final_damage", 0), 12, "Status effect should modify damage calculation")
 
 # Status Effect Tests
 func test_status_effect_application() -> void:
 	var target := _create_test_unit(10, 2)
 	var effect := {
-		"type": GameEnums.StatusEffect.STUNNED,
+		"type": TestEnums.StatusEffect.STUNNED,
 		"duration": 2,
 		"potency": 1
 	}
@@ -156,7 +167,7 @@ func test_special_ability_activation() -> void:
 	var unit := _create_test_unit(10, 2)
 	var ability := {
 		"id": "test_ability",
-		"type": GameEnums.AbilityType.ACTIVE,
+		"type": TestEnums.AbilityType.ACTIVE,
 		"cost": 2
 	}
 	
@@ -248,3 +259,23 @@ func test_action_point_costs() -> void:
 	assert_eq(actual_move, MOVE_COST, "Move cost should be %d" % MOVE_COST)
 	assert_eq(actual_attack, ATTACK_COST, "Attack cost should be %d" % ATTACK_COST)
 	assert_eq(actual_defend, DEFEND_COST, "Defend cost should be %d" % DEFEND_COST)
+
+func test_ability_system() -> void:
+	var ability := {
+		"id": "test_ability",
+		"type": TestEnums.AbilityType.ACTIVE,
+		"cost": 2
+	}
+	
+	var unit := _create_test_unit(10, 4)
+	TypeSafeMixin._call_node_method_bool(unit, "add_ability", [ability])
+	
+	var has_ability: bool = TypeSafeMixin._call_node_method_bool(unit, "has_ability", [ability.id])
+	assert_true(has_ability, "Unit should have the ability")
+	
+	var can_use: bool = TypeSafeMixin._call_node_method_bool(_battle_rules, "can_use_ability", [unit, ability.id])
+	assert_true(can_use, "Unit should be able to use the ability")
+	
+	TypeSafeMixin._call_node_method_bool(_battle_rules, "use_ability", [unit, ability.id])
+	var current_action_points: int = TypeSafeMixin._call_node_method_int(unit, "get_action_points", [])
+	assert_eq(current_action_points, 2, "Ability should consume action points")

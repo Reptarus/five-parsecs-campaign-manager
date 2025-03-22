@@ -1,6 +1,5 @@
 extends Node
 
-const GutUtils = preload("res://addons/gut/utils.gd")
 var Optparse = load('res://addons/gut/cli/optparse.gd')
 var Gut = load('res://addons/gut/gut.gd')
 var GutRunner = load('res://addons/gut/gui/GutRunner.tscn')
@@ -38,7 +37,7 @@ class OptionResolver:
 		return new_hash
 
 	func _nvl(a, b):
-		if (a == null):
+		if(a == null):
 			return b
 		else:
 			return a
@@ -46,7 +45,7 @@ class OptionResolver:
 	func _string_it(h):
 		var to_return = ''
 		for key in h:
-			to_return += str('(', key, ':', _nvl(h[key], 'NULL'), ')')
+			to_return += str('(',key, ':', _nvl(h[key], 'NULL'), ')')
 		return to_return
 
 	func to_s():
@@ -85,7 +84,7 @@ var _final_opts = []
 
 func setup_options(options, font_names):
 	var opts = Optparse.new()
-	opts.banner = \
+	opts.banner =\
 """
 The GUT CLI
 -----------
@@ -137,7 +136,7 @@ Options whose values are lists/arrays can be specified multiple times:
 	opts.add('-gfont_name', options.font_name, str('Valid values are:  ', font_names, '.  Default "[default]"'))
 	opts.add('-gfont_size', options.font_size, 'Font size, default "[default]"')
 	opts.add('-gbackground_color', options.background_color, 'Background color as an html color, default "[default]"')
-	opts.add('-gfont_color', options.font_color, 'Font color as an html color, default "[default]"')
+	opts.add('-gfont_color',options.font_color, 'Font color as an html color, default "[default]"')
 	opts.add('-gpaint_after', options.paint_after, 'Delay before GUT will add a 1 frame pause to paint the screen/GUI.  default [default]')
 
 	opts.add_heading("Result Export:")
@@ -157,7 +156,7 @@ Options whose values are lists/arrays can be specified multiple times:
 func extract_command_line_options(from, to):
 	to.config_file = from.get_value_or_null('-gconfig')
 	to.dirs = from.get_value_or_null('-gdir')
-	to.disable_colors = from.get_value_or_null('-gdisable_colors')
+	to.disable_colors =  from.get_value_or_null('-gdisable_colors')
 	to.double_strategy = from.get_value_or_null('-gdouble_strategy')
 	to.ignore_pause = from.get_value_or_null('-gignore_pause')
 	to.include_subdirs = from.get_value_or_null('-ginclude_subdirs')
@@ -188,6 +187,7 @@ func extract_command_line_options(from, to):
 	to.junit_xml_timestamp = from.get_value_or_null('-gjunit_xml_timestamp')
 
 
+
 func _print_gutconfigs(values):
 	var header = """Here is a sample of a full .gutconfig.json file.
 You do not need to specify all values in your own file.  The values supplied in
@@ -214,6 +214,7 @@ func _run_tests(opt_resolver):
 	_gut_config.options = _final_opts
 
 	var runner = GutRunner.instantiate()
+	runner.ran_from_editor = false
 	runner.set_gut_config(_gut_config)
 	get_tree().root.add_child(runner)
 
@@ -236,34 +237,35 @@ func main():
 	# Checking for an empty config path allows us to not use a config file via
 	# the -gconfig_file option since using "-gconfig_file=" or -gconfig_file=''"
 	# will result in an empty string.
-	if (config_path != ''):
+	if(config_path != ''):
 		load_result = _gut_config.load_options_no_defaults(config_path)
 
 	# SHORTCIRCUIT
-	if (!all_options_valid):
+	if(!all_options_valid):
 		print('Unknown arguments:  ', cli_opts.unused)
 		get_tree().quit(1)
-	elif (load_result == -1):
+	elif(load_result == -1):
 		print('Invalid gutconfig ', load_result)
 		get_tree().quit(1)
 	else:
 		opt_resolver.config_opts = _gut_config.options
 
-		if (cli_opts.get_value('-gh')):
+		if(cli_opts.get_value('-gh')):
 			print(GutUtils.version_numbers.get_version_text())
 			cli_opts.print_help()
 			get_tree().quit(0)
-		elif (cli_opts.get_value('-gpo')):
+		elif(cli_opts.get_value('-gpo')):
 			print('All config options and where they are specified.  ' +
 				'The "final" value shows which value will actually be used ' +
 				'based on order of precedence (default < .gutconfig < cmd line).' + "\n")
 			print(opt_resolver.to_s_verbose())
 			get_tree().quit(0)
-		elif (cli_opts.get_value('-gprint_gutconfig_sample')):
+		elif(cli_opts.get_value('-gprint_gutconfig_sample')):
 			_print_gutconfigs(opt_resolver.get_resolved_values())
 			get_tree().quit(0)
 		else:
 			_run_tests(opt_resolver)
+
 
 
 # ##############################################################################
@@ -273,7 +275,7 @@ func main():
 # The MIT License (MIT)
 # =====================
 #
-# Copyright (c) 2025 Tom "Butch" Wesley
+# Copyright (c) 2023 Tom "Butch" Wesley
 #
 # Permission is hereby granted, free of charge, to any person obtaining a copy
 # of this software and associated documentation files (the "Software"), to deal

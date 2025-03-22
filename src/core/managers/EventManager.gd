@@ -1,8 +1,17 @@
-## EventManager
-## Manages game events and their effects on the game state
+@tool
 extends Node
+# This file should be referenced via preload
+# Use explicit preloads instead of global class names
 
-## Dependencies
+const Self = preload("res://src/core/managers/EventManager.gd")
+
+## Manager for game events, both scripted and dynamic
+##
+## This system handles event tracking, triggering, and resolution for the game.
+## It supports scripted events, random events, and player-triggered events.
+## Events can have conditions, choices, and outcomes.
+
+# Dependencies (use preload to avoid circular references)
 const GameEnums = preload("res://src/core/systems/GlobalEnums.gd")
 const FiveParsecsGameState = preload("res://src/core/state/GameState.gd")
 const Character = preload("res://src/core/character/Management/CharacterDataManager.gd")
@@ -12,37 +21,45 @@ const GameLocation = preload("res://src/game/world/GameLocation.gd")
 const ResourceSystem = preload("res://src/core/systems/ResourceSystem.gd")
 const MissionGeneratorClass = preload("res://src/core/systems/MissionGenerator.gd")
 
-## Signals
-signal event_triggered(event_type: GameEnums.GlobalEvent)
-signal event_resolved(event_type: GameEnums.GlobalEvent)
-signal event_effects_applied(effects: Dictionary)
+# Signals
+signal event_triggered(event_id: String, event_data: Dictionary)
+signal event_completed(event_id: String, outcome: Dictionary)
+signal event_choice_made(event_id: String, choice_id: String)
+signal random_event_available(event_id: String)
 signal campaign_event_triggered(event_data: Dictionary)
 signal campaign_event_resolved(event_data: Dictionary)
 signal mission_event_triggered(mission_data: Dictionary)
 signal mission_event_resolved(mission_data: Dictionary)
 
-## Event tracking
-var active_events: Array[Dictionary] = []
-var event_history: Array[Dictionary] = []
+# Variables for the legacy event system
+var active_events: Array = []
+var event_history: Array = []
 var event_cooldowns: Dictionary = {}
-var campaign_events: Array[Dictionary] = []
-var mission_events: Array[Dictionary] = []
+var campaign_events: Array = []
+var mission_events: Array = []
 
-## Configuration
-const MAX_HISTORY_SIZE := 100 # Limit event history size
-const MAX_ACTIVE_EVENTS := 5 # Limit concurrent active events
+# Event Collection
+var _event_catalog: Dictionary = {} # All available events
+var _active_events: Array[Dictionary] = [] # Currently active events
+var _completed_events: Array[String] = [] # IDs of completed events
+var _available_random_events: Array[String] = [] # IDs of available random events
 
-## Game state reference
+# Dependencies
 var game_state: FiveParsecsGameState
 var resource_system: ResourceSystem
 var mission_generator: Node
 
-## Event configuration
+# Constants
+const MAX_ACTIVE_EVENTS: int = 5
+const RANDOM_EVENT_COOLDOWN: int = 3 # Turns
+
+# Configuration
+const MAX_HISTORY_SIZE := 100 # Limit event history size
 const MIN_EVENT_INTERVAL := 3 # Minimum turns between events
 const BASE_EVENT_CHANCE := 0.2 # 20% chance per turn
 const COOLDOWN_DURATION := 10 # Turns before same event type can occur again
 
-## Campaign event definitions
+# Campaign event definitions
 const CAMPAIGN_EVENTS = {
 	"MARKET_OPPORTUNITY": {
 		"category": "upkeep",
@@ -90,7 +107,7 @@ const CAMPAIGN_EVENTS = {
 	}
 }
 
-## Mission event definitions
+# Mission event definitions
 const MISSION_EVENTS = {
 	"RIVAL_INTERFERENCE": {
 		"category": "mission",
@@ -136,43 +153,292 @@ const MISSION_EVENTS = {
 	}
 }
 
-## Initialize the event manager
-func initialize(state: FiveParsecsGameState) -> void:
-	game_state = state
-	resource_system = get_node("/root/Game/Systems/ResourceSystem")
-	var mission_gen = get_node("/root/Game/Systems/MissionGenerator")
-	if mission_gen is MissionGeneratorClass:
-		mission_generator = mission_gen
-	else:
-		push_error("Failed to get MissionGenerator node")
-	active_events.clear()
-	event_history.clear()
-	event_cooldowns.clear()
-	campaign_events.clear()
-	mission_events.clear()
-
-## Cleanup when node is removed
-func _exit_tree() -> void:
-	cleanup()
-
-## Cleanup resources
-func cleanup() -> void:
-	# Clear all events and remove effects
-	var events_to_resolve = active_events.duplicate()
-	for event in events_to_resolve:
-		resolve_event(event.type)
+# Initialize the event manager
+func _init() -> void:
+	# Create empty event catalog
+	_event_catalog = {}
 	
-	# Clear arrays and dictionaries
-	active_events.clear()
-	event_history.clear()
-	event_cooldowns.clear()
-	campaign_events.clear()
-	mission_events.clear()
+func _ready() -> void:
+	# Connect to autoloads if we're not in the editor
+	if not Engine.is_editor_hint():
+		await get_tree().process_frame
+		_connect_signals()
+
+# Connect to required signals
+func _connect_signals() -> void:
+	# Find autoloaded dependencies
+	if not game_state:
+		var state = get_node_or_null("/root/GameState")
+		if state:
+			game_state = state
+			
+	if not resource_system:
+		var resources = get_node_or_null("/root/ResourceSystem")
+		if resources:
+			resource_system = resources
+
+	if not mission_generator:
+		var mission_gen = get_node_or_null("/root/Game/Systems/MissionGenerator")
+		if mission_gen is MissionGeneratorClass:
+			mission_generator = mission_gen
+		else:
+			push_error("Failed to get MissionGenerator node")
+
+# Register an event in the catalog
+func register_event(event_data: Dictionary) -> void:
+	if not _validate_event_data(event_data):
+		push_error("Invalid event data: %s" % event_data.get("id", "UNKNOWN"))
+		return
+		
+	var event_id = event_data.id
+	_event_catalog[event_id] = event_data
 	
-	# Clear references
-	game_state = null
-	resource_system = null
-	mission_generator = null
+	# Check if it's a random event
+	if event_data.get("is_random", false):
+		_available_random_events.append(event_id)
+
+# Validate event data
+func _validate_event_data(event_data: Dictionary) -> bool:
+	# Required fields
+	var required_fields = ["id", "title", "description", "choices"]
+	
+	for field in required_fields:
+		if not event_data.has(field):
+			push_error("Event missing required field: %s" % field)
+			return false
+			
+	# Validate choices
+	if event_data.choices.size() == 0:
+		push_error("Event must have at least one choice")
+		return false
+		
+	for choice in event_data.choices:
+		if not choice.has("id") or not choice.has("text"):
+			push_error("Choice missing required fields")
+			return false
+	
+	return true
+
+# Trigger an event by ID in the new event system
+func trigger_event_by_id(event_id: String) -> bool:
+	if not _event_catalog.has(event_id):
+		push_error("Event not found in catalog: %s" % event_id)
+		return false
+		
+	# Check if we can have more active events
+	if _active_events.size() >= MAX_ACTIVE_EVENTS:
+		push_warning("Too many active events, cannot trigger: %s" % event_id)
+		return false
+		
+	# Check if the event has already been completed
+	if event_id in _completed_events:
+		# If it's a one-time event, don't trigger again
+		if _event_catalog[event_id].get("one_time", false):
+			push_warning("One-time event already completed: %s" % event_id)
+			return false
+			
+	# Clone the event data
+	var event_data = _event_catalog[event_id].duplicate(true)
+	
+	# Add to active events
+	_active_events.append(event_data)
+	
+	# Emit signal
+	event_triggered.emit(event_id, event_data)
+	
+	return true
+
+# Make a choice in an active event
+func make_choice(event_id: String, choice_id: String) -> bool:
+	# Find the active event
+	var event_index = -1
+	
+	for i in range(_active_events.size()):
+		if _active_events[i].id == event_id:
+			event_index = i
+			break
+			
+	if event_index == -1:
+		push_error("Event not active: %s" % event_id)
+		return false
+		
+	var event = _active_events[event_index]
+	
+	# Find the choice
+	var choice = null
+	
+	for c in event.choices:
+		if c.id == choice_id:
+			choice = c
+			break
+			
+	if choice == null:
+		push_error("Choice not found: %s" % choice_id)
+		return false
+		
+	# Process choice outcome
+	var outcome = _process_choice_outcome(event, choice)
+	
+	# Remove from active events
+	_active_events.remove_at(event_index)
+	
+	# Add to completed events
+	_completed_events.append(event_id)
+	
+	# Emit signals
+	event_choice_made.emit(event_id, choice_id)
+	event_completed.emit(event_id, outcome)
+	
+	return true
+
+# Process the outcome of a choice
+func _process_choice_outcome(event: Dictionary, choice: Dictionary) -> Dictionary:
+	var outcome = {
+		"event_id": event.id,
+		"choice_id": choice.id,
+		"result_text": choice.get("result_text", ""),
+		"resources_changed": [],
+		"flags_set": []
+	}
+	
+	# Process resource changes
+	var resource_changes = choice.get("resource_changes", [])
+	
+	for change in resource_changes:
+		var type = change.get("type", 0)
+		var amount = change.get("amount", 0)
+		
+		if amount != 0 and resource_system:
+			if amount > 0:
+				resource_system.add_resource(type, amount, "event:" + event.id)
+			else:
+				resource_system.remove_resource(type, abs(amount), "event:" + event.id)
+			
+			outcome.resources_changed.append({
+				"type": type,
+				"amount": amount
+			})
+	
+	# Process flag changes
+	var flag_changes = choice.get("flag_changes", [])
+	
+	for flag in flag_changes:
+		var flag_name = flag.get("name", "")
+		var flag_value = flag.get("value", true)
+		
+		if not flag_name.is_empty() and game_state:
+			game_state.set_flag(flag_name, flag_value)
+			
+			outcome.flags_set.append({
+				"name": flag_name,
+				"value": flag_value
+			})
+	
+	return outcome
+
+# Check for random events
+func check_random_events() -> bool:
+	if _available_random_events.is_empty():
+		return false
+		
+	# Check if we're on a cooldown
+	if game_state:
+		var last_random_event = game_state.get_meta("last_random_event_turn", -RANDOM_EVENT_COOLDOWN)
+		var current_turn = game_state.turn_number
+		
+		if current_turn - last_random_event < RANDOM_EVENT_COOLDOWN:
+			return false
+	
+	# Random chance to trigger event
+	if randf() > 0.25: # 25% chance each check
+		return false
+		
+	# Select a random event
+	var random_index = randi() % _available_random_events.size()
+	var event_id = _available_random_events[random_index]
+	
+	# Mark this turn for cooldown
+	if game_state:
+		game_state.set_meta("last_random_event_turn", game_state.turn_number)
+	
+	random_event_available.emit(event_id)
+	
+	return true
+
+# Get the list of active events
+func get_active_events() -> Array:
+	var events = []
+	for event in _active_events:
+		events.append(event.duplicate())
+	return events
+
+# Get the list of available events
+func get_available_events() -> Array:
+	var events = []
+	for event_id in _event_catalog.keys():
+		# Skip events that have been completed if they're one-time
+		if _event_catalog[event_id].get("one_time", false) and event_id in _completed_events:
+			continue
+			
+		events.append(_event_catalog[event_id].duplicate())
+	
+	return events
+
+# Clear all events
+func reset() -> void:
+	_active_events.clear()
+	_completed_events.clear()
+	_available_random_events.clear()
+	
+	# Re-add all random events
+	for event_id in _event_catalog.keys():
+		if _event_catalog[event_id].get("is_random", false):
+			_available_random_events.append(event_id)
+		
+# Save event state for the new event system
+func serialize_v2() -> Dictionary:
+	var active_events = []
+	for event in _active_events:
+		active_events.append(event.duplicate())
+	
+	return {
+		"active_events": active_events,
+		"completed_events": _completed_events.duplicate(),
+		"available_random_events": _available_random_events.duplicate()
+	}
+
+# Load event state for the new event system
+func deserialize_v2(data: Dictionary) -> void:
+	_active_events.clear()
+	for event in data.get("active_events", []):
+		_active_events.append(event)
+		
+	_completed_events = data.get("completed_events", []).duplicate()
+	_available_random_events = data.get("available_random_events", []).duplicate()
+
+# Save event manager state for the legacy system
+func serialize_legacy() -> Dictionary:
+	var campaign_events_data = []
+	for event in campaign_events:
+		campaign_events_data.append(event.duplicate(true))
+	
+	return {
+		"active_events": active_events,
+		"event_history": event_history,
+		"event_cooldowns": event_cooldowns,
+		"campaign_events": campaign_events_data
+	}
+
+# Load event manager state for the legacy system
+func deserialize_legacy(data: Dictionary) -> void:
+	if data.has("active_events"):
+		active_events = data.active_events
+	if data.has("event_history"):
+		event_history = data.event_history
+	if data.has("event_cooldowns"):
+		event_cooldowns = data.event_cooldowns
+	if data.has("campaign_events"):
+		campaign_events = data.campaign_events
 
 ## Update event state
 func update() -> void:
@@ -192,7 +458,6 @@ func _process_campaign_events() -> void:
 			var turns_active = game_state.current_turn - event.turn_started
 			if turns_active >= event.duration:
 				resolved_events.append(event)
-				_remove_campaign_event_effects(event)
 	
 	for event in resolved_events:
 		campaign_events.erase(event)
@@ -318,34 +583,10 @@ func get_campaign_event_effect(resource_type: int, effect_type: String) -> float
 	
 	return total_effect
 
-## Save event manager state
-func serialize() -> Dictionary:
-	var campaign_events_data = []
-	for event in campaign_events:
-		campaign_events_data.append(event.duplicate(true))
-	
-	return {
-		"active_events": active_events,
-		"event_history": event_history,
-		"event_cooldowns": event_cooldowns,
-		"campaign_events": campaign_events_data
-	}
-
-## Load event manager state
-func deserialize(data: Dictionary) -> void:
-	if data.has("active_events"):
-		active_events = data.active_events
-	if data.has("event_history"):
-		event_history = data.event_history
-	if data.has("event_cooldowns"):
-		event_cooldowns = data.event_cooldowns
-	if data.has("campaign_events"):
-		campaign_events = data.campaign_events
-
 ## Trim event history to prevent unbounded growth
 func _trim_event_history() -> void:
 	if event_history.size() > MAX_HISTORY_SIZE:
-		event_history = event_history.slice(- MAX_HISTORY_SIZE)
+		event_history = event_history.slice(-MAX_HISTORY_SIZE)
 
 ## Update event cooldowns
 func _update_cooldowns() -> void:
@@ -358,27 +599,6 @@ func _update_cooldowns() -> void:
 			
 	for event_type in expired_cooldowns:
 		event_cooldowns.erase(event_type)
-
-## Check for random event triggers
-func _check_random_events() -> void:
-	if not game_state:
-		return
-		
-	if randf() < BASE_EVENT_CHANCE:
-		var available_events := _get_available_events()
-		if not available_events.is_empty():
-			var random_event = available_events[randi() % available_events.size()]
-			trigger_event(random_event)
-
-## Get list of events that can be triggered
-func _get_available_events() -> Array:
-	var available := []
-	
-	for event_type in GameEnums.GlobalEvent.values():
-		if event_type != GameEnums.GlobalEvent.NONE and _can_trigger_event(event_type):
-			available.append(event_type)
-			
-	return available
 
 ## Process currently active events
 func _process_active_events() -> void:
@@ -397,8 +617,8 @@ func _process_active_events() -> void:
 	for event_type in resolved_events:
 		resolve_event(event_type)
 
-## Trigger a specific event
-func trigger_event(event_type: GameEnums.GlobalEvent) -> void:
+## Trigger a specific event by enum type in the legacy system
+func trigger_event_by_type(event_type: GameEnums.GlobalEvent) -> void:
 	if not _can_trigger_event(event_type):
 		return
 	
@@ -418,8 +638,8 @@ func trigger_event(event_type: GameEnums.GlobalEvent) -> void:
 	event_history.append(event_data.duplicate()) # Use duplicate to prevent reference issues
 	event_cooldowns[event_type] = COOLDOWN_DURATION
 	
-	event_triggered.emit(event_type)
-	_apply_event_effects(event_data.effects)
+	event_triggered.emit(event_type, event_data)
+	_apply_event_effects(event_data.effects, event_type)
 
 ## Resolve an active event
 func resolve_event(event_type: GameEnums.GlobalEvent) -> void:
@@ -433,7 +653,7 @@ func resolve_event(event_type: GameEnums.GlobalEvent) -> void:
 		var event = active_events[event_index]
 		active_events.remove_at(event_index)
 		_remove_event_effects(event.effects)
-		event_resolved.emit(event_type)
+		event_completed.emit(event.id, _process_choice_outcome(event, event.choices[0]))
 
 ## Check if an event can be triggered
 func _can_trigger_event(event_type: GameEnums.GlobalEvent) -> bool:
@@ -486,7 +706,9 @@ func _generate_event_effects(event_type: GameEnums.GlobalEvent) -> Dictionary:
 	return effects
 
 ## Apply event effects to game state
-func _apply_event_effects(effects: Dictionary) -> void:
+## @param effects: Dictionary of effects to apply
+## @param source_event_type: The type of event that generated these effects
+func _apply_event_effects(effects: Dictionary, source_event_type: int = 0) -> void:
 	if not game_state:
 		return
 		
@@ -500,22 +722,20 @@ func _apply_event_effects(effects: Dictionary) -> void:
 			"tech_discount":
 				game_state.apply_tech_discount(effects[effect])
 	
-	event_effects_applied.emit(effects)
+	event_triggered.emit(source_event_type, effects)
 
 ## Remove event effects from game state
 func _remove_event_effects(effects: Dictionary) -> void:
 	if not game_state:
 		return
 		
-	# Remove effects from game state
 	for effect in effects:
-		match effect:
-			"economy_modifier":
-				game_state.apply_economy_modifier(- effects[effect])
-			"combat_difficulty":
-				game_state.modify_combat_difficulty(1.0 / effects[effect])
-			"tech_discount":
-				game_state.apply_tech_discount(- effects[effect])
+		if effect == "resource_penalties":
+			var penalties = effects[effect]
+			for resource_type in penalties:
+				game_state.add_resource_penalty(resource_type, -penalties[resource_type])
+		elif effect == "tech_discount":
+			game_state.apply_tech_discount(-effects[effect])
 
 ## Compare two values with an operator
 func _compare_value(value: float, operator: String, target: float) -> bool:
@@ -536,7 +756,6 @@ func _process_mission_events() -> void:
 			var turns_active = game_state.current_turn - event.turn_started
 			if turns_active >= event.duration:
 				resolved_events.append(event)
-				_remove_mission_event_effects(event)
 	
 	for event in resolved_events:
 		mission_events.erase(event)
@@ -561,7 +780,7 @@ func trigger_mission_event(event_name: String, mission: Mission) -> void:
 	
 	mission_events.append(event_data)
 	_apply_mission_event_effects(event_data, mission)
-	mission_event_triggered.emit(event_data)
+	event_triggered.emit(event_name, event_data)
 
 ## Apply mission event effects
 func _apply_mission_event_effects(event_data: Dictionary, mission: Mission) -> void:
@@ -675,3 +894,24 @@ func get_mission_event_effect(effect_type: String) -> float:
 					total_effect *= effects[effect_type]
 	
 	return total_effect
+
+# Check for random events in the legacy system
+func _check_random_events() -> void:
+	if not game_state:
+		return
+		
+	if randf() < BASE_EVENT_CHANCE:
+		var available_events := _get_available_events()
+		if not available_events.is_empty():
+			var random_event = available_events[randi() % available_events.size()]
+			trigger_event_by_type(random_event)
+
+# Get list of events that can be triggered
+func _get_available_events() -> Array:
+	var available := []
+	
+	for event_type in GameEnums.GlobalEvent.values():
+		if event_type != GameEnums.GlobalEvent.NONE and _can_trigger_event(event_type):
+			available.append(event_type)
+			
+	return available

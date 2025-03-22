@@ -29,21 +29,21 @@ enum CampaignPhase {
 # Type-safe test campaign states
 const TEST_CAMPAIGN_STATES := {
 	"SETUP": {
-		"phase": GameEnums.FiveParcsecsCampaignPhase.SETUP as int,
+		"phase": GlobalEnums.FiveParcsecsCampaignPhase.SETUP as int,
 		"resources": {
 			"credits": 100 as int,
 			"reputation": 0 as int
 		}
 	},
 	"STORY": {
-		"phase": GameEnums.FiveParcsecsCampaignPhase.STORY as int,
+		"phase": GlobalEnums.FiveParcsecsCampaignPhase.STORY as int,
 		"resources": {
 			"credits": 150 as int,
 			"reputation": 5 as int
 		}
 	},
 	"BATTLE": {
-		"phase": GameEnums.FiveParcsecsCampaignPhase.BATTLE_SETUP as int,
+		"phase": GlobalEnums.FiveParcsecsCampaignPhase.BATTLE_SETUP as int,
 		"resources": {
 			"credits": 200 as int,
 			"reputation": 10 as int
@@ -168,7 +168,7 @@ func verify_campaign_state(campaign: Resource, expected_state: Dictionary) -> vo
 		return
 		
 	# Verify phase
-	var phase: int = expected_state.get("phase", GameEnums.FiveParcsecsCampaignPhase.SETUP)
+	var phase: int = expected_state.get("phase", GlobalEnums.FiveParcsecsCampaignPhase.SETUP)
 	assert_eq(TypeSafeMixin._call_node_method_int(campaign, "get_current_phase", []), phase,
 		"Campaign should be in correct phase")
 	
@@ -268,7 +268,7 @@ func test_campaign_initial_phase() -> void:
 		return
 		
 	var current_phase: int = TypeSafeMixin._call_node_method_int(campaign, "get_current_phase", [])
-	assert_eq(current_phase, GameEnums.FiveParcsecsCampaignPhase.NONE, "Initial phase should be NONE")
+	assert_eq(current_phase, GlobalEnums.FiveParcsecsCampaignPhase.NONE, "Initial phase should be NONE")
 
 func test_campaign_phase_transition() -> void:
 	var campaign := _campaign
@@ -277,14 +277,14 @@ func test_campaign_phase_transition() -> void:
 		return
 		
 	# Transition to UPKEEP phase
-	TypeSafeMixin._call_node_method_bool(campaign, "set_phase", [GameEnums.FiveParcsecsCampaignPhase.UPKEEP])
+	TypeSafeMixin._call_node_method_bool(campaign, "set_phase", [GlobalEnums.FiveParcsecsCampaignPhase.UPKEEP])
 	var current_phase: int = TypeSafeMixin._call_node_method_int(campaign, "get_current_phase", [])
-	assert_eq(current_phase, GameEnums.FiveParcsecsCampaignPhase.UPKEEP, "Current phase should be UPKEEP")
+	assert_eq(current_phase, GlobalEnums.FiveParcsecsCampaignPhase.UPKEEP, "Current phase should be UPKEEP")
 	
 	# Transition to BATTLE_SETUP phase
-	TypeSafeMixin._call_node_method_bool(campaign, "set_phase", [GameEnums.FiveParcsecsCampaignPhase.BATTLE_SETUP])
+	TypeSafeMixin._call_node_method_bool(campaign, "set_phase", [GlobalEnums.FiveParcsecsCampaignPhase.BATTLE_SETUP])
 	current_phase = TypeSafeMixin._call_node_method_int(campaign, "get_current_phase", [])
-	assert_eq(current_phase, GameEnums.FiveParcsecsCampaignPhase.BATTLE_SETUP, "Current phase should be BATTLE_SETUP")
+	assert_eq(current_phase, GlobalEnums.FiveParcsecsCampaignPhase.BATTLE_SETUP, "Current phase should be BATTLE_SETUP")
 
 # Campaign Progress Tests
 func test_campaign_progress() -> void:

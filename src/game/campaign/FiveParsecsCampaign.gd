@@ -9,6 +9,15 @@ const FiveParsecsGameEnums = preload("res://src/game/campaign/crew/FiveParsecsGa
 const FiveParsecsCrew = preload("res://src/game/campaign/crew/FiveParsecsCrew.gd")
 
 # Five Parsecs specific properties
+var campaign_id: String = "":
+	get:
+		# Return campaign_id if it exists, otherwise generate one from the name
+		if campaign_id.is_empty() and not campaign_name.is_empty():
+			# Create a reproducible ID based on name and creation time
+			var timestamp = Time.get_unix_time_from_system()
+			campaign_id = campaign_name.to_lower().replace(" ", "_") + "_" + str(timestamp)
+		return campaign_id
+
 var crew
 var galaxy_map: Dictionary = {
 	"current_system": "",
@@ -30,11 +39,16 @@ var patrons: Array = []
 var rivals: Array = []
 
 func _init(name: String = "New Five Parsecs Campaign") -> void:
-	super(name)
+	super (name)
 	crew = FiveParsecsCrew.new()
 	crew.name = name + " Crew"
 	_initialize_galaxy_map()
 	_initialize_five_parsecs_resources()
+	
+	# Generate a campaign ID from the name if needed
+	if campaign_id.is_empty():
+		var timestamp = Time.get_unix_time_from_system()
+		campaign_id = name.to_lower().replace(" ", "_") + "_" + str(timestamp)
 
 func _initialize_five_parsecs_resources() -> void:
 	resources = {
@@ -60,7 +74,7 @@ func _initialize_galaxy_map() -> void:
 	}
 
 func start_campaign() -> void:
-	super()
+	super ()
 	# Five Parsecs specific initialization
 	if crew.members.size() == 0:
 		crew.generate_random_crew(5)
@@ -146,6 +160,7 @@ func serialize() -> Dictionary:
 	var data = super.serialize()
 	
 	# Add Five Parsecs specific data
+	data["campaign_id"] = campaign_id
 	data["crew"] = crew.to_dict()
 	data["galaxy_map"] = galaxy_map
 	data["battle_stats"] = battle_stats
@@ -161,6 +176,10 @@ func deserialize(data: Dictionary) -> Dictionary:
 	var result = super.deserialize(data)
 	if not result.success:
 		return result
+	
+	# Load campaign_id if available
+	if data.has("campaign_id"):
+		campaign_id = data.campaign_id
 	
 	# Load Five Parsecs specific data
 	if data.has("crew"):
@@ -187,3 +206,208 @@ func deserialize(data: Dictionary) -> Dictionary:
 		rivals = data.rivals.duplicate()
 	
 	return {"success": true, "message": "Five Parsecs campaign data loaded successfully"}
+
+func initialize_from_data(campaign_data: Dictionary) -> void:
+	# Initialize basic campaign properties from parent class first
+	if campaign_data.has("name"):
+		campaign_name = campaign_data.name
+	else:
+		campaign_name = "New Five Parsecs Campaign"
+	
+	# Initialize campaign_id if provided
+	if campaign_data.has("id") or campaign_data.has("campaign_id"):
+		campaign_id = campaign_data.get("id", campaign_data.get("campaign_id", ""))
+	# Otherwise generate a new one
+	else:
+		var timestamp = Time.get_unix_time_from_system()
+		campaign_id = campaign_name.to_lower().replace(" ", "_") + "_" + str(timestamp)
+	
+	# Set difficulty if provided
+	if campaign_data.has("difficulty"):
+		campaign_difficulty = campaign_data.difficulty
+	
+	# Initialize resources from provided data or use defaults
+	if campaign_data.has("resources") and campaign_data.resources is Dictionary:
+		# Start with default resources to ensure all fields exist
+		_initialize_five_parsecs_resources()
+		
+		# Then override with provided values
+		for key in campaign_data.resources:
+			resources[key] = campaign_data.resources[key]
+	else:
+		# Fall back to default resources
+		_initialize_five_parsecs_resources()
+	
+	# Initialize crew
+	if crew == null:
+		crew = FiveParsecsCrew.new()
+		crew.name = campaign_name + " Crew"
+	
+	# Initialize crew data if provided
+	if campaign_data.has("crew"):
+		if campaign_data.crew is Dictionary:
+			crew.initialize_from_data(campaign_data.crew)
+		elif campaign_data.has("crew_size") and campaign_data.crew_size is int:
+			# Generate random crew if only size specified
+			crew.generate_random_crew(campaign_data.crew_size)
+	
+	# Initialize galaxy map with defaults first
+	_initialize_galaxy_map()
+	
+	# Override with provided galaxy data if available
+	if campaign_data.has("galaxy_map") and campaign_data.galaxy_map is Dictionary:
+		for key in campaign_data.galaxy_map:
+			galaxy_map[key] = campaign_data.galaxy_map[key]
+	
+	# Initialize battle stats
+	if campaign_data.has("battle_stats") and campaign_data.battle_stats is Dictionary:
+		battle_stats = campaign_data.battle_stats.duplicate()
+	
+	# Set patrons and rivals
+	if campaign_data.has("patrons") and campaign_data.patrons is Array:
+		patrons = campaign_data.patrons.duplicate()
+		
+	if campaign_data.has("rivals") and campaign_data.rivals is Array:
+		rivals = campaign_data.rivals.duplicate()
+	
+	# Set missions
+	if campaign_data.has("current_mission") and campaign_data.current_mission is Dictionary:
+		current_mission = campaign_data.current_mission.duplicate()
+		
+	if campaign_data.has("completed_missions") and campaign_data.completed_missions is Array:
+		completed_missions = campaign_data.completed_missions.duplicate()
+	
+	# Equivalent to start_campaign but without generating crew if specified
+	if not campaign_data.get("skip_initialization", false):
+		start_campaign()
+
+## Override the built-in get method to provide safe access to campaign properties
+func get(property_name) -> Variant:
+	# Convert to string just in case it's a StringName
+	var prop_name = str(property_name)
+	
+	match prop_name:
+		"resources":
+			return resources
+		"campaign_id", "id":
+			return campaign_id
+		"campaign_name", "name":
+			return campaign_name
+		"campaign_difficulty", "difficulty":
+			return campaign_difficulty
+		"crew":
+			return crew
+		"galaxy_map":
+			return galaxy_map
+		"battle_stats":
+			return battle_stats
+		"current_mission":
+			return current_mission
+		"completed_missions":
+			return completed_missions
+		"patrons":
+			return patrons
+		"rivals":
+			return rivals
+		_:
+			# Check if it's a resource first
+			if resources != null and resources.has(prop_name):
+				return resources[prop_name]
+			
+			# Call parent implementation which handles the default case
+			return super.get(property_name)
+
+## Set a resource value in the campaign
+func set_resource(resource_key, value) -> bool:
+	if resources == null:
+		resources = {}
+	
+	# Convert the key to string in case it's an enum
+	var key_str = str(resource_key)
+	resources[key_str] = value
+	
+	# Emit the resources_changed signal if we have it
+	if has_signal("resources_changed"):
+		emit_signal("resources_changed", resources)
+	
+	return true
+
+## Helper method to check if a resource exists
+func has_resource(resource_key) -> bool:
+	var key_str = str(resource_key)
+	return resources != null and resources.has(key_str)
+
+## Override get_resource from parent to handle resources properly
+## @param resource_key: The resource identifier (can be int, string, or any type convertible to string)
+## @return: The resource value as an integer
+func get_resource(resource_key: Variant) -> int:
+	var key_str = str(resource_key)
+	if resources != null and resources.has(key_str):
+		var value = resources[key_str]
+		# Ensure we return an integer as the parent expects
+		if value is int:
+			return value
+		elif value is float:
+			return int(value)
+		elif value is String and value.is_valid_int():
+			return value.to_int()
+		elif value is bool:
+			return 1 if value else 0
+	
+	# Default to parent implementation - convert parameter to string
+	return super.get_resource(key_str)
+
+## Helper method for crew access
+func get_crew():
+	return crew
+
+## Helper method for crew member access
+func get_crew_member(index: int):
+	if crew == null or crew.members == null or index < 0 or index >= crew.members.size():
+		return null
+	return crew.members[index]
+
+## Helper to get the size of the crew
+func get_crew_size() -> int:
+	if crew == null or crew.members == null:
+		return 0
+	return crew.members.size()
+
+## Get the current system name
+func get_current_system() -> String:
+	if galaxy_map == null or not galaxy_map.has("current_system"):
+		return ""
+	return galaxy_map.current_system
+
+## This is a helper method to ensure BaseCampaign resources are properly handled
+func has_method(method_name) -> bool:
+	# Convert to string just in case it's a StringName
+	var method_str = str(method_name)
+	return super.has_method(method_name) or has_signal(method_str)
+
+## This overrides the empty dict check in case empty dicts are valid in some contexts
+func is_empty() -> bool:
+	return campaign_name.is_empty() and resources.is_empty() and campaign_id.is_empty()
+
+## Helper to check for crew existence
+func has_crew() -> bool:
+	return crew != null
+
+## Helper for campaign id access
+func get_campaign_id() -> String:
+	return campaign_id
+
+## Additional method to check for equipment
+func has_equipment(equipment_id) -> bool:
+	# Convert to int if it's a string that can be converted
+	var equip_id = equipment_id
+	if equip_id is String and equip_id.is_valid_int():
+		equip_id = equip_id.to_int()
+	
+	# Check if any crew member has this equipment
+	if has_crew():
+		for member in crew.members:
+			if member and member.has_method("has_equipment") and member.has_equipment(equip_id):
+				return true
+	
+	return false

@@ -1,5 +1,5 @@
 @tool
-extends BaseCombatManager
+extends "res://src/base/combat/BaseCombatManager.gd"
 # This file should be referenced via preload
 # Use explicit preloads instead of global class names
 

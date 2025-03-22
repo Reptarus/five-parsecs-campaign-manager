@@ -161,7 +161,7 @@ func _can_accept_mission(mission: StoryQuestData) -> bool:
 	
 	# Check required resources
 	for resource in mission.required_resources:
-		if not game_state.has_resource(resource.type) or game_state.get_resource(resource.type) < resource.amount:
+		if not game_state or not game_state.has_method("has_resource") or not game_state.has_resource(resource.type) or game_state.get_resource(resource.type) < resource.amount:
 			return false
 	
 	# Check reputation requirement
@@ -205,7 +205,7 @@ func _on_mission_available(mission: StoryQuestData) -> void:
 		_update_ui()
 
 func _on_validation_failed(errors: Array[String]) -> void:
-	push_warning("Campaign validation failed: %s" % errors)
+	push_warning("Campaign validation failed: %s" % str(errors))
 	_update_ui()
 
 func _on_local_event_triggered(event_description: String) -> void:

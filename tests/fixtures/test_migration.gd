@@ -13,7 +13,7 @@ const PERFORMANCE_TEST_DIR: String = "res://tests/performance/"
 const MOBILE_TEST_DIR: String = "res://tests/mobile/"
 
 const DOMAIN_TO_BASE_CLASS: Dictionary = {
-	"unit/ui": "UITest",
+	"unit/ui": "res://tests/fixtures/specialized/ui_test.gd",
 	"unit/battle": "BattleTest",
 	"unit/campaign": "CampaignTest",
 	"unit/enemy": "EnemyTest",

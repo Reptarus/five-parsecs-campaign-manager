@@ -6,6 +6,8 @@ extends "res://tests/unit/ui/base/ui_test_base.gd"
 
 const ThemeManager = preload("res://src/ui/themes/ThemeManager.gd")
 const ThemeTestHelper = preload("res://tests/unit/ui/themes/theme_test_helper.gd")
+# Load UI test base methods and properties that we need without extending from it
+const UITestBaseScript = preload("res://tests/unit/ui/base/ui_test_base.gd")
 
 # Type-safe instance variables
 var _component: Control

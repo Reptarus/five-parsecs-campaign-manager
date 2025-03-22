@@ -1,9 +1,8 @@
 @tool
-extends "res://tests/fixtures/specialized/enemy_test_base.gd"
+extends "res://tests/fixtures/specialized/enemy_test.gd"
 
 # Type-safe instance variables
 var _save_manager: Node = null
-var _test_enemies: Array[Enemy] = []
 
 # Type-safe lifecycle methods
 func before_each() -> void:

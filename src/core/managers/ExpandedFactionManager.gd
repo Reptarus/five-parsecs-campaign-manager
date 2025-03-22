@@ -6,6 +6,8 @@ extends Node
 
 const Self = preload("res://src/core/managers/ExpandedFactionManager.gd")
 const GameEnums := preload("res://src/core/systems/GlobalEnums.gd")
+const FiveParsecsGameState = preload("res://src/core/state/GameState.gd")
+const MissionClass = preload("res://src/core/systems/Mission.gd")
 # Using a temporary character reference until Character is properly implemented
 
 # Constants
@@ -18,6 +20,13 @@ const MAX_FACTION_POWER: int = 5
 const MAX_TECH_LEVEL: int = 5
 const MIN_TECH_LEVEL: int = 1
 const FACTION_TYPE_COUNT: int = 19 # Number of faction types in the enum
+const REPUTATION_MIN = -100
+const REPUTATION_MAX = 100
+const REPUTATION_NEUTRAL = 0
+const REPUTATION_FRIENDLY = 50
+const REPUTATION_ALLIED = 80
+const REPUTATION_HOSTILE = -50
+const REPUTATION_ENEMY = -80
 
 # State
 @export var game_state_manager: Node # Will be cast to GameStateManager
@@ -30,10 +39,36 @@ var factions: Dictionary = {
 	"alien": []
 }
 var faction_data: Dictionary = {}
+var _factions: Dictionary = {}
+var _faction_relationships: Dictionary = {}
+var _faction_territories: Dictionary = {}
+var player_faction_id: String = ""
+var game_state: FiveParsecsGameState
+
+# Add missing signals
+signal faction_created(faction_id: String)
+signal faction_reputation_changed(faction_id: String, old_value: int, new_value: int)
+signal faction_territory_changed(faction_id: String, planet_id: String, controlling: bool)
+signal faction_war_declared(faction_id: String, target_faction_id: String)
+signal faction_alliance_formed(faction_id: String, ally_faction_id: String)
+signal faction_mission_available(faction_id: String, mission_data: Resource)
 
 func _init(_game_state_manager: Node = null) -> void:
 	game_state_manager = _game_state_manager
 	load_faction_data()
+
+func _ready() -> void:
+	# Connect to autoloads if we're not in the editor
+	if not Engine.is_editor_hint():
+		await get_tree().process_frame
+		_connect_signals()
+
+func _connect_signals() -> void:
+	# Find autoloaded dependencies
+	if not game_state:
+		var state = get_node_or_null("/root/GameState")
+		if state:
+			game_state = state
 
 func load_faction_data() -> void:
 	var file := FileAccess.open("res://data/RulesReference/Factions.json", FileAccess.READ)
@@ -66,7 +101,7 @@ func generate_faction_name() -> String:
 func update_faction_relations(faction: Dictionary, change: float) -> void:
 	faction["influence"] = clamp(faction["influence"] + change, MIN_FACTION_INFLUENCE, MAX_FACTION_INFLUENCE)
 
-func get_faction_mission(faction: Dictionary) -> Mission:
+func get_faction_mission(faction: Dictionary) -> Resource:
 	if not game_state_manager:
 		return null
 	return game_state_manager.mission_generator.generate_mission_for_faction(faction)
@@ -209,9 +244,9 @@ func get_faction_job(faction: Dictionary) -> bool:
 		return false
 		
 	if randi() % 6 + 1 <= faction.get("influence", 0):
-		var job := get_faction_mission(faction)
-		if job:
-			game_state_manager.game_state.add_job_offer(job)
+		var job_resource: Resource = get_faction_mission(faction)
+		if job_resource:
+			game_state_manager.game_state.add_job_offer(job_resource)
 			return true
 	return false
 
@@ -233,12 +268,18 @@ func call_in_faction_favor(faction: Dictionary, character: Node) -> bool:
 
 func serialize() -> Dictionary:
 	return {
-		"factions": factions
+		"factions": _factions.duplicate(true),
+		"faction_relationships": _faction_relationships.duplicate(true),
+		"faction_territories": _faction_territories.duplicate(true),
+		"player_faction_id": player_faction_id
 	}
 
 static func deserialize(data: Dictionary) -> Node:
 	var manager = Self.new(null) # MockGameState will be set later
-	manager.factions = data["factions"]
+	manager._factions = data["factions"]
+	manager._faction_relationships = data["faction_relationships"]
+	manager._faction_territories = data["faction_territories"]
+	manager.player_faction_id = data["player_faction_id"]
 	return manager
 
 static func deserialize_faction(data: Dictionary) -> Dictionary:
@@ -459,3 +500,259 @@ func process_global_event(event_type: GameEnums.GlobalEvent, affected_factions: 
 				faction["tech_level"] = max(MIN_TECH_LEVEL, faction["tech_level"] - 1)
 		_:
 			push_warning("Unhandled global event type: %s" % GameEnums.GlobalEvent.keys()[event_type])
+
+func create_faction(faction_data: Dictionary) -> bool:
+	if not _validate_faction_data(faction_data):
+		push_error("Invalid faction data")
+		return false
+		
+	var faction_id = faction_data.id
+	
+	if _factions.has(faction_id):
+		push_error("Faction already exists: %s" % faction_id)
+		return false
+		
+	# Add faction to dictionary
+	_factions[faction_id] = faction_data.duplicate(true)
+	
+	# Initialize relationships dictionary
+	_faction_relationships[faction_id] = {}
+	
+	# Initialize territories
+	_faction_territories[faction_id] = []
+	
+	# Assign initial territories if specified
+	if faction_data.has("territories") and faction_data.territories is Array:
+		for territory in faction_data.territories:
+			_faction_territories[faction_id].append(territory)
+			
+	# Emit signal
+	faction_created.emit(faction_id)
+	
+	return true
+
+func _validate_faction_data(faction_data: Dictionary) -> bool:
+	# Required fields
+	var required_fields = ["id", "name", "description"]
+	
+	for field in required_fields:
+		if not faction_data.has(field):
+			push_error("Faction missing required field: %s" % field)
+			return false
+			
+	return true
+
+func get_faction(faction_id: String) -> Dictionary:
+	if not _factions.has(faction_id):
+		return {}
+		
+	return _factions[faction_id].duplicate(true)
+
+func get_all_factions() -> Array:
+	var factions = []
+	
+	for faction_id in _factions.keys():
+		factions.append(_factions[faction_id].duplicate(true))
+		
+	return factions
+
+func set_player_faction(faction_id: String) -> bool:
+	if not _factions.has(faction_id):
+		push_error("Faction does not exist: %s" % faction_id)
+		return false
+		
+	player_faction_id = faction_id
+	return true
+
+func get_player_faction() -> Dictionary:
+	if player_faction_id.is_empty() or not _factions.has(player_faction_id):
+		return {}
+		
+	return _factions[player_faction_id].duplicate(true)
+
+func get_reputation(faction_id: String) -> int:
+	if player_faction_id.is_empty() or not _factions.has(faction_id):
+		return REPUTATION_NEUTRAL
+		
+	return _get_relationship(player_faction_id, faction_id)
+
+func change_reputation(faction_id: String, amount: int) -> bool:
+	if player_faction_id.is_empty() or not _factions.has(faction_id):
+		push_error("Invalid faction ID or player faction not set")
+		return false
+		
+	var old_value = get_reputation(faction_id)
+	var new_value = clamp(old_value + amount, REPUTATION_MIN, REPUTATION_MAX)
+	
+	_set_relationship(player_faction_id, faction_id, new_value)
+	
+	faction_reputation_changed.emit(faction_id, old_value, new_value)
+	
+	return true
+
+func _get_relationship(faction_a: String, faction_b: String) -> int:
+	# Self-relationship is always maximum
+	if faction_a == faction_b:
+		return REPUTATION_MAX
+		
+	# Check if both factions exist
+	if not _faction_relationships.has(faction_a) or not _faction_relationships.has(faction_b):
+		return REPUTATION_NEUTRAL
+		
+	# Get relationship value
+	if _faction_relationships[faction_a].has(faction_b):
+		return _faction_relationships[faction_a][faction_b]
+		
+	# Default to neutral
+	return REPUTATION_NEUTRAL
+
+func _set_relationship(faction_a: String, faction_b: String, value: int) -> void:
+	# Check if both factions exist
+	if not _faction_relationships.has(faction_a) or not _faction_relationships.has(faction_b):
+		return
+		
+	# Set bidirectional relationship
+	_faction_relationships[faction_a][faction_b] = value
+	_faction_relationships[faction_b][faction_a] = value
+
+func declare_war(aggressor_id: String, target_id: String) -> bool:
+	if not _factions.has(aggressor_id) or not _factions.has(target_id):
+		push_error("Invalid faction ID")
+		return false
+		
+	_set_relationship(aggressor_id, target_id, REPUTATION_ENEMY)
+	
+	faction_war_declared.emit(aggressor_id, target_id)
+	
+	return true
+
+func form_alliance(faction_a: String, faction_b: String) -> bool:
+	if not _factions.has(faction_a) or not _factions.has(faction_b):
+		push_error("Invalid faction ID")
+		return false
+		
+	_set_relationship(faction_a, faction_b, REPUTATION_ALLIED)
+	
+	faction_alliance_formed.emit(faction_a, faction_b)
+	
+	return true
+
+func add_territory(faction_id: String, planet_id: String) -> bool:
+	if not _factions.has(faction_id):
+		push_error("Invalid faction ID")
+		return false
+		
+	if not _faction_territories.has(faction_id):
+		_faction_territories[faction_id] = []
+		
+	if planet_id in _faction_territories[faction_id]:
+		return false
+		
+	# Check if another faction controls this planet
+	for f_id in _faction_territories.keys():
+		if f_id != faction_id and planet_id in _faction_territories[f_id]:
+			_faction_territories[f_id].erase(planet_id)
+			faction_territory_changed.emit(f_id, planet_id, false)
+			
+	_faction_territories[faction_id].append(planet_id)
+	
+	faction_territory_changed.emit(faction_id, planet_id, true)
+	
+	return true
+
+func remove_territory(faction_id: String, planet_id: String) -> bool:
+	if not _factions.has(faction_id) or not _faction_territories.has(faction_id):
+		push_error("Invalid faction ID")
+		return false
+		
+	if not planet_id in _faction_territories[faction_id]:
+		return false
+		
+	_faction_territories[faction_id].erase(planet_id)
+	
+	faction_territory_changed.emit(faction_id, planet_id, false)
+	
+	return true
+
+func get_territories(faction_id: String) -> Array:
+	if not _factions.has(faction_id) or not _faction_territories.has(faction_id):
+		return []
+		
+	return _faction_territories[faction_id].duplicate()
+
+func generate_faction_mission(faction_id: String) -> Resource:
+	if not _factions.has(faction_id):
+		push_error("Invalid faction ID")
+		return null
+		
+	# Create a new mission
+	var mission = MissionClass.new()
+	
+	# Set mission properties
+	mission.mission_id = "faction_mission_%s_%d" % [faction_id, Time.get_unix_time_from_system()]
+	mission.mission_title = _generate_faction_mission_title(faction_id)
+	mission.mission_description = _generate_faction_mission_description(faction_id)
+	# Use a numeric value instead of the enum if it's not defined
+	mission.mission_type = 3 # Faction mission type
+	mission.mission_difficulty = _calculate_faction_mission_difficulty(faction_id)
+	mission.reward_credits = _calculate_faction_mission_reward(faction_id)
+	
+	if game_state:
+		mission.turn_offered = game_state.turn_number
+	
+	# Emit signal
+	faction_mission_available.emit(faction_id, mission)
+	
+	return mission
+
+func _generate_faction_mission_title(faction_id: String) -> String:
+	var faction = _factions[faction_id]
+	var faction_name = faction.name
+	
+	var title_templates = [
+		"%s Contract",
+		"%s Operation",
+		"Mission for %s",
+		"%s Assignment",
+		"Work with %s"
+	]
+	
+	var template = title_templates[randi() % title_templates.size()]
+	return template % faction_name
+
+func _generate_faction_mission_description(faction_id: String) -> String:
+	var faction = _factions[faction_id]
+	var faction_name = faction.name
+	
+	var description_templates = [
+		"The %s faction has requested your assistance with an operation. Complete this mission to improve your standing with them.",
+		"Representatives from %s have a job offer for your crew. The payment is good and they will remember your help.",
+		"An opportunity to work with %s has arisen. This could be a chance to strengthen your relationship with this faction.",
+		"The %s faction needs skilled operatives for a delicate matter. Your crew's reputation has caught their attention."
+	]
+	
+	var template = description_templates[randi() % description_templates.size()]
+	return template % faction_name
+
+func _calculate_faction_mission_difficulty(faction_id: String) -> int:
+	var reputation = get_reputation(faction_id)
+	
+	# Higher reputation = higher trust = more difficult (and rewarding) missions
+	if reputation >= REPUTATION_ALLIED:
+		return 2 # HARD difficulty level
+	elif reputation >= REPUTATION_FRIENDLY:
+		return 1 # MEDIUM difficulty level
+	else:
+		return 0 # EASY difficulty level
+
+func _calculate_faction_mission_reward(faction_id: String) -> int:
+	var reputation = get_reputation(faction_id)
+	var base_reward = 100
+	
+	# Higher reputation = better rewards
+	if reputation >= REPUTATION_ALLIED:
+		return base_reward * 3
+	elif reputation >= REPUTATION_FRIENDLY:
+		return base_reward * 2
+	else:
+		return base_reward

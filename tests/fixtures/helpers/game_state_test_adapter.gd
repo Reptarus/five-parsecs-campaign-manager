@@ -1,13 +1,17 @@
 @tool
 extends RefCounted
-# Use explicit preloads instead of global class names
-const GameStateTestAdapterScript = preload("res://tests/fixtures/helpers/game_state_test_adapter.gd")
+# REMOVED: class_name GameStateTestAdapter
+# Using explicit file reference instead to avoid class name conflicts
+
+# No Self reference to avoid circular reference
+# const Self = preload("res://tests/fixtures/helpers/game_state_test_adapter.gd")
 
 # This adapter allows us to use GameState in tests without extensive modifications
 # to the source file, working around linter errors
 
-const GameStateScript: GDScript = preload("res://src/core/state/GameState.gd")
-const GameEnumsScript: GDScript = preload("res://src/core/systems/GlobalEnums.gd")
+# Game state dependencies with explicit paths
+const GameStateScript = preload("res://src/core/state/GameState.gd")
+const GameEnumsScript = preload("res://src/core/systems/GlobalEnums.gd")
 
 # Create a new GameState instance for testing
 static func create_test_instance() -> Node:
@@ -30,9 +34,11 @@ static func create_default_test_state() -> Node:
 	
 	return state
 
-# Wrapper for the static deserialization to avoid type issues
+# Wrapper for deserialization - use a method that exists in GameStateScript
 static func deserialize_from_dict(data: Dictionary) -> Node:
-	return GameStateScript.deserialize_new(data)
+	var state = create_test_instance()
+	state.deserialize(data) # Use deserialize instead of deserialize_new
+	return state
 
 # Helper to create a serialized state for testing
 static func create_test_serialized_state() -> Dictionary:

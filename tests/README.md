@@ -206,3 +206,31 @@ Test reports are automatically generated in `tests/reports/` with details on:
 - Coverage data
 - Performance metrics
 - Error logs 
+
+## Recent Updates
+
+### Test Framework Fixes (July 2023)
+
+We've recently fixed several issues with the test framework:
+
+1. **Path-based inheritance**: All test files now use path-based inheritance instead of class names
+   - For example: `extends "res://tests/fixtures/base/game_test.gd"` rather than `extends GameTest`
+   
+2. **Circular dependency removal**: Eliminated self-reference preloads that were causing circular dependencies
+   
+3. **Duplicate variable fixes**: Removed duplicate `_gut` variable declarations from base test files
+
+See `fixtures/test_fixes_report.md` for more details about these changes and the automated fixer tool.
+
+## Test Organization
+
+```
+GutTest (from addon/gut/test.gd)
+└── BaseTest (from tests/fixtures/base/base_test.gd)
+    └── GameTest (from tests/fixtures/base/game_test.gd)
+        ├── UITest (from tests/fixtures/specialized/ui_test.gd)
+        ├── BattleTest (from tests/fixtures/specialized/battle_test.gd)
+        ├── CampaignTest (from tests/fixtures/specialized/campaign_test.gd)
+        ├── MobileTest (from tests/fixtures/specialized/mobile_test.gd)
+        └── EnemyTest (from tests/fixtures/specialized/enemy_test.gd)
+```

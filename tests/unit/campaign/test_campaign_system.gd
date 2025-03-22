@@ -181,10 +181,10 @@ func test_resource_boundaries() -> void:
 	assert_true(reputation <= 100, "Reputation should not exceed maximum")
 	
 	# Test negative values
-	TypeSafeMixin._call_node_method_bool(_campaign_state, "add_credits", [- credits - 100])
+	TypeSafeMixin._call_node_method_bool(_campaign_state, "add_credits", [-credits - 100])
 	credits = TypeSafeMixin._call_node_method_int(_campaign_state, "get_credits", [])
 	assert_eq(credits, 0, "Credits should not go below 0")
 	
-	TypeSafeMixin._call_node_method_bool(_campaign_state, "add_reputation", [- reputation - 50])
+	TypeSafeMixin._call_node_method_bool(_campaign_state, "add_reputation", [-reputation - 50])
 	reputation = TypeSafeMixin._call_node_method_int(_campaign_state, "get_reputation", [])
 	assert_eq(reputation, 0, "Reputation should not go below 0")

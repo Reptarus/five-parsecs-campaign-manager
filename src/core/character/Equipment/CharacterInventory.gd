@@ -118,3 +118,41 @@ func get_total_count() -> int:
 
 func is_empty() -> bool:
 	return get_total_count() == 0
+
+func initialize_from_data(inventory_data: Dictionary) -> void:
+	# Clear existing inventory contents
+	weapons.clear()
+	armor.clear()
+	items.clear()
+	
+	# Set max weight if specified
+	if inventory_data.has("max_weight"):
+		max_weight = inventory_data.max_weight
+	
+	# Initialize weapons
+	if inventory_data.has("weapons") and inventory_data.weapons is Array:
+		for weapon_data in inventory_data.weapons:
+			var weapon = GameWeapon.new()
+			if weapon.has_method("initialize_from_data"):
+				weapon.initialize_from_data(weapon_data)
+			weapons.append(weapon)
+	
+	# Initialize armor
+	if inventory_data.has("armor") and inventory_data.armor is Array:
+		for armor_data in inventory_data.armor:
+			var armor_item = BaseArmor.new()
+			if armor_item.has_method("initialize_from_data"):
+				armor_item.initialize_from_data(armor_data)
+			armor.append(armor_item)
+	
+	# Initialize items
+	if inventory_data.has("items") and inventory_data.items is Array:
+		for item_data in inventory_data.items:
+			var gear_item = BaseGear.new()
+			if gear_item.has_method("initialize_from_data"):
+				gear_item.initialize_from_data(item_data)
+			items.append(gear_item)
+	
+	# Recalculate total weight
+	_calculate_total_weight()
+	inventory_changed.emit()

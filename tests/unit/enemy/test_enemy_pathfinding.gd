@@ -173,3 +173,16 @@ func test_path_simplification() -> void:
 	assert_true(simplified.size() > 0, "Simplified path should contain points")
 	assert_true(simplified.size() < TEST_COMPLEX_PATH.size(),
 		"Simplified path should have fewer points than complex path")
+
+# Add missing assertion functions directly in this file
+func assert_le(a, b, text: String = "") -> void:
+	if text.length() > 0:
+		assert_true(a <= b, text)
+	else:
+		assert_true(a <= b, "Expected %s <= %s" % [a, b])
+
+func assert_ge(a, b, text: String = "") -> void:
+	if text.length() > 0:
+		assert_true(a >= b, text)
+	else:
+		assert_true(a >= b, "Expected %s >= %s" % [a, b])

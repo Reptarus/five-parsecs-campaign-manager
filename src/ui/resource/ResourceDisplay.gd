@@ -13,7 +13,7 @@ const ResourceSystem = preload("res://src/core/systems/ResourceSystem.gd")
 @onready var filter_type: OptionButton = $MainContainer/HistoryContainer/FilterContainer/FilterType
 @onready var market_info_container: VBoxContainer = $MainContainer/MarketContainer
 @onready var market_state_label: Label = $MainContainer/MarketContainer/MarketStateLabel
-@onready var resource_system: ResourceSystem
+@onready var resource_system: Node # Changed from ResourceSystem to Node type for flexibility
 
 signal resource_clicked(type: int)
 signal market_update_requested
@@ -66,7 +66,12 @@ func _setup_market_display() -> void:
 	_update_market_state_display()
 
 func _update_market_state_display() -> void:
-	var market_state = resource_system._market.market_state
+	# Safely access market state with proper type checking
+	var market_state = 0.0
+	
+	if resource_system.has("_market") and resource_system._market is Dictionary and resource_system._market.has("market_state"):
+		market_state = resource_system._market.market_state
+	
 	var state_text = "Market State: "
 	
 	if market_state > 0.3:
@@ -93,8 +98,18 @@ func _setup_resource_display() -> void:
 			var item = RESOURCE_ITEM_SCENE.instantiate()
 			resource_container.add_child(item)
 			
-			var current_amount = resource_system.get_resource_amount(type)
-			var market_value = resource_system.get_market_value(type)
+			# Use safe method calls with fallbacks
+			var current_amount = 0
+			var market_value = 0
+			
+			if resource_system.has_method("get_resource"):
+				current_amount = resource_system.get_resource(type)
+			elif resource_system.has_method("get_resource_amount"):
+				current_amount = resource_system.get_resource_amount(type)
+			
+			if resource_system.has_method("get_market_value"):
+				market_value = resource_system.get_market_value(type)
+			
 			var trend = 0
 			if market_value > current_amount:
 				trend = 1
@@ -111,21 +126,54 @@ func _setup_resource_display() -> void:
 
 func _setup_history_display() -> void:
 	transaction_list.clear()
-	var history = resource_system.get_transaction_history()
-	for transaction in history:
-		_add_transaction_to_list(transaction)
+	
+	if resource_system.has_method("get_transaction_history"):
+		var history = resource_system.get_transaction_history()
+		for transaction in history:
+			_add_transaction_to_list(transaction)
 
-func _add_transaction_to_list(transaction: ResourceSystem.ResourceTransaction) -> void:
-	var time_str = Time.get_datetime_string_from_unix_time(transaction.timestamp)
-	var amount_str = ("+" if transaction.transaction_type == "ADD" else "-") + str(transaction.amount)
-	var type_str = GameEnums.ResourceType.keys()[transaction.type].capitalize()
+# Updated to use dictionary instead of class type
+func _add_transaction_to_list(transaction: Dictionary) -> void:
+	var time_str = Time.get_datetime_string_from_unix_time(transaction.get("timestamp", 0))
+	
+	# Handle different dictionary structures for compatibility
+	var amount_str = ""
+	if transaction.has("transaction_type"):
+		amount_str = ("+" if transaction.transaction_type == "ADD" else "-")
+	else:
+		amount_str = ("+" if transaction.get("type", "") == "ADD" else "-")
+	
+	if transaction.has("change_amount"):
+		amount_str += str(transaction.change_amount)
+	elif transaction.has("amount"):
+		amount_str += str(transaction.amount)
+	else:
+		amount_str += "0"
+	
+	var type_idx = 0
+	if transaction.has("resource_type"):
+		type_idx = transaction.resource_type
+	elif transaction.has("type"):
+		type_idx = transaction.type
+	
+	var type_str = "Unknown"
+	if type_idx >= 0 and type_idx < GameEnums.ResourceType.size():
+		type_str = GameEnums.ResourceType.keys()[type_idx].capitalize()
+	
+	var balance = 0
+	if transaction.has("new_value"):
+		balance = transaction.new_value
+	elif transaction.has("balance"):
+		balance = transaction.balance
+	
+	var source = transaction.get("source", "system")
 	
 	var text = "%s | %s %s | Source: %s | Balance: %d" % [
 		time_str,
 		amount_str,
 		type_str,
-		transaction.source,
-		transaction.balance
+		source,
+		balance
 	]
 	
 	transaction_list.add_item(text)
@@ -136,7 +184,10 @@ func _on_resource_changed(type: int, amount: int) -> void:
 	# Update resource display
 	for child in resource_container.get_children():
 		if child is ResourceItem and child.resource_type == type:
-			var market_value = resource_system.get_market_value(type)
+			var market_value = 0
+			if resource_system.has_method("get_market_value"):
+				market_value = resource_system.get_market_value(type)
+				
 			var trend = 0
 			if market_value > amount:
 				trend = 1
@@ -145,12 +196,15 @@ func _on_resource_changed(type: int, amount: int) -> void:
 			child.update_values(amount, market_value, trend)
 			break
 
-func _on_transaction_recorded(transaction: ResourceSystem.ResourceTransaction) -> void:
+# Updated to use dictionary instead of class type
+func _on_transaction_recorded(transaction: Dictionary) -> void:
 	_add_transaction_to_list(transaction)
 
 func _on_validation_failed(type: int, amount: int, reason: String) -> void:
 	# Show error notification
-	var type_str = GameEnums.ResourceType.keys()[type].capitalize()
+	var type_str = "Unknown"
+	if type >= 0 and type < GameEnums.ResourceType.size():
+		type_str = GameEnums.ResourceType.keys()[type].capitalize()
 	OS.alert("Resource validation failed for %s: %s" % [type_str, reason])
 
 func _on_resource_item_pressed(type: int) -> void:
@@ -162,9 +216,11 @@ func _on_clear_history_pressed() -> void:
 func _on_filter_type_selected(index: int) -> void:
 	var selected_type = filter_type.get_item_id(index)
 	transaction_list.clear()
-	var history = resource_system.get_transaction_history(selected_type)
-	for transaction in history:
-		_add_transaction_to_list(transaction)
+	
+	if resource_system.has_method("get_transaction_history"):
+		var history = resource_system.get_transaction_history(selected_type)
+		for transaction in history:
+			_add_transaction_to_list(transaction)
 
 func _on_market_update_timer() -> void:
 	market_update_requested.emit()

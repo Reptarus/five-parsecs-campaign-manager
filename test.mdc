@@ -1,0 +1,18 @@
+### Inheritance Management
+- Maintain consistent approach when instantiating different types:
+  - For Resources: `var obj = load("path/to/script.gd").new(params)`
+  - For Nodes: 
+    ```gdscript
+    var obj = Node.new()
+    obj.set_script(load("path/to/script.gd"))
+    add_child_autofree(obj)
+    obj.property = value  # Set properties after creation
+    ```
+- When changing a script's inheritance (e.g., Resource → Node):
+  - Update all test files that instantiate the script
+  - Update variable type annotations (`var obj: Node` vs `var obj: Resource`)
+  - Update how properties are initialized (constructor vs property assignment)
+  - Ensure proper tracking/cleanup (`track_test_resource` vs `track_test_node`)
+- Document inheritance relationships in class comments
+- Use consistent patterns for both creation and cleanup
+- Test inheritance-related functionality explicitly 

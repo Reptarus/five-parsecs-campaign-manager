@@ -4,7 +4,7 @@ extends Node
 const GameEnums = preload("res://src/core/systems/GlobalEnums.gd")
 const FiveParsecsGameState = preload("res://src/core/state/GameState.gd")
 const CampaignPhaseManager = preload("res://src/core/campaign/CampaignPhaseManager.gd")
-const CharacterManager = preload("res://src/core/character/Management/CharacterManager.gd")
+const CharacterManager = preload("res://src/core/character/management/CharacterManager.gd")
 const BattleResultsManager = preload("res://src/core/battle/BattleResultsManager.gd")
 const MissionIntegrator = preload("res://src/core/mission/MissionIntegrator.gd")
 const EquipmentManager = preload("res://src/core/equipment/EquipmentManager.gd")
@@ -119,13 +119,14 @@ func start_new_campaign(campaign_data: Dictionary) -> void:
 	campaign_phase_manager.start_phase(GameEnums.FiveParcsecsCampaignPhase.SETUP)
 
 ## Load an existing campaign
-func load_campaign(campaign_data: Dictionary) -> void:
+func load_campaign(campaign_path: String) -> void:
 	if not _initialized:
 		_initialize_systems()
 	
 	_loading = true
 	
-	game_state.load_campaign(campaign_data)
+	# Load campaign data from file path
+	var campaign_data = game_state.load_campaign_from_path(campaign_path)
 	
 	# Initialize character manager with saved characters
 	var characters = campaign_data.get("characters", [])
@@ -162,16 +163,25 @@ func save_campaign() -> Dictionary:
 	
 	# Add character data
 	campaign_data["characters"] = []
-	for character in character_manager.get_all_characters():
-		campaign_data["characters"].append(character)
+	var all_characters = character_manager.get_all_characters()
+	for character in all_characters:
+		if all_characters is Array:
+			(campaign_data["characters"] as Array).push_back(character)
 	
 	# Add equipment data
-	campaign_data["equipment"] = equipment_manager.get_all_equipment()
+	var all_equipment = equipment_manager.get_all_equipment()
+	if all_equipment is Array:
+		campaign_data["equipment"] = all_equipment
+	else:
+		campaign_data["equipment"] = []
 	
 	# Add character equipment assignments
 	campaign_data["character_equipment"] = {}
-	for char_id in equipment_manager.get_all_character_assignments():
-		campaign_data["character_equipment"][char_id] = equipment_manager.get_character_equipment(char_id)
+	var assignments = equipment_manager.get_all_character_assignments()
+	for char_id in assignments:
+		var equipment = equipment_manager.get_character_equipment(char_id)
+		if equipment is Array:
+			campaign_data["character_equipment"][char_id] = equipment
 	
 	# Add current phase information
 	campaign_data["current_phase"] = campaign_phase_manager.current_phase
@@ -364,16 +374,22 @@ func _generate_new_rival(source_type: String, battle_data: Dictionary) -> void:
 	var rival_type = ""
 	match source_type:
 		"leader":
-			rival_type = ["Enemy Commander", "Crime Boss", "Bounty Hunter", "Warlord"][randi() % 4]
+			var leader_types = ["Enemy Commander", "Crime Boss", "Bounty Hunter", "Warlord"]
+			rival_type = leader_types[randi() % leader_types.size()]
 		"mission":
-			rival_type = ["Mercenary", "Criminal", "Alien Threat", "Military Officer"][randi() % 4]
+			var mission_types = ["Mercenary", "Criminal", "Alien Threat", "Military Officer"]
+			rival_type = mission_types[randi() % mission_types.size()]
 		_:
 			rival_type = "Unknown Rival"
+	
+	# Generate rival data
+	var name_suffixes = ["Alpha", "Beta", "Gamma", "Delta", "Epsilon"]
+	var rival_name = rival_type + " " + name_suffixes[randi() % name_suffixes.size()]
 	
 	# Generate rival stats according to rulebook's Rival table
 	var rival_data = {
 		"id": "rival_" + str(randi() % 10000),
-		"name": rival_type + " " + ["Alpha", "Beta", "Gamma", "Delta", "Epsilon"][randi() % 5],
+		"name": rival_name,
 		"type": rival_type,
 		"threat_level": 1 + (randi() % 3),
 		"grudge_level": 1,
@@ -389,42 +405,56 @@ func _generate_new_rival(source_type: String, battle_data: Dictionary) -> void:
 		}
 	}
 	
-	# Add rival to game state
-	if game_state.rivals == null:
+	# Add rival to game state - handle type safety
+	if not game_state.get("rivals"):
 		game_state.rivals = []
 	
-	game_state.rivals.append(rival_data)
+	# Check if rivals is actually an Array before using Array methods
+	if game_state.rivals is Array:
+		var rivals_array = game_state.rivals as Array
+		rivals_array.push_back(rival_data)
+	else:
+		# Create a new array if rivals isn't one
+		game_state.rivals = [rival_data]
 	
-	# Notify of rival generation (signal could be added to GameSystemManager)
+	# Notify of rival generation
 	print("New rival generated: " + rival_data.name)
 
 ## Handle Patron relationships according to the rulebook
 func process_patron_relationship(patron_id: String, mission_success: bool) -> void:
-	var patrons = game_state.patrons if game_state.has("patrons") else []
+	# Get patrons with safe defaults
+	var patrons = game_state.get("patrons")
+	
+	# Ensure patrons is an Array
+	if patrons == null or not (patrons is Array):
+		patrons = []
+	
+	var patrons_array = patrons as Array
 	var patron_index = -1
 	
 	# Find patron by ID
-	for i in range(patrons.size()):
-		if patrons[i].get("id") == patron_id:
+	for i in range(patrons_array.size()):
+		var patron = patrons_array[i]
+		if patron is Dictionary and patron.get("id") == patron_id:
 			patron_index = i
 			break
 	
 	if patron_index >= 0:
-		var patron = patrons[patron_index]
+		var patron = patrons_array[patron_index] as Dictionary
 		
 		# Update relationship based on mission success
 		if mission_success:
-			patron.relationship = min(patron.get("relationship", 0) + 1, 5)
+			patron["relationship"] = min(patron.get("relationship", 0) + 1, 5)
 		else:
-			patron.relationship = max(patron.get("relationship", 0) - 1, -3)
+			patron["relationship"] = max(patron.get("relationship", 0) - 1, -3)
 			
 			# Check if patron relationship has deteriorated too much
-			if patron.relationship <= -3:
+			if patron["relationship"] <= -3:
 				# According to rulebook, remove patron at relationship -3
-				patrons.remove_at(patron_index)
+				patrons_array.remove_at(patron_index)
 				print("Patron relationship has deteriorated. Patron removed.")
 				return
 		
 		# Update patron in game state
-		patrons[patron_index] = patron
-		game_state.patrons = patrons
+		patrons_array[patron_index] = patron
+		game_state.patrons = patrons_array

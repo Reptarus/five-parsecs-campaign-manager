@@ -106,19 +106,26 @@ func validate_game_state(game_state: FiveParsecsGameState) -> Array:
 			))
 	
 	# Check resources
-	if not game_state.has_resource(GameEnums.ResourceType.CREDITS):
+	if not game_state.has_method("has_resource"):
 		results.append(create_result(
 			GameEnums.VerificationType.STATE,
 			GameEnums.VerificationResult.WARNING,
-			"No credits resource found"
+			"GameState missing has_resource method"
 		))
-	
-	if not game_state.has_resource(GameEnums.ResourceType.FUEL):
-		results.append(create_result(
-			GameEnums.VerificationType.STATE,
-			GameEnums.VerificationResult.WARNING,
-			"No fuel resource found"
-		))
+	else:
+		if not game_state.has_resource(GameEnums.ResourceType.CREDITS):
+			results.append(create_result(
+				GameEnums.VerificationType.STATE,
+				GameEnums.VerificationResult.WARNING,
+				"No credits resource found"
+			))
+		
+		if not game_state.has_resource(GameEnums.ResourceType.FUEL):
+			results.append(create_result(
+				GameEnums.VerificationType.STATE,
+				GameEnums.VerificationResult.WARNING,
+				"No fuel resource found"
+			))
 	
 	# Check if there's a current location
 	if not game_state.get_current_location():

@@ -1,7 +1,8 @@
 {
     "dirs": [
         "res://tests/unit/",
-        "res://tests/integration/"
+        "res://tests/integration/",
+        "res://tests/fixtures/"
     ],
     "include_subdirs": true,
     "ignore_pause": true,
@@ -11,7 +12,7 @@
     "prefix": "test_",
     "suffix": ".gd",
     "double_strategy": "partial",
-    "test_file_prefix": "test_",
+    "test_file_prefix": "",
     "test_file_suffix": ".gd",
     "inner_class_prefix": "Test",
     "junit_xml_file": "res://tests/reports/junit_report.xml",

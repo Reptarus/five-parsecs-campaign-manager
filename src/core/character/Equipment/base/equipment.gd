@@ -46,3 +46,15 @@ func get_description() -> String:
 	if requires_proficiency:
 		desc += "\nRequires Proficiency"
 	return desc
+
+## Override initialize_from_data to include core-specific properties
+func initialize_from_data(data: Dictionary) -> bool:
+	# Call the parent implementation first
+	var success = super.initialize_from_data(data)
+	
+	# Then add our modifications
+	if success:
+		durability = data.get("durability", 100)
+		requires_proficiency = data.get("requires_proficiency", false)
+	
+	return success

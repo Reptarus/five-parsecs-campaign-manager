@@ -176,3 +176,16 @@ func test_save_compression() -> void:
     var compressed_size: int = TypeSafeMixin._call_node_method_int(save_manager, "get_compressed_size",
         ["compressed_save"], 0)
     assert_lt(compressed_size, uncompressed_size, "Should achieve compression")
+
+# Add missing assertion functions directly in this file
+func assert_le(a, b, text: String = "") -> void:
+    if text.length() > 0:
+        assert_true(a <= b, text)
+    else:
+        assert_true(a <= b, "Expected %s <= %s" % [a, b])
+
+func assert_ge(a, b, text: String = "") -> void:
+    if text.length() > 0:
+        assert_true(a >= b, text)
+    else:
+        assert_true(a >= b, "Expected %s >= %s" % [a, b])

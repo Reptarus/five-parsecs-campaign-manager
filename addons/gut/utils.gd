@@ -62,14 +62,8 @@ static var CollectedScript = LazyLoader.new('res://addons/gut/collected_script.g
 static var CompareResult = LazyLoader.new('res://addons/gut/compare_result.gd'):
 	get: return CompareResult.get_loaded()
 	set(val): pass
-static var DiffFormatter = LazyLoader.new("res://addons/gut/diff_formatter.gd"):
-	get: return DiffFormatter.get_loaded()
-	set(val): pass
 static var DiffTool = LazyLoader.new('res://addons/gut/diff_tool.gd'):
 	get: return DiffTool.get_loaded()
-	set(val): pass
-static var DoubleTools = LazyLoader.new("res://addons/gut/double_tools.gd"):
-	get: return DoubleTools.get_loader()
 	set(val): pass
 static var Doubler = LazyLoader.new('res://addons/gut/doubler.gd'):
 	get: return Doubler.get_loaded()
@@ -125,9 +119,6 @@ static var ResultExporter = LazyLoader.new('res://addons/gut/result_exporter.gd'
 static var ScriptCollector = LazyLoader.new('res://addons/gut/script_parser.gd'):
 	get: return ScriptCollector.get_loaded()
 	set(val): pass
-static var SignalWatcher = LazyLoader.new('res://addons/gut/signal_watcher.gd'):
-	get: return SignalWatcher.get_loaded()
-	set(val): pass
 static var Spy = LazyLoader.new('res://addons/gut/spy.gd'):
 	get: return Spy.get_loaded()
 	set(val): pass
@@ -158,7 +149,7 @@ static var avail_fonts = ['AnonymousPro', 'CourierPrime', 'LobsterTwo', 'Default
 
 static var version_numbers = VersionNumbers.new(
 	# gut_versrion (source of truth)
-	'9.3.1',
+	'9.3.0',
 	# required_godot_version
 	'4.2.0'
 )
@@ -192,16 +183,12 @@ static func get_logger():
 
 static var _dyn_gdscript = DynamicGdScript.new()
 static func create_script_from_source(source, override_path=null):
-	var are_warnings_enabled = WarningsManager.are_warnings_enabled()
-	WarningsManager.enable_warnings(false)
-
 	var DynamicScript = _dyn_gdscript.create_script_from_source(source, override_path)
+
 	if(typeof(DynamicScript) == TYPE_INT):
 		var l = get_logger()
 		l.error(str('Could not create script from source.  Error:  ', DynamicScript))
 		l.info(str("Source Code:\n", add_line_numbers(source)))
-
-	WarningsManager.enable_warnings(are_warnings_enabled)
 
 	return DynamicScript
 
@@ -569,7 +556,7 @@ static func get_display_size():
 # The MIT License (MIT)
 # =====================
 #
-# Copyright (c) 2025 Tom "Butch" Wesley
+# Copyright (c) 2023 Tom "Butch" Wesley
 #
 # Permission is hereby granted, free of charge, to any person obtaining a copy
 # of this software and associated documentation files (the "Software"), to deal
@@ -590,3 +577,4 @@ static func get_display_size():
 # THE SOFTWARE.
 #
 # ##############################################################################
+

@@ -2,6 +2,7 @@
 # Use explicit preloads instead of global class names
 extends Node
 
+# Self-reference for code that needs to reference this script
 const Self = preload("res://src/core/systems/CoreSystems.gd")
 
 # Game system dependencies
@@ -270,7 +271,7 @@ class MovementSystem:
     const RUNNING_BONUS: float = 2.0
     
     var terrain_system: TerrainSubsystem
-    var parent_core_systems: CoreSystems # Renamed to avoid confusion
+    var parent_core_systems: Node # Parent CoreSystems node
     
     func calculate_movement_cost(distance: float, terrain_type: String) -> float:
         var terrain_effect = terrain_system.get_terrain_effect(terrain_type, "movement")

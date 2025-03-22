@@ -12,10 +12,11 @@ var base_theme: Theme
 var test_control: Control
 var _tracked_nodes: Array[Node] = []
 
-# Helper function for autofree
-func add_child_autofree(node: Node) -> void:
-    add_child(node)
+# Helper function for autofree - match parent's signature
+func add_child_autofree(node: Variant, call_ready: bool = true) -> Variant:
+    add_child(node, call_ready as bool)
     _tracked_nodes.append(node)
+    return null
 
 # Custom assert_almost_eq for color comparison
 func assert_almost_eq(actual: Color, expected: Color, tolerance: Vector3, text: String = "") -> void:

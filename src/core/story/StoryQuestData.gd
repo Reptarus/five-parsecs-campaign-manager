@@ -208,7 +208,29 @@ func _validate_faction_standing(faction: String, min_standing: int) -> bool:
 
 func _validate_special_equipment(required_equipment: Array) -> bool:
 	for equipment in required_equipment:
-		if not game_state.has_equipment(equipment):
+		# Convert equipment string to int if it's a string
+		var equipment_type = equipment
+		if equipment is String:
+			# If equipment is a string, try to convert it to an enum value
+			# First check if it's a numeric string
+			if equipment.is_valid_int():
+				equipment_type = equipment.to_int()
+			else:
+				# Otherwise check if it's a named enum value in GameEnums.EquipmentType
+				var GameEnums = load("res://src/core/systems/GlobalEnums.gd")
+				if GameEnums.has_method("get_equipment_type_from_string"):
+					equipment_type = GameEnums.get_equipment_type_from_string(equipment)
+				elif "EquipmentType" in GameEnums:
+					# Try to match the string with an enum name
+					for key in GameEnums.EquipmentType:
+						if key.to_lower() == equipment.to_lower():
+							equipment_type = GameEnums.EquipmentType[key]
+							break
+				else:
+					push_warning("Cannot convert equipment string '%s' to integer type" % equipment)
+					continue
+		
+		if not game_state.has_equipment(equipment_type):
 			return false
 	return true
 
@@ -413,8 +435,30 @@ func is_requirement_met(game_state: FiveParsecsGameState) -> bool:
 	
 	# Check equipment
 	for equipment in required_equipment:
-		if not game_state.has_equipment(equipment):
-					return false
+		# Convert equipment string to int if it's a string
+		var equipment_type = equipment
+		if equipment is String:
+			# If equipment is a string, try to convert it to an enum value
+			# First check if it's a numeric string
+			if equipment.is_valid_int():
+				equipment_type = equipment.to_int()
+			else:
+				# Otherwise check if it's a named enum value in GameEnums.EquipmentType
+				var GameEnums = load("res://src/core/systems/GlobalEnums.gd")
+				if GameEnums.has_method("get_equipment_type_from_string"):
+					equipment_type = GameEnums.get_equipment_type_from_string(equipment)
+				elif "EquipmentType" in GameEnums:
+					# Try to match the string with an enum name
+					for key in GameEnums.EquipmentType:
+						if key.to_lower() == equipment.to_lower():
+							equipment_type = GameEnums.EquipmentType[key]
+							break
+				else:
+					push_warning("Cannot convert equipment string '%s' to integer type" % equipment)
+					continue
+		
+		if not game_state.has_equipment(equipment_type):
+			return false
 	
 	return true
 
@@ -523,7 +567,29 @@ func validate_requirements(game_state: FiveParsecsGameState) -> Dictionary:
 	
 	# Check equipment
 	for equipment in required_equipment:
-		if not game_state.has_equipment(equipment):
+		# Convert equipment string to int if it's a string
+		var equipment_type = equipment
+		if equipment is String:
+			# If equipment is a string, try to convert it to an enum value
+			# First check if it's a numeric string
+			if equipment.is_valid_int():
+				equipment_type = equipment.to_int()
+			else:
+				# Otherwise check if it's a named enum value in GameEnums.EquipmentType
+				var GameEnums = load("res://src/core/systems/GlobalEnums.gd")
+				if GameEnums.has_method("get_equipment_type_from_string"):
+					equipment_type = GameEnums.get_equipment_type_from_string(equipment)
+				elif "EquipmentType" in GameEnums:
+					# Try to match the string with an enum name
+					for key in GameEnums.EquipmentType:
+						if key.to_lower() == equipment.to_lower():
+							equipment_type = GameEnums.EquipmentType[key]
+							break
+				else:
+					push_warning("Cannot convert equipment string '%s' to integer type" % equipment)
+					continue
+		
+		if not game_state.has_equipment(equipment_type):
 			validation_result.missing_requirements.append({
 				"type": "equipment",
 				"equipment": equipment

@@ -206,7 +206,7 @@ func test_ship_management() -> void:
     # Test ship damage
     _call_node_method_bool(player_ship, "take_damage", [10])
     var health: int = _call_node_method_int(player_ship, "get_health", [], 0)
-    assert_lt(health, GameEnums.SHIP_MAX_HEALTH, "Ship should take damage")
+    assert_lt(health, TestEnums.SHIP_MAX_HEALTH, "Ship should take damage")
 
 func test_reputation_system() -> void:
     # Test reputation gain

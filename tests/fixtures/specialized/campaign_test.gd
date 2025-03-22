@@ -1,6 +1,8 @@
 @tool
 extends "res://tests/fixtures/base/game_test.gd"
-class_name CampaignTest
+
+# Do not redefine GameEnums or TestEnums - use the parent class's implementation
+# const GameEnums = TestEnums.GlobalEnums
 
 # Campaign test configuration
 const CAMPAIGN_TEST_CONFIG := {
@@ -167,8 +169,8 @@ func measure_campaign_performance(iterations: int = 100) -> Dictionary:
 		if campaign:
 			var campaign_node := create_test_node(campaign.get_script())
 			if campaign_node:
-				simulate_campaign_event(campaign_node, GameEnums.CampaignEvent.TURN_START)
-				simulate_campaign_event(campaign_node, GameEnums.CampaignEvent.TURN_END)
+				simulate_campaign_event(campaign_node, GlobalEnums.CampaignEvent.TURN_START)
+				simulate_campaign_event(campaign_node, GlobalEnums.CampaignEvent.TURN_END)
 		await get_tree().process_frame
 	
 	# Calculate results
@@ -190,3 +192,22 @@ func wait_for_save() -> void:
 
 func wait_for_load() -> void:
 	await get_tree().create_timer(CAMPAIGN_TEST_CONFIG.load_timeout).timeout
+
+# Add missing assertion functions to ensure availability
+func assert_le(a, b, text: String = "") -> void:
+	if text.length() > 0:
+		assert_true(a <= b, text)
+	else:
+		assert_true(a <= b, "Expected %s <= %s" % [a, b])
+
+func assert_ge(a, b, text: String = "") -> void:
+	if text.length() > 0:
+		assert_true(a >= b, text)
+	else:
+		assert_true(a >= b, "Expected %s >= %s" % [a, b])
+
+# Add this helper method to fix the missing function error
+func get_current_test_object():
+	if _gut and _gut.has_method("get_current_test_object"):
+		return _gut.get_current_test_object()
+	return null

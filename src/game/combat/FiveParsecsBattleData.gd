@@ -1,9 +1,12 @@
 @tool
-extends BaseBattleData
+extends "res://src/base/combat/BaseBattleData.gd"
 
 ## Five Parsecs implementation of battle data
 ##
 ## Extends the base battle data class with Five Parsecs specific functionality
+
+# Signal tracking
+var _signal_counts: Dictionary = {}
 
 # Five Parsecs specific battle types
 enum BattleType {
@@ -101,4 +104,44 @@ func add_combatant(combatant, is_player: bool = true) -> void:
 
 func remove_combatant(combatant) -> void:
     super.remove_combatant(combatant)
-    # Add Five Parsecs specific combatant removal logic here 
+    # Add Five Parsecs specific combatant removal logic here
+
+# Clear all signal watchers
+func clear_signal_watcher() -> void:
+    for obj_id in _signal_counts.keys():
+        var parts = obj_id.split("_")
+        if parts.size() >= 2:
+            var obj_instance_id = parts[0].to_int()
+            var obj = instance_from_id(obj_instance_id)
+            if is_instance_valid(obj):
+                for signal_info in obj.get_signal_list():
+                    var signal_name = signal_info["name"]
+                    var callable = Callable(self, "_on_signal_emitted").bind(obj, signal_name)
+                    if obj.is_connected(signal_name, callable):
+                        obj.disconnect(signal_name, callable)
+    _signal_counts.clear()
+
+# Get the count of assertions made in this test
+func get_assert_count() -> int:
+    return 0 # This would need proper implementation to track assertions
+
+# Used by GUT to check if pending state should be used
+func pending(message: String = "") -> void:
+    push_error("Pending: " + message)
+
+# Used by GUT to get the total count of failing assertions
+func get_fail_count() -> int:
+    return 0 # This would need proper implementation
+
+# Used by GUT to get the total count of passing assertions
+func get_pass_count() -> int:
+    return 0 # This would need proper implementation
+
+# Mark a test as passing
+func pass_test(message: String = "") -> void:
+    # Implementation would increment pass count
+    pass
+
+# Mark a test as failing
+func fail_test(message: String = "") -> void:
+    push_error("Test failed: " + message)

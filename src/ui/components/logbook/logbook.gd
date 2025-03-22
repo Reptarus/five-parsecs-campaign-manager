@@ -1,5 +1,5 @@
 # Logbook.gd
-extends FPCM_CampaignResponsiveLayout
+extends "res://src/ui/components/base/CampaignResponsiveLayout.gd"
 
 @onready var crew_select := $MarginContainer/HBoxContainer/Sidebar/CrewSelect
 @onready var entry_list := $MarginContainer/HBoxContainer/Sidebar/EntryList

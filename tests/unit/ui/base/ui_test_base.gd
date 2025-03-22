@@ -2,7 +2,7 @@
 extends "res://tests/fixtures/base/game_test.gd"
 
 # Base class for UI testing
-# Do not use class_name to avoid conflicts
+# Use direct inheritance from game_test.gd to avoid circular dependencies
 
 # Constants
 const UI_STABILIZE_TIME: float = 0.2

@@ -1,6 +1,5 @@
 @tool
 extends "res://tests/fixtures/base/game_test.gd"
-class_name MobileTest
 
 ## Base class for mobile-specific tests
 ##
@@ -159,8 +158,8 @@ func simulate_pinch(center: Vector2, start_scale: float = 1.0, end_scale: float 
 	var start_distance := 100.0 * start_scale
 	var end_distance := 100.0 * end_scale
 	
-	var touch1_start := center + Vector2(- start_distance / 2, 0)
-	var touch1_end := center + Vector2(- end_distance / 2, 0)
+	var touch1_start := center + Vector2(-start_distance / 2, 0)
+	var touch1_end := center + Vector2(-end_distance / 2, 0)
 	var touch2_start := center + Vector2(start_distance / 2, 0)
 	var touch2_end := center + Vector2(end_distance / 2, 0)
 	

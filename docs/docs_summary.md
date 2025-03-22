@@ -10,8 +10,9 @@ This document provides an overview of all project documentation, organized by ca
 - [`documentation_consolidation_report.md`](documentation_consolidation_report.md) - Report on documentation consolidation efforts
 
 ### Implementation Plans and Status
+- [`current_project_status.md`](current_project_status.md) - **NEW** Current project status and forward path (March 2024)
 - [`action_plan.md`](action_plan.md) - Current implementation plan
-- [`project_status.md`](project_status.md) - Current project status
+- [`project_status.md`](project_status.md) - Previous project status overview
 - [`application_purpose.md`](application_purpose.md) - Application goals and purpose
 - [`implementation_plan.md`](implementation_plan.md) - Detailed implementation approach
 
@@ -40,12 +41,13 @@ This document provides an overview of all project documentation, organized by ca
 
 ### Testing
 - [`README-Testing.md`](README-Testing.md) - Overview of testing approach
+- [`test_migration_quick_guide.md`](test_migration_quick_guide.md) - **NEW** Practical guide with patterns for test migration
+- [`test_migration_plan.md`](test_migration_plan.md) - Plan for migrating tests
 - [`test_organization_plan.md`](test_organization_plan.md) - Plan for organizing tests
 - [`test_coverage_report.md`](test_coverage_report.md) - Test coverage summary
 - [`test_safety_patterns.md`](test_safety_patterns.md) - Patterns for safe testing
 - [`test_architecture_decisions.md`](test_architecture_decisions.md) - Testing architecture decisions
 - [`test_reference_guide.md`](test_reference_guide.md) - Reference guide for testing
-- [`test_migration_plan.md`](test_migration_plan.md) - Plan for migrating tests
 
 ## Archived Documentation
 

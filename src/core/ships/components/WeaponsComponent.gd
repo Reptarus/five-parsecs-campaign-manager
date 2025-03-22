@@ -1,6 +1,6 @@
 # Scripts/ShipAndCrew/WeaponsComponent.gd
 @tool
-extends FPCM_ShipComponent
+extends "res://src/core/ships/components/ShipComponent.gd"
 class_name WeaponsComponent
 
 @export var weapon_damage: int = 10
@@ -12,14 +12,14 @@ class_name WeaponsComponent
 @export var additional_effects: Array = []
 
 func _init() -> void:
-	super()
+	super ()
 	name = "Weapons"
 	description = "Standard weapon system"
 	cost = 250
 	power_draw = 3
 
 func _apply_upgrade_effects() -> void:
-	super()
+	super ()
 	weapon_damage += 2
 	accuracy += 0.05
 	fire_rate += 0.1
@@ -40,7 +40,7 @@ func can_fire() -> bool:
 	return is_functional()
 
 func serialize() -> Dictionary:
-	var data = super()
+	var data = super ()
 	data["weapon_damage"] = weapon_damage
 	data["range"] = range
 	data["accuracy"] = accuracy

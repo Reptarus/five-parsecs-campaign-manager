@@ -1,6 +1,6 @@
 # Scripts/ShipAndCrew/MedicalBayComponent.gd
 @tool
-extends FPCM_ShipComponent
+extends "res://src/core/ships/components/ShipComponent.gd"
 class_name MedicalBayComponent
 
 @export var healing_rate: float = 1.0
@@ -12,14 +12,14 @@ class_name MedicalBayComponent
 @export var medical_supplies: int = 100
 
 func _init() -> void:
-	super()
+	super ()
 	name = "Medical Bay"
 	description = "Basic medical facility"
 	cost = 350
 	power_draw = 3
 	
 func _apply_upgrade_effects() -> void:
-	super()
+	super ()
 	healing_rate += 0.5
 	capacity += 1
 	medical_tech_level = min(medical_tech_level + 1, 5)
@@ -97,7 +97,7 @@ func restock_supplies(amount: int) -> int:
 	return medical_supplies - before
 
 func serialize() -> Dictionary:
-	var data = super()
+	var data = super ()
 	data["healing_rate"] = healing_rate
 	data["capacity"] = capacity
 	data["medical_tech_level"] = medical_tech_level
@@ -130,7 +130,7 @@ static func create_from_data(data: Dictionary) -> MedicalBayComponent:
 	# Medical-specific properties
 	component.healing_rate = data.get("healing_rate", 1.0)
 	component.capacity = data.get("capacity", 2)
-	component.tech_level = data.get("tech_level", 1)
+	component.medical_tech_level = data.get("medical_tech_level", 1)
 	component.has_advanced_surgery = data.get("has_advanced_surgery", false)
 	component.has_trauma_unit = data.get("has_trauma_unit", false)
 	component.current_patients = data.get("current_patients", [])
@@ -144,7 +144,7 @@ static func deserialize(data: Dictionary) -> Dictionary:
 	base_data["component_type"] = "medical_bay"
 	base_data["healing_rate"] = data.get("healing_rate", 1.0)
 	base_data["capacity"] = data.get("capacity", 2)
-	base_data["tech_level"] = data.get("tech_level", 1)
+	base_data["medical_tech_level"] = data.get("medical_tech_level", 1)
 	base_data["has_advanced_surgery"] = data.get("has_advanced_surgery", false)
 	base_data["has_trauma_unit"] = data.get("has_trauma_unit", false)
 	base_data["current_patients"] = data.get("current_patients", [])

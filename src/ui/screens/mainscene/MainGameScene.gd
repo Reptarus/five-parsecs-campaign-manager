@@ -10,7 +10,7 @@ signal scene_changed(scene_name: String)
 
 @onready var scene_container: Control = $SceneContainer
 @onready var transition_overlay: ColorRect = $TransitionOverlay
-@onready var ui_manager: UIManager = $UIManager
+@onready var ui_manager: Node = $UIManager
 
 var game_state_manager: GameStateManager
 

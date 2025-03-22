@@ -1,6 +1,5 @@
 @tool
 extends Resource
-class_name BaseShipComponent
 
 ## Base class for ship components
 ##
@@ -106,8 +105,8 @@ func serialize() -> Dictionary:
         "status_effects": status_effects
     }
 
-static func deserialize(data: Dictionary) -> BaseShipComponent:
-    var component = BaseShipComponent.new()
+static func deserialize(data: Dictionary) -> Resource:
+    var component = load("res://src/base/ships/base_ship_component.gd").new()
     component.component_name = data.get("name", "")
     component.component_description = data.get("description", "")
     component.component_cost = data.get("cost", 0)

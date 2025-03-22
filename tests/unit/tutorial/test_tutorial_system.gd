@@ -4,6 +4,17 @@ extends "res://tests/fixtures/base/game_test.gd"
 # Type-safe script references
 const TutorialStateMachine: GDScript = preload("res://StateMachines/TutorialStateMachine.gd")
 
+# Define test-specific enums
+enum TutorialState {
+	NONE,
+	QUICK_START,
+	BASIC_CONTROLS,
+	CAMPAIGN_INTRO,
+	BATTLE_INTRO,
+	ADVANCED_CONTROLS,
+	COMPLETE
+}
+
 # Type-safe constants
 const TEST_TIMEOUT: float = 2.0
 
@@ -41,8 +52,8 @@ func after_each() -> void:
 func test_initialization() -> void:
 	assert_not_null(_tutorial_state_machine, "Tutorial state machine should be initialized")
 	
-	var current_state: int = TypeSafeMixin._call_node_method_int(_tutorial_state_machine, "get_current_state", [], GameEnums.TutorialState.NONE)
-	assert_eq(current_state, GameEnums.TutorialState.NONE, "Initial state should be NONE")
+	var current_state: int = TypeSafeMixin._call_node_method_int(_tutorial_state_machine, "get_current_state", [], TutorialState.NONE)
+	assert_eq(current_state, TutorialState.NONE, "Initial state should be NONE")
 	
 	var is_active: bool = TypeSafeMixin._call_node_method_bool(_tutorial_state_machine, "is_active", [], false)
 	assert_false(is_active, "Tutorial should not be active initially")
@@ -52,7 +63,7 @@ func test_state_transitions() -> void:
 	var transition_result: bool = TypeSafeMixin._call_node_method_bool(
 		_tutorial_state_machine,
 		"transition_to",
-		[GameEnums.TutorialState.QUICK_START]
+		[TutorialState.QUICK_START]
 	)
 	assert_true(transition_result, "Should successfully transition to QUICK_START")
 	
@@ -60,9 +71,9 @@ func test_state_transitions() -> void:
 		_tutorial_state_machine,
 		"get_current_state",
 		[],
-		GameEnums.TutorialState.NONE
+		TutorialState.NONE
 	)
-	assert_eq(current_state, GameEnums.TutorialState.QUICK_START, "State should be QUICK_START")
+	assert_eq(current_state, TutorialState.QUICK_START, "State should be QUICK_START")
 	
 	# Verify signals
 	verify_signal_emitted(_tutorial_state_machine, "state_changed")
@@ -80,9 +91,9 @@ func test_invalid_transitions() -> void:
 		_tutorial_state_machine,
 		"get_current_state",
 		[],
-		GameEnums.TutorialState.NONE
+		TutorialState.NONE
 	)
-	assert_eq(current_state, GameEnums.TutorialState.NONE, "State should remain NONE after invalid transition")
+	assert_eq(current_state, TutorialState.NONE, "State should remain NONE after invalid transition")
 
 func test_tutorial_completion() -> void:
 	# Complete tutorial

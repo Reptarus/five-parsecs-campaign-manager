@@ -137,21 +137,28 @@ func new_campaign(campaign_data: Dictionary) -> FiveParsecsCampaign:
 	
 	return campaign
 
-func set_current_campaign(campaign: FiveParsecsCampaign) -> void:
+func set_current_campaign(campaign) -> void:
 	current_campaign = campaign
 	if campaign != null:
 		emit_signal("campaign_loaded", campaign)
 		
-		# Update recent campaigns list
-		update_recent_campaigns(campaign.campaign_id)
+		# Update recent campaigns list if campaign has campaign_id property
+		var campaign_id = ""
+		if campaign.has_method("get_campaign_id"):
+			campaign_id = campaign.get_campaign_id()
+		elif "campaign_id" in campaign:
+			campaign_id = campaign.campaign_id
+		
+		if campaign_id and not campaign_id.is_empty():
+			update_recent_campaigns(campaign_id)
 	
 	emit_signal("state_changed")
 
-func get_current_campaign() -> FiveParsecsCampaign:
+func get_current_campaign():
 	return current_campaign
 
 func update_recent_campaigns(campaign_id: String) -> void:
-	if campaign_id.is_empty():
+	if campaign_id == null or campaign_id.is_empty():
 		return
 	
 	var recent_list = game_settings.recently_used_campaigns
@@ -474,3 +481,123 @@ func is_story_track_enabled() -> bool:
 	
 func is_auto_save_enabled() -> bool:
 	return game_options.get("auto_save", true)
+
+# Campaign options methods
+func get_campaign_option(option_name: String, default_value = null) -> Variant:
+	if option_name == "permadeath_enabled":
+		return is_permadeath_enabled()
+	elif option_name == "story_track_enabled":
+		return is_story_track_enabled()
+	elif option_name == "auto_save_enabled":
+		return is_auto_save_enabled()
+	
+	# Check game_settings first
+	if game_settings.has(option_name):
+		return game_settings[option_name]
+	
+	# Then check game_options
+	if game_options.has(option_name):
+		return game_options[option_name]
+	
+	return default_value
+
+func set_campaign_option(option_name: String, value) -> bool:
+	if option_name == "permadeath_enabled":
+		game_settings["enable_permadeath"] = value
+		return true
+	elif option_name == "story_track_enabled":
+		game_settings["use_story_track"] = value
+		return true
+	elif option_name == "auto_save_enabled":
+		game_options["auto_save"] = value
+		return true
+	
+	# Try to determine the appropriate dictionary
+	if option_name in ["difficulty_level", "last_save_time", "last_campaign"]:
+		game_settings[option_name] = value
+	else:
+		game_options[option_name] = value
+	
+	return true
+
+# Resource-related methods required by tests
+func has_resource(resource: int) -> bool:
+	if not current_campaign:
+		return false
+	
+	if current_campaign.has_method("has_resource"):
+		return current_campaign.has_resource(resource)
+	
+	# Fallback implementation
+	var resources = current_campaign.get("resources", {})
+	return resources.has(str(resource))
+
+func get_resource(resource: int) -> int:
+	if not current_campaign:
+		return 0
+	
+	if current_campaign.has_method("get_resource"):
+		return current_campaign.get_resource(resource)
+	
+	# Fallback implementation
+	var resources = current_campaign.get("resources", {})
+	return resources.get(str(resource), 0)
+
+func set_resource(resource: int, value: int) -> bool:
+	if not current_campaign:
+		return false
+	
+	if current_campaign.has_method("set_resource"):
+		return current_campaign.set_resource(resource, value)
+	
+	# Fallback implementation
+	var resources = current_campaign.get("resources", {})
+	resources[str(resource)] = value
+	return true
+
+# Additional helper methods
+func has_crew() -> bool:
+	if not current_campaign:
+		return false
+	
+	if current_campaign.has_method("has_crew"):
+		return current_campaign.has_crew()
+	
+	# Fallback implementation
+	var crew = current_campaign.get("crew", [])
+	return crew.size() > 0
+
+func get_crew_size() -> int:
+	if not current_campaign:
+		return 0
+	
+	if current_campaign.has_method("get_crew_size"):
+		return current_campaign.get_crew_size()
+	
+	# Fallback implementation
+	var crew = current_campaign.get("crew", [])
+	return crew.size()
+
+func has_active_campaign() -> bool:
+	return current_campaign != null
+
+func get_current_location() -> Dictionary:
+	if not current_campaign:
+		return {}
+	
+	if current_campaign.has_method("get_current_location"):
+		return current_campaign.get_current_location()
+	
+	# Fallback implementation
+	return current_campaign.get("current_location", {})
+
+func has_equipment(equipment_type: int) -> bool:
+	if not current_campaign:
+		return false
+	
+	if current_campaign.has_method("has_equipment"):
+		return current_campaign.has_equipment(equipment_type)
+	
+	# Fallback implementation
+	var equipment = current_campaign.get("equipment", {})
+	return equipment.has(str(equipment_type))

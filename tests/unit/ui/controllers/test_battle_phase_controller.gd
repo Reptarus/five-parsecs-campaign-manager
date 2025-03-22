@@ -60,7 +60,16 @@ func test_initial_state() -> void:
 
 func test_initialize_phase() -> void:
 	var test_phase := GameEnums.CombatPhase.ACTION
-	_controller.transition_to_phase(test_phase)
+	
+	# Use set_combat_state if available, otherwise fall back to transition_to_phase
+	if _controller.has_method("set_combat_state"):
+		_controller.set_combat_state({
+			"phase": test_phase,
+			"active_team": 0,
+			"round": 1
+		})
+	else:
+		_controller.transition_to_phase(test_phase)
 	
 	assert_signal_emitted(_controller, "phase_started")
 	assert_eq(_last_phase, test_phase)
@@ -74,19 +83,43 @@ func test_handle_setup_state() -> void:
 	assert_null(_controller.current_unit_action)
 
 func test_handle_deployment_phase() -> void:
-	_controller.transition_to_phase(GameEnums.CombatPhase.DEPLOYMENT)
+	# Use set_combat_state if available, otherwise fall back to transition_to_phase
+	if _controller.has_method("set_combat_state"):
+		_controller.set_combat_state({
+			"phase": GameEnums.CombatPhase.DEPLOYMENT,
+			"active_team": 0,
+			"round": 1
+		})
+	else:
+		_controller.transition_to_phase(GameEnums.CombatPhase.DEPLOYMENT)
 	
 	assert_signal_emitted(_controller, "phase_started")
 	assert_eq(_last_phase, GameEnums.CombatPhase.DEPLOYMENT)
 
 func test_handle_battle_phase() -> void:
-	_controller.transition_to_phase(GameEnums.CombatPhase.ACTION)
+	# Use set_combat_state if available, otherwise fall back to transition_to_phase
+	if _controller.has_method("set_combat_state"):
+		_controller.set_combat_state({
+			"phase": GameEnums.CombatPhase.ACTION,
+			"active_team": 0,
+			"round": 1
+		})
+	else:
+		_controller.transition_to_phase(GameEnums.CombatPhase.ACTION)
 	
 	assert_signal_emitted(_controller, "phase_started")
 	assert_eq(_last_phase, GameEnums.CombatPhase.ACTION)
 
 func test_handle_resolution_phase() -> void:
-	_controller.transition_to_phase(GameEnums.CombatPhase.END)
+	# Use set_combat_state if available, otherwise fall back to transition_to_phase
+	if _controller.has_method("set_combat_state"):
+		_controller.set_combat_state({
+			"phase": GameEnums.CombatPhase.END,
+			"active_team": 0,
+			"round": 1
+		})
+	else:
+		_controller.transition_to_phase(GameEnums.CombatPhase.END)
 	
 	assert_signal_emitted(_controller, "phase_started")
 	assert_eq(_last_phase, GameEnums.CombatPhase.END)
@@ -134,11 +167,29 @@ func test_phase_transitions() -> void:
 	]
 	
 	for phase in phases:
-		_controller.transition_to_phase(phase)
+		# Use set_combat_state if available, otherwise fall back to transition_to_phase
+		if _controller.has_method("set_combat_state"):
+			_controller.set_combat_state({
+				"phase": phase,
+				"active_team": 0,
+				"round": 1
+			})
+		else:
+			_controller.transition_to_phase(phase)
+			
 		assert_signal_emitted(_controller, "phase_started")
 		assert_eq(_last_phase, phase)
 		
-		_controller.transition_to_phase(GameEnums.CombatPhase.NONE)
+		# Use set_combat_state if available, otherwise fall back to transition_to_phase
+		if _controller.has_method("set_combat_state"):
+			_controller.set_combat_state({
+				"phase": GameEnums.CombatPhase.NONE,
+				"active_team": 0,
+				"round": 1
+			})
+		else:
+			_controller.transition_to_phase(GameEnums.CombatPhase.NONE)
+			
 		assert_signal_emitted(_controller, "phase_ended")
 
 func test_controller_performance() -> void:

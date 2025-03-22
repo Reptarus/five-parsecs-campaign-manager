@@ -1,6 +1,5 @@
 @tool
 extends "res://tests/fixtures/base/game_test.gd"
-class_name UITest
 
 # UI test configuration
 const UI_TEST_CONFIG := {

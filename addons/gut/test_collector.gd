@@ -1,5 +1,3 @@
-const GutUtils = preload("res://addons/gut/utils.gd")
-
 # ------------------------------------------------------------------------------
 # This class handles calling out to the test parser and maintaining an array of
 # collected_script.gd.  This is used for both calling the tests and tracking
@@ -23,9 +21,9 @@ var scripts = []
 func _does_inherit_from_test(thing):
 	var base_script = thing.get_base_script()
 	var to_return = false
-	if (base_script != null):
+	if(base_script != null):
 		var base_path = base_script.get_path()
-		if (base_path == 'res://addons/gut/test.gd'):
+		if(base_path == 'res://addons/gut/test.gd'):
 			to_return = true
 		else:
 			to_return = _does_inherit_from_test(base_script)
@@ -33,8 +31,8 @@ func _does_inherit_from_test(thing):
 
 
 func _populate_tests(test_script):
-	var script = test_script.load_script()
-	if (script == null):
+	var script =  test_script.load_script()
+	if(script == null):
 		print('  !!! ', test_script.path, ' could not be loaded')
 		return false
 
@@ -42,7 +40,7 @@ func _populate_tests(test_script):
 	var methods = script.get_script_method_list()
 	for i in range(methods.size()):
 		var name = methods[i]['name']
-		if (name.begins_with(_test_prefix)):
+		if(name.begins_with(_test_prefix)):
 			var t = CollectedTest.new()
 			t.name = name
 			t.arg_count = methods[i]['args'].size()
@@ -54,9 +52,9 @@ func _get_inner_test_class_names(loaded):
 	var const_map = loaded.get_script_constant_map()
 	for key in const_map:
 		var thing = const_map[key]
-		if (GutUtils.is_gdscript(thing)):
-			if (key.begins_with(_test_class_prefix)):
-				if (_does_inherit_from_test(thing)):
+		if(GutUtils.is_gdscript(thing)):
+			if(key.begins_with(_test_class_prefix)):
+				if(_does_inherit_from_test(thing)):
 					inner_classes.append(key)
 				else:
 					_lgr.warn(str('Ignoring Inner Class ', key,
@@ -78,7 +76,7 @@ func _parse_script(test_script):
 		test_script.path,
 		GutUtils.warnings_when_loading_test_scripts)
 
-	if (_does_inherit_from_test(loaded)):
+	if(_does_inherit_from_test(loaded)):
 		_populate_tests(test_script)
 		scripts_found.append(test_script.path)
 		inner_classes = _get_inner_test_class_names(loaded)
@@ -87,13 +85,13 @@ func _parse_script(test_script):
 
 	for i in range(inner_classes.size()):
 		var loaded_inner = loaded.get(inner_classes[i])
-		if (_does_inherit_from_test(loaded_inner)):
+		if(_does_inherit_from_test(loaded_inner)):
 			var ts = CollectedScript.new(_lgr)
 			ts.path = test_script.path
 			ts.inner_class_name = inner_classes[i]
 			_populate_tests(ts)
 			scripts.append(ts)
-			scripts_found.append(test_script.path + '[' + inner_classes[i] + ']')
+			scripts_found.append(test_script.path + '[' + inner_classes[i] +']')
 
 	return scripts_found
 
@@ -103,15 +101,15 @@ func _parse_script(test_script):
 # -----------------
 func add_script(path):
 	# SHORTCIRCUIT
-	if (has_script(path)):
+	if(has_script(path)):
 		return []
 
 	# SHORTCIRCUIT
-	if (!FileAccess.file_exists(path)):
+	if(!FileAccess.file_exists(path)):
 		# This check was added so tests could create dynmaic scripts and add
 		# them to be run through gut.  This helps cut down on creating test
 		# scripts to be used in test/resources.
-		if (ResourceLoader.has_cached(path)):
+		if(ResourceLoader.has_cached(path)):
 			_lgr.debug("Using cached version of " + path)
 		else:
 			_lgr.error('Could not find script:  ' + path)
@@ -127,7 +125,7 @@ func add_script(path):
 	scripts.append(ts)
 	var parse_results = _parse_script(ts)
 
-	if (parse_results.find(path) == -1):
+	if(parse_results.find(path) == -1):
 		_lgr.warn(str('Ignoring script ', path, ' because it does not extend GutTest'))
 		scripts.remove_at(scripts.find(ts))
 
@@ -141,8 +139,8 @@ func clear():
 func has_script(path):
 	var found = false
 	var idx = 0
-	while (idx < scripts.size() and !found):
-		if (scripts[idx].get_full_name() == path):
+	while(idx < scripts.size() and !found):
+		if(scripts[idx].get_full_name() == path):
 			found = true
 		else:
 			idx += 1
@@ -155,7 +153,7 @@ func export_tests(path):
 	for i in range(scripts.size()):
 		scripts[i].export_to(f, str('CollectedScript-', i))
 	var result = f.save(path)
-	if (result != OK):
+	if(result != OK):
 		_lgr.error(str('Could not save exported tests to [', path, '].  Error code:  ', result))
 		success = false
 	return success
@@ -165,7 +163,7 @@ func import_tests(path):
 	var success = false
 	var f = ConfigFile.new()
 	var result = f.load(path)
-	if (result != OK):
+	if(result != OK):
 		_lgr.error(str('Could not load exported tests from [', path, '].  Error code:  ', result))
 	else:
 		var sections = f.get_sections()
@@ -184,7 +182,7 @@ func get_script_named(name):
 
 func get_test_named(script_name, test_name):
 	var s = get_script_named(script_name)
-	if (s != null):
+	if(s != null):
 		return s.get_test_named(test_name)
 	else:
 		return null
@@ -237,7 +235,7 @@ func get_ran_test_count():
 func get_ran_script_count():
 	var count = 0
 	for s in scripts:
-		if (s.was_run):
+		if(s.was_run):
 			count += 1
 	return count
 
@@ -274,3 +272,4 @@ func get_pending_count():
 	for s in scripts:
 		count += s.get_pending_count()
 	return count
+

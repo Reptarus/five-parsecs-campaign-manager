@@ -244,3 +244,88 @@ func from_dict(data: Dictionary) -> bool:
 	_apply_class_bonuses()
 	
 	return true
+
+func initialize_from_data(member_data: Dictionary) -> void:
+	# Set basic properties
+	if member_data.has("character_name"):
+		character_name = member_data.character_name
+	
+	if member_data.has("character_class"):
+		character_class = member_data.character_class
+		_apply_class_bonuses()
+	
+	# These properties were causing linter errors because they don't exist in this class
+	# If these properties are needed, they should be added to the class definition first
+	# if member_data.has("species"):
+	#	species = member_data.species
+	
+	# if member_data.has("background"):
+	#	background = member_data.background
+	
+	if member_data.has("level"):
+		level = member_data.level
+	
+	if member_data.has("experience"):
+		experience = member_data.experience
+	
+	# Set attributes
+	if member_data.has("combat_skill"):
+		combat_skill = member_data.combat_skill
+	
+	if member_data.has("reactions"):
+		reactions = member_data.reactions
+	
+	if member_data.has("toughness"):
+		toughness = member_data.toughness
+	
+	if member_data.has("savvy"):
+		savvy = member_data.savvy
+	
+	# Set status
+	if member_data.has("recovery_time"):
+		recovery_time = member_data.recovery_time
+	
+	if member_data.has("is_inspired"):
+		is_inspired = member_data.is_inspired
+	
+	if member_data.has("is_focused"):
+		is_focused = member_data.is_focused
+	
+	if member_data.has("is_enraged"):
+		is_enraged = member_data.is_enraged
+	
+	# Initialize character if it exists
+	if member_data.has("character") and character:
+		# If character has an initialize method, use it
+		if character.has_method("initialize_from_data"):
+			character.initialize_from_data(member_data.character)
+		# Otherwise try to set common properties manually
+		else:
+			if member_data.character.has("health"):
+				character.health = member_data.character.health
+			if member_data.character.has("max_health"):
+				character.max_health = member_data.character.max_health
+	
+	# Initialize inventory if it exists
+	if member_data.has("inventory") and inventory:
+		# If inventory has an initialize method, use it
+		if inventory.has_method("initialize_from_data"):
+			inventory.initialize_from_data(member_data.inventory)
+		# Otherwise try to set common properties manually
+		elif member_data.inventory.has("items") and member_data.inventory.items is Array:
+			# Add each item to inventory
+			for item_data in member_data.inventory.items:
+				# This is a simplified version - you'd need proper item creation logic
+				if inventory.has_method("add_item"):
+					# Create item based on type
+					if item_data.has("type"):
+						var item = null
+						match item_data.type:
+							"weapon":
+								item = GameWeapon.new()
+								if item.has_method("initialize_from_data"):
+									item.initialize_from_data(item_data)
+							# Add other item types as needed
+						
+						if item and inventory.has_method("add_item"):
+							inventory.add_item(item)

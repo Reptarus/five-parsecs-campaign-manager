@@ -1,0 +1,21 @@
+{
+    "dirs": [
+        "res://tests/unit/",
+        "res://tests/integration/"
+    ],
+    "include_subdirs": true,
+    "ignore_pause": true,
+    "log_level": 3,
+    "should_exit": false,
+    "should_maximize": true,
+    "prefix": "test_",
+    "suffix": ".gd",
+    "double_strategy": "partial",
+    "test_file_prefix": "test_",
+    "test_file_suffix": ".gd",
+    "inner_class_prefix": "Test",
+    "junit_xml_file": "res://tests/reports/junit_report.xml",
+    "junit_xml_timestamp": true,
+    "export_path": "res://tests/reports/",
+    "include_subdirectories": true
+}

@@ -17,7 +17,7 @@ var equipment: Array[Dictionary] = []
 var story_progress: int = 0
 
 ## Constructor
-func _init(state: GameState = null) -> void:
+func _init(state = null) -> void:
     if state:
         # Initialize with game state if provided
         pass
@@ -45,7 +45,8 @@ func get_active_rivals_count() -> int:
 ## Check if crew has exploration capability
 func has_exploration_capability() -> bool:
     for crew_member in active_crew:
-        if crew_member.get("skills", []).has("exploration"):
+        var skills = crew_member.get("skills", [])
+        if skills is Array and "exploration" in skills:
             return true
     return false
 
@@ -77,15 +78,15 @@ func complete_mission() -> void:
 
 ## Add crew member
 func add_crew_member(member: Dictionary) -> void:
-    active_crew.append(member)
+    active_crew.push_back(member) # Using push_back instead of append for Array[Dictionary]
 
 ## Add rival
 func add_rival(rival: Dictionary) -> void:
-    active_rivals.append(rival)
+    active_rivals.push_back(rival) # Using push_back instead of append for Array[Dictionary]
 
 ## Add equipment
 func add_equipment(item: Dictionary) -> void:
-    equipment.append(item)
+    equipment.push_back(item) # Using push_back instead of append for Array[Dictionary]
 
 ## Advance story progress
 func advance_story() -> void:

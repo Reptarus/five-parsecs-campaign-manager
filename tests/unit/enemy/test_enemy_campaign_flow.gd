@@ -129,7 +129,17 @@ func test_enemy_faction_behavior() -> void:
         assert_true(faction_trait.contains(faction), "Faction trait should relate to the enemy's faction")
 
 # Helper function to check if string contains substring
-func assert_string_contains(string: String, substring: String, message: String = "") -> void:
-    if message.is_empty():
-        message = "Expected '%s' to contain '%s'" % [string, substring]
-    assert_true(string.contains(substring), message)
+func assert_string_contains(string_val: Variant, substring_val: Variant, text_or_show_strings: Variant = true) -> Variant:
+    var str_value: String = str(string_val)
+    var substr_value: String = str(substring_val)
+    
+    var message: String = ""
+    if text_or_show_strings is String:
+        message = text_or_show_strings
+    elif text_or_show_strings is bool and text_or_show_strings:
+        message = "Expected '%s' to contain '%s'" % [str_value, substr_value]
+    else:
+        message = "String should contain substring"
+        
+    assert_true(str_value.contains(substr_value), message)
+    return null

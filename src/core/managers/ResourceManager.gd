@@ -1,7 +1,10 @@
 @tool
 extends Resource
+class_name ResourceManager
 
+# Use absolute paths to ensure correct resolution
 const GameEnums = preload("res://src/core/systems/GlobalEnums.gd")
+const ResourceManagerTransactionClass = preload("res://src/core/managers/ResourceTransaction.gd")
 
 signal resource_changed(resource_type: int, old_value: int, new_value: int, source: String)
 signal resource_threshold_reached(resource_type: int, threshold: int, current_value: int)
@@ -14,24 +17,6 @@ var resource_thresholds: Dictionary = {}
 
 const MAX_HISTORY_ENTRIES = 100
 const HISTORY_PRUNE_THRESHOLD = 120
-
-class ResourceTransaction:
-	var resource_type: int
-	var old_value: int
-	var new_value: int
-	var change_amount: int
-	var source: String
-	var timestamp: int
-	var turn_number: int
-	
-	func _init(p_type: int, p_old: int, p_new: int, p_source: String, p_turn: int) -> void:
-		resource_type = p_type
-		old_value = p_old
-		new_value = p_new
-		change_amount = p_new - p_old
-		source = p_source
-		timestamp = Time.get_unix_time_from_system()
-		turn_number = p_turn
 
 func _init() -> void:
 	_initialize_resources()
@@ -96,7 +81,7 @@ func _check_thresholds(resource_type: int, value: int) -> void:
 			resource_threshold_reached.emit(resource_type, threshold, value)
 
 func _add_history_entry(resource_type: int, old_value: int, new_value: int, source: String) -> void:
-	var entry = ResourceTransaction.new(
+	var entry = ResourceManagerTransactionClass.new(
 		resource_type,
 		old_value,
 		new_value,
@@ -167,7 +152,7 @@ func get_resource_analytics(resource_type: int) -> Dictionary:
 		"average_change": float(total_changes) / history.size()
 	}
 
-func _create_history_entry_dict(entry: ResourceTransaction) -> Dictionary:
+func _create_history_entry_dict(entry) -> Dictionary:
 	return {
 		"resource_type": entry.resource_type,
 		"old_value": entry.old_value,

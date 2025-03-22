@@ -47,7 +47,7 @@ func test_ship_creation() -> void:
 
 func test_component_creation() -> void:
 	var component_data: Dictionary = {
-		"type": GameEnums.ComponentType.WEAPON,
+		"type": TestEnums.ComponentType.WEAPON,
 		"name": "Test Weapon",
 		"damage": 25,
 		"range": 100
@@ -56,14 +56,14 @@ func test_component_creation() -> void:
 	var component: Node = TypeSafeMixin._safe_cast_to_object(TypeSafeMixin._call_node_method(creator, "create_component", [component_data]), "")
 	assert_not_null(component, "Should create component instance")
 	
-	assert_eq(component.type, GameEnums.ComponentType.WEAPON, "Component type should match")
+	assert_eq(component.type, TestEnums.ComponentType.WEAPON, "Component type should match")
 	assert_eq(component.name, "Test Weapon", "Component name should match")
 	assert_eq(component.damage, 25, "Component damage should match")
 	assert_eq(component.range, 100, "Component range should match")
 
 func test_ship_with_components() -> void:
 	var component_data: Dictionary = {
-		"type": GameEnums.ComponentType.WEAPON,
+		"type": TestEnums.ComponentType.WEAPON,
 		"name": "Test Weapon",
 		"damage": 25,
 		"range": 100
@@ -84,7 +84,7 @@ func test_ship_with_components() -> void:
 	assert_eq(components.size(), 1, "Ship should have one component")
 	
 	var component: Node = components[0]
-	assert_eq(component.type, GameEnums.ComponentType.WEAPON, "Component type should match")
+	assert_eq(component.type, TestEnums.ComponentType.WEAPON, "Component type should match")
 	assert_eq(component.name, "Test Weapon", "Component name should match")
 
 func test_invalid_ship_data() -> void:
@@ -115,7 +115,7 @@ func test_component_validation() -> void:
 	assert_null(component, "Should not create component with invalid type")
 	
 	var invalid_values_data: Dictionary = {
-		"type": GameEnums.ComponentType.WEAPON,
+		"type": TestEnums.ComponentType.WEAPON,
 		"name": "Invalid Values",
 		"damage": - 25, # Negative damage
 		"range": - 100 # Negative range
@@ -147,7 +147,7 @@ func test_ship_validation() -> void:
 
 func test_component_limits() -> void:
 	var component_data: Dictionary = {
-		"type": GameEnums.ComponentType.WEAPON,
+		"type": TestEnums.ComponentType.WEAPON,
 		"name": "Test Weapon",
 		"damage": 25,
 		"range": 100

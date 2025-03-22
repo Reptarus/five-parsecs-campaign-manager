@@ -132,7 +132,7 @@ func _on_group_coordination_updated(group: Array, leader: Node) -> void:
 	_signal_data.last_group_leader = leader
 
 # Helper Methods
-func _create_test_enemy(personality: int = GameEnums.AIPersonality.AGGRESSIVE) -> Node:
+func _create_test_enemy(personality: int = TestEnums.AIPersonality.AGGRESSIVE) -> Node:
 	var enemy_instance: Node = Character.new()
 	var enemy: Node = TypeSafeMixin._safe_cast_to_node(enemy_instance)
 	if not enemy:
@@ -156,18 +156,18 @@ func _create_test_group(size: int = 2) -> Array[Node]:
 
 # AI Personality Tests
 func test_ai_personality_types() -> void:
-	assert_has(GameEnums.AIPersonality, "AGGRESSIVE", "Should have aggressive personality")
-	assert_has(GameEnums.AIPersonality, "CAUTIOUS", "Should have cautious personality")
-	assert_has(GameEnums.AIPersonality, "TACTICAL", "Should have tactical personality")
-	assert_has(GameEnums.AIPersonality, "PROTECTIVE", "Should have protective personality")
-	assert_has(GameEnums.AIPersonality, "UNPREDICTABLE", "Should have unpredictable personality")
+	assert_has(TestEnums.AIPersonality, "AGGRESSIVE", "Should have aggressive personality")
+	assert_has(TestEnums.AIPersonality, "CAUTIOUS", "Should have cautious personality")
+	assert_has(TestEnums.AIPersonality, "TACTICAL", "Should have tactical personality")
+	assert_has(TestEnums.AIPersonality, "PROTECTIVE", "Should have protective personality")
+	assert_has(TestEnums.AIPersonality, "UNPREDICTABLE", "Should have unpredictable personality")
 
 # Group Tactics Tests
 func test_group_tactic_types() -> void:
-	assert_has(GameEnums.GroupTactic, "COORDINATED_ATTACK", "Should have coordinated attack tactic")
-	assert_has(GameEnums.GroupTactic, "DEFENSIVE_FORMATION", "Should have defensive formation tactic")
-	assert_has(GameEnums.GroupTactic, "FLANKING_MANEUVER", "Should have flanking maneuver tactic")
-	assert_has(GameEnums.GroupTactic, "SUPPRESSION_PATTERN", "Should have suppression pattern tactic")
+	assert_has(TestEnums.GroupTactic, "COORDINATED_ATTACK", "Should have coordinated attack tactic")
+	assert_has(TestEnums.GroupTactic, "DEFENSIVE_FORMATION", "Should have defensive formation tactic")
+	assert_has(TestEnums.GroupTactic, "FLANKING_MANEUVER", "Should have flanking maneuver tactic")
+	assert_has(TestEnums.GroupTactic, "SUPPRESSION_PATTERN", "Should have suppression pattern tactic")
 
 # Decision Making Tests
 func test_decision_making_signals() -> void:
@@ -206,7 +206,7 @@ func test_group_coordination_signals() -> void:
 # State Tracking Tests
 func test_enemy_personality_tracking() -> void:
 	var test_enemy := _create_test_enemy()
-	var personality: int = GameEnums.AIPersonality.AGGRESSIVE
+	var personality: int = TestEnums.AIPersonality.AGGRESSIVE
 	
 	TypeSafeMixin._call_node_method_bool(_tactical_ai, "set_enemy_personality", [test_enemy, personality])
 	var tracked_personality: int = TypeSafeMixin._call_node_method_int(_tactical_ai, "get_enemy_personality", [test_enemy])

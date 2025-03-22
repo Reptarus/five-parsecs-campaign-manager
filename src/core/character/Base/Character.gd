@@ -162,3 +162,78 @@ func add_trait(trait_name: String) -> void:
 ## Check if character has a specific trait
 func has_trait(trait_name: String) -> bool:
 	return trait_name in traits
+
+func initialize_from_data(character_data: Dictionary) -> void:
+	# Set basic properties from data
+	if character_data.has("name"):
+		character_name = character_data.name
+	
+	if character_data.has("health"):
+		health = character_data.health
+	
+	if character_data.has("max_health"):
+		max_health = character_data.max_health
+	
+	if character_data.has("character_class"):
+		character_class = character_data.character_class
+	
+	if character_data.has("origin"):
+		origin = character_data.origin
+	
+	if character_data.has("background"):
+		background = character_data.background
+	
+	if character_data.has("motivation"):
+		motivation = character_data.motivation
+	
+	# Set Five Parsecs stats
+	if character_data.has("savvy"):
+		savvy = character_data.savvy
+	
+	if character_data.has("luck"):
+		luck = character_data.luck
+	
+	if character_data.has("training"):
+		_training = character_data.training
+	
+	# Set character type flags
+	if character_data.has("is_bot"):
+		is_bot = character_data.is_bot
+	
+	if character_data.has("is_soulless"):
+		is_soulless = character_data.is_soulless
+	
+	if character_data.has("is_human"):
+		is_human = character_data.is_human
+	
+	# Set traits
+	if character_data.has("traits") and character_data.traits is Array:
+		traits = character_data.traits.duplicate()
+	
+	# Handle equipment arrays
+	if character_data.has("weapons") and character_data.weapons is Array:
+		weapons.clear()
+		for weapon_data in character_data.weapons:
+			if typeof(weapon_data) == TYPE_DICTIONARY:
+				var weapon_resource = load("res://src/core/systems/items/GameWeapon.gd").new()
+				if weapon_resource.has_method("initialize_from_data"):
+					weapon_resource.initialize_from_data(weapon_data)
+				weapons.append(weapon_resource)
+	
+	if character_data.has("armor") and character_data.armor is Array:
+		armor.clear()
+		for armor_data in character_data.armor:
+			if typeof(armor_data) == TYPE_DICTIONARY:
+				var armor_resource = load("res://src/core/systems/items/GameArmor.gd").new()
+				if armor_resource.has_method("initialize_from_data"):
+					armor_resource.initialize_from_data(armor_data)
+				armor.append(armor_resource)
+	
+	if character_data.has("items") and character_data.items is Array:
+		items.clear()
+		for item_data in character_data.items:
+			if typeof(item_data) == TYPE_DICTIONARY:
+				var item_resource = load("res://src/core/systems/items/GameItem.gd").new()
+				if item_resource.has_method("initialize_from_data"):
+					item_resource.initialize_from_data(item_data)
+				items.append(item_resource)

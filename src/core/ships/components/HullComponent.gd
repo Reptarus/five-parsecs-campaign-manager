@@ -1,6 +1,6 @@
 # Scripts/ShipAndCrew/HullComponent.gd
 @tool
-extends FPCM_ShipComponent
+extends "res://src/core/ships/components/ShipComponent.gd"
 class_name HullComponent
 
 @export var hull_durability: int = 100
@@ -13,14 +13,14 @@ class_name HullComponent
 @export var breach_resistance: float = 0.5
 
 func _init() -> void:
-	super()
+	super ()
 	name = "Hull"
 	description = "Basic hull structure"
 	cost = 400
 	power_draw = 1
 	
 func _apply_upgrade_effects() -> void:
-	super()
+	super ()
 	hull_durability += 25
 	armor += 2
 	if has_shields:
@@ -94,7 +94,7 @@ func initialize_shields() -> void:
 		current_shield = shield_strength
 
 func serialize() -> Dictionary:
-	var data = super()
+	var data = super ()
 	data["armor"] = armor
 	data["shield_strength"] = shield_strength
 	data["shield_recharge_rate"] = shield_recharge_rate

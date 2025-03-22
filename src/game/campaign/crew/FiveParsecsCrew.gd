@@ -23,7 +23,7 @@ var visited_systems: Array = []
 var story_points: int = 0
 
 func _init() -> void:
-	super()
+	super ()
 	name = "New Five Parsecs Crew"
 	credits = 1500 # Five Parsecs starts with more credits
 
@@ -208,3 +208,50 @@ func from_dict(data: Dictionary) -> bool:
 				return false
 	
 	return true
+
+func initialize_from_data(crew_data: Dictionary) -> void:
+	# Set basic crew properties
+	if crew_data.has("name"):
+		name = crew_data.name
+	
+	if crew_data.has("credits"):
+		credits = crew_data.credits
+	
+	if crew_data.has("ship_name"):
+		ship_name = crew_data.ship_name
+	
+	if crew_data.has("ship_type"):
+		ship_type = crew_data.ship_type
+	
+	if crew_data.has("reputation"):
+		reputation = crew_data.reputation
+	
+	if crew_data.has("campaign_progress"):
+		campaign_progress = crew_data.campaign_progress
+	
+	if crew_data.has("campaign_type"):
+		campaign_type = crew_data.campaign_type
+	
+	if crew_data.has("current_system"):
+		current_system = crew_data.current_system
+	
+	if crew_data.has("visited_systems"):
+		visited_systems = crew_data.visited_systems.duplicate()
+	
+	if crew_data.has("story_points"):
+		story_points = crew_data.story_points
+	
+	if crew_data.has("patrons"):
+		patrons = crew_data.patrons.duplicate()
+	
+	if crew_data.has("rivals"):
+		rivals = crew_data.rivals.duplicate()
+	
+	# Initialize crew members if provided
+	if crew_data.has("members") and crew_data.members is Array:
+		members.clear()
+		for member_data in crew_data.members:
+			var member = FPCM_CrewMember.new()
+			if member.has_method("initialize_from_data"):
+				member.initialize_from_data(member_data)
+			members.append(member)

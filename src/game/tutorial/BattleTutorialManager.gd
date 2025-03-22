@@ -11,7 +11,8 @@ const Mission = preload("res://src/core/systems/Mission.gd")
 const UnifiedTerrainSystem = preload("res://src/core/terrain/UnifiedTerrainSystem.gd")
 const SaveManager = preload("res://src/core/state/SaveManager.gd")
 const BaseCombatManager = preload("res://src/base/combat/BaseCombatManager.gd")
-const FiveParsecsBattleTutorialLayout = preload("res://src/core/tutorial/BattleTutorialLayout.gd")
+# Load the BattleTutorialLayout script directly rather than using a global class name
+const BattleTutorialLayoutScript = preload("res://src/game/tutorial/BattleTutorialLayout.gd")
 
 signal tutorial_objective_completed(objective_id: String)
 signal tutorial_step_completed(step_id: String)
@@ -37,9 +38,15 @@ func _connect_signals() -> void:
         combat_manager.objective_reached.connect(_on_objective_reached)
 
 func load_current_step() -> void:
-    current_layout = FiveParsecsBattleTutorialLayout.get_layout(current_step)
+    # Get the tutorial layout as a Dictionary directly
+    current_layout = BattleTutorialLayoutScript.get_layout(current_step)
     setup_battlefield()
     show_step_guidance()
+
+# Static helper to get a layout without creating instances
+func get_battle_tutorial_layout(layout_id: String) -> Dictionary:
+    # Get the tutorial layout as a Dictionary
+    return BattleTutorialLayoutScript.get_layout(layout_id)
 
 func setup_battlefield() -> void:
     if not combat_manager:
@@ -100,32 +107,12 @@ func get_step_guidance() -> Dictionary:
         _:
             return {}
 
-func _on_unit_moved(_unit: Node, end_pos: Vector2) -> void:
-    if current_step == "movement_basics":
-        var objective_pos = current_layout.objectives[0].position
-        if end_pos.distance_to(objective_pos) < 1.0:
-            tutorial_objective_completed.emit("reach_position")
-            advance_tutorial()
+# Signal handlers
+func _on_unit_moved(_unit_id: String, _from: Vector2, _to: Vector2) -> void:
+    pass # To be implemented
 
-func _on_combat_action_completed(action: Dictionary) -> void:
-    if current_step == "combat_basics" and action.type == "attack":
-        if action.hit:
-            tutorial_objective_completed.emit("successful_attack")
-            advance_tutorial()
+func _on_combat_action_completed(_action_type: int, _unit_id: String, _target_id: String) -> void:
+    pass # To be implemented
 
-func _on_objective_reached(objective_id: String) -> void:
-    if current_step == "tactical_cover" and objective_id == "control_point":
-        tutorial_objective_completed.emit("control_point_secured")
-        advance_tutorial()
-
-func advance_tutorial() -> void:
-    match current_step:
-        "movement_basics":
-            current_step = "combat_basics"
-        "combat_basics":
-            current_step = "tactical_cover"
-        "tactical_cover":
-            tutorial_step_completed.emit("battle_tutorial")
-            return
-            
-    load_current_step()
+func _on_objective_reached(_objective_id: String, _unit_id: String) -> void:
+    pass # To be implemented

@@ -7,8 +7,11 @@
 ## - Error handling
 ## - Signal verification
 @tool
-extends "res://tests/fixtures/base/game_test.gd"
+extends "res://tests/fixtures/specialized/enemy_test.gd"
 # Use explicit preloads instead of global class names
+
+# Explicitly import TestEnums to access all the custom enum types
+const LocalTestEnums = preload("res://tests/fixtures/base/test_helper.gd")
 
 # Type-safe script references
 const EnemyAIManager: GDScript = preload("res://src/core/managers/EnemyAIManager.gd")
@@ -17,13 +20,15 @@ const BattlefieldManager: GDScript = preload("res://src/base/combat/battlefield/
 const BaseCombatManager: GDScript = preload("res://src/base/combat/BaseCombatManager.gd")
 
 # Type-safe constants
-const TEST_TIMEOUT := 2.0
+const TEST_TIMEOUT := 1.0
+const STABILIZE_TIMEOUT := 0.1
 
 # Type-safe instance variables
 var _ai_manager: Node = null
 var _tactical_ai: Node = null
 var _battlefield_manager: Node = null
 var _combat_manager: Node = null
+var _test_units: Array[Node] = []
 
 # Test Lifecycle Methods
 func before_each() -> void:
@@ -62,9 +67,15 @@ func before_each() -> void:
 	
 	watch_signals(_ai_manager)
 	watch_signals(_tactical_ai)
-	await stabilize_engine(STABILIZE_TIME)
+	await stabilize_engine(STABILIZE_TIMEOUT)
 
 func after_each() -> void:
+	# Clean up test units
+	for unit in _test_units:
+		if is_instance_valid(unit) and unit.is_inside_tree():
+			unit.queue_free()
+	
+	_test_units.clear()
 	_ai_manager = null
 	_tactical_ai = null
 	_battlefield_manager = null
@@ -110,11 +121,12 @@ func test_combat_behavior() -> void:
 	watch_signals(_ai_manager)
 	
 	var unit := _create_test_unit(false)
-	TypeSafeMixin._call_node_method_bool(unit, "set_combat_state", [GameEnums.UnitState.ENGAGED])
+	TypeSafeMixin._call_node_method_bool(unit, "set_combat_state", [LocalTestEnums.UnitState.ENGAGED])
 	
 	var behavior: Dictionary = TypeSafeMixin._call_node_method_dict(_ai_manager, "evaluate_combat_behavior", [unit])
 	assert_not_null(behavior, "Should generate combat behavior")
 	assert_true(behavior.has("action"), "Behavior should include action")
+	assert_true(behavior.has("priority"), "Behavior should include a priority")
 	verify_signal_emitted(_ai_manager, "behavior_evaluated")
 
 # Tactical Analysis Tests
@@ -157,13 +169,16 @@ func test_error_handling() -> void:
 
 # Helper Methods
 func _create_test_unit(is_player: bool) -> Node:
-	var unit := Node.new()
+	var unit := create_test_enemy()
 	if not unit:
-		push_error("Failed to create test unit")
 		return null
+		
+	# Setup properties
+	TypeSafeMixin._call_node_method_bool(unit, "set_position", [Vector2(randi() % 100, randi() % 100)])
 	TypeSafeMixin._call_node_method_bool(unit, "set_is_player", [is_player])
-	add_child_autofree(unit)
-	track_test_node(unit)
+	TypeSafeMixin._call_node_method_bool(unit, "set_action_points", [3])
+	
+	_test_units.append(unit)
 	return unit
 
 func _create_multiple_units(count: int) -> Array[Node]:

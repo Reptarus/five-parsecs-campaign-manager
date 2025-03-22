@@ -1,7 +1,6 @@
 @tool
 extends "res://addons/gut/test.gd"
 # Use explicit preloads instead of global class names
-const BaseTestScript = preload("res://tests/fixtures/base/base_test.gd")
 
 # Core test class that all test scripts should extend from
 const GutMainClass: GDScript = preload("res://addons/gut/gut.gd")
@@ -9,6 +8,15 @@ const GutUtilsClass: GDScript = preload("res://addons/gut/utils.gd")
 const GlobalEnumsClass: GDScript = preload("res://src/core/systems/GlobalEnums.gd")
 const SignalWatcher: GDScript = preload("res://addons/gut/signal_watcher.gd")
 const TypeSafeMixin := preload("res://tests/fixtures/helpers/type_safe_test_mixin.gd")
+
+# Ensure we have access to the gut object
+var _gut: GutMainClass = null
+
+# Add this helper method to fix the missing function error
+func get_current_test_object():
+	if _gut and _gut.has_method("get_current_test_object"):
+		return _gut.get_current_test_object()
+	return null
 
 # Test configuration constants
 const BASE_SIGNAL_TIMEOUT: float = 1.0
@@ -35,10 +43,8 @@ const ERROR_TYPE_MISMATCH := "Expected %s but got %s"
 const ERROR_CAST_FAILED := "Failed to cast %s to %s: %s"
 
 # Type-safe instance variables
-var _was_ready_called: bool = false
 var _skip_script: bool = false
 var _skip_reason: String = ""
-var _logger: RefCounted = null # Changed from Node to RefCounted
 var _original_engine_config: Dictionary = {}
 var _tracked_nodes: Array[Node] = []
 var _tracked_resources: Array[Resource] = []
@@ -49,12 +55,10 @@ var fps_samples: Array[float] = []
 var _error_count: int = 0
 var _warning_count: int = 0
 var _last_error: String = ""
+var _logger: RefCounted = null # Add missing _logger variable
 
-# Type-safe GUT property
-var gut: GutMainClass:
-	get: return _gut
-	set(value): _gut = value
-var _gut: GutMainClass = null
+# The _gut variable is already declared above - no need to declare it again
+@warning_ignore("unused_private_class_variable") # Used by gut as a property backing field, not accessed directly in code
 
 func _init() -> void:
 	var utils_instance = GDScript.new()
@@ -84,6 +88,9 @@ func _init() -> void:
 	if not _internal_signal_watcher:
 		push_error("Failed to create signal watcher")
 		return
+
+func _ready() -> void:
+	_do_ready_stuff()
 
 # Lifecycle Methods
 func before_all() -> void:
@@ -378,7 +385,7 @@ func verify_state(subject: Object, expected_states: Dictionary) -> void:
 func stabilize_engine(time: float = STABILIZATION_TIME) -> void:
 	await get_tree().create_timer(time).timeout
 
-func wait_frames(frames: int) -> void:
+func wait_frames(frames: int, text: String = "") -> void:
 	var i := 0
 	while i < frames:
 		await get_tree().process_frame
@@ -632,11 +639,21 @@ func _call_node_method_int(obj: Object, method: String, args: Array = [], defaul
 
 func _call_node_method_array(obj: Object, method: String, args: Array = [], default_value: Array = []) -> Array:
 	var result: Variant = _call_node_method(obj, method, args)
+	
+	# Return default for null results
 	if result == null:
+		push_warning("Null result from method %s, using default array" % method)
 		return default_value
+	
+	# Handle Array types - both regular and typed arrays return is_array() == true
 	if result is Array:
+		# Handle the case where the calling code expects a specific array type
+		# but we just need to return a regular Array
 		return result
+	
+	# If we get here, the result isn't an array
 	push_error("Expected Array but got %s" % TypeSafeMixin.typeof_as_string(result))
+	push_warning("Got %s instead of Array from method %s" % [TypeSafeMixin.typeof_as_string(result), method])
 	return default_value
 
 func _call_node_method_dict(obj: Object, method: String, args: Array = [], default_value: Dictionary = {}) -> Dictionary:
@@ -755,13 +772,14 @@ func create_test_character() -> Node:
 	return character
 
 # Enhanced node management
-func add_child_autofree(node: Node) -> void:
+func add_child_autofree(node: Node, call_ready: bool = true) -> void:
 	if not node:
 		push_error("Cannot add null node")
 		return
 	
-	add_child(node)
-	_tracked_nodes.append(node)
+	add_child(node, call_ready)
+	# Track the node for automatic cleanup
+	track_test_node(node)
 
 # Enhanced signal testing
 func assert_async_signal(emitter: Object, signal_name: String, timeout: float = BASE_SIGNAL_TIMEOUT) -> bool:
@@ -910,28 +928,32 @@ func push_test_warning(warning: String) -> void:
 	push_warning(warning)
 
 # Type-safe utility methods
-func wait_for_signal(emitter: Object, signal_name: String, timeout: float = BASE_SIGNAL_TIMEOUT) -> bool:
-	if not emitter or not signal_name:
-		push_test_error("Invalid emitter or signal name")
-		return false
-	
-	var timer := get_tree().create_timer(timeout)
-	if not timer:
-		push_test_error("Failed to create timer")
-		return false
-	
-	var signal_received := false
-	var timeout_reached := false
-	
-	if emitter.has_signal(signal_name):
-		var callable := func() -> void: signal_received = true
-		emitter.connect(signal_name, callable, CONNECT_ONE_SHOT)
-		timer.timeout.connect(func() -> void: timeout_reached = true, CONNECT_ONE_SHOT)
+func wait_for_signal(signal_to_wait_for: Signal, timeout: Variant = BASE_SIGNAL_TIMEOUT, text: String = "") -> Variant:
+	# For compatibility with parent class, use parent implementation
+	# But add our own error handling and timing functionality
+	if timeout is float or timeout is int:
+		var timer := get_tree().create_timer(float(timeout))
+		var timeout_reached := false
+		timer.timeout.connect(func() -> void: timeout_reached = true)
 		
-		while not signal_received and not timeout_reached:
-			await get_tree().process_frame
+		# Wait for signal or timeout
+		while not timeout_reached:
+			# If signal is emitted, this will exit the loop
+			if await super.wait_for_signal(signal_to_wait_for, 0.05, text):
+				return true
 	
-	return signal_received
+			# Otherwise continue waiting until timeout
+			await get_tree().process_frame
+		
+		# If we get here, the timeout was reached
+		if text is String and not text.is_empty():
+			push_test_error(text)
+		else:
+			push_test_error("Signal not received within timeout: %s" % timeout)
+		return false
+	else:
+		# Fall back to parent implementation
+		return await super.wait_for_signal(signal_to_wait_for, timeout, text)
 
 # Performance monitoring
 func start_performance_monitoring() -> void:
@@ -1021,3 +1043,134 @@ func clear_signal_watcher() -> void:
 		_internal_signal_watcher.clear()
 	_signal_emissions.clear()
 	_tracked_signals.clear()
+
+# Additional assertion methods to support all test files
+func assert_le(a, b, text: String = "") -> void:
+	if text.length() > 0:
+		assert_true(a <= b, text)
+	else:
+		assert_true(a <= b, "Expected %s <= %s" % [a, b])
+
+func assert_ge(a, b, text: String = "") -> void:
+	if text.length() > 0:
+		assert_true(a >= b, text)
+	else:
+		assert_true(a >= b, "Expected %s >= %s" % [a, b])
+
+func assert_lt(a, b, text: String = "") -> void:
+	if text.length() > 0:
+		assert_true(a < b, text)
+	else:
+		assert_true(a < b, "Expected %s < %s" % [a, b])
+
+func assert_gt(a, b, text: String = "") -> void:
+	if text.length() > 0:
+		assert_true(a > b, text)
+	else:
+		assert_true(a > b, "Expected %s > %s" % [a, b])
+
+func assert_ne(a, b, text: String = "") -> void:
+	if text.length() > 0:
+		assert_true(a != b, text)
+	else:
+		assert_true(a != b, "Expected %s != %s" % [a, b])
+
+# Helper method to check if string contains substring
+func assert_string_contains(string_val: Variant, substring_val: Variant, text_or_show_strings: Variant = true) -> Variant:
+	if string_val == null or substring_val == null:
+		assert_true(false, "String and substring cannot be null")
+		return null
+		
+	var str_value: String = str(string_val)
+	var substr_value: String = str(substring_val)
+	
+	var message: String = ""
+	
+	if text_or_show_strings is String:
+		message = text_or_show_strings as String
+	elif text_or_show_strings is bool and text_or_show_strings:
+		message = "Expected '%s' to contain '%s'" % [str_value, substr_value]
+	else:
+		message = "String should contain substring"
+		
+	assert_true(str_value.contains(substr_value), message)
+	return null
+
+func debug_object_state(obj: Object, label: String = "") -> Dictionary:
+	"""
+	Returns detailed information about an object for debugging purposes.
+	Especially useful for tracking down issues in tests.
+	"""
+	var result := {
+		"valid": is_instance_valid(obj),
+		"label": label,
+		"type": "Unknown",
+		"methods": [],
+		"properties": {},
+		"time": Time.get_datetime_string_from_system()
+	}
+	
+	if not is_instance_valid(obj):
+		push_warning("[%s] Trying to debug invalid object" % label)
+		return result
+	
+	result.type = obj.get_class()
+	
+	# Get script info if available
+	if obj.get_script():
+		result.script = obj.get_script().resource_path
+	
+	# Get path for nodes
+	if obj is Node:
+		result.path = obj.get_path()
+	
+	# Get methods
+	if obj.has_method("get_method_list"):
+		var method_list = obj.get_method_list()
+		for method in method_list:
+			if method.name.begins_with("_"):
+				continue
+			result.methods.append(method.name)
+	
+	# Try to get common test properties
+	var test_properties = [
+		"_test_credits", "_test_supplies", "_test_story_progress",
+		"_test_completed_missions", "_test_difficulty", "game_state",
+		"available_missions", "active_missions"
+	]
+	
+	for prop in test_properties:
+		if prop in obj:
+			result.properties[prop] = obj.get(prop)
+	
+	# Print summary to console
+	print("[DEBUG] %s - %s (%s methods, %s properties)" % [
+		label,
+		result.type,
+		result.methods.size(),
+		result.properties.size()
+	])
+	
+	return result
+
+func track_node_count(label: String = "Node count") -> Dictionary:
+	"""
+	Tracks the number of nodes in the scene tree and logs memory usage.
+	Useful for detecting memory leaks and orphaned nodes.
+	"""
+	var result := {
+		"total_nodes": Performance.get_monitor(Performance.OBJECT_NODE_COUNT),
+		"orphan_nodes": Performance.get_monitor(Performance.OBJECT_ORPHAN_NODE_COUNT),
+		"objects": Performance.get_monitor(Performance.OBJECT_COUNT),
+		"resources": Performance.get_monitor(Performance.OBJECT_RESOURCE_COUNT)
+	}
+	
+	print("[%s] Total nodes: %d, Orphaned: %d, Objects: %d, Resources: %d" % [
+		label,
+		result.total_nodes,
+		result.orphan_nodes,
+		result.objects,
+		result.resources
+	])
+	
+	return result

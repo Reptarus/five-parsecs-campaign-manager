@@ -1,0 +1,9 @@
+GUT fixes applied:
+
+1. Fixed OutputText.tscn file - it was empty/corrupt (only 1 byte) and has been recreated
+2. Updated RunResults.gd - fixed the font handling methods for Godot 4.x
+3. Updated OutputText.gd - fixed the _set_font method to work with Godot 4.x's font system
+4. Updated GutScene.gd - fixed the _set_font method for Godot 4.x compatibility
+
+These changes should resolve the issues with the GUT plugin in Godot 4.4.
+Fixed on: [date: 2023-03-25] 

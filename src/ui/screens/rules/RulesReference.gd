@@ -1,5 +1,5 @@
 # RulesReference.gd
-extends FPCM_CampaignResponsiveLayout
+extends "res://src/ui/components/base/CampaignResponsiveLayout.gd"
 
 const PORTRAIT_LIST_HEIGHT_RATIO := 0.4 # List takes 40% in portrait mode
 

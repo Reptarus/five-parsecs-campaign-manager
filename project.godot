@@ -21,7 +21,7 @@ config/icon="res://icon.svg"
 GlobalEnums="*res://src/core/systems/GlobalEnums.gd"
 GameDataManager="*res://src/core/managers/GameDataManager.gd"
 GameStateManager="*res://src/core/managers/GameStateManager.gd"
-CharacterManager="*res://src/core/character/Management/CharacterManager.gd"
+CharacterManager="*res://src/core/character/management/CharacterManager.gd"
 PlanetCache="*res://src/core/world/PlanetCache.gd"
 WorldEconomyManager="*res://src/core/world/WorldEconomyManager.gd"
 ResourceSystem="*res://src/core/systems/ResourceSystem.gd"
@@ -31,6 +31,7 @@ BattleStateMachine="*res://src/core/battle/state/BattleStateMachine.gd"
 
 settings/stdout/print_fps=true
 settings/stdout/verbose_stdout=true
+gdscript/warnings/enable=false
 gdscript/warnings/unused_variable=true
 gdscript/warnings/unused_signal=true
 gdscript/warnings/untyped_declaration=true
@@ -47,6 +48,10 @@ settings/run_on_load/test_scene="res://tests/GutTestScene.tscn"
 
 window/size/viewport_width=1920
 window/size/viewport_height=1080
+
+[dotnet]
+
+project/assembly_name="Five Parsecs Campaign Manager"
 
 [editor_plugins]
 

@@ -1,5 +1,5 @@
 @tool
-extends BaseBattleRules
+extends "res://src/base/combat/BaseBattleRules.gd"
 # This file should be referenced via preload
 # Use explicit preloads instead of global class names
 

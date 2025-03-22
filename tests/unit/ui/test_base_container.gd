@@ -139,3 +139,16 @@ func test_component_accessibility() -> void:
 	assert_true(_component.clip_contents, "Should clip contents for better visual clarity")
 	assert_true(_component.mouse_filter == Control.MOUSE_FILTER_PASS,
 		"Should pass mouse events to children")
+
+# Add missing assertion functions directly in this file
+func assert_ge(a, b, text: String = "") -> void:
+	if text.length() > 0:
+		assert_true(a >= b, text)
+	else:
+		assert_true(a >= b, "Expected %s >= %s" % [a, b])
+
+func assert_le(a, b, text: String = "") -> void:
+	if text.length() > 0:
+		assert_true(a <= b, text)
+	else:
+		assert_true(a <= b, "Expected %s <= %s" % [a, b])

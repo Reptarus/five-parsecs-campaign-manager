@@ -1,6 +1,5 @@
 @tool
 extends VBoxContainer
-const GutUtils = preload("res://addons/gut/utils.gd")
 
 var GutEditorGlobals = load('res://addons/gut/gui/editor_globals.gd')
 var PanelControls = load('res://addons/gut/gui/panel_controls.gd')
@@ -305,9 +304,11 @@ func _set_font(font_name, custom_name):
 	if (font_name == null):
 		rtl.remove_theme_font_override(custom_name)
 	else:
-		var dyn_font = FontFile.new()
-		dyn_font.load_dynamic_font('res://addons/gut/fonts/' + font_name + '.ttf')
-		rtl.add_theme_font_override(custom_name, dyn_font)
+		var font_path = 'res://addons/gut/fonts/' + font_name + '.ttf'
+		if ResourceLoader.exists(font_path):
+			var font = load(font_path)
+			if font != null:
+				rtl.add_theme_font_override(custom_name, font)
 
 
 func set_all_fonts(base_name):

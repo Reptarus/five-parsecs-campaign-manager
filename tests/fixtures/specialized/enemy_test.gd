@@ -1,11 +1,10 @@
 @tool
 extends "res://tests/fixtures/base/game_test.gd"
-class_name EnemyTest
 
 ## Base class for enemy-related tests
 ##
-## Provides common functionality, type declarations, and helper methods
-## for testing enemy behavior, combat, and state management.
+## This class provides common functionality for testing enemies,
+## enemy behavior, and combat mechanics.
 
 # Required type declarations
 const Enemy: GDScript = preload("res://src/core/battle/enemy/Enemy.gd")
@@ -236,3 +235,23 @@ func _setup_enemy_system() -> void:
 	_enemy_ai_manager = Node.new()
 	_enemy_ai_manager.name = "EnemyAIManager"
 	add_child_autofree(_enemy_ai_manager)
+
+# Core Pathfinding Tests
+func test_pathfinding_initialization() -> void:
+	var enemy: Enemy = create_test_enemy()
+	assert_not_null(enemy, "Enemy should be created")
+	assert_not_null(enemy.get_node("NavigationAgent2D"),
+		"Enemy should have a navigation agent")
+
+# Fix for missing assertion functions
+func assert_le(a, b, text: String = "") -> void:
+	if text.length() > 0:
+		assert_true(a <= b, text)
+	else:
+		assert_true(a <= b, "Expected %s <= %s" % [a, b])
+
+func assert_ge(a, b, text: String = "") -> void:
+	if text.length() > 0:
+		assert_true(a >= b, text)
+	else:
+		assert_true(a >= b, "Expected %s >= %s" % [a, b])
