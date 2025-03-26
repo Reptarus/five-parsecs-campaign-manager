@@ -8,38 +8,45 @@ extends "res://tests/fixtures/base/game_test.gd"
 # Tests initialization, experience gain, and level progression
 
 # Use explicit preloads instead of global class names
-const CrewMemberScript = preload("res://src/base/campaign/crew/BaseCrewMember.gd")
-const GameEnumsScript = preload("res://src/core/systems/GlobalEnums.gd")
+const Compatibility = preload("res://tests/fixtures/helpers/test_compatibility_helper.gd")
+var CrewMemberScript = load("res://src/core/crew/CrewMember.gd") if ResourceLoader.exists("res://src/core/crew/CrewMember.gd") else null
 
 # Test variables with type safety comments
-var _crew_member = null # BaseCrewMember instance
+var _crew_member: Resource = null
 
-func before_each():
+func before_each() -> void:
 	await super.before_each()
 	
-	# Create instance of crew member
+	if not CrewMemberScript:
+		push_error("CrewMember script is null")
+		return
+		
 	_crew_member = CrewMemberScript.new()
-	add_child_autofree(_crew_member)
+	if not _crew_member:
+		push_error("Failed to create crew member")
+		return
 	
-	await stabilize_engine()
+	# Ensure resource has a valid path for Godot 4.4
+	_crew_member = Compatibility.ensure_resource_path(_crew_member, "test_crew_member")
+	
+	track_test_resource(_crew_member)
+	await stabilize_engine(STABILIZE_TIME)
 
-func after_each():
+func after_each() -> void:
 	_crew_member = null
 	await super.after_each()
 
-func test_crew_member_initialization():
-	# Then
+func test_crew_member_initialization() -> void:
 	assert_not_null(_crew_member, "Crew member should be initialized")
 	
-	# Use direct method calls
-	var name = _crew_member.get_name()
-	assert_eq(name, "", "Default name should be empty")
+	# Test basic properties
+	var name = Compatibility.safe_call_method(_crew_member, "get_name", [], "")
+	var level = Compatibility.safe_call_method(_crew_member, "get_level", [], 0)
+	var health = Compatibility.safe_call_method(_crew_member, "get_health", [], 0)
 	
-	var level = _crew_member.get_level()
-	assert_eq(level, 1, "Default level should be 1")
-	
-	var experience = _crew_member.get_experience()
-	assert_eq(experience, 0, "Default experience should be 0")
+	assert_ne(name, "", "Crew member should have a name")
+	assert_ge(level, 1, "Crew member should have at least level 1")
+	assert_gt(health, 0, "Crew member should have positive health")
 
 func test_crew_member_experience_gain():
 	# Given

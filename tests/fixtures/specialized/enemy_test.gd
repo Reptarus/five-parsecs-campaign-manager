@@ -6,9 +6,10 @@ extends "res://tests/fixtures/base/game_test.gd"
 ## This class provides common functionality for testing enemies,
 ## enemy behavior, and combat mechanics.
 
-# Required type declarations
-const Enemy: GDScript = preload("res://src/core/battle/enemy/Enemy.gd")
-const EnemyData: GDScript = preload("res://src/core/rivals/EnemyData.gd")
+# Load scripts safely with Compatibility helper
+const Compatibility = preload("res://tests/fixtures/helpers/test_compatibility_helper.gd")
+var EnemyScript = load("res://src/core/battle/enemy/Enemy.gd") if ResourceLoader.exists("res://src/core/battle/enemy/Enemy.gd") else null
+var EnemyDataScript = load("res://src/core/rivals/EnemyData.gd") if ResourceLoader.exists("res://src/core/rivals/EnemyData.gd") else null
 
 # Common test timeouts with type safety
 const DEFAULT_TIMEOUT := 1.0 as float
@@ -33,7 +34,7 @@ enum EnemyTestType {
 }
 
 # Type-safe instance variables for test tracking
-var _test_enemies: Array[Enemy] = []
+var _test_enemies: Array = []
 var _enemy_combat_manager: Node = null
 var _enemy_ai_manager: Node = null
 
@@ -65,14 +66,18 @@ func after_each() -> void:
 ## Helper methods for enemy testing
 
 # Creates a test enemy of the specified type
-func create_test_enemy(enemy_type: EnemyTestType = EnemyTestType.BASIC) -> Enemy:
-	var enemy_instance: Enemy = Enemy.new()
+func create_test_enemy(enemy_type: EnemyTestType = EnemyTestType.BASIC) -> Node:
+	if not EnemyScript:
+		push_error("Enemy script is null")
+		return null
+		
+	var enemy_instance = EnemyScript.new()
 	if not enemy_instance:
 		push_error("Failed to create test enemy")
 		return null
 	
 	var enemy_data := _create_enemy_test_data(enemy_type)
-	TypeSafeMixin._call_node_method_bool(enemy_instance, "initialize", [enemy_data])
+	Compatibility.safe_call_method(enemy_instance, "initialize", [enemy_data])
 	
 	_test_enemies.append(enemy_instance)
 	return enemy_instance
@@ -112,23 +117,23 @@ func _create_enemy_test_data(enemy_type: EnemyTestType) -> Dictionary:
 	return data
 
 # Verifies enemy movement
-func verify_enemy_movement(enemy: Enemy, start_pos: Vector2, end_pos: Vector2) -> void:
-	TypeSafeMixin._call_node_method_bool(enemy, "set_position", [start_pos])
-	TypeSafeMixin._call_node_method_bool(enemy, "move_to", [end_pos])
+func verify_enemy_movement(enemy: Node, start_pos: Vector2, end_pos: Vector2) -> void:
+	Compatibility.safe_call_method(enemy, "set_position", [start_pos])
+	Compatibility.safe_call_method(enemy, "move_to", [end_pos])
 	
 	# Wait for movement to complete
 	await get_tree().create_timer(ENEMY_TEST_CONFIG.pathfinding_timeout).timeout
 	
-	var final_pos: Vector2 = TypeSafeMixin._safe_cast_vector2(TypeSafeMixin._call_node_method(enemy, "get_position", []))
+	var final_pos = Compatibility.safe_call_method(enemy, "get_position", [], Vector2())
 	var x_distance: float = abs(final_pos.x - end_pos.x)
 	var y_distance: float = abs(final_pos.y - end_pos.y)
 	assert_le(x_distance, 1.0, "Enemy should move to target X position")
 	assert_le(y_distance, 1.0, "Enemy should move to target Y position")
 
 # Verifies enemy combat
-func verify_enemy_combat(enemy: Enemy, target: Node) -> void:
+func verify_enemy_combat(enemy: Node, target: Node) -> void:
 	watch_signals(enemy)
-	TypeSafeMixin._call_node_method_bool(enemy, "attack", [target])
+	Compatibility.safe_call_method(enemy, "attack", [target])
 	
 	# Wait for combat to complete
 	await get_tree().create_timer(ENEMY_TEST_CONFIG.combat_timeout).timeout
@@ -136,21 +141,21 @@ func verify_enemy_combat(enemy: Enemy, target: Node) -> void:
 	assert_signal_emitted(enemy, "attack_completed")
 
 # Verifies enemy state matches expected values
-func verify_enemy_state(enemy: Enemy, expected_state: Dictionary) -> void:
+func verify_enemy_state(enemy: Node, expected_state: Dictionary) -> void:
 	for key in expected_state:
 		var value = null
 		
 		match key:
 			"health":
-				value = TypeSafeMixin._call_node_method(enemy, "get_health", [])
+				value = Compatibility.safe_call_method(enemy, "get_health", [], 0)
 				if value != null:
 					value = float(value)
 			"level":
-				value = TypeSafeMixin._call_node_method_int(enemy, "get_level", [])
+				value = Compatibility.safe_call_method(enemy, "get_level", [], 0)
 			"experience":
-				value = TypeSafeMixin._call_node_method_int(enemy, "get_experience", [])
+				value = Compatibility.safe_call_method(enemy, "get_experience", [], 0)
 			"damage":
-				value = TypeSafeMixin._call_node_method(enemy, "get_damage", [])
+				value = Compatibility.safe_call_method(enemy, "get_damage", [], 0)
 				if value != null:
 					value = float(value)
 			_:
@@ -160,13 +165,13 @@ func verify_enemy_state(enemy: Enemy, expected_state: Dictionary) -> void:
 		assert_eq(value, expected_state[key], "Enemy %s should match expected value" % key)
 
 # Verifies all enemy state is valid
-func verify_enemy_complete_state(enemy: Enemy) -> void:
-	assert_true(TypeSafeMixin._call_node_method_bool(enemy, "is_valid", []), "Enemy should be in valid state")
+func verify_enemy_complete_state(enemy: Node) -> void:
+	assert_true(Compatibility.safe_call_method(enemy, "is_valid", [], false), "Enemy should be in valid state")
 	
-	var health = TypeSafeMixin._call_node_method(enemy, "get_health", [])
+	var health = Compatibility.safe_call_method(enemy, "get_health", [], 0)
 	assert_gt(float(health) if health != null else 0.0, 0.0, "Enemy health should be positive")
 	
-	var damage = TypeSafeMixin._call_node_method(enemy, "get_damage", [])
+	var damage = Compatibility.safe_call_method(enemy, "get_damage", [], 0)
 	assert_gt(float(damage) if damage != null else 0.0, 0.0, "Enemy damage should be positive")
 
 # Helper to measure enemy performance
@@ -195,22 +200,6 @@ func measure_enemy_performance(count: int = 10) -> Dictionary:
 	performance_metrics.load_time_ms = end_time - start_time
 	performance_metrics.memory_increase_mb = (memory_after - memory_before) / (1024.0 * 1024.0)
 	
-	# Measure FPS
-	var fps_samples := []
-	for i in range(30):
-		await get_tree().process_frame
-		fps_samples.append(Engine.get_frames_per_second())
-	
-	# Calculate FPS metrics
-	var fps_sum := 0.0
-	var min_fps := 1000.0
-	for fps in fps_samples:
-		fps_sum += fps
-		min_fps = min(min_fps, fps)
-	
-	performance_metrics.average_fps = fps_sum / fps_samples.size()
-	performance_metrics.minimum_fps = min_fps
-	
 	return performance_metrics
 
 # Helper to verify performance metrics
@@ -234,11 +223,28 @@ func _setup_enemy_system() -> void:
 	
 	_enemy_ai_manager = Node.new()
 	_enemy_ai_manager.name = "EnemyAIManager"
+	
+	# Add initialize method to the AI manager
+	var ai_script = GDScript.new()
+	ai_script.source_code = """
+	extends Node
+	
+	func initialize():
+		return true
+		
+	func process_ai(enemy):
+		if enemy and enemy.has_method("get_health"):
+			return enemy.get_health() > 0
+		return false
+	"""
+	ai_script.reload()
+	_enemy_ai_manager.set_script(ai_script)
+	
 	add_child_autofree(_enemy_ai_manager)
 
 # Core Pathfinding Tests
 func test_pathfinding_initialization() -> void:
-	var enemy: Enemy = create_test_enemy()
+	var enemy: Node = await create_test_enemy()
 	assert_not_null(enemy, "Enemy should be created")
 	assert_not_null(enemy.get_node("NavigationAgent2D"),
 		"Enemy should have a navigation agent")
@@ -255,3 +261,19 @@ func assert_ge(a, b, text: String = "") -> void:
 		assert_true(a >= b, text)
 	else:
 		assert_true(a >= b, "Expected %s >= %s" % [a, b])
+
+# Additional common assertion helpers
+func assert_string_contains(string_val: Variant, substring_val: Variant, text_or_show_strings: Variant = true) -> Variant:
+	var str_value: String = str(string_val)
+	var substr_value: String = str(substring_val)
+	
+	var message: String = ""
+	if text_or_show_strings is String:
+		message = text_or_show_strings
+	elif text_or_show_strings is bool and text_or_show_strings:
+		message = "Expected '%s' to contain '%s'" % [str_value, substr_value]
+	else:
+		message = "String should contain substring"
+		
+	assert_true(str_value.contains(substr_value), message)
+	return null

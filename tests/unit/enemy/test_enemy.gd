@@ -2,6 +2,9 @@
 extends "res://tests/fixtures/specialized/enemy_test.gd"
 # Use explicit preloads instead of global class names
 
+# Import the Enemy class for type checking
+const Enemy = preload("res://src/core/enemy/Enemy.gd")
+
 # These are already declared in the parent class - no need to redeclare
 
 ## Core enemy functionality tests
@@ -50,7 +53,7 @@ func after_each() -> void:
 
 # Initialization Tests
 func test_enemy_initialization() -> void:
-	var enemy := create_test_enemy() as Enemy
+	var enemy := create_test_enemy()
 	verify_enemy_complete_state(enemy)
 	
 	assert_eq(enemy.get_health(), 100.0, "Should have default health")
@@ -60,7 +63,7 @@ func test_enemy_initialization() -> void:
 
 # Movement Tests
 func test_enemy_movement() -> void:
-	var enemy := create_test_enemy() as Enemy
+	var enemy := create_test_enemy()
 	verify_enemy_complete_state(enemy)
 	
 	var start_pos := Vector2.ZERO
@@ -69,8 +72,8 @@ func test_enemy_movement() -> void:
 
 # Combat Tests
 func test_enemy_combat() -> void:
-	var enemy := create_test_enemy() as Enemy
-	var target := create_test_enemy() as Enemy
+	var enemy := create_test_enemy()
+	var target := create_test_enemy()
 	verify_enemy_complete_state(enemy)
 	verify_enemy_complete_state(target)
 	

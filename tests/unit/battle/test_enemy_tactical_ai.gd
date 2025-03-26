@@ -8,7 +8,12 @@
 ## - Signal verification
 @tool
 extends "res://tests/fixtures/base/game_test.gd"
-# Use explicit preloads instead of global class names
+
+# Load scripts safely - handles missing files gracefully
+const Compatibility = preload("res://tests/fixtures/helpers/test_compatibility_helper.gd")
+var EnemyTacticalAIScript = load("res://src/game/combat/EnemyTacticalAI.gd") if ResourceLoader.exists("res://src/game/combat/EnemyTacticalAI.gd") else null
+var BattlefieldManagerScript = load("res://src/base/combat/battlefield/BaseBattlefieldManager.gd") if ResourceLoader.exists("res://src/base/combat/battlefield/BaseBattlefieldManager.gd") else null
+var CombatManagerScript = load("res://src/base/combat/BaseCombatManager.gd") if ResourceLoader.exists("res://src/base/combat/BaseCombatManager.gd") else null
 
 # Type-safe script references
 const EnemyTacticalAI: GDScript = preload("res://src/game/combat/EnemyTacticalAI.gd")
@@ -20,8 +25,9 @@ const TEST_TIMEOUT: float = 2.0
 
 # Type-safe instance variables
 var _tactical_ai: Node = null
-var _battlefield_manager: Node = null
+var _battlefield: Node = null
 var _combat_manager: Node = null
+var _test_units: Array = []
 
 # Signal tracking
 var _signal_data: Dictionary = {
@@ -40,30 +46,43 @@ var _signal_data: Dictionary = {
 func before_each() -> void:
 	await super.before_each()
 	
-	# Initialize battlefield manager
-	var battlefield_manager_instance: Node = BattlefieldManager.new()
-	_battlefield_manager = TypeSafeMixin._safe_cast_to_node(battlefield_manager_instance)
-	if not _battlefield_manager:
+	# Initialize battlefield manager directly without TypeSafeMixin
+	if not BattlefieldManager:
+		push_error("BattlefieldManager script is null")
+		return
+		
+	_battlefield = BattlefieldManager.new()
+	if not _battlefield:
 		push_error("Failed to create battlefield manager")
 		return
-	add_child_autofree(_battlefield_manager)
-	track_test_node(_battlefield_manager)
+	add_child_autofree(_battlefield)
+	track_test_node(_battlefield)
 	
 	# Initialize combat manager
-	_combat_manager = Node.new()
+	_combat_manager = CombatManagerScript.new()
 	if not _combat_manager:
 		push_error("Failed to create combat manager")
 		return
 	add_child_autofree(_combat_manager)
 	track_test_node(_combat_manager)
 	
-	# Initialize tactical AI
-	var tactical_ai_instance: Node = EnemyTacticalAI.new()
-	_tactical_ai = TypeSafeMixin._safe_cast_to_node(tactical_ai_instance)
+	# Initialize tactical AI directly without TypeSafeMixin
+	if not EnemyTacticalAI:
+		push_error("EnemyTacticalAI script is null")
+		return
+		
+	_tactical_ai = EnemyTacticalAI.new()
 	if not _tactical_ai:
 		push_error("Failed to create tactical AI")
 		return
-	TypeSafeMixin._call_node_method_bool(_tactical_ai, "initialize", [_battlefield_manager, _combat_manager])
+		
+	# Call initialize directly instead of using TypeSafeMixin
+	if _tactical_ai.has_method("initialize"):
+		_tactical_ai.initialize(_battlefield, _combat_manager)
+	else:
+		push_error("Tactical AI doesn't have initialize method")
+		return
+		
 	add_child_autofree(_tactical_ai)
 	track_test_node(_tactical_ai)
 	
@@ -76,7 +95,7 @@ func after_each() -> void:
 	_disconnect_signals()
 	_reset_signal_data()
 	_tactical_ai = null
-	_battlefield_manager = null
+	_battlefield = null
 	_combat_manager = null
 	await super.after_each()
 
@@ -133,14 +152,25 @@ func _on_group_coordination_updated(group: Array, leader: Node) -> void:
 
 # Helper Methods
 func _create_test_enemy(personality: int = TestEnums.AIPersonality.AGGRESSIVE) -> Node:
-	var enemy_instance: Node = Character.new()
-	var enemy: Node = TypeSafeMixin._safe_cast_to_node(enemy_instance)
+	if not Character:
+		push_error("Character script is null")
+		return null
+		
+	var enemy: Node = Character.new()
 	if not enemy:
 		push_error("Failed to create test enemy")
 		return null
 	
-	TypeSafeMixin._call_node_method_bool(enemy, "initialize", [])
-	TypeSafeMixin._call_node_method_bool(_tactical_ai, "set_enemy_personality", [enemy, personality])
+	# Call methods directly instead of using TypeSafeMixin
+	if enemy.has_method("initialize"):
+		enemy.initialize()
+	else:
+		push_warning("Enemy doesn't have initialize method")
+	
+	if _tactical_ai.has_method("set_enemy_personality"):
+		_tactical_ai.set_enemy_personality(enemy, personality)
+	else:
+		push_warning("Tactical AI doesn't have set_enemy_personality method")
 	
 	add_child_autofree(enemy)
 	track_test_node(enemy)

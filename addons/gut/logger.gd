@@ -5,7 +5,7 @@
 # The MIT License (MIT)
 # =====================
 #
-# Copyright (c) 2020 Tom "Butch" Wesley
+# Copyright (c) 2025 Tom "Butch" Wesley
 #
 # Permission is hereby granted, free of charge, to any person obtaining a copy
 # of this software and associated documentation files (the "Software"), to deal
@@ -185,6 +185,8 @@ func get_log_entries(log_type):
 func _output_type(type, text):
 	var td = _type_data[type]
 	if(!td.enabled):
+		# if(_logs.has(type)):
+		# 	_logs[type].append(text)
 		return
 
 	_print_test_name()

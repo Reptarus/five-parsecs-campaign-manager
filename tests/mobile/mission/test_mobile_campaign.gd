@@ -20,8 +20,9 @@ func before_each() -> void:
 	# Set up mobile environment
 	await simulate_mobile_environment("phone_portrait")
 	
-	# Initialize game state
-	_game_state = create_test_game_state()
+	# Initialize game state - make sure we're creating a proper GameState instance
+	var game_state_script = load("res://src/core/state/GameState.gd")
+	_game_state = game_state_script.new()
 	if not _game_state:
 		push_error("Failed to create game state")
 		return
@@ -34,10 +35,11 @@ func before_each() -> void:
 		push_error("Failed to create campaign system")
 		return
 	
-	# Initialize campaign system with game state
-	var init_result: Error = TypeSafeMixin._call_node_method_int(_campaign_system, "initialize", [_game_state])
-	if init_result != OK:
-		push_error("Failed to initialize campaign system: %s" % error_string(init_result))
+	# Initialize campaign system with game state - call method directly instead of through TypeSafeMixin
+	if _campaign_system.has_method("initialize"):
+		_campaign_system.initialize(_game_state)
+	else:
+		push_error("CampaignSystem doesn't have initialize method")
 		return
 	
 	add_child_autofree(_campaign_system)

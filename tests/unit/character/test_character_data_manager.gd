@@ -16,6 +16,7 @@ extends "res://tests/fixtures/base/game_test.gd"
 const Character: GDScript = preload("res://src/core/character/Base/Character.gd")
 const GameStateManager: GDScript = preload("res://src/core/managers/GameStateManager.gd")
 const CharacterDataManager: GDScript = preload("res://src/core/character/Management/CharacterDataManager.gd")
+const Compatibility = preload("res://tests/fixtures/helpers/test_compatibility_helper.gd")
 
 # Type-safe constants
 const TEST_BATCH_SIZE: int = 100
@@ -27,12 +28,25 @@ var _test_character: Node = null
 
 # Helper methods
 func _create_test_character() -> Node:
+	if not Character:
+		push_error("Character script is null")
+		return null
+		
 	var character: Node = Character.new()
 	if not character:
 		push_error("Failed to create test character")
 		return null
-	TypeSafeMixin._call_node_method_bool(character, "set_character_name", ["Test Character"])
-	TypeSafeMixin._call_node_method_bool(character, "set_character_class", [GameEnums.CharacterClass.SOLDIER])
+		
+	if character.has("set_character_name"):
+		character.set_character_name("Test Character")
+	else:
+		push_warning("Character doesn't have set_character_name method")
+		
+	if character.has("set_character_class"):
+		character.set_character_class(GameEnums.CharacterClass.SOLDIER)
+	else:
+		push_warning("Character doesn't have set_character_class method")
+		
 	add_child_autofree(character)
 	track_test_node(character)
 	return character
@@ -49,13 +63,23 @@ func _create_batch_characters(count: int) -> Array[Node]:
 func before_each() -> void:
 	await super.before_each()
 	
-	# Initialize data manager
-	var data_manager_instance: Node = CharacterDataManager.new()
-	_data_manager = data_manager_instance
+	# Initialize data manager directly without TypeSafeMixin
+	if not CharacterDataManager:
+		push_error("CharacterDataManager script is null")
+		return
+		
+	_data_manager = CharacterDataManager.new()
 	if not _data_manager:
 		push_error("Failed to create data manager")
 		return
-	TypeSafeMixin._call_node_method_bool(_data_manager, "initialize", [_game_state])
+		
+	# Call initialize directly instead of using TypeSafeMixin
+	if _data_manager.has("initialize"):
+		_data_manager.initialize(_game_state)
+	else:
+		push_error("Data manager doesn't have initialize method")
+		return
+		
 	add_child_autofree(_data_manager)
 	track_test_node(_data_manager)
 	

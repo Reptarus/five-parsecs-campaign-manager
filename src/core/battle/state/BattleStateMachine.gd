@@ -46,9 +46,13 @@ func _ready() -> void:
 		GameStateManager = load("res://src/core/managers/GameStateManager.gd")
 
 func set_game_state_manager(p_game_state_manager) -> void:
-	game_state_manager = p_game_state_manager
+	if is_instance_valid(p_game_state_manager):
+		game_state_manager = p_game_state_manager
 
 func add_character(character) -> void:
+	if not is_instance_valid(character):
+		return
+		
 	if not character in active_combatants:
 		active_combatants.append(character)
 		# Only add to scene tree if not already there and not already has a parent
@@ -56,7 +60,7 @@ func add_character(character) -> void:
 			add_child(character)
 
 func add_combatant(character: Node) -> void:
-	if character and not character in active_combatants:
+	if is_instance_valid(character) and not character in active_combatants:
 		add_character(character)
 
 func get_active_combatants() -> Array:
@@ -78,23 +82,33 @@ func end_battle(victory_type: int) -> void:
 	battle_ended.emit(victory_type == GameEnums.VictoryConditionType.ELIMINATION)
 
 func start_unit_action(unit, action: int) -> void:
+	if not is_instance_valid(unit):
+		return
+		
 	_current_unit = unit
 	current_unit_action = action
 	unit_action_changed.emit(action)
 
 func complete_unit_action() -> void:
-	if _current_unit and current_unit_action != GameEnums.UnitAction.NONE:
-		unit_action_completed.emit(_current_unit, current_unit_action)
-		if not _current_unit in _completed_actions:
-			_completed_actions[_current_unit] = []
-		_completed_actions[_current_unit].append(current_unit_action)
-		current_unit_action = GameEnums.UnitAction.NONE
-		_current_unit = null
+	if not is_instance_valid(_current_unit) or current_unit_action == GameEnums.UnitAction.NONE:
+		return
+		
+	unit_action_completed.emit(_current_unit, current_unit_action)
+	if not _current_unit in _completed_actions:
+		_completed_actions[_current_unit] = []
+	_completed_actions[_current_unit].append(current_unit_action)
+	current_unit_action = GameEnums.UnitAction.NONE
+	_current_unit = null
 
 func has_unit_completed_action(unit, action: int) -> bool:
+	if not is_instance_valid(unit):
+		return false
 	return unit in _completed_actions and action in _completed_actions[unit]
 
 func get_available_actions(unit) -> Array:
+	if not is_instance_valid(unit):
+		return []
+		
 	var available = []
 	for action in GameEnums.UnitAction.values():
 		if not has_unit_completed_action(unit, action):
@@ -174,6 +188,9 @@ func advance_phase() -> void:
 func _handle_setup_state() -> void:
 	# Initialize all characters for battle
 	for character in active_combatants:
+		if not is_instance_valid(character):
+			continue
+			
 		if character.get_method_list().any(func(method): return method.name == "initialize_for_battle"):
 			character.initialize_for_battle()
 	
@@ -182,7 +199,7 @@ func _handle_setup_state() -> void:
 	current_round = 1
 	
 	for character in active_combatants:
-		if not character in _completed_actions:
+		if is_instance_valid(character) and not character in _completed_actions:
 			_completed_actions[character] = []
 
 func _handle_round_state() -> void:
@@ -196,6 +213,9 @@ func _handle_cleanup_state() -> void:
 
 func _handle_initiative_phase() -> void:
 	for character in active_combatants:
+		if not is_instance_valid(character):
+			continue
+			
 		# Check if the character has the method
 		if character.get_method_list().any(func(method): return method.name == "initialize_for_battle"):
 			character.initialize_for_battle()

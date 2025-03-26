@@ -1,6 +1,9 @@
 @tool
 extends "res://tests/fixtures/specialized/enemy_test.gd"
 
+# Import the Enemy class for type checking
+const Enemy = preload("res://src/core/enemy/Enemy.gd")
+
 # Type-safe instance variables for group behavior testing
 var _group_manager: Node = null
 var _test_group: Array[Enemy] = []
@@ -28,7 +31,7 @@ func before_each() -> void:
 	# Create test group
 	_test_group = []
 	for i in range(GROUP_SIZE):
-		var enemy: Enemy = create_test_enemy()
+		var enemy := create_test_enemy()
 		if not enemy:
 			push_error("Failed to create test enemy %d" % i)
 			continue
@@ -43,6 +46,10 @@ func after_each() -> void:
 
 # Formation Tests
 func test_group_formation() -> void:
+	var enemy := create_test_enemy()
+	assert_not_null(enemy, "Enemy should be created")
+	add_child_autofree(enemy)
+	
 	var leader: Enemy = create_test_enemy(EnemyTestType.ELITE)
 	assert_not_null(leader, "Leader should be created")
 	
@@ -50,7 +57,7 @@ func test_group_formation() -> void:
 	assert_eq(followers.size(), 2, "Should create correct number of followers")
 	
 	# Test formation setup
-	var formation_success: bool = _call_node_method_bool(leader, "setup_formation", [followers, FORMATION_SPACING])
+	var formation_success: bool = TypeSafeMixin._call_node_method_bool(leader, "setup_formation", [followers, FORMATION_SPACING])
 	assert_true(formation_success, "Formation should be set up successfully")
 	
 	# Verify formation positions
@@ -69,7 +76,7 @@ func test_group_coordination() -> void:
 	
 	# Test group movement coordination
 	var target_pos := Vector2(10, 10)
-	var move_success: bool = _call_node_method_bool(leader, "coordinate_group_movement", [group, target_pos])
+	var move_success: bool = TypeSafeMixin._call_node_method_bool(leader, "coordinate_group_movement", [group, target_pos])
 	assert_true(move_success, "Group should coordinate movement")
 	
 	# Verify group is moving together
@@ -170,6 +177,49 @@ func test_group_reformation() -> void:
 		assert_true(distance <= FORMATION_SPACING * 2.0,
 			"Reformed units should be near leader")
 
+# Leader Assignment Tests
+func test_leader_assignment() -> void:
+	var leader := create_test_enemy(EnemyTestType.ELITE)
+	assert_not_null(leader, "Leader should be created")
+	add_child_autofree(leader)
+	
+	# ... existing code ...
+
+# Group Mechanics Tests
+
+# ... existing code ...
+
+func test_group_cohesion() -> void:
+	var leader := create_test_enemy(EnemyTestType.ELITE)
+	assert_not_null(leader, "Leader should be created")
+	add_child_autofree(leader)
+	
+	# ... existing code ...
+
+# Targeting Tests
+func test_group_targeting() -> void:
+	var target := create_test_enemy()
+	assert_not_null(target, "Target should be created")
+	add_child_autofree(target)
+	
+	# ... existing code ...
+
+# Group Reinforcement Tests
+func test_group_reinforcement() -> void:
+	var leader := create_test_enemy(EnemyTestType.ELITE)
+	assert_not_null(leader, "Leader should be created")
+	add_child_autofree(leader)
+	
+	var follower := create_test_enemy()
+	assert_not_null(follower, "Follower should be created")
+	add_child_autofree(follower)
+	
+	var follower2 := create_test_enemy()
+	assert_not_null(follower2, "Second follower should be created")
+	add_child_autofree(follower2)
+	
+	# ... existing code ...
+
 # Helper Methods
 func _create_test_group(size: int = GROUP_SIZE) -> Array[Enemy]:
 	var group: Array[Enemy] = []
@@ -180,7 +230,7 @@ func _create_test_group(size: int = GROUP_SIZE) -> Array[Enemy]:
 	group.append(leader)
 	
 	for i in range(size - 1):
-		var follower: Enemy = create_test_enemy()
+		var follower := create_test_enemy()
 		if not follower:
 			push_error("Failed to create follower %d" % i)
 			continue
@@ -191,7 +241,7 @@ func _create_test_group(size: int = GROUP_SIZE) -> Array[Enemy]:
 func _create_follower_group(size: int) -> Array[Enemy]:
 	var followers: Array[Enemy] = []
 	for i in range(size):
-		var follower: Enemy = create_test_enemy()
+		var follower := create_test_enemy()
 		if not follower:
 			push_error("Failed to create follower %d" % i)
 			continue

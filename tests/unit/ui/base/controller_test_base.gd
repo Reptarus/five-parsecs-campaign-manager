@@ -8,6 +8,7 @@ extends "res://tests/unit/ui/base/ui_test_base.gd"
 var _controller: Node
 var _controlled_nodes: Array[Node] = []
 var _controller_signal_watcher: Node
+var _mock_state: Node
 
 func before_each() -> void:
 	await super.before_each()
@@ -30,12 +31,18 @@ func _setup_controller() -> void:
 	add_child_autofree(_controller_signal_watcher)
 	track_test_node(_controller_signal_watcher)
 	
+	_mock_state = _create_mock_state()
+	
+	if _controller.get_method_list().any(func(method): return method.name == "set_state"):
+		_controller.set_state(_mock_state)
+	
 	await stabilize_engine()
 
 func _cleanup_controller() -> void:
 	_controller = null
 	_controlled_nodes.clear()
 	_controller_signal_watcher = null
+	_mock_state = null
 
 # Virtual method to be overridden by specific controller tests
 func _create_controller_instance() -> Node:
@@ -184,3 +191,13 @@ func simulate_controller_update(delta: float = 0.016) -> void:
 func wait_for_controller_ready() -> void:
 	await get_tree().process_frame
 	assert_true(_controller.is_inside_tree(), "Controller should be ready")
+
+func _create_mock_state() -> Node:
+	_mock_state = Node.new()
+	add_child_autofree(_mock_state)
+	return _mock_state
+
+func _update_controller() -> void:
+	if is_instance_valid(_controller):
+		if _controller.get_method_list().any(func(method): return method.name == "update"):
+			_controller.update()

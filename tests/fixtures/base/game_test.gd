@@ -247,9 +247,20 @@ func assert_valid_game_state(state: Node) -> void:
 ## Stabilization helpers
 
 func stabilize_engine(time: float = STABILIZE_TIME) -> void:
-	await get_tree().create_timer(time).timeout
-	await get_tree().process_frame
-	await get_tree().process_frame
+	# Check if we have a valid scene tree
+	var tree = get_tree()
+	if tree == null:
+		push_warning("get_tree() returned null in stabilize_engine, using alternative stabilization")
+		# Use a simple delay as fallback when tree is not available
+		await Engine.get_main_loop().process_frame
+		OS.delay_msec(int(time * 1000))
+		await Engine.get_main_loop().process_frame
+		return
+		
+	# Normal stabilization with valid tree
+	await tree.create_timer(time).timeout
+	await tree.process_frame
+	await tree.process_frame
 
 func stabilize_game_state(time: float = STABILIZE_TIME) -> void:
 	if _game_state:
@@ -414,7 +425,13 @@ func add_child_autofree(node: Node, call_ready: bool = true) -> void:
 	if not node:
 		push_error("Cannot add null node")
 		return
-		
+	
+	# Check if the node already has a parent
+	if node.get_parent() != null:
+		push_warning("Node '%s' already has a parent '%s'. Removing from current parent before adding." % [node.name, node.get_parent().name])
+		node.get_parent().remove_child(node)
+	
+	# Add the node and track it
 	add_child(node, call_ready)
 	track_test_node(node) # This will ensure the node gets freed during cleanup
 

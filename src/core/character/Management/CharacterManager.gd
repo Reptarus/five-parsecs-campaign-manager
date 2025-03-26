@@ -57,7 +57,7 @@ func create_character():
 	return character
 
 func add_character(character) -> bool:
-	if not character:
+	if not character or not is_instance_valid(character):
 		return false
 		
 	if _characters.size() >= MAX_CHARACTERS:
@@ -130,32 +130,43 @@ func get_injured_characters() -> Array:
 
 # Helper function to get character properties safely
 func _get_character_property(character, property: String, default_value = null):
-	if not character:
+	if not character or not is_instance_valid(character):
 		return default_value
 		
-	if character.get_method_list().any(func(method): return method.name == "get"):
-		return character.get(property, default_value)
+	# Try direct property access first
+	if property in character:
+		return character.get(property)
 		
+	# Try get method
 	var get_method = "get_" + property
 	if character.get_method_list().any(func(method): return method.name == get_method):
 		return character.call(get_method)
 		
-	if property in character:
-		return character[property]
+	# Try generic get method
+	if character.get_method_list().any(func(method): return method.name == "get"):
+		return character.call("get", property, default_value)
 		
 	return default_value
 
 # Helper function to set character properties safely
 func _set_character_property(character, property: String, value) -> void:
-	if not character:
+	if not character or not is_instance_valid(character):
 		return
 		
-	if character.get_method_list().any(func(method): return method.name == "set"):
+	# Try direct property access first
+	if property in character:
 		character.set(property, value)
-	elif character.get_method_list().any(func(method): return method.name == "set_" + property):
-		character.call("set_" + property, value)
-	elif property in character:
-		character[property] = value
+		return
+		
+	# Try set method
+	var set_method = "set_" + property
+	if character.get_method_list().any(func(method): return method.name == set_method):
+		character.call(set_method, value)
+		return
+		
+	# Try generic set method
+	if character.get_method_list().any(func(method): return method.name == "set"):
+		character.call("set", property, value)
 
 # Update the active characters list
 func _update_active_characters() -> void:

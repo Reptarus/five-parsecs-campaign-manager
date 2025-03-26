@@ -177,6 +177,10 @@ func cleanup_campaign_state() -> void:
 func create_mission(mission_type: GameEnums.MissionType, config: Dictionary = {}) -> Resource:
 	var mission: Resource = StoryQuestDataScript.create_mission(mission_type, config)
 	
+	# Set resource path if empty to prevent inst_to_dict errors during testing
+	if mission is Resource and mission.resource_path.is_empty():
+		mission.resource_path = "res://src/core/systems/generated_mission_%d.tres" % Time.get_unix_time_from_system()
+	
 	# Configure the mission with its type-specific settings
 	mission.configure(mission_type)
 	
@@ -538,25 +542,58 @@ func load_campaign_state(save_data: Dictionary) -> bool:
 func _serialize_missions(missions: Array[Resource]) -> Array:
 	var serialized := []
 	for mission in missions:
-		serialized.append({
-			"mission_id": mission.mission_id,
-			"mission_type": mission.mission_type,
-			"name": mission.name,
-			"description": mission.description,
-			"is_active": mission.is_active,
-			"is_completed": mission.is_completed,
-			"is_failed": mission.is_failed,
-			"completion_percentage": mission.completion_percentage,
-			"objectives": mission.objectives,
-			"primary_objective": mission.primary_objective,
-			"secondary_objectives": mission.secondary_objectives,
-			"required_crew_size": mission.required_crew_size,
-			"required_equipment": mission.required_equipment,
-			"required_resources": mission.required_resources,
-			"reward_credits": mission.reward_credits,
-			"reward_reputation": mission.reward_reputation,
-			"reward_items": mission.reward_items
-		})
+		# Skip invalid missions
+		if not mission or not is_instance_valid(mission):
+			continue
+		
+		# Create a safe serializable dictionary
+		var mission_data := {
+			"mission_id": "",
+			"mission_type": GameEnums.MissionType.NONE,
+			"name": "Unnamed Mission",
+			"description": "",
+			"is_active": false,
+			"is_completed": false,
+			"is_failed": false,
+			"completion_percentage": 0.0,
+			"objectives": [],
+			"primary_objective": GameEnums.MissionObjective.NONE,
+			"secondary_objectives": [],
+			"required_crew_size": 0,
+			"required_equipment": [],
+			"required_resources": {},
+			"reward_credits": 0,
+			"reward_reputation": 0,
+			"reward_items": []
+		}
+		
+		# Safely copy data using has() checks rather than direct attribute access
+		# This avoids potential errors with invalid mission objects
+		if mission.has("mission_id"): mission_data["mission_id"] = mission.mission_id
+		else: mission_data["mission_id"] = _generate_mission_id()
+		
+		if mission.has("mission_type"): mission_data["mission_type"] = mission.mission_type
+		if mission.has("name"): mission_data["name"] = mission.name
+		if mission.has("description"): mission_data["description"] = mission.description
+		if mission.has("is_active"): mission_data["is_active"] = mission.is_active
+		if mission.has("is_completed"): mission_data["is_completed"] = mission.is_completed
+		if mission.has("is_failed"): mission_data["is_failed"] = mission.is_failed
+		if mission.has("completion_percentage"): mission_data["completion_percentage"] = mission.completion_percentage
+		
+		# Handle arrays and dictionaries - duplicate to avoid reference issues
+		if mission.has("objectives"): mission_data["objectives"] = mission.objectives.duplicate()
+		if mission.has("secondary_objectives"): mission_data["secondary_objectives"] = mission.secondary_objectives.duplicate()
+		if mission.has("required_equipment"): mission_data["required_equipment"] = mission.required_equipment.duplicate()
+		if mission.has("required_resources"): mission_data["required_resources"] = mission.required_resources.duplicate()
+		if mission.has("reward_items"): mission_data["reward_items"] = mission.reward_items.duplicate()
+		
+		# Handle primitive types
+		if mission.has("primary_objective"): mission_data["primary_objective"] = mission.primary_objective
+		if mission.has("required_crew_size"): mission_data["required_crew_size"] = mission.required_crew_size
+		if mission.has("reward_credits"): mission_data["reward_credits"] = mission.reward_credits
+		if mission.has("reward_reputation"): mission_data["reward_reputation"] = mission.reward_reputation
+		
+		serialized.append(mission_data)
 	return serialized
 
 func _deserialize_missions(data: Array) -> Array[Resource]:
@@ -574,8 +611,15 @@ func _deserialize_missions(data: Array) -> Array[Resource]:
 			
 		# Handle missing mission_type
 		var mission_type = mission_data.get("mission_type", GameEnums.MissionType.NONE)
+		
+		# Create mission with proper resource instantiation
 		var mission: Resource = StoryQuestDataScript.create_mission(mission_type)
 		
+		# Skip if mission creation failed
+		if not mission:
+			push_warning("Failed to create mission for type: " + str(mission_type))
+			continue
+			
 		# Safely restore mission state with defaults for missing fields
 		mission.mission_id = mission_data.get("mission_id", _generate_mission_id())
 		mission.name = mission_data.get("name", "Unnamed Mission")
@@ -584,15 +628,19 @@ func _deserialize_missions(data: Array) -> Array[Resource]:
 		mission.is_completed = mission_data.get("is_completed", false)
 		mission.is_failed = mission_data.get("is_failed", false)
 		mission.completion_percentage = mission_data.get("completion_percentage", 0.0)
-		mission.objectives = mission_data.get("objectives", [])
+		
+		# Carefully handle array and dictionary fields to avoid reference issues
+		mission.objectives = mission_data.get("objectives", []).duplicate()
+		mission.secondary_objectives = mission_data.get("secondary_objectives", []).duplicate()
+		mission.required_equipment = mission_data.get("required_equipment", []).duplicate()
+		mission.required_resources = mission_data.get("required_resources", {}).duplicate()
+		mission.reward_items = mission_data.get("reward_items", []).duplicate()
+		
+		# Handle primitive types
 		mission.primary_objective = mission_data.get("primary_objective", GameEnums.MissionObjective.NONE)
-		mission.secondary_objectives = mission_data.get("secondary_objectives", [])
 		mission.required_crew_size = mission_data.get("required_crew_size", 0)
-		mission.required_equipment = mission_data.get("required_equipment", [])
-		mission.required_resources = mission_data.get("required_resources", {})
 		mission.reward_credits = mission_data.get("reward_credits", 0)
 		mission.reward_reputation = mission_data.get("reward_reputation", 0)
-		mission.reward_items = mission_data.get("reward_items", [])
 		
 		missions.append(mission)
 	return missions

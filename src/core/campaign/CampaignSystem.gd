@@ -46,18 +46,31 @@ func _init(state: GameState = null) -> void:
 		return
 
 ## Initialize the campaign system with a game state
-func initialize(state: GameState) -> void:
+## Returns true if initialization was successful, false otherwise
+func initialize(state) -> bool:
+	# Strong type checking for GameState
+	if state == null:
+		push_error("Cannot initialize with null game state")
+		return false
+		
+	if not is_instance_valid(state):
+		push_error("Cannot initialize with invalid game state object")
+		return false
+	
+	# Check if state is the expected type
+	if not (state is GameState or (state.get_script() != null and state.get_script() == GameState)):
+		push_error("Invalid GameState object type provided to initialize")
+		return false
+		
+	# Store the valid game state
 	game_state = state
-	if not game_state:
-		push_error("Failed to initialize campaign system with game state")
-		return
 	
 	# Load active campaign from game state if it exists
 	if game_state.current_campaign:
-		# Add type check to handle different campaign types
 		active_campaign = game_state.current_campaign
-		# Make sure to emit the signal regardless of the campaign type
 		campaign_loaded.emit(active_campaign)
+	
+	return true
 
 ## Get the total number of completed missions
 func get_completed_missions_count() -> int:
@@ -132,7 +145,7 @@ func advance_story() -> void:
 func create_campaign(config: Dictionary) -> FiveParsecsCampaign:
 	var campaign = FiveParsecsCampaign.new()
 	campaign.campaign_name = config.get("name", "New Campaign")
-	campaign.difficulty = config.get("difficulty", GameEnums.DifficultyLevel.NORMAL)
+	campaign.campaign_difficulty = config.get("difficulty", GameEnums.DifficultyLevel.NORMAL)
 	campaign.victory_condition = config.get("victory_condition", GameEnums.FiveParcsecsCampaignVictoryType.STANDARD)
 	campaign.crew_size = config.get("crew_size", GameEnums.CrewSize.FOUR)
 	campaign.use_story_track = config.get("use_story_track", true)

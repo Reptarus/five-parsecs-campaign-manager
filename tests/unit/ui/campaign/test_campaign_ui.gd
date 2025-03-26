@@ -14,11 +14,22 @@ func before_each() -> void:
 	await super.before_each()
 	
 	# Initialize campaign UI
+	if not CampaignUI:
+		push_error("CampaignUI script is null")
+		return
+		
 	_campaign_ui = CampaignUI.new()
 	if not _campaign_ui:
 		push_error("Failed to create campaign UI")
 		return
-	TypeSafeMixin._call_node_method_bool(_campaign_ui, "initialize", [_game_state])
+		
+	# Initialize UI with direct method call instead of using TypeSafeMixin
+	if _campaign_ui.has_method("initialize"):
+		_campaign_ui.initialize(_game_state)
+	else:
+		push_error("Campaign UI doesn't have initialize method")
+		return
+		
 	add_child_autofree(_campaign_ui)
 	track_test_node(_campaign_ui)
 	

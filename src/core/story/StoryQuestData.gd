@@ -355,9 +355,19 @@ func calculate_rewards() -> Dictionary:
 	reward_calculated.emit(rewards)
 	return rewards
 
-static func create_mission(p_mission_type: int, p_config: Dictionary = {}) -> Resource:
-	var mission := Self.new()
-	mission.configure(p_mission_type, p_config)
+# Static methods for mission creation
+static func create_mission(mission_type: int, config: Dictionary = {}) -> Resource:
+	var mission = Self.new()
+	
+	# Assign a valid resource path for testing purposes
+	# This prevents inst_to_dict errors when the mission is used in tests
+	if mission.resource_path.is_empty():
+		mission.resource_path = "res://src/core/story/generated_mission_%d.tres" % randi()
+	
+	# Configure basic mission properties
+	mission.mission_id = "mission_%d" % randi()
+	mission.configure(mission_type, config)
+	
 	return mission
 
 func add_objective(objective_type: int, description: String = "", required: bool = true) -> void:

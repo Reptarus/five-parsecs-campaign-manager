@@ -93,9 +93,9 @@ func setup_stat_distribution(parent):
 	var stats = {
 		"Reactions": {"min": 1, "max": 6},
 		"Speed": {"min": 4, "max": 8},
-		"CombatSkill": {"min": -3, "max": 3},
+		"CombatSkill": {"min": - 3, "max": 3},
 		"Toughness": {"min": 3, "max": 6},
-		"Savvy": {"min": -3, "max": 3},
+		"Savvy": {"min": - 3, "max": 3},
 		"Luck": {"min": 0, "max": 3}
 	}
 

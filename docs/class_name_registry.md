@@ -6,7 +6,19 @@ This document serves as a central registry for all `class_name` declarations in 
 
 1. **Authoritative Location**: Each class name should only be declared in ONE script file, considered the "authoritative" version.
 2. **References**: All other scripts should reference the class via explicit preloading with absolute paths.
+   ```gdscript
+   # CORRECT: Use explicit preloading with absolute paths
+   const GameState = preload("res://src/core/state/GameState.gd")
+   
+   # AVOID: Using class names directly
+   var state = GameState.new()
+   ```
 3. **Documentation**: When a `class_name` declaration is removed, add a comment explaining it was removed and where the authoritative version is located.
+   ```gdscript
+   # This class previously used 'class_name ValidationResult'
+   # Now use ValidationManager.create_result() factory method instead
+   # See: res://src/core/systems/ValidationManager.gd
+   ```
 
 ## Core Classes
 
@@ -47,5 +59,30 @@ This document serves as a central registry for all `class_name` declarations in 
 
 | Original Class Name | Was Located In | Replacement Approach |
 |---------------------|----------------|----------------------|
-| `ValidationResult` | `res://src/core/state/StateValidator.gd` | Now an inner class, use factory method `create_result()` |
-| `PathNode` | `res://src/utils/helpers/PathFinder.gd` | Now an inner class, use factory method `create_path_node()` | 
+| `ValidationResult` | `res://src/core/state/StateValidator.gd` | Now an inner class, use factory method `ValidationManager.create_result()` |
+| `PathNode` | `res://src/utils/helpers/PathFinder.gd` | Now an inner class, use factory method `PathFinder.create_path_node()` |
+
+## How to Fix Class Name Issues
+
+When you encounter class name conflicts or issues:
+
+1. **Check this registry** to see if there's an existing authoritative source
+2. **Use preload with absolute paths** rather than class names
+   ```gdscript
+   # CORRECT
+   const MyClass = preload("res://path/to/MyClass.gd")
+   var instance = MyClass.new()
+   
+   # AVOID
+   var instance = MyClass.new()  # Direct class name usage
+   ```
+3. **For test files**, always use file path references in extends statements:
+   ```gdscript
+   # CORRECT
+   extends "res://tests/fixtures/specialized/battle_test.gd"
+   
+   # AVOID
+   extends BattleTest
+   ```
+4. **Add new entries** to this registry when creating new classes with class_name
+5. **Update the deprecated list** when removing class_name declarations 

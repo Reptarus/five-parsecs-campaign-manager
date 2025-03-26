@@ -1,149 +1,162 @@
 @tool
 extends CharacterBody2D
 
-const GameEnums = preload("res://src/core/systems/GlobalEnums.gd")
+# Forward to the main Enemy class
+const MainEnemy = preload("res://src/core/enemy/Enemy.gd")
 
 # Core properties
-@export var enemy_data: Resource # Will be cast to FiveParsecsEnemyData
-@export var behavior: GameEnums.AIBehavior = GameEnums.AIBehavior.CAUTIOUS
+var enemy_data = null
+var navigation_agent: NavigationAgent2D = null
 
-# Movement
-@export var movement_range: int = 4
-@export var movement_points: int = 4
-
-# Combat
-@export var weapon_range: int = 1
-@export var attack_points: int = 1
+# Stats
+var health: int = 100
+var max_health: int = 100
+var damage: int = 10
+var armor: int = 5
+var abilities: Array = []
+var loot_table: Dictionary = {"credits": 50, "items": []}
+var is_dead_state: bool = false
 
 # Signals
-signal state_changed(new_state: Dictionary)
-signal action_completed(action_type: String)
-signal movement_completed
-signal attack_completed
+signal enemy_initialized
 signal health_changed(new_health: int, old_health: int)
 signal died
 
-# Internal state
-var _current_health: int = 100
-var _max_health: int = 100
-var _current_state: Dictionary = {
-	"action_points": 2,
-	"movement_points": 4,
-	"can_attack": true,
-	"can_move": true,
-	"is_active": false
-}
-
 func _ready() -> void:
-	if not enemy_data:
-		push_warning("Enemy initialized without enemy data")
-		return
-		
-	_initialize_from_data()
+	# Create a NavigationAgent2D if needed for pathing
+	if not has_node("NavigationAgent2D"):
+		navigation_agent = NavigationAgent2D.new()
+		navigation_agent.name = "NavigationAgent2D"
+		add_child(navigation_agent)
+	emit_signal("enemy_initialized")
 
-func _initialize_from_data() -> void:
-	if not enemy_data:
-		return
-		
-	# Initialize stats from enemy data
-	if enemy_data.has_method("get_health"):
-		_max_health = enemy_data.get_health()
-		movement_range = enemy_data.get_movement_range()
-		weapon_range = enemy_data.get_weapon_range()
-		behavior = enemy_data.get_behavior()
-	else:
-		# Default values if methods not available
-		_max_health = 100
-		movement_range = 4
-		weapon_range = 1
-		behavior = GameEnums.AIBehavior.CAUTIOUS
+func initialize(data) -> bool:
+	enemy_data = data
+	# Set basic properties
+	if data:
+		# First check if the data is an Object or a Dictionary
+		if typeof(data) == TYPE_DICTIONARY:
+			# Direct dictionary access
+			health = data.get("health", 100)
+			max_health = data.get("max_health", 100)
+			damage = data.get("damage", 10)
+			armor = data.get("armor", 5)
+			if data.has("name") or data.has("enemy_name"):
+				name = data.get("name", data.get("enemy_name", "Enemy"))
+		# If it's an object, check for methods
+		elif data.has_method("get_meta"):
+			health = data.get_meta("health") if data.has_meta("health") else 100
+			max_health = data.get_meta("max_health") if data.has_meta("max_health") else 100
+			damage = data.get_meta("damage") if data.has_meta("damage") else 10
+			armor = data.get_meta("armor") if data.has_meta("armor") else 5
+			if data.has_meta("name"):
+				name = data.get_meta("name")
+		elif data.has_method("to_dict"):
+			var dict = data.to_dict()
+			health = dict.get("health", 100)
+			max_health = dict.get("max_health", 100)
+			damage = dict.get("damage", 10)
+			armor = dict.get("armor", 5)
+			name = dict.get("enemy_name", "Enemy")
+		# Fallback to direct property access if methods aren't available
+		else:
+			if data.get("health") != null:
+				health = data.health
+			if data.get("max_health") != null:
+				max_health = data.max_health
+			if data.get("damage") != null:
+				damage = data.damage
+			if data.get("armor") != null:
+				armor = data.armor
+			if data.get("name") != null:
+				name = data.name
+			elif data.get("enemy_name") != null:
+				name = data.enemy_name
+	emit_signal("enemy_initialized")
+	return true
 	
-	_current_health = _max_health
-
-# Movement methods
-func get_movement_range() -> int:
-	return movement_range
-
-func get_movement_points() -> int:
-	return _current_state.movement_points
-
-func can_move() -> bool:
-	return _current_state.can_move and _current_state.movement_points > 0
-
-func move_to(target_position: Vector2) -> void:
-	if not can_move():
-		return
-		
-	# Implement actual movement logic here
-	position = target_position
-	_current_state.movement_points -= 1
-	if _current_state.movement_points <= 0:
-		_current_state.can_move = false
+func get_health() -> int:
+	return health
 	
-	movement_completed.emit()
-	state_changed.emit(_current_state)
+func set_health(value: int) -> void:
+	var old_health = health
+	health = value
+	is_dead_state = health <= 0
+	health_changed.emit(health, old_health)
+	
+	if is_dead_state:
+		died.emit()
+	
+func take_damage(amount: int) -> int:
+	var actual_damage = max(0, amount - armor)
+	var old_health = health
+	health -= actual_damage
+	is_dead_state = health <= 0
+	health_changed.emit(health, old_health)
+	
+	if is_dead_state:
+		died.emit()
+		
+	return actual_damage
+	
+func is_dead() -> bool:
+	return is_dead_state
+	
+func get_abilities() -> Array:
+	return abilities
+	
+func get_loot() -> Dictionary:
+	return loot_table
 
 # Combat methods
-func get_weapon() -> Resource:
-	return enemy_data.get_weapon() if enemy_data and enemy_data.has_method("get_weapon") else null
-
+func get_attack_damage() -> int:
+	return damage
+	
 func can_attack() -> bool:
-	return _current_state.can_attack and get_weapon() != null
+	return health > 0
+	
+# Movement methods
+func move_to(target_position: Vector2) -> void:
+	if not is_instance_valid(navigation_agent):
+		navigation_agent = $NavigationAgent2D if has_node("NavigationAgent2D") else null
+		if not navigation_agent:
+			navigation_agent = NavigationAgent2D.new()
+			navigation_agent.name = "NavigationAgent2D"
+			add_child(navigation_agent)
+	
+	# Set the target for navigation
+	navigation_agent.target_position = target_position
+	
+	# Basic implementation - just update position
+	position = target_position
 
-func attack(target: Node2D) -> void:
-	if not can_attack():
-		return
+# Test pathfinding initialization
+func test_pathfinding_initialization() -> bool:
+	if not has_node("NavigationAgent2D"):
+		var nav_agent = NavigationAgent2D.new()
+		nav_agent.name = "NavigationAgent2D"
+		add_child(nav_agent)
+		navigation_agent = nav_agent
 		
-	# Implement attack logic here
-	_current_state.can_attack = false
-	attack_completed.emit()
-	state_changed.emit(_current_state)
+	if not is_instance_valid(navigation_agent):
+		navigation_agent = get_node_or_null("NavigationAgent2D")
+		
+	return is_instance_valid(navigation_agent)
 
-# Health methods
-func get_health() -> int:
-	return _current_health
-
-func get_max_health() -> int:
-	return _max_health
-
-func take_damage(amount: int) -> void:
-	var old_health = _current_health
-	_current_health = maxi(0, _current_health - amount)
-	health_changed.emit(_current_health, old_health)
+# Ability handling
+func has_ability(ability_type: int) -> bool:
+	for ability in abilities:
+		if ability is Dictionary and ability.get("ability_type") == ability_type:
+			return true
+	return false
 	
-	if _current_health <= 0:
-		died.emit()
-
-func heal(amount: int) -> void:
-	var old_health = _current_health
-	_current_health = mini(_max_health, _current_health + amount)
-	health_changed.emit(_current_health, old_health)
-
-# State management
-func start_turn() -> void:
-	_current_state.action_points = 2
-	_current_state.movement_points = movement_points
-	_current_state.can_attack = true
-	_current_state.can_move = true
-	_current_state.is_active = true
-	state_changed.emit(_current_state)
-
-func end_turn() -> void:
-	_current_state.action_points = 0
-	_current_state.movement_points = 0
-	_current_state.can_attack = false
-	_current_state.can_move = false
-	_current_state.is_active = false
-	state_changed.emit(_current_state)
-
-func get_state() -> Dictionary:
-	return _current_state.duplicate()
-
-func get_combat_rating() -> float:
-	if not enemy_data:
-		return 1.0
-	
-	var weapon_rating = 1.0 if not get_weapon() else get_weapon().get_rating()
-	var health_ratio = float(_current_health) / float(_max_health)
-	
-	return weapon_rating * health_ratio
+func add_ability(ability: Dictionary) -> void:
+	if not ability in abilities:
+		abilities.append(ability)
+		
+func use_ability(ability_type: int, target: Node2D = null) -> bool:
+	# Simple implementation
+	for ability in abilities:
+		if ability is Dictionary and ability.get("ability_type") == ability_type:
+			return true
+	return false

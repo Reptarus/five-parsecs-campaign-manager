@@ -1,6 +1,180 @@
-# Five Parsecs Campaign Manager Test Suite
+# Five Parsecs Campaign Manager - Testing Framework
 
-## Current Test Structure
+This directory contains tests for the Five Parsecs Campaign Manager application. The testing framework is designed to ensure code quality, catch regressions, and validate game mechanics against the tabletop rules.
+
+## Test Structure
+
+- `fixtures/`: Base test classes and helper utilities
+- `fixtures/helpers/`: Helper functions for common testing patterns
+- `unit/`: Fine-grained tests for individual components
+- `integration/`: Tests for interactions between multiple components
+- `mobile/`: Tests specific to mobile platform functionality
+- `performance/`: Tests focused on ensuring game performance
+
+## Godot 4.4 Compatibility
+
+As of Godot 4.4, several key behavior changes affect how tests should be written:
+
+1. Resources must have valid resource paths
+2. Method checking using `has_method()` is deprecated; use `has()` instead 
+3. Dictionary access patterns have changed
+4. Type casting needs to be more explicit
+
+### Using the Compatibility Helper
+
+We've created a `test_compatibility_helper.gd` utility with functions to handle these changes:
+
+```gdscript
+# Import the helper
+const Compatibility = preload("res://tests/fixtures/helpers/test_compatibility_helper.gd")
+
+# 1. Ensure resources have valid paths
+var my_resource = SomeResource.new()
+my_resource = Compatibility.ensure_resource_path(my_resource, "test_resource_name")
+
+# 2. Safely check for and call methods
+if Compatibility.safe_has_method(some_object, "some_method"):
+    # Method exists, call it safely
+    var result = Compatibility.safe_call_method(some_object, "some_method", [arg1, arg2], default_value)
+
+# 3. Safely access dictionary values
+var value = Compatibility.safe_dict_get(my_dict, "key", default_value)
+
+# 4. Safely connect signals
+Compatibility.safe_connect_signal(emitter, "signal_name", callable)
+```
+
+## Best Practices
+
+1. **Type Safety**: Always use explicit typing for variables, parameters, and return values.
+
+```gdscript
+# Good
+var _inventory: Resource = null 
+func test_some_feature() -> void:
+    var count: int = Compatibility.safe_call_method(_inventory, "get_count", [], 0)
+    
+# Avoid
+var _inventory
+func test_some_feature():
+    var count = _inventory.get_count()
+```
+
+2. **Resource Creation**: Always ensure resources have valid paths.
+
+```gdscript
+# Good
+var item: Resource = Item.new()
+item = Compatibility.ensure_resource_path(item, "test_item")
+
+# Avoid
+var item = Item.new() # Missing resource path in Godot 4.4
+```
+
+3. **Error Handling**: Use null checks and provide meaningful error messages.
+
+```gdscript
+# Good
+func _create_test_item() -> Resource:
+    if not Item:
+        push_error("Item script is null")
+        return null
+        
+    var item: Resource = Item.new()
+    if not item:
+        push_error("Failed to create test item")
+        return null
+        
+    return Compatibility.ensure_resource_path(item, "test_item")
+```
+
+4. **Method Calls**: Use safe method calling patterns.
+
+```gdscript
+# Good
+Compatibility.safe_call_method(object, "method_name", [arg1, arg2], default_value)
+
+# Avoid direct calls without checking
+object.method_name(arg1, arg2)
+```
+
+5. **Signal Verification**: Use the built-in signal verification tools.
+
+```gdscript
+# Good
+watch_signals(object)
+Compatibility.safe_call_method(object, "do_something", [])
+verify_signal_emitted(object, "signal_name")
+```
+
+## Running Tests
+
+Tests can be run using the built-in Godot test runner or automated via CI/CD pipelines. To run tests:
+
+1. Open the project in Godot 4.4
+2. Navigate to the test scene or script
+3. Use the Godot test runner to execute tests
+
+## Contributing New Tests
+
+When adding new tests:
+
+1. Follow the existing directory structure
+2. Use the base test classes for consistency
+3. Ensure compatibility with Godot 4.4 using the helper functions
+4. Include proper test documentation in comments
+5. Test both expected behavior and edge cases
+
+## Documentation
+
+Detailed testing documentation is now maintained in the main documentation directory:
+
+- [Test Architecture Decisions](../docs/test_architecture_decisions.md): Comprehensive test architecture documentation including organization and patterns
+- [Test File Extends Fix](../docs/test_file_extends_fix.md): Complete guide for migrating test files and fixing common issues
+- [Test Callable Patterns](../docs/test_callable_patterns.md): Patterns for working with callables in tests
+- [Test Safety Patterns](../docs/test_safety_patterns.md): Patterns for safe testing and resource handling
+- [GUT Plugin Fixes](../docs/gut_plugin_fixes.md): Fixes for GUT plugin compatibility with Godot 4.4
+
+Other relevant files:
+- [README-GUT.md](README-GUT.md): Original GUT (Godot Unit Testing) reference
+- [FIVE_PARSECS_TESTING.md](FIVE_PARSECS_TESTING.md): Legacy testing guide (use docs directory for most recent information)
+
+## Key Considerations for Testing
+
+### Resource Safety
+
+To prevent common test failures, ensure:
+
+1. All resources have valid resource paths:
+   ```gdscript
+   if resource is Resource and resource.resource_path.is_empty():
+       resource.resource_path = "res://tests/generated/test_resource_%d.tres" % Time.get_unix_time_from_system()
+   ```
+
+2. Use safe serialization instead of inst_to_dict:
+   ```gdscript
+   # Instead of inst_to_dict, copy properties explicitly
+   var serialized = {}
+   if resource.has("property_name"):
+       serialized["property_name"] = resource.property_name
+   ```
+
+3. Always track resources for cleanup:
+   ```gdscript
+   track_test_resource(resource)
+   ```
+
+### Godot 4.4 Compatibility
+
+Ensure tests work with Godot 4.4:
+
+1. Use `in` operator instead of `has()` for dictionaries
+2. Use proper property access checks with `has()`
+3. Verify object validity before operations
+
+## Test Structure
+
+Our tests follow a hierarchical structure:
 
 ```
 GutTest (from addon/gut/test.gd)
@@ -13,87 +187,92 @@ GutTest (from addon/gut/test.gd)
         └── EnemyTest (from tests/fixtures/specialized/enemy_test.gd)
 ```
 
+Always extend the appropriate specialized test class using file paths:
+
+```gdscript
+@tool
+extends "res://tests/fixtures/specialized/campaign_test.gd"
+```
+
 ## Directory Structure
 
-```
-tests/
-├── fixtures/                # Test utilities and base classes
-│   ├── base/              # Core test classes
-│   │   ├── base_test.gd   # Base test with core utilities
-│   │   └── game_test.gd   # Game-specific test functionality
-│   ├── specialized/       # Domain-specific test bases
-│   │   ├── ui_test.gd     # UI testing functionality
-│   │   ├── battle_test.gd # Battle testing functionality
-│   │   ├── campaign_test.gd # Campaign testing functionality
-│   │   ├── mobile_test.gd # Mobile testing functionality
-│   │   └── enemy_test.gd  # Enemy testing functionality
-│   ├── helpers/           # Test helper functions
-│   └── scenarios/         # Common test scenarios
-├── unit/                  # Unit tests by domain
-│   ├── campaign/         # Campaign system tests
-│   ├── battle/          # Battle system tests
-│   ├── character/       # Character system tests
-│   ├── core/           # Core system tests
-│   ├── enemy/          # Enemy system tests
-│   ├── mission/        # Mission system tests
-│   ├── ship/           # Ship system tests
-│   ├── terrain/        # Terrain system tests
-│   ├── tutorial/       # Tutorial system tests
-│   └── ui/             # UI component tests
-├── integration/          # Integration tests by domain
-├── mobile/              # Mobile-specific tests
-└── performance/         # Performance benchmarks
-```
+- `unit/` - Tests for individual components
+- `integration/` - Tests for component interactions
+- `fixtures/` - Test base classes and utilities
+- `templates/` - Templates for creating new tests
+- `reports/` - Test reports output
+
+## Creating New Tests
+
+1. Choose the appropriate specialized test class
+2. Copy the template from `templates/test_template.gd`
+3. Follow the naming convention `test_[feature].gd`
+4. Implement proper resource safety measures
 
 ## Standardized Test File Template
 
 ```gdscript
 @tool
-extends EnemyTest  # Use class_name, not path reference
+extends "res://tests/fixtures/specialized/battle_test.gd"  # Use file path, not class name
 
-## Test class for MyFeature functionality
+## Test Suite Name
 ##
-## Tests feature creation, modification, and validation
+## Tests the functionality of [Feature]
 
 # Type-safe script references
-const MyFeature: GDScript = preload("res://src/core/my_feature.gd")
+const TestedClass = preload("res://path/to/tested/script.gd")
 
 # Type-safe instance variables
 var _instance: Node = null
 
+# Setup - runs before each test
 func before_each() -> void:
     await super.before_each()
-    _instance = MyFeature.new()
-    add_child_autofree(_instance)
-    await stabilize_engine(STABILIZE_TIME)
+    
+    _instance = TestedClass.new()
+    
+    # Resource path safety check
+    if _instance is Resource and _instance.resource_path.is_empty():
+        _instance.resource_path = "res://tests/generated/test_resource_%d.tres" % Time.get_unix_time_from_system()
+    
+    # Add to tree and track for cleanup
+    if _instance is Node:
+        add_child_autofree(_instance)
+        track_test_node(_instance)
+    else:
+        track_test_resource(_instance)
+    
+    await stabilize_engine()
 
+# Teardown - runs after each test
 func after_each() -> void:
     _instance = null
     await super.after_each()
 
-func test_feature_initialization() -> void:
+# Test methods - organize by functionality
+func test_example() -> void:
     # Given
-    assert_not_null(_instance, "Feature should be created")
+    watch_signals(_instance)
     
     # When
-    watch_signals(_instance)
-    TypeSafeMixin._safe_method_call_bool(_instance, "initialize", [])
+    TypeSafeMixin._safe_method_call_bool(_instance, "some_method", [])
     
     # Then
-    assert_true(_instance.is_initialized)
-    verify_signal_emitted(_instance, "initialized")
+    assert_true(_instance.property, "Expected property to be true")
+    verify_signal_emitted(_instance, "signal_name")
+}
 ```
 
 ## Base Test Class Selection Guide
 
 When writing a new test, use this guide to select the appropriate base class:
 
-1. UI Component Tests → `extends UITest`
-2. Battle System Tests → `extends BattleTest`
-3. Campaign System Tests → `extends CampaignTest`
-4. Enemy System Tests → `extends EnemyTest`
-5. Mobile-Specific Tests → `extends MobileTest`
-6. General Game Tests → `extends GameTest`
+1. UI Component Tests → `extends "res://tests/fixtures/specialized/ui_test.gd"`
+2. Battle System Tests → `extends "res://tests/fixtures/specialized/battle_test.gd"`
+3. Campaign System Tests → `extends "res://tests/fixtures/specialized/campaign_test.gd"`
+4. Enemy System Tests → `extends "res://tests/fixtures/specialized/enemy_test.gd"`
+5. Mobile-Specific Tests → `extends "res://tests/fixtures/specialized/mobile_test.gd"`
+6. General Game Tests → `extends "res://tests/fixtures/base/game_test.gd"`
 
 ## Type Safety Best Practices
 
@@ -131,17 +310,6 @@ We are in the process of standardizing all test files according to the defined h
 2. Ensuring proper super.before_each() and super.after_each() calls
 3. Refactoring to use type-safe methods
 4. Organizing tests according to the standard directory structure
-
-## Running Tests
-
-### Via Editor
-1. Open the project in Godot
-2. Run `tests/run_tests.gd` as an EditorScript
-
-### Via Command Line
-```bash
-godot --script res://tests/run_tests.gd
-```
 
 ## Test File Organization Guidelines
 

@@ -1,6 +1,9 @@
 @tool
 extends "res://tests/fixtures/specialized/enemy_test.gd"
 
+# Import the Enemy class for type checking
+const Enemy = preload("res://src/core/enemy/Enemy.gd")
+
 ## Enemy Combat System Tests
 ##
 ## Tests enemy combat functionality including:
@@ -55,7 +58,7 @@ func test_enemy_combat_initialization() -> void:
 	verify_enemy_combat_state(enemy)
 	
 	# Verify initial combat capabilities
-	var can_attack: bool = _call_node_method_bool(enemy, "can_attack", [])
+	var can_attack: bool = TypeSafeMixin._call_node_method_bool(enemy, "can_attack", [])
 	assert_true(can_attack, "Elite enemy should be able to attack")
 
 # Combat Action Tests
@@ -82,17 +85,17 @@ func test_enemy_attack_cooldown() -> void:
 	
 	# First attack
 	watch_signals(enemy)
-	var attack_result: bool = _call_node_method_bool(enemy, "attack", [target])
+	var attack_result: bool = TypeSafeMixin._call_node_method_bool(enemy, "attack", [target])
 	assert_true(attack_result, "Should successfully execute first attack")
 	verify_signal_emitted(enemy, "attack_executed")
 	
 	# Verify cooldown
-	var can_attack: bool = _call_node_method_bool(enemy, "can_attack", [])
+	var can_attack: bool = TypeSafeMixin._call_node_method_bool(enemy, "can_attack", [])
 	assert_false(can_attack, "Should not be able to attack during cooldown")
 	
 	# Wait for cooldown
 	await get_tree().create_timer(1.0).timeout
-	can_attack = _call_node_method_bool(enemy, "can_attack", [])
+	can_attack = TypeSafeMixin._call_node_method_bool(enemy, "can_attack", [])
 	assert_true(can_attack, "Should be able to attack after cooldown")
 
 # Combat Range Tests
@@ -108,12 +111,12 @@ func test_enemy_attack_range() -> void:
 	# Test out of range
 	enemy.position = Vector2.ZERO
 	target.position = Vector2(1000, 1000)
-	var in_range: bool = _call_node_method_bool(enemy, "is_target_in_range", [target])
+	var in_range: bool = TypeSafeMixin._call_node_method_bool(enemy, "is_target_in_range", [target])
 	assert_false(in_range, "Target should be out of range")
 	
 	# Test in range
 	target.position = Vector2(50, 50)
-	in_range = _call_node_method_bool(enemy, "is_target_in_range", [target])
+	in_range = TypeSafeMixin._call_node_method_bool(enemy, "is_target_in_range", [target])
 	assert_true(in_range, "Target should be in range")
 
 func test_enemy_attack_angle() -> void:
@@ -128,12 +131,12 @@ func test_enemy_attack_angle() -> void:
 	# Test front attack
 	enemy.rotation = 0
 	target.position = Vector2(50, 0)
-	var can_hit: bool = _call_node_method_bool(enemy, "can_hit_target", [target])
+	var can_hit: bool = TypeSafeMixin._call_node_method_bool(enemy, "can_hit_target", [target])
 	assert_true(can_hit, "Should be able to hit target in front")
 	
 	# Test rear attack
 	target.position = Vector2(-50, 0)
-	can_hit = _call_node_method_bool(enemy, "can_hit_target", [target])
+	can_hit = TypeSafeMixin._call_node_method_bool(enemy, "can_hit_target", [target])
 	assert_false(can_hit, "Should not be able to hit target from behind")
 
 # Combat Damage Tests
@@ -147,16 +150,16 @@ func test_enemy_damage_dealing() -> void:
 	add_child_autofree(target)
 	
 	# Setup target health
-	_call_node_method_bool(target, "set_health", [100.0])
-	var initial_health: float = _call_node_method_float(target, "get_health", [])
+	TypeSafeMixin._call_node_method_bool(target, "set_health", [100.0])
+	var initial_health: float = TypeSafeMixin._safe_cast_float(TypeSafeMixin._call_node_method(target, "get_health", []))
 	
 	# Execute attack
 	watch_signals(enemy)
-	_call_node_method_bool(enemy, "attack", [target])
+	TypeSafeMixin._call_node_method_bool(enemy, "attack", [target])
 	verify_signal_emitted(enemy, "attack_executed")
 	
 	# Verify damage
-	var final_health: float = _call_node_method_float(target, "get_health", [])
+	var final_health: float = TypeSafeMixin._safe_cast_float(TypeSafeMixin._call_node_method(target, "get_health", []))
 	assert_true(final_health < initial_health, "Target should take damage from attack")
 
 # Combat AI Tests
@@ -173,11 +176,11 @@ func test_enemy_target_selection() -> void:
 	# Setup targets
 	target1.position = Vector2(50, 0) # Close target
 	target2.position = Vector2(200, 0) # Far target
-	_call_node_method_bool(target1, "set_health", [50.0]) # Weak target
-	_call_node_method_bool(target2, "set_health", [100.0]) # Strong target
+	TypeSafeMixin._call_node_method_bool(target1, "set_health", [50.0]) # Weak target
+	TypeSafeMixin._call_node_method_bool(target2, "set_health", [100.0]) # Strong target
 	
 	# Test target selection
-	var selected_target: Node2D = _call_node_method(enemy, "select_best_target", [[target1, target2]])
+	var selected_target: Node2D = TypeSafeMixin._call_node_method(enemy, "select_best_target", [[target1, target2]])
 	assert_eq(selected_target, target1, "Should select closer, weaker target")
 
 # Mobile Performance Tests

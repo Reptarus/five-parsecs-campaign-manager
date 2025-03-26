@@ -63,8 +63,54 @@ globs: ["*.gd", "*.tscn", "*.tres", "*.res", "*.md", "*.json", "*.cfg", "*.impor
   - PascalCase for classes and custom types
   - SCREAMING_SNAKE_CASE for constants and enums
 - Use enums for type-safe identifiers and category values
-  - Store game-specific enums in designated enum classes (e.g., `FiveParsecsGameEnums`)
+  - Store game-specific enums in designated enum classes (e.g., `GameEnums`)
 - Implement proper signal connections using typed callbacks
+
+### Script References
+- Always use absolute paths when loading scripts:
+  ```gdscript
+  # CORRECT
+  const MyClass = preload("res://path/to/MyClass.gd") 
+  
+  # AVOID
+  const MyClass = preload("../relative/path/MyClass.gd")
+  ```
+- For test files, always use absolute paths in extends statements:
+  ```gdscript
+  # CORRECT
+  extends "res://tests/fixtures/specialized/campaign_test.gd"
+  
+  # AVOID
+  extends CampaignTest
+  ```
+- Consult the class_name_registry.md document before using class_name declarations
+- Use consistent resource paths:
+  ```gdscript
+  # For temporary resources
+  var timestamp = Time.get_unix_time_from_system()
+  var resource_path = "res://tests/generated/%s_%d.tres" % [resource.get_class().to_snake_case(), timestamp]
+  ```
+
+### Method Calls
+- Check method existence before calling:
+  ```gdscript
+  # Check method existence
+  if object.has_method("method_name"):
+      object.method_name(args)
+  else:
+      # Fallback behavior
+  ```
+- Use type-safe method calls where appropriate:
+  ```gdscript
+  # Type-safe call with bool return
+  TypeSafeMixin._call_node_method_bool(object, "method_name", [args])
+  ```
+- Use dictionary access with in operator:
+  ```gdscript
+  # Use 'in' operator
+  if key in dictionary:
+      # Access value
+  ```
 
 ### Documentation
 - Document all public functions with GDScript doc comments:

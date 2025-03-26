@@ -1,6 +1,9 @@
 @tool
 extends "res://tests/fixtures/specialized/enemy_test_base.gd"
 
+# Reference the Enemy class - but use it only for type documentation, not for type casting
+const Enemy = preload("res://src/core/enemy/Enemy.gd")
+
 const LARGE_GROUP_SIZE := 100
 const PERFORMANCE_THRESHOLD := 16.67 # ms (targeting 60 FPS)
 
@@ -77,27 +80,39 @@ func test_large_group_pathfinding() -> void:
 		"Large group pathfinding should be within performance threshold")
 
 # Helper methods
-func _create_large_group(size: int) -> Array[Enemy]:
-	var group: Array[Enemy] = []
+# Returns an array of enemy nodes - using untyped array to avoid type checking errors
+func _create_large_group(size: int) -> Array:
+	var group = []
 	for i in range(size):
 		var enemy = create_test_enemy()
 		group.append(enemy)
 	return group
 
-func _move_group(group: Array[Enemy]) -> void:
+# Takes an array of enemy nodes
+func _move_group(group: Array) -> void:
 	for enemy in group:
 		enemy.position += Vector2(10, 10)
 
-func _process_group_ai(group: Array[Enemy]) -> void:
+# Takes an array of enemy nodes
+func _process_group_ai(group: Array) -> void:
 	for enemy in group:
 		enemy.get_state() # Trigger AI processing
 
-func _process_group_combat(attackers: Array[Enemy], defenders: Array[Enemy]) -> void:
+# Takes arrays of enemy nodes
+func _process_group_combat(attackers: Array, defenders: Array) -> void:
+	if defenders.size() == 0:
+		return
+		
 	for attacker in attackers:
-		if defenders.size() > 0:
+		# Use safer method calls to handle the attack
+		if attacker and attacker.has_method("attack"):
 			attacker.attack(defenders[0])
+		elif attacker and attacker.has_method("take_damage"):
+			# Fallback to direct damage if attack method doesn't exist
+			defenders[0].take_damage(attacker.get_attack_damage() if attacker.has_method("get_attack_damage") else 5)
 
-func _process_group_pathfinding(group: Array[Enemy]) -> void:
+# Takes an array of enemy nodes
+func _process_group_pathfinding(group: Array) -> void:
 	var target_pos = Vector2(100, 100)
 	for enemy in group:
 		enemy.move_to(target_pos)

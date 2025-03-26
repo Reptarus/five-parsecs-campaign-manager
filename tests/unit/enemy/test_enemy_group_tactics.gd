@@ -1,6 +1,9 @@
 @tool
 extends "res://tests/fixtures/specialized/enemy_test.gd"
 
+# Import the Enemy class for type checking
+const Enemy = preload("res://src/core/enemy/Enemy.gd")
+
 # Type-safe instance variables
 var _enemy_group: Array[Enemy] = []
 var _tactics_manager: Node = null

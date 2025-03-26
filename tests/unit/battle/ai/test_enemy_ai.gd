@@ -13,11 +13,11 @@ extends "res://tests/fixtures/specialized/enemy_test.gd"
 # Explicitly import TestEnums to access all the custom enum types
 const LocalTestEnums = preload("res://tests/fixtures/base/test_helper.gd")
 
-# Type-safe script references
-const EnemyAIManager: GDScript = preload("res://src/core/managers/EnemyAIManager.gd")
-const EnemyTacticalAI: GDScript = preload("res://src/game/combat/EnemyTacticalAI.gd")
-const BattlefieldManager: GDScript = preload("res://src/base/combat/battlefield/BaseBattlefieldManager.gd")
-const BaseCombatManager: GDScript = preload("res://src/base/combat/BaseCombatManager.gd")
+# Load scripts safely - handles missing files gracefully
+var EnemyAIManagerScript = load("res://src/core/managers/EnemyAIManager.gd") if ResourceLoader.exists("res://src/core/managers/EnemyAIManager.gd") else null
+var EnemyTacticalAIScript = load("res://src/game/combat/EnemyTacticalAI.gd") if ResourceLoader.exists("res://src/game/combat/EnemyTacticalAI.gd") else null
+var BattlefieldManagerScript = load("res://src/base/combat/battlefield/BaseBattlefieldManager.gd") if ResourceLoader.exists("res://src/base/combat/battlefield/BaseBattlefieldManager.gd") else null
+var BaseCombatManagerScript = load("res://src/base/combat/BaseCombatManager.gd") if ResourceLoader.exists("res://src/base/combat/BaseCombatManager.gd") else null
 
 # Type-safe constants
 const TEST_TIMEOUT := 1.0
@@ -35,33 +35,83 @@ func before_each() -> void:
 	await super.before_each()
 	
 	# Setup AI test environment
-	_battlefield_manager = BattlefieldManager.new()
+	if not BattlefieldManagerScript:
+		push_error("BattlefieldManager script is null")
+		return
+		
+	_battlefield_manager = BattlefieldManagerScript.new()
 	if not _battlefield_manager:
 		push_error("Failed to create battlefield manager")
 		return
 	add_child_autofree(_battlefield_manager)
 	track_test_node(_battlefield_manager)
 	
-	_combat_manager = BaseCombatManager.new()
+	if not BaseCombatManagerScript:
+		push_error("BaseCombatManager script is null")
+		return
+		
+	_combat_manager = BaseCombatManagerScript.new()
 	if not _combat_manager:
 		push_error("Failed to create combat manager")
 		return
 	add_child_autofree(_combat_manager)
 	track_test_node(_combat_manager)
 	
-	_ai_manager = EnemyAIManager.new()
-	if not _ai_manager:
+	if not EnemyAIManagerScript:
+		push_error("EnemyAIManager script is null")
+		return
+		
+	var ai_obj = EnemyAIManagerScript.new()
+	if not ai_obj:
 		push_error("Failed to create AI manager")
 		return
-	TypeSafeMixin._call_node_method_bool(_ai_manager, "initialize", [_battlefield_manager, _combat_manager])
+	
+	# Handle type mismatch for Node vs Resource
+	if ai_obj is Node:
+		_ai_manager = ai_obj
+	else:
+		# Create a Node wrapper for non-Node AI manager
+		_ai_manager = Node.new()
+		_ai_manager.name = "EnemyAIManagerWrapper"
+		_ai_manager.set_meta("ai_controller", ai_obj)
+		# Define forwarding functions if needed
+	
+	# Use direct method call instead of TypeSafeMixin for critical initialization
+	if _ai_manager.has_method("initialize"):
+		_ai_manager.initialize(_battlefield_manager, _combat_manager)
+	else:
+		push_error("AI manager doesn't have initialize method")
+		return
+		
 	add_child_autofree(_ai_manager)
 	track_test_node(_ai_manager)
 	
-	_tactical_ai = EnemyTacticalAI.new()
-	if not _tactical_ai:
+	if not EnemyTacticalAIScript:
+		push_error("EnemyTacticalAI script is null")
+		return
+		
+	var tactical_obj = EnemyTacticalAIScript.new()
+	if not tactical_obj:
 		push_error("Failed to create tactical AI")
 		return
-	TypeSafeMixin._call_node_method_bool(_tactical_ai, "initialize", [_ai_manager])
+		
+	# Handle type mismatch for Node vs Resource
+	if tactical_obj is Node:
+		_tactical_ai = tactical_obj
+	else:
+		# Create a Node wrapper for non-Node tactical AI
+		_tactical_ai = Node.new()
+		_tactical_ai.name = "EnemyTacticalAIWrapper"
+		_tactical_ai.set_meta("tactical_controller", tactical_obj)
+		# Define forwarding functions if needed
+		
+	# Use direct method call for tactical AI initialization
+	if _tactical_ai.has_method("initialize"):
+		_tactical_ai.initialize(_ai_manager)
+	else:
+		push_error("Tactical AI doesn't have initialize method")
+		return
+		
 	add_child_autofree(_tactical_ai)
 	track_test_node(_tactical_ai)
 	
@@ -87,7 +137,7 @@ func test_ai_initialization() -> void:
 	assert_not_null(_ai_manager, "AI manager should be initialized")
 	assert_not_null(_tactical_ai, "Tactical AI should be initialized")
 	
-	var is_active: bool = TypeSafeMixin._call_node_method_bool(_ai_manager, "is_active", [])
+	var is_active: bool = Compatibility.safe_call_method(_ai_manager, "is_active", [], false)
 	assert_true(is_active, "AI should be active after initialization")
 
 # Target Selection Tests
@@ -99,7 +149,9 @@ func test_target_selection() -> void:
 	var player_unit := _create_test_unit(true)
 	
 	# Test target selection
-	var target: Node = TypeSafeMixin._safe_cast_to_node(TypeSafeMixin._call_node_method(_ai_manager, "select_target", [enemy_unit]))
+	var target = Compatibility.safe_call_method(_ai_manager, "select_target", [enemy_unit], null)
+	assert_not_null(target, "Target should not be null")
+	assert_true(target is Node, "Target should be a Node")
 	assert_eq(target, player_unit, "Should select player unit as target")
 	verify_signal_emitted(_ai_manager, "target_selected")
 
@@ -108,12 +160,11 @@ func test_movement_decisions() -> void:
 	watch_signals(_tactical_ai)
 	
 	var unit := _create_test_unit(false)
-	var current_pos := Vector2(5, 5)
-	TypeSafeMixin._call_node_method_bool(unit, "set_position", [current_pos])
+	Compatibility.safe_call_method(unit, "set_position", [Vector2(5, 5)])
 	
-	var move_decision: Dictionary = TypeSafeMixin._call_node_method_dict(_tactical_ai, "evaluate_movement", [unit])
+	var move_decision = Compatibility.safe_call_method(_tactical_ai, "evaluate_movement", [unit], {})
 	assert_not_null(move_decision, "Should generate movement decision")
-	assert_true(move_decision.has("position"), "Decision should include target position")
+	assert_true("position" in move_decision, "Decision should include target position")
 	verify_signal_emitted(_tactical_ai, "movement_evaluated")
 
 # Combat Behavior Tests
@@ -121,12 +172,12 @@ func test_combat_behavior() -> void:
 	watch_signals(_ai_manager)
 	
 	var unit := _create_test_unit(false)
-	TypeSafeMixin._call_node_method_bool(unit, "set_combat_state", [LocalTestEnums.UnitState.ENGAGED])
+	Compatibility.safe_call_method(unit, "set_combat_state", [LocalTestEnums.UnitState.ENGAGED])
 	
-	var behavior: Dictionary = TypeSafeMixin._call_node_method_dict(_ai_manager, "evaluate_combat_behavior", [unit])
+	var behavior = Compatibility.safe_call_method(_ai_manager, "evaluate_combat_behavior", [unit], {})
 	assert_not_null(behavior, "Should generate combat behavior")
-	assert_true(behavior.has("action"), "Behavior should include action")
-	assert_true(behavior.has("priority"), "Behavior should include a priority")
+	assert_true("action" in behavior, "Behavior should include action")
+	assert_true("priority" in behavior, "Behavior should include a priority")
 	verify_signal_emitted(_ai_manager, "behavior_evaluated")
 
 # Tactical Analysis Tests
@@ -134,11 +185,11 @@ func test_tactical_analysis() -> void:
 	watch_signals(_tactical_ai)
 	
 	var unit := _create_test_unit(false)
-	var analysis: Dictionary = TypeSafeMixin._call_node_method_dict(_tactical_ai, "analyze_tactical_situation", [unit])
+	var analysis = Compatibility.safe_call_method(_tactical_ai, "analyze_tactical_situation", [unit], {})
 	
 	assert_not_null(analysis, "Should generate tactical analysis")
-	assert_true(analysis.has("threat_level"), "Analysis should include threat level")
-	assert_true(analysis.has("cover_positions"), "Analysis should include cover positions")
+	assert_true("threat_level" in analysis, "Analysis should include threat level")
+	assert_true("cover_positions" in analysis, "Analysis should include cover positions")
 	verify_signal_emitted(_tactical_ai, "situation_analyzed")
 
 # Performance Tests
@@ -147,7 +198,7 @@ func test_ai_performance() -> void:
 	var start_time := Time.get_ticks_msec()
 	
 	for unit in units:
-		TypeSafeMixin._call_node_method_dict(_ai_manager, "process_unit_ai", [unit])
+		Compatibility.safe_call_method(_ai_manager, "process_unit_ai", [unit], {})
 	
 	var duration := Time.get_ticks_msec() - start_time
 	assert_true(duration < 1000, "AI processing should complete within 1 second")
@@ -157,15 +208,15 @@ func test_error_handling() -> void:
 	watch_signals(_ai_manager)
 	
 	# Test null unit
-	var result: Dictionary = TypeSafeMixin._call_node_method_dict(_ai_manager, "process_unit_ai", [null])
-	assert_false(result.has("action"), "Should handle null unit gracefully")
+	var result = Compatibility.safe_call_method(_ai_manager, "process_unit_ai", [null], {})
+	assert_false("action" in result, "Should handle null unit gracefully")
 	verify_signal_not_emitted(_ai_manager, "behavior_evaluated")
 	
 	# Test invalid state
 	var unit := _create_test_unit(false)
-	TypeSafeMixin._call_node_method_bool(unit, "set_combat_state", [-1])
-	result = TypeSafeMixin._call_node_method_dict(_ai_manager, "process_unit_ai", [unit])
-	assert_true(result.has("error"), "Should handle invalid state")
+	Compatibility.safe_call_method(unit, "set_combat_state", [-1])
+	result = Compatibility.safe_call_method(_ai_manager, "process_unit_ai", [unit], {})
+	assert_true("error" in result, "Should handle invalid state")
 
 # Helper Methods
 func _create_test_unit(is_player: bool) -> Node:
@@ -174,9 +225,9 @@ func _create_test_unit(is_player: bool) -> Node:
 		return null
 		
 	# Setup properties
-	TypeSafeMixin._call_node_method_bool(unit, "set_position", [Vector2(randi() % 100, randi() % 100)])
-	TypeSafeMixin._call_node_method_bool(unit, "set_is_player", [is_player])
-	TypeSafeMixin._call_node_method_bool(unit, "set_action_points", [3])
+	Compatibility.safe_call_method(unit, "set_position", [Vector2(randi() % 100, randi() % 100)])
+	Compatibility.safe_call_method(unit, "set_is_player", [is_player])
+	Compatibility.safe_call_method(unit, "set_action_points", [3])
 	
 	_test_units.append(unit)
 	return unit

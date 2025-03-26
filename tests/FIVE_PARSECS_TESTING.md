@@ -7,12 +7,27 @@ This guide explains how to use GUT (Godot Unit Testing) with the Five Parsecs Ca
 1. [Test Structure](#test-structure)
 2. [Writing Tests](#writing-tests)
 3. [Running Tests](#running-tests)
-4. [Test Coverage](#test-coverage)
-5. [CI/CD Integration](#cicd-integration)
+4. [Resource Safety](#resource-safety)
+5. [Godot 4.4 Compatibility](#godot-44-compatibility)
+6. [Test Coverage](#test-coverage)
+7. [Troubleshooting](#troubleshooting)
 
 ## Test Structure
 
-The project's test structure mirrors the source code structure:
+The project's test structure follows a standardized hierarchy:
+
+```
+GutTest (from addon/gut/test.gd)
+└── BaseTest (from tests/fixtures/base/base_test.gd)
+    └── GameTest (from tests/fixtures/base/game_test.gd)
+        ├── UITest (from tests/fixtures/specialized/ui_test.gd)
+        ├── BattleTest (from tests/fixtures/specialized/battle_test.gd)
+        ├── CampaignTest (from tests/fixtures/specialized/campaign_test.gd)
+        ├── MobileTest (from tests/fixtures/specialized/mobile_test.gd)
+        └── EnemyTest (from tests/fixtures/specialized/enemy_test.gd)
+```
+
+The file structure mirrors the source code structure:
 
 ```
 tests/
@@ -24,7 +39,7 @@ tests/
 │   ├── battle/           # Battle system tests
 │   └── ...
 ├── integration/          # Integration tests between systems
-├── fixtures/             # Test fixtures and mock data
+├── fixtures/             # Test fixtures and base classes
 ├── templates/            # Test templates for creating new tests
 ├── reports/              # Test reports output directory
 └── run_five_parsecs_tests.gd  # Test runner script
@@ -32,54 +47,84 @@ tests/
 
 ## Writing Tests
 
+### Test Extension Pattern
+
+Always use explicit file paths for extension:
+
+```gdscript
+@tool
+extends "res://tests/fixtures/specialized/campaign_test.gd"
+```
+
+Do not use class name references:
+
+```gdscript
+# AVOID: Using class names directly
+@tool
+extends CampaignTest
+```
+
 ### Test Naming Conventions
 
 - **Test Files**: All test files should start with `test_` and end with `.gd`
 - **Test Methods**: All test methods should start with `test_`
 - **Test Classes**: When using inner classes for tests, use the `Test` prefix
 
-### Using Templates
-
-We provide templates to standardize test creation:
-
-1. `tests/templates/five_parsecs_test_template.gd` - Basic template for Five Parsecs tests
-
-To create a new test:
-
-1. Copy the template to the appropriate test directory
-2. Rename it according to the naming convention
-3. Replace placeholders with actual test code
-
 ### Basic Test Structure
 
 ```gdscript
 @tool
-extends "res://addons/gut/test.gd"
+extends "res://tests/fixtures/specialized/campaign_test.gd"
 
-# Preload the script being tested
-const TestedClass = preload("res://src/path/to/tested_script.gd")
+# Use explicit preloads for script references
+const TestedClass = preload("res://path/to/tested_script.gd")
 
-# Test variables
-var _instance = null
+# Test variables with type annotations
+var _instance: Node = null
 
 # Setup - runs before each test
-func before_each():
+func before_each() -> void:
+    # Always call super.before_each() first
+    await super.before_each()
+    
     # Create an instance of the class being tested
     _instance = TestedClass.new()
-    add_child_autofree(_instance)
     
-    await get_tree().process_frame
-    await get_tree().process_frame
+    # Resource path safety check
+    if _instance is Resource and _instance.resource_path.is_empty():
+        _instance.resource_path = "res://tests/generated/test_resource_%d.tres" % Time.get_unix_time_from_system()
+    
+    # Add to tree and track for cleanup
+    if _instance is Node:
+        add_child_autofree(_instance)
+        track_test_node(_instance)
+    else:
+        track_test_resource(_instance)
+    
+    # Allow the engine to stabilize
+    await stabilize_engine()
 
 # Teardown - runs after each test
-func after_each():
+func after_each() -> void:
+    # Perform your cleanup
     _instance = null
-    await get_tree().process_frame
+    
+    # Always call super.after_each() last
+    await super.after_each()
 
 # Test methods
-func test_example():
-    # Test case implementation
-    assert_true(_instance.some_method(), "Method should return true")
+func test_example() -> void:
+    # Given-When-Then pattern
+    
+    # Given
+    watch_signals(_instance)
+    
+    # When - Use type-safe method calls
+    var result = TypeSafeMixin._safe_method_call_bool(_instance, "some_method", [])
+    
+    # Then
+    assert_true(result, "Method should return true")
+    verify_signal_emitted(_instance, "signal_name")
 ```
 
 ## Running Tests
@@ -104,10 +149,132 @@ Run the test runner script:
 godot --headless --script tests/run_five_parsecs_tests.gd
 ```
 
-This will:
-1. Run all tests in the configured directories
-2. Generate reports in the tests/reports directory
-3. Print a summary of the results
+## Resource Safety
+
+### Preventing inst_to_dict Errors
+
+To prevent errors with `inst_to_dict()` and ensure safe serialization:
+
+1. **Ensure Resources Have Valid Resource Paths**:
+
+```gdscript
+# When creating resources
+if resource is Resource and resource.resource_path.is_empty():
+    resource.resource_path = "res://tests/generated/test_resource_%d.tres" % Time.get_unix_time_from_system()
+```
+
+2. **Use Safe Serialization Patterns**:
+
+```gdscript
+# Instead of inst_to_dict, copy properties explicitly
+var serialized = {}
+if resource.has("property_name"):
+    serialized["property_name"] = resource.property_name
+else:
+    serialized["property_name"] = default_value
+```
+
+3. **Handle Collection Duplication**:
+
+```gdscript
+# When saving arrays or dictionaries, duplicate them
+if resource.has("array_property"):
+    serialized["array_property"] = resource.array_property.duplicate()
+```
+
+4. **Safe Deserialization**:
+
+```gdscript
+# Always check input data
+if data == null or not data is Dictionary:
+    return null
+    
+# Set properties with defaults
+resource.property = data.get("property", default_value)
+
+# Duplicate collections when deserializing
+resource.array_property = data.get("array_property", []).duplicate()
+```
+
+### Resource Tracking
+
+Always track resources and nodes to ensure proper cleanup:
+
+```gdscript
+# For Resources
+var resource = Resource.new()
+track_test_resource(resource)
+
+# For Nodes
+var node = Node.new()
+add_child_autofree(node)
+track_test_node(node)
+```
+
+### Callable Assignment Pattern
+
+Never assign lambdas directly to Resources. Instead:
+
+```gdscript
+# Create a script with the methods
+var script = GDScript.new()
+script.source_code = """
+extends Resource
+
+func method_name():
+    return 42
+"""
+script.reload()
+resource.set_script(script)
+```
+
+## Godot 4.4 Compatibility
+
+### Dictionary Checks
+
+Use the `in` operator instead of `has()`:
+
+```gdscript
+# AVOID
+if dictionary.has(key):
+    # Do something
+
+# USE
+if key in dictionary:
+    # Do something
+```
+
+### Property Existence Checks
+
+Use `has()` to check for property existence:
+
+```gdscript
+if object.has("property_name"):
+    var value = object.property_name
+```
+
+### Type Safety Checks
+
+Always check types before performing operations:
+
+```gdscript
+if object is Resource:
+    # Resource-specific operations
+elif object is Node:
+    # Node-specific operations
+```
+
+### Method Calls
+
+Use type-safe method calls from the base test classes:
+
+```gdscript
+# AVOID
+object.method(params)
+
+# USE
+TypeSafeMixin._safe_method_call_bool(object, "method", [params])
+```
 
 ## Test Coverage
 
@@ -122,91 +289,66 @@ Prioritize testing:
 2. Complex logic and calculations
 3. Error-prone areas of the codebase
 
-## CI/CD Integration
+## Troubleshooting
 
-The test runner is designed to work with CI/CD pipelines. To integrate:
+### Common Issues with Solutions
 
-1. Call the test runner script in your CI/CD pipeline
-2. Use the exit code to determine if tests passed
-3. Archive test reports as artifacts
+#### 1. inst_to_dict Errors
 
-Example GitHub workflow:
+**Error**: `Error calling GDScript utility function 'inst_to_dict': Not based on a resource file`
 
-```yaml
-name: Run Tests
+**Solutions**:
+- Ensure resources have valid resource paths
+- Use manual serialization instead of inst_to_dict
+- Create resources with proper file paths before serializing
 
-on: [push, pull_request]
+#### 2. Invalid Method Calls
 
-jobs:
-  test:
-    runs-on: ubuntu-latest
-    
-    steps:
-    - uses: actions/checkout@v2
-    
-    - name: Setup Godot
-      uses: josephbmanley/build-godot-action@v1.4.1
-      with:
-        version: 4.2
-        
-    - name: Run Tests
-      run: godot --headless --script tests/run_five_parsecs_tests.gd
-      
-    - name: Archive Test Results
-      uses: actions/upload-artifact@v2
-      with:
-        name: test-reports
-        path: tests/reports/
-```
+**Error**: `Invalid call. Nonexistent function in base 'Object'`
+
+**Solutions**:
+- Check for method existence: `if object.has("method_name")`
+- Use type-safe method calls from base classes
+- Verify object is valid with `is_instance_valid(object)`
+
+#### 3. Signal Connection Errors
+
+**Error**: `Can't connect signal to nonexistent function`
+
+**Solutions**:
+- Use proper signal watching with `watch_signals(object)`
+- Verify signal exists with `if object.has_signal("signal_name")`
+- Use `verify_signal_emitted()` for clean testing
+
+#### 4. Resource Leaks
+
+**Error**: Memory usage increases over time during tests
+
+**Solutions**:
+- Track all resources with `track_test_resource()`
+- Use `add_child_autofree()` for nodes
+- Clear references in `after_each()`
+- Ensure proper cleanup with `await super.after_each()`
+
+#### 5. Mission Object Issues
+
+**Error**: Errors when serializing/deserializing mission objects
+
+**Solutions**:
+- Use the serialization safety pattern
+- Set valid resource paths on mission objects
+- Handle arrays and dictionaries with `duplicate()`
+- Use explicit property copying instead of inst_to_dict
 
 ## Best Practices for Five Parsecs Tests
 
-1. **Test Against Rules**: Ensure tests verify compliance with Five Parsecs From Home rules
-2. **Use Realistic Data**: Use realistic game data for testing
-3. **Test Edge Cases**: Pay special attention to boundary conditions and edge cases
-4. **Performance Testing**: Include performance tests for critical operations
-5. **Seed Random Tests**: Use fixed seeds for tests involving randomness
-
-## Mocking Game Components
-
-For testing components that depend on other parts of the system:
-
-```gdscript
-# Mock a character
-func _create_mock_character():
-    var character = Character.new()
-    character.id = "mock_id"
-    character.name = "Mock Character"
-    character.set("morale", 3)
-    return character
-
-# Mock data from tables
-func _mock_mission_tables():
-    return {
-        "mission_types": ["Raid", "Defense", "Exploration"],
-        "rewards": [{"credits": 100}, {"credits": 200}]
-    }
-```
-
-## Troubleshooting Common Issues
-
-### Tests Not Finding Scripts
-
-If tests can't find scripts, check:
-1. Make sure paths are correct (use `res://` prefix)
-2. Check for circular dependencies
-3. Ensure the script is preloaded in the test
-
-### Tests Hanging
-
-If tests get stuck:
-1. Check for infinite loops
-2. Ensure signals are properly connected and disconnected
-3. Check for missing await statements
-
-### Random Failures
-
-If tests fail intermittently:
-1. Check for timing issues
-2. Use fixed random seeds
-3. Ensure proper cleanup in `after_each()` 
+1. **Use Explicit Path Extensions**: Always use file paths in extends statements
+2. **Test Against Rules**: Ensure tests verify compliance with Five Parsecs From Home rules
+3. **Use Realistic Data**: Use realistic game data for testing
+4. **Test Edge Cases**: Pay special attention to boundary conditions and edge cases
+5. **Performance Testing**: Include performance tests for critical operations
+6. **Proper Resource Handling**: Ensure all resources have valid paths and are properly tracked
+7. **Type Safety**: Use type annotations and type-safe method calls
+8. **Signal Testing**: Use proper signal watching and verification
+9. **Given-When-Then**: Structure tests with clear arrange-act-assert patterns
+10. **Resource Cleanup**: Always clean up resources in `after_each()` 

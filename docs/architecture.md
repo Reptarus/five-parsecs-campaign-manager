@@ -4,9 +4,9 @@
 
 The Five Parsecs Campaign Manager follows a three-tiered architecture that separates code into logical layers of increasing specialization:
 
-1. **Base Layer** (`src/base/`) - Foundation classes and abstract interfaces
-2. **Core Layer** (`src/core/`) - Core game logic and systems
-3. **Game Layer** (`src/game/`) - Game-specific implementations and UI
+1. **Base Layer** (`res://src/base/`) - Foundation classes and abstract interfaces
+2. **Core Layer** (`res://src/core/`) - Core game logic and systems
+3. **Game Layer** (`res://src/game/`) - Game-specific implementations and UI
 
 This document outlines the purpose and responsibility of each layer and provides guidelines for maintaining and extending the codebase.
 
@@ -40,7 +40,7 @@ Dependencies should flow downward:
 
 ## Layer Details
 
-### Base Layer (`src/base/`)
+### Base Layer (`res://src/base/`)
 
 - **Purpose**: Provide a stable foundation for the entire application
 - **Characteristics**:
@@ -49,11 +49,11 @@ Dependencies should flow downward:
   - Focused on interfaces and contracts
   - Few implementation details
 - **Examples**:
-  - `mission_base.gd`: Base class for all missions
-  - `equipment.gd`: Base class for all equipment
-  - `character_base.gd`: Base class for all characters
+  - `res://src/base/mission/mission_base.gd`: Base class for all missions
+  - `res://src/base/items/equipment.gd`: Base class for all equipment
+  - `res://src/base/character/character_base.gd`: Base class for all characters
 
-### Core Layer (`src/core/`)
+### Core Layer (`res://src/core/`)
 
 - **Purpose**: Implement core game mechanics and systems
 - **Characteristics**:
@@ -62,11 +62,11 @@ Dependencies should flow downward:
   - Game mechanics and algorithms
   - Business logic
 - **Examples**:
-  - `FiveParsecsMission`: Core mission implementation
-  - `BaseEquipment`, `BaseArmor`: Core equipment implementations
-  - `CoreCharacter`: Core character implementation
+  - `res://src/core/mission/FiveParsecsMission.gd`: Core mission implementation
+  - `res://src/core/items/BaseEquipment.gd`, `res://src/core/items/BaseArmor.gd`: Core equipment implementations
+  - `res://src/core/character/CoreCharacter.gd`: Core character implementation
 
-### Game Layer (`src/game/`)
+### Game Layer (`res://src/game/`)
 
 - **Purpose**: Implement specific game features and user interface
 - **Characteristics**:
@@ -75,9 +75,9 @@ Dependencies should flow downward:
   - Player-facing features
   - Final implementations ready for use
 - **Examples**:
-  - `GameFiveParsecsMission`: Game-specific mission
-  - `FiveParsecsArmor`: Game-specific armor
-  - `FiveParsecsCharacter`: Game-specific character
+  - `res://src/game/mission/GameFiveParsecsMission.gd`: Game-specific mission
+  - `res://src/game/items/FiveParsecsArmor.gd`: Game-specific armor
+  - `res://src/game/character/FiveParsecsCharacter.gd`: Game-specific character
 
 ## File Organization
 
@@ -100,6 +100,22 @@ src/
     ├── items/         # Item UI and extensions
     ├── mission/       # Mission UI and extensions
     └── ...
+```
+
+## Script Loading Patterns
+
+Always use absolute paths when loading scripts:
+
+```gdscript
+# CORRECT - Use absolute paths with preload/load
+const MissionBase = preload("res://src/base/mission/mission_base.gd")
+const CoreMission = preload("res://src/core/mission/CoreMission.gd")
+
+# AVOID - Using relative paths
+const CoreMission = preload("../core/mission/CoreMission.gd")
+
+# AVOID - Using class names directly (unless they're in the class_name_registry.md)
+var mission = CoreMission.new()
 ```
 
 ## Coding Guidelines
@@ -147,6 +163,20 @@ Tests should validate behavior at each layer:
 - Core layer tests ensure game logic works correctly
 - Game layer tests ensure features work correctly for players
 
+### Test File Structure
+
+Test files should use absolute paths in extends statements:
+
+```gdscript
+# CORRECT
+@tool
+extends "res://tests/fixtures/specialized/battle_test.gd"
+
+# AVOID
+@tool
+extends BattleTest
+```
+
 ## Dependency Management
 
 To maintain a clean architecture:
@@ -155,6 +185,7 @@ To maintain a clean architecture:
 2. Core layer should only depend on the base layer
 3. Game layer can depend on both core and base layers
 4. Use dependency injection where appropriate
+5. Use absolute paths for all script references
 
 ## Conclusion
 

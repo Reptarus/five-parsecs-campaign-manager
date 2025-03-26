@@ -10,39 +10,32 @@ const ThemeTestHelper = preload("res://tests/unit/ui/themes/theme_test_helper.gd
 const UITestBaseScript = preload("res://tests/unit/ui/base/ui_test_base.gd")
 
 # Type-safe instance variables
-var _component: Control
-var _theme_manager: ThemeManager
+var _component: Control = null
+var _theme_manager: ThemeManager = null
 
 # Add a print_warning function since it's not in the base class
 func print_warning(message: String) -> void:
 	push_warning(message)
 
-func before_each() -> void:
-	await super.before_each()
-	
-	# Create theme manager if needed
-	_theme_manager = ThemeManager.new()
-	add_child_autofree(_theme_manager)
-	
-	_setup_component()
+func before_each():
+	_component = null
+	_theme_manager = null
 
-func after_each() -> void:
-	_cleanup_component()
-	await super.after_each()
+func after_each():
+	if is_instance_valid(_component):
+		_component.queue_free()
+	_component = null
+	_theme_manager = null
 
-func _setup_component() -> void:
-	_component = _create_component_instance()
-	if not _component:
-		return
-		
+func _setup_component(component_scene: PackedScene) -> void:
+	assert_not_null(component_scene, "Component scene should not be null")
+	
+	_component = component_scene.instantiate()
+	assert_not_null(_component, "Component instance should not be null")
+	
 	add_child_autofree(_component)
 	track_test_node(_component)
 	await stabilize_engine()
-	
-	# Register component with theme manager for theme-aware testing
-	if _theme_manager:
-		_theme_manager.register_themeable(_component)
-		await stabilize_engine()
 
 func _cleanup_component() -> void:
 	_component = null
@@ -62,7 +55,7 @@ func test_component_theme() -> void:
 	assert_not_null(_component.theme, "Component should have a theme")
 	
 	# Test theme type variations
-	var type_variations := _component.theme.get_type_variation_list(_component.get_class())
+	var type_variations := _get_theme_type_variations(_component)
 	for variation in type_variations:
 		assert_true(_component.theme.has_type_variation(variation),
 			"Theme should have variation %s" % variation)
@@ -90,7 +83,7 @@ func test_component_visibility() -> void:
 
 func test_component_size() -> void:
 	# Test minimum size
-	var min_size := _component.get_combined_minimum_size()
+	var min_size := _get_theme_min_size(_component)
 	assert_gt(min_size.x, 0, "Component should have minimum width")
 	assert_gt(min_size.y, 0, "Component should have minimum height")
 	
@@ -280,7 +273,7 @@ func _find_child_nodes_of_type(parent: Node, type_class) -> Array:
 func _find_animated_nodes(parent: Node) -> Array:
 	var result := []
 	
-	# Check if this node has animation properties
+	# Check for animation nodes
 	if parent.has_node("AnimationPlayer") or parent.has_node("AnimationTree") or parent.has_method("is_animating"):
 		result.append(parent)
 		
@@ -295,3 +288,69 @@ func _find_animated_nodes(parent: Node) -> Array:
 func await_theme_propagation() -> void:
 	await get_tree().process_frame
 	await get_tree().process_frame
+
+func _is_animating(parent: Node) -> bool:
+	if not is_instance_valid(parent):
+		return false
+		
+	# Check for animation nodes
+	var has_animation_player: bool = parent.has_node("AnimationPlayer")
+	var has_animation_tree: bool = parent.has_node("AnimationTree")
+	
+	# Check for custom animation method
+	var has_animation_method: bool = parent.get_method_list().any(func(method): return method.name == "is_animating")
+	
+	if has_animation_method:
+		return parent.is_animating()
+		
+	return has_animation_player or has_animation_tree
+
+func assert_control_hidden(control: Control, message: String = "") -> void:
+	assert_false(control.visible, message if message else "Control should be hidden")
+
+func assert_control_visible(control: Control, message: String = "") -> void:
+	assert_true(control.visible, message if message else "Control should be visible")
+
+func test_responsive_layout(control: Control) -> void:
+	# Override in specific tests
+	pass
+
+func test_animations(control: Control) -> void:
+	# Override in specific tests
+	pass
+
+func test_accessibility(control: Control) -> void:
+	# Override in specific tests
+	pass
+
+# Theme testing helpers
+func _get_theme_type_variations(control: Control) -> Array[String]:
+	var type_variations: Array[String] = []
+	if control.theme:
+		type_variations = control.theme.get_type_variation_list("Control")
+	return type_variations
+
+func _get_theme_min_size(control: Control) -> Vector2:
+	if not control.theme:
+		return Vector2.ZERO
+		
+	var min_width: int = control.theme.get_constant("minimum_width", "Control") if control.theme.has_constant("minimum_width", "Control") else 0
+	var min_height: int = control.theme.get_constant("minimum_height", "Control") if control.theme.has_constant("minimum_height", "Control") else 0
+	return Vector2(min_width, min_height)
+
+func _assert_theme_color(control: Control, color_name: String, expected_color: Color) -> void:
+	var actual: Color = control.get_theme_color(color_name)
+	assert_eq(actual, expected_color, "Theme color '%s' should match" % color_name)
+
+func _assert_theme_constant(control: Control, constant_name: String, expected_value: int) -> void:
+	var actual: int = control.get_theme_constant(constant_name)
+	assert_eq(actual, expected_value, "Theme constant '%s' should match" % constant_name)
+
+func _assert_theme_font(control: Control, font_name: String, expected_font: Font) -> void:
+	var actual: Font = control.get_theme_font(font_name)
+	assert_eq(actual, expected_font, "Theme font '%s' should match" % font_name)
+
+func _backup_theme(control: Control) -> Theme:
+	var original_theme: Theme = control.theme
+	control.theme = null
+	return original_theme

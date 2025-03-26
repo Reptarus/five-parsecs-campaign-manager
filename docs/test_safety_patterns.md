@@ -1,188 +1,367 @@
-# Test Safety Patterns
+# Five Parsecs Test Safety Patterns
 
-This document outlines the test safety patterns and best practices used in the Five Parsecs Campaign Manager project.
+This document outlines safety patterns to prevent common errors and ensure reliable tests across the Five Parsecs Campaign Manager codebase.
 
-## Test Hierarchy
+## Resource Safety Patterns
 
-All test files MUST follow this inheritance hierarchy:
+### Valid Resource Paths
 
-```gdscript
-GutTest (from addon/gut/test.gd)
-└── BaseTest (from tests/fixtures/base/base_test.gd)
-    └── GameTest (from tests/fixtures/base/game_test.gd)
-        ├── UITest (from tests/fixtures/specialized/ui_test.gd)
-        ├── BattleTest (from tests/fixtures/specialized/battle_test.gd)
-        ├── CampaignTest (from tests/fixtures/specialized/campaign_test.gd)
-        ├── MobileTest (from tests/fixtures/specialized/mobile_test.gd)
-        └── EnemyTest (from tests/fixtures/specialized/enemy_test.gd)
-```
-
-### Class Extension Rules
-
-1. ALL test files MUST extend from one of these specialized classes:
-   - `UITest` - For UI component tests
-   - `BattleTest` - For battle system tests
-   - `CampaignTest` - For campaign system tests
-   - `MobileTest` - For mobile-specific tests
-   - `EnemyTest` - For enemy-specific tests
-   - `GameTest` - For general game logic tests (only when no specialized class fits)
-
-2. Use class_name-based extension:
-   ```gdscript
-   @tool
-   extends BattleTest  # Instead of "res://tests/fixtures/specialized/battle_test.gd"
-   ```
-
-3. DO NOT create new specialized test classes unless absolutely necessary
-4. DO NOT mix inheritance - stick to one specialized class per test file
-5. DO NOT extend from raw GutTest, BaseTest or GameTest directly when a specialized class is appropriate
-
-### File Organization
-
-```
-tests/
-├── fixtures/
-│   ├── base/
-│   │   ├── base_test.gd      # Core test functionality
-│   │   └── game_test.gd      # Game-specific test functionality
-│   ├── specialized/
-│   │   ├── ui_test.gd        # UI testing functionality
-│   │   ├── battle_test.gd    # Battle testing functionality
-│   │   ├── campaign_test.gd  # Campaign testing functionality
-│   │   ├── mobile_test.gd    # Mobile testing functionality
-│   │   └── enemy_test.gd     # Enemy testing functionality
-│   ├── helpers/              # Test helper functions
-│   └── scenarios/            # Common test scenarios
-├── unit/                     # Unit tests
-├── integration/              # Integration tests
-└── performance/              # Performance tests
-```
-
-### Base Class Responsibilities
-
-1. BaseTest (base_test.gd)
-   - Core testing utilities
-   - Resource tracking and cleanup
-   - Signal handling
-   - Type safety
-   - Engine stabilization
-
-2. GameTest (game_test.gd)
-   - Game state management
-   - Game-specific assertions
-   - Scene tree management
-   - Game signal verification
-   - Game resource management
-
-3. Specialized Test Classes
-   - UITest: UI component testing
-   - BattleTest: Battle system testing
-   - CampaignTest: Campaign system testing
-   - MobileTest: Mobile-specific testing
-
-## Test File Template
-
-Every test file MUST follow this template:
+Resources without valid resource paths can cause `inst_to_dict()` errors during testing. Always ensure resources have valid paths:
 
 ```gdscript
-@tool
-extends "res://tests/fixtures/base/game_test.gd"  # Or other specialized test base
+# Ensure resource has a valid path
+if resource is Resource and resource.resource_path.is_empty():
+    var timestamp = Time.get_unix_time_from_system()
+    resource.resource_path = "res://tests/generated/%s_%d.tres" % [resource.get_class().to_snake_case(), timestamp]
+```
 
-# Type-safe script references
-const TestedClass := preload("res://path/to/tested/class.gd")
+### Resource Tracking
 
-# Test constants
-const TEST_TIMEOUT := 1.0
+Always track resources for proper cleanup:
 
-# Type-safe instance variables
-var _instance: Node
-var _dependencies: Array[Node]
+```gdscript
+# For nodes:
+add_child_autofree(node)
+track_test_node(node)
 
+# For resources:
+track_test_resource(resource)
+```
+
+### Safe Serialization Pattern
+
+Avoid `inst_to_dict()` for serialization; instead, manually copy properties:
+
+```gdscript
+# Instead of inst_to_dict, copy properties explicitly
+var serialized = {}
+if resource.has("property_name"):
+    serialized["property_name"] = resource.property_name
+else:
+    serialized["property_name"] = default_value
+
+# For collections, always duplicate
+if resource.has("array_property"):
+    serialized["array_property"] = resource.array_property.duplicate()
+```
+
+### Safe Deserialization Pattern
+
+When deserializing, check input data and use default values:
+
+```gdscript
+# Always check input data
+if data == null or not data is Dictionary:
+    return null
+    
+# Set properties with defaults
+resource.property = data.get("property", default_value)
+
+# Duplicate collections when deserializing
+resource.array_property = data.get("array_property", []).duplicate()
+```
+
+## Mission Object Safety
+
+Mission objects require special handling due to their complex property structures:
+
+```gdscript
+# When creating mission objects
+var mission = StoryQuestData.create_mission("Test Mission")
+
+# Always ensure valid resource path
+if mission.resource_path.is_empty():
+    var timestamp = Time.get_unix_time_from_system()
+    mission.resource_path = "res://tests/generated/mission_%s_%d.tres" % [mission.get_class().to_snake_case(), timestamp]
+    
+# When serializing missions
+var serialized_mission = {}
+for property in mission.get_property_list():
+    var property_name = property.name
+    if property_name.begins_with("_") or property_name in ["script", "resource_path", "resource_name"]:
+        continue
+    
+    if mission.has(property_name):
+        var value = mission.get(property_name)
+        if value is Array or value is Dictionary:
+            serialized_mission[property_name] = value.duplicate()
+        elif not value is Callable:  # Skip callable properties
+            serialized_mission[property_name] = value
+```
+
+## Dictionary Access Patterns
+
+Use the correct dictionary access patterns for Godot 4.4:
+
+```gdscript
+# AVOID: Using has() on dictionaries
+if dictionary.has("key"):
+    # Do something
+
+# CORRECT: Using the 'in' operator
+if "key" in dictionary:
+    # Do something
+    
+# Safe value retrieval with default
+var value = dictionary.get("key", default_value)
+```
+
+## Property Access Patterns
+
+Use safe property access with existence checks:
+
+```gdscript
+# Check if property exists before accessing
+if object.has("property_name"):
+    var value = object.property_name
+else:
+    var value = default_value
+
+# Using get() with default value
+var value = object.get("property_name", default_value)
+```
+
+## Method Call Patterns
+
+Use type-safe method calls:
+
+```gdscript
+# Instead of direct calls:
+instance.method(args)
+
+# Check method existence first:
+if instance.has_method("method_name"):
+    instance.method_name(args)
+else:
+    # Fallback behavior
+    push_warning("Method 'method_name' not found")
+
+# Or use type-safe calls from TypeSafeMixin:
+TypeSafeMixin._call_node_method_bool(instance, "method_name", [args])
+```
+
+## Signal Safety
+
+Use proper signal watching and verification:
+
+```gdscript
+# Enable signal watching
+watch_signals(instance)
+
+# Perform action that should emit signal
+TypeSafeMixin._call_node_method_bool(instance, "method", [])
+
+# Verify signal emission
+verify_signal_emitted(instance, "signal_name")
+
+# With signal parameters
+verify_signal_emitted_with_parameters(instance, "signal_name", [expected_param])
+```
+
+## Object Validity Checks
+
+Always check object validity before operations:
+
+```gdscript
+if is_instance_valid(object):
+    # Use object
+```
+
+## Stabilization Pattern
+
+Use proper stabilization for asynchronous operations:
+
+```gdscript
+# Allow the engine to stabilize
+await stabilize_engine()
+
+# With custom timeout
+await stabilize_engine(CUSTOM_TIMEOUT)
+```
+
+## Test Lifecycle Safety
+
+Properly structure before_each and after_each:
+
+```gdscript
 func before_each() -> void:
+    # Always call super first
     await super.before_each()
     
-    # Initialize test instance
+    # Setup code here
     _instance = TestedClass.new()
-    add_child_autofree(_instance)
+    track_test_resource(_instance)
     
+    # Always stabilize at the end
     await stabilize_engine()
 
 func after_each() -> void:
+    # Cleanup code here
     _instance = null
+    
+    # Always call super last
     await super.after_each()
-
-func test_example() -> void:
-    # Given
-    watch_signals(_instance)
-    
-    # When
-    var result := _call_node_method_bool(_instance, "some_method")
-    
-    # Then
-    assert_true(result)
-    verify_signal_emitted(_instance, "some_signal")
 ```
 
-## Type Safety Rules
+## Collection Duplication
 
-1. Always use type hints for variables and parameters
-2. Use type-safe method calls from base classes
-3. Use type-safe property access methods
-4. Use type-safe signal verification methods
+Always duplicate collections before modifying:
 
-## Resource Management Rules
+```gdscript
+# For arrays
+var copy_of_array = original_array.duplicate()
 
-1. Always use `add_child_autofree()` for nodes
-2. Always track resources with `track_test_resource()`
-3. Clean up resources in reverse order
-4. Use type-safe resource creation methods
+# For dictionaries
+var copy_of_dict = original_dict.duplicate()
 
-## Signal Testing Rules
+# Deep duplication for nested structures
+var deep_copy = original.duplicate(true)
+```
 
-1. Always use `watch_signals()` before testing signals
-2. Use type-safe signal verification methods
-3. Verify signal parameters when relevant
-4. Use appropriate timeouts for signal waits
+## Error Handling
 
-## State Management Rules
+Implement proper error handling:
 
-1. Always use `create_test_game_state()` for game state
-2. Verify state with `verify_game_state()`
-3. Use `assert_valid_game_state()` after state changes
-4. Clean up state in `after_each()`
+```gdscript
+# Try-catch pattern
+if ResourceLoader.exists(path):
+    var loaded = ResourceLoader.load(path)
+    if loaded:
+        return loaded
+    else:
+        push_warning("Failed to load resource at: " + path)
+        return null
+else:
+    return null
+```
 
-## Performance Testing Rules
+## File Path References
 
-1. Use type-safe performance monitoring
-2. Measure FPS, memory, and draw calls
-3. Use appropriate stabilization times
-4. Clean up after performance tests
+Always use explicit file paths in extends statements:
 
-## Mobile Testing Rules
+```gdscript
+# CORRECT: Use file path reference
+@tool
+extends "res://tests/fixtures/specialized/campaign_test.gd"
 
-1. Use mobile-specific test base class
-2. Test multiple screen sizes
-3. Verify touch input
-4. Test orientation changes
+# AVOID: Using class names directly
+@tool
+extends CampaignTest
 
-## Best Practices
+# AVOID: Using relative paths
+@tool
+extends "../campaign_test.gd"
+```
 
-1. One test file per class/feature
-2. Clear test names describing behavior
-3. Given-When-Then pattern in tests
-4. Clean up all resources
-5. Use type-safe methods
-6. Verify all signal emissions
-7. Test edge cases
-8. Test error conditions
-9. Use appropriate timeouts
-10. Document complex test setups
+## Resource Generation
 
-Remember:
-- Keep tests focused and maintainable
-- Use descriptive names
-- Clean up resources properly
-- Monitor performance
-- Test edge cases
-- Document complex scenarios
-``` 
+Generate resources consistently for testing:
+
+```gdscript
+# Generate temporary resource path
+var timestamp = Time.get_unix_time_from_system()
+var temp_path = "res://tests/generated/%s_%d.tres" % [resource.get_class().to_snake_case(), timestamp]
+
+# Create and save resource
+var resource = Resource.new()
+resource.resource_path = temp_path
+ResourceSaver.save(resource, temp_path)
+
+# Track for cleanup
+track_test_resource(resource)
+```
+
+## Mission Functions Safety
+
+When working with mission functions:
+
+```gdscript
+# Add mission functions safely
+func add_safe_mission_functions(mission):
+    var script = GDScript.new()
+    script.source_code = """
+    extends Resource
+    
+    func on_mission_start():
+        return true
+        
+    func on_mission_complete():
+        return true
+        
+    func on_mission_fail():
+        return false
+    """
+    script.reload()
+    
+    # Apply script to mission
+    var original_script = mission.get_script()
+    mission.set_script(script)
+    
+    # Ensure resource path
+    if mission.resource_path.is_empty():
+        var timestamp = Time.get_unix_time_from_system()
+        mission.resource_path = "res://tests/generated/mission_%s_%d.tres" % [mission.get_class().to_snake_case(), timestamp]
+    
+    return mission
+```
+
+## Preventing Common Errors
+
+### inst_to_dict Errors
+
+```
+Error calling GDScript utility function 'inst_to_dict': Not based on a resource file
+```
+
+Prevention:
+- Ensure resources have valid resource paths
+- Use manual serialization with property copying
+- Don't use inst_to_dict directly
+
+### Dictionary Method Errors
+
+```
+Invalid call to method 'has' ... expected 1 arguments
+```
+
+Prevention:
+- Use `in` operator instead of `has()`
+- Use `dictionary.get(key, default)` for safe retrieval
+
+### Method Call Errors
+
+```
+Invalid call. Nonexistent function in base 'Object'
+```
+
+Prevention:
+- Check if method exists with `has_method()`
+- Use type-safe method calls from TypeSafeMixin
+
+### Resource Leaks
+
+Prevention:
+- Use `track_test_resource()` for all resources
+- Use `add_child_autofree()` for nodes
+- Clear references in `after_each()`
+- Call `await super.after_each()` in all test classes
+
+### Signal Connection Errors
+
+Prevention:
+- Use `watch_signals()` for proper testing
+- Verify signal exists before connecting
+- Use `verify_signal_emitted()` for testing
+
+## Common Test Code Smells
+
+1. **Direct property access without checks**: Always check if properties exist
+2. **Using inst_to_dict directly**: Use manual property copying instead
+3. **Missing resource path assignment**: Always set valid resource paths
+4. **Untracked resources**: Always track resources with track_test_resource
+5. **Missing super calls**: Always call super.before_each() and super.after_each()
+6. **Using class names in extends**: Use absolute file paths instead
+7. **Direct lambda assignments**: Use script-based approach instead
+8. **Dictionary.has() usage**: Use the in operator
+9. **Unchecked signal connections**: Verify signals exist before connecting
+```

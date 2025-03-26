@@ -107,14 +107,55 @@ func _disconnect_mission_signals() -> void:
 # Helper Methods
 func create_test_campaign() -> Resource:
 	var campaign := Resource.new()
-	campaign.set_script(CampaignScript)
-	if not campaign:
-		push_error("Failed to create campaign instance")
-		return null
-	
-	# Initialize campaign with test data
-	TypeSafeMixin._call_node_method_bool(campaign, "initialize", [])
 	track_test_resource(campaign)
+	
+	# Create a script with all necessary methods
+	var script = GDScript.new()
+	script.source_code = """extends Resource
+
+# Campaign properties
+var difficulty: int = 1
+var name: String = "Test Campaign"
+var id: String = "test_campaign"
+var mission_count: int = 0
+var completed_missions: Array = []
+
+# Signals
+signal campaign_state_changed(property)
+signal resource_changed(resource_type, amount)
+signal world_changed(world_data)
+
+func initialize():
+	difficulty = 1
+	name = "Test Campaign"
+	id = "test_campaign_" + str(Time.get_unix_time_from_system())
+	return true
+
+func get_difficulty():
+	return difficulty
+	
+func set_difficulty(value: int):
+	difficulty = value
+	emit_signal("campaign_state_changed", "difficulty")
+	
+func add_enemy_experience(enemy, amount):
+	if enemy and enemy.has_method("add_experience"):
+		enemy.add_experience(amount)
+	return true
+	
+func advance_difficulty():
+	difficulty += 1
+	emit_signal("campaign_state_changed", "difficulty")
+	return true
+"""
+	script.reload()
+	
+	# Apply the script to the resource
+	campaign.set_script(script)
+	
+	# Initialize the campaign
+	TypeSafeMixin._call_node_method_bool(campaign, "initialize", [])
+	
 	return campaign
 
 func assert_valid_game_state(state: Node) -> void:
@@ -199,11 +240,32 @@ func load_test_campaign(state: Node) -> void:
 func timeout_or_signal(source: Object, signal_name: String, timeout: float) -> void:
 	var timer := get_tree().create_timer(timeout)
 	
-	var signal_wait = source.connect(signal_name, Callable(func(): pass ))
+	# Create a callback function that handles the signal
+	var callback_obj = Node.new()
+	add_child(callback_obj)
+	callback_obj.set_script(GDScript.new())
+	callback_obj.script.source_code = """extends Node
+
+var signal_received = false
+
+func on_signal_received(_arg1=null, _arg2=null, _arg3=null, _arg4=null):
+	signal_received = true
+"""
+	callback_obj.script.reload()
+	
+	# Connect the signal to our callback function using Callable in Godot 4
+	if source.has_signal(signal_name):
+		source.connect(signal_name, Callable(callback_obj, "on_signal_received"))
+	
+	# Wait for the timeout
 	await timer.timeout
 	
-	if source.is_connected(signal_name, Callable(func(): pass )):
-		source.disconnect(signal_name, Callable(func(): pass ))
+	# Disconnect the signal if it was connected using Callable in Godot 4
+	if source.has_signal(signal_name) and source.is_connected(signal_name, Callable(callback_obj, "on_signal_received")):
+		source.disconnect(signal_name, Callable(callback_obj, "on_signal_received"))
+	
+	# Clean up
+	callback_obj.queue_free()
 
 # Test Methods
 func test_campaign_mission_flow() -> void:

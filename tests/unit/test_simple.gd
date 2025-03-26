@@ -1,5 +1,8 @@
+## Simple test for reference
 @tool
-extends "res://addons/gut/test.gd"
+extends "res://tests/fixtures/base/game_test.gd"
 
-func test_simple():
-	assert_true(true, "This test should always pass")
+const Compatibility = preload("res://tests/fixtures/helpers/test_compatibility_helper.gd")
+
+func test_simple_assert() -> void:
+	assert_true(true, "True should be true")

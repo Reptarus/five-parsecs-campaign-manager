@@ -44,14 +44,23 @@ func setup(state: FiveParsecsGameState) -> void:
 	if game_state and game_state.current_campaign:
 		_connect_to_campaign(game_state.current_campaign)
 
-func _connect_to_campaign(campaign: FiveParsecsCampaign) -> void:
+func _connect_to_campaign(campaign) -> void:
 	# Connect relevant campaign signals for tracking state changes
-	if campaign.is_connected("campaign_state_changed", _on_campaign_state_changed):
-		campaign.disconnect("campaign_state_changed", _on_campaign_state_changed)
+	# First check if the campaign has the required signals
+	if not (campaign is Resource):
+		push_error("Campaign must be a Resource")
+		return
+		
+	if not campaign.has_signal("campaign_state_changed") or not campaign.has_signal("resource_changed") or not campaign.has_signal("world_changed"):
+		push_error("Campaign does not have required signals")
+		return
+		
+	if campaign.is_connected("campaign_state_changed", Callable(self, "_on_campaign_state_changed")):
+		campaign.disconnect("campaign_state_changed", Callable(self, "_on_campaign_state_changed"))
 	
-	campaign.connect("campaign_state_changed", _on_campaign_state_changed)
-	campaign.connect("resource_changed", _on_campaign_resource_changed)
-	campaign.connect("world_changed", _on_campaign_world_changed)
+	campaign.connect("campaign_state_changed", Callable(self, "_on_campaign_state_changed"))
+	campaign.connect("resource_changed", Callable(self, "_on_campaign_resource_changed"))
+	campaign.connect("world_changed", Callable(self, "_on_campaign_world_changed"))
 
 func _on_campaign_state_changed(_property: String) -> void:
 	# Validate current state after a change

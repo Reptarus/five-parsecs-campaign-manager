@@ -8,9 +8,14 @@
 extends "res://tests/fixtures/base/game_test.gd"
 # Use explicit preloads instead of global class names
 
+# Load scripts safely - handles missing files gracefully
+const Compatibility = preload("res://tests/fixtures/helpers/test_compatibility_helper.gd")
+var CampaignSystemScript = load("res://src/core/campaign/CampaignSystem.gd") if ResourceLoader.exists("res://src/core/campaign/CampaignSystem.gd") else null
+var CampaignDataScript = load("res://src/core/campaign/CampaignData.gd") if ResourceLoader.exists("res://src/core/campaign/CampaignData.gd") else null
+var GameManagerScript = load("res://src/core/managers/GameManager.gd") if ResourceLoader.exists("res://src/core/managers/GameManager.gd") else null
+
 # Type-safe script references
 const Mission := preload("res://src/core/mission/base/mission.gd")
-const CampaignSystem := preload("res://src/core/campaign/CampaignSystem.gd")
 const GameState := preload("res://src/core/state/GameState.gd")
 
 # Type-safe constants
@@ -19,15 +24,26 @@ const DEFAULT_TEST_REPUTATION := 10
 
 # Type-safe instance variables
 var _campaign_system: Node = null
+var _game_manager: Node = null
+var _campaign_data: Resource = null
 var _campaign_state: GameState = null
 
 # Helper methods for common test scenarios
 func _create_test_mission() -> Resource:
-	var mission: Resource = TypeSafeMixin._safe_cast_to_resource(Mission.new(), "Mission")
+	if not Mission:
+		push_error("Mission script is null")
+		return null
+		
+	var mission: Resource = Mission.new()
 	if not mission:
 		push_error("Failed to create test mission")
 		return null
-	TypeSafeMixin._call_node_method_bool(mission, "set_type", [GameEnums.MissionType.PATROL])
+		
+	if mission.has_method("set_type"):
+		mission.set_type(GameEnums.MissionType.PATROL)
+	else:
+		push_warning("Mission doesn't have set_type method")
+		
 	track_test_resource(mission)
 	return mission
 
@@ -35,8 +51,16 @@ func _setup_basic_campaign_state() -> void:
 	if not _campaign_state:
 		push_error("Cannot setup campaign state: game state is null")
 		return
-	TypeSafeMixin._call_node_method_bool(_campaign_state, "add_credits", [DEFAULT_TEST_CREDITS])
-	TypeSafeMixin._call_node_method_bool(_campaign_state, "add_reputation", [DEFAULT_TEST_REPUTATION])
+		
+	if _campaign_state.has_method("add_credits"):
+		_campaign_state.add_credits(DEFAULT_TEST_CREDITS)
+	else:
+		push_warning("GameState doesn't have add_credits method")
+		
+	if _campaign_state.has_method("add_reputation"):
+		_campaign_state.add_reputation(DEFAULT_TEST_REPUTATION)
+	else:
+		push_warning("GameState doesn't have add_reputation method")
 
 # Lifecycle Methods
 func before_each() -> void:
@@ -50,12 +74,26 @@ func before_each() -> void:
 	add_child_autofree(_campaign_state)
 	track_test_node(_campaign_state)
 	
-	# Initialize campaign system
-	_campaign_system = TypeSafeMixin._safe_cast_to_node(CampaignSystem.new())
+	# Initialize campaign system directly without TypeSafeMixin
+	if CampaignSystemScript:
+		_campaign_system = CampaignSystemScript.new()
+	else:
+		push_error("CampaignSystem script is null")
+		return
+		
 	if not _campaign_system:
 		push_error("Failed to create campaign system")
 		return
-	TypeSafeMixin._call_node_method_bool(_campaign_system, "initialize", [_campaign_state])
+		
+	# Initialize directly instead of using TypeSafeMixin
+	if _campaign_system.has_method("initialize"):
+		var success = _campaign_system.initialize(_campaign_state)
+		if not success:
+			push_warning("Campaign system initialization might have failed")
+	else:
+		push_error("Campaign system doesn't have initialize method")
+		return
+		
 	add_child_autofree(_campaign_system)
 	track_test_node(_campaign_system)
 	

@@ -10,6 +10,7 @@ signal state_recovered(success: bool, recovery_info: Dictionary)
 signal validation_rule_added(rule_name: String)
 signal state_checkpoint_created(checkpoint_id: String)
 signal state_checkpoint_restored(checkpoint_id: String)
+signal transition_requested(from_state: int, to_state: int)
 
 var game_state: FiveParsecsGameState
 var current_state: Dictionary = {}
@@ -35,8 +36,19 @@ func _init(_game_state: FiveParsecsGameState) -> void:
     _setup_recovery_handlers()
 
 func _initialize_state() -> void:
-    # Virtual method to be implemented by child classes
-    pass
+    # Initialize with basic state structure
+    current_state = {
+        "ui_state": 0, # MAIN_MENU
+        "credits": 0,
+        "resources": {},
+        "campaign_turns": 0,
+        "screen_size": get_viewport().size if get_viewport() else Vector2(1280, 720)
+    }
+    
+    # Add game state reference if available
+    if game_state:
+        # Optionally link to game state properties
+        pass
 
 func _setup_default_validation_rules() -> void:
     # Add basic validation rules
@@ -291,3 +303,187 @@ func undo() -> bool:
     state_changed.emit(old_state, current_state)
     state_updated.emit(current_state)
     return true
+
+func get_current_state() -> int:
+    # For UI state management, we need to return an integer state
+    # First check if current_state has a ui_state key
+    if current_state.has("ui_state") and typeof(current_state.ui_state) == TYPE_INT:
+        return current_state.ui_state
+    # Otherwise, return a default value
+    return 0 # MAIN_MENU default
+    
+func transition_to(new_state: int) -> bool:
+    # For UI state management, we need to update the ui_state key
+    if is_transitioning:
+        push_warning("State transition attempted during another transition")
+        return false
+        
+    # If new_state is the same as current state, don't transition
+    if current_state.has("ui_state") and current_state.ui_state == new_state:
+        push_warning("Already in state %d, not transitioning" % new_state)
+        return false
+        
+    is_transitioning = true
+    var old_state = current_state.duplicate()
+    
+    # Create pre-update checkpoint
+    var checkpoint_id = _create_checkpoint("pre_transition")
+    
+    # If ui_state doesn't exist in the current_state, initialize with default values
+    if not current_state.has("ui_state"):
+        current_state["ui_state"] = 0 # Default to MAIN_MENU
+    
+    var from_state = current_state.ui_state
+    
+    # Emit transition requested signal
+    transition_requested.emit(from_state, new_state)
+    
+    # Update the ui_state in the current_state dictionary
+    current_state["ui_state"] = new_state
+    
+    # Add to history and emit signals
+    _add_to_history(old_state)
+    state_changed.emit(old_state, current_state)
+    state_updated.emit(current_state)
+    is_transitioning = false
+    
+    return true
+
+func get_ui_elements() -> Dictionary:
+    # Return UI elements based on current state
+    var current_ui_state = get_current_state()
+    
+    # Create a dictionary of all UI elements with their visibility based on current state
+    var ui_elements = {
+        # Each UI element is structured as a dictionary containing at least a "visible" property
+        # Main menu UI elements
+        "main_menu": {
+            "visible": current_ui_state == 0,
+            "controls": {
+                "new_game_button": {"visible": current_ui_state == 0},
+                "load_game_button": {"visible": current_ui_state == 0},
+                "settings_button": {"visible": current_ui_state == 0}
+            }
+        },
+        # Campaign setup UI elements
+        "campaign_setup": {
+            "visible": current_ui_state == 1,
+            "controls": {
+                "faction_selector": {"visible": current_ui_state == 1},
+                "difficulty_selector": {"visible": current_ui_state == 1},
+                "start_button": {"visible": current_ui_state == 1}
+            }
+        },
+        # Mission briefing UI elements
+        "mission_briefing": {
+            "visible": current_ui_state == 2,
+            "controls": {
+                "mission_details": {"visible": current_ui_state == 2},
+                "crew_selector": {"visible": current_ui_state == 2},
+                "start_mission_button": {"visible": current_ui_state == 2}
+            }
+        },
+        # Battle HUD UI elements
+        "battle_hud": {
+            "visible": current_ui_state == 3,
+            "controls": {
+                "action_panel": {"visible": current_ui_state == 3},
+                "character_stats": {"visible": current_ui_state == 3},
+                "turn_indicator": {"visible": current_ui_state == 3}
+            }
+        },
+        # Mission results UI elements
+        "mission_results": {
+            "visible": current_ui_state == 4,
+            "controls": {
+                "rewards_panel": {"visible": current_ui_state == 4},
+                "casualties_list": {"visible": current_ui_state == 4},
+                "continue_button": {"visible": current_ui_state == 4}
+            }
+        },
+        # Campaign summary UI elements
+        "campaign_summary": {
+            "visible": current_ui_state == 5,
+            "controls": {
+                "campaign_stats": {"visible": current_ui_state == 5},
+                "crew_status": {"visible": current_ui_state == 5},
+                "next_mission_button": {"visible": current_ui_state == 5}
+            }
+        }
+    }
+    
+    return ui_elements
+
+func get_touch_targets() -> Dictionary:
+    # Return touch targets based on current UI state
+    var touch_targets = {}
+    
+    # Add different touch targets based on current state
+    match get_current_state():
+        0: # MAIN_MENU
+            touch_targets["new_game"] = {"control": null, "rect": Rect2(100, 100, 200, 50), "action": "new_game"}
+            touch_targets["load_game"] = {"control": null, "rect": Rect2(100, 160, 200, 50), "action": "load_game"}
+        1: # CAMPAIGN_SETUP
+            touch_targets["start_campaign"] = {"control": null, "rect": Rect2(100, 300, 200, 50), "action": "start_campaign"}
+        2: # MISSION_BRIEFING
+            touch_targets["start_mission"] = {"control": null, "rect": Rect2(100, 300, 200, 50), "action": "start_mission"}
+        3: # BATTLE_HUD
+            touch_targets["end_turn"] = {"control": null, "rect": Rect2(500, 400, 100, 50), "action": "end_turn"}
+        4: # MISSION_RESULTS
+            touch_targets["continue"] = {"control": null, "rect": Rect2(300, 400, 200, 50), "action": "continue"}
+        5: # CAMPAIGN_SUMMARY
+            touch_targets["return_to_menu"] = {"control": null, "rect": Rect2(300, 400, 200, 50), "action": "return_to_menu"}
+            
+    return touch_targets
+
+func notify_screen_size_changed(new_size: Vector2) -> void:
+    # Handle screen size changes for responsive layout
+    if current_state.has("screen_size"):
+        var old_size = current_state.screen_size
+        current_state.screen_size = new_size
+        
+        # You could emit a signal here if needed
+        # Optionally recalculate UI element positions
+    else:
+        current_state.screen_size = new_size
+
+# This method is used by tests to access internal nodes for proper cleanup
+# Returns any internal nodes created by the StateTracker that need to be cleaned up
+func get_internal_nodes() -> Array:
+    var nodes = []
+    
+    # If the StateTracker has created any internal nodes, add them to the array
+    # For example, if we created any visualization helpers or debug nodes
+    
+    # Get all children of this node and add them to the array
+    for child in get_children():
+        nodes.append(child)
+    
+    # If we have any additional nodes stored in variables, add them too
+    
+    return nodes
+
+func cleanup() -> void:
+    # Method for proper cleanup
+    # Disconnect signals
+    var signals_list = get_signal_list()
+    for sig in signals_list:
+        var connections = get_signal_connection_list(sig.name)
+        for connection in connections:
+            if connection.callable.is_valid():
+                disconnect(sig.name, connection.callable)
+                
+    # Clear state history and checkpoints
+    state_history.clear()
+    state_checkpoints.clear()
+    
+    # Release references
+    game_state = null
+    
+    # Clear arrays and dictionaries
+    validation_rules.clear()
+    recovery_handlers.clear()
+    state_metadata.clear()
+    current_state.clear()
+    
+    # Additional cleanup as needed

@@ -225,18 +225,17 @@ func test_mission_objectives() -> void:
 	if not _mission.has_method("complete_objective"):
 		# We can't directly assign a callable, so we'll create a script with the method
 		var script = GDScript.new()
-		script.source_code = """
-		extends Resource
-		
-		signal objective_completed(objective_id)
-		
-		func complete_objective(objective_id: String) -> void:
-			for obj in objectives:
-				if obj.id == objective_id:
-					obj.is_completed = true
-					emit_signal("objective_completed", objective_id)
-					break
-		"""
+		script.source_code = """extends Resource
+
+signal objective_completed(objective_id)
+
+func complete_objective(objective_id: String) -> void:
+	for obj in objectives:
+		if obj.id == objective_id:
+			obj.is_completed = true
+			emit_signal("objective_completed", objective_id)
+			break
+"""
 		script.reload()
 		_mission.set_script(script)
 	
@@ -275,29 +274,28 @@ func test_mission_signals() -> void:
 	if not _mission.has_method("change_phase"):
 		# Create a script with all the necessary methods
 		var script = GDScript.new()
-		script.source_code = """
-		extends Resource
-		
-		signal phase_changed(phase)
-		signal mission_completed
-		signal mission_failed
-		signal mission_cleaned_up
-		signal objective_completed(objective_id)
-		
-		var current_phase = 0
-		var is_completed = false
-		var is_failed = false
-		
-		func change_phase(phase: int) -> void:
-			current_phase = phase
-			emit_signal("phase_changed", phase)
-		
-		func cleanup() -> void:
-			current_phase = 0 # PREPARATION
-			is_completed = false
-			is_failed = false
-			emit_signal("mission_cleaned_up")
-		"""
+		script.source_code = """extends Resource
+
+signal phase_changed(phase)
+signal mission_completed
+signal mission_failed
+signal mission_cleaned_up
+signal objective_completed(objective_id)
+
+var current_phase = 0
+var is_completed = false
+var is_failed = false
+
+func change_phase(phase: int) -> void:
+	current_phase = phase
+	emit_signal("phase_changed", phase)
+
+func cleanup() -> void:
+	current_phase = 0 # PREPARATION
+	is_completed = false
+	is_failed = false
+	emit_signal("mission_cleaned_up")
+"""
 		script.reload()
 		_mission.set_script(script)
 	
@@ -337,28 +335,27 @@ func test_mission_cleanup() -> void:
 	if not _mission.has_method("change_phase") or not _mission.has_method("cleanup") or not _mission.get("current_phase") or not _mission.get("is_completed"):
 		# Create a script with all the necessary methods
 		var script = GDScript.new()
-		script.source_code = """
-		extends Resource
-		
-		signal phase_changed(phase)
-		signal mission_completed
-		signal mission_failed
-		signal mission_cleaned_up
-		
-		var current_phase = 0
-		var is_completed = false
-		var is_failed = false
-		
-		func change_phase(phase: int) -> void:
-			current_phase = phase
-			emit_signal("phase_changed", phase)
-		
-		func cleanup() -> void:
-			current_phase = 0 # PREPARATION
-			is_completed = false
-			is_failed = false
-			emit_signal("mission_cleaned_up")
-		"""
+		script.source_code = """extends Resource
+
+signal phase_changed(phase)
+signal mission_completed
+signal mission_failed
+signal mission_cleaned_up
+
+var current_phase = 0
+var is_completed = false
+var is_failed = false
+
+func change_phase(phase: int) -> void:
+	current_phase = phase
+	emit_signal("phase_changed", phase)
+
+func cleanup() -> void:
+	current_phase = 0 # PREPARATION
+	is_completed = false
+	is_failed = false
+	emit_signal("mission_cleaned_up")
+"""
 		script.reload()
 		_mission.set_script(script)
 		

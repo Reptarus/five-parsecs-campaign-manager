@@ -4,7 +4,45 @@ This document outlines the issues encountered with the GUT (Godot Unit Testing) 
 
 ## Issues and Solutions
 
-### 1. Dynamic Method Assignment Issue
+### 1. Resource Serialization with inst_to_dict
+
+**Problem**: In Godot 4.4, the `inst_to_dict()` function requires resources to have valid resource paths, causing errors in the testing framework:
+```
+Error calling GDScript utility function 'inst_to_dict': Not based on a resource file
+```
+
+**Solution**: 
+- Patched `addons/gut/strutils.gd` file to handle non-resource objects gracefully
+- Added type checking before calling `inst_to_dict()`
+- Implemented a fallback pattern for objects without valid resource paths
+- Created additional utility functions for safe serialization
+
+```gdscript
+# BEFORE (in addons/gut/strutils.gd)
+static func _get_obj_filename(thing) -> String:
+    var filename = str(thing)
+    if thing.get_script():
+        var dict = inst_to_dict(thing)
+        if dict.has('@path'):
+            filename = dict['@path']
+    return filename
+
+# AFTER
+static func _get_obj_filename(thing) -> String:
+    var filename = str(thing)
+    if thing and is_instance_valid(thing) and thing.get_script():
+        # Check if it's a Resource with a valid path
+        if thing is Resource and not thing.resource_path.is_empty():
+            var dict = inst_to_dict(thing)
+            if dict and "in" in dict and dict.has('@path'):
+                filename = dict['@path']
+        # If not, just return the class name as fallback
+        else:
+            filename = thing.get_script().get_path()
+    return filename
+```
+
+### 2. Dynamic Method Assignment Issue
 
 **Problem**: In Godot 4.4, directly assigning methods to objects using the `object.method_name = func()` syntax fails with an error like:
 ```
@@ -15,6 +53,7 @@ Invalid assignment of property or key with value of type 'Callable' on a base ob
 - Replaced dynamic method assignment with direct property access or deferred property setting
 - Used `call_deferred("set", property_name, value)` to safely set properties that might not be accessible immediately
 - Implemented null-safety checks throughout the code
+- Created a script-based approach for assigning methods to resources
 
 ```gdscript
 # BEFORE
@@ -23,57 +62,36 @@ if not obj.has_method("some_method"):
         # Implementation...
 
 # AFTER
+# For Nodes
 if not obj.has_method("some_method"):
     # Use call_deferred to safely set the property
     obj.call_deferred("set", "_property", value)
+    
+# For Resources
+var script = GDScript.new()
+script.source_code = """
+extends Resource
+
+func some_method(args):
+    # Implementation...
+"""
+script.reload()
+resource.set_script(script)
 ```
 
-### 2. Invalid Image Data Size
+### 3. Dictionary Access Method Changes
 
-**Problem**: Image resources in scene files had incorrect data sizes, resulting in errors:
+**Problem**: Dictionary `has()` method now requires a single argument:
 ```
-Expected Image data size of 16x16x4 (RGBA8 without mipmaps) = 1024 bytes, got X bytes instead
-```
-
-**Solution**:
-- Created properly formatted 16x16 RGBA8 images with exactly 1024 bytes of data
-- Ensured each image had the correct byte count for its dimensions
-- Made transparent placeholder images for UI elements that were missing icons
-- Completely rebuilt the OutputText.tscn file which had grown to over 3MB due to image data issues
-- Fixed RunResults.tscn image data to match the required size specification
-
-```gdscript
-# Example of fixed image resource in GutBottomPanel.tscn
-[sub_resource type="Image" id="Image_p7oqn"]
-data = PackedByteArray(0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, ...)
-format = "RGBA8"
-width = 16
-height = 16
-mipmaps = false
-```
-
-### 3. Invalid Function Calls
-
-**Problem**: Using methods that no longer exist in Godot 4.4:
-```
-Invalid call. Nonexistent function 'has_method' in base 'Object'
+Invalid call to method 'has' in base 'Dictionary' with too many arguments
 ```
 
 **Solution**:
-- Replaced deprecated `has_method()` with `get_method_list().any()` using a callback function
-- Replaced deprecated dictionary `has()` function with the `in` operator
-- Added `is_instance_valid()` checks for object validity
-- Used safer navigation patterns throughout the code
+- Replaced dictionary `has()` function with the `in` operator
+- Added proper null checks for dictionary operations
+- Updated all dictionary access patterns
 
 ```gdscript
-# BEFORE
-if object.has_method("some_method"):
-    object.call("some_method")
-
-# AFTER
-if object.get_method_list().any(func(method): return method.name == "some_method"):
-    object.call("some_method")
-
 # BEFORE
 if _completed_actions.has(character):
     # Use action...
@@ -83,68 +101,144 @@ if character in _completed_actions:
     # Use action...
 ```
 
-### 4. Resource UID Conflicts
+### 4. Invalid Method Calls
 
-**Problem**: Several resource files had conflicting or invalid UIDs:
+**Problem**: Using methods that no longer exist in Godot 4.4:
 ```
-WARNING: ext_resource, invalid UID: uid://xxx - using text path instead: res://path/to/file
+Invalid call. Nonexistent function 'has_method' in base 'Object'
 ```
 
 **Solution**:
-- Updated scene files to reference resources with correct UIDs
-- Removed explicit UIDs from some resources to let Godot regenerate them
-- Fixed font references in theme files
+- Added checks for method existence using has_method()
+- Implemented safe method calling patterns
+- Used type-safe method calls from TypeSafeMixin
 
-### 5. Plugin Initialization Issues
+```gdscript
+# BEFORE
+if object.has_method("some_method"):
+    object.call("some_method")
 
-**Problem**: Plugin initialization would fail due to timing issues and missing references.
+# AFTER
+if object.has_method("some_method"):
+    object.some_method()
+```
 
-**Solution**:
-- Added proper deferred execution
-- Implemented retry logic with maximum attempts
-- Added better error handling and reporting
-- Made initialization more robust by checking for existence of nodes and methods
+### 5. Resource Safety and Tracking
 
-### 6. Scene File Structure Issues
-
-**Problem**: Several scene files had incorrect or corrupted data structures, particularly:
-- GutBottomPanel.tscn
-- RunResults.tscn
-- OutputText.tscn (extremely large at 3MB)
+**Problem**: Resources without valid resource paths cause errors during testing.
 
 **Solution**:
-- Completely rebuilt problematic scene files with minimal correct structure
-- Removed unnecessary or corrupted data
-- Created clean image resources with correct sizes
-- Simplified scene references while preserving functionality
+- Implemented resource path assignment for all test resources
+- Added automatic resource tracking in test base classes
+- Created safe serialization patterns using property copying
+- Implemented proper cleanup for all test resources
 
-### 7. Core Script Compatibility Issues
+```gdscript
+# Resource path safety
+if resource is Resource and resource.resource_path.is_empty():
+    var timestamp = Time.get_unix_time_from_system()
+    resource.resource_path = "res://tests/generated/%s_%d.tres" % [resource.get_class().to_snake_case(), timestamp]
 
-**Problem**: Core scripts using deprecated methods would not compile in Godot 4.4:
-- CharacterManager.gd using `has_method()`
-- BattleStateMachine.gd using `has_method()` and dictionary `has()`
+# Resource tracking
+track_test_resource(resource)
+
+# Safe serialization
+var serialized = {}
+if resource.has("property_name"):
+    serialized["property_name"] = resource.property_name
+```
+
+### 6. Signal Connection Issues
+
+**Problem**: Signal connections would sometimes fail or cause errors.
 
 **Solution**:
-- Updated all core scripts to use Godot 4.4 compatible method detection:
-  ```gdscript
-  # BEFORE
-  if character.has_method("get"):
-      return character.get(property, default_value)
-  
-  # AFTER
-  if character.get_method_list().any(func(method): return method.name == "get"):
-      return character.get(property, default_value)
-  ```
-- Updated dictionary access to use the `in` operator:
-  ```gdscript
-  # BEFORE
-  if _completed_actions.has(character):
-      # ...
-  
-  # AFTER
-  if character in _completed_actions:
-      # ...
-  ```
+- Added signal existence checks
+- Implemented proper signal watching
+- Used type-safe signal verification
+- Ensured proper disconnection in cleanup
+
+```gdscript
+# Signal watching
+watch_signals(instance)
+
+# Signal verification
+verify_signal_emitted(instance, "signal_name")
+```
+
+## Best Practices for Working with GUT in Godot 4.4
+
+1. **Type Safety**: Always use explicit typing and check types before making assumptions about objects.
+   ```gdscript
+   if object is Resource:
+       # Resource-specific operations
+   elif object is Node:
+       # Node-specific operations
+   ```
+
+2. **Resource Path Safety**: Ensure resources have valid resource paths.
+   ```gdscript
+   if resource is Resource and resource.resource_path.is_empty():
+       var timestamp = Time.get_unix_time_from_system()
+       resource.resource_path = "res://tests/generated/%s_%d.tres" % [resource.get_class().to_snake_case(), timestamp]
+   ```
+
+3. **Deferred Execution**: Use `call_deferred()` when setting properties on objects that might not be fully initialized.
+
+4. **Dictionary Access**: Use the `in` operator instead of `has()` method.
+   ```gdscript
+   if key in dictionary:
+       # Do something
+   ```
+
+5. **Property Existence**: Use `has()` to check for property existence.
+   ```gdscript
+   if object.has("property_name"):
+       var value = object.property_name
+   ```
+
+6. **Method Existence**: Use `has_method()` to check for method existence.
+   ```gdscript
+   if object.has_method("method_name"):
+       object.method_name()
+   ```
+
+7. **Safe Serialization**: Use explicit property copying instead of inst_to_dict.
+   ```gdscript
+   var serialized = {}
+   if resource.has("property_name"):
+       serialized["property_name"] = resource.property_name
+   ```
+
+8. **Resource Tracking**: Always track resources for proper cleanup.
+   ```gdscript
+   track_test_resource(resource)
+   ```
+
+9. **Signal Handling**: Use watch_signals and verify_signal_emitted.
+   ```gdscript
+   watch_signals(instance)
+   verify_signal_emitted(instance, "signal_name")
+   ```
+
+10. **Test Lifecycle Methods**: Always call super methods in before_each and after_each.
+   ```gdscript
+   func before_each() -> void:
+       await super.before_each()
+       # Setup code
+   
+   func after_each() -> void:
+       # Cleanup code
+       await super.after_each()
+   ```
+
+11. **Extension Syntax**: Use file paths in extends statements.
+    ```gdscript
+    @tool
+    extends "res://tests/fixtures/specialized/battle_test.gd"
+    ```
+
+These practices ensure that your tests will work correctly in Godot 4.4 and prevent common errors.
 
 ## Key Files Modified
 
@@ -156,17 +250,6 @@ WARNING: ext_resource, invalid UID: uid://xxx - using text path instead: res://p
 6. `addons/gut/gui/GutSceneTheme.tres` - UI theme resource
 7. `src/core/character/management/CharacterManager.gd` - Character management system
 8. `src/core/battle/state/BattleStateMachine.gd` - Battle state management
-
-## Best Practices for Working with GUT in Godot 4.4
-
-1. **Type Safety**: Always use explicit typing and check types before making assumptions about objects.
-2. **Deferred Execution**: Use `call_deferred()` when setting properties on objects that might not be fully initialized.
-3. **Error Handling**: Always check return values and implement proper error handling.
-4. **Resource Management**: Be careful with UIDs in resource references, especially across different Godot versions.
-5. **Signal Connections**: Use typed Callables for signal connections.
-6. **Scene Structure**: Keep scene files clean and minimal, particularly when using image resources.
-7. **Method Checking**: Use `get_method_list().any()` instead of deprecated `has_method()`.
-8. **Dictionary Checks**: Use the `in` operator instead of the `has()` method.
 
 ## Future Maintenance
 

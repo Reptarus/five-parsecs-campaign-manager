@@ -100,10 +100,10 @@ func simulate_device_dpi(dpi: int) -> void:
 ## Called automatically during after_each()
 func restore_device_dpi() -> void:
 	# Restore original DPI
-	# Note: This is a mock implementation
+	# This is a simulation method since we can't actually control DPI in Godot directly
 	push_warning("DPI restoration not fully implemented")
-	
-	await stabilize_engine()
+	# Since we can't actually change DPI, this is just a placeholder for test compatibility
+	# No need to wait for stabilization since no actual change is happening
 
 # Touch Input Methods
 
@@ -301,7 +301,14 @@ func add_child_autofree(node: Node, call_ready: bool = true) -> void:
 	if not node:
 		push_error("Cannot add null node to scene")
 		return
+	
+	# Check if the node already has a parent
+	if node.get_parent() != null:
+		push_warning("Node '%s' already has a parent '%s'. Removing from current parent before adding." %
+			[node.name, node.get_parent().name])
+		node.get_parent().remove_child(node)
 		
+	# Add the node and track it
 	add_child(node, call_ready)
 	# Track the node for automatic cleanup
 	track_test_node(node)

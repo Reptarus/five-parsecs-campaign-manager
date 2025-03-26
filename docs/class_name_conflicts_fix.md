@@ -1,10 +1,12 @@
-# Class Name Conflicts Fix Guide
+# Class Name Conflicts Fix and Script Reference Management
 
-This document provides specific instructions for fixing each of the class name conflicts identified in the Five Parsecs Campaign Manager codebase.
+This document provides specific instructions for fixing class name conflicts and implementing safe script reference management in the Five Parsecs Campaign Manager codebase.
 
-## High-Priority Fixes
+## Class Name Conflicts
 
-### 1. Fix `FiveParsecsStrangeCharacters`
+### High-Priority Fixes
+
+#### 1. Fix `FiveParsecsStrangeCharacters`
 
 **Conflicting Files:**
 - `src/game/campaign/crew/FiveParsecsStrangeCharacters.gd` (non-authoritative)
@@ -25,7 +27,7 @@ extends Node
 const BaseStrangeCharacters = preload("res://src/core/character/BaseStrangeCharacters.gd")
 ```
 
-### 2. Fix `FiveParsecsPostBattlePhase`
+#### 2. Fix `FiveParsecsPostBattlePhase`
 
 **Conflicting Files:**
 - `src/game/campaign/FiveParsecsPostBattlePhase.gd` (non-authoritative)
@@ -46,7 +48,7 @@ extends Node
 const BasePostBattlePhase = preload("res://src/core/campaign/BasePostBattlePhase.gd")
 ```
 
-### 3. Fix `FiveParsecsCharacterStats`
+#### 3. Fix `FiveParsecsCharacterStats`
 
 **Conflicting Files:**
 - `src/game/character/CharacterStats.gd` (non-authoritative)
@@ -64,7 +66,7 @@ const BasePostBattlePhase = preload("res://src/core/campaign/BasePostBattlePhase
 extends "res://src/core/character/Base/CharacterStats.gd"
 ```
 
-### 4. Fix `CampaignSetupScreen`
+#### 4. Fix `CampaignSetupScreen`
 
 **Conflicting Files:**
 - `src/ui/screens/campaign/CampaignSetupScreen.gd` (non-authoritative)
@@ -82,9 +84,9 @@ extends "res://src/core/character/Base/CharacterStats.gd"
 extends Control
 ```
 
-## Test Fixture Fixes
+### Test Fixture Fixes
 
-### 1. Fix `GameStateTestAdapter`
+#### 1. Fix `GameStateTestAdapter`
 
 **Conflicting Files:**
 - `tests/fixtures/helpers/game_state_test_adapter.gd` (non-authoritative)
@@ -102,7 +104,7 @@ extends Control
 extends RefCounted
 ```
 
-### 2. Fix `TestGameStateAdapter`
+#### 2. Fix `TestGameStateAdapter`
 
 **Conflicting Files:**
 - `tests/unit/core/test_game_state_adapter.gd` (non-authoritative)
@@ -120,7 +122,7 @@ extends RefCounted
 extends GameTest
 ```
 
-### 3. Fix `CampaignTest`
+#### 3. Fix `CampaignTest`
 
 **Conflicting Files:**
 - `tests/fixtures/specialized/campaign_test.gd` (non-authoritative)
@@ -138,9 +140,9 @@ extends GameTest
 extends "res://tests/fixtures/base/game_test.gd"
 ```
 
-## Method Reference Fixes
+### Method Reference Fixes
 
-### 1. Fix `StoryQuestData.create_mission`
+#### 1. Fix `StoryQuestData.create_mission`
 
 **Affected Files:**
 - `src/core/managers/CampaignManager.gd`
@@ -153,7 +155,7 @@ const StoryQuestDataScript = preload("res://src/core/mission/StoryQuestData.gd")
 
 2. Replace all instances of `StoryQuestData.create_mission` with `StoryQuestDataScript.create_mission`
 
-### 2. Fix `GamePlanet.deserialize`
+#### 2. Fix `GamePlanet.deserialize`
 
 **Affected Files:**
 - `src/core/managers/SectorManager.gd`
@@ -166,15 +168,142 @@ const GamePlanetScript = preload("res://src/game/world/GamePlanet.gd")
 
 2. Replace all instances of `GamePlanet.deserialize` with `GamePlanetScript.deserialize`
 
-## Inner Class Reference Fixes
+### Inner Class Reference Fixes
 
 These files have already been fixed with factory methods but are included here for completeness.
 
-### 1. `ValidationResult` in `StateValidator.gd`
+#### 1. `ValidationResult` in `StateValidator.gd`
 - Added factory method `create_result()` to instantiate `ValidationResult` objects
 
-### 2. `PathNode` in `PathFinder.gd`
+#### 2. `PathNode` in `PathFinder.gd`
 - Added factory method `create_path_node()` to instantiate `PathNode` objects
+
+## Script Reference Management
+
+### Best Practices for Script References
+
+Here are the recommended approaches for referencing scripts and resources in the Five Parsecs Campaign Manager codebase, in order of preference:
+
+1. **For core engine types:**
+   - Use direct type references: `extends Node`
+
+2. **For first-party code from project:**
+   - Use explicit preloads with constants: `const MyScript = preload("res://path/to/MyScript.gd")`
+   - Reference the script via the constant: `var my_instance = MyScript.new()`
+
+3. **For inheritance:**
+   - Use file path in extends: `extends "res://path/to/BaseScript.gd"`
+   - Avoid class_name references in extends unless absolutely necessary
+
+4. **For static methods:**
+   - Preload script and call via the preloaded constant:
+   ```gdscript
+   const UtilityScript = preload("res://path/to/UtilityScript.gd")
+   func do_something():
+     UtilityScript.static_method()
+   ```
+
+5. **For autoloads:**
+   - Access directly: `GameManager.method()`
+   - Document autoload usage in script headers
+
+### Anti-Patterns to Avoid
+
+1. **Direct class name references for inheritance:**
+   ```gdscript
+   # AVOID
+   extends MyCustomClass
+
+   # PREFER
+   extends "res://path/to/MyCustomClass.gd" 
+   ```
+
+2. **Static method calls on class names:**
+   ```gdscript
+   # AVOID
+   MyUtility.static_method()
+
+   # PREFER
+   const MyUtilityScript = preload("res://path/to/MyUtility.gd")
+   MyUtilityScript.static_method()
+   ```
+
+3. **Inner class references across files:**
+   ```gdscript
+   # AVOID
+   var result = OtherScript.InnerClass.new()
+
+   # PREFER
+   # In OtherScript.gd
+   static func create_inner_instance():
+     return InnerClass.new()
+
+   # In your file
+   const OtherScript = preload("res://path/to/OtherScript.gd")
+   var result = OtherScript.create_inner_instance()
+   ```
+
+4. **Dynamic loading without error handling:**
+   ```gdscript
+   # AVOID
+   var DynamicClass = load("res://path/to/DynamicClass.gd")
+   var instance = DynamicClass.new()
+
+   # PREFER
+   var dynamic_script = load("res://path/to/DynamicClass.gd")
+   if dynamic_script:
+     var instance = dynamic_script.new()
+   else:
+     push_error("Failed to load script")
+   ```
+
+### Recommended Patterns for Complex References
+
+#### Resource Path Parameters
+
+When methods need to create instances from different script files:
+
+```gdscript
+# PREFER
+func create_enemy(enemy_script_path: String) -> Enemy:
+    var EnemyScript = load(enemy_script_path)
+    if not EnemyScript:
+        push_error("Failed to load enemy script: " + enemy_script_path)
+        return null
+    return EnemyScript.new()
+```
+
+#### Factory Methods for Inner Classes
+
+When your script defines inner classes:
+
+```gdscript
+# In StateValidator.gd
+class ValidationResult:
+    var valid: bool
+    var messages: Array
+
+# Add factory method
+static func create_result(is_valid: bool, error_messages: Array) -> ValidationResult:
+    var result = ValidationResult.new()
+    result.valid = is_valid
+    result.messages = error_messages
+    return result
+```
+
+#### Resource Classes for Data Objects
+
+For data structures that need to be serialized:
+
+```gdscript
+# Define as a Resource
+class_name MissionData
+extends Resource
+
+@export var mission_name: String
+@export var difficulty: int
+@export var rewards: Dictionary
+```
 
 ## Testing Your Fixes
 

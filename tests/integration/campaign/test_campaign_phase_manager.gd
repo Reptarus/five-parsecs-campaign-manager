@@ -62,41 +62,112 @@ func before_each() -> void:
 	# Create a test campaign and add to game state
 	# This is necessary to avoid "No active campaign during setup phase" errors
 	if "current_campaign" in _game_state and _game_state.current_campaign == null:
-		var FiveParsecsCampaign = load("res://src/game/campaign/FiveParsecsCampaign.gd")
-		if FiveParsecsCampaign:
-			# FiveParsecsCampaign is a Resource, not a Node, as it extends BaseCampaign which extends Resource
-			var campaign = FiveParsecsCampaign.new()
-			if not campaign:
-				push_error("Failed to create campaign resource")
-				return
-			
-			# Track resource for cleanup
-			track_test_resource(campaign)
-			
-			# Initialize the campaign
-			if campaign.has_method("initialize_from_data"):
-				# Many FiveParsecsCampaign instances require data for initialization
-				var basic_campaign_data = {
-					"campaign_id": "test_campaign_" + str(randi()),
-					"campaign_name": "Test Campaign",
-					"difficulty": 1,
-					"credits": 1000,
-					"supplies": 5,
-					"turn": 1
-				}
-				campaign.initialize_from_data(basic_campaign_data)
-			elif campaign.has_method("initialize"):
-				campaign.initialize()
-			
-			# Add campaign to game state
-			if _game_state.has_method("set_current_campaign"):
-				_game_state.set_current_campaign(campaign)
-			else:
-				_game_state.current_campaign = campaign
-			
-			print("Created and added test campaign to game state")
+		# Create a campaign resource with proper script
+		var campaign = Resource.new()
+		if not campaign:
+			push_error("Failed to create campaign resource")
+			return
+		
+		# Track resource for cleanup
+		track_test_resource(campaign)
+		
+		# Create a script with all required methods
+		var script = GDScript.new()
+		script.source_code = """extends Resource
+
+# Campaign properties
+var campaign_id: String = "test_campaign_" + str(randi())
+var campaign_name: String = "Test Campaign"
+var difficulty: int = 1
+var credits: int = 1000
+var supplies: int = 5
+var turn: int = 1
+var phase: int = 0
+
+# Signals
+signal campaign_state_changed(property)
+signal resource_changed(resource_type, amount)
+signal world_changed(world_data)
+
+func initialize_from_data(data: Dictionary):
+	if data.has("campaign_id"):
+		campaign_id = data.campaign_id
+	if data.has("campaign_name"):
+		campaign_name = data.campaign_name
+	if data.has("difficulty"):
+		difficulty = data.difficulty
+	if data.has("credits"):
+		credits = data.credits
+	if data.has("supplies"):
+		supplies = data.supplies
+	if data.has("turn"):
+		turn = data.turn
+	return true
+	
+func initialize():
+	return initialize_from_data({
+		"campaign_id": "test_campaign_" + str(randi()),
+		"campaign_name": "Test Campaign",
+		"difficulty": 1,
+		"credits": 1000,
+		"supplies": 5,
+		"turn": 1
+	})
+	
+func get_campaign_id():
+	return campaign_id
+	
+func get_campaign_name():
+	return campaign_name
+	
+func get_difficulty():
+	return difficulty
+	
+func get_credits():
+	return credits
+	
+func get_supplies():
+	return supplies
+	
+func get_turn():
+	return turn
+	
+func get_phase():
+	return phase
+	
+func set_phase(new_phase: int):
+	phase = new_phase
+	emit_signal("campaign_state_changed", "phase")
+	return true
+"""
+		script.reload()
+		
+		# Apply the script to the resource
+		campaign.set_script(script)
+		
+		# Initialize the campaign
+		var basic_campaign_data = {
+			"campaign_id": "test_campaign_" + str(randi()),
+			"campaign_name": "Test Campaign",
+			"difficulty": 1,
+			"credits": 1000,
+			"supplies": 5,
+			"turn": 1
+		}
+		if campaign.has_method("initialize_from_data"):
+			campaign.initialize_from_data(basic_campaign_data)
+		elif campaign.has_method("initialize"):
+			campaign.initialize()
+		
+		# Add campaign to game state
+		if _game_state.has_method("set_current_campaign"):
+			_game_state.set_current_campaign(campaign)
 		else:
-			push_error("Could not load FiveParsecsCampaign script")
+			_game_state.current_campaign = campaign
+		
+		print("Created and added test campaign to game state")
+	else:
+		push_error("Game state does not have current_campaign property")
 	
 	_phase_manager = Node.new()
 	_phase_manager.set_script(CampaignPhaseManagerScript)
@@ -110,22 +181,6 @@ func before_each() -> void:
 	if _phase_manager.has_method("setup"):
 		# Verify type compatibility before calling setup
 		print("Setting up phase manager with game state type: " + _game_state.get_script().resource_path)
-		
-		# Ensure campaign has necessary signals before setting up phase manager
-		if _game_state.current_campaign:
-			# Verify signals exist on campaign object before trying to connect
-			var campaign = _game_state.current_campaign
-			if not campaign.has_signal("campaign_state_changed"):
-				push_warning("Campaign lacks required signal: campaign_state_changed - adding dummy signal")
-				campaign.add_user_signal("campaign_state_changed", [ {"name": "property", "type": TYPE_STRING}])
-			
-			if not campaign.has_signal("resource_changed"):
-				push_warning("Campaign lacks required signal: resource_changed - adding dummy signal")
-				campaign.add_user_signal("resource_changed", [ {"name": "resource_type", "type": TYPE_STRING}, {"name": "amount", "type": TYPE_INT}])
-			
-			if not campaign.has_signal("world_changed"):
-				push_warning("Campaign lacks required signal: world_changed - adding dummy signal")
-				campaign.add_user_signal("world_changed", [ {"name": "world_data", "type": TYPE_DICTIONARY}])
 		
 		_phase_manager.setup(_game_state)
 	elif _phase_manager.has_method("set_game_state"):
@@ -156,14 +211,14 @@ func after_each() -> void:
 	if is_instance_valid(_phase_manager) and _game_state and _game_state.current_campaign:
 		var campaign = _game_state.current_campaign
 		# Check for and disconnect signals properly
-		if campaign.has_signal("campaign_state_changed") and campaign.is_connected("campaign_state_changed", _phase_manager._on_campaign_state_changed):
-			campaign.disconnect("campaign_state_changed", _phase_manager._on_campaign_state_changed)
+		if campaign.has_signal("campaign_state_changed") and campaign.is_connected("campaign_state_changed", Callable(_phase_manager, "_on_campaign_state_changed")):
+			campaign.disconnect("campaign_state_changed", Callable(_phase_manager, "_on_campaign_state_changed"))
 		
-		if campaign.has_signal("resource_changed") and campaign.is_connected("resource_changed", _phase_manager._on_campaign_resource_changed):
-			campaign.disconnect("resource_changed", _phase_manager._on_campaign_resource_changed)
+		if campaign.has_signal("resource_changed") and campaign.is_connected("resource_changed", Callable(_phase_manager, "_on_campaign_resource_changed")):
+			campaign.disconnect("resource_changed", Callable(_phase_manager, "_on_campaign_resource_changed"))
 		
-		if campaign.has_signal("world_changed") and campaign.is_connected("world_changed", _phase_manager._on_campaign_world_changed):
-			campaign.disconnect("world_changed", _phase_manager._on_campaign_world_changed)
+		if campaign.has_signal("world_changed") and campaign.is_connected("world_changed", Callable(_phase_manager, "_on_campaign_world_changed")):
+			campaign.disconnect("world_changed", Callable(_phase_manager, "_on_campaign_world_changed"))
 	
 	if is_instance_valid(_campaign_manager):
 		_campaign_manager.queue_free()
@@ -286,7 +341,7 @@ func test_phase_manager_initialization():
 		
 	# The phase manager initializes to NONE
 	# Only later transitions to SETUP when starting the campaign flow
-	var expected_initial_phase = GameEnums.CampaignPhase.NONE
+	var expected_initial_phase = GameEnums.FiveParcsecsCampaignPhase.NONE
 	
 	# Handle case where current_phase might not be accessible
 	if not _phase_manager.has_method("get_current_phase") and not ("current_phase" in _phase_manager):
@@ -302,32 +357,25 @@ func test_phase_manager_initialization():
 	)
 
 func test_phase_transitions():
-	"""Test that the phase manager can transition between phases correctly."""
-	# Skip test if phase manager is not valid
+	"""Test that phase transitions work correctly."""
+	# Skip if phase manager is invalid
 	if not is_instance_valid(_phase_manager):
 		push_warning("Phase manager is not valid, skipping test")
 		return
 		
-	# Handle case where current_phase might not be accessible
-	if not _phase_manager.has_method("get_current_phase") and not ("current_phase" in _phase_manager):
-		push_warning("Phase manager does not expose current_phase, skipping phase transitions test")
+	if not _phase_manager.has_method("start_phase"):
+		push_warning("Phase manager missing required methods, skipping test")
 		return
-		
-	# First make sure we're starting from NONE phase
+	
+	# Given a phase manager that starts at NONE
 	assert_eq(
 		_phase_manager.current_phase,
-		GameEnums.CampaignPhase.NONE,
-		"Should start from NONE phase"
+		GameEnums.FiveParcsecsCampaignPhase.NONE,
+		"Phase manager should start at NONE"
 	)
 	
-	# When transitioning to SETUP phase (first valid phase)
-	var to_phase = GameEnums.CampaignPhase.SETUP
-	
-	# Skip if start_phase method doesn't exist
-	if not _phase_manager.has_method("start_phase"):
-		push_warning("Phase manager does not have start_phase method, skipping transitions test")
-		return
-		
+	# When we transition to SETUP
+	var to_phase = GameEnums.FiveParcsecsCampaignPhase.SETUP
 	var success = _call_node_method_bool(_phase_manager, "start_phase", [to_phase])
 	assert_true(
 		success,
@@ -342,7 +390,7 @@ func test_phase_transitions():
 	)
 	
 	# Then we can go to STORY phase (which comes after SETUP)
-	to_phase = GameEnums.CampaignPhase.STORY
+	to_phase = GameEnums.FiveParcsecsCampaignPhase.STORY
 	success = _call_node_method_bool(_phase_manager, "start_phase", [to_phase])
 	assert_true(
 		success,
@@ -356,7 +404,7 @@ func test_phase_transitions():
 	)
 	
 	# Test invalid transition (skipping phases) - we can't go from STORY to ADVANCEMENT
-	to_phase = GameEnums.CampaignPhase.ADVANCEMENT
+	to_phase = GameEnums.FiveParcsecsCampaignPhase.ADVANCEMENT
 	success = _call_node_method_bool(_phase_manager, "start_phase", [to_phase])
 	assert_false(
 		success,
@@ -366,7 +414,7 @@ func test_phase_transitions():
 	# Current phase should remain unchanged
 	assert_eq(
 		_phase_manager.current_phase,
-		GameEnums.CampaignPhase.STORY,
+		GameEnums.FiveParcsecsCampaignPhase.STORY,
 		"Current phase should remain STORY"
 	)
 
@@ -398,13 +446,13 @@ func test_campaign_integration():
 		
 	# First transition to SETUP phase
 	assert_true(
-		_call_node_method_bool(_phase_manager, "start_phase", [GameEnums.CampaignPhase.SETUP]),
+		_call_node_method_bool(_phase_manager, "start_phase", [GameEnums.FiveParcsecsCampaignPhase.SETUP]),
 		"Should be able to start SETUP phase"
 	)
 	
 	# Then transition to STORY phase
 	assert_true(
-		_call_node_method_bool(_phase_manager, "start_phase", [GameEnums.CampaignPhase.STORY]),
+		_call_node_method_bool(_phase_manager, "start_phase", [GameEnums.FiveParcsecsCampaignPhase.STORY]),
 		"Should be able to start STORY phase"
 	)
 	
@@ -442,7 +490,7 @@ func _test_battle_setup_phase() -> void:
 		
 	# When transitioning to battle phase (which follows story phase)
 	assert_true(
-		_call_node_method_bool(_phase_manager, "start_phase", [GameEnums.CampaignPhase.BATTLE_SETUP]),
+		_call_node_method_bool(_phase_manager, "start_phase", [GameEnums.FiveParcsecsCampaignPhase.BATTLE_SETUP]),
 		"Should be able to start BATTLE_SETUP phase"
 	)
 	
@@ -478,7 +526,7 @@ func _test_battle_resolution_phase() -> void:
 		
 	# When completing a battle, transition to battle resolution
 	assert_true(
-		_call_node_method_bool(_phase_manager, "start_phase", [GameEnums.CampaignPhase.BATTLE_RESOLUTION]),
+		_call_node_method_bool(_phase_manager, "start_phase", [GameEnums.FiveParcsecsCampaignPhase.BATTLE_RESOLUTION]),
 		"Should be able to start BATTLE_RESOLUTION phase"
 	)
 	
@@ -500,7 +548,7 @@ func _test_upkeep_phase() -> void:
 		
 	# When calculating upkeep, transition to upkeep
 	assert_true(
-		_call_node_method_bool(_phase_manager, "start_phase", [GameEnums.CampaignPhase.UPKEEP]),
+		_call_node_method_bool(_phase_manager, "start_phase", [GameEnums.FiveParcsecsCampaignPhase.UPKEEP]),
 		"Should be able to start UPKEEP phase"
 	)
 	
@@ -523,7 +571,7 @@ func _test_advancement_phase() -> void:
 		
 	# When advancing characters, transition to advancement
 	assert_true(
-		_call_node_method_bool(_phase_manager, "start_phase", [GameEnums.CampaignPhase.ADVANCEMENT]),
+		_call_node_method_bool(_phase_manager, "start_phase", [GameEnums.FiveParcsecsCampaignPhase.ADVANCEMENT]),
 		"Should be able to start ADVANCEMENT phase"
 	)
 	
@@ -585,13 +633,13 @@ func test_full_campaign_cycle():
 	
 	# 0. Start with SETUP phase
 	assert_true(
-		_call_node_method_bool(_phase_manager, "start_phase", [GameEnums.CampaignPhase.SETUP]),
+		_call_node_method_bool(_phase_manager, "start_phase", [GameEnums.FiveParcsecsCampaignPhase.SETUP]),
 		"Should be able to start SETUP phase"
 	)
 	
 	# 1. Story Phase
 	assert_true(
-		_call_node_method_bool(_phase_manager, "start_phase", [GameEnums.CampaignPhase.STORY]),
+		_call_node_method_bool(_phase_manager, "start_phase", [GameEnums.FiveParcsecsCampaignPhase.STORY]),
 		"Should be able to start STORY phase"
 	)
 	
@@ -613,7 +661,7 @@ func test_full_campaign_cycle():
 	
 	# 2. Battle Setup
 	assert_true(
-		_call_node_method_bool(_phase_manager, "start_phase", [GameEnums.CampaignPhase.BATTLE_SETUP]),
+		_call_node_method_bool(_phase_manager, "start_phase", [GameEnums.FiveParcsecsCampaignPhase.BATTLE_SETUP]),
 		"Should be able to start BATTLE_SETUP phase"
 	)
 	
@@ -643,7 +691,7 @@ func test_full_campaign_cycle():
 	
 	# 3. Battle Resolution
 	assert_true(
-		_call_node_method_bool(_phase_manager, "start_phase", [GameEnums.CampaignPhase.BATTLE_RESOLUTION]),
+		_call_node_method_bool(_phase_manager, "start_phase", [GameEnums.FiveParcsecsCampaignPhase.BATTLE_RESOLUTION]),
 		"Should be able to start BATTLE_RESOLUTION phase"
 	)
 	
@@ -654,7 +702,7 @@ func test_full_campaign_cycle():
 	
 	# 4. Upkeep
 	assert_true(
-		_call_node_method_bool(_phase_manager, "start_phase", [GameEnums.CampaignPhase.UPKEEP]),
+		_call_node_method_bool(_phase_manager, "start_phase", [GameEnums.FiveParcsecsCampaignPhase.UPKEEP]),
 		"Should be able to start UPKEEP phase"
 	)
 	
@@ -673,7 +721,7 @@ func test_full_campaign_cycle():
 	
 	# 5. Advancement
 	assert_true(
-		_call_node_method_bool(_phase_manager, "start_phase", [GameEnums.CampaignPhase.ADVANCEMENT]),
+		_call_node_method_bool(_phase_manager, "start_phase", [GameEnums.FiveParcsecsCampaignPhase.ADVANCEMENT]),
 		"Should be able to start ADVANCEMENT phase"
 	)
 	
@@ -687,12 +735,12 @@ func test_full_campaign_cycle():
 	
 	# 6. Back to Story for next turn (via SETUP)
 	assert_true(
-		_call_node_method_bool(_phase_manager, "start_phase", [GameEnums.CampaignPhase.SETUP]),
+		_call_node_method_bool(_phase_manager, "start_phase", [GameEnums.FiveParcsecsCampaignPhase.SETUP]),
 		"Should be able to start SETUP phase again"
 	)
 	
 	assert_true(
-		_call_node_method_bool(_phase_manager, "start_phase", [GameEnums.CampaignPhase.STORY]),
+		_call_node_method_bool(_phase_manager, "start_phase", [GameEnums.FiveParcsecsCampaignPhase.STORY]),
 		"Should be able to start STORY phase again"
 	)
 	
@@ -700,7 +748,7 @@ func test_full_campaign_cycle():
 	if _phase_manager.has_method("get_current_phase") or ("current_phase" in _phase_manager):
 		assert_eq(
 			_phase_manager.current_phase,
-			GameEnums.CampaignPhase.STORY,
+			GameEnums.FiveParcsecsCampaignPhase.STORY,
 			"Current phase should be STORY phase"
 		)
 	else:

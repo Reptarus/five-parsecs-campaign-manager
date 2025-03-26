@@ -32,30 +32,36 @@ enum MissionType {PATROL = 0, DEFENSE = 1, ASSAULT = 2}
 func before_each() -> void:
 	await super.before_each()
 	
-	# Initialize test environment
-	_mission = TypeSafeMixin._safe_cast_to_resource(MissionScript.new(), "Mission")
-	if not _mission:
-		push_error("Failed to create mission")
-		return
-	track_test_resource(_mission)
+	# Initialize test environment - direct creation of mission without type casts
+	var mission_script = load("res://src/core/mission/base/mission.gd")
+	if mission_script:
+		_mission = mission_script.new()
+		if _mission:
+			track_test_resource(_mission)
+	else:
+		push_warning("Failed to load mission script, skipping mission creation")
 	
-	_generator = TypeSafeMixin._safe_cast_to_node(Node.new(), "Generator")
-	if not _generator:
-		push_error("Failed to create mission generator")
-		return
-	_generator.set_script(MissionGeneratorScript)
-	if not _generator.get_script():
-		push_error("Failed to set script on mission generator")
-		return
-	add_child_autofree(_generator)
-	track_test_node(_generator)
+	# Create a simple generator node without unsafe type casts
+	_generator = Node.new()
+	_generator.name = "MissionGenerator"
+	if _generator:
+		if MissionGeneratorScript:
+			_generator.set_script(MissionGeneratorScript)
+			if not _generator.get_script():
+				push_warning("Failed to set script on mission generator, tests may be skipped")
+		add_child_autofree(_generator)
+		track_test_node(_generator)
+	else:
+		push_warning("Failed to create mission generator, tests may be skipped")
 	
-	_mobile_ui = TypeSafeMixin._safe_cast_to_node(Node.new(), "MobileUI")
-	if not _mobile_ui:
-		push_error("Failed to create mobile UI")
-		return
-	add_child_autofree(_mobile_ui)
-	track_test_node(_mobile_ui)
+	# Create a basic UI node for mobile tests
+	_mobile_ui = Node.new()
+	_mobile_ui.name = "MobileUI"
+	if _mobile_ui:
+		add_child_autofree(_mobile_ui)
+		track_test_node(_mobile_ui)
+	else:
+		push_warning("Failed to create mobile UI, tests may be skipped")
 	
 	await stabilize_engine()
 

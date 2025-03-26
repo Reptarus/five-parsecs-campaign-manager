@@ -6,9 +6,9 @@ extends "res://tests/fixtures/specialized/enemy_test.gd"
 ## Provides common functionality, type declarations, and helper methods
 ## for testing enemy behavior, combat, and state management.
 
-# Core script references with type safety
-const _enemy_script: GDScript = preload("res://src/core/battle/enemy/Enemy.gd")
-const _enemy_data_script: GDScript = preload("res://src/core/rivals/EnemyData.gd")
+# Load scripts safely with type safety
+var _enemy_script = load("res://src/core/enemy/Enemy.gd") if ResourceLoader.exists("res://src/core/enemy/Enemy.gd") else load("res://src/core/battle/enemy/Enemy.gd")
+var _enemy_data_script = load("res://src/core/rivals/EnemyData.gd") if ResourceLoader.exists("res://src/core/rivals/EnemyData.gd") else null
 
 # Common test states with type safety
 var _battlefield: Node2D = null
@@ -23,7 +23,7 @@ const ENEMY_TEST_TEMPLATES := {
 		"attack_range": 2.0 as float,
 		"movement_range": 4.0 as float,
 		"weapon_range": 1.0 as float,
-		"behavior": GameEnums.AIBehavior.CAUTIOUS as int
+		"behavior": 1 as int # GameEnums.AIBehavior.CAUTIOUS
 	},
 	"ELITE": {
 		"health": 150.0 as float,
@@ -31,15 +31,14 @@ const ENEMY_TEST_TEMPLATES := {
 		"attack_range": 3.0 as float,
 		"movement_range": 5.0 as float,
 		"weapon_range": 2.0 as float,
-		"behavior": GameEnums.AIBehavior.AGGRESSIVE as int
+		"behavior": 2 as int # GameEnums.AIBehavior.AGGRESSIVE
 	}
 }
 
-# Test references with type safety
-var _enemy: Enemy = null
-var _enemy_data: EnemyData = null
+# Test references with type safety - using Node instead of explicit Enemy type
+var _enemy: Node = null
+var _enemy_data: Resource = null
 
-# Core script references with type safety
 # Enhanced test configuration
 const PERFORMANCE_TEST_CONFIG := {
 	"movement_iterations": 100 as int,
@@ -112,7 +111,7 @@ func _cleanup_test_resources() -> void:
 	_enemy_campaign_system = null
 	_combat_system = null
 
-func _capture_enemy_state(enemy: Enemy) -> Dictionary:
+func _capture_enemy_state(enemy: Node) -> Dictionary:
 	if not enemy:
 		push_error("Cannot capture state: enemy is null")
 		return {}
@@ -120,22 +119,22 @@ func _capture_enemy_state(enemy: Enemy) -> Dictionary:
 	var result := {}
 	
 	# Use safe method calls with fallbacks
-	result["position"] = TypeSafeMixin._safe_cast_vector2(TypeSafeMixin._call_node_method(enemy, "get_position", []))
-	result["health"] = TypeSafeMixin._safe_cast_float(TypeSafeMixin._call_node_method(enemy, "get_health", []))
-	result["behavior"] = TypeSafeMixin._call_node_method_int(enemy, "get_behavior", [])
-	result["movement_range"] = TypeSafeMixin._safe_cast_float(TypeSafeMixin._call_node_method(enemy, "get_movement_range", []))
-	result["weapon_range"] = TypeSafeMixin._safe_cast_float(TypeSafeMixin._call_node_method(enemy, "get_weapon_range", []))
+	result["position"] = Compatibility.safe_call_method(enemy, "get_position", [], Vector2())
+	result["health"] = Compatibility.safe_call_method(enemy, "get_health", [], 0.0)
+	result["behavior"] = Compatibility.safe_call_method(enemy, "get_behavior", [], 0)
+	result["movement_range"] = Compatibility.safe_call_method(enemy, "get_movement_range", [], 0.0)
+	result["weapon_range"] = Compatibility.safe_call_method(enemy, "get_weapon_range", [], 0.0)
 	
 	# Add additional safety check for get_state method
 	if enemy.has_method("get_state"):
-		result["state"] = TypeSafeMixin._call_node_method_dict(enemy, "get_state", [])
+		result["state"] = Compatibility.safe_call_method(enemy, "get_state", [], {})
 	else:
 		result["state"] = {}
 		
 	return result
 
-func _capture_group_states(group: Array[Enemy]) -> Array[Dictionary]:
-	var states: Array[Dictionary] = []
+func _capture_group_states(group: Array) -> Array:
+	var states: Array = []
 	for enemy in group:
 		if not enemy:
 			push_error("Cannot capture group state: enemy is null")
@@ -143,10 +142,10 @@ func _capture_group_states(group: Array[Enemy]) -> Array[Dictionary]:
 		states.append(_capture_enemy_state(enemy))
 	return states
 
-func _create_test_group(size: int = 3) -> Array[Enemy]:
-	var group: Array[Enemy] = []
+func _create_test_group(size: int = 3) -> Array:
+	var group: Array = []
 	for i in range(size):
-		var enemy: Enemy = create_test_enemy()
+		var enemy = create_test_enemy()
 		if not enemy:
 			push_error("Failed to create test group enemy %d" % i)
 			continue
@@ -154,7 +153,7 @@ func _create_test_group(size: int = 3) -> Array[Enemy]:
 		track_test_node(enemy)
 	return group
 
-func verify_enemy_error_handling(enemy: Enemy) -> void:
+func verify_enemy_error_handling(enemy: Node) -> void:
 	if not enemy:
 		push_error("Enemy instance is null")
 		assert_false(true, "Enemy instance is null")
@@ -162,21 +161,21 @@ func verify_enemy_error_handling(enemy: Enemy) -> void:
 	
 	# Test invalid movement
 	var invalid_pos := Vector2(-1000, -1000)
-	assert_false(TypeSafeMixin._call_node_method_bool(enemy, "move_to", [invalid_pos]),
+	assert_false(Compatibility.safe_call_method(enemy, "move_to", [invalid_pos], false),
 		"Enemy should handle invalid movement")
 	
 	# Test invalid target
-	assert_false(TypeSafeMixin._call_node_method_bool(enemy, "engage_target", [null]),
+	assert_false(Compatibility.safe_call_method(enemy, "engage_target", [null], false),
 		"Enemy should handle invalid target")
 
-func verify_enemy_touch_interaction(enemy: Enemy) -> void:
+func verify_enemy_touch_interaction(enemy: Node) -> void:
 	if not enemy:
 		push_error("Enemy instance is null")
 		assert_false(true, "Enemy instance is null")
 		return
 	
 	watch_signals(enemy)
-	TypeSafeMixin._call_node_method_bool(enemy, "handle_touch", [Vector2.ZERO])
+	Compatibility.safe_call_method(enemy, "handle_touch", [Vector2.ZERO])
 	verify_signal_emitted(enemy, "touch_handled")
 
 # Common setup methods
@@ -192,8 +191,8 @@ func create_test_enemy_data(enemy_type: String = "BASIC") -> Resource:
 		enemy_type = "BASIC"
 	
 	# Create enemy data resource
-	var data: Resource
-	if _enemy_data_script and _enemy_data_script.can_instantiate():
+	var data: Resource = null
+	if _enemy_data_script and (_enemy_data_script.can_instantiate() if _enemy_data_script.has_method("can_instantiate") else true):
 		data = _enemy_data_script.new()
 	else:
 		push_error("Enemy data script is null or cannot be instantiated")
@@ -209,47 +208,44 @@ func create_test_enemy_data(enemy_type: String = "BASIC") -> Resource:
 	for key in template:
 		var method_name: String = "set_" + key
 		if data.has_method(method_name):
-			TypeSafeMixin._call_node_method_bool(data, method_name, [template[key]])
+			Compatibility.safe_call_method(data, method_name, [template[key]])
 		else:
 			push_warning("Method %s not found on enemy data resource" % method_name)
+	
+	# Ensure resource has a valid path
+	data = Compatibility.ensure_resource_path(data, "test_enemy_data")
 	
 	# Track resource to prevent memory leaks
 	track_test_resource(data)
 	return data
 
 # Debug helper method for troubleshooting test failures
-func debug_enemy_test(enemy: Enemy) -> void:
+func debug_enemy_test(enemy: Node) -> void:
 	if not enemy:
 		push_error("Cannot debug null enemy")
 		return
 		
 	print("============ ENEMY DEBUG INFO ============")
-	var debug_info := TypeSafeMixin.debug_test_object(
-		enemy,
-		["get_health", "get_damage", "move_to", "engage_target", "is_in_combat", "initialize"],
-		["position", "health", "damage", "attack_range", "movement_range", "weapon_range"]
-	)
-	
-	print("Enemy valid: ", debug_info.object_valid)
-	print("Enemy type: ", debug_info.object_type)
-	print("Enemy path: ", debug_info.object_path)
+	print("Enemy valid: ", is_instance_valid(enemy))
+	print("Enemy type: ", enemy.get_class() if enemy else "null")
+	print("Enemy path: ", enemy.resource_path if enemy else "null")
 	
 	print("\nMethods:")
-	for method_name in debug_info.methods:
-		var method_info: Dictionary = debug_info.methods[method_name]
-		print("  - %s: exists=%s, callable=%s" % [method_name, method_info.exists, method_info.callable])
+	var methods = ["get_health", "get_damage", "move_to", "engage_target", "is_in_combat", "initialize"]
+	for method_name in methods:
+		print("  - %s: exists=%s" % [method_name, enemy.has_method(method_name) if enemy else false])
 	
 	print("\nProperties:")
-	for property_name in debug_info.properties:
-		var property_info: Dictionary = debug_info.properties[property_name]
-		if property_info.exists:
-			print("  - %s: %s (type: %s)" % [property_name, property_info.value, property_info.type])
+	var properties = ["position", "health", "damage", "attack_range", "movement_range", "weapon_range"]
+	for property_name in properties:
+		if enemy and enemy.has(property_name):
+			print("  - %s: %s" % [property_name, enemy.get(property_name)])
 		else:
 			print("  - %s: <not found>" % property_name)
 			
 	# Test calling some methods directly
 	print("\nDirect method calls:")
-	if enemy.has_method("get_health"):
+	if enemy and enemy.has_method("get_health"):
 		print("  - get_health(): ", enemy.get_health())
 	
 	print("==========================================")

@@ -1,6 +1,9 @@
 @tool
 extends "res://tests/fixtures/specialized/enemy_test.gd"
 
+# Import the Enemy class for type checking
+const Enemy = preload("res://src/core/enemy/Enemy.gd")
+
 # Type-safe instance variables for deployment testing
 var _deployment_system: Node = null
 var _test_zones: Array[Node2D] = []
@@ -39,7 +42,7 @@ func after_each() -> void:
 # Deployment Type Selection Tests
 func test_deployment_type_selection() -> void:
 	# Test aggressive behavior
-	var aggressive_type: int = _call_node_method_int(_deployment_manager, "get_deployment_type", [
+	var aggressive_type: int = TypeSafeMixin._call_node_method_int(_deployment_manager, "get_deployment_type", [
 		GameEnums.AIBehavior.AGGRESSIVE
 	])
 	assert_true(aggressive_type in [
@@ -49,7 +52,7 @@ func test_deployment_type_selection() -> void:
 	], "Aggressive behavior should use appropriate deployment types")
 	
 	# Test cautious behavior
-	var cautious_type: int = _call_node_method_int(_deployment_manager, "get_deployment_type", [
+	var cautious_type: int = TypeSafeMixin._call_node_method_int(_deployment_manager, "get_deployment_type", [
 		GameEnums.AIBehavior.CAUTIOUS
 	])
 	assert_true(cautious_type in [
@@ -60,8 +63,8 @@ func test_deployment_type_selection() -> void:
 
 # Basic Deployment Pattern Tests
 func test_standard_deployment() -> void:
-	_signal_watcher.watch_signals(_deployment_manager)
-	var positions: Array = _call_node_method_array(_deployment_manager, "generate_deployment_positions", [
+	watch_signals(_deployment_manager)
+	var positions: Array = TypeSafeMixin._call_node_method_array(_deployment_manager, "generate_deployment_positions", [
 		_battle_map,
 		GameEnums.DeploymentType.STANDARD
 	])
@@ -70,8 +73,8 @@ func test_standard_deployment() -> void:
 	verify_signal_emitted(_deployment_manager, "enemy_deployment_generated")
 
 func test_line_deployment() -> void:
-	_signal_watcher.watch_signals(_deployment_manager)
-	var positions: Array = _call_node_method_array(_deployment_manager, "generate_deployment_positions", [
+	watch_signals(_deployment_manager)
+	var positions: Array = TypeSafeMixin._call_node_method_array(_deployment_manager, "generate_deployment_positions", [
 		_battle_map,
 		GameEnums.DeploymentType.LINE
 	])
@@ -81,8 +84,8 @@ func test_line_deployment() -> void:
 
 # Advanced Deployment Pattern Tests
 func test_ambush_deployment() -> void:
-	_signal_watcher.watch_signals(_deployment_manager)
-	var positions: Array = _call_node_method_array(_deployment_manager, "generate_deployment_positions", [
+	watch_signals(_deployment_manager)
+	var positions: Array = TypeSafeMixin._call_node_method_array(_deployment_manager, "generate_deployment_positions", [
 		_battle_map,
 		GameEnums.DeploymentType.AMBUSH
 	])
@@ -91,8 +94,8 @@ func test_ambush_deployment() -> void:
 	verify_signal_emitted(_deployment_manager, "enemy_deployment_generated")
 
 func test_scattered_deployment() -> void:
-	_signal_watcher.watch_signals(_deployment_manager)
-	var positions: Array = _call_node_method_array(_deployment_manager, "generate_deployment_positions", [
+	watch_signals(_deployment_manager)
+	var positions: Array = TypeSafeMixin._call_node_method_array(_deployment_manager, "generate_deployment_positions", [
 		_battle_map,
 		GameEnums.DeploymentType.SCATTERED
 	])
@@ -102,8 +105,8 @@ func test_scattered_deployment() -> void:
 
 # Tactical Deployment Pattern Tests
 func test_defensive_deployment() -> void:
-	_signal_watcher.watch_signals(_deployment_manager)
-	var positions: Array = _call_node_method_array(_deployment_manager, "generate_deployment_positions", [
+	watch_signals(_deployment_manager)
+	var positions: Array = TypeSafeMixin._call_node_method_array(_deployment_manager, "generate_deployment_positions", [
 		_battle_map,
 		GameEnums.DeploymentType.DEFENSIVE
 	])
@@ -112,8 +115,8 @@ func test_defensive_deployment() -> void:
 	verify_signal_emitted(_deployment_manager, "enemy_deployment_generated")
 
 func test_infiltration_deployment() -> void:
-	_signal_watcher.watch_signals(_deployment_manager)
-	var positions: Array = _call_node_method_array(_deployment_manager, "generate_deployment_positions", [
+	watch_signals(_deployment_manager)
+	var positions: Array = TypeSafeMixin._call_node_method_array(_deployment_manager, "generate_deployment_positions", [
 		_battle_map,
 		GameEnums.DeploymentType.INFILTRATION
 	])
@@ -123,8 +126,8 @@ func test_infiltration_deployment() -> void:
 
 # Special Deployment Pattern Tests
 func test_reinforcement_deployment() -> void:
-	_signal_watcher.watch_signals(_deployment_manager)
-	var positions: Array = _call_node_method_array(_deployment_manager, "generate_deployment_positions", [
+	watch_signals(_deployment_manager)
+	var positions: Array = TypeSafeMixin._call_node_method_array(_deployment_manager, "generate_deployment_positions", [
 		_battle_map,
 		GameEnums.DeploymentType.REINFORCEMENT
 	])
@@ -134,8 +137,8 @@ func test_reinforcement_deployment() -> void:
 
 # Validation Tests
 func test_deployment_validation() -> void:
-	_signal_watcher.watch_signals(_deployment_manager)
-	var positions: Array = _call_node_method_array(_deployment_manager, "generate_deployment_positions", [
+	watch_signals(_deployment_manager)
+	var positions: Array = TypeSafeMixin._call_node_method_array(_deployment_manager, "generate_deployment_positions", [
 		_battle_map,
 		GameEnums.DeploymentType.STANDARD
 	])
@@ -144,8 +147,8 @@ func test_deployment_validation() -> void:
 	verify_signal_emitted(_deployment_manager, "deployment_validated")
 
 func test_invalid_deployment_type() -> void:
-	_signal_watcher.watch_signals(_deployment_manager)
-	var positions: Array = _call_node_method_array(_deployment_manager, "generate_deployment_positions", [
+	watch_signals(_deployment_manager)
+	var positions: Array = TypeSafeMixin._call_node_method_array(_deployment_manager, "generate_deployment_positions", [
 		_battle_map,
 		-1 # Invalid type
 	])
@@ -156,10 +159,10 @@ func test_invalid_deployment_type() -> void:
 # Behavior Pattern Tests
 func test_deployment_pattern_matching() -> void:
 	# Test aggressive behavior patterns
-	var aggressive_type: int = _call_node_method_int(_deployment_manager, "get_deployment_type", [
+	var aggressive_type: int = TypeSafeMixin._call_node_method_int(_deployment_manager, "get_deployment_type", [
 		GameEnums.AIBehavior.AGGRESSIVE
 	])
-	var positions: Array = _call_node_method_array(_deployment_manager, "generate_deployment_positions", [
+	var positions: Array = TypeSafeMixin._call_node_method_array(_deployment_manager, "generate_deployment_positions", [
 		_battle_map,
 		aggressive_type
 	])
@@ -168,10 +171,10 @@ func test_deployment_pattern_matching() -> void:
 		"Deployment positions should match behavior pattern")
 	
 	# Test cautious behavior patterns
-	var cautious_type: int = _call_node_method_int(_deployment_manager, "get_deployment_type", [
+	var cautious_type: int = TypeSafeMixin._call_node_method_int(_deployment_manager, "get_deployment_type", [
 		GameEnums.AIBehavior.CAUTIOUS
 	])
-	positions = _call_node_method_array(_deployment_manager, "generate_deployment_positions", [
+	positions = TypeSafeMixin._call_node_method_array(_deployment_manager, "generate_deployment_positions", [
 		_battle_map,
 		cautious_type
 	])

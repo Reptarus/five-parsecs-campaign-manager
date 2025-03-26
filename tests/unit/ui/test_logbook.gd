@@ -11,12 +11,11 @@ func _init() -> void:
 		push_warning("Logbook script not found, using mock")
 		# Create a simple mock
 		Logbook = GDScript.new()
-		Logbook.source_code = """
-		extends Control
-		signal crew_selected(crew_id)
-		signal entry_selected(entry_id)
-		signal notes_updated(notes)
-		"""
+		Logbook.source_code = """extends Control
+signal crew_selected(crew_id)
+signal entry_selected(entry_id)
+signal notes_updated(notes)
+"""
 
 # Type-safe instance variables
 var _component: Control = null
