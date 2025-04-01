@@ -5,6 +5,7 @@ extends "res://tests/fixtures/base/game_test.gd"
 # Type-safe script references
 const Mission: GDScript = preload("res://src/core/mission/base/mission.gd")
 const MissionManagerScript: GDScript = preload("res://src/core/mission/MissionIntegrator.gd")
+const Compatibility = preload("res://tests/fixtures/helpers/test_compatibility_helper.gd")
 
 # Type-safe instance variables
 var _mission_manager: Node = null
@@ -27,6 +28,9 @@ func before_each() -> void:
 		push_error("Failed to create mission")
 		return
 	track_test_resource(_mission)
+	
+	# Ensure mission has a valid resource path
+	_mission = Compatibility.ensure_resource_path(_mission, "test_mission")
 	
 	# Add required signals if they don't exist
 	if not _mission.has_signal("phase_changed"):
@@ -58,10 +62,13 @@ func before_each() -> void:
 	add_child_autofree(_mission_manager)
 	track_test_node(_mission_manager)
 	
+	# Ensure mission compatibility
+	_mission = Compatibility.ensure_mission_compatibility(_mission)
+	
 	# Initialize mission with test data if method exists
 	if _mission.has_method("initialize"):
 		var mission_data = _create_test_mission_data()
-		var init_result = TypeSafeMixin._call_node_method_bool(_mission, "initialize", [mission_data])
+		var init_result = Compatibility.safe_call_method(_mission, "initialize", [mission_data], false)
 		if not init_result:
 			push_warning("Mission initialization failed")
 		else:
@@ -119,20 +126,20 @@ func test_mission_initialization() -> void:
 		push_warning("Mission does not have get_mission_id method, skipping test")
 		return
 		
-	var mission_id = TypeSafeMixin._safe_cast_to_string(TypeSafeMixin._call_node_method(_mission, "get_mission_id", []))
+	var mission_id = Compatibility.safe_cast_to_string(Compatibility.safe_call_method(_mission, "get_mission_id", []))
 	
 	if not _mission.has_method("get_objectives"):
 		push_warning("Mission does not have get_objectives method, skipping test")
 		return
 		
-	var objectives = TypeSafeMixin._call_node_method_array(_mission, "get_objectives", [], [])
+	var objectives = Compatibility.safe_call_method(_mission, "get_objectives", [], [])
 	
 	if not _mission.has_method("is_mission_completed") or not _mission.has_method("is_mission_failed"):
 		push_warning("Mission does not have completion check methods, skipping test")
 		return
 		
-	var is_completed = TypeSafeMixin._call_node_method_bool(_mission, "is_mission_completed", [])
-	var is_failed = TypeSafeMixin._call_node_method_bool(_mission, "is_mission_failed", [])
+	var is_completed = Compatibility.safe_call_method(_mission, "is_mission_completed", [], false)
+	var is_failed = Compatibility.safe_call_method(_mission, "is_mission_failed", [], false)
 	
 	assert_eq(mission_id, "", "Should start with empty mission ID")
 	assert_eq(objectives.size(), 0, "Should start with no objectives")
@@ -175,7 +182,7 @@ func test_mission_data() -> void:
 		push_warning("Mission does not have get_objectives method, skipping test")
 		return
 		
-	var objectives = TypeSafeMixin._call_node_method_array(_mission, "get_objectives", [], [])
+	var objectives = Compatibility.safe_call_method(_mission, "get_objectives", [], [])
 	assert_eq(objectives.size(), 1, "Should have one objective")
 	
 	if objectives.size() < 1:
@@ -214,7 +221,7 @@ func test_mission_objectives() -> void:
 		push_warning("Mission does not have get_objectives method, skipping test")
 		return
 		
-	var objectives = TypeSafeMixin._call_node_method_array(_mission, "get_objectives", [], [])
+	var objectives = Compatibility.safe_call_method(_mission, "get_objectives", [], [])
 	assert_eq(objectives.size(), 2, "Should have two objectives")
 	
 	# Test completing objectives
@@ -307,14 +314,14 @@ func cleanup() -> void:
 		push_warning("Mission doesn't have current_phase property, skipping phase check")
 	else:
 		assert_eq(_mission.current_phase, TestEnums.MissionPhase.PREPARATION,
-		   "Phase should be PREPARATION (expected: %d, actual: %d)" % [TestEnums.MissionPhase.PREPARATION, _mission.current_phase])
+					"Phase should be PREPARATION (expected: %d, actual: %d)" % [TestEnums.MissionPhase.PREPARATION, _mission.current_phase])
 	
 	_mission.change_phase(TestEnums.MissionPhase.COMBAT)
 	verify_signal_emitted(_mission, "phase_changed", "Phase changed signal not emitted for COMBAT phase")
 	
 	if _mission.get("current_phase"):
 		assert_eq(_mission.current_phase, TestEnums.MissionPhase.COMBAT,
-		   "Phase should be COMBAT (expected: %d, actual: %d)" % [TestEnums.MissionPhase.COMBAT, _mission.current_phase])
+					"Phase should be COMBAT (expected: %d, actual: %d)" % [TestEnums.MissionPhase.COMBAT, _mission.current_phase])
 	
 	# Test completion events
 	if not _mission.get("is_completed"):
@@ -368,8 +375,8 @@ func cleanup() -> void:
 	
 	# Verify reset state
 	assert_eq(_mission.current_phase, TestEnums.MissionPhase.PREPARATION,
-	   "Phase should be reset to PREPARATION (expected: %d, actual: %d)" %
-	   [TestEnums.MissionPhase.PREPARATION, _mission.current_phase])
+				"Phase should be reset to PREPARATION (expected: %d, actual: %d)" %
+				[TestEnums.MissionPhase.PREPARATION, _mission.current_phase])
 	assert_false(_mission.is_completed, "Mission completed flag should be reset")
 	
 	if not _mission.get("is_failed"):

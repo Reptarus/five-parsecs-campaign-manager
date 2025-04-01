@@ -26,6 +26,12 @@ func _init() -> void:
 	super ()
 	name = "New Five Parsecs Crew"
 	credits = 1500 # Five Parsecs starts with more credits
+	
+	# Ensure resource has valid path for testing/serialization
+	if resource_path.is_empty():
+		var timestamp = Time.get_unix_time_from_system()
+		var random_suffix = randi() % 1000000
+		resource_path = "res://tests/generated/five_parsecs_crew_%d_%d.tres" % [timestamp, random_suffix]
 
 func add_member(character) -> bool:
 	# Override to ensure we're adding FiveParsecsCrewMember instances

@@ -305,6 +305,99 @@ func add_safe_mission_functions(mission):
     return mission
 ```
 
+## Preventing GUT Plugin Breakage
+
+Based on our recent investigations and fixes, the following patterns are essential to prevent GUT from breaking during project reloads:
+
+### Scene File Integrity Checks
+
+Corrupted scene files (especially in the GUT plugin) are a major cause of failures:
+
+```bash
+# Check for unusually large scene files
+find . -name "*.tscn" -size +100k
+
+# If identified, recreate the scene from scratch with minimal structure
+```
+
+### Dictionary API Compliance
+
+Ensure all dictionary access uses the `in` operator for Godot 4.4 compatibility:
+
+```gdscript
+# AVOID:
+if dictionary.has(key):
+    use_value(dictionary[key])
+
+# CORRECT:
+if key in dictionary:
+    use_value(dictionary[key])
+```
+
+### UI Control Initialization Safety
+
+Implement defensive UI control initialization with fallbacks:
+
+```gdscript
+# Initialize output control safely
+if control.has_method("get_rich_text_edit"):
+    text_edit = control.get_rich_text_edit()
+elif control.has_node("RichTextEdit"):
+    text_edit = control.get_node("RichTextEdit")
+else:
+    # Create fallback control
+    text_edit = TextEdit.new()
+    control.add_child(text_edit)
+```
+
+### Missing Method Implementations
+
+Always provide at least minimal implementations for declared methods:
+
+```gdscript
+# AVOID:
+func handle_phase():
+    # Missing implementation
+
+# CORRECT:
+func handle_phase():
+    # Minimal implementation
+    pass
+```
+
+### Safe Compatibility Layer
+
+Use a compatibility layer for GUT in Godot 4.4:
+
+```gdscript
+# In a compatibility.gd helper file
+static func ensure_resource_path(resource):
+    if resource is Resource and resource.resource_path.is_empty():
+        var timestamp = Time.get_unix_time_from_system()
+        resource.resource_path = "res://tests/generated/%s_%d.tres" % [
+            resource.get_class().to_snake_case(), timestamp
+        ]
+    return resource
+
+static func safe_call_method(object, method_name, args=[]):
+    if is_instance_valid(object) and object.has_method(method_name):
+        return object.callv(method_name, args)
+    return null
+```
+
+### UID Management
+
+Be careful with .uid files in Godot 4.4:
+
+1. Avoid committing .uid files to version control
+2. If a script file has loading issues, try:
+   ```bash
+   # Remove the .uid file and let Godot recreate it
+   rm file_name.gd.uid
+   ```
+
+By following these specific patterns, you can significantly reduce the chances of GUT breaking during project reloads in Godot 4.4.
+
 ## Preventing Common Errors
 
 ### inst_to_dict Errors
@@ -364,4 +457,3 @@ Prevention:
 7. **Direct lambda assignments**: Use script-based approach instead
 8. **Dictionary.has() usage**: Use the in operator
 9. **Unchecked signal connections**: Verify signals exist before connecting
-```

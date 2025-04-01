@@ -1,22 +1,26 @@
 {
+    "background_color": "ff262626",
     "dirs": [
-        "res://tests/unit/",
-        "res://tests/integration/",
-        "res://tests/fixtures/"
+        "res://tests/unit",
+        "res://tests/integration"
     ],
-    "include_subdirs": true,
-    "ignore_pause": true,
-    "log_level": 3,
-    "should_exit": false,
-    "should_maximize": true,
-    "prefix": "test_",
-    "suffix": ".gd",
+    "disable_colors": false,
     "double_strategy": "partial",
-    "test_file_prefix": "",
-    "test_file_suffix": ".gd",
-    "inner_class_prefix": "Test",
-    "junit_xml_file": "res://tests/reports/junit_report.xml",
-    "junit_xml_timestamp": true,
-    "export_path": "res://tests/reports/",
-    "include_subdirectories": true
+    "font_color": "ffcccccc",
+    "font_name": "CourierPrime",
+    "font_size": 16,
+    "hide_orphans": false,
+    "ignore_pause": true,
+    "include_subdirs": true,
+    "inner_class": "Test",
+    "log_level": 1,
+    "opacity": 100,
+    "prefix": "test_",
+    "selected": "",
+    "should_exit": true,
+    "should_exit_on_success": true,
+    "should_maximize": false,
+    "suffix": ".gd",
+    "tests": [],
+    "unit_test_name": ""
 }

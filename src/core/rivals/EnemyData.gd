@@ -1,7 +1,7 @@
 @tool
 extends Resource
 
-const GameEnums = preload("res://src/core/systems/GlobalEnums.gd")
+const GameEnums = preload("res://src/core/enums/GameEnums.gd")
 const GameWeapon = preload("res://src/core/systems/items/GameWeapon.gd")
 
 # Core enemy properties
@@ -299,4 +299,4 @@ func deserialize(data: Dictionary) -> void:
 		for weapon_data in data.equipped_weapons:
 			var weapon = GameWeapon.new()
 			weapon.deserialize(weapon_data)
-			equipped_weapons.append(weapon)
+			equipped_weapons.append(weapon)                                                                   

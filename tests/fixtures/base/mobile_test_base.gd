@@ -46,7 +46,7 @@ func before_each() -> void:
 ## Must be called by subclasses using await super.after_each()
 func after_each() -> void:
 	# Disconnect any signals that might be connected
-	for node in _tracked_nodes:
+	for node in _test_nodes:
 		if is_instance_valid(node):
 			disconnect_all_signals(node)
 	
@@ -327,7 +327,7 @@ func disconnect_all_signals(obj: Object) -> void:
 		
 		for connection in connections:
 			var callable: Callable = connection["callable"]
-			if obj.is_connected(signal_name, callable):
+			if is_instance_valid(obj) and obj.is_connected(signal_name, callable):
 				obj.disconnect(signal_name, callable)
 
 ## Runs a test method with error handling and cleanup

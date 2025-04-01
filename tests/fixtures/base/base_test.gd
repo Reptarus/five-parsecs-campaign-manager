@@ -9,6 +9,9 @@ const GlobalEnumsClass: GDScript = preload("res://src/core/systems/GlobalEnums.g
 const SignalWatcher: GDScript = preload("res://addons/gut/signal_watcher.gd")
 const TypeSafeMixin := preload("res://tests/fixtures/helpers/type_safe_test_mixin.gd")
 
+# Updated compatibility layer to handle GDScript creation
+const GutCompatibility = preload("res://tests/fixtures/helpers/gut_compatibility.gd")
+
 # Ensure we have access to the gut object
 var _gut: GutMainClass = null
 
@@ -61,7 +64,8 @@ var _logger: RefCounted = null # Add missing _logger variable
 @warning_ignore("unused_private_class_variable") # Used by gut as a property backing field, not accessed directly in code
 
 func _init() -> void:
-	var utils_instance = GDScript.new()
+	var compatibility = GutCompatibility.new()
+	var utils_instance = compatibility.create_script()
 	utils_instance.source_code = GutUtilsClass.source_code
 	
 	# Get logger using type-safe approach

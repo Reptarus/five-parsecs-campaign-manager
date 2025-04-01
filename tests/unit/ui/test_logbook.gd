@@ -1,21 +1,72 @@
 @tool
 extends "res://tests/fixtures/specialized/ui_test.gd"
 
+const LogbookClass = preload("res://src/ui/components/logbook/Logbook.gd")
 # Type-safe constants and script references
 var Logbook: GDScript = null
+var logbook: Object = null
+
+# Add the compatibility path helper class
+class CompatibilityPath:
+	func _init():
+		pass
+		
+	func create_script() -> GDScript:
+		return GDScript.new()
 
 func _init() -> void:
 	if FileAccess.file_exists("res://src/ui/components/logbook/logbook.gd"):
 		Logbook = load("res://src/ui/components/logbook/logbook.gd") as GDScript
 	else:
 		push_warning("Logbook script not found, using mock")
-		# Create a simple mock
-		Logbook = GDScript.new()
-		Logbook.source_code = """extends Control
+		# Create a simple mock using compatibility layer
+		var compatibility = CompatibilityPath.new()
+		Logbook = compatibility.create_script()
+		Logbook.source_code = """
+extends Control
+
 signal crew_selected(crew_id)
 signal entry_selected(entry_id)
 signal notes_updated(notes)
+
+signal entries_changed()
+
+var entries = []
+var active = true
+var locked = false
+
+func append_entry(text):
+	if active and not locked:
+		entries.append(text)
+		emit_signal("entries_changed")
+		
+func get_entries():
+	return entries
+	
+func set_active(value):
+	active = value
+	
+func is_active():
+	return active
+	
+func lock():
+	locked = true
+	
+func unlock():
+	locked = false
+	
+func is_locked():
+	return locked
+	
+func clear():
+	entries.clear()
+	emit_signal("entries_changed")
 """
+		Logbook.reload()
+
+	# Initialize logbook instance
+	logbook = Object.new()
+	logbook.set_script(Logbook)
 
 # Type-safe instance variables
 var _component: Control = null

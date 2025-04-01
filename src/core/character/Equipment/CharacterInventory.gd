@@ -5,7 +5,7 @@ extends Resource
 
 const Self = preload("res://src/core/character/Equipment/CharacterInventory.gd")
 
-const GameEnums = preload("res://src/core/systems/GlobalEnums.gd")
+const GameEnums = preload("res://src/core/enums/GameEnums.gd")
 const GameWeapon = preload("res://src/core/systems/items/GameWeapon.gd")
 const BaseArmor = preload("res://src/core/systems/items/GameArmor.gd")
 const BaseGear = preload("res://src/core/character/Equipment/base/gear.gd")

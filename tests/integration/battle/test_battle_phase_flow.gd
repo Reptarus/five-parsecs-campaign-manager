@@ -10,6 +10,8 @@ const TestEnums = preload("res://tests/fixtures/base/test_helper.gd")
 const GameEnums = TestEnums.GlobalEnums
 const FiveParsecsCombatManager = preload("res://src/game/combat/FiveParsecsCombatManager.gd")
 const FiveParsecsBattleRules = preload("res://src/game/combat/FiveParsecsBattleRules.gd")
+const Compatibility = preload("res://tests/fixtures/helpers/test_compatibility_helper.gd")
+const TypeSafeMixin = preload("res://tests/fixtures/helpers/type_safe_test_mixin.gd")
 
 # Type-safe instance variables
 var _battle_manager: Node = null
@@ -28,9 +30,13 @@ func before_each() -> void:
 	# Create a battle manager with necessary method implementations
 	_battle_manager = Node.new()
 	
-	# Create a script with all required methods
-	var script = GDScript.new()
-	script.source_code = """extends Node
+	# Create a script with all required methods using temp file
+	if not Compatibility.ensure_temp_directory():
+		push_warning("Could not create temp directory for test scripts")
+		return
+		
+	var script_path = "res://tests/temp/battle_manager_%d_%d.gd" % [Time.get_unix_time_from_system(), randi() % 1000000]
+	var script_content = """extends Node
 
 var _combat_state = {"phase": "SETUP", "active_team": 0, "round": 1}
 var _registered_characters = []
@@ -105,17 +111,24 @@ func advance_phase():
 	
 	return false
 """
-	script.reload()
 	
-	# Apply the script to the battle manager
-	_battle_manager.set_script(script)
-	add_child(_battle_manager)
-	
-	# Initialize battle manager
-	if _battle_manager.has_method("initialize"):
-		var result = _battle_manager.initialize()
-		if not result:
-			push_warning("Combat manager initialization failed")
+	var file = FileAccess.open(script_path, FileAccess.WRITE)
+	if file:
+		file.store_string(script_content)
+		file.close()
+		
+		# Load and apply the script
+		var script = load(script_path)
+		_battle_manager.set_script(script)
+		add_child(_battle_manager)
+		
+		# Initialize battle manager
+		if _battle_manager.has_method("initialize"):
+			var result = TypeSafeMixin._call_node_method_bool(_battle_manager, "initialize", [], false)
+			if not result:
+				push_warning("Combat manager initialization failed")
+	else:
+		push_warning("Failed to create test battle manager script")
 	
 	# Wait for stability
 	await get_tree().process_frame
@@ -179,16 +192,16 @@ func test_battle_states() -> void:
 		return
 		
 	# Get initial state
-	var initial_state = _battle_manager.get_combat_state() if _battle_manager.has_method("get_combat_state") else null
+	var initial_state = TypeSafeMixin._call_node_method_dict(_battle_manager, "get_combat_state", [])
 	assert_not_null(initial_state, "Initial combat state should not be null")
 	
 	# If we have the transition method, test it
 	if _battle_manager.has_method("set_combat_state"):
-		var result = _battle_manager.set_combat_state({
+		var result = TypeSafeMixin._call_node_method_bool(_battle_manager, "set_combat_state", [ {
 			"phase": "SETUP",
 			"active_team": 0,
 			"round": 1
-		})
+		}], false)
 		assert_true(result, "Should be able to set combat state")
 	else:
 		pending("Combat manager doesn't have set_combat_state method, skipping state transition test")
@@ -198,35 +211,55 @@ func test_phase_transitions() -> void:
 	if not is_instance_valid(_battle_manager):
 		pending("Combat manager not available, skipping test")
 		return
-		
-	# Create a test unit to use with the battle system
-	var test_unit = _create_test_unit()
-	if not test_unit:
-		pending("Could not create test unit, skipping test")
+	
+	# Check if battle manager has required methods
+	if not _battle_manager.has_method("advance_phase"):
+		pending("Combat manager doesn't have advance_phase method, skipping test")
 		return
 		
-	add_child(test_unit)
-	_test_units.append(test_unit)
+	# Get initial state
+	var initial_state = TypeSafeMixin._call_node_method_dict(_battle_manager, "get_combat_state", [])
+	assert_not_null(initial_state, "Initial combat state should not be null")
 	
-	# Register the unit if possible
-	if _battle_manager.has_method("register_character"):
-		var result = _battle_manager.register_character(test_unit)
-		assert_true(result, "Should be able to register a character")
-	elif _battle_manager.has_method("add_character"):
-		var result = _battle_manager.add_character(test_unit)
-		assert_true(result, "Should be able to add a character")
-	else:
-		pending("Combat manager doesn't have methods to register characters, skipping test")
-		
-	# Test simple combat state changes
-	if _battle_manager.has_method("start_combat"):
-		var result = _battle_manager.start_combat()
-		assert_true(result, "Should be able to start combat")
-	else:
-		pending("Combat manager doesn't have start_combat method, skipping test")
-		
+	# Store the initial phase for comparison
+	var initial_phase = initial_state.get("phase", "NONE")
+	
+	# Track signals
+	watch_signals(_battle_manager)
+	
+	# Advance to next phase
+	var result = TypeSafeMixin._call_node_method_bool(_battle_manager, "advance_phase", [], false)
+	assert_true(result, "Should be able to advance to next phase")
+	
+	# Verify signal emission 
+	assert_signal_emitted(_battle_manager, "phase_changed", "Phase changed signal should be emitted")
+	
+	# Get updated state
+	var updated_state = TypeSafeMixin._call_node_method_dict(_battle_manager, "get_combat_state", [])
+	assert_not_null(updated_state, "Updated combat state should not be null")
+	
+	# Get the updated phase
+	var updated_phase = updated_state.get("phase", "NONE")
+	
+	# Verify phases are different - using assert_eq to check the values directly
+	# This helps ensure proper error messages when values don't match expectations
+	assert_ne(
+		initial_phase,
+		updated_phase,
+		"Phase should have changed (initial: '%s', updated: '%s')" % [initial_phase, updated_phase]
+	)
+	
+	# Verify the updated phase matches our expectations
+	# Check that the phase follows the expected sequence
+	if initial_phase == "SETUP":
+		assert_eq(updated_phase, "DEPLOYMENT", "After SETUP should be DEPLOYMENT phase")
+	elif initial_phase == "DEPLOYMENT":
+		assert_eq(updated_phase, "COMBAT", "After DEPLOYMENT should be COMBAT phase")
+	elif initial_phase == "COMBAT":
+		assert_eq(updated_phase, "RESOLUTION", "After COMBAT should be RESOLUTION phase")
+
 func test_unit_action_flow() -> void:
-	# Mark as pending since this would need specific action handling for the FiveParsecsCombatManager
+	# Mark as pending since this would need specific action handling
 	pending("Implementation needed for FiveParsecsCombatManager action flow")
 
 func test_battle_end_flow() -> void:

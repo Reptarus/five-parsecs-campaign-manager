@@ -1,8 +1,8 @@
 @tool
 extends "res://tests/fixtures/specialized/enemy_test.gd"
 
-# Import the Enemy class for type checking - only used for documentation, not for type casting
-const Enemy = preload("res://src/core/enemy/Enemy.gd")
+# Import the Enemy class for type checking
+const Enemy = preload("res://src/core/enemy/base/Enemy.gd")
 # Using the global GameEnums if it's available in base class
 
 # Type-safe instance variables
@@ -43,15 +43,40 @@ func _capture_enemy_state(enemy: Node) -> Dictionary:
 	if not enemy:
 		push_error("Cannot capture state: enemy is null")
 		return {}
-		
-	return {
-		"position": TypeSafeMixin._call_node_method_vector2(enemy, "get_position", []),
-		"health": TypeSafeMixin._safe_cast_float(TypeSafeMixin._call_node_method(enemy, "get_health", [])),
-		"behavior": TypeSafeMixin._call_node_method_int(enemy, "get_behavior", []) if enemy.has_method("get_behavior") else 0,
-		"movement_range": TypeSafeMixin._safe_cast_float(TypeSafeMixin._call_node_method(enemy, "get_movement_range", [])) if enemy.has_method("get_movement_range") else 0.0,
-		"weapon_range": TypeSafeMixin._safe_cast_float(TypeSafeMixin._call_node_method(enemy, "get_weapon_range", [])) if enemy.has_method("get_weapon_range") else 0.0,
-		"state": TypeSafeMixin._call_node_method_dict(enemy, "get_state", []) if enemy.has_method("get_state") else {}
-	}
+	
+	var state = {}
+	
+	# Safely get position if the method exists
+	state["position"] = GutCompatibility._call_node_method_vector2(enemy, "get_position", [])
+	
+	# Safely get health if the method exists
+	state["health"] = TypeSafeMixin._safe_cast_float(TypeSafeMixin._call_node_method(enemy, "get_health", []))
+	
+	# Safely get behavior if the method exists
+	if enemy.has_method("get_behavior"):
+		state["behavior"] = TypeSafeMixin._call_node_method_int(enemy, "get_behavior", [])
+	else:
+		state["behavior"] = 0
+	
+	# Safely get movement_range if the method exists
+	if enemy.has_method("get_movement_range"):
+		state["movement_range"] = TypeSafeMixin._safe_cast_float(TypeSafeMixin._call_node_method(enemy, "get_movement_range", []))
+	else:
+		state["movement_range"] = 0.0
+	
+	# Safely get weapon_range if the method exists
+	if enemy.has_method("get_weapon_range"):
+		state["weapon_range"] = TypeSafeMixin._safe_cast_float(TypeSafeMixin._call_node_method(enemy, "get_weapon_range", []))
+	else:
+		state["weapon_range"] = 0.0
+	
+	# Safely get state if the method exists
+	if enemy.has_method("get_state"):
+		state["state"] = TypeSafeMixin._call_node_method_dict(enemy, "get_state", [])
+	else:
+		state["state"] = {}
+	
+	return state
 
 func _capture_group_states(group: Array) -> Array[Dictionary]:
 	var states: Array[Dictionary] = []
@@ -93,7 +118,7 @@ func test_basic_state() -> void:
 	
 	# Verify state was set
 	var current_health: float = TypeSafeMixin._safe_cast_float(TypeSafeMixin._call_node_method(enemy, "get_health", []))
-	var current_position: Vector2 = TypeSafeMixin._call_node_method_vector2(enemy, "get_position", [])
+	var current_position: Vector2 = GutCompatibility._call_node_method_vector2(enemy, "get_position", [])
 	
 	assert_eq(current_health, health, "Health should be set correctly")
 	assert_eq(current_position, position, "Position should be set correctly")
@@ -134,8 +159,8 @@ func test_state_persistence() -> void:
 		# Verify state restoration
 		var old_health: float = TypeSafeMixin._safe_cast_float(TypeSafeMixin._call_node_method(enemy, "get_health", []))
 		var new_health: float = TypeSafeMixin._safe_cast_float(TypeSafeMixin._call_node_method(new_enemy, "get_health", []))
-		var old_position: Vector2 = TypeSafeMixin._call_node_method_vector2(enemy, "get_position", [])
-		var new_position: Vector2 = TypeSafeMixin._call_node_method_vector2(new_enemy, "get_position", [])
+		var old_position: Vector2 = GutCompatibility._call_node_method_vector2(enemy, "get_position", [])
+		var new_position: Vector2 = GutCompatibility._call_node_method_vector2(new_enemy, "get_position", [])
 		
 		assert_eq(new_health, old_health, "Health should be restored")
 		assert_eq(new_position, old_position, "Position should be restored")
@@ -155,7 +180,7 @@ func test_group_state_persistence() -> void:
 			push_error("Invalid enemy in group")
 			continue
 		TypeSafeMixin._call_node_method_bool(enemy, "take_damage", [10])
-		var current_pos: Vector2 = TypeSafeMixin._call_node_method_vector2(enemy, "get_position", [])
+		var current_pos: Vector2 = GutCompatibility._call_node_method_vector2(enemy, "get_position", [])
 		TypeSafeMixin._call_node_method_bool(enemy, "set_position", [current_pos + Vector2(50, 50)])
 	
 	# Save group states
@@ -187,8 +212,8 @@ func test_group_state_persistence() -> void:
 			
 		var old_health: float = TypeSafeMixin._safe_cast_float(TypeSafeMixin._call_node_method(group[i], "get_health", []))
 		var new_health: float = TypeSafeMixin._safe_cast_float(TypeSafeMixin._call_node_method(new_group[i], "get_health", []))
-		var old_position: Vector2 = TypeSafeMixin._call_node_method_vector2(group[i], "get_position", [])
-		var new_position: Vector2 = TypeSafeMixin._call_node_method_vector2(new_group[i], "get_position", [])
+		var old_position: Vector2 = GutCompatibility._call_node_method_vector2(group[i], "get_position", [])
+		var new_position: Vector2 = GutCompatibility._call_node_method_vector2(new_group[i], "get_position", [])
 		
 		assert_eq(new_health, old_health, "Group member health should be restored")
 		assert_eq(new_position, old_position, "Group member position should be restored")
@@ -428,7 +453,7 @@ func test_enemy_state_serialization() -> void:
 	# Deserialize and verify
 	var parsed = JSON.parse_string(json)
 	assert_not_null(parsed, "JSON should parse back")
-	assert_eq(parsed.health, 50, "Health should match")
+	assert_eq(parsed["health"], 50, "Health should match")
 
 # Complete State Tests
 func test_complete_state_serialization() -> void:
@@ -533,7 +558,7 @@ func test_state_recovery_after_reload() -> void:
 	
 	# Verify state restoration
 	var new_health: float = TypeSafeMixin._safe_cast_float(TypeSafeMixin._call_node_method(new_enemy, "get_health", []))
-	var new_position: Vector2 = TypeSafeMixin._call_node_method_vector2(new_enemy, "get_position", [])
+	var new_position: Vector2 = GutCompatibility._call_node_method_vector2(new_enemy, "get_position", [])
 	
 	assert_eq(new_health, 50, "Health should be restored")
 	assert_eq(new_position, Vector2(100, 200), "Position should be restored")
@@ -600,76 +625,79 @@ func create_test_enemy(enemy_type = 0) -> Node:
 	var enemy = super.create_test_enemy(enemy_type)
 	if not enemy:
 		return null
-		
+	
 	# Then enhance it with save/load methods
 	var script = GDScript.new()
 	script.source_code = """
-	extends %s
-	
-	func save() -> Dictionary:
-		return {
-			"position": position,
-			"health": get_health(),
-			"max_health": max_health,
-			"damage": damage
-		}
-	
-	func load(data: Dictionary) -> bool:
-		if not data:
-			return false
-			
-		if "position" in data:
-			position = data.position
-			
-		if "health" in data:
-			set_health(data.health)
-			
-		if "max_health" in data:
-			max_health = data.max_health
-			
-		if "damage" in data:
-			damage = data.damage
-			
-		return true
-		
-	func get_state() -> Dictionary:
-		return {
-			"position": position,
-			"health": get_health(),
-			"max_health": max_health,
-			"damage": damage
-		}
-		
-	func set_target(target):
-		return true
-		
-	func get_target():
-		return null
-		
-	func has_status_effect(effect):
+extends %s
+
+func save() -> Dictionary:
+	return {
+		"position": position,
+		"health": get_health(),
+		"max_health": max_health,
+		"damage": damage
+	}
+
+func load(data: Dictionary) -> bool:
+	if not data:
 		return false
 		
-	func apply_status_effect(effect, duration):
-		return true
+	if "position" in data:
+		if data["position"] is Dictionary and "x" in data["position"] and "y" in data["position"]:
+			position = Vector2(data["position"]["x"], data["position"]["y"])
+		else:
+			position = data["position"]
 		
-	func set_behavior(behavior_type):
-		return true
+	if "health" in data:
+		set_health(data["health"])
 		
-	func get_behavior():
-		return 0
+	if "max_health" in data:
+		max_health = data["max_health"]
 		
-	func set_stance(stance_type):
-		return true
+	if "damage" in data:
+		damage = data["damage"]
 		
-	func get_stance():
-		return 0
-		
-	func get_movement_range():
-		return 5.0
-		
-	func get_weapon_range():
-		return 2.0
-	""" % [enemy.get_script().get_path().get_file().get_basename()]
+	return true
+	
+func get_state() -> Dictionary:
+	return {
+		"position": {"x": position.x, "y": position.y},
+		"health": get_health(),
+		"max_health": max_health,
+		"damage": damage
+	}
+	
+func set_target(target):
+	return true
+	
+func get_target():
+	return null
+	
+func has_status_effect(effect_name: String) -> bool:
+	return false
+	
+func apply_status_effect(effect_name: String, duration: int = 3) -> bool:
+	return true
+	
+func set_behavior(behavior_type):
+	return true
+	
+func get_behavior():
+	return 0
+	
+func set_stance(stance_type):
+	return true
+	
+func get_stance():
+	return 0
+	
+func get_movement_range():
+	return 5.0
+	
+func get_weapon_range():
+	return 2.0
+""" % [enemy.get_script().get_path().get_file().get_basename()]
 	
 	script.reload()
 	enemy.set_script(script)

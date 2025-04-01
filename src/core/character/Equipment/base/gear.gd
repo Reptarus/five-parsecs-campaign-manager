@@ -5,6 +5,7 @@ extends "res://src/core/character/Equipment/base/equipment.gd"
 
 # Use a different constant name to avoid conflicts with parent's Self constant
 const GearSelf = preload("res://src/core/character/Equipment/base/gear.gd")
+# Don't redefine GameEnums as it's already defined in the parent class
 
 func _init() -> void:
 	super._init()

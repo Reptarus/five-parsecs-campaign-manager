@@ -1,7 +1,7 @@
 @tool
 extends Node
 
-const GameEnums = preload("res://src/core/systems/GlobalEnums.gd")
+const GameEnums = preload("res://src/core/enums/GameEnums.gd")
 const FiveParsecsGameState = preload("res://src/core/state/GameState.gd")
 const FiveParsecsCampaign = preload("res://src/game/campaign/FiveParsecsCampaign.gd")
 const ValidationManager = preload("res://src/core/systems/ValidationManager.gd")
@@ -79,7 +79,7 @@ func _on_campaign_resource_changed(resource_type: String, amount: int) -> void:
 
 func _on_campaign_world_changed(world_data: Dictionary) -> void:
 	# Update location information and potentially trigger events
-	if current_phase == FiveParcsecsCampaignPhase.CAMPAIGN:
+	if current_phase == FiveParcsecsCampaignPhase.PRE_MISSION:
 		phase_events.append({
 			"type": "world_arrival",
 			"world": world_data
@@ -210,27 +210,27 @@ func _can_transition_to_phase(new_phase: FiveParcsecsCampaignPhase) -> bool:
 		FiveParcsecsCampaignPhase.SETUP:
 			return current_phase == FiveParcsecsCampaignPhase.NONE
 		FiveParcsecsCampaignPhase.UPKEEP:
-			return current_phase in [FiveParcsecsCampaignPhase.SETUP, FiveParcsecsCampaignPhase.END]
+			return current_phase in [FiveParcsecsCampaignPhase.SETUP, FiveParcsecsCampaignPhase.RETIREMENT]
 		FiveParcsecsCampaignPhase.STORY:
 			return current_phase == FiveParcsecsCampaignPhase.UPKEEP
-		FiveParcsecsCampaignPhase.CAMPAIGN:
+		FiveParcsecsCampaignPhase.PRE_MISSION:
 			return current_phase == FiveParcsecsCampaignPhase.STORY
 		FiveParcsecsCampaignPhase.BATTLE_SETUP:
-			return current_phase == FiveParcsecsCampaignPhase.CAMPAIGN
+			return current_phase == FiveParcsecsCampaignPhase.PRE_MISSION
 		FiveParcsecsCampaignPhase.BATTLE_RESOLUTION:
 			return current_phase == FiveParcsecsCampaignPhase.BATTLE_SETUP
 		FiveParcsecsCampaignPhase.ADVANCEMENT:
 			return current_phase == FiveParcsecsCampaignPhase.BATTLE_RESOLUTION
-		FiveParcsecsCampaignPhase.TRADE:
+		FiveParcsecsCampaignPhase.TRADING:
 			return current_phase == FiveParcsecsCampaignPhase.ADVANCEMENT
-		FiveParcsecsCampaignPhase.END:
-			return current_phase == FiveParcsecsCampaignPhase.TRADE
+		FiveParcsecsCampaignPhase.RETIREMENT:
+			return current_phase == FiveParcsecsCampaignPhase.TRADING
 		_:
 			return false
 
 func _can_transition_to_sub_phase(new_sub_phase: CampaignSubPhase) -> bool:
 	# First, check if we're in a phase that supports sub-phases
-	if current_phase != FiveParcsecsCampaignPhase.CAMPAIGN:
+	if current_phase != FiveParcsecsCampaignPhase.PRE_MISSION:
 		return false
 		
 	match new_sub_phase:
@@ -256,7 +256,7 @@ func _execute_phase_start() -> void:
 			_execute_upkeep_phase_start()
 		FiveParcsecsCampaignPhase.STORY:
 			_execute_story_phase_start()
-		FiveParcsecsCampaignPhase.CAMPAIGN:
+		FiveParcsecsCampaignPhase.PRE_MISSION:
 			_execute_campaign_phase_start()
 		FiveParcsecsCampaignPhase.BATTLE_SETUP:
 			_execute_battle_setup_phase_start()
@@ -264,14 +264,14 @@ func _execute_phase_start() -> void:
 			_execute_battle_resolution_phase_start()
 		FiveParcsecsCampaignPhase.ADVANCEMENT:
 			_execute_advancement_phase_start()
-		FiveParcsecsCampaignPhase.TRADE:
+		FiveParcsecsCampaignPhase.TRADING:
 			_execute_trade_phase_start()
-		FiveParcsecsCampaignPhase.END:
+		FiveParcsecsCampaignPhase.RETIREMENT:
 			_execute_end_phase_start()
 
 func _execute_sub_phase_start() -> void:
 	# Only relevant for Campaign Phase
-	if current_phase != FiveParcsecsCampaignPhase.CAMPAIGN:
+	if current_phase != FiveParcsecsCampaignPhase.PRE_MISSION:
 		return
 		
 	match current_sub_phase:
@@ -397,7 +397,7 @@ func _execute_end_phase_start() -> void:
 	game_state.advance_turn()
 
 func _complete_current_sub_phase() -> void:
-	if current_phase != FiveParcsecsCampaignPhase.CAMPAIGN:
+	if current_phase != FiveParcsecsCampaignPhase.PRE_MISSION:
 		return
 		
 	# Move to next sub-phase or complete campaign phase
@@ -426,7 +426,7 @@ func _setup_phase_requirements(phase: FiveParcsecsCampaignPhase) -> void:
 			phase_requirements = {
 				"actions": ["events_resolved", "story_progressed"]
 			}
-		FiveParcsecsCampaignPhase.CAMPAIGN:
+		FiveParcsecsCampaignPhase.PRE_MISSION:
 			phase_requirements = {
 				"actions": ["travel_completed", "location_checked", "mission_selected", "mission_prepared"],
 				"sub_phases": [
@@ -449,11 +449,11 @@ func _setup_phase_requirements(phase: FiveParcsecsCampaignPhase) -> void:
 			phase_requirements = {
 				"actions": ["experience_gained", "skills_improved", "advancement_completed"]
 			}
-		FiveParcsecsCampaignPhase.TRADE:
+		FiveParcsecsCampaignPhase.TRADING:
 			phase_requirements = {
 				"actions": ["trade_completed", "equipment_updated"]
 			}
-		FiveParcsecsCampaignPhase.END:
+		FiveParcsecsCampaignPhase.RETIREMENT:
 			phase_requirements = {
 				"actions": ["turn_completed"]
 			}
@@ -472,7 +472,7 @@ func _are_phase_requirements_met() -> bool:
 				return false
 	
 	# For campaign phase, also check sub-phases
-	if current_phase == FiveParcsecsCampaignPhase.CAMPAIGN:
+	if current_phase == FiveParcsecsCampaignPhase.PRE_MISSION:
 		return current_sub_phase == CampaignSubPhase.MISSION_SELECTION and _are_current_sub_phase_requirements_met()
 	
 	return true

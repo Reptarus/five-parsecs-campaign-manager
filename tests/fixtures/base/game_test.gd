@@ -6,7 +6,7 @@ const TestHelperScript = preload("res://tests/fixtures/base/test_helper.gd")
 
 # Make GameEnums a reference to GlobalEnums for backward compatibility
 # All test code should use GameEnums or GlobalEnums consistently
-const GameEnums = preload("res://src/core/systems/GlobalEnums.gd")
+const GameEnums = preload("res://src/core/enums/GameEnums.gd")
 
 # Add TestEnums constant to make the test helper available to all tests
 const TestEnums = preload("res://tests/fixtures/base/test_helper.gd")
@@ -96,6 +96,8 @@ func _cleanup_game_resources() -> void:
 		if is_instance_valid(node):
 			if node.is_inside_tree():
 				node.queue_free()
+			_test_nodes.remove_at(i)
+		else:
 			_test_nodes.remove_at(i)
 	
 	for i in range(_test_resources.size() - 1, -1, -1):

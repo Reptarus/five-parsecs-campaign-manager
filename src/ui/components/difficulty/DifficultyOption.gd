@@ -6,7 +6,7 @@ const Self = preload("res://src/ui/components/difficulty/DifficultyOption.gd")
 
 signal value_changed(difficulty: GameEnums.DifficultyLevel)
 
-const GameEnums = preload("res://src/core/systems/GlobalEnums.gd")
+const GameEnums = preload("res://src/core/enums/GameEnums.gd")
 
 @onready var option_button = $OptionButton
 var current_difficulty: GameEnums.DifficultyLevel

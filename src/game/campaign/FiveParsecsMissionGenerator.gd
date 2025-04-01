@@ -1,4 +1,3 @@
-@tool
 # This file should be referenced via preload
 # Use explicit preloads instead of global class names
 extends BaseMissionGenerator
@@ -6,12 +5,6 @@ extends BaseMissionGenerator
 const Self = preload("res://src/game/campaign/FiveParsecsMissionGenerator.gd")
 const BaseMissionGenerator = preload("res://src/base/campaign/BaseMissionGenerator.gd")
 const GameEnums = preload("res://src/core/systems/GlobalEnums.gd")
-
-# Signals for mission generation events
-signal mission_generated(mission)
-
-# Mission type mapping for display
-var mission_types: Dictionary = {}
 
 # Five Parsecs specific mission types
 enum FiveParsecsMissionType {
@@ -55,6 +48,10 @@ var enemy_factions: Array = [
 ]
 
 func _init() -> void:
+	# Ensure mission_types is initialized
+	if mission_types == null:
+		mission_types = {}
+	
 	# Override mission types with Five Parsecs specific types
 	mission_types = {
 		FiveParsecsMissionType.BATTLE: "Battle",
@@ -68,6 +65,35 @@ func _init() -> void:
 		FiveParsecsMissionType.CONVOY_ESCORT: "Convoy Escort",
 		FiveParsecsMissionType.DEFENSE: "Defense"
 	}
+	
+	# Ensure mission properties are initialized
+	if mission_locations == null:
+		mission_locations = [
+			"Abandoned Outpost",
+			"Derelict Ship",
+			"Urban Ruins",
+			"Mining Facility",
+			"Research Station",
+			"Jungle Wilderness",
+			"Desert Wasteland",
+			"Space Station",
+			"Underground Complex",
+			"Orbital Platform"
+		]
+		
+	if enemy_factions == null:
+		enemy_factions = [
+			"Marauders",
+			"Corporate Security",
+			"Alien Horde",
+			"Rogue AI",
+			"Rival Crew",
+			"Government Forces",
+			"Cultists",
+			"Mercenaries",
+			"Rebels",
+			"Pirates"
+		]
 
 func generate_mission(difficulty: int = 2, type: int = -1) -> Dictionary:
 	if type < 0:
@@ -94,6 +120,10 @@ func generate_mission(difficulty: int = 2, type: int = -1) -> Dictionary:
 	return mission
 
 func generate_mission_title(type: int) -> String:
+	# Safety check - if titles dict is malformed, return a safe default
+	if not mission_types or not mission_types.has(type):
+		return "Generic Mission"
+		
 	var titles = {
 		FiveParsecsMissionType.BATTLE: [
 			"Desperate Stand", "Firefight", "Skirmish", "Ambush", "Raid"
@@ -127,10 +157,11 @@ func generate_mission_title(type: int) -> String:
 		]
 	}
 	
-	if titles.has(type) and titles[type].size() > 0:
-		return titles[type][randi() % titles[type].size()]
+	# Safety check for type value
+	if not type in titles or not titles[type] is Array or titles[type].size() == 0:
+		return mission_types.get(type, "Five Parsecs Mission")
 	
-	return "Five Parsecs Mission"
+	return titles[type][randi() % titles[type].size()]
 
 func generate_mission_description(type: int, difficulty: int) -> String:
 	var difficulty_desc = ""
@@ -322,6 +353,11 @@ func generate_loot_table(difficulty: int) -> Array:
 	return loot_table
 
 func serialize_mission(mission_data: Dictionary) -> Dictionary:
+	# Add validation
+	if mission_data == null or typeof(mission_data) != TYPE_DICTIONARY:
+		push_error("Invalid mission data provided to serialize_mission")
+		return {}
+		
 	# Create serialized copy of mission data
 	var data = mission_data.duplicate(true)
 	
@@ -330,9 +366,89 @@ func serialize_mission(mission_data: Dictionary) -> Dictionary:
 	return data
 
 func deserialize_mission(serialized_data: Dictionary) -> Dictionary:
+	# Add validation
+	if serialized_data == null or typeof(serialized_data) != TYPE_DICTIONARY:
+		push_error("Invalid serialized data provided to deserialize_mission")
+		return {}
+		
 	# Create mission from serialized data
 	var mission = serialized_data.duplicate(true)
 	
 	# Add any Five Parsecs specific deserialization logic here
 	
 	return mission
+
+# Special method to support usage from Node contexts
+# Since this class extends RefCounted (through BaseMissionGenerator)
+# we need a way to safely use it in Node contexts without type errors
+static func create_node_wrapper() -> Node:
+	# Create a Node that contains an instance of this generator
+	var wrapper = Node.new()
+	wrapper.name = "FiveParsecsMissionGeneratorWrapper"
+	
+	# Create the actual generator
+	var generator = Self.new()
+	
+	# Attach the generator as metadata to the node
+	wrapper.set_meta("generator", generator)
+	
+	# Add helper methods to the wrapper node - use compatibility module
+	var compatibility = load("res://addons/gut/compatibility.gd").new()
+	wrapper.set_script(compatibility.create_gdscript())
+	
+	# Define script code with proper method to delegate to generator
+	var script_code = """
+extends Node
+
+# The generator instance (RefCounted)
+var _generator = null
+
+func _init() -> void:
+	# Initialize as early as possible
+	if has_meta("generator"):
+		_generator = get_meta("generator")
+
+func _ready() -> void:
+	# Make sure generator is set from metadata
+	if has_meta("generator") and _generator == null:
+		_generator = get_meta("generator")
+
+# Delegate function calls to the generator
+func generate_mission(difficulty: int = 2, type: int = -1) -> Dictionary:
+	if _generator != null:
+		return _generator.generate_mission(difficulty, type)
+	return {}
+	
+func generate_mission_with_type(type: int) -> Dictionary:
+	if _generator != null:
+		return _generator.generate_mission(2, type)
+	return {}
+	
+# Forward all signals from the generator
+func _notification(what: int) -> void:
+	if what == NOTIFICATION_PREDELETE:
+		# Clean up references before deletion
+		_generator = null
+"""
+
+	# Set and compile the script
+	wrapper.get_script().source_code = script_code
+	var result = wrapper.get_script().reload()
+	if result != OK:
+		push_error("Failed to compile wrapper script: " + str(result))
+		
+	# Make sure generator is available
+	wrapper.set_meta("generator", generator)
+	
+	# Force the _init and _ready to execute
+	if wrapper.has_method("_init"):
+		wrapper.call("_init")
+	if wrapper.has_method("_ready"):
+		wrapper.call("_ready")
+	
+	# Return the wrapper node
+	return wrapper
+
+# Convenience method to generate a mission with a specific type
+func generate_mission_with_type(type: int) -> Dictionary:
+	return generate_mission(2, type)

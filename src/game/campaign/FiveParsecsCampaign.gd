@@ -8,6 +8,9 @@ const BaseCampaign = preload("res://src/base/campaign/BaseCampaign.gd")
 const FiveParsecsGameEnums = preload("res://src/game/campaign/crew/FiveParsecsGameEnums.gd")
 const FiveParsecsCrew = preload("res://src/game/campaign/crew/FiveParsecsCrew.gd")
 
+# Properties with type-safe getters and setters
+var _victory_condition = 0
+
 # Five Parsecs specific properties
 var campaign_id: String = "":
 	get:
@@ -38,10 +41,33 @@ var completed_missions: Array = []
 var patrons: Array = []
 var rivals: Array = []
 
+# Add type-safe getter/setter for victory_condition
+func get_victory_condition() -> int:
+	return _victory_condition
+
+func set_victory_condition(value: int) -> void:
+	if typeof(value) == TYPE_INT:
+		_victory_condition = value
+	else:
+		push_warning("Invalid victory condition type: " + str(typeof(value)))
+
 func _init(name: String = "New Five Parsecs Campaign") -> void:
 	super (name)
-	crew = FiveParsecsCrew.new()
-	crew.name = name + " Crew"
+	
+	# Ensure we have a unique resource path to prevent serialization errors
+	if resource_path.is_empty():
+		var timestamp = Time.get_unix_time_from_system()
+		var random_suffix = randi() % 1000000
+		resource_path = "res://tests/generated/five_parsecs_campaign_%d_%d.tres" % [timestamp, random_suffix]
+	
+	# Ensure crew is initialized safely
+	if crew == null:
+		crew = FiveParsecsCrew.new()
+		if is_instance_valid(crew):
+			crew.name = name + " Crew"
+		else:
+			push_error("Failed to create FiveParsecsCrew instance")
+			
 	_initialize_galaxy_map()
 	_initialize_five_parsecs_resources()
 	
@@ -143,8 +169,24 @@ func record_battle_result(victory: bool, enemies_defeated: int = 0, crew_injurie
 	battle_stats.crew_injuries += crew_injuries
 	battle_stats.crew_deaths += crew_deaths
 
-func add_mission(mission_data: Dictionary) -> void:
-	current_mission = mission_data
+func add_mission(mission_data) -> void:
+	# Handle both Dictionary and Object types
+	if mission_data is Dictionary:
+		current_mission = mission_data
+	elif mission_data is Object and mission_data.has_method("to_dict"):
+		# Handle objects with to_dict method
+		current_mission = mission_data.to_dict()
+	elif mission_data is Object:
+		# Try to convert the object to a dictionary
+		var converted_mission = {}
+		# Copy properties we can access
+		for prop in ["id", "type", "difficulty", "title", "description", "reward", "objectives"]:
+			if prop in mission_data:
+				converted_mission[prop] = mission_data.get(prop)
+		current_mission = converted_mission
+	else:
+		push_error("Invalid mission data type: " + str(typeof(mission_data)))
+		return
 
 func complete_mission(success: bool = true) -> void:
 	if current_mission.size() > 0:
@@ -161,6 +203,7 @@ func serialize() -> Dictionary:
 	
 	# Add Five Parsecs specific data
 	data["campaign_id"] = campaign_id
+	data["victory_condition"] = get_victory_condition()
 	data["crew"] = crew.to_dict()
 	data["galaxy_map"] = galaxy_map
 	data["battle_stats"] = battle_stats
@@ -180,6 +223,13 @@ func deserialize(data: Dictionary) -> Dictionary:
 	# Load campaign_id if available
 	if data.has("campaign_id"):
 		campaign_id = data.campaign_id
+	
+	# Load victory_condition safely
+	if "victory_condition" in data:
+		if typeof(data.victory_condition) == TYPE_INT:
+			set_victory_condition(data.victory_condition)
+		else:
+			push_warning("Invalid victory condition type in saved data: " + str(typeof(data.victory_condition)))
 	
 	# Load Five Parsecs specific data
 	if data.has("crew"):
@@ -286,28 +336,54 @@ func get(property_name) -> Variant:
 	# Convert to string just in case it's a StringName
 	var prop_name = str(property_name)
 	
+	# Ensure we never return null for essential properties
 	match prop_name:
 		"resources":
+			if resources == null:
+				resources = {}
 			return resources
 		"campaign_id", "id":
-			return campaign_id
+			return get_campaign_id()
 		"campaign_name", "name":
+			if campaign_name == null or campaign_name.is_empty():
+				campaign_name = "Unnamed Campaign"
 			return campaign_name
 		"campaign_difficulty", "difficulty":
 			return campaign_difficulty
 		"crew":
+			if crew == null:
+				crew = FiveParsecsCrew.new()
 			return crew
 		"galaxy_map":
+			if galaxy_map == null:
+				_initialize_galaxy_map()
 			return galaxy_map
 		"battle_stats":
+			if battle_stats == null:
+				battle_stats = {
+					"battles_fought": 0,
+					"battles_won": 0,
+					"battles_lost": 0,
+					"enemies_defeated": 0,
+					"crew_injuries": 0,
+					"crew_deaths": 0
+				}
 			return battle_stats
 		"current_mission":
+			if current_mission == null:
+				current_mission = {}
 			return current_mission
 		"completed_missions":
+			if completed_missions == null:
+				completed_missions = []
 			return completed_missions
 		"patrons":
+			if patrons == null:
+				patrons = []
 			return patrons
 		"rivals":
+			if rivals == null:
+				rivals = []
 			return rivals
 		_:
 			# Check if it's a resource first
@@ -395,6 +471,9 @@ func has_crew() -> bool:
 
 ## Helper for campaign id access
 func get_campaign_id() -> String:
+	if campaign_id == null or campaign_id.is_empty():
+		var timestamp = Time.get_unix_time_from_system()
+		campaign_id = "campaign_" + str(timestamp)
 	return campaign_id
 
 ## Additional method to check for equipment

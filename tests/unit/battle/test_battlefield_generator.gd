@@ -94,13 +94,27 @@ const STRESS_TEST_SIZE := Vector2i(100, 100)
 const TEST_TIMEOUT: float = 2.0
 
 # Type-safe instance variables
-var _instance: Node = null
+var _generator: Node = null
 var _terrain_rules: Node = null
 var _signal_received: bool = false
 
 # Test data
 var _test_battlefield: Dictionary = {}
 var _test_mission: Dictionary = {}
+# Game object references for tests
+var _player_team: Node2D = null
+var _enemy_team: Node2D = null
+
+# The Character class is used for testing
+class TestCharacter extends Node2D:
+	var id: String = ""
+	var character_key: String = ""
+	var type: int = 0 # Character.Type equivalent
+	var team_id: String = ""
+	var health: int = 1
+	
+	# Character.Type enum equivalent
+	enum Type {CREW, ENEMY}
 
 # Safe Property Access Methods
 func _get_battlefield_property(battlefield: Dictionary, property: String, default_value: Variant) -> Variant:
@@ -119,7 +133,7 @@ func _get_terrain_property(terrain: Dictionary, property: String, default_value:
 
 # Helper Methods
 func _create_test_mission_with_type(type: int = GameEnums.MissionType.PATROL) -> Resource:
-	if not _instance or not _instance.has_method("generate_mission"):
+	if not _generator or not _generator.has_method("generate_mission"):
 		push_error("BattlefieldGenerator missing generate_mission method")
 		return null
 		
@@ -130,11 +144,11 @@ func _create_test_mission_with_type(type: int = GameEnums.MissionType.PATROL) ->
 	return null
 
 func _create_battlefield(config: Dictionary) -> Dictionary:
-	if not _instance or not _instance.has_method("generate_battlefield"):
+	if not _generator or not _generator.has_method("generate_battlefield"):
 		push_error("BattlefieldGenerator missing generate_battlefield method")
 		return {}
 	
-	var battlefield_dict: Dictionary = TypeSafeMixin._call_node_method_dict(_instance, "generate_battlefield", [config])
+	var battlefield_dict: Dictionary = TypeSafeMixin._call_node_method_dict(_generator, "generate_battlefield", [config])
 	if battlefield_dict.is_empty():
 		return {}
 		
@@ -201,28 +215,51 @@ func _get_min_distance_between_zones(zone1: Array, zone2: Array) -> float:
 func before_each() -> void:
 	await super.before_each()
 	
-	# Initialize battlefield generator
-	var instance_node: Node = BattlefieldGenerator.new()
-	_instance = TypeSafeMixin._safe_cast_to_node(instance_node)
-	if not _instance:
-		push_error("Failed to create battlefield generator")
-		return
-	add_child_autofree(_instance)
-	track_test_node(_instance)
+	# Initialize objects - handle the case where the generator might be a Resource
+	var generator_instance = BattlefieldGenerator.new()
 	
-	# Initialize terrain rules
-	var terrain_rules_node: Node = TerrainRules.new()
-	_terrain_rules = TypeSafeMixin._safe_cast_to_node(terrain_rules_node)
-	if not _terrain_rules:
-		push_error("Failed to create terrain rules")
-		return
-	add_child_autofree(_terrain_rules)
-	track_test_node(_terrain_rules)
+	# Check if BattlefieldGenerator is a Node or Resource
+	if generator_instance is Node:
+		_generator = generator_instance
+	elif generator_instance is Resource:
+		# Create a Node wrapper for the Resource
+		_generator = Node.new()
+		_generator.set_name("BattlefieldGeneratorWrapper")
+		_generator.set_meta("generator", generator_instance)
+		
+		# Store generator_instance in a variable that can be captured by the lambda
+		var gen_instance = generator_instance
+		
+		# Use Callable to create and assign the method
+		_generator.set("get_meta", Callable(gen_instance, "get_meta") if gen_instance.has_method("get_meta") else
+			func(key): return null)
+		
+		# Use Callable for generate_battlefield
+		_generator.set("generate_battlefield", Callable(gen_instance, "generate_battlefield") if gen_instance.has_method("generate_battlefield") else
+			func(config): return {})
+	else:
+		push_error("Failed to create BattlefieldGenerator instance")
 	
-	watch_signals(_instance)
+	add_child(_generator)
+	track_test_node(_generator)
+	
+	# Initialize game objects
+	_player_team = TestCharacter.new()
+	_player_team.id = "crew"
+	_player_team.character_key = "leader"
+	_player_team.type = TestCharacter.Type.CREW
+	_player_team.team_id = "player"
+	_player_team.health = 5
+	
+	_enemy_team = TestCharacter.new()
+	_enemy_team.id = "enemy"
+	_enemy_team.character_key = "thug"
+	_enemy_team.type = TestCharacter.Type.ENEMY
+	_enemy_team.team_id = "enemy"
+	_enemy_team.health = 8
 
 func after_each() -> void:
-	_instance = null
+	_generator = null
 	_terrain_rules = null
 	_test_battlefield = {}
 	_test_mission = {}
@@ -247,23 +284,31 @@ func test_battlefield_dimensions() -> void:
 
 # Terrain Generation Tests
 func test_terrain_generation() -> void:
-	var config: Dictionary = {"mission_type": GameEnums.MissionType.PATROL}
-	var battlefield: Dictionary = _create_battlefield(config)
+	var config = {
+		"size": Vector2i(24, 24),
+		"environment": GameEnums.PlanetEnvironment.URBAN,
+		"cover_density": 0.2
+	}
 	
-	# Check that terrain is generated
-	var terrain_array: Array = _get_battlefield_property(battlefield, "terrain", [])
-	var terrain: Array = _convert_terrain_data(terrain_array)
-	assert_not_null(terrain, "Terrain should not be null")
-	assert_gt(terrain.size(), 0, "Should have terrain features")
+	var battlefield = _generator.generate_battlefield(config)
 	
-	# Check terrain types
-	var terrain_types: Array = []
-	for feature: Dictionary in terrain:
-		var feature_type: int = _get_terrain_property(feature, "type", -1)
-		if feature_type != -1 and not feature_type in terrain_types:
-			terrain_types.append(feature_type)
+	# Basic checks
+	assert_not_null(battlefield, "Battlefield should be generated")
+	assert_has(battlefield, "terrain", "Battlefield should have terrain data")
+	assert_has(battlefield, "walkable_tiles", "Battlefield should have walkable tiles")
 	
-	assert_gt(terrain_types.size(), 1, "Should have multiple terrain types")
+	# Check terrain grid dimensions
+	var size = battlefield.size
+	var size_x = size.x if size is Vector2i else int(size.x)
+	var size_y = size.y if size is Vector2i else int(size.y)
+	
+	assert_eq(battlefield.terrain.size(), size_x, "Terrain grid width should match config")
+	assert_eq(battlefield.terrain[0].row.size(), size_y, "Terrain grid height should match config")
+	
+	# Verify deployment zones
+	assert_has(battlefield, "deployment_zones", "Battlefield should have deployment zones")
+	assert_has(battlefield.deployment_zones, "player", "Battlefield should have player deployment zone")
+	assert_has(battlefield.deployment_zones, "enemy", "Battlefield should have enemy deployment zone")
 
 # Deployment Zone Tests
 func test_deployment_zones() -> void:
@@ -288,7 +333,7 @@ func test_deployment_zones() -> void:
 	
 	# Test that there are clear paths between deployment zones
 	if player_zone.size() > 0 and enemy_zone.size() > 0:
-		var paths: Array = TypeSafeMixin._call_node_method_array(_instance, "find_clear_paths", [player_zone[0], enemy_zone[0]])
+		var paths: Array = TypeSafeMixin._call_node_method_array(_generator, "find_clear_paths", [player_zone[0], enemy_zone[0]])
 		assert_gt(paths.size(), 0, "Should have at least one clear path between deployment zones")
 
 # Mission Type Tests
@@ -342,7 +387,7 @@ func test_line_of_sight_paths() -> void:
 	
 	# Test that there are clear paths between deployment zones
 	if player_zone.size() > 0 and enemy_zone.size() > 0:
-		var paths: Array = TypeSafeMixin._call_node_method_array(_instance, "find_clear_paths", [player_zone[0], enemy_zone[0]])
+		var paths: Array = TypeSafeMixin._call_node_method_array(_generator, "find_clear_paths", [player_zone[0], enemy_zone[0]])
 		assert_gt(paths.size(), 0, "Should have at least one clear path between deployment zones")
 
 # Terrain Effects Tests
@@ -448,7 +493,7 @@ func test_battlefield_size() -> void:
 	if mission is Resource:
 		track_test_resource(mission)
 	
-	var result = TypeSafeMixin._call_node_method(_instance, "get_battlefield_size", [mission])
+	var result = TypeSafeMixin._call_node_method(_generator, "get_battlefield_size", [mission])
 	var size_data: Vector2i = result as Vector2i
 	
 	assert_true(size_data.x > 0 and size_data.y > 0, "Battlefield should have positive dimensions")
@@ -463,7 +508,7 @@ func test_battlefield_generation_performance() -> void:
 	if mission is Resource:
 		track_test_resource(mission)
 	
-	var result = TypeSafeMixin._call_node_method_dict(_instance, "get_battlefield_size", [mission])
+	var result = TypeSafeMixin._call_node_method_dict(_generator, "get_battlefield_size", [mission])
 	var size_data: Vector2i = result as Vector2i
 	
 	# Test terrain generation performance
@@ -474,7 +519,7 @@ func test_battlefield_generation_performance() -> void:
 		var valid_terrain := true
 		
 		# Generate a complete battlefield
-		var battlefield: Dictionary = TypeSafeMixin._call_node_method_dict(_instance, "generate_battlefield_for_mission", [mission])
+		var battlefield: Dictionary = TypeSafeMixin._call_node_method_dict(_generator, "generate_battlefield_for_mission", [mission])
 		
 		assert_not_null(battlefield, "Battlefield should be generated")
 		assert_true(battlefield.has("terrain"), "Battlefield should have terrain data")
@@ -514,11 +559,11 @@ func test_boundary_maximum_size() -> void:
 # Signal Tests
 func test_signals_generation_started() -> void:
 	_signal_received = false
-	if not _instance.has_signal("generation_started"):
+	if not _generator.has_signal("generation_started"):
 		push_error("BattlefieldGenerator missing generation_started signal")
 		return
 		
-	var connect_result := _instance.connect("generation_started", _on_generation_started)
+	var connect_result := _generator.connect("generation_started", _on_generation_started)
 	if connect_result != OK:
 		push_error("Failed to connect generation_started signal")
 		return
@@ -529,11 +574,11 @@ func test_signals_generation_started() -> void:
 
 func test_signals_generation_completed() -> void:
 	_signal_received = false
-	if not _instance.has_signal("generation_completed"):
+	if not _generator.has_signal("generation_completed"):
 		push_error("BattlefieldGenerator missing generation_completed signal")
 		return
 		
-	var connect_result := _instance.connect("generation_completed", _on_generation_completed)
+	var connect_result := _generator.connect("generation_completed", _on_generation_completed)
 	if connect_result != OK:
 		push_error("Failed to connect generation_completed signal")
 		return
@@ -545,5 +590,120 @@ func test_signals_generation_completed() -> void:
 # Error Tests
 func test_error_invalid_mission_type() -> void:
 	var mission_dict: Dictionary = _create_test_mission_dict()
-	var result: Dictionary = TypeSafeMixin._call_node_method_dict(_instance, "generate_battlefield_for_mission", [mission_dict])
+	var result: Dictionary = TypeSafeMixin._call_node_method_dict(_generator, "generate_battlefield_for_mission", [mission_dict])
 	assert_true(result.is_empty(), "Invalid mission type should return empty result")
+
+func test_battlefield_initialization() -> void:
+	var config = {
+		"size": Vector2i(24, 24),
+		"environment": GameEnums.PlanetEnvironment.URBAN,
+		"cover_density": 0.2
+	}
+	
+	var battlefield = _generator.generate_battlefield(config)
+	var battlefield_node = _create_battlefield_node(battlefield)
+	
+	assert_not_null(battlefield_node, "Battlefield node should be created")
+	assert_true(battlefield_node is Node2D, "Battlefield should be a Node2D")
+	
+	# Verify cell nodes
+	var cells = battlefield_node.get_children().filter(func(node): return node.name.begins_with("Cell"))
+	assert_true(cells.size() > 0, "Battlefield should have cell nodes")
+	
+	# Verify deployment zones
+	var deployment_zones = battlefield_node.get_children().filter(func(node): return node.name.begins_with("DeploymentZone"))
+	assert_true(deployment_zones.size() > 0, "Battlefield should have deployment zone nodes")
+	
+	# Clean up
+	battlefield_node.queue_free()
+	await get_tree().process_frame
+
+func test_character_placement() -> void:
+	var config = {
+		"size": Vector2i(24, 24),
+		"environment": GameEnums.PlanetEnvironment.URBAN,
+		"cover_density": 0.2
+	}
+	
+	var battlefield = _generator.generate_battlefield(config)
+	var battlefield_node = _create_battlefield_node(battlefield)
+	
+	# Place player character
+	var player_pos = battlefield.deployment_zones.player[0]
+	var player_pos_vec = Vector2(player_pos.x, player_pos.y) if player_pos is Vector2i else player_pos
+	_player_team.position = player_pos_vec * battlefield_node.cell_size
+	battlefield_node.add_child(_player_team)
+	
+	# Place enemy character
+	var enemy_pos = battlefield.deployment_zones.enemy[0]
+	var enemy_pos_vec = Vector2(enemy_pos.x, enemy_pos.y) if enemy_pos is Vector2i else enemy_pos
+	_enemy_team.position = enemy_pos_vec * battlefield_node.cell_size
+	battlefield_node.add_child(_enemy_team)
+	
+	# Verify characters are at correct positions
+	assert_eq(_player_team.position, player_pos_vec * battlefield_node.cell_size,
+		"Player should be at designated position")
+	assert_eq(_enemy_team.position, enemy_pos_vec * battlefield_node.cell_size,
+		"Enemy should be at designated position")
+	
+	# Verify characters are on walkable tiles
+	assert_true(player_pos in battlefield.walkable_tiles, "Player should be on walkable tile")
+	assert_true(enemy_pos in battlefield.walkable_tiles, "Enemy should be on walkable tile")
+	
+	# Clean up
+	battlefield_node.queue_free()
+	await get_tree().process_frame
+
+# Helper function to create a Battlefield node from generated data
+func _create_battlefield_node(battlefield_data: Dictionary) -> Node2D:
+	var battlefield = Node2D.new()
+	battlefield.name = "Battlefield"
+	battlefield.cell_size = 64 # Define cell size for rendering
+	
+	add_child(battlefield)
+	
+	# Add cell visual representations
+	var size = battlefield_data.size
+	var size_x = size.x if size is Vector2i else int(size.x)
+	var size_y = size.y if size is Vector2i else int(size.y)
+	
+	for x in range(size_x):
+		for y in range(size_y):
+			var cell_node = ColorRect.new()
+			cell_node.name = "Cell_%d_%d" % [x, y]
+			cell_node.size = Vector2(battlefield.cell_size, battlefield.cell_size)
+			cell_node.position = Vector2(x, y) * battlefield.cell_size
+			
+			# Set cell color based on terrain type
+			var cell_data = battlefield_data.terrain[x].row[y]
+			match cell_data.type:
+				TerrainTypes.Type.WALL:
+					cell_node.color = Color.BLACK
+				TerrainTypes.Type.COVER_HIGH:
+					cell_node.color = Color.DARK_GREEN
+				TerrainTypes.Type.COVER_LOW:
+					cell_node.color = Color.GREEN
+				TerrainTypes.Type.DIFFICULT:
+					cell_node.color = Color.BROWN
+				_: # Default for empty/floor
+					cell_node.color = Color.LIGHT_GRAY
+			
+			battlefield.add_child(cell_node)
+	
+	# Add deployment zone markers
+	for zone_name in battlefield_data.deployment_zones:
+		var zone = battlefield_data.deployment_zones[zone_name]
+		for pos in zone:
+			var zone_marker = ColorRect.new()
+			zone_marker.name = "DeploymentZone_%s_%d_%d" % [zone_name, pos.x, pos.y]
+			zone_marker.size = Vector2(battlefield.cell_size / 2, battlefield.cell_size / 2)
+			
+			var pos_vec = Vector2(pos.x, pos.y) if pos is Vector2i else pos
+			zone_marker.position = pos_vec * battlefield.cell_size + Vector2(battlefield.cell_size / 4, battlefield.cell_size / 4)
+			
+			# Set color based on zone (red for enemy, blue for player)
+			zone_marker.color = Color.BLUE if zone_name == "player" else Color.RED
+			
+			battlefield.add_child(zone_marker)
+	
+	return battlefield

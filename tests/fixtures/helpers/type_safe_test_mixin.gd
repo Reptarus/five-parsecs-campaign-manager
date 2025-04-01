@@ -47,7 +47,7 @@ static func _call_node_method(obj: Object, method: String, args: Array = []) -> 
 	if obj == null:
 		push_warning(ERROR_INVALID_OBJECT + ": Object is null for method " + method)
 		return null
-		
+	
 	if not is_instance_valid(obj):
 		push_warning(ERROR_INVALID_OBJECT + ": Object is not valid for method " + method)
 		return null
@@ -89,32 +89,48 @@ static func _call_node_method_bool(obj: Object, method: String, args: Array = []
 	# Try to convert to boolean if possible
 	if result == null:
 		return default
+	
+	# Handle specific conversion from int
+	if result is int:
+		# Convert to explicit bool to prevent "Cannot convert 0 to boolean" errors
+		return bool(result != 0)
+	
+	# Handle specific conversion from float
+	if result is float:
+		# Convert to explicit bool to prevent conversion errors
+		return bool(result != 0.0)
+	
+	# Handle existing bool type (no conversion needed)
 	if result is bool:
 		return result
-	if result is int:
-		return result != 0
-	if result is float:
-		return result != 0.0
+	
+	# Handle String conversions explicitly
 	if result is String:
 		var lower_result = result.to_lower()
 		if lower_result == "true" or lower_result == "yes" or lower_result == "1":
 			return true
 		if lower_result == "false" or lower_result == "no" or lower_result == "0" or lower_result.is_empty():
 			return false
-		return not result.is_empty()
+		# Convert to explicit bool for non-empty strings
+		return bool(not result.is_empty())
+	
+	# Handle dictionary with special bool-indicating fields
 	if result is Dictionary:
-		if result.has("success"):
-			return result.success
-		if result.has("is_valid"):
-			return result.is_valid
-		if result.has("valid"):
-			return result.valid
-		return not result.is_empty()
+		if "success" in result:
+			return bool(result.success)
+		if "is_valid" in result:
+			return bool(result.is_valid)
+		if "valid" in result:
+			return bool(result.valid)
+		# Use explicit bool conversion for dictionary emptiness check
+		return bool(not result.is_empty())
+	
+	# Handle arrays with explicit bool conversion
 	if result is Array:
-		return not result.is_empty()
-		
-	# Default to true for non-null values that aren't easily convertible
-	return true
+		return bool(not result.is_empty())
+	
+	# For all other types, explicitly convert to bool
+	return bool(result != null)
 
 static func _call_node_method_array(obj: Object, method: String, args: Array = [], default: Array = []) -> Array:
 	var result = _call_node_method(obj, method, args)
@@ -150,6 +166,47 @@ static func _call_node_method_resource(obj: Object, method: String, args: Array 
 		return result
 	push_error(ERROR_TYPE_MISMATCH % ["Resource", typeof_as_string(result)])
 	return default
+
+# Helper to get the type name as a string for error messages
+static func typeof_as_string(value: Variant) -> String:
+	var type_id = typeof(value)
+	match type_id:
+		TYPE_NIL: return "null"
+		TYPE_BOOL: return "bool"
+		TYPE_INT: return "int"
+		TYPE_FLOAT: return "float"
+		TYPE_STRING: return "String"
+		TYPE_VECTOR2: return "Vector2"
+		TYPE_VECTOR3: return "Vector3"
+		TYPE_RECT2: return "Rect2"
+		TYPE_TRANSFORM2D: return "Transform2D"
+		TYPE_PLANE: return "Plane"
+		TYPE_QUATERNION: return "Quaternion"
+		TYPE_AABB: return "AABB"
+		TYPE_BASIS: return "Basis"
+		TYPE_TRANSFORM3D: return "Transform3D"
+		TYPE_COLOR: return "Color"
+		TYPE_NODE_PATH: return "NodePath"
+		TYPE_RID: return "RID"
+		TYPE_OBJECT:
+			if value:
+				return value.get_class()
+			return "Object (null)"
+		TYPE_DICTIONARY: return "Dictionary"
+		TYPE_ARRAY: return "Array"
+		TYPE_PACKED_BYTE_ARRAY: return "PackedByteArray"
+		TYPE_PACKED_INT32_ARRAY: return "PackedInt32Array"
+		TYPE_PACKED_INT64_ARRAY: return "PackedInt64Array"
+		TYPE_PACKED_FLOAT32_ARRAY: return "PackedFloat32Array"
+		TYPE_PACKED_FLOAT64_ARRAY: return "PackedFloat64Array"
+		TYPE_PACKED_STRING_ARRAY: return "PackedStringArray"
+		TYPE_PACKED_VECTOR2_ARRAY: return "PackedVector2Array"
+		TYPE_PACKED_VECTOR3_ARRAY: return "PackedVector3Array"
+		TYPE_PACKED_COLOR_ARRAY: return "PackedColorArray"
+		TYPE_SIGNAL: return "Signal"
+		TYPE_CALLABLE: return "Callable"
+		TYPE_STRING_NAME: return "StringName"
+	return "Unknown type (%d)" % type_id
 
 # Enhanced type-safe casting with better error messages
 static func _safe_cast_int(value: Variant, error_message: String = "") -> int:
@@ -216,11 +273,11 @@ static func _safe_cast_to_resource(value: Variant, type: String, error_message: 
 	if value == null:
 		push_warning(ERROR_CAST_FAILED % ["null", type, error_message])
 		return null
-		
+	
 	if not value is Resource:
 		push_warning(ERROR_CAST_FAILED % [typeof_as_string(value), type, error_message])
 		return null
-		
+	
 	if not type.is_empty():
 		# Safe type checking to handle missing classes
 		var res_class = value.get_class()
@@ -233,7 +290,7 @@ static func _safe_cast_to_resource(value: Variant, type: String, error_message: 
 			])
 			# Don't return null here, just warn and return the resource
 			# This helps tests continue with a valid resource even if it's not the expected type
-			
+	
 	return value
 
 static func _safe_cast_to_object(value: Variant, type: String, error_message: String = "") -> Object:
@@ -248,142 +305,93 @@ static func _safe_cast_to_object(value: Variant, type: String, error_message: St
 		return null
 	return value
 
+# Safe string conversion with proper null handling
 static func _safe_cast_to_string(value: Variant, error_message: String = "") -> String:
 	if value == null:
-		push_error(ERROR_CAST_FAILED % ["null", "String", error_message])
 		return ""
 	if value is String:
 		return value
-	if value is int or value is float or value is bool:
-		return str(value)
-	push_error(ERROR_CAST_FAILED % [typeof_as_string(value), "String", error_message])
-	return ""
+	if value is StringName:
+		return String(value)
+	# Most types can be converted to string
+	return str(value)
 
-# Utility functions
-static func typeof_as_string(value: Variant) -> String:
-	match typeof(value):
-		TYPE_NIL: return "null"
-		TYPE_BOOL: return "bool"
-		TYPE_INT: return "int"
-		TYPE_FLOAT: return "float"
-		TYPE_STRING: return "String"
-		TYPE_VECTOR2: return "Vector2"
-		TYPE_VECTOR3: return "Vector3"
-		TYPE_ARRAY: return "Array"
-		TYPE_DICTIONARY: return "Dictionary"
-		TYPE_OBJECT:
-			if value == null:
-				return "null"
-			if value is Node:
-				return "Node"
-			if value is Resource:
-				return "Resource"
-			return "Object"
-		_: return "Unknown"
+# Godot 4.4 compatibility methods
+# Dictionary access using "in" operator instead of has()
+static func dict_has_key(dict: Dictionary, key: Variant) -> bool:
+	return key in dict
 
-# Type-safe method calls with variant return
-static func _safe_method_call_variant(obj: Object, method: String, args: Array = [], default: Variant = null) -> Variant:
-	if not is_instance_valid(obj):
-		push_error(ERROR_INVALID_OBJECT)
+# Safely check existence of a method on an object with proper error handling
+static func has_method_safe(obj: Object, method_name: String) -> bool:
+	if obj == null or not is_instance_valid(obj):
+		return false
+	
+	# Use direct has_method in Godot 4.4+
+	return obj.has_method(method_name)
+
+# Resource path safety for tests
+static func ensure_resource_path(resource: Resource) -> Resource:
+	if resource == null or not is_instance_valid(resource):
+		return resource
+	
+	if resource.resource_path.is_empty():
+		# Generate a unique path for testing
+		var timestamp = Time.get_unix_time_from_system()
+		var class_name_str = resource.get_class().to_lower()
+		resource.resource_path = "res://tests/generated/%s_%d.tres" % [class_name_str, timestamp]
+	
+	return resource
+
+# Add missing method implementations for Godot 4.4 compatibility
+static func _call_node_method_vector2(obj: Object, method: String, args: Array = [], default: Vector2 = Vector2.ZERO) -> Vector2:
+	if obj == null or not is_instance_valid(obj):
+		push_warning("Invalid object for method " + method)
 		return default
 	
 	if method.is_empty():
-		push_error(ERROR_INVALID_METHOD)
+		push_warning("Invalid method name")
 		return default
 	
 	if not obj.has_method(method):
-		push_error(ERROR_METHOD_NOT_FOUND % method)
+		push_warning("Method '%s' not found in object" % method)
 		return default
 	
-	return obj.callv(method, args)
-
-# Type-safe signal verification
-static func _safe_connect(obj: Object, signal_name: String, callable: Callable, flags: int = 0) -> bool:
-	if not is_instance_valid(obj):
-		push_error(ERROR_INVALID_OBJECT)
-		return false
+	var result = obj.callv(method, args)
 	
-	if signal_name.is_empty():
-		push_error("Invalid signal name")
-		return false
-	
-	if not obj.has_signal(signal_name):
-		push_error("Signal '%s' not found in object" % signal_name)
-		return false
-	
-	return obj.connect(signal_name, callable, flags) == OK
-
-# Helper for GUT test debugging
-static func debug_test_object(obj: Object, method_names: Array[String] = [], property_names: Array[String] = []) -> Dictionary:
-	var result := {
-		"object_valid": is_instance_valid(obj),
-		"object_type": str(obj.get_class()) if is_instance_valid(obj) else "Invalid",
-		"object_path": str(obj.get_path()) if is_instance_valid(obj) and obj is Node else "Not a Node",
-		"methods": {},
-		"properties": {}
-	}
-	
-	if not is_instance_valid(obj):
-		push_error("Cannot debug invalid object")
-		return result
-		
-	# Check methods
-	if method_names.is_empty():
-		# Get all methods if none specified
-		var methods := obj.get_method_list()
-		for method in methods:
-			if method.name.begins_with("_"):
-				continue
-			method_names.append(method.name)
-	
-	for method_name in method_names:
-		result.methods[method_name] = {
-			"exists": obj.has_method(method_name),
-			"callable": obj.has_method(method_name) and is_instance_valid(Callable(obj, method_name).get_object())
-		}
-	
-	# Check properties
-	if property_names.is_empty():
-		# Try to get common properties
-		property_names = ["name", "position", "global_position", "visible", "script"]
-	
-	for property_name in property_names:
-		if property_name in obj:
-			var value = obj.get(property_name)
-			result.properties[property_name] = {
-				"exists": true,
-				"value": str(value),
-				"type": typeof(value)
-			}
-		else:
-			result.properties[property_name] = {
-				"exists": false
-			}
-	
-	return result
-
-static func _call_node_method_vector2(obj: Object, method: String, args: Array = [], default: Vector2 = Vector2.ZERO) -> Vector2:
-	var result = _call_node_method(obj, method, args)
 	if result == null:
 		return default
 	if result is Vector2:
 		return result
 	if result is Array and result.size() >= 2:
-		return Vector2(result[0], result[1])
-	if result is Dictionary and "x" in result and "y" in result:
-		return Vector2(result.x, result.y)
-	push_error(ERROR_TYPE_MISMATCH % ["Vector2", typeof_as_string(result)])
-	return default
-
-static func _call_node_method_object(obj: Object, method: String, args: Array = [], default: Object = null) -> Object:
-	var result = _call_node_method(obj, method, args)
-	if result == null:
-		return default
-	if result is Object:
-		return result
-	push_error(ERROR_TYPE_MISMATCH % ["Object", typeof_as_string(result)])
+		if (result[0] is float or result[0] is int) and (result[1] is float or result[1] is int):
+			return Vector2(float(result[0]), float(result[1]))
+	
+	push_warning("Type mismatch: expected Vector2 but got %s" % typeof_as_string(result))
 	return default
 
 static func _call_node_method_float(obj: Object, method: String, args: Array = [], default: float = 0.0) -> float:
-	var result = _call_node_method(obj, method, args)
-	return _safe_cast_float(result, "Failed to get float from " + method) if result != null else default
+	if obj == null or not is_instance_valid(obj):
+		push_warning("Invalid object for method " + method)
+		return default
+	
+	if method.is_empty():
+		push_warning("Invalid method name")
+		return default
+	
+	if not obj.has_method(method):
+		push_warning("Method '%s' not found in object" % method)
+		return default
+	
+	var result = obj.callv(method, args)
+	
+	if result == null:
+		return default
+	if result is float:
+		return result
+	if result is int:
+		return float(result)
+	if result is String and result.is_valid_float():
+		return result.to_float()
+	
+	push_warning("Type mismatch: expected float but got %s" % typeof_as_string(result))
+	return default

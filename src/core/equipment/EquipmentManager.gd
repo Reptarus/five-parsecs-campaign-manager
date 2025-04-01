@@ -1,7 +1,7 @@
 @tool
 extends Node
 
-const GameEnums = preload("res://src/core/systems/GlobalEnums.gd")
+const GameEnums = preload("res://src/core/enums/GameEnums.gd")
 const FiveParsecsGameEnums = preload("res://src/game/campaign/crew/FiveParsecsGameEnums.gd")
 const CharacterManager = preload("res://src/core/character/Management/CharacterManager.gd")
 const FiveParsecsGameState = preload("res://src/core/state/GameState.gd")
@@ -13,7 +13,7 @@ signal equipment_removed(character_id: String, equipment_id: String)
 signal equipment_sold(equipment_id: String, credits: int)
 signal equipment_list_updated()
 
-var character_manager: CharacterManager
+var character_manager
 var game_state: FiveParsecsGameState
 var battle_results_manager: BattleResultsManager
 
@@ -37,7 +37,7 @@ func _init() -> void:
 func _ready() -> void:
 	pass
 
-func setup(state: FiveParsecsGameState, char_manager: CharacterManager, battle_results_manager: BattleResultsManager) -> void:
+func setup(state: FiveParsecsGameState, char_manager, battle_results_manager: BattleResultsManager) -> void:
 	game_state = state
 	character_manager = char_manager
 	battle_results_manager = battle_results_manager

@@ -39,9 +39,9 @@ func test_initial_setup() -> void:
 	
 	# Additional component-specific checks
 	assert_not_null(_component.templates)
-	assert_true(_component.templates.has("Solo Campaign"))
-	assert_true(_component.templates.has("Standard Campaign"))
-	assert_true(_component.templates.has("Challenge Campaign"))
+	assert_true("Solo Campaign" in _component.templates)
+	assert_true("Standard Campaign" in _component.templates)
+	assert_true("Challenge Campaign" in _component.templates)
 
 func test_template_data() -> void:
 	var solo_campaign: Dictionary = _component.templates["Solo Campaign"]

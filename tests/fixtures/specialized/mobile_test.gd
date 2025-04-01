@@ -212,7 +212,17 @@ func assert_fits_screen(control: Control, message: String = "") -> void:
 
 ## Responsive layout testing
 
-func test_responsive_layout(control: Control) -> void:
+func test_responsive_layout(control: Control = null) -> void:
+	if control == null:
+		# Get the first Control child as a fallback
+		for child in get_children():
+			if child is Control:
+				control = child
+				break
+		if control == null:
+			push_warning("No control provided for test_responsive_layout and no Control child found")
+			return
+			
 	for resolution_name in MOBILE_SCREEN_SIZES:
 		await set_resolution(resolution_name)
 		var resolution_size: Vector2i = MOBILE_SCREEN_SIZES[resolution_name]

@@ -1,11 +1,11 @@
 @tool
 extends "res://tests/fixtures/specialized/enemy_test.gd"
 
-# Import the Enemy class for type checking - but use it only for documentation, not for type casting
-const Enemy = preload("res://src/core/enemy/Enemy.gd")
+# Import the Enemy class for type checking
+const Enemy = preload("res://src/core/enemy/base/Enemy.gd")
 
-## Enemy campaign flow tests
-## Tests the full lifecycle of enemies across campaign phases:
+## Enemy campaign unit tests
+## Tests the enemy component behavior in a campaign context with isolated dependencies:
 ## - Enemy progression between missions
 ## - Rival system interactions
 ## - Campaign-level enemy behaviors
@@ -175,8 +175,21 @@ func test_enemy_faction_behavior() -> void:
     
     # Test faction-specific behaviors
     for i in range(_test_enemy_group.size()):
+        # Bounds check
+        if i >= _test_enemy_group.size():
+            push_warning("Index out of bounds in enemy group test")
+            continue
+            
+        # Null check
         var enemy = _test_enemy_group[i]
+        if not enemy:
+            push_warning("Null enemy at index " + str(i))
+            continue
+            
         var faction = TypeSafeMixin._call_node_method(enemy, "get_faction", []) as String
+        if faction.is_empty():
+            push_warning("Empty faction for enemy at index " + str(i))
+            continue
         
         # Trigger faction-specific response
         TypeSafeMixin._call_node_method_bool(enemy, "activate_faction_behavior", [])

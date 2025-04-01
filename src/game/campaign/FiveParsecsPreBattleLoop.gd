@@ -8,7 +8,8 @@ const BasePreBattleLoop = preload("res://src/base/campaign/BasePreBattleLoop.gd"
 const FiveParsecsMissionGenerator = preload("res://src/game/campaign/FiveParsecsMissionGenerator.gd")
 const GameEnums = preload("res://src/core/systems/GlobalEnums.gd")
 
-var mission_generator: FiveParsecsMissionGenerator
+var mission_generator: RefCounted = null # Changed to RefCounted
+var _mission_generator_node: Node = null # Added for Node wrapper support
 var terrain_types: Array = [
 	"Urban", "Wilderness", "Derelict", "Industrial",
 	"Space Station", "Starship", "Desert", "Jungle",
@@ -16,8 +17,52 @@ var terrain_types: Array = [
 ]
 
 func _init() -> void:
-	super()
+	super ()
 	mission_generator = FiveParsecsMissionGenerator.new()
+
+func _ready() -> void:
+	# Try to create a node wrapper using a static method directly
+	_mission_generator_node = _create_mission_generator_node()
+	if _mission_generator_node and self.has_method("add_child"):
+		self.call("add_child", _mission_generator_node)
+
+func _exit_tree() -> void:
+	# Clean up resources
+	mission_generator = null
+	if _mission_generator_node:
+		if is_instance_valid(_mission_generator_node) and _mission_generator_node.get_parent() == self and self.has_method("remove_child"):
+			self.call("remove_child", _mission_generator_node)
+		
+		if is_instance_valid(_mission_generator_node):
+			_mission_generator_node.queue_free()
+		_mission_generator_node = null
+
+# Helper to create node wrapper safely - returns a Node or null
+func _create_mission_generator_node() -> Node:
+	# Create a dedicated function to access the static create_node_wrapper method
+	# This avoids linter errors with static method access
+	if Engine.get_version_info().major >= 4:
+		# Use class_name as a workaround for static method access
+		var MissionGeneratorClass = load("res://src/game/campaign/FiveParsecsMissionGenerator.gd")
+		
+		# Call static method indirectly - look for script method in class
+		var script_methods = MissionGeneratorClass.get_script_method_list()
+		var has_wrapper_method = false
+		
+		for method in script_methods:
+			if method.name == "create_node_wrapper":
+				has_wrapper_method = true
+				break
+		
+		if has_wrapper_method:
+			# Create a temporary instance to call the static method
+			var temp_generator = MissionGeneratorClass.new()
+			var wrapper_node = temp_generator.get_script().get_method("create_node_wrapper").call()
+			# Clean up temporary instance
+			temp_generator = null
+			return wrapper_node
+	
+	return null
 
 func _initialize_available_missions() -> void:
 	available_missions.clear()
@@ -27,8 +72,17 @@ func _initialize_available_missions() -> void:
 	
 	for i in range(mission_count):
 		var difficulty = randi() % 4 + 1 # Difficulty 1-4
-		var mission = mission_generator.generate_mission(difficulty)
+		var mission = generate_mission(difficulty)
 		available_missions.append(mission)
+
+## Generate a mission using the appropriate generator method
+func generate_mission(difficulty: int = 2, mission_type: int = -1) -> Dictionary:
+	# Use the node wrapper if available (for signals and node integration)
+	if _mission_generator_node and _mission_generator_node.has_method("generate_mission"):
+		return _mission_generator_node.generate_mission(difficulty, mission_type)
+	
+	# Fallback to direct RefCounted method
+	return mission_generator.generate_mission(difficulty, mission_type)
 
 func _initialize_available_locations() -> void:
 	available_locations.clear()

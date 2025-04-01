@@ -133,3 +133,78 @@ func test_rapid_phase_changes() -> void:
 	
 	assert_false(TypeSafeMixin._get_property_safe(_mission, "is_completed", false))
 	assert_false(TypeSafeMixin._get_property_safe(_mission, "is_failed", false))
+
+# Helper function to safely verify signal emission sequence
+func verify_signal_sequence(received_signals: Array, expected_signals: Array, strict_order: bool = true) -> bool:
+	# Check if we have any signals to verify
+	if expected_signals.is_empty():
+		push_warning("Expected signal list is empty")
+		return false
+		
+	# 1. Count Check - Make sure we have enough signals
+	if received_signals.size() < expected_signals.size():
+		push_error("Not enough signals received. Expected %d but got %d" % [expected_signals.size(), received_signals.size()])
+		print("Expected signals: ", expected_signals)
+		print("Received signals: ", received_signals)
+		return false
+		
+	# 2. Presence Check - Make sure all expected signals are present
+	var missing_signals = []
+	for expected in expected_signals:
+		if not expected in received_signals:
+			missing_signals.append(expected)
+			
+	if not missing_signals.is_empty():
+		push_error("Missing expected signals: %s" % missing_signals)
+		print("Expected signals: ", expected_signals)
+		print("Received signals: ", received_signals)
+		return false
+		
+	# 3. Order Check - If strict order is required, verify sequence
+	if strict_order:
+		var last_index = -1
+		for expected in expected_signals:
+			var current_index = received_signals.find(expected)
+			if current_index < last_index:
+				push_error("Signal '%s' received out of order" % expected)
+				print("Expected signals order: ", expected_signals)
+				print("Received signals: ", received_signals)
+				return false
+			last_index = current_index
+	
+	# All checks passed
+	return true
+
+# Add a test to verify the signal sequence helper
+func test_signal_sequence_validation() -> void:
+	# Create a node with signals
+	var signal_node = Node.new()
+	add_child_autofree(signal_node)
+	
+	# Setup some test signals
+	var received_signals = []
+	signal_node.add_user_signal("signal_1")
+	signal_node.add_user_signal("signal_2")
+	signal_node.add_user_signal("signal_3")
+	
+	# Connect to the signals
+	signal_node.connect("signal_1", func(): received_signals.append("signal_1"))
+	signal_node.connect("signal_2", func(): received_signals.append("signal_2"))
+	signal_node.connect("signal_3", func(): received_signals.append("signal_3"))
+	
+	# Emit signals in expected order
+	signal_node.emit_signal("signal_1")
+	signal_node.emit_signal("signal_2")
+	signal_node.emit_signal("signal_3")
+	
+	# Test validation
+	var expected_signals = ["signal_1", "signal_2", "signal_3"]
+	assert_true(verify_signal_sequence(received_signals, expected_signals),
+		"Should validate correct signal sequence")
+	
+	# Test with non-strict ordering
+	var out_of_order = ["signal_2", "signal_1", "signal_3"]
+	assert_false(verify_signal_sequence(received_signals, out_of_order),
+		"Should fail with incorrect strict ordering")
+	assert_true(verify_signal_sequence(received_signals, out_of_order, false),
+		"Should pass with non-strict ordering") 

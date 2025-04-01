@@ -7,6 +7,7 @@ extends "res://tests/fixtures/specialized/campaign_test.gd"
 
 # Type-safe script references
 const Campaign := preload("res://src/core/campaign/Campaign.gd")
+const TypeSafeMixin := preload("res://tests/fixtures/helpers/type_safe_test_mixin.gd")
 
 # Type-safe instance variables
 var _campaign_state: Node = null
@@ -58,7 +59,7 @@ func test_campaign_loading() -> void:
 	
 	assert_true(has_campaign, "Campaign should be loaded")
 	assert_eq(campaign_name, "Test Campaign", "Campaign name should match")
-	verify_signal_emitted(_campaign_state, "campaign_changed")
+	assert_signal_emitted(_campaign_state, "campaign_changed")
 
 ## Game Settings Tests
 func test_game_settings() -> void:
@@ -67,19 +68,19 @@ func test_game_settings() -> void:
 	TypeSafeMixin._call_node_method_bool(_campaign_state, "set_difficulty_level", [GameEnums.DifficultyLevel.HARD])
 	var difficulty: int = TypeSafeMixin._call_node_method_int(_campaign_state, "get_difficulty_level", [])
 	assert_eq(difficulty, GameEnums.DifficultyLevel.HARD, "Difficulty should be HARD")
-	verify_signal_emitted(_campaign_state, "difficulty_changed")
+	assert_signal_emitted(_campaign_state, "difficulty_changed")
 	
 	TypeSafeMixin._call_node_method_bool(_campaign_state, "set_permadeath_enabled", [false])
 	var permadeath: bool = TypeSafeMixin._call_node_method_bool(_campaign_state, "is_permadeath_enabled", [])
 	assert_false(permadeath, "Permadeath should be disabled")
-	verify_signal_emitted(_campaign_state, "settings_changed")
+	assert_signal_emitted(_campaign_state, "settings_changed")
 	
 	TypeSafeMixin._call_node_method_bool(_campaign_state, "set_story_track_enabled", [false])
 	var story_track: bool = TypeSafeMixin._call_node_method_bool(_campaign_state, "is_story_track_enabled", [])
 	assert_false(story_track, "Story track should be disabled")
-	verify_signal_emitted(_campaign_state, "settings_changed")
+	assert_signal_emitted(_campaign_state, "settings_changed")
 	
 	TypeSafeMixin._call_node_method_bool(_campaign_state, "set_auto_save_enabled", [false])
 	var auto_save: bool = TypeSafeMixin._call_node_method_bool(_campaign_state, "is_auto_save_enabled", [])
 	assert_false(auto_save, "Auto save should be disabled")
-	verify_signal_emitted(_campaign_state, "settings_changed")
+	assert_signal_emitted(_campaign_state, "settings_changed")

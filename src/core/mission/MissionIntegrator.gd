@@ -1,7 +1,7 @@
 @tool
 extends Node
 
-const GameEnums = preload("res://src/core/systems/GlobalEnums.gd")
+const GameEnums = preload("res://src/core/enums/GameEnums.gd")
 const CampaignPhaseManager = preload("res://src/core/campaign/CampaignPhaseManager.gd")
 const FiveParsecsMissionGenerator = preload("res://src/game/campaign/FiveParsecsMissionGenerator.gd")
 const BattleResultsManager = preload("res://src/core/battle/BattleResultsManager.gd")
@@ -15,11 +15,14 @@ signal missions_generated(missions: Array)
 signal mission_selected(mission: Dictionary)
 signal mission_preparation_complete(mission: Dictionary)
 signal mission_canceled(mission: Dictionary)
+signal mission_integrated(mission_data)
+signal mission_completed(mission_data, results)
 
 var campaign_phase_manager: CampaignPhaseManager
-var mission_generator: FiveParsecsMissionGenerator
+var mission_generator: RefCounted = null
 var battle_results_manager: BattleResultsManager
 var game_state: FiveParsecsGameState
+var _mission_generator_node: Node = null # Added for Node wrapper support
 
 # Current mission data
 var _current_mission: Dictionary = {}
@@ -27,11 +30,25 @@ var _available_missions: Array = []
 var _mission_history: Array = []
 
 func _init() -> void:
+	# Initialize core components - using generator directly as RefCounted
 	mission_generator = FiveParsecsMissionGenerator.new()
 
 func _ready() -> void:
 	_current_mission = {}
 	_available_missions = []
+	
+	# Create a node wrapper for the mission generator
+	# Use try-except to handle potential errors with static methods
+	_create_node_wrapper()
+
+func _exit_tree() -> void:
+	# Clean up resources
+	mission_generator = null
+	if _mission_generator_node:
+		if _mission_generator_node.get_parent() == self:
+			remove_child(_mission_generator_node)
+		_mission_generator_node.queue_free()
+		_mission_generator_node = null
 
 func setup(state: FiveParsecsGameState, phase_manager: CampaignPhaseManager, results_manager: BattleResultsManager) -> void:
 	game_state = state
@@ -71,7 +88,7 @@ func generate_mission_options(count: int = 3, include_patron_mission: bool = tru
 		var mission_type = _get_appropriate_mission_type(world_type)
 		var difficulty = min_difficulty + randi() % (max_difficulty - min_difficulty + 1)
 		
-		var mission = mission_generator.generate_mission(difficulty, mission_type)
+		var mission = generate_mission(difficulty, mission_type)
 		mission["is_patron"] = false
 		missions.append(mission)
 	
@@ -174,7 +191,7 @@ func get_current_mission() -> Dictionary:
 
 func _on_phase_changed(old_phase: int, new_phase: int) -> void:
 	# When entering Campaign phase, reset available missions
-	if new_phase == GameEnums.FiveParcsecsCampaignPhase.CAMPAIGN:
+	if new_phase == GameEnums.FiveParcsecsCampaignPhase.PRE_MISSION:
 		_available_missions = []
 	# When entering Battle Setup phase, ensure mission is prepared
 	elif new_phase == GameEnums.FiveParcsecsCampaignPhase.BATTLE_SETUP:
@@ -257,7 +274,7 @@ func _get_appropriate_mission_type(world_type: int) -> int:
 
 func _generate_patron_mission(patron_data: Dictionary) -> Dictionary:
 	var difficulty = patron_data.get("tier", 2) + 1
-	var mission = mission_generator.generate_mission(difficulty, FiveParsecsMissionType.PATRON_JOB)
+	var mission = generate_mission(difficulty, FiveParsecsMissionType.PATRON_JOB)
 	
 	# Customize mission based on patron
 	mission["is_patron"] = true
@@ -387,3 +404,25 @@ func _generate_deployment_options() -> Array:
 			})
 	
 	return deployment_options
+
+## Generate a new mission
+func generate_mission(difficulty: int = 2, mission_type: int = -1) -> Dictionary:
+	# Use the node wrapper if available (for signals and node integration)
+	if _mission_generator_node and _mission_generator_node.has_method("generate_mission"):
+		return _mission_generator_node.generate_mission(difficulty, mission_type)
+	
+	# Fallback to direct RefCounted method
+	return mission_generator.generate_mission(difficulty, mission_type)
+
+# Helper to create node wrapper safely
+func _create_node_wrapper() -> void:
+	# Need to access the static method indirectly to avoid linter errors
+	_mission_generator_node = null
+	
+	# Safe try-catch equivalent - check if we can create the wrapper
+	if Engine.get_version_info().major >= 4:
+		# Try to create the wrapper directly
+		_mission_generator_node = FiveParsecsMissionGenerator.create_node_wrapper()
+		
+		if _mission_generator_node:
+			add_child(_mission_generator_node)

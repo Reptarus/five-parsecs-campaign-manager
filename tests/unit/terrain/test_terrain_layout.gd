@@ -267,7 +267,7 @@ func test_line_of_sight() -> void:
 			"Should place blocking feature %d" % feature_type)
 		
 		los = _terrain_layout.get_line_of_sight(START_POS, END_POS)
-		assert_true(los.has(MID_POS),
+		assert_true(MID_POS in los,
 			"Line of sight should include blocking point for feature %d" % feature_type)
 		assert_true(_terrain_layout.is_line_of_sight_blocked(START_POS, END_POS),
 			"Line of sight should be blocked by feature %d" % feature_type)
@@ -294,7 +294,7 @@ func test_terrain_modifiers() -> void:
 			"Should place feature %d" % feature_type)
 		
 		var modifiers: Array = _terrain_layout.get_cell_modifiers(TEST_POS)
-		assert_true(modifiers.has(modifier_tests[feature_type]),
+		assert_true(modifier_tests[feature_type] in modifiers,
 			"Feature %d should apply modifier %d" % [feature_type, modifier_tests[feature_type]])
 		
 		_verify_feature_change(TEST_POS, feature_type, OLD_TYPE,

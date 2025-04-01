@@ -1,8 +1,8 @@
 @tool
-extends "res://tests/fixtures/specialized/enemy_test_base.gd"
+extends "res://tests/fixtures/specialized/enemy_test.gd"
 
-# Reference the Enemy class - but use it only for type documentation, not for type casting
-const Enemy = preload("res://src/core/enemy/Enemy.gd")
+# Import the Enemy class for type checking
+const Enemy = preload("res://src/core/enemy/base/Enemy.gd")
 
 const LARGE_GROUP_SIZE := 100
 const PERFORMANCE_THRESHOLD := 16.67 # ms (targeting 60 FPS)
@@ -32,14 +32,14 @@ func after_each() -> void:
 func test_large_group_creation() -> void:
 	var start_time = Time.get_ticks_msec()
 	
-	var group = _create_large_group(LARGE_GROUP_SIZE)
+	var group = await _create_large_group(LARGE_GROUP_SIZE)
 	
 	var creation_time = Time.get_ticks_msec() - start_time
 	assert_true(creation_time < PERFORMANCE_THRESHOLD,
 		"Large group creation should be within performance threshold")
 
 func test_large_group_movement() -> void:
-	var group = _create_large_group(LARGE_GROUP_SIZE)
+	var group = await _create_large_group(LARGE_GROUP_SIZE)
 	var start_time = Time.get_ticks_msec()
 	
 	_move_group(group)
@@ -49,7 +49,7 @@ func test_large_group_movement() -> void:
 		"Large group movement should be within performance threshold")
 
 func test_large_group_ai_decisions() -> void:
-	var group = _create_large_group(LARGE_GROUP_SIZE)
+	var group = await _create_large_group(LARGE_GROUP_SIZE)
 	var start_time = Time.get_ticks_msec()
 	
 	_process_group_ai(group)
@@ -59,8 +59,8 @@ func test_large_group_ai_decisions() -> void:
 		"Large group AI processing should be within performance threshold")
 
 func test_large_group_combat() -> void:
-	var attackers = _create_large_group(LARGE_GROUP_SIZE / 2)
-	var defenders = _create_large_group(LARGE_GROUP_SIZE / 2)
+	var attackers = await _create_large_group(LARGE_GROUP_SIZE / 2)
+	var defenders = await _create_large_group(LARGE_GROUP_SIZE / 2)
 	var start_time = Time.get_ticks_msec()
 	
 	_process_group_combat(attackers, defenders)
@@ -70,7 +70,7 @@ func test_large_group_combat() -> void:
 		"Large group combat should be within performance threshold")
 
 func test_large_group_pathfinding() -> void:
-	var group = _create_large_group(LARGE_GROUP_SIZE)
+	var group = await _create_large_group(LARGE_GROUP_SIZE)
 	var start_time = Time.get_ticks_msec()
 	
 	_process_group_pathfinding(group)
@@ -84,7 +84,7 @@ func test_large_group_pathfinding() -> void:
 func _create_large_group(size: int) -> Array:
 	var group = []
 	for i in range(size):
-		var enemy = create_test_enemy()
+		var enemy = await create_test_enemy()
 		group.append(enemy)
 	return group
 
@@ -96,7 +96,13 @@ func _move_group(group: Array) -> void:
 # Takes an array of enemy nodes
 func _process_group_ai(group: Array) -> void:
 	for enemy in group:
-		enemy.get_state() # Trigger AI processing
+		# Use safer method calls to handle AI processing
+		if enemy and enemy.has_method("get_state"):
+			enemy.get_state() # Trigger AI processing
+		elif enemy and enemy.has_method("process_ai"):
+			enemy.process_ai()
+		elif enemy and enemy.has_method("update_state"):
+			enemy.update_state()
 
 # Takes arrays of enemy nodes
 func _process_group_combat(attackers: Array, defenders: Array) -> void:
@@ -115,4 +121,11 @@ func _process_group_combat(attackers: Array, defenders: Array) -> void:
 func _process_group_pathfinding(group: Array) -> void:
 	var target_pos = Vector2(100, 100)
 	for enemy in group:
-		enemy.move_to(target_pos)
+		# Use safer method calls to handle pathfinding
+		if enemy and enemy.has_method("move_to"):
+			enemy.move_to(target_pos)
+		elif enemy and enemy.has_method("navigate_to"):
+			enemy.navigate_to(target_pos)
+		elif enemy and enemy.has_method("set_position") or enemy.has_method("global_position"):
+			# Direct position setting fallback
+			enemy.global_position = target_pos

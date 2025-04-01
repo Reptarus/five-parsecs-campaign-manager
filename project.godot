@@ -18,10 +18,11 @@ config/icon="res://icon.svg"
 
 [autoload]
 
+GutSafety="res://autoloads/gut_safety.gd"
 GlobalEnums="*res://src/core/systems/GlobalEnums.gd"
 GameDataManager="*res://src/core/managers/GameDataManager.gd"
 GameStateManager="*res://src/core/managers/GameStateManager.gd"
-CharacterManager="*res://src/core/character/management/CharacterManager.gd"
+CharacterManager="*res://src/core/character/Management/CharacterManager.gd"
 PlanetCache="*res://src/core/world/PlanetCache.gd"
 WorldEconomyManager="*res://src/core/world/WorldEconomyManager.gd"
 ResourceSystem="*res://src/core/systems/ResourceSystem.gd"

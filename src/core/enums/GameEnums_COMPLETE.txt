@@ -1,0 +1,621 @@
+@tool
+extends RefCounted
+class_name GameEnums
+
+## Enumeration for difficulty levels in the game
+enum DifficultyLevel {
+	EASY, # Easy difficulty - more forgiving gameplay
+	NORMAL, # Normal difficulty - balanced gameplay
+	HARD, # Hard difficulty - challenging gameplay
+	NIGHTMARE, # Nightmare difficulty - extremely challenging gameplay
+	HARDCORE, # Hardcore difficulty - permadeath
+	ELITE # Elite difficulty - maximum challenge
+}
+
+## Edit Mode
+enum EditMode {
+	NONE, # No edit mode
+	CREATE, # Creating new item
+	EDIT, # Editing existing item
+	VIEW # Viewing item details
+}
+
+## Enumeration for game phases
+enum GamePhase {
+	SETUP, # Initial game setup
+	CAMPAIGN, # Main campaign phase
+	MISSION, # Active mission
+	UPKEEP, # Between-mission maintenance
+	END_GAME # Game over or campaign conclusion
+}
+
+## Enumeration for Five Parsecs campaign phases
+enum FiveParcsecsCampaignPhase {
+	NONE, # No active campaign phase
+	SETUP, # Campaign setup
+	STORY, # Story events phase
+	TRAVEL, # Travel between locations
+	PRE_MISSION, # Pre-mission preparations
+	MISSION, # Active mission
+	BATTLE_SETUP, # Battle preparation
+	BATTLE_RESOLUTION, # Battle aftermath
+	POST_MISSION, # Post-mission resolution
+	UPKEEP, # Campaign maintenance
+	ADVANCEMENT, # Character advancement
+	TRADING, # Trading and resource management
+	CHARACTER, # Character development and management
+	RETIREMENT # Campaign retirement/end
+}
+
+## Campaign Sub-Phases for more granular campaign flow management
+enum CampaignSubPhase {
+	NONE, # No sub-phase
+	TRAVEL, # Traveling between locations
+	WORLD_ARRIVAL, # Arriving at a new world
+	WORLD_EVENTS, # World-specific events
+	PATRON_CONTACT, # Contacting patrons
+	MISSION_SELECTION # Selecting missions
+}
+
+## Enumeration for game states (previously GameState)
+enum GameState {
+	TITLE, # Title screen
+	MAIN_MENU, # Main menu
+	LOADING, # Loading screen
+	CAMPAIGN, # Campaign mode
+	BATTLE, # Battle mode
+	PAUSED, # Game paused
+	OPTIONS, # Options screen
+	CREDITS, # Credits screen
+	GAME_OVER # Game over
+}
+
+## Enumeration for character status effects
+enum StatusEffect {
+	NONE, # No status effect
+	WOUNDED, # Character is wounded
+	STUNNED, # Character is stunned
+	POISONED, # Character is poisoned
+	BLESSED, # Character has positive effect
+	CURSED # Character has negative effect
+}
+
+## Enumeration for mission types
+enum MissionType {
+	NONE, # No mission type
+	BATTLE, # Standard battle mission
+	RETRIEVAL, # Item retrieval mission
+	ESCORT, # Escort mission
+	DEFENSE, # Defend location mission
+	SABOTAGE, # Sabotage mission
+	PATROL, # Patrol mission
+	RESCUE, # Rescue mission
+	PATRON, # Patron mission
+	BLACK_ZONE, # Black zone mission (high danger)
+	GREEN_ZONE, # Green zone mission (low danger)
+	RED_ZONE, # Red zone mission (medium danger)
+	ASSASSINATION, # Assassination mission
+	RAID # Raid mission
+}
+
+## Enumeration for mission objectives
+enum MissionObjective {
+	NONE, # No objective
+	WIN_BATTLE, # Win the battle
+	PATROL, # Patrol an area
+	RESCUE, # Rescue someone
+	SABOTAGE, # Sabotage an object
+	RECON, # Gather information
+	CAPTURE_POINT, # Capture a location
+	DEFEND, # Defend a location
+	SEEK_AND_DESTROY, # Find and eliminate target
+	TUTORIAL # Tutorial objective
+}
+
+## Enumeration for UI screen types
+enum ScreenType {
+	MAIN_MENU, # Main menu screen
+	CAMPAIGN_HUB, # Campaign management hub
+	CHARACTER, # Character management
+	EQUIPMENT, # Equipment management
+	MISSION, # Mission screen
+	SETTINGS # Game settings
+}
+
+## Enumeration for resource types
+enum ResourceType {
+	NONE, # No resource
+	CREDITS, # In-game currency
+	SUPPLIES, # Basic supplies
+	TECH_PARTS, # Technology parts
+	SCRAP, # Crafting materials
+	MEDICINE, # Medical supplies
+	MEDICAL_SUPPLIES, # Medical kits and gear
+	FUEL, # Ship fuel
+	DATA, # Information/intelligence
+	PATRON, # Patron contacts
+	STORY_POINT, # Story progression points
+	REPUTATION # Reputation with factions
+}
+
+## Enumeration for weapon types
+enum WeaponType {
+	NONE, # No weapon type
+	BASIC, # Basic weapon
+	ADVANCED, # Advanced weapon
+	ELITE, # Elite weapon
+	PISTOL, # Pistol weapon
+	RIFLE, # Rifle weapon
+	HEAVY, # Heavy weapon
+	MELEE, # Melee weapon
+	SPECIAL # Special weapon
+}
+
+## Enumeration for armor types
+enum ArmorType {
+	NONE, # No armor type
+	LIGHT, # Light armor
+	MEDIUM, # Medium armor
+	HEAVY, # Heavy armor
+	POWERED, # Powered armor
+	HAZARD, # Hazard protection armor
+	STEALTH # Stealth-enhancing armor
+}
+
+## Character Status
+enum CharacterStatus {
+	HEALTHY, # Character is in good health
+	INJURED, # Character is injured
+	CRITICAL, # Character is critically injured
+	INCAPACITATED, # Character is incapacitated
+	DEAD, # Character is dead
+	CAPTURED, # Character has been captured
+	MISSING # Character is missing
+}
+
+## Item Types
+enum ItemType {
+	NONE, # No item type
+	WEAPON, # Weapon item
+	ARMOR, # Armor item
+	MISC, # Miscellaneous item
+	CONSUMABLE, # Consumable item
+	QUEST, # Quest item
+	GEAR, # Gear item
+	MODIFICATION, # Modification item
+	SPECIAL # Special item
+}
+
+## Character Classes
+enum CharacterClass {
+	NONE, # No character class
+	SOLDIER, # Soldier class
+	MEDIC, # Medic class
+	ENGINEER, # Engineer class
+	PILOT, # Pilot class
+	MERCHANT, # Merchant class
+	SECURITY, # Security class
+	BROKER, # Broker class
+	BOT_TECH # Bot Tech class
+}
+
+## Character Origins
+enum Origin {
+	NONE, # No specific origin
+	HUMAN, # Human origin
+	ENGINEER, # Engineer origin
+	FERAL, # Feral origin
+	KERIN, # Kerin origin
+	PRECURSOR, # Precursor origin
+	SOULLESS, # Soulless origin
+	SWIFT, # Swift origin
+	BOT, # Bot origin
+	CORE_WORLDS, # Core Worlds origin
+	FRONTIER, # Frontier origin
+	DEEP_SPACE, # Deep Space origin
+	COLONY, # Colony origin
+	HIVE_WORLD, # Hive World origin
+	FORGE_WORLD # Forge World origin
+}
+
+## Character Background
+enum Background {
+	NONE, # No background
+	MILITARY, # Military background
+	MERCENARY, # Mercenary background
+	CRIMINAL, # Criminal background
+	COLONIST, # Colonist background
+	ACADEMIC, # Academic background
+	EXPLORER, # Explorer background
+	TRADER, # Trader background
+	NOBLE, # Noble background
+	OUTCAST, # Outcast background
+	SOLDIER, # Soldier background
+	MERCHANT # Merchant background
+}
+
+## Character Motivation
+enum Motivation {
+	NONE, # No motivation
+	WEALTH, # Wealth as motivation
+	REVENGE, # Revenge as motivation
+	GLORY, # Glory as motivation
+	KNOWLEDGE, # Knowledge as motivation
+	POWER, # Power as motivation
+	JUSTICE, # Justice as motivation
+	SURVIVAL, # Survival as motivation
+	LOYALTY, # Loyalty as motivation
+	FREEDOM, # Freedom as motivation
+	DISCOVERY, # Discovery as motivation
+	REDEMPTION, # Redemption as motivation
+	DUTY # Duty as motivation
+}
+
+## Training Levels
+enum Training {
+	NONE, # No training
+	PILOT, # Pilot training
+	MECHANIC, # Mechanic training
+	MEDICAL, # Medical training
+	MERCHANT, # Merchant training
+	SECURITY, # Security training
+	BROKER, # Broker training
+	BOT_TECH, # Bot Tech training
+	SPECIALIST, # Specialist training
+	ELITE # Elite training
+}
+
+## World/Location Traits
+enum WorldTrait {
+	NONE, # No special traits
+	TRADE_CENTER, # Centers of commerce
+	TECH_CENTER, # Centers of technology
+	INDUSTRIAL_HUB, # Manufacturing hubs
+	PIRATE_HAVEN, # Lawless territories
+	FRONTIER_WORLD, # Remote worlds
+	FREE_PORT, # Unrestricted trading
+	CORPORATE_CONTROLLED, # Corporate governance
+	MINING_COLONY, # Resource extraction
+	AGRICULTURAL_WORLD # Food production
+}
+
+## Item Rarities
+enum ItemRarity {
+	NONE, # No rarity
+	COMMON, # Common item
+	UNCOMMON, # Uncommon item
+	RARE, # Rare item
+	EPIC, # Epic item
+	LEGENDARY # Legendary item
+}
+
+## Equipment Types
+enum EquipmentType {
+	NONE, # No equipment
+	WEAPON, # Weapon equipment
+	ARMOR, # Armor equipment
+	GEAR, # Gear item
+	UTILITY, # Utility item
+	MEDICAL, # Medical equipment
+	COMPUTING, # Computing equipment
+	VEHICLE, # Vehicle equipment
+	HEAVY, # Heavy equipment
+	SPECIAL # Special equipment
+}
+
+## Campaign Types
+enum FiveParcsecsCampaignType {
+	NONE, # No campaign type
+	STANDARD, # Standard campaign
+	CUSTOM, # Custom campaign
+	TUTORIAL, # Tutorial campaign
+	STORY, # Story-driven campaign
+	SANDBOX # Open sandbox campaign
+}
+
+## Campaign Victory Types
+enum FiveParcsecsCampaignVictoryType {
+	NONE, # No victory condition
+	STANDARD, # Standard victory
+	WEALTH_GOAL, # Accumulate wealth
+	REPUTATION_GOAL, # Build reputation
+	FACTION_DOMINANCE, # Dominate factions
+	STORY_COMPLETE, # Complete story
+	CREDITS_THRESHOLD, # Reach credits target
+	REPUTATION_THRESHOLD, # Reach reputation target
+	MISSION_COUNT, # Complete specific missions
+	TURNS_20, # Survive 20 turns
+	TURNS_50, # Survive 50 turns
+	TURNS_100, # Survive 100 turns
+	QUESTS_3, # Complete 3 quests
+	QUESTS_5, # Complete 5 quests
+	QUESTS_10 # Complete 10 quests
+}
+
+## Market States
+enum MarketState {
+	NONE, # No specific state
+	NORMAL, # Normal market conditions
+	CRISIS, # Economic crisis
+	BOOM, # Economic boom
+	RESTRICTED # Trade restrictions
+}
+
+## Weather Types
+enum WeatherType {
+	NONE, # Clear weather
+	CLEAR, # Clear skies
+	RAIN, # Rainy condition
+	STORM, # Stormy weather
+	FOG, # Foggy condition
+	HAZARDOUS # Hazardous weather
+}
+
+## AI Behavior
+enum AIBehavior {
+	NONE, # Default behavior
+	AGGRESSIVE, # Aggressive tactics
+	DEFENSIVE, # Defensive tactics
+	TACTICAL, # Tactical approach
+	CAUTIOUS, # Cautious behavior
+	SUPPORTIVE # Support-focused
+}
+
+## Planet Types
+enum PlanetType {
+	NONE, # Unknown type
+	DESERT, # Desert planet
+	ICE, # Ice planet
+	JUNGLE, # Jungle planet
+	OCEAN, # Ocean planet
+	ROCKY, # Rocky planet
+	TEMPERATE, # Temperate planet
+	VOLCANIC # Volcanic planet
+}
+
+## Planet Environments
+enum PlanetEnvironment {
+	NONE, # No specific environment
+	URBAN, # Urban environment
+	FOREST, # Forest environment
+	DESERT, # Desert environment
+	ICE, # Ice environment
+	RAIN, # Rainy environment
+	STORM, # Stormy environment
+	HAZARDOUS, # Hazardous environment
+	VOLCANIC, # Volcanic environment
+	OCEANIC, # Ocean environment
+	TEMPERATE, # Temperate environment
+	JUNGLE # Jungle environment
+}
+
+## Threat Types
+enum ThreatType {
+	NONE, # No threat
+	LOW, # Low threat
+	MEDIUM, # Medium threat
+	HIGH, # High threat
+	EXTREME, # Extreme threat
+	BOSS # Boss-level threat
+}
+
+## Relation Types
+enum RelationType {
+	NONE, # No relation
+	FRIENDLY, # Friendly relation
+	NEUTRAL, # Neutral relation
+	HOSTILE, # Hostile relation
+	ALLIED, # Allied relation
+	ENEMY # Enemy relation
+}
+
+## Ship Conditions
+enum ShipCondition {
+	NONE, # Unknown condition
+	PRISTINE, # Perfect condition
+	GOOD, # Good condition
+	DAMAGED, # Damaged condition
+	CRITICAL, # Critical condition
+	DESTROYED # Destroyed
+}
+
+## Victory Condition Types
+enum VictoryConditionType {
+	NONE, # No condition
+	ELIMINATION, # Eliminate enemies
+	OBJECTIVE, # Complete objectives
+	SURVIVAL, # Survive
+	EXTRACTION # Extract assets
+}
+
+## Enemy Ranks
+enum EnemyRank {
+	NONE, # No rank
+	MINION, # Minion rank
+	ELITE, # Elite rank
+	BOSS # Boss rank
+}
+
+## Battle Types
+enum BattleType {
+	NONE, # No battle type
+	STANDARD, # Standard combat
+	BOSS, # Boss encounter
+	STORY, # Story battle
+	EVENT # Event battle
+}
+
+## Battle Phases
+enum BattlePhase {
+	NONE, # No phase
+	SETUP, # Setup phase
+	DEPLOYMENT, # Deployment phase
+	INITIATIVE, # Initiative phase
+	ACTIVATION, # Unit activation
+	REACTION, # Reaction phase
+	CLEANUP # Cleanup phase
+}
+
+## Campaign Phases
+enum CampaignPhase {
+	NONE, # No active phase
+	SETUP, # Initial setup
+	UPKEEP, # Resource maintenance
+	STORY, # Story progression
+	CAMPAIGN, # Main campaign
+	BATTLE_SETUP, # Pre-battle
+	BATTLE_RESOLUTION, # Post-battle
+	ADVANCEMENT, # Character growth
+	TRADE, # Trading phase
+	END # Campaign conclusion
+}
+
+## Combat Modifiers
+enum CombatModifier {
+	NONE, # No modifier
+	COVER_LIGHT, # Light cover
+	COVER_MEDIUM, # Medium cover
+	COVER_HEAVY, # Heavy cover
+	FLANKING, # Flanking position
+	ELEVATION, # Height advantage
+	SUPPRESSED, # Under suppression
+	PINNED, # Pinned down
+	STEALTH, # Stealth advantage
+	OVERWATCH # Overwatch position
+}
+
+## Terrain Modifiers
+enum TerrainModifier {
+	NONE, # No modifier
+	COVER_BONUS, # Cover advantage
+	FULL_COVER, # Complete cover
+	PARTIAL_COVER, # Partial cover
+	LINE_OF_SIGHT_BLOCKED, # Blocked vision
+	DIFFICULT_TERRAIN, # Movement hindrance
+	ELEVATION_BONUS, # Height advantage
+	HAZARDOUS, # Dangerous terrain
+	WATER_HAZARD, # Water hazard
+	MOVEMENT_PENALTY # Slowed movement
+}
+
+## Crew Size
+enum CrewSize {
+	NONE, # Unspecified
+	TWO, # Two members
+	THREE, # Three members
+	FOUR, # Four members
+	FIVE, # Five members
+	SIX # Six members
+}
+
+## Constants for phase names
+const PHASE_NAMES = {
+	FiveParcsecsCampaignPhase.NONE: "None",
+	FiveParcsecsCampaignPhase.SETUP: "Setup",
+	FiveParcsecsCampaignPhase.UPKEEP: "Upkeep",
+	FiveParcsecsCampaignPhase.STORY: "Story",
+	FiveParcsecsCampaignPhase.TRAVEL: "Travel",
+	FiveParcsecsCampaignPhase.PRE_MISSION: "Pre-Mission",
+	FiveParcsecsCampaignPhase.MISSION: "Mission",
+	FiveParcsecsCampaignPhase.BATTLE_SETUP: "Battle Setup",
+	FiveParcsecsCampaignPhase.BATTLE_RESOLUTION: "Battle Resolution",
+	FiveParcsecsCampaignPhase.POST_MISSION: "Post-Mission",
+	FiveParcsecsCampaignPhase.ADVANCEMENT: "Advancement",
+	FiveParcsecsCampaignPhase.TRADING: "Trading",
+	FiveParcsecsCampaignPhase.CHARACTER: "Character",
+	FiveParcsecsCampaignPhase.RETIREMENT: "Retirement"
+}
+
+## Constants for phase descriptions
+const PHASE_DESCRIPTIONS = {
+	FiveParcsecsCampaignPhase.NONE: "No active phase",
+	FiveParcsecsCampaignPhase.SETUP: "Create your crew and prepare for adventure",
+	FiveParcsecsCampaignPhase.UPKEEP: "Maintain your crew and resources",
+	FiveParcsecsCampaignPhase.STORY: "Progress through story events",
+	FiveParcsecsCampaignPhase.TRAVEL: "Travel to new locations",
+	FiveParcsecsCampaignPhase.PRE_MISSION: "Prepare for your next mission",
+	FiveParcsecsCampaignPhase.MISSION: "Complete mission objectives",
+	FiveParcsecsCampaignPhase.BATTLE_SETUP: "Prepare for combat",
+	FiveParcsecsCampaignPhase.BATTLE_RESOLUTION: "Handle battle aftermath",
+	FiveParcsecsCampaignPhase.POST_MISSION: "Resolve mission outcomes",
+	FiveParcsecsCampaignPhase.ADVANCEMENT: "Improve your crew",
+	FiveParcsecsCampaignPhase.TRADING: "Buy and sell equipment",
+	FiveParcsecsCampaignPhase.CHARACTER: "Develop your characters",
+	FiveParcsecsCampaignPhase.RETIREMENT: "End your campaign"
+}
+
+## Constants for training names
+const TRAINING_NAMES = {
+	Training.NONE: "None",
+	Training.PILOT: "Pilot",
+	Training.MECHANIC: "Mechanic",
+	Training.MEDICAL: "Medical",
+	Training.MERCHANT: "Merchant",
+	Training.SECURITY: "Security",
+	Training.BROKER: "Broker",
+	Training.BOT_TECH: "Bot Tech",
+	Training.SPECIALIST: "Specialist",
+	Training.ELITE: "Elite"
+}
+
+## Utility function to get string representation of an enum value
+static func get_enum_string(enum_type: Dictionary, value: int) -> String:
+	for key in enum_type:
+		if enum_type[key] == value:
+			return key
+	return "UNKNOWN"
+
+## Get the size of a specific enum
+static func size(enum_type: Dictionary) -> int:
+	return enum_type.size()
+
+## Convert a string to an equipment type enum value
+static func get_equipment_type_from_string(equipment_string: String) -> int:
+	equipment_string = equipment_string.to_upper()
+	if equipment_string in EquipmentType:
+		return EquipmentType[equipment_string]
+	
+	# Check for common variations
+	var mapping = {
+		"WEAPONS": EquipmentType.WEAPON,
+		"ARMORS": EquipmentType.ARMOR,
+		"GEARS": EquipmentType.GEAR,
+		"UTILITIES": EquipmentType.UTILITY,
+		"MEDICAL_KIT": EquipmentType.MEDICAL,
+		"COMPUTER": EquipmentType.COMPUTING,
+		"VEHICLES": EquipmentType.VEHICLE,
+		"HEAVY_EQUIPMENT": EquipmentType.HEAVY
+	}
+	
+	if equipment_string in mapping:
+		return mapping[equipment_string]
+		
+	return EquipmentType.NONE
+
+## Get training name from enum value
+static func get_training_name(training: int) -> String:
+	return TRAINING_NAMES.get(training, "Unknown Training")
+
+## Get character class name from enum value
+static func get_character_class_name(class_type: int) -> String:
+	if class_type >= 0 and class_type < CharacterClass.size():
+		return CharacterClass.keys()[class_type]
+	return "UNKNOWN"
+
+## Get skill name from enum value
+static func get_skill_name(skill_type: int) -> String:
+	if skill_type >= 0 and skill_type < get_parent().Skill.size():
+		return get_parent().Skill.keys()[skill_type]
+	return "UNKNOWN"
+
+## Get ability name from enum value
+static func get_ability_name(ability_type: int) -> String:
+	if ability_type >= 0 and ability_type < get_parent().Ability.size():
+		return get_parent().Ability.keys()[ability_type]
+	return "UNKNOWN"
+
+## Get trait name from enum value
+static func get_trait_name(trait_type: int) -> String:
+	if trait_type >= 0 and trait_type < get_parent().Trait.size():
+		return get_parent().Trait.keys()[trait_type]
+	return "UNKNOWN" 

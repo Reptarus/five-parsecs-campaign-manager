@@ -65,14 +65,14 @@ func test_character_status_management():
 	assert_not_null(updated_char, "Character should exist")
 	
 	# Verify the status was set correctly - carefully handle possible types
-	if updated_char != null and updated_char is Dictionary and updated_char.has("status"):
+	if updated_char != null and updated_char is Dictionary and "status" in updated_char:
 		var status_value = updated_char["status"]
 		if status_value is Dictionary:
-			assert_true(status_value.has("injured"), "Character should have injured status")
+			assert_true("injured" in status_value, "Character should have injured status")
 		else:
 			assert_false(status_value is Dictionary, "Status is not a Dictionary")
 	else:
-		assert_false(updated_char is Dictionary and updated_char.has("status"), "Character missing status field")
+		assert_false(updated_char is Dictionary and "status" in updated_char, "Character missing status field")
 	
 	# Test status property retrieval using type-safe method call
 	var injury_status = TypeSafeMixin._call_node_method(_character_manager, "get_character_property", [char_id, "status"])
@@ -80,7 +80,7 @@ func test_character_status_management():
 	
 	# Only check for dictionary methods if it actually is a dictionary
 	if injury_status is Dictionary:
-		assert_true(injury_status.has("injured"), "Status should contain injured property")
+		assert_true("injured" in injury_status, "Status should contain injured property")
 		assert_eq(injury_status.get("severity"), 1, "Injury severity should be 1")
 	else:
 		assert_false(injury_status is Dictionary, "Retrieved status is not a Dictionary")

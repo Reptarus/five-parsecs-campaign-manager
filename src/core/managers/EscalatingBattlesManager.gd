@@ -1,6 +1,6 @@
 extends Resource
 
-const GameEnums = preload("res://src/core/systems/GlobalEnums.gd")
+const GameEnums = preload("res://src/core/enums/GameEnums.gd")
 
 var game_state: Node
 var difficulty_settings: Resource

@@ -364,7 +364,7 @@ func test_invalid_state_transition() -> void:
 	# Try to transition to a different valid phase first to ensure we're testing properly
 	var valid_phase = GameEnums.FiveParcsecsCampaignPhase.SETUP
 	if same_phase == valid_phase:
-		valid_phase = GameEnums.FiveParcsecsCampaignPhase.CAMPAIGN
+		valid_phase = GameEnums.FiveParcsecsCampaignPhase.PRE_MISSION
 	
 	# Change to valid phase first
 	var valid_result = _call_node_method_bool(game_state_manager, "set_campaign_phase", [valid_phase], false)

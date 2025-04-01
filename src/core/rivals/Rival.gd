@@ -1,6 +1,6 @@
 extends Resource
 
-const GameEnums = preload("res://src/core/systems/GlobalEnums.gd")
+const GameEnums = preload("res://src/core/enums/GameEnums.gd")
 
 @export var rival_name: String = ""
 @export var rival_type: String = ""

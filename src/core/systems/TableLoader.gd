@@ -177,7 +177,7 @@ static func load_table_in_background(file_path: String, high_priority: bool = fa
 
 ## Clean up completed threads
 static func _cleanup_threads() -> void:
-	var active_threads = []
+	var active_threads: Array[Thread] = []
 	
 	for thread in _current_threads:
 		if not thread.is_alive():
@@ -340,9 +340,12 @@ static func _batch_loading_monitor(batch_id: int, thread: Thread) -> void:
 		for path in tables:
 			var status = get_background_loading_status(path)
 			
-			if status.status == "completed" or status.cached:
+			# Safely check the status dictionary properties
+			if status.has("status") and status["status"] == "completed":
 				completed_count += 1
-			elif status.status == "error":
+			elif status.has("cached") and status["cached"] == true:
+				completed_count += 1
+			elif status.has("status") and status["status"] == "error":
 				error_count += 1
 				if not path in batch.errors:
 					batch.errors.append(path)

@@ -79,6 +79,18 @@ All high-priority components from Phase 1 have been successfully implemented, in
     - Ship components should always be loaded from `src/core/ships/components/`
     - Prefer using absolute paths for all component loading
 
+- **GUT Testing Framework Stability** ✅
+  - **Task:** Fix issues causing GUT to break on project reload in Godot 4.4
+  - **Implementation:** Fixed scene file corruption, dictionary API usage, and added compatibility layer
+  - **Status:** Completed with documentation
+  - **Guidelines:**
+    - Monitor scene file sizes to detect corruption (especially OutputText.tscn)
+    - Use the `in` operator instead of `.has()` for dictionary access in Godot 4.4
+    - Ensure all resources have valid paths before serialization
+    - Implement stub methods for all declared functions
+    - Use the compatibility.gd helper for cross-version compatibility
+    - Created documentation in docs/gut_plugin_fixes.md and docs/test_safety_patterns.md
+
 - **Terrain System Consolidation** ✅
   - **Task:** Consolidate duplicate terrain system implementations
   - **Implementation:** Removed duplicate TerrainSystem.gd files from game directories

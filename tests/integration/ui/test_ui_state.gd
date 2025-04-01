@@ -1293,7 +1293,7 @@ func _on_gut_tests_finished() -> void:
 		await get_tree().process_frame
 	
 	# Force garbage collection
-	GDScript.new() # This triggers GC
+	_force_garbage_collection()
 	
 	# Clean up orphans one more time
 	_cleanup_orphans()
@@ -1545,7 +1545,7 @@ func after_all():
 	# Force GC to run
 	await get_tree().process_frame
 	await get_tree().process_frame
-	GDScript.new() # Force garbage collection
+	_force_garbage_collection()
 	
 	# Check for any orphans one last time
 	if OS.is_debug_build():
@@ -1624,3 +1624,23 @@ func add_parameterized_test(method_name: String, parameters: Array) -> void:
 	
 	# Log for debugging
 	print("Registered parameters for method: " + method_name)
+
+# Force garbage collection
+func _force_garbage_collection():
+	# The old approach used GDScript.new() which is no longer supported in Godot 4.4
+	# Instead, use Resource creation and reference clearing
+	var resources_to_clear = []
+	for i in range(10):
+		var res = Resource.new()
+		res.resource_name = "GC_Trigger_%d" % i
+		resources_to_clear.append(res)
+	
+	# Clear references to force garbage collection
+	for i in range(resources_to_clear.size()):
+		resources_to_clear[i] = null
+	resources_to_clear.clear()
+	
+	# Process frames to let GC happen
+	if Engine.get_process_frames() > 0:
+		await get_tree().process_frame
+		await get_tree().process_frame

@@ -2,7 +2,7 @@
 extends "res://tests/fixtures/specialized/enemy_test.gd"
 
 # Import the Enemy class for type checking
-const Enemy = preload("res://src/core/enemy/Enemy.gd")
+const Enemy = preload("res://src/core/enemy/base/Enemy.gd")
 
 # Type-safe instance variables for pathfinding testing
 var _navigation_manager: Node = null
@@ -152,7 +152,7 @@ func test_path_cost() -> void:
 	assert_not_null(enemy, "Enemy should be created for path cost calculation")
 	
 	enemy.position = TEST_START_POS
-	var cost: float = TypeSafeMixin._safe_cast_float(TypeSafeMixin._call_node_method(enemy, "calculate_path_cost", [TEST_END_POS]))
+	var cost: float = GutCompatibility._call_node_method_float(enemy, "calculate_path_cost", [TEST_END_POS])
 	
 	assert_gt(cost, 0.0, "Path cost should be positive")
 	assert_le(cost, 1000.0, "Path cost should be reasonable")
@@ -199,7 +199,16 @@ func test_pathfinding_physics_layer() -> void:
 	assert_not_null(enemy, "Should create enemy")
 	add_child_autofree(enemy)
 	
-	# ... existing code ...
+	# Skip test if navigation agent is not available
+	if not enemy.has_node("NavigationAgent2D"):
+		pending("NavigationAgent2D not implemented")
+		return
+		
+	# Check for physics layer properties
+	var nav_agent = enemy.get_node("NavigationAgent2D")
+	assert_true(nav_agent.has_method("get_navigation_layer") or
+		nav_agent.has_property("navigation_layers"),
+		"Navigation agent should have navigation layer property")
 
 # Test basic pathfinding
 func test_basic_pathfinding() -> void:
@@ -207,7 +216,15 @@ func test_basic_pathfinding() -> void:
 	assert_not_null(enemy, "Should create enemy")
 	add_child_autofree(enemy)
 	
-	# ... existing code ...
+	# Skip test if required methods aren't implemented
+	if not enemy.has_method("navigate_to"):
+		pending("Navigate to target not implemented")
+		return
+		
+	# Test basic navigation
+	var target_pos = Vector2(5, 5)
+	var success = TypeSafeMixin._call_node_method_bool(enemy, "navigate_to", [target_pos])
+	assert_true(success, "Enemy should start navigating to target")
 
 # Test path following
 func test_path_advanced_following() -> void:
@@ -215,7 +232,15 @@ func test_path_advanced_following() -> void:
 	assert_not_null(enemy, "Should create enemy")
 	add_child_autofree(enemy)
 	
-	# ... existing code ...
+	# Skip test if required methods aren't implemented
+	if not enemy.has_method("follow_path") or not enemy.has_method("is_path_complete"):
+		pending("Path following methods not implemented")
+		return
+		
+	# Setup test path
+	enemy.position = TEST_PATH[0]
+	var success = TypeSafeMixin._call_node_method_bool(enemy, "follow_path", [TEST_PATH])
+	assert_true(success, "Enemy should start following path")
 
 # Test path finding around obstacles
 func test_pathfinding_obstacles() -> void:
@@ -223,7 +248,25 @@ func test_pathfinding_obstacles() -> void:
 	assert_not_null(enemy, "Should create enemy")
 	add_child_autofree(enemy)
 	
-	# ... existing code ...
+	# Skip test if required methods aren't implemented
+	if not enemy.has_method("calculate_path"):
+		pending("Path calculation not implemented")
+		return
+		
+	# Create test obstacle
+	var obstacle = StaticBody2D.new()
+	obstacle.position = Vector2(5, 5)
+	var collision = CollisionShape2D.new()
+	var shape = RectangleShape2D.new()
+	shape.size = Vector2(2, 2)
+	collision.shape = shape
+	obstacle.add_child(collision)
+	add_child_autofree(obstacle)
+	
+	# Calculate path around obstacle
+	enemy.position = TEST_START_POS
+	var path = TypeSafeMixin._call_node_method_array(enemy, "calculate_path", [TEST_END_POS])
+	assert_true(path.size() > 0, "Should find path around obstacle")
 
 # Test path re-calculation
 func test_path_recalculation_advanced() -> void:
@@ -231,7 +274,15 @@ func test_path_recalculation_advanced() -> void:
 	assert_not_null(enemy, "Should create enemy")
 	add_child_autofree(enemy)
 	
-	# ... existing code ...
+	# Skip test if required methods aren't implemented
+	if not enemy.has_method("recalculate_path"):
+		pending("Path recalculation not implemented")
+		return
+		
+	# Test path recalculation
+	enemy.position = TEST_START_POS
+	var success = TypeSafeMixin._call_node_method_bool(enemy, "recalculate_path", [TEST_END_POS])
+	assert_true(success, "Enemy should recalculate path")
 
 # Test group movement
 func test_group_movement() -> void:
@@ -239,7 +290,22 @@ func test_group_movement() -> void:
 	assert_not_null(enemy, "Should create enemy")
 	add_child_autofree(enemy)
 	
-	# ... existing code ...
+	# Skip test if required methods aren't implemented
+	if not enemy.has_method("move_in_formation"):
+		pending("Formation movement not implemented")
+		return
+		
+	# Create test group
+	var group = []
+	for i in range(3):
+		var follower = create_test_enemy()
+		assert_not_null(follower, "Should create follower")
+		add_child_autofree(follower)
+		group.append(follower)
+	
+	# Test formation movement
+	var success = TypeSafeMixin._call_node_method_bool(enemy, "move_in_formation", [group, TEST_END_POS])
+	assert_true(success, "Group should move in formation")
 
 # Test navigation path cost
 func test_navigation_path_cost() -> void:
@@ -247,7 +313,15 @@ func test_navigation_path_cost() -> void:
 	assert_not_null(enemy, "Should create enemy")
 	add_child_autofree(enemy)
 	
-	# ... existing code ...
+	# Skip test if required methods aren't implemented
+	if not enemy.has_method("calculate_path_cost"):
+		pending("Path cost calculation not implemented")
+		return
+		
+	# Test path cost calculation
+	enemy.position = TEST_START_POS
+	var cost = GutCompatibility._call_node_method_float(enemy, "calculate_path_cost", [TEST_END_POS])
+	assert_gt(cost, 0.0, "Path cost should be positive")
 
 # Test pathfinding visualization
 func test_pathfinding_debug_display() -> void:

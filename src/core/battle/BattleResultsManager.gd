@@ -10,7 +10,7 @@ signal casualties_processed(casualties: Array)
 signal rewards_calculated(rewards: Dictionary)
 signal battle_log_updated(log_entry: Dictionary)
 
-var character_manager: CharacterManager
+var character_manager
 var game_state: FiveParsecsGameState
 
 # Battle result data
@@ -30,7 +30,7 @@ func _init() -> void:
 func _ready() -> void:
 	reset_current_battle()
 
-func setup(state: FiveParsecsGameState, char_manager: CharacterManager) -> void:
+func setup(state: FiveParsecsGameState, char_manager) -> void:
 	game_state = state
 	character_manager = char_manager
 
@@ -177,7 +177,7 @@ func process_casualties() -> Array:
 		match injury_result.get("result", ""):
 			"dead":
 				# Character died
-				character_manager.set_character_status(character, CharacterManager.STATUS_DEAD)
+				character_manager.set_character_status(character, "dead")
 				casualties.append({
 					"character": character,
 					"status": "dead",
@@ -185,7 +185,7 @@ func process_casualties() -> Array:
 				})
 			"critical":
 				# Critical injury
-				character_manager.set_character_status(character, CharacterManager.STATUS_CRITICAL)
+				character_manager.set_character_status(character, "critical")
 				casualties.append({
 					"character": character,
 					"status": "critical",
@@ -193,7 +193,7 @@ func process_casualties() -> Array:
 				})
 			"injured":
 				# Regular injury
-				character_manager.set_character_status(character, CharacterManager.STATUS_INJURED)
+				character_manager.set_character_status(character, "injured")
 				casualties.append({
 					"character": character,
 					"status": "injured",

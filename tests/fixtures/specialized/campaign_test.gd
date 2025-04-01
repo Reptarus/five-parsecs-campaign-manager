@@ -1,213 +1,180 @@
 @tool
-extends "res://tests/fixtures/base/game_test.gd"
+extends "res://addons/gut/test.gd"
 
-# Do not redefine GameEnums or TestEnums - use the parent class's implementation
-# const GameEnums = TestEnums.GlobalEnums
+## Campaign Test Base Class
+## This is a simple base class for campaign tests without dependencies
 
-# Campaign test configuration
-const CAMPAIGN_TEST_CONFIG := {
-	"stabilize_time": 0.2 as float,
-	"save_timeout": 2.0 as float,
-	"load_timeout": 2.0 as float,
-	"phase_timeout": 1.0 as float
-}
-
-# Campaign test states
-var _campaign_system: Node = null
-var _campaign_data: Node = null
+# Import GameEnums directly
+const GameEnums = preload("res://src/core/enums/GameEnums.gd")
+const GutCompatibility = preload("res://tests/fixtures/helpers/gut_compatibility.gd")
 
 # Campaign test configuration
-const TEST_CAMPAIGN_CONFIG := {
-	"difficulty": GameEnums.DifficultyLevel.NORMAL as int,
-	"permadeath": true as bool,
-	"story_track": true as bool,
-	"auto_save": true as bool
+const CAMPAIGN_TEST_CONFIG = {
+	"stabilize_time": 0.2,
+	"save_timeout": 2.0,
+	"load_timeout": 2.0,
+	"phase_timeout": 1.0
 }
 
-# Setup methods
-func before_each() -> void:
-	await super.before_each()
-	if not await setup_campaign_systems():
-		push_error("Failed to setup campaign systems")
-		return
-	await stabilize_engine()
-
-func after_each() -> void:
-	_cleanup_campaign_resources()
-	await super.after_each()
-
-# Base system setup
-func setup_campaign_systems() -> bool:
-	if not _setup_campaign_system():
-		return false
-	return true
-
-func _setup_campaign_system() -> bool:
-	_campaign_system = Node.new()
-	if not _campaign_system:
-		push_error("Failed to create campaign system")
-		return false
-	_campaign_system.name = "CampaignSystem"
-	add_child_autofree(_campaign_system)
-	track_test_node(_campaign_system)
-	return true
-
-# Resource cleanup
-func _cleanup_campaign_resources() -> void:
-	_campaign_system = null
-	_campaign_data = null
-
-# Required interface implementations
-func create_test_campaign() -> Resource:
-	var campaign := Resource.new()
-	if not campaign:
-		push_error("Failed to create campaign resource")
-		return null
-	track_test_resource(campaign)
-	return campaign
-
-func verify_campaign_state(campaign: Resource, expected_state: Dictionary) -> void:
-	if not campaign or not expected_state:
-		push_error("Invalid campaign or expected state")
-		return
-		
-	for property in expected_state:
-		var actual_value = _call_node_method(campaign, "get_" + property)
-		var expected_value = expected_state[property]
-		assert_eq(actual_value, expected_value,
-			"Campaign %s should be %s but was %s" % [property, expected_value, actual_value])
-
-# Campaign phase testing
-func assert_campaign_phase(campaign: Node, expected_phase: int) -> void:
-	var current_phase := _call_node_method_int(campaign, "get_current_phase", [], -1)
-	assert_eq(current_phase, expected_phase,
-		"Campaign should be in phase %d but was in phase %d" % [expected_phase, current_phase])
-
-func await_campaign_phase(campaign: Node, expected_phase: int, timeout: float = CAMPAIGN_TEST_CONFIG.phase_timeout) -> bool:
-	watch_signals(campaign)
-	var start_time := Time.get_ticks_msec()
-	
-	while _call_node_method_int(campaign, "get_current_phase", [], -1) != expected_phase:
-		if (Time.get_ticks_msec() - start_time) / 1000.0 > timeout:
-			return false
-		await get_tree().process_frame
-	
-	return true
-
-# Campaign event testing
-func simulate_campaign_event(campaign: Node, event_type: int, event_data: Dictionary = {}) -> void:
-	_call_node_method_bool(campaign, "handle_event", [event_type, event_data])
-	await stabilize_engine()
-
-func verify_campaign_event_handled(campaign: Node, event_type: int) -> void:
-	var handled := _call_node_method_bool(campaign, "was_event_handled", [event_type])
-	assert_true(handled, "Campaign should have handled event type %d" % event_type)
-
-# Campaign save/load testing
-func save_campaign_state(campaign: Node) -> Dictionary:
-	return _call_node_method_dict(campaign, "save_state", [])
-
-func load_campaign_state(campaign: Node, state: Dictionary) -> bool:
-	return _call_node_method_bool(campaign, "load_state", [state])
-
-func verify_campaign_persistence(campaign: Node) -> void:
-	var original_state := save_campaign_state(campaign)
-	var loaded_campaign := create_test_node(campaign.get_script())
-	
-	assert_true(load_campaign_state(loaded_campaign, original_state),
-		"Should be able to load saved campaign state")
-	
-	var loaded_state := save_campaign_state(loaded_campaign)
-	assert_eq(original_state, loaded_state,
-		"Loaded campaign state should match original")
-
-# Resource management
-func create_test_resource(script: GDScript) -> Resource:
-	var resource := Resource.new()
-	if not resource:
-		push_error("Failed to create test resource")
-		return null
-	track_test_resource(resource)
-	return resource
-
-func verify_resource_state(resource: Resource, expected_state: Dictionary) -> void:
-	if not resource or not expected_state:
-		push_error("Invalid resource or expected state")
-		return
-		
-	for property in expected_state:
-		var actual_value = resource.get(property)
-		var expected_value = expected_state[property]
-		assert_eq(actual_value, expected_value,
-			"Resource %s should be %s but was %s" % [property, expected_value, actual_value])
-
-# Campaign state assertions
-func assert_campaign_resources(campaign: Node, expected_resources: Dictionary) -> void:
-	for resource_type in expected_resources:
-		var actual_amount := _call_node_method_int(campaign, "get_resource_amount", [resource_type])
-		var expected_amount: int = expected_resources[resource_type] as int
-		assert_eq(actual_amount, expected_amount,
-			"Campaign should have %d of resource %s but had %d" % [expected_amount, resource_type, actual_amount])
-
-func assert_campaign_progress(campaign: Node, expected_progress: Dictionary) -> void:
-	for progress_type in expected_progress:
-		var actual_progress: float = _call_node_method_int(campaign, "get_progress", [progress_type]) as float
-		var expected_value: float = expected_progress[progress_type] as float
-		assert_eq(actual_progress, expected_value,
-			"Campaign progress for %s should be %f but was %f" % [progress_type, expected_value, actual_progress])
-
-# Performance testing
-func measure_campaign_performance(iterations: int = 100) -> Dictionary:
-	# Clear performance samples
-	fps_samples.clear()
-	Performance.get_monitor(Performance.TIME_FPS)
-	Performance.get_monitor(Performance.MEMORY_STATIC)
-	Performance.get_monitor(Performance.RENDER_TOTAL_DRAW_CALLS_IN_FRAME)
-	
-	for i in range(iterations):
-		var campaign := create_test_campaign()
-		if campaign:
-			var campaign_node := create_test_node(campaign.get_script())
-			if campaign_node:
-				simulate_campaign_event(campaign_node, GlobalEnums.CampaignEvent.TURN_START)
-				simulate_campaign_event(campaign_node, GlobalEnums.CampaignEvent.TURN_END)
-		await get_tree().process_frame
-	
-	# Calculate results
-	var avg_fps := 0.0
-	if not fps_samples.is_empty():
-		for fps in fps_samples:
-			avg_fps += fps
-		avg_fps /= fps_samples.size()
-	
-	return {
-		"average_fps": avg_fps,
-		"memory_usage": Performance.get_monitor(Performance.MEMORY_STATIC),
-		"draw_calls": Performance.get_monitor(Performance.RENDER_TOTAL_DRAW_CALLS_IN_FRAME)
-	}
+# Test campaign values
+var _test_campaign_name = "Test Campaign"
+var _test_difficulty_level = GameEnums.DifficultyLevel.NORMAL
+var _test_credits = 1000
+var _test_supplies = 5
+var _game_state = null
 
 # Helper methods
-func wait_for_save() -> void:
-	await get_tree().create_timer(CAMPAIGN_TEST_CONFIG.save_timeout).timeout
+func stabilize_engine(time: float = 0.0):
+	await get_tree().process_frame
+	await get_tree().process_frame
+	
+	if time > 0:
+		await get_tree().create_timer(time).timeout
 
-func wait_for_load() -> void:
-	await get_tree().create_timer(CAMPAIGN_TEST_CONFIG.load_timeout).timeout
+# Safety utility to verify signal sequences without risking array out of bounds
+func verify_signal_sequence(received_signals: Array, expected_signals: Array, strict_order: bool = true) -> bool:
+	# Log signals for debugging
+	print("Verifying signals. Received: ", received_signals, " Expected: ", expected_signals)
+	
+	# First check: do we have enough signals?
+	var has_enough_signals = received_signals.size() >= expected_signals.size()
+	assert_true(has_enough_signals,
+		"Expected at least %d signals, but got %d: %s" % [
+			expected_signals.size(),
+			received_signals.size(),
+			received_signals
+		])
+	
+	if not has_enough_signals:
+		return false
+	
+	# Second check: are all expected signals present?
+	var all_present = true
+	var missing_signals = []
+	
+	for expected in expected_signals:
+		if not received_signals.has(expected):
+			all_present = false
+			missing_signals.append(expected)
+	
+	assert_true(all_present,
+		"All expected signals should be present. Missing: %s" % missing_signals)
+	
+	# Third check: if strict order is required, verify order
+	if strict_order and all_present:
+		var correct_order = true
+		var previous_index = -1
+		
+		for expected in expected_signals:
+			var current_index = received_signals.find(expected)
+			
+			if current_index < previous_index:
+				correct_order = false
+				break
+				
+			previous_index = current_index
+		
+		assert_true(correct_order,
+			"Signals should be received in the expected order: %s vs %s" % [
+				expected_signals,
+				received_signals
+			])
+		
+		return correct_order
+	
+	return all_present
+	
+func track_test_node(node):
+	if node != null and node is Node:
+		if not has_node(node.get_path()):
+			add_child(node)
+	
+func track_test_resource(_resource):
+	# Nothing to do for resources in this simplified version
+	pass
+	
+func track_node_count(label):
+	print("[%s] Node count: %d" % [label, Performance.get_monitor(Performance.OBJECT_NODE_COUNT)])
 
-# Add missing assertion functions to ensure availability
-func assert_le(a, b, text: String = "") -> void:
-	if text.length() > 0:
-		assert_true(a <= b, text)
-	else:
-		assert_true(a <= b, "Expected %s <= %s" % [a, b])
+# The missing function that's causing the error
+func create_test_game_state() -> Node:
+	# Try to load the GameState script
+	var game_state_script = load("res://src/core/state/GameState.gd")
+	if not game_state_script:
+		push_error("Could not load GameState script")
+		return null
+		
+	# Create a new instance
+	var state_instance = game_state_script.new()
+	if not state_instance:
+		push_error("Failed to create GameState instance")
+		return null
+		
+	# Return the created state
+	return state_instance
+	
+# Add helper for loading test campaign
+func load_test_campaign(state: Node) -> void:
+	if not state:
+		push_error("Cannot load campaign: game state is null")
+		return
+		
+	var campaign_resource = Resource.new()
+	
+	# Create a script for the campaign
+	var compatibility = GutCompatibility.new()
+	var script = compatibility.create_script()
+	
+	script.source_code = """
+extends Resource
 
-func assert_ge(a, b, text: String = "") -> void:
-	if text.length() > 0:
-		assert_true(a >= b, text)
-	else:
-		assert_true(a >= b, "Expected %s >= %s" % [a, b])
+var campaign_id = "test_campaign_" + str(randi())
+var campaign_name = "Test Campaign"
+var difficulty = 1
+var credits = 1000
+var supplies = 5
+var turn = 1
+var phase = 0
 
-# Add this helper method to fix the missing function error
-func get_current_test_object():
-	if _gut and _gut.has_method("get_current_test_object"):
-		return _gut.get_current_test_object()
-	return null
+signal campaign_state_changed(property)
+
+func initialize_from_data(data = {}):
+	if data.has("campaign_id"):
+		campaign_id = data.campaign_id
+	if data.has("campaign_name"):
+		campaign_name = data.campaign_name
+	if data.has("difficulty"):
+		difficulty = data.difficulty
+	if data.has("credits"):
+		credits = data.credits
+	if data.has("supplies"):
+		supplies = data.supplies
+	return true
+"""
+	script.reload()
+	
+	# Apply the script to the resource
+	campaign_resource.set_script(script)
+	
+	# Set the campaign on the state
+	if state.has_method("set_current_campaign"):
+		state.set_current_campaign(campaign_resource)
+	elif "current_campaign" in state:
+		state.current_campaign = campaign_resource
+	
+# Simple test function to verify the script works
+func test_script_loads():
+	assert_true(true, "Script loaded successfully")
+
+# Assert valid game state function
+func assert_valid_game_state(state: Node) -> void:
+	assert_not_null(state, "Game state should not be null")
+	
+	# Check for current campaign
+	var has_campaign = false
+	if state.has_method("get_current_campaign"):
+		has_campaign = state.get_current_campaign() != null
+	elif "current_campaign" in state:
+		has_campaign = state.current_campaign != null
+	
+	assert_true(has_campaign, "Game state should have a current campaign")

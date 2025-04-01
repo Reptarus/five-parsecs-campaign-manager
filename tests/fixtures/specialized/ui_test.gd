@@ -73,7 +73,11 @@ func simulate_click(control: Control, position: Vector2 = Vector2.ZERO) -> void:
 	await simulate_ui_input(control, click)
 
 # Responsive Testing
-func test_responsive_layout(control: Control) -> void:
+func test_responsive_layout(control: Control = null) -> void:
+	if control == null:
+		push_warning("No control provided for test_responsive_layout")
+		return
+		
 	for size_name in SCREEN_SIZES:
 		var size: Vector2i = SCREEN_SIZES[size_name]
 		get_tree().root.size = size
@@ -108,7 +112,11 @@ func assert_ui_performance_metrics(metrics: Dictionary, thresholds: Dictionary) 
 			"Performance metric %s exceeded threshold: %s > %s" % [key, metrics[key], thresholds[key]])
 
 # Accessibility Testing
-func test_accessibility(control: Control) -> void:
+func test_accessibility(control: Control = null) -> void:
+	if control == null:
+		push_warning("No control provided for test_accessibility")
+		return
+		
 	# Test focus navigation
 	var focusable := control.find_children("*", "Control", true, false)
 	focusable = focusable.filter(func(c): return c.focus_mode != Control.FOCUS_NONE)
@@ -125,7 +133,11 @@ func test_accessibility(control: Control) -> void:
 				"Control %s should have valid next focus target" % current.name)
 
 # Animation Testing
-func test_animations(control: Control) -> void:
+func test_animations(control: Control = null) -> void:
+	if control == null:
+		push_warning("No control provided for test_animations")
+		return
+		
 	var animation_player := control.get_node_or_null("AnimationPlayer") as AnimationPlayer
 	if not animation_player:
 		return

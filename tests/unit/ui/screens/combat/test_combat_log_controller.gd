@@ -95,7 +95,7 @@ func test_initial_state() -> void:
 	assert_false(_log_updated_signal_emitted, "Log updated signal should not be emitted initially")
 	assert_false(_filter_changed_signal_emitted, "Filter changed signal should not be emitted initially")
 	assert_true(_instance.log_entries.is_empty(), "Log entries should be empty initially")
-	assert_true(_instance.active_filters.has("combat"), "Default filters should include combat")
+	assert_true("combat" in _instance.active_filters, "Default filters should include combat")
 	
 	# Test default filters
 	assert_true(_instance.active_filters.combat, "Combat filter should be active by default")

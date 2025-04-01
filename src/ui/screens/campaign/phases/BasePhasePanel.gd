@@ -4,7 +4,7 @@ extends Control
 
 const Self = preload("res://src/ui/screens/campaign/phases/BasePhasePanel.gd")
 const FiveParsecsGameState = preload("res://src/core/state/GameState.gd")
-const GameEnums = preload("res://src/core/systems/GlobalEnums.gd")
+const GameEnums = preload("res://src/core/enums/GameEnums.gd")
 const GameStateManager = preload("res://src/core/managers/GameStateManager.gd")
 
 signal phase_completed(phase_data: Dictionary)

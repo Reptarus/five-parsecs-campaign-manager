@@ -145,7 +145,7 @@ func _capture_group_states(group: Array) -> Array:
 func _create_test_group(size: int = 3) -> Array:
 	var group: Array = []
 	for i in range(size):
-		var enemy = create_test_enemy()
+		var enemy = await create_test_enemy()
 		if not enemy:
 			push_error("Failed to create test group enemy %d" % i)
 			continue
@@ -249,3 +249,135 @@ func debug_enemy_test(enemy: Node) -> void:
 		print("  - get_health(): ", enemy.get_health())
 	
 	print("==========================================")
+
+func create_test_enemy(enemy_type = EnemyTestType.BASIC):
+	# Declare the enemy variable here
+	var enemy = CharacterBody2D.new()
+	if not enemy:
+		push_error("Failed to create CharacterBody2D for enemy")
+		return null
+
+	enemy.name = "TestEnemy_" + str(Time.get_unix_time_from_system())
+
+	# Add minimal required signals
+	if not enemy.has_signal("mission_started"):
+		enemy.add_user_signal("mission_started")
+
+	if not enemy.has_signal("mission_completed"):
+		enemy.add_user_signal("mission_completed")
+
+	if not enemy.has_signal("experience_gained"):
+		enemy.add_user_signal("experience_gained", [ {"name": "amount", "type": TYPE_INT}])
+
+	# Add NavigationAgent2D if needed (using deferred to avoid timing issues)
+	if not enemy.has_node("NavigationAgent2D"):
+		var nav_agent = NavigationAgent2D.new()
+		nav_agent.name = "NavigationAgent2D"
+		enemy.call_deferred("add_child", nav_agent)
+
+	# Create a custom script with proper methods
+	var script = GDScript.new()
+	# Add get_state() to the source code
+	script.source_code = """
+extends CharacterBody2D
+
+signal experience_gained(amount)
+
+var health = 100
+var max_health = 100
+var damage = 20
+var level = 1
+var experience = 0
+var mission_complete = false
+var navigation_agent = null
+var current_state = "idle" # Example state variable
+
+func _ready():
+	# Ensure navigation agent is properly referenced
+	if has_node("NavigationAgent2D"):
+		navigation_agent = get_node("NavigationAgent2D")
+
+func get_health():
+	return health
+
+func get_damage():
+	return damage
+
+func get_level():
+	return level
+
+func get_experience():
+	return experience
+
+func is_valid():
+	return true
+
+func add_experience(amount):
+	experience += amount
+	emit_signal("experience_gained", amount)
+	return true
+
+func gain_experience(amount):
+	return add_experience(amount)
+
+func set_as_leader(is_leader):
+	set_meta("is_leader", is_leader)
+
+func is_leader():
+	return get_meta("is_leader", false)
+
+# Add the missing get_state method
+func get_state():
+	# Return some state information, e.g., a string or enum value
+	# This is just a placeholder; adjust based on what your AI needs
+	return current_state
+
+# Add other methods potentially needed by AI processing if get_state isn't enough
+func process_ai_turn():
+	# Placeholder for AI logic
+	pass
+
+func move_to(target_position):
+    # Placeholder for movement logic
+    if navigation_agent:
+        navigation_agent.target_position = target_position
+    else:
+        # Simple movement if no nav agent
+        position = position.move_toward(target_position, 10.0) # Example speed
+
+func attack(target):
+    # Placeholder for attack logic
+    if is_instance_valid(target) and target.has_method("take_damage"):
+        target.take_damage(damage)
+
+func take_damage(amount):
+    # Placeholder for taking damage
+    health -= amount
+    if health <= 0:
+        health = 0
+        current_state = "dead"
+        # queue_free() # Or handle death state
+
+func get_attack_damage():
+    return damage
+
+"""
+	# Apply the script to the enemy node
+	enemy.set_script(script)
+
+	# Wait for a frame to ensure nodes are added properly
+	await get_tree().process_frame
+
+	add_child_autofree(enemy)
+	# track_test_node is implicitly called by add_child_autofree in mobile_test_base
+	# If this base class doesn't inherit from mobile_test_base, uncomment track_test_node(enemy)
+	# track_test_node(enemy) # Already handled if inheriting from mobile_test_base
+
+	# Ensure _campaign_test_enemies is initialized if not already
+	# if not _campaign_test_enemies is Array:
+	#	_campaign_test_enemies = [] # Uncomment if initialization needed
+	# _campaign_test_enemies.append(enemy) # Uncomment if needed here
+
+	# ... (rest of the script loading and assignment) ...
+
+	return enemy

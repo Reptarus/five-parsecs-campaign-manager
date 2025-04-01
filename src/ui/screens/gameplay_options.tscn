@@ -1,0 +1,137 @@
+[gd_scene load_steps=2 format=3 uid="uid://c8wq0ibhaq"]
+
+[ext_resource type="Script" path="res://src/ui/screens/gameplay_options_menu.gd" id="1_hdv45"]
+
+[node name="GameplayOptions" type="Control"]
+layout_mode = 3
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+script = ExtResource("1_hdv45")
+
+[node name="Background" type="ColorRect" parent="."]
+layout_mode = 1
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+color = Color(0.12549, 0.12549, 0.12549, 0.901961)
+
+[node name="TitleLabel" type="Label" parent="."]
+layout_mode = 1
+anchors_preset = 10
+anchor_right = 1.0
+offset_top = 30.0
+offset_bottom = 83.0
+grow_horizontal = 2
+theme_override_font_sizes/font_size = 36
+text = "Gameplay Options"
+horizontal_alignment = 1
+
+[node name="SettingsContainer" type="VBoxContainer" parent="."]
+layout_mode = 1
+anchors_preset = 8
+anchor_left = 0.5
+anchor_top = 0.5
+anchor_right = 0.5
+anchor_bottom = 0.5
+offset_left = -300.0
+offset_top = -200.0
+offset_right = 300.0
+offset_bottom = 150.0
+grow_horizontal = 2
+grow_vertical = 2
+theme_override_constants/separation = 20
+
+[node name="DifficultyContainer" type="HBoxContainer" parent="SettingsContainer"]
+layout_mode = 2
+theme_override_constants/separation = 20
+
+[node name="Label" type="Label" parent="SettingsContainer/DifficultyContainer"]
+layout_mode = 2
+size_flags_horizontal = 3
+text = "Game Difficulty:"
+
+[node name="DifficultyOption" type="OptionButton" parent="SettingsContainer"]
+layout_mode = 2
+size_flags_horizontal = 3
+alignment = 1
+
+[node name="TutorialContainer" type="HBoxContainer" parent="SettingsContainer"]
+layout_mode = 2
+theme_override_constants/separation = 20
+
+[node name="Label" type="Label" parent="SettingsContainer/TutorialContainer"]
+layout_mode = 2
+size_flags_horizontal = 3
+text = "Enable Tutorials:"
+
+[node name="EnableTutorialsCheck" type="CheckButton" parent="SettingsContainer"]
+layout_mode = 2
+button_pressed = true
+
+[node name="AutoSaveContainer" type="HBoxContainer" parent="SettingsContainer"]
+layout_mode = 2
+theme_override_constants/separation = 20
+
+[node name="Label" type="Label" parent="SettingsContainer/AutoSaveContainer"]
+layout_mode = 2
+size_flags_horizontal = 3
+text = "Auto-Save:"
+
+[node name="AutoSaveCheck" type="CheckButton" parent="SettingsContainer"]
+layout_mode = 2
+button_pressed = true
+
+[node name="LanguageContainer" type="HBoxContainer" parent="SettingsContainer"]
+layout_mode = 2
+theme_override_constants/separation = 20
+
+[node name="Label" type="Label" parent="SettingsContainer/LanguageContainer"]
+layout_mode = 2
+size_flags_horizontal = 3
+text = "Game Language:"
+
+[node name="LanguageOption" type="OptionButton" parent="SettingsContainer"]
+layout_mode = 2
+size_flags_horizontal = 3
+alignment = 1
+
+[node name="Spacer" type="Control" parent="SettingsContainer"]
+layout_mode = 2
+size_flags_vertical = 3
+
+[node name="ButtonContainer" type="HBoxContainer" parent="."]
+layout_mode = 1
+anchors_preset = 12
+anchor_top = 1.0
+anchor_right = 1.0
+anchor_bottom = 1.0
+offset_top = -100.0
+offset_bottom = -30.0
+grow_horizontal = 2
+grow_vertical = 0
+theme_override_constants/separation = 40
+alignment = 1
+
+[node name="ApplyButton" type="Button" parent="ButtonContainer"]
+layout_mode = 2
+size_flags_horizontal = 3
+theme_override_font_sizes/font_size = 20
+text = "Apply Changes"
+disabled = true
+
+[node name="ResetButton" type="Button" parent="ButtonContainer"]
+layout_mode = 2
+size_flags_horizontal = 3
+theme_override_font_sizes/font_size = 20
+text = "Reset to Defaults"
+
+[node name="BackButton" type="Button" parent="ButtonContainer"]
+layout_mode = 2
+size_flags_horizontal = 3
+theme_override_font_sizes/font_size = 20
+text = "Back" 

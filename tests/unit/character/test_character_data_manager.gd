@@ -37,12 +37,12 @@ func _create_test_character() -> Node:
 		push_error("Failed to create test character")
 		return null
 		
-	if character.has("set_character_name"):
+	if "set_character_name" in character:
 		character.set_character_name("Test Character")
 	else:
 		push_warning("Character doesn't have set_character_name method")
 		
-	if character.has("set_character_class"):
+	if "set_character_class" in character:
 		character.set_character_class(GameEnums.CharacterClass.SOLDIER)
 	else:
 		push_warning("Character doesn't have set_character_class method")
@@ -74,7 +74,7 @@ func before_each() -> void:
 		return
 		
 	# Call initialize directly instead of using TypeSafeMixin
-	if _data_manager.has("initialize"):
+	if "initialize" in _data_manager:
 		_data_manager.initialize(_game_state)
 	else:
 		push_error("Data manager doesn't have initialize method")
@@ -123,7 +123,7 @@ func test_save_and_load_character() -> void:
 	assert_not_null(loaded_character, "Should load character successfully")
 	
 	# Verify character data
-	var loaded_name: String = TypeSafeMixin._safe_cast_to_string(TypeSafeMixin._call_node_method(loaded_character, "get_character_name", []))
+	var loaded_name: String = str(TypeSafeMixin._call_node_method(loaded_character, "get_character_name", []))
 	var loaded_class: int = TypeSafeMixin._call_node_method_int(loaded_character, "get_character_class", [])
 	var loaded_origin: int = TypeSafeMixin._call_node_method_int(loaded_character, "get_origin", [])
 	var loaded_background: int = TypeSafeMixin._call_node_method_int(loaded_character, "get_background", [])

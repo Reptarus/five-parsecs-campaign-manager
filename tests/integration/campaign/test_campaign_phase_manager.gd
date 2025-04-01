@@ -19,6 +19,10 @@ var _campaign_manager: Node = null
 # Type-safe constants
 const PHASE_TIMEOUT := 2.0
 const STABILIZE_WAIT := 0.1
+const STABILIZE_TIME := CAMPAIGN_TEST_CONFIG.stabilize_time
+
+func before_all() -> void:
+	await super.before_all()
 
 func before_each() -> void:
 	await super.before_each()
@@ -302,11 +306,8 @@ func verify_phase_transition(from_phase: int, to_phase: int) -> void:
 		"Should start in phase %d but was in phase %d" % [from_phase, _phase_manager.current_phase]
 	)
 	
-	# Skip if no signal watcher
-	if not _signal_watcher:
-		push_warning("No signal watcher available, skipping signal watching")
-	else:
-		_signal_watcher.watch_signals(_phase_manager)
+	# Watch for signals
+	watch_signals(_phase_manager)
 	
 	# Skip if start_phase method doesn't exist
 	if not _phase_manager.has_method("start_phase"):
@@ -325,11 +326,8 @@ func verify_phase_transition(from_phase: int, to_phase: int) -> void:
 		"Should transition to phase %d but was still in phase %d" % [to_phase, _phase_manager.current_phase]
 	)
 	
-	# Skip if no signal watcher
-	if not _signal_watcher:
-		push_warning("No signal watcher available, skipping signal verification")
-	else:
-		verify_signal_emitted(_phase_manager, "phase_changed")
+	# Verify the signal was emitted
+	assert_signal_emitted(_phase_manager, "phase_changed")
 
 # Test Methods
 func test_phase_manager_initialization():
@@ -817,3 +815,83 @@ func test_campaign_manager_hooks() -> void:
 			push_warning("Enemy doesn't have cleanup method, manually freeing")
 	else:
 		push_warning("Enemy is no longer valid after test, skipping cleanup")
+
+# Helper method for safer method calls with bool return
+func _call_node_method_bool(node: Node, method_name: String, args: Array = []) -> bool:
+	if not is_instance_valid(node):
+		push_error("Cannot call method on invalid node")
+		return false
+		
+	if not node.has_method(method_name):
+		push_error("Node %s does not have method %s" % [node.name, method_name])
+		return false
+		
+	var result = false
+	match args.size():
+		0: result = node.call(method_name)
+		1: result = node.call(method_name, args[0])
+		2: result = node.call(method_name, args[0], args[1])
+		3: result = node.call(method_name, args[0], args[1], args[2])
+		_: push_error("Unsupported argument count: %d" % args.size())
+	
+	return result == true
+
+# Helper method for safer method calls with array return
+func _call_node_method_array(node: Node, method_name: String, args: Array = []) -> Array:
+	if not is_instance_valid(node):
+		push_error("Cannot call method on invalid node")
+		return []
+		
+	if not node.has_method(method_name):
+		push_error("Node %s does not have method %s" % [node.name, method_name])
+		return []
+		
+	var result = []
+	match args.size():
+		0: result = node.call(method_name)
+		1: result = node.call(method_name, args[0])
+		2: result = node.call(method_name, args[0], args[1])
+		3: result = node.call(method_name, args[0], args[1], args[2])
+		_: push_error("Unsupported argument count: %d" % args.size())
+	
+	if not result is Array:
+		push_warning("Expected Array return type but got %s" % str(typeof(result)))
+		return []
+		
+	return result
+
+# Helper for signal verification
+func verify_signal_emitted(object: Object, signal_name: String) -> bool:
+	if has_method("assert_signal_emitted"):
+		watch_signals(object)
+		await get_tree().process_frame
+		assert_signal_emitted(object, signal_name)
+		return true
+	
+	# Fallback implementation
+	push_warning("Cannot verify signal: assert_signal_emitted not available")
+	return false
+
+# Helper method for safer method calls with dictionary return
+func _call_node_method_dict(node: Node, method_name: String, args: Array = []) -> Dictionary:
+	if not is_instance_valid(node):
+		push_error("Cannot call method on invalid node")
+		return {}
+		
+	if not node.has_method(method_name):
+		push_error("Node %s does not have method %s" % [node.name, method_name])
+		return {}
+		
+	var result = {}
+	match args.size():
+		0: result = node.call(method_name)
+		1: result = node.call(method_name, args[0])
+		2: result = node.call(method_name, args[0], args[1])
+		3: result = node.call(method_name, args[0], args[1], args[2])
+		_: push_error("Unsupported argument count: %d" % args.size())
+	
+	if not result is Dictionary:
+		push_warning("Expected Dictionary return type but got %s" % str(typeof(result)))
+		return {}
+		
+	return result

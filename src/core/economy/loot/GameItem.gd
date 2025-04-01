@@ -8,7 +8,7 @@ const Self = preload("res://src/core/economy/loot/GameItem.gd")
 # Import necessary classes
 const GameDataManager = preload("res://src/core/managers/GameDataManager.gd")
 
-const GameEnums = preload("res://src/core/systems/GlobalEnums.gd")
+const GameEnums = preload("res://src/core/enums/GameEnums.gd")
 
 @export var item_id: String = ""
 @export var item_name: String = ""

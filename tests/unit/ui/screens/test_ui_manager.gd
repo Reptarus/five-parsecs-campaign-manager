@@ -3,12 +3,11 @@ extends "res://tests/fixtures/base/game_test.gd"
 
 # Type-safe constants with explicit typing
 const UIManagerScript: GDScript = preload("res://src/ui/screens/UIManager.gd")
-const GameState: GDScript = preload("res://src/core/state/GameState.gd")
 const ThemeManagerScript: GDScript = preload("res://src/ui/themes/ThemeManager.gd")
 
 # Type-safe instance variables
 var _ui_manager: Node
-var _mock_game_state: GameState
+var _mock_game_state: Object # Instance of GameStateScript from parent class
 var _theme_manager: ThemeManagerScript
 
 # Type-safe signal tracking
@@ -34,8 +33,7 @@ func before_each() -> void:
 	add_child_autofree(_mock_game_state)
 	
 	# Initialize UI manager with type safety
-	_ui_manager = Node.new()
-	_ui_manager.set_script(UIManagerScript)
+	_ui_manager = UIManagerScript.new()
 	if not _ui_manager:
 		push_error("Failed to create UI manager")
 		return
@@ -224,6 +222,9 @@ func test_theme_manager_integration() -> void:
 	assert_not_null(_ui_manager.theme_manager, "Theme manager should be connected to UI manager")
 
 func test_theme_application() -> void:
+	# Connect theme manager first
+	_ui_manager.connect_theme_manager(_theme_manager)
+	
 	# Test applying a theme
 	_ui_manager.apply_theme("dark")
 	
@@ -233,6 +234,9 @@ func test_theme_application() -> void:
 	assert_eq(_theme_manager.current_theme_name, "dark", "Theme should be changed on the theme manager")
 
 func test_ui_scale_setting() -> void:
+	# Connect theme manager first
+	_ui_manager.connect_theme_manager(_theme_manager)
+	
 	# Test setting UI scale
 	var test_scale = 1.2
 	_ui_manager.set_ui_scale(test_scale)
@@ -241,6 +245,9 @@ func test_ui_scale_setting() -> void:
 	assert_eq(_theme_manager.ui_scale, test_scale, "UI scale should be updated on the theme manager")
 
 func test_accessibility_settings() -> void:
+	# Connect theme manager first
+	_ui_manager.connect_theme_manager(_theme_manager)
+	
 	# Test high contrast setting
 	_ui_manager.set_high_contrast(true)
 	assert_true(_theme_manager.high_contrast_enabled, "High contrast should be enabled")
@@ -254,6 +261,9 @@ func test_accessibility_settings() -> void:
 	assert_eq(_theme_manager.get_text_scale(), 1.4, "Text scale should be set to large")
 
 func test_theme_persistence() -> void:
+	# Connect theme manager first
+	_ui_manager.connect_theme_manager(_theme_manager)
+	
 	# Set theme and verify it's saved
 	_ui_manager.apply_theme("dark")
 	assert_eq(_ui_manager.get_current_theme(), "dark", "Current theme should be correctly reported")
@@ -272,4 +282,3 @@ func test_theme_persistence() -> void:
 	
 	# Clean up
 	new_ui_manager.queue_free()
-	_theme_manager.queue_free()

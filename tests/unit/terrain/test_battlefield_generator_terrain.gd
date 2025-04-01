@@ -10,8 +10,47 @@ var _migration: WorldDataMigration
 
 func before_each() -> void:
 	await super.before_each()
-	_generator = BattlefieldGenerator.new()
-	_migration = WorldDataMigration.new()
+	
+	# Initialize objects - handle the case where they might be Resources
+	var generator_instance = BattlefieldGenerator.new()
+	var migration_instance = WorldDataMigration.new()
+	
+	# Check if BattlefieldGenerator is a Node or Resource
+	if generator_instance is Node:
+		_generator = generator_instance
+	elif generator_instance is Resource:
+		# Create a Node wrapper for the Resource
+		_generator = Node.new()
+		_generator.set_name("BattlefieldGeneratorWrapper")
+		_generator.set_meta("generator", generator_instance)
+		
+		# Store generator_instance in a variable that can be captured by the lambda
+		var gen_instance = generator_instance
+		
+		# Use set() method to assign the callable
+		_generator.set("generate_battlefield", Callable(gen_instance, "generate_battlefield") if gen_instance.has_method("generate_battlefield") else
+			func(config): return {})
+	else:
+		push_error("Failed to create BattlefieldGenerator instance")
+		
+	# Check if WorldDataMigration is a Node or Resource
+	if migration_instance is Node:
+		_migration = migration_instance
+	elif migration_instance is Resource:
+		# Create a Node wrapper for the Resource
+		_migration = Node.new()
+		_migration.set_name("WorldDataMigrationWrapper")
+		_migration.set_meta("migration", migration_instance)
+		
+		# Store migration_instance in a variable that can be captured by the lambda
+		var migrate_instance = migration_instance
+		
+		# Use set() method to assign the callable
+		_migration.set("convert_planet_environment_to_id", Callable(migrate_instance, "convert_planet_environment_to_id") if migrate_instance.has_method("convert_planet_environment_to_id") else
+			func(env): return env)
+	else:
+		push_error("Failed to create WorldDataMigration instance")
+	
 	add_child(_generator)
 	track_test_node(_generator)
 
@@ -131,20 +170,28 @@ func test_terrain_connectivity() -> void:
 
 # Helper function to check if battlefield has specific terrain feature
 func _has_terrain_feature(battlefield: Dictionary, feature_type: TerrainTypes.Type) -> bool:
-	for x in range(battlefield.size.x):
+	# Safely handle battlefield size - it might be Vector2 or Vector2i
+	var size_x = battlefield.size.x if battlefield.has("size") and battlefield.size is Vector2i else \
+		int(battlefield.size.x) if battlefield.has("size") else 0
+	
+	for x in range(size_x):
 		for cell in battlefield.terrain[x].row:
 			if cell.type == feature_type:
 				return true
 	return false
 
 # Helper function to check if two points are connected (simplified pathfinding check)
-func _zones_are_connected(battlefield: Dictionary, start: Vector2i, end: Vector2i) -> bool:
+func _zones_are_connected(battlefield: Dictionary, start, end) -> bool:
+	# Convert start/end to Vector2i if they're not already
+	var start_vec = Vector2i(start.x, start.y) if start is Vector2 else start
+	var end_vec = Vector2i(end.x, end.y) if end is Vector2 else end
+	
 	var visited = {}
-	var to_visit = [start]
+	var to_visit = [start_vec]
 	
 	while to_visit.size() > 0:
 		var current = to_visit.pop_front()
-		if current == end:
+		if current == end_vec:
 			return true
 			
 		if visited.has(current):

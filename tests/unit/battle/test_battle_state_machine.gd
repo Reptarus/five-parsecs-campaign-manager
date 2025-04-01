@@ -25,11 +25,24 @@ var _signal_data: Dictionary = {}
 
 # Helper methods
 func create_test_character() -> Node:
+	# Create a simple node instead of a BattleCharacter to avoid Node2D inheritance issues
 	var character: Node = Node.new()
 	if not character:
 		push_error("Failed to create character instance")
 		return null
-	character.set_script(BattleCharacterScript)
+		
+	# Mock the BattleCharacter interface needed for the tests
+	character.name = "MockBattleCharacter"
+	character.set_meta("is_player", true)
+	character.set_meta("health", 10)
+	character.set_meta("max_health", 10)
+	
+	# Add mock methods that the battle state might call
+	character.get_health = func(): return character.get_meta("health")
+	character.set_health = func(v): character.set_meta("health", v)
+	character.is_player = func(): return character.get_meta("is_player")
+	character.take_damage = func(amount): character.set_meta("health", max(0, character.get_meta("health") - amount))
+	
 	add_child_autofree(character)
 	track_test_node(character)
 	return character

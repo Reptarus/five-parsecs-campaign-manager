@@ -1,6 +1,6 @@
 extends Resource
 
-const GameEnums = preload("res://src/core/systems/GlobalEnums.gd")
+const GameEnums = preload("res://src/core/enums/GameEnums.gd")
 const Character = preload("res://src/core/character/Base/Character.gd")
 
 signal enemy_deployment_generated(positions: Array)

@@ -5,7 +5,7 @@ extends Node
 
 const Self = preload("res://src/core/terrain/TerrainEffects.gd")
 
-const GameEnums = preload("res://src/core/systems/GlobalEnums.gd")
+const GameEnums = preload("res://src/core/enums/GameEnums.gd")
 const FiveParsecsTerrainTypes = preload("res://src/core/terrain/TerrainTypes.gd")
 const FiveParsecsCharacter = preload("res://src/core/character/Base/Character.gd")
 

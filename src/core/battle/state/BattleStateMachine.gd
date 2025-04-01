@@ -37,6 +37,17 @@ func _init() -> void:
 	BattleCharacter = load("res://src/core/battle/CharacterUnit.gd")
 	GameStateManager = load("res://src/core/managers/GameStateManager.gd")
 	
+	# Initialize properties to prevent null references
+	current_state = GameEnums.BattleState.SETUP
+	current_phase = GameEnums.CombatPhase.NONE
+	current_round = 1
+	is_battle_active = false
+	active_combatants = []
+	current_unit_action = GameEnums.UnitAction.NONE
+	_completed_actions = {}
+	_reaction_opportunities = []
+	_current_unit = null
+
 func _ready() -> void:
 	# Ensure we have valid references
 	if not BattleCharacter:
@@ -149,6 +160,32 @@ func transition_to_phase(new_phase: int) -> void:
 	current_phase = new_phase
 	phase_changed.emit(new_phase)
 
+# These implementation methods would be provided in a derived class
+func _handle_setup_state() -> void:
+	pass
+
+func _handle_round_state() -> void:
+	round_started.emit(current_round)
+
+func _handle_cleanup_state() -> void:
+	pass
+
+func _handle_initiative_phase() -> void:
+	pass
+	
+func _handle_deployment_phase() -> void:
+	pass
+	
+func _handle_action_phase() -> void:
+	pass
+	
+func _handle_reaction_phase() -> void:
+	pass
+	
+func _handle_end_phase() -> void:
+	round_ended.emit(current_round)
+	current_round += 1
+
 func resolve_attack(attacker, target) -> void:
 	# Implement attack resolution logic
 	var result: Dictionary = {} # Add actual combat resolution logic
@@ -171,72 +208,29 @@ func save_state() -> Dictionary:
 	}
 
 func load_state(state: Dictionary) -> void:
+	if state == null:
+		return
+		
 	current_state = state.get("current_state", GameEnums.BattleState.SETUP)
 	current_phase = state.get("current_phase", GameEnums.CombatPhase.NONE)
 	current_round = state.get("current_round", 1)
 	is_battle_active = state.get("is_battle_active", false)
-	_completed_actions = state.get("completed_actions", {})
-	_reaction_opportunities = state.get("reaction_opportunities", [])
+	
+	# Safely load completed actions
+	var completed = state.get("completed_actions", {})
+	_completed_actions.clear()
+	for unit in completed:
+		_completed_actions[unit] = completed[unit].duplicate()
+		
+	# Safely load reaction opportunities
+	var opportunities = state.get("reaction_opportunities", [])
+	_reaction_opportunities = opportunities.duplicate()
 
 func advance_phase() -> void:
 	var next_phase: int = current_phase + 1
 	if next_phase >= GameEnums.CombatPhase.size():
 		next_phase = GameEnums.CombatPhase.NONE
 	transition_to_phase(next_phase)
-
-# Private helper functions
-func _handle_setup_state() -> void:
-	# Initialize all characters for battle
-	for character in active_combatants:
-		if not is_instance_valid(character):
-			continue
-			
-		if character.get_method_list().any(func(method): return method.name == "initialize_for_battle"):
-			character.initialize_for_battle()
-	
-	# Reset action tracking
-	_completed_actions.clear()
-	current_round = 1
-	
-	for character in active_combatants:
-		if is_instance_valid(character) and not character in _completed_actions:
-			_completed_actions[character] = []
-
-func _handle_round_state() -> void:
-	round_started.emit(current_round)
-	transition_to_phase(GameEnums.CombatPhase.INITIATIVE)
-
-func _handle_cleanup_state() -> void:
-	current_phase = GameEnums.CombatPhase.NONE
-	_completed_actions.clear()
-	_reaction_opportunities.clear()
-
-func _handle_initiative_phase() -> void:
-	for character in active_combatants:
-		if not is_instance_valid(character):
-			continue
-			
-		# Check if the character has the method
-		if character.get_method_list().any(func(method): return method.name == "initialize_for_battle"):
-			character.initialize_for_battle()
-
-func _handle_deployment_phase() -> void:
-	# Position characters on battlefield
-	pass
-
-func _handle_action_phase() -> void:
-	# Reset action points and available actions
-	for character in active_combatants:
-		if not character in _completed_actions:
-			_completed_actions[character] = []
-
-func _handle_reaction_phase() -> void:
-	_reaction_opportunities.clear()
-
-func _handle_end_phase() -> void:
-	if is_battle_active:
-		current_round += 1
-		round_ended.emit(current_round - 1)
 
 func start_round() -> void:
 	current_round = max(1, current_round)

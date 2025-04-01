@@ -22,11 +22,23 @@ func before_each() -> void:
 	await super.before_each()
 	
 	# Initialize event manager
-	var event_manager_instance: Node = BattleEventTypes.new()
-	_event_manager = TypeSafeMixin._safe_cast_to_node(event_manager_instance)
+	var event_manager_instance = BattleEventTypes.new()
+	if not event_manager_instance:
+		push_error("Failed to create event manager instance")
+		return
+		
+	# Check if BattleEventTypes inherits from Node
+	if event_manager_instance is Node:
+		_event_manager = event_manager_instance
+	else:
+		# If it's not a Node, create a wrapper node
+		_event_manager = Node.new()
+		_event_manager.set_script(BattleEventTypes)
+		
 	if not _event_manager:
 		push_error("Failed to create event manager")
 		return
+		
 	add_child_autofree(_event_manager)
 	track_test_node(_event_manager)
 	

@@ -7,7 +7,7 @@ extends "res://addons/gut/test.gd"
 ## for Five Parsecs From Home.
 
 # Script references with type hints
-const CharacterManager = preload("res://src/game/character/CharacterManager.gd")
+const CharacterManager = preload("res://src/core/character/Management/CharacterManager.gd")
 const FPCharacter = preload("res://src/game/character/Character.gd")
 
 # Test variables

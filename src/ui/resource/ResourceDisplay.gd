@@ -3,7 +3,7 @@
 extends Control
 
 const Self = preload("res://src/ui/resource/ResourceDisplay.gd")
-const GameEnums = preload("res://src/core/systems/GlobalEnums.gd")
+const GameEnums = preload("res://src/core/enums/GameEnums.gd")
 const ResourceItem = preload("res://src/ui/resource/ResourceItem.gd")
 const ResourceSystem = preload("res://src/core/systems/ResourceSystem.gd")
 

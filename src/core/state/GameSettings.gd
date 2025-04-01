@@ -4,7 +4,7 @@ extends Resource
 
 const Self = preload("res://src/core/state/GameSettings.gd")
 
-const GameEnums = preload("res://src/core/systems/GlobalEnums.gd")
+const GameEnums = preload("res://src/core/enums/GameEnums.gd")
 
 @export var difficulty_level: GameEnums.DifficultyLevel = GameEnums.DifficultyLevel.NORMAL
 @export var campaign_type: GameEnums.FiveParcsecsCampaignType = GameEnums.FiveParcsecsCampaignType.STANDARD

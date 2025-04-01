@@ -6,7 +6,7 @@ extends Node
 const Self = preload("res://src/core/systems/UnifiedAISystem.gd")
 
 ## Dependencies
-const GameEnums = preload("res://src/core/systems/GlobalEnums.gd")
+const GameEnums = preload("res://src/core/enums/GameEnums.gd")
 const Character = preload("res://src/core/character/Management/CharacterDataManager.gd")
 const EnemyData = preload("res://src/core/rivals/EnemyData.gd")
 
@@ -206,7 +206,7 @@ func _find_best_target(unit: Character) -> Character:
 		return null
 		
 	var best_target: Character = null
-	var best_score := - INF
+	var best_score := -INF
 	
 	for potential_target in battlefield_manager.unit_positions.keys():
 		if potential_target.is_enemy() != unit.is_enemy():
@@ -277,7 +277,7 @@ func _calculate_threat_level(unit: Character) -> float:
 ## Evaluate a target's score for targeting priority
 func _evaluate_target_score(unit: Character, target: Character) -> float:
 	if not unit or not target or not battlefield_manager:
-		return - INF
+		return -INF
 		
 	var distance: float = battlefield_manager.unit_positions[unit].distance_to(
 		battlefield_manager.unit_positions[target]

@@ -74,10 +74,10 @@ func test_initialization() -> void:
 func test_verification_rules() -> void:
 	var rules: Dictionary = _call_node_method(_controller, "get_verification_rules", []) as Dictionary
 	
-	var has_combat: bool = rules.has(GameEnums.VerificationType.COMBAT)
-	var has_state: bool = rules.has(GameEnums.VerificationType.STATE)
-	var has_rules: bool = rules.has(GameEnums.VerificationType.RULES)
-	var has_movement: bool = rules.has(GameEnums.VerificationType.MOVEMENT)
+	var has_combat: bool = GameEnums.VerificationType.COMBAT in rules
+	var has_state: bool = GameEnums.VerificationType.STATE in rules
+	var has_rules: bool = GameEnums.VerificationType.RULES in rules
+	var has_movement: bool = GameEnums.VerificationType.MOVEMENT in rules
 	
 	assert_true(has_combat, "Should have combat verification rules")
 	assert_true(has_state, "Should have state verification rules")
@@ -99,7 +99,7 @@ func test_add_verification_rule() -> void:
 	assert_true(result, "Should successfully add rule")
 	
 	var rules: Dictionary = _call_node_method(_controller, "get_verification_rules", []) as Dictionary
-	assert_true(rules.has(GameEnums.VerificationType.RULES), "Should have rules rule")
+	assert_true(GameEnums.VerificationType.RULES in rules, "Should have rules rule")
 
 func test_remove_verification_rule() -> void:
 	var result: bool = _call_node_method_bool(
@@ -110,7 +110,7 @@ func test_remove_verification_rule() -> void:
 	assert_true(result, "Should successfully remove rule")
 	
 	var rules: Dictionary = _call_node_method(_controller, "get_verification_rules", []) as Dictionary
-	assert_false(rules.has(GameEnums.VerificationType.COMBAT), "Should not have combat rule")
+	assert_false(GameEnums.VerificationType.COMBAT in rules, "Should not have combat rule")
 
 func test_verification_request() -> void:
 	var test_data: Dictionary = _get_test_data(GameEnums.VerificationType.COMBAT)

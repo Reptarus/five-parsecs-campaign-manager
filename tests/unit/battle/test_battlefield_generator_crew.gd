@@ -22,12 +22,20 @@ var _generator: Node = null
 func before_each() -> void:
 	await super.before_each()
 	
-	# Initialize generator
-	var generator_instance: Node = BattlefieldGeneratorCrew.instantiate()
-	_generator = TypeSafeMixin._safe_cast_to_node(generator_instance)
+	# Initialize generator - handle the case where it might be a Resource
+	var generator_instance = BattlefieldGeneratorCrew.instantiate()
+	
+	# Check if we got a proper Node
+	if generator_instance is Node:
+		_generator = generator_instance
+	else:
+		push_error("Failed to instantiate BattlefieldGeneratorCrew as a Node")
+		return
+		
 	if not _generator:
 		push_error("Failed to create generator")
 		return
+		
 	add_child_autofree(_generator)
 	track_test_node(_generator)
 	
@@ -69,7 +77,7 @@ func test_health_bar_setup() -> void:
 	assert_eq(health_bar.value, 100.0, "Health bar should start at 100")
 	assert_false(health_bar.show_percentage, "Health bar should not show percentage")
 	
-	# Check health bar positioning
+	# Check health bar positioning - use type-safe comparisons
 	assert_eq(health_bar.position.x, -20.0, "Health bar should be properly positioned horizontally")
 	assert_eq(health_bar.position.y, -30.0, "Health bar should be properly positioned vertically")
 	assert_eq(health_bar.size.x, 40.0, "Health bar should have correct width")

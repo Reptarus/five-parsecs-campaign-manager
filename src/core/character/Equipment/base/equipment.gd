@@ -4,6 +4,7 @@ extends "res://src/base/items/equipment.gd"
 # Use explicit preloads instead of global class names
 
 const Self = preload("res://src/core/character/Equipment/base/equipment.gd")
+const GameEnums = preload("res://src/core/enums/GameEnums.gd")
 
 ## Core implementation of base equipment
 ##

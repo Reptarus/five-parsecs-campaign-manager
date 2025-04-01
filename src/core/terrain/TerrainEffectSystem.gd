@@ -142,7 +142,7 @@ func _get_terrain_modifiers(terrain_type: TerrainTypes.Type, feature_type: GameE
 	return modifiers
 
 # Convert terrain type to environment type
-func _convert_terrain_to_environment(terrain_type: TerrainTypes.Type) -> GameEnums.PlanetEnvironment:
+func _convert_terrain_to_environment(terrain_type: TerrainTypes.Type) -> int:
 	match terrain_type:
 		TerrainTypes.Type.WALL:
 			return GameEnums.PlanetEnvironment.URBAN

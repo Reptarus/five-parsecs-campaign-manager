@@ -55,13 +55,13 @@ func test_resource_display() -> void:
 	
 	# Test credits display
 	TypeSafeMixin._call_node_method_bool(_campaign_ui, "update_credits", [100])
-	var credits_text: String = TypeSafeMixin._safe_cast_to_string(TypeSafeMixin._call_node_method(_campaign_ui, "get_credits_text", []))
+	var credits_text = str(TypeSafeMixin._call_node_method(_campaign_ui, "get_credits_text", []))
 	assert_eq(credits_text, "100", "Credits display should match value")
 	verify_signal_emitted(_campaign_ui, "credits_updated")
 	
 	# Test reputation display
 	TypeSafeMixin._call_node_method_bool(_campaign_ui, "update_reputation", [5])
-	var reputation_text: String = TypeSafeMixin._safe_cast_to_string(TypeSafeMixin._call_node_method(_campaign_ui, "get_reputation_text", []))
+	var reputation_text = str(TypeSafeMixin._call_node_method(_campaign_ui, "get_reputation_text", []))
 	assert_eq(reputation_text, "5", "Reputation display should match value")
 	verify_signal_emitted(_campaign_ui, "reputation_updated")
 
@@ -71,13 +71,13 @@ func test_campaign_status() -> void:
 	
 	# Test campaign name
 	TypeSafeMixin._call_node_method_bool(_campaign_ui, "set_campaign_name", ["Test Campaign"])
-	var campaign_name: String = TypeSafeMixin._safe_cast_to_string(TypeSafeMixin._call_node_method(_campaign_ui, "get_campaign_name", []))
+	var campaign_name = str(TypeSafeMixin._call_node_method(_campaign_ui, "get_campaign_name", []))
 	assert_eq(campaign_name, "Test Campaign", "Campaign name should match")
 	verify_signal_emitted(_campaign_ui, "campaign_name_updated")
 	
 	# Test campaign status
 	TypeSafeMixin._call_node_method_bool(_campaign_ui, "set_campaign_status", ["Active"])
-	var status: String = TypeSafeMixin._safe_cast_to_string(TypeSafeMixin._call_node_method(_campaign_ui, "get_campaign_status", []))
+	var status = str(TypeSafeMixin._call_node_method(_campaign_ui, "get_campaign_status", []))
 	assert_eq(status, "Active", "Campaign status should match")
 	verify_signal_emitted(_campaign_ui, "status_updated")
 
@@ -130,7 +130,7 @@ func test_notifications() -> void:
 	
 	# Test notification display
 	TypeSafeMixin._call_node_method_bool(_campaign_ui, "show_notification", ["Test notification"])
-	var notification_text: String = TypeSafeMixin._safe_cast_to_string(TypeSafeMixin._call_node_method(_campaign_ui, "get_notification_text", []))
+	var notification_text = str(TypeSafeMixin._call_node_method(_campaign_ui, "get_notification_text", []))
 	assert_eq(notification_text, "Test notification", "Notification text should match")
 	verify_signal_emitted(_campaign_ui, "notification_shown")
 	
@@ -178,6 +178,6 @@ func test_theme_handling() -> void:
 	var success: bool = TypeSafeMixin._call_node_method_bool(_campaign_ui, "set_theme", ["dark"])
 	assert_true(success, "Should change theme")
 	
-	var current_theme: String = TypeSafeMixin._safe_cast_to_string(TypeSafeMixin._call_node_method(_campaign_ui, "get_current_theme", []))
+	var current_theme = str(TypeSafeMixin._call_node_method(_campaign_ui, "get_current_theme", []))
 	assert_eq(current_theme, "dark", "Current theme should match")
 	verify_signal_emitted(_campaign_ui, "theme_changed")

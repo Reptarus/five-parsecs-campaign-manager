@@ -1,14 +1,22 @@
 @tool
 extends Node
-# Removed class_name declaration to prevent conflict with Management version
-# The autoload should use the Management version to maintain compatibility
+# Core character management functionality for Five Parsecs Campaign Manager
+# This file should be referenced via preload or as an autoload
 
 # This file exists in the management (lowercase m) directory
 # All functionality has been moved from the Management (capital M) directory
 # The autoload now correctly references the lowercase version in project.godot
 
 func _init():
-	push_warning("Using lowercase version of CharacterManager at res://src/core/character/management/CharacterManager.gd")
+	# Use safe initialization pattern
+	# Initialize properties to prevent null references
+	Character = null
+	CharacterBox = null
+	GameEnums = null
+	GameWeapon = null
+	_characters = {}
+	_active_characters = []
+	_recovery_queue = []
 
 signal character_added(character)
 signal character_updated(character)
@@ -129,24 +137,13 @@ func get_injured_characters() -> Array:
 	return injured_characters
 
 # Helper function to get character properties safely
-func _get_character_property(character, property: String, default_value = null):
-	if not character or not is_instance_valid(character):
-		return default_value
+func _get_character_property(character, property: String, default = null):
+	if character == null:
+		return default
 		
-	# Try direct property access first
 	if property in character:
 		return character.get(property)
-		
-	# Try get method
-	var get_method = "get_" + property
-	if character.get_method_list().any(func(method): return method.name == get_method):
-		return character.call(get_method)
-		
-	# Try generic get method
-	if character.get_method_list().any(func(method): return method.name == "get"):
-		return character.call("get", property, default_value)
-		
-	return default_value
+	return default
 
 # Helper function to set character properties safely
 func _set_character_property(character, property: String, value) -> void:
@@ -160,12 +157,12 @@ func _set_character_property(character, property: String, value) -> void:
 		
 	# Try set method
 	var set_method = "set_" + property
-	if character.get_method_list().any(func(method): return method.name == set_method):
+	if character.has_method(set_method):
 		character.call(set_method, value)
 		return
 		
 	# Try generic set method
-	if character.get_method_list().any(func(method): return method.name == "set"):
+	if character.has_method("set"):
 		character.call("set", property, value)
 
 # Update the active characters list
@@ -280,23 +277,25 @@ func process_advancement(character, experience_points: int) -> Dictionary:
 	update_character(char_id, character)
 	return improvements
 
-## Set a character's status
-func set_character_status(character, new_status: String) -> void:
-	if not character:
-		return
+## Set a character's status with proper event emission
+func set_character_status(character, new_status: String) -> bool:
+	if not character or not is_instance_valid(character):
+		return false
 		
-	var char_id = _get_character_property(character, "id", "")
-	if char_id.is_empty():
-		return
-	
-	var old_status = _get_character_property(character, "status", STATUS_READY)
+	var old_status = _get_character_property(character, "status", "")
 	if old_status == new_status:
-		return
-	
+		# No change needed
+		return true
+		
+	# Set the new status
 	_set_character_property(character, "status", new_status)
-	update_character(char_id, character)
 	
-	character_status_changed.emit(char_id, old_status, new_status)
+	# Get the ID for emitting signal
+	var character_id = _get_character_property(character, "id", "")
+	if not character_id.is_empty():
+		character_status_changed.emit(character_id, old_status, new_status)
+		
+	return true
 
 func set_character_class(character, char_class: int) -> void:
 	if not character:

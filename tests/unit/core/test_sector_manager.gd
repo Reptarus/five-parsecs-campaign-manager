@@ -97,15 +97,15 @@ func test_sector_serialization() -> void:
     
     # Serialize
     var data = sector_manager.serialize()
-    assert_true(data.has("sectors"), "Serialized data should contain sectors")
-    assert_true(data.has("current_sector"), "Serialized data should contain current_sector")
+    assert_true("sectors" in data, "Serialized data should contain sectors")
+    assert_true("current_sector" in data, "Serialized data should contain current_sector")
     
     # Create new manager and deserialize
     var new_manager = SectorManager.new()
     new_manager.deserialize(data)
     
     # Verify deserialized data
-    assert_true(new_manager.sectors.has(sector_name), "Deserialized manager should have the sector")
+    assert_true(sector_name in new_manager.sectors, "Deserialized manager should have the sector")
     assert_eq(new_manager.sectors[sector_name].size(), sector_manager.sectors[sector_name].size(),
         "Deserialized sector should have same number of planets")
 

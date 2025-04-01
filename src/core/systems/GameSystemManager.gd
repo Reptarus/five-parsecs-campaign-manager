@@ -1,10 +1,12 @@
 @tool
 extends Node
 
-const GameEnums = preload("res://src/core/systems/GlobalEnums.gd")
+const GameEnums = preload("res://src/core/systems/GameEnums.gd")
+const GlobalEnums = preload("res://src/core/systems/GlobalEnums.gd")
 const FiveParsecsGameState = preload("res://src/core/state/GameState.gd")
 const CampaignPhaseManager = preload("res://src/core/campaign/CampaignPhaseManager.gd")
-const CharacterManager = preload("res://src/core/character/management/CharacterManager.gd")
+# Note: Using lowercase 'm' in management to match the actual directory name (case sensitivity matters)
+const CharacterManager = preload("res://src/core/character/Management/CharacterManager.gd")
 const BattleResultsManager = preload("res://src/core/battle/BattleResultsManager.gd")
 const MissionIntegrator = preload("res://src/core/mission/MissionIntegrator.gd")
 const EquipmentManager = preload("res://src/core/equipment/EquipmentManager.gd")
@@ -18,7 +20,7 @@ signal turn_advanced(new_turn: int)
 # Core game state
 var game_state: FiveParsecsGameState
 var campaign_phase_manager: CampaignPhaseManager
-var character_manager: CharacterManager
+var character_manager
 var battle_results_manager: BattleResultsManager
 var mission_integrator: MissionIntegrator
 var equipment_manager: EquipmentManager
@@ -115,8 +117,8 @@ func start_new_campaign(campaign_data: Dictionary) -> void:
 	
 	game_state.create_campaign(campaign_data)
 	
-	# Start with the setup phase
-	campaign_phase_manager.start_phase(GameEnums.FiveParcsecsCampaignPhase.SETUP)
+	# Start with the setup phase - use the integer directly
+	campaign_phase_manager.start_phase(1) # SETUP = 1
 
 ## Load an existing campaign
 func load_campaign(campaign_path: String) -> void:
@@ -146,8 +148,8 @@ func load_campaign(campaign_path: String) -> void:
 			equipment_manager.assign_equipment_to_character(char_id, equipment_id)
 	
 	# Start in the appropriate phase
-	var current_phase = campaign_data.get("current_phase", GameEnums.FiveParcsecsCampaignPhase.NONE)
-	if current_phase != GameEnums.FiveParcsecsCampaignPhase.NONE:
+	var current_phase = campaign_data.get("current_phase", GlobalEnums.FiveParcsecsCampaignPhase.NONE)
+	if current_phase != GlobalEnums.FiveParcsecsCampaignPhase.NONE:
 		campaign_phase_manager.start_phase(current_phase)
 	
 	_loading = false
@@ -192,7 +194,7 @@ func save_campaign() -> Dictionary:
 ## Advance to the next campaign phase
 func advance_to_next_phase() -> bool:
 	var next_phase = _get_next_campaign_phase()
-	if next_phase == GameEnums.FiveParcsecsCampaignPhase.NONE:
+	if next_phase == GlobalEnums.FiveParcsecsCampaignPhase.NONE:
 		push_error("No valid next phase from current phase")
 		return false
 	
@@ -203,26 +205,26 @@ func _get_next_campaign_phase() -> int:
 	var current = campaign_phase_manager.current_phase
 	
 	match current:
-		GameEnums.FiveParcsecsCampaignPhase.NONE, GameEnums.FiveParcsecsCampaignPhase.END:
-			return GameEnums.FiveParcsecsCampaignPhase.UPKEEP
-		GameEnums.FiveParcsecsCampaignPhase.SETUP:
-			return GameEnums.FiveParcsecsCampaignPhase.UPKEEP
-		GameEnums.FiveParcsecsCampaignPhase.UPKEEP:
-			return GameEnums.FiveParcsecsCampaignPhase.STORY
-		GameEnums.FiveParcsecsCampaignPhase.STORY:
-			return GameEnums.FiveParcsecsCampaignPhase.CAMPAIGN
-		GameEnums.FiveParcsecsCampaignPhase.CAMPAIGN:
-			return GameEnums.FiveParcsecsCampaignPhase.BATTLE_SETUP
-		GameEnums.FiveParcsecsCampaignPhase.BATTLE_SETUP:
-			return GameEnums.FiveParcsecsCampaignPhase.BATTLE_RESOLUTION
-		GameEnums.FiveParcsecsCampaignPhase.BATTLE_RESOLUTION:
-			return GameEnums.FiveParcsecsCampaignPhase.ADVANCEMENT
-		GameEnums.FiveParcsecsCampaignPhase.ADVANCEMENT:
-			return GameEnums.FiveParcsecsCampaignPhase.TRADE
-		GameEnums.FiveParcsecsCampaignPhase.TRADE:
-			return GameEnums.FiveParcsecsCampaignPhase.END
+		GlobalEnums.FiveParcsecsCampaignPhase.NONE, GlobalEnums.FiveParcsecsCampaignPhase.END:
+			return GlobalEnums.FiveParcsecsCampaignPhase.UPKEEP
+		GlobalEnums.FiveParcsecsCampaignPhase.SETUP:
+			return GlobalEnums.FiveParcsecsCampaignPhase.UPKEEP
+		GlobalEnums.FiveParcsecsCampaignPhase.UPKEEP:
+			return GlobalEnums.FiveParcsecsCampaignPhase.STORY
+		GlobalEnums.FiveParcsecsCampaignPhase.STORY:
+			return GlobalEnums.FiveParcsecsCampaignPhase.CAMPAIGN
+		GlobalEnums.FiveParcsecsCampaignPhase.CAMPAIGN:
+			return GlobalEnums.FiveParcsecsCampaignPhase.BATTLE_SETUP
+		GlobalEnums.FiveParcsecsCampaignPhase.BATTLE_SETUP:
+			return GlobalEnums.FiveParcsecsCampaignPhase.BATTLE_RESOLUTION
+		GlobalEnums.FiveParcsecsCampaignPhase.BATTLE_RESOLUTION:
+			return GlobalEnums.FiveParcsecsCampaignPhase.ADVANCEMENT
+		GlobalEnums.FiveParcsecsCampaignPhase.ADVANCEMENT:
+			return GlobalEnums.FiveParcsecsCampaignPhase.TRADE
+		GlobalEnums.FiveParcsecsCampaignPhase.TRADE:
+			return GlobalEnums.FiveParcsecsCampaignPhase.END
 		_:
-			return GameEnums.FiveParcsecsCampaignPhase.NONE
+			return GlobalEnums.FiveParcsecsCampaignPhase.NONE
 
 ## Create a new character for the current campaign
 func create_character(character_data: Dictionary) -> Dictionary:
@@ -283,9 +285,9 @@ func _on_phase_error(error_message: String, is_critical: bool) -> void:
 	
 	# Handle critical errors
 	if is_critical:
-		# Attempt to recover
-		if campaign_phase_manager.current_phase != GameEnums.FiveParcsecsCampaignPhase.SETUP:
-			campaign_phase_manager.start_phase(GameEnums.FiveParcsecsCampaignPhase.SETUP)
+		# Attempt to recover - use the integer directly
+		if campaign_phase_manager.current_phase != 1: # SETUP = 1
+			campaign_phase_manager.start_phase(1) # SETUP = 1
 
 func _on_turn_advanced(new_turn: int) -> void:
 	turn_advanced.emit(new_turn)
@@ -303,12 +305,12 @@ func _on_battle_results_recorded(results: Dictionary) -> void:
 	game_state_changed.emit()
 	
 	# If current phase is battle resolution, complete the "battle_completed" action
-	if campaign_phase_manager.current_phase == GameEnums.FiveParcsecsCampaignPhase.BATTLE_RESOLUTION:
+	if campaign_phase_manager.current_phase == GlobalEnums.FiveParcsecsCampaignPhase.BATTLE_RESOLUTION:
 		campaign_phase_manager.complete_phase_action("battle_completed")
 
 func _on_casualties_processed(_casualties: Array) -> void:
 	# If current phase is battle resolution, complete the "casualties_resolved" action
-	if campaign_phase_manager.current_phase == GameEnums.FiveParcsecsCampaignPhase.BATTLE_RESOLUTION:
+	if campaign_phase_manager.current_phase == GlobalEnums.FiveParcsecsCampaignPhase.BATTLE_RESOLUTION:
 		campaign_phase_manager.complete_phase_action("casualties_resolved")
 
 func _on_rewards_calculated(_rewards: Dictionary) -> void:
@@ -321,7 +323,7 @@ func _on_mission_preparation_complete(_mission: Dictionary) -> void:
 	game_state_changed.emit()
 	
 	# If current phase is campaign, complete the mission preparation action
-	if campaign_phase_manager.current_phase == GameEnums.FiveParcsecsCampaignPhase.CAMPAIGN:
+	if campaign_phase_manager.current_phase == GlobalEnums.FiveParcsecsCampaignPhase.CAMPAIGN:
 		campaign_phase_manager.complete_phase_action("mission_prepared")
 
 func _on_equipment_acquired(_equipment_data: Dictionary) -> void:
@@ -330,7 +332,7 @@ func _on_equipment_acquired(_equipment_data: Dictionary) -> void:
 ## Public accessors for each manager
 
 # Get the character manager
-func get_character_manager() -> CharacterManager:
+func get_character_manager():
 	return character_manager
 
 # Get the battle results manager
@@ -363,7 +365,7 @@ func _check_for_rival_generation(battle_results: Dictionary) -> void:
 	
 	# Check mission type for additional rival generation chance
 	var mission_type = battle_results.get("mission_type", -1)
-	if mission_type == GameEnums.MissionType.BLACK_ZONE or mission_type == GameEnums.MissionType.RESCUE:
+	if mission_type == GlobalEnums.MissionType.BLACK_ZONE or mission_type == GlobalEnums.MissionType.RESCUE:
 		# 25% chance to generate rival for these mission types according to rulebook
 		if randi() % 100 < 25:
 			_generate_new_rival("mission", battle_results)

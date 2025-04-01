@@ -22,7 +22,7 @@ const WorldManager = preload("res://src/game/world/GameWorldManager.gd")
 const TEST_TIMEOUT := 1000
 const STRESS_TEST_ITERATIONS := 100
 
-var _mission_generator: FiveParsecsMissionGenerator
+var _mission_generator: RefCounted
 var _terrain_system: TerrainSystem
 var _rival_system: RivalSystem
 var _world_manager: WorldManager
@@ -279,3 +279,41 @@ func test_generation_with_large_values() -> void:
 	track_test_resource(mission)
 	assert_not_null(mission, "Should generate mission with large reward values")
 	assert_true(mission.get_rewards().credits >= 1000000, "Should handle large reward values")
+
+# Add a test for the node wrapper approach
+func test_node_wrapper_functionality() -> void:
+	# Try to create a node wrapper directly
+	var wrapper = null
+	
+	# Use try/catch to handle potential method not found errors
+	if not Engine.is_editor_hint():
+		wrapper = FiveParsecsMissionGenerator.create_node_wrapper()
+	
+	if wrapper == null:
+		push_warning("Node wrapper couldn't be created, skipping test")
+		return
+		
+	assert_not_null(wrapper, "Node wrapper should be created")
+	
+	# Add to scene tree for proper lifecycle
+	add_child_autofree(wrapper)
+	
+	# Test wrapper functionality
+	assert_true(wrapper.has_method("generate_mission"), "Wrapper should have generate_mission method")
+	var mission = wrapper.generate_mission(2, GameEnums.MissionType.PATROL)
+	assert_not_null(mission, "Wrapper should generate missions")
+	assert_true(mission is Dictionary, "Generated mission should be a Dictionary")
+	assert_true(mission.has("id"), "Mission should have an id")
+	
+	# Test the wrapper with mission type
+	var mission2 = wrapper.generate_mission_with_type(GameEnums.MissionType.DEFENSE)
+	assert_not_null(mission2, "Wrapper should generate missions with type")
+	assert_true(mission2 is Dictionary, "Generated mission should be a Dictionary")
+	assert_eq(mission2.type, GameEnums.MissionType.DEFENSE, "Mission type should match request")
+
+# Helper Methods
+func create_node_generator() -> Node:
+	# Create a node-compatible generator
+	var generator_node = FiveParsecsMissionGenerator.create_node_wrapper()
+	add_child_autofree(generator_node)
+	return generator_node

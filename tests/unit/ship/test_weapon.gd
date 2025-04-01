@@ -2,6 +2,7 @@
 extends "res://tests/fixtures/specialized/campaign_test.gd"
 
 const GameWeapon: GDScript = preload("res://src/core/systems/items/GameWeapon.gd")
+const TypeSafeMixin := preload("res://tests/fixtures/helpers/type_safe_test_mixin.gd")
 
 var weapon: GameWeapon = null
 

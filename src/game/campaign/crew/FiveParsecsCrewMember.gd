@@ -5,7 +5,7 @@ extends BaseCrewMember
 
 const Self = preload("res://src/game/campaign/crew/FiveParsecsCrewMember.gd")
 const BaseCrewMember = preload("res://src/base/campaign/crew/BaseCrewMember.gd")
-const GameEnums = preload("res://src/core/systems/GlobalEnums.gd")
+const GameEnums = preload("res://src/core/enums/GameEnums.gd")
 const FiveParsecsGameEnums = preload("res://src/game/campaign/crew/FiveParsecsGameEnums.gd")
 const Character = preload("res://src/core/character/Base/Character.gd")
 const GameWeapon = preload("res://src/core/systems/items/GameWeapon.gd")

@@ -13,7 +13,7 @@ extends Node
 ## connect to its signals to react to terrain changes.
 
 ## Dependencies - explicit loading to avoid circular references
-const GameEnums = preload("res://src/core/systems/GlobalEnums.gd")
+const GameEnums = preload("res://src/core/enums/GameEnums.gd")
 const TerrainTypes = preload("res://src/core/terrain/TerrainTypes.gd")
 const TerrainRules = preload("res://src/core/terrain/TerrainRules.gd")
 const TerrainEffectSystem = preload("res://src/core/terrain/TerrainEffectSystem.gd")

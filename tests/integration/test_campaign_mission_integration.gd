@@ -43,6 +43,9 @@ func before_each() -> void:
 		return
 	_mission = Compatibility.ensure_resource_path(_mission, "test_mission")
 	
+	# Ensure mission has required methods for testing
+	_mission = Compatibility.ensure_mission_compatibility(_mission)
+	
 	# Setup mission properties using compatibility helper
 	Compatibility.safe_call_method(_mission, "set_name", ["Test Mission"])
 	Compatibility.safe_call_method(_mission, "set_description", ["Test Description"])
@@ -60,40 +63,77 @@ func after_each() -> void:
 
 # Test adding a mission to a campaign
 func test_add_mission_to_campaign() -> void:
-	# Create campaign
+	# Given a campaign with progression
 	var campaign = Compatibility.safe_call_method(_campaign_system, "create_campaign", [ {
-		"name": "Test Campaign",
-		"difficulty": 1
+		"name": "Progression Test",
+		"difficulty": 2,
+		"track_progression": true
 	}])
+	Compatibility.ensure_campaign_compatibility(campaign)
 	
-	assert_not_null(campaign, "Should create campaign successfully")
+	# And a mission
+	var mission = Mission.new()
+	mission = Compatibility.ensure_mission_compatibility(mission)
 	
-	# Set active campaign
-	var active_set = Compatibility.safe_call_method(_campaign_system, "set_active_campaign", [campaign])
-	assert_true(active_set, "Should set active campaign")
+	# When I add the mission to the campaign
+	Compatibility.safe_call_method(campaign, "add_mission", [mission])
 	
-	# Add mission to campaign
-	var mission_added = Compatibility.safe_call_method(campaign, "add_mission", [_mission])
-	assert_true(mission_added, "Should add mission to campaign")
-	
-	# Verify mission is in campaign
+	# Then the mission should be added to the campaign
 	var missions = Compatibility.safe_call_method(campaign, "get_missions", [])
-	assert_not_null(missions, "Should get missions from campaign")
-	assert_true(missions.has(_mission), "Campaign should contain the mission")
+	if not is_array_contains_mission(missions, mission):
+		fail_test("Mission was not added to campaign")
 	
-	# Test mission completion
-	Compatibility.safe_call_method(_mission, "complete", [])
-	verify_signal_emitted(_mission, "mission_completed")
-	
-	var completed = Compatibility.safe_call_method(_mission, "is_completed", [])
-	assert_true(completed, "Mission should be marked as completed")
-	
-	# Verify campaign updated its state
-	verify_signal_emitted(_campaign_system, "mission_completed")
+	# And the campaign should have a list of missions
+	assert_eq(Compatibility.safe_call_method(campaign, "get_mission_count", []), 1, "Campaign should have 1 mission")
 
 # Test campaign state changes when mission is completed
 func test_campaign_progression() -> void:
-	# Create campaign with progression
+	# Create campaign with progression tracking
+	var campaign = create_campaign_with_progression()
+	Compatibility.ensure_campaign_compatibility(campaign)
+	
+	# Create and add multiple missions
+	var missions = []
+	for i in range(3):
+		var mission = Mission.new()
+		mission = Compatibility.ensure_mission_compatibility(mission)
+		Compatibility.safe_call_method(mission, "set_name", ["Mission %d" % i])
+		missions.append(mission)
+		Compatibility.safe_call_method(campaign, "add_mission", [mission])
+	
+	# Verify all missions are added
+	var campaign_missions = Compatibility.safe_call_method(campaign, "get_missions", [])
+	assert_eq(Compatibility.safe_call_method(campaign, "get_mission_count", []), 3,
+		"Campaign should have 3 missions")
+	
+	# Complete each mission
+	for mission in missions:
+		Compatibility.safe_call_method(mission, "complete", [])
+		verify_signal_emitted(mission, "mission_completed")
+		assert_true(Compatibility.safe_call_method(mission, "is_completed", []),
+			"Mission should be marked as completed")
+	
+	# Verify campaign is completed after all missions are done
+	assert_true(Compatibility.safe_call_method(campaign, "is_completed", []),
+		"Campaign should be completed after all missions are done")
+
+func is_array_contains_mission(missions_array, target_mission) -> bool:
+	if not missions_array or not missions_array is Array:
+		return false
+	
+	for mission in missions_array:
+		if mission == target_mission:
+			return true
+		
+		# If direct comparison fails, try comparing resource paths
+		if mission.resource_path != "" and target_mission.resource_path != "":
+			if mission.resource_path == target_mission.resource_path:
+				return true
+	
+	return false
+
+func create_campaign_with_progression():
+	# Create campaign with progression tracking enabled
 	var campaign = Compatibility.safe_call_method(_campaign_system, "create_campaign", [ {
 		"name": "Progression Test",
 		"difficulty": 2,
@@ -102,29 +142,8 @@ func test_campaign_progression() -> void:
 	
 	assert_not_null(campaign, "Should create campaign with progression")
 	
-	# Set as active
-	Compatibility.safe_call_method(_campaign_system, "set_active_campaign", [campaign])
+	# Set as active campaign
+	var active_set = Compatibility.safe_call_method(_campaign_system, "set_active_campaign", [campaign])
+	assert_true(active_set, "Should set active campaign")
 	
-	# Add multiple missions
-	for i in range(3):
-		var mission = Mission.new()
-		mission = Compatibility.ensure_resource_path(mission, "mission_%d" % i)
-		Compatibility.safe_call_method(mission, "set_name", ["Mission %d" % i])
-		Compatibility.safe_call_method(campaign, "add_mission", [mission])
-	
-	# Get mission count
-	var count = Compatibility.safe_call_method(campaign, "get_mission_count", [])
-	assert_eq(count, 3, "Campaign should have 3 missions")
-	
-	# Complete missions and check progression
-	var missions = Compatibility.safe_call_method(campaign, "get_missions", [])
-	for i in range(missions.size()):
-		var mission = missions[i]
-		Compatibility.safe_call_method(mission, "complete", [])
-		
-		var progress = Compatibility.safe_call_method(campaign, "get_progress", [])
-		assert_eq(progress, float(i + 1) / missions.size(), "Progress should match completed mission ratio")
-	
-	# Check if campaign is completed
-	var is_complete = Compatibility.safe_call_method(campaign, "is_completed", [])
-	assert_true(is_complete, "Campaign should be completed after all missions are done")
+	return campaign

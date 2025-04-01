@@ -7,8 +7,11 @@ func _version_conversion():
 	var EditorGlobals = load("res://addons/gut/gui/editor_globals.gd")
 	EditorGlobals.create_temp_directory()
 
-	var VersionConversion = load("res://addons/gut/version_conversion.gd")
-	VersionConversion.convert()
+	# Create an instance of the version conversion class
+	var version_converter = load("res://addons/gut/version_conversion.gd")
+	# Check if the class has the convert method
+	if version_converter.has_method("convert"):
+		version_converter.convert()
 
 func _enter_tree():
 	_version_conversion()

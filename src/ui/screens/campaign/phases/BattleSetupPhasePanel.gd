@@ -352,4 +352,3 @@ func validate_phase_requirements() -> bool:
 		return false
 	
 	return true
-

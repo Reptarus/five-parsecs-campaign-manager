@@ -35,6 +35,8 @@ func before_each():
 	super.before_each()
 	_setup_manager()
 	_character = _create_test_character()
+	if _character:
+		track_test_resource(_character)
 
 func after_each():
 	super.after_each()
@@ -91,5 +93,8 @@ func _create_test_character(name: String = TEST_CHARACTER_NAME) -> Resource:
 	
 	for stat_name in stats:
 		Compatibility.safe_call_method(character, "set_stat", [stat_name, stats[stat_name]])
+	
+	# Track the resource to ensure proper cleanup
+	track_test_resource(character)
 	
 	return character

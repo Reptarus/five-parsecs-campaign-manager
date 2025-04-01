@@ -138,8 +138,8 @@ func test_quest_state_persistence() -> void:
 	TypeSafeMixin._call_node_method_bool(story_system, "complete_quest", ["test_quest"])
 	
 	var state: Dictionary = TypeSafeMixin._call_node_method_dict(story_system, "get_story_state", [])
-	assert_true(state.has("quests"), "Story state should have quests")
-	assert_true(state.quests.has("test_quest"), "Story state should have test quest")
+	assert_true("quests" in state, "Story state should have quests")
+	assert_true("test_quest" in state.quests, "Story state should have test quest")
 	assert_eq(state.quests.test_quest.status, "completed", "Quest status should be persisted")
 
 func test_invalid_quest_operations() -> void:

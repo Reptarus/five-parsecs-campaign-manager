@@ -1,6 +1,6 @@
 extends Resource
 
-const GameEnums = preload("res://src/core/systems/GlobalEnums.gd")
+const GameEnums = preload("res://src/core/enums/GameEnums.gd")
 const GameLocation = preload("res://src/game/world/GameLocation.gd")
 
 # Resource type constants

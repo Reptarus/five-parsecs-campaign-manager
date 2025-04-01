@@ -2,7 +2,7 @@
 extends "res://tests/fixtures/specialized/enemy_test.gd"
 
 # Import the Enemy class for type checking
-const Enemy = preload("res://src/core/enemy/Enemy.gd")
+const Enemy = preload("res://src/core/enemy/base/Enemy.gd")
 
 # Type-safe instance variables for group behavior testing
 var _group_manager: Node = null
@@ -183,18 +183,26 @@ func test_leader_assignment() -> void:
 	assert_not_null(leader, "Leader should be created")
 	add_child_autofree(leader)
 	
-	# ... existing code ...
+	# Skip test if implementation not ready
+	if not leader.has_method("promote_to_leader"):
+		pending("Leader promotion not implemented")
+		return
 
 # Group Mechanics Tests
-
-# ... existing code ...
+func test_group_mechanics() -> void:
+	# Skip test if implementation not ready
+	pending("Group mechanics test not implemented")
+	return
 
 func test_group_cohesion() -> void:
 	var leader := create_test_enemy(EnemyTestType.ELITE)
 	assert_not_null(leader, "Leader should be created")
 	add_child_autofree(leader)
 	
-	# ... existing code ...
+	# Skip test if implementation not ready
+	if not leader.has_method("measure_cohesion"):
+		pending("Group cohesion not implemented")
+		return
 
 # Targeting Tests
 func test_group_targeting() -> void:
@@ -202,7 +210,9 @@ func test_group_targeting() -> void:
 	assert_not_null(target, "Target should be created")
 	add_child_autofree(target)
 	
-	# ... existing code ...
+	# Skip test if implementation not ready
+	pending("Group targeting not implemented")
+	return
 
 # Group Reinforcement Tests
 func test_group_reinforcement() -> void:
@@ -218,7 +228,9 @@ func test_group_reinforcement() -> void:
 	assert_not_null(follower2, "Second follower should be created")
 	add_child_autofree(follower2)
 	
-	# ... existing code ...
+	# Skip test if implementation not ready
+	pending("Group reinforcement not implemented")
+	return
 
 # Helper Methods
 func _create_test_group(size: int = GROUP_SIZE) -> Array[Enemy]:

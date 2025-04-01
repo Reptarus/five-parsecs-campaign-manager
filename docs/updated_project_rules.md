@@ -170,6 +170,32 @@ func update_character_status(character: Character, damage: int) -> bool:
 - Document test coverage and gaps
 - Target 85% overall code coverage with critical paths at 100%
 
+### Signal Testing
+- Test signal connection integrity
+- Verify signal parameter types
+- Implement wait_for_signal patterns in async tests
+- Document expected signal emission sequences
+- Test signal disconnection to prevent memory leaks
+```gdscript
+# Signal testing pattern
+func test_character_damaged_signal() -> void:
+    var character = Character.new()
+    add_child(character)
+    
+    var signal_emitted = false
+    var damage_amount = 0
+    
+    character.damaged.connect(func(amount): 
+        signal_emitted = true
+        damage_amount = amount
+    )
+    
+    character.take_damage(5)
+    
+    assert_true(signal_emitted, "damaged signal should be emitted")
+    assert_eq(damage_amount, 5, "Signal should pass correct damage amount")
+```
+
 ### Test Stability
 - Implement deterministic test runs with fixed random seeds
 - Use proper test setup and teardown processes
@@ -177,6 +203,30 @@ func update_character_status(character: Character, damage: int) -> bool:
 - Track and clean up resources to prevent test pollution
 - Verify state transitions with assertions
 - Implement proper test timeouts and error handling
+- Use SceneTree.process_frame for frame-precise testing
+
+### GUT Plugin Stability
+- Monitor scene file sizes to prevent corruption (especially OutputText.tscn)
+- Always use the `in` operator for dictionary access in Godot 4.4
+- Ensure all resources have valid paths before serialization
+- Add defensive initialization code for UI controls
+- Implement stub methods for all declared functions to prevent null references
+- Use the compatibility.gd helper to ensure cross-version compatibility
+- Be cautious with .uid files; avoid committing them to version control
+- When GUT breaks on reload, check:
+  1. Scene file integrity (rebuild corrupted scenes)
+  2. Dictionary access patterns (`in` vs `has()`)
+  3. Resource path validity
+  4. Method implementations
+  5. Control initialization
+```gdscript
+# Safe resource path example
+if resource is Resource and resource.resource_path.is_empty():
+    var timestamp = Time.get_unix_time_from_system()
+    resource.resource_path = "res://tests/generated/%s_%d.tres" % [
+        resource.get_class().to_snake_case(), timestamp
+    ]
+```
 
 ## State Management
 

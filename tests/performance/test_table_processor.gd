@@ -76,7 +76,13 @@ func test_small_table_performance() -> void:
 	
 	var metrics := await measure_performance(
 		func() -> void:
-			TypeSafeMixin._call_node_method_bool(_processor, "process_table", [_test_tables[0]])
+			# Check if the required method exists and call it safely
+			if _processor.has_method("process_data"):
+				_processor.process_data(_test_tables[0])
+			elif _processor.has_method("process_table"):
+				_processor.process_table(_test_tables[0])
+			else:
+				push_warning("No valid processing method found in TableProcessor")
 			await get_tree().process_frame
 	)
 	
@@ -88,7 +94,13 @@ func test_medium_table_performance() -> void:
 	
 	var metrics := await measure_performance(
 		func() -> void:
-			TypeSafeMixin._call_node_method_bool(_processor, "process_table", [_test_tables[0]])
+			# Check if the required method exists and call it safely
+			if _processor.has_method("process_data"):
+				_processor.process_data(_test_tables[0])
+			elif _processor.has_method("process_table"):
+				_processor.process_table(_test_tables[0])
+			else:
+				push_warning("No valid processing method found in TableProcessor")
 			await get_tree().process_frame
 	)
 	
@@ -100,7 +112,13 @@ func test_large_table_performance() -> void:
 	
 	var metrics := await measure_performance(
 		func() -> void:
-			TypeSafeMixin._call_node_method_bool(_processor, "process_table", [_test_tables[0]])
+			# Check if the required method exists and call it safely
+			if _processor.has_method("process_data"):
+				_processor.process_data(_test_tables[0])
+			elif _processor.has_method("process_table"):
+				_processor.process_table(_test_tables[0])
+			else:
+				push_warning("No valid processing method found in TableProcessor")
 			await get_tree().process_frame
 	)
 	
@@ -117,7 +135,13 @@ func test_table_memory_management() -> void:
 		
 		# Process tables multiple times
 		for i in range(5):
-			TypeSafeMixin._call_node_method_bool(_processor, "process_table", [_test_tables[0]])
+			# Check if the required method exists and call it safely
+			if _processor.has_method("process_data"):
+				_processor.process_data(_test_tables[0])
+			elif _processor.has_method("process_table"):
+				_processor.process_table(_test_tables[0])
+			else:
+				push_warning("No valid processing method found in TableProcessor")
 			await get_tree().process_frame
 		
 		# Cleanup tables
@@ -138,7 +162,13 @@ func test_table_stress() -> void:
 	
 	await stress_test(
 		func() -> void:
-			TypeSafeMixin._call_node_method_bool(_processor, "process_table", [_test_tables[0]])
+			# Check if the required method exists and call it safely
+			if _processor.has_method("process_data"):
+				_processor.process_data(_test_tables[0])
+			elif _processor.has_method("process_table"):
+				_processor.process_table(_test_tables[0])
+			else:
+				push_warning("No valid processing method found in TableProcessor")
 			
 			# Randomly modify table
 			if randf() < 0.2: # 20% chance each frame
@@ -169,7 +199,13 @@ func test_mobile_table_performance() -> void:
 	
 	var metrics := await measure_performance(
 		func() -> void:
-			TypeSafeMixin._call_node_method_bool(_processor, "process_table", [_test_tables[0]])
+			# Check if the required method exists and call it safely
+			if _processor.has_method("process_data"):
+				_processor.process_data(_test_tables[0])
+			elif _processor.has_method("process_table"):
+				_processor.process_table(_test_tables[0])
+			else:
+				push_warning("No valid processing method found in TableProcessor")
 			await get_tree().process_frame
 	)
 	

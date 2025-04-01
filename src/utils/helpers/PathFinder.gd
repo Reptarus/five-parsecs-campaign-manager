@@ -15,6 +15,10 @@ const BattlefieldManager = preload("res://src/core/battle/BattlefieldManager.gd"
 const GameEnums = preload("res://src/core/systems/GlobalEnums.gd")
 const AuthPathFinder = preload("res://src/core/utils/PathFinder.gd")
 
+# Updated compatibility helper
+const GutCompatibility = preload("res://tests/fixtures/helpers/gut_compatibility.gd")
+var compatibility = GutCompatibility.new()
+
 signal path_found(path: Array[Vector2])
 signal path_not_found
 
@@ -55,14 +59,40 @@ var _movement_directions := [
 	Vector2i(-1, -1) # Up-Left
 ]
 
-func _init(battlefield: Node) -> void: # Accept Node, will be BattlefieldManager
-	battlefield_manager = battlefield
+func _init(battlefield = null):
+	if battlefield:
+		battlefield_manager = battlefield
 	push_warning("Using deprecated PathFinder from utils/helpers. Use core/utils/PathFinder.gd instead.")
-	_setup_path_node_script()
+	_create_path_node_script()
 
-func _setup_path_node_script() -> void:
-	_path_node_script = GDScript.new()
-	_path_node_script.source_code = PATH_NODE_SCRIPT
+# Creates a script for PathNode instances
+func _create_path_node_script():
+	if _path_node_script != null:
+		return
+		
+	_path_node_script = compatibility.create_script()
+	
+	_path_node_script.source_code = """
+extends RefCounted
+class_name PathNode
+
+var position
+var parent
+var g_cost = 0
+var h_cost = 0
+var f_cost = 0
+
+func _init(pos = Vector2.ZERO, p = null):
+	position = pos
+	parent = p
+	_calculate_costs()
+	
+func _calculate_costs():
+	if parent != null:
+		g_cost = parent.g_cost + position.distance_to(parent.position)
+	h_cost = 0 # Will be set externally by the pathfinder
+	f_cost = g_cost + h_cost
+"""
 	_path_node_script.reload()
 
 # Function to create a new PathNode without direct class reference

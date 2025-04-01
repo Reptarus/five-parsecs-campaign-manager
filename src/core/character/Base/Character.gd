@@ -10,7 +10,7 @@ const Self = preload("res://src/core/character/Base/Character.gd")
 ## Extends BaseCharacter with game-specific functionality for
 ## the Five Parsecs From Home rule system.
 
-const GameEnums = preload("res://src/core/systems/GlobalEnums.gd")
+const GameEnums = preload("res://src/core/enums/GameEnums.gd")
 
 # Five Parsecs specific character properties
 var character_class: int = GameEnums.CharacterClass.NONE

@@ -27,7 +27,7 @@ var _summary = {
 }
 
 # This is used to watch signals so we can make assertions about them.
-var _signal_watcher = null
+var _signal_watcher = load('res://addons/gut/signal_watcher.gd').new()
 
 # Convenience copy of GutUtils.DOUBLE_STRATEGY
 var DOUBLE_STRATEGY = GutUtils.DOUBLE_STRATEGY
@@ -54,20 +54,8 @@ var _was_ready_called = false
 # call).  Maybe gut.gd should just call _do_ready_stuff (after we rename it to
 # something better).  I'm leaving all this as it is until it bothers me more.
 func _do_ready_stuff():
-	# Clean up existing _awaiter if present
-	if _awaiter != null and is_instance_valid(_awaiter):
-		_awaiter.queue_free()
-		
-	# Create new awaiter with error handling
-	var new_awaiter = GutUtils.Awaiter.new()
-	if new_awaiter != null:
-		_awaiter = new_awaiter
-		# Only add as child if it's a Node
-		if new_awaiter is Node:
-			add_child(_awaiter)
-	else:
-		push_error("Failed to create Awaiter - GUT tests may not work properly")
-		
+	_awaiter = GutUtils.Awaiter.new()
+	add_child(_awaiter)
 	_was_ready_called = true
 
 
@@ -79,7 +67,8 @@ func _notification(what):
 	# Tests are never expected to re-enter the tree.  Tests are removed from the
 	# tree after they are run.
 	if (what == NOTIFICATION_EXIT_TREE):
-		if _awaiter != null:
+		# Add a check to ensure _awaiter is valid before freeing
+		if is_instance_valid(_awaiter):
 			_awaiter.queue_free()
 
 
@@ -1178,11 +1167,8 @@ func pending(text = ""):
 # ------------------------------------------------------------------------------
 ## Await for the time sent in.  The optional message will be printed when the
 ## await starts
-func wait_seconds(time):
-	if _awaiter == null:
-		push_error("Awaiter is null. Cannot wait seconds.")
-		return null
-	
+func wait_seconds(time, msg = ''):
+	_lgr.yield_msg(str('-- Awaiting ', time, ' second(s) -- ', msg))
 	_awaiter.wait_seconds(time)
 	return _awaiter.timeout
 
@@ -1191,16 +1177,12 @@ func wait_seconds(time):
 ## @deprecated: use wait_seconds
 func yield_for(time, msg = ''):
 	_lgr.deprecated('yield_for', 'wait_seconds')
-	return await wait_seconds(time)
+	return wait_seconds(time, msg)
 
 
 # ------------------------------------------------------------------------------
 ## Yield to a signal or a maximum amount of time, whichever comes first.
 func wait_for_signal(sig: Signal, max_wait, msg = ''):
-	if _awaiter == null:
-		push_error("Awaiter is null. Cannot wait for signal.")
-		return false
-	
 	watch_signals(sig.get_object())
 	_lgr.yield_msg(str('-- Awaiting signal "', sig.get_name(), '" or for ', max_wait, ' second(s) -- ', msg))
 	_awaiter.wait_for_signal(sig, max_wait)
@@ -1218,11 +1200,13 @@ func yield_to(obj, signal_name, max_wait, msg = ''):
 # ------------------------------------------------------------------------------
 ## Yield for a number of frames.  The optional message will be printed. when
 ## Gut detects a yield.
-func wait_frames(frames):
-	if _awaiter == null:
-		push_error("Awaiter is null. Cannot wait frames.")
-		return null
-	
+func wait_frames(frames, msg = ''):
+	if (frames <= 0):
+		var text = str('wait_frames:  frames must be > 0, you passed  ', frames, '.  0 frames waited.')
+		_lgr.error(text)
+		frames = 1
+
+	_lgr.yield_msg(str('-- Awaiting ', frames, ' frame(s) -- ', msg))
 	_awaiter.wait_frames(frames)
 	return _awaiter.timeout
 
@@ -1231,11 +1215,15 @@ func wait_frames(frames):
 # p3 can be the optional message or an amount of time to wait between tests.
 # p4 is the optional message if you have specified an amount of time to
 #	wait between tests.
-func wait_until(callable: Callable, max_wait = 30, time_between = 0.0):
-	if _awaiter == null:
-		push_error("Awaiter is null. Cannot wait until condition is met.")
-		return false
-	
+func wait_until(callable, max_wait, p3 = '', p4 = ''):
+	var time_between = 0.0
+	var message = p4
+	if (typeof(p3) != TYPE_STRING):
+		time_between = p3
+	else:
+		message = p3
+
+	_lgr.yield_msg(str("--Awaiting callable to return TRUE or ", max_wait, "s.  ", message))
 	_awaiter.wait_until(callable, max_wait, time_between)
 	await _awaiter.timeout
 	return !_awaiter.did_last_wait_timeout
@@ -1245,18 +1233,14 @@ func wait_until(callable: Callable, max_wait = 30, time_between = 0.0):
 ## using wait_for_signal and wait_until if the timeout occurs before what
 ## is being waited on.  The wait_* methods return this value so you should be
 ## able to avoid calling this directly, but you can.
-func did_last_wait_timer_timeout():
-	if _awaiter == null:
-		push_error("Awaiter is null. Cannot check if the last wait timer timed out.")
-		return true
-	
+func did_wait_timeout():
 	return _awaiter.did_last_wait_timeout
 
 
 ## @deprecated: use wait_frames
 func yield_frames(frames, msg = ''):
 	_lgr.deprecated("yield_frames", "wait_frames")
-	return wait_frames(frames)
+	return wait_frames(frames, msg)
 
 ## @internal
 func get_summary():
@@ -1276,8 +1260,7 @@ func get_assert_count():
 
 ## @internal
 func clear_signal_watcher():
-	if _signal_watcher != null:
-		_signal_watcher.clear()
+	_signal_watcher.clear()
 
 func get_double_strategy():
 	return gut.get_doubler().get_strategy()
@@ -1774,16 +1757,3 @@ func register_inner_classes(base_script):
 # This provides all the asserts and other testing features.  Test scripts are
 # run by the Gut class in gut.gd
 # ##############################################################################
-
-func _init():
-	_strutils = GutUtils.Strutils.new()
-	_compare = GutUtils.Comparator.new()
-	_compare.set_should_compare_int_to_float(true)
-	
-	_signal_watcher = GutUtils.SignalWatcher.new()
-	# SignalWatcher is RefCounted, not a Node, so we can't add it as a child
-	
-	# If we weren't added through a scene and entered the tree, we need to call _do_ready_stuff directly
-	# to ensure _awaiter is properly initialized
-	if !is_inside_tree():
-		_do_ready_stuff()

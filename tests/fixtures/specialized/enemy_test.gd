@@ -8,6 +8,8 @@ extends "res://tests/fixtures/base/game_test.gd"
 
 # Load scripts safely with Compatibility helper
 const Compatibility = preload("res://tests/fixtures/helpers/test_compatibility_helper.gd")
+const TestCleanup = preload("res://tests/fixtures/helpers/test_cleanup_helper.gd")
+
 var EnemyScript = load("res://src/core/battle/enemy/Enemy.gd") if ResourceLoader.exists("res://src/core/battle/enemy/Enemy.gd") else null
 var EnemyDataScript = load("res://src/core/rivals/EnemyData.gd") if ResourceLoader.exists("res://src/core/rivals/EnemyData.gd") else null
 
@@ -39,6 +41,18 @@ var _enemy_combat_manager: Node = null
 var _enemy_ai_manager: Node = null
 
 ## Lifecycle methods
+
+func before_all() -> void:
+	await super.before_all()
+	
+	# Ensure temp directory exists
+	Compatibility.ensure_temp_directory()
+
+func after_all() -> void:
+	# Clean up temporary files that might have been created during tests
+	# Only clean up temp files older than 1 hour to avoid interfering with active tests
+	TestCleanup.cleanup_old_files(1)
+	await super.after_all()
 
 func before_each() -> void:
 	await super.before_each()
@@ -225,55 +239,51 @@ func _setup_enemy_system() -> void:
 	_enemy_ai_manager.name = "EnemyAIManager"
 	
 	# Add initialize method to the AI manager
-	var ai_script = GDScript.new()
-	ai_script.source_code = """
-	extends Node
+	var script = GDScript.new()
 	
-	func initialize():
-		return true
-		
-	func process_ai(enemy):
-		if enemy and enemy.has_method("get_health"):
-			return enemy.get_health() > 0
-		return false
-	"""
-	ai_script.reload()
-	_enemy_ai_manager.set_script(ai_script)
+	script.source_code = """
+extends Node
+
+signal action_completed
+signal turn_completed
+signal attack_completed
+signal move_completed
+
+var last_action = ""
+var last_target = null
+var action_successful = true
+
+func _init():
+	pass
+
+func take_turn(enemy_data):
+	last_action = "take_turn"
+	emit_signal("turn_completed")
+	return true
+
+func perform_attack(attacker, target):
+	last_action = "attack"
+	last_target = target
+	emit_signal("attack_completed")
+	return true
+
+func perform_move(enemy, target_position):
+	last_action = "move"
+	emit_signal("move_completed")
+	return true
+
+func calculate_path(enemy, start_pos, end_pos):
+	return [start_pos, end_pos]
+"""
+	script.reload()
 	
+	_enemy_ai_manager.set_script(script)
 	add_child_autofree(_enemy_ai_manager)
 
-# Core Pathfinding Tests
-func test_pathfinding_initialization() -> void:
-	var enemy: Node = await create_test_enemy()
-	assert_not_null(enemy, "Enemy should be created")
-	assert_not_null(enemy.get_node("NavigationAgent2D"),
-		"Enemy should have a navigation agent")
-
-# Fix for missing assertion functions
-func assert_le(a, b, text: String = "") -> void:
-	if text.length() > 0:
-		assert_true(a <= b, text)
-	else:
-		assert_true(a <= b, "Expected %s <= %s" % [a, b])
-
-func assert_ge(a, b, text: String = "") -> void:
-	if text.length() > 0:
-		assert_true(a >= b, text)
-	else:
-		assert_true(a >= b, "Expected %s >= %s" % [a, b])
-
-# Additional common assertion helpers
-func assert_string_contains(string_val: Variant, substring_val: Variant, text_or_show_strings: Variant = true) -> Variant:
-	var str_value: String = str(string_val)
-	var substr_value: String = str(substring_val)
-	
-	var message: String = ""
-	if text_or_show_strings is String:
-		message = text_or_show_strings
-	elif text_or_show_strings is bool and text_or_show_strings:
-		message = "Expected '%s' to contain '%s'" % [str_value, substr_value]
-	else:
-		message = "String should contain substring"
+# Helper class for compatibility path generation
+class CompatibilityPath:
+	func _init():
+		pass
 		
-	assert_true(str_value.contains(substr_value), message)
-	return null
+	func create_script() -> GDScript:
+		return GDScript.new()

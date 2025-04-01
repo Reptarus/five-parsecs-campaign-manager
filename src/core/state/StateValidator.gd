@@ -32,15 +32,15 @@ enum ValidationScope {
 
 ## Validation results
 class ValidationResult:
-	var type: GameEnums.VerificationType = GameEnums.VerificationType.NONE
-	var scope: GameEnums.VerificationScope = GameEnums.VerificationScope.NONE
-	var result: GameEnums.VerificationResult = GameEnums.VerificationResult.NONE
+	var type: int = GameEnums.VerificationType.NONE
+	var scope: int = 0
+	var result: int = 0
 	var message: String = ""
 	var context: Dictionary = {}
 	
 	func _init(
-		p_type: GameEnums.VerificationType = GameEnums.VerificationType.NONE,
-		p_result: GameEnums.VerificationResult = GameEnums.VerificationResult.NONE,
+		p_type: int = 0,
+		p_result: int = 0,
 		p_message: String = "",
 		p_context: Dictionary = {}
 	) -> void:
@@ -60,8 +60,8 @@ class ValidationResult:
 
 # Factory method to create ValidationResult objects
 func create_result(
-	p_type: GameEnums.VerificationType = GameEnums.VerificationType.NONE,
-	p_result: GameEnums.VerificationResult = GameEnums.VerificationResult.NONE,
+	p_type: int = 0,
+	p_result: int = 0,
 	p_message: String = "",
 	p_context: Dictionary = {}
 ) -> ValidationResult:

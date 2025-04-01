@@ -118,8 +118,8 @@ func test_campaign_phase_transitions() -> void:
 	assert_eq(game_state_manager.get_campaign_phase(), GameEnums.FiveParcsecsCampaignPhase.SETUP, "Campaign phase should change to SETUP")
 	assert_signal_emitted(game_state_manager, "campaign_phase_changed")
 	
-	game_state_manager.set_campaign_phase(GameEnums.FiveParcsecsCampaignPhase.CAMPAIGN)
-	assert_eq(game_state_manager.get_campaign_phase(), GameEnums.FiveParcsecsCampaignPhase.CAMPAIGN, "Campaign phase should change to CAMPAIGN")
+	game_state_manager.set_campaign_phase(GameEnums.FiveParcsecsCampaignPhase.PRE_MISSION)
+	assert_eq(game_state_manager.get_campaign_phase(), GameEnums.FiveParcsecsCampaignPhase.PRE_MISSION, "Campaign phase should change to PRE_MISSION")
 	assert_signal_emitted(game_state_manager, "campaign_phase_changed")
 
 # Resource Boundary Tests

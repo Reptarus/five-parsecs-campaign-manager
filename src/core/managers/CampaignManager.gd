@@ -2,7 +2,7 @@
 @tool
 extends Node
 
-const GameEnums := preload("res://src/core/systems/GlobalEnums.gd")
+const GameEnums := preload("res://src/core/enums/GameEnums.gd")
 const FiveParsecsGameState := preload("res://src/core/state/GameState.gd")
 const StoryQuestDataScript = preload("res://src/core/story/StoryQuestData.gd")
 
@@ -37,7 +37,7 @@ const MAX_MISSION_HISTORY := 50
 const MIN_REPUTATION_FOR_PATRONS := 10
 
 # Required resources for campaign management
-const REQUIRED_RESOURCES := [
+var REQUIRED_RESOURCES = [
 	GameEnums.ResourceType.SUPPLIES,
 	GameEnums.ResourceType.MEDICAL_SUPPLIES,
 	GameEnums.ResourceType.FUEL
@@ -118,7 +118,7 @@ func _validate_mission_requirements(mission: Resource) -> Array[String]:
 					equipment_type = equipment.to_int()
 				else:
 					# Otherwise check if it's a named enum value in GameEnums.EquipmentType
-					var GameEnums = load("res://src/core/systems/GlobalEnums.gd")
+					var GameEnums = load("res://src/core/enums/GameEnums.gd")
 					if GameEnums.has_method("get_equipment_type_from_string"):
 						equipment_type = GameEnums.get_equipment_type_from_string(equipment)
 					elif "EquipmentType" in GameEnums:

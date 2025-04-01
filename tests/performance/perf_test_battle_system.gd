@@ -71,7 +71,11 @@ func test_small_battle_performance() -> void:
     var metrics := await measure_performance(
         func() -> void:
             TypeSafeMixin._call_node_method_bool(_battle_system, "process_round", [])
-            await get_tree().process_frame
+            var tree = get_tree()
+            if tree != null:
+                await tree.process_frame
+            else:
+                await Engine.get_main_loop().process_frame
     )
     
     verify_performance_metrics(metrics, BATTLE_THRESHOLDS.small_battle)
@@ -83,7 +87,11 @@ func test_medium_battle_performance() -> void:
     var metrics := await measure_performance(
         func() -> void:
             TypeSafeMixin._call_node_method_bool(_battle_system, "process_round", [])
-            await get_tree().process_frame
+            var tree = get_tree()
+            if tree != null:
+                await tree.process_frame
+            else:
+                await Engine.get_main_loop().process_frame
     )
     
     verify_performance_metrics(metrics, BATTLE_THRESHOLDS.medium_battle)
@@ -95,7 +103,11 @@ func test_large_battle_performance() -> void:
     var metrics := await measure_performance(
         func() -> void:
             TypeSafeMixin._call_node_method_bool(_battle_system, "process_round", [])
-            await get_tree().process_frame
+            var tree = get_tree()
+            if tree != null:
+                await tree.process_frame
+            else:
+                await Engine.get_main_loop().process_frame
     )
     
     verify_performance_metrics(metrics, BATTLE_THRESHOLDS.large_battle)
@@ -112,11 +124,19 @@ func test_battle_memory_management() -> void:
         # Run battle simulation
         for i in range(5):
             TypeSafeMixin._call_node_method_bool(_battle_system, "process_round", [])
-            await get_tree().process_frame
+            var tree = get_tree()
+            if tree != null:
+                await tree.process_frame
+            else:
+                await Engine.get_main_loop().process_frame
         
         # Cleanup after battle
         await after_each()
-        await get_tree().process_frame
+        var tree = get_tree()
+        if tree != null:
+            await tree.process_frame
+        else:
+            await Engine.get_main_loop().process_frame
     
     var final_memory := Performance.get_monitor(Performance.MEMORY_STATIC)
     var memory_delta := (final_memory - initial_memory) / 1024.0 # KB
@@ -142,7 +162,11 @@ func test_battle_stress() -> void:
                 else:
                     await _add_character_to_battle(false) # Add to enemy side
             
-            await get_tree().process_frame
+            var tree = get_tree()
+            if tree != null:
+                await tree.process_frame
+            else:
+                await Engine.get_main_loop().process_frame
     )
 
 func test_mobile_battle_performance() -> void:
@@ -161,7 +185,11 @@ func test_mobile_battle_performance() -> void:
     var metrics := await measure_performance(
         func() -> void:
             TypeSafeMixin._call_node_method_bool(_battle_system, "process_round", [])
-            await get_tree().process_frame
+            var tree = get_tree()
+            if tree != null:
+                await tree.process_frame
+            else:
+                await Engine.get_main_loop().process_frame
     )
     
     # Use mobile-specific thresholds
@@ -210,4 +238,8 @@ func _add_character_to_battle(is_player: bool) -> void:
     _weapons.append(weapon)
     
     TypeSafeMixin._call_node_method_bool(_battle_system, "add_character", [character])
-    await get_tree().process_frame
+    var tree = get_tree()
+    if tree != null:
+        await tree.process_frame
+    else:
+        await Engine.get_main_loop().process_frame

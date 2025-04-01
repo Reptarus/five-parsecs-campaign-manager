@@ -2,7 +2,7 @@
 extends "res://tests/fixtures/specialized/enemy_test.gd"
 
 # Import the Enemy class for type checking
-const Enemy = preload("res://src/core/enemy/Enemy.gd")
+const Enemy = preload("res://src/core/enemy/base/Enemy.gd")
 
 # Type-safe instance variables
 var _enemy_data: Resource = null
