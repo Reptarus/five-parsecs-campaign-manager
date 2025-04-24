@@ -1,0 +1,23 @@
+@echo off
+REM Update all the test files to use the correct path for EnemyData.gd
+
+echo Updating test files to use the correct EnemyData.gd path...
+
+REM Process each file
+call :process_file "tests\unit\enemy\test_enemy_combat.gd"
+call :process_file "tests\unit\enemy\test_enemy_deployment.gd"
+call :process_file "tests\unit\enemy\test_enemy_group_tactics.gd"
+call :process_file "tests\unit\enemy\test_enemy_pathfinding.gd"
+call :process_file "tests\unit\enemy\test_enemy_data.gd"
+call :process_file "tests\unit\battle\ai\test_enemy_ai.gd"
+call :process_file "tests\integration\enemy\test_enemy_group_tactics.gd"
+call :process_file "tests\fixtures\specialized\enemy_test_base.gd"
+
+echo All files updated!
+exit /b 0
+
+:process_file
+set file=%~1
+echo Processing %file%...
+powershell -Command "(Get-Content '%file%') -replace 'res://src/core/enemy/base/EnemyData.gd', 'res://src/core/enemy/EnemyData.gd' | Set-Content '%file%'"
+exit /b 0 

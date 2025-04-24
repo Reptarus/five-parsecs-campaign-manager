@@ -32,9 +32,23 @@ func _setup_ship() -> Node:
 		fail_test("Failed to create ship instance")
 		return null
 		
-	add_child_autofree(ship_instance)
-	track_test_node(ship_instance)
-	return ship_instance
+	# Check if we have a node or resource
+	if ship_instance is Node:
+		add_child_autofree(ship_instance)
+		track_test_node(ship_instance)
+		return ship_instance
+	elif ship_instance is Resource:
+		# Create a node wrapper
+		var node_wrapper = Node.new()
+		node_wrapper.name = "ShipWrapper"
+		node_wrapper.set_meta("ship_resource", ship_instance)
+		add_child_autofree(node_wrapper)
+		track_test_node(node_wrapper)
+		track_test_resource(ship_instance)
+		return node_wrapper
+	else:
+		fail_test("Ship instance is neither a Node nor a Resource")
+		return null
 
 func _cleanup_ship() -> void:
 	ship = null
@@ -43,27 +57,33 @@ func _cleanup_ship() -> void:
 # Test functions
 func test_ship_initialization() -> void:
 	assert_not_null(ship, "Ship should be initialized")
+	if not ship:
+		return
 	
 	# Check if required methods exist
-	if not (ship.has_method("get_name") and ship.has_method("get_description") and
-	       ship.has_method("get_components")):
+	var has_required_methods = ship.has_method("get_name") and ship.has_method("get_description") and ship.has_method("get_components")
+	if not has_required_methods:
 		push_warning("Skipping test_ship_initialization: required methods missing")
 		pending("Test skipped - required methods missing")
 		return
 	
-	var name: String = Compatibility.safe_cast_to_string(Compatibility.call_method(ship, "get_name", []))
-	var description: String = Compatibility.safe_cast_to_string(Compatibility.call_method(ship, "get_description", []))
+	var name: String = _get_property_safe(ship, "name", "")
+	var description: String = _get_property_safe(ship, "description", "")
 	
 	assert_eq(name, "", "Default name should be empty")
 	assert_eq(description, "", "Default description should be empty")
 	
-	var components: Array = Compatibility.call_node_method_array(ship, "get_components", [])
+	var components: Array = _call_method_safe(ship, "get_components", []) or []
 	assert_true(components.is_empty(), "Ship should have no components initially")
 
 func test_ship_properties() -> void:
+	assert_not_null(ship, "Ship should be initialized")
+	if not ship:
+		return
+	
 	# Check if required methods exist
-	if not (ship.has_method("get_name") and ship.has_method("get_description") and
-	       ship.has_method("set_name") and ship.has_method("set_description")):
+	var has_required_methods = ship.has_method("get_name") and ship.has_method("get_description")
+	if not has_required_methods:
 		push_warning("Skipping test_ship_properties: required methods missing")
 		pending("Test skipped - required methods missing")
 		return
@@ -71,19 +91,24 @@ func test_ship_properties() -> void:
 	var test_name: String = "Test Ship"
 	var test_description: String = "Test Description"
 	
-	Compatibility.call_node_method_bool(ship, "set_name", [test_name])
-	Compatibility.call_node_method_bool(ship, "set_description", [test_description])
+	_set_property_safe(ship, "name", test_name)
+	_set_property_safe(ship, "description", test_description)
 	
-	var name: String = Compatibility.safe_cast_to_string(Compatibility.call_method(ship, "get_name", []))
-	var description: String = Compatibility.safe_cast_to_string(Compatibility.call_method(ship, "get_description", []))
+	var name: String = _get_property_safe(ship, "name", "")
+	var description: String = _get_property_safe(ship, "description", "")
 	
 	assert_eq(name, test_name, "Name should be set correctly")
 	assert_eq(description, test_description, "Description should be set correctly")
 
 func test_add_component() -> void:
+	assert_not_null(ship, "Ship should be initialized")
+	if not ship:
+		return
+	
 	# Check if required methods and signals exist
-	if not (ship.has_method("add_component") and ship.has_method("get_components") and
-	       ship.has_signal("component_added")):
+	var has_required_methods = ship.has_method("add_component") and ship.has_method("get_components")
+	var has_required_signals = ship.has_signal("component_added")
+	if not has_required_methods or not has_required_signals:
 		push_warning("Skipping test_add_component: required methods or signals missing")
 		pending("Test skipped - required methods or signals missing")
 		return
@@ -91,26 +116,33 @@ func test_add_component() -> void:
 	watch_signals(ship)
 	
 	var component = Resource.new()
+	if not component:
+		fail_test("Failed to create component")
+		return
+		
 	component.set_meta("id", "test_component")
 	component.set_meta("component_type", "engine")
 	track_test_resource(component)
 	
-	var result: bool = Compatibility.call_node_method_bool(ship, "add_component", [component])
+	var result: bool = _call_method_safe(ship, "add_component", [component]) or false
 	assert_true(result, "Should add component successfully")
 	
-	var components: Array = Compatibility.call_node_method_array(ship, "get_components", [])
+	var components: Array = _call_method_safe(ship, "get_components", []) or []
 	
 	# Check if component is in array using manual iteration
 	var component_found = false
-	if components is Array:
-		for c in components:
-			if c == component:
-				component_found = true
-				break
+	for c in components:
+		if c == component:
+			component_found = true
+			break
 	assert_true(component_found, "Ship should contain the added component")
 	assert_signal_emitted(ship, "component_added")
 
 func test_remove_component() -> void:
+	assert_not_null(ship, "Ship should be initialized")
+	if not ship:
+		return
+	
 	# Check if required methods and signals exist
 	if not (ship.has_method("add_component") and ship.has_method("remove_component") and
 	       ship.has_method("get_components") and ship.has_signal("component_removed")):
@@ -121,6 +153,10 @@ func test_remove_component() -> void:
 	watch_signals(ship)
 	
 	var component = Resource.new()
+	if not component:
+		fail_test("Failed to create component")
+		return
+		
 	component.set_meta("id", "test_component")
 	component.set_meta("component_type", "engine")
 	track_test_resource(component)
@@ -142,6 +178,10 @@ func test_remove_component() -> void:
 	assert_signal_emitted(ship, "component_removed")
 
 func test_get_component_by_id() -> void:
+	assert_not_null(ship, "Ship should be initialized")
+	if not ship:
+		return
+	
 	# Check if required methods exist
 	if not (ship.has_method("add_component") and ship.has_method("get_component_by_id")):
 		push_warning("Skipping test_get_component_by_id: required methods missing")
@@ -149,6 +189,10 @@ func test_get_component_by_id() -> void:
 		return
 	
 	var component = Resource.new()
+	if not component:
+		fail_test("Failed to create component")
+		return
+		
 	component.set_meta("id", "test_component")
 	component.set_meta("component_type", "engine")
 	track_test_resource(component)
@@ -160,6 +204,10 @@ func test_get_component_by_id() -> void:
 	assert_eq(retrieved, component, "Retrieved component should match original")
 
 func test_get_component_by_type() -> void:
+	assert_not_null(ship, "Ship should be initialized")
+	if not ship:
+		return
+	
 	# Check if required methods exist
 	if not (ship.has_method("add_component") and ship.has_method("get_component_by_type")):
 		push_warning("Skipping test_get_component_by_type: required methods missing")
@@ -167,6 +215,10 @@ func test_get_component_by_type() -> void:
 		return
 	
 	var component = Resource.new()
+	if not component:
+		fail_test("Failed to create component")
+		return
+		
 	component.set_meta("id", "test_component")
 	track_test_resource(component)
 	
@@ -181,6 +233,10 @@ func test_get_component_by_type() -> void:
 		pending("Component is missing set_type method")
 
 func test_calculate_stats() -> void:
+	assert_not_null(ship, "Ship should be initialized")
+	if not ship:
+		return
+	
 	# Check if required methods exist
 	if not (ship.has_method("add_component") and ship.has_method("calculate_stats")):
 		push_warning("Skipping test_calculate_stats: required methods missing")
@@ -188,10 +244,18 @@ func test_calculate_stats() -> void:
 		return
 	
 	var component1 = Resource.new()
+	if not component1:
+		fail_test("Failed to create component1")
+		return
+		
 	component1.set_meta("id", "component1")
 	track_test_resource(component1)
 	
 	var component2 = Resource.new()
+	if not component2:
+		fail_test("Failed to create component2")
+		return
+		
 	component2.set_meta("id", "component2")
 	track_test_resource(component2)
 	
@@ -222,3 +286,49 @@ func assert_le(a, b, text: String = "") -> void:
 		assert_true(a <= b, text)
 	else:
 		assert_true(a <= b, "Expected %s <= %s" % [a, b])
+
+# Type-safe helper methods for setting and getting properties
+func _set_property_safe(obj, property_name: String, value) -> bool:
+	if obj == null:
+		return false
+		
+	# Try using setter method first
+	var setter_name = "set_" + property_name
+	if obj.has_method(setter_name):
+		obj.call(setter_name, value)
+		return true
+		
+	# Try using property if it exists
+	if property_name in obj:
+		obj.set(property_name, value)
+		return true
+		
+	# For RefCounted objects, some properties might not be directly accessible
+	# Try to use set() method if available
+	if obj.has_method("set"):
+		obj.call("set", property_name, value)
+		return true
+		
+	return false
+
+# Type-safe helper method to get properties
+func _get_property_safe(obj, property_name: String, default_value = null):
+	if obj == null:
+		return default_value
+		
+	# Try using getter method first
+	var getter_name = "get_" + property_name
+	if obj.has_method(getter_name):
+		return obj.call(getter_name)
+		
+	# Try direct property access
+	if property_name in obj:
+		return obj.get(property_name)
+		
+	return default_value
+
+# Type-safe helper method to call methods
+func _call_method_safe(obj, method_name: String, args: Array = []):
+	if obj == null or not obj.has_method(method_name):
+		return null
+	return obj.callv(method_name, args)

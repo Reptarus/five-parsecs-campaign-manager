@@ -1,9 +1,18 @@
 @tool
 extends "res://tests/fixtures/specialized/campaign_test.gd"
 
+# Use explicit preloads instead of global class names
+const TestEnums = preload("res://tests/fixtures/base/test_helper.gd")
+
+# Define missing constant
+const CAMPAIGN_TEST_CONFIG = {
+	"stabilize_time": 0.1
+}
+
 # Define missing constant
 const SIGNAL_TIMEOUT: float = 2.0
-const STABILIZE_TIME: float = CAMPAIGN_TEST_CONFIG.stabilize_time
+# const STABILIZE_TIME: float = CAMPAIGN_TEST_CONFIG.stabilize_time // Removed due to parent class conflict
+const CAMPAIGN_STABILIZE_TIME: float = CAMPAIGN_TEST_CONFIG.stabilize_time
 
 # Type-safe script references
 const CampaignSystem := preload("res://src/core/campaign/CampaignSystem.gd")
@@ -47,7 +56,7 @@ func before_each() -> void:
 	_connect_mission_signals()
 	
 	Compatibility.safe_call_method(_mission_campaign_system, "initialize", [_game_state], false)
-	await stabilize_engine(STABILIZE_TIME)
+	await stabilize_engine(CAMPAIGN_STABILIZE_TIME)
 	
 	print("Test environment setup complete")
 
@@ -312,6 +321,27 @@ func get_available_signals(obj: Object) -> Array:
 	for sig in obj.get_signal_list():
 		signals.append(sig.name)
 	return signals
+
+# Helper function to verify signals were received in correct sequence
+func verify_signal_sequence(received_signals: Array, expected_signals: Array, strict_order: bool = true) -> bool:
+	if received_signals.size() < expected_signals.size():
+		push_error("Not enough signals received. Expected at least %d, got %d" % [expected_signals.size(), received_signals.size()])
+		return false
+		
+	if strict_order:
+		# Check that signals were received in exact order
+		for i in range(expected_signals.size()):
+			if i >= received_signals.size() or received_signals[i] != expected_signals[i]:
+				push_error("Signal sequence mismatch at position %d. Expected '%s', got '%s'" % [i, expected_signals[i], received_signals[i]])
+				return false
+		return true
+	else:
+		# Just check that all expected signals were received, regardless of order
+		for expected in expected_signals:
+			if not expected in received_signals:
+				push_error("Signal '%s' not received" % expected)
+				return false
+		return true
 
 # Test Methods
 func test_campaign_mission_flow() -> void:

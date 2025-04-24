@@ -5,12 +5,7 @@ var GutEditorGlobals = load('res://addons/gut/gui/editor_globals.gd')
 var TestScript = load('res://addons/gut/test.gd')
 var GutConfigGui = load('res://addons/gut/gui/gut_config_gui.gd')
 var ScriptTextEditors = load('res://addons/gut/gui/script_text_editor_controls.gd')
-var RunAtCursor = load('res://addons/gut/gui/RunAtCursor.gd')
-var OutputText = load('res://addons/gut/gui/OutputText.gd')
-var RunResults = load('res://addons/gut/gui/ResultsTree.gd')
-var ShortcutButtons = load('res://addons/gut/gui/ShortcutButtons.gd')
-var ShortcutDialog = load('res://addons/gut/gui/ShortcutManager.gd')
-var Compatibility = load('res://addons/gut/compatibility.gd')
+
 
 var _interface = null;
 var _is_running = false;
@@ -24,30 +19,33 @@ var _user_prefs = null
 
 
 @onready var _ctrls = {
-	output = null, # Will be initialized later
-	output_ctrl = $layout/RSplit/CResults/TabBar/OutputText,
 	run_button = $layout/ControlBar/RunAll,
 	shortcuts_button = $layout/ControlBar/Shortcuts,
-
 	settings_button = $layout/ControlBar/Settings,
 	run_results_button = $layout/ControlBar/RunResultsBtn,
 	output_button = $layout/ControlBar/OutputBtn,
-
-	settings = $layout/RSplit/sc/Settings,
-	shortcut_dialog = null, # Will be initialized later
-	light = $layout/RSplit/CResults/ControlBar/Light3D,
-	results = {
-		bar = $layout/RSplit/CResults/ControlBar,
-		passing = $layout/RSplit/CResults/ControlBar/Passing/value,
-		failing = $layout/RSplit/CResults/ControlBar/Failing/value,
-		pending = $layout/RSplit/CResults/ControlBar/Pending/value,
-		errors = $layout/RSplit/CResults/ControlBar/Errors/value,
-		warnings = $layout/RSplit/CResults/ControlBar/Warnings/value,
-		orphans = $layout/RSplit/CResults/ControlBar/Orphans/value
-	},
-	run_at_cursor = $layout/ControlBar/RunAtCursor,
-	run_results = $layout/RSplit/CResults/TabBar/RunResults
+	shortcut_dialog = $BottomPanelShortcuts,
+	run_at_cursor = $layout/ControlBar/RunAtCursor
 }
+
+# Create proxy objects for missing components
+class DummyOutput:
+	func clear(): pass
+	func add_text(_text): pass
+	func load_file(_path): pass
+	func get_rich_text_edit(): return self
+
+class DummyRunResults:
+	func clear(): pass
+	func add_centered_text(_text): pass
+	func set_output_control(_ctrl): pass
+	func set_interface(_interface): pass
+	func set_script_text_editors(_editors): pass
+	func load_json_results(_results): pass
+	func set_show_orphans(_show): pass
+
+var _dummy_output = DummyOutput.new()
+var _dummy_run_results = DummyRunResults.new()
 
 func _init():
 	pass
@@ -55,50 +53,70 @@ func _init():
 
 func _ready():
 	GutEditorGlobals.create_temp_directory()
-	
-	# Initialize deferred controls
-	_ctrls.shortcut_dialog = $BottomPanelShortcuts if has_node("BottomPanelShortcuts") else null
-	
-	if _ctrls.output_ctrl and _ctrls.output_ctrl.has_method("get_rich_text_edit"):
-		_ctrls.output = _ctrls.output_ctrl.get_rich_text_edit()
 
 	_user_prefs = GutEditorGlobals.user_prefs
 	
-	if _ctrls.settings:
-		_gut_config_gui = GutConfigGui.new(_ctrls.settings)
+	# Setup dummy controls for missing components
+	if !has_node("layout/RSplit/CResults/TabBar/OutputText"):
+		_ctrls.output = _dummy_output
+		_ctrls.output_ctrl = _dummy_output
+	else:
+		_ctrls.output = $layout/RSplit/CResults/TabBar/OutputText.get_rich_text_edit()
+		_ctrls.output_ctrl = $layout/RSplit/CResults/TabBar/OutputText
 
-	if _ctrls.results and _ctrls.results.bar:
-		_ctrls.results.bar.connect('draw', _on_results_bar_draw.bind(_ctrls.results.bar))
+	if !has_node("layout/RSplit/sc/Settings"):
+		_ctrls.settings = Node.new()
+		add_child(_ctrls.settings)
+		_ctrls.settings.name = "DummySettings"
+	else:
+		_ctrls.settings = $layout/RSplit/sc/Settings
 	
-	hide_settings(!(_ctrls.settings_button and _ctrls.settings_button.button_pressed))
+	if !has_node("layout/RSplit/CResults/ControlBar/Light3D"):
+		var light = Control.new()
+		light.custom_minimum_size = Vector2(30, 30)
+		add_child(light)
+		light.name = "DummyLight"
+		_ctrls.light = light
+	else:
+		_ctrls.light = $layout/RSplit/CResults/ControlBar/Light3D
+	
+	# Setup dummy result controls
+	_ctrls.results = {
+		bar = Control.new(),
+		passing = Label.new(),
+		failing = Label.new(),
+		pending = Label.new(),
+		errors = Label.new(),
+		warnings = Label.new(),
+		orphans = Label.new()
+	}
+	
+	if !has_node("layout/RSplit/CResults/TabBar/RunResults"):
+		_ctrls.run_results = _dummy_run_results
+	else:
+		_ctrls.run_results = $layout/RSplit/CResults/TabBar/RunResults
+
+	_gut_config_gui = GutConfigGui.new(_ctrls.settings)
+
+	hide_settings(!_ctrls.settings_button.button_pressed)
 
 	_gut_config.load_options(GutEditorGlobals.editor_run_gut_config_path)
-	
-	if _gut_config_gui:
-		_gut_config_gui.set_options(_gut_config.options)
-	
+	_gut_config_gui.set_options(_gut_config.options)
 	_apply_options_to_controls()
 
-	if _ctrls.shortcuts_button:
-		_ctrls.shortcuts_button.icon = get_theme_icon('Shortcut', 'EditorIcons')
-	if _ctrls.settings_button:
-		_ctrls.settings_button.icon = get_theme_icon('Tools', 'EditorIcons')
-	if _ctrls.run_results_button:
-		_ctrls.run_results_button.icon = get_theme_icon('AnimationTrackGroup', 'EditorIcons') # Tree
-	if _ctrls.output_button:
-		_ctrls.output_button.icon = get_theme_icon('Font', 'EditorIcons')
+	_ctrls.shortcuts_button.icon = get_theme_icon('Shortcut', 'EditorIcons')
+	_ctrls.settings_button.icon = get_theme_icon('Tools', 'EditorIcons')
+	_ctrls.run_results_button.icon = get_theme_icon('AnimationTrackGroup', 'EditorIcons') # Tree
+	_ctrls.output_button.icon = get_theme_icon('Font', 'EditorIcons')
 
-	if _ctrls.run_results and _ctrls.output_ctrl:
-		_ctrls.run_results.set_output_control(_ctrls.output_ctrl)
+	_ctrls.run_results.set_output_control(_ctrls.output_ctrl)
 
 	var check_import = load('res://addons/gut/images/red.png')
 	if (check_import == null):
-		if _ctrls.run_results:
-			_ctrls.run_results.add_centered_text("GUT got some new images that are not imported yet.  Please restart Godot.")
+		_ctrls.run_results.add_centered_text("GUT got some new images that are not imported yet.  Please restart Godot.")
 		print('GUT got some new images that are not imported yet.  Please restart Godot.')
 	else:
-		if _ctrls.run_results:
-			_ctrls.run_results.add_centered_text("Let's run some tests!")
+		_ctrls.run_results.add_centered_text("Let's run some tests!")
 
 
 func _apply_options_to_controls():
@@ -121,9 +139,8 @@ func _process(delta):
 # ---------------
 
 func load_shortcuts():
-	if _ctrls.shortcut_dialog:
-		_ctrls.shortcut_dialog.load_shortcuts()
-		_apply_shortcuts()
+	_ctrls.shortcut_dialog.load_shortcuts()
+	_apply_shortcuts()
 
 
 func _is_test_script(script):
@@ -146,28 +163,17 @@ func _show_errors(errs):
 
 
 func _save_config():
-	if not _user_prefs or not _ctrls:
-		return
-		
-	if _ctrls.has("settings_button") and _ctrls.settings_button:
-		_user_prefs.hide_settings.value = !_ctrls.settings_button.button_pressed
-	
-	if _ctrls.has("run_results_button") and _ctrls.run_results_button:
-		_user_prefs.hide_result_tree.value = !_ctrls.run_results_button.button_pressed
-	
-	if _ctrls.has("output_button") and _ctrls.output_button:
-		_user_prefs.hide_output_text.value = !_ctrls.output_button.button_pressed
-	
-	if _user_prefs.has_method("save_it"):
-		_user_prefs.save_it()
+	_user_prefs.hide_settings.value = !_ctrls.settings_button.button_pressed
+	_user_prefs.hide_result_tree.value = !_ctrls.run_results_button.button_pressed
+	_user_prefs.hide_output_text.value = !_ctrls.output_button.button_pressed
+	_user_prefs.save_it()
 
-	if _gut_config and _gut_config_gui:
-		_gut_config.options = _gut_config_gui.get_options(_gut_config.options)
-		var w_result = _gut_config.write_options(GutEditorGlobals.editor_run_gut_config_path)
-		if (w_result != OK):
-			push_error(str('Could not write options to ', GutEditorGlobals.editor_run_gut_config_path, ': ', w_result))
-		else:
-			_gut_config_gui.mark_saved()
+	_gut_config.options = _gut_config_gui.get_options(_gut_config.options)
+	var w_result = _gut_config.write_options(GutEditorGlobals.editor_run_gut_config_path)
+	if (w_result != OK):
+		push_error(str('Could not write options to ', GutEditorGlobals.editor_run_gut_config_path, ': ', w_result))
+	else:
+		_gut_config_gui.mark_saved()
 
 
 func _run_tests():
@@ -192,29 +198,16 @@ func _run_tests():
 
 
 func _apply_shortcuts():
-	if not _ctrls:
-		return
-		
-	if _ctrls.has("run_button") and _ctrls.run_button and _ctrls.has("shortcut_dialog") and _ctrls.shortcut_dialog and _ctrls.shortcut_dialog.has_method("get_run_all"):
-		_ctrls.run_button.shortcut = _ctrls.shortcut_dialog.get_run_all()
+	_ctrls.run_button.shortcut = _ctrls.shortcut_dialog.get_run_all()
 
-	if _ctrls.has("run_at_cursor"):
-		var run_at_cursor = _ctrls.run_at_cursor
-		if run_at_cursor:
-			var script_button = run_at_cursor.get_script_button()
-			if script_button and _ctrls.has("shortcut_dialog") and _ctrls.shortcut_dialog and _ctrls.shortcut_dialog.has_method("get_run_current_script"):
-				script_button.shortcut = _ctrls.shortcut_dialog.get_run_current_script()
-			
-			var inner_button = run_at_cursor.get_inner_button()
-			if inner_button and _ctrls.has("shortcut_dialog") and _ctrls.shortcut_dialog and _ctrls.shortcut_dialog.has_method("get_run_current_inner"):
-				inner_button.shortcut = _ctrls.shortcut_dialog.get_run_current_inner()
-			
-			var test_button = run_at_cursor.get_test_button()
-			if test_button and _ctrls.has("shortcut_dialog") and _ctrls.shortcut_dialog and _ctrls.shortcut_dialog.has_method("get_run_current_test"):
-				test_button.shortcut = _ctrls.shortcut_dialog.get_run_current_test()
+	_ctrls.run_at_cursor.get_script_button().shortcut = \
+		_ctrls.shortcut_dialog.get_run_current_script()
+	_ctrls.run_at_cursor.get_inner_button().shortcut = \
+		_ctrls.shortcut_dialog.get_run_current_inner()
+	_ctrls.run_at_cursor.get_test_button().shortcut = \
+		_ctrls.shortcut_dialog.get_run_current_test()
 
-	if _panel_button and _ctrls and _ctrls.has("shortcut_dialog") and _ctrls.shortcut_dialog and _ctrls.shortcut_dialog.has_method("get_panel_button"):
-		_panel_button.shortcut = _ctrls.shortcut_dialog.get_panel_button()
+	_panel_button.shortcut = _ctrls.shortcut_dialog.get_panel_button()
 
 
 func _run_all():
@@ -233,9 +226,8 @@ func _on_results_bar_draw(bar):
 
 
 func _on_Light_draw():
-	if _ctrls and _ctrls.has("light") and _ctrls.light != null:
-		var l = _ctrls.light
-		l.draw_circle(Vector2(l.size.x / 2, l.size.y / 2), l.size.x / 2, _light_color)
+	var l = _ctrls.light
+	l.draw_circle(Vector2(l.size.x / 2, l.size.y / 2), l.size.x / 2, _light_color)
 
 
 func _on_editor_script_changed(script):
@@ -289,6 +281,9 @@ func hide_result_tree(should):
 	_ctrls.run_results.visible = !should
 	_ctrls.run_results_button.button_pressed = !should
 
+# Compatibility alias for hide_result_tree
+func _hide_result_tree(should = true):
+	hide_result_tree(should)
 
 func hide_settings(should):
 	var s_scroll = _ctrls.settings.get_parent()
@@ -304,10 +299,17 @@ func hide_settings(should):
 	$layout/RSplit.collapsed = should
 	_ctrls.settings_button.button_pressed = !should
 
+# Compatibility alias for hide_settings
+func _hide_settings(should = true):
+	hide_settings(should)
 
 func hide_output_text(should):
 	$layout/RSplit/CResults/TabBar/OutputText.visible = !should
 	_ctrls.output_button.button_pressed = !should
+
+# Compatibility alias for hide_output_text
+func _hide_output_text(should = true):
+	hide_output_text(should)
 
 
 func load_result_output():
@@ -410,9 +412,3 @@ func nvl(value, if_null):
 		return if_null
 	else:
 		return value
-
-func get_rich_text_edit():
-	if _ctrls and _ctrls.has("output_ctrl") and _ctrls.output_ctrl and _ctrls.output_ctrl.has_method("get_rich_text_edit"):
-		return _ctrls.output_ctrl.get_rich_text_edit()
-	return null
-  

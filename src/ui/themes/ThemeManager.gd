@@ -26,6 +26,8 @@ signal property_override_cleared(control_type: String, property_name: String)
 signal high_contrast_changed(enabled: bool)
 ## Emitted when animation reduction mode changes
 signal reduced_animation_changed(enabled: bool)
+## Emitted when animation settings are updated
+signal animation_settings_updated(settings: Dictionary)
 
 ## Available theme variants
 enum ThemeVariant {
@@ -50,6 +52,15 @@ enum ThemeColor {
 	TEXT_SECONDARY
 }
 
+## Animation types that can be controlled
+enum AnimationType {
+	UI_TRANSITIONS,
+	CHARACTER_EFFECTS,
+	BACKGROUND_EFFECTS,
+	COMBAT_ANIMATIONS,
+	PARTICLE_EFFECTS
+}
+
 # Configuration constants
 const DEFAULT_THEME_PATH := "res://src/ui/themes/sci_fi_theme.tres"
 const THEME_CONFIG_PATH := "user://theme_config.cfg"
@@ -69,6 +80,22 @@ var _scale_factor: float = DEFAULT_SCALE_FACTOR
 var _high_contrast_mode: bool = false
 var _reduced_animation: bool = false
 var _font_overrides: Dictionary = {}
+
+# Animation settings
+var _animation_settings: Dictionary = {
+	AnimationType.UI_TRANSITIONS: true,
+	AnimationType.CHARACTER_EFFECTS: true,
+	AnimationType.BACKGROUND_EFFECTS: true,
+	AnimationType.COMBAT_ANIMATIONS: true,
+	AnimationType.PARTICLE_EFFECTS: true
+}
+var _animation_speeds: Dictionary = {
+	AnimationType.UI_TRANSITIONS: 1.0,
+	AnimationType.CHARACTER_EFFECTS: 1.0,
+	AnimationType.BACKGROUND_EFFECTS: 1.0,
+	AnimationType.COMBAT_ANIMATIONS: 1.0,
+	AnimationType.PARTICLE_EFFECTS: 1.0
+}
 
 ## Initialize the theme manager
 func _init() -> void:
@@ -121,6 +148,22 @@ func _load_config() -> void:
 	if config.has_section_key("accessibility", "reduced_animation"):
 		_reduced_animation = config.get_value("accessibility", "reduced_animation")
 	
+	# Load animation settings
+	if config.has_section("animation_settings"):
+		var keys = config.get_section_keys("animation_settings")
+		for key in keys:
+			var animation_type = int(key)
+			if animation_type in _animation_settings:
+				_animation_settings[animation_type] = config.get_value("animation_settings", key)
+	
+	# Load animation speeds
+	if config.has_section("animation_speeds"):
+		var keys = config.get_section_keys("animation_speeds")
+		for key in keys:
+			var animation_type = int(key)
+			if animation_type in _animation_speeds:
+				_animation_speeds[animation_type] = config.get_value("animation_speeds", key)
+	
 	# Load overrides
 	if config.has_section("overrides"):
 		var keys = config.get_section_keys("overrides")
@@ -132,6 +175,7 @@ func _load_config() -> void:
 	_apply_scale_factor()
 	_apply_high_contrast()
 	_apply_overrides()
+	_apply_animation_settings()
 
 ## Save current theme configuration
 func save_config() -> void:
@@ -144,6 +188,14 @@ func save_config() -> void:
 	config.set_value("accessibility", "scale_factor", _scale_factor)
 	config.set_value("accessibility", "high_contrast", _high_contrast_mode)
 	config.set_value("accessibility", "reduced_animation", _reduced_animation)
+	
+	# Save animation settings
+	for animation_type in _animation_settings:
+		config.set_value("animation_settings", str(animation_type), _animation_settings[animation_type])
+	
+	# Save animation speeds
+	for animation_type in _animation_speeds:
+		config.set_value("animation_speeds", str(animation_type), _animation_speeds[animation_type])
 	
 	# Save overrides
 	for key in _user_overrides:
@@ -504,3 +556,71 @@ func create_themed_control(control_type: String) -> Control:
 	
 	control.theme = _current_theme
 	return control
+
+## Apply animation settings based on user preferences
+func _apply_animation_settings() -> void:
+	# If reduced animation mode is enabled, apply simplified animations
+	if _reduced_animation:
+		# Disable non-essential animations
+		_animation_settings[AnimationType.BACKGROUND_EFFECTS] = false
+		_animation_settings[AnimationType.PARTICLE_EFFECTS] = false
+		# Keep essential animations but simplify them
+		_animation_speeds[AnimationType.UI_TRANSITIONS] = 1.5 # Faster transitions
+		_animation_speeds[AnimationType.COMBAT_ANIMATIONS] = 1.5 # Faster combat
+	else:
+		# Use user settings or defaults
+		pass
+		
+	# Emit signal so other parts of the app can update
+	animation_settings_updated.emit(_animation_settings.duplicate())
+
+## Check if a specific animation type is enabled
+## @param type: The AnimationType to check
+## @return: Whether the animation is enabled
+func is_animation_enabled(type: AnimationType) -> bool:
+	if _reduced_animation and (type == AnimationType.BACKGROUND_EFFECTS or type == AnimationType.PARTICLE_EFFECTS):
+		return false
+		
+	if type in _animation_settings:
+		return _animation_settings[type]
+	return true # Default to enabled
+
+## Get the speed factor for a specific animation type
+## @param type: The AnimationType to get speed for
+## @return: The speed multiplier (1.0 is normal speed)
+func get_animation_speed(type: AnimationType) -> float:
+	if _reduced_animation:
+		return 1.5 # Faster animations when reduced
+		
+	if type in _animation_speeds:
+		return _animation_speeds[type]
+	return 1.0 # Default to normal speed
+
+## Enable or disable a specific animation type
+## @param type: The AnimationType to modify
+## @param enabled: Whether it should be enabled
+func set_animation_enabled(type: AnimationType, enabled: bool) -> void:
+	if type in _animation_settings:
+		_animation_settings[type] = enabled
+		animation_settings_updated.emit(_animation_settings.duplicate())
+		save_config()
+
+## Set the speed for a specific animation type
+## @param type: The AnimationType to modify
+## @param speed: The speed multiplier (0.5 = half speed, 2.0 = double speed)
+func set_animation_speed(type: AnimationType, speed: float) -> void:
+	if type in _animation_speeds:
+		_animation_speeds[type] = clampf(speed, 0.1, 3.0)
+		animation_settings_updated.emit(_animation_settings.duplicate())
+		save_config()
+
+## Get all animation settings
+## @return: Dictionary with current animation settings
+func get_animation_settings() -> Dictionary:
+	var settings = {}
+	for type in _animation_settings:
+		settings[type] = {
+			"enabled": is_animation_enabled(type),
+			"speed": get_animation_speed(type)
+		}
+	return settings

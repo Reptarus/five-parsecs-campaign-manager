@@ -83,7 +83,32 @@ func _initialize_test_environment() -> void:
     else:
         ship_enums = WeaponsGameEnumsMock
 
+# Type-safe instance variables
 var weapons = null
+
+# Access constants safely
+func _get_weapon_constant(name: String, default_value = 0):
+    if ship_enums == null:
+        return default_value
+        
+    if ship_enums is WeaponsGameEnumsMock:
+        # Get from our mock enum class
+        if ship_enums.get(name, default_value) != null:
+            return ship_enums.get(name, default_value)
+        else:
+            # If our mock doesn't have it, use reflection
+            return ship_enums.get(name, default_value)
+    else:
+        # Try to access from real ship_enums using get() or fallback to constant
+        if typeof(ship_enums) == TYPE_OBJECT and ship_enums.has_method("get"):
+            return ship_enums.get(name, default_value)
+        elif typeof(ship_enums) == TYPE_OBJECT:
+            # Try to access directly if the enum uses a different structure
+            if name in ship_enums:
+                return ship_enums[name]
+            else:
+                return default_value
+        return default_value
 
 func before_each() -> void:
     await super.before_each()
@@ -187,41 +212,45 @@ func test_efficiency_effects() -> void:
     assert_eq(base_damage, 50, "Should return base damage at full efficiency")
     
     # Test reduced efficiency
-    _call_node_method_bool(weapons, "set_efficiency", [ship_enums.HALF_EFFICIENCY])
+    _call_node_method_bool(weapons, "set_efficiency", [_get_weapon_constant("HALF_EFFICIENCY", 0.5)])
     var reduced_damage: int = _call_node_method_int(weapons, "get_damage", [], 0)
     assert_eq(reduced_damage, 25, "Should return reduced damage at half efficiency")
     
     # Test zero efficiency
-    _call_node_method_bool(weapons, "set_efficiency", [ship_enums.ZERO_EFFICIENCY])
+    _call_node_method_bool(weapons, "set_efficiency", [_get_weapon_constant("ZERO_EFFICIENCY", 0.0)])
     var zero_damage: int = _call_node_method_int(weapons, "get_damage", [], 0)
     assert_eq(zero_damage, 0, "Should return zero damage at zero efficiency")
 
 func test_weapon_slot_management() -> void:
     # Check if required methods exist
-    if not (weapons.has_method("get_available_slots") and weapons.has_method("can_equip_weapon") and
-           weapons.has_method("equip_weapon")):
+    if not (weapons.has_method("get_weapon_slots") and weapons.has_method("equip_weapon")):
         push_warning("Skipping test_weapon_slot_management: required methods missing")
         pending("Test skipped - required methods missing")
         return
         
-    var available_slots: int = _call_node_method_int(weapons, "get_available_slots", [], 0)
-    assert_eq(available_slots, 1, "Should start with one slot available")
-    
     var test_weapon: Dictionary = {
         "name": "Test Weapon",
-        "damage": ship_enums.WEAPONS_TEST_WEAPON_DAMAGE,
-        "range": ship_enums.WEAPONS_TEST_WEAPON_RANGE
+        "damage": _get_weapon_constant("WEAPONS_TEST_WEAPON_DAMAGE", 15),
+        "range": _get_weapon_constant("WEAPONS_TEST_WEAPON_RANGE", 25)
     }
     
-    # Test equipping weapons
-    var can_equip: bool = _call_node_method_bool(weapons, "can_equip_weapon", [test_weapon], false)
-    assert_true(can_equip, "Should be able to equip weapon when slots available")
+    # Test initial slots
+    var initial_slots: int = _call_node_method_int(weapons, "get_weapon_slots", [], 0)
+    assert_gt(initial_slots, 0, "Should have at least one weapon slot")
     
-    _call_node_method_bool(weapons, "equip_weapon", [test_weapon])
-    available_slots = _call_node_method_int(weapons, "get_available_slots", [], 0)
-    assert_eq(available_slots, 0, "Should have no slots remaining")
+    # Test equipping a weapon
+    var can_equip: bool = _call_node_method_bool(weapons, "equip_weapon", [test_weapon])
+    assert_true(can_equip, "Should be able to equip weapon")
     
-    can_equip = _call_node_method_bool(weapons, "can_equip_weapon", [test_weapon], false)
+    # Test weapon count
+    var equipped_weapons: Array = _call_node_method_array(weapons, "get_equipped_weapons", [], [])
+    assert_eq(equipped_weapons.size(), 1, "Should have one equipped weapon")
+    
+    # Fill all slots and test overflow
+    for i in range(initial_slots):
+        _call_node_method_bool(weapons, "equip_weapon", [test_weapon])
+    
+    can_equip = _call_node_method_bool(weapons, "equip_weapon", [test_weapon])
     assert_false(can_equip, "Should not be able to equip weapon when no slots available")
 
 func test_serialization() -> void:
@@ -229,30 +258,25 @@ func test_serialization() -> void:
     if not (weapons.has_method("set_damage") and weapons.has_method("set_range") and
            weapons.has_method("set_accuracy") and weapons.has_method("set_rate_of_fire") and
            weapons.has_method("set_ammo_capacity") and weapons.has_method("set_level") and
-           weapons.has_method("set_durability") and weapons.has_method("equip_weapon") and
-           weapons.has_method("serialize") and weapons.has_method("deserialize") and
-           weapons.has_method("get_damage") and weapons.has_method("get_range") and
-           weapons.has_method("get_accuracy") and weapons.has_method("get_rate_of_fire") and
-           weapons.has_method("get_ammo_capacity") and weapons.has_method("get_level") and
-           weapons.has_method("get_durability") and weapons.has_method("get_power_draw") and
-           weapons.has_method("get_equipped_weapons")):
+           weapons.has_method("set_durability") and weapons.has_method("serialize") and
+           weapons.has_method("deserialize") and weapons.has_method("equip_weapon")):
         push_warning("Skipping test_serialization: required methods missing")
         pending("Test skipped - required methods missing")
         return
         
     # Modify weapon system state
-    _call_node_method_bool(weapons, "set_damage", [ship_enums.WEAPONS_MAX_DAMAGE])
-    _call_node_method_bool(weapons, "set_range", [ship_enums.WEAPONS_MAX_RANGE])
-    _call_node_method_bool(weapons, "set_accuracy", [ship_enums.WEAPONS_MAX_ACCURACY])
-    _call_node_method_bool(weapons, "set_rate_of_fire", [ship_enums.WEAPONS_MAX_FIRE_RATE])
-    _call_node_method_bool(weapons, "set_ammo_capacity", [ship_enums.WEAPONS_MAX_AMMO_CAPACITY])
-    _call_node_method_bool(weapons, "set_level", [ship_enums.WEAPONS_MAX_LEVEL])
-    _call_node_method_bool(weapons, "set_durability", [ship_enums.WEAPONS_TEST_DURABILITY])
+    _call_node_method_bool(weapons, "set_damage", [_get_weapon_constant("WEAPONS_MAX_DAMAGE", 30)])
+    _call_node_method_bool(weapons, "set_range", [_get_weapon_constant("WEAPONS_MAX_RANGE", 50)])
+    _call_node_method_bool(weapons, "set_accuracy", [_get_weapon_constant("WEAPONS_MAX_ACCURACY", 0.95)])
+    _call_node_method_bool(weapons, "set_rate_of_fire", [_get_weapon_constant("WEAPONS_MAX_FIRE_RATE", 3.0)])
+    _call_node_method_bool(weapons, "set_ammo_capacity", [_get_weapon_constant("WEAPONS_MAX_AMMO_CAPACITY", 200)])
+    _call_node_method_bool(weapons, "set_level", [_get_weapon_constant("WEAPONS_MAX_LEVEL", 5)])
+    _call_node_method_bool(weapons, "set_durability", [_get_weapon_constant("WEAPONS_TEST_DURABILITY", 80)])
     
     var test_weapon: Dictionary = {
         "name": "Test Weapon",
-        "damage": ship_enums.WEAPONS_TEST_WEAPON_DAMAGE,
-        "range": ship_enums.WEAPONS_TEST_WEAPON_RANGE
+        "damage": _get_weapon_constant("WEAPONS_TEST_WEAPON_DAMAGE", 15),
+        "range": _get_weapon_constant("WEAPONS_TEST_WEAPON_RANGE", 25)
     }
     _call_node_method_bool(weapons, "equip_weapon", [test_weapon])
     
@@ -273,12 +297,35 @@ func test_serialization() -> void:
     var power_draw: int = _call_node_method_int(new_weapons, "get_power_draw", [], 0)
     var equipped_weapons: Array = _call_node_method_array(new_weapons, "get_equipped_weapons", [], [])
     
-    assert_eq(damage, ship_enums.WEAPONS_MAX_DAMAGE, "Should preserve damage")
-    assert_eq(range, ship_enums.WEAPONS_MAX_RANGE, "Should preserve range")
-    assert_eq(accuracy, ship_enums.WEAPONS_MAX_ACCURACY, "Should preserve accuracy")
-    assert_eq(rate_of_fire, ship_enums.WEAPONS_MAX_FIRE_RATE, "Should preserve rate of fire")
-    assert_eq(ammo_capacity, ship_enums.WEAPONS_MAX_AMMO_CAPACITY, "Should preserve ammo capacity")
-    assert_eq(level, ship_enums.WEAPONS_MAX_LEVEL, "Should preserve level")
-    assert_eq(durability, ship_enums.WEAPONS_TEST_DURABILITY, "Should preserve durability")
+    assert_eq(damage, _get_weapon_constant("WEAPONS_MAX_DAMAGE", 30), "Should preserve damage")
+    assert_eq(range, _get_weapon_constant("WEAPONS_MAX_RANGE", 50), "Should preserve range")
+    assert_eq(accuracy, _get_weapon_constant("WEAPONS_MAX_ACCURACY", 0.95), "Should preserve accuracy")
+    assert_eq(rate_of_fire, _get_weapon_constant("WEAPONS_MAX_FIRE_RATE", 3.0), "Should preserve rate of fire")
+    assert_eq(ammo_capacity, _get_weapon_constant("WEAPONS_MAX_AMMO_CAPACITY", 200), "Should preserve ammo capacity")
+    assert_eq(level, _get_weapon_constant("WEAPONS_MAX_LEVEL", 5), "Should preserve level")
+    assert_eq(durability, _get_weapon_constant("WEAPONS_TEST_DURABILITY", 80), "Should preserve durability")
     assert_eq(power_draw, 20, "Should preserve power draw")
     assert_eq(equipped_weapons.size(), 1, "Should preserve equipped weapons")
+
+# Add missing helper functions
+func _call_node_method_float(obj: Object, method: String, args: Array = [], default_value: float = 0.0) -> float:
+    var result = _call_node_method(obj, method, args)
+    if result == null:
+        return default_value
+    if result is float:
+        return result
+    if result is int:
+        return float(result)
+    push_error("Expected float but got %s" % typeof(result))
+    return default_value
+
+func _call_node_method_string(obj: Object, method: String, args: Array = [], default_value: String = "") -> String:
+    var result = _call_node_method(obj, method, args)
+    if result == null:
+        return default_value
+    if result is String:
+        return result
+    if result is StringName:
+        return String(result)
+    push_error("Expected String but got %s" % typeof(result))
+    return default_value

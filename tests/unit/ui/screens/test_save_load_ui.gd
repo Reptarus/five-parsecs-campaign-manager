@@ -53,6 +53,7 @@ func before_each() -> void:
 	
 	# Initialize game state with type safety
 	mock_game_state = Node.new()
+	var GameStateScript = preload("res://src/core/state/GameState.gd")
 	mock_game_state.set_script(GameStateScript)
 	if not mock_game_state.get_script() == GameStateScript:
 		push_error("Failed to set GameState script")
@@ -139,6 +140,18 @@ func _set_ui_property(property: String, value: Variant) -> void:
 		push_error("SaveLoadUI missing required property: %s" % property)
 		return
 	save_load_ui.set(property, value)
+
+# Custom helper methods for property access
+func _get_property_safe(obj: Object, property: String, default_value: Variant = null) -> Variant:
+	if not obj or not obj.has_method("get"):
+		return default_value
+	return obj.get(property) if obj.has(property) else default_value
+
+func _set_property_safe(obj: Object, property: String, value: Variant) -> void:
+	if not obj or not obj.has_method("set"):
+		return
+	if obj.has(property):
+		obj.set(property, value)
 
 # Basic State Tests
 func test_initial_state() -> void:
@@ -656,3 +669,11 @@ func test_invalid_load_operation() -> void:
 	
 	# Should not emit load_requested if no save is selected
 	verify_signal_not_emitted(save_load_ui, "load_requested")
+
+# Helper function for signal verification
+func verify_signal_emitted(emitter: Object, signal_name: String, message: String = "") -> void:
+	assert_signal_emitted(emitter, signal_name, message if message else "Signal %s should have been emitted" % signal_name)
+
+# Helper functions for signal verification
+func verify_signal_not_emitted(emitter: Object, signal_name: String, message: String = "") -> void:
+	assert_signal_not_emitted(emitter, signal_name, message if message else "Signal %s should not have been emitted" % signal_name)

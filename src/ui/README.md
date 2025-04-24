@@ -45,7 +45,39 @@ Key files:
 
 The UI system includes components that automatically adapt to different screen sizes and device capabilities:
 
-- `components/ResponsiveContainer.gd`: A container that switches between horizontal and vertical layouts based on available space
+- `components/base/ResponsiveContainer.gd`: A unified responsive container that adapts to screen size and orientation. It provides both width-based layout switching (horizontal/vertical) and aspect ratio-based orientation detection (portrait/landscape).
+
+### Responsive Layout
+
+The `ResponsiveContainer` provides a unified solution for responsive UI layouts:
+
+```gdscript
+var container = ResponsiveContainer.new()
+container.min_width_for_horizontal = 800 # Breakpoint width for layout switching
+container.portrait_threshold = 1.0 # Width/height ratio threshold for orientation detection
+
+# Monitor layout changes
+container.layout_changed.connect(func(is_compact):
+    print("Layout changed to: %s" % ("compact" if is_compact else "expanded"))
+)
+
+# Monitor orientation changes
+container.orientation_changed.connect(func(is_portrait):
+    print("Orientation changed to: %s" % ("portrait" if is_portrait else "landscape"))
+)
+```
+
+The consolidated implementation supports both layout modes and orientation detection in a single component:
+
+1. **Layout Mode** (horizontal vs vertical arrangement of children)
+   - Controlled by `min_width_for_horizontal` and `responsive_mode`
+   - Triggers `layout_changed` signal
+   - Access with `is_compact_layout()` or `is_compact` property
+
+2. **Orientation Detection** (portrait vs landscape screen orientation)
+   - Controlled by `portrait_threshold` property 
+   - Triggers `orientation_changed` signal
+   - Access with `get_current_orientation()` or `is_portrait` property
 
 ## Usage Examples
 

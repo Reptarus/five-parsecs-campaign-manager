@@ -3,6 +3,8 @@ extends "res://tests/performance/base/perf_test_base.gd"
 
 # Type-safe script references
 const BattleSystemScript: GDScript = preload("res://src/core/battle/state/BattleStateMachine.gd")
+# For accessing the renamed class
+const BattleStateMachineClass = BattleSystemScript
 const CharacterScript: GDScript = preload("res://src/core/character/Base/Character.gd")
 const WeaponScript: GDScript = preload("res://src/core/systems/items/GameWeapon.gd")
 
@@ -37,7 +39,7 @@ func before_each() -> void:
     await super.before_each()
     
     # Initialize battle system
-    _battle_system = BattleSystemScript.new()
+    _battle_system = BattleStateMachineClass.new()
     if not _battle_system:
         push_error("Failed to create battle system")
         return

@@ -2,7 +2,7 @@
 # Use explicit preloads instead of global class names
 extends Control
 
-const Self = preload("res://src/ui/components/character/CharacterSheet.gd")
+const Self := "res://src/ui/components/character/CharacterSheet.gd" # Use string path instead of preload
 
 func _ready() -> void:
     pass

@@ -34,9 +34,19 @@ const BATTLE_EVENTS = {
 	}
 }
 
+# Get all battle events
+static func get_battle_events() -> Dictionary:
+	return BATTLE_EVENTS
+
+# Get a specific event by name
+static func get_event(event_name: String) -> Dictionary:
+	if event_name in BATTLE_EVENTS:
+		return BATTLE_EVENTS[event_name]
+	return {}
+
 # Event trigger conditions
 static func check_event_requirements(event_name: String, context: Dictionary) -> bool:
-	if not BATTLE_EVENTS.has(event_name):
+	if not event_name in BATTLE_EVENTS:
 		return false
 		
 	var event = BATTLE_EVENTS[event_name]

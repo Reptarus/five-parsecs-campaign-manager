@@ -41,7 +41,10 @@ var crew_members: Array[Character] = []
 var captain: Character:
 	set(value):
 		assert(value != null, "Captain cannot be null")
-		captain = value
+		if value is Character:
+			captain = value as Character
+		else:
+			push_error("Invalid captain type. Expected Character but got %s" % value.get_class())
 
 # Campaign Progress
 var story_points: int = 0
@@ -202,14 +205,21 @@ func from_dictionary(data: Dictionary) -> void:
 	crew_members.clear()
 	for member_data in data.get("crew_members", []):
 		var member = Character.new()
-		member.from_dictionary(member_data)
-		crew_members.append(member)
+		if member is Character:
+			member.from_dictionary(member_data)
+			crew_members.append(member as Character)
+		else:
+			push_error("Failed to create crew member: invalid type")
 	
 	# Load captain data
 	var captain_data = data.get("captain")
 	if captain_data:
-		captain = Character.new()
-		captain.from_dictionary(captain_data)
+		var new_captain = Character.new()
+		if new_captain is Character:
+			new_captain.from_dictionary(captain_data)
+			captain = new_captain as Character
+		else:
+			push_error("Failed to create captain: invalid type")
 	
 	resources = data.get("resources", {}).duplicate()
 	story_points = data.get("story_points", 0)

@@ -18,10 +18,10 @@ const PHASE_COLORS = {
 }
 
 # Node references
-@onready var phase_label: Label = $PhaseLabel
-@onready var progress_bar: ProgressBar = $ProgressBar
-@onready var next_phase_label: Label = $NextPhaseLabel
-@onready var phase_description: Label = $PhaseDescription
+@onready var phase_label: Label = $PhaseLabel if has_node("PhaseLabel") else null
+@onready var progress_bar: ProgressBar = $ProgressBar if has_node("ProgressBar") else null
+@onready var next_phase_label: Label = $NextPhaseLabel if has_node("NextPhaseLabel") else null
+@onready var phase_description: Label = $PhaseDescription if has_node("PhaseDescription") else null
 
 # Properties
 var current_phase: String = "preparation":
@@ -43,8 +43,15 @@ var phase_description_text: String = "":
 			phase_description.text = value
 
 func _ready() -> void:
+	if not is_inside_tree():
+		return
+		
 	_setup_ui()
 	_update_display()
+	
+	# Connect input event if not already connected
+	if not gui_input.is_connected(_gui_input):
+		gui_input.connect(_gui_input)
 	
 func _setup_ui() -> void:
 	# Set up the visual style and layout
@@ -104,12 +111,18 @@ func reset_progress() -> void:
 func _gui_input(event: InputEvent) -> void:
 	if event is InputEventMouseButton:
 		if event.button_index == MOUSE_BUTTON_LEFT and event.pressed:
-			emit_signal("phase_clicked", current_phase)
+			phase_clicked.emit(current_phase)
 
 # Public methods
 func highlight_phase(duration: float = 0.3) -> void:
+	if not is_inside_tree():
+		return
+		
 	# Create a temporary highlight effect
 	var tween = create_tween()
+	if not tween:
+		return
+		
 	tween.tween_property(self, "modulate:a", 0.5, duration * 0.5)
 	tween.tween_property(self, "modulate:a", 1.0, duration * 0.5)
 

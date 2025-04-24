@@ -164,7 +164,9 @@ func trigger_story_event(event: StoryQuestData) -> void:
 	
 	# Generate related quests
 	var related_quests := _generate_related_quests(event)
-	available_quests.append_array(related_quests)
+	# Properly append each quest to the typed array instead of using append_array
+	for quest in related_quests:
+		available_quests.append(quest)
 	
 	# Update campaign state
 	if campaign_manager:
@@ -190,8 +192,9 @@ func _initialize_story_content() -> void:
 
 ## Load story events from JSON file
 func _load_story_events() -> void:
-	if FileAccess.file_exists("res://src/data/resources/Story/story_events.json"):
-		var file := FileAccess.open("res://src/data/resources/Story/story_events.json", FileAccess.READ)
+	var story_events_filepath = "res://src/data/resources/Story/story_events.json"
+	if FileAccess.file_exists(story_events_filepath):
+		var file := FileAccess.open(story_events_filepath, FileAccess.READ)
 		var json := JSON.new()
 		var parse_result := json.parse(file.get_as_text())
 		file.close()
@@ -199,14 +202,17 @@ func _load_story_events() -> void:
 		if parse_result == OK:
 			story_event_templates = json.get_data()
 		else:
-			push_error("Failed to parse story events file")
+			push_error("Failed to parse story events file: %s at line %s" % [json.get_error_message(), json.get_error_line()])
+			story_event_templates = _get_default_story_events()
 	else:
-		push_error("Story events file not found")
+		push_warning("Story events file not found, using built-in defaults")
+		story_event_templates = _get_default_story_events()
 
 ## Load quest templates from JSON file
 func _load_quest_templates() -> void:
-	if FileAccess.file_exists("res://src/data/resources/Story/quest_templates.json"):
-		var file := FileAccess.open("res://src/data/resources/Story/quest_templates.json", FileAccess.READ)
+	var quest_templates_filepath = "res://src/data/resources/Story/quest_templates.json"
+	if FileAccess.file_exists(quest_templates_filepath):
+		var file := FileAccess.open(quest_templates_filepath, FileAccess.READ)
 		var json := JSON.new()
 		var parse_result := json.parse(file.get_as_text())
 		file.close()
@@ -214,9 +220,105 @@ func _load_quest_templates() -> void:
 		if parse_result == OK:
 			quest_templates = json.get_data()
 		else:
-			push_error("Failed to parse quest templates file")
+			push_error("Failed to parse quest templates file: %s at line %s" % [json.get_error_message(), json.get_error_line()])
+			quest_templates = _get_default_quest_templates()
 	else:
-		push_error("Quest templates file not found")
+		push_warning("Quest templates file not found, using built-in defaults")
+		quest_templates = _get_default_quest_templates()
+
+## Get default story events when the file is missing
+func _get_default_story_events() -> Dictionary:
+	var defaults = {
+		"0": [
+			{
+				"event_id": "intro_event",
+				"event_type": GameEnums.GlobalEvent.TECH_BREAKTHROUGH,
+				"title": "A New Beginning",
+				"description": "As you begin your journey among the stars, rumors of new technologies spread across the sector."
+			}
+		],
+		"1": [
+			{
+				"event_id": "market_event",
+				"event_type": GameEnums.GlobalEvent.MARKET_CRASH,
+				"title": "Market Upheaval",
+				"description": "Economic turmoil spreads throughout the sector as trade routes are disrupted."
+			},
+			{
+				"event_id": "pirate_event",
+				"event_type": 3,
+				"title": "Rising Threats",
+				"description": "Pirate activity has increased in outlying systems, making travel more dangerous."
+			}
+		],
+		"2": [
+			{
+				"event_id": "alien_event",
+				"event_type": GameEnums.GlobalEvent.ALIEN_INVASION,
+				"title": "Unknown Contact",
+				"description": "Strange signals have been detected on the fringes of known space."
+			}
+		]
+	}
+	return defaults
+
+## Get default quest templates when the file is missing
+func _get_default_quest_templates() -> Dictionary:
+	var defaults = {
+		"0": [
+			{
+				"quest_id": "tutorial_quest",
+				"title": "First Steps",
+				"description": "Complete a basic mission to prove your crew's worth.",
+				"objective": GameEnums.MissionObjective.RECON,
+				"story_point_reward": 1,
+				"rewards": {
+					"credits": 500,
+					"reputation": 3
+				}
+			}
+		],
+		"1": [
+			{
+				"quest_id": "patrol_quest",
+				"title": "Border Patrol",
+				"description": "Help secure the borders against increasing threats.",
+				"objective": GameEnums.MissionObjective.PATROL,
+				"story_point_reward": 2,
+				"rewards": {
+					"credits": 800,
+					"reputation": 5
+				}
+			},
+			{
+				"quest_id": "rescue_quest",
+				"title": "Rescue Operation",
+				"description": "Save a stranded crew from a derelict station.",
+				"objective": GameEnums.MissionObjective.RESCUE,
+				"story_point_reward": 3,
+				"rewards": {
+					"credits": 1000,
+					"reputation": 7,
+					"special": 2
+				}
+			}
+		],
+		"2": [
+			{
+				"quest_id": "artifact_quest",
+				"title": "Ancient Discovery",
+				"description": "Recover a mysterious alien artifact from a forgotten world.",
+				"objective": 3,
+				"story_point_reward": 4,
+				"rewards": {
+					"credits": 1500,
+					"reputation": 8,
+					"special": 5
+				}
+			}
+		]
+	}
+	return defaults
 
 ## Setup the initial chapter
 func _setup_initial_chapter() -> void:
@@ -237,8 +339,12 @@ func _update_available_content() -> void:
 	if not game_state:
 		return
 		
-	# Remove expired quests
-	available_quests = available_quests.filter(func(q): return not q.is_expired(game_state.current_turn))
+	# Remove expired quests - use a safer approach for typed arrays
+	var valid_quests: Array[StoryQuestData] = []
+	for quest in available_quests:
+		if not quest.is_expired(game_state.current_turn):
+			valid_quests.append(quest)
+	available_quests = valid_quests
 	
 	# Generate new quests if needed
 	while available_quests.size() < 3:

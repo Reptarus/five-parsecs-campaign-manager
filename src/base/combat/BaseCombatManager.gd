@@ -70,6 +70,12 @@ class BaseCombatState:
 func _ready() -> void:
     if not battlefield_manager:
         push_warning("BaseCombatManager: No battlefield manager assigned")
+        # Create a temporary battlefield manager for testing purposes
+        if ResourceLoader.exists("res://src/base/combat/battlefield/BaseBattlefieldManager.gd"):
+            var BattlefieldManagerClass = load("res://src/base/combat/battlefield/BaseBattlefieldManager.gd")
+            if BattlefieldManagerClass:
+                battlefield_manager = BattlefieldManagerClass.new()
+                add_child(battlefield_manager)
 
 ## Manual override handling methods
 func request_position_override(character, current_position: Vector2i) -> void:

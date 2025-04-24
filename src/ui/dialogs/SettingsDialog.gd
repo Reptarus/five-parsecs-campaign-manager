@@ -2,6 +2,7 @@
 # This file should be referenced via preload
 # Use explicit preloads instead of global class names
 extends Window
+class_name SettingsDialog
 
 const Self = preload("res://src/ui/dialogs/SettingsDialog.gd")
 
@@ -17,6 +18,8 @@ const ThemeManager = preload("res://src/ui/themes/ThemeManager.gd")
 signal settings_applied(settings: Dictionary)
 ## Signal when settings are reset to defaults
 signal settings_reset()
+## Signal when dialog is closed
+signal dialog_closed()
 
 ## UI references
 @onready var theme_option: OptionButton = $VBoxContainer/ThemeSection/ThemeOption
@@ -28,7 +31,15 @@ signal settings_reset()
 ## Theme manager reference
 var theme_manager: ThemeManager
 
+## Initialize the dialog with the base setup
 func _ready() -> void:
+	if Engine.is_editor_hint():
+		return
+		
+	if not is_properly_initialized():
+		push_error("SettingsDialog: Failed to initialize - UI components not found")
+		return
+	
 	# Set up theme options
 	theme_option.clear()
 	for theme_name in ThemeManager.ThemeVariant.keys():
@@ -42,33 +53,85 @@ func _ready() -> void:
 	update_scale_label(ThemeManager.DEFAULT_SCALE_FACTOR)
 	
 	# Connect signals
-	scale_slider.value_changed.connect(_on_scale_changed)
-	theme_option.item_selected.connect(_on_theme_selected)
-	high_contrast_check.toggled.connect(_on_high_contrast_toggled)
-	reduced_animation_check.toggled.connect(_on_reduced_animation_toggled)
+	_connect_signals()
 	
-	$VBoxContainer/ButtonSection/ApplyButton.pressed.connect(_on_apply_pressed)
-	$VBoxContainer/ButtonSection/ResetButton.pressed.connect(_on_reset_pressed)
-	$VBoxContainer/ButtonSection/CloseButton.pressed.connect(_on_close_pressed)
-	
-	close_requested.connect(_on_close_pressed)
+	# Hide the dialog by default
+	hide()
 
-## Connect the theme manager to this dialog
+## Connect the dialog's signals
+func _connect_signals() -> void:
+	if scale_slider and not scale_slider.value_changed.is_connected(_on_scale_changed):
+		scale_slider.value_changed.connect(_on_scale_changed)
+		
+	if theme_option and not theme_option.item_selected.is_connected(_on_theme_selected):
+		theme_option.item_selected.connect(_on_theme_selected)
+		
+	if high_contrast_check and not high_contrast_check.toggled.is_connected(_on_high_contrast_toggled):
+		high_contrast_check.toggled.connect(_on_high_contrast_toggled)
+		
+	if reduced_animation_check and not reduced_animation_check.toggled.is_connected(_on_reduced_animation_toggled):
+		reduced_animation_check.toggled.connect(_on_reduced_animation_toggled)
+	
+	var apply_button = get_node_or_null("VBoxContainer/ButtonSection/ApplyButton")
+	if apply_button and not apply_button.pressed.is_connected(_on_apply_pressed):
+		apply_button.pressed.connect(_on_apply_pressed)
+	
+	var reset_button = get_node_or_null("VBoxContainer/ButtonSection/ResetButton")
+	if reset_button and not reset_button.pressed.is_connected(_on_reset_pressed):
+		reset_button.pressed.connect(_on_reset_pressed)
+	
+	var close_button = get_node_or_null("VBoxContainer/ButtonSection/CloseButton")
+	if close_button and not close_button.pressed.is_connected(_on_close_pressed):
+		close_button.pressed.connect(_on_close_pressed)
+	
+	if not close_requested.is_connected(_on_close_pressed):
+		close_requested.connect(_on_close_pressed)
+
+## Initialize the dialog with theme manager
 ## @param manager: Reference to the theme manager
-func connect_theme_manager(manager: ThemeManager) -> void:
+func initialize(manager: ThemeManager) -> void:
 	theme_manager = manager
 	
+	if not is_properly_initialized():
+		push_error("SettingsDialog: Cannot initialize with theme manager - UI components not found")
+		return
+		
 	# Update controls to match current theme settings
-	theme_option.selected = theme_manager.get_theme_variant()
-	scale_slider.value = theme_manager.get_scale_factor()
-	update_scale_label(theme_manager.get_scale_factor())
-	high_contrast_check.button_pressed = theme_manager.is_high_contrast_enabled()
-	reduced_animation_check.button_pressed = theme_manager.is_reduced_animation_enabled()
+	if theme_manager:
+		theme_option.selected = theme_manager.get_theme_variant()
+		scale_slider.value = theme_manager.get_scale_factor()
+		update_scale_label(theme_manager.get_scale_factor())
+		high_contrast_check.button_pressed = theme_manager.is_high_contrast_enabled()
+		reduced_animation_check.button_pressed = theme_manager.is_reduced_animation_enabled()
 
 ## Update the scale value label
 ## @param value: New scale value
 func update_scale_label(value: float) -> void:
-	scale_value.text = "%d%%" % int(value * 100)
+	if scale_value:
+		scale_value.text = "%d%%" % int(value * 100)
+
+## Show the dialog with settings
+func show_dialog() -> void:
+	if not is_properly_initialized():
+		push_error("SettingsDialog: Cannot show dialog - UI components not found")
+		return
+		
+	# Update UI to current settings if manager available
+	if theme_manager:
+		theme_option.selected = theme_manager.get_theme_variant()
+		scale_slider.value = theme_manager.get_scale_factor()
+		update_scale_label(theme_manager.get_scale_factor())
+		high_contrast_check.button_pressed = theme_manager.is_high_contrast_enabled()
+		reduced_animation_check.button_pressed = theme_manager.is_reduced_animation_enabled()
+	
+	# Show the dialog
+	popup_centered()
+	show()
+
+## Hide the dialog and emit closed signal
+func hide_dialog() -> void:
+	hide()
+	dialog_closed.emit()
 
 ## Handle scale slider changes
 func _on_scale_changed(value: float) -> void:
@@ -95,7 +158,11 @@ func _on_reduced_animation_toggled(enabled: bool) -> void:
 ## Handle apply button press
 func _on_apply_pressed() -> void:
 	if not theme_manager:
-		push_error("Theme manager not connected")
+		push_error("SettingsDialog: Theme manager not connected")
+		return
+	
+	if not is_properly_initialized():
+		push_error("SettingsDialog: Cannot apply settings - UI components not found")
 		return
 	
 	# Apply all settings
@@ -117,10 +184,14 @@ func _on_apply_pressed() -> void:
 	settings_applied.emit(settings)
 	
 	# Close dialog
-	hide()
+	hide_dialog()
 
 ## Handle reset button press
 func _on_reset_pressed() -> void:
+	if not is_properly_initialized():
+		push_error("SettingsDialog: Cannot reset settings - UI components not found")
+		return
+		
 	# Reset to defaults
 	theme_option.selected = ThemeManager.ThemeVariant.DEFAULT
 	scale_slider.value = ThemeManager.DEFAULT_SCALE_FACTOR
@@ -139,4 +210,13 @@ func _on_reset_pressed() -> void:
 
 ## Handle close button press
 func _on_close_pressed() -> void:
-	hide()
+	hide_dialog()
+
+## Check if all UI components are properly initialized
+## @return: True if all required components are valid
+func is_properly_initialized() -> bool:
+	return theme_option != null and \
+		   scale_slider != null and \
+		   scale_value != null and \
+		   high_contrast_check != null and \
+		   reduced_animation_check != null

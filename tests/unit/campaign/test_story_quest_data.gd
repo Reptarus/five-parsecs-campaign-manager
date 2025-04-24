@@ -113,15 +113,15 @@ func test_basic_properties() -> void:
 
 func test_objectives_management() -> void:
 	# Test adding objectives
-	var objective1 = {"description": "Complete task 1", "completed": false}
-	var objective2 = {"description": "Complete task 2", "completed": false}
+	var objective_type1 = 1 # Using an integer for objective type
+	var objective_type2 = 2 # Using an integer for objective type
 	
 	if quest_data.has_method("add_objective"):
-		quest_data.add_objective(objective1)
+		quest_data.add_objective(objective_type1, "Complete task 1", true)
 		assert_true(true, "Should successfully add first objective")
 	
 	if quest_data.has_method("add_objective"):
-		quest_data.add_objective(objective2)
+		quest_data.add_objective(objective_type2, "Complete task 2", true)
 		assert_true(true, "Should successfully add second objective")
 	
 	var objectives = []
@@ -137,7 +137,7 @@ func test_objectives_management() -> void:
 	
 	# Test completing objectives
 	if quest_data.has_method("complete_objective"):
-		quest_data.complete_objective(0)
+		quest_data.complete_objective(objective_type1)
 	
 	if quest_data.has_method("get_objectives"):
 		objectives = quest_data.get_objectives()
@@ -153,7 +153,7 @@ func test_objectives_management() -> void:
 	assert_false(is_completed, "Quest should not be complete yet")
 	
 	if quest_data.has_method("complete_objective"):
-		quest_data.complete_objective(1)
+		quest_data.complete_objective(objective_type2)
 	
 	if quest_data.get("is_completed") != null:
 		is_completed = quest_data.is_completed
@@ -257,12 +257,12 @@ func test_serialization() -> void:
 	if quest_data.has_method("set_quest_type"):
 		quest_data.set_quest_type("side")
 	
-	var objective1 = {"description": "Complete task 1", "completed": true}
-	var objective2 = {"description": "Complete task 2", "completed": false}
+	var objective_type1 = 1 # Using an integer for objective type
+	var objective_type2 = 2 # Using an integer for objective type
 	
 	if quest_data.has_method("add_objective"):
-		quest_data.add_objective(objective1)
-		quest_data.add_objective(objective2)
+		quest_data.add_objective(objective_type1, "Complete task 1", true)
+		quest_data.add_objective(objective_type2, "Complete task 2", true)
 	
 	var rewards = {"credits": 1000, "reputation": 5, "items": ["medkit", "weapon"]}
 	if quest_data.has_method("set_rewards"):

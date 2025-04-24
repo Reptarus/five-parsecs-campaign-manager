@@ -167,8 +167,8 @@ func test_reward_scaling() -> void:
 	var reward = Compatibility.safe_call_method(high_diff_mission, "get_reward", [], null)
 	assert_not_null(reward, "High difficulty mission should have a reward")
 	
-	# Apply difficulty reward scaling if applicable
-	if high_diff_mission.has("apply_difficulty_scaling_to_reward"):
+	# Apply difficulty reward scaling if applicable - use type-safe check
+	if Compatibility.safe_call_method(high_diff_mission, "has_method", ["apply_difficulty_scaling_to_reward"], false):
 		Compatibility.safe_call_method(high_diff_mission, "apply_difficulty_scaling_to_reward", [])
 		
 		var scaled_credits: int = Compatibility.safe_call_method(reward, "get_credits", [], 0)
@@ -187,6 +187,10 @@ func test_mission_generation() -> void:
 	var generated_mission = Compatibility.safe_call_method(_generator, "generate_mission", [], null)
 	assert_not_null(generated_mission, "Should generate a mission")
 	
+	# Add null check before accessing properties
+	if not generated_mission:
+		return
+		
 	var name: String = Compatibility.safe_call_method(generated_mission, "get_name", [], "")
 	var description: String = Compatibility.safe_call_method(generated_mission, "get_description", [], "")
 	

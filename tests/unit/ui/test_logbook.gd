@@ -1,10 +1,10 @@
 @tool
 extends "res://tests/fixtures/specialized/ui_test.gd"
 
-const LogbookClass = preload("res://src/ui/components/logbook/Logbook.gd")
+const LogbookClass = preload("res://src/ui/components/logbook/logbook.gd")
 # Type-safe constants and script references
 var Logbook: GDScript = null
-var logbook: Object = null
+var logbook: Container = null
 
 # Add the compatibility path helper class
 class CompatibilityPath:
@@ -23,7 +23,7 @@ func _init() -> void:
 		var compatibility = CompatibilityPath.new()
 		Logbook = compatibility.create_script()
 		Logbook.source_code = """
-extends Control
+extends Container
 
 signal crew_selected(crew_id)
 signal entry_selected(entry_id)
@@ -65,11 +65,11 @@ func clear():
 		Logbook.reload()
 
 	# Initialize logbook instance
-	logbook = Object.new()
+	logbook = Container.new()
 	logbook.set_script(Logbook)
 
 # Type-safe instance variables
-var _component: Control = null
+var _component: Container = null
 var _last_crew_selection: String = ""
 var _last_entry_selection: String = ""
 var _last_notes_text: String = ""
@@ -77,7 +77,7 @@ var _last_notes_text: String = ""
 # Type-safe lifecycle methods
 func before_each() -> void:
 	await super.before_each()
-	_component = Logbook.new() as Control
+	_component = Logbook.new() as Container
 	if not _component:
 		push_error("Failed to create logbook component")
 		return

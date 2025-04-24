@@ -1,53 +1,121 @@
 @tool
 extends EditorPlugin
-
+var VersionConversion = null
+var Compatibility = null
+var Polyfill = null
 var _bottom_panel = null
 
-func _version_conversion():
-	var EditorGlobals = load("res://addons/gut/gui/editor_globals.gd")
-	EditorGlobals.create_temp_directory()
+func _init():
+	# Load polyfill first
+	if ResourceLoader.exists("res://addons/gut/temp/gdscript_polyfill.gd"):
+		Polyfill = load("res://addons/gut/temp/gdscript_polyfill.gd")
+	
+	# Load required modules with error checking
+	if ResourceLoader.exists("res://addons/gut/version_conversion.gd"):
+		VersionConversion = load("res://addons/gut/version_conversion.gd")
+		
+	if ResourceLoader.exists("res://addons/gut/compatibility.gd"):
+		Compatibility = load("res://addons/gut/compatibility.gd").new()
+	
+	# Check classes using the compatibility layer
+	if Compatibility:
+		Compatibility.error_if_not_all_classes_imported([VersionConversion])
 
-	# Create an instance of the version conversion class
-	var version_converter = load("res://addons/gut/version_conversion.gd")
-	# Check if the class has the convert method
-	if version_converter.has_method("convert"):
-		version_converter.convert()
+
+func _version_conversion():
+	var EditorGlobals = null
+	if ResourceLoader.exists("res://addons/gut/gui/editor_globals.gd"):
+		EditorGlobals = load("res://addons/gut/gui/editor_globals.gd")
+	
+	if not EditorGlobals:
+		push_error("Could not load editor_globals.gd")
+		return false
+	
+	# Safely check for method using polyfill if available
+	var has_method = false
+	if Polyfill:
+		has_method = Polyfill.object_has_method(EditorGlobals, "create_temp_directory")
+	else:
+		# Fallback
+		has_method = EditorGlobals.has_method("create_temp_directory")
+	
+	if has_method:
+		EditorGlobals.create_temp_directory()
+	else:
+		push_error("editor_globals.gd is missing create_temp_directory method")
+		return false
+
+	if Compatibility:
+		Compatibility.error_if_not_all_classes_imported([VersionConversion, EditorGlobals])
+
+	# Make sure VersionConversion has the convert method before calling it
+	if VersionConversion:
+		var has_convert = false
+		if Polyfill:
+			has_convert = Polyfill.object_has_method(VersionConversion, "convert")
+		else:
+			# Fallback
+			has_convert = VersionConversion.has_method("convert")
+			
+		if has_convert:
+			VersionConversion.convert()
+			return true
+		else:
+			push_error("VersionConversion is missing convert method")
+			
+	return false
+
 
 func _enter_tree():
-	_version_conversion()
+	if not _version_conversion():
+		return
 
-	_bottom_panel = preload('res://addons/gut/gui/GutBottomPanel.tscn').instantiate()
+	# Create the panel more safely
+	if ResourceLoader.exists('res://addons/gut/gui/GutBottomPanel.tscn'):
+		var panel_scene = load('res://addons/gut/gui/GutBottomPanel.tscn')
+		if panel_scene:
+			_bottom_panel = panel_scene.instantiate()
+		else:
+			push_error("Failed to load GutBottomPanel.tscn")
+			return
+	else:
+		push_error("GutBottomPanel.tscn not found")
+		return
+		
+	if not _bottom_panel:
+		push_error("Failed to instantiate GutBottomPanel")
+		return
 
 	var button = add_control_to_bottom_panel(_bottom_panel, 'GUT')
-	button.shortcut_in_tooltip = true
+	if button:
+		button.shortcut_in_tooltip = true
 
-	# ---------
-	# I removed this delay because it was causing issues with the shortcut button.
-	# The shortcut button wouldn't work right until load_shortcuts is called., but
-	# the delay gave you 3 seconds to click it before they were loaded.  This
-	# await came with the conversion to 4 and probably isn't needed anymore.
-	# I'm leaving it here becuase I don't know why it showed up to begin with
-	# and if it's needed, it will be pretty hard to debug without seeing this.
-	#
-	# This should be deleted after the next release or two if not needed.
-	# await get_tree().create_timer(3).timeout
-	# ---
-	_bottom_panel.set_interface(get_editor_interface())
-	_bottom_panel.set_plugin(self)
-	_bottom_panel.set_panel_button(button)
-	_bottom_panel.load_shortcuts()
+	# Set up the panel
+	if _bottom_panel.has_method("set_interface"):
+		_bottom_panel.set_interface(get_editor_interface())
+	
+	if _bottom_panel.has_method("set_plugin"):
+		_bottom_panel.set_plugin(self)
+	
+	if _bottom_panel.has_method("set_panel_button"):
+		_bottom_panel.set_panel_button(button)
+	
+	if _bottom_panel.has_method("load_shortcuts"):
+		_bottom_panel.load_shortcuts()
+	else:
+		push_warning("GutBottomPanel missing load_shortcuts method")
 
 
 func _exit_tree():
 	# Clean-up of the plugin goes here
-	# Always remember to remove_at it from the engine when deactivated
-	remove_control_from_bottom_panel(_bottom_panel)
-	_bottom_panel.free()
-
+	if _bottom_panel:
+		remove_control_from_bottom_panel(_bottom_panel)
+		_bottom_panel.free()
+	_bottom_panel = null
 
 # This seems like a good idea at first, but it deletes the settings for ALL
 # projects.  If by chance you want to do that you can uncomment this, reload the
 # project and then disable GUT.
 # func _disable_plugin():
 #	var GutEditorGlobals = load('res://addons/gut/gui/editor_globals.gd')
-# 	GutEditorGlobals.user_prefs.erase_all()
+# 	GutEditorGlobals.user_prefs.erase_al

@@ -85,8 +85,12 @@ func test_rule_settings() -> void:
 	TypeSafeMixin._call_node_method_bool(_house_rules, "register_rule", [TEST_RULES.BASIC])
 	var settings: Dictionary = TypeSafeMixin._call_node_method_dict(_house_rules, "get_rule_settings", ["Basic Rules"])
 	
-	assert_true(settings.permadeath, "Basic rules should have permadeath enabled")
-	assert_true(settings.story_track, "Basic rules should have story track enabled")
+	# Use safe dictionary access with get() method
+	var permadeath = settings.get("permadeath", false)
+	var story_track = settings.get("story_track", false)
+	
+	assert_true(permadeath, "Basic rules should have permadeath enabled")
+	assert_true(story_track, "Basic rules should have story track enabled")
 
 # Rule Validation Tests
 func test_invalid_rule_handling() -> void:

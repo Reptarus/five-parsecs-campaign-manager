@@ -59,3 +59,9 @@ func is_position_empty(pos: Vector2i) -> bool:
     if not _is_valid_position(pos):
         return false
     return _terrain_grid[pos.x][pos.y] == GameEnums.TerrainFeatureType.NONE
+
+# Add this method to provide access to the terrain layout
+func get_terrain_layout():
+    # If this class needs to implement terrain layout functionality,
+    # we would return a layout object here
+    return self

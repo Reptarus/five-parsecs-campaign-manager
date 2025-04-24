@@ -1,17 +1,19 @@
 @tool
 extends Node
+class_name EliteLevelEnemiesManager
 
 const ELITE_COMBAT_SKILL_BONUS: int = 2
 const ELITE_TOUGHNESS_BONUS: int = 2
 const ELITE_REACTIONS_BONUS: int = 1
 
 const GameEnums = preload("res://src/core/systems/GlobalEnums.gd")
-const Enemy = preload("res://src/core/enemy/base/Enemy.gd")
+const EnemyNode = preload("res://src/core/enemy/base/EnemyNode.gd")
+const EnemyData = preload("res://src/core/enemy/EnemyData.gd")
 
 ## Upgrades a regular enemy to an elite version
 ## Parameters:
 ## - enemy: The enemy to upgrade
-func upgrade_enemy_to_elite(enemy: Enemy) -> void:
+func upgrade_enemy_to_elite(enemy: EnemyNode) -> void:
 	# Increase core stats
 	enemy.stats[GameEnums.CharacterStats.COMBAT_SKILL] += ELITE_COMBAT_SKILL_BONUS
 	enemy.stats[GameEnums.CharacterStats.TOUGHNESS] += ELITE_TOUGHNESS_BONUS
@@ -40,7 +42,7 @@ func upgrade_weapon_rarity(weapon: Resource) -> void:
 			GameEnums.ItemRarity.EPIC:
 				weapon.set_rarity(GameEnums.ItemRarity.LEGENDARY)
 
-func upgrade_enemy_to_boss(enemy: Enemy) -> void:
+func upgrade_enemy_to_boss(enemy: EnemyNode) -> void:
 	# First make them elite
 	upgrade_enemy_to_elite(enemy)
 	

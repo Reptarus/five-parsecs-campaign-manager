@@ -1,7 +1,11 @@
 {
     "dirs": [
         "res://tests/unit/",
-        "res://tests/integration/"
+        "res://tests/integration/",
+        "res://tests/battle/",
+        "res://tests/performance/",
+        "res://tests/mobile/",
+        "res://tests/diagnostic/"
     ],
     "include_subdirs": true,
     "ignore_pause": true,
@@ -17,5 +21,9 @@
     "junit_xml_file": "res://tests/reports/junit_report.xml",
     "junit_xml_timestamp": true,
     "export_path": "res://tests/reports/",
-    "include_subdirectories": true
+    "include_subdirectories": true,
+    "tests": [
+        "res://tests/unit/minimal_test.gd",
+        "res://tests/unit/basic_test.gd"
+    ]
 }

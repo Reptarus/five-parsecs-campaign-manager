@@ -3,6 +3,7 @@ extends Node
 
 const GameEnums = preload("res://src/core/systems/GlobalEnums.gd")
 const Character = preload("res://Resources/Core/Character/Base/Character.gd")
+const BattleStateMachineClass = preload("res://src/core/battle/state/BattleStateMachine.gd")
 
 signal phase_started(phase: int)
 signal phase_ended(phase: int)
@@ -10,7 +11,7 @@ signal action_points_changed(unit: Character, points: int)
 signal unit_activated(unit: Character)
 signal unit_deactivated(unit: Character)
 
-@export var battle_state_machine: BattleStateMachine
+@export var battle_state_machine: BattleStateMachineClass
 @export var combat_resolver: Node
 
 var current_phase: int = GameEnums.BattlePhase.SETUP
@@ -100,25 +101,25 @@ func can_perform_action(unit: Character, action: int) -> bool:
 
 func get_action_cost(action: int) -> int:
 	match action:
-		BattleStateMachine.UnitAction.MOVE:
+		BattleStateMachineClass.UnitAction.MOVE:
 			return 1
-		BattleStateMachine.UnitAction.ATTACK:
+		BattleStateMachineClass.UnitAction.ATTACK:
 			return 2
-		BattleStateMachine.UnitAction.DASH:
+		BattleStateMachineClass.UnitAction.DASH:
 			return 1
-		BattleStateMachine.UnitAction.ITEMS:
+		BattleStateMachineClass.UnitAction.ITEMS:
 			return 1
-		BattleStateMachine.UnitAction.SNAP_FIRE:
+		BattleStateMachineClass.UnitAction.SNAP_FIRE:
 			return 1
-		BattleStateMachine.UnitAction.FREE_ACTION:
+		BattleStateMachineClass.UnitAction.FREE_ACTION:
 			return 0
-		BattleStateMachine.UnitAction.BRAWL:
+		BattleStateMachineClass.UnitAction.BRAWL:
 			return 2
 		_:
 			return 1
 
 func perform_action(unit: Character, action: int) -> void:
-	if combat_resolver and action in [BattleStateMachine.UnitAction.ATTACK, BattleStateMachine.UnitAction.BRAWL]:
+	if combat_resolver and action in [BattleStateMachineClass.UnitAction.ATTACK, BattleStateMachineClass.UnitAction.BRAWL]:
 		await combat_resolver.resolve_combat_action(unit, action)
 	else:
 		await battle_state_machine.perform_unit_action(unit, action)

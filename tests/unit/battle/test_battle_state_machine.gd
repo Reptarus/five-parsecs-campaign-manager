@@ -18,6 +18,12 @@ const GameStateManager: GDScript = preload("res://src/core/managers/GameStateMan
 const BattleCharacterScript: GDScript = preload("res://src/game/combat/BattleCharacter.gd")
 const TEST_TIMEOUT: float = 1.0 # seconds timeout for performance tests
 
+# Use the correct GameEnums from systems directory
+const BattleSystemEnums = preload("res://src/core/systems/GlobalEnums.gd")
+
+# For accessing the renamed class
+const BattleStateMachineClass = BattleStateMachine
+
 # Type-safe instance variables
 var battle_state: Node = null
 var game_state_manager: Node = null
@@ -37,11 +43,24 @@ func create_test_character() -> Node:
 	character.set_meta("health", 10)
 	character.set_meta("max_health", 10)
 	
-	# Add mock methods that the battle state might call
-	character.get_health = func(): return character.get_meta("health")
-	character.set_health = func(v): character.set_meta("health", v)
-	character.is_player = func(): return character.get_meta("is_player")
-	character.take_damage = func(amount): character.set_meta("health", max(0, character.get_meta("health") - amount))
+	# Use Callables instead of lambdas for better compatibility
+	character.set_script(GDScript.new())
+	character.get_script().source_code = """
+extends Node
+
+func get_health() -> int:
+	return get_meta("health")
+	
+func set_health(v: int) -> void:
+	set_meta("health", v)
+	
+func is_player() -> bool:
+	return get_meta("is_player")
+	
+func take_damage(amount: int) -> void:
+	set_meta("health", max(0, get_meta("health") - amount))
+"""
+	character.get_script().reload()
 	
 	add_child_autofree(character)
 	track_test_node(character)
@@ -53,7 +72,7 @@ func create_test_battle_state() -> Node:
 		push_error("Failed to create battle state")
 		return null
 		
-	state.set_script(BattleStateMachine)
+	state.set_script(BattleStateMachineClass)
 	add_child_autofree(state)
 	if not state:
 		push_error("Failed to add battle state node")
@@ -71,12 +90,12 @@ func setup_active_battle() -> void:
 	# Use set_combat_state instead of transition_to_phase to match FiveParsecsCombatManager's API
 	if battle_state.has_method("set_combat_state"):
 		TypeSafeMixin._call_node_method_bool(battle_state, "set_combat_state", [ {
-			"phase": GameEnums.CombatPhase.INITIATIVE,
+			"phase": BattleSystemEnums.CombatPhase.INITIATIVE,
 			"active_team": 0,
 			"round": 1
 		}])
 	else:
-		TypeSafeMixin._call_node_method_bool(battle_state, "transition_to_phase", [GameEnums.CombatPhase.INITIATIVE])
+		TypeSafeMixin._call_node_method_bool(battle_state, "transition_to_phase", [BattleSystemEnums.CombatPhase.INITIATIVE])
 
 # Type-safe lifecycle methods
 func before_each() -> void:
@@ -96,7 +115,7 @@ func before_each() -> void:
 	if not battle_state:
 		push_error("Failed to create battle state")
 		return
-	battle_state.set_script(BattleStateMachine)
+	battle_state.set_script(BattleStateMachineClass)
 	add_child_autofree(battle_state)
 	track_test_node(battle_state)
 	
@@ -129,11 +148,11 @@ func _on_phase_transition_test() -> void:
 func test_battle_state_initialization() -> void:
 	assert_not_null(battle_state, "Battle state should be initialized")
 	
-	var current_state: int = TypeSafeMixin._call_node_method_int(battle_state, "get_current_state", [], GameEnums.BattleState.NONE)
-	assert_eq(current_state, GameEnums.BattleState.SETUP, "Battle should start in SETUP state")
+	var current_state: int = TypeSafeMixin._call_node_method_int(battle_state, "get_current_state", [], BattleSystemEnums.BattleState.NONE)
+	assert_eq(current_state, BattleSystemEnums.BattleState.SETUP, "Battle should start in SETUP state")
 	
-	var current_phase: int = TypeSafeMixin._call_node_method_int(battle_state, "get_current_phase", [], GameEnums.CombatPhase.NONE)
-	assert_eq(current_phase, GameEnums.CombatPhase.NONE, "Combat phase should start as NONE")
+	var current_phase: int = TypeSafeMixin._call_node_method_int(battle_state, "get_current_phase", [], BattleSystemEnums.CombatPhase.NONE)
+	assert_eq(current_phase, BattleSystemEnums.CombatPhase.NONE, "Combat phase should start as NONE")
 	
 	var current_round: int = TypeSafeMixin._call_node_method_int(battle_state, "get_current_round", [], 0)
 	assert_eq(current_round, 1, "Battle should start at round 1")
@@ -154,8 +173,8 @@ func test_start_battle() -> void:
 	
 	assert_true(_signal_data.has("battle_started"), "Battle started signal should be emitted")
 	
-	var current_state: int = TypeSafeMixin._call_node_method_int(battle_state, "get_current_state", [], GameEnums.BattleState.NONE)
-	assert_eq(current_state, GameEnums.BattleState.ROUND, "Battle should transition to ROUND state")
+	var current_state: int = TypeSafeMixin._call_node_method_int(battle_state, "get_current_state", [], BattleSystemEnums.BattleState.NONE)
+	assert_eq(current_state, BattleSystemEnums.BattleState.ROUND, "Battle should transition to ROUND state")
 
 func test_end_battle() -> void:
 	TypeSafeMixin._call_node_method_bool(battle_state, "start_battle", [])
@@ -165,13 +184,13 @@ func test_end_battle() -> void:
 		push_error("Failed to connect battle_ended signal")
 		return
 	
-	TypeSafeMixin._call_node_method_bool(battle_state, "end_battle", [GameEnums.VictoryConditionType.ELIMINATION])
+	TypeSafeMixin._call_node_method_bool(battle_state, "end_battle", [BattleSystemEnums.VictoryConditionType.ELIMINATION])
 	
 	var is_active: bool = TypeSafeMixin._call_node_method_bool(battle_state, "is_battle_active", [], true)
 	assert_false(is_active, "Battle should not be active after ending")
 	
 	assert_true(_signal_data.has("battle_ended"), "Battle ended signal should be emitted")
-	assert_eq(_signal_data["victory_type"], GameEnums.VictoryConditionType.ELIMINATION,
+	assert_eq(_signal_data["victory_type"], BattleSystemEnums.VictoryConditionType.ELIMINATION,
 		"Victory type should be passed to signal")
 
 func test_phase_transitions() -> void:
@@ -188,34 +207,34 @@ func test_phase_transitions() -> void:
 	# Use set_combat_state if available, otherwise fall back to transition_to_phase
 	if battle_state.has_method("set_combat_state"):
 		TypeSafeMixin._call_node_method_bool(battle_state, "set_combat_state", [ {
-			"phase": GameEnums.CombatPhase.INITIATIVE,
+			"phase": BattleSystemEnums.CombatPhase.INITIATIVE,
 			"active_team": 0,
 			"round": 1
 		}])
 	else:
-		TypeSafeMixin._call_node_method_bool(battle_state, "transition_to_phase", [GameEnums.CombatPhase.INITIATIVE])
+		TypeSafeMixin._call_node_method_bool(battle_state, "transition_to_phase", [BattleSystemEnums.CombatPhase.INITIATIVE])
 	
 	# Verify phase is changed
-	var current_phase: int = TypeSafeMixin._call_node_method_int(battle_state, "get_current_phase", [], GameEnums.CombatPhase.NONE)
-	assert_eq(current_phase, GameEnums.CombatPhase.INITIATIVE, "Phase should be INITIATIVE")
+	var current_phase: int = TypeSafeMixin._call_node_method_int(battle_state, "get_current_phase", [], BattleSystemEnums.CombatPhase.NONE)
+	assert_eq(current_phase, BattleSystemEnums.CombatPhase.INITIATIVE, "Phase should be INITIATIVE")
 	
 	# Transition to action phase
 	if battle_state.has_method("set_combat_state"):
 		TypeSafeMixin._call_node_method_bool(battle_state, "set_combat_state", [ {
-			"phase": GameEnums.CombatPhase.ACTION,
+			"phase": BattleSystemEnums.CombatPhase.ACTION,
 			"active_team": 0,
 			"round": 1
 		}])
 	else:
-		TypeSafeMixin._call_node_method_bool(battle_state, "transition_to_phase", [GameEnums.CombatPhase.ACTION])
+		TypeSafeMixin._call_node_method_bool(battle_state, "transition_to_phase", [BattleSystemEnums.CombatPhase.ACTION])
 	
 	# Verify phase is changed
-	current_phase = TypeSafeMixin._call_node_method_int(battle_state, "get_current_phase", [], GameEnums.CombatPhase.NONE)
-	assert_eq(current_phase, GameEnums.CombatPhase.ACTION, "Phase should be ACTION")
+	current_phase = TypeSafeMixin._call_node_method_int(battle_state, "get_current_phase", [], BattleSystemEnums.CombatPhase.NONE)
+	assert_eq(current_phase, BattleSystemEnums.CombatPhase.ACTION, "Phase should be ACTION")
 	
 	# Verify signals were emitted
 	assert_true(_signal_data.has("phase_changed"), "Phase changed signal should be emitted")
-	assert_eq(_signal_data.get("to_phase"), GameEnums.CombatPhase.ACTION, "Phase change signal should have correct to_phase")
+	assert_eq(_signal_data.get("to_phase"), BattleSystemEnums.CombatPhase.ACTION, "Phase change signal should have correct to_phase")
 
 func test_add_combatant() -> void:
 	var character: Node = create_test_character()
@@ -231,7 +250,7 @@ func test_add_combatant() -> void:
 
 func test_save_and_load_state() -> void:
 	TypeSafeMixin._call_node_method_bool(battle_state, "start_battle", [])
-	TypeSafeMixin._call_node_method_bool(battle_state, "transition_to_phase", [GameEnums.CombatPhase.ACTION])
+	TypeSafeMixin._call_node_method_bool(battle_state, "transition_to_phase", [BattleSystemEnums.CombatPhase.ACTION])
 	
 	var saved_state: Dictionary = TypeSafeMixin._call_node_method_dict(battle_state, "save_state", [])
 	assert_not_null(saved_state, "Should create save state")
@@ -240,14 +259,14 @@ func test_save_and_load_state() -> void:
 	if not new_battle_state:
 		push_error("Failed to create new battle state")
 		return
-	new_battle_state.set_script(BattleStateMachine)
+	new_battle_state.set_script(BattleStateMachineClass)
 	add_child_autofree(new_battle_state)
 	track_test_node(new_battle_state)
 	
 	TypeSafeMixin._call_node_method_bool(new_battle_state, "load_state", [saved_state])
 	
-	var loaded_phase: int = TypeSafeMixin._call_node_method_int(new_battle_state, "get_current_phase", [], GameEnums.CombatPhase.NONE)
-	assert_eq(loaded_phase, GameEnums.CombatPhase.ACTION, "Should load correct phase")
+	var loaded_phase: int = TypeSafeMixin._call_node_method_int(new_battle_state, "get_current_phase", [], BattleSystemEnums.CombatPhase.NONE)
+	assert_eq(loaded_phase, BattleSystemEnums.CombatPhase.ACTION, "Should load correct phase")
 	
 	var loaded_round: int = TypeSafeMixin._call_node_method_int(new_battle_state, "get_current_round", [], 0)
 	assert_eq(loaded_round, 1, "Should load correct round")
@@ -259,8 +278,8 @@ func test_rapid_state_transitions() -> void:
 	var start_time := Time.get_ticks_msec()
 	
 	for i in range(100):
-		TypeSafeMixin._call_node_method_bool(battle_state, "transition_to_phase", [GameEnums.CombatPhase.INITIATIVE])
-		TypeSafeMixin._call_node_method_bool(battle_state, "transition_to_phase", [GameEnums.CombatPhase.ACTION])
+		TypeSafeMixin._call_node_method_bool(battle_state, "transition_to_phase", [BattleSystemEnums.CombatPhase.INITIATIVE])
+		TypeSafeMixin._call_node_method_bool(battle_state, "transition_to_phase", [BattleSystemEnums.CombatPhase.ACTION])
 	
 	var duration := Time.get_ticks_msec() - start_time
 	assert_true(duration < TEST_TIMEOUT, "Should handle rapid state transitions efficiently")
@@ -268,10 +287,10 @@ func test_rapid_state_transitions() -> void:
 # Error boundary tests
 func test_invalid_phase_transition() -> void:
 	_signal_watcher.watch_signals(battle_state)
-	TypeSafeMixin._call_node_method_bool(battle_state, "transition_to_phase", [GameEnums.CombatPhase.ACTION])
+	TypeSafeMixin._call_node_method_bool(battle_state, "transition_to_phase", [BattleSystemEnums.CombatPhase.ACTION])
 	
-	var current_phase: int = TypeSafeMixin._call_node_method_int(battle_state, "get_current_phase", [], GameEnums.CombatPhase.NONE)
-	assert_eq(current_phase, GameEnums.CombatPhase.NONE, "Should not allow phase transition before battle starts")
+	var current_phase: int = TypeSafeMixin._call_node_method_int(battle_state, "get_current_phase", [], BattleSystemEnums.CombatPhase.NONE)
+	assert_eq(current_phase, BattleSystemEnums.CombatPhase.NONE, "Should not allow phase transition before battle starts")
 
 func test_invalid_battle_start() -> void:
 	TypeSafeMixin._call_node_method_bool(battle_state, "start_battle", [])
@@ -295,7 +314,7 @@ func test_phase_transition_signals() -> void:
 		push_error("Failed to connect phase_changed signal")
 		return
 		
-	TypeSafeMixin._call_node_method_bool(battle_state, "transition_to_phase", [GameEnums.CombatPhase.ACTION])
+	TypeSafeMixin._call_node_method_bool(battle_state, "transition_to_phase", [BattleSystemEnums.CombatPhase.ACTION])
 	
 	assert_eq(_signal_data.get("phase_transition", false), true, "Should emit phase_changed signal once")
 
@@ -314,8 +333,8 @@ func test_transition_with_invalid_phase() -> void:
 		assert_false(result, "Invalid phase transition should fail")
 	
 	# Verify phase didn't change
-	var current_phase: int = TypeSafeMixin._call_node_method_int(battle_state, "get_current_phase", [], GameEnums.CombatPhase.NONE)
-	assert_eq(current_phase, GameEnums.CombatPhase.NONE, "Phase should remain unchanged after invalid transition")
+	var current_phase: int = TypeSafeMixin._call_node_method_int(battle_state, "get_current_phase", [], BattleSystemEnums.CombatPhase.NONE)
+	assert_eq(current_phase, BattleSystemEnums.CombatPhase.NONE, "Phase should remain unchanged after invalid transition")
 
 func test_round_increment() -> void:
 	# Start a battle and go through multiple rounds
@@ -324,18 +343,18 @@ func test_round_increment() -> void:
 	# Use set_combat_state if available, otherwise fall back to transition_to_phase
 	if battle_state.has_method("set_combat_state"):
 		TypeSafeMixin._call_node_method_bool(battle_state, "set_combat_state", [ {
-			"phase": GameEnums.CombatPhase.INITIATIVE,
+			"phase": BattleSystemEnums.CombatPhase.INITIATIVE,
 			"active_team": 0,
 			"round": 1
 		}])
 		TypeSafeMixin._call_node_method_bool(battle_state, "set_combat_state", [ {
-			"phase": GameEnums.CombatPhase.ACTION,
+			"phase": BattleSystemEnums.CombatPhase.ACTION,
 			"active_team": 0,
 			"round": 1
 		}])
 	else:
-		TypeSafeMixin._call_node_method_bool(battle_state, "transition_to_phase", [GameEnums.CombatPhase.INITIATIVE])
-		TypeSafeMixin._call_node_method_bool(battle_state, "transition_to_phase", [GameEnums.CombatPhase.ACTION])
+		TypeSafeMixin._call_node_method_bool(battle_state, "transition_to_phase", [BattleSystemEnums.CombatPhase.INITIATIVE])
+		TypeSafeMixin._call_node_method_bool(battle_state, "transition_to_phase", [BattleSystemEnums.CombatPhase.ACTION])
 	
 	# End the round and check if round incremented
 	if battle_state.has_method("end_round"):
@@ -351,13 +370,13 @@ func test_action_phase_transitions() -> void:
 	# Use set_combat_state if available, otherwise fall back to transition_to_phase
 	if battle_state.has_method("set_combat_state"):
 		TypeSafeMixin._call_node_method_bool(battle_state, "set_combat_state", [ {
-			"phase": GameEnums.CombatPhase.ACTION,
+			"phase": BattleSystemEnums.CombatPhase.ACTION,
 			"active_team": 0,
 			"round": 1
 		}])
 	else:
-		TypeSafeMixin._call_node_method_bool(battle_state, "transition_to_phase", [GameEnums.CombatPhase.ACTION])
+		TypeSafeMixin._call_node_method_bool(battle_state, "transition_to_phase", [BattleSystemEnums.CombatPhase.ACTION])
 	
 	# Verify we're in action phase
-	var current_phase: int = TypeSafeMixin._call_node_method_int(battle_state, "get_current_phase", [], GameEnums.CombatPhase.NONE)
-	assert_eq(current_phase, GameEnums.CombatPhase.ACTION, "Phase should be ACTION")
+	var current_phase: int = TypeSafeMixin._call_node_method_int(battle_state, "get_current_phase", [], BattleSystemEnums.CombatPhase.NONE)
+	assert_eq(current_phase, BattleSystemEnums.CombatPhase.ACTION, "Phase should be ACTION")

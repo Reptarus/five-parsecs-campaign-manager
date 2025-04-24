@@ -24,6 +24,16 @@ class_name FPCM_ShipComponent
 @export var is_scavenged: bool = false # Scavenged parts are cheaper but less reliable
 @export var tech_level: int = 1 # Tech level (1-5, affects cost and effectiveness)
 
+# Component-specific properties
+@export var damage: int = 0 # For weapons
+@export var attack: int = 0 # For weapons
+@export var speed: int = 0 # For engines
+@export var reliability: int = 0 # For engines
+@export var hull_points: int = 0 # For hull components
+@export var armor: int = 0 # For hull/armor components
+@export var capacity: int = 0 # For medical components
+@export var type: int = 0 # For compatibility with tests
+
 # Effects
 @export var status_effects: Array = []
 
@@ -83,7 +93,7 @@ func repair_full() -> void:
     if repair_amount > 0:
         repair(repair_amount)
 
-func damage(amount: float) -> float:
+func apply_damage(amount: float) -> float:
     var before = durability
     durability = max(durability - amount, 0)
     var actual_damage = before - durability
@@ -271,3 +281,67 @@ static func deserialize(data: Dictionary) -> Dictionary:
         "tech_level": data.get("tech_level", 1),
         "status_effects": data.get("status_effects", [])
     }
+
+# Type getters and setters (for compatibility with tests)
+func get_type() -> int:
+    return type
+    
+func set_type(value: int) -> bool:
+    type = value
+    return true
+    
+# Component-specific property setters
+func set_attack(value: int) -> bool:
+    attack = value
+    return true
+    
+func set_damage(value: int) -> bool:
+    damage = value
+    return true
+    
+func set_speed(value: int) -> bool:
+    speed = value
+    return true
+    
+func set_reliability(value: int) -> bool:
+    reliability = value
+    return true
+    
+func set_durability(value: float) -> bool:
+    durability = value
+    return true
+    
+func set_armor(value: int) -> bool:
+    armor = value
+    return true
+    
+func set_capacity(value: int) -> bool:
+    capacity = value
+    return true
+    
+func set_tech_level(value: int) -> bool:
+    tech_level = value
+    return true
+    
+# Additional methods to get stats based on component type
+func get_stats() -> Dictionary:
+    var stats = {}
+    
+    # Add base stats
+    stats["durability"] = durability
+    stats["efficiency"] = get_efficiency()
+    
+    # Add type-specific stats
+    match type:
+        0: # WEAPON
+            stats["damage"] = damage
+            stats["attack"] = attack
+        1: # ENGINE
+            stats["speed"] = speed
+            stats["reliability"] = reliability
+        2: # SHIELD
+            stats["shield_points"] = capacity
+        3: # ARMOR
+            stats["armor"] = armor
+            
+    return stats

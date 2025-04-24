@@ -140,9 +140,33 @@ static func _cleanup_cache() -> void:
 	var target_size = MAX_CACHE_SIZE / 2
 	while _table_cache.size() > target_size and entries.size() > 0:
 		var entry = entries.pop_front()
+		# Properly free resources if needed
+		if _table_cache[entry.path].has("table") and is_instance_valid(_table_cache[entry.path].table):
+			var table = _table_cache[entry.path].table
+			if table is Resource and table.has_method("free"):
+				table.free()
 		_table_cache.erase(entry.path)
 	
+	# Force a GC pass
+	OS.delay_msec(10)
+	
 	_last_cache_cleanup = Time.get_unix_time_from_system()
+
+## Clean up threads and resources
+static func cleanup_resources() -> void:
+	# Clean up any threads
+	_cleanup_threads()
+	
+	# Clean up the cache
+	for path in _table_cache:
+		if _table_cache[path].has("table") and is_instance_valid(_table_cache[path].table):
+			var table = _table_cache[path].table
+			if table is Resource and table.has_method("free"):
+				table.free()
+	
+	_table_cache.clear()
+	_background_loading_tables.clear()
+	_batch_operations.clear()
 
 ## Begin background loading a table file
 ## @param file_path: Path to the table file

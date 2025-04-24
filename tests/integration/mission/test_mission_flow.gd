@@ -6,6 +6,7 @@ extends "res://tests/fixtures/base/game_test.gd"
 const Mission: GDScript = preload("res://src/core/mission/base/mission.gd")
 const MissionManagerScript: GDScript = preload("res://src/core/mission/MissionIntegrator.gd")
 const Compatibility = preload("res://tests/fixtures/helpers/test_compatibility_helper.gd")
+const TestEnums = preload("res://tests/fixtures/base/test_helper.gd")
 
 # Type-safe instance variables
 var _mission_manager: Node = null
@@ -232,6 +233,7 @@ func test_mission_objectives() -> void:
 	if not _mission.has_method("complete_objective"):
 		# We can't directly assign a callable, so we'll create a script with the method
 		var script = GDScript.new()
+		# Ensure we're extending Resource since _mission is a Resource
 		script.source_code = """extends Resource
 
 signal objective_completed(objective_id)
@@ -244,6 +246,12 @@ func complete_objective(objective_id: String) -> void:
 			break
 """
 		script.reload()
+		
+		# Before setting the script, ensure _mission is actually a Resource
+		if not (_mission is Resource):
+			push_error("_mission is not a Resource, cannot attach script")
+			return
+			
 		_mission.set_script(script)
 	
 	_mission.complete_objective(objective1.id)
@@ -281,6 +289,7 @@ func test_mission_signals() -> void:
 	if not _mission.has_method("change_phase"):
 		# Create a script with all the necessary methods
 		var script = GDScript.new()
+		# Ensure we're extending Resource since _mission is a Resource
 		script.source_code = """extends Resource
 
 signal phase_changed(phase)
@@ -304,6 +313,12 @@ func cleanup() -> void:
 	emit_signal("mission_cleaned_up")
 """
 		script.reload()
+		
+		# Before setting the script, ensure _mission is actually a Resource
+		if not (_mission is Resource):
+			push_error("_mission is not a Resource, cannot attach script")
+			return
+			
 		_mission.set_script(script)
 	
 	# Test phase changes
@@ -342,6 +357,7 @@ func test_mission_cleanup() -> void:
 	if not _mission.has_method("change_phase") or not _mission.has_method("cleanup") or not _mission.get("current_phase") or not _mission.get("is_completed"):
 		# Create a script with all the necessary methods
 		var script = GDScript.new()
+		# Ensure we're extending Resource since _mission is a Resource
 		script.source_code = """extends Resource
 
 signal phase_changed(phase)
@@ -364,6 +380,12 @@ func cleanup() -> void:
 	emit_signal("mission_cleaned_up")
 """
 		script.reload()
+		
+		# Before setting the script, ensure _mission is actually a Resource
+		if not (_mission is Resource):
+			push_error("_mission is not a Resource, cannot attach script")
+			return
+			
 		_mission.set_script(script)
 		
 	# Setup initial state

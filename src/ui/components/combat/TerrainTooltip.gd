@@ -3,7 +3,7 @@
 # Use explicit preloads instead of global class names
 extends Control
 
-const Self = preload("res://src/ui/components/combat/TerrainTooltip.gd")
+const Self := "res://src/ui/components/combat/TerrainTooltip.gd" # Use string path instead of preload
 
 ## Dependencies
 const TerrainSystem := preload("res://src/core/terrain/TerrainSystem.gd")

@@ -10,6 +10,7 @@ const Character = preload("res://src/core/character/Management/CharacterDataMana
 const Mission = preload("res://src/core/systems/Mission.gd")
 const UnifiedTerrainSystem = preload("res://src/core/terrain/UnifiedTerrainSystem.gd")
 const PreBattleUI = preload("res://src/ui/screens/battle/PreBattleUI.gd")
+const BattleCoordinator = preload("res://src/core/battle/BattleCoordinator.gd")
 
 ## Optional dependencies that may not exist
 var _terrain_system_script = preload("res://src/core/terrain/UnifiedTerrainSystem.gd") if FileAccess.file_exists("res://src/core/terrain/UnifiedTerrainSystem.gd") else null
@@ -28,6 +29,7 @@ signal quest_completed(quest_data: Dictionary)
 ## Node references
 @onready var ui: Node = $UI # Will be cast to PreBattleUI if available
 @onready var terrain_system: Node = $TerrainSystem # Will be cast to UnifiedTerrainSystem if available
+@onready var battle_coordinator: BattleCoordinator = $BattleCoordinator
 
 ## StoryQuestData definition using Dictionary instead of inner class
 ## This avoids caching issues by not using an inner class
@@ -63,6 +65,19 @@ func _init() -> void:
 func _ready() -> void:
 	_initialize_systems()
 	_connect_signals()
+	
+	# Initialize battle coordinator if it doesn't exist
+	if not battle_coordinator:
+		battle_coordinator = BattleCoordinator.new()
+		battle_coordinator.name = "BattleCoordinator"
+		add_child(battle_coordinator)
+		
+	# Connect battle coordinator signals
+	if battle_coordinator:
+		if not battle_coordinator.is_connected("battle_setup_complete", Callable(self, "_on_battle_setup_complete")):
+			battle_coordinator.connect("battle_setup_complete", Callable(self, "_on_battle_setup_complete"))
+		if not battle_coordinator.is_connected("battle_setup_failed", Callable(self, "_on_battle_setup_failed")):
+			battle_coordinator.connect("battle_setup_failed", Callable(self, "_on_battle_setup_failed"))
 	
 	# Initialize battle prep system if needed
 	if current_quests.is_empty():
@@ -198,8 +213,7 @@ func _on_crew_selected(crew: Array[Character]) -> void:
 func _on_deployment_confirmed() -> void:
 	if _validate_battle_readiness():
 		var battle_data := _prepare_battle_data()
-		battle_ready.emit(battle_data)
-		phase_completed.emit()
+		_setup_battle_with_coordinator(battle_data)
 
 ## Validate if battle can begin
 func _validate_battle_readiness() -> bool:
@@ -217,20 +231,120 @@ func _validate_battle_readiness() -> bool:
 		
 	return true
 
-## Prepare battle data for next phase
+## Prepare battle data for the coordinator
 func _prepare_battle_data() -> Dictionary:
-	var terrain_data := {}
-	if terrain_system and terrain_system.has_method("get_terrain_data"):
-		terrain_data = terrain_system.get_terrain_data()
-	
-	return {
-		"mission": current_mission, # No need to serialize - it's already a dictionary
-		"crew": selected_crew,
-		"deployment_zones": deployment_zones,
-		"terrain_data": terrain_data,
-		"battle_type": _get_mission_battle_type(current_mission),
-		"difficulty": _get_mission_difficulty(current_mission)
+	var battle_data := {
+		"mission_id": current_mission.get("id", ""),
+		"mission_type": current_mission.get("battle_type", GameEnums.BattleType.NONE),
+		"difficulty": current_mission.get("difficulty", GameEnums.DifficultyLevel.NORMAL),
+		"battlefield_config": {
+			"size": Vector2i(24, 24), # Default size
+			"environment": GameEnums.PlanetEnvironment.URBAN, # Default environment
+			"cover_density": 0.2
+		},
+		"player_units": _prepare_player_units_data(),
+		"enemy_units": _prepare_enemy_units_data(),
+		"objectives": current_mission.get("victory_conditions", []),
+		"special_rules": current_mission.get("special_conditions", [])
 	}
+	
+	# Add deployment zones if available
+	if not deployment_zones.is_empty():
+		battle_data["deployment_zones"] = deployment_zones
+	
+	return battle_data
+
+## Prepare player units data for the battle
+func _prepare_player_units_data() -> Array:
+	var player_units = []
+	
+	for character in selected_crew:
+		if not is_instance_valid(character):
+			continue
+			
+		var unit_data = {
+			"name": character.get_name(),
+			"health": character.get_max_health(),
+			"attack": character.get_attack_value(),
+			"defense": character.get_defense_value(),
+			"speed": character.get_speed_value()
+		}
+		
+		# Add weapon data if available
+		if character.has_method("get_weapons"):
+			unit_data["weapons"] = character.get_weapons()
+		
+		# Add equipment/items if available
+		if character.has_method("get_equipment"):
+			unit_data["equipment"] = character.get_equipment()
+		
+		player_units.append(unit_data)
+	
+	return player_units
+
+## Prepare enemy units data for the battle
+func _prepare_enemy_units_data() -> Array:
+	var enemy_units = []
+	var enemy_force = current_mission.get("enemy_force", [])
+	
+	for enemy in enemy_force:
+		if enemy is Dictionary:
+			var unit_data = {
+				"name": enemy.get("name", "Enemy"),
+				"health": enemy.get("health", 5),
+				"attack": enemy.get("attack", 2),
+				"defense": enemy.get("defense", 1),
+				"speed": enemy.get("speed", 3),
+				"enemy_type": enemy.get("type", 0),
+				"ai_behavior": enemy.get("behavior", "standard")
+			}
+			
+			# Add weapon data if available
+			if enemy.has("weapons"):
+				unit_data["weapons"] = enemy.weapons
+			
+			enemy_units.append(unit_data)
+	
+	return enemy_units
+
+## Setup the battle using the battle coordinator
+func _setup_battle_with_coordinator(battle_data: Dictionary) -> void:
+	if not is_instance_valid(battle_coordinator):
+		error_occurred.emit("Battle coordinator not available")
+		return
+	
+	# Get campaign data from game state
+	var campaign_data = null
+	if game_state and game_state.has_method("get_current_campaign"):
+		campaign_data = game_state.get_current_campaign()
+	
+	# Use the battle coordinator to setup the battle
+	var setup_result = battle_coordinator.setup_battle(battle_data, campaign_data)
+	
+	if not setup_result:
+		error_occurred.emit("Failed to setup battle")
+	else:
+		# Let UI know battle is being prepared
+		if ui and ui.has_method("show_loading_screen"):
+			ui.show_loading_screen("Preparing Battle...")
+
+## Battle coordinator event handlers
+func _on_battle_setup_complete(battle_context: Dictionary) -> void:
+	# Notify that battle is ready to start
+	battle_prepared.emit(battle_context)
+	
+	# Start the battle automatically
+	battle_coordinator.start_battle()
+	
+	# Complete pre-battle phase
+	pre_battle_completed.emit()
+
+func _on_battle_setup_failed(error_message: String) -> void:
+	error_occurred.emit("Battle setup failed: " + error_message)
+	
+	# Show error on UI
+	if ui and ui.has_method("show_error"):
+		ui.show_error(error_message)
 
 ## Update deployment zones
 func update_deployment_zones(zones: Array[Dictionary]) -> void:

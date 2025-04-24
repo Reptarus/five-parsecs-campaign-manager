@@ -24,13 +24,16 @@ func _ready() -> void:
 
 # Game-specific method to update UI elements
 func update_game_specific_ui() -> void:
-	if morale_value and character_data:
+	if not is_instance_valid(morale_value) or not character_data:
+		return
+		
+	if character_data.get("morale") != null:
 		morale_value.text = str(character_data.morale)
 	
-	if credits_value and character_data:
+	if is_instance_valid(credits_value) and character_data.get("credits_earned") != null:
 		credits_value.text = str(character_data.credits_earned)
 		
-	if missions_value and character_data:
+	if is_instance_valid(missions_value) and character_data.get("missions_completed") != null:
 		missions_value.text = str(character_data.missions_completed)
 
 # Override the update_ui method to include game-specific updates

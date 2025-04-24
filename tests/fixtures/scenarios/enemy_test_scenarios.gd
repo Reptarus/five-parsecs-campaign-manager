@@ -1,7 +1,9 @@
 @tool
-extends "res://tests/fixtures/base/game_test.gd"
+extends "res://addons/gut/test.gd"
 
-const Enemy: GDScript = preload("res://src/core/enemy/base/Enemy.gd")
+# Preload the necessary scripts
+const EnemyNode: GDScript = preload("res://src/core/enemy/base/EnemyNode.gd")
+const EnemyData: GDScript = preload("res://src/core/enemy/EnemyData.gd")
 
 # Common test scenarios
 const SCENARIOS: Dictionary = {
@@ -54,7 +56,7 @@ static func create_scenario(scenario_name: String, test_instance: Node) -> Dicti
 	
 	# Create enemies
 	for enemy_data in scenario.enemies:
-		var enemy: Enemy = test_instance.create_test_enemy(enemy_data.type)
+		var enemy: EnemyNode = test_instance.create_test_enemy(enemy_data.type)
 		enemy.position = enemy_data.position
 		if enemy_data.has("role"):
 			enemy.set_meta("role", enemy_data.role)
@@ -99,8 +101,8 @@ static func validate_scenario_state(scenario: Dictionary, expected_state: Dictio
 	return valid
 
 # Helper methods
-static func get_enemies_by_role(scenario: Dictionary, role: String) -> Array[Enemy]:
-	var result: Array[Enemy] = []
+static func get_enemies_by_role(scenario: Dictionary, role: String) -> Array[EnemyNode]:
+	var result: Array[EnemyNode] = []
 	for enemy in scenario.enemies:
 		if enemy.has_meta("role") and enemy.get_meta("role") == role:
 			result.append(enemy)

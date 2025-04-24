@@ -2,7 +2,7 @@
 extends Node
 
 const GameEnums = preload("res://src/core/systems/GlobalEnums.gd")
-const CharacterManager = preload("res://src/core/character/Management/CharacterManager.gd")
+const CharacterManager = preload("res://src/core/character/management/CharacterManager.gd")
 const FiveParsecsGameState = preload("res://src/core/state/GameState.gd")
 
 signal battle_results_recorded(results: Dictionary)

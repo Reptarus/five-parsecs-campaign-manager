@@ -100,7 +100,7 @@ func deserialize(data: Dictionary) -> Dictionary:
     return {"success": true, "message": "Campaign data loaded successfully"}
 
 # Helper method to create a test instance
-static func create_test_campaign(name: String = "Test Campaign", difficulty: int = 1) -> FiveParsecsCampaign:
+static func create_test_campaign(name: String = "Test Campaign", difficulty: int = 1):
     var campaign = FiveParsecsCampaign.new(name)
     campaign.campaign_difficulty = difficulty
     campaign.resources = {

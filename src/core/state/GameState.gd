@@ -13,7 +13,7 @@ const ErrorLogger = preload("res://src/core/systems/ErrorLogger.gd")
 
 ## Signals with proper type annotations
 signal state_changed
-signal campaign_loaded(campaign: FiveParsecsCampaign)
+signal campaign_loaded(campaign)
 signal campaign_saved
 signal save_started
 signal save_completed(success: bool, message: String)
@@ -24,6 +24,18 @@ signal load_completed(success: bool, message: String)
 var current_campaign = null
 var game_settings: Dictionary = {}
 var game_options: Dictionary = {}
+
+# Game state variables
+var _turn_number: int = 1
+var _story_points: int = 3
+var _reputation: int = 50
+var _resources: Dictionary = {
+	GameEnums.ResourceType.CREDITS: 1000,
+	GameEnums.ResourceType.FUEL: 10,
+	GameEnums.ResourceType.TECH_PARTS: 5
+}
+var _current_phase: int = 0
+var is_tutorial_active: bool = false
 
 # File paths
 const SAVE_DIRECTORY := "user://saves/"
@@ -171,7 +183,7 @@ func load_options() -> bool:
 ## Create a new campaign from data
 ## @param campaign_data The data to initialize the campaign with
 ## @return The created campaign
-func new_campaign(campaign_data: Dictionary) -> FiveParsecsCampaign:
+func new_campaign(campaign_data: Dictionary):
 	if campaign_data == null:
 		_log_error("Campaign data is null")
 		return null
@@ -217,9 +229,20 @@ func set_current_campaign(campaign) -> void:
 	
 	state_changed.emit()
 
+## Start a new campaign from the provided config
+## @param config The campaign to start
+## @return Whether the operation was successful
+func start_new_campaign(config) -> bool:
+	if not config:
+		_log_error("Invalid campaign config")
+		return false
+		
+	set_current_campaign(config)
+	return true
+
 ## Get the current campaign with validation
 ## @return The current campaign or null if none
-func get_current_campaign() -> FiveParsecsCampaign:
+func get_current_campaign():
 	if not current_campaign:
 		return null
 		
@@ -265,7 +288,7 @@ func update_recent_campaigns(campaign_id: String) -> void:
 ## @param campaign The campaign to save (uses current_campaign if null)
 ## @param path The path to save to (uses default if empty)
 ## @return Result dictionary with success status and message
-func save_campaign(campaign: FiveParsecsCampaign = null, path: String = "") -> Dictionary:
+func save_campaign(campaign = null, path: String = "") -> Dictionary:
 	save_started.emit()
 	
 	if campaign == null:
@@ -443,12 +466,6 @@ func reset_to_defaults() -> void:
 static func get_instance() -> Node:
 	return Engine.get_singleton("GameStateManager")
 
-# Update the deserialize method to return a Dictionary instead of void
-func deserialize(json_result: Dictionary) -> Dictionary:
-	# Your existing implementation of deserialize
-	# but make sure it returns a Dictionary
-	return {"success": true, "message": "Deserialized successfully"}
-
 # Add methods required by tests
 func set_difficulty_level(level: int) -> bool:
 	if not game_settings.has("difficulty_level"):
@@ -552,6 +569,11 @@ func has_resource(resource: int) -> bool:
 	return resources.has(str(resource))
 
 func get_resource(resource: int) -> int:
+	# First check our direct resources
+	if _resources.has(resource):
+		return _resources.get(resource, 0)
+	
+	# Then fall back to campaign resources
 	if not current_campaign:
 		return 0
 	
@@ -563,8 +585,14 @@ func get_resource(resource: int) -> int:
 	return resources.get(str(resource), 0)
 
 func set_resource(resource: int, value: int) -> bool:
+	# First set our direct resources
+	if value >= 0:
+		_resources[resource] = value
+		state_changed.emit()
+	
+	# Then also set campaign resources if available
 	if not current_campaign:
-		return false
+		return true
 	
 	if current_campaign.has_method("set_resource"):
 		return current_campaign.set_resource(resource, value)
@@ -573,6 +601,86 @@ func set_resource(resource: int, value: int) -> bool:
 	var resources = current_campaign.get("resources", {})
 	resources[str(resource)] = value
 	return true
+
+## Gets all resources
+## @return Dictionary: All resources
+func get_resources() -> Dictionary:
+	var result = _resources.duplicate()
+	
+	# Add campaign resources if available
+	if current_campaign:
+		if current_campaign.has_method("get_resources"):
+			var campaign_resources = current_campaign.get_resources()
+			for key in campaign_resources:
+				if not result.has(key):
+					result[key] = campaign_resources[key]
+		else:
+			# Fallback implementation
+			var campaign_resources = current_campaign.get("resources", {})
+			for key in campaign_resources:
+				if not result.has(key):
+					result[key] = campaign_resources[key]
+	
+	return result
+
+## Sets all resources
+## @param resources: Dictionary of resources
+## @return bool: True if successful
+func set_resources(resources: Dictionary) -> bool:
+	# Make a clean copy of resources and ensure required ones have default values
+	_resources = resources.duplicate()
+	
+	# Ensure critical resources are present with default values if not provided
+	if not _resources.has(GameEnums.ResourceType.CREDITS):
+		_resources[GameEnums.ResourceType.CREDITS] = 1000
+	if not _resources.has(GameEnums.ResourceType.FUEL):
+		_resources[GameEnums.ResourceType.FUEL] = 10
+	if not _resources.has(GameEnums.ResourceType.TECH_PARTS):
+		_resources[GameEnums.ResourceType.TECH_PARTS] = 5
+	
+	# Also set campaign resources if available
+	if current_campaign and current_campaign.has_method("set_resources"):
+		current_campaign.set_resources(_resources) # Pass our validated resources
+	
+	state_changed.emit()
+	return true
+
+## Deserializes the game state from a dictionary
+## @param data: The data to deserialize
+## @return Dictionary: Result of the deserialization
+func deserialize(data: Dictionary) -> Dictionary:
+	if data.is_empty():
+		return {"success": false, "message": "Empty data provided"}
+		
+	if data.has("turn_number"):
+		_turn_number = data.get("turn_number", 1)
+		
+	if data.has("story_points"):
+		_story_points = data.get("story_points", 3)
+		
+	if data.has("reputation"):
+		_reputation = data.get("reputation", 50)
+		
+	if data.has("current_phase"):
+		_current_phase = data.get("current_phase", 0)
+		
+	if data.has("resources"):
+		_resources = data.get("resources", {}).duplicate()
+		# Ensure critical resources have default values if not present
+		if not _resources.has(GameEnums.ResourceType.CREDITS):
+			_resources[GameEnums.ResourceType.CREDITS] = 1000
+		if not _resources.has(GameEnums.ResourceType.FUEL):
+			_resources[GameEnums.ResourceType.FUEL] = 10
+		if not _resources.has(GameEnums.ResourceType.TECH_PARTS):
+			_resources[GameEnums.ResourceType.TECH_PARTS] = 5
+	
+	# Handle campaign deserialization if needed
+	if data.has("campaign") and current_campaign:
+		if current_campaign.has_method("deserialize"):
+			current_campaign.deserialize(data.get("campaign", {}))
+	
+	state_changed.emit()
+	return {"success": true, "message": "Deserialized successfully"}
 
 # Additional helper methods
 func has_crew() -> bool:
@@ -626,3 +734,61 @@ func has_equipment(equipment_type: int) -> bool:
 	# Fallback implementation
 	var equipment = current_campaign.get("equipment", {})
 	return equipment.has(str(equipment_type))
+
+## Getter and setter methods for game state properties
+
+## Gets the current turn number
+## @return int: The current turn number
+func get_turn_number() -> int:
+	return _turn_number
+
+## Sets the current turn number
+## @param value: The new turn number
+## @return bool: True if successful
+func set_turn_number(value: int) -> bool:
+	if value >= 0:
+		_turn_number = value
+		state_changed.emit()
+		return true
+	return false
+
+## Gets the current story points
+## @return int: The current story points
+func get_story_points() -> int:
+	return _story_points
+
+## Sets the current story points
+## @param value: The new story points
+## @return bool: True if successful
+func set_story_points(value: int) -> bool:
+	if value >= 0:
+		_story_points = value
+		state_changed.emit()
+		return true
+	return false
+
+## Gets the current reputation
+## @return int: The current reputation
+func get_reputation() -> int:
+	return _reputation
+
+## Sets the current reputation
+## @param value: The new reputation
+## @return bool: True if successful
+func set_reputation(value: int) -> bool:
+	_reputation = value
+	state_changed.emit()
+	return true
+
+## Gets the current campaign phase
+## @return int: The current campaign phase
+func get_current_phase() -> int:
+	return _current_phase
+
+## Sets the current campaign phase
+## @param value: The new campaign phase
+## @return bool: True if successful
+func set_current_phase(value: int) -> bool:
+	_current_phase = value
+	state_changed.emit()
+	return true

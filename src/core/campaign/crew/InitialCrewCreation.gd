@@ -187,10 +187,15 @@ func _on_create_captain_pressed() -> void:
 func _on_captain_created(captain_data: Dictionary) -> void:
 	_debug_log("Captain created: " + str(captain_data))
 	
-	captain = Character.new()
-	captain.initialize_from_data(captain_data)
-	captain.set_as_captain()
+	var new_captain = Character.new()
+	if not new_captain is Character:
+		push_error("Failed to create captain: invalid type")
+		return
+		
+	new_captain.initialize_from_data(captain_data)
+	new_captain.set_as_captain()
 	
+	captain = new_captain as Character
 	crew_system.set_captain(captain)
 	current_crew.append(captain)
 	
@@ -217,13 +222,17 @@ func _on_add_crew_member_pressed() -> void:
 func _on_crew_member_created(crew_data: Dictionary) -> void:
 	_debug_log("Crew member created: " + str(crew_data))
 	
-	var member := Character.new()
-	member.initialize_from_data(crew_data)
+	var new_member = Character.new()
+	if not new_member is Character:
+		push_error("Failed to create crew member: invalid type")
+		return
+		
+	new_member.initialize_from_data(crew_data)
 	
-	if _validate_crew_member(member):
-		current_crew.append(member)
-		crew_system.add_crew_member(member)
-		relationship_manager.add_crew_member(member)
+	if _validate_crew_member(new_member as Character):
+		current_crew.append(new_member as Character)
+		crew_system.add_crew_member(new_member)
+		relationship_manager.add_crew_member(new_member)
 		
 		_update_crew_preview()
 		_update_button_states()
@@ -234,7 +243,7 @@ func _on_crew_member_created(crew_data: Dictionary) -> void:
 		else:
 			_show_info_dialog("Maximum crew size reached. Please confirm your crew.")
 	else:
-		member.free()
+		new_member.free()
 
 func _validate_crew_member(member: Character) -> bool:
 	if not member:

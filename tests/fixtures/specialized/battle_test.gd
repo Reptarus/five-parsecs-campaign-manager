@@ -1,12 +1,13 @@
 @tool
 extends "res://tests/fixtures/base/game_test.gd"
-# Use explicit preloads instead of global class names
-const BattleTestScript = preload("res://tests/fixtures/specialized/battle_test.gd")
 
 ## Base class for battle system tests
 ##
 ## Provides functionality for testing combat scenarios, unit interactions,
 ## and battle state verification.
+
+# Type-safe helper constants
+const GameEnums = preload("res://src/core/enums/GameEnums.gd")
 
 # Battle test configuration
 const BATTLE_TEST_CONFIG := {
@@ -48,38 +49,78 @@ const DEFEND_COST: int = 1
 var _battle_state: Node = null
 var _combat_manager: Node = null
 var _battlefield_manager: Node = null
-var _active_units: Array[Node] = []
+var _active_units: Array = []
+var _tracked_battle_nodes: Array = []
+var _tracked_battle_resources: Array = []
+var _battle_fps_samples: Array = []
 
 func before_each() -> void:
 	await super.before_each()
+	_tracked_battle_nodes = []
+	_tracked_battle_resources = []
+	_active_units = []
+	_battle_fps_samples = []
 	_setup_battle_environment()
 	await stabilize_engine()
 
 func after_each() -> void:
 	_cleanup_battle_environment()
+	
+	# Clean up tracked resources
+	for resource in _tracked_battle_resources:
+		if resource != null:
+			resource = null
+	_tracked_battle_resources.clear()
+	
+	# Clean up tracked nodes
+	for node in _tracked_battle_nodes:
+		if node and is_instance_valid(node):
+			if node.get_parent() == self:
+				remove_child(node)
+			if not node.is_queued_for_deletion():
+				node.queue_free()
+	_tracked_battle_nodes.clear()
+	
 	await super.after_each()
 
 func _setup_battle_environment() -> void:
 	_battle_state = _create_battle_state()
 	if _battle_state:
-		add_child_autofree(_battle_state)
-		track_test_node(_battle_state)
+		add_child(_battle_state)
+		track_battle_node(_battle_state)
 	
 	_combat_manager = _create_combat_manager()
 	if _combat_manager:
-		add_child_autofree(_combat_manager)
-		track_test_node(_combat_manager)
+		add_child(_combat_manager)
+		track_battle_node(_combat_manager)
 	
 	_battlefield_manager = _create_battlefield_manager()
 	if _battlefield_manager:
-		add_child_autofree(_battlefield_manager)
-		track_test_node(_battlefield_manager)
+		add_child(_battlefield_manager)
+		track_battle_node(_battlefield_manager)
 
 func _cleanup_battle_environment() -> void:
 	_battle_state = null
 	_combat_manager = null
 	_battlefield_manager = null
 	_active_units.clear()
+
+# Utility functions
+func track_battle_node(node: Node) -> void:
+	if node and is_instance_valid(node) and not _tracked_battle_nodes.has(node):
+		_tracked_battle_nodes.append(node)
+		# Also track in the parent class to ensure proper cleanup
+		track_test_node(node)
+
+func track_battle_resource(resource: Resource) -> void:
+	if resource and not _tracked_battle_resources.has(resource):
+		_tracked_battle_resources.append(resource)
+		# Also track in the parent class to ensure proper cleanup
+		track_test_resource(resource)
+
+func stabilize_engine(time: float = BATTLE_TEST_CONFIG.stabilize_time) -> void:
+	await get_tree().process_frame
+	await get_tree().create_timer(time).timeout
 
 # Battle system creation
 func _create_battle_state() -> Node:
@@ -103,12 +144,12 @@ func create_test_unit(attack: int, defense: int, speed: int = 5) -> Node:
 	TypeSafeMixin._call_node_method_bool(unit, "set_speed", [speed])
 	
 	add_child_autofree(unit)
-	track_test_node(unit)
+	track_battle_node(unit)
 	_active_units.append(unit)
 	return unit
 
-func create_test_squad(size: int) -> Array[Node]:
-	var squad: Array[Node] = []
+func create_test_squad(size: int) -> Array:
+	var squad = []
 	for i in range(size):
 		var unit := create_test_unit(10, 5, 5)
 		if unit:
@@ -201,7 +242,7 @@ func activate_ability(unit: Node, ability_id: String) -> Dictionary:
 # Performance testing
 func measure_combat_performance(iterations: int = 100) -> Dictionary:
 	# Clear performance samples
-	_fps_samples.clear()
+	_battle_fps_samples.clear()
 	var memory_before := Performance.get_monitor(Performance.MEMORY_STATIC)
 	var draw_calls_before := Performance.get_monitor(Performance.RENDER_TOTAL_DRAW_CALLS_IN_FRAME)
 	
@@ -213,7 +254,7 @@ func measure_combat_performance(iterations: int = 100) -> Dictionary:
 		if attacker and defender:
 			resolve_combat(attacker, defender)
 		await get_tree().process_frame
-		_fps_samples.append(Engine.get_frames_per_second())
+		_battle_fps_samples.append(Engine.get_frames_per_second())
 	
 	var end_time := Time.get_ticks_msec()
 	var memory_after := Performance.get_monitor(Performance.MEMORY_STATIC)
@@ -222,13 +263,13 @@ func measure_combat_performance(iterations: int = 100) -> Dictionary:
 	# Calculate metrics
 	var total_fps := 0.0
 	var min_fps := 1000.0
-	for fps in _fps_samples:
+	for fps in _battle_fps_samples:
 		total_fps += fps
 		min_fps = min(min_fps, fps)
 	
 	return {
-		"average_fps": total_fps / _fps_samples.size() if not _fps_samples.is_empty() else 0.0,
-		"minimum_fps": min_fps if not _fps_samples.is_empty() else 0.0,
+		"average_fps": total_fps / _battle_fps_samples.size() if not _battle_fps_samples.is_empty() else 0.0,
+		"minimum_fps": min_fps if not _battle_fps_samples.is_empty() else 0.0,
 		"execution_time_ms": end_time - start_time,
 		"memory_delta_kb": (memory_after - memory_before) / 1024.0,
 		"draw_calls_delta": draw_calls_after - draw_calls_before

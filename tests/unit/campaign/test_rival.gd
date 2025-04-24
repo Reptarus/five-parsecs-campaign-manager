@@ -3,6 +3,7 @@ extends "res://tests/fixtures/base/game_test.gd"
 # Use explicit preloads instead of global class names
 
 const Rival: GDScript = preload("res://src/core/rivals/Rival.gd")
+const TestEnums = preload("res://tests/fixtures/base/test_helper.gd")
 
 var rival: Rival = null
 

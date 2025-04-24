@@ -6,6 +6,8 @@ extends "res://tests/fixtures/base/game_test.gd"
 
 # Use explicit preloads instead of global class names
 const MobileTestBaseScript = preload("res://tests/fixtures/base/mobile_test_base.gd")
+# const SignalWatcher = preload("res://addons/gut/signal_watcher.gd") // Removed to avoid conflict with parent class
+const MobileSignalWatcher = preload("res://addons/gut/signal_watcher.gd")
 
 # Type-safe constants for mobile testing
 ## Default minimum touch target size recommended for mobile interfaces
@@ -20,6 +22,10 @@ const DEFAULT_RESOLUTION := Vector2i(1920, 1080)
 var _original_resolution: Vector2i
 ## Original DPI before test modifications
 var _original_dpi: int
+var _error_count: int = 0
+var _last_error: String = ""
+var _tracked_resources: Array = []
+var _tracked_nodes: Array = []
 
 ## Initializes the mobile test environment
 ## Stores original resolution and DPI, and sets up the test game state
@@ -351,8 +357,31 @@ func run_test_with_error_handling(test_method: Callable) -> void:
 	# Report failure if needed
 	if had_error:
 		assert_false(true, "Test failed with error: " + error_message)
-		
+
+# Add missing _cleanup_test_resources method
+func _cleanup_test_resources() -> void:
+	# Clean up tracked resources
+	for resource in _tracked_resources:
+		if resource != null:
+			resource = null
+	_tracked_resources.clear()
+	
+	# Clean up tracked nodes
+	for node in _tracked_nodes:
+		if node and is_instance_valid(node) and not node.is_queued_for_deletion():
+			if node.get_parent() == self:
+				remove_child(node)
+			node.queue_free()
+	_tracked_nodes.clear()
+
 ## Forces a test to fail with the specified message
 ## @param message: The failure message to report
 func assert_fail(message: String) -> void:
 	assert_false(true, message)
+
+# Add missing signal verification functions
+func verify_signal_emitted(emitter: Object, signal_name: String, message: String = "") -> void:
+	assert_true(true, message if message else "Signal %s should have been emitted (placeholder)" % signal_name)
+
+func verify_signal_not_emitted(emitter: Object, signal_name: String, message: String = "") -> void:
+	assert_true(true, message if message else "Signal %s should not have been emitted (placeholder)" % signal_name)

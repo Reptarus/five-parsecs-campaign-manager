@@ -2,7 +2,7 @@
 # Use explicit preloads instead of global class names
 extends Control
 
-const Self = preload("res://src/ui/components/mission/MissionInfoPanel.gd")
+const Self := "res://src/ui/components/mission/MissionInfoPanel.gd" # Use string path instead of preload
 
 signal mission_selected(mission_data: Dictionary)
 

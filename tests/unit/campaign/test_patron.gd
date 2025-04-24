@@ -1,6 +1,8 @@
 @tool
 extends "res://tests/fixtures/base/game_test.gd"
 
+const TestEnums = preload("res://tests/fixtures/base/test_helper.gd")
+
 const Patron: GDScript = preload("res://src/core/rivals/Patron.gd")
 
 var patron: Patron = null

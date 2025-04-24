@@ -8,6 +8,7 @@ var FiveParsecsGameState = null
 # Type-safe instance variables
 var game_state_manager = null
 var _test_game_state: Node = null
+var _tracked_resources: Array[Resource] = []
 
 func before_all() -> void:
 	super.before_all()
@@ -391,3 +392,9 @@ func test_invalid_state_transition() -> void:
 		
 	# Print final debug info
 	print("After transition to NONE - phase: ", current_phase)
+
+func _cleanup_tracked_resources() -> void:
+	for resource in _tracked_resources:
+		if resource != null:
+			resource = null
+	_tracked_resources.clear()

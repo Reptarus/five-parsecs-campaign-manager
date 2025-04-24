@@ -564,3 +564,140 @@ func validate_current_campaign() -> bool:
 		return false
 	
 	return true
+
+# Method to set the game state for testing purposes
+func set_game_state(state) -> bool:
+	if state != null and is_instance_valid(state):
+		game_state = state
+		validator = ValidationManager.new(game_state)
+		reset_phase_tracking()
+		
+		# Connect to campaign signals if available
+		if game_state and game_state.current_campaign:
+			_connect_to_campaign(game_state.current_campaign)
+		return true
+	return false
+
+# Setup battle functionality for battle phase
+func setup_battle() -> bool:
+	if not game_state or not game_state.current_campaign:
+		push_error("Cannot setup battle - no active campaign")
+		return false
+		
+	# Validate we're in the correct phase
+	if current_phase != FiveParcsecsCampaignPhase.BATTLE_SETUP:
+		push_error("Cannot setup battle - not in BATTLE_SETUP phase")
+		return false
+		
+	# Mark required actions as completed
+	complete_phase_action("battlefield_generated")
+	complete_phase_action("enemy_forces_generated")
+	complete_phase_action("deployment_ready")
+	
+	# Emit phase action completed signal
+	phase_action_completed.emit("battle_setup_completed")
+	return true
+
+# Get campaign results summary
+func get_campaign_results() -> Dictionary:
+	if not game_state or not game_state.current_campaign:
+		push_error("Cannot get campaign results - no active campaign")
+		return {}
+		
+	var campaign = game_state.current_campaign
+	var results = {
+		"campaign_id": "",
+		"campaign_name": "Unknown Campaign",
+		"completed": false,
+		"victory": false,
+		"turns": 0,
+		"final_credits": 0,
+		"battles_won": 0,
+		"enemies_defeated": 0
+	}
+	
+	# Extract data based on available methods
+	if campaign.has_method("get_campaign_id"):
+		results.campaign_id = campaign.get_campaign_id()
+	elif "campaign_id" in campaign:
+		results.campaign_id = campaign.campaign_id
+	
+	if campaign.has_method("get_campaign_name"):
+		results.campaign_name = campaign.get_campaign_name()
+	elif "campaign_name" in campaign:
+		results.campaign_name = campaign.campaign_name
+	
+	if campaign.has_method("get_turn"):
+		results.turns = campaign.get_turn()
+	elif "turn" in campaign:
+		results.turns = campaign.turn
+	
+	if campaign.has_method("get_credits"):
+		results.final_credits = campaign.get_credits()
+	elif "credits" in campaign:
+		results.final_credits = campaign.credits
+	
+	# Check for battle stats
+	if "battle_stats" in campaign:
+		if campaign.battle_stats.has("battles_won"):
+			results.battles_won = campaign.battle_stats.battles_won
+		if campaign.battle_stats.has("enemies_defeated"):
+			results.enemies_defeated = campaign.battle_stats.enemies_defeated
+	
+	return results
+
+# Calculate upkeep for the campaign
+func calculate_upkeep() -> Dictionary:
+	if not game_state or not game_state.current_campaign:
+		push_error("Cannot calculate upkeep - no active campaign")
+		return {}
+		
+	var campaign = game_state.current_campaign
+	var upkeep = {
+		"crew": 0,
+		"equipment": 0,
+		"ship": 0,
+		"total": 0
+	}
+	
+	# Calculate crew upkeep
+	if "crew" in campaign and campaign.crew:
+		# For each crew member, upkeep is 10 credits
+		if campaign.crew.has_method("get_members"):
+			var members = campaign.crew.get_members()
+			upkeep.crew = members.size() * 10
+		elif "members" in campaign.crew:
+			upkeep.crew = campaign.crew.members.size() * 10
+	
+	# Calculate equipment upkeep
+	if "equipment" in campaign:
+		upkeep.equipment = round(len(campaign.equipment) * 5)
+	
+	# Calculate ship upkeep if applicable
+	if "ship" in campaign and campaign.ship:
+		upkeep.ship = 50
+	
+	# Calculate total
+	upkeep.total = upkeep.crew + upkeep.equipment + upkeep.ship
+	
+	return upkeep
+
+# Advance the campaign to the next turn
+func advance_campaign() -> bool:
+	if not game_state or not game_state.current_campaign:
+		push_error("Cannot advance campaign - no active campaign")
+		return false
+		
+	var campaign = game_state.current_campaign
+	
+	# Increment turn counter
+	if campaign.has_method("increment_turn"):
+		campaign.increment_turn()
+	elif "turn" in campaign:
+		campaign.turn += 1
+	
+	# Complete current phase
+	complete_phase_action("turn_completed")
+	
+	# Start the next phase (upkeep phase)
+	return start_phase(FiveParcsecsCampaignPhase.UPKEEP)

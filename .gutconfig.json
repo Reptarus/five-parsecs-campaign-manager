@@ -1,8 +1,12 @@
 {
     "background_color": "ff262626",
     "dirs": [
-        "res://tests/unit",
-        "res://tests/integration"
+        "res://tests/unit/",
+        "res://tests/integration/",
+        "res://tests/battle/",
+        "res://tests/performance/",
+        "res://tests/mobile/",
+        "res://tests/diagnostic/"
     ],
     "disable_colors": false,
     "double_strategy": "partial",
@@ -13,7 +17,7 @@
     "ignore_pause": true,
     "include_subdirs": true,
     "inner_class": "Test",
-    "log_level": 1,
+    "log_level": 3,
     "opacity": 100,
     "prefix": "test_",
     "selected": "",
@@ -21,6 +25,10 @@
     "should_exit_on_success": true,
     "should_maximize": false,
     "suffix": ".gd",
-    "tests": [],
-    "unit_test_name": ""
+    "tests": [
+        "res://tests/unit/minimal_test.gd",
+        "res://tests/unit/basic_test.gd"
+    ],
+    "unit_test_name": "",
+    "safe_mode": true
 }

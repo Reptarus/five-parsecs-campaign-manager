@@ -5,7 +5,7 @@ extends "res://tests/fixtures/specialized/campaign_test.gd"
 
 const CampaignPhaseManager := preload("res://src/core/campaign/CampaignPhaseManager.gd")
 const GameStateManager := preload("res://src/core/managers/GameStateManager.gd")
-const TypeSafeMixin := preload("res://tests/fixtures/helpers/type_safe_test_mixin.gd")
+# TypeSafeMixin is already defined in campaign_test.gd - no need to redefine it here
 
 # Type-safe instance variables
 var _phase_manager: Node = null

@@ -131,13 +131,19 @@ func _setup_history_tracking() -> void:
 
 # Enhanced table management methods
 func register_table(table: Table) -> void:
+	if table == null:
+		push_error("Attempted to register a null table")
+		return
+		
 	_tables[table.name] = table
 	table_modified.emit(table.name, "registered")
 
 func has_table(table_name: String) -> bool:
-	return _tables.has(table_name)
+	return table_name != "" and _tables.has(table_name)
 
 func get_table(table_name: String) -> Table:
+	if not has_table(table_name):
+		return null
 	return _tables.get(table_name)
 
 # Enhanced rolling methods with validation
@@ -147,6 +153,10 @@ func roll_table(table_name: String, custom_roll: int = -1, category: String = ""
 		return {"success": false, "reason": "Table not found"}
 	
 	var table = get_table(table_name)
+	if table == null:
+		validation_failed.emit(table_name, "Table is null")
+		return {"success": false, "reason": "Table is null"}
+		
 	var roll = custom_roll if custom_roll >= 0 else randi() % 100 + 1
 	
 	# Enhanced validation with custom rules
@@ -158,6 +168,10 @@ func roll_table(table_name: String, custom_roll: int = -1, category: String = ""
 	else:
 		# Standard validation rules
 		for rule in table.validation_rules:
+			if not rule.is_valid():
+				push_warning("Invalid validation rule in table " + table_name)
+				continue
+				
 			var validation = rule.call(roll)
 			if not validation["valid"]:
 				validation_failed.emit(table_name, validation["reason"])
@@ -345,3 +359,43 @@ func deserialize(data: Dictionary) -> void:
 func _run_custom_validation(table: Table, roll: int) -> Dictionary:
 	# Implement custom validation logic here
 	return {"success": true, "reason": ""}
+
+# Process table data for the tests
+func process_data(table_data: Dictionary) -> Dictionary:
+	if table_data == null or table_data.is_empty():
+		return {"success": false, "reason": "Empty or null table data"}
+	
+	var result = {"success": true, "processed_rows": 0, "warnings": []}
+	
+	# Process the table data based on its structure
+	if "rows" in table_data and table_data.rows is Array:
+		result.processed_rows = table_data.rows.size()
+		
+		# Process each row
+		for i in range(table_data.rows.size()):
+			var row = table_data.rows[i]
+			if row == null or not _validate_row(row):
+				result.warnings.append("Invalid row at index " + str(i))
+	
+	# Log processing attempt to history
+	var entry = {
+		"timestamp": Time.get_unix_time_from_system(),
+		"operation": "process_data",
+		"row_count": result.processed_rows,
+		"warning_count": result.warnings.size()
+	}
+	_add_to_history(entry)
+	
+	return result
+
+# Alternative name for the same functionality (for backward compatibility)
+func process_table(table_data: Dictionary) -> Dictionary:
+	return process_data(table_data)
+
+# Helper to validate a row of data
+func _validate_row(row) -> bool:
+	if not row is Dictionary:
+		return false
+	
+	# Basic validation - can be expanded based on requirements
+	return true

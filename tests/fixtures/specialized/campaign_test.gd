@@ -1,180 +1,184 @@
 @tool
-extends "res://addons/gut/test.gd"
+extends "res://tests/fixtures/base/game_test.gd"
 
-## Campaign Test Base Class
-## This is a simple base class for campaign tests without dependencies
+# Special constants for campaign tests
+const CAMPAIGN_TIMEOUT = 2.0
+const DEFAULT_CAMPAIGN_NAME = "Test Campaign"
 
-# Import GameEnums directly
-const GameEnums = preload("res://src/core/enums/GameEnums.gd")
-const GutCompatibility = preload("res://tests/fixtures/helpers/gut_compatibility.gd")
-
-# Campaign test configuration
-const CAMPAIGN_TEST_CONFIG = {
-	"stabilize_time": 0.2,
-	"save_timeout": 2.0,
-	"load_timeout": 2.0,
-	"phase_timeout": 1.0
-}
-
-# Test campaign values
-var _test_campaign_name = "Test Campaign"
-var _test_difficulty_level = GameEnums.DifficultyLevel.NORMAL
+# Campaign testing helpers
 var _test_credits = 1000
-var _test_supplies = 5
-var _game_state = null
+var _test_supplies = 50
+var _test_reputation = 5
 
-# Helper methods
-func stabilize_engine(time: float = 0.0):
-	await get_tree().process_frame
-	await get_tree().process_frame
-	
-	if time > 0:
-		await get_tree().create_timer(time).timeout
+# Campaign reference
+var _campaign = null
 
-# Safety utility to verify signal sequences without risking array out of bounds
-func verify_signal_sequence(received_signals: Array, expected_signals: Array, strict_order: bool = true) -> bool:
-	# Log signals for debugging
-	print("Verifying signals. Received: ", received_signals, " Expected: ", expected_signals)
-	
-	# First check: do we have enough signals?
-	var has_enough_signals = received_signals.size() >= expected_signals.size()
-	assert_true(has_enough_signals,
-		"Expected at least %d signals, but got %d: %s" % [
-			expected_signals.size(),
-			received_signals.size(),
-			received_signals
-		])
-	
-	if not has_enough_signals:
-		return false
-	
-	# Second check: are all expected signals present?
-	var all_present = true
-	var missing_signals = []
-	
-	for expected in expected_signals:
-		if not received_signals.has(expected):
-			all_present = false
-			missing_signals.append(expected)
-	
-	assert_true(all_present,
-		"All expected signals should be present. Missing: %s" % missing_signals)
-	
-	# Third check: if strict order is required, verify order
-	if strict_order and all_present:
-		var correct_order = true
-		var previous_index = -1
-		
-		for expected in expected_signals:
-			var current_index = received_signals.find(expected)
-			
-			if current_index < previous_index:
-				correct_order = false
-				break
-				
-			previous_index = current_index
-		
-		assert_true(correct_order,
-			"Signals should be received in the expected order: %s vs %s" % [
-				expected_signals,
-				received_signals
-			])
-		
-		return correct_order
-	
-	return all_present
-	
-func track_test_node(node):
-	if node != null and node is Node:
-		if not has_node(node.get_path()):
-			add_child(node)
-	
-func track_test_resource(_resource):
-	# Nothing to do for resources in this simplified version
+# Setup methods
+func _setup_campaign_test() -> void:
+	# Setup any campaign-specific test resources here
 	pass
-	
-func track_node_count(label):
-	print("[%s] Node count: %d" % [label, Performance.get_monitor(Performance.OBJECT_NODE_COUNT)])
 
-# The missing function that's causing the error
-func create_test_game_state() -> Node:
-	# Try to load the GameState script
-	var game_state_script = load("res://src/core/state/GameState.gd")
-	if not game_state_script:
-		push_error("Could not load GameState script")
-		return null
-		
-	# Create a new instance
-	var state_instance = game_state_script.new()
-	if not state_instance:
-		push_error("Failed to create GameState instance")
-		return null
-		
-	# Return the created state
-	return state_instance
+func before_each():
+	await super.before_each()
+	_setup_campaign_test()
 	
-# Add helper for loading test campaign
-func load_test_campaign(state: Node) -> void:
-	if not state:
-		push_error("Cannot load campaign: game state is null")
+	# Create a test campaign for common use
+	_campaign = create_test_campaign()
+	if _campaign and _campaign is Resource:
+		track_test_resource(_campaign)
+
+func after_each():
+	_campaign = null
+	await super.after_each()
+
+# Helper methods for campaign tests
+func create_test_campaign():
+	var CampaignScript = load("res://src/core/campaign/Campaign.gd")
+	if not CampaignScript:
+		push_warning("Campaign script not found, using mock instead")
+		return create_mock_campaign()
+		
+	var campaign = CampaignScript.new()
+	if not campaign:
+		push_error("Failed to create campaign instance")
+		return null
+	
+	# Initialize test campaign
+	if campaign.has_method("set_name"):
+		campaign.set_name(DEFAULT_CAMPAIGN_NAME)
+	
+	if campaign.has_method("set_credits"):
+		campaign.set_credits(_test_credits)
+		
+	if campaign.has_method("set_supplies"):
+		campaign.set_supplies(_test_supplies)
+		
+	track_test_resource(campaign)
+	return campaign
+
+func create_mock_campaign():
+	# Create a minimal mock object when the real script can't be found
+	var mock_campaign = Resource.new()
+	mock_campaign.set_meta("name", DEFAULT_CAMPAIGN_NAME)
+	mock_campaign.set_meta("credits", _test_credits)
+	mock_campaign.set_meta("supplies", _test_supplies)
+	mock_campaign.set_meta("reputation", _test_reputation)
+	
+	track_test_resource(mock_campaign)
+	return mock_campaign
+
+# Campaign-specific assertions
+func assert_campaign_has_credits(campaign, expected_credits, message = ""):
+	var credits = 0
+	
+	# Try several ways to get the credits value
+	if campaign.has_method("get_credits"):
+		credits = campaign.get_credits()
+	elif "credits" in campaign:
+		credits = campaign.credits
+	elif campaign.has_meta("credits"):
+		credits = campaign.get_meta("credits")
+	
+	if message.is_empty():
+		message = "Campaign should have %d credits but had %d" % [expected_credits, credits]
+	
+	assert_eq(credits, expected_credits, message)
+
+func assert_campaign_has_supplies(campaign, expected_supplies, message = ""):
+	var supplies = 0
+	
+	# Try several ways to get the supplies value
+	if campaign.has_method("get_supplies"):
+		supplies = campaign.get_supplies()
+	elif "supplies" in campaign:
+		supplies = campaign.supplies
+	elif campaign.has_meta("supplies"):
+		supplies = campaign.get_meta("supplies")
+	
+	if message.is_empty():
+		message = "Campaign should have %d supplies but had %d" % [expected_supplies, supplies]
+	
+	assert_eq(supplies, expected_supplies, message)
+
+func assert_campaign_phase(campaign, expected_phase, message = ""):
+	var phase = -1
+	
+	# Try several ways to get the phase value
+	if campaign.has_method("get_phase"):
+		phase = campaign.get_phase()
+	elif campaign.has_method("get_campaign_phase"):
+		phase = campaign.get_campaign_phase()
+	elif "phase" in campaign:
+		phase = campaign.phase
+	elif campaign.has_meta("phase"):
+		phase = campaign.get_meta("phase")
+	
+	if message.is_empty():
+		message = "Campaign should be in phase %d but was in phase %d" % [expected_phase, phase]
+	
+	assert_eq(phase, expected_phase, message)
+
+# Helpers for working with missions in campaigns
+func create_test_mission():
+	var MissionScript = load("res://src/core/mission/Mission.gd")
+	if not MissionScript:
+		push_warning("Mission script not found, using mock instead")
+		return create_mock_mission()
+		
+	var mission = MissionScript.new()
+	if not mission:
+		push_error("Failed to create mission instance")
+		return null
+	
+	track_test_resource(mission)
+	return mission
+
+func create_mock_mission():
+	var mock_mission = Resource.new()
+	mock_mission.set_meta("name", "Test Mission")
+	mock_mission.set_meta("difficulty", 1)
+	
+	track_test_resource(mock_mission)
+	return mock_mission
+
+# Signal helpers with timeout handling
+func wait_for_campaign_signal(campaign, signal_name, timeout = CAMPAIGN_TIMEOUT):
+	if not campaign.has_signal(signal_name):
+		push_warning("Campaign does not have signal %s" % signal_name)
+		return false
+		
+	var signal_obj = Signal(campaign, signal_name)
+	return await wait_for_signal(signal_obj, timeout)
+    
+# Campaign phase verification
+func verify_campaign_phase_transition(campaign, from_phase, to_phase):
+	if not is_instance_valid(campaign):
+		push_error("Campaign is null")
 		return
 		
-	var campaign_resource = Resource.new()
+	var current_phase = -1
+	if campaign.has_method("get_phase"):
+		current_phase = campaign.get_phase()
+	elif campaign.has_method("get_current_phase"):
+		current_phase = campaign.get_current_phase()
 	
-	# Create a script for the campaign
-	var compatibility = GutCompatibility.new()
-	var script = compatibility.create_script()
+	assert_eq(current_phase, from_phase, "Campaign should be in phase %d but was in phase %d" % [from_phase, current_phase])
 	
-	script.source_code = """
-extends Resource
-
-var campaign_id = "test_campaign_" + str(randi())
-var campaign_name = "Test Campaign"
-var difficulty = 1
-var credits = 1000
-var supplies = 5
-var turn = 1
-var phase = 0
-
-signal campaign_state_changed(property)
-
-func initialize_from_data(data = {}):
-	if data.has("campaign_id"):
-		campaign_id = data.campaign_id
-	if data.has("campaign_name"):
-		campaign_name = data.campaign_name
-	if data.has("difficulty"):
-		difficulty = data.difficulty
-	if data.has("credits"):
-		credits = data.credits
-	if data.has("supplies"):
-		supplies = data.supplies
-	return true
-"""
-	script.reload()
+	# Watch for phase change signals
+	if campaign.has_signal("phase_changed"):
+		watch_signals(campaign)
 	
-	# Apply the script to the resource
-	campaign_resource.set_script(script)
+	# Attempt phase transition
+	if campaign.has_method("set_phase"):
+		campaign.set_phase(to_phase)
 	
-	# Set the campaign on the state
-	if state.has_method("set_current_campaign"):
-		state.set_current_campaign(campaign_resource)
-	elif "current_campaign" in state:
-		state.current_campaign = campaign_resource
+	# Verify the phase changed
+	if campaign.has_method("get_phase"):
+		current_phase = campaign.get_phase()
+	elif campaign.has_method("get_current_phase"):
+		current_phase = campaign.get_current_phase()
+		
+	assert_eq(current_phase, to_phase, "Campaign should be in phase %d but was in phase %d" % [to_phase, current_phase])
 	
-# Simple test function to verify the script works
-func test_script_loads():
-	assert_true(true, "Script loaded successfully")
-
-# Assert valid game state function
-func assert_valid_game_state(state: Node) -> void:
-	assert_not_null(state, "Game state should not be null")
-	
-	# Check for current campaign
-	var has_campaign = false
-	if state.has_method("get_current_campaign"):
-		has_campaign = state.get_current_campaign() != null
-	elif "current_campaign" in state:
-		has_campaign = state.current_campaign != null
-	
-	assert_true(has_campaign, "Game state should have a current campaign")
+	if campaign.has_signal("phase_changed"):
+		verify_signal_emitted(campaign, "phase_changed")

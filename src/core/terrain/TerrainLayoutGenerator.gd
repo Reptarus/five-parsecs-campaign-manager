@@ -148,8 +148,8 @@ func _get_random_feature_type() -> int:
     ]
     return types[randi() % types.size()]
 
-func _get_adjacent_positions(pos: Vector2) -> Array:
-    var adjacent := []
+func _get_adjacent_positions(pos: Vector2) -> Array[Vector2]:
+    var adjacent: Array[Vector2] = []
     var offsets := [
         Vector2(-1, 0), Vector2(1, 0),
         Vector2(0, -1), Vector2(0, 1)
@@ -167,4 +167,16 @@ func _is_valid_position(pos: Vector2) -> bool:
     return pos.x >= 0 and pos.x < grid_size.x and pos.y >= 0 and pos.y < grid_size.y
 
 func _set_terrain_feature(pos: Vector2, feature_type: int) -> void:
-    _terrain_system.set_terrain_feature(pos, feature_type)
+    if not _terrain_system:
+        return
+        
+    # Convert Vector2 to Vector2i if needed
+    var position = Vector2i(int(pos.x), int(pos.y))
+    
+    # Use TerrainSystem or TerrainLayout depending on what's available
+    if _terrain_system and _terrain_system.has_method("set_terrain_feature"):
+        _terrain_system.set_terrain_feature(position, feature_type)
+    elif _terrain_system and _terrain_system.has_method("get_terrain_layout"):
+        var layout = _terrain_system.get_terrain_layout()
+        if layout and layout.has_method("place_feature"):
+            layout.place_feature(position, feature_type)

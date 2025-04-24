@@ -1,0 +1,9 @@
+# Ignore all files in this directory except this .gitignore file
+*
+!.gitignore
+
+# This directory is used for temporary files during test runs.
+# All files here are automatically generated and should not be committed.
+#
+# Use the cleanup script to remove these files:
+# godot --script tests/utils/cleanup_temp_files.gd 

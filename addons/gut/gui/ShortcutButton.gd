@@ -1,6 +1,7 @@
 @tool
-extends Control
+extends Button
 
+# Simple shortcut button for the GUT interface
 
 @onready var _ctrls = {
 	shortcut_label = $Layout/lblShortcut,
@@ -29,7 +30,7 @@ func _ready():
 
 
 func _display_shortcut():
-	if(_key_disp == ''):
+	if (_key_disp == ''):
 		_key_disp = NO_SHORTCUT
 	_ctrls.shortcut_label.text = _key_disp
 
@@ -60,12 +61,12 @@ func _edit_mode(should):
 	_ctrls.cancel_button.visible = should
 	_ctrls.clear_button.visible = !should
 
-	if(should and to_s() == ''):
+	if (should and to_s() == ''):
 		_ctrls.shortcut_label.text = 'press buttons'
 	else:
 		_ctrls.shortcut_label.text = to_s()
 
-	if(should):
+	if (should):
 		emit_signal("start_edit")
 	else:
 		emit_signal("end_edit")
@@ -74,9 +75,9 @@ func _edit_mode(should):
 # Events
 # ---------------
 func _unhandled_key_input(event):
-	if(event is InputEventKey):
-		if(event.pressed):
-			if(_has_modifier(event) and !_is_modifier(event.get_keycode_with_modifiers())):
+	if (event is InputEventKey):
+		if (event.pressed):
+			if (_has_modifier(event) and !_is_modifier(event.get_keycode_with_modifiers())):
 				_source_event = event
 				_key_disp = OS.get_keycode_string(event.get_keycode_with_modifiers())
 			else:
@@ -122,7 +123,7 @@ func get_shortcut():
 
 
 func set_shortcut(sc):
-	if(sc == null or sc.events == null || sc.events.size() <= 0):
+	if (sc == null or sc.events == null || sc.events.size() <= 0):
 		clear_shortcut()
 	else:
 		_source_event = sc.events[0]
@@ -145,7 +146,7 @@ func disable_clear(should):
 	
 	
 func cancel():
-	if(_editing):
+	if (_editing):
 		_edit_mode(false)
 		_source_event = _pre_edit_event
 		_key_disp = to_s()

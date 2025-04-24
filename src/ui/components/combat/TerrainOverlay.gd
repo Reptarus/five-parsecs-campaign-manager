@@ -3,7 +3,7 @@
 # Use explicit preloads instead of global class names
 extends Node2D
 
-const Self = preload("res://src/ui/components/combat/TerrainOverlay.gd")
+const Self := "res://src/ui/components/combat/TerrainOverlay.gd" # Use string path instead of preload
 
 ## Dependencies
 const TerrainSystem := preload("res://src/core/terrain/TerrainSystem.gd")

@@ -1,8 +1,8 @@
 @tool
 extends Control
 
-var ScriptTextEditorControls = load("res://addons/gut/gui/script_text_editor_controls.gd")
-var Compatibility = load('res://addons/gut/compatibility.gd')
+
+var ScriptTextEditors = load('res://addons/gut/gui/script_text_editor_controls.gd')
 
 @onready var _ctrls = {
 	btn_script = $HBox/BtnRunScript,
@@ -40,11 +40,11 @@ func _ready():
 # ----------------
 func _set_editor(which):
 	_last_line = -1
-	if (_cur_editor != null and _cur_editor.get_ref()):
+	if(_cur_editor != null and _cur_editor.get_ref()):
 		# _cur_editor.get_ref().disconnect('cursor_changed',Callable(self,'_on_cursor_changed'))
 		_cur_editor.get_ref().caret_changed.disconnect(_on_cursor_changed)
 
-	if (which != null):
+	if(which != null):
 		_cur_editor = weakref(which)
 		which.caret_changed.connect(_on_cursor_changed.bind(which))
 		# which.connect('cursor_changed',Callable(self,'_on_cursor_changed'),[which])
@@ -80,7 +80,7 @@ func _update_size():
 # Events
 # ----------------
 func _on_cursor_changed(which):
-	if (which.get_caret_line() != _last_line):
+	if(which.get_caret_line() != _last_line):
 		_last_line = which.get_caret_line()
 		_last_info = _editors.get_line_info()
 		_update_buttons(_last_info)
@@ -119,15 +119,11 @@ func activate_for_script(path):
 	_ctrls.btn_script.text = path.get_file()
 	_ctrls.btn_script.tooltip_text = str("Run all tests in script ", path)
 	_cur_script_path = path
-	
-	# Use compatibility for safe method call
-	var compatibility = Compatibility.new()
-	compatibility.safe_call(_editors, "refresh", [])
-	
+	_editors.refresh()
 	# We have to wait a beat for the visibility to change on
 	# the editors, otherwise we always get the first one.
 	await get_tree().process_frame
-	_set_editor(compatibility.safe_call(_editors, "get_current_text_edit", []))
+	_set_editor(_editors.get_current_text_edit())
 
 
 func get_script_button():

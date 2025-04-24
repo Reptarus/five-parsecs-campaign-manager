@@ -61,7 +61,8 @@
             "additional_options": "--verbose --debug",
             "env": {
                 "GODOT_DEBUG_ENABLED": "1",
-                "GUT_TEST_MODE": "1"
+                "GUT_TEST_MODE": "1",
+                "GODOT_TYPE_VALIDATION": "1"
             }
         },
         {
@@ -80,7 +81,8 @@
             "env": {
                 "GODOT_DEBUG_ENABLED": "1",
                 "GUT_TEST_MODE": "1",
-                "GUT_CURRENT_TEST": "${file}"
+                "GUT_CURRENT_TEST": "${file}",
+                "GODOT_TYPE_VALIDATION": "1"
             }
         }
     ]

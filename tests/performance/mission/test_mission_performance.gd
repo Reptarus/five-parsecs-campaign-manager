@@ -248,4 +248,3 @@ func test_concurrent_mission_operations() -> void:
 	var total_time: int = Time.get_ticks_msec() - start_time
 	assert_lt(total_time, BATCH_SIZE * STATE_UPDATE_THRESHOLD,
 		"Should handle concurrent operations efficiently")
- 

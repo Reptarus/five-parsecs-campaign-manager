@@ -59,7 +59,7 @@ To identify and fix inconsistencies in test files:
    - UI tests → `extends "res://tests/fixtures/specialized/ui_test.gd"`
    - Battle tests → `extends "res://tests/fixtures/specialized/battle_test.gd"`
    - Campaign tests → `extends "res://tests/fixtures/specialized/campaign_test.gd"`
-   - Enemy tests → `extends "res://tests/fixtures/specialized/enemy_test.gd"`
+   - Enemy tests → `extends GutTest` (directly extend GutTest)
    - Mobile tests → `extends "res://tests/fixtures/specialized/mobile_test.gd"`
    - General tests → `extends "res://tests/fixtures/base/game_test.gd"`
 
@@ -128,7 +128,18 @@ func test_feature() -> void:
     # Then
     # ... assertion ...
 }
-```
+
+## Base Classes
+
+The project uses several specialized base test classes:
+
+- UI tests → `extends "res://tests/fixtures/specialized/ui_test.gd"`
+- Battle tests → `extends "res://tests/fixtures/specialized/battle_test.gd"`
+- Campaign tests → `extends "res://tests/fixtures/specialized/campaign_test.gd"`
+- Enemy tests → `extends GutTest` (directly extend GutTest)
+- Mobile tests → `extends "res://tests/fixtures/specialized/mobile_test.gd"`
+
+Use the appropriate base class for your test to get domain-specific helper methods.
 
 ## Resource Safety
 

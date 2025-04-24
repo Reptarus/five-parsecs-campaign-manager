@@ -48,6 +48,14 @@ var enemy_factions: Array = [
 ]
 
 func _init() -> void:
+	# Initialize signals
+	if not has_signal("generation_started"):
+		add_user_signal("generation_started")
+	if not has_signal("mission_generated"):
+		add_user_signal("mission_generated")
+	if not has_signal("generation_completed"):
+		add_user_signal("generation_completed")
+	
 	# Ensure mission_types is initialized
 	if mission_types == null:
 		mission_types = {}
@@ -96,6 +104,16 @@ func _init() -> void:
 		]
 
 func generate_mission(difficulty: int = 2, type: int = -1) -> Dictionary:
+	# Emit generation started signal
+	emit_signal("generation_started", {"difficulty": difficulty, "type": type})
+	
+	# Validate required systems
+	if not has_method("set_game_state") or not has_method("set_world_manager"):
+		# If we don't have the necessary methods, we can't generate a mission
+		emit_signal("generation_completed", {"success": false, "error": "Missing required systems"})
+		return {}
+	
+	# Select a random mission type if not specified
 	if type < 0:
 		type = randi() % FiveParsecsMissionType.size()
 	
@@ -116,7 +134,12 @@ func generate_mission(difficulty: int = 2, type: int = -1) -> Dictionary:
 		"success": false
 	}
 	
-	mission_generated.emit(mission)
+	# Emit mission generated signal
+	emit_signal("mission_generated", mission)
+	
+	# Emit generation completed signal
+	emit_signal("generation_completed", {"success": true})
+	
 	return mission
 
 func generate_mission_title(type: int) -> String:
@@ -382,73 +405,42 @@ func deserialize_mission(serialized_data: Dictionary) -> Dictionary:
 # Since this class extends RefCounted (through BaseMissionGenerator)
 # we need a way to safely use it in Node contexts without type errors
 static func create_node_wrapper() -> Node:
-	# Create a Node that contains an instance of this generator
 	var wrapper = Node.new()
 	wrapper.name = "FiveParsecsMissionGeneratorWrapper"
 	
 	# Create the actual generator
 	var generator = Self.new()
 	
-	# Attach the generator as metadata to the node
+	# Attach generator to the wrapper node using meta
 	wrapper.set_meta("generator", generator)
 	
-	# Add helper methods to the wrapper node - use compatibility module
-	var compatibility = load("res://addons/gut/compatibility.gd").new()
-	wrapper.set_script(compatibility.create_gdscript())
+	# Forward methods to the generator
+	wrapper.set_script(load("res://src/game/campaign/FiveParsecsMissionGeneratorWrapper.gd"))
 	
-	# Define script code with proper method to delegate to generator
-	var script_code = """
-extends Node
-
-# The generator instance (RefCounted)
-var _generator = null
-
-func _init() -> void:
-	# Initialize as early as possible
-	if has_meta("generator"):
-		_generator = get_meta("generator")
-
-func _ready() -> void:
-	# Make sure generator is set from metadata
-	if has_meta("generator") and _generator == null:
-		_generator = get_meta("generator")
-
-# Delegate function calls to the generator
-func generate_mission(difficulty: int = 2, type: int = -1) -> Dictionary:
-	if _generator != null:
-		return _generator.generate_mission(difficulty, type)
-	return {}
-	
-func generate_mission_with_type(type: int) -> Dictionary:
-	if _generator != null:
-		return _generator.generate_mission(2, type)
-	return {}
-	
-# Forward all signals from the generator
-func _notification(what: int) -> void:
-	if what == NOTIFICATION_PREDELETE:
-		# Clean up references before deletion
-		_generator = null
-"""
-
-	# Set and compile the script
-	wrapper.get_script().source_code = script_code
-	var result = wrapper.get_script().reload()
-	if result != OK:
-		push_error("Failed to compile wrapper script: " + str(result))
-		
-	# Make sure generator is available
-	wrapper.set_meta("generator", generator)
-	
-	# Force the _init and _ready to execute
-	if wrapper.has_method("_init"):
-		wrapper.call("_init")
-	if wrapper.has_method("_ready"):
-		wrapper.call("_ready")
-	
-	# Return the wrapper node
 	return wrapper
 
-# Convenience method to generate a mission with a specific type
+# Method to create a generator instance from saved state
+static func create_from_save(save_data: Dictionary) -> Self:
+	var generator = Self.new()
+	
+	# Initialize from saved state if valid data provided
+	if save_data != null and typeof(save_data) == TYPE_DICTIONARY:
+		# Restore mission types if saved
+		if save_data.has("mission_types") and typeof(save_data.mission_types) == TYPE_DICTIONARY:
+			generator.mission_types = save_data.mission_types.duplicate()
+			
+		# Restore mission locations if saved
+		if save_data.has("mission_locations") and typeof(save_data.mission_locations) == TYPE_ARRAY:
+			generator.mission_locations = save_data.mission_locations.duplicate()
+			
+		# Restore enemy factions if saved
+		if save_data.has("enemy_factions") and typeof(save_data.enemy_factions) == TYPE_ARRAY:
+			generator.enemy_factions = save_data.enemy_factions.duplicate()
+			
+		# Restore other state as needed
+		# Add any additional state restoration here
+	
+	return generator
+	
 func generate_mission_with_type(type: int) -> Dictionary:
 	return generate_mission(2, type)

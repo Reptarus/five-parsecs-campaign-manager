@@ -38,6 +38,7 @@ static var GutScene = load('res://addons/gut/GutScene.tscn')
 static var LazyLoader = load('res://addons/gut/lazy_loader.gd')
 static var VersionNumbers = load("res://addons/gut/version_numbers.gd")
 static var WarningsManager = load("res://addons/gut/warnings_manager.gd")
+static var EditorGlobals = load("res://addons/gut/gui/editor_globals.gd")
 # --------------------------------
 # Lazy loaded scripts.  These scripts are lazy loaded so that they can be
 # declared, but will not load when this script is loaded.  This gives us a
@@ -156,13 +157,88 @@ static var ThingCounter = LazyLoader.new('res://addons/gut/thing_counter.gd'):
 
 static var avail_fonts = ['AnonymousPro', 'CourierPrime', 'LobsterTwo', 'Default']
 
-static var version_numbers = VersionNumbers.new(
-	# gut_versrion (source of truth)
-	'9.3.1',
-	# required_godot_version
-	'4.2.0'
-)
+class VersionInfo:
+	var major = -1
+	var minor = -1
+	var patch = -1
+	var gut_version = '9.3.1'
+	var required_godot_version = '4.2.0'
 
+	var dict = {"major": - 1, "minor": - 1, "patch": - 1}
+
+	func _init(p_dict = null):
+		if p_dict != null:
+			dict = p_dict
+			major = dict.major
+			minor = dict.minor
+			patch = dict.patch
+
+	# For Godot 4 compatibility
+	func get_version_text() -> String:
+		return str(major, '.', minor, '.', patch)
+		
+	func is_godot_version_valid() -> bool:
+		var info = Engine.get_version_info()
+		var required = required_godot_version.split('.')
+		var current = [info.major, info.minor, info.patch]
+		
+		for i in range(required.size()):
+			if i >= current.size():
+				return false
+			if int(required[i]) > current[i]:
+				return false
+			if int(required[i]) < current[i]:
+				return true
+		return true
+		
+	func get_bad_version_text() -> String:
+		var info = Engine.get_version_info()
+		var godot_version = str(info.major, '.', info.minor, '.', info.patch)
+		return 'GUT ' + gut_version + ' requires Godot ' + required_godot_version + \
+			' or greater.  Godot version is ' + godot_version
+			
+	func make_godot_version_string() -> String:
+		var v = Engine.get_version_info()
+		return str(v.major, '.', v.minor, '.', v.patch)
+
+	func is_less_than(other):
+		var to_return = false
+		if (major < other.major):
+			to_return = true
+		elif (major == other.major and minor < other.minor):
+			to_return = true
+		elif (major == other.major and minor == other.minor and patch < other.patch):
+			to_return = true
+		return to_return
+
+	func is_equal(other):
+		return major == other.major and minor == other.minor and patch == other.patch
+
+	func is_legacy_version():
+		var to_return = false
+		if (major == 6):
+			if (minor <= 6):
+				to_return = true
+			if (minor == 7 and patch == 0):
+				to_return = true
+
+		if (major < 6):
+			to_return = true
+
+		return to_return
+
+# In Godot 4.4, we need to use RefCounted with set_script instead of using new()
+
+static var template_paths = {
+	FUNCTION = 'res://addons/gut/double_templates/function_template.txt',
+	INIT = 'res://addons/gut/double_templates/init_template.txt',
+	SCRIPT = 'res://addons/gut/double_templates/script_template.txt',
+	JSON = 'res://addons/gut/double_templates/json_template.txt'
+}
+
+# Create an instance of our custom class
+static var version_info = VersionInfo.new()
+static var version_numbers = version_info
 
 static var warnings_at_start := { # WarningsManager dictionary
 	exclude_addons = true
@@ -191,23 +267,19 @@ static func get_logger():
 
 
 static var _dyn_gdscript = DynamicGdScript.new()
-static func create_script_from_source(src):
-	# In Godot 4.4, GDScript.new() was removed, so we need a compatible approach
-	var compatibility = load("res://addons/gut/compatibility.gd").new()
-	var script = compatibility.create_gdscript()
-	script.source_code = src
-	script.reload()
-	
-	# Create a temp directory if needed
-	var temp_dir = "res://addons/gut/temp"
-	if not DirAccess.dir_exists_absolute(temp_dir):
-		DirAccess.make_dir_recursive_absolute(temp_dir)
-	
-	# Give the script a valid path to avoid serialization issues
-	var timestamp = Time.get_unix_time_from_system()
-	script.resource_path = "%s/gut_temp_script_%d.gd" % [temp_dir, timestamp]
-	
-	return script
+static func create_script_from_source(source, override_path = null):
+	var are_warnings_enabled = WarningsManager.are_warnings_enabled()
+	WarningsManager.enable_warnings(false)
+
+	var DynamicScript = _dyn_gdscript.create_script_from_source(source, override_path)
+	if (typeof(DynamicScript) == TYPE_INT):
+		var l = get_logger()
+		l.error(str('Could not create script from source.  Error:  ', DynamicScript))
+		l.info(str("Source Code:\n", add_line_numbers(source)))
+
+	WarningsManager.enable_warnings(are_warnings_enabled)
+
+	return DynamicScript
 
 
 static func godot_version_string():
@@ -223,11 +295,11 @@ static func is_godot_version_gte(expected):
 
 
 const INSTALL_OK_TEXT = 'Everything checks out'
-static func make_install_check_text(template_paths = DOUBLE_TEMPLATES, ver_nums = version_numbers):
+static func make_install_check_text(tmpl_paths = template_paths, ver_nums = version_numbers):
 	var text = INSTALL_OK_TEXT
-	if (!FileAccess.file_exists(template_paths.FUNCTION) or
-		!FileAccess.file_exists(template_paths.INIT) or
-		!FileAccess.file_exists(template_paths.SCRIPT)):
+	if (!FileAccess.file_exists(tmpl_paths.FUNCTION) or
+		!FileAccess.file_exists(tmpl_paths.INIT) or
+		!FileAccess.file_exists(tmpl_paths.SCRIPT)):
 		text = 'One or more GUT template files are missing.  If this is an exported project, you must include *.txt files in the export to run GUT.  If it is not an exported project then reinstall GUT.'
 	elif (!ver_nums.is_godot_version_valid()):
 		text = ver_nums.get_bad_version_text()
@@ -235,8 +307,8 @@ static func make_install_check_text(template_paths = DOUBLE_TEMPLATES, ver_nums 
 	return text
 
 
-static func is_install_valid(template_paths = DOUBLE_TEMPLATES, ver_nums = version_numbers):
-	return make_install_check_text(template_paths, ver_nums) == INSTALL_OK_TEXT
+static func is_install_valid(tmpl_paths = template_paths, ver_nums = version_numbers):
+	return make_install_check_text(tmpl_paths, ver_nums) == INSTALL_OK_TEXT
 
 
 # ------------------------------------------------------------------------------
@@ -521,7 +593,7 @@ static func get_script_text(obj):
 
 # func get_singleton_by_name(name):
 # 	var source = str("var singleton = ", name)
-# 	var script = DynamicGdScript.create_gdscript()
+# 	var script = GDScript.new()
 # 	script.set_source_code(source)
 # 	script.reload()
 # 	return script.new().singleton

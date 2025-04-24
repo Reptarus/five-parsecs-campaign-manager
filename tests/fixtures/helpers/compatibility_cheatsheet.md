@@ -133,3 +133,95 @@ verify_signal_emitted(object, "some_signal")
 4. Add null checks before accessing objects
 5. Add explicit type annotations for better type safety
 6. Track nodes and resources properly for cleanup 
+
+## Property Existence Checks
+
+### ❌ Deprecated/Broken Approaches
+```gdscript
+# Don't use these anymore!
+if obj.has("property_name")  # Breaks in Godot 4.4 for Resources
+if obj.has_property("property_name")  # Not a standard Godot method
+```
+
+### ✅ Correct Approaches
+```gdscript
+# Use direct 'in' operator (Godot 4.4+ recommended way)
+if "property_name" in obj
+
+# Use compatibility helper for complex cases
+const Compatibility = preload("res://tests/fixtures/helpers/test_compatibility_helper.gd")
+if Compatibility.property_exists(obj, "property_name")
+
+# Another recommended approach for local scripts
+func _has_property(obj, property_name: String) -> bool:
+    if obj == null:
+        return false
+    
+    return property_name in obj
+```
+
+## Dictionary Key Checks
+
+### ❌ Deprecated/Broken Approaches
+```gdscript
+# Don't use these anymore!
+if dict.has("key")  # Removed in Godot 4.4
+```
+
+### ✅ Correct Approaches
+```gdscript
+# Use 'in' operator for dictionaries (Godot 4.4+ way)
+if "key" in dict
+
+# Or use compatibility helper
+const Compatibility = preload("res://tests/fixtures/helpers/test_compatibility_helper.gd")
+if Compatibility.dict_has_key(dict, "key")
+```
+
+## Method Existence Checks
+
+### ✅ Correct Approaches (unchanged)
+```gdscript
+# These still work normally
+if obj.has_method("method_name")
+
+# But if you want to be extra safe:
+const Compatibility = preload("res://tests/fixtures/helpers/test_compatibility_helper.gd")
+if Compatibility.has_method_safe(obj, "method_name")
+```
+
+## Signal Existence Checks
+
+### ✅ Correct Approaches (unchanged)
+```gdscript
+# These still work normally
+if obj.has_signal("signal_name")
+```
+
+## Generic Fix for Test Classes
+
+If you have many test files that need fixing, add this at the top of your test class:
+
+```gdscript
+const Compatibility = preload("res://tests/fixtures/helpers/test_compatibility_helper.gd")
+
+# You can then alias the common methods
+func has_property(obj, property_name: String) -> bool:
+    return Compatibility.property_exists(obj, property_name)
+```
+
+## Full Solution for Resource "has" Method Fix
+
+For Resource classes that need compatibility:
+
+```gdscript
+# Add this method to any Resource class that was using the deprecated has() method
+func has(property_name: String) -> bool:
+    # Check using property list
+    for prop in get_property_list():
+        if prop.name == property_name:
+            return true
+            
+    # Try direct property access
+    return property_name in self
+``` 

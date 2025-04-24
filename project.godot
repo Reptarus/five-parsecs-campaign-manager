@@ -8,6 +8,11 @@
 
 config_version=5
 
+gut={
+&"directory": PackedStringArray("res://tests/unit", "res://tests/integration", "res://tests/battle", "res://tests/performance", "res://tests/mobile", "res://tests/diagnostic"),
+&"include_subdirectories": true
+}
+
 [application]
 
 config/name="Five Parsecs Campaign Manager"
@@ -19,14 +24,16 @@ config/icon="res://icon.svg"
 [autoload]
 
 GutSafety="res://autoloads/gut_safety.gd"
+GutTestRegistry="res://tests/autoloads/gut_test_registry.gd"
 GlobalEnums="*res://src/core/systems/GlobalEnums.gd"
 GameDataManager="*res://src/core/managers/GameDataManager.gd"
 GameStateManager="*res://src/core/managers/GameStateManager.gd"
-CharacterManager="*res://src/core/character/Management/CharacterManager.gd"
 PlanetCache="*res://src/core/world/PlanetCache.gd"
 WorldEconomyManager="*res://src/core/world/WorldEconomyManager.gd"
 ResourceSystem="*res://src/core/systems/ResourceSystem.gd"
-BattleStateMachine="*res://src/core/battle/state/BattleStateMachine.gd"
+TestOverrides="*res://tests/fixtures/overrides/test_overrides.gd"
+zzzCharacterManager="*res://src/core/character/Management/CharacterManager.gd"
+zzzBattleStateMachine="*res://src/core/battle/state/BattleStateMachine.gd"
 
 [debug]
 
@@ -60,7 +67,7 @@ enabled=PackedStringArray("res://addons/gut/plugin.cfg")
 
 [gut]
 
-directory="res://tests/unit"
+directory=PackedStringArray("res://tests/unit", "res://tests/integration", "res://tests/battle", "res://tests/performance", "res://tests/mobile", "res://tests/diagnostic")
 include_subdirectories=true
 log_level=3
 should_print_to_console=true

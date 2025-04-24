@@ -68,7 +68,9 @@ static func is_godot_4_4_plus() -> bool:
 
 # Type safety for dictionaries
 static func dict_has_key(dict: Dictionary, key: Variant) -> bool:
-	return key in dict
+	if dict == null or not dict is Dictionary:
+		return false
+	return dict.has(key)
 	
 # Method checking
 static func has_method_safe(obj: Object, method_name: String) -> bool:
@@ -328,6 +330,10 @@ static func safe_call_method(obj: Object, method: String, args: Array = [], defa
 				
 			# If all attempts fail, log and continue to fallback
 			push_warning("All add_mission attempts failed, using callv as fallback")
+	elif method == "set" and args.size() >= 2:
+		# Special handling for direct 'set' calls, which may return null even on success
+		obj.set(args[0], args[1])
+		return true
 	else:
 		# Regular method call for non-special cases
 		result = obj.callv(method, args)
@@ -1091,11 +1097,35 @@ func is_completed():
 	
 	return mission
 
-## Helper function to check if a property exists on an object
-## This replaces direct 'has' calls which don't work on all object types
-func object_has_property(obj, property_name: String) -> bool:
-	"""Instance method for checking properties on objects"""
-	return get_script().get_static_method("property_exists").call(obj, property_name)
+## Helper function to check if a property exists in an object
+static func has_property(obj, property_name: String) -> bool:
+	if obj == null:
+		return false
+	
+	# For dictionaries
+	if obj is Dictionary:
+		return obj.has(property_name)
+		
+	# For Object types
+	if obj is Object:
+		# Try using the has_method function
+		if obj.has_method("has_property"):
+			return obj.has_property(property_name)
+		
+		# Try using the get_property_list function
+		if obj.has_method("get_property_list"):
+			var props = obj.get_property_list()
+			for p in props:
+				if p.name == property_name:
+					return true
+			return false
+		
+		# Try accessing the property directly
+		var value = obj.get(property_name)
+		return value != null
+			
+	# Default case
+	return false
 
 ## Helper function to check if a property exists on an object
 ## This replaces direct 'has' calls which don't work on all object types
@@ -1124,7 +1154,11 @@ static func property_exists(obj, property_name: String) -> bool:
 	
 	# Handle Node objects
 	if obj is Node:
-		return property_name in obj
+		if obj.has_method("has_property"):
+			return obj.has_property(property_name)
+		# Direct property access  
+		var value = obj.get(property_name)
+		return value != null
 	
 	# Handle other Objects with has method
 	if obj.has_method("has"):
@@ -1136,20 +1170,9 @@ static func property_exists(obj, property_name: String) -> bool:
 		if prop.name == property_name:
 			return true
 			
-	# Last resort - try to access and see if it doesn't error
-	var had_error = false
-	var result = null
-	
-	# Try to access the property directly
-	if property_name in obj:
-		return true
-	
-	# Try to access via get() if available
-	if obj.has_method("get"):
-		result = obj.call("get", property_name)
-		return result != null
-	
-	return false
+	# Last resort: direct property access
+	var value = obj.get(property_name)
+	return value != null
 
 ## Helper function specifically for FiveParsecsCampaign and similar resources
 ## This solves the "has" method error for Resource objects
@@ -1190,28 +1213,38 @@ static func has(obj: Object, property_name: String) -> bool:
 	if obj == null:
 		return false
 		
-	# If it's a Resource, use our property_exists method
+	# If it's a Resource, use property_exists method
 	if obj is Resource:
-		return property_exists(obj, property_name)
+		# Check direct property access
+		var value = obj.get(property_name)
+		return value != null
 		
-	# For other objects, we can use has_method if that's what was intended
-	if property_name in ["has_method", "has_signal", "has_meta"]:
-		return obj.has_method(property_name.replace("has_", ""))
+	# For other objects, we can try has_method if that's what was intended
+	var special_methods = ["has_method", "has_signal", "has_meta"]
+	var is_special = false
+	for method in special_methods:
+		if property_name == method:
+			is_special = true
+			break
+			
+	if is_special:
+		var method_name = property_name.replace("has_", "")
+		return obj.has_method(method_name)
 		
 	# For dictionary-like objects that also inherit from Object
-	# Note: This is a special case for custom Dictionary-like classes
 	if obj.has_method("has_key") or obj.has_method("has"):
 		if obj.has_method("has_key"):
 			return obj.has_key(property_name)
 		elif obj.has_method("has"):
 			return obj.has(property_name)
 	
-	# For Node or other objects that might support has()
-	if obj.has_method("has"):
-		return obj.has(property_name)
+	# For Node objects
+	if obj is Node:
+		var value = obj.get(property_name)
+		return value != null
 		
-	# Fallback to property_exists
-	return property_exists(obj, property_name)
+	# Fallback to direct property access
+	return obj.get(property_name) != null
 
 ## Add this method to monkey patch the test compatibility helper into an object
 ## Call this on any object that might use has() method:
@@ -1465,4 +1498,163 @@ func method_exists(obj, method_name: String) -> bool:
 	if obj is Object:
 		return obj.has_method(method_name)
 	
+	return false
+
+# Add helper method to check if something is a resource script
+static func is_resource_script(script_class_or_path: Variant) -> bool:
+	var script = null
+	
+	# Handle different input types
+	if script_class_or_path is String:
+		# Load the script from path
+		if ResourceLoader.exists(script_class_or_path):
+			script = load(script_class_or_path)
+	elif script_class_or_path is GDScript:
+		script = script_class_or_path
+	elif script_class_or_path is Object and script_class_or_path.get_script():
+		script = script_class_or_path.get_script()
+	
+	# Check for static method
+	if script and script.has_method("is_resource_script"):
+		return true
+	
+	# Check resource path contains clues
+	if script and script.resource_path.contains("Resource"):
+		return true
+		
+	# Last resort - check if it extends Resource directly
+	if script and script.get_instance_base_type() == "Resource":
+		return true
+		
+	return false
+
+# Add helper method to check if something is a node script
+static func is_node_script(script_class_or_path: Variant) -> bool:
+	var script = null
+	
+	# Handle different input types
+	if script_class_or_path is String:
+		# Load the script from path
+		if ResourceLoader.exists(script_class_or_path):
+			script = load(script_class_or_path)
+	elif script_class_or_path is GDScript:
+		script = script_class_or_path
+	elif script_class_or_path is Object and script_class_or_path.get_script():
+		script = script_class_or_path.get_script()
+	
+	# Check for static method
+	if script and script.has_method("is_node_script"):
+		return true
+	
+	# Check if it's a known Node2D script
+	if script and script.resource_path.contains("/battle/"):
+		return true
+		
+	# Last resort - check base type
+	if script and script.get_instance_base_type() != "Resource":
+		var base_type = script.get_instance_base_type()
+		if base_type in ["Node", "Node2D", "CharacterBody2D", "Sprite2D"]:
+			return true
+			
+	return false
+
+# Safety check for instances with logging
+static func ensure_instance_type_safety(obj: Variant, expected_base_type: String) -> bool:
+	if obj == null:
+		push_warning("Object instance is null, cannot check type safety")
+		return false
+		
+	var actual_base_type = ""
+	if obj is Object:
+		actual_base_type = obj.get_class()
+	
+	# Check compatibility
+	var is_compatible = false
+	
+	# Node type check
+	if expected_base_type in ["Node", "Node2D", "CharacterBody2D", "Sprite2D", "CanvasItem"]:
+		if obj is Node:
+			is_compatible = true
+		elif obj.has_method("is_node_script") and obj.is_node_script():
+			is_compatible = true
+	
+	# Resource type check
+	elif expected_base_type == "Resource":
+		if obj is Resource:
+			is_compatible = true
+		elif obj.has_method("is_resource_script") and obj.is_resource_script():
+			is_compatible = true
+	
+	# Direct class match
+	else:
+		is_compatible = (actual_base_type == expected_base_type)
+	
+	if not is_compatible:
+		push_warning("Type mismatch: Expected %s but got %s" % [expected_base_type, actual_base_type])
+		
+	return is_compatible
+
+# Safe version of the 'in' operator for enums
+static func safe_enum_in(value, enum_dict) -> bool:
+	if value == null or enum_dict == null:
+		return false
+	
+	if typeof(enum_dict) != TYPE_DICTIONARY:
+		# Try to convert to a dictionary if possible
+		if enum_dict is Object and enum_dict.has_method("keys"):
+			var keys = enum_dict.keys()
+			if keys.size() > 0:
+				var new_dict = {}
+				for k in keys:
+					new_dict[k] = enum_dict[k]
+				enum_dict = new_dict
+		else:
+			return false
+	
+	# Now enum_dict should be a dictionary
+	
+	# Safely check if the key exists
+	if enum_dict.has(value):
+		return true
+		
+	# Check if value exists in the dictionary values
+	var value_str = str(value)
+	for v in enum_dict.values():
+		if v == value or str(v) == value_str:
+			return true
+	
+	return false
+
+# Monkey patch the scene tree to apply the compatibility helper
+static func apply_compatibility_patch() -> void:
+	print("Applying test compatibility patches")
+	
+	# Create a singleton for using safe enum comparison
+	if not Engine.has_singleton("TestCompatHelper"):
+		Engine.register_singleton("TestCompatHelper", load("res://tests/fixtures/helpers/test_compatibility_helper.gd").new())
+	
+	# Add this as a project setting 
+	if not ProjectSettings.has_setting("editor/script_templates/test_compatibility/safe_enum_in"):
+		ProjectSettings.set_setting("editor/script_templates/test_compatibility/safe_enum_in", true)
+
+## Fix any remaining 'String is not int' errors by cleaning up bad function calls
+## Safe function to check if a Dictionary contains a value or key
+static func safe_dict_check(dict, key_or_value) -> bool:
+	if dict == null or not dict is Dictionary:
+		return false
+		
+	# Check if the value is a key in the dictionary
+	if dict.has(key_or_value):
+		return true
+		
+	# Check if the value is in the dictionary values
+	if key_or_value is int:
+		return dict.values().has(key_or_value)
+	
+	# Convert all values to strings for comparison if needed
+	var str_val = str(key_or_value)
+	for val in dict.values():
+		if str(val) == str_val:
+			return true
+			
 	return false

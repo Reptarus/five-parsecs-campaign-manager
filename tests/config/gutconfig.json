@@ -1,0 +1,25 @@
+{
+    "dirs": [
+        "res://tests/unit",
+        "res://tests/integration",
+        "res://tests/battle",
+        "res://tests/performance",
+        "res://tests/mobile",
+        "res://tests/diagnostic"
+    ],
+    "include_subdirs": true,
+    "prefix": "test_",
+    "suffix": ".gd",
+    "double_strategy": "partial",
+    "ignore_pause": true,
+    "should_maximize": true,
+    "opacity": 100,
+    "background_color": "262626ff",
+    "font_color": "ccccccff",
+    "font_name": "CourierPrime",
+    "font_size": 16,
+    "log_level": 3,
+    "hide_orphans": false,
+    "errors_do_not_cause_failure": false,
+    "export_path": "res://tests/reports/gut_tests.xml"
+}

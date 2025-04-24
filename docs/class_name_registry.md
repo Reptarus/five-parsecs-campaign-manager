@@ -50,8 +50,15 @@ This document serves as a central registry for all `class_name` declarations in 
 
 | Class Name | Authoritative Location | Description |
 |------------|------------------------|-------------|
-| `GameTest` | `res://tests/fixtures/base/game_test.gd` | Base test class |
-| `CampaignTest` | `res://tests/fixtures/base/campaign_test.gd` | Campaign test suite base |
+| `BaseTest` | `res://tests/fixtures/base/base_test.gd` | Base test class for all tests |
+| `GameTest` | `res://tests/fixtures/base/game_test.gd` | Game test class with core fixtures |
+| `UITest` | `res://tests/fixtures/specialized/ui_test.gd` | UI component test suite base |
+| `BattleTest` | `res://tests/fixtures/specialized/battle_test.gd` | Battle mechanics test base |
+| `CampaignTest` | `res://tests/fixtures/specialized/campaign_test.gd` | Campaign test suite base |
+| `MobileTest` | `res://tests/fixtures/specialized/mobile_test.gd` | Mobile-specific test base |
+| `EnemyTest` | `res://tests/fixtures/specialized/enemy_test.gd` | Enemy behavior test base |
+| `TypeSafeMixin` | `res://tests/fixtures/helpers/type_safe_mixin.gd` | Type-safe method call utilities |
+| `GutCompatibility` | `res://tests/fixtures/helpers/gut_compatibility.gd` | Godot 4.4 compatibility layer for GUT |
 | `TestGameStateAdapter` | `res://tests/fixtures/helpers/test_game_state_adapter.gd` | Game state test adapter |
 | `GameStateTestAdapter` | `res://tests/fixtures/helpers/game_state_test_adapter.gd` | Adapter for game state tests |
 

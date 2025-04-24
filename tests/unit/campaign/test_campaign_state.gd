@@ -7,7 +7,7 @@ extends "res://tests/fixtures/specialized/campaign_test.gd"
 
 # Type-safe script references
 const Campaign := preload("res://src/core/campaign/Campaign.gd")
-const TypeSafeMixin := preload("res://tests/fixtures/helpers/type_safe_test_mixin.gd")
+# TypeSafeMixin is already defined in campaign_test.gd - no need to redefine it here
 
 # Type-safe instance variables
 var _campaign_state: Node = null

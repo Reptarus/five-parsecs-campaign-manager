@@ -8,18 +8,20 @@ const GameState: GDScript = preload("res://src/core/state/GameState.gd")
 var _instance: Node = null
 var campaign_updated_signal_emitted: bool = false
 var last_campaign_data: Dictionary = {}
+var _campaign_ui: Node = null
+var _dashboard_game_state: Node = null
 
 # Type-safe lifecycle methods
 func before_each() -> void:
 	await super.before_each()
 	
 	# Initialize game state
-	_game_state = GameState.new()
-	if not _game_state:
+	_dashboard_game_state = GameState.new()
+	if not _dashboard_game_state:
 		push_error("Failed to create game state")
 		return
-	add_child(_game_state)
-	track_test_node(_game_state)
+	add_child(_dashboard_game_state)
+	track_test_node(_dashboard_game_state)
 	
 	# Initialize dashboard
 	_instance = CampaignDashboard.new()
@@ -33,7 +35,7 @@ func before_each() -> void:
 	# Watch signals
 	if _signal_watcher:
 		_signal_watcher.watch_signals(_instance)
-		_signal_watcher.watch_signals(_game_state)
+		_signal_watcher.watch_signals(_dashboard_game_state)
 	
 	_connect_signals()
 	_reset_signals()
@@ -41,10 +43,10 @@ func before_each() -> void:
 func after_each() -> void:
 	if is_instance_valid(_instance):
 		_instance.queue_free()
-	if is_instance_valid(_game_state):
-		_game_state.queue_free()
+	if is_instance_valid(_dashboard_game_state):
+		_dashboard_game_state.queue_free()
 	_instance = null
-	_game_state = null
+	_dashboard_game_state = null
 	await super.after_each()
 
 # Type-safe helper methods
@@ -94,7 +96,7 @@ func test_initial_state() -> void:
 	assert_not_null(phase_manager, "Phase manager should be initialized")
 	
 	var current_phase: int = TypeSafeMixin._call_node_method_int(phase_manager, "get_current_phase", [])
-	assert_eq(current_phase, GameEnums.CampaignPhase.UPKEEP, "Should start in upkeep phase")
+	assert_eq(current_phase, GlobalEnums.FiveParcsecsCampaignPhase.UPKEEP, "Should start in upkeep phase")
 
 # Phase Transition Tests
 func test_phase_transitions() -> void:
@@ -110,13 +112,13 @@ func test_phase_transitions() -> void:
 	verify_signal_emitted(phase_manager, "phase_changed")
 	
 	var current_phase: int = TypeSafeMixin._call_node_method_int(phase_manager, "get_current_phase", [])
-	assert_eq(current_phase, GameEnums.CampaignPhase.STORY, "Should transition to story phase")
+	assert_eq(current_phase, GlobalEnums.FiveParcsecsCampaignPhase.STORY, "Should transition to story phase")
 	
 	TypeSafeMixin._call_node_method_bool(_instance, "_on_next_phase_pressed", [])
 	await get_tree().process_frame
 	
 	current_phase = TypeSafeMixin._call_node_method_int(phase_manager, "get_current_phase", [])
-	assert_eq(current_phase, GameEnums.CampaignPhase.CAMPAIGN, "Should transition to campaign phase")
+	assert_eq(current_phase, GlobalEnums.FiveParcsecsCampaignPhase.CAMPAIGN, "Should transition to campaign phase")
 
 # UI Update Tests
 func test_ui_updates() -> void:
@@ -128,7 +130,7 @@ func test_ui_updates() -> void:
 			{"character_name": "Test Character"}
 		]
 	}
-	TypeSafeMixin._call_node_method_bool(_game_state, "set_campaign", [campaign_data])
+	TypeSafeMixin._call_node_method_bool(_dashboard_game_state, "set_campaign", [campaign_data])
 	
 	TypeSafeMixin._call_node_method_bool(_instance, "_update_ui", [])
 	await get_tree().process_frame
@@ -152,12 +154,12 @@ func test_ui_updates() -> void:
 
 # Phase Panel Tests
 func test_phase_panel_creation() -> void:
-	var panel: Node = TypeSafeMixin._call_node_method(_instance, "_create_phase_panel", [GameEnums.CampaignPhase.UPKEEP]) as Node
+	var panel: Node = TypeSafeMixin._call_node_method(_instance, "_create_phase_panel", [GlobalEnums.FiveParcsecsCampaignPhase.UPKEEP]) as Node
 	assert_not_null(panel, "Should create upkeep phase panel")
 	if panel:
 		panel.queue_free()
 	
-	panel = TypeSafeMixin._call_node_method(_instance, "_create_phase_panel", [GameEnums.CampaignPhase.STORY]) as Node
+	panel = TypeSafeMixin._call_node_method(_instance, "_create_phase_panel", [GlobalEnums.FiveParcsecsCampaignPhase.STORY]) as Node
 	assert_not_null(panel, "Should create story phase panel")
 	if panel:
 		panel.queue_free()
@@ -214,12 +216,12 @@ func test_invalid_phase_transitions() -> void:
 	var phase_manager: Node = _get_node_safe(_instance, "PhaseManager")
 	assert_not_null(phase_manager, "Phase manager should exist")
 	
-	TypeSafeMixin._call_node_method_bool(phase_manager, "set_current_phase", [GameEnums.CampaignPhase.NONE])
+	TypeSafeMixin._call_node_method_bool(phase_manager, "set_current_phase", [GlobalEnums.FiveParcsecsCampaignPhase.NONE])
 	TypeSafeMixin._call_node_method_bool(_instance, "_on_next_phase_pressed", [])
 	await get_tree().process_frame
 	
 	var current_phase: int = TypeSafeMixin._call_node_method_int(phase_manager, "get_current_phase", [])
-	assert_eq(current_phase, GameEnums.CampaignPhase.NONE, "Should not transition from invalid phase")
+	assert_eq(current_phase, GlobalEnums.FiveParcsecsCampaignPhase.NONE, "Should not transition from invalid phase")
 
 # Save/Load Tests
 func test_save_load_operations() -> void:

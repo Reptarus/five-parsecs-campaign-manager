@@ -3,365 +3,423 @@ extends Node
 
 ## GUT Safety Autoload
 ##
-## This script automatically runs at project startup to ensure
-## GUT functions correctly by fixing common issues.
+## This script automatically runs at project startup to fix common 
+## GUT compatibility issues in Godot 4.4
 
-const GUT_COMPATIBILITY_PATH = "res://tests/fixtures/helpers/gut_compatibility.gd"
-var GutCompatibility = null
+var _editor_interface = null
 
-# Constants
-const SCENE_PATHS = [
-	"res://addons/gut/gui/GutBottomPanel.tscn",
-	"res://addons/gut/gui/OutputText.tscn",
-	"res://addons/gut/gui/RunResults.tscn"
-]
-const SUSPICIOUS_SIZE = 100000 # 100KB max size
-
-# Called when the node enters the scene tree for the first time
 func _ready():
-	# Only run in editor
-	if not Engine.is_editor_hint():
+	if Engine.is_editor_hint():
+		# Give a small delay before setting up the editor interface
+		await get_tree().process_frame
+		_setup_editor_interface()
+		
+		# Fix NUL characters in files
+		call_deferred("_fix_nul_characters")
+		
+	# Connect to the script_changed signal if in the editor
+	if Engine.is_editor_hint() and ProjectSettings.has_setting("debug/settings/run_on_load/test_scene"):
+		# Create a timer to suppress external file change dialogs
+		var suppress_timer = Timer.new()
+		suppress_timer.name = "SuppressFileChangesTimer"
+		suppress_timer.wait_time = 0.5
+		suppress_timer.timeout.connect(_suppress_file_change_dialog)
+		suppress_timer.autostart = true
+		add_child(suppress_timer)
+
+# Utility function to recursively search for the GUT plugin
+func _find_gut_plugin(node, depth = 0):
+	if depth > 5: # Limit recursion depth
+		return null
+		
+	if node.get_script() and "gut" in node.get_script().resource_path.to_lower():
+		return node
+		
+	for child in node.get_children():
+		var result = _find_gut_plugin(child, depth + 1)
+		if result != null:
+			return result
+			
+	return null
+
+func _setup_editor_interface():
+	# We only need this in the editor
+	if !Engine.is_editor_hint():
+		return
+	
+	# Add a delay to ensure editor is fully loaded
+	await get_tree().process_frame
+	await get_tree().process_frame
+	
+	var editor_node = null
+	
+	# Try to safely find the editor node
+	for node in get_tree().root.get_children():
+		if node.get_class() == "EditorNode" or node.name.begins_with("@EditorNode"):
+			editor_node = node
+			break
+	
+	if editor_node == null:
+		print("GUT Safety: Could not find EditorNode")
+		return
+	
+	# Use a more defensive approach to access the plugin list
+	var editor_plugin = null
+	
+	# Method 1: Try using reflection/get_children to find the plugin
+	for child in editor_node.get_children():
+		# Look for any node that might contain plugins based on name
+		if "plugin" in child.name.to_lower() or "addon" in child.name.to_lower():
+			for potential_plugin in child.get_children():
+				# Check if this is our GUT plugin
+				if potential_plugin.get_script() and "gut" in potential_plugin.get_script().resource_path.to_lower():
+					editor_plugin = potential_plugin
+					break
+		
+		if editor_plugin != null:
+			break
+	
+	# Method 2: If we couldn't find it directly, scan all descendants
+	if editor_plugin == null:
+		print("GUT Safety: Trying alternative method to find GUT plugin...")
+		editor_plugin = _find_gut_plugin(editor_node)
+	
+	# If we found the plugin, get the editor interface
+	if editor_plugin != null and editor_plugin.has_method("get_editor_interface"):
+		_editor_interface = editor_plugin.get_editor_interface()
+		print("GUT Safety: Successfully found editor interface")
+	else:
+		print("GUT Safety: Could not find GUT plugin or editor interface")
+
+func _suppress_file_change_dialog():
+	if !_editor_interface:
 		return
 		
-	print("GutSafety: Running startup checks...")
-		
-	# Check for corrupted GUT scenes
-	_check_gut_scenes()
-	
-	# Fix UID files
-	_clean_gut_uid_files()
-	
-	# Check autoload scripts
-	_check_autoload_scripts()
-	
-	print("GutSafety: Startup checks completed")
+	# Find and close any active dialogs about file changes
+	for child in get_tree().root.get_children():
+		if child is Window and child.visible:
+			if "modified outside" in child.get_title() or "Files have been modified" in child.get_title():
+				# Look for the "Reload From Disk" button
+				for button in child.get_children():
+					if button is Button and "Reload" in button.text:
+						button.emit_signal("pressed")
+						return
 
-func _run_safety_checks():
-	print("GUT Safety: Running preventative checks...")
-	
-	# Check for corrupted scene files
-	_check_gut_scenes()
-	
-	# Fix dictionary access issues in test files
-	_fix_dictionary_access()
-	
-	# Add missing methods to test files
-	_add_missing_methods()
-	
-	print("GUT Safety: Preventative maintenance complete.")
-
-func _check_gut_scenes():
-	for path in SCENE_PATHS:
-		if not FileAccess.file_exists(path):
-			print("GUT Safety: Scene file missing: " + path)
-			continue
-			
-		var file = FileAccess.open(path, FileAccess.READ)
-		if not file:
-			print("GUT Safety: Failed to open scene file: " + path)
-			continue
-			
-		var size = file.get_length()
-		file.close()
-		
-		if size > SUSPICIOUS_SIZE:
-			print("GUT Safety: Scene file too large (%.2f KB): %s" % [size / 1024.0, path])
-			print("GUT Safety: Consider deleting it to let Godot recreate it")
-
-func _fix_dictionary_access():
-	var script_files = []
-	GutCompatibility.find_scripts(script_files, "res://tests")
-	
-	var fixed_count = 0
-	for script_path in script_files:
-		if GutCompatibility.fix_type_safe_references(script_path):
-			fixed_count += 1
-	
-	if fixed_count > 0:
-		print("GUT Safety: Fixed dictionary access in %d test files" % fixed_count)
-
-func _add_missing_methods():
-	var test_scripts = []
-	GutCompatibility.find_scripts(test_scripts, "res://tests")
-	
-	for script_path in test_scripts:
-		if not FileAccess.file_exists(script_path):
-			continue
-			
-		var file = FileAccess.open(script_path, FileAccess.READ)
-		if not file:
-			continue
-			
-		var content = file.get_as_text()
-		file.close()
-		
-		# Check for missing vector2 and float methods
-		if (content.contains("_call_node_method_vector2") or content.contains("_call_node_method_float")) and not content.contains("GutCompatibility"):
-			# Add GutCompatibility import
-			var import_line = "const GutCompatibility = preload(\"res://tests/fixtures/helpers/gut_compatibility.gd\")\n"
-			
-			var tool_index = content.find("@tool")
-			if tool_index >= 0:
-				var end_line = content.find("\n", tool_index)
-				if end_line >= 0:
-					content = content.substr(0, end_line + 1) + import_line + content.substr(end_line + 1)
-			else:
-				content = import_line + content
-			
-			# Replace method calls
-			content = content.replace("_call_node_method_vector2(", "GutCompatibility._call_node_method_vector2(")
-			content = content.replace("_call_node_method_float(", "GutCompatibility._call_node_method_float(")
-			
-			# Write fixed content
-			file = FileAccess.open(script_path, FileAccess.WRITE)
-			if file:
-				file.store_string(content)
-				file.close()
-				print("GUT Safety: Added missing method references to " + script_path)
-
-func _create_compatibility_layer():
-	print("GUT Safety: Creating compatibility layer...")
-	
-	# Create necessary directories
-	var dir_path = "res://tests/fixtures/helpers"
-	if not DirAccess.dir_exists_absolute(dir_path):
-		DirAccess.make_dir_recursive_absolute(dir_path)
-	
-	# Create compatibility file with basic implementation
-	var file = FileAccess.open(GUT_COMPATIBILITY_PATH, FileAccess.WRITE)
-	if file:
-		file.store_string("""@tool
-extends RefCounted
-
-## GUT Plugin Compatibility Layer for Godot 4.4
-##
-## This script provides compatibility fixes for common issues that cause
-## the GUT plugin to break when reloading the project in Godot 4.4.
-
-## Vector2 method implementations that were missing
-static func _call_node_method_vector2(obj: Object, method: String, args: Array = [], default: Vector2 = Vector2.ZERO) -> Vector2:
-	if obj == null or not is_instance_valid(obj):
-		push_warning("Invalid object for method " + method)
-		return default
-		
-	if method.is_empty():
-		push_warning("Invalid method name")
-		return default
-	
-	if not obj.has_method(method):
-		push_warning("Method '%s' not found in object" % method)
-		return default
-		
-	var result = obj.callv(method, args)
-	
-	if result == null:
-		return default
-	if result is Vector2:
-		return result
-	if result is Array and result.size() >= 2:
-		if (result[0] is float or result[0] is int) and (result[1] is float or result[1] is int):
-			return Vector2(float(result[0]), float(result[1]))
-	
-	push_warning("Type mismatch: expected Vector2 but got " + str(result))
-	return default
-
-## Float method implementations that were missing
-static func _call_node_method_float(obj: Object, method: String, args: Array = [], default: float = 0.0) -> float:
-	if obj == null or not is_instance_valid(obj):
-		push_warning("Invalid object for method " + method)
-		return default
-		
-	if method.is_empty():
-		push_warning("Invalid method name")
-		return default
-	
-	if not obj.has_method(method):
-		push_warning("Method '%s' not found in object" % method)
-		return default
-		
-	var result = obj.callv(method, args)
-	
-	if result == null:
-		return default
-	if result is float:
-		return result
-	if result is int:
-		return float(result)
-	if result is String and result.is_valid_float():
-		return result.to_float()
-	
-	push_warning("Type mismatch: expected float but got " + str(result))
-	return default
-
-## Safely creates a new instance of a class
-static func safe_new(script_path: String):
-	if not ResourceLoader.exists(script_path):
-		push_error("Script not found: %s" % script_path)
-		return null
-		
-	var script = load(script_path)
-	if script == null:
-		push_error("Failed to load script: %s" % script_path)
-		return null
-		
-	if not script is GDScript:
-		push_error("Resource is not a GDScript: %s" % script_path)
-		return null
-		
-	return script.new()
-
-## Ensures a directory exists, creating it if necessary
-static func ensure_directory_exists(path: String) -> bool:
+## Ensures a directory exists
+func ensure_directory_exists(path: String) -> bool:
 	if DirAccess.dir_exists_absolute(path):
 		return true
 	
 	var error = DirAccess.make_dir_recursive_absolute(path)
 	if error != OK:
-		push_error("Failed to create directory: %s (error: %d)" % [path, error])
+		push_error("GUT Safety: Failed to create directory: %s (error: %d)" % [path, error])
 		return false
 		
+	print("GUT Safety: Created directory: %s" % path)
 	return true
 
-## Dictionary has key (safe replacemnt for .has())
-static func dict_has_key(dict: Dictionary, key: Variant) -> bool:
-	if dict == null:
-		return false
-	return key in dict
-
-## Ensures a resource has a valid path
-static func ensure_resource_path(resource: Resource) -> Resource:
-	if resource == null or not is_instance_valid(resource):
-		return resource
-		
-	if resource.resource_path.is_empty():
-		# Create destination directory if needed
-		ensure_directory_exists("res://tests/generated/")
-		
-		# Generate a unique path for testing
-		var timestamp = Time.get_unix_time_from_system()
-		var class_name_str = resource.get_class().to_lower()
-		resource.resource_path = "res://tests/generated/%s_%d.tres" % [class_name_str, timestamp]
-	
-	return resource
-
-## Checks if a scene file is potentially corrupted
-static func check_scene_corruption(scene_path: String) -> bool:
+## Checks if a scene file is corrupted
+func check_scene_corruption(scene_path: String) -> bool:
 	if not FileAccess.file_exists(scene_path):
 		return false
 		
 	var file = FileAccess.open(scene_path, FileAccess.READ)
 	if file == null:
-		push_warning("Failed to open scene file: %s" % scene_path)
+		push_warning("GUT Safety: Failed to open scene file: %s" % scene_path)
 		return false
 		
 	var file_size = file.get_length()
-	if file_size > 100000:  # 100KB is suspiciously large for most GUT scenes
-		push_warning("Scene file is suspiciously large (%d bytes): %s" % [file_size, scene_path])
+	if file_size > 100000: # 100KB is suspiciously large for most GUT scenes
+		push_warning("GUT Safety: Scene file is suspiciously large (%d bytes): %s" % [file_size, scene_path])
 		return true
 		
 	# Look for NUL characters which indicate corruption
 	var content = file.get_as_text()
 	if content.find(char(0)) != -1:
-		push_warning("Scene file contains NUL characters (likely corrupted): %s" % scene_path)
+		push_warning("GUT Safety: Scene file contains NUL characters (likely corrupted): %s" % scene_path)
 		return true
 		
 	return false
 
-## Find scripts recursively
-static func find_scripts(result: Array, path: String):
-	var dir = DirAccess.open(path)
-	if dir:
-		dir.list_dir_begin()
-		var file_name = dir.get_next()
-		while file_name != "":
-			if dir.current_is_dir() and not file_name.begins_with("."):
-				find_scripts(result, path.path_join(file_name))
-			elif file_name.ends_with(".gd"):
-				result.append(path.path_join(file_name))
-			file_name = dir.get_next()
-""")
-		file.close()
-		print("GUT Safety: Created compatibility layer at " + GUT_COMPATIBILITY_PATH)
-	else:
-		push_error("GUT Safety: Failed to create compatibility file")
+## Check if a file exists, calls the creator function if not
+func check_file_exists(path: String, creator_func: Callable) -> bool:
+	if FileAccess.file_exists(path):
+		return true
+		
+	print("GUT Safety: Creating missing file: %s" % path)
+	creator_func.call()
+	return FileAccess.file_exists(path)
 
-# Clean up .uid files in the GUT directory
-func _clean_gut_uid_files():
-	var dir = DirAccess.open("res://addons/gut")
-	if not dir:
-		print("GUT Safety: Failed to access GUT directory")
+## Create the compatibility.gd file
+func create_compatibility_file():
+	var content = """@tool
+extends RefCounted
+
+## GUT Compatibility Layer for Godot 4.4
+##
+## This script provides compatibility fixes for common issues that occur
+## when using GUT with Godot 4.4, especially issues related to GDScript.new()
+## which was removed in Godot 4.4
+
+const EMPTY_SCRIPT_PATH = "res://addons/gut/temp/__empty.gd"
+
+## Creates a new GDScript instance
+func create_gdscript() -> GDScript:
+	# Direct instantiation with GDScript.new() was removed in Godot 4.4
+	# Instead, we load from the template file
+	if ResourceLoader.exists(EMPTY_SCRIPT_PATH):
+		return load(EMPTY_SCRIPT_PATH)
+	
+	# Fallback for older versions if needed
+	push_warning("Empty script template not found; some functionality may be limited")
+	return null
+
+## Creates a script from source code
+func create_script_from_source(source_code: String) -> GDScript:
+	var script = create_gdscript()
+	if script == null:
+		push_error("Failed to create script from source")
+		return null
+		
+	script.source_code = source_code
+	script.reload()
+	
+	# Ensure the script has a valid path
+	if script.resource_path.is_empty():
+		# Create temp directory if needed
+		var temp_dir = "res://addons/gut/temp"
+		if not DirAccess.dir_exists_absolute(temp_dir):
+			DirAccess.make_dir_recursive_absolute(temp_dir)
+		
+		# Generate a unique path for the script
+		var timestamp = Time.get_unix_time_from_system()
+		script.resource_path = "%s/gut_temp_script_%d.gd" % [temp_dir, timestamp]
+	
+	return script
+
+## Safe dictionary has check (replaces .has() which was removed in Godot 4.4)
+static func dict_has_key(dict, key) -> bool:
+	if dict == null or not dict is Dictionary:
+		return false
+	return key in dict
+
+## Safe dictionary get with default value
+static func dict_get(dict, key, default = null):
+	if dict == null or not dict is Dictionary:
+		return default
+	if key in dict:
+		return dict[key]
+	return default
+
+## Safe boolean conversion for method results
+static func to_bool(value) -> bool:
+	if value == null:
+		return false
+	if value is bool:
+		return value
+	if value is int or value is float:
+		return value != 0
+	if value is String:
+		return value.to_lower() == "true" or value == "1"
+	return bool(value)
+
+## Type-safe method calls with proper returns
+static func call_method_bool(obj, method, args=[], default=false) -> bool:
+	if obj == null or not obj.has_method(method):
+		return default
+	var result = obj.callv(method, args)
+	return to_bool(result)
+
+## Ensures a resource has a valid path to prevent serialization issues
+static func ensure_resource_path(resource):
+	if resource is Resource and resource.resource_path.is_empty():
+		var timestamp = Time.get_unix_time_from_system()
+		var temp_dir = "res://addons/gut/temp"
+		if not DirAccess.dir_exists_absolute(temp_dir):
+			DirAccess.make_dir_recursive_absolute(temp_dir)
+		
+		resource.resource_path = "%s/%s_%d.tres" % [
+			temp_dir, resource.get_class().to_snake_case(), timestamp
+		]
+	return resource
+"""
+	var file = FileAccess.open("res://addons/gut/compatibility.gd", FileAccess.WRITE)
+	if file:
+		file.store_string(content)
+		file.close()
+		print("GUT Safety: Created compatibility.gd file")
+
+## Create the empty script template file
+func create_empty_script_template():
+	var temp_dir = "res://addons/gut/temp"
+	if not DirAccess.dir_exists_absolute(temp_dir):
+		DirAccess.make_dir_recursive_absolute(temp_dir)
+		
+	var content = """@tool
+extends GDScript
+
+## This is an empty script file used by the compatibility layer
+## to replace GDScript.new() functionality in Godot 4.4
+"""
+	var file = FileAccess.open(temp_dir + "/__empty.gd", FileAccess.WRITE)
+	if file:
+		file.store_string(content)
+		file.close()
+		print("GUT Safety: Created empty script template")
+
+## Create the GDScript polyfill file
+func create_gdscript_polyfill():
+	var temp_dir = "res://addons/gut/temp"
+	if not DirAccess.dir_exists_absolute(temp_dir):
+		DirAccess.make_dir_recursive_absolute(temp_dir)
+		
+	var content = """@tool
+extends GDScript
+
+## Polyfill for methods that were removed in Godot 4.4
+## This file is used by the compatibility layer to provide backward compatibility
+
+## Replacement for GDScript.new() which was removed in Godot 4.4
+static func create_script_instance() -> GDScript:
+	if ResourceLoader.exists("res://addons/gut/temp/__empty.gd"):
+		return load("res://addons/gut/temp/__empty.gd")
+	return null
+
+## Replacement for has() method which was removed from Dictionary in Godot 4.4
+static func dict_has_key(dict: Dictionary, key) -> bool:
+	if dict == null:
+		return false
+	return key in dict
+
+## Replacement for has_method check that's safer in Godot 4.4
+static func object_has_method(obj, method_name: String) -> bool:
+	if obj == null:
+		return false
+	
+	if typeof(obj) != TYPE_OBJECT:
+		return false
+		
+	# Use reflection to check
+	for method in obj.get_method_list():
+		if method.name == method_name:
+			return true
+			
+	return false
+
+## Get class name safely
+static func safe_get_class(obj) -> String:
+	if obj == null:
+		return "Null"
+		
+	if typeof(obj) != TYPE_OBJECT:
+		return str(typeof(obj))
+		
+	return obj.get_class()
+
+## Create an instance from a script path
+static func create_instance_from_path(path: String):
+	if not ResourceLoader.exists(path):
+		return null
+		
+	var res = load(path)
+	if res == null:
+		return null
+		
+	if not res is GDScript:
+		return null
+		
+	return res.new()
+
+## Safe property access
+static func safe_get_property(obj, property_name, default_value = null):
+	if obj == null:
+		return default_value
+		
+	if typeof(obj) != TYPE_OBJECT:
+		return default_value
+		
+	if not property_name in obj:
+		return default_value
+		
+	return obj.get(property_name)
+
+## Create temp directory safely
+static func create_temp_directory(path: String) -> bool:
+	if DirAccess.dir_exists_absolute(path):
+		return true
+		
+	var result = DirAccess.make_dir_recursive_absolute(path)
+	return result == OK
+"""
+	var file = FileAccess.open(temp_dir + "/gdscript_polyfill.gd", FileAccess.WRITE)
+	if file:
+		file.store_string(content)
+		file.close()
+		print("GUT Safety: Created GDScript polyfill")
+
+## Create the ShortcutButtons.gd file
+func create_shortcut_buttons_file():
+	var content = """@tool
+extends HBoxContainer
+
+## A bar of shortcut buttons for the GUT interface
+## 
+## This class provides a container for shortcut buttons in the GUT interface
+"""
+	var file = FileAccess.open("res://addons/gut/gui/ShortcutButton.gd", FileAccess.WRITE)
+	if file:
+		file.store_string(content)
+		file.close()
+		print("GUT Safety: Created ShortcutButton.gd file")
+
+## Fix NUL characters in important scene files
+func _fix_nul_characters():
+	# Don't run this outside of editor
+	if !Engine.is_editor_hint():
 		return
 		
-	_clean_directory(dir, "res://addons/gut")
+	# Check if necessary files exist
+	ensure_directory_exists("res://addons/gut/temp")
 	
-func _clean_directory(dir: DirAccess, path: String):
+	# Create the empty script template if it doesn't exist
+	check_file_exists("res://addons/gut/temp/__empty.gd", create_empty_script_template)
+	
+	# Create the GDScript polyfill if it doesn't exist
+	check_file_exists("res://addons/gut/temp/gdscript_polyfill.gd", create_gdscript_polyfill)
+	
+	# Create or update the compatibility.gd file
+	check_file_exists("res://addons/gut/compatibility.gd", create_compatibility_file)
+	
+	# Create the ShortcutButton.gd file if it doesn't exist
+	check_file_exists("res://addons/gut/gui/ShortcutButton.gd", create_shortcut_buttons_file)
+	
+	# Delete all .uid files
+	_clean_uid_files()
+
+## Clean up all .uid files in the GUT directory
+func _clean_uid_files():
+	var dir = DirAccess.open("res://addons/gut")
+	if !dir:
+		return
+		
+	_clean_directory_uid_files(dir, "res://addons/gut")
+	
+func _clean_directory_uid_files(dir, path):
 	dir.list_dir_begin()
 	var file_name = dir.get_next()
 	
 	while file_name != "":
-		if file_name.ends_with(".uid"):
-			var full_path = path + "/" + file_name
-			print("GUT Safety: Removing UID file: " + full_path)
-			var err = DirAccess.remove_absolute(full_path)
-			if err != OK:
-				print("GUT Safety: Failed to remove UID file: " + full_path)
-		elif dir.current_is_dir() and file_name != "." and file_name != "..":
-			var subdir = DirAccess.open(path + "/" + file_name)
-			if subdir:
-				_clean_directory(subdir, path + "/" + file_name)
-				
+		if file_name != "." and file_name != "..":
+			var full_path = path.path_join(file_name)
+			
+			if dir.current_is_dir():
+				var subdir = DirAccess.open(full_path)
+				if subdir:
+					_clean_directory_uid_files(subdir, full_path)
+			elif file_name.ends_with(".uid"):
+				print("GUT Safety: Removing .uid file: " + full_path)
+				dir.remove(file_name)
+		
 		file_name = dir.get_next()
-		
+	
 	dir.list_dir_end()
-
-# Add a function to check and fix autoload script compilation issues
-func _check_autoload_scripts():
-	print("GutSafety: Checking autoload scripts for compatibility issues...")
-	
-	var autoload_paths = [
-		"res://src/core/character/Management/CharacterManager.gd",
-		"res://src/core/battle/state/BattleStateMachine.gd"
-	]
-	
-	for path in autoload_paths:
-		if not FileAccess.file_exists(path):
-			print("GutSafety: Autoload script not found: " + path)
-			continue
-			
-		var file = FileAccess.open(path, FileAccess.READ)
-		if not file:
-			print("GutSafety: Failed to open autoload script: " + path)
-			continue
-			
-		var content = file.get_as_text()
-		file.close()
-		
-		# Check for common issues that cause compilation errors
-		var fixed_content = _fix_autoload_script_issues(content, path)
-		
-		# If changes were made, write the fixed content
-		if fixed_content != content:
-			print("GutSafety: Fixed issues in autoload script: " + path)
-			file = FileAccess.open(path, FileAccess.WRITE)
-			if file:
-				file.store_string(fixed_content)
-				file.close()
-
-# Fix common autoload script issues
-func _fix_autoload_script_issues(content: String, path: String) -> String:
-	var fixed_content = content
-	
-	# Replace Dictionary.has() with 'in' operator
-	fixed_content = fixed_content.replace(".has(", " in ")
-	
-	# Add proper null checks
-	if "is_instance_valid(" in fixed_content and not "if not is_instance_valid" in fixed_content:
-		fixed_content = fixed_content.replace("is_instance_valid(", "if not is_instance_valid(")
-	
-	# Make sure all arrays are properly initialized
-	if path.ends_with("CharacterManager.gd"):
-		if "_active_characters = []" in fixed_content and not "func _init" in fixed_content:
-			fixed_content = fixed_content.replace("_active_characters = []",
-				"_active_characters = [] # Initialize to prevent null reference")
-	
-	return fixed_content

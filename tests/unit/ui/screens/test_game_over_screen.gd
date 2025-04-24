@@ -8,6 +8,7 @@ const GameState: GDScript = preload("res://src/core/state/GameState.gd")
 var _instance: Node = null
 var victory_achieved_signal_emitted: bool = false
 var last_victory_data: Dictionary = {}
+var _tracked_resources: Array = []
 
 # Type-safe lifecycle methods
 func before_all() -> void:
@@ -18,6 +19,9 @@ func after_all() -> void:
 
 func before_each() -> void:
 	await super.before_each()
+	
+	# Initialize tracking
+	_tracked_resources = []
 	
 	# Initialize game state
 	_game_state = GameState.new()
@@ -112,7 +116,7 @@ func test_show_game_over() -> void:
 	}
 	TypeSafeMixin._call_node_method_bool(_game_state, "set", ["campaign", campaign_data])
 	
-	TypeSafeMixin._call_node_method_bool(_instance, "show_game_over", [GameEnums.GameState.GAME_OVER])
+	TypeSafeMixin._call_node_method_bool(_instance, "show_game_over", [GlobalEnums.GameState.GAME_OVER])
 	await get_tree().process_frame
 	
 	assert_true(TypeSafeMixin._call_node_method_bool(_instance, "get", ["visible"]), "Screen should be visible after game over")
@@ -142,7 +146,7 @@ func test_victory_display() -> void:
 		
 	# Set up victory state in game state
 	TypeSafeMixin._call_node_method_bool(_game_state, "set", ["victory_achieved", true])
-	TypeSafeMixin._call_node_method_bool(_instance, "show_game_over", [GameEnums.GameState.GAME_OVER])
+	TypeSafeMixin._call_node_method_bool(_instance, "show_game_over", [GlobalEnums.GameState.GAME_OVER])
 	await get_tree().process_frame
 	
 	var victory_label: Label = _get_node_safe(_instance, "VictoryLabel")
@@ -171,7 +175,7 @@ func test_defeat_display() -> void:
 		
 	# Set up defeat state in game state
 	TypeSafeMixin._call_node_method_bool(_game_state, "set", ["victory_achieved", false])
-	TypeSafeMixin._call_node_method_bool(_instance, "show_game_over", [GameEnums.GameState.GAME_OVER])
+	TypeSafeMixin._call_node_method_bool(_instance, "show_game_over", [GlobalEnums.GameState.GAME_OVER])
 	await get_tree().process_frame
 	
 	var victory_label: Label = _get_node_safe(_instance, "VictoryLabel")
@@ -199,7 +203,7 @@ func test_navigation_buttons() -> void:
 		pending("Test skipped - show_game_over method not found")
 		return
 		
-	TypeSafeMixin._call_node_method_bool(_instance, "show_game_over", [GameEnums.GameState.GAME_OVER])
+	TypeSafeMixin._call_node_method_bool(_instance, "show_game_over", [GlobalEnums.GameState.GAME_OVER])
 	await get_tree().process_frame
 	
 	var restart_button: Button = _get_node_safe(_instance, "ButtonContainer/RestartButton")
@@ -244,7 +248,7 @@ func test_stats_display() -> void:
 	}
 	TypeSafeMixin._call_node_method_bool(_game_state, "set", ["campaign", campaign_data])
 	
-	TypeSafeMixin._call_node_method_bool(_instance, "show_game_over", [GameEnums.GameState.GAME_OVER])
+	TypeSafeMixin._call_node_method_bool(_instance, "show_game_over", [GlobalEnums.GameState.GAME_OVER])
 	await get_tree().process_frame
 	
 	var stats_container: Control = _get_node_safe(_instance, "StatsContainer")
@@ -298,7 +302,7 @@ func test_null_campaign_data() -> void:
 		return
 		
 	TypeSafeMixin._call_node_method_bool(_game_state, "set", ["campaign", null])
-	TypeSafeMixin._call_node_method_bool(_instance, "show_game_over", [GameEnums.GameState.GAME_OVER])
+	TypeSafeMixin._call_node_method_bool(_instance, "show_game_over", [GlobalEnums.GameState.GAME_OVER])
 	await get_tree().process_frame
 	
 	var victory_points_label: Label = _get_node_safe(_instance, "StatsContainer/VictoryPointsLabel")
@@ -321,7 +325,7 @@ func test_cleanup() -> void:
 		pending("Test skipped - required methods not found")
 		return
 		
-	TypeSafeMixin._call_node_method_bool(_instance, "show_game_over", [GameEnums.GameState.GAME_OVER])
+	TypeSafeMixin._call_node_method_bool(_instance, "show_game_over", [GlobalEnums.GameState.GAME_OVER])
 	await get_tree().process_frame
 	
 	TypeSafeMixin._call_node_method_bool(_instance, "cleanup")
@@ -356,3 +360,7 @@ func _reset_signals() -> void:
 func _on_victory_achieved(victory_data: Dictionary) -> void:
 	victory_achieved_signal_emitted = true
 	last_victory_data = victory_data
+
+# Helper functions
+func verify_signal_emitted(emitter: Object, signal_name: String, message: String = "") -> void:
+	assert_signal_emitted(emitter, signal_name, message if message else "Signal %s should have been emitted" % signal_name)

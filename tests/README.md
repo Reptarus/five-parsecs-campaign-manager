@@ -129,15 +129,12 @@ When adding new tests:
 
 Detailed testing documentation is now maintained in the main documentation directory:
 
-- [Test Architecture Decisions](../docs/test_architecture_decisions.md): Comprehensive test architecture documentation including organization and patterns
-- [Test File Extends Fix](../docs/test_file_extends_fix.md): Complete guide for migrating test files and fixing common issues
-- [Test Callable Patterns](../docs/test_callable_patterns.md): Patterns for working with callables in tests
-- [Test Safety Patterns](../docs/test_safety_patterns.md): Patterns for safe testing and resource handling
-- [GUT Plugin Fixes](../docs/gut_plugin_fixes.md): Fixes for GUT plugin compatibility with Godot 4.4
+- [Five Parsecs Testing Guide](../docs/five_parsecs_testing_guide.md): Comprehensive guide that consolidates all test architecture, patterns, and best practices
+- [GUT Compatibility Guide](../docs/gut_compatibility_guide.md): Complete guide for maintaining compatibility between GUT and Godot 4.4
+- [Class Name Registry](../docs/class_name_registry.md): Registry of all class names and how to use them properly
 
-Other relevant files:
+Other reference files:
 - [README-GUT.md](README-GUT.md): Original GUT (Godot Unit Testing) reference
-- [FIVE_PARSECS_TESTING.md](FIVE_PARSECS_TESTING.md): Legacy testing guide (use docs directory for most recent information)
 
 ## Key Considerations for Testing
 
@@ -263,16 +260,17 @@ func test_example() -> void:
 }
 ```
 
-## Base Test Class Selection Guide
+## Test Base Classes
 
-When writing a new test, use this guide to select the appropriate base class:
+The project includes specialized base test classes to help with specific test scenarios:
 
 1. UI Component Tests → `extends "res://tests/fixtures/specialized/ui_test.gd"`
 2. Battle System Tests → `extends "res://tests/fixtures/specialized/battle_test.gd"`
 3. Campaign System Tests → `extends "res://tests/fixtures/specialized/campaign_test.gd"`
-4. Enemy System Tests → `extends "res://tests/fixtures/specialized/enemy_test.gd"`
+4. Enemy System Tests → `extends GutTest` (directly extend GutTest)
 5. Mobile-Specific Tests → `extends "res://tests/fixtures/specialized/mobile_test.gd"`
-6. General Game Tests → `extends "res://tests/fixtures/base/game_test.gd"`
+
+Each base class provides helper methods and setup code specific to those test domains.
 
 ## Type Safety Best Practices
 

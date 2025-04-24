@@ -56,3 +56,23 @@ func equals(other: Resource) -> bool:
 # Helper method to get a string representation
 func get_display_string() -> String:
     return "%s (%s)" % [display_name, resource_id]
+
+# Helper method to get a property with default value - mimics the Resource get() method
+# This allows subclasses to use the get() pattern safely
+func get(property: StringName) -> Variant:
+    var property_name = String(property)
+    match property_name:
+        "resource_id": return resource_id
+        "display_name": return display_name
+        "resource_type": return resource_type
+        "resource_description": return resource_description
+        _:
+            # Check if the property exists on the object
+            if property_name in self:
+                return self[property_name]
+            return null
+
+# Helper method with default value handling - safe to use in subclasses
+func get_property(property_name: String, default_value = null) -> Variant:
+    var result = get(property_name)
+    return result if result != null else default_value

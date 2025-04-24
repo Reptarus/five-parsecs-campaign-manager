@@ -4,7 +4,7 @@ extends "res://src/core/ships/components/ShipComponent.gd"
 class_name MedicalBayComponent
 
 @export var healing_rate: float = 1.0
-@export var capacity: int = 2
+@export var bed_capacity: int = 2
 @export var medical_tech_level: int = 1
 @export var has_advanced_surgery: bool = false
 @export var has_trauma_unit: bool = false
@@ -21,7 +21,7 @@ func _init() -> void:
 func _apply_upgrade_effects() -> void:
 	super ()
 	healing_rate += 0.5
-	capacity += 1
+	bed_capacity += 1
 	medical_tech_level = min(medical_tech_level + 1, 5)
 	medical_supplies += 25
 
@@ -29,7 +29,7 @@ func get_healing_rate() -> float:
 	return healing_rate * get_efficiency()
 
 func get_effective_capacity() -> int:
-	return capacity
+	return bed_capacity
 
 func is_full() -> bool:
 	return current_patients.size() >= get_effective_capacity()
@@ -99,7 +99,7 @@ func restock_supplies(amount: int) -> int:
 func serialize() -> Dictionary:
 	var data = super ()
 	data["healing_rate"] = healing_rate
-	data["capacity"] = capacity
+	data["bed_capacity"] = bed_capacity
 	data["medical_tech_level"] = medical_tech_level
 	data["has_advanced_surgery"] = has_advanced_surgery
 	data["has_trauma_unit"] = has_trauma_unit
@@ -129,7 +129,7 @@ static func create_from_data(data: Dictionary) -> MedicalBayComponent:
 	
 	# Medical-specific properties
 	component.healing_rate = data.get("healing_rate", 1.0)
-	component.capacity = data.get("capacity", 2)
+	component.bed_capacity = data.get("bed_capacity", 2)
 	component.medical_tech_level = data.get("medical_tech_level", 1)
 	component.has_advanced_surgery = data.get("has_advanced_surgery", false)
 	component.has_trauma_unit = data.get("has_trauma_unit", false)
@@ -143,7 +143,7 @@ static func deserialize(data: Dictionary) -> Dictionary:
 	var base_data = FPCM_ShipComponent.deserialize(data)
 	base_data["component_type"] = "medical_bay"
 	base_data["healing_rate"] = data.get("healing_rate", 1.0)
-	base_data["capacity"] = data.get("capacity", 2)
+	base_data["bed_capacity"] = data.get("bed_capacity", 2)
 	base_data["medical_tech_level"] = data.get("medical_tech_level", 1)
 	base_data["has_advanced_surgery"] = data.get("has_advanced_surgery", false)
 	base_data["has_trauma_unit"] = data.get("has_trauma_unit", false)

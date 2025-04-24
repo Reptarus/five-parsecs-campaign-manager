@@ -17,6 +17,21 @@ func _init() -> void:
 	_data_manager = GameDataManager.get_instance()
 	GameDataManager.ensure_data_loaded()
 
+## Safely check if an object has a property
+func _has_property(obj, property_name: String) -> bool:
+	if obj == null:
+		return false
+	
+	# Use the 'in' operator to check for property existence
+	return property_name in obj
+
+## Safely get a property value with a default
+func _get_property(obj, property_name: String, default = null):
+	if obj == null or not _has_property(obj, property_name):
+		return default
+	
+	return obj.get(property_name)
+
 ## Migrate a FiveParsecsPlanet to a GamePlanet
 ## Returns a new GamePlanet instance with data from the FiveParsecsPlanet
 func migrate_planet(old_planet) -> GamePlanet:
@@ -25,33 +40,34 @@ func migrate_planet(old_planet) -> GamePlanet:
 		return null
 		
 	var new_planet = GamePlanet.new()
-	new_planet.planet_id = old_planet.planet_id if old_planet.has("planet_id") else ""
-	new_planet.name = old_planet.name if old_planet.has("name") else "Unknown Planet"
+	new_planet.planet_id = _get_property(old_planet, "planet_id", "")
+	new_planet.planet_name = _get_property(old_planet, "name", "Unknown Planet")
 	
 	# Map planet type
 	# Using literal integers since the old enum values might not match new ones
-	if old_planet.has("planet_type"):
-		match old_planet.planet_type:
-			0: # NONE
-				new_planet.planet_type = 0
-			1: # DESERT
-				new_planet.planet_type = 2
-			2: # ICE
-				new_planet.planet_type = 3
-			3: # VOLCANIC
-				new_planet.planet_type = 4
-			4: # OCEAN
-				new_planet.planet_type = 1
-			5: # ROCKY
-				new_planet.planet_type = 5
-			6: # TEMPERATE
-				new_planet.planet_type = 6
-			_:
-				new_planet.planet_type = 0
+	var planet_type = _get_property(old_planet, "planet_type", 0)
+	match planet_type:
+		0: # NONE
+			new_planet.planet_type = 0
+		1: # DESERT
+			new_planet.planet_type = 2
+		2: # ICE
+			new_planet.planet_type = 3
+		3: # VOLCANIC
+			new_planet.planet_type = 4
+		4: # OCEAN
+			new_planet.planet_type = 1
+		5: # ROCKY
+			new_planet.planet_type = 5
+		6: # TEMPERATE
+			new_planet.planet_type = 6
+		_:
+			new_planet.planet_type = 0
 	
 	# Add locations
-	if old_planet.has("locations") and old_planet.locations is Array:
-		for old_location in old_planet.locations:
+	var locations = _get_property(old_planet, "locations", [])
+	if locations is Array:
+		for old_location in locations:
 			if old_location:
 				var new_location = migrate_location(old_location)
 				if new_location:
@@ -67,39 +83,40 @@ func migrate_location(old_location) -> GameLocation:
 		return null
 		
 	var new_location = GameLocation.new()
-	new_location.location_id = old_location.location_id if old_location.has("location_id") else ""
-	new_location.name = old_location.name if old_location.has("name") else "Unknown Location"
+	new_location.location_id = _get_property(old_location, "location_id", "")
+	new_location.name = _get_property(old_location, "name", "Unknown Location")
 	
 	# Map location type
 	# Using literal integers since the old enum values might not match new ones
-	if old_location.has("location_type"):
-		match old_location.location_type:
-			0: # NONE
-				new_location.location_type = 0
-			1: # FRONTIER_WORLD
-				new_location.location_type = 2
-			2: # INDUSTRIAL_HUB
-				new_location.location_type = 1
-			3: # CORPORATE_WORLD
-				new_location.location_type = 6
-			4: # TRADE_CENTER
-				new_location.location_type = 3
-			5: # MINING_COLONY
-				new_location.location_type = 8
-			6: # AGRICULTURAL_WORLD
-				new_location.location_type = 9
-			7: # PIRATE_HAVEN
-				new_location.location_type = 4
-			8: # FREE_PORT
-				new_location.location_type = 5
-			9: # TECH_CENTER
-				new_location.location_type = 7
-			_:
-				new_location.location_type = 0
+	var location_type = _get_property(old_location, "location_type", 0)
+	match location_type:
+		0: # NONE
+			new_location.location_type = 0
+		1: # FRONTIER_WORLD
+			new_location.location_type = 2
+		2: # INDUSTRIAL_HUB
+			new_location.location_type = 1
+		3: # CORPORATE_WORLD
+			new_location.location_type = 6
+		4: # TRADE_CENTER
+			new_location.location_type = 3
+		5: # MINING_COLONY
+			new_location.location_type = 8
+		6: # AGRICULTURAL_WORLD
+			new_location.location_type = 9
+		7: # PIRATE_HAVEN
+			new_location.location_type = 4
+		8: # FREE_PORT
+			new_location.location_type = 5
+		9: # TECH_CENTER
+			new_location.location_type = 7
+		_:
+			new_location.location_type = 0
 	
 	# Add traits
-	if old_location.has("traits") and old_location.traits is Array:
-		for old_trait_data in old_location.traits:
+	var traits = _get_property(old_location, "traits", [])
+	if traits is Array:
+		for old_trait_data in traits:
 			if old_trait_data:
 				var new_trait = migrate_world_trait(old_trait_data)
 				if new_trait:
@@ -115,23 +132,23 @@ func migrate_world_trait(old_trait) -> GameWorldTrait:
 		return null
 		
 	var new_trait = GameWorldTrait.new()
-	new_trait.trait_id = old_trait.trait_id if old_trait.has("trait_id") else ""
-	new_trait.name = old_trait.name if old_trait.has("name") else "Unknown Trait"
+	new_trait.trait_id = _get_property(old_trait, "trait_id", "")
+	new_trait.name = _get_property(old_trait, "name", "Unknown Trait")
 	
 	# Map trait type
 	# Using literal integers since the old enum values might not match new ones
-	if old_trait.has("trait_type"):
-		match old_trait.trait_type:
-			0: # NONE
-				new_trait.trait_type = 0
-			1: # DANGEROUS
-				new_trait.trait_type = 1
-			2: # BENEFICIAL
-				new_trait.trait_type = 2
-			3: # NEUTRAL
-				new_trait.trait_type = 3
-			_:
-				new_trait.trait_type = 0
+	var trait_type = _get_property(old_trait, "trait_type", 0)
+	match trait_type:
+		0: # NONE
+			new_trait.trait_type = 0
+		1: # DANGEROUS
+			new_trait.trait_type = 1
+		2: # BENEFICIAL
+			new_trait.trait_type = 2
+		3: # NEUTRAL
+			new_trait.trait_type = 3
+		_:
+			new_trait.trait_type = 0
 	
 	return new_trait
 
@@ -149,33 +166,33 @@ func migrate_world_data(old_data: Dictionary) -> Dictionary:
 			
 			# Set basic properties
 			new_planet.planet_id = planet_id
-			new_planet.planet_name = old_planet_data.get("planet_name", "")
-			new_planet.sector = old_planet_data.get("sector", "")
-			new_planet.coordinates = old_planet_data.get("coordinates", Vector2.ZERO)
-			new_planet.planet_type = old_planet_data.get("planet_type", GameEnums.PlanetType.NONE)
-			new_planet.description = old_planet_data.get("description", "")
-			new_planet.faction_type = old_planet_data.get("faction_type", GameEnums.FactionType.NEUTRAL)
-			new_planet.environment_type = old_planet_data.get("environment_type", GameEnums.PlanetEnvironment.NONE)
+			new_planet.planet_name = _get_property(old_planet_data, "planet_name", "")
+			new_planet.sector = _get_property(old_planet_data, "sector", "")
+			new_planet.coordinates = _get_property(old_planet_data, "coordinates", Vector2.ZERO)
+			new_planet.planet_type = _get_property(old_planet_data, "planet_type", GameEnums.PlanetType.NONE)
+			new_planet.description = _get_property(old_planet_data, "description", "")
+			new_planet.faction_type = _get_property(old_planet_data, "faction_type", GameEnums.FactionType.NEUTRAL)
+			new_planet.environment_type = _get_property(old_planet_data, "environment_type", GameEnums.PlanetEnvironment.NONE)
 			
 			# Set state tracking
-			new_planet.strife_level = old_planet_data.get("strife_level", GameEnums.StrifeType.NONE)
-			new_planet.instability = old_planet_data.get("instability", GameEnums.StrifeType.NONE)
-			new_planet.unity_progress = old_planet_data.get("unity_progress", 0)
-			new_planet.visited = old_planet_data.get("visited", false)
-			new_planet.discovered = old_planet_data.get("discovered", false)
+			new_planet.strife_level = _get_property(old_planet_data, "strife_level", GameEnums.StrifeType.NONE)
+			new_planet.instability = _get_property(old_planet_data, "instability", GameEnums.StrifeType.NONE)
+			new_planet.unity_progress = _get_property(old_planet_data, "unity_progress", 0)
+			new_planet.visited = _get_property(old_planet_data, "visited", false)
+			new_planet.discovered = _get_property(old_planet_data, "discovered", false)
 			
 			# Copy resources
-			var resources = old_planet_data.get("resources", {})
+			var resources = _get_property(old_planet_data, "resources", {})
 			for resource_type in resources:
 				new_planet.resources[resource_type] = resources[resource_type]
 			
 			# Copy threats
-			var threats = old_planet_data.get("threats", [])
+			var threats = _get_property(old_planet_data, "threats", [])
 			for threat in threats:
 				new_planet.threats.append(threat)
 			
 			# Copy world traits
-			var world_features = old_planet_data.get("world_features", [])
+			var world_features = _get_property(old_planet_data, "world_features", [])
 			for old_trait in world_features:
 				var trait_id = convert_world_trait_to_id(old_trait)
 				new_planet.add_world_trait_by_id(trait_id)
@@ -191,26 +208,26 @@ func migrate_world_data(old_data: Dictionary) -> Dictionary:
 			
 			# Set basic properties
 			new_location.location_id = location_id
-			new_location.location_name = old_location_data.get("name", "")
-			new_location.location_type = old_location_data.get("location_type", GameEnums.LocationType.FRONTIER_WORLD)
-			new_location.faction_type = old_location_data.get("faction_type", GameEnums.FactionType.NEUTRAL)
-			new_location.environment_type = old_location_data.get("environment_type", GameEnums.PlanetEnvironment.FOREST)
-			new_location.coordinates = old_location_data.get("coordinates", Vector2.ZERO)
+			new_location.location_name = _get_property(old_location_data, "name", "")
+			new_location.location_type = _get_property(old_location_data, "location_type", GameEnums.LocationType.FRONTIER_WORLD)
+			new_location.faction_type = _get_property(old_location_data, "faction_type", GameEnums.FactionType.NEUTRAL)
+			new_location.environment_type = _get_property(old_location_data, "environment_type", GameEnums.PlanetEnvironment.FOREST)
+			new_location.coordinates = _get_property(old_location_data, "coordinates", Vector2.ZERO)
 			
 			# Copy resources
-			var resources = old_location_data.get("resources", {})
+			var resources = _get_property(old_location_data, "resources", {})
 			for resource_type in resources:
 				var resource_id = convert_resource_type_to_id(resource_type)
 				new_location.resources[resource_id] = resources[resource_type]
 			
 			# Copy special features as world traits
-			var special_features = old_location_data.get("special_features", [])
+			var special_features = _get_property(old_location_data, "special_features", [])
 			for feature in special_features:
 				var trait_id = convert_special_feature_to_trait_id(feature)
 				new_location.add_world_trait_by_id(trait_id)
 			
 			# Copy market state
-			new_location.market_state = old_location_data.get("market_state", GameLocation.MARKET_STATE_NORMAL)
+			new_location.market_state = _get_property(old_location_data, "market_state", GameLocation.MARKET_STATE_NORMAL)
 			
 			new_data["locations"][location_id] = new_location.serialize()
 	
@@ -238,7 +255,7 @@ func needs_migration(data: Dictionary) -> bool:
 		var planets = data["planets"]
 		for planet_id in planets:
 			var planet_data = planets[planet_id]
-			if planet_data.has("planet_type") and planet_data["planet_type"] is int:
+			if needs_planet_migration(planet_data):
 				return true
 	
 	# Check for old-style location data
@@ -246,7 +263,7 @@ func needs_migration(data: Dictionary) -> bool:
 		var locations = data["locations"]
 		for location_id in locations:
 			var location_data = locations[location_id]
-			if location_data.has("special_features") and not location_data.has("world_traits"):
+			if not _has_property(location_data, "world_traits") and _has_property(location_data, "special_features"):
 				return true
 	
 	return false
@@ -484,3 +501,21 @@ func convert_resource_dict(old_dict: Dictionary) -> Dictionary:
 		new_dict[new_type_str] = old_dict[old_type]
 	
 	return new_dict
+
+## Check if a planet needs migration - for WorldDataMigration
+## Returns true if the planet is in the old format and needs migration
+func needs_planet_migration(planet_data) -> bool:
+	# If it doesn't have a planet_type, it's probably not a planet
+	if not _has_property(planet_data, "planet_type"):
+		return false
+	
+	# If it has world_features as an array of integers, it's in old format
+	var world_features = _get_property(planet_data, "world_features", null)
+	if world_features is Array and world_features.size() > 0:
+		return world_features[0] is int
+	
+	# If it doesn't have world_traits but has planet_features, it's old format
+	if not _has_property(planet_data, "world_traits") and _has_property(planet_data, "planet_features"):
+		return true
+		
+	return false

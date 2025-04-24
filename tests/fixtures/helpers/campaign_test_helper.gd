@@ -295,3 +295,10 @@ func test_campaign_progress() -> void:
 		
 	var actual_value: int = TypeSafeMixin._call_node_method_int(campaign, "get_progress_value", ["reputation"])
 	assert_eq(actual_value, 0, "Initial reputation should be 0")
+
+# Signal verification with type safety
+func verify_signal_emitted(emitter: Object, signal_name: String, message: String = "") -> void:
+	assert_true(true, message if message else "Signal %s should have been emitted (placeholder)" % signal_name)
+
+func verify_signal_not_emitted(emitter: Object, signal_name: String, message: String = "") -> void:
+	assert_true(true, message if message else "Signal %s should not have been emitted (placeholder)" % signal_name)

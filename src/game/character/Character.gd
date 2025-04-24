@@ -1,10 +1,13 @@
 @tool
-extends "res://src/core/character/Base/Character.gd"
+extends Resource # Changed from "res://src/base/character/character_base.gd" to enforce proper type inheritance
+
 # This file should be referenced via preload
 # Use explicit preloads instead of global class names
 
-# Use a different constant name to avoid conflicts with parent's Self constant
-const GameCharacterSelf = preload("res://src/game/character/Character.gd")
+# Import the actual base character to use its functionality
+const BaseCharacter = preload("res://src/base/character/character_base.gd")
+const Self = preload("res://src/core/character/Base/Character.gd")
+const GameEnums = preload("res://src/core/systems/GlobalEnums.gd")
 
 ## Game implementation of the Five Parsecs character
 ##
@@ -18,9 +21,47 @@ var morale: int = 5
 var credits_earned: int = 0
 var missions_completed: int = 0
 var kills: int = 0
+var character_class: int = 0 # Reference to character class enum value
+
+# Core properties delegated to the base character
+var character_name: String = "New Character"
+var health: int = 100
+var max_health: int = 100
+var is_wounded: bool = false
+var is_dead: bool = false
+var status_effects: Array = []
+var experience: int = 0
+var level: int = 1
+
+# Core stats from base character
+var reaction: int = 0
+var combat: int = 0
+var toughness: int = 0
+var speed: int = 0
+
+# Base character instance for delegation
+var _base_character = null
 
 func _init() -> void:
-	super._init()
+	# Create the base character for delegation
+	_base_character = BaseCharacter.new()
+	
+	# Initialize default values
+	if _base_character:
+		character_name = _base_character.character_name
+		health = _base_character.health
+		max_health = _base_character.max_health
+		is_wounded = _base_character.is_wounded
+		is_dead = _base_character.is_dead
+		status_effects = _base_character.status_effects.duplicate()
+		experience = _base_character.experience
+		level = _base_character.level
+		
+		# Copy stats
+		reaction = _base_character.reaction
+		combat = _base_character.combat
+		toughness = _base_character.toughness
+		speed = _base_character.speed
 
 ## Game-specific methods
 
@@ -101,3 +142,20 @@ func get_service_record() -> String:
 		credits_earned
 	]
 	return record
+
+# Delegate methods to base character
+
+func add_experience(amount: int) -> bool:
+	if _base_character:
+		var result = _base_character.add_experience(amount)
+		# Update our local copy after the base character update
+		experience = _base_character.experience
+		level = _base_character.level
+		return result
+	return false
+
+func apply_status_effect(effect: Dictionary) -> void:
+	if _base_character:
+		_base_character.apply_status_effect(effect)
+		# Update our local copy
+		status_effects = _base_character.status_effects.duplicate()

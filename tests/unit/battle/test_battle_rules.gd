@@ -48,6 +48,9 @@ const DEFEND_COST: int = 1
 var _battle_rules: Node = null
 var _combat_manager: Node = null
 
+# Use explicit preloads instead of global class names
+const TestEnums = preload("res://tests/fixtures/base/test_helper.gd")
+
 # Lifecycle Methods
 func before_each() -> void:
 	await super.before_each()

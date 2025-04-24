@@ -37,8 +37,12 @@ enum UIState {
 	CAMPAIGN_SUMMARY
 }
 
+# Type-safe constants
+const STABILIZE_WAIT: float = 0.1
+const TEST_TIMEOUT := 2.0
+
 # Type-safe instance variables
-var _ui_state_manager: Node
+var _ui_state_manager: Node = null
 var _test_enemies: Array = []
 var _parent_node: Node = null # Track parent node explicitly
 var _created_nodes: Dictionary = {} # Track all nodes created by tests with unique IDs
@@ -50,17 +54,19 @@ var _default_param_test_responsive_layout: Control = null
 var _default_param_test_accessibility: Control = null
 var _default_param_test_animations: Control = null
 
-# Type-safe constants
-const STABILIZE_WAIT := 0.1
-const TEST_TIMEOUT := 2.0
-
 # Tracking ID generator
 var _next_node_id: int = 1000
 
+# Initialize in ready to avoid issues
+func _ready() -> void:
+	super._ready()
+	# We will create _ui_state_manager in before_each as it might not be ready yet
+	pass
+
 func before_each() -> void:
 	# Store the current test method name for better tracking
-	_current_test_method = _gut.get_current_test_name() if _gut != null else ""
-	print("\n--- STARTING TEST: %s ---" % (_current_test_method if not _current_test_method.is_empty() else "unknown"))
+	_current_test_method = "unknown" # Simplify this for now
+	print("\n--- STARTING TEST: %s ---" % _current_test_method)
 	
 	# Clean up any orphans from previous tests
 	_cleanup_orphans()
@@ -107,9 +113,6 @@ func before_each() -> void:
 	_parent_node.add_child(script_instance)
 	_ui_state_manager = script_instance
 	track_test_node(_ui_state_manager)
-	
-	# Create a new signal watcher for this test
-	_signal_watcher = SignalWatcher.new()
 	
 	# Create test enemies that we use
 	_setup_test_enemies()
@@ -425,14 +428,6 @@ func verify_state_transition(from_state: int, to_state: int) -> bool:
 		push_warning("UI state manager is not valid, skipping test")
 		return false
 	
-	# Initialize signal watcher
-	if _signal_watcher == null:
-		push_warning("Signal watcher is null, initializing a new one")
-		_signal_watcher = SignalWatcher.new()
-		# Note: SignalWatcher constructor might need a reference to GUT
-		# If it's a RefCounted, we don't need to call queue_free or track it
-		# It will be cleaned up properly in after_each
-	
 	# First make sure we're not already in the from_state by transitioning to a different state
 	var current_state = UIState.MAIN_MENU
 	if _ui_state_manager.has_method("get_current_state"):
@@ -531,15 +526,10 @@ func _create_test_enemy(type: String) -> Node:
 	return enemy
 
 # Helper method to handle the GUT error case
-func _fail_for_error(text: String) -> void:
-	# This method is called by the logger from GUT
-	# We'll implement it here to avoid the "Invalid call" error
-	push_error(text)
-	if _gut != null and _gut.has_method("_fail_for_error"):
-		_gut._fail_for_error(text)
-	else:
-		# Force a test failure with the error message
-		assert_true(false, text)
+func push_fail_for_error(text: String) -> void:
+	# Implementation without using _gut
+	fail_test(text)
+	# Don't reference _gut as it's not defined
 
 # Test Methods
 func test_ui_initialization() -> void:

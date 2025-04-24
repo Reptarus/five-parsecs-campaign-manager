@@ -1,353 +1,388 @@
 @tool
 extends Node
-# Core character management functionality for Five Parsecs Campaign Manager
-# This file should be referenced via preload or as an autoload
-
-# This file exists in the management (lowercase m) directory
-# All functionality has been moved from the Management (capital M) directory
-# The autoload now correctly references the lowercase version in project.godot
-
-func _init():
-	# Use safe initialization pattern
-	# Initialize properties to prevent null references
-	Character = null
-	CharacterBox = null
-	GameEnums = null
-	GameWeapon = null
-	_characters = {}
-	_active_characters = []
-	_recovery_queue = []
 
 signal character_added(character)
+signal character_removed(character)
 signal character_updated(character)
-signal character_removed(character_id: String)
-signal character_status_changed(character_id: String, old_status: String, new_status: String)
-signal character_injured(character, injury_data: Dictionary)
-signal character_killed(character)
-signal character_experience_gained(character, amount: int)
-signal character_advanced(character, improvements: Dictionary)
+signal character_deleted(character_id)
+signal character_health_changed(character_id, old_health, new_health)
+signal character_status_changed(character_id, old_status, new_status)
 
-var Character = null
-var CharacterBox = null
-var GameEnums = null
-var GameWeapon = null
-const MAX_CHARACTERS = 100
+# Character collections
+var _characters = {}
+var _active_characters = []
+var _inactive_characters = []
 
-# Character status constants
-const STATUS_READY = "ready"
-const STATUS_INJURED = "injured"
-const STATUS_CRITICAL = "critical"
-const STATUS_DEAD = "dead"
-const STATUS_RESTING = "resting"
-const STATUS_UNAVAILABLE = "unavailable"
-
-var _characters: Dictionary = {}
-var _active_characters: Array = []
-var _recovery_queue: Array = []
+func _init() -> void:
+	# Initialize collections
+	pass
 
 func _ready() -> void:
-	# Load classes to avoid circular references
-	Character = load("res://src/core/character/Base/Character.gd")
-	CharacterBox = load("res://src/core/character/Base/CharacterBox.gd")
-	GameEnums = load("res://src/core/systems/GlobalEnums.gd")
-	GameWeapon = load("res://src/core/systems/items/GameWeapon.gd")
+	pass
 
+# Create a new empty character
 func create_character():
-	if not Character:
-		Character = load("res://src/core/character/Base/Character.gd")
-		
-	if not Character:
-		push_error("CharacterManager: Cannot create character - Character class not found")
-		return null
-		
-	var character = Character.new()
+	var character = {
+		"id": _generate_character_id({}),
+		"name": "New Character",
+		"health": 100,
+		"status": {}
+	}
+	
 	add_character(character)
 	return character
 
+# Add an existing character
 func add_character(character) -> bool:
-	if not character or not is_instance_valid(character):
-		return false
+	# Ensure character has an ID
+	if not ("id" in character) or character.id.is_empty():
+		character.id = _generate_character_id(character)
 		
-	if _characters.size() >= MAX_CHARACTERS:
-		return false
+	# Ensure character has required fields
+	if not ("status" in character):
+		character.status = {}
 		
-	var char_id = _get_character_property(character, "id", "")
-	if char_id.is_empty():
-		push_error("Character missing required id property")
-		return false
-		
+	# Add to collections
+	var char_id = character.id
 	_characters[char_id] = character
-	if _get_character_property(character, "is_active", false):
-		_active_characters.append(character)
+	_active_characters.append(character)
 	
+	# Emit signal
 	character_added.emit(character)
-	return true
-
-func update_character(character_id: String, character) -> bool:
-	if not character_id in _characters:
-		return false
-		
-	var char_id = _get_character_property(character, "id", "")
-	if char_id.is_empty() or char_id != character_id:
-		push_error("Character id mismatch or missing")
-		return false
-		
-	_characters[character_id] = character
-	_update_active_characters()
 	
-	character_updated.emit(character)
 	return true
 
+# Remove a character
 func remove_character(character_id: String) -> bool:
-	if not character_id in _characters:
+	if not (character_id in _characters):
 		return false
 		
 	var character = _characters[character_id]
-	_characters.erase(character_id)
-	_active_characters.erase(character)
 	
-	character_removed.emit(character_id)
+	# Remove from collections
+	_characters.erase(character_id)
+	
+	if character in _active_characters:
+		_active_characters.erase(character)
+		
+	if character in _inactive_characters:
+		_inactive_characters.erase(character)
+	
+	# Emit signal
+	character_removed.emit(character)
+	
 	return true
 
-func get_character(character_id: String):
-	return _characters.get(character_id)
+# Delete a character permanently
+func delete_character(character_id: String) -> bool:
+	if not (character_id in _characters):
+		return false
+	
+	# Remove from all collections
+	var success = remove_character(character_id)
+	
+	if success:
+		# Emit signal for permanent deletion
+		character_deleted.emit(character_id)
+	
+	return success
 
+# Update character data
+func update_character(character_id: String, character_data) -> bool:
+	if not (character_id in _characters):
+		return false
+	
+	var character = _characters[character_id]
+	
+	# Update fields
+	for key in character_data:
+		character[key] = character_data[key]
+	
+	# Ensure ID doesn't change
+	character.id = character_id
+	
+	# Update character in collections
+	_characters[character_id] = character
+	
+	# Emit signal
+	character_updated.emit(character)
+	
+	return true
+
+# Check if a character exists
 func has_character(character_id: String) -> bool:
-	return character_id in _characters
+	if character_id is String:
+		return (character_id in _characters)
+	else:
+		# If given a character object, extract ID
+		return (_get_character_id(character_id) in _characters)
 
-func get_character_count() -> int:
-	return _characters.size()
+# Get a character by ID
+func get_character(character_id: String):
+	if (character_id in _characters):
+		return _characters[character_id]
+	return null
 
-func get_active_characters() -> Array:
-	return _active_characters.duplicate()
-
-func get_ready_characters() -> Array:
-	var ready_characters = []
-	for character in _active_characters:
-		if _get_character_property(character, "status", "") == STATUS_READY:
-			ready_characters.append(character)
-	return ready_characters
-
-func get_injured_characters() -> Array:
-	var injured_characters = []
-	for character in _active_characters:
-		var status = _get_character_property(character, "status", "")
-		if status == STATUS_INJURED or status == STATUS_CRITICAL:
-			injured_characters.append(character)
-	return injured_characters
-
-# Helper function to get character properties safely
-func _get_character_property(character, property: String, default = null):
-	if character == null:
-		return default
-		
-	if property in character:
-		return character.get(property)
-	return default
-
-# Helper function to set character properties safely
-func _set_character_property(character, property: String, value) -> void:
-	if not character or not is_instance_valid(character):
-		return
-		
-	# Try direct property access first
-	if property in character:
-		character.set(property, value)
-		return
-		
-	# Try set method
-	var set_method = "set_" + property
-	if character.has_method(set_method):
-		character.call(set_method, value)
-		return
-		
-	# Try generic set method
-	if character.has_method("set"):
-		character.call("set", property, value)
-
-# Update the active characters list
-func _update_active_characters() -> void:
-	_active_characters.clear()
-	for char_id in _characters:
-		var character = _characters[char_id]
-		if _get_character_property(character, "is_active", false):
-			_active_characters.append(character)
-
-# Phase-specific character management functions
-
-## Process upkeep phase for all characters
-func process_upkeep_phase() -> Dictionary:
-	var result = {
-		"maintenance_cost": 0,
-		"recovered": [],
-		"still_injured": []
-	}
-	
-	# Calculate upkeep costs
-	result.maintenance_cost = _active_characters.size() * 100
-	
-	# Check for recovery of injured characters
-	for character in _active_characters:
-		var status = _get_character_property(character, "status", "")
-		if status == STATUS_INJURED:
-			# Roll for recovery
-			var recovery_roll = randi() % 6 + 1 # d6
-			if recovery_roll >= 4: # Succeed on 4+
-				set_character_status(character, STATUS_READY)
-				result.recovered.append(character)
-			else:
-				result.still_injured.append(character)
-		elif status == STATUS_CRITICAL:
-			# Critical injuries take longer to recover
-			set_character_status(character, STATUS_INJURED)
-			result.still_injured.append(character)
-	
-	return result
-
-## Process battle damage for a character
-func apply_battle_damage(character, damage: int, is_critical: bool = false) -> Dictionary:
+# Set a property on a character
+func _set_character_property(character_id: String, property: String, value) -> bool:
+	var character = get_character(character_id)
 	if not character:
-		return {}
-		
-	var char_id = _get_character_property(character, "id", "")
-	if char_id.is_empty():
-		return {}
+		return false
 	
-	var old_status = _get_character_property(character, "status", STATUS_READY)
-	var injury_data = {
-		"character_id": char_id,
-		"damage": damage,
-		"is_critical": is_critical,
+	# Ensure character is a valid Dictionary before using subscript
+	if character is Dictionary:
+		character[property] = value
+		
+		# Update character in collections
+		_characters[character_id] = character
+		
+		# Emit signal for update
+		character_updated.emit(character)
+		
+		return true
+	return false
+
+# Get a property from a character
+func get_character_property(character_id: String, property: String):
+	var character = get_character(character_id)
+	if not character or not (property in character):
+		return null
+	
+	# Ensure character is a valid Dictionary before using subscript
+	if character is Dictionary:
+		return character[property]
+	return null
+
+# Get all characters
+func get_all_characters() -> Array:
+	return _characters.values()
+
+# Get active characters
+func get_active_characters() -> Array:
+	return _active_characters
+
+# Get inactive characters
+func get_inactive_characters() -> Array:
+	return _inactive_characters
+
+# Get character by index
+func get_character_by_index(index: int):
+	if index < 0 or index >= _active_characters.size():
+		return null
+		
+	return _active_characters[index]
+
+# Set character health
+func set_character_health(character_id: String, health: int) -> bool:
+	var character = get_character(character_id)
+	if not character:
+		return false
+		
+	var old_health = character.get("health", 0)
+	var new_health = health
+	
+	# Update health value
+	character.health = new_health
+	
+	# Update character in collections
+	_characters[character_id] = character
+	
+	# Emit signal
+	character_health_changed.emit(character_id, old_health, new_health)
+	
+	return true
+
+# Set character status
+func set_character_status(character_id, status_data: Dictionary) -> bool:
+	var character = get_character(character_id)
+	if not character:
+		return false
+		
+	# Store old status for signal
+	var old_status = {}
+	if ("status" in character):
+		old_status = character.status.duplicate()
+	
+	# Make sure status is initialized
+	if not ("status" in character) or not character.status is Dictionary:
+		character.status = {}
+	
+	# Update status with new values
+	var new_status = character.status.duplicate()
+	for key in status_data:
+		new_status[key] = status_data[key]
+	
+	character.status = new_status
+	
+	# Update character in collections
+	if character_id is String:
+		_characters[character_id] = character
+	elif ("id" in character):
+		_characters[character.id] = character
+	
+	# Emit signal
+	character_status_changed.emit(character_id, old_status, new_status)
+	
+	return true
+
+# Move character to inactive state
+func deactivate_character(character_id: String) -> bool:
+	var character = get_character(character_id)
+	if not character:
+		return false
+		
+	if character in _active_characters:
+		_active_characters.erase(character)
+		_inactive_characters.append(character)
+		return true
+		
+	return false
+
+# Move character to active state
+func activate_character(character_id: String) -> bool:
+	var character = get_character(character_id)
+	if not character:
+		return false
+		
+	if character in _inactive_characters:
+		_inactive_characters.erase(character)
+		_active_characters.append(character)
+		return true
+		
+	return false
+
+# Apply damage to a character and determine injury result
+func apply_battle_damage(character, damage: int, is_critical: bool = false) -> Dictionary:
+	var char_id = _get_character_id(character)
+	var result = {
 		"survived": true,
 		"injury_type": "minor"
 	}
 	
-	# Check for death
-	if is_critical and damage >= _get_character_property(character, "toughness", 1) * 2:
-		set_character_status(character, STATUS_DEAD)
-		injury_data.survived = false
-		character_killed.emit(character)
-	# Check for critical injury
-	elif is_critical or damage >= _get_character_property(character, "toughness", 1):
-		set_character_status(character, STATUS_CRITICAL)
-		injury_data.injury_type = "critical"
-	# Regular injury
-	elif damage > 0:
-		set_character_status(character, STATUS_INJURED)
-		injury_data.injury_type = "minor"
+	# Get character health
+	var health = 0
+	if ("health" in character):
+		health = character.health
+	elif ("toughness" in character):
+		health = character.toughness * 10
 	
-	update_character(char_id, character)
+	# Apply damage
+	health -= damage
 	
-	# Emit signal for UI/logging purposes
-	character_injured.emit(character, injury_data)
+	# Update character health
+	if ("health" in character):
+		character.health = health
 	
-	return injury_data
+	# Determine injury severity
+	if health <= 0:
+		result.survived = false
+		result.injury_type = "fatal"
+	elif is_critical or health <= 10:
+		result.injury_type = "critical"
+	elif health <= 25:
+		result.injury_type = "serious"
+	else:
+		result.injury_type = "minor"
+	
+	# Apply status effect
+	var status_data = {}
+	if not result.survived:
+		status_data["dead"] = true
+	elif result.injury_type == "critical":
+		status_data["critical_injury"] = true
+	elif result.injury_type == "serious":
+		status_data["serious_injury"] = true
+	elif result.injury_type == "minor":
+		status_data["minor_injury"] = true
+	
+	set_character_status(char_id, status_data)
+	
+	return result
 
-## Process advancement phase for a character
-func process_advancement(character, experience_points: int) -> Dictionary:
-	if not character:
-		return {}
-		
-	var char_id = _get_character_property(character, "id", "")
-	if char_id.is_empty():
-		return {}
+# Process character advancement
+func process_advancement(character, xp_amount: int) -> Dictionary:
+	var char_id = _get_character_id(character)
+	var advancement_result = {
+		"gained_xp": xp_amount,
+		"new_level": false,
+		"new_skills": []
+	}
 	
-	# Add experience points
-	add_experience(character, experience_points)
-	character_experience_gained.emit(character, experience_points)
+	# Get current XP and level
+	var current_xp = _get_character_property(character, "xp", 0)
+	var current_level = _get_character_property(character, "level", 1)
 	
-	var improvements = {}
-	var xp = _get_character_property(character, "experience", 0)
-	var level = _get_character_property(character, "level", 1)
+	# Add XP
+	var new_xp = current_xp + xp_amount
+	_set_character_property(char_id, "xp", new_xp)
 	
 	# Check for level up
-	if xp >= level * 100:
-		# Calculate stat improvements
-		improvements = _roll_character_improvements(character)
+	var xp_for_next_level = current_level * 5 # Example threshold
+	if new_xp >= xp_for_next_level:
+		# Level up
+		var new_level = current_level + 1
+		_set_character_property(char_id, "level", new_level)
+		advancement_result.new_level = true
 		
-		# Apply improvements
-		for stat in improvements:
-			improve_stat(character, stat)
-		
-		# Increase level
-		_set_character_property(character, "level", level + 1)
-		
-		character_advanced.emit(character, improvements)
+		# Roll for new skill
+		var new_skill = _roll_random_skill(character)
+		if not new_skill.is_empty():
+			advancement_result.new_skills.append(new_skill)
+			
+			# Add skill to character
+			var skills = _get_character_property(character, "skills", [])
+			if not skills is Array:
+				skills = []
+			skills.append(new_skill)
+			_set_character_property(char_id, "skills", skills)
 	
-	update_character(char_id, character)
-	return improvements
+	return advancement_result
 
-## Set a character's status with proper event emission
-func set_character_status(character, new_status: String) -> bool:
-	if not character or not is_instance_valid(character):
-		return false
-		
-	var old_status = _get_character_property(character, "status", "")
-	if old_status == new_status:
-		# No change needed
-		return true
-		
-	# Set the new status
-	_set_character_property(character, "status", new_status)
+# Helper for getting character ID
+func _get_character_id(character) -> String:
+	if character is String:
+		return character
+	elif character is Dictionary and ("id" in character):
+		return character.id
+	else:
+		return ""
+
+# Helper for character property access
+func _get_character_property(character, property: String, default_value = null):
+	if character is Dictionary:
+		return character.get(property, default_value)
+	elif character is String:
+		var char_obj = get_character(character)
+		if char_obj:
+			return char_obj.get(property, default_value)
+	return default_value
+
+# Generate a unique character ID
+func _generate_character_id(character) -> String:
+	var char_name = "char"
+	if character is Dictionary and ("name" in character) and not character.name.is_empty():
+		char_name = character.name.to_lower().replace(" ", "_")
 	
-	# Get the ID for emitting signal
-	var character_id = _get_character_property(character, "id", "")
-	if not character_id.is_empty():
-		character_status_changed.emit(character_id, old_status, new_status)
-		
-	return true
-
-func set_character_class(character, char_class: int) -> void:
-	if not character:
-		return
-		
-	_set_character_property(character, "character_class", char_class)
-	_initialize_class_stats(character)
-	var char_id = _get_character_property(character, "id", "")
-	if not char_id.is_empty():
-		update_character(char_id, character)
-
-func improve_stat(character, stat: int) -> void:
-	if not character:
-		return
-		
-	var current_value = _get_character_property(character, "stats", {}).get(stat, 0)
-	var stats = _get_character_property(character, "stats", {}).duplicate()
-	stats[stat] = current_value + 1
-	_set_character_property(character, "stats", stats)
-
-func add_experience(character, amount: int) -> void:
-	if not character:
-		return
-		
-	var current_xp = _get_character_property(character, "experience", 0)
-	_set_character_property(character, "experience", current_xp + amount)
-
-func _roll_character_improvements(character) -> Dictionary:
-	if not character:
-		return {}
-		
-	# This would typically roll for random stat improvements
-	# For now, return a simple fixed improvement
-	return {
-		GameEnums.CharacterStat.COMBAT: 1
-	}
-
-func _initialize_class_stats(character) -> void:
-	if not character:
-		return
-		
-	var char_class = _get_character_property(character, "character_class", 0)
-	var stats = _get_character_property(character, "stats", {}).duplicate()
+	var timestamp = Time.get_unix_time_from_system()
+	var random_suffix = randi() % (1 << 16)
 	
-	# Set default stats based on class
-	match char_class:
-		GameEnums.CharacterClass.SOLDIER:
-			stats[GameEnums.CharacterStat.COMBAT] = 3
-			stats[GameEnums.CharacterStat.TOUGHNESS] = 2
-		GameEnums.CharacterClass.MEDIC:
-			stats[GameEnums.CharacterStat.MEDICAL] = 3
-			stats[GameEnums.CharacterStat.REACTIONS] = 2
-		# Add other classes as needed
+	return "%s_%d_%d" % [char_name, timestamp, random_suffix]
+
+# Roll a random skill for advancement
+func _roll_random_skill(character) -> String:
+	var possible_skills = [
+		"Combat", "Tech", "Science", "Leadership",
+		"Reactions", "Savvy", "Tactics", "Pilot"
+	]
 	
-	_set_character_property(character, "stats", stats)
+	var existing_skills = _get_character_property(character, "skills", [])
+	var available_skills = []
+	
+	for skill in possible_skills:
+		if not skill in existing_skills:
+			available_skills.append(skill)
+	
+	if available_skills.is_empty():
+		return ""
+	
+	return available_skills[randi() % available_skills.size()]

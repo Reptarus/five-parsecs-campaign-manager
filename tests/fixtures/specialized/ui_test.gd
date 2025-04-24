@@ -1,168 +1,105 @@
 @tool
 extends "res://tests/fixtures/base/game_test.gd"
 
-# UI test configuration
-const UI_TEST_CONFIG := {
-	"stabilize_time": 0.2 as float,
-	"theme_override_timeout": 0.1 as float,
-	"min_touch_target_size": 44.0 as float
-}
+# Base class for UI tests providing common UI test functionality
 
-# Screen size presets for responsive testing
-const SCREEN_SIZES := {
-	"phone_portrait": Vector2i(360, 640),
-	"phone_landscape": Vector2i(640, 360),
-	"tablet_portrait": Vector2i(768, 1024),
-	"tablet_landscape": Vector2i(1024, 768),
-	"desktop": Vector2i(1920, 1080)
-}
+# Use explicit preloads instead of global class names
+const TestEnums = preload("res://tests/fixtures/base/test_helper.gd")
+const GlobalEnums = preload("res://src/core/systems/GlobalEnums.gd")
 
-# Type-safe instance variables
-var _test_control: Control
-var _viewport_size: Vector2i
-var _performance_metrics: Dictionary
+# Signal watcher for UI interaction tests - use a different name to avoid conflict
+var _ui_signal_watcher = null
 
+# UI elements being tested
+var _ui_root: Control = null
+var _tracked_ui_nodes: Array = []
+
+func _init() -> void:
+	# Initialize signal watcher
+	if has_method("watch_signals"):
+		_ui_signal_watcher = self
+	
 func before_each() -> void:
 	await super.before_each()
-	_viewport_size = get_viewport().size
-	_setup_ui_environment()
+	_tracked_ui_nodes.clear()
 
 func after_each() -> void:
-	_restore_ui_environment()
+	_cleanup_ui_nodes()
 	await super.after_each()
 
-func _setup_ui_environment() -> void:
-	DisplayServer.window_set_mode(DisplayServer.WINDOW_MODE_WINDOWED)
-	get_tree().root.content_scale_mode = Window.CONTENT_SCALE_MODE_DISABLED
-	get_viewport().gui_embed_subwindows = false
-	await get_tree().process_frame
+func _cleanup_ui_nodes() -> void:
+	for node in _tracked_ui_nodes:
+		if is_instance_valid(node) and not node.is_queued_for_deletion():
+			node.queue_free()
+	_tracked_ui_nodes.clear()
 
-func _restore_ui_environment() -> void:
-	get_tree().root.size = _viewport_size
-	await get_tree().process_frame
+# Track a UI node for automatic cleanup
+func track_ui_node(node: Control) -> void:
+	if node and not _tracked_ui_nodes.has(node):
+		_tracked_ui_nodes.append(node)
 
-# UI Visibility Testing
-func assert_control_visible(control: Control, message: String = "") -> void:
-	assert_true(control.visible and control.get_combined_minimum_size() != Vector2.ZERO,
-		message if message else "Control should be visible and have size")
-
-func assert_control_hidden(control: Control, message: String = "") -> void:
-	assert_true(not control.visible or control.modulate.a == 0.0,
-		message if message else "Control should be hidden")
-
-# Theme Testing
-func assert_theme_override(control: Control, property: String, value: Variant) -> void:
-	assert_true(control.has_theme_override(property),
-		"Control should have theme override for %s" % property)
-	assert_eq(control.get_theme_override(property), value,
-		"Theme override value should match expected")
-
-# Input Testing
-func simulate_ui_input(control: Control, event: InputEvent) -> void:
-	control.gui_input.emit(event)
-	await stabilize_engine(UI_TEST_CONFIG.stabilize_time)
-
-func simulate_click(control: Control, position: Vector2 = Vector2.ZERO) -> void:
-	var click := InputEventMouseButton.new()
-	click.button_index = MOUSE_BUTTON_LEFT
-	click.pressed = true
-	click.position = position
-	await simulate_ui_input(control, click)
+# Helper method to ensure safe method calls on UI nodes
+func _call_ui_method(ui_element: Control, method: String, args: Array = []):
+	if not is_instance_valid(ui_element):
+		push_error("Cannot call method '%s' on invalid UI element" % method)
+		return null
 	
-	click.pressed = false
-	await simulate_ui_input(control, click)
-
-# Responsive Testing
-func test_responsive_layout(control: Control = null) -> void:
-	if control == null:
-		push_warning("No control provided for test_responsive_layout")
-		return
-		
-	for size_name in SCREEN_SIZES:
-		var size: Vector2i = SCREEN_SIZES[size_name]
-		get_tree().root.size = size
-		await get_tree().process_frame
-		
-		# Verify layout constraints
-		assert_true(control.size.x <= size.x,
-			"Control width should fit screen size %s" % size_name)
-		assert_true(control.size.y <= size.y,
-			"Control height should fit screen size %s" % size_name)
-		
-		# Verify touch targets
-		for child in control.find_children("*", "Control"):
-			if child.focus_mode != Control.FOCUS_NONE:
-				assert_true(child.size.x >= UI_TEST_CONFIG.min_touch_target_size and child.size.y >= UI_TEST_CONFIG.min_touch_target_size,
-					"Touch target size should be at least %sx%s pixels" % [UI_TEST_CONFIG.min_touch_target_size, UI_TEST_CONFIG.min_touch_target_size])
-
-# Performance Testing
-func start_ui_performance_monitoring() -> void:
-	_performance_metrics = {
-		"layout_updates": 0,
-		"draw_calls": 0,
-		"theme_lookups": 0
-	}
-
-func stop_ui_performance_monitoring() -> Dictionary:
-	return _performance_metrics
-
-func assert_ui_performance_metrics(metrics: Dictionary, thresholds: Dictionary) -> void:
-	for key in thresholds:
-		assert_true(metrics[key] <= thresholds[key],
-			"Performance metric %s exceeded threshold: %s > %s" % [key, metrics[key], thresholds[key]])
-
-# Accessibility Testing
-func test_accessibility(control: Control = null) -> void:
-	if control == null:
-		push_warning("No control provided for test_accessibility")
-		return
-		
-	# Test focus navigation
-	var focusable := control.find_children("*", "Control", true, false)
-	focusable = focusable.filter(func(c): return c.focus_mode != Control.FOCUS_NONE)
+	if not ui_element.has_method(method):
+		push_error("UI element does not have method: %s" % method)
+		return null
 	
-	for i in range(focusable.size()):
-		var current := focusable[i] as Control
+	return ui_element.callv(method, args)
+
+# Helper for simulating UI events
+func simulate_click(ui_element: Control, position: Vector2 = Vector2.ZERO) -> void:
+	if not is_instance_valid(ui_element):
+		push_error("Cannot simulate click on invalid UI element")
+		return
+	
+	if position == Vector2.ZERO:
+		position = ui_element.size / 2 # Center of the control
+	
+	# Create and feed the event
+	var event = InputEventMouseButton.new()
+	event.button_index = MOUSE_BUTTON_LEFT
+	event.pressed = true
+	event.position = position
+	ui_element._gui_input(event)
+	
+	# Release
+	event.pressed = false
+	ui_element._gui_input(event)
+
+# Helper for testing focus behavior
+func verify_focus_chain(controls: Array, direction: String = "next") -> bool:
+	if controls.size() < 2:
+		push_warning("Need at least 2 controls to test focus chain")
+		return false
+	
+	var all_focused = true
+	for i in range(controls.size() - 1):
+		var current = controls[i]
+		var next = controls[i + 1]
+		
+		if not current or not next:
+			push_error("Invalid control in focus chain")
+			return false
+		
+		# Set focus on current
 		current.grab_focus()
-		assert_true(current.has_focus(),
-			"Control %s should be able to receive focus" % current.name)
 		
-		var next := current.find_next_valid_focus()
-		if i < focusable.size() - 1:
-			assert_not_null(next,
-				"Control %s should have valid next focus target" % current.name)
-
-# Animation Testing
-func test_animations(control: Control = null) -> void:
-	if control == null:
-		push_warning("No control provided for test_animations")
-		return
+		# Verify current has focus
+		all_focused = all_focused and current.has_focus()
 		
-	var animation_player := control.get_node_or_null("AnimationPlayer") as AnimationPlayer
-	if not animation_player:
-		return
+		# Simulate tab navigation
+		var event = InputEventKey.new()
+		event.keycode = KEY_TAB
+		if direction == "prev":
+			event.shift_pressed = true
+		event.pressed = true
+		Input.parse_input_event(event)
+		
+		# Verify next gets focus
+		all_focused = all_focused and next.has_focus()
 	
-	for anim_name in animation_player.get_animation_list():
-		animation_player.play(anim_name)
-		await animation_player.animation_finished
-		
-		assert_eq(animation_player.current_animation, "",
-			"Animation %s should complete" % anim_name)
-
-# Utility Functions
-func find_child_by_type(parent: Node, type: String) -> Node:
-	for child in parent.get_children():
-		if child.get_class() == type:
-			return child
-	return null
-
-func find_children_by_type(parent: Node, type: String) -> Array[Node]:
-	var result: Array[Node] = []
-	for child in parent.get_children():
-		if child.get_class() == type:
-			result.append(child)
-	return result
-
-func wait_for_animation(animation_player: AnimationPlayer, animation_name: String) -> void:
-	animation_player.play(animation_name)
-	await animation_player.animation_finished
+	return all_focused

@@ -24,7 +24,7 @@ const CARGO_TYPE_LUXURY = 6
 const CARGO_TYPE_CONTRABAND = 7
 
 func _init() -> void:
-	super()
+	super ()
 	name = "Cargo Hold"
 	description = "Standard cargo storage"
 	cost = 200
@@ -35,7 +35,7 @@ func _init() -> void:
 	current_cargo = {}
 	
 func _apply_upgrade_effects() -> void:
-	super()
+	super ()
 	storage_capacity += 25
 	organization_level += 0.1
 
@@ -95,6 +95,10 @@ func add_cargo_type(cargo_type: int) -> void:
 	if not cargo_type in cargo_types:
 		cargo_types.append(cargo_type)
 
+# Wrapper function for applying damage to avoid confusion with damage property
+func apply_damage_wrapper(amount: float) -> float:
+	return apply_damage(amount)
+
 func check_cargo_spoilage() -> Array:
 	var spoiled_items = []
 	
@@ -114,7 +118,7 @@ func check_cargo_spoilage() -> Array:
 			if randf() < 0.03: # 3% chance per check
 				spoiled_items.append(item)
 				# Hazardous leaks might damage the ship
-				damage(10)
+				apply_damage_wrapper(10)
 	
 	# Remove spoiled items from cargo
 	for item in spoiled_items:
@@ -135,7 +139,7 @@ func check_contraband_detection(security_level: float) -> Array:
 	return detected_items
 
 func serialize() -> Dictionary:
-	var data = super()
+	var data = super ()
 	data["storage_capacity"] = storage_capacity
 	data["current_cargo"] = current_cargo
 	data["has_refrigeration"] = has_refrigeration

@@ -51,7 +51,8 @@ var default_options = {
 
 
 var options = default_options.duplicate()
-
+var logger = GutUtils.get_logger()
+var EditorGlobals = load("res://addons/gut/gui/editor_globals.gd")
 
 func _null_copy(h):
 	var new_hash = {}
@@ -61,18 +62,19 @@ func _null_copy(h):
 
 
 func _load_options_from_config_file(file_path, into):
-	# SHORTCIRCUIT
-	if(!FileAccess.file_exists(file_path)):
-		if(file_path != 'res://.gutconfig.json'):
-			print('ERROR:  Config File "', file_path, '" does not exist.')
+	if (!FileAccess.file_exists(file_path)):
+		# Default files are ok to be missing.  Maybe this is too deep a place
+		# to implement this, but here it is.
+		if (file_path != 'res://.gutconfig.json' and file_path != EditorGlobals.editor_run_gut_config_path):
+			logger.error(str('Config File "', file_path, '" does not exist.'))
 			return -1
 		else:
 			return 1
 
 	var f = FileAccess.open(file_path, FileAccess.READ)
-	if(f == null):
+	if (f == null):
 		var result = FileAccess.get_open_error()
-		push_error(str("Could not load data ", file_path, ' ', result))
+		logger.error(str("Could not load data ", file_path, ' ', result))
 		return result
 
 	var json = f.get_as_text()
@@ -82,8 +84,8 @@ func _load_options_from_config_file(file_path, into):
 	test_json_conv.parse(json)
 	var results = test_json_conv.get_data()
 	# SHORTCIRCUIT
-	if(results == null):
-		print("\n\n",'!! ERROR parsing file:  ', file_path)
+	if (results == null):
+		logger.error(str("Could not parse file:  ", file_path))
 		return -1
 
 	# Get all the options out of the config file using the option name.  The
@@ -94,9 +96,9 @@ func _load_options_from_config_file(file_path, into):
 
 func _load_dict_into(source, dest):
 	for key in dest:
-		if(source.has(key)):
-			if(source[key] != null):
-				if(typeof(source[key]) == TYPE_DICTIONARY):
+		if (source.has(key)):
+			if (source[key] != null):
+				if (typeof(source[key]) == TYPE_DICTIONARY):
 					_load_dict_into(source[key], dest[key])
 				else:
 					dest[key] = source[key]
@@ -107,7 +109,7 @@ func _load_dict_into(source, dest):
 func _apply_options(opts, gut):
 	gut.include_subdirectories = opts.include_subdirs
 
-	if(opts.inner_class != ''):
+	if (opts.inner_class != ''):
 		gut.inner_class_name = opts.inner_class
 	gut.log_level = opts.log_level
 	gut.ignore_pause_before_teardown = opts.ignore_pause
@@ -145,11 +147,11 @@ func write_options(path):
 
 	var f = FileAccess.open(path, FileAccess.WRITE)
 	var result = FileAccess.get_open_error()
-	if(f != null):
+	if (f != null):
 		f.store_string(content)
 		f = null # closes file
 	else:
-		print('ERROR:  could not open file ', path, ' ', result)
+		logger.error(str("Could not open file ", path, ' ', result))
 	return result
 
 
@@ -174,8 +176,6 @@ func load_options_no_defaults(path):
 
 func apply_options(gut):
 	_apply_options(options, gut)
-
-
 
 
 # ##############################################################################

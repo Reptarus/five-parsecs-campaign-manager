@@ -7,6 +7,9 @@ extends "res://src/ui/components/base/CampaignResponsiveLayout.gd"
 @onready var notes_edit := $MarginContainer/HBoxContainer/MainContent/NotesEdit
 
 const PORTRAIT_LIST_HEIGHT_RATIO := 0.4 # Crew list takes 40% in portrait mode
+const LogbookClass := "res://src/ui/components/logbook/logbook.gd" # Class reference as string path
+
+# Use parent's ThisClass for parent class references, use LogbookClass for self-references
 
 func _ready() -> void:
     super._ready()

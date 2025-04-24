@@ -299,7 +299,9 @@ func validate() -> Dictionary:
 	# Handle custom mission validation if applicable
 	if is_custom_mission:
 		var custom_errors = apply_custom_validation_rules()
-		errors.append_array(custom_errors)
+		# Safely add each error individually for type safety
+		for error in custom_errors:
+			errors.append(error)
 	
 	# Emit validation failed signal if there are errors
 	if not errors.is_empty():
@@ -354,7 +356,10 @@ func calculate_rewards() -> Dictionary:
 				"reputation":
 					total_reputation = custom_rewards[reward_type]
 				"items":
-					bonus_items.append_array(custom_rewards[reward_type])
+					# Safely add each item individually
+					if custom_rewards[reward_type] is Array:
+						for item in custom_rewards[reward_type]:
+							bonus_items.append(item)
 	
 	var rewards := {
 		"credits": total_credits,
@@ -518,13 +523,34 @@ func deserialize(data: Dictionary) -> void:
 	required_reputation = data.get("required_reputation", 0)
 	risk_level = data.get("risk_level", 1)
 	enemy_count = data.get("enemy_count", 0)
-	enemy_types = data.get("enemy_types", [])
+	
+	# Fix type mismatch by converting the untyped Array to Array[int]
+	var raw_types = data.get("enemy_types", [])
+	enemy_types.clear()
+	for type in raw_types:
+		if type is int:
+			enemy_types.append(type)
+	
 	enemy_level = data.get("enemy_level", 1)
 	has_boss = data.get("has_boss", false)
 	boss_type = data.get("boss_type", GameEnums.EnemyType.NONE)
-	objectives = data.get("objectives", [])
+	
+	# Fix for objectives which is typed as Array[Dictionary]
+	var raw_objectives = data.get("objectives", [])
+	objectives.clear()
+	for obj in raw_objectives:
+		if obj is Dictionary:
+			objectives.append(obj)
+	
 	primary_objective = data.get("primary_objective", GameEnums.MissionObjective.NONE)
-	secondary_objectives = data.get("secondary_objectives", [])
+	
+	# Similarly fix for secondary_objectives which is likely typed Array[int]
+	var raw_secondary = data.get("secondary_objectives", [])
+	secondary_objectives.clear()
+	for objective in raw_secondary:
+		if objective is int:
+			secondary_objectives.append(objective)
+	
 	reward_credits = data.get("reward_credits", 0)
 	reward_reputation = data.get("reward_reputation", 0)
 	reward_items = data.get("reward_items", [])
@@ -535,7 +561,14 @@ func deserialize(data: Dictionary) -> void:
 	current_turn = data.get("current_turn", 0)
 	completion_percentage = data.get("completion_percentage", 0.0)
 	required_crew_size = data.get("required_crew_size", 0)
-	required_equipment = data.get("required_equipment", [])
+	
+	# Fix for required_equipment which is typed as Array[String]
+	var raw_equipment = data.get("required_equipment", [])
+	required_equipment.clear()
+	for equip in raw_equipment:
+		if equip is String:
+			required_equipment.append(equip)
+	
 	required_resources = data.get("required_resources", {})
 	location_type = data.get("location_type", GameEnums.LocationType.NONE)
 	terrain_type = data.get("terrain_type", GameEnums.PlanetEnvironment.NONE)

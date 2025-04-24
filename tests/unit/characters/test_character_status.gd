@@ -9,7 +9,7 @@ extends "res://tests/fixtures/base/game_test.gd"
 ## It ensures that characters can have status effects applied and removed properly.
 
 # Use explicit preloads instead of global class names - fixed path
-const CharacterManagerScript = preload("res://src/core/character/Management/CharacterManager.gd")
+const CharacterManagerScript = preload("res://src/core/character/management/CharacterManager.gd")
 const GameEnumsScript = preload("res://src/core/systems/GlobalEnums.gd")
 const CharacterTestAdapter = preload("res://tests/fixtures/helpers/character_test_adapter.gd")
 

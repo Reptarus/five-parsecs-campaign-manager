@@ -1,6 +1,6 @@
 {
-    "godot.editorPath": "c:\\Users\\elija\\Desktop\\GoDot\\Godot_v4.3-stable_win64.exe\\Godot_v4.3-stable_win64.exe",
-    "godotTools.editorPath.godot4": "c:\\Users\\elija\\Desktop\\GoDot\\Godot_v4.3-stable_win64.exe\\Godot_v4.3-stable_win64.exe",
+    "godot.editorPath": "C:\\Users\\elija\\Desktop\\GoDot\\Godot_v4.4-stable_mono_win64\\Godot_v4.4-stable_mono_win64.exe",
+    "godotTools.editorPath.godot4": "C:\\Users\\elija\\Desktop\\GoDot\\Godot_v4.4-stable_mono_win64\\Godot_v4.4-stable_mono_win64.exe",
     "godot.editor.port": 6007,
     "godot.editor.host": "127.0.0.1",
     "godot.editor.showOutputOnStart": true,
@@ -69,5 +69,16 @@
     "editor.formatOnType": true,
     "files.associations": {
         "*.gd": "gdscript"
+    },
+    "gut-extension.command": "${config:godot.editorPath} --path ${workspaceFolder} --script res://tests/run_from_ide.gd",
+    "gut-extension.singleTestCommand": "${config:godot.editorPath} --path ${workspaceFolder} --script res://tests/run_from_ide.gd --test",
+    "gut-extension.testFilePattern": "test_*.gd",
+    "gut-extension.testMethodPrefix": "test_",
+    "gut-extension.testFolders": [
+        "res://tests/unit",
+        "res://tests/integration"
+    ],
+    "editor.codeActionsOnSave": {
+        "source.fixAll": "explicit"
     }
 }

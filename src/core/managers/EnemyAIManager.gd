@@ -1,17 +1,18 @@
-extends Resource
+extends Node
+class_name EnemyAIManager
 
 const GameEnums = preload("res://src/core/systems/GlobalEnums.gd")
 const FiveParsecsGameState = preload("res://src/core/state/GameState.gd")
-const Enemy = preload("res://src/core/enemy/base/Enemy.gd")
+const EnemyNode = preload("res://src/core/enemy/base/EnemyNode.gd")
 const UnifiedAISystem = preload("res://src/core/systems/UnifiedAISystem.gd")
 const AIController = preload("res://src/core/systems/AIController.gd")
 const Character = preload("res://src/core/character/Base/Character.gd")
 const SaveManager = preload("res://src/core/state/SaveManager.gd")
 
 # Signals
-signal ai_decision_made(enemy_ref: Enemy, decision: Dictionary)
-signal behavior_changed(enemy_ref: Enemy, new_behavior: GameEnums.AIBehavior)
-signal action_completed(enemy_ref: Enemy, action_type: String)
+signal ai_decision_made(enemy_ref: EnemyNode, decision: Dictionary)
+signal behavior_changed(enemy_ref: EnemyNode, new_behavior: GameEnums.AIBehavior)
+signal action_completed(enemy_ref: EnemyNode, action_type: String)
 
 # Constants for behavior weights
 const BEHAVIOR_WEIGHTS = {
@@ -23,36 +24,49 @@ const BEHAVIOR_WEIGHTS = {
 }
 
 # AI State
-var current_enemy: Enemy
-var active_enemies: Array[Enemy] = []
+var current_enemy: EnemyNode
+var active_enemies: Array[EnemyNode] = []
 var behavior_overrides: Dictionary = {}
 var tactical_memory: Dictionary = {}
 
 func _init() -> void:
 	pass
 
+# Initialization method for test compatibility
+func initialize(battlefield_manager = null, combat_manager = null) -> void:
+	# Store references to the managers
+	if battlefield_manager:
+		set_meta("battlefield_manager", battlefield_manager)
+	
+	if combat_manager:
+		set_meta("combat_manager", combat_manager)
+		
+	# Initialize internal systems if needed
+	for enemy in active_enemies:
+		_initialize_tactical_memory(enemy)
+
 # Enemy Management
-func register_enemy(enemy: Enemy) -> void:
+func register_enemy(enemy: EnemyNode) -> void:
 	if not enemy in active_enemies:
 		active_enemies.append(enemy)
 		_initialize_tactical_memory(enemy)
 
-func unregister_enemy(enemy: Enemy) -> void:
+func unregister_enemy(enemy: EnemyNode) -> void:
 	active_enemies.erase(enemy)
 	tactical_memory.erase(enemy)
 
-func set_behavior_override(enemy: Enemy, behavior: GameEnums.AIBehavior) -> void:
+func set_behavior_override(enemy: EnemyNode, behavior: GameEnums.AIBehavior) -> void:
 	behavior_overrides[enemy] = behavior
 	behavior_changed.emit(enemy, behavior)
 
-func clear_behavior_override(enemy: Enemy) -> void:
+func clear_behavior_override(enemy: EnemyNode) -> void:
 	behavior_overrides.erase(enemy)
 
-func get_current_behavior(enemy: Enemy) -> GameEnums.AIBehavior:
+func get_current_behavior(enemy: EnemyNode) -> GameEnums.AIBehavior:
 	return behavior_overrides.get(enemy, enemy.behavior)
 
 # Decision Making
-func make_decision(enemy: Enemy) -> Dictionary:
+func make_decision(enemy: EnemyNode) -> Dictionary:
 	current_enemy = enemy
 	var options = []
 	
@@ -89,7 +103,7 @@ func make_decision(enemy: Enemy) -> Dictionary:
 	return options[0]
 
 # Helper Functions
-func _initialize_tactical_memory(enemy: Enemy) -> void:
+func _initialize_tactical_memory(enemy: EnemyNode) -> void:
 	tactical_memory[enemy] = {
 		"last_position": enemy.global_position,
 		"last_target": null,
@@ -97,25 +111,25 @@ func _initialize_tactical_memory(enemy: Enemy) -> void:
 		"successful_hits": 0
 	}
 
-func _can_move(enemy: Enemy) -> bool:
+func _can_move(enemy: EnemyNode) -> bool:
 	return enemy.get_movement_range() > 0
 
-func _can_attack(enemy: Enemy) -> bool:
+func _can_attack(enemy: EnemyNode) -> bool:
 	return enemy.get_weapon() != null
 
-func _should_seek_cover(enemy: Enemy) -> bool:
+func _should_seek_cover(enemy: EnemyNode) -> bool:
 	var memory = tactical_memory.get(enemy, {})
 	return memory.get("damage_taken", 0) > 0
 
-func _get_optimal_position(enemy: Enemy) -> Vector2:
+func _get_optimal_position(enemy: EnemyNode) -> Vector2:
 	# Implementation depends on your game's spatial system
 	return enemy.global_position
 
-func _get_best_target(enemy: Enemy) -> Node:
+func _get_best_target(enemy: EnemyNode) -> Node:
 	# Implementation depends on your target selection system
 	return null
 
-func _find_nearest_cover(enemy: Enemy) -> Vector2:
+func _find_nearest_cover(enemy: EnemyNode) -> Vector2:
 	# Implementation depends on your cover system
 	return enemy.global_position
 

@@ -1,28 +1,27 @@
 ## Campaign UI Test Suite
 ## Tests the UI components and interactions for the campaign system
 @tool
-extends "res://tests/fixtures/specialized/ui_test.gd"
-
-# Type-safe script references
-const CampaignUI := preload("res://src/scenes/campaign/CampaignUI.gd")
+extends "res://tests/fixtures/base/game_test.gd"
 
 # Type-safe instance variables
 var _campaign_ui: Node = null
+# _game_state is already defined in parent class
 
 # Test Lifecycle Methods
 func before_each() -> void:
 	await super.before_each()
 	
-	# Initialize campaign UI
-	if not CampaignUI:
-		push_error("CampaignUI script is null")
-		return
-		
-	_campaign_ui = CampaignUI.new()
-	if not _campaign_ui:
-		push_error("Failed to create campaign UI")
-		return
-		
+	# Create and initialize the UI
+	_campaign_ui = Node.new()
+	_campaign_ui.name = "CampaignUI"
+	add_child_autofree(_campaign_ui)
+	
+	# Create game state if not already created
+	if not _game_state:
+		_game_state = Node.new()
+		_game_state.name = "GameState"
+		add_child_autofree(_game_state)
+	
 	# Initialize UI with direct method call instead of using TypeSafeMixin
 	if _campaign_ui.has_method("initialize"):
 		_campaign_ui.initialize(_game_state)
@@ -30,13 +29,13 @@ func before_each() -> void:
 		push_error("Campaign UI doesn't have initialize method")
 		return
 		
-	add_child_autofree(_campaign_ui)
 	track_test_node(_campaign_ui)
 	
 	await stabilize_engine()
 
 func after_each() -> void:
 	_campaign_ui = null
+	_game_state = null
 	await super.after_each()
 
 # UI Initialization Tests

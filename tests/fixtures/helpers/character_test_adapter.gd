@@ -4,7 +4,7 @@ extends RefCounted
 # Helper functions for character testing with proper type safety
 
 # Use explicit preloads instead of global class names - fixed path
-const CharacterManagerScript = preload("res://src/core/character/Management/CharacterManager.gd")
+const CharacterManagerScript = preload("res://src/core/character/management/CharacterManager.gd")
 
 # Create a test character with proper types
 static func create_test_character() -> Dictionary:

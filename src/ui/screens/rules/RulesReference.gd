@@ -2,6 +2,9 @@
 extends "res://src/ui/components/base/CampaignResponsiveLayout.gd"
 
 const PORTRAIT_LIST_HEIGHT_RATIO := 0.4 # List takes 40% in portrait mode
+const RulesReferenceClass := "res://src/ui/screens/rules/RulesReference.gd" # Class reference as string path
+
+# Use parent's ThisClass for parent class references, use RulesReferenceClass for self-references
 
 var rules_data = {}
 var bookmarks = []

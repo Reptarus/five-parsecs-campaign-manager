@@ -1,5 +1,8 @@
 @tool
 extends Resource
+# Important: Do NOT add class_name declaration here to avoid conflicts
+# This script should be accessed via preload/load, NOT via global class name
+# The main EnemyData class is defined in src/core/enemy/EnemyData.gd
 
 const GameEnums = preload("res://src/core/enums/GameEnums.gd")
 const GameWeapon = preload("res://src/core/systems/items/GameWeapon.gd")
@@ -299,4 +302,4 @@ func deserialize(data: Dictionary) -> void:
 		for weapon_data in data.equipped_weapons:
 			var weapon = GameWeapon.new()
 			weapon.deserialize(weapon_data)
-			equipped_weapons.append(weapon)                                                                   
+			equipped_weapons.append(weapon)

@@ -2,7 +2,7 @@
 # Use explicit preloads instead of global class names
 extends Control
 
-const Self = preload("res://src/ui/components/mission/MissionSummaryPanel.gd")
+const Self := "res://src/ui/components/mission/MissionSummaryPanel.gd" # Use string path instead of preload
 
 signal continue_pressed
 

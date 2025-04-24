@@ -44,9 +44,12 @@ func initialize_from_id(id: String) -> bool:
 		
 	var trait_data = _data_manager.get_world_trait(id)
 	if trait_data.is_empty():
-		push_error("GameWorldTrait: Could not find trait with ID '%s'" % id)
-		return false
-		
+		# Use fallback defaults if trait not found in data manager
+		trait_data = _get_default_trait_data(id)
+		if trait_data.is_empty():
+			push_error("GameWorldTrait: Could not find trait with ID '%s'" % id)
+			return false
+			
 	return initialize_from_data(trait_data)
 
 ## Initialize from data dictionary
@@ -121,3 +124,73 @@ static func deserialize(data: Dictionary) -> Resource:
 	var world_trait = GameWorldTraitSelf.new()
 	world_trait.initialize_from_data(data)
 	return world_trait
+
+## Provide fallback data for common world traits
+func _get_default_trait_data(id: String) -> Dictionary:
+	var defaults = {
+		"frontier_world": {
+			"id": "frontier_world",
+			"name": "Frontier World",
+			"description": "A remote settlement on the edge of known space.",
+			"effects": ["reduced_law_enforcement", "increased_resources"],
+			"resource_modifiers": {"1": 1.5, "3": 1.2} # Increased basic resources
+		},
+		"corporate_controlled": {
+			"id": "corporate_controlled",
+			"name": "Corporate Controlled",
+			"description": "A world under the strict control of a mega-corporation.",
+			"effects": ["increased_security", "restricted_markets"],
+			"resource_modifiers": {"4": 1.3} # Increased technology
+		},
+		"trade_center": {
+			"id": "trade_center",
+			"name": "Trade Center",
+			"description": "A bustling hub of commerce and trade.",
+			"effects": ["increased_market_activity", "diverse_goods"],
+			"resource_modifiers": {"0": 1.5} # Increased credits
+		},
+		"pirate_haven": {
+			"id": "pirate_haven",
+			"name": "Pirate Haven",
+			"description": "A lawless den of smugglers and outlaws.",
+			"effects": ["black_market", "high_risk"],
+			"resource_modifiers": {"5": 1.4} # Increased illegal goods
+		},
+		"free_port": {
+			"id": "free_port",
+			"name": "Free Port",
+			"description": "An independent trading post free from faction control.",
+			"effects": ["reduced_taxes", "neutral_territory"],
+			"resource_modifiers": {"0": 1.2, "1": 1.1} # Increased credits and fuel
+		},
+		"agricultural_world": {
+			"id": "agricultural_world",
+			"name": "Agricultural World",
+			"description": "A world dedicated to food production.",
+			"effects": ["abundant_supplies", "rural_population"],
+			"resource_modifiers": {"2": 2.0} # Doubled food resources
+		},
+		"industrial_hub": {
+			"id": "industrial_hub",
+			"name": "Industrial Hub",
+			"description": "A center of manufacturing and production.",
+			"effects": ["pollution", "factory_districts"],
+			"resource_modifiers": {"3": 1.5, "4": 1.2} # Increased materials and tech
+		},
+		"mining_world": {
+			"id": "mining_world",
+			"name": "Mining World",
+			"description": "A world rich in mineral deposits.",
+			"effects": ["resource_boom", "industrial_accidents"],
+			"resource_modifiers": {"3": 2.0} # Doubled minerals
+		},
+		"urban_world": {
+			"id": "urban_world",
+			"name": "Urban World",
+			"description": "A densely populated world covered in sprawling cities.",
+			"effects": ["high_population", "faction_presence"],
+			"resource_modifiers": {"4": 1.3, "5": 1.2} # Increased tech and medical
+		}
+	}
+	
+	return defaults.get(id, {})

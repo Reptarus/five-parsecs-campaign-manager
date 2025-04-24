@@ -3,7 +3,7 @@
 # Use explicit preloads instead of global class names
 extends Container
 
-const Self = preload("res://src/ui/components/base/BaseContainer.gd")
+const Self := "res://src/ui/components/base/BaseContainer.gd" # Use string path instead of preload
 
 ## Base container class for UI layout management
 ## Provides horizontal and vertical layout capabilities with spacing

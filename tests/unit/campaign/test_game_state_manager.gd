@@ -12,6 +12,7 @@ const MAX_REPUTATION := 100
 # Test variables
 var game_state_manager: GameStateManager = null
 var _test_game_state = null
+var _tracked_resources: Array[Resource] = []
 
 # Helper methods
 func setup_basic_game_state() -> void:
@@ -30,14 +31,50 @@ func after_all() -> void:
 func before_each() -> void:
 	await super.before_each()
 	
-	# Initialize game state first
+	# Initialize game state first with proper type checking
 	_test_game_state = create_test_game_state()
+	
+	if not _test_game_state:
+		push_error("Failed to create test game state")
+		pending("Test game state could not be created")
+		return
+		
+	# Verify test game state is valid
+	if not (_test_game_state is Node):
+		push_error("Test game state is not a Node")
+		pending("Test game state has incorrect type")
+		return
+		
 	assert_valid_game_state(_test_game_state)
 	
-	# Initialize game state manager
+	# Initialize game state manager with type safety
+	if not GameStateManager:
+		push_error("GameStateManager script not found")
+		pending("GameStateManager script is null")
+		return
+		
 	game_state_manager = GameStateManager.new()
+	
+	if not game_state_manager:
+		push_error("Failed to create game state manager")
+		pending("Game state manager could not be created")
+		return
+		
+	if not (game_state_manager is Node):
+		push_error("Game state manager is not a Node")
+		pending("Game state manager has incorrect type")
+		return
+		
 	add_child_autofree(game_state_manager)
 	track_test_node(game_state_manager)
+	
+	# Verify the game state manager has required methods
+	var required_methods = ["set_game_state", "set_campaign_phase", "get_campaign_phase"]
+	for method in required_methods:
+		if not game_state_manager.has_method(method):
+			push_error("Game state manager missing required method: " + method)
+			pending("Game state manager missing required method: " + method)
+			return
 	
 	# Set up initial state
 	game_state_manager.set_game_state(_test_game_state)

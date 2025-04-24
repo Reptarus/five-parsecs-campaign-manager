@@ -2,7 +2,7 @@
 # Use explicit preloads instead of global class names
 extends Control
 
-const Self = preload("res://src/ui/components/mission/EnemyInfoPanel.gd")
+const Self := "res://src/ui/components/mission/EnemyInfoPanel.gd" # Use string path instead of preload
 
 @onready var enemy_list := $EnemyList
 @onready var threat_level := $ThreatLevel

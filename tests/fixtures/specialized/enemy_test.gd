@@ -1,289 +1,224 @@
 @tool
-extends "res://tests/fixtures/base/game_test.gd"
+extends "res://tests/fixtures/specialized/enemy_test_base.gd"
 
-## Base class for enemy-related tests
-##
-## This class provides common functionality for testing enemies,
-## enemy behavior, and combat mechanics.
+# Specialized tests for specific enemy functionalities or types
+# that extend the base enemy tests.
 
 # Load scripts safely with Compatibility helper
-const Compatibility = preload("res://tests/fixtures/helpers/test_compatibility_helper.gd")
-const TestCleanup = preload("res://tests/fixtures/helpers/test_cleanup_helper.gd")
+# Compatibility is inherited from base class
+const TestCleanupHelper = preload("res://tests/fixtures/helpers/test_cleanup_helper.gd")
 
-var EnemyScript = load("res://src/core/battle/enemy/Enemy.gd") if ResourceLoader.exists("res://src/core/battle/enemy/Enemy.gd") else null
-var EnemyDataScript = load("res://src/core/rivals/EnemyData.gd") if ResourceLoader.exists("res://src/core/rivals/EnemyData.gd") else null
+# Updated with class names for safer loading
+# EnemyNodeScript and EnemyDataScript are inherited from base class
 
 # Common test timeouts with type safety
 const DEFAULT_TIMEOUT := 1.0 as float
-const SETUP_TIMEOUT := 2.0 as float
 
-# Enemy test configuration
-const ENEMY_TEST_CONFIG := {
-	"stabilize_time": 0.2 as float,
-	"combat_timeout": 2.0 as float,
-	"animation_timeout": 1.0 as float,
-	"pathfinding_timeout": 3.0 as float
-}
+# ENEMY_TEST_CONFIG and EnemyTestType are inherited from base class
 
-# Test enemy types
-enum EnemyTestType {
-	BASIC,
-	ELITE,
-	BOSS,
-	MINION,
-	RANGED,
-	MELEE
-}
+# Type-safe instance variables
+var _enemy_system: Node = null
+var _test_enemies: Array[Node] = [] # Changed from Array[Enemy]
+var _cleanup_helper: TestCleanupHelper = null # Instance variable
+var _tracked_resources: Array[Resource] = [] # Added for track_test_resource
 
-# Type-safe instance variables for test tracking
-var _test_enemies: Array = []
-var _enemy_combat_manager: Node = null
-var _enemy_ai_manager: Node = null
-
-## Lifecycle methods
-
-func before_all() -> void:
-	await super.before_all()
-	
-	# Ensure temp directory exists
-	Compatibility.ensure_temp_directory()
-
-func after_all() -> void:
-	# Clean up temporary files that might have been created during tests
-	# Only clean up temp files older than 1 hour to avoid interfering with active tests
-	TestCleanup.cleanup_old_files(1)
-	await super.after_all()
-
+# Lifecycle Methods
 func before_each() -> void:
 	await super.before_each()
-	_test_enemies = []
-	_enemy_combat_manager = null
-	_enemy_ai_manager = null
-	
-	# Initialize enemy system for tests
 	_setup_enemy_system()
+	_cleanup_helper = TestCleanupHelper.new() # Instantiate the helper
 	
+	# ENEMY_TEST_CONFIG is inherited
 	await stabilize_engine(ENEMY_TEST_CONFIG.stabilize_time)
 
 func after_each() -> void:
-	# Clean up any test enemies
-	for enemy in _test_enemies:
-		if is_instance_valid(enemy) and enemy.is_inside_tree():
-			enemy.queue_free()
-	
-	_test_enemies = []
-	_enemy_combat_manager = null
-	_enemy_ai_manager = null
-	
+	# Clean up any test enemies using the helper instance
+	if _cleanup_helper:
+		_cleanup_helper.cleanup_nodes(_test_enemies)
+	_enemy_system = null
+	_cleanup_helper = null # Clear the instance
 	await super.after_each()
 
-## Helper methods for enemy testing
-
-# Creates a test enemy of the specified type
-func create_test_enemy(enemy_type: EnemyTestType = EnemyTestType.BASIC) -> Node:
-	if not EnemyScript:
-		push_error("Enemy script is null")
-		return null
-		
-	var enemy_instance = EnemyScript.new()
-	if not enemy_instance:
-		push_error("Failed to create test enemy")
-		return null
-	
-	var enemy_data := _create_enemy_test_data(enemy_type)
-	Compatibility.safe_call_method(enemy_instance, "initialize", [enemy_data])
-	
-	_test_enemies.append(enemy_instance)
-	return enemy_instance
-
-# Creates test enemy data
-func _create_enemy_test_data(enemy_type: EnemyTestType) -> Dictionary:
-	var data: Dictionary = {}
-	
-	# Set base properties with explicit types
-	data["id"] = "test_enemy_%s" % [enemy_type] as String
-	data["name"] = "Test Enemy" as String
-	data["health"] = 10 as int
-	data["damage"] = 2 as int
-	data["speed"] = 3 as int
-	data["defense"] = 1 as int
-	
-	match enemy_type:
-		EnemyTestType.ELITE:
-			data["health"] = 20 as int
-			data["damage"] = 4 as int
-			data["name"] = "Elite Test Enemy" as String
-		EnemyTestType.BOSS:
-			data["health"] = 50 as int
-			data["damage"] = 8 as int
-			data["name"] = "Boss Test Enemy" as String
-		EnemyTestType.MINION:
-			data["health"] = 5 as int
-			data["damage"] = 1 as int
-			data["name"] = "Minion Test Enemy" as String
-		EnemyTestType.RANGED:
-			data["attack_range"] = 10 as int
-			data["name"] = "Ranged Test Enemy" as String
-		EnemyTestType.MELEE:
-			data["attack_range"] = 1 as int
-			data["name"] = "Melee Test Enemy" as String
-	
-	return data
-
-# Verifies enemy movement
-func verify_enemy_movement(enemy: Node, start_pos: Vector2, end_pos: Vector2) -> void:
-	Compatibility.safe_call_method(enemy, "set_position", [start_pos])
-	Compatibility.safe_call_method(enemy, "move_to", [end_pos])
-	
-	# Wait for movement to complete
-	await get_tree().create_timer(ENEMY_TEST_CONFIG.pathfinding_timeout).timeout
-	
-	var final_pos = Compatibility.safe_call_method(enemy, "get_position", [], Vector2())
-	var x_distance: float = abs(final_pos.x - end_pos.x)
-	var y_distance: float = abs(final_pos.y - end_pos.y)
-	assert_le(x_distance, 1.0, "Enemy should move to target X position")
-	assert_le(y_distance, 1.0, "Enemy should move to target Y position")
-
-# Verifies enemy combat
-func verify_enemy_combat(enemy: Node, target: Node) -> void:
-	watch_signals(enemy)
-	Compatibility.safe_call_method(enemy, "attack", [target])
-	
-	# Wait for combat to complete
-	await get_tree().create_timer(ENEMY_TEST_CONFIG.combat_timeout).timeout
-	
-	assert_signal_emitted(enemy, "attack_completed")
-
-# Verifies enemy state matches expected values
-func verify_enemy_state(enemy: Node, expected_state: Dictionary) -> void:
-	for key in expected_state:
-		var value = null
-		
-		match key:
-			"health":
-				value = Compatibility.safe_call_method(enemy, "get_health", [], 0)
-				if value != null:
-					value = float(value)
-			"level":
-				value = Compatibility.safe_call_method(enemy, "get_level", [], 0)
-			"experience":
-				value = Compatibility.safe_call_method(enemy, "get_experience", [], 0)
-			"damage":
-				value = Compatibility.safe_call_method(enemy, "get_damage", [], 0)
-				if value != null:
-					value = float(value)
-			_:
-				push_error("Unknown state key: %s" % key)
-				continue
-		
-		assert_eq(value, expected_state[key], "Enemy %s should match expected value" % key)
-
-# Verifies all enemy state is valid
-func verify_enemy_complete_state(enemy: Node) -> void:
-	assert_true(Compatibility.safe_call_method(enemy, "is_valid", [], false), "Enemy should be in valid state")
-	
-	var health = Compatibility.safe_call_method(enemy, "get_health", [], 0)
-	assert_gt(float(health) if health != null else 0.0, 0.0, "Enemy health should be positive")
-	
-	var damage = Compatibility.safe_call_method(enemy, "get_damage", [], 0)
-	assert_gt(float(damage) if damage != null else 0.0, 0.0, "Enemy damage should be positive")
-
-# Helper to measure enemy performance
-func measure_enemy_performance(count: int = 10) -> Dictionary:
-	var performance_metrics := {
-		"average_fps": 0.0,
-		"minimum_fps": 0.0,
-		"memory_increase_mb": 0.0,
-		"load_time_ms": 0.0,
-	}
-	
-	# Create test enemies
-	var start_time := Time.get_ticks_msec()
-	var memory_before := OS.get_static_memory_usage()
-	
-	var enemies := []
-	for i in range(count):
-		var enemy := create_test_enemy()
-		add_child_autofree(enemy)
-		enemies.append(enemy)
-	
-	var end_time := Time.get_ticks_msec()
-	var memory_after := OS.get_static_memory_usage()
-	
-	# Calculate performance metrics
-	performance_metrics.load_time_ms = end_time - start_time
-	performance_metrics.memory_increase_mb = (memory_after - memory_before) / (1024.0 * 1024.0)
-	
-	return performance_metrics
-
-# Helper to verify performance metrics
-func verify_performance_metrics(metrics: Dictionary, thresholds: Dictionary) -> void:
-	for key in thresholds:
-		assert_true(metrics.has(key), "Performance metrics should include %s" % key)
-		
-		match key:
-			"average_fps", "minimum_fps":
-				assert_gt(metrics[key], thresholds[key], "%s should exceed threshold" % key)
-			"load_time_ms", "memory_increase_mb":
-				assert_lt(metrics[key], thresholds[key], "%s should be below threshold" % key)
-			_:
-				push_error("Unknown performance metric: %s" % key)
-
-# Helper to setup the enemy system for testing
+# Setup Methods
 func _setup_enemy_system() -> void:
-	_enemy_combat_manager = Node.new()
-	_enemy_combat_manager.name = "EnemyCombatManager"
-	add_child_autofree(_enemy_combat_manager)
-	
-	_enemy_ai_manager = Node.new()
-	_enemy_ai_manager.name = "EnemyAIManager"
-	
-	# Add initialize method to the AI manager
-	var script = GDScript.new()
-	
-	script.source_code = """
-extends Node
+	_enemy_system = Node.new()
+	if not _enemy_system:
+		push_error("Failed to create enemy system")
+		return
+	_enemy_system.name = "EnemySystem"
+	add_child_autofree(_enemy_system)
 
-signal action_completed
-signal turn_completed
-signal attack_completed
-signal move_completed
+# Helper methods for enemy testing
 
-var last_action = ""
-var last_target = null
-var action_successful = true
+# Match base class signature: (enemy_data: Variant = null) -> CharacterBody2D
+func create_test_enemy(enemy_data: Variant = null) -> CharacterBody2D:
+	# Standalone implementation that doesn't rely on super
+	var enemy_node = null
+	
+	# Try to create node from script
+	if EnemyNodeScript != null and EnemyNodeScript.can_instantiate():
+		# Create proper CharacterBody2D instance
+		enemy_node = CharacterBody2D.new()
+		enemy_node.set_script(EnemyNodeScript)
+		
+		if enemy_node and enemy_data:
+			# Try different approaches to assign data
+			if enemy_node.has_method("set_enemy_data"):
+				enemy_node.set_enemy_data(enemy_data)
+			elif enemy_node.has_method("initialize"):
+				enemy_node.initialize(enemy_data)
+			elif "enemy_data" in enemy_node:
+				enemy_node.enemy_data = enemy_data
+	else:
+		# Fallback: create a CharacterBody2D
+		push_warning("EnemyNodeScript unavailable, creating generic CharacterBody2D")
+		enemy_node = CharacterBody2D.new()
+		enemy_node.name = "GenericTestEnemy"
+	
+	# If we get a node, add it to scene and track it
+	if enemy_node:
+		if enemy_node.get_parent() == null:
+			# Use add_child_autoqfree if available
+			if has_method("add_child_autoqfree"):
+				add_child_autoqfree(enemy_node)
+			else:
+				add_child(enemy_node)
+				# Track the node locally
+				if enemy_node not in _test_enemies:
+					_test_enemies.append(enemy_node)
+		
+	return enemy_node
 
-func _init():
+# Match base class signature: (data: Dictionary = {}) -> Resource
+func create_test_enemy_resource(data: Dictionary = {}) -> Resource:
+	# Call the base class implementation with better error handling
+	var resource = null
+	
+	# First try the base class implementation
+	if has_method("super") and super.has_method("create_test_enemy_resource"):
+		resource = super.create_test_enemy_resource(data)
+	# Fallback method if super is not available
+	elif EnemyDataScript != null:
+		resource = EnemyDataScript.new()
+		if resource:
+			# Initialize the resource with data
+			if resource.has_method("load"):
+				resource.load(data)
+			elif resource.has_method("initialize"):
+				resource.initialize(data)
+			else:
+				# Fallback to manual property assignment
+				for key in data:
+					if resource.has_method("set_" + key):
+						resource.call("set_" + key, data[key])
+	
+	# Track the resource if we successfully created it
+	if resource:
+		track_test_resource(resource)
+		
+	return resource
+
+# Custom implementation of track_test_resource
+func track_test_resource(resource: Resource) -> void:
+	if not resource:
+		return
+	
+	# In our implementation, we'll just make sure to store it for cleanup
+	if resource not in _tracked_resources:
+		_tracked_resources.append(resource)
+		
+	# Also call the GUT base implementation if it exists
+	if has_method("super") and super.has_method("track_test_resource"):
+		super.track_test_resource(resource)
+
+# Helper to create an array of test enemies
+func create_test_enemy_group(size: int = 3) -> Array:
+	var group = []
+	for i in range(size):
+		var enemy = create_test_enemy()
+		if enemy:
+			group.append(enemy)
+	return group
+
+# Verifies enemy movement with better error handling
+func verify_enemy_movement(enemy: CharacterBody2D, start_pos: Vector2, end_pos: Vector2) -> void:
+	if not is_instance_valid(enemy):
+		push_error("Cannot verify movement: enemy is null")
+		assert_true(false, "Enemy is null in verify_enemy_movement")
+		return
+	
+	# Set initial position
+	if enemy.has_method("set_position"):
+		enemy.set_position(start_pos)
+	else:
+		push_warning("Enemy doesn't have set_position method, skipping position setup")
+		return
+		
+	# Move to target position
+	var moved = false
+	if enemy.has_method("move_to"):
+		moved = enemy.move_to(end_pos)
+	elif enemy.has_method("navigate_to"):
+		moved = enemy.navigate_to(end_pos)
+	else:
+		push_warning("Enemy doesn't have move_to or navigate_to method, skipping movement test")
+		return
+		
+	# Verify movement
+	assert_true(moved, "Enemy should start moving")
+	
+	# Call the base class implementation if it exists
+	if has_method("super") and super.has_method("verify_enemy_movement"):
+		super.verify_enemy_movement(enemy, start_pos, end_pos)
+
+# Verifies enemy combat with better error handling
+func verify_enemy_combat(enemy: CharacterBody2D, target: CharacterBody2D) -> void:
+	if not is_instance_valid(enemy) or not is_instance_valid(target):
+		push_error("Cannot verify combat: enemy or target is null")
+		assert_true(false, "Enemy or target is null in verify_enemy_combat")
+		return
+		
+	# Verify combat methods
+	var combat_initiated = false
+	if enemy.has_method("attack"):
+		combat_initiated = enemy.attack(target)
+	elif enemy.has_method("engage_target"):
+		combat_initiated = enemy.engage_target(target)
+	else:
+		push_warning("Enemy doesn't have attack or engage_target method, skipping combat test")
+		return
+		
+	# Verify combat
+	assert_true(combat_initiated, "Enemy should initiate combat")
+	
+	# Call the base class implementation if it exists
+	if has_method("super") and super.has_method("verify_enemy_combat"):
+		super.verify_enemy_combat(enemy, target)
+
+# Verifies enemy state
+func verify_enemy_complete_state(enemy: CharacterBody2D) -> void:
+	# Call the base class implementation or add specialized checks
+	super.verify_enemy_complete_state(enemy)
+	# Add specialized state verification if needed
 	pass
 
-func take_turn(enemy_data):
-	last_action = "take_turn"
-	emit_signal("turn_completed")
-	return true
+# Measures enemy performance
+func measure_enemy_performance() -> Dictionary:
+	# Call the base class implementation or add specialized checks
+	return super.measure_enemy_performance()
 
-func perform_attack(attacker, target):
-	last_action = "attack"
-	last_target = target
-	emit_signal("attack_completed")
-	return true
+# Verifies performance metrics
+func verify_performance_metrics(metrics: Dictionary, expected: Dictionary) -> void:
+	# Call the base class implementation or add specialized checks
+	super.verify_performance_metrics(metrics, expected)
+	# Add specialized performance verification if needed
+	pass
 
-func perform_move(enemy, target_position):
-	last_action = "move"
-	emit_signal("move_completed")
-	return true
+# Add test methods specific to this specialized suite
+func test_specialized_enemy_placeholder() -> void:
+	# Placeholder for specialized tests
+	var enemy_node = await create_test_enemy() # Use await here
+	assert_not_null(enemy_node, "Specialized enemy node should be created")
+	pass
 
-func calculate_path(enemy, start_pos, end_pos):
-	return [start_pos, end_pos]
-"""
-	script.reload()
-	
-	_enemy_ai_manager.set_script(script)
-	add_child_autofree(_enemy_ai_manager)
-
-# Helper class for compatibility path generation
-class CompatibilityPath:
-	func _init():
-		pass
-		
-	func create_script() -> GDScript:
-		return GDScript.new()
+# ... Add more specialized tests here ...

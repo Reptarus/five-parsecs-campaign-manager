@@ -9,10 +9,10 @@ const Self = preload("res://src/scenes/campaign/components/ResourceItem.gd")
 signal resource_clicked(resource_name: String, current_value: int)
 
 # Node references
-@onready var name_label: Label = $HBoxContainer/NameLabel
-@onready var value_label: Label = $HBoxContainer/ValueLabel
-@onready var trend_indicator: TextureRect = $HBoxContainer/TrendIndicator
-@onready var progress_bar: ProgressBar = $ProgressBar
+@onready var name_label: Label = $HBoxContainer/NameLabel if has_node("HBoxContainer/NameLabel") else null
+@onready var value_label: Label = $HBoxContainer/ValueLabel if has_node("HBoxContainer/ValueLabel") else null
+@onready var trend_indicator: TextureRect = $HBoxContainer/TrendIndicator if has_node("HBoxContainer/TrendIndicator") else null
+@onready var progress_bar: ProgressBar = $ProgressBar if has_node("ProgressBar") else null
 
 # Properties
 var resource_name: String = ""
@@ -22,8 +22,15 @@ var trend: int = 0
 var resource_color: Color = Color.WHITE
 
 func _ready() -> void:
+	if not is_inside_tree():
+		return
+		
 	_setup_ui()
 	_update_display()
+	
+	# Connect input event if not already connected
+	if not gui_input.is_connected(_gui_input):
+		gui_input.connect(_gui_input)
 
 func _setup_ui() -> void:
 	custom_minimum_size = Vector2(0, 40)
@@ -88,16 +95,28 @@ func setup(name: String, current: int, max_val: int, trend_val: int, color: Colo
 func _gui_input(event: InputEvent) -> void:
 	if event is InputEventMouseButton:
 		if event.button_index == MOUSE_BUTTON_LEFT and event.pressed:
-			emit_signal("resource_clicked", resource_name, current_value)
+			resource_clicked.emit(resource_name, current_value)
 
 # Animation methods
 func highlight(duration: float = 0.3) -> void:
+	if not is_inside_tree():
+		return
+		
 	var tween = create_tween()
+	if not tween:
+		return
+		
 	tween.tween_property(self, "modulate:a", 0.5, duration * 0.5)
 	tween.tween_property(self, "modulate:a", 1.0, duration * 0.5)
 
 func animate_value_change(new_value: int, duration: float = 0.5) -> void:
+	if not is_inside_tree():
+		return
+		
 	var tween = create_tween()
+	if not tween:
+		return
+		
 	tween.tween_method(
 		func(val: int):
 			current_value = val

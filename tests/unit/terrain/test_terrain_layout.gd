@@ -92,6 +92,11 @@ func _connect_signals() -> void:
 	if _signal_watcher:
 		_signal_watcher.watch_signals(_terrain_system)
 		_signal_watcher.watch_signals(_terrain_layout)
+		
+	# Connect to feature_changed signal
+	if _terrain_layout.has_signal("feature_changed"):
+		if not _terrain_layout.is_connected("feature_changed", _on_feature_changed):
+			_terrain_layout.connect("feature_changed", _on_feature_changed)
 
 # Type-safe signal handlers
 func _on_feature_changed(position: Vector2i, feature_type: int, old_feature_type: int) -> void:
@@ -266,9 +271,23 @@ func test_line_of_sight() -> void:
 		assert_true(_place_feature_safe(MID_POS, feature_type),
 			"Should place blocking feature %d" % feature_type)
 		
+		# Check that the feature was placed
+		var cell := _get_cell_safe(MID_POS)
+		assert_eq(cell.get("feature_type", -1), feature_type,
+			"Feature %d should be placed at position %s" % [feature_type, MID_POS])
+		
 		los = _terrain_layout.get_line_of_sight(START_POS, END_POS)
-		assert_true(MID_POS in los,
+		
+		# Check if the MID_POS is included in the line of sight
+		var found_mid_pos = false
+		for pos in los:
+			if pos == MID_POS:
+				found_mid_pos = true
+				break
+				
+		assert_true(found_mid_pos,
 			"Line of sight should include blocking point for feature %d" % feature_type)
+		
 		assert_true(_terrain_layout.is_line_of_sight_blocked(START_POS, END_POS),
 			"Line of sight should be blocked by feature %d" % feature_type)
 		

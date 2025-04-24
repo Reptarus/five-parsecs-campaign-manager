@@ -31,11 +31,23 @@ func before_each() -> void:
         }
     ]
     
-    # Create logbook
-    _logbook = Logbook.new()
+    # Create logbook with proper type checking
+    if not Logbook:
+        push_error("Logbook class not found")
+        pending("Test skipped - Logbook class not found")
+        return
+        
+    # Create a Container instance since Logbook extends Container
+    # (through CampaignResponsiveLayout -> ResponsiveContainer -> Container)
+    _logbook = Container.new()
+    
+    # Attach script
+    _logbook.set_script(Logbook)
+    
     if not _logbook:
         push_error("Failed to create logbook")
         return
+        
     add_child(_logbook)
     track_test_node(_logbook)
     await _logbook.ready

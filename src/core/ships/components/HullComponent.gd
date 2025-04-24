@@ -4,7 +4,7 @@ extends "res://src/core/ships/components/ShipComponent.gd"
 class_name HullComponent
 
 @export var hull_durability: int = 100
-@export var armor: int = 5
+@export var hull_armor: int = 5
 @export var shield_strength: int = 0
 @export var shield_recharge_rate: float = 0.0
 @export var has_shields: bool = false
@@ -22,14 +22,14 @@ func _init() -> void:
 func _apply_upgrade_effects() -> void:
 	super ()
 	hull_durability += 25
-	armor += 2
+	hull_armor += 2
 	if has_shields:
 		shield_strength += 10
 		shield_recharge_rate += 0.2
 	breach_resistance += 0.1
 
 func get_damage_reduction(damage_type: int = 0) -> float:
-	var reduction = armor * 0.1 * get_efficiency()
+	var reduction = hull_armor * 0.1 * get_efficiency()
 	
 	# Different damage types could have different effectiveness against armor
 	match damage_type:
@@ -47,13 +47,17 @@ func damage_hull(amount: int, damage_type: int = 0) -> int:
 	var actual_damage = max(0, amount - damage_reduction)
 	
 	# Apply damage to the ship component
-	damage(actual_damage)
+	apply_damage_wrapper(actual_damage)
 	
 	# Check for breach
 	if actual_damage > 0 and randf() > breach_resistance:
 		_trigger_hull_breach()
 	
 	return actual_damage
+
+# Wrapper function for applying damage to avoid confusion with damage property
+func apply_damage_wrapper(amount: float) -> float:
+	return apply_damage(amount)
 
 func damage_shield(amount: int) -> int:
 	if not has_shields or current_shield <= 0:
@@ -95,7 +99,7 @@ func initialize_shields() -> void:
 
 func serialize() -> Dictionary:
 	var data = super ()
-	data["armor"] = armor
+	data["hull_armor"] = hull_armor
 	data["shield_strength"] = shield_strength
 	data["shield_recharge_rate"] = shield_recharge_rate
 	data["has_shields"] = has_shields
@@ -125,7 +129,7 @@ static func create_from_data(data: Dictionary) -> HullComponent:
 	component.status_effects = base_data.status_effects
 	
 	# Hull-specific properties
-	component.armor = data.get("armor", 5)
+	component.hull_armor = data.get("hull_armor", 5)
 	component.shield_strength = data.get("shield_strength", 0)
 	component.shield_recharge_rate = data.get("shield_recharge_rate", 0.0)
 	component.has_shields = data.get("has_shields", false)
@@ -139,7 +143,7 @@ static func create_from_data(data: Dictionary) -> HullComponent:
 static func deserialize(data: Dictionary) -> Dictionary:
 	var base_data = FPCM_ShipComponent.deserialize(data)
 	base_data["component_type"] = "hull"
-	base_data["armor"] = data.get("armor", 5)
+	base_data["hull_armor"] = data.get("hull_armor", 5)
 	base_data["shield_strength"] = data.get("shield_strength", 0)
 	base_data["shield_recharge_rate"] = data.get("shield_recharge_rate", 0.0)
 	base_data["has_shields"] = data.get("has_shields", false)

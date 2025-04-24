@@ -10,6 +10,14 @@ var WorldDataScript = load("res://src/game/world/WorldData.gd") if ResourceLoade
 var _world_generator: Node = null
 var _world_data: Resource = null
 
+# Helper to safely check if an object has a method
+func _has_method(obj, method_name: String) -> bool:
+	if obj == null:
+		return false
+	if not is_instance_valid(obj):
+		return false
+	return obj.has_method(method_name)
+
 func before_each() -> void:
 	await super.before_each()
 	
@@ -35,7 +43,8 @@ func before_each() -> void:
 		return
 	
 	# Ensure resource has a valid path for Godot 4.4
-	_world_data = Compatibility.ensure_resource_path(_world_data, "test_world_data")
+	if _world_data and is_instance_valid(_world_data):
+		_world_data = Compatibility.ensure_resource_path(_world_data, "test_world_data")
 	
 	track_test_resource(_world_data)
 	await stabilize_engine(STABILIZE_TIME)
@@ -49,11 +58,17 @@ func test_world_generation() -> void:
 	assert_not_null(_world_generator, "World generator should be initialized")
 	assert_not_null(_world_data, "World data should be initialized")
 	
+	# Skip test if any required objects or methods are missing
+	if not _world_generator or not _world_data:
+		push_warning("Skipping test_world_generation: missing objects")
+		pending("Test skipped - missing objects")
+		return
+	
 	# Check if required methods exist
-	if not (_world_generator.has_method("generate_world") and
-	        _world_data.has_method("get_name") and
-	        _world_data.has_method("get_size") and
-	        _world_data.has_method("get_sector_count")):
+	if not (_has_method(_world_generator, "generate_world") and
+	        _has_method(_world_data, "get_name") and
+	        _has_method(_world_data, "get_size") and
+	        _has_method(_world_data, "get_sector_count")):
 		push_warning("Skipping test_world_generation: required methods missing")
 		pending("Test skipped - required methods missing")
 		return
@@ -73,6 +88,6 @@ func test_world_generation() -> void:
 	assert_gt(sector_count, 0, "World should have at least one sector")
 	
 	# Test additional world data
-	if _world_data.has_method("validate"):
+	if _has_method(_world_data, "validate"):
 		var is_valid = Compatibility.safe_call_method(_world_data, "validate", [], false)
 		assert_true(is_valid, "Generated world should be valid")

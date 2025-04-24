@@ -15,7 +15,7 @@ const Character: GDScript = preload("res://src/core/character/Base/Character.gd"
 const MAX_EXPERIENCE: int = 10000
 
 # Type-safe instance variables
-var _test_character: Node = null
+var _test_character = null
 
 # Helper Methods
 func _setup_character_with_class(char_class: int) -> void:
@@ -37,13 +37,26 @@ func _setup_character_with_training(training: int) -> void:
 # Lifecycle Methods
 func before_each() -> void:
 	await super.before_each()
-	var character_instance: Node = Character.new()
-	_test_character = character_instance
+	
+	# Create character instance safely checking its type
+	var character_instance = Character.new()
+	if character_instance is Node:
+		# If it's a Node, add it to the scene tree
+		_test_character = character_instance
+		add_child_autofree(_test_character)
+		track_test_node(_test_character)
+	elif character_instance is Resource:
+		# If it's a Resource, handle it appropriately
+		_test_character = character_instance
+		track_test_resource(_test_character)
+	else:
+		push_error("Character is neither a Node nor a Resource")
+		return
+	
 	if not _test_character:
 		push_error("Failed to create test character")
 		return
-	add_child_autofree(_test_character)
-	track_test_node(_test_character)
+		
 	watch_signals(_test_character)
 	await stabilize_engine(STABILIZE_TIME)
 
