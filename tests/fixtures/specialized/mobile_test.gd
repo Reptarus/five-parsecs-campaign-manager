@@ -1,5 +1,5 @@
 @tool
-extends "res://tests/fixtures/base/game_test.gd"
+extends GdUnitGameTest
 class_name MobileTest
 
 ## Base class for mobile-specific tests
@@ -35,32 +35,35 @@ const MOBILE_DEVICE_DPI := {
 	"xxxhdpi": 640
 }
 
-# Type-safe instance variables (only declare what's new in this class)
+# Type-safe instance variables
 var _original_dpi: float
+var _original_window_size: Vector2i
+var _original_window_mode: DisplayServer.WindowMode
 var _gesture_manager: Node = null
 var _mobile_game_state: Node = null
 var _mobile_fps_samples: Array[float] = []
 
 ## Lifecycle methods
 
-func before_each() -> void:
-	await super.before_each()
+func before_test() -> void:
+	await super.before_test()
 	_store_original_settings()
 	_setup_mobile_environment()
 	await stabilize_engine(MOBILE_TEST_CONFIG.stabilize_time)
 
-func after_each() -> void:
+func after_test() -> void:
 	_restore_original_settings()
 	_gesture_manager = null
 	_mobile_game_state = null
 	_mobile_fps_samples.clear()
-	await super.after_each()
+	await super.after_test()
 
 ## Setup and teardown helpers
 
 func _store_original_settings() -> void:
-	# We're using _original_window_size and _original_window_mode from parent class
-	# Just store the DPI which is specific to mobile tests
+	# Store original window settings
+	_original_window_size = DisplayServer.window_get_size()
+	_original_window_mode = DisplayServer.window_get_mode()
 	_original_dpi = DisplayServer.screen_get_dpi(0) # Primary screen
 
 func _setup_mobile_environment() -> void:
@@ -71,14 +74,14 @@ func _setup_mobile_environment() -> void:
 	# Initialize game state
 	_mobile_game_state = create_test_game_state()
 	if _mobile_game_state:
-		add_child_autofree(_mobile_game_state)
-		track_test_node(_mobile_game_state)
+		add_child(_mobile_game_state)
+		track_node(_mobile_game_state)
 	
 	# Initialize gesture manager
 	_gesture_manager = _create_gesture_manager()
 	if _gesture_manager:
-		add_child_autofree(_gesture_manager)
-		track_test_node(_gesture_manager)
+		add_child(_gesture_manager)
+		track_node(_gesture_manager)
 
 func _restore_original_settings() -> void:
 	DisplayServer.window_set_size(_original_window_size)
@@ -159,8 +162,8 @@ func simulate_pinch(center: Vector2, start_scale: float = 1.0, end_scale: float 
 	var start_distance := 100.0 * start_scale
 	var end_distance := 100.0 * end_scale
 	
-	var touch1_start := center + Vector2(- start_distance / 2, 0)
-	var touch1_end := center + Vector2(- end_distance / 2, 0)
+	var touch1_start := center + Vector2(-start_distance / 2, 0)
+	var touch1_end := center + Vector2(-end_distance / 2, 0)
 	var touch2_start := center + Vector2(start_distance / 2, 0)
 	var touch2_end := center + Vector2(end_distance / 2, 0)
 	
@@ -188,10 +191,12 @@ func assert_touch_target_size(node: Node, expected_size: Vector2 = Vector2(MOBIL
 		return
 		
 	var control := node as Control
-	assert_true(control.size.x >= expected_size.x,
-		"Touch target width should be at least %d pixels" % expected_size.x)
-	assert_true(control.size.y >= expected_size.y,
-		"Touch target height should be at least %d pixels" % expected_size.y)
+	assert_that(control.size.x >= expected_size.x).override_failure_message(
+		"Touch target width should be at least %d pixels" % expected_size.x
+	).is_true()
+	assert_that(control.size.y >= expected_size.y).override_failure_message(
+		"Touch target height should be at least %d pixels" % expected_size.y
+	).is_true()
 
 func verify_touch_targets(parent: Control) -> void:
 	var interactive_controls := parent.find_children("*", "Control", true, false)
@@ -208,21 +213,29 @@ func assert_fits_screen(control: Control, message: String = "") -> void:
 	var screen_size := DisplayServer.window_get_size()
 	var control_size := control.get_rect().size
 	
-	assert_true(control_size.x <= screen_size.x and control_size.y <= screen_size.y,
-		message if message else "Control should fit within screen bounds")
+	assert_that(control_size.x <= screen_size.x and control_size.y <= screen_size.y).override_failure_message(
+		message if message else "Control should fit within screen bounds"
+	).is_true()
 
 ## Responsive layout testing
 
-func test_responsive_layout(control: Control) -> void:
+func test_responsive_layout() -> void:
+	# Create a test control for responsive layout testing
+	var control = Control.new()
+	add_child(control)
+	track_node(control)
+	
 	for resolution_name in MOBILE_SCREEN_SIZES:
 		await set_resolution(resolution_name)
 		var resolution_size: Vector2i = MOBILE_SCREEN_SIZES[resolution_name]
 		
 		# Verify layout constraints
-		assert_true(control.size.x <= resolution_size.x,
-			"Control width should fit screen size %s" % resolution_name)
-		assert_true(control.size.y <= resolution_size.y,
-			"Control height should fit screen size %s" % resolution_name)
+		assert_that(control.size.x <= resolution_size.x).override_failure_message(
+			"Control width should fit screen size %s" % resolution_name
+		).is_true()
+		assert_that(control.size.y <= resolution_size.y).override_failure_message(
+			"Control height should fit screen size %s" % resolution_name
+		).is_true()
 		
 		# Verify touch targets
 		verify_touch_targets(control)
@@ -295,5 +308,6 @@ func _create_gesture_manager() -> Node:
 
 func create_test_game_state() -> Node:
 	var state := Node.new()
-	add_child_autofree(state)
+	add_child(state)
+	track_node(state)
 	return state

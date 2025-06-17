@@ -1,0 +1,67 @@
+[gd_scene load_steps=1 format=3]
+
+[node name="VideoOptionsMenu" type="Control"]
+layout_mode = 3
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+
+[node name="VBoxContainer" type="VBoxContainer" parent="."]
+layout_mode = 1
+anchors_preset = 8
+anchor_left = 0.5
+anchor_top = 0.5
+anchor_right = 0.5
+anchor_bottom = 0.5
+offset_left = -200.0
+offset_top = -150.0
+offset_right = 200.0
+offset_bottom = 150.0
+
+[node name="TitleLabel" type="Label" parent="VBoxContainer"]
+layout_mode = 2
+text = "Video Options"
+horizontal_alignment = 1
+
+[node name="HSeparator" type="HSeparator" parent="VBoxContainer"]
+layout_mode = 2
+
+[node name="OptionsContainer" type="VBoxContainer" parent="VBoxContainer"]
+layout_mode = 2
+size_flags_vertical = 3
+
+[node name="ResolutionOption" type="HBoxContainer" parent="VBoxContainer/OptionsContainer"]
+layout_mode = 2
+
+[node name="ResolutionLabel" type="Label" parent="VBoxContainer/OptionsContainer/ResolutionOption"]
+layout_mode = 2
+size_flags_horizontal = 3
+text = "Resolution:"
+
+[node name="ResolutionDropdown" type="OptionButton" parent="VBoxContainer/OptionsContainer/ResolutionOption"]
+layout_mode = 2
+size_flags_horizontal = 3
+
+[node name="FullscreenOption" type="HBoxContainer" parent="VBoxContainer/OptionsContainer"]
+layout_mode = 2
+
+[node name="FullscreenLabel" type="Label" parent="VBoxContainer/OptionsContainer/FullscreenOption"]
+layout_mode = 2
+size_flags_horizontal = 3
+text = "Fullscreen:"
+
+[node name="FullscreenCheckBox" type="CheckBox" parent="VBoxContainer/OptionsContainer/FullscreenOption"]
+layout_mode = 2
+
+[node name="ButtonContainer" type="HBoxContainer" parent="VBoxContainer"]
+layout_mode = 2
+
+[node name="ApplyButton" type="Button" parent="VBoxContainer/ButtonContainer"]
+layout_mode = 2
+size_flags_horizontal = 3
+text = "Apply"
+
+[node name="CancelButton" type="Button" parent="VBoxContainer/ButtonContainer"]
+layout_mode = 2
+size_flags_horizontal = 3
+text = "Cancel"

@@ -1,5 +1,5 @@
 @tool
-extends "res://tests/performance/base/perf_test_base.gd"
+extends GdUnitGameTest
 
 # Type-safe script references
 const TableProcessorScript: GDScript = preload("res://src/core/systems/TableProcessor.gd")
@@ -8,6 +8,7 @@ const TableLoaderScript: GDScript = preload("res://src/core/systems/TableLoader.
 # Test variables with explicit types
 var _processor: Node = null
 var _test_tables: Array[Dictionary] = []
+var _data_manager: Node = null
 
 # Table size thresholds
 const TABLE_SIZES := {
@@ -47,20 +48,35 @@ const TABLE_THRESHOLDS := {
 	}
 }
 
-func before_each() -> void:
-	await super.before_each()
+const STABILIZE_TIME := 0.1
+
+# Safe wrapper methods for dynamic method calls
+func _safe_call_method_bool(node: Node, method_name: String, args: Array = []) -> bool:
+	if node and node.has_method(method_name):
+		var result = node.callv(method_name, args)
+		return result if result is bool else false
+	return false
+
+func before_test() -> void:
+	await super.before_test()
 	
 	# Initialize table processor
 	_processor = TableProcessorScript.new()
 	if not _processor:
 		push_error("Failed to create table processor")
 		return
-	add_child_autofree(_processor)
-	track_test_node(_processor)
+	
+	# Track the processor (it's always a Node) with auto_free
+	_processor = auto_free(_processor)
+	
+	# Initialize data manager with auto_free
+	_data_manager = auto_free(Node.new())
+	_data_manager.name = "TestDataManager"
+	add_child(_data_manager)
 	
 	await stabilize_engine(STABILIZE_TIME)
 
-func after_each() -> void:
+func after_test() -> void:
 	# Cleanup test resources
 	_test_tables.clear()
 	
@@ -68,7 +84,11 @@ func after_each() -> void:
 		_processor.queue_free()
 	_processor = null
 	
-	await super.after_each()
+	if is_instance_valid(_data_manager):
+		_data_manager.queue_free()
+	_data_manager = null
+	
+	await super.after_test()
 
 func test_small_table_performance() -> void:
 	print_debug("Testing small table processing performance...")
@@ -76,7 +96,7 @@ func test_small_table_performance() -> void:
 	
 	var metrics := await measure_performance(
 		func() -> void:
-			TypeSafeMixin._call_node_method_bool(_processor, "process_table", [_test_tables[0]])
+			_safe_call_method_bool(_processor, "process_table", [_test_tables[0]])
 			await get_tree().process_frame
 	)
 	
@@ -88,7 +108,7 @@ func test_medium_table_performance() -> void:
 	
 	var metrics := await measure_performance(
 		func() -> void:
-			TypeSafeMixin._call_node_method_bool(_processor, "process_table", [_test_tables[0]])
+			_safe_call_method_bool(_processor, "process_table", [_test_tables[0]])
 			await get_tree().process_frame
 	)
 	
@@ -100,7 +120,7 @@ func test_large_table_performance() -> void:
 	
 	var metrics := await measure_performance(
 		func() -> void:
-			TypeSafeMixin._call_node_method_bool(_processor, "process_table", [_test_tables[0]])
+			_safe_call_method_bool(_processor, "process_table", [_test_tables[0]])
 			await get_tree().process_frame
 	)
 	
@@ -117,7 +137,7 @@ func test_table_memory_management() -> void:
 		
 		# Process tables multiple times
 		for i in range(5):
-			TypeSafeMixin._call_node_method_bool(_processor, "process_table", [_test_tables[0]])
+			_safe_call_method_bool(_processor, "process_table", [_test_tables[0]])
 			await get_tree().process_frame
 		
 		# Cleanup tables
@@ -127,8 +147,9 @@ func test_table_memory_management() -> void:
 	var final_memory := Performance.get_monitor(Performance.MEMORY_STATIC)
 	var memory_delta := (final_memory - initial_memory) / 1024.0 # KB
 	
-	assert_lt(memory_delta, PERFORMANCE_THRESHOLDS.memory.leak_threshold_kb,
-		"Memory should be properly cleaned up after table processing")
+	assert_that(memory_delta).override_failure_message(
+		"Memory should be properly cleaned up after table processing"
+	).is_less(50.0) # 50KB threshold
 
 func test_table_stress() -> void:
 	print_debug("Running table processing stress test...")
@@ -138,7 +159,7 @@ func test_table_stress() -> void:
 	
 	await stress_test(
 		func() -> void:
-			TypeSafeMixin._call_node_method_bool(_processor, "process_table", [_test_tables[0]])
+			_safe_call_method_bool(_processor, "process_table", [_test_tables[0]])
 			
 			# Randomly modify table
 			if randf() < 0.2: # 20% chance each frame
@@ -155,33 +176,99 @@ func test_table_stress() -> void:
 	)
 
 func test_mobile_table_performance() -> void:
+	var _is_mobile := OS.has_feature("mobile")
 	if not _is_mobile:
 		print_debug("Skipping mobile table test on non-mobile platform")
 		return
 	
 	print_debug("Testing mobile table processing performance...")
 	
-	# Test under memory pressure
-	await simulate_memory_pressure()
-	
 	# Setup small table (mobile optimized)
 	await _setup_test_table("small")
 	
 	var metrics := await measure_performance(
 		func() -> void:
-			TypeSafeMixin._call_node_method_bool(_processor, "process_table", [_test_tables[0]])
+			_safe_call_method_bool(_processor, "process_table", [_test_tables[0]])
 			await get_tree().process_frame
 	)
 	
 	# Use mobile-specific thresholds
 	var mobile_thresholds := {
-		"average_fps": PERFORMANCE_THRESHOLDS.fps.mobile_target,
-		"minimum_fps": PERFORMANCE_THRESHOLDS.fps.mobile_minimum,
-		"memory_delta_kb": PERFORMANCE_THRESHOLDS.memory.mobile_max_delta_mb * 1024,
-		"draw_calls_delta": PERFORMANCE_THRESHOLDS.gpu.max_draw_calls / 2
+		"average_fps": 30.0,
+		"minimum_fps": 24.0,
+		"memory_delta_kb": 25.0 * 1024,
+		"draw_calls_delta": 50
 	}
 	
 	verify_performance_metrics(metrics, mobile_thresholds)
+
+# Performance measurement utilities
+func measure_performance(callable: Callable, iterations: int = 100) -> Dictionary:
+	var results := {
+		"fps_samples": [],
+		"memory_samples": [],
+		"draw_calls": []
+	}
+	
+	for i in range(iterations):
+		await callable.call()
+		results.fps_samples.append(Engine.get_frames_per_second())
+		results.memory_samples.append(Performance.get_monitor(Performance.MEMORY_STATIC))
+		results.draw_calls.append(Performance.get_monitor(Performance.RENDER_TOTAL_DRAW_CALLS_IN_FRAME))
+		await stabilize_engine(STABILIZE_TIME)
+	
+	return {
+		"average_fps": _calculate_average(results.fps_samples),
+		"minimum_fps": _calculate_minimum(results.fps_samples),
+		"memory_delta_kb": (_calculate_maximum(results.memory_samples) - _calculate_minimum(results.memory_samples)) / 1024.0,
+		"draw_calls_delta": _calculate_maximum(results.draw_calls) - _calculate_minimum(results.draw_calls)
+	}
+
+func verify_performance_metrics(metrics: Dictionary, thresholds: Dictionary) -> void:
+	assert_that(metrics.average_fps).override_failure_message(
+		"Average FPS should be above threshold"
+	).is_greater(thresholds.get("average_fps", 30.0))
+	
+	assert_that(metrics.minimum_fps).override_failure_message(
+		"Minimum FPS should be above threshold"
+	).is_greater(thresholds.get("minimum_fps", 20.0))
+	
+	assert_that(metrics.memory_delta_kb).override_failure_message(
+		"Memory delta should be below threshold"
+	).is_less(thresholds.get("memory_delta_kb", 1024.0))
+
+func stress_test(callable: Callable) -> void:
+	var start_time := Time.get_ticks_msec()
+	var end_time := start_time + (5.0 * 1000) # 5 seconds
+	
+	while Time.get_ticks_msec() < end_time:
+		await callable.call()
+		await get_tree().process_frame
+
+# Statistical utilities
+func _calculate_average(values: Array) -> float:
+	if values.is_empty():
+		return 0.0
+	var sum := 0.0
+	for value in values:
+		sum += value
+	return sum / values.size()
+
+func _calculate_minimum(values: Array) -> float:
+	if values.is_empty():
+		return 0.0
+	var min_value: float = values[0]
+	for value in values:
+		min_value = min(min_value, value)
+	return min_value
+
+func _calculate_maximum(values: Array) -> float:
+	if values.is_empty():
+		return 0.0
+	var max_value: float = values[0]
+	for value in values:
+		max_value = max(max_value, value)
+	return max_value
 
 # Helper methods
 func _setup_test_table(size_key: String) -> void:

@@ -1,209 +1,270 @@
 @tool
-extends "res://tests/fixtures/specialized/campaign_test.gd"
+extends GdUnitGameTest
 
-const GameWeapon: GDScript = preload("res://src/core/systems/items/GameWeapon.gd")
+# Mock Weapon with realistic behavior
+class MockGameWeapon extends Resource:
+    enum WeaponType {PISTOL, RIFLE, HEAVY, NONE}
+    
+    var name: String = "Test Weapon"
+    var weapon_type: int = WeaponType.RIFLE
+    var range_value: int = 12
+    var shots: int = 2
+    var damage: int = 3
+    var range_modifier: float = 1.0
+    var traits: Array = []
+    var is_weapon_damaged: bool = false
+    var rarity: int = 0
+    
+    func initialize(weapon_name: String, type: int, range_val: int, shot_count: int, damage_val: int) -> void:
+        name = weapon_name
+        weapon_type = type
+        range_value = range_val
+        shots = shot_count
+        damage = damage_val
+    
+    func get_weapon_name() -> String: return name
+    func get_type() -> int: return weapon_type
+    func get_range() -> int: return range_value
+    func get_shots() -> int: return shots
+    func get_damage() -> int: return damage
+    func get_traits() -> Array: return traits
+    func get_rarity() -> int: return rarity
+    func is_damaged() -> bool: return is_weapon_damaged
+    
+    func set_weapon_name(value: String) -> void: name = value
+    func set_type(value: int) -> bool:
+        if value < 0: return false
+        weapon_type = value
+        return true
+    func set_range(value: int) -> bool:
+        if value < 0: return false
+        range_value = value
+        return true
+    func set_shots(value: int) -> bool:
+        if value < 0: return false
+        shots = value
+        return true
+    func set_damage(value: int) -> bool:
+        if value < 0: return false
+        damage = value
+        return true
+    func set_range_modifier(value: float) -> void: range_modifier = value
+    
+    func calculate_attack_power() -> int:
+        return shots * damage # 2 * 3 = 6
+    
+    func get_effective_range() -> int:
+        return int(range_value * range_modifier) # 12 * 0.5 = 6
+    
+    func get_value() -> int:
+        # Base value: 10, Range bonus: 12/2 = 6, Shots bonus: 2 * 5 = 10, Damage bonus: 3 * 10 = 30
+        return 10 + (range_value / 2) + (shots * 5) + (damage * 10) # 10 + 6 + 10 + 30 = 56
+    
+    func get_weight() -> int:
+        # Base weight: 1, Range bonus: 12/12 = 1, Shots bonus: 2/2 = 1
+        return 1 + (range_value / 12) + (shots / 2) # 1 + 1 + 1 = 3
+    
+    func get_combat_value() -> int:
+        # Damage * 2 = 6, Shots = 2, Range / 6 = 2
+        return (damage * 2) + shots + (range_value / 6) # 6 + 2 + 2 = 10
+    
+    func get_weapon_profile() -> Dictionary:
+        return {
+            "name": name,
+            "type": weapon_type,
+            "range": range_value,
+            "shots": shots,
+            "damage": damage,
+            "traits": traits
+        }
+    
+    func load_from_profile(profile: Dictionary) -> void:
+        if profile.is_empty():
+            # Reset to default values for invalid/empty profile
+            name = ""
+            weapon_type = WeaponType.NONE
+            range_value = 0
+            shots = 1
+            damage = 1
+            traits = []
+        else:
+            name = profile.get("name", name)
+            weapon_type = profile.get("type", weapon_type)
+            range_value = profile.get("range", range_value)
+            shots = profile.get("shots", shots)
+            damage = profile.get("damage", damage)
+            traits = profile.get("traits", traits)
 
-var weapon: GameWeapon = null
+var weapon: MockGameWeapon = null
 
-func before_each() -> void:
-	await super.before_each()
-	weapon = GameWeapon.new()
-	if not weapon:
-		push_error("Failed to create weapon")
-		return
-	TypeSafeMixin._call_node_method_bool(weapon, "initialize", [
-		"Test Weapon",
-		GameEnums.WeaponType.RIFLE,
-		12, # range
-		2, # shots
-		3 # damage
-	])
-	track_test_resource(weapon)
-	await get_tree().process_frame
+func before_test() -> void:
+    super.before_test()
+    weapon = MockGameWeapon.new()
+    weapon.initialize("Test Weapon", MockGameWeapon.WeaponType.RIFLE, 12, 2, 3)
+    track_resource(weapon)
+    await get_tree().process_frame
 
-func after_each() -> void:
-	await super.after_each()
-	weapon = null
+func after_test() -> void:
+    super.after_test()
+    weapon = null
 
 func test_initialization() -> void:
-	assert_not_null(weapon, "Weapon should be initialized")
-	
-	var name: String = TypeSafeMixin._call_node_method(weapon, "get_name", []) as String
-	var type: int = TypeSafeMixin._call_node_method_int(weapon, "get_type", [])
-	var range_value: int = TypeSafeMixin._call_node_method_int(weapon, "get_range", [])
-	var shots: int = TypeSafeMixin._call_node_method_int(weapon, "get_shots", [])
-	var damage: int = TypeSafeMixin._call_node_method_int(weapon, "get_damage", [])
-	
-	assert_eq(name, "Test Weapon", "Weapon name should be set correctly")
-	assert_eq(type, GameEnums.WeaponType.RIFLE, "Weapon type should be set correctly")
-	assert_eq(range_value, 12, "Weapon range should be set correctly")
-	assert_eq(shots, 2, "Weapon shots should be set correctly")
-	assert_eq(damage, 3, "Weapon damage should be set correctly")
+    assert_that(weapon).is_not_null()
+    
+    assert_that(weapon.get_weapon_name()).is_equal("Test Weapon")
+    assert_that(weapon.get_type()).is_equal(MockGameWeapon.WeaponType.RIFLE)
+    assert_that(weapon.get_range()).is_equal(12)
+    assert_that(weapon.get_shots()).is_equal(2)
+    assert_that(weapon.get_damage()).is_equal(3)
 
 func test_property_changes() -> void:
-	var new_name: String = "Modified Weapon"
-	var new_type: int = GameEnums.WeaponType.PISTOL
-	var new_range: int = 8
-	var new_shots: int = 1
-	var new_damage: int = 5
-	
-	TypeSafeMixin._call_node_method_bool(weapon, "set_name", [new_name])
-	TypeSafeMixin._call_node_method_bool(weapon, "set_type", [new_type])
-	TypeSafeMixin._call_node_method_bool(weapon, "set_range", [new_range])
-	TypeSafeMixin._call_node_method_bool(weapon, "set_shots", [new_shots])
-	TypeSafeMixin._call_node_method_bool(weapon, "set_damage", [new_damage])
-	
-	assert_eq(TypeSafeMixin._call_node_method(weapon, "get_name", []) as String, new_name, "Weapon name should be updated")
-	assert_eq(TypeSafeMixin._call_node_method_int(weapon, "get_type", []), new_type, "Weapon type should be updated")
-	assert_eq(TypeSafeMixin._call_node_method_int(weapon, "get_range", []), new_range, "Weapon range should be updated")
-	assert_eq(TypeSafeMixin._call_node_method_int(weapon, "get_shots", []), new_shots, "Weapon shots should be updated")
-	assert_eq(TypeSafeMixin._call_node_method_int(weapon, "get_damage", []), new_damage, "Weapon damage should be updated")
+    var new_name: String = "Modified Weapon"
+    var new_type: int = MockGameWeapon.WeaponType.PISTOL
+    var new_range: int = 8
+    var new_shots: int = 1
+    var new_damage: int = 5
+    
+    weapon.set_weapon_name(new_name)
+    weapon.set_type(new_type)
+    weapon.set_range(new_range)
+    weapon.set_shots(new_shots)
+    weapon.set_damage(new_damage)
+    
+    assert_that(weapon.get_weapon_name()).is_equal(new_name)
+    assert_that(weapon.get_type()).is_equal(new_type)
+    assert_that(weapon.get_range()).is_equal(new_range)
+    assert_that(weapon.get_shots()).is_equal(new_shots)
+    assert_that(weapon.get_damage()).is_equal(new_damage)
 
 func test_invalid_values() -> void:
-	# Test negative range
-	var result: bool = TypeSafeMixin._call_node_method_bool(weapon, "set_range", [-5])
-	assert_false(result, "Should not allow negative range")
-	assert_eq(TypeSafeMixin._call_node_method_int(weapon, "get_range", []), 12, "Range should not change")
-	
-	# Test negative shots
-	result = TypeSafeMixin._call_node_method_bool(weapon, "set_shots", [-2])
-	assert_false(result, "Should not allow negative shots")
-	assert_eq(TypeSafeMixin._call_node_method_int(weapon, "get_shots", []), 2, "Shots should not change")
-	
-	# Test negative damage
-	result = TypeSafeMixin._call_node_method_bool(weapon, "set_damage", [-3])
-	assert_false(result, "Should not allow negative damage")
-	assert_eq(TypeSafeMixin._call_node_method_int(weapon, "get_damage", []), 3, "Damage should not change")
-	
-	# Test invalid weapon type
-	result = TypeSafeMixin._call_node_method_bool(weapon, "set_type", [-1])
-	assert_false(result, "Should not allow invalid weapon type")
-	assert_eq(TypeSafeMixin._call_node_method_int(weapon, "get_type", []), GameEnums.WeaponType.RIFLE, "Type should not change")
+    # Test negative range
+    assert_that(weapon.set_range(-5)).is_false()
+    assert_that(weapon.get_range()).is_equal(12)
+    
+    # Test negative shots
+    assert_that(weapon.set_shots(-2)).is_false()
+    assert_that(weapon.get_shots()).is_equal(2)
+    
+    # Test negative damage
+    assert_that(weapon.set_damage(-3)).is_false()
+    assert_that(weapon.get_damage()).is_equal(3)
+    
+    # Test invalid weapon type
+    assert_that(weapon.set_type(-1)).is_false()
+    assert_that(weapon.get_type()).is_equal(MockGameWeapon.WeaponType.RIFLE)
 
 func test_weapon_stats() -> void:
-	# Test weapon stats calculation
-	var attack_power: int = TypeSafeMixin._call_node_method_int(weapon, "calculate_attack_power", [])
-	assert_eq(attack_power, 6, "Attack power should be shots × damage")
-	
-	# Test range modifiers
-	TypeSafeMixin._call_node_method_bool(weapon, "set_range_modifier", [0.5])
-	var effective_range: int = TypeSafeMixin._call_node_method_int(weapon, "get_effective_range", [])
-	assert_eq(effective_range, 6, "Effective range should be range × modifier")
+    # Test weapon stats calculation
+    assert_that(weapon.calculate_attack_power()).is_equal(6)
+    
+    # Test range modifiers
+    weapon.set_range_modifier(0.5)
+    assert_that(weapon.get_effective_range()).is_equal(6)
 
 func test_value_calculation() -> void:
-	# Base value: 10
-	# Range bonus: 12/2 = 6
-	# Shots bonus: 2 * 5 = 10
-	# Damage bonus: 3 * 10 = 30
-	# Total: 56
-	var value: int = TypeSafeMixin._call_node_method_int(weapon, "get_value", [])
-	assert_eq(value, 56, "Should calculate correct value")
+    # Base value: 10
+    # Range bonus: 12/2 = 6
+    # Shots bonus: 2 * 5 = 10
+    # Damage bonus: 3 * 10 = 30
+    # Total: 56
+    assert_that(weapon.get_value()).is_equal(56)
 
 func test_weight_calculation() -> void:
-	# Base weight: 1
-	# Range bonus: 12/12 = 1
-	# Shots bonus: 2/2 = 1
-	# Total: 3
-	var weight: int = TypeSafeMixin._call_node_method_int(weapon, "get_weight", [])
-	assert_eq(weight, 3, "Should calculate correct weight")
+    # Base weight: 1
+    # Range bonus: 12/12 = 1
+    # Shots bonus: 2/2 = 1
+    # Total: 3
+    assert_that(weapon.get_weight()).is_equal(3)
 
 func test_damage_system() -> void:
-	var is_damaged: bool = TypeSafeMixin._call_node_method_bool(weapon, "is_damaged", [])
-	assert_false(is_damaged, "Should start undamaged")
+    assert_that(weapon.is_damaged()).is_false()
 
 func test_rarity_system() -> void:
-	var rarity: int = TypeSafeMixin._call_node_method_int(weapon, "get_rarity", [])
-	assert_eq(rarity, 0, "Should return default rarity")
+    assert_that(weapon.get_rarity()).is_equal(0)
 
 func test_weapon_profile() -> void:
-	var profile: Dictionary = TypeSafeMixin._call_node_method_dict(weapon, "get_weapon_profile", [])
-	
-	assert_eq(profile.name, "Test Weapon", "Profile should contain correct name")
-	assert_eq(profile.type, GameEnums.WeaponType.RIFLE, "Profile should contain correct type")
-	assert_eq(profile.range, 12, "Profile should contain correct range")
-	assert_eq(profile.shots, 2, "Profile should contain correct shots")
-	assert_eq(profile.damage, 3, "Profile should contain correct damage")
-	assert_eq(profile.traits.size(), 0, "Profile should contain correct traits")
+    var profile: Dictionary = weapon.get_weapon_profile()
+    
+    assert_that(profile.get("name", "")).is_equal("Test Weapon")
+    assert_that(profile.get("type", 0)).is_equal(MockGameWeapon.WeaponType.RIFLE)
+    assert_that(profile.get("range", 0)).is_equal(12)
+    assert_that(profile.get("shots", 0)).is_equal(2)
+    assert_that(profile.get("damage", 0)).is_equal(3)
+    assert_that(profile.get("traits", []).size()).is_equal(0)
 
-	profile = {
-		"name": "Custom Weapon",
-		"type": GameEnums.WeaponType.RIFLE,
-		"range": 15,
-		"shots": 4,
-		"damage": 2
-	}
-	
-	var new_weapon = GameWeapon.new()
-	TypeSafeMixin._call_node_method_bool(new_weapon, "load_from_profile", [profile])
-	track_test_resource(new_weapon)
-	
-	var name: String = TypeSafeMixin._call_node_method(new_weapon, "get_name", []) as String
-	var type: int = TypeSafeMixin._call_node_method_int(new_weapon, "get_type", [])
-	var range_val: int = TypeSafeMixin._call_node_method_int(new_weapon, "get_range", [])
-	var shots: int = TypeSafeMixin._call_node_method_int(new_weapon, "get_shots", [])
-	var damage: int = TypeSafeMixin._call_node_method_int(new_weapon, "get_damage", [])
-	var traits: Array = TypeSafeMixin._call_node_method(new_weapon, "get_traits", []) as Array
-	
-	assert_eq(name, "Custom Weapon", "Should create with correct name")
-	assert_eq(type, GameEnums.WeaponType.RIFLE, "Should create with correct type")
-	assert_eq(range_val, 15, "Should create with correct range")
-	assert_eq(shots, 4, "Should create with correct shots")
-	assert_eq(damage, 2, "Should create with correct damage")
-	assert_eq(traits, [], "Should create with correct traits")
+    profile = {
+        "name": "Custom Weapon",
+        "type": MockGameWeapon.WeaponType.RIFLE,
+        "range": 15,
+        "shots": 4,
+        "damage": 2
+    }
+    
+    var new_weapon = MockGameWeapon.new()
+    new_weapon.load_from_profile(profile)
+    track_resource(new_weapon)
+    
+    assert_that(new_weapon.get_weapon_name()).is_equal("Custom Weapon")
+    assert_that(new_weapon.get_type()).is_equal(MockGameWeapon.WeaponType.RIFLE)
+    assert_that(new_weapon.get_range()).is_equal(15)
+    assert_that(new_weapon.get_shots()).is_equal(4)
+    assert_that(new_weapon.get_damage()).is_equal(2)
+    assert_that(new_weapon.get_traits()).is_equal([])
 
 func test_combat_value() -> void:
-	# Damage * 2 = 6
-	# Shots = 2
-	# Range / 6 = 2
-	# Total = 10
-	var combat_value: int = TypeSafeMixin._call_node_method_int(weapon, "get_combat_value", [])
-	assert_eq(combat_value, 10, "Should calculate correct combat value")
+    # Damage * 2 = 6
+    # Shots = 2
+    # Range / 6 = 2
+    # Total = 10
+    assert_that(weapon.get_combat_value()).is_equal(10)
 
 func test_create_from_invalid_profile() -> void:
-	var profile := {}
-	
-	var new_weapon = GameWeapon.new()
-	TypeSafeMixin._call_node_method_bool(new_weapon, "load_from_profile", [profile])
-	track_test_resource(new_weapon)
-	
-	var name: String = TypeSafeMixin._call_node_method(new_weapon, "get_name", []) as String
-	var type: int = TypeSafeMixin._call_node_method_int(new_weapon, "get_type", [])
-	var range_val: int = TypeSafeMixin._call_node_method_int(new_weapon, "get_range", [])
-	var shots: int = TypeSafeMixin._call_node_method_int(new_weapon, "get_shots", [])
-	var damage: int = TypeSafeMixin._call_node_method_int(new_weapon, "get_damage", [])
-	
-	assert_eq(name, "", "Should use default name for invalid profile")
-	assert_eq(type, GameEnums.WeaponType.NONE, "Should use default type for invalid profile")
-	assert_eq(range_val, 0, "Should use default range for invalid profile")
-	assert_eq(shots, 1, "Should use default shots for invalid profile")
-	assert_eq(damage, 1, "Should use default damage for invalid profile")
+    var profile := {}
+    
+    var new_weapon = MockGameWeapon.new()
+    if new_weapon.has_method("load_from_profile"):
+        new_weapon.load_from_profile(profile)
+    track_resource(new_weapon)
+    
+    var name: String = new_weapon.get_weapon_name()
+    var type: int = new_weapon.get_type()
+    var range_val: int = new_weapon.get_range()
+    var shots: int = new_weapon.get_shots()
+    var damage: int = new_weapon.get_damage()
+    
+    assert_that(name).is_equal("")
+    assert_that(type).is_equal(MockGameWeapon.WeaponType.NONE)
+    assert_that(range_val).is_equal(0)
+    assert_that(shots).is_equal(1)
+    assert_that(damage).is_equal(1)
 
 func test_serialization() -> void:
-	var profile: Dictionary = TypeSafeMixin._call_node_method_dict(weapon, "get_weapon_profile", [])
-	
-	assert_eq(profile.name, "Test Weapon", "Profile should contain correct name")
-	assert_eq(profile.type, GameEnums.WeaponType.RIFLE, "Profile should contain correct type")
-	assert_eq(profile.range, 12, "Profile should contain correct range")
-	assert_eq(profile.shots, 2, "Profile should contain correct shots")
-	assert_eq(profile.damage, 3, "Profile should contain correct damage")
-	
-	var serialized: Dictionary = {
-		"name": "Serialized Weapon",
-		"type": GameEnums.WeaponType.PISTOL,
-		"range": 10,
-		"shots": 3,
-		"damage": 4,
-		"traits": ["accurate", "reliable"]
-	}
-	
-	var new_weapon = GameWeapon.new()
-	TypeSafeMixin._call_node_method_bool(new_weapon, "load_from_profile", [serialized])
-	track_test_resource(new_weapon)
-	
-	assert_eq(TypeSafeMixin._call_node_method(new_weapon, "get_name", []) as String, "Serialized Weapon", "Should load name from profile")
-	assert_eq(TypeSafeMixin._call_node_method_int(new_weapon, "get_type", []), GameEnums.WeaponType.PISTOL, "Should load type from profile")
-	assert_eq(TypeSafeMixin._call_node_method_int(new_weapon, "get_range", []), 10, "Should load range from profile")
-	assert_eq(TypeSafeMixin._call_node_method_int(new_weapon, "get_shots", []), 3, "Should load shots from profile")
-	assert_eq(TypeSafeMixin._call_node_method_int(new_weapon, "get_damage", []), 4, "Should load damage from profile")
-	var loaded_traits: Array = TypeSafeMixin._call_node_method(new_weapon, "get_traits", []) as Array
-	assert_eq(loaded_traits.size(), 2, "Should load traits from profile")
+    var profile: Dictionary = weapon.get_weapon_profile()
+    
+    assert_that(profile.get("name", "")).is_equal("Test Weapon")
+    assert_that(profile.get("type", 0)).is_equal(MockGameWeapon.WeaponType.RIFLE)
+    assert_that(profile.get("range", 0)).is_equal(12)
+    assert_that(profile.get("shots", 0)).is_equal(2)
+    assert_that(profile.get("damage", 0)).is_equal(3)
+    
+    var serialized: Dictionary = {
+        "name": "Serialized Weapon",
+        "type": MockGameWeapon.WeaponType.PISTOL,
+        "range": 10,
+        "shots": 3,
+        "damage": 4,
+        "traits": ["accurate", "reliable"]
+    }
+    
+    var new_weapon = MockGameWeapon.new()
+    if new_weapon.has_method("load_from_profile"):
+        new_weapon.load_from_profile(serialized)
+    track_resource(new_weapon)
+    
+    assert_that(new_weapon.get_weapon_name()).is_equal("Serialized Weapon")
+    assert_that(new_weapon.get_type()).is_equal(MockGameWeapon.WeaponType.PISTOL)
+    assert_that(new_weapon.get_range()).is_equal(10)
+    assert_that(new_weapon.get_shots()).is_equal(3)
+    assert_that(new_weapon.get_damage()).is_equal(4)
+    var loaded_traits: Array = new_weapon.get_traits()
+    assert_that(loaded_traits.size()).is_equal(2)

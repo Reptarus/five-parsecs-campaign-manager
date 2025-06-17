@@ -2,6 +2,47 @@
 
 This directory contains the source code for the Five Parsecs Campaign Manager project. The code is organized into several key directories, each with a specific purpose.
 
+## ✅ **Production-Ready Systems** 
+
+### **Story Track System** ⭐ **COMPLETE**
+**Location**: `/core/story/StoryTrackSystem.gd`
+- Complete implementation of Five Parsecs Core Rules Appendix V
+- 6 interconnected story events with branching narratives
+- Story clock mechanics with success/failure progression
+- Evidence collection system (7+ discovery threshold)
+- Player choice consequences and rewards
+- Full Campaign Manager integration
+- **Testing**: 20/20 tests passing (100% success)
+
+### **Battle Events System** ⭐ **COMPLETE**
+**Location**: `/core/battle/BattleEventsSystem.gd`
+- Complete implementation of Five Parsecs Core Rules p.116
+- Round-based triggering (end of rounds 2 & 4)
+- Complete 100-event table with dice roll ranges (1-100)
+- Event categories: crew, enemy, battlefield, environmental, universal
+- Event conflict resolution system
+- Environmental hazards with damage/save mechanics
+- Full Campaign Manager integration
+- **Testing**: 22/22 tests passing (100% success)
+
+### **Digital Dice System** ⭐ **COMPLETE**
+**Location**: `/core/systems/DiceSystem.gd` + `/core/managers/DiceManager.gd`
+- Visual dice rolling with animations and color coding
+- Manual input override for physical dice users
+- Five Parsecs dice patterns (d6, d10, d66, d100, 2d6/3 attributes)
+- Top-level dice feed overlay with roll history
+- Contextual rolling with descriptive labels
+- Auto/manual mode switching with settings persistence
+- Legacy compatibility for existing random calls
+- **Documentation**: Complete implementation guide available
+
+### **Campaign Manager Integration** ⭐ **ENHANCED**
+**Location**: `/core/managers/CampaignManager.gd`
+- Signal-driven architecture for story, battle events, and dice systems
+- Complete event handling and state management
+- Serialization support for all systems
+- Production-ready API for UI integration
+
 ## Directory Structure
 
 ### `/base`
@@ -50,6 +91,9 @@ Contains core systems and managers.
 - `/systems` - Core game systems
 - `/state` - State management
 - `/terrain` - Terrain systems
+- ✅ `/story` - **Story Track System** (production ready)
+- ✅ `/battle` - **Battle Events System** (production ready)
+- ✅ `/managers` - **Campaign Manager** (enhanced with new systems)
 
 ## Naming Conventions
 

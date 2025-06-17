@@ -1,0 +1,95 @@
+[gd_scene load_steps=3 format=3 uid="uid://dmc2v5e1wqqk1"]
+
+[ext_resource type="Script" path="res://src/ui/screens/battle/PostBattleResultsUI.gd" id="1"]
+[ext_resource type="Theme" path="res://src/ui/themes/default_theme.tres" id="2"]
+
+[node name="PostBattleResultsUI" type="Control"]
+layout_mode = 3
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+theme = ExtResource("2")
+script = ExtResource("1")
+
+[node name="MainContainer" type="VBoxContainer" parent="."]
+layout_mode = 1
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+offset_left = 20.0
+offset_top = 20.0
+offset_right = -20.0
+offset_bottom = -20.0
+
+[node name="BattleOutcome" type="Label" parent="MainContainer"]
+layout_mode = 2
+text = "Battle Results"
+horizontal_alignment = 1
+
+[node name="ResultsContent" type="HSplitContainer" parent="MainContainer"]
+layout_mode = 2
+size_flags_vertical = 3
+
+[node name="LeftPanel" type="VBoxContainer" parent="MainContainer/ResultsContent"]
+layout_mode = 2
+size_flags_horizontal = 3
+
+[node name="RewardsPanel" type="GroupContainer" parent="MainContainer/ResultsContent/LeftPanel"]
+layout_mode = 2
+size_flags_vertical = 3
+title = "Rewards & Loot"
+
+[node name="RewardsContainer" type="VBoxContainer" parent="MainContainer/ResultsContent/LeftPanel/RewardsPanel"]
+layout_mode = 2
+
+[node name="CreditsEarned" type="Label" parent="MainContainer/ResultsContent/LeftPanel/RewardsPanel/RewardsContainer"]
+layout_mode = 2
+text = "Credits Earned: 0"
+
+[node name="LootList" type="VBoxContainer" parent="MainContainer/ResultsContent/LeftPanel/RewardsPanel/RewardsContainer"]
+layout_mode = 2
+
+[node name="ExperiencePanel" type="GroupContainer" parent="MainContainer/ResultsContent/LeftPanel"]
+layout_mode = 2
+size_flags_vertical = 3
+title = "Experience Gained"
+
+[node name="ExperienceList" type="VBoxContainer" parent="MainContainer/ResultsContent/LeftPanel/ExperiencePanel"]
+layout_mode = 2
+
+[node name="RightPanel" type="VBoxContainer" parent="MainContainer/ResultsContent"]
+layout_mode = 2
+size_flags_horizontal = 3
+
+[node name="CasualtiesPanel" type="GroupContainer" parent="MainContainer/ResultsContent/RightPanel"]
+layout_mode = 2
+size_flags_vertical = 3
+title = "Casualties & Injuries"
+
+[node name="CasualtiesList" type="VBoxContainer" parent="MainContainer/ResultsContent/RightPanel/CasualtiesPanel"]
+layout_mode = 2
+
+[node name="EventsPanel" type="GroupContainer" parent="MainContainer/ResultsContent/RightPanel"]
+layout_mode = 2
+size_flags_vertical = 3
+title = "Campaign Events"
+
+[node name="EventsList" type="VBoxContainer" parent="MainContainer/ResultsContent/RightPanel/EventsPanel"]
+layout_mode = 2
+
+[node name="ActionButtons" type="HBoxContainer" parent="MainContainer"]
+layout_mode = 2
+size_flags_vertical = 0
+
+[node name="RerollButton" type="Button" parent="MainContainer/ActionButtons"]
+layout_mode = 2
+text = "Reroll Results"
+
+[node name="SaveButton" type="Button" parent="MainContainer/ActionButtons"]
+layout_mode = 2
+text = "Save Campaign"
+
+[node name="ContinueButton" type="Button" parent="MainContainer/ActionButtons"]
+layout_mode = 2
+text = "Continue Campaign"
+size_flags_horizontal = 3 

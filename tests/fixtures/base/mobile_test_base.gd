@@ -1,5 +1,5 @@
 @tool
-extends GameTest
+extends GdUnitGameTest
 class_name MobileTestBase
 
 # Type-safe constants for mobile testing
@@ -12,30 +12,21 @@ var _original_resolution: Vector2i
 var _original_dpi: int
 
 # Lifecycle Methods
-func before_each() -> void:
-	await super.before_each()
+func before_test() -> void:
+	super.before_test()
 	
 	# Store original settings
 	_original_resolution = DisplayServer.window_get_size()
 	_original_dpi = DisplayServer.screen_get_dpi()
 	
-	# Initialize test environment
-	_game_state = create_test_game_state()
-	if not _game_state:
-		push_error("Failed to create test game state")
-		return
-	add_child_autofree(_game_state)
-	track_test_node(_game_state)
-	
 	await stabilize_engine()
 
-func after_each() -> void:
+func after_test() -> void:
 	# Restore original settings
 	restore_resolution()
 	restore_device_dpi()
 	
-	_game_state = null
-	await super.after_each()
+	super.after_test()
 
 # Screen Resolution Methods
 func set_test_resolution(width: int, height: int) -> void:
@@ -127,8 +118,7 @@ func assert_fits_screen(control: Control, message: String = "") -> void:
 	var screen_size := DisplayServer.window_get_size()
 	var control_size := control.get_rect().size
 	
-	assert_true(control_size.x <= screen_size.x and control_size.y <= screen_size.y,
-		message if message else "Control should fit within screen bounds")
+	assert_that(control_size.x <= screen_size.x and control_size.y <= screen_size.y).is_true()
 
 func assert_touch_target_size(node: Node, min_size: Vector2 = DEFAULT_TOUCH_TARGET_SIZE) -> void:
 	if not node is Control:
@@ -138,8 +128,7 @@ func assert_touch_target_size(node: Node, min_size: Vector2 = DEFAULT_TOUCH_TARG
 	var control := node as Control
 	var control_size := control.get_rect().size
 	
-	assert_true(control_size.x >= min_size.x and control_size.y >= min_size.y,
-		"Control should meet minimum touch target size requirements")
+	assert_that(control_size.x >= min_size.x and control_size.y >= min_size.y).is_true()
 
 # Performance Testing Methods
 func measure_mobile_performance(test_function: Callable, iterations: int = 100) -> Dictionary:
@@ -202,10 +191,11 @@ func _calculate_percentile(values: Array, percentile: float) -> float:
 # Mobile test helpers
 func create_test_game_state() -> Node:
 	var state := Node.new()
-	add_child_autofree(state)
+	add_child(state)
+	track_node(state)
 	return state
 
 # Mobile-specific test utilities
-func add_child_autofree(node: Node) -> void:
+func add_child_mobile(node: Node) -> void:
 	add_child(node)
-	node.queue_free_on_exit = true
+	track_node(node)

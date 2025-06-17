@@ -1,5 +1,5 @@
 @tool
-extends "res://tests/fixtures/base/game_test.gd"
+extends GdUnitGameTest
 
 const Enemy: GDScript = preload("res://src/core/enemy/base/Enemy.gd")
 
@@ -42,7 +42,7 @@ const SCENARIOS: Dictionary = {
 }
 
 # Test data generation
-static func create_scenario(scenario_name: String, test_instance: Node) -> Dictionary:
+static func create_scenario(scenario_name: String, test_instance: GdUnitGameTest) -> Dictionary:
 	assert(SCENARIOS.has(scenario_name), "Invalid scenario name")
 	var scenario: Dictionary = SCENARIOS[scenario_name]
 	
@@ -65,7 +65,7 @@ static func create_scenario(scenario_name: String, test_instance: Node) -> Dicti
 		var terrain: Node2D = Node2D.new()
 		terrain.position = terrain_data.position
 		terrain.set_meta("type", terrain_data.type)
-		test_instance.add_child_autofree(terrain)
+		test_instance.track_node(terrain)
 		result.terrain.append(terrain)
 	
 	# Create objectives
@@ -73,7 +73,7 @@ static func create_scenario(scenario_name: String, test_instance: Node) -> Dicti
 		var objective: Node2D = Node2D.new()
 		objective.position = objective_data.position
 		objective.set_meta("type", objective_data.type)
-		test_instance.add_child_autofree(objective)
+		test_instance.track_node(objective)
 		result.objectives.append(objective)
 	
 	return result

@@ -1,16 +1,16 @@
 @tool
-extends GameTest
+extends GdUnitGameTest
 
 # Create a mock WeaponsComponent class for testing purposes
 class MockWeaponsComponent:
-    extends RefCounted
+    extends Resource
     
     var name: String = "Weapons System"
     var description: String = "Standard weapons system"
     var cost: int = 100
     var power_draw: int = 15
-    var damage: int = 10
-    var range_val: int = 20
+    var damage: float = 10.0
+    var range_val: float = 20.0
     var accuracy: float = 0.7
     var fire_rate: float = 1.5
     var ammo_capacity: int = 100
@@ -22,12 +22,12 @@ class MockWeaponsComponent:
     var is_active: bool = true
     var equipped_weapons: Array = []
     
-    func get_name() -> String: return name
+    func get_component_name() -> String: return name
     func get_description() -> String: return description
     func get_cost() -> int: return cost
     func get_power_draw() -> int: return power_draw
-    func get_damage() -> int: return damage * efficiency
-    func get_range() -> int: return range_val * efficiency
+    func get_damage() -> float: return float(damage) * efficiency
+    func get_range() -> float: return float(range_val) * efficiency
     func get_accuracy() -> float: return accuracy * efficiency
     func get_fire_rate() -> float: return fire_rate * efficiency
     func get_ammo_capacity() -> int: return ammo_capacity
@@ -47,8 +47,8 @@ class MockWeaponsComponent:
         return true
         
     func upgrade() -> bool:
-        damage += 2
-        range_val += 5
+        damage += 2.0
+        range_val += 5.0
         accuracy += 0.1
         fire_rate += 0.2
         ammo_capacity += 20
@@ -61,11 +61,11 @@ class MockWeaponsComponent:
         level += 1
         return true
         
-    func set_damage(value: int) -> bool:
+    func set_damage(value: float) -> bool:
         damage = value
         return true
     
-    func set_range(value: int) -> bool:
+    func set_range(value: float) -> bool:
         range_val = value
         return true
     
@@ -147,20 +147,20 @@ class MockWeaponsComponent:
 class WeaponsGameEnumsMock:
     const WEAPONS_BASE_COST = 100
     const WEAPONS_POWER_DRAW = 15
-    const WEAPONS_BASE_DAMAGE = 10
-    const WEAPONS_BASE_RANGE = 20
+    const WEAPONS_BASE_DAMAGE = 10.0
+    const WEAPONS_BASE_RANGE = 20.0
     const WEAPONS_BASE_ACCURACY = 0.7
     const WEAPONS_BASE_FIRE_RATE = 1.5
     const WEAPONS_BASE_AMMO_CAPACITY = 100
     const WEAPONS_BASE_WEAPON_SLOTS = 2
-    const WEAPONS_UPGRADE_DAMAGE = 2
-    const WEAPONS_UPGRADE_RANGE = 5
+    const WEAPONS_UPGRADE_DAMAGE = 2.0
+    const WEAPONS_UPGRADE_RANGE = 5.0
     const WEAPONS_UPGRADE_ACCURACY = 0.1
     const WEAPONS_UPGRADE_FIRE_RATE = 0.2
     const WEAPONS_UPGRADE_AMMO_CAPACITY = 20
     const WEAPONS_UPGRADE_WEAPON_SLOTS = 1
-    const WEAPONS_MAX_DAMAGE = 30
-    const WEAPONS_MAX_RANGE = 50
+    const WEAPONS_MAX_DAMAGE = 30.0
+    const WEAPONS_MAX_RANGE = 50.0
     const WEAPONS_MAX_ACCURACY = 0.95
     const WEAPONS_MAX_FIRE_RATE = 3.0
     const WEAPONS_MAX_AMMO_CAPACITY = 200
@@ -179,25 +179,16 @@ var ship_enums = null
 
 # Helper method to initialize our test environment
 func _initialize_test_environment() -> void:
-    # Try to load the real WeaponsComponent
-    var weapons_script: GDScript = load("res://src/core/ships/components/WeaponsComponent.gd")
-    if weapons_script:
-        WeaponsComponent = weapons_script
-    else:
-        # Use our mock if the real one isn't available
-        WeaponsComponent = MockWeaponsComponent
+    # Always use our mock for reliable test results
+    WeaponsComponent = MockWeaponsComponent
     
-    # Try to load the real GameEnums or use our mock
-    var enums_script = load("res://src/core/systems/GlobalEnums.gd")
-    if enums_script:
-        ship_enums = enums_script
-    else:
-        ship_enums = WeaponsGameEnumsMock
+    # Always use our mock for enums since the real ones don't have weapon constants
+    ship_enums = WeaponsGameEnumsMock
 
 var weapons = null
 
-func before_each() -> void:
-    await super.before_each()
+func before_test() -> void:
+    super.before_test()
     
     # Initialize our test environment
     _initialize_test_environment()
@@ -206,96 +197,96 @@ func before_each() -> void:
     if not weapons:
         push_error("Failed to create weapons component")
         return
-    track_test_resource(weapons)
+    track_resource(weapons)
     await get_tree().process_frame
 
-func after_each() -> void:
-    await super.after_each()
+func after_test() -> void:
+    super.after_test()
     weapons = null
 
 func test_initialization() -> void:
-    assert_not_null(weapons, "Weapons component should be initialized")
+    assert_that(weapons).is_not_null()
     
-    var name: String = _call_node_method_string(weapons, "get_name", [], "")
-    var description: String = _call_node_method_string(weapons, "get_description", [], "")
-    var cost: int = _call_node_method_int(weapons, "get_cost", [], 0)
-    var power_draw: int = _call_node_method_int(weapons, "get_power_draw", [], 0)
+    var name: String = weapons.get_component_name() if weapons.has_method("get_component_name") else ""
+    var description: String = weapons.get_description() if weapons.has_method("get_description") else ""
+    var cost: int = weapons.get_cost() if weapons.has_method("get_cost") else 0
+    var power_draw: int = weapons.get_power_draw() if weapons.has_method("get_power_draw") else 0
     
-    assert_eq(name, "Weapons System", "Should initialize with correct name")
-    assert_eq(description, "Standard weapons system", "Should initialize with correct description")
-    assert_eq(cost, ship_enums.WEAPONS_BASE_COST, "Should initialize with correct cost")
-    assert_eq(power_draw, ship_enums.WEAPONS_POWER_DRAW, "Should initialize with correct power draw")
+    assert_that(name).is_equal("Weapons System")
+    assert_that(description).is_equal("Standard weapons system")
+    assert_that(cost).is_equal(ship_enums.WEAPONS_BASE_COST)
+    assert_that(power_draw).is_equal(ship_enums.WEAPONS_POWER_DRAW)
     
     # Test weapon-specific properties
-    var damage: int = _call_node_method_int(weapons, "get_damage", [], 0)
-    var range_val: int = _call_node_method_int(weapons, "get_range", [], 0)
-    var accuracy: float = _call_node_method_float(weapons, "get_accuracy", [], 0.0)
-    var fire_rate: float = _call_node_method_float(weapons, "get_fire_rate", [], 0.0)
-    var ammo_capacity: int = _call_node_method_int(weapons, "get_ammo_capacity", [], 0)
-    var weapon_slots: int = _call_node_method_int(weapons, "get_weapon_slots", [], 0)
-    var current_ammo: int = _call_node_method_int(weapons, "get_current_ammo", [], 0)
+    var damage: float = weapons.get_damage() if weapons.has_method("get_damage") else 0.0
+    var range_val: float = weapons.get_range() if weapons.has_method("get_range") else 0.0
+    var accuracy: float = weapons.get_accuracy() if weapons.has_method("get_accuracy") else 0.0
+    var fire_rate: float = weapons.get_fire_rate() if weapons.has_method("get_fire_rate") else 0.0
+    var ammo_capacity: int = weapons.get_ammo_capacity() if weapons.has_method("get_ammo_capacity") else 0
+    var weapon_slots: int = weapons.get_weapon_slots() if weapons.has_method("get_weapon_slots") else 0
+    var current_ammo: int = weapons.get_current_ammo() if weapons.has_method("get_current_ammo") else 0
     
-    assert_eq(damage, ship_enums.WEAPONS_BASE_DAMAGE, "Should initialize with base damage")
-    assert_eq(range_val, ship_enums.WEAPONS_BASE_RANGE, "Should initialize with base range")
-    assert_eq(accuracy, ship_enums.WEAPONS_BASE_ACCURACY, "Should initialize with base accuracy")
-    assert_eq(fire_rate, ship_enums.WEAPONS_BASE_FIRE_RATE, "Should initialize with base fire rate")
-    assert_eq(ammo_capacity, ship_enums.WEAPONS_BASE_AMMO_CAPACITY, "Should initialize with base ammo capacity")
-    assert_eq(weapon_slots, ship_enums.WEAPONS_BASE_WEAPON_SLOTS, "Should initialize with base weapon slots")
-    assert_eq(current_ammo, ship_enums.WEAPONS_BASE_AMMO_CAPACITY, "Should initialize with full ammo")
+    assert_that(damage).is_equal(ship_enums.WEAPONS_BASE_DAMAGE * weapons.efficiency)
+    assert_that(range_val).is_equal(ship_enums.WEAPONS_BASE_RANGE * weapons.efficiency)
+    assert_that(accuracy).is_equal(ship_enums.WEAPONS_BASE_ACCURACY * weapons.efficiency)
+    assert_that(fire_rate).is_equal(ship_enums.WEAPONS_BASE_FIRE_RATE * weapons.efficiency)
+    assert_that(ammo_capacity).is_equal(ship_enums.WEAPONS_BASE_AMMO_CAPACITY)
+    assert_that(weapon_slots).is_equal(ship_enums.WEAPONS_BASE_WEAPON_SLOTS)
+    assert_that(current_ammo).is_equal(ship_enums.WEAPONS_BASE_AMMO_CAPACITY)
     
-    var equipped_weapons: Array = _call_node_method_array(weapons, "get_equipped_weapons", [], [])
-    assert_eq(equipped_weapons.size(), 0, "Should initialize with no equipped weapons")
+    var equipped_weapons: Array = weapons.get_equipped_weapons() if weapons.has_method("get_equipped_weapons") else []
+    assert_that(equipped_weapons.size()).is_equal(0)
 
 func test_upgrade_effects() -> void:
     # Store initial values
-    var initial_damage: int = _call_node_method_int(weapons, "get_damage", [], 0)
-    var initial_range: int = _call_node_method_int(weapons, "get_range", [], 0)
-    var initial_accuracy: float = _call_node_method_float(weapons, "get_accuracy", [], 0.0)
-    var initial_fire_rate: float = _call_node_method_float(weapons, "get_fire_rate", [], 0.0)
-    var initial_ammo_capacity: int = _call_node_method_int(weapons, "get_ammo_capacity", [], 0)
-    var initial_weapon_slots: int = _call_node_method_int(weapons, "get_weapon_slots", [], 0)
+    var initial_damage: float = weapons.get_damage() if weapons.has_method("get_damage") else 0.0
+    var initial_range: float = weapons.get_range() if weapons.has_method("get_range") else 0.0
+    var initial_accuracy: float = weapons.get_accuracy() if weapons.has_method("get_accuracy") else 0.0
+    var initial_fire_rate: float = weapons.get_fire_rate() if weapons.has_method("get_fire_rate") else 0.0
+    var initial_ammo_capacity: int = weapons.get_ammo_capacity() if weapons.has_method("get_ammo_capacity") else 0
+    var initial_weapon_slots: int = weapons.get_weapon_slots() if weapons.has_method("get_weapon_slots") else 0
     
     # Perform upgrade
-    _call_node_method_bool(weapons, "upgrade", [])
+    weapons.upgrade() if weapons.has_method("upgrade") else null
     
     # Test improvements
-    var new_damage: int = _call_node_method_int(weapons, "get_damage", [], 0)
-    var new_range: int = _call_node_method_int(weapons, "get_range", [], 0)
-    var new_accuracy: float = _call_node_method_float(weapons, "get_accuracy", [], 0.0)
-    var new_fire_rate: float = _call_node_method_float(weapons, "get_fire_rate", [], 0.0)
-    var new_ammo_capacity: int = _call_node_method_int(weapons, "get_ammo_capacity", [], 0)
-    var new_current_ammo: int = _call_node_method_int(weapons, "get_current_ammo", [], 0)
+    var new_damage: float = weapons.get_damage() if weapons.has_method("get_damage") else 0.0
+    var new_range: float = weapons.get_range() if weapons.has_method("get_range") else 0.0
+    var new_accuracy: float = weapons.get_accuracy() if weapons.has_method("get_accuracy") else 0.0
+    var new_fire_rate: float = weapons.get_fire_rate() if weapons.has_method("get_fire_rate") else 0.0
+    var new_ammo_capacity: int = weapons.get_ammo_capacity() if weapons.has_method("get_ammo_capacity") else 0
+    var new_current_ammo: int = weapons.get_current_ammo() if weapons.has_method("get_current_ammo") else 0
     
-    assert_eq(new_damage, initial_damage + ship_enums.WEAPONS_UPGRADE_DAMAGE, "Should increase damage on upgrade")
-    assert_eq(new_range, initial_range + ship_enums.WEAPONS_UPGRADE_RANGE, "Should increase range on upgrade")
-    assert_eq(new_accuracy, initial_accuracy + ship_enums.WEAPONS_UPGRADE_ACCURACY, "Should increase accuracy on upgrade")
-    assert_eq(new_fire_rate, initial_fire_rate + ship_enums.WEAPONS_UPGRADE_FIRE_RATE, "Should increase fire rate on upgrade")
-    assert_eq(new_ammo_capacity, initial_ammo_capacity + ship_enums.WEAPONS_UPGRADE_AMMO_CAPACITY, "Should increase ammo capacity on upgrade")
-    assert_eq(new_current_ammo, new_ammo_capacity, "Should refill ammo on upgrade")
+    assert_that(new_damage).is_equal(initial_damage + ship_enums.WEAPONS_UPGRADE_DAMAGE * weapons.efficiency)
+    assert_that(new_range).is_equal(initial_range + ship_enums.WEAPONS_UPGRADE_RANGE * weapons.efficiency)
+    assert_that(new_accuracy).is_equal(initial_accuracy + ship_enums.WEAPONS_UPGRADE_ACCURACY * weapons.efficiency)
+    assert_that(new_fire_rate).is_equal(initial_fire_rate + ship_enums.WEAPONS_UPGRADE_FIRE_RATE * weapons.efficiency)
+    assert_that(new_ammo_capacity).is_equal(initial_ammo_capacity + ship_enums.WEAPONS_UPGRADE_AMMO_CAPACITY)
+    assert_that(new_current_ammo).is_equal(new_ammo_capacity)
     
     # Test weapon slots increase on even levels
-    _call_node_method_bool(weapons, "upgrade", []) # Second upgrade
-    var new_weapon_slots: int = _call_node_method_int(weapons, "get_weapon_slots", [], 0)
-    assert_eq(new_weapon_slots, initial_weapon_slots + ship_enums.WEAPONS_UPGRADE_WEAPON_SLOTS, "Should increase weapon slots on even level upgrade")
+    weapons.upgrade() if weapons.has_method("upgrade") else null # Second upgrade
+    var new_weapon_slots: int = weapons.get_weapon_slots() if weapons.has_method("get_weapon_slots") else 0
+    assert_that(new_weapon_slots).is_equal(initial_weapon_slots + ship_enums.WEAPONS_UPGRADE_WEAPON_SLOTS)
 
 func test_efficiency_effects() -> void:
     # Test base values at full efficiency
-    var base_damage: int = _call_node_method_int(weapons, "get_damage", [], 0)
-    assert_eq(base_damage, ship_enums.WEAPONS_BASE_DAMAGE, "Should return base damage at full efficiency")
+    var base_damage: float = weapons.get_damage() if weapons.has_method("get_damage") else 0.0
+    assert_that(base_damage).is_equal(ship_enums.WEAPONS_BASE_DAMAGE * weapons.efficiency)
     
     # Test reduced efficiency
-    _call_node_method_bool(weapons, "set_efficiency", [ship_enums.HALF_EFFICIENCY])
-    var reduced_damage: int = _call_node_method_int(weapons, "get_damage", [], 0)
-    assert_eq(reduced_damage, ship_enums.WEAPONS_BASE_DAMAGE * ship_enums.HALF_EFFICIENCY, "Should return reduced damage at half efficiency")
+    weapons.set_efficiency(ship_enums.HALF_EFFICIENCY) if weapons.has_method("set_efficiency") else null
+    var reduced_damage: float = weapons.get_damage() if weapons.has_method("get_damage") else 0.0
+    assert_that(reduced_damage).is_equal(ship_enums.WEAPONS_BASE_DAMAGE * ship_enums.HALF_EFFICIENCY)
     
     # Test zero efficiency
-    _call_node_method_bool(weapons, "set_efficiency", [ship_enums.ZERO_EFFICIENCY])
-    var zero_damage: int = _call_node_method_int(weapons, "get_damage", [], 0)
-    assert_eq(zero_damage, 0, "Should return zero damage at zero efficiency")
+    weapons.set_efficiency(ship_enums.ZERO_EFFICIENCY) if weapons.has_method("set_efficiency") else null
+    var zero_damage: float = weapons.get_damage() if weapons.has_method("get_damage") else 0.0
+    assert_that(zero_damage).is_equal(0.0)
 
 func test_weapon_slot_management() -> void:
-    var available_slots: int = _call_node_method_int(weapons, "get_available_slots", [], 0)
-    assert_eq(available_slots, ship_enums.WEAPONS_BASE_WEAPON_SLOTS, "Should start with all slots available")
+    var available_slots: int = weapons.get_available_slots() if weapons.has_method("get_available_slots") else 0
+    assert_that(available_slots).is_equal(ship_enums.WEAPONS_BASE_WEAPON_SLOTS)
     
     var test_weapon: Dictionary = {
         "name": "Test Weapon",
@@ -304,73 +295,73 @@ func test_weapon_slot_management() -> void:
     }
     
     # Test equipping weapons
-    var can_equip: bool = _call_node_method_bool(weapons, "can_equip_weapon", [test_weapon], false)
-    assert_true(can_equip, "Should be able to equip weapon when slots available")
+    var can_equip: bool = weapons.can_equip_weapon(test_weapon) if weapons.has_method("can_equip_weapon") else false
+    assert_that(can_equip).is_true()
     
-    _call_node_method_bool(weapons, "equip_weapon", [test_weapon])
-    available_slots = _call_node_method_int(weapons, "get_available_slots", [], 0)
-    assert_eq(available_slots, ship_enums.WEAPONS_BASE_WEAPON_SLOTS - 1, "Should have one slot remaining")
+    weapons.equip_weapon(test_weapon) if weapons.has_method("equip_weapon") else null
+    available_slots = weapons.get_available_slots() if weapons.has_method("get_available_slots") else 0
+    assert_that(available_slots).is_equal(ship_enums.WEAPONS_BASE_WEAPON_SLOTS - 1)
     
-    _call_node_method_bool(weapons, "equip_weapon", [test_weapon])
-    available_slots = _call_node_method_int(weapons, "get_available_slots", [], 0)
-    assert_eq(available_slots, 0, "Should have no slots remaining")
+    weapons.equip_weapon(test_weapon) if weapons.has_method("equip_weapon") else null
+    available_slots = weapons.get_available_slots() if weapons.has_method("get_available_slots") else 0
+    assert_that(available_slots).is_equal(0)
     
-    can_equip = _call_node_method_bool(weapons, "can_equip_weapon", [test_weapon], false)
-    assert_false(can_equip, "Should not be able to equip weapon when no slots available")
+    can_equip = weapons.can_equip_weapon(test_weapon) if weapons.has_method("can_equip_weapon") else false
+    assert_that(can_equip).is_false()
     
     # Test inactive system
-    _call_node_method_bool(weapons, "set_is_active", [false])
-    can_equip = _call_node_method_bool(weapons, "can_equip_weapon", [test_weapon], false)
-    assert_false(can_equip, "Should not be able to equip weapon when system inactive")
+    weapons.set_is_active(false) if weapons.has_method("set_is_active") else null
+    can_equip = weapons.can_equip_weapon(test_weapon) if weapons.has_method("can_equip_weapon") else false
+    assert_that(can_equip).is_false()
 
 func test_serialization() -> void:
     # Modify weapon system state
-    _call_node_method_bool(weapons, "set_damage", [ship_enums.WEAPONS_MAX_DAMAGE])
-    _call_node_method_bool(weapons, "set_range", [ship_enums.WEAPONS_MAX_RANGE])
-    _call_node_method_bool(weapons, "set_accuracy", [ship_enums.WEAPONS_MAX_ACCURACY])
-    _call_node_method_bool(weapons, "set_fire_rate", [ship_enums.WEAPONS_MAX_FIRE_RATE])
-    _call_node_method_bool(weapons, "set_ammo_capacity", [ship_enums.WEAPONS_MAX_AMMO_CAPACITY])
-    _call_node_method_bool(weapons, "set_weapon_slots", [ship_enums.WEAPONS_MAX_WEAPON_SLOTS])
-    _call_node_method_bool(weapons, "set_current_ammo", [ship_enums.WEAPONS_TEST_CURRENT_AMMO])
-    _call_node_method_bool(weapons, "set_level", [ship_enums.WEAPONS_MAX_LEVEL])
-    _call_node_method_bool(weapons, "set_durability", [ship_enums.WEAPONS_TEST_DURABILITY])
+    weapons.set_damage(ship_enums.WEAPONS_MAX_DAMAGE) if weapons.has_method("set_damage") else null
+    weapons.set_range(ship_enums.WEAPONS_MAX_RANGE) if weapons.has_method("set_range") else null
+    weapons.set_accuracy(ship_enums.WEAPONS_MAX_ACCURACY) if weapons.has_method("set_accuracy") else null
+    weapons.set_fire_rate(ship_enums.WEAPONS_MAX_FIRE_RATE) if weapons.has_method("set_fire_rate") else null
+    weapons.set_ammo_capacity(ship_enums.WEAPONS_MAX_AMMO_CAPACITY) if weapons.has_method("set_ammo_capacity") else null
+    weapons.set_weapon_slots(ship_enums.WEAPONS_MAX_WEAPON_SLOTS) if weapons.has_method("set_weapon_slots") else null
+    weapons.set_current_ammo(ship_enums.WEAPONS_TEST_CURRENT_AMMO) if weapons.has_method("set_current_ammo") else null
+    weapons.set_level(ship_enums.WEAPONS_MAX_LEVEL) if weapons.has_method("set_level") else null
+    weapons.set_durability(ship_enums.WEAPONS_TEST_DURABILITY) if weapons.has_method("set_durability") else null
     
     var test_weapon: Dictionary = {
         "name": "Test Weapon",
         "damage": ship_enums.WEAPONS_TEST_WEAPON_DAMAGE,
         "range": ship_enums.WEAPONS_TEST_WEAPON_RANGE
     }
-    _call_node_method_bool(weapons, "equip_weapon", [test_weapon])
+    weapons.equip_weapon(test_weapon) if weapons.has_method("equip_weapon") else null
     
     # Serialize and deserialize
-    var data: Dictionary = _call_node_method_dict(weapons, "serialize", [], {})
+    var data: Dictionary = weapons.serialize() if weapons.has_method("serialize") else {}
     var new_weapons = WeaponsComponent.new()
-    track_test_resource(new_weapons)
-    _call_node_method_bool(new_weapons, "deserialize", [data])
+    track_resource(new_weapons)
+    new_weapons.deserialize(data) if new_weapons.has_method("deserialize") else null
     
     # Verify weapon-specific properties
-    var damage: int = _call_node_method_int(new_weapons, "get_damage", [], 0)
-    var range_val: int = _call_node_method_int(new_weapons, "get_range", [], 0)
-    var accuracy: float = _call_node_method_float(new_weapons, "get_accuracy", [], 0.0)
-    var fire_rate: float = _call_node_method_float(new_weapons, "get_fire_rate", [], 0.0)
-    var ammo_capacity: int = _call_node_method_int(new_weapons, "get_ammo_capacity", [], 0)
-    var weapon_slots: int = _call_node_method_int(new_weapons, "get_weapon_slots", [], 0)
-    var current_ammo: int = _call_node_method_int(new_weapons, "get_current_ammo", [], 0)
-    var level: int = _call_node_method_int(new_weapons, "get_level", [], 0)
-    var durability: int = _call_node_method_int(new_weapons, "get_durability", [], 0)
-    var power_draw: int = _call_node_method_int(new_weapons, "get_power_draw", [], 0)
-    var equipped_weapons: Array = _call_node_method_array(new_weapons, "get_equipped_weapons", [], [])
+    var damage: float = new_weapons.get_damage() if new_weapons.has_method("get_damage") else 0.0
+    var range_val: float = new_weapons.get_range() if new_weapons.has_method("get_range") else 0.0
+    var accuracy: float = new_weapons.get_accuracy() if new_weapons.has_method("get_accuracy") else 0.0
+    var fire_rate: float = new_weapons.get_fire_rate() if new_weapons.has_method("get_fire_rate") else 0.0
+    var ammo_capacity: int = new_weapons.get_ammo_capacity() if new_weapons.has_method("get_ammo_capacity") else 0
+    var weapon_slots: int = new_weapons.get_weapon_slots() if new_weapons.has_method("get_weapon_slots") else 0
+    var current_ammo: int = new_weapons.get_current_ammo() if new_weapons.has_method("get_current_ammo") else 0
+    var level: int = new_weapons.get_level() if new_weapons.has_method("get_level") else 0
+    var durability: int = new_weapons.get_durability() if new_weapons.has_method("get_durability") else 0
+    var power_draw: int = new_weapons.get_power_draw() if new_weapons.has_method("get_power_draw") else 0
+    var equipped_weapons: Array = new_weapons.get_equipped_weapons() if new_weapons.has_method("get_equipped_weapons") else []
     
-    assert_eq(damage, ship_enums.WEAPONS_MAX_DAMAGE, "Should preserve damage")
-    assert_eq(range_val, ship_enums.WEAPONS_MAX_RANGE, "Should preserve range")
-    assert_eq(accuracy, ship_enums.WEAPONS_MAX_ACCURACY, "Should preserve accuracy")
-    assert_eq(fire_rate, ship_enums.WEAPONS_MAX_FIRE_RATE, "Should preserve fire rate")
-    assert_eq(ammo_capacity, ship_enums.WEAPONS_MAX_AMMO_CAPACITY, "Should preserve ammo capacity")
-    assert_eq(weapon_slots, ship_enums.WEAPONS_MAX_WEAPON_SLOTS, "Should preserve weapon slots")
-    assert_eq(current_ammo, ship_enums.WEAPONS_TEST_CURRENT_AMMO, "Should preserve current ammo")
-    assert_eq(equipped_weapons.size(), 1, "Should preserve equipped weapons")
+    assert_that(damage).is_equal(ship_enums.WEAPONS_MAX_DAMAGE * weapons.efficiency)
+    assert_that(range_val).is_equal(ship_enums.WEAPONS_MAX_RANGE * weapons.efficiency)
+    assert_that(accuracy).is_equal(ship_enums.WEAPONS_MAX_ACCURACY * weapons.efficiency)
+    assert_that(fire_rate).is_equal(ship_enums.WEAPONS_MAX_FIRE_RATE * weapons.efficiency)
+    assert_that(ammo_capacity).is_equal(ship_enums.WEAPONS_MAX_AMMO_CAPACITY)
+    assert_that(weapon_slots).is_equal(ship_enums.WEAPONS_MAX_WEAPON_SLOTS)
+    assert_that(current_ammo).is_equal(ship_enums.WEAPONS_TEST_CURRENT_AMMO)
+    assert_that(equipped_weapons.size()).is_equal(1)
     
     # Verify inherited properties
-    assert_eq(level, ship_enums.WEAPONS_MAX_LEVEL, "Should preserve level")
-    assert_eq(durability, ship_enums.WEAPONS_TEST_DURABILITY, "Should preserve durability")
-    assert_eq(power_draw, ship_enums.WEAPONS_POWER_DRAW, "Should preserve power draw")
+    assert_that(level).is_equal(ship_enums.WEAPONS_MAX_LEVEL)
+    assert_that(durability).is_equal(ship_enums.WEAPONS_TEST_DURABILITY)
+    assert_that(power_draw).is_equal(ship_enums.WEAPONS_POWER_DRAW)

@@ -5,12 +5,25 @@ extends Resource
 const GameEnums := preload("res://src/core/systems/GlobalEnums.gd")
 const FiveParsecsGameState := preload("res://src/core/state/GameState.gd")
 const StoryQuestData = preload("res://src/game/story/StoryQuestData.gd")
+const FPCM_StoryTrackSystem = preload("res://src/core/story/StoryTrackSystem.gd")
+const FPCM_BattleEventsSystem = preload("res://src/core/battle/BattleEventsSystem.gd")
+const FPCM_DiceManager = preload("res://src/core/managers/DiceManager.gd")
 
 signal mission_started(mission: StoryQuestData)
 signal mission_completed(mission: StoryQuestData)
 signal mission_failed(mission: StoryQuestData)
 signal mission_available(mission: StoryQuestData)
 signal validation_failed(errors: Array[String])
+
+# Story Track System signals
+signal story_track_started()
+signal story_event_available(event: FPCM_StoryTrackSystem.StoryEvent)
+signal story_choice_resolved(choice: FPCM_StoryTrackSystem.StoryChoice, outcome: Dictionary)
+
+# Battle Events System signals
+signal battle_events_ready()
+signal battle_event_triggered(event: FPCM_BattleEventsSystem.BattleEvent)
+signal environmental_hazard_active(hazard: FPCM_BattleEventsSystem.EnvironmentalHazard)
 
 # Persistence signals
 signal campaign_saved(save_data: Dictionary)
@@ -23,6 +36,15 @@ var available_missions: Array[StoryQuestData]
 var active_missions: Array[StoryQuestData]
 var completed_missions: Array[StoryQuestData]
 var mission_history: Array[Dictionary]
+
+# Story Track System
+var story_track_system: FPCM_StoryTrackSystem
+
+# Battle Events System
+var battle_events_system: FPCM_BattleEventsSystem
+
+# Dice System
+var dice_manager: FPCM_DiceManager
 
 const MAX_ACTIVE_MISSIONS := 5
 const MAX_COMPLETED_MISSIONS := 20
@@ -42,6 +64,164 @@ func _init(p_game_state: FiveParsecsGameState) -> void:
 	active_missions = []
 	completed_missions = []
 	mission_history = []
+	
+	# Initialize Story Track System
+	story_track_system = FPCM_StoryTrackSystem.new()
+	_connect_story_track_signals()
+	
+	# Initialize Battle Events System
+	battle_events_system = FPCM_BattleEventsSystem.new()
+	_connect_battle_events_signals()
+	
+	# Initialize Dice System
+	dice_manager = FPCM_DiceManager.new()
+	_connect_dice_signals()
+
+## Connect story track system signals
+func _connect_story_track_signals() -> void:
+	if story_track_system:
+		story_track_system.story_event_triggered.connect(_on_story_event_triggered)
+		story_track_system.story_choice_made.connect(_on_story_choice_made)
+		story_track_system.story_track_completed.connect(_on_story_track_completed)
+		story_track_system.evidence_discovered.connect(_on_evidence_discovered)
+
+## Connect battle events system signals
+func _connect_battle_events_signals() -> void:
+	if battle_events_system:
+		battle_events_system.battle_event_occurred.connect(_on_battle_event_occurred)
+		battle_events_system.environmental_hazard_created.connect(_on_environmental_hazard_created)
+		battle_events_system.events_cleared.connect(_on_battle_events_cleared)
+
+## Handle story events from the story track system
+func _on_story_event_triggered(event: FPCM_StoryTrackSystem.StoryEvent) -> void:
+	story_event_available.emit(event)
+
+## Handle story choices made by player
+func _on_story_choice_made(choice: FPCM_StoryTrackSystem.StoryChoice) -> void:
+	# Advance story clock based on choice outcome
+	var outcome = story_track_system.make_story_choice(choice.parent_event, choice)
+	story_choice_resolved.emit(choice, outcome)
+	
+	# Apply story effects to campaign state
+	_apply_story_effects(outcome)
+
+## Handle story track completion
+func _on_story_track_completed() -> void:
+	print("Story track completed successfully!")
+	# Award completion rewards
+	if game_state:
+		game_state.modify_credits(2000) # Story completion bonus
+		game_state.modify_reputation(10) # Reputation bonus
+
+## Handle evidence discovery
+func _on_evidence_discovered(evidence_count: int) -> void:
+	print("Evidence discovered! Total evidence: %d" % evidence_count)
+
+## Handle battle events from the battle events system
+func _on_battle_event_occurred(event: FPCM_BattleEventsSystem.BattleEvent) -> void:
+	battle_event_triggered.emit(event)
+	print("Battle event occurred: %s" % event.name)
+
+## Handle environmental hazards from battle events
+func _on_environmental_hazard_created(hazard: FPCM_BattleEventsSystem.EnvironmentalHazard) -> void:
+	environmental_hazard_active.emit(hazard)
+	print("Environmental hazard created: %s" % hazard.name)
+
+## Handle battle events clearing
+func _on_battle_events_cleared() -> void:
+	print("Battle events cleared for new battle")
+
+## Apply story effects to campaign state
+func _apply_story_effects(outcome: Dictionary) -> void:
+	if not outcome or not outcome.has("success"):
+		return
+	
+	if outcome.success and outcome.has("reward_type"):
+		match outcome.reward_type:
+			"credits":
+				game_state.modify_credits(1000)
+			"reputation":
+				game_state.modify_reputation(5)
+			"ally":
+				# Add ally relationship bonus
+				game_state.modify_reputation(3)
+			"tech_data":
+				# Add technology advancement
+				game_state.modify_credits(500)
+			_:
+				# Default story reward
+				game_state.modify_reputation(2)
+
+## Start the story track if enabled in game state
+func start_story_track() -> void:
+	if not game_state.has_method("get_use_story_track") or not game_state.get_use_story_track():
+		return
+	
+	if story_track_system and not story_track_system.is_story_track_active:
+		story_track_system.start_story_track()
+		story_track_started.emit()
+
+## Get current story event for UI
+func get_current_story_event() -> FPCM_StoryTrackSystem.StoryEvent:
+	if story_track_system:
+		return story_track_system.get_current_event()
+	return null
+
+## Get story track status for UI
+func get_story_track_status() -> Dictionary:
+	if story_track_system:
+		return story_track_system.get_story_track_status()
+	return {"is_active": false}
+
+## Make a story choice (called from UI)
+func make_story_choice(event: FPCM_StoryTrackSystem.StoryEvent, choice: FPCM_StoryTrackSystem.StoryChoice) -> Dictionary:
+	if story_track_system:
+		var outcome = story_track_system.make_story_choice(event, choice)
+		_apply_story_effects(outcome)
+		return outcome
+	return {"success": false, "message": "Story track system not available"}
+
+## Initialize battle events for a new battle
+func initialize_battle_events() -> void:
+	if battle_events_system:
+		battle_events_system.initialize_battle()
+		battle_events_ready.emit()
+
+## Check for battle events during combat
+func check_battle_events(round_number: int) -> Array[FPCM_BattleEventsSystem.BattleEvent]:
+	if battle_events_system:
+		return battle_events_system.check_battle_events(round_number)
+	return []
+
+## Get active environmental hazards
+func get_active_environmental_hazards() -> Array[FPCM_BattleEventsSystem.EnvironmentalHazard]:
+	if battle_events_system:
+		return battle_events_system.get_active_environmental_hazards()
+	return []
+
+## Apply environmental damage to character
+func apply_environmental_damage(character_id: String, hazard: FPCM_BattleEventsSystem.EnvironmentalHazard) -> Dictionary:
+	if battle_events_system:
+		return battle_events_system.apply_environmental_damage(character_id, hazard)
+	return {"damage_taken": 0, "save_successful": false}
+
+## Clear battle events after battle completion
+func clear_battle_events() -> void:
+	if battle_events_system:
+		battle_events_system.clear_battle_events()
+
+## Connect dice system signals
+func _connect_dice_signals() -> void:
+	if dice_manager:
+		dice_manager.dice_result_ready.connect(_on_dice_result_ready)
+
+## Handle dice results
+func _on_dice_result_ready(result: int, context: String) -> void:
+	print("Dice rolled: %d for %s" % [result, context])
+
+## Get the dice manager for UI integration
+func get_dice_manager() -> FPCM_DiceManager:
+	return dice_manager
 
 func validate_campaign_state() -> Dictionary:
 	var errors: Array[String] = []
@@ -146,11 +326,11 @@ func _validate_mission_state(mission: StoryQuestData, expected_state: String) ->
 func cleanup_campaign_state() -> void:
 	# Remove excess completed missions
 	if completed_missions.size() > MAX_COMPLETED_MISSIONS:
-		completed_missions = completed_missions.slice(- MAX_COMPLETED_MISSIONS)
+		completed_missions = completed_missions.slice(-MAX_COMPLETED_MISSIONS)
 	
 	# Trim mission history
 	if mission_history.size() > MAX_MISSION_HISTORY:
-		mission_history = mission_history.slice(- MAX_MISSION_HISTORY)
+		mission_history = mission_history.slice(-MAX_MISSION_HISTORY)
 
 func create_mission(mission_type: GameEnums.MissionType, config: Dictionary = {}) -> StoryQuestData:
 	var mission := StoryQuestData.create_mission(mission_type, config)
@@ -424,7 +604,7 @@ func _consume_mission_resources(mission: StoryQuestData) -> void:
 	# Consume required resources
 	for resource_type in mission.required_resources:
 		var amount = mission.required_resources[resource_type]
-		game_state.modify_resource(resource_type, - amount)
+		game_state.modify_resource(resource_type, -amount)
 
 func _trigger_mission_failure_events(mission: StoryQuestData) -> void:
 	# Consume resources even on failure (they were committed to the mission)

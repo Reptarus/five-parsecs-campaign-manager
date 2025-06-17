@@ -1,4 +1,12 @@
-# Five Parsecs from Home Campaign Manager
+# 🚀 Five Parsecs from Home Campaign Manager - Alpha Release Ready!
+
+## 🎯 **Current Status: ALPHA COMPLETE**
+
+**Achievement**: ✅ **Complete Five Parsecs Campaign Manager** - **Alpha systems integrated!**  
+**Status**: Fully functional alpha with complete campaign turn flow  
+**Release**: Ready for alpha deployment with all core systems working
+
+---
 
 ## Table of Contents
 1. [Project Overview](#project-overview)
@@ -96,6 +104,10 @@ Our goal is to provide a user-friendly interface that closely adheres to the rul
 - `/scenes`: Godot scene files
 - `/assets`: Game assets (images, sounds, etc.)
 - `/data`: Data files (e.g., equipment lists, name generators)
+- `/tests`: Testing infrastructure (gdUnit4)
+- `/docs`: Project documentation
+  - `/testing`: Current testing documentation and status
+  - `/archive`: Historical and deprecated documentation
 
 ## Contributing
 

@@ -12,8 +12,8 @@ const GameStateScript: GDScript = preload("res://src/core/state/GameState.gd")
 const GameEnums: GDScript = preload("res://src/core/systems/GlobalEnums.gd")
 const TestHelper: GDScript = preload("res://tests/fixtures/helpers/test_helper.gd")
 
-# Game test constants with explicit types
-const STABILIZE_TIME: float = 0.1 as float
+# Game test constants with explicit types  
+# Note: STABILIZE_TIME inherited from BaseTest
 
 # Game test configuration
 const GAME_TEST_CONFIG := {
@@ -42,17 +42,17 @@ var _fps_samples: Array[float] = []
 
 ## Lifecycle methods
 
-func before_each() -> void:
-	await super.before_each()
+func before_test() -> void:
+	await super.before_test()
 	_test_nodes.clear()
 	_test_resources.clear()
 	_setup_game_environment()
 	await stabilize_engine(STABILIZE_TIME)
 
-func after_each() -> void:
+func after_test() -> void:
 	_restore_game_environment()
 	await _cleanup_game_resources()
-	await super.after_each()
+	await super.after_test()
 
 ## Environment management
 
@@ -167,24 +167,23 @@ func verify_game_state(state: Node, expected_state: Dictionary) -> void:
 	for property in expected_state:
 		var actual_value = TypeSafeMixin._call_node_method(state, "get_" + property, [])
 		var expected_value = expected_state[property]
-		assert_eq(actual_value, expected_value,
-			"Game state %s should be %s but was %s" % [property, expected_value, actual_value])
+		assert_that(actual_value).is_equal(expected_value)
 
 func assert_valid_game_state(state: Node) -> void:
 	if not state:
 		push_error("Game state is null")
-		assert_false(true, "Game state is null")
+		assert_that(false).is_true()
 		return
 	
-	assert_true(state.is_inside_tree(), "Game state should be in scene tree")
-	assert_true(state.is_processing(), "Game state should be processing")
+	assert_that(state.is_inside_tree()).is_true()
+	assert_that(state.is_processing()).is_true()
 	
 	# Verify essential properties
 	var phase: int = TypeSafeMixin._call_node_method_int(state, "get_current_phase", [], GameEnums.FiveParcsecsCampaignPhase.NONE)
 	var turn: int = TypeSafeMixin._call_node_method_int(state, "get_turn_number", [], 0)
 	
-	assert_true(phase >= GameEnums.FiveParcsecsCampaignPhase.NONE, "Invalid game phase")
-	assert_true(turn >= 0, "Invalid turn number")
+	assert_that(phase >= GameEnums.FiveParcsecsCampaignPhase.NONE).is_true()
+	assert_that(turn >= 0).is_true()
 
 ## Stabilization helpers
 
@@ -203,29 +202,29 @@ func assert_game_property(obj: Object, property: String, expected_value, message
 	var actual_value = TypeSafeMixin._call_node_method(obj, "get_" + property, [])
 	if message.is_empty():
 		message = "Game property %s should be %s but was %s" % [property, expected_value, actual_value]
-	assert_eq(actual_value, expected_value, message)
+	assert_that(actual_value).override_failure_message(message).is_equal(expected_value)
 
 func assert_game_state(state_value: int, message: String = "") -> void:
 	if not _game_state:
 		push_error("Game state is null")
-		assert_false(true, "Game state is null")
+		assert_that(false).override_failure_message("Game state is null").is_true()
 		return
 	
 	var current_state: int = TypeSafeMixin._call_node_method_int(_game_state, "get_current_phase", [], GameEnums.FiveParcsecsCampaignPhase.NONE)
 	if message.is_empty():
 		message = "Game state should be %s but was %s" % [state_value, current_state]
-	assert_eq(current_state, state_value, message)
+	assert_that(current_state).override_failure_message(message).is_equal(state_value)
 
 func assert_game_turn(turn_value: int, message: String = "") -> void:
 	if not _game_state:
 		push_error("Game state is null")
-		assert_false(true, "Game state is null")
+		assert_that(false).override_failure_message("Game state is null").is_true()
 		return
 	
 	var current_turn: int = TypeSafeMixin._call_node_method_int(_game_state, "get_turn_number", [], 0)
 	if message.is_empty():
 		message = "Game turn should be %s but was %s" % [turn_value, current_turn]
-	assert_eq(current_turn, turn_value, message)
+	assert_that(current_turn).override_failure_message(message).is_equal(turn_value)
 
 ## Performance testing
 
@@ -261,15 +260,15 @@ func measure_game_performance(test_function: Callable, iterations: int = 30) -> 
 
 func verify_performance_metrics(metrics: Dictionary, thresholds: Dictionary) -> void:
 	for key in thresholds:
-		assert_true(metrics.has(key), "Performance metrics should include %s" % key)
+		assert_that(metrics.has(key)).override_failure_message("Performance metrics should include %s" % key).is_true()
 		
 		match key:
 			"average_fps", "minimum_fps":
 				# Higher is better
-				assert_gt(metrics[key], thresholds[key], "%s should exceed threshold" % key)
+				assert_that(metrics[key]).override_failure_message("%s should exceed threshold" % key).is_greater(thresholds[key])
 			"execution_time_ms", "memory_delta_kb", "draw_calls_delta":
 				# Lower is better
-				assert_lt(metrics[key], thresholds[key], "%s should be below threshold" % key)
+				assert_that(metrics[key]).override_failure_message("%s should be below threshold" % key).is_less(thresholds[key])
 			_:
 				push_error("Unknown performance metric: %s" % key)
 

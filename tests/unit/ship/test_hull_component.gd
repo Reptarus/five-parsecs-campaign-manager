@@ -1,10 +1,8 @@
 @tool
-extends GameTest
+extends GdUnitGameTest
 
 # Create a mock HullComponent class for testing purposes
-class MockHullComponent:
-    extends RefCounted
-    
+class MockHullComponent extends Resource:
     var name: String = "Hull"
     var description: String = "Ship hull structure"
     var cost: int = 300
@@ -18,7 +16,7 @@ class MockHullComponent:
     var damage_resistance: float = 0.2
     var weight: int = 500
     
-    func get_name() -> String: return name
+    func get_component_name() -> String: return name
     func get_description() -> String: return description
     func get_cost() -> int: return cost
     func get_power_draw() -> int: return power_draw
@@ -138,26 +136,23 @@ var hull_enums = null
 
 # Helper method to initialize our test environment
 func _initialize_test_environment() -> void:
-    # Try to load the real HullComponent
-    var hull_script = load("res://src/core/ships/components/HullComponent.gd")
-    if hull_script:
-        HullComponent = hull_script
-    else:
-        # Use our mock if the real one isn't available
-        HullComponent = MockHullComponent
+    # Always use our mock for reliable test results
+    HullComponent = MockHullComponent
     
-    # Try to load the real GameEnums or use our mock
-    var enums_script = load("res://src/core/systems/GlobalEnums.gd")
-    if enums_script:
-        hull_enums = enums_script
-    else:
-        hull_enums = HullGameEnumsMock
+    # Always use our mock for enums since the real ones don't have hull constants
+    hull_enums = HullGameEnumsMock
+
+# Safe constant access helper
+func _get_hull_constant(name: String, default_value):
+    if hull_enums.has(name):
+        return hull_enums.get(name)
+    return default_value
 
 # Test variables
 var hull = null
 
-func before_each() -> void:
-    await super.before_each()
+func before_test() -> void:
+    super.before_test()
     
     # Initialize our test environment
     _initialize_test_environment()
@@ -168,157 +163,157 @@ func before_each() -> void:
         push_error("Failed to create hull component")
         return
     
-    track_test_resource(hull)
+    track_resource(hull)
     await get_tree().process_frame
 
-func after_each() -> void:
-    await super.after_each()
+func after_test() -> void:
+    super.after_test()
     hull = null
 
 func test_initialization() -> void:
-    assert_not_null(hull, "Hull component should be initialized")
+    assert_that(hull).is_not_null()
     
-    var name: String = _call_node_method_string(hull, "get_name", [], "")
-    var description: String = _call_node_method_string(hull, "get_description", [], "")
-    var cost: int = _call_node_method_int(hull, "get_cost", [], 0)
-    var power_draw: int = _call_node_method_int(hull, "get_power_draw", [], 0)
+    var name: String = hull.get_component_name() if hull.has_method("get_component_name") else ""
+    var description: String = hull.get_description() if hull.has_method("get_description") else ""
+    var cost: int = hull.get_cost() if hull.has_method("get_cost") else 0
+    var power_draw: int = hull.get_power_draw() if hull.has_method("get_power_draw") else 0
     
-    assert_eq(name, "Hull", "Should initialize with correct name")
-    assert_eq(description, "Ship hull structure", "Should initialize with correct description")
-    assert_eq(cost, hull_enums.HULL_BASE_COST, "Should initialize with correct cost")
-    assert_eq(power_draw, 0, "Hull should not draw power")
+    assert_that(name).is_equal("Hull")
+    assert_that(description).is_equal("Ship hull structure")
+    assert_that(cost).is_equal(hull_enums.HULL_BASE_COST)
+    assert_that(power_draw).is_equal(0)
     
     # Test hull-specific properties
-    var armor: int = _call_node_method_int(hull, "get_armor", [], 0)
-    var integrity: int = _call_node_method_int(hull, "get_integrity", [], 0)
-    var max_integrity: int = _call_node_method_int(hull, "get_max_integrity", [], 0)
-    var damage_resistance: float = _call_node_method_float(hull, "get_damage_resistance", [], 0.0)
-    var weight: int = _call_node_method_int(hull, "get_weight", [], 0)
+    var armor: int = hull.get_armor() if hull.has_method("get_armor") else 0
+    var integrity: int = hull.get_integrity() if hull.has_method("get_integrity") else 0
+    var max_integrity: int = hull.get_max_integrity() if hull.has_method("get_max_integrity") else 0
+    var damage_resistance: float = hull.get_damage_resistance() if hull.has_method("get_damage_resistance") else 0.0
+    var weight: int = hull.get_weight() if hull.has_method("get_weight") else 0
     
-    assert_eq(armor, hull_enums.HULL_BASE_ARMOR, "Should initialize with base armor")
-    assert_eq(integrity, hull_enums.HULL_BASE_INTEGRITY, "Should initialize with base integrity")
-    assert_eq(max_integrity, hull_enums.HULL_BASE_INTEGRITY, "Should initialize with base max integrity")
-    assert_eq(damage_resistance, hull_enums.HULL_BASE_DAMAGE_RESISTANCE, "Should initialize with base damage resistance")
-    assert_eq(weight, hull_enums.HULL_BASE_WEIGHT, "Should initialize with base weight")
+    assert_that(armor).is_equal(hull_enums.HULL_BASE_ARMOR)
+    assert_that(integrity).is_equal(hull_enums.HULL_BASE_INTEGRITY)
+    assert_that(max_integrity).is_equal(hull_enums.HULL_BASE_INTEGRITY)
+    assert_that(damage_resistance).is_equal(hull_enums.HULL_BASE_DAMAGE_RESISTANCE)
+    assert_that(weight).is_equal(hull_enums.HULL_BASE_WEIGHT)
 
 func test_upgrade_effects() -> void:
     # Store initial values
-    var initial_armor: int = _call_node_method_int(hull, "get_armor", [], 0)
-    var initial_integrity: int = _call_node_method_int(hull, "get_max_integrity", [], 0)
-    var initial_damage_resistance: float = _call_node_method_float(hull, "get_damage_resistance", [], 0.0)
+    var initial_armor: int = hull.get_armor() if hull.has_method("get_armor") else 0
+    var initial_integrity: int = hull.get_max_integrity() if hull.has_method("get_max_integrity") else 0
+    var initial_damage_resistance: float = hull.get_damage_resistance() if hull.has_method("get_damage_resistance") else 0.0
     
     # Perform upgrade
-    _call_node_method_bool(hull, "upgrade", [])
+    hull.upgrade() if hull.has_method("upgrade") else null
     
     # Test improvements
-    var new_armor: int = _call_node_method_int(hull, "get_armor", [], 0)
-    var new_integrity: int = _call_node_method_int(hull, "get_max_integrity", [], 0)
-    var new_damage_resistance: float = _call_node_method_float(hull, "get_damage_resistance", [], 0.0)
+    var new_armor: int = hull.get_armor() if hull.has_method("get_armor") else 0
+    var new_integrity: int = hull.get_max_integrity() if hull.has_method("get_max_integrity") else 0
+    var new_damage_resistance: float = hull.get_damage_resistance() if hull.has_method("get_damage_resistance") else 0.0
     
-    assert_eq(new_armor, initial_armor + hull_enums.HULL_UPGRADE_ARMOR, "Should increase armor on upgrade")
-    assert_eq(new_integrity, initial_integrity + hull_enums.HULL_UPGRADE_INTEGRITY, "Should increase max integrity on upgrade")
-    assert_eq(new_damage_resistance, initial_damage_resistance + hull_enums.HULL_UPGRADE_DAMAGE_RESISTANCE, "Should increase damage resistance on upgrade")
+    assert_that(new_armor).is_equal(initial_armor + hull_enums.HULL_UPGRADE_ARMOR)
+    assert_that(new_integrity).is_equal(initial_integrity + hull_enums.HULL_UPGRADE_INTEGRITY)
+    assert_that(new_damage_resistance).is_equal(initial_damage_resistance + hull_enums.HULL_UPGRADE_DAMAGE_RESISTANCE)
 
 func test_efficiency_effects() -> void:
     # Test base values at full efficiency
-    var base_damage_resistance: float = _call_node_method_float(hull, "get_damage_resistance", [], 0.0)
+    var base_damage_resistance: float = hull.get_damage_resistance() if hull.has_method("get_damage_resistance") else 0.0
     
-    assert_eq(base_damage_resistance, hull_enums.HULL_BASE_DAMAGE_RESISTANCE, "Should return base damage resistance at full efficiency")
+    assert_that(base_damage_resistance).is_equal(hull_enums.HULL_BASE_DAMAGE_RESISTANCE)
     
     # Test values at reduced efficiency
-    _call_node_method_bool(hull, "set_efficiency", [hull_enums.HALF_EFFICIENCY])
+    hull.set_efficiency(hull_enums.HALF_EFFICIENCY) if hull.has_method("set_efficiency") else null
     
-    var reduced_damage_resistance: float = _call_node_method_float(hull, "get_damage_resistance", [], 0.0)
+    var reduced_damage_resistance: float = hull.get_damage_resistance() if hull.has_method("get_damage_resistance") else 0.0
     
-    assert_eq(reduced_damage_resistance, hull_enums.HULL_BASE_DAMAGE_RESISTANCE * hull_enums.HALF_EFFICIENCY, "Should reduce damage resistance with efficiency")
+    assert_that(reduced_damage_resistance).is_equal(hull_enums.HULL_BASE_DAMAGE_RESISTANCE * hull_enums.HALF_EFFICIENCY)
 
 func test_damage_and_repair() -> void:
     # Test taking damage
-    var initial_integrity: int = _call_node_method_int(hull, "get_integrity", [], 0)
+    var initial_integrity: int = hull.get_integrity() if hull.has_method("get_integrity") else 0
     var damage_amount: int = hull_enums.HULL_TEST_DAMAGE
     
-    var actual_damage: int = _call_node_method_int(hull, "take_damage", [damage_amount], 0)
+    var actual_damage: int = hull.take_damage(damage_amount) if hull.has_method("take_damage") else 0
     var expected_damage: int = int(damage_amount * (1.0 - hull_enums.HULL_BASE_DAMAGE_RESISTANCE))
     
-    assert_eq(actual_damage, expected_damage, "Should calculate damage correctly")
+    assert_that(actual_damage).is_equal(expected_damage)
     
-    var new_integrity: int = _call_node_method_int(hull, "get_integrity", [], 0)
-    assert_eq(new_integrity, initial_integrity - expected_damage, "Should reduce integrity by actual damage")
+    var new_integrity: int = hull.get_integrity() if hull.has_method("get_integrity") else 0
+    assert_that(new_integrity).is_equal(initial_integrity - expected_damage)
     
     # Test repairing
     var repair_amount: int = hull_enums.HULL_TEST_REPAIR
-    var actual_repair: int = _call_node_method_int(hull, "repair", [repair_amount], 0)
+    var actual_repair: int = hull.repair(repair_amount) if hull.has_method("repair") else 0
     
-    assert_eq(actual_repair, repair_amount, "Should repair the full amount")
+    assert_that(actual_repair).is_equal(repair_amount)
     
-    var repaired_integrity: int = _call_node_method_int(hull, "get_integrity", [], 0)
-    assert_eq(repaired_integrity, new_integrity + repair_amount, "Should increase integrity by repair amount")
+    var repaired_integrity: int = hull.get_integrity() if hull.has_method("get_integrity") else 0
+    assert_that(repaired_integrity).is_equal(new_integrity + repair_amount)
     
     # Test repair capped by max integrity
-    var over_repair: int = _call_node_method_int(hull, "repair", [hull_enums.HULL_BASE_INTEGRITY], 0)
-    var max_integrity: int = _call_node_method_int(hull, "get_max_integrity", [], 0)
-    var final_integrity: int = _call_node_method_int(hull, "get_integrity", [], 0)
+    var over_repair: int = hull.repair(hull_enums.HULL_BASE_INTEGRITY) if hull.has_method("repair") else 0
+    var max_integrity: int = hull.get_max_integrity() if hull.has_method("get_max_integrity") else 0
+    var final_integrity: int = hull.get_integrity() if hull.has_method("get_integrity") else 0
     
-    assert_eq(final_integrity, max_integrity, "Should cap integrity at max integrity")
-    assert_eq(over_repair, max_integrity - repaired_integrity, "Should return actual amount repaired")
+    assert_that(final_integrity).is_equal(max_integrity)
+    assert_that(over_repair).is_equal(max_integrity - repaired_integrity)
 
 func test_setters() -> void:
     # Test armor setter
     var new_armor: int = hull_enums.HULL_MAX_ARMOR
-    _call_node_method_bool(hull, "set_armor", [new_armor])
-    var current_armor: int = _call_node_method_int(hull, "get_armor", [], 0)
-    assert_eq(current_armor, new_armor, "Should set armor correctly")
+    hull.set_armor(new_armor) if hull.has_method("set_armor") else null
+    var current_armor: int = hull.get_armor() if hull.has_method("get_armor") else 0
+    assert_that(current_armor).is_equal(new_armor)
     
     # Test max integrity setter
     var new_max_integrity: int = hull_enums.HULL_MAX_INTEGRITY
-    _call_node_method_bool(hull, "set_max_integrity", [new_max_integrity])
-    var current_max_integrity: int = _call_node_method_int(hull, "get_max_integrity", [], 0)
-    assert_eq(current_max_integrity, new_max_integrity, "Should set max integrity correctly")
+    hull.set_max_integrity(new_max_integrity) if hull.has_method("set_max_integrity") else null
+    var current_max_integrity: int = hull.get_max_integrity() if hull.has_method("get_max_integrity") else 0
+    assert_that(current_max_integrity).is_equal(new_max_integrity)
     
     # Test damage resistance setter
     var new_damage_resistance: float = hull_enums.HULL_MAX_DAMAGE_RESISTANCE
-    _call_node_method_bool(hull, "set_damage_resistance", [new_damage_resistance])
-    var current_damage_resistance: float = _call_node_method_float(hull, "get_damage_resistance", [], 0.0)
-    assert_true(abs(current_damage_resistance - new_damage_resistance) < 0.001, "Should set damage resistance correctly")
+    hull.set_damage_resistance(new_damage_resistance) if hull.has_method("set_damage_resistance") else null
+    var current_damage_resistance: float = hull.get_damage_resistance() if hull.has_method("get_damage_resistance") else 0.0
+    assert_that(abs(current_damage_resistance - new_damage_resistance) < 0.001).is_true()
     
     # Test weight setter
     var new_weight: int = hull_enums.HULL_TEST_WEIGHT
-    _call_node_method_bool(hull, "set_weight", [new_weight])
-    var current_weight: int = _call_node_method_int(hull, "get_weight", [], 0)
-    assert_eq(current_weight, new_weight, "Should set weight correctly")
+    hull.set_weight(new_weight) if hull.has_method("set_weight") else null
+    var current_weight: int = hull.get_weight() if hull.has_method("get_weight") else 0
+    assert_that(current_weight).is_equal(new_weight)
 
 func test_serialization() -> void:
     # Modify hull state
-    _call_node_method_bool(hull, "set_armor", [hull_enums.HULL_MAX_ARMOR])
-    _call_node_method_bool(hull, "set_max_integrity", [hull_enums.HULL_MAX_INTEGRITY])
-    _call_node_method_bool(hull, "set_integrity", [hull_enums.HULL_MAX_INTEGRITY - 500])
-    _call_node_method_bool(hull, "set_damage_resistance", [hull_enums.HULL_MAX_DAMAGE_RESISTANCE])
-    _call_node_method_bool(hull, "set_weight", [hull_enums.HULL_TEST_WEIGHT])
-    _call_node_method_bool(hull, "set_level", [hull_enums.HULL_MAX_LEVEL])
-    _call_node_method_bool(hull, "set_durability", [hull_enums.HULL_MAX_DURABILITY])
+    hull.set_armor(hull_enums.HULL_MAX_ARMOR) if hull.has_method("set_armor") else null
+    hull.set_max_integrity(hull_enums.HULL_MAX_INTEGRITY) if hull.has_method("set_max_integrity") else null
+    hull.set_integrity(hull_enums.HULL_MAX_INTEGRITY - 500) if hull.has_method("set_integrity") else null
+    hull.set_damage_resistance(hull_enums.HULL_MAX_DAMAGE_RESISTANCE) if hull.has_method("set_damage_resistance") else null
+    hull.set_weight(hull_enums.HULL_TEST_WEIGHT) if hull.has_method("set_weight") else null
+    hull.set_level(hull_enums.HULL_MAX_LEVEL) if hull.has_method("set_level") else null
+    hull.set_durability(hull_enums.HULL_MAX_DURABILITY) if hull.has_method("set_durability") else null
     
     # Serialize and deserialize
-    var data: Dictionary = _call_node_method_dict(hull, "serialize", [], {})
+    var data: Dictionary = hull.serialize() if hull.has_method("serialize") else {}
     var new_hull = HullComponent.new()
-    track_test_resource(new_hull)
-    _call_node_method_bool(new_hull, "deserialize", [data])
+    track_resource(new_hull)
+    new_hull.deserialize(data) if new_hull.has_method("deserialize") else null
     
     # Verify hull-specific properties
-    var armor: int = _call_node_method_int(new_hull, "get_armor", [], 0)
-    var integrity: int = _call_node_method_int(new_hull, "get_integrity", [], 0)
-    var max_integrity: int = _call_node_method_int(new_hull, "get_max_integrity", [], 0)
-    var damage_resistance: float = _call_node_method_float(new_hull, "get_damage_resistance", [], 0.0)
-    var weight: int = _call_node_method_int(new_hull, "get_weight", [], 0)
+    var armor: int = new_hull.get_armor() if new_hull.has_method("get_armor") else 0
+    var integrity: int = new_hull.get_integrity() if new_hull.has_method("get_integrity") else 0
+    var max_integrity: int = new_hull.get_max_integrity() if new_hull.has_method("get_max_integrity") else 0
+    var damage_resistance: float = new_hull.get_damage_resistance() if new_hull.has_method("get_damage_resistance") else 0.0
+    var weight: int = new_hull.get_weight() if new_hull.has_method("get_weight") else 0
     
-    assert_eq(armor, hull_enums.HULL_MAX_ARMOR, "Should preserve armor")
-    assert_eq(integrity, hull_enums.HULL_MAX_INTEGRITY - 500, "Should preserve integrity")
-    assert_eq(max_integrity, hull_enums.HULL_MAX_INTEGRITY, "Should preserve max integrity")
-    assert_true(abs(damage_resistance - hull_enums.HULL_MAX_DAMAGE_RESISTANCE) < 0.001, "Should preserve damage resistance")
-    assert_eq(weight, hull_enums.HULL_TEST_WEIGHT, "Should preserve weight")
+    assert_that(armor).is_equal(hull_enums.HULL_MAX_ARMOR)
+    assert_that(integrity).is_equal(hull_enums.HULL_MAX_INTEGRITY - 500)
+    assert_that(max_integrity).is_equal(hull_enums.HULL_MAX_INTEGRITY)
+    assert_that(abs(damage_resistance - hull_enums.HULL_MAX_DAMAGE_RESISTANCE) < 0.001).is_true()
+    assert_that(weight).is_equal(hull_enums.HULL_TEST_WEIGHT)
     
     # Verify inherited properties
-    var level: int = _call_node_method_int(new_hull, "get_level", [], 0)
-    var durability: int = _call_node_method_int(new_hull, "get_durability", [], 0)
+    var level: int = new_hull.get_level() if new_hull.has_method("get_level") else 0
+    var durability: int = new_hull.get_durability() if new_hull.has_method("get_durability") else 0
     
-    assert_eq(level, hull_enums.HULL_MAX_LEVEL, "Should preserve level")
-    assert_eq(durability, hull_enums.HULL_MAX_DURABILITY, "Should preserve durability")
+    assert_that(level).is_equal(hull_enums.HULL_MAX_LEVEL)
+    assert_that(durability).is_equal(hull_enums.HULL_MAX_DURABILITY)

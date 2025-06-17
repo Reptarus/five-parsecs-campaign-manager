@@ -1,0 +1,74 @@
+[gd_scene load_steps=8 format=3 uid="uid://cvp7wyvfsbogu"]
+
+[ext_resource type="Script" path="res://src/scenes/main/MainGameScene.gd" id="1"]
+[ext_resource type="PackedScene" path="res://src/ui/screens/campaign/CampaignDashboard.tscn" id="2"]
+[ext_resource type="PackedScene" path="res://src/ui/screens/travel/TravelPhaseUI.tscn" id="3"]
+[ext_resource type="PackedScene" path="res://src/ui/screens/world/WorldPhaseUI.tscn" id="4"]
+[ext_resource type="PackedScene" path="res://src/ui/screens/battle/PreBattleUI.tscn" id="5"]
+[ext_resource type="PackedScene" path="res://src/ui/screens/battle/BattlefieldMain.tscn" id="6"]
+[ext_resource type="PackedScene" path="res://src/ui/screens/battle/PostBattle.tscn" id="7"]
+
+[node name="MainGameScene" type="Control"]
+layout_mode = 3
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+script = ExtResource("1")
+
+[node name="PhaseContainer" type="Control" parent="."]
+layout_mode = 1
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+
+[node name="CampaignDashboard" parent="PhaseContainer" instance=ExtResource("2")]
+layout_mode = 1
+visible = false
+
+[node name="TravelPhase" parent="PhaseContainer" instance=ExtResource("3")]
+layout_mode = 1
+visible = false
+
+[node name="WorldPhase" parent="PhaseContainer" instance=ExtResource("4")]
+layout_mode = 1
+visible = false
+
+[node name="PreBattlePhase" parent="PhaseContainer" instance=ExtResource("5")]
+layout_mode = 1
+visible = false
+
+[node name="BattlePhase" parent="PhaseContainer" instance=ExtResource("6")]
+layout_mode = 1
+visible = false
+
+[node name="PostBattlePhase" parent="PhaseContainer" instance=ExtResource("7")]
+layout_mode = 1
+visible = false
+
+[node name="PhaseUI" type="VBoxContainer" parent="."]
+layout_mode = 1
+anchors_preset = 2
+anchor_top = 1.0
+anchor_bottom = 1.0
+offset_top = -100.0
+offset_right = 300.0
+
+[node name="PhaseTitle" type="Label" parent="PhaseUI"]
+layout_mode = 2
+text = "Campaign Turn Phase"
+horizontal_alignment = 1
+
+[node name="PhaseControls" type="HBoxContainer" parent="PhaseUI"]
+layout_mode = 2
+
+[node name="PreviousPhase" type="Button" parent="PhaseUI/PhaseControls"]
+layout_mode = 2
+text = "< Previous"
+
+[node name="NextPhase" type="Button" parent="PhaseUI/PhaseControls"]
+layout_mode = 2
+text = "Next >"
+
+[node name="PhaseMenu" type="Button" parent="PhaseUI/PhaseControls"]
+layout_mode = 2
+text = "Menu" 

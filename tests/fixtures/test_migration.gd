@@ -1,10 +1,10 @@
 @tool
 extends EditorScript
 
-## Test Migration Tool
+## Test Migration Tool - GUT to gdUnit4
 ##
-## This tool helps identify and fix inconsistencies in test files.
-## It analyzes test files for common issues and provides guidance on fixing them.
+## This tool helps identify and migrate test files from GUT to gdUnit4.
+## It analyzes test files for common migration patterns and provides guidance.
 
 const TEST_DIR: String = "res://tests/"
 const UNIT_TEST_DIR: String = "res://tests/unit/"
@@ -13,22 +13,22 @@ const PERFORMANCE_TEST_DIR: String = "res://tests/performance/"
 const MOBILE_TEST_DIR: String = "res://tests/mobile/"
 
 const DOMAIN_TO_BASE_CLASS: Dictionary = {
-	"unit/ui": "UITest",
-	"unit/battle": "BattleTest",
-	"unit/campaign": "CampaignTest",
-	"unit/enemy": "EnemyTest",
-	"mobile": "MobileTest",
-	"unit": "GameTest",
-	"integration": "GameTest",
-	"performance": "GameTest"
+	"unit/ui": "GdUnitGameTest",
+	"unit/battle": "GdUnitGameTest",
+	"unit/campaign": "GdUnitGameTest",
+	"unit/enemy": "GdUnitGameTest",
+	"mobile": "GdUnitGameTest",
+	"unit": "GdUnitGameTest",
+	"integration": "GdUnitGameTest",
+	"performance": "GdUnitGameTest"
 }
 
 enum IssueType {
 	WRONG_EXTENSION,
 	MISSING_SUPER_CALLS,
-	MISSING_TYPE_SAFETY,
-	INCONSISTENT_RESOURCE_MANAGEMENT,
-	DIRECT_METHOD_CALLS
+	OLD_ASSERTION_PATTERN,
+	OLD_SIGNAL_PATTERN,
+	OLD_LIFECYCLE_METHODS
 }
 
 var _issues: Dictionary = {}
@@ -39,7 +39,7 @@ var _stats: Dictionary = {
 }
 
 func _run() -> void:
-	print("\n=== Test Migration Tool ===\n")
+	print("\n=== GUT to gdUnit4 Migration Tool ===\n")
 	
 	# Initialize stats
 	for issue: int in IssueType.values():
@@ -85,51 +85,51 @@ func analyze_test_file(file_path: String) -> void:
 	
 	# Check extends statement
 	var domain: String = get_domain_for_file(file_path)
-	var expected_base: String = DOMAIN_TO_BASE_CLASS.get(domain, "GameTest")
+	var expected_base: String = DOMAIN_TO_BASE_CLASS.get(domain, "GdUnitGameTest")
 	
 	if not correct_extension_pattern(content, expected_base):
 		file_issues.append({
 			"type": IssueType.WRONG_EXTENSION,
-			"description": "Should extend " + expected_base + " directly using class_name",
-			"expected": "extends " + expected_base
+			"description": "Should extend %s for gdUnit4" % expected_base,
+			"expected": "extends %s" % expected_base
 		})
 		_stats.issues_by_type[IssueType.WRONG_EXTENSION] += 1
 	
-	# Check super calls
-	if not has_correct_super_calls(content):
+	# Check super calls - gdUnit4 uses before()/after() instead of before_each()/after_each()
+	if not has_correct_gdunit4_lifecycle(content):
 		file_issues.append({
 			"type": IssueType.MISSING_SUPER_CALLS,
-			"description": "Missing proper super.before_each() or super.after_each() calls",
-			"expected": "await super.before_each() and await super.after_each()"
+			"description": "Missing proper gdUnit4 lifecycle methods (before/after instead of before_each/after_each)",
+			"expected": "Use before(), after(), before_test(), after_test() methods"
 		})
 		_stats.issues_by_type[IssueType.MISSING_SUPER_CALLS] += 1
 	
-	# Check type safety
-	if has_missing_type_safety(content):
+	# Check assertion patterns - gdUnit4 uses assert_that() instead of assert_eq()
+	if has_old_assertion_patterns(content):
 		file_issues.append({
-			"type": IssueType.MISSING_TYPE_SAFETY,
-			"description": "Missing type-safe method calls",
-			"expected": "Replace direct method calls with TypeSafeMixin.*_call_node_method_* variants"
+			"type": IssueType.OLD_ASSERTION_PATTERN,
+			"description": "Using old GUT assertion patterns",
+			"expected": "Replace assert_eq() with assert_that().is_equal(), etc."
 		})
-		_stats.issues_by_type[IssueType.MISSING_TYPE_SAFETY] += 1
+		_stats.issues_by_type[IssueType.OLD_ASSERTION_PATTERN] += 1
 	
-	# Check resource management
-	if has_inconsistent_resource_management(content):
+	# Check signal patterns - gdUnit4 uses different signal testing
+	if has_old_signal_patterns(content):
 		file_issues.append({
-			"type": IssueType.INCONSISTENT_RESOURCE_MANAGEMENT,
-			"description": "Inconsistent resource management",
-			"expected": "Use add_child_autofree() and track_test_resource() consistently"
+			"type": IssueType.OLD_SIGNAL_PATTERN,
+			"description": "Using old GUT signal testing patterns",
+			"expected": "Replace watch_signals() with monitor_signals(), assert_signal_emitted() with assert_signal().is_emitted()"
 		})
-		_stats.issues_by_type[IssueType.INCONSISTENT_RESOURCE_MANAGEMENT] += 1
+		_stats.issues_by_type[IssueType.OLD_SIGNAL_PATTERN] += 1
 	
-	# Check direct method calls
-	if has_direct_method_calls(content):
+	# Check lifecycle methods
+	if has_old_lifecycle_methods(content):
 		file_issues.append({
-			"type": IssueType.DIRECT_METHOD_CALLS,
-			"description": "Contains direct method calls without type safety",
-			"expected": "Replace obj.method() with _call_node_method*(obj, 'method', [])"
+			"type": IssueType.OLD_LIFECYCLE_METHODS,
+			"description": "Using old GUT lifecycle methods",
+			"expected": "Replace before_each()/after_each() with before_test()/after_test()"
 		})
-		_stats.issues_by_type[IssueType.DIRECT_METHOD_CALLS] += 1
+		_stats.issues_by_type[IssueType.OLD_LIFECYCLE_METHODS] += 1
 	
 	if file_issues.size() > 0:
 		_issues[file_path] = file_issues
@@ -153,38 +153,68 @@ func correct_extension_pattern(content: String, expected_base: String) -> bool:
 	var preload_pattern: String = "extends \"res://tests/fixtures"
 	return content.find(preload_pattern) == -1
 
-func has_correct_super_calls(content: String) -> bool:
-	var has_before_each: bool = content.find("func before_each") != -1
-	var has_after_each: bool = content.find("func after_each") != -1
+func has_correct_gdunit4_lifecycle(content: String) -> bool:
+	var has_before: bool = content.find("func before") != -1
+	var has_after: bool = content.find("func after") != -1
 	
-	var has_super_before: bool = content.find("super.before_each()") != -1
-	var has_super_after: bool = content.find("super.after_each()") != -1
+	var has_before_test: bool = content.find("func before_test") != -1
+	var has_after_test: bool = content.find("func after_test") != -1
 	
 	# If these methods exist, they should call their super equivalents
-	if has_before_each and not has_super_before:
+	if has_before and not has_before_test:
 		return false
 	
-	if has_after_each and not has_super_after:
+	if has_after and not has_after_test:
 		return false
 	
 	return true
 
-func has_missing_type_safety(content: String) -> bool:
-	var safe_pattern: String = "TypeSafeMixin._"
-	var safe_calls_count: int = count_occurrences(content, safe_pattern)
+func has_old_assertion_patterns(content: String) -> bool:
+	var assert_eq_pattern: String = "assert_eq("
+	var assert_that_pattern: String = "assert_that("
 	
-	var unsafe_patterns: Array = [
-		".get_node(",
-		".get_parent(",
-		".find_node(",
-		".has_node("
-	]
+	var assert_eq_count: int = count_occurrences(content, assert_eq_pattern)
+	var assert_that_count: int = count_occurrences(content, assert_that_pattern)
 	
-	var total_calls_count: int = safe_calls_count
-	for pattern in unsafe_patterns:
-		total_calls_count += count_occurrences(content, pattern)
+	if assert_eq_count > 0 and assert_that_count == 0:
+		return true
 	
-	if total_calls_count > 0 and (float(safe_calls_count) / total_calls_count) < 0.7:
+	return false
+
+func has_old_signal_patterns(content: String) -> bool:
+	var watch_signals_pattern: String = "watch_signals("
+	var monitor_signals_pattern: String = "monitor_signals("
+	var assert_signal_emitted_pattern: String = "assert_signal_emitted("
+	var assert_signal_pattern: String = "assert_signal("
+	
+	var watch_signals_count: int = count_occurrences(content, watch_signals_pattern)
+	var monitor_signals_count: int = count_occurrences(content, monitor_signals_pattern)
+	var assert_signal_emitted_count: int = count_occurrences(content, assert_signal_emitted_pattern)
+	var assert_signal_count: int = count_occurrences(content, assert_signal_pattern)
+	
+	if watch_signals_count > 0 and monitor_signals_count == 0:
+		return true
+	
+	if assert_signal_emitted_count > 0 and assert_signal_count == 0:
+		return true
+	
+	return false
+
+func has_old_lifecycle_methods(content: String) -> bool:
+	var before_each_pattern: String = "before_each()"
+	var after_each_pattern: String = "after_each()"
+	var before_test_pattern: String = "before_test()"
+	var after_test_pattern: String = "after_test()"
+	
+	var before_each_count: int = count_occurrences(content, before_each_pattern)
+	var after_each_count: int = count_occurrences(content, after_each_pattern)
+	var before_test_count: int = count_occurrences(content, before_test_pattern)
+	var after_test_count: int = count_occurrences(content, after_test_pattern)
+	
+	if before_each_count > 0 and before_test_count == 0:
+		return true
+	
+	if after_each_count > 0 and after_test_count == 0:
 		return true
 	
 	return false
@@ -199,41 +229,6 @@ func count_occurrences(text: String, pattern: String) -> int:
 		position = text.find(pattern, position + 1)
 	
 	return count
-
-func has_direct_method_calls(content: String) -> bool:
-	var safe_call_patterns: Array = [
-		"_call_node_method(",
-		"_call_node_method_bool(",
-		"_call_node_method_int(",
-		"_call_node_method_float(",
-		"_call_node_method_string(",
-		"_call_node_method_dict(",
-		"_call_node_method_array("
-	]
-	
-	var safe_calls_count: int = 0
-	for pattern in safe_call_patterns:
-		safe_calls_count += count_occurrences(content, pattern)
-	
-	var method_call_pattern: String = ".call("
-	var direct_dot_calls: int = count_occurrences(content, method_call_pattern)
-	var total_calls_count: int = safe_calls_count + direct_dot_calls
-	
-	if total_calls_count > 0 and (float(safe_calls_count) / total_calls_count) < 0.7:
-		return true
-	
-	return false
-
-func has_inconsistent_resource_management(content: String) -> bool:
-	var has_add_child: bool = content.find("add_child(") != -1
-	var has_add_child_autofree: bool = content.find("add_child_autofree(") != -1
-	var has_track_test_node: bool = content.find("track_test_node(") != -1
-	
-	# If using add_child without tracking
-	if has_add_child and not has_track_test_node and not has_add_child_autofree:
-		return true
-	
-	return false
 
 func print_results() -> void:
 	print("Analyzed %d test files" % _stats.total_files)
@@ -293,43 +288,71 @@ func generate_migration_report() -> void:
 		push_error("Failed to create migration report file")
 
 func generate_migration_instructions() -> String:
-	var instructions: String = "## Migration Instructions\n\n"
+	var instructions: String = "## GUT to gdUnit4 Migration Instructions\n\n"
 	
-	instructions += "To standardize test files, follow these steps for each file:\n\n"
-	instructions += "1. Update the extends statement to use the proper class_name:\n"
+	instructions += "To migrate test files from GUT to gdUnit4, follow these steps:\n\n"
+	instructions += "1. Update the extends statement to use gdUnit4 base classes:\n"
 	instructions += "   ```gdscript\n"
-	instructions += "   @tool\n"
-	instructions += "   extends UITest  # Instead of extends \"res://tests/fixtures/specialized/ui_test.gd\"\n"
+	instructions += "   # GUT:\n"
+	instructions += "   extends \"res://addons/gut/test.gd\"\n"
+	instructions += "   \n"
+	instructions += "   # gdUnit4:\n"
+	instructions += "   extends GdUnitGameTest  # or GdUnitTestSuite for basic tests\n"
 	instructions += "   ```\n\n"
 	
-	instructions += "2. Ensure proper super calls in lifecycle methods:\n"
+	instructions += "2. Update lifecycle methods to gdUnit4 patterns:\n"
 	instructions += "   ```gdscript\n"
-	instructions += "   func before_each() -> void:\n"
-	instructions += "       await super.before_each()\n"
-	instructions += "       # Setup code\n"
+	instructions += "   # GUT:\n"
+	instructions += "   func before_each():\n"
+	instructions += "       # setup code\n"
 	instructions += "   \n"
-	instructions += "   func after_each() -> void:\n"
-	instructions += "       # Cleanup code\n"
-	instructions += "       await super.after_each()\n"
+	instructions += "   func after_each():\n"
+	instructions += "       # cleanup code\n"
+	instructions += "   \n"
+	instructions += "   # gdUnit4:\n"
+	instructions += "   func before_test():\n"
+	instructions += "       super.before_test()\n"
+	instructions += "       # setup code\n"
+	instructions += "   \n"
+	instructions += "   func after_test():\n"
+	instructions += "       # cleanup code\n"
+	instructions += "       super.after_test()\n"
 	instructions += "   ```\n\n"
 	
-	instructions += "3. Replace direct method calls with type-safe alternatives:\n"
+	instructions += "3. Replace GUT assertions with gdUnit4 fluent API:\n"
 	instructions += "   ```gdscript\n"
-	instructions += "   # Instead of:\n"
-	instructions += "   var result = node.method(param1, param2)\n"
+	instructions += "   # GUT:\n"
+	instructions += "   assert_eq(actual, expected)\n"
+	instructions += "   assert_ne(actual, expected)\n"
+	instructions += "   assert_null(value)\n"
+	instructions += "   assert_not_null(value)\n"
 	instructions += "   \n"
-	instructions += "   # Use:\n"
-	instructions += "   var result = _call_node_method_type(node, \"method\", [param1, param2], default_value)\n"
+	instructions += "   # gdUnit4:\n"
+	instructions += "   assert_that(actual).is_equal(expected)\n"
+	instructions += "   assert_that(actual).is_not_equal(expected)\n"
+	instructions += "   assert_that(value).is_null()\n"
+	instructions += "   assert_that(value).is_not_null()\n"
 	instructions += "   ```\n\n"
 	
-	instructions += "4. Use proper resource management:\n"
+	instructions += "4. Update signal testing patterns:\n"
 	instructions += "   ```gdscript\n"
-	instructions += "   # Instead of:\n"
-	instructions += "   add_child(node)\n"
+	instructions += "   # GUT:\n"
+	instructions += "   watch_signals(object)\n"
+	instructions += "   assert_signal_emitted(object, \"signal_name\")\n"
 	instructions += "   \n"
-	instructions += "   # Use:\n"
-	instructions += "   add_child_autofree(node)  # For nodes\n"
-	instructions += "   track_test_resource(resource)  # For resources\n"
+	instructions += "   # gdUnit4:\n"
+	instructions += "   monitor_signals(object)\n"
+	instructions += "   assert_signal(object).is_emitted(\"signal_name\")\n"
+	instructions += "   ```\n\n"
+	
+	instructions += "5. Use gdUnit4 resource tracking:\n"
+	instructions += "   ```gdscript\n"
+	instructions += "   # gdUnit4:\n"
+	instructions += "   var node = Node.new()\n"
+	instructions += "   track_node(node)  # Automatic cleanup\n"
+	instructions += "   \n"
+	instructions += "   var resource = Resource.new()\n"
+	instructions += "   track_resource(resource)  # Automatic cleanup\n"
 	instructions += "   ```\n\n"
 	
 	return instructions

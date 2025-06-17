@@ -1,5 +1,5 @@
 @tool
-extends "res://tests/fixtures/base/game_test.gd"
+extends GdUnitGameTest
 class_name BattleTest
 
 ## Base class for battle system tests
@@ -48,37 +48,39 @@ var _battle_state: Node = null
 var _combat_manager: Node = null
 var _battlefield_manager: Node = null
 var _active_units: Array[Node] = []
+var _fps_samples: Array[float] = []
 
-func before_each() -> void:
-	await super.before_each()
+func before_test() -> void:
+	await super.before_test()
 	_setup_battle_environment()
 	await stabilize_engine()
 
-func after_each() -> void:
+func after_test() -> void:
 	_cleanup_battle_environment()
-	await super.after_each()
+	await super.after_test()
 
 func _setup_battle_environment() -> void:
 	_battle_state = _create_battle_state()
 	if _battle_state:
-		add_child_autofree(_battle_state)
-		track_test_node(_battle_state)
+		add_child(_battle_state)
+		track_node(_battle_state)
 	
 	_combat_manager = _create_combat_manager()
 	if _combat_manager:
-		add_child_autofree(_combat_manager)
-		track_test_node(_combat_manager)
+		add_child(_combat_manager)
+		track_node(_combat_manager)
 	
 	_battlefield_manager = _create_battlefield_manager()
 	if _battlefield_manager:
-		add_child_autofree(_battlefield_manager)
-		track_test_node(_battlefield_manager)
+		add_child(_battlefield_manager)
+		track_node(_battlefield_manager)
 
 func _cleanup_battle_environment() -> void:
 	_battle_state = null
 	_combat_manager = null
 	_battlefield_manager = null
 	_active_units.clear()
+	_fps_samples.clear()
 
 # Battle system creation
 func _create_battle_state() -> Node:
@@ -97,12 +99,16 @@ func create_test_unit(attack: int, defense: int, speed: int = 5) -> Node:
 		push_error("Failed to create test unit")
 		return null
 	
-	TypeSafeMixin._call_node_method_bool(unit, "set_attack", [attack])
-	TypeSafeMixin._call_node_method_bool(unit, "set_defense", [defense])
-	TypeSafeMixin._call_node_method_bool(unit, "set_speed", [speed])
+	# Set properties using safe method calls
+	if unit.has_method("set_attack"):
+		unit.call("set_attack", attack)
+	if unit.has_method("set_defense"):
+		unit.call("set_defense", defense)
+	if unit.has_method("set_speed"):
+		unit.call("set_speed", speed)
 	
-	add_child_autofree(unit)
-	track_test_node(unit)
+	add_child(unit)
+	track_node(unit)
 	_active_units.append(unit)
 	return unit
 
@@ -120,14 +126,18 @@ func resolve_combat(attacker: Node, defender: Node) -> Dictionary:
 		push_error("Combat manager not initialized")
 		return {}
 	
-	return TypeSafeMixin._call_node_method_dict(_combat_manager, "resolve_combat", [attacker, defender])
+	if _combat_manager.has_method("resolve_combat"):
+		var result = _combat_manager.call("resolve_combat", attacker, defender)
+		return result if result is Dictionary else {}
+	return {}
 
 func apply_damage(unit: Node, damage: int) -> void:
 	if not unit:
 		push_error("Cannot apply damage to null unit")
 		return
 	
-	TypeSafeMixin._call_node_method_bool(unit, "take_damage", [damage])
+	if unit.has_method("take_damage"):
+		unit.call("take_damage", damage)
 
 # Battle state assertions
 func assert_battle_phase(expected_phase: int) -> void:
@@ -135,9 +145,13 @@ func assert_battle_phase(expected_phase: int) -> void:
 		push_error("Battle state not initialized")
 		return
 	
-	var current_phase := TypeSafeMixin._call_node_method_int(_battle_state, "get_current_phase")
-	assert_eq(current_phase, expected_phase,
-		"Battle should be in phase %d but was in phase %d" % [expected_phase, current_phase])
+	var current_phase: int = 0
+	if _battle_state.has_method("get_current_phase"):
+		current_phase = _battle_state.call("get_current_phase")
+	
+	assert_that(current_phase).override_failure_message(
+		"Battle should be in phase %d but was in phase %d" % [expected_phase, current_phase]
+	).is_equal(expected_phase)
 
 func assert_unit_state(unit: Node, expected_state: Dictionary) -> void:
 	if not unit:
@@ -145,10 +159,13 @@ func assert_unit_state(unit: Node, expected_state: Dictionary) -> void:
 		return
 	
 	for property in expected_state:
-		var actual_value = TypeSafeMixin._call_node_method(unit, "get_" + property)
+		var actual_value = null
+		if unit.has_method("get_" + property):
+			actual_value = unit.call("get_" + property)
 		var expected_value = expected_state[property]
-		assert_eq(actual_value, expected_value,
-			"Unit property %s should be %s but was %s" % [property, expected_value, actual_value])
+		assert_that(actual_value).override_failure_message(
+			"Unit property %s should be %s but was %s" % [property, expected_value, actual_value]
+		).is_equal(expected_value)
 
 # Combat calculations
 func calculate_hit_chance(attacker: Node, defender: Node, modifiers: Dictionary = {}) -> float:
@@ -156,15 +173,20 @@ func calculate_hit_chance(attacker: Node, defender: Node, modifiers: Dictionary 
 		push_error("Combat manager not initialized")
 		return 0.0
 	
-	var result = TypeSafeMixin._call_node_method(_combat_manager, "calculate_hit_chance", [attacker, defender, modifiers])
-	return float(result) if result != null else 0.0
+	if _combat_manager.has_method("calculate_hit_chance"):
+		var result = _combat_manager.call("calculate_hit_chance", attacker, defender, modifiers)
+		return float(result) if result != null else 0.0
+	return 0.0
 
 func calculate_damage(base_damage: int, armor: int) -> int:
 	if not _combat_manager:
 		push_error("Combat manager not initialized")
 		return 0
 	
-	return TypeSafeMixin._call_node_method_int(_combat_manager, "calculate_damage", [base_damage, armor])
+	if _combat_manager.has_method("calculate_damage"):
+		var result = _combat_manager.call("calculate_damage", base_damage, armor)
+		return int(result) if result != null else 0
+	return 0
 
 # Status effects
 func apply_status_effect(target: Node, effect: Dictionary) -> bool:
@@ -172,14 +194,19 @@ func apply_status_effect(target: Node, effect: Dictionary) -> bool:
 		push_error("Cannot apply effect to null target")
 		return false
 	
-	return TypeSafeMixin._call_node_method_bool(target, "apply_status_effect", [effect])
+	if target.has_method("apply_status_effect"):
+		return target.call("apply_status_effect", effect)
+	return false
 
 func get_active_effects(unit: Node) -> Array:
 	if not unit:
 		push_error("Cannot get effects from null unit")
 		return []
 	
-	return TypeSafeMixin._call_node_method_array(unit, "get_active_effects")
+	if unit.has_method("get_active_effects"):
+		var result = unit.call("get_active_effects")
+		return result if result is Array else []
+	return []
 
 # Turn order
 func calculate_initiative(units: Array) -> Array:
@@ -187,7 +214,10 @@ func calculate_initiative(units: Array) -> Array:
 		push_error("Battle state not initialized")
 		return []
 	
-	return TypeSafeMixin._call_node_method_array(_battle_state, "calculate_initiative", [units])
+	if _battle_state.has_method("calculate_initiative"):
+		var result = _battle_state.call("calculate_initiative", units)
+		return result if result is Array else []
+	return []
 
 # Special abilities
 func activate_ability(unit: Node, ability_id: String) -> Dictionary:
@@ -195,7 +225,10 @@ func activate_ability(unit: Node, ability_id: String) -> Dictionary:
 		push_error("Cannot activate ability for null unit")
 		return {}
 	
-	return TypeSafeMixin._call_node_method_dict(unit, "activate_ability", [ability_id])
+	if unit.has_method("activate_ability"):
+		var result = unit.call("activate_ability", ability_id)
+		return result if result is Dictionary else {}
+	return {}
 
 # Performance testing
 func measure_combat_performance(iterations: int = 100) -> Dictionary:

@@ -36,14 +36,14 @@ signal planet_updated(property, value)
 var _data_manager: Object = null
 
 func _init() -> void:
-    reset_state()
+    clear_planet_state()
     
     # Use the singleton instance
     if not Engine.is_editor_hint():
         _data_manager = GameDataManager.get_instance()
         GameDataManager.ensure_data_loaded()
 
-func reset_state() -> void:
+func clear_planet_state() -> void:
     resources.clear()
     threats.clear()
     world_traits.clear()

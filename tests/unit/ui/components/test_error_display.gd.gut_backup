@@ -1,0 +1,223 @@
+@tool
+extends UITest
+
+# Migration note: GUT_TIMEOUT removed for gdUnit4
+const ErrorDisplay: GDScript = preload("res://src/ui/components/ErrorDisplay.gd")
+const ErrorLogger: GDScript = preload("res://src/core/systems/ErrorLogger.gd")
+
+# Test variables with explicit types
+var error_logger: Node = null
+var error_updated_signal_emitted: bool = false
+var last_error_data: Dictionary = {}
+
+# Override _create_component_instance to provide the specific component
+func _create_component_instance() -> Control:
+	return ErrorDisplay.new()
+
+func before_test() -> void:
+	super.before_test()
+	error_logger = ErrorLogger.new()
+	track_node(error_logger)
+	_component.initialize(error_logger)
+	_reset_signals()
+	_connect_signals()
+
+func after_test() -> void:
+	super.after_test()
+	error_logger = null
+	error_updated_signal_emitted = false
+	last_error_data.clear()
+
+func _reset_signals() -> void:
+	error_updated_signal_emitted = false
+	last_error_data = {}
+
+func _connect_signals() -> void:
+	if not _component:
+		push_error("Cannot connect signals: component is null")
+		return
+		
+	if _component.has_signal("error_updated"):
+		var err := _component.connect("error_updated", _on_error_updated)
+		if err != OK:
+			push_error("Failed to connect error_updated signal")
+
+func _on_error_updated(error_data: Dictionary) -> void:
+	error_updated_signal_emitted = true
+	last_error_data = error_data
+
+func test_initial_setup() -> void:
+	assert_that(_component).is_not_null()
+	assert_that(_component.error_list).is_not_null()
+	assert_that(_component.error_details).is_not_null()
+	assert_that(_component.category_filter).is_not_null()
+	assert_that(_component.severity_filter).is_not_null()
+	assert_that(_component.clear_resolved_button).is_not_null()
+	assert_that(_component.export_logs_button).is_not_null()
+	
+	# Check filter initialization
+	var filters: Dictionary = {}
+	if _component.has_method("get_current_filters"):
+		filters = _component.get_current_filters()
+	assert_that(filters.get("category", 0)).is_equal(-1)
+	assert_that(filters.get("severity", 0)).is_equal(-1)
+	assert_that(filters.get("show_resolved", true)).is_false()
+
+func test_error_logging() -> void:
+	var test_error_message: String = "Test error message"
+	var test_context: Dictionary = {"test": "context"}
+	
+	if error_logger.has_method("log_error"):
+		error_logger.log_error(test_error_message, ErrorLogger.ErrorCategory.VALIDATION, ErrorLogger.ErrorSeverity.ERROR, test_context)
+	
+	await get_tree().process_frame
+	
+	# Verify error appears in list
+	var item_count: int = 0
+	if _component.error_list.has_method("get_item_count"):
+		item_count = _component.error_list.get_item_count()
+	assert_that(item_count).is_equal(1)
+	
+	var error_text: String = ""
+	if _component.error_list.has_method("get_item_text"):
+		error_text = str(_component.error_list.get_item_text(0))
+	assert_that(error_text.contains(test_error_message)).is_true()
+
+func test_error_filtering() -> void:
+	# Add errors with different categories and severities
+	if error_logger.has_method("log_error"):
+		error_logger.log_error("System error", ErrorLogger.ErrorCategory.VALIDATION, ErrorLogger.ErrorSeverity.ERROR)
+	
+	if error_logger.has_method("log_error"):
+		error_logger.log_error("Network warning", ErrorLogger.ErrorCategory.NETWORK, ErrorLogger.ErrorSeverity.WARNING)
+	
+	await get_tree().process_frame
+	
+	# Test category filter
+	if _component.has_method("set_category_filter"):
+		_component.set_category_filter(ErrorLogger.ErrorCategory.VALIDATION)
+	await get_tree().process_frame
+	
+	var filtered_count: int = 0
+	if _component.error_list.has_method("get_item_count"):
+		filtered_count = _component.error_list.get_item_count()
+	assert_that(filtered_count).is_equal(1)
+	
+	# Test severity filter
+	if _component.has_method("set_category_filter"):
+		_component.set_category_filter(-1) # Reset category filter
+	if _component.has_method("set_severity_filter"):
+		_component.set_severity_filter(ErrorLogger.ErrorSeverity.WARNING)
+	await get_tree().process_frame
+	
+	if _component.error_list.has_method("get_item_count"):
+		filtered_count = _component.error_list.get_item_count()
+	assert_that(filtered_count).is_equal(1)
+
+func test_error_resolution() -> void:
+	if error_logger.has_method("log_error"):
+		error_logger.log_error("Test error", ErrorLogger.ErrorCategory.VALIDATION, ErrorLogger.ErrorSeverity.ERROR)
+	
+	await get_tree().process_frame
+	
+	var initial_count: int = 0
+	if _component.error_list.has_method("get_item_count"):
+		initial_count = _component.error_list.get_item_count()
+	assert_that(initial_count).is_equal(1)
+	
+	if error_logger.has_method("resolve_error"):
+		error_logger.resolve_error("test_error", "Fixed")
+	if _component.has_method("set_show_resolved"):
+		_component.set_show_resolved(false)
+	await get_tree().process_frame
+	
+	var hidden_count: int = 0
+	if _component.error_list.has_method("get_item_count"):
+		hidden_count = _component.error_list.get_item_count()
+	assert_that(hidden_count).is_equal(0)
+	
+	if _component.has_method("set_show_resolved"):
+		_component.set_show_resolved(true)
+	await get_tree().process_frame
+	
+	var shown_count: int = 0
+	if _component.error_list.has_method("get_item_count"):
+		shown_count = _component.error_list.get_item_count()
+	assert_that(shown_count).is_equal(1)
+
+func test_error_details() -> void:
+	var test_message: String = "Test error message"
+	var test_context: Dictionary = {"key": "value"}
+	
+	if error_logger.has_method("log_error"):
+		error_logger.log_error(test_message, ErrorLogger.ErrorCategory.VALIDATION, ErrorLogger.ErrorSeverity.ERROR, test_context)
+	
+	await get_tree().process_frame
+	
+	if _component.has_method("show_error_details"):
+		_component.show_error_details("test_error")
+	
+	var details_text: String = ""
+	if _component.error_details.has_method("get_text"):
+		details_text = str(_component.error_details.get_text())
+	assert_that(details_text.contains(test_message)).is_true()
+	assert_that(details_text.contains("VALIDATION")).is_true()
+	assert_that(details_text.contains("ERROR")).is_true()
+	assert_that(details_text.contains("key: value")).is_true()
+
+func test_clear_resolved() -> void:
+	if error_logger.has_method("log_error"):
+		error_logger.log_error("Error 1", ErrorLogger.ErrorCategory.VALIDATION, ErrorLogger.ErrorSeverity.ERROR)
+	
+	if error_logger.has_method("log_error"):
+		error_logger.log_error("Error 2", ErrorLogger.ErrorCategory.VALIDATION, ErrorLogger.ErrorSeverity.ERROR)
+	
+	await get_tree().process_frame
+	
+	if error_logger.has_method("resolve_error"):
+		error_logger.resolve_error("error1", "Fixed")
+	if _component.has_method("set_show_resolved"):
+		_component.set_show_resolved(true)
+	await get_tree().process_frame
+	
+	var initial_count: int = 0
+	if _component.error_list.has_method("get_item_count"):
+		initial_count = _component.error_list.get_item_count()
+	assert_that(initial_count).is_equal(2)
+	
+	if _component.has_method("clear_resolved_errors"):
+		_component.clear_resolved_errors()
+	await get_tree().process_frame
+	
+	var final_count: int = 0
+	if _component.error_list.has_method("get_item_count"):
+		final_count = _component.error_list.get_item_count()
+	assert_that(final_count).is_equal(1)
+
+func test_severity_icon() -> void:
+	var severities: Dictionary = {
+		ErrorLogger.ErrorSeverity.INFO: "ℹ",
+		ErrorLogger.ErrorSeverity.WARNING: "⚠",
+		ErrorLogger.ErrorSeverity.ERROR: "⛔",
+		ErrorLogger.ErrorSeverity.CRITICAL: "☠"
+	}
+	
+	for severity in severities:
+		var icon: String = ""
+		if _component.has_method("get_severity_icon"):
+			icon = str(_component.get_severity_icon(severity))
+		assert_that(icon).is_equal(severities[severity])
+
+func test_error_sorting() -> void:
+	if error_logger.has_method("log_error"):
+		error_logger.log_error("Old error", ErrorLogger.ErrorCategory.VALIDATION, ErrorLogger.ErrorSeverity.ERROR)
+	
+	if error_logger.has_method("log_error"):
+		error_logger.log_error("New error", ErrorLogger.ErrorCategory.VALIDATION, ErrorLogger.ErrorSeverity.ERROR)
+	
+	await get_tree().process_frame
+	
+	var first_error_text: String = ""
+	if _component.error_list.has_method("get_item_text"):
+		first_error_text = str(_component.error_list.get_item_text(0))
+	assert_that(first_error_text.contains("New error")).is_true()
