@@ -8,6 +8,8 @@ The Five Parsecs Campaign Manager follows a three-tiered architecture that separ
 2. **Core Layer** (`src/core/`) - Core game logic and systems
 3. **Game Layer** (`src/game/`) - Game-specific implementations and UI
 
+**Recent Enhancement**: The architecture now includes a comprehensive **Digital Dice System** that spans all layers, providing both digital convenience and manual dice input capabilities while maintaining the "tabletop assistant" philosophy.
+
 This document outlines the purpose and responsibility of each layer and provides guidelines for maintaining and extending the codebase.
 
 ## Architectural Principles
