@@ -1,7 +1,8 @@
 ## Campaign Phase Transitions Test Suite
 ## Tests the transitions between different campaign phases and their effects
 @tool
-extends GdUnitGameTest
+@warning_ignore("return_value_discarded")
+	extends GdUnitGameTest
 
 # Type-safe script references - handle missing preloads gracefully
 static func _load_campaign_phase_manager() -> GDScript:
@@ -33,7 +34,7 @@ class MockCampaignPhaseManager extends Node:
 	var phase_history: Array = []
 	var campaign_state: Dictionary = {}
 	
-	func _init():
+	func _init() -> void:
 		name = "MockCampaignPhaseManager"
 		campaign_state = {
 			"current_phase": 0,
@@ -48,28 +49,36 @@ class MockCampaignPhaseManager extends Node:
 	
 	func transition_to(new_phase: int) -> bool:
 		if new_phase < 0 or new_phase > 4:
-			transition_failed.emit("Invalid phase")
+			@warning_ignore("unsafe_method_access")
+	transition_failed.emit("Invalid _phase")
 			return false
 		
 		var old_phase = current_phase
 		current_phase = new_phase
 		transition_count += 1
-		phase_history.append(new_phase)
+
+		@warning_ignore("return_value_discarded")
+	phase_history.append(new_phase)
 		
-		phase_ended.emit(old_phase)
-		phase_started.emit(new_phase)
-		phase_changed.emit(old_phase, new_phase)
-		transition_completed.emit(new_phase)
+		@warning_ignore("unsafe_method_access")
+	phase_ended.emit(old_phase)
+		@warning_ignore("unsafe_method_access")
+	phase_started.emit(new_phase)
+		@warning_ignore("unsafe_method_access")
+	phase_changed.emit(old_phase, new_phase)
+		@warning_ignore("unsafe_method_access")
+	transition_completed.emit(new_phase)
 		
 		campaign_state.current_phase = new_phase
 		campaign_state.transition_count = transition_count
 		campaign_state.phase_history = phase_history
-		state_changed.emit(campaign_state)
+		@warning_ignore("unsafe_method_access")
+	state_changed.emit(campaign_state)
 		
 		return true
 	
-	func can_transition_to(phase: int) -> bool:
-		return phase >= 0 and phase <= 4
+	func can_transition_to(_phase: int) -> bool:
+		return _phase >= 0 and _phase <= 4
 	
 	func get_phase_count() -> int:
 		return phase_count
@@ -84,7 +93,7 @@ class MockCampaignPhaseManager extends Node:
 class MockGameStateManager extends Node:
 	var campaign_data: Dictionary = {}
 	
-	func _init():
+	func _init() -> void:
 		name = "MockGameStateManager"
 
 # Type-safe instance variables
@@ -106,14 +115,19 @@ func before_test() -> void:
 	if not _game_state:
 		push_error("Failed to create game state")
 		return
+	@warning_ignore("return_value_discarded")
 	track_node(_game_state)
+	@warning_ignore("return_value_discarded")
 	add_child(_game_state)
 	
 	# Initialize enhanced phase manager using proven patterns
 	_phase_manager = MockCampaignPhaseManager.new()
+	@warning_ignore("return_value_discarded")
 	track_node(_phase_manager)
+	@warning_ignore("return_value_discarded")
 	add_child(_phase_manager)
 	
+	@warning_ignore("unsafe_method_access")
 	await get_tree().process_frame
 
 func after_test() -> void:
@@ -123,34 +137,41 @@ func after_test() -> void:
 # Safe wrapper methods for dynamic method calls
 func _safe_call_method_int(node: Node, method_name: String, args: Array = []) -> int:
 	if node and node.has_method(method_name):
-		var result = node.callv(method_name, args)
+		var result = @warning_ignore("unsafe_method_access")
+	node.callv(method_name, args)
 		return result if result is int else 0
 	return 0
 
 func _safe_call_method_bool(node: Node, method_name: String, args: Array = []) -> bool:
 	if node and node.has_method(method_name):
-		var result = node.callv(method_name, args)
+		var result = @warning_ignore("unsafe_method_access")
+	node.callv(method_name, args)
 		return result if result is bool else false
 	return false
 
 func _safe_call_method_dict(node: Node, method_name: String, args: Array = []) -> Dictionary:
 	if node and node.has_method(method_name):
-		var result = node.callv(method_name, args)
+		var result = @warning_ignore("unsafe_method_access")
+	node.callv(method_name, args)
 		return result if result is Dictionary else {}
 	return {}
 
 # Initial State Tests
+@warning_ignore("unsafe_method_access")
 func test_initial_phase() -> void:
 	var phase: int = _phase_manager.get_current_phase()
 	assert_that(phase).is_equal(0)
 	assert_that(_phase_manager.phase_count).is_equal(0)
 
 # Phase Transition Tests
+@warning_ignore("unsafe_method_access")
 func test_basic_phase_transition() -> void:
 	# Skip signal monitoring to prevent Dictionary corruption
-	# monitor_signals(_phase_manager)  # REMOVED - causes Dictionary corruption
+	# @warning_ignore("unsafe_method_access")
+	monitor_signals(_phase_manager)  # REMOVED - causes Dictionary corruption
 	# Test state directly instead of signal emission
 	var success = _phase_manager.transition_to(1)
+	@warning_ignore("unsafe_method_access")
 	await get_tree().process_frame
 	
 	assert_that(success).is_true()
@@ -161,11 +182,14 @@ func test_basic_phase_transition() -> void:
 	# assert_signal(_phase_manager).is_emitted("phase_changed", [0, 1])  # REMOVED - causes Dictionary corruption
 	# assert_signal(_phase_manager).is_emitted("transition_completed", [1])  # REMOVED - causes Dictionary corruption
 
+@warning_ignore("unsafe_method_access")
 func test_invalid_phase_transition() -> void:
 	# Skip signal monitoring to prevent Dictionary corruption
-	# monitor_signals(_phase_manager)  # REMOVED - causes Dictionary corruption
+	# @warning_ignore("unsafe_method_access")
+	monitor_signals(_phase_manager)  # REMOVED - causes Dictionary corruption
 	# Test state directly instead of signal emission
 	var success = _phase_manager.transition_to(-1)
+	@warning_ignore("unsafe_method_access")
 	await get_tree().process_frame
 	
 	assert_that(success).is_false()
@@ -173,45 +197,55 @@ func test_invalid_phase_transition() -> void:
 	# assert_signal(_phase_manager).is_emitted("transition_failed", ["Invalid phase"])  # REMOVED - causes Dictionary corruption
 
 # Phase-Specific Tests
+@warning_ignore("unsafe_method_access")
 func test_upkeep_phase() -> void:
 	assert_that(_phase_manager.get_current_phase()).is_equal(0)
 	assert_that(_phase_manager.can_transition_to(1)).is_true()
 
+@warning_ignore("unsafe_method_access")
 func test_story_phase() -> void:
 	_phase_manager.transition_to(1)
+	@warning_ignore("unsafe_method_access")
 	await get_tree().process_frame
 	
 	assert_that(_phase_manager.get_current_phase()).is_equal(1)
 	assert_that(_phase_manager.can_transition_to(2)).is_true()
 
+@warning_ignore("unsafe_method_access")
 func test_battle_setup_phase() -> void:
 	_phase_manager.transition_to(2)
+	@warning_ignore("unsafe_method_access")
 	await get_tree().process_frame
 	
 	assert_that(_phase_manager.get_current_phase()).is_equal(2)
 	assert_that(_phase_manager.can_transition_to(3)).is_true()
 
+@warning_ignore("unsafe_method_access")
 func test_battle_resolution_phase() -> void:
 	_phase_manager.transition_to(3)
+	@warning_ignore("unsafe_method_access")
 	await get_tree().process_frame
 	
 	assert_that(_phase_manager.get_current_phase()).is_equal(3)
 	assert_that(_phase_manager.can_transition_to(4)).is_true()
 
 # Phase Sequence Tests
+@warning_ignore("unsafe_method_access")
 func test_full_phase_sequence() -> void:
 	# Skip signal monitoring to prevent Dictionary corruption
-	# monitor_signals(_phase_manager)  # REMOVED - causes Dictionary corruption
+	# @warning_ignore("unsafe_method_access")
+	monitor_signals(_phase_manager)  # REMOVED - causes Dictionary corruption
 	# Test state directly instead of signal emission
 	# Test complete sequence: 0 -> 1 -> 2 -> 3 -> 4
 	var phases = [1, 2, 3, 4]
 	
-	for i in range(phases.size()):
+	for i: int in range(phases.size()):
 		var target_phase = phases[i]
 		var old_phase = _phase_manager.get_current_phase()
 		
 		var success = _phase_manager.transition_to(target_phase)
-		await get_tree().process_frame
+		@warning_ignore("unsafe_method_access")
+	await get_tree().process_frame
 		
 		assert_that(success).is_true()
 		assert_that(_phase_manager.get_current_phase()).is_equal(target_phase)
@@ -222,6 +256,7 @@ func test_full_phase_sequence() -> void:
 		# assert_signal(_phase_manager).is_emitted("transition_completed", [target_phase])  # REMOVED - causes Dictionary corruption
 
 # Phase Validation Tests
+@warning_ignore("unsafe_method_access")
 func test_phase_prerequisites() -> void:
 	# Test prerequisite checking
 	assert_that(_phase_manager.can_transition_to(0)).is_true()
@@ -229,11 +264,14 @@ func test_phase_prerequisites() -> void:
 	assert_that(_phase_manager.can_transition_to(4)).is_true()
 
 # Phase State Tests
+@warning_ignore("unsafe_method_access")
 func test_phase_state_persistence() -> void:
 	# Skip signal monitoring to prevent Dictionary corruption
-	# monitor_signals(_phase_manager)  # REMOVED - causes Dictionary corruption
+	# @warning_ignore("unsafe_method_access")
+	monitor_signals(_phase_manager)  # REMOVED - causes Dictionary corruption
 	# Test state directly instead of signal emission
 	_phase_manager.transition_to(2)
+	@warning_ignore("unsafe_method_access")
 	await get_tree().process_frame
 	
 	assert_that(_phase_manager.campaign_state.current_phase).is_equal(2)
@@ -244,6 +282,7 @@ func test_phase_state_persistence() -> void:
 	# assert_signal(_phase_manager).is_emitted("state_changed")  # REMOVED - causes Dictionary corruption
 
 # Error Handling Tests
+@warning_ignore("unsafe_method_access")
 func test_error_handling() -> void:
 	# Test error handling with invalid inputs
 	assert_that(_phase_manager.can_transition_to(-5)).is_false()

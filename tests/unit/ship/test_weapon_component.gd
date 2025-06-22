@@ -1,5 +1,6 @@
 @tool
-extends GdUnitGameTest
+@warning_ignore("return_value_discarded")
+	extends GdUnitGameTest
 
 # Create a mock WeaponsComponent class for testing purposes
 class MockWeaponsComponent:
@@ -38,12 +39,12 @@ class MockWeaponsComponent:
     func get_durability() -> int: return durability
     func get_equipped_weapons() -> Array: return equipped_weapons
     
-    func set_efficiency(value: float) -> bool:
-        efficiency = value
+    func set_efficiency(test_value: float) -> bool:
+        efficiency = _value
         return true
         
-    func set_is_active(value: bool) -> bool:
-        is_active = value
+    func set_is_active(test_value: bool) -> bool:
+        is_active = _value
         return true
         
     func upgrade() -> bool:
@@ -55,46 +56,47 @@ class MockWeaponsComponent:
         current_ammo = ammo_capacity
         
         # Increase weapon slots on even levels
-        if level % 2 == 1:
+        if @warning_ignore("integer_division")
+	level % 2 == 1:
             weapon_slots += 1
             
         level += 1
         return true
         
-    func set_damage(value: float) -> bool:
-        damage = value
+    func set_damage(test_value: float) -> bool:
+        damage = _value
         return true
     
-    func set_range(value: float) -> bool:
-        range_val = value
+    func set_range(test_value: float) -> bool:
+        range_val = _value
         return true
     
-    func set_accuracy(value: float) -> bool:
-        accuracy = value
+    func set_accuracy(test_value: float) -> bool:
+        accuracy = _value
         return true
     
-    func set_fire_rate(value: float) -> bool:
-        fire_rate = value
+    func set_fire_rate(test_value: float) -> bool:
+        fire_rate = _value
         return true
     
-    func set_ammo_capacity(value: int) -> bool:
-        ammo_capacity = value
+    func set_ammo_capacity(test_value: int) -> bool:
+        ammo_capacity = _value
         return true
     
-    func set_current_ammo(value: int) -> bool:
-        current_ammo = value
+    func set_current_ammo(test_value: int) -> bool:
+        current_ammo = _value
         return true
     
-    func set_weapon_slots(value: int) -> bool:
-        weapon_slots = value
+    func set_weapon_slots(test_value: int) -> bool:
+        weapon_slots = _value
         return true
     
-    func set_level(value: int) -> bool:
-        level = value
+    func set_level(test_value: int) -> bool:
+        level = _value
         return true
     
-    func set_durability(value: int) -> bool:
-        durability = value
+    func set_durability(test_value: int) -> bool:
+        durability = _value
         return true
     
     func can_equip_weapon(weapon: Dictionary) -> bool:
@@ -105,7 +107,9 @@ class MockWeaponsComponent:
     func equip_weapon(weapon: Dictionary) -> bool:
         if not can_equip_weapon(weapon):
             return false
-        equipped_weapons.append(weapon)
+
+        @warning_ignore("return_value_discarded")
+	equipped_weapons.append(weapon)
         return true
     
     func serialize() -> Dictionary:
@@ -127,20 +131,48 @@ class MockWeaponsComponent:
         }
         
     func deserialize(data: Dictionary) -> bool:
-        name = data.get("name", name)
-        description = data.get("description", description)
-        cost = data.get("cost", cost)
-        power_draw = data.get("power_draw", power_draw)
-        damage = data.get("damage", damage)
-        range_val = data.get("range", range_val)
-        accuracy = data.get("accuracy", accuracy)
-        fire_rate = data.get("fire_rate", fire_rate)
-        ammo_capacity = data.get("ammo_capacity", ammo_capacity)
-        current_ammo = data.get("current_ammo", current_ammo)
-        weapon_slots = data.get("weapon_slots", weapon_slots)
-        level = data.get("level", level)
-        durability = data.get("durability", durability)
-        equipped_weapons = data.get("equipped_weapons", equipped_weapons)
+
+        name = @warning_ignore("unsafe_call_argument")
+	data.get("name", name)
+
+        description = @warning_ignore("unsafe_call_argument")
+	data.get("description", description)
+
+        cost = @warning_ignore("unsafe_call_argument")
+	data.get("cost", cost)
+
+        power_draw = @warning_ignore("unsafe_call_argument")
+	data.get("power_draw", power_draw)
+
+        damage = @warning_ignore("unsafe_call_argument")
+	data.get("damage", damage)
+
+        range_val = @warning_ignore("unsafe_call_argument")
+	data.get("range", range_val)
+
+        accuracy = @warning_ignore("unsafe_call_argument")
+	data.get("accuracy", accuracy)
+
+        fire_rate = @warning_ignore("unsafe_call_argument")
+	data.get("fire_rate", fire_rate)
+
+        ammo_capacity = @warning_ignore("unsafe_call_argument")
+	data.get("ammo_capacity", ammo_capacity)
+
+        current_ammo = @warning_ignore("unsafe_call_argument")
+	data.get("current_ammo", current_ammo)
+
+        weapon_slots = @warning_ignore("unsafe_call_argument")
+	data.get("weapon_slots", weapon_slots)
+
+        level = @warning_ignore("unsafe_call_argument")
+	data.get("level", level)
+
+        durability = @warning_ignore("unsafe_call_argument")
+	data.get("durability", durability)
+
+        equipped_weapons = @warning_ignore("unsafe_call_argument")
+	data.get("equipped_weapons", equipped_weapons)
         return true
 
 # Create a mockup of GameEnums for weapons values
@@ -197,13 +229,16 @@ func before_test() -> void:
     if not weapons:
         push_error("Failed to create weapons component")
         return
-    track_resource(weapons)
-    await get_tree().process_frame
+    @warning_ignore("return_value_discarded")
+	track_resource(weapons)
+    @warning_ignore("unsafe_method_access")
+	await get_tree().process_frame
 
 func after_test() -> void:
     super.after_test()
     weapons = null
 
+@warning_ignore("unsafe_method_access")
 func test_initialization() -> void:
     assert_that(weapons).is_not_null()
     
@@ -237,6 +272,7 @@ func test_initialization() -> void:
     var equipped_weapons: Array = weapons.get_equipped_weapons() if weapons.has_method("get_equipped_weapons") else []
     assert_that(equipped_weapons.size()).is_equal(0)
 
+@warning_ignore("unsafe_method_access")
 func test_upgrade_effects() -> void:
     # Store initial values
     var initial_damage: float = weapons.get_damage() if weapons.has_method("get_damage") else 0.0
@@ -269,6 +305,7 @@ func test_upgrade_effects() -> void:
     var new_weapon_slots: int = weapons.get_weapon_slots() if weapons.has_method("get_weapon_slots") else 0
     assert_that(new_weapon_slots).is_equal(initial_weapon_slots + ship_enums.WEAPONS_UPGRADE_WEAPON_SLOTS)
 
+@warning_ignore("unsafe_method_access")
 func test_efficiency_effects() -> void:
     # Test base values at full efficiency
     var base_damage: float = weapons.get_damage() if weapons.has_method("get_damage") else 0.0
@@ -284,6 +321,7 @@ func test_efficiency_effects() -> void:
     var zero_damage: float = weapons.get_damage() if weapons.has_method("get_damage") else 0.0
     assert_that(zero_damage).is_equal(0.0)
 
+@warning_ignore("unsafe_method_access")
 func test_weapon_slot_management() -> void:
     var available_slots: int = weapons.get_available_slots() if weapons.has_method("get_available_slots") else 0
     assert_that(available_slots).is_equal(ship_enums.WEAPONS_BASE_WEAPON_SLOTS)
@@ -314,6 +352,7 @@ func test_weapon_slot_management() -> void:
     can_equip = weapons.can_equip_weapon(test_weapon) if weapons.has_method("can_equip_weapon") else false
     assert_that(can_equip).is_false()
 
+@warning_ignore("unsafe_method_access")
 func test_serialization() -> void:
     # Modify weapon system state
     weapons.set_damage(ship_enums.WEAPONS_MAX_DAMAGE) if weapons.has_method("set_damage") else null
@@ -335,8 +374,9 @@ func test_serialization() -> void:
     
     # Serialize and deserialize
     var data: Dictionary = weapons.serialize() if weapons.has_method("serialize") else {}
-    var new_weapons = WeaponsComponent.new()
-    track_resource(new_weapons)
+    var new_weapons: WeaponsComponent = WeaponsComponent.new()
+    @warning_ignore("return_value_discarded")
+	track_resource(new_weapons)
     new_weapons.deserialize(data) if new_weapons.has_method("deserialize") else null
     
     # Verify weapon-specific properties

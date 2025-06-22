@@ -1,12 +1,8 @@
 @tool
+@warning_ignore("return_value_discarded")
 extends "res://tests/fixtures/specialized/enemy_test.gd"
 
-## Enemy Deployment System Tests using UNIVERSAL MOCK STRATEGY
-##
-## Applies the proven pattern that achieved:
-## - Ship Tests: 48/48 (100% SUCCESS)
-## - Mission Tests: 51/51 (100% SUCCESS)
-## - test_enemy.gd: 12/12 (100% SUCCESS)
+
 
 # ========================================
 # UNIVERSAL MOCK STRATEGY - PROVEN PATTERN
@@ -59,11 +55,13 @@ class MockDeploymentManager extends Resource:
 		if deployment_type in deployment_positions:
 			var positions: Array = deployment_positions[deployment_type]
 			# Immediate signal emission for reliable testing
-			deployment_completed.emit(positions)
+			@warning_ignore("unsafe_method_access")
+	deployment_completed.emit(positions)
 			return positions
 		else:
-			# Invalid deployment type
-			deployment_failed.emit("Invalid deployment type: " + str(deployment_type))
+			# Invalid deployment _type
+			@warning_ignore("unsafe_method_access")
+	deployment_failed.emit("Invalid deployment _type: " + str(deployment_type))
 			return []
 
 class MockBattleMap extends Resource:
@@ -90,11 +88,14 @@ func before_test() -> void:
 	
 	# Create mocks with expected values
 	_deployment_manager = MockDeploymentManager.new()
+	@warning_ignore("return_value_discarded")
 	track_resource(_deployment_manager) # Perfect cleanup - NO orphan nodes
 	
 	_battle_map = MockBattleMap.new()
+	@warning_ignore("return_value_discarded")
 	track_resource(_battle_map)
 	
+	@warning_ignore("unsafe_method_access")
 	await get_tree().process_frame
 
 func after_test() -> void:
@@ -103,10 +104,12 @@ func after_test() -> void:
 	super.after_test()
 
 # ========================================
-# PERFECT TESTS - Expected 100% Success
+# PERFECT TESTS - Expected @warning_ignore("integer_division")
+	100 % Success
 # ========================================
 
 # Deployment Type Selection Tests
+@warning_ignore("unsafe_method_access")
 func test_deployment_type_selection() -> void:
 	# Test aggressive behavior
 	var aggressive_type: int = _deployment_manager.get_deployment_type(GameEnums.AIBehavior.AGGRESSIVE)
@@ -125,6 +128,7 @@ func test_deployment_type_selection() -> void:
 	]).is_true()
 
 # Basic Deployment Pattern Tests
+@warning_ignore("unsafe_method_access")
 func test_standard_deployment() -> void:
 	var positions: Array = _deployment_manager.generate_deployment_positions(_battle_map, GameEnums.DeploymentType.STANDARD)
 	
@@ -135,6 +139,7 @@ func test_standard_deployment() -> void:
 	for pos in positions:
 		assert_that(pos is Vector2).is_true()
 
+@warning_ignore("unsafe_method_access")
 func test_line_deployment() -> void:
 	var positions: Array = _deployment_manager.generate_deployment_positions(_battle_map, GameEnums.DeploymentType.LINE)
 	
@@ -148,6 +153,7 @@ func test_line_deployment() -> void:
 			assert_that(pos.y).is_equal(first_y)
 
 # Advanced Deployment Pattern Tests
+@warning_ignore("unsafe_method_access")
 func test_ambush_deployment() -> void:
 	var positions: Array = _deployment_manager.generate_deployment_positions(_battle_map, GameEnums.DeploymentType.AMBUSH)
 	
@@ -157,10 +163,11 @@ func test_ambush_deployment() -> void:
 	# Verify positions are spread out (ambush pattern)
 	if positions.size() > 1:
 		var spread: float = 0.0
-		for i in range(positions.size() - 1):
+		for i: int in range(positions.size() - 1):
 			spread += positions[i].distance_to(positions[i + 1])
 		assert_that(spread).is_greater(10.0) # Should be well spread
 
+@warning_ignore("unsafe_method_access")
 func test_scattered_deployment() -> void:
 	var positions: Array = _deployment_manager.generate_deployment_positions(_battle_map, GameEnums.DeploymentType.SCATTERED)
 	
@@ -168,12 +175,13 @@ func test_scattered_deployment() -> void:
 	assert_that(positions.size()).is_greater(0)
 	
 	# Verify scattered pattern (no two positions too close)
-	for i in range(positions.size()):
-		for j in range(i + 1, positions.size()):
+	for i: int in range(positions.size()):
+		for j: int in range(i + 1, positions.size()):
 			var distance: float = positions[i].distance_to(positions[j])
 			assert_that(distance).is_greater(5.0) # Minimum scatter distance
 
 # Tactical Deployment Pattern Tests
+@warning_ignore("unsafe_method_access")
 func test_defensive_deployment() -> void:
 	var positions: Array = _deployment_manager.generate_deployment_positions(_battle_map, GameEnums.DeploymentType.DEFENSIVE)
 	
@@ -192,6 +200,7 @@ func test_defensive_deployment() -> void:
 			var distance_to_center: float = pos.distance_to(center)
 			assert_that(distance_to_center).is_less(15.0)
 
+@warning_ignore("unsafe_method_access")
 func test_infiltration_deployment() -> void:
 	var positions: Array = _deployment_manager.generate_deployment_positions(_battle_map, GameEnums.DeploymentType.INFILTRATION)
 	
@@ -204,6 +213,7 @@ func test_infiltration_deployment() -> void:
 		assert_that(near_edge).is_true()
 
 # Special Deployment Pattern Tests
+@warning_ignore("unsafe_method_access")
 func test_reinforcement_deployment() -> void:
 	var positions: Array = _deployment_manager.generate_deployment_positions(_battle_map, GameEnums.DeploymentType.REINFORCEMENT)
 	
@@ -216,6 +226,7 @@ func test_reinforcement_deployment() -> void:
 		assert_that(on_edge).is_true()
 
 # Validation Tests
+@warning_ignore("unsafe_method_access")
 func test_deployment_validation() -> void:
 	var positions: Array = _deployment_manager.generate_deployment_positions(_battle_map, GameEnums.DeploymentType.STANDARD)
 	
@@ -227,12 +238,14 @@ func test_deployment_validation() -> void:
 		assert_that(pos.x).is_between(0.0, _battle_map.get_width())
 		assert_that(pos.y).is_between(0.0, _battle_map.get_height())
 
+@warning_ignore("unsafe_method_access")
 func test_invalid_deployment_type() -> void:
 	var positions: Array = _deployment_manager.generate_deployment_positions(_battle_map, -1) # Invalid type
 	
 	assert_that(positions.is_empty()).is_true()
 
 # Behavior Pattern Tests
+@warning_ignore("unsafe_method_access")
 func test_deployment_pattern_matching() -> void:
 	# Test aggressive behavior patterns
 	var aggressive_type: int = _deployment_manager.get_deployment_type(GameEnums.AIBehavior.AGGRESSIVE)

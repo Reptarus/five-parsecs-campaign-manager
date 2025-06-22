@@ -25,7 +25,7 @@ func _setup_tooltip() -> void:
     add_child(tooltip_panel)
     
     # Apply theme overrides
-    var style = StyleBoxFlat.new()
+    var style := StyleBoxFlat.new()
     style.bg_color = Color(0.1, 0.1, 0.1, 0.9)
     style.corner_radius_top_left = 3
     style.corner_radius_top_right = 3

@@ -184,7 +184,6 @@ static func obj2dict(obj: Object, hashed_objects := Dictionary()) -> Dictionary:
 					dict[property_name] = str(property_value)
 					continue
 				hashed_objects[obj] = true
-				@warning_ignore("unsafe_cast")
 				dict[property_name] = obj2dict(property_value as Object, hashed_objects)
 			else:
 				dict[property_name] = property_value
@@ -220,10 +219,8 @@ static func _equals(obj_a :Variant, obj_b :Variant, case_sensitive :bool, compar
 
 	# use argument matcher if requested
 	if is_instance_valid(obj_a) and obj_a is GdUnitArgumentMatcher:
-		@warning_ignore("unsafe_cast")
 		return (obj_a as GdUnitArgumentMatcher).is_match(obj_b)
 	if is_instance_valid(obj_b) and obj_b is GdUnitArgumentMatcher:
-		@warning_ignore("unsafe_cast")
 		return (obj_b as GdUnitArgumentMatcher).is_match(obj_a)
 
 	stack_depth += 1
@@ -249,35 +246,26 @@ static func _equals(obj_a :Variant, obj_b :Variant, case_sensitive :bool, compar
 				# fail fast
 				if not is_instance_valid(obj_a) or not is_instance_valid(obj_b):
 					return false
-				@warning_ignore("unsafe_method_access")
 				if obj_a.get_class() != obj_b.get_class():
 					return false
-				@warning_ignore("unsafe_cast")
 				var a := obj2dict(obj_a as Object)
-				@warning_ignore("unsafe_cast")
 				var b := obj2dict(obj_b as Object)
 				return _equals(a, b, case_sensitive, compare_mode, deep_stack, stack_depth)
 			return obj_a == obj_b
 
 		TYPE_ARRAY:
-			@warning_ignore("unsafe_method_access")
 			if obj_a.size() != obj_b.size():
 				return false
-			@warning_ignore("unsafe_method_access")
 			for index :int in obj_a.size():
 				if not _equals(obj_a[index], obj_b[index], case_sensitive, compare_mode, deep_stack, stack_depth):
 					return false
 			return true
 
 		TYPE_DICTIONARY:
-			@warning_ignore("unsafe_method_access")
 			if obj_a.size() != obj_b.size():
 				return false
-			@warning_ignore("unsafe_method_access")
 			for key :Variant in obj_a.keys():
-				@warning_ignore("unsafe_method_access")
 				var value_a :Variant = obj_a[key] if obj_a.has(key) else null
-				@warning_ignore("unsafe_method_access")
 				var value_b :Variant = obj_b[key] if obj_b.has(key) else null
 				if not _equals(value_a, value_b, case_sensitive, compare_mode, deep_stack, stack_depth):
 					return false
@@ -285,14 +273,12 @@ static func _equals(obj_a :Variant, obj_b :Variant, case_sensitive :bool, compar
 
 		TYPE_STRING:
 			if case_sensitive:
-				@warning_ignore("unsafe_method_access")
 				return obj_a.to_lower() == obj_b.to_lower()
 			else:
 				return obj_a == obj_b
 	return obj_a == obj_b
 
 
-@warning_ignore("shadowed_variable_base_class")
 static func notification_as_string(instance :Variant, notification :int) -> String:
 	var error := "Unknown notification: '%s' at instance:  %s" % [notification, instance]
 	if instance is Node and NOTIFICATION_AS_STRING_MAPPINGS[TYPE_NODE].has(notification):
@@ -320,7 +306,6 @@ static func to_pascal_case(value :String) -> String:
 	return value.capitalize().replace(" ", "")
 
 
-@warning_ignore("return_value_discarded")
 static func to_snake_case(value :String) -> String:
 	var result := PackedStringArray()
 	for ch in value:
@@ -392,7 +377,6 @@ static func is_type(value :Variant) -> bool:
 	if is_engine_type(value):
 		return true
 	# is a custom class type
-	@warning_ignore("unsafe_cast")
 	if value is GDScript and (value as GDScript).can_instantiate():
 		return true
 	return false
@@ -406,7 +390,6 @@ static func _is_same(left :Variant, right :Variant) -> bool:
 	if left_type != right_type:
 		return false
 	if left_type == TYPE_OBJECT and right_type == TYPE_OBJECT:
-		@warning_ignore("unsafe_cast")
 		return (left as Object).get_instance_id() == (right as Object).get_instance_id()
 	return equals(left, right)
 
@@ -428,7 +411,6 @@ static func is_scene(value :Variant) -> bool:
 
 
 static func is_scene_resource_path(value :Variant) -> bool:
-	@warning_ignore("unsafe_cast")
 	return value is String and (value as String).ends_with(".tscn")
 
 
@@ -436,7 +418,6 @@ static func is_singleton(value: Variant) -> bool:
 	if not is_instance_valid(value) or is_native_class(value):
 		return false
 	for name in Engine.get_singleton_list():
-		@warning_ignore("unsafe_cast")
 		if (value as Object).is_class(name):
 			return true
 	return false
@@ -445,12 +426,10 @@ static func is_singleton(value: Variant) -> bool:
 static func is_instance(value :Variant) -> bool:
 	if not is_instance_valid(value) or is_native_class(value):
 		return false
-	@warning_ignore("unsafe_cast")
 	if is_script(value) and (value as Script).get_instance_base_type() == "":
 		return true
 	if is_scene(value):
 		return true
-	@warning_ignore("unsafe_cast")
 	return not (value as Object).has_method('new') and not (value as Object).has_method('instance')
 
 
@@ -465,7 +444,6 @@ static func is_instance_scene(instance :Variant) -> bool:
 static func can_be_instantiate(obj :Variant) -> bool:
 	if not obj or is_engine_type(obj):
 		return false
-	@warning_ignore("unsafe_cast")
 	return (obj as Object).has_method("new")
 
 
@@ -475,7 +453,6 @@ static func create_instance(clazz :Variant) -> GdUnitResult:
 			# test is given clazz already an instance
 			if is_instance(clazz):
 				return GdUnitResult.success(clazz)
-			@warning_ignore("unsafe_method_access")
 			return GdUnitResult.success(clazz.new())
 		TYPE_STRING:
 			var clazz_name: String = clazz
@@ -500,15 +477,12 @@ static func create_instance(clazz :Variant) -> GdUnitResult:
 ## We do dispose 'GDScriptFunctionState' in a kacky style because the class is not visible anymore
 static func dispose_function_state(func_state: Variant) -> void:
 	if func_state != null and str(func_state).contains("GDScriptFunctionState"):
-		@warning_ignore("unsafe_method_access")
 		func_state.completed.emit()
 
 
-@warning_ignore("return_value_discarded")
 static func extract_class_path(clazz :Variant) -> PackedStringArray:
 	var clazz_path := PackedStringArray()
 	if clazz is String:
-		@warning_ignore("unsafe_cast")
 		clazz_path.append(clazz as String)
 		return clazz_path
 	if is_instance(clazz):
@@ -528,7 +502,6 @@ static func extract_class_path(clazz :Variant) -> PackedStringArray:
 		var instance: Object = script.callv("new", arg_list)
 		var clazz_info := inst_to_dict(instance)
 		GdUnitTools.free_instance(instance)
-		@warning_ignore("unsafe_cast")
 		clazz_path.append(clazz_info["@path"] as String)
 		if clazz_info.has("@subpath"):
 			var sub_path :String = clazz_info["@subpath"]
@@ -559,7 +532,6 @@ static func extract_class_name(clazz :Variant) -> GdUnitResult:
 		var script: GDScript = clazz.script
 		if script != null:
 			return extract_class_name(script)
-		@warning_ignore("unsafe_cast")
 		return GdUnitResult.success((clazz as Object).get_class())
 
 	# extract name form full qualified class path
@@ -575,19 +547,16 @@ static func extract_class_name(clazz :Variant) -> GdUnitResult:
 		return GdUnitResult.error("Can't extract class name for an primitive '%s'" % type_as_string(typeof(clazz)))
 
 	if is_script(clazz):
-		@warning_ignore("unsafe_cast")
 		if (clazz as Script).resource_path.is_empty():
 			var class_path := extract_class_name_from_class_path(extract_class_path(clazz))
 			return GdUnitResult.success(class_path);
 		return extract_class_name(clazz.resource_path)
 
 	# need to create an instance for a class typ the extract the class name
-	@warning_ignore("unsafe_method_access")
 	var instance :Variant = clazz.new()
 	if instance == null:
 		return GdUnitResult.error("Can't create a instance for class '%s'" % str(clazz))
 	var result := extract_class_name(instance)
-	@warning_ignore("return_value_discarded")
 	GdUnitTools.free_instance(instance)
 	return result
 
@@ -603,7 +572,6 @@ static func extract_inner_clazz_names(clazz_name :String, script_path :PackedStr
 		var value :Variant = map.get(key)
 		if value is GDScript:
 			var class_path := extract_class_path(value)
-			@warning_ignore("return_value_discarded")
 			inner_classes.append(class_path[1])
 	return inner_classes
 

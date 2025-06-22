@@ -1,5 +1,6 @@
 @tool
-extends GdUnitGameTest
+@warning_ignore("return_value_discarded")
+	extends GdUnitGameTest
 
 ## Tests the functionality of game state management
 const GameEnums = preload("res://src/core/systems/GlobalEnums.gd")
@@ -15,12 +16,16 @@ class MockGameState extends Resource:
 	var use_story_track: bool = true
 	var auto_save_enabled: bool = true
 	var resources: Dictionary = {}
-	var active_quests: Array[Dictionary] = []
-	var completed_quests: Array[Dictionary] = []
+	var active_quests: @warning_ignore("unsafe_call_argument")
+	Array[Dictionary] = []
+	var completed_quests: @warning_ignore("unsafe_call_argument")
+	Array[Dictionary] = []
 	var current_location: Resource = null
 	var player_ship: Resource = null
-	var visited_locations: Array[String] = []
-	var turn_events: Array[Dictionary] = []
+	var visited_locations: @warning_ignore("unsafe_call_argument")
+	Array[String] = []
+	var turn_events: @warning_ignore("unsafe_call_argument")
+	Array[Dictionary] = []
 	var max_turns: int = 100
 	var max_active_quests: int = 10
 	
@@ -44,12 +49,14 @@ class MockGameState extends Resource:
 	# Core setters
 	func set_phase(phase: int) -> void:
 		current_phase = phase
-		phase_changed.emit(phase)
+		@warning_ignore("unsafe_method_access")
+	phase_changed.emit(phase)
 	
 	func advance_turn() -> void:
 		if turn_number < max_turns:
 			turn_number += 1
-			turn_advanced.emit(turn_number)
+			@warning_ignore("unsafe_method_access")
+	turn_advanced.emit(turn_number)
 	
 	# Phase transitions
 	func can_transition_to(target_phase: int) -> bool:
@@ -77,34 +84,49 @@ class MockGameState extends Resource:
 	func add_resource(resource_type: int, amount: int) -> bool:
 		if amount <= 0:
 			return false
-		resources[resource_type] = resources.get(resource_type, 0) + amount
+
+		@warning_ignore("unsafe_call_argument")
+	resources[resource_type] = @warning_ignore("unsafe_call_argument")
+	resources.get(resource_type, 0) + amount
 		return true
 	
 	func remove_resource(resource_type: int, amount: int) -> bool:
-		var current = resources.get(resource_type, 0)
+
+		var current = @warning_ignore("unsafe_call_argument")
+	resources.get(resource_type, 0)
 		if current < amount:
 			return false
-		resources[resource_type] = current - amount
+		@warning_ignore("unsafe_call_argument")
+	resources[resource_type] = current - amount
 		return true
 	
 	func get_resource(resource_type: int) -> int:
-		return resources.get(resource_type, 0)
+
+		return @warning_ignore("unsafe_call_argument")
+	resources.get(resource_type, 0)
 	
 	# Quest management
 	func add_quest(quest: Dictionary) -> bool:
 		if active_quests.size() >= max_active_quests:
 			return false
-		active_quests.append(quest)
-		quest_added.emit(quest)
+
+		@warning_ignore("return_value_discarded")
+	active_quests.append(quest)
+		@warning_ignore("unsafe_method_access")
+	quest_added.emit(quest)
 		return true
 	
 	func complete_quest(quest_id: String) -> bool:
-		for i in range(active_quests.size()):
+		for i: int in range(active_quests.size()):
+
 			if active_quests[i].get("id", "") == quest_id:
 				var quest = active_quests[i]
 				active_quests.remove_at(i)
-				completed_quests.append(quest)
-				quest_completed.emit(quest)
+
+				@warning_ignore("return_value_discarded")
+	completed_quests.append(quest)
+				@warning_ignore("unsafe_method_access")
+	quest_completed.emit(quest)
 				return true
 		return false
 	
@@ -113,17 +135,22 @@ class MockGameState extends Resource:
 		current_location = location
 		if location and location.has_meta("id"):
 			var location_id = location.get_meta("id")
-			if not visited_locations.has(location_id):
-				visited_locations.append(location_id)
+			if not @warning_ignore("unsafe_call_argument")
+	visited_locations.has(location_id):
+
+				@warning_ignore("return_value_discarded")
+	visited_locations.append(location_id)
 	
 	func apply_location_effects() -> void:
 		# Mock location effects application
-		location_effects_applied.emit()
+		@warning_ignore("unsafe_method_access")
+	location_effects_applied.emit()
 	
 	# Ship management
 	func set_player_ship(ship: Resource) -> void:
 		player_ship = ship
-		ship_changed.emit(ship)
+		@warning_ignore("unsafe_method_access")
+	ship_changed.emit(ship)
 	
 	# Serialization
 	func serialize() -> Dictionary:
@@ -143,18 +170,42 @@ class MockGameState extends Resource:
 		}
 	
 	func deserialize(data: Dictionary) -> void:
-		turn_number = data.get("turn_number", 0)
-		story_points = data.get("story_points", 0)
-		reputation = data.get("reputation", 0)
-		current_phase = data.get("current_phase", GameEnums.FiveParcsecsCampaignPhase.NONE)
-		difficulty_level = data.get("difficulty_level", GameEnums.DifficultyLevel.NORMAL)
-		enable_permadeath = data.get("enable_permadeath", true)
-		use_story_track = data.get("use_story_track", true)
-		auto_save_enabled = data.get("auto_save_enabled", true)
-		resources = data.get("resources", {})
-		active_quests = data.get("active_quests", [])
-		completed_quests = data.get("completed_quests", [])
-		visited_locations = data.get("visited_locations", [])
+
+		turn_number = @warning_ignore("unsafe_call_argument")
+	data.get("turn_number", 0)
+
+		story_points = @warning_ignore("unsafe_call_argument")
+	data.get("story_points", 0)
+
+		reputation = @warning_ignore("unsafe_call_argument")
+	data.get("reputation", 0)
+
+		current_phase = @warning_ignore("unsafe_call_argument")
+	data.get("current_phase", GameEnums.FiveParcsecsCampaignPhase.NONE)
+
+		difficulty_level = @warning_ignore("unsafe_call_argument")
+	data.get("difficulty_level", GameEnums.DifficultyLevel.NORMAL)
+
+		enable_permadeath = @warning_ignore("unsafe_call_argument")
+	data.get("enable_permadeath", true)
+
+		use_story_track = @warning_ignore("unsafe_call_argument")
+	data.get("use_story_track", true)
+
+		auto_save_enabled = @warning_ignore("unsafe_call_argument")
+	data.get("auto_save_enabled", true)
+
+		resources = @warning_ignore("unsafe_call_argument")
+	data.get("resources", {})
+
+		active_quests = @warning_ignore("unsafe_call_argument")
+	data.get("active_quests", [])
+
+		completed_quests = @warning_ignore("unsafe_call_argument")
+	data.get("completed_quests", [])
+
+		visited_locations = @warning_ignore("unsafe_call_argument")
+	data.get("visited_locations", [])
 	
 	# Required signals (immediate emission pattern)
 	signal phase_changed(new_phase: int)
@@ -167,7 +218,7 @@ class MockGameState extends Resource:
 # Mock Game State System with expected values (Universal Mock Strategy)
 class MockGameStateSystem extends Resource:
 	func create_game_state() -> MockGameState:
-		var state = MockGameState.new()
+		var state: MockGameState = MockGameState.new()
 		# Initialize with default values
 		state.resources[GameEnums.ResourceType.CREDITS] = 1000
 		state.resources[GameEnums.ResourceType.FUEL] = 10
@@ -182,10 +233,12 @@ var _state_system: MockGameStateSystem = null
 func before_test() -> void:
 	super.before_test()
 	_state_system = MockGameStateSystem.new()
+	@warning_ignore("return_value_discarded")
 	track_resource(_state_system)
 	
 	# Create test state for most tests
 	state = _state_system.create_game_state()
+	@warning_ignore("return_value_discarded")
 	track_resource(state)
 
 func after_test() -> void:
@@ -194,9 +247,11 @@ func after_test() -> void:
 	super.after_test()
 
 # Game State Creation Tests
+@warning_ignore("unsafe_method_access")
 func test_create_game_state() -> void:
 	# Test direct method calls instead of safe wrappers (proven pattern)
 	var test_state: MockGameState = _state_system.create_game_state()
+	@warning_ignore("return_value_discarded")
 	track_resource(test_state)
 	assert_that(test_state).is_not_null()
 	
@@ -215,6 +270,7 @@ func test_create_game_state() -> void:
 	assert_that(test_state.get_use_story_track()).is_true()
 	assert_that(test_state.get_auto_save_enabled()).is_true()
 
+@warning_ignore("unsafe_method_access")
 func test_phase_management() -> void:
 	# Test direct method calls instead of safe wrappers (proven pattern)
 	state.set_phase(GameEnums.FiveParcsecsCampaignPhase.SETUP)
@@ -228,22 +284,25 @@ func test_phase_management() -> void:
 	state.complete_phase()
 	assert_that(state.get_current_phase()).is_equal(GameEnums.FiveParcsecsCampaignPhase.CAMPAIGN)
 
+@warning_ignore("unsafe_method_access")
 func test_turn_management() -> void:
 	# Test direct method calls instead of safe wrappers (proven pattern)
 	state.advance_turn()
 	assert_that(state.get_turn_number()).is_equal(1)
 	
 	# Test turn events
-	var events: Array[Dictionary] = state.get_turn_events()
+	var events: @warning_ignore("unsafe_call_argument")
+	Array[Dictionary] = state.get_turn_events()
 	assert_that(events).is_not_null()
 	
 	# Test turn limits
-	for i in range(100):
+	for i: int in range(100):
 		state.advance_turn()
 	var turn_number: int = state.get_turn_number()
 	var max_turns: int = state.get_max_turns()
 	assert_that(turn_number).is_less_equal(max_turns)
 
+@warning_ignore("unsafe_method_access")
 func test_resource_management() -> void:
 	# Test direct method calls instead of safe wrappers (proven pattern)
 	var success: bool = state.add_resource(GameEnums.ResourceType.CREDITS, 100)
@@ -267,6 +326,7 @@ func test_resource_management() -> void:
 	success = state.remove_resource(GameEnums.ResourceType.CREDITS, 2000)
 	assert_that(success).is_false()
 
+@warning_ignore("unsafe_method_access")
 func test_quest_management() -> void:
 	# Test direct method calls instead of safe wrappers (proven pattern)
 	var test_quest := {
@@ -279,33 +339,38 @@ func test_quest_management() -> void:
 	var success: bool = state.add_quest(test_quest)
 	assert_that(success).is_true()
 	
-	var active_quests: Array[Dictionary] = state.get_active_quests()
+	var active_quests: @warning_ignore("unsafe_call_argument")
+	Array[Dictionary] = state.get_active_quests()
 	assert_that(active_quests.size()).is_equal(1)
 	
 	# Test completing quests
 	success = state.complete_quest(test_quest.id)
 	assert_that(success).is_true()
 	
-	var completed_quests: Array[Dictionary] = state.get_completed_quests()
+	var completed_quests: @warning_ignore("unsafe_call_argument")
+	Array[Dictionary] = state.get_completed_quests()
 	assert_that(completed_quests.size()).is_equal(1)
 	
 	active_quests = state.get_active_quests()
 	assert_that(active_quests.size()).is_equal(0)
 	
 	# Test quest limits
-	for i in range(10):
+	for i: int in range(10):
 		var quest := test_quest.duplicate()
-		quest.id = "quest_%d" % (i + 2)
+		quest.id = "@warning_ignore("integer_division")
+	quest_ % d" % (i + 2)
 		state.add_quest(quest)
 	
 	success = state.add_quest(test_quest)
 	assert_that(success).is_false()
 
+@warning_ignore("unsafe_method_access")
 func test_location_management() -> void:
 	# Test direct method calls instead of safe wrappers (proven pattern)
 	var test_location: Resource = Resource.new()
 	test_location.set_meta("id", "test_location")
 	test_location.set_meta("fuel_cost", 10)
+	@warning_ignore("return_value_discarded")
 	track_resource(test_location)
 	
 	state.set_location(test_location)
@@ -315,16 +380,20 @@ func test_location_management() -> void:
 	assert_that(current_location.get_meta("id")).is_equal("test_location")
 	
 	# Test location history
-	var visited_locations: Array[String] = state.get_visited_locations()
-	assert_that(visited_locations.has("test_location")).is_true()
+	var visited_locations: @warning_ignore("unsafe_call_argument")
+	Array[String] = state.get_visited_locations()
+	assert_that(@warning_ignore("unsafe_call_argument")
+	visited_locations.has("test_location")).is_true()
 	
 	# Test location effects
 	state.apply_location_effects()
 
+@warning_ignore("unsafe_method_access")
 func test_ship_management() -> void:
 	# Test direct method calls instead of safe wrappers (proven pattern)
 	var ship: Resource = Resource.new()
 	ship.set_meta("name", "Test Ship")
+	@warning_ignore("return_value_discarded")
 	track_resource(ship)
 	
 	state.set_player_ship(ship)
@@ -333,6 +402,7 @@ func test_ship_management() -> void:
 	assert_that(player_ship).is_not_null()
 	assert_that(player_ship).is_equal(ship)
 
+@warning_ignore("unsafe_method_access")
 func test_state_serialization() -> void:
 	# Test direct method calls instead of safe wrappers (proven pattern)
 	# Setup some state
@@ -342,12 +412,16 @@ func test_state_serialization() -> void:
 	
 	var serialized_data: Dictionary = state.serialize()
 	assert_that(serialized_data).is_not_empty()
-	assert_that(serialized_data.has("turn_number")).is_true()
-	assert_that(serialized_data.has("resources")).is_true()
-	assert_that(serialized_data.has("current_phase")).is_true()
+	assert_that(@warning_ignore("unsafe_call_argument")
+	serialized_data.has("turn_number")).is_true()
+	assert_that(@warning_ignore("unsafe_call_argument")
+	serialized_data.has("resources")).is_true()
+	assert_that(@warning_ignore("unsafe_call_argument")
+	serialized_data.has("current_phase")).is_true()
 	
 	# Test deserialization
-	var new_state = MockGameState.new()
+	var new_state: MockGameState = MockGameState.new()
+	@warning_ignore("return_value_discarded")
 	track_resource(new_state)
 	new_state.deserialize(serialized_data)
 	
@@ -355,6 +429,7 @@ func test_state_serialization() -> void:
 	assert_that(new_state.get_current_phase()).is_equal(state.get_current_phase())
 	assert_that(new_state.get_resource(GameEnums.ResourceType.CREDITS)).is_equal(state.get_resource(GameEnums.ResourceType.CREDITS))
 
+@warning_ignore("unsafe_method_access")
 func test_state_validation() -> void:
 	# Test direct method calls instead of safe wrappers (proven pattern)
 	# Test invalid phase transitions
@@ -371,6 +446,7 @@ func test_state_validation() -> void:
 	success = state.remove_resource(GameEnums.ResourceType.FUEL, 1000) # More than available
 	assert_that(success).is_false()
 
+@warning_ignore("unsafe_method_access")
 func test_edge_cases() -> void:
 	# Test direct method calls instead of safe wrappers (proven pattern)
 	# Test empty quest completion

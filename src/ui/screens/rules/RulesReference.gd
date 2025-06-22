@@ -3,16 +3,16 @@ extends FPCM_CampaignResponsiveLayout
 
 const PORTRAIT_LIST_HEIGHT_RATIO := 0.4 # List takes 40% in portrait mode
 
-var rules_data = {}
-var bookmarks = []
-var search_results = []
-var current_topic = ""
+var _rules_data: Dictionary = {}
+var bookmarks: Array = []
+var _search_results: Array = []
+var current_topic: String = ""
 
-@onready var topic_list = $MarginContainer/VBoxContainer/HSplitContainer/TopicList/VBoxContainer
-@onready var content_display = $MarginContainer/VBoxContainer/HSplitContainer/ContentDisplay/VBoxContainer
-@onready var search_bar = $MarginContainer/VBoxContainer/TopBar/SearchBar
+@onready var topic_list: VBoxContainer = $"MarginContainer/VBoxContainer/HSplitContainer/TopicList/VBoxContainer"
+@onready var content_display: VBoxContainer = $"MarginContainer/VBoxContainer/HSplitContainer/ContentDisplay/VBoxContainer"
+@onready var search_bar: LineEdit = $"MarginContainer/VBoxContainer/TopBar/SearchBar"
 
-func _ready():
+func _ready() -> void:
 	super._ready()
 	_setup_rules_reference()
 	_load_bookmarks()
@@ -89,7 +89,7 @@ func _save_bookmarks() -> void:
 	pass
 
 func _on_search_text_changed(new_text: String) -> void:
-	# Filter topics based on search text
+	# Filter topics based on search _text
 	pass
 
 func _on_bookmarks_pressed() -> void:

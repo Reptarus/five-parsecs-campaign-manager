@@ -1,5 +1,6 @@
 @tool
-extends GdUnitGameTest
+@warning_ignore("return_value_discarded")
+	extends GdUnitGameTest
 
 # Type-safe script references - handle missing preload gracefully
 static func _load_tutorial_state_machine() -> GDScript:
@@ -44,25 +45,30 @@ class MockTutorialStateMachine extends Node:
 	var steps_completed: Array = []
 	var is_active: bool = false
 	
-	func _init(gs: Resource = null):
+	func _init(gs: Resource = null) -> void:
 		game_state = gs
 		name = "MockTutorialStateMachine"
 	
 	func start_tutorial() -> void:
 		is_active = true
 		current_state = TutorialState.QUICK_START
-		tutorial_started.emit(current_state)
+		@warning_ignore("unsafe_method_access")
+	tutorial_started.emit(current_state)
 	
 	func start_tutorial_track(track: int) -> void:
 		if track >= 0:
 			current_track = track
 			current_state = track
-			state_changed.emit(TutorialState.NONE, track)
+			@warning_ignore("unsafe_method_access")
+	state_changed.emit(TutorialState.NONE, track)
 	
 	func complete_current_step() -> void:
 		var step_id = "step_" + str(steps_completed.size())
-		steps_completed.append(step_id)
-		step_completed.emit(step_id)
+
+		@warning_ignore("return_value_discarded")
+	steps_completed.append(step_id)
+		@warning_ignore("unsafe_method_access")
+	step_completed.emit(step_id)
 		
 		if steps_completed.size() >= 5:
 			complete_tutorial()
@@ -70,7 +76,8 @@ class MockTutorialStateMachine extends Node:
 	func complete_tutorial() -> void:
 		is_active = false
 		current_state = TutorialState.NONE
-		tutorial_completed.emit()
+		@warning_ignore("unsafe_method_access")
+	tutorial_completed.emit()
 
 # Type-safe instance variables
 var _tutorial_state_machine: Node = null
@@ -84,6 +91,7 @@ func before_test() -> void:
 	if not _game_state:
 		push_error("Failed to create game state")
 		return
+	@warning_ignore("return_value_discarded")
 	track_resource(_game_state)
 	
 	# Initialize tutorial state machine - use mock if real one doesn't exist
@@ -103,14 +111,18 @@ func before_test() -> void:
 		return
 	
 	_tutorial_state_machine.name = "TestTutorialStateMachine"
+	@warning_ignore("return_value_discarded")
 	track_node(_tutorial_state_machine)
+	@warning_ignore("return_value_discarded")
 	add_child(_tutorial_state_machine)
 	
 	# Skip signal monitoring to prevent Dictionary corruption
 	if _tutorial_state_machine:
-		# monitor_signals(_tutorial_state_machine)  # REMOVED - causes Dictionary corruption
+		# @warning_ignore("unsafe_method_access")
+	monitor_signals(_tutorial_state_machine)  # REMOVED - causes Dictionary corruption
 		pass
 	
+	@warning_ignore("unsafe_method_access")
 	await get_tree().process_frame
 
 func after_test() -> void:
@@ -121,16 +133,19 @@ func after_test() -> void:
 # Safe wrapper methods for dynamic method calls
 func _safe_call_method_bool(node: Node, method_name: String, args: Array = []) -> bool:
 	if node and node.has_method(method_name):
-		var result = node.callv(method_name, args)
+		var result = @warning_ignore("unsafe_method_access")
+	node.callv(method_name, args)
 		return result if result is bool else false
 	return false
 
 func _safe_call_method_int(node: Node, method_name: String, args: Array = []) -> int:
 	if node and node.has_method(method_name):
-		var result = node.callv(method_name, args)
+		var result = @warning_ignore("unsafe_method_access")
+	node.callv(method_name, args)
 		return result if result is int else 0
 	return 0
 
+@warning_ignore("unsafe_method_access")
 func test_initialization() -> void:
 	# Ensure tutorial state machine is properly initialized
 	assert_that(_tutorial_state_machine).is_not_null()
@@ -144,60 +159,70 @@ func test_initialization() -> void:
 	if _tutorial_state_machine and "game_state" in _tutorial_state_machine:
 		assert_that(_tutorial_state_machine.game_state).is_not_null()
 
+@warning_ignore("unsafe_method_access")
 func test_state_transitions() -> void:
-	# monitor_signals(_tutorial_state_machine)  # REMOVED - causes Dictionary corruption
+	# @warning_ignore("unsafe_method_access")
+	monitor_signals(_tutorial_state_machine)  # REMOVED - causes Dictionary corruption
 	# Test track starting instead of direct state transition
 	if _tutorial_state_machine and _tutorial_state_machine.has_method("start_tutorial_track"):
 		_tutorial_state_machine.start_tutorial_track(TutorialState.QUICK_START)
-		await get_tree().process_frame
-		
+		@warning_ignore("unsafe_method_access")
+	await get_tree().process_frame
+
 		# Check if track was set
 		if "current_track" in _tutorial_state_machine:
 			var current_track: int = _tutorial_state_machine.current_track
 			assert_that(current_track).override_failure_message("Track should be QUICK_START").is_equal(TutorialState.QUICK_START)
-		
+
 		# Check if signal was emitted
 		# assert_signal(_tutorial_state_machine).is_emitted("state_changed")  # REMOVED - causes Dictionary corruption
 		# Test state directly instead of signal emission
 
+@warning_ignore("unsafe_method_access")
 func test_invalid_transitions() -> void:
 	# Try to start invalid tutorial track
 	if _tutorial_state_machine and _tutorial_state_machine.has_method("start_tutorial_track"):
 		# This should not crash but may log an error
 		_tutorial_state_machine.start_tutorial_track(-1)
-		await get_tree().process_frame
+		@warning_ignore("unsafe_method_access")
+	await get_tree().process_frame
 		
 		# State should remain unchanged
 		if "current_track" in _tutorial_state_machine:
 			var current_track: int = _tutorial_state_machine.current_track
 			assert_that(current_track).override_failure_message("Track should remain NONE after invalid transition").is_equal(TutorialState.NONE)
 
+@warning_ignore("unsafe_method_access")
 func test_tutorial_completion() -> void:
-	# monitor_signals(_tutorial_state_machine)  # REMOVED - causes Dictionary corruption
+	# @warning_ignore("unsafe_method_access")
+	monitor_signals(_tutorial_state_machine)  # REMOVED - causes Dictionary corruption
 	# Test tutorial completion
 	if _tutorial_state_machine and _tutorial_state_machine.has_method("start_tutorial"):
 		_tutorial_state_machine.start_tutorial()
-		await get_tree().process_frame
-		
+		@warning_ignore("unsafe_method_access")
+	await get_tree().process_frame
+
 		# Check if tutorial started signal was emitted
 		# assert_signal(_tutorial_state_machine).is_emitted("tutorial_started")  # REMOVED - causes Dictionary corruption
 		# Test state directly instead of signal emission
 		
 		# Complete all steps
 		if _tutorial_state_machine.has_method("complete_current_step"):
-			for i in range(5): # Based on get_total_steps() returning 5
+			for i: int in range(5): # Based on get_total_steps() returning 5
 				_tutorial_state_machine.complete_current_step()
-				await get_tree().process_frame
+				@warning_ignore("unsafe_method_access")
+	await get_tree().process_frame
 		
 		# Check if tutorial is completed
 		if "steps_completed" in _tutorial_state_machine:
 			var steps_completed: Array = _tutorial_state_machine.steps_completed
 			assert_that(steps_completed.size()).override_failure_message("Should have completed steps").is_greater(0)
-		
+
 		# Check if completion signal was emitted
 		# assert_signal(_tutorial_state_machine).is_emitted("tutorial_completed")  # REMOVED - causes Dictionary corruption
 		# Test state directly instead of signal emission
 
+@warning_ignore("unsafe_method_access")
 func test_mock_functionality() -> void:
 	# This test verifies that our mock works correctly when the real system isn't available
 	if _tutorial_state_machine is MockTutorialStateMachine:
@@ -217,12 +242,13 @@ func test_mock_functionality() -> void:
 		assert_that(mock_tutorial.steps_completed.size()).is_equal(1)
 		
 		# Complete all steps to trigger completion
-		for i in range(4):
+		for i: int in range(4):
 			mock_tutorial.complete_current_step()
 		
 		assert_that(mock_tutorial.is_active).is_false()
 		assert_that(mock_tutorial.current_state).is_equal(TutorialState.NONE)
 
+@warning_ignore("unsafe_method_access")
 func test_error_handling() -> void:
 	# Test that the system handles errors gracefully
 	assert_that(_tutorial_state_machine).is_not_null()
@@ -231,7 +257,8 @@ func test_error_handling() -> void:
 	if _tutorial_state_machine.has_method("start_tutorial_track"):
 		# This should not crash
 		_tutorial_state_machine.start_tutorial_track(999)
-		await get_tree().process_frame
+		@warning_ignore("unsafe_method_access")
+	await get_tree().process_frame
 	
 	# System should still be functional
 	assert_that(_tutorial_state_machine).is_not_null()

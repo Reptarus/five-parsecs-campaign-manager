@@ -1,5 +1,6 @@
 @tool
-extends GdUnitGameTest
+@warning_ignore("return_value_discarded")
+	extends GdUnitGameTest
 
 # Mock CampaignSetupScreen for testing
 class MockCampaignSetupScreen extends Control:
@@ -14,11 +15,11 @@ class MockCampaignSetupScreen extends Control:
 	
 	var is_start_button_enabled: bool = false
 	
-	func _init():
+	func _init() -> void:
 		name = "MockCampaignSetupScreen"
 	
 	func set_campaign_name(new_name: String) -> void:
-		campaign_config.name = new_name
+		campaign_config._name = new_name
 		is_start_button_enabled = not new_name.is_empty()
 	
 	func set_difficulty(level: int) -> void:
@@ -39,7 +40,8 @@ class MockCampaignSetupScreen extends Control:
 	
 	func start_campaign() -> void:
 		if is_start_button_enabled:
-			campaign_started.emit(campaign_config)
+			@warning_ignore("unsafe_method_access")
+	campaign_started.emit(campaign_config)
 	
 	func is_permadeath_forced() -> bool:
 		return campaign_config.difficulty_level == 3 # Hardcore
@@ -54,11 +56,14 @@ var last_campaign_config: Dictionary
 func before_test() -> void:
 	super.before_test()
 	_instance = MockCampaignSetupScreen.new()
+	@warning_ignore("return_value_discarded")
 	add_child(_instance)
+	@warning_ignore("return_value_discarded")
 	auto_free(_instance)
 	_connect_signals()
 	_reset_signals()
 	
+	@warning_ignore("unsafe_method_access")
 	await get_tree().process_frame
 
 func after_test() -> void:
@@ -71,17 +76,20 @@ func _reset_signals() -> void:
 
 func _connect_signals() -> void:
 	if _instance and _instance.has_signal("campaign_started"):
-		_instance.campaign_started.connect(_on_campaign_started)
+		_instance.@warning_ignore("return_value_discarded")
+	campaign_started.connect(_on_campaign_started)
 
 func _on_campaign_started(config: Dictionary) -> void:
 	campaign_started_signal_emitted = true
 	last_campaign_config = config
 
+@warning_ignore("unsafe_method_access")
 func test_initial_setup() -> void:
 	assert_that(_instance).is_not_null()
 	assert_that(_instance.campaign_config).is_not_null()
 	assert_that(_instance.is_start_button_enabled).is_false()
 
+@warning_ignore("unsafe_method_access")
 func test_campaign_config_defaults() -> void:
 	# Test default configuration
 	assert_that(_instance.campaign_config["name"]).is_equal("")
@@ -89,6 +97,7 @@ func test_campaign_config_defaults() -> void:
 	assert_that(_instance.campaign_config["enable_permadeath"]).is_false()
 	assert_that(_instance.campaign_config["use_story_track"]).is_true()
 
+@warning_ignore("unsafe_method_access")
 func test_campaign_name_input() -> void:
 	# Simulate typing a campaign name
 	_instance.set_campaign_name("Test Campaign")
@@ -96,28 +105,33 @@ func test_campaign_name_input() -> void:
 	assert_that(_instance.campaign_config["name"]).is_equal("Test Campaign")
 	assert_that(_instance.is_start_button_enabled).is_true()
 
+@warning_ignore("unsafe_method_access")
 func test_difficulty_selection() -> void:
 	# Test selecting different difficulties
 	_instance.set_difficulty(2) # Hard
 	
 	assert_that(_instance.campaign_config["difficulty_level"]).is_equal(2)
 
+@warning_ignore("unsafe_method_access")
 func test_permadeath_toggle() -> void:
 	# Test enabling permadeath (normal difficulty allows this)
 	_instance.set_permadeath(true)
 	
 	assert_that(_instance.campaign_config["enable_permadeath"]).is_true()
 
+@warning_ignore("unsafe_method_access")
 func test_story_track_toggle() -> void:
 	# Test disabling story track
 	_instance.set_story_track(false)
 	
 	assert_that(_instance.campaign_config["use_story_track"]).is_false()
 
+@warning_ignore("unsafe_method_access")
 func test_start_button_disabled_without_name() -> void:
 	# Start button should be disabled when no campaign name
 	assert_that(_instance.is_start_button_enabled).is_false()
 
+@warning_ignore("unsafe_method_access")
 func test_start_button_enabled_with_name() -> void:
 	# Enter a campaign name
 	_instance.set_campaign_name("Test Campaign")
@@ -125,24 +139,29 @@ func test_start_button_enabled_with_name() -> void:
 	# Start button should now be enabled
 	assert_that(_instance.is_start_button_enabled).is_true()
 
+@warning_ignore("unsafe_method_access")
 func test_campaign_start_signal() -> void:
 	# Skip signal monitoring to prevent Dictionary corruption
-	# await assert_signal(_instance).is_emitted("campaign_started")  # REMOVED - causes Dictionary corruption
+	# @warning_ignore("unsafe_method_access")
+	await assert_signal(_instance).is_emitted("campaign_started")  # REMOVED - causes Dictionary corruption
 	# Set up a valid campaign
 	_instance.set_campaign_name("Test Campaign")
 	
 	# Start campaign
 	_instance.start_campaign()
 	
+	@warning_ignore("unsafe_method_access")
 	await get_tree().process_frame
 	
 	# Test state directly instead of signal emission
 	assert_that(campaign_started_signal_emitted).is_true()
 	assert_that(last_campaign_config["name"]).is_equal("Test Campaign")
 
+@warning_ignore("unsafe_method_access")
 func test_hardcore_difficulty_forces_permadeath() -> void:
 	# Skip signal monitoring to prevent Dictionary corruption
-	# await assert_signal(_instance).is_emitted("campaign_started")  # REMOVED - causes Dictionary corruption
+	# @warning_ignore("unsafe_method_access")
+	await assert_signal(_instance).is_emitted("campaign_started")  # REMOVED - causes Dictionary corruption
 	# Set up campaign with hardcore difficulty
 	_instance.set_campaign_name("Hardcore Campaign")
 	_instance.set_difficulty(3) # Hardcore
@@ -154,11 +173,13 @@ func test_hardcore_difficulty_forces_permadeath() -> void:
 	# Start campaign
 	_instance.start_campaign()
 	
+	@warning_ignore("unsafe_method_access")
 	await get_tree().process_frame
 	
 	# Test state directly instead of signal emission
 	assert_that(last_campaign_config["enable_permadeath"]).is_true()
 
+@warning_ignore("unsafe_method_access")
 func test_easy_difficulty_disables_permadeath() -> void:
 	# Set easy difficulty
 	_instance.set_difficulty(0) # Easy
@@ -167,6 +188,7 @@ func test_easy_difficulty_disables_permadeath() -> void:
 	assert_that(_instance.is_permadeath_disabled()).is_true()
 	assert_that(_instance.campaign_config["enable_permadeath"]).is_false()
 
+@warning_ignore("unsafe_method_access")
 func test_normal_difficulty_allows_permadeath_choice() -> void:
 	# Set normal difficulty
 	_instance.set_difficulty(1) # Normal
@@ -178,6 +200,7 @@ func test_normal_difficulty_allows_permadeath_choice() -> void:
 	_instance.set_permadeath(false)
 	assert_that(_instance.campaign_config["enable_permadeath"]).is_false()
 
+@warning_ignore("unsafe_method_access")
 func test_campaign_config_persistence() -> void:
 	# Set up a complete campaign configuration
 	_instance.set_campaign_name("Full Test Campaign")
@@ -191,27 +214,33 @@ func test_campaign_config_persistence() -> void:
 	assert_that(_instance.campaign_config["enable_permadeath"]).is_true()
 	assert_that(_instance.campaign_config["use_story_track"]).is_false()
 
+@warning_ignore("unsafe_method_access")
 func test_empty_name_prevents_start() -> void:
 	# Skip signal monitoring to prevent Dictionary corruption
-	# await assert_signal(_instance).is_emitted("campaign_started")  # REMOVED - causes Dictionary corruption
+	# @warning_ignore("unsafe_method_access")
+	await assert_signal(_instance).is_emitted("campaign_started")  # REMOVED - causes Dictionary corruption
 	# Try to start with empty name
 	_instance.set_campaign_name("")
 	_instance.start_campaign()
 	
+	@warning_ignore("unsafe_method_access")
 	await get_tree().process_frame
 	
 	# Signal should not be emitted
 	assert_that(campaign_started_signal_emitted).is_false()
 
+@warning_ignore("unsafe_method_access")
 func test_difficulty_level_validation() -> void:
 	# Test all valid difficulty levels
-	for level in range(4): # 0=Easy, 1=Normal, 2=Hard, 3=Hardcore
+	for level: int in range(4): # 0=Easy, 1=Normal, 2=Hard, 3=Hardcore
 		_instance.set_difficulty(level)
 		assert_that(_instance.campaign_config["difficulty_level"]).is_equal(level)
 
+@warning_ignore("unsafe_method_access")
 func test_signal_emission_with_correct_config() -> void:
 	# Skip signal monitoring to prevent Dictionary corruption
-	# await assert_signal(_instance).is_emitted("campaign_started")  # REMOVED - causes Dictionary corruption
+	# @warning_ignore("unsafe_method_access")
+	await assert_signal(_instance).is_emitted("campaign_started")  # REMOVED - causes Dictionary corruption
 	# Set up complete configuration
 	_instance.set_campaign_name("Signal Test Campaign")
 	_instance.set_difficulty(2) # Hard
@@ -221,6 +250,7 @@ func test_signal_emission_with_correct_config() -> void:
 	# Start campaign
 	_instance.start_campaign()
 	
+	@warning_ignore("unsafe_method_access")
 	await get_tree().process_frame
 	
 	# Verify signal contains correct configuration

@@ -1,5 +1,5 @@
-class_name AlphaGameManager
 extends Node
+# Removed class_name to avoid autoload conflicts
 
 ## Alpha Game Manager - Integrates all systems for Five Parsecs Campaign Manager
 ## Manages the complete campaign turn flow with all new support systems
@@ -20,13 +20,12 @@ var current_enemies: Array[Resource] = []
 var current_battle_result: Resource = null
 
 # UI references
-var main_game_scene: MainGameScene = null
+var _main_game_scene: MainGameScene = null
 var ui_manager: Node = null
 
 func _ready() -> void:
 	_initialize_systems()
 	_setup_autoload_connections()
-
 func _initialize_systems() -> void:
 	"""Initialize all core game systems"""
 	enemy_generator = preload("res://src/core/systems/EnemyGenerator.gd").new()
@@ -37,7 +36,6 @@ func _initialize_systems() -> void:
 	_connect_system_signals()
 	
 	print("Alpha Game Manager: All systems initialized")
-
 func _connect_system_signals() -> void:
 	"""Connect signals from all systems"""
 	if enemy_generator:
@@ -52,7 +50,6 @@ func _connect_system_signals() -> void:
 		trading_system.market_generated.connect(_on_market_generated)
 		trading_system.trade_completed.connect(_on_trade_completed)
 		trading_system.trade_failed.connect(_on_trade_failed)
-
 func _setup_autoload_connections() -> void:
 	"""Setup connections with autoload systems"""
 	# Connect to UI Manager if available
@@ -61,16 +58,15 @@ func _setup_autoload_connections() -> void:
 		ui_manager.scene_changed.connect(_on_ui_scene_changed)
 
 # ===== CAMPAIGN MANAGEMENT =====
-
 func start_new_campaign(campaign_data: Resource) -> void:
-	"""Start a new campaign with provided data"""
+	"""Start a new campaign with provided _data"""
 	current_campaign = campaign_data
 	
 	# Initialize campaign defaults
 	_initialize_campaign_defaults()
 	
 	# Start first campaign turn
-	campaign_turn_started.emit()
+	campaign_turn_started.emit() # warning: return value discarded (intentional)
 	print("Alpha Game Manager: New campaign started")
 
 func _initialize_campaign_defaults() -> void:
@@ -92,7 +88,7 @@ func _initialize_campaign_defaults() -> void:
 	
 	# Initialize ship data if not set
 	if not current_campaign.has_meta("ship_data"):
-		var ship = Resource.new()
+		var ship := Resource.new()
 		ship.set_meta("hull_damage", 0)
 		ship.set_meta("modifications", [])
 		current_campaign.set_meta("ship_data", ship)
@@ -103,11 +99,10 @@ func load_campaign(campaign_data: Resource) -> void:
 	print("Alpha Game Manager: Campaign loaded")
 
 # ===== MISSION MANAGEMENT =====
-
 func generate_enemies_for_mission(mission: Resource) -> Array[Resource]:
 	"""Generate enemies for the current mission"""
 	if not enemy_generator:
-		system_error.emit("Enemy generator not available")
+		system_error.emit("Enemy generator not available") # warning: return value discarded (intentional)
 		return []
 	
 	var crew_size = _get_crew_size()
@@ -118,7 +113,6 @@ func start_mission(mission: Resource) -> void:
 	current_mission = mission
 	current_enemies = generate_enemies_for_mission(mission)
 	print("Alpha Game Manager: Mission started - %s" % mission.get_meta("mission_type"))
-
 func complete_mission(battle_result: Resource) -> void:
 	"""Complete mission and apply results"""
 	current_battle_result = battle_result
@@ -136,20 +130,17 @@ func complete_mission(battle_result: Resource) -> void:
 	# Clear current mission
 	current_mission = null
 	current_enemies.clear()
-
 func _apply_victory_rewards(credits: int) -> void:
 	"""Apply rewards for mission victory"""
 	var current_credits = _get_campaign_credits()
 	_set_campaign_credits(current_credits + credits)
 	print("Alpha Game Manager: Victory! Earned %d credits" % credits)
-
 func _apply_defeat_consequences() -> void:
 	"""Apply consequences for mission defeat"""
 	# TODO: Implement defeat consequences (injuries, lost equipment, etc.)
 	print("Alpha Game Manager: Mission failed - applying consequences")
 
 # ===== UPKEEP MANAGEMENT =====
-
 func calculate_campaign_upkeep() -> Dictionary:
 	"""Calculate upkeep for current campaign turn"""
 	if not upkeep_system or not current_campaign:
@@ -170,7 +161,7 @@ func pay_campaign_upkeep() -> bool:
 func generate_market(world_type: String = "frontier") -> Array[Resource]:
 	"""Generate market for current world"""
 	if not trading_system:
-		system_error.emit("Trading system not available")
+		system_error.emit("Trading system not available") # warning: return value discarded (intentional)
 		return []
 	
 	return trading_system.generate_market(world_type)
@@ -193,10 +184,11 @@ func sell_item(item: Resource) -> bool:
 
 func start_campaign_turn() -> void:
 	"""Start a new campaign turn"""
-	campaign_turn_started.emit()
+	campaign_turn_started.emit() # warning: return value discarded (intentional)
 	
 	# Calculate upkeep at start of turn
 	var upkeep_costs = calculate_campaign_upkeep()
+
 	print("Alpha Game Manager: Campaign turn started. Upkeep: %d credits" % upkeep_costs.get("total", 0))
 
 func complete_campaign_turn() -> void:
@@ -204,7 +196,7 @@ func complete_campaign_turn() -> void:
 	# Apply end-of-turn effects
 	_apply_end_turn_effects()
 	
-	campaign_turn_completed.emit()
+	campaign_turn_completed.emit() # warning: return value discarded (intentional)
 	print("Alpha Game Manager: Campaign turn completed")
 
 func _apply_end_turn_effects() -> void:
@@ -214,7 +206,6 @@ func _apply_end_turn_effects() -> void:
 	
 	# Apply any ongoing effects
 	_process_ongoing_effects()
-
 func _process_injury_recovery() -> void:
 	"""Process injury recovery for crew members"""
 	var crew_members = _get_crew_members()
@@ -225,7 +216,6 @@ func _process_injury_recovery() -> void:
 				crew_member.set_meta("recovery_time", recovery_time - 1)
 				if recovery_time <= 1:
 					crew_member.set_meta("injured", false)
-
 func _process_ongoing_effects() -> void:
 	"""Process ongoing campaign effects"""
 	# Clear temporary effects
@@ -233,7 +223,6 @@ func _process_ongoing_effects() -> void:
 		current_campaign.set_meta("luxury_bonus", false)
 
 # ===== UTILITY FUNCTIONS =====
-
 func _get_crew_size() -> int:
 	"""Get current crew size"""
 	var crew_members = _get_crew_members()
@@ -258,20 +247,16 @@ func _set_campaign_credits(credits: int) -> void:
 		current_campaign.set_meta("credits", credits)
 
 # ===== SIGNAL HANDLERS =====
-
 func _on_enemies_generated(enemies: Array[Resource]) -> void:
 	"""Handle enemy generation completion"""
 	current_enemies = enemies
 	print("Alpha Game Manager: Generated %d enemies" % enemies.size())
-
 func _on_upkeep_calculated(cost: int, breakdown: Dictionary) -> void:
 	"""Handle upkeep calculation"""
 	print("Alpha Game Manager: Upkeep calculated - %d credits" % cost)
-
 func _on_upkeep_paid(remaining_credits: int) -> void:
 	"""Handle successful upkeep payment"""
-	print("Alpha Game Manager: Upkeep paid - %d credits remaining" % remaining_credits)
-
+	print("Alpha Game Manager: Upkeep paid - %d _credits remaining" % remaining_credits)
 func _on_insufficient_funds(required: int, available: int) -> void:
 	"""Handle insufficient funds for upkeep"""
 	print("Alpha Game Manager: Insufficient funds - need %d, have %d" % [required, available])
@@ -280,26 +265,21 @@ func _on_insufficient_funds(required: int, available: int) -> void:
 	if upkeep_system:
 		var consequences = upkeep_system.handle_upkeep_failure(current_campaign)
 		print("Alpha Game Manager: Upkeep failure consequences applied")
-
 func _on_market_generated(items: Array[Resource]) -> void:
 	"""Handle market generation"""
 	print("Alpha Game Manager: Market generated with %d items" % items.size())
-
 func _on_trade_completed(item: Resource, transaction_type: String, credits: int) -> void:
 	"""Handle successful trade"""
 	var item_name = item.get_meta("name") if item.has_method("get_meta") else "Unknown"
 	print("Alpha Game Manager: %s completed - %s for %d credits" % [transaction_type, item_name, credits])
-
 func _on_trade_failed(reason: String) -> void:
 	"""Handle failed trade"""
 	print("Alpha Game Manager: Trade failed - %s" % reason)
-
 func _on_ui_scene_changed(scene_name: String) -> void:
 	"""Handle UI scene changes"""
 	print("Alpha Game Manager: UI scene changed to %s" % scene_name)
 
 # ===== PUBLIC API =====
-
 func get_current_campaign() -> Resource:
 	"""Get current campaign data"""
 	return current_campaign
@@ -316,13 +296,29 @@ func get_enemy_generator() -> EnemyGenerator:
 	"""Get enemy generator system"""
 	return enemy_generator
 
-func get_upkeep_system():
+func get_upkeep_system() -> UpkeepSystem:
 	"""Get upkeep system"""
 	return upkeep_system
 
-func get_trading_system():
+func get_trading_system() -> TradingSystem:
 	"""Get trading system"""
 	return trading_system
+
+func get_story_track_system() -> Resource:
+	"""Get story track system from campaign manager"""
+	if has_node("/root/CampaignManager"):
+		var campaign_mgr = get_node("/root/CampaignManager")
+		if campaign_mgr and campaign_mgr.has_method("get_story_track_system"):
+			return campaign_mgr.get_story_track_system()
+		elif campaign_mgr and campaign_mgr.has_property("story_track_system"):
+			return campaign_mgr.story_track_system
+	return null
+
+func get_campaign_manager() -> Node:
+	"""Get campaign manager reference"""
+	if has_node("/root/CampaignManager"):
+		return get_node("/root/CampaignManager")
+	return null
 
 func is_campaign_active() -> bool:
 	"""Check if a campaign is currently active"""

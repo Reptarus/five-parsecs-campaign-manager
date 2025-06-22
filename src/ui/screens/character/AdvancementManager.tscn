@@ -1,0 +1,164 @@
+[gd_scene load_steps=2 format=3 uid="uid://b5kde201cxsfu"]
+
+[ext_resource type="Script" path="res://src/ui/screens/character/AdvancementManager.gd" id="1_advancement"]
+
+[node name="AdvancementManager" type="Control"]
+layout_mode = 3
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+script = ExtResource("1_advancement")
+
+[node name="MarginContainer" type="MarginContainer" parent="."]
+layout_mode = 1
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+theme_override_constants/margin_left = 20
+theme_override_constants/margin_top = 20
+theme_override_constants/margin_right = 20
+theme_override_constants/margin_bottom = 20
+
+[node name="VBoxContainer" type="VBoxContainer" parent="MarginContainer"]
+layout_mode = 2
+theme_override_constants/separation = 20
+
+[node name="Header" type="HBoxContainer" parent="MarginContainer/VBoxContainer"]
+layout_mode = 2
+
+[node name="Title" type="Label" parent="MarginContainer/VBoxContainer/Header"]
+layout_mode = 2
+size_flags_horizontal = 3
+theme_override_font_sizes/font_size = 32
+text = "Character Advancement"
+
+[node name="BackButton" type="Button" parent="MarginContainer/VBoxContainer/Header"]
+layout_mode = 2
+text = "Back"
+
+[node name="MainContent" type="HBoxContainer" parent="MarginContainer/VBoxContainer"]
+layout_mode = 2
+size_flags_vertical = 3
+theme_override_constants/separation = 20
+
+[node name="CrewList" type="PanelContainer" parent="MarginContainer/VBoxContainer/MainContent"]
+layout_mode = 2
+size_flags_horizontal = 2
+custom_minimum_size = Vector2(300, 0)
+
+[node name="VBoxContainer" type="VBoxContainer" parent="MarginContainer/VBoxContainer/MainContent/CrewList"]
+layout_mode = 2
+theme_override_constants/separation = 10
+
+[node name="Label" type="Label" parent="MarginContainer/VBoxContainer/MainContent/CrewList/VBoxContainer"]
+layout_mode = 2
+text = "Crew Members"
+horizontal_alignment = 1
+theme_override_font_sizes/font_size = 18
+
+[node name="ScrollContainer" type="ScrollContainer" parent="MarginContainer/VBoxContainer/MainContent/CrewList/VBoxContainer"]
+layout_mode = 2
+size_flags_vertical = 3
+
+[node name="CrewContainer" type="VBoxContainer" parent="MarginContainer/VBoxContainer/MainContent/CrewList/VBoxContainer/ScrollContainer"]
+unique_name_in_owner = true
+layout_mode = 2
+size_flags_horizontal = 3
+size_flags_vertical = 3
+
+[node name="CharacterDetails" type="PanelContainer" parent="MarginContainer/VBoxContainer/MainContent"]
+layout_mode = 2
+size_flags_horizontal = 3
+
+[node name="VBoxContainer" type="VBoxContainer" parent="MarginContainer/VBoxContainer/MainContent/CharacterDetails"]
+layout_mode = 2
+theme_override_constants/separation = 15
+
+[node name="CharacterName" type="Label" parent="MarginContainer/VBoxContainer/MainContent/CharacterDetails/VBoxContainer"]
+unique_name_in_owner = true
+layout_mode = 2
+text = "Select Character"
+horizontal_alignment = 1
+theme_override_font_sizes/font_size = 20
+
+[node name="Stats" type="GridContainer" parent="MarginContainer/VBoxContainer/MainContent/CharacterDetails/VBoxContainer"]
+unique_name_in_owner = true
+layout_mode = 2
+columns = 2
+
+[node name="Experience" type="VBoxContainer" parent="MarginContainer/VBoxContainer/MainContent/CharacterDetails/VBoxContainer"]
+layout_mode = 2
+
+[node name="Label" type="Label" parent="MarginContainer/VBoxContainer/MainContent/CharacterDetails/VBoxContainer/Experience"]
+layout_mode = 2
+text = "Experience Points"
+theme_override_font_sizes/font_size = 16
+
+[node name="ExperienceContainer" type="VBoxContainer" parent="MarginContainer/VBoxContainer/MainContent/CharacterDetails/VBoxContainer/Experience"]
+unique_name_in_owner = true
+layout_mode = 2
+
+[node name="Injuries" type="VBoxContainer" parent="MarginContainer/VBoxContainer/MainContent/CharacterDetails/VBoxContainer"]
+layout_mode = 2
+
+[node name="Label" type="Label" parent="MarginContainer/VBoxContainer/MainContent/CharacterDetails/VBoxContainer/Injuries"]
+layout_mode = 2
+text = "Injuries & Recovery"
+theme_override_font_sizes/font_size = 16
+
+[node name="InjuriesContainer" type="VBoxContainer" parent="MarginContainer/VBoxContainer/MainContent/CharacterDetails/VBoxContainer/Injuries"]
+unique_name_in_owner = true
+layout_mode = 2
+
+[node name="AdvancementOptions" type="PanelContainer" parent="MarginContainer/VBoxContainer/MainContent"]
+layout_mode = 2
+size_flags_horizontal = 2
+custom_minimum_size = Vector2(350, 0)
+
+[node name="VBoxContainer" type="VBoxContainer" parent="MarginContainer/VBoxContainer/MainContent/AdvancementOptions"]
+layout_mode = 2
+theme_override_constants/separation = 15
+
+[node name="Label" type="Label" parent="MarginContainer/VBoxContainer/MainContent/AdvancementOptions/VBoxContainer"]
+layout_mode = 2
+text = "Advancement Options"
+horizontal_alignment = 1
+theme_override_font_sizes/font_size = 18
+
+[node name="ScrollContainer" type="ScrollContainer" parent="MarginContainer/VBoxContainer/MainContent/AdvancementOptions/VBoxContainer"]
+layout_mode = 2
+size_flags_vertical = 3
+
+[node name="OptionsContainer" type="VBoxContainer" parent="MarginContainer/VBoxContainer/MainContent/AdvancementOptions/VBoxContainer/ScrollContainer"]
+unique_name_in_owner = true
+layout_mode = 2
+size_flags_horizontal = 3
+size_flags_vertical = 3
+
+[node name="Controls" type="HBoxContainer" parent="MarginContainer/VBoxContainer"]
+layout_mode = 2
+theme_override_constants/separation = 20
+alignment = 1
+
+[node name="ApplyAdvancementButton" type="Button" parent="MarginContainer/VBoxContainer/Controls"]
+unique_name_in_owner = true
+layout_mode = 2
+text = "Apply Advancement"
+disabled = true
+
+[node name="AdvancedTrainingButton" type="Button" parent="MarginContainer/VBoxContainer/Controls"]
+layout_mode = 2
+text = "Advanced Training"
+
+[node name="HealInjuriesButton" type="Button" parent="MarginContainer/VBoxContainer/Controls"]
+layout_mode = 2
+text = "Medical Treatment"
+
+[connection signal="pressed" from="MarginContainer/VBoxContainer/Header/BackButton" to="." method="_on_back_pressed"]
+[connection signal="pressed" from="MarginContainer/VBoxContainer/Controls/ApplyAdvancementButton" to="." method="_on_apply_advancement_pressed"]
+[connection signal="pressed" from="MarginContainer/VBoxContainer/Controls/AdvancedTrainingButton" to="." method="_on_advanced_training_pressed"]
+[connection signal="pressed" from="MarginContainer/VBoxContainer/Controls/HealInjuriesButton" to="." method="_on_heal_injuries_pressed"]

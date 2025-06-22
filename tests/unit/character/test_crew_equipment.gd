@@ -1,5 +1,6 @@
 @tool
-extends GdUnitGameTest
+@warning_ignore("return_value_discarded")
+	extends GdUnitGameTest
 
 ## Ship Components Test Suite
 ## Tests the functionality of ship components and their management
@@ -20,31 +21,51 @@ class MockCharacter extends Resource:
 	var toughness: int = 3
 	var base_mobility: int = 4
 	
-	func set_character_name(value: String) -> void: character_name = value
-	func set_character_class(value: int) -> void: character_class = value
+	func set_character_name(test_value: String) -> void: character_name = _value
+	func set_character_class(test_value: int) -> void: character_class = _value
 	
 	func get_weapons() -> Array: return weapons
 	func get_armor() -> Array: return armor
 	
 	func add_item(item_data: Dictionary) -> bool:
-		if item_data.get("type") == "weapon":
-			weapons.append(item_data.get("data"))
+
+		if @warning_ignore("unsafe_call_argument")
+	itemtest_data.get("type") == "weapon":
+
+			@warning_ignore("return_value_discarded")
+	weapons.append(@warning_ignore("unsafe_call_argument")
+	itemtest_data.get("_data"))
 			return true
-		elif item_data.get("type") == "armor":
-			armor.append(item_data.get("data"))
+
+		elif @warning_ignore("unsafe_call_argument")
+	itemtest_data.get("type") == "armor":
+
+			@warning_ignore("return_value_discarded")
+	armor.append(@warning_ignore("unsafe_call_argument")
+	itemtest_data.get("_data"))
 			return true
 		return false
 	
 	func remove_item(item_data: Dictionary) -> bool:
-		if item_data.get("type") == "weapon":
-			var weapon = item_data.get("data")
+
+		if @warning_ignore("unsafe_call_argument")
+	itemtest_data.get("type") == "weapon":
+
+			var weapon = @warning_ignore("unsafe_call_argument")
+	itemtest_data.get("_data")
 			if weapon in weapons:
-				weapons.erase(weapon)
+				@warning_ignore("return_value_discarded")
+	weapons.erase(weapon)
 				return true
-		elif item_data.get("type") == "armor":
-			var armor_item = item_data.get("data")
+
+		elif @warning_ignore("unsafe_call_argument")
+	itemtest_data.get("type") == "armor":
+
+			var armor_item = @warning_ignore("unsafe_call_argument")
+	itemtest_data.get("_data")
 			if armor_item in armor:
-				armor.erase(armor_item)
+				@warning_ignore("return_value_discarded")
+	armor.erase(armor_item)
 				return true
 		return false
 	
@@ -67,25 +88,32 @@ class MockCharacter extends Resource:
 		return stats
 	
 	func get_base_mobility() -> int: return base_mobility
-	func set_toughness(value: int) -> void: toughness = value
+	func set_toughness(test_value: int) -> void: toughness = _value
 	
 	func can_equip_item(item_data: Dictionary) -> bool:
-		var item = item_data.get("data")
+
+		var item = @warning_ignore("unsafe_call_argument")
+	itemtest_data.get("_data")
 		if item:
 			var strength_req = item.get_meta("strength_requirement", 0)
 			return toughness >= strength_req
 		return true
 	
 	func get_weapon_effects() -> Dictionary:
-		var effects = {}
+		var effects: Dictionary = {}
 		for weapon in weapons:
 			var weapon_effects = weapon.get_meta("effects", [])
 			for effect in weapon_effects:
-				effects[effect.get("type")] = effect.get("value")
+
+				effects[@warning_ignore("unsafe_call_argument")
+	effect.get("type")] = @warning_ignore("unsafe_call_argument")
+	effect.get("_value")
 		return effects
 	
 	func damage_item(item_data: Dictionary, damage: int) -> bool:
-		var item = item_data.get("data")
+
+		var item = @warning_ignore("unsafe_call_argument")
+	itemtest_data.get("_data")
 		if item:
 			var current_durability = item.get_meta("current_durability", 100)
 			current_durability = max(0, current_durability - damage)
@@ -108,8 +136,10 @@ func before_test() -> void:
 	
 	_character = MockCharacter.new()
 	assert_that(_character).is_not_null()
+	@warning_ignore("return_value_discarded")
 	track_resource(_character)
 	_setup_character()
+	@warning_ignore("unsafe_method_access")
 	await get_tree().create_timer(0.1).timeout
 
 func after_test() -> void:
@@ -123,22 +153,25 @@ func _setup_character() -> void:
 # Helper Functions
 func _create_test_weapon(weapon_name: String) -> Resource:
 	var weapon := Resource.new()
-	weapon.set_meta("name", weapon_name)
+	weapon.set_meta("_name", weapon_name)
 	weapon.set_meta("damage", 5)
 	weapon.set_meta("accuracy", 70)
 	weapon.set_meta("range", 6)
+	@warning_ignore("return_value_discarded")
 	track_resource(weapon)
 	return weapon
 
 func _create_test_armor(armor_name: String) -> Resource:
 	var armor := Resource.new()
-	armor.set_meta("name", armor_name)
+	armor.set_meta("_name", armor_name)
 	armor.set_meta("defense", 3)
 	armor.set_meta("mobility_penalty", 0)
+	@warning_ignore("return_value_discarded")
 	track_resource(armor)
 	return armor
 
 # Equipment Slot Tests
+@warning_ignore("unsafe_method_access")
 func test_equipment_slots() -> void:
 	# Test initial state
 	var weapons = _character.get_weapons()
@@ -174,6 +207,7 @@ func test_equipment_slots() -> void:
 	assert_that(armor.size()).is_equal(0)
 
 # Equipment Stats Tests
+@warning_ignore("unsafe_method_access")
 func test_equipment_stats() -> void:
 	var weapon := _create_test_weapon("Combat Rifle")
 	weapon.set_meta("damage", 10)
@@ -190,14 +224,23 @@ func test_equipment_stats() -> void:
 	# Test stat modifications
 	var combat_stats = _character.get_combat_stats()
 	assert_that(combat_stats).is_not_null()
-	assert_that(combat_stats.get("base_damage", 0)).is_equal(10)
-	assert_that(combat_stats.get("accuracy", 0)).is_equal(75)
-	assert_that(combat_stats.get("defense", 0)).is_equal(5)
+
+	assert_that(@warning_ignore("unsafe_call_argument")
+	combat_stats.get("base_damage", 0)).is_equal(10)
+
+	assert_that(@warning_ignore("unsafe_call_argument")
+	combat_stats.get("accuracy", 0)).is_equal(75)
+
+	assert_that(@warning_ignore("unsafe_call_argument")
+	combat_stats.get("defense", 0)).is_equal(5)
 	
 	var base_mobility = _character.get_base_mobility()
-	assert_that(combat_stats.get("mobility", base_mobility)).is_equal(base_mobility - 1)
+
+	assert_that(@warning_ignore("unsafe_call_argument")
+	combat_stats.get("mobility", base_mobility)).is_equal(base_mobility - 1)
 
 # Equipment Requirements Tests
+@warning_ignore("unsafe_method_access")
 func test_equipment_requirements() -> void:
 	var heavy_weapon := _create_test_weapon("Heavy Weapon")
 	heavy_weapon.set_meta("strength_requirement", 4)
@@ -213,16 +256,17 @@ func test_equipment_requirements() -> void:
 	assert_that(can_equip).is_true()
 
 # Equipment Effects Tests
+@warning_ignore("unsafe_method_access")
 func test_equipment_effects() -> void:
 	var weapon := _create_test_weapon("Effect Weapon")
 	weapon.set_meta("effects", [
 		{
 			"type": MockGameEnums.ArmorCharacteristic.SHIELD,
-			"value": 2
+			"_value": 2
 		},
 		{
 			"type": MockGameEnums.ArmorCharacteristic.POWERED,
-			"value": 1
+			"_value": 1
 		}
 	])
 	
@@ -230,12 +274,19 @@ func test_equipment_effects() -> void:
 	var weapon_effects = _character.get_weapon_effects()
 	
 	assert_that(weapon_effects).is_not_null()
-	assert_that(weapon_effects.has(MockGameEnums.ArmorCharacteristic.SHIELD)).is_true()
-	assert_that(weapon_effects.has(MockGameEnums.ArmorCharacteristic.POWERED)).is_true()
-	assert_that(weapon_effects.get(MockGameEnums.ArmorCharacteristic.SHIELD, 0)).is_equal(2)
-	assert_that(weapon_effects.get(MockGameEnums.ArmorCharacteristic.POWERED, 0)).is_equal(1)
+	assert_that(@warning_ignore("unsafe_call_argument")
+	weapon_effects.has(MockGameEnums.ArmorCharacteristic.SHIELD)).is_true()
+	assert_that(@warning_ignore("unsafe_call_argument")
+	weapon_effects.has(MockGameEnums.ArmorCharacteristic.POWERED)).is_true()
+
+	assert_that(@warning_ignore("unsafe_call_argument")
+	weapon_effects.get(MockGameEnums.ArmorCharacteristic.SHIELD, 0)).is_equal(2)
+
+	assert_that(@warning_ignore("unsafe_call_argument")
+	weapon_effects.get(MockGameEnums.ArmorCharacteristic.POWERED, 0)).is_equal(1)
 
 # Equipment Durability Tests
+@warning_ignore("unsafe_method_access")
 func test_equipment_durability() -> void:
 	var weapon := _create_test_weapon("Durability Test Weapon")
 	weapon.set_meta("max_durability", 100)
@@ -260,5 +311,7 @@ func test_equipment_durability() -> void:
 	var combat_stats = _character.get_combat_stats()
 	assert_that(combat_stats).is_not_null()
 	# For simplicity, assume broken weapons give penalty of at least -1
-	var has_penalty = combat_stats.get("damage_penalty", -1) < 0
+
+	var has_penalty = @warning_ignore("unsafe_call_argument")
+	combat_stats.get("damage_penalty", -1) < 0
 	assert_that(has_penalty).is_true()

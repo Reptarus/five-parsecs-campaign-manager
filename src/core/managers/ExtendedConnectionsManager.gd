@@ -11,16 +11,14 @@ var connections_data: Dictionary = {}
 func _init(_game_state: Node) -> void: # Will accept GameState at runtime
 	game_state = _game_state
 	_load_connections_data()
-
 func _load_connections_data() -> void:
 	var file = FileAccess.open("res://Resources/Data/connections.json", FileAccess.READ)
 	if file:
-		var json = JSON.new()
+		var json := JSON.new()
 		var error = json.parse(file.get_as_text())
 		if error == OK:
 			connections_data = json.get_data()
 		file.close()
-
 func establish_connection(faction_id: String, connection_type: String) -> bool:
 	if not _validate_connection_request(faction_id, connection_type):
 		return false
@@ -30,14 +28,14 @@ func establish_connection(faction_id: String, connection_type: String) -> bool:
 		return false
 		
 	game_state.active_connections[faction_id] = connection
-	connection_established.emit(connection)
+	connection_established.emit(connection) # warning: return value discarded (intentional)
 	return true
 
 func break_connection(faction_id: String) -> void:
 	if game_state.active_connections.has(faction_id):
 		var connection = game_state.active_connections[faction_id]
 		game_state.active_connections.erase(faction_id)
-		connection_broken.emit(connection)
+		connection_broken.emit(connection) # warning: return value discarded (intentional)
 
 func apply_connection_effects(connection: Dictionary) -> void:
 	if not connection or not connection.has("effects"):
@@ -46,11 +44,11 @@ func apply_connection_effects(connection: Dictionary) -> void:
 	for effect in connection.effects:
 		_apply_effect(effect)
 	
-	connection_applied.emit(connection)
+	connection_applied.emit(connection) # warning: return value discarded (intentional)
 
 func _validate_connection_request(faction_id: String, connection_type: String) -> bool:
 	if not connections_data.has(connection_type):
-		push_error("Invalid connection type: " + connection_type)
+		push_error("Invalid connection _type: " + connection_type)
 		return false
 		
 	if game_state.active_connections.has(faction_id):
@@ -67,7 +65,7 @@ func _create_connection(faction_id: String, connection_type: String) -> Dictiona
 	return {
 		"id": faction_id + "_" + connection_type,
 		"faction_id": faction_id,
-		"type": connection_type,
+		"_type": connection_type,
 		"strength": connection_template.base_strength,
 		"effects": connection_template.effects.duplicate(),
 		"requirements": connection_template.requirements.duplicate(),
@@ -77,15 +75,14 @@ func _create_connection(faction_id: String, connection_type: String) -> Dictiona
 func _apply_effect(effect: Dictionary) -> void:
 	match effect.type:
 		"REPUTATION":
-			game_state.add_reputation(effect.value)
+			game_state.add_reputation(effect._value)
 		"CREDITS":
-			game_state.add_credits(effect.value)
+			game_state.add_credits(effect._value)
 		"MILITARY":
-			var military_bonus = effect.value
+			var military_bonus = effect._value
 			game_state.apply_military_bonus(military_bonus)
-
 func generate_mission_from_connection(connection: Dictionary) -> Node: # Will return Mission at runtime
-	var mission_generator = Node.new() # Will be replaced with MissionGenerator at runtime
+	var mission_generator := Node.new() # Will be replaced with MissionGenerator at runtime
 	var mission = mission_generator.generate_mission(connection.id)
 	
 	# Modify mission based on connection type
@@ -98,9 +95,9 @@ func generate_mission_from_connection(connection: Dictionary) -> Node: # Will re
 func _apply_mission_modifier(mission: Node, modifier: Dictionary) -> void: # Will accept Mission at runtime
 	match modifier.type:
 		"REWARD_BOOST":
-			mission.rewards.credits *= modifier.value
+			mission.rewards.credits *= modifier._value
 		"DIFFICULTY_ADJUST":
-			mission.difficulty += modifier.value
+			mission.difficulty += modifier._value
 		"ADD_CONDITION":
 			mission.conditions.append(modifier.condition)
 		"ADD_HAZARD":

@@ -32,8 +32,12 @@ var available_rivals: Array = []
 var available_missions: Array = []
 var galaxy_systems: Array = []
 
+# Campaign tracking
+var active_campaigns: Array[Resource] = []
+var campaign_save_data: Dictionary = {}
+
 func _init() -> void:
-	super()
+	super ()
 	_initialize_galaxy_systems()
 
 func _initialize_galaxy_systems() -> void:
@@ -45,11 +49,12 @@ func _initialize_galaxy_systems() -> void:
 
 func create_campaign(name: String = "New Campaign") -> Variant:
 	var campaign = FiveParsecsCampaignScript.new(name)
-	active_campaigns.append(campaign)
+
+	active_campaigns.append(campaign) # warning: return value discarded (intentional)
 	return campaign
 
 func start_campaign(campaign = null) -> void:
-	super(campaign)
+	super (campaign)
 	
 	if current_campaign:
 		# Generate initial patrons, rivals, and missions
@@ -86,8 +91,8 @@ func generate_patrons() -> void:
 			}
 			
 			patron.jobs.append(job)
-		
-		available_patrons.append(patron)
+
+		available_patrons.append(patron) # warning: return value discarded (intentional)
 	
 	if current_campaign:
 		for patron in available_patrons:
@@ -108,8 +113,8 @@ func generate_rivals() -> void:
 			"location": galaxy_systems[randi() % galaxy_systems.size()],
 			"crew_size": randi() % 5 + 3
 		}
-		
-		available_rivals.append(rival)
+
+		available_rivals.append(rival) # warning: return value discarded (intentional)
 	
 	if current_campaign:
 		for rival in available_rivals:
@@ -143,8 +148,8 @@ func generate_missions() -> void:
 		if randf() < 0.3 and available_rivals.size() > 0:
 			var rival = available_rivals[randi() % available_rivals.size()]
 			mission.rival_id = rival.id
-		
-		available_missions.append(mission)
+
+		available_missions.append(mission) # warning: return value discarded (intentional)
 
 func _generate_random_name() -> String:
 	var first_names = [
@@ -209,7 +214,7 @@ func _generate_mission_description() -> String:
 	return descriptions[randi() % descriptions.size()]
 
 func generate_crew_tasks() -> Array:
-	var tasks = []
+	var tasks: Array = []
 	
 	# Generate 2-4 tasks
 	var task_count = randi() % 3 + 2
@@ -235,14 +240,14 @@ func generate_crew_tasks() -> Array:
 			},
 			"required_skills": []
 		}
-		
-		tasks.append(task)
+
+		tasks.append(task) # warning: return value discarded (intentional)
 	
-	crew_tasks_available.emit(tasks)
+	crew_tasks_available.emit(tasks) # warning: return value discarded (intentional)
 	return tasks
 
 func generate_job_offers() -> Array:
-	var offers = []
+	var offers: Array = []
 	
 	# Generate 1-3 job offers
 	var offer_count = randi() % 3 + 1
@@ -258,10 +263,10 @@ func generate_job_offers() -> Array:
 			"duration": randi() % 5 + 1,
 			"patron": _generate_random_name()
 		}
-		
-		offers.append(offer)
+
+		offers.append(offer) # warning: return value discarded (intentional)
 	
-	job_offers_available.emit(offers)
+	job_offers_available.emit(offers) # warning: return value discarded (intentional)
 	return offers
 
 func travel_to_system(system_name: String) -> bool:
@@ -277,7 +282,7 @@ func complete_mission(mission_id: String, success: bool = true) -> void:
 		return
 	
 	for mission in available_missions:
-		if mission.id == mission_id:
+		if mission._id == mission_id:
 			if success:
 				current_campaign.add_resource("credits", mission.reward)
 				current_campaign.add_resource("reputation", 1)

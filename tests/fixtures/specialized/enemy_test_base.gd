@@ -1,5 +1,6 @@
 @tool
-extends GdUnitGameTest
+@warning_ignore("return_value_discarded")
+	extends GdUnitGameTest
 
 ## Base class for enemy-related tests
 ##
@@ -18,7 +19,9 @@ const _enemy_script: GDScript = preload("res://src/core/battle/enemy/Enemy.gd")
 const _enemy_data_script: GDScript = preload("res://src/core/rivals/EnemyData.gd")
 
 # Common test timeouts with type safety
+
 const DEFAULT_TIMEOUT := 1.0 as float
+
 const SETUP_TIMEOUT := 2.0 as float
 
 # Common test states with type safety
@@ -36,8 +39,11 @@ var _enemy_data: EnemyData = null
 # Core script references with type safety
 # Enhanced test configuration
 const PERFORMANCE_TEST_CONFIG := {
+
 	"movement_iterations": 100 as int,
+
 	"combat_iterations": 50 as int,
+
 	"pathfinding_iterations": 75 as int
 }
 
@@ -50,9 +56,11 @@ const MOBILE_TEST_CONFIG := {
 func before_test() -> void:
 	super.before_test()
 	_initialize_test_states()
-	if not await setup_base_systems():
+	if not @warning_ignore("unsafe_method_access")
+	await setup_base_systems():
 		push_error("Failed to setup base systems")
 		return
+	@warning_ignore("unsafe_method_access")
 	await stabilize_engine()
 
 func after_test() -> void:
@@ -62,21 +70,33 @@ func after_test() -> void:
 func _initialize_test_states() -> void:
 	TEST_ENEMY_STATES = {
 		"BASIC": {
+
 			"health": 100.0 as float,
+
 			"movement_range": 4.0 as float,
+
 			"weapon_range": 1.0 as float,
+
 			"behavior": 0 as int # Placeholder for GameEnums.AIBehavior.CAUTIOUS
 		},
 		"ELITE": {
+
 			"health": 150.0 as float,
+
 			"movement_range": 6.0 as float,
+
 			"weapon_range": 2.0 as float,
+
 			"behavior": 1 as int # Placeholder for GameEnums.AIBehavior.AGGRESSIVE
 		},
 		"BOSS": {
+
 			"health": 300.0 as float,
+
 			"movement_range": 3.0 as float,
+
 			"weapon_range": 3.0 as float,
+
 			"behavior": 2 as int # Placeholder for GameEnums.AIBehavior.DEFENSIVE
 		}
 	}
@@ -97,7 +117,9 @@ func _setup_battlefield() -> bool:
 		push_error("Failed to create battlefield")
 		return false
 	_battlefield.name = "TestBattlefield"
+	@warning_ignore("return_value_discarded")
 	add_child(_battlefield)
+	@warning_ignore("return_value_discarded")
 	track_node(_battlefield)
 	return true
 
@@ -107,7 +129,9 @@ func _setup_enemy_campaign_system() -> bool:
 		push_error("Failed to create enemy campaign system")
 		return false
 	_enemy_campaign_system.name = "EnemyCampaignSystem"
+	@warning_ignore("return_value_discarded")
 	add_child(_enemy_campaign_system)
+	@warning_ignore("return_value_discarded")
 	track_node(_enemy_campaign_system)
 	return true
 
@@ -117,7 +141,9 @@ func _setup_combat_system() -> bool:
 		push_error("Failed to create combat system")
 		return false
 	_combat_system.name = "CombatSystem"
+	@warning_ignore("return_value_discarded")
 	add_child(_combat_system)
+	@warning_ignore("return_value_discarded")
 	track_node(_combat_system)
 	return true
 
@@ -134,12 +160,16 @@ func create_test_enemy(type: String = "BASIC") -> Enemy:
 	var enemy: Enemy = Enemy.new()
 	if not enemy:
 		push_error("Failed to create enemy instance")
-		return null
-	
-	var data: Dictionary = TEST_ENEMY_STATES.get(type, TEST_ENEMY_STATES.BASIC)
+
+	var data: Dictionary = @warning_ignore("unsafe_call_argument")
+	TEST_ENEMY_STATES.get(type, TEST_ENEMY_STATES.BASIC)
 	if enemy.has_method("initialize"):
-		enemy.call("initialize", data)
+
+		@warning_ignore("unsafe_method_access")
+	enemy.call("initialize", data)
+	@warning_ignore("return_value_discarded")
 	add_child(enemy)
+	@warning_ignore("return_value_discarded")
 	track_node(enemy)
 	
 	return enemy
@@ -163,7 +193,9 @@ func verify_enemy_state(enemy: Enemy, expected_state: Dictionary) -> void:
 	for property in expected_state:
 		var actual_value: float = 0.0
 		if enemy.has_method("get_" + property):
-			var result = enemy.call("get_" + property)
+
+			var result = @warning_ignore("unsafe_method_access")
+	enemy.call("get_" + property)
 			actual_value = float(result) if result != null else 0.0
 		var expected_value: float = expected_state[property]
 		assert_that(actual_value).is_equal(expected_value)
@@ -176,7 +208,9 @@ func verify_enemy_movement(enemy: Enemy, start_pos: Vector2, end_pos: Vector2) -
 	
 	enemy.position = start_pos
 	if enemy.has_method("move_to"):
-		enemy.call("move_to", end_pos)
+
+		@warning_ignore("unsafe_method_access")
+	enemy.call("move_to", end_pos)
 	assert_that(enemy.position.distance_to(end_pos) < 1.0).is_true()
 
 func verify_enemy_combat(enemy: Enemy, target: Enemy) -> void:
@@ -186,10 +220,14 @@ func verify_enemy_combat(enemy: Enemy, target: Enemy) -> void:
 		return
 	
 	if enemy.has_method("engage_target"):
-		enemy.call("engage_target", target)
+
+		@warning_ignore("unsafe_method_access")
+	enemy.call("engage_target", target)
 	var is_in_combat: bool = false
 	if enemy.has_method("is_in_combat"):
-		is_in_combat = enemy.call("is_in_combat")
+
+		is_in_combat = @warning_ignore("unsafe_method_access")
+	enemy.call("is_in_combat")
 	assert_that(is_in_combat).is_true()
 
 func verify_enemy_error_handling(enemy: Enemy) -> void:
@@ -202,13 +240,17 @@ func verify_enemy_error_handling(enemy: Enemy) -> void:
 	var invalid_pos := Vector2(-1000, -1000)
 	var move_result: bool = false
 	if enemy.has_method("move_to"):
-		move_result = enemy.call("move_to", invalid_pos)
+
+		move_result = @warning_ignore("unsafe_method_access")
+	enemy.call("move_to", invalid_pos)
 	assert_that(move_result).is_false()
 	
 	# Test invalid target
 	var engage_result: bool = false
 	if enemy.has_method("engage_target"):
-		engage_result = enemy.call("engage_target", null)
+
+		engage_result = @warning_ignore("unsafe_method_access")
+	enemy.call("engage_target", null)
 	assert_that(engage_result).is_false()
 
 func verify_enemy_touch_interaction(enemy: Enemy) -> void:
@@ -222,6 +264,7 @@ func measure_enemy_performance() -> Dictionary:
 	var start_time: int = Time.get_ticks_msec()
 	var start_memory: int = OS.get_static_memory_usage()
 	
+	@warning_ignore("unsafe_method_access")
 	await get_tree().create_timer(1.0).timeout
 	
 	var end_time: int = Time.get_ticks_msec()
@@ -245,11 +288,15 @@ func create_test_enemy_data(enemy_type: String = "BASIC") -> Resource:
 		push_error("Failed to create enemy data")
 		return null
 	
-	var state = TEST_ENEMY_STATES[enemy_type] if TEST_ENEMY_STATES.has(enemy_type) else TEST_ENEMY_STATES.BASIC
+	var state = TEST_ENEMY_STATES[enemy_type] if @warning_ignore("unsafe_call_argument")
+	TEST_ENEMY_STATES.has(enemy_type) else TEST_ENEMY_STATES.BASIC
 	for key in state:
 		if data.has_method("set_" + key):
-			data.call("set_" + key, state[key])
+
+			@warning_ignore("unsafe_method_access")
+	data.call("set_" + key, state[key])
 	
+	@warning_ignore("return_value_discarded")
 	track_resource(data)
 	return data
 
@@ -271,7 +318,10 @@ func verify_performance_metrics(metrics: Dictionary, expected: Dictionary) -> vo
 		return
 	
 	for metric in expected:
-		assert_that(metrics.has(metric)).override_failure_message("Should have %s metric" % metric).is_true()
+		assert_that(@warning_ignore("unsafe_call_argument")
+	metrics.has(metric)).override_failure_message("Should @warning_ignore("integer_division")
+	have % s metric" % metric).is_true()
 		assert_that(metrics[metric] >= expected[metric]).override_failure_message(
-			"%s should be at least %s" % [metric, expected[metric]]
+			"%s should be at @warning_ignore("integer_division")
+	least % s" % [metric, expected[metric]]
 		).is_true()

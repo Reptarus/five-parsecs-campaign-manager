@@ -3,15 +3,19 @@
 ## Tests the UI components and logic for editing house rules
 ## including rule validation, modification, and state management
 @tool
-extends GdUnitGameTest
+@warning_ignore("return_value_discarded")
+	extends GdUnitGameTest
 
 # ========================================
 # UNIVERSAL UI MOCK STRATEGY - PROVEN PATTERN
 # ========================================
 # Applying the same pattern that achieved:
-# - Ship Tests: 48/48 (100% SUCCESS) ✅
-# - Mission Tests: 51/51 (100% SUCCESS) ✅
-# - UI Tests: 83/83 where applied (100% SUCCESS) ✅
+# - Ship Tests: 48/48 (@warning_ignore("integer_division")
+	100 % SUCCESS) ✅
+# - Mission Tests: 51/51 (@warning_ignore("integer_division")
+	100 % SUCCESS) ✅
+# - UI Tests: 83/83 where applied (@warning_ignore("integer_division")
+	100 % SUCCESS) ✅
 
 class MockRuleEditor extends Resource:
 	# Properties with realistic expected values
@@ -33,14 +37,18 @@ class MockRuleEditor extends Resource:
 	var has_unsaved_changes: bool = false
 	var is_valid: bool = true
 	var child_count: int = 4
-	var validation_errors: Array[String] = []
-	var available_types: Array[String] = ["combat", "terrain", "general", "equipment"]
+	var validation_errors: @warning_ignore("unsafe_call_argument")
+	Array[String] = []
+	var available_types: @warning_ignore("unsafe_call_argument")
+	Array[String] = ["combat", "terrain", "general", "equipment"]
 	
 	# Editor state
 	var is_dirty: bool = false
 	var last_saved_data: Dictionary = {}
-	var undo_stack: Array[Dictionary] = []
-	var redo_stack: Array[Dictionary] = []
+	var undo_stack: @warning_ignore("unsafe_call_argument")
+	Array[Dictionary] = []
+	var redo_stack: @warning_ignore("unsafe_call_argument")
+	Array[Dictionary] = []
 	
 	# Signals - emit immediately for reliable testing
 	signal rule_updated(rule_data: Dictionary)
@@ -55,64 +63,85 @@ class MockRuleEditor extends Resource:
 	func get_rule_name() -> String:
 		return rule_name
 	
-	func set_rule_name(value: String) -> void:
-		if rule_name != value:
-			rule_name = value
+	func set_rule_name(test_value: String) -> void:
+		if rule_name != _value:
+			rule_name = _value
 			is_dirty = true
 			_update_rule_data()
-			rule_updated.emit(get_rule_data())
-			dirty_state_changed.emit(is_dirty)
+			@warning_ignore("unsafe_method_access")
+	rule_updated.emit(get_rule_data())
+			@warning_ignore("unsafe_method_access")
+	dirty_state_changed.emit(is_dirty)
 		
 	func get_rule_enabled() -> bool:
 		return rule_enabled
 		
-	func set_rule_enabled(value: bool) -> void:
-		if rule_enabled != value:
-			rule_enabled = value
+	func set_rule_enabled(test_value: bool) -> void:
+		if rule_enabled != _value:
+			rule_enabled = _value
 			is_dirty = true
 			_update_rule_data()
-			rule_updated.emit(get_rule_data())
-			dirty_state_changed.emit(is_dirty)
+			@warning_ignore("unsafe_method_access")
+	rule_updated.emit(get_rule_data())
+			@warning_ignore("unsafe_method_access")
+	dirty_state_changed.emit(is_dirty)
 	
 	func get_rule_type() -> String:
 		return rule_type
 	
-	func set_rule_type(value: String) -> void:
-		if rule_type != value and value in available_types:
-			rule_type = value
+	func set_rule_type(test_value: String) -> void:
+		if rule_type != _value and _value in available_types:
+			rule_type = _value
 			is_dirty = true
 			_update_rule_data()
-			rule_updated.emit(get_rule_data())
-			dirty_state_changed.emit(is_dirty)
+			@warning_ignore("unsafe_method_access")
+	rule_updated.emit(get_rule_data())
+			@warning_ignore("unsafe_method_access")
+	dirty_state_changed.emit(is_dirty)
 	
 	func get_rule_data() -> Dictionary:
 		return {
 			"name": rule_name,
 			"enabled": rule_enabled,
 			"type": rule_type,
-			"description": rule_data.get("description", ""),
-			"category": rule_data.get("category", "house_rules"),
-			"priority": rule_data.get("priority", 1)
+
+			"description": @warning_ignore("unsafe_call_argument")
+	ruletest_data.get("description", ""),
+
+			"category": @warning_ignore("unsafe_call_argument")
+	ruletest_data.get("category", "house_rules"),
+
+			"priority": @warning_ignore("unsafe_call_argument")
+	ruletest_data.get("priority", 1)
 		}
 	
 	func set_rule_data(data: Dictionary) -> void:
 		var old_data = get_rule_data()
-		rule_name = data.get("name", rule_name)
-		rule_enabled = data.get("enabled", rule_enabled)
-		rule_type = data.get("type", rule_type)
+
+		rule_name = @warning_ignore("unsafe_call_argument")
+	data.get("name", rule_name)
+
+		rule_enabled = @warning_ignore("unsafe_call_argument")
+	data.get("enabled", rule_enabled)
+
+		rule_type = @warning_ignore("unsafe_call_argument")
+	data.get("type", rule_type)
 		rule_data.merge(data, true)
 		
 		if old_data != get_rule_data():
 			is_dirty = true
-			rule_updated.emit(get_rule_data())
-			dirty_state_changed.emit(is_dirty)
+			@warning_ignore("unsafe_method_access")
+	rule_updated.emit(get_rule_data())
+			@warning_ignore("unsafe_method_access")
+	dirty_state_changed.emit(is_dirty)
 	
 	# Edit mode management
 	func start_edit_mode() -> void:
 		if not edit_mode:
 			edit_mode = true
 			last_saved_data = get_rule_data().duplicate()
-			rule_edit_started.emit(get_rule_data())
+			@warning_ignore("unsafe_method_access")
+	rule_edit_started.emit(get_rule_data())
 	
 	func cancel_edit() -> void:
 		if edit_mode:
@@ -121,8 +150,10 @@ class MockRuleEditor extends Resource:
 			is_dirty = false
 			# Restore last saved data
 			set_rule_data(last_saved_data)
-			edit_cancelled.emit()
-			dirty_state_changed.emit(is_dirty)
+			@warning_ignore("unsafe_method_access")
+	edit_cancelled.emit()
+			@warning_ignore("unsafe_method_access")
+	dirty_state_changed.emit(is_dirty)
 	
 	func save_rule() -> bool:
 		if validate_rule():
@@ -130,8 +161,10 @@ class MockRuleEditor extends Resource:
 			edit_mode = false
 			is_dirty = false
 			last_saved_data = get_rule_data().duplicate()
-			rule_saved.emit(get_rule_data())
-			dirty_state_changed.emit(is_dirty)
+			@warning_ignore("unsafe_method_access")
+	rule_saved.emit(get_rule_data())
+			@warning_ignore("unsafe_method_access")
+	dirty_state_changed.emit(is_dirty)
 			return true
 		return false
 	
@@ -140,16 +173,23 @@ class MockRuleEditor extends Resource:
 		validation_errors.clear()
 		
 		if rule_name.is_empty():
-			validation_errors.append("Rule name cannot be empty")
+
+			@warning_ignore("return_value_discarded")
+	validation_errors.append("Rule name cannot be empty")
 		
 		if rule_name.length() > 100:
-			validation_errors.append("Rule name too long (max 100 characters)")
+
+			@warning_ignore("return_value_discarded")
+	validation_errors.append("Rule name too long (max 100 characters)")
 		
 		if not rule_type in available_types:
-			validation_errors.append("Invalid rule type")
+
+			@warning_ignore("return_value_discarded")
+	validation_errors.append("Invalid rule type")
 		
 		is_valid = validation_errors.is_empty()
-		validation_changed.emit(is_valid)
+		@warning_ignore("unsafe_method_access")
+	validation_changed.emit(is_valid)
 		return is_valid
 	
 	func get_validation_errors() -> Array[String]:
@@ -164,7 +204,9 @@ class MockRuleEditor extends Resource:
 	
 	func undo() -> bool:
 		if can_undo():
-			redo_stack.append(get_rule_data())
+
+			@warning_ignore("return_value_discarded")
+	redo_stack.append(get_rule_data())
 			var previous_data = undo_stack.pop_back()
 			set_rule_data(previous_data)
 			return true
@@ -172,7 +214,9 @@ class MockRuleEditor extends Resource:
 	
 	func redo() -> bool:
 		if can_redo():
-			undo_stack.append(get_rule_data())
+
+			@warning_ignore("return_value_discarded")
+	undo_stack.append(get_rule_data())
 			var next_data = redo_stack.pop_back()
 			set_rule_data(next_data)
 			return true
@@ -182,10 +226,11 @@ class MockRuleEditor extends Resource:
 	func get_child_count() -> int:
 		return child_count
 		
-	func set_visible(value: bool) -> void:
-		if visible != value:
-			visible = value
-			visibility_changed.emit(visible)
+	func set_visible(test_value: bool) -> void:
+		if visible != _value:
+			visible = _value
+			@warning_ignore("unsafe_method_access")
+	visibility_changed.emit(visible)
 	
 	func is_visible() -> bool:
 		return visible
@@ -221,9 +266,11 @@ var mock_rule_editor: MockRuleEditor = null
 func before_test() -> void:
 	super.before_test()
 	mock_rule_editor = MockRuleEditor.new()
+	@warning_ignore("return_value_discarded")
 	track_resource(mock_rule_editor) # Perfect cleanup
 
 # Test Cases using proven patterns
+@warning_ignore("unsafe_method_access")
 func test_initialization() -> void:
 	assert_that(mock_rule_editor).is_not_null()
 	assert_that(mock_rule_editor.visible).is_true()
@@ -231,7 +278,9 @@ func test_initialization() -> void:
 	assert_that(mock_rule_editor.rule_name).is_equal("Test Rule")
 	assert_that(mock_rule_editor.rule_enabled).is_true()
 
+@warning_ignore("unsafe_method_access")
 func test_rule_name_update() -> void:
+	@warning_ignore("unsafe_method_access")
 	monitor_signals(mock_rule_editor)
 	mock_rule_editor.set_rule_name("Updated Rule")
 	
@@ -240,7 +289,9 @@ func test_rule_name_update() -> void:
 	assert_signal(mock_rule_editor).is_emitted("rule_updated")
 	assert_signal(mock_rule_editor).is_emitted("dirty_state_changed")
 
+@warning_ignore("unsafe_method_access")
 func test_rule_enabled_toggle() -> void:
+	@warning_ignore("unsafe_method_access")
 	monitor_signals(mock_rule_editor)
 	mock_rule_editor.set_rule_enabled(false)
 	
@@ -248,7 +299,9 @@ func test_rule_enabled_toggle() -> void:
 	assert_that(mock_rule_editor.is_dirty).is_true()
 	assert_signal(mock_rule_editor).is_emitted("rule_updated")
 
+@warning_ignore("unsafe_method_access")
 func test_rule_type_change() -> void:
+	@warning_ignore("unsafe_method_access")
 	monitor_signals(mock_rule_editor)
 	mock_rule_editor.set_rule_type("terrain")
 	
@@ -256,6 +309,7 @@ func test_rule_type_change() -> void:
 	assert_that(mock_rule_editor.is_dirty).is_true()
 	assert_signal(mock_rule_editor).is_emitted("rule_updated")
 
+@warning_ignore("unsafe_method_access")
 func test_rule_data_management() -> void:
 	var test_data = {
 		"name": "Custom Rule",
@@ -265,16 +319,25 @@ func test_rule_data_management() -> void:
 		"priority": 5
 	}
 	
+	@warning_ignore("unsafe_method_access")
 	monitor_signals(mock_rule_editor)
 	mock_rule_editor.set_rule_data(test_data)
 	
 	var retrieved_data = mock_rule_editor.get_rule_data()
-	assert_that(retrieved_data.get("name")).is_equal("Custom Rule")
-	assert_that(retrieved_data.get("enabled")).is_false()
-	assert_that(retrieved_data.get("type")).is_equal("equipment")
+
+	assert_that(@warning_ignore("unsafe_call_argument")
+	retrievedtest_data.get("name")).is_equal("Custom Rule")
+
+	assert_that(@warning_ignore("unsafe_call_argument")
+	retrievedtest_data.get("enabled")).is_false()
+
+	assert_that(@warning_ignore("unsafe_call_argument")
+	retrievedtest_data.get("type")).is_equal("equipment")
 	assert_signal(mock_rule_editor).is_emitted("rule_updated")
 
+@warning_ignore("unsafe_method_access")
 func test_edit_mode_lifecycle() -> void:
+	@warning_ignore("unsafe_method_access")
 	monitor_signals(mock_rule_editor)
 	
 	# Start edit mode
@@ -293,12 +356,14 @@ func test_edit_mode_lifecycle() -> void:
 	assert_that(mock_rule_editor.is_dirty).is_false()
 	assert_signal(mock_rule_editor).is_emitted("rule_saved")
 
+@warning_ignore("unsafe_method_access")
 func test_edit_mode_cancel() -> void:
 	# Start edit and make changes
 	mock_rule_editor.start_edit_mode()
 	var original_name = mock_rule_editor.get_rule_name()
 	mock_rule_editor.set_rule_name("Temporary Change")
 	
+	@warning_ignore("unsafe_method_access")
 	monitor_signals(mock_rule_editor)
 	mock_rule_editor.cancel_edit()
 	
@@ -307,7 +372,9 @@ func test_edit_mode_cancel() -> void:
 	assert_that(mock_rule_editor.get_rule_name()).is_equal(original_name)
 	assert_signal(mock_rule_editor).is_emitted("edit_cancelled")
 
+@warning_ignore("unsafe_method_access")
 func test_validation() -> void:
+	@warning_ignore("unsafe_method_access")
 	monitor_signals(mock_rule_editor)
 	
 	# Valid rule
@@ -322,8 +389,10 @@ func test_validation() -> void:
 	
 	var errors = mock_rule_editor.get_validation_errors()
 	assert_that(errors.size()).is_greater(0)
+	@warning_ignore("unsafe_call_argument")
 	assert_that(errors[0]).contains("empty")
 
+@warning_ignore("unsafe_method_access")
 func test_validation_long_name() -> void:
 	var long_name = "a".repeat(101)
 	mock_rule_editor.set_rule_name(long_name)
@@ -332,6 +401,7 @@ func test_validation_long_name() -> void:
 	var errors = mock_rule_editor.get_validation_errors()
 	assert_that(errors).contains_exactly_in_any_order(["Rule name too long (max 100 characters)"])
 
+@warning_ignore("unsafe_method_access")
 func test_validation_invalid_type() -> void:
 	mock_rule_editor.rule_type = "invalid_type" # Direct assignment to bypass validation
 	
@@ -339,6 +409,7 @@ func test_validation_invalid_type() -> void:
 	var errors = mock_rule_editor.get_validation_errors()
 	assert_that(errors).contains_exactly_in_any_order(["Invalid rule type"])
 
+@warning_ignore("unsafe_method_access")
 func test_undo_redo_functionality() -> void:
 	# Initial state
 	assert_that(mock_rule_editor.can_undo()).is_false()
@@ -346,7 +417,8 @@ func test_undo_redo_functionality() -> void:
 	
 	# Make changes to populate undo stack
 	var original_name = mock_rule_editor.get_rule_name()
-	mock_rule_editor.undo_stack.append(mock_rule_editor.get_rule_data())
+	mock_rule_editor.@warning_ignore("return_value_discarded")
+	undo_stack.append(mock_rule_editor.get_rule_data())
 	mock_rule_editor.set_rule_name("Changed Name")
 	
 	# Test undo
@@ -361,7 +433,9 @@ func test_undo_redo_functionality() -> void:
 	assert_that(redo_result).is_true()
 	assert_that(mock_rule_editor.get_rule_name()).is_equal("Changed Name")
 
+@warning_ignore("unsafe_method_access")
 func test_visibility_management() -> void:
+	@warning_ignore("unsafe_method_access")
 	monitor_signals(mock_rule_editor)
 	
 	mock_rule_editor.set_visible(false)
@@ -371,6 +445,7 @@ func test_visibility_management() -> void:
 	mock_rule_editor.set_visible(true)
 	assert_that(mock_rule_editor.is_visible()).is_true()
 
+@warning_ignore("unsafe_method_access")
 func test_reset_to_defaults() -> void:
 	# Make changes
 	mock_rule_editor.set_rule_name("Custom Rule")
@@ -387,6 +462,7 @@ func test_reset_to_defaults() -> void:
 	assert_that(mock_rule_editor.edit_mode).is_false()
 	assert_that(mock_rule_editor.is_dirty).is_false()
 
+@warning_ignore("unsafe_method_access")
 func test_available_types() -> void:
 	assert_that(mock_rule_editor.available_types.size()).is_greater(0)
 	assert_that(mock_rule_editor.available_types).contains("combat")
@@ -394,9 +470,11 @@ func test_available_types() -> void:
 	assert_that(mock_rule_editor.available_types).contains("general")
 	assert_that(mock_rule_editor.available_types).contains("equipment")
 
+@warning_ignore("unsafe_method_access")
 func test_child_count() -> void:
 	assert_that(mock_rule_editor.get_child_count()).is_equal(4)
 
+@warning_ignore("unsafe_method_access")
 func test_save_without_validation() -> void:
 	# Make rule invalid
 	mock_rule_editor.set_rule_name("")
@@ -406,7 +484,9 @@ func test_save_without_validation() -> void:
 	assert_that(save_result).is_false()
 	assert_that(mock_rule_editor.edit_mode).is_true() # Should still be in edit mode
 
+@warning_ignore("unsafe_method_access")
 func test_multiple_rule_updates() -> void:
+	@warning_ignore("unsafe_method_access")
 	monitor_signals(mock_rule_editor)
 	
 	mock_rule_editor.set_rule_name("Rule 1")

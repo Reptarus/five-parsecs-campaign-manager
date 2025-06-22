@@ -64,7 +64,6 @@ var fuzzers: Array[GdFunctionArgument] = []
 
 # There is a bug in `duplicate` see https://github.com/godotengine/godot/issues/98644
 # we need in addition to overwrite default values with the source values
-@warning_ignore("native_method_override")
 func clone() -> Resource:
 	var copy: TestCaseAttribute = TestCaseAttribute.new()
 	copy.timeout = timeout

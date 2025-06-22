@@ -30,7 +30,7 @@ func generate_job(job_type: GameEnums.MissionType) -> Mission:
             job = _generate_standard_job()
     
     if job:
-        job_generated.emit(job)
+        job_generated.emit(job)  # warning: return value discarded (intentional)
     return job
 
 func accept_job(job: Mission) -> bool:
@@ -46,14 +46,14 @@ func complete_job(job: Mission) -> void:
     if job.patron:
         job.patron.change_relationship(10)
     game_state.current_mission = null
-    job_completed.emit(job)
+    job_completed.emit(job)  # warning: return value discarded (intentional)
 func fail_job(job: Mission) -> void:
     job.fail(false) # Pass false to indicate failure
     if job.patron:
         job.patron.change_relationship(-5)
     game_state.current_mission = null
     _apply_failure_consequences(job)
-    job_failed.emit(job)
+    job_failed.emit(job)  # warning: return value discarded (intentional)
 
 # Private helper methods
 func _validate_job_requirements(job: Mission) -> bool:
@@ -76,15 +76,16 @@ func _check_black_zone_requirements() -> bool:
 func _check_patron_requirements(job: Mission) -> bool:
     if not job.patron:
         return false
+
     return game_state.faction_standings.get(job.patron.faction, 0) >= job.patron.required_standing
 
 func _generate_patron_job() -> Mission:
-    var job = Mission.new()
+    var job := Mission.new()
     # Set patron job specific properties
     return job
 
 func _generate_red_zone_job() -> Mission:
-    var job = Mission.new()
+    var job := Mission.new()
     # Set red zone specific properties
     return job
 
@@ -94,12 +95,14 @@ func _generate_black_zone_job() -> Mission:
     return job
 
 func _generate_standard_job() -> Mission:
-    var job = Mission.new()
+    var job := Mission.new()
     # Set standard job properties
     return job
 
 func _apply_job_rewards(job: Mission) -> void:
+
     game_state.add_credits(job.rewards.get("credits", 0))
+
     game_state.add_reputation(job.rewards.get("reputation", 0))
     
     if job.rewards.has("equipment"):

@@ -19,12 +19,16 @@ const FACTION_TYPE_COUNT: int = 19 # Number of faction types in the enum
 
 # State
 @export var game_state_manager: Node # Will be cast to GameStateManager
-var factions: Dictionary = {
+var base_factions: Dictionary = {}
+var faction_relations: Dictionary = {}
+var _factions: Dictionary = {
 	"government": [],
-	"criminal": [],
 	"corporate": [],
+	"criminal": [],
+	"military": [],
 	"religious": [],
-	"rebel": [],
+	"mercenary": [],
+	"pirate": [],
 	"alien": []
 }
 var faction_data: Dictionary = {}
@@ -32,16 +36,13 @@ var faction_data: Dictionary = {}
 func _init(_game_state_manager: Node = null) -> void:
 	game_state_manager = _game_state_manager
 	load_faction_data()
-
 func load_faction_data() -> void:
 	var file := FileAccess.open("res://data/RulesReference/Factions.json", FileAccess.READ)
 	faction_data = JSON.parse_string(file.get_as_text())["factions"]
 	file.close()
-
 func generate_factions(num_factions: int) -> void:
 	for i in range(num_factions):
-		factions["government"].append(generate_faction())
-
+		_factions["government"].append(generate_faction())
 func generate_faction() -> Dictionary:
 	var faction_type: int = randi() % FACTION_TYPE_COUNT
 	
@@ -63,15 +64,14 @@ func generate_faction_name() -> String:
 
 func update_faction_relations(faction: Dictionary, change: float) -> void:
 	faction["influence"] = clamp(faction["influence"] + change, MIN_FACTION_INFLUENCE, MAX_FACTION_INFLUENCE)
-
 func get_faction_mission(faction: Dictionary) -> Mission:
 	if not game_state_manager:
 		return null
 	return game_state_manager.mission_generator.generate_mission_for_faction(faction)
 
 func resolve_faction_conflict() -> void:
-	var attacker = factions["government"][randi() % factions["government"].size()]
-	var defender = factions["government"][randi() % factions["government"].size()]
+	var attacker = _factions["government"][randi() % _factions["government"].size()]
+	var defender = _factions["government"][randi() % _factions["government"].size()]
 	
 	if attacker == defender:
 		return
@@ -116,43 +116,34 @@ func perform_faction_activity(faction: Dictionary) -> void:
 			plans_within_plans(faction)
 		_:
 			day_to_day_operations(faction)
-
 func consolidate_power(faction: Dictionary) -> void:
 	if randi() % 6 + 1 > faction["power"]:
 		faction["power"] = min(MAX_FACTION_POWER, faction["power"] + 1)
-
 func undermine_faction(faction: Dictionary) -> void:
-	var target = factions["government"][randi() % factions["government"].size()]
+	var target = _factions["government"][randi() % _factions["government"].size()]
 	if target != faction and randi() % 6 + 1 >= 5:
-		var stat_to_decrease = "power" if randi() % 2 == 0 else "influence"
+		var stat_to_decrease: String = "power" if randi() % 2 == 0 else "influence"
 		target[stat_to_decrease] = max(1, target[stat_to_decrease] - 1)
-
 func hostile_takeover(faction: Dictionary) -> void:
 	if faction["influence"] >= 3:
-		var target = factions["government"][randi() % factions["government"].size()]
+		var target = _factions["government"][randi() % _factions["government"].size()]
 		if target != faction and randi() % 6 + 1 > target["influence"]:
 			target["influence"] = max(MIN_FACTION_INFLUENCE, target["influence"] - 1)
 			faction["influence"] = min(MAX_FACTION_INFLUENCE, faction["influence"] + 1)
-
 func public_relations_campaign(faction: Dictionary) -> void:
 	if randi() % 6 + 1 > faction["influence"]:
 		faction["influence"] = min(MAX_FACTION_INFLUENCE, faction["influence"] + 1)
-
 func capitalize_on_events(faction: Dictionary) -> void:
-	var stat_to_increase = "influence" if faction["influence"] <= faction["power"] else "power"
+	var stat_to_increase: String = "influence" if faction["influence"] <= faction["power"] else "power"
 	faction[stat_to_increase] = min(MAX_FACTION_POWER, faction[stat_to_increase] + 1)
-
 func lay_low(_faction: Dictionary) -> void:
 	pass
-
 func defensive_posture(faction: Dictionary) -> void:
 	if faction["power"] >= 3:
 		faction["temporary_defense"] = true
-
 func faction_struggle(faction: Dictionary) -> void:
 	if faction["power"] >= 3:
 		resolve_faction_conflict()
-
 func office_party(faction: Dictionary) -> void:
 	if not game_state_manager or not game_state_manager.has_method("get_game_state"):
 		return
@@ -199,13 +190,12 @@ func day_to_day_operations(faction: Dictionary) -> void:
 		game_state.add_job_offer(job)
 
 func update_factions() -> void:
-	for faction in factions["government"]:
+	for faction in _factions["government"]:
 		perform_faction_activity(faction)
-
 func get_faction_job(faction: Dictionary) -> bool:
 	if not game_state_manager or not game_state_manager.game_state:
 		return false
-		
+
 	if randi() % 6 + 1 <= faction.get("influence", 0):
 		var job := get_faction_mission(faction)
 		if job:
@@ -218,7 +208,6 @@ func gain_faction_loyalty(faction: Dictionary, character: Node) -> void:
 		var current_loyalty = character.get_faction_standing(faction["name"])
 		if randi() % 6 + 1 > current_loyalty:
 			character.set_faction_standing(faction["name"], current_loyalty + 1)
-
 func call_in_faction_favor(faction: Dictionary, character: Node) -> bool:
 	if character.has_method("get_faction_standing"):
 		var current_loyalty = character.get_faction_standing(faction["name"])
@@ -231,39 +220,39 @@ func call_in_faction_favor(faction: Dictionary, character: Node) -> bool:
 
 func serialize() -> Dictionary:
 	return {
-		"factions": factions
+		"factions": _factions
 	}
 
 static func deserialize(data: Dictionary) -> ExpandedFactionManager:
 	var manager = ExpandedFactionManager.new(null) # MockGameState will be set later
-	manager.factions = data["factions"]
+	manager._factions = data["factions"]
 	return manager
 
 static func deserialize_faction(data: Dictionary) -> Dictionary:
 	return data
 
 func get_faction_by_name(faction_name: String) -> Dictionary:
-	for faction_type in factions.keys():
-		for faction in factions[faction_type]:
-			if faction["name"] == faction_name:
+	for faction_type in _factions.keys():
+		for faction in _factions[faction_type]:
+			if faction["_name"] == faction_name:
 				return faction
 	return {}
 
 func get_faction_by_type(type_value: int) -> Dictionary:
-	for faction in factions:
+	for faction in _factions:
 		if faction.get("type", -1) == type_value:
 			return faction
 	return {}
 
 func get_strongest_faction() -> Dictionary:
-	if factions.is_empty():
+	if _factions.is_empty():
 		return {}
 		
 	var strongest_faction: Dictionary = {}
-	var found_any = false
+	var found_any: bool = false
 	
-	for faction_type in factions.keys():
-		for faction in factions[faction_type]:
+	for faction_type in _factions.keys():
+		for faction in _factions[faction_type]:
 			if not found_any or faction.get("strength", 0) > strongest_faction.get("strength", 0):
 				strongest_faction = faction
 				found_any = true
@@ -271,14 +260,14 @@ func get_strongest_faction() -> Dictionary:
 	return strongest_faction
 
 func get_weakest_faction() -> Dictionary:
-	if factions.is_empty():
+	if _factions.is_empty():
 		return {}
 		
 	var weakest_faction: Dictionary = {}
-	var found_any = false
+	var found_any: bool = false
 	
-	for faction_type in factions.keys():
-		for faction in factions[faction_type]:
+	for faction_type in _factions.keys():
+		for faction in _factions[faction_type]:
 			if not found_any or faction.get("strength", 0) < weakest_faction.get("strength", 0):
 				weakest_faction = faction
 				found_any = true
@@ -286,14 +275,14 @@ func get_weakest_faction() -> Dictionary:
 	return weakest_faction
 
 func get_most_influential_faction() -> Dictionary:
-	if factions.is_empty():
+	if _factions.is_empty():
 		return {}
 		
 	var most_influential_faction: Dictionary = {}
-	var found_any = false
+	var found_any: bool = false
 	
-	for faction_type in factions.keys():
-		for faction in factions[faction_type]:
+	for faction_type in _factions.keys():
+		for faction in _factions[faction_type]:
 			if not found_any or faction.get("influence", 0) > most_influential_faction.get("influence", 0):
 				most_influential_faction = faction
 				found_any = true
@@ -301,14 +290,14 @@ func get_most_influential_faction() -> Dictionary:
 	return most_influential_faction
 
 func get_least_influential_faction() -> Dictionary:
-	if factions.is_empty():
+	if _factions.is_empty():
 		return {}
 		
 	var least_influential_faction: Dictionary = {}
-	var found_any = false
+	var found_any: bool = false
 	
-	for faction_type in factions.keys():
-		for faction in factions[faction_type]:
+	for faction_type in _factions.keys():
+		for faction in _factions[faction_type]:
 			if not found_any or faction.get("influence", 0) < least_influential_faction.get("influence", 0):
 				least_influential_faction = faction
 				found_any = true
@@ -319,9 +308,9 @@ func get_faction_power_ranking() -> Array[Dictionary]:
 	var sorted_factions: Array[Dictionary] = []
 	
 	# Collect all factions from all types
-	for faction_type in factions.keys():
-		for faction in factions[faction_type]:
-			sorted_factions.append(faction)
+	for faction_type in _factions.keys():
+		for faction in _factions[faction_type]:
+			sorted_factions.append(faction) # warning: return value discarded (intentional)
 	
 	# Sort by power
 	sorted_factions.sort_custom(func(a, b): return a["power"] > b["power"])
@@ -331,9 +320,9 @@ func get_faction_influence_ranking() -> Array[Dictionary]:
 	var sorted_factions: Array[Dictionary] = []
 	
 	# Collect all factions from all types
-	for faction_type in factions.keys():
-		for faction in factions[faction_type]:
-			sorted_factions.append(faction)
+	for faction_type in _factions.keys():
+		for faction in _factions[faction_type]:
+			sorted_factions.append(faction) # warning: return value discarded (intentional)
 	
 	# Sort by influence
 	sorted_factions.sort_custom(func(a, b): return a["influence"] > b["influence"])
@@ -343,32 +332,32 @@ func get_faction_strength_ranking() -> Array[Dictionary]:
 	var sorted_factions: Array[Dictionary] = []
 	
 	# Collect all factions from all types
-	for faction_type in factions.keys():
-		for faction in factions[faction_type]:
-			sorted_factions.append(faction)
+	for faction_type in _factions.keys():
+		for faction in _factions[faction_type]:
+			sorted_factions.append(faction) # warning: return value discarded (intentional)
 	
 	# Sort by strength
 	sorted_factions.sort_custom(func(a, b): return a["strength"] > b["strength"])
 	return sorted_factions
 
 func get_total_faction_power() -> int:
-	var total_power = 0
-	for faction_type in factions.keys():
-		for faction in factions[faction_type]:
+	var total_power: int = 0
+	for faction_type in _factions.keys():
+		for faction in _factions[faction_type]:
 			total_power += faction["power"]
 	return total_power
 
 func get_total_faction_influence() -> int:
-	var total_influence = 0
-	for faction_type in factions.keys():
-		for faction in factions[faction_type]:
+	var total_influence: int = 0
+	for faction_type in _factions.keys():
+		for faction in _factions[faction_type]:
 			total_influence += faction["influence"]
 	return total_influence
 
 func get_total_faction_strength() -> int:
-	var total_strength = 0
-	for faction_type in factions.keys():
-		for faction in factions[faction_type]:
+	var total_strength: int = 0
+	for faction_type in _factions.keys():
+		for faction in _factions[faction_type]:
 			total_strength += faction["strength"]
 	return total_strength
 
@@ -391,20 +380,20 @@ func get_average_faction_strength() -> float:
 	return float(get_total_faction_strength()) / total_factions
 
 func get_total_faction_count() -> int:
-	var count = 0
-	for faction_type in factions.keys():
-		count += factions[faction_type].size()
+	var count: int = 0
+	for faction_type in _factions.keys():
+		count += _factions[faction_type].size()
 	return count
 
 func remove_faction(faction: Dictionary) -> void:
-	for faction_type in factions.keys():
-		var index = factions[faction_type].find(faction)
+	for faction_type in _factions.keys():
+		var index = _factions[faction_type].find(faction)
 		if index != -1:
-			factions[faction_type].remove_at(index)
+			_factions[faction_type].remove_at(index)
 			return
 
 func add_faction(faction: Dictionary) -> void:
-	var faction_type = "government" # Default type
+	var faction_type: String = "government" # Default type
 	
 	# Determine faction type from the faction data
 	if faction.has("type"):
@@ -417,11 +406,10 @@ func add_faction(faction: Dictionary) -> void:
 			5: faction_type = "alien"
 	
 	# Add to the appropriate array in the dictionary
-	if factions.has(faction_type):
-		factions[faction_type].append(faction)
+	if _factions.has(faction_type):
+		_factions[faction_type].append(faction)
 	else:
 		push_warning("Unknown faction type: " + str(faction_type))
-
 func merge_factions(faction1: Dictionary, faction2: Dictionary) -> Dictionary:
 	var merged_faction = generate_faction()
 	merged_faction["name"] = faction1["name"] + "-" + faction2["name"]

@@ -123,6 +123,7 @@ const TRAINING_NAMES = {
 }
 
 static func get_training_name(training: Training) -> String:
+
 	return TRAINING_NAMES.get(training, "Unknown Training")
 
 ## Character Origins

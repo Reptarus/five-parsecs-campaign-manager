@@ -8,7 +8,7 @@ const BattleResultsManager = preload("res://src/core/battle/BattleResultsManager
 const FiveParsecsGameState = preload("res://src/core/state/GameState.gd")
 
 # Import the mission type enum directly to avoid reference issues
-const FiveParsecsMissionType = FiveParsecsMissionGenerator.FiveParsecsMissionType
+# const FiveParsecsMissionType = FiveParsecsMissionGenerator.FiveParsecsMissionType
 
 # Signal declarations
 signal missions_generated(missions: Array)
@@ -28,73 +28,77 @@ var _mission_history: Array = []
 
 func _init() -> void:
 	mission_generator = FiveParsecsMissionGenerator.new()
-
 func _ready() -> void:
 	_current_mission = {}
 	_available_missions = []
-
 func setup(state: FiveParsecsGameState, phase_manager: CampaignPhaseManager, results_manager: BattleResultsManager) -> void:
 	game_state = state
 	campaign_phase_manager = phase_manager
 	battle_results_manager = results_manager
 	
-	# Connect signals from campaign phase manager
+	# Connect signals from campaign phase _manager
 	if campaign_phase_manager:
 		# Connect to phase change signal to detect when we enter the Campaign phase
 		if campaign_phase_manager.is_connected("phase_changed", _on_phase_changed):
 			campaign_phase_manager.disconnect("phase_changed", _on_phase_changed)
-		campaign_phase_manager.connect("phase_changed", _on_phase_changed)
+
+		campaign_phase_manager.connect("phase_changed", _on_phase_changed) # warning: return value discarded (intentional)
 		
 		# Connect to sub-phase change signal to detect when we enter the Mission Selection sub-phase
 		if campaign_phase_manager.is_connected("sub_phase_changed", _on_sub_phase_changed):
 			campaign_phase_manager.disconnect("sub_phase_changed", _on_sub_phase_changed)
-		campaign_phase_manager.connect("sub_phase_changed", _on_sub_phase_changed)
+
+		campaign_phase_manager.connect("sub_phase_changed", _on_sub_phase_changed) # warning: return value discarded (intentional)
 
 ## Generate mission options based on the current world, patron, and circumstances
 func generate_mission_options(count: int = 3, include_patron_mission: bool = true) -> Array:
-	var missions = []
+	var missions: Array = []
 	var world_data = game_state.current_campaign.current_world
 	var patron_available = game_state.current_campaign.has_active_patron()
 	var current_turn = game_state.turn_number
 	
-	# Consider world traits for mission generation
+	# Consider world traits for _mission generation
+
 	var world_type = world_data.get("type", GameEnums.WorldTrait.NONE)
+
 	var world_danger = world_data.get("danger_level", 1)
 	
 	# Base difficulty on turn number and world danger
 	var min_difficulty = max(1, min(world_danger, current_turn / 5))
 	var max_difficulty = max(2, min(world_danger + 1, current_turn / 3))
 	
-	# Generate regular mission options
+	# Generate regular _mission options
 	var regular_count = count - 1 if include_patron_mission else count
 	for i in range(regular_count):
 		var mission_type = _get_appropriate_mission_type(world_type)
 		var difficulty = min_difficulty + randi() % (max_difficulty - min_difficulty + 1)
 		
-		var mission = mission_generator.generate_mission(difficulty, mission_type)
-		mission["is_patron"] = false
-		missions.append(mission)
+		var _mission = mission_generator.generate_mission(difficulty)
+		_mission["is_patron"] = false
+
+		missions.append(_mission) # warning: return value discarded (intentional)
 	
-	# Add a patron mission if requested and available
+	# Add a patron _mission if requested and available
 	if include_patron_mission and patron_available:
 		var patron_data = game_state.current_campaign.get_active_patron()
 		var patron_mission = _generate_patron_mission(patron_data)
-		missions.append(patron_mission)
+
+		missions.append(patron_mission) # warning: return value discarded (intentional)
 	
 	_available_missions = missions
-	missions_generated.emit(missions)
+	missions_generated.emit(missions) # warning: return value discarded (intentional)
 	
 	return missions
 
-## Select a mission from the available options
+## Select a _mission from the available options
 func select_mission(mission_index: int) -> Dictionary:
 	if mission_index < 0 or mission_index >= _available_missions.size():
-		push_error("Invalid mission index selected")
+		push_error("Invalid mission _index selected")
 		return {}
 	
 	_current_mission = _available_missions[mission_index]
-	mission_selected.emit(_current_mission)
-	
+	mission_selected.emit(_current_mission) # warning: return value discarded (intentional)
+
 	# Mark the mission selection action as completed in the campaign phase manager
 	if campaign_phase_manager:
 		campaign_phase_manager.complete_phase_action("mission_selected")
@@ -112,12 +116,12 @@ func prepare_mission() -> Dictionary:
 	_current_mission["enemy_forces"] = _generate_enemy_forces()
 	_current_mission["deployment_options"] = _generate_deployment_options()
 	_current_mission["prepared"] = true
-	
+
 	# Mark the mission preparation action as completed in the campaign phase manager
 	if campaign_phase_manager:
 		campaign_phase_manager.complete_phase_action("mission_prepared")
 	
-	mission_preparation_complete.emit(_current_mission)
+	mission_preparation_complete.emit(_current_mission) # warning: return value discarded (intentional)
 	return _current_mission
 
 ## Cancel the current mission selection
@@ -127,7 +131,7 @@ func cancel_mission() -> void:
 		
 	var canceled_mission = _current_mission.duplicate()
 	_current_mission = {}
-	mission_canceled.emit(canceled_mission)
+	mission_canceled.emit(canceled_mission) # warning: return value discarded (intentional)
 
 ## Start a battle with the current mission
 func start_battle() -> void:
@@ -151,8 +155,8 @@ func complete_current_mission(success: bool) -> void:
 	_current_mission["completed"] = true
 	_current_mission["success"] = success
 	_current_mission["completion_turn"] = game_state.turn_number
-	
-	_mission_history.append(_current_mission.duplicate())
+
+	_mission_history.append(_current_mission.duplicate()) # warning: return value discarded (intentional)
 	_current_mission = {}
 	
 	# Notify mission generator
@@ -173,23 +177,21 @@ func get_current_mission() -> Dictionary:
 ## Private helper methods
 
 func _on_phase_changed(old_phase: int, new_phase: int) -> void:
-	# When entering Campaign phase, reset available missions
+	# When entering Campaign _phase, reset available missions
 	if new_phase == GameEnums.FiveParcsecsCampaignPhase.CAMPAIGN:
 		_available_missions = []
-	# When entering Battle Setup phase, ensure mission is prepared
+	# When entering Battle Setup _phase, ensure mission is prepared
 	elif new_phase == GameEnums.FiveParcsecsCampaignPhase.BATTLE_SETUP:
 		if _current_mission.is_empty() or not _current_mission.get("prepared", false):
 			push_warning("Entering Battle Setup without a prepared mission")
-
 func _on_sub_phase_changed(old_sub_phase: int, new_sub_phase: int) -> void:
-	# When entering Mission Selection sub-phase, generate mission options
+	# When entering Mission Selection sub-_phase, generate mission options
 	if new_sub_phase == GameEnums.CampaignSubPhase.MISSION_SELECTION:
 		generate_mission_options()
-
 func _get_appropriate_mission_type(world_type: int) -> int:
 	# Table for mission types based on world traits (Five Parsecs From Home rulebook p.87-94)
-	# Return a mission type that's appropriate for the given world type
-	var mission_types = []
+	# Return a mission _type that's appropriate for the given world _type
+	var mission_types: Array = []
 	
 	match world_type:
 		GameEnums.WorldTrait.INDUSTRIAL_HUB:
@@ -252,20 +254,24 @@ func _get_appropriate_mission_type(world_type: int) -> int:
 				GameEnums.MissionType.ESCORT
 			]
 	
-	# Select a random mission type from the appropriate list
+	# Select a random mission _type from the appropriate list
 	return mission_types[randi() % mission_types.size()]
 
 func _generate_patron_mission(patron_data: Dictionary) -> Dictionary:
 	var difficulty = patron_data.get("tier", 2) + 1
-	var mission = mission_generator.generate_mission(difficulty, FiveParsecsMissionType.PATRON_JOB)
+	var mission = mission_generator.generate_mission(difficulty)
 	
 	# Customize mission based on patron
 	mission["is_patron"] = true
+
 	mission["patron_id"] = patron_data.get("id", "")
+
 	mission["patron_name"] = patron_data.get("name", "Unknown Patron")
 	
 	# Increase rewards for patron missions
+
 	mission["reward"]["credits"] = mission["reward"].get("credits", 100) * 1.5
+
 	mission["reward"]["reputation"] = mission["reward"].get("reputation", 1) + 2
 	
 	return mission
@@ -273,6 +279,7 @@ func _generate_patron_mission(patron_data: Dictionary) -> Dictionary:
 func _generate_battlefield_data() -> Dictionary:
 	# Generate battlefield data based on mission type and location
 	var mission_type = _current_mission.get("type", 0)
+
 	var location = _current_mission.get("location", "")
 	
 	# Default battlefield
@@ -285,12 +292,12 @@ func _generate_battlefield_data() -> Dictionary:
 	
 	# Customize based on mission type
 	match mission_type:
-		FiveParsecsMissionType.SALVAGE_RUN:
+		1: # SALVAGE_RUN
 			battlefield["terrain_type"] = "industrial"
 			battlefield["special_features"].append("salvage_points")
-		FiveParsecsMissionType.RESCUE_OPERATION:
+		2: # RESCUE_OPERATION
 			battlefield["special_features"].append("hostages")
-		FiveParsecsMissionType.DEFENSE:
+		3: # DEFENSE
 			battlefield["special_features"].append("defensive_positions")
 	
 	# Randomize some aspects
@@ -300,9 +307,12 @@ func _generate_battlefield_data() -> Dictionary:
 	return battlefield
 
 func _generate_enemy_forces() -> Array:
-	var enemy_forces = []
+	var enemy_forces: Array = []
+
 	var difficulty = _current_mission.get("difficulty", 2)
+
 	var enemy_count = _current_mission.get("enemy_count", 4)
+
 	var enemy_faction = _current_mission.get("enemy_faction", "Marauders")
 	
 	# Generate basic enemy composition
@@ -327,14 +337,14 @@ func _generate_enemy_forces() -> Array:
 		if difficulty >= 4 and i < 2:
 			enemy["type"] = "elite"
 			enemy["combat_skill"] += 1
-		
-		enemy_forces.append(enemy)
+
+		enemy_forces.append(enemy) # warning: return value discarded (intentional)
 	
 	return enemy_forces
 
 func _generate_enemy_weapons(difficulty: int) -> Array:
-	var weapons = []
-	var weapon_count = 1 + (randi() % 2)
+	var weapons: Array = []
+	var weapon_count: int = 1 + (randi() % 2)
 	
 	for i in range(weapon_count):
 		var weapon = {
@@ -349,17 +359,19 @@ func _generate_enemy_weapons(difficulty: int) -> Array:
 		if difficulty >= 5:
 			weapon["name"] = "Advanced Weapon"
 			weapon["damage"] += 1
-		
-		weapons.append(weapon)
+
+		weapons.append(weapon) # warning: return value discarded (intentional)
 	
 	return weapons
 
 func _generate_deployment_options() -> Array:
-	var deployment_options = []
+	var deployment_options: Array = []
+
 	var mission_type = _current_mission.get("type", 0)
 	
 	# Standard deployment is always available
-	deployment_options.append({
+
+	deployment_options.append({ # warning: return value discarded (intentional)
 		"name": "Standard Deployment",
 		"type": GameEnums.DeploymentType.STANDARD,
 		"description": "Deploy your forces in the standard deployment zone."
@@ -367,23 +379,23 @@ func _generate_deployment_options() -> Array:
 	
 	# Add mission-specific deployment options
 	match mission_type:
-		FiveParsecsMissionType.BATTLE:
-			deployment_options.append({
+		0: # BATTLE
+			deployment_options.append({ # warning: return value discarded (intentional)
 				"name": "Line Deployment",
 				"type": GameEnums.DeploymentType.LINE,
 				"description": "Deploy your forces in a line formation."
 			})
-		FiveParsecsMissionType.SALVAGE_RUN:
-			deployment_options.append({
+		1: # SALVAGE_RUN
+			deployment_options.append({ # warning: return value discarded (intentional)
 				"name": "Scattered Deployment",
 				"type": GameEnums.DeploymentType.SCATTERED,
 				"description": "Deploy your forces in a scattered pattern around salvage points."
 			})
-		FiveParsecsMissionType.DEFENSE:
-			deployment_options.append({
+		3: # DEFENSE
+			deployment_options.append({ # warning: return value discarded (intentional)
 				"name": "Defensive Deployment",
 				"type": GameEnums.DeploymentType.DEFENSIVE,
 				"description": "Deploy your forces in a defensive position."
-			})
-	
+					})
+
 	return deployment_options

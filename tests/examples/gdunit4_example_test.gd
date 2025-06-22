@@ -1,3 +1,4 @@
+@warning_ignore("return_value_discarded")
 extends GdUnitTestSuite
 
 ## Example test showing GUT to gdUnit4 migration patterns
@@ -8,7 +9,7 @@ var mock_character: Resource
 var mock_campaign: Resource
 var mock_mission: Resource
 
-func before_test():
+func before_test() -> void:
 	"""Set up mocks before each test using Universal Mock Strategy"""
 	# Create lightweight Resource-based mocks
 	mock_character = Resource.new()
@@ -28,13 +29,14 @@ func before_test():
 	mock_mission.mission_type = "Patrol"
 	mock_mission.difficulty = 1
 
-func after_test():
+func after_test() -> void:
 	"""Clean up after each test"""
 	mock_character = null
 	mock_campaign = null
 	mock_mission = null
 
-func test_basic_assertions():
+@warning_ignore("unsafe_method_access")
+func test_basic_assertions() -> void:
 	"""Example of basic assertion migration"""
 	# GUT: assert_eq(actual, expected)
 	# gdUnit4: assert_that(actual).is_equal(expected)
@@ -47,10 +49,11 @@ func test_basic_assertions():
 	assert_that(test_string).contains("World")
 	assert_that(test_string).has_length(11) # Fixed: use has_length instead of is_not_empty
 
-func test_null_assertions():
+@warning_ignore("unsafe_method_access")
+func test_null_assertions() -> void:
 	"""Example of null assertion migration"""
-	# GUT: assert_null(value) / assert_not_null(value)
-	# gdUnit4: assert_that(value).is_null() / is_not_null()
+	# GUT: assert_null(_value) / assert_not_null(_value)
+	# gdUnit4: assert_that(_value).is_null() / is_not_null()
 	
 	var null_value = null
 	var valid_object = mock_character
@@ -58,7 +61,8 @@ func test_null_assertions():
 	assert_that(null_value).is_null()
 	assert_that(valid_object).is_not_null()
 
-func test_array_assertions():
+@warning_ignore("unsafe_method_access")
+func test_array_assertions() -> void:
 	"""Example of array assertion migration"""
 	# GUT: assert_eq(array.size(), expected_size)
 	# gdUnit4: assert_that(array).has_size(expected_size)
@@ -68,16 +72,19 @@ func test_array_assertions():
 	assert_that(test_array).contains([3])
 	assert_that(test_array).is_not_empty()
 
-func test_signal_testing():
+@warning_ignore("unsafe_method_access")
+func test_signal_testing() -> void:
 	"""Example of signal testing migration"""
 	# GUT: watch_signals(object) / assert_signal_emitted(object, "signal_name")
-	# gdUnit4: monitor_signals(object) / assert_signal(object).is_emitted("signal_name")
+	# gdUnit4: @warning_ignore("unsafe_method_access")
+	monitor_signals(object) / assert_signal(object).is_emitted("signal_name")
 	
 	# Use mock approach to avoid orphan nodes
 	var test_signal_emitted = true
 	assert_that(test_signal_emitted).is_true()
 
-func test_character_creation():
+@warning_ignore("unsafe_method_access")
+func test_character_creation() -> void:
 	"""Example of game-specific testing using mocks"""
 	var character = create_test_character("Test Hero")
 	
@@ -87,7 +94,8 @@ func test_character_creation():
 	assert_that(character.reaction).is_greater_equal(1) # Fixed: 'reaction' not 'reactions'
 	assert_that(character.speed).is_greater(0)
 
-func test_campaign_scenario():
+@warning_ignore("unsafe_method_access")
+func test_campaign_scenario() -> void:
 	"""Example of scenario testing using mocks"""
 	var scenario = setup_basic_campaign_scenario()
 	
@@ -96,7 +104,8 @@ func test_campaign_scenario():
 	assert_crew_size(scenario["crew"], 4)
 	assert_mission_valid(scenario["mission"])
 
-func test_performance_measurement():
+@warning_ignore("unsafe_method_access")
+func test_performance_measurement() -> void:
 	"""Example of performance testing using mocks"""
 	var performance_data = measure_character_creation_performance(100)
 	
@@ -106,19 +115,23 @@ func test_performance_measurement():
 	
 	print("Character creation performance: ", performance_data)
 
-func test_async_operations():
+@warning_ignore("unsafe_method_access")
+func test_async_operations() -> void:
 	"""Example of async testing with gdUnit4"""
 	# Test async operations with proper awaiting
+	@warning_ignore("unsafe_method_access")
 	await simulate_campaign_turn()
 	
 	# Fixed: Use proper Time API - get_ticks_msec() returns int directly
 	var start_time = Time.get_ticks_msec()
+	@warning_ignore("unsafe_method_access")
 	await get_tree().create_timer(0.1).timeout # Use standard Godot timer
 	var end_time = Time.get_ticks_msec()
 	
 	assert_that(end_time - start_time).is_greater_equal(100)
 
-func test_error_handling():
+@warning_ignore("unsafe_method_access")
+func test_error_handling() -> void:
 	"""Example of error handling in tests"""
 	# Test that invalid operations fail gracefully
 	var invalid_character = null
@@ -128,10 +141,10 @@ func test_error_handling():
 
 ## Mock helper methods using Universal Mock Strategy
 
-func create_test_character(name: String = "Test Character") -> Resource:
+func create_test_character(test_name: String = "Test Character") -> Resource:
 	"""Create a test character using Resource mock"""
-	var character = Resource.new()
-	character.character_name = name
+	var character: Resource = Resource.new()
+	character.character_name = test_name
 	character.reaction = 2 # Fixed: proper property name
 	character.speed = 4
 	character.combat_skill = 1
@@ -139,25 +152,29 @@ func create_test_character(name: String = "Test Character") -> Resource:
 	character.savvy = 1
 	return character
 
-func create_test_campaign(name: String = "Test Campaign") -> Resource:
+func create_test_campaign(test_name: String = "Test Campaign") -> Resource:
 	"""Create a test campaign using Resource mock"""
-	var campaign = Resource.new()
-	campaign.campaign_name = name
+	var campaign: Resource = Resource.new()
+	campaign.campaign_name = test_name
 	campaign.total_days = 1 # Fixed: proper property name
 	campaign.current_phase = 0
 	return campaign
 
 func create_test_crew(size: int = 4) -> Array[Resource]:
 	"""Create a test crew using Resource mocks"""
-	var crew: Array[Resource] = []
-	for i in range(size):
-		var character = create_test_character("Crew Member %d" % (i + 1))
-		crew.append(character)
+	var crew: @warning_ignore("unsafe_call_argument")
+	Array[Resource] = []
+	for i: int in range(size):
+		var character = create_test_character("Crew @warning_ignore("integer_division")
+	Member % d" % (i + 1))
+
+		@warning_ignore("return_value_discarded")
+	crew.append(character)
 	return crew
 
 func create_test_mission(mission_type: String = "Patrol") -> Resource:
 	"""Create a test mission using Resource mock"""
-	var mission = Resource.new()
+	var mission: Resource = Resource.new()
 	mission.mission_type = mission_type
 	mission.difficulty = 1
 	return mission
@@ -183,7 +200,8 @@ func assert_character_valid(character: Resource, message: String = "") -> GdUnit
 	return assert_that(character)
 
 func assert_crew_size(crew: Array, expected_size: int, message: String = "") -> GdUnitArrayAssert:
-	"""Assert crew has expected size"""
+
+	"""Assert crew has expected _size"""
 	return assert_that(crew).has_size(expected_size)
 
 func assert_mission_valid(mission: Resource, message: String = "") -> GdUnitObjectAssert:
@@ -198,6 +216,7 @@ func assert_mission_valid(mission: Resource, message: String = "") -> GdUnitObje
 func simulate_campaign_turn() -> void:
 	"""Simulate a complete campaign turn using mocks"""
 	# Mock simulation - just wait briefly
+	@warning_ignore("unsafe_method_access")
 	await get_tree().process_frame
 
 func simulate_character_action(character: Resource, action_type: String) -> bool:
@@ -222,10 +241,11 @@ func measure_character_creation_performance(iterations: int = 1000) -> Dictionar
 	"""Measure performance of character creation using mocks"""
 	var start_time = Time.get_ticks_msec()
 	
-	for i in range(iterations):
+	for i: int in range(iterations):
 		var char = create_test_character()
 		# Simulate some processing
-		char.character_name = "Test %d" % i
+		char.character_name = "@warning_ignore("integer_division")
+	Test % d" % i
 	
 	var end_time = Time.get_ticks_msec()
 	var duration = end_time - start_time

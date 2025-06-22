@@ -1,34 +1,39 @@
 @tool
-extends GdUnitTestSuite
+@warning_ignore("return_value_discarded")
+	extends GdUnitTestSuite
 
 var resource_item: Control
 var mock_resource_data: Dictionary
 
-func before_test():
+func before_test() -> void:
 	# Create enhanced resource item with proper structure
 	resource_item = Control.new()
 	resource_item.name = "ResourceItem"
 	
 	# Add required child components
-	var label = Label.new()
+	var label: Label = Label.new()
 	label.name = "ResourceLabel"
 	label.text = "Test Resource"
-	resource_item.add_child(label)
+	resource_item.@warning_ignore("return_value_discarded")
+	add_child(label)
 	
-	var value_label = Label.new()
+	var value_label: Label = Label.new()
 	value_label.name = "ValueLabel"
 	value_label.text = "100"
-	resource_item.add_child(value_label)
+	resource_item.@warning_ignore("return_value_discarded")
+	add_child(value_label)
 	
-	var icon = TextureRect.new()
+	var icon: TextureRect = TextureRect.new()
 	icon.name = "ResourceIcon"
-	resource_item.add_child(icon)
+	resource_item.@warning_ignore("return_value_discarded")
+	add_child(icon)
 	
-	var progress_bar = ProgressBar.new()
+	var progress_bar: ProgressBar = ProgressBar.new()
 	progress_bar.name = "ProgressBar"
-	progress_bar.value = 100
+	progress_bar._value = 100
 	progress_bar.max_value = 100
-	resource_item.add_child(progress_bar)
+	resource_item.@warning_ignore("return_value_discarded")
+	add_child(progress_bar)
 	
 	# Add all expected signals
 	var required_signals = [
@@ -43,7 +48,7 @@ func before_test():
 	
 	# Initialize realistic resource data
 	mock_resource_data = {
-		"value": 100,
+		"_value": 100,
 		"type": 1,
 		"label": "Test Resource",
 		"state": "normal",
@@ -65,35 +70,44 @@ func before_test():
 	resource_item.set_meta("resource_data", mock_resource_data)
 	
 	# Add safe method implementations
+	@warning_ignore("unsafe_method_access")
 	resource_item.set_script(preload("res://tests/unit/ui/mocks/ui_mock_strategy.gd"))
 	
 	# Add to scene tree
+	@warning_ignore("return_value_discarded")
 	add_child(resource_item)
+	@warning_ignore("return_value_discarded")
 	auto_free(resource_item)
 
-func after_test():
+func after_test() -> void:
 	if resource_item and is_instance_valid(resource_item):
-		resource_item.queue_free()
+		resource_item.@warning_ignore("return_value_discarded")
+	queue_free()
 
-func test_item_initialization():
+@warning_ignore("unsafe_method_access")
+func test_item_initialization() -> void:
 	# Test initial setup
 	assert_that(resource_item.get_meta("resource_value")).is_equal(100)
 	assert_that(resource_item.get_meta("resource_label")).is_equal("Test Resource")
 
-func test_resource_value():
+@warning_ignore("unsafe_method_access")
+func test_resource_value() -> void:
 	# Skip signal monitoring to prevent Dictionary corruption
-	# monitor_signals(resource_item)  # REMOVED - causes Dictionary corruption
-	# Update resource value
+	# @warning_ignore("unsafe_method_access")
+	monitor_signals(resource_item)  # REMOVED - causes Dictionary corruption
+	# Update resource _value
 	_update_resource_value(200)
 	
-	# Verify value update
+	# Verify _value update
 	assert_that(resource_item.get_meta("resource_value")).is_equal(200)
 	
 	# Test state directly instead of signal emission
 
-func test_resource_type():
+@warning_ignore("unsafe_method_access")
+func test_resource_type() -> void:
 	# Skip signal monitoring to prevent Dictionary corruption
-	# monitor_signals(resource_item)  # REMOVED - causes Dictionary corruption
+	# @warning_ignore("unsafe_method_access")
+	monitor_signals(resource_item)  # REMOVED - causes Dictionary corruption
 	# Update resource type
 	_update_resource_type(2)
 	
@@ -102,9 +116,11 @@ func test_resource_type():
 	
 	# Test state directly instead of signal emission
 
-func test_resource_label():
+@warning_ignore("unsafe_method_access")
+func test_resource_label() -> void:
 	# Skip signal monitoring to prevent Dictionary corruption
-	# monitor_signals(resource_item)  # REMOVED - causes Dictionary corruption
+	# @warning_ignore("unsafe_method_access")
+	monitor_signals(resource_item)  # REMOVED - causes Dictionary corruption
 	# Update resource label
 	_update_resource_label("Updated Resource")
 	
@@ -113,9 +129,11 @@ func test_resource_label():
 	
 	# Test state directly instead of signal emission
 
-func test_resource_state():
+@warning_ignore("unsafe_method_access")
+func test_resource_state() -> void:
 	# Skip signal monitoring to prevent Dictionary corruption
-	# monitor_signals(resource_item)  # REMOVED - causes Dictionary corruption
+	# @warning_ignore("unsafe_method_access")
+	monitor_signals(resource_item)  # REMOVED - causes Dictionary corruption
 	# Update resource state
 	_update_resource_state("depleted")
 	
@@ -124,9 +142,11 @@ func test_resource_state():
 	
 	# Test state directly instead of signal emission
 
-func test_resource_tooltip():
+@warning_ignore("unsafe_method_access")
+func test_resource_tooltip() -> void:
 	# Skip signal monitoring to prevent Dictionary corruption
-	# monitor_signals(resource_item)  # REMOVED - causes Dictionary corruption
+	# @warning_ignore("unsafe_method_access")
+	monitor_signals(resource_item)  # REMOVED - causes Dictionary corruption
 	# Update tooltip
 	_update_resource_tooltip("Updated tooltip")
 	
@@ -135,41 +155,49 @@ func test_resource_tooltip():
 	
 	# Test state directly instead of signal emission
 
-func test_resource_animation():
+@warning_ignore("unsafe_method_access")
+func test_resource_animation() -> void:
 	# Skip signal monitoring to prevent Dictionary corruption
-	# monitor_signals(resource_item)  # REMOVED - causes Dictionary corruption
+	# @warning_ignore("unsafe_method_access")
+	monitor_signals(resource_item)  # REMOVED - causes Dictionary corruption
 	# Start animation
 	_start_resource_animation()
 	
 	# Test state directly instead of signal emission
 	
-	# Verify final value
+	# Verify final _value
 	assert_that(resource_item.get_meta("resource_value")).is_equal(100)
 
-func test_resource_interaction():
+@warning_ignore("unsafe_method_access")
+func test_resource_interaction() -> void:
 	# Skip signal monitoring to prevent Dictionary corruption
-	# monitor_signals(resource_item)  # REMOVED - causes Dictionary corruption
+	# @warning_ignore("unsafe_method_access")
+	monitor_signals(resource_item)  # REMOVED - causes Dictionary corruption
 	# Simulate interactions
 	_simulate_click()
 	_simulate_hover()
 	
 	# Test state directly instead of signal emission
 
-func test_resource_validation():
+@warning_ignore("unsafe_method_access")
+func test_resource_validation() -> void:
 	# Skip signal monitoring to prevent Dictionary corruption
-	# monitor_signals(resource_item)  # REMOVED - causes Dictionary corruption
+	# @warning_ignore("unsafe_method_access")
+	monitor_signals(resource_item)  # REMOVED - causes Dictionary corruption
 	# Perform validation operations
 	_update_resource_value(150)
 	_update_resource_type(3)
 	
 	# Test state directly instead of signal emission
 
-func test_ui_state():
+@warning_ignore("unsafe_method_access")
+func test_ui_state() -> void:
 	# Test UI state management
 	assert_that(resource_item.get_meta("ui_enabled")).is_true()
 	
 	# Skip signal monitoring to prevent Dictionary corruption
-	# monitor_signals(resource_item)  # REMOVED - causes Dictionary corruption
+	# @warning_ignore("unsafe_method_access")
+	monitor_signals(resource_item)  # REMOVED - causes Dictionary corruption
 	
 	# Update UI state
 	_update_ui_state(false)
@@ -179,12 +207,14 @@ func test_ui_state():
 	
 	# Test state directly instead of signal emission
 
-func test_theme_handling():
+@warning_ignore("unsafe_method_access")
+func test_theme_handling() -> void:
 	# Test theme handling
 	assert_that(resource_item.get_meta("ui_theme")).is_equal("default")
 	
 	# Skip signal monitoring to prevent Dictionary corruption
-	# monitor_signals(resource_item)  # REMOVED - causes Dictionary corruption
+	# @warning_ignore("unsafe_method_access")
+	monitor_signals(resource_item)  # REMOVED - causes Dictionary corruption
 	
 	# Update theme
 	_update_theme("dark")
@@ -195,75 +225,99 @@ func test_theme_handling():
 	# Test state directly instead of signal emission
 
 # Helper methods for realistic updates
-func _update_resource_value(new_value: int):
+func _update_resource_value(new_value: int) -> void:
 	resource_item.set_meta("resource_value", new_value)
-	mock_resource_data["value"] = new_value
+	mock_resource_data["_value"] = new_value
 	resource_item.set_meta("resource_data", mock_resource_data)
+	@warning_ignore("unsafe_method_access")
 	resource_item.emit_signal("value_changed", new_value)
+	@warning_ignore("unsafe_method_access")
 	await get_tree().process_frame
 
-func _update_resource_type(new_type: int):
+func _update_resource_type(new_type: int) -> void:
 	resource_item.set_meta("resource_type", new_type)
-	mock_resource_data["type"] = new_type
+	mock_resource_data["_type"] = new_type
 	resource_item.set_meta("resource_data", mock_resource_data)
+	@warning_ignore("unsafe_method_access")
 	resource_item.emit_signal("type_changed", new_type)
+	@warning_ignore("unsafe_method_access")
 	await get_tree().process_frame
 
-func _update_resource_label(new_label: String):
+func _update_resource_label(new_label: String) -> void:
 	resource_item.set_meta("resource_label", new_label)
-	mock_resource_data["label"] = new_label
+	mock_resource_data["_label"] = new_label
 	resource_item.set_meta("resource_data", mock_resource_data)
+	@warning_ignore("unsafe_method_access")
 	resource_item.emit_signal("label_changed", new_label)
+	@warning_ignore("unsafe_method_access")
 	await get_tree().process_frame
 
-func _update_resource_state(new_state: String):
+func _update_resource_state(new_state: String) -> void:
 	resource_item.set_meta("resource_state", new_state)
-	mock_resource_data["state"] = new_state
+	mock_resource_data["_state"] = new_state
 	resource_item.set_meta("resource_data", mock_resource_data)
+	@warning_ignore("unsafe_method_access")
 	resource_item.emit_signal("state_changed", new_state)
+	@warning_ignore("unsafe_method_access")
 	await get_tree().process_frame
 
-func _update_resource_tooltip(new_tooltip: String):
+func _update_resource_tooltip(new_tooltip: String) -> void:
 	resource_item.set_meta("resource_tooltip", new_tooltip)
-	mock_resource_data["tooltip"] = new_tooltip
+	mock_resource_data["_tooltip"] = new_tooltip
 	resource_item.set_meta("resource_data", mock_resource_data)
+	@warning_ignore("unsafe_method_access")
 	resource_item.emit_signal("tooltip_changed", new_tooltip)
+	@warning_ignore("unsafe_method_access")
 	await get_tree().process_frame
 
-func _start_resource_animation():
+func _start_resource_animation() -> void:
 	# Safety check to prevent freed instance errors
 	if not resource_item or not is_instance_valid(resource_item):
 		return
 		
+	@warning_ignore("unsafe_method_access")
 	resource_item.emit_signal("animation_started")
+	@warning_ignore("unsafe_method_access")
 	await get_tree().process_frame
 	
 	if not resource_item or not is_instance_valid(resource_item):
 		return
 		
+	@warning_ignore("unsafe_method_access")
 	resource_item.emit_signal("event_added")
+	@warning_ignore("unsafe_method_access")
 	await get_tree().process_frame
 	
 	if not resource_item or not is_instance_valid(resource_item):
 		return
 		
+	@warning_ignore("unsafe_method_access")
 	resource_item.emit_signal("animation_completed")
+	@warning_ignore("unsafe_method_access")
 	await get_tree().process_frame
 
-func _simulate_click():
+func _simulate_click() -> void:
+	@warning_ignore("unsafe_method_access")
 	resource_item.emit_signal("item_clicked")
+	@warning_ignore("unsafe_method_access")
 	await get_tree().process_frame
 
-func _simulate_hover():
+func _simulate_hover() -> void:
+	@warning_ignore("unsafe_method_access")
 	resource_item.emit_signal("item_hovered")
+	@warning_ignore("unsafe_method_access")
 	await get_tree().process_frame
 
-func _update_ui_state(enabled: bool):
+func _update_ui_state(enabled: bool) -> void:
 	resource_item.set_meta("ui_enabled", enabled)
+	@warning_ignore("unsafe_method_access")
 	resource_item.emit_signal("ui_state_changed", enabled)
+	@warning_ignore("unsafe_method_access")
 	await get_tree().process_frame
 
-func _update_theme(theme_name: String):
+func _update_theme(theme_name: String) -> void:
 	resource_item.set_meta("ui_theme", theme_name)
+	@warning_ignore("unsafe_method_access")
 	resource_item.emit_signal("ui_theme_changed", theme_name)
+	@warning_ignore("unsafe_method_access")
 	await get_tree().process_frame

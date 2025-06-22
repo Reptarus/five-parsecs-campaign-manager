@@ -1,13 +1,19 @@
 @tool
-extends BaseEquipment
+extends Resource
+class_name BaseArmor
 
 const FiveParsecsCharacter = preload("res://src/core/character/Base/Character.gd")
-@export var armor_type: GameEnums.ArmorType = GameEnums.ArmorType.NONE
+const GameEnums = preload("res://src/core/systems/GlobalEnums.gd")
+
+@export var armor_type: int = 0 # GameEnums.ArmorType.NONE
+@export var item_type: int = 0 # GameEnums.ItemType.ARMOR
 @export var armor_save: int = 0
 @export var armor_bonus: int = 0
+@export var item_name: String = ""
+@export var rarity: int = 0
+@export var description: String = ""
 
 func _init() -> void:
-	super._init()
 	item_type = GameEnums.ItemType.ARMOR
 
 ## Safe Property Access Methods
@@ -18,16 +24,17 @@ func _get_character_property(character: FiveParsecsCharacter, property: String, 
 	if not property in character:
 		push_error("Character missing required property: %s" % property)
 		return default_value
+
 	return character.get(property)
 
-func _set_character_property(character: FiveParsecsCharacter, property: String, value: Variant) -> void:
+func _set_character_property(character: FiveParsecsCharacter, property: String, _value: Variant) -> void:
 	if not character:
 		push_error("Trying to set property '%s' on null character" % property)
 		return
 	if not property in character:
 		push_error("Character missing required property: %s" % property)
 		return
-	character.set(property, value)
+	character.set(property, _value)
 
 func can_be_equipped_by(character: FiveParsecsCharacter) -> bool:
 	if not character:

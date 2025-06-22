@@ -15,17 +15,16 @@ var experience_gains: Dictionary = {}
 
 func _init() -> void:
 	pass
-
 func start_post_battle_phase(result: Dictionary) -> void:
 	battle_result = result
-	post_battle_phase_started.emit()
+	post_battle_phase_started.emit() 
 	
 	calculate_rewards()
 	process_casualties()
 	award_experience()
 
 func complete_post_battle_phase() -> void:
-	post_battle_phase_completed.emit()
+	post_battle_phase_completed.emit() 
 
 func calculate_rewards() -> void:
 	# Base implementation - override in derived classes
@@ -35,21 +34,21 @@ func calculate_rewards() -> void:
 		"resources": {}
 	}
 	
-	rewards_calculated.emit(rewards)
+	rewards_calculated.emit(rewards) 
 
 func distribute_rewards() -> void:
 	# Base implementation - override in derived classes
-	rewards_distributed.emit()
+	rewards_distributed.emit() 
 
 func process_casualties() -> void:
 	# Base implementation - override in derived classes
 	casualties = []
-	casualties_processed.emit()
+	casualties_processed.emit() 
 
 func award_experience() -> void:
 	# Base implementation - override in derived classes
 	experience_gains = {}
-	experience_awarded.emit()
+	experience_awarded.emit() 
 
 func get_victory_status() -> bool:
 	if battle_result.has("victory"):
@@ -69,7 +68,6 @@ func reset() -> void:
 	rewards = {}
 	casualties = []
 	experience_gains = {}
-
 func serialize() -> Dictionary:
 	return {
 		"battle_result": battle_result,

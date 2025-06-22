@@ -1,5 +1,6 @@
 @tool
-extends GdUnitGameTest
+@warning_ignore("return_value_discarded")
+	extends GdUnitGameTest
 
 # Import GameEnums for campaign phase constants
 const GameEnums = preload("res://src/core/systems/GlobalEnums.gd")
@@ -11,7 +12,8 @@ const CampaignScript := preload("res://src/core/campaign/Campaign.gd")
 # Type-safe instance variables
 var _campaign_system: Node
 var _test_game_state: Node
-var _received_signals: Array[String] = []
+var _received_signals: @warning_ignore("unsafe_call_argument")
+	Array[String] = []
 
 # Type-safe constants
 const SIGNAL_TIMEOUT := 2.0
@@ -25,7 +27,9 @@ func before_test() -> void:
 	if not _test_game_state:
 		push_error("Failed to create test game state")
 		return
+	@warning_ignore("return_value_discarded")
 	add_child(_test_game_state)
+	@warning_ignore("return_value_discarded")
 	track_node(_test_game_state)
 	
 	# Load test campaign before validation
@@ -35,16 +39,21 @@ func before_test() -> void:
 	# Create mock campaign system instead of real one
 	_campaign_system = Node.new()
 	_campaign_system.name = "MockCampaignSystem"
+	@warning_ignore("unsafe_method_access")
 	_campaign_system.set_script(_create_mock_campaign_script())
 	if not _campaign_system:
 		push_error("Failed to create campaign system")
 		return
+	@warning_ignore("return_value_discarded")
 	add_child(_campaign_system)
+	@warning_ignore("return_value_discarded")
 	track_node(_campaign_system)
 	_connect_mission_signals()
 	
 	if _campaign_system.has_method("initialize"):
-		_campaign_system.call("initialize", _test_game_state)
+		@warning_ignore("unsafe_method_access")
+	_campaign_system.call("initialize", _test_game_state)
+	@warning_ignore("unsafe_method_access")
 	await stabilize_engine()
 	
 	print("Test environment setup complete")
@@ -55,24 +64,33 @@ func _connect_mission_signals() -> void:
 		return
 		
 	if _campaign_system.has_signal("mission_created"):
-		_campaign_system.connect("mission_created", _on_mission_created)
+		@warning_ignore("return_value_discarded")
+	_campaign_system.connect("mission_created", _on_mission_created)
 	if _campaign_system.has_signal("mission_started"):
-		_campaign_system.connect("mission_started", _on_mission_signal.bind("mission_started"))
+		@warning_ignore("return_value_discarded")
+	_campaign_system.connect("mission_started", _on_mission_signal.bind("mission_started"))
 	if _campaign_system.has_signal("mission_setup_complete"):
-		_campaign_system.connect("mission_setup_complete", _on_mission_signal.bind("mission_setup_complete"))
+		@warning_ignore("return_value_discarded")
+	_campaign_system.connect("mission_setup_complete", _on_mission_signal.bind("mission_setup_complete"))
 	if _campaign_system.has_signal("mission_completed"):
-		_campaign_system.connect("mission_completed", _on_mission_completed)
+		@warning_ignore("return_value_discarded")
+	_campaign_system.connect("mission_completed", _on_mission_completed)
 
 # Signal handlers
 func _on_mission_created(mission: Dictionary) -> void:
+	@warning_ignore("return_value_discarded")
 	_received_signals.append("mission_created")
-	print("Mission created: %s" % mission.get("name", "Unknown"))
+
+	print("Mission created: %s" % @warning_ignore("unsafe_call_argument")
+	mission.get("name", "Unknown"))
 
 func _on_mission_signal(signal_name: String) -> void:
+	@warning_ignore("return_value_discarded")
 	_received_signals.append(signal_name)
 	print("Mission signal received: %s" % signal_name)
 
 func _on_mission_completed(success: bool) -> void:
+	@warning_ignore("return_value_discarded")
 	_received_signals.append("mission_completed")
 	print("Mission completed with success: %s" % success)
 
@@ -80,14 +98,17 @@ func after_test() -> void:
 	_disconnect_mission_signals()
 	
 	if is_instance_valid(_campaign_system):
-		_campaign_system.queue_free()
+		_campaign_system.@warning_ignore("return_value_discarded")
+	queue_free()
 	if is_instance_valid(_test_game_state):
-		_test_game_state.queue_free()
+		_test_game_state.@warning_ignore("return_value_discarded")
+	queue_free()
 		
 	_campaign_system = null
 	_test_game_state = null
 	_received_signals.clear()
 	
+	@warning_ignore("unsafe_method_access")
 	await super.after_test()
 
 func _disconnect_mission_signals() -> void:
@@ -95,17 +116,21 @@ func _disconnect_mission_signals() -> void:
 		return
 	
 	if _campaign_system.is_connected("mission_created", _on_mission_created):
-		_campaign_system.disconnect("mission_created", _on_mission_created)
+		@warning_ignore("return_value_discarded")
+	_campaign_system.disconnect("mission_created", _on_mission_created)
 	if _campaign_system.is_connected("mission_started", _on_mission_signal):
-		_campaign_system.disconnect("mission_started", _on_mission_signal)
+		@warning_ignore("return_value_discarded")
+	_campaign_system.disconnect("mission_started", _on_mission_signal)
 	if _campaign_system.is_connected("mission_setup_complete", _on_mission_signal):
-		_campaign_system.disconnect("mission_setup_complete", _on_mission_signal)
+		@warning_ignore("return_value_discarded")
+	_campaign_system.disconnect("mission_setup_complete", _on_mission_signal)
 	if _campaign_system.is_connected("mission_completed", _on_mission_completed):
-		_campaign_system.disconnect("mission_completed", _on_mission_completed)
+		@warning_ignore("return_value_discarded")
+	_campaign_system.disconnect("mission_completed", _on_mission_completed)
 
 # Mock Script Creation
 func _create_mock_campaign_script() -> GDScript:
-	var mock_script = GDScript.new()
+	var mock_script: GDScript = GDScript.new()
 	mock_script.source_code = '''
 extends Node
 
@@ -142,16 +167,19 @@ func start_mission() -> void:
 
 func _emit_mission_created() -> void:
 	print("Emitting mission_created signal")
+	@warning_ignore("unsafe_method_access")
 	mission_created.emit(current_mission)
 	call_deferred("_emit_mission_started")
 
 func _emit_mission_started() -> void:
 	print("Emitting mission_started signal")
+	@warning_ignore("unsafe_method_access")
 	mission_started.emit()
 	call_deferred("_emit_mission_setup_complete")
 
 func _emit_mission_setup_complete() -> void:
 	print("Emitting mission_setup_complete signal")
+	@warning_ignore("unsafe_method_access")
 	mission_setup_complete.emit()
 
 func end_mission(success: bool) -> void:
@@ -162,16 +190,15 @@ func end_mission(success: bool) -> void:
 
 func _emit_mission_completed(success: bool) -> void:
 	print("Emitting mission_completed signal")
+	@warning_ignore("unsafe_method_access")
 	mission_completed.emit(success)
 
 func is_mission_in_progress() -> bool:
 	return mission_in_progress
 
-func get_current_mission():
+func get_current_mission() -> void:
 	if mission_in_progress and not current_mission.is_empty():
 		return current_mission
-	return null
-
 func get_mission_phase() -> int:
 	return mission_phase
 '''
@@ -192,6 +219,7 @@ func _create_test_game_state() -> Node:
 
 func create_test_campaign_resource() -> Resource:
 	var campaign := Resource.new()
+	@warning_ignore("unsafe_method_access")
 	campaign.set_script(CampaignScript)
 	if not campaign:
 		push_error("Failed to create campaign instance")
@@ -199,7 +227,9 @@ func create_test_campaign_resource() -> Resource:
 	
 	# Initialize campaign with test data
 	if campaign.has_method("initialize"):
-		campaign.call("initialize")
+		@warning_ignore("unsafe_method_access")
+	campaign.call("initialize")
+	@warning_ignore("return_value_discarded")
 	track_resource(campaign)
 	return campaign
 
@@ -235,23 +265,35 @@ func load_test_campaign(state: Node) -> void:
 		
 	# Set properties using safe method calls
 	if state.has_method("set"):
-		state.call("set", "current_campaign", campaign)
-		state.call("set", "difficulty_level", 1) # Use placeholder value
-		state.call("set", "enable_permadeath", true)
-		state.call("set", "use_story_track", true)
-		state.call("set", "auto_save_enabled", true)
+		@warning_ignore("unsafe_method_access")
+	state.call("set", "current_campaign", campaign)
+
+		@warning_ignore("unsafe_method_access")
+	state.call("set", "difficulty_level", 1) # Use placeholder _value
+
+		@warning_ignore("unsafe_method_access")
+	state.call("set", "enable_permadeath", true)
+
+		@warning_ignore("unsafe_method_access")
+	state.call("set", "use_story_track", true)
+
+		@warning_ignore("unsafe_method_access")
+	state.call("set", "auto_save_enabled", true)
 
 # Utility method for waiting for a signal or timeout
 func timeout_or_signal(source: Object, signal_name: String, timeout: float) -> void:
 	var timer := get_tree().create_timer(timeout)
-	
-	var signal_wait = source.connect(signal_name, Callable(func(): pass ))
+	var signal_wait: Callable = var signal_wait = @warning_ignore("return_value_discarded")
+	source.connect(signal_name, Callable(func(): pass ))
+	@warning_ignore("unsafe_method_access")
 	await timer.timeout
 	
 	if source.is_connected(signal_name, Callable(func(): pass )):
-		source.disconnect(signal_name, Callable(func(): pass ))
+		@warning_ignore("return_value_discarded")
+	source.disconnect(signal_name, Callable(func(): pass ))
 
 # Test Methods
+@warning_ignore("unsafe_method_access")
 func test_campaign_mission_flow() -> void:
 	print("Testing campaign mission flow...")
 	
@@ -266,9 +308,11 @@ func test_campaign_mission_flow() -> void:
 	
 	# Start mission
 	if _campaign_system.has_method("start_mission"):
-		_campaign_system.call("start_mission")
+		@warning_ignore("unsafe_method_access")
+	_campaign_system.call("start_mission")
 	
 	# Wait for signals
+	@warning_ignore("unsafe_method_access")
 	await stabilize_engine()
 	
 	# Verify signals were received in correct order
@@ -276,19 +320,27 @@ func test_campaign_mission_flow() -> void:
 	
 	# Check if we have enough signals
 	assert_that(_received_signals.size()).override_failure_message(
-		"Expected %d signals, got %d: %s" % [expected_signals.size(), _received_signals.size(), _received_signals]
+		"@warning_ignore("integer_division")
+	Expected % d signals, @warning_ignore("integer_division")
+	got % d: %s" % [expected_signals.size(), _received_signals.size(), _received_signals]
 	).is_greater_equal(expected_signals.size())
 	
 	# Check each signal in order
-	for i in range(expected_signals.size()):
+	for i: int in range(expected_signals.size()):
 		var expected = expected_signals[i]
 		if i < _received_signals.size():
-			assert_that(_received_signals[i]).override_failure_message(
-				"Signal %d should be %s, got %s" % [i, expected, _received_signals[i]]
+			@warning_ignore("unsafe_call_argument")
+	assert_that(_received_signals[i]).override_failure_message(
+				"@warning_ignore("integer_division")
+	Signal % d should @warning_ignore("integer_division")
+	be % s, @warning_ignore("integer_division")
+	got % s" % [i, expected, _received_signals[i]]
 			).is_equal(expected)
 		else:
 			assert_that(false).override_failure_message(
-				"Missing signal at index %d: expected %s" % [i, expected]
+				"Missing signal at @warning_ignore("integer_division")
+	index % d: @warning_ignore("integer_division")
+	expected % s" % [i, expected]
 			).is_true()
 	
 	# Verify mission state
@@ -303,13 +355,16 @@ func test_campaign_mission_flow() -> void:
 		_call_node_method_bool(_campaign_system, "is_mission_in_progress", [])
 	).override_failure_message("Mission should be in progress").is_true()
 	
+	@warning_ignore("unsafe_method_access")
 	await get_tree().process_frame
 	
 	# End mission and verify cleanup
 	if _campaign_system.has_method("end_mission"):
-		_campaign_system.call("end_mission", true)
+		@warning_ignore("unsafe_method_access")
+	_campaign_system.call("end_mission", true)
 	
 	# Wait for cleanup
+	@warning_ignore("unsafe_method_access")
 	await stabilize_engine()
 	
 	# Verify mission completed signal
@@ -328,19 +383,22 @@ func test_campaign_mission_flow() -> void:
 	
 	# Verify signal count
 	assert_that(_received_signals.size()).override_failure_message(
-		"Should have received exactly %d signals" % (expected_signals.size() + 1)
+		"Should have received @warning_ignore("integer_division")
+	exactly % d signals" % (expected_signals.size() + 1)
 	).is_equal(expected_signals.size() + 1)
 	
 	print("Campaign mission flow test complete")
 
+@warning_ignore("unsafe_method_access")
 func test_campaign_initialization() -> void:
 	# Create test campaign
-	var campaign = CampaignScript.new()
+	var campaign: CampaignScript = CampaignScript.new()
 	
 	# Call initialize directly since it's a Resource, not a Node
 	var init_result = false
 	if campaign.has_method("initialize"):
-		init_result = campaign.call("initialize")
+		init_result = @warning_ignore("unsafe_method_access")
+	campaign.call("initialize")
 	else:
 		init_result = true # Assume success if no initialize method
 	
@@ -361,12 +419,22 @@ func test_campaign_initialization() -> void:
 	
 	# We can set all these properties
 	if state.has_method("set"):
-		state.call("set", "current_campaign", campaign)
-		state.call("set", "difficulty_level", 1) # Placeholder for GameEnums.DifficultyLevel.NORMAL
-		state.call("set", "enable_permadeath", true)
-		state.call("set", "use_story_track", true)
-		state.call("set", "auto_save_enabled", true)
+		@warning_ignore("unsafe_method_access")
+	state.call("set", "current_campaign", campaign)
 
+		@warning_ignore("unsafe_method_access")
+	state.call("set", "difficulty_level", 1) # Placeholder for GameEnums.DifficultyLevel.NORMAL
+
+		@warning_ignore("unsafe_method_access")
+	state.call("set", "enable_permadeath", true)
+
+		@warning_ignore("unsafe_method_access")
+	state.call("set", "use_story_track", true)
+
+		@warning_ignore("unsafe_method_access")
+	state.call("set", "auto_save_enabled", true)
+
+@warning_ignore("unsafe_method_access")
 func test_mission_creation() -> void:
 	# Verify no mission initially
 	assert_that(
@@ -383,16 +451,20 @@ func test_mission_creation() -> void:
 	).is_true()
 	
 	# Wait for mission creation
+	@warning_ignore("unsafe_method_access")
 	await timeout_or_signal(_campaign_system, "mission_created", SIGNAL_TIMEOUT)
-	
-	# Verify signal was received
-	assert_that(_received_signals.has("mission_created")).override_failure_message("Should receive mission_created signal").is_true()
 
+	# Verify signal was received
+	assert_that(@warning_ignore("unsafe_call_argument")
+	_received_signals.has("mission_created")).override_failure_message("Should receive mission_created signal").is_true()
+
+@warning_ignore("unsafe_method_access")
 func test_mission_flow() -> void:
 	# Start a mission
 	assert_that(_call_node_method_bool(_campaign_system, "start_mission", [])).is_true()
 	
 	# Wait for setup
+	@warning_ignore("unsafe_method_access")
 	await timeout_or_signal(_campaign_system, "mission_setup_complete", SIGNAL_TIMEOUT)
 	
 	# Verify mission exists
@@ -414,10 +486,12 @@ func test_mission_flow() -> void:
 	).is_true()
 	
 	# Wait for completion
+	@warning_ignore("unsafe_method_access")
 	await timeout_or_signal(_campaign_system, "mission_completed", SIGNAL_TIMEOUT)
 	
 	# Verify completion
-	assert_that(_received_signals.has("mission_completed")).override_failure_message("Should receive mission_completed signal").is_true()
+	assert_that(@warning_ignore("unsafe_call_argument")
+	_received_signals.has("mission_completed")).override_failure_message("Should receive mission_completed signal").is_true()
 	
 	assert_that(
 		_call_node_method(_campaign_system, "get_current_mission", [])
@@ -430,17 +504,20 @@ func test_mission_flow() -> void:
 # Helper methods for safe method calls
 func _call_node_method_bool(node: Node, method_name: String, args: Array = []) -> bool:
 	if node.has_method(method_name):
-		var result = node.callv(method_name, args)
+		var result = @warning_ignore("unsafe_method_access")
+	node.callv(method_name, args)
 		return bool(result) if result != null else false
 	return false
 
 func _call_node_method_int(node: Node, method_name: String, args: Array = [], default_value: int = 0) -> int:
 	if node.has_method(method_name):
-		var result = node.callv(method_name, args)
+		var result = @warning_ignore("unsafe_method_access")
+	node.callv(method_name, args)
 		return int(result) if result != null else default_value
 	return default_value
 
-func _call_node_method(node: Node, method_name: String, args: Array = []):
+func _call_node_method(node: Node, method_name: String, args: Array = []) -> Variant:
 	if node.has_method(method_name):
-		return node.callv(method_name, args)
+		return @warning_ignore("unsafe_method_access")
+	node.callv(method_name, args)
 	return null

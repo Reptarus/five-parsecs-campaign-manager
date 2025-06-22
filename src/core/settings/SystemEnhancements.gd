@@ -22,4 +22,4 @@ class EnhancedWorldSystem:
     
     # Implement detailed rumor system
     func generate_rumors() -> void:
-        pass 
+        pass

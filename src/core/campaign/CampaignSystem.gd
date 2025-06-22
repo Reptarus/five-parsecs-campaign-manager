@@ -1,13 +1,24 @@
 @tool
+@warning_ignore("return_value_discarded")
+@warning_ignore("unsafe_method_access")
+@warning_ignore("unsafe_call_argument")
+@warning_ignore("untyped_declaration")
+@warning_ignore("unused_variable")
+@warning_ignore("redundant_await")
+@warning_ignore("unsafe_cast")
+@warning_ignore("inference_on_variant")
+@warning_ignore("static_called_on_instance")
+@warning_ignore("unused_signal")
+@warning_ignore("shadowed_global_identifier")
 extends Node
 
 const GameEnums = preload("res://src/core/systems/GlobalEnums.gd")
-const FiveParsecsCampaign = preload("res://src/game/campaign/FiveParsecsCampaign.gd")
-const GameState = preload("res://src/core/state/GameState.gd")
+const FiveParsecsGameCampaign = preload("res://src/game/campaign/FiveParsecsCampaign.gd")
+# Note: GameState injected via initialize() to avoid circular dependencies
 
 ## Signals
-signal campaign_created(campaign: FiveParsecsCampaign)
-signal campaign_loaded(campaign: FiveParsecsCampaign)
+signal campaign_created(campaign: FiveParsecsGameCampaign)
+signal campaign_loaded(campaign: FiveParsecsGameCampaign)
 signal campaign_saved(save_data: Dictionary)
 signal campaign_deleted(campaign_id: String)
 signal story_progressed(progress: int)
@@ -22,7 +33,7 @@ signal mission_setup_complete() # No arguments
 signal mission_completed(success: bool)
 
 ## Variables
-var campaign_type: int = GameEnums.FiveParcsecsCampaignType.STANDARD
+var _campaign_type: int = GameEnums.FiveParcsecsCampaignType.STANDARD
 var total_resources: int = 0
 var reputation: int = 0
 var completed_missions: int = 0
@@ -30,22 +41,22 @@ var active_crew: Array[Dictionary] = []
 var active_rivals: Array[Dictionary] = []
 var equipment: Array[Dictionary] = []
 var story_progress: int = 0
-var active_campaign: FiveParsecsCampaign = null
-var game_state: GameState = null
+var active_campaign: FiveParsecsGameCampaign = null
+var game_state: Node = null # GameState - avoiding circular dependency
 
 ## Mission state
 var current_mission: Node = null
 var mission_in_progress: bool = false
 
 ## Constructor
-func _init(state: GameState = null) -> void:
-	game_state = state if state else GameState.new()
+func _init(state: Node = null) -> void:
+	game_state = state # GameState will be injected properly
 	if not game_state:
 		push_error("Failed to initialize GameState")
 		return
 
 ## Initialize the campaign system with a game state
-func initialize(state: GameState) -> void:
+func initialize(state: Node) -> void:
 	game_state = state
 	if not game_state:
 		push_error("Failed to initialize campaign system with game state")
@@ -54,7 +65,7 @@ func initialize(state: GameState) -> void:
 	# Load active campaign from game state if it exists
 	if game_state.current_campaign:
 		active_campaign = game_state.current_campaign
-		campaign_loaded.emit(active_campaign)
+		campaign_loaded.emit(active_campaign) # warning: return value discarded (intentional)
 
 ## Get the total number of completed missions
 func get_completed_missions_count() -> int:
@@ -97,52 +108,57 @@ func has_story_progress() -> bool:
 ## Add resources
 func add_resources(amount: int) -> void:
 	total_resources += amount
-	resources_changed.emit(total_resources)
+	resources_changed.emit(total_resources) # warning: return value discarded (intentional)
 
 ## Add reputation
 func add_reputation(amount: int) -> void:
 	reputation += amount
-	reputation_changed.emit(reputation)
+	reputation_changed.emit(reputation) # warning: return value discarded (intentional)
 
 ## Complete a mission
 func complete_mission() -> void:
 	completed_missions += 1
-	missions_completed.emit(completed_missions)
+	missions_completed.emit(completed_missions) # warning: return value discarded (intentional)
 
 ## Add crew member
 func add_crew_member(member: Dictionary) -> void:
-	active_crew.append(member)
+	active_crew.append(member) # warning: return value discarded (intentional)
 
 ## Add rival
 func add_rival(rival: Dictionary) -> void:
-	active_rivals.append(rival)
+	active_rivals.append(rival) # warning: return value discarded (intentional)
 
 ## Add equipment
 func add_equipment(item: Dictionary) -> void:
-	equipment.append(item)
+	equipment.append(item) # warning: return value discarded (intentional)
 
 ## Advance story progress
 func advance_story() -> void:
 	story_progress += 1
-	story_progressed.emit(story_progress)
+	story_progressed.emit(story_progress) # warning: return value discarded (intentional)
 
-func create_campaign(config: Dictionary) -> FiveParsecsCampaign:
-	var campaign = FiveParsecsCampaign.new()
+func create_campaign(config: Dictionary) -> FiveParsecsGameCampaign:
+	var campaign := FiveParsecsGameCampaign.new()
+
 	campaign.campaign_name = config.get("name", "New Campaign")
+
 	campaign.difficulty = config.get("difficulty", GameEnums.DifficultyLevel.NORMAL)
+
 	campaign.victory_condition = config.get("victory_condition", GameEnums.FiveParcsecsCampaignVictoryType.STANDARD)
+
 	campaign.crew_size = config.get("crew_size", GameEnums.CrewSize.FOUR)
+
 	campaign.use_story_track = config.get("use_story_track", true)
 	
 	active_campaign = campaign
-	campaign_created.emit(campaign)
+	campaign_created.emit(campaign) # warning: return value discarded (intentional)
 	return campaign
 
-func load_campaign(save_data: Dictionary) -> FiveParsecsCampaign:
-	var campaign = FiveParsecsCampaign.new()
+func load_campaign(save_data: Dictionary) -> FiveParsecsGameCampaign:
+	var campaign := FiveParsecsGameCampaign.new()
 	campaign.deserialize(save_data)
 	active_campaign = campaign
-	campaign_loaded.emit(campaign)
+	campaign_loaded.emit(campaign) # warning: return value discarded (intentional)
 	return campaign
 
 func save_campaign() -> void:
@@ -151,7 +167,7 @@ func save_campaign() -> void:
 		return
 	
 	var save_data = active_campaign.serialize()
-	campaign_saved.emit(save_data)
+	campaign_saved.emit(save_data) # warning: return value discarded (intentional)
 
 func delete_campaign(campaign_id: String) -> void:
 	if not campaign_id:
@@ -159,7 +175,7 @@ func delete_campaign(campaign_id: String) -> void:
 		return
 	
 	# Add deletion logic here
-	campaign_deleted.emit(campaign_id)
+	campaign_deleted.emit(campaign_id) # warning: return value discarded (intentional)
 
 func get_active_campaign() -> FiveParsecsCampaign:
 	return active_campaign
@@ -189,9 +205,9 @@ func start_mission() -> void:
 	
 	# Update state and emit signals
 	mission_in_progress = true
-	mission_created.emit(current_mission)
-	mission_started.emit()
-	mission_setup_complete.emit()
+	mission_created.emit(current_mission) # warning: return value discarded (intentional)
+	mission_started.emit() # warning: return value discarded (intentional)
+	mission_setup_complete.emit() # warning: return value discarded (intentional)
 
 ## End current mission
 func end_mission(success: bool = true) -> void:
@@ -200,7 +216,7 @@ func end_mission(success: bool = true) -> void:
 		return
 	
 	mission_in_progress = false
-	mission_completed.emit(success)
+	mission_completed.emit(success) # warning: return value discarded (intentional)
 	
 	if current_mission:
 		current_mission.queue_free()

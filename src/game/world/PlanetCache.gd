@@ -23,10 +23,11 @@ func add_planet(planet: GamePlanet) -> void:
     dirty = true
     _cleanup_old_cache()
     save_cache()
-    cache_updated.emit()
+    cache_updated.emit() # warning: return value discarded (intentional)
 
 func get_planet(sector: String, coordinates: Vector2) -> GamePlanet:
     var planet_id = _generate_id(sector, coordinates)
+
     return cached_planets.get(planet_id)
 
 func update_planet(planet: GamePlanet) -> void:
@@ -36,7 +37,7 @@ func update_planet(planet: GamePlanet) -> void:
         cache_timestamps[planet_id] = Time.get_unix_time_from_system()
         dirty = true
         save_cache()
-        cache_updated.emit()
+        cache_updated.emit() # warning: return value discarded (intentional)
 
 func _generate_planet_id(planet: GamePlanet) -> String:
     return _generate_id(planet.sector, planet.coordinates)
@@ -52,10 +53,10 @@ func _cleanup_old_cache() -> void:
     timestamps.sort()
     var cutoff_time = timestamps[timestamps.size() - MAX_CACHED_PLANETS]
     
-    var to_remove = []
+    var to_remove: Array = []
     for planet_id in cache_timestamps:
         if cache_timestamps[planet_id] < cutoff_time:
-            to_remove.append(planet_id)
+            to_remove.append(planet_id) # warning: return value discarded (intentional)
     
     for planet_id in to_remove:
         cached_planets.erase(planet_id)
@@ -84,7 +85,7 @@ func load_cache() -> void:
         return
     
     var file = FileAccess.open(CACHE_FILE, FileAccess.READ)
-    var json = JSON.new()
+    var json := JSON.new()
     var error = json.parse(file.get_as_text())
     file.close()
     

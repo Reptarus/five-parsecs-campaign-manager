@@ -8,18 +8,20 @@ class_name FPCM_GameMission
 ## functionality and overrides.
 
 # Game-specific properties
-var custom_mission_events: Array[Dictionary] = []
+var _custom_mission_events: Array[Dictionary] = []
 var advanced_rules: Dictionary = {}
 
 func _init() -> void:
 	super._init()
 
 ## Game-specific method to handle custom mission events
+
 func process_custom_mission_events() -> void:
 	# Implementation will be added in a separate PR
 	pass
 
 ## Override calculate_final_rewards to add game-specific bonuses
+
 func calculate_final_rewards() -> Dictionary:
 	var final_rewards = super.calculate_final_rewards()
 	

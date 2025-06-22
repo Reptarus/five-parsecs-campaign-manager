@@ -57,7 +57,6 @@ func _init() -> void:
     tech_level = 1
     
     status_effects = []
-
 func can_upgrade() -> bool:
     return level < max_level
 
@@ -66,7 +65,7 @@ func upgrade() -> bool:
         return false
     level += 1
     _apply_upgrade_effects()
-    component_upgraded.emit(level)
+    component_upgraded.emit(level) # warning: return value discarded (intentional)
     return true
 
 func repair(amount: float) -> float:
@@ -74,7 +73,7 @@ func repair(amount: float) -> float:
     durability = min(durability + amount, max_durability)
     var actual_repair = durability - before
     if actual_repair > 0:
-        component_repaired.emit(actual_repair)
+        component_repaired.emit(actual_repair) # warning: return value discarded (intentional)
     return actual_repair
 
 # Full repair (used during maintenance)
@@ -82,7 +81,6 @@ func repair_full() -> void:
     var repair_amount = max_durability - durability
     if repair_amount > 0:
         repair(repair_amount)
-
 func damage(amount: float) -> float:
     var before = durability
     durability = max(durability - amount, 0)
@@ -90,7 +88,7 @@ func damage(amount: float) -> float:
     
     # Potentially increase wear level based on damage
     if actual_damage > 0:
-        component_damaged.emit(actual_damage)
+        component_damaged.emit(actual_damage) # warning: return value discarded (intentional)
         
         # Chance to increase wear based on damage severity
         var wear_chance = actual_damage / float(max_durability) * 100
@@ -103,11 +101,11 @@ func damage(amount: float) -> float:
 
 func activate() -> void:
     is_active = true
-    component_activated.emit()
+    component_activated.emit() # warning: return value discarded (intentional)
 
 func deactivate() -> void:
     is_active = false
-    component_deactivated.emit()
+    component_deactivated.emit() # warning: return value discarded (intentional)
 
 # Five Parsecs specific methods
 
@@ -115,7 +113,7 @@ func deactivate() -> void:
 func increase_wear() -> bool:
     if wear_level < 5:
         wear_level += 1
-        wear_increased.emit(wear_level)
+        wear_increased.emit(wear_level) # warning: return value discarded (intentional)
         
         # Apply penalties based on wear level
         match wear_level:
@@ -159,9 +157,9 @@ func reset_wear() -> void:
 
 # Calculate reliability based on quality and wear
 func get_reliability() -> float:
-    var base_reliability = 0.7 + (quality_level * 0.05) # 0.75 to 0.95 base on quality
+    var base_reliability: int = 0 + (quality_level * 0.05) # 0.75 to 0.95 base on quality
     var wear_penalty = wear_level * 0.1 # 0 to 0.5 penalty based on wear
-    var scavenge_penalty = 0.0
+    var scavenge_penalty: int = 0
     
     if is_scavenged:
         scavenge_penalty = 0.1
@@ -176,9 +174,9 @@ func check_failure() -> bool:
 # Calculate cost based on quality and tech level
 func calculate_cost() -> int:
     var base_cost = cost
-    var quality_multiplier = 1.0 + (quality_level - 1) * 0.2 # 1.0 to 1.8
-    var tech_multiplier = 1.0 + (tech_level - 1) * 0.3 # 1.0 to 2.2
-    var scavenge_discount = 1.0
+    var quality_multiplier: int = 1 + (quality_level - 1) * 0.2 # 1.0 to 1.8
+    var tech_multiplier: int = 1 + (tech_level - 1) * 0.3 # 1.0 to 2.2
+    var scavenge_discount: int = 1
     
     if is_scavenged:
         scavenge_discount = 0.6 # 40% discount for scavenged parts
@@ -197,26 +195,24 @@ func get_power_consumption() -> int:
 
 func get_maintenance_cost() -> int:
     var base_cost = maintenance_cost * level
-    var wear_multiplier = 1.0 + (wear_level * 0.2) # +20% per wear level
+    var wear_multiplier: int = 1 + (wear_level * 0.2) # +20% per wear level
     
     return int(base_cost * wear_multiplier)
 
 func get_upgrade_cost() -> int:
     var base_cost = upgrade_cost * level
-    var tech_multiplier = 1.0 + (tech_level - 1) * 0.2 # Higher tech is more expensive to upgrade
+    var tech_multiplier: int = 1 + (tech_level - 1) * 0.2 # Higher tech is more expensive to upgrade
     
     return int(base_cost * tech_multiplier)
 
 func add_status_effect(effect: Dictionary) -> void:
     if not status_effects.has(effect):
-        status_effects.append(effect)
+        status_effects.append(effect) # warning: return value discarded (intentional)
 
 func remove_status_effect(effect: Dictionary) -> void:
     status_effects.erase(effect)
-
 func clear_status_effects() -> void:
     status_effects.clear()
-
 func _apply_upgrade_effects() -> void:
     durability = max_durability
     efficiency += 0.1
@@ -251,23 +247,43 @@ func serialize() -> Dictionary:
 
 static func deserialize(data: Dictionary) -> Dictionary:
     return {
+
         "name": data.get("name", "Component"),
+
         "description": data.get("description", ""),
+
         "component_id": data.get("component_id", ""),
+
         "cost": data.get("cost", 100),
+
         "level": data.get("level", 1),
+
         "max_level": data.get("max_level", 3),
+
         "is_active": data.get("is_active", true),
+
         "upgrade_cost": data.get("upgrade_cost", 100),
+
         "maintenance_cost": data.get("maintenance_cost", 10),
+
         "durability": data.get("durability", 100.0),
+
         "max_durability": data.get("max_durability", 100.0),
+
         "efficiency": data.get("efficiency", 1.0),
+
         "power_draw": data.get("power_draw", 1),
+
         "wear_level": data.get("wear_level", 0),
+
         "quality_level": data.get("quality_level", 2),
+
         "component_type": data.get("component_type", ""),
+
         "is_scavenged": data.get("is_scavenged", false),
+
         "tech_level": data.get("tech_level", 1),
+
         "status_effects": data.get("status_effects", [])
     }
+         

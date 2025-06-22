@@ -1,8 +1,7 @@
 @tool
-extends BasePostBattlePhase
+extends Resource
 class_name FiveParsecsPostBattlePhase
 
-const BasePostBattlePhase = preload("res://src/base/campaign/BasePostBattlePhase.gd")
 const GameEnums = preload("res://src/core/systems/GlobalEnums.gd")
 const FiveParsecsCrewMember = preload("res://src/game/campaign/crew/FiveParsecsCrewMember.gd")
 const GameDataManager = preload("res://src/core/managers/GameDataManager.gd")
@@ -15,7 +14,7 @@ enum BattleOutcome {
 }
 
 # Reward tables
-var loot_table = {
+var _loot_table = {
 	"common": [
 		"Credits (1d6 x 10)",
 		"Ammunition (1d3)",
@@ -61,14 +60,19 @@ var story_points_earned: int = 0
 var reputation_change: int = 0
 var battle_data: Dictionary = {}
 
+signal post_battle_started
+signal post_battle_completed
+
+var rewards: Dictionary = {}
+var battle_summary: Dictionary = {}
+
 func _init() -> void:
-	super()
 	# Use the global GameDataManager singleton
 	data_manager = load("res://src/core/managers/GameDataManager.gd").get_instance()
 	GameDataManager.ensure_data_loaded()
 
 func start_post_battle_phase(battle_data_param: Dictionary) -> void:
-	super.start_post_battle_phase(battle_data_param)
+	post_battle_started.emit()
 	
 	# Store the battle data for later use
 	battle_data = battle_data_param
@@ -99,13 +103,13 @@ func start_post_battle_phase(battle_data_param: Dictionary) -> void:
 		reputation_change = 1
 	elif battle_outcome == BattleOutcome.DEFEAT:
 		reputation_change = -1
-	
+
 	# Emit signal that post-battle phase has started
-	emit_signal("post_battle_phase_started")
+	post_battle_phase_started.emit()
 
 func _calculate_rewards() -> void:
 	# Calculate experience points
-	var total_xp = 0
+	var total_xp: int = 0
 	
 	# XP for defeated enemies
 	total_xp += enemy_count_defeated * xp_values["enemy_defeated"]
@@ -135,11 +139,11 @@ func _process_casualties(casualties: Array) -> void:
 		var severity_roll = randi() % 100 + 1
 		
 		if severity_roll < 10: # 10% chance of death
-			crew_casualties.append(character)
+			crew_casualties.append(character) # warning: return value discarded (intentional)
 		else:
 			# Roll on the appropriate injury table
 			var injury_roll = randi() % 100 + 1
-			var table_name = "human_injury_table"
+			var table_name: String = "human_injury_table"
 			
 			if character.is_bot():
 				table_name = "bot_injury_table"
@@ -170,14 +174,14 @@ func _apply_injury_effects(character: FiveParsecsCrewMember, injury_result: Dict
 	var recovery_time = injury_result.get("recovery_time", injury_result.get("repair_time", 1))
 	
 	# Parse recovery time if it's a string like "1D3" campaign turns
-	var recovery_days = 1
+	var recovery_days: int = 1
 	if recovery_time is String:
-		var regex = RegEx.new()
+		var regex := RegEx.new()
 		regex.compile("(\\d+)D(\\d+)")
-		var result = regex.search(recovery_time)
-		if result:
-			var dice_count = int(result.get_string(1))
-			var dice_sides = int(result.get_string(2))
+		var _result = regex.search(recovery_time)
+		if _result:
+			var dice_count = int(_result.get_string(1))
+			var dice_sides = int(_result.get_string(2))
 			
 			# Roll the dice
 			recovery_days = 0
@@ -193,7 +197,7 @@ func _apply_injury_effects(character: FiveParsecsCrewMember, injury_result: Dict
 	}
 	
 	if "Character is dead" in str(effects) or "Bot is destroyed beyond repair" in str(effects):
-		crew_casualties.append(character)
+		crew_casualties.append(character) # warning: return value discarded (intentional)
 		crew_injuries.erase(character.get_instance_id())
 		return
 	
@@ -220,46 +224,43 @@ func complete_post_battle_phase() -> void:
 		var crew = battle_data.crew[0]
 		if crew.has_method("adjust_reputation"):
 			crew.adjust_reputation(reputation_change)
-	
 	# Emit signal that post-battle phase has completed
-	emit_signal("post_battle_phase_completed", get_battle_summary())
+	post_battle_phase_completed.emit( get_battle_summary())
 
 func get_battle_summary() -> Dictionary:
-	var summary = super.get_battle_summary()
-	
-	# Add Five Parsecs specific summary data
-	summary["outcome"] = battle_outcome
-	summary["enemies_defeated"] = enemy_count_defeated
-	summary["objectives_completed"] = objectives_completed
-	summary["casualties"] = crew_casualties.size()
-	summary["injuries"] = crew_injuries.size()
-	summary["loot"] = loot_found
-	summary["story_points"] = story_points_earned
-	summary["reputation_change"] = reputation_change
+	var summary = {
+		"outcome": battle_outcome,
+		"enemies_defeated": enemy_count_defeated,
+		"objectives_completed": objectives_completed,
+		"casualties": crew_casualties.size(),
+		"injuries": crew_injuries.size(),
+		"loot": loot_found,
+		"story_points": story_points_earned,
+		"reputation_change": reputation_change
+	}
 	
 	return summary
 
 func serialize() -> Dictionary:
-	var data = super.serialize()
-	
-	# Add Five Parsecs specific data
-	data["battle_outcome"] = battle_outcome
-	data["enemy_count_defeated"] = enemy_count_defeated
-	data["objectives_completed"] = objectives_completed
-	data["story_points_earned"] = story_points_earned
-	data["reputation_change"] = reputation_change
-	
-	# Serialize loot
-	data["loot_found"] = loot_found
+	var data = {
+		"battle_outcome": battle_outcome,
+		"enemy_count_defeated": enemy_count_defeated,
+		"objectives_completed": objectives_completed,
+		"story_points_earned": story_points_earned,
+		"reputation_change": reputation_change,
+		"loot_found": loot_found,
+		"rewards": rewards,
+		"battle_summary": battle_summary
+	}
 	
 	# Serialize casualties (just IDs)
-	var casualty_ids = []
+	var casualty_ids: Array = []
 	for casualty in crew_casualties:
-		casualty_ids.append(casualty.get_instance_id())
+		casualty_ids.append(casualty.get_instance_id()) # warning: return value discarded (intentional)
 	data["crew_casualties"] = casualty_ids
 	
 	# Serialize injuries (simplified)
-	var injury_data = {}
+	var injury_data: Dictionary = {}
 	for id in crew_injuries:
 		injury_data[id] = {
 			"injury": crew_injuries[id].injury,
@@ -270,8 +271,6 @@ func serialize() -> Dictionary:
 	return data
 
 func deserialize(data: Dictionary) -> void:
-	super.deserialize(data)
-	
 	# Restore Five Parsecs specific data
 	battle_outcome = data.get("battle_outcome", BattleOutcome.DRAW)
 	enemy_count_defeated = data.get("enemy_count_defeated", 0)
@@ -284,4 +283,7 @@ func deserialize(data: Dictionary) -> void:
 	
 	# Note: Casualties and injuries would need to be restored by the system
 	# that manages the crew members, as we need the actual references to the
-	# crew member objects, not just their IDs 
+	# crew member objects, not just their IDs
+
+	rewards = data.get("rewards", {})
+	battle_summary = data.get("battle_summary", {})

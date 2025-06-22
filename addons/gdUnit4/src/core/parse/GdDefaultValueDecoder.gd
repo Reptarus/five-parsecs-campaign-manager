@@ -3,7 +3,6 @@ class_name GdDefaultValueDecoder
 extends GdUnitSingleton
 
 
-@warning_ignore("unused_parameter")
 var _decoders := {
 	TYPE_NIL: func(value :Variant) -> String: return "null",
 	TYPE_STRING: func(value :Variant) -> String: return '"%s"' % value,
@@ -102,7 +101,6 @@ func _on_type_Array(value: Variant, type: int) -> String:
 		TYPE_PACKED_COLOR_ARRAY:
 			var colors := PackedStringArray()
 			for color: Color in value:
-				@warning_ignore("return_value_discarded")
 				colors.append(_on_type_Color(color))
 			if colors.is_empty():
 				return "PackedColorArray()"
@@ -111,7 +109,6 @@ func _on_type_Array(value: Variant, type: int) -> String:
 		TYPE_PACKED_VECTOR2_ARRAY:
 			var vectors := PackedStringArray()
 			for vector: Vector2 in value:
-				@warning_ignore("return_value_discarded")
 				vectors.append(_on_type_Vector(vector, TYPE_VECTOR2))
 			if vectors.is_empty():
 				return "PackedVector2Array()"
@@ -120,7 +117,6 @@ func _on_type_Array(value: Variant, type: int) -> String:
 		TYPE_PACKED_VECTOR3_ARRAY:
 			var vectors := PackedStringArray()
 			for vector: Vector3 in value:
-				@warning_ignore("return_value_discarded")
 				vectors.append(_on_type_Vector(vector, TYPE_VECTOR3))
 			if vectors.is_empty():
 				return "PackedVector3Array()"
@@ -129,7 +125,6 @@ func _on_type_Array(value: Variant, type: int) -> String:
 		GdObjects.TYPE_PACKED_VECTOR4_ARRAY:
 			var vectors := PackedStringArray()
 			for vector: Vector4 in value:
-				@warning_ignore("return_value_discarded")
 				vectors.append(_on_type_Vector(vector, TYPE_VECTOR4))
 			if vectors.is_empty():
 				return "PackedVector4Array()"
@@ -138,7 +133,6 @@ func _on_type_Array(value: Variant, type: int) -> String:
 		TYPE_PACKED_STRING_ARRAY:
 			var values := PackedStringArray()
 			for v: String in value:
-				@warning_ignore("return_value_discarded")
 				values.append('"%s"' % v)
 			if values.is_empty():
 				return "PackedStringArray()"
@@ -151,7 +145,6 @@ func _on_type_Array(value: Variant, type: int) -> String:
 		TYPE_PACKED_INT64_ARRAY:
 			var vectors := PackedStringArray()
 			for vector: Variant in value:
-				@warning_ignore("return_value_discarded")
 				vectors.append(str(vector))
 			if vectors.is_empty():
 				return GdObjects.type_as_string(type) + "()"
@@ -209,7 +202,6 @@ func _on_type_Projection(projection: Projection) -> String:
 	return "Projection(Vector4%s, Vector4%s, Vector4%s, Vector4%s)" % [projection.x, projection.y, projection.z, projection.w]
 
 
-@warning_ignore("unused_parameter")
 func _on_type_RID(value: RID) -> String:
 	return "RID()"
 
@@ -252,7 +244,6 @@ func _on_type_Basis(basis: Basis) -> String:
 
 static func decode(value: Variant) -> String:
 	var type := typeof(value)
-	@warning_ignore("unsafe_cast")
 	if GdArrayTools.is_type_array(type) and (value as Array).is_empty():
 		return "<empty>"
 	# For Variant types we need to determine the original type

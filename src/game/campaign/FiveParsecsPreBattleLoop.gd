@@ -14,7 +14,7 @@ var terrain_types: Array = [
 ]
 
 func _init() -> void:
-	super()
+	super ()
 	mission_generator = FiveParsecsMissionGenerator.new()
 
 func _initialize_available_missions() -> void:
@@ -26,7 +26,7 @@ func _initialize_available_missions() -> void:
 	for i in range(mission_count):
 		var difficulty = randi() % 4 + 1 # Difficulty 1-4
 		var mission = mission_generator.generate_mission(difficulty)
-		available_missions.append(mission)
+		available_missions.append(mission) # warning: return value discarded (intentional)
 
 func _initialize_available_locations() -> void:
 	available_locations.clear()
@@ -45,8 +45,7 @@ func _initialize_available_locations() -> void:
 			"features": _generate_terrain_features(terrain_type),
 			"hazards": _generate_terrain_hazards(terrain_type)
 		}
-		
-		available_locations.append(location)
+		available_locations.append(location) # warning: return value discarded (intentional)
 
 func _generate_location_name(terrain_type: String) -> String:
 	var prefixes = [
@@ -68,7 +67,7 @@ func _generate_location_name(terrain_type: String) -> String:
 	}
 	
 	var prefix = prefixes[randi() % prefixes.size()]
-	var suffix = ""
+	var suffix: String = ""
 	
 	if suffixes.has(terrain_type):
 		suffix = suffixes[terrain_type][randi() % suffixes[terrain_type].size()]
@@ -114,14 +113,14 @@ func _generate_terrain_features(terrain_type: String) -> Array:
 		"Volcanic": ["Lava Flows", "Steam Vents", "Ash Clouds", "Rock Formations", "Unstable Ground"]
 	}
 	
-	var features = []
+	var features: Array = []
 	
 	# Add 2-3 common features
 	var common_count = randi() % 2 + 2
 	for i in range(common_count):
 		if common_features.size() > 0:
 			var index = randi() % common_features.size()
-			features.append(common_features[index])
+			features.append(common_features[index]) # warning: return value discarded (intentional)
 			common_features.remove_at(index)
 	
 	# Add 2-3 terrain-specific features
@@ -132,7 +131,7 @@ func _generate_terrain_features(terrain_type: String) -> Array:
 		for i in range(specific_count):
 			if specific_features.size() > 0:
 				var index = randi() % specific_features.size()
-				features.append(specific_features[index])
+				features.append(specific_features[index]) # warning: return value discarded (intentional)
 				specific_features.remove_at(index)
 	
 	return features
@@ -155,14 +154,15 @@ func _generate_terrain_hazards(terrain_type: String) -> Array:
 		"Volcanic": ["Lava", "Toxic Gases", "Extreme Heat", "Ash Clouds", "Earthquakes"]
 	}
 	
-	var hazards = []
+	var hazards: Array = []
 	
 	# Add 1-2 common hazards
 	var common_count = randi() % 2 + 1
 	for i in range(common_count):
 		if common_hazards.size() > 0:
 			var index = randi() % common_hazards.size()
-			hazards.append(common_hazards[index])
+
+			hazards.append(common_hazards[index]) # warning: return value discarded (intentional)
 			common_hazards.remove_at(index)
 	
 	# Add 1-2 terrain-specific hazards
@@ -173,14 +173,15 @@ func _generate_terrain_hazards(terrain_type: String) -> Array:
 		for i in range(specific_count):
 			if specific_hazards.size() > 0:
 				var index = randi() % specific_hazards.size()
-				hazards.append(specific_hazards[index])
+
+				hazards.append(specific_hazards[index]) # warning: return value discarded (intentional)
 				specific_hazards.remove_at(index)
 	
 	return hazards
 
 func get_deployment_zone_options(location: Dictionary) -> Array:
 	var size_factor = location.get("size", 2)
-	var options = []
+	var options: Array = []
 	
 	# Generate deployment zones based on location size
 	for i in range(3): # Always provide 3 options
@@ -192,8 +193,7 @@ func get_deployment_zone_options(location: Dictionary) -> Array:
 			"advantages": _generate_deployment_advantages(i),
 			"disadvantages": _generate_deployment_disadvantages(i)
 		}
-		
-		options.append(zone)
+		options.append(zone) # warning: return value discarded (intentional)
 	
 	return options
 
@@ -212,11 +212,11 @@ func _generate_deployment_description(zone_index: int) -> String:
 func _generate_deployment_positions(size_factor: int) -> Array:
 	# This would normally generate actual grid positions
 	# For this example, we'll just return placeholder data
-	var positions = []
-	var position_count = 5 + size_factor # 6-8 positions based on size
+	var positions: Array = []
+	var position_count: int = 5 + size_factor # 6-8 positions based on size
 	
 	for i in range(position_count):
-		positions.append({
+		positions.append({ # warning: return value discarded (intentional)
 			"x": randi() % (10 * size_factor),
 			"y": randi() % (10 * size_factor),
 			"z": 0
@@ -231,14 +231,15 @@ func _generate_deployment_advantages(zone_index: int) -> Array:
 		"Concealed Approach", "Tactical Flexibility", "Resource Access"
 	]
 	
-	var advantages = []
+	var advantages: Array = []
 	var advantage_count = randi() % 2 + 1 # 1-2 advantages
 	
 	for i in range(advantage_count):
 		if all_advantages.size() > 0:
-			var index = randi() % all_advantages.size()
-			advantages.append(all_advantages[index])
-			all_advantages.remove_at(index)
+			var _index = randi() % all_advantages.size()
+
+			advantages.append(all_advantages[_index]) # warning: return value discarded (intentional)
+			all_advantages.remove_at(_index)
 	
 	return advantages
 
@@ -249,14 +250,15 @@ func _generate_deployment_disadvantages(zone_index: int) -> Array:
 		"Limited Escape Routes", "Enemy Advantage", "Resource Scarcity"
 	]
 	
-	var disadvantages = []
+	var disadvantages: Array = []
 	var disadvantage_count = randi() % 2 + 1 # 1-2 disadvantages
 	
 	for i in range(disadvantage_count):
 		if all_disadvantages.size() > 0:
-			var index = randi() % all_disadvantages.size()
-			disadvantages.append(all_disadvantages[index])
-			all_disadvantages.remove_at(index)
+			var _index = randi() % all_disadvantages.size()
+
+			disadvantages.append(all_disadvantages[_index]) # warning: return value discarded (intentional)
+			all_disadvantages.remove_at(_index)
 	
 	return disadvantages
 
@@ -264,7 +266,7 @@ func select_deployment_zone(zone_index: int, location: Dictionary) -> bool:
 	var options = get_deployment_zone_options(location)
 	
 	if zone_index < 0 or zone_index >= options.size():
-		push_error("Invalid deployment zone index: " + str(zone_index))
+		push_error("Invalid deployment zone _index: " + str(zone_index))
 		return false
 	
 	set_deployment_positions(options[zone_index].positions)
@@ -282,4 +284,4 @@ func deserialize(data: Dictionary) -> void:
 	super.deserialize(data)
 	
 	# Process Five Parsecs specific data
-	# (None needed at this time, but the function is here for future expansion) 
+	# (None needed at this time, but the function is here for future expansion)" 

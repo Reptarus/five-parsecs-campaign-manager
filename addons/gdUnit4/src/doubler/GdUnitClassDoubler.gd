@@ -44,7 +44,6 @@ static func load_template(template: String, class_info: Dictionary, instance: Ob
 		# Replace template class_name DoubledClass<class> with source class name
 		.replace("SourceClassName", clazz_name.replace(".", "_"))
 	var lines := GdScriptParser.to_unix_format(source_code).split("\n")
-	@warning_ignore("return_value_discarded")
 	lines.insert(1, extends_clazz(class_info))
 	return lines
 

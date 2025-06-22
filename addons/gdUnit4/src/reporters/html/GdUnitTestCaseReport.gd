@@ -5,7 +5,6 @@ var _suite_name :String
 var _failure_reports :Array[GdUnitReport]
 
 
-@warning_ignore("shadowed_variable")
 func _init(p_resource_path: String, p_suite_name: String, p_test_name: String) -> void:
 	_resource_path = p_resource_path
 	_suite_name = p_suite_name

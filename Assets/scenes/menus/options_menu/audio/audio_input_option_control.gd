@@ -1,4 +1,3 @@
-
 extends Control
 
 @onready var input_option_button: OptionButton = $InputOptionButton
@@ -34,13 +33,13 @@ func _on_test_button_pressed() -> void:
 	# For example, you could record a short audio clip and play it back
 	print("Testing audio input...")
 
-func _on_volume_changed(value: float) -> void:
-	var volume_db = linear_to_db(value)
+func _on_volume_changed(_value: float) -> void:
+	var volume_db = linear_to_db(_value)
 	AudioServer.set_bus_volume_db(AudioServer.get_bus_index("Record"), volume_db)
 
 func _exit_tree() -> void:
 	# Save the selected audio input and volume settings
-	var config = ConfigFile.new()
+	var config := ConfigFile.new()
 	config.set_value("audio", "input_device", AudioServer.get_input_device())
 	config.set_value("audio", "input_volume", volume_slider.value)
 	config.save("user://audio_settings.cfg")

@@ -32,4 +32,4 @@ func validate() -> bool:
         push_error("Invalid difficulty range")
         return false
         
-    return true 
+    return true

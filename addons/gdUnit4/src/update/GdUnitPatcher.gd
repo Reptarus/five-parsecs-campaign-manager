@@ -22,7 +22,6 @@ func _scan(scan_path :String, current :GdUnit4Version) -> void:
 func patch_count() -> int:
 	var count := 0
 	for key :String in _patches.keys():
-		@warning_ignore("unsafe_method_access")
 		count += _patches[key].size()
 	return count
 
@@ -43,7 +42,6 @@ func _collect_patch_versions(scan_path :String, current :GdUnit4Version) -> Pack
 	var patches := Array()
 	var dir := DirAccess.open(scan_path)
 	if dir != null:
-		@warning_ignore("return_value_discarded")
 		dir.list_dir_begin() # TODO GODOT4 fill missing arguments https://github.com/godotengine/godot/pull/40547
 		var next := "."
 		while next != "":
@@ -61,7 +59,6 @@ func _scan_patches(path :String) -> PackedStringArray:
 	var patches := Array()
 	var dir := DirAccess.open(path)
 	if dir != null:
-		@warning_ignore("return_value_discarded")
 		dir.list_dir_begin() # TODOGODOT4 fill missing arguments https://github.com/godotengine/godot/pull/40547
 		var next := "."
 		while next != "":

@@ -16,7 +16,6 @@ var completed_quests: Array = []
 
 func _init(_game_state: FiveParsecsGameState) -> void:
     game_state = _game_state
-
 func generate_patron() -> Dictionary:
     var patron = {
         "id": "patron_" + str(randi()),
@@ -30,11 +29,11 @@ func generate_patron() -> Dictionary:
         },
         "preferences": _generate_patron_preferences()
     }
-    
-    active_patrons.append(patron)
+
+    active_patrons.append(patron) # warning: return value discarded (intentional)
     patron_reputations[patron.id] = 0
     
-    patron_encountered.emit(patron)
+    patron_encountered.emit(patron) # warning: return value discarded (intentional)
     return patron
 
 func update_patron_reputation(patron_id: String, change: int) -> void:
@@ -44,11 +43,11 @@ func update_patron_reputation(patron_id: String, change: int) -> void:
     patron_reputations[patron_id] = clamp(patron_reputations[patron_id] + change, -100, 100)
     var patron = get_patron(patron_id)
     
-    patron_reputation_changed.emit(patron, change)
+    patron_reputation_changed.emit(patron, change) # warning: return value discarded (intentional)
 
 func get_patron(patron_id: String) -> Dictionary:
     for patron in active_patrons:
-        if patron.id == patron_id:
+        if patron._id == patron_id:
             return patron
     return {}
 
@@ -63,13 +62,13 @@ func get_available_quests(patron_id: String) -> Array:
     if patron.is_empty():
         return []
     
-    var quests = []
+    var quests: Array = []
     var num_quests = randi_range(1, 3)
     
     for i in range(num_quests):
         var quest = _generate_quest(patron)
         if _validate_quest(quest):
-            quests.append(quest)
+            quests.append(quest) # warning: return value discarded (intentional)
     
     return quests
 
@@ -93,13 +92,14 @@ func complete_quest(quest_id: String, success: bool) -> void:
     
     if success:
         _apply_quest_rewards(quest)
-        patron_quest_completed.emit(patron, quest)
+        patron_quest_completed.emit(patron, quest) # warning: return value discarded (intentional)
     else:
         _apply_quest_penalties(quest)
-        patron_quest_failed.emit(patron, quest)
+        patron_quest_failed.emit(patron, quest) # warning: return value discarded (intentional)
     
     active_quests.erase(quest_id)
-    completed_quests.append(quest)
+
+    completed_quests.append(quest) # warning: return value discarded (intentional)
 
 func get_active_quest_count() -> int:
     return active_quests.size()
@@ -133,24 +133,24 @@ func _generate_patron_preferences() -> Dictionary:
 func _select_preferred_mission_types() -> Array:
     var all_types = ["COMBAT", "ESPIONAGE", "TRANSPORT", "DIPLOMACY", "EXPLORATION"]
     var num_preferences = randi_range(2, 3)
-    var selected = []
+    var selected: Array = []
     
     for i in range(num_preferences):
         var type = all_types[randi() % all_types.size()]
         if not type in selected:
-            selected.append(type)
+            selected.append(type) # warning: return value discarded (intentional)
     
     return selected
 
 func _select_preferred_reward_types() -> Array:
     var all_types = ["CREDITS", "EQUIPMENT", "INFORMATION", "INFLUENCE", "TECHNOLOGY"]
     var num_preferences = randi_range(2, 3)
-    var selected = []
+    var selected: Array = []
     
     for i in range(num_preferences):
         var type = all_types[randi() % all_types.size()]
         if not type in selected:
-            selected.append(type)
+            selected.append(type) # warning: return value discarded (intentional)
     
     return selected
 
@@ -180,6 +180,7 @@ func _generate_quest_name(quest_type: String) -> String:
     }
     
     var locations = ["New Eden", "Starfall", "The Reach", "Deep Space", "The Frontier"]
+
     var prefix_list = prefixes.get(quest_type, ["Mission to "])
     
     return prefix_list[randi() % prefix_list.size()] + locations[randi() % locations.size()]
@@ -192,7 +193,7 @@ func _generate_quest_description(quest_type: String) -> String:
         "DIPLOMACY": "Navigate complex negotiations and secure an agreement.",
         "EXPLORATION": "Chart unknown territory and document findings."
     }
-    
+
     return descriptions.get(quest_type, "Complete the assigned mission objectives.")
 
 func _calculate_quest_difficulty(patron: Dictionary) -> int:
@@ -209,7 +210,7 @@ func _calculate_quest_difficulty(patron: Dictionary) -> int:
 
 func _generate_quest_rewards(patron: Dictionary) -> Dictionary:
     var reward_type = patron.preferences.reward_types[randi() % patron.preferences.reward_types.size()]
-    var base_value = 1000 * patron.influence
+    var base_value: int = 1000 * patron.influence
     
     var rewards = {
         "credits": base_value,
@@ -252,7 +253,7 @@ func _generate_quest_requirements(quest_type: String) -> Dictionary:
     return requirements
 
 func _calculate_time_limit(quest_type: String) -> int:
-    var base_time = 24 * 3600 # 24 hours in seconds
+    var base_time: int = 24 * 3600 # 24 hours in seconds
     
     match quest_type:
         "COMBAT":
@@ -297,7 +298,7 @@ func _select_information_reward(patron: Dictionary) -> Dictionary:
     return {
         "type": "INFORMATION",
         "category": _select_information_category(patron),
-        "value": patron.influence * 100
+        "_value": patron.influence * 100
     }
 
 func _select_faction_influence(patron: Dictionary) -> Dictionary:
@@ -340,9 +341,9 @@ func _validate_quest(quest: Dictionary) -> bool:
 
 func _find_quest_by_id(quest_id: String) -> Dictionary:
     for patron in active_patrons:
-        var available_quests = get_available_quests(patron.id)
+        var available_quests = get_available_quests(patron._id)
         for quest in available_quests:
-            if quest.id == quest_id:
+            if quest._id == quest_id:
                 return quest
     return {}
 
@@ -363,10 +364,9 @@ func _apply_quest_rewards(quest: Dictionary) -> void:
             game_state.add_faction_reputation(quest.rewards.bonus_value.faction, quest.rewards.bonus_value.amount)
         "TECHNOLOGY":
             game_state.add_technology(quest.rewards.bonus_value.tech)
-
 func _apply_quest_penalties(quest: Dictionary) -> void:
     # Reputation penalty
-    update_patron_reputation(quest.patron_id, - quest.rewards.reputation)
+    update_patron_reputation(quest.patron_id, -quest.rewards.reputation)
     
     # Additional penalties based on quest type
     match quest.type:

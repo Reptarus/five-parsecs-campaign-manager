@@ -1,7 +1,8 @@
 ## Resource Panel Test Suite
 ## Tests the functionality of the campaign resource panel UI component
 @tool
-extends GdUnitTestSuite
+@warning_ignore("return_value_discarded")
+	extends GdUnitTestSuite
 
 # Type-safe script references
 const ResourcePanel := preload("res://src/scenes/campaign/components/ResourcePanel.gd")
@@ -12,38 +13,44 @@ var resource_panel: Panel
 var mock_resource_data: Array[Dictionary]
 
 # Test Lifecycle Methods
-func before_test():
+func before_test() -> void:
 	# Create enhanced resource panel with proper structure
 	resource_panel = Panel.new()
 	resource_panel.name = "ResourcePanel"
 	
 	# Add required child components - proper hierarchy
-	var main_container = VBoxContainer.new()
+	var main_container: VBoxContainer = VBoxContainer.new()
 	main_container.name = "MainContainer"
-	resource_panel.add_child(main_container)
+	resource_panel.@warning_ignore("return_value_discarded")
+	add_child(main_container)
 	
-	var header_label = Label.new()
+	var header_label: Label = Label.new()
 	header_label.name = "HeaderLabel"
 	header_label.text = "Resources"
-	main_container.add_child(header_label)
+	main_container.@warning_ignore("return_value_discarded")
+	add_child(header_label)
 	
-	var resource_container = HBoxContainer.new()
+	var resource_container: HBoxContainer = HBoxContainer.new()
 	resource_container.name = "ResourceContainer"
-	main_container.add_child(resource_container)
+	main_container.@warning_ignore("return_value_discarded")
+	add_child(resource_container)
 	
-	var filter_container = HBoxContainer.new()
+	var filter_container: HBoxContainer = HBoxContainer.new()
 	filter_container.name = "FilterContainer"
-	main_container.add_child(filter_container)
+	main_container.@warning_ignore("return_value_discarded")
+	add_child(filter_container)
 	
-	var sort_button = Button.new()
+	var sort_button: Button = Button.new()
 	sort_button.name = "SortButton"
 	sort_button.text = "Sort"
-	filter_container.add_child(sort_button)
+	filter_container.@warning_ignore("return_value_discarded")
+	add_child(sort_button)
 	
-	var filter_button = Button.new()
+	var filter_button: Button = Button.new()
 	filter_button.name = "FilterButton"
 	filter_button.text = "Filter"
-	filter_container.add_child(filter_button)
+	filter_container.@warning_ignore("return_value_discarded")
+	add_child(filter_button)
 	
 	# Add all expected signals
 	var required_signals = [
@@ -57,9 +64,9 @@ func before_test():
 	
 	# Initialize realistic resource data
 	mock_resource_data = [
-		{"id": 1, "name": "Credits", "value": 1000, "type": "currency"},
-		{"id": 2, "name": "Food", "value": 50, "type": "supply"},
-		{"id": 3, "name": "Fuel", "value": 25, "type": "supply"}
+		{"id": 1, "name": "Credits", "_value": 1000, "type": "currency"},
+		{"id": 2, "name": "Food", "_value": 50, "type": "supply"},
+		{"id": 3, "name": "Fuel", "_value": 25, "type": "supply"}
 	]
 	
 	# Set up resource panel properties
@@ -73,28 +80,35 @@ func before_test():
 	resource_panel.set_meta("resource_data", mock_resource_data)
 	
 	# Add safe method implementations
+	@warning_ignore("unsafe_method_access")
 	resource_panel.set_script(preload("res://tests/unit/ui/mocks/ui_mock_strategy.gd"))
 	
 	# Add to scene tree
+	@warning_ignore("return_value_discarded")
 	add_child(resource_panel)
+	@warning_ignore("return_value_discarded")
 	auto_free(resource_panel)
 
-func after_test():
+func after_test() -> void:
 	if resource_panel and is_instance_valid(resource_panel):
-		resource_panel.queue_free()
+		resource_panel.@warning_ignore("return_value_discarded")
+	queue_free()
 
 # Panel Initialization Tests
-func test_panel_initialization():
+@warning_ignore("unsafe_method_access")
+func test_panel_initialization() -> void:
 	# Test initialization
 	assert_that(resource_panel.get_meta("resource_count")).is_greater(0)
 
 # Resource Display Tests
-func test_resource_display():
+@warning_ignore("unsafe_method_access")
+func test_resource_display() -> void:
 	# Monitor signals
+	@warning_ignore("unsafe_method_access")
 	monitor_signals(resource_panel)
 	
 	# Update resource display
-	_update_resource_display({"id": 1, "name": "Credits", "value": 100})
+	_update_resource_display({"id": 1, "name": "Credits", "_value": 100})
 	
 	# Verify resource update
 	assert_that(resource_panel.get_meta("resource_count")).is_greater(0)
@@ -102,13 +116,16 @@ func test_resource_display():
 	# Verify signal emission
 	assert_signal(resource_panel).is_emitted("resource_updated")
 	
-	# Verify value
+	# Verify _value
+
 	var resources = resource_panel.get_meta("resource_data") as Array
-	assert_that(resources[0]["value"]).is_equal(100)
+	assert_that(resources[0]["_value"]).is_equal(100)
 
 # Resource Group Tests
-func test_resource_groups():
+@warning_ignore("unsafe_method_access")
+func test_resource_groups() -> void:
 	# Monitor signals
+	@warning_ignore("unsafe_method_access")
 	monitor_signals(resource_panel)
 	
 	# Create resource group
@@ -124,8 +141,10 @@ func test_resource_groups():
 	assert_that(resource_panel.get_meta("group_count")).is_equal(2)
 
 # Resource State Tests
-func test_resource_states():
+@warning_ignore("unsafe_method_access")
+func test_resource_states() -> void:
 	# Monitor signals
+	@warning_ignore("unsafe_method_access")
 	monitor_signals(resource_panel)
 	
 	# Update panel state
@@ -138,11 +157,13 @@ func test_resource_states():
 	assert_signal(resource_panel).is_emitted("state_changed")
 
 # Resource Layout Tests
-func test_resource_layout():
+@warning_ignore("unsafe_method_access")
+func test_resource_layout() -> void:
 	# Test layout mode
 	assert_that(resource_panel.get_meta("layout_mode")).is_equal("horizontal")
 	
 	# Monitor signals
+	@warning_ignore("unsafe_method_access")
 	monitor_signals(resource_panel)
 	
 	# Update layout
@@ -152,8 +173,10 @@ func test_resource_layout():
 	assert_signal(resource_panel).is_emitted("layout_changed")
 
 # Resource Filter Tests
-func test_resource_filters():
+@warning_ignore("unsafe_method_access")
+func test_resource_filters() -> void:
 	# Monitor signals
+	@warning_ignore("unsafe_method_access")
 	monitor_signals(resource_panel)
 	
 	# Apply filter
@@ -163,12 +186,14 @@ func test_resource_filters():
 	assert_signal(resource_panel).is_emitted("resources_filtered")
 
 # Resource Sorting Tests
-func test_resource_sorting():
+@warning_ignore("unsafe_method_access")
+func test_resource_sorting() -> void:
 	# Monitor signals
+	@warning_ignore("unsafe_method_access")
 	monitor_signals(resource_panel)
 	
 	# Apply sorting
-	_apply_sorting("value", "desc")
+	_apply_sorting("_value", "desc")
 	
 	# Verify signal emission
 	assert_signal(resource_panel).is_emitted("resources_sorted")
@@ -180,11 +205,13 @@ func test_resource_sorting():
 	assert_signal(resource_panel).is_emitted("resources_sorted")
 
 # Resource Selection Tests
-func test_resource_selection():
+@warning_ignore("unsafe_method_access")
+func test_resource_selection() -> void:
 	# Test selection
 	assert_that(resource_panel.get_meta("selected_resource")).is_equal(1)
 	
 	# Monitor signals
+	@warning_ignore("unsafe_method_access")
 	monitor_signals(resource_panel)
 	
 	# Select resource
@@ -194,23 +221,27 @@ func test_resource_selection():
 	assert_signal(resource_panel).is_emitted("resource_selected")
 
 # Resource Validation Tests
-func test_resource_validation():
+@warning_ignore("unsafe_method_access")
+func test_resource_validation() -> void:
 	# Monitor signals
+	@warning_ignore("unsafe_method_access")
 	monitor_signals(resource_panel)
 	
 	# Validate a resource
-	_validate_resource({"id": 1, "name": "Credits", "value": 100})
+	_validate_resource({"id": 1, "name": "Credits", "_value": 100})
 	
 	# Verify signal emission
 	assert_signal(resource_panel).is_emitted("panel_state_changed")
 
 # UI State Tests
-func test_ui_state():
+@warning_ignore("unsafe_method_access")
+func test_ui_state() -> void:
 	# Test UI state
 	assert_that(resource_panel.get_meta("ui_enabled")).is_true()
 	assert_that(resource_panel.get_meta("ui_visible")).is_true()
 	
 	# Monitor signals
+	@warning_ignore("unsafe_method_access")
 	monitor_signals(resource_panel)
 	
 	# Update UI state
@@ -220,8 +251,10 @@ func test_ui_state():
 	assert_signal(resource_panel).is_emitted("panel_visibility_changed")
 
 # Theme Tests
-func test_theme_handling():
+@warning_ignore("unsafe_method_access")
+func test_theme_handling() -> void:
 	# Monitor signals
+	@warning_ignore("unsafe_method_access")
 	monitor_signals(resource_panel)
 	
 	# Apply theme changes
@@ -233,62 +266,78 @@ func test_theme_handling():
 # Helper methods for test functionality  
 func _update_resource_display(resource: Dictionary) -> void:
 	# Update resource in the mock data
+
 	var resources = resource_panel.get_meta("resource_data") as Array
-	for i in range(resources.size()):
+	for i: int in range(resources.size()):
 		if resources[i]["id"] == resource["id"]:
-			resources[i] = resource
+			@warning_ignore("unsafe_call_argument")
+	resources[i] = resource
 			break
 	resource_panel.set_meta("resource_data", resources)
 	
 	# Emit the signal
+	@warning_ignore("unsafe_method_access")
 	resource_panel.emit_signal("resource_updated")
 
 func _create_resource_group(group_name: String, group_items: Array) -> void:
-	# Set proper group count based on items provided
+	# Set proper group count based on _items provided
 	var current_count = resource_panel.get_meta("group_count", 0)
-	var new_count = current_count + group_items.size() # Add size of items array
+	var new_count = current_count + group_items.size() # Add size of _items array
 	resource_panel.set_meta("group_count", new_count)
 	
 	# Store group data
 	var groups = resource_panel.get_meta("groups", {})
+	@warning_ignore("unsafe_call_argument")
 	groups[group_name] = group_items
 	resource_panel.set_meta("groups", groups)
 	
 	# Emit the signal
+	@warning_ignore("unsafe_method_access")
 	resource_panel.emit_signal("group_created")
 
 func _update_panel_state(state: String) -> void:
 	resource_panel.set_meta("panel_state", state)
+	@warning_ignore("unsafe_method_access")
 	resource_panel.emit_signal("state_changed")
 
 func _update_layout(layout_mode: String) -> void:
 	resource_panel.set_meta("layout_mode", layout_mode)
+	@warning_ignore("unsafe_method_access")
 	resource_panel.emit_signal("layout_changed")
 
 func _apply_filter(filter_type: String) -> void:
 	resource_panel.set_meta("active_filter", filter_type)
+	@warning_ignore("unsafe_method_access")
 	resource_panel.emit_signal("resources_filtered")
 
 func _apply_sorting(sort_by: String, order: String) -> void:
 	resource_panel.set_meta("sort_by", sort_by)
 	resource_panel.set_meta("sort_order", order)
+	@warning_ignore("unsafe_method_access")
 	resource_panel.emit_signal("resources_sorted")
 
 func _select_resource(resource_id: int) -> void:
 	resource_panel.set_meta("selected_resource", resource_id)
+	@warning_ignore("unsafe_method_access")
 	resource_panel.emit_signal("resource_selected")
 
 func _validate_resource(resource: Dictionary) -> void:
 	# Perform validation
-	var is_valid = resource.has("id") and resource.has("name") and resource.has("value")
+	var is_valid = @warning_ignore("unsafe_call_argument")
+	resource.has("id") and @warning_ignore("unsafe_call_argument")
+	resource.has("name") and @warning_ignore("unsafe_call_argument")
+	resource.has("_value")
 	resource_panel.set_meta("last_validation", is_valid)
+	@warning_ignore("unsafe_method_access")
 	resource_panel.emit_signal("panel_state_changed")
 
 func _update_ui_state(visible: bool) -> void:
 	resource_panel.set_meta("ui_visible", visible)
+	@warning_ignore("unsafe_method_access")
 	resource_panel.emit_signal("panel_visibility_changed")
 
 func _apply_theme(theme_name: String) -> void:
 	resource_panel.set_meta("current_theme", theme_name)
+	@warning_ignore("unsafe_method_access")
 	resource_panel.emit_signal("ui_state_changed")
  

@@ -40,7 +40,7 @@ func _initialize_ui() -> void:
 
 func start_tutorial(type: String = "basic") -> void:
 	tutorial_type = type
-	tutorial_started.emit(type)
+	tutorial_started.emit(type)  # warning: return value discarded (intentional)
 	
 	match type:
 		"basic":
@@ -196,7 +196,7 @@ func back_tutorial() -> void:
 		"basic":
 			_back_basic_tutorial()
 		"story", "compendium":
-			tutorial_back_requested.emit()
+			tutorial_back_requested.emit()  # warning: return value discarded (intentional)
 
 func _back_basic_tutorial() -> void:
 	match current_step:
@@ -214,17 +214,17 @@ func _back_basic_tutorial() -> void:
 			_show_basic_combat_step()
 
 func complete_tutorial() -> void:
-	tutorial_step_completed.emit(current_step)
+	tutorial_step_completed.emit(current_step)  # warning: return value discarded (intentional)
 	queue_free()
 
 func _on_next_pressed() -> void:
-	tutorial_next_requested.emit()
+	tutorial_next_requested.emit()  # warning: return value discarded (intentional)
 	advance_tutorial()
 
 func _on_back_pressed() -> void:
-	tutorial_back_requested.emit()
+	tutorial_back_requested.emit()  # warning: return value discarded (intentional)
 	back_tutorial()
 
 func _on_skip_pressed() -> void:
-	tutorial_skipped.emit()
+	tutorial_skipped.emit()  # warning: return value discarded (intentional)
 	queue_free()

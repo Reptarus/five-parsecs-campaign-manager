@@ -1,0 +1,208 @@
+[gd_scene load_steps=2 format=3 uid="uid://c7yay4w2v5n8m"]
+
+[ext_resource type="Script" path="res://src/ui/screens/ships/ShipManager.gd" id="1_ship"]
+
+[node name="ShipManager" type="Control"]
+layout_mode = 3
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+script = ExtResource("1_ship")
+
+[node name="MarginContainer" type="MarginContainer" parent="."]
+layout_mode = 1
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+theme_override_constants/margin_left = 20
+theme_override_constants/margin_top = 20
+theme_override_constants/margin_right = 20
+theme_override_constants/margin_bottom = 20
+
+[node name="VBoxContainer" type="VBoxContainer" parent="MarginContainer"]
+layout_mode = 2
+theme_override_constants/separation = 20
+
+[node name="Header" type="HBoxContainer" parent="MarginContainer/VBoxContainer"]
+layout_mode = 2
+
+[node name="Title" type="Label" parent="MarginContainer/VBoxContainer/Header"]
+layout_mode = 2
+size_flags_horizontal = 3
+theme_override_font_sizes/font_size = 32
+text = "Ship Management"
+
+[node name="BackButton" type="Button" parent="MarginContainer/VBoxContainer/Header"]
+layout_mode = 2
+text = "Back"
+
+[node name="MainContent" type="HBoxContainer" parent="MarginContainer/VBoxContainer"]
+layout_mode = 2
+size_flags_vertical = 3
+theme_override_constants/separation = 20
+
+[node name="ShipStatus" type="PanelContainer" parent="MarginContainer/VBoxContainer/MainContent"]
+layout_mode = 2
+size_flags_horizontal = 3
+
+[node name="VBoxContainer" type="VBoxContainer" parent="MarginContainer/VBoxContainer/MainContent/ShipStatus"]
+layout_mode = 2
+theme_override_constants/separation = 15
+
+[node name="Label" type="Label" parent="MarginContainer/VBoxContainer/MainContent/ShipStatus/VBoxContainer"]
+layout_mode = 2
+text = "Ship Status"
+horizontal_alignment = 1
+theme_override_font_sizes/font_size = 20
+
+[node name="ShipName" type="Label" parent="MarginContainer/VBoxContainer/MainContent/ShipStatus/VBoxContainer"]
+unique_name_in_owner = true
+layout_mode = 2
+text = "Ship Name: Unknown"
+
+[node name="ShipType" type="Label" parent="MarginContainer/VBoxContainer/MainContent/ShipStatus/VBoxContainer"]
+unique_name_in_owner = true
+layout_mode = 2
+text = "Type: Unknown"
+
+[node name="HullPoints" type="HBoxContainer" parent="MarginContainer/VBoxContainer/MainContent/ShipStatus/VBoxContainer"]
+layout_mode = 2
+
+[node name="Label" type="Label" parent="MarginContainer/VBoxContainer/MainContent/ShipStatus/VBoxContainer/HullPoints"]
+layout_mode = 2
+text = "Hull Points:"
+
+[node name="CurrentHull" type="SpinBox" parent="MarginContainer/VBoxContainer/MainContent/ShipStatus/VBoxContainer/HullPoints"]
+unique_name_in_owner = true
+layout_mode = 2
+min_value = 0.0
+max_value = 100.0
+
+[node name="MaxHull" type="Label" parent="MarginContainer/VBoxContainer/MainContent/ShipStatus/VBoxContainer/HullPoints"]
+unique_name_in_owner = true
+layout_mode = 2
+text = "/ 30"
+
+[node name="Debt" type="HBoxContainer" parent="MarginContainer/VBoxContainer/MainContent/ShipStatus/VBoxContainer"]
+layout_mode = 2
+
+[node name="Label" type="Label" parent="MarginContainer/VBoxContainer/MainContent/ShipStatus/VBoxContainer/Debt"]
+layout_mode = 2
+text = "Debt:"
+
+[node name="DebtAmount" type="SpinBox" parent="MarginContainer/VBoxContainer/MainContent/ShipStatus/VBoxContainer/Debt"]
+unique_name_in_owner = true
+layout_mode = 2
+max_value = 9999.0
+
+[node name="Credits" type="Label" parent="MarginContainer/VBoxContainer/MainContent/ShipStatus/VBoxContainer/Debt"]
+layout_mode = 2
+text = "credits"
+
+[node name="ShipTraits" type="VBoxContainer" parent="MarginContainer/VBoxContainer/MainContent/ShipStatus/VBoxContainer"]
+unique_name_in_owner = true
+layout_mode = 2
+
+[node name="Label" type="Label" parent="MarginContainer/VBoxContainer/MainContent/ShipStatus/VBoxContainer/ShipTraits"]
+layout_mode = 2
+text = "Ship Traits:"
+
+[node name="ShipUpgrades" type="PanelContainer" parent="MarginContainer/VBoxContainer/MainContent"]
+layout_mode = 2
+size_flags_horizontal = 3
+
+[node name="VBoxContainer" type="VBoxContainer" parent="MarginContainer/VBoxContainer/MainContent/ShipUpgrades"]
+layout_mode = 2
+theme_override_constants/separation = 15
+
+[node name="Label" type="Label" parent="MarginContainer/VBoxContainer/MainContent/ShipUpgrades/VBoxContainer"]
+layout_mode = 2
+text = "Ship Upgrades"
+horizontal_alignment = 1
+theme_override_font_sizes/font_size = 20
+
+[node name="ScrollContainer" type="ScrollContainer" parent="MarginContainer/VBoxContainer/MainContent/ShipUpgrades/VBoxContainer"]
+layout_mode = 2
+size_flags_vertical = 3
+
+[node name="UpgradesList" type="VBoxContainer" parent="MarginContainer/VBoxContainer/MainContent/ShipUpgrades/VBoxContainer/ScrollContainer"]
+unique_name_in_owner = true
+layout_mode = 2
+size_flags_horizontal = 3
+size_flags_vertical = 3
+
+[node name="Travel" type="PanelContainer" parent="MarginContainer/VBoxContainer/MainContent"]
+layout_mode = 2
+size_flags_horizontal = 3
+
+[node name="VBoxContainer" type="VBoxContainer" parent="MarginContainer/VBoxContainer/MainContent/Travel"]
+layout_mode = 2
+theme_override_constants/separation = 15
+
+[node name="Label" type="Label" parent="MarginContainer/VBoxContainer/MainContent/Travel/VBoxContainer"]
+layout_mode = 2
+text = "Travel Operations"
+horizontal_alignment = 1
+theme_override_font_sizes/font_size = 20
+
+[node name="FuelStatus" type="HBoxContainer" parent="MarginContainer/VBoxContainer/MainContent/Travel/VBoxContainer"]
+layout_mode = 2
+
+[node name="Label" type="Label" parent="MarginContainer/VBoxContainer/MainContent/Travel/VBoxContainer/FuelStatus"]
+layout_mode = 2
+text = "Fuel Status:"
+
+[node name="FuelLevel" type="Label" parent="MarginContainer/VBoxContainer/MainContent/Travel/VBoxContainer/FuelStatus"]
+unique_name_in_owner = true
+layout_mode = 2
+text = "Full"
+
+[node name="TravelCost" type="HBoxContainer" parent="MarginContainer/VBoxContainer/MainContent/Travel/VBoxContainer"]
+layout_mode = 2
+
+[node name="Label" type="Label" parent="MarginContainer/VBoxContainer/MainContent/Travel/VBoxContainer/TravelCost"]
+layout_mode = 2
+text = "Travel Cost:"
+
+[node name="CostAmount" type="Label" parent="MarginContainer/VBoxContainer/MainContent/Travel/VBoxContainer/TravelCost"]
+unique_name_in_owner = true
+layout_mode = 2
+text = "1 credit"
+
+[node name="TravelButton" type="Button" parent="MarginContainer/VBoxContainer/MainContent/Travel/VBoxContainer"]
+layout_mode = 2
+text = "Initiate Travel"
+
+[node name="RefuelButton" type="Button" parent="MarginContainer/VBoxContainer/MainContent/Travel/VBoxContainer"]
+layout_mode = 2
+text = "Refuel Ship"
+
+[node name="Controls" type="HBoxContainer" parent="MarginContainer/VBoxContainer"]
+layout_mode = 2
+theme_override_constants/separation = 20
+alignment = 1
+
+[node name="RepairButton" type="Button" parent="MarginContainer/VBoxContainer/Controls"]
+layout_mode = 2
+text = "Repair Hull"
+
+[node name="UpgradeButton" type="Button" parent="MarginContainer/VBoxContainer/Controls"]
+layout_mode = 2
+text = "Purchase Upgrades"
+
+[node name="PayDebtButton" type="Button" parent="MarginContainer/VBoxContainer/Controls"]
+layout_mode = 2
+text = "Pay Debt"
+
+[connection signal="pressed" from="MarginContainer/VBoxContainer/Header/BackButton" to="." method="_on_back_pressed"]
+[connection signal="value_changed" from="MarginContainer/VBoxContainer/MainContent/ShipStatus/VBoxContainer/HullPoints/CurrentHull" to="." method="_on_hull_changed"]
+[connection signal="value_changed" from="MarginContainer/VBoxContainer/MainContent/ShipStatus/VBoxContainer/Debt/DebtAmount" to="." method="_on_debt_changed"]
+[connection signal="pressed" from="MarginContainer/VBoxContainer/MainContent/Travel/VBoxContainer/TravelButton" to="." method="_on_travel_pressed"]
+[connection signal="pressed" from="MarginContainer/VBoxContainer/MainContent/Travel/VBoxContainer/RefuelButton" to="." method="_on_refuel_pressed"]
+[connection signal="pressed" from="MarginContainer/VBoxContainer/Controls/RepairButton" to="." method="_on_repair_pressed"]
+[connection signal="pressed" from="MarginContainer/VBoxContainer/Controls/UpgradeButton" to="." method="_on_upgrade_pressed"]
+[connection signal="pressed" from="MarginContainer/VBoxContainer/Controls/PayDebtButton" to="." method="_on_pay_debt_pressed"]

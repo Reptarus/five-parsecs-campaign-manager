@@ -1,11 +1,12 @@
 @tool
-extends GdUnitGameTest
+@warning_ignore("return_value_discarded")
+	extends GdUnitGameTest
 
 # Mock Serializable Resource with expected values (Universal Mock Strategy)
 class MockSerializableResource extends Resource:
 	var _id: String = ""
 	
-	func _init():
+	func _init() -> void:
 		_id = "mock_resource_" + str(randi())
 	
 	func get_id() -> String:
@@ -18,7 +19,9 @@ class MockSerializableResource extends Resource:
 		}
 	
 	func deserialize(data: Dictionary) -> void:
-		_id = data.get("id", _id)
+
+		_id = @warning_ignore("unsafe_call_argument")
+	data.get("id", _id)
 
 # Mock Test Resource with expected values (Universal Mock Strategy)
 class MockTestResource extends Resource:
@@ -28,7 +31,7 @@ class MockTestResource extends Resource:
 	var test_dict: Dictionary = {}
 	var _id: String = ""
 	
-	func _init():
+	func _init() -> void:
 		_id = "test_resource_" + str(randi())
 	
 	func get_id() -> String:
@@ -45,28 +48,35 @@ class MockTestResource extends Resource:
 		}
 	
 	func deserialize(data: Dictionary) -> void:
-		_id = data.get("id", _id)
+
+		_id = @warning_ignore("unsafe_call_argument")
+	data.get("id", _id)
 		
 		# Type-safe deserialization with validation
-		var value = data.get("test_value", "")
-		if value is String:
-			test_value = value
+
+		var _value = @warning_ignore("unsafe_call_argument")
+	data.get("test_value", "")
+		if _value is String:
+			test_value = _value
 		else:
 			test_value = ""
-		
-		var number = data.get("test_number", 0)
+
+		var number = @warning_ignore("unsafe_call_argument")
+	data.get("test_number", 0)
 		if number is int:
 			test_number = number
 		else:
 			test_number = 0
-		
-		var array = data.get("test_array", [])
+
+		var array = @warning_ignore("unsafe_call_argument")
+	data.get("test_array", [])
 		if array is Array:
 			test_array = array
 		else:
 			test_array = []
-		
-		var dict = data.get("test_dict", {})
+
+		var dict = @warning_ignore("unsafe_call_argument")
+	data.get("test_dict", {})
 		if dict is Dictionary:
 			test_dict = dict
 		else:
@@ -79,9 +89,11 @@ var _test_resource: MockTestResource = null
 func before_test() -> void:
 	super.before_test()
 	test_resource = MockSerializableResource.new()
+	@warning_ignore("return_value_discarded")
 	track_resource(test_resource)
 	
 	_test_resource = MockTestResource.new()
+	@warning_ignore("return_value_discarded")
 	track_resource(_test_resource)
 
 func after_test() -> void:
@@ -106,33 +118,40 @@ func _create_test_data() -> Dictionary:
 	}
 
 # Base SerializableResource tests
+@warning_ignore("unsafe_method_access")
 func test_initialization() -> void:
 	# Test direct method calls instead of safe wrappers (proven pattern)
 	assert_that(test_resource).is_not_null()
 	var id: String = test_resource.get_id()
 	assert_that(id).is_not_empty()
 
+@warning_ignore("unsafe_method_access")
 func test_serialization() -> void:
 	# Test direct method calls instead of safe wrappers (proven pattern)
 	var original_id: String = test_resource.get_id()
 	var serialized: Dictionary = test_resource.serialize()
 	var new_resource: MockSerializableResource = MockSerializableResource.new()
+	@warning_ignore("return_value_discarded")
 	track_resource(new_resource)
 	new_resource.deserialize(serialized)
 	var deserialized_id: String = new_resource.get_id()
 	assert_that(deserialized_id).is_equal(original_id)
 
+@warning_ignore("unsafe_method_access")
 func test_id_uniqueness() -> void:
 	# Test direct method calls instead of safe wrappers (proven pattern)
 	var resource1: MockSerializableResource = MockSerializableResource.new()
 	var resource2: MockSerializableResource = MockSerializableResource.new()
+	@warning_ignore("return_value_discarded")
 	track_resource(resource1)
+	@warning_ignore("return_value_discarded")
 	track_resource(resource2)
 	var id1: String = resource1.get_id()
 	var id2: String = resource2.get_id()
 	assert_that(id1).is_not_equal(id2)
 
 # Extended TestResource tests
+@warning_ignore("unsafe_method_access")
 func test_resource_initialization() -> void:
 	# Test direct method calls instead of safe wrappers (proven pattern)
 	_verify_resource_safe(_test_resource, "after initialization")
@@ -143,6 +162,7 @@ func test_resource_initialization() -> void:
 	assert_that(_test_resource.test_array.size()).is_equal(0)
 	assert_that(_test_resource.test_dict.size()).is_equal(0)
 
+@warning_ignore("unsafe_method_access")
 func test_resource_serialization() -> void:
 	# Test direct method calls instead of safe wrappers (proven pattern)
 	_verify_resource_safe(_test_resource, "before serialization")
@@ -156,11 +176,20 @@ func test_resource_serialization() -> void:
 	
 	# Test serialization
 	var serialized: Dictionary = _test_resource.serialize()
-	assert_that(serialized.get("test_value", "")).is_equal(test_data["test_value"])
-	assert_that(serialized.get("test_number", -1)).is_equal(test_data["test_number"])
-	assert_that(serialized.get("test_array", [])).is_equal(test_data["test_array"])
-	assert_that(serialized.get("test_dict", {})).is_equal(test_data["test_dict"])
 
+	assert_that(@warning_ignore("unsafe_call_argument")
+	serialized.get("test_value", "")).is_equal(test_data["test_value"])
+
+	assert_that(@warning_ignore("unsafe_call_argument")
+	serialized.get("test_number", -1)).is_equal(test_data["test_number"])
+
+	assert_that(@warning_ignore("unsafe_call_argument")
+	serialized.get("test_array", [])).is_equal(test_data["test_array"])
+
+	assert_that(@warning_ignore("unsafe_call_argument")
+	serialized.get("test_dict", {})).is_equal(test_data["test_dict"])
+
+@warning_ignore("unsafe_method_access")
 func test_resource_deserialization() -> void:
 	# Test direct method calls instead of safe wrappers (proven pattern)
 	_verify_resource_safe(_test_resource, "before deserialization")
@@ -175,6 +204,7 @@ func test_resource_deserialization() -> void:
 	assert_that(_test_resource.test_array).is_equal(test_data["test_array"])
 	assert_that(_test_resource.test_dict).is_equal(test_data["test_dict"])
 
+@warning_ignore("unsafe_method_access")
 func test_resource_null_deserialization() -> void:
 	# Test direct method calls instead of safe wrappers (proven pattern)
 	_verify_resource_safe(_test_resource, "before null deserialization")
@@ -186,6 +216,7 @@ func test_resource_null_deserialization() -> void:
 	assert_that(_test_resource.test_array.size()).is_equal(0)
 	assert_that(_test_resource.test_dict.size()).is_equal(0)
 
+@warning_ignore("unsafe_method_access")
 func test_resource_invalid_deserialization() -> void:
 	# Test direct method calls instead of safe wrappers (proven pattern)
 	_verify_resource_safe(_test_resource, "before invalid deserialization")
@@ -205,11 +236,13 @@ func test_resource_invalid_deserialization() -> void:
 	assert_that(_test_resource.test_array.size()).is_equal(0)
 	assert_that(_test_resource.test_dict.size()).is_equal(0)
 
+@warning_ignore("unsafe_method_access")
 func test_factory_method() -> void:
 	# Test direct method calls instead of safe wrappers (proven pattern)
 	var test_data := _create_test_data()
-	
+
 	var new_resource := MockTestResource.new() as Resource
+	@warning_ignore("return_value_discarded")
 	track_resource(new_resource)
 	new_resource.deserialize(test_data)
 	_verify_resource_safe(new_resource, "from factory method")
@@ -219,6 +252,7 @@ func test_factory_method() -> void:
 	assert_that(new_resource.test_array).is_equal(test_data["test_array"])
 	assert_that(new_resource.test_dict).is_equal(test_data["test_dict"])
 
+@warning_ignore("unsafe_method_access")
 func test_serialization_roundtrip() -> void:
 	# Test direct method calls instead of safe wrappers (proven pattern)
 	# Setup original resource with data
@@ -228,6 +262,7 @@ func test_serialization_roundtrip() -> void:
 	# Serialize and deserialize
 	var serialized: Dictionary = _test_resource.serialize()
 	var new_resource := MockTestResource.new()
+	@warning_ignore("return_value_discarded")
 	track_resource(new_resource)
 	new_resource.deserialize(serialized)
 	
@@ -237,6 +272,7 @@ func test_serialization_roundtrip() -> void:
 	assert_that(new_resource.test_array).is_equal(_test_resource.test_array)
 	assert_that(new_resource.test_dict).is_equal(_test_resource.test_dict)
 
+@warning_ignore("unsafe_method_access")
 func test_id_persistence() -> void:
 	# Test direct method calls instead of safe wrappers (proven pattern)
 	var original_id: String = _test_resource.get_id()
@@ -244,12 +280,14 @@ func test_id_persistence() -> void:
 	# Serialize and deserialize
 	var serialized: Dictionary = _test_resource.serialize()
 	var new_resource := MockTestResource.new()
+	@warning_ignore("return_value_discarded")
 	track_resource(new_resource)
 	new_resource.deserialize(serialized)
 	
 	# ID should be preserved
 	assert_that(new_resource.get_id()).is_equal(original_id)
 
+@warning_ignore("unsafe_method_access")
 func test_empty_containers() -> void:
 	# Test direct method calls instead of safe wrappers (proven pattern)
 	# Test with explicitly empty containers
@@ -266,6 +304,7 @@ func test_empty_containers() -> void:
 	assert_that(_test_resource.test_array.size()).is_equal(0)
 	assert_that(_test_resource.test_dict.size()).is_equal(0)
 
+@warning_ignore("unsafe_method_access")
 func test_partial_data() -> void:
 	# Test direct method calls instead of safe wrappers (proven pattern)
 	# Test with partial data (missing some fields)

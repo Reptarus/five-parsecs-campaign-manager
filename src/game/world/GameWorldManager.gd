@@ -47,15 +47,15 @@ func generate_world(num_sectors: int = 1) -> void:
     planets.clear()
     sectors.clear()
     
-    # Generate sectors
+    # Generate _sectors
     for i in range(num_sectors):
-        var sector_name = "Sector " + str(i + 1)
+        var sector_name: String = "Sector " + str(i + 1)
         _generate_sector(sector_name, Vector2(i * sector_size.x, 0))
     
-    # Connect planets between sectors
+    # Connect planets between _sectors
     _connect_sectors()
     
-    emit_signal("world_generated")
+    world_generated.emit()
 
 ## Generate a single sector with planets
 func _generate_sector(sector_name: String, sector_position: Vector2) -> void:
@@ -82,7 +82,7 @@ func _generate_sector(sector_name: String, sector_position: Vector2) -> void:
 
 ## Generate a single planet with locations
 func _generate_planet(sector_name: String, sector_position: Vector2) -> GamePlanet:
-    var planet = GamePlanet.new()
+    var planet := GamePlanet.new()
     
     # Generate unique ID
     planet.planet_id = "planet_" + str(randi())
@@ -91,7 +91,7 @@ func _generate_planet(sector_name: String, sector_position: Vector2) -> GamePlan
     planet.planet_name = _generate_planet_name()
     planet.sector = sector_name
     
-    # Random position within sector
+    # Random _position within sector
     var x_offset = randf_range(0, sector_size.x)
     var y_offset = randf_range(0, sector_size.y)
     planet.coordinates = sector_position + Vector2(x_offset, y_offset)
@@ -130,7 +130,7 @@ func _generate_planet(sector_name: String, sector_position: Vector2) -> GamePlan
 
 ## Generate a location for a planet
 func _generate_location(planet: GamePlanet) -> GameLocation:
-    var location = GameLocation.new()
+    var location := GameLocation.new()
     
     # Generate unique ID
     location.location_id = "loc_" + str(randi())
@@ -178,8 +178,8 @@ func _connect_planets_in_sector(planet_ids: Array) -> void:
     
     while not unconnected_planets.is_empty():
         var closest_distance = INF
-        var closest_connected = ""
-        var closest_unconnected = ""
+        var closest_connected: String = ""
+        var closest_unconnected: String = ""
         
         for connected_id in connected_planets:
             var connected_planet = planets[connected_id]
@@ -197,7 +197,7 @@ func _connect_planets_in_sector(planet_ids: Array) -> void:
         # In a real implementation, you would store these connections somewhere
         
         # Move planet to connected list
-        connected_planets.append(closest_unconnected)
+        connected_planets.append(closest_unconnected) # warning: return value discarded (intentional)
         unconnected_planets.erase(closest_unconnected)
     
     # Add some additional connections based on connection_density
@@ -214,9 +214,9 @@ func _connect_planets_in_sector(planet_ids: Array) -> void:
 
 ## Connect locations on a planet
 func _connect_locations_on_planet(planet: GamePlanet) -> void:
-    var location_ids = []
+    var location_ids: Array = []
     for location in planet.locations:
-        location_ids.append(location.location_id)
+        location_ids.append(location.location_id) # warning: return value discarded (intentional)
     
     # Ensure all locations are connected in a minimum spanning tree
     if location_ids.size() <= 1:
@@ -227,8 +227,8 @@ func _connect_locations_on_planet(planet: GamePlanet) -> void:
     
     while not unconnected_locations.is_empty():
         var closest_distance = INF
-        var closest_connected = ""
-        var closest_unconnected = ""
+        var closest_connected: String = ""
+        var closest_unconnected: String = ""
         
         for connected_id in connected_locations:
             var connected_location = planet.get_location_by_id(connected_id)
@@ -250,7 +250,7 @@ func _connect_locations_on_planet(planet: GamePlanet) -> void:
         unconnected_location.add_connected_location(closest_connected)
         
         # Move location to connected list
-        connected_locations.append(closest_unconnected)
+        connected_locations.append(closest_unconnected) # warning: return value discarded (intentional)
         unconnected_locations.erase(closest_unconnected)
     
     # Add some additional connections based on connection_density
@@ -286,8 +286,8 @@ func _connect_sectors() -> void:
         
         # Find closest planets between these sectors
         var closest_distance = INF
-        var closest_planet1 = ""
-        var closest_planet2 = ""
+        var closest_planet1: String = ""
+        var closest_planet2: String = ""
         
         for planet1_id in sector1.planets:
             var planet1 = planets[planet1_id]
@@ -307,7 +307,7 @@ func _connect_sectors() -> void:
 
 ## Add world traits to a planet based on its type
 func _add_traits_based_on_planet_type(planet: GamePlanet) -> void:
-    var trait_id = ""
+    var trait_id: String = ""
     
     match planet.planet_type:
         GameEnums.PlanetType.DESERT:
@@ -329,7 +329,7 @@ func _add_traits_based_on_planet_type(planet: GamePlanet) -> void:
     
     # Add a random second trait with 30% chance
     if randf() < 0.3:
-        var second_trait = ""
+        var second_trait: String = ""
         var traits = ["urban_world", "mining_world", "frontier_world"]
         
         # Remove the trait we already added
@@ -342,7 +342,7 @@ func _add_traits_based_on_planet_type(planet: GamePlanet) -> void:
 
 ## Add world traits to a location based on its type
 func _add_traits_based_on_location_type(location: GameLocation) -> void:
-    var trait_id = ""
+    var trait_id: String = ""
     
     match location.location_type:
         GameEnums.LocationType.INDUSTRIAL_HUB:
@@ -392,7 +392,7 @@ func _generate_planet_name() -> String:
     var roots = ["Terra", "Gaia", "Ares", "Helios", "Kronos", "Atlas", "Hyperion", "Prometheus", "Oceanus"]
     var suffixes = ["I", "II", "III", "IV", "V", "Prime", "Major", "Minor", "Alpha", "Beta"]
     
-    var name = ""
+    var name: String = ""
     
     # 30% chance to have a prefix
     if randf() < 0.3:
@@ -420,7 +420,7 @@ func _generate_location_name(planet_type: int) -> String:
         GameEnums.PlanetType.VOLCANIC: ["Ember", "Ash", "Cinder", "Magma", "Forge"]
     }
     
-    var name = ""
+    var name: String = ""
     
     # 50% chance to have a prefix
     if randf() < 0.5:
@@ -435,7 +435,7 @@ func _generate_location_name(planet_type: int) -> String:
     
     return name
 
-## Generate a planet description based on its type
+## Generate a planet description based on its _type
 func _generate_planet_description(planet_type: int) -> String:
     var descriptions = {
         GameEnums.PlanetType.DESERT: "A harsh, arid world with vast deserts and scarce water resources.",
@@ -452,7 +452,7 @@ func _generate_planet_description(planet_type: int) -> String:
     else:
         return "A mysterious world with unknown characteristics."
 
-## Generate a location description based on its type
+## Generate a location description based on its _type
 func _generate_location_description(location_type: int) -> String:
     var descriptions = {
         GameEnums.LocationType.INDUSTRIAL_HUB: "A bustling center of manufacturing and production.",
@@ -501,7 +501,7 @@ func set_current_planet(planet_id: String) -> void:
         var planet = planets[planet_id]
         if not planet.visited:
             planet.visited = true
-            emit_signal("planet_updated", planet)
+            planet_updated.emit( planet)
 
 ## Set the current location
 func set_current_location(location_id: String) -> void:
@@ -514,15 +514,15 @@ func set_current_location(location_id: String) -> void:
             # Mark location as visited
             if not location.visited:
                 location.visited = true
-                emit_signal("location_updated", location)
+                location_updated.emit( location)
 
 ## Serialize all world data
 func serialize() -> Dictionary:
-    var planet_data = {}
+    var planet_data: Dictionary = {}
     for planet_id in planets:
         planet_data[planet_id] = planets[planet_id].serialize()
     
-    var sector_data = {}
+    var sector_data: Dictionary = {}
     for sector_name in sectors:
         sector_data[sector_name] = sectors[sector_name]
     

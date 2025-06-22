@@ -9,7 +9,8 @@
 ## - Performance considerations
 ## - Signal emissions
 @tool
-extends GdUnitGameTest
+@warning_ignore("return_value_discarded")
+	extends GdUnitTestSuite
 
 # Mock Classes with Expected Values - Universal Mock Strategy
 class MockCharacter extends Resource:
@@ -20,15 +21,15 @@ class MockCharacter extends Resource:
 	var motivation: int = 1 # DUTY
 	
 	func get_character_name() -> String: return character_name
-	func set_character_name(value: String) -> void: character_name = value
+	func set_character_name(test_value: String) -> void: character_name = _value
 	func get_character_class() -> int: return character_class
-	func set_character_class(value: int) -> void: character_class = value
+	func set_character_class(test_value: int) -> void: character_class = _value
 	func get_origin() -> int: return origin
-	func set_origin(value: int) -> void: origin = value
+	func set_origin(test_value: int) -> void: origin = _value
 	func get_background() -> int: return background
-	func set_background(value: int) -> void: background = value
+	func set_background(test_value: int) -> void: background = _value
 	func get_motivation() -> int: return motivation
-	func set_motivation(value: int) -> void: motivation = value
+	func set_motivation(test_value: int) -> void: motivation = _value
 	
 	signal character_updated(character: Resource)
 
@@ -52,22 +53,27 @@ class MockCharacterDataManager extends Resource:
 	
 	func save_character(character: Resource, file_name: String) -> bool:
 		if character:
-			characters.append(character)
-			character_data_saved.emit(character)
+			@warning_ignore("return_value_discarded")
+	characters.append(character)
+			@warning_ignore("unsafe_method_access")
+	character_data_saved.emit(character)
 			return true
 		return false
 	
 	func load_character(file_name: String) -> Resource:
 		if characters.size() > 0:
 			return characters[0]
-		var mock_char = MockCharacter.new()
-		characters.append(mock_char)
+		var mock_char: MockCharacter = MockCharacter.new()
+		@warning_ignore("return_value_discarded")
+	characters.append(mock_char)
 		return mock_char
 	
 	func save_character_data(character: Resource) -> bool:
 		if character and characters.size() < max_characters:
-			characters.append(character)
-			character_data_saved.emit(character)
+			@warning_ignore("return_value_discarded")
+	characters.append(character)
+			@warning_ignore("unsafe_method_access")
+	character_data_saved.emit(character)
 			return true
 		return false
 	
@@ -79,14 +85,16 @@ class MockCharacterDataManager extends Resource:
 	func set_active_character(index: int) -> bool:
 		if index >= 0 and index < characters.size():
 			active_character_index = index
-			active_character_changed.emit(index)
+			@warning_ignore("unsafe_method_access")
+	active_character_changed.emit(index)
 			return true
 		return false
 	
 	func delete_character_data(index: int) -> bool:
 		if index >= 0 and index < characters.size():
 			characters.remove_at(index)
-			character_data_deleted.emit(index)
+			@warning_ignore("unsafe_method_access")
+	character_data_deleted.emit(index)
 			return true
 		return false
 	
@@ -115,51 +123,46 @@ func _create_test_character() -> MockCharacter:
 	var character: MockCharacter = MockCharacter.new()
 	character.set_character_name("Test Character")
 	character.set_character_class(MockGameEnums.CharacterClass.SOLDIER)
-	track_resource(character) # Perfect cleanup
 	return character
 
 func _create_batch_characters(count: int) -> Array[MockCharacter]:
-	var characters: Array[MockCharacter] = []
-	for i in range(count):
+	var characters: @warning_ignore("unsafe_call_argument")
+	Array[MockCharacter] = []
+	for i: int in range(count):
 		var character := _create_test_character()
 		if character:
-			characters.append(character)
+			@warning_ignore("return_value_discarded")
+	characters.append(character)
 	return characters
 
 # Setup and teardown
 func before_test() -> void:
-	super.before_test()
-	
 	# Initialize game state first
 	_game_state = MockGameStateManager.new()
-	track_resource(_game_state)
 	
 	# Initialize data manager
 	_data_manager = MockCharacterDataManager.new()
 	_data_manager.initialize(_game_state)
-	track_resource(_data_manager)
 	
 	# Create test character
 	_test_character = _create_test_character()
 	
-	# Skip signal monitoring to prevent Dictionary corruption
-	# monitor_signals(_game_state)  # REMOVED - causes Dictionary corruption
-	# monitor_signals(_data_manager)  # REMOVED - causes Dictionary corruption
-	# Test state directly instead of signal emission
+	@warning_ignore("unsafe_method_access")
 	await get_tree().create_timer(STABILIZE_TIME).timeout
 
 func after_test() -> void:
 	_game_state = null
 	_data_manager = null
 	_test_character = null
-	await super.after_test()
 
 # Basic functionality tests
+@warning_ignore("unsafe_method_access")
 func test_initial_state() -> void:
 	assert_that(_data_manager).is_not_null()
 	var count: int = _data_manager.get_character_count()
 	assert_that(count).is_equal(0)
 
+@warning_ignore("unsafe_method_access")
 func test_save_and_load_character() -> void:
 	# Setup test character
 	_test_character.set_character_name("Test Character")
@@ -191,11 +194,12 @@ func test_save_and_load_character() -> void:
 	assert_that(loaded_motivation).is_equal(MockGameEnums.Motivation.DUTY)
 
 # Performance tests
+@warning_ignore("unsafe_method_access")
 func test_batch_character_operations() -> void:
 	var start_time := Time.get_ticks_msec()
 	var characters := _create_batch_characters(TEST_BATCH_SIZE)
 	
-	for character in characters:
+	for character: Node in characters:
 		var save_result: bool = _data_manager.save_character_data(character)
 		assert_that(save_result).is_true()
 	
@@ -207,32 +211,30 @@ func test_batch_character_operations() -> void:
 	assert_that(duration).is_less(1000)
 
 # Boundary tests
+@warning_ignore("unsafe_method_access")
 func test_character_limit() -> void:
-	for i in range(MAX_CHARACTERS + 1):
+	for i: int in range(MAX_CHARACTERS + 1):
 		var character := _create_test_character()
 		var result = _data_manager.save_character_data(character)
 		if i >= MAX_CHARACTERS:
 			assert_that(result).is_false()
 
 # Signal verification tests
+@warning_ignore("unsafe_method_access")
 func test_signal_emission_order() -> void:
-	# Skip signal monitoring to prevent Dictionary corruption
-	# monitor_signals(_data_manager)  # REMOVED - causes Dictionary corruption
 	var character := _create_test_character()
 	
 	var save_result: bool = _data_manager.save_character_data(character)
 	assert_that(save_result).is_true()
-	# Test state directly instead of signal emission
 	
 	var set_result: bool = _data_manager.set_active_character(0)
 	assert_that(set_result).is_true()
-	# Test state directly instead of signal emission
 	
 	var delete_result: bool = _data_manager.delete_character_data(0)
 	assert_that(delete_result).is_true()
-	# Test state directly instead of signal emission
 
 # Error boundary tests
+@warning_ignore("unsafe_method_access")
 func test_invalid_character_operations() -> void:
 	var invalid_character = _data_manager.get_character_data(-1)
 	assert_that(invalid_character).is_null()
@@ -241,4 +243,4 @@ func test_invalid_character_operations() -> void:
 	assert_that(invalid_character).is_null()
 	
 	var save_result: bool = _data_manager.save_character_data(null)
-	assert_that(save_result).is_false()             
+	assert_that(save_result).is_false()

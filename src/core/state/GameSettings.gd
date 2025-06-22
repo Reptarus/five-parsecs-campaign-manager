@@ -18,10 +18,8 @@ var completed_tutorials: Array[String] = []
 
 func _init() -> void:
     pass
-
 func set_difficulty(level: GameEnums.DifficultyLevel) -> void:
     difficulty_level = level
-
 func get_enemy_strength_modifier() -> float:
     match difficulty_level:
         GameEnums.DifficultyLevel.EASY:
@@ -69,10 +67,8 @@ func get_credit_modifier() -> float:
 
 func set_campaign_type(type: GameEnums.FiveParcsecsCampaignType) -> void:
     campaign_type = type
-
 func set_victory_condition(condition: GameEnums.FiveParcsecsCampaignVictoryType) -> void:
     victory_condition = condition
-
 func is_story_missions_enabled() -> bool:
     return campaign_type == GameEnums.FiveParcsecsCampaignType.STORY
 
@@ -81,35 +77,27 @@ func is_sandbox_features_enabled() -> bool:
 
 func set_tutorial_enabled(enabled: bool) -> void:
     tutorial_enabled = enabled
-
 func should_show_tutorial(tutorial_id: String) -> bool:
     return tutorial_enabled and not (tutorial_id in completed_tutorials)
 
 func mark_tutorial_completed(tutorial_id: String) -> void:
     if not (tutorial_id in completed_tutorials):
-        completed_tutorials.append(tutorial_id)
+        completed_tutorials.append(tutorial_id) # warning: return value discarded (intentional)
 
 func reset_tutorials() -> void:
     completed_tutorials.clear()
-
 func set_auto_save_enabled(enabled: bool) -> void:
     auto_save_enabled = enabled
-
 func set_auto_save_frequency(minutes: int) -> void:
     auto_save_frequency = clampi(minutes, 5, 60)
-
 func set_sound_enabled(enabled: bool) -> void:
     sound_enabled = enabled
-
 func set_sound_volume(volume: float) -> void:
     sound_volume = clampf(volume, 0.0, 1.0)
-
 func set_music_enabled(enabled: bool) -> void:
     music_enabled = enabled
-
 func set_music_volume(volume: float) -> void:
     music_volume = clampf(volume, 0.0, 1.0)
-
 func serialize() -> Dictionary:
     return {
         "difficulty_level": difficulty_level,
@@ -127,18 +115,28 @@ func serialize() -> Dictionary:
 
 func deserialize(data: Dictionary) -> void:
     difficulty_level = data.get("difficulty_level", GameEnums.DifficultyLevel.NORMAL)
+
     campaign_type = data.get("campaign_type", GameEnums.FiveParcsecsCampaignType.STANDARD)
+
     victory_condition = data.get("victory_condition", GameEnums.FiveParcsecsCampaignVictoryType.STANDARD)
+
     tutorial_enabled = data.get("tutorial_enabled", true)
+
     completed_tutorials = data.get("completed_tutorials", [])
+
     auto_save_enabled = data.get("auto_save_enabled", true)
+
     auto_save_frequency = data.get("auto_save_frequency", 15)
+
     sound_enabled = data.get("sound_enabled", true)
+
     sound_volume = data.get("sound_volume", 1.0)
+
     music_enabled = data.get("music_enabled", true)
+
     music_volume = data.get("music_volume", 1.0)
 
 static func deserialize_new(data: Dictionary) -> GameSettings:
-    var settings = GameSettings.new()
+    var settings := GameSettings.new()
     settings.deserialize(data)
     return settings

@@ -19,6 +19,7 @@ var combat_manager: BaseCombatManager
 var tutorial_overlay: Control
 
 func _ready() -> void:
+
     combat_manager = get_parent() as BaseCombatManager
     if not combat_manager:
         push_error("BattleTutorialManager must be a child of BaseCombatManager")
@@ -32,12 +33,10 @@ func _connect_signals() -> void:
         combat_manager.unit_moved.connect(_on_unit_moved)
         combat_manager.combat_action_completed.connect(_on_combat_action_completed)
         combat_manager.objective_reached.connect(_on_objective_reached)
-
 func load_current_step() -> void:
     current_layout = FiveParsecsBattleTutorialLayout.get_layout(current_step)
     setup_battlefield()
     show_step_guidance()
-
 func setup_battlefield() -> void:
     if not combat_manager:
         return
@@ -73,7 +72,6 @@ func show_step_guidance() -> void:
     if tutorial_overlay:
         var guidance = get_step_guidance()
         tutorial_overlay.show_guidance(guidance)
-
 func get_step_guidance() -> Dictionary:
     match current_step:
         "movement_basics":
@@ -101,18 +99,18 @@ func _on_unit_moved(_unit: Node, end_pos: Vector2) -> void:
     if current_step == "movement_basics":
         var objective_pos = current_layout.objectives[0].position
         if end_pos.distance_to(objective_pos) < 1.0:
-            tutorial_objective_completed.emit("reach_position")
+            tutorial_objective_completed.emit("reach_position")  # warning: return value discarded (intentional)
             advance_tutorial()
 
 func _on_combat_action_completed(action: Dictionary) -> void:
     if current_step == "combat_basics" and action.type == "attack":
         if action.hit:
-            tutorial_objective_completed.emit("successful_attack")
+            tutorial_objective_completed.emit("successful_attack")  # warning: return value discarded (intentional)
             advance_tutorial()
 
 func _on_objective_reached(objective_id: String) -> void:
     if current_step == "tactical_cover" and objective_id == "control_point":
-        tutorial_objective_completed.emit("control_point_secured")
+        tutorial_objective_completed.emit("control_point_secured")  # warning: return value discarded (intentional)
         advance_tutorial()
 
 func advance_tutorial() -> void:
@@ -122,7 +120,7 @@ func advance_tutorial() -> void:
         "combat_basics":
             current_step = "tactical_cover"
         "tactical_cover":
-            tutorial_step_completed.emit("battle_tutorial")
+            tutorial_step_completed.emit("battle_tutorial")  # warning: return value discarded (intentional)
             return
             
     load_current_step()

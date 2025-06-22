@@ -31,7 +31,6 @@ static func free_instance(instance :Variant, use_call_deferred :bool = false, is
 	if instance is Array:
 		var as_array: Array = instance
 		for element: Variant in as_array:
-			@warning_ignore("return_value_discarded")
 			free_instance(element)
 		as_array.clear()
 		return true
@@ -39,19 +38,15 @@ static func free_instance(instance :Variant, use_call_deferred :bool = false, is
 	if not is_instance_valid(instance):
 		return false
 	# do not free a class refernece
-	@warning_ignore("unsafe_cast")
 	if typeof(instance) == TYPE_OBJECT and (instance as Object).is_class("GDScriptNativeClass"):
 		return false
 	if is_stdout_verbose:
 		print_verbose("GdUnit4:gc():free instance ", instance)
-	@warning_ignore("unsafe_cast")
 	release_double(instance as Object)
 	if instance is RefCounted:
-		@warning_ignore("unsafe_cast")
 		(instance as RefCounted).notification(Object.NOTIFICATION_PREDELETE)
 		# If scene runner freed we explicit await all inputs are processed
 		if instance is GdUnitSceneRunnerImpl:
-			@warning_ignore("unsafe_cast")
 			await (instance as GdUnitSceneRunnerImpl).await_input_processed()
 		return true
 	else:
@@ -65,7 +60,6 @@ static func free_instance(instance :Variant, use_call_deferred :bool = false, is
 				await (Engine.get_main_loop() as SceneTree).process_frame
 			return true
 
-		@warning_ignore("unsafe_cast")
 		if instance is Node and (instance as Node).get_parent() != null:
 			var node: Node = instance
 			if is_stdout_verbose:
@@ -78,10 +72,8 @@ static func free_instance(instance :Variant, use_call_deferred :bool = false, is
 		if is_stdout_verbose:
 			print_verbose("GdUnit4:gc():freeing `free()` the instance ", instance)
 		if use_call_deferred:
-			@warning_ignore("unsafe_cast")
 			(instance as Object).call_deferred("free")
 		else:
-			@warning_ignore("unsafe_cast")
 			(instance as Object).free()
 		return !is_instance_valid(instance)
 

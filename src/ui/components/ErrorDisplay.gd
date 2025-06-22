@@ -22,7 +22,6 @@ func _ready() -> void:
     _setup_filters()
     _connect_signals()
     _refresh_error_list()
-
 func initialize(logger: ErrorLogger) -> void:
     error_logger = logger
     error_logger.error_logged.connect(_on_error_logged)
@@ -31,12 +30,12 @@ func initialize(logger: ErrorLogger) -> void:
 
 func _setup_filters() -> void:
     # Setup category filter
-    category_filter.add_item("All Categories", -1)
+    category_filter.add_item("AllCategories", -1)
     for category in ErrorLogger.ErrorCategory.values():
         category_filter.add_item(ErrorLogger.ErrorCategory.keys()[category], category)
     
     # Setup severity filter
-    severity_filter.add_item("All Severities", -1)
+    severity_filter.add_item("AllSeverities", -1)
     for severity in ErrorLogger.ErrorSeverity.values():
         severity_filter.add_item(ErrorLogger.ErrorSeverity.keys()[severity], severity)
 
@@ -70,8 +69,8 @@ func _refresh_error_list() -> void:
     
     # Add to list
     for error in errors:
-        var severity_icon = _get_severity_icon(error.severity)
-        var error_text = "[%s] %s" % [error.timestamp.split(" ")[1], error.message]
+        var _severity_icon = _get_severity_icon(error.severity)
+        var error_text: String = "[%s]%s" % [error.timestamp.split("")[1], error.message]
         error_list.add_item(error_text)
         
         var idx = error_list.get_item_count() - 1
@@ -92,7 +91,6 @@ func _get_severity_icon(severity: ErrorLogger.ErrorSeverity) -> String:
             return "☠"
         _:
             return ""
-
 func _update_error_details(error_id: String) -> void:
     if not error_logger or not error_id:
         error_details.text = ""
@@ -103,8 +101,8 @@ func _update_error_details(error_id: String) -> void:
         error_details.text = ""
         return
     
-    var details = "[b]Error Details:[/b]\n"
-    details += "ID: %s\n" % error.id
+    var details: String = "[b]Error Details:[/b]\n"
+    details += "ID: %s\n" % error._id
     details += "Timestamp: %s\n" % error.timestamp
     details += "Category: %s\n" % ErrorLogger.ErrorCategory.keys()[error.category]
     details += "Severity: %s\n" % ErrorLogger.ErrorSeverity.keys()[error.severity]

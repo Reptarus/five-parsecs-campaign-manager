@@ -1,4 +1,5 @@
 @tool
+@warning_ignore("return_value_discarded")
 extends GdUnitGameTest
 
 # Mock Engine Component with realistic behavior
@@ -55,12 +56,24 @@ class MockEngineComponent extends Resource:
         }
     
     func deserialize(data: Dictionary) -> void:
-        level = data.get("level", 1)
-        durability = data.get("durability", 100)
-        thrust = data.get("thrust", 100.0)
-        fuel_efficiency = data.get("fuel_efficiency", 1.0)
-        maneuverability = data.get("maneuverability", 1.0)
-        max_speed = data.get("max_speed", 100.0)
+
+        level = @warning_ignore("unsafe_call_argument")
+	data.get("level", 1)
+
+        durability = @warning_ignore("unsafe_call_argument")
+	data.get("durability", 100)
+
+        thrust = @warning_ignore("unsafe_call_argument")
+	data.get("thrust", 100.0)
+
+        fuel_efficiency = @warning_ignore("unsafe_call_argument")
+	data.get("fuel_efficiency", 1.0)
+
+        maneuverability = @warning_ignore("unsafe_call_argument")
+	data.get("maneuverability", 1.0)
+
+        max_speed = @warning_ignore("unsafe_call_argument")
+	data.get("max_speed", 100.0)
         
         # Apply level-based upgrades if at max level
         if level == 5:
@@ -78,10 +91,12 @@ func _initialize_test_environment() -> void:
     if not engine:
         push_error("Failed to create engine component")
         return
-    track_resource(engine)
+    @warning_ignore("return_value_discarded")
+	track_resource(engine)
 
 func before_test() -> void:
-    await super.before_test()
+    @warning_ignore("unsafe_method_access")
+	await super.before_test()
     
     # Initialize our test environment
     _initialize_test_environment()
@@ -93,8 +108,10 @@ func before_test() -> void:
 
 func after_test() -> void:
     engine = null
-    await super.after_test()
+    @warning_ignore("unsafe_method_access")
+	await super.after_test()
 
+@warning_ignore("unsafe_method_access")
 func test_initialization() -> void:
     assert_that(engine).is_not_null()
     
@@ -120,6 +137,7 @@ func test_initialization() -> void:
     assert_that(maneuverability).is_equal(_get_engine_base_maneuverability())
     assert_that(max_speed).is_equal(_get_engine_base_max_speed())
 
+@warning_ignore("unsafe_method_access")
 func test_upgrade_effects() -> void:
     # Store initial values
     var initial_thrust: float = engine.get_thrust()
@@ -141,6 +159,7 @@ func test_upgrade_effects() -> void:
     assert_that(new_maneuverability).is_equal(initial_maneuverability + _get_engine_upgrade_maneuverability())
     assert_that(new_max_speed).is_equal(initial_max_speed + _get_engine_upgrade_max_speed())
 
+@warning_ignore("unsafe_method_access")
 func test_efficiency_effects() -> void:
     # Test base values at full efficiency
     var base_thrust: float = engine.get_thrust()
@@ -167,6 +186,7 @@ func test_efficiency_effects() -> void:
     assert_that(reduced_maneuverability).is_equal(_get_engine_base_maneuverability() * _get_half_efficiency())
     assert_that(reduced_max_speed).is_equal(_get_engine_base_max_speed() * _get_half_efficiency())
 
+@warning_ignore("unsafe_method_access")
 func test_serialization() -> void:
     # Modify engine state
     engine.set_level(_get_engine_max_level())
@@ -177,7 +197,8 @@ func test_serialization() -> void:
     
     # Create new engine and deserialize
     var new_engine: MockEngineComponent = MockEngineComponent.new()
-    track_resource(new_engine)
+    @warning_ignore("return_value_discarded")
+	track_resource(new_engine)
     new_engine.deserialize(data)
     
     # Verify engine-specific properties

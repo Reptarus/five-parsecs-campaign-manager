@@ -29,7 +29,6 @@ var _loading: bool = false
 
 func _init() -> void:
 	pass
-
 func _ready() -> void:
 	_initialize_systems()
 
@@ -53,7 +52,7 @@ func _initialize_systems() -> void:
 	_connect_signals()
 	
 	_initialized = true
-	system_initialized.emit()
+	system_initialized.emit() # warning: return value discarded (intentional)
 
 ## Initialize the character manager
 func _initialize_character_manager() -> void:
@@ -87,26 +86,37 @@ func _initialize_equipment_manager() -> void:
 ## Connect signals between systems
 func _connect_signals() -> void:
 	# Connect campaign phase manager signals
-	campaign_phase_manager.connect("phase_changed", _on_phase_changed)
-	campaign_phase_manager.connect("phase_error", _on_phase_error)
+	campaign_phase_manager.connect("phase_changed", _on_phase_changed) # warning: return value discarded (intentional)
+
+	campaign_phase_manager.connect("phase_error", _on_phase_error) # warning: return value discarded (intentional)
 	
 	# Connect game state signals
-	game_state.connect("turn_advanced", _on_turn_advanced)
-	game_state.connect("resources_changed", _on_resources_changed)
-	game_state.connect("campaign_created", _on_campaign_created)
-	game_state.connect("campaign_loaded", _on_campaign_loaded)
+
+	game_state.connect("turn_advanced", _on_turn_advanced) # warning: return value discarded (intentional)
+
+	game_state.connect("resources_changed", _on_resources_changed) # warning: return value discarded (intentional)
+
+	game_state.connect("campaign_created", _on_campaign_created) # warning: return value discarded (intentional)
+
+	game_state.connect("campaign_loaded", _on_campaign_loaded) # warning: return value discarded (intentional)
 	
 	# Connect battle results manager signals
-	battle_results_manager.connect("battle_results_recorded", _on_battle_results_recorded)
-	battle_results_manager.connect("casualties_processed", _on_casualties_processed)
-	battle_results_manager.connect("rewards_calculated", _on_rewards_calculated)
+
+	battle_results_manager.connect("battle_results_recorded", _on_battle_results_recorded) # warning: return value discarded (intentional)
+
+	battle_results_manager.connect("casualties_processed", _on_casualties_processed) # warning: return value discarded (intentional)
+
+	battle_results_manager.connect("rewards_calculated", _on_rewards_calculated) # warning: return value discarded (intentional)
 	
 	# Connect mission integrator signals
-	mission_integrator.connect("mission_selected", _on_mission_selected)
-	mission_integrator.connect("mission_preparation_complete", _on_mission_preparation_complete)
+
+	mission_integrator.connect("mission_selected", _on_mission_selected) # warning: return value discarded (intentional)
+
+	mission_integrator.connect("mission_preparation_complete", _on_mission_preparation_complete) # warning: return value discarded (intentional)
 	
 	# Connect equipment manager signals
-	equipment_manager.connect("equipment_acquired", _on_equipment_acquired)
+
+	equipment_manager.connect("equipment_acquired", _on_equipment_acquired) # warning: return value discarded (intentional)
 
 ## Start a new campaign with initial setup
 func start_new_campaign(campaign_data: Dictionary) -> void:
@@ -128,16 +138,19 @@ func load_campaign(campaign_data: Dictionary) -> void:
 	game_state.load_campaign(campaign_data)
 	
 	# Initialize character manager with saved characters
+
 	var characters = campaign_data.get("characters", [])
 	for character_data in characters:
 		character_manager.add_character(character_data)
 	
 	# Initialize equipment manager with saved equipment
+
 	var equipment = campaign_data.get("equipment", [])
 	for equipment_data in equipment:
 		equipment_manager.add_equipment(equipment_data)
 	
 	# Restore character equipment assignments
+
 	var char_equipment = campaign_data.get("character_equipment", {})
 	for char_id in char_equipment:
 		var equipment_list = char_equipment[char_id]
@@ -145,12 +158,13 @@ func load_campaign(campaign_data: Dictionary) -> void:
 			equipment_manager.assign_equipment_to_character(char_id, equipment_id)
 	
 	# Start in the appropriate phase
+
 	var current_phase = campaign_data.get("current_phase", GameEnums.FiveParcsecsCampaignPhase.NONE)
 	if current_phase != GameEnums.FiveParcsecsCampaignPhase.NONE:
 		campaign_phase_manager.start_phase(current_phase)
 	
 	_loading = false
-	campaign_loaded.emit(campaign_data)
+	campaign_loaded.emit(campaign_data) # warning: return value discarded (intentional)
 
 ## Save the current campaign state
 func save_campaign() -> Dictionary:
@@ -231,7 +245,7 @@ func create_character(character_data: Dictionary) -> Dictionary:
 
 ## Process battle results and apply outcomes
 func process_battle_results(battle_outcome: String) -> Dictionary:
-	# Complete the battle with the specified outcome
+	# Complete the battle with the specified _outcome
 	var battle_results = battle_results_manager.complete_battle(battle_outcome)
 	
 	# Process casualties
@@ -252,7 +266,9 @@ func process_battle_experience() -> Dictionary:
 ## Generate and process loot from a battle
 func process_battle_loot() -> Array:
 	var battle_data = battle_results_manager._current_battle
+
 	var difficulty = battle_data.get("difficulty", 2)
+
 	var success = battle_data.get("outcome", "") == BattleResultsManager.OUTCOME_VICTORY
 	
 	var loot_items = equipment_manager.generate_battle_loot(difficulty, success)
@@ -266,31 +282,30 @@ func process_battle_loot() -> Array:
 ## Signal handlers
 
 func _on_phase_changed(old_phase: int, new_phase: int) -> void:
-	phase_changed.emit(old_phase, new_phase)
+	phase_changed.emit(old_phase, new_phase) # warning: return value discarded (intentional)
 
 func _on_phase_error(error_message: String, is_critical: bool) -> void:
 	push_error("Phase error: " + error_message)
 	
-	# Handle critical errors
+	# Handle _critical errors
 	if is_critical:
 		# Attempt to recover
 		if campaign_phase_manager.current_phase != GameEnums.FiveParcsecsCampaignPhase.SETUP:
 			campaign_phase_manager.start_phase(GameEnums.FiveParcsecsCampaignPhase.SETUP)
-
 func _on_turn_advanced(new_turn: int) -> void:
-	turn_advanced.emit(new_turn)
+	turn_advanced.emit(new_turn) # warning: return value discarded (intentional)
 
 func _on_resources_changed(_resource: String, _amount: int) -> void:
-	game_state_changed.emit()
+	game_state_changed.emit() # warning: return value discarded (intentional)
 
 func _on_campaign_created(_campaign_data: Dictionary) -> void:
-	game_state_changed.emit()
+	game_state_changed.emit() # warning: return value discarded (intentional)
 
 func _on_campaign_loaded(_campaign_data: Dictionary) -> void:
-	game_state_changed.emit()
+	game_state_changed.emit() # warning: return value discarded (intentional)
 
 func _on_battle_results_recorded(results: Dictionary) -> void:
-	game_state_changed.emit()
+	game_state_changed.emit() # warning: return value discarded (intentional)
 	
 	# If current phase is battle resolution, complete the "battle_completed" action
 	if campaign_phase_manager.current_phase == GameEnums.FiveParcsecsCampaignPhase.BATTLE_RESOLUTION:
@@ -300,22 +315,21 @@ func _on_casualties_processed(_casualties: Array) -> void:
 	# If current phase is battle resolution, complete the "casualties_resolved" action
 	if campaign_phase_manager.current_phase == GameEnums.FiveParcsecsCampaignPhase.BATTLE_RESOLUTION:
 		campaign_phase_manager.complete_phase_action("casualties_resolved")
-
 func _on_rewards_calculated(_rewards: Dictionary) -> void:
-	game_state_changed.emit()
+	game_state_changed.emit() # warning: return value discarded (intentional)
 
 func _on_mission_selected(_mission: Dictionary) -> void:
-	game_state_changed.emit()
+	game_state_changed.emit() # warning: return value discarded (intentional)
 
 func _on_mission_preparation_complete(_mission: Dictionary) -> void:
-	game_state_changed.emit()
+	game_state_changed.emit() # warning: return value discarded (intentional)
 	
-	# If current phase is campaign, complete the mission preparation action
+	# If current phase is campaign, complete the _mission preparation action
 	if campaign_phase_manager.current_phase == GameEnums.FiveParcsecsCampaignPhase.CAMPAIGN:
 		campaign_phase_manager.complete_phase_action("mission_prepared")
 
 func _on_equipment_acquired(_equipment_data: Dictionary) -> void:
-	game_state_changed.emit()
+	game_state_changed.emit() # warning: return value discarded (intentional)
 
 ## Public accessors for each manager
 
@@ -352,6 +366,7 @@ func _check_for_rival_generation(battle_results: Dictionary) -> void:
 			_generate_new_rival("leader", battle_results)
 	
 	# Check mission type for additional rival generation chance
+
 	var mission_type = battle_results.get("mission_type", -1)
 	if mission_type == GameEnums.MissionType.BLACK_ZONE or mission_type == GameEnums.MissionType.RESCUE:
 		# 25% chance to generate rival for these mission types according to rulebook
@@ -361,7 +376,7 @@ func _check_for_rival_generation(battle_results: Dictionary) -> void:
 ## Generate a new rival based on the rulebook
 func _generate_new_rival(source_type: String, battle_data: Dictionary) -> void:
 	# Determine rival type based on source
-	var rival_type = ""
+	var rival_type: String = ""
 	match source_type:
 		"leader":
 			rival_type = ["Enemy Commander", "Crime Boss", "Bounty Hunter", "Warlord"][randi() % 4]
@@ -379,6 +394,7 @@ func _generate_new_rival(source_type: String, battle_data: Dictionary) -> void:
 		"grudge_level": 1,
 		"last_encounter": game_state.current_turn,
 		"origin": {
+
 			"battle_id": battle_data.get("id", ""),
 			"source": source_type,
 			"turn": game_state.current_turn
@@ -412,16 +428,17 @@ func process_patron_relationship(patron_id: String, mission_success: bool) -> vo
 	if patron_index >= 0:
 		var patron = patrons[patron_index]
 		
-		# Update relationship based on mission success
+		# Update relationship based on mission _success
 		if mission_success:
 			patron.relationship = min(patron.get("relationship", 0) + 1, 5)
 		else:
 			patron.relationship = max(patron.get("relationship", 0) - 1, -3)
-			
+
 			# Check if patron relationship has deteriorated too much
 			if patron.relationship <= -3:
 				# According to rulebook, remove patron at relationship -3
 				patrons.remove_at(patron_index)
+
 				print("Patron relationship has deteriorated. Patron removed.")
 				return
 		

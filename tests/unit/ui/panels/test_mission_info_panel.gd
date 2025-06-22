@@ -1,13 +1,17 @@
 @tool
-extends GdUnitGameTest
+@warning_ignore("return_value_discarded")
+	extends GdUnitGameTest
 
 # ========================================
 # UNIVERSAL UI MOCK STRATEGY - PROVEN PATTERN
 # ========================================
 # Applying the same pattern that achieved:
-# - Ship Tests: 48/48 (100% SUCCESS) ✅
-# - Mission Tests: 51/51 (100% SUCCESS) ✅
-# - UI Tests: 83/83 where applied (100% SUCCESS) ✅
+# - Ship Tests: 48/48 (@warning_ignore("integer_division")
+	100 % SUCCESS) ✅
+# - Mission Tests: 51/51 (@warning_ignore("integer_division")
+	100 % SUCCESS) ✅
+# - UI Tests: 83/83 where applied (@warning_ignore("integer_division")
+	100 % SUCCESS) ✅
 
 # Mock Label class
 class MockLabel extends Resource:
@@ -53,17 +57,26 @@ class MockMissionInfoPanel extends Resource:
 	# Core panel methods
 	func setup(data: Dictionary) -> void:
 		mission_data = data.duplicate()
-		title_text = data.get("title", "")
-		description_text = data.get("description", "")
+
+		title_text = @warning_ignore("unsafe_call_argument")
+	data.get("title", "")
+
+		description_text = @warning_ignore("unsafe_call_argument")
+	data.get("description", "")
 		
 		# Update mock labels
 		title_label.text = title_text
 		description_label.text = description_text
-		difficulty_label.text = _get_difficulty_text(data.get("difficulty", 0))
-		rewards_label.text = _format_rewards(data.get("rewards", {}))
+
+		difficulty_label.text = _get_difficulty_text(@warning_ignore("unsafe_call_argument")
+	data.get("difficulty", 0))
+
+		rewards_label.text = _format_rewards(@warning_ignore("unsafe_call_argument")
+	data.get("rewards", {}))
 		
 		is_setup = true
-		panel_setup_complete.emit()
+		@warning_ignore("unsafe_method_access")
+	panel_setup_complete.emit()
 	
 	func _get_difficulty_text(difficulty: int) -> String:
 		match difficulty:
@@ -74,23 +87,38 @@ class MockMissionInfoPanel extends Resource:
 			_: return "Unknown"
 	
 	func _format_rewards(rewards: Dictionary) -> String:
-		var parts: Array[String] = []
+		var parts: @warning_ignore("unsafe_call_argument")
+	Array[String] = []
 		
-		if rewards.has("credits"):
-			parts.append("Credits: " + str(rewards["credits"]))
+		if @warning_ignore("unsafe_call_argument")
+	rewards.has("credits"):
+
+			@warning_ignore("return_value_discarded")
+	parts.append("Credits: " + str(rewards["credits"]))
 		
-		if rewards.has("items") and rewards["items"] is Array:
+		if @warning_ignore("unsafe_call_argument")
+	rewards.has("items") and rewards["items"] is Array:
+
 			var items = rewards["items"] as Array
 			if items.size() > 0:
-				var item_names: Array[String] = []
-				for item in items:
-					if item is Dictionary and item.has("name"):
-						item_names.append(str(item["name"]))
+				var item_names: @warning_ignore("unsafe_call_argument")
+	Array[String] = []
+				for item: String in items:
+					if item is Dictionary and @warning_ignore("unsafe_call_argument")
+	item.has("name"):
+
+						@warning_ignore("return_value_discarded")
+	item_names.append(str(item["name"]))
 				if item_names.size() > 0:
-					parts.append("Items: " + ", ".join(item_names))
+
+					@warning_ignore("return_value_discarded")
+	parts.append("Items: " + ", ".join(item_names))
 		
-		if rewards.has("reputation"):
-			parts.append("Reputation: " + str(rewards["reputation"]))
+		if @warning_ignore("unsafe_call_argument")
+	rewards.has("reputation"):
+
+			@warning_ignore("return_value_discarded")
+	parts.append("Reputation: " + str(rewards["reputation"]))
 		
 		return "\n".join(parts)
 	
@@ -101,15 +129,17 @@ class MockMissionInfoPanel extends Resource:
 			"difficulty": difficulty_text,
 			"rewards": rewards_text
 		}
-		accept_button_pressed.emit()
-		mission_selected.emit(data)
+		@warning_ignore("unsafe_method_access")
+	accept_button_pressed.emit()
+		@warning_ignore("unsafe_method_access")
+	mission_selected.emit(data)
 	
 	# UI property methods
 	func get_size() -> Vector2:
 		return panel_size
 	
-	func set_visible(value: bool) -> void:
-		visible = value
+	func set_visible(test_value: bool) -> void:
+		visible = _value
 	
 	func is_visible() -> bool:
 		return visible
@@ -128,6 +158,7 @@ var _last_mission_data: Dictionary = {}
 func before_test() -> void:
 	super.before_test()
 	mock_panel = MockMissionInfoPanel.new()
+	@warning_ignore("return_value_discarded")
 	track_resource(mock_panel) # Perfect cleanup
 	_last_mission_data = {}
 
@@ -135,6 +166,7 @@ func _on_mission_selected(mission_data: Dictionary) -> void:
 	_last_mission_data = mission_data.duplicate()
 
 # Test Methods using proven patterns
+@warning_ignore("unsafe_method_access")
 func test_initialization() -> void:
 	assert_that(mock_panel).is_not_null()
 	assert_that(mock_panel.visible).is_true()
@@ -144,6 +176,7 @@ func test_initialization() -> void:
 	assert_that(mock_panel.difficulty_label).is_not_null()
 	assert_that(mock_panel.rewards_label).is_not_null()
 
+@warning_ignore("unsafe_method_access")
 func test_setup_with_mission_data() -> void:
 	var mission_data = {
 		"title": "Test Mission",
@@ -171,6 +204,7 @@ func test_setup_with_mission_data() -> void:
 	assert_that(mock_panel.rewards_label.text).contains("Health Pack")
 	assert_that(mock_panel.rewards_label.text).contains("5")
 
+@warning_ignore("unsafe_method_access")
 func test_get_difficulty_text() -> void:
 	assert_that(mock_panel._get_difficulty_text(0)).is_equal("Easy")
 	assert_that(mock_panel._get_difficulty_text(1)).is_equal("Normal")
@@ -178,6 +212,7 @@ func test_get_difficulty_text() -> void:
 	assert_that(mock_panel._get_difficulty_text(3)).is_equal("Very Hard")
 	assert_that(mock_panel._get_difficulty_text(4)).is_equal("Unknown")
 
+@warning_ignore("unsafe_method_access")
 func test_format_rewards() -> void:
 	var rewards = {
 		"credits": 500,
@@ -194,12 +229,15 @@ func test_format_rewards() -> void:
 	assert_that(formatted).contains("Grenade")
 	assert_that(formatted).contains("3")
 
+@warning_ignore("unsafe_method_access")
 func test_accept_button_signal() -> void:
 	# Setup panel with test data
 	mock_panel.title_label.text = "Test Mission"
 	mock_panel.description_label.text = "Test Description"
 	
 	# Connect signal for testing
+
+	@warning_ignore("return_value_discarded")
 	mock_panel.connect("mission_selected", _on_mission_selected)
 	
 	mock_panel._on_accept_button_pressed()
@@ -207,30 +245,41 @@ func test_accept_button_signal() -> void:
 	# Skip signal monitoring to prevent Dictionary corruption
 	# assert_signal(mock_panel).is_emitted("mission_selected")  # REMOVED - causes Dictionary corruption
 	# assert_signal(mock_panel).is_emitted("accept_button_pressed")  # REMOVED - causes Dictionary corruption
-	assert_that(_last_mission_data.get("title")).is_equal("Test Mission")
-	assert_that(_last_mission_data.get("description")).is_equal("Test Description")
 
+	assert_that(@warning_ignore("unsafe_call_argument")
+	_last_missiontest_data.get("title")).is_equal("Test Mission")
+
+	assert_that(@warning_ignore("unsafe_call_argument")
+	_last_missiontest_data.get("description")).is_equal("Test Description")
+
+@warning_ignore("unsafe_method_access")
 func test_panel_accessibility() -> void:
 	# Skip signal monitoring to prevent Dictionary corruption
-	# monitor_signals(mock_panel)  # REMOVED - causes Dictionary corruption
+	# @warning_ignore("unsafe_method_access")
+	monitor_signals(mock_panel)  # REMOVED - causes Dictionary corruption
 	# Test accessibility directly
 	var accessibility_good = true
 	assert_that(accessibility_good).is_true()
 
+@warning_ignore("unsafe_method_access")
 func test_panel_theme() -> void:
 	# Skip signal monitoring to prevent Dictionary corruption
-	# monitor_signals(mock_panel)  # REMOVED - causes Dictionary corruption
+	# @warning_ignore("unsafe_method_access")
+	monitor_signals(mock_panel)  # REMOVED - causes Dictionary corruption
 	# Test theme directly
 	var theme_works = true
 	assert_that(theme_works).is_true()
 
+@warning_ignore("unsafe_method_access")
 func test_panel_layout() -> void:
 	# Skip signal monitoring to prevent Dictionary corruption
-	# monitor_signals(mock_panel)  # REMOVED - causes Dictionary corruption
+	# @warning_ignore("unsafe_method_access")
+	monitor_signals(mock_panel)  # REMOVED - causes Dictionary corruption
 	# Test layout directly
 	var layout_valid = true
 	assert_that(layout_valid).is_true()
 
+@warning_ignore("unsafe_method_access")
 func test_visibility_management() -> void:
 	assert_that(mock_panel.is_visible()).is_true()
 	
@@ -240,6 +289,7 @@ func test_visibility_management() -> void:
 	mock_panel.set_visible(true)
 	assert_that(mock_panel.is_visible()).is_true()
 
+@warning_ignore("unsafe_method_access")
 func test_mission_data_storage() -> void:
 	var test_data = {
 		"title": "Storage Test",
@@ -253,11 +303,13 @@ func test_mission_data_storage() -> void:
 	assert_that(mock_panel.title_text).is_equal("Storage Test")
 	assert_that(mock_panel.description_text).is_equal("Testing data storage")
 
+@warning_ignore("unsafe_method_access")
 func test_empty_rewards_formatting() -> void:
-	var empty_rewards = {}
+	var empty_rewards: Dictionary = {}
 	var formatted = mock_panel._format_rewards(empty_rewards)
 	assert_that(formatted).is_equal("")
 
+@warning_ignore("unsafe_method_access")
 func test_partial_rewards_formatting() -> void:
 	var partial_rewards = {"credits": 200}
 	var formatted = mock_panel._format_rewards(partial_rewards)
@@ -265,6 +317,7 @@ func test_partial_rewards_formatting() -> void:
 	assert_that(formatted).does_not_contain("Items:")
 	assert_that(formatted).does_not_contain("Reputation:")
 
+@warning_ignore("unsafe_method_access")
 func test_complex_mission_setup() -> void:
 	var complex_mission = {
 		"title": "Complex Mission",
@@ -290,10 +343,12 @@ func test_complex_mission_setup() -> void:
 	assert_that(mock_panel.rewards_label.text).contains("Medical Kit")
 	assert_that(mock_panel.rewards_label.text).contains("10")
 
+@warning_ignore("unsafe_method_access")
 func test_button_state_management() -> void:
 	assert_that(mock_panel.has_accept_button).is_true()
 	assert_that(mock_panel.button_enabled).is_true()
 
+@warning_ignore("unsafe_method_access")
 func test_panel_size() -> void:
 	var size = mock_panel.get_size()
 	assert_that(size.x).is_greater(0)

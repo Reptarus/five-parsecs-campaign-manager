@@ -8,7 +8,6 @@ func _init(current :Variant) -> void:
 	# save the actual assert instance on the current thread context
 	GdUnitThreadManager.get_current_context().set_assert(self)
 	if not validate_value_type(current):
-		@warning_ignore("return_value_discarded")
 		report_error("GdUnitResultAssert inital error, unexpected type <%s>" % GdObjects.typeof_as_string(current))
 
 
@@ -42,25 +41,21 @@ func failure_message() -> String:
 
 
 func override_failure_message(message :String) -> GdUnitResultAssert:
-	@warning_ignore("return_value_discarded")
 	_base.override_failure_message(message)
 	return self
 
 
 func append_failure_message(message :String) -> GdUnitResultAssert:
-	@warning_ignore("return_value_discarded")
 	_base.append_failure_message(message)
 	return self
 
 
 func is_null() -> GdUnitResultAssert:
-	@warning_ignore("return_value_discarded")
 	_base.is_null()
 	return self
 
 
 func is_not_null() -> GdUnitResultAssert:
-	@warning_ignore("return_value_discarded")
 	_base.is_not_null()
 	return self
 

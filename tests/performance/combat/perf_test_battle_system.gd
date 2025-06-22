@@ -1,5 +1,6 @@
 @tool
-extends "res://tests/performance/base/perf_test_base.gd"
+@warning_ignore("return_value_discarded")
+	extends "res://tests/performance/base/perf_test_base.gd"
 
 # Safe script references - only use paths that definitely exist
 const BattleStateMachine = preload("res://src/core/battle/state/BattleStateMachine.gd")
@@ -20,16 +21,20 @@ func after_test() -> void:
 
 func setup_battle_system() -> void:
 	# Create battle system components with error handling and auto_free
-	_state_machine = auto_free(BattleStateMachine.new() if BattleStateMachine else Node.new())
+	_state_machine = @warning_ignore("return_value_discarded")
+	auto_free(BattleStateMachine.new() if BattleStateMachine else Node.new())
 	_state_machine.name = "TestBattleStateMachine"
 	
-	_game_state = auto_free(Node.new())
+	_game_state = @warning_ignore("return_value_discarded")
+	auto_free(Node.new())
 	_game_state.name = "TestGameState"
 	
-	_combat_resolver = auto_free(Node.new())
+	_combat_resolver = @warning_ignore("return_value_discarded")
+	auto_free(Node.new())
 	_combat_resolver.name = "TestCombatResolver"
 	
-	_battlefield_manager = auto_free(Node.new())
+	_battlefield_manager = @warning_ignore("return_value_discarded")
+	auto_free(Node.new())
 	_battlefield_manager.name = "TestBattlefieldManager"
 	
 	# Set up relationships only if components have the required properties
@@ -43,15 +48,22 @@ func setup_battle_system() -> void:
 		_safe_set_property(_state_machine, "battlefield_manager", _battlefield_manager)
 	
 	# Add to scene tree - auto_free will handle cleanup
+	@warning_ignore("return_value_discarded")
 	add_child(_game_state)
+	@warning_ignore("return_value_discarded")
 	add_child(_battlefield_manager)
+	@warning_ignore("return_value_discarded")
 	add_child(_combat_resolver)
+	@warning_ignore("return_value_discarded")
 	add_child(_state_machine)
 	
 	# Initialize active combatants array if it doesn't exist
-	if not _combat_resolver.has_method("get") or not _combat_resolver.get("active_combatants"):
+
+	if not _combat_resolver.has_method("get") or not @warning_ignore("unsafe_call_argument")
+	_combat_resolver.get("active_combatants"):
 		_combat_resolver.set_meta("active_combatants", [])
 	
+	@warning_ignore("unsafe_method_access")
 	await stabilize_engine()
 
 func cleanup_battle_system() -> void:
@@ -63,9 +75,10 @@ func cleanup_battle_system() -> void:
 # Helper function to create test character
 func _create_test_character(name: String) -> Node:
 	# Create simple test character node
-	var character_data = auto_free(Node.new())
-	character_data.name = name + "_Data"
-	
+	var character_data = @warning_ignore("return_value_discarded")
+	auto_free(Node.new())
+	character_data.name = test_name + "_Data"
+
 	# Set character properties as metadata
 	character_data.set_meta("character_name", name)
 	character_data.set_meta("character_class", _get_safe_enum_value("CharacterClass", "SOLDIER", 0))
@@ -79,9 +92,10 @@ func _create_test_character(name: String) -> Node:
 	character_data.set_meta("luck", 1)
 	
 	# Create battle character wrapper
-	var battle_character = auto_free(Node.new())
-	battle_character.name = name + "_Battle"
-	
+	var battle_character = @warning_ignore("return_value_discarded")
+	auto_free(Node.new())
+	battle_character.name = test_name + "_Battle"
+
 	# Set battle properties as metadata
 	battle_character.set_meta("character_data", character_data)
 	battle_character.set_meta("health", 10)
@@ -91,9 +105,9 @@ func _create_test_character(name: String) -> Node:
 	return battle_character
 
 # Helper method to safely set properties
-func _safe_set_property(obj: Object, property: String, value: Variant) -> void:
+func _safe_set_property(obj: Object, property: String, _value: Variant) -> void:
 	if obj and property in obj:
-		obj.set(property, value)
+		obj.set(property, _value)
 
 # Helper method to safely get enum values with fallbacks
 func _get_safe_enum_value(enum_class: String, value_name: String, default_value: int) -> int:
@@ -115,16 +129,20 @@ func _safe_resolve_combat(attacker: Node, target: Node) -> void:
 
 # Helper function to create multiple test characters
 func _create_test_squad(size: int) -> Array[Node]:
-	var squad: Array[Node] = []
-	for i in range(size):
-		var character = _create_test_character("TestChar_%d" % i)
-		squad.append(character)
+	var squad: @warning_ignore("unsafe_call_argument")
+	Array[Node] = []
+	for i: int in range(size):
+		var character = _create_test_character("@warning_ignore("integer_division")
+	TestChar_ % d" % i)
+
+		@warning_ignore("return_value_discarded")
+	squad.append(character)
 	return squad
 
 # Helper function to create test weapon
 func _create_test_weapon(name: String) -> Resource:
 	# Create simple weapon resource without specific script dependency
-	var weapon = Resource.new()
+	var weapon: Resource = Resource.new()
 	weapon.set_meta("name", name)
 	weapon.set_meta("damage", 2)
 	weapon.set_meta("range", 12)
@@ -132,21 +150,28 @@ func _create_test_weapon(name: String) -> Resource:
 	return weapon
 
 # Performance Tests
+@warning_ignore("unsafe_method_access")
 func test_combat_resolution_performance() -> void:
 	var player_squad = _create_test_squad(5)
 	var enemy_squad = _create_test_squad(5)
 	
 	# Add squads to combat resolver using metadata if property doesn't exist
-	var active_combatants = []
-	if _combat_resolver.has_method("get") and _combat_resolver.get("active_combatants") != null:
+	var active_combatants: Array = []
+
+	if _combat_resolver.has_method("get") and @warning_ignore("unsafe_call_argument")
+	_combat_resolver.get("active_combatants") != null:
 		active_combatants = _combat_resolver.active_combatants
 	else:
 		active_combatants = _combat_resolver.get_meta("active_combatants", [])
 	
 	for unit in player_squad:
-		active_combatants.append(unit)
+
+		@warning_ignore("return_value_discarded")
+	active_combatants.append(unit)
 	for unit in enemy_squad:
-		active_combatants.append(unit)
+
+		@warning_ignore("return_value_discarded")
+	active_combatants.append(unit)
 	
 	# Update the active combatants
 	if _combat_resolver.has_method("set") and "active_combatants" in _combat_resolver:
@@ -156,9 +181,11 @@ func test_combat_resolution_performance() -> void:
 	
 	# Measure time for 100 combat resolutions
 	var start_time = Time.get_ticks_msec()
-	for i in range(100):
-		var attacker = player_squad[i % 5]
-		var target = enemy_squad[i % 5]
+	for i: int in range(100):
+		var attacker = player_squad[@warning_ignore("integer_division")
+	i % 5]
+		var target = enemy_squad[@warning_ignore("integer_division")
+	i % 5]
 		_safe_resolve_combat(attacker, target)
 	var end_time = Time.get_ticks_msec()
 	
@@ -174,16 +201,22 @@ func test_combat_resolution_performance() -> void:
 		"Combat resolution should take less than 5ms on average"
 	).is_less(5.0)
 
+@warning_ignore("unsafe_method_access")
 func test_state_transition_performance() -> void:
-	var phase_changes = []
-	_state_machine.phase_changed.connect(func(new_phase): phase_changes.append(new_phase))
+	var phase_changes: Array = []
+	_state_machine.@warning_ignore("return_value_discarded")
+	phase_changed.connect(func(new_phase): @warning_ignore("return_value_discarded")
+	phase_changes.append(new_phase))
 	
 	# Measure time for 1000 state transitions
 	var start_time = Time.get_ticks_msec()
-	for i in range(1000):
-		_state_machine.emit_signal("phase_changed", GameEnums.CombatPhase.SETUP)
-		_state_machine.emit_signal("phase_changed", GameEnums.CombatPhase.INITIATIVE)
-		_state_machine.emit_signal("phase_changed", GameEnums.CombatPhase.ACTION)
+	for i: int in range(1000):
+		@warning_ignore("unsafe_method_access")
+	_state_machine.emit_signal("phase_changed", GameEnums.CombatPhase.SETUP)
+		@warning_ignore("unsafe_method_access")
+	_state_machine.emit_signal("phase_changed", GameEnums.CombatPhase.INITIATIVE)
+		@warning_ignore("unsafe_method_access")
+	_state_machine.emit_signal("phase_changed", GameEnums.CombatPhase.ACTION)
 	var end_time = Time.get_ticks_msec()
 	
 	var time_taken = end_time - start_time
@@ -198,6 +231,7 @@ func test_state_transition_performance() -> void:
 		"State transitions should take less than 1ms on average"
 	).is_less(1.0)
 
+@warning_ignore("unsafe_method_access")
 func test_battle_flow_performance() -> void:
 	var player_squad = _create_test_squad(5)
 	var enemy_squad = _create_test_squad(5)
@@ -205,34 +239,45 @@ func test_battle_flow_performance() -> void:
 	# Add squads to managers using safe metadata approach
 	var active_combatants = _combat_resolver.get_meta("active_combatants", [])
 	for unit in player_squad:
-		active_combatants.append(unit)
+
+		@warning_ignore("return_value_discarded")
+	active_combatants.append(unit)
 	for unit in enemy_squad:
-		active_combatants.append(unit)
+
+		@warning_ignore("return_value_discarded")
+	active_combatants.append(unit)
 	_combat_resolver.set_meta("active_combatants", active_combatants)
 	
 	# Measure time for 10 complete battle rounds
 	var start_time = Time.get_ticks_msec()
-	for round in range(10):
+	for round: int in range(10):
 		# Start round
-		_state_machine.emit_signal("round_started", round + 1)
+		@warning_ignore("unsafe_method_access")
+	_state_machine.emit_signal("round_started", round + 1)
 		
 		# Process each unit's turn
 		for unit in player_squad + enemy_squad:
 			# Initiative phase
-			_state_machine.emit_signal("phase_changed", GameEnums.CombatPhase.SETUP)
+			@warning_ignore("unsafe_method_access")
+	_state_machine.emit_signal("phase_changed", GameEnums.CombatPhase.SETUP)
 			
 			# Action phase
-			_state_machine.emit_signal("phase_changed", GameEnums.CombatPhase.ACTION)
-			_state_machine.emit_signal("unit_action_changed", GameEnums.UnitAction.MOVE)
-			_state_machine.emit_signal("unit_action_completed", unit, GameEnums.UnitAction.MOVE)
+			@warning_ignore("unsafe_method_access")
+	_state_machine.emit_signal("phase_changed", GameEnums.CombatPhase.ACTION)
+			@warning_ignore("unsafe_method_access")
+	_state_machine.emit_signal("unit_action_changed", GameEnums.UnitAction.MOVE)
+			@warning_ignore("unsafe_method_access")
+	_state_machine.emit_signal("unit_action_completed", unit, GameEnums.UnitAction.MOVE)
 			
 			# Combat resolution if enemy
 			if unit in enemy_squad:
-				var target = player_squad[randi() % player_squad.size()]
+				var target = player_squad[@warning_ignore("integer_division")
+	randi() % player_squad.size()]
 				_safe_resolve_combat(unit, target)
 		
 		# End round
-		_state_machine.emit_signal("round_ended", round + 1)
+		@warning_ignore("unsafe_method_access")
+	_state_machine.emit_signal("round_ended", round + 1)
 	var end_time = Time.get_ticks_msec()
 	
 	var time_taken = end_time - start_time

@@ -21,20 +21,20 @@ var rule_templates: Dictionary = {
 	"combat_modifier": {
 		"name": "Combat Modifier",
 		"type": "modifier",
-		"fields": ["value", "condition", "target"],
-		"validator": func(value: int, state: Dictionary) -> bool: return value >= -3 and value <= 3
+		"fields": ["_value", "condition", "target"],
+		"validator": func(_value: int, state: Dictionary) -> bool: return _value >= -3 and _value <= 3
 	},
 	"resource_modifier": {
 		"name": "Resource Modifier",
 		"type": "resource",
-		"fields": ["resource_type", "value", "condition"],
-		"validator": func(value: int, state: Dictionary) -> bool: return value >= -5 and value <= 5
+		"fields": ["resource_type", "_value", "condition"],
+		"validator": func(_value: int, state: Dictionary) -> bool: return _value >= -5 and _value <= 5
 	},
 	"state_condition": {
 		"name": "State Condition",
 		"type": "condition",
-		"fields": ["state_key", "operator", "value"],
-		"validator": func(value: Variant, state: Dictionary) -> bool: return true # Complex validation based on state
+		"fields": ["state_key", "operator", "_value"],
+		"validator": func(_value: Variant, state: Dictionary) -> bool: return true # Complex validation based on state
 	}
 }
 #endregion
@@ -70,26 +70,26 @@ func _update_rules_list() -> void:
 func add_rule(rule_data: Dictionary) -> String:
 	var rule_id = str(Time.get_unix_time_from_system())
 	active_rules[rule_id] = rule_data
-	rule_added.emit(rule_data)
+	rule_added.emit(rule_data) # warning: return value discarded (intentional)
 	_update_rules_list()
 	return rule_id
 
 func modify_rule(rule_id: String, rule_data: Dictionary) -> void:
 	if active_rules.has(rule_id):
 		active_rules[rule_id] = rule_data
-		rule_modified.emit(rule_data)
+		rule_modified.emit(rule_data) # warning: return value discarded (intentional)
 		_update_rules_list()
 
 func remove_rule(rule_id: String) -> void:
 	if active_rules.has(rule_id):
 		active_rules.erase(rule_id)
-		rule_removed.emit(rule_id)
+		rule_removed.emit(rule_id) # warning: return value discarded (intentional)
 		_update_rules_list()
 
 func get_active_rules() -> Array[Dictionary]:
 	var rules: Array[Dictionary] = []
 	for rule in active_rules.values():
-		rules.append(rule)
+		rules.append(rule) # warning: return value discarded (intentional)
 	return rules
 #endregion
 
@@ -102,14 +102,15 @@ func validate_rule(rule: Dictionary, context: String) -> bool:
 	if not template.has("validator"):
 		return true
 	
-	validation_requested.emit(rule, context)
-	return template.validator.call(rule.value, {})
+	validation_requested.emit(rule, context) # warning: return value discarded (intentional)
+
+	return template.validator.call(rule._value, {})
 
 func apply_rule(rule_id: String, context: String) -> void:
 	if active_rules.has(rule_id):
 		var rule = active_rules[rule_id]
 		if validate_rule(rule, context):
-			rule_applied.emit(rule_id, context)
+			rule_applied.emit(rule_id, context) # warning: return value discarded (intentional)
 #endregion
 
 #region Signal Handlers

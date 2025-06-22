@@ -3,10 +3,10 @@ class_name FPCM_UpkeepPhasePanel
 
 const Character = preload("res://src/core/character/Base/Character.gd")
 
-@onready var upkeep_cost_label = $VBoxContainer/UpkeepCostLabel
-@onready var crew_list = $VBoxContainer/CrewList
-@onready var resources_list = $VBoxContainer/ResourcesList
-@onready var pay_upkeep_button = $VBoxContainer/PayUpkeepButton
+@onready var upkeep_cost_label: Label = $"VBoxContainer/UpkeepCostLabel"
+@onready var crew_list: ItemList = $"VBoxContainer/CrewList"
+@onready var resources_list: ItemList = $"VBoxContainer/ResourcesList"
+@onready var pay_upkeep_button: Button = $"VBoxContainer/PayUpkeepButton"
 
 var total_upkeep_cost: int = 0
 var crew_members: Array[Character] = []
@@ -14,7 +14,7 @@ var crew_members: Array[Character] = []
 func _ready() -> void:
 	super._ready()
 	pay_upkeep_button.pressed.connect(_on_pay_upkeep_pressed)
-	
+
 func setup_phase() -> void:
 	super.setup_phase()
 	_update_crew_list()
@@ -34,12 +34,12 @@ func _calculate_upkeep() -> void:
 	total_upkeep_cost = 0
 	
 	for crew_member in crew_members:
-		var member_cost = 6 # Base upkeep cost
+		var member_cost: int = 6 # Base upkeep cost
 		
 		# Apply modifiers based on traits - convert enum to string
-		if crew_member.has_trait("TACTICAL_MIND"): # Using string value instead of enum
+		if crew_member.has_trait("TACTICAL_MIND"): # Using string _value instead of enum
 			member_cost -= 1 # Tactical minds are more efficient with resources
-		if crew_member.has_trait("STREET_SMART"): # Using string value instead of enum
+		if crew_member.has_trait("STREET_SMART"): # Using string _value instead of enum
 			member_cost -= 2 # Street smart characters know how to live cheaply
 			
 		total_upkeep_cost += member_cost
@@ -71,14 +71,14 @@ func get_phase_data() -> Dictionary:
 func _handle_upkeep_effects() -> void:
 	# Apply any special effects from traits
 	for crew_member in crew_members:
-		if crew_member.has_trait("TACTICAL_MIND"): # Using string value instead of enum
+		if crew_member.has_trait("TACTICAL_MIND"): # Using string _value instead of enum
 			# Tactical minds can sometimes find ways to save money
 			var refund = total_upkeep_cost * 0.1
 			game_state.campaign.credits += int(refund)
 
 func _on_phase_failed(error_message: String) -> void:
 	push_error("Upkeep phase failed: " + error_message)
-	var dialog = AcceptDialog.new()
+	var dialog := AcceptDialog.new()
 	dialog.title = "Upkeep Failed"
 	dialog.dialog_text = error_message
 	add_child(dialog)

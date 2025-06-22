@@ -38,22 +38,22 @@ func _update_display() -> void:
     _update_confirm_button()
 
 func _create_reward_item(reward: Dictionary) -> Control:
-    var item = PanelContainer.new()
-    var vbox = VBoxContainer.new()
+    var item := PanelContainer.new()
+    var vbox := VBoxContainer.new()
     item.add_child(vbox)
     
     # Add reward type label
-    var type_label = Label.new()
+    var type_label := Label.new()
     type_label.text = _get_reward_type_text(reward.type)
     vbox.add_child(type_label)
     
-    # Add reward value/description
-    var value_label = Label.new()
+    # Add reward _value/description
+    var value_label := Label.new()
     value_label.text = _get_reward_value_text(reward)
     vbox.add_child(value_label)
     
     # Add selection checkbox
-    var checkbox = CheckBox.new()
+    var checkbox := CheckBox.new()
     checkbox.text = "Select"
     checkbox.toggled.connect(_on_reward_toggled.bind(reward))
     vbox.add_child(checkbox)
@@ -97,12 +97,16 @@ func _get_reward_value_text(reward: Dictionary) -> String:
         "trait":
             return reward.trait_name
         _:
-            return ""
+            return "Unknown"
 
 func _get_reward_tooltip(reward: Dictionary) -> String:
-    var tooltip = ""
+    var tooltip: String = ""
     
     match reward.type:
+        "credits":
+            tooltip = "Credits earned from completing the mission"
+        "reputation":
+            tooltip = "Reputation gained with various factions"
         "item":
             if reward.has("description"):
                 tooltip = reward.description
@@ -121,7 +125,7 @@ func _get_reward_tooltip(reward: Dictionary) -> String:
 func _on_reward_toggled(button_pressed: bool, reward: Dictionary) -> void:
     if button_pressed:
         if selected_rewards.size() < max_selections:
-            selected_rewards.append(reward)
+            selected_rewards.append(reward) # warning: return value discarded (intentional)
         else:
             # Uncheck the checkbox if we're at max selections
             var checkbox = get_viewport().gui_get_focus_owner()
@@ -136,7 +140,7 @@ func _update_confirm_button() -> void:
     confirm_button.disabled = selected_rewards.is_empty()
 
 func _on_confirm_pressed() -> void:
-    rewards_confirmed.emit(selected_rewards)
+    rewards_confirmed.emit(selected_rewards) # warning: return value discarded (intentional)
 
 func get_selected_rewards() -> Array:
     return selected_rewards

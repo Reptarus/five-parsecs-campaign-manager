@@ -28,7 +28,7 @@ func _initialize_pdf_generator() -> void:
 
 func export_crew_to_pdf(crew, file_name: String = "") -> void:
 	if not crew.get_class() == "FPCM_Crew":
-		export_failed.emit("Invalid crew type. Expected FPCM_Crew.")
+		export_failed.emit("Invalid crew type. Expected FPCM_Crew.") # warning: return value discarded (intentional)
 		return
 		
 	if not pdf_generator:
@@ -50,13 +50,13 @@ func export_crew_to_pdf(crew, file_name: String = "") -> void:
 	
 	var result = pdf_generator.save_to_file(save_path)
 	if result == OK:
-		export_completed.emit(true, "Crew roster exported to %s" % save_path)
+		export_completed.emit(true, "Crew roster exported to %s" % save_path) # warning: return value discarded (intentional)
 	else:
-		export_failed.emit("Failed to save PDF file: %s" % error_string(result))
+		export_failed.emit("Failed to save PDF file: %s" % error_string(result)) # warning: return value discarded (intentional)
 
 func export_character_sheet(character, file_name: String = "") -> void:
 	if not character.get_class() == "FPCM_CrewMember":
-		export_failed.emit("Invalid character type. Expected FPCM_CrewMember.")
+		export_failed.emit("Invalid character type. Expected FPCM_CrewMember.") # warning: return value discarded (intentional)
 		return
 	
 	if not pdf_generator:
@@ -78,13 +78,13 @@ func export_character_sheet(character, file_name: String = "") -> void:
 	
 	var result = pdf_generator.save_to_file(save_path)
 	if result == OK:
-		export_completed.emit(true, "Character sheet exported to %s" % save_path)
+		export_completed.emit(true, "Character sheet exported to %s" % save_path) # warning: return value discarded (intentional)
 	else:
-		export_failed.emit("Failed to save PDF file: %s" % error_string(result))
+		export_failed.emit("Failed to save PDF file: %s" % error_string(result)) # warning: return value discarded (intentional)
 
 func _generate_crew_roster_content(crew) -> void:
 	if not pdf_generator:
-		export_failed.emit("PDF generator not initialized")
+		export_failed.emit("PDF generator not initialized") # warning: return value discarded (intentional)
 		return
 		
 	# Create new document
@@ -113,7 +113,7 @@ func _generate_crew_roster_content(crew) -> void:
 			pdf_generator.add_subsection(member.character_name)
 			
 			# Add character class
-			var class_name_str = "Unknown"
+			var class_name_str: String = "Unknown"
 			match member.character_class:
 				FiveParsecsGameEnums.CharacterClass.SOLDIER:
 					class_name_str = "Soldier"
@@ -147,7 +147,7 @@ func _generate_crew_roster_content(crew) -> void:
 			# Add health and status
 			pdf_generator.add_field("Health", str(member.health) + "/" + str(member.max_health))
 			
-			var status_name = "Unknown"
+			var status_name: String = "Unknown"
 			match member.status:
 				FiveParsecsGameEnums.CharacterStatus.HEALTHY:
 					status_name = "Healthy"
@@ -174,16 +174,16 @@ func _generate_crew_roster_content(crew) -> void:
 			if member.inventory and member.inventory.has_method("get_weapons"):
 				var weapons = member.inventory.get_weapons()
 				if weapons.size() > 0:
-					var weapon_names = []
+					var weapon_names: Array = []
 					for weapon in weapons:
-						weapon_names.append(weapon.get_display_name())
+						weapon_names.append(weapon.get_display_name()) # warning: return value discarded (intentional)
 					pdf_generator.add_field("Weapons", ", ".join(weapon_names))
 			
 			pdf_generator.add_separator()
 
 func _generate_character_sheet_content(character) -> void:
 	if not pdf_generator:
-		export_failed.emit("PDF generator not initialized")
+		export_failed.emit("PDF generator not initialized") # warning: return value discarded (intentional)
 		return
 		
 	# Create new document
@@ -195,7 +195,7 @@ func _generate_character_sheet_content(character) -> void:
 	pdf_generator.add_separator()
 	
 	# Add character class
-	var class_name_str = "Unknown"
+	var class_name_str: String = "Unknown"
 	match character.character_class:
 		FiveParsecsGameEnums.CharacterClass.SOLDIER:
 			class_name_str = "Soldier"
@@ -231,7 +231,7 @@ func _generate_character_sheet_content(character) -> void:
 	pdf_generator.add_field("Health", str(character.health) + "/" + str(character.max_health))
 	pdf_generator.add_field("Morale", str(character.morale))
 	
-	var status_name = "Unknown"
+	var status_name: String = "Unknown"
 	match character.status:
 		FiveParsecsGameEnums.CharacterStatus.HEALTHY:
 			status_name = "Healthy"
@@ -281,7 +281,7 @@ func _generate_character_sheet_content(character) -> void:
 
 func _generate_campaign_summary_content(campaign) -> void:
 	if not pdf_generator:
-		export_failed.emit("PDF generator not initialized")
+		export_failed.emit("PDF generator not initialized") # warning: return value discarded (intentional)
 		return
 		
 	# Create new document
@@ -294,7 +294,7 @@ func _generate_campaign_summary_content(campaign) -> void:
 	# Add campaign information
 	pdf_generator.add_section("Campaign Information")
 	
-	var campaign_type = "Unknown"
+	var campaign_type: String = "Unknown"
 	if campaign.has("type"):
 		match campaign.type:
 			FiveParsecsGameEnums.CampaignType.STANDARD:

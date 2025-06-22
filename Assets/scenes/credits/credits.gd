@@ -3,7 +3,7 @@ extends Control
 @export var scroll_speed: float = 50.0
 @onready var credits_label: Label = $CreditsLabel
 
-var credits_text = """
+var credits_text: String = """
 Five Parsecs from Home
 A Solo Adventure Game
 
@@ -31,18 +31,19 @@ Special Thanks:
 Thank you for playing!
 """
 
-func _ready():
+func _ready() -> void:
     credits_label.text = credits_text
     credits_label.anchor_top = 1.0
     credits_label.anchor_bottom = 1.0
     credits_label.position.y = get_viewport_rect().size.y
 
-func _process(delta):
+func _process(delta: float) -> void:
     credits_label.position.y -= scroll_speed * delta
     
     if credits_label.position.y + credits_label.size.y < 0:
         credits_label.position.y = get_viewport_rect().size.y
 
-func _input(event):
+func _input(event) -> void:
     if event.is_action_pressed("ui_cancel"):
-        get_tree().change_scene_to_file("res://scenes/main_menu/main_menu.tscn")
+        # Use deferred scene change for better performance
+        get_tree().call_deferred("change_scene_to_file", "res://scenes/main_menu/main_menu.tscn")

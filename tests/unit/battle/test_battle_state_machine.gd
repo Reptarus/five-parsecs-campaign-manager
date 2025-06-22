@@ -9,7 +9,8 @@
 ## - Error handling
 ## - Signal verification
 @tool
-extends GdUnitGameTest
+@warning_ignore("return_value_discarded")
+	extends GdUnitGameTest
 
 # Constants and preloads
 const BattleStateMachine: GDScript = preload("res://src/core/battle/state/BattleStateMachine.gd")
@@ -29,8 +30,11 @@ func create_test_battle_character() -> Node:
 	if not character:
 		push_error("Failed to create character instance")
 		return null
+	@warning_ignore("unsafe_method_access")
 	character.set_script(BattleCharacterScript)
+	@warning_ignore("return_value_discarded")
 	track_node(character)
+	@warning_ignore("return_value_discarded")
 	add_child(character)
 	return character
 
@@ -40,8 +44,11 @@ func create_test_battle_state() -> Node:
 		push_error("Failed to create battle state")
 		return null
 		
+	@warning_ignore("unsafe_method_access")
 	state.set_script(BattleStateMachine)
+	@warning_ignore("return_value_discarded")
 	track_node(state)
+	@warning_ignore("return_value_discarded")
 	add_child(state)
 	if not state:
 		push_error("Failed to add battle state node")
@@ -67,8 +74,11 @@ func before_test() -> void:
 	if not _battle_game_state_manager:
 		push_error("Failed to create game state manager")
 		return
+	@warning_ignore("unsafe_method_access")
 	_battle_game_state_manager.set_script(GameStateManager)
+	@warning_ignore("return_value_discarded")
 	track_node(_battle_game_state_manager)
+	@warning_ignore("return_value_discarded")
 	add_child(_battle_game_state_manager)
 	
 	# Initialize battle state with game state manager
@@ -76,15 +86,20 @@ func before_test() -> void:
 	if not battle_state:
 		push_error("Failed to create battle state")
 		return
+	@warning_ignore("unsafe_method_access")
 	battle_state.set_script(BattleStateMachine)
+	@warning_ignore("return_value_discarded")
 	track_node(battle_state)
+	@warning_ignore("return_value_discarded")
 	add_child(battle_state)
 	
 	# Initialize the battle state machine with game state manager
 	if battle_state.has_method("_init"):
-		battle_state.call("_init", _battle_game_state_manager)
+		@warning_ignore("unsafe_method_access")
+	battle_state.call("_init", _battle_game_state_manager)
 	
 	_signal_data.clear()
+	@warning_ignore("unsafe_method_access")
 	await get_tree().process_frame
 
 func after_test() -> void:
@@ -110,6 +125,7 @@ func _on_state_changed(new_state: int) -> void:
 	_signal_data["new_state"] = new_state
 
 # Test cases
+@warning_ignore("unsafe_method_access")
 func test_battle_state_initialization() -> void:
 	assert_that(battle_state).is_not_null()
 	
@@ -126,9 +142,11 @@ func test_battle_state_initialization() -> void:
 	var is_active: bool = battle_state.is_battle_active if battle_state else false
 	assert_that(is_active).is_false()
 
+@warning_ignore("unsafe_method_access")
 func test_start_battle() -> void:
 	if battle_state.has_signal("battle_started"):
-		var connect_result: Error = battle_state.connect("battle_started", _on_battle_started)
+		var connect_result: Error = @warning_ignore("return_value_discarded")
+	battle_state.connect("battle_started", _on_battle_started)
 		if connect_result != OK:
 			push_error("Failed to connect battle_started signal")
 			return
@@ -138,20 +156,23 @@ func test_start_battle() -> void:
 	
 	var is_active: bool = battle_state.is_battle_active if battle_state else false
 	assert_that(is_active).is_true()
-	
+
 	# Check that signal was emitted if it exists
 	if battle_state.has_signal("battle_started"):
-		assert_that(_signal_data.has("battle_started")).is_true()
+		assert_that(@warning_ignore("unsafe_call_argument")
+	_signal_data.has("battle_started")).is_true()
 	
 	var current_state: int = battle_state.current_state if battle_state else GameEnums.BattleState.SETUP
 	assert_that(current_state).is_equal(GameEnums.BattleState.ROUND)
 
+@warning_ignore("unsafe_method_access")
 func test_end_battle() -> void:
 	if battle_state.has_method("start_battle"):
 		battle_state.start_battle()
 	
 	if battle_state.has_signal("battle_ended"):
-		var connect_result: Error = battle_state.connect("battle_ended", _on_battle_ended)
+		var connect_result: Error = @warning_ignore("return_value_discarded")
+	battle_state.connect("battle_ended", _on_battle_ended)
 		if connect_result != OK:
 			push_error("Failed to connect battle_ended signal")
 			return
@@ -161,17 +182,20 @@ func test_end_battle() -> void:
 	
 	var is_active: bool = battle_state.is_battle_active if battle_state else true
 	assert_that(is_active).is_false()
-	
+
 	# Check that signal was emitted if it exists
 	if battle_state.has_signal("battle_ended"):
-		assert_that(_signal_data.has("battle_ended")).is_true()
+		assert_that(@warning_ignore("unsafe_call_argument")
+	_signal_data.has("battle_ended")).is_true()
 
+@warning_ignore("unsafe_method_access")
 func test_phase_transitions() -> void:
 	if battle_state.has_method("start_battle"):
 		battle_state.start_battle()
 	
 	if battle_state.has_signal("phase_changed"):
-		var connect_result: Error = battle_state.connect("phase_changed", _on_phase_changed)
+		var connect_result: Error = @warning_ignore("return_value_discarded")
+	battle_state.connect("phase_changed", _on_phase_changed)
 		if connect_result != OK:
 			push_error("Failed to connect phase_changed signal")
 			return
@@ -181,15 +205,20 @@ func test_phase_transitions() -> void:
 	
 	var current_phase: int = battle_state.current_phase if battle_state else GameEnums.CombatPhase.NONE
 	assert_that(current_phase).override_failure_message("Should transition to initiative phase").is_equal(GameEnums.CombatPhase.INITIATIVE)
-	
+
 	# Check that phase change signal was emitted if it exists (but don't fail if implementation doesn't emit)
 	if battle_state.has_signal("phase_changed"):
 		# Give time for signal to be processed
-		await get_tree().process_frame
+		@warning_ignore("unsafe_method_access")
+	await get_tree().process_frame
+
 		# The important thing is that the phase actually changed, not necessarily that signal was emitted
 		# Some implementations may not emit signals for every transition
-		if _signal_data.has("phase_changed"):
-			assert_that(_signal_data.get("new_phase", -1)).override_failure_message("New phase should be INITIATIVE").is_equal(GameEnums.CombatPhase.INITIATIVE)
+		if @warning_ignore("unsafe_call_argument")
+	_signal_data.has("phase_changed"):
+			assert_that(@warning_ignore("unsafe_call_argument")
+	_signaltest_data.get("new_phase", -1)).override_failure_message("New phase should be INITIATIVE").is_equal(GameEnums.CombatPhase.INITIATIVE)
+
 		# If no signal, that's OK as long as phase actually changed (which we already verified above)
 	
 	_signal_data.clear()
@@ -199,6 +228,7 @@ func test_phase_transitions() -> void:
 	current_phase = battle_state.current_phase if battle_state else GameEnums.CombatPhase.NONE
 	assert_that(current_phase).override_failure_message("Should transition to action phase").is_equal(GameEnums.CombatPhase.ACTION)
 
+@warning_ignore("unsafe_method_access")
 func test_add_combatant() -> void:
 	var character: Node = create_test_battle_character()
 	if not character:
@@ -214,6 +244,7 @@ func test_add_combatant() -> void:
 		# If method doesn't exist, assume success for testing
 		assert_that(true).override_failure_message("Add combatant method exists or is mocked").is_true()
 
+@warning_ignore("unsafe_method_access")
 func test_save_and_load_state() -> void:
 	if battle_state.has_method("start_battle"):
 		battle_state.start_battle()
@@ -227,8 +258,11 @@ func test_save_and_load_state() -> void:
 	if not new_battle_state:
 		push_error("Failed to create new battle state")
 		return
+	@warning_ignore("unsafe_method_access")
 	new_battle_state.set_script(BattleStateMachine)
+	@warning_ignore("return_value_discarded")
 	track_node(new_battle_state)
+	@warning_ignore("return_value_discarded")
 	add_child(new_battle_state)
 	
 	if new_battle_state.has_method("load_state"):
@@ -241,14 +275,16 @@ func test_save_and_load_state() -> void:
 	assert_that(loaded_round).is_equal(1)
 
 # Performance tests
+@warning_ignore("unsafe_method_access")
 func test_rapid_state_transitions() -> void:
 	setup_active_battle()
 	# Skip signal monitoring to prevent Dictionary corruption
-	# monitor_signals(battle_state)  # REMOVED - causes Dictionary corruption
+	# @warning_ignore("unsafe_method_access")
+	monitor_signals(battle_state)  # REMOVED - causes Dictionary corruption
 	# Test state directly instead of signal emission
 	var start_time := Time.get_ticks_msec()
 	
-	for i in range(100):
+	for i: int in range(100):
 		if battle_state.has_method("transition_to_phase"):
 			battle_state.transition_to_phase(GameEnums.CombatPhase.INITIATIVE)
 		if battle_state.has_method("transition_to_phase"):
@@ -258,6 +294,7 @@ func test_rapid_state_transitions() -> void:
 	assert_that(duration).is_less(TEST_TIMEOUT)
 
 # Error boundary tests
+@warning_ignore("unsafe_method_access")
 func test_invalid_phase_transition() -> void:
 	# Ensure battle is not started
 	var is_active: bool = battle_state.is_battle_active if battle_state else false
@@ -274,6 +311,7 @@ func test_invalid_phase_transition() -> void:
 		# If method doesn't exist, test passes
 		assert_that(true).override_failure_message("Phase transition properly restricted").is_true()
 
+@warning_ignore("unsafe_method_access")
 func test_invalid_battle_start() -> void:
 	if battle_state.has_method("start_battle"):
 		var first_result: Variant = battle_state.start_battle()
@@ -286,7 +324,8 @@ func test_invalid_battle_start() -> void:
 	assert_that(is_active).override_failure_message("Battle should be active after first start").is_true()
 	
 	if battle_state.has_signal("battle_started"):
-		var connect_result: Error = battle_state.connect("battle_started", _on_battle_started)
+		var connect_result: Error = @warning_ignore("return_value_discarded")
+	battle_state.connect("battle_started", _on_battle_started)
 		if connect_result != OK:
 			push_error("Failed to connect battle_started signal")
 			return
@@ -305,23 +344,28 @@ func test_invalid_battle_start() -> void:
 	# Should not emit signal when starting an already active battle (but don't fail if implementation varies)
 	if battle_state.has_signal("battle_started"):
 		# Give time for any potential signal to be processed
-		await get_tree().process_frame
+		@warning_ignore("unsafe_method_access")
+	await get_tree().process_frame
 		# Some implementations may emit signals even for invalid operations, focus on state correctness
 		# The important thing is that the battle state remains consistent
 
 # Signal verification tests
+@warning_ignore("unsafe_method_access")
 func test_phase_transition_signals() -> void:
 	setup_active_battle()
 	# Skip signal monitoring to prevent Dictionary corruption
-	# monitor_signals(battle_state)  # REMOVED - causes Dictionary corruption
+	# @warning_ignore("unsafe_method_access")
+	monitor_signals(battle_state)  # REMOVED - causes Dictionary corruption
 	
 	if battle_state.has_signal("phase_changed"):
-		var connect_result: Error = battle_state.connect("phase_changed", _on_phase_changed)
+		var connect_result: Error = @warning_ignore("return_value_discarded")
+	battle_state.connect("phase_changed", _on_phase_changed)
 		if connect_result != OK:
 			push_error("Failed to connect phase_changed signal")
 			return
 		
 		if battle_state.has_method("transition_to_phase"):
 			battle_state.transition_to_phase(GameEnums.CombatPhase.ACTION)
-		
-		assert_that(_signal_data.get("phase_changed", false)).override_failure_message("Should emit phase_changed signal once").is_equal(true)
+
+		assert_that(@warning_ignore("unsafe_call_argument")
+	_signaltest_data.get("phase_changed", false)).override_failure_message("Should emit phase_changed signal once").is_equal(true)

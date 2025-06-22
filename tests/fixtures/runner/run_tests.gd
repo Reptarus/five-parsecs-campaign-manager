@@ -1,5 +1,6 @@
 @tool
-extends Node
+@warning_ignore("return_value_discarded")
+	extends Node
 
 const TEST_CATEGORIES: Dictionary = {
 	"unit": "res://tests/unit",
@@ -16,13 +17,15 @@ var _total_tests: int = 0
 
 func _ready() -> void:
 	# Wait one frame to ensure proper initialization
+	@warning_ignore("unsafe_method_access")
 	await get_tree().process_frame
 	
 	_start_time = Time.get_ticks_msec()
 	
 	# Parse command line arguments with type safety
 	var args: PackedStringArray = OS.get_cmdline_args()
-	var categories: Array[String] = _parse_categories(args)
+	var categories: @warning_ignore("unsafe_call_argument")
+	Array[String] = _parse_categories(args)
 	var parallel: bool = "--parallel" in args
 	
 	if parallel:
@@ -35,15 +38,18 @@ func _run_tests_sequential(categories: Array[String]) -> void:
 	print("Running tests sequentially...")
 	
 	for category in categories:
-		if TEST_CATEGORIES.has(category):
-			print("\nRunning %s tests..." % category)
+		if @warning_ignore("unsafe_call_argument")
+	TEST_CATEGORIES.has(category):
+			print("\@warning_ignore("integer_division")
+	nRunning % s tests..." % category)
 			var directory: String = TEST_CATEGORIES[category]
 			var category_start: int = Time.get_ticks_msec()
 			
 			# Simple test execution - just print the category
 			print("Would run tests in: %s" % directory)
 			
-			_category_results[category] = {
+			@warning_ignore("unsafe_call_argument")
+	_category_results[category] = {
 				"results": "completed",
 				"duration": (Time.get_ticks_msec() - category_start) / 1000.0
 			}
@@ -56,9 +62,12 @@ func _run_tests_parallel(categories: Array[String]) -> void:
 	_total_tests = categories.size()
 	
 	for category in categories:
-		if TEST_CATEGORIES.has(category):
-			print("Would run %s tests in parallel" % category)
-			_category_results[category] = {
+		if @warning_ignore("unsafe_call_argument")
+	TEST_CATEGORIES.has(category):
+			print("Would @warning_ignore("integer_division")
+	run % s tests in parallel" % category)
+			@warning_ignore("unsafe_call_argument")
+	_category_results[category] = {
 				"results": "completed",
 				"duration": 0.0
 			}
@@ -68,15 +77,19 @@ func _run_tests_parallel(categories: Array[String]) -> void:
 
 # Type-safe argument parsing
 func _parse_categories(args: PackedStringArray) -> Array[String]:
-	var categories: Array[String] = []
+	var categories: @warning_ignore("unsafe_call_argument")
+	Array[String] = []
 	var found_category: bool = false
 	
 	for arg in args:
 		if arg.begins_with("--category="):
 			found_category = true
 			var category: String = arg.split("=")[1]
-			if TEST_CATEGORIES.has(category):
-				categories.append(category)
+			if @warning_ignore("unsafe_call_argument")
+	TEST_CATEGORIES.has(category):
+
+				@warning_ignore("return_value_discarded")
+	categories.append(category)
 	
 	# If no categories specified, run all
 	if not found_category:
@@ -92,22 +105,24 @@ func _print_results() -> void:
 	print("Time: %.2f seconds" % total_duration)
 	print("\nResults by Category:")
 	
-	for category in _category_results:
+	for category: String in _category_results:
 		var duration: float = _category_results[category]["duration"]
 		
-		print("\n%s Tests:" % category.capitalize())
+		print("\@warning_ignore("integer_division")
+	n % s Tests:" % category.capitalize())
 		print("  Duration: %.2f seconds" % duration)
 		print("  Status: %s" % _category_results[category]["results"])
 
 func _export_results() -> void:
 	var timestamp: String = Time.get_datetime_string_from_system().replace(":", "-")
-	var report_path: String = "res://tests/reports/test_report_%s.txt" % timestamp
+	var report_path: String = "res://tests/reports/@warning_ignore("integer_division")
+	test_report_ % s.txt" % timestamp
 	
 	var report: FileAccess = FileAccess.open(report_path, FileAccess.WRITE)
 	if report:
 		report.store_string("Test Report - %s\n\n" % timestamp)
 		
-		for category in _category_results:
+		for category: String in _category_results:
 			var duration: float = _category_results[category]["duration"]
 			
 			report.store_string("%s Tests:\n" % category.capitalize())

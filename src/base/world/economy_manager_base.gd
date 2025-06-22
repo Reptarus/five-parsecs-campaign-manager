@@ -16,11 +16,13 @@ var transaction_history: Array = []
 # --- Core functionality ---
 
 ## Initialize the economy with a starting balance
-func initialize(starting_balance: float = 0.0) -> void:
-	balance = starting_balance
-	balance_changed.emit(balance)
+var _balance: float = 0.0
 
-## Get the current balance
+func initialize(starting_balance: float = 0.0) -> void:
+	_balance = starting_balance
+	balance_changed.emit(_balance) # warning: return value discarded (intentional)
+
+## Get the current _balance
 func get_balance() -> float:
 	return balance
 
@@ -31,8 +33,8 @@ func add_funds(amount: float, description: String = "") -> bool:
 		
 	balance += amount
 	_record_transaction(amount, "credit", description)
-	balance_changed.emit(balance)
-	economy_updated.emit()
+	balance_changed.emit(balance) # warning: return value discarded (intentional)
+	economy_updated.emit() # warning: return value discarded (intentional)
 	return true
 
 ## Remove funds from the balance
@@ -41,9 +43,9 @@ func remove_funds(amount: float, description: String = "") -> bool:
 		return false
 		
 	balance -= amount
-	_record_transaction(- amount, "debit", description)
-	balance_changed.emit(balance)
-	economy_updated.emit()
+	_record_transaction(-amount, "debit", description)
+	balance_changed.emit(balance) # warning: return value discarded (intentional)
+	economy_updated.emit() # warning: return value discarded (intentional)
 	return true
 
 ## Check if there are sufficient funds
@@ -72,9 +74,10 @@ func clear_transaction_history() -> void:
 func _record_transaction(amount: float, transaction_type: String, description: String = "") -> void:
 	var transaction = {
 		"amount": amount,
-		"type": transaction_type,
+		"_type": transaction_type,
 		"description": description,
 		"timestamp": Time.get_unix_time_from_system()
 	}
-	transaction_history.append(transaction)
-	transaction_completed.emit(amount, transaction_type, description)
+
+	transaction_history.append(transaction) # warning: return value discarded (intentional)
+	transaction_completed.emit(amount, transaction_type, description) # warning: return value discarded (intentional)

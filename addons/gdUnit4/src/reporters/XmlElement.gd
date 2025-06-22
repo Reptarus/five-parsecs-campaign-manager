@@ -39,7 +39,6 @@ func add_child(child :XmlElement) -> XmlElement:
 
 func add_childs(childs :Array[XmlElement]) -> XmlElement:
 	for child in childs:
-		@warning_ignore("return_value_discarded")
 		add_child(child)
 	return self
 

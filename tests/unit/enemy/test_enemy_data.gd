@@ -1,15 +1,8 @@
 @tool
+@warning_ignore("return_value_discarded")
 extends "res://tests/fixtures/specialized/enemy_test.gd"
 
-## Enemy Data Tests using UNIVERSAL MOCK STRATEGY
-##
-## Applies the proven pattern that achieved:
-## - test_enemy.gd: 12/12 (100% SUCCESS)
-## - test_enemy_pathfinding.gd: 10/10 (100% SUCCESS)
 
-# ========================================
-# UNIVERSAL MOCK STRATEGY - PROVEN PATTERN
-# ========================================
 class MockEnemyData extends Resource:
 	# Properties with realistic expected values (no nulls/zeros!)
 	var enemy_id: String = "test_enemy_001"
@@ -52,11 +45,15 @@ class MockEnemyData extends Resource:
 			0: power_level = 3 # GRUNT
 			1: power_level = 6 # ELITE
 			2: power_level = 12 # BOSS
-		data_updated.emit()
+		@warning_ignore("unsafe_method_access")
+	data_updated.emit()
 	
 	func add_weapon(weapon: MockGameWeapon) -> void:
-		weapons.append(weapon)
-		equipment_changed.emit()
+
+		@warning_ignore("return_value_discarded")
+	weapons.append(weapon)
+		@warning_ignore("unsafe_method_access")
+	equipment_changed.emit()
 	
 	func set_loot_table(table: Dictionary) -> void:
 		loot_table = table
@@ -65,11 +62,15 @@ class MockEnemyData extends Resource:
 		return ["Credits", "Medpack"]
 	
 	func add_trait(trait_name: String) -> void:
-		if not traits.has(trait_name):
-			traits.append(trait_name)
+		if not @warning_ignore("unsafe_call_argument")
+	traits.has(trait_name):
+
+			@warning_ignore("return_value_discarded")
+	traits.append(trait_name)
 	
 	func has_trait(trait_name: String) -> bool:
-		return traits.has(trait_name)
+		return @warning_ignore("unsafe_call_argument")
+	traits.has(trait_name)
 
 class MockGameWeapon extends Resource:
 	var weapon_name: String = "Test Blaster"
@@ -93,33 +94,39 @@ var mock_enemy_data: MockEnemyData = null
 func before_test() -> void:
 	super.before_test()
 	mock_enemy_data = MockEnemyData.new()
+	@warning_ignore("return_value_discarded")
 	track_resource(mock_enemy_data) # Perfect cleanup - NO orphan nodes
+	@warning_ignore("unsafe_method_access")
 	await get_tree().process_frame
 
 func after_test() -> void:
 	mock_enemy_data = null
 	super.after_test()
 
+@warning_ignore("unsafe_method_access")
 func test_basic_initialization() -> void:
 	# Test with immediate expected values from mock
 	assert_that(mock_enemy_data.get_id()).is_equal("test_enemy_001")
 	assert_that(mock_enemy_data.get_enemy_name()).is_equal("Test Enemy")
 
+@warning_ignore("unsafe_method_access")
 func test_stats_configuration() -> void:
 	# Test stats with expected values from mock
 	assert_that(mock_enemy_data.get_max_health()).is_greater(0)
 	assert_that(mock_enemy_data.get_speed()).is_greater(0)
 	assert_that(mock_enemy_data.get_defense()).is_greater_equal(0)
 
+@warning_ignore("unsafe_method_access")
 func test_equipment_handling() -> void:
 	# Test equipment with mock data
 	var weapons: Array = mock_enemy_data.get_weapons()
 	assert_that(weapons is Array).is_true()
 	
 	# Add a test weapon
-	var test_weapon = MockGameWeapon.new()
+	var test_weapon: MockGameWeapon = MockGameWeapon.new()
 	test_weapon.set_weapon_name("Test Blaster")
 	test_weapon.set_damage(5)
+	@warning_ignore("return_value_discarded")
 	track_resource(test_weapon)
 	
 	mock_enemy_data.add_weapon(test_weapon)
@@ -130,6 +137,7 @@ func test_equipment_handling() -> void:
 	assert_that(mock_enemy_data.has_armor()).is_true()
 	assert_that(mock_enemy_data.get_armor_value()).is_greater(0)
 
+@warning_ignore("unsafe_method_access")
 func test_enemy_type_behaviors() -> void:
 	# Test enemy type behaviors with mock
 	for enemy_type in EnemyType.values():
@@ -147,17 +155,20 @@ func test_enemy_type_behaviors() -> void:
 			EnemyType.BOSS:
 				assert_that(power_level).is_greater(10)
 
+@warning_ignore("unsafe_method_access")
 func test_loot_tables() -> void:
 	# Test loot tables with mock
 	var loot_table: Dictionary = mock_enemy_data.get_loot_table()
 	assert_that(loot_table is Dictionary).is_true()
-	assert_that(loot_table.has("credits")).is_true()
+	assert_that(@warning_ignore("unsafe_call_argument")
+	loot_table.has("credits")).is_true()
 	
 	# Test loot generation
 	var generated_loot: Array = mock_enemy_data.generate_loot()
 	assert_that(generated_loot is Array).is_true()
 	assert_that(generated_loot.size()).is_greater(0)
 
+@warning_ignore("unsafe_method_access")
 func test_experience_rewards() -> void:
 	# Test experience rewards with mock
 	assert_that(mock_enemy_data.get_xp_reward()).is_greater(0)
@@ -172,6 +183,7 @@ func test_experience_rewards() -> void:
 	# Boss should give more XP than grunt (based on power level scaling)
 	assert_that(boss_xp).is_greater_equal(grunt_xp)
 
+@warning_ignore("unsafe_method_access")
 func test_enemy_traits() -> void:
 	# Test enemy traits with mock
 	var traits: Array = mock_enemy_data.get_traits()
@@ -183,19 +195,23 @@ func test_enemy_traits() -> void:
 	assert_that(mock_enemy_data.has_trait("berserker")).is_true()
 	assert_that(mock_enemy_data.has_trait("nonexistent")).is_false()
 
+@warning_ignore("unsafe_method_access")
 func test_signals() -> void:
 	# Test signal emission with mock
+	@warning_ignore("unsafe_method_access")
 	monitor_signals(mock_enemy_data)
 	
 	mock_enemy_data.set_type(EnemyType.BOSS)
 	assert_signal(mock_enemy_data).is_emitted("data_updated")
 	
-	var test_weapon = MockGameWeapon.new()
+	var test_weapon: MockGameWeapon = MockGameWeapon.new()
 	test_weapon.set_weapon_name("Signal Test Weapon")
+	@warning_ignore("return_value_discarded")
 	track_resource(test_weapon)
 	mock_enemy_data.add_weapon(test_weapon)
 	assert_signal(mock_enemy_data).is_emitted("equipment_changed")
 
+@warning_ignore("unsafe_method_access")
 func test_data_consistency() -> void:
 	# Test data consistency with mock
 	assert_that(mock_enemy_data.get_id()).is_not_empty()
@@ -205,6 +221,7 @@ func test_data_consistency() -> void:
 	assert_that(mock_enemy_data.get_power_level()).is_greater(0)
 	assert_that(mock_enemy_data.get_xp_reward()).is_greater(0)
 
+@warning_ignore("unsafe_method_access")
 func test_type_power_scaling() -> void:
 	# Test power scaling based on type
 	mock_enemy_data.set_type(EnemyType.GRUNT)
@@ -221,9 +238,10 @@ func test_type_power_scaling() -> void:
 
 # Helper method to create test enemy data
 func create_test_enemy_data() -> EnemyData:
-	var data = EnemyData.new()
+	var data: EnemyData = EnemyData.new()
 	if data.has_method("set_id"):
-		data.set_id("test_enemy_" + str(randi() % 1000))
+		data.set_id("test_enemy_" + str(@warning_ignore("integer_division")
+	randi() % 1000))
 	if data.has_method("set_name"):
 		data.set_name("Test Enemy")
 	if data.has_method("set_health"):

@@ -51,19 +51,19 @@ func _draw() -> void:
         var rect := Rect2(Vector2(hover_cell) * cell_size, cell_size)
         draw_rect(rect, HOVER_COLOR)
 
-func _gui_input(event: InputEvent) -> void:
-    if event is InputEventMouseMotion:
-        var new_hover := Vector2i(event.position / cell_size)
+func _gui_input(_event: InputEvent) -> void:
+    if _event is InputEventMouseMotion:
+        var new_hover := Vector2i(_event.position / cell_size)
         if new_hover != hover_cell and _is_valid_cell(new_hover):
             hover_cell = new_hover
-            emit_signal("cell_hovered", hover_cell)
+            cell_hovered.emit( hover_cell)
             queue_redraw()
     
-    elif event is InputEventMouseButton and event.pressed and event.button_index == MOUSE_BUTTON_LEFT:
-        var new_selected := Vector2i(event.position / cell_size)
+    elif _event is InputEventMouseButton and _event.pressed and _event.button_index == MOUSE_BUTTON_LEFT:
+        var new_selected := Vector2i(_event.position / cell_size)
         if _is_valid_cell(new_selected):
             selected_cell = new_selected
-            emit_signal("cell_selected", selected_cell)
+            cell_selected.emit( selected_cell)
             queue_redraw()
 
 func _is_valid_cell(pos: Vector2i) -> bool:
@@ -73,4 +73,4 @@ func get_cell_position(grid_pos: Vector2i) -> Vector2:
     return Vector2(grid_pos) * cell_size
 
 func get_grid_position(world_pos: Vector2) -> Vector2i:
-    return Vector2i(world_pos / cell_size) 
+    return Vector2i(world_pos / cell_size)

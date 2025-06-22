@@ -3,12 +3,10 @@ class_name GodotVersionFixures
 extends RefCounted
 
 
-@warning_ignore("shadowed_global_identifier")
 static func type_convert(value: Variant, type: int) -> Variant:
 	return convert(value, type)
 
 
-@warning_ignore("shadowed_global_identifier")
 static func convert(value: Variant, type: int) -> Variant:
 	return type_convert(value, type)
 

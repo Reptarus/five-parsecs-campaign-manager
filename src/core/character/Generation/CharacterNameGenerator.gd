@@ -135,13 +135,13 @@ static func get_random_name_for_origin(origin: GameEnums.Origin) -> String:
 			first_name = ALIEN_FIRST_NAMES[randi() % ALIEN_FIRST_NAMES.size()]
 			last_name = "Swift"
 		GameEnums.Origin.BOT:
-			first_name = "Bot-" + str(randi() % 1000).pad_zeros(3)
+			first_name = "Bot - " + str(randi() % 1000).pad_zeros(3)
 			last_name = ALIEN_LAST_NAMES[randi() % ALIEN_LAST_NAMES.size()]
 		_:
 			first_name = FIRST_NAMES[randi() % FIRST_NAMES.size()]
 			last_name = LAST_NAMES[randi() % LAST_NAMES.size()]
 	
-	return (first_name + " " + last_name).strip_edges()
+	return (first_name + "" + last_name).strip_edges()
 
 static func generate_character_name() -> String:
 	# Get a random name from the appropriate tables
@@ -161,7 +161,7 @@ static func generate_character_name() -> String:
 		"Turner", "Hill", "Moore", "Cooper", "Ward", "Morris", "King"
 	]
 	
-	return "%s %s" % [
+	return "%s%s" % [
 		first_names[randi() % first_names.size()],
 		last_names[randi() % last_names.size()]
 	]

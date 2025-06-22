@@ -1,12 +1,14 @@
 @tool
-extends GdUnitGameTest
+@warning_ignore("return_value_discarded")
+	extends GdUnitGameTest
 
 ## Mission system test suite
 ## Tests core functionality, edge cases, and performance of the mission system
 ## @class TestMissionSystem
 ## @description Validates mission lifecycle, objectives, rewards, and state management
 
-# 🎯 MOCK STRATEGY PATTERN - Proven 100% Success from Ship Tests ⭐
+# 🎯 MOCK STRATEGY PATTERN - Proven @warning_ignore("integer_division")
+	100 % Success from Ship Tests ⭐
 
 # Enum placeholders to avoid scope issues
 const MISSION_TYPE_NONE := 0
@@ -37,10 +39,10 @@ class MockMissionSystem extends Resource:
 	
 	# Core mission methods
 	func get_mission_type() -> int: return mission_type
-	func set_mission_type(value: int) -> void: mission_type = value
+	func set_mission_type(test_value: int) -> void: mission_type = _value
 	
 	func get_objectives() -> Array: return objectives
-	func set_objectives(value: Array) -> void: objectives = value
+	func set_objectives(test_value: Array) -> void: objectives = _value
 	
 	func is_mission_completed() -> bool: return is_completed
 	func is_mission_failed() -> bool: return is_failed
@@ -65,7 +67,9 @@ class MockMissionSystem extends Resource:
 	
 	# Objective management
 	func add_objective(objective: Dictionary) -> bool:
-		objectives.append(objective)
+
+		@warning_ignore("return_value_discarded")
+	objectives.append(objective)
 		emit_signal("objective_added")
 		return true
 	
@@ -89,7 +93,7 @@ class MockMissionSystem extends Resource:
 	func set_mission_name(name: String) -> void: mission_name = name
 	
 	func get_difficulty() -> int: return difficulty
-	func set_difficulty(value: int) -> void: difficulty = value
+	func set_difficulty(test_value: int) -> void: difficulty = _value
 	
 	func save_state() -> Dictionary:
 		emit_signal("state_saved")
@@ -105,14 +109,30 @@ class MockMissionSystem extends Resource:
 		}
 	
 	func load_state(state: Dictionary) -> void:
-		mission_name = state.get("mission_name", "")
-		mission_type = state.get("mission_type", MISSION_TYPE_NONE)
-		difficulty = state.get("difficulty", 0)
-		completion_percentage = state.get("completion_percentage", 0.0)
-		objectives = state.get("objectives", [])
-		current_phase = state.get("current_phase", "preparation")
-		is_completed = state.get("is_completed", false)
-		is_failed = state.get("is_failed", false)
+
+		mission_name = @warning_ignore("unsafe_call_argument")
+	state.get("mission_name", "")
+
+		mission_type = @warning_ignore("unsafe_call_argument")
+	state.get("mission_type", MISSION_TYPE_NONE)
+
+		difficulty = @warning_ignore("unsafe_call_argument")
+	state.get("difficulty", 0)
+
+		completion_percentage = @warning_ignore("unsafe_call_argument")
+	state.get("completion_percentage", 0.0)
+
+		objectives = @warning_ignore("unsafe_call_argument")
+	state.get("objectives", [])
+
+		current_phase = @warning_ignore("unsafe_call_argument")
+	state.get("current_phase", "preparation")
+
+		is_completed = @warning_ignore("unsafe_call_argument")
+	state.get("is_completed", false)
+
+		is_failed = @warning_ignore("unsafe_call_argument")
+	state.get("is_failed", false)
 		emit_signal("state_loaded")
 
 # Type-safe instance variables
@@ -122,6 +142,7 @@ var mission: MockMissionSystem = null
 func before_test() -> void:
 	super.before_test()
 	mission = MockMissionSystem.new()
+	@warning_ignore("return_value_discarded")
 	track_resource(mission)
 
 func after_test() -> void:
@@ -138,12 +159,15 @@ func create_test_objective(index: int, type: String = "primary") -> Dictionary:
 	}
 
 func setup_mission_with_objectives(objective_count: int) -> void:
-	var objectives = []
-	for i in range(objective_count):
-		objectives.append(create_test_objective(i))
+	var objectives: Array = []
+	for i: int in range(objective_count):
+
+		@warning_ignore("return_value_discarded")
+	objectives.append(create_test_objective(i))
 	mission.set_objectives(objectives)
 
 # Basic functionality tests
+@warning_ignore("unsafe_method_access")
 func test_initial_state() -> void:
 	var mission_type: int = mission.get_mission_type()
 	var objectives: Array = mission.get_objectives()
@@ -155,42 +179,54 @@ func test_initial_state() -> void:
 	assert_that(is_completed).override_failure_message("Should not be completed").is_false()
 	assert_that(is_failed).override_failure_message("Should not be failed").is_false()
 
+@warning_ignore("unsafe_method_access")
 func test_mission_completion() -> void:
 	# Skip signal monitoring to prevent Dictionary corruption
-	# monitor_signals(mission)  # REMOVED - causes Dictionary corruption
+	# @warning_ignore("unsafe_method_access")
+	monitor_signals(mission)  # REMOVED - causes Dictionary corruption
 	mission.complete_mission()
 	var is_completed: bool = mission.is_mission_completed()
+
 	assert_that(is_completed).override_failure_message("Should be marked as completed").is_true()
 	# Test state directly instead of signal emission
 
+@warning_ignore("unsafe_method_access")
 func test_mission_failure() -> void:
 	# Skip signal monitoring to prevent Dictionary corruption
-	# monitor_signals(mission)  # REMOVED - causes Dictionary corruption
+	# @warning_ignore("unsafe_method_access")
+	monitor_signals(mission)  # REMOVED - causes Dictionary corruption
 	mission.fail_mission()
 	var is_failed: bool = mission.is_mission_failed()
+
 	assert_that(is_failed).override_failure_message("Should be marked as failed").is_true()
 	# Test state directly instead of signal emission
 
+@warning_ignore("unsafe_method_access")
 func test_phase_change() -> void:
 	# Skip signal monitoring to prevent Dictionary corruption
-	# monitor_signals(mission)  # REMOVED - causes Dictionary corruption
+	# @warning_ignore("unsafe_method_access")
+	monitor_signals(mission)  # REMOVED - causes Dictionary corruption
 	mission.set_phase("combat")
 	var current_phase: String = mission.get_current_phase()
 	assert_that(current_phase).override_failure_message("Should update phase").is_equal("combat")
 	# Test state directly instead of signal emission
 
+@warning_ignore("unsafe_method_access")
 func test_progress_update() -> void:
 	# Skip signal monitoring to prevent Dictionary corruption
-	# monitor_signals(mission)  # REMOVED - causes Dictionary corruption
+	# @warning_ignore("unsafe_method_access")
+	monitor_signals(mission)  # REMOVED - causes Dictionary corruption
 	mission.update_progress(50.0)
 	var completion: float = mission.get_completion_percentage()
 	assert_that(completion).override_failure_message("Should update progress").is_equal(50.0)
 	# Test state directly instead of signal emission
 
 # Objective system tests
+@warning_ignore("unsafe_method_access")
 func test_objective_management() -> void:
 	# Skip signal monitoring to prevent Dictionary corruption
-	# monitor_signals(mission)  # REMOVED - causes Dictionary corruption
+	# @warning_ignore("unsafe_method_access")
+	monitor_signals(mission)  # REMOVED - causes Dictionary corruption
 	var objective = create_test_objective(0)
 	
 	mission.add_objective(objective)
@@ -204,6 +240,7 @@ func test_objective_management() -> void:
 	# Test state directly instead of signal emission
 
 # Performance tests
+@warning_ignore("unsafe_method_access")
 func test_large_objective_set_performance() -> void:
 	var start_time = Time.get_ticks_msec()
 	setup_mission_with_objectives(100)
@@ -214,6 +251,7 @@ func test_large_objective_set_performance() -> void:
 	assert_that(objectives.size()).override_failure_message("Should maintain all objectives").is_equal(100)
 
 # Boundary tests
+@warning_ignore("unsafe_method_access")
 func test_invalid_objective_operations() -> void:
 	var result = mission.get_objective(-1)
 	assert_that(result).override_failure_message("Should handle invalid index gracefully").is_equal({})
@@ -227,9 +265,11 @@ func test_invalid_objective_operations() -> void:
 	assert_that(add_result).override_failure_message("Should handle objective limit gracefully").is_true()
 
 # State persistence tests
+@warning_ignore("unsafe_method_access")
 func test_mission_state_persistence() -> void:
 	# Skip signal monitoring to prevent Dictionary corruption
-	# monitor_signals(mission)  # REMOVED - causes Dictionary corruption
+	# @warning_ignore("unsafe_method_access")
+	monitor_signals(mission)  # REMOVED - causes Dictionary corruption
 	mission.set_mission_name("Test Mission")
 	mission.set_mission_type(MISSION_TYPE_PATROL)
 	mission.set_difficulty(DIFFICULTY_LEVEL_NORMAL)
@@ -239,10 +279,12 @@ func test_mission_state_persistence() -> void:
 	assert_that(save_data).override_failure_message("Should generate save data").is_not_null()
 	# Test state directly instead of signal emission
 	
-	var new_mission = MockMissionSystem.new()
+	var new_mission: MockMissionSystem = MockMissionSystem.new()
+	@warning_ignore("return_value_discarded")
 	track_resource(new_mission)
 	# Skip signal monitoring to prevent Dictionary corruption
-	# monitor_signals(new_mission)  # REMOVED - causes Dictionary corruption
+	# @warning_ignore("unsafe_method_access")
+	monitor_signals(new_mission)  # REMOVED - causes Dictionary corruption
 	new_mission.load_state(save_data)
 	# Test state directly instead of signal emission
 	
@@ -258,11 +300,13 @@ func test_mission_state_persistence() -> void:
 	var completion: float = new_mission.get_completion_percentage()
 	assert_that(completion).override_failure_message("Should restore progress").is_equal(50.0)
 
+@warning_ignore("unsafe_method_access")
 func test_rapid_state_changes() -> void:
 	# Skip signal monitoring to prevent Dictionary corruption
-	# monitor_signals(mission)  # REMOVED - causes Dictionary corruption
+	# @warning_ignore("unsafe_method_access")
+	monitor_signals(mission)  # REMOVED - causes Dictionary corruption
 	# Rapid progress updates
-	for i in range(10):
+	for i: int in range(10):
 		mission.update_progress(i * 10.0)
 	# Test state directly instead of signal emission
 	
@@ -272,6 +316,7 @@ func test_rapid_state_changes() -> void:
 		mission.set_phase(phase)
 	# Test state directly instead of signal emission
 
+@warning_ignore("unsafe_method_access")
 func test_reward_calculation() -> void:
 	# Mock implementation - rewards are not part of mission system directly
 	mission.set_difficulty(DIFFICULTY_LEVEL_NORMAL)
@@ -285,18 +330,27 @@ func test_reward_calculation() -> void:
 	var expected_reputation = int(base_reputation * multiplier)
 	assert_that(expected_reputation).override_failure_message("Should calculate reputation with multiplier").is_equal(55)
 
+@warning_ignore("unsafe_method_access")
 func test_mission_requirements() -> void:
 	# Mock implementation - requirements checking
 	var valid_requirements = {"crew_size": 3, "equipment": ["weapon"]}
-	var has_crew = valid_requirements.get("crew_size", 0) >= 3
-	var has_equipment = valid_requirements.get("equipment", []).size() > 0
+
+	var has_crew = @warning_ignore("unsafe_call_argument")
+	valid_requirements.get("crew_size", 0) >= 3
+
+	var has_equipment = @warning_ignore("unsafe_call_argument")
+	valid_requirements.get("equipment", []).size() > 0
 	var requirements_met = has_crew and has_equipment
 	
 	assert_that(requirements_met).override_failure_message("Should pass valid requirements").is_true()
 	
 	var invalid_requirements = {"crew_size": 1, "equipment": []}
-	has_crew = invalid_requirements.get("crew_size", 0) >= 3
-	has_equipment = invalid_requirements.get("equipment", []).size() > 0
+
+	has_crew = @warning_ignore("unsafe_call_argument")
+	invalid_requirements.get("crew_size", 0) >= 3
+
+	has_equipment = @warning_ignore("unsafe_call_argument")
+	invalid_requirements.get("equipment", []).size() > 0
 	requirements_met = has_crew and has_equipment
 	
 	assert_that(requirements_met).override_failure_message("Should fail invalid requirements").is_false()    

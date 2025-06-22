@@ -1,4 +1,5 @@
-extends GdUnitTestSuite
+@warning_ignore("return_value_discarded")
+	extends GdUnitTestSuite
 
 # Test BattleEventsSystem using Universal Mock Strategy patterns
 class_name Test_BattleEventsSystem
@@ -9,17 +10,19 @@ const BattleEventsSystem: GDScript = preload("res://src/core/battle/BattleEvents
 var battle_events_system: Resource
 var mock_game_state: Resource
 
-func before_test():
+func before_test() -> void:
 	# Create fresh system for each test - proven pattern
 	battle_events_system = BattleEventsSystem.new()
 	mock_game_state = Resource.new()
 
-func after_test():
-	# Cleanup happens automatically with track_resource()
+func after_test() -> void:
+	# Cleanup happens automatically with @warning_ignore("return_value_discarded")
+	track_resource()
 	pass
 
 # Test system initialization
-func test_battle_events_initialization():
+@warning_ignore("unsafe_method_access")
+func test_battle_events_initialization() -> void:
 	# Then battle events should be initialized with expected values
 	assert_that(battle_events_system.is_system_active).is_false()
 	assert_that(battle_events_system.current_round).is_equal(0)
@@ -28,7 +31,8 @@ func test_battle_events_initialization():
 	assert_that(battle_events_system.battle_in_progress).is_false()
 
 # Test battle initialization
-func test_battle_initialization():
+@warning_ignore("unsafe_method_access")
+func test_battle_initialization() -> void:
 	# When initializing battle
 	battle_events_system.initialize_battle()
 	
@@ -39,9 +43,11 @@ func test_battle_initialization():
 	assert_that(battle_events_system.events_triggered).is_empty()
 
 # Test round advancement
-func test_round_advancement():
+@warning_ignore("unsafe_method_access")
+func test_round_advancement() -> void:
 	# Given initialized battle
 	battle_events_system.initialize_battle()
+	@warning_ignore("unsafe_method_access")
 	monitor_signals(battle_events_system)
 	
 	# When advancing round
@@ -52,10 +58,12 @@ func test_round_advancement():
 	assert_signal(battle_events_system).is_emitted("round_event_check", [1])
 
 # Test event triggering on round 2
-func test_event_triggering_round_2():
+@warning_ignore("unsafe_method_access")
+func test_event_triggering_round_2() -> void:
 	# Given battle in round 1
 	battle_events_system.initialize_battle()
 	battle_events_system.advance_round() # Round 1
+	@warning_ignore("unsafe_method_access")
 	monitor_signals(battle_events_system)
 	
 	# When advancing to round 2
@@ -66,11 +74,13 @@ func test_event_triggering_round_2():
 	assert_signal(battle_events_system).is_emitted("battle_event_triggered")
 
 # Test event triggering on round 4
-func test_event_triggering_round_4():
+@warning_ignore("unsafe_method_access")
+func test_event_triggering_round_4() -> void:
 	# Given battle advanced to round 3
 	battle_events_system.initialize_battle()
-	for i in range(3):
+	for i: int in range(3):
 		battle_events_system.advance_round()
+	@warning_ignore("unsafe_method_access")
 	monitor_signals(battle_events_system)
 	
 	# When advancing to round 4
@@ -81,9 +91,11 @@ func test_event_triggering_round_4():
 	assert_signal(battle_events_system).is_emitted("battle_event_triggered")
 
 # Test no events on other rounds
-func test_no_events_other_rounds():
+@warning_ignore("unsafe_method_access")
+func test_no_events_other_rounds() -> void:
 	# Given battle system
 	battle_events_system.initialize_battle()
+	@warning_ignore("unsafe_method_access")
 	monitor_signals(battle_events_system)
 	
 	# When advancing to round 1, 3, 5
@@ -95,17 +107,23 @@ func test_no_events_other_rounds():
 			assert_signal(battle_events_system).is_not_emitted("battle_event_triggered")
 
 # Test event registry initialization
-func test_event_registry_initialization():
+@warning_ignore("unsafe_method_access")
+func test_event_registry_initialization() -> void:
 	# Then event registry should contain Core Rules events
 	var registry = battle_events_system.event_registry
 	assert_that(registry).is_not_empty()
-	assert_that(registry.has("RENEWED_EFFORTS")).is_true()
-	assert_that(registry.has("ENEMY_REINFORCEMENTS")).is_true()
-	assert_that(registry.has("SEIZED_MOMENT")).is_true()
-	assert_that(registry.has("ENVIRONMENTAL_HAZARD")).is_true()
+	assert_that(@warning_ignore("unsafe_call_argument")
+	registry.has("RENEWED_EFFORTS")).is_true()
+	assert_that(@warning_ignore("unsafe_call_argument")
+	registry.has("ENEMY_REINFORCEMENTS")).is_true()
+	assert_that(@warning_ignore("unsafe_call_argument")
+	registry.has("SEIZED_MOMENT")).is_true()
+	assert_that(@warning_ignore("unsafe_call_argument")
+	registry.has("ENVIRONMENTAL_HAZARD")).is_true()
 
 # Test specific event creation
-func test_battle_event_creation():
+@warning_ignore("unsafe_method_access")
+func test_battle_event_creation() -> void:
 	# Given event registry
 	var registry = battle_events_system.event_registry
 	var event = registry["RENEWED_EFFORTS"]
@@ -118,7 +136,8 @@ func test_battle_event_creation():
 	assert_that(event.target_type).is_equal("enemy")
 
 # Test event roll matching
-func test_event_roll_matching():
+@warning_ignore("unsafe_method_access")
+func test_event_roll_matching() -> void:
 	# When getting event for roll within range
 	var event = battle_events_system._get_event_for_roll(3) # Should match RENEWED_EFFORTS [1,5]
 	
@@ -127,9 +146,11 @@ func test_event_roll_matching():
 	assert_that(event.event_id).is_equal("RENEWED_EFFORTS")
 
 # Test environmental hazard creation
-func test_environmental_hazard_creation():
+@warning_ignore("unsafe_method_access")
+func test_environmental_hazard_creation() -> void:
 	# Given environmental event
 	var env_event = battle_events_system.event_registry["ENVIRONMENTAL_HAZARD"]
+	@warning_ignore("unsafe_method_access")
 	monitor_signals(battle_events_system)
 	
 	# When applying environmental event
@@ -140,24 +161,28 @@ func test_environmental_hazard_creation():
 	assert_signal(battle_events_system).is_emitted("environmental_hazard_activated")
 
 # Test environmental damage checking
-func test_environmental_damage_checking():
+@warning_ignore("unsafe_method_access")
+func test_environmental_damage_checking() -> void:
 	# Given active environmental hazard
-	var hazard = BattleEventsSystem.EnvironmentalHazard.new()
-	hazard.hazard_id = "TEST_HAZARD"
-	hazard.save_difficulty = 5
-	hazard.damage_bonus = 1
-	hazard.affects_radius = 2
-	battle_events_system.active_hazards.append(hazard)
+	var hazard: Resource = Resource.new()
+	hazard.set_meta("hazard_id", "TEST_HAZARD")
+	hazard.set_meta("save_difficulty", 5)
+	hazard.set_meta("damage_bonus", 1)
+	hazard.set_meta("affects_radius", 2)
+	battle_events_system.@warning_ignore("return_value_discarded")
+	active_hazards.append(hazard)
 	
 	# When checking damage for character in range
 	var damage_results = battle_events_system.check_environmental_damage(Vector2(1, 1), 3)
 	
 	# Then damage results should be calculated
 	assert_that(damage_results).is_not_empty()
-	assert_that(damage_results.has("TEST_HAZARD")).is_true()
+	assert_that(@warning_ignore("unsafe_call_argument")
+	damage_results.has("TEST_HAZARD")).is_true()
 
 # Test crew event effects
-func test_crew_event_effects():
+@warning_ignore("unsafe_method_access")
+func test_crew_event_effects() -> void:
 	# Given crew event
 	var crew_event = battle_events_system.event_registry["SEIZED_MOMENT"]
 	
@@ -165,11 +190,14 @@ func test_crew_event_effects():
 	battle_events_system._apply_crew_event(crew_event)
 	
 	# Then crew effects should be applied
-	assert_that(crew_event.effects.has("selected_crew")).is_true()
-	assert_that(crew_event.effects.has("bonus_actions")).is_true()
+	assert_that(crew_event.@warning_ignore("unsafe_call_argument")
+	effects.has("selected_crew")).is_true()
+	assert_that(crew_event.@warning_ignore("unsafe_call_argument")
+	effects.has("bonus_actions")).is_true()
 
 # Test enemy event effects
-func test_enemy_event_effects():
+@warning_ignore("unsafe_method_access")
+func test_enemy_event_effects() -> void:
 	# Given enemy event
 	var enemy_event = battle_events_system.event_registry["ENEMY_REINFORCEMENTS"]
 	
@@ -177,11 +205,14 @@ func test_enemy_event_effects():
 	battle_events_system._apply_enemy_event(enemy_event)
 	
 	# Then enemy effects should be applied
-	assert_that(enemy_event.effects.has("spawn_enemies")).is_true()
-	assert_that(enemy_event.effects.has("specialist_count")).is_true()
+	assert_that(enemy_event.@warning_ignore("unsafe_call_argument")
+	effects.has("spawn_enemies")).is_true()
+	assert_that(enemy_event.@warning_ignore("unsafe_call_argument")
+	effects.has("specialist_count")).is_true()
 
 # Test battlefield event effects
-func test_battlefield_event_effects():
+@warning_ignore("unsafe_method_access")
+func test_battlefield_event_effects() -> void:
 	# Given battlefield event
 	var battlefield_event = battle_events_system.event_registry["FOG_CLOUD"]
 	
@@ -189,36 +220,43 @@ func test_battlefield_event_effects():
 	battle_events_system._apply_battlefield_event(battlefield_event)
 	
 	# Then battlefield effects should be applied
-	assert_that(battlefield_event.effects.has("fog_radius")).is_true()
-	assert_that(battlefield_event.effects.has("fog_vision")).is_true()
+	assert_that(battlefield_event.@warning_ignore("unsafe_call_argument")
+	effects.has("fog_radius")).is_true()
+	assert_that(battlefield_event.@warning_ignore("unsafe_call_argument")
+	effects.has("fog_vision")).is_true()
 
 # Test event conflict detection
-func test_event_conflict_detection():
+@warning_ignore("unsafe_method_access")
+func test_event_conflict_detection() -> void:
 	# Given event with conflicts
-	var event1 = BattleEventsSystem.BattleEvent.new()
-	event1.event_id = "EVENT_1"
-	var conflicts: Array[String] = ["EVENT_2"]
-	event1.conflicts_with = conflicts
+	var event1: Resource = Resource.new()
+	event1.set_meta("event_id", "EVENT_1")
+	var conflicts: @warning_ignore("unsafe_call_argument")
+	Array[String] = ["EVENT_2"]
+	event1.set_meta("conflicts_with", conflicts)
 	
-	var event2 = BattleEventsSystem.BattleEvent.new()
-	event2.event_id = "EVENT_2"
+	var event2: Resource = Resource.new()
+	event2.set_meta("event_id", "EVENT_2")
 	
-	battle_events_system.events_triggered.append(event1)
+	battle_events_system.@warning_ignore("return_value_discarded")
+	events_triggered.append(event1)
 	
 	# When checking conflicts
 	var conflict = battle_events_system._check_event_conflicts(event2)
 	
 	# Then conflict should be detected
 	assert_that(conflict).is_not_null()
-	assert_that(conflict.event_id).is_equal("EVENT_1")
+	assert_that(conflict.get_meta("event_id")).is_equal("EVENT_1")
 
 # Test battle ending
-func test_battle_ending():
+@warning_ignore("unsafe_method_access")
+func test_battle_ending() -> void:
 	# Given active battle with events
 	battle_events_system.initialize_battle()
-	var test_event = BattleEventsSystem.BattleEvent.new()
-	test_event.is_persistent = false
-	battle_events_system.events_triggered.append(test_event)
+	var test_event: Resource = Resource.new()
+	test_event.set_meta("is_persistent", false)
+	battle_events_system.@warning_ignore("return_value_discarded")
+	events_triggered.append(test_event)
 	
 	# When ending battle
 	battle_events_system.end_battle()
@@ -227,12 +265,15 @@ func test_battle_ending():
 	assert_that(battle_events_system.battle_in_progress).is_false()
 
 # Test event duration processing
-func test_event_duration_processing():
+@warning_ignore("unsafe_method_access")
+func test_event_duration_processing() -> void:
 	# Given event with duration
-	var timed_event = BattleEventsSystem.BattleEvent.new()
-	timed_event.event_id = "TIMED_EVENT"
-	timed_event.duration = 2
-	battle_events_system.events_triggered.append(timed_event)
+	var timed_event: Resource = Resource.new()
+	timed_event.set_meta("event_id", "TIMED_EVENT")
+	timed_event.set_meta("duration", 2)
+	battle_events_system.@warning_ignore("return_value_discarded")
+	events_triggered.append(timed_event)
+	@warning_ignore("unsafe_method_access")
 	monitor_signals(battle_events_system)
 	
 	# When processing events twice
@@ -244,7 +285,8 @@ func test_event_duration_processing():
 	assert_signal(battle_events_system).is_emitted("event_resolved", ["TIMED_EVENT", {"completed": true}])
 
 # Test system status checking
-func test_system_status_checking():
+@warning_ignore("unsafe_method_access")
+func test_system_status_checking() -> void:
 	# Given inactive system
 	assert_that(battle_events_system.is_active()).is_false()
 	
@@ -256,7 +298,8 @@ func test_system_status_checking():
 	assert_that(battle_events_system.get_current_round()).is_equal(0)
 
 # Test serialization
-func test_serialization():
+@warning_ignore("unsafe_method_access")
+func test_serialization() -> void:
 	# Given system with state
 	battle_events_system.initialize_battle()
 	battle_events_system.advance_round()
@@ -266,12 +309,16 @@ func test_serialization():
 	
 	# Then data should be preserved
 	assert_that(serialized).is_not_empty()
-	assert_that(serialized.has("is_system_active")).is_true()
-	assert_that(serialized.has("current_round")).is_true()
-	assert_that(serialized.has("battle_in_progress")).is_true()
+	assert_that(@warning_ignore("unsafe_call_argument")
+	serialized.has("is_system_active")).is_true()
+	assert_that(@warning_ignore("unsafe_call_argument")
+	serialized.has("current_round")).is_true()
+	assert_that(@warning_ignore("unsafe_call_argument")
+	serialized.has("battle_in_progress")).is_true()
 
 # Test deserialization
-func test_deserialization():
+@warning_ignore("unsafe_method_access")
+func test_deserialization() -> void:
 	# Given serialized data
 	var test_data = {
 		"is_system_active": true,
@@ -290,9 +337,11 @@ func test_deserialization():
 	assert_that(battle_events_system.battle_in_progress).is_true()
 
 # Test signal emission patterns
-func test_signal_emission_patterns():
+@warning_ignore("unsafe_method_access")
+func test_signal_emission_patterns() -> void:
 	# Given battle system
 	battle_events_system.initialize_battle()
+	@warning_ignore("unsafe_method_access")
 	monitor_signals(battle_events_system)
 	
 	# When advancing to event round
@@ -305,7 +354,8 @@ func test_signal_emission_patterns():
 	assert_signal(battle_events_system).is_emitted("battle_event_triggered")
 
 # Test error handling
-func test_error_handling():
+@warning_ignore("unsafe_method_access")
+func test_error_handling() -> void:
 	# Given inactive system
 	assert_that(battle_events_system.is_system_active).is_false()
 	

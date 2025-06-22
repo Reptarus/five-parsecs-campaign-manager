@@ -28,7 +28,6 @@ static func build(clazz :Variant, mock_mode :String, debug_write := false) -> Va
 	if mock == null:
 		return null
 	var mock_instance: Object = mock.new()
-	@warning_ignore("unsafe_method_access")
 	mock_instance.__init(mock, mock_mode)
 	return register_auto_free(mock_instance)
 
@@ -42,7 +41,6 @@ static func create_instance(clazz: Variant) -> Object:
 				var args := GdObjects.build_function_default_arguments(script, "_init")
 				return script.callv("new", args)
 			elif obj.is_class("GDScriptNativeClass"):
-				@warning_ignore("unsafe_method_access")
 				return obj.new()
 		TYPE_STRING:
 			var clazz_name: String = clazz
@@ -69,7 +67,6 @@ static func mock_on_scene(scene: PackedScene, debug_write: bool) -> Variant:
 	if scene_script == null:
 		if push_errors:
 			push_error("Can't create a mockable instance for a scene without script '%s'" % scene.resource_path)
-		@warning_ignore("return_value_discarded")
 		GdUnitTools.free_instance(scene_instance)
 		return null
 
@@ -78,7 +75,6 @@ static func mock_on_scene(scene: PackedScene, debug_write: bool) -> Variant:
 	if mock == null:
 		return null
 	scene_instance.set_script(mock)
-	@warning_ignore("unsafe_method_access")
 	scene_instance.__init(mock, GdUnitMock.CALL_REAL_FUNC)
 	return register_auto_free(scene_instance)
 
@@ -108,9 +104,7 @@ static func mock_on_script(instance :Object, clazz :Variant, function_excludes :
 	mock.resource_path = "%s/%s"  % [GdUnitFileAccess.create_temp_dir("mock"), mock.resource_name]
 
 	if debug_write:
-		@warning_ignore("return_value_discarded")
 		DirAccess.remove_absolute(mock.resource_path)
-		@warning_ignore("return_value_discarded")
 		ResourceSaver.save(mock, mock.resource_path)
 	var error := mock.reload(true)
 	if error != OK:

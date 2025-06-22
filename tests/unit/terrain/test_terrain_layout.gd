@@ -1,12 +1,16 @@
 @tool
-extends GdUnitGameTest
+@warning_ignore("return_value_discarded")
+	extends GdUnitGameTest
 
 ## Terrain Layout Tests using UNIVERSAL MOCK STRATEGY
 ##
 ## Applies the proven pattern that achieved:
-## - Ship Tests: 48/48 (100% SUCCESS)
-## - Mission Tests: 51/51 (100% SUCCESS)
-## - Enemy Tests: 66/66 (100% SUCCESS)
+## - Ship Tests: 48/48 (@warning_ignore("integer_division")
+	100 % SUCCESS)
+## - Mission Tests: 51/51 (@warning_ignore("integer_division")
+	100 % SUCCESS)
+## - Enemy Tests: 66/66 (@warning_ignore("integer_division")
+	100 % SUCCESS)
 
 # ========================================
 # UNIVERSAL MOCK STRATEGY - PROVEN PATTERN
@@ -35,14 +39,19 @@ class MockTerrainLayout extends Resource:
 		tiles = []
 		
 		# Initialize 2D array
-		for x in range(width):
-			var column = []
-			for y in range(height):
-				column.append(TerrainTypes.Type.EMPTY)
-			tiles.append(column)
+		for x: int in range(width):
+			var column: Array = []
+			for y: int in range(height):
+
+				@warning_ignore("return_value_discarded")
+	column.append(TerrainTypes.Type.EMPTY)
+
+			@warning_ignore("return_value_discarded")
+	tiles.append(column)
 		
 		is_initialized = true
-		layout_changed.emit()
+		@warning_ignore("unsafe_method_access")
+	layout_changed.emit()
 		return true
 	
 	func get_width() -> int:
@@ -60,7 +69,8 @@ class MockTerrainLayout extends Resource:
 		if not _is_valid_position(pos):
 			return false
 		tiles[pos.x][pos.y] = tile_type
-		tile_updated.emit(pos, tile_type)
+		@warning_ignore("unsafe_method_access")
+	tile_updated.emit(pos, tile_type)
 		return true
 	
 	func is_tile_walkable(pos: Vector2i) -> bool:
@@ -72,13 +82,15 @@ class MockTerrainLayout extends Resource:
 		return tile_type == TerrainTypes.Type.WALL or tile_type == TerrainTypes.Type.COVER_HIGH
 	
 	func get_tiles_in_area(center: Vector2i, radius: int) -> Array:
-		var area_tiles = []
-		for x in range(max(0, center.x - radius), min(width, center.x + radius + 1)):
-			for y in range(max(0, center.y - radius), min(height, center.y + radius + 1)):
+		var area_tiles: Array = []
+		for x: int in range(max(0, center.x - radius), min(width, center.x + radius + 1)):
+			for y: int in range(max(0, center.y - radius), min(height, center.y + radius + 1)):
 				var pos = Vector2i(x, y)
 				var distance = center.distance_to(Vector2(pos))
 				if distance <= radius:
-					area_tiles.append(pos)
+
+					@warning_ignore("return_value_discarded")
+	area_tiles.append(pos)
 		return area_tiles
 	
 	func serialize() -> Dictionary:
@@ -89,7 +101,10 @@ class MockTerrainLayout extends Resource:
 		}
 	
 	func deserialize(data: Dictionary) -> bool:
-		if not data.has("width") or not data.has("height") or not data.has("tiles"):
+		if not @warning_ignore("unsafe_call_argument")
+	data.has("width") or not @warning_ignore("unsafe_call_argument")
+	data.has("height") or not @warning_ignore("unsafe_call_argument")
+	data.has("tiles"):
 			return false
 		
 		width = data["width"]
@@ -102,36 +117,45 @@ class MockTerrainLayout extends Resource:
 		return is_initialized and width > 0 and height > 0
 	
 	func get_walkable_tiles() -> Array:
-		var walkable = []
-		for x in range(width):
-			for y in range(height):
+		var walkable: Array = []
+		for x: int in range(width):
+			for y: int in range(height):
 				var pos = Vector2i(x, y)
 				if is_tile_walkable(pos):
-					walkable.append(pos)
+
+					@warning_ignore("return_value_discarded")
+	walkable.append(pos)
 		return walkable
 	
 	func get_connected_tiles(start_pos: Vector2i) -> Array:
-		var connected = []
-		var visited = {}
+		var connected: Array = []
+		var visited: Dictionary = {}
 		var queue = [start_pos]
 		
 		while not queue.is_empty():
 			var current = queue.pop_front()
 			var key = str(current)
 			
-			if visited.has(key):
+			if @warning_ignore("unsafe_call_argument")
+	visited.has(key):
 				continue
 			
-			visited[key] = true
-			connected.append(current)
+			@warning_ignore("unsafe_call_argument")
+	visited[key] = true
+
+			@warning_ignore("return_value_discarded")
+	connected.append(current)
 			
 			# Check adjacent tiles
 			var directions = [Vector2i(0, 1), Vector2i(1, 0), Vector2i(0, -1), Vector2i(-1, 0)]
 			for dir in directions:
 				var next_pos = current + dir
 				if _is_valid_position(next_pos) and is_tile_walkable(next_pos):
-					if not visited.has(str(next_pos)):
-						queue.append(next_pos)
+					if not @warning_ignore("unsafe_call_argument")
+	visited.has(str(next_pos)):
+
+						@warning_ignore("return_value_discarded")
+	queue.append(next_pos)
 		
 		return connected
 	
@@ -149,6 +173,7 @@ func before_test() -> void:
 	_layout = MockTerrainLayout.new()
 	# Note: Resources don't need track_node, they're garbage collected
 	
+	@warning_ignore("unsafe_method_access")
 	await get_tree().process_frame
 
 func after_test() -> void:
@@ -156,9 +181,11 @@ func after_test() -> void:
 	super.after_test()
 
 # ========================================
-# PERFECT TESTS - Expected 100% Success
+# PERFECT TESTS - Expected @warning_ignore("integer_division")
+	100 % Success
 # ========================================
 
+@warning_ignore("unsafe_method_access")
 func test_layout_initialization() -> void:
 	var size = Vector2i(10, 8)
 	var success = _layout.initialize(size)
@@ -168,11 +195,12 @@ func test_layout_initialization() -> void:
 	assert_that(layout_size).is_equal(size)
 	
 	# Verify all tiles are initialized to empty
-	for x in range(size.x):
-		for y in range(size.y):
+	for x: int in range(size.x):
+		for y: int in range(size.y):
 			var tile_type = _layout.get_tile_type(Vector2i(x, y))
 			assert_that(tile_type).is_equal(TerrainTypes.Type.EMPTY)
 
+@warning_ignore("unsafe_method_access")
 func test_tile_placement() -> void:
 	var size = Vector2i(5, 5)
 	_layout.initialize(size)
@@ -191,6 +219,7 @@ func test_tile_placement() -> void:
 	assert_that(_layout.get_tile_type(cover_pos)).is_equal(TerrainTypes.Type.COVER_LOW)
 	assert_that(_layout.get_tile_type(difficult_pos)).is_equal(TerrainTypes.Type.DIFFICULT)
 
+@warning_ignore("unsafe_method_access")
 func test_out_of_bounds_handling() -> void:
 	var size = Vector2i(5, 5)
 	_layout.initialize(size)
@@ -205,6 +234,7 @@ func test_out_of_bounds_handling() -> void:
 	assert_that(_layout.get_tile_type(Vector2i(-1, 0))).is_equal(-1)
 	assert_that(_layout.get_tile_type(Vector2i(5, 0))).is_equal(-1)
 
+@warning_ignore("unsafe_method_access")
 func test_walkability_queries() -> void:
 	var size = Vector2i(5, 5)
 	_layout.initialize(size)
@@ -220,6 +250,7 @@ func test_walkability_queries() -> void:
 	assert_that(_layout.is_tile_walkable(Vector2i(3, 3))).is_true()
 	assert_that(_layout.is_tile_walkable(Vector2i(2, 2))).is_false()
 
+@warning_ignore("unsafe_method_access")
 func test_line_of_sight_queries() -> void:
 	var size = Vector2i(5, 5)
 	_layout.initialize(size)
@@ -233,6 +264,7 @@ func test_line_of_sight_queries() -> void:
 	assert_that(_layout.blocks_line_of_sight(Vector2i(2, 2))).is_true()
 	assert_that(_layout.blocks_line_of_sight(Vector2i(1, 1))).is_true()
 
+@warning_ignore("unsafe_method_access")
 func test_area_queries() -> void:
 	var size = Vector2i(8, 8)
 	_layout.initialize(size)
@@ -254,6 +286,7 @@ func test_area_queries() -> void:
 	assert_that(Vector2i(2, 2) in area_tiles).is_true()
 	assert_that(Vector2i(4, 4) in area_tiles).is_true()
 
+@warning_ignore("unsafe_method_access")
 func test_serialization() -> void:
 	var size = Vector2i(4, 4)
 	_layout.initialize(size)
@@ -266,12 +299,15 @@ func test_serialization() -> void:
 	# Serialize
 	var data = _layout.serialize()
 	assert_that(data).is_not_null()
-	assert_that(data.has("width")).is_true()
-	assert_that(data.has("height")).is_true()
-	assert_that(data.has("tiles")).is_true()
+	assert_that(@warning_ignore("unsafe_call_argument")
+	data.has("width")).is_true()
+	assert_that(@warning_ignore("unsafe_call_argument")
+	data.has("height")).is_true()
+	assert_that(@warning_ignore("unsafe_call_argument")
+	data.has("tiles")).is_true()
 	
 	# Create new layout and deserialize
-	var new_layout = MockTerrainLayout.new()
+	var new_layout: MockTerrainLayout = MockTerrainLayout.new()
 	assert_that(new_layout.deserialize(data)).is_true()
 	
 	# Verify deserialized layout
@@ -281,6 +317,7 @@ func test_serialization() -> void:
 	assert_that(new_layout.get_tile_type(Vector2i(2, 2))).is_equal(TerrainTypes.Type.COVER_HIGH)
 	assert_that(new_layout.get_tile_type(Vector2i(3, 0))).is_equal(TerrainTypes.Type.DIFFICULT)
 
+@warning_ignore("unsafe_method_access")
 func test_layout_validation() -> void:
 	var size = Vector2i(6, 6)
 	_layout.initialize(size)
@@ -301,15 +338,16 @@ func test_layout_validation() -> void:
 	assert_that(Vector2i(3, 3) in walkable_tiles).is_true()
 	assert_that(Vector2i(0, 0) in walkable_tiles).is_true()
 
+@warning_ignore("unsafe_method_access")
 func test_flood_fill_operations() -> void:
 	var size = Vector2i(6, 6)
 	_layout.initialize(size)
 	
 	# Create enclosed area with walls
-	for x in range(1, 5):
+	for x: int in range(1, 5):
 		_layout.set_tile_type(Vector2i(x, 1), TerrainTypes.Type.WALL)
 		_layout.set_tile_type(Vector2i(x, 4), TerrainTypes.Type.WALL)
-	for y in range(1, 5):
+	for y: int in range(1, 5):
 		_layout.set_tile_type(Vector2i(1, y), TerrainTypes.Type.WALL)
 		_layout.set_tile_type(Vector2i(4, y), TerrainTypes.Type.WALL)
 	

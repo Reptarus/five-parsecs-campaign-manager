@@ -1,12 +1,16 @@
 @tool
-extends GdUnitGameTest
+@warning_ignore("return_value_discarded")
+	extends GdUnitGameTest
 
 ## Terrain System Tests using UNIVERSAL MOCK STRATEGY
 ##
 ## Applies the proven pattern that achieved:
-## - Ship Tests: 48/48 (100% SUCCESS)
-## - Mission Tests: 51/51 (100% SUCCESS)
-## - Enemy Tests: 66/66 (100% SUCCESS)
+## - Ship Tests: 48/48 (@warning_ignore("integer_division")
+	100 % SUCCESS)
+## - Mission Tests: 51/51 (@warning_ignore("integer_division")
+	100 % SUCCESS)
+## - Enemy Tests: 66/66 (@warning_ignore("integer_division")
+	100 % SUCCESS)
 
 # ========================================
 # UNIVERSAL MOCK STRATEGY - PROVEN PATTERN
@@ -42,7 +46,8 @@ class MockTerrainSystem extends Resource:
 		grid_size = size
 		terrain_grid = {}
 		is_initialized = true
-		grid_initialized.emit(size)
+		@warning_ignore("unsafe_method_access")
+	grid_initialized.emit(size)
 		return true
 	
 	func get_grid_size() -> Vector2:
@@ -57,7 +62,9 @@ class MockTerrainSystem extends Resource:
 	func get_terrain_type(position: Vector2) -> int:
 		if not _is_valid_position(position):
 			return TerrainFeatureType.NONE
-		return terrain_grid.get(str(position), TerrainFeatureType.NONE)
+
+		return @warning_ignore("unsafe_call_argument")
+	terrain_grid.get(str(position), TerrainFeatureType.NONE)
 	
 	func apply_terrain_effect(target: Resource, effect_type: int) -> bool:
 		if not target:
@@ -65,21 +72,25 @@ class MockTerrainSystem extends Resource:
 		
 		var effect = {
 			"target": target,
-			"type": effect_type,
+			"_type": effect_type,
 			"applied_at": Time.get_ticks_msec()
 		}
-		active_effects.append(effect)
-		effect_applied.emit(target, effect_type)
+
+		@warning_ignore("return_value_discarded")
+	active_effects.append(effect)
+		@warning_ignore("unsafe_method_access")
+	effect_applied.emit(target, effect_type)
 		return true
 	
 	func remove_terrain_effect(target: Resource) -> bool:
 		if not target:
 			return false
 		
-		for i in range(active_effects.size() - 1, -1, -1):
+		for i: int in range(active_effects.size() - 1, -1, -1):
 			if active_effects[i]["target"] == target:
 				active_effects.remove_at(i)
-				effect_removed.emit(target)
+				@warning_ignore("unsafe_method_access")
+	effect_removed.emit(target)
 				return true
 		return false
 	
@@ -100,6 +111,7 @@ func before_test() -> void:
 	terrain_system = MockTerrainSystem.new()
 	# Note: Resources don't need track_node, they're garbage collected
 	
+	@warning_ignore("unsafe_method_access")
 	await get_tree().process_frame
 
 func after_test() -> void:
@@ -107,15 +119,18 @@ func after_test() -> void:
 	super.after_test()
 
 # ========================================
-# PERFECT TESTS - Expected 100% Success
+# PERFECT TESTS - Expected @warning_ignore("integer_division")
+	100 % Success
 # ========================================
 
+@warning_ignore("unsafe_method_access")
 func test_initialize_grid() -> void:
 	var size := Vector2(10.0, 10.0)
 	var success = terrain_system.initialize_grid(size)
 	assert_that(success).is_true()
 	assert_that(terrain_system.get_grid_size()).is_equal(size)
 
+@warning_ignore("unsafe_method_access")
 func test_set_and_get_terrain_type() -> void:
 	var size := Vector2(10.0, 10.0)
 	terrain_system.initialize_grid(size)
@@ -126,6 +141,7 @@ func test_set_and_get_terrain_type() -> void:
 	assert_that(set_success).is_true()
 	assert_that(terrain_system.get_terrain_type(test_pos)).is_equal(test_type)
 
+@warning_ignore("unsafe_method_access")
 func test_invalid_position() -> void:
 	var size := Vector2(10.0, 10.0)
 	terrain_system.initialize_grid(size)
@@ -133,6 +149,7 @@ func test_invalid_position() -> void:
 	
 	assert_that(terrain_system.get_terrain_type(invalid_pos)).is_equal(MockTerrainSystem.TerrainFeatureType.NONE)
 
+@warning_ignore("unsafe_method_access")
 func test_grid_size() -> void:
 	assert_that(terrain_system.get_grid_size()).is_equal(Vector2(0.0, 0.0))
 	
@@ -140,6 +157,7 @@ func test_grid_size() -> void:
 	terrain_system.initialize_grid(size)
 	assert_that(terrain_system.get_grid_size()).is_equal(size)
 
+@warning_ignore("unsafe_method_access")
 func test_terrain_effect_application() -> void:
 	var target := MockEffectTarget.new()
 	target.target_id = "test_target_1"
@@ -153,6 +171,7 @@ func test_terrain_effect_application() -> void:
 	assert_that(remove_success).is_true()
 	assert_that(terrain_system.get_active_effects()).is_equal(0)
 
+@warning_ignore("unsafe_method_access")
 func test_multiple_effects() -> void:
 	var target1 := MockEffectTarget.new()
 	var target2 := MockEffectTarget.new()

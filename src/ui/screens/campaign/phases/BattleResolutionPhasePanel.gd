@@ -4,14 +4,14 @@ class_name FPCM_BattleResolutionPhasePanel
 const Character = preload("res://src/core/character/Base/Character.gd")
 
 # Preload required resources
-@onready var results_container = $VBoxContainer/ResultsContainer
-@onready var objectives_container = $VBoxContainer/ObjectivesContainer
-@onready var casualty_container = $VBoxContainer/CasualtyContainer
-@onready var complete_button = $VBoxContainer/CompleteButton
+@onready var results_container: RichTextLabel = $"VBoxContainer/ResultsContainer"
+@onready var objectives_container: ItemList = $"VBoxContainer/ObjectivesContainer"
+@onready var casualty_container: ItemList = $"VBoxContainer/CasualtyContainer"
+@onready var complete_button: Button = $"VBoxContainer/CompleteButton"
 
 # Create placeholder for missing battle manager
 # TODO: Implement proper integration once battle managers are created
-var escalating_battles_manager = null
+var _escalating_battles_manager = null
 var completed_objectives: Array = []
 var failed_objectives: Array = []
 var casualties: Array = []
@@ -49,15 +49,15 @@ func _resolve_battle() -> void:
 	for objective in mission.objectives:
 		var success_chance = _calculate_objective_success_chance(objective, crew_members, equipment)
 		if randf() <= success_chance:
-			completed_objectives.append(objective)
+			completed_objectives.append(objective) # warning: return value discarded (intentional)
 		else:
-			failed_objectives.append(objective)
+			failed_objectives.append(objective) # warning: return value discarded (intentional)
 	
 	# Resolve casualties
 	for crew_member in crew_members:
 		var casualty_chance = _calculate_casualty_chance(crew_member, equipment)
 		if randf() <= casualty_chance:
-			casualties.append({
+			casualties.append({ # warning: return value discarded (intentional)
 				"member": crew_member,
 				"type": _determine_casualty_type(crew_member)
 			})
@@ -97,7 +97,7 @@ func _apply_escalation_effect(crew_member: Character, effect: Dictionary) -> voi
 		crew_member.boost_psionic_power(effect.get("psionic_intensity", 1))
 
 func _calculate_objective_success_chance(objective: Dictionary, crew: Array, equipment: Dictionary) -> float:
-	var base_chance = 0.7 # 70% base chance
+	var base_chance: int = 0 # 70% base chance
 	
 	# Adjust for crew size
 	base_chance += 0.05 * crew.size() # +5% per crew member
@@ -108,6 +108,7 @@ func _calculate_objective_success_chance(objective: Dictionary, crew: Array, equ
 			base_chance += 0.1 # +10% per beneficial item
 	
 	# Adjust for objective difficulty
+
 	base_chance -= 0.1 * objective.get("difficulty", 1) # -10% per difficulty level
 	
 	# Adjust for crew skills
@@ -127,7 +128,7 @@ func _has_relevant_skill(member: Character, objective: Dictionary) -> bool:
 	return false
 
 func _calculate_casualty_chance(member: Character, equipment: Dictionary) -> float:
-	var base_chance = 0.2 # 20% base chance
+	var base_chance: int = 0 # 20% base chance
 	
 	# Reduce chance based on armor and equipment
 	if equipment.has(member.id):
@@ -143,7 +144,7 @@ func _calculate_casualty_chance(member: Character, equipment: Dictionary) -> flo
 	return clampf(base_chance, 0.05, 0.5)
 
 func _determine_casualty_type(member: Character) -> String:
-	var death_chance = 0.3 # 30% chance of death vs injury
+	var death_chance: int = 0 # 30% chance of death vs injury
 	
 	# Adjust based on member's resilience
 	death_chance -= 0.05 * member.get_resilience()
@@ -182,12 +183,12 @@ func _calculate_rewards() -> void:
 				rewards["items"].append(reward)
 
 func _generate_loot() -> Array:
-	var loot = []
+	var loot: Array = []
 	var mission = game_state.campaign.current_mission
 	
 	# Base loot
 	if completed_objectives.size() > failed_objectives.size():
-		loot.append({
+		loot.append({ # warning: return value discarded (intentional)
 			"name": "Salvage Crate",
 			"quantity": completed_objectives.size()
 		})
@@ -195,17 +196,17 @@ func _generate_loot() -> Array:
 	# Special loot based on mission type
 	match mission.type:
 		"SCAVENGING":
-			loot.append({
+			loot.append({ # warning: return value discarded (intentional)
 				"name": "Tech Components",
 				"quantity": randi() % 3 + 1
 			})
 		"COMBAT":
-			loot.append({
+			loot.append({ # warning: return value discarded (intentional)
 				"name": "Weapon Parts",
 				"quantity": randi() % 2 + 1
 			})
 		"EXPLORATION":
-			loot.append({
+			loot.append({ # warning: return value discarded (intentional)
 				"name": "Data Crystal",
 				"quantity": 1
 			})
@@ -219,7 +220,7 @@ func _update_ui() -> void:
 	_update_rewards()
 
 func _update_battle_summary() -> void:
-	var summary = "[b]Battle Summary[/b]\n\n"
+	var summary: String = "[b]Battle Summary[/b]\n\n"
 	summary += "Mission: %s\n" % game_state.campaign.current_mission.title
 	summary += "Location: %s\n" % game_state.campaign.current_location.name
 	
@@ -264,7 +265,7 @@ func _update_casualties() -> void:
 		return
 	
 	for casualty in casualties:
-		var text = "%s - %s" % [casualty.member.character_name, casualty.type]
+		var text: String = "%s - %s" % [casualty.member.character_name, casualty.type]
 		if casualty.type == "INJURY":
 			text += " (Recovery: %d days)" % _calculate_recovery_time(casualty.member)
 		casualty_container.add_item(text)
@@ -274,7 +275,7 @@ func _update_casualties() -> void:
 		)
 
 func _calculate_recovery_time(member: Character) -> int:
-	var base_time = 3 # Base 3 days
+	var base_time: int = 3 # Base 3 days
 	base_time -= member.get_resilience() # Reduce by resilience
 	base_time = maxi(1, base_time) # Minimum 1 day
 	return base_time

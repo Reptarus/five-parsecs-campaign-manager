@@ -47,7 +47,12 @@ enum ShipType {
 	CORVETTE,
 	PATROL_SHIP,
 	EXPLORER,
-	LUXURY_YACHT
+	LUXURY_YACHT,
+	FREIGHTER,
+	CRUISER,
+	ESCORT,
+	FIGHTER,
+	TRANSPORT
 }
 
 ## Campaign Types for Five Parsecs
@@ -99,7 +104,6 @@ const CHARACTER_CLASS_NAMES = {
 
 ## Human-readable names for Character Status
 const CHARACTER_STATUS_NAMES = {
-	CharacterStatus.NONE: "None",
 	CharacterStatus.HEALTHY: "Healthy",
 	CharacterStatus.INJURED: "Injured",
 	CharacterStatus.SERIOUSLY_INJURED: "Seriously Injured",
@@ -107,19 +111,17 @@ const CHARACTER_STATUS_NAMES = {
 	CharacterStatus.INCAPACITATED: "Incapacitated",
 	CharacterStatus.STUNNED: "Stunned",
 	CharacterStatus.SUPPRESSED: "Suppressed",
-	CharacterStatus.DEAD: "Dead",
 	CharacterStatus.CAPTURED: "Captured",
 	CharacterStatus.MISSING: "Missing"
 }
 
 ## Human-readable names for Ship Types
 const SHIP_TYPE_NAMES = {
-	ShipType.NONE: "None",
-	ShipType.SHUTTLE: "Shuttle",
-	ShipType.LIGHT_FREIGHTER: "Light Freighter",
-	ShipType.MEDIUM_FREIGHTER: "Medium Freighter",
-	ShipType.HEAVY_FREIGHTER: "Heavy Freighter",
-	ShipType.CORVETTE: "Corvette",
+	ShipType.FREIGHTER: "Freighter",
+	ShipType.CRUISER: "Cruiser",
+	ShipType.ESCORT: "Escort",
+	ShipType.FIGHTER: "Fighter",
+	ShipType.TRANSPORT: "Transport",
 	ShipType.PATROL_SHIP: "Patrol Ship",
 	ShipType.EXPLORER: "Explorer",
 	ShipType.LUXURY_YACHT: "Luxury Yacht"
@@ -127,15 +129,12 @@ const SHIP_TYPE_NAMES = {
 
 ## Human-readable names for Campaign Types
 const CAMPAIGN_TYPE_NAMES = {
-	CampaignType.NONE: "None",
 	CampaignType.STANDARD: "Standard",
 	CampaignType.FREELANCER: "Freelancer",
 	CampaignType.MERCENARY: "Mercenary",
 	CampaignType.EXPLORER: "Explorer",
 	CampaignType.TRADER: "Trader",
 	CampaignType.BOUNTY_HUNTER: "Bounty Hunter",
-	CampaignType.CUSTOM: "Custom",
-	CampaignType.TUTORIAL: "Tutorial",
 	CampaignType.STORY: "Story",
 	CampaignType.SANDBOX: "Sandbox"
 }

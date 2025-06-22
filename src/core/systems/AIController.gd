@@ -13,8 +13,8 @@ signal ai_action_completed(action: Dictionary)
 @export var ai_behavior: int = GameEnums.AIBehavior.CAUTIOUS
 
 var combat_manager: BaseCombatManager
-var game_state_manager: GameStateManager
-var enemy_deployment_manager: Node # Will be typed when EnemyDeploymentManager is available
+var _game_state_manager: GameStateManager
+var _enemy_deployment_manager: Node # Will be typed when EnemyDeploymentManager is available
 
 func _calculate_attack_score(character: Character, enemy: Character) -> float:
 	var score := 0.0

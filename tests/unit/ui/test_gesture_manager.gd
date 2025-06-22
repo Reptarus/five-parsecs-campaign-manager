@@ -1,13 +1,17 @@
 @tool
-extends GdUnitGameTest
+@warning_ignore("return_value_discarded")
+	extends GdUnitGameTest
 
 # ========================================
 # UNIVERSAL UI MOCK STRATEGY - PROVEN PATTERN
 # ========================================
 # Applying the same pattern that achieved:
-# - Action Button: 11/11 (100% SUCCESS) ✅
-# - Grid Overlay: 11/11 (100% SUCCESS) ✅  
-# - Responsive Container: 23/23 (100% SUCCESS) ✅
+# - Action Button: 11/11 (@warning_ignore("integer_division")
+	100 % SUCCESS) ✅
+# - Grid Overlay: 11/11 (@warning_ignore("integer_division")
+	100 % SUCCESS) ✅  
+# - Responsive Container: 23/23 (@warning_ignore("integer_division")
+	100 % SUCCESS) ✅
 
 class MockGestureManager extends Resource:
 	# Properties with realistic expected values
@@ -45,42 +49,49 @@ class MockGestureManager extends Resource:
 		var delta = end - start
 		if delta.length() > swipe_threshold:
 			var direction = "right" if delta.x > 0 else "left"
-			swipe_detected.emit(delta.normalized())
+			@warning_ignore("unsafe_method_access")
+	swipe_detected.emit(delta.normalized())
 			return direction
 		return "none"
 	
 	func detect_tap(position: Vector2, duration: float) -> bool:
 		if duration <= tap_duration:
-			tap_detected.emit(position)
+			@warning_ignore("unsafe_method_access")
+	tap_detected.emit(position)
 			return true
 		return false
 	
 	func detect_double_tap(position: Vector2, time_between: float) -> bool:
 		if time_between <= double_tap_interval:
-			double_tap_detected.emit(position)
+			@warning_ignore("unsafe_method_access")
+	double_tap_detected.emit(position)
 			return true
 		return false
 	
 	func detect_pinch(scale: float) -> bool:
 		if pinch_enabled and scale != 1.0:
-			pinch_detected.emit(scale)
+			@warning_ignore("unsafe_method_access")
+	pinch_detected.emit(scale)
 			return true
 		return false
 	
 	func start_gesture(gesture_type: String) -> void:
 		current_gesture = gesture_type
 		gesture_active = true
-		gesture_started.emit(gesture_type)
+		@warning_ignore("unsafe_method_access")
+	gesture_started.emit(gesture_type)
 	
 	func update_gesture(data: Dictionary) -> void:
 		gesture_data = data
-		gesture_updated.emit(data)
+		@warning_ignore("unsafe_method_access")
+	gesture_updated.emit(data)
 	
 	func end_gesture() -> void:
 		var ended_gesture = current_gesture
 		current_gesture = "none"
 		gesture_active = false
-		gesture_ended.emit(ended_gesture)
+		@warning_ignore("unsafe_method_access")
+	gesture_ended.emit(ended_gesture)
 	
 	func set_touch_count(count: int) -> void:
 		touch_count = count
@@ -88,8 +99,8 @@ class MockGestureManager extends Resource:
 	func get_gesture_threshold() -> float:
 		return swipe_threshold
 	
-	func set_gesture_threshold(value: float) -> void:
-		swipe_threshold = value
+	func set_gesture_threshold(test_value: float) -> void:
+		swipe_threshold = _value
 	
 	func is_gesture_enabled() -> bool:
 		return gesture_enabled
@@ -102,34 +113,41 @@ var mock_gesture_manager: MockGestureManager = null
 func before_test() -> void:
 	super.before_test()
 	mock_gesture_manager = MockGestureManager.new()
+	@warning_ignore("return_value_discarded")
 	track_resource(mock_gesture_manager) # Perfect cleanup
 
 # Test Methods using proven patterns
+@warning_ignore("unsafe_method_access")
 func test_initialization() -> void:
 	assert_that(mock_gesture_manager).is_not_null()
 	assert_that(mock_gesture_manager.gesture_enabled).is_true()
 	assert_that(mock_gesture_manager.current_gesture).is_equal("none")
 
+@warning_ignore("unsafe_method_access")
 func test_swipe_detection() -> void:
 	var start_pos = Vector2(0, 0)
 	var end_pos = Vector2(100, 0)
 	var result = mock_gesture_manager.detect_swipe(start_pos, end_pos)
 	assert_that(result).is_equal("right")
 
+@warning_ignore("unsafe_method_access")
 func test_tap_detection() -> void:
 	var position = Vector2(50, 50)
 	var result = mock_gesture_manager.detect_tap(position, 0.1)
 	assert_that(result).is_true()
 
+@warning_ignore("unsafe_method_access")
 func test_double_tap_detection() -> void:
 	var position = Vector2(75, 75)
 	var result = mock_gesture_manager.detect_double_tap(position, 0.3)
 	assert_that(result).is_true()
 
+@warning_ignore("unsafe_method_access")
 func test_pinch_detection() -> void:
 	var result = mock_gesture_manager.detect_pinch(1.5)
 	assert_that(result).is_true()
 
+@warning_ignore("unsafe_method_access")
 func test_gesture_lifecycle() -> void:
 	# Start gesture
 	mock_gesture_manager.start_gesture("swipe")
@@ -149,12 +167,14 @@ func test_gesture_lifecycle() -> void:
 	# Skip signal monitoring to prevent Dictionary corruption
 	# assert_signal(mock_gesture_manager).is_emitted("gesture_ended")  # REMOVED - causes Dictionary corruption
 
+@warning_ignore("unsafe_method_access")
 func test_gesture_threshold_configuration() -> void:
 	var new_threshold = 75.0
 	mock_gesture_manager.set_gesture_threshold(new_threshold)
 	var result = mock_gesture_manager.get_gesture_threshold()
 	assert_that(result).is_equal(new_threshold)
 
+@warning_ignore("unsafe_method_access")
 func test_gesture_enable_disable() -> void:
 	mock_gesture_manager.set_gesture_enabled(false)
 	assert_that(mock_gesture_manager.is_gesture_enabled()).is_false()
@@ -162,10 +182,12 @@ func test_gesture_enable_disable() -> void:
 	mock_gesture_manager.set_gesture_enabled(true)
 	assert_that(mock_gesture_manager.is_gesture_enabled()).is_true()
 
+@warning_ignore("unsafe_method_access")
 func test_touch_count_tracking() -> void:
 	mock_gesture_manager.set_touch_count(2)
 	assert_that(mock_gesture_manager.touch_count).is_equal(2)
 
+@warning_ignore("unsafe_method_access")
 func test_gesture_data_structure() -> void:
 	var test_data = {
 		"type": "pinch",
@@ -175,6 +197,7 @@ func test_gesture_data_structure() -> void:
 	mock_gesture_manager.update_gesture(test_data)
 	assert_that(mock_gesture_manager.gesture_data).is_equal(test_data)
 
+@warning_ignore("unsafe_method_access")
 func test_swipe_direction_detection() -> void:
 	# Test left swipe
 	var left_result = mock_gesture_manager.detect_swipe(Vector2(100, 0), Vector2(0, 0))
@@ -184,6 +207,7 @@ func test_swipe_direction_detection() -> void:
 	var right_result = mock_gesture_manager.detect_swipe(Vector2(0, 0), Vector2(100, 0))
 	assert_that(right_result).is_equal("right")
 
+@warning_ignore("unsafe_method_access")
 func test_gesture_state_management() -> void:
 	# Test initial state
 	assert_that(mock_gesture_manager.current_gesture).is_equal("none")
@@ -194,6 +218,7 @@ func test_gesture_state_management() -> void:
 	assert_that(mock_gesture_manager.current_gesture).is_equal("tap")
 	assert_that(mock_gesture_manager.gesture_active).is_true()
 
+@warning_ignore("unsafe_method_access")
 func test_pinch_enable_disable() -> void:
 	mock_gesture_manager.pinch_enabled = false
 	var result = mock_gesture_manager.detect_pinch(1.5)
@@ -203,22 +228,26 @@ func test_pinch_enable_disable() -> void:
 	var enabled_result = mock_gesture_manager.detect_pinch(1.5)
 	assert_that(enabled_result).is_true()
 
+@warning_ignore("unsafe_method_access")
 func test_gesture_detection() -> void:
 	# Test gesture detection directly
 	var gesture_detected = mock_gesture_manager.detect_gesture("swipe_left")
 	assert_that(gesture_detected).is_true()
 
+@warning_ignore("unsafe_method_access")
 func test_gesture_processing() -> void:
 	# Test gesture processing directly
 	mock_gesture_manager.process_gesture("tap")
 	var gesture_processed = true
 	assert_that(gesture_processed).is_true()
 
+@warning_ignore("unsafe_method_access")
 func test_gesture_validation() -> void:
 	# Test gesture validation directly
 	var valid_gesture = mock_gesture_manager.validate_gesture("pinch")
 	assert_that(valid_gesture).is_true()
 
+@warning_ignore("unsafe_method_access")
 func test_gesture_registration() -> void:
 	# Test gesture registration directly
 	mock_gesture_manager.register_gesture("custom_gesture")

@@ -1,5 +1,6 @@
 @tool
-extends GdUnitGameTest
+@warning_ignore("return_value_discarded")
+	extends GdUnitGameTest
 
 const GameEnums = preload("res://src/core/systems/GlobalEnums.gd")
 
@@ -15,7 +16,8 @@ class MockGameSettings extends Resource:
 	var sound_volume: float = 1.0
 	var music_enabled: bool = true
 	var music_volume: float = 1.0
-	var completed_tutorials: Array[String] = []
+	var completed_tutorials: @warning_ignore("unsafe_call_argument")
+	Array[String] = []
 	
 	# Core getters with expected values
 	func get_difficulty_level() -> int: return difficulty_level
@@ -88,11 +90,14 @@ class MockGameSettings extends Resource:
 	
 	# Tutorial management
 	func should_show_tutorial(tutorial_name: String) -> bool:
-		return tutorial_enabled and not completed_tutorials.has(tutorial_name)
+		return tutorial_enabled and not @warning_ignore("unsafe_call_argument")
+	completed_tutorials.has(tutorial_name)
 	
 	func mark_tutorial_completed(tutorial_name: String) -> void:
-		if not completed_tutorials.has(tutorial_name):
-			completed_tutorials.append(tutorial_name)
+		if not @warning_ignore("unsafe_call_argument")
+	completed_tutorials.has(tutorial_name):
+			@warning_ignore("return_value_discarded")
+	completed_tutorials.append(tutorial_name)
 	
 	func reset_tutorials() -> void:
 		completed_tutorials.clear()
@@ -114,18 +119,40 @@ class MockGameSettings extends Resource:
 		}
 	
 	static func deserialize_new(data: Dictionary) -> MockGameSettings:
-		var settings = MockGameSettings.new()
-		settings.difficulty_level = data.get("difficulty_level", GameEnums.DifficultyLevel.NORMAL)
-		settings.campaign_type = data.get("campaign_type", GameEnums.FiveParcsecsCampaignType.STANDARD)
-		settings.victory_condition = data.get("victory_condition", GameEnums.FiveParcsecsCampaignVictoryType.STANDARD)
-		settings.tutorial_enabled = data.get("tutorial_enabled", true)
-		settings.auto_save_enabled = data.get("auto_save_enabled", true)
-		settings.auto_save_frequency = data.get("auto_save_frequency", 15)
-		settings.sound_enabled = data.get("sound_enabled", true)
-		settings.sound_volume = data.get("sound_volume", 1.0)
-		settings.music_enabled = data.get("music_enabled", true)
-		settings.music_volume = data.get("music_volume", 1.0)
-		settings.completed_tutorials = data.get("completed_tutorials", [])
+		var settings: MockGameSettings = MockGameSettings.new()
+
+		settings.difficulty_level = @warning_ignore("unsafe_call_argument")
+	data.get("difficulty_level", GameEnums.DifficultyLevel.NORMAL)
+
+		settings.campaign_type = @warning_ignore("unsafe_call_argument")
+	data.get("campaign_type", GameEnums.FiveParcsecsCampaignType.STANDARD)
+
+		settings.victory_condition = @warning_ignore("unsafe_call_argument")
+	data.get("victory_condition", GameEnums.FiveParcsecsCampaignVictoryType.STANDARD)
+
+		settings.tutorial_enabled = @warning_ignore("unsafe_call_argument")
+	data.get("tutorial_enabled", true)
+
+		settings.auto_save_enabled = @warning_ignore("unsafe_call_argument")
+	data.get("auto_save_enabled", true)
+
+		settings.auto_save_frequency = @warning_ignore("unsafe_call_argument")
+	data.get("auto_save_frequency", 15)
+
+		settings.sound_enabled = @warning_ignore("unsafe_call_argument")
+	data.get("sound_enabled", true)
+
+		settings.sound_volume = @warning_ignore("unsafe_call_argument")
+	data.get("sound_volume", 1.0)
+
+		settings.music_enabled = @warning_ignore("unsafe_call_argument")
+	data.get("music_enabled", true)
+
+		settings.music_volume = @warning_ignore("unsafe_call_argument")
+	data.get("music_volume", 1.0)
+
+		settings.completed_tutorials = @warning_ignore("unsafe_call_argument")
+	data.get("completed_tutorials", [])
 		return settings
 
 # Type-safe instance variables
@@ -135,6 +162,7 @@ var settings: MockGameSettings = null
 func before_test() -> void:
 	super.before_test()
 	settings = MockGameSettings.new()
+	@warning_ignore("return_value_discarded")
 	track_resource(settings)
 
 func after_test() -> void:
@@ -142,6 +170,7 @@ func after_test() -> void:
 	super.after_test()
 
 # Test cases
+@warning_ignore("unsafe_method_access")
 func test_initialization() -> void:
 	# Test direct method calls instead of safe wrappers (proven pattern)
 	assert_that(settings.get_difficulty_level()).is_equal(GameEnums.DifficultyLevel.NORMAL)
@@ -155,6 +184,7 @@ func test_initialization() -> void:
 	assert_that(settings.get_music_enabled()).is_true()
 	assert_that(settings.get_music_volume()).is_equal(1.0)
 
+@warning_ignore("unsafe_method_access")
 func test_difficulty_settings() -> void:
 	# Test direct method calls instead of safe wrappers (proven pattern)
 	# Test setting difficulty
@@ -172,6 +202,7 @@ func test_difficulty_settings() -> void:
 	assert_that(settings.get_loot_modifier()).is_equal(1.2)
 	assert_that(settings.get_credit_modifier()).is_equal(1.2)
 
+@warning_ignore("unsafe_method_access")
 func test_campaign_settings() -> void:
 	# Test direct method calls instead of safe wrappers (proven pattern)
 	# Test setting campaign type
@@ -186,6 +217,7 @@ func test_campaign_settings() -> void:
 	assert_that(settings.is_story_missions_enabled()).is_true()
 	assert_that(settings.is_sandbox_features_enabled()).is_false()
 
+@warning_ignore("unsafe_method_access")
 func test_tutorial_settings() -> void:
 	# Test direct method calls instead of safe wrappers (proven pattern)
 	# Test disabling tutorials
@@ -203,6 +235,7 @@ func test_tutorial_settings() -> void:
 	settings.reset_tutorials()
 	assert_that(settings.should_show_tutorial("test_tutorial")).is_true()
 
+@warning_ignore("unsafe_method_access")
 func test_auto_save_settings() -> void:
 	# Test direct method calls instead of safe wrappers (proven pattern)
 	# Test disabling auto-save
@@ -219,6 +252,7 @@ func test_auto_save_settings() -> void:
 	settings.set_auto_save_frequency(120)
 	assert_that(settings.get_auto_save_frequency()).is_equal(60)
 
+@warning_ignore("unsafe_method_access")
 func test_audio_settings() -> void:
 	# Test direct method calls instead of safe wrappers (proven pattern)
 	# Test sound settings
@@ -239,6 +273,7 @@ func test_audio_settings() -> void:
 	settings.set_music_volume(-0.5)
 	assert_that(settings.get_music_volume()).is_equal(0.0)
 
+@warning_ignore("unsafe_method_access")
 func test_serialization() -> void:
 	# Test direct method calls instead of safe wrappers (proven pattern)
 	# Modify settings
@@ -256,6 +291,7 @@ func test_serialization() -> void:
 	# Serialize and deserialize
 	var data: Dictionary = settings.serialize()
 	var new_settings = MockGameSettings.deserialize_new(data)
+	@warning_ignore("return_value_discarded")
 	track_resource(new_settings)
 	
 	# Verify settings
@@ -270,6 +306,7 @@ func test_serialization() -> void:
 	assert_that(new_settings.get_music_enabled()).is_equal(settings.get_music_enabled())
 	assert_that(new_settings.get_music_volume()).is_equal(settings.get_music_volume())
 
+@warning_ignore("unsafe_method_access")
 func test_edge_cases() -> void:
 	# Test direct method calls instead of safe wrappers (proven pattern)
 	# Test extreme frequency values
@@ -286,6 +323,7 @@ func test_edge_cases() -> void:
 	settings.set_music_volume(10.0)
 	assert_that(settings.get_music_volume()).is_equal(1.0) # Should clamp to maximum
 
+@warning_ignore("unsafe_method_access")
 func test_tutorial_management() -> void:
 	# Test direct method calls instead of safe wrappers (proven pattern)
 	# Test multiple tutorial completion

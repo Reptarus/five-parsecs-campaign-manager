@@ -58,7 +58,6 @@ static func callable_functions() -> PackedStringArray:
 ## Callable functions stubing
 ## -----------------------------------------------------------------------------------------------------------------------------------------
 
-@warning_ignore("untyped_declaration")
 func bind(arg0=GdObjects.TYPE_VARARG_PLACEHOLDER_VALUE,
 	arg1=GdObjects.TYPE_VARARG_PLACEHOLDER_VALUE,
 	arg2=GdObjects.TYPE_VARARG_PLACEHOLDER_VALUE,
@@ -80,7 +79,6 @@ func bindv(caller_args: Array) -> Callable:
 	return _cb
 
 
-@warning_ignore("untyped_declaration", "native_method_override", "unused_parameter")
 func call(arg0=null,
 	arg1=GdObjects.TYPE_VARARG_PLACEHOLDER_VALUE,
 	arg2=GdObjects.TYPE_VARARG_PLACEHOLDER_VALUE,
@@ -150,7 +148,6 @@ func is_valid() -> bool:
 	return _cb.is_valid()
 
 
-@warning_ignore("untyped_declaration")
 func rpc(arg0=GdObjects.TYPE_VARARG_PLACEHOLDER_VALUE,
 	arg1=GdObjects.TYPE_VARARG_PLACEHOLDER_VALUE,
 	arg2=GdObjects.TYPE_VARARG_PLACEHOLDER_VALUE,
@@ -177,7 +174,6 @@ func rpc(arg0=GdObjects.TYPE_VARARG_PLACEHOLDER_VALUE,
 		10: _cb.rpc(args[0], args[1], args[2], args[3], args[4], args[5], args[6], args[7], args[8], args[9])
 
 
-@warning_ignore("untyped_declaration")
 func rpc_id(peer_id: int,
 	arg0=GdObjects.TYPE_VARARG_PLACEHOLDER_VALUE,
 	arg1=GdObjects.TYPE_VARARG_PLACEHOLDER_VALUE,

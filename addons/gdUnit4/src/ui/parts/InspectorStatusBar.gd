@@ -9,7 +9,6 @@ signal select_flaky_next()
 signal select_flaky_prevous()
 signal request_discover_tests()
 
-@warning_ignore("unused_signal")
 signal tree_view_mode_changed(flat :bool)
 
 @onready var _errors: Label = %error_value
@@ -42,7 +41,6 @@ var icon_mappings := {
 }
 
 
-@warning_ignore("return_value_discarded")
 func _ready() -> void:
 	_failures.text = "0"
 	_errors.text = "0"
@@ -70,7 +68,6 @@ func _set_sort_mode_menu_options() -> void:
 	context_menu.clear()
 
 	if not context_menu.index_pressed.is_connected(_on_sort_mode_changed):
-		@warning_ignore("return_value_discarded")
 		context_menu.index_pressed.connect(_on_sort_mode_changed)
 
 	var configured_sort_mode := GdUnitSettings.get_inspector_tree_sort_mode()
@@ -88,7 +85,6 @@ func _set_view_mode_menu_options() -> void:
 	context_menu.clear()
 
 	if not context_menu.index_pressed.is_connected(_on_tree_view_mode_changed):
-		@warning_ignore("return_value_discarded")
 		context_menu.index_pressed.connect(_on_tree_view_mode_changed)
 
 	var configured_tree_view_mode := GdUnitSettings.get_inspector_tree_view_mode()

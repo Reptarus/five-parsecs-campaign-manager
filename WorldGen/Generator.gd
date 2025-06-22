@@ -9,7 +9,7 @@ const Tile = preload("res://WorldGen/Tile.gd")
 @export var grid: Grid
 
 # Generate main branch of region w/ full progression tree
-func generate_progression(source: Region, start: Vector2):
+func generate_progression(source: Region, start: Vector2) -> void:
 	# Three passes: progression, optional progression, fill-ins
 	var used: Array[Tile] = []
 	var size: int = randi_range(source.size_range.x, source.size_range.y)
@@ -32,7 +32,7 @@ func generate_progression(source: Region, start: Vector2):
 	for i in source.optional_rooms.size():
 		var optional_tile = source.optional_rooms[i]
 		# Get weight from tile, fallback to 1 if not available
-		var tile_weight = 1
+		var tile_weight: int = 1
 		if optional_tile and optional_tile.has_method("get") and "weight" in optional_tile:
 			tile_weight = optional_tile.weight
 		elif optional_tile and "weight" in optional_tile:

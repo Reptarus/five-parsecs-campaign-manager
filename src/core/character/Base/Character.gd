@@ -16,9 +16,9 @@ var background: int = GameEnums.Background.NONE
 var motivation: int = GameEnums.Motivation.NONE
 
 # Additional Five Parsecs stats
-var _savvy: int = 0
-var _luck: int = 0
-var _training: int = GameEnums.Training.NONE
+var savvy: int = 0
+var luck: int = 0
+var training: int = GameEnums.Training.NONE
 
 # Equipment specific to Five Parsecs
 var weapons: Array[Resource] = [] # Weapon resources
@@ -38,25 +38,11 @@ func _init() -> void:
 	# Set a default character class as the character type
 	character_type = GameEnums.CharacterClass.SOLDIER
 
-# Additional property getters/setters for Five Parsecs stats
-var savvy: int:
-	get: return _savvy
-	set(value):
-		_savvy = clampi(value, 0, MAX_STATS.savvy)
-
-var luck: int:
-	get: return _luck
-	set(value):
-		var max_luck = MAX_STATS.luck
-		if is_human:
-			max_luck = 3 # Humans can have more luck
-		_luck = clampi(value, 0, max_luck)
-
-var training: int:
-	get: return _training
-	set(value):
-		if value in GameEnums.Training.values():
-			_training = value
+# Override character_name property to provide access
+var character_name: String:
+	get: return _character_name
+	set(_value):
+		_character_name = _value
 
 # Maximum values for stats (extending the base stats)
 const MAX_STATS = {
@@ -72,7 +58,7 @@ const MAX_STATS = {
 
 ## Roll for a stat check using appropriate dice
 func roll_stat_check(stat_name: String, difficulty: int = 0) -> bool:
-	var stat_value = 0
+	var stat_value: int = 0
 	match stat_name.to_lower():
 		"reaction": stat_value = reaction
 		"combat": stat_value = combat
@@ -108,7 +94,7 @@ func can_use_weapon_type(weapon_type: int) -> bool:
 
 ## Generate a display description for the character
 func get_character_description() -> String:
-	var desc = "%s - %s %s" % [
+	var desc: String = "%s - %s %s" % [
 		character_name,
 		GameEnums.CharacterClass.keys()[character_class],
 		GameEnums.Origin.keys()[origin]
@@ -132,7 +118,7 @@ func apply_campaign_effect(effect_type: int, duration: int = 1) -> void:
 
 ## Process character recovery between campaign turns
 func process_recovery() -> bool:
-	var recovered = false
+	var recovered: bool = false
 	if is_wounded and not is_dead:
 		# Roll recovery check
 		var recovery_roll = randi() % 6 + 1 + toughness
@@ -154,8 +140,65 @@ func process_recovery() -> bool:
 ## Add a trait to the character
 func add_trait(trait_name: String) -> void:
 	if not trait_name in traits:
-		traits.append(trait_name)
+		traits.append(trait_name) # warning: return value discarded (intentional)
 
 ## Check if character has a specific trait
 func has_trait(trait_name: String) -> bool:
 	return trait_name in traits
+
+## Serialize character data
+func serialize() -> Dictionary:
+	var data = {
+		"character_id": character_id,
+		"character_name": character_name,
+		"character_class": character_class,
+		"origin": origin,
+		"background": background,
+		"motivation": motivation,
+		"level": level,
+		"experience": experience,
+		"health": health,
+		"max_health": max_health,
+		"reaction": reaction,
+		"combat": combat,
+		"toughness": toughness,
+		"speed": speed,
+		"savvy": savvy,
+		"luck": luck,
+		"training": training,
+		"is_bot": is_bot,
+		"is_soulless": is_soulless,
+		"is_human": is_human,
+		"traits": traits,
+		"is_wounded": is_wounded,
+		"is_dead": is_dead,
+		"status_effects": status_effects
+	}
+	return data
+
+## Deserialize character data
+func deserialize(data: Dictionary) -> void:
+	character_id = data.get("character_id", "")
+	character_name = data.get("character_name", "")
+	character_class = data.get("character_class", GameEnums.CharacterClass.NONE)
+	origin = data.get("origin", GameEnums.Origin.NONE)
+	background = data.get("background", GameEnums.Background.NONE)
+	motivation = data.get("motivation", GameEnums.Motivation.NONE)
+	level = data.get("level", 1)
+	experience = data.get("experience", 0)
+	health = data.get("health", 10)
+	max_health = data.get("max_health", 10)
+	_reaction = data.get("reaction", 0)
+	_combat = data.get("combat", 0)
+	_toughness = data.get("toughness", 3)
+	_speed = data.get("speed", 4)
+	savvy = data.get("savvy", 0)
+	luck = data.get("luck", 0)
+	training = data.get("training", GameEnums.Training.NONE)
+	is_bot = data.get("is_bot", false)
+	is_soulless = data.get("is_soulless", false)
+	is_human = data.get("is_human", false)
+	traits = data.get("traits", [])
+	is_wounded = data.get("is_wounded", false)
+	is_dead = data.get("is_dead", false)
+	status_effects = data.get("status_effects", [])

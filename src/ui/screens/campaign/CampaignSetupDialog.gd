@@ -2,10 +2,10 @@ extends Control
 
 const GameEnums = preload("res://src/core/systems/GlobalEnums.gd")
 
-@onready var difficulty_option = $VBoxContainer/DifficultyOption
-@onready var permadeath_toggle = $VBoxContainer/PermadeathToggle
-@onready var story_track_toggle = $VBoxContainer/StoryTrackToggle
-@onready var start_button = $VBoxContainer/StartButton
+@onready var difficulty_option: Button = $"VBoxContainer/DifficultyOption"
+@onready var permadeath_toggle: Button = $"VBoxContainer/PermadeathToggle"
+@onready var story_track_toggle: Button = $"VBoxContainer/StoryTrackToggle"
+@onready var start_button: Button = $"VBoxContainer/StartButton"
 
 signal campaign_started(config: Dictionary)
 
@@ -69,7 +69,7 @@ func _on_start_pressed() -> void:
 		"permadeath": permadeath_toggle.button_pressed,
 		"story_track": story_track_toggle.button_pressed
 	}
-	campaign_started.emit(config)
+	campaign_started.emit(config)  # warning: return value discarded (intentional)
 
 func get_difficulty_name(difficulty: int) -> String:
 	return GameEnums.DifficultyLevel.keys()[difficulty]

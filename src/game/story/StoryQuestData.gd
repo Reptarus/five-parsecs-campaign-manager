@@ -172,18 +172,18 @@ func apply_custom_validation_rules() -> Array[String]:
 		
 		match condition:
 			"min_crew_level":
-				var min_level = rule.get("value", 1)
+				var min_level = rule.get("_value", 1)
 				if not _validate_crew_level(min_level):
-					custom_errors.append(error_message)
+					custom_errors.append(error_message)  # warning: return value discarded (intentional)
 			"required_faction_standing":
 				var faction = rule.get("faction", "")
-				var min_standing = rule.get("value", 0)
+				var min_standing = rule.get("_value", 0)
 				if not _validate_faction_standing(faction, min_standing):
-					custom_errors.append(error_message)
+					custom_errors.append(error_message)  # warning: return value discarded (intentional)
 			"special_equipment":
 				var equipment = rule.get("equipment", [])
 				if not _validate_special_equipment(equipment):
-					custom_errors.append(error_message)
+					custom_errors.append(error_message)  # warning: return value discarded (intentional)
 	
 	return custom_errors
 
@@ -214,8 +214,8 @@ func _validate_faction_standing(faction: String, min_standing: int) -> bool:
 	return game_state.get_faction_standing(faction) >= min_standing
 
 func _validate_special_equipment(required_equipment: Array) -> bool:
-	for equipment in required_equipment:
-		if not game_state.has_equipment(equipment):
+	for _equipment in required_equipment:
+		if not game_state.has_equipment(_equipment):
 			return false
 	return true
 
@@ -225,51 +225,51 @@ func validate() -> Dictionary:
 	
 	# Validate basic properties
 	if mission_id.is_empty():
-		errors.append("Mission ID is required")
+		errors.append("Mission ID is required")  # warning: return value discarded (intentional)
 	
 	if name.is_empty():
-		errors.append("Mission name is required")
+		errors.append("Mission name is required")  # warning: return value discarded (intentional)
 	
 	if description.is_empty():
-		warnings.append("Mission description is empty")
+		warnings.append("Mission description is empty")  # warning: return value discarded (intentional)
 	
 	# Validate mission type
 	if mission_type == GameEnums.MissionType.NONE:
-		errors.append("Invalid mission type")
+		errors.append("Invalid mission type")  # warning: return value discarded (intentional)
 	
 	# Validate objectives
 	if primary_objective == GameEnums.MissionObjective.NONE:
-		errors.append("Primary objective is required")
+		errors.append("Primary objective is required")  # warning: return value discarded (intentional)
 	
-	var has_primary = false
+	var has_primary: bool = false
 	for objective in objectives:
 		if objective.type == primary_objective:
 			has_primary = true
 			break
 	
 	if not has_primary:
-		errors.append("Primary objective not found in objectives list")
+		errors.append("Primary objective not found in objectives list")  # warning: return value discarded (intentional)
 	
 	# Validate requirements
 	if required_crew_size < 1:
-		errors.append("Required crew size must be at least 1")
+		errors.append("Required crew size must be at least 1")  # warning: return value discarded (intentional)
 	
 	if required_crew_size > 6:
-		errors.append("Required crew size cannot exceed 6")
+		errors.append("Required crew size cannot exceed 6")  # warning: return value discarded (intentional)
 	
 	# Validate rewards
 	if reward_credits < 0:
-		errors.append("Reward credits cannot be negative")
+		errors.append("Reward credits cannot be negative")  # warning: return value discarded (intentional)
 	
 	if reward_reputation < 0:
-		errors.append("Reward reputation cannot be negative")
+		errors.append("Reward reputation cannot be negative")  # warning: return value discarded (intentional)
 	
 	# Validate state consistency
 	if is_completed and is_failed:
-		errors.append("Mission cannot be both completed and failed")
+		errors.append("Mission cannot be both completed and failed")  # warning: return value discarded (intentional)
 	
 	if is_active and (is_completed or is_failed):
-		errors.append("Active mission cannot be completed or failed")
+		errors.append("Active mission cannot be completed or failed")  # warning: return value discarded (intentional)
 	
 	# Handle custom mission validation if applicable
 	if is_custom_mission:
@@ -278,7 +278,7 @@ func validate() -> Dictionary:
 	
 	# Emit validation failed signal if there are errors
 	if not errors.is_empty():
-		validation_failed.emit(errors)
+		validation_failed.emit(errors)  # warning: return value discarded (intentional)
 	
 	return {
 		"is_valid": errors.is_empty(),
@@ -337,7 +337,7 @@ func calculate_rewards() -> Dictionary:
 		"items": bonus_items
 	}
 	
-	reward_calculated.emit(rewards)
+	reward_calculated.emit(rewards)  # warning: return value discarded (intentional)
 	return rewards
 
 static func create_mission(p_mission_type: int, p_config: Dictionary = {}) -> StoryQuestData:
@@ -347,7 +347,7 @@ static func create_mission(p_mission_type: int, p_config: Dictionary = {}) -> St
 
 func add_objective(objective_type: int, description: String = "", required: bool = true) -> void:
 	var objective := {
-		"type": objective_type,
+		"_type": objective_type,
 		"description": description,
 		"required": required,
 		"completed": false,
@@ -355,14 +355,14 @@ func add_objective(objective_type: int, description: String = "", required: bool
 		"target": 1
 	}
 	
-	objectives.append(objective)
+	objectives.append(objective)  # warning: return value discarded (intentional)
 	
 	if required:
-		secondary_objectives.append(objective_type)
+		secondary_objectives.append(objective_type)  # warning: return value discarded (intentional)
 
 func complete_objective(objective_type: int) -> void:
 	for objective in objectives:
-		if objective.type == objective_type:
+		if objective._type == objective_type:
 			objective.completed = true
 			objective.progress = objective.target
 			_update_completion_percentage()
@@ -370,7 +370,7 @@ func complete_objective(objective_type: int) -> void:
 
 func update_objective_progress(objective_type: int, progress: int) -> void:
 	for objective in objectives:
-		if objective.type == objective_type:
+		if objective._type == objective_type:
 			objective.progress = mini(progress, objective.target)
 			if objective.progress >= objective.target:
 				objective.completed = true
@@ -392,13 +392,13 @@ func _update_completion_percentage() -> void:
 
 func add_enemy_type(enemy_type: int) -> void:
 	if not enemy_type in enemy_types:
-		enemy_types.append(enemy_type)
+		enemy_types.append(enemy_type)  # warning: return value discarded (intentional)
 
 func add_reward_item(item: Dictionary) -> void:
-	reward_items.append(item)
+	reward_items.append(item)  # warning: return value discarded (intentional)
 
 func add_required_equipment(equipment: Dictionary) -> void:
-	required_equipment.append(equipment)
+	required_equipment.append(equipment)  # warning: return value discarded (intentional)
 
 func set_required_resource(resource_type: int, amount: int) -> void:
 	required_resources[resource_type] = amount
@@ -410,18 +410,18 @@ func is_requirement_met(game_state: FiveParsecsGameState) -> bool:
 		
 	# Check crew size
 	if game_state.crew_members.size() < required_crew_size:
-					return false
+		return false
 	
 	# Check resources
 	for resource_type in required_resources:
 		var required = required_resources[resource_type]
 		if game_state.get_resource(resource_type) < required:
-					return false
+			return false
 	
 	# Check equipment
 	for equipment in required_equipment:
 		if not game_state.has_equipment(equipment):
-					return false
+			return false
 	
 	return true
 
@@ -566,7 +566,7 @@ func validate_completion() -> Dictionary:
 			if not objective.completed and objective.required:
 				secondary_complete = false
 				validation_result.failed_objectives.append(objective.type)
-			secondary_status.append({
+			secondary_status.append({  # warning: return value discarded (intentional)
 				"type": objective.type,
 				"completed": objective.completed,
 				"required": objective.required,
@@ -604,8 +604,8 @@ func can_start(game_state: FiveParsecsGameState) -> bool:
 	var requirement_check = validate_requirements(game_state)
 	return requirement_check.can_start
 
-func add_reward_modifier(modifier_type: String, value: float) -> void:
-	reward_modifiers[modifier_type] = value
+func add_reward_modifier(modifier_type: String, _value: float) -> void:
+	reward_modifiers[modifier_type] = _value
 
 func get_reward_modifier(modifier_type: String) -> float:
 	return reward_modifiers.get(modifier_type, 1.0)

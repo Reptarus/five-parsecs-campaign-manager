@@ -11,7 +11,7 @@ signal training_failed(character: Character, reason: String)
 signal training_cost_updated(new_cost: int)
 
 var game_state: FiveParsecsGameState
-var training_cost: int = 100
+var _training_cost: int = 100
 
 # Training types and their costs
 const TRAINING_COSTS = {
@@ -101,6 +101,7 @@ func _init(_game_state: FiveParsecsGameState) -> void:
 ## Parameters:
 ## - character: The character applying for training
 ## - course: The training course name
+
 ## Returns: Whether the application was successful
 func apply_for_training(character: Character, course: String) -> bool:
 	if not TRAINING_COSTS.has(course):
@@ -128,6 +129,7 @@ func apply_for_training(character: Character, course: String) -> bool:
 ## Parameters:
 ## - character: The character to enroll
 ## - course: The training course name
+
 ## Returns: Whether enrollment was successful
 func enroll_in_course(character: Character, course: String) -> bool:
 	if not TRAINING_COSTS.has(course):
@@ -140,7 +142,7 @@ func enroll_in_course(character: Character, course: String) -> bool:
 		return false
 	
 	apply_training_effect(course, character)
-	training_completed.emit(character, course)
+	training_completed.emit(character, course)  # warning: return value discarded (intentional)
 	return true
 
 ## Gets available courses for a character
@@ -151,7 +153,8 @@ func get_available_courses(character: Character) -> Array[String]:
 	var available_courses: Array[String] = []
 	for course in TRAINING_COSTS.keys():
 		if can_take_course(character, course):
-				available_courses.append(course)
+
+				available_courses.append(course)  # warning: return value discarded (intentional)
 	return available_courses
 
 ## Checks if a character can take a specific course
@@ -181,10 +184,11 @@ func attempt_training(character: Character, course: String) -> void:
 		if enroll_in_course(character, course):
 			print("Training successful: %s completed %s" % [character.name, course])
 		else:
-			training_failed.emit(character, course)
+			training_failed.emit(character, course)  # warning: return value discarded (intentional)
 			print("Training failed: %s could not enroll in %s" % [character.name, course])
 	else:
-		training_failed.emit(character, course)
+		training_failed.emit(character, course)  # warning: return value discarded (intentional)
+
 		print("Application failed: %s was not accepted for %s" % [character.name, course])
 
 ## Applies the training effect to a character

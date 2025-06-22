@@ -16,7 +16,6 @@ var available_locations: Array = []
 
 func _init() -> void:
 	pass
-
 func start_pre_battle_phase() -> void:
 	pre_battle_phase_started.emit()
 	_initialize_available_missions()
@@ -28,14 +27,12 @@ func complete_pre_battle_phase() -> void:
 func _initialize_available_missions() -> void:
 	# Base implementation - override in derived classes
 	available_missions = []
-
 func _initialize_available_locations() -> void:
 	# Base implementation - override in derived classes
 	available_locations = []
-
 func select_mission(mission_index: int) -> bool:
 	if mission_index < 0 or mission_index >= available_missions.size():
-		push_error("Invalid mission index: " + str(mission_index))
+		push_error("Invalid mission _index: " + str(mission_index))
 		return false
 	
 	current_mission = available_missions[mission_index]
@@ -44,7 +41,7 @@ func select_mission(mission_index: int) -> bool:
 
 func select_location(location_index: int) -> bool:
 	if location_index < 0 or location_index >= available_locations.size():
-		push_error("Invalid location index: " + str(location_index))
+		push_error("Invalid location _index: " + str(location_index))
 		return false
 	
 	selected_location = available_locations[location_index]
@@ -76,7 +73,6 @@ func reset() -> void:
 	deployment_positions = []
 	available_missions = []
 	available_locations = []
-
 func serialize() -> Dictionary:
 	return {
 		"current_mission": current_mission,

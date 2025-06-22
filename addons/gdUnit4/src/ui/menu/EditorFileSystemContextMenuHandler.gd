@@ -20,9 +20,7 @@ func _init() -> void:
 		_context_menus[menu.id] = menu
 	var popup := _menu_popup()
 	var file_tree := _file_tree()
-	@warning_ignore("return_value_discarded")
 	popup.about_to_popup.connect(on_context_menu_show.bind(popup, file_tree))
-	@warning_ignore("return_value_discarded")
 	popup.id_pressed.connect(on_context_menu_pressed.bind(file_tree))
 
 
@@ -65,7 +63,6 @@ func collect_testsuites(_menu_item: GdUnitContextMenuItem, file_tree: Tree) -> A
 			# find a performant way to check if the selected item a testsuite
 			var resource: Script = ResourceLoader.load(resource_path, "Script", ResourceLoader.CACHE_MODE_REUSE)
 			if _menu_item.is_visible(resource):
-				@warning_ignore("return_value_discarded")
 				selected_test_suites.append(resource)
 		selected_item = file_tree.get_next_selected(selected_item)
 	return selected_test_suites

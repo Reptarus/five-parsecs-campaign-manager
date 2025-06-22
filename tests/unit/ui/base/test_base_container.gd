@@ -1,16 +1,17 @@
 # Test suite for BaseContainer component
-extends GdUnitTestSuite
+@warning_ignore("return_value_discarded")
+	extends GdUnitTestSuite
 
 # Mock objects
 var container: Resource
 
 # Setup method
-func before_test():
+func before_test() -> void:
 	container = _create_mock_container()
 
 # Helper methods
 func _create_mock_container() -> Resource:
-	var mock_container = Resource.new()
+	var mock_container: Resource = Resource.new()
 	# Simple mock without loading non-existent script
 	mock_container.set_meta("spacing", 10)
 	mock_container.set_meta("orientation", "horizontal")
@@ -18,13 +19,15 @@ func _create_mock_container() -> Resource:
 	return mock_container
 
 # Test methods - Remove ALL signal monitoring to prevent Dictionary corruption
-func test_horizontal_layout():
+@warning_ignore("unsafe_method_access")
+func test_horizontal_layout() -> void:
 	# Test layout directly without signals
 	container.set_meta("orientation", "horizontal")
 	var orientation = container.get_meta("orientation", "vertical")
 	assert_that(orientation).is_equal("horizontal")
 
-func test_vertical_layout():
+@warning_ignore("unsafe_method_access")
+func test_vertical_layout() -> void:
 	# Test layout directly without signals - NO SIGNAL MONITORING
 	container.set_meta("orientation", "vertical")
 	var orientation = container.get_meta("orientation", "horizontal")
@@ -35,7 +38,8 @@ func test_vertical_layout():
 	var spacing = container.get_meta("spacing", 10)
 	assert_that(spacing).is_equal(15)
 
-func test_spacing_property():
+@warning_ignore("unsafe_method_access")
+func test_spacing_property() -> void:
 	# Test spacing directly without signal monitoring
 	var initial_spacing = container.get_meta("spacing", 10)
 	assert_that(initial_spacing).is_equal(10)
@@ -45,7 +49,8 @@ func test_spacing_property():
 	var new_spacing = container.get_meta("spacing", 10)
 	assert_that(new_spacing).is_equal(20)
 
-func test_orientation_property():
+@warning_ignore("unsafe_method_access")
+func test_orientation_property() -> void:
 	# Test orientation directly without signal monitoring
 	var initial_orientation = container.get_meta("orientation", "horizontal")
 	assert_that(initial_orientation).is_equal("horizontal")
@@ -55,7 +60,8 @@ func test_orientation_property():
 	var new_orientation = container.get_meta("orientation", "horizontal")
 	assert_that(new_orientation).is_equal("vertical")
 
-func test_minimum_size():
+@warning_ignore("unsafe_method_access")
+func test_minimum_size() -> void:
 	# Test minimum size directly without signal monitoring
 	var initial_size = container.get_meta("custom_minimum_size", Vector2(100, 50))
 	assert_that(initial_size).is_equal(Vector2(100, 50))
@@ -65,7 +71,8 @@ func test_minimum_size():
 	var new_size = container.get_meta("custom_minimum_size", Vector2(100, 50))
 	assert_that(new_size).is_equal(Vector2(200, 100))
 
-func test_component_structure():
+@warning_ignore("unsafe_method_access")
+func test_component_structure() -> void:
 	# Test component structure directly without signal monitoring
 	var structure_valid = container != null
 	assert_that(structure_valid).is_true()
@@ -74,37 +81,46 @@ func test_component_structure():
 	var has_spacing = container.has_meta("spacing")
 	assert_that(has_spacing).is_true()
 
-func test_initialization():
+@warning_ignore("unsafe_method_access")
+func test_initialization() -> void:
 	# Skip signal monitoring to prevent Dictionary access errors
-	# monitor_signals(container)  # REMOVED - causes Dictionary corruption
+	# @warning_ignore("unsafe_method_access")
+	monitor_signals(container)  # REMOVED - causes Dictionary corruption
 	# Test initialization
 	var initialized = true # Simplified check
 	assert_that(initialized).is_true()
 	
 	# Skip signal tests that cause Dictionary errors
 	# if container.has_signal("ready"):
-	#     container.emit_signal("ready")
+	#     @warning_ignore("unsafe_method_access")
+	container.emit_signal("ready")
 	#     assert_signal(container).is_emitted("ready")
 
-func test_layout_calculation():
+@warning_ignore("unsafe_method_access")
+func test_layout_calculation() -> void:
 	# Skip signal monitoring to prevent Dictionary access errors
-	# monitor_signals(container)  # REMOVED - causes Dictionary corruption
+	# @warning_ignore("unsafe_method_access")
+	monitor_signals(container)  # REMOVED - causes Dictionary corruption
 	# Test layout calculation
 	var layout_valid = true # Simplified check
 	assert_that(layout_valid).is_true()
 	
 	# Skip signal tests that cause Dictionary errors
 
-func test_resize_handling():
+@warning_ignore("unsafe_method_access")
+func test_resize_handling() -> void:
 	# Skip signal monitoring to prevent Dictionary access errors
-	# monitor_signals(container)  # REMOVED - causes Dictionary corruption
+	# @warning_ignore("unsafe_method_access")
+	monitor_signals(container)  # REMOVED - causes Dictionary corruption
 	# Test resize handling
 	var resize_handled = true # Simplified check
 	assert_that(resize_handled).is_true()
 
-func test_child_management():
+@warning_ignore("unsafe_method_access")
+func test_child_management() -> void:
 	# Skip signal monitoring to prevent Dictionary access errors
-	# monitor_signals(container)  # REMOVED - causes Dictionary corruption
+	# @warning_ignore("unsafe_method_access")
+	monitor_signals(container)  # REMOVED - causes Dictionary corruption
 	# Test child management
 	var children_managed = true # Simplified check
 	assert_that(children_managed).is_true()

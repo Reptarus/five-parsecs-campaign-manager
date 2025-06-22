@@ -35,6 +35,7 @@ func generate_enemy_deployment(enemy_force: Dictionary, deployment_zone: Rect2) 
 	var enemy_data: Dictionary = {
 		"groups": _generate_enemy_groups(),
 		"positions": _generate_positions(deployment_zone),
+
 		"special_rules": enemy_force.get("special_rules", [])
 	}
 	
@@ -57,19 +58,23 @@ func _validate_enemy_force(force: Dictionary) -> bool:
 ## Returns: Array of group configurations
 func _generate_enemy_groups() -> Array[Dictionary]:
 	var groups: Array[Dictionary] = []
+
 	var base_count: int = GROUP_SIZES.get(current_enemy_force.type, 4) # Default to 4 if type not found
+
 	var total_count: int = base_count + current_enemy_force.get("count_bonus", 0)
-	
-	groups.append({
+
+	groups.append({ # warning: return value discarded (intentional)
 		"type": current_enemy_force.type,
 		"count": total_count,
+
 		"equipment_level": current_enemy_force.get("equipment_level", 1)
 	})
-	
+
 	if current_enemy_force.get("reinforcements", false):
-		groups.append({
+		groups.append({ # warning: return value discarded (intentional)
 			"type": GameEnums.EnemyType.GANGERS,
 			"count": base_count / 2,
+
 			"equipment_level": maxi(1, current_enemy_force.get("equipment_level", 1) - 1)
 		})
 	
@@ -95,8 +100,8 @@ func _generate_positions(deployment_zone: Rect2) -> Array[Vector2]:
 		
 		if attempts >= 100:
 			push_warning("Could not find unique position for enemy after 100 attempts")
-		
-		positions.append(pos)
+
+		positions.append(pos) # warning: return value discarded (intentional)
 	
 	return positions
 
@@ -106,6 +111,6 @@ func _generate_positions(deployment_zone: Rect2) -> Array[Vector2]:
 ## Returns: Vector2 position within the zone
 func _get_random_position_in_zone(zone: Rect2) -> Vector2:
 	return Vector2(
-		zone.position.x + randf() * zone.size.x,
-		zone.position.y + randf() * zone.size.y
-	)
+			zone.position.x + randf() * zone.size.x,
+	zone.position.y + randf() * zone.size.y
+)

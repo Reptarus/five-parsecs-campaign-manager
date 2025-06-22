@@ -1,7 +1,9 @@
 @tool
 # REMOVED: class_name ValidationManager
+
 # This class previously used class_name ValidationManager but it was removed to prevent conflicts
 # The authoritative ValidationManager class is in src/core/systems/ValidationManager.gd
+
 # This class is now implemented as StateValidationManager (without class_name)
 # Use explicit preloads to reference this class: preload("res://src/core/state/StateValidator.gd")
 extends Node
@@ -74,7 +76,7 @@ func validate_game_state(game_state: FiveParsecsGameState) -> Array:
 	
 	# Validate basic state integrity
 	if not game_state:
-		results.append(create_result(
+		results.append(create_result( # warning: return value discarded (intentional)
 			GameEnums.VerificationType.STATE,
 			GameEnums.VerificationResult.ERROR,
 			"Game state is null or invalid"
@@ -83,7 +85,7 @@ func validate_game_state(game_state: FiveParsecsGameState) -> Array:
 	
 	# Check if the campaign is valid
 	if not game_state.has_active_campaign():
-		results.append(create_result(
+		results.append(create_result( # warning: return value discarded (intentional)
 			GameEnums.VerificationType.STATE,
 			GameEnums.VerificationResult.WARNING,
 			"No active campaign"
@@ -91,7 +93,7 @@ func validate_game_state(game_state: FiveParsecsGameState) -> Array:
 	
 	# Check if the crew is valid
 	if not game_state.has_crew():
-		results.append(create_result(
+		results.append(create_result( # warning: return value discarded (intentional)
 			GameEnums.VerificationType.STATE,
 			GameEnums.VerificationResult.WARNING,
 			"No active crew"
@@ -99,7 +101,7 @@ func validate_game_state(game_state: FiveParsecsGameState) -> Array:
 	else:
 		var crew_size = game_state.get_crew_size()
 		if crew_size < 1:
-			results.append(create_result(
+			results.append(create_result( # warning: return value discarded (intentional)
 				GameEnums.VerificationType.STATE,
 				GameEnums.VerificationResult.ERROR,
 				"Crew size is invalid: " + str(crew_size)
@@ -107,22 +109,23 @@ func validate_game_state(game_state: FiveParsecsGameState) -> Array:
 	
 	# Check resources
 	if not game_state.has_resource(GameEnums.ResourceType.CREDITS):
-		results.append(create_result(
+		results.append(create_result( # warning: return value discarded (intentional)
 			GameEnums.VerificationType.STATE,
 			GameEnums.VerificationResult.WARNING,
 			"No credits resource found"
 		))
 	
 	if not game_state.has_resource(GameEnums.ResourceType.FUEL):
-		results.append(create_result(
+		results.append(create_result( # warning: return value discarded (intentional)
 			GameEnums.VerificationType.STATE,
 			GameEnums.VerificationResult.WARNING,
 			"No fuel resource found"
 		))
 	
 	# Check if there's a current location
-	if not game_state.get_current_location():
-		results.append(create_result(
+	var current_location = game_state.get_current_location()
+	if current_location.is_empty():
+		results.append(create_result( # warning: return value discarded (intentional)
 			GameEnums.VerificationType.STATE,
 			GameEnums.VerificationResult.WARNING,
 			"No current location set"
@@ -130,43 +133,43 @@ func validate_game_state(game_state: FiveParsecsGameState) -> Array:
 	
 	return results
 
-## Validates a campaign state and returns any errors found
+## Validates a campaign _state and returns any errors found
 func validate_campaign_state(campaign_state: Dictionary) -> Array[String]:
 	var errors: Array[String] = []
 	
 	# Check for required campaign fields
 	if not campaign_state.has("campaign_name"):
-		errors.append("Campaign is missing a name")
+		errors.append("Campaign is missing a name") # warning: return value discarded (intentional)
 	
 	if not campaign_state.has("campaign_id"):
-		errors.append("Campaign is missing an ID")
+		errors.append("Campaign is missing an ID") # warning: return value discarded (intentional)
 	
 	if not campaign_state.has("current_phase"):
-		errors.append("Campaign is missing current phase")
+		errors.append("Campaign is missing current phase") # warning: return value discarded (intentional)
 	
 	# Check for crew
 	if not campaign_state.has("crew") or not campaign_state.crew is Array or campaign_state.crew.size() < 1:
-		errors.append("Campaign must have at least one crew member")
+		errors.append("Campaign must have at least one crew member") # warning: return value discarded (intentional)
 	
 	# Check for resources
 	if not campaign_state.has("resources") or not campaign_state.resources is Dictionary:
-		errors.append("Campaign is missing resources data")
+		errors.append("Campaign is missing resources data") # warning: return value discarded (intentional)
 	else:
 		var resources = campaign_state.resources
 		if not resources.has("credits"):
-			errors.append("Campaign resources missing credits")
+			errors.append("Campaign resources missing credits") # warning: return value discarded (intentional)
 	
 	# Check for ships
 	if not campaign_state.has("ships") or not campaign_state.ships is Array:
-		errors.append("Campaign is missing ships data")
+		errors.append("Campaign is missing ships data") # warning: return value discarded (intentional)
 	
 	# Check for world
 	if not campaign_state.has("current_world") or not campaign_state.current_world is Dictionary:
-		errors.append("Campaign is missing current world data")
+		errors.append("Campaign is missing current world data") # warning: return value discarded (intentional)
 	
 	# If errors were found, emit the validation_failed signal
 	if errors.size() > 0:
-		validation_failed.emit(errors)
+		validation_failed.emit(errors) # warning: return value discarded (intentional)
 		
 	return errors
 
@@ -176,28 +179,28 @@ func validate_character(character_data: Dictionary) -> Array[String]:
 	
 	# Check for required character fields
 	if not character_data.has("character_id"):
-		errors.append("Character is missing an ID")
+		errors.append("Character is missing an ID") # warning: return value discarded (intentional)
 	
 	if not character_data.has("character_name") or character_data.character_name.strip_edges().is_empty():
-		errors.append("Character is missing a name")
+		errors.append("Character is missing a name") # warning: return value discarded (intentional)
 	
 	if not character_data.has("character_class"):
-		errors.append("Character is missing a class")
+		errors.append("Character is missing a class") # warning: return value discarded (intentional)
 	
 	# Check for stats
 	if not character_data.has("stats") or not character_data.stats is Dictionary:
-		errors.append("Character is missing stats")
+		errors.append("Character is missing stats") # warning: return value discarded (intentional)
 	else:
 		var stats = character_data.stats
 		var required_stats = ["strength", "agility", "toughness", "intelligence", "willpower"]
 		
 		for stat in required_stats:
 			if not stats.has(stat):
-				errors.append("Character is missing required stat: " + stat)
+				errors.append("Character is missing required stat: " + stat) # warning: return value discarded (intentional)
 	
 	# Check for equipment
 	if not character_data.has("equipment") or not character_data.equipment is Dictionary:
-		errors.append("Character is missing equipment data")
+		errors.append("Character is missing equipment data") # warning: return value discarded (intentional)
 	
 	return errors
 
@@ -207,19 +210,19 @@ func validate_mission(mission_data: Dictionary) -> Array[String]:
 	
 	# Check for required mission fields
 	if not mission_data.has("mission_id"):
-		errors.append("Mission is missing an ID")
+		errors.append("Mission is missing an ID") # warning: return value discarded (intentional)
 	
 	if not mission_data.has("mission_name") or mission_data.mission_name.strip_edges().is_empty():
-		errors.append("Mission is missing a name")
+		errors.append("Mission is missing a name") # warning: return value discarded (intentional)
 	
 	if not mission_data.has("mission_type"):
-		errors.append("Mission is missing a type")
+		errors.append("Mission is missing a type") # warning: return value discarded (intentional)
 	
 	if not mission_data.has("objectives") or not mission_data.objectives is Array or mission_data.objectives.size() < 1:
-		errors.append("Mission must have at least one objective")
+		errors.append("Mission must have at least one objective") # warning: return value discarded (intentional)
 	
 	if not mission_data.has("reward") or not mission_data.reward is Dictionary:
-		errors.append("Mission is missing reward data")
+		errors.append("Mission is missing reward data") # warning: return value discarded (intentional)
 	
 	return errors
 
@@ -229,42 +232,66 @@ func validate_ship(ship_data: Dictionary) -> Array[String]:
 	
 	# Check for required ship fields
 	if not ship_data.has("ship_id"):
-		errors.append("Ship is missing an ID")
+		errors.append("Ship is missing an ID") # warning: return value discarded (intentional)
 	
 	if not ship_data.has("ship_name") or ship_data.ship_name.strip_edges().is_empty():
-		errors.append("Ship is missing a name")
+		errors.append("Ship is missing a name") # warning: return value discarded (intentional)
 	
 	if not ship_data.has("ship_type"):
-		errors.append("Ship is missing a type")
+		errors.append("Ship is missing a type") # warning: return value discarded (intentional)
 	
 	# Check for components
 	if not ship_data.has("components") or not ship_data.components is Array:
-		errors.append("Ship is missing component data")
+		errors.append("Ship is missing component data") # warning: return value discarded (intentional)
 	
 	return errors
 
 ## Run validation and emit signals
 func run_validation(game_state: FiveParsecsGameState, validation_type: ValidationType, scope: ValidationScope = ValidationScope.CURRENT) -> void:
-	var results = []
+	var results: Array = []
 	
 	match validation_type:
 		ValidationType.GAME_STATE:
 			results = validate_game_state(game_state)
 		ValidationType.CAMPAIGN_STATE:
 			if game_state.has_active_campaign():
-				results = validate_campaign_state(game_state.get_active_campaign_data())
+				var campaign_data: Dictionary = game_state.get_active_campaign_data()
+				var campaign_errors: Array[String] = validate_campaign_state(campaign_data)
+				# Convert string errors to ValidationResult objects
+				for error_msg in campaign_errors:
+					results.append(create_result( # warning: return value discarded (intentional)
+						GameEnums.VerificationType.STATE,
+						GameEnums.VerificationResult.ERROR,
+						error_msg
+					))
 			else:
-				results.append(create_result(
+				results.append(create_result( # warning: return value discarded (intentional)
 					GameEnums.VerificationType.STATE,
 					GameEnums.VerificationResult.ERROR,
 					"No active campaign to validate"
 				))
 		ValidationType.CHARACTER_STATE:
 			if game_state.has_crew():
-				for character in game_state.get_crew_members():
-					results.append_array(validate_character(character))
+				var crew_members: Array = game_state.get_crew_members()
+				for character in crew_members:
+					if character is Dictionary:
+						var character_dict: Dictionary = character as Dictionary
+						var character_errors: Array[String] = validate_character(character_dict)
+						# Convert string errors to ValidationResult objects
+						for error_msg in character_errors:
+							results.append(create_result( # warning: return value discarded (intentional)
+								GameEnums.VerificationType.STATE,
+								GameEnums.VerificationResult.ERROR,
+								error_msg
+							))
+					else:
+						results.append(create_result( # warning: return value discarded (intentional)
+							GameEnums.VerificationType.STATE,
+							GameEnums.VerificationResult.ERROR,
+							"Invalid character data type"
+						))
 			else:
-				results.append(create_result(
+				results.append(create_result( # warning: return value discarded (intentional)
 					GameEnums.VerificationType.STATE,
 					GameEnums.VerificationResult.ERROR,
 					"No crew to validate characters"
@@ -273,12 +300,13 @@ func run_validation(game_state: FiveParsecsGameState, validation_type: Validatio
 	# Check for errors
 	var errors: Array[String] = []
 	for result in results:
-		if result.is_error():
-			errors.append(result.message)
+		if result is ValidationResult and result.is_error():
+			var validation_result: ValidationResult = result as ValidationResult
+			errors.append(validation_result.message) # warning: return value discarded (intentional)
 	
 	if errors.size() > 0:
-		validation_failed.emit(errors)
+		validation_failed.emit(errors) # warning: return value discarded (intentional)
 	else:
-		validation_success.emit()
+		validation_success.emit() # warning: return value discarded (intentional)
 	
-	validation_complete.emit(results)
+	validation_complete.emit(results) # warning: return value discarded (intentional)

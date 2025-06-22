@@ -1,5 +1,6 @@
 @tool
-extends GdUnitGameTest
+@warning_ignore("return_value_discarded")
+	extends GdUnitGameTest
 
 ## Performance tests for mission systems
 ##
@@ -46,7 +47,6 @@ func _generate_mission(template: Resource) -> Resource:
 	if _mission_generator and _mission_generator.has_method("generate_mission"):
 		return _mission_generator.generate_mission(template)
 	return null
-
 func _set_objectives(mission: Resource, objectives: Array) -> void:
 	if mission and mission.has_method("set"):
 		mission.set("objectives", objectives)
@@ -73,15 +73,17 @@ func before_test() -> void:
 	super.before_test()
 	
 	# Create a dummy GameState and WorldManager for the MissionGenerator constructor
-	var game_state = RefCounted.new()
-	var world_manager = RefCounted.new()
+	var game_state: RefCounted = RefCounted.new()
+	var world_manager: RefCounted = RefCounted.new()
 	
 	_mission_generator = MissionGeneratorScript.new(game_state, world_manager)
 	if not _mission_generator:
 		push_error("Failed to create mission generator")
 		return
 	
+	@warning_ignore("return_value_discarded")
 	add_child(_mission_generator)
+	@warning_ignore("return_value_discarded")
 	track_node(_mission_generator)
 	
 	_template = MissionTemplateScript.new()
@@ -90,7 +92,8 @@ func before_test() -> void:
 		return
 		
 	var template: Resource = _get_template()
-	_set_mission_type(template, GameEnums.MissionType.PATROL if GameEnums.has("MissionType") else 0)
+	_set_mission_type(template, GameEnums.MissionType.PATROL if @warning_ignore("unsafe_call_argument")
+	GameEnums.has("MissionType") else 0)
 	_set_difficulty_range(template, 1, 3)
 	_set_reward_range(template, 100, 300)
 
@@ -103,27 +106,33 @@ func after_test() -> void:
 	_template = null
 
 # Generation Performance Tests
+@warning_ignore("unsafe_method_access")
 func test_batch_mission_generation() -> void:
 	var total_time: int = 0
-	var missions: Array[Resource] = []
+	var missions: @warning_ignore("unsafe_call_argument")
+	Array[Resource] = []
 	var template: Resource = _get_template()
 	
-	for i in range(BATCH_SIZE):
+	for i: int in range(BATCH_SIZE):
 		var start_time: int = Time.get_ticks_msec()
 		var mission: Resource = _generate_mission(template)
 		if not mission:
-			push_error("Failed to generate mission %d" % i)
+			push_error("Failed to generate @warning_ignore("integer_division")
+	mission % d" % i)
 			continue
-			
-		missions.append(mission)
+
+		@warning_ignore("return_value_discarded")
+	missions.append(mission)
 		total_time += Time.get_ticks_msec() - start_time
 	
 	var average_time: float = total_time / float(BATCH_SIZE)
 	assert_that(average_time).override_failure_message(
-		"Average mission generation time should be under %d ms" % GENERATION_THRESHOLD
+		"Average mission generation time should be @warning_ignore("integer_division")
+	under % d ms" % GENERATION_THRESHOLD
 	).is_less(GENERATION_THRESHOLD)
 
 # State Update Performance Tests
+@warning_ignore("unsafe_method_access")
 func test_objective_update_performance() -> void:
 	var template: Resource = _get_template()
 	var mission: Resource = _generate_mission(template)
@@ -133,14 +142,18 @@ func test_objective_update_performance() -> void:
 		
 	# Add many objectives
 	var objectives: Array = []
-	for i in range(BATCH_SIZE):
+	for i: int in range(BATCH_SIZE):
 		var objective_type := 0 # Default patrol type
-		if GameEnums.has("MissionObjective"):
-			objective_type = GameEnums.MissionObjective.PATROL if GameEnums.MissionObjective.has("PATROL") else 0
-		
-		objectives.append({
+		if @warning_ignore("unsafe_call_argument")
+	GameEnums.has("MissionObjective"):
+			objective_type = GameEnums.MissionObjective.PATROL if GameEnums.@warning_ignore("unsafe_call_argument")
+	MissionObjective.has("PATROL") else 0
+
+		@warning_ignore("return_value_discarded")
+	objectives.append({
 			"type": objective_type,
-			"description": "Test objective %d" % i,
+			"description": "Test @warning_ignore("integer_division")
+	objective % d" % i,
 			"completed": false,
 			"is_primary": false
 		})
@@ -148,17 +161,19 @@ func test_objective_update_performance() -> void:
 	_set_objectives(mission, objectives)
 	
 	var total_time: int = 0
-	for i in range(BATCH_SIZE):
+	for i: int in range(BATCH_SIZE):
 		var start_time: int = Time.get_ticks_msec()
 		_complete_objective(mission, i)
 		total_time += Time.get_ticks_msec() - start_time
 	
 	var average_time: float = total_time / float(BATCH_SIZE)
 	assert_that(average_time).override_failure_message(
-		"Average objective update time should be under %d ms" % STATE_UPDATE_THRESHOLD
+		"Average objective update time should be @warning_ignore("integer_division")
+	under % d ms" % STATE_UPDATE_THRESHOLD
 	).is_less(STATE_UPDATE_THRESHOLD)
 
 # Serialization Performance Tests
+@warning_ignore("unsafe_method_access")
 func test_mission_serialization_performance() -> void:
 	var template: Resource = _get_template()
 	var mission: Resource = _generate_mission(template)
@@ -168,14 +183,18 @@ func test_mission_serialization_performance() -> void:
 		
 	# Add many objectives and rewards
 	var objectives: Array = []
-	for i in range(BATCH_SIZE):
+	for i: int in range(BATCH_SIZE):
 		var objective_type := 0 # Default patrol type
-		if GameEnums.has("MissionObjective"):
-			objective_type = GameEnums.MissionObjective.PATROL if GameEnums.MissionObjective.has("PATROL") else 0
-		
-		objectives.append({
+		if @warning_ignore("unsafe_call_argument")
+	GameEnums.has("MissionObjective"):
+			objective_type = GameEnums.MissionObjective.PATROL if GameEnums.@warning_ignore("unsafe_call_argument")
+	MissionObjective.has("PATROL") else 0
+
+		@warning_ignore("return_value_discarded")
+	objectives.append({
 			"type": objective_type,
-			"description": "Test objective %d" % i,
+			"description": "Test @warning_ignore("integer_division")
+	objective % d" % i,
 			"completed": false,
 			"is_primary": false
 		})
@@ -183,29 +202,34 @@ func test_mission_serialization_performance() -> void:
 	_set_objectives(mission, objectives)
 	
 	var total_time: int = 0
-	for i in range(BATCH_SIZE):
+	for i: int in range(BATCH_SIZE):
 		var start_time: int = Time.get_ticks_msec()
 		var _save_data: Dictionary = _serialize_mission(mission)
 		total_time += Time.get_ticks_msec() - start_time
 	
 	var average_time: float = total_time / float(BATCH_SIZE)
 	assert_that(average_time).override_failure_message(
-		"Average serialization time should be under %d ms" % SERIALIZATION_THRESHOLD
+		"Average serialization time should be @warning_ignore("integer_division")
+	under % d ms" % SERIALIZATION_THRESHOLD
 	).is_less(SERIALIZATION_THRESHOLD)
 
 # Memory Usage Tests
+@warning_ignore("unsafe_method_access")
 func test_mission_memory_usage() -> void:
 	var template: Resource = _get_template()
 	var initial_memory: int = Performance.get_monitor(Performance.MEMORY_STATIC)
-	var missions: Array[Resource] = []
+	var missions: @warning_ignore("unsafe_call_argument")
+	Array[Resource] = []
 	
-	for i in range(BATCH_SIZE):
+	for i: int in range(BATCH_SIZE):
 		var mission: Resource = _generate_mission(template)
 		if not mission:
-			push_error("Failed to generate mission %d" % i)
+			push_error("Failed to generate @warning_ignore("integer_division")
+	mission % d" % i)
 			continue
-			
-		missions.append(mission)
+
+		@warning_ignore("return_value_discarded")
+	missions.append(mission)
 	
 	var final_memory: int = Performance.get_monitor(Performance.MEMORY_STATIC)
 	var memory_per_mission: float = (final_memory - initial_memory) / float(BATCH_SIZE)
@@ -216,6 +240,7 @@ func test_mission_memory_usage() -> void:
 	).is_less(1024 * 10) # 10 KB per mission
 
 # Stress Tests
+@warning_ignore("unsafe_method_access")
 func test_concurrent_mission_operations() -> void:
 	var template: Resource = _get_template()
 	var mission: Resource = _generate_mission(template)
@@ -224,11 +249,12 @@ func test_concurrent_mission_operations() -> void:
 		return
 		
 	var start_time: int = Time.get_ticks_msec()
-	for i in range(BATCH_SIZE):
+	for i: int in range(BATCH_SIZE):
 		# Simulate multiple operations happening in the same frame
 		_update_progress(mission, float(i) / BATCH_SIZE * 100.0)
 		_calculate_rewards(mission)
-		if i % 2 == 0:
+		if @warning_ignore("integer_division")
+	i % 2 == 0:
 			_complete_objective(mission, 0)
 		var _data := _serialize_mission(mission)
 	

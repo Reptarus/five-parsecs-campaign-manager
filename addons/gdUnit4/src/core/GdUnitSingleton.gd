@@ -17,14 +17,12 @@ static func instance(name: String, clazz: Callable) -> Variant:
 		return Engine.get_meta(name)
 	var singleton: Variant = clazz.call()
 	if  is_instance_of(singleton, RefCounted):
-		@warning_ignore("unsafe_cast")
 		push_error("Invalid singleton implementation detected for '%s' is `%s`!" % [name, (singleton as RefCounted).get_class()])
 		return
 
 	Engine.set_meta(name, singleton)
 	GdUnitTools.prints_verbose("Register singleton '%s:%s'" % [name, singleton])
 	var singletons: PackedStringArray = Engine.get_meta(MEATA_KEY, PackedStringArray())
-	@warning_ignore("return_value_discarded")
 	singletons.append(name)
 	Engine.set_meta(MEATA_KEY, singletons)
 	return singleton
@@ -38,7 +36,6 @@ static func unregister(p_singleton: String, use_call_deferred: bool = false) -> 
 		singletons.remove_at(index)
 		var instance_: Object = Engine.get_meta(p_singleton)
 		GdUnitTools.prints_verbose("	Free singleton instance '%s:%s'" % [p_singleton, instance_])
-		@warning_ignore("return_value_discarded")
 		GdUnitTools.free_instance(instance_, use_call_deferred)
 		Engine.remove_meta(p_singleton)
 		GdUnitTools.prints_verbose("	Successfully freed '%s'" % p_singleton)

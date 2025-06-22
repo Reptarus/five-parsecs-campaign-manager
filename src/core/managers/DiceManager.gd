@@ -1,5 +1,4 @@
-class_name FPCM_DiceManager
-extends Resource
+extends Node
 
 ## Dice Manager for Five Parsecs Campaign Manager
 ## Integrates the dice system with existing game systems
@@ -15,11 +14,10 @@ var dice_feed: Control # Reference to UI dice feed
 var auto_mode: bool = true # Whether to auto-roll or request manual input
 
 ## Initialize the dice manager
-func _init():
+func _ready() -> void:
 	dice_system = FPCM_DiceSystem.new()
 	_setup_dice_system()
-
-func _setup_dice_system():
+func _setup_dice_system() -> void:
 	# Configure dice system for Five Parsecs gameplay
 	dice_system.auto_roll_enabled = auto_mode
 	dice_system.show_animations = true
@@ -30,13 +28,13 @@ func _setup_dice_system():
 	dice_system.manual_input_requested.connect(_on_manual_input_requested)
 
 ## Set reference to the dice feed UI component
-func set_dice_feed(feed: Control):
+func set_dice_feed(feed: Control) -> void:
 	dice_feed = feed
 	if dice_feed and dice_feed.has_method("set_dice_system"):
 		dice_feed.set_dice_system(dice_system)
 
 ## Enable/disable automatic rolling
-func set_auto_mode(enabled: bool):
+func set_auto_mode(enabled: bool) -> void:
 	auto_mode = enabled
 	dice_system.auto_roll_enabled = enabled
 
@@ -45,61 +43,61 @@ func set_auto_mode(enabled: bool):
 
 ## Replace: randi() % 6 + 1
 func roll_d6(context: String = "D6 Roll") -> int:
-	var result = dice_system.roll_dice(FPCM_DiceSystem.DicePattern.D6, context)
+	var result: FPCM_DiceSystem.DiceRoll = dice_system.roll_dice(FPCM_DiceSystem.DicePattern.D6, context)
 	dice_roll_requested.emit(context, FPCM_DiceSystem.DicePattern.D6)
 	return result.total
 
 ## Replace: randi() % 10 + 1  
 func roll_d10(context: String = "D10 Roll") -> int:
-	var result = dice_system.roll_dice(FPCM_DiceSystem.DicePattern.D10, context)
+	var result: FPCM_DiceSystem.DiceRoll = dice_system.roll_dice(FPCM_DiceSystem.DicePattern.D10, context)
 	dice_roll_requested.emit(context, FPCM_DiceSystem.DicePattern.D10)
 	return result.total
 
 ## Replace: randi() % 100 + 1
 func roll_d100(context: String = "D100 Roll") -> int:
-	var result = dice_system.roll_dice(FPCM_DiceSystem.DicePattern.D100, context)
+	var result: FPCM_DiceSystem.DiceRoll = dice_system.roll_dice(FPCM_DiceSystem.DicePattern.D100, context)
 	dice_roll_requested.emit(context, FPCM_DiceSystem.DicePattern.D100)
 	return result.total
 
 ## Replace: d66 rolls (tens * 10 + ones)
 func roll_d66(context: String = "D66 Roll") -> int:
-	var result = dice_system.roll_dice(FPCM_DiceSystem.DicePattern.D66, context)
+	var result: FPCM_DiceSystem.DiceRoll = dice_system.roll_dice(FPCM_DiceSystem.DicePattern.D66, context)
 	dice_roll_requested.emit(context, FPCM_DiceSystem.DicePattern.D66)
 	return result.total
 
 ## Replace: 2d6 rolls
 func roll_2d6(context: String = "2D6 Roll") -> int:
-	var result = dice_system.roll_custom(2, 6, 0, context)
+	var result: FPCM_DiceSystem.DiceRoll = dice_system.roll_custom(2, 6, 0, context)
 	return result.total
 
 ## Replace: attribute generation (2d6/3 rounded up)
 func roll_attribute(context: String = "Attribute Generation") -> int:
-	var result = dice_system.roll_attribute()
+	var result: int = dice_system.roll_attribute()
 	return result
 
 ## Replace: combat checks with modifiers
 func roll_combat_check(modifier: int = 0, context: String = "Combat Check") -> int:
-	var result = dice_system.roll_combat_check(modifier, context)
+	var result: int = dice_system.roll_combat_check(modifier, context)
 	return result
 
 ## Replace: injury table rolls
 func roll_injury_table(context: String = "Injury Roll") -> int:
-	var result = dice_system.roll_injury_table(context)
+	var result: int = dice_system.roll_injury_table(context)
 	return result
 
 ## Replace: reaction tests
 func roll_reaction_test(context: String = "Reaction Test") -> int:
-	var result = dice_system.roll_dice(FPCM_DiceSystem.DicePattern.REACTION, context)
+	var result: FPCM_DiceSystem.DiceRoll = dice_system.roll_dice(FPCM_DiceSystem.DicePattern.REACTION, context)
 	return result.total
 
 ## Replace: morale checks
 func roll_morale_check(context: String = "Morale Check") -> int:
-	var result = dice_system.roll_dice(FPCM_DiceSystem.DicePattern.MORALE, context)
+	var result: FPCM_DiceSystem.DiceRoll = dice_system.roll_dice(FPCM_DiceSystem.DicePattern.MORALE, context)
 	return result.total
 
 ## Replace: custom dice rolls with context
 func roll_custom(dice_count: int, dice_sides: int, modifier: int = 0, context: String = "Custom Roll") -> int:
-	var result = dice_system.roll_custom(dice_count, dice_sides, modifier, context)
+	var result: FPCM_DiceSystem.DiceRoll = dice_system.roll_custom(dice_count, dice_sides, modifier, context)
 	return result.total
 
 ## SPECIALIZED FIVE PARSECS ROLLS
@@ -194,42 +192,41 @@ func legacy_randi_range(sides: int, context: String = "Legacy Roll") -> int:
 
 ## Direct replacement for randi() % max + min
 func legacy_randi_range_min_max(min_val: int, max_val: int, context: String = "Legacy Range") -> int:
-	var range_size = max_val - min_val + 1
-	var roll = roll_custom(1, range_size, min_val - 1, context)
+	var range_size: int = max_val - min_val + 1
+	var roll: int = roll_custom(1, range_size, min_val - 1, context)
 	return roll
 
 ## STATISTICS AND ANALYSIS
 
 ## Get rolling statistics for debugging/balancing
 func get_roll_statistics(pattern: FPCM_DiceSystem.DicePattern = FPCM_DiceSystem.DicePattern.D6) -> Dictionary:
-	return dice_system.get_roll_statistics(pattern)
+	return dice_system.get_roll_statistics()
 
 ## Get recent roll history
 func get_roll_history(count: int = 10) -> String:
 	return dice_system.get_roll_history_text(count)
 
 ## Clear roll history
-func clear_roll_history():
+func clear_roll_history() -> void:
 	dice_system.clear_history()
 
 ## SIGNAL HANDLERS
-
-func _on_dice_rolled(dice_roll: FPCM_DiceSystem.DiceRoll):
+func _on_dice_rolled(dice_roll: FPCM_DiceSystem.DiceRoll) -> void:
 	dice_result_ready.emit(dice_roll.total, dice_roll.context)
 
-func _on_manual_input_requested(dice_roll: FPCM_DiceSystem.DiceRoll):
+func _on_manual_input_requested(dice_roll: FPCM_DiceSystem.DiceRoll) -> void:
 	# Handle manual input request - could show UI prompt
 	print("Manual dice input requested for: " + dice_roll.context)
 
 ## SETTINGS MANAGEMENT
-
 func save_dice_settings() -> Dictionary:
-	var settings = dice_system.save_settings()
+	var settings: Dictionary = dice_system.save_settings()
 	settings["auto_mode"] = auto_mode
 	return settings
 
-func load_dice_settings(settings: Dictionary):
+func load_dice_settings(settings: Dictionary) -> void:
 	dice_system.load_settings(settings)
+
 	auto_mode = settings.get("auto_mode", true)
 	dice_system.auto_roll_enabled = auto_mode
 
@@ -244,8 +241,7 @@ func is_ready() -> bool:
 	return dice_system != null
 
 ## Force a manual roll request for testing
-func request_manual_roll(dice_count: int, dice_sides: int, context: String = "Manual Test"):
+func request_manual_roll(dice_count: int, dice_sides: int, context: String = "Manual Test") -> void:
 	dice_system.auto_roll_enabled = false
-	var result = dice_system.roll_custom(dice_count, dice_sides, 0, context)
+	var _result = dice_system.roll_custom(dice_count, dice_sides, 0, context)
 	dice_system.auto_roll_enabled = auto_mode
-	return result

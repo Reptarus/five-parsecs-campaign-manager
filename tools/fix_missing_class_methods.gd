@@ -13,7 +13,7 @@ const REPLACEMENTS = {
 	}
 }
 
-func _run():
+func _run() -> void:
 	print("Starting to fix missing class method references...")
 	
 	for file_path in TARGET_FILES:
@@ -21,7 +21,7 @@ func _run():
 	
 	print("Finished fixing references")
 
-func fix_references_in_file(file_path):
+func fix_references_in_file(file_path) -> void:
 	print("Processing file: " + file_path)
 	
 	var file = FileAccess.open(file_path, FileAccess.READ)
@@ -33,7 +33,7 @@ func fix_references_in_file(file_path):
 	file.close()
 	
 	var has_changes = false
-	var added_preloads = {}
+	var added_preloads: Dictionary = {}
 	
 	# Check for each problematic reference
 	for reference in REPLACEMENTS:
@@ -41,7 +41,7 @@ func fix_references_in_file(file_path):
 		var preload_statement = replacement_info.preload
 		var new_reference = replacement_info.replacement
 		
-		var reference_pattern = RegEx.new()
+		var reference_pattern := RegEx.new()
 		reference_pattern.compile("\\b" + reference.replace(".", "\\.") + "\\b")
 		
 		var matches = reference_pattern.search_all(content)
@@ -56,7 +56,7 @@ func fix_references_in_file(file_path):
 	if has_changes:
 		# Add the necessary preload statements at the top of the file
 		var preload_position = find_preload_position(content)
-		var preload_insertion = ""
+		var preload_insertion: String = ""
 		
 		for preload_statement in added_preloads:
 			preload_insertion += preload_statement + "\n"
@@ -78,7 +78,7 @@ func fix_references_in_file(file_path):
 	else:
 		print("No changes needed in " + file_path)
 
-func find_preload_position(content):
+func find_preload_position(content: String) -> int:
 	var lines = content.split("\n")
 	var extends_line = -1
 	var const_line = -1

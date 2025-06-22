@@ -50,6 +50,7 @@ func _setup_state_tree() -> void:
 		category_items[category] = item
 
 ## Updates the current state
+	
 func update_current_state(new_state: Dictionary) -> void:
 	current_state = new_state
 	if auto_verify:
@@ -57,7 +58,8 @@ func update_current_state(new_state: Dictionary) -> void:
 	else:
 		_update_state_display()
 
-## Updates the expected state
+## Updates the expected _state
+	
 func update_expected_state(new_state: Dictionary) -> void:
 	expected_state = new_state
 	if auto_verify:
@@ -65,18 +67,21 @@ func update_expected_state(new_state: Dictionary) -> void:
 	else:
 		_update_state_display()
 
-## Updates the state tree display
+## Updates the _state tree display
+	
 func _update_state_display() -> void:
 	for category in state_categories:
 		var category_item = category_items[category]
 		category_item.clear_children()
-		
+
 		var current_category_state = current_state.get(category.to_lower(), {})
+
 		var expected_category_state = expected_state.get(category.to_lower(), {})
 		
 		for key in current_category_state.keys():
 			var item = state_tree.create_item(category_item)
 			var current_value = current_category_state[key]
+
 			var expected_value = expected_category_state.get(key, null)
 			
 			item.set_text(0, key)
@@ -89,8 +94,9 @@ func _update_state_display() -> void:
 				item.set_custom_color(2, Color.GREEN if matches else Color.YELLOW)
 
 ## Verifies the current state against expected state
+	
 func verify_state() -> void:
-	var mismatches = []
+	var mismatches: Array = []
 	var verification_result = {
 		"verified": true,
 		"mismatches": [],
@@ -99,6 +105,7 @@ func verify_state() -> void:
 	
 	for category in state_categories:
 		var current_category_state = current_state.get(category.to_lower(), {})
+
 		var expected_category_state = expected_state.get(category.to_lower(), {})
 		
 		for key in expected_category_state.keys():
@@ -107,7 +114,8 @@ func verify_state() -> void:
 			
 			if not _compare_values(current_value, expected_value):
 				verification_result.verified = false
-				mismatches.append({
+
+				mismatches.append({ # warning: return value discarded (intentional)
 					"category": category,
 					"key": key,
 					"current_value": current_value,
@@ -117,10 +125,10 @@ func verify_state() -> void:
 	verification_result.mismatches = mismatches
 	
 	if not verification_result.verified:
-		state_mismatch_detected.emit(verification_result)
+		state_mismatch_detected.emit(verification_result) # warning: return value discarded (intentional)
 	
-	state_verified.emit(verification_result)
-	verification_completed.emit()
+	state_verified.emit(verification_result) # warning: return value discarded (intentional)
+	verification_completed.emit() # warning: return value discarded (intentional)
 	_update_state_display()
 
 ## Compares two values for equality
@@ -151,15 +159,14 @@ func _on_correction_pressed() -> void:
 		var expected_value = _parse_value(selected.get_text(2))
 		
 		if expected_value != null:
-			manual_correction_requested.emit(key, current_value, expected_value)
+			manual_correction_requested.emit(key, current_value, expected_value) # warning: return value discarded (intentional)
 
-## Parses a string value back to its original type
+## Parses a string _value back to its original type
 func _parse_value(value_str: String) -> Variant:
 	if value_str == "N/A":
-		return null
-		
+		return "N/A"
 	if value_str.begins_with("{") or value_str.begins_with("["):
-		var json = JSON.new()
+		var json := JSON.new()
 		var error = json.parse(value_str)
 		if error == OK:
 			return json.get_data()
@@ -187,12 +194,14 @@ func export_verification_results() -> Dictionary:
 			"verified": true,
 			"states": {}
 		}
-		
+
 		var current_category_state = current_state.get(category.to_lower(), {})
+
 		var expected_category_state = expected_state.get(category.to_lower(), {})
 		
 		for key in current_category_state.keys():
 			var current_value = current_category_state[key]
+
 			var expected_value = expected_category_state.get(key, null)
 			
 			category_results.states[key] = {

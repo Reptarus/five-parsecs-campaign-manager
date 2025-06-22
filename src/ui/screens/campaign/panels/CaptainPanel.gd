@@ -6,10 +6,10 @@ const GameEnums = preload("res://src/core/systems/GlobalEnums.gd")
 
 signal captain_updated(captain: Character)
 
-@onready var character_creator = $CharacterCreator
-@onready var captain_info = $Content/CaptainInfo/Label
-@onready var create_button = $Content/Controls/CreateButton
-@onready var edit_button = $Content/Controls/EditButton
+@onready var character_creator: Button = $"CharacterCreator"
+@onready var captain_info: Button = $"Content/CaptainInfo/Label"
+@onready var create_button: Button = $"Content/Controls/CreateButton"
+@onready var edit_button: Button = $"Content/Controls/EditButton"
 @onready var randomize_button = $Content/Controls/RandomizeButton
 
 var current_captain: Character
@@ -43,16 +43,16 @@ func _on_randomize_pressed() -> void:
 func _on_character_created(character: Character) -> void:
 	current_captain = character
 	_update_ui()
-	captain_updated.emit(current_captain)
+	captain_updated.emit(current_captain) # warning: return value discarded (intentional)
 
 func _on_character_edited(character: Character) -> void:
 	current_captain = character
 	_update_ui()
-	captain_updated.emit(current_captain)
+	captain_updated.emit(current_captain) # warning: return value discarded (intentional)
 
 func _update_ui() -> void:
 	if current_captain:
-		var info_text = """Captain Information:
+		var info_text: String = """Captain Information:
 		Name:%s
 		Class:%s
 		Origin:%s

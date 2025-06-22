@@ -3,7 +3,7 @@ extends Control
 
 const GameEnums = preload("res://src/core/systems/GlobalEnums.gd")
 const ResourceItem = preload("res://src/ui/resource/ResourceItem.gd")
-const ResourceSystem = preload("res://src/core/systems/ResourceSystem.gd")
+const GameResourceSystem = preload("res://src/core/systems/ResourceSystem.gd")
 
 @onready var resource_container: VBoxContainer = $MainContainer/ResourceContainer
 @onready var history_container: VBoxContainer = $MainContainer/HistoryContainer
@@ -11,7 +11,7 @@ const ResourceSystem = preload("res://src/core/systems/ResourceSystem.gd")
 @onready var filter_type: OptionButton = $MainContainer/HistoryContainer/FilterContainer/FilterType
 @onready var market_info_container: VBoxContainer = $MainContainer/MarketContainer
 @onready var market_state_label: Label = $MainContainer/MarketContainer/MarketStateLabel
-@onready var resource_system: ResourceSystem
+@onready var resource_system: GameResourceSystem
 
 signal resource_clicked(type: int)
 signal market_update_requested
@@ -23,13 +23,27 @@ const RESOURCE_ITEM_SCENE = preload("res://src/ui/resource/ResourceItem.tscn")
 var update_timer: Timer
 
 func _ready() -> void:
-	# Get reference to resource system
-	resource_system = get_node("/root/Game/Systems/ResourceSystem")
+	# Get reference to resource system with error handling
+	if has_node("/root/Game/Systems/ResourceSystem"):
+		var node = get_node("/root/Game/Systems/ResourceSystem")
+		if node is GameResourceSystem:
+			resource_system = node
+		else:
+			push_warning("ResourceDisplay: ResourceSystem node is not the correct type")
+			resource_system = GameResourceSystem.new()
+	else:
+		# Fallback: create a stub system
+		push_warning("ResourceDisplay: No ResourceSystem found, using fallback")
+		resource_system = GameResourceSystem.new()
 	
-	# Connect signals
-	resource_system.resource_changed.connect(_on_resource_changed)
-	resource_system.transaction_recorded.connect(_on_transaction_recorded)
-	resource_system.validation_failed.connect(_on_validation_failed)
+	# Connect signals if resource system exists
+	if resource_system:
+		if resource_system.has_signal("resource_changed"):
+			resource_system.resource_changed.connect(_on_resource_changed)
+		if resource_system.has_signal("transaction_recorded"):
+			resource_system.transaction_recorded.connect(_on_transaction_recorded)
+		if resource_system.has_signal("validation_failed"):
+			resource_system.validation_failed.connect(_on_validation_failed)
 	
 	# Setup UI
 	_setup_filter_options()
@@ -57,7 +71,7 @@ func _setup_market_display() -> void:
 
 func _update_market_state_display() -> void:
 	var market_state = resource_system._market.market_state
-	var state_text = "Market State: "
+	var state_text: String = "Market State: "
 	
 	if market_state > 0.3:
 		state_text += "Boom (+"
@@ -85,7 +99,7 @@ func _setup_resource_display() -> void:
 			
 			var current_amount = resource_system.get_resource_amount(type)
 			var market_value = resource_system.get_market_value(type)
-			var trend = 0
+			var trend: int = 0
 			if market_value > current_amount:
 				trend = 1
 			elif market_value < current_amount:
@@ -105,12 +119,12 @@ func _setup_history_display() -> void:
 	for transaction in history:
 		_add_transaction_to_list(transaction)
 
-func _add_transaction_to_list(transaction: ResourceSystem.ResourceTransaction) -> void:
+func _add_transaction_to_list(transaction: GameResourceSystem.ResourceTransaction) -> void:
 	var time_str = Time.get_datetime_string_from_unix_time(transaction.timestamp)
 	var amount_str = ("+" if transaction.transaction_type == "ADD" else "-") + str(transaction.amount)
 	var type_str = GameEnums.ResourceType.keys()[transaction.type].capitalize()
 	
-	var text = "%s | %s %s | Source: %s | Balance: %d" % [
+	var text: String = "%s | %s %s | Source: %s | Balance: %d" % [
 		time_str,
 		amount_str,
 		type_str,
@@ -127,7 +141,7 @@ func _on_resource_changed(type: int, amount: int) -> void:
 	for child in resource_container.get_children():
 		if child is ResourceItem and child.resource_type == type:
 			var market_value = resource_system.get_market_value(type)
-			var trend = 0
+			var trend: int = 0
 			if market_value > amount:
 				trend = 1
 			elif market_value < amount:
@@ -135,7 +149,7 @@ func _on_resource_changed(type: int, amount: int) -> void:
 			child.update_values(amount, market_value, trend)
 			break
 
-func _on_transaction_recorded(transaction: ResourceSystem.ResourceTransaction) -> void:
+func _on_transaction_recorded(transaction: GameResourceSystem.ResourceTransaction) -> void:
 	_add_transaction_to_list(transaction)
 
 func _on_validation_failed(type: int, amount: int, reason: String) -> void:
@@ -144,7 +158,7 @@ func _on_validation_failed(type: int, amount: int, reason: String) -> void:
 	OS.alert("Resource validation failed for %s: %s" % [type_str, reason])
 
 func _on_resource_item_pressed(type: int) -> void:
-	resource_clicked.emit(type)
+	resource_clicked.emit(type) # warning: return value discarded (intentional)
 
 func _on_clear_history_pressed() -> void:
 	transaction_list.clear()
@@ -152,11 +166,16 @@ func _on_clear_history_pressed() -> void:
 func _on_filter_type_selected(index: int) -> void:
 	var selected_type = filter_type.get_item_id(index)
 	transaction_list.clear()
-	var history = resource_system.get_transaction_history(selected_type)
+	var history = resource_system.get_transaction_history()
+	
+	# Filter history by selected type if not "All Resources
+	if selected_type != -1:
+		history = history.filter(func(transaction): return transaction.type == selected_type)
+	
 	for transaction in history:
 		_add_transaction_to_list(transaction)
 
 func _on_market_update_timer() -> void:
-	market_update_requested.emit()
+	market_update_requested.emit() # warning: return value discarded (intentional)
 	_update_market_state_display()
 	_setup_resource_display() # Refresh display with new values

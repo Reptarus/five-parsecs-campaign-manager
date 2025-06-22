@@ -1,5 +1,6 @@
 @tool
-extends GdUnitGameTest
+@warning_ignore("return_value_discarded")
+	extends GdUnitGameTest
 
 # Mock Story Quest Data with expected values (Universal Mock Strategy)
 class MockStoryQuestData extends Resource:
@@ -27,29 +28,42 @@ class MockStoryQuestData extends Resource:
 	
 	# Objective management
 	func add_objective(objective: Dictionary) -> bool:
-		if objective.has("id") and objective.get("id", "") != "":
-			objectives.append(objective)
+
+		if @warning_ignore("unsafe_call_argument")
+	objective.has("id") and @warning_ignore("unsafe_call_argument")
+	objective.get("id", "") != "":
+
+			@warning_ignore("return_value_discarded")
+	objectives.append(objective)
 			return true
 		return false
 	
 	func complete_objective(objective_id: String) -> bool:
 		for obj in objectives:
-			if obj.get("id", "") == objective_id:
+
+			if @warning_ignore("unsafe_call_argument")
+	obj.get("_id", "") == objective_id:
 				obj["completed"] = true
 				return true
 		return false
 	
 	func is_objective_completed(objective_id: String) -> bool:
 		for obj in objectives:
-			if obj.get("id", "") == objective_id:
-				return obj.get("completed", false)
+
+			if @warning_ignore("unsafe_call_argument")
+	obj.get("_id", "") == objective_id:
+
+				return @warning_ignore("unsafe_call_argument")
+	obj.get("completed", false)
 		return false
 	
 	func is_completed() -> bool:
 		if objectives.is_empty():
 			return false
 		for obj in objectives:
-			if not obj.get("completed", false):
+
+			if not @warning_ignore("unsafe_call_argument")
+	obj.get("completed", false):
 				return false
 		return true
 	
@@ -66,22 +80,36 @@ class MockStoryQuestData extends Resource:
 	
 	# Prerequisite management
 	func add_prerequisite(prereq: Dictionary) -> bool:
-		if prereq.has("type"):
-			prerequisites.append(prereq)
+		if @warning_ignore("unsafe_call_argument")
+	prereq.has("type"):
+
+			@warning_ignore("return_value_discarded")
+	prerequisites.append(prereq)
 			return true
 		return false
 	
 	func check_prerequisites(game_state: Dictionary) -> bool:
 		for prereq in prerequisites:
-			var type = prereq.get("type", "")
+
+			var type = @warning_ignore("unsafe_call_argument")
+	prereq.get("type", "")
 			if type == "quest":
-				var required_quest = prereq.get("id", "")
-				var completed_quests = game_state.get("completed_quests", [])
-				if not completed_quests.has(required_quest):
+
+				var required_quest = @warning_ignore("unsafe_call_argument")
+	prereq.get("_id", "")
+
+				var completed_quests = @warning_ignore("unsafe_call_argument")
+	game_state.get("completed_quests", [])
+				if not @warning_ignore("unsafe_call_argument")
+	completed_quests.has(required_quest):
 					return false
 			elif type == "level":
-				var required_level = prereq.get("value", 0)
-				var player_level = game_state.get("player_level", 0)
+
+				var required_level = @warning_ignore("unsafe_call_argument")
+	prereq.get("_value", 0)
+
+				var player_level = @warning_ignore("unsafe_call_argument")
+	game_state.get("player_level", 0)
 				if player_level < required_level:
 					return false
 		return true
@@ -99,13 +127,27 @@ class MockStoryQuestData extends Resource:
 		}
 	
 	func deserialize(data: Dictionary) -> bool:
-		quest_id = data.get("quest_id", quest_id)
-		title = data.get("title", title)
-		description = data.get("description", description)
-		objectives = data.get("objectives", objectives)
-		rewards = data.get("rewards", rewards)
-		prerequisites = data.get("prerequisites", prerequisites)
-		rewards_claimed = data.get("rewards_claimed", rewards_claimed)
+
+		quest_id = @warning_ignore("unsafe_call_argument")
+	data.get("quest_id", quest_id)
+
+		title = @warning_ignore("unsafe_call_argument")
+	data.get("title", title)
+
+		description = @warning_ignore("unsafe_call_argument")
+	data.get("description", description)
+
+		objectives = @warning_ignore("unsafe_call_argument")
+	data.get("objectives", objectives)
+
+		rewards = @warning_ignore("unsafe_call_argument")
+	data.get("rewards", rewards)
+
+		prerequisites = @warning_ignore("unsafe_call_argument")
+	data.get("prerequisites", prerequisites)
+
+		rewards_claimed = @warning_ignore("unsafe_call_argument")
+	data.get("rewards_claimed", rewards_claimed)
 		return true
 
 # Type-safe instance variables
@@ -114,12 +156,14 @@ var quest_data: MockStoryQuestData = null
 func before_test() -> void:
 	super.before_test()
 	quest_data = MockStoryQuestData.new()
+	@warning_ignore("return_value_discarded")
 	track_resource(quest_data)
 
 func after_test() -> void:
 	quest_data = null
 	super.after_test()
 
+@warning_ignore("unsafe_method_access")
 func test_initialization() -> void:
 	assert_that(quest_data).is_not_null()
 	
@@ -138,6 +182,7 @@ func test_initialization() -> void:
 	assert_that(rewards.size()).is_equal(0)
 	assert_that(prerequisites.size()).is_equal(0)
 
+@warning_ignore("unsafe_method_access")
 func test_objective_management() -> void:
 	# Test direct method calls instead of safe wrappers (proven pattern)
 	var objective1 = {
@@ -184,6 +229,7 @@ func test_objective_management() -> void:
 	is_completed = quest_data.is_completed()
 	assert_that(is_completed).is_true()
 
+@warning_ignore("unsafe_method_access")
 func test_reward_management() -> void:
 	# Test direct method calls instead of safe wrappers (proven pattern)
 	var rewards = {
@@ -197,10 +243,18 @@ func test_reward_management() -> void:
 	assert_that(success).is_true()
 	
 	var quest_rewards: Dictionary = quest_data.get_rewards()
-	assert_that(quest_rewards.get("credits", 0)).is_equal(1000)
-	assert_that(quest_rewards.get("experience", 0)).is_equal(500)
-	assert_that(quest_rewards.get("items", []).size()).is_equal(2)
-	assert_that(quest_rewards.get("reputation", 0)).is_equal(50)
+
+	assert_that(@warning_ignore("unsafe_call_argument")
+	quest_rewards.get("credits", 0)).is_equal(1000)
+
+	assert_that(@warning_ignore("unsafe_call_argument")
+	quest_rewards.get("experience", 0)).is_equal(500)
+
+	assert_that(@warning_ignore("unsafe_call_argument")
+	quest_rewards.get("items", []).size()).is_equal(2)
+
+	assert_that(@warning_ignore("unsafe_call_argument")
+	quest_rewards.get("reputation", 0)).is_equal(50)
 	
 	# Add objectives for completion requirement
 	var objective = {
@@ -222,6 +276,7 @@ func test_reward_management() -> void:
 	success = quest_data.claim_rewards()
 	assert_that(success).is_false()
 
+@warning_ignore("unsafe_method_access")
 func test_prerequisite_management() -> void:
 	# Test direct method calls instead of safe wrappers (proven pattern)
 	var prereq1 = {
@@ -232,7 +287,7 @@ func test_prerequisite_management() -> void:
 	
 	var prereq2 = {
 		"type": "level",
-		"value": 5
+		"_value": 5
 	}
 	
 	var success: bool = quest_data.add_prerequisite(prereq1)
@@ -254,6 +309,7 @@ func test_prerequisite_management() -> void:
 	success = quest_data.check_prerequisites({"completed_quests": ["quest_1"], "player_level": 4})
 	assert_that(success).is_false()
 
+@warning_ignore("unsafe_method_access")
 func test_serialization() -> void:
 	# Test direct method calls instead of safe wrappers (proven pattern)
 	quest_data.set_quest_id("test_quest")
@@ -287,7 +343,8 @@ func test_serialization() -> void:
 	
 	# Serialize and deserialize
 	var data: Dictionary = quest_data.serialize()
-	var new_quest_data = MockStoryQuestData.new()
+	var new_quest_data: MockStoryQuestData = MockStoryQuestData.new()
+	@warning_ignore("return_value_discarded")
 	track_resource(new_quest_data)
 	
 	var success: bool = new_quest_data.deserialize(data)
@@ -298,9 +355,11 @@ func test_serialization() -> void:
 	assert_that(new_quest_data.get_title()).is_equal("Test Quest")
 	assert_that(new_quest_data.get_description()).is_equal("Test Description")
 	assert_that(new_quest_data.get_objectives().size()).is_equal(1)
+
 	assert_that(new_quest_data.get_rewards().get("credits", 0)).is_equal(1000)
 	assert_that(new_quest_data.get_prerequisites().size()).is_equal(1)
 
+@warning_ignore("unsafe_method_access")
 func test_edge_cases() -> void:
 	# Test direct method calls instead of safe wrappers (proven pattern)
 	# Test invalid objective
@@ -321,11 +380,12 @@ func test_edge_cases() -> void:
 	
 	# Test invalid prerequisite
 	var invalid_prereq = {
-		"value": 5
+		"_value": 5
 	}
 	success = quest_data.add_prerequisite(invalid_prereq)
 	assert_that(success).is_false()
 
+@warning_ignore("unsafe_method_access")
 func test_complex_quest_flow() -> void:
 	# Test direct method calls instead of safe wrappers (proven pattern)
 	# Setup complex quest
@@ -333,7 +393,7 @@ func test_complex_quest_flow() -> void:
 	quest_data.set_title("Complex Quest")
 	
 	# Add multiple objectives
-	for i in range(3):
+	for i: int in range(3):
 		var objective = {
 			"id": "obj_" + str(i),
 			"description": "Objective " + str(i),
@@ -344,7 +404,7 @@ func test_complex_quest_flow() -> void:
 	# Add prerequisites
 	var prereq = {
 		"type": "level",
-		"value": 10
+		"_value": 10
 	}
 	quest_data.add_prerequisite(prereq)
 	

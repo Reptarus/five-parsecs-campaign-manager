@@ -1,5 +1,6 @@
 @tool
-extends GdUnitGameTest
+@warning_ignore("return_value_discarded")
+	extends GdUnitGameTest
 class_name BattleTest
 
 ## Base class for battle system tests
@@ -9,8 +10,11 @@ class_name BattleTest
 
 # Battle test configuration
 const BATTLE_TEST_CONFIG := {
+
 	"stabilize_time": 0.2 as float,
+
 	"combat_timeout": 5.0 as float,
+
 	"animation_timeout": 2.0 as float
 }
 
@@ -47,33 +51,44 @@ const DEFEND_COST: int = 1
 var _battle_state: Node = null
 var _combat_manager: Node = null
 var _battlefield_manager: Node = null
-var _active_units: Array[Node] = []
-var _fps_samples: Array[float] = []
+var _active_units: @warning_ignore("unsafe_call_argument")
+	Array[Node] = []
+var _fps_samples: @warning_ignore("unsafe_call_argument")
+	Array[float] = []
 
 func before_test() -> void:
+	@warning_ignore("unsafe_method_access")
 	await super.before_test()
 	_setup_battle_environment()
+	@warning_ignore("unsafe_method_access")
 	await stabilize_engine()
 
 func after_test() -> void:
 	_cleanup_battle_environment()
+	@warning_ignore("unsafe_method_access")
 	await super.after_test()
 
 func _setup_battle_environment() -> void:
 	_battle_state = _create_battle_state()
 	if _battle_state:
-		add_child(_battle_state)
-		track_node(_battle_state)
+		@warning_ignore("return_value_discarded")
+	add_child(_battle_state)
+		@warning_ignore("return_value_discarded")
+	track_node(_battle_state)
 	
 	_combat_manager = _create_combat_manager()
 	if _combat_manager:
-		add_child(_combat_manager)
-		track_node(_combat_manager)
+		@warning_ignore("return_value_discarded")
+	add_child(_combat_manager)
+		@warning_ignore("return_value_discarded")
+	track_node(_combat_manager)
 	
 	_battlefield_manager = _create_battlefield_manager()
 	if _battlefield_manager:
-		add_child(_battlefield_manager)
-		track_node(_battlefield_manager)
+		@warning_ignore("return_value_discarded")
+	add_child(_battlefield_manager)
+		@warning_ignore("return_value_discarded")
+	track_node(_battlefield_manager)
 
 func _cleanup_battle_environment() -> void:
 	_battle_state = null
@@ -101,23 +116,36 @@ func create_test_unit(attack: int, defense: int, speed: int = 5) -> Node:
 	
 	# Set properties using safe method calls
 	if unit.has_method("set_attack"):
-		unit.call("set_attack", attack)
+
+		@warning_ignore("unsafe_method_access")
+	unit.call("set_attack", attack)
 	if unit.has_method("set_defense"):
-		unit.call("set_defense", defense)
+
+		@warning_ignore("unsafe_method_access")
+	unit.call("set_defense", defense)
 	if unit.has_method("set_speed"):
-		unit.call("set_speed", speed)
+
+		@warning_ignore("unsafe_method_access")
+	unit.call("set_speed", speed)
 	
+	@warning_ignore("return_value_discarded")
 	add_child(unit)
+	@warning_ignore("return_value_discarded")
 	track_node(unit)
+
+	@warning_ignore("return_value_discarded")
 	_active_units.append(unit)
 	return unit
 
 func create_test_squad(size: int) -> Array[Node]:
-	var squad: Array[Node] = []
-	for i in range(size):
+	var squad: @warning_ignore("unsafe_call_argument")
+	Array[Node] = []
+	for i: int in range(size):
 		var unit := create_test_unit(10, 5, 5)
 		if unit:
-			squad.append(unit)
+
+			@warning_ignore("return_value_discarded")
+	squad.append(unit)
 	return squad
 
 # Combat resolution
@@ -127,7 +155,9 @@ func resolve_combat(attacker: Node, defender: Node) -> Dictionary:
 		return {}
 	
 	if _combat_manager.has_method("resolve_combat"):
-		var result = _combat_manager.call("resolve_combat", attacker, defender)
+
+		var result = @warning_ignore("unsafe_method_access")
+	_combat_manager.call("resolve_combat", attacker, defender)
 		return result if result is Dictionary else {}
 	return {}
 
@@ -137,7 +167,9 @@ func apply_damage(unit: Node, damage: int) -> void:
 		return
 	
 	if unit.has_method("take_damage"):
-		unit.call("take_damage", damage)
+
+		@warning_ignore("unsafe_method_access")
+	unit.call("take_damage", damage)
 
 # Battle state assertions
 func assert_battle_phase(expected_phase: int) -> void:
@@ -147,24 +179,34 @@ func assert_battle_phase(expected_phase: int) -> void:
 	
 	var current_phase: int = 0
 	if _battle_state.has_method("get_current_phase"):
-		current_phase = _battle_state.call("get_current_phase")
+
+		current_phase = @warning_ignore("unsafe_method_access")
+	_battle_state.call("get_current_phase")
 	
 	assert_that(current_phase).override_failure_message(
-		"Battle should be in phase %d but was in phase %d" % [expected_phase, current_phase]
+
+		"Battle should be in @warning_ignore("integer_division")
+	_phase % d but was in @warning_ignore("integer_division")
+	_phase % d" % [expected_phase, current_phase]
 	).is_equal(expected_phase)
 
 func assert_unit_state(unit: Node, expected_state: Dictionary) -> void:
 	if not unit:
-		push_error("Cannot assert state of null unit")
+		push_error("Cannot assert _state of null unit")
 		return
 	
 	for property in expected_state:
 		var actual_value = null
 		if unit.has_method("get_" + property):
-			actual_value = unit.call("get_" + property)
+
+			actual_value = @warning_ignore("unsafe_method_access")
+	unit.call("get_" + property)
 		var expected_value = expected_state[property]
 		assert_that(actual_value).override_failure_message(
-			"Unit property %s should be %s but was %s" % [property, expected_value, actual_value]
+			"Unit @warning_ignore("integer_division")
+	property % s should @warning_ignore("integer_division")
+	be % s but @warning_ignore("integer_division")
+	was % s" % [property, expected_value, actual_value]
 		).is_equal(expected_value)
 
 # Combat calculations
@@ -174,7 +216,9 @@ func calculate_hit_chance(attacker: Node, defender: Node, modifiers: Dictionary 
 		return 0.0
 	
 	if _combat_manager.has_method("calculate_hit_chance"):
-		var result = _combat_manager.call("calculate_hit_chance", attacker, defender, modifiers)
+
+		var result = @warning_ignore("unsafe_method_access")
+	_combat_manager.call("calculate_hit_chance", attacker, defender, modifiers)
 		return float(result) if result != null else 0.0
 	return 0.0
 
@@ -184,7 +228,9 @@ func calculate_damage(base_damage: int, armor: int) -> int:
 		return 0
 	
 	if _combat_manager.has_method("calculate_damage"):
-		var result = _combat_manager.call("calculate_damage", base_damage, armor)
+
+		var result = @warning_ignore("unsafe_method_access")
+	_combat_manager.call("calculate_damage", base_damage, armor)
 		return int(result) if result != null else 0
 	return 0
 
@@ -195,7 +241,9 @@ func apply_status_effect(target: Node, effect: Dictionary) -> bool:
 		return false
 	
 	if target.has_method("apply_status_effect"):
-		return target.call("apply_status_effect", effect)
+
+		return @warning_ignore("unsafe_method_access")
+	target.call("apply_status_effect", effect)
 	return false
 
 func get_active_effects(unit: Node) -> Array:
@@ -204,7 +252,9 @@ func get_active_effects(unit: Node) -> Array:
 		return []
 	
 	if unit.has_method("get_active_effects"):
-		var result = unit.call("get_active_effects")
+
+		var result = @warning_ignore("unsafe_method_access")
+	unit.call("get_active_effects")
 		return result if result is Array else []
 	return []
 
@@ -215,7 +265,9 @@ func calculate_initiative(units: Array) -> Array:
 		return []
 	
 	if _battle_state.has_method("calculate_initiative"):
-		var result = _battle_state.call("calculate_initiative", units)
+
+		var result = @warning_ignore("unsafe_method_access")
+	_battle_state.call("calculate_initiative", units)
 		return result if result is Array else []
 	return []
 
@@ -226,7 +278,9 @@ func activate_ability(unit: Node, ability_id: String) -> Dictionary:
 		return {}
 	
 	if unit.has_method("activate_ability"):
-		var result = unit.call("activate_ability", ability_id)
+
+		var result = @warning_ignore("unsafe_method_access")
+	unit.call("activate_ability", ability_id)
 		return result if result is Dictionary else {}
 	return {}
 
@@ -239,13 +293,16 @@ func measure_combat_performance(iterations: int = 100) -> Dictionary:
 	
 	var start_time := Time.get_ticks_msec()
 	
-	for i in range(iterations):
+	for i: int in range(iterations):
 		var attacker := create_test_unit(10, 5)
 		var defender := create_test_unit(5, 10)
 		if attacker and defender:
 			resolve_combat(attacker, defender)
-		await get_tree().process_frame
-		_fps_samples.append(Engine.get_frames_per_second())
+		@warning_ignore("unsafe_method_access")
+	await get_tree().process_frame
+
+		@warning_ignore("return_value_discarded")
+	_fps_samples.append(Engine.get_frames_per_second())
 	
 	var end_time := Time.get_ticks_msec()
 	var memory_after := Performance.get_monitor(Performance.MEMORY_STATIC)
@@ -268,7 +325,9 @@ func measure_combat_performance(iterations: int = 100) -> Dictionary:
 
 # Helper methods
 func wait_for_combat_resolution() -> void:
+	@warning_ignore("unsafe_method_access")
 	await get_tree().create_timer(BATTLE_TEST_CONFIG.combat_timeout).timeout
 
 func wait_for_animation() -> void:
+	@warning_ignore("unsafe_method_access")
 	await get_tree().create_timer(BATTLE_TEST_CONFIG.animation_timeout).timeout

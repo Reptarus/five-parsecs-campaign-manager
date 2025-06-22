@@ -19,7 +19,7 @@ var description: String = ""
 var choices: Array[Dictionary] = []
 
 # Event state
-var is_active: bool = false
+var _is_active: bool = false
 var is_resolved: bool = false
 var selected_choice: int = -1
 
@@ -29,7 +29,6 @@ var consequences: Dictionary = {}
 
 func _init() -> void:
     pass
-
 func configure(config: Dictionary) -> void:
     if config.has("event_id"):
         event_id = config.event_id
@@ -39,15 +38,13 @@ func configure(config: Dictionary) -> void:
         title = config.title
     if config.has("description"):
         description = config.description
-
 func add_choice(choice_data: Dictionary) -> void:
-    choices.append(choice_data)
+    choices.append(choice_data) # warning: return value discarded (intentional)
 
 func select_choice(choice_index: int) -> void:
     if choice_index >= 0 and choice_index < choices.size():
         selected_choice = choice_index
         is_resolved = true
-
 func get_choice(index: int) -> Dictionary:
     if index >= 0 and index < choices.size():
         return choices[index]
@@ -55,10 +52,8 @@ func get_choice(index: int) -> Dictionary:
 
 func set_event_rewards(reward_data: Dictionary) -> void:
     rewards = reward_data.duplicate()
-
 func set_event_consequences(consequence_data: Dictionary) -> void:
     consequences = consequence_data.duplicate()
-
 func get_event_outcome() -> Dictionary:
     return {
         "is_resolved": is_resolved,

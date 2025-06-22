@@ -15,103 +15,149 @@ const AdvancementPhasePanel = preload("res://src/ui/screens/campaign/phases/Adva
 const TradePhasePanel = preload("res://src/ui/screens/campaign/phases/TradePhasePanel.tscn")
 const EndPhasePanel = preload("res://src/ui/screens/campaign/phases/EndPhasePanel.tscn")
 
-@onready var phase_label = $MarginContainer/VBoxContainer/Header/HBoxContainer/PhaseLabel
-@onready var resources_panel = $MarginContainer/VBoxContainer/Header/HBoxContainer/ResourcesPanel
-@onready var credits_label = $MarginContainer/VBoxContainer/Header/HBoxContainer/ResourcesPanel/HBoxContainer/CreditsLabel
-@onready var story_points_label = $MarginContainer/VBoxContainer/Header/HBoxContainer/ResourcesPanel/HBoxContainer/StoryPointsLabel
-@onready var crew_list = $MarginContainer/VBoxContainer/Content/LeftPanel/CrewPanel/VBoxContainer/CrewList
-@onready var ship_info = $MarginContainer/VBoxContainer/Content/LeftPanel/ShipPanel/VBoxContainer/ShipInfo
-@onready var phase_content = $MarginContainer/VBoxContainer/Content/RightPanel/PhaseContent/ScrollContainer/VBoxContainer
-@onready var next_phase_button = $MarginContainer/VBoxContainer/Footer/HBoxContainer/NextPhaseButton
-@onready var manage_crew_button = $MarginContainer/VBoxContainer/Footer/HBoxContainer/ManageCrewButton
-@onready var save_button = $MarginContainer/VBoxContainer/Footer/HBoxContainer/SaveButton
-@onready var load_button = $MarginContainer/VBoxContainer/Footer/HBoxContainer/LoadButton
-@onready var quit_button = $MarginContainer/VBoxContainer/Footer/HBoxContainer/QuitButton
-@onready var phase_container = $PhaseContainer
+# UI Node References - Updated to match actual scene structure
+@onready var phase_label: Button = $"MarginContainer/VBoxContainer/HeaderPanel/HBoxContainer/PhaseLabel"
+@onready var credits_label: Button = $"MarginContainer/VBoxContainer/HeaderPanel/HBoxContainer/CreditsLabel"
+@onready var story_points_label: Button = $"MarginContainer/VBoxContainer/HeaderPanel/HBoxContainer/StoryPointsLabel"
+@onready var crew_list: Button = $"MarginContainer/VBoxContainer/MainContent/LeftPanel/CrewPanel/VBoxContainer/CrewList"
+@onready var ship_info = $MarginContainer/VBoxContainer/MainContent/LeftPanel/ShipPanel/VBoxContainer/ShipInfo
+@onready var phase_content = $MarginContainer/VBoxContainer/MainContent
+@onready var next_phase_button = $MarginContainer/VBoxContainer/ButtonContainer/ActionButton
+@onready var manage_crew_button = $MarginContainer/VBoxContainer/ButtonContainer/ManageCrewButton
+@onready var save_button = $MarginContainer/VBoxContainer/ButtonContainer/SaveButton
+@onready var load_button = $MarginContainer/VBoxContainer/ButtonContainer/LoadButton
+@onready var quit_button = $MarginContainer/VBoxContainer/ButtonContainer/QuitButton
+# @onready var phase_container = $PhaseContainer # This node doesn't exist in scene
 
 var game_state: GameState
 var phase_manager: Node
 var current_phase_panel: FPCM_BasePhasePanel
 
+# Manager references (from autoloads)
+var alpha_manager: Node = null
+var campaign_manager: Node = null
+
 func _ready() -> void:
-	game_state = GameState.new()
-	phase_manager = CampaignPhaseManagerScript.new()
-	
-	# Need to add nodes to scene tree before connecting signals
-	game_state.name = "GameState" # Give nodes names to help with debugging
-	phase_manager.name = "PhaseManager"
-	
-	add_child(game_state)
-	add_child(phase_manager)
-	
+	_initialize_managers()
 	_connect_signals()
-	_setup_phase_manager()
+	_setup_campaign()
 	_update_ui()
 
-func _connect_signals() -> void:
-	phase_manager.phase_changed.connect(_on_phase_changed)
-	phase_manager.phase_completed.connect(_on_phase_completed)
-	phase_manager.phase_event_triggered.connect(_on_phase_event)
+func _initialize_managers() -> void:
+	"""Initialize manager references from autoloads"""
+	alpha_manager = get_node("/root/AlphaGameManager") if has_node("/root/AlphaGameManager") else null
+	campaign_manager = get_node("/root/CampaignManager") if has_node("/root/CampaignManager") else null
 	
-	next_phase_button.pressed.connect(_on_next_phase_pressed)
-	manage_crew_button.pressed.connect(_on_manage_crew_pressed)
-	save_button.pressed.connect(_on_save_pressed)
-	load_button.pressed.connect(_on_load_pressed)
-	quit_button.pressed.connect(_on_quit_pressed)
+	# Use campaign manager if available, otherwise fall back to local implementation
+	if campaign_manager:
+		print("Using CampaignManager from autoload")
+	else:
+		# Fallback to local implementation
+		game_state = GameState.new()
+		phase_manager = CampaignPhaseManagerScript.new()
+		game_state.name = "GameState"
+		phase_manager.name = "PhaseManager"
+		add_child(game_state)
+		add_child(phase_manager)
 
-func _setup_phase_manager() -> void:
-	phase_manager.setup(game_state)
-	phase_manager.start_phase(GameEnums.CampaignPhase.UPKEEP)
+func _connect_signals() -> void:
+	# Connect to campaign manager signals if available
+	if campaign_manager:
+		if campaign_manager.has_signal("campaign_updated"):
+			campaign_manager.campaign_updated.connect(_on_campaign_updated)
+		if campaign_manager.has_signal("phase_changed"):
+			campaign_manager.phase_changed.connect(_on_phase_changed)
+	
+	# Connect to local phase manager if using fallback
+	if phase_manager:
+		phase_manager.phase_changed.connect(_on_phase_changed)
+		phase_manager.phase_completed.connect(_on_phase_completed)
+		phase_manager.phase_event_triggered.connect(_on_phase_event)
+	
+	# Connect signals with null checks to prevent crashes
+	if next_phase_button:
+		next_phase_button.pressed.connect(_on_next_phase_pressed)
+	if manage_crew_button:
+		manage_crew_button.pressed.connect(_on_manage_crew_pressed)
+	if save_button:
+		save_button.pressed.connect(_on_save_pressed)
+	if load_button:
+		load_button.pressed.connect(_on_load_pressed)
+	if quit_button:
+		quit_button.pressed.connect(_on_quit_pressed)
+
+func _setup_campaign() -> void:
+	"""Setup campaign using manager or fallback"""
+	if campaign_manager and campaign_manager.has_method("get_current_campaign"):
+		# Use campaign manager
+		var campaign_data = campaign_manager.get_current_campaign()
+		if campaign_data:
+			_load_campaign_data(campaign_data)
+		else:
+			print("No active campaign found")
+	elif phase_manager:
+		# Use local fallback
+		phase_manager.setup(game_state)
+		phase_manager.start_phase(GameEnums.CampaignPhase.UPKEEP)
 
 func _on_phase_changed(old_phase: int, new_phase: int) -> void:
 	_update_phase_ui(new_phase)
 	_load_phase_content(new_phase)
 
 func _on_phase_completed() -> void:
-	next_phase_button.disabled = false
+	if next_phase_button:
+		next_phase_button.disabled = false
 
-func _on_phase_event(event: Dictionary) -> void:
-	match event.type:
+func _on_phase_event(_event: Dictionary) -> void:
+	match _event.type:
 		"UPKEEP_STARTED":
-			_handle_upkeep_event(event)
+			_handle_upkeep_event(_event)
 		"STORY_STARTED":
-			_handle_story_event(event)
+			_handle_story_event(_event)
 		"CAMPAIGN_STARTED":
-			_handle_campaign_event(event)
+			_handle_campaign_event(_event)
 		"BATTLE_SETUP_STARTED":
-			_handle_battle_setup_event(event)
+			_handle_battle_setup_event(_event)
 		"BATTLE_RESOLUTION_STARTED":
-			_handle_battle_resolution_event(event)
+			_handle_battle_resolution_event(_event)
 		"ADVANCEMENT_STARTED":
-			_handle_advancement_event(event)
+			_handle_advancement_event(_event)
 		"TRADE_STARTED":
-			_handle_trade_event(event)
+			_handle_trade_event(_event)
 		"END_PHASE_STARTED":
-			_handle_end_phase_event(event)
+			_handle_end_phase_event(_event)
 
 func _on_next_phase_pressed() -> void:
-	var next_phase = _get_next_phase(phase_manager.current_phase)
-	if next_phase != GameEnums.CampaignPhase.NONE:
-		phase_manager.start_phase(next_phase)
-		next_phase_button.disabled = true
+	if phase_manager:
+		var next_phase = _get_next_phase(phase_manager.current_phase)
+		if next_phase != GameEnums.CampaignPhase.NONE:
+			phase_manager.start_phase(next_phase)
+			if next_phase_button:
+				next_phase_button.disabled = true
 
 func _update_phase_ui(phase: int) -> void:
-	phase_label.text = "Current Phase: " + GameEnums.CampaignPhase.keys()[phase]
-	next_phase_button.text = "Next Phase: " + GameEnums.CampaignPhase.keys()[_get_next_phase(phase)]
+	if phase_label:
+		phase_label.text = "Current Phase: " + GameEnums.CampaignPhase.keys()[phase]
+	if next_phase_button:
+		next_phase_button.text = "Next Phase: " + GameEnums.CampaignPhase.keys()[_get_next_phase(phase)]
 
 func _update_ui() -> void:
 	if not game_state or not game_state.campaign:
 		return
 	
-	credits_label.text = "Credits: %d" % game_state.campaign.credits
-	story_points_label.text = "Story Points: %d" % game_state.campaign.story_points
+	if credits_label:
+		credits_label.text = "Credits: %d" % game_state.campaign.credits
+	if story_points_label:
+		story_points_label.text = "Story Points: %d" % game_state.campaign.story_points
 	
 	_update_crew_list()
 	_update_ship_info()
 
 func _update_crew_list() -> void:
+	if not crew_list:
+		return
 	crew_list.clear()
-	if not game_state.campaign.crew_members:
+	if not game_state or not game_state.campaign or not game_state.campaign.crew_members:
 		crew_list.add_item("No Crew Members")
 		return
 	
@@ -119,7 +165,9 @@ func _update_crew_list() -> void:
 		crew_list.add_item(member.character_name)
 
 func _update_ship_info() -> void:
-	if not game_state.campaign.ship:
+	if not ship_info:
+		return
+	if not game_state or not game_state.campaign or not game_state.campaign.ship:
 		ship_info.text = "No Ship Data"
 		return
 	
@@ -158,7 +206,6 @@ func _create_phase_panel(phase: int) -> FPCM_BasePhasePanel:
 		_:
 			push_warning("No panel implemented for phase: %s" % GameEnums.CampaignPhase.keys()[phase])
 			return null
-
 func _get_next_phase(current: int) -> int:
 	match current:
 		GameEnums.CampaignPhase.SETUP:
@@ -183,40 +230,60 @@ func _get_next_phase(current: int) -> int:
 			return GameEnums.CampaignPhase.NONE
 
 # Event Handlers
-func _handle_upkeep_event(event: Dictionary) -> void:
+func _handle_upkeep_event(_event: Dictionary) -> void:
 	_update_ui()
 
-func _handle_story_event(event: Dictionary) -> void:
+func _handle_story_event(_event: Dictionary) -> void:
 	_update_ui()
 
-func _handle_campaign_event(event: Dictionary) -> void:
+func _handle_campaign_event(_event: Dictionary) -> void:
 	_update_ui()
 
-func _handle_battle_setup_event(event: Dictionary) -> void:
+func _handle_battle_setup_event(_event: Dictionary) -> void:
 	_update_ui()
 
-func _handle_battle_resolution_event(event: Dictionary) -> void:
+func _handle_battle_resolution_event(_event: Dictionary) -> void:
 	_update_ui()
 
-func _handle_advancement_event(event: Dictionary) -> void:
+func _handle_advancement_event(_event: Dictionary) -> void:
 	_update_ui()
 
-func _handle_trade_event(event: Dictionary) -> void:
+func _handle_trade_event(_event: Dictionary) -> void:
 	_update_ui()
 
-func _handle_end_phase_event(event: Dictionary) -> void:
+func _handle_end_phase_event(_event: Dictionary) -> void:
 	_update_ui()
 
 # Button Event Handlers
+	
 func _on_manage_crew_pressed() -> void:
-	get_tree().change_scene_to_file("res://src/ui/screens/crew/CrewManagement.tscn")
+	get_tree().call_deferred("change_scene_to_file", "res://src/ui/screens/crew/CrewManagement.tscn")
 
 func _on_save_pressed() -> void:
 	game_state.save_campaign()
 
 func _on_load_pressed() -> void:
-	get_tree().change_scene_to_file("res://src/ui/screens/campaign/LoadCampaign.tscn")
+	get_tree().call_deferred("change_scene_to_file", "res://src/ui/screens/campaign/LoadCampaign.tscn")
 
 func _on_quit_pressed() -> void:
-	game_state.end_campaign()
-	get_tree().change_scene_to_file("res://src/ui/screens/MainMenu.tscn")
+	if campaign_manager and campaign_manager.has_method("save_current_campaign"):
+		campaign_manager.save_current_campaign()
+	elif game_state:
+		game_state.end_campaign()
+	get_tree().call_deferred("change_scene_to_file", "res://src/ui/screens/MainMenu.tscn")
+
+func _on_campaign_updated() -> void:
+	"""Handle campaign data updates from campaign manager"""
+	_update_ui()
+
+func _load_campaign_data(campaign_data: Resource) -> void:
+	"""Load campaign _data from manager"""
+	if campaign_data:
+		print("Loading campaign _data: ", campaign_data)
+		# TODO: Update UI with campaign _data
+		_update_ui()
+
+func setup_phase(campaign_data: Resource) -> void:
+	"""Called by MainGameScene when this phase is activated"""
+	if campaign_data:
+		_load_campaign_data(campaign_data)

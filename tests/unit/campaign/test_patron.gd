@@ -1,5 +1,6 @@
 @tool
-extends GdUnitGameTest
+@warning_ignore("return_value_discarded")
+	extends GdUnitGameTest
 
 # Required imports
 const GameEnums: GDScript = preload("res://src/core/systems/GlobalEnums.gd")
@@ -98,13 +99,27 @@ class MockPatron extends Resource:
 		}
 	
 	func deserialize(data: Dictionary) -> void:
-		_name = data.get("name", _name)
-		_description = data.get("description", _description)
-		_influence = data.get("influence", _influence)
-		_reputation = data.get("reputation", _reputation)
-		_reputation_requirement = data.get("reputation_requirement", _reputation_requirement)
-		_quest_count = data.get("quest_count", _quest_count)
-		_is_active = data.get("is_active", _is_active)
+
+		_name = @warning_ignore("unsafe_call_argument")
+	data.get("name", _name)
+
+		_description = @warning_ignore("unsafe_call_argument")
+	data.get("description", _description)
+
+		_influence = @warning_ignore("unsafe_call_argument")
+	data.get("influence", _influence)
+
+		_reputation = @warning_ignore("unsafe_call_argument")
+	data.get("reputation", _reputation)
+
+		_reputation_requirement = @warning_ignore("unsafe_call_argument")
+	data.get("reputation_requirement", _reputation_requirement)
+
+		_quest_count = @warning_ignore("unsafe_call_argument")
+	data.get("quest_count", _quest_count)
+
+		_is_active = @warning_ignore("unsafe_call_argument")
+	data.get("is_active", _is_active)
 
 # Type-safe instance variables
 var patron: MockPatron = null
@@ -112,12 +127,14 @@ var patron: MockPatron = null
 func before_test() -> void:
 	super.before_test()
 	patron = MockPatron.new()
+	@warning_ignore("return_value_discarded")
 	track_resource(patron)
 
 func after_test() -> void:
 	super.after_test()
 	patron = null
 
+@warning_ignore("unsafe_method_access")
 func test_initialization() -> void:
 	assert_that(patron).is_not_null()
 	
@@ -136,6 +153,7 @@ func test_initialization() -> void:
 	assert_that(quest_count).is_equal(0)
 	assert_that(is_active).is_false()
 
+@warning_ignore("unsafe_method_access")
 func test_quest_management() -> void:
 	# Test direct method calls instead of safe wrappers (proven pattern)
 	var success: bool = patron.add_quest()
@@ -147,7 +165,7 @@ func test_quest_management() -> void:
 	# Test quest limit
 	var max_quests := 5
 	
-	for i in range(max_quests - 1):
+	for i: int in range(max_quests - 1):
 		patron.add_quest()
 	
 	success = patron.add_quest()
@@ -163,6 +181,7 @@ func test_quest_management() -> void:
 	quest_count = patron.get_quest_count()
 	assert_that(quest_count).is_equal(max_quests - 1)
 
+@warning_ignore("unsafe_method_access")
 func test_reputation_management() -> void:
 	# Test direct method calls instead of safe wrappers (proven pattern)
 	var initial_reputation: int = patron.get_reputation()
@@ -180,6 +199,7 @@ func test_reputation_management() -> void:
 	new_reputation = patron.get_reputation()
 	assert_that(new_reputation).is_equal(0)
 
+@warning_ignore("unsafe_method_access")
 func test_influence_management() -> void:
 	# Test direct method calls instead of safe wrappers (proven pattern)
 	var initial_influence: int = patron.get_influence()
@@ -198,6 +218,7 @@ func test_influence_management() -> void:
 	new_influence = patron.get_influence()
 	assert_that(new_influence).is_equal(100)
 
+@warning_ignore("unsafe_method_access")
 func test_activation_system() -> void:
 	# Test direct method calls instead of safe wrappers (proven pattern)
 	patron.set_reputation_requirement(30)
@@ -210,6 +231,7 @@ func test_activation_system() -> void:
 	is_active = patron.is_active()
 	assert_that(is_active).is_true()
 
+@warning_ignore("unsafe_method_access")
 func test_quest_reward_calculation() -> void:
 	# Test direct method calls instead of safe wrappers (proven pattern)
 	patron.set_influence(50)
@@ -228,6 +250,7 @@ func test_quest_reward_calculation() -> void:
 	var quest_bonus_reward: int = patron.calculate_quest_reward()
 	assert_that(quest_bonus_reward).is_equal(165) # 150 * 1.1
 
+@warning_ignore("unsafe_method_access")
 func test_serialization() -> void:
 	# Test direct method calls instead of safe wrappers (proven pattern)
 	patron.set_patron_name("Serialization Test")
@@ -236,12 +259,21 @@ func test_serialization() -> void:
 	patron.add_quest()
 	
 	var data: Dictionary = patron.serialize()
-	assert_that(data.get("name", "")).is_equal("Serialization Test")
-	assert_that(data.get("influence", 0)).is_equal(75)
-	assert_that(data.get("reputation", 0)).is_equal(40)
-	assert_that(data.get("quest_count", 0)).is_equal(1)
+
+	assert_that(@warning_ignore("unsafe_call_argument")
+	data.get("name", "")).is_equal("Serialization Test")
+
+	assert_that(@warning_ignore("unsafe_call_argument")
+	data.get("influence", 0)).is_equal(75)
+
+	assert_that(@warning_ignore("unsafe_call_argument")
+	data.get("reputation", 0)).is_equal(40)
+
+	assert_that(@warning_ignore("unsafe_call_argument")
+	data.get("quest_count", 0)).is_equal(1)
 	
-	var new_patron = MockPatron.new()
+	var new_patron: MockPatron = MockPatron.new()
+	@warning_ignore("return_value_discarded")
 	track_resource(new_patron)
 	new_patron.deserialize(data)
 	
@@ -250,10 +282,11 @@ func test_serialization() -> void:
 	assert_that(new_patron.get_reputation()).is_equal(40)
 	assert_that(new_patron.get_quest_count()).is_equal(1)
 
+@warning_ignore("unsafe_method_access")
 func test_multiple_quest_operations() -> void:
 	# Test direct method calls instead of safe wrappers (proven pattern)
 	# Add multiple quests
-	for i in range(3):
+	for i: int in range(3):
 		patron.add_quest()
 	
 	var quest_count: int = patron.get_quest_count()
@@ -272,6 +305,7 @@ func test_multiple_quest_operations() -> void:
 	quest_count = patron.get_quest_count()
 	assert_that(quest_count).is_equal(0)
 
+@warning_ignore("unsafe_method_access")
 func test_edge_cases() -> void:
 	# Test direct method calls instead of safe wrappers (proven pattern)
 	# Test completing quest when none exist
@@ -294,6 +328,7 @@ func test_edge_cases() -> void:
 	var influence: int = patron.get_influence()
 	assert_that(influence).is_equal(0)
 
+@warning_ignore("unsafe_method_access")
 func test_complex_scenario() -> void:
 	# Test direct method calls instead of safe wrappers (proven pattern)
 	# Set up a complex patron scenario
@@ -306,7 +341,7 @@ func test_complex_scenario() -> void:
 	assert_that(patron.is_active()).is_true()
 	
 	# Add multiple quests and calculate rewards
-	for i in range(3):
+	for i: int in range(3):
 		patron.add_quest()
 	
 	var reward: int = patron.calculate_quest_reward()

@@ -1,5 +1,6 @@
 @tool
-extends EditorScript
+@warning_ignore("return_value_discarded")
+	extends EditorScript
 
 # Remove the missing file dependencies
 var _gut: Node
@@ -39,7 +40,8 @@ func _on_tests_finished() -> void:
 		dir.make_dir("reports")
 	
 	# Save report
-	var file := FileAccess.open("res://tests/reports/test_run_%d.md" % Time.get_unix_time_from_system(), FileAccess.WRITE)
+	var file := FileAccess.open("res://tests/reports/@warning_ignore("integer_division")
+	test_run_ % d.md" % Time.get_unix_time_from_system(), FileAccess.WRITE)
 	if file:
 		file.store_string(report)
 		file.close()
@@ -57,35 +59,49 @@ func _generate_report(duration: float) -> String:
 	var error_tests := 0
 	var pending_tests := 0
 	
-	var failures: Array[String] = []
-	var errors: Array[String] = []
-	var performance_issues: Array[String] = []
+	var failures: @warning_ignore("unsafe_call_argument")
+	Array[String] = []
+	var errors: @warning_ignore("unsafe_call_argument")
+	Array[String] = []
+	var performance_issues: @warning_ignore("unsafe_call_argument")
+	Array[String] = []
 	
-	for test_path in _test_results:
+	for test_path: String in _test_results:
 		var result: Dictionary = _test_results[test_path]
 		
 		if result.passed:
 			passed_tests += 1
 		else:
 			failed_tests += 1
-			failures.append("- " + test_path)
+
+			@warning_ignore("return_value_discarded")
+	failures.append("- " + test_path)
 		
 		# Check for performance issues
 		if result.duration > 1000: # More than 1 second
-			performance_issues.append("- %s took %.2fs" % [test_path, result.duration / 1000.0])
+
+			@warning_ignore("return_value_discarded")
+	performance_issues.append("- %s took %.2fs" % [test_path, result.duration / 1000.0])
 	
 	# Calculate metrics
 	var coverage := (passed_tests / float(total_tests)) * 100 if total_tests > 0 else 0.0
 	var avg_test_time := duration * 1000 / total_tests if total_tests > 0 else 0.0
 	
 	# Generate recommendations
-	var recommendations: Array[String] = []
+	var recommendations: @warning_ignore("unsafe_call_argument")
+	Array[String] = []
 	if failed_tests > 0:
-		recommendations.append("- Fix failing tests first")
+
+		@warning_ignore("return_value_discarded")
+	recommendations.append("- Fix failing tests first")
 	if performance_issues.size() > 0:
-		recommendations.append("- Optimize slow tests")
+
+		@warning_ignore("return_value_discarded")
+	recommendations.append("- Optimize slow tests")
 	if coverage < 80:
-		recommendations.append("- Increase test coverage")
+
+		@warning_ignore("return_value_discarded")
+	recommendations.append("- Increase test coverage")
 	
 	# Format report
 	return """# Test Run Report

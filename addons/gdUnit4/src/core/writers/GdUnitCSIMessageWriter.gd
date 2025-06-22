@@ -102,7 +102,6 @@ func clear() -> void:
 
 ## Debug method to display the available color table.[br]
 ## Shows both 6x6x6 color cube and RGB color modes.
-@warning_ignore("return_value_discarded")
 func _print_color_table() -> void:
 	color(Color.ANTIQUE_WHITE).println_message("Color Table 6x6x6")
 	_debug_show_color_codes = true

@@ -1,180 +1,68 @@
 @tool
-extends BaseCampaign
+extends Resource
 class_name FiveParsecsCampaign
 
-const BaseCampaign = preload("res://src/base/campaign/BaseCampaign.gd")
+## Five Parsecs Campaign Implementation
+## Manages campaign state and progression for Five Parsecs from Home
+
 const FiveParsecsGameEnums = preload("res://src/game/campaign/crew/FiveParsecsGameEnums.gd")
 const FiveParsecsCrew = preload("res://src/game/campaign/crew/FiveParsecsCrew.gd")
+const GameEnums = preload("res://src/core/systems/GlobalEnums.gd")
 
-# Five Parsecs specific properties
-var crew
-var galaxy_map: Dictionary = {
-	"current_system": "",
-	"visited_systems": [],
-	"known_systems": [],
-	"travel_routes": []
-}
-var battle_stats: Dictionary = {
-	"battles_fought": 0,
-	"battles_won": 0,
-	"battles_lost": 0,
-	"enemies_defeated": 0,
-	"crew_injuries": 0,
-	"crew_deaths": 0
-}
-var current_mission: Dictionary = {}
-var completed_missions: Array = []
-var patrons: Array = []
-var rivals: Array = []
+signal campaign_started
+signal campaign_ended
+signal turn_advanced(turn_number: int)
+signal reputation_changed(new_reputation: int)
 
-func _init(name: String = "New Five Parsecs Campaign") -> void:
-	super(name)
-	crew = FiveParsecsCrew.new()
-	crew.name = name + " Crew"
-	_initialize_galaxy_map()
-	_initialize_five_parsecs_resources()
+@export var campaign_name: String = ""
+@export var difficulty: int = 2
+@export var victory_condition: int = 0
+@export var crew_size: int = 4
+@export var use_story_track: bool = true
+@export var starting_reputation: int = 0
+@export var current_turn: int = 1
+@export var credits: int = 1000
 
-func _initialize_five_parsecs_resources() -> void:
-	resources = {
-		"credits": 1500, # Five Parsecs starts with 1500 credits
-		"reputation": 0,
-		"story_points": 3,
-		"salvage": 0,
-		"medical_supplies": 2,
-		"spare_parts": 2
-	}
+var campaign_crew: FiveParsecsCrew
+var campaign_state: Dictionary = {}
 
-func _initialize_galaxy_map() -> void:
-	galaxy_map = {
-		"current_system": "Nexus Prime",
-		"visited_systems": ["Nexus Prime"],
-		"known_systems": ["Nexus Prime", "Helios", "Cygnus", "Vega", "Altair"],
-		"travel_routes": [
-			{"from": "Nexus Prime", "to": "Helios", "distance": 2},
-			{"from": "Nexus Prime", "to": "Cygnus", "distance": 3},
-			{"from": "Helios", "to": "Vega", "distance": 1},
-			{"from": "Cygnus", "to": "Altair", "distance": 2}
-		]
-	}
+func _init() -> void:
+	campaign_crew = FiveParsecsCrew.new()
 
 func start_campaign() -> void:
-	super()
-	# Five Parsecs specific initialization
-	if crew.members.size() == 0:
-		crew.generate_random_crew(5)
+	campaign_started.emit()
 
-func travel_to_system(system_name: String) -> bool:
-	# Check if system is known
-	if not system_name in galaxy_map.known_systems:
-		push_error("Cannot travel to unknown system: " + system_name)
-		return false
-	
-	# Find route
-	var route = null
-	for r in galaxy_map.travel_routes:
-		if (r.from == galaxy_map.current_system and r.to == system_name) or \
-		   (r.to == galaxy_map.current_system and r.from == system_name):
-			route = r
-			break
-	
-	if route == null:
-		push_error("No direct route to system: " + system_name)
-		return false
-	
-	# Travel takes days equal to distance
-	advance_time(route.distance)
-	
-	# Update current system
-	galaxy_map.current_system = system_name
-	
-	# Add to visited systems if not already visited
-	if not system_name in galaxy_map.visited_systems:
-		galaxy_map.visited_systems.append(system_name)
-	
-	return true
+func end_campaign() -> void:
+	campaign_ended.emit()
 
-func add_patron(patron_data: Dictionary) -> void:
-	patrons.append(patron_data)
+func advance_turn() -> void:
+	current_turn += 1
+	turn_advanced.emit(current_turn)
 
-func remove_patron(patron_id: String) -> bool:
-	for i in range(patrons.size()):
-		if patrons[i].id == patron_id:
-			patrons.remove_at(i)
-			return true
-	
-	return false
-
-func add_rival(rival_data: Dictionary) -> void:
-	rivals.append(rival_data)
-
-func remove_rival(rival_id: String) -> bool:
-	for i in range(rivals.size()):
-		if rivals[i].id == rival_id:
-			rivals.remove_at(i)
-			return true
-	
-	return false
-
-func record_battle_result(victory: bool, enemies_defeated: int = 0, crew_injuries: int = 0, crew_deaths: int = 0) -> void:
-	battle_stats.battles_fought += 1
-	
-	if victory:
-		battle_stats.battles_won += 1
-	else:
-		battle_stats.battles_lost += 1
-	
-	battle_stats.enemies_defeated += enemies_defeated
-	battle_stats.crew_injuries += crew_injuries
-	battle_stats.crew_deaths += crew_deaths
-
-func add_mission(mission_data: Dictionary) -> void:
-	current_mission = mission_data
-
-func complete_mission(success: bool = true) -> void:
-	if current_mission.size() > 0:
-		current_mission["completed"] = true
-		current_mission["success"] = success
-		completed_missions.append(current_mission)
-		current_mission = {}
-
-func use_story_point() -> bool:
-	return remove_resource("story_points", 1)
+func modify_reputation(amount: int) -> void:
+	starting_reputation += amount
+	reputation_changed.emit(starting_reputation)
 
 func serialize() -> Dictionary:
-	var data = super.serialize()
-	
-	# Add Five Parsecs specific data
-	data["crew"] = crew.to_dict()
-	data["galaxy_map"] = galaxy_map
-	data["battle_stats"] = battle_stats
-	data["current_mission"] = current_mission
-	data["completed_missions"] = completed_missions
-	data["patrons"] = patrons
-	data["rivals"] = rivals
-	
-	return data
+	return {
+		"campaign_name": campaign_name,
+		"difficulty": difficulty,
+		"victory_condition": victory_condition,
+		"crew_size": crew_size,
+		"use_story_track": use_story_track,
+		"starting_reputation": starting_reputation,
+		"current_turn": current_turn,
+		"credits": credits,
+		"campaign_state": campaign_state
+	}
 
 func deserialize(data: Dictionary) -> void:
-	super.deserialize(data)
-	
-	# Load Five Parsecs specific data
-	if data.has("crew"):
-		crew.from_dict(data.crew)
-	
-	if data.has("galaxy_map"):
-		galaxy_map = data.galaxy_map
-	
-	if data.has("battle_stats"):
-		battle_stats = data.battle_stats
-	
-	if data.has("current_mission"):
-		current_mission = data.current_mission
-	
-	if data.has("completed_missions"):
-		completed_missions = data.completed_missions
-	
-	if data.has("patrons"):
-		patrons = data.patrons
-	
-	if data.has("rivals"):
-		rivals = data.rivals
+	campaign_name = data.get("campaign_name", "")
+	difficulty = data.get("difficulty", 2)
+	victory_condition = data.get("victory_condition", 0)
+	crew_size = data.get("crew_size", 4)
+	use_story_track = data.get("use_story_track", true)
+	starting_reputation = data.get("starting_reputation", 0)
+	current_turn = data.get("current_turn", 1)
+	credits = data.get("credits", 1000)
+	campaign_state = data.get("campaign_state", {})

@@ -12,18 +12,16 @@ class_name WeaponsComponent
 @export var additional_effects: Array = []
 
 func _init() -> void:
-	super()
+	super ()
 	name = "Weapons"
 	description = "Standard weapon system"
 	cost = 250
 	power_draw = 3
-
 func _apply_upgrade_effects() -> void:
-	super()
+	super ()
 	weapon_damage += 2
 	accuracy += 0.05
 	fire_rate += 0.1
-
 func get_damage() -> int:
 	return int(weapon_damage * get_efficiency())
 
@@ -40,7 +38,7 @@ func can_fire() -> bool:
 	return is_functional()
 
 func serialize() -> Dictionary:
-	var data = super()
+	var data = super ()
 	data["weapon_damage"] = weapon_damage
 	data["range"] = range
 	data["accuracy"] = accuracy
@@ -52,7 +50,7 @@ func serialize() -> Dictionary:
 
 # Factory method to create WeaponsComponent from data
 static func create_from_data(data: Dictionary) -> WeaponsComponent:
-	var component = WeaponsComponent.new()
+	var component := WeaponsComponent.new()
 	var base_data = FPCM_ShipComponent.deserialize(data)
 	
 	# Copy base data
@@ -71,14 +69,21 @@ static func create_from_data(data: Dictionary) -> WeaponsComponent:
 	component.status_effects = base_data.status_effects
 	
 	# Weapons-specific properties
+
 	component.weapon_damage = data.get("weapon_damage", 10)
 	if data.has("damage"): # For backward compatibility
 		component.weapon_damage = data.get("damage", 10)
+
 	component.range = data.get("range", 500.0)
+
 	component.accuracy = data.get("accuracy", 0.75)
+
 	component.fire_rate = data.get("fire_rate", 1.0)
+
 	component.energy_cost = data.get("energy_cost", 1)
+
 	component.weapon_type = data.get("weapon_type", 0)
+
 	component.additional_effects = data.get("additional_effects", [])
 	
 	return component
@@ -87,13 +92,20 @@ static func create_from_data(data: Dictionary) -> WeaponsComponent:
 static func deserialize(data: Dictionary) -> Dictionary:
 	var base_data = FPCM_ShipComponent.deserialize(data)
 	base_data["component_type"] = "weapons"
+
 	base_data["weapon_damage"] = data.get("weapon_damage", 10)
 	if data.has("damage"): # For backward compatibility
 		base_data["weapon_damage"] = data.get("damage", 10)
+
 	base_data["range"] = data.get("range", 500.0)
+
 	base_data["accuracy"] = data.get("accuracy", 0.75)
+
 	base_data["fire_rate"] = data.get("fire_rate", 1.0)
+
 	base_data["energy_cost"] = data.get("energy_cost", 1)
+
 	base_data["weapon_type"] = data.get("weapon_type", 0)
+
 	base_data["additional_effects"] = data.get("additional_effects", [])
 	return base_data

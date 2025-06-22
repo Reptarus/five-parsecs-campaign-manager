@@ -14,7 +14,7 @@ class TutorialState:
     var is_active: bool = false
     var current_step: String = ""
     var completed_steps: Array[String] = []
-    var current_mode: TutorialMode = TutorialMode.QUICK_START
+    var _current_mode: TutorialMode = TutorialMode.QUICK_START
     var progress: float = 0.0
 
     func _init() -> void:
@@ -23,8 +23,8 @@ class TutorialState:
 class TutorialProgress:
     var steps_completed: int = 0
     var total_steps: int = 0
-    var current_phase: String = ""
-    var is_complete: bool = false
+    var _current_phase: String = ""
+    var _is_complete: bool = false
 
     func get_progress() -> float:
         if total_steps == 0:
@@ -38,7 +38,7 @@ class GameTutorialManager:
     func _init() -> void:
         current_state = TutorialState.new()
         progress = TutorialProgress.new()
-    
+
     func load_tutorial_content(tutorial_type: String) -> void:
         # Implementation for loading tutorial content
         pass
@@ -51,6 +51,7 @@ class TutorialManager:
     var tutorial_progress: TutorialProgress
     
     func _init() -> void:
+        active_mode = TutorialMode.QUICK_START
         tutorial_state = TutorialState.new()
         tutorial_manager = GameTutorialManager.new()
         tutorial_progress = TutorialProgress.new()
@@ -113,7 +114,7 @@ class WeaponTraitSystem:
     
     # Core trait effect implementations
     func _apply_pistol_bonus(combat_action: Dictionary) -> void:
-        if combat_action.get("type") == "brawl":
+        if combat_action.get("_type") == "brawl":
             combat_action["brawl_bonus"] = combat_action.get("brawl_bonus", 0) + 1
 
     func _apply_heavy_penalty(combat_action: Dictionary) -> void:
@@ -121,11 +122,12 @@ class WeaponTraitSystem:
             combat_action["hit_penalty"] = combat_action.get("hit_penalty", 0) + 1
 
     func _apply_elegant_effect(combat_action: Dictionary) -> void:
-        if combat_action.get("type") == "brawl":
+        if combat_action.get("_type") == "brawl":
             combat_action["can_reroll"] = true
 
     func _apply_clumsy_effect(combat_action: Dictionary) -> void:
         var target_speed = combat_action.get("target_speed", 0)
+
         var attacker_speed = combat_action.get("attacker_speed", 0)
         if target_speed > attacker_speed:
             combat_action["brawl_penalty"] = combat_action.get("brawl_penalty", 0) + 1
@@ -151,7 +153,7 @@ class WeaponTraitSystem:
         if not weapon or not combat_action:
             push_error("Invalid weapon or combat action data")
             return combat_action
-            
+
         var traits: Array = weapon.get("traits", [])
         for current_trait in traits:
             if not current_trait in available_traits:
@@ -194,7 +196,7 @@ class WeaponTraitSystem:
 
     # Validation helpers
     func validate_combat_action(action: Dictionary) -> bool:
-        var required_fields := ["type", "weapon", "attacker", "target"]
+        var required_fields := ["_type", "weapon", "attacker", "target"]
         for field in required_fields:
             if not action.has(field):
                 push_error("Combat action missing required field: %s" % field)
@@ -224,7 +226,7 @@ class WeaponTraitSystem:
         combat_action["piercing"] = true
 
     func _apply_melee_bonus(combat_action: Dictionary) -> void:
-        if combat_action.get("type") == "brawl":
+        if combat_action.get("_type") == "brawl":
             combat_action["brawl_bonus"] = combat_action.get("brawl_bonus", 0) + 2
 
 class TerrainSubsystem:
@@ -245,8 +247,8 @@ class TerrainSubsystem:
         }
     }
     
-    func get_terrain_effect(type: String, action_type: String) -> Dictionary:
-        var terrain = terrain_types.get(type, {})
+    func get_terrain_effect(_type: String, action_type: String) -> Dictionary:
+        var terrain = terrain_types.get(_type, {})
         match action_type:
             "movement":
                 return {"cost": terrain.get("movement_cost", 1)}
@@ -256,7 +258,7 @@ class TerrainSubsystem:
                     "bonus": terrain.get("cover_bonus", 0)
                 }
             _:
-                push_warning("Unknown action type: %s" % action_type)
+                push_warning("Unknown action _type: %s" % action_type)
                 return {}
 
 class MovementSystem:
@@ -269,6 +271,7 @@ class MovementSystem:
     
     func calculate_movement_cost(distance: float, terrain_type: String) -> float:
         var terrain_effect = terrain_system.get_terrain_effect(terrain_type, "movement")
+
         return distance * terrain_effect.get("cost", 1.0)
     
     func can_dash(unit: Node) -> bool:

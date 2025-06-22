@@ -1,5 +1,6 @@
 @tool
-extends RefCounted
+@warning_ignore("return_value_discarded")
+	extends RefCounted
 
 const GameEnumsScript: GDScript = preload("res://src/core/systems/GlobalEnums.gd")
 const CharacterScript: GDScript = preload("res://src/core/character/Base/Character.gd")
@@ -41,8 +42,11 @@ static func setup_test_game_state(config: Dictionary = {}) -> Dictionary:
 	state.merge(config)
 	
 	# Add campaign if not explicitly disabled
-	if not config.has("skip_campaign"):
-		state["campaign"] = setup_test_campaign(config.get("campaign", {}))
+	if not @warning_ignore("unsafe_call_argument")
+	config.has("skip_campaign"):
+
+		state["campaign"] = setup_test_campaign(@warning_ignore("unsafe_call_argument")
+	config.get("campaign", {}))
 	
 	return state
 
@@ -52,11 +56,14 @@ static func setup_test_campaign(config: Dictionary = {}) -> Dictionary:
 	campaign.merge(config)
 	
 	# Add default crew if not disabled
-	if not config.has("skip_crew"):
+	if not @warning_ignore("unsafe_call_argument")
+	config.has("skip_crew"):
 		campaign["crew"] = []
-		for i in range(campaign.crew_size):
-			campaign.crew.append(setup_test_character({
-				"name": "Crew Member %d" % (i + 1)
+		for i: int in range(campaign.crew_size):
+			campaign.@warning_ignore("return_value_discarded")
+	crew.append(setup_test_character({
+				"name": "Crew @warning_ignore("integer_division")
+	Member % d" % (i + 1)
 			}))
 	
 	return campaign
@@ -75,10 +82,12 @@ static func create_test_character(config: Dictionary = {}) -> Resource:
 		push_error("Failed to create character instance")
 		return null
 	
-	for key in data:
+	for key: String in data:
 		var setter: String = "set_" + key
 		if character.has_method(setter):
-			character.call(setter, data[key])
+
+			@warning_ignore("unsafe_method_access")
+	character.call(setter, data[key])
 		else:
 			character.set(key, data[key])
 	
@@ -92,10 +101,12 @@ static func create_test_campaign(config: Dictionary = {}) -> Resource:
 		push_error("Failed to create campaign instance")
 		return null
 	
-	for key in data:
+	for key: String in data:
 		var setter: String = "set_" + key
 		if campaign.has_method(setter):
-			campaign.call(setter, data[key])
+
+			@warning_ignore("unsafe_method_access")
+	campaign.call(setter, data[key])
 		else:
 			campaign.set(key, data[key])
 	
@@ -104,23 +115,47 @@ static func create_test_campaign(config: Dictionary = {}) -> Resource:
 # Combat setup helpers
 static func setup_test_combat_state(config: Dictionary = {}) -> Dictionary:
 	return {
-		"turn": config.get("turn", 1),
-		"phase": config.get("phase", GameEnumsScript.BattlePhase.SETUP),
-		"active_character": config.get("active_character", null),
-		"characters": config.get("characters", []),
-		"terrain": config.get("terrain", []),
-		"objectives": config.get("objectives", [])
+
+		"turn": @warning_ignore("unsafe_call_argument")
+	config.get("turn", 1),
+
+		"phase": @warning_ignore("unsafe_call_argument")
+	config.get("phase", GameEnumsScript.BattlePhase.SETUP),
+
+		"active_character": @warning_ignore("unsafe_call_argument")
+	config.get("active_character", null),
+
+		"characters": @warning_ignore("unsafe_call_argument")
+	config.get("characters", []),
+
+		"terrain": @warning_ignore("unsafe_call_argument")
+	config.get("terrain", []),
+
+		"objectives": @warning_ignore("unsafe_call_argument")
+	config.get("objectives", [])
 	}
 
 # Mission setup helpers
 static func setup_test_mission(config: Dictionary = {}) -> Dictionary:
 	return {
-		"type": config.get("type", GameEnumsScript.MissionType.PATROL),
-		"difficulty": config.get("difficulty", GameEnumsScript.DifficultyLevel.NORMAL),
-		"objectives": config.get("objectives", []),
-		"rewards": config.get("rewards", []),
-		"enemies": config.get("enemies", []),
-		"terrain": config.get("terrain", [])
+
+		"type": @warning_ignore("unsafe_call_argument")
+	config.get("type", GameEnumsScript.MissionType.PATROL),
+
+		"difficulty": @warning_ignore("unsafe_call_argument")
+	config.get("difficulty", GameEnumsScript.DifficultyLevel.NORMAL),
+
+		"objectives": @warning_ignore("unsafe_call_argument")
+	config.get("objectives", []),
+
+		"rewards": @warning_ignore("unsafe_call_argument")
+	config.get("rewards", []),
+
+		"enemies": @warning_ignore("unsafe_call_argument")
+	config.get("enemies", []),
+
+		"terrain": @warning_ignore("unsafe_call_argument")
+	config.get("terrain", [])
 	}
 
 # Resource generation helpers
@@ -140,9 +175,13 @@ static func verify_campaign_state(campaign: Resource, expected: Dictionary) -> b
 	for key in expected:
 		var getter: String = "get_" + key
 		if campaign.has_method(getter):
-			if campaign.call(getter) != expected[key]:
+
+			if @warning_ignore("unsafe_method_access")
+	campaign.call(getter) != expected[key]:
 				return false
-		elif campaign.get(key) != expected[key]:
+
+		elif @warning_ignore("unsafe_call_argument")
+	campaign.get(key) != expected[key]:
 			return false
 	return true
 
@@ -154,8 +193,12 @@ static func verify_character_state(character: Resource, expected: Dictionary) ->
 	for key in expected:
 		var getter: String = "get_" + key
 		if character.has_method(getter):
-			if character.call(getter) != expected[key]:
+
+			if @warning_ignore("unsafe_method_access")
+	character.call(getter) != expected[key]:
 				return false
-		elif character.get(key) != expected[key]:
+
+		elif @warning_ignore("unsafe_call_argument")
+	character.get(key) != expected[key]:
 			return false
 	return true

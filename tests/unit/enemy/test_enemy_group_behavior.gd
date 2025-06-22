@@ -1,12 +1,16 @@
 @tool
-extends "res://tests/fixtures/specialized/enemy_test.gd"
+@warning_ignore("return_value_discarded")
+	extends "res://tests/fixtures/specialized/enemy_test.gd"
 
 ## Enemy Group Behavior Tests using UNIVERSAL MOCK STRATEGY
 ##
 ## Applies the proven pattern that achieved:
-## - Ship Tests: 48/48 (100% SUCCESS)
-## - Mission Tests: 51/51 (100% SUCCESS)  
-## - test_enemy.gd: 12/12 (100% SUCCESS)
+## - Ship Tests: 48/48 (@warning_ignore("integer_division")
+	100 % SUCCESS)
+## - Mission Tests: 51/51 (@warning_ignore("integer_division")
+	100 % SUCCESS)  
+## - test_enemy.gd: 12/12 (@warning_ignore("integer_division")
+	100 % SUCCESS)
 
 # ========================================
 # UNIVERSAL MOCK STRATEGY - PROVEN PATTERN
@@ -47,20 +51,22 @@ class MockGroupEnemy extends Resource:
 		# Leader damage affects group morale
 		if is_leader:
 			morale = max(0.0, morale - amount * 2.0)
-			morale_changed.emit(morale)
+			@warning_ignore("unsafe_method_access")
+	morale_changed.emit(morale)
 	
 	func setup_formation(followers: Array, spacing: float) -> bool:
 		if not is_leader:
 			return false
 		
 		# Realistic formation setup
-		for i in range(followers.size()):
+		for i: int in range(followers.size()):
 			if followers[i] is MockGroupEnemy:
 				var follower: MockGroupEnemy = followers[i]
 				follower.formation_position = position + Vector2(spacing * (i + 1), 0)
 				follower.position = follower.formation_position
 		
-		formation_setup.emit(true)
+		@warning_ignore("unsafe_method_access")
+	formation_setup.emit(true)
 		return true
 	
 	func coordinate_group_movement(group: Array, target_pos: Vector2) -> bool:
@@ -72,7 +78,8 @@ class MockGroupEnemy extends Resource:
 			if member is MockGroupEnemy:
 				member.is_moving_state = true
 		
-		movement_coordinated.emit(target_pos)
+		@warning_ignore("unsafe_method_access")
+	movement_coordinated.emit(target_pos)
 		return true
 	
 	func follow_leader(leader: MockGroupEnemy, distance: float) -> bool:
@@ -86,7 +93,8 @@ class MockGroupEnemy extends Resource:
 		# Update position relative to leader (deterministic for testing)
 		var offset: Vector2 = Vector2(distance, 0)
 		position = leader.position + offset
-		position_changed.emit(position)
+		@warning_ignore("unsafe_method_access")
+	position_changed.emit(position)
 		
 		return true
 	
@@ -99,7 +107,8 @@ class MockGroupEnemy extends Resource:
 			if member is MockGroupEnemy:
 				member.is_in_combat_state = true
 		
-		combat_started.emit()
+		@warning_ignore("unsafe_method_access")
+	combat_started.emit()
 		return true
 	
 	func disperse_group(group: Array, radius: float) -> bool:
@@ -107,7 +116,7 @@ class MockGroupEnemy extends Resource:
 			return false
 		
 		# Disperse group members around radius
-		for i in range(group.size()):
+		for i: int in range(group.size()):
 			if group[i] is MockGroupEnemy:
 				var angle: float = (TAU / group.size()) * i
 				var offset: Vector2 = Vector2(radius, 0).rotated(angle)
@@ -120,7 +129,7 @@ class MockGroupEnemy extends Resource:
 			return false
 		
 		# Bring group members back to formation
-		for i in range(group.size()):
+		for i: int in range(group.size()):
 			if group[i] is MockGroupEnemy:
 				var spacing: float = 2.0
 				group[i].position = position + Vector2(spacing * i, 0)
@@ -129,7 +138,8 @@ class MockGroupEnemy extends Resource:
 
 # Mock instances
 var mock_leader: MockGroupEnemy = null
-var mock_followers: Array[MockGroupEnemy] = []
+var mock_followers: @warning_ignore("unsafe_call_argument")
+	Array[MockGroupEnemy] = []
 var mock_target: MockGroupEnemy = null
 
 # Constants
@@ -146,6 +156,7 @@ func before_test() -> void:
 	mock_leader = MockGroupEnemy.new()
 	mock_leader.is_leader = true
 	mock_leader.position = Vector2.ZERO
+	@warning_ignore("return_value_discarded")
 	track_resource(mock_leader) # Perfect cleanup - NO orphan nodes
 	
 	# Create mock followers
@@ -153,14 +164,19 @@ func before_test() -> void:
 		var follower: MockGroupEnemy = MockGroupEnemy.new()
 		follower.position = Vector2(10 * (i + 1), 0)
 		follower.group_id = i + 1
-		track_resource(follower)
-		mock_followers.append(follower)
+		@warning_ignore("return_value_discarded")
+	track_resource(follower)
+
+		@warning_ignore("return_value_discarded")
+	mock_followers.append(follower)
 	
 	# Create mock target
 	mock_target = MockGroupEnemy.new()
 	mock_target.position = Vector2(50, 0)
+	@warning_ignore("return_value_discarded")
 	track_resource(mock_target)
 	
+	@warning_ignore("unsafe_method_access")
 	await get_tree().process_frame
 
 func after_test() -> void:
@@ -170,19 +186,22 @@ func after_test() -> void:
 	super.after_test()
 
 # ========================================
-# PERFECT TESTS - Expected 100% Success
+# PERFECT TESTS - Expected @warning_ignore("integer_division")
+	100 % Success
 # ========================================
 
+@warning_ignore("unsafe_method_access")
 func test_group_formation() -> void:
 	# Test formation setup with immediate expected values
 	var formation_success: bool = mock_leader.setup_formation(mock_followers, FORMATION_SPACING)
 	assert_that(formation_success).is_true()
 	
 	# Verify formation positions (check that followers were positioned)
-	for i in range(mock_followers.size()):
+	for i: int in range(mock_followers.size()):
 		var expected_pos: Vector2 = mock_leader.position + Vector2(FORMATION_SPACING * (i + 1), 0)
 		assert_that(mock_followers[i].position).is_equal(expected_pos)
 
+@warning_ignore("unsafe_method_access")
 func test_group_coordination() -> void:
 	var group: Array = [mock_leader] + mock_followers
 	assert_that(group.size()).is_equal(GROUP_SIZE)
@@ -196,6 +215,7 @@ func test_group_coordination() -> void:
 	for enemy in group:
 		assert_that(enemy.is_moving()).is_true()
 
+@warning_ignore("unsafe_method_access")
 func test_leader_following() -> void:
 	# Setup following behavior
 	for follower in mock_followers:
@@ -210,6 +230,7 @@ func test_leader_following() -> void:
 		var distance: float = follower.position.distance_to(mock_leader.position)
 		assert_that(distance <= FOLLOW_DISTANCE * 1.5).is_true()
 
+@warning_ignore("unsafe_method_access")
 func test_group_combat_behavior() -> void:
 	var group: Array = [mock_leader] + mock_followers
 	assert_that(group.size()).is_equal(GROUP_SIZE)
@@ -222,6 +243,7 @@ func test_group_combat_behavior() -> void:
 	for enemy in group:
 		assert_that(enemy.is_in_combat()).is_true()
 
+@warning_ignore("unsafe_method_access")
 func test_group_morale() -> void:
 	var group: Array = [mock_leader] + mock_followers
 	assert_that(group.size()).is_equal(GROUP_SIZE)
@@ -234,6 +256,7 @@ func test_group_morale() -> void:
 	var current_morale: float = mock_leader.get_morale()
 	assert_that(current_morale).is_less(base_morale)
 
+@warning_ignore("unsafe_method_access")
 func test_group_dispersion() -> void:
 	var group: Array = [mock_leader] + mock_followers
 	assert_that(group.size()).is_equal(GROUP_SIZE)
@@ -243,11 +266,12 @@ func test_group_dispersion() -> void:
 	assert_that(disperse_success).is_true()
 	
 	# Verify dispersion - at least some distance between members
-	for i in range(1, group.size()):
-		for j in range(i + 1, group.size()):
+	for i: int in range(1, group.size()):
+		for j: int in range(i + 1, group.size()):
 			var distance: float = group[i].position.distance_to(group[j].position)
 			assert_that(distance).is_greater(0.0)
 
+@warning_ignore("unsafe_method_access")
 func test_group_reformation() -> void:
 	var group: Array = [mock_leader] + mock_followers
 	assert_that(group.size()).is_equal(GROUP_SIZE)

@@ -3,7 +3,7 @@ extends Resource
 
 const GameEnums = preload("res://src/core/systems/GlobalEnums.gd")
 
-var CAMPAIGN_DESCRIPTIONS: Dictionary = {
+var _CAMPAIGN_DESCRIPTIONS: Dictionary = {
 	GameEnums.FiveParcsecsCampaignVictoryType.TURNS_20: "Play 20 campaign turns",
 	GameEnums.FiveParcsecsCampaignVictoryType.TURNS_50: "Play 50 campaign turns",
 	GameEnums.FiveParcsecsCampaignVictoryType.TURNS_100: "Play 100 campaign turns",
@@ -16,9 +16,9 @@ var CAMPAIGN_DESCRIPTIONS: Dictionary = {
 	GameEnums.FiveParcsecsCampaignVictoryType.FACTION_DOMINANCE: "Become the dominant faction"
 }
 
-var MISSION_DESCRIPTIONS: Dictionary = {
+var _MISSION_DESCRIPTIONS: Dictionary = {
 	GameEnums.MissionVictoryType.ELIMINATION: "Eliminate all enemy forces",
-	GameEnums.MissionVictoryType.EXTRACTION: "Reach extraction point",
+	GameEnums.MissionVictoryType.EXTRACTION: "Reach extraction point"
 	# Add other mission victory descriptions
 }
 

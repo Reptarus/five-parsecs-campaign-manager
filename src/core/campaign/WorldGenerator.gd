@@ -33,7 +33,6 @@ func _init() -> void:
     _data_manager = GameDataManager.get_instance()
     GameDataManager.ensure_data_loaded()
     _load_data()
-
 func _ready() -> void:
     pass
 
@@ -84,7 +83,9 @@ func generate_world(campaign_turn: int = 1) -> Dictionary:
     var world_data = {
         "id": "world_" + str(Time.get_unix_time_from_system()),
         "name": planet_name,
+
         "type": planet_type.get("type", "Unknown"),
+
         "type_name": planet_type.get("name", "Unknown Planet"),
         "danger_level": danger_level,
         "traits": traits,
@@ -98,7 +99,7 @@ func generate_world(campaign_turn: int = 1) -> Dictionary:
     }
     
     # Emit signal
-    world_generated.emit(world_data)
+    world_generated.emit(world_data)  # warning: return value discarded (intentional)
     
     return world_data
 
@@ -107,6 +108,7 @@ func _generate_planet_type() -> Dictionary:
     if _use_specific_planet_type and _specific_planet_type != "":
         # Use the specified planet type if set
         for planet in _planet_types:
+
             if planet.get("type", "") == _specific_planet_type:
                 return planet
     
@@ -114,7 +116,9 @@ func _generate_planet_type() -> Dictionary:
     var roll = randi() % 100 + 1
     
     for planet in _planet_types:
+
         var range_min = planet.get("range_min", 0)
+
         var range_max = planet.get("range_max", 0)
         
         if roll >= range_min and roll <= range_max:
@@ -134,8 +138,10 @@ func _generate_planet_type() -> Dictionary:
 
 ## Generate a planet name
 func _generate_planet_name(planet_type: Dictionary) -> String:
-    # Generate a name based on planet type
+    # Generate a name based on planet _type
+
     var base_names = planet_type.get("name_prefixes", ["Alpha", "Beta", "Gamma", "Delta"])
+
     var suffixes = planet_type.get("name_suffixes", ["Prime", "II", "III", "Major", "Minor"])
     
     var base_name = base_names[randi() % base_names.size()]
@@ -143,8 +149,9 @@ func _generate_planet_name(planet_type: Dictionary) -> String:
     
     return base_name + " " + suffix
 
-## Calculate danger level based on campaign turn and planet type (p.80-81)
+## Calculate danger level based on campaign turn and planet _type (p.80-81)
 func _calculate_danger_level(campaign_turn: int, planet_type: Dictionary) -> int:
+
     var base_danger = planet_type.get("base_danger", 2)
     
     # Adjust for campaign turn (increasing danger over time)
@@ -152,23 +159,27 @@ func _calculate_danger_level(campaign_turn: int, planet_type: Dictionary) -> int
     
     # Apply global modifier
     var danger_level = base_danger + turn_modifier + _danger_level_modifier
-    
+
     # Clamp between 1 and 6 (as per rulebook)
     return clamp(danger_level, 1, 6)
 
-## Generate planetary traits based on planet type (p.81-82)
+## Generate planetary traits based on planet _type (p.81-82)
 func _generate_planetary_traits(planet_type: Dictionary) -> Array:
-    var traits = []
-    var trait_count = 1 + (randi() % 2) # 1-2 traits as per rulebook
+    var traits: Array = []
+
+    var trait_count: int = 1 + (randi() % 2) # 1-2 traits as per rulebook
     
     var available_traits = _world_traits.duplicate()
     
-    # Add any mandatory traits for this planet type
+    # Add any mandatory traits for this planet _type
+
     var mandatory_traits = planet_type.get("mandatory_traits", [])
     for trait_id in mandatory_traits:
-        traits.append(trait_id)
+
+        traits.append(trait_id)  # warning: return value discarded (intentional)
         # Remove from available to avoid duplicates
         for i in range(available_traits.size() - 1, -1, -1):
+
             if available_traits[i].get("id") == trait_id:
                 available_traits.remove_at(i)
                 break
@@ -179,14 +190,15 @@ func _generate_planetary_traits(planet_type: Dictionary) -> Array:
             break
             
         var index = randi() % available_traits.size()
-        traits.append(available_traits[index].get("id"))
+
+        traits.append(available_traits[index].get("id"))  # warning: return value discarded (intentional)
         available_traits.remove_at(index)
     
     return traits
 
 ## Generate locations for the world (p.82-84)
 func _generate_locations(planet_type: Dictionary, danger_level: int) -> Array:
-    var locations = []
+    var locations: Array = []
     
     # Determine number of locations (rulebook p.82)
     var location_count = _determine_location_count(planet_type)
@@ -194,11 +206,14 @@ func _generate_locations(planet_type: Dictionary, danger_level: int) -> Array:
     # Generate each location
     for _i in range(location_count):
         # Filter location types by planet compatibility
-        var compatible_locations = []
+        var compatible_locations: Array = []
         for location in _location_types:
+
             var compatible_planets = location.get("compatible_planets", [])
+
             if compatible_planets.size() == 0 or planet_type.get("type", "") in compatible_planets:
-                compatible_locations.append(location)
+
+                compatible_locations.append(location)  # warning: return value discarded (intentional)
         
         if compatible_locations.size() == 0:
             continue
@@ -209,25 +224,31 @@ func _generate_locations(planet_type: Dictionary, danger_level: int) -> Array:
         # Generate location details
         var location_data = {
             "id": "loc_" + str(Time.get_unix_time_from_system()) + "_" + str(randi() % 1000),
+
             "type": location_type.get("type", ""),
+
             "name": location_type.get("name", "Unknown Location"),
+
             "description": location_type.get("description", ""),
+
             "danger_mod": location_type.get("danger_mod", 0),
+
             "resources": location_type.get("resource_value", 0) * danger_level,
             "explored": false,
             "special_features": _generate_location_features(location_type, danger_level)
         }
-        
-        locations.append(location_data)
+
+        locations.append(location_data)  # warning: return value discarded (intentional)
     
     return locations
 
 ## Determine the number of locations to generate (p.82)
 func _determine_location_count(planet_type: Dictionary) -> int:
+
     var base_count = planet_type.get("base_location_count", 2)
     
     # Roll for additional locations
-    var additional = 0
+    var additional: int = 0
     if randf() < 0.4: # 40% chance for extra location
         additional = 1
     
@@ -235,35 +256,43 @@ func _determine_location_count(planet_type: Dictionary) -> int:
 
 ## Generate special features for a location (p.83-84)
 func _generate_location_features(location_type: Dictionary, danger_level: int) -> Array:
-    var features = []
+    var features: Array = []
     
     # Check for mandatory features
+
     var mandatory_features = location_type.get("mandatory_features", [])
     for feature in mandatory_features:
-        features.append(feature)
+
+        features.append(feature)  # warning: return value discarded (intentional)
     
     # Roll for special features
     if randf() < 0.25 + (danger_level * 0.05): # Higher chance at higher danger
+
         var possible_features = location_type.get("possible_features", [])
         if possible_features.size() > 0:
-            features.append(possible_features[randi() % possible_features.size()])
+
+            features.append(possible_features[randi() % possible_features.size()])  # warning: return value discarded (intentional)
     
     return features
 
 ## Determine special features for the planet based on type and danger
 func _determine_special_features(planet_type: Dictionary, danger_level: int) -> Array:
-    var features = []
+    var features: Array = []
     
     # Add type-specific features
+
     var type_features = planet_type.get("special_features", [])
     for feature in type_features:
-        features.append(feature)
+
+        features.append(feature)  # warning: return value discarded (intentional)
     
     # Add danger-specific features
     if danger_level >= 4:
-        features.append("high_danger")
+
+        features.append("high_danger")  # warning: return value discarded (intentional)
     if danger_level >= 6:
-        features.append("extreme_danger")
+
+        features.append("extreme_danger")  # warning: return value discarded (intentional)
     
     return features
 
@@ -271,7 +300,7 @@ func _determine_special_features(planet_type: Dictionary, danger_level: int) -> 
 func discover_location(world_data: Dictionary, location_index: int) -> Dictionary:
     if not world_data.has("locations"):
         return {}
-    
+
     var locations = world_data.get("locations", [])
     if location_index < 0 or location_index >= locations.size():
         return {}
@@ -280,13 +309,16 @@ func discover_location(world_data: Dictionary, location_index: int) -> Dictionar
     location.explored = true
     
     # Add to visited locations list
+
     var visited = world_data.get("visited_locations", [])
+
     if not location.get("id") in visited:
-        visited.append(location.get("id"))
+
+        visited.append(location.get("id"))  # warning: return value discarded (intentional)
     world_data.visited_locations = visited
     
     # Emit signal
-    location_discovered.emit(location)
+    location_discovered.emit(location)  # warning: return value discarded (intentional)
     
     return location
 

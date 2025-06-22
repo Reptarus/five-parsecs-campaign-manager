@@ -1,12 +1,15 @@
 @tool
-extends GdUnitGameTest
+@warning_ignore("return_value_discarded")
+	extends GdUnitGameTest
 
 # ========================================
 # UNIVERSAL UI MOCK STRATEGY - PROVEN PATTERN
 # ========================================
 # This follows the exact same pattern that achieved:
-# - Ship Tests: 48/48 (100% SUCCESS)
-# - Mission Tests: 51/51 (100% SUCCESS)
+# - Ship Tests: 48/48 (@warning_ignore("integer_division")
+	100 % SUCCESS)
+# - Mission Tests: 51/51 (@warning_ignore("integer_division")
+	100 % SUCCESS)
 
 class MockGameOverScreen extends Resource:
 	# Properties with realistic expected values (no nulls/zeros!)
@@ -17,37 +20,45 @@ class MockGameOverScreen extends Resource:
 	var total_battles: int = 10
 	var is_victory: bool = false
 	var campaign_data: Dictionary = {"victory_points": 100, "total_battles": 10}
-	var stats_data: Array = [ {"type": "enemies_defeated", "value": 20}]
+	var stats_data: Array = [ {"type": "enemies_defeated", "_value": 20}]
 	
 	# Methods returning expected values
 	func show_game_over(game_state: int) -> void:
 		current_game_state = game_state
 		visible = true
 		is_visible_screen = true
-		game_over_shown.emit(game_state)
+		@warning_ignore("unsafe_method_access")
+	game_over_shown.emit(game_state)
 	
 	func set_campaign_data(data: Dictionary) -> void:
 		campaign_data = data
-		if data.has("victory_points"):
+		if @warning_ignore("unsafe_call_argument")
+	data.has("victory_points"):
 			victory_points = data["victory_points"]
-		if data.has("total_battles"):
+		if @warning_ignore("unsafe_call_argument")
+	data.has("total_battles"):
 			total_battles = data["total_battles"]
-		campaign_data_updated.emit(data)
+		@warning_ignore("unsafe_method_access")
+	campaign_data_updated.emit(data)
 	
 	func set_victory_state(victory: bool) -> void:
 		is_victory = victory
-		victory_state_changed.emit(victory)
+		@warning_ignore("unsafe_method_access")
+	victory_state_changed.emit(victory)
 	
 	func restart_game() -> void:
-		scene_restarted.emit()
+		@warning_ignore("unsafe_method_access")
+	scene_restarted.emit()
 	
 	func return_to_main_menu() -> void:
-		main_menu_requested.emit()
+		@warning_ignore("unsafe_method_access")
+	main_menu_requested.emit()
 	
 	func hide_screen() -> void:
 		visible = false
 		is_visible_screen = false
-		screen_hidden.emit()
+		@warning_ignore("unsafe_method_access")
+	screen_hidden.emit()
 	
 	func get_victory_points() -> int:
 		return victory_points
@@ -57,13 +68,14 @@ class MockGameOverScreen extends Resource:
 	
 	func update_stats(stats: Array) -> void:
 		stats_data = stats
-		stats_updated.emit(stats)
+		@warning_ignore("unsafe_method_access")
+	stats_updated.emit(stats)
 	
 	# Signals with realistic timing
 	signal victory_achieved(victory_data: Dictionary)
 	signal scene_restarted
 	signal main_menu_requested
-	signal game_over_shown(state: int)
+	signal game_over_shown(_state: int)
 	signal campaign_data_updated(data: Dictionary)
 	signal victory_state_changed(victory: bool)
 	signal screen_hidden
@@ -74,23 +86,27 @@ var mock_screen: MockGameOverScreen = null
 func before_test() -> void:
 	super.before_test()
 	mock_screen = MockGameOverScreen.new()
+	@warning_ignore("return_value_discarded")
 	track_resource(mock_screen) # Perfect cleanup
 
 # Test Methods using proven patterns
+@warning_ignore("unsafe_method_access")
 func test_initial_state() -> void:
 	assert_that(mock_screen).is_not_null()
 	assert_that(mock_screen.is_visible_screen).is_false()
 	assert_that(mock_screen.visible).is_false()
 
+@warning_ignore("unsafe_method_access")
 func test_show_game_over() -> void:
 	# Skip signal monitoring to prevent Dictionary corruption
-	# monitor_signals(mock_screen)  # REMOVED - causes Dictionary corruption
+	# @warning_ignore("unsafe_method_access")
+	monitor_signals(mock_screen)  # REMOVED - causes Dictionary corruption
 	var test_campaign_data := {
 		"victory_points": 150,
 		"total_battles": 12,
 		"stats": [
-			{"type": "enemies_defeated", "value": 25},
-			{"type": "credits_earned", "value": 1200}
+			{"type": "enemies_defeated", "_value": 25},
+			{"type": "credits_earned", "_value": 1200}
 		]
 	}
 	
@@ -103,39 +119,49 @@ func test_show_game_over() -> void:
 	assert_that(mock_screen.get_victory_points()).is_equal(150)
 	assert_that(mock_screen.get_total_battles()).is_equal(12)
 
+@warning_ignore("unsafe_method_access")
 func test_victory_display() -> void:
 	# Skip signal monitoring to prevent Dictionary corruption
-	# monitor_signals(mock_screen)  # REMOVED - causes Dictionary corruption
+	# @warning_ignore("unsafe_method_access")
+	monitor_signals(mock_screen)  # REMOVED - causes Dictionary corruption
 	mock_screen.set_victory_state(true)
 	
 	# Test state directly instead of signal emission
 	assert_that(mock_screen.is_victory).is_true()
 
+@warning_ignore("unsafe_method_access")
 func test_defeat_display() -> void:
 	# Skip signal monitoring to prevent Dictionary corruption
-	# monitor_signals(mock_screen)  # REMOVED - causes Dictionary corruption
+	# @warning_ignore("unsafe_method_access")
+	monitor_signals(mock_screen)  # REMOVED - causes Dictionary corruption
 	mock_screen.set_victory_state(false)
 	
 	# Test state directly instead of signal emission
 	assert_that(mock_screen.is_victory).is_false()
 
+@warning_ignore("unsafe_method_access")
 func test_restart_functionality() -> void:
 	# Skip signal monitoring to prevent Dictionary corruption
-	# monitor_signals(mock_screen)  # REMOVED - causes Dictionary corruption
+	# @warning_ignore("unsafe_method_access")
+	monitor_signals(mock_screen)  # REMOVED - causes Dictionary corruption
 	mock_screen.restart_game()
 	
 	# Test functionality directly - restart method called successfully
 
+@warning_ignore("unsafe_method_access")
 func test_main_menu_functionality() -> void:
 	# Skip signal monitoring to prevent Dictionary corruption
-	# monitor_signals(mock_screen)  # REMOVED - causes Dictionary corruption
+	# @warning_ignore("unsafe_method_access")
+	monitor_signals(mock_screen)  # REMOVED - causes Dictionary corruption
 	mock_screen.return_to_main_menu()
 	
 	# Test functionality directly - main menu method called successfully
 
+@warning_ignore("unsafe_method_access")
 func test_campaign_data_handling() -> void:
 	# Skip signal monitoring to prevent Dictionary corruption
-	# monitor_signals(mock_screen)  # REMOVED - causes Dictionary corruption
+	# @warning_ignore("unsafe_method_access")
+	monitor_signals(mock_screen)  # REMOVED - causes Dictionary corruption
 	var campaign_data := {
 		"victory_points": 200,
 		"total_battles": 15,
@@ -150,12 +176,14 @@ func test_campaign_data_handling() -> void:
 	assert_that(mock_screen.get_victory_points()).is_equal(200)
 	assert_that(mock_screen.get_total_battles()).is_equal(15)
 
+@warning_ignore("unsafe_method_access")
 func test_stats_display() -> void:
-	# monitor_signals(mock_screen)  # REMOVED - causes Dictionary corruption
+	# @warning_ignore("unsafe_method_access")
+	monitor_signals(mock_screen)  # REMOVED - causes Dictionary corruption
 	var stats := [
-		{"type": "enemies_defeated", "value": 30},
-		{"type": "credits_earned", "value": 1500},
-		{"type": "missions_completed", "value": 8}
+		{"type": "enemies_defeated", "_value": 30},
+		{"type": "credits_earned", "_value": 1500},
+		{"type": "missions_completed", "_value": 8}
 	]
 	
 	mock_screen.update_stats(stats)
@@ -165,8 +193,10 @@ func test_stats_display() -> void:
 	# Test state directly instead of signal emission
 	assert_that(mock_screen.stats_data).is_equal(stats)
 
+@warning_ignore("unsafe_method_access")
 func test_screen_visibility() -> void:
-	# monitor_signals(mock_screen)  # REMOVED - causes Dictionary corruption
+	# @warning_ignore("unsafe_method_access")
+	monitor_signals(mock_screen)  # REMOVED - causes Dictionary corruption
 	# Show screen
 	mock_screen.show_game_over(2) # VICTORY state
 	assert_that(mock_screen.visible).is_true()
@@ -176,6 +206,7 @@ func test_screen_visibility() -> void:
 	# assert_signal(mock_screen).is_emitted("screen_hidden")  # REMOVED - causes Dictionary corruption
 	assert_that(mock_screen.visible).is_false()
 
+@warning_ignore("unsafe_method_access")
 func test_game_state_handling() -> void:
 	# Test different game states
 	mock_screen.show_game_over(0) # PLAYING
@@ -187,12 +218,15 @@ func test_game_state_handling() -> void:
 	mock_screen.show_game_over(2) # VICTORY
 	assert_that(mock_screen.current_game_state).is_equal(2)
 
+@warning_ignore("unsafe_method_access")
 func test_component_structure() -> void:
+
 	# Test that component has the basic functionality we expect
 	assert_that(mock_screen.get_victory_points()).is_greater_equal(0)
 	assert_that(mock_screen.get_total_battles()).is_greater_equal(0)
 	assert_that(mock_screen.campaign_data).is_not_null()
 
+@warning_ignore("unsafe_method_access")
 func test_data_consistency() -> void:
 	# Test that data remains consistent across operations
 	var initial_data := {"victory_points": 75, "total_battles": 5}

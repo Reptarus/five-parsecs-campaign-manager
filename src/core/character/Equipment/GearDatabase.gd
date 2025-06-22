@@ -8,7 +8,7 @@ var gears: Dictionary = {}
 
 func roll_weapon_table(table: String = "basic") -> Dictionary:
 	var roll = randi() % 6 + 1
-	var weapon_data = {}
+	var weapon_data: Dictionary = {}
 	
 	match table:
 		"basic":
@@ -77,15 +77,14 @@ func get_weapon_trait_description(trait_name: String) -> String:
 
 func _init() -> void:
 	load_gear_data()
-
 func load_gear_data() -> bool:
-	var file_path = "res://data/equipment_database.json"
+	var file_path: String = "res://data/equipment_database.json"
 	var file = FileAccess.open(file_path, FileAccess.READ)
 	if file == null:
 		push_error("Failed to open equipment database file: " + file_path + ". Error code: " + str(FileAccess.get_open_error()))
 		return false
 
-	var json = JSON.new()
+	var json := JSON.new()
 	var error = json.parse(file.get_as_text())
 	file.close()
 	
@@ -108,16 +107,25 @@ func load_gear_data() -> bool:
 				continue
 				
 			var gear_data = {
+
 				"name": weapon.get("name", "Unknown Weapon"),
 				"description": _generate_weapon_description(weapon),
 				"gear_type": "WEAPON",
+
 				"level": weapon.get("level", 1),
-				"value": weapon.get("value", 100),
+
+				"_value": weapon.get("_value", 100),
+
 				"weight": weapon.get("weight", 1.0),
+
 				"rarity": weapon.get("rarity", "COMMON"),
+
 				"damage": weapon.get("damage", 1),
+
 				"range": weapon.get("range", 12),
+
 				"shots": weapon.get("shots", 1),
+
 				"traits": weapon.get("traits", [])
 			}
 			
@@ -126,6 +134,7 @@ func load_gear_data() -> bool:
 				continue
 				
 			var gear_type = GameEnums.ItemType[gear_data["gear_type"]]
+
 			var level = gear_data["level"] as int
 			var weight = _safe_float_conversion(gear_data["weight"])
 			
@@ -136,32 +145,35 @@ func load_gear_data() -> bool:
 	return true
 
 func _generate_weapon_description(weapon: Dictionary) -> String:
-	var desc = "A %s weapon. " % weapon.get("type", "standard")
+	var desc: String = "A %s weapon. " % weapon.get("type", "standard")
 	
 	# Add roll result if available
 	if weapon.has("roll_result"):
 		desc = "[Roll: %d] " % weapon.roll_result + desc
 	
 	desc += "Damage: %d, Range: %d, Shots: %d" % [
+
 		weapon.get("damage", 1),
+
 		weapon.get("range", 12),
+
 		weapon.get("shots", 1)
 	]
-	
+
 	var traits = weapon.get("traits", [])
 	if not traits.is_empty():
 		desc += ". Traits: " + ", ".join(traits)
 	
 	return desc
 
-func _safe_float_conversion(value: Variant) -> float:
-	if value is float:
-		return value
-	if value is int:
-		return float(value)
-	if value is String:
-		if value.is_valid_float():
-			return value.to_float()
+func _safe_float_conversion(_value) -> float:
+	if _value is float:
+		return _value
+	if _value is int:
+		return float(_value)
+	if _value is String:
+		if _value.is_valid_float():
+			return _value.to_float()
 	return 1.0 # Default weight if conversion fails
 
 func _create_gear(gear_name: String, gear_data: Dictionary, gear_type: int, level: int, weight: float) -> Resource:
@@ -170,11 +182,12 @@ func _create_gear(gear_name: String, gear_data: Dictionary, gear_type: int, leve
 		return null
 		
 	# Create new gear instance
-	var new_gear = FiveParsecsGear.new()
+	var new_gear := FiveParsecsGear.new()
 	new_gear.item_name = gear_data["name"]
 	new_gear.description = gear_data["description"]
 	new_gear.item_type = gear_type
-	new_gear.cost = gear_data.get("value", 0)
+
+	new_gear.cost = gear_data.get("_value", 0)
 	new_gear.weight = weight
 	
 	if not is_instance_valid(new_gear):
@@ -182,6 +195,7 @@ func _create_gear(gear_name: String, gear_data: Dictionary, gear_type: int, leve
 		return null
 	
 	# Handle rarity with error checking
+
 	var rarity_str = gear_data.get("rarity", "COMMON")
 	if not rarity_str in GameEnums.ItemRarity.keys():
 		push_warning("Invalid rarity for gear '%s': %s, defaulting to COMMON" % [gear_name, rarity_str])
@@ -191,19 +205,19 @@ func _create_gear(gear_name: String, gear_data: Dictionary, gear_type: int, leve
 	
 	return new_gear
 
-func _safe_int_conversion(value: Variant) -> int:
-	if value is int:
-		return value
-	if value is float:
-		return int(value)
-	if value is String:
-		if value.is_valid_int():
-			return value.to_int()
-	return 0 # Default value if conversion fails
+func _safe_int_conversion(_value) -> int:
+	if _value is int:
+		return _value
+	if _value is float:
+		return int(_value)
+	if _value is String:
+		if _value.is_valid_int():
+			return _value.to_int()
+	return 0 # Default _value if conversion fails
 
 func _validate_gear_data(data: Dictionary) -> bool:
 	# Required fields
-	var required_fields = ["name", "description", "gear_type", "level", "value"]
+	var required_fields = ["name", "description", "gear_type", "level", "_value"]
 	for field in required_fields:
 		if not data.has(field):
 			push_error("Missing required field: " + field)
@@ -228,8 +242,8 @@ func _validate_gear_data(data: Dictionary) -> bool:
 		push_error("Invalid level: Must be positive integer")
 		return false
 		
-	if not (data["value"] is int or data["value"] is float) or data["value"] < 0:
-		push_error("Invalid value: Must be non-negative integer")
+	if not (data["_value"] is int or data["_value"] is float) or data["_value"] < 0:
+		push_error("Invalid _value: Must be non-negative integer")
 		return false
 	
 	# Optional fields validation
@@ -249,6 +263,7 @@ func _validate_gear_data(data: Dictionary) -> bool:
 func get_gear(gear_name: String) -> Resource:
 	if not gears.has(gear_name):
 		push_warning("Gear not found: " + gear_name)
+
 	return gears.get(gear_name)
 
 func get_all_gears() -> Array[Resource]:
@@ -261,7 +276,7 @@ func get_gear_types() -> Array[GameEnums.ItemType]:
 	var types: Array[GameEnums.ItemType] = []
 	for gear in gears.values():
 		if not gear.gear_type in types:
-			types.append(gear.gear_type)
+			types.append(gear.gear_type) # warning: return value discarded (intentional)
 	return types
 
 func get_gear_names() -> Array[String]:
@@ -274,13 +289,13 @@ func has_gear(gear_name: String) -> bool:
 	return gears.has(gear_name)
 
 func save_gear_data() -> bool:
-	var file_path = "res://data/gear_database.json"
+	var file_path: String = "res://data/gear_database.json"
 	var file = FileAccess.open(file_path, FileAccess.WRITE)
 	if file == null:
 		push_error("Failed to open gear database file for writing: " + file_path)
 		return false
 
-	var data = {}
+	var data: Dictionary = {}
 	for gear_name in gears:
 		var gear = gears[gear_name]
 		if not is_instance_valid(gear):
@@ -292,7 +307,7 @@ func save_gear_data() -> bool:
 			"description": gear.description,
 			"gear_type": GameEnums.ItemType.keys()[gear.gear_type],
 			"level": gear.level,
-			"value": gear.value,
+			"_value": gear._value,
 			"weight": gear.weight,
 			"is_damaged": gear.is_damaged,
 			"rarity": GameEnums.ItemRarity.keys()[gear.rarity]
@@ -380,7 +395,7 @@ func roll_random_gadget() -> Resource:
 
 func roll_gear_table() -> Dictionary:
 	var roll = randi() % 6 + 1
-	var gear_data = {}
+	var gear_data: Dictionary = {}
 	
 	match roll:
 		1: gear_data = {"name": "Survival Kit", "type": "GEAR", "description": "Basic survival equipment", "quantity": 1}
@@ -395,7 +410,7 @@ func roll_gear_table() -> Dictionary:
 
 func roll_gadget_table() -> Dictionary:
 	var roll = randi() % 6 + 1
-	var gadget_data = {}
+	var gadget_data: Dictionary = {}
 	
 	match roll:
 		1: gadget_data = {"name": "Scanner", "type": "SPECIAL", "description": "Advanced scanning device", "quantity": 1}

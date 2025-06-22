@@ -18,32 +18,32 @@ enum ResponsiveLayoutMode {
 
 ## The minimum width at which to use horizontal layout (in pixels)
 @export var min_width_for_horizontal: int = 600:
-	set(value):
-		min_width_for_horizontal = value
+	set(_value):
+		min_width_for_horizontal = _value
 		queue_sort()
 
 ## The layout mode to use
 @export var responsive_mode: ResponsiveLayoutMode = ResponsiveLayoutMode.AUTO:
-	set(value):
-		responsive_mode = value
+	set(_value):
+		responsive_mode = _value
 		queue_sort()
 
 ## Spacing between children when in horizontal layout
 @export var horizontal_spacing: int = 10:
-	set(value):
-		horizontal_spacing = value
+	set(_value):
+		horizontal_spacing = _value
 		queue_sort()
 
 ## Spacing between children when in vertical layout
 @export var vertical_spacing: int = 10:
-	set(value):
-		vertical_spacing = value
+	set(_value):
+		vertical_spacing = _value
 		queue_sort()
 
 ## Padding around the container
 @export var padding: int = 10:
-	set(value):
-		padding = value
+	set(_value):
+		padding = _value
 		queue_sort()
 
 ## Whether the container is currently in compact (vertical) mode
@@ -57,7 +57,8 @@ var _theme_manager = null # Will be assigned in _find_theme_manager
 
 func _ready() -> void:
 	# Connect to size changed signal
-	resized.connect(_on_resized)
+
+	resized.connect(_on_resized)  # warning: return value discarded (intentional)
 	
 	# Find theme manager in the scene tree
 	_find_theme_manager()
@@ -91,7 +92,7 @@ func _sort_children() -> void:
 	# If layout mode changed, emit signal
 	if is_compact != use_compact:
 		is_compact = use_compact
-		layout_changed.emit(is_compact)
+		layout_changed.emit(is_compact)  # warning: return value discarded (intentional)
 	
 	# Apply the current scale factor to spacing
 	var h_spacing := int(horizontal_spacing * _scale_factor)
@@ -128,7 +129,8 @@ func _sort_children() -> void:
 			total_width += child_min_size.x
 			
 			if child.size_flags_horizontal & SIZE_EXPAND:
-				expandable_children.append(child)
+
+				expandable_children.append(child)  # warning: return value discarded (intentional)
 			else:
 				fixed_width += child_min_size.x
 		
@@ -185,6 +187,7 @@ func _on_theme_changed(_theme) -> void:
 	queue_sort()
 
 ## Register this container with the UI manager for responsive updates
+	
 func register_with_ui_manager() -> void:
 	var ui_manager = null
 	
@@ -200,9 +203,11 @@ func register_with_ui_manager() -> void:
 		ui_manager.register_responsive_element(self)
 
 ## Get the current layout mode (compact or not)
+	
 func is_compact_layout() -> bool:
 	return is_compact
 
 ## Force a layout update
 func force_layout_update() -> void:
 	_update_layout()
+

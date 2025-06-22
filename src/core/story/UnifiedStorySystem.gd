@@ -58,6 +58,7 @@ func _init() -> void:
 	_initialize_story_content()
 
 ## Setup the story system with required references
+
 func setup(state: FiveParsecsGameState, campaign_mgr: Node, event_mgr: Node = null) -> void:
 	if not state:
 		push_error("UnifiedStorySystem: Invalid game state provided")
@@ -85,6 +86,7 @@ func advance_story(success: bool = true) -> void:
 	_update_available_content()
 
 ## Add story points and check for milestones
+
 func add_story_points(points: int) -> void:
 	if points <= 0:
 		return
@@ -94,9 +96,9 @@ func add_story_points(points: int) -> void:
 	
 	if new_milestone > current_milestone:
 		current_milestone = new_milestone
-		story_milestone_reached.emit(current_milestone)
+		story_milestone_reached.emit(current_milestone) # warning: return value discarded (intentional)
 	
-	story_points_changed.emit(story_points)
+	story_points_changed.emit(story_points) # warning: return value discarded (intentional)
 
 ## Start a new quest
 func start_quest(quest: StoryQuestData) -> bool:
@@ -109,9 +111,10 @@ func start_quest(quest: StoryQuestData) -> bool:
 		
 	if available_quests.has(quest):
 		available_quests.erase(quest)
-		active_quests.append(quest)
+
+		active_quests.append(quest) # warning: return value discarded (intentional)
 		quest.start(game_state.current_turn)
-		quest_started.emit(quest)
+		quest_started.emit(quest) # warning: return value discarded (intentional)
 		return true
 	return false
 
@@ -123,7 +126,8 @@ func complete_quest(quest: StoryQuestData) -> void:
 		
 	if active_quests.has(quest):
 		active_quests.erase(quest)
-		completed_quests.append(quest)
+
+		completed_quests.append(quest) # warning: return value discarded (intentional)
 		quest.complete(game_state.current_turn)
 		
 		# Award story points
@@ -132,7 +136,7 @@ func complete_quest(quest: StoryQuestData) -> void:
 		# Apply rewards
 		_apply_quest_rewards(quest)
 		
-		quest_completed.emit(quest)
+		quest_completed.emit(quest) # warning: return value discarded (intentional)
 		advance_story(true)
 
 ## Fail a quest and apply penalties
@@ -148,27 +152,27 @@ func fail_quest(quest: StoryQuestData) -> void:
 		# Apply penalties
 		_apply_quest_penalties(quest)
 		
-		quest_failed.emit(quest)
+		quest_failed.emit(quest) # warning: return value discarded (intentional)
 		advance_story(false)
 
 ## Trigger a story event
-func trigger_story_event(event: StoryQuestData) -> void:
-	if not event:
+func trigger_story_event(_event: StoryQuestData) -> void:
+	if not _event:
 		push_error("UnifiedStorySystem: Cannot trigger null event")
 		return
 		
-	story_event_triggered.emit(event)
+	story_event_triggered.emit(_event) # warning: return value discarded (intentional)
 	
 	# Apply event effects
-	event.apply_effects(game_state)
+	_event.apply_effects(game_state)
 	
 	# Generate related quests
-	var related_quests := _generate_related_quests(event)
+	var related_quests := _generate_related_quests(_event)
 	available_quests.append_array(related_quests)
 	
 	# Update campaign state
 	if campaign_manager:
-		campaign_manager.handle_story_event(event)
+		campaign_manager.handle_story_event(_event)
 
 ## Handle campaign events
 func _on_campaign_event(event_type: int) -> void:
@@ -183,12 +187,14 @@ func _on_campaign_event(event_type: int) -> void:
 			_handle_generic_event(event_type)
 
 ## Initialize story content from data files
+
 func _initialize_story_content() -> void:
 	_load_story_events()
 	_load_quest_templates()
 	_setup_initial_chapter()
 
 ## Load story events from JSON file
+
 func _load_story_events() -> void:
 	if FileAccess.file_exists("res://src/data/resources/Story/story_events.json"):
 		var file := FileAccess.open("res://src/data/resources/Story/story_events.json", FileAccess.READ)
@@ -204,6 +210,7 @@ func _load_story_events() -> void:
 		push_error("Story events file not found")
 
 ## Load quest templates from JSON file
+
 func _load_quest_templates() -> void:
 	if FileAccess.file_exists("res://src/data/resources/Story/quest_templates.json"):
 		var file := FileAccess.open("res://src/data/resources/Story/quest_templates.json", FileAccess.READ)
@@ -219,12 +226,14 @@ func _load_quest_templates() -> void:
 		push_error("Quest templates file not found")
 
 ## Setup the initial chapter
+
 func _setup_initial_chapter() -> void:
 	current_chapter = 0
 	story_ticks = TICKS_PER_CHAPTER
 	_generate_chapter_content()
 
 ## Complete the current chapter and setup the next
+
 func _complete_current_chapter() -> void:
 	current_chapter += 1
 	story_ticks = TICKS_PER_CHAPTER
@@ -233,6 +242,7 @@ func _complete_current_chapter() -> void:
 	_generate_chapter_content()
 
 ## Update available content and generate new quests
+
 func _update_available_content() -> void:
 	if not game_state:
 		return
@@ -244,7 +254,7 @@ func _update_available_content() -> void:
 	while available_quests.size() < 3:
 		var new_quest := _generate_quest()
 		if new_quest:
-			available_quests.append(new_quest)
+			available_quests.append(new_quest) # warning: return value discarded (intentional)
 
 ## Apply rewards for a completed quest
 func _apply_quest_rewards(quest: StoryQuestData) -> void:
@@ -275,8 +285,8 @@ func _apply_quest_penalties(quest: StoryQuestData) -> void:
 		quest.patron.change_relationship(-5)
 
 ## Generate quests related to a story event
-func _generate_related_quests(event: StoryQuestData) -> Array[StoryQuestData]:
-	if not event:
+func _generate_related_quests(_event: StoryQuestData) -> Array[StoryQuestData]:
+	if not _event:
 		return []
 		
 	var quests: Array[StoryQuestData] = []
@@ -284,30 +294,27 @@ func _generate_related_quests(event: StoryQuestData) -> Array[StoryQuestData]:
 	# Generate 1-3 related quests based on the event
 	var quest_count := randi() % 3 + 1
 	for i in range(quest_count):
-		var quest := _create_related_quest(event)
+		var quest := _create_related_quest(_event)
 		if quest:
-			quests.append(quest)
+			quests.append(quest) # warning: return value discarded (intentional)
 	
 	return quests
 
 ## Create a quest related to a specific event
-func _create_related_quest(event: StoryQuestData) -> StoryQuestData:
-	if not event:
+func _create_related_quest(_event: StoryQuestData) -> StoryQuestData:
+	if not _event:
 		return null
-		
+
 	var quest := StoryQuestData.new()
 	
 	# Set quest properties based on event type
-	match event.event_type:
+	match _event.event_type:
 		GameEnums.GlobalEvent.MARKET_CRASH:
 			_setup_market_crash_quest(quest)
 		GameEnums.GlobalEvent.ALIEN_INVASION:
 			_setup_alien_invasion_quest(quest)
 		GameEnums.GlobalEvent.TECH_BREAKTHROUGH:
 			_setup_tech_breakthrough_quest(quest)
-		_:
-			return null
-	
 	return quest
 
 ## Setup quest for market crash event
@@ -351,6 +358,7 @@ func _setup_tech_breakthrough_quest(quest: StoryQuestData) -> void:
 func _create_market_crash_event() -> StoryQuestData:
 	var event := StoryQuestData.new()
 	event.event_type = GameEnums.GlobalEvent.MARKET_CRASH
+
 	event.description = "A massive market crash has occurred! Resource values fluctuate wildly."
 	return event
 
@@ -365,6 +373,7 @@ func _create_alien_invasion_event() -> StoryQuestData:
 func _create_tech_breakthrough_event() -> StoryQuestData:
 	var event := StoryQuestData.new()
 	event.event_type = GameEnums.GlobalEvent.TECH_BREAKTHROUGH
+
 	event.description = "A technological breakthrough has been announced!"
 	return event
 
@@ -372,6 +381,7 @@ func _create_tech_breakthrough_event() -> StoryQuestData:
 func _create_generic_event(event_type: int) -> StoryQuestData:
 	var event := StoryQuestData.new()
 	event.event_type = event_type
+
 	event.description = "A new event has occurred in the galaxy..."
 	return event
 
@@ -412,9 +422,10 @@ func _generate_chapter_content() -> void:
 	# Generate chapter-specific content
 	var chapter_events = _get_chapter_events()
 	for event_data in chapter_events:
-		var event = StoryQuestData.new()
+		var event := StoryQuestData.new()
 		event.deserialize(event_data)
-		story_events.append(event)
+
+		story_events.append(event) # warning: return value discarded (intentional)
 
 func _get_chapter_events() -> Array:
 	# Get events for current chapter from templates
@@ -423,13 +434,13 @@ func _get_chapter_events() -> Array:
 	return []
 
 func _generate_quest() -> StoryQuestData:
-	var quest = StoryQuestData.new()
+	var quest := StoryQuestData.new()
 	
 	# Get appropriate quest template for current chapter
 	var templates = _get_available_quest_templates()
 	if templates.is_empty():
-		return null
-	
+		return quest
+
 	var template = templates[randi() % templates.size()]
 	quest.deserialize(template)
 	
@@ -446,7 +457,7 @@ func _apply_special_reward(effect: String) -> void:
 		"unlock_special_mission":
 			var quest = _generate_special_quest()
 			if quest:
-				available_quests.append(quest)
+				available_quests.append(quest) # warning: return value discarded (intentional)
 		"improve_reputation":
 			game_state.add_reputation(5)
 		"resource_bonus":
@@ -473,8 +484,11 @@ func serialize() -> Dictionary:
 
 func deserialize(data: Dictionary) -> void:
 	story_points = data.get("story_points", 0)
+
 	current_milestone = data.get("current_milestone", 0)
+
 	story_ticks = data.get("story_ticks", TICKS_PER_CHAPTER)
+
 	current_chapter = data.get("current_chapter", 0)
 	
 	# Clear existing quests
@@ -483,26 +497,30 @@ func deserialize(data: Dictionary) -> void:
 	available_quests.clear()
 	
 	# Load quest data
+
 	for quest_data in data.get("active_quests", []):
-		var quest = StoryQuestData.new()
+		var quest := StoryQuestData.new()
 		quest.deserialize(quest_data)
-		active_quests.append(quest)
-	
+
+		active_quests.append(quest) # warning: return value discarded (intentional)
+
 	for quest_data in data.get("completed_quests", []):
-		var quest = StoryQuestData.new()
+		var quest := StoryQuestData.new()
 		quest.deserialize(quest_data)
-		completed_quests.append(quest)
-	
+
+		completed_quests.append(quest) # warning: return value discarded (intentional)
+
 	for quest_data in data.get("available_quests", []):
-		var quest = StoryQuestData.new()
+		var quest := StoryQuestData.new()
 		quest.deserialize(quest_data)
-		available_quests.append(quest)
+
+		available_quests.append(quest) # warning: return value discarded (intentional)
 
 ## Setup quest for event based on event type
-func _setup_event_quest(event: int) -> StoryQuestData:
-	var quest = StoryQuestData.new()
+func _setup_event_quest(_event: int) -> StoryQuestData:
+	var quest := StoryQuestData.new()
 	
-	match event:
+	match _event:
 		GameEnums.GlobalEvent.MARKET_CRASH:
 			_setup_market_crash_quest(quest)
 		GameEnums.GlobalEvent.ALIEN_INVASION:
@@ -510,6 +528,6 @@ func _setup_event_quest(event: int) -> StoryQuestData:
 		GameEnums.GlobalEvent.TECH_BREAKTHROUGH:
 			_setup_tech_breakthrough_quest(quest)
 		_:
-			return null
-	
+			pass
+
 	return quest

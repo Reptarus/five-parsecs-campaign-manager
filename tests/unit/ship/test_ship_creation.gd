@@ -1,5 +1,6 @@
 @tool
-extends GdUnitGameTest
+@warning_ignore("return_value_discarded")
+	extends GdUnitGameTest
 
 # Mock Ship Creation System with realistic behavior
 class MockShipCreation extends Resource:
@@ -7,29 +8,34 @@ class MockShipCreation extends Resource:
 	
 	func create_ship(ship_data: Dictionary) -> Resource:
 		# Validate required fields
-		if not ship_data.has("name") or not ship_data.has("ship_class"):
+		if not @warning_ignore("unsafe_call_argument")
+	ship_data.has("name") or not @warning_ignore("unsafe_call_argument")
+	ship_data.has("ship_class"):
 			return null
-		if not ship_data.has("hull_points") or not ship_data.has("shield_points"):
+		if not @warning_ignore("unsafe_call_argument")
+	ship_data.has("hull_points") or not @warning_ignore("unsafe_call_argument")
+	ship_data.has("shield_points"):
 			return null
-			
 		# Validate ship class
 		var valid_classes = ["Frigate", "Destroyer", "Cruiser", "Battleship"]
 		if not ship_data["ship_class"] in valid_classes:
 			return null
-			
 		# Validate values
-		if ship_data.get("hull_points", 0) < 0 or ship_data.get("shield_points", 0) < 0:
+
+		if @warning_ignore("unsafe_call_argument")
+	shiptest_data.get("hull_points", 0) < 0 or @warning_ignore("unsafe_call_argument")
+	shiptest_data.get("shield_points", 0) < 0:
 			return null
-			
 		# Create ship
-		var ship = MockShip.new()
+		var ship: MockShip = MockShip.new()
 		ship.name = ship_data["name"]
 		ship.ship_class = ship_data["ship_class"]
 		ship.hull_points = ship_data["hull_points"]
 		ship.shield_points = ship_data["shield_points"]
 		
 		# Add components if provided
-		if ship_data.has("components"):
+		if @warning_ignore("unsafe_call_argument")
+	ship_data.has("components"):
 			for component_data in ship_data["components"]:
 				var component = create_component(component_data)
 				if component:
@@ -39,24 +45,29 @@ class MockShipCreation extends Resource:
 	
 	func create_component(component_data: Dictionary) -> Resource:
 		# Validate required fields
-		if not component_data.has("type") or not component_data.has("name"):
+		if not @warning_ignore("unsafe_call_argument")
+	component_data.has("type") or not @warning_ignore("unsafe_call_argument")
+	component_data.has("name"):
 			return null
-			
 		# Validate component type
 		var type_value = component_data["type"]
 		if type_value < 0 or type_value > 3:
 			return null
-			
 		# Validate values (no negative values allowed)
-		if component_data.get("damage", 0) < 0 or component_data.get("range", 0) < 0:
+		if @warning_ignore("unsafe_call_argument")
+	componenttest_data.get("damage", 0) < 0 or @warning_ignore("unsafe_call_argument")
+	componenttest_data.get("range", 0) < 0:
 			return null
-			
 		# Create component
-		var component = MockComponent.new()
+		var component: MockComponent = MockComponent.new()
 		component.type = type_value
 		component.name = component_data["name"]
-		component.damage = component_data.get("damage", 0)
-		component.range = component_data.get("range", 0)
+
+		component.damage = @warning_ignore("unsafe_call_argument")
+	componenttest_data.get("damage", 0)
+
+		component.range = @warning_ignore("unsafe_call_argument")
+	componenttest_data.get("range", 0)
 		
 		return component
 
@@ -69,7 +80,8 @@ class MockShip extends Resource:
 	
 	func add_component(component: Resource) -> bool:
 		if component:
-			components.append(component)
+			@warning_ignore("return_value_discarded")
+	components.append(component)
 			return true
 		return false
 	
@@ -88,18 +100,22 @@ var creator: MockShipCreation = null
 func before_test() -> void:
 	super.before_test()
 	creator = MockShipCreation.new()
+	@warning_ignore("return_value_discarded")
 	track_resource(creator)
+	@warning_ignore("unsafe_method_access")
 	await get_tree().process_frame
 
 func after_test() -> void:
 	super.after_test()
 	creator = null
 
+@warning_ignore("unsafe_method_access")
 func test_initial_setup() -> void:
 	assert_that(creator).is_not_null()
 	assert_that(creator.has_method("create_ship")).is_true()
 	assert_that(creator.has_method("create_component")).is_true()
 
+@warning_ignore("unsafe_method_access")
 func test_ship_creation() -> void:
 	var ship_data: Dictionary = {
 		"name": "Test Ship",
@@ -117,6 +133,7 @@ func test_ship_creation() -> void:
 	assert_that(ship.hull_points).is_equal(100)
 	assert_that(ship.shield_points).is_equal(50)
 
+@warning_ignore("unsafe_method_access")
 func test_component_creation() -> void:
 	var component_data: Dictionary = {
 		"type": MockShipCreation.ComponentType.WEAPON,
@@ -133,6 +150,7 @@ func test_component_creation() -> void:
 	assert_that(component.damage).is_equal(25)
 	assert_that(component.range).is_equal(100)
 
+@warning_ignore("unsafe_method_access")
 func test_ship_with_components() -> void:
 	var component_data: Dictionary = {
 		"type": MockShipCreation.ComponentType.WEAPON,
@@ -159,6 +177,7 @@ func test_ship_with_components() -> void:
 	assert_that(component.type).is_equal(MockShipCreation.ComponentType.WEAPON)
 	assert_that(component.name).is_equal("Test Weapon")
 
+@warning_ignore("unsafe_method_access")
 func test_invalid_ship_data() -> void:
 	var invalid_data: Dictionary = {
 		"name": "Invalid Ship"
@@ -168,6 +187,7 @@ func test_invalid_ship_data() -> void:
 	var ship: Resource = creator.create_ship(invalid_data)
 	assert_that(ship).is_null()
 
+@warning_ignore("unsafe_method_access")
 func test_invalid_component_data() -> void:
 	var invalid_data: Dictionary = {
 		"name": "Invalid Component"
@@ -177,6 +197,7 @@ func test_invalid_component_data() -> void:
 	var component: Resource = creator.create_component(invalid_data)
 	assert_that(component).is_null()
 
+@warning_ignore("unsafe_method_access")
 func test_component_validation() -> void:
 	var invalid_type_data: Dictionary = {
 		"type": 999, # Invalid type
@@ -196,6 +217,7 @@ func test_component_validation() -> void:
 	component = creator.create_component(invalid_values_data)
 	assert_that(component).is_null()
 
+@warning_ignore("unsafe_method_access")
 func test_ship_validation() -> void:
 	var invalid_class_data: Dictionary = {
 		"name": "Invalid Class Ship",
@@ -217,6 +239,7 @@ func test_ship_validation() -> void:
 	ship = creator.create_ship(invalid_values_data)
 	assert_that(ship).is_null()
 
+@warning_ignore("unsafe_method_access")
 func test_component_limits() -> void:
 	var component_data: Dictionary = {
 		"type": MockShipCreation.ComponentType.WEAPON,

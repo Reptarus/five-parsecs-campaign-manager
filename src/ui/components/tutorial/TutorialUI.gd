@@ -9,7 +9,7 @@ signal tutorial_skipped
 @onready var overlay: Object
 @onready var tutorial_data := {}
 
-var current_tutorial: String
+var current_tutorial: String = ""
 var tutorial_progress: Dictionary
 
 func _ready() -> void:
@@ -39,7 +39,7 @@ func skip_tutorial(tutorial_name: String) -> void:
         overlay.hide_overlay()
     tutorial_progress[tutorial_name] = {"completed": true, "skipped": true}
     _save_tutorial_progress()
-    tutorial_skipped.emit()
+    tutorial_skipped.emit() # warning: return value discarded (intentional)
 
 func is_tutorial_completed(tutorial_name: String) -> bool:
     return tutorial_progress.has(tutorial_name) and tutorial_progress[tutorial_name].completed
@@ -50,12 +50,12 @@ func _load_tutorial_steps(tutorial_name: String) -> Array[Dictionary]:
         return tutorial_data[tutorial_name]
     
     # Try loading from file
-    var file_path = "res://data/tutorials/" + tutorial_name + ".json"
+    var file_path: String = "res://data/tutorials/" + tutorial_name + ".json"
     if not FileAccess.file_exists(file_path):
         return []
     
     var file = FileAccess.open(file_path, FileAccess.READ)
-    var json = JSON.new()
+    var json := JSON.new()
     var parse_result = json.parse(file.get_as_text())
     if parse_result != OK:
         push_error("Failed to parse tutorial file: " + file_path)
@@ -66,13 +66,13 @@ func _load_tutorial_steps(tutorial_name: String) -> Array[Dictionary]:
     return steps
 
 func _load_tutorial_progress() -> void:
-    var save_path = "user://tutorial_progress.json"
+    var save_path: String = "user://tutorial_progress.json"
     if not FileAccess.file_exists(save_path):
         tutorial_progress = {}
         return
     
     var file = FileAccess.open(save_path, FileAccess.READ)
-    var json = JSON.new()
+    var json := JSON.new()
     var parse_result = json.parse(file.get_as_text())
     if parse_result != OK:
         push_error("Failed to parse tutorial progress file")
@@ -82,7 +82,7 @@ func _load_tutorial_progress() -> void:
     tutorial_progress = json.get_data()
 
 func _save_tutorial_progress() -> void:
-    var save_path = "user://tutorial_progress.json"
+    var save_path: String = "user://tutorial_progress.json"
     var file = FileAccess.open(save_path, FileAccess.WRITE)
     file.store_string(JSON.stringify(tutorial_progress))
 
@@ -90,12 +90,12 @@ func _on_tutorial_completed() -> void:
     if current_tutorial:
         tutorial_progress[current_tutorial] = {"completed": true, "skipped": false}
         _save_tutorial_progress()
-        tutorial_completed.emit()
+        tutorial_completed.emit() # warning: return value discarded (intentional)
         current_tutorial = ""
-
+        
 func _on_tutorial_skipped() -> void:
     if current_tutorial:
         tutorial_progress[current_tutorial] = {"completed": true, "skipped": true}
         _save_tutorial_progress()
-        tutorial_skipped.emit()
+        tutorial_skipped.emit() # warning: return value discarded (intentional)
         current_tutorial = ""

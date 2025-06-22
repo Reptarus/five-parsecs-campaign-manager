@@ -21,13 +21,16 @@ func serialize() -> Dictionary:
 # Virtual method to be implemented by child classes
 func deserialize(data: Dictionary) -> void:
     resource_id = data.get("resource_id", "")
+
     display_name = data.get("display_name", "")
+
     resource_type = data.get("resource_type", GameEnums.ResourceType.NONE)
+
     resource_description = data.get("resource_description", "")
 
 # Static factory method
 static func from_dict(data: Dictionary) -> SerializableResource:
-    var instance = SerializableResource.new()
+    var instance := SerializableResource.new()
     instance.deserialize(data)
     return instance
 
@@ -37,7 +40,7 @@ func validate() -> bool:
 
 # Helper method to create a deep copy with serialization
 func create_copy() -> SerializableResource:
-    var copy = SerializableResource.new()
+    var copy := SerializableResource.new()
     copy.deserialize(serialize())
     return copy
 

@@ -31,25 +31,26 @@ var automation_manager: OptionalAutomationManager
 signal settings_changed(settings: Dictionary)
 signal accessibility_mode_toggled(enabled: bool)
 
-func _ready():
+func _ready() -> void:
 	_setup_ui_layout()
 	_setup_automation_options()
 	_setup_connections()
 	_load_default_settings()
 
 ## Setup the UI layout with proper grouping
-func _setup_ui_layout():
+
+func _setup_ui_layout() -> void:
 	# Main layout
-	var main_vbox = VBoxContainer.new()
+	var main_vbox := VBoxContainer.new()
 	add_child(main_vbox)
 	
 	# Title
-	var title_label = Label.new()
+	var title_label := Label.new()
 	title_label.text = "Automation & Accessibility Settings"
 	title_label.add_theme_font_size_override("font_size", 18)
 	main_vbox.add_child(title_label)
 	
-	var separator = HSeparator.new()
+	var separator := HSeparator.new()
 	main_vbox.add_child(separator)
 	
 	# Accessibility Section
@@ -68,7 +69,7 @@ func _setup_ui_layout():
 	_create_rules_section(main_vbox)
 
 ## Create accessibility section with clear benefits
-func _create_accessibility_section(parent: Node):
+func _create_accessibility_section(parent: Node) -> void:
 	var section = _create_section("Accessibility Features", parent)
 	
 	# Accessibility mode toggle
@@ -89,7 +90,7 @@ func _create_accessibility_section(parent: Node):
 	section.add_child(accessibility_description)
 
 ## Create automation level section
-func _create_automation_section(parent: Node):
+func _create_automation_section(parent: Node) -> void:
 	var section = _create_section("Automation Level", parent)
 	
 	automation_level_option = OptionButton.new()
@@ -101,7 +102,7 @@ func _create_automation_section(parent: Node):
 	section.add_child(automation_description)
 
 ## Create dice settings section
-func _create_dice_section(parent: Node):
+func _create_dice_section(parent: Node) -> void:
 	var section = _create_section("Digital Dice Options", parent)
 	
 	dice_auto_roll_check = CheckBox.new()
@@ -116,14 +117,14 @@ func _create_dice_section(parent: Node):
 	dice_sound_check.text = "Play dice rolling sounds"
 	section.add_child(dice_sound_check)
 	
-	var dice_note = Label.new()
+	var dice_note := Label.new()
 	dice_note.text = "Note: You can always override digital rolls with physical dice results"
 	dice_note.add_theme_color_override("font_color", Color.GRAY)
 	dice_note.autowrap_mode = TextServer.AUTOWRAP_WORD
 	section.add_child(dice_note)
 
 ## Create confirmation section
-func _create_confirmation_section(parent: Node):
+func _create_confirmation_section(parent: Node) -> void:
 	var section = _create_section("Confirmation & Safety", parent)
 	
 	always_confirm_check = CheckBox.new()
@@ -135,14 +136,14 @@ func _create_confirmation_section(parent: Node):
 	section.add_child(show_calculations_check)
 
 ## Create rules assistance section
-func _create_rules_section(parent: Node):
+func _create_rules_section(parent: Node) -> void:
 	var section = _create_section("Rules Assistance", parent)
 	
 	rule_suggestions_check = CheckBox.new()
 	rule_suggestions_check.text = "Suggest relevant rules and page references"
 	section.add_child(rule_suggestions_check)
 	
-	var rules_note = Label.new()
+	var rules_note := Label.new()
 	rules_note.text = "Provides helpful rule reminders - you're still the Game Master!"
 	rules_note.add_theme_color_override("font_color", Color.GRAY)
 	rules_note.autowrap_mode = TextServer.AUTOWRAP_WORD
@@ -150,23 +151,23 @@ func _create_rules_section(parent: Node):
 
 ## Helper to create labeled sections
 func _create_section(title: String, parent: Node) -> VBoxContainer:
-	var section_label = Label.new()
+	var section_label := Label.new()
 	section_label.text = title
 	section_label.add_theme_font_size_override("font_size", 14)
 	parent.add_child(section_label)
 	
-	var section = VBoxContainer.new()
+	var section := VBoxContainer.new()
 	section.add_theme_constant_override("separation", 5)
 	parent.add_child(section)
 	
-	var spacer = Control.new()
+	var spacer := Control.new()
 	spacer.custom_minimum_size.y = 10
 	parent.add_child(spacer)
 	
 	return section
 
 ## Setup automation level options with descriptions
-func _setup_automation_options():
+func _setup_automation_options() -> void:
 	automation_level_option.add_item("Manual Only - Pure Tabletop")
 	automation_level_option.add_item("Dice Assistance - Digital dice with manual override")
 	automation_level_option.add_item("Basic Help - Dice + calculations")
@@ -177,7 +178,7 @@ func _setup_automation_options():
 	automation_level_option.selected = 1 # DICE_ASSISTANCE
 
 ## Setup signal connections
-func _setup_connections():
+func _setup_connections() -> void:
 	if automation_level_option:
 		automation_level_option.item_selected.connect(_on_automation_level_changed)
 	
@@ -203,7 +204,7 @@ func _setup_connections():
 		dice_sound_check.toggled.connect(_on_setting_changed)
 
 ## Load default accessibility-friendly settings
-func _load_default_settings():
+func _load_default_settings() -> void:
 	# Accessibility-first defaults
 	accessibility_mode_check.button_pressed = false
 	always_confirm_check.button_pressed = true
@@ -218,59 +219,67 @@ func _load_default_settings():
 	_update_automation_description()
 
 ## Initialize with automation manager
-func setup_automation_manager(manager: OptionalAutomationManager):
+func setup_automation_manager(manager: OptionalAutomationManager) -> void:
 	automation_manager = manager
 	_load_settings_from_manager()
 
 ## Load settings from automation manager
-func _load_settings_from_manager():
+func _load_settings_from_manager() -> void:
 	if not automation_manager:
 		return
 	
 	var settings = automation_manager.export_settings()
-	
+
 	automation_level_option.selected = settings.get("automation_level", 1)
+
 	accessibility_mode_check.button_pressed = settings.get("accessibility_mode", false)
+
 	always_confirm_check.button_pressed = settings.get("always_confirm_actions", true)
+
 	show_calculations_check.button_pressed = settings.get("show_calculation_steps", true)
+
 	rule_suggestions_check.button_pressed = settings.get("enable_rule_suggestions", true)
-	
+
 	var dice_settings = settings.get("dice_settings", {})
+
 	dice_auto_roll_check.button_pressed = dice_settings.get("auto_roll_enabled", false)
+
 	dice_animations_check.button_pressed = dice_settings.get("show_animations", true)
+
 	dice_sound_check.button_pressed = dice_settings.get("dice_sound_enabled", false)
 	
 	_update_automation_description()
 
 ## Handle automation level changes
-func _on_automation_level_changed(index: int):
+func _on_automation_level_changed(index: int) -> void:
 	if automation_manager:
+
 		automation_manager.set_automation_level(index as OptionalAutomationManager.AutomationLevel)
 	
 	_update_automation_description()
 	_emit_settings_changed()
 
 ## Handle accessibility mode toggle
-func _on_accessibility_mode_toggled(pressed: bool):
+func _on_accessibility_mode_toggled(_pressed: bool) -> void:
 	if automation_manager:
-		automation_manager.enable_accessibility_mode(pressed)
+		automation_manager.enable_accessibility_mode(_pressed)
 	
 	# Auto-adjust other settings for accessibility
-	if pressed:
+	if _pressed:
 		show_calculations_check.button_pressed = true
 		always_confirm_check.button_pressed = true
 		dice_sound_check.button_pressed = false # Avoid audio clutter
 	
-	accessibility_mode_toggled.emit(pressed)
+	accessibility_mode_toggled.emit(_pressed)  # warning: return value discarded (intentional)
 	_emit_settings_changed()
 
 ## Handle general setting changes
-func _on_setting_changed(_pressed: bool = false):
+func _on_setting_changed(_pressed: bool = false) -> void:
 	_apply_settings_to_manager()
 	_emit_settings_changed()
 
 ## Apply current UI settings to automation manager
-func _apply_settings_to_manager():
+func _apply_settings_to_manager() -> void:
 	if not automation_manager:
 		return
 	
@@ -284,7 +293,7 @@ func _apply_settings_to_manager():
 	automation_manager.dice_system.dice_sound_enabled = dice_sound_check.button_pressed
 
 ## Update the description based on current automation level
-func _update_automation_description():
+func _update_automation_description() -> void:
 	var descriptions = [
 		"Pure tabletop experience - no digital assistance, roll your own dice",
 		"Digital dice available but you can always input your physical dice results",
@@ -298,7 +307,7 @@ func _update_automation_description():
 		automation_description.text = descriptions[index]
 
 ## Emit settings changed signal
-func _emit_settings_changed():
+func _emit_settings_changed() -> void:
 	var current_settings = {
 		"automation_level": automation_level_option.selected,
 		"accessibility_mode": accessibility_mode_check.button_pressed,
@@ -310,7 +319,7 @@ func _emit_settings_changed():
 		"dice_sound": dice_sound_check.button_pressed
 	}
 	
-	settings_changed.emit(current_settings)
+	settings_changed.emit(current_settings)  # warning: return value discarded (intentional)
 
 ## Export current settings for saving
 func export_settings() -> Dictionary:
@@ -328,23 +337,31 @@ func export_settings() -> Dictionary:
 	}
 
 ## Import settings from save data
-func import_settings(settings: Dictionary):
+func import_settings(settings: Dictionary) -> void:
+
 	automation_level_option.selected = settings.get("automation_level", 1)
+
 	accessibility_mode_check.button_pressed = settings.get("accessibility_mode", false)
+
 	always_confirm_check.button_pressed = settings.get("always_confirm_actions", true)
+
 	show_calculations_check.button_pressed = settings.get("show_calculation_steps", true)
+
 	rule_suggestions_check.button_pressed = settings.get("enable_rule_suggestions", true)
-	
+
 	var dice_settings = settings.get("dice_settings", {})
+
 	dice_auto_roll_check.button_pressed = dice_settings.get("auto_roll_enabled", false)
+
 	dice_animations_check.button_pressed = dice_settings.get("show_animations", true)
+
 	dice_sound_check.button_pressed = dice_settings.get("dice_sound_enabled", false)
 	
 	_update_automation_description()
 	_apply_settings_to_manager()
 
 ## Show/hide advanced options based on accessibility mode
-func _update_ui_for_accessibility():
+func _update_ui_for_accessibility() -> void:
 	if accessibility_mode_check.button_pressed:
 		# Accessibility mode - show everything with clear descriptions
 		_show_all_options()
@@ -352,48 +369,48 @@ func _update_ui_for_accessibility():
 		# Standard mode - can hide some advanced options
 		_show_standard_options()
 
-func _show_all_options():
+func _show_all_options() -> void:
 	# Show all controls with enhanced descriptions
 	pass
 
-func _show_standard_options():
+func _show_standard_options() -> void:
 	# Standard layout
 	pass
 
 ## Create quick preset buttons for common use cases
-func _add_preset_buttons(parent: Node):
+func _add_preset_buttons(parent: Node) -> void:
 	var presets_section = _create_section("Quick Presets", parent)
 	
-	var preset_container = HBoxContainer.new()
+	var preset_container := HBoxContainer.new()
 	presets_section.add_child(preset_container)
 	
 	# Tabletop purist preset
-	var tabletop_button = Button.new()
+	var tabletop_button := Button.new()
 	tabletop_button.text = "Tabletop Purist"
 	tabletop_button.pressed.connect(_apply_tabletop_preset)
 	preset_container.add_child(tabletop_button)
 	
 	# Accessibility preset
-	var accessibility_button = Button.new()
+	var accessibility_button := Button.new()
 	accessibility_button.text = "Accessibility"
 	accessibility_button.pressed.connect(_apply_accessibility_preset)
 	preset_container.add_child(accessibility_button)
 	
 	# Convenience preset
-	var convenience_button = Button.new()
+	var convenience_button := Button.new()
 	convenience_button.text = "Digital Convenience"
 	convenience_button.pressed.connect(_apply_convenience_preset)
 	preset_container.add_child(convenience_button)
 
 ## Preset configurations
-func _apply_tabletop_preset():
+func _apply_tabletop_preset() -> void:
 	automation_level_option.selected = 0 # MANUAL_ONLY
 	accessibility_mode_check.button_pressed = false
 	dice_auto_roll_check.button_pressed = false
 	always_confirm_check.button_pressed = true
 	_on_setting_changed()
 
-func _apply_accessibility_preset():
+func _apply_accessibility_preset() -> void:
 	automation_level_option.selected = 2 # BASIC_HELP
 	accessibility_mode_check.button_pressed = true
 	show_calculations_check.button_pressed = true
@@ -401,9 +418,10 @@ func _apply_accessibility_preset():
 	dice_sound_check.button_pressed = false
 	_on_setting_changed()
 
-func _apply_convenience_preset():
+func _apply_convenience_preset() -> void:
 	automation_level_option.selected = 3 # GUIDED_PLAY
 	accessibility_mode_check.button_pressed = false
 	dice_auto_roll_check.button_pressed = true
 	rule_suggestions_check.button_pressed = true
 	_on_setting_changed()
+

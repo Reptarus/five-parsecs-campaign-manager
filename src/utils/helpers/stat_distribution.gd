@@ -35,6 +35,7 @@ func _initialize_stats() -> void:
 		permanent_modifiers = {}
 
 # Core stat management functions
+
 func update_stat(stat: String, new_value: int) -> void:
 	if stat in base_stats:
 		base_stats[stat] = new_value
@@ -49,7 +50,7 @@ func update_stat(stat: String, new_value: int) -> void:
 			"savvy": character.stats.savvy = new_value
 			"luck": character.stats.luck = new_value
 			
-		stat_changed.emit(stat, new_value)
+		stat_changed.emit(stat, new_value) # warning: return value discarded (intentional)
 	else:
 		push_error("Invalid stat: %s" % stat)
 
@@ -61,7 +62,7 @@ func get_current_stat(stat: String) -> int:
 	
 	if temporary_modifiers.has(stat):
 		for modifier in temporary_modifiers[stat]:
-			current_value += modifier["value"]
+			current_value += modifier["_value"]
 	
 	# Apply Core Rules stat limits
 	match stat:
@@ -77,22 +78,22 @@ func meets_stat_threshold(stat: String, threshold: int) -> bool:
 	return get_current_stat(stat) >= threshold
 
 # Modifier management
-func add_temporary_modifier(stat: String, value: int, duration: int):
+func add_temporary_modifier(stat: String, _value: int, duration: int) -> void:
 	if not temporary_modifiers.has(stat):
 		temporary_modifiers[stat] = []
-	temporary_modifiers[stat].append({"value": value, "duration": duration})
-	stat_changed.emit(stat, get_current_stat(stat))
+	temporary_modifiers[stat].append({"_value": _value, "duration": duration})
+	stat_changed.emit(stat, get_current_stat(stat)) # warning: return value discarded (intentional)
 
-func add_permanent_modifier(stat: String, value: int):
+func add_permanent_modifier(stat: String, _value: int) -> void:
 	if not permanent_modifiers.has(stat):
 		permanent_modifiers[stat] = 0
-	permanent_modifiers[stat] += value
-	stat_changed.emit(stat, get_current_stat(stat))
+	permanent_modifiers[stat] += _value
+	stat_changed.emit(stat, get_current_stat(stat)) # warning: return value discarded (intentional)
 
-func remove_temporary_modifier(stat: String, index: int):
+func remove_temporary_modifier(stat: String, index: int) -> void:
 	if temporary_modifiers.has(stat) and index < temporary_modifiers[stat].size():
 		temporary_modifiers[stat].remove_at(index)
-		stat_changed.emit(stat, get_current_stat(stat))
+		stat_changed.emit(stat, get_current_stat(stat)) # warning: return value discarded (intentional)
 
 func serialize() -> Dictionary:
 	return {

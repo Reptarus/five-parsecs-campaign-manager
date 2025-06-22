@@ -62,8 +62,8 @@ func modify_morale(amount: int) -> void:
 		})
 
 ## Set faction relations
-func set_faction_relation(faction_id: String, value: int) -> void:
-	faction_relations[faction_id] = value
+func set_faction_relation(faction_id: String, _value: int) -> void:
+	faction_relations[faction_id] = _value
 
 ## Get faction relation
 func get_faction_relation(faction_id: String) -> int:
@@ -82,7 +82,7 @@ func set_portrait(path: String) -> void:
 
 ## Get character experience summary
 func get_experience_summary() -> String:
-	var summary = "Level %d (%d/%d XP)" % [
+	var summary: String = "Level %d (%d/%d XP)" % [
 		level,
 		experience,
 		level * 100 # XP needed for next level
@@ -91,9 +91,39 @@ func get_experience_summary() -> String:
 
 ## Get character's service record summary
 func get_service_record() -> String:
-	var record = "Missions: %d | Kills: %d | Credits: %d" % [
+	var record: String = "Missions: %d | Kills: %d | Credits: %d" % [
 		missions_completed,
 		kills,
 		credits_earned
 	]
 	return record
+
+## Get morale value
+func get_morale() -> int:
+	return morale
+
+## Initialize managers (for compatibility)
+func initialize_managers(_game_state_manager) -> void:
+	# Game-specific initialization if needed
+	pass
+
+## Override serialize to include game-specific data
+func serialize() -> Dictionary:
+	var data = super.serialize()
+	data["portrait_path"] = portrait_path
+	data["faction_relations"] = faction_relations
+	data["morale"] = morale
+	data["credits_earned"] = credits_earned
+	data["missions_completed"] = missions_completed
+	data["kills"] = kills
+	return data
+
+## Override deserialize to handle game-specific data
+func deserialize(data: Dictionary) -> void:
+	super.deserialize(data)
+	portrait_path = data.get("portrait_path", "")
+	faction_relations = data.get("faction_relations", {})
+	morale = data.get("morale", 5)
+	credits_earned = data.get("credits_earned", 0)
+	missions_completed = data.get("missions_completed", 0)
+	kills = data.get("kills", 0)

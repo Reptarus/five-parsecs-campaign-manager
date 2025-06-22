@@ -37,7 +37,7 @@ func setup(type: int, amount: int, m_value: int = 0, t: int = 0) -> void:
 	_update_labels()
 	
 	# Set icon if available
-	var icon_path = "res://assets/icons/resources/" + type_name.to_lower() + ".png"
+	var icon_path: String = "res://assets/icons/resources/" + type_name.to_lower() + ".png"
 	if ResourceLoader.exists(icon_path):
 		icon_texture.texture = load(icon_path)
 

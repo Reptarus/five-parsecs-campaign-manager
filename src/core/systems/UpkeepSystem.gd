@@ -27,7 +27,7 @@ func calculate_upkeep_costs(campaign_data: Resource) -> Dictionary:
 		"total": 0
 	}
 	
-	# Get campaign data
+	# Get campaign _data
 	var crew_members = _get_crew_members(campaign_data)
 	var ship_data = _get_ship_data(campaign_data)
 	var living_standard = _get_living_standard(campaign_data)
@@ -49,11 +49,11 @@ func calculate_upkeep_costs(campaign_data: Resource) -> Dictionary:
 	# Calculate total
 	breakdown.total = breakdown.crew_upkeep + breakdown.ship_maintenance + breakdown.injury_treatment + breakdown.luxury_costs
 	
-	upkeep_calculated.emit(breakdown.total, breakdown)
+	upkeep_calculated.emit(breakdown.total, breakdown) # warning: return value discarded (intentional)
 	return breakdown
 
 func pay_upkeep(campaign_data: Resource, upkeep_costs: Dictionary) -> bool:
-	"""Attempt to pay upkeep costs"""
+	"""Attempt to pay upkeep _costs"""
 	var current_credits = _get_credits(campaign_data)
 	var total_cost = upkeep_costs.total
 	
@@ -65,11 +65,11 @@ func pay_upkeep(campaign_data: Resource, upkeep_costs: Dictionary) -> bool:
 		# Apply upkeep effects
 		_apply_upkeep_effects(campaign_data, upkeep_costs)
 		
-		upkeep_paid.emit(remaining_credits)
+		upkeep_paid.emit(remaining_credits) # warning: return value discarded (intentional)
 		return true
 	else:
 		# Insufficient funds
-		insufficient_funds.emit(total_cost, current_credits)
+		insufficient_funds.emit(total_cost, current_credits) # warning: return value discarded (intentional)
 		return false
 
 func _calculate_ship_maintenance(ship_data: Resource) -> int:
@@ -87,8 +87,8 @@ func _calculate_ship_maintenance(ship_data: Resource) -> int:
 	return base_cost + hull_repair_cost + modification_maintenance
 
 func _calculate_injury_costs(crew_members: Array[Resource]) -> int:
-	"""Calculate costs for treating injured crew members"""
-	var injury_cost = 0
+	"""Calculate costs for treating injured crew _members"""
+	var injury_cost: int = 0
 	
 	for crew_member in crew_members:
 		var is_injured = crew_member.get_meta("injured") if crew_member.has_method("get_meta") else false
@@ -155,7 +155,7 @@ func _get_crew_members(campaign_data: Resource) -> Array[Resource]:
 	return []
 
 func _get_ship_data(campaign_data: Resource) -> Resource:
-	"""Get ship data from campaign"""
+	"""Get ship _data from campaign"""
 	if campaign_data and campaign_data.has_method("get_meta"):
 		return campaign_data.get_meta("ship_data")
 	return null
@@ -179,7 +179,7 @@ func _set_credits(campaign_data: Resource, credits: int) -> void:
 
 func _apply_upkeep_effects(campaign_data: Resource, upkeep_costs: Dictionary) -> void:
 	"""Apply positive effects of paying upkeep"""
-	# Remove injury recovery time if medical costs were paid
+	# Remove injury recovery time if medical _costs were paid
 	if upkeep_costs.injury_treatment > 0:
 		_reduce_injury_recovery_time(campaign_data)
 	
@@ -230,5 +230,10 @@ func _reduce_injury_recovery_time(campaign_data: Resource) -> void:
 
 func _apply_luxury_benefits(campaign_data: Resource) -> void:
 	"""Apply benefits of luxury living"""
+	if campaign_data.has_method("set_meta"):
+		campaign_data.set_meta("luxury_bonus", true) # +1 to next event roll
+
+func _apply_luxury_lifestyle_bonus(campaign_data: Resource) -> void:
+	"""Apply luxury lifestyle bonus to campaign"""
 	if campaign_data.has_method("set_meta"):
 		campaign_data.set_meta("luxury_bonus", true) # +1 to next event roll

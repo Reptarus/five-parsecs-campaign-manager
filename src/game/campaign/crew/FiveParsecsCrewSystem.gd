@@ -1,6 +1,6 @@
 @tool
+extends Resource
 class_name FPCM_CrewSystem
-extends "res://src/base/campaign/crew/BaseCrewSystem.gd"
 
 const FPCM_Crew = preload("res://src/game/campaign/crew/FiveParsecsCrew.gd")
 const FPCM_CrewMember = preload("res://src/game/campaign/crew/FiveParsecsCrewMember.gd")
@@ -11,6 +11,9 @@ const FiveParsecsGameEnums = preload("res://src/game/campaign/crew/FiveParsecsGa
 signal battle_completed(battle_data: Dictionary)
 signal campaign_event_triggered(event_data: Dictionary)
 signal patron_job_completed(job_data: Dictionary)
+signal crew_changed(new_crew: Array)
+signal crew_member_added(member: Resource)
+signal crew_member_removed(member: Resource)
 
 # Five Parsecs specific properties
 var current_campaign: Dictionary = {
@@ -37,8 +40,9 @@ var game_time: Dictionary = {
 	"total_days": 0
 }
 
+var current_crew: Dictionary = {}
+
 func _ready() -> void:
-	super._ready()
 	if Engine.is_editor_hint():
 		return
 	_initialize_five_parsecs_campaign()
@@ -75,8 +79,8 @@ func _initialize_five_parsecs_campaign() -> void:
 	}
 
 func create_new_crew(crew_name: String = "New Crew") -> FPCM_Crew:
-	var crew = FPCM_Crew.new()
-	crew.name = crew_name
+	var crew := FPCM_Crew.new()
+	crew._name = crew_name
 	
 	# Generate random crew members
 	crew.generate_random_crew(5)
@@ -87,18 +91,18 @@ func create_new_crew(crew_name: String = "New Crew") -> FPCM_Crew:
 		"crew_members": crew.members.slice(1),
 		"connections": [],
 		"ship": {
-			"name": crew.ship_name,
+			"_name": crew.ship_name,
 			"type": crew.ship_type
 		},
 		"resources": crew.credits
 	}
 	
-	crew_changed.emit(current_crew)
+	crew_changed.emit(current_crew) # warning: return value discarded (intentional)
 	return crew
 
 func add_strange_character(character_type: int = -1) -> FPCM_CrewMember:
 	# Create a new crew member
-	var member = FPCM_CrewMember.new()
+	var member := FPCM_CrewMember.new()
 	
 	# Randomize class
 	member.character_class = randi() % GameEnums.CharacterClass.size()
@@ -120,7 +124,7 @@ func add_strange_character(character_type: int = -1) -> FPCM_CrewMember:
 	
 	# Apply strange character abilities
 	if character_type < 0:
-		character_type = randi() % 6 # Random type
+		character_type = randi() % 6 # Random _type
 	
 	var strange_character = FiveParsecsStrangeCharacters.new(character_type)
 	strange_character.apply_special_abilities(member)
@@ -130,8 +134,16 @@ func add_strange_character(character_type: int = -1) -> FPCM_CrewMember:
 	
 	return member
 
+func add_crew_member(member: FPCM_CrewMember) -> void:
+	"""Add a crew member to the current crew"""
+	if current_crew.has("crew_members"):
+		current_crew.crew_members.append(member)
+	else:
+		current_crew["crew_members"] = [member]
+	crew_member_added.emit(member)
+
 func start_new_campaign(campaign_type: int = FiveParsecsGameEnums.CampaignType.STANDARD) -> void:
-	current_campaign.type = campaign_type
+	current_campaign._type = campaign_type
 	current_campaign.progress = 0
 	current_campaign.battles_fought = 0
 	current_campaign.battles_won = 0
@@ -150,7 +162,7 @@ func start_new_campaign(campaign_type: int = FiveParsecsGameEnums.CampaignType.S
 	game_time.total_days = 0
 	
 	# Emit signal
-	crew_changed.emit(current_crew)
+	crew_changed.emit(current_crew) # warning: return value discarded (intentional)
 
 func advance_time(days: int = 1) -> void:
 	game_time.total_days += days
@@ -177,7 +189,7 @@ func advance_time(days: int = 1) -> void:
 	_check_for_time_based_events(days)
 
 func _check_for_time_based_events(days_passed: int) -> void:
-	# Chance for random events increases with more days passed
+	# Chance for random events increases with more days _passed
 	var event_chance = days_passed * 5 # 5% per day
 	
 	if randi() % 100 < event_chance:
@@ -193,7 +205,7 @@ func _trigger_random_campaign_event() -> void:
 	]
 	
 	var event = events[randi() % events.size()]
-	campaign_event_triggered.emit(event)
+	campaign_event_triggered.emit(event) # warning: return value discarded (intentional)
 
 func travel_to_system(system_name: String) -> bool:
 	# Check if system is known
@@ -242,8 +254,8 @@ func complete_battle(battle_data: Dictionary) -> void:
 	current_campaign.progress += 1
 	
 	# Emit signal
-	battle_completed.emit(battle_data)
-	crew_changed.emit(current_crew)
+	battle_completed.emit(battle_data) # warning: return value discarded (intentional)
+	crew_changed.emit(current_crew) # warning: return value discarded (intentional)
 
 func complete_patron_job(job_data: Dictionary) -> void:
 	# Add rewards
@@ -257,26 +269,27 @@ func complete_patron_job(job_data: Dictionary) -> void:
 			current_crew.captain.add_reputation(job_data.reputation)
 	
 	# Emit signal
-	patron_job_completed.emit(job_data)
-	crew_changed.emit(current_crew)
+	patron_job_completed.emit(job_data) # warning: return value discarded (intentional)
+	crew_changed.emit(current_crew) # warning: return value discarded (intentional)
 
 func save_crew() -> Dictionary:
-	var data = super.save_crew()
-	
-	# Add Five Parsecs specific data
-	data["current_campaign"] = current_campaign
-	data["galaxy_map"] = galaxy_map
-	data["game_time"] = game_time
+	var data = {
+		"current_crew": current_crew,
+		"current_campaign": current_campaign,
+		"galaxy_map": galaxy_map,
+		"game_time": game_time
+	}
 	
 	return data
 
 func load_crew(data: Dictionary) -> bool:
-	var success = super.load_crew(data)
-	
-	if not success:
+	if not data:
 		return false
 	
 	# Load Five Parsecs specific data
+	if data.has("current_crew"):
+		current_crew = data.current_crew
+	
 	if data.has("current_campaign"):
 		current_campaign = data.current_campaign
 	

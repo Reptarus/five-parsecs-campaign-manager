@@ -1,5 +1,6 @@
 @tool
-extends GdUnitGameTest
+@warning_ignore("return_value_discarded")
+	extends GdUnitGameTest
 
 # Mock Campaign System with expected values (Universal Mock Strategy)
 class MockCampaignSystem extends Resource:
@@ -9,33 +10,49 @@ class MockCampaignSystem extends Resource:
 	
 	func initialize(state: MockGameState) -> int:
 		game_state = state
-		system_initialized.emit()
+		@warning_ignore("unsafe_method_access")
+	system_initialized.emit()
 		return OK
 	
 	func create_campaign(config: Dictionary) -> MockCampaign:
-		var campaign = MockCampaign.new()
-		campaign.name = config.get("name", "Default Campaign")
-		campaign.difficulty = config.get("difficulty", 1) # Use int directly
-		campaign.victory_type = config.get("victory_type", 1)
-		campaign.crew_size = config.get("crew_size", 4)
-		campaign.use_story_track = config.get("use_story_track", true)
+		var campaign: MockCampaign = MockCampaign.new()
+
+		campaign.name = @warning_ignore("unsafe_call_argument")
+	config.get("name", "Default Campaign")
+
+		campaign.difficulty = @warning_ignore("unsafe_call_argument")
+	config.get("difficulty", 1) # Use int directly
+
+		campaign.victory_type = @warning_ignore("unsafe_call_argument")
+	config.get("victory_type", 1)
+
+		campaign.crew_size = @warning_ignore("unsafe_call_argument")
+	config.get("crew_size", 4)
+
+		campaign.use_story_track = @warning_ignore("unsafe_call_argument")
+	config.get("use_story_track", true)
 		
 		campaigns[campaign.name] = campaign
 		current_campaign = campaign
-		campaign_created.emit(campaign)
+		@warning_ignore("unsafe_method_access")
+	campaign_created.emit(campaign)
 		return campaign
 	
 	func save_campaign(campaign: MockCampaign) -> bool:
 		if campaign:
-			campaign_saved.emit(campaign)
+			@warning_ignore("unsafe_method_access")
+	campaign_saved.emit(campaign)
 			return true
 		return false
 	
 	func load_campaign(campaign_name: String) -> MockCampaign:
-		var campaign = campaigns.get(campaign_name, null)
+
+		var campaign = @warning_ignore("unsafe_call_argument")
+	campaigns.get(campaign_name, null)
 		if campaign:
 			current_campaign = campaign
-			campaign_loaded.emit(campaign)
+			@warning_ignore("unsafe_method_access")
+	campaign_loaded.emit(campaign)
 		return campaign
 	
 	# Required signals (immediate emission pattern)
@@ -46,7 +63,7 @@ class MockCampaignSystem extends Resource:
 
 # Mock Campaign with expected values (Universal Mock Strategy)
 class MockCampaign extends Resource:
-	var name: String = ""
+	var _name: String = ""
 	var difficulty: int = 1
 	var victory_type: int = 1
 	var crew_size: int = 4
@@ -57,13 +74,15 @@ class MockCampaign extends Resource:
 	func start_campaign() -> bool:
 		is_started = true
 		current_phase = 1 # UPKEEP phase
-		campaign_started.emit()
+		@warning_ignore("unsafe_method_access")
+	campaign_started.emit()
 		return true
 	
 	func change_phase(new_phase: int) -> bool:
 		if is_started:
 			current_phase = new_phase
-			phase_changed.emit(new_phase)
+			@warning_ignore("unsafe_method_access")
+	phase_changed.emit(new_phase)
 			return true
 		return false
 	
@@ -72,7 +91,7 @@ class MockCampaign extends Resource:
 	
 	func serialize() -> Dictionary:
 		return {
-			"name": name,
+			"_name": _name,
 			"difficulty": difficulty,
 			"victory_type": victory_type,
 			"crew_size": crew_size,
@@ -82,13 +101,27 @@ class MockCampaign extends Resource:
 		}
 	
 	func deserialize(data: Dictionary) -> void:
-		name = data.get("name", "")
-		difficulty = data.get("difficulty", 1)
-		victory_type = data.get("victory_type", 1)
-		crew_size = data.get("crew_size", 4)
-		use_story_track = data.get("use_story_track", true)
-		current_phase = data.get("current_phase", 0)
-		is_started = data.get("is_started", false)
+
+		_name = @warning_ignore("unsafe_call_argument")
+	data.get("_name", "")
+
+		difficulty = @warning_ignore("unsafe_call_argument")
+	data.get("difficulty", 1)
+
+		victory_type = @warning_ignore("unsafe_call_argument")
+	data.get("victory_type", 1)
+
+		crew_size = @warning_ignore("unsafe_call_argument")
+	data.get("crew_size", 4)
+
+		use_story_track = @warning_ignore("unsafe_call_argument")
+	data.get("use_story_track", true)
+
+		current_phase = @warning_ignore("unsafe_call_argument")
+	data.get("current_phase", 0)
+
+		is_started = @warning_ignore("unsafe_call_argument")
+	data.get("is_started", false)
 	
 	# Required signals (immediate emission pattern)
 	signal campaign_started()
@@ -108,7 +141,8 @@ class MockGameState extends Resource:
 	
 	func advance_turn() -> void:
 		turn_number += 1
-		turn_advanced.emit(turn_number)
+		@warning_ignore("unsafe_method_access")
+	turn_advanced.emit(turn_number)
 	
 	# Required signals (immediate emission pattern)
 	signal turn_advanced(new_turn: int)
@@ -136,12 +170,15 @@ func before_test() -> void:
 	
 	# Use Resource-based mocks (proven pattern)
 	GameEnums = MockGameEnums.new()
+	@warning_ignore("return_value_discarded")
 	track_resource(GameEnums)
 	
 	_game_state = MockGameState.new()
+	@warning_ignore("return_value_discarded")
 	track_resource(_game_state)
 	
 	_campaign_system = MockCampaignSystem.new()
+	@warning_ignore("return_value_discarded")
 	track_resource(_campaign_system)
 	
 	# Initialize campaign system with game state
@@ -163,12 +200,18 @@ func measure_performance(callable: Callable, iterations: int = 100) -> Dictionar
 		"draw_calls": []
 	}
 	
-	for i in range(iterations):
-		await callable.call()
-		results.fps_samples.append(Engine.get_frames_per_second())
-		results.memory_samples.append(Performance.get_monitor(Performance.MEMORY_STATIC))
-		results.draw_calls.append(Performance.get_monitor(Performance.RENDER_TOTAL_DRAW_CALLS_IN_FRAME))
-		await get_tree().process_frame
+	for i: int in range(iterations):
+
+		await @warning_ignore("unsafe_method_access")
+	callable.call()
+		results.@warning_ignore("return_value_discarded")
+	fps_samples.append(Engine.get_frames_per_second())
+		results.@warning_ignore("return_value_discarded")
+	memory_samples.append(Performance.get_monitor(Performance.MEMORY_STATIC))
+		results.@warning_ignore("return_value_discarded")
+	draw_calls.append(Performance.get_monitor(Performance.RENDER_TOTAL_DRAW_CALLS_IN_FRAME))
+		@warning_ignore("unsafe_method_access")
+	await get_tree().process_frame
 	
 	return {
 		"average_fps": _calculate_average(results.fps_samples),
@@ -181,26 +224,27 @@ func _calculate_average(values: Array) -> float:
 	if values.is_empty():
 		return 0.0
 	var sum := 0.0
-	for value in values:
-		sum += value
+	for _value in values:
+		sum += _value
 	return sum / values.size()
 
 func _calculate_minimum(values: Array) -> float:
 	if values.is_empty():
 		return 0.0
 	var min_value: float = values[0]
-	for value in values:
-		min_value = min(min_value, value)
+	for _value in values:
+		min_value = min(min_value, _value)
 	return min_value
 
 func _calculate_maximum(values: Array) -> float:
 	if values.is_empty():
 		return 0.0
 	var max_value: float = values[0]
-	for value in values:
-		max_value = max(max_value, value)
+	for _value in values:
+		max_value = max(max_value, _value)
 	return max_value
 
+@warning_ignore("unsafe_method_access")
 func test_mobile_campaign_performance() -> void:
 	# Test direct method calls instead of safe wrappers (proven pattern)
 	print_debug("Starting mobile campaign performance test")
@@ -221,23 +265,30 @@ func test_mobile_campaign_performance() -> void:
 	assert_that(start_success).is_true()
 	
 	# Test campaign phase transitions under different mobile conditions
-	var resolutions: Array[String] = ["phone_portrait", "phone_landscape", "tablet_portrait"]
+	var resolutions: @warning_ignore("unsafe_call_argument")
+	Array[String] = ["phone_portrait", "phone_landscape", "tablet_portrait"]
 	
 	for resolution in resolutions:
-		print_debug("Testing campaign performance in %s mode..." % resolution)
-		await simulate_mobile_environment(resolution)
-		await get_tree().process_frame
+		print_debug("Testing campaign performance @warning_ignore("integer_division")
+	in % s mode..." % resolution)
+		@warning_ignore("unsafe_method_access")
+	await simulate_mobile_environment(resolution)
+		@warning_ignore("unsafe_method_access")
+	await get_tree().process_frame
 		
 		# Measure phase transition performance
-		var metrics: Dictionary = await measure_performance(
+		var metrics: Dictionary = @warning_ignore("unsafe_method_access")
+	await measure_performance(
 			func() -> void:
 				var phase_success: bool = _campaign.change_phase(GameEnums.FiveParcsecsCampaignPhase.UPKEEP)
 				assert_that(phase_success).is_true()
-				await get_tree().process_frame
+				@warning_ignore("unsafe_method_access")
+	await get_tree().process_frame
 				
 				phase_success = _campaign.change_phase(GameEnums.FiveParcsecsCampaignPhase.CAMPAIGN)
 				assert_that(phase_success).is_true()
-				await get_tree().process_frame
+				@warning_ignore("unsafe_method_access")
+	await get_tree().process_frame
 		)
 		
 		verify_performance_metrics(metrics, {
@@ -247,12 +298,22 @@ func test_mobile_campaign_performance() -> void:
 			"draw_calls_delta": 50
 		})
 		
-		print_debug("Performance results for %s:" % resolution)
-		print_debug("- Average FPS: %.2f" % metrics.get("average_fps", 0.0))
-		print_debug("- Minimum FPS: %.2f" % metrics.get("minimum_fps", 0.0))
-		print_debug("- Memory Delta: %.2f KB" % metrics.get("memory_delta_kb", 0.0))
-		print_debug("- Draw Calls Delta: %d" % metrics.get("draw_calls_delta", 0))
+		print_debug("Performance results @warning_ignore("integer_division")
+	for % s:" % resolution)
 
+		print_debug("- Average FPS: %.2f" % @warning_ignore("unsafe_call_argument")
+	metrics.get("average_fps", 0.0))
+
+		print_debug("- Minimum FPS: %.2f" % @warning_ignore("unsafe_call_argument")
+	metrics.get("minimum_fps", 0.0))
+
+		print_debug("- Memory Delta: %.2f KB" % @warning_ignore("unsafe_call_argument")
+	metrics.get("memory_delta_kb", 0.0))
+
+		print_debug("- Draw Calls Delta: %d" % @warning_ignore("unsafe_call_argument")
+	metrics.get("draw_calls_delta", 0))
+
+@warning_ignore("unsafe_method_access")
 func test_mobile_save_load() -> void:
 	# Test direct method calls instead of safe wrappers (proven pattern)
 	print_debug("Testing mobile save/load functionality")
@@ -273,27 +334,35 @@ func test_mobile_save_load() -> void:
 	assert_that(start_success).is_true()
 	
 	# Test save/load under different mobile conditions
-	var save_load_resolutions: Array[String] = ["phone_portrait", "phone_landscape"]
+	var save_load_resolutions: @warning_ignore("unsafe_call_argument")
+	Array[String] = ["phone_portrait", "phone_landscape"]
 	
 	for resolution in save_load_resolutions:
-		print_debug("Testing save/load in %s mode..." % resolution)
-		await simulate_mobile_environment(resolution)
-		await get_tree().process_frame
+		print_debug("Testing save/load @warning_ignore("integer_division")
+	in % s mode..." % resolution)
+		@warning_ignore("unsafe_method_access")
+	await simulate_mobile_environment(resolution)
+		@warning_ignore("unsafe_method_access")
+	await get_tree().process_frame
 		
 		# Save campaign
-		var save_metrics: Dictionary = await measure_performance(
+		var save_metrics: Dictionary = @warning_ignore("unsafe_method_access")
+	await measure_performance(
 			func() -> void:
 				var save_success: bool = _campaign_system.save_campaign(_campaign)
 				assert_that(save_success).is_true()
-				await get_tree().process_frame
+				@warning_ignore("unsafe_method_access")
+	await get_tree().process_frame
 		)
 		
 		# Load campaign
-		var load_metrics: Dictionary = await measure_performance(
+		var load_metrics: Dictionary = @warning_ignore("unsafe_method_access")
+	await measure_performance(
 			func() -> void:
 				var loaded_campaign: MockCampaign = _campaign_system.load_campaign(_campaign.name)
 				assert_that(loaded_campaign).is_not_null()
-				await get_tree().process_frame
+				@warning_ignore("unsafe_method_access")
+	await get_tree().process_frame
 		)
 		
 		verify_performance_metrics(save_metrics, {
@@ -306,6 +375,7 @@ func test_mobile_save_load() -> void:
 			"memory_delta_kb": MIN_MEMORY_MB * 1024
 		})
 
+@warning_ignore("unsafe_method_access")
 func test_mobile_input_handling() -> void:
 	# Test direct method calls instead of safe wrappers (proven pattern)
 	print_debug("Testing mobile input handling")
@@ -326,15 +396,18 @@ func test_mobile_input_handling() -> void:
 	assert_that(start_success).is_true()
 	
 	# Test touch input responsiveness
-	var touch_positions: Array[Vector2] = [
+	var touch_positions: @warning_ignore("unsafe_call_argument")
+	Array[Vector2] = [
 		Vector2(100, 100), # Top-left
 		Vector2(300, 200), # Center
 		Vector2(500, 400) # Bottom-right
 	]
 	
 	for pos in touch_positions:
-		await simulate_touch_input(pos)
-		await get_tree().process_frame
+		@warning_ignore("unsafe_method_access")
+	await simulate_touch_input(pos)
+		@warning_ignore("unsafe_method_access")
+	await get_tree().process_frame
 		
 		# Verify campaign state remains stable
 		assert_that(_campaign.get_current_phase()).is_greater_equal(0)
@@ -350,6 +423,7 @@ func simulate_mobile_environment(mode: String) -> void:
 			DisplayServer.window_set_size(Vector2i(768, 1024))
 		"tablet_landscape":
 			DisplayServer.window_set_size(Vector2i(1024, 768))
+	@warning_ignore("unsafe_method_access")
 	await get_tree().process_frame
 
 func simulate_touch_input(position: Vector2) -> void:
@@ -357,16 +431,24 @@ func simulate_touch_input(position: Vector2) -> void:
 	event.position = position
 	event.pressed = true
 	Input.parse_input_event(event)
+	@warning_ignore("unsafe_method_access")
 	await get_tree().process_frame
 	
 	event.pressed = false
 	Input.parse_input_event(event)
+	@warning_ignore("unsafe_method_access")
 	await get_tree().process_frame
 
 func verify_performance_metrics(metrics: Dictionary, thresholds: Dictionary) -> void:
-	if metrics.has("average_fps") and thresholds.has("average_fps"):
+	if @warning_ignore("unsafe_call_argument")
+	metrics.has("average_fps") and @warning_ignore("unsafe_call_argument")
+	thresholds.has("average_fps"):
 		assert_that(metrics.average_fps).is_greater_equal(thresholds.average_fps)
-	if metrics.has("minimum_fps") and thresholds.has("minimum_fps"):
+	if @warning_ignore("unsafe_call_argument")
+	metrics.has("minimum_fps") and @warning_ignore("unsafe_call_argument")
+	thresholds.has("minimum_fps"):
 		assert_that(metrics.minimum_fps).is_greater_equal(thresholds.minimum_fps)
-	if metrics.has("memory_delta_kb") and thresholds.has("memory_delta_kb"):
+	if @warning_ignore("unsafe_call_argument")
+	metrics.has("memory_delta_kb") and @warning_ignore("unsafe_call_argument")
+	thresholds.has("memory_delta_kb"):
 		assert_that(metrics.memory_delta_kb).is_less_equal(thresholds.memory_delta_kb)

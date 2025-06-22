@@ -3,10 +3,10 @@ class_name FPCM_BattleSetupPhasePanel
 
 const Character = preload("res://src/core/character/Base/Character.gd")
 
-@onready var mission_info = $VBoxContainer/MissionInfo
-@onready var deployment_container = $VBoxContainer/DeploymentContainer
-@onready var crew_list = $VBoxContainer/CrewList
-@onready var equipment_list = $VBoxContainer/EquipmentList
+@onready var mission_info: RichTextLabel = $"VBoxContainer/MissionInfo"
+@onready var deployment_container: VBoxContainer = $"VBoxContainer/DeploymentContainer"
+@onready var crew_list: ItemList = $"VBoxContainer/CrewList"
+@onready var equipment_list: ItemList = $"VBoxContainer/EquipmentList"
 @onready var start_battle_button = $VBoxContainer/StartBattleButton
 
 var deployment_manager = null
@@ -24,6 +24,7 @@ func _get_game_state_property(property: String, default_value = null) -> Variant
 	if not property in game_state:
 		push_error("Game state missing required property: %s" % property)
 		return default_value
+
 	return game_state.get(property)
 
 func _get_campaign_property(property: String, default_value = null) -> Variant:
@@ -34,6 +35,7 @@ func _get_campaign_property(property: String, default_value = null) -> Variant:
 	if not property in campaign:
 		push_error("Campaign missing required property: %s" % property)
 		return default_value
+
 	return campaign.get(property)
 
 func _get_mission_property(property: String, default_value = null) -> Variant:
@@ -44,6 +46,7 @@ func _get_mission_property(property: String, default_value = null) -> Variant:
 	if not property in mission:
 		push_error("Mission missing required property: %s" % property)
 		return default_value
+
 	return mission.get(property)
 
 func _get_location_property(property: String, default_value = null) -> Variant:
@@ -54,6 +57,7 @@ func _get_location_property(property: String, default_value = null) -> Variant:
 	if not property in location:
 		push_error("Location missing required property: %s" % property)
 		return default_value
+
 	return location.get(property)
 
 func _ready() -> void:
@@ -162,16 +166,16 @@ func _setup_deployment_zones() -> void:
 	# Create deployment zone buttons based on generated zones
 	for i in range(deployment_zones.size()):
 		var zone = deployment_zones[i]
-		var panel = PanelContainer.new()
-		var layout = VBoxContainer.new()
+		var panel := PanelContainer.new()
+		var layout := VBoxContainer.new()
 		panel.add_child(layout)
 		
-		var label = Label.new()
+		var label := Label.new()
 		label.text = "Zone %d (%s)" % [i + 1, zone.type]
 		label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 		layout.add_child(label)
 		
-		var crew_name = Label.new()
+		var crew_name := Label.new()
 		crew_name.text = "Empty"
 		crew_name.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 		layout.add_child(crew_name)
@@ -183,7 +187,7 @@ func _load_mission_info() -> void:
 	var mission = _get_campaign_property("current_mission")
 	var location = _get_campaign_property("current_location")
 	
-	var info = "[b]Mission: %s[/b]\n" % _get_mission_property("title", "Unknown")
+	var info: String = "[b]Mission: %s[/b]\n" % _get_mission_property("title", "Unknown")
 	info += _get_mission_property("description", "") + "\n\n"
 	
 	info += "[b]Location: %s[/b]\n" % _get_location_property("name", "Unknown")
@@ -228,7 +232,7 @@ func _load_crew() -> void:
 	var crew_members = _get_campaign_property("crew_members", [])
 	for member in crew_members:
 		if not member in deployed_crew:
-			var text = "%s (%s)" % [member.character_name, member.character_class]
+			var text: String = "%s (%s)" % [member.character_name, member.character_class]
 			crew_list.add_item(text)
 
 func _load_equipment() -> void:
@@ -266,6 +270,7 @@ func _update_ui() -> void:
 		
 		if i < deployed_crew.size():
 			var member = deployed_crew[i]
+
 			var equipment = equipped_items.get(member.id, "None")
 			crew_label.text = "%s\n%s" % [member.character_name, equipment]
 		else:
@@ -286,7 +291,7 @@ func _on_crew_deployed(index: int) -> void:
 	var crew_members = _get_campaign_property("crew_members", [])
 	var member = crew_members[index]
 	if not member in deployed_crew and deployed_crew.size() < deployment_zones.size():
-		deployed_crew.append(member)
+		deployed_crew.append(member) # warning: return value discarded (intentional)
 		_load_crew()
 		_update_ui()
 

@@ -53,6 +53,7 @@ func _ready() -> void:
 		clear_log()
 
 ## Sets up the filter dropdown options
+	
 func _setup_filter_options() -> void:
 	filter_options.clear()
 	for key in FILTER_OPTIONS:
@@ -60,16 +61,16 @@ func _setup_filter_options() -> void:
 		filter_options.set_item_metadata(filter_options.item_count - 1, key)
 
 ## Adds a new entry to the combat log
+	
 func add_log_entry(entry_type: String, message: String, details: Dictionary = {}) -> void:
 	var timestamp := Time.get_datetime_string_from_system()
 	var entry := {
-		"type": entry_type,
+		"_type": entry_type,
 		"message": message,
 		"details": details,
 		"timestamp": timestamp
 	}
-	
-	log_entries.append(entry)
+	log_entries.append(entry) # warning: return value discarded (intentional)
 	if log_entries.size() > max_entries:
 		log_entries.pop_front()
 	
@@ -88,6 +89,7 @@ func _add_entry_to_list(entry: Dictionary) -> void:
 	log_list.set_item_metadata(log_list.item_count - 1, entry)
 
 ## Returns the appropriate icon for the entry type
+	
 func _get_entry_icon(entry_type: String) -> Texture2D:
 	# TODO: Return appropriate icons based on entry type
 	return null
@@ -102,25 +104,28 @@ func _should_show_entry(entry: Dictionary) -> bool:
 func clear_log() -> void:
 	log_entries.clear()
 	log_list.clear()
-	log_cleared.emit()
+	log_cleared.emit() # warning: return value discarded (intentional)
 
 ## Called when the clear button is pressed
 func _on_clear_pressed() -> void:
 	clear_log()
 
 ## Called when the filter option changes
+	
 func _on_filter_changed(index: int) -> void:
 	current_filter = filter_options.get_item_metadata(index)
 	_refresh_log_display()
 
 ## Called when auto-scroll is toggled
+	
 func _on_auto_scroll_toggled(enabled: bool) -> void:
 	auto_scroll = enabled
 
 ## Called when a log entry is selected
+	
 func _on_entry_selected(index: int) -> void:
 	var entry = log_list.get_item_metadata(index)
-	log_entry_selected.emit(entry)
+	log_entry_selected.emit(entry) # warning: return value discarded (intentional)
 
 ## Refreshes the log display with current filter
 func _refresh_log_display() -> void:
@@ -130,6 +135,7 @@ func _refresh_log_display() -> void:
 			_add_entry_to_list(entry)
 
 ## Adds an attack roll entry
+	
 func log_attack_roll(attacker: String, target: String, roll: int, modifiers: Dictionary) -> void:
 	var msg := "%s attacks %s (Roll: %d)" % [attacker, target, roll]
 	var details := {
@@ -141,6 +147,7 @@ func log_attack_roll(attacker: String, target: String, roll: int, modifiers: Dic
 	add_log_entry("attack", msg, details)
 
 ## Adds a damage entry
+	
 func log_damage(target: String, damage: int, source: String) -> void:
 	var msg := "%s takes %d damage from %s" % [target, damage, source]
 	var details := {
@@ -151,16 +158,18 @@ func log_damage(target: String, damage: int, source: String) -> void:
 	add_log_entry("damage", msg, details)
 
 ## Adds a modifier entry
-func log_modifier(source: String, value: int, description: String) -> void:
-	var msg := "%s: %+d (%s)" % [source, value, description]
+	
+func log_modifier(source: String, _value: int, description: String) -> void:
+	var msg := "%s: %+d (%s)" % [source, _value, description]
 	var details := {
 		"source": source,
-		"value": value,
+		"_value": _value,
 		"description": description
 	}
 	add_log_entry("modifier", msg, details)
 
 ## Adds an override entry
+	
 func log_override(context: String, original: int, new: int) -> void:
 	var msg := "Manual override: %s (%d → %d)" % [context, original, new]
 	var details := {
@@ -171,6 +180,7 @@ func log_override(context: String, original: int, new: int) -> void:
 	add_log_entry("override", msg, details)
 
 ## Adds a critical hit entry
+	
 func log_critical_hit(attacker: String, target: String, multiplier: float) -> void:
 	var msg := "CRITICAL HIT! %s hits %s (x%.1f)" % [attacker, target, multiplier]
 	var details := {
@@ -181,6 +191,7 @@ func log_critical_hit(attacker: String, target: String, multiplier: float) -> vo
 	add_log_entry("critical", msg, details)
 
 ## Adds a special ability entry
+
 func log_special_ability(character: String, ability: String, targets: Array, cooldown: int) -> void:
 	var msg := "%s uses %s" % [character, ability]
 	if not targets.is_empty():
@@ -195,6 +206,7 @@ func log_special_ability(character: String, ability: String, targets: Array, coo
 	add_log_entry("ability", msg, details)
 
 ## Adds a reaction entry
+
 func log_reaction(character: String, reaction: String, trigger: String) -> void:
 	var msg := "%s reacts with %s to %s" % [character, reaction, trigger]
 	var details := {
@@ -205,6 +217,7 @@ func log_reaction(character: String, reaction: String, trigger: String) -> void:
 	add_log_entry("reaction", msg, details)
 
 ## Adds an area effect entry
+
 func log_area_effect(effect: String, center: Vector2, radius: float, affected: Array) -> void:
 	var msg := "%s affects %d targets in %.1f radius" % [effect, affected.size(), radius]
 	var details := {
@@ -216,6 +229,7 @@ func log_area_effect(effect: String, center: Vector2, radius: float, affected: A
 	add_log_entry("area", msg, details)
 
 ## Adds an enhanced combat result entry
+
 func log_combat_result(attacker: String, target: String, result: Dictionary) -> void:
 	var msg := "Combat Result: %s vs %s" % [attacker, target]
 	if result.has("hit"):
@@ -228,6 +242,7 @@ func log_combat_result(attacker: String, target: String, result: Dictionary) -> 
 	add_log_entry("result", msg, result)
 
 ## Updates the display with performance optimizations
+
 func _update_display() -> void:
 	if log_entries.size() > 1000:
 		# Trim old entries to maintain performance
@@ -237,7 +252,7 @@ func _update_display() -> void:
 	var entries_to_display := []
 	for entry in log_entries:
 		if _should_display_entry(entry):
-			entries_to_display.append(entry)
+			entries_to_display.append(entry) # warning: return value discarded (intentional)
 	
 	# Update in chunks to avoid freezing
 	var chunk_size := 50

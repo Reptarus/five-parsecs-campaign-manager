@@ -21,15 +21,13 @@ func _initialize_crew() -> void:
 		push_error("Failed to initialize crew system - current_crew is null")
 		return
 	
-	current_crew = {
-		"captain": null,
+	current_crew = {"captain": null,
 		"crew_members": [],
 		"connections": [],
 		"ship": null,
-		"resources": 0,
-	}
+		"resources": 0}
 	
-	crew_changed.emit(current_crew)
+	crew_changed.emit(current_crew) 
 
 func add_crew_member(member) -> bool:
 	if member == null:
@@ -41,7 +39,7 @@ func add_crew_member(member) -> bool:
 		return false
 		
 	current_crew.crew_members.append(member)
-	crew_changed.emit(current_crew)
+	crew_changed.emit(current_crew) 
 	return true
 	
 func remove_crew_member(member) -> bool:
@@ -54,12 +52,12 @@ func remove_crew_member(member) -> bool:
 		return false
 		
 	current_crew.crew_members.erase(member)
-	crew_changed.emit(current_crew)
+	crew_changed.emit(current_crew) 
 	return true
 	
 func set_captain(captain) -> void:
 	current_crew.captain = captain
-	crew_changed.emit(current_crew)
+	crew_changed.emit(current_crew) 
 	
 func add_connection(connection: Dictionary) -> bool:
 	if connection.is_empty():
@@ -67,14 +65,14 @@ func add_connection(connection: Dictionary) -> bool:
 		return false
 		
 	current_crew.connections.append(connection)
-	crew_changed.emit(current_crew)
+	crew_changed.emit(current_crew) 
 	return true
 	
 func remove_connection(connection_id: String) -> bool:
 	for i in range(current_crew.connections.size()):
-		if current_crew.connections[i].id == connection_id:
+		if current_crew.connections[i]._id == connection_id:
 			current_crew.connections.remove_at(i)
-			crew_changed.emit(current_crew)
+			crew_changed.emit(current_crew) 
 			return true
 			
 	push_error("Connection not found: " + connection_id)
@@ -82,11 +80,11 @@ func remove_connection(connection_id: String) -> bool:
 	
 func set_ship(ship) -> void:
 	current_crew.ship = ship
-	crew_changed.emit(current_crew)
+	crew_changed.emit(current_crew) 
 	
 func add_resources(amount: int) -> void:
 	current_crew.resources += amount
-	crew_changed.emit(current_crew)
+	crew_changed.emit(current_crew) 
 	
 func remove_resources(amount: int) -> bool:
 	if amount > current_crew.resources:
@@ -94,7 +92,7 @@ func remove_resources(amount: int) -> bool:
 		return false
 		
 	current_crew.resources -= amount
-	crew_changed.emit(current_crew)
+	crew_changed.emit(current_crew) 
 	return true
 	
 func get_crew_size() -> int:
@@ -121,5 +119,5 @@ func load_crew(data: Dictionary) -> bool:
 	if data.has("resources"):
 		current_crew.resources = data.resources
 		
-	crew_changed.emit(current_crew)
+	crew_changed.emit(current_crew) 
 	return true

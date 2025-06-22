@@ -2,7 +2,8 @@
 ## Tests the functionality of individual ship components, including
 ## properties, durability, efficiency, and component-level operations
 @tool
-extends GdUnitGameTest
+@warning_ignore("return_value_discarded")
+	extends GdUnitGameTest
 
 const GameEnums := preload("res://src/core/systems/GlobalEnums.gd")
 
@@ -33,11 +34,11 @@ class MockShipComponent extends Resource:
 	func set_active(active: bool) -> void:
 		is_active_state = active
 	
-	func set_durability(value: int) -> void:
-		durability = max(0, min(100, value))
+	func set_durability(test_value: int) -> void:
+		durability = max(0, min(100, _value))
 	
-	func set_efficiency(value: float) -> void:
-		efficiency = max(0.0, min(1.0, value))
+	func set_efficiency(test_value: float) -> void:
+		efficiency = max(0.0, min(1.0, _value))
 	
 	func damage_component(amount: int) -> bool:
 		if amount > 0 and durability > 0:
@@ -66,12 +67,14 @@ var component: MockShipComponent = null
 func before_test() -> void:
 	super.before_test()
 	component = MockShipComponent.new()
+	@warning_ignore("return_value_discarded")
 	track_resource(component)
 
 func after_test() -> void:
 	component = null
 	super.after_test()
 
+@warning_ignore("unsafe_method_access")
 func test_initialization() -> void:
 	assert_that(component).is_not_null()
 	
@@ -94,6 +97,7 @@ func test_initialization() -> void:
 	assert_that(efficiency).is_equal(1.0)
 	assert_that(is_active).is_true()
 
+@warning_ignore("unsafe_method_access")
 func test_component_status() -> void:
 	# Test direct method calls instead of safe wrappers (proven pattern)
 	var is_active: bool = component.is_active()
@@ -109,6 +113,7 @@ func test_component_status() -> void:
 	is_active = component.is_active()
 	assert_that(is_active).is_true()
 
+@warning_ignore("unsafe_method_access")
 func test_durability_management() -> void:
 	# Test direct method calls instead of safe wrappers (proven pattern)
 	var initial_durability: int = component.get_durability()
@@ -126,6 +131,7 @@ func test_durability_management() -> void:
 	current_durability = component.get_durability()
 	assert_that(current_durability).is_equal(90)
 
+@warning_ignore("unsafe_method_access")
 func test_efficiency_modification() -> void:
 	# Test direct method calls instead of safe wrappers (proven pattern)
 	var initial_efficiency: float = component.get_efficiency()
@@ -145,6 +151,7 @@ func test_efficiency_modification() -> void:
 	current_efficiency = component.get_efficiency()
 	assert_that(current_efficiency).is_equal(0.0)
 
+@warning_ignore("unsafe_method_access")
 func test_component_upgrades() -> void:
 	# Test direct method calls instead of safe wrappers (proven pattern)
 	var initial_level: int = component.get_level()
@@ -165,6 +172,7 @@ func test_component_upgrades() -> void:
 	assert_that(new_cost).is_greater(initial_cost)
 	assert_that(new_power).is_greater(initial_power)
 
+@warning_ignore("unsafe_method_access")
 func test_damage_repair_cycle() -> void:
 	# Test direct method calls instead of safe wrappers (proven pattern)
 	# Damage component to critical levels
@@ -189,6 +197,7 @@ func test_damage_repair_cycle() -> void:
 	durability = component.get_durability()
 	assert_that(durability).is_equal(25)
 
+@warning_ignore("unsafe_method_access")
 func test_edge_cases() -> void:
 	# Test direct method calls instead of safe wrappers (proven pattern)
 	# Test negative damage
@@ -207,12 +216,13 @@ func test_edge_cases() -> void:
 	assert_that(success).is_false()
 	
 	# Test upgrade at max level
-	for i in range(15): # Try to exceed max level
+	for i: int in range(15): # Try to exceed max level
 		component.upgrade_level()
 	
 	var final_level: int = component.get_level()
 	assert_that(final_level).is_less_equal(10) # Assuming max level is 10
 
+@warning_ignore("unsafe_method_access")
 func test_component_properties() -> void:
 	# Test direct method calls instead of safe wrappers (proven pattern)
 	# Test all core properties are accessible

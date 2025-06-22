@@ -8,7 +8,6 @@ const EXCLUDE_PROPERTIES_TO_COPY = ["script", "type"]
 
 static func build(to_spy: Variant, debug_write := false) -> Variant:
 	if GdObjects.is_singleton(to_spy):
-		@warning_ignore("unsafe_cast")
 		push_error("Spy on a Singleton is not allowed! '%s'" % (to_spy as Object).get_class())
 		return null
 
@@ -26,12 +25,10 @@ static func build(to_spy: Variant, debug_write := false) -> Variant:
 		return spy_on_scene(scene_to_spy.instantiate() as Node, debug_write)
 	# spy checked a scene instance
 	if GdObjects.is_instance_scene(to_spy):
-		@warning_ignore("unsafe_cast")
 		return spy_on_scene(to_spy as Node, debug_write)
 
 	var excluded_functions := []
 	if to_spy is Callable:
-		@warning_ignore("unsafe_cast")
 		to_spy = CallableDoubler.new(to_spy as Callable)
 		excluded_functions = CallableDoubler.excluded_functions()
 
@@ -39,12 +36,9 @@ static func build(to_spy: Variant, debug_write := false) -> Variant:
 	if spy == null:
 		return null
 	var spy_instance: Object = spy.new()
-	@warning_ignore("unsafe_method_access")
 	# we do not call the original implementation for _ready and all input function, this is actualy done by the engine
 	spy_instance.__init(to_spy, ["_input", "_gui_input", "_input_event", "_unhandled_input"])
-	@warning_ignore("unsafe_cast")
 	copy_properties(to_spy as Object, spy_instance)
-	@warning_ignore("return_value_discarded")
 	GdUnitObjectInteractions.reset(spy_instance)
 	return register_auto_free(spy_instance)
 
@@ -70,9 +64,7 @@ static func spy_on_script(instance :Variant, function_excludes :PackedStringArra
 		if GdUnitSettings.is_verbose_assert_errors():
 			push_error("Can't build spy for class type '%s'! Using an instance instead e.g. 'spy(<instance>)'" % [clazz_name])
 		return null
-	@warning_ignore("unsafe_cast")
 	var lines := load_template(SPY_TEMPLATE.source_code, class_info, instance as Object)
-	@warning_ignore("unsafe_cast")
 	lines += double_functions(instance as Object, clazz_name, clazz_path, GdUnitSpyFunctionDoubler.new(), function_excludes)
 
 	var spy := GDScript.new()
@@ -81,9 +73,7 @@ static func spy_on_script(instance :Variant, function_excludes :PackedStringArra
 	spy.resource_path = GdUnitFileAccess.create_temp_dir("spy") + "/Spy%s_%d.gd" % [clazz_name, Time.get_ticks_msec()]
 
 	if debug_write:
-		@warning_ignore("return_value_discarded")
 		DirAccess.remove_absolute(spy.resource_path)
-		@warning_ignore("return_value_discarded")
 		ResourceSaver.save(spy, spy.resource_path)
 	var error := spy.reload(true)
 	if error != OK:
@@ -98,7 +88,6 @@ static func spy_on_scene(scene :Node, debug_write :bool) -> Object:
 			push_error("Can't create a spy checked a scene without script '%s'" % scene.get_scene_file_path())
 		return null
 	# buils spy checked original script
-	@warning_ignore("unsafe_cast")
 	var scene_script :Object = (scene.get_script() as GDScript).new()
 	var spy := spy_on_script(scene_script, GdUnitClassDoubler.EXLCUDE_SCENE_FUNCTIONS, debug_write)
 	scene_script.free()
@@ -119,7 +108,6 @@ static func spy_on_scene(scene :Node, debug_write :bool) -> Object:
 	for property_name: String in original_properties.keys():
 		scene.set(property_name, original_properties[property_name])
 
-	@warning_ignore("unsafe_method_access")
 	scene.__init(scene, [])
 	return register_auto_free(scene)
 

@@ -52,7 +52,7 @@ func load_market_items() -> void:
 	]
 	
 	for item in sample_items:
-		available_market_items.append(item)
+		available_market_items.append(item) # warning: return value discarded (intentional)
 		available_items.add_item(item.name + " (" + str(item.cost) + " credits)")
 
 func load_inventory() -> void:
@@ -62,13 +62,13 @@ func load_inventory() -> void:
 	# TODO: Load actual inventory from campaign data
 	# For now, using sample inventory
 	var sample_inventory = [
-		{"name": "Pistol", "value": 75, "description": "Standard sidearm"},
-		{"name": "Rations", "value": 25, "description": "Basic food supplies"}
+		{"name": "Pistol", "_value": 75, "description": "Standard sidearm"},
+		{"name": "Rations", "_value": 25, "description": "Basic food supplies"}
 	]
 	
 	for item in sample_inventory:
-		inventory.append(item)
-		inventory_items.add_item(item.name + " (" + str(item.value) + " credits)")
+		inventory.append(item) # warning: return value discarded (intentional)
+		inventory_items.add_item(item.name + " (" + str(item._value) + " credits)")
 
 func update_credits_display() -> void:
 	credits_label.text = "Credits: " + str(current_credits)
@@ -83,27 +83,27 @@ func _on_inventory_item_selected(index: int) -> void:
 	if index >= 0 and index < inventory.size():
 		selected_inventory_item = inventory[index]
 		sell_button.disabled = false
-		item_details.text = selected_inventory_item.name + "\n" + selected_inventory_item.description + "\nValue: " + str(selected_inventory_item.value) + " credits"
+		item_details.text = selected_inventory_item.name + "\n" + selected_inventory_item.description + "\nValue: " + str(selected_inventory_item._value) + " credits"
 
 func _on_buy_button_pressed() -> void:
 	if selected_market_item.cost <= current_credits:
 		current_credits -= selected_market_item.cost
-		emit_signal("item_purchased", selected_market_item)
+		item_purchased.emit( selected_market_item)
 		update_credits_display()
 		# Refresh market and inventory
 		load_market_items()
 		load_inventory()
 
 func _on_sell_button_pressed() -> void:
-	current_credits += selected_inventory_item.value
-	emit_signal("item_sold", selected_inventory_item)
+	current_credits += selected_inventory_item._value
+	item_sold.emit( selected_inventory_item)
 	update_credits_display()
 	# Refresh market and inventory
 	load_market_items()
 	load_inventory()
 
 func _on_complete_button_pressed() -> void:
-	emit_signal("trading_completed")
+	trading_completed.emit()
 
 func validate_phase_requirements() -> bool:
 	return true # No specific requirements for trade phase

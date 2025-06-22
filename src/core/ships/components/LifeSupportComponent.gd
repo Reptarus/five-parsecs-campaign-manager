@@ -19,7 +19,6 @@ func _init() -> void:
 	description = "Basic life support system"
 	cost = 250
 	power_draw = 4
-	
 func _apply_upgrade_effects() -> void:
 	super()
 	oxygen_generation += 0.2
@@ -27,7 +26,6 @@ func _apply_upgrade_effects() -> void:
 	air_recycling_efficiency += 0.05
 	temperature_control += 0.1
 	radiation_protection += 0.05
-
 func get_oxygen_generation() -> float:
 	return oxygen_generation * get_efficiency()
 
@@ -63,7 +61,7 @@ func check_life_support_failure() -> bool:
 	return base_failure
 
 func handle_environmental_hazard(hazard_type: int, hazard_level: float) -> float:
-	var damage_reduction = 0.0
+	var damage_reduction: int = 0
 	
 	if not is_functional():
 		return 0.0
@@ -120,12 +118,19 @@ static func create_from_data(data: Dictionary) -> Resource:
 	component.status_effects = base_data.status_effects
 	
 	# Life support-specific properties
+
 	component.oxygen_generation = data.get("oxygen_generation", 1.0)
+
 	component.crew_capacity = data.get("crew_capacity", 6)
+
 	component.life_support_quality = data.get("life_support_quality", 1.0)
+
 	component.air_recycling_efficiency = data.get("air_recycling_efficiency", 0.8)
+
 	component.temperature_control = data.get("temperature_control", 1.0)
+
 	component.has_emergency_systems = data.get("has_emergency_systems", false)
+
 	component.radiation_protection = data.get("radiation_protection", 0.7)
 	
 	return component
@@ -134,11 +139,18 @@ static func create_from_data(data: Dictionary) -> Resource:
 static func deserialize(data: Dictionary) -> Dictionary:
 	var base_data = ShipComponentClass.deserialize(data)
 	base_data["component_type"] = "life_support"
+
 	base_data["oxygen_generation"] = data.get("oxygen_generation", 1.0)
+
 	base_data["crew_capacity"] = data.get("crew_capacity", 6)
+
 	base_data["life_support_quality"] = data.get("life_support_quality", 1.0)
+
 	base_data["air_recycling_efficiency"] = data.get("air_recycling_efficiency", 0.8)
+
 	base_data["temperature_control"] = data.get("temperature_control", 1.0)
+
 	base_data["has_emergency_systems"] = data.get("has_emergency_systems", false)
+
 	base_data["radiation_protection"] = data.get("radiation_protection", 0.7)
 	return base_data

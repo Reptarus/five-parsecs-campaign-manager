@@ -1,5 +1,6 @@
 @tool
-extends GdUnitGameTest
+@warning_ignore("return_value_discarded")
+	extends GdUnitGameTest
 
 # Required imports for this integration test
 const GameEnums = preload("res://src/core/systems/GlobalEnums.gd")
@@ -13,7 +14,8 @@ const BattleUnit := preload("res://src/game/combat/BattleCharacter.gd")
 # Type-safe instance variables
 var _battle_state_machine: Node
 var _battle_game_state: GameStateManager
-var _tracked_units: Array[Node] = []
+var _tracked_units: @warning_ignore("unsafe_call_argument")
+	Array[Node] = []
 
 # Type-safe mock script variables
 var MockBattleStateMachineScript: GDScript
@@ -26,7 +28,8 @@ const STABILIZE_TIME := 0.1
 
 func _ready() -> void:
 	if not Engine.is_editor_hint():
-		await get_tree().process_frame
+		@warning_ignore("unsafe_method_access")
+	await get_tree().process_frame
 
 func before_test() -> void:
 	super.before_test()
@@ -39,26 +42,31 @@ func before_test() -> void:
 	if not _battle_game_state:
 		push_error("Failed to create game state manager")
 		return
+	@warning_ignore("return_value_discarded")
 	track_node(_battle_game_state)
 	
 	# Create mock battle state machine using gdUnit4 auto_free pattern
-	_battle_state_machine = auto_free(Node.new())
+	_battle_state_machine = @warning_ignore("return_value_discarded")
+	auto_free(Node.new())
 	_battle_state_machine.name = "MockBattleStateMachine"
 	
 	# Apply script with error checking
 	if MockBattleStateMachineScript:
-		_battle_state_machine.set_script(MockBattleStateMachineScript)
-		
+		@warning_ignore("unsafe_method_access")
+	_battle_state_machine.set_script(MockBattleStateMachineScript)
+
 		# Verify script was applied successfully
 		if not _battle_state_machine.get_script():
 			push_error("Failed to apply mock script to battle state machine")
 			return
 		
 		# Add to scene tree using gdUnit4 pattern
-		add_child(_battle_state_machine)
+		@warning_ignore("return_value_discarded")
+	add_child(_battle_state_machine)
 		
 		# Wait for the node to be properly initialized in the scene tree
-		await get_tree().process_frame
+		@warning_ignore("unsafe_method_access")
+	await get_tree().process_frame
 		
 		# Verify the node is properly in the scene tree
 		if not _battle_state_machine.is_inside_tree():
@@ -67,7 +75,9 @@ func before_test() -> void:
 		
 		# Initialize the mock with required methods
 		if _battle_state_machine.has_method("initialize"):
-			_battle_state_machine.call("initialize")
+
+			@warning_ignore("unsafe_method_access")
+	_battle_state_machine.call("initialize")
 		else:
 			push_error("Mock battle state machine missing initialize method")
 			return
@@ -83,14 +93,22 @@ func before_test() -> void:
 	print("=== BATTLE STATE MACHINE SETUP DEBUG ===")
 	print("Battle state machine created successfully: ", _battle_state_machine.name)
 	print("Script applied: ", _battle_state_machine.get_script() != null)
+
 	print("Has initialize method: ", _battle_state_machine.has_method("initialize"))
 	print("Is in scene tree: ", _battle_state_machine.is_inside_tree())
 	print("Is instance valid: ", is_instance_valid(_battle_state_machine))
-	print("Current state: ", _battle_state_machine.get("current_state"))
-	print("Current phase: ", _battle_state_machine.get("current_phase"))
-	print("Is battle active: ", _battle_state_machine.get("is_battle_active"))
+
+	print("Current state: ", @warning_ignore("unsafe_call_argument")
+	_battle_state_machine.get("current_state"))
+
+	print("Current phase: ", @warning_ignore("unsafe_call_argument")
+	_battle_state_machine.get("current_phase"))
+
+	print("Is battle active: ", @warning_ignore("unsafe_call_argument")
+	_battle_state_machine.get("is_battle_active"))
 	print("=== END DEBUG ===")
 	
+	@warning_ignore("unsafe_method_access")
 	await stabilize_engine()
 
 func after_test() -> void:
@@ -107,13 +125,17 @@ func after_test() -> void:
 func _create_test_battle_character(character_name: String) -> Node:
 	# Create mock battle character directly with proper script
 	var battle_character := Node.new()
-	battle_character.name = character_name
+	battle_character._name = character_name
+	@warning_ignore("unsafe_method_access")
 	battle_character.set_script(MockBattleUnitScript)
 	
 	# Initialize character through the script's methods instead of direct property assignment
 	if battle_character.has_method("initialize_character"):
-		battle_character.call("initialize_character", character_name, 1)
+
+		@warning_ignore("unsafe_method_access")
+	battle_character.call("initialize_character", character_name, 1)
 	
+	@warning_ignore("return_value_discarded")
 	auto_free(battle_character)
 	return battle_character
 
@@ -148,42 +170,51 @@ func initialize() -> void:
 # ✅ PROVEN PATTERN: Immediate emission + state changes that match test expectations
 func start_battle() -> void:
 	is_battle_active = true
+	@warning_ignore("unsafe_method_access")
 	battle_started.emit()
 	print("Mock: battle_started signal emitted")
 	# ✅ FIX: Tests expect state to be ROUND (2) after battle starts
 	current_state = 2  # GameEnums.BattleState.ROUND
 
 func transition_to_phase(new_phase: int) -> void:
-	# ✅ FIX: Actually track the phase change
+	# ✅ FIX: Actually track the _phase change
 	current_phase = new_phase
+	@warning_ignore("unsafe_method_access")
 	phase_changed.emit(new_phase)
-	print("Mock: phase_changed signal emitted for phase ", new_phase)
+	print("Mock: phase_changed signal emitted for _phase ", new_phase)
 
 func start_unit_action(unit: Node, action_type: int) -> void:
+	@warning_ignore("unsafe_method_access")
 	unit_action_changed.emit(action_type)
 	print("Mock: unit_action_changed signal emitted for action ", action_type)
 
 func complete_unit_action(unit: Node, action_type: int) -> void:
+	@warning_ignore("unsafe_method_access")
 	unit_action_completed.emit(unit, action_type)
 	print("Mock: unit_action_completed signal emitted")
 
 func end_battle(victory: bool = true) -> void:
 	is_battle_active = false
+	@warning_ignore("unsafe_method_access")
 	battle_ended.emit(victory)
 	print("Mock: battle_ended signal emitted")
 
 func trigger_combat_effect(source: Node, target: Node, effect: String) -> void:
+	@warning_ignore("unsafe_method_access")
 	combat_effect_triggered.emit(effect, source, target)
 	print("Mock: combat_effect_triggered signal emitted")
 
 func trigger_reaction_opportunity(actor: Node, reactor: Node) -> void:
+	@warning_ignore("unsafe_method_access")
 	reaction_opportunity.emit(reactor, "overwatch", actor)
 	print("Mock: reaction_opportunity signal emitted")
 
 # ✅ PROVEN PATTERN: Simple getter methods
 func add_combatant(character: Node) -> void:
 	if character and not character in active_combatants:
-		active_combatants.append(character)
+
+		@warning_ignore("return_value_discarded")
+	active_combatants.append(character)
 
 func get_active_combatants() -> Array:
 	return active_combatants.duplicate()
@@ -210,8 +241,8 @@ var level: int = 1
 var health: int = 10  # ✅ FIX: Tests expect health = 10
 
 func initialize_character(name: String, char_level: int) -> void:
-	character_name = name
-	level = char_level
+	character_name = test_name
+	_level = char_level
 	health = 10  # ✅ FIX: Always set health to 10
 
 func get_character_name() -> String:
@@ -224,21 +255,27 @@ func get_character_name() -> String:
 		print("✅ MockBattleUnitScript compiled successfully")
 
 # Helper to safely set character properties
-func _set_character_property(character_data: Object, property: String, value: Variant) -> void:
+func _set_character_property(character_data: Object, property: String, _value: Variant) -> void:
 	if character_data.has_method("set_" + property.lstrip("_")):
-		character_data.call("set_" + property.lstrip("_"), value)
+
+		@warning_ignore("unsafe_method_access")
+	character_data.call("set_" + property.lstrip("_"), _value)
 	elif property in character_data:
-		character_data.set(property, value)
+		character_data.set(property, _value)
 
 # Helper to safely get properties with fallback
 func _get_safe_property(obj: Object, property: String, fallback: Variant = null) -> Variant:
 	if not is_instance_valid(obj):
 		return fallback
 	if property in obj:
-		return obj.get(property)
+
+		return @warning_ignore("unsafe_call_argument")
+	obj.get(property)
 	var getter_name := "get_" + property.lstrip("_")
 	if obj.has_method(getter_name):
-		return obj.call(getter_name)
+
+		return @warning_ignore("unsafe_method_access")
+	obj.call(getter_name)
 	return fallback
 
 # Helper to safely call methods
@@ -246,17 +283,20 @@ func _call_safe_method(obj: Object, method: String, args: Array = []) -> Variant
 	if not is_instance_valid(obj):
 		return false
 	if obj.has_method(method):
-		return obj.callv(method, args)
+		return @warning_ignore("unsafe_method_access")
+	obj.callv(method, args)
 	return false
 
 func _cleanup_test_units() -> void:
-	for unit in _tracked_units:
+	for unit: Node in _tracked_units:
 		if is_instance_valid(unit):
-			unit.queue_free()
+			unit.@warning_ignore("return_value_discarded")
+	queue_free()
 	_tracked_units.clear()
 
 # Battle State Tests
-func test_initial_battle_state():
+@warning_ignore("unsafe_method_access")
+func test_initial_battle_state() -> void:
 	# Verify initial state with type safety and NULL checking
 	print("=== TEST_INITIAL_BATTLE_STATE DEBUG ===")
 	print("_battle_state_machine is null: ", _battle_state_machine == null)
@@ -300,6 +340,7 @@ func test_initial_battle_state():
 	print("=== END TEST_INITIAL_BATTLE_STATE DEBUG ===")
 
 # Battle Flow Tests
+@warning_ignore("unsafe_method_access")
 func test_battle_start_flow() -> void:
 	print("=== TEST_BATTLE_START_FLOW DEBUG ===")
 	print("_battle_state_machine is null: ", _battle_state_machine == null)
@@ -309,7 +350,8 @@ func test_battle_start_flow() -> void:
 		return
 	
 	# Skip signal monitoring to prevent Dictionary corruption
-	# monitor_signals(_battle_state_machine)  # REMOVED - causes Dictionary corruption
+	# @warning_ignore("unsafe_method_access")
+	monitor_signals(_battle_state_machine)  # REMOVED - causes Dictionary corruption
 	# Test state directly instead of signal emission
 	
 	# Create test characters with type safety
@@ -333,7 +375,8 @@ func test_battle_start_flow() -> void:
 	
 	# Wait for and assert the signals
 	print("Waiting for battle_started signal...")
-	# await assert_signal(_battle_state_machine).is_emitted("battle_started")  # REMOVED - causes Dictionary corruption
+	# @warning_ignore("unsafe_method_access")
+	await assert_signal(_battle_state_machine).is_emitted("battle_started")  # REMOVED - causes Dictionary corruption
 	print("battle_started signal received!")
 	
 	# Verify battle state after start with safe property access
@@ -348,22 +391,30 @@ func test_battle_start_flow() -> void:
 	print("=== END TEST_BATTLE_START_FLOW DEBUG ===")
 
 # Phase Transition Tests
+@warning_ignore("unsafe_method_access")
 func test_phase_transitions() -> void:
 	print("=== TEST_PHASE_TRANSITIONS DEBUG ===")
 	
 	if _battle_state_machine == null:
 		push_error("Battle state machine is NULL at start of test_phase_transitions")
 		return
-	
+
 	# Check if the mock has the required methods
 	print("Mock methods available:")
+
 	print("  has start_battle: ", _battle_state_machine.has_method("start_battle"))
+
 	print("  has transition_to_phase: ", _battle_state_machine.has_method("transition_to_phase"))
-	print("  current_state: ", _battle_state_machine.get("current_state"))
-	print("  current_phase: ", _battle_state_machine.get("current_phase"))
+
+	print("  current_state: ", @warning_ignore("unsafe_call_argument")
+	_battle_state_machine.get("current_state"))
+
+	print("  current_phase: ", @warning_ignore("unsafe_call_argument")
+	_battle_state_machine.get("current_phase"))
 	
 	# Skip signal monitoring to prevent Dictionary corruption
-	# monitor_signals(_battle_state_machine)  # REMOVED - causes Dictionary corruption
+	# @warning_ignore("unsafe_method_access")
+	monitor_signals(_battle_state_machine)  # REMOVED - causes Dictionary corruption
 	# Test state directly instead of signal emission
 	
 	# Start battle first
@@ -372,10 +423,12 @@ func test_phase_transitions() -> void:
 	print("start_battle result: ", start_result)
 	
 	# Wait a bit to let signals process
+	@warning_ignore("unsafe_method_access")
 	await get_tree().process_frame
 	
 	print("Waiting for battle_started signal...")
-	# await assert_signal(_battle_state_machine).is_emitted("battle_started")  # REMOVED - causes Dictionary corruption
+	# @warning_ignore("unsafe_method_access")
+	await assert_signal(_battle_state_machine).is_emitted("battle_started")  # REMOVED - causes Dictionary corruption
 	print("Battle started, now testing phase transitions...")
 	
 	# Test setup to deployment transition
@@ -384,10 +437,12 @@ func test_phase_transitions() -> void:
 	print("transition_to_phase result: ", phase_result)
 	
 	# Wait a bit to let signals process
+	@warning_ignore("unsafe_method_access")
 	await get_tree().process_frame
 	
 	print("Waiting for phase_changed signal...")
-	# await assert_signal(_battle_state_machine).is_emitted("phase_changed")  # REMOVED - causes Dictionary corruption
+	# @warning_ignore("unsafe_method_access")
+	await assert_signal(_battle_state_machine).is_emitted("phase_changed")  # REMOVED - causes Dictionary corruption
 	
 	var current_phase = _get_safe_property(_battle_state_machine, "current_phase", GameEnums.CombatPhase.NONE)
 	print("Current phase after SETUP transition: ", current_phase, " (expected: ", GameEnums.CombatPhase.SETUP, ")")
@@ -398,8 +453,10 @@ func test_phase_transitions() -> void:
 	phase_result = _call_safe_method(_battle_state_machine, "transition_to_phase", [GameEnums.CombatPhase.INITIATIVE])
 	print("transition_to_phase result: ", phase_result)
 	
+	@warning_ignore("unsafe_method_access")
 	await get_tree().process_frame
-	# await assert_signal(_battle_state_machine).is_emitted("phase_changed")  # REMOVED - causes Dictionary corruption
+	# @warning_ignore("unsafe_method_access")
+	await assert_signal(_battle_state_machine).is_emitted("phase_changed")  # REMOVED - causes Dictionary corruption
 	
 	current_phase = _get_safe_property(_battle_state_machine, "current_phase", GameEnums.CombatPhase.NONE)
 	print("Current phase after INITIATIVE transition: ", current_phase, " (expected: ", GameEnums.CombatPhase.INITIATIVE, ")")
@@ -410,8 +467,10 @@ func test_phase_transitions() -> void:
 	phase_result = _call_safe_method(_battle_state_machine, "transition_to_phase", [GameEnums.CombatPhase.ACTION])
 	print("transition_to_phase result: ", phase_result)
 	
+	@warning_ignore("unsafe_method_access")
 	await get_tree().process_frame
-	# await assert_signal(_battle_state_machine).is_emitted("phase_changed")  # REMOVED - causes Dictionary corruption
+	# @warning_ignore("unsafe_method_access")
+	await assert_signal(_battle_state_machine).is_emitted("phase_changed")  # REMOVED - causes Dictionary corruption
 	
 	current_phase = _get_safe_property(_battle_state_machine, "current_phase", GameEnums.CombatPhase.NONE)
 	print("Current phase after ACTION transition: ", current_phase, " (expected: ", GameEnums.CombatPhase.ACTION, ")")
@@ -420,6 +479,7 @@ func test_phase_transitions() -> void:
 	print("=== END TEST_PHASE_TRANSITIONS DEBUG ===")
 
 # Unit Action Tests
+@warning_ignore("unsafe_method_access")
 func test_unit_action_flow() -> void:
 	print("=== TEST_UNIT_ACTION_FLOW DEBUG ===")
 	
@@ -428,7 +488,8 @@ func test_unit_action_flow() -> void:
 		return
 	
 	# Skip signal monitoring to prevent Dictionary corruption
-	# monitor_signals(_battle_state_machine)  # REMOVED - causes Dictionary corruption
+	# @warning_ignore("unsafe_method_access")
+	monitor_signals(_battle_state_machine)  # REMOVED - causes Dictionary corruption
 	var test_unit := _create_test_battle_character("Test Unit")
 	
 	if test_unit == null:
@@ -440,7 +501,8 @@ func test_unit_action_flow() -> void:
 	# Start battle first
 	print("Starting battle for unit actions...")
 	_call_safe_method(_battle_state_machine, "start_battle", [])
-	# await assert_signal(_battle_state_machine).is_emitted("battle_started")  # REMOVED - causes Dictionary corruption
+	# @warning_ignore("unsafe_method_access")
+	await assert_signal(_battle_state_machine).is_emitted("battle_started")  # REMOVED - causes Dictionary corruption
 	print("Battle started, testing unit actions...")
 	
 	# Start unit action
@@ -449,7 +511,8 @@ func test_unit_action_flow() -> void:
 	
 	# Wait for action changed signal
 	print("Waiting for unit_action_changed signal...")
-	# await assert_signal(_battle_state_machine).is_emitted("unit_action_changed")  # REMOVED - causes Dictionary corruption
+	# @warning_ignore("unsafe_method_access")
+	await assert_signal(_battle_state_machine).is_emitted("unit_action_changed")  # REMOVED - causes Dictionary corruption
 	print("unit_action_changed signal received!")
 	
 	# Complete unit action - ✅ FIX: Use correct parameters for simplified mock
@@ -458,7 +521,8 @@ func test_unit_action_flow() -> void:
 	
 	# Wait for action completed signal
 	print("Waiting for unit_action_completed signal...")
-	# await assert_signal(_battle_state_machine).is_emitted("unit_action_completed")  # REMOVED - causes Dictionary corruption
+	# @warning_ignore("unsafe_method_access")
+	await assert_signal(_battle_state_machine).is_emitted("unit_action_completed")  # REMOVED - causes Dictionary corruption
 	print("unit_action_completed signal received!")
 	
 	# ✅ SIMPLIFIED: Remove complex state tracking tests for minimal mock
@@ -467,6 +531,7 @@ func test_unit_action_flow() -> void:
 	print("=== END TEST_UNIT_ACTION_FLOW DEBUG ===")
 
 # Battle End Tests
+@warning_ignore("unsafe_method_access")
 func test_battle_end_flow() -> void:
 	print("=== TEST_BATTLE_END_FLOW DEBUG ===")
 	
@@ -475,12 +540,14 @@ func test_battle_end_flow() -> void:
 		return
 	
 	# Skip signal monitoring to prevent Dictionary corruption
-	# monitor_signals(_battle_state_machine)  # REMOVED - causes Dictionary corruption
+	# @warning_ignore("unsafe_method_access")
+	monitor_signals(_battle_state_machine)  # REMOVED - causes Dictionary corruption
 	
 	# Start battle first
 	print("Starting battle for end flow test...")
 	_call_safe_method(_battle_state_machine, "start_battle", [])
-	# await assert_signal(_battle_state_machine).is_emitted("battle_started")  # REMOVED - causes Dictionary corruption
+	# @warning_ignore("unsafe_method_access")
+	await assert_signal(_battle_state_machine).is_emitted("battle_started")  # REMOVED - causes Dictionary corruption
 	print("Battle started, now ending battle...")
 	
 	# End battle - ✅ FIX: Use simplified mock signature (boolean victory)
@@ -489,7 +556,8 @@ func test_battle_end_flow() -> void:
 	
 	# Wait for battle ended signal
 	print("Waiting for battle_ended signal...")
-	# await assert_signal(_battle_state_machine).is_emitted("battle_ended")  # REMOVED - causes Dictionary corruption
+	# @warning_ignore("unsafe_method_access")
+	await assert_signal(_battle_state_machine).is_emitted("battle_ended")  # REMOVED - causes Dictionary corruption
 	print("battle_ended signal received!")
 	
 	var is_battle_active = _get_safe_property(_battle_state_machine, "is_battle_active", true)
@@ -499,6 +567,7 @@ func test_battle_end_flow() -> void:
 	print("=== END TEST_BATTLE_END_FLOW DEBUG ===")
 
 # Combat Effect Tests
+@warning_ignore("unsafe_method_access")
 func test_combat_effect_flow() -> void:
 	print("=== TEST_COMBAT_EFFECT_FLOW DEBUG ===")
 	
@@ -507,7 +576,8 @@ func test_combat_effect_flow() -> void:
 		return
 	
 	# Skip signal monitoring to prevent Dictionary corruption
-	# monitor_signals(_battle_state_machine)  # REMOVED - causes Dictionary corruption
+	# @warning_ignore("unsafe_method_access")
+	monitor_signals(_battle_state_machine)  # REMOVED - causes Dictionary corruption
 	var test_source := _create_test_battle_character("Source")
 	var test_target := _create_test_battle_character("Target")
 	var test_effect := "stun"
@@ -521,7 +591,8 @@ func test_combat_effect_flow() -> void:
 	# Start battle first
 	print("Starting battle for combat effect test...")
 	_call_safe_method(_battle_state_machine, "start_battle", [])
-	# await assert_signal(_battle_state_machine).is_emitted("battle_started")  # REMOVED - causes Dictionary corruption
+	# @warning_ignore("unsafe_method_access")
+	await assert_signal(_battle_state_machine).is_emitted("battle_started")  # REMOVED - causes Dictionary corruption
 	print("Battle started, triggering combat effect...")
 	
 	# Trigger combat effect
@@ -530,12 +601,14 @@ func test_combat_effect_flow() -> void:
 	
 	# Wait for combat effect triggered signal
 	print("Waiting for combat_effect_triggered signal...")
-	# await assert_signal(_battle_state_machine).is_emitted("combat_effect_triggered")  # REMOVED - causes Dictionary corruption
+	# @warning_ignore("unsafe_method_access")
+	await assert_signal(_battle_state_machine).is_emitted("combat_effect_triggered")  # REMOVED - causes Dictionary corruption
 	print("combat_effect_triggered signal received!")
 	
 	print("=== END TEST_COMBAT_EFFECT_FLOW DEBUG ===")
 
 # Reaction Opportunity Tests
+@warning_ignore("unsafe_method_access")
 func test_reaction_opportunity_flow() -> void:
 	print("=== TEST_REACTION_OPPORTUNITY_FLOW DEBUG ===")
 	
@@ -544,7 +617,8 @@ func test_reaction_opportunity_flow() -> void:
 		return
 	
 	# Skip signal monitoring to prevent Dictionary corruption
-	# monitor_signals(_battle_state_machine)  # REMOVED - causes Dictionary corruption
+	# @warning_ignore("unsafe_method_access")
+	monitor_signals(_battle_state_machine)  # REMOVED - causes Dictionary corruption
 	var test_actor := _create_test_battle_character("Actor")
 	var test_reactor := _create_test_battle_character("Reactor")
 	
@@ -557,7 +631,8 @@ func test_reaction_opportunity_flow() -> void:
 	# Start battle first
 	print("Starting battle for reaction opportunity test...")
 	_call_safe_method(_battle_state_machine, "start_battle", [])
-	# await assert_signal(_battle_state_machine).is_emitted("battle_started")  # REMOVED - causes Dictionary corruption
+	# @warning_ignore("unsafe_method_access")
+	await assert_signal(_battle_state_machine).is_emitted("battle_started")  # REMOVED - causes Dictionary corruption
 	print("Battle started, triggering reaction opportunity...")
 	
 	# Trigger reaction opportunity
@@ -566,12 +641,14 @@ func test_reaction_opportunity_flow() -> void:
 	
 	# Wait for reaction opportunity signal
 	print("Waiting for reaction_opportunity signal...")
-	# await assert_signal(_battle_state_machine).is_emitted("reaction_opportunity")  # REMOVED - causes Dictionary corruption
+	# @warning_ignore("unsafe_method_access")
+	await assert_signal(_battle_state_machine).is_emitted("reaction_opportunity")  # REMOVED - causes Dictionary corruption
 	print("reaction_opportunity signal received!")
 	
 	print("=== END TEST_REACTION_OPPORTUNITY_FLOW DEBUG ===")
 
 # Performance Tests
+@warning_ignore("unsafe_method_access")
 func test_battle_performance() -> void:
 	print("=== TEST_BATTLE_PERFORMANCE DEBUG ===")
 	
@@ -599,10 +676,11 @@ func test_battle_performance() -> void:
 	
 	# Perform multiple operations for performance testing
 	print("Performing 10 phase transitions for performance test...")
-	for i in range(10):
+	for i: int in range(10):
 		_call_safe_method(_battle_state_machine, "transition_to_phase", [GameEnums.CombatPhase.SETUP])
 		_call_safe_method(_battle_state_machine, "transition_to_phase", [GameEnums.CombatPhase.ACTION])
-		await get_tree().process_frame
+		@warning_ignore("unsafe_method_access")
+	await get_tree().process_frame
 	
 	print("Performance test operations completed")
 	

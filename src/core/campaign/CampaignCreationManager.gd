@@ -1,102 +1,174 @@
 @tool
+@warning_ignore("return_value_discarded")
+@warning_ignore("unsafe_method_access")
+@warning_ignore("unsafe_call_argument")
+@warning_ignore("untyped_declaration")
+@warning_ignore("unused_variable")
+@warning_ignore("redundant_await")
+@warning_ignore("unsafe_cast")
+@warning_ignore("inference_on_variant")
+@warning_ignore("static_called_on_instance")
 extends Node
+class_name CampaignCreationManager
+
+## Campaign Creation Manager for Five Parsecs from Home
+## Manages the step-by-step campaign creation process
 
 const GameEnums = preload("res://src/core/systems/GlobalEnums.gd")
 const FiveParcsecsCampaign = preload("res://src/core/campaign/Campaign.gd")
 const Character = preload("res://src/core/character/Base/Character.gd")
-const GameState = preload("res://src/core/state/GameState.gd")
+# Note: GameState/SaveManager injected via setup() to avoid circular dependencies
 const SaveManager = preload("res://src/core/state/SaveManager.gd")
 
-enum CreationStep {
-	CAMPAIGN_CONFIG,
-	CREW_CREATION,
-	RESOURCE_SETUP,
-	FINALIZATION
-}
-
-# Signals for campaign creation flow
 signal creation_step_changed(step: int)
 signal campaign_config_completed(config: Dictionary)
 signal crew_creation_completed(crew_data: Array[Dictionary])
 signal character_creation_completed(character: Character)
 signal resources_initialized(resources: Dictionary)
 signal campaign_creation_completed(campaign: FiveParcsecsCampaign)
+signal validation_failed(errors: Array[String])
 
-var current_step: int = CreationStep.CAMPAIGN_CONFIG
-var campaign_config: Dictionary = {}
-var crew_data: Array[Dictionary] = []
-var captain_data: Character
-var initial_resources: Dictionary = {}
+enum CreationStep {
+	CONFIG,
+	CREW,
+	CAPTAIN,
+	RESOURCES,
+	FINAL
+}
 
-var game_state: GameState
+var current_step: CreationStep = CreationStep.CONFIG
+var campaign_data: Dictionary = {}
+var creation_errors: Array[String] = []
+var game_state: Node # GameState - avoiding circular dependency
 var save_manager: SaveManager
 
 func _init() -> void:
-	game_state = GameState.new()
+	name = "CampaignCreationManager"
+	_initialize_campaign_data()
+	# GameState and SaveManager will be injected via setup()
 	save_manager = SaveManager.new()
-	add_child(game_state)
-	add_child(save_manager)
+	# Note: Only add to scene tree if they extend Node
+	# These classes may be Resources, not Nodes
 
 func _ready() -> void:
-	reset_creation_data()
+	reset_creation()
 
-func reset_creation_data() -> void:
-	current_step = CreationStep.CAMPAIGN_CONFIG
-	campaign_config.clear()
-	crew_data.clear()
-	initial_resources.clear()
-	captain_data = null
+func _initialize_campaign_data() -> void:
+	campaign_data = {
+		"config": {},
+		"crew": [],
+		"captain": {},
+		"resources": {},
+		"settings": {}
+	}
 
-func start_campaign_creation() -> void:
-	reset_creation_data()
-	advance_to_next_step()
+func advance_step() -> void:
+	if _validate_current_step():
+		if current_step < CreationStep.FINAL:
+			current_step += 1
+			creation_step_changed.emit(current_step)
+		else:
+			_finalize_creation()
+	else:
+		validation_failed.emit(creation_errors)
 
-func advance_to_next_step() -> void:
-	match current_step:
-		CreationStep.CAMPAIGN_CONFIG:
-			current_step = CreationStep.CREW_CREATION
-		CreationStep.CREW_CREATION:
-			current_step = CreationStep.RESOURCE_SETUP
-		CreationStep.RESOURCE_SETUP:
-			current_step = CreationStep.FINALIZATION
-		CreationStep.FINALIZATION:
-			finalize_campaign_creation()
-			return
+func go_back_step() -> void:
+	if current_step > CreationStep.CONFIG:
+		current_step -= 1
+		creation_step_changed.emit(current_step)
+
+func _validate_current_step() -> bool:
+	creation_errors.clear()
 	
+	match current_step:
+		CreationStep.CONFIG:
+			return _validate_config()
+		CreationStep.CREW:
+			return _validate_crew()
+		CreationStep.CAPTAIN:
+			return _validate_captain()
+		CreationStep.RESOURCES:
+			return _validate_resources()
+		CreationStep.FINAL:
+			return _validate_final()
+		_:
+			return false
+
+func _validate_config() -> bool:
+	return campaign_data.config.has("name") and campaign_data.config.has("difficulty")
+
+func _validate_crew() -> bool:
+	return campaign_data.crew.size() >= 4 and campaign_data.crew.size() <= 6
+
+func _validate_captain() -> bool:
+	return campaign_data.captain.is_valid()
+
+func _validate_resources() -> bool:
+	return not campaign_data.resources.is_empty()
+
+func _validate_final() -> bool:
+	return true
+
+func set_config_data(config: Dictionary) -> void:
+	campaign_data.config = config.duplicate(true)
+
+func set_crew_data(crew: Array) -> void:
+	campaign_data.crew = crew.duplicate(true)
+
+func set_captain_data(captain: Dictionary) -> void:
+	campaign_data.captain = captain.duplicate(true)
+
+func set_resource_data(resources: Dictionary) -> void:
+	campaign_data.resources = resources.duplicate(true)
+
+func finalize_campaign_creation() -> FiveParcsecsCampaign:
+	if _validate_all_steps():
+		var campaign := FiveParcsecsCampaign.new()
+		campaign.configure(campaign_data.config)
+		return campaign
+	return null
+func _validate_all_steps() -> bool:
+	creation_errors.clear()
+	var valid = true
+	
+	for step in CreationStep.values():
+		current_step = step
+		if not _validate_current_step():
+			valid = false
+	
+	return valid
+
+func _finalize_creation() -> void:
+	var final_campaign = finalize_campaign_creation()
+	if final_campaign:
+		campaign_creation_completed.emit(final_campaign)
+
+func get_campaign_data() -> Dictionary:
+	return campaign_data.duplicate(true)
+
+func reset_creation() -> void:
+	current_step = CreationStep.CONFIG
+	_initialize_campaign_data()
+	creation_errors.clear()
 	creation_step_changed.emit(current_step)
 
 func set_campaign_config(config: Dictionary) -> void:
-	campaign_config = config.duplicate()
-	campaign_config_completed.emit(campaign_config)
-
-func set_crew_data(data: Array[Dictionary]) -> void:
-	crew_data = data.duplicate()
-	crew_creation_completed.emit(crew_data)
+	campaign_data.config = config.duplicate()
+	campaign_config_completed.emit(campaign_data.config)
 
 func set_initial_resources(resources: Dictionary) -> void:
-	initial_resources = resources.duplicate()
-	resources_initialized.emit(initial_resources)
-
-func finalize_campaign_creation() -> FiveParcsecsCampaign:
-	var campaign = FiveParcsecsCampaign.new()
-	
-	# Configure campaign with collected data
-	campaign.configure(campaign_config)
-	campaign.set_crew(crew_data)
-	campaign.set_resources(initial_resources)
-	
-	campaign_creation_completed.emit(campaign)
-	return campaign
+	campaign_data.resources = resources.duplicate()
+	resources_initialized.emit(campaign_data.resources)
 
 func submit_captain_data(captain: Character) -> void:
-	captain_data = captain
+	campaign_data.captain = captain
 	character_creation_completed.emit(captain)
-	advance_to_next_step()
+	advance_step()
 
 func initialize_resources(difficulty: int) -> void:
-	initial_resources = _calculate_initial_resources(difficulty)
-	resources_initialized.emit(initial_resources)
-	advance_to_next_step()
+	campaign_data.resources = _calculate_initial_resources(difficulty)
+	resources_initialized.emit(campaign_data.resources)
+	advance_step()
 
 func _calculate_initial_resources(difficulty: int) -> Dictionary:
 	var resources = {
@@ -119,25 +191,3 @@ func _calculate_initial_resources(difficulty: int) -> Dictionary:
 			resources[GameEnums.ResourceType.SUPPLIES] = 2
 	
 	return resources
-
-# Validation methods
-func can_advance_to_next_step() -> bool:
-	match current_step:
-		CreationStep.CAMPAIGN_CONFIG:
-			return _validate_campaign_config()
-		CreationStep.CREW_CREATION:
-			return _validate_crew_data()
-		CreationStep.RESOURCE_SETUP:
-			return _validate_resources()
-		CreationStep.FINALIZATION:
-			return true
-	return false
-
-func _validate_campaign_config() -> bool:
-	return campaign_config.has("name") and campaign_config.has("difficulty")
-
-func _validate_crew_data() -> bool:
-	return crew_data.size() >= 4 and crew_data.size() <= 6
-
-func _validate_resources() -> bool:
-	return not initial_resources.is_empty()

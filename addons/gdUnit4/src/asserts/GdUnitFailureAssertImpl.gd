@@ -15,7 +15,6 @@ func execute_and_await(assertion :Callable, do_await := true) -> GdUnitFailureAs
 	_set_do_expect_fail(true)
 	var thread_context := GdUnitThreadManager.get_current_context()
 	thread_context.set_assert(null)
-	@warning_ignore("return_value_discarded")
 	GdUnitSignals.instance().gdunit_set_test_failed.connect(_on_test_failed)
 	# execute the given assertion as callable
 	if do_await:
@@ -29,13 +28,11 @@ func execute_and_await(assertion :Callable, do_await := true) -> GdUnitFailureAs
 		_is_failed = true
 		_failure_message = "Invalid Callable! It must be a callable of 'GdUnitAssert'"
 		return self
-	@warning_ignore("unsafe_method_access")
 	_failure_message = current_assert.failure_message()
 	return self
 
 
 func execute(assertion :Callable) -> GdUnitFailureAssert:
-	@warning_ignore("return_value_discarded")
 	execute_and_await(assertion, false)
 	return self
 
@@ -44,12 +41,10 @@ func _on_test_failed(value :bool) -> void:
 	_is_failed = value
 
 
-@warning_ignore("unused_parameter")
 func is_equal(_expected: Variant) -> GdUnitFailureAssert:
 	return _report_error("Not implemented")
 
 
-@warning_ignore("unused_parameter")
 func is_not_equal(_expected: Variant) -> GdUnitFailureAssert:
 	return _report_error("Not implemented")
 
@@ -82,7 +77,6 @@ func has_line(expected :int) -> GdUnitFailureAssert:
 
 
 func has_message(expected :String) -> GdUnitFailureAssert:
-	@warning_ignore("return_value_discarded")
 	is_failed()
 	var expected_error := GdUnitTools.normalize_text(GdUnitTools.richtext_normalize(expected))
 	var current_error := GdUnitTools.normalize_text(GdUnitTools.richtext_normalize(_failure_message))

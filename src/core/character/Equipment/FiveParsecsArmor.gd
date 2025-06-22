@@ -4,26 +4,23 @@ class_name FiveParsecsArmor
 
 ## Additional Five Parsecs specific armor functionality
 var durability: int = 100
-var repair_cost: int = 0
+var _repair_cost: int = 0
 var is_damaged: bool = false
 
 # Basic armor properties
 var name: String = ""
 var description: String = ""
 var cost: int = 0
-var armor_class: int = 0
+var _armor_class: int = 0
 
 func _init() -> void:
 	pass
-
 func damage(amount: int) -> void:
 	durability = maxi(0, durability - amount)
 	is_damaged = durability < 50
-	
 func repair() -> void:
 	durability = 100
 	is_damaged = false
-	
 func calculate_repair_cost() -> int:
 	return (100 - durability) * cost / 100
 

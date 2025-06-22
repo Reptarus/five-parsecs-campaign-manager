@@ -58,7 +58,6 @@ func _process(_delta: float) -> void:
 			set_process(false)
 			# wait until client is connected to server
 			for retry in 10:
-				@warning_ignore("return_value_discarded")
 				_stream.poll()
 				console("Waiting to connect ..")
 				if _stream.get_status() == StreamPeerTCP.STATUS_CONNECTING:

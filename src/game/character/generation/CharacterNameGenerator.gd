@@ -56,48 +56,18 @@ const LAST_NAMES: Array[String] = [
 ]
 
 const ALIEN_FIRST_NAMES: Array[String] = [
-	# Original alien-sounding names
-	"Zax", "Vex", "Quark", "Nyx", "Lyra", "Kael", "Jett", "Io", "Hux",
-	"Grix", "Faye", "Elix", "Dax", "Cygnus", "Brix", "Astra",
-	
-	# Sci-fi alien references
-	"Thane", "Garrus", "Tali", "Liara", "Wrex", "Grunt", "Legion",
-	"Mordin", "Javik", "Samara", "Aria", "Nyreen", "Vetra", "Jaal",
-	"Kallo", "Drack", "Peebee", "Saren", "Nihilus", "Benezia",
-	
-	# Star Wars inspired
-	"Thrawn", "Bossk", "Zeb", "Hera", "Ahsoka", "Ezra", "Sabine",
-	"Kallus", "Zeb", "Chopper", "Rex", "Cody", "Grievous", "Maul",
-	
-	# Unique alien sounds
-	"Zyra", "Kex", "Vox", "Nix", "Qar", "Zyl", "Yex", "Krix",
-	"Xar", "Venn", "Zax", "Kol", "Rix", "Nex", "Tyx", "Qel",
-	
-	# Warhammer 40k inspired
+	# Warhammer 40k Primarch names (public domain-inspired)
+	"Horus", "Lion", "Fulgrim", "Perturabo", "Jaghatai", "Leman",
+	"Rogal", "Konrad", "Sanguinius", "Ferrus", "Angron", "Roboute",
 	"Guilliman", "Sanguinius", "Vulkan", "Magnus", "Mortarion",
 	"Perturabo", "Fulgrim", "Lorgar", "Corax", "Ferrus", "Dorn"
 ]
 
 const ALIEN_LAST_NAMES: Array[String] = [
 	# Original sci-fi surnames
-	"Voidborn", "Starforge", "Nebula", "Moonwalker", "Lightspeed", "Kuiper",
-	"Jetstream", "Ionos", "Hyperion", "Gravity", "Fusion", "Equinox",
-	
-	# Sci-fi references
-	"Vakarian", "Zorah", "T'Soni", "Arterius", "Massani", "Solus",
-	"Urdnot", "T'Loak", "Thanoptis", "Nyx", "Kandros", "Ryder",
-	
-	# Star Wars inspired
-	"Bridger", "Syndulla", "Wren", "Orrelios", "Jarrus", "Tano",
-	"Thrawn", "Hutta", "Kessel", "Ryloth", "Mandalore", "Kryze",
-	
-	# Cosmic names
-	"Centauri", "Andromeda", "Orion", "Carina", "Lyra", "Perseus",
-	"Hydra", "Draco", "Phoenix", "Vega", "Antares", "Sirius",
-	
-	# Warhammer 40k inspired
-	"Mechanicus", "Astartes", "Calgar", "Tigurius", "Sicarius",
-	"Cawl", "Valoris", "Celestine", "Yarrick", "Creed", "Bile",
+	"Starforge", "Voidwalker", "Nebula", "Cosmic", "Stellar",
+	"Astral", "Quantum", "Plasma", "Fusion", "Reactor",
+	"Hyperdrive", "Warpcore", "Photon", "Neutron", "Quark",
 	
 	# Tech/Cyberpunk
 	"Nexus", "Matrix", "Vector", "Cipher", "Binary", "Quantum",

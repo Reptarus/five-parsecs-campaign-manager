@@ -1,5 +1,6 @@
 # Content from src/core/battle/PathFinder.gd
 # REMOVED: class_name FiveParsecsPathFinder
+
 # This class previously used class_name FiveParsecsPathFinder but it was removed to prevent conflicts
 # The authoritative FiveParsecsPathFinder class is in src/core/utils/PathFinder.gd
 # This file should be considered deprecated and will be removed in future updates
@@ -40,8 +41,8 @@ func equals(other) -> bool:
 var _path_node_script = null
 
 var battlefield_manager: Node # Will be cast to BattlefieldManager
-var _open_set = [] # Array of PathNodes
-var _closed_set = [] # Array of PathNodes
+var _open_set: Array = [] # Array of PathNodes
+var _closed_set: Array = [] # Array of PathNodes
 var _movement_directions := [
 	Vector2i(1, 0), # Right
 	Vector2i(-1, 0), # Left
@@ -64,6 +65,7 @@ func _setup_path_node_script() -> void:
 	_path_node_script.reload()
 
 # Function to create a new PathNode without direct class reference
+
 func create_path_node(pos: Vector2i) -> Variant:
 	var node = _path_node_script.new(pos)
 	return node
@@ -82,7 +84,8 @@ func find_path(start_pos: Vector2, end_pos: Vector2, max_movement: float) -> Arr
 	var end_node = create_path_node(end_grid)
 	
 	# Add start node to open set
-	_open_set.append(start_node)
+
+	_open_set.append(start_node) # warning: return value discarded (intentional)
 	
 	while not _open_set.is_empty():
 		var current_node = _get_lowest_f_cost_node()
@@ -90,14 +93,15 @@ func find_path(start_pos: Vector2, end_pos: Vector2, max_movement: float) -> Arr
 		if current_node.position == end_node.position:
 			var path = _retrace_path(start_node, current_node)
 			if _calculate_path_cost(path) <= max_movement:
-				path_found.emit(path)
+				path_found.emit(path) # warning: return value discarded (intentional)
 				return path
 			else:
-				path_not_found.emit()
+				path_not_found.emit() # warning: return value discarded (intentional)
 				return []
 		
 		_open_set.erase(current_node)
-		_closed_set.append(current_node)
+
+		_closed_set.append(current_node) # warning: return value discarded (intentional)
 		
 		for neighbor in _get_neighbors(current_node):
 			if _is_in_closed_set(neighbor):
@@ -113,9 +117,9 @@ func find_path(start_pos: Vector2, end_pos: Vector2, max_movement: float) -> Arr
 				neighbor.parent = current_node
 				
 				if not _is_in_open_set(neighbor):
-					_open_set.append(neighbor)
+					_open_set.append(neighbor) # warning: return value discarded (intentional)
 	
-	path_not_found.emit()
+	path_not_found.emit() # warning: return value discarded (intentional)
 	return []
 
 func _get_lowest_f_cost_node() -> Variant:
@@ -126,7 +130,7 @@ func _get_lowest_f_cost_node() -> Variant:
 	return lowest_node
 
 func _get_neighbors(node: Variant) -> Array:
-	var neighbors = []
+	var neighbors: Array = []
 	
 	for direction in _movement_directions:
 		var neighbor_pos = node.position + direction
@@ -134,12 +138,12 @@ func _get_neighbors(node: Variant) -> Array:
 		if battlefield_manager._is_valid_grid_position(neighbor_pos):
 			var terrain_type = battlefield_manager.terrain_map[neighbor_pos.x][neighbor_pos.y]
 			if TerrainTypes.is_traversable(terrain_type):
-				neighbors.append(create_path_node(neighbor_pos))
+				neighbors.append(create_path_node(neighbor_pos)) # warning: return value discarded (intentional)
 	
 	return neighbors
 
 func _calculate_movement_cost(from: Vector2i, to: Vector2i, terrain_type: int) -> float:
-	var base_cost = 1.0
+	var base_cost: int = 1
 	
 	# Apply terrain movement cost
 	return base_cost * TerrainTypes.get_movement_cost(terrain_type)
@@ -155,10 +159,10 @@ func _retrace_path(start_node: Variant, end_node: Variant) -> Array[Vector2]:
 	var current_node = end_node
 	
 	while current_node != start_node:
-		path.append(battlefield_manager._grid_to_world(current_node.position))
+		path.append(battlefield_manager._grid_to_world(current_node.position)) # warning: return value discarded (intentional)
 		current_node = current_node.parent
-	
-	path.append(battlefield_manager._grid_to_world(start_node.position))
+
+	path.append(battlefield_manager._grid_to_world(start_node.position)) # warning: return value discarded (intentional)
 	path.reverse()
 	return path
 

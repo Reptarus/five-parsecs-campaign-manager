@@ -9,7 +9,7 @@ const BATTLE_EVENTS = {
         "probability": 0.15,
         "effect": {
             "type": "damage_multiplier",
-            "value": 2.0
+            "_value": 2.0
         },
         "requirements": ["attack_roll >= 6"]
     },
@@ -27,7 +27,7 @@ const BATTLE_EVENTS = {
         "probability": 0.2,
         "effect": {
             "type": "defense_bonus",
-            "value": 2,
+            "_value": 2,
             "duration": 1
         },
         "requirements": ["near_cover"]
@@ -60,11 +60,11 @@ static func _evaluate_requirement(requirement: String, context: Dictionary) -> b
             push_warning("Unknown requirement: " + requirement)
             return false
 
-static func _compare_value(value: float, operator: String, target: float) -> bool:
+static func _compare_value(_value: float, operator: String, target: float) -> bool:
     match operator:
-        ">=": return value >= target
-        "<=": return value <= target
-        ">": return value > target
-        "<": return value < target
-        "==": return value == target
+        ">=": return _value >= target
+        "<=": return _value <= target
+        ">": return _value > target
+        "<": return _value < target
+        "==": return _value == target
         _: return false

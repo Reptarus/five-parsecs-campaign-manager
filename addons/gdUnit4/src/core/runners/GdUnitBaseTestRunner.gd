@@ -26,7 +26,6 @@ const GDUNIT_RUNNER = "GdUnitRunner"
 const DEFAULT_REPORT_COUNT = 20
 
 ## The current runner configuration
-@warning_ignore("unused_private_class_variable")
 var _runner_config := GdUnitRunnerConfig.new()
 
 ## The test suite executor instance
@@ -119,7 +118,6 @@ func prints_warning(message: String) -> void:
 
 ## Default event handler to process test events.[br]
 ## Should be overridden by concrete runner implementation.
-@warning_ignore("unused_parameter")
 func _on_gdunit_event(event: GdUnitEvent) -> void:
 	pass
 

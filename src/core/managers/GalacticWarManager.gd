@@ -40,17 +40,17 @@ func initialize_faction_strengths() -> void:
 		"pirates": 30,
 		"merchants": 20
 	}
-
 func connect_signals() -> void:
 	if game_state:
-		game_state.connect("battle_ended", _on_battle_ended)
-		game_state.connect("turn_ended", _on_turn_ended)
+		game_state.connect("battle_ended", _on_battle_ended) # warning: return value discarded (intentional)
+
+		game_state.connect("turn_ended", _on_turn_ended) # warning: return value discarded (intentional)
 
 func update_instability() -> void:
 	var previous_instability = current_instability
 	
 	# Calculate new instability based on faction strengths
-	var total_conflict_points = 0
+	var total_conflict_points: int = 0
 	for strength in faction_strengths.values():
 		if strength > 60: # High strength factions generate more conflict
 			total_conflict_points += 2
@@ -61,7 +61,7 @@ func update_instability() -> void:
 	current_instability = calculate_instability_level(total_conflict_points)
 	
 	if current_instability != previous_instability:
-		war_status_changed.emit(current_instability)
+		war_status_changed.emit(current_instability) # warning: return value discarded (intentional)
 		handle_instability_effects()
 
 func calculate_instability_level(conflict_points: int) -> int:
@@ -88,37 +88,29 @@ func handle_instability_effects() -> void:
 			_handle_rebellion_effects()
 		FringeWorldInstability.CIVIL_WAR:
 			_handle_civil_war_effects()
-
 func _handle_stable_effects() -> void:
 	# Implement stable world effects
 	pass
-
 func _handle_unrest_effects() -> void:
 	# Implement unrest effects
 	pass
-
 func _handle_conflict_effects() -> void:
 	# Implement conflict effects
 	pass
-
 func _handle_rebellion_effects() -> void:
 	# Implement rebellion effects
 	pass
-
 func _handle_civil_war_effects() -> void:
 	# Implement civil war effects
 	pass
-
 func update_faction_strength(faction: String, change: int) -> void:
 	if faction in faction_strengths:
 		faction_strengths[faction] = clamp(faction_strengths[faction] + change, 0, 100)
 		update_instability()
-
 func resolve_conflict(location: String, involved_factions: Array) -> void:
 	var battle_result = generate_battle_result(involved_factions)
 	apply_battle_results(battle_result, involved_factions)
 	check_war_end_conditions()
-
 func generate_battle_result(involved_factions: Array) -> Dictionary:
 	var result = {
 		"victor": "",
@@ -127,7 +119,7 @@ func generate_battle_result(involved_factions: Array) -> Dictionary:
 	}
 	
 	# Calculate battle outcome based on faction strengths
-	var highest_strength = 0
+	var highest_strength: int = 0
 	for faction in involved_factions:
 		var strength = faction_strengths.get(faction, 0)
 		if strength > highest_strength:
@@ -144,28 +136,26 @@ func apply_battle_results(result: Dictionary, involved_factions: Array) -> void:
 		for faction in involved_factions:
 			if faction != result.victor:
 				update_faction_strength(faction, -3)
-
 func check_war_end_conditions() -> void:
 	for faction in faction_strengths:
 		if faction_strengths[faction] >= 80:
-			war_ended.emit(faction)
+			war_ended.emit(faction) # warning: return value discarded (intentional)
 			break
 
 func _on_battle_ended(battle_data: Dictionary) -> void:
 	if battle_data.has("faction_impacts"):
 		for faction in battle_data.faction_impacts:
 			update_faction_strength(faction, battle_data.faction_impacts[faction])
-
 func _on_turn_ended() -> void:
 	update_instability()
 	process_active_conflicts()
-
 func process_active_conflicts() -> void:
-	var resolved_conflicts = []
+	var resolved_conflicts: Array = []
 	for conflict in active_conflicts:
 		if should_resolve_conflict(conflict):
 			resolve_conflict(conflict.location, conflict.factions)
-			resolved_conflicts.append(conflict)
+
+			resolved_conflicts.append(conflict) # warning: return value discarded (intentional)
 	
 	# Remove resolved conflicts
 	for conflict in resolved_conflicts:
@@ -182,7 +172,7 @@ func get_faction_strength(faction: String) -> int:
 	return faction_strengths.get(faction, 0)
 
 func add_active_conflict(location: String, factions: Array) -> void:
-	active_conflicts.append({
+	active_conflicts.append({ # warning: return value discarded (intentional)
 		"location": location,
 		"factions": factions,
 		"duration": 0

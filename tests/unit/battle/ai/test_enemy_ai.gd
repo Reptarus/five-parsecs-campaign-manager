@@ -7,9 +7,11 @@
 ## - Error handling
 ## - Signal verification
 @tool
-extends GdUnitGameTest
+@warning_ignore("return_value_discarded")
+	extends GdUnitGameTest
 
-# UNIVERSAL MOCK STRATEGY - Same pattern that achieved 100% success in Ship/Mission tests
+# UNIVERSAL MOCK STRATEGY - Same pattern that achieved @warning_ignore("integer_division")
+	100 % success in Ship/Mission tests
 class MockEnemyAIManager extends Resource:
 	var is_active: bool = true
 	var last_selected_target: Resource = null
@@ -22,8 +24,9 @@ class MockEnemyAIManager extends Resource:
 		return is_active
 	
 	func select_target(enemy_unit: Resource) -> Resource:
+
 		# Return mock target as Resource - prevents orphan nodes
-		var mock_target = MockUnit.new()
+		var mock_target: MockUnit = MockUnit.new()
 		last_selected_target = mock_target
 		return mock_target
 	
@@ -77,8 +80,8 @@ class MockUnit extends Resource:
 	var position: Vector2 = Vector2(5, 5)
 	var combat_state: int = 0
 	
-	func set_is_player(value: bool) -> void:
-		is_player = value
+	func set_is_player(test_value: bool) -> void:
+		is_player = _value
 	
 	func set_position(pos: Vector2) -> void:
 		position = pos
@@ -104,19 +107,24 @@ func before_test() -> void:
 	
 	# Setup AI test environment with mocks - guaranteed to work
 	_battlefield_manager = MockBattlefieldManager.new()
+	@warning_ignore("return_value_discarded")
 	track_resource(_battlefield_manager)
 	
 	_combat_manager = MockCombatManager.new()
+	@warning_ignore("return_value_discarded")
 	track_resource(_combat_manager)
 	
 	_ai_manager = MockEnemyAIManager.new()
 	_ai_manager.initialize(_battlefield_manager, _combat_manager)
+	@warning_ignore("return_value_discarded")
 	track_resource(_ai_manager)
 	
 	_tactical_ai = MockEnemyTacticalAI.new()
 	_tactical_ai.initialize(_ai_manager)
+	@warning_ignore("return_value_discarded")
 	track_resource(_tactical_ai)
 	
+	@warning_ignore("unsafe_method_access")
 	await get_tree().process_frame
 
 func after_test() -> void:
@@ -127,6 +135,7 @@ func after_test() -> void:
 	super.after_test()
 
 # AI Initialization Tests
+@warning_ignore("unsafe_method_access")
 func test_ai_initialization() -> void:
 	assert_that(_ai_manager).override_failure_message("AI manager should be initialized").is_not_null()
 	assert_that(_tactical_ai).override_failure_message("Tactical AI should be initialized").is_not_null()
@@ -135,6 +144,7 @@ func test_ai_initialization() -> void:
 	assert_that(is_active).override_failure_message("AI should be active after initialization").is_true()
 
 # Target Selection Tests
+@warning_ignore("unsafe_method_access")
 func test_target_selection() -> void:
 	# Create test units
 	var enemy_unit := _create_test_unit(false)
@@ -142,65 +152,80 @@ func test_target_selection() -> void:
 	assert_that(target).override_failure_message("Should select target").is_not_null()
 
 # Movement Decision Tests
+@warning_ignore("unsafe_method_access")
 func test_movement_decisions() -> void:
 	var unit := _create_test_unit(false)
 	unit.set_position(Vector2(5, 5))
 	
 	var move_decision: Dictionary = _tactical_ai.evaluate_movement(unit)
 	assert_that(move_decision).override_failure_message("Should generate movement decision").is_not_null()
-	assert_that(move_decision.has("position")).override_failure_message("Decision should include target position").is_true()
+	assert_that(@warning_ignore("unsafe_call_argument")
+	move_decision.has("position")).override_failure_message("Decision should include target position").is_true()
 
 # Combat Behavior Tests
+@warning_ignore("unsafe_method_access")
 func test_combat_behavior() -> void:
 	var unit := _create_test_unit(false)
 	unit.set_combat_state(0) # Placeholder for GameEnums.UnitState.ENGAGED
 	
 	var behavior: Dictionary = _ai_manager.evaluate_combat_behavior(unit)
 	assert_that(behavior).override_failure_message("Should generate combat behavior").is_not_null()
-	assert_that(behavior.has("action")).override_failure_message("Behavior should include action").is_true()
+	assert_that(@warning_ignore("unsafe_call_argument")
+	behavior.has("action")).override_failure_message("Behavior should include action").is_true()
 
 # Tactical Analysis Tests
+@warning_ignore("unsafe_method_access")
 func test_tactical_analysis() -> void:
 	var unit := _create_test_unit(false)
 	var analysis: Dictionary = _tactical_ai.analyze_tactical_situation(unit)
 	
 	assert_that(analysis).override_failure_message("Should generate tactical analysis").is_not_null()
-	assert_that(analysis.has("threat_level")).override_failure_message("Analysis should include threat level").is_true()
-	assert_that(analysis.has("cover_positions")).override_failure_message("Analysis should include cover positions").is_true()
+	assert_that(@warning_ignore("unsafe_call_argument")
+	analysis.has("threat_level")).override_failure_message("Analysis should include threat level").is_true()
+	assert_that(@warning_ignore("unsafe_call_argument")
+	analysis.has("cover_positions")).override_failure_message("Analysis should include cover positions").is_true()
 
 # Performance Tests
+@warning_ignore("unsafe_method_access")
 func test_ai_performance() -> void:
 	var units := _create_multiple_units(10)
 	var start_time := Time.get_ticks_msec()
 	
-	for unit in units:
+	for unit: Node in units:
 		_ai_manager.process_unit_ai(unit)
 	
 	var duration := Time.get_ticks_msec() - start_time
 	assert_that(duration < 1000).override_failure_message("AI processing should complete within 1 second").is_true()
 
 # Error Handling Tests
+@warning_ignore("unsafe_method_access")
 func test_error_handling() -> void:
 	# Test null unit
 	var result: Dictionary = _ai_manager.process_unit_ai(null)
-	assert_that(result.has("action")).override_failure_message("Should handle null unit gracefully").is_false()
+	assert_that(@warning_ignore("unsafe_call_argument")
+	result.has("action")).override_failure_message("Should handle null unit gracefully").is_false()
 	
 	# Test invalid state
 	var unit := _create_test_unit(false)
 	unit.set_combat_state(-1)
 	result = _ai_manager.process_unit_ai(unit)
-	assert_that(result.has("error")).override_failure_message("Should handle invalid state").is_true()
+	assert_that(@warning_ignore("unsafe_call_argument")
+	result.has("error")).override_failure_message("Should handle invalid state").is_true()
 
 # Helper Methods
 func _create_test_unit(is_player: bool) -> MockUnit:
 	var unit := MockUnit.new()
 	unit.set_is_player(is_player)
+	@warning_ignore("return_value_discarded")
 	track_resource(unit)
 	return unit
 
 func _create_multiple_units(count: int) -> Array[MockUnit]:
-	var units: Array[MockUnit] = []
-	for i in range(count):
+	var units: @warning_ignore("unsafe_call_argument")
+	Array[MockUnit] = []
+	for i: int in range(count):
 		var unit := _create_test_unit(false)
-		units.append(unit)
+
+		@warning_ignore("return_value_discarded")
+	units.append(unit)
 	return units

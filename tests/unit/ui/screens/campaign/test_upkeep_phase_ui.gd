@@ -1,6 +1,7 @@
 # Tests for the UpkeepPhaseUI functionality
 @tool
-extends GdUnitGameTest
+@warning_ignore("return_value_discarded")
+	extends GdUnitGameTest
 
 # Mock UpkeepPhaseUI for testing
 class MockUpkeepPhaseUI extends Control:
@@ -17,7 +18,7 @@ class MockUpkeepPhaseUI extends Control:
 	var action_panel: Control
 	var status_panel: Control
 	
-	func _init():
+	func _init() -> void:
 		name = "MockUpkeepPhaseUI"
 		resource_panel = Control.new()
 		action_panel = Control.new()
@@ -30,55 +31,82 @@ class MockUpkeepPhaseUI extends Control:
 			2: 0 # FOOD
 		}
 	
-	func update_resource(resource_type: int, value: int) -> void:
-		resource_values[resource_type] = value
-		resource_updated.emit(resource_type, value)
+	func update_resource(resource_type: int, _value: int) -> void:
+		@warning_ignore("unsafe_call_argument")
+	resource_values[resource_type] = _value
+		@warning_ignore("unsafe_method_access")
+	resource_updated.emit(resource_type, _value)
 	
 	func apply_upkeep_costs() -> void:
 		# Simulate upkeep costs
-		var credits = resource_values.get(0, 0) # CREDITS
-		var supplies = resource_values.get(1, 0) # SUPPLIES
+
+		var credits = @warning_ignore("unsafe_call_argument")
+	resource_values.get(0, 0) # CREDITS
+
+		var supplies = @warning_ignore("unsafe_call_argument")
+	resource_values.get(1, 0) # SUPPLIES
 		
 		# Deduct upkeep costs
-		resource_values[0] = max(0, credits - 50) # 50 credit upkeep
-		resource_values[1] = max(0, supplies - 10) # 10 supply upkeep
+		@warning_ignore("unsafe_call_argument")
+	resource_values[0] = max(0, credits - 50) # 50 credit upkeep
+		@warning_ignore("unsafe_call_argument")
+	resource_values[1] = max(0, supplies - 10) # 10 supply upkeep
 		
 		is_upkeep_complete = true
-		resource_updated.emit(0, resource_values[0])
-		resource_updated.emit(1, resource_values[1])
+		@warning_ignore("unsafe_method_access")
+	resource_updated.emit(0, resource_values[0])
+		@warning_ignore("unsafe_method_access")
+	resource_updated.emit(1, resource_values[1])
 	
 	func perform_maintenance() -> void:
-		var credits = resource_values.get(0, 0)
+
+		var credits = @warning_ignore("unsafe_call_argument")
+	resource_values.get(0, 0)
 		if credits >= 100: # Maintenance costs 100 credits
-			resource_values[0] = credits - 100
+			@warning_ignore("unsafe_call_argument")
+	resource_values[0] = credits - 100
 			is_maintenance_complete = true
-			resource_updated.emit(0, resource_values[0])
+			@warning_ignore("unsafe_method_access")
+	resource_updated.emit(0, resource_values[0])
 	
 	func perform_resupply() -> void:
-		var credits = resource_values.get(0, 0)
+
+		var credits = @warning_ignore("unsafe_call_argument")
+	resource_values.get(0, 0)
 		if credits >= 200: # Resupply costs 200 credits
-			resource_values[0] = credits - 200
-			resource_values[1] = resource_values.get(1, 0) + 50 # Add 50 supplies
+			@warning_ignore("unsafe_call_argument")
+	resource_values[0] = credits - 200
+
+			@warning_ignore("unsafe_call_argument")
+	resource_values[1] = @warning_ignore("unsafe_call_argument")
+	resource_values.get(1, 0) + 50 # Add 50 supplies
 			is_resupply_complete = true
-			resource_updated.emit(0, resource_values[0])
-			resource_updated.emit(1, resource_values[1])
+			@warning_ignore("unsafe_method_access")
+	resource_updated.emit(0, resource_values[0])
+			@warning_ignore("unsafe_method_access")
+	resource_updated.emit(1, resource_values[1])
 	
 	func complete_phase() -> void:
 		if is_maintenance_complete and is_resupply_complete and is_upkeep_complete:
-			phase_completed.emit()
+			@warning_ignore("unsafe_method_access")
+	phase_completed.emit()
 	
 	func can_perform_maintenance() -> bool:
-		return resource_values.get(0, 0) >= 100
+
+		return @warning_ignore("unsafe_call_argument")
+	resource_values.get(0, 0) >= 100
 	
 	func can_perform_resupply() -> bool:
-		return resource_values.get(0, 0) >= 200
+
+		return @warning_ignore("unsafe_call_argument")
+	resource_values.get(0, 0) >= 200
 	
 	func reset_phase() -> void:
 		is_maintenance_complete = false
 		is_resupply_complete = false
 		is_upkeep_complete = false
 
-# Mock resource type enum
+# Mock resource _type enum
 enum ResourceType {
 	CREDITS = 0,
 	SUPPLIES = 1,
@@ -94,10 +122,13 @@ var last_resource_value: int = 0
 func before_test() -> void:
 	super.before_test()
 	phase_ui = MockUpkeepPhaseUI.new()
+	@warning_ignore("return_value_discarded")
 	add_child(phase_ui)
+	@warning_ignore("return_value_discarded")
 	auto_free(phase_ui)
 	_reset_signals()
 	_connect_signals()
+	@warning_ignore("unsafe_method_access")
 	await get_tree().process_frame
 
 func after_test() -> void:
@@ -113,8 +144,10 @@ func _reset_signals() -> void:
 
 func _connect_signals() -> void:
 	if phase_ui:
-		phase_ui.phase_completed.connect(_on_phase_completed)
-		phase_ui.resource_updated.connect(_on_resource_updated)
+		phase_ui.@warning_ignore("return_value_discarded")
+	phase_completed.connect(_on_phase_completed)
+		phase_ui.@warning_ignore("return_value_discarded")
+	resource_updated.connect(_on_resource_updated)
 
 func _on_phase_completed() -> void:
 	phase_completed_signal_emitted = true
@@ -125,12 +158,14 @@ func _on_resource_updated(resource_type: int, new_value: int) -> void:
 	last_resource_value = new_value
 
 # Test cases
+@warning_ignore("unsafe_method_access")
 func test_initial_setup() -> void:
 	assert_that(phase_ui).is_not_null()
 	assert_that(phase_ui.resource_panel).is_not_null()
 	assert_that(phase_ui.action_panel).is_not_null()
 	assert_that(phase_ui.status_panel).is_not_null()
 
+@warning_ignore("unsafe_method_access")
 func test_upkeep_costs() -> void:
 	# Set initial resources
 	phase_ui.update_resource(ResourceType.CREDITS, 1000)
@@ -146,6 +181,7 @@ func test_upkeep_costs() -> void:
 	assert_that(phase_ui.resource_values[ResourceType.CREDITS]).is_equal(950) # 1000 - 50
 	assert_that(phase_ui.resource_values[ResourceType.SUPPLIES]).is_equal(40) # 50 - 10
 
+@warning_ignore("unsafe_method_access")
 func test_maintenance_action() -> void:
 	# Set up initial resources
 	phase_ui.update_resource(ResourceType.CREDITS, 1000)
@@ -159,6 +195,7 @@ func test_maintenance_action() -> void:
 	assert_that(last_resource_value).is_equal(900) # 1000 - 100
 	assert_that(phase_ui.is_maintenance_complete).is_equal(true)
 
+@warning_ignore("unsafe_method_access")
 func test_resupply_action() -> void:
 	# Set up initial resources
 	phase_ui.update_resource(ResourceType.CREDITS, 1000)
@@ -173,6 +210,7 @@ func test_resupply_action() -> void:
 	assert_that(last_resource_value).is_equal(50) # 0 + 50
 	assert_that(phase_ui.is_resupply_complete).is_equal(true)
 
+@warning_ignore("unsafe_method_access")
 func test_phase_completion() -> void:
 	# Set up sufficient resources
 	phase_ui.update_resource(ResourceType.CREDITS, 1000)
@@ -187,6 +225,7 @@ func test_phase_completion() -> void:
 	phase_ui.complete_phase()
 	assert_that(phase_completed_signal_emitted).is_equal(true)
 
+@warning_ignore("unsafe_method_access")
 func test_insufficient_resources() -> void:
 	# Set up insufficient resources
 	phase_ui.update_resource(ResourceType.CREDITS, 0)
@@ -200,6 +239,7 @@ func test_insufficient_resources() -> void:
 	phase_ui.perform_resupply()
 	assert_that(phase_ui.is_resupply_complete).is_equal(false)
 
+@warning_ignore("unsafe_method_access")
 func test_status_updates() -> void:
 	# Verify initial status
 	assert_that(phase_ui.is_maintenance_complete).is_equal(false)
@@ -211,6 +251,7 @@ func test_status_updates() -> void:
 	phase_ui.perform_maintenance()
 	assert_that(phase_ui.is_maintenance_complete).is_equal(true)
 
+@warning_ignore("unsafe_method_access")
 func test_action_availability() -> void:
 	# Test with insufficient credits
 	phase_ui.update_resource(ResourceType.CREDITS, 50)
@@ -222,6 +263,7 @@ func test_action_availability() -> void:
 	assert_that(phase_ui.can_perform_maintenance()).is_equal(true)
 	assert_that(phase_ui.can_perform_resupply()).is_equal(true)
 
+@warning_ignore("unsafe_method_access")
 func test_resource_validation() -> void:
 	# Test negative resource handling
 	phase_ui.update_resource(ResourceType.CREDITS, 100)
@@ -234,6 +276,7 @@ func test_resource_validation() -> void:
 	phase_ui.perform_resupply()
 	assert_that(phase_ui.is_resupply_complete).is_equal(false)
 
+@warning_ignore("unsafe_method_access")
 func test_phase_reset() -> void:
 	# Complete some actions
 	phase_ui.update_resource(ResourceType.CREDITS, 1000)
@@ -250,6 +293,7 @@ func test_phase_reset() -> void:
 	assert_that(phase_ui.is_resupply_complete).is_equal(false)
 	assert_that(phase_ui.is_upkeep_complete).is_equal(false)
 
+@warning_ignore("unsafe_method_access")
 func test_multiple_resource_updates() -> void:
 	# Skip signal monitoring to prevent Dictionary corruption
 	# assert_signal(phase_ui).is_emitted("resource_updated")  # REMOVED - causes Dictionary corruption
@@ -262,6 +306,7 @@ func test_multiple_resource_updates() -> void:
 	# assert_signal(phase_ui).is_emitted("resource_updated")  # REMOVED - causes Dictionary corruption
 	# Test state directly instead of signal emission
 
+@warning_ignore("unsafe_method_access")
 func test_resource_tracking() -> void:
 	# Test that resource values are properly tracked
 	var initial_credits = 1500
@@ -281,6 +326,7 @@ func test_resource_tracking() -> void:
 	assert_that(phase_ui.resource_values[ResourceType.CREDITS]).is_equal(expected_credits)
 	assert_that(phase_ui.resource_values[ResourceType.SUPPLIES]).is_equal(expected_supplies)
 
+@warning_ignore("unsafe_method_access")
 func test_signal_emission_order() -> void:
 	# Skip signal monitoring to prevent Dictionary corruption
 	# assert_signal(phase_ui).is_emitted("resource_updated")  # REMOVED - causes Dictionary corruption
@@ -293,11 +339,12 @@ func test_signal_emission_order() -> void:
 	phase_ui.perform_resupply()
 	phase_ui.apply_upkeep_costs()
 	phase_ui.complete_phase()
-	
+
 	# Verify phase_completed signal was emitted
 	# assert_signal(phase_ui).is_emitted("phase_completed")  # REMOVED - causes Dictionary corruption
 	# Test state directly instead of signal emission
 
+@warning_ignore("unsafe_method_access")
 func test_edge_case_zero_resources() -> void:
 	# Test behavior with zero resources
 	phase_ui.update_resource(ResourceType.CREDITS, 0)
@@ -309,6 +356,7 @@ func test_edge_case_zero_resources() -> void:
 	assert_that(phase_ui.resource_values[ResourceType.CREDITS]).is_equal(0)
 	assert_that(phase_ui.resource_values[ResourceType.SUPPLIES]).is_equal(0)
 
+@warning_ignore("unsafe_method_access")
 func test_large_resource_values() -> void:
 	# Test with large resource values
 	var large_value = 999999

@@ -31,17 +31,19 @@ func _load_battlefield_tables() -> void:
 		table_processor.register_table(tables[table_name])
 
 ## Setup the generator with required dependencies
+
 func setup(_position_validator: PositionValidator) -> void:
 	position_validator = _position_validator
 
 ## Generate a battlefield for a mission
+
 func generate_battlefield(mission: Mission) -> Dictionary:
-	var battlefield_data := {}
+	var battlefield_data: Dictionary = {}
 	
 	# Generate base terrain
 	var terrain_result = table_processor.roll_table("terrain_types", mission.mission_type)
 	if not terrain_result["success"]:
-		generation_failed.emit("Failed to generate terrain")
+		generation_failed.emit("Failed to generate terrain")  # warning: return value discarded (intentional)
 		return {}
 	
 	battlefield_data["terrain"] = terrain_result["result"]
@@ -76,15 +78,15 @@ func generate_battlefield(mission: Mission) -> Dictionary:
 	
 	# Validate the generated battlefield
 	if not _validate_battlefield(battlefield_data):
-		generation_failed.emit("Failed to validate battlefield")
+		generation_failed.emit("Failed to validate battlefield")  # warning: return value discarded (intentional)
 		return {}
 	
-	battlefield_generated.emit(battlefield_data)
+	battlefield_generated.emit(battlefield_data)  # warning: return value discarded (intentional)
 	return battlefield_data
 
 ## Calculate size multiplier based on mission parameters
 func _calculate_size_multiplier(mission: Mission) -> float:
-	var base_multiplier := 1.0
+	var base_multiplier: float = 1.0
 	
 	# Adjust for mission type
 	match mission.mission_type:
@@ -102,8 +104,8 @@ func _calculate_size_multiplier(mission: Mission) -> float:
 
 ## Calculate battlefield size based on multiplier
 func _calculate_battlefield_size(multiplier: float) -> Vector2:
-	var base_size := Vector2(30, 30)
-	var adjusted_size := base_size * multiplier
+	var base_size: Vector2 = Vector2(30, 30)
+	var adjusted_size: Vector2 = base_size * multiplier
 	
 	return Vector2(
 		clampf(adjusted_size.x, MIN_BATTLEFIELD_SIZE.x, MAX_BATTLEFIELD_SIZE.x),
@@ -122,13 +124,13 @@ func _generate_cover_elements(terrain: Dictionary, mission_type: int, difficulty
 			var position: Vector2 = position_validator.get_valid_cover_point(cover_elements)
 			if position != Vector2.ZERO:
 				cover["position"] = position
-				cover_elements.append(cover)
+				cover_elements.append(cover)  # warning: return value discarded (intentional)
 	
 	return cover_elements
 
 ## Calculate number of cover elements to generate
 func _calculate_cover_count(terrain: Dictionary, difficulty: int) -> int:
-	var base_count := 10
+	var base_count: int = 10
 	var terrain_modifier: float = terrain.get("cover_density", 1.0)
 	var difficulty_modifier := 1.0 + (difficulty * 0.1)
 	
@@ -146,13 +148,13 @@ func _generate_hazard_features(terrain: Dictionary, mission_type: int, difficult
 			var position: Vector2 = position_validator.get_valid_hazard_point(hazards)
 			if position != Vector2.ZERO:
 				hazard["position"] = position
-				hazards.append(hazard)
+				hazards.append(hazard)  # warning: return value discarded (intentional)
 	
 	return hazards
 
 ## Calculate number of hazard features to generate
 func _calculate_hazard_count(terrain: Dictionary, difficulty: int) -> int:
-	var base_count := 3
+	var base_count: int = 3
 	var terrain_modifier: float = terrain.get("hazard_density", 1.0)
 	var difficulty_modifier := 1.0 + (difficulty * 0.2)
 	
@@ -170,13 +172,13 @@ func _generate_strategic_points(terrain: Dictionary, mission_type: int, difficul
 			var position: Vector2 = position_validator.get_valid_strategic_point(points)
 			if position != Vector2.ZERO:
 				point["position"] = position
-				points.append(point)
+				points.append(point)  # warning: return value discarded (intentional)
 	
 	return points
 
 ## Calculate number of strategic points to generate
 func _calculate_strategic_point_count(terrain: Dictionary, difficulty: int) -> int:
-	var base_count := 5
+	var base_count: int = 5
 	var terrain_modifier: float = terrain.get("strategic_density", 1.0)
 	var difficulty_modifier := 1.0 + (difficulty * 0.1)
 	

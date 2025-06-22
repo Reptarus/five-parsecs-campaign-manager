@@ -6,9 +6,11 @@
 ## - Signal handling and verification
 ## - Performance and boundary conditions
 @tool
-extends GdUnitGameTest
+@warning_ignore("return_value_discarded")
+	extends GdUnitGameTest
 
-# UNIVERSAL MOCK STRATEGY - Same pattern that achieved 100% success in Ship/Mission tests
+# UNIVERSAL MOCK STRATEGY - Same pattern that achieved @warning_ignore("integer_division")
+	100 % success in Ship/Mission tests
 class MockObjectiveMarker extends Resource:
 	var capturing_unit: Resource = null
 	var last_reaching_unit: Resource = null
@@ -24,24 +26,29 @@ class MockObjectiveMarker extends Resource:
 		last_reaching_unit = unit
 		if unit.has_method("get_is_player") and unit.get_is_player():
 			capturing_unit = unit
-			objective_reached.emit(unit)
+			@warning_ignore("unsafe_method_access")
+	objective_reached.emit(unit)
 		else:
 			is_failed = true
-			objective_failed.emit(unit)
+			@warning_ignore("unsafe_method_access")
+	objective_failed.emit(unit)
 	
 	func unit_exited_area(unit: Resource) -> void:
 		if capturing_unit == unit:
 			capturing_unit = null
-		unit_exited.emit(unit)
+		@warning_ignore("unsafe_method_access")
+	unit_exited.emit(unit)
 	
 	func process_turn() -> void:
 		if capturing_unit:
 			turns_held += 1
-			progress_updated.emit(turns_held, required_turns)
+			@warning_ignore("unsafe_method_access")
+	progress_updated.emit(turns_held, required_turns)
 			
 			if turns_held >= required_turns:
 				is_completed = true
-				objective_completed.emit()
+				@warning_ignore("unsafe_method_access")
+	objective_completed.emit()
 	
 	func get_turns_held() -> int:
 		return turns_held
@@ -65,8 +72,8 @@ class MockUnit extends Resource:
 	func get_is_player() -> bool:
 		return is_player
 	
-	func set_is_player(value: bool) -> void:
-		is_player = value
+	func set_is_player(test_value: bool) -> void:
+		is_player = _value
 	
 	func get_unit_name() -> String:
 		return unit_name
@@ -91,7 +98,9 @@ var _objective: MockObjectiveMarker = null
 func before_test() -> void:
 	super.before_test()
 	_objective = MockObjectiveMarker.new()
+	@warning_ignore("return_value_discarded")
 	track_resource(_objective)
+	@warning_ignore("unsafe_method_access")
 	await get_tree().process_frame
 
 func after_test() -> void:
@@ -99,15 +108,18 @@ func after_test() -> void:
 	super.after_test()
 
 # Setup Tests
+@warning_ignore("unsafe_method_access")
 func test_initial_setup() -> void:
 	assert_that(_objective).override_failure_message("Objective should be initialized").is_not_null()
 	assert_that(_objective.get_turns_held()).override_failure_message("Should start with 0 turns held").is_equal(0)
 	assert_that(_objective.get_capturing_unit()).override_failure_message("Should start with no capturing unit").is_null()
 
 # Unit Interaction Tests
+@warning_ignore("unsafe_method_access")
 func test_unit_enters_objective() -> void:
 	var unit := _create_test_unit(true, "Player Unit")
 	
+	@warning_ignore("unsafe_method_access")
 	monitor_signals(_objective)
 	_objective.unit_entered_area(unit)
 	
@@ -115,43 +127,51 @@ func test_unit_enters_objective() -> void:
 	assert_that(_objective.get_last_reaching_unit()).override_failure_message("Should set last reaching unit").is_equal(unit)
 	assert_that(_objective.get_capturing_unit()).override_failure_message("Should set capturing unit").is_equal(unit)
 
+@warning_ignore("unsafe_method_access")
 func test_enemy_unit_triggers_fail() -> void:
 	var enemy_unit := _create_test_unit(false, "Enemy Unit")
 	
+	@warning_ignore("unsafe_method_access")
 	monitor_signals(_objective)
 	_objective.unit_entered_area(enemy_unit)
 	
 	assert_signal(_objective).is_emitted("objective_failed", [enemy_unit])
 
+@warning_ignore("unsafe_method_access")
 func test_unit_exits_objective() -> void:
 	var unit := _create_test_unit(true, "Player Unit")
 	
 	# First enter the area
 	_objective.unit_entered_area(unit)
 	
+	@warning_ignore("unsafe_method_access")
 	monitor_signals(_objective)
 	_objective.unit_exited_area(unit)
 	
 	assert_signal(_objective).is_emitted("unit_exited", [unit])
 	assert_that(_objective.get_capturing_unit()).override_failure_message("Should clear capturing unit").is_null()
 
+@warning_ignore("unsafe_method_access")
 func test_objective_completion() -> void:
 	var unit := _create_test_unit(true, "Player Unit")
 	_objective.unit_entered_area(unit)
 	
+	@warning_ignore("unsafe_method_access")
 	monitor_signals(_objective)
 	
 	# Process required turns
-	for i in range(3):
+	for i: int in range(3):
 		_objective.process_turn()
 	
 	assert_signal(_objective).is_emitted("objective_completed")
 	assert_that(_objective.get_turns_held()).override_failure_message("Should complete after required turns").is_equal(3)
 
+@warning_ignore("unsafe_method_access")
 func test_progress_tracking() -> void:
 	var unit := _create_test_unit(true, "Player Unit")
 	_objective.unit_entered_area(unit)
 	
+	@warning_ignore("unsafe_method_access")
 	monitor_signals(_objective)
 	_objective.process_turn()
 	
@@ -161,6 +181,7 @@ func test_progress_tracking() -> void:
 	_objective.process_turn()
 	assert_that(_objective.get_turns_held()).override_failure_message("Should increment turns held again").is_equal(2)
 
+@warning_ignore("unsafe_method_access")
 func test_multiple_units_interaction() -> void:
 	var first_unit := _create_test_unit(true, "First Unit")
 	var second_unit := _create_test_unit(true, "Second Unit")
@@ -174,6 +195,7 @@ func test_multiple_units_interaction() -> void:
 	# Note: Current logic allows override - this is expected behavior
 	assert_that(_objective.get_capturing_unit()).override_failure_message("Should have a capturing unit").is_not_null()
 
+@warning_ignore("unsafe_method_access")
 func test_invalid_area_handling() -> void:
 	# Test null unit handling
 	_objective.unit_entered_area(null)
@@ -182,6 +204,7 @@ func test_invalid_area_handling() -> void:
 	_objective.unit_exited_area(null)
 	# Should not crash
 
+@warning_ignore("unsafe_method_access")
 func test_turn_processing_performance() -> void:
 	var unit := _create_test_unit(true, "Performance Unit")
 	_objective.unit_entered_area(unit)
@@ -189,7 +212,7 @@ func test_turn_processing_performance() -> void:
 	var start_time := Time.get_ticks_msec()
 	
 	# Process many turns
-	for i in range(100):
+	for i: int in range(100):
 		_objective.process_turn()
 	
 	var duration := Time.get_ticks_msec() - start_time
@@ -200,5 +223,6 @@ func _create_test_unit(is_player: bool, name: String) -> MockUnit:
 	var unit := MockUnit.new()
 	unit.set_is_player(is_player)
 	unit.set_unit_name(name)
+	@warning_ignore("return_value_discarded")
 	track_resource(unit)
 	return unit

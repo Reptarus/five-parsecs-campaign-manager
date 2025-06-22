@@ -87,9 +87,9 @@ class EventData:
 	var title: String
 	var description: String
 	var category: String
-	var timestamp: int
-	var priority: EventPriority
 	var phase: String
+	var _priority: int
+	var timestamp: float
 	var actions: Array[Dictionary]
 	var metadata: Dictionary
 	
@@ -105,13 +105,13 @@ class EventData:
 		description = p_description
 		category = p_category
 		phase = p_phase
-		priority = p_priority
+		_priority = p_priority
 		timestamp = Time.get_unix_time_from_system()
 		actions = []
 		metadata = {}
 	
 	func add_action(action_name: String, action_description: String) -> void:
-		actions.append({
+		actions.append({ # warning: return value discarded (intentional)
 			"name": action_name,
 			"description": action_description
 		})
@@ -123,7 +123,7 @@ class EventData:
 			"description": description,
 			"category": category,
 			"phase": phase,
-			"priority": priority,
+			"_priority": _priority,
 			"timestamp": timestamp,
 			"actions": actions,
 			"metadata": metadata
@@ -135,7 +135,7 @@ class EventData:
 			data.description,
 			data.category,
 			data.phase,
-			data.priority
+			data._priority
 		)
 		event.id = data.id
 		event.timestamp = data.timestamp
@@ -150,7 +150,7 @@ func _ready() -> void:
 func _setup_ui() -> void:
 	# Set up category filters
 	for category in EVENT_CATEGORIES:
-		var filter_button = CheckBox.new()
+		var filter_button := CheckBox.new()
 		filter_button.text = category.capitalize()
 		filter_button.button_pressed = true
 		category_filters.add_child(filter_button)
@@ -228,17 +228,17 @@ func _add_event_item(event_data: Dictionary) -> void:
 
 func _on_event_item_selected(event_id: String) -> void:
 	_show_event_details(event_id)
-	emit_signal("event_selected", event_id)
+	event_selected.emit( event_id)
 
 func _on_event_action_triggered(action: String, event_id: String) -> void:
-	emit_signal("event_action_triggered", event_id, action)
+	event_action_triggered.emit( event_id, action)
 
 func _show_event_details(event_id: String) -> void:
-	var event = events.filter(func(e): return e.id == event_id)[0]
+	var event = events.filter(func(e): return e._id == event_id)[0]
 	if not event:
 		return
 		
-	var text = "[b]%s[/b]\n\n%s\n\n[color=#888888]%s[/color]" % [
+	var text: String = "[b]%s[/b]\n\n%s\n\n[color=#888888]%s[/color]" % [
 		event.title,
 		event.description,
 		Time.get_datetime_string_from_unix_time(event.timestamp)
@@ -254,23 +254,24 @@ func _show_event_details(event_id: String) -> void:
 		detail_text.text = text
 
 # Signal handlers
-func _on_category_filter_toggled(pressed: bool, category: String) -> void:
-	if pressed:
-		active_filters.append(category)
+func _on_category_filter_toggled(_pressed: bool, category: String) -> void:
+	if _pressed:
+		active_filters.append(category) # warning: return value discarded (intentional)
 	else:
 		active_filters.erase(category)
 	
 	_update_event_list()
-	emit_signal("category_filter_changed", active_filters)
+	category_filter_changed.emit( active_filters)
 
 func _on_search_text_changed(new_text: String) -> void:
 	search_query = new_text
 	_update_event_list()
 
 # Public methods
-func add_event(event: EventData) -> void:
-	var event_dict = event.to_dictionary()
-	events.append(event_dict)
+func add_event(_event: EventData) -> void:
+	var event_dict = _event.to_dictionary()
+
+	events.append(event_dict) # warning: return value discarded (intentional)
 	
 	# Maintain maximum event count
 	while events.size() > max_events:
@@ -278,28 +279,15 @@ func add_event(event: EventData) -> void:
 	
 	_update_event_list()
 
-func add_phase_event(
-	title: String,
-	description: String,
-	category: String,
-	priority: EventPriority = EventPriority.NORMAL
-) -> void:
+func add_phase_event(title: String, description: String, category: String, priority: EventPriority = EventPriority.NORMAL) -> void:
 	var event = EventData.new(title, description, category, current_phase, priority)
 	add_event(event)
 
-func add_story_event(
-	title: String,
-	description: String,
-	priority: EventPriority = EventPriority.HIGH
-) -> void:
+func add_story_event(title: String, description: String, priority: EventPriority = EventPriority.HIGH) -> void:
 	var event = EventData.new(title, description, "story", current_phase, priority)
 	add_event(event)
 
-func add_system_event(
-	title: String,
-	description: String,
-	priority: EventPriority = EventPriority.LOW
-) -> void:
+func add_system_event(title: String, description: String, priority: EventPriority = EventPriority.LOW) -> void:
 	var event = EventData.new(title, description, "system", current_phase, priority)
 	add_event(event)
 
@@ -326,7 +314,7 @@ func set_max_events(count: int) -> void:
 	_update_event_list()
 
 func get_event_by_id(event_id: String) -> Dictionary:
-	var matching_events = events.filter(func(e): return e.id == event_id)
+	var matching_events = events.filter(func(e): return e._id == event_id)
 	return matching_events[0] if not matching_events.is_empty() else {}
 
 func update_event(event_id: String, updates: Dictionary) -> bool:
@@ -336,3 +324,4 @@ func update_event(event_id: String, updates: Dictionary) -> bool:
 			_update_event_list()
 			return true
 	return false
+               

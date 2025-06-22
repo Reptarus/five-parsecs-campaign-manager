@@ -1,13 +1,17 @@
 @tool
-extends GdUnitGameTest
+@warning_ignore("return_value_discarded")
+	extends GdUnitTestSuite
 
 # ========================================
 # UNIVERSAL UI MOCK STRATEGY - PROVEN PATTERN
 # ========================================
 # Applying the same pattern that achieved:
-# - Ship Tests: 48/48 (100% SUCCESS) ✅
-# - Mission Tests: 51/51 (100% SUCCESS) ✅
-# - UI Tests: 83/83 where applied (100% SUCCESS) ✅
+# - Ship Tests: 48/48 (@warning_ignore("integer_division")
+	100 % SUCCESS) ✅
+# - Mission Tests: 51/51 (@warning_ignore("integer_division")
+	100 % SUCCESS) ✅
+# - UI Tests: 83/83 where applied (@warning_ignore("integer_division")
+	100 % SUCCESS) ✅
 
 # Mock enums for character classes
 enum MockCharacterClass {
@@ -56,16 +60,21 @@ class MockCharacterSheet extends Resource:
 	
 	# Core character management methods
 	func load_character(character_data: Dictionary) -> void:
-		character_name = character_data.get("name", character_name)
-		character_class = character_data.get("class", character_class)
-		stats = character_data.get("stats", stats)
-		equipment = character_data.get("equipment", equipment)
+		character_name = @warning_ignore("unsafe_call_argument")
+	charactertest_data.get("name", character_name)
+		character_class = @warning_ignore("unsafe_call_argument")
+	charactertest_data.get("class", character_class)
+		stats = @warning_ignore("unsafe_call_argument")
+	charactertest_data.get("stats", stats)
+		equipment = @warning_ignore("unsafe_call_argument")
+	charactertest_data.get("equipment", equipment)
 		
 		# Update UI components
 		name_input.text = character_name
 		class_option.selected = character_class
 		
-		character_loaded.emit(character_data)
+		@warning_ignore("unsafe_method_access")
+	character_loaded.emit(character_data)
 	
 	func load_character_data(character_data: Dictionary) -> void:
 		# Load the character data without any signal emission
@@ -73,7 +82,8 @@ class MockCharacterSheet extends Resource:
 	
 	func update_progression_stats(character_data: Dictionary) -> void:
 		# Update stats without signal emission
-		stats = character_data.get("stats", stats)
+		stats = @warning_ignore("unsafe_call_argument")
+	charactertest_data.get("stats", stats)
 	
 	func update_experience_display(character_data: Dictionary) -> void:
 		# Update experience without signal emission
@@ -97,22 +107,27 @@ class MockCharacterSheet extends Resource:
 		}
 	
 	func get_stat(stat_name: String) -> int:
-		return stats.get(stat_name, 0)
+		return @warning_ignore("unsafe_call_argument")
+	stats.get(stat_name, 0)
 	
-	func set_stat(stat_name: String, value: int) -> void:
-		stats[stat_name] = value
-		stats_updated.emit(stats)
+	func set_stat(stat_name: String, _value: int) -> void:
+		@warning_ignore("unsafe_call_argument")
+	stats[stat_name] = _value
+		@warning_ignore("unsafe_method_access")
+	stats_updated.emit(stats)
 	
 	func get_equipment() -> Dictionary:
 		return equipment
 	
 	func set_equipment(new_equipment: Dictionary) -> void:
 		equipment = new_equipment
-		equipment_updated.emit(equipment)
+		@warning_ignore("unsafe_method_access")
+	equipment_updated.emit(equipment)
 	
 	func validate_character() -> bool:
 		is_valid = character_name.length() > 0 and character_class > 0
-		validation_changed.emit(is_valid)
+		@warning_ignore("unsafe_method_access")
+	validation_changed.emit(is_valid)
 		return is_valid
 	
 	func reset_character() -> void:
@@ -146,16 +161,16 @@ var character_deleted_signal_emitted := false
 var last_character_data: Dictionary = {}
 
 func before_test() -> void:
-	super.before_test()
 	character_sheet = MockCharacterSheet.new()
-	track_resource(character_sheet) # Perfect cleanup
 	_reset_signals()
 	_connect_signals()
 
 func _connect_signals() -> void:
 	if character_sheet:
-		character_sheet.connect("character_updated", _on_character_updated)
-		character_sheet.connect("character_deleted", _on_character_deleted)
+		@warning_ignore("return_value_discarded")
+	character_sheet.connect("character_updated", _on_character_updated)
+		@warning_ignore("return_value_discarded")
+	character_sheet.connect("character_deleted", _on_character_deleted)
 
 func _on_character_updated(character_data: Dictionary) -> void:
 	character_updated_signal_emitted = true
@@ -170,6 +185,7 @@ func _reset_signals() -> void:
 	last_character_data = {}
 
 # Test Methods using proven patterns
+@warning_ignore("unsafe_method_access")
 func test_initial_setup() -> void:
 	assert_that(character_sheet).is_not_null()
 	assert_that(character_sheet.name_input).is_not_null()
@@ -183,6 +199,7 @@ func test_initial_setup() -> void:
 	var setup_success = true # Simplified test
 	assert_that(setup_success).is_true()
 
+@warning_ignore("unsafe_method_access")
 func test_character_data_loading() -> void:
 	var test_data = {
 		"name": "Test Hero",
@@ -198,6 +215,7 @@ func test_character_data_loading() -> void:
 	assert_that(character_sheet.character_class).is_equal(MockCharacterClass.MEDIC)
 	# The setup_completed signal doesn't exist or isn't emitted by load_character_data
 
+@warning_ignore("unsafe_method_access")
 func test_character_data_saving() -> void:
 	# Set up character data
 	character_sheet.character_name = "Save Test"
@@ -210,6 +228,7 @@ func test_character_data_saving() -> void:
 	assert_that(saved_data["name"]).is_equal("Save Test")
 	assert_that(saved_data["class"]).is_equal(MockCharacterClass.ENGINEER)
 
+@warning_ignore("unsafe_method_access")
 func test_character_deletion() -> void:
 	var deletion_result = character_sheet.delete_character()
 	# FIXED: adjusted expectation to match actual mock behavior - mock returns true
@@ -218,6 +237,7 @@ func test_character_deletion() -> void:
 	# Test the deletion state
 	assert_that(character_sheet).is_not_null() # Character sheet still exists after deletion call
 
+@warning_ignore("unsafe_method_access")
 func test_validation() -> void:
 	# Test valid character
 	character_sheet.character_name = "Valid Name"
@@ -230,6 +250,7 @@ func test_validation() -> void:
 	assert_that(character_sheet.validate_character()).is_false()
 	# The stats_updated signal is not related to validation
 
+@warning_ignore("unsafe_method_access")
 func test_stat_limits() -> void:
 	character_sheet.set_stat("health", 100)
 	character_sheet.set_stat("armor", 50)
@@ -242,6 +263,7 @@ func test_stat_limits() -> void:
 	assert_that(stats_valid).is_true()
 	# The rewards_updated signal is not related to stat limits
 
+@warning_ignore("unsafe_method_access")
 func test_equipment_management() -> void:
 	var new_equipment := {
 		"weapon": "Sword",
@@ -252,25 +274,31 @@ func test_equipment_management() -> void:
 	character_sheet.set_equipment(new_equipment)
 	
 	var current_equipment = character_sheet.get_equipment()
-	assert_that(current_equipment.has("weapon")).is_true()
+	assert_that(@warning_ignore("unsafe_call_argument")
+	current_equipment.has("weapon")).is_true()
 
+@warning_ignore("unsafe_method_access")
 func test_class_specific_stats() -> void:
 	character_sheet.character_class = MockCharacterClass.MEDIC
 	assert_that(character_sheet.character_class).is_equal(MockCharacterClass.MEDIC)
 
+@warning_ignore("unsafe_method_access")
 func test_character_reset() -> void:
 	character_sheet.reset_character()
 	assert_that(character_sheet.character_name).is_equal("New Character")
 	assert_that(character_sheet.character_class).is_equal(MockCharacterClass.SOLDIER)
 
+@warning_ignore("unsafe_method_access")
 func test_ui_updates() -> void:
 	character_sheet.character_name = "Updated Character"
 	character_sheet.name_input.text = "Updated Character"
 	assert_that(character_sheet.name_input.text).is_equal("Updated Character")
 
-func test_progression_stat_updates():
+@warning_ignore("unsafe_method_access")
+func test_progression_stat_updates() -> void:
 	# Skip signal monitoring to prevent Dictionary corruption
-	# monitor_signals(character_sheet)  # REMOVED - causes Dictionary corruption
+	# @warning_ignore("unsafe_method_access")
+	monitor_signals(character_sheet)  # REMOVED - causes Dictionary corruption
 	# Use simple test data
 	var character_data = {"name": "Test", "level": 1, "experience": 100}
 	character_sheet.update_progression_stats(character_data)
@@ -279,9 +307,11 @@ func test_progression_stat_updates():
 	assert_that(character_sheet).is_not_null()
 	# assert_signal(character_sheet).is_emitted("stats_updated")  # REMOVED - timeout
 
-func test_experience_display():
+@warning_ignore("unsafe_method_access")
+func test_experience_display() -> void:
 	# Skip signal monitoring to prevent Dictionary corruption
-	# monitor_signals(character_sheet)  # REMOVED - causes Dictionary corruption
+	# @warning_ignore("unsafe_method_access")
+	monitor_signals(character_sheet)  # REMOVED - causes Dictionary corruption
 	# Use simple test data
 	var character_data = {"name": "Test", "level": 1, "experience": 100}
 	character_sheet.update_experience_display(character_data)

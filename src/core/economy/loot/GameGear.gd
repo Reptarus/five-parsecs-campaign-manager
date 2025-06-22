@@ -44,10 +44,13 @@ func initialize_from_id(id: String) -> bool:
 func initialize_from_data(data: Dictionary) -> bool:
 	if data.is_empty():
 		return false
-		
+
 	gear_id = data.get("id", "")
+
 	gear_name = data.get("name", "")
+
 	gear_category = data.get("category", "")
+
 	gear_description = data.get("description", "")
 	
 	# Handle effects data
@@ -58,10 +61,13 @@ func initialize_from_data(data: Dictionary) -> bool:
 		
 		# If there's a single effect, convert it to our format
 		if data.has("effect"):
-			gear_effects.append({
+
+			gear_effects.append({  # warning: return value discarded (intentional)
 				"type": "basic",
+
 				"description": data.get("effect", ""),
-				"value": data.get("value", 0)
+
+				"_value": data.get("_value", 0)
 			})
 	
 	# Handle traits
@@ -74,8 +80,9 @@ func initialize_from_data(data: Dictionary) -> bool:
 	if data.has("cost") and data.cost is Dictionary:
 		gear_cost = data.cost
 	else:
+
 		gear_cost = {"credits": data.get("cost", 0), "rarity": data.get("rarity", "Common")}
-	
+
 	gear_tags = data.get("tags", [])
 	
 	# Handle requirements
@@ -108,9 +115,11 @@ func has_trait(trait_name: String) -> bool:
 	return gear_traits.has(trait_name)
 
 func get_cost() -> int:
+
 	return gear_cost.get("credits", 0)
 
 func get_rarity() -> String:
+
 	return gear_cost.get("rarity", "Common")
 
 func get_tags() -> Array[String]:
@@ -170,7 +179,7 @@ func get_gear_profile() -> Dictionary:
 	}
 
 static func create_from_profile(profile: Dictionary) -> GameGear:
-	var gear = GameGear.new()
+	var gear := GameGear.new()
 	gear.initialize_from_data(profile)
 	return gear
 
@@ -179,32 +188,37 @@ func serialize() -> Dictionary:
 
 func deserialize(data: Dictionary) -> void:
 	initialize_from_data(data)
-
 func apply_effect(character, effect_index: int = 0) -> bool:
 	if effect_index < 0 or effect_index >= gear_effects.size():
 		return false
 		
 	var effect = gear_effects[effect_index]
+
 	var effect_type = effect.get("type", "basic")
 	
 	match effect_type:
 		"stat_boost":
+
 			var stat = effect.get("stat", "")
-			var value = effect.get("value", 0)
+
+			var _value = effect.get("_value", 0)
 			
-			if stat and value != 0:
-				character.modify_stat(stat, value)
+			if stat and _value != 0:
+				character.modify_stat(stat, _value)
 				return true
 				
 		"skill_boost":
+
 			var skill = effect.get("skill", "")
-			var value = effect.get("value", 0)
+
+			var _value = effect.get("_value", 0)
 			
-			if skill and value != 0:
-				character.modify_skill(skill, value)
+			if skill and _value != 0:
+				character.modify_skill(skill, _value)
 				return true
 				
 		"special_ability":
+
 			var ability = effect.get("ability", "")
 			
 			if ability:
@@ -212,6 +226,7 @@ func apply_effect(character, effect_index: int = 0) -> bool:
 				return true
 				
 		"environmental_protection":
+
 			var protection_type = effect.get("protection_type", "")
 			
 			if protection_type:
@@ -225,25 +240,25 @@ func apply_effect(character, effect_index: int = 0) -> bool:
 	return false
 
 func get_value() -> int:
-	var value := 15 # Base value
+	var _value := 15 # Base _value
 	
-	# Add value based on rarity
+	# Add _value based on rarity
 	match get_rarity():
 		"Common":
-			value += 0
+			_value += 0
 		"Uncommon":
-			value += 25
+			_value += 25
 		"Rare":
-			value += 60
+			_value += 60
 		"Very Rare":
-			value += 120
+			_value += 120
 		"Legendary":
-			value += 250
+			_value += 250
 	
-	# Add value for effects
-	value += gear_effects.size() * 20
+	# Add _value for effects
+	_value += gear_effects.size() * 20
 	
-	# Add value for traits
-	value += gear_traits.size() * 15
+	# Add _value for traits
+	_value += gear_traits.size() * 15
 	
-	return value
+	return _value

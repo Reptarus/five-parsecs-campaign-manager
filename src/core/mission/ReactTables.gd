@@ -46,7 +46,6 @@ func _init() -> void:
     _data_manager = GameDataManager.get_instance()
     GameDataManager.ensure_data_loaded()
     _load_data()
-
 func _ready() -> void:
     pass
 
@@ -79,7 +78,7 @@ func generate_enemies(
     mission_type: int,
     location_type: String
 ) -> Array:
-    var enemies = []
+    var enemies: Array = []
     var distribution = _calculate_enemy_distribution(danger_level, mission_type)
     var faction = _determine_enemy_faction(location_type, mission_type)
     
@@ -87,9 +86,9 @@ func generate_enemies(
         for i in range(distribution[enemy_type]):
             var enemy = _create_enemy(enemy_type, faction)
             if enemy:
-                enemies.append(enemy)
+                enemies.append(enemy) # warning: return value discarded (intentional)
     
-    emit_signal("enemies_generated", enemies)
+    enemies_generated.emit( enemies)
     return enemies
 
 ## Generate enemy for specified mission from the rulebook tables
@@ -135,8 +134,8 @@ func _determine_enemy_count(danger_level: int) -> int:
 
 ## Calculate enemy distribution based on the distribution type (rulebook p.125)
 func _calculate_enemy_distribution(danger_level: int, mission_type: int) -> Dictionary:
-    var distribution = {}
-    var table_key = "danger_level_" + str(danger_level)
+    var distribution: Dictionary = {}
+    var table_key: String = "danger_level_" + str(danger_level)
     
     if not _react_tables.has(table_key):
         push_error("Invalid danger level: " + str(danger_level))
@@ -144,7 +143,7 @@ func _calculate_enemy_distribution(danger_level: int, mission_type: int) -> Dict
     
     var base_distribution = _react_tables[table_key].duplicate()
     
-    # Adjust distribution based on mission type
+    # Adjust distribution based on mission _type
     match mission_type:
         GameEnums.MissionType.BLACK_ZONE:
             # Increase difficult enemies for black zone missions
@@ -174,7 +173,7 @@ func _determine_enemy_faction(location_type: String, mission_type: int) -> Strin
     var possible_factions = ["raiders", "military", "criminals", "aliens"]
     var faction = possible_factions[randi() % possible_factions.size()]
     
-    # Adjust faction probability based on mission type
+    # Adjust faction probability based on mission _type
     match mission_type:
         GameEnums.MissionType.PATROL:
             # Patrol missions more likely to encounter raiders
@@ -191,13 +190,13 @@ func _determine_enemy_faction(location_type: String, mission_type: int) -> Strin
             if randf() < 0.8:
                 faction = "military"
     
-    emit_signal("enemy_faction_determined", faction)
+    enemy_faction_determined.emit( faction)
     return faction
 
-## Generate an individual enemy based on type and faction (rulebook p.126-127)
+## Generate an individual enemy based on _type and faction (rulebook p.126-127)
 func _generate_enemy(faction: String, enemy_type: String) -> Dictionary:
     if not _enemy_types.has(enemy_type) or not _enemy_types[enemy_type].has(faction):
-        push_error("Invalid enemy type or faction: " + enemy_type + ", " + faction)
+        push_error("Invalid enemy _type or faction: " + enemy_type + ", " + faction)
         return {}
     
     var enemy_template = _enemy_types[enemy_type][faction].duplicate()
@@ -216,11 +215,11 @@ func _adjust_enemy_stats(enemy: Dictionary) -> void:
 
 ## Add special abilities to enemies based on danger level (rulebook p.127-128)
 func _add_special_abilities(enemies: Array, danger_level: int) -> void:
-    # Only add special abilities at danger level 3+
+    # Only add special abilities at danger _level 3+
     if danger_level < 3:
         return
     
-    # Number of special abilities equals danger level - 2
+    # Number of special abilities equals danger _level - 2
     var num_abilities = danger_level - 2
     
     # Limit to one ability per every 3 enemies
@@ -232,14 +231,14 @@ func _add_special_abilities(enemies: Array, danger_level: int) -> void:
             break
             
         # Select random enemy (prefer elites and leaders)
-        var elite_indices = []
-        var other_indices = []
+        var elite_indices: Array = []
+        var other_indices: Array = []
         
         for j in range(enemies.size()):
             if enemies[j].get("type", "") == "elite" or enemies[j].get("type", "") == "leader":
-                elite_indices.append(j)
+                elite_indices.append(j) # warning: return value discarded (intentional)
             else:
-                other_indices.append(j)
+                other_indices.append(j) # warning: return value discarded (intentional)
         
         var target_index = -1
         if not elite_indices.is_empty():
@@ -253,9 +252,10 @@ func _add_special_abilities(enemies: Array, danger_level: int) -> void:
         var ability = _select_special_ability(enemies[target_index])
         
         # Add ability to enemy
+
         var current_abilities = enemies[target_index].get("special_abilities", [])
         if not ability in current_abilities:
-            current_abilities.append(ability)
+            current_abilities.append(ability) # warning: return value discarded (intentional)
             enemies[target_index]["special_abilities"] = current_abilities
 
 ## Select a special ability appropriate for the enemy (rulebook p.128)
@@ -274,12 +274,14 @@ func _select_special_ability(enemy: Dictionary) -> String:
     ]
     
     # Special case for leaders
+
     if enemy.get("type", "") == "leader":
         # Leader ability is always available for leaders
         if randf() < 0.5:
             return "Leader"
-    
+
     # Remove abilities the enemy already has
+
     var current_abilities = enemy.get("special_abilities", [])
     for ability in current_abilities:
         if ability in abilities:
@@ -305,7 +307,7 @@ func _upgrade_weapon(weapon: String) -> String:
         "Sword": "Power Sword",
         "Knife": "Sword"
     }
-    
+
     return upgrades.get(weapon, weapon)
 
 ## Upgrade armor to a better version
@@ -315,7 +317,7 @@ func _upgrade_armor(armor: String) -> String:
         "Combat Armor": "Powered Armor",
         "Shield": "Energy Shield"
     }
-    
+
     return upgrades.get(armor, armor)
 
 ## Set campaign difficulty modifier
@@ -334,7 +336,7 @@ func _create_enemy(enemy_type: String, faction: String) -> Dictionary:
         return {}
         
     # Find the faction in enemy_categories
-    var faction_found = false
+    var faction_found: bool = false
     var enemy_category = null
     
     for category in _enemy_types.enemy_categories:
@@ -347,21 +349,22 @@ func _create_enemy(enemy_type: String, faction: String) -> Dictionary:
         push_error("Invalid faction: " + faction)
         return {}
     
-    # Find the enemy type in the enemies array
+    # Find the enemy _type in the enemies array
     if not enemy_category.has("enemies"):
         push_error("Invalid enemy category: missing enemies array")
         return {}
         
     var enemy_template = null
     for enemy in enemy_category.enemies:
-        # Match by enemy type category (grunt, elite, boss, etc.)
+        # Match by enemy _type category (grunt, elite, boss, etc.)
         if enemy.get("tags", []).has(enemy_type):
             enemy_template = enemy.duplicate(true)
             break
     
     if not enemy_template:
-        push_error("Enemy type not found: " + enemy_type + " in faction " + faction)
+        push_error("Enemy _type not found: " + enemy_type + " in faction " + faction)
         return {}
     
     _adjust_enemy_stats(enemy_template)
     return enemy_template
+                  

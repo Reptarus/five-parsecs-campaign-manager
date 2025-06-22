@@ -23,7 +23,7 @@ class DiceRoll extends Resource:
 	@export var is_manual: bool = false
 	@export var roll_id: String = ""
 	
-	func _init(p_dice_count: int = 1, p_dice_type: String = "d6", p_modifier: int = 0, p_context: String = ""):
+	func _init(p_dice_count: int = 1, p_dice_type: String = "d6", p_modifier: int = 0, p_context: String = "") -> void:
 		dice_count = p_dice_count
 		dice_type = p_dice_type
 		modifier = p_modifier
@@ -34,14 +34,14 @@ class DiceRoll extends Resource:
 	func get_display_text() -> String:
 		var rolls_text = str(individual_rolls).replace("[", "").replace("]", "")
 		if modifier != 0:
-			var mod_text = "+" + str(modifier) if modifier > 0 else str(modifier)
+			var mod_text: String = "+" + str(modifier) if modifier > 0 else str(modifier)
 			return "%dd%s %s = %s %s = %d" % [dice_count, dice_type.substr(1), mod_text, rolls_text, mod_text, total]
 		else:
 			return "%dd%s = %s = %d" % [dice_count, dice_type.substr(1), rolls_text, total]
 	
 	func get_simple_text() -> String:
 		if modifier != 0:
-			var mod_text = "+" + str(modifier) if modifier > 0 else str(modifier)
+			var mod_text: String = "+" + str(modifier) if modifier > 0 else str(modifier)
 			return "%dd%s%s = %d" % [dice_count, dice_type.substr(1), mod_text, total]
 		else:
 			return "%dd%s = %d" % [dice_count, dice_type.substr(1), total]
@@ -50,9 +50,9 @@ class DiceRoll extends Resource:
 var auto_roll_enabled: bool = true
 var show_animations: bool = true
 var animation_speed: float = 1.0
-var always_show_breakdown: bool = false
+var _always_show_breakdown: bool = false
 var allow_manual_override: bool = true
-var dice_sound_enabled: bool = true
+var _dice_sound_enabled: bool = true
 
 ## Roll history for reference
 var roll_history: Array[DiceRoll] = []
@@ -76,8 +76,8 @@ func roll_dice(pattern: DicePattern, context: String = "", allow_manual: bool = 
 	var dice_roll = _create_dice_roll_for_pattern(pattern, context)
 	
 	if allow_manual and allow_manual_override and not auto_roll_enabled:
-		# Request manual input
-		manual_input_requested.emit(dice_roll)
+		# Request _manual input
+		manual_input_requested.emit(dice_roll) # warning: return value discarded (intentional)
 		return dice_roll
 	else:
 		# Perform automatic roll
@@ -88,7 +88,7 @@ func roll_custom(dice_count: int, dice_sides: int, modifier: int = 0, context: S
 	var dice_roll = DiceRoll.new(dice_count, "d" + str(dice_sides), modifier, context)
 	
 	if allow_manual and allow_manual_override and not auto_roll_enabled:
-		manual_input_requested.emit(dice_roll)
+		manual_input_requested.emit(dice_roll) # warning: return value discarded (intentional)
 		return dice_roll
 	else:
 		return _execute_dice_roll(dice_roll)
@@ -96,7 +96,7 @@ func roll_custom(dice_count: int, dice_sides: int, modifier: int = 0, context: S
 ## Execute the actual dice roll with animation
 func _execute_dice_roll(dice_roll: DiceRoll) -> DiceRoll:
 	if show_animations:
-		dice_animation_started.emit(dice_roll.dice_count, dice_roll.dice_type)
+		dice_animation_started.emit(dice_roll.dice_count, dice_roll.dice_type) # warning: return value discarded (intentional)
 	
 	# Perform the actual rolling
 	dice_roll.individual_rolls.clear()
@@ -127,9 +127,9 @@ func _execute_dice_roll(dice_roll: DiceRoll) -> DiceRoll:
 	_add_to_history(dice_roll)
 	
 	# Emit signals
-	dice_rolled.emit(dice_roll)
+	dice_rolled.emit(dice_roll) # warning: return value discarded (intentional)
 	if show_animations:
-		dice_animation_completed.emit(dice_roll)
+		dice_animation_completed.emit(dice_roll) # warning: return value discarded (intentional)
 	
 	return dice_roll
 
@@ -140,7 +140,7 @@ func input_manual_result(dice_roll: DiceRoll, manual_rolls: Array[int]) -> DiceR
 	dice_roll.is_manual = true
 	
 	_add_to_history(dice_roll)
-	dice_rolled.emit(dice_roll)
+	dice_rolled.emit(dice_roll) # warning: return value discarded (intentional)
 	
 	return dice_roll
 
@@ -191,99 +191,98 @@ func roll_2d6(context: String = "") -> int:
 	var result = roll_custom(2, 6, 0, context)
 	return result.total
 
-func roll_attribute() -> int:
-	var result = roll_dice(DicePattern.ATTRIBUTE, "Character Attribute Generation")
-	# Apply Five Parsecs attribute calculation: 2d6/3 rounded up
-	var sum = result.individual_rolls[0] + result.individual_rolls[1]
-	return ceili(float(sum) / 3.0)
+func roll_attribute(context: String = "") -> int:
+	var result = roll_dice(DicePattern.ATTRIBUTE, context)
+	# For attribute generation: 2d6, divide by 3, round up
+	return int(ceil(float(result.total) / 3.0))
 
-func roll_combat_check(modifier: int = 0, context: String = "Combat Check") -> int:
-	var result = roll_custom(1, 6, modifier, context)
-	return result.total
+## Add roll to history
+func _add_to_history(dice_roll: DiceRoll) -> void:
+	roll_history.append(dice_roll) # warning: return value discarded (intentional)
+	if roll_history.size() > max_history_size:
+		roll_history.pop_front()
 
-func roll_injury_table(context: String = "Injury Roll") -> int:
-	var result = roll_dice(DicePattern.INJURY, context)
-	return result.total
-
-## Batch rolling for multiple dice at once
-func roll_multiple(count: int, pattern: DicePattern, context: String = "") -> Array[DiceRoll]:
-	var results: Array[DiceRoll] = []
-	for i in range(count):
-		var roll_context = context + " (%d/%d)" % [i + 1, count]
-		results.append(roll_dice(pattern, roll_context))
-	return results
-
-## Get formatted roll history for display
-func get_roll_history_text(recent_count: int = 10) -> String:
-	var history_text = "Recent Dice Rolls:\n"
-	var recent_rolls = roll_history.slice(-recent_count) if roll_history.size() > recent_count else roll_history
-	
-	for roll in recent_rolls:
-		var manual_indicator = " (Manual)" if roll.is_manual else ""
-		history_text += "• %s: %s%s\n" % [roll.context, roll.get_simple_text(), manual_indicator]
-	
-	return history_text
+## Get recent rolls
+func get_recent_rolls(count: int = 10) -> Array[DiceRoll]:
+	var recent_count = min(count, roll_history.size())
+	return roll_history.slice(roll_history.size() - recent_count)
 
 ## Clear roll history
 func clear_history() -> void:
 	roll_history.clear()
 
-## Add roll to history with size management
-func _add_to_history(dice_roll: DiceRoll) -> void:
-	roll_history.append(dice_roll)
-	if roll_history.size() > max_history_size:
-		roll_history = roll_history.slice(-max_history_size)
+## Get roll by ID
+func get_roll_by_id(roll_id: String) -> DiceRoll:
+	for roll in roll_history:
+		if roll.roll_id == roll_id:
+			return roll
+	return null
 
-## Get statistics about recent rolls
-func get_roll_statistics(pattern: DicePattern = DicePattern.D6, recent_count: int = 20) -> Dictionary:
-	var recent_rolls = roll_history.slice(-recent_count) if roll_history.size() > recent_count else roll_history
-	var pattern_rolls = recent_rolls.filter(func(roll): return _pattern_matches_roll(pattern, roll))
-	
-	if pattern_rolls.is_empty():
-		return {"count": 0, "average": 0.0, "min": 0, "max": 0}
-	
-	var totals = pattern_rolls.map(func(roll): return roll.total)
-	var sum = totals.reduce(func(a, b): return a + b, 0)
-	
-	return {
-		"count": pattern_rolls.size(),
-		"average": float(sum) / pattern_rolls.size(),
-		"min": totals.min(),
-		"max": totals.max(),
-		"manual_count": pattern_rolls.filter(func(roll): return roll.is_manual).size()
+## Legacy compatibility methods - bridge to existing randi() calls
+func legacy_d6() -> int:
+	return roll_d6("legacy call")
+
+func legacy_d10() -> int:
+	return roll_d10("legacy call")
+
+func legacy_d100() -> int:
+	return roll_d100("legacy call")
+
+func legacy_d66() -> int:
+	return roll_d66("legacy call")
+
+## Configuration methods
+func set_auto_roll(enabled: bool) -> void:
+	auto_roll_enabled = enabled
+
+func set_animations(enabled: bool) -> void:
+	show_animations = enabled
+
+func set_manual_override(enabled: bool) -> void:
+	allow_manual_override = enabled
+
+func set_animation_speed(speed: float) -> void:
+	animation_speed = clamp(speed, 0.1, 3.0)
+
+## Statistics methods
+func get_roll_statistics() -> Dictionary:
+	var stats = {
+		"total_rolls": roll_history.size(),
+		"d6_rolls": 0,
+		"d10_rolls": 0,
+		"d100_rolls": 0,
+		"d66_rolls": 0,
+		"manual_rolls": 0,
+		"average_d6": 0.0,
+		"average_d10": 0.0
 	}
-
-## Check if a pattern matches a roll for statistics
-func _pattern_matches_roll(pattern: DicePattern, roll: DiceRoll) -> bool:
-	match pattern:
-		DicePattern.D6:
-			return roll.dice_type == "d6" and roll.dice_count == 1
-		DicePattern.D10:
-			return roll.dice_type == "d10" and roll.dice_count == 1
-		DicePattern.D66:
-			return roll.dice_type == "d66"
-		DicePattern.D100:
-			return roll.dice_type == "d100"
-		DicePattern.ATTRIBUTE:
-			return roll.dice_type == "d6" and roll.dice_count == 2 and "Attribute" in roll.context
-		_:
-			return false
-
-## Save/load dice system settings
-func save_settings() -> Dictionary:
-	return {
-		"auto_roll_enabled": auto_roll_enabled,
-		"show_animations": show_animations,
-		"animation_speed": animation_speed,
-		"always_show_breakdown": always_show_breakdown,
-		"allow_manual_override": allow_manual_override,
-		"dice_sound_enabled": dice_sound_enabled
-	}
-
-func load_settings(settings: Dictionary) -> void:
-	auto_roll_enabled = settings.get("auto_roll_enabled", true)
-	show_animations = settings.get("show_animations", true)
-	animation_speed = settings.get("animation_speed", 1.0)
-	always_show_breakdown = settings.get("always_show_breakdown", false)
-	allow_manual_override = settings.get("allow_manual_override", true)
-	dice_sound_enabled = settings.get("dice_sound_enabled", true)
+	
+	var d6_sum: int = 0
+	var d6_count: int = 0
+	var d10_sum: int = 0
+	var d10_count: int = 0
+	
+	for roll in roll_history:
+		if roll.is_manual:
+			stats.manual_rolls += 1
+		
+		match roll.dice_type:
+			"d6":
+				stats.d6_rolls += 1
+				d6_sum += roll.total
+				d6_count += 1
+			"d10":
+				stats.d10_rolls += 1
+				d10_sum += roll.total
+				d10_count += 1
+			"d100":
+				stats.d100_rolls += 1
+			"d66":
+				stats.d66_rolls += 1
+	
+	if d6_count > 0:
+		stats.average_d6 = float(d6_sum) / float(d6_count)
+	if d10_count > 0:
+		stats.average_d10 = float(d10_sum) / float(d10_count)
+	
+	return stats

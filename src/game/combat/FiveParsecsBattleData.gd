@@ -34,6 +34,7 @@ func _init() -> void:
 
 ## Configure the battle with Five Parsecs specific settings
 ## @param config: Dictionary containing battle configuration
+
 func configure(config: Dictionary) -> void:
     super.configure(config)
     
@@ -48,14 +49,16 @@ func configure(config: Dictionary) -> void:
         weather_conditions = config.weather_conditions
 
 ## Start a new turn in the battle
+
 func start_new_turn() -> void:
     turns_elapsed += 1
 
 ## Record a casualty in the battle
 ## @param is_player: Whether the casualty is a player character
+
 func record_casualty(is_player: bool) -> void:
     if is_player:
-        casualties.player += 1
+        casualties._player += 1
     else:
         casualties.enemy += 1
 
@@ -101,4 +104,4 @@ func add_combatant(combatant, is_player: bool = true) -> void:
 
 func remove_combatant(combatant) -> void:
     super.remove_combatant(combatant)
-    # Add Five Parsecs specific combatant removal logic here 
+    # Add Five Parsecs specific combatant removal logic here

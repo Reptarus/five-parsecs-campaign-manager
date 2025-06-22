@@ -12,18 +12,21 @@ class_name FPCM_StoryTrackPanel
 @onready var choices_container: VBoxContainer = $VBoxContainer/ChoicesContainer
 @onready var status_label: Label = $VBoxContainer/StatusLabel
 
-# Story system reference
-var story_track_system: FPCM_StoryTrackSystem
-var campaign_manager: Resource # CampaignManager
-var current_event: FPCM_StoryTrackSystem.StoryEvent
+# Manager references from autoloads
+var story_track_system: FPCM_StoryTrackSystem = null
+var campaign_manager: Resource = null # CampaignManager
+var alpha_manager: Node = null
+var dice_manager: Node = null
+var current_event: Resource # StoryEvent
 var is_initialized: bool = false
 
 # Signals
 signal choice_selected(choice: FPCM_StoryTrackSystem.StoryChoice)
 signal story_panel_updated()
 
-func _ready():
-	# Initialize UI state
+func _ready() -> void:
+	# Initialize managers and UI state
+	_initialize_managers()
 	_initialize_ui()
 	is_initialized = true
 
@@ -40,6 +43,7 @@ func _initialize_ui() -> void:
 	_clear_choices()
 
 ## Setup the panel with story track system
+	
 func setup(p_story_system: FPCM_StoryTrackSystem, p_campaign_manager: Resource) -> void:
 	story_track_system = p_story_system
 	campaign_manager = p_campaign_manager
@@ -55,12 +59,11 @@ func setup(p_story_system: FPCM_StoryTrackSystem, p_campaign_manager: Resource) 
 		update_display()
 
 ## Update the display with current story state
+	
 func update_display() -> void:
 	if not story_track_system or not is_initialized:
 		return
-	
 	var status = story_track_system.get_story_track_status()
-	
 	# Update clock and evidence
 	story_clock_label.text = "Clock: %d" % status.get("clock_ticks", 0)
 	evidence_label.text = "Evidence: %d" % status.get("evidence_pieces", 0)
@@ -80,14 +83,14 @@ func update_display() -> void:
 	else:
 		_display_no_event()
 	
-	story_panel_updated.emit()
+	story_panel_updated.emit()  # warning: return value discarded (intentional)
 
 ## Display a story event
 func _display_event(event: FPCM_StoryTrackSystem.StoryEvent) -> void:
 	story_title.text = event.title
 	
 	# Format event description with BBCode
-	var description_text = "[b]%s[/b]\n\n%s" % [event.title, event.description]
+	var description_text: String = "[b]%s[/b]\n\n%s" % [event.title, event.description]
 	
 	# Add evidence requirement info
 	if event.required_evidence > 0:
@@ -99,23 +102,25 @@ func _display_event(event: FPCM_StoryTrackSystem.StoryEvent) -> void:
 	_display_choices(event.choices)
 
 ## Display no active event
+	
 func _display_no_event() -> void:
 	story_title.text = "Story Track"
 	event_description.text = "[i]No active story events[/i]"
 	_clear_choices()
 
 ## Display story choices
+	
 func _display_choices(choices: Array) -> void:
 	_clear_choices()
 	
 	for choice in choices:
-		var choice_button = Button.new()
+		var choice_button := Button.new()
 		choice_button.text = choice.choice_text
 		choice_button.custom_minimum_size = Vector2(0, 40)
 		
 		# Add risk indicator to button text
 		var risk_color = _get_risk_color(choice.risk_level)
-		var button_text = "%s [color=%s](%s risk)[/color]" % [choice.choice_text, risk_color, choice.risk_level]
+		var _button_text: String = "%s [color=%s](%s risk)[/color]" % [choice.choice_text, risk_color, choice.risk_level]
 		choice_button.text = choice.choice_text + " (" + choice.risk_level + " risk)"
 		
 		# Add tooltip with reward information
@@ -132,11 +137,13 @@ func _display_choices(choices: Array) -> void:
 		choices_container.add_child(choice_button)
 
 ## Clear all choice buttons
+	
 func _clear_choices() -> void:
 	for child in choices_container.get_children():
 		child.queue_free()
 
 ## Get color for risk level
+	
 func _get_risk_color(risk_level: String) -> String:
 	match risk_level:
 		"none": return "green"
@@ -157,7 +164,7 @@ func _on_choice_selected(choice: FPCM_StoryTrackSystem.StoryChoice) -> void:
 		button.disabled = true
 	
 	# Emit signal for external handling
-	choice_selected.emit(choice)
+	choice_selected.emit(choice)  # warning: return value discarded (intentional)
 	
 	# Apply choice through campaign manager if available
 	if campaign_manager and campaign_manager.has_method("make_story_choice"):
@@ -174,8 +181,7 @@ func _on_choice_selected(choice: FPCM_StoryTrackSystem.StoryChoice) -> void:
 
 ## Display choice outcome
 func _display_choice_outcome(choice: FPCM_StoryTrackSystem.StoryChoice, outcome: Dictionary) -> void:
-	var outcome_text = ""
-	
+	var outcome_text: String = ""
 	if outcome.get("success", false):
 		outcome_text = "[color=green]✓ Success![/color] " + outcome.get("description", "Choice was successful.")
 	else:
@@ -185,6 +191,7 @@ func _display_choice_outcome(choice: FPCM_StoryTrackSystem.StoryChoice, outcome:
 	event_description.text += "\n\n" + outcome_text
 
 ## Signal handlers for story system events
+	
 func _on_story_event_triggered(event: FPCM_StoryTrackSystem.StoryEvent) -> void:
 	current_event = event
 	update_display()
@@ -210,16 +217,19 @@ func _on_story_track_completed() -> void:
 	status_label.modulate = Color.GOLD
 	
 	# Show completion message
+
 	event_description.text = "[center][b][color=gold]Story Track Completed![/color][/b]\n\nYou have successfully navigated the story and uncovered the truth. Your reputation and resources have been enhanced as a reward for your efforts.[/center]"
 	_clear_choices()
 
 ## Enable/disable the panel
+
 func set_panel_enabled(enabled: bool) -> void:
 	visible = enabled
 	if enabled:
 		update_display()
 
 ## Check if story track is active
+	
 func is_story_track_active() -> bool:
 	if story_track_system:
 		return story_track_system.is_story_track_active
@@ -236,6 +246,46 @@ func refresh_display() -> void:
 	update_display()
 
 ## Set theme for the panel (if needed)
+	
 func apply_story_theme() -> void:
 	# Add any story-specific theming here
 	modulate = Color(1.0, 1.0, 1.0, 0.95) # Slightly transparent for atmospheric effect
+
+## Initialize manager references from autoloads
+	
+func _initialize_managers() -> void:
+	"""Initialize manager references from autoloads"""
+	alpha_manager = get_node("/root/AlphaGameManager") if has_node("/root/AlphaGameManager") else null
+	dice_manager = get_node("/root/DiceManager") if has_node("/root/DiceManager") else null
+	
+	# Get story track system from alpha manager if available
+	if alpha_manager and alpha_manager.has_method("get_story_track_system"):
+		story_track_system = alpha_manager.get_story_track_system()
+	
+	# Get campaign manager if available
+	if alpha_manager and alpha_manager.has_method("get_campaign_manager"):
+		var cm = alpha_manager.get_campaign_manager()
+		if cm:
+			campaign_manager = cm
+	elif has_node("/root/CampaignManager"):
+		var cm = get_node("/root/CampaignManager")
+		if cm:
+			campaign_manager = cm
+
+## Connect to story track system from manager
+	
+func connect_to_story_system() -> void:
+	"""Connect to story track system - called by parent scenes"""
+	if not story_track_system:
+		_initialize_managers()
+	
+	if story_track_system:
+		setup(story_track_system, campaign_manager)
+	else:
+		print("Warning: Story track system not available in StoryTrackPanel")
+
+## Get dice system for external use
+	
+func get_dice_manager() -> Node:
+	"""Get dice manager reference for external systems"""
+	return dice_manager

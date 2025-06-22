@@ -1,12 +1,16 @@
 @tool
-extends GdUnitGameTest
+@warning_ignore("return_value_discarded")
+	extends GdUnitGameTest
 
 ## Battlefield Generator Terrain Tests using UNIVERSAL MOCK STRATEGY
 ##
 ## Applies the proven pattern that achieved:
-## - Ship Tests: 48/48 (100% SUCCESS)
-## - Mission Tests: 51/51 (100% SUCCESS)
-## - Enemy Tests: 66/66 (100% SUCCESS)
+## - Ship Tests: 48/48 (@warning_ignore("integer_division")
+	100 % SUCCESS)
+## - Mission Tests: 51/51 (@warning_ignore("integer_division")
+	100 % SUCCESS)
+## - Enemy Tests: 66/66 (@warning_ignore("integer_division")
+	100 % SUCCESS)
 
 # ========================================
 # UNIVERSAL MOCK STRATEGY - PROVEN PATTERN
@@ -28,9 +32,13 @@ class MockBattlefieldGenerator extends Resource:
 	signal generation_failed(reason: String)
 	
 	func generate_battlefield(config: Dictionary) -> Resource:
-		var battlefield = MockBattlefield.new()
-		battlefield.size = config.get("size", Vector2i(10, 10))
-		battlefield.environment = config.get("environment", GameEnums.PlanetEnvironment.URBAN)
+		var battlefield: MockBattlefield = MockBattlefield.new()
+
+		battlefield.size = @warning_ignore("unsafe_call_argument")
+	config.get("size", Vector2i(10, 10))
+
+		battlefield.environment = @warning_ignore("unsafe_call_argument")
+	config.get("environment", GameEnums.PlanetEnvironment.URBAN)
 		
 		# Generate realistic terrain data
 		battlefield.terrain = _generate_terrain_grid(battlefield.size, battlefield.environment)
@@ -41,19 +49,24 @@ class MockBattlefieldGenerator extends Resource:
 		generated_battlefields[str(config)] = battlefield
 		
 		# Immediate signal emission for reliable testing
-		battlefield_generated.emit(battlefield)
+		@warning_ignore("unsafe_method_access")
+	battlefield_generated.emit(battlefield)
 		
 		return battlefield
 	
 	func _generate_terrain_grid(size: Vector2i, environment: int) -> Array:
-		var terrain = []
-		for x in range(size.x):
-			var column = []
-			for y in range(size.y):
-				var tile = MockTerrainTile.new()
+		var terrain: Array = []
+		for x: int in range(size.x):
+			var column: Array = []
+			for y: int in range(size.y):
+				var tile: MockTerrainTile = MockTerrainTile.new()
 				tile.type = _get_terrain_type_for_environment(environment, x, y, size)
-				column.append(tile)
-			terrain.append(column)
+
+				@warning_ignore("return_value_discarded")
+	column.append(tile)
+
+			@warning_ignore("return_value_discarded")
+	terrain.append(column)
 		return terrain
 	
 	func _get_terrain_type_for_environment(environment: int, x: int, y: int, size: Vector2i) -> int:
@@ -84,12 +97,14 @@ class MockBattlefieldGenerator extends Resource:
 				return TerrainTypes.Type.EMPTY
 	
 	func _generate_walkable_tiles(terrain: Array, size: Vector2i) -> Array:
-		var walkable = []
-		for x in range(size.x):
-			for y in range(size.y):
+		var walkable: Array = []
+		for x: int in range(size.x):
+			for y: int in range(size.y):
 				var tile_type = terrain[x][y].type
 				if tile_type != TerrainTypes.Type.WALL:
-					walkable.append(Vector2i(x, y))
+
+					@warning_ignore("return_value_discarded")
+	walkable.append(Vector2i(x, y))
 		return walkable
 	
 	func _generate_deployment_zones(size: Vector2i) -> Dictionary:
@@ -136,6 +151,7 @@ func before_test() -> void:
 	_migration = MockWorldDataMigration.new()
 	# Note: Resources don't need track_node, they're garbage collected
 	
+	@warning_ignore("unsafe_method_access")
 	await get_tree().process_frame
 
 func after_test() -> void:
@@ -144,9 +160,11 @@ func after_test() -> void:
 	super.after_test()
 
 # ========================================
-# PERFECT TESTS - Expected 100% Success
+# PERFECT TESTS - Expected @warning_ignore("integer_division")
+	100 % Success
 # ========================================
 
+@warning_ignore("unsafe_method_access")
 func test_terrain_generation() -> void:
 	var config = {
 		"size": Vector2i(10, 10),
@@ -163,6 +181,7 @@ func test_terrain_generation() -> void:
 	assert_that(terrain_data.size()).is_equal(config.size.x)
 	assert_that(terrain_data[0].size()).is_equal(config.size.y)
 
+@warning_ignore("unsafe_method_access")
 func test_terrain_feature_distribution() -> void:
 	var config = {
 		"size": Vector2i(15, 15),
@@ -173,18 +192,24 @@ func test_terrain_feature_distribution() -> void:
 	var battlefield = _generator.generate_battlefield(config)
 	
 	# Count terrain features
-	var feature_counts = {}
-	for x in range(config.size.x):
-		for y in range(config.size.y):
+	var feature_counts: Dictionary = {}
+	for x: int in range(config.size.x):
+		for y: int in range(config.size.y):
 			var terrain_type = battlefield.terrain[x][y].type
 			if terrain_type != TerrainTypes.Type.EMPTY:
-				feature_counts[terrain_type] = feature_counts.get(terrain_type, 0) + 1
+
+				@warning_ignore("unsafe_call_argument")
+	feature_counts[terrain_type] = @warning_ignore("unsafe_call_argument")
+	feature_counts.get(terrain_type, 0) + 1
 	
 	# Verify minimum terrain features
 	assert_that(feature_counts.size()).is_greater(0)
-	assert_that(feature_counts.has(TerrainTypes.Type.WALL)).is_true()
-	assert_that(feature_counts.has(TerrainTypes.Type.COVER_LOW)).is_true()
+	assert_that(@warning_ignore("unsafe_call_argument")
+	feature_counts.has(TerrainTypes.Type.WALL)).is_true()
+	assert_that(@warning_ignore("unsafe_call_argument")
+	feature_counts.has(TerrainTypes.Type.COVER_LOW)).is_true()
 
+@warning_ignore("unsafe_method_access")
 func test_terrain_validation() -> void:
 	var config = {
 		"size": Vector2i(12, 12),
@@ -197,8 +222,10 @@ func test_terrain_validation() -> void:
 	assert_that(battlefield.walkable_tiles.size()).is_greater(0)
 	
 	# Test deployment zones
-	assert_that(battlefield.deployment_zones.has("player")).is_true()
-	assert_that(battlefield.deployment_zones.has("enemy")).is_true()
+	assert_that(battlefield.@warning_ignore("unsafe_call_argument")
+	deployment_zones.has("player")).is_true()
+	assert_that(battlefield.@warning_ignore("unsafe_call_argument")
+	deployment_zones.has("enemy")).is_true()
 	
 	# Verify deployment zones are valid
 	for zone_name in battlefield.deployment_zones:
@@ -209,6 +236,7 @@ func test_terrain_validation() -> void:
 		for pos in zone:
 			assert_that(pos in battlefield.walkable_tiles).is_true()
 
+@warning_ignore("unsafe_method_access")
 func test_environment_specific_generation() -> void:
 	var environments = [
 		GameEnums.PlanetEnvironment.URBAN,
@@ -234,6 +262,7 @@ func test_environment_specific_generation() -> void:
 			GameEnums.PlanetEnvironment.DESERT:
 				assert_that(_has_terrain_feature(battlefield, TerrainTypes.Type.DIFFICULT)).is_true()
 
+@warning_ignore("unsafe_method_access")
 func test_terrain_connectivity() -> void:
 	var config = {
 		"size": Vector2i(12, 12),
@@ -248,16 +277,16 @@ func test_terrain_connectivity() -> void:
 
 # Helper function to check if battlefield has specific terrain feature
 func _has_terrain_feature(battlefield: MockBattlefield, feature_type: int) -> bool:
-	for x in range(battlefield.size.x):
-		for y in range(battlefield.size.y):
-			if battlefield.terrain[x][y].type == feature_type:
+	for x: int in range(battlefield.size.x):
+		for y: int in range(battlefield.size.y):
+			if battlefield.terrain[x][y]._type == feature_type:
 				return true
 	return false
 
 # Helper function to check zone connectivity
 func _zones_are_connected(battlefield: MockBattlefield, start_pos: Vector2i, end_pos: Vector2i) -> bool:
 	# Simple pathfinding check - return true if there's a valid path
-	var visited = {}
+	var visited: Dictionary = {}
 	var queue = [start_pos]
 	
 	while not queue.is_empty():
@@ -265,7 +294,8 @@ func _zones_are_connected(battlefield: MockBattlefield, start_pos: Vector2i, end
 		if current == end_pos:
 			return true
 		
-		if visited.has(str(current)):
+		if @warning_ignore("unsafe_call_argument")
+	visited.has(str(current)):
 			continue
 		visited[str(current)] = true
 		
@@ -275,6 +305,8 @@ func _zones_are_connected(battlefield: MockBattlefield, start_pos: Vector2i, end
 			var next_pos = current + dir
 			if next_pos.x >= 0 and next_pos.x < battlefield.size.x and next_pos.y >= 0 and next_pos.y < battlefield.size.y:
 				if next_pos in battlefield.walkable_tiles:
-					queue.append(next_pos)
+
+					@warning_ignore("return_value_discarded")
+	queue.append(next_pos)
 	
 	return false

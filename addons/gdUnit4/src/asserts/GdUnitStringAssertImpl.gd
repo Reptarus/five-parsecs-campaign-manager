@@ -8,7 +8,6 @@ func _init(current :Variant) -> void:
 	# save the actual assert instance on the current thread context
 	GdUnitThreadManager.get_current_context().set_assert(self)
 	if current != null and typeof(current) != TYPE_STRING and typeof(current) != TYPE_STRING_NAME:
-		@warning_ignore("return_value_discarded")
 		report_error("GdUnitStringAssert inital error, unexpected type <%s>" % GdObjects.typeof_as_string(current))
 
 
@@ -38,25 +37,21 @@ func report_error(error :String) -> GdUnitStringAssert:
 
 
 func override_failure_message(message :String) -> GdUnitStringAssert:
-	@warning_ignore("return_value_discarded")
 	_base.override_failure_message(message)
 	return self
 
 
 func append_failure_message(message :String) -> GdUnitStringAssert:
-	@warning_ignore("return_value_discarded")
 	_base.append_failure_message(message)
 	return self
 
 
 func is_null() -> GdUnitStringAssert:
-	@warning_ignore("return_value_discarded")
 	_base.is_null()
 	return self
 
 
 func is_not_null() -> GdUnitStringAssert:
-	@warning_ignore("return_value_discarded")
 	_base.is_not_null()
 	return self
 
@@ -99,7 +94,6 @@ func is_not_equal_ignoring_case(expected :Variant) -> GdUnitStringAssert:
 
 func is_empty() -> GdUnitStringAssert:
 	var current :Variant = current_value()
-	@warning_ignore("unsafe_cast")
 	if current == null or not (current as String).is_empty():
 		return report_error(GdAssertMessages.error_is_empty(current))
 	return report_success()
@@ -107,7 +101,6 @@ func is_empty() -> GdUnitStringAssert:
 
 func is_not_empty() -> GdUnitStringAssert:
 	var current :Variant = current_value()
-	@warning_ignore("unsafe_cast")
 	if current == null or (current as String).is_empty():
 		return report_error(GdAssertMessages.error_is_not_empty())
 	return report_success()
@@ -115,7 +108,6 @@ func is_not_empty() -> GdUnitStringAssert:
 
 func contains(expected :String) -> GdUnitStringAssert:
 	var current :Variant = current_value()
-	@warning_ignore("unsafe_cast")
 	if current == null or (current as String).find(expected) == -1:
 		return report_error(GdAssertMessages.error_contains(current, expected))
 	return report_success()
@@ -123,7 +115,6 @@ func contains(expected :String) -> GdUnitStringAssert:
 
 func not_contains(expected :String) -> GdUnitStringAssert:
 	var current :Variant = current_value()
-	@warning_ignore("unsafe_cast")
 	if current != null and (current as String).find(expected) != -1:
 		return report_error(GdAssertMessages.error_not_contains(current, expected))
 	return report_success()
@@ -131,7 +122,6 @@ func not_contains(expected :String) -> GdUnitStringAssert:
 
 func contains_ignoring_case(expected :String) -> GdUnitStringAssert:
 	var current :Variant = current_value()
-	@warning_ignore("unsafe_cast")
 	if current == null or (current as String).findn(expected) == -1:
 		return report_error(GdAssertMessages.error_contains_ignoring_case(current, expected))
 	return report_success()
@@ -139,7 +129,6 @@ func contains_ignoring_case(expected :String) -> GdUnitStringAssert:
 
 func not_contains_ignoring_case(expected :String) -> GdUnitStringAssert:
 	var current :Variant = current_value()
-	@warning_ignore("unsafe_cast")
 	if current != null and (current as String).findn(expected) != -1:
 		return report_error(GdAssertMessages.error_not_contains_ignoring_case(current, expected))
 	return report_success()
@@ -147,7 +136,6 @@ func not_contains_ignoring_case(expected :String) -> GdUnitStringAssert:
 
 func starts_with(expected :String) -> GdUnitStringAssert:
 	var current :Variant = current_value()
-	@warning_ignore("unsafe_cast")
 	if current == null or (current as String).find(expected) != 0:
 		return report_error(GdAssertMessages.error_starts_with(current, expected))
 	return report_success()
@@ -157,9 +145,7 @@ func ends_with(expected :String) -> GdUnitStringAssert:
 	var current :Variant = current_value()
 	if current == null:
 		return report_error(GdAssertMessages.error_ends_with(current, expected))
-	@warning_ignore("unsafe_cast")
 	var find :int = (current as String).length() - expected.length()
-	@warning_ignore("unsafe_cast")
 	if (current as String).rfind(expected) != find:
 		return report_error(GdAssertMessages.error_ends_with(current, expected))
 	return report_success()

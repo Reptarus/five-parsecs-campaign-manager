@@ -20,16 +20,17 @@ func setup(data: Dictionary) -> void:
 
 func _update_display() -> void:
     title_label.text = mission_data.get("title", "Mission Complete")
-    
+
     var outcome = mission_data.get("outcome", {})
     outcome_label.text = _get_outcome_text(outcome)
-    
+
     _update_stats(mission_data.get("stats", {}))
+
     _update_rewards(mission_data.get("rewards", {}))
 
 func _get_outcome_text(outcome: Dictionary) -> String:
     var victory = outcome.get("victory", false)
-    var text = "Mission "
+    var text: String = "Mission "
     
     if victory:
         text += "Successful!"
@@ -61,10 +62,15 @@ func _update_stats(stats: Dictionary) -> void:
         child.queue_free()
     
     # Add new stat entries
+
     _add_stat_entry("Turns", str(stats.get("turns", 0)))
+
     _add_stat_entry("Enemies Defeated", str(stats.get("enemies_defeated", 0)))
+
     _add_stat_entry("Damage Dealt", str(stats.get("damage_dealt", 0)))
+
     _add_stat_entry("Damage Taken", str(stats.get("damage_taken", 0)))
+
     _add_stat_entry("Items Used", str(stats.get("items_used", 0)))
     
     if stats.has("crew_status"):
@@ -89,37 +95,37 @@ func _update_rewards(rewards: Dictionary) -> void:
     if rewards.has("experience"):
         _add_reward_entry("Experience", str(rewards.experience))
 
-func _add_stat_entry(label: String, value: String) -> void:
-    var container = HBoxContainer.new()
+func _add_stat_entry(label: String, _value: String) -> void:
+    var container := HBoxContainer.new()
     
-    var label_node = Label.new()
+    var label_node := Label.new()
     label_node.text = label + ":"
     container.add_child(label_node)
     
-    var value_node = Label.new()
-    value_node.text = value
+    var value_node := Label.new()
+    value_node.text = _value
     container.add_child(value_node)
     
     stats_container.add_child(container)
 
-func _add_reward_entry(type: String, value: String) -> void:
-    var container = HBoxContainer.new()
+func _add_reward_entry(type: String, _value: String) -> void:
+    var container := HBoxContainer.new()
     
-    var type_label = Label.new()
+    var type_label := Label.new()
     type_label.text = type + ":"
     container.add_child(type_label)
     
-    var value_label = Label.new()
-    value_label.text = value
+    var value_label := Label.new()
+    value_label.text = _value
     container.add_child(value_label)
     
     rewards_container.add_child(container)
 
 func _format_crew_status(status: Array) -> String:
-    var text = ""
+    var text: String = ""
     for member in status:
         text += member.name + ": " + member.condition + "\n"
     return text.strip_edges()
 
 func _on_continue_pressed() -> void:
-    continue_pressed.emit()
+    continue_pressed.emit() # warning: return value discarded (intentional)

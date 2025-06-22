@@ -15,6 +15,7 @@ func _ready() -> void:
         return
 
     if not game_state_manager:
+
         push_error("GameStateManager not found. Make sure GameStateManager is properly set up as an AutoLoad.")
         return
 
@@ -35,4 +36,5 @@ func _update_game_over_display() -> void:
         defeat_label.show()
 
 func _on_return_button_pressed() -> void:
-    get_tree().change_scene_to_file("res://ui/mainmenu/MainMenu.tscn") 
+    get_tree().call_deferred("change_scene_to_file", "res://ui/mainmenu/MainMenu.tscn")
+

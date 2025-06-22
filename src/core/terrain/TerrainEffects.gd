@@ -1,230 +1,153 @@
-## Handles dynamic terrain effects and environmental conditions
-class_name FPCM_TerrainEffects
-extends Node
+@tool
+extends RefCounted
+class_name TerrainEffects
 
-## Signals
-signal effect_applied(position: Vector2, effect_type: String)
-signal effect_removed(position: Vector2, effect_type: String)
-signal environment_condition_changed(condition: String, intensity: float)
-signal hazard_damage_dealt(position: Vector2, damage: int)
+## Terrain effects system for Five Parsecs tactical battles
+##
+## Manages dynamic effects on terrain tiles
 
-## Dependencies
-const GameEnums: GDScript = preload("res://src/core/systems/GlobalEnums.gd")
-const FiveParsecsTerrainTypes: GDScript = preload("res://src/core/terrain/TerrainTypes.gd")
-const FiveParsecsCharacter: GDScript = preload("res://src/core/character/Base/Character.gd")
+signal effect_applied(position: Vector2, effect_type: EffectType)
+signal effect_removed(position: Vector2, effect_type: EffectType)
 
-## Effect types
 enum EffectType {
-    NONE,
-    FIRE,
-    SMOKE,
-    RADIATION,
-    TOXIC_GAS,
-    ENERGY_FIELD,
-    DEBRIS
+	NONE,
+	FIRE,
+	SMOKE,
+	RADIATION,
+	TOXIC_GAS,
+	ENERGY_FIELD,
+	DEBRIS
 }
 
-## Effect parameters
-const EFFECT_DURATIONS = {
-    EffectType.FIRE: 3,
-    EffectType.SMOKE: 2,
-    EffectType.RADIATION: 5,
-    EffectType.TOXIC_GAS: 4,
-    EffectType.ENERGY_FIELD: 3,
-    EffectType.DEBRIS: 2
-}
+var active_effects: Dictionary = {}
 
-const EFFECT_DAMAGE = {
-    EffectType.FIRE: 2,
-    EffectType.RADIATION: 1,
-    EffectType.TOXIC_GAS: 1
-}
+func _init() -> void:
+	pass
 
-## References to required systems
-@export var terrain_system: Node # Will be cast to TerrainSystem
-@export var battlefield_manager: Node # Will be cast to BattlefieldManager
+## Apply effect to a position
 
-## Effect tracking
-var _active_effects: Dictionary = {} # Maps Vector2 position to Array of active effects
-var _effect_timers: Dictionary = {} # Maps Vector2 position to Dictionary of effect durations
-var _current_environment_conditions: Dictionary = {}
+func apply_effect(position: Vector2, effect_type: EffectType, duration: int = 1) -> void:
+	if not active_effects.has(position):
+		active_effects[position] = {}
+	
+	active_effects[position][effect_type] = {
+		"duration": duration,
+		"applied_turn": 0
+	}
+	
+	effect_applied.emit(position, effect_type) # warning: return value discarded (intentional)
 
-## Called when the node enters the scene tree
-func _ready() -> void:
-    if not terrain_system:
-        push_warning("TerrainEffects: No terrain system assigned")
-    if not battlefield_manager:
-        push_warning("TerrainEffects: No battlefield manager assigned")
-
-## Applies a terrain effect at a position
-func apply_effect(position: Vector2, effect_type: EffectType) -> void:
-    if not _active_effects.has(position):
-        _active_effects[position] = []
-        _effect_timers[position] = {}
-    
-    if not effect_type in _active_effects[position]:
-        _active_effects[position].append(effect_type)
-        _effect_timers[position][effect_type] = EFFECT_DURATIONS.get(effect_type, 1)
-        effect_applied.emit(position, EffectType.keys()[effect_type])
-
-## Removes a terrain effect at a position
+## Remove effect from position
 func remove_effect(position: Vector2, effect_type: EffectType) -> void:
-    if position in _active_effects and effect_type in _active_effects[position]:
-        _active_effects[position].erase(effect_type)
-        _effect_timers[position].erase(effect_type)
-        
-        if _active_effects[position].is_empty():
-            _active_effects.erase(position)
-            _effect_timers.erase(position)
-        
-        effect_removed.emit(position, EffectType.keys()[effect_type])
+	if active_effects.has(position) and active_effects[position].has(effect_type):
+		active_effects[position].erase(effect_type)
+		if active_effects[position].is_empty():
+			active_effects.erase(position)
+		effect_removed.emit(position, effect_type) # warning: return value discarded (intentional)
 
-## Updates effect durations and applies effects
-func update_effects() -> void:
-    var positions_to_update := _effect_timers.keys()
-    
-    for position in positions_to_update:
-        var effects_to_remove: Array[EffectType] = []
-        
-        for effect_type in _effect_timers[position].keys():
-            _effect_timers[position][effect_type] -= 1
-            
-            if _effect_timers[position][effect_type] <= 0:
-                effects_to_remove.append(effect_type)
-            else:
-                _apply_effect_damage(position, effect_type)
-        
-        for effect in effects_to_remove:
-            remove_effect(position, effect)
-
-## Applies effect damage to characters at a position
-func _apply_effect_damage(position: Vector2, effect_type: EffectType) -> void:
-    if not EFFECT_DAMAGE.has(effect_type):
-        return
-    
-    var damage: int = EFFECT_DAMAGE[effect_type]
-    var characters: Array[FiveParsecsCharacter] = battlefield_manager.get_characters_at_position(position)
-    
-    for character in characters:
-        character.take_damage(damage)
-        hazard_damage_dealt.emit(position, damage)
-
-## Sets an environment condition
-func set_environment_condition(condition: String, intensity: float) -> void:
-    _current_environment_conditions[condition] = intensity
-    environment_condition_changed.emit(condition, intensity)
-
-## Gets active effects at a position
+## Get active effects at position
 func get_active_effects(position: Vector2) -> Array[EffectType]:
-    return _active_effects.get(position, []).duplicate()
+	var effects: Array[EffectType] = []
+	if active_effects.has(position):
+		for effect_type in active_effects[position].keys():
+			effects.append(effect_type) # warning: return value discarded (intentional)
+	return effects
 
-## Gets effect duration at a position
+## Get effect duration
 func get_effect_duration(position: Vector2, effect_type: EffectType) -> int:
-    if position in _effect_timers and effect_type in _effect_timers[position]:
-        return _effect_timers[position][effect_type]
-    return 0
+	if active_effects.has(position) and active_effects[position].has(effect_type):
+		return active_effects[position][effect_type]["duration"]
+	return 0
 
-## Gets current environment conditions
-func get_environment_conditions() -> Dictionary:
-    return _current_environment_conditions.duplicate()
-
-## Checks if a position has a specific effect
-func has_effect(position: Vector2, effect_type: EffectType) -> bool:
-    return position in _active_effects and effect_type in _active_effects[position]
-
-## Gets movement penalty for a position
+## Get movement penalty at position
 func get_movement_penalty(position: Vector2) -> float:
-    var penalty: float = 0.0
-    
-    if position in _active_effects:
-        for effect in _active_effects[position]:
-            match effect:
-                EffectType.FIRE:
-                    penalty += 0.5
-                EffectType.SMOKE:
-                    penalty += 0.25
-                EffectType.DEBRIS:
-                    penalty += 0.75
-    
-    return penalty
+	var penalty: float = 0.0
+	var effects = get_active_effects(position)
+	
+	for effect in effects:
+		match effect:
+			EffectType.DEBRIS: penalty += 0.5
+			EffectType.TOXIC_GAS: penalty += 0.3
+			EffectType.SMOKE: penalty += 0.2
+			_: pass
+	
+	return penalty
 
-## Gets visibility penalty for a position
+## Get visibility penalty at position
 func get_visibility_penalty(position: Vector2) -> float:
-    var penalty: float = 0.0
-    
-    if position in _active_effects:
-        for effect in _active_effects[position]:
-            match effect:
-                EffectType.SMOKE:
-                    penalty += 0.5
-                EffectType.FIRE:
-                    penalty += 0.25
-    
-    return penalty
+	var penalty: float = 0.0
+	var effects = get_active_effects(position)
+	
+	for effect in effects:
+		match effect:
+			EffectType.SMOKE: penalty += 0.5
+			EffectType.TOXIC_GAS: penalty += 0.3
+			_: pass
+	
+	return penalty
 
-## Gets combat modifier for a position
+## Get combat modifier at position
 func get_combat_modifier(position: Vector2) -> int:
-    var modifier: int = 0
-    
-    if position in _active_effects:
-        for effect in _active_effects[position]:
-            match effect:
-                EffectType.SMOKE:
-                    modifier -= 2
-                EffectType.ENERGY_FIELD:
-                    modifier -= 1
-    
-    return modifier
+	var modifier: int = 0
+	var effects = get_active_effects(position)
+	
+	for effect in effects:
+		match effect:
+			EffectType.FIRE: modifier -= 1
+			EffectType.RADIATION: modifier -= 2
+			EffectType.ENERGY_FIELD: modifier -= 1
+			_: pass
+	
+	return modifier
 
-## Spreads effects to adjacent positions
-func spread_effects() -> void:
-    var positions_to_spread := _active_effects.keys()
-    var new_effects: Dictionary = {}
-    
-    for position in positions_to_spread:
-        for effect_type in _active_effects[position]:
-            match effect_type:
-                EffectType.FIRE:
-                    _spread_fire(position, new_effects)
-                EffectType.TOXIC_GAS:
-                    _spread_gas(position, new_effects)
-    
-    # Apply new effects
-    for pos in new_effects:
-        for effect in new_effects[pos]:
-            apply_effect(pos, effect)
+## Process turn-based effect decay
+func process_turn() -> void:
+	var positions_to_remove: Array[Vector2] = []
+	
+	for position in active_effects.keys():
+		var effects_to_remove: Array[EffectType] = []
+		
+		for effect_type in active_effects[position].keys():
+			var effect_data = active_effects[position][effect_type]
+			effect_data["duration"] -= 1
+			
+			if effect_data["duration"] <= 0:
+				effects_to_remove.append(effect_type) # warning: return value discarded (intentional)
+		
+		for effect_type in effects_to_remove:
+			remove_effect(position, effect_type)
+		
+		if active_effects[position].is_empty():
+			positions_to_remove.append(position) # warning: return value discarded (intentional)
+	
+	for position in positions_to_remove:
+		active_effects.erase(position)
 
-## Spreads fire to adjacent positions
-func _spread_fire(position: Vector2, new_effects: Dictionary) -> void:
-    var spread_chance := 0.3
-    
-    for adjacent_pos: Vector2 in _get_adjacent_positions(position):
-        if randf() < spread_chance:
-            if not new_effects.has(adjacent_pos):
-                new_effects[adjacent_pos] = []
-            new_effects[adjacent_pos].append(EffectType.FIRE)
+## Clear all effects
+func clear_all_effects() -> void:
+	active_effects.clear()
 
-## Spreads gas to adjacent positions
-func _spread_gas(position: Vector2, new_effects: Dictionary) -> void:
-    var spread_chance := 0.5
-    
-    for adjacent_pos: Vector2 in _get_adjacent_positions(position):
-        if randf() < spread_chance:
-            if not new_effects.has(adjacent_pos):
-                new_effects[adjacent_pos] = []
-            new_effects[adjacent_pos].append(EffectType.TOXIC_GAS)
+## Serialize effects data
 
-## Gets adjacent positions
-func _get_adjacent_positions(position: Vector2) -> Array[Vector2]:
-    var adjacent: Array[Vector2] = []
-    var offsets: Array[Vector2] = [
-        Vector2(-1, 0), Vector2(1, 0),
-        Vector2(0, -1), Vector2(0, 1)
-    ]
-    
-    for offset in offsets:
-        var adjacent_pos: Vector2 = position + offset
-        if battlefield_manager.is_valid_position(adjacent_pos):
-            adjacent.append(adjacent_pos)
-    
-    return adjacent
+func serialize() -> Dictionary:
+	var serialized_effects: Dictionary = {}
+	for pos in active_effects:
+		var key: String = "%d,%d" % [pos.x, pos.y]
+		serialized_effects[key] = active_effects[pos]
+	
+	return {
+		"active_effects": serialized_effects
+	}
+
+## Deserialize effects data
+func deserialize(data: Dictionary) -> void:
+	active_effects.clear()
+	
+	if data.has("active_effects"):
+		for key in data.active_effects:
+			var coords = key.split(",")
+			if coords.size() == 2:
+				var pos = Vector2(int(coords[0]), int(coords[1]))
+				active_effects[pos] = data.active_effects[key]
+
+				active_effects[pos] = data.active_effects[key]

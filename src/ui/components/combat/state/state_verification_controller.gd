@@ -17,7 +17,7 @@ signal state_mismatch_detected(type: GameEnums.VerificationType, expected: Dicti
 
 ## Properties
 var verification_history: Array = []
-var pending_verifications: Dictionary = {}
+var _pending_verifications: Dictionary = {}
 var verification_rules: Dictionary = {}
 var last_verification_result: Dictionary = {}
 var auto_verify: bool = true
@@ -43,6 +43,7 @@ func _connect_signals() -> void:
 	combat_manager.manual_override_applied.connect(_on_manual_override_applied)
 
 ## Initializes default verification rules
+	
 func _initialize_verification_rules() -> void:
 	verification_rules = {
 		GameEnums.VerificationType.COMBAT: {
@@ -58,11 +59,11 @@ func _initialize_verification_rules() -> void:
 			"validators": ["_validate_status"]
 		},
 		GameEnums.VerificationType.DEPLOYMENT: {
-			"required_fields": ["resource_type", "value"],
+			"required_fields": ["resource_type", "_value"],
 			"validators": ["_validate_resources"]
 		},
 		GameEnums.VerificationType.MOVEMENT: {
-			"required_fields": ["override_type", "value"],
+			"required_fields": ["override_type", "_value"],
 			"validators": ["_validate_override"]
 		},
 		GameEnums.VerificationType.OBJECTIVES: {
@@ -72,17 +73,18 @@ func _initialize_verification_rules() -> void:
 	}
 
 ## Public methods
+	
 func request_verification(type: GameEnums.VerificationType, scope: GameEnums.VerificationScope = GameEnums.VerificationScope.ALL) -> void:
 	if not combat_manager:
 		push_error("StateVerificationController: Cannot verify without CombatManager")
 		return
 	
-	verification_started.emit(type, scope)
+	verification_started.emit(type, scope)  # warning: return value discarded (intentional)
 	combat_manager.verify_state(type, scope)
 
 func add_verification_rule(type: GameEnums.VerificationType, rule_data: Dictionary) -> void:
 	if not rule_data.has_all(["required_fields", "validators"]):
-		push_error("StateVerificationController: Invalid rule data format")
+		push_error("StateVerificationController: Invalid rule _data format")
 		return
 	
 	verification_rules[type] = rule_data
@@ -97,6 +99,7 @@ func clear_verification_history() -> void:
 	verification_history.clear()
 
 ## Verification methods
+	
 func _verify_state(type: GameEnums.VerificationType, state_data: Dictionary) -> Dictionary:
 	var result = {
 		"type": type,
@@ -179,7 +182,7 @@ func _validate_status(state_data: Dictionary) -> Dictionary:
 	
 	if not GameEnums.CombatStatus.values().has(state_data.status):
 		result.status = GameEnums.VerificationResult.ERROR
-		result.details["status"] = "Invalid status value"
+		result.details["status"] = "Invalid status _value"
 	
 	if not state_data.character is Character:
 		result.status = GameEnums.VerificationResult.ERROR
@@ -193,9 +196,9 @@ func _validate_resources(state_data: Dictionary) -> Dictionary:
 		"details": {}
 	}
 	
-	if not state_data.value is int and not state_data.value is float:
+	if not state_data._value is int and not state_data._value is float:
 		result.status = GameEnums.VerificationResult.ERROR
-		result.details["value"] = "Invalid resource value type"
+		result.details["_value"] = "Invalid resource _value type"
 	
 	return result
 
@@ -229,12 +232,13 @@ func _on_verify_state_requested(type: GameEnums.VerificationType, scope: GameEnu
 	var result = _verify_state(type, state_data)
 	
 	last_verification_result = result
-	verification_history.append(result)
+
+	verification_history.append(result)  # warning: return value discarded (intentional)
 	
 	if result.status == GameEnums.VerificationResult.SUCCESS:
-		verification_result_ready.emit(type, result.status, result.details)
+		verification_result_ready.emit(type, result.status, result.details)  # warning: return value discarded (intentional)
 	else:
-		verification_error.emit(type, "Verification failed: %s" % str(result.details))
+		verification_error.emit(type, "Verification failed: %s" % str(result.details))  # warning: return value discarded (intentional)
 
 func _on_verification_completed(type: GameEnums.VerificationType, result: GameEnums.VerificationResult, details: Dictionary) -> void:
 	last_verification_result = {
@@ -243,8 +247,9 @@ func _on_verification_completed(type: GameEnums.VerificationType, result: GameEn
 		"details": details,
 		"timestamp": Time.get_datetime_string_from_system()
 	}
-	verification_history.append(last_verification_result)
-	verification_result_ready.emit(type, result, details)
+
+	verification_history.append(last_verification_result)  # warning: return value discarded (intentional)
+	verification_result_ready.emit(type, result, details)  # warning: return value discarded (intentional)
 
 func _on_verification_failed(type: GameEnums.VerificationType, error: String) -> void:
 	last_verification_result = {
@@ -253,8 +258,9 @@ func _on_verification_failed(type: GameEnums.VerificationType, error: String) ->
 		"details": {"error": error},
 		"timestamp": Time.get_datetime_string_from_system()
 	}
-	verification_history.append(last_verification_result)
-	verification_error.emit(type, error)
+
+	verification_history.append(last_verification_result)  # warning: return value discarded (intentional)
+	verification_error.emit(type, error)  # warning: return value discarded (intentional)
 
 func _on_combat_state_changed(new_state: Dictionary) -> void:
 	if auto_verify:
@@ -267,3 +273,4 @@ func _on_combat_result_calculated(attacker: Character, target: Character, result
 func _on_manual_override_applied(override_type: String, override_data: Dictionary) -> void:
 	if auto_verify:
 		request_verification(GameEnums.VerificationType.MOVEMENT)
+

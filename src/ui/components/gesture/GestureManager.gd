@@ -24,13 +24,13 @@ func _setup_long_press_timer() -> void:
     long_press_timer.timeout.connect(_on_long_press_timeout)
     add_child(long_press_timer)
 
-func _unhandled_input(event: InputEvent) -> void:
+func _unhandled_input(event) -> void:
     if event is InputEventScreenTouch:
         _handle_touch(event)
     elif event is InputEventScreenDrag:
         _handle_drag(event)
 
-func _handle_touch(event: InputEventScreenTouch) -> void:
+func _handle_touch(event) -> void:
     if event.pressed:
         touch_points[event.index] = {
             "start_position": event.position,
@@ -48,16 +48,16 @@ func _handle_touch(event: InputEventScreenTouch) -> void:
             
             if duration < MAX_SWIPE_TIME and distance > MIN_SWIPE_DISTANCE:
                 var direction = (event.position - touch.start_position).normalized()
-                swipe_detected.emit(direction)
+                swipe_detected.emit(direction)  # warning: return value discarded (intentional)
             
             touch_points.erase(event.index)
             
         if touch_points.is_empty():
             long_press_timer.stop()
 
-func _handle_drag(event: InputEventScreenDrag) -> void:
-    if touch_points.has(event.index):
-        touch_points[event.index].current_position = event.position
+func _handle_drag(_event: InputEventScreenDrag) -> void:
+    if touch_points.has(_event.index):
+        touch_points[_event.index].current_position = _event.position
         
         if touch_points.size() == 2:
             _handle_pinch()
@@ -72,7 +72,7 @@ func _handle_pinch() -> void:
         initial_pinch_distance = current_distance
     elif abs(current_distance - initial_pinch_distance) > MIN_PINCH_DISTANCE:
         var factor = current_distance / initial_pinch_distance
-        pinch_detected.emit(factor)
+        pinch_detected.emit(factor)  # warning: return value discarded (intentional)
         initial_pinch_distance = current_distance
 
 func _on_long_press_timeout() -> void:
@@ -82,4 +82,4 @@ func _on_long_press_timeout() -> void:
         var start_position = touch.start_position
         
         if current_position.distance_to(start_position) < MIN_SWIPE_DISTANCE:
-            long_press_detected.emit(current_position)
+            long_press_detected.emit(current_position)  # warning: return value discarded (intentional)

@@ -3,13 +3,12 @@ extends "res://src/core/character/Base/CharacterBox.gd"
 
 ## Game-specific character box implementation
 ##
-## Extends the core character box with game-specific
-## functionality for the Five Parsecs From Home implementation.
+## Provides additional functionality specific to Five Parsecs from Home
 
 # Additional game-specific UI components
-@onready var morale_value = $MarginContainer/HBoxContainer/InfoContainer/GameStatsContainer/MoraleValue
-@onready var credits_value = $MarginContainer/HBoxContainer/InfoContainer/GameStatsContainer/CreditsValue
-@onready var missions_value = $MarginContainer/HBoxContainer/InfoContainer/GameStatsContainer/MissionsValue
+@onready var morale_value: LineEdit = $"MarginContainer/HBoxContainer/InfoContainer/GameStatsContainer/MoraleValue"
+@onready var credits_value: LineEdit = $"MarginContainer/HBoxContainer/InfoContainer/GameStatsContainer/CreditsValue"
+@onready var missions_value: LineEdit = $"MarginContainer/HBoxContainer/InfoContainer/GameStatsContainer/MissionsValue"
 
 # Override _ready to initialize game-specific components
 func _ready() -> void:
@@ -31,6 +30,9 @@ func update_game_specific_ui() -> void:
 		missions_value.text = str(character_data.missions_completed)
 
 # Override the update_ui method to include game-specific updates
+
 func update_display(data: Resource) -> void:
 	super.update_display(data)
+	update_game_specific_ui()
+
 	update_game_specific_ui()

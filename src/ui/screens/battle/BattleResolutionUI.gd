@@ -22,6 +22,7 @@ signal back_to_pre_battle()
 @onready var battle_status: Label = $MainContainer/BattleControls/BattleStatus
 @onready var continue_button: Button = $MainContainer/BattleControls/ContinueButton
 @onready var alpha_manager: Node = get_node_or_null("/root/AlphaGameManager")
+@onready var dice_manager: Node = get_node_or_null("/root/DiceManager")
 
 # Battle data
 var current_mission: Resource = null
@@ -34,7 +35,7 @@ class BattleResult:
 	var victory: bool = false
 	var crew_casualties: Array[Resource] = []
 	var crew_injuries: Array[Resource] = []
-	var loot_found: Array[Resource] = []
+	var _loot_found: Array[Resource] = []
 	var credits_earned: int = 0
 	var experience_gained: Array[Dictionary] = []
 
@@ -104,16 +105,14 @@ func _update_enemy_display() -> void:
 		enemy_list.add_child(enemy_card)
 
 func _create_crew_card(crew_member: Resource) -> Control:
-	"""Create a crew member display card"""
+	"""Create a crew _member display card"""
 	# Create a simple card for now - TODO: Create proper CharacterBattleCard
-	var card = VBoxContainer.new()
-	
-	var name_label = Label.new()
+	var card := VBoxContainer.new()
+	var name_label := Label.new()
 	var character_name = crew_member.get("character_name") if crew_member.has_method("get") else "Unknown"
 	name_label.text = str(character_name)
 	card.add_child(name_label)
-	
-	var stats_label = Label.new()
+	var stats_label := Label.new()
 	var combat_skill = crew_member.get("combat_skill") if crew_member.has_method("get") else 1
 	var toughness = crew_member.get("toughness") if crew_member.has_method("get") else 3
 	stats_label.text = "Combat: %d, Toughness: %d" % [combat_skill, toughness]
@@ -124,14 +123,12 @@ func _create_crew_card(crew_member: Resource) -> Control:
 
 func _create_enemy_card(enemy: Resource) -> Control:
 	"""Create an enemy display card"""
-	var card = VBoxContainer.new()
-	
-	var name_label = Label.new()
+	var card := VBoxContainer.new()
+	var name_label := Label.new()
 	var enemy_name = enemy.get("name") if enemy.has_method("get") else "Unknown Enemy"
 	name_label.text = str(enemy_name)
 	card.add_child(name_label)
-	
-	var stats_label = Label.new()
+	var stats_label := Label.new()
 	var combat_skill = enemy.get("combat_skill") if enemy.has_method("get") else 1
 	var toughness = enemy.get("toughness") if enemy.has_method("get") else 3
 	stats_label.text = "Combat: %d, Toughness: %d" % [combat_skill, toughness]
@@ -158,25 +155,40 @@ func _on_resolve_battle_automatically() -> void:
 func _on_play_tactical_battle() -> void:
 	"""Switch to tactical battle mode"""
 	_log_battle_message("Switching to tactical battle mode...", Color.CYAN)
-	# TODO: Implement tactical battle scene transition
-	print("Tactical battle not yet implemented")
+	
+	# Load tactical battle scene
+	var tactical_scene = preload("res://src/ui/screens/battle/TacticalBattleUI.tscn")
+	var tactical_battle = tactical_scene.instantiate()
+	
+	# Initialize tactical battle with current data
+	tactical_battle.initialize_battle(crew_members, enemy_forces, current_mission)
+	
+	# Connect signals
+	tactical_battle.tactical_battle_completed.connect(_on_tactical_battle_completed)
+	tactical_battle.return_to_battle_resolution.connect(_on_return_from_tactical)
+	
+	# Replace this scene with tactical battle
+	get_parent().add_child(tactical_battle)
+	visible = false
 
 func _on_attempt_flee() -> void:
 	"""Attempt to flee from battle"""
 	_log_battle_message("Attempting to flee...", Color.ORANGE)
 	
-	# Roll for flee attempt (simplified - need proper rule implementation)
-	var flee_roll = randi_range(1, 6)
+	# Roll for flee attempt using dice system
+	var flee_roll = _roll_dice("Flee Attempt", "D6")
+	_log_battle_message("Flee roll: %d" % flee_roll, Color.WHITE)
+	
 	if flee_roll >= 4: # Simple 50% chance for now
 		_log_battle_message("Successfully fled the battle!", Color.GREEN)
-		battle_fled.emit()
+		battle_fled.emit()  # warning: return value discarded (intentional)
 	else:
 		_log_battle_message("Failed to flee! Must fight the battle.", Color.RED)
 		flee_button.disabled = true
 
 func _calculate_automatic_battle_result() -> BattleResult:
 	"""Calculate battle result using simplified Five Parsecs rules"""
-	var result = BattleResult.new()
+	var result := BattleResult.new()
 	
 	# Simplified battle resolution
 	# TODO: Implement proper Five Parsecs battle resolution rules
@@ -187,8 +199,8 @@ func _calculate_automatic_battle_result() -> BattleResult:
 	_log_battle_message("Crew combat power: %d" % crew_power, Color.WHITE)
 	_log_battle_message("Enemy combat power: %d" % enemy_power, Color.WHITE)
 	
-	# Simple resolution
-	var battle_roll = randi_range(1, 6) + randi_range(1, 6)
+	# Battle resolution using dice system
+	var battle_roll = _roll_dice("Battle Resolution", "D6") + _roll_dice("Battle Resolution (2nd die)", "D6")
 	var crew_advantage = crew_power - enemy_power
 	var final_result = battle_roll + crew_advantage
 	
@@ -208,17 +220,17 @@ func _calculate_automatic_battle_result() -> BattleResult:
 
 func _calculate_crew_combat_power() -> int:
 	"""Calculate total crew combat effectiveness"""
-	var total_power = 0
+	var total_power: int = 0
 	for crew_member in crew_members:
 		var combat_skill = crew_member.combat_skill if crew_member.has("combat_skill") else 1
-		var equipment_bonus = 1 # TODO: Calculate from equipment
+		var equipment_bonus: int = 1 # TODO: Calculate from equipment
 		total_power += combat_skill + equipment_bonus
 	
 	return total_power
 
 func _calculate_enemy_combat_power() -> int:
 	"""Calculate total enemy combat effectiveness"""
-	var total_power = 0
+	var total_power: int = 0
 	
 	for enemy in enemy_forces:
 		var combat_skill = enemy.get("combat_skill") if enemy.has_method("get") else 1
@@ -228,13 +240,13 @@ func _calculate_enemy_combat_power() -> int:
 
 func _calculate_battle_casualties(result: BattleResult) -> void:
 	"""Calculate casualties from a lost battle"""
-	# Simple casualty calculation - TODO: Implement proper rules
+	# Simple casualty calculation using dice system
 	for crew_member in crew_members:
-		var casualty_roll = randi_range(1, 6)
+		var character_name = crew_member.get("character_name") if crew_member.has("character_name") else "Crew member"
+		var casualty_roll = _roll_dice("Injury Check - " + character_name, "D6")
 		if casualty_roll <= 2:
 			result.crew_injuries.append(crew_member)
-			var character_name = crew_member.get("character_name") if crew_member.has("character_name") else "Crew member"
-			_log_battle_message("%s was injured!" % character_name, Color.ORANGE)
+			_log_battle_message("%s was injured! (rolled %d)" % [character_name, casualty_roll], Color.ORANGE)
 
 func _display_battle_results() -> void:
 	"""Display the final battle results"""
@@ -253,18 +265,18 @@ func _disable_battle_actions() -> void:
 
 func _log_battle_message(message: String, color: Color = Color.WHITE) -> void:
 	"""Add a message to the battle log"""
-	var timestamp = "[%s] " % Time.get_datetime_string_from_system().split(" ")[1]
-	var colored_message = "[color=%s]%s%s[/color]" % [color.to_html(), timestamp, message]
+	var timestamp: String = "[%s] " % Time.get_datetime_string_from_system().split(" ")[1]
+	var colored_message: String = "[color=%s]%s%s[/color]" % [color.to_html(), timestamp, message]
 	battle_log.append_text(colored_message + "\n")
 
 func _on_back_pressed() -> void:
 	"""Return to pre-battle phase"""
-	back_to_pre_battle.emit()
+	back_to_pre_battle.emit()  # warning: return value discarded (intentional)
 
 func _on_continue_pressed() -> void:
 	"""Continue to post-battle phase"""
 	if battle_result:
-		battle_completed.emit(battle_result)
+		battle_completed.emit(battle_result)  # warning: return value discarded (intentional)
 
 func get_battle_result() -> BattleResult:
 	"""Get the current battle result"""
@@ -273,3 +285,46 @@ func get_battle_result() -> BattleResult:
 func is_battle_complete() -> bool:
 	"""Check if battle is complete"""
 	return battle_result != null
+
+func _roll_dice(context: String, pattern: String) -> int:
+	"""Roll dice using the dice system with proper context"""
+	if dice_manager and dice_manager.has_method("roll_dice"):
+		return dice_manager.roll_dice(context, pattern)
+	else:
+		# Fallback to basic random if dice system unavailable
+		match pattern:
+			"D6":
+				return randi_range(1, 6)
+			"D10":
+				return randi_range(1, 10)
+			"D66":
+				return randi_range(1, 6) * 10 + randi_range(1, 6)
+			"D100":
+				return randi_range(1, 100)
+			_:
+				return randi_range(1, 6)
+
+func _on_tactical_battle_completed(tactical_result) -> void:
+	"""Handle completion of tactical battle"""
+	_log_battle_message("Tactical battle completed!", Color.GREEN)
+	
+	# Convert tactical _result to battle _result
+	battle_result = BattleResult.new()
+	battle_result.victory = tactical_result.victory
+	battle_result.crew_casualties = tactical_result.crew_casualties
+	battle_result.crew_injuries = tactical_result.crew_injuries
+	battle_result.credits_earned = tactical_result.credits_earned
+	battle_result.experience_gained = tactical_result.experience_gained
+	
+	# Show results
+	_display_battle_results()
+	
+	# Return to normal UI
+	visible = true
+	battle_in_progress = false
+	continue_button.disabled = false
+
+func _on_return_from_tactical() -> void:
+	"""Handle return from tactical battle without completion"""
+	_log_battle_message("Returned from tactical mode", Color.YELLOW)
+	visible = true

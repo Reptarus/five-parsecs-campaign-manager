@@ -1,5 +1,6 @@
 @tool
-extends "res://tests/fixtures/specialized/enemy_test.gd"
+@warning_ignore("return_value_discarded")
+	extends "res://tests/fixtures/specialized/enemy_test.gd"
 
 # Required type declarations
 const CampaignSystem: GDScript = preload("res://src/core/campaign/CampaignSystem.gd")
@@ -20,6 +21,7 @@ func before_test() -> void:
 		push_error("Failed to create campaign manager")
 		return
 	_campaign_manager.name = "CampaignManager"
+	@warning_ignore("return_value_discarded")
 	track_node(_campaign_manager)
 	
 	_mission_manager = Node.new()
@@ -27,11 +29,14 @@ func before_test() -> void:
 		push_error("Failed to create mission manager")
 		return
 	_mission_manager.name = "MissionManager"
+	@warning_ignore("return_value_discarded")
 	track_node(_mission_manager)
 	
 	_test_campaign = Resource.new()
+	@warning_ignore("return_value_discarded")
 	track_resource(_test_campaign)
 	
+	@warning_ignore("unsafe_method_access")
 	await stabilize_engine(ENEMY_TEST_CONFIG.stabilize_time)
 
 func after_test() -> void:
@@ -41,6 +46,7 @@ func after_test() -> void:
 	super.after_test()
 
 # Campaign Integration Tests
+@warning_ignore("unsafe_method_access")
 func test_enemy_campaign_spawn() -> void:
 	var mission: Resource = _setup_test_mission()
 	assert_that(mission).is_not_null()
@@ -56,6 +62,7 @@ func test_enemy_campaign_spawn() -> void:
 		var spawned_enemies: Array = mission.get_enemies()
 		assert_that(enemy in spawned_enemies).is_true()
 
+@warning_ignore("unsafe_method_access")
 func test_enemy_mission_integration() -> void:
 	var mission: Node = _setup_test_mission_with_signals()
 	var enemy: Enemy = create_test_enemy()
@@ -78,6 +85,7 @@ func test_enemy_mission_integration() -> void:
 		mission.complete_mission()
 	# assert_signal(mission).is_emitted("mission_completed")  # REMOVED - causes Dictionary corruption
 
+@warning_ignore("unsafe_method_access")
 func test_enemy_progression() -> void:
 	var campaign: Resource = _setup_test_campaign()
 	var enemy: Enemy = create_test_enemy()
@@ -96,6 +104,7 @@ func test_enemy_progression() -> void:
 	
 	assert_that(new_level).is_greater_equal(initial_level)
 
+@warning_ignore("unsafe_method_access")
 func test_enemy_persistence() -> void:
 	var campaign: Resource = _setup_test_campaign()
 	var enemy: Enemy = create_test_enemy()
@@ -117,6 +126,7 @@ func test_enemy_persistence() -> void:
 		"experience": enemy.get_experience() if enemy.has_method("get_experience") else 0
 	})
 
+@warning_ignore("unsafe_method_access")
 func test_enemy_scaling_integration() -> void:
 	var campaign: Resource = _setup_test_campaign()
 	var enemy: Enemy = create_test_enemy()
@@ -140,6 +150,7 @@ func test_enemy_scaling_integration() -> void:
 	if enemy.has_method("get_damage"):
 		assert_that(enemy.get_damage()).is_greater_equal(initial_damage)
 
+@warning_ignore("unsafe_method_access")
 func test_enemy_reward_integration() -> void:
 	var campaign: Resource = _setup_test_campaign()
 	var enemy: Enemy = create_test_enemy()
@@ -149,8 +160,11 @@ func test_enemy_reward_integration() -> void:
 	if enemy.has_method("generate_rewards"):
 		rewards = enemy.generate_rewards()
 	assert_that(rewards).is_not_null()
-	assert_that(rewards.has("experience") or rewards.has("credits")).is_true()
+	assert_that(@warning_ignore("unsafe_call_argument")
+	rewards.has("experience") or @warning_ignore("unsafe_call_argument")
+	rewards.has("credits")).is_true()
 
+@warning_ignore("unsafe_method_access")
 func test_enemy_mission_completion() -> void:
 	var mission: Node = _setup_test_mission_with_signals()
 	var enemy: Enemy = create_test_enemy()
@@ -160,7 +174,8 @@ func test_enemy_mission_completion() -> void:
 		mission.add_enemy(enemy)
 	
 	# Skip signal monitoring to prevent Dictionary corruption
-	# monitor_signals(mission)  # REMOVED - causes Dictionary corruption
+	# @warning_ignore("unsafe_method_access")
+	monitor_signals(mission)  # REMOVED - causes Dictionary corruption
 	# Test state directly instead of signal emission
 	
 	if mission.has_method("start_mission"):
@@ -172,6 +187,7 @@ func test_enemy_mission_completion() -> void:
 	if mission.has_method("is_mission_completed"):
 		assert_that(mission.is_mission_completed()).is_true()
 
+@warning_ignore("unsafe_method_access")
 func test_enemy_campaign_state() -> void:
 	var campaign: Resource = _setup_test_campaign()
 	var enemy: Enemy = create_test_enemy()
@@ -196,6 +212,7 @@ func _setup_test_campaign() -> Resource:
 
 func _setup_test_mission() -> Resource:
 	var mission: Resource = Resource.new()
+	@warning_ignore("return_value_discarded")
 	track_resource(mission)
 	if mission.has_method("initialize"):
 		mission.initialize()
@@ -205,10 +222,11 @@ func _setup_test_mission_with_signals() -> Node:
 	# Create a Node-based mission mock that can have signals
 	var mission: Node = Node.new()
 	mission.name = "MockMission"
+	@warning_ignore("return_value_discarded")
 	track_node(mission)
 	
 	# Create a dynamic script for the mission with required signals
-	var mission_script = GDScript.new()
+	var mission_script: GDScript = GDScript.new()
 	mission_script.source_code = '''
 extends Node
 
@@ -227,8 +245,11 @@ func initialize() -> void:
 
 func add_enemy(enemy: Node) -> void:
 	if enemy and not enemy in enemies:
-		enemies.append(enemy)
-		enemy_added.emit(enemy)
+
+		@warning_ignore("return_value_discarded")
+	enemies.append(enemy)
+		@warning_ignore("unsafe_method_access")
+	enemy_added.emit(enemy)
 
 func get_enemies() -> Array:
 	return enemies.duplicate()
@@ -236,13 +257,15 @@ func get_enemies() -> Array:
 func start_mission() -> void:
 	if not is_started:
 		is_started = true
-		mission_started.emit()
+		@warning_ignore("unsafe_method_access")
+	mission_started.emit()
 		print("Mission started - signal emitted")
 
 func complete_mission() -> void:
 	if not is_completed:
 		is_completed = true
-		mission_completed.emit()
+		@warning_ignore("unsafe_method_access")
+	mission_completed.emit()
 		print("Mission completed - signal emitted")
 
 func is_mission_started() -> bool:
@@ -255,9 +278,12 @@ func is_mission_completed() -> bool:
 	# Compile and apply the script
 	var compile_result = mission_script.reload()
 	if compile_result == OK:
-		mission.set_script(mission_script)
+		@warning_ignore("unsafe_method_access")
+	mission.set_script(mission_script)
 		if mission.has_method("initialize"):
-			mission.call("initialize")
+
+			@warning_ignore("unsafe_method_access")
+	mission.call("initialize")
 	else:
 		push_error("Failed to compile mission script")
 	

@@ -3,10 +3,10 @@ extends Control
 
 const GameEnums = preload("res://src/core/systems/GlobalEnums.gd")
 
-@onready var campaign_name_input = $VBoxContainer/CampaignNameInput
-@onready var difficulty_option = $VBoxContainer/DifficultyOption
-@onready var permadeath_toggle = $VBoxContainer/PermadeathToggle
-@onready var story_track_toggle = $VBoxContainer/StoryTrackToggle
+@onready var campaign_name_input: Button = $"VBoxContainer/CampaignNameInput"
+@onready var difficulty_option: Button = $"VBoxContainer/DifficultyOption"
+@onready var permadeath_toggle: Button = $"VBoxContainer/PermadeathToggle"
+@onready var story_track_toggle: Button = $"VBoxContainer/StoryTrackToggle"
 @onready var start_button = $VBoxContainer/StartButton
 
 signal campaign_started(config: Dictionary)
@@ -86,5 +86,5 @@ func _on_start_pressed() -> void:
     if campaign_config.difficulty_level in [GameEnums.DifficultyLevel.HARDCORE, GameEnums.DifficultyLevel.ELITE] and not campaign_config.enable_permadeath:
         campaign_config.enable_permadeath = true
     
-    campaign_started.emit(campaign_config)
+    campaign_started.emit(campaign_config)  # warning: return value discarded (intentional)
     queue_free()

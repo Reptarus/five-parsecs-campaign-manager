@@ -38,10 +38,10 @@ func add_component(component: Resource) -> bool:
     if component in components:
         push_warning("Component already installed")
         return false
-        
-    components.append(component)
+
+    components.append(component)  # warning: return value discarded (intentional)
     update_power_state()
-    component_added.emit(component)
+    component_added.emit(component)  # warning: return value discarded (intentional)
     return true
 
 func remove_component(component: Resource) -> bool:
@@ -55,18 +55,18 @@ func remove_component(component: Resource) -> bool:
         
     components.erase(component)
     update_power_state()
-    component_removed.emit(component)
+    component_removed.emit(component)  # warning: return value discarded (intentional)
     return true
 
 # Ship state management
 func take_damage(amount: int) -> void:
     hull_points = maxi(0, hull_points - amount)
-    ship_damaged.emit(amount)
+    ship_damaged.emit(amount)  # warning: return value discarded (intentional)
     update_power_state()
 
 func repair(amount: int) -> void:
     hull_points = mini(max_hull_points, hull_points + amount)
-    ship_repaired.emit(amount)
+    ship_repaired.emit(amount)  # warning: return value discarded (intentional)
     update_power_state()
 
 func update_power_state() -> void:
@@ -74,7 +74,7 @@ func update_power_state() -> void:
     var required_power = calculate_power_usage()
     
     is_powered = available_power >= required_power
-    power_state_changed.emit(available_power, required_power)
+    power_state_changed.emit(available_power, required_power)  # warning: return value discarded (intentional)
 
 # Utility methods
 func calculate_power_usage() -> int:
@@ -108,13 +108,23 @@ func serialize() -> Dictionary:
     }
 
 func deserialize(data: Dictionary) -> void:
+
     ship_name = data.get("ship_name", "")
+
     description = data.get("description", "")
+
     ship_class = data.get("ship_class", "")
+
     level = data.get("level", 1)
+
     power_capacity = data.get("power_capacity", 10)
+
     power_generation = data.get("power_generation", 5)
+
     hull_points = data.get("hull_points", 100)
+
     max_hull_points = data.get("max_hull_points", 100)
+
     is_powered = data.get("is_powered", true)
+
     power_usage = data.get("power_usage", 0)

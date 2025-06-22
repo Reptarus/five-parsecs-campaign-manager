@@ -1,5 +1,12 @@
 @tool
-extends GdUnitGameTest
+@warning_ignore("return_value_discarded")
+@warning_ignore("unsafe_method_access")
+@warning_ignore("unsafe_call_argument")
+@warning_ignore("untyped_declaration")
+@warning_ignore("unused_variable")
+@warning_ignore("redundant_await")
+@warning_ignore("unsafe_cast")
+extends GdUnitTestSuite
 
 # Mock scripts for testing
 var MockCampaignManagerScript: GDScript
@@ -52,7 +59,7 @@ func is_initialized() -> bool:
 func get_story_events() -> Array:
 	return story_events
 
-func resolve_story_event(event: Dictionary) -> bool:
+func resolve_story_event(_event: Dictionary) -> bool:
 	return true
 
 func setup_battle() -> bool:
@@ -112,11 +119,11 @@ extends Node
 
 var data: Dictionary = {}
 
-func get(key: String):
+func get(key: String) -> Variant:
 	return data.get(key, null)
 
-func set(key: String, value) -> void:
-	data[key] = value
+func set(key: String, test_value) -> void:
+	data[key] = test_value
 
 func has(key: String) -> bool:
 	return key in data
@@ -175,22 +182,23 @@ func after_test() -> void:
 # Helper Methods
 func _setup_test_enemies() -> void:
 	# Create a mix of enemy types
-	var enemy_types := ["BASIC", "ELITE", "BOSS"]
-	for type in enemy_types:
-		var enemy := _create_test_enemy(type)
+	var enemy_types: Array[String] = ["BASIC", "ELITE", "BOSS"]
+	for enemy_type_name: String in enemy_types:
+		var enemy: Node = _create_test_enemy(enemy_type_name)
 		if not enemy:
-			push_error("Failed to create enemy of type: %s" % type)
+			push_error("Failed to create enemy of type: %s" % enemy_type_name)
 			continue
+
 		_test_enemies.append(enemy)
 		track_node(enemy)
 
 # Helper method to create test enemies since CampaignTest doesn't have this method
-func _create_test_enemy(type: String) -> Node:
-	var enemy := Node.new()
-	enemy.name = "TestEnemy_" + type
+func _create_test_enemy(enemy_type: String) -> Node:
+	var enemy: Node = Node.new()
+	enemy.name = "TestEnemy_" + enemy_type
 	
 	# Add some basic enemy properties based on type
-	match type:
+	match enemy_type:
 		"BASIC":
 			enemy.set_meta("enemy_type", "grunt")
 			enemy.set_meta("health", 50)
@@ -211,7 +219,7 @@ func _create_test_enemy(type: String) -> Node:
 	return enemy
 
 func _cleanup_test_enemies() -> void:
-	for enemy in _test_enemies:
+	for enemy: Node in _test_enemies:
 		if is_instance_valid(enemy):
 			enemy.queue_free()
 	_test_enemies.clear()
@@ -221,9 +229,8 @@ func verify_phase_transition(from_phase: int, to_phase: int) -> void:
 		_phase_manager.get_current_phase() if _phase_manager.has_method("get_current_phase") else 0
 	).is_equal(from_phase)
 	
-	# Skip signal monitoring to prevent Dictionary corruption
-	# monitor_signals(_phase_manager)  # REMOVED - causes Dictionary corruption
-	# Test state directly instead of signal emission
+	# Test state transitions directly without signal monitoring
+	# Note: Signal monitoring can cause Dictionary corruption in tests
 	
 	_phase_manager.transition_to(to_phase) if _phase_manager.has_method("transition_to") else null
 	
@@ -234,17 +241,17 @@ func verify_phase_transition(from_phase: int, to_phase: int) -> void:
 	).is_equal(to_phase)
 
 # Test Methods
-func test_phase_manager_initialization():
+func test_phase_manager_initialization() -> void:
 	"""Test that the phase manager initializes correctly."""
 	# Then it should be set to the initial phase
 	assert_that(
 		_phase_manager.get_current_phase() if _phase_manager.has_method("get_current_phase") else 0
 	).is_equal(CampaignPhase.SETUP)
 
-func test_phase_transitions():
+func test_phase_transitions() -> void:
 	"""Test that the phase manager can transition between phases correctly."""
 	# When transitioning to a new phase
-	var to_phase = CampaignPhase.STORY
+	var to_phase: int = CampaignPhase.STORY
 	assert_that(
 		_phase_manager.transition_to(to_phase) if _phase_manager.has_method("transition_to") else false
 	).is_true()
@@ -265,7 +272,7 @@ func test_phase_transitions():
 		_phase_manager.get_current_phase() if _phase_manager.has_method("get_current_phase") else 0
 	).is_equal(CampaignPhase.STORY)
 
-func test_campaign_integration():
+func test_campaign_integration() -> void:
 	"""Test that the campaign manager integrates with phase manager correctly."""
 	# Given an initialized campaign manager
 	assert_that(
@@ -366,7 +373,7 @@ func test_campaign_integration():
 		_campaign_manager.advance_campaign() if _campaign_manager.has_method("advance_campaign") else false
 	).is_true()
 
-func test_full_campaign_cycle():
+func test_full_campaign_cycle() -> void:
 	"""Test a full campaign cycle with all phases."""
 	# Given an initialized campaign
 	assert_that(_campaign_manager.initialize() if _campaign_manager.has_method("initialize") else false).is_true()
@@ -413,8 +420,13 @@ func test_full_campaign_cycle():
 	assert_that(final_results).is_not_null()
 
 func test_campaign_manager_hooks() -> void:
+	"""Test campaign manager hook integration."""
 	# Register an enemy
 	var enemy = _create_test_enemy("BASIC")
 	assert_that(
 		_campaign_manager.register_enemy(enemy) if _campaign_manager.has_method("register_enemy") else false
 	).is_true()
+	
+	# Clean up the enemy
+	if is_instance_valid(enemy):
+		enemy.queue_free()

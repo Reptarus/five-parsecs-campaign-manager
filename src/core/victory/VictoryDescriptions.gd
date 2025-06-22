@@ -2,26 +2,22 @@ extends Resource
 
 const GameEnums = preload("res://src/core/systems/GlobalEnums.gd")
 
-var CAMPAIGN_DESCRIPTIONS: Dictionary = {
-	GameEnums.FiveParcsecsCampaignVictoryType.TURNS_20: "Play 20 campaign turns",
-	GameEnums.FiveParcsecsCampaignVictoryType.TURNS_50: "Play 50 campaign turns",
-	GameEnums.FiveParcsecsCampaignVictoryType.TURNS_100: "Play 100 campaign turns",
-	GameEnums.FiveParcsecsCampaignVictoryType.QUESTS_3: "Complete 3 story quests",
-	GameEnums.FiveParcsecsCampaignVictoryType.QUESTS_5: "Complete 5 story quests",
-	GameEnums.FiveParcsecsCampaignVictoryType.QUESTS_10: "Complete 10 story quests",
+var _VICTORY_DESCRIPTIONS: Dictionary = {
+	GameEnums.FiveParcsecsCampaignVictoryType.QUESTS_5: "Complete 5 questline missions",
+	GameEnums.FiveParcsecsCampaignVictoryType.QUESTS_10: "Complete 10 questline missions",
 	GameEnums.FiveParcsecsCampaignVictoryType.STORY_COMPLETE: "Complete the main story",
 	GameEnums.FiveParcsecsCampaignVictoryType.WEALTH_GOAL: "Accumulate specified wealth",
 	GameEnums.FiveParcsecsCampaignVictoryType.REPUTATION_GOAL: "Achieve specified reputation",
 	GameEnums.FiveParcsecsCampaignVictoryType.FACTION_DOMINANCE: "Become the dominant faction"
 }
 
-var MISSION_DESCRIPTIONS: Dictionary = {
+var _MISSION_DESCRIPTIONS: Dictionary = {
 	GameEnums.MissionVictoryType.ELIMINATION: "Eliminate all enemy forces",
 	GameEnums.MissionVictoryType.EXTRACTION: "Reach extraction point",
 	# Add other mission victory descriptions
 }
 
-static func get_campaign_description(victory_type: int) -> String:
+func get_description(victory_type: int) -> String:
 	match victory_type:
 		GameEnums.FiveParcsecsCampaignVictoryType.STORY_COMPLETE:
 			return "Complete the main story campaign"
@@ -32,13 +28,9 @@ static func get_campaign_description(victory_type: int) -> String:
 		GameEnums.FiveParcsecsCampaignVictoryType.FACTION_DOMINANCE:
 			return "Achieve dominance with your chosen faction"
 		GameEnums.FiveParcsecsCampaignVictoryType.CREDITS_THRESHOLD:
-			return "Reach a specific credit threshold"
-		GameEnums.FiveParcsecsCampaignVictoryType.REPUTATION_THRESHOLD:
-			return "Achieve a specific reputation level"
-		GameEnums.FiveParcsecsCampaignVictoryType.MISSION_COUNT:
-			return "Complete a set number of missions"
+			return "Reach the credit threshold"
 		_:
-			return "Unknown victory condition"
+			return _VICTORY_DESCRIPTIONS.get(victory_type, "Unknown victory condition")
 
 static func get_mission_description(victory_type: int) -> String:
 	match victory_type:

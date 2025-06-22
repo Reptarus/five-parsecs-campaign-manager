@@ -17,26 +17,26 @@ var capturing_unit: Character = null
 var turns_held := 0
 
 func _ready() -> void:
-    add_to_group("objectives")
-    area_entered.connect(_on_area_entered)
-    area_exited.connect(_on_area_exited)
+	add_to_group("objectives")
+	area_entered.connect(_on_area_entered)  # warning: return value discarded (intentional)
+	area_exited.connect(_on_area_exited)  # warning: return value discarded (intentional)
 
 func _on_area_entered(area: Area3D) -> void:
-    if area.is_in_group("units"):
-        var node = area.get_parent()
-        if node is Character:
-            capturing_unit = node
-            if fail_on_enemy_capture and capturing_unit.is_enemy():
-                objective_failed.emit()
-            objective_reached.emit(capturing_unit)
+	if area.is_in_group("units"):
+		var node = area.get_parent()
+		if node is Character:
+			capturing_unit = node
+			if fail_on_enemy_capture and capturing_unit.is_enemy():
+				objective_failed.emit()  # warning: return value discarded (intentional)
+			objective_reached.emit(capturing_unit)  # warning: return value discarded (intentional)
 
 func _on_area_exited(area: Area3D) -> void:
-    if area == capturing_unit:
-        capturing_unit = null
-        turns_held = 0
+	if area == capturing_unit:
+		capturing_unit = null
+		turns_held = 0
 
 func process_turn() -> void:
-    if capturing_unit:
-        turns_held += 1
-        if turns_held >= required_turns:
-            objective_completed.emit() 
+	if capturing_unit:
+		turns_held += 1
+		if turns_held >= required_turns:
+			objective_completed.emit()  # warning: return value discarded (intentional)

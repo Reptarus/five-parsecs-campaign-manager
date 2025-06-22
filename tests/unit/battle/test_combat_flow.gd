@@ -6,55 +6,68 @@
 ## - Status effects
 ## - Combat tactics
 @tool
-extends GdUnitGameTest
+@warning_ignore("return_value_discarded")
+	extends GdUnitGameTest
 
-# UNIVERSAL MOCK STRATEGY - Same pattern that achieved 100% success in Ship/Mission tests
+# UNIVERSAL MOCK STRATEGY - Same pattern that achieved @warning_ignore("integer_division")
+	100 % success in Ship/Mission tests
 class MockBattleStateMachine extends Resource:
 	var current_state: int = 0 # GameEnums.BattleState.NONE
 	var current_phase: int = 0 # GameEnums.CombatPhase.NONE
 	var current_round: int = 1
 	var is_battle_active: bool = false
 	var current_unit_action: int = 0
-	var active_combatants: Array[Resource] = []
+	var active_combatants: @warning_ignore("unsafe_call_argument")
+	Array[Resource] = []
 	var completed_actions: Dictionary = {}
 	
 	func start_battle() -> void:
 		is_battle_active = true
 		current_state = 2 # GameEnums.BattleState.ROUND
 		current_phase = 1 # GameEnums.CombatPhase.INITIATIVE
-		battle_started.emit()
+		@warning_ignore("unsafe_method_access")
+	battle_started.emit()
 	
 	func transition_to(state: int) -> void:
 		if state >= 0:
 			current_state = state
-			state_changed.emit(current_state)
+			@warning_ignore("unsafe_method_access")
+	state_changed.emit(current_state)
 	
 	func transition_to_phase(phase: int) -> void:
 		current_phase = phase
-		phase_changed.emit({"new_phase": phase})
+		@warning_ignore("unsafe_method_access")
+	phase_changed.emit({"new_phase": phase})
 	
 	func add_combatant(unit: Resource) -> void:
-		active_combatants.append(unit)
-		combatant_added.emit(unit)
+
+		@warning_ignore("return_value_discarded")
+	active_combatants.append(unit)
+		@warning_ignore("unsafe_method_access")
+	combatant_added.emit(unit)
 	
 	func get_active_combatants() -> Array[Resource]:
 		return active_combatants
 	
 	func start_unit_action(unit: Resource, action: int) -> void:
 		current_unit_action = action
-		action_started.emit(unit, action)
+		@warning_ignore("unsafe_method_access")
+	action_started.emit(unit, action)
 	
 	func complete_unit_action() -> void:
 		current_unit_action = 0
-		action_completed.emit()
+		@warning_ignore("unsafe_method_access")
+	action_completed.emit()
 	
 	func has_unit_completed_action(unit: Resource, action: int) -> bool:
 		var key = str(unit.get_instance_id()) + "_" + str(action)
-		return completed_actions.has(key)
+		return @warning_ignore("unsafe_call_argument")
+	completed_actions.has(key)
 	
 	func end_round() -> void:
 		current_round += 1
-		round_ended.emit(current_round)
+		@warning_ignore("unsafe_method_access")
+	round_ended.emit(current_round)
 	
 	func save_state() -> Dictionary:
 		return {
@@ -65,10 +78,18 @@ class MockBattleStateMachine extends Resource:
 		}
 	
 	func load_state(state: Dictionary) -> void:
-		current_state = state.get("current_state", 0)
-		current_phase = state.get("current_phase", 0)
-		current_round = state.get("current_round", 1)
-		is_battle_active = state.get("is_battle_active", false)
+
+		current_state = @warning_ignore("unsafe_call_argument")
+	state.get("current_state", 0)
+
+		current_phase = @warning_ignore("unsafe_call_argument")
+	state.get("current_phase", 0)
+
+		current_round = @warning_ignore("unsafe_call_argument")
+	state.get("current_round", 1)
+
+		is_battle_active = @warning_ignore("unsafe_call_argument")
+	state.get("is_battle_active", false)
 	
 	signal battle_started
 	signal state_changed(new_state: int)
@@ -84,7 +105,7 @@ class MockCharacter extends Resource:
 	var current_health: int = 100
 	
 	func set_character_name(name: String) -> void:
-		character_name = name
+		character_name = test_name
 	
 	func set_max_health(health: int) -> void:
 		max_health = health
@@ -98,11 +119,14 @@ class MockCharacter extends Resource:
 class MockGameState extends Resource:
 	var state_data: Dictionary = {}
 	
-	func set_data(key: String, value) -> void:
-		state_data[key] = value
+	func set_data(key: String, _value) -> void:
+		@warning_ignore("unsafe_call_argument")
+	state_data[key] = _value
 	
-	func get_data(key: String, default_value = null):
-		return state_data.get(key, default_value)
+	func get_data(key: String, default_value = null) -> void:
+
+		return @warning_ignore("unsafe_call_argument")
+	statetest_data.get(key, default_value)
 
 # GameEnums constants (mocked values)
 var GameEnums = {
@@ -133,11 +157,14 @@ func before_test() -> void:
 	super.before_test()
 	
 	_state_machine = MockBattleStateMachine.new()
+	@warning_ignore("return_value_discarded")
 	track_resource(_state_machine)
 	
 	_game_state = MockGameState.new()
+	@warning_ignore("return_value_discarded")
 	track_resource(_game_state)
 	
+	@warning_ignore("unsafe_method_access")
 	await get_tree().process_frame
 
 func after_test() -> void:
@@ -151,10 +178,12 @@ func _create_test_character(name: String) -> MockCharacter:
 	character.set_character_name(name)
 	character.set_max_health(100)
 	character.set_current_health(100)
+	@warning_ignore("return_value_discarded")
 	track_resource(character)
 	return character
 
 # Battle Phase Tests
+@warning_ignore("unsafe_method_access")
 func test_battle_phase_transitions() -> void:
 	# Test initial state - use current_phase property, not get_current_phase()
 	var current_phase: int = _state_machine.current_phase
@@ -185,6 +214,7 @@ func test_battle_phase_transitions() -> void:
 	assert_that(current_phase).override_failure_message("Should transition to ACTION phase").is_equal(GameEnums.CombatPhase.ACTION)
 
 # Combat Action Tests
+@warning_ignore("unsafe_method_access")
 func test_combat_actions() -> void:
 	# Setup test characters
 	var attacker := _create_test_character("Attacker")
@@ -198,7 +228,8 @@ func test_combat_actions() -> void:
 	_state_machine.transition_to_phase(GameEnums.CombatPhase.ACTION)
 	
 	# Test basic combat actions through the state machine
-	var combatants: Array[Resource] = _state_machine.get_active_combatants()
+	var combatants: @warning_ignore("unsafe_call_argument")
+	Array[Resource] = _state_machine.get_active_combatants()
 	assert_that(combatants.size()).override_failure_message("Should have combatants").is_greater(0)
 	
 	# Test unit action tracking
@@ -209,11 +240,13 @@ func test_combat_actions() -> void:
 	
 	# Complete the action
 	_state_machine.complete_unit_action()
-	
+
 	# Check if action was completed (simplified check since mock doesn't track completed actions)
+
 	assert_that(_state_machine.current_unit_action).override_failure_message("Action should be marked as completed").is_equal(0)
 
 # State Management Tests
+@warning_ignore("unsafe_method_access")
 func test_state_management() -> void:
 	# Test state transitions
 	_state_machine.transition_to(GameEnums.BattleState.SETUP)
@@ -228,22 +261,25 @@ func test_state_management() -> void:
 	assert_that(is_active).override_failure_message("Battle should be active").is_true()
 
 # Signal Testing
+@warning_ignore("unsafe_method_access")
 func test_battle_signals() -> void:
+	@warning_ignore("unsafe_method_access")
 	monitor_signals(_state_machine)
 	
 	# Test battle start signal
 	_state_machine.start_battle()
-	
+
 	# Verify battle_started signal was emitted
 	assert_signal(_state_machine).is_emitted("battle_started")
 	
 	# Test state change signal
 	_state_machine.transition_to(GameEnums.BattleState.CLEANUP)
-	
+
 	# Verify state_changed signal was emitted
 	assert_signal(_state_machine).is_emitted("state_changed")
 
 # Round Management Tests
+@warning_ignore("unsafe_method_access")
 func test_round_management() -> void:
 	# Start battle to initialize round
 	_state_machine.start_battle()
@@ -258,18 +294,22 @@ func test_round_management() -> void:
 	assert_that(current_round).override_failure_message("Should advance to round 2").is_equal(2)
 
 # Combatant Management Tests
+@warning_ignore("unsafe_method_access")
 func test_combatant_management() -> void:
 	var unit := _create_test_character("TestUnit")
 	
 	# Add combatant to battle
 	_state_machine.add_combatant(unit)
-	
+
 	# Check that combatant was added
-	var combatants: Array[Resource] = _state_machine.get_active_combatants()
+	var combatants: @warning_ignore("unsafe_call_argument")
+	Array[Resource] = _state_machine.get_active_combatants()
 	assert_that(combatants.size()).override_failure_message("Should have one combatant").is_equal(1)
+	@warning_ignore("unsafe_call_argument")
 	assert_that(combatants[0]).override_failure_message("Should be the added unit").is_equal(unit)
 
 # Save/Load State Tests
+@warning_ignore("unsafe_method_access")
 func test_save_load_state() -> void:
 	# Set up a battle state
 	_state_machine.start_battle()
@@ -278,22 +318,29 @@ func test_save_load_state() -> void:
 	# Save state
 	var saved_state: Dictionary = _state_machine.save_state()
 	assert_that(saved_state).override_failure_message("Should save state").is_not_null()
-	assert_that(saved_state.has("current_state")).override_failure_message("Should include current_state").is_true()
-	assert_that(saved_state.has("current_phase")).override_failure_message("Should include current_phase").is_true()
+	assert_that(@warning_ignore("unsafe_call_argument")
+	saved_state.has("current_state")).override_failure_message("Should include current_state").is_true()
+	assert_that(@warning_ignore("unsafe_call_argument")
+	saved_state.has("current_phase")).override_failure_message("Should include current_phase").is_true()
 	
 	# Modify state
 	_state_machine.transition_to(GameEnums.BattleState.CLEANUP)
 	
 	# Load saved state
 	_state_machine.load_state(saved_state)
-	
+
 	# Verify state was restored
 	var current_state: int = _state_machine.current_state
 	var current_phase: int = _state_machine.current_phase
-	assert_that(current_state).override_failure_message("State should be restored").is_equal(saved_state.get("current_state"))
-	assert_that(current_phase).override_failure_message("Phase should be restored").is_equal(saved_state.get("current_phase"))
+
+	assert_that(current_state).override_failure_message("State should be restored").is_equal(@warning_ignore("unsafe_call_argument")
+	saved_state.get("current_state"))
+
+	assert_that(current_phase).override_failure_message("Phase should be restored").is_equal(@warning_ignore("unsafe_call_argument")
+	saved_state.get("current_phase"))
 
 # Error Handling Tests
+@warning_ignore("unsafe_method_access")
 func test_invalid_transitions() -> void:
 	# Test invalid state transition (shouldn't crash)
 	_state_machine.transition_to(-1) # Invalid state
@@ -303,6 +350,7 @@ func test_invalid_transitions() -> void:
 	assert_that(current_state).override_failure_message("Should remain in valid state").is_greater_equal(0)
 
 # Performance Tests
+@warning_ignore("unsafe_method_access")
 func test_action_processing_performance() -> void:
 	var unit := _create_test_character("PerformanceTest")
 	_state_machine.start_battle()
@@ -311,7 +359,7 @@ func test_action_processing_performance() -> void:
 	var start_time := Time.get_ticks_msec()
 	
 	# Test rapid state transitions
-	for i in range(100):
+	for i: int in range(100):
 		_state_machine.start_unit_action(unit, GameEnums.UnitAction.MOVE)
 		_state_machine.complete_unit_action()
 	

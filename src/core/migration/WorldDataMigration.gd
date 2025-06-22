@@ -21,14 +21,14 @@ func _init() -> void:
 ## Returns a new GamePlanet instance with data from the FiveParsecsPlanet
 func migrate_planet(old_planet) -> GamePlanet:
 	if not old_planet:
-		push_error("Cannot migrate null planet")
+		push_error("Cannot migrate null _planet")
 		return null
 		
-	var new_planet = GamePlanet.new()
+	var new_planet := GamePlanet.new()
 	new_planet.planet_id = old_planet.planet_id if old_planet.has("planet_id") else ""
 	new_planet.name = old_planet.name if old_planet.has("name") else "Unknown Planet"
 	
-	# Map planet type
+	# Map _planet type
 	# Using literal integers since the old enum values might not match new ones
 	if old_planet.has("planet_type"):
 		match old_planet.planet_type:
@@ -63,14 +63,14 @@ func migrate_planet(old_planet) -> GamePlanet:
 ## Returns a new GameLocation instance with data from the FiveParsecsLocation
 func migrate_location(old_location) -> GameLocation:
 	if not old_location:
-		push_error("Cannot migrate null location")
+		push_error("Cannot migrate null _location")
 		return null
 		
-	var new_location = GameLocation.new()
+	var new_location := GameLocation.new()
 	new_location.location_id = old_location.location_id if old_location.has("location_id") else ""
 	new_location.name = old_location.name if old_location.has("name") else "Unknown Location"
 	
-	# Map location type
+	# Map _location type
 	# Using literal integers since the old enum values might not match new ones
 	if old_location.has("location_type"):
 		match old_location.location_type:
@@ -111,14 +111,14 @@ func migrate_location(old_location) -> GameLocation:
 ## Returns a new GameWorldTrait instance with data from the FiveParsecsWorldTrait
 func migrate_world_trait(old_trait) -> GameWorldTrait:
 	if not old_trait:
-		push_error("Cannot migrate null trait")
+		push_error("Cannot migrate null _trait")
 		return null
 		
-	var new_trait = GameWorldTrait.new()
+	var new_trait := GameWorldTrait.new()
 	new_trait.trait_id = old_trait.trait_id if old_trait.has("trait_id") else ""
 	new_trait.name = old_trait.name if old_trait.has("name") else "Unknown Trait"
 	
-	# Map trait type
+	# Map _trait type
 	# Using literal integers since the old enum values might not match new ones
 	if old_trait.has("trait_type"):
 		match old_trait.trait_type:
@@ -138,43 +138,58 @@ func migrate_world_trait(old_trait) -> GameWorldTrait:
 ## Migrate an entire world data dictionary from old format to new format
 ## This can be used when loading saved games
 func migrate_world_data(old_data: Dictionary) -> Dictionary:
-	var new_data = {}
+	var new_data: Dictionary = {}
 	
 	# Migrate planets
 	if old_data.has("planets"):
 		new_data["planets"] = {}
 		for planet_id in old_data["planets"]:
 			var old_planet_data = old_data["planets"][planet_id]
-			var new_planet = GamePlanet.new()
+			var new_planet := GamePlanet.new()
 			
 			# Set basic properties
 			new_planet.planet_id = planet_id
+
 			new_planet.planet_name = old_planet_data.get("planet_name", "")
+
 			new_planet.sector = old_planet_data.get("sector", "")
+
 			new_planet.coordinates = old_planet_data.get("coordinates", Vector2.ZERO)
+
 			new_planet.planet_type = old_planet_data.get("planet_type", GameEnums.PlanetType.NONE)
+
 			new_planet.description = old_planet_data.get("description", "")
+
 			new_planet.faction_type = old_planet_data.get("faction_type", GameEnums.FactionType.NEUTRAL)
+
 			new_planet.environment_type = old_planet_data.get("environment_type", GameEnums.PlanetEnvironment.NONE)
 			
 			# Set state tracking
+
 			new_planet.strife_level = old_planet_data.get("strife_level", GameEnums.StrifeType.NONE)
+
 			new_planet.instability = old_planet_data.get("instability", GameEnums.StrifeType.NONE)
+
 			new_planet.unity_progress = old_planet_data.get("unity_progress", 0)
+
 			new_planet.visited = old_planet_data.get("visited", false)
+
 			new_planet.discovered = old_planet_data.get("discovered", false)
 			
 			# Copy resources
+
 			var resources = old_planet_data.get("resources", {})
 			for resource_type in resources:
 				new_planet.resources[resource_type] = resources[resource_type]
 			
 			# Copy threats
+
 			var threats = old_planet_data.get("threats", [])
 			for threat in threats:
 				new_planet.threats.append(threat)
 			
 			# Copy world traits
+
 			var world_features = old_planet_data.get("world_features", [])
 			for old_trait in world_features:
 				var trait_id = convert_world_trait_to_id(old_trait)
@@ -187,34 +202,42 @@ func migrate_world_data(old_data: Dictionary) -> Dictionary:
 		new_data["locations"] = {}
 		for location_id in old_data["locations"]:
 			var old_location_data = old_data["locations"][location_id]
-			var new_location = GameLocation.new()
+			var new_location := GameLocation.new()
 			
 			# Set basic properties
 			new_location.location_id = location_id
+
 			new_location.location_name = old_location_data.get("name", "")
+
 			new_location.location_type = old_location_data.get("location_type", GameEnums.LocationType.FRONTIER_WORLD)
+
 			new_location.faction_type = old_location_data.get("faction_type", GameEnums.FactionType.NEUTRAL)
+
 			new_location.environment_type = old_location_data.get("environment_type", GameEnums.PlanetEnvironment.FOREST)
+
 			new_location.coordinates = old_location_data.get("coordinates", Vector2.ZERO)
 			
 			# Copy resources
+
 			var resources = old_location_data.get("resources", {})
 			for resource_type in resources:
 				var resource_id = convert_resource_type_to_id(resource_type)
 				new_location.resources[resource_id] = resources[resource_type]
-			
+
 			# Copy special features as world traits
+
 			var special_features = old_location_data.get("special_features", [])
 			for feature in special_features:
 				var trait_id = convert_special_feature_to_trait_id(feature)
 				new_location.add_world_trait_by_id(trait_id)
 			
 			# Copy market state
+
 			new_location.market_state = old_location_data.get("market_state", GameLocation.MARKET_STATE_NORMAL)
 			
 			new_data["locations"][location_id] = new_location.serialize()
 	
-	# Copy other data as-is
+	# Copy other _data as-is
 	for key in old_data:
 		if key != "planets" and key != "locations":
 			new_data[key] = old_data[key]
@@ -224,8 +247,8 @@ func migrate_world_data(old_data: Dictionary) -> Dictionary:
 	
 	return new_data
 
-## Check if world data needs migration
-## Returns true if the data is in the old format
+## Check if world _data needs migration
+## Returns true if the _data is in the old format
 func needs_migration(data: Dictionary) -> bool:
 	# Check if data has version information
 	if data.has("data_version"):
@@ -307,7 +330,7 @@ func convert_planet_type_to_id(old_type: int) -> String:
 		4: return "asteroid_belt" # GameEnums.PlanetType.ASTEROID_BELT
 		_: return "temperate" # Default to temperate
 
-## Convert a planet type ID from the new string format to the old enum
+## Convert a planet _type ID from the new string format to the old enum
 func convert_planet_id_to_type(planet_id: String) -> int:
 	match planet_id:
 		"desert": return GameEnums.PlanetType.DESERT
@@ -342,7 +365,7 @@ func convert_world_trait_to_id(old_trait: int) -> String:
 		17: return "black_market" # Use integer instead of missing enum
 		_: return "frontier_world" # Default to frontier world
 
-## Convert a world trait ID from the new string format to the old enum
+## Convert a world _trait ID from the new string format to the old enum
 func convert_world_trait_id_to_enum(trait_id: String) -> int:
 	match trait_id:
 		"agricultural_world": return GameEnums.WorldTrait.AGRICULTURAL_WORLD
@@ -414,7 +437,7 @@ func get_all_world_traits() -> Dictionary:
 	return _data_manager.load_json_file("res://data/world_traits.json")
 
 func _get_planet_environment_id(old_environment) -> int:
-	# Convert old environment type to new environment ID
+	# Convert old _environment type to new _environment ID
 	match old_environment:
 		0: # NONE
 			return 0
@@ -477,10 +500,10 @@ func convert_resource_type_int_to_id(old_resource_type: int) -> String:
 
 # Convert resource dictionary to int-keyed dictionary
 func convert_resource_dict(old_dict: Dictionary) -> Dictionary:
-	var new_dict = {}
+	var new_dict: Dictionary = {}
 	
 	for old_type in old_dict:
 		var new_type_str = convert_resource_type_int_to_id(int(old_type)) if old_type is String else convert_resource_type_int_to_id(old_type)
 		new_dict[new_type_str] = old_dict[old_type]
-	
+
 	return new_dict

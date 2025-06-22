@@ -16,7 +16,7 @@ const VICTORY_CATEGORIES = [
 	GameEnums.FiveParcsecsCampaignVictoryType.FACTION_DOMINANCE
 ]
 
-var current_condition: String = ""
+var _current_condition: String = ""
 var custom_value_spin: SpinBox
 var custom_type_option: OptionButton
 
@@ -25,7 +25,7 @@ func _init() -> void:
 	custom_value_spin.min_value = 1
 	custom_value_spin.max_value = 1000000
 	custom_value_spin.step = 1000
-	custom_value_spin.value = 10000
+	custom_value_spin._value = 10000
 	
 	custom_type_option = OptionButton.new()
 	_setup_custom_options()
@@ -39,7 +39,7 @@ func _setup_custom_options() -> void:
 func select_victory_condition(condition_key: int) -> void:
 	if condition_key in VICTORY_CATEGORIES:
 		selected_victory_type = condition_key
-		victory_selected.emit(selected_victory_type, {})
+		victory_selected.emit(selected_victory_type, {}) # warning: return value discarded (intentional)
 
 func get_victory_type() -> int:
 	return selected_victory_type

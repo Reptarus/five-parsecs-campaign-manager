@@ -1,0 +1,153 @@
+[gd_scene load_steps=2 format=3 uid="uid://ekbe001cvsdu"]
+
+[ext_resource type="Script" path="res://src/ui/screens/world/PatronRivalManager.gd" id="1_patron"]
+
+[node name="PatronRivalManager" type="Control"]
+layout_mode = 3
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+script = ExtResource("1_patron")
+
+[node name="MarginContainer" type="MarginContainer" parent="."]
+layout_mode = 1
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+theme_override_constants/margin_left = 20
+theme_override_constants/margin_top = 20
+theme_override_constants/margin_right = 20
+theme_override_constants/margin_bottom = 20
+
+[node name="VBoxContainer" type="VBoxContainer" parent="MarginContainer"]
+layout_mode = 2
+theme_override_constants/separation = 20
+
+[node name="Header" type="HBoxContainer" parent="MarginContainer/VBoxContainer"]
+layout_mode = 2
+
+[node name="Title" type="Label" parent="MarginContainer/VBoxContainer/Header"]
+layout_mode = 2
+size_flags_horizontal = 3
+theme_override_font_sizes/font_size = 32
+text = "Patrons & Rivals"
+
+[node name="BackButton" type="Button" parent="MarginContainer/VBoxContainer/Header"]
+layout_mode = 2
+text = "Back"
+
+[node name="MainContent" type="HBoxContainer" parent="MarginContainer/VBoxContainer"]
+layout_mode = 2
+size_flags_vertical = 3
+theme_override_constants/separation = 20
+
+[node name="Patrons" type="PanelContainer" parent="MarginContainer/VBoxContainer/MainContent"]
+layout_mode = 2
+size_flags_horizontal = 3
+
+[node name="VBoxContainer" type="VBoxContainer" parent="MarginContainer/VBoxContainer/MainContent/Patrons"]
+layout_mode = 2
+theme_override_constants/separation = 15
+
+[node name="Header" type="HBoxContainer" parent="MarginContainer/VBoxContainer/MainContent/Patrons/VBoxContainer"]
+layout_mode = 2
+
+[node name="Label" type="Label" parent="MarginContainer/VBoxContainer/MainContent/Patrons/VBoxContainer/Header"]
+layout_mode = 2
+size_flags_horizontal = 3
+text = "Patrons"
+horizontal_alignment = 1
+theme_override_font_sizes/font_size = 20
+
+[node name="AddPatronButton" type="Button" parent="MarginContainer/VBoxContainer/MainContent/Patrons/VBoxContainer/Header"]
+layout_mode = 2
+text = "Add Patron"
+
+[node name="ScrollContainer" type="ScrollContainer" parent="MarginContainer/VBoxContainer/MainContent/Patrons/VBoxContainer"]
+layout_mode = 2
+size_flags_vertical = 3
+
+[node name="PatronsList" type="VBoxContainer" parent="MarginContainer/VBoxContainer/MainContent/Patrons/VBoxContainer/ScrollContainer"]
+unique_name_in_owner = true
+layout_mode = 2
+size_flags_horizontal = 3
+size_flags_vertical = 3
+
+[node name="Rivals" type="PanelContainer" parent="MarginContainer/VBoxContainer/MainContent"]
+layout_mode = 2
+size_flags_horizontal = 3
+
+[node name="VBoxContainer" type="VBoxContainer" parent="MarginContainer/VBoxContainer/MainContent/Rivals"]
+layout_mode = 2
+theme_override_constants/separation = 15
+
+[node name="Header" type="HBoxContainer" parent="MarginContainer/VBoxContainer/MainContent/Rivals/VBoxContainer"]
+layout_mode = 2
+
+[node name="Label" type="Label" parent="MarginContainer/VBoxContainer/MainContent/Rivals/VBoxContainer/Header"]
+layout_mode = 2
+size_flags_horizontal = 3
+text = "Rivals"
+horizontal_alignment = 1
+theme_override_font_sizes/font_size = 20
+
+[node name="AddRivalButton" type="Button" parent="MarginContainer/VBoxContainer/MainContent/Rivals/VBoxContainer/Header"]
+layout_mode = 2
+text = "Add Rival"
+
+[node name="ScrollContainer" type="ScrollContainer" parent="MarginContainer/VBoxContainer/MainContent/Rivals/VBoxContainer"]
+layout_mode = 2
+size_flags_vertical = 3
+
+[node name="RivalsList" type="VBoxContainer" parent="MarginContainer/VBoxContainer/MainContent/Rivals/VBoxContainer/ScrollContainer"]
+unique_name_in_owner = true
+layout_mode = 2
+size_flags_horizontal = 3
+size_flags_vertical = 3
+
+[node name="Details" type="PanelContainer" parent="MarginContainer/VBoxContainer/MainContent"]
+layout_mode = 2
+size_flags_horizontal = 3
+
+[node name="VBoxContainer" type="VBoxContainer" parent="MarginContainer/VBoxContainer/MainContent/Details"]
+layout_mode = 2
+theme_override_constants/separation = 15
+
+[node name="Label" type="Label" parent="MarginContainer/VBoxContainer/MainContent/Details/VBoxContainer"]
+layout_mode = 2
+text = "Details"
+horizontal_alignment = 1
+theme_override_font_sizes/font_size = 20
+
+[node name="DetailsContainer" type="VBoxContainer" parent="MarginContainer/VBoxContainer/MainContent/Details/VBoxContainer"]
+unique_name_in_owner = true
+layout_mode = 2
+size_flags_vertical = 3
+
+[node name="Controls" type="HBoxContainer" parent="MarginContainer/VBoxContainer"]
+layout_mode = 2
+theme_override_constants/separation = 20
+alignment = 1
+
+[node name="GeneratePatronButton" type="Button" parent="MarginContainer/VBoxContainer/Controls"]
+layout_mode = 2
+text = "Generate Patron"
+
+[node name="GenerateRivalButton" type="Button" parent="MarginContainer/VBoxContainer/Controls"]
+layout_mode = 2
+text = "Generate Rival"
+
+[node name="ManageJobsButton" type="Button" parent="MarginContainer/VBoxContainer/Controls"]
+layout_mode = 2
+text = "Manage Jobs"
+
+[connection signal="pressed" from="MarginContainer/VBoxContainer/Header/BackButton" to="." method="_on_back_pressed"]
+[connection signal="pressed" from="MarginContainer/VBoxContainer/MainContent/Patrons/VBoxContainer/Header/AddPatronButton" to="." method="_on_add_patron_pressed"]
+[connection signal="pressed" from="MarginContainer/VBoxContainer/MainContent/Rivals/VBoxContainer/Header/AddRivalButton" to="." method="_on_add_rival_pressed"]
+[connection signal="pressed" from="MarginContainer/VBoxContainer/Controls/GeneratePatronButton" to="." method="_on_generate_patron_pressed"]
+[connection signal="pressed" from="MarginContainer/VBoxContainer/Controls/GenerateRivalButton" to="." method="_on_generate_rival_pressed"]
+[connection signal="pressed" from="MarginContainer/VBoxContainer/Controls/ManageJobsButton" to="." method="_on_manage_jobs_pressed"]

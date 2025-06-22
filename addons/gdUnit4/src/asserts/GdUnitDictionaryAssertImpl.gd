@@ -8,7 +8,6 @@ func _init(current :Variant) -> void:
 	# save the actual assert instance on the current thread context
 	GdUnitThreadManager.get_current_context().set_assert(self)
 	if not GdUnitAssertions.validate_value_type(current, TYPE_DICTIONARY):
-		@warning_ignore("return_value_discarded")
 		report_error("GdUnitDictionaryAssert inital error, unexpected type <%s>" % GdObjects.typeof_as_string(current))
 
 
@@ -34,13 +33,11 @@ func failure_message() -> String:
 
 
 func override_failure_message(message :String) -> GdUnitDictionaryAssert:
-	@warning_ignore("return_value_discarded")
 	_base.override_failure_message(message)
 	return self
 
 
 func append_failure_message(message :String) -> GdUnitDictionaryAssert:
-	@warning_ignore("return_value_discarded")
 	_base.append_failure_message(message)
 	return self
 
@@ -50,13 +47,11 @@ func current_value() -> Variant:
 
 
 func is_null() -> GdUnitDictionaryAssert:
-	@warning_ignore("return_value_discarded")
 	_base.is_null()
 	return self
 
 
 func is_not_null() -> GdUnitDictionaryAssert:
-	@warning_ignore("return_value_discarded")
 	_base.is_not_null()
 	return self
 
@@ -81,7 +76,6 @@ func is_not_equal(expected :Variant) -> GdUnitDictionaryAssert:
 	return report_success()
 
 
-@warning_ignore("unused_parameter", "shadowed_global_identifier")
 func is_same(expected :Variant) -> GdUnitDictionaryAssert:
 	var current :Variant = current_value()
 	if current == null:
@@ -95,7 +89,6 @@ func is_same(expected :Variant) -> GdUnitDictionaryAssert:
 	return report_success()
 
 
-@warning_ignore("unused_parameter", "shadowed_global_identifier")
 func is_not_same(expected :Variant) -> GdUnitDictionaryAssert:
 	var current :Variant = current_value()
 	if is_same(current, expected):
@@ -105,7 +98,6 @@ func is_not_same(expected :Variant) -> GdUnitDictionaryAssert:
 
 func is_empty() -> GdUnitDictionaryAssert:
 	var current :Variant = current_value()
-	@warning_ignore("unsafe_cast")
 	if current == null or not (current as Dictionary).is_empty():
 		return report_error(GdAssertMessages.error_is_empty(current))
 	return report_success()
@@ -113,7 +105,6 @@ func is_empty() -> GdUnitDictionaryAssert:
 
 func is_not_empty() -> GdUnitDictionaryAssert:
 	var current :Variant = current_value()
-	@warning_ignore("unsafe_cast")
 	if current == null or (current as Dictionary).is_empty():
 		return report_error(GdAssertMessages.error_is_not_empty())
 	return report_success()
@@ -123,7 +114,6 @@ func has_size(expected: int) -> GdUnitDictionaryAssert:
 	var current :Variant = current_value()
 	if current == null:
 		return report_error(GdAssertMessages.error_is_not_null())
-	@warning_ignore("unsafe_cast")
 	if (current as Dictionary).size() != expected:
 		return report_error(GdAssertMessages.error_has_size(current, expected))
 	return report_success()
@@ -134,10 +124,8 @@ func _contains_keys(expected :Array, compare_mode :GdObjects.COMPARE_MODE) -> Gd
 	if current == null:
 		return report_error(GdAssertMessages.error_is_not_null())
 	# find expected keys
-	@warning_ignore("unsafe_cast")
 	var keys_not_found :Array = expected.filter(_filter_by_key.bind((current as Dictionary).keys(), compare_mode))
 	if not keys_not_found.is_empty():
-		@warning_ignore("unsafe_cast")
 		return report_error(GdAssertMessages.error_contains_keys((current as Dictionary).keys() as Array, expected, keys_not_found, compare_mode))
 	return report_success()
 

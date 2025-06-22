@@ -9,6 +9,7 @@ const TerrainSystem = preload("res://src/core/terrain/TerrainSystem.gd")
 enum LayoutType {
     OPEN, # Sparse cover, good for ranged combat
     DENSE, # Heavy cover, good for close combat
+
     ASYMMETRIC, # One side has more cover than the other
     CORRIDOR, # Linear paths with choke points
     SCATTERED # Evenly distributed cover and obstacles
@@ -21,9 +22,8 @@ var _symmetrical: bool = true
 var _min_paths: int = 2
 var _choke_points: int = 1
 
-func _init(terrain_system: TerrainSystem):
+func _init(terrain_system: TerrainSystem) -> void:
     _terrain_system = terrain_system
-
 func generate_layout(layout_type: LayoutType) -> void:
     match layout_type:
         LayoutType.OPEN:
@@ -36,9 +36,8 @@ func generate_layout(layout_type: LayoutType) -> void:
             _generate_corridor_layout()
         LayoutType.SCATTERED:
             _generate_scattered_layout()
-
 func _generate_open_layout() -> void:
-    var grid_size := _terrain_system.get_grid_size()
+    var grid_size: Vector2i = _terrain_system.get_grid_size()
     var total_cells := int(grid_size.x * grid_size.y)
     var cover_count := int(total_cells * _cover_density * 0.5) # Reduced density for open layout
     
@@ -54,9 +53,8 @@ func _generate_open_layout() -> void:
         var pos := _find_random_position()
         if pos != Vector2.ZERO:
             _set_terrain_feature(pos, GameEnums.TerrainFeatureType.OBSTACLE)
-
 func _generate_dense_layout() -> void:
-    var grid_size := _terrain_system.get_grid_size()
+    var grid_size: Vector2i = _terrain_system.get_grid_size()
     var total_cells := int(grid_size.x * grid_size.y)
     var cover_count := int(total_cells * _cover_density * 1.5) # Increased density
     
@@ -72,9 +70,8 @@ func _generate_dense_layout() -> void:
         var pos := _find_random_position()
         if pos != Vector2.ZERO:
             _set_terrain_feature(pos, GameEnums.TerrainFeatureType.WALL)
-
 func _generate_asymmetric_layout() -> void:
-    var grid_size := _terrain_system.get_grid_size()
+    var grid_size: Vector2i = _terrain_system.get_grid_size()
     var mid_x := int(grid_size.x / 2)
     
     # Dense side (left)
@@ -90,9 +87,8 @@ func _generate_asymmetric_layout() -> void:
             if randf() < _cover_density * 0.5:
                 var pos := Vector2(x, y)
                 _set_terrain_feature(pos, GameEnums.TerrainFeatureType.COVER)
-
 func _generate_corridor_layout() -> void:
-    var grid_size := _terrain_system.get_grid_size()
+    var grid_size: Vector2i = _terrain_system.get_grid_size()
     
     # Create walls for corridors
     for x in range(int(grid_size.x)):
@@ -105,9 +101,8 @@ func _generate_corridor_layout() -> void:
         var x := randi() % int(grid_size.x)
         var y := randi() % (int(grid_size.y) / 3) * 3 + 1
         _set_terrain_feature(Vector2(x, y), GameEnums.TerrainFeatureType.OBSTACLE)
-
 func _generate_scattered_layout() -> void:
-    var grid_size := _terrain_system.get_grid_size()
+    var grid_size: Vector2i = _terrain_system.get_grid_size()
     var total_cells := int(grid_size.x * grid_size.y)
     var feature_count := int(total_cells * _cover_density)
     
@@ -122,11 +117,10 @@ func _generate_scattered_layout() -> void:
             for adjacent in _get_adjacent_positions(pos):
                 if randf() < 0.3:
                     _set_terrain_feature(adjacent, feature_type)
-
 func _find_random_position() -> Vector2:
     var max_attempts := 50
     var attempt := 0
-    var grid_size := _terrain_system.get_grid_size()
+    var grid_size: Vector2i = _terrain_system.get_grid_size()
     
     while attempt < max_attempts:
         var x := randi() % int(grid_size.x)
@@ -158,12 +152,12 @@ func _get_adjacent_positions(pos: Vector2) -> Array:
     for offset in offsets:
         var adjacent_pos := Vector2(pos.x + offset.x, pos.y + offset.y)
         if _is_valid_position(adjacent_pos):
-            adjacent.append(adjacent_pos)
+            adjacent.append(adjacent_pos) # warning: return value discarded (intentional)
     
     return adjacent
 
 func _is_valid_position(pos: Vector2) -> bool:
-    var grid_size := _terrain_system.get_grid_size()
+    var grid_size: Vector2i = _terrain_system.get_grid_size()
     return pos.x >= 0 and pos.x < grid_size.x and pos.y >= 0 and pos.y < grid_size.y
 
 func _set_terrain_feature(pos: Vector2, feature_type: int) -> void:

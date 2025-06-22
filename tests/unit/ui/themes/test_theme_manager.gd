@@ -1,5 +1,6 @@
 @tool
-extends UITest
+@warning_ignore("return_value_discarded")
+	extends UITest
 
 # Type-safe script references
 const ThemeManagerScript := preload("res://src/ui/themes/ThemeManager.gd")
@@ -28,10 +29,12 @@ var accessibility_changed_emitted := false
 func before_test() -> void:
 	# Create mock theme manager if scene doesn't exist or fails
 	theme_manager = _create_mock_theme_manager()
+	@warning_ignore("return_value_discarded")
 	track_node(theme_manager)
 	
 	# Create a test control to verify theme application
 	test_control = Control.new()
+	@warning_ignore("return_value_discarded")
 	track_node(test_control)
 	
 	# Reset signal tracking
@@ -48,7 +51,9 @@ func _create_mock_theme_manager() -> Node:
 		# Add missing properties if they don't exist
 		if not manager.has_method("get"):
 			manager = _create_manual_mock()
-		elif not manager.get("current_theme_name"):
+
+		elif not @warning_ignore("unsafe_call_argument")
+	manager.get("current_theme_name"):
 			_add_missing_properties(manager)
 	
 	if not manager:
@@ -57,7 +62,7 @@ func _create_mock_theme_manager() -> Node:
 	return manager
 
 func _create_manual_mock() -> Node:
-	var mock = Node.new()
+	var mock: Node = Node.new()
 	mock.name = "MockThemeManager"
 	
 	# Add signals
@@ -73,6 +78,7 @@ func _create_manual_mock() -> Node:
 	mock.set_meta("current_theme", Theme.new())
 	
 	# Add methods
+	@warning_ignore("unsafe_method_access")
 	mock.set_script(ThemeManagerMockScript.new())
 	
 	return mock
@@ -95,14 +101,16 @@ class ThemeManagerMockScript extends RefCounted:
 		if manager:
 			manager.set_meta("current_theme_name", theme_name)
 			if manager.has_signal("theme_changed"):
-				manager.emit_signal("theme_changed", theme_name)
+				@warning_ignore("unsafe_method_access")
+	manager.emit_signal("theme_changed", theme_name)
 	
 	func set_ui_scale(scale: float) -> void:
 		var manager = get_script_instance()
 		if manager:
 			manager.set_meta("ui_scale", scale)
 			if manager.has_signal("scale_changed"):
-				manager.emit_signal("scale_changed", scale)
+				@warning_ignore("unsafe_method_access")
+	manager.emit_signal("scale_changed", scale)
 	
 	func set_text_size(size: String) -> void:
 		# Mock implementation
@@ -116,14 +124,16 @@ class ThemeManagerMockScript extends RefCounted:
 		if manager:
 			manager.set_meta("high_contrast_enabled", enabled)
 			if manager.has_signal("accessibility_changed"):
-				manager.emit_signal("accessibility_changed", {"high_contrast": enabled})
+				@warning_ignore("unsafe_method_access")
+	manager.emit_signal("accessibility_changed", {"high_contrast": enabled})
 	
 	func toggle_animations(enabled: bool) -> void:
 		var manager = get_script_instance()
 		if manager:
 			manager.set_meta("animations_enabled", enabled)
 			if manager.has_signal("accessibility_changed"):
-				manager.emit_signal("accessibility_changed", {"animations": enabled})
+				@warning_ignore("unsafe_method_access")
+	manager.emit_signal("accessibility_changed", {"animations": enabled})
 	
 	func apply_theme_to_control(control: Control) -> void:
 		if control:
@@ -147,24 +157,30 @@ func _reset_signal_states() -> void:
 
 func _connect_signals() -> void:
 	if theme_manager != null and theme_manager.has_signal("theme_changed"):
-		theme_manager.theme_changed.connect(_on_theme_changed)
+		theme_manager.@warning_ignore("return_value_discarded")
+	theme_changed.connect(_on_theme_changed)
 	
 	if theme_manager != null and theme_manager.has_signal("scale_changed"):
-		theme_manager.scale_changed.connect(_on_scale_changed)
+		theme_manager.@warning_ignore("return_value_discarded")
+	scale_changed.connect(_on_scale_changed)
 		
 	if theme_manager != null and theme_manager.has_signal("accessibility_changed"):
-		theme_manager.accessibility_changed.connect(_on_accessibility_changed)
+		theme_manager.@warning_ignore("return_value_discarded")
+	accessibility_changed.connect(_on_accessibility_changed)
 
 func _cleanup_signals() -> void:
 	if theme_manager != null:
 		if theme_manager.has_signal("theme_changed") and theme_manager.theme_changed.is_connected(_on_theme_changed):
-			theme_manager.theme_changed.disconnect(_on_theme_changed)
+			theme_manager.@warning_ignore("return_value_discarded")
+	theme_changed.disconnect(_on_theme_changed)
 		
 		if theme_manager.has_signal("scale_changed") and theme_manager.scale_changed.is_connected(_on_scale_changed):
-			theme_manager.scale_changed.disconnect(_on_scale_changed)
+			theme_manager.@warning_ignore("return_value_discarded")
+	scale_changed.disconnect(_on_scale_changed)
 			
 		if theme_manager.has_signal("accessibility_changed") and theme_manager.accessibility_changed.is_connected(_on_accessibility_changed):
-			theme_manager.accessibility_changed.disconnect(_on_accessibility_changed)
+			theme_manager.@warning_ignore("return_value_discarded")
+	accessibility_changed.disconnect(_on_accessibility_changed)
 
 # Signal handlers
 func _on_theme_changed(_theme_name: String) -> void:
@@ -177,6 +193,7 @@ func _on_accessibility_changed(_options: Dictionary) -> void:
 	accessibility_changed_emitted = true
 
 # Tests
+@warning_ignore("unsafe_method_access")
 func test_initial_state() -> void:
 	assert_that(theme_manager).is_not_null()
 	var theme_name = _get_property(theme_manager, "current_theme_name", "base")
@@ -184,14 +201,16 @@ func test_initial_state() -> void:
 	var ui_scale = _get_property(theme_manager, "ui_scale", 1.0)
 	assert_that(ui_scale).is_equal(1.0)
 
-func _get_property(node: Node, property: String, default_value = null):
+func _get_property(node: Node, property: String, default_value = null) -> Variant:
 	if node.has_method("get") and property in node:
-		return node.get(property)
+		return @warning_ignore("unsafe_call_argument")
+	node.get(property)
 	elif node.has_meta(property):
 		return node.get_meta(property)
 	else:
 		return default_value
 
+@warning_ignore("unsafe_method_access")
 func test_set_theme() -> void:
 	if theme_manager.has_method("set_theme"):
 		theme_manager.set_theme("dark")
@@ -200,6 +219,7 @@ func test_set_theme() -> void:
 	assert_that(theme_name).is_equal("dark")
 	assert_that(theme_changed_emitted).is_true()
 
+@warning_ignore("unsafe_method_access")
 func test_set_invalid_theme() -> void:
 	var original_theme = _get_property(theme_manager, "current_theme_name", "base")
 	if theme_manager.has_method("set_theme"):
@@ -207,12 +227,14 @@ func test_set_invalid_theme() -> void:
 	var current_theme = _get_property(theme_manager, "current_theme_name", "base")
 	assert_that(current_theme).is_equal(original_theme)
 
+@warning_ignore("unsafe_method_access")
 func test_set_ui_scale() -> void:
 	if theme_manager.has_method("set_ui_scale"):
 		theme_manager.set_ui_scale(TEST_SCALE)
 	var ui_scale = _get_property(theme_manager, "ui_scale", 1.0)
 	assert_that(ui_scale).is_equal(TEST_SCALE)
 
+@warning_ignore("unsafe_method_access")
 func test_set_text_size() -> void:
 	# Test basic text size functionality - simplified for mock
 	if theme_manager.has_method("set_text_size"):
@@ -223,6 +245,7 @@ func test_set_text_size() -> void:
 	# Just verify methods exist and can be called
 	assert_that(theme_manager).is_not_null()
 
+@warning_ignore("unsafe_method_access")
 func test_toggle_high_contrast() -> void:
 	if theme_manager.has_method("toggle_high_contrast"):
 		theme_manager.toggle_high_contrast(true)
@@ -235,6 +258,7 @@ func test_toggle_high_contrast() -> void:
 	high_contrast = _get_property(theme_manager, "high_contrast_enabled", false)
 	assert_that(high_contrast).is_false()
 
+@warning_ignore("unsafe_method_access")
 func test_toggle_animations() -> void:
 	if theme_manager.has_method("toggle_animations"):
 		theme_manager.toggle_animations(false)
@@ -247,6 +271,7 @@ func test_toggle_animations() -> void:
 	animations = _get_property(theme_manager, "animations_enabled", true)
 	assert_that(animations).is_true()
 
+@warning_ignore("unsafe_method_access")
 func test_apply_theme_to_control() -> void:
 	if theme_manager.has_method("apply_theme_to_control"):
 		theme_manager.apply_theme_to_control(test_control)
@@ -259,6 +284,7 @@ func test_apply_theme_to_control() -> void:
 		theme_manager.apply_theme_to_control(test_control)
 	assert_that(test_control.theme).is_not_null()
 
+@warning_ignore("unsafe_method_access")
 func test_theme_resource_switching() -> void:
 	# Simplified theme switching test
 	if theme_manager.has_method("set_theme"):

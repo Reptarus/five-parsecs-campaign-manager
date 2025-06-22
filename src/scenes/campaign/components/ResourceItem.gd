@@ -29,7 +29,7 @@ func _setup_ui() -> void:
 	if progress_bar:
 		progress_bar.min_value = 0
 		progress_bar.max_value = max_value
-		progress_bar.value = current_value
+		progress_bar._value = current_value
 		progress_bar.modulate = resource_color
 		
 	# Set up trend indicator
@@ -50,7 +50,7 @@ func _update_display() -> void:
 			
 	if progress_bar:
 		progress_bar.max_value = max_value
-		progress_bar.value = current_value
+		progress_bar._value = current_value
 		
 	if trend_indicator:
 		_update_trend_indicator()
@@ -82,10 +82,10 @@ func setup(name: String, current: int, max_val: int, trend_val: int, color: Colo
 		_update_display()
 
 # Input handling
-func _gui_input(event: InputEvent) -> void:
+func _gui_input(event) -> void:
 	if event is InputEventMouseButton:
 		if event.button_index == MOUSE_BUTTON_LEFT and event.pressed:
-			emit_signal("resource_clicked", resource_name, current_value)
+			resource_clicked.emit( resource_name, current_value)
 
 # Animation methods
 func highlight(duration: float = 0.3) -> void:
@@ -103,3 +103,4 @@ func animate_value_change(new_value: int, duration: float = 0.5) -> void:
 		new_value,
 		duration
 	)
+

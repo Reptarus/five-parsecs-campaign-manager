@@ -42,7 +42,7 @@ func _setup_overlay() -> void:
     add_child(tooltip_panel)
     
     # Apply theme overrides
-    var style = StyleBoxFlat.new()
+    var style := StyleBoxFlat.new()
     style.bg_color = Color(0.1, 0.1, 0.1, 0.9)
     style.corner_radius_top_left = 3
     style.corner_radius_top_right = 3
@@ -130,11 +130,11 @@ func _on_next_pressed() -> void:
 
 func _on_skip_pressed() -> void:
     hide_overlay()
-    tutorial_skipped.emit()
+    tutorial_skipped.emit() # warning: return value discarded (intentional)
 
 func complete_tutorial() -> void:
     hide_overlay()
-    tutorial_completed.emit()
+    tutorial_completed.emit() # warning: return value discarded (intentional)
 
 func hide_overlay() -> void:
     highlight_rect.visible = false

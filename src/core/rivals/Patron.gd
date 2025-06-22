@@ -13,42 +13,42 @@ signal patron_status_changed
 # Core patron properties
 @export var patron_name: String:
 	get: return _patron_name
-	set(value):
-		if value.strip_edges().is_empty():
+	set(_value):
+		if _value.strip_edges().is_empty():
 			push_error("Patron name cannot be empty")
 			return
-		_patron_name = value
+		_patron_name = _value
 		notify_property_list_changed()
 
 @export var location: GameLocation:
 	get: return _location
-	set(value):
-		if not value:
+	set(_value):
+		if not _value:
 			push_error("Location cannot be null")
 			return
-		_location = value
+		_location = _value
 		notify_property_list_changed()
 
 @export var relationship: int:
 	get: return _relationship
-	set(value):
+	set(_value):
 		var old_value := _relationship
-		_relationship = clamp(value, -100, 100)
+		_relationship = clamp(_value, -100, 100)
 		if old_value != _relationship:
-			relationship_changed.emit(_relationship)
+			relationship_changed.emit(_relationship) # warning: return value discarded (intentional)
 			_check_relationship_status()
 			notify_property_list_changed()
 
 @export var faction_type: GameEnums.FactionType:
 	get: return _faction_type
-	set(value):
-		_faction_type = value
+	set(_value):
+		_faction_type = _value
 		notify_property_list_changed()
 
 @export var economic_influence: float:
 	get: return _economic_influence
-	set(value):
-		_economic_influence = clamp(value, 0.1, 5.0)
+	set(_value):
+		_economic_influence = clamp(_value, 0.1, 5.0)
 		notify_property_list_changed()
 
 # Internal variables
@@ -82,6 +82,7 @@ func _setup_patron_characteristics() -> void:
 		"Influential: +1 reputation from completed missions",
 		"Demanding: -1 relationship for failed missions",
 		"Generous: +1 relationship for completed missions",
+
 		"Resourceful: Can offer special equipment as rewards",
 		"Cautious: Prefers low-risk missions",
 		"Bold: Offers high-risk, high-reward missions",
@@ -94,7 +95,8 @@ func _setup_patron_characteristics() -> void:
 	
 	for i in range(num_characteristics):
 		var characteristic: String = possible_characteristics[i]
-		characteristics.append(characteristic)
+
+		characteristics.append(characteristic) # warning: return value discarded (intentional)
 		_apply_characteristic_bonuses(characteristic)
 
 func _apply_characteristic_bonuses(characteristic: String) -> void:
@@ -102,19 +104,19 @@ func _apply_characteristic_bonuses(characteristic: String) -> void:
 		reputation_bonus = 1
 	elif "Wealthy" in characteristic:
 		mission_bonus = 2
-
 func add_mission(mission: Mission) -> void:
 	if not mission:
 		return
-	_missions.append(mission)
+
+	_missions.append(mission) # warning: return value discarded (intentional)
 	_last_mission_turn = mission.turn_offered
-	missions_updated.emit()
+	missions_updated.emit() # warning: return value discarded (intentional)
 
 func remove_mission(mission: Mission) -> void:
 	if not mission:
 		return
 	_missions.erase(mission)
-	missions_updated.emit()
+	missions_updated.emit() # warning: return value discarded (intentional)
 
 func get_available_missions() -> Array[Mission]:
 	return _missions.filter(func(m: Mission) -> bool: return not m.is_completed and not m.is_failed)
@@ -151,11 +153,10 @@ func fail_mission(mission: Mission) -> void:
 
 func change_relationship(amount: int) -> void:
 	relationship = _relationship + amount
-
 func dismiss() -> void:
 	if not _is_dismissed:
 		_is_dismissed = true
-		patron_dismissed.emit()
+		patron_dismissed.emit() # warning: return value discarded (intentional)
 
 func can_offer_mission() -> bool:
 	return not _is_dismissed and _missions.size() < 3
@@ -184,11 +185,12 @@ func get_status() -> String:
 func _check_relationship_status() -> void:
 	if _relationship <= -75:
 		dismiss()
-	patron_status_changed.emit()
+	patron_status_changed.emit() # warning: return value discarded (intentional)
 
 func serialize() -> Dictionary:
 	return {
 		"name": _patron_name,
+
 		"location": _location.serialize() if _location else {} as Dictionary,
 		"relationship": _relationship,
 		"faction_type": GameEnums.FactionType.keys()[_faction_type],
@@ -203,28 +205,36 @@ func serialize() -> Dictionary:
 
 static func deserialize(data: Dictionary) -> Resource:
 	var patron = new() # Create a new instance without referencing the class name
+
 	patron._patron_name = data.get("name", "")
-	
+
 	var location_data = data.get("location", {})
 	if not location_data.is_empty():
-		var location = GameLocation.new()
+		var location := GameLocation.new()
 		location.deserialize(location_data)
 		patron._location = location
 	else:
 		patron._location = null
-	
+
 	patron._relationship = data.get("relationship", 0)
+
 	patron._faction_type = GameEnums.FactionType[data.get("faction_type", "NEUTRAL")]
+
 	patron._economic_influence = data.get("economic_influence", 1.0)
+
 	patron._is_dismissed = data.get("is_dismissed", false)
+
 	patron._last_mission_turn = data.get("last_mission_turn", 0)
+
 	patron.characteristics = data.get("characteristics", []).duplicate()
+
 	patron.reputation_bonus = data.get("reputation_bonus", 0)
+
 	patron.mission_bonus = data.get("mission_bonus", 0)
-	
+
 	for mission_data in data.get("missions", []):
 		if mission_data is Dictionary:
-			var mission = Mission.new()
+			var mission := Mission.new()
 			patron._missions.append(mission.deserialize(mission_data))
 	
 	return patron

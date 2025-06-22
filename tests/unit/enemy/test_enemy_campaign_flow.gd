@@ -1,15 +1,22 @@
 @tool
-extends "res://tests/fixtures/specialized/enemy_test.gd"
+@warning_ignore("return_value_discarded")
+	extends "res://tests/fixtures/specialized/enemy_test.gd"
 
 ## Enemy Campaign Flow Tests using UNIVERSAL MOCK STRATEGY
 ##
 ## Applies the proven pattern that achieved:
-## - test_enemy.gd: 12/12 (100% SUCCESS)
-## - test_enemy_pathfinding.gd: 10/10 (100% SUCCESS)
-## - test_enemy_group_behavior.gd: 7/7 (100% SUCCESS)
-## - test_enemy_data.gd: 7/7 (100% SUCCESS)
-## - test_enemy_group_tactics.gd: 6/6 (100% SUCCESS)
-## - test_enemy_combat.gd: 8/8 (100% SUCCESS)
+## - test_enemy.gd: 12/12 (@warning_ignore("integer_division")
+	100 % SUCCESS)
+## - test_enemy_pathfinding.gd: 10/10 (@warning_ignore("integer_division")
+	100 % SUCCESS)
+## - test_enemy_group_behavior.gd: 7/7 (@warning_ignore("integer_division")
+	100 % SUCCESS)
+## - test_enemy_data.gd: 7/7 (@warning_ignore("integer_division")
+	100 % SUCCESS)
+## - test_enemy_group_tactics.gd: 6/6 (@warning_ignore("integer_division")
+	100 % SUCCESS)
+## - test_enemy_combat.gd: 8/8 (@warning_ignore("integer_division")
+	100 % SUCCESS)
 
 # ========================================
 # UNIVERSAL MOCK STRATEGY - PROVEN PATTERN
@@ -50,21 +57,27 @@ class MockCampaignEnemy extends Resource:
 		save_data["faction"] = faction
 	
 	func load_from_dictionary(save_data: Dictionary) -> void:
-		if save_data.has("enemy_id"):
+		if @warning_ignore("unsafe_call_argument")
+	save_data.has("enemy_id"):
 			enemy_id = save_data["enemy_id"]
-		if save_data.has("health"):
+		if @warning_ignore("unsafe_call_argument")
+	save_data.has("health"):
 			health = save_data["health"]
-		if save_data.has("power_level"):
+		if @warning_ignore("unsafe_call_argument")
+	save_data.has("power_level"):
 			power_level = save_data["power_level"]
-		if save_data.has("aggression"):
+		if @warning_ignore("unsafe_call_argument")
+	save_data.has("aggression"):
 			aggression = save_data["aggression"]
-		if save_data.has("faction"):
+		if @warning_ignore("unsafe_call_argument")
+	save_data.has("faction"):
 			faction = save_data["faction"]
 	
 	func complete_mission() -> void:
 		mission_count += 1
 		power_level += 1 # Realistic progression
-		state_changed.emit()
+		@warning_ignore("unsafe_method_access")
+	state_changed.emit()
 	
 	func set_faction(new_faction: String) -> void:
 		faction = new_faction
@@ -73,21 +86,27 @@ class MockCampaignEnemy extends Resource:
 	func react_to_campaign_phase(phase: String) -> void:
 		if phase == "escalation":
 			aggression += 2 # Realistic escalation response
-		state_changed.emit()
+		@warning_ignore("unsafe_method_access")
+	state_changed.emit()
 	
 	func activate_faction_behavior() -> void:
-		faction_behavior_activated.emit()
+		@warning_ignore("unsafe_method_access")
+	faction_behavior_activated.emit()
 
 class MockCampaignController extends Resource:
 	var current_phase: String = "normal"
-	var promoted_enemies: Array[MockCampaignEnemy] = []
+	var promoted_enemies: @warning_ignore("unsafe_call_argument")
+	Array[MockCampaignEnemy] = []
 	
 	func promote_to_rival(enemy: MockCampaignEnemy) -> bool:
 		if enemy:
 			enemy.rival_tier = 1
 			enemy.has_rival_abilities = true
-			promoted_enemies.append(enemy)
-			enemy.promoted_to_rival.emit()
+
+			@warning_ignore("return_value_discarded")
+	promoted_enemies.append(enemy)
+			enemy.@warning_ignore("unsafe_method_access")
+	promoted_to_rival.emit()
 			return true
 		return false
 	
@@ -95,7 +114,8 @@ class MockCampaignController extends Resource:
 		current_phase = phase
 
 # Mock instances
-var _test_enemy_group: Array[MockCampaignEnemy] = []
+var _test_enemy_group: @warning_ignore("unsafe_call_argument")
+	Array[MockCampaignEnemy] = []
 var _campaign_controller: MockCampaignController = null
 
 ## Core tests for enemy campaign flow using UNIVERSAL MOCK STRATEGY
@@ -104,19 +124,24 @@ func before_test() -> void:
 	super.before_test()
 	
 	# Create mock enemy group with expected values
-	for i in range(3):
+	for i: int in range(3):
 		var enemy := MockCampaignEnemy.new()
 		enemy.enemy_id = "campaign_enemy_" + str(i)
 		enemy.health = 100.0
 		enemy.power_level = 5 + i
 		enemy.aggression = 3 + i
-		_test_enemy_group.append(enemy)
-		track_resource(enemy) # Perfect cleanup - NO orphan nodes
+
+		@warning_ignore("return_value_discarded")
+	_test_enemy_group.append(enemy)
+		@warning_ignore("return_value_discarded")
+	track_resource(enemy) # Perfect cleanup - NO orphan nodes
 	
 	# Create mock campaign controller
 	_campaign_controller = MockCampaignController.new()
+	@warning_ignore("return_value_discarded")
 	track_resource(_campaign_controller)
 	
+	@warning_ignore("unsafe_method_access")
 	await get_tree().process_frame
 
 func after_test() -> void:
@@ -124,6 +149,7 @@ func after_test() -> void:
 	_campaign_controller = null
 	super.after_test()
 
+@warning_ignore("unsafe_method_access")
 func test_enemy_persistence() -> void:
 	# Setup initial enemy state with mock
 	var first_enemy: MockCampaignEnemy = _test_enemy_group[0]
@@ -137,12 +163,14 @@ func test_enemy_persistence() -> void:
 	# Simulate campaign mission change
 	var new_enemy := MockCampaignEnemy.new()
 	new_enemy.load_from_dictionary(save_data)
+	@warning_ignore("return_value_discarded")
 	track_resource(new_enemy)
 	
 	# Verify state persistence
 	assert_that(new_enemy.get_id()).is_equal(enemy_id)
 	assert_that(new_enemy.get_health()).is_equal(initial_health)
 
+@warning_ignore("unsafe_method_access")
 func test_enemy_progression() -> void:
 	# Simulate enemy surviving missions with mock
 	var enemy: MockCampaignEnemy = _test_enemy_group[0]
@@ -151,13 +179,14 @@ func test_enemy_progression() -> void:
 	var initial_power: int = enemy.get_power_level()
 	
 	# Simulate multiple mission completions
-	for i in range(3):
+	for i: int in range(3):
 		enemy.complete_mission()
 	
 	# Check for progression
 	var final_power: int = enemy.get_power_level()
 	assert_that(final_power).is_greater(initial_power)
 
+@warning_ignore("unsafe_method_access")
 func test_rival_integration() -> void:
 	# Test integration with rival system using mock
 	var enemy: MockCampaignEnemy = _test_enemy_group[0]
@@ -170,6 +199,7 @@ func test_rival_integration() -> void:
 	assert_that(enemy.get_rival_tier()).is_greater(0)
 	assert_that(enemy.has_rival_ability()).is_true()
 
+@warning_ignore("unsafe_method_access")
 func test_campaign_phase_effects() -> void:
 	# Test how campaign phases affect enemies with mock
 	var enemy: MockCampaignEnemy = _test_enemy_group[0]
@@ -185,20 +215,24 @@ func test_campaign_phase_effects() -> void:
 	var new_aggression: int = enemy.get_aggression()
 	assert_that(new_aggression).is_greater(initial_aggression)
 
+@warning_ignore("unsafe_method_access")
 func test_enemy_faction_behavior() -> void:
 	# Test enemy faction-specific behaviors with mock
 	_test_enemy_group.clear()
 	
 	var faction_types := ["imperial", "pirate", "rebel"]
-	for i in range(faction_types.size()):
+	for i: int in range(faction_types.size()):
 		var enemy := MockCampaignEnemy.new()
 		enemy.enemy_id = "faction_enemy_" + str(i)
 		enemy.set_faction(faction_types[i])
-		_test_enemy_group.append(enemy)
-		track_resource(enemy)
+
+		@warning_ignore("return_value_discarded")
+	_test_enemy_group.append(enemy)
+		@warning_ignore("return_value_discarded")
+	track_resource(enemy)
 	
 	# Test faction-specific behaviors
-	for i in range(_test_enemy_group.size()):
+	for i: int in range(_test_enemy_group.size()):
 		var enemy: MockCampaignEnemy = _test_enemy_group[i]
 		var faction: String = enemy.get_faction()
 		var expected_faction: String = faction_types[i]
@@ -211,9 +245,11 @@ func test_enemy_faction_behavior() -> void:
 		assert_that(faction_trait).is_not_empty()
 		assert_that(faction_trait.contains(expected_faction)).is_true()
 
+@warning_ignore("unsafe_method_access")
 func test_campaign_signals() -> void:
 	# Test signal emission during campaign events
 	var enemy: MockCampaignEnemy = _test_enemy_group[0]
+	@warning_ignore("unsafe_method_access")
 	monitor_signals(enemy)
 	
 	# Test mission completion signals
@@ -228,6 +264,7 @@ func test_campaign_signals() -> void:
 	enemy.activate_faction_behavior()
 	assert_signal(enemy).is_emitted("faction_behavior_activated")
 
+@warning_ignore("unsafe_method_access")
 func test_campaign_data_consistency() -> void:
 	# Test data consistency across campaign operations
 	var enemy: MockCampaignEnemy = _test_enemy_group[0]

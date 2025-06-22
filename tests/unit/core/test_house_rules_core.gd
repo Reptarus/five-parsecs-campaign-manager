@@ -4,7 +4,8 @@
 ## - Rule state management
 ## - Rule effects and interactions
 @tool
-extends GdUnitGameTest
+@warning_ignore("return_value_discarded")
+	extends GdUnitGameTest
 
 # Mock House Rules Controller with expected values (Universal Mock Strategy)
 class MockHouseRulesController extends Resource:
@@ -12,46 +13,63 @@ class MockHouseRulesController extends Resource:
 	var enabled_rules: Dictionary = {}
 	
 	func register_rule(rule_data: Dictionary) -> bool:
-		if rule_data == null or not rule_data.has("name"):
+		if rule_data == null or not @warning_ignore("unsafe_call_argument")
+	rule_data.has("name"):
 			return false
 		
 		var rule_name: String = rule_data["name"]
-		rules[rule_name] = rule_data
-		enabled_rules[rule_name] = rule_data.get("enabled", false)
-		rule_registered.emit(rule_name)
+		@warning_ignore("unsafe_call_argument")
+	rules[rule_name] = rule_data
+
+		@warning_ignore("unsafe_call_argument")
+	enabled_rules[rule_name] = @warning_ignore("unsafe_call_argument")
+	ruletest_data.get("enabled", false)
+		@warning_ignore("unsafe_method_access")
+	rule_registered.emit(rule_name)
 		return true
 	
 	func enable_rule(rule_name: String) -> bool:
-		if not rules.has(rule_name):
+		if not @warning_ignore("unsafe_call_argument")
+	rules.has(rule_name):
 			return false
 		
-		enabled_rules[rule_name] = true
-		rule_enabled.emit(rule_name)
+		@warning_ignore("unsafe_call_argument")
+	enabled_rules[rule_name] = true
+		@warning_ignore("unsafe_method_access")
+	rule_enabled.emit(rule_name)
 		return true
 	
 	func disable_rule(rule_name: String) -> bool:
-		if not rules.has(rule_name):
+		if not @warning_ignore("unsafe_call_argument")
+	rules.has(rule_name):
 			return false
 		
-		enabled_rules[rule_name] = false
-		rule_disabled.emit(rule_name)
+		@warning_ignore("unsafe_call_argument")
+	enabled_rules[rule_name] = false
+		@warning_ignore("unsafe_method_access")
+	rule_disabled.emit(rule_name)
 		return true
 	
 	func is_rule_enabled(rule_name: String) -> bool:
-		return enabled_rules.get(rule_name, false)
+
+		return @warning_ignore("unsafe_call_argument")
+	enabled_rules.get(rule_name, false)
 	
 	func get_rules() -> Dictionary:
 		return rules
 	
 	func get_rule_settings(rule_name: String) -> Dictionary:
-		if rules.has(rule_name):
+		if @warning_ignore("unsafe_call_argument")
+	rules.has(rule_name):
+
 			return rules[rule_name].get("settings", {})
 		return {}
 	
 	func clear_rules() -> void:
 		rules.clear()
 		enabled_rules.clear()
-		rules_cleared.emit()
+		@warning_ignore("unsafe_method_access")
+	rules_cleared.emit()
 	
 	# Required signals (immediate emission pattern)
 	signal rule_registered(rule_name: String)
@@ -62,7 +80,7 @@ class MockHouseRulesController extends Resource:
 # Type-safe constants
 const TEST_TIMEOUT := 2.0
 
-# Type-safe test data
+# Type-safe test _data
 const TEST_RULES := {
 	"BASIC": {
 		"name": "Basic Rules",
@@ -91,6 +109,7 @@ func before_test() -> void:
 	
 	# Use Resource-based mock (proven pattern)
 	_house_rules = MockHouseRulesController.new()
+	@warning_ignore("return_value_discarded")
 	track_resource(_house_rules)
 
 func after_test() -> void:
@@ -98,14 +117,17 @@ func after_test() -> void:
 	super.after_test()
 
 # Rule Management Tests
+@warning_ignore("unsafe_method_access")
 func test_rule_registration() -> void:
 	# Test direct method calls instead of safe wrappers (proven pattern)
 	var result: bool = _house_rules.register_rule(TEST_RULES.BASIC)
 	assert_that(result).override_failure_message("Should register basic rules").is_true()
 	
 	var rules: Dictionary = _house_rules.get_rules()
-	assert_that(rules.has("Basic Rules")).override_failure_message("Should have basic rules registered").is_true()
+	assert_that(@warning_ignore("unsafe_call_argument")
+	rules.has("Basic Rules")).override_failure_message("Should have basic rules registered").is_true()
 
+@warning_ignore("unsafe_method_access")
 func test_rule_enabling() -> void:
 	# Test direct method calls instead of safe wrappers (proven pattern)
 	_house_rules.register_rule(TEST_RULES.ADVANCED)
@@ -116,15 +138,20 @@ func test_rule_enabling() -> void:
 	assert_that(is_enabled).override_failure_message("Advanced rules should be enabled").is_true()
 
 # Rule Settings Tests
+@warning_ignore("unsafe_method_access")
 func test_rule_settings() -> void:
 	# Test direct method calls instead of safe wrappers (proven pattern)
 	_house_rules.register_rule(TEST_RULES.BASIC)
 	var settings: Dictionary = _house_rules.get_rule_settings("Basic Rules")
-	
-	assert_that(settings.get("permadeath", false)).override_failure_message("Basic rules should have permadeath enabled").is_true()
-	assert_that(settings.get("story_track", false)).override_failure_message("Basic rules should have story track enabled").is_true()
+
+	assert_that(@warning_ignore("unsafe_call_argument")
+	settings.get("permadeath", false)).override_failure_message("Basic rules should have permadeath enabled").is_true()
+
+	assert_that(@warning_ignore("unsafe_call_argument")
+	settings.get("story_track", false)).override_failure_message("Basic rules should have story track enabled").is_true()
 
 # Rule Validation Tests
+@warning_ignore("unsafe_method_access")
 func test_invalid_rule_handling() -> void:
 	# Test direct method calls instead of safe wrappers (proven pattern)
 	var result: bool = _house_rules.register_rule({}) # Empty dict instead of null
@@ -134,18 +161,21 @@ func test_invalid_rule_handling() -> void:
 	assert_that(result).override_failure_message("Should reject nonexistent rule").is_false()
 
 # Performance Tests
+@warning_ignore("unsafe_method_access")
 func test_rule_performance() -> void:
 	# Test direct method calls instead of safe wrappers (proven pattern)
 	var start_time := Time.get_ticks_msec()
 	
-	for i in range(100):
+	for i: int in range(100):
 		var rule := TEST_RULES.BASIC.duplicate()
-		rule.name = "Rule_%d" % i
+		rule.name = "@warning_ignore("integer_division")
+	Rule_ % d" % i
 		_house_rules.register_rule(rule)
 	
 	var duration := Time.get_ticks_msec() - start_time
 	assert_that(duration).override_failure_message("Should register 100 rules within 1 second").is_less(1000)
 
+@warning_ignore("unsafe_method_access")
 func test_rule_disabling() -> void:
 	# Test direct method calls instead of safe wrappers (proven pattern)
 	_house_rules.register_rule(TEST_RULES.BASIC)
@@ -159,6 +189,7 @@ func test_rule_disabling() -> void:
 	assert_that(result).override_failure_message("Should disable rule").is_true()
 	assert_that(_house_rules.is_rule_enabled("Basic Rules")).override_failure_message("Rule should be disabled").is_false()
 
+@warning_ignore("unsafe_method_access")
 func test_multiple_rules() -> void:
 	# Test direct method calls instead of safe wrappers (proven pattern)
 	_house_rules.register_rule(TEST_RULES.BASIC)
@@ -166,8 +197,10 @@ func test_multiple_rules() -> void:
 	
 	var rules: Dictionary = _house_rules.get_rules()
 	assert_that(rules.size()).override_failure_message("Should have 2 rules registered").is_equal(2)
-	assert_that(rules.has("Basic Rules")).override_failure_message("Should have basic rules").is_true()
-	assert_that(rules.has("Advanced Rules")).override_failure_message("Should have advanced rules").is_true()
+	assert_that(@warning_ignore("unsafe_call_argument")
+	rules.has("Basic Rules")).override_failure_message("Should have basic rules").is_true()
+	assert_that(@warning_ignore("unsafe_call_argument")
+	rules.has("Advanced Rules")).override_failure_message("Should have advanced rules").is_true()
 	
 	# Test enabling different rules
 	_house_rules.enable_rule("Basic Rules")
@@ -176,6 +209,7 @@ func test_multiple_rules() -> void:
 	assert_that(_house_rules.is_rule_enabled("Basic Rules")).override_failure_message("Basic rules should be enabled").is_true()
 	assert_that(_house_rules.is_rule_enabled("Advanced Rules")).override_failure_message("Advanced rules should be enabled").is_true()
 
+@warning_ignore("unsafe_method_access")
 func test_rule_settings_validation() -> void:
 	# Test direct method calls instead of safe wrappers (proven pattern)
 	var custom_rule := {
@@ -190,11 +224,17 @@ func test_rule_settings_validation() -> void:
 	
 	_house_rules.register_rule(custom_rule)
 	var settings: Dictionary = _house_rules.get_rule_settings("Custom Rule")
-	
-	assert_that(settings.get("custom_setting", "")).override_failure_message("Should have custom setting").is_equal("custom_value")
-	assert_that(settings.get("numeric_setting", 0)).override_failure_message("Should have numeric setting").is_equal(42)
-	assert_that(settings.get("boolean_setting", true)).override_failure_message("Should have boolean setting").is_false()
 
+	assert_that(@warning_ignore("unsafe_call_argument")
+	settings.get("custom_setting", "")).override_failure_message("Should have custom setting").is_equal("custom_value")
+
+	assert_that(@warning_ignore("unsafe_call_argument")
+	settings.get("numeric_setting", 0)).override_failure_message("Should have numeric setting").is_equal(42)
+
+	assert_that(@warning_ignore("unsafe_call_argument")
+	settings.get("boolean_setting", true)).override_failure_message("Should have boolean setting").is_false()
+
+@warning_ignore("unsafe_method_access")
 func test_rule_clearing() -> void:
 	# Test direct method calls instead of safe wrappers (proven pattern)
 	_house_rules.register_rule(TEST_RULES.BASIC)
@@ -207,6 +247,7 @@ func test_rule_clearing() -> void:
 	rules = _house_rules.get_rules()
 	assert_that(rules.size()).override_failure_message("Should have no rules after clearing").is_equal(0)
 
+@warning_ignore("unsafe_method_access")
 func test_edge_cases() -> void:
 	# Test direct method calls instead of safe wrappers (proven pattern)
 	# Test empty rule name

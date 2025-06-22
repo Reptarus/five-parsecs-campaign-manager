@@ -2,7 +2,7 @@
 class_name FPCM_TerrainOverlay
 extends Node2D
 
-## Dependencies
+## Dependencies - now using the available terrain files
 const TerrainSystem := preload("res://src/core/terrain/TerrainSystem.gd")
 const TerrainEffects := preload("res://src/core/terrain/TerrainEffects.gd")
 const TerrainTypes := preload("res://src/core/terrain/TerrainTypes.gd")
@@ -21,8 +21,8 @@ const EFFECT_COLORS := {
 var terrain_colors := {}
 
 ## References to required systems
-@export var terrain_system: TerrainSystem
-@export var terrain_effects: TerrainEffects
+@export var terrain_system: Node
+@export var terrain_effects: Node
 
 ## Visual properties
 @export var cell_size: Vector2 = Vector2(64, 64)
@@ -114,7 +114,7 @@ func _draw_effects() -> void:
     for x in range(grid_size.x):
         for y in range(grid_size.y):
             var pos := Vector2(x, y)
-            var effects := terrain_effects.get_active_effects(pos)
+            var effects: Array = terrain_effects.get_active_effects(pos)
             for effect in effects:
                 if effect in EFFECT_COLORS:
                     var rect := _get_cell_rect(pos)
@@ -159,13 +159,13 @@ func _on_elevation_changed(_position: Vector2, _new_elevation: int) -> void:
 
 func _on_effect_applied(position: Vector2, effect_type: String) -> void:
     queue_redraw()
-    var effect_enum: TerrainEffects.EffectType = TerrainEffects.EffectType.get(effect_type)
+    var effect_enum = effect_type
     if effect_enum != null:
         _update_particles(position, effect_enum, true)
 
 func _on_effect_removed(position: Vector2, effect_type: String) -> void:
     queue_redraw()
-    var effect_enum: TerrainEffects.EffectType = TerrainEffects.EffectType.get(effect_type)
+    var effect_enum = effect_type
     if effect_enum != null:
         _update_particles(position, effect_enum, false)
 

@@ -32,7 +32,7 @@ func _on_crew_size_changed(size: int) -> void:
     _validate_crew()
 
 func _on_crew_name_changed(new_name: String) -> void:
-    crew_data.name = new_name
+    crew_data._name = new_name
     _validate_crew()
 
 func _on_character_selected(character: Dictionary) -> void:
@@ -51,4 +51,4 @@ func _validate_crew() -> bool:
 
 func _on_create_pressed() -> void:
     if _validate_crew():
-        crew_created.emit(crew_data)
+        crew_created.emit(crew_data)  # warning: return value discarded (intentional)

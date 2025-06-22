@@ -1,19 +1,23 @@
 @tool
-extends GdUnitGameTest
+@warning_ignore("return_value_discarded")
+	extends GdUnitGameTest
 
 # ========================================
 # UNIVERSAL UI MOCK STRATEGY - PROVEN PATTERN
 # ========================================
 # This follows the exact same pattern that achieved:
-# - Ship Tests: 48/48 (100% SUCCESS)
-# - Mission Tests: 51/51 (100% SUCCESS)
+# - Ship Tests: 48/48 (@warning_ignore("integer_division")
+	100 % SUCCESS)
+# - Mission Tests: 51/51 (@warning_ignore("integer_division")
+	100 % SUCCESS)
 
 class MockQuickStartDialog extends Resource:
 	# Properties with realistic expected values (no nulls/zeros!)
 	var dialog_visible: bool = false
 	var dialog_size: Vector2 = Vector2(500, 350)
 	var selected_option: String = ""
-	var quick_start_options: Array[String] = ["New Campaign", "Continue Campaign", "Load Campaign", "Tutorial"]
+	var quick_start_options: @warning_ignore("unsafe_call_argument")
+	Array[String] = ["New Campaign", "Continue Campaign", "Load Campaign", "Tutorial"]
 	var campaign_data: Dictionary = {}
 	var tutorial_enabled: bool = true
 	var dialog_result: String = ""
@@ -24,25 +28,30 @@ class MockQuickStartDialog extends Resource:
 		dialog_visible = false
 		selected_option = ""
 		dialog_result = ""
-		dialog_setup.emit()
+		@warning_ignore("unsafe_method_access")
+	dialog_setup.emit()
 	
 	func show_dialog() -> void:
 		dialog_visible = true
-		dialog_shown.emit()
+		@warning_ignore("unsafe_method_access")
+	dialog_shown.emit()
 	
 	func hide_dialog() -> void:
 		dialog_visible = false
-		dialog_hidden.emit()
+		@warning_ignore("unsafe_method_access")
+	dialog_hidden.emit()
 	
 	func close_dialog(result: String = "cancel") -> void:
 		dialog_result = result
 		dialog_visible = false
-		dialog_closed.emit(result)
+		@warning_ignore("unsafe_method_access")
+	dialog_closed.emit(result)
 	
 	func select_option(option: String) -> void:
 		if option in quick_start_options:
 			selected_option = option
-			option_selected.emit(option)
+			@warning_ignore("unsafe_method_access")
+	option_selected.emit(option)
 	
 	func start_new_campaign() -> void:
 		selected_option = "New Campaign"
@@ -51,7 +60,8 @@ class MockQuickStartDialog extends Resource:
 			"difficulty": "normal",
 			"created": Time.get_unix_time_from_system()
 		}
-		new_campaign_started.emit(campaign_data)
+		@warning_ignore("unsafe_method_access")
+	new_campaign_started.emit(campaign_data)
 	
 	func continue_campaign() -> void:
 		selected_option = "Continue Campaign"
@@ -60,32 +70,37 @@ class MockQuickStartDialog extends Resource:
 			"progress": 0.45,
 			"last_played": Time.get_unix_time_from_system()
 		}
-		campaign_continued.emit(campaign_data)
+		@warning_ignore("unsafe_method_access")
+	campaign_continued.emit(campaign_data)
 	
 	func load_campaign(campaign_name: String) -> void:
 		selected_option = "Load Campaign"
 		campaign_data = {
-			"name": campaign_name,
+			"_name": campaign_name,
 			"loaded": true,
 			"timestamp": Time.get_unix_time_from_system()
 		}
-		campaign_loaded.emit(campaign_data)
+		@warning_ignore("unsafe_method_access")
+	campaign_loaded.emit(campaign_data)
 	
 	func start_tutorial() -> void:
 		if tutorial_enabled:
 			selected_option = "Tutorial"
-			tutorial_started.emit()
+			@warning_ignore("unsafe_method_access")
+	tutorial_started.emit()
 	
 	func set_tutorial_enabled(enabled: bool) -> void:
 		tutorial_enabled = enabled
-		tutorial_enabled_changed.emit(enabled)
+		@warning_ignore("unsafe_method_access")
+	tutorial_enabled_changed.emit(enabled)
 	
 	func get_available_campaigns() -> Array[String]:
 		return ["Campaign 1", "Campaign 2", "Campaign 3"]
 	
 	func validate_selection() -> bool:
 		var valid := selected_option in quick_start_options
-		selection_validated.emit(valid)
+		@warning_ignore("unsafe_method_access")
+	selection_validated.emit(valid)
 		return valid
 	
 	func confirm_selection() -> bool:
@@ -99,13 +114,15 @@ class MockQuickStartDialog extends Resource:
 					load_campaign("Default Campaign")
 				"Tutorial":
 					start_tutorial()
-			selection_confirmed.emit(selected_option)
+			@warning_ignore("unsafe_method_access")
+	selection_confirmed.emit(selected_option)
 			return true
 		return false
 	
 	func test_performance() -> bool:
 		performance_duration = 20
-		performance_tested.emit(performance_duration)
+		@warning_ignore("unsafe_method_access")
+	performance_tested.emit(performance_duration)
 		return performance_duration < 50
 	
 	func get_dialog_size() -> Vector2:
@@ -149,12 +166,15 @@ var mock_dialog: MockQuickStartDialog = null
 func before_test() -> void:
 	super.before_test()
 	mock_dialog = MockQuickStartDialog.new()
+	@warning_ignore("return_value_discarded")
 	track_resource(mock_dialog) # Perfect cleanup
 
 # Test Methods using proven patterns
+@warning_ignore("unsafe_method_access")
 func test_dialog_setup() -> void:
 	# Skip signal monitoring to prevent Dictionary corruption
-	# monitor_signals(mock_dialog)  # REMOVED - causes Dictionary corruption
+	# @warning_ignore("unsafe_method_access")
+	monitor_signals(mock_dialog)  # REMOVED - causes Dictionary corruption
 	mock_dialog.setup_dialog()
 	
 	# Test state directly instead of signal emission
@@ -162,9 +182,11 @@ func test_dialog_setup() -> void:
 	assert_that(mock_dialog.get_selected_option()).is_empty()
 	assert_that(mock_dialog.get_dialog_result()).is_empty()
 
+@warning_ignore("unsafe_method_access")
 func test_show_hide_dialog() -> void:
 	# Skip signal monitoring to prevent Dictionary corruption
-	# monitor_signals(mock_dialog)  # REMOVED - causes Dictionary corruption
+	# @warning_ignore("unsafe_method_access")
+	monitor_signals(mock_dialog)  # REMOVED - causes Dictionary corruption
 	mock_dialog.show_dialog()
 	# Test state directly instead of signal emission
 	assert_that(mock_dialog.is_dialog_visible()).is_true()
@@ -173,9 +195,11 @@ func test_show_hide_dialog() -> void:
 	# Test state directly instead of signal emission
 	assert_that(mock_dialog.is_dialog_visible()).is_false()
 
+@warning_ignore("unsafe_method_access")
 func test_close_dialog() -> void:
 	# Skip signal monitoring to prevent Dictionary corruption
-	# monitor_signals(mock_dialog)  # REMOVED - causes Dictionary corruption
+	# @warning_ignore("unsafe_method_access")
+	monitor_signals(mock_dialog)  # REMOVED - causes Dictionary corruption
 	mock_dialog.show_dialog()
 	mock_dialog.close_dialog("ok")
 	
@@ -183,17 +207,21 @@ func test_close_dialog() -> void:
 	assert_that(mock_dialog.is_dialog_visible()).is_false()
 	assert_that(mock_dialog.get_dialog_result()).is_equal("ok")
 
+@warning_ignore("unsafe_method_access")
 func test_option_selection() -> void:
 	# Skip signal monitoring to prevent Dictionary corruption
-	# monitor_signals(mock_dialog)  # REMOVED - causes Dictionary corruption
+	# @warning_ignore("unsafe_method_access")
+	monitor_signals(mock_dialog)  # REMOVED - causes Dictionary corruption
 	mock_dialog.select_option("New Campaign")
 	
 	# Test state directly instead of signal emission
 	assert_that(mock_dialog.get_selected_option()).is_equal("New Campaign")
 
+@warning_ignore("unsafe_method_access")
 func test_new_campaign_start() -> void:
 	# Skip signal monitoring to prevent Dictionary corruption
-	# monitor_signals(mock_dialog)  # REMOVED - causes Dictionary corruption
+	# @warning_ignore("unsafe_method_access")
+	monitor_signals(mock_dialog)  # REMOVED - causes Dictionary corruption
 	mock_dialog.start_new_campaign()
 	
 	# Test state directly instead of signal emission
@@ -202,11 +230,14 @@ func test_new_campaign_start() -> void:
 	var campaign_data := mock_dialog.get_campaign_data()
 	assert_that(campaign_data["name"]).is_equal("New Campaign")
 	assert_that(campaign_data["difficulty"]).is_equal("normal")
-	assert_that(campaign_data.has("created")).is_true()
+	assert_that(@warning_ignore("unsafe_call_argument")
+	campaign_data.has("created")).is_true()
 
+@warning_ignore("unsafe_method_access")
 func test_continue_campaign() -> void:
 	# Skip signal monitoring to prevent Dictionary corruption
-	# monitor_signals(mock_dialog)  # REMOVED - causes Dictionary corruption
+	# @warning_ignore("unsafe_method_access")
+	monitor_signals(mock_dialog)  # REMOVED - causes Dictionary corruption
 	mock_dialog.continue_campaign()
 	
 	# Test state directly instead of signal emission
@@ -215,11 +246,14 @@ func test_continue_campaign() -> void:
 	var campaign_data := mock_dialog.get_campaign_data()
 	assert_that(campaign_data["name"]).is_equal("Existing Campaign")
 	assert_that(campaign_data["progress"]).is_equal(0.45)
-	assert_that(campaign_data.has("last_played")).is_true()
+	assert_that(@warning_ignore("unsafe_call_argument")
+	campaign_data.has("last_played")).is_true()
 
+@warning_ignore("unsafe_method_access")
 func test_load_campaign() -> void:
 	# Skip signal monitoring to prevent Dictionary corruption
-	# monitor_signals(mock_dialog)  # REMOVED - causes Dictionary corruption
+	# @warning_ignore("unsafe_method_access")
+	monitor_signals(mock_dialog)  # REMOVED - causes Dictionary corruption
 	mock_dialog.load_campaign("Test Campaign")
 	
 	# Test state directly instead of signal emission
@@ -228,19 +262,24 @@ func test_load_campaign() -> void:
 	var campaign_data := mock_dialog.get_campaign_data()
 	assert_that(campaign_data["name"]).is_equal("Test Campaign")
 	assert_that(campaign_data["loaded"]).is_true()
-	assert_that(campaign_data.has("timestamp")).is_true()
+	assert_that(@warning_ignore("unsafe_call_argument")
+	campaign_data.has("timestamp")).is_true()
 
+@warning_ignore("unsafe_method_access")
 func test_start_tutorial() -> void:
 	# Skip signal monitoring to prevent Dictionary corruption
-	# monitor_signals(mock_dialog)  # REMOVED - causes Dictionary corruption
+	# @warning_ignore("unsafe_method_access")
+	monitor_signals(mock_dialog)  # REMOVED - causes Dictionary corruption
 	mock_dialog.start_tutorial()
 	
 	# Test state directly instead of signal emission
 	assert_that(mock_dialog.get_selected_option()).is_equal("Tutorial")
 
+@warning_ignore("unsafe_method_access")
 func test_tutorial_enabled_setting() -> void:
 	# Skip signal monitoring to prevent Dictionary corruption
-	# monitor_signals(mock_dialog)  # REMOVED - causes Dictionary corruption
+	# @warning_ignore("unsafe_method_access")
+	monitor_signals(mock_dialog)  # REMOVED - causes Dictionary corruption
 	mock_dialog.set_tutorial_enabled(false)
 	
 	# Test state directly instead of signal emission
@@ -250,6 +289,7 @@ func test_tutorial_enabled_setting() -> void:
 	mock_dialog.start_tutorial()
 	assert_that(mock_dialog.get_selected_option()).is_not_equal("Tutorial")
 
+@warning_ignore("unsafe_method_access")
 func test_available_campaigns() -> void:
 	var campaigns := mock_dialog.get_available_campaigns()
 	
@@ -258,9 +298,11 @@ func test_available_campaigns() -> void:
 	assert_that(campaigns).contains("Campaign 2")
 	assert_that(campaigns).contains("Campaign 3")
 
+@warning_ignore("unsafe_method_access")
 func test_validate_selection() -> void:
 	# Skip signal monitoring to prevent Dictionary corruption
-	# monitor_signals(mock_dialog)  # REMOVED - causes Dictionary corruption
+	# @warning_ignore("unsafe_method_access")
+	monitor_signals(mock_dialog)  # REMOVED - causes Dictionary corruption
 	# Test valid selection
 	mock_dialog.select_option("New Campaign")
 	var result := mock_dialog.validate_selection()
@@ -273,30 +315,37 @@ func test_validate_selection() -> void:
 	result = mock_dialog.validate_selection()
 	assert_that(result).is_false()
 
+@warning_ignore("unsafe_method_access")
 func test_confirm_selection() -> void:
 	# Skip signal monitoring to prevent Dictionary corruption
-	# monitor_signals(mock_dialog)  # REMOVED - causes Dictionary corruption
+	# @warning_ignore("unsafe_method_access")
+	monitor_signals(mock_dialog)  # REMOVED - causes Dictionary corruption
 	mock_dialog.select_option("New Campaign")
 	var result := mock_dialog.confirm_selection()
 	
 	# Test state directly instead of signal emission
 	assert_that(result).is_true()
 
+@warning_ignore("unsafe_method_access")
 func test_performance() -> void:
 	# Skip signal monitoring to prevent Dictionary corruption
-	# monitor_signals(mock_dialog)  # REMOVED - causes Dictionary corruption
+	# @warning_ignore("unsafe_method_access")
+	monitor_signals(mock_dialog)  # REMOVED - causes Dictionary corruption
 	var result := mock_dialog.test_performance()
 	
 	# Test state directly instead of signal emission
 	assert_that(result).is_true()
 	assert_that(mock_dialog.performance_duration).is_less(50)
 
+@warning_ignore("unsafe_method_access")
 func test_component_structure() -> void:
+
 	# Test that component has the basic functionality we expect
 	assert_that(mock_dialog.get_dialog_size()).is_not_null()
 	assert_that(mock_dialog.get_quick_start_options()).is_not_empty()
 	assert_that(mock_dialog.get_available_campaigns()).is_not_empty()
 
+@warning_ignore("unsafe_method_access")
 func test_all_quick_start_options() -> void:
 	var options := mock_dialog.get_quick_start_options()
 	
@@ -305,6 +354,7 @@ func test_all_quick_start_options() -> void:
 	assert_that(options).contains("Load Campaign")
 	assert_that(options).contains("Tutorial")
 
+@warning_ignore("unsafe_method_access")
 func test_option_selection_workflow() -> void:
 	# Test complete option selection workflow
 	for option in mock_dialog.get_quick_start_options():
@@ -314,6 +364,7 @@ func test_option_selection_workflow() -> void:
 		var valid := mock_dialog.validate_selection()
 		assert_that(valid).is_true()
 
+@warning_ignore("unsafe_method_access")
 func test_invalid_option_selection() -> void:
 	# Test selecting invalid options
 	var invalid_options := ["Invalid", "", "Random Option"]
@@ -324,6 +375,7 @@ func test_invalid_option_selection() -> void:
 		# Selection should not change for invalid options
 		assert_that(mock_dialog.get_selected_option()).is_equal(initial_selection)
 
+@warning_ignore("unsafe_method_access")
 func test_dialog_workflow() -> void:
 	# Test complete dialog workflow
 	mock_dialog.setup_dialog()
@@ -342,28 +394,39 @@ func test_dialog_workflow() -> void:
 	assert_that(mock_dialog.is_dialog_visible()).is_false()
 	assert_that(mock_dialog.get_dialog_result()).is_equal("ok")
 
+@warning_ignore("unsafe_method_access")
 func test_campaign_data_structure() -> void:
 	# Test new campaign data structure
 	mock_dialog.start_new_campaign()
 	var data := mock_dialog.get_campaign_data()
-	assert_that(data.has("name")).is_true()
-	assert_that(data.has("difficulty")).is_true()
-	assert_that(data.has("created")).is_true()
+	assert_that(@warning_ignore("unsafe_call_argument")
+	data.has("name")).is_true()
+	assert_that(@warning_ignore("unsafe_call_argument")
+	data.has("difficulty")).is_true()
+	assert_that(@warning_ignore("unsafe_call_argument")
+	data.has("created")).is_true()
 	
 	# Test continue campaign data structure
 	mock_dialog.continue_campaign()
 	data = mock_dialog.get_campaign_data()
-	assert_that(data.has("name")).is_true()
-	assert_that(data.has("progress")).is_true()
-	assert_that(data.has("last_played")).is_true()
+	assert_that(@warning_ignore("unsafe_call_argument")
+	data.has("name")).is_true()
+	assert_that(@warning_ignore("unsafe_call_argument")
+	data.has("progress")).is_true()
+	assert_that(@warning_ignore("unsafe_call_argument")
+	data.has("last_played")).is_true()
 	
 	# Test load campaign data structure
 	mock_dialog.load_campaign("Test")
 	data = mock_dialog.get_campaign_data()
-	assert_that(data.has("name")).is_true()
-	assert_that(data.has("loaded")).is_true()
-	assert_that(data.has("timestamp")).is_true()
+	assert_that(@warning_ignore("unsafe_call_argument")
+	data.has("name")).is_true()
+	assert_that(@warning_ignore("unsafe_call_argument")
+	data.has("loaded")).is_true()
+	assert_that(@warning_ignore("unsafe_call_argument")
+	data.has("timestamp")).is_true()
 
+@warning_ignore("unsafe_method_access")
 func test_tutorial_workflow() -> void:
 	# Test tutorial enabled workflow
 	mock_dialog.set_tutorial_enabled(true)
@@ -378,6 +441,7 @@ func test_tutorial_workflow() -> void:
 	# Selection should not change to Tutorial when disabled
 	assert_that(mock_dialog.get_selected_option()).is_equal(previous_selection)
 
+@warning_ignore("unsafe_method_access")
 func test_confirm_selection_all_options() -> void:
 	# Test confirming each option type
 	var options := ["New Campaign", "Continue Campaign", "Load Campaign", "Tutorial"]
@@ -388,6 +452,7 @@ func test_confirm_selection_all_options() -> void:
 		assert_that(result).is_true()
 		assert_that(mock_dialog.get_selected_option()).is_equal(option)
 
+@warning_ignore("unsafe_method_access")
 func test_dialog_state_consistency() -> void:
 	# Test that dialog state remains consistent
 	mock_dialog.show_dialog()

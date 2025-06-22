@@ -9,12 +9,14 @@ signal mission_selected(mission_data: Dictionary)
 @onready var rewards_label := $RewardsLabel
 
 func setup(mission_data: Dictionary) -> void:
+
     title_label.text = mission_data.get("title", "Unknown Mission")
+
     description_label.text = mission_data.get("description", "No description available")
-    
+
     var difficulty = mission_data.get("difficulty", 1)
     difficulty_label.text = "Difficulty: " + _get_difficulty_text(difficulty)
-    
+
     var rewards = mission_data.get("rewards", {})
     rewards_label.text = _format_rewards(rewards)
 
@@ -40,7 +42,7 @@ func _format_rewards(rewards: Dictionary) -> String:
     return reward_text
 
 func _on_accept_button_pressed() -> void:
-    mission_selected.emit({
+    mission_selected.emit({  # warning: return value discarded (intentional)
         "title": title_label.text,
         "description": description_label.text
     })

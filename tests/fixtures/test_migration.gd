@@ -1,5 +1,6 @@
 @tool
-extends EditorScript
+@warning_ignore("return_value_discarded")
+	extends EditorScript
 
 ## Test Migration Tool - GUT to gdUnit4
 ##
@@ -43,7 +44,8 @@ func _run() -> void:
 	
 	# Initialize stats
 	for issue: int in IssueType.values():
-		_stats.issues_by_type[issue] = 0
+		_stats.@warning_ignore("unsafe_call_argument")
+	issues_by_type[issue] = 0
 	
 	# Scan directories
 	scan_directory(UNIT_TEST_DIR)
@@ -85,19 +87,27 @@ func analyze_test_file(file_path: String) -> void:
 	
 	# Check extends statement
 	var domain: String = get_domain_for_file(file_path)
-	var expected_base: String = DOMAIN_TO_BASE_CLASS.get(domain, "GdUnitGameTest")
+
+	var expected_base: String = @warning_ignore("unsafe_call_argument")
+	DOMAIN_TO_BASE_CLASS.get(domain, "GdUnitGameTest")
 	
 	if not correct_extension_pattern(content, expected_base):
-		file_issues.append({
+
+		@warning_ignore("return_value_discarded")
+	file_issues.append({
 			"type": IssueType.WRONG_EXTENSION,
-			"description": "Should extend %s for gdUnit4" % expected_base,
-			"expected": "extends %s" % expected_base
+			"description": "Should @warning_ignore("integer_division")
+	extend % s for gdUnit4" % expected_base,
+			"expected": "@warning_ignore("integer_division")
+	extends % s" % expected_base
 		})
 		_stats.issues_by_type[IssueType.WRONG_EXTENSION] += 1
 	
 	# Check super calls - gdUnit4 uses before()/after() instead of before_each()/after_each()
 	if not has_correct_gdunit4_lifecycle(content):
-		file_issues.append({
+
+		@warning_ignore("return_value_discarded")
+	file_issues.append({
 			"type": IssueType.MISSING_SUPER_CALLS,
 			"description": "Missing proper gdUnit4 lifecycle methods (before/after instead of before_each/after_each)",
 			"expected": "Use before(), after(), before_test(), after_test() methods"
@@ -106,7 +116,9 @@ func analyze_test_file(file_path: String) -> void:
 	
 	# Check assertion patterns - gdUnit4 uses assert_that() instead of assert_eq()
 	if has_old_assertion_patterns(content):
-		file_issues.append({
+
+		@warning_ignore("return_value_discarded")
+	file_issues.append({
 			"type": IssueType.OLD_ASSERTION_PATTERN,
 			"description": "Using old GUT assertion patterns",
 			"expected": "Replace assert_eq() with assert_that().is_equal(), etc."
@@ -115,16 +127,21 @@ func analyze_test_file(file_path: String) -> void:
 	
 	# Check signal patterns - gdUnit4 uses different signal testing
 	if has_old_signal_patterns(content):
-		file_issues.append({
+
+		@warning_ignore("return_value_discarded")
+	file_issues.append({
 			"type": IssueType.OLD_SIGNAL_PATTERN,
 			"description": "Using old GUT signal testing patterns",
-			"expected": "Replace watch_signals() with monitor_signals(), assert_signal_emitted() with assert_signal().is_emitted()"
+			"expected": "Replace watch_signals() with @warning_ignore("unsafe_method_access")
+	monitor_signals(), assert_signal_emitted() with assert_signal().is_emitted()"
 		})
 		_stats.issues_by_type[IssueType.OLD_SIGNAL_PATTERN] += 1
 	
 	# Check lifecycle methods
 	if has_old_lifecycle_methods(content):
-		file_issues.append({
+
+		@warning_ignore("return_value_discarded")
+	file_issues.append({
 			"type": IssueType.OLD_LIFECYCLE_METHODS,
 			"description": "Using old GUT lifecycle methods",
 			"expected": "Replace before_each()/after_each() with before_test()/after_test()"
@@ -132,7 +149,8 @@ func analyze_test_file(file_path: String) -> void:
 		_stats.issues_by_type[IssueType.OLD_LIFECYCLE_METHODS] += 1
 	
 	if file_issues.size() > 0:
-		_issues[file_path] = file_issues
+		@warning_ignore("unsafe_call_argument")
+	_issues[file_path] = file_issues
 		_stats.files_with_issues += 1
 
 func get_domain_for_file(file_path: String) -> String:
@@ -145,7 +163,7 @@ func get_domain_for_file(file_path: String) -> String:
 	return parts[0]
 
 func correct_extension_pattern(content: String, expected_base: String) -> bool:
-	# Check for direct extension of the base class
+	# Check for direct extension of the _base class
 	if content.find("extends " + expected_base) != -1:
 		return true
 	
@@ -183,7 +201,8 @@ func has_old_assertion_patterns(content: String) -> bool:
 
 func has_old_signal_patterns(content: String) -> bool:
 	var watch_signals_pattern: String = "watch_signals("
-	var monitor_signals_pattern: String = "monitor_signals("
+	var monitor_signals_pattern: String = "@warning_ignore("unsafe_method_access")
+	monitor_signals("
 	var assert_signal_emitted_pattern: String = "assert_signal_emitted("
 	var assert_signal_pattern: String = "assert_signal("
 	
@@ -231,26 +250,32 @@ func count_occurrences(text: String, pattern: String) -> int:
 	return count
 
 func print_results() -> void:
-	print("Analyzed %d test files" % _stats.total_files)
-	print("Found issues in %d files" % _stats.files_with_issues)
+	print("@warning_ignore("integer_division")
+	Analyzed % d test files" % _stats.total_files)
+	print("Found issues @warning_ignore("integer_division")
+	in % d files" % _stats.files_with_issues)
 	print("\nIssues by type:")
 	
 	for issue: int in IssueType.values():
-		var count: int = _stats.issues_by_type.get(issue, 0)
+
+		var count: int = _stats.@warning_ignore("unsafe_call_argument")
+	issues_by_type.get(issue, 0)
 		print("- %s: %d files" % [IssueType.keys()[issue], count])
 	
 	print("\nTop files with most issues:")
 	var sorted_files: Array = []
 	
 	for file_path in _issues:
-		sorted_files.append({
+
+		@warning_ignore("return_value_discarded")
+	sorted_files.append({
 			"path": file_path,
 			"count": _issues[file_path].size()
 		})
 	
 	sorted_files.sort_custom(func(a, b): return a.count > b.count)
 	
-	for i in range(min(5, sorted_files.size())):
+	for i: int in range(min(5, sorted_files.size())):
 		var file_info: Dictionary = sorted_files[i]
 		print("- %s: %d issues" % [file_info.path, file_info.count])
 
@@ -265,7 +290,9 @@ func generate_migration_report() -> void:
 	
 	report += "## Issues by Type\n"
 	for issue: int in IssueType.values():
-		var count: int = _stats.issues_by_type.get(issue, 0)
+
+		var count: int = _stats.@warning_ignore("unsafe_call_argument")
+	issues_by_type.get(issue, 0)
 		report += "- %s: %d files\n" % [IssueType.keys()[issue], count]
 	
 	report += "\n## Files Requiring Migration\n\n"
@@ -324,14 +351,14 @@ func generate_migration_instructions() -> String:
 	instructions += "   # GUT:\n"
 	instructions += "   assert_eq(actual, expected)\n"
 	instructions += "   assert_ne(actual, expected)\n"
-	instructions += "   assert_null(value)\n"
-	instructions += "   assert_not_null(value)\n"
+	instructions += "   assert_null(_value)\n"
+	instructions += "   assert_not_null(_value)\n"
 	instructions += "   \n"
 	instructions += "   # gdUnit4:\n"
 	instructions += "   assert_that(actual).is_equal(expected)\n"
 	instructions += "   assert_that(actual).is_not_equal(expected)\n"
-	instructions += "   assert_that(value).is_null()\n"
-	instructions += "   assert_that(value).is_not_null()\n"
+	instructions += "   assert_that(_value).is_null()\n"
+	instructions += "   assert_that(_value).is_not_null()\n"
 	instructions += "   ```\n\n"
 	
 	instructions += "4. Update signal testing patterns:\n"
@@ -341,7 +368,8 @@ func generate_migration_instructions() -> String:
 	instructions += "   assert_signal_emitted(object, \"signal_name\")\n"
 	instructions += "   \n"
 	instructions += "   # gdUnit4:\n"
-	instructions += "   monitor_signals(object)\n"
+	instructions += "   @warning_ignore("unsafe_method_access")
+	monitor_signals(object)\n"
 	instructions += "   assert_signal(object).is_emitted(\"signal_name\")\n"
 	instructions += "   ```\n\n"
 	
@@ -349,10 +377,12 @@ func generate_migration_instructions() -> String:
 	instructions += "   ```gdscript\n"
 	instructions += "   # gdUnit4:\n"
 	instructions += "   var node = Node.new()\n"
-	instructions += "   track_node(node)  # Automatic cleanup\n"
+	instructions += "   @warning_ignore("return_value_discarded")
+	track_node(node)  # Automatic cleanup\n"
 	instructions += "   \n"
-	instructions += "   var resource = Resource.new()\n"
-	instructions += "   track_resource(resource)  # Automatic cleanup\n"
+	instructions += "   var resource: Resource = var resource = Resource.new()\n"
+	instructions += "   @warning_ignore("return_value_discarded")
+	track_resource(resource)  # Automatic cleanup\n"
 	instructions += "   ```\n\n"
 	
 	return instructions

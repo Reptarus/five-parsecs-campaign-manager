@@ -17,14 +17,12 @@ func _init() -> void:
 	description = "Basic medical facility"
 	cost = 350
 	power_draw = 3
-	
 func _apply_upgrade_effects() -> void:
 	super()
 	healing_rate += 0.5
 	capacity += 1
 	medical_tech_level = min(medical_tech_level + 1, 5)
 	medical_supplies += 25
-
 func get_healing_rate() -> float:
 	return healing_rate * get_efficiency()
 
@@ -43,46 +41,53 @@ func add_patient(patient_data: Dictionary) -> bool:
 		return false
 		
 	if not current_patients.has(patient_data):
-		current_patients.append(patient_data)
+
+		current_patients.append(patient_data)  # warning: return value discarded (intentional)
 		return true
 	return false
 
 # Remove a patient from the medical bay
 func remove_patient(patient_id: String) -> Dictionary:
 	for i in range(current_patients.size()):
-		if current_patients[i].get("id") == patient_id:
+
+		if current_patients[i].get("_id") == patient_id:
 			var patient = current_patients[i]
 			current_patients.remove_at(i)
 			return patient
 	return {}
 
 # Process healing for all patients
-func process_healing(delta: float) -> Array:
-	var healed_patients = []
+func process_healing(_delta: float) -> Array:
+	var healed_patients: Array = []
 	
 	if not is_active or not has_supplies():
 		return healed_patients
 		
 	for patient in current_patients:
+
 		if patient.get("current_health", 0) < patient.get("max_health", 100):
-			var healing = get_healing_rate() * delta
+			var healing = get_healing_rate() * _delta
 			
 			# Advanced surgery bonus for critically injured
+
 			if has_advanced_surgery and patient.get("current_health", 0) < 25:
 				healing *= 1.5
 				
 			# Trauma unit bonus for recently injured
+
 			if has_trauma_unit and patient.get("turns_injured", 0) < 3:
 				healing *= 1.3
-				
+
 			patient.current_health = min(patient.get("max_health", 100), patient.get("current_health", 0) + healing)
 			
 			# Reduce medical supplies
 			medical_supplies = max(0, medical_supplies - 0.1)
 			
 			# If patient is fully healed, add to list
+
 			if patient.get("current_health") >= patient.get("max_health"):
-				healed_patients.append(patient)
+
+				healed_patients.append(patient)  # warning: return value discarded (intentional)
 	
 	# Remove healed patients
 	for patient in healed_patients:
@@ -109,7 +114,7 @@ func serialize() -> Dictionary:
 
 # Factory method to create MedicalBayComponent from data
 static func create_from_data(data: Dictionary) -> MedicalBayComponent:
-	var component = MedicalBayComponent.new()
+	var component := MedicalBayComponent.new()
 	var base_data = FPCM_ShipComponent.deserialize(data)
 	
 	# Copy base data
@@ -128,12 +133,19 @@ static func create_from_data(data: Dictionary) -> MedicalBayComponent:
 	component.status_effects = base_data.status_effects
 	
 	# Medical-specific properties
+
 	component.healing_rate = data.get("healing_rate", 1.0)
+
 	component.capacity = data.get("capacity", 2)
+
 	component.tech_level = data.get("tech_level", 1)
+
 	component.has_advanced_surgery = data.get("has_advanced_surgery", false)
+
 	component.has_trauma_unit = data.get("has_trauma_unit", false)
+
 	component.current_patients = data.get("current_patients", [])
+
 	component.medical_supplies = data.get("medical_supplies", 100)
 	
 	return component
@@ -142,11 +154,18 @@ static func create_from_data(data: Dictionary) -> MedicalBayComponent:
 static func deserialize(data: Dictionary) -> Dictionary:
 	var base_data = FPCM_ShipComponent.deserialize(data)
 	base_data["component_type"] = "medical_bay"
+
 	base_data["healing_rate"] = data.get("healing_rate", 1.0)
+
 	base_data["capacity"] = data.get("capacity", 2)
+
 	base_data["tech_level"] = data.get("tech_level", 1)
+
 	base_data["has_advanced_surgery"] = data.get("has_advanced_surgery", false)
+
 	base_data["has_trauma_unit"] = data.get("has_trauma_unit", false)
+
 	base_data["current_patients"] = data.get("current_patients", [])
+
 	base_data["medical_supplies"] = data.get("medical_supplies", 100)
 	return base_data

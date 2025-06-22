@@ -1,10 +1,11 @@
 @tool
-extends GdUnitTestSuite
+@warning_ignore("return_value_discarded")
+	extends GdUnitTestSuite
 
 var house_rules_controller: Node
 var mock_rule_manager: Node
 
-func before_test():
+func before_test() -> void:
 	# Create mock house rules controller with all required methods
 	house_rules_controller = Node.new()
 	house_rules_controller.name = "HouseRulesController"
@@ -29,52 +30,65 @@ func before_test():
 	mock_rule_manager.set_meta("rule_count", 0)
 	
 	# Add to scene tree
+	@warning_ignore("return_value_discarded")
 	add_child(house_rules_controller)
-	house_rules_controller.add_child(mock_rule_manager)
+	house_rules_controller.@warning_ignore("return_value_discarded")
+	add_child(mock_rule_manager)
 
-func after_test():
+func after_test() -> void:
 	if is_instance_valid(house_rules_controller):
-		house_rules_controller.queue_free()
+		house_rules_controller.@warning_ignore("return_value_discarded")
+	queue_free()
+	@warning_ignore("unsafe_method_access")
 	await get_tree().process_frame
 
 # Mock method implementations using meta system
 func _mock_add_rule(rule: Dictionary) -> bool:
 	var rules = house_rules_controller.get_meta("rules", [])
+
+	@warning_ignore("return_value_discarded")
 	rules.append(rule)
 	house_rules_controller.set_meta("rules", rules)
 	
 	if house_rules_controller.has_signal("rule_added"):
-		house_rules_controller.emit_signal("rule_added", rule)
+		@warning_ignore("unsafe_method_access")
+	house_rules_controller.emit_signal("rule_added", rule)
 	
 	return true
 
 func _mock_modify_rule(rule_id: String, changes: Dictionary) -> bool:
 	var rules = house_rules_controller.get_meta("rules", [])
-	for i in range(rules.size()):
-		if rules[i].get("id") == rule_id:
+	for i: int in range(rules.size()):
+
+		if rules[i].get("_id") == rule_id:
 			# Create a proper copy and apply changes cleanly
 			var updated_rule = rules[i].duplicate()
 			for key in changes.keys():
-				updated_rule[key] = changes[key]
-			rules[i] = updated_rule
+				@warning_ignore("unsafe_call_argument")
+	updated_rule[key] = changes[key]
+			@warning_ignore("unsafe_call_argument")
+	rules[i] = updated_rule
 			house_rules_controller.set_meta("rules", rules)
 			
 			if house_rules_controller.has_signal("rule_modified"):
-				house_rules_controller.emit_signal("rule_modified", updated_rule)
+				@warning_ignore("unsafe_method_access")
+	house_rules_controller.emit_signal("rule_modified", updated_rule)
 			
 			return true
 	return false
 
 func _mock_remove_rule(rule_id: String) -> bool:
 	var rules = house_rules_controller.get_meta("rules", [])
-	for i in range(rules.size()):
-		if rules[i].get("id") == rule_id:
+	for i: int in range(rules.size()):
+
+		if rules[i].get("_id") == rule_id:
 			var removed_rule = rules[i]
 			rules.remove_at(i)
 			house_rules_controller.set_meta("rules", rules)
 			
 			if house_rules_controller.has_signal("rule_removed"):
-				house_rules_controller.emit_signal("rule_removed", removed_rule)
+				@warning_ignore("unsafe_method_access")
+	house_rules_controller.emit_signal("rule_removed", removed_rule)
 			
 			return true
 	return false
@@ -82,14 +96,19 @@ func _mock_remove_rule(rule_id: String) -> bool:
 func _mock_apply_rule(rule_id: String) -> bool:
 	var rules = house_rules_controller.get_meta("rules", [])
 	for rule in rules:
-		if rule.get("id") == rule_id:
+
+		if @warning_ignore("unsafe_call_argument")
+	rule.get("_id") == rule_id:
 			var active_rules = house_rules_controller.get_meta("active_rules", [])
 			if rule not in active_rules:
-				active_rules.append(rule)
+
+				@warning_ignore("return_value_discarded")
+	active_rules.append(rule)
 				house_rules_controller.set_meta("active_rules", active_rules)
 			
 			if house_rules_controller.has_signal("rule_applied"):
-				house_rules_controller.emit_signal("rule_applied", rule)
+				@warning_ignore("unsafe_method_access")
+	house_rules_controller.emit_signal("rule_applied", rule)
 			
 			return true
 	return false
@@ -102,20 +121,24 @@ func _mock_validate_rule(rule: Dictionary) -> Dictionary:
 	}
 	
 	# Basic validation logic
-	if not rule.has("name") or rule["name"] == "":
+	if not @warning_ignore("unsafe_call_argument")
+	rule.has("name") or rule["name"] == "":
 		validation_result["valid"] = false
 		validation_result["errors"].append("Rule name is required")
 	
-	if not rule.has("type"):
+	if not @warning_ignore("unsafe_call_argument")
+	rule.has("type"):
 		validation_result["valid"] = false
 		validation_result["errors"].append("Rule type is required")
 	
 	if house_rules_controller.has_signal("rule_validation_complete"):
-		house_rules_controller.emit_signal("rule_validation_complete", validation_result)
+		@warning_ignore("unsafe_method_access")
+	house_rules_controller.emit_signal("rule_validation_complete", validation_result)
 	
 	return validation_result
 
-func test_initial_state():
+@warning_ignore("unsafe_method_access")
+func test_initial_state() -> void:
 	# Test basic controller structure
 	assert_that(house_rules_controller).is_not_null()
 	assert_that(house_rules_controller.is_inside_tree()).is_true()
@@ -127,7 +150,8 @@ func test_initial_state():
 	var rules = house_rules_controller.get_meta("rules", [])
 	assert_that(rules).is_empty()
 
-func test_add_rule():
+@warning_ignore("unsafe_method_access")
+func test_add_rule() -> void:
 	# Test adding a rule
 	var test_rule = {
 		"id": "test_rule_1",
@@ -139,13 +163,14 @@ func test_add_rule():
 	
 	var result = _mock_add_rule(test_rule)
 	assert_that(result).is_true()
-	
+
 	# Verify rule was added
 	var rules = house_rules_controller.get_meta("rules", [])
 	assert_that(rules.size()).is_equal(1)
 	assert_that(rules[0]["name"]).is_equal("Test Combat Rule")
 
-func test_modify_rule():
+@warning_ignore("unsafe_method_access")
+func test_modify_rule() -> void:
 	# First add a rule
 	var test_rule = {
 		"id": "test_rule_2",
@@ -169,7 +194,8 @@ func test_modify_rule():
 	assert_that(rules[0]["name"]).is_equal("Modified Rule")
 	assert_that(rules[0]["enabled"]).is_false()
 
-func test_remove_rule():
+@warning_ignore("unsafe_method_access")
+func test_remove_rule() -> void:
 	# First add a rule
 	var test_rule = {
 		"id": "test_rule_3",
@@ -190,7 +216,8 @@ func test_remove_rule():
 	rules = house_rules_controller.get_meta("rules", [])
 	assert_that(rules.size()).is_equal(0)
 
-func test_apply_rule():
+@warning_ignore("unsafe_method_access")
+func test_apply_rule() -> void:
 	# First add a rule
 	var test_rule = {
 		"id": "test_rule_4",
@@ -209,7 +236,8 @@ func test_apply_rule():
 	assert_that(active_rules.size()).is_equal(1)
 	assert_that(active_rules[0]["name"]).is_equal("Rule to Apply")
 
-func test_validate_rule():
+@warning_ignore("unsafe_method_access")
+func test_validate_rule() -> void:
 	# Test valid rule
 	var valid_rule = {
 		"name": "Valid Rule",

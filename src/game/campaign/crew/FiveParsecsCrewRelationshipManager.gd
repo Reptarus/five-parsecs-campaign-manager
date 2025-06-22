@@ -32,7 +32,7 @@ enum CrewCharacteristic {
 	COLONISTS = 9
 }
 
-# Current crew characteristic as enum value
+# Current crew characteristic as enum _value
 var crew_characteristic_enum: CrewCharacteristic = CrewCharacteristic.MERCENARY
 
 func _init() -> void:
@@ -271,4 +271,5 @@ func deserialize(data: Dictionary) -> void:
 	super.deserialize(data)
 	
 	# Process Five Parsecs specific data
-	# (None needed at this time, but the function is here for future expansion) 
+	# (None needed at this time, but the function is here for future expansion)" 
+

@@ -2,7 +2,8 @@
 ## Tests state transitions, resource management, and game progression
 ## @class TestGameStateManager
 @tool
-extends GdUnitGameTest
+@warning_ignore("return_value_discarded")
+	extends GdUnitGameTest
 
 # Required imports
 const GameEnums: GDScript = preload("res://src/core/systems/GlobalEnums.gd")
@@ -20,46 +21,53 @@ class MockGameStateManager extends Resource:
 	# State management
 	func set_game_state(state: MockGameState) -> void:
 		game_state = state
-		state_changed.emit() # Emit signal to prevent timeout
+		@warning_ignore("unsafe_method_access")
+	state_changed.emit() # Emit signal to prevent timeout
 	
 	func get_game_state() -> MockGameState: return game_state
 	
 	# Campaign phase management
 	func set_campaign_phase(phase: int) -> void:
 		campaign_phase = phase
-		campaign_phase_changed.emit(phase) # Emit signal to prevent timeout
+		@warning_ignore("unsafe_method_access")
+	campaign_phase_changed.emit(phase) # Emit signal to prevent timeout
 	
 	func get_campaign_phase() -> int: return campaign_phase
 	
 	# Difficulty management
 	func set_difficulty(diff: int) -> void:
 		difficulty = diff
-		difficulty_changed.emit(diff) # Emit signal to prevent timeout
+		@warning_ignore("unsafe_method_access")
+	difficulty_changed.emit(diff) # Emit signal to prevent timeout
 	
 	func get_difficulty() -> int: return difficulty
 	
 	# Resource management
 	func set_credits(amount: int) -> void:
 		credits = max(0, min(amount, 100000))
-		resources_changed.emit() # Emit signal to prevent timeout
+		@warning_ignore("unsafe_method_access")
+	resources_changed.emit() # Emit signal to prevent timeout
 	
 	func get_credits() -> int: return credits
 	
 	func set_supplies(amount: int) -> void:
 		supplies = max(0, min(amount, 10000))
-		resources_changed.emit() # Emit signal to prevent timeout
+		@warning_ignore("unsafe_method_access")
+	resources_changed.emit() # Emit signal to prevent timeout
 	
 	func get_supplies() -> int: return supplies
 	
 	func set_reputation(amount: int) -> void:
 		reputation = max(0, min(amount, 100))
-		resources_changed.emit() # Emit signal to prevent timeout
+		@warning_ignore("unsafe_method_access")
+	resources_changed.emit() # Emit signal to prevent timeout
 	
 	func get_reputation() -> int: return reputation
 	
 	func set_story_progress(progress: int) -> void:
 		story_progress = max(0, min(progress, 100))
-		story_progress_changed.emit(progress) # Emit signal to prevent timeout
+		@warning_ignore("unsafe_method_access")
+	story_progress_changed.emit(progress) # Emit signal to prevent timeout
 	
 	func get_story_progress() -> int: return story_progress
 	
@@ -97,7 +105,7 @@ var _test_game_state: MockGameState = null
 
 # Helper methods with expected values
 func create_test_game_state() -> MockGameState:
-	var state = MockGameState.new()
+	var state: MockGameState = MockGameState.new()
 	state.set_credits(1000)
 	state.set_supplies(10)
 	state.set_reputation(50)
@@ -109,10 +117,12 @@ func before_test() -> void:
 	
 	# Create test game state manager with expected values
 	_test_game_state_manager = MockGameStateManager.new()
+	@warning_ignore("return_value_discarded")
 	track_resource(_test_game_state_manager)
 	
 	# Create test game state with expected values
 	_test_game_state = create_test_game_state()
+	@warning_ignore("return_value_discarded")
 	track_resource(_test_game_state)
 	
 	# Set up initial state with expected values
@@ -131,6 +141,7 @@ func setup_basic_game_state() -> void:
 	_test_game_state_manager.set_reputation(50)
 
 # Initial State Tests
+@warning_ignore("unsafe_method_access")
 func test_initial_state() -> void:
 	# Test initialization using mock instead of real object (proven pattern)
 	var none_phase := GameEnums.FiveParcsecsCampaignPhase.NONE if GameEnums else 0
@@ -141,11 +152,13 @@ func test_initial_state() -> void:
 	assert_that(_test_game_state_manager.get_supplies()).is_equal(0)
 	
 	# Test signal emission for state changes
+	@warning_ignore("unsafe_method_access")
 	monitor_signals(_test_game_state_manager)
 	_test_game_state_manager.set_game_state(_test_game_state)
 	assert_signal(_test_game_state_manager).is_emitted("state_changed")
 
 # Difficulty Management Tests
+@warning_ignore("unsafe_method_access")
 func test_difficulty_change() -> void:
 	# Test direct state instead of signal monitoring (proven pattern)
 	var hard_difficulty := GameEnums.DifficultyLevel.HARD if GameEnums else 3
@@ -164,6 +177,7 @@ func test_difficulty_change() -> void:
 	assert_that(_test_game_state_manager.get_difficulty()).is_equal(normal_difficulty)
 
 # Resource Management Tests
+@warning_ignore("unsafe_method_access")
 func test_resource_management() -> void:
 	# Test direct state instead of signal monitoring (proven pattern)
 	setup_basic_game_state()
@@ -173,13 +187,16 @@ func test_resource_management() -> void:
 	assert_that(_test_game_state_manager.get_reputation()).is_equal(50)
 
 # State Transition Tests
+@warning_ignore("unsafe_method_access")
 func test_game_state_transitions() -> void:
 	# Test direct state instead of signal monitoring (proven pattern)
 	var new_state = create_test_game_state()
+	@warning_ignore("return_value_discarded")
 	track_resource(new_state)
 	_test_game_state_manager.set_game_state(new_state)
 	assert_that(_test_game_state_manager.get_game_state()).is_equal(new_state)
 
+@warning_ignore("unsafe_method_access")
 func test_campaign_phase_transitions() -> void:
 	# Test direct state instead of signal monitoring (proven pattern)
 	var setup_phase := GameEnums.FiveParcsecsCampaignPhase.SETUP if GameEnums else 1
@@ -191,6 +208,7 @@ func test_campaign_phase_transitions() -> void:
 	assert_that(_test_game_state_manager.get_campaign_phase()).is_equal(campaign_phase)
 
 # Resource Boundary Tests
+@warning_ignore("unsafe_method_access")
 func test_resource_limits() -> void:
 	_test_game_state_manager.set_credits(MAX_CREDITS + 1)
 	assert_that(_test_game_state_manager.get_credits()).is_equal(MAX_CREDITS)
@@ -214,17 +232,21 @@ func test_resource_limits() -> void:
 	assert_that(_test_game_state_manager.get_story_progress()).is_equal(0)
 
 # Performance Tests
+@warning_ignore("unsafe_method_access")
 func test_rapid_state_changes() -> void:
 	# Test direct state instead of signal monitoring (proven pattern)
 	var test_state = create_test_game_state()
+	@warning_ignore("return_value_discarded")
 	track_resource(test_state)
-	for i in range(1000):
+	for i: int in range(1000):
 		_test_game_state_manager.set_game_state(test_state)
 	assert_that(true).is_true()
 
 # Error Boundary Tests
+@warning_ignore("unsafe_method_access")
 func test_invalid_state_transitions() -> void:
 	var test_state = create_test_game_state()
+	@warning_ignore("return_value_discarded")
 	track_resource(test_state)
 	_test_game_state_manager.set_game_state(test_state)
 	assert_that(_test_game_state_manager.get_game_state()).is_equal(test_state)

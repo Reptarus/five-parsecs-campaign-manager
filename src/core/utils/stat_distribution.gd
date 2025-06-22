@@ -1,93 +1,143 @@
-class_name FPCM_StatDistribution
+@tool
 extends Resource
+class_name FiveParsecsStatDistribution
+
+## Core stat distribution system for Five Parsecs from Home
+## Handles character stat management and modifiers
 
 const GameEnums = preload("res://src/core/systems/GlobalEnums.gd")
-const FiveParsecsCharacter = preload("res://src/core/character/Base/Character.gd")
-const StatusEffect = preload("res://src/ui/screens/campaign/StatusEffects.gd")
 
 signal stat_changed(stat: String, new_value: int)
+signal modifier_applied(stat: String, modifier: int, duration: int)
+signal modifier_removed(stat: String, modifier: int)
 
-var character: FiveParsecsCharacter
 var base_stats: Dictionary = {}
 var temporary_modifiers: Dictionary = {}
 var permanent_modifiers: Dictionary = {}
 
-func _init(character_instance: FiveParsecsCharacter = null) -> void:
-	character = character_instance
-	_initialize_stats()
+# Five Parsecs stat limits as per Core Rules
+const STAT_LIMITS = {
+	"reactions": {"min": 1, "max": 6},
+	"speed": {"min": 4, "max": 8},
+	"combat_skill": {"min": - 3, "max": 3},
+	"toughness": {"min": 3, "max": 6},
+	"savvy": {"min": - 3, "max": 3},
+	"luck": {"min": 0, "max": 3}
+}
 
-func _initialize_stats() -> void:
-	if character:
-		base_stats = {
-			"reactions": character.stats.reactions,
-			"speed": character.stats.speed,
-			"combat_skill": character.stats.combat_skill,
-			"toughness": character.stats.toughness,
-			"savvy": character.stats.savvy,
-			"luck": character.stats.luck
-		}
-		temporary_modifiers = {}
-		permanent_modifiers = {}
+func _init() -> void:
+	_initialize_default_stats()
 
-# Core stat management functions
-func update_stat(stat: String, new_value: int) -> void:
-	if stat in base_stats:
-		base_stats[stat] = new_value
-		print("%s's %s changed to %d" % [character.character_name, stat, new_value])
-		
-		# Update the corresponding stat in CharacterStats
-		match stat:
-			"reactions": character.stats.reactions = new_value
-			"speed": character.stats.speed = new_value
-			"combat_skill": character.stats.combat_skill = new_value
-			"toughness": character.stats.toughness = new_value
-			"savvy": character.stats.savvy = new_value
-			"luck": character.stats.luck = new_value
-			
-		stat_changed.emit(stat, new_value)
-	else:
-		push_error("Invalid stat: %s" % stat)
+func _initialize_default_stats() -> void:
+	base_stats = {
+		"reactions": 3,
+		"speed": 4,
+		"combat_skill": 0,
+		"toughness": 3,
+		"savvy": 0,
+		"luck": 0
+	}
+	temporary_modifiers = {}
+	permanent_modifiers = {}
 
 func get_current_stat(stat: String) -> int:
+	if not base_stats.has(stat):
+		push_error("Invalid stat: " + stat)
+		return 0
+	
 	var current_value = base_stats[stat]
 	
+	# Apply permanent modifiers
 	if permanent_modifiers.has(stat):
 		current_value += permanent_modifiers[stat]
 	
+	# Apply temporary modifiers
 	if temporary_modifiers.has(stat):
 		for modifier in temporary_modifiers[stat]:
-			current_value += modifier["value"]
+			current_value += modifier["_value"]
 	
-	# Apply Core Rules stat limits
-	match stat:
-		"reactions": return clampi(current_value, 1, 6)
-		"speed": return clampi(current_value, 4, 8)
-		"combat_skill": return clampi(current_value, -3, 3)
-		"toughness": return clampi(current_value, 3, 6)
-		"savvy": return clampi(current_value, -3, 3)
-		"luck": return clampi(current_value, 0, 3)
-		_: return current_value
+	# Apply stat limits
+	if STAT_LIMITS.has(stat):
+		var limits = STAT_LIMITS[stat]
+		current_value = clampi(current_value, limits.min, limits.max)
+	
+	return current_value
 
-func meets_stat_threshold(stat: String, threshold: int) -> bool:
-	return get_current_stat(stat) >= threshold
+func set_base_stat(stat: String, _value: int) -> void:
+	if not base_stats.has(stat):
+		push_error("Invalid stat: " + stat)
+		return
+	
+	base_stats[stat] = _value
+	stat_changed.emit(stat, get_current_stat(stat))
 
-# Modifier management
-func add_temporary_modifier(stat: String, value: int, duration: int):
+func add_temporary_modifier(stat: String, _value: int, duration: int) -> void:
 	if not temporary_modifiers.has(stat):
 		temporary_modifiers[stat] = []
-	temporary_modifiers[stat].append({"value": value, "duration": duration})
+	
+	temporary_modifiers[stat].append({
+		"_value": _value,
+		"duration": duration
+	})
+	
+	modifier_applied.emit(stat, _value, duration)
 	stat_changed.emit(stat, get_current_stat(stat))
 
-func add_permanent_modifier(stat: String, value: int):
+func add_permanent_modifier(stat: String, _value: int) -> void:
 	if not permanent_modifiers.has(stat):
 		permanent_modifiers[stat] = 0
-	permanent_modifiers[stat] += value
+	
+	permanent_modifiers[stat] += _value
 	stat_changed.emit(stat, get_current_stat(stat))
 
-func remove_temporary_modifier(stat: String, index: int):
-	if temporary_modifiers.has(stat) and index < temporary_modifiers[stat].size():
-		temporary_modifiers[stat].remove_at(index)
-		stat_changed.emit(stat, get_current_stat(stat))
+func remove_temporary_modifier(stat: String, index: int) -> void:
+	if not temporary_modifiers.has(stat) or index >= temporary_modifiers[stat].size():
+		return
+	
+	var modifier = temporary_modifiers[stat][index]
+	temporary_modifiers[stat].remove_at(index)
+	
+	modifier_removed.emit(stat, modifier._value)
+	stat_changed.emit(stat, get_current_stat(stat))
+
+func tick_temporary_modifiers() -> void:
+	var expired_modifiers = []
+	
+	for stat in temporary_modifiers:
+		for i in range(temporary_modifiers[stat].size() - 1, -1, -1):
+			var modifier = temporary_modifiers[stat][i]
+			modifier.duration -= 1
+			
+			if modifier.duration <= 0:
+				expired_modifiers.append({"stat": stat, "index": i})
+	
+	for expired in expired_modifiers:
+		remove_temporary_modifier(expired.stat, expired.index)
+
+func meets_requirement(stat: String, threshold: int) -> bool:
+	return get_current_stat(stat) >= threshold
+
+func get_stat_modifier(stat: String) -> int:
+	var current = get_current_stat(stat)
+	
+	match stat:
+		"combat_skill", "savvy":
+			# These stats can be negative
+			return current
+		"reactions":
+			# Reactions modifier for initiative
+			return current - 3
+		"toughness":
+			# Toughness modifier for saves
+			return current - 3
+		"speed":
+			# Speed modifier for movement
+			return current - 4
+		"luck":
+			# Luck modifier for rerolls
+			return current
+		_:
+			return 0
 
 func serialize() -> Dictionary:
 	return {
@@ -96,13 +146,40 @@ func serialize() -> Dictionary:
 		"permanent_modifiers": permanent_modifiers
 	}
 
-static func deserialize(data_dict: Dictionary, character_instance: FiveParsecsCharacter) -> Resource:
-	var new_stat_distribution = new()
-	new_stat_distribution._init(character_instance)
-	if data_dict.has("base_stats"):
-		new_stat_distribution.base_stats = data_dict["base_stats"]
-	if data_dict.has("temporary_modifiers"):
-		new_stat_distribution.temporary_modifiers = data_dict["temporary_modifiers"]
-	if data_dict.has("permanent_modifiers"):
-		new_stat_distribution.permanent_modifiers = data_dict["permanent_modifiers"]
-	return new_stat_distribution
+func deserialize(data: Dictionary) -> void:
+	if data.has("base_stats"):
+		base_stats = data.base_stats
+	if data.has("temporary_modifiers"):
+		temporary_modifiers = data.temporary_modifiers
+	if data.has("permanent_modifiers"):
+		permanent_modifiers = data.permanent_modifiers
+	
+	# Emit signals for all stats to update UI
+	for stat in base_stats:
+		stat_changed.emit(stat, get_current_stat(stat))
+
+static func create_random_stats() -> FiveParsecsStatDistribution:
+	var stats := FiveParsecsStatDistribution.new()
+	
+	# Generate stats according to Five Parsecs rules
+	stats.set_base_stat("reactions", randi_range(1, 6))
+	stats.set_base_stat("speed", randi_range(4, 8))
+	stats.set_base_stat("combat_skill", randi_range(-1, 2))
+	stats.set_base_stat("toughness", randi_range(3, 5))
+	stats.set_base_stat("savvy", randi_range(-1, 2))
+	stats.set_base_stat("luck", randi_range(0, 2))
+	
+	return stats
+
+static func create_balanced_stats() -> FiveParsecsStatDistribution:
+	var stats := FiveParsecsStatDistribution.new()
+	
+	# Create balanced starting stats
+	stats.set_base_stat("reactions", 3)
+	stats.set_base_stat("speed", 4)
+	stats.set_base_stat("combat_skill", 0)
+	stats.set_base_stat("toughness", 3)
+	stats.set_base_stat("savvy", 0)
+	stats.set_base_stat("luck", 0)
+	
+	return stats

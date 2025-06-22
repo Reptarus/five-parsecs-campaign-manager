@@ -65,7 +65,7 @@ func _load_options() -> void:
     if not FileAccess.file_exists(config_file_path):
         return
     
-    var config = ConfigFile.new()
+    var config := ConfigFile.new()
     var err = config.load(config_file_path)
     
     if err != OK:
@@ -79,7 +79,7 @@ func _load_options() -> void:
                     current_options[section][key] = config.get_value(section, key)
 
 func save_options() -> void:
-    var config = ConfigFile.new()
+    var config := ConfigFile.new()
     
     for section in current_options.keys():
         for key in current_options[section].keys():
@@ -91,19 +91,19 @@ func save_options() -> void:
         return
     
     _apply_options()
-    options_saved.emit()
+    options_saved.emit() # warning: return value discarded (intentional)
 
 func reset_options() -> void:
     current_options = DEFAULT_OPTIONS.duplicate(true)
     save_options()
-    options_reset.emit()
+    options_reset.emit() # warning: return value discarded (intentional)
 
 func get_option(section: String, key: String, default_value = null):
     if not current_options.has(section) or not current_options[section].has(key):
         return default_value
     return current_options[section][key]
 
-func set_option(section: String, key: String, value) -> void:
+func set_option(section: String, key: String, _value) -> void:
     if not current_options.has(section):
         push_error("Invalid options section: " + section)
         return
@@ -112,7 +112,7 @@ func set_option(section: String, key: String, value) -> void:
         push_error("Invalid option key: " + key)
         return
     
-    current_options[section][key] = value
+    current_options[section][key] = _value
 
 func _apply_options() -> void:
     _apply_graphics_options()

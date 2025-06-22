@@ -5,7 +5,8 @@
 ## - Health bar functionality
 ## - Script and system verification
 @tool
-extends GdUnitGameTest
+@warning_ignore("return_value_discarded")
+	extends GdUnitGameTest
 
 # Type-safe script references
 const BattlefieldGeneratorCrew := preload("res://src/data/resources/Deployment/Units/BattlefieldGeneratorCrew.tscn")
@@ -27,11 +28,14 @@ func before_test() -> void:
 	if not _generator:
 		push_error("Failed to create generator")
 		return
+	@warning_ignore("return_value_discarded")
 	track_node(_generator)
+	@warning_ignore("return_value_discarded")
 	add_child(_generator)
 	
 	# Skip signal monitoring to prevent Dictionary corruption
-	# monitor_signals(_generator)  # REMOVED - causes Dictionary corruption
+	# @warning_ignore("unsafe_method_access")
+	monitor_signals(_generator)  # REMOVED - causes Dictionary corruption
 	# Test state directly instead of signal emission
 
 func after_test() -> void:
@@ -39,6 +43,7 @@ func after_test() -> void:
 	super.after_test()
 
 # Initial Setup Tests
+@warning_ignore("unsafe_method_access")
 func test_initial_setup() -> void:
 	assert_that(_generator).override_failure_message("Generator should be initialized").is_not_null()
 	assert_that(_generator.has_node("Character")).override_failure_message("Should have character node").is_true()
@@ -48,6 +53,7 @@ func test_initial_setup() -> void:
 	assert_that(_generator.has_node("HealthBar")).override_failure_message("Should have health bar").is_true()
 
 # Character Component Tests
+@warning_ignore("unsafe_method_access")
 func test_character_components() -> void:
 	var character: Node = _generator.get_node("Character")
 	assert_that(character).override_failure_message("Should have character node").is_not_null()
@@ -62,11 +68,12 @@ func test_character_components() -> void:
 	assert_that(sprite is Sprite2D).override_failure_message("Sprite should be Sprite2D").is_true()
 
 # Health Bar Tests
+@warning_ignore("unsafe_method_access")
 func test_health_bar_setup() -> void:
 	var health_bar: ProgressBar = _generator.get_node("HealthBar")
 	assert_that(health_bar).override_failure_message("Should have health bar").is_not_null()
 	assert_that(health_bar is ProgressBar).override_failure_message("Health bar should be ProgressBar").is_true()
-	assert_that(health_bar.value).override_failure_message("Health bar should start at 100").is_equal(100.0)
+	assert_that(health_bar._value).override_failure_message("Health bar should start at 100").is_equal(100.0)
 	assert_that(health_bar.show_percentage).override_failure_message("Health bar should not show percentage").is_false()
 	
 	# Check health bar positioning
@@ -76,6 +83,7 @@ func test_health_bar_setup() -> void:
 	assert_that(health_bar.size.y).override_failure_message("Health bar should have correct height").is_equal(4.0)
 
 # Script Tests
+@warning_ignore("unsafe_method_access")
 func test_character_script() -> void:
 	var character: Node = _generator.get_node("Character")
 	assert_that(character).override_failure_message("Character should be initialized").is_not_null()
@@ -92,6 +100,7 @@ func test_character_script() -> void:
 	assert_that(character_data is Resource).override_failure_message("Character data should be Resource").is_true()
 
 # System Tests
+@warning_ignore("unsafe_method_access")
 func test_systems_setup() -> void:
 	var weapon_system: Node = _generator.get_node("WeaponSystem")
 	var health_system: Node = _generator.get_node("HealthSystem")
@@ -106,14 +115,18 @@ func test_systems_setup() -> void:
 	assert_that(status_effects is Node).override_failure_message("Status effects should be Node").is_true()
 
 # Performance Tests
+@warning_ignore("unsafe_method_access")
 func test_component_initialization_performance() -> void:
 	var start_time := Time.get_ticks_msec()
 	
-	for i in range(10):
+	for i: int in range(10):
 		var test_generator: Node = BattlefieldGeneratorCrew.instantiate()
-		track_node(test_generator)
-		add_child(test_generator)
-		test_generator.queue_free()
+		@warning_ignore("return_value_discarded")
+	track_node(test_generator)
+		@warning_ignore("return_value_discarded")
+	add_child(test_generator)
+		test_generator.@warning_ignore("return_value_discarded")
+	queue_free()
 	
 	var duration := Time.get_ticks_msec() - start_time
 	assert_that(duration < 1000).override_failure_message("Should initialize 10 generators within 1 second").is_true()

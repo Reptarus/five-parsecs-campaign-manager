@@ -35,7 +35,7 @@ func _ready() -> void:
 	scale_slider.min_value = ThemeManager.MIN_SCALE_FACTOR
 	scale_slider.max_value = ThemeManager.MAX_SCALE_FACTOR
 	scale_slider.step = 0.05
-	scale_slider.value = ThemeManager.DEFAULT_SCALE_FACTOR
+	scale_slider._value = ThemeManager.DEFAULT_SCALE_FACTOR
 	update_scale_label(ThemeManager.DEFAULT_SCALE_FACTOR)
 	
 	# Connect signals
@@ -47,8 +47,8 @@ func _ready() -> void:
 	$VBoxContainer/ButtonSection/ApplyButton.pressed.connect(_on_apply_pressed)
 	$VBoxContainer/ButtonSection/ResetButton.pressed.connect(_on_reset_pressed)
 	$VBoxContainer/ButtonSection/CloseButton.pressed.connect(_on_close_pressed)
-	
-	close_requested.connect(_on_close_pressed)
+
+	close_requested.connect(_on_close_pressed) # warning: return value discarded (intentional)
 
 ## Connect the theme manager to this dialog
 ## @param manager: Reference to the theme manager
@@ -57,39 +57,44 @@ func connect_theme_manager(manager: ThemeManager) -> void:
 	
 	# Update controls to match current theme settings
 	theme_option.selected = theme_manager.get_theme_variant()
-	scale_slider.value = theme_manager.get_scale_factor()
+	scale_slider._value = theme_manager.get_scale_factor()
 	update_scale_label(theme_manager.get_scale_factor())
 	high_contrast_check.button_pressed = theme_manager.is_high_contrast_enabled()
 	reduced_animation_check.button_pressed = theme_manager.is_reduced_animation_enabled()
 
-## Update the scale value label
-## @param value: New scale value
-func update_scale_label(value: float) -> void:
-	scale_value.text = "%d%%" % int(value * 100)
+## Update the scale _value label
+## @param _value: New scale _value
+func update_scale_label(_value: float) -> void:
+	scale_value.text = "%d%%" % int(_value * 100)
 
 ## Handle scale slider changes
-func _on_scale_changed(value: float) -> void:
-	update_scale_label(value)
+
+func _on_scale_changed(_value: float) -> void:
+	update_scale_label(_value)
 
 ## Handle theme option selection
+
 func _on_theme_selected(index: int) -> void:
 	# Apply theme preview immediately for better feedback
 	if theme_manager:
 		theme_manager.set_theme_variant(index)
 
 ## Handle high contrast toggle
+
 func _on_high_contrast_toggled(enabled: bool) -> void:
 	# Apply high contrast immediately for preview
 	if theme_manager:
 		theme_manager.set_high_contrast(enabled)
 
 ## Handle reduced animation toggle
+
 func _on_reduced_animation_toggled(enabled: bool) -> void:
 	# Apply reduced animation immediately for preview
 	if theme_manager:
 		theme_manager.set_reduced_animation(enabled)
 
 ## Handle apply button press
+
 func _on_apply_pressed() -> void:
 	if not theme_manager:
 		push_error("Theme manager not connected")
@@ -97,7 +102,7 @@ func _on_apply_pressed() -> void:
 	
 	# Apply all settings
 	theme_manager.set_theme_variant(theme_option.selected)
-	theme_manager.set_scale_factor(scale_slider.value)
+	theme_manager.set_scale_factor(scale_slider._value)
 	theme_manager.set_high_contrast(high_contrast_check.button_pressed)
 	theme_manager.set_reduced_animation(reduced_animation_check.button_pressed)
 	
@@ -107,11 +112,11 @@ func _on_apply_pressed() -> void:
 	# Emit signal with current settings
 	var settings = {
 		"theme_variant": theme_option.selected,
-		"scale_factor": scale_slider.value,
+		"scale_factor": scale_slider._value,
 		"high_contrast": high_contrast_check.button_pressed,
 		"reduced_animation": reduced_animation_check.button_pressed
 	}
-	settings_applied.emit(settings)
+	settings_applied.emit(settings) # warning: return value discarded (intentional)
 	
 	# Close dialog
 	hide()
@@ -120,7 +125,7 @@ func _on_apply_pressed() -> void:
 func _on_reset_pressed() -> void:
 	# Reset to defaults
 	theme_option.selected = ThemeManager.ThemeVariant.DEFAULT
-	scale_slider.value = ThemeManager.DEFAULT_SCALE_FACTOR
+	scale_slider._value = ThemeManager.DEFAULT_SCALE_FACTOR
 	update_scale_label(ThemeManager.DEFAULT_SCALE_FACTOR)
 	high_contrast_check.button_pressed = false
 	reduced_animation_check.button_pressed = false
@@ -132,7 +137,7 @@ func _on_reset_pressed() -> void:
 		theme_manager.set_high_contrast(false)
 		theme_manager.set_reduced_animation(false)
 	
-	settings_reset.emit()
+	settings_reset.emit() # warning: return value discarded (intentional)
 
 ## Handle close button press
 func _on_close_pressed() -> void:

@@ -1,103 +1,263 @@
 extends Control
 
-const GameEnums := preload("res://src/core/systems/GlobalEnums.gd")
-const WorldManager := preload("res://src/game/world/GameWorldManager.gd")
-const GameWorld := preload("res://src/game/world/GameWorld.gd")
+## World Phase UI for Five Parsecs Campaign Manager
+## Handles crew tasks, job offers, and mission preparation
 
-signal phase_completed
-signal phase_cancelled
+signal phase_completed()
+signal job_selected(job_data: Dictionary)
+signal mission_prepared()
 
-@onready var world_info_panel: Control = $WorldInfoPanel
-@onready var resource_panel: Control = $ResourcePanel
-@onready var market_panel: Control = $MarketPanel
-@onready var events_panel: Control = $EventsPanel
+# UI References
+@onready var title_label: Label = $MarginContainer/VBoxContainer/TopBar/TitleLabel
+@onready var back_button: Button = $MarginContainer/VBoxContainer/TopBar/BackButton
+@onready var next_button: Button = $MarginContainer/VBoxContainer/TopBar/NextButton
+@onready var options_button: Button = $MarginContainer/VBoxContainer/TopBar/OptionsButton
 
-var world_manager: WorldManager
-var current_world: GameWorld
+# Step buttons
+@onready var step1_button: Button = $MarginContainer/VBoxContainer/StepIndicator/Step1Button
+@onready var step2_button: Button = $MarginContainer/VBoxContainer/StepIndicator/Step2Button
+@onready var step3_button: Button = $MarginContainer/VBoxContainer/StepIndicator/Step3Button
+@onready var step4_button: Button = $MarginContainer/VBoxContainer/StepIndicator/Step4Button
+
+# Content panels
+@onready var upkeep_panel: VBoxContainer = $MarginContainer/VBoxContainer/HSplitContainer/MainContent/UpkeepPanel
+@onready var crew_tasks_panel: VBoxContainer = $MarginContainer/VBoxContainer/HSplitContainer/MainContent/CrewTasksPanel
+@onready var job_offers_panel: VBoxContainer = $MarginContainer/VBoxContainer/HSplitContainer/MainContent/JobOffersPanel
+@onready var mission_prep_panel: VBoxContainer = $MarginContainer/VBoxContainer/HSplitContainer/MainContent/MissionPrepPanel
+@onready var equipment_panel: VBoxContainer = $MarginContainer/VBoxContainer/HSplitContainer/MainContent/EquipmentPanel
+
+# Specific UI elements
+@onready var crew_list: ItemList = $MarginContainer/VBoxContainer/HSplitContainer/MainContent/CrewTasksPanel/CrewList
+@onready var task_assignment: OptionButton = $MarginContainer/VBoxContainer/HSplitContainer/MainContent/CrewTasksPanel/TaskAssignment
+@onready var resolve_task_button: Button = $MarginContainer/VBoxContainer/HSplitContainer/MainContent/CrewTasksPanel/ResolveTask
+@onready var patron_list: ItemList = $MarginContainer/VBoxContainer/HSplitContainer/MainContent/JobOffersPanel/PatronList
+@onready var job_details: RichTextLabel = $MarginContainer/VBoxContainer/HSplitContainer/MainContent/JobOffersPanel/JobDetails
+@onready var accept_job_button: Button = $MarginContainer/VBoxContainer/HSplitContainer/MainContent/JobOffersPanel/AcceptJobButton
+
+# State tracking
+var campaign_data: Resource = null
+var current_step: int = 0
+var selected_job: Dictionary = {}
+var current_world: String = ""
+
+# Manager references
+var alpha_manager: Node = null
+var campaign_manager: Node = null
+var trading_system: Node = null
+var job_system: Node = null
 
 func _ready() -> void:
-    if not world_info_panel or not resource_panel or not market_panel or not events_panel:
-        push_error("Required UI components not found in WorldPhaseUI")
-        return
+	_initialize_managers()
+	_setup_ui()
+	_connect_signals()
 
-func initialize(data: Dictionary) -> void:
-    world_manager = data.get("world_manager")
-    current_world = world_manager.current_world if world_manager else null
-    
-    if not world_manager or not current_world:
-        push_error("WorldPhaseUI initialization failed: missing required data")
-        return
-    
-    _connect_signals()
-    _update_ui()
+func _initialize_managers() -> void:
+	"""Initialize manager references from autoloads"""
+	alpha_manager = get_node("/root/AlphaGameManager") if has_node("/root/AlphaGameManager") else null
+	campaign_manager = get_node("/root/CampaignManager") if has_node("/root/CampaignManager") else null
+	
+	if alpha_manager:
+		if alpha_manager.has_method("get_trading_system"):
+			trading_system = alpha_manager.get_trading_system()
+		if alpha_manager.has_method("get_job_system"):
+			job_system = alpha_manager.get_job_system()
+
+func _setup_ui() -> void:
+	"""Setup initial UI state"""
+	_show_step(0) # Start with upkeep step
+	next_button.disabled = true
+	
+	# Setup task assignment options
+	task_assignment.add_item("Trade")
+	task_assignment.add_item("Explore")
+	task_assignment.add_item("Train")
+	task_assignment.add_item("Repair")
+	task_assignment.add_item("Medical")
 
 func _connect_signals() -> void:
-    if world_manager:
-        world_manager.world_updated.connect(_on_world_updated)
-        world_manager.economy_updated.connect(_on_economy_updated)
-        world_manager.strife_level_changed.connect(_on_strife_level_changed)
+	"""Connect UI signals"""
+	back_button.pressed.connect(_on_back_pressed)
+	next_button.pressed.connect(_on_next_pressed)
+	options_button.pressed.connect(_on_options_pressed)
+	
+	# Step buttons
+	step1_button.pressed.connect(func(): _show_step(0))
+	step2_button.pressed.connect(func(): _show_step(1))
+	step3_button.pressed.connect(func(): _show_step(2))
+	step4_button.pressed.connect(func(): _show_step(3))
+	
+	# Content signals
+	resolve_task_button.pressed.connect(_on_resolve_tasks)
+	accept_job_button.pressed.connect(_on_accept_job)
+	patron_list.item_selected.connect(_on_patron_selected)
 
-func _update_ui() -> void:
-    if not current_world:
-        return
-        
-    # Update world info
-    world_info_panel.update_info({
-        "name": current_world.name,
-        "environment": GameEnums.PlanetEnvironment.keys()[current_world.environment_type],
-        "faction": GameEnums.FactionType.keys()[current_world.faction_type],
-        "strife_level": GameEnums.StrifeType.keys()[current_world.strife_level],
-        "world_features": current_world.world_features.map(func(f): return GameEnums.WorldTrait.keys()[f])
-    })
-    
-    # Update resources
-    var resources := {}
-    for resource_type in current_world.resources:
-        resources[GameEnums.ResourceType.keys()[resource_type]] = current_world.resources[resource_type]
-    resource_panel.update_resources(resources)
-    
-    # Update market
-    var market_data := {}
-    for item_type in current_world.market_prices:
-        market_data[GameEnums.ItemType.keys()[item_type]] = current_world.market_prices[item_type]
-    market_panel.update_prices(market_data)
-    
-    # Update events
-    events_panel.clear_events()
-    if current_world.strife_level > GameEnums.StrifeType.NONE:
-        events_panel.add_event({
-            "type": "strife",
-            "level": current_world.strife_level,
-            "unity_progress": current_world.unity_progress
-        })
+func setup_phase(data: Resource) -> void:
+	"""Setup the world phase with campaign data"""
+	campaign_data = data
+	current_world = data.get_meta("current_world", "Unknown World") if data else "Unknown World"
+	title_label.text = "World Phase: %s" % current_world
+	
+	_update_crew_list()
+	_update_job_offers()
+	_update_step_availability()
 
-func _on_world_updated(world: GameWorld) -> void:
-    if world == current_world:
-        _update_ui()
+func _show_step(step: int) -> void:
+	"""Show a specific step in the world phase"""
+	current_step = step
+	
+	# Hide all panels
+	upkeep_panel.visible = false
+	crew_tasks_panel.visible = false
+	job_offers_panel.visible = false
+	if mission_prep_panel:
+		mission_prep_panel.visible = false
+	if equipment_panel:
+		equipment_panel.visible = false
+	
+	# Update step button states
+	step1_button.disabled = false
+	step2_button.disabled = false
+	step3_button.disabled = false
+	step4_button.disabled = false
+	
+	# Show current step panel
+	match step:
+		0:
+			upkeep_panel.visible = true
+			step1_button.disabled = true
+		1:
+			crew_tasks_panel.visible = true
+			step2_button.disabled = true
+		2:
+			job_offers_panel.visible = true
+			step3_button.disabled = true
+		3:
+			if mission_prep_panel:
+				mission_prep_panel.visible = true
+			if equipment_panel:
+				equipment_panel.visible = true
+			step4_button.disabled = true
 
-func _on_economy_updated(world: GameWorld, market_data: Dictionary) -> void:
-    if world == current_world:
-        var formatted_data := {}
-        for item_type in market_data:
-            formatted_data[GameEnums.ItemType.keys()[item_type]] = market_data[item_type]
-        market_panel.update_prices(formatted_data)
+func _update_crew_list() -> void:
+	"""Update the crew list for task assignment"""
+	crew_list.clear()
+	
+	if not campaign_data:
+		return
+	
+	var crew_data = campaign_data.get_meta("crew", [])
+	for crew_member in crew_data:
+		var name = crew_member.get("name", "Unknown")
 
-func _on_strife_level_changed(world: GameWorld, new_level: int) -> void:
-    if world == current_world:
-        world_info_panel.update_strife_level(GameEnums.StrifeType.keys()[new_level])
-        events_panel.update_strife_level(new_level)
+		var status = crew_member.get("status", "Available")
+		crew_list.add_item("%s (%s)" % [name, status])
 
-func _on_complete_phase_pressed() -> void:
-    phase_completed.emit()
+func _update_job_offers() -> void:
+	"""Update available job offers"""
+	patron_list.clear()
+	
+	if not job_system or not campaign_data:
+		job_details.text = "No job system available"
+		return
+	
+	var available_jobs = job_system.generate_job_offers(campaign_data)
+	for job in available_jobs:
+		var patron_name = job.get("patron", "Unknown Patron")
 
-func _on_cancel_phase_pressed() -> void:
-    phase_cancelled.emit()
+		var job_type = job.get("type", "Standard")
+		patron_list.add_item("%s - %s" % [patron_name, job_type])
+	
+	if available_jobs.size() > 0:
+		job_details.text = "Select a patron to view job details"
+	else:
+		job_details.text = "No jobs available in this system"
 
-func cleanup() -> void:
-    if world_manager:
-        if world_manager.world_updated.is_connected(_on_world_updated):
-            world_manager.world_updated.disconnect(_on_world_updated)
-        if world_manager.economy_updated.is_connected(_on_economy_updated):
-            world_manager.economy_updated.disconnect(_on_economy_updated)
-        if world_manager.strife_level_changed.is_connected(_on_strife_level_changed):
-            world_manager.strife_level_changed.disconnect(_on_strife_level_changed)
+func _update_step_availability() -> void:
+	"""Update which steps are available based on progress"""
+	# Logic to enable/disable steps based on completion
+	pass
+
+# Signal handlers
+
+func _on_back_pressed() -> void:
+	"""Handle back button press"""
+	if current_step > 0:
+		_show_step(current_step - 1)
+
+func _on_next_pressed() -> void:
+	"""Handle next button press"""
+	if current_step < 3:
+		_show_step(current_step + 1)
+	else:
+		phase_completed.emit() # warning: return value discarded (intentional)
+
+func _on_options_pressed() -> void:
+	"""Handle options button press"""
+	# TODO: Show world phase options menu
+	print("Options menu not implemented")
+
+func _on_resolve_tasks() -> void:
+	"""Handle resolving crew tasks"""
+	var selected_indices = crew_list.get_selected_items()
+	if selected_indices.size() == 0:
+		return
+	
+	var task_type = task_assignment.get_item_text(task_assignment.selected)
+	print("Resolving %s task for crew members" % task_type)
+	
+	# TODO: Implement actual task resolution
+	resolve_task_button.text = "Tasks Resolved ✓"
+	resolve_task_button.disabled = true
+
+func _on_accept_job() -> void:
+	"""Handle accepting a job"""
+	var selected_indices = patron_list.get_selected_items()
+	if selected_indices.size() == 0:
+		return
+	
+	var job_index = selected_indices[0]
+	if job_system:
+		var available_jobs = job_system.generate_job_offers(campaign_data)
+		if job_index < available_jobs.size():
+			selected_job = available_jobs[job_index]
+			job_selected.emit(selected_job) # warning: return value discarded (intentional)
+			accept_job_button.text = "Job Accepted ✓"
+			accept_job_button.disabled = true
+			next_button.disabled = false
+
+func _on_patron_selected(index: int) -> void:
+	"""Handle patron selection to show job details"""
+	if not job_system:
+		return
+	
+	var available_jobs = job_system.generate_job_offers(campaign_data)
+	if index < available_jobs.size():
+		var job = available_jobs[index]
+		var details: String = "Patron: %s\n" % job.get("patron", "Unknown")
+		details += "Type: %s\n" % job.get("type", "Standard")
+
+		details += "Difficulty: %s\n" % job.get("difficulty", "Normal")
+
+		details += "Payment: %d credits\n" % job.get("payment", 0)
+
+		details += "Description: %s" % job.get("description", "No description available")
+		
+		job_details.text = details
+		accept_job_button.disabled = false
+
+func get_phase_status() -> Dictionary:
+	"""Get the current phase status"""
+	return {
+		"current_step": current_step,
+		"selected_job": selected_job,
+		"current_world": current_world,
+		"can_advance": not selected_job.is_empty()
+	}
+
+func load_campaign_data(data: Resource) -> void:
+	"""Load campaign data for this phase"""
+	campaign_data = data
+	current_world = data.get_meta("current_world", "Unknown World") if data else "Unknown World"
+	title_label.text = "World Phase: %s" % current_world
+	_update_crew_list()
+	_update_job_offers()

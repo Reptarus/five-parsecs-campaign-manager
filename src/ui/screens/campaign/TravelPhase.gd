@@ -65,9 +65,9 @@ func process_patron_check() -> void:
 	var available_patrons = patron_job_manager.get_available_patrons()
 	for patron in available_patrons:
 		_display_result(patrons_list, patron.get_description())
-	step_completed.emit()
+	step_completed.emit() # warning: return value discarded (intentional)
 
 func _display_result(container: Control, description: String) -> void:
-	var label = Label.new()
+	var label := Label.new()
 	label.text = description
 	container.add_child(label)

@@ -39,15 +39,15 @@ func take_loan(amount: int) -> bool:
 		"remaining": amount,
 		"payments_missed": 0
 	}
-	
-	active_loans.append(loan)
+
+	active_loans.append(loan) # warning: return value discarded (intentional)
 	game_state.credits += amount
-	loan_taken.emit(amount, interest_rate)
+	loan_taken.emit(amount, interest_rate) # warning: return value discarded (intentional)
 	return true
 
 func make_payment(loan_index: int, amount: int) -> bool:
 	if loan_index < 0 or loan_index >= active_loans.size():
-		push_error("Invalid loan index")
+		push_error("Invalid loan _index")
 		return false
 		
 	var loan := active_loans[loan_index]
@@ -63,7 +63,7 @@ func make_payment(loan_index: int, amount: int) -> bool:
 	
 	if loan.remaining <= 0:
 		active_loans.remove_at(loan_index)
-		loan_repaid.emit(amount)
+		loan_repaid.emit(amount) # warning: return value discarded (intentional)
 	return true
 
 func calculate_interest_rate() -> float:

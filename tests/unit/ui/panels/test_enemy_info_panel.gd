@@ -1,12 +1,16 @@
 @tool
-extends GdUnitGameTest
+@warning_ignore("return_value_discarded")
+	extends GdUnitGameTest
 
 ## Enemy Info Panel Tests using UNIVERSAL MOCK STRATEGY
 ##
 ## Applies the proven pattern that achieved:
-## - Ship Tests: 48/48 (100% SUCCESS) 
-## - Mission Tests: 51/51 (100% SUCCESS)
-## - UI Tests: 271/294 (95.6% SUCCESS)
+## - Ship Tests: 48/48 (@warning_ignore("integer_division")
+	100 % SUCCESS) 
+## - Mission Tests: 51/51 (@warning_ignore("integer_division")
+	100 % SUCCESS)
+## - UI Tests: 271/294 (95.@warning_ignore("integer_division")
+	6 % SUCCESS)
 
 # ========================================
 # UNIVERSAL MOCK STRATEGY - PROVEN PATTERN
@@ -28,42 +32,52 @@ class MockEnemyInfoPanel extends Resource:
 	var enemy_list: MockContainer = null
 	var special_rules: MockContainer = null
 	
-	func _init():
+	func _init() -> void:
 		threat_level = MockLabel.new()
 		enemy_list = MockContainer.new()
 		special_rules = MockContainer.new()
 	
 	# Methods returning expected values (no nulls!)
 	func setup_with_data(data: Dictionary) -> void:
-		if data.has("threat_level"):
-			var level: int = data.get("threat_level", 0)
+		if @warning_ignore("unsafe_call_argument")
+	data.has("threat_level"):
+			var level: int = @warning_ignore("unsafe_call_argument")
+	data.get("threat_level", 0)
 			threat_level.text = _get_threat_text(level)
 		
-		if data.has("enemies"):
-			var enemies: Array = data.get("enemies", [])
+		if @warning_ignore("unsafe_call_argument")
+	data.has("enemies"):
+			var enemies: Array = @warning_ignore("unsafe_call_argument")
+	data.get("enemies", [])
 			enemy_list.child_count = enemies.size()
 		
-		if data.has("special_rules"):
-			var rules: Array = data.get("special_rules", [])
+		if @warning_ignore("unsafe_call_argument")
+	data.has("special_rules"):
+			var rules: Array = @warning_ignore("unsafe_call_argument")
+	data.get("special_rules", [])
 			special_rules.child_count = rules.size()
 		
-		panel_setup_completed.emit(data)
+		@warning_ignore("unsafe_method_access")
+	panel_setup_completed.emit(data)
 	
 	func _clear_lists() -> void:
 		enemy_list.child_count = 0
 		special_rules.child_count = 0
-		lists_cleared.emit()
+		@warning_ignore("unsafe_method_access")
+	lists_cleared.emit()
 	
 	func _create_enemy_item(enemy_data: Dictionary) -> MockControl:
 		var item := MockControl.new()
 		item.setup_enemy_data(enemy_data)
-		enemy_item_created.emit(enemy_data)
+		@warning_ignore("unsafe_method_access")
+	enemy_item_created.emit(enemy_data)
 		return item
 	
 	func _create_rule_item(rule_data: Dictionary) -> MockControl:
 		var item := MockControl.new()
 		item.setup_rule_data(rule_data)
-		rule_item_created.emit(rule_data)
+		@warning_ignore("unsafe_method_access")
+	rule_item_created.emit(rule_data)
 		return item
 	
 	func _get_threat_text(level: int) -> String:
@@ -79,8 +93,9 @@ class MockEnemyInfoPanel extends Resource:
 	
 	func find_children(pattern: String, type: String) -> Array:
 		var children: Array = []
-		for i in range(3):
-			children.append(MockLabel.new())
+		for i: int in range(3):
+			@warning_ignore("return_value_discarded")
+	children.append(MockLabel.new())
 		return children
 	
 	# Mock base class methods
@@ -100,18 +115,23 @@ class MockEnemyInfoPanel extends Resource:
 		return performance_duration < 50
 	
 	# Signal emission with realistic timing
-	signal panel_setup_completed(data: Dictionary)
+	signal panel_setup_completed(_data: Dictionary)
 	signal lists_cleared
 	signal enemy_item_created(enemy_data: Dictionary)
 	signal rule_item_created(rule_data: Dictionary)
 
 class MockLabel extends Resource:
-	var text: String = "Test Label"
+	var text: String = ""
+	var _text: String = ""
 	var clip_text: bool = true
 	var size: Vector2 = Vector2(100, 20)
 	
+	func _init(initial_text: String = "") -> void:
+		text = initial_text
+		_text = initial_text
+	
 	func contains(search_text: String) -> bool:
-		return text.contains(search_text)
+		return _text.contains(search_text)
 
 class MockContainer extends Resource:
 	var child_count: int = 0
@@ -122,11 +142,13 @@ class MockContainer extends Resource:
 	
 	func get_children() -> Array:
 		var children: Array = []
-		for i in range(child_count):
-			children.append(MockLabel.new())
+		for i: int in range(child_count):
+			@warning_ignore("return_value_discarded")
+	children.append(MockLabel.new())
 		return children
 	
-	func add_child(child: Resource) -> void:
+	func @warning_ignore("return_value_discarded")
+	add_child(child: Resource) -> void:
 		child_count += 1
 	
 	func has_theme_constant(constant_name: String) -> bool:
@@ -137,10 +159,13 @@ class MockControl extends Resource:
 	var enemy_data: Dictionary = {}
 	var rule_data: Dictionary = {}
 	
-	func _init():
+	func _init() -> void:
 		# Add mock children for testing
-		children.append(MockLabel.new())
-		children.append(MockLabel.new())
+		@warning_ignore("return_value_discarded")
+	children.append(MockLabel.new())
+
+		@warning_ignore("return_value_discarded")
+	children.append(MockLabel.new())
 	
 	func get_child(index: int) -> MockLabel:
 		if index < children.size():
@@ -150,14 +175,20 @@ class MockControl extends Resource:
 	func setup_enemy_data(data: Dictionary) -> void:
 		enemy_data = data
 		if children.size() >= 2:
-			children[0].text = data.get("type", "Unknown")
-			children[1].text = "x" + str(data.get("count", 1))
+			children[0].text = @warning_ignore("unsafe_call_argument")
+	data.get("type", "Unknown")
+
+			children[1].text = "x" + str(@warning_ignore("unsafe_call_argument")
+	data.get("count", 1))
 	
 	func setup_rule_data(data: Dictionary) -> void:
 		rule_data = data
 		if children.size() >= 2:
-			children[0].text = data.get("name", "Unknown")
-			children[1].text = data.get("description", "")
+			children[0].text = @warning_ignore("unsafe_call_argument")
+	data.get("name", "Unknown")
+
+			children[1].text = @warning_ignore("unsafe_call_argument")
+	data.get("description", "")
 
 # Instance variables
 var _panel: MockEnemyInfoPanel = null
@@ -170,6 +201,7 @@ func _create_panel_instance() -> Resource:
 func before_test() -> void:
 	super.before_test()
 	_panel = MockEnemyInfoPanel.new()
+	@warning_ignore("return_value_discarded")
 	track_resource(_panel) # Perfect cleanup
 
 func after_test() -> void:
@@ -177,9 +209,11 @@ func after_test() -> void:
 	super.after_test()
 
 # Base class methods - implementing to satisfy linter
+@warning_ignore("unsafe_method_access")
 func test_panel_structure() -> void:
 	# Skip signal monitoring to prevent Dictionary corruption
-	# monitor_signals(_panel)  # REMOVED - causes Dictionary corruption
+	# @warning_ignore("unsafe_method_access")
+	monitor_signals(_panel)  # REMOVED - causes Dictionary corruption
 	var result := _panel.test_panel_structure()
 	# Test state directly instead of signal emission
 	
@@ -190,9 +224,11 @@ func test_panel_structure() -> void:
 	assert_that(_panel.threat_level).is_not_null()
 	assert_that(_panel.special_rules).is_not_null()
 
+@warning_ignore("unsafe_method_access")
 func test_panel_accessibility() -> void:
 	# Skip signal monitoring to prevent Dictionary corruption
-	# monitor_signals(_panel)  # REMOVED - causes Dictionary corruption
+	# @warning_ignore("unsafe_method_access")
+	monitor_signals(_panel)  # REMOVED - causes Dictionary corruption
 	var result := _panel.test_panel_accessibility()
 	# Test state directly instead of signal emission
 	
@@ -203,9 +239,11 @@ func test_panel_accessibility() -> void:
 		assert_that(label.clip_text).is_true()
 		assert_that(label.size.x > 0).is_true()
 
+@warning_ignore("unsafe_method_access")
 func test_panel_theme() -> void:
 	# Skip signal monitoring to prevent Dictionary corruption
-	# monitor_signals(_panel)  # REMOVED - causes Dictionary corruption
+	# @warning_ignore("unsafe_method_access")
+	monitor_signals(_panel)  # REMOVED - causes Dictionary corruption
 	var result := _panel.test_panel_theme()
 	# Test state directly instead of signal emission
 	
@@ -218,9 +256,11 @@ func test_panel_theme() -> void:
 	assert_that(_panel.enemy_list.has_theme_constant("separation")).is_true()
 	assert_that(_panel.special_rules.has_theme_constant("separation")).is_true()
 
+@warning_ignore("unsafe_method_access")
 func test_panel_layout() -> void:
 	# Skip signal monitoring to prevent Dictionary corruption
-	# monitor_signals(_panel)  # REMOVED - causes Dictionary corruption
+	# @warning_ignore("unsafe_method_access")
+	monitor_signals(_panel)  # REMOVED - causes Dictionary corruption
 	var result := _panel.test_panel_layout()
 	# Test state directly instead of signal emission
 	
@@ -230,15 +270,18 @@ func test_panel_layout() -> void:
 	assert_that(_panel.enemy_list.size.y <= _panel.size.y * 0.6).is_true()
 	assert_that(_panel.special_rules.size.y <= _panel.size.y * 0.4).is_true()
 
+@warning_ignore("unsafe_method_access")
 func test_panel_performance() -> void:
 	# Skip signal monitoring to prevent Dictionary corruption
-	# monitor_signals(_panel)  # REMOVED - causes Dictionary corruption
+	# @warning_ignore("unsafe_method_access")
+	monitor_signals(_panel)  # REMOVED - causes Dictionary corruption
 	var result := _panel.test_panel_performance()
 	# Test state directly instead of signal emission
 	
 	assert_that(result).is_true()
 
 # Panel-specific functionality tests
+@warning_ignore("unsafe_method_access")
 func test_setup_with_enemy_data() -> void:
 	var enemy_data := {
 		"threat_level": 2,
@@ -252,7 +295,8 @@ func test_setup_with_enemy_data() -> void:
 	}
 	
 	# Skip signal monitoring to prevent Dictionary corruption
-	# monitor_signals(_panel)  # REMOVED - causes Dictionary corruption
+	# @warning_ignore("unsafe_method_access")
+	monitor_signals(_panel)  # REMOVED - causes Dictionary corruption
 	_panel.setup_with_data(enemy_data)
 	# Test state directly instead of signal emission
 	
@@ -268,19 +312,24 @@ func test_setup_with_enemy_data() -> void:
 	assert_that(rule_items.size()).is_equal(1)
 	assert_that(rule_items[0].text.contains("Ambush")).is_true()
 
+@warning_ignore("unsafe_method_access")
 func test_clear_lists() -> void:
 	# Add some test items first
-	_panel.enemy_list.add_child(MockLabel.new())
-	_panel.special_rules.add_child(MockLabel.new())
+	_panel.enemy_list.@warning_ignore("return_value_discarded")
+	add_child(MockLabel.new())
+	_panel.special_rules.@warning_ignore("return_value_discarded")
+	add_child(MockLabel.new())
 	
 	# Skip signal monitoring to prevent Dictionary corruption
-	# monitor_signals(_panel)  # REMOVED - causes Dictionary corruption
+	# @warning_ignore("unsafe_method_access")
+	monitor_signals(_panel)  # REMOVED - causes Dictionary corruption
 	_panel._clear_lists()
 	# Test state directly instead of signal emission
 	
 	assert_that(_panel.enemy_list.get_child_count()).is_equal(0)
 	assert_that(_panel.special_rules.get_child_count()).is_equal(0)
 
+@warning_ignore("unsafe_method_access")
 func test_create_enemy_item() -> void:
 	var enemy_data := {
 		"type": "Elite Soldier",
@@ -288,7 +337,8 @@ func test_create_enemy_item() -> void:
 	}
 	
 	# Skip signal monitoring to prevent Dictionary corruption
-	# monitor_signals(_panel)  # REMOVED - causes Dictionary corruption
+	# @warning_ignore("unsafe_method_access")
+	monitor_signals(_panel)  # REMOVED - causes Dictionary corruption
 	var item: MockControl = _panel._create_enemy_item(enemy_data)
 	# Test state directly instead of signal emission
 	
@@ -300,6 +350,7 @@ func test_create_enemy_item() -> void:
 	assert_that(type_label.text).is_equal("Elite Soldier")
 	assert_that(count_label.text).is_equal("x2")
 
+@warning_ignore("unsafe_method_access")
 func test_create_rule_item() -> void:
 	var rule_data := {
 		"name": "Reinforcements",
@@ -307,7 +358,8 @@ func test_create_rule_item() -> void:
 	}
 	
 	# Skip signal monitoring to prevent Dictionary corruption
-	# monitor_signals(_panel)  # REMOVED - causes Dictionary corruption
+	# @warning_ignore("unsafe_method_access")
+	monitor_signals(_panel)  # REMOVED - causes Dictionary corruption
 	var item: MockControl = _panel._create_rule_item(rule_data)
 	# Test state directly instead of signal emission
 	
@@ -319,6 +371,7 @@ func test_create_rule_item() -> void:
 	assert_that(title.text).is_equal("Reinforcements")
 	assert_that(description.text).is_equal("Additional enemies arrive after round 3")
 
+@warning_ignore("unsafe_method_access")
 func test_get_threat_text() -> void:
 	assert_that(_panel._get_threat_text(0)).is_equal("Low")
 	assert_that(_panel._get_threat_text(1)).is_equal("Medium")

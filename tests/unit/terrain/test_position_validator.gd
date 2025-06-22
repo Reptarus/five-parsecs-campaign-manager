@@ -1,5 +1,6 @@
 @tool
-extends GdUnitGameTest
+@warning_ignore("return_value_discarded")
+	extends GdUnitGameTest
 
 const GameEnums := preload("res://src/core/systems/GlobalEnums.gd")
 
@@ -31,6 +32,7 @@ class MockPositionValidator extends Resource:
 			return false
 		if pos.y >= _terrain_data[pos.x].size():
 			return false
+
 		return _terrain_data[pos.x][pos.y].get("walkable", true)
 	
 	func has_line_of_sight(from: Vector2i, to: Vector2i) -> bool:
@@ -76,28 +78,31 @@ class MockPositionValidator extends Resource:
 		return true
 	
 	func get_area_positions(center: Vector2i, radius: int) -> Array:
-		var positions = []
-		for x in range(center.x - radius, center.x + radius + 1):
-			for y in range(center.y - radius, center.y + radius + 1):
+		var positions: Array = []
+		for x: int in range(center.x - radius, center.x + radius + 1):
+			for y: int in range(center.y - radius, center.y + radius + 1):
 				var pos = Vector2i(x, y)
 				if get_manhattan_distance(center, pos) <= radius:
-					positions.append(pos)
+					@warning_ignore("return_value_discarded")
+	positions.append(pos)
 		return positions
 	
 	func _get_line_points(from: Vector2i, to: Vector2i) -> Array:
-		var points = []
+		var points: Array = []
 		var diff = to - from
 		var steps = max(abs(diff.x), abs(diff.y))
 		if steps == 0:
 			return [from]
 		
-		for i in range(steps + 1):
+		for i: int in range(steps + 1):
 			var t = float(i) / float(steps)
 			var point = Vector2i(
 				int(from.x + diff.x * t),
 				int(from.y + diff.y * t)
 			)
-			points.append(point)
+
+			@warning_ignore("return_value_discarded")
+	points.append(point)
 		return points
 
 var _validator: Resource = null
@@ -108,6 +113,7 @@ func before_test() -> void:
 	_validator = MockPositionValidator.new()
 	# Note: Resources don't need track_node, they're garbage collected
 	_setup_test_terrain()
+	@warning_ignore("unsafe_method_access")
 	await get_tree().process_frame
 
 func after_test() -> void:
@@ -118,16 +124,20 @@ func after_test() -> void:
 func _setup_test_terrain() -> void:
 	# Create a 5x5 test terrain grid
 	_terrain_data = []
-	for x in range(5):
-		var row = []
-		for y in range(5):
+	for x: int in range(5):
+		var row: Array = []
+		for y: int in range(5):
 			var cell = {
 				"type": MockTerrainTypes.Type.EMPTY,
 				"walkable": true,
 				"blocks_line_of_sight": false
 			}
-			row.append(cell)
-		_terrain_data.append(row)
+
+			@warning_ignore("return_value_discarded")
+	row.append(cell)
+
+		@warning_ignore("return_value_discarded")
+	_terrain_data.append(row)
 	
 	# Add some walls and obstacles
 	_terrain_data[2][2] = {
@@ -141,6 +151,7 @@ func _setup_test_terrain() -> void:
 		"blocks_line_of_sight": true
 	}
 
+@warning_ignore("unsafe_method_access")
 func test_position_bounds_validation() -> void:
 	var bounds = Rect2i(0, 0, 5, 5)
 	_safe_call_method(_validator, "set_bounds", [bounds])
@@ -156,6 +167,7 @@ func test_position_bounds_validation() -> void:
 	assert_that(_safe_call_method(_validator, "is_position_valid", [Vector2i(5, 0)])).is_false()
 	assert_that(_safe_call_method(_validator, "is_position_valid", [Vector2i(0, 5)])).is_false()
 
+@warning_ignore("unsafe_method_access")
 func test_walkability_validation() -> void:
 	_safe_call_method(_validator, "set_terrain_data", [_terrain_data])
 	
@@ -167,6 +179,7 @@ func test_walkability_validation() -> void:
 	# Test non-walkable positions
 	assert_that(_safe_call_method(_validator, "is_position_walkable", [Vector2i(2, 2)])).is_false()
 
+@warning_ignore("unsafe_method_access")
 func test_line_of_sight_validation() -> void:
 	_safe_call_method(_validator, "set_terrain_data", [_terrain_data])
 	
@@ -178,6 +191,7 @@ func test_line_of_sight_validation() -> void:
 	assert_that(_safe_call_method(_validator, "has_line_of_sight", [Vector2i(0, 0), Vector2i(4, 4)])).is_false()
 	assert_that(_safe_call_method(_validator, "has_line_of_sight", [Vector2i(1, 2), Vector2i(3, 4)])).is_false()
 
+@warning_ignore("unsafe_method_access")
 func test_adjacency_validation() -> void:
 	var center = Vector2i(2, 2)
 	
@@ -195,6 +209,7 @@ func test_adjacency_validation() -> void:
 	assert_that(_safe_call_method(_validator, "are_positions_adjacent", [center, Vector2i(0, 0)])).is_false()
 	assert_that(_safe_call_method(_validator, "are_positions_adjacent", [center, Vector2i(4, 4)])).is_false()
 
+@warning_ignore("unsafe_method_access")
 func test_distance_calculations() -> void:
 	var pos1 = Vector2i(0, 0)
 	var pos2 = Vector2i(3, 4)
@@ -207,6 +222,7 @@ func test_distance_calculations() -> void:
 	var euclidean_distance = _safe_call_method(_validator, "get_euclidean_distance", [pos1, pos2])
 	assert_that(euclidean_distance).is_equal(5.0)
 
+@warning_ignore("unsafe_method_access")
 func test_range_validation() -> void:
 	var center = Vector2i(2, 2)
 	var range_2 = 2
@@ -220,6 +236,7 @@ func test_range_validation() -> void:
 	assert_that(_safe_call_method(_validator, "is_position_in_range", [center, Vector2i(0, 0), range_2])).is_false()
 	assert_that(_safe_call_method(_validator, "is_position_in_range", [center, Vector2i(4, 4), range_2])).is_false()
 
+@warning_ignore("unsafe_method_access")
 func test_path_validation() -> void:
 	_safe_call_method(_validator, "set_terrain_data", [_terrain_data])
 	
@@ -229,6 +246,7 @@ func test_path_validation() -> void:
 	# Test valid path
 	var path = Array(_safe_call_method(_validator, "find_path", [start, end]))
 	assert_that(path.size()).is_greater(0)
+	@warning_ignore("unsafe_call_argument")
 	assert_that(path[0]).is_equal(start)
 	assert_that(path[-1]).is_equal(end)
 	
@@ -240,6 +258,7 @@ func test_path_validation() -> void:
 	var blocked_path = Array(_safe_call_method(_validator, "find_path", [start, blocked_end]))
 	assert_that(blocked_path.size()).is_equal(0)
 
+@warning_ignore("unsafe_method_access")
 func test_area_validation() -> void:
 	var center = Vector2i(2, 2)
 	var radius = 1
@@ -254,7 +273,8 @@ func test_area_validation() -> void:
 		assert_that(distance).is_less_equal(radius)
 
 # Helper method for safe method calls
-func _safe_call_method(object: Object, method_name: String, args: Array = []):
+func _safe_call_method(object: Object, method_name: String, args: Array = []) -> Variant:
 	if object and object.has_method(method_name):
-		return object.callv(method_name, args)
+		return @warning_ignore("unsafe_method_access")
+	object.callv(method_name, args)
 	return null

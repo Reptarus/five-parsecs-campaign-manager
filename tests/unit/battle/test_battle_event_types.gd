@@ -5,10 +5,17 @@
 ## - Event effects and outcomes
 ## - Event probability calculations
 @tool
-extends GdUnitGameTest
+@warning_ignore("return_value_discarded")
+	extends GdUnitGameTest
+
+# Handle missing preload gracefully
+static func _load_battle_event_types() -> GDScript:
+	if ResourceLoader.exists("res://src/core/battle/events/BattleEventTypes.gd"):
+		return preload("res://src/core/battle/events/BattleEventTypes.gd")
+	return null
 
 # Type-safe script references
-const BattleEventTypes: GDScript = preload("res://src/core/battle/events/BattleEventTypes.gd")
+var BattleEventTypes: GDScript = _load_battle_event_types()
 const GameEnums = preload("res://src/core/systems/GlobalEnums.gd")
 
 # Type-safe constants
@@ -17,75 +24,117 @@ const TEST_TIMEOUT: float = 2.0
 # Test Lifecycle Methods
 func before_test() -> void:
 	super.before_test()
+	@warning_ignore("unsafe_method_access")
 	await get_tree().process_frame
 
 func after_test() -> void:
 	super.after_test()
 
 # Event Definition Tests
+@warning_ignore("unsafe_method_access")
 func test_battle_event_definitions() -> void:
 	# Access the BATTLE_EVENTS constant directly
 	var events = BattleEventTypes.BATTLE_EVENTS if BattleEventTypes else {}
 	assert_that(events).is_not_null()
-	assert_that(events.has("CRITICAL_HIT")).is_true()
-	assert_that(events.has("WEAPON_JAM")).is_true()
-	assert_that(events.has("TAKE_COVER")).is_true()
+	assert_that(@warning_ignore("unsafe_call_argument")
+	events.has("CRITICAL_HIT")).is_true()
+	assert_that(@warning_ignore("unsafe_call_argument")
+	events.has("WEAPON_JAM")).is_true()
+	assert_that(@warning_ignore("unsafe_call_argument")
+	events.has("TAKE_COVER")).is_true()
 
+@warning_ignore("unsafe_method_access")
 func test_critical_hit_event() -> void:
 	var events = BattleEventTypes.BATTLE_EVENTS if BattleEventTypes else {}
-	var event = events.get("CRITICAL_HIT", {})
+
+	var event = @warning_ignore("unsafe_call_argument")
+	events.get("CRITICAL_HIT", {})
 	assert_that(event).is_not_null()
 	
-	if event.has("category"):
+	if @warning_ignore("unsafe_call_argument")
+	event.has("category"):
 		var expected_category = GameEnums.EventCategory.COMBAT if GameEnums and "EventCategory" in GameEnums and "COMBAT" in GameEnums.EventCategory else 0
 		assert_that(event.category).is_equal(expected_category)
-	if event.has("probability"):
+	if @warning_ignore("unsafe_call_argument")
+	event.has("probability"):
 		assert_that(event.probability).is_equal(0.15)
-	if event.has("effect") and event.effect.has("type"):
+	if @warning_ignore("unsafe_call_argument")
+	event.has("effect") and event.@warning_ignore("unsafe_call_argument")
+	effect.has("type"):
 		assert_that(event.effect.type).is_equal("damage_multiplier")
-	if event.has("effect") and event.effect.has("value"):
-		assert_that(event.effect.value).is_equal(2.0)
-	if event.has("requirements"):
-		assert_that(event.requirements.has("attack_roll >= 6")).is_true()
+	if @warning_ignore("unsafe_call_argument")
+	event.has("effect") and event.@warning_ignore("unsafe_call_argument")
+	effect.has("_value"):
+		assert_that(event.effect._value).is_equal(2.0)
+	if @warning_ignore("unsafe_call_argument")
+	event.has("requirements"):
+		assert_that(event.@warning_ignore("unsafe_call_argument")
+	requirements.has("attack_roll >= 6")).is_true()
 
+@warning_ignore("unsafe_method_access")
 func test_weapon_jam_event() -> void:
 	var events = BattleEventTypes.BATTLE_EVENTS if BattleEventTypes else {}
-	var event = events.get("WEAPON_JAM", {})
+
+	var event = @warning_ignore("unsafe_call_argument")
+	events.get("WEAPON_JAM", {})
 	assert_that(event).is_not_null()
 	
-	if event.has("category"):
+	if @warning_ignore("unsafe_call_argument")
+	event.has("category"):
 		var expected_category = GameEnums.EventCategory.EQUIPMENT if GameEnums and "EventCategory" in GameEnums and "EQUIPMENT" in GameEnums.EventCategory else 1
 		assert_that(event.category).is_equal(expected_category)
-	if event.has("probability"):
+	if @warning_ignore("unsafe_call_argument")
+	event.has("probability"):
 		assert_that(event.probability).is_equal(0.1)
-	if event.has("effect") and event.effect.has("type"):
+	if @warning_ignore("unsafe_call_argument")
+	event.has("effect") and event.@warning_ignore("unsafe_call_argument")
+	effect.has("type"):
 		assert_that(event.effect.type).is_equal("disable_weapon")
-	if event.has("effect") and event.effect.has("duration"):
+	if @warning_ignore("unsafe_call_argument")
+	event.has("effect") and event.@warning_ignore("unsafe_call_argument")
+	effect.has("duration"):
 		assert_that(event.effect.duration).is_equal(1)
-	if event.has("requirements"):
-		assert_that(event.requirements.has("has_ranged_weapon")).is_true()
-		assert_that(event.requirements.has("attack_roll <= 1")).is_true()
+	if @warning_ignore("unsafe_call_argument")
+	event.has("requirements"):
+		assert_that(event.@warning_ignore("unsafe_call_argument")
+	requirements.has("has_ranged_weapon")).is_true()
+		assert_that(event.@warning_ignore("unsafe_call_argument")
+	requirements.has("attack_roll <= 1")).is_true()
 
+@warning_ignore("unsafe_method_access")
 func test_take_cover_event() -> void:
 	var events = BattleEventTypes.BATTLE_EVENTS if BattleEventTypes else {}
-	var event = events.get("TAKE_COVER", {})
+
+	var event = @warning_ignore("unsafe_call_argument")
+	events.get("TAKE_COVER", {})
 	assert_that(event).is_not_null()
 	
-	if event.has("category"):
+	if @warning_ignore("unsafe_call_argument")
+	event.has("category"):
 		var expected_category = GameEnums.EventCategory.TACTICAL if GameEnums and "EventCategory" in GameEnums and "TACTICAL" in GameEnums.EventCategory else 2
 		assert_that(event.category).is_equal(expected_category)
-	if event.has("probability"):
+	if @warning_ignore("unsafe_call_argument")
+	event.has("probability"):
 		assert_that(event.probability).is_equal(0.2)
-	if event.has("effect") and event.effect.has("type"):
+	if @warning_ignore("unsafe_call_argument")
+	event.has("effect") and event.@warning_ignore("unsafe_call_argument")
+	effect.has("type"):
 		assert_that(event.effect.type).is_equal("defense_bonus")
-	if event.has("effect") and event.effect.has("value"):
-		assert_that(event.effect.value).is_equal(2)
-	if event.has("effect") and event.effect.has("duration"):
+	if @warning_ignore("unsafe_call_argument")
+	event.has("effect") and event.@warning_ignore("unsafe_call_argument")
+	effect.has("_value"):
+		assert_that(event.effect._value).is_equal(2)
+	if @warning_ignore("unsafe_call_argument")
+	event.has("effect") and event.@warning_ignore("unsafe_call_argument")
+	effect.has("duration"):
 		assert_that(event.effect.duration).is_equal(1)
-	if event.has("requirements"):
-		assert_that(event.requirements.has("near_cover")).is_true()
+	if @warning_ignore("unsafe_call_argument")
+	event.has("requirements"):
+		assert_that(event.@warning_ignore("unsafe_call_argument")
+	requirements.has("near_cover")).is_true()
 
 # Requirement Checking Tests
+@warning_ignore("unsafe_method_access")
 func test_check_event_requirements() -> void:
 	# Test critical hit requirements
 	var critical_context := {"attack_roll": 6}
@@ -115,6 +164,7 @@ func test_check_event_requirements() -> void:
 	assert_that(cover_result).is_false()
 
 # Value Comparison Tests
+@warning_ignore("unsafe_method_access")
 func test_compare_value() -> void:
 	# Test against the private method through requirement checking
 	var context: Dictionary
@@ -147,20 +197,24 @@ func test_compare_value() -> void:
 	assert_that(result).is_false()
 
 # Error Handling Tests
+@warning_ignore("unsafe_method_access")
 func test_invalid_event_handling() -> void:
 	var events = BattleEventTypes.BATTLE_EVENTS if BattleEventTypes else {}
-	var result = events.get("INVALID_EVENT", null)
+
+	var result = @warning_ignore("unsafe_call_argument")
+	events.get("INVALID_EVENT", null)
 	assert_that(result).is_null()
 	
 	var check_result = BattleEventTypes.check_event_requirements("INVALID_EVENT", {}) if BattleEventTypes else false
 	assert_that(check_result).is_false()
 
 # Performance Tests
+@warning_ignore("unsafe_method_access")
 func test_event_processing_performance() -> void:
 	var start_time := Time.get_ticks_msec()
 	var context := {"attack_roll": 6, "has_ranged_weapon": true, "near_cover": true}
 	
-	for i in range(1000):
+	for i: int in range(1000):
 		if BattleEventTypes:
 			BattleEventTypes.check_event_requirements("CRITICAL_HIT", context)
 			BattleEventTypes.check_event_requirements("WEAPON_JAM", context)

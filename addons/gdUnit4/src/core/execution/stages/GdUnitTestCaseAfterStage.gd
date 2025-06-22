@@ -15,7 +15,6 @@ func _execute(context: GdUnitExecutionContext) -> void:
 	var test_suite := context.test_suite
 
 	if _call_stage:
-		@warning_ignore("redundant_await")
 		await test_suite.after_test()
 
 	await context.gc()

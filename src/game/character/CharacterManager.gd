@@ -1,6 +1,6 @@
 @tool
 extends "res://src/core/character/Management/CharacterManager.gd"
-class_name FPCM_CharacterManager
+class_name FPCM_GameCharacterManager
 
 ## Game-specific character manager implementation
 ##
@@ -18,9 +18,15 @@ func _ready() -> void:
 	super._ready()
 
 ## Override create_character to use game-specific character class
-func create_character() -> Character:
-	var character = FPCM_Character.new()
-	add_character(character)
+func create_character(character_data: Dictionary = {}) -> Character:
+	var character := FPCM_Character.new()
+	
+	# Apply provided data or use defaults
+	character.character_name = character_data.get("name", "New Character")
+	character.character_class = character_data.get("class", 0)
+	
+	add_character_to_roster(character)
+	character_created.emit(character)
 	return character
 
 ## Game-specific methods for managing relationships
@@ -38,10 +44,14 @@ func get_relationship(char_id1: String, char_id2: String) -> int:
 
 ## Game-specific method for calculating morale bonuses
 func calculate_crew_morale() -> int:
-	var total_morale = 0
+	var total_morale: int = 0
 	
-	for character in _active_characters:
-		var char_morale = _get_character_property(character, "morale", 0)
+	for character in active_crew:
+		var char_morale: int = 0
+		if character.has_method("get_morale"):
+			char_morale = character.get_morale()
+		elif character.has("morale"):
+			char_morale = character.morale
 		total_morale += char_morale
 	
 	return total_morale

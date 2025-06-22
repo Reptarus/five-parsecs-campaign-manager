@@ -39,7 +39,6 @@ func upgrade_weapon_rarity(weapon: Resource) -> void:
 				weapon.set_rarity(GameEnums.ItemRarity.EPIC)
 			GameEnums.ItemRarity.EPIC:
 				weapon.set_rarity(GameEnums.ItemRarity.LEGENDARY)
-
 func upgrade_enemy_to_boss(enemy: Enemy) -> void:
 	# First make them elite
 	upgrade_enemy_to_elite(enemy)
@@ -50,10 +49,7 @@ func upgrade_enemy_to_boss(enemy: Enemy) -> void:
 	
 	# Add boss characteristic
 	enemy.characteristics.append(GameEnums.EnemyCharacteristic.BOSS)
-
 func get_valid_item_types() -> Array:
-	return [
-		GameEnums.ItemType.WEAPON,
+	return [GameEnums.ItemType.WEAPON,
 		GameEnums.ItemType.ARMOR,
-		GameEnums.ItemType.MISC,
-	]
+		GameEnums.ItemType.MISC]

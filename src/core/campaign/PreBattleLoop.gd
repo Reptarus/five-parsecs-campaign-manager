@@ -40,9 +40,10 @@ func _ready() -> void:
 	_connect_signals()
 
 ## Initialize required systems
+	
 func _initialize_systems() -> void:
 	if not ui or not terrain_system:
-		error_occurred.emit("Required nodes not found")
+		error_occurred.emit("Required nodes not found")  # warning: return value discarded (intentional)
 		push_error("PreBattleLoop: Required nodes not found")
 		return
 
@@ -79,17 +80,18 @@ func _connect_ui_signal(signal_name: String, callback: Callable) -> void:
 			break
 			
 	if not signal_is_connected:
-		ui.connect(signal_name, callback)
+
+		ui.connect(signal_name, callback)  # warning: return value discarded (intentional)
 
 ## Start the pre-battle phase with mission data
 func start_phase(mission: StoryQuestData, state: FiveParsecsGameState) -> void:
 	if not mission or not state:
-		error_occurred.emit("Invalid mission or game state")
+		error_occurred.emit("Invalid mission or game state")  # warning: return value discarded (intentional)
 		push_error("PreBattleLoop: Invalid mission or game state")
 		return
 		
 	if not _validate_mission(mission):
-		error_occurred.emit("Invalid mission data")
+		error_occurred.emit("Invalid mission data")  # warning: return value discarded (intentional)
 		push_error("PreBattleLoop: Invalid mission data")
 		return
 		
@@ -105,6 +107,7 @@ func _get_mission_property(mission: StoryQuestData, property: String, default_va
 		return default_value
 	if not property in mission:
 		return default_value
+
 	return mission.get(property)
 
 func _get_mission_title(mission: StoryQuestData) -> String:
@@ -134,7 +137,7 @@ func _get_mission_difficulty(mission: StoryQuestData) -> int:
 ## Setup the battle preview
 func _setup_battle_preview() -> void:
 	if not ui or not current_mission:
-		error_occurred.emit("Missing UI or mission data")
+		error_occurred.emit("Missing UI or mission data")  # warning: return value discarded (intentional)
 		return
 		
 	var preview_data := {
@@ -154,7 +157,7 @@ func _setup_battle_preview() -> void:
 ## Setup crew selection interface
 func _setup_crew_selection() -> void:
 	if not ui or not game_state:
-		error_occurred.emit("Missing UI or game state")
+		error_occurred.emit("Missing UI or game state")  # warning: return value discarded (intentional)
 		return
 		
 	var available_crew: Array[Character] = game_state.get_crew()
@@ -164,28 +167,28 @@ func _setup_crew_selection() -> void:
 ## Handle crew selection
 func _on_crew_selected(crew: Array[Character]) -> void:
 	selected_crew = crew
-	crew_selection_changed.emit(crew)
+	crew_selection_changed.emit(crew)  # warning: return value discarded (intentional)
 	_validate_battle_readiness()
 
 ## Handle deployment confirmation
 func _on_deployment_confirmed() -> void:
 	if _validate_battle_readiness():
 		var battle_data := _prepare_battle_data()
-		battle_ready.emit(battle_data)
-		phase_completed.emit()
+		battle_ready.emit(battle_data)  # warning: return value discarded (intentional)
+		phase_completed.emit()  # warning: return value discarded (intentional)
 
 ## Validate if battle can begin
 func _validate_battle_readiness() -> bool:
 	if selected_crew.is_empty():
-		error_occurred.emit("No crew selected")
+		error_occurred.emit("No crew selected")  # warning: return value discarded (intentional)
 		return false
 		
 	if not current_mission:
-		error_occurred.emit("No mission data")
+		error_occurred.emit("No mission data")  # warning: return value discarded (intentional)
 		return false
 		
 	if not terrain_system or not terrain_system.has_method("is_terrain_ready") or not terrain_system.is_terrain_ready():
-		error_occurred.emit("Terrain not ready")
+		error_occurred.emit("Terrain not ready")  # warning: return value discarded (intentional)
 		return false
 		
 	return true
@@ -208,7 +211,7 @@ func _prepare_battle_data() -> Dictionary:
 ## Update deployment zones
 func update_deployment_zones(zones: Array[Dictionary]) -> void:
 	deployment_zones = zones
-	deployment_updated.emit(zones)
+	deployment_updated.emit(zones)  # warning: return value discarded (intentional)
 
 ## Get current mission
 func get_current_mission() -> StoryQuestData:
@@ -230,6 +233,7 @@ func cleanup() -> void:
 	game_state = null
 
 ## Validate mission data structure
+	
 func _validate_mission(mission: StoryQuestData) -> bool:
 	if not mission:
 		return false

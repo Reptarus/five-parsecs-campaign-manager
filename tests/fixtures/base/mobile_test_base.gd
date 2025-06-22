@@ -1,5 +1,6 @@
 @tool
-extends GdUnitGameTest
+@warning_ignore("return_value_discarded")
+	extends GdUnitGameTest
 class_name MobileTestBase
 
 # Type-safe constants for mobile testing
@@ -19,6 +20,7 @@ func before_test() -> void:
 	_original_resolution = DisplayServer.window_get_size()
 	_original_dpi = DisplayServer.screen_get_dpi()
 	
+	@warning_ignore("unsafe_method_access")
 	await stabilize_engine()
 
 func after_test() -> void:
@@ -36,6 +38,7 @@ func set_test_resolution(width: int, height: int) -> void:
 		return
 		
 	window.size = Vector2i(width, height)
+	@warning_ignore("unsafe_method_access")
 	await stabilize_engine()
 
 func restore_resolution() -> void:
@@ -45,6 +48,7 @@ func restore_resolution() -> void:
 		return
 		
 	window.size = _original_resolution
+	@warning_ignore("unsafe_method_access")
 	await stabilize_engine()
 
 # Device Simulation Methods
@@ -56,6 +60,7 @@ func simulate_device_dpi(dpi: int) -> void:
 	# Note: This is a mock implementation since we can't actually change DPI
 	push_warning("DPI simulation not fully implemented")
 	
+	@warning_ignore("unsafe_method_access")
 	await stabilize_engine()
 
 func restore_device_dpi() -> void:
@@ -63,6 +68,7 @@ func restore_device_dpi() -> void:
 	# Note: This is a mock implementation
 	push_warning("DPI restoration not fully implemented")
 	
+	@warning_ignore("unsafe_method_access")
 	await stabilize_engine()
 
 # Touch Input Methods
@@ -71,6 +77,7 @@ func simulate_touch_press(position: Vector2) -> void:
 	event.position = position
 	event.pressed = true
 	Input.parse_input_event(event)
+	@warning_ignore("unsafe_method_access")
 	await stabilize_engine()
 
 func simulate_touch_release(position: Vector2) -> void:
@@ -78,6 +85,7 @@ func simulate_touch_release(position: Vector2) -> void:
 	event.position = position
 	event.pressed = false
 	Input.parse_input_event(event)
+	@warning_ignore("unsafe_method_access")
 	await stabilize_engine()
 
 func simulate_touch_drag(from: Vector2, to: Vector2, steps: float = 10.0) -> void:
@@ -86,13 +94,14 @@ func simulate_touch_drag(from: Vector2, to: Vector2, steps: float = 10.0) -> voi
 	
 	simulate_touch_press(from)
 	
-	for i in range(steps):
+	for i: int in range(steps):
 		current += step_size
 		var event := InputEventScreenDrag.new()
 		event.position = current
 		event.relative = step_size
 		Input.parse_input_event(event)
-		await stabilize_engine()
+		@warning_ignore("unsafe_method_access")
+	await stabilize_engine()
 	
 	simulate_touch_release(to)
 
@@ -101,12 +110,14 @@ func simulate_portrait_orientation() -> void:
 	var current_size := DisplayServer.window_get_size()
 	if current_size.x > current_size.y:
 		set_test_resolution(current_size.y, current_size.x)
+	@warning_ignore("unsafe_method_access")
 	await stabilize_engine()
 
 func simulate_landscape_orientation() -> void:
 	var current_size := DisplayServer.window_get_size()
 	if current_size.x < current_size.y:
 		set_test_resolution(current_size.y, current_size.x)
+	@warning_ignore("unsafe_method_access")
 	await stabilize_engine()
 
 # Mobile-specific Assertions
@@ -124,7 +135,7 @@ func assert_touch_target_size(node: Node, min_size: Vector2 = DEFAULT_TOUCH_TARG
 	if not node is Control:
 		push_error("Node must be a Control node")
 		return
-		
+
 	var control := node as Control
 	var control_size := control.get_rect().size
 	
@@ -139,12 +150,18 @@ func measure_mobile_performance(test_function: Callable, iterations: int = 100) 
 		"objects": []
 	}
 	
-	for i in range(iterations):
-		await test_function.call()
-		results.fps_samples.append(Engine.get_frames_per_second())
-		results.memory_samples.append(Performance.get_monitor(Performance.MEMORY_STATIC))
-		results.draw_calls.append(Performance.get_monitor(Performance.RENDER_TOTAL_DRAW_CALLS_IN_FRAME))
-		results.objects.append(Performance.get_monitor(Performance.OBJECT_COUNT))
+	for i: int in range(iterations):
+
+		await @warning_ignore("unsafe_method_access")
+	test_function.call()
+		results.@warning_ignore("return_value_discarded")
+	fps_samples.append(Engine.get_frames_per_second())
+		results.@warning_ignore("return_value_discarded")
+	memory_samples.append(Performance.get_monitor(Performance.MEMORY_STATIC))
+		results.@warning_ignore("return_value_discarded")
+	draw_calls.append(Performance.get_monitor(Performance.RENDER_TOTAL_DRAW_CALLS_IN_FRAME))
+		results.@warning_ignore("return_value_discarded")
+	objects.append(Performance.get_monitor(Performance.OBJECT_COUNT))
 	
 	return {
 		"average_fps": _calculate_average(results.fps_samples),
@@ -160,24 +177,24 @@ func _calculate_average(values: Array) -> float:
 	if values.is_empty():
 		return 0.0
 	var sum := 0.0
-	for value in values:
-		sum += value
+	for _value in values:
+		sum += _value
 	return sum / values.size()
 
 func _calculate_minimum(values: Array) -> float:
 	if values.is_empty():
 		return 0.0
 	var min_value: float = values[0]
-	for value in values:
-		min_value = min(min_value, value)
+	for _value in values:
+		min_value = min(min_value, _value)
 	return min_value
 
 func _calculate_maximum(values: Array) -> float:
 	if values.is_empty():
 		return 0.0
 	var max_value: float = values[0]
-	for value in values:
-		max_value = max(max_value, value)
+	for _value in values:
+		max_value = max(max_value, _value)
 	return max_value
 
 func _calculate_percentile(values: Array, percentile: float) -> float:
@@ -191,11 +208,15 @@ func _calculate_percentile(values: Array, percentile: float) -> float:
 # Mobile test helpers
 func create_test_game_state() -> Node:
 	var state := Node.new()
+	@warning_ignore("return_value_discarded")
 	add_child(state)
+	@warning_ignore("return_value_discarded")
 	track_node(state)
 	return state
 
 # Mobile-specific test utilities
 func add_child_mobile(node: Node) -> void:
+	@warning_ignore("return_value_discarded")
 	add_child(node)
+	@warning_ignore("return_value_discarded")
 	track_node(node)

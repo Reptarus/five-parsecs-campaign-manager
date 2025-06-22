@@ -18,7 +18,7 @@ var battlefield_manager: BaseBattlefieldManager = null
 var grid_size := Vector2i(24, 24)
 var min_terrain_pieces: int = 4
 var max_terrain_pieces: int = 12
-var terrain_density: float = 0.3
+var _terrain_density: float = 0.3
 var terrain_distribution: Dictionary = {
 	# Default terrain distribution - to be overridden by derived classes
 	# terrain_type: weight
@@ -37,18 +37,17 @@ func initialize(manager: BaseBattlefieldManager) -> void:
 	grid_size = battlefield_manager.GRID_SIZE
 	min_terrain_pieces = battlefield_manager.MIN_TERRAIN_PIECES
 	max_terrain_pieces = battlefield_manager.MAX_TERRAIN_PIECES
-
 func generate_battlefield() -> Dictionary:
-	generation_started.emit()
+	generation_started.emit()  # warning: return value discarded (intentional)
 	
 	if not battlefield_manager:
-		var error = "BattlefieldGenerator: No battlefield manager assigned"
+		var error: String = "BattlefieldGenerator: No battlefield manager assigned"
 		push_error(error)
-		generation_failed.emit(error)
+		generation_failed.emit(error)  # warning: return value discarded (intentional)
 		return {}
 	
 	# Initialize random number generator
-	var rng = RandomNumberGenerator.new()
+	var rng := RandomNumberGenerator.new()
 	if use_random_seed:
 		rng.randomize()
 		generation_seed = rng.seed
@@ -72,11 +71,11 @@ func generate_battlefield() -> Dictionary:
 		"deployment_zones": deployment_data
 	}
 	
-	generation_completed.emit(battlefield_data)
+	generation_completed.emit(battlefield_data)  # warning: return value discarded (intentional)
 	return battlefield_data
 
 func _generate_terrain(rng: RandomNumberGenerator) -> Array:
-	var terrain_data = []
+	var terrain_data: Array = []
 	
 	# Number of terrain pieces to place
 	var num_terrain_pieces = rng.randi_range(min_terrain_pieces, max_terrain_pieces)
@@ -97,7 +96,7 @@ func _generate_terrain(rng: RandomNumberGenerator) -> Array:
 	return terrain_data
 
 func _generate_random_terrain(rng: RandomNumberGenerator, num_pieces: int) -> Array:
-	var terrain_data = []
+	var terrain_data: Array = []
 	
 	for i in range(num_pieces):
 		var terrain_type = _select_random_terrain_type(rng)
@@ -105,11 +104,12 @@ func _generate_random_terrain(rng: RandomNumberGenerator, num_pieces: int) -> Ar
 		
 		if position != Vector2i(-1, -1):
 			battlefield_manager.set_terrain(position, terrain_type)
-			terrain_data.append({
+
+			terrain_data.append({  # warning: return value discarded (intentional)
 				"type": terrain_type,
 				"position": position
 			})
-			terrain_placed.emit(terrain_type, position)
+			terrain_placed.emit(terrain_type, position)  # warning: return value discarded (intentional)
 	
 	return terrain_data
 
@@ -126,7 +126,7 @@ func _generate_symmetrical_terrain(rng: RandomNumberGenerator, num_pieces: int) 
 	return _generate_random_terrain(rng, num_pieces)
 
 func _create_deployment_zones(rng: RandomNumberGenerator) -> Dictionary:
-	var deployment_data = {}
+	var deployment_data: Dictionary = {}
 	
 	# Create deployment zones based on style
 	match deployment_style:
@@ -144,24 +144,26 @@ func _create_deployment_zones(rng: RandomNumberGenerator) -> Dictionary:
 	return deployment_data
 
 func _create_opposite_deployment_zones() -> Dictionary:
-	var player_zone = []
-	var enemy_zone = []
+	var player_zone: Array = []
+	var enemy_zone: Array = []
 	
 	# Player zone (bottom)
 	for x in range(grid_size.x):
 		for y in range(3): # 3 rows at the bottom
-			player_zone.append(Vector2i(x, grid_size.y - 1 - y))
+
+			player_zone.append(Vector2i(x, grid_size.y - 1 - y))  # warning: return value discarded (intentional)
 	
 	# Enemy zone (top)
 	for x in range(grid_size.x):
 		for y in range(3): # 3 rows at the top
-			enemy_zone.append(Vector2i(x, y))
+
+			enemy_zone.append(Vector2i(x, y))  # warning: return value discarded (intentional)
 	
 	battlefield_manager.set_deployment_zone(1, player_zone) # 1 = player
 	battlefield_manager.set_deployment_zone(2, enemy_zone) # 2 = enemy
 	
-	deployment_zone_created.emit(1, player_zone)
-	deployment_zone_created.emit(2, enemy_zone)
+	deployment_zone_created.emit(1, player_zone)  # warning: return value discarded (intentional)
+	deployment_zone_created.emit(2, enemy_zone)  # warning: return value discarded (intentional)
 	
 	return {
 		"player": player_zone,
@@ -182,12 +184,12 @@ func _create_random_deployment_zones(rng: RandomNumberGenerator) -> Dictionary:
 
 # Utility methods
 func _select_random_terrain_type(rng: RandomNumberGenerator) -> int:
-	var total_weight = 0.0
+	var total_weight: int = 0
 	for terrain_type in terrain_distribution:
 		total_weight += terrain_distribution[terrain_type]
 	
 	var random_value = rng.randf() * total_weight
-	var current_weight = 0.0
+	var current_weight: int = 0
 	
 	for terrain_type in terrain_distribution:
 		current_weight += terrain_distribution[terrain_type]
@@ -197,8 +199,8 @@ func _select_random_terrain_type(rng: RandomNumberGenerator) -> int:
 	return 0 # Default terrain type (empty)
 
 func _find_valid_terrain_position(rng: RandomNumberGenerator) -> Vector2i:
-	var max_attempts = 50
-	var attempts = 0
+	var max_attempts: int = 50
+	var attempts: int = 0
 	
 	while attempts < max_attempts:
 		var x = rng.randi_range(0, grid_size.x - 1)
@@ -211,4 +213,4 @@ func _find_valid_terrain_position(rng: RandomNumberGenerator) -> Vector2i:
 		
 		attempts += 1
 	
-	return Vector2i(-1, -1) # Invalid position
+	return Vector2i(-1, -1) # Invalid position"

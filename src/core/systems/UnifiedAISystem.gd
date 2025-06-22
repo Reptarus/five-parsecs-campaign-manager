@@ -76,6 +76,7 @@ func process_turn(unit: Character) -> Dictionary:
 	_update_unit_state(unit)
 	
 	# Determine action based on behavior
+
 	match unit_behaviors.get(unit, GameEnums.AIBehavior.TACTICAL):
 		GameEnums.AIBehavior.AGGRESSIVE:
 			action = _process_aggressive_behavior(unit)
@@ -92,9 +93,9 @@ func process_turn(unit: Character) -> Dictionary:
 	
 	# Emit signals
 	if action.has("target_position"):
-		action_decided.emit(unit, action.get("action", -1), action.target_position)
+		action_decided.emit(unit, action.get("action", -1), action.target_position) # warning: return value discarded (intentional)
 	if action.has("target_unit"):
-		target_selected.emit(unit, action.target_unit)
+		target_selected.emit(unit, action.target_unit) # warning: return value discarded (intentional)
 	
 	return action
 
@@ -172,13 +173,13 @@ func _process_objective_behavior(unit: Character) -> Dictionary:
 func _update_unit_state(unit: Character) -> void:
 	if not unit:
 		return
-		
+
 	var current_behavior: int = unit_behaviors.get(unit, GameEnums.AIBehavior.TACTICAL)
 	var new_behavior: int = _determine_behavior(unit)
 	
 	if new_behavior != current_behavior:
 		unit_behaviors[unit] = new_behavior
-		behavior_changed.emit(unit, new_behavior)
+		behavior_changed.emit(unit, new_behavior) # warning: return value discarded (intentional)
 
 ## Determine appropriate behavior for a unit based on their state
 func _determine_behavior(unit: Character) -> GameEnums.AIBehavior:
@@ -202,9 +203,8 @@ func _determine_behavior(unit: Character) -> GameEnums.AIBehavior:
 func _find_best_target(unit: Character) -> Character:
 	if not unit or not battlefield_manager:
 		return null
-		
 	var best_target: Character = null
-	var best_score := - INF
+	var best_score := -INF
 	
 	for potential_target in battlefield_manager.unit_positions.keys():
 		if potential_target.is_enemy() != unit.is_enemy():
@@ -241,7 +241,6 @@ func _find_nearest_objective(unit: Character) -> Vector2:
 func _find_ally_needing_support(unit: Character) -> Character:
 	if not unit:
 		return null
-		
 	var allies := _get_nearby_allies(unit, MAX_SUPPORT_RANGE)
 	var most_needed: Character = null
 	var highest_need := 0.0
@@ -260,6 +259,7 @@ func _calculate_support_need(unit: Character) -> float:
 		return 0.0
 		
 	var health_ratio: float = float(unit.get_current_health()) / unit.get_max_health()
+
 	var status_penalty: float = unit.has_negative_effects() as float
 	return (1.0 - health_ratio) + (status_penalty * 0.3)
 
@@ -275,7 +275,7 @@ func _calculate_threat_level(unit: Character) -> float:
 ## Evaluate a target's score for targeting priority
 func _evaluate_target_score(unit: Character, target: Character) -> float:
 	if not unit or not target or not battlefield_manager:
-		return - INF
+		return -INF
 		
 	var distance: float = battlefield_manager.unit_positions[unit].distance_to(
 		battlefield_manager.unit_positions[target]
@@ -318,7 +318,7 @@ func _calculate_objective_priority(unit: Character) -> float:
 func _calculate_position_threat(position: Vector2) -> float:
 	if not battlefield_manager:
 		return 0.0
-		
+
 	return threat_map.get(position, 0.0)
 
 ## Get nearby allies within a specified range
@@ -333,7 +333,7 @@ func _get_nearby_allies(unit: Character, range: float) -> Array[Character]:
 		if other != unit and not other.is_enemy() == unit.is_enemy():
 			var distance: float = unit_pos.distance_to(battlefield_manager.unit_positions[other])
 			if distance <= range:
-				allies.append(other)
+				allies.append(other) # warning: return value discarded (intentional)
 	
 	return allies
 
@@ -374,3 +374,4 @@ func _convert_enemy_to_character(enemy: EnemyData) -> Character:
 	# Implementation depends on your character system
 	# This should convert EnemyData to a Character instance
 	return null
+          

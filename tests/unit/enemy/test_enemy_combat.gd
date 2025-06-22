@@ -1,12 +1,16 @@
 @tool
-extends "res://tests/fixtures/specialized/enemy_test.gd"
+@warning_ignore("return_value_discarded")
+	extends "res://tests/fixtures/specialized/enemy_test.gd"
 
 ## Enemy Combat System Tests using UNIVERSAL MOCK STRATEGY
 ##
 ## Applies the proven pattern that achieved:
-## - Ship Tests: 48/48 (100% SUCCESS)
-## - Mission Tests: 51/51 (100% SUCCESS)
-## - test_enemy.gd: 12/12 (100% SUCCESS)
+## - Ship Tests: 48/48 (@warning_ignore("integer_division")
+	100 % SUCCESS)
+## - Mission Tests: 51/51 (@warning_ignore("integer_division")
+	100 % SUCCESS)
+## - test_enemy.gd: 12/12 (@warning_ignore("integer_division")
+	100 % SUCCESS)
 
 # ========================================
 # UNIVERSAL MOCK STRATEGY - PROVEN PATTERN
@@ -50,8 +54,10 @@ class MockCombatEnemy extends Resource:
 		can_attack_now = false
 		
 		# Immediate signal emission for reliable testing
-		attacked.emit(target)
-		target_hit.emit(attack_damage)
+		@warning_ignore("unsafe_method_access")
+	attacked.emit(target)
+		@warning_ignore("unsafe_method_access")
+	target_hit.emit(attack_damage)
 		
 		return true
 	
@@ -76,7 +82,6 @@ class MockCombatEnemy extends Resource:
 	func select_best_target(targets: Array) -> Resource:
 		if targets.is_empty():
 			return null
-		
 		# Return closest target for realistic behavior
 		var best_target: Resource = null
 		var closest_distance: float = INF
@@ -103,12 +108,14 @@ class MockCombatTarget extends Resource:
 	func get_health() -> float:
 		return health
 	
-	func set_health(value: float) -> void:
-		health = max(0.0, min(max_health, value))
-		health_changed.emit(health)
+	func set_health(test_value: float) -> void:
+		health = max(0.0, min(max_health, _value))
+		@warning_ignore("unsafe_method_access")
+	health_changed.emit(health)
 		if health <= 0.0:
 			is_alive = false
-			died.emit()
+			@warning_ignore("unsafe_method_access")
+	died.emit()
 	
 	func take_damage(amount: float) -> void:
 		set_health(health - amount)
@@ -118,7 +125,8 @@ class MockCombatTarget extends Resource:
 
 # Mock instances
 var mock_enemy: MockCombatEnemy = null
-var mock_targets: Array[MockCombatTarget] = []
+var mock_targets: @warning_ignore("unsafe_call_argument")
+	Array[MockCombatTarget] = []
 
 # Lifecycle Methods with perfect cleanup
 func before_test() -> void:
@@ -126,15 +134,20 @@ func before_test() -> void:
 	
 	# Create mocks with expected values
 	mock_enemy = MockCombatEnemy.new()
+	@warning_ignore("return_value_discarded")
 	track_resource(mock_enemy) # Perfect cleanup - NO orphan nodes
-	
+
 	# Create mock targets as Resources (not Node2D)
 	for i in 2:
 		var target: MockCombatTarget = MockCombatTarget.new()
 		target.position = Vector2(50 * (i + 1), 0)
-		track_resource(target) # Use track_resource for Resources
-		mock_targets.append(target)
+		@warning_ignore("return_value_discarded")
+	track_resource(target) # Use track_resource for Resources
+
+		@warning_ignore("return_value_discarded")
+	mock_targets.append(target)
 	
+	@warning_ignore("unsafe_method_access")
 	await get_tree().process_frame
 
 func after_test() -> void:
@@ -143,9 +156,11 @@ func after_test() -> void:
 	super.after_test()
 
 # ========================================
-# PERFECT TESTS - Expected 100% Success
+# PERFECT TESTS - Expected @warning_ignore("integer_division")
+	100 % Success
 # ========================================
 
+@warning_ignore("unsafe_method_access")
 func test_enemy_combat_initialization() -> void:
 	# Test with immediate expected values
 	assert_that(mock_enemy.health).is_equal(100.0)
@@ -155,6 +170,7 @@ func test_enemy_combat_initialization() -> void:
 	assert_that(mock_enemy.can_attack()).is_true()
 	assert_that(mock_enemy.is_combat_ready).is_true()
 
+@warning_ignore("unsafe_method_access")
 func test_enemy_basic_attack() -> void:
 	var target: MockCombatTarget = mock_targets[0]
 	var initial_health: float = target.get_health()
@@ -176,6 +192,7 @@ func test_enemy_basic_attack() -> void:
 	# Verify damage dealt
 	assert_that(target.get_health()).is_less(initial_health)
 
+@warning_ignore("unsafe_method_access")
 func test_enemy_attack_cooldown() -> void:
 	var target: MockCombatTarget = mock_targets[0]
 	
@@ -199,6 +216,7 @@ func test_enemy_attack_cooldown() -> void:
 	mock_enemy.can_attack_now = true
 	assert_that(mock_enemy.can_attack()).is_true()
 
+@warning_ignore("unsafe_method_access")
 func test_enemy_attack_range() -> void:
 	var target: MockCombatTarget = mock_targets[0]
 	
@@ -213,6 +231,7 @@ func test_enemy_attack_range() -> void:
 	target.position = Vector2(50, 0) # Within attack range (100)
 	assert_that(mock_enemy.is_target_in_range(target)).is_true()
 
+@warning_ignore("unsafe_method_access")
 func test_enemy_attack_angle() -> void:
 	var target: MockCombatTarget = mock_targets[0]
 	
@@ -228,6 +247,7 @@ func test_enemy_attack_angle() -> void:
 	target.position = Vector2(50, 0) # In front of enemy
 	assert_that(mock_enemy.can_hit_target(target)).is_true()
 
+@warning_ignore("unsafe_method_access")
 func test_enemy_damage_dealing() -> void:
 	var target: MockCombatTarget = mock_targets[0]
 	var initial_health: float = target.get_health()
@@ -245,17 +265,21 @@ func test_enemy_damage_dealing() -> void:
 	var expected_health: float = initial_health - expected_damage
 	assert_that(target.get_health()).is_equal(expected_health)
 
+@warning_ignore("unsafe_method_access")
 func test_enemy_target_selection() -> void:
 	# Create multiple targets at different distances
 	var close_target: MockCombatTarget = MockCombatTarget.new()
 	close_target.position = Vector2(30, 0)
+	@warning_ignore("return_value_discarded")
 	track_resource(close_target)
 	
 	var far_target: MockCombatTarget = MockCombatTarget.new()
 	far_target.position = Vector2(80, 0)
+	@warning_ignore("return_value_discarded")
 	track_resource(far_target)
 	
-	var targets: Array[Resource] = [close_target, far_target]
+	var targets: @warning_ignore("unsafe_call_argument")
+	Array[Resource] = [close_target, far_target]
 	
 	# Enemy should select closest target
 	mock_enemy.position = Vector2.ZERO
@@ -263,6 +287,7 @@ func test_enemy_target_selection() -> void:
 	
 	assert_that(selected_target).is_equal(close_target)
 
+@warning_ignore("unsafe_method_access")
 func test_enemy_combat_performance() -> void:
 	# Performance test with multiple attacks
 	var target: MockCombatTarget = mock_targets[0]

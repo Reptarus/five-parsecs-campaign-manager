@@ -26,7 +26,7 @@ func show_success(message: String, details: String = "") -> void:
 	icon_texture.texture = success_icon
 	
 	_show_message()
-	validation_completed.emit({}, "", true)
+	validation_completed.emit({}, "", true) # warning: return value discarded (intentional)
 
 ## Shows error message
 func show_error(message: String, details: String = "") -> void:
@@ -35,7 +35,7 @@ func show_error(message: String, details: String = "") -> void:
 	icon_texture.texture = error_icon
 	
 	_show_message()
-	validation_completed.emit({}, "", false)
+	validation_completed.emit({}, "", false) # warning: return value discarded (intentional)
 
 ## Shows validation panel
 func _show_message() -> void:

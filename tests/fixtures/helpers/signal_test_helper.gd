@@ -1,5 +1,6 @@
 @tool
-extends RefCounted
+@warning_ignore("return_value_discarded")
+	extends RefCounted
 
 ## Helper class for signal testing functionality
 ## Provides common signal testing methods used across test files
@@ -10,14 +11,23 @@ const ERROR_INVALID_SIGNAL := "Invalid signal name"
 const ERROR_SIGNAL_NOT_FOUND := "Signal '%s' not found in emitter"
 const ERROR_MISSING_METHOD := "Test case missing required method: %s"
 const ERROR_TIMEOUT := "Timeout waiting for signal '%s' after %.1f seconds"
-const ERROR_ARG_MISMATCH := "Signal '%s' argument count mismatch: expected %d but got %d"
-const ERROR_ARG_TYPE := "Signal '%s' argument %d type mismatch: expected %s but got %s"
+const ERROR_ARG_MISMATCH := "Signal '%s' argument count mismatch: @warning_ignore("integer_division")
+	expected % d but @warning_ignore("integer_division")
+	got % d"
+const ERROR_ARG_TYPE := "Signal '%s' @warning_ignore("integer_division")
+	argument % d type mismatch: @warning_ignore("integer_division")
+	expected % s but @warning_ignore("integer_division")
+	got % s"
 const ERROR_TIMING := "Signal '%s' timing mismatch: expected %.1f seconds but took %.1f seconds"
 
 # Type-safe constants for signal testing
+
 const SIGNAL_TIMEOUT := 1.0 as float
+
 const MAX_SIGNAL_ARGS := 5 as int
+
 const DRAG_STEP_DELAY := 0.05 as float
+
 const TIMING_TOLERANCE := 0.1 as float
 
 # Type-safe signal awaiter class
@@ -34,7 +44,8 @@ static func assert_signal_emitted(test_case: Node, emitter: Object, signal_name:
 		return
 		
 	if not emitter.has_signal(signal_name):
-		test_case.assert_that(false).override_failure_message(ERROR_SIGNAL_NOT_FOUND % signal_name).is_true()
+		test_case.assert_that(false).override_failure_message(@warning_ignore("integer_division")
+	ERROR_SIGNAL_NOT_FOUND % signal_name).is_true()
 		return
 		
 	if not test_case.has_method("monitor_signals"):
@@ -42,7 +53,8 @@ static func assert_signal_emitted(test_case: Node, emitter: Object, signal_name:
 		return
 		
 	# Skip signal monitoring to prevent Dictionary corruption
-	# test_case.monitor_signals(emitter)  # REMOVED - causes Dictionary corruption
+	# test_case.@warning_ignore("unsafe_method_access")
+	monitor_signals(emitter)  # REMOVED - causes Dictionary corruption
 	# test_case.assert_signal(emitter).is_emitted(signal_name)  # REMOVED - causes Dictionary corruption
 	# Test state directly instead of signal emission
 
@@ -56,7 +68,8 @@ static func assert_signal_emit_count(test_case: Node, emitter: Object, signal_na
 		return
 		
 	if not emitter.has_signal(signal_name):
-		test_case.assert_that(false).override_failure_message(ERROR_SIGNAL_NOT_FOUND % signal_name).is_true()
+		test_case.assert_that(false).override_failure_message(@warning_ignore("integer_division")
+	ERROR_SIGNAL_NOT_FOUND % signal_name).is_true()
 		return
 		
 	if not test_case.has_method("monitor_signals"):
@@ -84,7 +97,8 @@ static func wait_for_signal(test_case: Node, emitter: Object, signal_name: Strin
 		if Time.get_ticks_msec() - start_time > timeout * 1000:
 			test_case.assert_that(false).override_failure_message(ERROR_TIMEOUT % [signal_name, timeout]).is_true()
 			return []
-		await test_case.get_tree().process_frame
+		@warning_ignore("unsafe_method_access")
+	await test_case.get_tree().process_frame
 	
 	return awaiter.get_args()
 
@@ -95,6 +109,7 @@ static func simulate_touch_event(test_case: Node, position: Vector2, pressed: bo
 	event.pressed = pressed
 	event.index = 0 # Primary touch point
 	Input.parse_input_event(event)
+	@warning_ignore("unsafe_method_access")
 	await test_case.get_tree().process_frame
 
 # Enhanced signal simulation for drag events
@@ -104,15 +119,17 @@ static func simulate_drag_event(test_case: Node, start_pos: Vector2, end_pos: Ve
 	
 	simulate_touch_event(test_case, start_pos, true)
 	
-	for i in range(steps):
+	for i: int in range(steps):
 		current += step_size
 		var event := InputEventScreenDrag.new()
 		event.position = current
 		event.relative = step_size
 		event.index = 0 # Primary touch point
 		Input.parse_input_event(event)
-		await test_case.get_tree().create_timer(DRAG_STEP_DELAY).timeout
-		await test_case.get_tree().process_frame
+		@warning_ignore("unsafe_method_access")
+	await test_case.get_tree().create_timer(DRAG_STEP_DELAY).timeout
+		@warning_ignore("unsafe_method_access")
+	await test_case.get_tree().process_frame
 	
 	simulate_touch_event(test_case, end_pos, false)
 
@@ -128,7 +145,8 @@ static func verify_multiple_signals(test_case: Node, emitter: Object, expected_s
 			continue
 			
 		if not emitter.has_signal(signal_name):
-			test_case.assert_that(false).override_failure_message(ERROR_SIGNAL_NOT_FOUND % signal_name).is_true()
+			test_case.assert_that(false).override_failure_message(@warning_ignore("integer_division")
+	ERROR_SIGNAL_NOT_FOUND % signal_name).is_true()
 			continue
 			
 		var awaiter: RefCounted = SignalAwaiter.new(emitter, signal_name, timeout)
@@ -137,7 +155,8 @@ static func verify_multiple_signals(test_case: Node, emitter: Object, expected_s
 			continue
 			
 		# Skip signal monitoring to prevent Dictionary corruption
-		# test_case.monitor_signals(emitter)  # REMOVED - causes Dictionary corruption
+		# test_case.@warning_ignore("unsafe_method_access")
+	monitor_signals(emitter)  # REMOVED - causes Dictionary corruption
 		# test_case.assert_signal(emitter).is_emitted(signal_name)  # REMOVED - causes Dictionary corruption
 		# Test state directly instead of signal emission
 
@@ -152,10 +171,12 @@ static func verify_signal_args(test_case: Node, emitter: Object, signal_name: St
 		return
 		
 	if not emitter.has_signal(signal_name):
-		test_case.assert_that(false).override_failure_message(ERROR_SIGNAL_NOT_FOUND % signal_name).is_true()
+		test_case.assert_that(false).override_failure_message(@warning_ignore("integer_division")
+	ERROR_SIGNAL_NOT_FOUND % signal_name).is_true()
 		return
 		
-	var actual_args: Array[Variant] = []
+	var actual_args: @warning_ignore("unsafe_call_argument")
+	Array[Variant] = []
 	if test_case.has_method("get_signal_emit_count"):
 		var emit_count: int = test_case.get_signal_emit_count(emitter, signal_name)
 		if emit_count > 0:
@@ -164,7 +185,7 @@ static func verify_signal_args(test_case: Node, emitter: Object, signal_name: St
 	test_case.assert_that(actual_args.size()).override_failure_message(
 		ERROR_ARG_MISMATCH % [signal_name, expected_args.size(), actual_args.size()]).is_equal(expected_args.size())
 	
-	for i in range(min(actual_args.size(), expected_args.size())):
+	for i: int in range(min(actual_args.size(), expected_args.size())):
 		var actual = actual_args[i]
 		var expected = expected_args[i]
 		test_case.assert_that(actual).override_failure_message(
@@ -181,10 +202,12 @@ static func verify_signal_timing(test_case: Node, emitter: Object, signal_name: 
 		return
 		
 	if not emitter.has_signal(signal_name):
-		test_case.assert_that(false).override_failure_message(ERROR_SIGNAL_NOT_FOUND % signal_name).is_true()
+		test_case.assert_that(false).override_failure_message(@warning_ignore("integer_division")
+	ERROR_SIGNAL_NOT_FOUND % signal_name).is_true()
 		return
 		
 	var start_time := Time.get_ticks_msec()
+	@warning_ignore("unsafe_method_access")
 	await wait_for_signal(test_case, emitter, signal_name)
 	var elapsed_time := (Time.get_ticks_msec() - start_time) / 1000.0
 	
@@ -192,8 +215,8 @@ static func verify_signal_timing(test_case: Node, emitter: Object, signal_name: 
 		ERROR_TIMING % [signal_name, expected_time, elapsed_time]).is_almost_equal(expected_time, TIMING_TOLERANCE)
 
 # Utility function for type names
-static func typeof_as_string(value: Variant) -> String:
-	match typeof(value):
+static func typeof_as_string(test_value: Variant) -> String:
+	match typeof(_value):
 		TYPE_NIL: return "null"
 		TYPE_BOOL: return "bool"
 		TYPE_INT: return "int"
@@ -204,14 +227,15 @@ static func typeof_as_string(value: Variant) -> String:
 		TYPE_ARRAY: return "Array"
 		TYPE_DICTIONARY: return "Dictionary"
 		TYPE_OBJECT:
-			if value == null:
+			if test_value == null:
 				return "null"
-			return value.get_class()
+			return test_value.get_class()
 		_: return "unknown"
 
 func setup_signal_monitoring(test_case: Object, emitter: Object) -> void:
 	# Skip signal monitoring to prevent Dictionary corruption
-	# test_case.monitor_signals(emitter)  # REMOVED - causes Dictionary corruption
+	# test_case.@warning_ignore("unsafe_method_access")
+	monitor_signals(emitter)  # REMOVED - causes Dictionary corruption
 	# Test state directly instead of signal emission
 	pass
 
@@ -223,7 +247,8 @@ func verify_signal_emission(test_case: Object, emitter: Object, signal_name: Str
 
 func setup_signal_monitoring_with_timeout(test_case: Object, emitter: Object, timeout_ms: int = 2000) -> void:
 	# Skip signal monitoring to prevent Dictionary corruption
-	# test_case.monitor_signals(emitter)  # REMOVED - causes Dictionary corruption
+	# test_case.@warning_ignore("unsafe_method_access")
+	monitor_signals(emitter)  # REMOVED - causes Dictionary corruption
 	# Test state directly instead of signal emission
 	pass
 

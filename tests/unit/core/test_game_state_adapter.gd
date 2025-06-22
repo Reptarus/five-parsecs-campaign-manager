@@ -1,5 +1,6 @@
 @tool
-extends GdUnitGameTest
+@warning_ignore("return_value_discarded")
+	extends GdUnitGameTest
 class_name TestGameStateAdapter
 
 const GameEnums = preload("res://src/core/systems/GlobalEnums.gd")
@@ -25,10 +26,18 @@ class MockGameState extends Resource:
 		}
 	
 	func deserialize(data: Dictionary) -> void:
-		turn_number = data.get("turn_number", 1)
-		story_points = data.get("story_points", 3)
-		reputation = data.get("reputation", 50)
-		resources = data.get("resources", {})
+
+		turn_number = @warning_ignore("unsafe_call_argument")
+	data.get("turn_number", 1)
+
+		story_points = @warning_ignore("unsafe_call_argument")
+	data.get("story_points", 3)
+
+		reputation = @warning_ignore("unsafe_call_argument")
+	data.get("reputation", 50)
+
+		resources = @warning_ignore("unsafe_call_argument")
+	data.get("resources", {})
 
 # Mock GameStateTestAdapter with expected values (Universal Mock Strategy)
 class MockGameStateTestAdapter extends Resource:
@@ -36,7 +45,7 @@ class MockGameStateTestAdapter extends Resource:
 		return MockGameState.new()
 	
 	static func create_default_test_state() -> MockGameState:
-		var state = MockGameState.new()
+		var state: MockGameState = MockGameState.new()
 		# Already initialized with expected values in MockGameState
 		return state
 	
@@ -45,7 +54,7 @@ class MockGameStateTestAdapter extends Resource:
 		return state.serialize()
 	
 	static func deserialize_from_dict(data: Dictionary) -> MockGameState:
-		var state = MockGameState.new()
+		var state: MockGameState = MockGameState.new()
 		state.deserialize(data)
 		return state
 
@@ -63,7 +72,9 @@ class MockWorldDataMigration extends Resource:
 				return "unknown"
 	
 	func needs_migration(data: Dictionary) -> bool:
-		var version = data.get("data_version", "1.0")
+
+		var version = @warning_ignore("unsafe_call_argument")
+	data.get("data_version", "1.0")
 		return version != "2.0"
 	
 	func migrate_world_data(data: Dictionary) -> Dictionary:
@@ -79,9 +90,11 @@ var migration: MockWorldDataMigration
 func before_test() -> void:
 	super.before_test()
 	GameStateTestAdapter = MockGameStateTestAdapter.new()
+	@warning_ignore("return_value_discarded")
 	track_resource(GameStateTestAdapter)
 	
 	migration = MockWorldDataMigration.new()
+	@warning_ignore("return_value_discarded")
 	track_resource(migration)
 
 func after_test() -> void:
@@ -89,17 +102,21 @@ func after_test() -> void:
 	migration = null
 	super.after_test()
 
+@warning_ignore("unsafe_method_access")
 func test_can_create_game_state_instance() -> void:
 	# Test direct method calls instead of safe wrappers (proven pattern)
 	var state: MockGameState = GameStateTestAdapter.create_test_instance()
+	@warning_ignore("return_value_discarded")
 	track_resource(state)
 	
 	assert_that(state).override_failure_message("GameState instance should be created").is_not_null()
 	assert_that(state is MockGameState).override_failure_message("Should be a GameState instance").is_true()
 
+@warning_ignore("unsafe_method_access")
 func test_can_create_default_test_state() -> void:
 	# Test direct method calls instead of safe wrappers (proven pattern)
 	var state: MockGameState = GameStateTestAdapter.create_default_test_state()
+	@warning_ignore("return_value_discarded")
 	track_resource(state)
 	
 	# Test expected values from mock
@@ -120,11 +137,13 @@ func test_can_create_default_test_state() -> void:
 	var tech_parts_id: String = migration.convert_resource_type_to_id(GameEnums.ResourceType.TECH_PARTS)
 	assert_that(tech_parts_id).override_failure_message("Tech parts ID should not be empty").is_not_equal("")
 
+@warning_ignore("unsafe_method_access")
 func test_can_deserialize_from_dict() -> void:
 	# Test direct method calls instead of safe wrappers (proven pattern)
 	var serialized_data: Dictionary = GameStateTestAdapter.create_test_serialized_state()
 	
 	var state: MockGameState = GameStateTestAdapter.deserialize_from_dict(serialized_data)
+	@warning_ignore("return_value_discarded")
 	track_resource(state)
 	
 	# Test expected values from mock
@@ -139,14 +158,16 @@ func test_can_deserialize_from_dict() -> void:
 	
 	# Test migration process
 	var needs_migration: bool = migration.needs_migration(serialized_data)
-	
+
 	# Mock will return false for data that already has version 2.0
 	if needs_migration:
 		var migrated_data: Dictionary = migration.migrate_world_data(serialized_data)
 		assert_that(migrated_data).override_failure_message("Migration should return valid data").is_not_null()
-		assert_that(migrated_data.has("data_version")).override_failure_message("Migrated data should have version information").is_true()
+		assert_that(@warning_ignore("unsafe_call_argument")
+	migrated_data.has("data_version")).override_failure_message("Migrated data should have version information").is_true()
 		assert_that(migrated_data["data_version"]).override_failure_message("Migrated data should have correct version").is_equal("2.0")
 
+@warning_ignore("unsafe_method_access")
 func test_resource_type_conversion() -> void:
 	# Test direct method calls instead of safe wrappers (proven pattern)
 	# Test all resource type conversions
@@ -163,6 +184,7 @@ func test_resource_type_conversion() -> void:
 	var unknown_id: String = migration.convert_resource_type_to_id(-1)
 	assert_that(unknown_id).override_failure_message("Unknown type should convert to 'unknown'").is_equal("unknown")
 
+@warning_ignore("unsafe_method_access")
 func test_migration_detection() -> void:
 	# Test direct method calls instead of safe wrappers (proven pattern)
 	# Test data that needs migration (missing version)
@@ -182,13 +204,16 @@ func test_migration_detection() -> void:
 	}
 	assert_that(migration.needs_migration(new_data)).override_failure_message("Data with version 2.0 should not need migration").is_false()
 
+@warning_ignore("unsafe_method_access")
 func test_serialization_roundtrip() -> void:
 	# Test direct method calls instead of safe wrappers (proven pattern)
 	var original_state: MockGameState = GameStateTestAdapter.create_default_test_state()
+	@warning_ignore("return_value_discarded")
 	track_resource(original_state)
 	
 	var serialized: Dictionary = original_state.serialize()
 	var deserialized_state: MockGameState = GameStateTestAdapter.deserialize_from_dict(serialized)
+	@warning_ignore("return_value_discarded")
 	track_resource(deserialized_state)
 	
 	# Verify data integrity
@@ -199,5 +224,7 @@ func test_serialization_roundtrip() -> void:
 	# Verify resources
 	for resource_type in original_state.resources:
 		var original_amount: int = original_state.resources[resource_type]
-		var deserialized_amount: int = deserialized_state.resources.get(resource_type, 0)
+
+		var deserialized_amount: int = deserialized_state.@warning_ignore("unsafe_call_argument")
+	resources.get(resource_type, 0)
 		assert_that(deserialized_amount).override_failure_message("Resource amount should match for type: " + str(resource_type)).is_equal(original_amount)

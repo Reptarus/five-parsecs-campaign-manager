@@ -77,7 +77,7 @@ func _refresh_save_list() -> void:
 		save_list.set_item_metadata(save_list.get_item_count() - 1, save)
 
 func _format_save_display(save: Dictionary) -> String:
-	var type_prefix = ""
+	var type_prefix: String = ""
 	if save.name.begins_with("autosave_"):
 		type_prefix = "[Auto] "
 	elif save.name.begins_with("quicksave_"):
@@ -91,7 +91,7 @@ func _format_save_display(save: Dictionary) -> String:
 	]
 
 func _format_save_tooltip(save: Dictionary) -> String:
-	var tooltip = """
+	var tooltip: String = """
 	Name:%s
 	Date:%s
 	Game Version:%s
@@ -120,7 +120,7 @@ func _format_save_tooltip(save: Dictionary) -> String:
 	return tooltip.strip_edges()
 
 func _get_save_icon(save: Dictionary) -> Texture2D:
-	var icon_path = "res://assets/icons/"
+	var icon_path: String = "res://assets/icons/"
 	if save.name.begins_with("autosave_"):
 		icon_path += "autosave_icon.png"
 	elif save.name.begins_with("quicksave_"):
@@ -131,7 +131,7 @@ func _get_save_icon(save: Dictionary) -> Texture2D:
 	var icon = load(icon_path)
 	if not icon:
 		push_warning("Failed to load icon: " + icon_path)
-		return null
+
 	return icon
 
 func _update_button_states() -> void:
@@ -206,19 +206,19 @@ func _on_auto_save_toggled(enabled: bool) -> void:
 	_show_status("Auto-save " + ("enabled" if enabled else "disabled"))
 
 func _show_validation_error(message: String) -> void:
-	var dialog = AcceptDialog.new()
+	var dialog := AcceptDialog.new()
 	dialog.title = "Validation Error"
 	dialog.dialog_text = message
 	add_child(dialog)
 	dialog.popup_centered()
 
 func _show_recovery_result(success: bool, message: String) -> void:
-	var dialog = AcceptDialog.new()
+	var dialog := AcceptDialog.new()
 	dialog.title = "Recovery " + ("Success" if success else "Failed")
 	dialog.dialog_text = message
 	
 	if not success:
-		var manual_button = Button.new()
+		var manual_button := Button.new()
 		manual_button.text = "Manual Recovery"
 		dialog.add_child(manual_button)
 		manual_button.pressed.connect(_on_manual_recovery_pressed.bind(dialog))
@@ -235,11 +235,11 @@ func _show_manual_recovery_dialog() -> void:
 	_recovery_dialog.title = "Manual Save Recovery"
 	_recovery_dialog.size = Vector2(800, 600)
 	
-	var vbox = VBoxContainer.new()
+	var vbox := VBoxContainer.new()
 	_recovery_dialog.add_child(vbox)
 	
 	# Add explanation label
-	var explanation = Label.new()
+	var explanation := Label.new()
 	explanation.text = """
 	Manual recovery allows you to:
 	1. View the raw save data
@@ -252,31 +252,31 @@ func _show_manual_recovery_dialog() -> void:
 	vbox.add_child(explanation)
 	
 	# Add save data viewer/editor
-	var save_data_edit = TextEdit.new()
+	var save_data_edit := TextEdit.new()
 	save_data_edit.size_flags_vertical = Control.SIZE_EXPAND_FILL
 	vbox.add_child(save_data_edit)
 	
 	# Add buttons
-	var button_container = HBoxContainer.new()
+	var button_container := HBoxContainer.new()
 	vbox.add_child(button_container)
 	
-	var load_button = Button.new()
+	var load_button := Button.new()
 	load_button.text = "Load Save Data"
 	button_container.add_child(load_button)
 	
-	var validate_button = Button.new()
+	var validate_button := Button.new()
 	validate_button.text = "Validate"
 	button_container.add_child(validate_button)
 	
-	var repair_button = Button.new()
+	var repair_button := Button.new()
 	repair_button.text = "Auto-Repair"
 	button_container.add_child(repair_button)
 	
-	var save_button = Button.new()
+	var save_button := Button.new()
 	save_button.text = "Save Changes"
 	button_container.add_child(save_button)
 	
-	var close_button = Button.new()
+	var close_button := Button.new()
 	close_button.text = "Close"
 	button_container.add_child(close_button)
 	
@@ -296,14 +296,14 @@ func _on_recovery_load_pressed(save_data_edit: TextEdit) -> void:
 		return
 		
 	var save_data = save_list.get_item_metadata(selected[0])
-	var save_path = "user://saves/" + save_data.name + ".json"
+	var save_path: String = "user://saves/" + save_data.name + ".json"
 	var file = FileAccess.open(save_path, FileAccess.READ)
 	if file:
 		save_data_edit.text = file.get_as_text()
 		file.close()
 
 func _on_recovery_validate_pressed(save_data_edit: TextEdit) -> void:
-	var json = JSON.new()
+	var json := JSON.new()
 	var parse_result = json.parse(save_data_edit.text)
 	if parse_result != OK:
 		_show_status("Invalid JSON format", true)
@@ -316,7 +316,7 @@ func _on_recovery_validate_pressed(save_data_edit: TextEdit) -> void:
 		_show_status("Save data validation failed", true)
 
 func _on_recovery_repair_pressed(save_data_edit: TextEdit) -> void:
-	var json = JSON.new()
+	var json := JSON.new()
 	var parse_result = json.parse(save_data_edit.text)
 	if parse_result != OK:
 		_show_status("Invalid JSON format", true)
@@ -333,7 +333,7 @@ func _on_recovery_save_pressed(save_data_edit: TextEdit) -> void:
 		return
 		
 	var save_data = save_list.get_item_metadata(selected[0])
-	var save_path = "user://saves/" + save_data.name + ".json"
+	var save_path: String = "user://saves/" + save_data.name + ".json"
 	
 	# Create backup before saving changes
 	save_manager._create_backup(save_data.name)
@@ -354,7 +354,7 @@ func _on_recovery_close_pressed() -> void:
 
 func _notification(what: int) -> void:
 	if what == NOTIFICATION_WM_CLOSE_REQUEST:
-		ui_closed.emit()
+		ui_closed.emit()  # warning: return value discarded (intentional)
 		queue_free()
 
 func _on_save_started() -> void:
@@ -366,7 +366,7 @@ func _on_save_completed(success: bool, message: String) -> void:
 	if success:
 		_refresh_save_list()
 	_update_button_states()
-	save_completed.emit()
+	save_completed.emit()  # warning: return value discarded (intentional)
 
 func _on_load_started() -> void:
 	_show_status("Loading game...")
@@ -376,7 +376,7 @@ func _on_load_completed(success: bool, message: String) -> void:
 	_show_status(message, not success)
 	_update_button_states()
 	if success:
-		load_completed.emit()
+		load_completed.emit()  # warning: return value discarded (intentional)
 
 func _on_save_manager_backup_created(success: bool, message: String) -> void:
 	if not success:

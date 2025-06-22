@@ -7,22 +7,19 @@ var difficulty_settings: Resource
 
 func _init(_game_state: Node) -> void:
 	game_state = _game_state
-
 func initialize(_game_state: Node, _difficulty_settings: Resource) -> void:
 	game_state = _game_state
 	difficulty_settings = _difficulty_settings
-
-func apply_difficulty(_difficulty_settings: Resource):
+func apply_difficulty(_difficulty_settings: Resource) -> void:
 	difficulty_settings = _difficulty_settings
-
 func check_escalation(battle_state: Dictionary) -> Dictionary:
-	var escalation = {}
+	var escalation: Dictionary = {}
 	if _should_escalate(battle_state):
 		escalation = _generate_escalation(battle_state.strife_type)
 	return escalation
 
 func _should_escalate(battle_state: Dictionary) -> bool:
-	var escalation_chance = 20 # Base 20% chance
+	var escalation_chance: int = 20 # Base 20% chance
 	
 	# Increase chance based on crew composition
 	escalation_chance += 5 if GameEnums.Origin.FERAL in battle_state.crew_species else 0
@@ -112,16 +109,17 @@ func apply_escalation(escalation: Dictionary, player_team: Array, enemy_team: Ar
 				_apply_to_team(escalation.effect, player_team)
 			else:
 				_apply_to_team(escalation.effect, enemy_team)
-
 func _apply_to_team(effect: Dictionary, team: Array) -> void:
 	if "add_units" in effect:
 		for i in range(effect.add_units):
 			var new_enemy = game_state.character_generator.generate_enemy()
-			team.append(new_enemy)
+
+			team.append(new_enemy) # warning: return value discarded (intentional)
 	
 	if "add_elite" in effect:
 		var elite_enemy = game_state.character_generator.generate_elite_enemy()
-		team.append(elite_enemy)
+
+		team.append(elite_enemy) # warning: return value discarded (intentional)
 	
 	if "disable_item" in effect:
 		var random_unit = team[randi() % team.size()]
@@ -147,7 +145,7 @@ func _apply_to_team(effect: Dictionary, team: Array) -> void:
 				unit.apply_mutant_bonus()
 
 func generate_suspect(pursuit: bool) -> Dictionary:
-	var suspect = {}
+	var suspect: Dictionary = {}
 	var roll = randi() % 6 + 1
 	
 	match roll:

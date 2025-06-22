@@ -6,7 +6,8 @@
 ## - Turn order and initiative
 ## - Special abilities and modifiers
 @tool
-extends GdUnitGameTest
+@warning_ignore("return_value_discarded")
+	extends GdUnitGameTest
 
 # Type-safe script references
 const BaseBattleRules: GDScript = preload("res://src/base/combat/BaseBattleRules.gd")
@@ -58,7 +59,7 @@ class MockUnit:
 	var abilities: Array = []
 	var damage_modifiers: Array = []
 	
-	func _init(att: int, def: int, spd: int = 5):
+	func _init(att: int, def: int, spd: int = 5) -> void:
 		attack = att
 		defense = def
 		speed = spd
@@ -76,10 +77,14 @@ class MockUnit:
 		return active_effects
 	
 	func add_ability(ability: Dictionary) -> void:
-		abilities.append(ability)
+
+		@warning_ignore("return_value_discarded")
+	abilities.append(ability)
 	
 	func add_damage_modifier(mod: int, type: int) -> void:
-		damage_modifiers.append({"modifier": mod, "type": type})
+
+		@warning_ignore("return_value_discarded")
+	damage_modifiers.append({"modifier": mod, "type": type})
 
 # Lifecycle Methods
 func before_test() -> void:
@@ -88,19 +93,26 @@ func before_test() -> void:
 	# Initialize combat manager if available
 	if BaseCombatManager:
 		_combat_manager = Node.new()
-		_combat_manager.set_script(BaseCombatManager)
-		track_node(_combat_manager)
-		add_child(_combat_manager)
+		@warning_ignore("unsafe_method_access")
+	_combat_manager.set_script(BaseCombatManager)
+		@warning_ignore("return_value_discarded")
+	track_node(_combat_manager)
+		@warning_ignore("return_value_discarded")
+	add_child(_combat_manager)
 	
 	# Initialize battle rules if available
 	if BaseBattleRules:
 		_battle_rules = Node.new()
-		_battle_rules.set_script(BaseBattleRules)
+		@warning_ignore("unsafe_method_access")
+	_battle_rules.set_script(BaseBattleRules)
 		if _battle_rules.has_method("initialize") and _combat_manager:
 			_battle_rules.initialize(_combat_manager)
-		track_node(_battle_rules)
-		add_child(_battle_rules)
+		@warning_ignore("return_value_discarded")
+	track_node(_battle_rules)
+		@warning_ignore("return_value_discarded")
+	add_child(_battle_rules)
 	
+	@warning_ignore("unsafe_method_access")
 	await get_tree().process_frame
 
 func after_test() -> void:
@@ -109,6 +121,7 @@ func after_test() -> void:
 	super.after_test()
 
 # Combat Resolution Tests
+@warning_ignore("unsafe_method_access")
 func test_basic_attack_resolution() -> void:
 	var attacker = _create_test_unit(10, 2) # Attack 10, Defense 2
 	var defender = _create_test_unit(5, 5) # Attack 5, Defense 5
@@ -116,8 +129,10 @@ func test_basic_attack_resolution() -> void:
 	if _battle_rules and _battle_rules.has_method("resolve_attack"):
 		var result = _battle_rules.resolve_attack(attacker, defender)
 		assert_that(result).is_not_null()
-		assert_that(result.has("damage")).is_true()
-		assert_that(result.has("hit")).is_true()
+		assert_that(@warning_ignore("unsafe_call_argument")
+	result.has("damage")).is_true()
+		assert_that(@warning_ignore("unsafe_call_argument")
+	result.has("hit")).is_true()
 	else:
 		# Fallback test - verify mock units were created
 		assert_that(attacker).is_not_null()
@@ -125,23 +140,30 @@ func test_basic_attack_resolution() -> void:
 		assert_that(attacker.get_attack()).is_equal(10)
 		assert_that(defender.get_defense()).is_equal(5)
 
+@warning_ignore("unsafe_method_access")
 func test_critical_hits() -> void:
 	var attacker = _create_test_unit(20, 2) # High attack for crit chance
 	var defender = _create_test_unit(5, 5)
 	
 	if _battle_rules and _battle_rules.has_method("resolve_attack"):
 		# Skip signal monitoring to prevent Dictionary corruption
-		# monitor_signals(_battle_rules)  # REMOVED - causes Dictionary corruption
+		# @warning_ignore("unsafe_method_access")
+	monitor_signals(_battle_rules)  # REMOVED - causes Dictionary corruption
 		# Test state directly instead of signal emission
 		var result = _battle_rules.resolve_attack(attacker, defender, {"critical_threshold": 18})
-		
-		if result.get("critical", false):
-			assert_that(result.get("damage", 0)).is_greater(result.get("base_damage", 0))
+
+		if @warning_ignore("unsafe_call_argument")
+	result.get("critical", false):
+
+			assert_that(@warning_ignore("unsafe_call_argument")
+	result.get("damage", 0)).is_greater(@warning_ignore("unsafe_call_argument")
+	result.get("base_damage", 0))
 	else:
 		# Fallback test - verify high attack unit
 		assert_that(attacker.get_attack()).is_equal(20)
 
 # Damage Calculation Tests
+@warning_ignore("unsafe_method_access")
 func test_damage_calculation() -> void:
 	var base_damage := 10
 	var armor := 5
@@ -165,6 +187,7 @@ func test_damage_calculation() -> void:
 		var expected_damage = max(0, base_damage - armor)
 		assert_that(expected_damage).is_equal(5)
 
+@warning_ignore("unsafe_method_access")
 func test_damage_modifiers() -> void:
 	var attacker = _create_test_unit(10, 2)
 	var damage_type = 0
@@ -172,13 +195,17 @@ func test_damage_modifiers() -> void:
 	
 	if _battle_rules and _battle_rules.has_method("calculate_modified_damage"):
 		var result = _battle_rules.calculate_modified_damage(attacker, 10)
-		assert_that(result.get("final_damage", 0)).is_equal(12)
+
+		assert_that(@warning_ignore("unsafe_call_argument")
+	result.get("final_damage", 0)).is_equal(12)
 	else:
+
 		# Fallback test - verify modifier was added
 		assert_that(attacker.damage_modifiers.size()).is_equal(1)
 		assert_that(attacker.damage_modifiers[0]["modifier"]).is_equal(2)
 
 # Status Effect Tests
+@warning_ignore("unsafe_method_access")
 func test_status_effect_application() -> void:
 	var target = _create_test_unit(10, 2)
 	var effect := {
@@ -189,7 +216,8 @@ func test_status_effect_application() -> void:
 	
 	if _battle_rules and _battle_rules.has_method("apply_status_effect"):
 		# Skip signal monitoring to prevent Dictionary corruption
-		# monitor_signals(_battle_rules)  # REMOVED - causes Dictionary corruption
+		# @warning_ignore("unsafe_method_access")
+	monitor_signals(_battle_rules)  # REMOVED - causes Dictionary corruption
 		# Test state directly instead of signal emission
 		var result = _battle_rules.apply_status_effect(target, effect)
 		assert_that(result).is_true()
@@ -198,11 +226,14 @@ func test_status_effect_application() -> void:
 		assert_that(active_effects.size()).is_greater(0)
 	else:
 		# Fallback test - verify effect structure
-		assert_that(effect.has("type")).is_true()
-		assert_that(effect.has("duration")).is_true()
+		assert_that(@warning_ignore("unsafe_call_argument")
+	effect.has("type")).is_true()
+		assert_that(@warning_ignore("unsafe_call_argument")
+	effect.has("duration")).is_true()
 		assert_that(effect["duration"]).is_equal(2)
 
 # Turn Order Tests
+@warning_ignore("unsafe_method_access")
 func test_initiative_calculation() -> void:
 	var units := [
 		_create_test_unit(10, 2, 5), # Speed 5
@@ -215,7 +246,7 @@ func test_initiative_calculation() -> void:
 		assert_that(initiative_order.size()).is_equal(units.size())
 		
 		# Verify descending speed order
-		for i in range(1, initiative_order.size()):
+		for i: int in range(1, initiative_order.size()):
 			var prev_speed = initiative_order[i - 1].get_speed()
 			var curr_speed = initiative_order[i].get_speed()
 			assert_that(prev_speed).is_greater_equal(curr_speed)
@@ -226,6 +257,7 @@ func test_initiative_calculation() -> void:
 		assert_that(units[2].get_speed()).is_equal(3)
 
 # Special Ability Tests
+@warning_ignore("unsafe_method_access")
 func test_special_ability_activation() -> void:
 	var unit = _create_test_unit(10, 2)
 	var ability := {
@@ -238,53 +270,63 @@ func test_special_ability_activation() -> void:
 	
 	if _battle_rules and _battle_rules.has_method("activate_ability"):
 		# Skip signal monitoring to prevent Dictionary corruption
-		# monitor_signals(_battle_rules)  # REMOVED - causes Dictionary corruption
+		# @warning_ignore("unsafe_method_access")
+	monitor_signals(_battle_rules)  # REMOVED - causes Dictionary corruption
 		# Test state directly instead of signal emission
 		var result = _battle_rules.activate_ability(unit, ability.id)
 		assert_that(result).is_not_null()
 	else:
+
 		# Fallback test - verify ability was added
 		assert_that(unit.abilities.size()).is_equal(1)
 		assert_that(unit.abilities[0]["id"]).is_equal("test_ability")
 
 # Error Handling Tests
+@warning_ignore("unsafe_method_access")
 func test_invalid_attack_parameters() -> void:
 	if _battle_rules and _battle_rules.has_method("resolve_attack"):
 		var result = _battle_rules.resolve_attack(null, null)
-		assert_that(result.has("error")).is_true()
+		assert_that(@warning_ignore("unsafe_call_argument")
+	result.has("error")).is_true()
 		
 		var attacker = _create_test_unit(10, 2)
 		result = _battle_rules.resolve_attack(attacker, null)
-		assert_that(result.has("error")).is_true()
+		assert_that(@warning_ignore("unsafe_call_argument")
+	result.has("error")).is_true()
 	else:
 		# Fallback test - verify null handling
 		var attacker = _create_test_unit(10, 2)
 		assert_that(attacker).is_not_null()
 
 # Constant Verification Tests
+@warning_ignore("unsafe_method_access")
 func test_core_constants() -> void:
 	assert_that(BASE_MOVEMENT).is_equal(6)
 	assert_that(BASE_ACTION_POINTS).is_equal(2)
 	assert_that(BASE_ATTACK_RANGE).is_equal(24)
 	assert_that(BASE_HIT_CHANCE).is_equal(0.65)
 
+@warning_ignore("unsafe_method_access")
 func test_combat_modifiers() -> void:
 	assert_that(COVER_MODIFIER).is_equal(-0.25)
 	assert_that(HEIGHT_MODIFIER).is_equal(0.15)
 	assert_that(FLANK_MODIFIER).is_equal(0.2)
 	assert_that(SUPPRESSION_MODIFIER).is_equal(-0.2)
 
+@warning_ignore("unsafe_method_access")
 func test_range_modifiers() -> void:
 	assert_that(OPTIMAL_RANGE_BONUS).is_equal(0.1)
 	assert_that(LONG_RANGE_PENALTY).is_equal(-0.2)
 	assert_that(EXTREME_RANGE_PENALTY).is_equal(-0.4)
 
+@warning_ignore("unsafe_method_access")
 func test_status_effect_thresholds() -> void:
 	assert_that(CRITICAL_THRESHOLD).is_equal(0.9)
 	assert_that(GRAZE_THRESHOLD).is_equal(0.35)
 	assert_that(MINIMUM_HIT_CHANCE).is_equal(0.05)
 	assert_that(MAXIMUM_HIT_CHANCE).is_equal(0.95)
 
+@warning_ignore("unsafe_method_access")
 func test_action_point_costs() -> void:
 	assert_that(MOVE_COST).is_equal(1)
 	assert_that(ATTACK_COST).is_equal(1)

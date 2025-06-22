@@ -50,11 +50,11 @@ func complete_phase() -> void:
 	var phase_data = get_phase_data()
 	
 	# Emit completion signal
-	phase_completed.emit(phase_data)
+	phase_completed.emit(phase_data) # warning: return value discarded (intentional)
 
 ## Fail the current phase with a reason
 func fail_phase(reason: String) -> void:
-	phase_failed.emit(reason)
+	phase_failed.emit(reason) # warning: return value discarded (intentional)
 
 ## Get phase data to pass to the next phase
 func get_phase_data() -> Dictionary:

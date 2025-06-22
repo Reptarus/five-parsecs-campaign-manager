@@ -41,8 +41,8 @@ var reputation: int = 0
 var resources: Dictionary = {}
 var active_quests: Array[Dictionary] = []
 var completed_quests: Array[Dictionary] = []
-var current_location = null
-var player_ship = null
+var current_location: Dictionary = {}
+var player_ship: Ship = null
 var visited_locations: Array[String] = []
 
 ## Limits and settings
@@ -63,11 +63,11 @@ var current_campaign: FiveParsecsCampaign:
 	set(value):
 		_current_campaign = value
 		if value:
-			campaign_loaded.emit(value)
-			state_changed.emit()
+			_emit_campaign_loaded(value)
+			_emit_state_changed()
 
 ## Save system
-var save_manager: Node
+var save_manager: Node = null
 var last_save_time: int = 0
 
 ## Current save operations tracking
@@ -77,22 +77,177 @@ var _save_retry_count: int = 0
 var _save_queue: Array[Dictionary] = []
 
 ## File operations
+## SIGNAL EMISSION WRAPPERS - Centralized signal management
+func _emit_state_changed() -> void:
+	state_changed.emit()
+
+func _emit_resources_changed() -> void:
+	resources_changed.emit()
+
+func _emit_campaign_loaded(campaign: FiveParsecsCampaign) -> void:
+	campaign_loaded.emit(campaign)
+
+func _emit_campaign_saved() -> void:
+	campaign_saved.emit()
+
+func _emit_save_started() -> void:
+	save_started.emit()
+
+func _emit_save_completed(success: bool, message: String) -> void:
+	save_completed.emit(success, message)
+
+func _emit_load_started() -> void:
+	load_started.emit()
+
+func _emit_load_completed(success: bool, message: String) -> void:
+	load_completed.emit(success, message)
+
+func _emit_turn_advanced() -> void:
+	turn_advanced.emit()
+
+func _emit_quest_added(quest: Dictionary) -> void:
+	quest_added.emit(quest)
+
+func _emit_quest_completed(quest_id: String) -> void:
+	quest_completed.emit(quest_id)
+
+func _emit_backup_created(success: bool, file_path: String) -> void:
+	backup_created.emit(success, file_path)
+
+## SAFE ACCESSOR METHODS - Type-safe external dependency access
+func _get_safe_ship_component(component_name: String) -> Variant:
+	if not player_ship:
+		return null
+	if not player_ship.has_method("get_component"):
+		return null
+	return player_ship.get_component(component_name)
+
+func _get_safe_campaign_data(key: String) -> Variant:
+	if not _current_campaign:
+		return null
+	if not _current_campaign.has_method("get_data"):
+		return null
+	return _current_campaign.get_data(key)
+
+func _get_safe_world_trait(value: Variant) -> GameEnums.WorldTrait:
+	if value is int:
+		return value as GameEnums.WorldTrait
+	elif value is GameEnums.WorldTrait:
+		return value as GameEnums.WorldTrait
+	else:
+		return GameEnums.WorldTrait.NONE
+
+## TYPE SAFETY HELPERS - Safe data extraction and conversion
+func _get_safe_dictionary_data(data: Dictionary, key: String) -> Dictionary:
+	if not data.has(key):
+		return {}
+	var value = data[key]
+	if value is Dictionary:
+		return value.duplicate()
+	else:
+		push_warning("Invalid data format for key: " + key)
+		return {}
+
+func _get_safe_resource_type(type_variant: Variant) -> GameEnums.ResourceType:
+	if type_variant is int:
+		return type_variant as GameEnums.ResourceType
+	elif type_variant is GameEnums.ResourceType:
+		return type_variant as GameEnums.ResourceType
+	else:
+		push_warning("Invalid resource type: " + str(type_variant))
+		return GameEnums.ResourceType.CREDITS
+
+func _validate_quest_data(quest: Dictionary) -> bool:
+	return quest.has("id") and quest.has("title") and quest.has("description")
+
+## METHOD SAFETY HELPERS - Safe external method calls
+func _deserialize_player_ship(ship_data: Dictionary) -> void:
+	if not player_ship:
+		player_ship = Ship.new()
+	if player_ship.has_method("deserialize"):
+		player_ship.deserialize(ship_data)
+	else:
+		push_warning("Ship class does not support deserialize method")
+
+func _deserialize_campaign(campaign_data: Dictionary) -> void:
+	if not _current_campaign:
+		_current_campaign = FiveParsecsCampaign.new()
+	if _current_campaign.has_method("deserialize"):
+		_current_campaign.deserialize(campaign_data)
+	else:
+		push_warning("Campaign class does not support deserialize method")
+
+func _load_campaign_from_dictionary(campaign_dict: Dictionary) -> void:
+	if not _current_campaign:
+		_current_campaign = FiveParsecsCampaign.new()
+	if _current_campaign.has_method("from_dictionary"):
+		_current_campaign.from_dictionary(campaign_dict)
+	else:
+		push_warning("Campaign does not support from_dictionary method")
+
+func _get_campaign_dictionary() -> Dictionary:
+	if not _current_campaign:
+		return {}
+	if _current_campaign.has_method("to_dictionary"):
+		return _current_campaign.to_dictionary()
+	else:
+		push_warning("Campaign does not support to_dictionary method")
+		return {}
+
+func _get_safe_crew_members() -> Array:
+	if not _current_campaign:
+		return []
+	if _current_campaign.has_method("get_crew_members"):
+		return _current_campaign.get_crew_members()
+	else:
+		return []
+
+
+## OPERATION QUEUEING - Clean operation management
+func _queue_save_operation(save_name: String, create_backup: bool) -> void:
+	var save_operation := {
+		"save_name": save_name,
+		"create_backup": create_backup
+	}
+	_save_queue.append(save_operation)
+
+func _process_save_queue() -> void:
+## ARRAY OPERATION HELPERS - Clean collection management
+func _add_active_quest(quest: Dictionary) -> void:
+	active_quests.append(quest)
+
+func _add_completed_quest(quest: Dictionary) -> void:
+	completed_quests.append(quest)
+
+func _add_visited_location(location_id: String) -> void:
+	visited_locations.append(location_id)
+
+func _add_turn_event(event: Dictionary) -> void:
+	var events: Array = []
+	events.append(event)
+
+func _add_backup_entry(backup_data: Dictionary) -> void:
+	var backups: Array = []
+	backups.append(backup_data)
+
+	if not _save_queue.is_empty():
+		var next_save = _save_queue.pop_front()
+		save_game(next_save.save_name, next_save.create_backup)
+
 ## Save the current game state to a file
 ## @param save_name: Name of the save file
 ## @param create_backup: Whether to create a backup of existing save
+
 ## @return: Whether the save was successful
 func save_game(save_name: String, create_backup: bool = true) -> bool:
 	if _save_operation_in_progress:
 		# Queue this save for later
-		_save_queue.append({
-			"save_name": save_name,
-			"create_backup": create_backup
-		})
+		_queue_save_operation(save_name, create_backup)
 		return false
 		
 	_save_operation_in_progress = true
 	_save_retry_count = 0
-	save_started.emit()
+	_emit_save_started()
 	
 	# Ensure save directory exists
 	var save_dir := "user://saves/"
@@ -102,11 +257,11 @@ func save_game(save_name: String, create_backup: bool = true) -> bool:
 	# Format file paths
 	var file_path := save_dir + save_name + "." + SAVE_FILE_EXTENSION
 	
-	# Create backup if needed
+	# Create _backup if needed
 	if create_backup and FileAccess.file_exists(file_path):
 		var backup_success := _create_backup(file_path)
 		if not backup_success:
-			push_warning("Failed to create backup before saving")
+			push_warning("Failed to create _backup before saving")
 	
 	# Gather save data
 	var save_data := _gather_save_data()
@@ -128,13 +283,11 @@ func save_game(save_name: String, create_backup: bool = true) -> bool:
 	
 	_save_operation_in_progress = false
 	last_save_time = Time.get_unix_time_from_system()
-	save_completed.emit(true, "Game saved successfully")
-	campaign_saved.emit()
+	_emit_save_completed(true, "Game saved successfully")
+	_emit_campaign_saved()
 	
 	# Process any queued saves
-	if not _save_queue.is_empty():
-		var next_save = _save_queue.pop_front()
-		save_game(next_save.save_name, next_save.create_backup)
+	_process_save_queue()
 		
 	return true
 
@@ -156,19 +309,19 @@ func _handle_save_failure(error_message: String, file_path: String) -> void:
 			if move_success:
 				_save_operation_in_progress = false
 				last_save_time = Time.get_unix_time_from_system()
-				save_completed.emit(true, "Game saved successfully after retry")
-				campaign_saved.emit()
+				_emit_save_completed(true, "Game saved successfully after retry")
+				_emit_campaign_saved()
 				return
 	
 	# All retries failed or not attempting retry
 	_save_operation_in_progress = false
-	save_completed.emit(false, error_message)
+	_emit_save_completed(false, error_message)
 	
 	# Log the error
 	push_error("Save failure: " + error_message)
 	
 	# Log using ErrorLogger with correct parameters
-	var err_logger = ErrorLogger.new()
+	var err_logger := ErrorLogger.new()
 	err_logger.log_error(
 		error_message,
 		ErrorLogger.ErrorCategory.PERSISTENCE,
@@ -178,6 +331,7 @@ func _handle_save_failure(error_message: String, file_path: String) -> void:
 
 ## Create a backup of a save file with rotation
 ## @param file_path: Path to the file to back up
+
 ## @return: Whether the backup was successful
 func _create_backup(file_path: String) -> bool:
 	if not FileAccess.file_exists(file_path):
@@ -190,7 +344,7 @@ func _create_backup(file_path: String) -> bool:
 	if not DirAccess.dir_exists_absolute(save_dir):
 		DirAccess.make_dir_recursive_absolute(save_dir)
 	
-	# Extract the filename without path
+	# Extract the filename without _path
 	var filename := file_path.get_file()
 	var backup_name := "%s.%04d-%02d-%02d-%02d-%02d-%02d.%s" % [
 		save_dir + filename.get_basename(),
@@ -208,7 +362,7 @@ func _create_backup(file_path: String) -> bool:
 			# Manage backup rotation - limit the number of backups
 			_rotate_backups(filename.get_basename())
 		
-		backup_created.emit(success, backup_name)
+		_emit_backup_created(success, backup_name)
 		return success
 		
 	return false
@@ -228,8 +382,8 @@ func _rotate_backups(base_name: String) -> void:
 	var file_name := dir.get_next()
 	while file_name != "":
 		if not dir.current_is_dir() and file_name.begins_with(base_name) and file_name.ends_with(BACKUP_FILE_EXTENSION):
-			backups.append({
-				"name": file_name,
+			backups.append({ # warning: return value discarded (intentional)
+				"_name": file_name,
 				"path": backups_dir + file_name,
 				"modified": FileAccess.get_modified_time(backups_dir + file_name)
 			})
@@ -244,11 +398,12 @@ func _rotate_backups(base_name: String) -> void:
 		var dir_remove := DirAccess.open(backups_dir)
 		if dir_remove:
 			for i in range(MAX_BACKUP_FILES, backups.size()):
-				dir_remove.remove(backups[i].name)
+				dir_remove.remove(backups[i]._name)
 
 ## Replace one file with another
 ## @param source_path: Path to the source file
 ## @param target_path: Path to the target file
+
 ## @return: Whether the replacement was successful
 func _replace_file(source_path: String, target_path: String) -> bool:
 	if not FileAccess.file_exists(source_path):
@@ -273,6 +428,7 @@ func _replace_file(source_path: String, target_path: String) -> bool:
 ## Write save data to file
 ## @param file_path: Path to write the file
 ## @param save_data: Dictionary containing save data
+
 ## @return: Whether the write was successful
 func _write_save_file(file_path: String, save_data: Dictionary) -> bool:
 	var file := FileAccess.open(file_path, FileAccess.WRITE)
@@ -283,18 +439,18 @@ func _write_save_file(file_path: String, save_data: Dictionary) -> bool:
 	
 	# Use JSON.stringify with error handling
 	var json_string: String = ""
-	var json_error: Error = OK
+	var _json_error: Error = OK
 	
 	# Try to stringify with pretty formatting
 	json_string = JSON.stringify(save_data, "    ")
 	
 	if json_string.is_empty():
-		push_error("Failed to stringify save data")
+		push_error("Failed to stringify save _data")
 		return false
 		
 	file.store_string(json_string)
 	file.close()
-	
+
 	# Verify the file was written correctly
 	if not FileAccess.file_exists(file_path):
 		push_error("File does not exist after writing: " + file_path)
@@ -313,8 +469,8 @@ func _write_save_file(file_path: String, save_data: Dictionary) -> bool:
 	
 	return true
 
-## Gather all data to be saved
-## @return: Dictionary containing all save data
+## Gather all _data to be saved
+## @return: Dictionary containing all save _data
 func _gather_save_data() -> Dictionary:
 	var save_data := {
 		"version": ProjectSettings.get_setting("application/config/version", "1.0.0"),
@@ -353,7 +509,7 @@ func _init() -> void:
 
 func set_phase(phase: GameEnums.FiveParcsecsCampaignPhase) -> void:
 	current_phase = phase
-	state_changed.emit()
+	_emit_state_changed()
 
 func can_transition_to(phase: GameEnums.FiveParcsecsCampaignPhase) -> bool:
 	match current_phase:
@@ -384,17 +540,17 @@ func complete_phase() -> void:
 func advance_turn() -> void:
 	if turn_number < max_turns:
 		turn_number += 1
-		turn_advanced.emit()
-		state_changed.emit()
+		_emit_turn_advanced()
+		_emit_state_changed()
 		
 		if auto_save_enabled:
 			_auto_save()
 
 func get_turn_events() -> Array:
 	# Generate events based on current state
-	var events = []
+	var events: Array = []
 	if current_location:
-		events.append({
+		events.append({ # warning: return value discarded (intentional)
 			"type": "location",
 			"data": current_location
 		})
@@ -406,7 +562,7 @@ func add_resource(resource_type: GameEnums.ResourceType, amount: int) -> bool:
 		return false
 	var current = get_resource(resource_type)
 	resources[resource_type] = current + amount
-	resources_changed.emit()
+	_emit_resources_changed()
 	return true
 
 func remove_resource(resource_type: GameEnums.ResourceType, amount: int) -> bool:
@@ -414,7 +570,7 @@ func remove_resource(resource_type: GameEnums.ResourceType, amount: int) -> bool
 	if current < amount:
 		return false
 	resources[resource_type] = current - amount
-	resources_changed.emit()
+	_emit_resources_changed()
 	return true
 
 func get_resource(resource_type: GameEnums.ResourceType) -> int:
@@ -424,68 +580,76 @@ func get_resource(resource_type: GameEnums.ResourceType) -> int:
 func add_quest(quest: Dictionary) -> bool:
 	if active_quests.size() >= 10:
 		return false
-	active_quests.append(quest)
-	quest_added.emit(quest)
+
+	_add_active_quest(quest)
+	_emit_quest_added(quest)
 	return true
 
 func complete_quest(quest_id: String) -> bool:
 	for quest in active_quests:
-		if quest.id == quest_id:
+		if quest._id == quest_id:
 			active_quests.erase(quest)
-			completed_quests.append(quest)
-			quest_completed.emit(quest_id)
+
+			_add_completed_quest(quest)
+			_emit_quest_completed(quest_id)
 			return true
 	return false
 
 # Location Management
 func set_location(location: Dictionary) -> void:
 	current_location = location
-	if not (location.id in visited_locations):
-		visited_locations.append(location.id)
-	state_changed.emit()
+	if location.has("id") and not (location.id in visited_locations):
+		_add_visited_location(location.id)
+	_emit_state_changed()
+
+func get_current_location() -> Dictionary:
+	return current_location
 
 func apply_location_effects() -> void:
-	if current_location and current_location.has("fuel_cost"):
+	if not current_location.is_empty() and current_location.has("fuel_cost"):
 		remove_resource(GameEnums.ResourceType.FUEL, current_location.fuel_cost)
 
 # Ship Management
-func set_player_ship(ship) -> void:
+
+func set_player_ship(ship: Ship) -> void:
 	player_ship = ship
-	state_changed.emit()
+	_emit_state_changed()
+
+func get_player_ship() -> Ship:
+	return player_ship
 
 func apply_ship_damage(amount: int) -> void:
-	if player_ship:
-		var hull = player_ship.get_component("hull")
-		if hull:
-			hull.durability = maxi(0, hull.durability - amount)
-			if hull.durability == 0:
-				hull.is_active = false
+	var hull = _get_safe_ship_component("hull")
+	if hull and hull.has("durability"):
+		hull.durability = maxi(0, hull.durability - amount)
+		if hull.durability == 0 and hull.has("is_active"):
+			hull.is_active = false
 
 func repair_ship() -> void:
-	if player_ship:
-		var hull = player_ship.get_component("hull")
-		if hull:
-			hull.durability = 100
-			hull.is_active = true
+	var hull = _get_safe_ship_component("hull")
+	if hull and hull.has("durability") and hull.has("is_active"):
+		hull.durability = 100
+		hull.is_active = true
 
 # Reputation System
+
 func add_reputation(amount: int) -> void:
 	reputation = mini(reputation + amount, max_reputation)
-	state_changed.emit()
+	_emit_state_changed()
 
 func remove_reputation(amount: int) -> void:
 	reputation = maxi(0, reputation - amount)
-	state_changed.emit()
+	_emit_state_changed()
 
 # Story Point Management
 func add_story_points(amount: int) -> void:
 	story_points = mini(story_points + amount, max_story_points)
-	state_changed.emit()
+	_emit_state_changed()
 
 func use_story_point() -> bool:
 	if story_points > 0:
 		story_points -= 1
-		state_changed.emit()
+		_emit_state_changed()
 		return true
 	return false
 
@@ -494,7 +658,7 @@ func quick_save() -> void:
 	if not _current_campaign or not save_manager:
 		return
 		
-	var save_name = "quicksave_%d" % turn_number
+	var save_name: String = "quicksave_%d" % turn_number
 	var save_data = serialize()
 	save_manager.save_game(save_data, save_name)
 
@@ -502,34 +666,34 @@ func _auto_save() -> void:
 	if not _current_campaign or not auto_save_enabled or not save_manager:
 		return
 		
-	var save_name = "autosave_%d" % turn_number
+	var save_name: String = "autosave_%d" % turn_number
 	var save_data = serialize()
 	save_manager.save_game(save_data, save_name)
 
 func _on_save_manager_save_completed(success: bool, message: String) -> void:
 	if success:
 		last_save_time = Time.get_unix_time_from_system()
-	save_completed.emit(success, message)
+	_emit_save_completed(success, message)
 
 func _on_save_manager_load_completed(success: bool, message: String) -> void:
-	load_completed.emit(success, message)
+	_emit_load_completed(success, message)
 
 # Settings Management
 func set_difficulty(new_difficulty: GameEnums.DifficultyLevel) -> void:
 	difficulty_level = new_difficulty
-	state_changed.emit()
+	_emit_state_changed()
 
 func set_permadeath(enabled: bool) -> void:
 	enable_permadeath = enabled
-	state_changed.emit()
+	_emit_state_changed()
 
 func set_story_track(enabled: bool) -> void:
 	use_story_track = enabled
-	state_changed.emit()
+	_emit_state_changed()
 
 func set_auto_save(enabled: bool) -> void:
 	auto_save_enabled = enabled
-	state_changed.emit()
+	_emit_state_changed()
 
 # Serialization
 func serialize() -> Dictionary:
@@ -576,18 +740,36 @@ func deserialize(data: Dictionary) -> void:
 	auto_save_frequency = data.get("auto_save_frequency", 15)
 	
 	if data.has("current_location"):
-		current_location = data.current_location.duplicate()
+		current_location = _get_safe_dictionary_data(data, "current_location")
 	
 	if data.has("player_ship"):
-		player_ship = Ship.new()
-		player_ship.deserialize(data.player_ship)
-		
+		var ship_data = _get_safe_dictionary_data(data, "player_ship")
+	if ship_data:
+			player_ship = Ship.new()
+			_deserialize_player_ship(ship_data)
+			else:
+				push_warning("Ship class does not support deserialize method")
+		else:
+			push_warning("Invalid ship data format in save file")
+	
 	if data.has("campaign"):
-		_current_campaign = FiveParsecsCampaign.new()
-		_current_campaign.deserialize(data.campaign)
+		var campaign_data = _get_safe_dictionary_data(data, "campaign")
+		if campaign_data:
+			_current_campaign = FiveParsecsCampaign.new()
+			_deserialize_campaign(campaign_data)
+		else:
+			push_warning("Invalid campaign data format in save file")
+		else:
+			push_warning("Campaign class does not support deserialize method")
+		else:
+			push_warning("Invalid campaign data format in save file")
+			else:
+				push_warning("Campaign class does not support deserialize method")
+		else:
+			push_warning("Invalid campaign data format in save file")
 
 static func deserialize_new(data: Dictionary) -> GameState:
-	var state = GameState.new()
+	var state := GameState.new()
 	state.deserialize(data)
 	return state
 
@@ -619,22 +801,30 @@ func start_new_campaign(campaign: FiveParsecsCampaign) -> void:
 	_current_campaign = campaign
 	turn_number = 1
 	reputation = campaign.starting_reputation
-	state_changed.emit()
+	_emit_state_changed()
 	
 	if auto_save_enabled:
 		_auto_save()
 
 func load_campaign(save_data: Dictionary) -> void:
-	load_started.emit()
+	_emit_load_started()
 	
 	if not save_data.has("campaign"):
 		push_error("No campaign data in save file")
-		load_completed.emit(false, "No campaign data in save file")
+		_emit_load_completed(false, "No campaign data in save file")
 		return
 	
-	var campaign_data = save_data.campaign
+	var campaign_data: Variant = save_data.campaign
+	if not campaign_data is Dictionary:
+		push_error("Invalid campaign data format")
+		_emit_load_completed(false, "Invalid campaign data format")
+		return
+		
+	var campaign_dict: Dictionary = campaign_data as Dictionary
 	_current_campaign = FiveParsecsCampaign.new()
-	_current_campaign.from_dictionary(campaign_data)
+	_load_campaign_from_dictionary(campaign_dict)
+	else:
+		push_warning("Campaign does not support from_dictionary method")
 	
 	# Load game state
 	turn_number = save_data.get("turn_number", 1)
@@ -647,20 +837,25 @@ func load_campaign(save_data: Dictionary) -> void:
 	use_story_track = save_data.get("use_story_track", true)
 	auto_save_enabled = save_data.get("auto_save_enabled", true)
 	
-	campaign_loaded.emit(_current_campaign)
-	state_changed.emit()
-	load_completed.emit(true, "Campaign loaded successfully")
+	_emit_campaign_loaded(_current_campaign)
+	_emit_state_changed()
+	_emit_load_completed(true, "Campaign loaded successfully")
 
 func save_campaign() -> Dictionary:
-	save_started.emit()
+	save_started.emit() # warning: return value discarded (intentional)
 	
 	if not _current_campaign:
 		push_error("No campaign to save")
-		save_completed.emit(false, "No campaign to save")
+		_emit_save_completed(false, "No campaign to save")
 		return {}
 	
-	var save_data := {
-		"campaign": _current_campaign.to_dictionary(),
+	var campaign_data: Dictionary = {}
+	campaign_data = _get_campaign_dictionary()
+	else:
+		push_warning("Campaign does not support to_dictionary method")
+	
+	var save_data: Dictionary = {
+		"campaign": campaign_data,
 		"turn_number": turn_number,
 		"reputation": reputation,
 		"last_save_time": Time.get_unix_time_from_system(),
@@ -670,7 +865,7 @@ func save_campaign() -> Dictionary:
 		"auto_save_enabled": auto_save_enabled
 	}
 	
-	campaign_saved.emit()
+	_emit_campaign_saved()
 	return save_data
 
 func has_active_campaign() -> bool:
@@ -683,14 +878,14 @@ func end_campaign() -> void:
 	_current_campaign = null
 	turn_number = 0
 	reputation = 0
-	state_changed.emit()
+	_emit_state_changed()
 
 func get_campaign() -> FiveParsecsCampaign:
 	return _current_campaign
 
 func modify_reputation(amount: int) -> void:
 	reputation += amount
-	state_changed.emit()
+	_emit_state_changed()
 
 # Resource Management
 func has_resource(resource_type: int) -> bool:
@@ -698,8 +893,8 @@ func has_resource(resource_type: int) -> bool:
 
 func set_resource(resource_type: int, amount: int) -> void:
 	resources[resource_type] = amount
-	resources_changed.emit()
-	state_changed.emit()
+	_emit_resources_changed()
+	_emit_state_changed()
 
 func modify_resource(resource_type: int, amount: int) -> void:
 	var current = get_resource(resource_type)
@@ -710,6 +905,22 @@ func get_crew_size() -> int:
 	if not _current_campaign:
 		return 0
 	return _current_campaign.get_crew_size()
+
+func has_crew() -> bool:
+	return get_crew_size() > 0
+
+func get_crew_members() -> Array:
+	if not _current_campaign:
+		return []
+	return _get_safe_crew_members()
+	return []
+
+func get_active_campaign_data() -> Dictionary:
+	if not _current_campaign:
+		return {}
+	if _current_campaign.has_method("to_dictionary"):
+		return _current_campaign.to_dictionary()
+	return {}
 
 # Equipment Management
 func has_equipment(equipment_type: Variant) -> bool:
@@ -802,11 +1013,11 @@ func remove_medical_supplies(amount: int) -> bool:
 func get_medical_supplies() -> int:
 	return get_resource(GameEnums.ResourceType.MEDICAL_SUPPLIES)
 
-## Calculate total value of resources
+## Calculate total _value of resources
 func calculate_total_resource_value() -> int:
-	var total_value = 0
+	var total_value: int = 0
 	
-	# Credit value is direct
+	# Credit _value is direct
 	total_value += get_credits()
 	
 	# Other resources have market values based on rulebook
@@ -861,7 +1072,7 @@ func trade_resources(source_type: GameEnums.ResourceType, target_type: GameEnums
 ## Get the current market price for a resource type based on location
 func get_market_price(resource_type: GameEnums.ResourceType) -> int:
 	# Base prices from rulebook
-	var base_prices = {
+	var base_prices: Dictionary = {
 		GameEnums.ResourceType.FUEL: 10,
 		GameEnums.ResourceType.TECH_PARTS: 15,
 		GameEnums.ResourceType.MEDICAL_SUPPLIES: 25,
@@ -870,11 +1081,11 @@ func get_market_price(resource_type: GameEnums.ResourceType) -> int:
 	}
 	
 	# If resource not defined, default to 10
-	var base_price = base_prices.get(resource_type, 10)
+	var base_price: int = base_prices.get(resource_type, 10)
 	
 	# Adjust price based on current location
-	if current_location:
-		var location_type = current_location.get("type", GameEnums.WorldTrait.NONE)
+	if not current_location.is_empty() and current_location.has("type"):
+		var location_type: GameEnums.WorldTrait = _get_safe_world_trait(current_location.get("type"))
 		
 		match location_type:
 			GameEnums.WorldTrait.TRADE_CENTER:
@@ -901,15 +1112,15 @@ func get_market_price(resource_type: GameEnums.ResourceType) -> int:
 					base_price = int(base_price * 1.2)
 	
 	# Apply random market fluctuation (+/- 20%)
-	var fluctuation = randf_range(0.8, 1.2)
-	var final_price = int(base_price * fluctuation)
+	var fluctuation: float = randf_range(0.8, 1.2)
+	var final_price: int = int(base_price * fluctuation)
 	
 	# Ensure minimum price
 	return max(1, final_price)
 
 ## Calculate the selling price for a resource
 func get_resource_sell_price(resource_type: GameEnums.ResourceType) -> int:
-	# Selling price is always less than buying price (75% of market value)
+	# Selling price is always less than buying price (75% of market _value)
 	return int(get_market_price(resource_type) * 0.75)
 
 ## Buy resources from the market
@@ -939,4 +1150,3 @@ func sell_resources(resource_type: GameEnums.ResourceType, amount: int) -> bool:
 		return true
 	
 	return false
-  

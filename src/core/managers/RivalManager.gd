@@ -13,7 +13,6 @@ var rival_statuses: Dictionary = {} # rival_id -> status
 
 func _init(_game_state: FiveParsecsGameState) -> void:
     game_state = _game_state
-
 func generate_rival() -> Dictionary:
     var rival = {
         "id": "rival_" + str(randi()),
@@ -27,12 +26,12 @@ func generate_rival() -> Dictionary:
         },
         "characteristics": _generate_rival_characteristics()
     }
-    
-    active_rivals.append(rival)
+
+    active_rivals.append(rival) # warning: return value discarded (intentional)
     rival_reputations[rival.id] = 0
     rival_statuses[rival.id] = "NEUTRAL"
     
-    rival_encountered.emit(rival)
+    rival_encountered.emit(rival) # warning: return value discarded (intentional)
     return rival
 
 func update_rival_reputation(rival_id: String, change: int) -> void:
@@ -42,12 +41,12 @@ func update_rival_reputation(rival_id: String, change: int) -> void:
     rival_reputations[rival_id] = clamp(rival_reputations[rival_id] + change, -100, 100)
     var rival = get_rival(rival_id)
     
-    rival_reputation_changed.emit(rival, change)
+    rival_reputation_changed.emit(rival, change) # warning: return value discarded (intentional)
     _check_reputation_thresholds(rival)
 
 func get_rival(rival_id: String) -> Dictionary:
     for rival in active_rivals:
-        if rival.id == rival_id:
+        if rival._id == rival_id:
             return rival
     return {}
 
@@ -105,7 +104,8 @@ func _generate_rival_characteristics() -> Array:
             
         var index = randi() % available_characteristics.size()
         var selected_characteristic = available_characteristics[index]
-        characteristics.append(selected_characteristic)
+
+        characteristics.append(selected_characteristic) # warning: return value discarded (intentional)
         available_characteristics.remove_at(index)
     
     return characteristics
@@ -128,10 +128,10 @@ func _check_reputation_thresholds(rival: Dictionary) -> void:
     
     if new_status != old_status:
         rival_statuses[rival.id] = new_status
-        rival_status_changed.emit(rival, new_status)
+        rival_status_changed.emit(rival, new_status) # warning: return value discarded (intentional)
 
 func _calculate_negotiation_chance(rival: Dictionary) -> float:
-    var base_chance = 0.5
+    var base_chance: int = 0
     var reputation = get_rival_reputation(rival.id)
     
     # Modify based on reputation
@@ -157,7 +157,6 @@ func _calculate_negotiation_chance(rival: Dictionary) -> float:
 func _improve_rival_relations(rival: Dictionary) -> void:
     var reputation_gain = randi_range(5, 15)
     update_rival_reputation(rival.id, reputation_gain)
-
 func _worsen_rival_relations(rival: Dictionary) -> void:
     var reputation_loss = randi_range(5, 15)
-    update_rival_reputation(rival.id, - reputation_loss)
+    update_rival_reputation(rival.id, -reputation_loss)

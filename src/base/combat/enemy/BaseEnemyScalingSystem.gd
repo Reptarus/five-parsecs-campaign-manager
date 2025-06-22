@@ -60,7 +60,7 @@ func initialize(config: Dictionary = {}) -> void:
 		if "quantity" in factors:
 			quantity_scaling = factors.quantity
 	
-	scaling_rules_updated.emit()
+	scaling_rules_updated.emit() # warning: return value discarded (intentional)
 
 func scale_enemy(enemy: Node, enemy_type: String = "") -> void:
 	if not scaling_enabled:
@@ -71,7 +71,7 @@ func scale_enemy(enemy: Node, enemy_type: String = "") -> void:
 	
 	_apply_scaling(enemy, scale_factors)
 	
-	enemy_scaled.emit(enemy, current_difficulty, scale_factors)
+	enemy_scaled.emit(enemy, current_difficulty, scale_factors) # warning: return value discarded (intentional)
 
 func calculate_current_difficulty() -> float:
 	var difficulty = base_difficulty * difficulty_multiplier
@@ -96,7 +96,7 @@ func calculate_scale_factors(enemy_type: String, difficulty: float) -> Dictionar
 		"quantity": quantity_scaling * difficulty
 	}
 	
-	# Apply enemy type specific modifiers
+	# Apply enemy _type specific modifiers
 	_apply_enemy_type_modifiers(factors, enemy_type)
 	
 	return factors
@@ -104,7 +104,6 @@ func calculate_scale_factors(enemy_type: String, difficulty: float) -> Dictionar
 func _apply_enemy_type_modifiers(factors: Dictionary, enemy_type: String) -> void:
 	# To be implemented by derived classes
 	pass
-
 func _apply_scaling(enemy: Node, scale_factors: Dictionary) -> void:
 	# To be implemented by derived classes
 	pass
@@ -122,24 +121,24 @@ func update_player_performance(performance_data: Dictionary) -> void:
 	
 	# Update difficulty
 	var new_difficulty = calculate_current_difficulty()
-	difficulty_changed.emit(new_difficulty)
+	difficulty_changed.emit(new_difficulty) # warning: return value discarded (intentional)
 
 func update_mission_progress(progress: float) -> void:
 	mission_progress = clamp(progress, 0.0, 1.0)
 	
 	if adaptive_scaling:
 		var new_difficulty = calculate_current_difficulty()
-		difficulty_changed.emit(new_difficulty)
+		difficulty_changed.emit(new_difficulty) # warning: return value discarded (intentional)
 
 func update_game_progress(progress: float) -> void:
 	game_progress = clamp(progress, 0.0, 1.0)
 	
 	if adaptive_scaling:
 		var new_difficulty = calculate_current_difficulty()
-		difficulty_changed.emit(new_difficulty)
+		difficulty_changed.emit(new_difficulty) # warning: return value discarded (intentional)
 
 func _calculate_performance_score(performance_data: Dictionary) -> float:
-	var score = 0.0
+	var score: int = 0
 	
 	# Factors to consider
 	if "kills" in performance_data:
@@ -178,7 +177,6 @@ func get_scaling_config() -> Dictionary:
 
 func set_scaling_config(config: Dictionary) -> void:
 	initialize(config)
-
 func reset_performance_tracking() -> void:
 	player_performance_score = 0.0
 	mission_progress = 0.0

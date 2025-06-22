@@ -1,335 +1,187 @@
 @tool
+extends Node
 class_name FiveParsecsMissionGenerator
-extends BaseMissionGenerator
 
-const BaseMissionGenerator = preload("res://src/base/campaign/BaseMissionGenerator.gd")
+## Five Parsecs Mission Generator
+## Generates missions specific to Five Parsecs from Home campaign system
+
 const GameEnums = preload("res://src/core/systems/GlobalEnums.gd")
+const Mission = preload("res://src/core/systems/Mission.gd")
+const MissionObjective = preload("res://src/core/mission/MissionObjective.gd")
 
-# Five Parsecs specific mission types
-enum FiveParsecsMissionType {
-	BATTLE = 0,
-	PATRON_JOB = 1,
-	STORY_MISSION = 2,
-	RIVAL_ENCOUNTER = 3,
-	SALVAGE_RUN = 4,
-	RESCUE_OPERATION = 5,
-	BOUNTY_HUNT = 6,
-	EXPLORATION = 7,
-	CONVOY_ESCORT = 8,
-	DEFENSE = 9
-}
+signal mission_generated(mission: Mission)
+signal mission_validation_failed(reason: String)
 
-# Five Parsecs specific mission properties
-var mission_locations: Array = [
-	"Abandoned Outpost",
-	"Derelict Ship",
-	"Urban Ruins",
-	"Mining Facility",
-	"Research Station",
-	"Jungle Wilderness",
-	"Desert Wasteland",
-	"Space Station",
-	"Underground Complex",
-	"Orbital Platform"
+var mission_types: Array[String] = [
+	"Patrol", "Salvage", "Trade", "Exploration", "Pursuit",
+	"Defending", "Opportunity", "Raid", "Investigation", "Delivery"
 ]
 
-var enemy_factions: Array = [
-	"Marauders",
-	"Corporate Security",
-	"Alien Horde",
-	"Rogue AI",
-	"Rival Crew",
-	"Government Forces",
-	"Cultists",
-	"Mercenaries",
-	"Rebels",
-	"Pirates"
+var deployment_conditions: Array[String] = [
+	"Standard", "Delayed", "Rushed", "Stealth", "Assault"
+]
+
+var special_rules: Array[String] = [
+	"NIGHT_FIGHTING", "ENVIRONMENTAL_HAZARD", "TIME_LIMIT",
+	"RIVAL_PRESENCE", "CIVILIAN_PRESENCE", "VALUABLE_CARGO"
 ]
 
 func _init() -> void:
-	# Override mission types with Five Parsecs specific types
-	mission_types = {
-		FiveParsecsMissionType.BATTLE: "Battle",
-		FiveParsecsMissionType.PATRON_JOB: "Patron Job",
-		FiveParsecsMissionType.STORY_MISSION: "Story Mission",
-		FiveParsecsMissionType.RIVAL_ENCOUNTER: "Rival Encounter",
-		FiveParsecsMissionType.SALVAGE_RUN: "Salvage Run",
-		FiveParsecsMissionType.RESCUE_OPERATION: "Rescue Operation",
-		FiveParsecsMissionType.BOUNTY_HUNT: "Bounty Hunt",
-		FiveParsecsMissionType.EXPLORATION: "Exploration",
-		FiveParsecsMissionType.CONVOY_ESCORT: "Convoy Escort",
-		FiveParsecsMissionType.DEFENSE: "Defense"
-	}
+	name = "FiveParsecsMissionGenerator"
 
-func generate_mission(difficulty: int = 2, type: int = -1) -> Dictionary:
-	if type < 0:
-		type = randi() % FiveParsecsMissionType.size()
+func generate_mission(difficulty: int = 1) -> Mission:
+	var mission := Mission.new()
 	
-	var mission = {
-		"id": str(randi()),
-		"type": type,
-		"difficulty": difficulty,
-		"title": generate_mission_title(type),
-		"description": generate_mission_description(type, difficulty),
-		"reward": calculate_mission_reward(difficulty, type),
-		"location": mission_locations[randi() % mission_locations.size()],
-		"enemy_faction": enemy_factions[randi() % enemy_factions.size()],
-		"enemy_count": calculate_enemy_count(difficulty, type),
-		"special_rules": generate_special_rules(type),
-		"objectives": generate_objectives(type),
-		"loot_table": generate_loot_table(difficulty),
-		"completed": false,
-		"success": false
-	}
+	# Set basic mission properties  
+	mission.mission_type = GameEnums.MissionType.PATROL + (randi() % (GameEnums.MissionType.DEFENSE - GameEnums.MissionType.PATROL + 1))
+	mission.difficulty = clampi(difficulty, 1, 5)
+	mission.deployment_condition = deployment_conditions[randi() % deployment_conditions.size()]
+	
+	# Generate mission details
+	_generate_mission_name(mission)
+	_generate_objectives(mission)
+	_generate_rewards(mission)
+	_generate_enemy_forces(mission)
+	_add_special_rules(mission)
 	
 	mission_generated.emit(mission)
 	return mission
 
-func generate_mission_title(type: int) -> String:
-	var titles = {
-		FiveParsecsMissionType.BATTLE: [
-			"Desperate Stand", "Firefight", "Skirmish", "Ambush", "Raid"
-		],
-		FiveParsecsMissionType.PATRON_JOB: [
-			"Special Contract", "Lucrative Offer", "Patron's Request", "High-Stakes Job", "Covert Operation"
-		],
-		FiveParsecsMissionType.STORY_MISSION: [
-			"Critical Moment", "Turning Point", "Revelation", "Confrontation", "Discovery"
-		],
-		FiveParsecsMissionType.RIVAL_ENCOUNTER: [
-			"Old Enemies", "Showdown", "Rivalry", "Contested Ground", "Face-Off"
-		],
-		FiveParsecsMissionType.SALVAGE_RUN: [
-			"Valuable Salvage", "Wreckage Recovery", "Scavenging Operation", "Derelict Exploration", "Abandoned Tech"
-		],
-		FiveParsecsMissionType.RESCUE_OPERATION: [
-			"Desperate Rescue", "Extraction Mission", "Hostage Situation", "Prisoner Recovery", "Emergency Evacuation"
-		],
-		FiveParsecsMissionType.BOUNTY_HUNT: [
-			"High-Value Target", "Wanted Dead or Alive", "Dangerous Quarry", "Fugitive Hunt", "Bounty Collection"
-		],
-		FiveParsecsMissionType.EXPLORATION: [
-			"Uncharted Territory", "Strange Discovery", "Ancient Ruins", "Mysterious Signal", "Frontier Expedition"
-		],
-		FiveParsecsMissionType.CONVOY_ESCORT: [
-			"Valuable Cargo", "Dangerous Transit", "Escort Duty", "Supply Run", "VIP Transport"
-		],
-		FiveParsecsMissionType.DEFENSE: [
-			"Last Stand", "Hold the Line", "Defensive Position", "Protect the Asset", "Fortified Defense"
-		]
+func _generate_mission_name(mission: Mission) -> void:
+	var prefixes = ["Operation", "Mission", "Assignment", "Contract"]
+	var suffixes = ["Alpha", "Beta", "Gamma", "Prime", "Storm", "Shadow"]
+	
+	var prefix = prefixes[randi() % prefixes.size()]
+	var suffix = suffixes[randi() % suffixes.size()]
+	mission.mission_name = prefix + " " + suffix
+
+func _generate_objectives(mission: Mission) -> void:
+	# Primary objective based on mission type
+	var primary_objective := MissionObjective.new()
+	
+	match mission.mission_type:
+		GameEnums.MissionType.PATROL:
+			primary_objective.objective_type = GameEnums.MissionObjective.PATROL
+			primary_objective.description = "Patrol the designated area and eliminate threats"
+		GameEnums.MissionType.SABOTAGE:
+			primary_objective.objective_type = GameEnums.MissionObjective.SABOTAGE
+			primary_objective.description = "Sabotage the target facility"
+		GameEnums.MissionType.ESCORT:
+			primary_objective.objective_type = GameEnums.MissionObjective.DEFEND
+			primary_objective.description = "Escort convoy to destination"
+		GameEnums.MissionType.RESCUE:
+			primary_objective.objective_type = GameEnums.MissionObjective.RESCUE
+			primary_objective.description = "Rescue the target and extract safely"
+		_:
+			primary_objective.objective_type = GameEnums.MissionObjective.WIN_BATTLE
+			primary_objective.description = "Complete the assigned objective"
+	
+	mission.objectives.append(primary_objective)
+	
+	# Add secondary objectives based on difficulty
+	if mission.difficulty >= 3:
+		_add_secondary_objective(mission)
+
+func _add_secondary_objective(mission: Mission) -> void:
+	var secondary_objective := MissionObjective.new()
+	var secondary_types = [
+		GameEnums.MissionObjective.SABOTAGE,
+		GameEnums.MissionObjective.RESCUE,
+		GameEnums.MissionObjective.RECON
+	]
+	
+	secondary_objective.objective_type = secondary_types[randi() % secondary_types.size()]
+	secondary_objective.description = "Complete secondary objective for bonus rewards"
+	secondary_objective.is_optional = true
+	mission.objectives.append(secondary_objective)
+
+func _generate_rewards(mission: Mission) -> void:
+	# Base credit reward
+	var base_credits = 100 * mission.difficulty
+	var credit_variance = base_credits * 0.3
+	var credits = base_credits + randi_range(-credit_variance, credit_variance)
+	
+	mission.rewards = {
+		"credits": credits,
+		"experience": 10 * mission.difficulty,
+		"reputation": 1 + (mission.difficulty - 1) / 2
 	}
 	
-	if titles.has(type) and titles[type].size() > 0:
-		return titles[type][randi() % titles[type].size()]
-	
-	return "Five Parsecs Mission"
+	# Add special rewards for higher difficulty
+	if mission.difficulty >= 4:
+		mission.rewards["equipment_chance"] = 0.3
+	if mission.difficulty >= 5:
+		mission.rewards["rare_equipment_chance"] = 0.1
 
-func generate_mission_description(type: int, difficulty: int) -> String:
-	var difficulty_desc = ""
-	match difficulty:
-		1: difficulty_desc = "This should be a straightforward mission."
-		2: difficulty_desc = "A standard operation with moderate risk."
-		3: difficulty_desc = "This mission presents significant challenges."
-		4: difficulty_desc = "A high-risk operation with serious dangers."
-		5: difficulty_desc = "An extremely dangerous mission with overwhelming odds."
+func _generate_enemy_forces(mission: Mission) -> void:
+	# Generate enemy composition based on mission type and difficulty
+	var enemy_count = 3 + mission.difficulty
+	var enemy_types = [
+		"Criminal Gang", "Pirates", "Corporate Security", "Alien Hunters",
+		"Rival Crew", "Military Patrol", "Scavengers", "Cultists"
+	]
 	
-	var type_desc = ""
-	match type:
-		FiveParsecsMissionType.BATTLE:
-			type_desc = "Engage and defeat enemy forces in direct combat."
-		FiveParsecsMissionType.PATRON_JOB:
-			type_desc = "Complete a specialized task for an influential patron."
-		FiveParsecsMissionType.STORY_MISSION:
-			type_desc = "A pivotal mission that will advance your crew's story."
-		FiveParsecsMissionType.RIVAL_ENCOUNTER:
-			type_desc = "Face off against a rival crew competing for the same objective."
-		FiveParsecsMissionType.SALVAGE_RUN:
-			type_desc = "Recover valuable salvage from a dangerous location."
-		FiveParsecsMissionType.RESCUE_OPERATION:
-			type_desc = "Extract hostages or stranded personnel from enemy territory."
-		FiveParsecsMissionType.BOUNTY_HUNT:
-			type_desc = "Track down and capture or eliminate a high-value target."
-		FiveParsecsMissionType.EXPLORATION:
-			type_desc = "Explore an uncharted area and document your findings."
-		FiveParsecsMissionType.CONVOY_ESCORT:
-			type_desc = "Protect a convoy of vehicles from enemy attacks."
-		FiveParsecsMissionType.DEFENSE:
-			type_desc = "Hold a strategic position against waves of enemies."
-	
-	return type_desc + " " + difficulty_desc
+	mission.enemy_forces = {
+		"primary_enemy": enemy_types[randi() % enemy_types.size()],
+		"enemy_count": enemy_count,
+		"elite_units": max(0, mission.difficulty - 2),
+		"special_equipment": mission.difficulty >= 3
+	}
 
-func calculate_mission_reward(difficulty: int, type: int) -> int:
-	# Base calculation from parent class
-	var base_reward = super.calculate_mission_reward(difficulty, type)
+func _add_special_rules(mission: Mission) -> void:
+	# Add special rules based on mission type and random chance
+	if randf() < 0.3: # 30% chance for special rules
+		var rule = special_rules[randi() % special_rules.size()]
+		mission.special_rules.append(rule)
 	
-	# Five Parsecs specific adjustments
-	match type:
-		FiveParsecsMissionType.PATRON_JOB:
-			base_reward *= 1.5 # Patron jobs pay more
-		FiveParsecsMissionType.STORY_MISSION:
-			base_reward *= 2.0 # Story missions have the highest rewards
-		FiveParsecsMissionType.RIVAL_ENCOUNTER:
-			base_reward *= 1.3 # Rival encounters have good rewards
-		FiveParsecsMissionType.SALVAGE_RUN:
-			base_reward *= 1.2 # Salvage runs have decent rewards
-	
-	# Random variation (±10%)
-	var variation = randf_range(0.9, 1.1)
-	base_reward = int(base_reward * variation)
-	
-	# Round to nearest 50
-	base_reward = int(round(base_reward / 50.0) * 50)
-	
-	return base_reward
+	# Mission type specific rules
+	match mission.mission_type:
+		"Salvage":
+			if randf() < 0.5:
+				mission.special_rules.append("ENVIRONMENTAL_HAZARD")
+		"Trade":
+			if randf() < 0.4:
+				mission.special_rules.append("CIVILIAN_PRESENCE")
+		"Exploration":
+			if randf() < 0.6:
+				mission.special_rules.append("TIME_LIMIT")
 
-func calculate_enemy_count(difficulty: int, type: int) -> int:
-	var base_count = difficulty + 2
+func get_mission_briefing(mission: Mission) -> String:
+	var briefing = "Mission: %s\n" % mission.mission_name
+	briefing += "Type: %s\n" % mission.mission_type
+	briefing += "Difficulty: %d/5\n\n" % mission.difficulty
 	
-	# Adjust based on mission type
-	match type:
-		FiveParsecsMissionType.BATTLE:
-			base_count += 2
-		FiveParsecsMissionType.RIVAL_ENCOUNTER:
-			base_count = 5 # Rival crews are typically 5 members
-		FiveParsecsMissionType.DEFENSE:
-			base_count += 3 # Defense missions have more enemies
+	briefing += "Objectives:\n"
+	for objective in mission.objectives:
+		var optional_text = " (Optional)" if objective.is_optional else ""
+		briefing += "- %s%s\n" % [objective.description, optional_text]
 	
-	# Add some randomness
-	base_count += randi() % 3 - 1
+	briefing += "\nRewards:\n"
+	for reward_type in mission.rewards:
+		briefing += "- %s: %s\n" % [reward_type.capitalize(), str(mission.rewards[reward_type])]
 	
-	# Ensure minimum of 2 enemies
-	return max(2, base_count)
+	if not mission.special_rules.is_empty():
+		briefing += "\nSpecial Rules:\n"
+		for rule in mission.special_rules:
+			briefing += "- %s\n" % rule.replace("_", " ").capitalize()
+	
+	return briefing
 
-func generate_special_rules(type: int) -> Array:
-	var special_rules = []
+func validate_mission(mission: Mission) -> bool:
+	if not mission:
+		mission_validation_failed.emit("Mission is null")
+		return false
 	
-	# 50% chance to have a special rule
-	if randf() < 0.5:
-		var possible_rules = [
-			"Limited Visibility",
-			"Hazardous Environment",
-			"Reinforcements",
-			"Time Limit",
-			"Restricted Equipment",
-			"Unstable Ground",
-			"Extreme Weather",
-			"Radiation Zone",
-			"Automated Defenses",
-			"Civilian Presence"
-		]
-		
-		# Add 1-2 special rules
-		var rule_count = randi() % 2 + 1
-		for i in range(rule_count):
-			if possible_rules.size() > 0:
-				var rule_index = randi() % possible_rules.size()
-				special_rules.append(possible_rules[rule_index])
-				possible_rules.remove_at(rule_index)
+	if mission.mission_name.is_empty():
+		mission_validation_failed.emit("Mission name is empty")
+		return false
 	
-	return special_rules
-
-func generate_objectives(type: int) -> Array:
-	var objectives = []
+	if mission.objectives.is_empty():
+		mission_validation_failed.emit("Mission has no objectives")
+		return false
 	
-	match type:
-		FiveParsecsMissionType.BATTLE:
-			objectives.append("Defeat all enemies")
-		FiveParsecsMissionType.PATRON_JOB:
-			objectives.append("Complete the patron's task")
-			objectives.append("Return to the extraction point")
-		FiveParsecsMissionType.STORY_MISSION:
-			objectives.append("Achieve the primary objective")
-			objectives.append("Survive the encounter")
-		FiveParsecsMissionType.RIVAL_ENCOUNTER:
-			objectives.append("Defeat the rival crew")
-			objectives.append("Secure the contested resource")
-		FiveParsecsMissionType.SALVAGE_RUN:
-			objectives.append("Collect at least 3 salvage tokens")
-			objectives.append("Extract safely")
-		FiveParsecsMissionType.RESCUE_OPERATION:
-			objectives.append("Locate and secure all hostages")
-			objectives.append("Escort hostages to extraction point")
-		FiveParsecsMissionType.BOUNTY_HUNT:
-			objectives.append("Capture or eliminate the target")
-			objectives.append("Collect proof of completion")
-		FiveParsecsMissionType.EXPLORATION:
-			objectives.append("Explore at least 3 points of interest")
-			objectives.append("Document findings")
-		FiveParsecsMissionType.CONVOY_ESCORT:
-			objectives.append("Protect the convoy vehicles")
-			objectives.append("Reach the destination")
-		FiveParsecsMissionType.DEFENSE:
-			objectives.append("Hold the position for 5 turns")
-			objectives.append("Prevent enemy access to the objective")
+	if mission.difficulty < 1 or mission.difficulty > 5:
+		mission_validation_failed.emit("Invalid difficulty level")
+		return false
 	
-	# 30% chance to add a bonus objective
-	if randf() < 0.3:
-		var bonus_objectives = [
-			"Recover the hidden data cache",
-			"Eliminate the enemy leader",
-			"Avoid triggering alarms",
-			"Complete the mission without casualties",
-			"Find and secure the secret weapon"
-		]
-		
-		objectives.append("BONUS: " + bonus_objectives[randi() % bonus_objectives.size()])
-	
-	return objectives
-
-func generate_loot_table(difficulty: int) -> Array:
-	var loot_table = []
-	
-	# Base number of loot rolls based on difficulty
-	var loot_rolls = difficulty + 1
-	
-	# Generate loot entries
-	for i in range(loot_rolls):
-		var loot_type = randi() % 5
-		var loot_entry = {}
-		
-		match loot_type:
-			0: # Credits
-				loot_entry = {
-					"type": "credits",
-					"amount": (randi() % 5 + 1) * 100
-				}
-			1: # Item
-				loot_entry = {
-					"type": "item",
-					"rarity": min(randi() % (difficulty + 1), 4) # 0-4 rarity based on difficulty
-				}
-			2: # Weapon
-				loot_entry = {
-					"type": "weapon",
-					"rarity": min(randi() % (difficulty + 1), 4)
-				}
-			3: # Armor
-				loot_entry = {
-					"type": "armor",
-					"rarity": min(randi() % (difficulty + 1), 4)
-				}
-			4: # Resource
-				var resources = ["medical_supplies", "spare_parts", "salvage", "ammunition"]
-				loot_entry = {
-					"type": "resource",
-					"resource": resources[randi() % resources.size()],
-					"amount": randi() % 3 + 1
-				}
-		
-		loot_table.append(loot_entry)
-	
-	return loot_table
-
-func serialize_mission(mission_data: Dictionary) -> Dictionary:
-	var data = super.serialize_mission(mission_data)
-	
-	# Add any Five Parsecs specific serialization logic here
-	
-	return data
-
-func deserialize_mission(serialized_data: Dictionary) -> Dictionary:
-	var mission = super.deserialize_mission(serialized_data)
-	
-	# Add any Five Parsecs specific deserialization logic here
-	
-	return mission
+	return true

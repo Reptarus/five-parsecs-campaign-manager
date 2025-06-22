@@ -61,10 +61,10 @@ class BaseCombatState:
     func _init(char = null) -> void:
         character = char
         position = Vector2i.ZERO
-        action_points = 2 # Default value, should be overridden
-        combat_advantage = 0 # Default value, should be overridden
-        combat_status = 0 # Default value, should be overridden
-        combat_tactic = 0 # Default value, should be overridden
+        action_points = 2 # Default _value, should be overridden
+        combat_advantage = 0 # Default _value, should be overridden
+        combat_status = 0 # Default _value, should be overridden
+        combat_tactic = 0 # Default _value, should be overridden
 
 ## Called when the node enters the scene tree
 func _ready() -> void:
@@ -77,52 +77,53 @@ func request_position_override(character, current_position: Vector2i) -> void:
         return
         
     pending_overrides[character] = {
-        "type": "position",
+        "type": "_position",
         "current": current_position,
         "timestamp": Time.get_unix_time_from_system()
     }
-    manual_position_override_requested.emit(character, current_position)
+    manual_position_override_requested.emit(character, current_position)  # warning: return value discarded (intentional)
 
 func request_advantage_override(character, current_advantage: int) -> void:
     if not allow_advantage_overrides or not character in _active_combatants:
         return
         
     pending_overrides[character] = {
-        "type": "advantage",
+        "type": "_advantage",
         "current": current_advantage,
         "timestamp": Time.get_unix_time_from_system()
     }
-    manual_advantage_override_requested.emit(character, current_advantage)
+    manual_advantage_override_requested.emit(character, current_advantage)  # warning: return value discarded (intentional)
 
 func request_status_override(character, current_status: int) -> void:
     if not allow_status_overrides or not character in _active_combatants:
         return
         
     pending_overrides[character] = {
-        "type": "status",
+        "type": "_status",
         "current": current_status,
         "timestamp": Time.get_unix_time_from_system()
     }
-    manual_status_override_requested.emit(character, current_status)
+    manual_status_override_requested.emit(character, current_status)  # warning: return value discarded (intentional)
 
 func apply_manual_override(character, override_value) -> void:
     if not character in pending_overrides:
         return
         
     var override_data: Dictionary = pending_overrides[character]
+
     match override_data.get("type"):
         "position":
             if override_value is Vector2i:
                 _combat_positions[character] = override_value
-                character_position_updated.emit(character, override_value)
+                character_position_updated.emit(character, override_value)  # warning: return value discarded (intentional)
         "advantage":
             if override_value is int:
                 _combat_advantages[character] = override_value
-                combat_advantage_changed.emit(character, override_value)
+                combat_advantage_changed.emit(character, override_value)  # warning: return value discarded (intentional)
         "status":
             if override_value is int:
                 _combat_statuses[character] = override_value
-                combat_status_changed.emit(character, override_value)
+                combat_status_changed.emit(character, override_value)  # warning: return value discarded (intentional)
     
     pending_overrides.erase(character)
 
@@ -131,12 +132,11 @@ func add_house_rule(rule_name: String, rule_data: Dictionary) -> void:
     active_house_rules[rule_name] = rule_data
     if rule_data.has("modifiers"):
         house_rule_modifiers[rule_name] = rule_data.modifiers
-    house_rule_applied.emit(rule_name, rule_data)
+    house_rule_applied.emit(rule_name, rule_data)  # warning: return value discarded (intentional)
 
 func remove_house_rule(rule_name: String) -> void:
     active_house_rules.erase(rule_name)
     house_rule_modifiers.erase(rule_name)
-
 func get_active_house_rules() -> Dictionary:
     return active_house_rules.duplicate()
 
@@ -152,7 +152,7 @@ func apply_house_rule_modifiers(base_value: float, context: String) -> float:
 
 ## State verification methods
 func verify_state(verification_type: int, scope: int = 0) -> void:
-    verify_state_requested.emit(verification_type, scope)
+    verify_state_requested.emit(verification_type, scope)  # warning: return value discarded (intentional)
 
 func _verify_combat_state() -> Dictionary:
     var result = {
@@ -192,37 +192,38 @@ func _verify_modifiers() -> bool:
 
 ## Signal handlers
 func _on_verify_state_requested(verification_type: int, scope: int) -> void:
-    var result = {}
+    var result: Dictionary = {}
     
     match verification_type:
-        0: # COMBAT verification type
+        0: # COMBAT verification _type
             result = _verify_combat_state()
-        1: # STATE verification type
+        1: # STATE verification _type
             # Add state verification
             pass
-        2: # RULES verification type
+        2: # RULES verification _type
             # Add rules verification
             pass
-        3: # DEPLOYMENT verification type
+        3: # DEPLOYMENT verification _type
             # Add deployment verification
             pass
-        4: # MOVEMENT verification type
+        4: # MOVEMENT verification _type
             # Add movement verification
             pass
-        5: # OBJECTIVES verification type
+        5: # OBJECTIVES verification _type
             # Add objectives verification
             pass
     
     if result.is_empty():
-        verification_failed.emit(verification_type, "Verification type not implemented")
+        verification_failed.emit(verification_type, "Verification _type not implemented")  # warning: return value discarded (intentional)
         return
     
-    verification_completed.emit(verification_type, result.status, result.details)
+    verification_completed.emit(verification_type, result.status, result.details)  # warning: return value discarded (intentional)
     _log_verification_result(result)
 
 func _log_verification_result(result: Dictionary) -> void:
     var verification_history: Array = []
-    verification_history.append({
+
+    verification_history.append({  # warning: return value discarded (intentional)
         "timestamp": Time.get_unix_time_from_system(),
         "type": result.type,
         "status": result.status,

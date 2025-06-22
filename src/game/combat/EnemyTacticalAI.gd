@@ -185,7 +185,7 @@ func _make_unpredictable_decision(enemy: Object) -> Dictionary:
 		func() -> Dictionary: return _make_tactical_decision(enemy),
 		func() -> Dictionary: return _make_protective_decision(enemy)
 	]
-	
+
 	return decisions[randi() % decisions.size()].call()
 
 ## Makes a default decision
@@ -219,11 +219,11 @@ func _find_safe_positions(enemy: Object) -> Array[Vector2]:
 	var movement_range: int = enemy.get_movement_range()
 	
 	# Analyze positions within movement range
-	for x in range(- movement_range, movement_range + 1):
-		for y in range(- movement_range, movement_range + 1):
+	for x in range(-movement_range, movement_range + 1):
+		for y in range(-movement_range, movement_range + 1):
 			var test_pos: Vector2 = Vector2(current_pos.x + x, current_pos.y + y)
 			if _is_position_safe(enemy, test_pos):
-				safe_positions.append(test_pos)
+				safe_positions.append(test_pos) # warning: return value discarded (intentional)
 	
 	return safe_positions
 
@@ -255,7 +255,7 @@ func _find_nearby_allies(enemy: Object) -> Array:
 			
 		var other_pos: Vector2 = battlefield_manager.get_character_position(other)
 		if enemy_pos.distance_to(other_pos) <= 5: # 5 tile radius
-			allies.append(other)
+			allies.append(other) # warning: return value discarded (intentional)
 	
 	return allies
 
@@ -279,7 +279,7 @@ func _analyze_battlefield_situation(enemy: Object) -> String:
 	var player_characters = battlefield_manager.get_player_characters()
 	var player_characters_converted: Array = []
 	for character in player_characters:
-		player_characters_converted.append(character)
+		player_characters_converted.append(character) # warning: return value discarded (intentional)
 	var player_strength: float = _calculate_force_strength(player_characters_converted)
 	
 	var strength_ratio: float = enemy_strength / max(1.0, player_strength)
@@ -324,7 +324,8 @@ func _analyze_group_state(group: Array) -> Dictionary:
 	for member in group:
 		group_health += float(member.get_health()) / float(member.get_max_health())
 		group_strength += member.get_combat_rating()
-		group_positions.append(battlefield_manager.get_character_position(member))
+
+		group_positions.append(battlefield_manager.get_character_position(member)) # warning: return value discarded (intentional)
 	
 	return {
 		"average_health": group_health / float(group.size()),
@@ -336,7 +337,9 @@ func _analyze_group_state(group: Array) -> Dictionary:
 ## Determines the best tactic for a group
 func _determine_group_tactic(group_state: Dictionary) -> GroupTactic:
 	var average_health: float = group_state.get("average_health", 0.0)
+
 	var total_strength: float = group_state.get("total_strength", 0.0)
+
 	var size: int = group_state.get("size", 0)
 	
 	if average_health > 0.7 and total_strength > 10.0:
@@ -472,8 +475,8 @@ func _find_nearest_valid_position(position: Vector2) -> Vector2:
 	var max_radius := 5
 	
 	while radius <= max_radius:
-		for x in range(- radius, radius + 1):
-			for y in range(- radius, radius + 1):
+		for x in range(-radius, radius + 1):
+			for y in range(-radius, radius + 1):
 				var test_pos := Vector2(position.x + x, position.y + y)
 				if battlefield_manager.is_valid_position(test_pos):
 					return test_pos
@@ -486,8 +489,8 @@ func _find_best_cover_position(character: Character, center: Vector2, radius: fl
 	var best_pos: Vector2 = center
 	
 	# Check positions in a grid within the radius
-	for x in range(- int(radius), int(radius) + 1):
-		for y in range(- int(radius), int(radius) + 1):
+	for x in range(-int(radius), int(radius) + 1):
+		for y in range(-int(radius), int(radius) + 1):
 			if Vector2(x, y).length() > radius:
 				continue
 				

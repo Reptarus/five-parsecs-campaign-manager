@@ -5,7 +5,8 @@
 ## - Combat phase tracking
 ## - Verification status handling
 @tool
-extends GdUnitGameTest
+@warning_ignore("return_value_discarded")
+	extends GdUnitGameTest
 
 const GameEnums = preload("res://src/core/systems/GlobalEnums.gd")
 
@@ -22,7 +23,8 @@ class MockGameState extends Resource:
 		# Validate state transitions
 		if state in [GameEnums.GameState.SETUP, GameEnums.GameState.CAMPAIGN, GameEnums.GameState.BATTLE, GameEnums.GameState.GAME_OVER]:
 			current_state = state
-			state_changed.emit(state)
+			@warning_ignore("unsafe_method_access")
+	state_changed.emit(state)
 	
 	# Campaign phase management
 	func get_campaign_phase() -> int: return campaign_phase
@@ -30,7 +32,8 @@ class MockGameState extends Resource:
 		# Only allow campaign phases in campaign state
 		if current_state == GameEnums.GameState.CAMPAIGN and phase in [GameEnums.CampaignPhase.SETUP, GameEnums.CampaignPhase.UPKEEP, GameEnums.CampaignPhase.STORY, GameEnums.CampaignPhase.CAMPAIGN]:
 			campaign_phase = phase
-			campaign_phase_changed.emit(phase)
+			@warning_ignore("unsafe_method_access")
+	campaign_phase_changed.emit(phase)
 		elif current_state != GameEnums.GameState.CAMPAIGN:
 			campaign_phase = GameEnums.CampaignPhase.NONE
 	
@@ -40,7 +43,8 @@ class MockGameState extends Resource:
 		# Only allow combat phases in battle state
 		if current_state == GameEnums.GameState.BATTLE and phase in [GameEnums.CombatPhase.SETUP, GameEnums.CombatPhase.DEPLOYMENT, GameEnums.CombatPhase.INITIATIVE, GameEnums.CombatPhase.ACTION]:
 			combat_phase = phase
-			combat_phase_changed.emit(phase)
+			@warning_ignore("unsafe_method_access")
+	combat_phase_changed.emit(phase)
 		elif current_state != GameEnums.GameState.BATTLE:
 			combat_phase = GameEnums.CombatPhase.NONE
 	
@@ -48,7 +52,8 @@ class MockGameState extends Resource:
 	func get_verification_status() -> int: return verification_status
 	func set_verification_status(status: int) -> void:
 		verification_status = status
-		verification_status_changed.emit(status)
+		@warning_ignore("unsafe_method_access")
+	verification_status_changed.emit(status)
 	
 	# Required signals (immediate emission pattern)
 	signal state_changed(new_state: int)
@@ -79,7 +84,9 @@ func before_test() -> void:
 	super.before_test()
 	_game_state = MockGameState.new()
 	_game_state_manager = MockGameStateManager.new()
+	@warning_ignore("return_value_discarded")
 	track_resource(_game_state)
+	@warning_ignore("return_value_discarded")
 	track_resource(_game_state_manager)
 	
 	# Set up initial state
@@ -92,6 +99,7 @@ func after_test() -> void:
 	super.after_test()
 
 # Basic State Management Tests
+@warning_ignore("unsafe_method_access")
 func test_initial_state() -> void:
 	assert_that(_game_state).is_not_null()
 	# Test direct method calls instead of safe wrappers (proven pattern)
@@ -99,6 +107,7 @@ func test_initial_state() -> void:
 	assert_that(current_state).is_equal(GameEnums.GameState.SETUP)
 
 # Game State Tests
+@warning_ignore("unsafe_method_access")
 func test_game_state_transitions() -> void:
 	# Test direct method calls instead of safe wrappers (proven pattern)
 	var states := [
@@ -114,6 +123,7 @@ func test_game_state_transitions() -> void:
 		assert_that(current_state).is_equal(state)
 
 # Campaign Phase Tests
+@warning_ignore("unsafe_method_access")
 func test_campaign_phase_transitions() -> void:
 	# Test direct method calls instead of safe wrappers (proven pattern)
 	# Set game state to campaign first
@@ -133,6 +143,7 @@ func test_campaign_phase_transitions() -> void:
 		assert_that(current_phase).is_equal(phase)
 
 # Combat Phase Tests
+@warning_ignore("unsafe_method_access")
 func test_combat_phase_transitions() -> void:
 	# Test direct method calls instead of safe wrappers (proven pattern)
 	# Set game state to battle first
@@ -152,6 +163,7 @@ func test_combat_phase_transitions() -> void:
 		assert_that(current_phase).is_equal(phase)
 
 # State Validation Tests
+@warning_ignore("unsafe_method_access")
 func test_invalid_state_transitions() -> void:
 	# Test direct method calls instead of safe wrappers (proven pattern)
 	var invalid_state := 9999
@@ -176,6 +188,7 @@ func test_invalid_state_transitions() -> void:
 	assert_that(current_combat_phase).is_not_equal(invalid_state)
 
 # Performance Tests
+@warning_ignore("unsafe_method_access")
 func test_rapid_state_transitions() -> void:
 	# Test direct method calls instead of safe wrappers (proven pattern)
 	var start_time := Time.get_ticks_msec()
@@ -187,8 +200,9 @@ func test_rapid_state_transitions() -> void:
 		GameEnums.GameState.GAME_OVER
 	]
 	
-	for i in range(100):
-		var state: int = states[i % states.size()]
+	for i: int in range(100):
+		var state: int = states[@warning_ignore("integer_division")
+	i % states.size()]
 		_game_state.set_state(state)
 		var current_state: int = _game_state.get_state()
 		assert_that(current_state).is_equal(state)
@@ -197,6 +211,7 @@ func test_rapid_state_transitions() -> void:
 	assert_that(duration).is_less(1000)
 
 # State Dependency Tests
+@warning_ignore("unsafe_method_access")
 func test_state_dependencies() -> void:
 	# Test direct method calls instead of safe wrappers (proven pattern)
 	# Test campaign phase only valid in campaign state
@@ -211,6 +226,7 @@ func test_state_dependencies() -> void:
 	var combat_phase: int = _game_state.get_combat_phase()
 	assert_that(combat_phase).is_equal(GameEnums.CombatPhase.NONE)
 
+@warning_ignore("unsafe_method_access")
 func test_verification_status_management() -> void:
 	# Test direct method calls instead of safe wrappers (proven pattern)
 	var initial_status: int = _game_state.get_verification_status()
@@ -225,6 +241,7 @@ func test_verification_status_management() -> void:
 	current_status = _game_state.get_verification_status()
 	assert_that(current_status).is_equal(GameEnums.VerificationStatus.PENDING)
 
+@warning_ignore("unsafe_method_access")
 func test_state_manager_integration() -> void:
 	# Test direct method calls instead of safe wrappers (proven pattern)
 	var retrieved_state: MockGameState = _game_state_manager.get_game_state()

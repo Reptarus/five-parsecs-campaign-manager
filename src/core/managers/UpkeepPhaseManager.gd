@@ -3,7 +3,7 @@ extends Node
 const GameEnums = preload("res://src/core/systems/GlobalEnums.gd")
 
 func calculate_upkeep_cost(crew_size: int, difficulty: GameEnums.DifficultyLevel) -> int:
-    var base_cost = 100 * crew_size
+    var base_cost: int = 100 * crew_size
     
     match difficulty:
         GameEnums.DifficultyLevel.EASY:

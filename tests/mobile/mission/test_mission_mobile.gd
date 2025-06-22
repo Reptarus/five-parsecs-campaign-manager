@@ -1,5 +1,6 @@
 @tool
-extends GdUnitGameTest
+@warning_ignore("return_value_discarded")
+	extends GdUnitGameTest
 
 ## Mobile-specific mission tests
 ##
@@ -14,7 +15,8 @@ extends GdUnitGameTest
 class MockMission extends Resource:
 	var mission_id: String = "mobile_test_mission"
 	var mission_type: int = 1
-	var objectives: Array[Dictionary] = []
+	var objectives: @warning_ignore("unsafe_call_argument")
+	Array[Dictionary] = []
 	var status: int = 0
 	var touch_enabled: bool = true
 	
@@ -25,14 +27,19 @@ class MockMission extends Resource:
 	func is_touch_enabled() -> bool: return touch_enabled
 	
 	func add_objective(objective: Dictionary) -> void:
-		objectives.append(objective)
-		objective_added.emit(objective)
+
+		@warning_ignore("return_value_discarded")
+	objectives.append(objective)
+		@warning_ignore("unsafe_method_access")
+	objective_added.emit(objective)
 	
 	func complete_objective(objective_id: String) -> bool:
-		for i in range(objectives.size()):
-			if objectives[i].get("id", "") == objective_id:
+		for i: int in range(objectives.size()):
+
+			if objectives[i].get("_id", "") == objective_id:
 				objectives[i]["completed"] = true
-				objective_completed.emit(objective_id)
+				@warning_ignore("unsafe_method_access")
+	objective_completed.emit(objective_id)
 				return true
 		return false
 	
@@ -45,10 +52,18 @@ class MockMission extends Resource:
 		}
 	
 	func deserialize(data: Dictionary) -> void:
-		mission_id = data.get("mission_id", "")
-		mission_type = data.get("mission_type", 0)
-		objectives = data.get("objectives", [])
-		status = data.get("status", 0)
+
+		mission_id = @warning_ignore("unsafe_call_argument")
+	data.get("mission_id", "")
+
+		mission_type = @warning_ignore("unsafe_call_argument")
+	data.get("mission_type", 0)
+
+		objectives = @warning_ignore("unsafe_call_argument")
+	data.get("objectives", [])
+
+		status = @warning_ignore("unsafe_call_argument")
+	data.get("status", 0)
 	
 	# Required signals (immediate emission pattern)
 	signal objective_added(objective: Dictionary)
@@ -57,19 +72,24 @@ class MockMission extends Resource:
 # Mock Mission Generator with expected values (Universal Mock Strategy)
 class MockMissionGenerator extends Resource:
 	func generate_mission(config: Dictionary = {}) -> MockMission:
-		var mission = MockMission.new()
-		mission.mission_id = config.get("id", "generated_mission_" + str(randi()))
-		mission.mission_type = config.get("type", 1)
+		var mission: MockMission = MockMission.new()
+
+		mission.mission_id = @warning_ignore("unsafe_call_argument")
+	config.get("_id", "generated_mission_" + str(randi()))
+
+		mission.mission_type = @warning_ignore("unsafe_call_argument")
+	config.get("type", 1)
 		
 		# Add default objectives
 		mission.add_objective({
-			"id": "obj_1",
+			"_id": "obj_1",
 			"type": "eliminate",
 			"target": "enemies",
 			"completed": false
 		})
 		
-		mission_generated.emit(mission)
+		@warning_ignore("unsafe_method_access")
+	mission_generated.emit(mission)
 		return mission
 	
 	# Required signals (immediate emission pattern)
@@ -78,11 +98,12 @@ class MockMissionGenerator extends Resource:
 # Mock Mobile UI with expected values (Universal Mock Strategy)
 class MockMobileUI extends Resource:
 	var ui_elements: Dictionary = {}
-	var touch_targets: Array[Dictionary] = []
+	var touch_targets: @warning_ignore("unsafe_call_argument")
+	Array[Dictionary] = []
 	var screen_orientation: String = "portrait"
 	var is_visible: bool = true
 	
-	func _init():
+	func _init() -> void:
 		# Initialize UI elements with proper touch target sizes
 		ui_elements = {
 			"objective_button": {"size": Vector2(60, 60), "position": Vector2(100, 100)},
@@ -93,7 +114,9 @@ class MockMobileUI extends Resource:
 		# Create touch targets
 		for element_name in ui_elements:
 			var element = ui_elements[element_name]
-			touch_targets.append({
+
+			@warning_ignore("return_value_discarded")
+	touch_targets.append({
 				"name": element_name,
 				"rect": Rect2(element.position, element.size),
 				"min_size": Vector2(44, 44) # Minimum touch target size
@@ -106,12 +129,14 @@ class MockMobileUI extends Resource:
 	
 	func set_orientation(orientation: String) -> void:
 		screen_orientation = orientation
-		orientation_changed.emit(orientation)
+		@warning_ignore("unsafe_method_access")
+	orientation_changed.emit(orientation)
 	
 	func handle_touch(position: Vector2) -> bool:
 		for target in touch_targets:
 			if target.rect.has_point(position):
-				touch_handled.emit(target.name, position)
+				@warning_ignore("unsafe_method_access")
+	touch_handled.emit(target.name, position)
 				return true
 		return false
 	
@@ -135,12 +160,15 @@ func before_test() -> void:
 	
 	# Use Resource-based mocks (proven pattern)
 	_mission = MockMission.new()
+	@warning_ignore("return_value_discarded")
 	track_resource(_mission)
 	
 	_generator = MockMissionGenerator.new()
+	@warning_ignore("return_value_discarded")
 	track_resource(_generator)
 	
 	_mobile_ui = MockMobileUI.new()
+	@warning_ignore("return_value_discarded")
 	track_resource(_mobile_ui)
 
 func after_test() -> void:
@@ -150,13 +178,16 @@ func after_test() -> void:
 	super.after_test()
 
 # Touch Input Tests
+@warning_ignore("unsafe_method_access")
 func test_mission_touch_controls() -> void:
 	# Test direct method calls instead of safe wrappers (proven pattern)
 	# Simulate touch to select objective
 	var touch_pos := Vector2(100, 100)
 	simulate_touch_event(touch_pos, true)
+	@warning_ignore("unsafe_method_access")
 	await get_tree().process_frame
 	simulate_touch_event(touch_pos, false)
+	@warning_ignore("unsafe_method_access")
 	await get_tree().process_frame
 	
 	# Test touch handling
@@ -164,18 +195,21 @@ func test_mission_touch_controls() -> void:
 	assert_that(touch_handled).override_failure_message("Touch should be handled by UI element").is_true()
 	
 	# Test touch target sizes
-	var touch_targets: Array[Dictionary] = _mobile_ui.get_touch_targets()
+	var touch_targets: @warning_ignore("unsafe_call_argument")
+	Array[Dictionary] = _mobile_ui.get_touch_targets()
 	for target in touch_targets:
 		var size: Vector2 = target.rect.size
 		assert_that(size.x >= 44 and size.y >= 44).override_failure_message("Touch target should meet minimum size requirements").is_true()
 
 # Mobile UI Tests
+@warning_ignore("unsafe_method_access")
 func test_mobile_ui_layout() -> void:
 	# Test direct method calls instead of safe wrappers (proven pattern)
 	# Test different screen orientations
 	for orientation in ["portrait", "landscape"]:
 		_mobile_ui.set_orientation(orientation)
-		await get_tree().process_frame
+		@warning_ignore("unsafe_method_access")
+	await get_tree().process_frame
 		
 		var ui_elements: Dictionary = _mobile_ui.get_ui_elements()
 		assert_that(ui_elements.size()).override_failure_message("UI should have elements").is_greater(0)
@@ -186,9 +220,11 @@ func test_mobile_ui_layout() -> void:
 			assert_fits_mobile_screen(element)
 
 # Performance Tests
+@warning_ignore("unsafe_method_access")
 func test_mobile_performance() -> void:
 	# Test direct method calls instead of safe wrappers (proven pattern)
-	var metrics := await measure_performance(
+	var metrics := @warning_ignore("unsafe_method_access")
+	await measure_performance(
 		func():
 			# Simulate mission update
 			_mission.add_objective({
@@ -197,7 +233,8 @@ func test_mobile_performance() -> void:
 				"target": "items",
 				"completed": false
 			})
-			await get_tree().process_frame
+			@warning_ignore("unsafe_method_access")
+	await get_tree().process_frame
 	)
 	
 	# Verify performance metrics directly
@@ -214,17 +251,24 @@ func test_mobile_performance() -> void:
 	).is_less_equal(512.0)
 
 # Memory Management Tests
+@warning_ignore("unsafe_method_access")
 func test_mobile_memory_usage() -> void:
 	# Test direct method calls instead of safe wrappers (proven pattern)
 	var initial_memory := Performance.get_monitor(Performance.MEMORY_STATIC)
 	
 	# Create and process multiple missions
-	var missions: Array[MockMission] = []
-	for i in range(10):
-		var mission: MockMission = _generator.generate_mission({"id": "mission_%d" % i})
-		missions.append(mission)
-		track_resource(mission)
-		await get_tree().process_frame
+	var missions: @warning_ignore("unsafe_call_argument")
+	Array[MockMission] = []
+	for i: int in range(10):
+		var mission: MockMission = _generator.generate_mission({"id": "@warning_ignore("integer_division")
+	mission_ % d" % i})
+
+		@warning_ignore("return_value_discarded")
+	missions.append(mission)
+		@warning_ignore("return_value_discarded")
+	track_resource(mission)
+		@warning_ignore("unsafe_method_access")
+	await get_tree().process_frame
 	
 	var peak_memory := Performance.get_monitor(Performance.MEMORY_STATIC)
 	assert_that(peak_memory - initial_memory).override_failure_message(
@@ -233,6 +277,7 @@ func test_mobile_memory_usage() -> void:
 	
 	# Test memory cleanup
 	missions.clear()
+	@warning_ignore("unsafe_method_access")
 	await get_tree().process_frame
 	var final_memory := Performance.get_monitor(Performance.MEMORY_STATIC)
 	assert_that(final_memory - initial_memory).override_failure_message(
@@ -240,6 +285,7 @@ func test_mobile_memory_usage() -> void:
 	).is_less(MEMORY_THRESHOLD / 10)
 
 # Save State Tests
+@warning_ignore("unsafe_method_access")
 func test_mobile_save_state() -> void:
 	# Test direct method calls instead of safe wrappers (proven pattern)
 	# Add some objectives to the mission
@@ -256,21 +302,24 @@ func test_mobile_save_state() -> void:
 	assert_that(save_result).is_equal(OK)
 	
 	# Test loading
+
 	var loaded_mission: Resource = load(SAVE_FILE_PATH) as Resource
 	assert_that(loaded_mission).is_not_null()
 	
 	# Verify data integrity
 	if loaded_mission is MockMission:
+
 		var loaded_mock = loaded_mission as MockMission
 		assert_that(loaded_mock.get_mission_id()).is_equal(_mission.get_mission_id())
 		assert_that(loaded_mock.get_objectives().size()).is_equal(_mission.get_objectives().size())
 
 # Helper Methods
-func simulate_touch_event(position: Vector2, pressed: bool) -> void:
+func simulate_touch_event(position: Vector2, _pressed: bool) -> void:
 	var event := InputEventScreenTouch.new()
 	event.position = position
-	event.pressed = pressed
+	event._pressed = _pressed
 	Input.parse_input_event(event)
+	@warning_ignore("unsafe_method_access")
 	await get_tree().process_frame
 
 func simulate_mobile_environment(orientation: String, device_type: String = "phone") -> void:
@@ -278,25 +327,39 @@ func simulate_mobile_environment(orientation: String, device_type: String = "pho
 	if device_type == "tablet":
 		resolution *= 2
 	DisplayServer.window_set_size(resolution)
+	@warning_ignore("unsafe_method_access")
 	await get_tree().process_frame
 
 func assert_fits_mobile_screen(element: Dictionary) -> void:
 	var screen_size := DisplayServer.window_get_size()
-	var element_size: Vector2 = element.get("size", Vector2.ZERO)
-	var element_pos: Vector2 = element.get("position", Vector2.ZERO)
+
+	var element_size: Vector2 = @warning_ignore("unsafe_call_argument")
+	element.get("size", Vector2.ZERO)
+
+	var element_pos: Vector2 = @warning_ignore("unsafe_call_argument")
+	element.get("position", Vector2.ZERO)
 	
 	assert_that(element_pos.x + element_size.x <= screen_size.x).override_failure_message("Element should fit horizontally").is_true()
 	assert_that(element_pos.y + element_size.y <= screen_size.y).override_failure_message("Element should fit vertically").is_true()
 
 func measure_performance(callable: Callable, iterations: int = 10) -> Dictionary:
-	var fps_samples: Array[float] = []
-	var memory_samples: Array[float] = []
+	var fps_samples: @warning_ignore("unsafe_call_argument")
+	Array[float] = []
+	var memory_samples: @warning_ignore("unsafe_call_argument")
+	Array[float] = []
 	
-	for i in range(iterations):
-		await callable.call()
-		fps_samples.append(Engine.get_frames_per_second())
-		memory_samples.append(Performance.get_monitor(Performance.MEMORY_STATIC))
-		await get_tree().process_frame
+	for i: int in range(iterations):
+
+		await @warning_ignore("unsafe_method_access")
+	callable.call()
+
+		@warning_ignore("return_value_discarded")
+	fps_samples.append(Engine.get_frames_per_second())
+
+		@warning_ignore("return_value_discarded")
+	memory_samples.append(Performance.get_monitor(Performance.MEMORY_STATIC))
+		@warning_ignore("unsafe_method_access")
+	await get_tree().process_frame
 	
 	return {
 		"average_fps": _calculate_average(fps_samples),
@@ -307,17 +370,17 @@ func measure_performance(callable: Callable, iterations: int = 10) -> Dictionary
 func _calculate_average(values: Array[float]) -> float:
 	if values.is_empty(): return 0.0
 	var sum := 0.0
-	for value in values: sum += value
+	for _value in values: sum += _value
 	return sum / values.size()
 
 func _calculate_minimum(values: Array[float]) -> float:
 	if values.is_empty(): return 0.0
 	var min_value: float = values[0]
-	for value in values: min_value = min(min_value, value)
+	for _value in values: min_value = min(min_value, _value)
 	return min_value
 
 func _calculate_maximum(values: Array[float]) -> float:
 	if values.is_empty(): return 0.0
 	var max_value: float = values[0]
-	for value in values: max_value = max(max_value, value)
+	for _value in values: max_value = max(max_value, _value)
 	return max_value

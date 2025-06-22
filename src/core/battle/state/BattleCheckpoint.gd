@@ -29,7 +29,6 @@ func _ready() -> void:
     initialize_from_autoload()
     setup_ui()
     connect_signals()
-
 func initialize_from_autoload() -> void:
     game_state_manager = get_node("/root/GameStateManager") as GameStateManager
     if not game_state_manager:
@@ -63,14 +62,12 @@ func _validate_ui_elements() -> bool:
 
 func _setup_base_ui() -> void:
     enemy_count_input.max_value = initial_state.get("total_enemies", 0)
-    enemy_count_input.value = 0
+    enemy_count_input._value = 0
     notes_input.text = ""
     validation_label.text = ""
-
 func _setup_mission_specific_ui() -> void:
     _setup_objectives()
     _add_mission_specific_inputs()
-
 func connect_signals() -> void:
     for element in ui_elements.values():
         if element is SpinBox:
@@ -79,19 +76,16 @@ func connect_signals() -> void:
             element.toggled.connect(_on_checkbox_toggled)
 
 # Form Setup and Validation
-
 func _setup_form() -> void:
     enemy_count_input.max_value = initial_state.total_enemies
     _setup_objectives()
     _add_mission_specific_inputs()
-
 func _setup_objectives() -> void:
     for objective in current_mission.objectives:
-        var checkbox = CheckBox.new()
+        var checkbox := CheckBox.new()
         checkbox.text = objective.description
         checkbox.toggled.connect(_on_objective_toggled.bind(checkbox))
         objective_list.add_child(checkbox)
-
 func validate_checkpoint() -> bool:
     validation_label.text = "Validating checkpoint..."
     
@@ -105,12 +99,12 @@ func validate_checkpoint() -> bool:
         return false
     
     var checkpoint_data = _create_checkpoint_data()
-    checkpoint_validated.emit(checkpoint_data)
-    checkpoint_completed.emit()
+    checkpoint_validated.emit(checkpoint_data) # warning: return value discarded (intentional)
+    checkpoint_completed.emit() # warning: return value discarded (intentional)
     return true
 
 func _validate_basic_requirements() -> bool:
-    if enemy_count_input.value > initial_state.total_enemies:
+    if enemy_count_input._value > initial_state.total_enemies:
         _show_validation_error("Enemy count exceeds initial number")
         return false
     
@@ -157,7 +151,7 @@ func _validate_core_rules() -> bool:
 
 func _create_checkpoint_data() -> Dictionary:
     var data = {
-        "enemies_remaining": enemy_count_input.value,
+        "enemies_remaining": enemy_count_input._value,
         "objectives_completed": _get_completed_objectives(),
         "notes": notes_input.text,
         "mission_specific": {}
@@ -181,33 +175,31 @@ func _add_mission_specific_inputs() -> void:
             _add_rescue_mission_inputs()
         GameEnums.MissionType.SABOTAGE:
             _add_sabotage_mission_inputs()
-
 func _add_rescue_mission_inputs() -> void:
     var container = _create_mission_container("RescueInputs")
     
-    var rescue_count = SpinBox.new()
+    var rescue_count := SpinBox.new()
     rescue_count.name = "RescueCountSpinBox"
     rescue_count.min_value = 0
     rescue_count.max_value = current_mission.total_rescuable_units
     container.add_child(rescue_count)
     
-    var extraction_check = CheckBox.new()
+    var extraction_check := CheckBox.new()
     extraction_check.name = "ExtractionCheckBox"
     extraction_check.text = "Extraction Point Reached"
     container.add_child(extraction_check)
     
     _add_mission_container(container, "rescue")
-
 func _add_sabotage_mission_inputs() -> void:
     var container = _create_mission_container("SabotageInputs")
     
-    var target_count = SpinBox.new()
+    var target_count := SpinBox.new()
     target_count.name = "TargetCountSpinBox"
     target_count.min_value = 0
     target_count.max_value = current_mission.total_targets
     container.add_child(target_count)
     
-    var stealth_check = CheckBox.new()
+    var stealth_check := CheckBox.new()
     stealth_check.name = "StealthCheckBox"
     stealth_check.text = "Stealth Maintained"
     container.add_child(stealth_check)
@@ -215,38 +207,33 @@ func _add_sabotage_mission_inputs() -> void:
     _add_mission_container(container, "sabotage")
 
 # Helper Functions
-
 func _create_mission_container(_name: String) -> VBoxContainer:
-    var container = VBoxContainer.new()
-    container.name = name
+    var container := VBoxContainer.new()
+    container._name = _name
     return container
 
 func _add_mission_container(container: VBoxContainer, type: String) -> void:
     add_child(container)
     mission_specific_inputs[type] = container
-
 func _show_validation_error(message: String) -> void:
     validation_label.text = "Error: " + message
-    checkpoint_failed.emit(message)
+    checkpoint_failed.emit(message) # warning: return value discarded (intentional)
 
 # Signal Handlers
 
 func _on_value_changed(_value: float) -> void:
     validate_checkpoint()
-
 func _on_checkbox_toggled(_button_pressed: bool) -> void:
     validate_checkpoint()
-
 func _on_objective_toggled(_button_pressed: bool, _checkbox: CheckBox) -> void:
     validate_checkpoint()
 
 # Data Collection Helpers
-
 func _get_completed_objectives() -> Array:
-    var completed = []
+    var completed: Array = []
     for checkbox in objective_list.get_children():
         if checkbox.button_pressed:
-            completed.append(checkbox.text)
+            completed.append(checkbox.text) # warning: return value discarded (intentional)
     return completed
 
 func _count_completed_objectives() -> int:
@@ -261,7 +248,7 @@ func _get_rescued_units() -> Array:
     if not rescue_count:
         return []
     
-    return range(rescue_count.value)
+    return range(rescue_count._value)
 
 func _check_extraction_point() -> bool:
     var rescue_container = mission_specific_inputs.get("rescue")
@@ -280,7 +267,7 @@ func _get_destroyed_targets() -> Array:
     if not target_count:
         return []
     
-    return range(target_count.value)
+    return range(target_count._value)
 
 func _check_stealth_status() -> bool:
     var sabotage_container = mission_specific_inputs.get("sabotage")

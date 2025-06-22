@@ -9,7 +9,6 @@ static func run() -> Array[GdUnitTestCase]:
 
 	# We run the test discovery in an extra thread so that the main thread is not blocked
 	var t:= Thread.new()
-	@warning_ignore("return_value_discarded")
 	t.start(func () -> Array[GdUnitTestCase]:
 		# Loading previous test session
 		var runner_config := GdUnitRunnerConfig.new()

@@ -22,15 +22,14 @@ var combat_units: Array[Node] = []
 # Virtual methods to be implemented by derived classes
 func initialize_combat() -> void:
 	pass
-
 func start_combat() -> void:
 	is_combat_active = true
 	current_turn = 0
-	combat_started.emit()
+	combat_started.emit() # warning: return value discarded (intentional)
 
 func end_combat() -> void:
 	is_combat_active = false
-	combat_ended.emit()
+	combat_ended.emit() # warning: return value discarded (intentional)
 
 func start_turn(unit: Node) -> void:
 	if not unit in combat_units:
@@ -38,14 +37,14 @@ func start_turn(unit: Node) -> void:
 		return
 	
 	active_unit = unit
-	turn_started.emit(unit)
+	turn_started.emit(unit) # warning: return value discarded (intentional)
 
 func end_turn(unit: Node) -> void:
 	if unit != active_unit:
 		push_error("Trying to end turn for non-active unit")
 		return
 	
-	turn_ended.emit(unit)
+	turn_ended.emit(unit) # warning: return value discarded (intentional)
 	active_unit = null
 
 func perform_action(unit: Node, action: int) -> void:
@@ -57,15 +56,14 @@ func perform_action(unit: Node, action: int) -> void:
 		push_error("Cannot perform action outside of combat")
 		return
 	
-	action_performed.emit(unit, action)
+	action_performed.emit(unit, action) # warning: return value discarded (intentional)
 
 func add_combat_unit(unit: Node) -> void:
 	if not unit in combat_units:
-		combat_units.append(unit)
+		combat_units.append(unit) # warning: return value discarded (intentional)
 
 func remove_combat_unit(unit: Node) -> void:
 	combat_units.erase(unit)
-
 func get_combat_units() -> Array[Node]:
 	return combat_units.duplicate()
 

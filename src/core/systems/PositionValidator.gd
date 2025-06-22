@@ -65,7 +65,7 @@ func _generate_random_point() -> Vector2:
 
 ## Check if a point is valid for cover placement
 func _is_valid_cover_point(point: Vector2, existing_points: Array) -> bool:
-	# Check distance from other points
+	# Check distance from other _points
 	for existing in existing_points:
 		var existing_pos: Vector2 = existing["position"]
 		if point.distance_to(existing_pos) < MIN_DISTANCE_BETWEEN_POINTS:
@@ -86,7 +86,7 @@ func _is_valid_hazard_point(point: Vector2, existing_points: Array) -> bool:
 
 ## Check if a point is valid for strategic point placement
 func _is_valid_strategic_point(point: Vector2, existing_points: Array) -> bool:
-	# Strategic points need significant spacing
+	# Strategic _points need significant spacing
 	for existing in existing_points:
 		var existing_pos: Vector2 = existing["position"]
 		var min_distance := MIN_DISTANCE_BETWEEN_POINTS * 3.0

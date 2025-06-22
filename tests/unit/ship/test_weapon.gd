@@ -1,5 +1,6 @@
 @tool
-extends GdUnitGameTest
+@warning_ignore("return_value_discarded")
+	extends GdUnitGameTest
 
 # Mock Weapon with realistic behavior
 class MockGameWeapon extends Resource:
@@ -31,24 +32,24 @@ class MockGameWeapon extends Resource:
     func get_rarity() -> int: return rarity
     func is_damaged() -> bool: return is_weapon_damaged
     
-    func set_weapon_name(value: String) -> void: name = value
-    func set_type(value: int) -> bool:
-        if value < 0: return false
-        weapon_type = value
+    func set_weapon_name(test_value: String) -> void: name = _value
+    func set_type(test_value: int) -> bool:
+        if _value < 0: return false
+        weapon_type = _value
         return true
-    func set_range(value: int) -> bool:
-        if value < 0: return false
-        range_value = value
+    func set_range(test_value: int) -> bool:
+        if _value < 0: return false
+        range_value = _value
         return true
-    func set_shots(value: int) -> bool:
-        if value < 0: return false
-        shots = value
+    func set_shots(test_value: int) -> bool:
+        if _value < 0: return false
+        shots = _value
         return true
-    func set_damage(value: int) -> bool:
-        if value < 0: return false
-        damage = value
+    func set_damage(test_value: int) -> bool:
+        if _value < 0: return false
+        damage = _value
         return true
-    func set_range_modifier(value: float) -> void: range_modifier = value
+    func set_range_modifier(test_value: float) -> void: range_modifier = _value
     
     func calculate_attack_power() -> int:
         return shots * damage # 2 * 3 = 6
@@ -57,7 +58,7 @@ class MockGameWeapon extends Resource:
         return int(range_value * range_modifier) # 12 * 0.5 = 6
     
     func get_value() -> int:
-        # Base value: 10, Range bonus: 12/2 = 6, Shots bonus: 2 * 5 = 10, Damage bonus: 3 * 10 = 30
+        # Base _value: 10, Range bonus: 12/2 = 6, Shots bonus: 2 * 5 = 10, Damage bonus: 3 * 10 = 30
         return 10 + (range_value / 2) + (shots * 5) + (damage * 10) # 10 + 6 + 10 + 30 = 56
     
     func get_weight() -> int:
@@ -88,12 +89,18 @@ class MockGameWeapon extends Resource:
             damage = 1
             traits = []
         else:
-            name = profile.get("name", name)
-            weapon_type = profile.get("type", weapon_type)
-            range_value = profile.get("range", range_value)
-            shots = profile.get("shots", shots)
-            damage = profile.get("damage", damage)
-            traits = profile.get("traits", traits)
+            name = @warning_ignore("unsafe_call_argument")
+	profile.get("name", name)
+            weapon_type = @warning_ignore("unsafe_call_argument")
+	profile.get("type", weapon_type)
+            range_value = @warning_ignore("unsafe_call_argument")
+	profile.get("range", range_value)
+            shots = @warning_ignore("unsafe_call_argument")
+	profile.get("shots", shots)
+            damage = @warning_ignore("unsafe_call_argument")
+	profile.get("damage", damage)
+            traits = @warning_ignore("unsafe_call_argument")
+	profile.get("traits", traits)
 
 var weapon: MockGameWeapon = null
 
@@ -101,13 +108,16 @@ func before_test() -> void:
     super.before_test()
     weapon = MockGameWeapon.new()
     weapon.initialize("Test Weapon", MockGameWeapon.WeaponType.RIFLE, 12, 2, 3)
-    track_resource(weapon)
-    await get_tree().process_frame
+    @warning_ignore("return_value_discarded")
+	track_resource(weapon)
+    @warning_ignore("unsafe_method_access")
+	await get_tree().process_frame
 
 func after_test() -> void:
     super.after_test()
     weapon = null
 
+@warning_ignore("unsafe_method_access")
 func test_initialization() -> void:
     assert_that(weapon).is_not_null()
     
@@ -117,6 +127,7 @@ func test_initialization() -> void:
     assert_that(weapon.get_shots()).is_equal(2)
     assert_that(weapon.get_damage()).is_equal(3)
 
+@warning_ignore("unsafe_method_access")
 func test_property_changes() -> void:
     var new_name: String = "Modified Weapon"
     var new_type: int = MockGameWeapon.WeaponType.PISTOL
@@ -136,6 +147,7 @@ func test_property_changes() -> void:
     assert_that(weapon.get_shots()).is_equal(new_shots)
     assert_that(weapon.get_damage()).is_equal(new_damage)
 
+@warning_ignore("unsafe_method_access")
 func test_invalid_values() -> void:
     # Test negative range
     assert_that(weapon.set_range(-5)).is_false()
@@ -153,6 +165,7 @@ func test_invalid_values() -> void:
     assert_that(weapon.set_type(-1)).is_false()
     assert_that(weapon.get_type()).is_equal(MockGameWeapon.WeaponType.RIFLE)
 
+@warning_ignore("unsafe_method_access")
 func test_weapon_stats() -> void:
     # Test weapon stats calculation
     assert_that(weapon.calculate_attack_power()).is_equal(6)
@@ -161,14 +174,16 @@ func test_weapon_stats() -> void:
     weapon.set_range_modifier(0.5)
     assert_that(weapon.get_effective_range()).is_equal(6)
 
+@warning_ignore("unsafe_method_access")
 func test_value_calculation() -> void:
-    # Base value: 10
+    # Base _value: 10
     # Range bonus: 12/2 = 6
     # Shots bonus: 2 * 5 = 10
     # Damage bonus: 3 * 10 = 30
     # Total: 56
     assert_that(weapon.get_value()).is_equal(56)
 
+@warning_ignore("unsafe_method_access")
 func test_weight_calculation() -> void:
     # Base weight: 1
     # Range bonus: 12/12 = 1
@@ -176,21 +191,30 @@ func test_weight_calculation() -> void:
     # Total: 3
     assert_that(weapon.get_weight()).is_equal(3)
 
+@warning_ignore("unsafe_method_access")
 func test_damage_system() -> void:
     assert_that(weapon.is_damaged()).is_false()
 
+@warning_ignore("unsafe_method_access")
 func test_rarity_system() -> void:
     assert_that(weapon.get_rarity()).is_equal(0)
 
+@warning_ignore("unsafe_method_access")
 func test_weapon_profile() -> void:
     var profile: Dictionary = weapon.get_weapon_profile()
     
-    assert_that(profile.get("name", "")).is_equal("Test Weapon")
-    assert_that(profile.get("type", 0)).is_equal(MockGameWeapon.WeaponType.RIFLE)
-    assert_that(profile.get("range", 0)).is_equal(12)
-    assert_that(profile.get("shots", 0)).is_equal(2)
-    assert_that(profile.get("damage", 0)).is_equal(3)
-    assert_that(profile.get("traits", []).size()).is_equal(0)
+    assert_that(@warning_ignore("unsafe_call_argument")
+	profile.get("name", "")).is_equal("Test Weapon")
+    assert_that(@warning_ignore("unsafe_call_argument")
+	profile.get("type", 0)).is_equal(MockGameWeapon.WeaponType.RIFLE)
+    assert_that(@warning_ignore("unsafe_call_argument")
+	profile.get("range", 0)).is_equal(12)
+    assert_that(@warning_ignore("unsafe_call_argument")
+	profile.get("shots", 0)).is_equal(2)
+    assert_that(@warning_ignore("unsafe_call_argument")
+	profile.get("damage", 0)).is_equal(3)
+    assert_that(@warning_ignore("unsafe_call_argument")
+	profile.get("traits", []).size()).is_equal(0)
 
     profile = {
         "name": "Custom Weapon",
@@ -200,9 +224,10 @@ func test_weapon_profile() -> void:
         "damage": 2
     }
     
-    var new_weapon = MockGameWeapon.new()
+    var new_weapon: MockGameWeapon = MockGameWeapon.new()
     new_weapon.load_from_profile(profile)
-    track_resource(new_weapon)
+    @warning_ignore("return_value_discarded")
+	track_resource(new_weapon)
     
     assert_that(new_weapon.get_weapon_name()).is_equal("Custom Weapon")
     assert_that(new_weapon.get_type()).is_equal(MockGameWeapon.WeaponType.RIFLE)
@@ -211,6 +236,7 @@ func test_weapon_profile() -> void:
     assert_that(new_weapon.get_damage()).is_equal(2)
     assert_that(new_weapon.get_traits()).is_equal([])
 
+@warning_ignore("unsafe_method_access")
 func test_combat_value() -> void:
     # Damage * 2 = 6
     # Shots = 2
@@ -218,13 +244,15 @@ func test_combat_value() -> void:
     # Total = 10
     assert_that(weapon.get_combat_value()).is_equal(10)
 
+@warning_ignore("unsafe_method_access")
 func test_create_from_invalid_profile() -> void:
     var profile := {}
     
-    var new_weapon = MockGameWeapon.new()
+    var new_weapon: MockGameWeapon = MockGameWeapon.new()
     if new_weapon.has_method("load_from_profile"):
         new_weapon.load_from_profile(profile)
-    track_resource(new_weapon)
+    @warning_ignore("return_value_discarded")
+	track_resource(new_weapon)
     
     var name: String = new_weapon.get_weapon_name()
     var type: int = new_weapon.get_type()
@@ -238,14 +266,20 @@ func test_create_from_invalid_profile() -> void:
     assert_that(shots).is_equal(1)
     assert_that(damage).is_equal(1)
 
+@warning_ignore("unsafe_method_access")
 func test_serialization() -> void:
     var profile: Dictionary = weapon.get_weapon_profile()
     
-    assert_that(profile.get("name", "")).is_equal("Test Weapon")
-    assert_that(profile.get("type", 0)).is_equal(MockGameWeapon.WeaponType.RIFLE)
-    assert_that(profile.get("range", 0)).is_equal(12)
-    assert_that(profile.get("shots", 0)).is_equal(2)
-    assert_that(profile.get("damage", 0)).is_equal(3)
+    assert_that(@warning_ignore("unsafe_call_argument")
+	profile.get("name", "")).is_equal("Test Weapon")
+    assert_that(@warning_ignore("unsafe_call_argument")
+	profile.get("type", 0)).is_equal(MockGameWeapon.WeaponType.RIFLE)
+    assert_that(@warning_ignore("unsafe_call_argument")
+	profile.get("range", 0)).is_equal(12)
+    assert_that(@warning_ignore("unsafe_call_argument")
+	profile.get("shots", 0)).is_equal(2)
+    assert_that(@warning_ignore("unsafe_call_argument")
+	profile.get("damage", 0)).is_equal(3)
     
     var serialized: Dictionary = {
         "name": "Serialized Weapon",
@@ -256,10 +290,11 @@ func test_serialization() -> void:
         "traits": ["accurate", "reliable"]
     }
     
-    var new_weapon = MockGameWeapon.new()
+    var new_weapon: MockGameWeapon = MockGameWeapon.new()
     if new_weapon.has_method("load_from_profile"):
         new_weapon.load_from_profile(serialized)
-    track_resource(new_weapon)
+    @warning_ignore("return_value_discarded")
+	track_resource(new_weapon)
     
     assert_that(new_weapon.get_weapon_name()).is_equal("Serialized Weapon")
     assert_that(new_weapon.get_type()).is_equal(MockGameWeapon.WeaponType.PISTOL)

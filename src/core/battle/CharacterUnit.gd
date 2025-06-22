@@ -43,7 +43,6 @@ signal action_points_changed(unit: CharacterUnit, new_points: int)
 ## Initialization
 func _init() -> void:
 	pass
-
 func _ready() -> void:
 	# Initialize the character unit
 	pass
@@ -78,7 +77,7 @@ func move_to(position: Vector2) -> void:
 	has_moved = true
 	
 	# Emit signal
-	unit_moved.emit(self, position)
+	unit_moved.emit(self, position) # warning: return value discarded (intentional)
 
 ## Combat functions
 func get_attack_range() -> float:
@@ -96,7 +95,7 @@ func calculate_hit_chance(target: CharacterUnit) -> float:
 		# Evasion reduces hit chance
 		base_chance -= float(target.evasion) / 100.0
 	
-	# Clamp the value
+	# Clamp the _value
 	return clampf(base_chance, 0.1, 0.95)
 
 func calculate_damage(target: CharacterUnit) -> int:
@@ -123,7 +122,7 @@ func attack(target: CharacterUnit) -> bool:
 		target.take_damage(damage, self)
 		
 		# Emit signal
-		unit_attacked.emit(self, target, damage)
+		unit_attacked.emit(self, target, damage) # warning: return value discarded (intentional)
 		
 		# Consume action point
 		spend_action_point()
@@ -132,7 +131,7 @@ func attack(target: CharacterUnit) -> bool:
 		return true
 	else:
 		# Miss
-		unit_attacked.emit(self, target, 0)
+		unit_attacked.emit(self, target, 0) # warning: return value discarded (intentional)
 		
 		# Consume action point
 		spend_action_point()
@@ -150,13 +149,13 @@ func take_damage(amount: int, source: CharacterUnit = null) -> void:
 	if health <= 0:
 		health = 0
 		is_defeated = true
-		unit_defeated.emit(self)
+		unit_defeated.emit(self) # warning: return value discarded (intentional)
 	elif health <= max_health / 3 and not is_wounded:
 		# Become wounded at 1/3 health
 		is_wounded = true
 	
 	# Emit signal
-	unit_damaged.emit(self, actual_damage, source)
+	unit_damaged.emit(self, actual_damage, source) # warning: return value discarded (intentional)
 
 func heal(amount: int) -> void:
 	var old_health = health
@@ -168,19 +167,19 @@ func heal(amount: int) -> void:
 	
 	# Emit signal if healing occurred
 	if health > old_health:
-		unit_healed.emit(self, health - old_health)
+		unit_healed.emit(self, health - old_health) # warning: return value discarded (intentional)
 
 ## Action point management
 func spend_action_point() -> void:
 	if action_points > 0:
 		action_points -= 1
-		action_points_changed.emit(self, action_points)
+		action_points_changed.emit(self, action_points) # warning: return value discarded (intentional)
 
 func reset_action_points() -> void:
 	action_points = max_action_points
 	has_moved = false
 	has_attacked = false
-	action_points_changed.emit(self, action_points)
+	action_points_changed.emit(self, action_points) # warning: return value discarded (intentional)
 
 ## Other functions
 func reset_for_new_turn() -> void:
@@ -189,14 +188,13 @@ func reset_for_new_turn() -> void:
 	# Remove stun
 	if is_stunned:
 		is_stunned = false
-
 func restore() -> void:
 	health = max_health
 	is_defeated = false
 	is_wounded = false
 	is_stunned = false
 	reset_action_points()
-	unit_restored.emit(self)
+	unit_restored.emit(self) # warning: return value discarded (intentional)
 
 ## Utility functions
 func to_dict() -> Dictionary:

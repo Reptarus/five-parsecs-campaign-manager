@@ -4,9 +4,9 @@ const GameEnums = preload("res://src/core/systems/GlobalEnums.gd")
 
 signal config_updated(config: Dictionary)
 
-@onready var campaign_name_input = $Content/CampaignName/LineEdit
-@onready var difficulty_option = $Content/Difficulty/OptionButton
-@onready var description_label = $Content/Description/Label
+@onready var campaign_name_input: Button = $"Content/CampaignName/LineEdit"
+@onready var difficulty_option: Button = $"Content/Difficulty/OptionButton"
+@onready var description_label: Label = $"Content/Description/Label"
 
 var current_config: Dictionary = {
 	"name": "",
@@ -34,49 +34,25 @@ func _connect_signals() -> void:
 
 func _on_campaign_name_changed(new_text: String) -> void:
 	current_config.name = new_text
-	config_updated.emit(current_config)
+	config_updated.emit(current_config)  # warning: return value discarded (intentional)
 
 func _on_difficulty_selected(index: int) -> void:
 	current_config.difficulty = difficulty_option.get_item_id(index)
 	_update_description()
-	config_updated.emit(current_config)
+	config_updated.emit(current_config)  # warning: return value discarded (intentional)
 
 func _update_description() -> void:
-	var description = ""
+	var description: String = ""
 	
 	match current_config.difficulty:
 		GameEnums.DifficultyLevel.EASY:
-			description = """
-			Easy Mode:
-			- More starting resources
-			- Easier combat encounters
-			- More forgiving upkeep costs
-			Perfect for learning the game mechanics.
-			"""
+			description = "Easy Mode: More starting resources, easier combat encounters, more forgiving upkeep costs. Perfect for learning the game mechanics."
 		GameEnums.DifficultyLevel.NORMAL:
-			description = """
-			Normal Mode:
-			- Standard resource allocation
-			- Balanced combat encounters
-			- Regular upkeep costs
-			The classic Five Parsecs experience.
-			"""
+			description = "Normal Mode: Standard resource allocation, balanced combat encounters, regular upkeep costs. The classic Five Parsecs experience."
 		GameEnums.DifficultyLevel.HARD:
-			description = """
-			Hard Mode:
-			- Fewer starting resources
-			- Tougher combat encounters
-			- Higher upkeep costs
-			For experienced captains seeking a challenge.
-			"""
+			description = "Hard Mode: Fewer starting resources, tougher combat encounters, higher upkeep costs. For experienced captains seeking a challenge."
 		GameEnums.DifficultyLevel.NIGHTMARE:
-			description = """
-			Nightmare Mode:
-			- Minimal starting resources
-			- Brutal combat encounters
-			- Extreme upkeep costs
-			The ultimate test of survival.
-			"""
+			description = "Nightmare Mode: Minimal starting resources, brutal combat encounters, extreme upkeep costs. The ultimate test of survival."
 	
 	description_label.text = description
 

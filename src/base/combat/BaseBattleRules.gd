@@ -9,21 +9,22 @@ class_name BaseBattleRules
 
 ## Core game constants
 var BASE_MOVEMENT: int = 6 # Base movement in inches
-var BASE_ACTION_POINTS: int = 2 # Base action points per turn
-var BASE_ATTACK_RANGE: int = 24 # Base attack range in inches
-var BASE_HIT_CHANCE: float = 0.65 # Base 65% hit chance
-var BASE_DAMAGE: int = 3 # Base damage value
+var _BASE_ACTION_POINTS: int = 2 # Base action points per turn
+var _BASE_ATTACK_RANGE: int = 24 # Base attack range in inches
+var _BASE_HIT_CHANCE: float = 0.65 # Base 65% hit chance
+var BASE_DAMAGE: int = 3 # Base damage _value
 
 ## Combat modifiers
 var COVER_MODIFIER: float = -0.25 # -25% when target is in cover
+
 var HEIGHT_MODIFIER: float = 0.15 # +15% when attacker has height advantage
 var FLANK_MODIFIER: float = 0.2 # +20% when attacking from flank
 var SUPPRESSION_MODIFIER: float = -0.2 # -20% when suppressed
 
 ## Range modifiers
-var OPTIMAL_RANGE_BONUS: float = 0.1 # +10% at optimal range
-var LONG_RANGE_PENALTY: float = -0.2 # -20% at long range
-var EXTREME_RANGE_PENALTY: float = -0.4 # -40% at extreme range
+var _OPTIMAL_RANGE_BONUS: float = 0.1 # +10% at optimal range
+var _LONG_RANGE_PENALTY: float = -0.2 # -20% at long range
+var _EXTREME_RANGE_PENALTY: float = -0.4 # -40% at extreme range
 
 ## Status effect thresholds
 var CRITICAL_THRESHOLD: float = 0.9 # 90% for critical hits
@@ -32,22 +33,22 @@ var MINIMUM_HIT_CHANCE: float = 0.05 # 5% minimum hit chance
 var MAXIMUM_HIT_CHANCE: float = 0.95 # 95% maximum hit chance
 
 ## Action point costs
-var MOVE_COST: int = 1
-var ATTACK_COST: int = 1
-var DEFEND_COST: int = 1
-var OVERWATCH_COST: int = 2
-var RELOAD_COST: int = 1
-var USE_ITEM_COST: int = 1
-var SPECIAL_COST: int = 2
-var TAKE_COVER_COST: int = 1
-var DASH_COST: int = 2
-var BRAWL_COST: int = 1
-var SNAP_FIRE_COST: int = 1
-var END_TURN_COST: int = 0
+var _MOVE_COST: int = 1
+var _ATTACK_COST: int = 1
+var _DEFEND_COST: int = 1
+var _OVERWATCH_COST: int = 2
+var _RELOAD_COST: int = 1
+var _USE_ITEM_COST: int = 1
+var _SPECIAL_COST: int = 2
+var _TAKE_COVER_COST: int = 1
+var _DASH_COST: int = 2
+var _BRAWL_COST: int = 1
+var _SNAP_FIRE_COST: int = 1
+var _END_TURN_COST: int = 0
 
 ## Terrain effects
-var DIFFICULT_TERRAIN_MODIFIER: float = 0.5 # Halves movement
-var HAZARDOUS_TERRAIN_DAMAGE: int = 1 # Damage per turn in hazardous terrain
+var _DIFFICULT_TERRAIN_MODIFIER: float = 0.5 # Halves movement
+var _HAZARDOUS_TERRAIN_DAMAGE: int = 1 # Damage per turn in hazardous terrain
 
 ## Base class for combat modifiers
 class BaseCombatModifiers:
@@ -55,15 +56,15 @@ class BaseCombatModifiers:
     var height_advantage: bool = false
     var flanking: bool = false
     var suppressed: bool = false
-    var range_modifier: float = 0.0
+    var _range_modifier: float = 0.0
     var critical: bool = false
     var armor: int = 0
     
     # These should be overridden in game-specific implementations
-    var combat_advantage: int = 0
-    var combat_status: int = 0
-    var combat_range: int = 0
-    var combat_tactic: int = 0
+    var _combat_advantage: int = 0
+    var _combat_status: int = 0
+    var _combat_range: int = 0
+    var _combat_tactic: int = 0
 
 ## Check if an action can be performed with the available action points
 ## @param action: The action to check
@@ -100,7 +101,7 @@ func calculate_hit_chance(base_chance: float, modifiers: BaseCombatModifiers) ->
     
     # Apply range modifiers - should be implemented in derived classes
     
-    # Clamp final chance between minimum and maximum
+    # Clamp final _chance between minimum and maximum
     return clampf(final_chance, MINIMUM_HIT_CHANCE, MAXIMUM_HIT_CHANCE)
 
 ## Calculate the damage for an attack
@@ -114,7 +115,7 @@ func calculate_damage(base_damage: int, modifiers: BaseCombatModifiers) -> int:
     if modifiers.critical:
         final_damage *= 2
     
-    # Apply damage modifiers
+    # Apply _damage modifiers
     if modifiers.flanking:
         final_damage += 1
     if modifiers.height_advantage:
@@ -123,7 +124,7 @@ func calculate_damage(base_damage: int, modifiers: BaseCombatModifiers) -> int:
     # Apply combat advantage modifiers - should be implemented in derived classes
     
     # Apply armor reduction
-    final_damage = maxi(1, final_damage - modifiers.armor) # Minimum 1 damage
+    final_damage = maxi(1, final_damage - modifiers.armor) # Minimum 1 _damage
     
     return final_damage
 

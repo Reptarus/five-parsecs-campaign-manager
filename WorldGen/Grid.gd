@@ -23,6 +23,16 @@ func _ready() -> void:
 		push_warning("Grid: No empty tile set")
 
 func get_tile(pos: Vector2i) -> Tile:
+
+
+
+
+
+
+
+
+
+
 	return grid.get(pos, empty_tile)
 
 func add_tile(tile: Tile, pos: Vector2i) -> bool:
@@ -43,6 +53,16 @@ func add_tile(tile: Tile, pos: Vector2i) -> bool:
 			var check_pos := pos + Vector2i(i, j)
 			if grid.has(check_pos):
 				return false
+
+
+
+
+
+
+
+
+
+
 			occupied_cells.append(check_pos)
 	
 	# Add tile to all occupied cells
@@ -66,7 +86,27 @@ func remove_tile(pos: Vector2i) -> bool:
 	for i in tile_scale.x:
 		for j in tile_scale.y:
 			var check_pos := pos + Vector2i(i, j)
+
+
+
+
+
+
+
+
+
+
 			if grid.get(check_pos) == tile:
+
+
+
+
+
+
+
+
+
+
 				cells_to_remove.append(check_pos)
 	
 	# Remove tile from all cells
@@ -84,6 +124,16 @@ func clear() -> void:
 func get_used_cells() -> Array[Vector2i]:
 	var cells: Array[Vector2i] = []
 	for pos in grid:
+
+
+
+
+
+
+
+
+
+
 		cells.append(pos)
 	return cells
 

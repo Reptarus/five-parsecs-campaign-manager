@@ -10,10 +10,8 @@ var _terrain_system: TerrainSystem
 func _init(terrain_system: TerrainSystem) -> void:
 	_terrain_system = terrain_system
 	_layout = TerrainLayout.new(terrain_system)
-
 func initialize(size: Vector2i) -> void:
 	_layout.initialize(size)
-
 func get_size() -> Vector2i:
 	return _layout.get_size()
 
@@ -28,7 +26,6 @@ func get_adjacent_positions(pos: Vector2i) -> Array[Vector2i]:
 
 func place_feature(pos: Vector2i, feature: int) -> void:
 	_layout.place_feature(pos, feature)
-
 func get_line_of_sight(start: Vector2i, end: Vector2i) -> Array[Vector2i]:
 	return _layout.get_line_of_sight(start, end)
 

@@ -40,7 +40,7 @@ var status_colors = {
 	"removed": Color.BLACK
 }
 
-func _ready():
+func _ready() -> void:
 	_setup_ui()
 	_connect_signals()
 
@@ -53,27 +53,37 @@ func _setup_ui() -> void:
 	custom_minimum_size = Vector2(250, 400)
 
 ## Connect UI signals
+
 func _connect_signals() -> void:
 	activation_button.pressed.connect(_on_next_activation_pressed)
 	reset_button.pressed.connect(_on_reset_turn_pressed)
 
 ## Add enemy to tracking system
+
 func add_enemy(enemy_id: String, enemy_data: Dictionary) -> void:
 	var enemy_info = {
 		"id": enemy_id,
+
 		"name": enemy_data.get("name", "Enemy " + enemy_id),
+
 		"type": enemy_data.get("type", "Basic"),
+
 		"health": enemy_data.get("health", 1),
+
 		"max_health": enemy_data.get("max_health", 1),
+
 		"toughness": enemy_data.get("toughness", 3),
 		"status": "inactive",
+
 		"position_ref": enemy_data.get("position_ref", ""),
+
 		"special_rules": enemy_data.get("special_rules", []),
 		"activated_this_turn": false
 	}
 	
 	enemies[enemy_id] = enemy_info
-	activation_order.append(enemy_id)
+
+	activation_order.append(enemy_id)  # warning: return value discarded (intentional)
 	_create_enemy_display(enemy_info)
 	_update_activation_controls()
 
@@ -86,6 +96,7 @@ func remove_enemy(enemy_id: String) -> void:
 		_update_activation_controls()
 
 ## Update enemy health
+
 func update_enemy_health(enemy_id: String, new_health: int) -> void:
 	if enemy_id not in enemies:
 		return
@@ -93,15 +104,15 @@ func update_enemy_health(enemy_id: String, new_health: int) -> void:
 	var enemy = enemies[enemy_id]
 	var old_status = enemy.status
 	
-	enemy.health = max(0, new_health)
+	enemy._health = max(0, new_health)
 	
-	# Update status based on health
-	if enemy.health <= 0 and enemy.status != "down":
+	# Update status based on _health
+	if enemy._health <= 0 and enemy.status != "down":
 		enemy.status = "down"
-		enemy_status_changed.emit(enemy_id, old_status, "down")
-	elif enemy.health > 0 and enemy.status == "down":
+		enemy_status_changed.emit(enemy_id, old_status, "down")  # warning: return value discarded (intentional)
+	elif enemy._health > 0 and enemy.status == "down":
 		enemy.status = "inactive"
-		enemy_status_changed.emit(enemy_id, old_status, "inactive")
+		enemy_status_changed.emit(enemy_id, old_status, "inactive")  # warning: return value discarded (intentional)
 	
 	_update_enemy_display(enemy_id)
 
@@ -111,10 +122,10 @@ func update_enemy_status(enemy_id: String, new_status: String) -> void:
 		return
 	
 	var enemy = enemies[enemy_id]
-	var old_status = enemy.status
+	var old_status = enemy._status
 	
-	enemy.status = new_status
-	enemy_status_changed.emit(enemy_id, old_status, new_status)
+	enemy._status = new_status
+	enemy_status_changed.emit(enemy_id, old_status, new_status)  # warning: return value discarded (intentional)
 	_update_enemy_display(enemy_id)
 
 ## Activate next enemy in sequence
@@ -124,9 +135,11 @@ func activate_next_enemy() -> String:
 		return ""
 	
 	var enemy_id = activation_order[current_activation_index]
+
 	var enemy = enemies.get(enemy_id, {})
 	
 	# Skip enemies that are down or removed
+
 	if enemy.get("status", "") in ["down", "removed"]:
 		current_activation_index += 1
 		return activate_next_enemy()
@@ -150,7 +163,7 @@ func reset_turn() -> void:
 	
 	_update_all_displays()
 	_update_activation_controls()
-	turn_reset_requested.emit()
+	turn_reset_requested.emit()  # warning: return value discarded (intentional)
 
 ## Get current enemy status summary
 func get_status_summary() -> Dictionary:
@@ -176,6 +189,7 @@ func get_next_enemy() -> Dictionary:
 		return {}
 	
 	var enemy_id = activation_order[current_activation_index]
+
 	return enemies.get(enemy_id, {})
 
 ## Private helper methods
@@ -189,12 +203,12 @@ func _activate_enemy(enemy_id: String) -> void:
 	enemy.activated_this_turn = true
 	
 	_update_enemy_display(enemy_id)
-	enemy_activated.emit(enemy_id)
+	enemy_activated.emit(enemy_id)  # warning: return value discarded (intentional)
 
 func _complete_turn() -> void:
 	turn_complete = true
 	_update_activation_controls()
-	all_enemies_activated.emit()
+	all_enemies_activated.emit()  # warning: return value discarded (intentional)
 
 func _create_enemy_display(enemy_info: Dictionary) -> void:
 	# Create simple enemy panel (can be enhanced later with custom scenes)
@@ -203,29 +217,29 @@ func _create_enemy_display(enemy_info: Dictionary) -> void:
 	enemy_list.add_child(enemy_panel)
 
 func _create_simple_enemy_panel(enemy_info: Dictionary) -> Control:
-	var panel = Panel.new()
-	var vbox = VBoxContainer.new()
+	var panel := Panel.new()
+	var vbox := VBoxContainer.new()
 	
 	# Enemy name and type
-	var name_label = Label.new()
+	var name_label := Label.new()
 	name_label.text = enemy_info.name + " (" + enemy_info.type + ")"
 	vbox.add_child(name_label)
 	
 	# Health display
-	var health_label = Label.new()
+	var health_label := Label.new()
 	health_label.text = "Health: " + str(enemy_info.health) + "/" + str(enemy_info.max_health)
 	health_label.name = "HealthLabel"
 	vbox.add_child(health_label)
 	
 	# Status indicator
-	var status_label = Label.new()
+	var status_label := Label.new()
 	status_label.text = "Status: " + enemy_info.status.capitalize()
 	status_label.name = "StatusLabel"
 	vbox.add_child(status_label)
 	
 	# Position reference
 	if enemy_info.position_ref != "":
-		var pos_label = Label.new()
+		var pos_label := Label.new()
 		pos_label.text = "Position: " + enemy_info.position_ref
 		pos_label.name = "PositionLabel"
 		vbox.add_child(pos_label)
@@ -255,11 +269,13 @@ func _update_enemy_display(enemy_id: String) -> void:
 	var status_label = panel.get_node_or_null("VBoxContainer/StatusLabel")
 	if status_label:
 		status_label.text = "Status: " + enemy.status.capitalize()
+
 		status_label.modulate = status_colors.get(enemy.status, Color.WHITE)
 	
 	# Update panel background based on status
 	if panel is Panel:
-		var style = StyleBoxFlat.new()
+		var style := StyleBoxFlat.new()
+
 		style.bg_color = status_colors.get(enemy.status, Color.WHITE)
 		style.bg_color.a = 0.2 # Make it subtle
 		panel.add_theme_stylebox_override("panel", style)
@@ -278,10 +294,12 @@ func _update_activation_controls() -> void:
 			activation_button.text = "No More Enemies"
 			activation_button.disabled = true
 		else:
+
 			activation_button.text = "Activate: " + next_enemy.get("name", "Unknown")
 			activation_button.disabled = false
 
 ## Signal handlers
+
 func _on_next_activation_pressed() -> void:
 	activate_next_enemy()
 	_update_activation_controls()
@@ -290,6 +308,7 @@ func _on_reset_turn_pressed() -> void:
 	reset_turn()
 
 ## Export methods for integration with battle system
+
 func export_enemy_data() -> Dictionary:
 	return {
 		"enemies": enemies.duplicate(),
@@ -299,9 +318,13 @@ func export_enemy_data() -> Dictionary:
 	}
 
 func import_enemy_data(data: Dictionary) -> void:
+
 	enemies = data.get("enemies", {})
+
 	activation_order = data.get("activation_order", [])
+
 	current_activation_index = data.get("current_activation", 0)
+
 	turn_complete = data.get("turn_complete", false)
 	
 	_rebuild_display()

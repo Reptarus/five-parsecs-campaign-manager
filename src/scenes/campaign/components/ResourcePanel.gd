@@ -28,9 +28,9 @@ const RESOURCE_DESCRIPTIONS = {
 class ResourceData:
 	var name: String
 	var current_value: int
-	var max_value: int
-	var trend: int # -1 for decreasing, 0 for stable, 1 for increasing
-	var icon: Texture
+	var max_value: int = -1 # -1 means no maximum
+	var _trend: int
+	var _icon: Texture
 	var color: Color
 	var description: String
 	
@@ -38,7 +38,7 @@ class ResourceData:
 		name = p_name
 		current_value = p_current
 		max_value = p_max # -1 means no maximum
-		trend = p_trend
+		_trend = p_trend
 		color = _get_resource_color(p_name)
 		description = RESOURCE_DESCRIPTIONS[p_name]
 		
@@ -61,7 +61,6 @@ var _resources: Dictionary = {}
 
 func _ready() -> void:
 	_setup_ui()
-	
 func _setup_ui() -> void:
 	# Set up the panel style
 	custom_minimum_size = Vector2(250, 0)
@@ -71,7 +70,6 @@ func _setup_ui() -> void:
 		_initialize_default_resources()
 	
 	_update_display()
-
 func _initialize_default_resources() -> void:
 	add_resource("credits", 1000) # Starting credits
 	add_resource("story_points", 3) # Starting story points
@@ -79,7 +77,6 @@ func _initialize_default_resources() -> void:
 	add_resource("supplies", 10) # Starting supplies
 	add_resource("intel", 0) # Starting intel
 	add_resource("salvage", 0) # Starting salvage
-
 func _update_display() -> void:
 	if not is_inside_tree() or not resources_container:
 		return
@@ -109,23 +106,20 @@ func _add_resource_display(resource_name: String) -> void:
 	)
 	
 	resource_item.resource_clicked.connect(_on_resource_clicked)
-
 func _on_resource_clicked(resource_name: String) -> void:
 	if _resources.has(resource_name):
-		emit_signal("resource_clicked", resource_name, _resources[resource_name].current_value)
+		resource_clicked.emit( resource_name, _resources[resource_name].current_value)
 
 # Public methods
 func add_resource(name: String, initial_value: int = 0, max_value: int = -1) -> void:
 	_resources[name] = ResourceData.new(name, initial_value, max_value)
 	_update_display()
-
-func set_resource_value(name: String, value: int) -> void:
+func set_resource_value(name: String, _value: int) -> void:
 	if _resources.has(name):
 		var old_value = _resources[name].current_value
-		_resources[name].current_value = value
-		_resources[name].trend = sign(value - old_value)
+		_resources[name].current_value = _value
+		_resources[name].trend = sign(_value - old_value)
 		_update_display()
-
 func get_resource_value(name: String) -> int:
 	return _resources.get(name, ResourceData.new(name)).current_value
 
@@ -136,14 +130,12 @@ func modify_resource(name: String, amount: int) -> void:
 			new_value = mini(new_value, _resources[name].max_value)
 		new_value = maxi(0, new_value)
 		set_resource_value(name, new_value)
-
 func set_resource_max(name: String, max_value: int) -> void:
 	if _resources.has(name):
 		_resources[name].max_value = max_value
 		if _resources[name].current_value > max_value and max_value >= 0:
 			set_resource_value(name, max_value)
 		_update_display()
-
 func get_resource_max(name: String) -> int:
 	return _resources.get(name, ResourceData.new(name)).max_value
 
@@ -151,7 +143,7 @@ func has_resource(name: String) -> bool:
 	return _resources.has(name)
 
 func get_all_resources() -> Dictionary:
-	var resources = {}
+	var resources: Dictionary = {}
 	for name in _resources:
 		resources[name] = _resources[name].current_value
 	return resources

@@ -31,19 +31,19 @@ func _ready() -> void:
 func _setup_preset_buttons() -> void:
     for preset_id in campaign_presets:
         var preset = campaign_presets[preset_id]
-        var button = Button.new()
+        var button := Button.new()
         button.text = preset.name
         button.tooltip_text = _get_preset_description(preset)
         button.pressed.connect(_on_preset_selected.bind(preset_id))
         $PresetContainer.add_child(button)
 
 func _get_preset_description(preset: Dictionary) -> String:
-    var desc = "Difficulty: " + GameEnums.DifficultyLevel.keys()[preset.difficulty] + "\n"
+    var desc: String = "Difficulty: " + GameEnums.DifficultyLevel.keys()[preset.difficulty] + "\n"
     desc += "Tutorial: " + ("Enabled" if preset.enable_tutorial else "Disabled") + "\n"
     desc += "Permadeath: " + ("Enabled" if preset.enable_permadeath else "Disabled")
     return desc
 
 func _on_preset_selected(preset_id: String) -> void:
     var config = campaign_presets[preset_id].duplicate()
-    campaign_started.emit(config)
+    campaign_started.emit(config)  # warning: return value discarded (intentional)
     queue_free()

@@ -25,10 +25,11 @@ func remove_relationship(char1, char2) -> void:
 
 func get_relationship(char1, char2) -> String:
 	var pair_key = _get_pair_key(char1, char2)
+
 	return relationships.get(pair_key, "")
 
 func get_all_relationships(character) -> Array:
-	var char_relationships = []
+	var char_relationships: Array = []
 	for pair_key in relationships:
 		var chars = _split_pair_key(pair_key)
 		if chars[0] == character or chars[1] == character:
@@ -61,7 +62,7 @@ func generate_initial_relationships(crew_members: Array) -> void:
 	crew_characteristic = roll_crew_characteristic()
 	crew_meeting_story = roll_meeting_story()
 	
-	# Generate relationships between crew members
+	# Generate relationships between crew _members
 	for i in range(crew_members.size()):
 		for j in range(i + 1, crew_members.size()):
 			var char1 = crew_members[i]
@@ -75,7 +76,6 @@ func generate_initial_relationships(crew_members: Array) -> void:
 				
 			var random_relationship = relationship_types[randi() % relationship_types.size()]
 			add_relationship(char1, char2, random_relationship)
-
 func _get_pair_key(char1, char2) -> String:
 	# Create a consistent key for a pair of characters
 	var id1 = char1.get_instance_id()
@@ -87,7 +87,7 @@ func _split_pair_key(pair_key: String) -> Array:
 	return [instance_from_id(int(ids[0])), instance_from_id(int(ids[1]))]
 
 func serialize() -> Dictionary:
-	var serialized_relationships = {}
+	var serialized_relationships: Dictionary = {}
 	for pair_key in relationships:
 		serialized_relationships[pair_key] = relationships[pair_key]
 	
@@ -99,8 +99,10 @@ func serialize() -> Dictionary:
 
 func deserialize(data: Dictionary) -> void:
 	relationships.clear()
+
 	for pair_key in data.get("relationships", {}):
 		relationships[pair_key] = data["relationships"][pair_key]
-	
+
 	crew_characteristic = data.get("crew_characteristic", "")
+
 	crew_meeting_story = data.get("crew_meeting_story", "")

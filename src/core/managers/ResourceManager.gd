@@ -32,39 +32,35 @@ class ResourceTransaction:
 		source = p_source
 		timestamp = Time.get_unix_time_from_system()
 		turn_number = p_turn
-
 func _init() -> void:
 	_initialize_resources()
 	_initialize_history()
-
 func _initialize_resources() -> void:
 	for resource_type in GameEnums.ResourceType.values():
 		resources[resource_type] = 0
 		resource_thresholds[resource_type] = {}
-
 func _initialize_history() -> void:
 	for resource_type in GameEnums.ResourceType.values():
 		resource_history[resource_type] = []
-
-func set_resource(resource_type: int, value: int, source: String = "system") -> void:
+func set_resource(resource_type: int, _value: int, source: String = "system") -> void:
 	if not resource_type in resources:
-		push_error("Invalid resource type: %d" % resource_type)
+		push_error("Invalid resource _type: %d" % resource_type)
 		return
 	
 	var old_value = resources[resource_type]
-	resources[resource_type] = value
+	resources[resource_type] = _value
 	
-	_add_history_entry(resource_type, old_value, value, source)
-	_check_thresholds(resource_type, value)
+	_add_history_entry(resource_type, old_value, _value, source)
+	_check_thresholds(resource_type, _value)
 	
-	resource_changed.emit(resource_type, old_value, value, source)
+	resource_changed.emit(resource_type, old_value, _value, source)  # warning: return value discarded (intentional)
 	
-	if value <= 0:
-		resource_depleted.emit(resource_type)
+	if _value <= 0:
+		resource_depleted.emit(resource_type)  # warning: return value discarded (intentional)
 
 func modify_resource(resource_type: int, amount: int, source: String = "system") -> void:
 	if not resource_type in resources:
-		push_error("Invalid resource type: %d" % resource_type)
+		push_error("Invalid resource _type: %d" % resource_type)
 		return
 	
 	var old_value = resources[resource_type]
@@ -73,27 +69,28 @@ func modify_resource(resource_type: int, amount: int, source: String = "system")
 	set_resource(resource_type, new_value, source)
 
 func get_resource(resource_type: int) -> int:
+
 	return resources.get(resource_type, 0)
 
 func has_resource(resource_type: int) -> bool:
 	return resource_type in resources
 
-func set_resource_threshold(resource_type: int, threshold: int, value: int) -> void:
+func set_resource_threshold(resource_type: int, threshold: int, _value: int) -> void:
 	if not resource_type in resource_thresholds:
 		resource_thresholds[resource_type] = {}
 	
-	resource_thresholds[resource_type][threshold] = value
-
+	resource_thresholds[resource_type][threshold] = _value
 func get_resource_threshold(resource_type: int, threshold: int) -> int:
+
 	return resource_thresholds.get(resource_type, {}).get(threshold, 0)
 
-func _check_thresholds(resource_type: int, value: int) -> void:
+func _check_thresholds(resource_type: int, _value: int) -> void:
 	if not resource_type in resource_thresholds:
 		return
 	
 	for threshold in resource_thresholds[resource_type]:
-		if value <= threshold:
-			resource_threshold_reached.emit(resource_type, threshold, value)
+		if _value <= threshold:
+			resource_threshold_reached.emit(resource_type, threshold, _value)  # warning: return value discarded (intentional)
 
 func _add_history_entry(resource_type: int, old_value: int, new_value: int, source: String) -> void:
 	var entry = ResourceTransaction.new(
@@ -105,7 +102,7 @@ func _add_history_entry(resource_type: int, old_value: int, new_value: int, sour
 	)
 	
 	resource_history[resource_type].append(entry)
-	resource_history_updated.emit(resource_type, _create_history_entry_dict(entry))
+	resource_history_updated.emit(resource_type, _create_history_entry_dict(entry))  # warning: return value discarded (intentional)
 	
 	_prune_history_if_needed(resource_type)
 
@@ -114,7 +111,6 @@ func _prune_history_if_needed(resource_type: int) -> void:
 	if history.size() > HISTORY_PRUNE_THRESHOLD:
 		history = history.slice(- MAX_HISTORY_ENTRIES)
 		resource_history[resource_type] = history
-
 func get_resource_history(resource_type: int, limit: int = -1) -> Array:
 	if not resource_type in resource_history:
 		return []
@@ -180,4 +176,4 @@ func _create_history_entry_dict(entry: ResourceTransaction) -> Dictionary:
 
 func get_current_turn() -> int:
 	# This should be implemented to return the current game turn
-	return 0 # Placeholder
+	return 0 # Placeholder"

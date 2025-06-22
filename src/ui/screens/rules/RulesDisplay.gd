@@ -3,23 +3,23 @@ extends Control
 
 # signal back_pressed
 
-@onready var title_label = $VBoxContainer/TitleLabel
-@onready var content_text = $VBoxContainer/ContentText
-@onready var image_rect = $VBoxContainer/ImageRect
-@onready var bookmark_button = $VBoxContainer/BookmarkButton
-@onready var related_rules = $VBoxContainer/RelatedRules
+@onready var title_label: Label = $"VBoxContainer/TitleLabel"
+@onready var content_text: RichTextLabel = $"VBoxContainer/ContentText"
+@onready var image_rect: TextureRect = $"VBoxContainer/ImageRect"
+@onready var bookmark_button: Button = $"VBoxContainer/BookmarkButton"
+@onready var related_rules: VBoxContainer = $VBoxContainer/RelatedRules
 
-var current_category = ""
+var current_category: String = ""
 
-func _ready():
-	$BackButton.connect("pressed", Callable(self, "_on_back_pressed"))
-	bookmark_button.connect("pressed", Callable(self, "_on_bookmark_pressed"))
+func _ready() -> void:
+	$BackButton.pressed.connect(_on_back_pressed)
+	bookmark_button.pressed.connect(_on_bookmark_pressed)
 
-func display_category(category: String, data: Dictionary):
+func display_category(category: String, data: Dictionary) -> void:
 	current_category = category
 	title_label.text = category
 	
-	var content = ""
+	var content: String = ""
 	if "text" in data:
 		content += data["text"] + "\n\n"
 	
@@ -52,14 +52,14 @@ func display_category(category: String, data: Dictionary):
 	update_bookmark_button()
 	display_related_rules(data)
 
-func update_bookmark_button():
+func update_bookmark_button() -> void:
 	bookmark_button.text = "Bookmark" if not is_bookmarked() else "Remove Bookmark"
 
 func is_bookmarked() -> bool:
 	var rules_reference = get_node("/root/RulesReference")
 	return current_category in rules_reference.bookmarks
 
-func _on_bookmark_pressed():
+func _on_bookmark_pressed() -> void:
 	var rules_reference = get_node("/root/RulesReference")
 	if is_bookmarked():
 		rules_reference.bookmarks.erase(current_category)
@@ -67,18 +67,22 @@ func _on_bookmark_pressed():
 		rules_reference.bookmarks.append(current_category)
 	update_bookmark_button()
 
-func display_related_rules(data: Dictionary):
-	related_rules.clear()
+func display_related_rules(data: Dictionary) -> void:
+	# Clear existing children
+	for child in related_rules.get_children():
+		child.queue_free()
+	
 	if "related_rules" in data:
 		for rule in data["related_rules"]:
-			var button = Button.new()
+			var button := Button.new()
 			button.text = rule
-			button.connect("pressed", Callable(self, "_on_related_rule_pressed").bind(rule))
+			button.pressed.connect(_on_related_rule_pressed.bind(rule))
 			related_rules.add_child(button)
 
-func _on_related_rule_pressed(rule: String):
+func _on_related_rule_pressed(rule: String) -> void:
 	var rules_reference = get_node("/root/RulesReference")
 	rules_reference.show_rules_display(rule)
 
-func _on_back_pressed():
+func _on_back_pressed() -> void:
 	queue_free()
+

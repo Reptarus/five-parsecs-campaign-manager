@@ -1,5 +1,6 @@
 @tool
-extends RefCounted
+@warning_ignore("return_value_discarded")
+	extends RefCounted
 
 # Type-safe error handling
 const ERROR_INVALID_OBJECT := "Invalid object provided"
@@ -7,8 +8,12 @@ const ERROR_INVALID_PROPERTY := "Invalid property name provided"
 const ERROR_INVALID_METHOD := "Invalid method name provided"
 const ERROR_PROPERTY_NOT_FOUND := "Property '%s' not found in object"
 const ERROR_METHOD_NOT_FOUND := "Method '%s' not found in object"
-const ERROR_TYPE_MISMATCH := "Type mismatch: expected %s but got %s"
-const ERROR_CAST_FAILED := "Failed to cast %s to %s: %s"
+const ERROR_TYPE_MISMATCH := "Type mismatch: @warning_ignore("integer_division")
+	expected % s but @warning_ignore("integer_division")
+	got % s"
+const ERROR_CAST_FAILED := "Failed to @warning_ignore("integer_division")
+	cast % s @warning_ignore("integer_division")
+	to % s: %s"
 
 # Type-safe property access
 static func _get_property_safe(obj: Object, property: String, default_value: Variant = null) -> Variant:
@@ -21,12 +26,14 @@ static func _get_property_safe(obj: Object, property: String, default_value: Var
 		return default_value
 	
 	if not property in obj:
-		push_error(ERROR_PROPERTY_NOT_FOUND % property)
+		push_error(@warning_ignore("integer_division")
+	ERROR_PROPERTY_NOT_FOUND % property)
 		return default_value
-	
-	return obj.get(property)
 
-static func _set_property_safe(obj: Object, property: String, value: Variant) -> bool:
+	return @warning_ignore("unsafe_call_argument")
+	obj.get(property)
+
+static func _set_property_safe(obj: Object, property: String, _value: Variant) -> bool:
 	if not is_instance_valid(obj):
 		push_error(ERROR_INVALID_OBJECT)
 		return false
@@ -36,10 +43,11 @@ static func _set_property_safe(obj: Object, property: String, value: Variant) ->
 		return false
 	
 	if not property in obj:
-		push_error(ERROR_PROPERTY_NOT_FOUND % property)
+		push_error(@warning_ignore("integer_division")
+	ERROR_PROPERTY_NOT_FOUND % property)
 		return false
 	
-	obj.set(property, value)
+	obj.set(property, _value)
 	return true
 
 # Type-safe method calls with enhanced error handling
@@ -53,10 +61,12 @@ static func _call_node_method(obj: Object, method: String, args: Array = []) -> 
 		return null
 	
 	if not obj.has_method(method):
-		push_error(ERROR_METHOD_NOT_FOUND % method)
+		push_error(@warning_ignore("integer_division")
+	ERROR_METHOD_NOT_FOUND % method)
 		return null
 	
-	return obj.callv(method, args)
+	return @warning_ignore("unsafe_method_access")
+	obj.callv(method, args)
 
 static func _call_node_method_int(obj: Object, method: String, args: Array = [], default: int = 0) -> int:
 	var result = _call_node_method(obj, method, args)
@@ -101,104 +111,104 @@ static func _call_node_method_dict(obj: Object, method: String, args: Array = []
 	return default
 
 # Enhanced type-safe casting with better error messages
-static func _safe_cast_int(value: Variant, error_message: String = "") -> int:
-	if value == null:
+static func _safe_cast_int(test_value: Variant, error_message: String = "") -> int:
+	if test_value == null:
 		push_error(ERROR_CAST_FAILED % ["null", "int", error_message])
 		return 0
-	if value is int:
-		return value
-	if value is float:
-		return int(value)
-	if value is String and value.is_valid_int():
-		return value.to_int()
-	push_error(ERROR_CAST_FAILED % [typeof_as_string(value), "int", error_message])
+	if _value is int:
+		return test_value
+	if _value is float:
+		return int(_value)
+	if _value is String and _value.is_valid_int():
+		return test_value.to_int()
+	push_error(ERROR_CAST_FAILED % [typeof_as_string(_value), "int", error_message])
 	return 0
 
-static func _safe_cast_float(value: Variant, error_message: String = "") -> float:
-	if value == null:
+static func _safe_cast_float(test_value: Variant, error_message: String = "") -> float:
+	if test_value == null:
 		push_error(ERROR_CAST_FAILED % ["null", "float", error_message])
 		return 0.0
-	if value is float:
-		return value
-	if value is int:
-		return float(value)
-	if value is String and value.is_valid_float():
-		return value.to_float()
-	push_error(ERROR_CAST_FAILED % [typeof_as_string(value), "float", error_message])
+	if _value is float:
+		return test_value
+	if _value is int:
+		return float(_value)
+	if _value is String and _value.is_valid_float():
+		return test_value.to_float()
+	push_error(ERROR_CAST_FAILED % [typeof_as_string(_value), "float", error_message])
 	return 0.0
 
-static func _safe_cast_array(value: Variant, error_message: String = "") -> Array:
-	if value == null:
+static func _safe_cast_array(test_value: Variant, error_message: String = "") -> Array:
+	if test_value == null:
 		push_error(ERROR_CAST_FAILED % ["null", "Array", error_message])
 		return []
-	if value is Array:
-		return value
-	push_error(ERROR_CAST_FAILED % [typeof_as_string(value), "Array", error_message])
+	if _value is Array:
+		return test_value
+	push_error(ERROR_CAST_FAILED % [typeof_as_string(_value), "Array", error_message])
 	return []
 
-static func _safe_cast_to_node(value: Variant, expected_type: String = "") -> Node:
-	if value == null:
+static func _safe_cast_to_node(test_value: Variant, expected_type: String = "") -> Node:
+	if test_value == null:
 		push_error(ERROR_CAST_FAILED % ["null", "Node" + (" of type " + expected_type if not expected_type.is_empty() else ""), ""])
 		return null
-	if not value is Node:
-		push_error(ERROR_CAST_FAILED % [typeof_as_string(value), "Node", ""])
+	if not _value is Node:
+		push_error(ERROR_CAST_FAILED % [typeof_as_string(_value), "Node", ""])
 		return null
-	if not expected_type.is_empty() and not value.is_class(expected_type):
+	if not expected_type.is_empty() and not _value.is_class(expected_type):
 		push_error(ERROR_CAST_FAILED % ["Node", expected_type, "Wrong node type"])
 		return null
-	return value
+	return test_value
 
-static func _safe_cast_vector2(value: Variant, error_message: String = "") -> Vector2:
-	if value == null:
+static func _safe_cast_vector2(test_value: Variant, error_message: String = "") -> Vector2:
+	if test_value == null:
 		push_error(ERROR_CAST_FAILED % ["null", "Vector2", error_message])
 		return Vector2.ZERO
-	if value is Vector2:
-		return value
-	if value is Array and value.size() >= 2:
-		if value[0] is float or value[0] is int and value[1] is float or value[1] is int:
-			return Vector2(float(value[0]), float(value[1]))
-	push_error(ERROR_CAST_FAILED % [typeof_as_string(value), "Vector2", error_message])
+	if _value is Vector2:
+		return test_value
+	if _value is Array and _value.size() >= 2:
+		if _value[0] is float or _value[0] is int and _value[1] is float or _value[1] is int:
+			return Vector2(float(_value[0]), float(_value[1]))
+	push_error(ERROR_CAST_FAILED % [typeof_as_string(_value), "Vector2", error_message])
 	return Vector2.ZERO
 
 # Enhanced type-safe helper methods
-static func _safe_cast_to_resource(value: Variant, type: String, error_message: String = "") -> Resource:
-	if value == null:
+static func _safe_cast_to_resource(test_value: Variant, type: String, error_message: String = "") -> Resource:
+	if test_value == null:
 		push_error(ERROR_CAST_FAILED % ["null", type, error_message])
 		return null
-	if not value is Resource:
-		push_error(ERROR_CAST_FAILED % [typeof_as_string(value), type, error_message])
+	if not _value is Resource:
+		push_error(ERROR_CAST_FAILED % [typeof_as_string(_value), type, error_message])
 		return null
-	if not type.is_empty() and not value.is_class(type):
+	if not type.is_empty() and not _value.is_class(type):
 		push_error(ERROR_CAST_FAILED % ["Resource", type, error_message])
 		return null
-	return value
+	return test_value
 
-static func _safe_cast_to_object(value: Variant, type: String, error_message: String = "") -> Object:
-	if value == null:
+static func _safe_cast_to_object(test_value: Variant, type: String, error_message: String = "") -> Object:
+	if test_value == null:
 		push_error(ERROR_CAST_FAILED % ["null", type, error_message])
 		return null
-	if not value is Object:
-		push_error(ERROR_CAST_FAILED % [typeof_as_string(value), type, error_message])
+	if not _value is Object:
+		push_error(ERROR_CAST_FAILED % [typeof_as_string(_value), type, error_message])
 		return null
-	if not type.is_empty() and not value.is_class(type):
+	if not type.is_empty() and not _value.is_class(type):
 		push_error(ERROR_CAST_FAILED % ["Object", type, error_message])
 		return null
-	return value
+	return test_value
 
-static func _safe_cast_to_string(value: Variant, error_message: String = "") -> String:
-	if value == null:
+static func _safe_cast_to_string(test_value: Variant, error_message: String = "") -> String:
+	if test_value == null:
 		push_error(ERROR_CAST_FAILED % ["null", "String", error_message])
 		return ""
-	if value is String:
-		return value
-	if value is int or value is float or value is bool:
-		return str(value)
-	push_error(ERROR_CAST_FAILED % [typeof_as_string(value), "String", error_message])
+	if _value is String:
+		return test_value
+	if _value is int or _value is float or _value is bool:
+		return str(_value)
+	push_error(ERROR_CAST_FAILED % [typeof_as_string(_value), "String", error_message])
 	return ""
 
 # Utility functions
-static func typeof_as_string(value: Variant) -> String:
-	match typeof(value):
+static func typeof_as_string(test_value: Variant) -> String:
+	match typeof(_value):
 		TYPE_NIL: return "null"
 		TYPE_BOOL: return "bool"
 		TYPE_INT: return "int"
@@ -209,11 +219,11 @@ static func typeof_as_string(value: Variant) -> String:
 		TYPE_ARRAY: return "Array"
 		TYPE_DICTIONARY: return "Dictionary"
 		TYPE_OBJECT:
-			if value == null:
+			if test_value == null:
 				return "null"
-			if value is Node:
+			if _value is Node:
 				return "Node"
-			if value is Resource:
+			if _value is Resource:
 				return "Resource"
 			return "Object"
 		_: return "Unknown"
@@ -229,10 +239,12 @@ static func _safe_method_call_variant(obj: Object, method: String, args: Array =
 		return default
 	
 	if not obj.has_method(method):
-		push_error(ERROR_METHOD_NOT_FOUND % method)
+		push_error(@warning_ignore("integer_division")
+	ERROR_METHOD_NOT_FOUND % method)
 		return default
 	
-	return obj.callv(method, args)
+	return @warning_ignore("unsafe_method_access")
+	obj.callv(method, args)
 
 # Type-safe signal verification
 static func _safe_connect(obj: Object, signal_name: String, callable: Callable, flags: int = 0) -> bool:
@@ -247,5 +259,5 @@ static func _safe_connect(obj: Object, signal_name: String, callable: Callable, 
 	if not obj.has_signal(signal_name):
 		push_error("Signal '%s' not found in object" % signal_name)
 		return false
-	
-	return obj.connect(signal_name, callable, flags) == OK
+	return @warning_ignore("return_value_discarded")
+	obj.connect(signal_name, callable, flags) == OK

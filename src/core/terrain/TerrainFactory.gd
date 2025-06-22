@@ -28,17 +28,15 @@ var _scene_cache: Dictionary = {}
 
 func _ready() -> void:
 	_preload_scenes()
-
 func _preload_scenes() -> void:
 	for key in TERRAIN_SCENES:
 		var scene = load(TERRAIN_SCENES[key])
 		if scene:
 			_scene_cache[key] = scene
-
 func create_terrain_piece(terrain_type: TerrainTypes.Type, position: Vector3, rotation: float = 0.0) -> Node3D:
 	var base_scene = _get_base_scene_for_type(terrain_type)
 	if not base_scene:
-		push_error("TerrainFactory: Failed to get base scene for type " + str(terrain_type))
+		push_error("TerrainFactory: Failed to get base scene for _type " + str(terrain_type))
 		return null
 	
 	var terrain_piece = base_scene.instantiate()
@@ -47,7 +45,7 @@ func create_terrain_piece(terrain_type: TerrainTypes.Type, position: Vector3, ro
 		return null
 	
 	_configure_terrain_piece(terrain_piece, terrain_type, position, rotation)
-	terrain_created.emit(terrain_piece, terrain_type)
+	terrain_created.emit(terrain_piece, terrain_type) # warning: return value discarded (intentional)
 	
 	return terrain_piece
 
@@ -59,12 +57,12 @@ func modify_terrain_piece(piece: Node3D, new_type: TerrainTypes.Type) -> bool:
 	piece.set_terrain_type(new_type)
 	_update_terrain_properties(piece, new_type)
 	
-	terrain_modified.emit(piece, old_type, new_type)
+	terrain_modified.emit(piece, old_type, new_type) # warning: return value discarded (intentional)
 	return true
 
 func remove_terrain_piece(piece: Node3D) -> void:
 	if piece:
-		terrain_removed.emit(piece)
+		terrain_removed.emit(piece) # warning: return value discarded (intentional)
 		piece.queue_free()
 
 func _get_base_scene_for_type(terrain_type: TerrainTypes.Type) -> PackedScene:
@@ -88,11 +86,11 @@ func _configure_terrain_piece(piece: Node3D, type: TerrainTypes.Type, position: 
 		piece.set_terrain_type(type)
 	
 	_update_terrain_properties(piece, type)
-
 func _update_terrain_properties(piece: Node3D, type: TerrainTypes.Type) -> void:
 	var properties = TerrainTypes.get_terrain_properties(type)
 	
 	# Update collision properties
+
 	if properties.get("blocks_movement", false):
 		piece.collision_layer = 1 # Solid terrain layer
 		piece.collision_mask = 1
@@ -104,11 +102,10 @@ func _update_terrain_properties(piece: Node3D, type: TerrainTypes.Type) -> void:
 	var mesh_instance = piece.get_node_or_null("MeshInstance3D")
 	if mesh_instance:
 		_update_mesh_properties(mesh_instance, type)
-
 func _update_mesh_properties(mesh_instance: MeshInstance3D, type: TerrainTypes.Type) -> void:
 	# Update mesh appearance based on terrain type
 	# This would be expanded based on your visual requirements
-	var material = StandardMaterial3D.new()
+	var material := StandardMaterial3D.new()
 	
 	match type:
 		TerrainTypes.Type.COVER_LOW:

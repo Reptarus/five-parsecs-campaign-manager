@@ -3,7 +3,7 @@ extends StaticBody3D
 const GameEnums: GDScript = preload("res://src/core/systems/GlobalEnums.gd")
 const TerrainTypes: GDScript = preload("res://src/core/terrain/TerrainTypes.gd")
 
-@export var terrain_type: int = TerrainTypes.Type.EMPTY
+@export var terrain_type: int = 0 # TerrainTypes.Type.EMPTY equivalent
 @export var destructible := false
 @export var current_health := 100
 @export var max_health := 100
@@ -19,7 +19,6 @@ func _ready() -> void:
 	_original_position = position
 	_mesh_instance = get_node_or_null("MeshInstance3D")
 	_initialize_terrain_properties()
-
 func _initialize_terrain_properties() -> void:
 	# Get terrain properties from type
 	match terrain_type:
@@ -32,7 +31,7 @@ func _initialize_terrain_properties() -> void:
 		TerrainTypes.Type.DIFFICULT:
 			_combat_modifiers = {"movement": - 1}
 			_special_effects = {"difficult_terrain": true}
-		TerrainTypes.Type.EMPTY:
+		0: # EMPTY equivalent
 			_combat_modifiers = {}
 			_special_effects = {}
 		_:
@@ -46,7 +45,6 @@ func _initialize_terrain_properties() -> void:
 	else:
 		collision_layer = 2 # Collision layer for passable terrain
 		collision_mask = 2
-
 func get_cover_value() -> float:
 	if _is_damaged and terrain_type == TerrainTypes.Type.COVER_HIGH:
 		return TerrainTypes.get_cover_value(TerrainTypes.Type.COVER_LOW)
@@ -103,7 +101,6 @@ func _handle_damage() -> void:
 			var shape = collision_shape.shape
 			if shape is BoxShape3D:
 				shape.size.y *= 0.5
-
 func _handle_destruction() -> void:
 	if terrain_type == TerrainTypes.Type.WALL:
 		# Convert to rubble
@@ -117,7 +114,6 @@ func _handle_destruction() -> void:
 				shape.size.y *= 0.3
 	else:
 		queue_free()
-
 func get_terrain_type() -> int:
 	return terrain_type
 

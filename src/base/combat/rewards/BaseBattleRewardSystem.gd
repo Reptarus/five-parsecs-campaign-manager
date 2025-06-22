@@ -46,7 +46,6 @@ func initialize(battle_data_ref: Node = null, objective_system_ref: Node = null)
 	calculated_rewards.clear()
 	granted_rewards.clear()
 	pending_rewards.clear()
-
 func calculate_rewards() -> Dictionary:
 	# This method should be implemented by derived classes
 	# to calculate rewards based on battle performance
@@ -62,7 +61,7 @@ func calculate_rewards() -> Dictionary:
 	}
 	
 	calculated_rewards = rewards
-	rewards_calculated.emit(rewards)
+	rewards_calculated.emit(rewards) # warning: return value discarded (intentional)
 	
 	# Prepare pending rewards
 	_prepare_pending_rewards()
@@ -76,29 +75,28 @@ func grant_rewards() -> void:
 	for reward in rewards_to_grant:
 		grant_reward(reward.type, reward.data)
 	
-	all_rewards_granted.emit()
+	all_rewards_granted.emit() # warning: return value discarded (intentional)
 
 func grant_reward(reward_type: String, reward_data: Dictionary) -> void:
 	# This method should be implemented by derived classes
 	# to actually grant the rewards to the player
 	# Mark as granted
-	granted_rewards.append({
+	granted_rewards.append({ # warning: return value discarded (intentional)
 		"type": reward_type,
-		"data": reward_data
+		"_data": reward_data
 	})
 	
 	# Remove from pending
 	for i in range(pending_rewards.size() - 1, -1, -1):
-		if pending_rewards[i].type == reward_type and pending_rewards[i].data == reward_data:
+		if pending_rewards[i].type == reward_type and pending_rewards[i]._data == reward_data:
 			pending_rewards.remove_at(i)
 			break
 	
 	# Emit signal
-	reward_granted.emit(reward_type, reward_data)
+	reward_granted.emit(reward_type, reward_data) # warning: return value discarded (intentional)
 
 func set_reward_multiplier(reward_type: int, multiplier: float) -> void:
 	reward_multipliers[reward_type] = max(0.0, multiplier)
-
 func get_reward_multiplier(reward_type: int) -> float:
 	return reward_multipliers.get(reward_type, 1.0)
 
@@ -117,14 +115,14 @@ func _prepare_pending_rewards() -> void:
 	
 	# Experience
 	if "experience" in calculated_rewards and calculated_rewards.experience > 0:
-		pending_rewards.append({
+		pending_rewards.append({ # warning: return value discarded (intentional)
 			"type": "experience",
 			"data": {"amount": calculated_rewards.experience}
 		})
 	
 	# Currency
 	if "currency" in calculated_rewards and calculated_rewards.currency > 0:
-		pending_rewards.append({
+		pending_rewards.append({ # warning: return value discarded (intentional)
 			"type": "currency",
 			"data": {"amount": calculated_rewards.currency}
 		})
@@ -132,7 +130,7 @@ func _prepare_pending_rewards() -> void:
 	# Items
 	if "items" in calculated_rewards and calculated_rewards.items.size() > 0:
 		for item in calculated_rewards.items:
-			pending_rewards.append({
+			pending_rewards.append({ # warning: return value discarded (intentional)
 				"type": "item",
 				"data": item
 			})
@@ -140,7 +138,7 @@ func _prepare_pending_rewards() -> void:
 	# Resources
 	if "resources" in calculated_rewards and calculated_rewards.resources.size() > 0:
 		for resource_id in calculated_rewards.resources:
-			pending_rewards.append({
+			pending_rewards.append({ # warning: return value discarded (intentional)
 				"type": "resource",
 				"data": {
 					"id": resource_id,
@@ -151,7 +149,7 @@ func _prepare_pending_rewards() -> void:
 	# Reputation
 	if "reputation" in calculated_rewards and calculated_rewards.reputation.size() > 0:
 		for faction_id in calculated_rewards.reputation:
-			pending_rewards.append({
+			pending_rewards.append({ # warning: return value discarded (intentional)
 				"type": "reputation",
 				"data": {
 					"faction_id": faction_id,
@@ -162,7 +160,7 @@ func _prepare_pending_rewards() -> void:
 	# Unlocks
 	if "unlocks" in calculated_rewards and calculated_rewards.unlocks.size() > 0:
 		for unlock in calculated_rewards.unlocks:
-			pending_rewards.append({
+			pending_rewards.append({ # warning: return value discarded (intentional)
 				"type": "unlock",
 				"data": unlock
 			})
@@ -170,7 +168,7 @@ func _prepare_pending_rewards() -> void:
 	# Custom
 	if "custom" in calculated_rewards and calculated_rewards.custom.size() > 0:
 		for custom in calculated_rewards.custom:
-			pending_rewards.append({
+			pending_rewards.append({ # warning: return value discarded (intentional)
 				"type": "custom",
 				"data": custom
 			})
@@ -178,14 +176,14 @@ func _prepare_pending_rewards() -> void:
 # Calculation methods - to be overridden by derived classes
 func _calculate_experience_reward() -> int:
 	# Base implementation - should be overridden
-	var base_xp = 100
+	var base_xp: int = 100
 	
 	# Apply multiplier
 	return int(base_xp * get_reward_multiplier(RewardType.EXPERIENCE))
 
 func _calculate_currency_reward() -> int:
 	# Base implementation - should be overridden
-	var base_currency = 50
+	var base_currency: int = 50
 	
 	# Apply multiplier
 	return int(base_currency * get_reward_multiplier(RewardType.CURRENCY))
@@ -219,6 +217,7 @@ func get_reward_description(reward_type: String, reward_data: Dictionary) -> Str
 			return "%d Credits" % reward_data.amount
 		"item":
 			var name = reward_data.get("name", "Unknown Item")
+
 			var quantity = reward_data.get("quantity", 1)
 			if quantity > 1:
 				return "%s x%d" % [name, quantity]

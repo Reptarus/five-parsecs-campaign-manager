@@ -1,52 +1,30 @@
 @tool
-extends Resource
 class_name GameWeapon
+extends Resource
 
-# Import necessary classes
-const GameDataManager = preload("res://src/core/managers/GameDataManager.gd")
-
-const GameEnums = preload("res://src/core/systems/GlobalEnums.gd")
-
+# Weapon properties
 @export var weapon_id: String = ""
 @export var weapon_name: String = ""
 @export var weapon_category: String = ""
 @export var weapon_description: String = ""
-@export var weapon_damage: Dictionary = {"dice": 1, "die_type": 6, "bonus": 0}
-@export var weapon_range: Dictionary = {"short": 0, "medium": 0, "long": 0}
+@export var weapon_damage: Dictionary = {}
+@export var weapon_range: Dictionary = {}
 @export var weapon_traits: Array[String] = []
 @export var weapon_special_rules: Array[Dictionary] = []
-@export var weapon_cost: Dictionary = {"credits": 0, "rarity": "Common"}
+@export var weapon_cost: Dictionary = {}
 @export var weapon_tags: Array[String] = []
-@export var weapon_ammo: Dictionary = {"type": "", "capacity": 0, "current": 0}
-@export var is_two_handed: bool = false
-@export var durability: int = 100
+@export var weapon_ammo: Dictionary = {}
 
-var _data_manager: Object = null
-
-func _init() -> void:
-	if Engine.is_editor_hint():
-		return
-		
-	# Use the shared GameDataManager instance
-	_data_manager = GameDataManager.get_instance()
-	GameDataManager.ensure_data_loaded()
-
-func initialize_from_id(id: String) -> bool:
-	if _data_manager == null:
-		_data_manager = GameDataManager.get_instance()
-		GameDataManager.ensure_data_loaded()
-		
-	var weapon_data = _data_manager.get_weapon(id)
-	if weapon_data.is_empty():
-		push_error("Failed to find weapon with ID: " + id)
+func initialize(name: String, damage: Dictionary, range: Dictionary) -> void:
+	weapon_name = name
+	weapon_damage = damage
+	weapon_range = range
+	weapon_id = name.to_lower().replace(" ", "_")
+func load_from_data(data: Dictionary) -> bool:
+	if not data.has("name"):
+		push_error("Weapon data must have a name")
 		return false
-		
-	return initialize_from_data(weapon_data)
-
-func initialize_from_data(data: Dictionary) -> bool:
-	if data.is_empty():
-		return false
-		
+	
 	weapon_id = data.get("id", "")
 	weapon_name = data.get("name", "")
 	weapon_category = data.get("category", "")
@@ -96,7 +74,10 @@ func initialize_from_data(data: Dictionary) -> bool:
 	if data.has("cost") and data.cost is Dictionary:
 		weapon_cost = data.cost
 	else:
-		weapon_cost = {"credits": data.get("cost", 0), "rarity": data.get("rarity", "Common")}
+		weapon_cost = {
+			"credits": data.get("cost", 0),
+			"rarity": data.get("rarity", "Common")
+		}
 	
 	weapon_tags = data.get("tags", [])
 	
@@ -151,13 +132,15 @@ func get_range_string() -> String:
 	if short_range == 0 and medium_range == 0 and long_range == 0:
 		return "Melee"
 		
-	var range_str = ""
+	var range_str: String = ""
 	if short_range > 0:
 		range_str += "S:" + str(short_range)
+		
 	if medium_range > 0:
 		if range_str.length() > 0:
 			range_str += ", "
 		range_str += "M:" + str(medium_range)
+	
 	if long_range > 0:
 		if range_str.length() > 0:
 			range_str += ", "
@@ -183,63 +166,42 @@ func get_rarity() -> String:
 func get_tags() -> Array[String]:
 	return weapon_tags
 
-func has_tag(tag: String) -> bool:
-	return weapon_tags.has(tag)
-
 func get_ammo() -> Dictionary:
 	return weapon_ammo
 
-func get_ammo_type() -> String:
-	return weapon_ammo.get("type", "")
-
-func get_ammo_capacity() -> int:
-	return weapon_ammo.get("capacity", 0)
-
-func get_current_ammo() -> int:
-	return weapon_ammo.get("current", 0)
-
-func set_current_ammo(amount: int) -> void:
-	var capacity = get_ammo_capacity()
-	weapon_ammo.current = clampi(amount, 0, capacity)
-
-func reload(amount: int = -1) -> int:
-	var capacity = get_ammo_capacity()
-	var current = get_current_ammo()
-	
-	if amount < 0:
-		# Full reload
-		var reloaded = capacity - current
-		weapon_ammo.current = capacity
-		return reloaded
-	else:
-		# Partial reload
-		var new_ammo = clampi(current + amount, 0, capacity)
-		var reloaded = new_ammo - current
-		weapon_ammo.current = new_ammo
-		return reloaded
-
-func fire(shots: int = 1) -> bool:
-	var current = get_current_ammo()
-	
-	# Check if we have enough ammo
-	if current < shots:
+func set_ammo_current(amount: int) -> void:
+	weapon_ammo["current"] = clampi(amount, 0, weapon_ammo.get("capacity", 0))
+func use_ammo(amount: int = 1) -> bool:
+	var current = weapon_ammo.get("current", 0)
+	if current < amount:
 		return false
-		
-	# If this is a melee weapon or doesn't use ammo
-	if get_ammo_capacity() <= 0:
-		return true
-		
-	# Use ammo
-	weapon_ammo.current = current - shots
+	
+	weapon_ammo["current"] = current - amount
 	return true
 
-func is_melee() -> bool:
-	return weapon_range.get("short", 0) == 0 and weapon_range.get("medium", 0) == 0 and weapon_range.get("long", 0) == 0
-
+func reload_ammo() -> void:
+	weapon_ammo["current"] = weapon_ammo.get("capacity", 0)
 func is_ranged() -> bool:
-	return not is_melee()
+	return weapon_range.get("short", 0) > 0 or weapon_range.get("medium", 0) > 0 or weapon_range.get("long", 0) > 0
 
-func get_weapon_profile() -> Dictionary:
+func is_melee() -> bool:
+	return not is_ranged()
+
+func get_max_range() -> int:
+	return maxi(maxi(weapon_range.get("short", 0), weapon_range.get("medium", 0)), weapon_range.get("long", 0))
+
+func calculate_damage_roll() -> int:
+	var dice = weapon_damage.get("dice", 1)
+	var die_type = weapon_damage.get("die_type", 6)
+	var bonus = weapon_damage.get("bonus", 0)
+	
+	var total: int = 0
+	for i in range(dice):
+		total += randi() % die_type + 1
+	
+	return total + bonus
+
+func to_dict() -> Dictionary:
 	return {
 		"id": weapon_id,
 		"name": weapon_name,
@@ -254,41 +216,17 @@ func get_weapon_profile() -> Dictionary:
 		"ammo": weapon_ammo
 	}
 
+func from_dict(data: Dictionary) -> void:
+	load_from_data(data)
+func duplicate_weapon() -> GameWeapon:
+	var new_weapon = GameWeapon.new()
+	new_weapon.from_dict(to_dict())
+	return new_weapon
+
 static func create_from_profile(profile: Dictionary) -> GameWeapon:
-	var weapon = GameWeapon.new()
-	weapon.initialize_from_data(profile)
+	var weapon := GameWeapon.new()
+	weapon.load_from_data(profile)
 	return weapon
 
-func serialize() -> Dictionary:
-	return get_weapon_profile()
-
-func deserialize(data: Dictionary) -> void:
-	initialize_from_data(data)
-
-func get_combat_value() -> int:
-	var value := 0
-	
-	# Base value from damage
-	var dice = weapon_damage.get("dice", 1)
-	var die_type = weapon_damage.get("die_type", 6)
-	var bonus = weapon_damage.get("bonus", 0)
-	
-	value += dice * (die_type / 2 + 0.5) + bonus
-	
-	# Add value for range
-	if is_ranged():
-		var long_range = weapon_range.get("long", 0)
-		value += long_range / 5
-	
-	# Add value for traits
-	value += weapon_traits.size() * 2
-	
-	# Add value for special rules
-	value += weapon_special_rules.size() * 3
-	
-	# Add value for ammo capacity
-	var capacity = get_ammo_capacity()
-	if capacity > 0:
-		value += sqrt(capacity)
-	
-	return value
+func _to_string() -> String:
+	return "GameWeapon<%s>" % weapon_name

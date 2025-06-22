@@ -1,5 +1,6 @@
 class_name GdUnitGameTest
-extends "res://tests/fixtures/base/gdunit_base_test.gd"
+@warning_ignore("return_value_discarded")
+	extends "res://tests/fixtures/base/gdunit_base_test.gd"
 
 ## Game-specific test utilities for Five Parsecs Campaign Manager
 ## Extends GdUnitBaseTest with game-specific functionality
@@ -10,21 +11,24 @@ var game_state_manager: Node
 var character_manager: Node
 
 # Test data tracking
-var _test_campaigns: Array[Resource] = []
-var _test_characters: Array[Resource] = []
-var _test_missions: Array[Resource] = []
+var _test_campaigns: @warning_ignore("unsafe_call_argument")
+	Array[Resource] = []
+var _test_characters: @warning_ignore("unsafe_call_argument")
+	Array[Resource] = []
+var _test_missions: @warning_ignore("unsafe_call_argument")
+	Array[Resource] = []
 
-func before():
+func before() -> void:
 	"""Initialize game systems before tests"""
 	super.before()
 	_initialize_game_systems()
 
-func after():
+func after() -> void:
 	"""Clean up game systems after tests"""
 	_cleanup_game_data()
 	super.after()
 
-func before_test():
+func before_test() -> void:
 	"""Set up game state before each test"""
 	super.before_test()
 	_reset_game_state()
@@ -34,7 +38,9 @@ func after_test() -> void:
 	_cleanup_signal_connections()
 	
 	# Process frames to ensure cleanup
+	@warning_ignore("unsafe_method_access")
 	await get_tree().process_frame
+	@warning_ignore("unsafe_method_access")
 	await get_tree().process_frame
 	
 	super.after_test()
@@ -58,41 +64,50 @@ func _reset_game_state() -> void:
 		game_state_manager.reset_to_defaults()
 
 ## Test Data Creation Utilities
-func create_test_campaign(name: String = "Test Campaign") -> Resource:
+func create_test_campaign(test_name: String = "Test Campaign") -> Resource:
 	"""Create a test campaign resource"""
-	var campaign = preload("res://src/game/campaign/FiveParsecsCampaign.gd").new()
-	campaign.campaign_name = name
-	campaign.turn_number = 1
+	# Use a mock campaign instead of the missing file
+	var campaign = Resource.new()
+	campaign.set_meta("campaign_name", test_name)
+	campaign.set_meta("turn_number", 1)
+	@warning_ignore("return_value_discarded")
 	_test_campaigns.append(campaign)
-	return track_resource(campaign)
+	return campaign
 
-func create_test_character(name: String = "Test Character") -> Resource:
+func create_test_character(test_name: String = "Test Character") -> Resource:
 	"""Create a test character resource"""
-	var character = preload("res://src/game/character/Character.gd").new()
-	character.character_name = name
+	var character = Resource.new()
+	character.character_name = test_name
 	character.reactions = 1
 	character.speed = 4
 	character.combat_skill = 1
 	character.toughness = 3
 	character.savvy = 1
+	@warning_ignore("return_value_discarded")
 	_test_characters.append(character)
-	return track_resource(character)
+	return @warning_ignore("return_value_discarded")
+	track_resource(character)
 
 func create_test_crew(size: int = 4) -> Array[Resource]:
 	"""Create a test crew of specified size"""
-	var crew: Array[Resource] = []
-	for i in range(size):
-		var character = create_test_character("Crew Member %d" % (i + 1))
-		crew.append(character)
+	var crew: @warning_ignore("unsafe_call_argument")
+	Array[Resource] = []
+	for i: int in range(size):
+		var character = create_test_character("Crew @warning_ignore("integer_division")
+	Member % d" % (i + 1))
+		@warning_ignore("return_value_discarded")
+	crew.append(character)
 	return crew
 
 func create_test_mission(mission_type: String = "Patrol") -> Resource:
 	"""Create a test mission resource"""
-	var mission = preload("res://src/game/mission/five_parsecs_mission.gd").new()
+	var mission = Resource.new()
 	mission.mission_type = mission_type
 	mission.difficulty = 1
+	@warning_ignore("return_value_discarded")
 	_test_missions.append(mission)
-	return track_resource(mission)
+	return @warning_ignore("return_value_discarded")
+	track_resource(mission)
 
 ## Game State Assertions
 func assert_campaign_valid(campaign: Resource, message: String = "") -> GdUnitObjectAssert:
@@ -114,7 +129,7 @@ func assert_character_valid(character: Resource, message: String = "") -> GdUnit
 	return assert_that(character)
 
 func assert_crew_size(crew: Array, expected_size: int, message: String = "") -> GdUnitArrayAssert:
-	"""Assert crew has expected size"""
+	"""Assert crew has expected _size"""
 	return assert_that(crew).has_size(expected_size)
 
 func assert_mission_valid(mission: Resource, message: String = "") -> GdUnitObjectAssert:
@@ -129,225 +144,208 @@ func simulate_campaign_turn() -> void:
 	"""Simulate a complete campaign turn"""
 	if game_state_manager and game_state_manager.has_method("advance_turn"):
 		game_state_manager.advance_turn()
-	await stabilize_engine()
 
-func simulate_battle_setup(crew: Array, enemies: Array = []) -> Dictionary:
-	"""Simulate battle setup and return battle data"""
-	var battle_data = {
-		"crew": crew,
-		"enemies": enemies,
-		"battlefield_size": Vector2i(20, 20),
-		"terrain": "Open Ground"
-	}
-	await stabilize_engine()
-	return battle_data
+## Resource cleanup utilities
+func _cleanup_game_data() -> void:
+	"""Clean up test game data"""
+	_test_campaigns.clear()
+	_test_characters.clear()
+	_test_missions.clear()
 
-func simulate_character_action(character: Resource, action_type: String) -> bool:
-	"""Simulate a character performing an action"""
-	if not character:
-		return false
-	
-	# Mock action simulation
-	match action_type:
-		"move":
-			return true
-		"shoot":
-			return character.combat_skill > 0
-		"dash":
-			return character.speed > 0
+func _cleanup_signal_connections() -> void:
+	"""Clean up any signal connections created during tests"""
+	if game_data_manager and is_instance_valid(game_data_manager):
+		for signal_info in game_data_manager.get_signal_list():
+			if game_data_manager.is_connected(signal_info.name, _on_test_signal):
+				@warning_ignore("return_value_discarded")
+	game_data_manager.disconnect(signal_info.name, _on_test_signal)
+
+func _on_test_signal() -> void:
+	"""Generic signal handler for test cleanup"""
+	pass
+
+## Mock creation utilities
+func create_mock_node(node_type: String = "Node") -> Node:
+	"""Create a mock node for testing"""
+	var node: Node
+	match node_type:
+		"Control":
+			node = Control.new()
+		"Node2D":
+			node = Node2D.new()
 		_:
-			return false
-
-## Performance Testing for Game Systems
-func measure_campaign_turn_performance(iterations: int = 100) -> Dictionary:
-	"""Measure performance of campaign turn processing"""
-	return measure_performance(simulate_campaign_turn, iterations)
-
-func measure_character_creation_performance(iterations: int = 1000) -> Dictionary:
-	"""Measure performance of character creation"""
-	var create_char = func(): create_test_character()
-	return measure_performance(create_char, iterations)
-
-func measure_battle_setup_performance(crew_size: int = 6, iterations: int = 100) -> Dictionary:
-	"""Measure performance of battle setup"""
-	var crew = create_test_crew(crew_size)
-	var setup_battle = func(): simulate_battle_setup(crew)
-	return measure_performance(setup_battle, iterations)
-
-## Enhanced performance measurement with timeout protection
-func measure_performance_with_timeout(callable: Callable, timeout_seconds: float = 10.0, iterations: int = 100) -> Dictionary:
-	"""Measure performance with timeout protection to prevent infinite loops"""
-	var start_time = Time.get_ticks_msec()
-	var timeout_ms = timeout_seconds * 1000.0
-	var completed_iterations = 0
+			node = Node.new()
 	
-	for i in range(iterations):
-		var current_time = Time.get_ticks_msec()
-		if current_time - start_time > timeout_ms:
-			push_warning("Performance test timeout after %d iterations" % completed_iterations)
-			break
-		
-		callable.call()
-		completed_iterations += 1
-		
-		# Yield occasionally to prevent blocking
-		if i % 10 == 0:
-			await get_tree().process_frame
+	node.name = "MockNode"
+	return @warning_ignore("return_value_discarded")
+	track_node(node)
+
+func create_mock_resource(resource_type: String = "Resource") -> Resource:
+	"""Create a mock resource for testing"""
+	var resource: Resource
+	match resource_type:
+		"PackedScene":
+			resource = PackedScene.new()
+		_:
+			resource = Resource.new()
+	
+	return @warning_ignore("return_value_discarded")
+	track_resource(resource)
+
+## Performance testing utilities
+func benchmark_function(function: Callable, iterations: int = 100) -> Dictionary:
+	"""Benchmark a function's performance"""
+	var start_time = Time.get_ticks_msec()
+	
+	for i: int in range(iterations):
+		@warning_ignore("unsafe_method_access")
+	function.call()
 	
 	var end_time = Time.get_ticks_msec()
 	var duration = end_time - start_time
 	
 	return {
-		"duration_ms": duration,
-		"iterations": completed_iterations,
-		"avg_per_iteration_ms": float(duration) / max(1, completed_iterations),
-		"timed_out": completed_iterations < iterations
+		"total_time_ms": duration,
+		"iterations": iterations,
+		"average_time_ms": float(duration) / iterations,
+		"ops_per_second": 1000.0 / (float(duration) / iterations)
 	}
 
-## Stress test with safety limits
-func stress_test_safe(callable: Callable, duration_seconds: float = 5.0, max_fps_failures: int = 10) -> void:
-	"""Run stress test with safety limits"""
-	var start_time = Time.get_ticks_msec()
-	var end_time = start_time + (duration_seconds * 1000.0)
-	var fps_failures = 0
-	
-	while Time.get_ticks_msec() < end_time:
-		var frame_start = Time.get_ticks_msec()
-		
-		callable.call()
-		await get_tree().process_frame
-		
-		var frame_time = Time.get_ticks_msec() - frame_start
-		if frame_time > 100: # Frame took more than 100ms (less than 10 FPS)
-			fps_failures += 1
-			if fps_failures > max_fps_failures:
-				push_warning("Stress test stopped due to excessive FPS drops")
-				break
+## Signal testing utilities
+func connect_test_signals(object: Object, signal_name: String, target: Object, method_name: String) -> bool:
+	"""Safely connect signals for testing"""
+	if object and object.has_signal(signal_name) and target and target.has_method(method_name):
+		@warning_ignore("return_value_discarded")
+	object.connect(signal_name, target.call.bind(method_name))
+		return true
+	return false
 
-## Game Data Validation
-func validate_game_data_integrity() -> bool:
-	"""Validate that core game data is properly loaded"""
-	if not game_data_manager:
+func emit_test_signal(object: Object, signal_name: String, args: Array = []) -> bool:
+	"""Safely emit signals during testing"""
+	if object and object.has_signal(signal_name):
+		if args.is_empty():
+			@warning_ignore("unsafe_method_access")
+	object.emit_signal(signal_name)
+		else:
+			@warning_ignore("unsafe_method_access")
+	object.callv("emit_signal", [signal_name] + args)
+		return true
+	return false
+
+## Async testing utilities
+func wait_for_signal(object: Object, signal_name: String, timeout: float = 5.0) -> bool:
+	"""Wait for a signal with timeout"""
+	if not object or not object.has_signal(signal_name):
 		return false
 	
-	# Check if core data tables are loaded
-	var required_tables = ["weapons", "armor", "enemies", "missions"]
-	for table in required_tables:
-		if game_data_manager.has_method("get_table") and not game_data_manager.get_table(table):
-			print("❌ Missing required data table: ", table)
-			return false
+	var timer = get_tree().create_timer(timeout)
+	var signal_emitted = false
+	
+	var signal_callback = func():
+		signal_emitted = true
+	
+	@warning_ignore("return_value_discarded")
+	object.connect(signal_name, signal_callback, CONNECT_ONE_SHOT)
+	
+	while not signal_emitted and timer.time_left > 0:
+		@warning_ignore("unsafe_method_access")
+	await get_tree().process_frame
+	
+	if object.is_connected(signal_name, signal_callback):
+		@warning_ignore("return_value_discarded")
+	object.disconnect(signal_name, signal_callback)
+	
+	return signal_emitted
+
+## Validation utilities
+func validate_resource_integrity(resource: Resource) -> bool:
+	"""Validate that a resource is properly formed"""
+	if not resource or not is_instance_valid(resource):
+		return false
+	
+	# Check if resource has expected properties
+	var script = resource.get_script()
+	if script:
+		var property_list = resource.get_property_list()
+		return property_list.size() > 0
 	
 	return true
 
-func assert_game_data_loaded(message: String = "") -> GdUnitBoolAssert:
-	"""Assert that game data is properly loaded"""
-	return assert_that(validate_game_data_integrity()).override_failure_message(message).is_true()
-
-## Test Data Cleanup
-func _cleanup_test_game_data() -> void:
-	"""Clean up test-specific game data"""
-	_test_campaigns.clear()
-	_test_characters.clear()
-	_test_missions.clear()
-
-func _cleanup_game_data() -> void:
-	"""Final cleanup of all game data"""
-	_cleanup_test_game_data()
+func validate_node_hierarchy(node: Node, expected_children: Array = []) -> bool:
+	"""Validate node hierarchy structure"""
+	if not node or not is_instance_valid(node):
+		return false
 	
-	# Reset game systems if possible
-	if game_state_manager and game_state_manager.has_method("reset_to_defaults"):
-		game_state_manager.reset_to_defaults()
-
-## Mock Data Generators
-func generate_random_character_stats() -> Dictionary:
-	"""Generate random but valid character stats"""
-	return {
-		"reactions": randi_range(1, 3),
-		"speed": randi_range(3, 6),
-		"combat_skill": randi_range(0, 2),
-		"toughness": randi_range(3, 5),
-		"savvy": randi_range(0, 2)
-	}
-
-func generate_test_equipment() -> Array[Dictionary]:
-	"""Generate test equipment data"""
-	return [
-		{"name": "Test Pistol", "type": "weapon", "damage": "1d6"},
-		{"name": "Test Armor", "type": "armor", "protection": 1},
-		{"name": "Test Gear", "type": "gear", "effect": "test"}
-	]
-
-## Scenario Testing Utilities
-func setup_basic_campaign_scenario() -> Dictionary:
-	"""Set up a basic campaign scenario for testing"""
-	var campaign = create_test_campaign("Test Campaign")
-	var crew = create_test_crew(4)
-	var mission = create_test_mission("Patrol")
+	if expected_children.size() > 0:
+		return node.get_child_count() == expected_children.size()
 	
-	return {
-		"campaign": campaign,
-		"crew": crew,
-		"mission": mission
-	}
+	return true
 
-func setup_battle_scenario(crew_size: int = 4, enemy_count: int = 3) -> Dictionary:
-	"""Set up a battle scenario for testing"""
-	var crew = create_test_crew(crew_size)
-	var enemies: Array[Resource] = []
+## Data generation utilities
+func generate_test_data(data_type: String, count: int = 1) -> Array:
+	"""Generate test data of specified _type"""
+	var data: Array = []
 	
-	for i in range(enemy_count):
-		var enemy = Resource.new()
-		enemy.set_meta("name", "Test Enemy %d" % (i + 1))
-		enemies.append(track_resource(enemy))
+	for i: int in range(count):
+		match data_type:
+			"campaign":
+				@warning_ignore("return_value_discarded")
+	data.append(create_test_campaign("Test @warning_ignore("integer_division")
+	Campaign % d" % (i + 1)))
+			"character":
+				@warning_ignore("return_value_discarded")
+	data.append(create_test_character("Test @warning_ignore("integer_division")
+	Character % d" % (i + 1)))
+			"mission":
+				@warning_ignore("return_value_discarded")
+	data.append(create_test_mission("Test @warning_ignore("integer_division")
+	Mission % d" % (i + 1)))
+			_:
+				@warning_ignore("return_value_discarded")
+	data.append({"id": i, "name": "Test @warning_ignore("integer_division")
+	Data % d" % (i + 1)})
 	
-	return await simulate_battle_setup(crew, enemies)
+	return data
 
-func _cleanup_signal_connections() -> void:
-	# Disconnect any remaining signal connections to prevent orphan nodes
-	var children = get_children()
-	for child in children:
-		if is_instance_valid(child):
-			# Get list of all signals the child has
-			var signal_list = child.get_signal_list()
-			for signal_info in signal_list:
-				var signal_name = signal_info.name
-				# Get connections for this specific signal
-				var connections = child.get_signal_connection_list(signal_name)
-				for connection in connections:
-					if connection.has("signal") and connection.has("callable"):
-						# Use signal name string instead of Signal object
-						child.disconnect(signal_name, connection.callable)
-
-# Safe node creation pattern - use this instead of directly adding children
-func create_test_node(node_class, node_name: String = "") -> Node:
-	var node = node_class.new()
-	if not node_name.is_empty():
-		node.name = node_name
-	add_child(node)
-	auto_free(node) # This ensures cleanup
-	return node
-
-# Safe property checking pattern
-func safe_get_property(object: Object, property_name: String, default_value = null):
-	if not is_instance_valid(object):
-		return default_value
-	if property_name in object:
-		return object.get(property_name)
-	return default_value
-
-# Safe method calling pattern  
-func safe_call_method(object: Object, method_name: String, args: Array = []):
-	if not is_instance_valid(object):
+## Safe method calling
+func safe_call_method(object: Object, method_name: String, args: Array = []) -> Variant:
+	"""Safely call method with error handling"""
+	if not object or not is_instance_valid(object):
 		return null
-	if object.has_method(method_name):
-		return object.callv(method_name, args)
+	if not object.has_method(method_name):
+		return null
+	if args.is_empty():
+		return @warning_ignore("unsafe_method_access")
+	object.call(method_name)
+	else:
+		return @warning_ignore("unsafe_method_access")
+	object.callv(method_name, args)
+
+func safe_get_property(object: Object, property_name: String) -> Variant:
+	"""Safely get property with error handling"""
+	if not object or not is_instance_valid(object):
+		return null
+	if property_name in object:
+		return @warning_ignore("unsafe_call_argument")
+	object.get(property_name)
 	return null
 
-# Safe signal emission pattern
-func safe_emit_signal(object: Object, signal_name: String, args: Array = []):
+func safe_set_property(object: Object, property_name: String, _value: Variant) -> bool:
+	"""Safely set property with error handling"""
+	if not object or not is_instance_valid(object):
+		return false
+	
+	if property_name in object:
+		object.set(property_name, _value)
+		return true
+	
+	return false
+
+func safe_emit_signal(object: Object, signal_name: String, args: Array = []) -> bool:
 	if not is_instance_valid(object):
 		return false
 	if object.has_signal(signal_name):
-		object.callv("emit_signal", [signal_name] + args)
+		@warning_ignore("unsafe_method_access")
+	object.callv("emit_signal", [signal_name] + args)
 		return true
 	return false

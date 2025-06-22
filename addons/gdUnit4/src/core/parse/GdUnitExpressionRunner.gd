@@ -35,12 +35,10 @@ func execute(src_script: GDScript, value: Variant) -> Variant:
 		.replace("${clazz_path}", resource_path)\
 		.replace("$expression", expression)
 	#script.take_over_path(resource_path)
-	@warning_ignore("return_value_discarded")
 	script.reload(true)
 	var runner: Object = script.new()
 	if runner.has_method("queue_free"):
 		(runner as Node).queue_free()
-	@warning_ignore("unsafe_method_access")
 	return runner.__run_expression()
 
 
@@ -70,5 +68,4 @@ func build_constructor_arguments(parameter_map: Dictionary, expression: String) 
 
 
 func to_fuzzer(src_script: GDScript, expression: String) -> Fuzzer:
-	@warning_ignore("unsafe_cast")
 	return execute(src_script, expression) as Fuzzer

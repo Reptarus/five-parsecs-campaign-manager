@@ -1,7 +1,8 @@
-[gd_scene load_steps=3 format=3 uid="uid://dedco4m5x005m"]
+[gd_scene load_steps=4 format=3 uid="uid://dedco4m5x005m"]
 
-[ext_resource type="PackedScene" uid="uid://b8q7a6kfi2vwe" path="res://src/ui/components/mission/MissionSummaryPanel.tscn" id="1_summary"]
-[ext_resource type="PackedScene" uid="uid://ccp7a6kfi1vwe" path="res://src/ui/components/rewards/RewardsPanel.tscn" id="2_rewards"]
+[ext_resource type="Script" path="res://src/ui/screens/battle/PostBattle.gd" id="1_postbattle_script"]
+[ext_resource type="PackedScene" uid="uid://b8q7a6kfi2vwe" path="res://src/ui/components/mission/MissionSummaryPanel.tscn" id="2_summary"]
+[ext_resource type="PackedScene" uid="uid://ccp7a6kfi1vwe" path="res://src/ui/components/rewards/RewardsPanel.tscn" id="3_rewards"]
 
 [node name="PostBattle" type="Control"]
 layout_mode = 3
@@ -10,6 +11,7 @@ anchor_right = 1.0
 anchor_bottom = 1.0
 grow_horizontal = 2
 grow_vertical = 2
+script = ExtResource("1_postbattle_script")
 
 [node name="MarginContainer" type="MarginContainer" parent="."]
 layout_mode = 1
@@ -27,10 +29,10 @@ theme_override_constants/margin_bottom = 20
 layout_mode = 2
 theme_override_constants/separation = 20
 
-[node name="MissionSummary" parent="MarginContainer/HBoxContainer" instance=ExtResource("1_summary")]
+[node name="MissionSummary" parent="MarginContainer/HBoxContainer" instance=ExtResource("2_summary")]
 layout_mode = 2
 size_flags_horizontal = 3
 
-[node name="Rewards" parent="MarginContainer/HBoxContainer" instance=ExtResource("2_rewards")]
+[node name="Rewards" parent="MarginContainer/HBoxContainer" instance=ExtResource("3_rewards")]
 layout_mode = 2
 size_flags_horizontal = 3

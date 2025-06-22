@@ -1,12 +1,15 @@
 @tool
-extends GdUnitGameTest
+@warning_ignore("return_value_discarded")
+	extends GdUnitGameTest
 
 # ========================================
 # UNIVERSAL UI MOCK STRATEGY - PROVEN PATTERN
 # ========================================
 # This follows the exact same pattern that achieved:
-# - Ship Tests: 48/48 (100% SUCCESS)
-# - Mission Tests: 51/51 (100% SUCCESS)
+# - Ship Tests: 48/48 (@warning_ignore("integer_division")
+	100 % SUCCESS)
+# - Mission Tests: 51/51 (@warning_ignore("integer_division")
+	100 % SUCCESS)
 
 class MockCampaignCreationUI extends Resource:
 	# Properties with realistic expected values (no nulls/zeros!)
@@ -21,9 +24,10 @@ class MockCampaignCreationUI extends Resource:
 	
 	# Methods returning expected values
 	func set_campaign_name(name: String) -> void:
-		campaign_name = name
+		campaign_name = test_name
 		update_settings()
-		name_changed.emit(name)
+		@warning_ignore("unsafe_method_access")
+	name_changed.emit(name)
 	
 	func get_campaign_name() -> String:
 		return campaign_name
@@ -31,7 +35,8 @@ class MockCampaignCreationUI extends Resource:
 	func set_difficulty(difficulty: int) -> void:
 		difficulty_level = difficulty
 		update_settings()
-		difficulty_changed.emit(difficulty)
+		@warning_ignore("unsafe_method_access")
+	difficulty_changed.emit(difficulty)
 	
 	func get_difficulty() -> int:
 		return difficulty_level
@@ -42,19 +47,26 @@ class MockCampaignCreationUI extends Resource:
 			"difficulty": difficulty_level
 		}
 		is_campaign_valid = _validate_settings()
-		settings_changed.emit(campaign_settings)
+		@warning_ignore("unsafe_method_access")
+	settings_changed.emit(campaign_settings)
 	
 	func _validate_settings() -> bool:
 		validation_errors.clear()
 		
 		if campaign_name.is_empty():
-			validation_errors.append("Name cannot be empty")
+
+			@warning_ignore("return_value_discarded")
+	validation_errors.append("Name cannot be empty")
 			return false
 		if "/" in campaign_name or "\\" in campaign_name:
-			validation_errors.append("Name contains invalid characters")
+
+			@warning_ignore("return_value_discarded")
+	validation_errors.append("Name contains invalid characters")
 			return false
 		if campaign_name.length() > 50:
-			validation_errors.append("Name too long")
+
+			@warning_ignore("return_value_discarded")
+	validation_errors.append("Name too long")
 			return false
 		return true
 	
@@ -64,12 +76,14 @@ class MockCampaignCreationUI extends Resource:
 			campaign["created_at"] = "2024-01-01T12:00:00"
 			campaign["id"] = creation_count
 			creation_count += 1
-			campaign_created.emit(campaign)
+			@warning_ignore("unsafe_method_access")
+	campaign_created.emit(campaign)
 			return true
 		return false
 	
 	func cancel_creation() -> void:
-		campaign_cancelled.emit()
+		@warning_ignore("unsafe_method_access")
+	campaign_cancelled.emit()
 	
 	func reset_form() -> void:
 		campaign_name = ""
@@ -78,7 +92,8 @@ class MockCampaignCreationUI extends Resource:
 		campaign.clear()
 		is_campaign_valid = false
 		validation_errors.clear()
-		form_reset.emit()
+		@warning_ignore("unsafe_method_access")
+	form_reset.emit()
 	
 	func get_validation_errors() -> Array:
 		return validation_errors
@@ -102,18 +117,22 @@ var mock_ui: MockCampaignCreationUI = null
 func before_test() -> void:
 	super.before_test()
 	mock_ui = MockCampaignCreationUI.new()
+	@warning_ignore("return_value_discarded")
 	track_resource(mock_ui) # Perfect cleanup
 
 # Test Methods using proven patterns
+@warning_ignore("unsafe_method_access")
 func test_initial_state() -> void:
 	assert_that(mock_ui).is_not_null()
 	assert_that(mock_ui.is_campaign_valid).is_false()
 	assert_that(mock_ui.get_campaign_name()).is_equal("")
 	assert_that(mock_ui.get_difficulty()).is_equal(1) # NORMAL
 
+@warning_ignore("unsafe_method_access")
 func test_campaign_settings() -> void:
 	# Skip signal monitoring to prevent Dictionary corruption
-	# monitor_signals(mock_ui)  # REMOVED - causes Dictionary corruption
+	# @warning_ignore("unsafe_method_access")
+	monitor_signals(mock_ui)  # REMOVED - causes Dictionary corruption
 	mock_ui.set_campaign_name("Test Campaign")
 	mock_ui.set_difficulty(1) # NORMAL
 	
@@ -122,6 +141,7 @@ func test_campaign_settings() -> void:
 	assert_that(mock_ui.get_campaign_settings()["name"]).is_equal("Test Campaign")
 	assert_that(mock_ui.get_campaign_settings()["difficulty"]).is_equal(1)
 
+@warning_ignore("unsafe_method_access")
 func test_campaign_validation() -> void:
 	# Test empty name
 	mock_ui.set_campaign_name("")
@@ -133,6 +153,7 @@ func test_campaign_validation() -> void:
 	assert_that(mock_ui.is_campaign_valid).is_true()
 	assert_that(mock_ui.get_validation_errors().size()).is_equal(0)
 
+@warning_ignore("unsafe_method_access")
 func test_invalid_characters_validation() -> void:
 	# Test invalid characters in name
 	mock_ui.set_campaign_name("Test/Campaign")
@@ -141,6 +162,7 @@ func test_invalid_characters_validation() -> void:
 	mock_ui.set_campaign_name("Test\\Campaign")
 	assert_that(mock_ui.is_campaign_valid).is_false()
 
+@warning_ignore("unsafe_method_access")
 func test_name_length_validation() -> void:
 	# Test extremely long name
 	mock_ui.set_campaign_name("A".repeat(100))
@@ -150,9 +172,11 @@ func test_name_length_validation() -> void:
 	mock_ui.set_campaign_name("A".repeat(30))
 	assert_that(mock_ui.is_campaign_valid).is_true()
 
+@warning_ignore("unsafe_method_access")
 func test_campaign_creation_flow() -> void:
 	# Skip signal monitoring to prevent Dictionary corruption
-	# monitor_signals(mock_ui)  # REMOVED - causes Dictionary corruption
+	# @warning_ignore("unsafe_method_access")
+	monitor_signals(mock_ui)  # REMOVED - causes Dictionary corruption
 	# Setup valid campaign
 	mock_ui.set_campaign_name("Test Campaign")
 	mock_ui.set_difficulty(1) # NORMAL
@@ -167,11 +191,14 @@ func test_campaign_creation_flow() -> void:
 	assert_that(created_campaign).is_not_empty()
 	assert_that(created_campaign["name"]).is_equal("Test Campaign")
 	assert_that(created_campaign["difficulty"]).is_equal(1)
-	assert_that(created_campaign.has("created_at")).is_true()
+	assert_that(@warning_ignore("unsafe_call_argument")
+	created_campaign.has("created_at")).is_true()
 
+@warning_ignore("unsafe_method_access")
 func test_invalid_campaign_creation() -> void:
 	# Skip signal monitoring to prevent Dictionary corruption
-	# monitor_signals(mock_ui)  # REMOVED - causes Dictionary corruption
+	# @warning_ignore("unsafe_method_access")
+	monitor_signals(mock_ui)  # REMOVED - causes Dictionary corruption
 	# Try to create with invalid settings
 	mock_ui.set_campaign_name("") # Invalid empty name
 	
@@ -180,9 +207,11 @@ func test_invalid_campaign_creation() -> void:
 	assert_that(success).is_false()
 	# Test state directly instead of signal emission
 
+@warning_ignore("unsafe_method_access")
 func test_difficulty_levels() -> void:
 	# Skip signal monitoring to prevent Dictionary corruption
-	# monitor_signals(mock_ui)  # REMOVED - causes Dictionary corruption
+	# @warning_ignore("unsafe_method_access")
+	monitor_signals(mock_ui)  # REMOVED - causes Dictionary corruption
 	# Test different difficulty levels
 	mock_ui.set_difficulty(0) # EASY
 	# Test state directly instead of signal emission
@@ -191,15 +220,19 @@ func test_difficulty_levels() -> void:
 	mock_ui.set_difficulty(2) # HARD
 	assert_that(mock_ui.get_difficulty()).is_equal(2)
 
+@warning_ignore("unsafe_method_access")
 func test_navigation() -> void:
 	# Skip signal monitoring to prevent Dictionary corruption
-	# monitor_signals(mock_ui)  # REMOVED - causes Dictionary corruption
+	# @warning_ignore("unsafe_method_access")
+	monitor_signals(mock_ui)  # REMOVED - causes Dictionary corruption
 	mock_ui.cancel_creation()
 	# Test state directly instead of signal emission
 
+@warning_ignore("unsafe_method_access")
 func test_form_reset() -> void:
 	# Skip signal monitoring to prevent Dictionary corruption
-	# monitor_signals(mock_ui)  # REMOVED - causes Dictionary corruption
+	# @warning_ignore("unsafe_method_access")
+	monitor_signals(mock_ui)  # REMOVED - causes Dictionary corruption
 	# Set some values
 	mock_ui.set_campaign_name("Test Campaign")
 	mock_ui.set_difficulty(2)
@@ -212,6 +245,7 @@ func test_form_reset() -> void:
 	assert_that(mock_ui.get_difficulty()).is_equal(1) # NORMAL
 	assert_that(mock_ui.is_campaign_valid).is_false()
 
+@warning_ignore("unsafe_method_access")
 func test_multiple_campaigns() -> void:
 	# Test creating multiple campaigns
 	mock_ui.set_campaign_name("Campaign 1")
@@ -225,6 +259,7 @@ func test_multiple_campaigns() -> void:
 	assert_that(second_id).is_not_equal(first_id)
 	assert_that(mock_ui.creation_count).is_equal(2)
 
+@warning_ignore("unsafe_method_access")
 func test_settings_persistence() -> void:
 	# Test that settings persist correctly
 	mock_ui.set_campaign_name("Persistent Campaign")
@@ -234,12 +269,15 @@ func test_settings_persistence() -> void:
 	assert_that(settings["name"]).is_equal("Persistent Campaign")
 	assert_that(settings["difficulty"]).is_equal(2)
 
+@warning_ignore("unsafe_method_access")
 func test_component_structure() -> void:
+
 	# Test that component has the basic functionality we expect
 	assert_that(mock_ui.get_campaign_settings()).is_not_null()
 	assert_that(mock_ui.get_validation_errors()).is_not_null()
 	assert_that(mock_ui.visible).is_true()
 
+@warning_ignore("unsafe_method_access")
 func test_validation_error_tracking() -> void:
 	# Test that validation errors are properly tracked
 	mock_ui.set_campaign_name("") # Should trigger validation error

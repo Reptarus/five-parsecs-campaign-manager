@@ -1,0 +1,123 @@
+[gd_scene load_steps=2 format=3 uid="uid://b8x70aq2n1j4w"]
+
+[ext_resource type="Script" path="res://src/ui/screens/battle/TacticalBattleUI.gd" id="1"]
+
+[node name="TacticalBattleUI" type="Control"]
+layout_mode = 3
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+script = ExtResource("1")
+
+[node name="MainContainer" type="VBoxContainer" parent="."]
+layout_mode = 1
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+
+[node name="TopBar" type="HBoxContainer" parent="MainContainer"]
+layout_mode = 2
+theme_override_constants/separation = 10
+
+[node name="TitleLabel" type="Label" parent="MainContainer/TopBar"]
+layout_mode = 2
+size_flags_horizontal = 3
+text = "Tactical Battle Mode"
+horizontal_alignment = 1
+
+[node name="ReturnButton" type="Button" parent="MainContainer/TopBar"]
+layout_mode = 2
+text = "Return to Battle Resolution"
+
+[node name="AutoResolveButton" type="Button" parent="MainContainer/TopBar"]
+layout_mode = 2
+text = "Auto Resolve"
+
+[node name="BattleArea" type="HBoxContainer" parent="MainContainer"]
+layout_mode = 2
+size_flags_vertical = 3
+theme_override_constants/separation = 10
+
+[node name="BattlefieldArea" type="PanelContainer" parent="MainContainer/BattleArea"]
+layout_mode = 2
+size_flags_horizontal = 3
+
+[node name="VBoxContainer" type="VBoxContainer" parent="MainContainer/BattleArea/BattlefieldArea"]
+layout_mode = 2
+
+[node name="BattlefieldLabel" type="Label" parent="MainContainer/BattleArea/BattlefieldArea/VBoxContainer"]
+layout_mode = 2
+text = "Battlefield Grid"
+horizontal_alignment = 1
+
+[node name="BattlefieldDisplay" type="Control" parent="MainContainer/BattleArea/BattlefieldArea/VBoxContainer"]
+layout_mode = 2
+size_flags_horizontal = 3
+size_flags_vertical = 3
+
+[node name="GridBackground" type="ColorRect" parent="MainContainer/BattleArea/BattlefieldArea/VBoxContainer/BattlefieldDisplay"]
+layout_mode = 1
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+color = Color(0.2, 0.3, 0.2, 1)
+
+[node name="ActionPanel" type="PanelContainer" parent="MainContainer/BattleArea"]
+layout_mode = 2
+custom_minimum_size = Vector2(300, 0)
+
+[node name="VBoxContainer" type="VBoxContainer" parent="MainContainer/BattleArea/ActionPanel"]
+layout_mode = 2
+theme_override_constants/separation = 10
+
+[node name="TurnIndicator" type="Label" parent="MainContainer/BattleArea/ActionPanel/VBoxContainer"]
+layout_mode = 2
+text = "Turn: Deployment Phase"
+horizontal_alignment = 1
+
+[node name="HSeparator" type="HSeparator" parent="MainContainer/BattleArea/ActionPanel/VBoxContainer"]
+layout_mode = 2
+
+[node name="UnitInfo" type="Control" parent="MainContainer/BattleArea/ActionPanel/VBoxContainer"]
+layout_mode = 2
+custom_minimum_size = Vector2(0, 100)
+
+[node name="UnitInfoLabel" type="Label" parent="MainContainer/BattleArea/ActionPanel/VBoxContainer/UnitInfo"]
+layout_mode = 1
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+text = "Selected Unit Info"
+horizontal_alignment = 1
+vertical_alignment = 1
+
+[node name="HSeparator2" type="HSeparator" parent="MainContainer/BattleArea/ActionPanel/VBoxContainer"]
+layout_mode = 2
+
+[node name="ActionButtons" type="VBoxContainer" parent="MainContainer/BattleArea/ActionPanel/VBoxContainer"]
+layout_mode = 2
+theme_override_constants/separation = 5
+
+[node name="HSeparator3" type="HSeparator" parent="MainContainer/BattleArea/ActionPanel/VBoxContainer"]
+layout_mode = 2
+
+[node name="BattleLogContainer" type="VBoxContainer" parent="MainContainer/BattleArea/ActionPanel/VBoxContainer"]
+layout_mode = 2
+size_flags_vertical = 3
+
+[node name="BattleLogLabel" type="Label" parent="MainContainer/BattleArea/ActionPanel/VBoxContainer/BattleLogContainer"]
+layout_mode = 2
+text = "Battle Log"
+
+[node name="BattleLog" type="RichTextLabel" parent="MainContainer/BattleArea/ActionPanel/VBoxContainer/BattleLogContainer"]
+layout_mode = 2
+size_flags_vertical = 3
+bbcode_enabled = true
+scroll_following = true
+
+[node name="HSeparator4" type="HSeparator" parent="MainContainer/BattleArea/ActionPanel/VBoxContainer"]
+layout_mode = 2
+
+[node name="EndTurnButton" type="Button" parent="MainContainer/BattleArea/ActionPanel/VBoxContainer"]
+layout_mode = 2
+text = "End Turn"

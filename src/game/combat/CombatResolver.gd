@@ -4,7 +4,6 @@ extends Node
 const CharacterScript: GDScript = preload("res://src/core/character/Base/Character.gd")
 const TerrainTypesScript: GDScript = preload("res://src/core/terrain/TerrainTypes.gd")
 const GameEnumsScript: GDScript = preload("res://src/core/systems/GlobalEnums.gd")
-const BaseCombatManager := preload("res://src/base/combat/BaseCombatManager.gd")
 
 ## Terrain Types (loaded from TerrainTypesScript)
 var TERRAIN_TYPE_WATER: int
@@ -81,13 +80,13 @@ func _get_character_property(character: CharacterScript, property: String, defau
 	if not (property in character):
 		push_error("Character missing required property: %s" % property)
 		return default_value
-		
-	var value = character.get(property)
-	if typeof(value) != CHARACTER_PROPERTY_TYPES[property]:
+
+	var _value = character.get(property)
+	if typeof(_value) != CHARACTER_PROPERTY_TYPES[property]:
 		push_error("Character property '%s' has wrong type" % property)
 		return default_value
 		
-	return value
+	return _value
 
 func _get_character_position(character: CharacterScript) -> Vector2i:
 	return _get_character_property(character, "position", Vector2i())
@@ -159,21 +158,21 @@ const FOCUS_THRESHOLD := 7
 const ABILITY_COOLDOWN := 3
 
 ## Variables
-var combat_manager: BaseCombatManager = null
+var combat_manager: Node = null
 var battlefield_manager: Node = null
-var active_combatants: Array[CharacterScript] = []
+var _active_combatants: Array[CharacterScript] = []
 var combat_log: Array[String] = []
 var manual_overrides: Dictionary = {}
 
 ## Functions
 func _ready() -> void:
-	combat_manager = get_node_or_null("/root/CombatManager") as BaseCombatManager
+	combat_manager = get_node_or_null("/root/CombatManager")
 	battlefield_manager = get_node_or_null("/root/BattlefieldManager")
 	_load_terrain_types()
 	_validate_character_interface()
 
 func _load_terrain_types() -> void:
-	var terrain_types = TerrainTypesScript.new()
+	var terrain_types: TerrainTypesScript = TerrainTypesScript.new()
 	TERRAIN_TYPE_WATER = terrain_types.Type.WATER
 	TERRAIN_TYPE_HAZARD = terrain_types.Type.HAZARD
 	TERRAIN_TYPE_DIFFICULT = terrain_types.Type.DIFFICULT
@@ -186,12 +185,12 @@ func _validate_character_interface() -> void:
 	# Validate properties and their types
 	for property: String in CHARACTER_PROPERTY_TYPES:
 		assert(property in test_character, "Character class missing required property: " + property)
-		var value = test_character.get(property)
-		assert(typeof(value) == CHARACTER_PROPERTY_TYPES[property],
-			"Character property '%s' has wrong type. Expected %d, got %d" % [
+		var _value = test_character.get(property)
+		assert(typeof(_value) == CHARACTER_PROPERTY_TYPES[property],
+			"Character property %s should be type %s but was %s" % [
 				property,
 				CHARACTER_PROPERTY_TYPES[property],
-				typeof(value)
+				typeof(_value)
 			])
 	
 	# Validate methods
@@ -390,8 +389,7 @@ func _get_closest_enemy(character: CharacterScript) -> CharacterScript:
 		
 	var enemies: Array[CharacterScript] = combat_manager.get_valid_targets(character)
 	if enemies.is_empty():
-		return null
-		
+		return
 	var closest_enemy: CharacterScript = null
 	var closest_distance: float = INF
 	
@@ -404,7 +402,7 @@ func _get_closest_enemy(character: CharacterScript) -> CharacterScript:
 	return closest_enemy
 
 func _is_area_feature(terrain_type: int) -> bool:
-	# Check if terrain type is an area feature (water, hazard, difficult)
+	# Check if terrain _type is an area feature (water, hazard, difficult)
 	return terrain_type in [
 		TERRAIN_TYPE_WATER,
 		TERRAIN_TYPE_HAZARD,
@@ -531,7 +529,6 @@ func _get_valid_target(attacker: CharacterScript, action: GameEnumsScript.UnitAc
 	var valid_targets: Array[CharacterScript] = combat_manager.get_valid_targets(attacker)
 	if valid_targets.is_empty():
 		return null
-	
 	if _is_character_player_controlled(attacker):
 		return await _wait_for_player_target_selection(valid_targets)
 	else:
@@ -574,15 +571,15 @@ func _get_targets_in_radius(center: Vector2, radius: float) -> Array[CharacterSc
 		targets = battlefield_manager.get_characters_in_radius(center, radius)
 	return targets
 
-func add_manual_override(override_type: String, value: Variant) -> void:
-	manual_overrides[override_type] = value
+func add_manual_override(override_type: String, _value: Variant) -> void:
+	manual_overrides[override_type] = _value
 
 func clear_manual_overrides() -> void:
 	manual_overrides.clear()
 
-func log_combat_event(event: String) -> void:
-	combat_log.append(event)
-	emit_signal("combat_log_updated", event)
+func log_combat_event(_event: String) -> void:
+	combat_log.append(_event) # warning: return value discarded (intentional)
+	combat_log_updated.emit( _event)
 
 func _get_hit_threshold(attacker: CharacterScript, target: CharacterScript) -> int:
 	var threshold := 4 # Base threshold for hitting
@@ -608,14 +605,16 @@ func _calculate_damage(attacker: CharacterScript, target: CharacterScript, hit_r
 	return maxi(1, base_damage - armor_reduction) # Minimum 1 damage
 
 func _apply_combat_effects(attacker: CharacterScript, target: CharacterScript, hit_roll: int) -> void:
-	# Status effects based on hit roll
+	# Status effects based on hit _roll
 	if hit_roll >= STUN_THRESHOLD:
 		target.apply_status_effect({"effect": "stun", "duration": 1})
 		emit_signal(&"combat_effect_applied", target, "stun")
+		
 		log_combat_event("%s was stunned" % _get_character_name(target))
 	elif hit_roll >= SUPPRESS_THRESHOLD:
 		target.apply_status_effect({"effect": "suppress", "duration": 1})
 		emit_signal(&"combat_effect_applied", target, "suppress")
+		
 		log_combat_event("%s was suppressed" % _get_character_name(target))
 	
 	# Weapon-specific effects
@@ -644,9 +643,10 @@ func _apply_knockback(target: CharacterScript, from_position: Vector2i, distance
 	var direction: Vector2 = Vector2(target_pos - from_position).normalized()
 	var knockback_position: Vector2i = target_pos + Vector2i(int(direction.x * distance), int(direction.y * distance))
 	
-	# Validate new position
+	# Validate new _position
 	if battlefield_manager.is_valid_position(knockback_position):
 		battlefield_manager.move_character(target, knockback_position)
+
 		log_combat_event("%s was knocked back" % _get_character_name(target))
 		
 		# Check for collision damage
@@ -739,7 +739,6 @@ func _wait_for_player_target_selection(valid_targets: Array[CharacterScript]) ->
 	if not valid_targets.is_empty():
 		return valid_targets[0]
 	return null
-
 func _select_ai_target(attacker: CharacterScript, valid_targets: Array[CharacterScript]) -> CharacterScript:
 	# Simple AI - select closest valid target
 	var closest_target: CharacterScript = null

@@ -7,7 +7,7 @@ const GameEnums = preload("res://src/core/systems/GlobalEnums.gd")
 const GameLocation = preload("res://src/game/world/GameLocation.gd")
 const GameWorldTrait = preload("res://src/game/world/GameWorldTrait.gd")
 
-signal planet_updated(property, value)
+signal planet_updated(property, _value)
 
 # Core properties
 @export var planet_id: String = ""
@@ -64,14 +64,14 @@ func add_world_trait_by_id(trait_id: String) -> bool:
             return false
             
     # Create and initialize the new trait
-    var new_trait = GameWorldTrait.new()
+    var new_trait := GameWorldTrait.new()
     if new_trait.initialize_from_id(trait_id):
-        world_traits.append(new_trait)
+        world_traits.append(new_trait) # warning: return value discarded (intentional)
         
         # Apply trait effects to planet
         _apply_trait_effects(new_trait)
         
-        emit_signal("planet_updated", "world_traits", world_traits)
+        planet_updated.emit( "world_traits", world_traits)
         return true
     
     return false
@@ -86,7 +86,7 @@ func remove_world_trait_by_id(trait_id: String) -> bool:
             # Remove trait effects from planet
             _remove_trait_effects(removed_trait)
             
-            emit_signal("planet_updated", "world_traits", world_traits)
+            planet_updated.emit( "world_traits", world_traits)
             return true
     
     return false
@@ -102,7 +102,7 @@ func _apply_trait_effects(world_trait: GameWorldTrait) -> void:
                 resources[resource_type] = 0
             resources[resource_type] += modifier
 
-## Remove the effects of a world trait from this planet
+## Remove the effects of a world _trait from this planet
 func _remove_trait_effects(world_trait: GameWorldTrait) -> void:
     # Remove resource modifiers
     for resource_key in world_trait.resource_modifiers:
@@ -113,7 +113,7 @@ func _remove_trait_effects(world_trait: GameWorldTrait) -> void:
             if resources[resource_type] <= 0:
                 resources.erase(resource_type)
 
-## Convert a string resource key to a resource type enum value
+## Convert a string resource key to a resource type enum _value
 func _get_resource_type_from_key(key: String) -> int:
     match key:
         "water": return 1
@@ -127,18 +127,18 @@ func _get_resource_type_from_key(key: String) -> int:
 
 func add_resource(resource_type: int, amount: int = 1) -> void:
     if not resource_type in range(GameEnums.ResourceType.size()):
-        push_error("Invalid resource type provided")
+        push_error("Invalid resource _type provided")
         return
         
     if not resources.has(resource_type):
         resources[resource_type] = 0
     resources[resource_type] += amount
     
-    emit_signal("planet_updated", "resources", resources)
+    planet_updated.emit( "resources", resources)
 
 func remove_resource(resource_type: int, amount: int = 1) -> bool:
     if not resource_type in range(GameEnums.ResourceType.size()):
-        push_error("Invalid resource type provided")
+        push_error("Invalid resource _type provided")
         return false
         
     if not resources.has(resource_type) or resources[resource_type] < amount:
@@ -147,7 +147,7 @@ func remove_resource(resource_type: int, amount: int = 1) -> bool:
     if resources[resource_type] <= 0:
         resources.erase(resource_type)
     
-    emit_signal("planet_updated", "resources", resources)
+    planet_updated.emit( "resources", resources)
     return true
 
 func add_threat(threat: int) -> void:
@@ -156,8 +156,8 @@ func add_threat(threat: int) -> void:
         return
         
     if not threat in threats:
-        threats.append(threat)
-        emit_signal("planet_updated", "threats", threats)
+        threats.append(threat) # warning: return value discarded (intentional)
+        planet_updated.emit( "threats", threats)
 
 func remove_threat(threat: int) -> void:
     if not threat in range(GameEnums.ThreatType.size()):
@@ -167,41 +167,41 @@ func remove_threat(threat: int) -> void:
     var idx := threats.find(threat)
     if idx != -1:
         threats.remove_at(idx)
-        emit_signal("planet_updated", "threats", threats)
+        planet_updated.emit( "threats", threats)
 
 func increase_strife() -> void:
     var current_index := strife_level
     if current_index < GameEnums.StrifeType.size() - 1:
         strife_level = current_index + 1
-        emit_signal("planet_updated", "strife_level", strife_level)
+        planet_updated.emit( "strife_level", strife_level)
 
 func decrease_strife() -> void:
     if strife_level > GameEnums.StrifeType.NONE:
         strife_level -= 1
-        emit_signal("planet_updated", "strife_level", strife_level)
+        planet_updated.emit( "strife_level", strife_level)
 
 func increase_instability() -> void:
     var current_index := instability
     if current_index < GameEnums.StrifeType.size() - 1:
         instability = current_index + 1
-        emit_signal("planet_updated", "instability", instability)
+        planet_updated.emit( "instability", instability)
 
 func decrease_instability() -> void:
     if instability > GameEnums.StrifeType.NONE:
         instability -= 1
-        emit_signal("planet_updated", "instability", instability)
+        planet_updated.emit( "instability", instability)
 
 func update_market_price(item_type: int, price: float) -> void:
     if not item_type in range(GameEnums.ItemType.size()):
-        push_error("Invalid item type provided")
+        push_error("Invalid item _type provided")
         return
         
     market_prices[item_type] = price
-    emit_signal("planet_updated", "market_prices", market_prices)
+    planet_updated.emit( "market_prices", market_prices)
 
 func get_market_price(item_type: int) -> float:
     if not item_type in range(GameEnums.ItemType.size()):
-        push_error("Invalid item type provided")
+        push_error("Invalid item _type provided")
         return 0.0
         
     return market_prices.get(item_type, 0.0)
@@ -221,21 +221,21 @@ func has_threat(threat: int) -> bool:
 
 func get_resource_amount(resource_type: int) -> int:
     if not resource_type in range(GameEnums.ResourceType.size()):
-        push_error("Invalid resource type provided")
+        push_error("Invalid resource _type provided")
         return 0
         
     return resources.get(resource_type, 0)
 
 func add_location(location: GameLocation) -> void:
     if not location in locations:
-        locations.append(location)
-        emit_signal("planet_updated", "locations", locations)
+        locations.append(location) # warning: return value discarded (intentional)
+        planet_updated.emit( "locations", locations)
 
 func remove_location(location: GameLocation) -> void:
     var idx = locations.find(location)
     if idx != -1:
         locations.remove_at(idx)
-        emit_signal("planet_updated", "locations", locations)
+        planet_updated.emit( "locations", locations)
 
 func get_location_by_id(location_id: String) -> GameLocation:
     for location in locations:
@@ -247,15 +247,15 @@ func get_location_by_id(location_id: String) -> GameLocation:
 func serialize() -> Dictionary:
     var trait_data: Array = []
     for t in world_traits:
-        trait_data.append(t.serialize())
+        trait_data.append(t.serialize()) # warning: return value discarded (intentional)
         
     var threat_keys: Array[String] = []
     for t in threats:
-        threat_keys.append(GameEnums.ThreatType.keys()[t])
+        threat_keys.append(GameEnums.ThreatType.keys()[t]) # warning: return value discarded (intentional)
     
     var location_data: Array = []
     for location in locations:
-        location_data.append(location.serialize())
+        location_data.append(location.serialize()) # warning: return value discarded (intentional)
         
     return {
         "planet_id": planet_id,

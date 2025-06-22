@@ -1,5 +1,6 @@
 @tool
-extends GdUnitGameTest
+@warning_ignore("return_value_discarded")
+	extends GdUnitGameTest
 
 ## Unit tests for the MissionGenerator system
 ##
@@ -11,7 +12,8 @@ extends GdUnitGameTest
 ## - State persistence and recovery
 ## - Signal emission verification
 
-# 🎯 MOCK STRATEGY PATTERN - Proven 100% Success from Ship Tests ⭐
+# 🎯 MOCK STRATEGY PATTERN - Proven @warning_ignore("integer_division")
+	100 % Success from Ship Tests ⭐
 
 # Enum placeholders to avoid scope issues
 const MISSION_TYPE_PATROL := 1
@@ -29,10 +31,11 @@ class MockMissionTemplate extends Resource:
 	var difficulty_range: Vector2 = Vector2(1, 3)
 	var reward_range: Vector2 = Vector2(100, 300)
 	var title_templates: Array = ["Test Mission"]
+
 	var _is_configured: bool = false # Track if template has been configured
 	
-	func set_mission_type(value: int) -> void:
-		mission_type = value
+	func set_mission_type(test_value: int) -> void:
+		mission_type = _value
 		_is_configured = true
 	func set_difficulty_range(min_val: int, max_val: int) -> void:
 		difficulty_range = Vector2(min_val, max_val)
@@ -71,15 +74,16 @@ class MockMissionGenerator extends Resource:
 	
 	func generate_mission(template_or_type) -> MockMission:
 		emit_signal("generation_started")
-		
+
 				# Check for invalid template (template that was never configured)
 		if template_or_type is MockMissionTemplate:
 			if not template_or_type._is_configured:
+
 				# This template was never explicitly configured, consider it invalid
 				emit_signal("generation_completed")
 				return null
 		
-		var mission = MockMission.new()
+		var mission: MockMission = MockMission.new()
 		if template_or_type is int:
 			mission.mission_type = template_or_type
 		elif template_or_type is MockMissionTemplate:
@@ -91,10 +95,16 @@ class MockMissionGenerator extends Resource:
 		return mission
 	
 	func create_from_save(save_data: Dictionary) -> MockMission:
-		var mission = MockMission.new()
-		mission.mission_type = save_data.get("type", MISSION_TYPE_PATROL)
-		mission.difficulty = save_data.get("difficulty", 2)
-		mission.rewards = save_data.get("rewards", {"credits": 200})
+		var mission: MockMission = MockMission.new()
+
+		mission.mission_type = @warning_ignore("unsafe_call_argument")
+	savetest_data.get("type", MISSION_TYPE_PATROL)
+
+		mission.difficulty = @warning_ignore("unsafe_call_argument")
+	savetest_data.get("difficulty", 2)
+
+		mission.rewards = @warning_ignore("unsafe_call_argument")
+	savetest_data.get("rewards", {"credits": 200})
 		return mission
 
 # 🔧 MOCK SUPPORTING SYSTEMS ⭐
@@ -105,7 +115,9 @@ class MockRivalSystem extends Resource:
 	var rivals: Array = []
 	
 	func add_rival(rival_data: Dictionary) -> void:
-		rivals.append(rival_data)
+
+		@warning_ignore("return_value_discarded")
+	rivals.append(rival_data)
 
 class MockWorldManager extends Resource:
 	pass
@@ -126,13 +138,18 @@ func before_test() -> void:
 	_terrain_system = MockTerrainSystem.new()
 	_rival_system = MockRivalSystem.new()
 	
+	@warning_ignore("return_value_discarded")
 	track_resource(_test_game_state)
+	@warning_ignore("return_value_discarded")
 	track_resource(_world_manager)
+	@warning_ignore("return_value_discarded")
 	track_resource(_terrain_system)
+	@warning_ignore("return_value_discarded")
 	track_resource(_rival_system)
 	
 	# Create mission generator
 	_mission_generator = MockMissionGenerator.new()
+	@warning_ignore("return_value_discarded")
 	track_resource(_mission_generator)
 	
 	# Set required systems
@@ -147,26 +164,32 @@ func after_test() -> void:
 
 #region Basic Generation Tests
 
+@warning_ignore("unsafe_method_access")
 func test_mission_generation() -> void:
-	var template = MockMissionTemplate.new()
+	var template: MockMissionTemplate = MockMissionTemplate.new()
+	@warning_ignore("return_value_discarded")
 	track_resource(template)
 	template.set_mission_type(MISSION_TYPE_PATROL)
 	template.set_difficulty_range(1, 3)
 	template.set_reward_range(100, 300)
 	template.set_title_templates(["Test Mission"])
 	
+	@warning_ignore("unsafe_method_access")
 	monitor_signals(_mission_generator)
 	var mission = _mission_generator.generate_mission(template)
 	if mission:
-		track_resource(mission)
+		@warning_ignore("return_value_discarded")
+	track_resource(mission)
 	
 	assert_that(mission).override_failure_message("Mission should be generated").is_not_null()
 	assert_that(mission.get_mission_type()).override_failure_message("Mission type should match template").is_equal(MISSION_TYPE_PATROL)
 	assert_that(mission.get_difficulty() >= 1 and mission.get_difficulty() <= 3).override_failure_message("Difficulty should be within range").is_true()
 	assert_that(mission.get_rewards().credits >= 100 and mission.get_rewards().credits <= 300).override_failure_message("Rewards should be within range").is_true()
 
+@warning_ignore("unsafe_method_access")
 func test_invalid_template() -> void:
-	var template = MockMissionTemplate.new()
+	var template: MockMissionTemplate = MockMissionTemplate.new()
+	@warning_ignore("return_value_discarded")
 	track_resource(template)
 	var mission = _mission_generator.generate_mission(template)
 	assert_that(mission).override_failure_message("Should not generate mission from invalid template").is_null()
@@ -175,31 +198,39 @@ func test_invalid_template() -> void:
 
 #region Performance Tests
 
+@warning_ignore("unsafe_method_access")
 func test_rapid_mission_generation() -> void:
 	var template := create_basic_template()
+	@warning_ignore("unsafe_method_access")
 	monitor_signals(_mission_generator)
 	
-	for i in range(STRESS_TEST_ITERATIONS):
+	for i: int in range(STRESS_TEST_ITERATIONS):
 		var mission_type = MISSION_TYPE_PATROL
 		var mission = _mission_generator.generate_mission(mission_type)
-		assert_that(mission).override_failure_message("Should generate mission in iteration %d" % i).is_not_null()
+		assert_that(mission).override_failure_message("Should generate mission in @warning_ignore("integer_division")
+	iteration % d" % i).is_not_null()
 		if mission:
-			track_resource(mission)
+			@warning_ignore("return_value_discarded")
+	track_resource(mission)
 	
 	assert_signal(_mission_generator).is_emitted("mission_generated")
 
+@warning_ignore("unsafe_method_access")
 func test_concurrent_generation_performance() -> void:
 	var template := create_basic_template()
 	var start_time := Time.get_ticks_msec()
 	
 	# Generate multiple missions concurrently
-	var missions = []
-	for i in range(10):
+	var missions: Array = []
+	for i: int in range(10):
 		var mission_type = MISSION_TYPE_PATROL
 		var mission = _mission_generator.generate_mission(mission_type)
-		missions.append(mission)
+
+		@warning_ignore("return_value_discarded")
+	missions.append(mission)
 		if mission:
-			track_resource(mission)
+			@warning_ignore("return_value_discarded")
+	track_resource(mission)
 	
 	var duration := Time.get_ticks_msec() - start_time
 	assert_that(duration).override_failure_message("Mission generation should complete within timeout").is_less(TEST_TIMEOUT)
@@ -208,30 +239,36 @@ func test_concurrent_generation_performance() -> void:
 
 #region State Persistence Tests
 
+@warning_ignore("unsafe_method_access")
 func test_mission_state_persistence() -> void:
 	var template := create_basic_template()
 	var mission_type = MISSION_TYPE_PATROL
 	var mission = _mission_generator.generate_mission(mission_type)
 	if mission:
-		track_resource(mission)
+		@warning_ignore("return_value_discarded")
+	track_resource(mission)
 	
 	# Save and reload mission state
 	var saved_state = mission.serialize()
 	var loaded_mission = _mission_generator.create_from_save(saved_state)
 	if loaded_mission:
-		track_resource(loaded_mission)
+		@warning_ignore("return_value_discarded")
+	track_resource(loaded_mission)
 	
 	assert_that(loaded_mission.get_mission_type()).is_equal(mission.get_mission_type())
 	assert_that(loaded_mission.get_difficulty()).is_equal(mission.get_difficulty())
 
+@warning_ignore("unsafe_method_access")
 func test_mission_generation_signals() -> void:
 	var template := create_basic_template()
+	@warning_ignore("unsafe_method_access")
 	monitor_signals(_mission_generator)
 	
 	var mission_type = MISSION_TYPE_PATROL
 	var mission = _mission_generator.generate_mission(mission_type)
 	if mission:
-		track_resource(mission)
+		@warning_ignore("return_value_discarded")
+	track_resource(mission)
 	
 	assert_signal(_mission_generator).is_emitted("generation_started")
 	assert_signal(_mission_generator).is_emitted("mission_generated")
@@ -240,7 +277,8 @@ func test_mission_generation_signals() -> void:
 
 # Helper Methods
 func create_basic_template() -> MockMissionTemplate:
-	var template = MockMissionTemplate.new()
+	var template: MockMissionTemplate = MockMissionTemplate.new()
+	@warning_ignore("return_value_discarded")
 	track_resource(template)
 	template.set_mission_type(MISSION_TYPE_PATROL)
 	template.set_difficulty_range(1, 3)
@@ -250,8 +288,10 @@ func create_basic_template() -> MockMissionTemplate:
 
 # Rival Integration Tests
 
+@warning_ignore("unsafe_method_access")
 func test_rival_involvement() -> void:
-	var template = MockMissionTemplate.new()
+	var template: MockMissionTemplate = MockMissionTemplate.new()
+	@warning_ignore("return_value_discarded")
 	track_resource(template)
 	template.set_mission_type(MISSION_TYPE_RAID)
 	template.set_difficulty_range(2, 4)
@@ -264,34 +304,42 @@ func test_rival_involvement() -> void:
 		"force_composition": ["grunt", "grunt", "elite"]
 	})
 	
+	@warning_ignore("unsafe_method_access")
 	monitor_signals(_mission_generator)
 	var mission = _mission_generator.generate_mission(template)
 	if mission:
-		track_resource(mission)
+		@warning_ignore("return_value_discarded")
+	track_resource(mission)
 	
 	assert_that(mission.get_rival_involvement()).override_failure_message("Mission should have rival involvement").is_not_null()
 	assert_that(mission.get_rival_involvement().rival_id).override_failure_message("Rival ID should match").is_equal("test_rival")
 
 # Terrain Integration Tests
 
+@warning_ignore("unsafe_method_access")
 func test_terrain_generation() -> void:
-	var template = MockMissionTemplate.new()
+	var template: MockMissionTemplate = MockMissionTemplate.new()
+	@warning_ignore("return_value_discarded")
 	track_resource(template)
 	template.set_mission_type(MISSION_TYPE_DEFENSE)
 	template.set_difficulty_range(1, 2)
 	template.set_reward_range(150, 250)
 	template.set_title_templates(["Terrain Test Mission"])
 	
+	@warning_ignore("unsafe_method_access")
 	monitor_signals(_mission_generator)
 	var mission = _mission_generator.generate_mission(template)
 	if mission:
-		track_resource(mission)
+		@warning_ignore("return_value_discarded")
+	track_resource(mission)
 	
 	assert_that(mission).override_failure_message("Mission should be generated with terrain").is_not_null()
 	assert_that(mission.get_mission_type()).override_failure_message("Mission type should match").is_equal(MISSION_TYPE_DEFENSE)
 
+@warning_ignore("unsafe_method_access")
 func test_objective_placement() -> void:
-	var template = MockMissionTemplate.new()
+	var template: MockMissionTemplate = MockMissionTemplate.new()
+	@warning_ignore("return_value_discarded")
 	track_resource(template)
 	template.set_mission_type(MISSION_TYPE_SABOTAGE)
 	template.set_difficulty_range(2, 3)
@@ -300,13 +348,16 @@ func test_objective_placement() -> void:
 	
 	var mission = _mission_generator.generate_mission(template)
 	if mission:
-		track_resource(mission)
+		@warning_ignore("return_value_discarded")
+	track_resource(mission)
 	
 	assert_that(mission).override_failure_message("Mission should be generated").is_not_null()
 	assert_that(mission.get_mission_type()).override_failure_message("Mission type should match").is_equal(MISSION_TYPE_SABOTAGE)
 
+@warning_ignore("unsafe_method_access")
 func test_generation_with_invalid_difficulty() -> void:
-	var template = MockMissionTemplate.new()
+	var template: MockMissionTemplate = MockMissionTemplate.new()
+	@warning_ignore("return_value_discarded")
 	track_resource(template)
 	template.set_mission_type(MISSION_TYPE_PATROL)
 	template.set_difficulty_range(-1, 0) # Invalid range
@@ -315,12 +366,15 @@ func test_generation_with_invalid_difficulty() -> void:
 	
 	var mission = _mission_generator.generate_mission(template)
 	if mission:
-		track_resource(mission)
+		@warning_ignore("return_value_discarded")
+	track_resource(mission)
 	
 	assert_that(mission).override_failure_message("Should handle invalid difficulty range").is_not_null()
 
+@warning_ignore("unsafe_method_access")
 func test_generation_with_invalid_rewards() -> void:
-	var template = MockMissionTemplate.new()
+	var template: MockMissionTemplate = MockMissionTemplate.new()
+	@warning_ignore("return_value_discarded")
 	track_resource(template)
 	template.set_mission_type(MISSION_TYPE_PATROL)
 	template.set_difficulty_range(1, 3)
@@ -329,39 +383,48 @@ func test_generation_with_invalid_rewards() -> void:
 	
 	var mission = _mission_generator.generate_mission(template)
 	if mission:
-		track_resource(mission)
+		@warning_ignore("return_value_discarded")
+	track_resource(mission)
 	
 	assert_that(mission).override_failure_message("Should handle invalid reward range").is_not_null()
 
+@warning_ignore("unsafe_method_access")
 func test_generation_with_missing_systems() -> void:
 	# Test with null systems
-	var generator = MockMissionGenerator.new()
+	var generator: MockMissionGenerator = MockMissionGenerator.new()
+	@warning_ignore("return_value_discarded")
 	track_resource(generator)
 	
 	var template = create_basic_template()
 	var mission = generator.generate_mission(template)
 	if mission:
-		track_resource(mission)
+		@warning_ignore("return_value_discarded")
+	track_resource(mission)
 	
 	assert_that(mission).override_failure_message("Should generate mission even with missing systems").is_not_null()
 
+@warning_ignore("unsafe_method_access")
 func test_generation_at_difficulty_boundaries() -> void:
-	var template = MockMissionTemplate.new()
+	var template: MockMissionTemplate = MockMissionTemplate.new()
+	@warning_ignore("return_value_discarded")
 	track_resource(template)
 	template.set_mission_type(MISSION_TYPE_PATROL)
-	template.set_difficulty_range(1, 1) # Single difficulty value
-	template.set_reward_range(100, 100) # Single reward value
+	template.set_difficulty_range(1, 1) # Single difficulty _value
+	template.set_reward_range(100, 100) # Single reward _value
 	template.set_title_templates(["Boundary Test"])
 	
 	var mission = _mission_generator.generate_mission(template)
 	if mission:
-		track_resource(mission)
+		@warning_ignore("return_value_discarded")
+	track_resource(mission)
 	
 	assert_that(mission).override_failure_message("Should handle boundary values").is_not_null()
 	assert_that(mission.get_difficulty()).override_failure_message("Should respect difficulty boundary").is_equal(1)
 
+@warning_ignore("unsafe_method_access")
 func test_generation_with_large_values() -> void:
-	var template = MockMissionTemplate.new()
+	var template: MockMissionTemplate = MockMissionTemplate.new()
+	@warning_ignore("return_value_discarded")
 	track_resource(template)
 	template.set_mission_type(MISSION_TYPE_PATROL)
 	template.set_difficulty_range(999, 1000) # Large values
@@ -370,7 +433,8 @@ func test_generation_with_large_values() -> void:
 	
 	var mission = _mission_generator.generate_mission(template)
 	if mission:
-		track_resource(mission)
+		@warning_ignore("return_value_discarded")
+	track_resource(mission)
 	
 	assert_that(mission).override_failure_message("Should handle large values").is_not_null()
 	assert_that(mission.get_difficulty()).override_failure_message("Should handle large difficulty values").is_greater_equal(999)        

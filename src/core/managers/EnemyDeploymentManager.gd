@@ -47,7 +47,7 @@ func generate_deployment_positions(battle_map: Node, deployment_type: GameEnums.
 		GameEnums.DeploymentType.CONCEALED:
 			return _generate_concealed_deployment(battle_map)
 		_:
-			push_error("Invalid deployment type: %d" % deployment_type)
+			push_error("Invalid deployment _type: %d" % deployment_type)
 			return []
 
 # Implementation of deployment generation functions...

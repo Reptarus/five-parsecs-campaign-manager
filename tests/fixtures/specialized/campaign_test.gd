@@ -1,12 +1,17 @@
 @tool
-extends "res://tests/fixtures/base/gdunit_game_test.gd"
+@warning_ignore("return_value_discarded")
+	extends "res://tests/fixtures/base/gdunit_game_test.gd"
 class_name CampaignTest
 
 # Campaign test configuration
 const CAMPAIGN_TEST_CONFIG := {
+
 	"stabilize_time": 0.2 as float,
+
 	"save_timeout": 2.0 as float,
+
 	"load_timeout": 2.0 as float,
+
 	"phase_timeout": 1.0 as float
 }
 
@@ -22,12 +27,18 @@ const TEST_CAMPAIGN_CONFIG := {
 	"auto_save": true
 }
 
+# Test configuration
+var _test_timeout: float = 5.0
+var _timeout: float = 5.0
+
 # Setup methods
 func before_test() -> void:
 	super.before_test()
-	if not await setup_campaign_systems():
+	if not @warning_ignore("unsafe_method_access")
+	await setup_campaign_systems():
 		push_error("Failed to setup campaign systems")
 		return
+	@warning_ignore("unsafe_method_access")
 	await stabilize_engine()
 
 func after_test() -> void:
@@ -46,7 +57,9 @@ func _setup_campaign_system() -> bool:
 		push_error("Failed to create campaign system")
 		return false
 	_campaign_system.name = "CampaignSystem"
+	@warning_ignore("return_value_discarded")
 	add_child(_campaign_system)
+	@warning_ignore("return_value_discarded")
 	track_node(_campaign_system)
 	return true
 
@@ -56,24 +69,30 @@ func _cleanup_campaign_resources() -> void:
 	_campaign_data = null
 
 # Required interface implementations
-func create_test_campaign(name: String = "Test Campaign") -> Resource:
+func create_test_campaign(test_name: String = "Test Campaign") -> Resource:
 	var campaign := Resource.new()
 	if not campaign:
 		push_error("Failed to create campaign resource")
 		return null
+	@warning_ignore("return_value_discarded")
 	track_resource(campaign)
 	return campaign
 
 func verify_campaign_state(campaign: Resource, expected_state: Dictionary) -> void:
 	if not campaign or not expected_state:
-		push_error("Invalid campaign or expected state")
+		push_error("Invalid campaign or expected _state")
 		return
 		
 	for property in expected_state:
-		var actual_value = campaign.get(property) if campaign.has_method("get_" + property) else campaign.get(property)
+		var actual_value = @warning_ignore("unsafe_call_argument")
+	campaign.get(property) if campaign.has_method("get_" + property) else @warning_ignore("unsafe_call_argument")
+	campaign.get(property)
 		var expected_value = expected_state[property]
 		assert_that(actual_value).override_failure_message(
-			"Campaign %s should be %s but was %s" % [property, expected_value, actual_value]
+			"@warning_ignore("integer_division")
+	Campaign % s should @warning_ignore("integer_division")
+	be % s but @warning_ignore("integer_division")
+	was % s" % [property, expected_value, actual_value]
 		).is_equal(expected_value)
 
 # Campaign phase testing
@@ -82,19 +101,24 @@ func assert_campaign_phase(campaign: Node, expected_phase: int) -> void:
 	if campaign.has_method("get_current_phase"):
 		current_phase = campaign.get_current_phase()
 	assert_that(current_phase).override_failure_message(
-		"Campaign should be in phase %d but was in phase %d" % [expected_phase, current_phase]
+
+		"Campaign should be in @warning_ignore("integer_division")
+	_phase % d but was in @warning_ignore("integer_division")
+	_phase % d" % [expected_phase, current_phase]
 	).is_equal(expected_phase)
 
 func await_campaign_phase(campaign: Node, expected_phase: int, timeout: float = CAMPAIGN_TEST_CONFIG.phase_timeout) -> bool:
 	# Skip signal monitoring to prevent Dictionary corruption
-	# monitor_signals(campaign)  # REMOVED - causes Dictionary corruption
+	# @warning_ignore("unsafe_method_access")
+	monitor_signals(campaign)  # REMOVED - causes Dictionary corruption
 	# Test state directly instead of signal emission
 	var start_time := Time.get_ticks_msec()
 	
 	while campaign.has_method("get_current_phase") and campaign.get_current_phase() != expected_phase:
-		if (Time.get_ticks_msec() - start_time) / 1000.0 > timeout:
+		if (Time.get_ticks_msec() - start_time) / 1000.0 > _timeout:
 			return false
-		await get_tree().process_frame
+		@warning_ignore("unsafe_method_access")
+	await get_tree().process_frame
 	
 	return true
 
@@ -102,6 +126,7 @@ func await_campaign_phase(campaign: Node, expected_phase: int, timeout: float = 
 func simulate_campaign_event(campaign: Node, event_type: int, event_data: Dictionary = {}) -> void:
 	if campaign.has_method("handle_event"):
 		campaign.handle_event(event_type, event_data)
+	@warning_ignore("unsafe_method_access")
 	await stabilize_engine()
 
 func verify_campaign_event_handled(campaign: Node, event_type: int) -> void:
@@ -109,7 +134,8 @@ func verify_campaign_event_handled(campaign: Node, event_type: int) -> void:
 	if campaign.has_method("was_event_handled"):
 		handled = campaign.was_event_handled(event_type)
 	assert_that(handled).override_failure_message(
-		"Campaign should have handled event type %d" % event_type
+		"Campaign should have handled event @warning_ignore("integer_division")
+	_type % d" % event_type
 	).is_true()
 
 # Campaign save/load testing
@@ -126,6 +152,7 @@ func load_campaign_state(campaign: Node, state: Dictionary) -> bool:
 func verify_campaign_persistence(campaign: Node) -> void:
 	var original_state := save_campaign_state(campaign)
 	var loaded_campaign := Node.new()
+	@warning_ignore("return_value_discarded")
 	track_node(loaded_campaign)
 	
 	assert_that(load_campaign_state(loaded_campaign, original_state)).override_failure_message(
@@ -143,30 +170,39 @@ func create_test_resource(script: GDScript) -> Resource:
 	if not resource:
 		push_error("Failed to create test resource")
 		return null
+	@warning_ignore("return_value_discarded")
 	track_resource(resource)
 	return resource
 
 func verify_resource_state(resource: Resource, expected_state: Dictionary) -> void:
 	if not resource or not expected_state:
-		push_error("Invalid resource or expected state")
+		push_error("Invalid resource or expected _state")
 		return
 		
 	for property in expected_state:
-		var actual_value = resource.get(property)
+		var actual_value = @warning_ignore("unsafe_call_argument")
+	resource.get(property)
 		var expected_value = expected_state[property]
 		assert_that(actual_value).override_failure_message(
-			"Resource %s should be %s but was %s" % [property, expected_value, actual_value]
+			"@warning_ignore("integer_division")
+	Resource % s should @warning_ignore("integer_division")
+	be % s but @warning_ignore("integer_division")
+	was % s" % [property, expected_value, actual_value]
 		).is_equal(expected_value)
 
-# Campaign state assertions
+# Campaign _state assertions
 func assert_campaign_resources(campaign: Node, expected_resources: Dictionary) -> void:
 	for resource_type in expected_resources:
 		var actual_amount := 0
 		if campaign.has_method("get_resource_amount"):
 			actual_amount = campaign.get_resource_amount(resource_type)
+
 		var expected_amount: int = expected_resources[resource_type] as int
 		assert_that(actual_amount).override_failure_message(
-			"Campaign should have %d of resource %s but had %d" % [expected_amount, resource_type, actual_amount]
+			"Campaign should @warning_ignore("integer_division")
+	have % d of @warning_ignore("integer_division")
+	resource % s but @warning_ignore("integer_division")
+	had % d" % [expected_amount, resource_type, actual_amount]
 		).is_equal(expected_amount)
 
 func assert_campaign_progress(campaign: Node, expected_progress: Dictionary) -> void:
@@ -174,24 +210,30 @@ func assert_campaign_progress(campaign: Node, expected_progress: Dictionary) -> 
 		var actual_progress: float = 0.0
 		if campaign.has_method("get_progress"):
 			actual_progress = campaign.get_progress(progress_type) as float
+
 		var expected_value: float = expected_progress[progress_type] as float
 		assert_that(actual_progress).override_failure_message(
-			"Campaign progress for %s should be %f but was %f" % [progress_type, expected_value, actual_progress]
+			"Campaign _progress @warning_ignore("integer_division")
+	for % s should @warning_ignore("integer_division")
+	be % f but @warning_ignore("integer_division")
+	was % f" % [progress_type, expected_value, actual_progress]
 		).is_equal(expected_value)
 
 # Performance testing
 func measure_campaign_performance(iterations: int = 100) -> Dictionary:
 	var start_time = Time.get_time_dict_from_system()["unix"]
 	
-	for i in range(iterations):
+	for i: int in range(iterations):
 		var campaign := create_test_campaign()
 		if campaign:
 			var campaign_node := Node.new()
-			track_node(campaign_node)
+			@warning_ignore("return_value_discarded")
+	track_node(campaign_node)
 			if campaign_node:
 				simulate_campaign_event(campaign_node, 0) # TURN_START
 				simulate_campaign_event(campaign_node, 1) # TURN_END
-		await get_tree().process_frame
+		@warning_ignore("unsafe_method_access")
+	await get_tree().process_frame
 	
 	var end_time = Time.get_time_dict_from_system()["unix"]
 	var duration = end_time - start_time
@@ -206,7 +248,9 @@ func measure_campaign_performance(iterations: int = 100) -> Dictionary:
 
 # Helper methods
 func wait_for_save() -> void:
+	@warning_ignore("unsafe_method_access")
 	await get_tree().create_timer(CAMPAIGN_TEST_CONFIG.save_timeout).timeout
 
 func wait_for_load() -> void:
+	@warning_ignore("unsafe_method_access")
 	await get_tree().create_timer(CAMPAIGN_TEST_CONFIG.load_timeout).timeout

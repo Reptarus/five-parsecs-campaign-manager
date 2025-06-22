@@ -1,87 +1,106 @@
-class_name FPCM_PDFGenerator
-extends Node
+@tool
+extends RefCounted
+class_name PDFGenerator
 
-const Character = preload("res://src/core/character/Management/CharacterDataManager.gd")
-const GameEnums = preload("res://src/core/systems/GlobalEnums.gd")
-const FiveParsecsCharacter = preload("res://src/core/character/Base/Character.gd")
+## PDF Generator for Five Parsecs campaign manager
+## Generates PDF documents for crew rosters and character sheets
 
-# Helper functions for crew roster generation
-func generate_crew_roster(crew: Dictionary) -> void:
-    create_document()
-    
-    # Header
-    add_header("Crew Roster: " + crew.name)
-    add_text("Credits: " + str(crew.credits))
-    add_text("Characteristic: " + crew.characteristic)
-    add_text("Meeting Story: " + crew.meeting_story)
-    add_line()
-    
-    # Members
-    add_subheader("Crew Members")
-    for member in crew:
-        add_character_entry(member)
-    
-    # Footer
-    add_footer("Generated on " + Time.get_datetime_string_from_system())
+signal document_created()
+signal section_added(section_name: String)
+signal document_saved(file_path: String)
 
-func add_character_entry(character: FiveParsecsCharacter) -> void:
-    add_text("Name: " + character.character_name)
-    add_text("Class: " + str(GameEnums.CharacterClass.keys()[character.character_class]))
-    add_text("Background: " + str(character.background))
-    
-    # Stats
-    var stats_text = "Stats:\n"
-    stats_text += "Reactions: %d\n" % character.get_stat(GameEnums.CharacterStats.REACTIONS)
-    stats_text += "Combat Skill: %d\n" % character.get_stat(GameEnums.CharacterStats.COMBAT_SKILL)
-    stats_text += "Toughness: %d\n" % character.get_stat(GameEnums.CharacterStats.TOUGHNESS)
-    stats_text += "Savvy: %d\n" % character.get_stat(GameEnums.CharacterStats.SAVVY)
-    stats_text += "Tech: %d\n" % character.get_stat(GameEnums.CharacterStats.TECH)
-    stats_text += "Navigation: %d\n" % character.get_stat(GameEnums.CharacterStats.NAVIGATION)
-    stats_text += "Social: %d\n" % character.get_stat(GameEnums.CharacterStats.SOCIAL)
-    add_text(stats_text)
-    
-    # Equipment
-    if character.equipped_weapon:
-        add_text("Weapon: " + character.equipped_weapon.name)
-    
-    var gear_text = "Gear: "
-    for item in character.equipped_gear:
-        if item.type != GameEnums.ItemType.MISC:
-            gear_text += item.name + ", "
-    add_text(gear_text.trim_suffix(", "))
-    
-    var gadget_text = "Gadgets: "
-    for item in character.equipped_gadgets:
-        gadget_text += item.name + ", "
-    add_text(gadget_text.trim_suffix(", "))
-    
-    add_line()
+var current_document: Dictionary = {}
+var template_path: String = ""
 
-# Document creation and formatting functions
+func _init() -> void:
+	current_document = {
+		"title": "",
+		"subtitle": "",
+		"sections": [],
+		"metadata": {}
+	}
+
+func set_template(path: String) -> void:
+	template_path = path
+
 func create_document() -> void:
-    # Implementation for creating a new document
-    pass
+	current_document = {
+		"title": "",
+		"subtitle": "",
+		"sections": [],
+		"metadata": {
+			"created": Time.get_datetime_string_from_system(),
+			"generator": "Five Parsecs Campaign Manager"
+		}
+	}
+	document_created.emit()
 
-func add_header(text: String) -> void:
-    # Implementation for adding a header
-    pass
+func add_title(title: String) -> void:
+	current_document.title = title
 
-func add_subheader(text: String) -> void:
-    # Implementation for adding a subheader
-    pass
+func add_subtitle(subtitle: String) -> void:
+	current_document.subtitle = subtitle
+
+func add_section(section_name: String) -> void:
+	var section = {
+		"_name": section_name,
+		"type": "section",
+		"content": []
+	}
+	current_document.sections.append(section)
+	section_added.emit(section_name)
+
+func add_subsection(subsection_name: String) -> void:
+	var subsection = {
+		"_name": subsection_name,
+		"type": "subsection",
+		"content": []
+	}
+	current_document.sections.append(subsection)
+
+func add_field(field_name: String, field_value: String) -> void:
+	var field = {
+		"name": field_name,
+		"_value": field_value,
+		"type": "field"
+	}
+	if current_document.sections.size() > 0:
+		current_document.sections[-1].content.append(field)
 
 func add_text(text: String) -> void:
-    # Implementation for adding text
-    pass
+	var text_block = {
+		"content": text,
+		"type": "text"
+	}
+	if current_document.sections.size() > 0:
+		current_document.sections[-1].content.append(text_block)
 
-func add_line() -> void:
-    # Implementation for adding a line break
-    pass
+func add_bullet_point(text: String) -> void:
+	var bullet = {
+		"content": text,
+		"type": "bullet"
+	}
+	if current_document.sections.size() > 0:
+		current_document.sections[-1].content.append(bullet)
 
-func add_footer(text: String) -> void:
-    # Implementation for adding a footer
-    pass
+func add_separator() -> void:
+	var separator = {
+		"type": "separator"
+	}
+	current_document.sections.append(separator)
 
-func save_to_file(path: String) -> Error:
-    # Implementation for saving the document
-    return OK
+func save_to_file(file_path: String) -> Error:
+	# For now, save as JSON - in a real implementation this would generate PDF
+	var file = FileAccess.open(file_path + ".json", FileAccess.WRITE)
+	if not file:
+		return FileAccess.get_open_error()
+	
+	var json_string = JSON.stringify(current_document, "    ")
+	file.store_string(json_string)
+	file.close()
+	
+	document_saved.emit(file_path)
+	return OK
+
+func get_document_data() -> Dictionary:
+	return current_document.duplicate(true)

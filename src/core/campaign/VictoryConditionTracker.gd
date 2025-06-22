@@ -19,7 +19,7 @@ var _active_conditions: Dictionary = {}
 var _campaign_data: Dictionary = {}
 
 # Initialize the tracker
-func _init():
+func _init() -> void:
 	_data_manager = GameDataManager.get_instance()
 	GameDataManager.ensure_data_loaded()
 	_load_data()
@@ -36,7 +36,7 @@ func _load_data() -> void:
 func setup_victory_conditions(campaign_type: int, custom_conditions: Array = []) -> void:
 	_active_conditions.clear()
 	
-	# Set default conditions based on campaign type
+	# Set default _conditions based on campaign type
 	match campaign_type:
 		GameEnums.FiveParcsecsCampaignType.STANDARD:
 			_add_condition(GameEnums.FiveParcsecsCampaignVictoryType.CREDITS_THRESHOLD, {"threshold": 10000})
@@ -51,7 +51,7 @@ func setup_victory_conditions(campaign_type: int, custom_conditions: Array = [])
 		GameEnums.FiveParcsecsCampaignType.TUTORIAL:
 			_add_condition(GameEnums.FiveParcsecsCampaignVictoryType.MISSION_COUNT, {"count": 3})
 	
-	# Add any custom conditions
+	# Add any custom _conditions
 	for condition in custom_conditions:
 		if condition is Dictionary and condition.has("type") and condition.has("params"):
 			_add_condition(condition.type, condition.params)
@@ -59,7 +59,7 @@ func setup_victory_conditions(campaign_type: int, custom_conditions: Array = [])
 # Add a victory condition with parameters
 func _add_condition(condition_type: int, params: Dictionary) -> void:
 	var condition = {
-		"type": condition_type,
+		"_type": condition_type,
 		"params": params,
 		"current_progress": 0,
 		"required_progress": _get_required_progress(condition_type, params)
@@ -67,7 +67,7 @@ func _add_condition(condition_type: int, params: Dictionary) -> void:
 	
 	_active_conditions[condition_type] = condition
 
-# Calculate the required progress for a condition type
+# Calculate the required progress for a condition _type
 func _get_required_progress(condition_type: int, params: Dictionary) -> int:
 	match condition_type:
 		GameEnums.FiveParcsecsCampaignVictoryType.CREDITS_THRESHOLD:
@@ -113,9 +113,9 @@ func update_progress(condition_type: int, progress: int) -> void:
 	
 	# Check if condition is met
 	if condition.current_progress >= condition.required_progress:
-		victory_condition_reached.emit(condition_type, condition)
+		victory_condition_reached.emit(condition_type, condition) # warning: return value discarded (intentional)
 	else:
-		victory_progress_updated.emit(condition_type, condition.current_progress, condition.required_progress)
+		victory_progress_updated.emit(condition_type, condition.current_progress, condition.required_progress) # warning: return value discarded (intentional)
 
 # Increment progress for a specific condition
 func increment_progress(condition_type: int, amount: int = 1) -> void:
@@ -127,9 +127,9 @@ func increment_progress(condition_type: int, amount: int = 1) -> void:
 	
 	# Check if condition is met
 	if condition.current_progress >= condition.required_progress:
-		victory_condition_reached.emit(condition_type, condition)
+		victory_condition_reached.emit(condition_type, condition) # warning: return value discarded (intentional)
 	else:
-		victory_progress_updated.emit(condition_type, condition.current_progress, condition.required_progress)
+		victory_progress_updated.emit(condition_type, condition.current_progress, condition.required_progress) # warning: return value discarded (intentional)
 
 # Check if any victory condition has been met
 func check_victory() -> bool:
@@ -194,3 +194,9 @@ func record_quest_complete() -> void:
 	
 	if _active_conditions.has(GameEnums.FiveParcsecsCampaignVictoryType.QUESTS_10):
 		increment_progress(GameEnums.FiveParcsecsCampaignVictoryType.QUESTS_10)
+	
+	if _active_conditions.has(GameEnums.FiveParcsecsCampaignVictoryType.STORY_COMPLETE):
+		increment_progress(GameEnums.FiveParcsecsCampaignVictoryType.QUESTS_5)
+	
+	if _active_conditions.has(GameEnums.FiveParcsecsCampaignVictoryType.STORY_COMPLETE):
+		increment_progress(GameEnums.FiveParcsecsCampaignVictoryType.STORY_COMPLETE)

@@ -3,7 +3,7 @@ extends Node
 class_name BaseBattleStatisticsTracker
 
 # Signals
-signal statistics_updated(stat_name: String, value: Variant)
+signal statistics_updated(stat_name: String, _value: Variant)
 signal battle_summary_generated(summary: Dictionary)
 
 # Battle reference
@@ -70,7 +70,6 @@ func initialize(battle_controller_ref: Node = null) -> void:
 	
 	# Connect signals
 	_connect_signals()
-
 func reset_statistics() -> void:
 	# Reset general battle stats
 	stats.battle_id = ""
@@ -120,17 +119,19 @@ func reset_statistics() -> void:
 	
 	# Reset custom stats
 	stats.custom_stats = {}
-
 func start_battle(battle_data: Dictionary) -> void:
 	stats.battle_id = battle_data.get("id", "")
+
 	stats.battle_name = battle_data.get("name", "")
+
 	stats.battle_type = battle_data.get("type", "")
 	stats.battle_start_time = Time.get_unix_time_from_system()
 	
 	# Count initial units
-	stats.player_units = battle_data.get("player_units", 0)
-	stats.enemy_units = battle_data.get("enemy_units", 0)
 
+	stats.player_units = battle_data.get("player_units", 0)
+
+	stats.enemy_units = battle_data.get("enemy_units", 0)
 func end_battle(result: String) -> void:
 	stats.battle_end_time = Time.get_unix_time_from_system()
 	stats.battle_duration = stats.battle_end_time - stats.battle_start_time
@@ -138,7 +139,7 @@ func end_battle(result: String) -> void:
 	
 	# Generate battle summary
 	var summary = generate_battle_summary()
-	battle_summary_generated.emit(summary)
+	battle_summary_generated.emit(summary) # warning: return value discarded (intentional)
 
 func track_damage(unit: Node, damage: int, source: Node = null, weapon: String = "") -> void:
 	var is_player_unit = _is_player_unit(unit)
@@ -185,7 +186,7 @@ func track_damage(unit: Node, damage: int, source: Node = null, weapon: String =
 		stats.enemy_damage_taken += damage
 	
 	# Emit signal
-	statistics_updated.emit("damage", {
+	statistics_updated.emit("damage", { # warning: return value discarded (intentional)
 		"unit": unit,
 		"damage": damage,
 		"source": source,
@@ -204,7 +205,7 @@ func track_healing(unit: Node, amount: int, source: Node = null) -> void:
 		stats.enemy_healing_done += amount
 	
 	# Emit signal
-	statistics_updated.emit("healing", {
+	statistics_updated.emit("healing", { # warning: return value discarded (intentional)
 		"unit": unit,
 		"amount": amount,
 		"source": source
@@ -238,7 +239,7 @@ func track_kill(unit: Node, killer: Node = null) -> void:
 		stats.enemy_kills += 1
 	
 	# Emit signal
-	statistics_updated.emit("kill", {
+	statistics_updated.emit("kill", { # warning: return value discarded (intentional)
 		"unit": unit,
 		"killer": killer
 	})
@@ -253,13 +254,13 @@ func track_action(unit: Node, action_type: String) -> void:
 		# Enemy took an action
 		stats.enemy_actions_taken += 1
 	
-	# Track actions by type
+	# Track actions by _type
 	if not action_type in stats.actions_by_type:
 		stats.actions_by_type[action_type] = 0
 	stats.actions_by_type[action_type] += 1
 	
 	# Emit signal
-	statistics_updated.emit("action", {
+	statistics_updated.emit("action", { # warning: return value discarded (intentional)
 		"unit": unit,
 		"action_type": action_type
 	})
@@ -275,7 +276,7 @@ func track_movement(unit: Node, tiles: int) -> void:
 		stats.enemy_movement_tiles += tiles
 	
 	# Emit signal
-	statistics_updated.emit("movement", {
+	statistics_updated.emit("movement", { # warning: return value discarded (intentional)
 		"unit": unit,
 		"tiles": tiles
 	})
@@ -291,7 +292,7 @@ func track_critical_hit(unit: Node, target: Node) -> void:
 		stats.enemy_critical_hits += 1
 	
 	# Emit signal
-	statistics_updated.emit("critical_hit", {
+	statistics_updated.emit("critical_hit", { # warning: return value discarded (intentional)
 		"unit": unit,
 		"target": target
 	})
@@ -307,7 +308,7 @@ func track_miss(unit: Node, target: Node) -> void:
 		stats.enemy_misses += 1
 	
 	# Emit signal
-	statistics_updated.emit("miss", {
+	statistics_updated.emit("miss", { # warning: return value discarded (intentional)
 		"unit": unit,
 		"target": target
 	})
@@ -319,13 +320,13 @@ func track_objective_progress(objective_id: String, progress: float) -> void:
 	
 	var previous_progress = stats.objectives_progress[objective_id]
 	stats.objectives_progress[objective_id] = progress
-	
+
 	# Check if objective was completed
 	if previous_progress < 1.0 and progress >= 1.0:
 		stats.player_objectives_completed += 1
 	
 	# Emit signal
-	statistics_updated.emit("objective_progress", {
+	statistics_updated.emit("objective_progress", { # warning: return value discarded (intentional)
 		"objective_id": objective_id,
 		"progress": progress
 	})
@@ -337,7 +338,7 @@ func track_terrain_usage(unit: Node, terrain_type: String) -> void:
 	stats.terrain_usage[terrain_type] += 1
 	
 	# Emit signal
-	statistics_updated.emit("terrain_usage", {
+	statistics_updated.emit("terrain_usage", { # warning: return value discarded (intentional)
 		"unit": unit,
 		"terrain_type": terrain_type
 	})
@@ -359,7 +360,7 @@ func track_status_effect(unit: Node, effect: String, source: Node = null) -> voi
 		stats.status_effects_received[effect] += 1
 	
 	# Emit signal
-	statistics_updated.emit("status_effect", {
+	statistics_updated.emit("status_effect", { # warning: return value discarded (intentional)
 		"unit": unit,
 		"effect": effect,
 		"source": source
@@ -370,18 +371,18 @@ func track_turn(turn: int) -> void:
 	stats.total_turns = max(stats.total_turns, turn)
 	
 	# Emit signal
-	statistics_updated.emit("turn", {
+	statistics_updated.emit("turn", { # warning: return value discarded (intentional)
 		"turn": turn
 	})
 
-func track_custom_stat(stat_name: String, value: Variant) -> void:
+func track_custom_stat(stat_name: String, _value: Variant) -> void:
 	# Track custom stat
-	stats.custom_stats[stat_name] = value
+	stats.custom_stats[stat_name] = _value
 	
 	# Emit signal
-	statistics_updated.emit("custom_stat", {
+	statistics_updated.emit("custom_stat", { # warning: return value discarded (intentional)
 		"stat_name": stat_name,
-		"value": value
+		"_value": _value
 	})
 
 func get_stat(stat_name: String) -> Variant:
@@ -391,7 +392,6 @@ func get_stat(stat_name: String) -> Variant:
 		return stats.custom_stats[stat_name]
 	else:
 		return null
-
 func get_all_stats() -> Dictionary:
 	return stats
 
@@ -450,7 +450,6 @@ func _connect_signals() -> void:
 	# To be implemented by derived classes
 	# Connect to battle controller signals to track statistics
 	pass
-
 func _is_player_unit(unit: Node) -> bool:
 	# To be implemented by derived classes
 	# Determine if a unit belongs to the player
@@ -476,7 +475,7 @@ func _determine_mvp() -> Dictionary:
 	
 	for unit_id in stats.damage_by_unit:
 		var unit_data = stats.damage_by_unit[unit_id]
-		var kills = 0
+		var kills: int = 0
 		
 		if unit_id in stats.kills_by_unit:
 			kills = stats.kills_by_unit[unit_id].kills
@@ -596,7 +595,7 @@ func _determine_most_common_action() -> Dictionary:
 	return action if action != null else {}
 
 func _calculate_performance_score() -> float:
-	var score = 0.0
+	var score: int = 0
 	
 	# Factors to consider
 	score += stats.player_kills * 10

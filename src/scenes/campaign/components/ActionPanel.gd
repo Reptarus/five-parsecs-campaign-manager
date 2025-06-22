@@ -76,28 +76,28 @@ var action_button_scene = preload("res://src/scenes/campaign/components/ActionBu
 
 class ActionRequirement:
 	var type: RequirementType
-	var value: Variant
-	var description: String
+	var _value: Variant
+	var _description: String
 	
 	func _init(p_type: RequirementType, p_value: Variant, p_description: String = "") -> void:
 		type = p_type
-		value = p_value
-		description = p_description
+		_value = p_value
+		_description = p_description
 	
 	func is_met(campaign_state: Dictionary) -> bool:
 		match type:
 			RequirementType.CREDITS:
-				return campaign_state.get("credits", 0) >= value
+				return campaign_state.get("credits", 0) >= _value
 			RequirementType.STORY_POINTS:
-				return campaign_state.get("story_points", 0) >= value
+				return campaign_state.get("story_points", 0) >= _value
 			RequirementType.REPUTATION:
-				return campaign_state.get("reputation", 0) >= value
+				return campaign_state.get("reputation", 0) >= _value
 			RequirementType.SUPPLIES:
-				return campaign_state.get("supplies", 0) >= value
+				return campaign_state.get("supplies", 0) >= _value
 			RequirementType.INTEL:
-				return campaign_state.get("intel", 0) >= value
+				return campaign_state.get("intel", 0) >= _value
 			RequirementType.SALVAGE:
-				return campaign_state.get("salvage", 0) >= value
+				return campaign_state.get("salvage", 0) >= _value
 			RequirementType.CHARACTER_STAT:
 				# Implement character stat check
 				return true
@@ -115,20 +115,20 @@ class ActionData:
 	var requirements: Array[ActionRequirement]
 	var costs: Dictionary # Resource costs
 	var category: String
+	var _phase: String
 	var enabled: bool
-	var phase: String
 	
 	func _init(p_name: String, p_description: String, p_category: String, p_phase: String) -> void:
 		name = p_name
 		description = p_description
 		category = p_category
-		phase = p_phase
+		_phase = p_phase
 		requirements = []
 		costs = {}
 		enabled = true
 	
 	func add_requirement(requirement: ActionRequirement) -> void:
-		requirements.append(requirement)
+		requirements.append(requirement) # warning: return value discarded (intentional)
 	
 	func add_cost(resource: String, amount: int) -> void:
 		costs[resource] = amount
@@ -146,12 +146,12 @@ func _ready() -> void:
 func _setup_ui() -> void:
 	# Set up phase tabs
 	for phase in PHASE_CATEGORIES:
-		var tab = VBoxContainer.new()
+		var tab := VBoxContainer.new()
 		tab.name = phase.capitalize()
 		category_tabs.add_child(tab)
 		
 		# Add phase description
-		var description = Label.new()
+		var description := Label.new()
 		description.text = PHASE_CATEGORIES[phase].description
 		description.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 		description.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
@@ -232,7 +232,8 @@ func _create_upkeep_actions() -> Array[ActionData]:
 		"upkeep"
 	)
 	maintain.add_cost("credits", 10)
-	actions.append(maintain)
+
+	actions.append(maintain) # warning: return value discarded (intentional)
 	
 	var resupply = ActionData.new(
 		"Resupply",
@@ -241,7 +242,8 @@ func _create_upkeep_actions() -> Array[ActionData]:
 		"upkeep"
 	)
 	resupply.add_cost("credits", 20)
-	actions.append(resupply)
+
+	actions.append(resupply) # warning: return value discarded (intentional)
 	
 	return actions
 
@@ -255,7 +257,8 @@ func _create_world_actions() -> Array[ActionData]:
 		"world_step"
 	)
 	explore.add_cost("supplies", 1)
-	actions.append(explore)
+
+	actions.append(explore) # warning: return value discarded (intentional)
 	
 	var gather = ActionData.new(
 		"Gather Intel",
@@ -264,7 +267,8 @@ func _create_world_actions() -> Array[ActionData]:
 		"world_step"
 	)
 	gather.add_cost("credits", 10)
-	actions.append(gather)
+
+	actions.append(gather) # warning: return value discarded (intentional)
 	
 	return actions
 
@@ -278,7 +282,8 @@ func _create_travel_actions() -> Array[ActionData]:
 		"travel"
 	)
 	travel.add_cost("supplies", 2)
-	actions.append(travel)
+
+	actions.append(travel) # warning: return value discarded (intentional)
 	
 	return actions
 
@@ -291,7 +296,8 @@ func _create_patron_actions() -> Array[ActionData]:
 		"social",
 		"patrons"
 	)
-	actions.append(meet)
+
+	actions.append(meet) # warning: return value discarded (intentional)
 	
 	var negotiate = ActionData.new(
 		"Negotiate Contract",
@@ -304,7 +310,8 @@ func _create_patron_actions() -> Array[ActionData]:
 		10,
 		"Requires reputation to negotiate"
 	))
-	actions.append(negotiate)
+
+	actions.append(negotiate) # warning: return value discarded (intentional)
 	
 	return actions
 
@@ -318,7 +325,8 @@ func _create_battle_actions() -> Array[ActionData]:
 		"battle"
 	)
 	combat.add_cost("supplies", 1)
-	actions.append(combat)
+
+	actions.append(combat) # warning: return value discarded (intentional)
 	
 	return actions
 
@@ -331,7 +339,8 @@ func _create_post_battle_actions() -> Array[ActionData]:
 		"salvage",
 		"post_battle"
 	)
-	actions.append(loot)
+
+	actions.append(loot) # warning: return value discarded (intentional)
 	
 	var treat = ActionData.new(
 		"Treat Injuries",
@@ -340,7 +349,8 @@ func _create_post_battle_actions() -> Array[ActionData]:
 		"post_battle"
 	)
 	treat.add_cost("credits", 20)
-	actions.append(treat)
+
+	actions.append(treat) # warning: return value discarded (intentional)
 	
 	return actions
 
@@ -354,7 +364,8 @@ func _create_management_actions() -> Array[ActionData]:
 		"management"
 	)
 	train.add_cost("credits", 50)
-	actions.append(train)
+
+	actions.append(train) # warning: return value discarded (intentional)
 	
 	var upgrade = ActionData.new(
 		"Upgrade Equipment",
@@ -364,14 +375,15 @@ func _create_management_actions() -> Array[ActionData]:
 	)
 	upgrade.add_cost("credits", 100)
 	upgrade.add_cost("salvage", 2)
-	actions.append(upgrade)
+
+	actions.append(upgrade) # warning: return value discarded (intentional)
 	
 	return actions
 
 func _add_action_button(action: ActionData) -> void:
 	var button = action_button_scene.instantiate()
 	action_container.add_child(button)
-	button.setup(action.name, action.description, PHASE_CATEGORIES[action.phase].color)
+	button.setup(action.name, action.description, PHASE_CATEGORIES[action._phase].color)
 	button.pressed.connect(_on_action_button_pressed.bind(action.name))
 	button.disabled = not action.enabled
 
@@ -382,14 +394,14 @@ func _on_action_button_pressed(action_name: String) -> void:
 	description_label.text = action.description
 	_update_cost_display(action.costs)
 	
-	emit_signal("action_selected", action_name)
+	action_selected.emit( action_name)
 
 func _update_cost_display(costs: Dictionary) -> void:
 	for child in cost_container.get_children():
 		child.queue_free()
 	
 	for resource in costs:
-		var cost_label = Label.new()
+		var cost_label := Label.new()
 		cost_label.text = "%s: %d" % [resource.capitalize(), costs[resource]]
 		cost_container.add_child(cost_label)
 
@@ -403,10 +415,10 @@ func execute_action(action_name: String, campaign_state: Dictionary) -> Dictiona
 	
 	# Execute action and return result
 	var result = _execute_action_logic(action, campaign_state)
-	emit_signal("action_executed", action_name, result)
+	action_executed.emit( action_name, result)
 	
-	if result.success and action.phase == current_phase:
-		emit_signal("phase_action_completed", current_phase)
+	if result.success and action._phase == current_phase:
+		phase_action_completed.emit( current_phase)
 	
 	return result
 

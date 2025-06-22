@@ -7,14 +7,14 @@ extends Control
 
 func setup(enemy_data: Dictionary) -> void:
     _clear_lists()
-    
+
     var enemies = enemy_data.get("units", [])
     for enemy in enemies:
         var enemy_item = _create_enemy_item(enemy)
         enemy_list.add_child(enemy_item)
-    
+
     threat_level.text = "Threat Level: " + _get_threat_text(enemy_data.get("threat_level", 1))
-    
+
     var rules = enemy_data.get("special_rules", [])
     for rule in rules:
         var rule_item = _create_rule_item(rule)
@@ -27,26 +27,30 @@ func _clear_lists() -> void:
         child.queue_free()
 
 func _create_enemy_item(enemy: Dictionary) -> Control:
-    var item = HBoxContainer.new()
+    var item := HBoxContainer.new()
     
-    var type_label = Label.new()
+    var type_label := Label.new()
+
     type_label.text = enemy.get("type", "Unknown Enemy")
     item.add_child(type_label)
     
-    var count_label = Label.new()
+    var count_label := Label.new()
+
     count_label.text = "x%d" % enemy.get("count", 1)
     item.add_child(count_label)
     
     return item
 
 func _create_rule_item(rule: Dictionary) -> Control:
-    var item = VBoxContainer.new()
+    var item := VBoxContainer.new()
     
-    var title = Label.new()
+    var title := Label.new()
+
     title.text = rule.get("name", "Unknown Rule")
     item.add_child(title)
     
-    var description = Label.new()
+    var description := Label.new()
+
     description.text = rule.get("description", "")
     item.add_child(description)
     

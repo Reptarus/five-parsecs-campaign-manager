@@ -13,7 +13,6 @@ class SpyState:
 		return instance_delegator.callv(func_name, arguments)
 
 
-@warning_ignore("unused_private_class_variable")
 var __verifier_instance := GdUnitObjectInteractionsVerifier.new()
 var __spying_state := SpyState.new()
 
@@ -39,12 +38,10 @@ func _notification(what: int) -> void:
 
 static func __get_verifier() -> GdUnitObjectInteractionsVerifier:
 	var __instance := __get_instance()
-	@warning_ignore("unsafe_property_access")
 	return null if __instance == null else __instance.__verifier_instance
 
 
 static func __spy_state() -> SpyState:
-	@warning_ignore("unsafe_property_access")
 	return __get_instance().__spying_state
 
 

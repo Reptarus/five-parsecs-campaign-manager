@@ -16,35 +16,14 @@ func get_character_data() -> FiveParsecsCharacter:
 	return _character_data
 
 func _init(data: FiveParsecsCharacter = null) -> void:
+	super (data)
 	if data:
 		_character_data = data
 	else:
 		_character_data = FiveParsecsCharacter.new()
 
-# We need to override these properties from the base class
-# by using different internal implementation
-func _get_character_name() -> String:
-	return _character_data.character_name if _character_data else ""
-
-func _set_character_name(value: String) -> void:
-	if _character_data:
-		_character_data.character_name = value
-
-func _get_health() -> int:
-	return _character_data.health if _character_data else 0
-
-func _set_health(value: int) -> void:
-	if _character_data:
-		_character_data.health = value
-
-func _get_max_health() -> int:
-	return _character_data.max_health if _character_data else 0
-
-func _set_max_health(value: int) -> void:
-	if _character_data:
-		_character_data.max_health = value
-
 # Override the virtual methods with game-specific implementations
+
 func initialize_for_battle() -> void:
 	super.initialize_for_battle()
 	# Use a constant for NONE if GameEnums is not available
@@ -58,6 +37,7 @@ func cleanup_battle() -> void:
 	# Additional game-specific cleanup
 
 # Implement the virtual methods from the base class
+
 func can_perform_action(action_type: int) -> bool:
 	return action_type in available_actions and is_active
 
@@ -67,9 +47,9 @@ func perform_action(action_type: int, target = null) -> void:
 		# Implement game-specific action logic
 
 func take_damage(amount: int) -> void:
-	health = max(0, health - amount)
+	_character_data.health = max(0, _character_data.health - amount)
 	# Additional game-specific damage logic
 
 func heal(amount: int) -> void:
-	health = min(max_health, health + amount)
+	_character_data.health = min(_character_data.max_health, _character_data.health + amount)
 	# Additional game-specific healing logic

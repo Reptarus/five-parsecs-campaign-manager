@@ -1,12 +1,14 @@
+@tool
 extends Resource
+class_name BaseStrangeCharacters
 
 var type: int # Will be defined by game-specific enums
 var special_abilities: Array[String] = []
 var saving_throw: int = 0
 
-var game_state_manager = null
+var _game_state_manager = null
 
-func _init(_type: int = 0):
+func _init(_type: int = 0) -> void:
 	type = _type
 	_set_special_abilities()
 
@@ -21,16 +23,17 @@ func _get_character_property(character, property: String, default_value = null) 
 		return default_value
 	if not property in character:
 		return default_value
+
 	return character.get(property)
 
-func _set_character_property(character, property: String, value: Variant) -> void:
+func _set_character_property(character, property: String, _value: Variant) -> void:
 	if not character:
 		push_error("Trying to set property '%s' on null character" % property)
 		return
 	if not property in character:
 		push_error("Character missing property: %s" % property)
 		return
-	character.set(property, value)
+	character.set(property, _value)
 
 func apply_special_abilities(character) -> void:
 	if not character:

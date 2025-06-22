@@ -15,7 +15,6 @@ const TEMPLATE_RETURN_VARIANT = """
 			__verifier.save_function_interaction(args__)
 
 	if __do_call_real_func("$(func_name)"):
-		@warning_ignore("unsafe_call_argument")
 		return $(await)super($(arguments))
 	return ${default_return_value}
 
@@ -35,7 +34,6 @@ const TEMPLATE_RETURN_VOID = """
 			__verifier.save_function_interaction(args__)
 
 	if __do_call_real_func("$(func_name)"):
-		@warning_ignore("unsafe_call_argument")
 		$(await)super($(arguments))
 
 """

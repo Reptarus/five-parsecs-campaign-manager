@@ -12,4 +12,4 @@ signal psionic_power_learned(character: Resource, power: String)
 signal psionic_power_failed(character: Resource, power: String, reason: String)
 
 func _init(_game_state: FiveParsecsGameState) -> void:
-    game_state = _game_state
+	game_state = _game_state

@@ -1,5 +1,6 @@
 @tool
-extends GdUnitGameTest
+@warning_ignore("return_value_discarded")
+	extends GdUnitGameTest
 
 # Import GameEnums and create mock scripts for testing
 const GameEnums = preload("res://src/core/systems/GlobalEnums.gd")
@@ -20,21 +21,26 @@ func before_test() -> void:
 	# Initialize test game state
 	_test_game_state = Node.new()
 	_test_game_state.name = "TestGameState"
+	@warning_ignore("return_value_discarded")
 	auto_free(_test_game_state) # Use auto_free for proper resource management
 	
 	# Initialize game state manager
 	_test_game_state_manager = Node.new()
 	_test_game_state_manager.name = "TestGameStateManager"
+	@warning_ignore("unsafe_method_access")
 	_test_game_state_manager.set_script(MockGameStateManagerScript)
+	@warning_ignore("return_value_discarded")
 	auto_free(_test_game_state_manager) # Use auto_free for proper resource management
 	
 	# Set up the relationship between game state and manager
 	_test_game_state_manager.initialize(_test_game_state)
 	
+	@warning_ignore("unsafe_method_access")
 	await get_tree().process_frame
 
 func after_test() -> void:
-	# auto_free() handles cleanup automatically - no manual cleanup needed
+	# @warning_ignore("return_value_discarded")
+	auto_free() handles cleanup automatically - no manual cleanup needed
 	_test_game_state_manager = null
 	_test_game_state = null
 	super.after_test()
@@ -60,6 +66,7 @@ func set_campaign_phase(new_phase: int) -> bool:
 		
 	var old_phase = current_phase
 	current_phase = new_phase
+	@warning_ignore("unsafe_method_access")
 	phase_changed.emit(new_phase)
 	return true
 
@@ -72,6 +79,7 @@ func is_initialized() -> bool:
 	MockGameStateManagerScript.reload() # Compile the script
 
 # Test Methods
+@warning_ignore("unsafe_method_access")
 func test_initial_state() -> void:
 	assert_that(_test_game_state_manager).is_not_null()
 	assert_that(_test_game_state_manager.is_initialized()).is_true()
@@ -79,9 +87,11 @@ func test_initial_state() -> void:
 	var phase: int = _test_game_state_manager.get_campaign_phase()
 	assert_that(phase).is_equal(0) # Should be NONE phase initially
 
+@warning_ignore("unsafe_method_access")
 func test_state_transition() -> void:
 	# Skip signal monitoring to prevent Dictionary corruption
-	# monitor_signals(_test_game_state_manager)  # REMOVED - causes Dictionary corruption
+	# @warning_ignore("unsafe_method_access")
+	monitor_signals(_test_game_state_manager)  # REMOVED - causes Dictionary corruption
 	# Test state directly instead of signal emission
 	# Change to setup phase (assuming SETUP = 1)
 	var success: bool = _test_game_state_manager.set_campaign_phase(1) # SETUP phase
@@ -90,11 +100,14 @@ func test_state_transition() -> void:
 	var current_phase: int = _test_game_state_manager.get_campaign_phase()
 	assert_that(current_phase).is_equal(1) # SETUP phase
 
+@warning_ignore("unsafe_method_access")
 func test_invalid_state_transition() -> void:
 	# Skip signal monitoring to prevent Dictionary corruption
-	# monitor_signals(_test_game_state_manager)  # REMOVED - causes Dictionary corruption
+	# @warning_ignore("unsafe_method_access")
+	monitor_signals(_test_game_state_manager)  # REMOVED - causes Dictionary corruption
 	# Test state directly instead of signal emission
 	# Try to transition to the same phase
+
 	var success: bool = _test_game_state_manager.set_campaign_phase(0) # Same as current NONE phase
 	assert_that(success).is_false()
 	
@@ -105,23 +118,28 @@ func test_invalid_state_transition() -> void:
 	var current_phase: int = _test_game_state_manager.get_campaign_phase()
 	assert_that(current_phase).is_equal(0) # Should still be NONE phase
 
+@warning_ignore("unsafe_method_access")
 func test_multiple_transitions() -> void:
 	# Skip signal monitoring to prevent Dictionary corruption
-	# monitor_signals(_test_game_state_manager)  # REMOVED - causes Dictionary corruption
+	# @warning_ignore("unsafe_method_access")
+	monitor_signals(_test_game_state_manager)  # REMOVED - causes Dictionary corruption
 	# Test state directly instead of signal emission
 	# Test sequence of valid transitions
 	var phases_to_test := [1, 2, 3, 0] # SETUP, MISSION_BRIEFING, BATTLE, NONE
 	
-	for phase in phases_to_test:
+	for phase: String in phases_to_test:
 		var success: bool = _test_game_state_manager.set_campaign_phase(phase)
 		assert_that(success).is_true()
 		
 		var current_phase: int = _test_game_state_manager.get_campaign_phase()
 		assert_that(current_phase).is_equal(phase)
 		
-		await get_tree().process_frame
+		@warning_ignore("unsafe_method_access")
+	await get_tree().process_frame
 
+@warning_ignore("unsafe_method_access")
 func test_game_state_relationship() -> void:
+
 	# Test that the game state manager has proper reference to game state
 	assert_that(_test_game_state_manager.game_state).is_not_null()
 	assert_that(_test_game_state_manager.game_state).is_same(_test_game_state)

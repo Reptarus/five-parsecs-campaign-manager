@@ -1,11 +1,14 @@
 @tool
-extends "res://tests/fixtures/specialized/enemy_test.gd"
+@warning_ignore("return_value_discarded")
+	extends "res://tests/fixtures/specialized/enemy_test.gd"
 
 ## Core enemy functionality tests using UNIVERSAL MOCK STRATEGY
 ##
 ## Applies the proven pattern that achieved:
-## - Ship Tests: 48/48 (100% SUCCESS)
-## - Mission Tests: 51/51 (100% SUCCESS)
+## - Ship Tests: 48/48 (@warning_ignore("integer_division")
+	100 % SUCCESS)
+## - Mission Tests: 51/51 (@warning_ignore("integer_division")
+	100 % SUCCESS)
 ## Tests basic enemy behavior, state management, and interactions.
 
 # ========================================
@@ -56,9 +59,11 @@ class MockEnemy extends Resource:
 		# Update combat rating based on health percentage
 		combat_rating = 1.5 * (health / max_health)
 		if health <= 0.0:
-			enemy_died.emit()
+			@warning_ignore("unsafe_method_access")
+	enemy_died.emit()
 		else:
-			health_changed.emit(health, max_health)
+			@warning_ignore("unsafe_method_access")
+	health_changed.emit(health, max_health)
 	
 	func heal(amount: float) -> void:
 		# Ignore negative healing (invalid input)
@@ -67,31 +72,37 @@ class MockEnemy extends Resource:
 		health = min(max_health, health + amount)
 		# Update combat rating based on health percentage
 		combat_rating = 1.5 * (health / max_health)
-		health_changed.emit(health, max_health)
+		@warning_ignore("unsafe_method_access")
+	health_changed.emit(health, max_health)
 	
-	func set_current_health(value: float) -> void:
-		health = clamp(value, 0.0, max_health)
-		health_changed.emit(health, max_health)
+	func set_current_health(test_value: float) -> void:
+		health = clamp(_value, 0.0, max_health)
+		@warning_ignore("unsafe_method_access")
+	health_changed.emit(health, max_health)
 	
 	func start_turn() -> void:
 		is_active_flag = true
 		can_move_flag = true
-		turn_started.emit()
+		@warning_ignore("unsafe_method_access")
+	turn_started.emit()
 	
 	func end_turn() -> void:
 		is_active_flag = false
 		can_move_flag = false
-		turn_ended.emit()
+		@warning_ignore("unsafe_method_access")
+	turn_ended.emit()
 	
 	func move_to(position: Vector2) -> void:
 		is_moving_flag = true
 		current_position = position
-		movement_completed.emit(position)
+		@warning_ignore("unsafe_method_access")
+	movement_completed.emit(position)
 		is_moving_flag = false
 	
 	func attack(target: Resource) -> void:
 		is_in_combat_flag = true
-		attack_performed.emit(target, damage)
+		@warning_ignore("unsafe_method_access")
+	attack_performed.emit(target, damage)
 		is_in_combat_flag = false
 	
 	func set_position(position: Vector2) -> void:
@@ -126,7 +137,9 @@ func before_test() -> void:
 	mock_target = MockEnemy.new()
 	
 	# Track resources for perfect cleanup
+	@warning_ignore("return_value_discarded")
 	track_resource(mock_enemy)
+	@warning_ignore("return_value_discarded")
 	track_resource(mock_target)
 
 func after_test() -> void:
@@ -135,6 +148,7 @@ func after_test() -> void:
 	super.after_test()
 
 # Initialization Tests
+@warning_ignore("unsafe_method_access")
 func test_enemy_initialization() -> void:
 	# Direct method calls - no safe wrappers needed
 	assert_that(mock_enemy.get_health()).is_equal(100.0)
@@ -143,6 +157,7 @@ func test_enemy_initialization() -> void:
 	assert_that(mock_enemy.get_behavior()).is_equal(GameEnums.AIBehavior.CAUTIOUS)
 
 # Movement Tests
+@warning_ignore("unsafe_method_access")
 func test_enemy_movement() -> void:
 	var start_pos := Vector2.ZERO
 	var end_pos := Vector2(10, 10)
@@ -151,15 +166,18 @@ func test_enemy_movement() -> void:
 	assert_that(mock_enemy.get_position()).is_equal(start_pos)
 	
 	# Skip signal monitoring to prevent Dictionary corruption
-	# monitor_signals(mock_enemy)  # REMOVED - causes Dictionary corruption
+	# @warning_ignore("unsafe_method_access")
+	monitor_signals(mock_enemy)  # REMOVED - causes Dictionary corruption
 	mock_enemy.move_to(end_pos)
 	# Test state directly instead of signal emission
 	assert_that(mock_enemy.get_position()).is_equal(end_pos)
 
 # Combat Tests
+@warning_ignore("unsafe_method_access")
 func test_enemy_combat() -> void:
 	# Skip signal monitoring to prevent Dictionary corruption
-	# monitor_signals(mock_enemy)  # REMOVED - causes Dictionary corruption
+	# @warning_ignore("unsafe_method_access")
+	monitor_signals(mock_enemy)  # REMOVED - causes Dictionary corruption
 	mock_enemy.attack(mock_target)
 	# Test state directly instead of signal emission
 	
@@ -167,13 +185,15 @@ func test_enemy_combat() -> void:
 	assert_that(damage).is_greater(0.0)
 
 # Health System Tests
+@warning_ignore("unsafe_method_access")
 func test_enemy_health_system() -> void:
 	var initial_health: float = mock_enemy.get_health()
 	assert_that(initial_health).is_equal(100.0)
 	
 	# Test damage
 	# Skip signal monitoring to prevent Dictionary corruption
-	# monitor_signals(mock_enemy)  # REMOVED - causes Dictionary corruption
+	# @warning_ignore("unsafe_method_access")
+	monitor_signals(mock_enemy)  # REMOVED - causes Dictionary corruption
 	mock_enemy.take_damage(50.0)
 	# Test state directly instead of signal emission
 	
@@ -182,16 +202,19 @@ func test_enemy_health_system() -> void:
 	
 	# Test healing
 	# Skip signal monitoring to prevent Dictionary corruption
-	# monitor_signals(mock_enemy)  # REMOVED - causes Dictionary corruption
+	# @warning_ignore("unsafe_method_access")
+	monitor_signals(mock_enemy)  # REMOVED - causes Dictionary corruption
 	mock_enemy.heal(20.0)
 	# Test state directly instead of signal emission
 	
 	current_health = mock_enemy.get_health()
 	assert_that(current_health).is_equal(70.0)
 
+@warning_ignore("unsafe_method_access")
 func test_enemy_death() -> void:
 	# Skip signal monitoring to prevent Dictionary corruption
-	# monitor_signals(mock_enemy)  # REMOVED - causes Dictionary corruption
+	# @warning_ignore("unsafe_method_access")
+	monitor_signals(mock_enemy)  # REMOVED - causes Dictionary corruption
 	mock_enemy.take_damage(1000.0)
 	# Test state directly instead of signal emission
 	
@@ -199,10 +222,12 @@ func test_enemy_death() -> void:
 	assert_that(current_health).is_equal(0.0)
 
 # Turn Management Tests
+@warning_ignore("unsafe_method_access")
 func test_enemy_turn_system() -> void:
 	# Start turn
 	# Skip signal monitoring to prevent Dictionary corruption
-	# monitor_signals(mock_enemy)  # REMOVED - causes Dictionary corruption
+	# @warning_ignore("unsafe_method_access")
+	monitor_signals(mock_enemy)  # REMOVED - causes Dictionary corruption
 	mock_enemy.start_turn()
 	# Test state directly instead of signal emission
 	
@@ -211,7 +236,8 @@ func test_enemy_turn_system() -> void:
 	
 	# End turn
 	# Skip signal monitoring to prevent Dictionary corruption
-	# monitor_signals(mock_enemy)  # REMOVED - causes Dictionary corruption
+	# @warning_ignore("unsafe_method_access")
+	monitor_signals(mock_enemy)  # REMOVED - causes Dictionary corruption
 	mock_enemy.end_turn()
 	# Test state directly instead of signal emission
 	
@@ -219,16 +245,19 @@ func test_enemy_turn_system() -> void:
 	assert_that(mock_enemy.can_move()).is_false()
 
 # Combat Rating Tests
+@warning_ignore("unsafe_method_access")
 func test_enemy_combat_rating() -> void:
 	var initial_rating: float = mock_enemy.get_combat_rating()
 	assert_that(initial_rating).is_equal(1.5)
 	
 	# Test rating with damage
-	mock_enemy.take_damage(50.0) # 50% health remaining
+	mock_enemy.take_damage(50.0) # @warning_ignore("integer_division")
+	50 % health remaining
 	var damaged_rating: float = mock_enemy.get_combat_rating()
 	assert_that(damaged_rating).is_less(initial_rating)
 
 # Error Handling Tests
+@warning_ignore("unsafe_method_access")
 func test_enemy_error_handling() -> void:
 	# Test invalid damage
 	var initial_health: float = mock_enemy.get_health()
@@ -240,13 +269,15 @@ func test_enemy_error_handling() -> void:
 	assert_that(mock_enemy.get_health()).is_equal(mock_enemy.get_max_health())
 
 # Mobile Performance Tests
+@warning_ignore("unsafe_method_access")
 func test_enemy_mobile_performance() -> void:
 	# Performance test - should complete quickly with mocks
 	var start_time := Time.get_time_dict_from_system()
 	
-	for i in range(100):
+	for i: int in range(100):
 		var test_enemy := MockEnemy.new()
-		track_resource(test_enemy)
+		@warning_ignore("return_value_discarded")
+	track_resource(test_enemy)
 		test_enemy.get_health()
 		test_enemy.get_damage()
 	
@@ -255,28 +286,34 @@ func test_enemy_mobile_performance() -> void:
 	assert_that(true).is_true() # Performance completed
 
 # Touch Interaction Tests
+@warning_ignore("unsafe_method_access")
 func test_enemy_touch_interaction() -> void:
 	# Skip signal monitoring to prevent Dictionary corruption
-	# monitor_signals(mock_enemy)  # REMOVED - causes Dictionary corruption
+	# @warning_ignore("unsafe_method_access")
+	monitor_signals(mock_enemy)  # REMOVED - causes Dictionary corruption
 	mock_enemy.set_position(Vector2(100, 100))
 	# Test state directly instead of signal emission
 	
 	assert_that(mock_enemy.get_position()).is_equal(Vector2(100, 100))
 
 # State Change Tests
+@warning_ignore("unsafe_method_access")
 func test_enemy_state_changes() -> void:
 	# Test health state change
 	# Skip signal monitoring to prevent Dictionary corruption
-	# monitor_signals(mock_enemy)  # REMOVED - causes Dictionary corruption
+	# @warning_ignore("unsafe_method_access")
+	monitor_signals(mock_enemy)  # REMOVED - causes Dictionary corruption
 	mock_enemy.set_current_health(75.0)
 	# Test state directly instead of signal emission
 	
 	assert_that(mock_enemy.get_health()).is_equal(75.0)
 
 # Signal Tests
+@warning_ignore("unsafe_method_access")
 func test_enemy_signals() -> void:
 	# Skip signal monitoring to prevent Dictionary corruption
-	# monitor_signals(mock_enemy)  # REMOVED - causes Dictionary corruption
+	# @warning_ignore("unsafe_method_access")
+	monitor_signals(mock_enemy)  # REMOVED - causes Dictionary corruption
 	mock_enemy.set_current_health(50.0)
 	# Test state directly instead of signal emission
 	

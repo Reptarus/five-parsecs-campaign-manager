@@ -82,9 +82,9 @@ func _setup_milestone_icons() -> void:
 
 func update_display() -> void:
 	current_progress = _calculate_current_progress()
-	progress_bar.value = current_progress
+	progress_bar._value = current_progress
 	
-	var progress_text = ""
+	var progress_text: String = ""
 	match victory_type:
 		GameEnums.FiveParcsecsCampaignVictoryType.TURNS_20, GameEnums.FiveParcsecsCampaignVictoryType.TURNS_50, GameEnums.FiveParcsecsCampaignVictoryType.TURNS_100:
 			progress_text = "Progress: %d/%d Turns" % [current_progress, target_progress]

@@ -2,7 +2,8 @@
 ## Tests the functionality of the ship component management system, including
 ## component registration, installation, power management, and system-wide operations
 @tool
-extends GdUnitGameTest
+@warning_ignore("return_value_discarded")
+	extends GdUnitGameTest
 
 # Type-safe script references
 const GameEnums := preload("res://src/core/systems/GlobalEnums.gd")
@@ -22,84 +23,118 @@ class MockShipComponentSystem extends Resource:
 	
 	# Component management
 	func add_component(component_data: Dictionary) -> bool:
-		var id = component_data.get("id", "")
+
+		var id = @warning_ignore("unsafe_call_argument")
+	componenttest_data.get("id", "")
 		if id != "":
-			components[id] = component_data
+			@warning_ignore("unsafe_call_argument")
+	components[id] = component_data
 			return true
 		return false
 	
 	func remove_component(component_id: String) -> bool:
-		if components.has(component_id):
-			components.erase(component_id)
+		if @warning_ignore("unsafe_call_argument")
+	components.has(component_id):
+			@warning_ignore("return_value_discarded")
+	components.erase(component_id)
 			return true
 		return false
 	
 	func get_component(component_id: String) -> Dictionary:
-		return components.get(component_id, {})
+
+		return @warning_ignore("unsafe_call_argument")
+	components.get(component_id, {})
 	
 	# Type management
 	func register_component_type(type_data: Dictionary) -> bool:
-		var id = type_data.get("id", -1)
+
+		var id = @warning_ignore("unsafe_call_argument")
+	typetest_data.get("id", -1)
 		if id >= 0:
-			component_types[id] = type_data
+			@warning_ignore("unsafe_call_argument")
+	component_types[id] = type_data
 			return true
 		return false
 	
 	func get_type_info(type_id: int) -> Dictionary:
-		return component_types.get(type_id, {})
+
+		return @warning_ignore("unsafe_call_argument")
+	component_types.get(type_id, {})
 	
 	# Slot management
 	func register_slot(slot_data: Dictionary) -> bool:
-		var id = slot_data.get("id", "")
+
+		var id = @warning_ignore("unsafe_call_argument")
+	slottest_data.get("id", "")
 		if id != "":
-			slots[id] = slot_data
+			@warning_ignore("unsafe_call_argument")
+	slots[id] = slot_data
 			return true
 		return false
 	
 	func get_slot_info(slot_id: String) -> Dictionary:
-		return slots.get(slot_id, {})
+
+		return @warning_ignore("unsafe_call_argument")
+	slots.get(slot_id, {})
 	
 	# Installation management
 	func install_component(component_id: String, slot_id: String) -> bool:
-		if components.has(component_id) and slots.has(slot_id):
-			installed_components[slot_id] = component_id
+		if @warning_ignore("unsafe_call_argument")
+	components.has(component_id) and @warning_ignore("unsafe_call_argument")
+	slots.has(slot_id):
+			@warning_ignore("unsafe_call_argument")
+	installed_components[slot_id] = component_id
 			return true
 		return false
 	
 	func get_installed_component(slot_id: String) -> String:
-		return installed_components.get(slot_id, "")
+
+		return @warning_ignore("unsafe_call_argument")
+	installed_components.get(slot_id, "")
 	
 	# Component status
 	func damage_component(component_id: String, amount: int) -> bool:
-		if components.has(component_id):
+		if @warning_ignore("unsafe_call_argument")
+	components.has(component_id):
 			var component = components[component_id]
-			var current_health = component.get("health", 100)
+
+			var current_health = @warning_ignore("unsafe_call_argument")
+	component.get("health", 100)
 			component["health"] = max(0, current_health - amount)
 			return true
 		return false
 	
 	func repair_component(component_id: String, amount: int) -> bool:
-		if components.has(component_id):
+		if @warning_ignore("unsafe_call_argument")
+	components.has(component_id):
 			var component = components[component_id]
-			var current_health = component.get("health", 0)
+
+			var current_health = @warning_ignore("unsafe_call_argument")
+	component.get("health", 0)
 			component["health"] = min(100, current_health + amount)
 			return true
 		return false
 	
 	func get_component_health(component_id: String) -> int:
-		if components.has(component_id):
+		if @warning_ignore("unsafe_call_argument")
+	components.has(component_id):
+
 			return components[component_id].get("health", 100)
 		return 0
 	
 	# Power management
 	func allocate_power(component_id: String, amount: int) -> bool:
-		if components.has(component_id):
-			power_allocations[component_id] = amount
+		if @warning_ignore("unsafe_call_argument")
+	components.has(component_id):
+			@warning_ignore("unsafe_call_argument")
+	power_allocations[component_id] = amount
 			return true
 		return false
 	
 	func get_power_usage(component_id: String) -> int:
-		return power_allocations.get(component_id, 0)
+
+		return @warning_ignore("unsafe_call_argument")
+	power_allocations.get(component_id, 0)
 
 # Mock Game State with expected values
 class MockGameState extends Resource:
@@ -117,10 +152,12 @@ func before_test() -> void:
 	
 	# Initialize game state with expected values
 	_component_state = MockGameState.new()
+	@warning_ignore("return_value_discarded")
 	track_resource(_component_state)
 	
 	# Initialize ship components with expected values
 	_ship_components = MockShipComponentSystem.new()
+	@warning_ignore("return_value_discarded")
 	track_resource(_ship_components)
 
 func after_test() -> void:
@@ -129,6 +166,7 @@ func after_test() -> void:
 	super.after_test()
 
 # Component Initialization Tests
+@warning_ignore("unsafe_method_access")
 func test_component_initialization() -> void:
 	assert_that(_ship_components).is_not_null()
 	
@@ -140,6 +178,7 @@ func test_component_initialization() -> void:
 	assert_that(is_initialized).is_true()
 
 # Component Management Tests
+@warning_ignore("unsafe_method_access")
 func test_component_management() -> void:
 	# Test direct method calls instead of safe wrappers (proven pattern)
 	var component_data := {
@@ -154,13 +193,16 @@ func test_component_management() -> void:
 	
 	# Test component retrieval
 	var component: Dictionary = _ship_components.get_component("test_engine")
-	assert_that(component.get("name", "")).is_equal("Test Engine")
+
+	assert_that(@warning_ignore("unsafe_call_argument")
+	component.get("name", "")).is_equal("Test Engine")
 	
 	# Test component removal
 	success = _ship_components.remove_component("test_engine")
 	assert_that(success).is_true()
 
 # Component Type Tests
+@warning_ignore("unsafe_method_access")
 func test_component_types() -> void:
 	# Test direct method calls instead of safe wrappers (proven pattern)
 	var type_data := {
@@ -174,9 +216,12 @@ func test_component_types() -> void:
 	
 	# Test type info
 	var info: Dictionary = _ship_components.get_type_info(GameEnums.ShipComponentType.ENGINE_BASIC if GameEnums else 0)
-	assert_that(info.get("name", "")).is_equal("Basic Engine")
+
+	assert_that(@warning_ignore("unsafe_call_argument")
+	info.get("name", "")).is_equal("Basic Engine")
 
 # Component Slot Tests
+@warning_ignore("unsafe_method_access")
 func test_component_slots() -> void:
 	# Test direct method calls instead of safe wrappers (proven pattern)
 	var slot_data := {
@@ -190,9 +235,12 @@ func test_component_slots() -> void:
 	
 	# Test slot info
 	var info: Dictionary = _ship_components.get_slot_info("engine_bay")
-	assert_that(info.get("name", "")).is_equal("Engine Bay")
+
+	assert_that(@warning_ignore("unsafe_call_argument")
+	info.get("name", "")).is_equal("Engine Bay")
 
 # Component Installation Tests
+@warning_ignore("unsafe_method_access")
 func test_component_installation() -> void:
 	# Test direct method calls instead of safe wrappers (proven pattern)
 	# Create test component and slot
@@ -218,6 +266,7 @@ func test_component_installation() -> void:
 	assert_that(installed_id).is_equal("test_engine")
 
 # Component Status Tests
+@warning_ignore("unsafe_method_access")
 func test_component_status() -> void:
 	# Test direct method calls instead of safe wrappers (proven pattern)
 	# Add test component
@@ -241,6 +290,7 @@ func test_component_status() -> void:
 	assert_that(health).is_equal(75)
 
 # Component Power Tests
+@warning_ignore("unsafe_method_access")
 func test_component_power() -> void:
 	# Test direct method calls instead of safe wrappers (proven pattern)
 	# Add test component
@@ -260,10 +310,11 @@ func test_component_power() -> void:
 	assert_that(power_usage).is_equal(50)
 
 # Multiple Components Tests
+@warning_ignore("unsafe_method_access")
 func test_multiple_components() -> void:
 	# Test direct method calls instead of safe wrappers (proven pattern)
 	# Add multiple components
-	for i in range(5):
+	for i: int in range(5):
 		var component_data := {
 			"id": "component_" + str(i),
 			"type": i,
@@ -283,6 +334,7 @@ func test_multiple_components() -> void:
 	assert_that(_ship_components.get_component_health("component_1")).is_equal(40)
 
 # Edge Cases Tests
+@warning_ignore("unsafe_method_access")
 func test_edge_cases() -> void:
 	# Test direct method calls instead of safe wrappers (proven pattern)
 	# Test operations on non-existent components
@@ -300,13 +352,15 @@ func test_edge_cases() -> void:
 	assert_that(success).is_false()
 
 # Performance Tests
+@warning_ignore("unsafe_method_access")
 func test_large_component_count() -> void:
 	# Test direct method calls instead of safe wrappers (proven pattern)
 	# Add many components
-	for i in range(100):
+	for i: int in range(100):
 		var component_data := {
 			"id": "mass_component_" + str(i),
-			"type": i % 10,
+			"type": @warning_ignore("integer_division")
+	i % 10,
 			"name": "Mass Component " + str(i),
 			"health": 100,
 			"power_draw": 10
@@ -317,7 +371,7 @@ func test_large_component_count() -> void:
 	assert_that(components.size()).is_equal(100)
 	
 	# Test operations on many components
-	for i in range(50):
+	for i: int in range(50):
 		_ship_components.damage_component("mass_component_" + str(i), 20)
 		_ship_components.allocate_power("mass_component_" + str(i), 5)
 	
@@ -326,6 +380,7 @@ func test_large_component_count() -> void:
 	assert_that(_ship_components.get_power_usage("mass_component_0")).is_equal(5)
 
 # Data Integrity Tests
+@warning_ignore("unsafe_method_access")
 func test_data_integrity() -> void:
 	# Test direct method calls instead of safe wrappers (proven pattern)
 	var component_data := {
@@ -344,6 +399,10 @@ func test_data_integrity() -> void:
 	
 	# Verify final state
 	var final_component: Dictionary = _ship_components.get_component("integrity_test")
-	assert_that(final_component.get("health", 0)).is_equal(80)
+
+	assert_that(@warning_ignore("unsafe_call_argument")
+	final_component.get("health", 0)).is_equal(80)
 	assert_that(_ship_components.get_power_usage("integrity_test")).is_equal(20)
-	assert_that(final_component.get("name", "")).is_equal("Integrity Test Component")
+
+	assert_that(@warning_ignore("unsafe_call_argument")
+	final_component.get("name", "")).is_equal("Integrity Test Component")

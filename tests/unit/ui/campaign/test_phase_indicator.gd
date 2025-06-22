@@ -1,39 +1,45 @@
 ## Phase Indicator Test Suite
 ## Tests the functionality of the campaign phase indicator UI component
 @tool
-extends GdUnitTestSuite
+@warning_ignore("return_value_discarded")
+	extends GdUnitTestSuite
 
 var phase_indicator: Control
 var mock_theme_manager: Node
 
-func before_test():
+func before_test() -> void:
 	# Create enhanced phase indicator with proper structure
 	phase_indicator = Control.new()
 	phase_indicator.name = "PhaseIndicator"
 	
 	# Add child components that tests expect
-	var main_container = HBoxContainer.new()
+	var main_container: HBoxContainer = HBoxContainer.new()
 	main_container.name = "MainContainer"
-	phase_indicator.add_child(main_container)
+	phase_indicator.@warning_ignore("return_value_discarded")
+	add_child(main_container)
 	
-	var phase_label = Label.new()
+	var phase_label: Label = Label.new()
 	phase_label.name = "PhaseLabel"
 	phase_label.text = "Upkeep"
-	main_container.add_child(phase_label)
+	main_container.@warning_ignore("return_value_discarded")
+	add_child(phase_label)
 	
-	var progress_bar = ProgressBar.new()
+	var progress_bar: ProgressBar = ProgressBar.new()
 	progress_bar.name = "ProgressBar"
-	progress_bar.value = 0.5
-	main_container.add_child(progress_bar)
+	progress_bar._value = 0.5
+	main_container.@warning_ignore("return_value_discarded")
+	add_child(progress_bar)
 	
-	var icon_texture = TextureRect.new()
+	var icon_texture: TextureRect = TextureRect.new()
 	icon_texture.name = "IconTexture"
-	main_container.add_child(icon_texture)
+	main_container.@warning_ignore("return_value_discarded")
+	add_child(icon_texture)
 	
-	var description_label = RichTextLabel.new()
+	var description_label: RichTextLabel = RichTextLabel.new()
 	description_label.name = "DescriptionLabel"
 	description_label.text = "Phase description"
-	phase_indicator.add_child(description_label)
+	phase_indicator.@warning_ignore("return_value_discarded")
+	add_child(description_label)
 	
 	# Add all expected signals
 	var required_signals = [
@@ -62,15 +68,20 @@ func before_test():
 	mock_theme_manager.set_meta("current_theme", "default")
 	
 	# Set up scene tree structure
+	@warning_ignore("return_value_discarded")
 	add_child(phase_indicator)
-	phase_indicator.add_child(mock_theme_manager)
+	phase_indicator.@warning_ignore("return_value_discarded")
+	add_child(mock_theme_manager)
 
-func after_test():
+func after_test() -> void:
 	if is_instance_valid(phase_indicator):
-		phase_indicator.queue_free()
+		phase_indicator.@warning_ignore("return_value_discarded")
+	queue_free()
+	@warning_ignore("unsafe_method_access")
 	await get_tree().process_frame
 
-func test_initialization():
+@warning_ignore("unsafe_method_access")
+func test_initialization() -> void:
 	# Test basic structure
 	assert_that(phase_indicator).is_not_null()
 	assert_that(phase_indicator.is_inside_tree()).is_true()
@@ -82,7 +93,8 @@ func test_initialization():
 	var phase_label = main_container.get_node("PhaseLabel")
 	assert_that(phase_label).is_not_null()
 
-func test_phase_display():
+@warning_ignore("unsafe_method_access")
+func test_phase_display() -> void:
 	# Test phase display functionality
 	var phase_label = phase_indicator.get_node("MainContainer/PhaseLabel")
 	var expected_text = phase_indicator.get_meta("phase_name", "Unknown")
@@ -93,10 +105,13 @@ func test_phase_display():
 	
 	# Emit signal if it exists
 	if phase_indicator.has_signal("phase_display_updated"):
-		phase_indicator.emit_signal("phase_display_updated")
-		await get_tree().process_frame
+		@warning_ignore("unsafe_method_access")
+	phase_indicator.emit_signal("phase_display_updated")
+		@warning_ignore("unsafe_method_access")
+	await get_tree().process_frame
 
-func test_phase_icon():
+@warning_ignore("unsafe_method_access")
+func test_phase_icon() -> void:
 	# Test icon functionality
 	var icon_texture = phase_indicator.get_node("MainContainer/IconTexture")
 	assert_that(icon_texture).is_not_null()
@@ -109,10 +124,13 @@ func test_phase_icon():
 	assert_that(has_icon).is_true()
 	
 	if phase_indicator.has_signal("icon_updated"):
-		phase_indicator.emit_signal("icon_updated")
-		await get_tree().process_frame
+		@warning_ignore("unsafe_method_access")
+	phase_indicator.emit_signal("icon_updated")
+		@warning_ignore("unsafe_method_access")
+	await get_tree().process_frame
 
-func test_phase_progress():
+@warning_ignore("unsafe_method_access")
+func test_phase_progress() -> void:
 	# Test progress functionality
 	var progress_bar = phase_indicator.get_node("MainContainer/ProgressBar")
 	assert_that(progress_bar).is_not_null()
@@ -120,16 +138,19 @@ func test_phase_progress():
 	# Test progress setting
 	var expected_progress = 0.75
 	phase_indicator.set_meta("progress", expected_progress)
-	progress_bar.value = expected_progress
+	progress_bar._value = expected_progress
 	
-	var actual_progress = progress_bar.value
+	var actual_progress = progress_bar._value
 	assert_that(actual_progress).is_equal(expected_progress)
 	
 	if phase_indicator.has_signal("progress_updated"):
-		phase_indicator.emit_signal("progress_updated")
-		await get_tree().process_frame
+		@warning_ignore("unsafe_method_access")
+	phase_indicator.emit_signal("progress_updated")
+		@warning_ignore("unsafe_method_access")
+	await get_tree().process_frame
 
-func test_phase_state():
+@warning_ignore("unsafe_method_access")
+func test_phase_state() -> void:
 	# Test state management
 	phase_indicator.set_meta("is_active", true)
 	var is_active = phase_indicator.get_meta("is_active", false)
@@ -137,16 +158,21 @@ func test_phase_state():
 	
 	# Test state change signals
 	if phase_indicator.has_signal("state_changed"):
-		phase_indicator.emit_signal("state_changed")
-		await get_tree().process_frame
+		@warning_ignore("unsafe_method_access")
+	phase_indicator.emit_signal("state_changed")
+		@warning_ignore("unsafe_method_access")
+	await get_tree().process_frame
 	
 	# Test state toggle
 	phase_indicator.set_meta("is_active", false)
 	if phase_indicator.has_signal("state_changed"):
-		phase_indicator.emit_signal("state_changed")
-		await get_tree().process_frame
+		@warning_ignore("unsafe_method_access")
+	phase_indicator.emit_signal("state_changed")
+		@warning_ignore("unsafe_method_access")
+	await get_tree().process_frame
 
-func test_phase_description():
+@warning_ignore("unsafe_method_access")
+func test_phase_description() -> void:
 	# Test description functionality
 	var description_label = phase_indicator.get_node("DescriptionLabel")
 	assert_that(description_label).is_not_null()
@@ -158,10 +184,13 @@ func test_phase_description():
 	assert_that(description_label.text).is_equal(expected_description)
 	
 	if phase_indicator.has_signal("description_updated"):
-		phase_indicator.emit_signal("description_updated")
-		await get_tree().process_frame
+		@warning_ignore("unsafe_method_access")
+	phase_indicator.emit_signal("description_updated")
+		@warning_ignore("unsafe_method_access")
+	await get_tree().process_frame
 
-func test_phase_transition():
+@warning_ignore("unsafe_method_access")
+func test_phase_transition() -> void:
 	# Test phase transition
 	var initial_phase = phase_indicator.get_meta("current_phase", 0)
 	var new_phase = 1 # Story phase
@@ -177,23 +206,31 @@ func test_phase_transition():
 	assert_that(phase_label.text).is_equal("Story")
 	
 	if phase_indicator.has_signal("transition_completed"):
-		phase_indicator.emit_signal("transition_completed")
-		await get_tree().process_frame
+		@warning_ignore("unsafe_method_access")
+	phase_indicator.emit_signal("transition_completed")
+		@warning_ignore("unsafe_method_access")
+	await get_tree().process_frame
 
-func test_phase_validation():
+@warning_ignore("unsafe_method_access")
+func test_phase_validation() -> void:
 	# Test validation with invalid phase
 	phase_indicator.set_meta("current_phase", -1)
 	
 	# Emit signal and wait briefly
 	if phase_indicator.has_signal("phase_display_updated"):
-		phase_indicator.emit_signal("phase_display_updated")
-		await get_tree().process_frame
+		@warning_ignore("unsafe_method_access")
+	phase_indicator.emit_signal("phase_display_updated")
+		@warning_ignore("unsafe_method_access")
+	await get_tree().process_frame
 	
 	if phase_indicator.has_signal("progress_updated"):
-		phase_indicator.emit_signal("progress_updated")
-		await get_tree().process_frame
+		@warning_ignore("unsafe_method_access")
+	phase_indicator.emit_signal("progress_updated")
+		@warning_ignore("unsafe_method_access")
+	await get_tree().process_frame
 
-func test_ui_state():
+@warning_ignore("unsafe_method_access")
+func test_ui_state() -> void:
 	# Test UI state management with shorter timeouts
 	phase_indicator.set_meta("ui_visible", false)
 	
@@ -202,19 +239,26 @@ func test_ui_state():
 	
 	# Test state change signal
 	if phase_indicator.has_signal("ui_state_changed"):
-		phase_indicator.emit_signal("ui_state_changed")
-		await get_tree().process_frame
+		@warning_ignore("unsafe_method_access")
+	phase_indicator.emit_signal("ui_state_changed")
+		@warning_ignore("unsafe_method_access")
+	await get_tree().process_frame
 	
 	# Quick test of other signals
 	if phase_indicator.has_signal("event_added"):
-		phase_indicator.emit_signal("event_added")
-		await get_tree().process_frame
+		@warning_ignore("unsafe_method_access")
+	phase_indicator.emit_signal("event_added")
+		@warning_ignore("unsafe_method_access")
+	await get_tree().process_frame
 	
 	if phase_indicator.has_signal("visibility_changed"):
-		phase_indicator.emit_signal("visibility_changed")
-		await get_tree().process_frame
+		@warning_ignore("unsafe_method_access")
+	phase_indicator.emit_signal("visibility_changed")
+		@warning_ignore("unsafe_method_access")
+	await get_tree().process_frame
 
-func test_theme():
+@warning_ignore("unsafe_method_access")
+func test_theme() -> void:
 	# Test theme management
 	var initial_theme = phase_indicator.get_meta("theme_name", "default")
 	assert_that(initial_theme).is_equal("default")
@@ -228,5 +272,7 @@ func test_theme():
 	
 	# Test theme change signal
 	if phase_indicator.has_signal("theme_changed"):
-		phase_indicator.emit_signal("theme_changed")
-		await get_tree().process_frame
+		@warning_ignore("unsafe_method_access")
+	phase_indicator.emit_signal("theme_changed")
+		@warning_ignore("unsafe_method_access")
+	await get_tree().process_frame

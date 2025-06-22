@@ -26,6 +26,10 @@ PlanetCache="*res://src/core/world/PlanetCache.gd"
 WorldEconomyManager="*res://src/core/world/WorldEconomyManager.gd"
 ResourceSystem="*res://src/core/systems/ResourceSystem.gd"
 BattleStateMachine="*res://src/core/battle/state/BattleStateMachine.gd"
+AlphaGameManager="*res://src/core/managers/AlphaGameManager.gd"
+CampaignManager="*res://src/core/managers/CampaignManager.gd"
+DiceManager="*res://src/core/managers/DiceManager.gd"
+SceneRouter="*res://src/ui/screens/SceneRouter.gd"
 
 [debug]
 
@@ -47,6 +51,8 @@ gdscript/completion/autocomplete_setters_and_getters=true
 window/size/viewport_width=1920
 window/size/viewport_height=1080
 window/size/initial_position_type=3
+window/stretch/mode="canvas_items"
+window/stretch/aspect="expand"
 
 [dotnet]
 
@@ -61,6 +67,20 @@ enabled=PackedStringArray("res://addons/gdUnit4/plugin.cfg")
 settings/test/test_lookup_folder="tests"
 ui/toolbar/run_overall=true
 
+[input_devices]
+
+pointing/emulate_touch_from_mouse=true
+
+[layer_names]
+
+2d_render/layer_1="UI"
+2d_render/layer_2="Game"
+2d_render/layer_3="Effects"
+
 [rendering]
 
 textures/vram_compression/import_etc2_astc=true
+anti_aliasing/quality/msaa_2d=1
+anti_aliasing/quality/msaa_3d=1
+textures/decals/filter=false
+textures/light_projectors/filter=false

@@ -1,15 +1,21 @@
 @tool
-extends GdUnitGameTest
+@warning_ignore("return_value_discarded")
+	extends GdUnitGameTest
 
 # ========================================
 # UNIVERSAL UI MOCK STRATEGY - PROVEN PATTERN
 # ========================================
 # Applying the same pattern that achieved:
-# - Action Button: 11/11 (100% SUCCESS) ✅
-# - Grid Overlay: 11/11 (100% SUCCESS) ✅  
-# - Responsive Container: 23/23 (100% SUCCESS) ✅
-# - Gesture Manager: 14/14 (100% SUCCESS) ✅
-# - Logbook: 13/13 (100% SUCCESS) ✅
+# - Action Button: 11/11 (@warning_ignore("integer_division")
+	100 % SUCCESS) ✅
+# - Grid Overlay: 11/11 (@warning_ignore("integer_division")
+	100 % SUCCESS) ✅  
+# - Responsive Container: 23/23 (@warning_ignore("integer_division")
+	100 % SUCCESS) ✅
+# - Gesture Manager: 14/14 (@warning_ignore("integer_division")
+	100 % SUCCESS) ✅
+# - Logbook: 13/13 (@warning_ignore("integer_division")
+	100 % SUCCESS) ✅
 
 class MockUIManager extends Resource:
 	# Properties with realistic expected values
@@ -19,14 +25,17 @@ class MockUIManager extends Resource:
 	var ui_state: String = "normal"
 	var is_transitioning: bool = false
 	var transition_duration: float = 0.3
-	var screen_stack: Array[String] = []
+	var screen_stack: @warning_ignore("unsafe_call_argument")
+	Array[String] = []
 	
 	# Screen management
-	var available_screens: Array[String] = [
+	var available_screens: @warning_ignore("unsafe_call_argument")
+	Array[String] = [
 		"main_menu", "campaign", "combat", "settings", "save_load",
 		"character_sheet", "inventory", "trading", "mission_select"
 	]
-	var screen_history: Array[String] = []
+	var screen_history: @warning_ignore("unsafe_call_argument")
+	Array[String] = []
 	var max_history_size: int = 10
 	
 	# UI state properties
@@ -73,27 +82,33 @@ class MockUIManager extends Resource:
 		
 		var old_screen = current_screen
 		is_transitioning = true
-		transition_started.emit(old_screen, screen_name)
+		@warning_ignore("unsafe_method_access")
+	transition_started.emit(old_screen, screen_name)
 		
 		# Add to history
 		if not current_screen.is_empty():
 			previous_screen = current_screen
-			screen_history.append(current_screen)
+
+			@warning_ignore("return_value_discarded")
+	screen_history.append(current_screen)
 			if screen_history.size() > max_history_size:
 				screen_history.pop_front()
 		
 		current_screen = screen_name
 		is_transitioning = false
 		
-		screen_changed.emit(screen_name, old_screen)
-		transition_completed.emit(screen_name)
+		@warning_ignore("unsafe_method_access")
+	screen_changed.emit(screen_name, old_screen)
+		@warning_ignore("unsafe_method_access")
+	transition_completed.emit(screen_name)
 		return true
 	
 	func push_screen(screen_name: String) -> bool:
 		if not screen_name in available_screens:
 			return false
-		
-		screen_stack.append(current_screen)
+
+		@warning_ignore("return_value_discarded")
+	screen_stack.append(current_screen)
 		return change_screen(screen_name)
 	
 	func pop_screen() -> bool:
@@ -114,31 +129,37 @@ class MockUIManager extends Resource:
 	func open_modal(modal_name: String) -> void:
 		modal_count += 1
 		overlay_active = true
-		modal_opened.emit(modal_name)
+		@warning_ignore("unsafe_method_access")
+	modal_opened.emit(modal_name)
 	
 	func close_modal(modal_name: String) -> void:
 		modal_count = max(0, modal_count - 1)
 		if modal_count == 0:
 			overlay_active = false
-		modal_closed.emit(modal_name)
+		@warning_ignore("unsafe_method_access")
+	modal_closed.emit(modal_name)
 	
 	func set_ui_state(state: String) -> void:
 		ui_state = state
-		ui_state_changed.emit(state)
+		@warning_ignore("unsafe_method_access")
+	ui_state_changed.emit(state)
 	
 	func set_orientation(portrait: bool) -> void:
 		if is_portrait_mode != portrait:
 			is_portrait_mode = portrait
-			orientation_changed.emit(portrait)
+			@warning_ignore("unsafe_method_access")
+	orientation_changed.emit(portrait)
 	
 	func set_theme(theme: String) -> void:
 		theme_name = theme
-		theme_changed.emit(theme)
+		@warning_ignore("unsafe_method_access")
+	theme_changed.emit(theme)
 	
 	func set_screen_size(size: Vector2) -> void:
 		screen_size = size
 		is_portrait_mode = size.y > size.x
-		orientation_changed.emit(is_portrait_mode)
+		@warning_ignore("unsafe_method_access")
+	orientation_changed.emit(is_portrait_mode)
 	
 	func set_ui_scale(scale: float) -> void:
 		ui_scale = clamp(scale, 0.5, 2.0)
@@ -186,9 +207,11 @@ var mock_ui_manager: MockUIManager = null
 func before_test() -> void:
 	super.before_test()
 	mock_ui_manager = MockUIManager.new()
+	@warning_ignore("return_value_discarded")
 	track_resource(mock_ui_manager) # Perfect cleanup
 
 # Test Methods using proven patterns
+@warning_ignore("unsafe_method_access")
 func test_initialization() -> void:
 	assert_that(mock_ui_manager).is_not_null()
 	assert_that(mock_ui_manager.is_initialized).is_false()
@@ -198,6 +221,7 @@ func test_initialization() -> void:
 	assert_that(mock_ui_manager.is_initialized).is_true()
 	assert_that(mock_ui_manager.current_screen).is_equal("main_menu")
 
+@warning_ignore("unsafe_method_access")
 func test_screen_change() -> void:
 	mock_ui_manager.initialize()
 	
@@ -205,12 +229,14 @@ func test_screen_change() -> void:
 	assert_that(result).is_true()
 	assert_that(mock_ui_manager.current_screen).is_equal("combat")
 
+@warning_ignore("unsafe_method_access")
 func test_invalid_screen_change() -> void:
 	mock_ui_manager.initialize()
 	var result = mock_ui_manager.change_screen("invalid_screen")
 	assert_that(result).is_false()
 	assert_that(mock_ui_manager.current_screen).is_equal("main_menu")
 
+@warning_ignore("unsafe_method_access")
 func test_screen_stack() -> void:
 	mock_ui_manager.initialize()
 	
@@ -224,6 +250,7 @@ func test_screen_stack() -> void:
 	assert_that(mock_ui_manager.current_screen).is_equal("settings")
 	assert_that(mock_ui_manager.get_screen_stack_size()).is_equal(1)
 
+@warning_ignore("unsafe_method_access")
 func test_go_back_functionality() -> void:
 	mock_ui_manager.initialize()
 	
@@ -235,29 +262,35 @@ func test_go_back_functionality() -> void:
 	assert_that(result).is_true()
 	assert_that(mock_ui_manager.current_screen).is_equal("campaign")
 
+@warning_ignore("unsafe_method_access")
 func test_modal_management() -> void:
 	mock_ui_manager.open_modal("inventory")
 	assert_that(mock_ui_manager.is_modal_open()).is_true()
 	assert_that(mock_ui_manager.modal_count).is_equal(1)
 
+@warning_ignore("unsafe_method_access")
 func test_ui_state_management() -> void:
 	mock_ui_manager.set_ui_state("loading")
 	assert_that(mock_ui_manager.ui_state).is_equal("loading")
 
+@warning_ignore("unsafe_method_access")
 func test_orientation_change() -> void:
 	mock_ui_manager.set_orientation(true)
 	assert_that(mock_ui_manager.is_portrait_mode).is_true()
 
+@warning_ignore("unsafe_method_access")
 func test_theme_change() -> void:
 	mock_ui_manager.set_theme("dark")
 	assert_that(mock_ui_manager.theme_name).is_equal("dark")
 
+@warning_ignore("unsafe_method_access")
 func test_screen_size_change() -> void:
 	# Test portrait size
 	mock_ui_manager.set_screen_size(Vector2(600, 800))
 	assert_that(mock_ui_manager.screen_size).is_equal(Vector2(600, 800))
 	assert_that(mock_ui_manager.is_portrait_mode).is_true()
 
+@warning_ignore("unsafe_method_access")
 func test_ui_scale() -> void:
 	mock_ui_manager.set_ui_scale(1.5)
 	assert_that(mock_ui_manager.ui_scale).is_equal(1.5)
@@ -269,6 +302,7 @@ func test_ui_scale() -> void:
 	mock_ui_manager.set_ui_scale(0.1)
 	assert_that(mock_ui_manager.ui_scale).is_equal(0.5)
 
+@warning_ignore("unsafe_method_access")
 func test_input_management() -> void:
 	mock_ui_manager.enable_input(false)
 	assert_that(mock_ui_manager.input_enabled).is_false()
@@ -276,6 +310,7 @@ func test_input_management() -> void:
 	mock_ui_manager.enable_input(true)
 	assert_that(mock_ui_manager.input_enabled).is_true()
 
+@warning_ignore("unsafe_method_access")
 func test_input_method_detection() -> void:
 	mock_ui_manager.set_input_method("touch")
 	assert_that(mock_ui_manager.touch_enabled).is_true()
@@ -285,6 +320,7 @@ func test_input_method_detection() -> void:
 	assert_that(mock_ui_manager.keyboard_navigation).is_true()
 	assert_that(mock_ui_manager.touch_enabled).is_false()
 
+@warning_ignore("unsafe_method_access")
 func test_screen_history() -> void:
 	mock_ui_manager.initialize()
 	
@@ -297,6 +333,7 @@ func test_screen_history() -> void:
 	assert_that(mock_ui_manager.screen_history).contains("main_menu")
 	assert_that(mock_ui_manager.screen_history).contains("campaign")
 
+@warning_ignore("unsafe_method_access")
 func test_clear_history() -> void:
 	mock_ui_manager.initialize()
 	mock_ui_manager.change_screen("campaign")
@@ -306,6 +343,7 @@ func test_clear_history() -> void:
 	assert_that(mock_ui_manager.screen_history.size()).is_equal(0)
 	assert_that(mock_ui_manager.previous_screen).is_equal("")
 
+@warning_ignore("unsafe_method_access")
 func test_multiple_modals() -> void:
 	mock_ui_manager.open_modal("inventory")
 	mock_ui_manager.open_modal("settings")
@@ -318,6 +356,7 @@ func test_multiple_modals() -> void:
 	assert_that(mock_ui_manager.modal_count).is_equal(2)
 	assert_that(mock_ui_manager.is_modal_open()).is_true()
 
+@warning_ignore("unsafe_method_access")
 func test_transition_state() -> void:
 	mock_ui_manager.initialize()
 	
@@ -326,6 +365,7 @@ func test_transition_state() -> void:
 	var result = mock_ui_manager.change_screen("combat")
 	assert_that(result).is_false()
 
+@warning_ignore("unsafe_method_access")
 func test_ui_info() -> void:
 	mock_ui_manager.initialize()
 	mock_ui_manager.set_theme("dark")
@@ -333,60 +373,81 @@ func test_ui_info() -> void:
 	mock_ui_manager.open_modal("test")
 	
 	var info = mock_ui_manager.get_ui_info()
-	assert_that(info.get("current_screen")).is_equal("main_menu")
-	assert_that(info.get("theme")).is_equal("dark")
-	assert_that(info.get("ui_scale")).is_equal(1.2)
-	assert_that(info.get("modal_count")).is_equal(1)
 
+	assert_that(@warning_ignore("unsafe_call_argument")
+	info.get("current_screen")).is_equal("main_menu")
+
+	assert_that(@warning_ignore("unsafe_call_argument")
+	info.get("theme")).is_equal("dark")
+
+	assert_that(@warning_ignore("unsafe_call_argument")
+	info.get("ui_scale")).is_equal(1.2)
+
+	assert_that(@warning_ignore("unsafe_call_argument")
+	info.get("modal_count")).is_equal(1)
+
+@warning_ignore("unsafe_method_access")
 func test_available_screens() -> void:
 	assert_that(mock_ui_manager.available_screens.size()).is_greater(0)
 	assert_that(mock_ui_manager.available_screens).contains("main_menu")
 	assert_that(mock_ui_manager.available_screens).contains("combat")
 	assert_that(mock_ui_manager.available_screens).contains("settings")
 
+@warning_ignore("unsafe_method_access")
 func test_screen_transition() -> void:
 	# Skip signal monitoring to prevent Dictionary corruption
-	# monitor_signals(mock_ui_manager)  # REMOVED - causes Dictionary corruption
+	# @warning_ignore("unsafe_method_access")
+	monitor_signals(mock_ui_manager)  # REMOVED - causes Dictionary corruption
 	# Test screen transition directly
 	mock_ui_manager.change_screen("main_menu")
 	var screen_changed = mock_ui_manager.get_current_screen() == "main_menu"
 	assert_that(screen_changed).is_true()
 
+@warning_ignore("unsafe_method_access")
 func test_overlay_management() -> void:
 	# Skip signal monitoring to prevent Dictionary corruption
-	# monitor_signals(mock_ui_manager)  # REMOVED - causes Dictionary corruption
+	# @warning_ignore("unsafe_method_access")
+	monitor_signals(mock_ui_manager)  # REMOVED - causes Dictionary corruption
 	# Test overlay management directly
 	mock_ui_manager.show_overlay("settings")
 	var overlay_shown = mock_ui_manager.is_overlay_visible("settings")
 	assert_that(overlay_shown).is_true()
 
+@warning_ignore("unsafe_method_access")
 func test_dialog_handling() -> void:
 	# Skip signal monitoring to prevent Dictionary corruption
-	# monitor_signals(mock_ui_manager)  # REMOVED - causes Dictionary corruption
+	# @warning_ignore("unsafe_method_access")
+	monitor_signals(mock_ui_manager)  # REMOVED - causes Dictionary corruption
 	# Test dialog handling directly
 	mock_ui_manager.show_dialog("confirmation")
 	var dialog_active = mock_ui_manager.has_active_dialog()
 	assert_that(dialog_active).is_true()
 
+@warning_ignore("unsafe_method_access")
 func test_input_blocking() -> void:
 	# Skip signal monitoring to prevent Dictionary corruption
-	# monitor_signals(mock_ui_manager)  # REMOVED - causes Dictionary corruption
+	# @warning_ignore("unsafe_method_access")
+	monitor_signals(mock_ui_manager)  # REMOVED - causes Dictionary corruption
 	# Test input blocking directly
 	mock_ui_manager.set_input_blocked(true)
 	var input_blocked = mock_ui_manager.is_input_blocked()
 	assert_that(input_blocked).is_true()
 
+@warning_ignore("unsafe_method_access")
 func test_navigation_stack() -> void:
 	# Skip signal monitoring to prevent Dictionary corruption
-	# monitor_signals(mock_ui_manager)  # REMOVED - causes Dictionary corruption
+	# @warning_ignore("unsafe_method_access")
+	monitor_signals(mock_ui_manager)  # REMOVED - causes Dictionary corruption
 	# Test navigation stack directly
 	mock_ui_manager.push_screen("inventory")
 	var stack_size = mock_ui_manager.get_navigation_stack_size()
 	assert_that(stack_size).is_greater(0)
 
+@warning_ignore("unsafe_method_access")
 func test_ui_state_persistence() -> void:
 	# Skip signal monitoring to prevent Dictionary corruption
-	# monitor_signals(mock_ui_manager)  # REMOVED - causes Dictionary corruption
+	# @warning_ignore("unsafe_method_access")
+	monitor_signals(mock_ui_manager)  # REMOVED - causes Dictionary corruption
 	# Test UI state management directly
 	mock_ui_manager.save_ui_state()
 	var state_saved = mock_ui_manager.has_saved_state()

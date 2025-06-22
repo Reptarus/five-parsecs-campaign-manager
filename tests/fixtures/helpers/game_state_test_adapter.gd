@@ -1,5 +1,6 @@
 @tool
-extends RefCounted
+@warning_ignore("return_value_discarded")
+	extends RefCounted
 class_name GameStateTestAdapter
 
 # This adapter allows us to use GameState in tests without extensive modifications
@@ -10,6 +11,7 @@ const GameEnumsScript: GDScript = preload("res://src/core/systems/GlobalEnums.gd
 
 # Create a new GameState instance for testing
 static func create_test_instance() -> GameState:
+
 	return GameStateScript.new() as GameState
 
 # Helper to create a GameState with default test values

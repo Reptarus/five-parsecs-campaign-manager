@@ -28,6 +28,7 @@ func _ready() -> void:
 		_update_button_states()
 
 ## Sets up internal signals
+	
 func _setup_signals() -> void:
 	type_option.item_selected.connect(_on_type_selected)
 	name_edit.text_changed.connect(_on_name_changed)
@@ -36,6 +37,7 @@ func _setup_signals() -> void:
 	preview_button.pressed.connect(_on_preview_pressed)
 
 ## Sets up rule type options
+	
 func _setup_type_options() -> void:
 	type_option.clear()
 	
@@ -44,7 +46,7 @@ func _setup_type_options() -> void:
 	type_option.set_item_metadata(0, "")
 	
 	# Add rule types
-	var index = 1
+	var index: int = 1
 	for type in get_parent().rule_templates:
 		var template = get_parent().rule_templates[type]
 		type_option.add_item(template.name, index)
@@ -52,13 +54,13 @@ func _setup_type_options() -> void:
 		index += 1
 
 ## Loads a rule for editing
+	
 func load_rule(rule_id: String, rule_data: Dictionary) -> void:
 	current_rule_id = rule_id
 	
 	# Set basic fields
 	name_edit.text = rule_data.get("name", "")
 	description_edit.text = rule_data.get("description", "")
-	
 	# Set rule type
 	var type = rule_data.get("type", "")
 	for i in range(type_option.item_count):
@@ -71,11 +73,12 @@ func load_rule(rule_id: String, rule_data: Dictionary) -> void:
 	if rule_data.has("fields"):
 		for field in rule_data.fields:
 			if field_controls.has(field.name):
-				field_controls[field.name].value = field.value
+				field_controls[field.name]._value = field._value
 	
 	_update_button_states()
 
 ## Creates field controls for rule type
+	
 func _create_field_controls(type: String) -> void:
 	# Clear existing fields
 	for child in fields_container.get_children():
@@ -90,10 +93,10 @@ func _create_field_controls(type: String) -> void:
 		return
 	
 	for field_name in template.fields:
-		var field_container = HBoxContainer.new()
+		var field_container := HBoxContainer.new()
 		fields_container.add_child(field_container)
 		
-		var label = Label.new()
+		var label := Label.new()
 		label.text = field_name.capitalize()
 		field_container.add_child(label)
 		
@@ -104,30 +107,30 @@ func _create_field_controls(type: String) -> void:
 ## Creates appropriate control for field type
 func _create_field_control(field_name: String) -> Control:
 	match field_name:
-		"value":
-			var spinbox = SpinBox.new()
+		"_value":
+			var spinbox := SpinBox.new()
 			spinbox.min_value = -10
 			spinbox.max_value = 10
 			spinbox.step = 1
 			return spinbox
 		"condition", "target", "resource_type":
-			var option = OptionButton.new()
+			var option := OptionButton.new()
 			_populate_field_options(option, field_name)
 			return option
 		"state_key":
-			var edit = LineEdit.new()
+			var edit := LineEdit.new()
 			edit.placeholder_text = "Enter state key"
 			return edit
 		"operator":
-			var option = OptionButton.new()
+			var option := OptionButton.new()
 			option.add_item("Equals", 0)
 			option.add_item("Not Equals", 1)
 			option.add_item("Greater Than", 2)
 			option.add_item("Less Than", 3)
 			return option
 		_:
-			var edit = LineEdit.new()
-			edit.placeholder_text = "Enter value"
+			var edit := LineEdit.new()
+			edit.placeholder_text = "Enter _value"
 			return edit
 
 ## Populates options for field type
@@ -151,6 +154,7 @@ func _populate_field_options(option: OptionButton, field_name: String) -> void:
 			option.add_item("Fuel", 3)
 
 ## Gets current rule data
+	
 func get_rule_data() -> Dictionary:
 	var data = {
 		"name": name_edit.text,
@@ -161,23 +165,24 @@ func get_rule_data() -> Dictionary:
 	
 	for field_name in field_controls:
 		var control = field_controls[field_name]
-		var value = _get_control_value(control)
+		var _value = _get_control_value(control)
 		data.fields.append({
 			"name": field_name,
-			"value": value
+			"_value": _value
 		})
 	
 	return data
 
-## Gets value from control
+## Gets _value from control
 func _get_control_value(control: Control) -> Variant:
 	if control is SpinBox:
-		return control.value
+		return control._value
 	elif control is OptionButton:
 		return control.get_selected_metadata() if control.get_selected_metadata() != null else control.get_selected_id()
 	elif control is LineEdit:
 		return control.text
-	return null
+	else:
+		return null # Default return for unsupported control types
 
 ## Updates button states
 func _update_button_states() -> void:
@@ -189,6 +194,7 @@ func _update_button_states() -> void:
 	preview_button.disabled = not (has_type and has_name)
 
 ## Signal Handlers
+	
 func _on_type_selected(index: int) -> void:
 	current_type = type_option.get_item_metadata(index)
 	_create_field_controls(current_type)
@@ -198,12 +204,12 @@ func _on_name_changed(_new_text: String) -> void:
 	_update_button_states()
 
 func _on_save_pressed() -> void:
-	rule_saved.emit(current_rule_id, get_rule_data())
+	rule_saved.emit(current_rule_id, get_rule_data()) # warning: return value discarded (intentional)
 
 func _on_delete_pressed() -> void:
-	rule_deleted.emit(current_rule_id)
+	rule_deleted.emit(current_rule_id) # warning: return value discarded (intentional)
 	current_rule_id = ""
 	_update_button_states()
 
 func _on_preview_pressed() -> void:
-	preview_requested.emit(get_rule_data())
+	preview_requested.emit(get_rule_data()) # warning: return value discarded (intentional)

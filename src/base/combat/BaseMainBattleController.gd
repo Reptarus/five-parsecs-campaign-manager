@@ -36,17 +36,15 @@ var completed_objectives: Dictionary = {}
 var battlefield_manager: BaseBattlefieldManager = null
 var battlefield_generator: BaseBattlefieldGenerator = null
 var combat_manager: BaseCombatManager = null
-var battle_rules: BaseBattleRules = null
+var _battle_rules: BaseBattleRules = null
 
 # Virtual methods to be implemented by derived classes
 func _ready() -> void:
 	_initialize_systems()
 	_connect_signals()
-
 func _initialize_systems() -> void:
 	# Override in derived classes to initialize game-specific systems
 	pass
-
 func _connect_signals() -> void:
 	# Connect signals from battlefield manager
 	if battlefield_manager:
@@ -82,20 +80,22 @@ func initialize_battle(battle_config: Dictionary = {}) -> void:
 		_load_battlefield(battle_config.battlefield)
 	
 	# Initialize units
+
 	_initialize_units(battle_config.get("units", {}))
 	
 	# Initialize objectives
+
 	_initialize_objectives(battle_config.get("objectives", []))
 	
 	# Compile battle data
 	battle_data = {
-		"config": battle_config,
+		"_config": battle_config,
 		"battlefield": battlefield_manager.validate_battlefield(),
 		"units": _get_units_data(),
 		"objectives": objectives
 	}
 	
-	battle_initialized.emit(battle_data)
+	battle_initialized.emit(battle_data) # warning: return value discarded (intentional)
 
 func start_battle() -> void:
 	if not battle_active:
@@ -106,41 +106,40 @@ func start_battle() -> void:
 		# Determine starting faction
 		active_faction = _determine_starting_faction()
 		
-		battle_started.emit()
+		battle_started.emit() # warning: return value discarded (intentional)
 		_start_turn()
 
 func end_battle(result: Dictionary = {}) -> void:
 	if battle_active:
 		battle_active = false
 		battle_result = result
-		battle_ended.emit(result)
+		battle_ended.emit(result) # warning: return value discarded (intentional)
 
 func next_turn() -> void:
 	if battle_active:
 		current_turn += 1
 		_start_turn()
-
 func next_phase() -> void:
 	if battle_active:
 		current_phase += 1
-		phase_changed.emit(current_phase)
+		phase_changed.emit(current_phase) # warning: return value discarded (intentional)
 		_process_phase()
 
 func activate_unit(unit: Node) -> void:
 	if battle_active and unit:
 		active_unit = unit
-		unit_activated.emit(unit)
+		unit_activated.emit(unit) # warning: return value discarded (intentional)
 
 func deactivate_unit() -> void:
 	if battle_active and active_unit:
 		var unit = active_unit
 		active_unit = null
-		unit_deactivated.emit(unit)
+		unit_deactivated.emit(unit) # warning: return value discarded (intentional)
 
 func perform_action(unit: Node, action: Dictionary) -> void:
 	if battle_active and unit:
 		_process_action(unit, action)
-		action_performed.emit(unit, action)
+		action_performed.emit(unit, action) # warning: return value discarded (intentional)
 
 # Battlefield management
 func _generate_battlefield(config: Dictionary = {}) -> void:
@@ -158,17 +157,18 @@ func _generate_battlefield(config: Dictionary = {}) -> void:
 		
 		# Generate battlefield
 		battlefield_generator.generate_battlefield()
-
 func _load_battlefield(battlefield_data: Dictionary) -> void:
 	if battlefield_manager:
 		# Initialize battlefield
 		battlefield_manager.initialize_battlefield(battlefield_data.get("grid_size", Vector2i(24, 24)))
 		
 		# Load terrain
+
 		for terrain in battlefield_data.get("terrain", []):
 			battlefield_manager.set_terrain(terrain.position, terrain.type)
 		
 		# Load deployment zones
+
 		for zone_type in battlefield_data.get("deployment_zones", {}):
 			battlefield_manager.set_deployment_zone(zone_type, battlefield_data.deployment_zones[zone_type])
 
@@ -180,17 +180,18 @@ func _initialize_units(units_data: Dictionary) -> void:
 			battlefield_manager.remove_unit(unit)
 	
 	# Add player units
+
 	for unit_data in units_data.get("player", []):
 		_add_unit(unit_data, 1) # 1 = player faction
 	
 	# Add enemy units
+
 	for unit_data in units_data.get("enemy", []):
 		_add_unit(unit_data, 2) # 2 = enemy faction
 
 func _add_unit(unit_data: Dictionary, faction: int) -> Node:
 	# To be implemented by derived classes
 	return null
-
 func _get_units_data() -> Dictionary:
 	var units_data = {
 		"player": [],
@@ -205,11 +206,10 @@ func _get_units_data() -> Dictionary:
 func _initialize_objectives(objectives_data: Array) -> void:
 	objectives = objectives_data.duplicate()
 	completed_objectives = {}
-
 func complete_objective(objective_id: String, faction: int) -> void:
 	if objective_id in objectives and not objective_id in completed_objectives:
 		completed_objectives[objective_id] = faction
-		objective_completed.emit(objective_id, faction)
+		objective_completed.emit(objective_id, faction) # warning: return value discarded (intentional)
 		_check_victory_conditions()
 
 func _check_victory_conditions() -> void:
@@ -219,11 +219,11 @@ func _check_victory_conditions() -> void:
 # Turn and phase management
 func _start_turn() -> void:
 	current_phase = 0
-	turn_started.emit(current_turn, active_faction)
+	turn_started.emit(current_turn, active_faction) # warning: return value discarded (intentional)
 	next_phase()
 
 func _end_turn() -> void:
-	turn_ended.emit(current_turn, active_faction)
+	turn_ended.emit(current_turn, active_faction) # warning: return value discarded (intentional)
 	_switch_faction()
 	
 	if active_faction == 1: # Back to player faction
@@ -233,7 +233,6 @@ func _end_turn() -> void:
 
 func _switch_faction() -> void:
 	active_faction = 3 - active_faction # Toggle between 1 and 2
-
 func _determine_starting_faction() -> int:
 	# To be implemented by derived classes
 	return 1 # Default to player
@@ -241,7 +240,6 @@ func _determine_starting_faction() -> int:
 func _process_phase() -> void:
 	# To be implemented by derived classes
 	pass
-
 func _process_action(unit: Node, action: Dictionary) -> void:
 	# To be implemented by derived classes
 	pass
@@ -250,27 +248,21 @@ func _process_action(unit: Node, action: Dictionary) -> void:
 func _on_unit_moved(unit: Node, from: Vector2i, to: Vector2i) -> void:
 	# To be implemented by derived classes
 	pass
-
 func _on_unit_added(unit: Node, position: Vector2i) -> void:
 	# To be implemented by derived classes
 	pass
-
 func _on_unit_removed(unit: Node, position: Vector2i) -> void:
 	# To be implemented by derived classes
 	pass
-
 func _on_combat_state_changed(new_state: Dictionary) -> void:
 	# To be implemented by derived classes
 	pass
-
 func _on_combat_result_calculated(attacker: Node, target: Node, result: Dictionary) -> void:
 	# To be implemented by derived classes
 	pass
-
 func _on_character_position_updated(character: Node, position: Vector2i) -> void:
 	# To be implemented by derived classes
 	pass
-
 func _on_battlefield_generation_completed(battlefield_data: Dictionary) -> void:
 	# To be implemented by derived classes
 	pass

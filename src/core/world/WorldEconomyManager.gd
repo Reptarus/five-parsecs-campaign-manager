@@ -15,7 +15,6 @@ const GameEnums = preload("res://src/core/systems/GlobalEnums.gd")
 
 func _init() -> void:
 	_current_credits = 1000 # Starting credits
-
 func get_credits() -> int:
 	return _current_credits
 
@@ -23,13 +22,13 @@ func add_credits(amount: int) -> void:
 	if amount > 0:
 		_current_credits += amount
 		_record_transaction(amount, "credit")
-		economy_updated.emit()
+		economy_updated.emit()  # warning: return value discarded (intentional)
 
 func remove_credits(amount: int) -> bool:
 	if amount > 0 and _current_credits >= amount:
 		_current_credits -= amount
 		_record_transaction(- amount, "debit")
-		economy_updated.emit()
+		economy_updated.emit()  # warning: return value discarded (intentional)
 		return true
 	return false
 
@@ -39,8 +38,9 @@ func _record_transaction(amount: int, type: String) -> void:
 		"type": type,
 		"timestamp": Time.get_unix_time_from_system()
 	}
-	_transaction_history.append(transaction)
-	transaction_completed.emit(amount, type)
+
+	_transaction_history.append(transaction)  # warning: return value discarded (intentional)
+	transaction_completed.emit(amount, type)  # warning: return value discarded (intentional)
 
 func get_transaction_history() -> Array:
 	return _transaction_history

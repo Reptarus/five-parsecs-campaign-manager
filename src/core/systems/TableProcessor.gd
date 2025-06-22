@@ -19,7 +19,7 @@ signal table_modified(table_name: String, modification_type: String)
 # Table Entry class for defining table rows
 class TableEntry:
 	var roll_range: Vector2i # min and max values for this entry
-	var result: Variant # The result value (can be any type)
+	var result: Variant # The result _value (can be any type)
 	var weight: float = 1.0 # For weighted random selection
 	var tags: Array[String] = [] # For filtering and special handling
 	var metadata: Dictionary = {} # Additional data for complex results
@@ -30,9 +30,9 @@ class TableEntry:
 		weight = w
 		tags = t
 		metadata = meta
-	
-	func matches_roll(roll: int) -> bool:
-		return roll >= roll_range.x and roll <= roll_range.y
+
+	func matches_roll(_roll: int) -> bool:
+		return _roll >= roll_range.x and _roll <= roll_range.y
 	
 	func has_tag(tag: String) -> bool:
 		return tag in tags
@@ -58,41 +58,41 @@ class Table:
 	
 	func _init(table_name: String) -> void:
 		name = table_name
-	
+
 	func add_entry(entry: TableEntry) -> void:
-		entries.append(entry)
+		entries.append(entry)  # warning: return value discarded (intentional)
 	
 	func add_validation_rule(rule: Callable) -> void:
-		validation_rules.append(rule)
+		validation_rules.append(rule)  # warning: return value discarded (intentional)
 	
 	func add_modifier(modifier: Callable) -> void:
-		modifiers.append(modifier)
+		modifiers.append(modifier)  # warning: return value discarded (intentional)
 	
-	func get_result(roll: int) -> Variant:
+	func get_result(_roll: int) -> Variant:
 		for entry in entries:
-			if entry.matches_roll(roll):
+			if entry.matches_roll(_roll):
 				return entry.result
 		return default_result
 	
 	func get_weighted_result() -> Variant:
-		var total_weight = 0.0
+		var total_weight: int = 0
 		for entry in entries:
 			total_weight += entry.weight
 		
-		var roll = randf() * total_weight
-		var current_weight = 0.0
+		var _roll = randf() * total_weight
+		var current_weight: int = 0
 		
 		for entry in entries:
 			current_weight += entry.weight
-			if roll <= current_weight:
+			if _roll <= current_weight:
 				return entry.result
 		
 		return default_result
 	
 	func serialize() -> Dictionary:
-		var serialized_entries = []
+		var serialized_entries: Array = []
 		for entry in entries:
-			serialized_entries.append(entry.serialize())
+			serialized_entries.append(entry.serialize())  # warning: return value discarded (intentional)
 		
 		return {
 			"name": name,
@@ -127,9 +127,10 @@ func _setup_history_tracking() -> void:
 	}
 
 # Enhanced table management methods
+
 func register_table(table: Table) -> void:
 	_tables[table.name] = table
-	table_modified.emit(table.name, "registered")
+	table_modified.emit(table.name, "registered")  # warning: return value discarded (intentional)
 
 func has_table(table_name: String) -> bool:
 	return _tables.has(table_name)
@@ -140,28 +141,28 @@ func get_table(table_name: String) -> Table:
 # Enhanced rolling methods with validation
 func roll_table(table_name: String, custom_roll: int = -1, category: String = "") -> Dictionary:
 	if not has_table(table_name):
-		validation_failed.emit(table_name, "Table not found")
+		validation_failed.emit(table_name, "Table not found")  # warning: return value discarded (intentional)
 		return {"success": false, "reason": "Table not found"}
 	
 	var table = get_table(table_name)
-	var roll = custom_roll if custom_roll >= 0 else randi() % 100 + 1
+	var _roll = custom_roll if custom_roll >= 0 else randi() % 100 + 1
 	
 	# Enhanced validation with custom rules
 	if table.custom_validation:
-		var validation_result = _run_custom_validation(table, roll)
+		var validation_result = _run_custom_validation(table, _roll)
 		if not validation_result.success:
-			validation_failed.emit(table_name, validation_result.reason)
+			validation_failed.emit(table_name, validation_result.reason)  # warning: return value discarded (intentional)
 			return validation_result
 	else:
 		# Standard validation rules
 		for rule in table.validation_rules:
-			var validation = rule.call(roll)
+			var validation = rule.call(_roll)
 			if not validation["valid"]:
-				validation_failed.emit(table_name, validation["reason"])
+				validation_failed.emit(table_name, validation["reason"])  # warning: return value discarded (intentional)
 				return {"success": false, "reason": validation["reason"]}
 	
 	# Get base result
-	var result = table.get_result(roll)
+	var result = table.get_result(_roll)
 	
 	# Apply modifiers
 	for modifier in table.modifiers:
@@ -171,7 +172,7 @@ func roll_table(table_name: String, custom_roll: int = -1, category: String = ""
 	var entry = {
 		"timestamp": Time.get_unix_time_from_system(),
 		"table": table_name,
-		"roll": roll,
+		"_roll": _roll,
 		"result": result,
 		"category": category,
 		"custom_roll": custom_roll >= 0,
@@ -189,15 +190,15 @@ func roll_table(table_name: String, custom_roll: int = -1, category: String = ""
 	
 	# Emit appropriate signal
 	if custom_roll >= 0:
-		custom_roll_processed.emit(table_name, roll, {"success": true, "result": result})
+		custom_roll_processed.emit(table_name, _roll, {"success": true, "result": result})  # warning: return value discarded (intentional)
 	else:
-		roll_processed.emit(table_name, {"success": true, "result": result})
+		roll_processed.emit(table_name, {"success": true, "result": result})  # warning: return value discarded (intentional)
 	
 	return {"success": true, "result": result}
 
 # Enhanced history management
 func _add_to_history(entry: Dictionary) -> void:
-	_history.append(entry)
+	_history.append(entry)  # warning: return value discarded (intentional)
 	
 	# Categorize the entry if category is provided
 	if entry.has("category") and entry.category in _history_categories:
@@ -254,7 +255,7 @@ func export_history(file_path: String, format: String = "json") -> Error:
 		_:
 			result = ERR_INVALID_PARAMETER
 	
-	history_exported.emit(result == OK, file_path)
+	history_exported.emit(result == OK, file_path)  # warning: return value discarded (intentional)
 	return result
 
 func _export_json(file_path: String, data: Dictionary) -> Error:
@@ -275,7 +276,7 @@ func _export_csv(file_path: String, history: Array) -> Error:
 	
 	# Write entries
 	for entry in history:
-		var line = "%d,%s,%d,%s,%s,%s" % [
+		var line: String = "%d,%s,%d,%s,%s,%s" % [
 			entry.timestamp,
 			entry.table,
 			entry.roll,
@@ -289,16 +290,16 @@ func _export_csv(file_path: String, history: Array) -> Error:
 
 # Enhanced serialization with validation
 func serialize() -> Dictionary:
-	var tables_data = {}
+	var tables_data: Dictionary = {}
 	for table_name in _tables:
 		tables_data[table_name] = _tables[table_name].serialize()
 	
-	var history = []
+	var history: Array = []
 	for entry in _history:
 		var serialized_entry = entry.duplicate()
 		if not (entry.result is Array or entry.result is Dictionary):
 			serialized_entry.result = str(entry.result)
-		history.append(serialized_entry)
+		history.append(serialized_entry)  # warning: return value discarded (intentional)
 	
 	return {
 		"tables": tables_data,
@@ -311,7 +312,7 @@ func serialize() -> Dictionary:
 func _create_table(table_name: String) -> Table:
 	# Create a table object without using the class directly
 	var table = Table.new(table_name)
-	table.name = table_name
+	table._name = table_name
 	return table
 
 func deserialize(data: Dictionary) -> void:
@@ -339,6 +340,7 @@ func deserialize(data: Dictionary) -> void:
 		_history_categories = data.categories.duplicate()
 
 # Custom validation handling
+
 func _run_custom_validation(table: Table, roll: int) -> Dictionary:
 	# Implement custom validation logic here
 	return {"success": true, "reason": ""}

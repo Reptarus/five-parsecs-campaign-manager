@@ -49,8 +49,8 @@ const CAMPAIGN_EVENTS = {
 		"probability": 0.15,
 		"effects": {
 			"resources": {
-				"CREDITS": {"type": "multiplier", "value": 1.5, "duration": 2},
-				"SUPPLIES": {"type": "discount", "value": 0.25, "duration": 2}
+				"CREDITS": {"type": "multiplier", "_value": 1.5, "duration": 2},
+				"SUPPLIES": {"type": "discount", "_value": 0.25, "duration": 2}
 			},
 			"requirements": ["credits >= 500", "reputation >= 10"]
 		}
@@ -60,8 +60,8 @@ const CAMPAIGN_EVENTS = {
 		"probability": 0.2,
 		"effects": {
 			"resources": {
-				"SUPPLIES": {"type": "multiplier", "value": 2.0, "duration": 3},
-				"MEDICAL_SUPPLIES": {"type": "multiplier", "value": 1.5, "duration": 3}
+				"SUPPLIES": {"type": "multiplier", "_value": 2.0, "duration": 3},
+				"MEDICAL_SUPPLIES": {"type": "multiplier", "_value": 1.5, "duration": 3}
 			},
 			"requirements": []
 		}
@@ -71,8 +71,8 @@ const CAMPAIGN_EVENTS = {
 		"probability": 0.1,
 		"effects": {
 			"resources": {
-				"WEAPONS": {"type": "discount", "value": 0.3, "duration": 4},
-				"EXPERIENCE": {"type": "bonus", "value": 50, "duration": 1}
+				"WEAPONS": {"type": "discount", "_value": 0.3, "duration": 4},
+				"EXPERIENCE": {"type": "bonus", "_value": 50, "duration": 1}
 			},
 			"requirements": ["tech_level >= 2"]
 		}
@@ -82,8 +82,8 @@ const CAMPAIGN_EVENTS = {
 		"probability": 0.25,
 		"effects": {
 			"resources": {
-				"CREDITS": {"type": "penalty", "value": 0.2, "duration": 2},
-				"SUPPLIES": {"type": "penalty", "value": 0.15, "duration": 2}
+				"CREDITS": {"type": "penalty", "_value": 0.2, "duration": 2},
+				"SUPPLIES": {"type": "penalty", "_value": 0.15, "duration": 2}
 			},
 			"requirements": []
 		}
@@ -139,7 +139,12 @@ const MISSION_EVENTS = {
 ## Initialize the event manager
 func initialize(state: FiveParsecsGameState) -> void:
 	game_state = state
-	resource_system = get_node("/root/Game/Systems/ResourceSystem")
+	var resource_node = get_node("/root/Game/Systems/ResourceSystem")
+	if resource_node is ResourceSystem:
+		resource_system = resource_node
+	else:
+		push_error("ResourceSystem node not found or wrong type")
+	
 	var mission_gen = get_node("/root/Game/Systems/MissionGenerator")
 	if mission_gen is MissionGeneratorClass:
 		mission_generator = mission_gen
@@ -158,7 +163,7 @@ func _exit_tree() -> void:
 ## Cleanup resources
 func cleanup() -> void:
 	# Clear all events and remove effects
-	var events_to_resolve = active_events.duplicate()
+	var events_to_resolve: Array[Dictionary] = active_events.duplicate()
 	for event in events_to_resolve:
 		resolve_event(event.type)
 	
@@ -185,11 +190,11 @@ func update() -> void:
 
 ## Process campaign events
 func _process_campaign_events() -> void:
-	var resolved_events := []
+	var resolved_events: Array[Dictionary] = []
 	
 	for event in campaign_events:
 		if event.has("duration") and event.has("turn_started"):
-			var turns_active = game_state.current_turn - event.turn_started
+			var turns_active: int = game_state.current_turn - event.turn_started
 			if turns_active >= event.duration:
 				resolved_events.append(event)
 				_remove_campaign_event_effects(event)
@@ -203,25 +208,25 @@ func trigger_campaign_event(event_name: String) -> void:
 	if not CAMPAIGN_EVENTS.has(event_name):
 		return
 	
-	var event_def = CAMPAIGN_EVENTS[event_name]
+	var event_def: Dictionary = CAMPAIGN_EVENTS[event_name]
 	if not _check_campaign_event_requirements(event_def.effects.requirements):
 		return
 	
-	var event_data = {
-		"name": event_name,
+	var event_data: Dictionary = {
+		"_name": event_name,
 		"category": event_def.category,
 		"turn_started": game_state.current_turn,
 		"effects": event_def.effects.duplicate(true)
 	}
 	
 	# Calculate duration based on effects
-	var max_duration := 0
+	var max_duration: int = 0
 	for resource in event_def.effects.resources:
-		var effect = event_def.effects.resources[resource]
+		var effect: Dictionary = event_def.effects.resources[resource]
 		if effect.has("duration"):
 			max_duration = max(max_duration, effect.duration)
 	event_data["duration"] = max_duration
-	
+
 	campaign_events.append(event_data)
 	_apply_campaign_event_effects(event_data)
 	campaign_event_triggered.emit(event_data)
@@ -256,17 +261,17 @@ func _apply_campaign_event_effects(event_data: Dictionary) -> void:
 			match effect.type:
 				"multiplier":
 					var current = resource_system.get_resource_amount(resource_type)
-					var bonus = int(current * (effect.value - 1.0))
+					var bonus = int(current * (effect._value - 1.0))
 					if bonus > 0:
 						resource_system.add_resource(resource_type, bonus, "event_" + event_data.name)
 				"discount":
 					# Handled by market system
 					pass
 				"bonus":
-					resource_system.add_resource(resource_type, effect.value, "event_" + event_data.name)
+					resource_system.add_resource(resource_type, effect._value, "event_" + event_data.name)
 				"penalty":
 					var current = resource_system.get_resource_amount(resource_type)
-					var penalty = int(current * effect.value)
+					var penalty = int(current * effect._value)
 					if penalty > 0:
 						resource_system.remove_resource(resource_type, penalty, "event_" + event_data.name)
 
@@ -281,7 +286,7 @@ func _remove_campaign_event_effects(event_data: Dictionary) -> void:
 			match effect.type:
 				"multiplier":
 					var current = resource_system.get_resource_amount(resource_type)
-					var reduction = int(current * (effect.value - 1.0))
+					var reduction = int(current * (effect._value - 1.0))
 					if reduction > 0:
 						resource_system.remove_resource(resource_type, reduction, "event_end_" + event_data.name)
 				"bonus", "penalty":
@@ -295,11 +300,11 @@ func get_active_campaign_events() -> Array:
 ## Check if a campaign event is active
 func is_campaign_event_active(event_name: String) -> bool:
 	for event in campaign_events:
-		if event.name == event_name:
+		if event._name == event_name:
 			return true
 	return false
 
-## Get campaign event effect value
+## Get campaign event effect _value
 func get_campaign_event_effect(resource_type: int, effect_type: String) -> float:
 	var total_effect := 1.0
 	
@@ -309,18 +314,18 @@ func get_campaign_event_effect(resource_type: int, effect_type: String) -> float
 			var resource_name = GameEnums.ResourceType.keys()[resource_type]
 			if effects.resources.has(resource_name):
 				var effect = effects.resources[resource_name]
-				if effect.type == effect_type:
+				if effect._type == effect_type:
 					match effect_type:
 						"multiplier":
-							total_effect *= effect.value
+							total_effect *= effect._value
 						"discount":
-							total_effect *= (1.0 - effect.value)
+							total_effect *= (1.0 - effect._value)
 	
 	return total_effect
 
 ## Save event manager state
 func serialize() -> Dictionary:
-	var campaign_events_data = []
+	var campaign_events_data: Array = []
 	for event in campaign_events:
 		campaign_events_data.append(event.duplicate(true))
 	
@@ -345,7 +350,7 @@ func deserialize(data: Dictionary) -> void:
 ## Trim event history to prevent unbounded growth
 func _trim_event_history() -> void:
 	if event_history.size() > MAX_HISTORY_SIZE:
-		event_history = event_history.slice(- MAX_HISTORY_SIZE)
+		event_history = event_history.slice(-MAX_HISTORY_SIZE)
 
 ## Update event cooldowns
 func _update_cooldowns() -> void:
@@ -385,14 +390,14 @@ func _process_active_events() -> void:
 	if not game_state:
 		return
 		
-	var resolved_events := []
+	var resolved_events: Array[GameEnums.GlobalEvent] = []
 	
 	for event in active_events:
 		var duration = event.duration
-		var turns_active = game_state.current_turn - event.turn_started
+		var turns_active: int = game_state.current_turn - event.turn_started
 		
 		if turns_active >= duration:
-			resolved_events.append(event.type)
+			resolved_events.append(event.get("type", GameEnums.GlobalEvent.NONE))
 			
 	for event_type in resolved_events:
 		resolve_event(event_type)
@@ -405,16 +410,17 @@ func trigger_event(event_type: GameEnums.GlobalEvent) -> void:
 	# Check active events limit
 	if active_events.size() >= MAX_ACTIVE_EVENTS:
 		var oldest_event = active_events[0]
-		resolve_event(oldest_event.type)
+		resolve_event(oldest_event._type)
 	
 	var event_data := {
-		"type": event_type,
+		"_type": event_type,
 		"turn_started": game_state.current_turn if game_state else 0,
 		"duration": _get_event_duration(event_type),
 		"effects": _generate_event_effects(event_type)
 	}
-	
+
 	active_events.append(event_data)
+
 	event_history.append(event_data.duplicate()) # Use duplicate to prevent reference issues
 	event_cooldowns[event_type] = COOLDOWN_DURATION
 	
@@ -425,7 +431,7 @@ func trigger_event(event_type: GameEnums.GlobalEvent) -> void:
 func resolve_event(event_type: GameEnums.GlobalEvent) -> void:
 	var event_index := -1
 	for i in range(active_events.size()):
-		if active_events[i].type == event_type:
+		if active_events[i]._type == event_type:
 			event_index = i
 			break
 			
@@ -443,12 +449,12 @@ func _can_trigger_event(event_type: GameEnums.GlobalEvent) -> bool:
 		
 	# Check if event is already active
 	for event in active_events:
-		if event.type == event_type:
+		if event._type == event_type:
 			return false
 			
 	return true
 
-## Get the duration for an event type
+## Get the duration for an event _type
 func _get_event_duration(event_type: GameEnums.GlobalEvent) -> int:
 	match event_type:
 		GameEnums.GlobalEvent.MARKET_CRASH:
@@ -460,7 +466,7 @@ func _get_event_duration(event_type: GameEnums.GlobalEvent) -> int:
 		_:
 			return 4
 
-## Generate effects for an event type
+## Generate effects for an event _type
 func _generate_event_effects(event_type: GameEnums.GlobalEvent) -> Dictionary:
 	var effects := {}
 	
@@ -511,29 +517,29 @@ func _remove_event_effects(effects: Dictionary) -> void:
 	for effect in effects:
 		match effect:
 			"economy_modifier":
-				game_state.apply_economy_modifier(- effects[effect])
+				game_state.apply_economy_modifier(-effects[effect])
 			"combat_difficulty":
 				game_state.modify_combat_difficulty(1.0 / effects[effect])
 			"tech_discount":
-				game_state.apply_tech_discount(- effects[effect])
+				game_state.apply_tech_discount(-effects[effect])
 
 ## Compare two values with an operator
-func _compare_value(value: float, operator: String, target: float) -> bool:
+func _compare_value(_value: float, operator: String, target: float) -> bool:
 	match operator:
-		">=": return value >= target
-		"<=": return value <= target
-		">": return value > target
-		"<": return value < target
-		"==": return value == target
+		">=": return _value >= target
+		"<=": return _value <= target
+		">": return _value > target
+		"<": return _value < target
+		"==": return _value == target
 		_: return false
 
 ## Process mission events
 func _process_mission_events() -> void:
-	var resolved_events := []
+	var resolved_events: Array[Dictionary] = []
 	
 	for event in mission_events:
 		if event.has("duration") and event.has("turn_started"):
-			var turns_active = game_state.current_turn - event.turn_started
+			var turns_active: int = game_state.current_turn - event.turn_started
 			if turns_active >= event.duration:
 				resolved_events.append(event)
 				_remove_mission_event_effects(event)
@@ -548,8 +554,8 @@ func trigger_mission_event(event_name: String, mission: Mission) -> void:
 		return
 	
 	var event_def = MISSION_EVENTS[event_name]
-	var event_data = {
-		"name": event_name,
+	var event_data: Dictionary = {
+		"_name": event_name,
 		"category": event_def.category,
 		"turn_started": game_state.current_turn,
 		"mission_id": mission.get_instance_id(),
@@ -558,7 +564,7 @@ func trigger_mission_event(event_name: String, mission: Mission) -> void:
 	
 	# Calculate duration based on mission length
 	event_data["duration"] = mission.get_estimated_duration()
-	
+
 	mission_events.append(event_data)
 	_apply_mission_event_effects(event_data, mission)
 	mission_event_triggered.emit(event_data)
@@ -659,11 +665,11 @@ func get_active_mission_events() -> Array:
 ## Check if a mission event is active
 func is_mission_event_active(event_name: String) -> bool:
 	for event in mission_events:
-		if event.name == event_name:
+		if event._name == event_name:
 			return true
 	return false
 
-## Get mission event effect value
+## Get mission event effect _value
 func get_mission_event_effect(effect_type: String) -> float:
 	var total_effect := 1.0
 	

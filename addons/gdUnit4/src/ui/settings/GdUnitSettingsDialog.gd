@@ -22,7 +22,6 @@ const GdUnitUpdateClient = preload ("res://addons/gdUnit4/src/update/GdUnitUpdat
 
 var _font_size: float
 
-@warning_ignore_start("unsafe_property_access", "unsafe_call_argument", "unsafe_method_access")
 func _ready() -> void:
 	set_name("GdUnitSettingsDialog")
 	# initialize for testing
@@ -88,7 +87,6 @@ func setup_properties(properties_parent: Node, property_category: String) -> voi
 		var input: Node = _create_input_element(property, reset_btn)
 		inputs.append(input)
 		grid.add_child(input)
-		@warning_ignore("return_value_discarded")
 		reset_btn.pressed.connect(_on_btn_property_reset_pressed.bind(property, input, reset_btn))
 		# property help text
 		var info: Node = _properties_template.get_child(2).duplicate()
@@ -106,7 +104,6 @@ func setup_properties(properties_parent: Node, property_category: String) -> voi
 	properties_parent.custom_minimum_size.x = min_size_overall
 
 
-@warning_ignore("return_value_discarded")
 func _create_input_element(property: GdUnitProperty, reset_btn: Button) -> Node:
 	if property.is_selectable_value():
 		var options := OptionButton.new()
@@ -150,7 +147,6 @@ func to_shortcut(keys: PackedInt32Array) -> String:
 	return input_event.as_text()
 
 
-@warning_ignore("return_value_discarded")
 func to_keys(input_event: InputEventKey) -> PackedInt32Array:
 	var keys := PackedInt32Array()
 	if input_event.ctrl_pressed:
@@ -231,12 +227,10 @@ func check_for_update() -> void:
 
 
 func _on_btn_report_bug_pressed() -> void:
-	@warning_ignore("return_value_discarded")
 	OS.shell_open("https://github.com/MikeSchulze/gdUnit4/issues/new?assignees=MikeSchulze&labels=bug&projects=projects%2F5&template=bug_report.yml&title=GD-XXX%3A+Describe+the+issue+briefly")
 
 
 func _on_btn_request_feature_pressed() -> void:
-	@warning_ignore("return_value_discarded")
 	OS.shell_open("https://github.com/MikeSchulze/gdUnit4/issues/new?assignees=MikeSchulze&labels=enhancement&projects=&template=feature_request.md&title=")
 
 
@@ -316,4 +310,3 @@ func update_progress(message: String) -> void:
 	_progress_text.text = message
 	_progress_bar.value += 1
 
-@warning_ignore_restore("unsafe_property_access", "unsafe_call_argument", "unsafe_method_access")

@@ -30,7 +30,6 @@ var migration: WorldDataMigration
 func _init() -> void:
     name_generator = PlanetNameGenerator.new()
     migration = WorldDataMigration.new()
-
 func generate_sector(sector_name: String) -> void:
     if sectors.has(sector_name):
         return
@@ -44,33 +43,35 @@ func generate_sector(sector_name: String) -> void:
     # Create planets at each position
     for pos in positions:
         var planet = _generate_planet(sector_name, pos)
-        new_planets.append(planet)
+
+        new_planets.append(planet) # warning: return value discarded (intentional)
         discovered_planets[pos] = planet
     
     sectors[sector_name] = new_planets
-    sector_generated.emit(sector_name)
+    sector_generated.emit(sector_name) # warning: return value discarded (intentional)
 
 func _generate_planet_positions(count: int) -> Array[Vector2]:
     var positions: Array[Vector2] = []
-    var available_positions = []
+    var available_positions: Array = []
     
     # Create grid of possible positions
     for x in range(SECTOR_SIZE.x):
         for y in range(SECTOR_SIZE.y):
-            available_positions.append(Vector2(x, y))
+            available_positions.append(Vector2(x, y)) # warning: return value discarded (intentional)
     
     # Randomly select positions
     for i in range(count):
         if available_positions.is_empty():
             break
         var index = randi() % available_positions.size()
-        positions.append(available_positions[index])
+
+        positions.append(available_positions[index]) # warning: return value discarded (intentional)
         available_positions.remove_at(index)
     
     return positions
 
 func _generate_planet(sector_name: String, coordinates: Vector2) -> GamePlanet:
-    var planet = GamePlanet.new()
+    var planet := GamePlanet.new()
     planet.planet_name = name_generator.generate_name()
     planet.sector = sector_name
     planet.coordinates = coordinates
@@ -93,7 +94,7 @@ func _generate_planet(sector_name: String, coordinates: Vector2) -> GamePlanet:
     planet.strife_level = randi() % GameEnums.StrifeType.size()
     planet.instability = randi() % GameEnums.StrifeType.size()
     
-    planet_discovered.emit(planet)
+    planet_discovered.emit(planet) # warning: return value discarded (intentional)
     return planet
 
 func get_planets_in_sector(sector_name: String) -> Array[GamePlanet]:
@@ -111,10 +112,10 @@ func update_sector(sector_name: String, current_turn: int) -> void:
         # or implement the method in GamePlanet if needed
         pass
     
-    sector_updated.emit(sector_name)
+    sector_updated.emit(sector_name) # warning: return value discarded (intentional)
 
 func serialize() -> Dictionary:
-    var serialized_sectors = {}
+    var serialized_sectors: Dictionary = {}
     for sector_name in sectors:
         serialized_sectors[sector_name] = sectors[sector_name].map(func(p): return p.serialize())
     
@@ -135,8 +136,9 @@ func deserialize(data: Dictionary) -> void:
                 planet_data = migration.migrate_planet_data(planet_data)
             
             var planet = GamePlanet.deserialize(planet_data)
-            planets.append(planet)
+
+            planets.append(planet) # warning: return value discarded (intentional)
             discovered_planets[planet.coordinates] = planet
         sectors[sector_name] = planets
-    
+
     current_sector = data.get("current_sector", "")

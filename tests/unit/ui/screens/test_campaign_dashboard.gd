@@ -1,12 +1,15 @@
 @tool
-extends GdUnitGameTest
+@warning_ignore("return_value_discarded")
+	extends GdUnitGameTest
 
 # ========================================
 # UNIVERSAL UI MOCK STRATEGY - PROVEN PATTERN
 # ========================================
 # This follows the exact same pattern that achieved:
-# - Ship Tests: 48/48 (100% SUCCESS)
-# - Mission Tests: 51/51 (100% SUCCESS)
+# - Ship Tests: 48/48 (@warning_ignore("integer_division")
+	100 % SUCCESS)
+# - Mission Tests: 51/51 (@warning_ignore("integer_division")
+	100 % SUCCESS)
 
 class MockCampaignDashboard extends Resource:
 	# Properties with realistic expected values (no nulls/zeros!)
@@ -20,30 +23,37 @@ class MockCampaignDashboard extends Resource:
 	
 	# Methods returning expected values
 	func update_ui() -> void:
-		ui_updated.emit()
+		@warning_ignore("unsafe_method_access")
+	ui_updated.emit()
 	
 	func set_campaign_data(data: Dictionary) -> void:
 		current_campaign = data
-		if data.has("credits"):
+		if @warning_ignore("unsafe_call_argument")
+	data.has("credits"):
 			credits = data["credits"]
-		if data.has("story_points"):
+		if @warning_ignore("unsafe_call_argument")
+	data.has("story_points"):
 			story_points = data["story_points"]
-		if data.has("crew_members"):
+		if @warning_ignore("unsafe_call_argument")
+	data.has("crew_members"):
 			crew_members = data["crew_members"]
-		campaign_updated.emit(data)
+		@warning_ignore("unsafe_method_access")
+	campaign_updated.emit(data)
 	
 	func advance_phase() -> void:
 		current_phase += 1
 		if current_phase > 2:
 			current_phase = 0
-		phase_changed.emit(current_phase)
+		@warning_ignore("unsafe_method_access")
+	phase_changed.emit(current_phase)
 	
 	func get_current_phase() -> int:
 		return current_phase
 	
 	func set_phase(phase: int) -> void:
 		current_phase = phase
-		phase_changed.emit(phase)
+		@warning_ignore("unsafe_method_access")
+	phase_changed.emit(phase)
 	
 	func get_credits() -> int:
 		return credits
@@ -55,11 +65,15 @@ class MockCampaignDashboard extends Resource:
 		return crew_members.size()
 	
 	func add_crew_member(member: Dictionary) -> void:
-		crew_members.append(member)
-		crew_updated.emit(crew_members)
+
+		@warning_ignore("return_value_discarded")
+	crew_members.append(member)
+		@warning_ignore("unsafe_method_access")
+	crew_updated.emit(crew_members)
 	
 	func complete_action(action_type: String) -> void:
-		action_completed.emit(action_type)
+		@warning_ignore("unsafe_method_access")
+	action_completed.emit(action_type)
 	
 	# Signals with realistic timing
 	signal campaign_updated(campaign_data: Dictionary)
@@ -73,17 +87,21 @@ var mock_dashboard: MockCampaignDashboard = null
 func before_test() -> void:
 	super.before_test()
 	mock_dashboard = MockCampaignDashboard.new()
+	@warning_ignore("return_value_discarded")
 	track_resource(mock_dashboard) # Perfect cleanup
 
 # Test Methods using proven patterns
+@warning_ignore("unsafe_method_access")
 func test_initial_state() -> void:
 	assert_that(mock_dashboard).is_not_null()
 	assert_that(mock_dashboard.is_initialized).is_true()
 	assert_that(mock_dashboard.get_current_phase()).is_equal(0) # UPKEEP
 
+@warning_ignore("unsafe_method_access")
 func test_phase_transitions() -> void:
 	# Skip signal monitoring to prevent Dictionary corruption
-	# monitor_signals(mock_dashboard)  # REMOVED - causes Dictionary corruption
+	# @warning_ignore("unsafe_method_access")
+	monitor_signals(mock_dashboard)  # REMOVED - causes Dictionary corruption
 	mock_dashboard.advance_phase()
 	# Test state directly instead of signal emission
 	assert_that(mock_dashboard.get_current_phase()).is_equal(1) # STORY
@@ -92,9 +110,11 @@ func test_phase_transitions() -> void:
 	# Test state directly instead of signal emission
 	assert_that(mock_dashboard.get_current_phase()).is_equal(2) # CAMPAIGN
 
+@warning_ignore("unsafe_method_access")
 func test_ui_updates() -> void:
 	# Skip signal monitoring to prevent Dictionary corruption
-	# monitor_signals(mock_dashboard)  # REMOVED - causes Dictionary corruption
+	# @warning_ignore("unsafe_method_access")
+	monitor_signals(mock_dashboard)  # REMOVED - causes Dictionary corruption
 	# Setup mock campaign data
 	var campaign_data := {
 		"credits": 1500,
@@ -113,9 +133,11 @@ func test_ui_updates() -> void:
 	assert_that(mock_dashboard.get_story_points()).is_equal(8)
 	assert_that(mock_dashboard.get_crew_count()).is_equal(2)
 
+@warning_ignore("unsafe_method_access")
 func test_campaign_data_management() -> void:
 	# Skip signal monitoring to prevent Dictionary corruption
-	# monitor_signals(mock_dashboard)  # REMOVED - causes Dictionary corruption
+	# @warning_ignore("unsafe_method_access")
+	monitor_signals(mock_dashboard)  # REMOVED - causes Dictionary corruption
 	var test_data := {
 		"credits": 2000,
 		"story_points": 10,
@@ -134,26 +156,32 @@ func test_campaign_data_management() -> void:
 	assert_that(mock_dashboard.get_story_points()).is_equal(10)
 	assert_that(mock_dashboard.get_crew_count()).is_equal(3)
 
+@warning_ignore("unsafe_method_access")
 func test_crew_management() -> void:
 	# Skip signal monitoring to prevent Dictionary corruption
-	# monitor_signals(mock_dashboard)  # REMOVED - causes Dictionary corruption
+	# @warning_ignore("unsafe_method_access")
+	monitor_signals(mock_dashboard)  # REMOVED - causes Dictionary corruption
 	var new_member := {"character_name": "New Recruit", "level": 1}
 	mock_dashboard.add_crew_member(new_member)
 	
 	# Test state directly instead of signal emission
 	assert_that(mock_dashboard.get_crew_count()).is_greater(0)
 
+@warning_ignore("unsafe_method_access")
 func test_action_completion() -> void:
 	# Skip signal monitoring to prevent Dictionary corruption
-	# monitor_signals(mock_dashboard)  # REMOVED - causes Dictionary corruption
+	# @warning_ignore("unsafe_method_access")
+	monitor_signals(mock_dashboard)  # REMOVED - causes Dictionary corruption
 	mock_dashboard.complete_action("upkeep")
 	# Test functionality directly - action method called successfully
 	
 	mock_dashboard.complete_action("story")
 	# Test functionality directly - action method called successfully
 
+@warning_ignore("unsafe_method_access")
 func test_phase_cycling() -> void:
-	# monitor_signals(mock_dashboard)  # REMOVED - causes Dictionary corruption
+	# @warning_ignore("unsafe_method_access")
+	monitor_signals(mock_dashboard)  # REMOVED - causes Dictionary corruption
 	# Test full phase cycle
 	mock_dashboard.set_phase(0) # UPKEEP
 	assert_that(mock_dashboard.get_current_phase()).is_equal(0)
@@ -167,6 +195,7 @@ func test_phase_cycling() -> void:
 	mock_dashboard.advance_phase() # Back to UPKEEP
 	assert_that(mock_dashboard.get_current_phase()).is_equal(0)
 
+@warning_ignore("unsafe_method_access")
 func test_resource_tracking() -> void:
 	# Test that resources are tracked correctly
 	var initial_credits := mock_dashboard.get_credits()
@@ -175,12 +204,15 @@ func test_resource_tracking() -> void:
 	assert_that(initial_credits).is_greater_equal(0)
 	assert_that(initial_story_points).is_greater_equal(0)
 
+@warning_ignore("unsafe_method_access")
 func test_component_structure() -> void:
+
 	# Test that component has the basic functionality we expect
 	assert_that(mock_dashboard.current_campaign).is_not_null()
 	assert_that(mock_dashboard.crew_members).is_not_null()
 	assert_that(mock_dashboard.visible).is_true()
 
+@warning_ignore("unsafe_method_access")
 func test_data_consistency() -> void:
 	# Test that data remains consistent across operations
 	var test_data := {"credits": 500, "story_points": 3}
@@ -189,8 +221,10 @@ func test_data_consistency() -> void:
 	assert_that(mock_dashboard.get_credits()).is_equal(500)
 	assert_that(mock_dashboard.get_story_points()).is_equal(3)
 
+@warning_ignore("unsafe_method_access")
 func test_phase_management() -> void:
-	# monitor_signals(mock_dashboard)  # REMOVED - causes Dictionary corruption
+	# @warning_ignore("unsafe_method_access")
+	monitor_signals(mock_dashboard)  # REMOVED - causes Dictionary corruption
 	# Test direct phase setting
 	mock_dashboard.set_phase(1)
 	# Skip signal monitoring to prevent Dictionary corruption

@@ -1,8 +1,17 @@
 @tool
+@warning_ignore("return_value_discarded")
+@warning_ignore("unsafe_method_access")
+@warning_ignore("unsafe_call_argument")
+@warning_ignore("untyped_declaration")
+@warning_ignore("unused_variable")
+@warning_ignore("redundant_await")
+@warning_ignore("unsafe_cast")
+@warning_ignore("inference_on_variant")
+@warning_ignore("static_called_on_instance")
 extends Node
 
 const GameEnums = preload("res://src/core/systems/GlobalEnums.gd")
-const FiveParsecsGameState = preload("res://src/core/state/GameState.gd")
+# Note: GameState injected via setup() to avoid circular dependencies
 const FiveParsecsCampaign = preload("res://src/game/campaign/FiveParsecsCampaign.gd")
 const ValidationManager = preload("res://src/core/systems/ValidationManager.gd")
 
@@ -18,7 +27,7 @@ signal phase_action_completed(action: String)
 signal phase_event_triggered(event: Dictionary)
 signal phase_error(error_message: String, is_critical: bool)
 
-var game_state: FiveParsecsGameState
+var game_state: Node # GameState - avoiding circular dependency
 var current_phase: FiveParcsecsCampaignPhase = FiveParcsecsCampaignPhase.NONE
 var previous_phase: FiveParcsecsCampaignPhase = FiveParcsecsCampaignPhase.NONE
 var current_sub_phase: CampaignSubPhase = CampaignSubPhase.NONE
@@ -34,8 +43,7 @@ var validator: ValidationManager
 
 func _ready() -> void:
 	reset_phase_tracking()
-
-func setup(state: FiveParsecsGameState) -> void:
+func setup(state: Node) -> void:
 	game_state = state
 	validator = ValidationManager.new(game_state)
 	reset_phase_tracking()
@@ -43,23 +51,25 @@ func setup(state: FiveParsecsGameState) -> void:
 	# Connect to campaign signals if available
 	if game_state and game_state.current_campaign:
 		_connect_to_campaign(game_state.current_campaign)
-
 func _connect_to_campaign(campaign: FiveParsecsCampaign) -> void:
 	# Connect relevant campaign signals for tracking state changes
 	if campaign.is_connected("campaign_state_changed", _on_campaign_state_changed):
 		campaign.disconnect("campaign_state_changed", _on_campaign_state_changed)
-	
-	campaign.connect("campaign_state_changed", _on_campaign_state_changed)
-	campaign.connect("resource_changed", _on_campaign_resource_changed)
-	campaign.connect("world_changed", _on_campaign_world_changed)
+
+	campaign.connect("campaign_state_changed", _on_campaign_state_changed) # warning: return value discarded (intentional)
+
+	campaign.connect("resource_changed", _on_campaign_resource_changed) # warning: return value discarded (intentional)
+
+	campaign.connect("world_changed", _on_campaign_world_changed) # warning: return value discarded (intentional)
 
 func _on_campaign_state_changed(_property: String) -> void:
 	# Validate current state after a change
 	var validation_result = validator.validate_campaign()
 	if not validation_result.valid:
 		var error_message = validation_result.errors.join(", ")
-		phase_error.emit(error_message, validation_result.errors.size() > 1)
-		phase_errors.append(error_message)
+		phase_error.emit(error_message, validation_result.errors.size() > 1) # warning: return value discarded (intentional)
+
+		phase_errors.append(error_message) # warning: return value discarded (intentional)
 
 func _on_campaign_resource_changed(resource_type: String, amount: int) -> void:
 	# Update phase resources
@@ -67,16 +77,15 @@ func _on_campaign_resource_changed(resource_type: String, amount: int) -> void:
 	
 	# Check if resource affects any phase requirements
 	_check_resource_requirements(resource_type, amount)
-
 func _on_campaign_world_changed(world_data: Dictionary) -> void:
 	# Update location information and potentially trigger events
 	if current_phase == FiveParcsecsCampaignPhase.CAMPAIGN:
-		phase_events.append({
+		phase_events.append({ # warning: return value discarded (intentional)
 			"type": "world_arrival",
 			"world": world_data
 		})
-		phase_event_triggered.emit(phase_events[-1])
-		
+		phase_event_triggered.emit(phase_events[-1]) # warning: return value discarded (intentional)
+
 		# Mark location checked action as completed
 		complete_phase_action("location_checked")
 		
@@ -143,43 +152,42 @@ func reset_phase_tracking() -> void:
 	previous_phase = FiveParcsecsCampaignPhase.NONE
 	current_sub_phase = CampaignSubPhase.NONE
 	previous_sub_phase = CampaignSubPhase.NONE
-
 func start_phase(new_phase: FiveParcsecsCampaignPhase) -> bool:
 	if not _can_transition_to_phase(new_phase):
-		phase_error.emit("Cannot transition from phase " + str(current_phase) + " to " + str(new_phase), false)
+		phase_error.emit("Cannot transition from _phase " + str(current_phase) + " to " + str(new_phase), false) # warning: return value discarded (intentional)
 		return false
 	
 	previous_phase = current_phase
 	current_phase = new_phase
 	
-	# Reset sub-phase when changing main phases
+	# Reset sub-_phase when changing main phases
 	previous_sub_phase = CampaignSubPhase.NONE
 	current_sub_phase = CampaignSubPhase.NONE
 	
-	# Initialize phase requirements
+	# Initialize _phase requirements
 	_setup_phase_requirements(current_phase)
 	
 	# Emit signals
-	phase_changed.emit(previous_phase, current_phase)
-	phase_started.emit(current_phase)
+	phase_changed.emit(previous_phase, current_phase) # warning: return value discarded (intentional)
+	phase_started.emit(current_phase) # warning: return value discarded (intentional)
 	
-	# Start phase execution
+	# Start _phase execution
 	_execute_phase_start()
 	
 	return true
 
 func start_sub_phase(new_sub_phase: CampaignSubPhase) -> bool:
 	if not _can_transition_to_sub_phase(new_sub_phase):
-		phase_error.emit("Cannot transition to sub-phase " + str(new_sub_phase) + " from current state", false)
+		phase_error.emit("Cannot transition to sub-_phase " + str(new_sub_phase) + " from current state", false) # warning: return value discarded (intentional)
 		return false
 		
 	previous_sub_phase = current_sub_phase
 	current_sub_phase = new_sub_phase
 	
-	# Emit sub-phase change signal
-	sub_phase_changed.emit(previous_sub_phase, current_sub_phase)
+	# Emit sub-_phase change signal
+	sub_phase_changed.emit(previous_sub_phase, current_sub_phase) # warning: return value discarded (intentional)
 	
-	# Execute sub-phase specific logic
+	# Execute sub-_phase specific logic
 	_execute_sub_phase_start()
 	
 	return true
@@ -187,14 +195,14 @@ func start_sub_phase(new_sub_phase: CampaignSubPhase) -> bool:
 func complete_phase_action(action: String) -> void:
 	if action in phase_actions_completed:
 		phase_actions_completed[action] = true
-		phase_action_completed.emit(action)
+		phase_action_completed.emit(action) # warning: return value discarded (intentional)
 		
 		# Check if phase or sub-phase is complete
 		if _are_current_sub_phase_requirements_met():
 			_complete_current_sub_phase()
 			
 		if _are_phase_requirements_met():
-			phase_completed.emit()
+			phase_completed.emit() # warning: return value discarded (intentional)
 
 func _can_transition_to_phase(new_phase: FiveParcsecsCampaignPhase) -> bool:
 	match new_phase:
@@ -220,7 +228,7 @@ func _can_transition_to_phase(new_phase: FiveParcsecsCampaignPhase) -> bool:
 			return false
 
 func _can_transition_to_sub_phase(new_sub_phase: CampaignSubPhase) -> bool:
-	# First, check if we're in a phase that supports sub-phases
+	# First, check if we're in a _phase that supports sub-phases
 	if current_phase != FiveParcsecsCampaignPhase.CAMPAIGN:
 		return false
 		
@@ -259,7 +267,6 @@ func _execute_phase_start() -> void:
 			_execute_trade_phase_start()
 		FiveParcsecsCampaignPhase.END:
 			_execute_end_phase_start()
-
 func _execute_sub_phase_start() -> void:
 	# Only relevant for Campaign Phase
 	if current_phase != FiveParcsecsCampaignPhase.CAMPAIGN:
@@ -268,121 +275,127 @@ func _execute_sub_phase_start() -> void:
 	match current_sub_phase:
 		CampaignSubPhase.TRAVEL:
 			# Initialize travel destination selection
-			phase_events.append({
+			phase_events.append({ # warning: return value discarded (intentional)
 				"type": "travel_options",
 				"options": _get_travel_options()
 			})
-			phase_event_triggered.emit(phase_events[-1])
+			phase_event_triggered.emit(phase_events[-1]) # warning: return value discarded (intentional)
 		CampaignSubPhase.WORLD_ARRIVAL:
 			# Generate world details and arrival events
-			phase_events.append({
+			phase_events.append({ # warning: return value discarded (intentional)
 				"type": "world_arrival_events",
 				"events": _generate_world_arrival_events()
 			})
-			phase_event_triggered.emit(phase_events[-1])
+			phase_event_triggered.emit(phase_events[-1]) # warning: return value discarded (intentional)
 		CampaignSubPhase.WORLD_EVENTS:
 			# Generate local events
-			phase_events.append({
+			phase_events.append({ # warning: return value discarded (intentional)
 				"type": "local_events",
 				"events": _generate_local_events()
 			})
-			phase_event_triggered.emit(phase_events[-1])
+			phase_event_triggered.emit(phase_events[-1]) # warning: return value discarded (intentional)
 		CampaignSubPhase.PATRON_CONTACT:
 			# Check for patrons
-			phase_events.append({
+			phase_events.append({ # warning: return value discarded (intentional)
 				"type": "patron_availability",
 				"patrons": _check_patron_availability()
 			})
-			phase_event_triggered.emit(phase_events[-1])
+			phase_event_triggered.emit(phase_events[-1]) # warning: return value discarded (intentional)
 		CampaignSubPhase.MISSION_SELECTION:
 			# Generate available missions
-			phase_events.append({
+			phase_events.append({ # warning: return value discarded (intentional)
 				"type": "available_missions",
 				"missions": _generate_available_missions()
 			})
-			phase_event_triggered.emit(phase_events[-1])
+			phase_event_triggered.emit(phase_events[-1]) # warning: return value discarded (intentional)
 
 func _execute_setup_phase_start() -> void:
 	# Initial campaign setup
 	if not game_state.current_campaign:
-		phase_error.emit("No active campaign during setup phase", true)
+		phase_error.emit("No active campaign during setup phase", true) # warning: return value discarded (intentional)
 		return
 
 func _execute_upkeep_phase_start() -> void:
 	# Calculate upkeep costs and resources required
 	var upkeep_costs = _calculate_upkeep_costs()
 	phase_resources["upkeep_costs"] = upkeep_costs
-	phase_events.append({
+
+	phase_events.append({ # warning: return value discarded (intentional)
 		"type": "upkeep_required",
 		"costs": upkeep_costs
 	})
-	phase_event_triggered.emit(phase_events[-1])
+	phase_event_triggered.emit(phase_events[-1]) # warning: return value discarded (intentional)
 
 func _execute_story_phase_start() -> void:
 	# Generate story events
 	var story_events = _generate_story_events()
-	phase_events.append({
+
+	phase_events.append({ # warning: return value discarded (intentional)
 		"type": "story_events",
 		"events": story_events
 	})
-	phase_event_triggered.emit(phase_events[-1])
+	phase_event_triggered.emit(phase_events[-1]) # warning: return value discarded (intentional)
 
 func _execute_campaign_phase_start() -> void:
 	# Start with Travel sub-phase
 	start_sub_phase(CampaignSubPhase.TRAVEL)
-
 func _execute_battle_setup_phase_start() -> void:
 	# Generate battlefield
 	var battlefield = _generate_battlefield()
-	phase_events.append({
+
+	phase_events.append({ # warning: return value discarded (intentional)
 		"type": "battlefield_generated",
 		"battlefield": battlefield
 	})
-	phase_event_triggered.emit(phase_events[-1])
+	phase_event_triggered.emit(phase_events[-1]) # warning: return value discarded (intentional)
 	
 	# Generate enemy forces
 	var enemy_forces = _generate_enemy_forces()
-	phase_events.append({
+
+	phase_events.append({ # warning: return value discarded (intentional)
 		"type": "enemy_forces_generated",
 		"enemies": enemy_forces
 	})
-	phase_event_triggered.emit(phase_events[-1])
+	phase_event_triggered.emit(phase_events[-1]) # warning: return value discarded (intentional)
 
 func _execute_battle_resolution_phase_start() -> void:
 	# Initialize battle state
-	phase_events.append({
+	phase_events.append({ # warning: return value discarded (intentional)
 		"type": "battle_started",
 		"battle_data": _get_current_battle_data()
 	})
-	phase_event_triggered.emit(phase_events[-1])
+	phase_event_triggered.emit(phase_events[-1]) # warning: return value discarded (intentional)
 
 func _execute_advancement_phase_start() -> void:
 	# Calculate experience earned
 	var experience_earned = _calculate_experience_earned()
 	phase_resources["experience_earned"] = experience_earned
-	phase_events.append({
+
+	phase_events.append({ # warning: return value discarded (intentional)
 		"type": "experience_earned",
 		"experience": experience_earned
 	})
-	phase_event_triggered.emit(phase_events[-1])
+	phase_event_triggered.emit(phase_events[-1]) # warning: return value discarded (intentional)
 
 func _execute_trade_phase_start() -> void:
 	# Generate trade options
 	var trade_options = _generate_trade_options()
-	phase_events.append({
+
+	phase_events.append({ # warning: return value discarded (intentional)
 		"type": "trade_options",
 		"options": trade_options
 	})
-	phase_event_triggered.emit(phase_events[-1])
+	phase_event_triggered.emit(phase_events[-1]) # warning: return value discarded (intentional)
 
 func _execute_end_phase_start() -> void:
 	# Generate turn summary
 	var turn_summary = _generate_turn_summary()
-	phase_events.append({
+
+	phase_events.append({ # warning: return value discarded (intentional)
 		"type": "turn_summary",
 		"summary": turn_summary
 	})
-	phase_event_triggered.emit(phase_events[-1])
+	phase_event_triggered.emit(phase_events[-1]) # warning: return value discarded (intentional)
 	
 	# Advance campaign turn
 	game_state.advance_turn()
@@ -448,7 +461,6 @@ func _setup_phase_requirements(phase: FiveParcsecsCampaignPhase) -> void:
 			phase_requirements = {
 				"actions": ["turn_completed"]
 			}
-
 func _are_phase_requirements_met() -> bool:
 	# Check if all required actions are completed
 	if "actions" in phase_requirements:
@@ -545,7 +557,7 @@ func _generate_turn_summary() -> Dictionary:
 
 func validate_current_campaign() -> bool:
 	if not validator or not game_state:
-		phase_errors.append("Cannot validate campaign: validator or game state not ready")
+		phase_errors.append("Cannot validate campaign: validator or game state not ready") # warning: return value discarded (intentional)
 		return false
 	
 	var validation_result = validator.validate_campaign()

@@ -1,4 +1,5 @@
 @tool
+class_name BaseCrew
 extends Resource
 
 signal member_added(character)
@@ -17,7 +18,7 @@ var meeting_story: String = ""
 func _init() -> void:
 	members = []
 	credits = 1000
-
+	
 func add_member(character) -> bool:
 	if members.size() >= MAX_CREW_SIZE:
 		push_error("Cannot add member: Crew is at maximum capacity")
@@ -71,11 +72,8 @@ func get_member_by_name(member_name: String):
 	for member in members:
 		if member.character_name == member_name:
 			return member
-	
-	return null
-
 func to_dict() -> Dictionary:
-	var member_data = []
+	var member_data: Array = []
 	for member in members:
 		if member.has_method("to_dict"):
 			member_data.append(member.to_dict())
@@ -97,4 +95,4 @@ func from_dict(data: Dictionary) -> void:
 		credits_changed.emit(credits)
 	
 	# Member loading should be handled by derived classes
-	# as they will know the specific member type 
+	# as they will know the specific member type" 

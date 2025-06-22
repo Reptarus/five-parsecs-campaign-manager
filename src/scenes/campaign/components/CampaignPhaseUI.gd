@@ -47,12 +47,12 @@ func _update_progress_display() -> void:
 	if not phase_manager:
 		return
 		
-	var phase_state = phase_manager.get_phase_state()
-	var progress = 0.0
+	var _phase_state = phase_manager.get_phase_state()
+	var progress: int = 0
 	
 	# Calculate progress based on completed actions
 	var required_actions = _get_required_actions(current_phase)
-	var completed_actions = 0
+	var completed_actions: int = 0
 	for action in required_actions:
 		if phase_manager.phase_actions_completed.get(action, false):
 			completed_actions += 1
@@ -60,7 +60,7 @@ func _update_progress_display() -> void:
 	if required_actions.size() > 0:
 		progress = float(completed_actions) / required_actions.size()
 	
-	progress_bar.value = progress * 100
+	progress_bar._value = progress * 100
 
 func _get_required_actions(phase: GameEnums.FiveParcsecsCampaignPhase) -> Array:
 	match phase:
@@ -131,40 +131,36 @@ func _update_available_actions(phase: GameEnums.FiveParcsecsCampaignPhase) -> vo
 			_add_action_button("complete_turn", "Complete Turn", not _can_complete_turn())
 
 func _add_action_button(action_type: String, label: String, disabled: bool = false) -> void:
-	var button = Button.new()
+	var button := Button.new()
 	button.text = label
+
 	button.disabled = disabled or not available_actions.get(action_type, true)
 	button.pressed.connect(func(): _on_action_button_pressed(action_type))
 	action_container.add_child(button)
 
 func _is_setup_complete() -> bool:
-	return phase_manager.phase_actions_completed.get("crew_created", false) and \
-	       phase_manager.phase_actions_completed.get("campaign_selected", false)
+	return phase_manager.phase_actions_completed.get("crew_created", false) and phase_manager.phase_actions_completed.get("campaign_selected", false)
 
 func _can_complete_upkeep() -> bool:
-	return phase_manager.phase_actions_completed.get("upkeep_paid", false) and \
-	       phase_manager.phase_actions_completed.get("resources_updated", false)
+	return phase_manager.phase_actions_completed.get("upkeep_paid", false)
 
 func _can_complete_story() -> bool:
-	return phase_manager.phase_actions_completed.get("world_events_resolved", false) and \
-	       phase_manager.phase_actions_completed.get("location_checked", false)
+	return phase_manager.phase_actions_completed.get("world_events_resolved", false) and phase_manager.phase_actions_completed.get("location_checked", false)
 
 func _can_complete_campaign() -> bool:
-	return phase_manager.phase_actions_completed.get("tasks_assigned", false) and \
-	       phase_manager.phase_actions_completed.get("patron_selected", false)
+	return phase_manager.phase_actions_completed.get("tasks_assigned", false) and phase_manager.phase_actions_completed.get("patron_selected", false)
 
 func _can_start_battle() -> bool:
 	return phase_manager.phase_actions_completed.get("deployment_ready", false)
 
 func _can_complete_battle() -> bool:
-	return phase_manager.phase_actions_completed.get("battle_completed", false) and \
-	       phase_manager.phase_actions_completed.get("rewards_calculated", false)
+	return phase_manager.phase_actions_completed.get("battle_completed", false) and phase_manager.phase_actions_completed.get("rewards_calculated", false)
 
 func _can_complete_turn() -> bool:
 	return phase_manager.phase_actions_completed.get("management_completed", false)
 
 func _on_action_button_pressed(action_type: String) -> void:
-	action_requested.emit(action_type)
+	action_requested.emit(action_type) # warning: return value discarded (intentional)
 	
 	# Update UI state immediately for better responsiveness
 	_update_progress_display()
@@ -184,3 +180,4 @@ func _on_phase_completed() -> void:
 	
 	# Update progress display
 	_update_progress_display()
+

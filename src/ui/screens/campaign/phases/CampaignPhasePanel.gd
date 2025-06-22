@@ -65,7 +65,7 @@ func _check_location() -> void:
 	if world_economy:
 		world_economy.update_local_economy()
 	
-	location_changed.emit(current_location)
+	location_changed.emit(current_location) # warning: return value discarded (intentional)
 
 func _generate_missions() -> void:
 	if not campaign_manager:
@@ -96,7 +96,7 @@ func _update_ui() -> void:
 	# Add mission buttons
 	for i in range(available_missions.size()):
 		var mission = available_missions[i]
-		var button = Button.new()
+		var button := Button.new()
 		button.text = "%s (Threat Level: %d)" % [mission.title, mission.threat_level]
 		button.pressed.connect(_on_mission_selected.bind(mission))
 		
@@ -115,7 +115,7 @@ func _update_mission_details() -> void:
 		accept_button.disabled = true
 		return
 	
-	var details = "[b]%s[/b]\n\n" % selected_mission.title
+	var details: String = "[b]%s[/b]\n\n" % selected_mission.title
 	details += selected_mission.description + "\n\n"
 	
 	details += "[b]Objectives:[/b]\n"
@@ -174,7 +174,7 @@ func _on_mission_selected(mission: StoryQuestData) -> void:
 			button.add_theme_color_override("font_color", Color.WHITE)
 	
 	_update_mission_details()
-	mission_selected.emit(mission)
+	mission_selected.emit(mission) # warning: return value discarded (intentional)
 
 func _on_accept_pressed() -> void:
 	if not selected_mission:
@@ -183,14 +183,14 @@ func _on_accept_pressed() -> void:
 	if campaign_manager.start_mission(selected_mission):
 		game_state.set_current_mission(selected_mission)
 		game_state.set_current_location(current_location)
-		mission_accepted.emit(selected_mission)
+		mission_accepted.emit(selected_mission) # warning: return value discarded (intentional)
 		complete_phase()
 	else:
 		push_warning("Failed to start mission")
 
 func _on_mission_available(mission: StoryQuestData) -> void:
 	if not mission in available_missions:
-		available_missions.append(mission)
+		available_missions.append(mission) # warning: return value discarded (intentional)
 		_update_ui()
 
 func _on_validation_failed(errors: Array[String]) -> void:
@@ -198,7 +198,7 @@ func _on_validation_failed(errors: Array[String]) -> void:
 	_update_ui()
 
 func _on_local_event_triggered(event_description: String) -> void:
-	# Update location description with event
+	# Update location _description with event
 	var current_text = location_description.text
 	location_description.text = current_text + "\n\n[b]Local Event:[/b]\n" + event_description
 

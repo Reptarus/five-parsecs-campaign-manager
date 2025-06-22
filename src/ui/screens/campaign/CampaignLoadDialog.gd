@@ -2,10 +2,10 @@ extends Control
 
 const GameEnums = preload("res://src/core/systems/GlobalEnums.gd")
 
-@onready var campaign_list = $VBoxContainer/CampaignList
-@onready var load_button = $VBoxContainer/LoadButton
-@onready var delete_button = $VBoxContainer/DeleteButton
-@onready var summary_panel = $VBoxContainer/SummaryPanel
+@onready var campaign_list: Button = $"VBoxContainer/CampaignList"
+@onready var load_button: Button = $"VBoxContainer/LoadButton"
+@onready var delete_button: Button = $"VBoxContainer/DeleteButton"
+@onready var summary_panel: Button = $"VBoxContainer/SummaryPanel"
 
 signal campaign_selected(campaign_data: Dictionary)
 signal campaign_deleted(campaign_name: String)
@@ -29,7 +29,7 @@ func _update_ui_state() -> void:
 func update_campaign_list(campaigns: Array) -> void:
     campaign_list.clear()
     for campaign in campaigns:
-        var text = "%s (%s)" % [campaign.name, _get_difficulty_name(campaign.difficulty_level)]
+        var text: String = "%s (%s)" % [campaign.name, _get_difficulty_name(campaign.difficulty_level)]
         campaign_list.add_item(text)
 
 func _get_difficulty_name(difficulty: int) -> String:
@@ -54,11 +54,11 @@ func _on_campaign_selected(index: int) -> void:
 
 func _on_load_pressed() -> void:
     if not selected_campaign.is_empty():
-        campaign_selected.emit(selected_campaign)
+        campaign_selected.emit(selected_campaign)  # warning: return value discarded (intentional)
 
 func _on_delete_pressed() -> void:
     if not selected_campaign.is_empty():
-        campaign_deleted.emit(selected_campaign.name)
+        campaign_deleted.emit(selected_campaign.name)  # warning: return value discarded (intentional)
         selected_campaign = {}
         _update_ui_state()
 

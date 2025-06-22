@@ -1,7 +1,8 @@
 ## Campaign Phase Transitions Test Suite
 ## Tests the transitions between different campaign phases and their effects
 @tool
-extends GdUnitGameTest
+@warning_ignore("return_value_discarded")
+	extends GdUnitGameTest
 
 # Required imports
 const GameEnums: GDScript = preload("res://src/core/systems/GlobalEnums.gd")
@@ -62,10 +63,12 @@ func before_test() -> void:
 	super.before_test()
 	
 	_game_state = MockGameState.new()
+	@warning_ignore("return_value_discarded")
 	track_resource(_game_state)
 	
 	_phase_manager = MockPhaseManager.new()
 	_phase_manager.initialize(_game_state)
+	@warning_ignore("return_value_discarded")
 	track_resource(_phase_manager)
 
 func after_test() -> void:
@@ -74,12 +77,14 @@ func after_test() -> void:
 	super.after_test()
 
 # Initial State Tests
+@warning_ignore("unsafe_method_access")
 func test_initial_phase() -> void:
 	var phase: int = _phase_manager.get_current_phase()
 	var none_phase := GameEnums.FiveParcsecsCampaignPhase.NONE if GameEnums else 0
 	assert_that(phase).is_equal(none_phase)
 
 # Phase Transition Tests
+@warning_ignore("unsafe_method_access")
 func test_basic_phase_transition() -> void:
 	# Test direct state instead of signal monitoring (proven pattern)
 	var upkeep_phase := GameEnums.FiveParcsecsCampaignPhase.UPKEEP if GameEnums else 1
@@ -90,6 +95,7 @@ func test_basic_phase_transition() -> void:
 	var current_phase: int = _phase_manager.get_current_phase()
 	assert_that(current_phase).is_equal(upkeep_phase)
 
+@warning_ignore("unsafe_method_access")
 func test_invalid_phase_transition() -> void:
 	# Test direct state instead of signal monitoring (proven pattern)
 	var success: bool = _phase_manager.transition_to(-1)
@@ -100,17 +106,25 @@ func test_invalid_phase_transition() -> void:
 	assert_that(current_phase).is_equal(none_phase)
 
 # Phase-Specific Tests
+@warning_ignore("unsafe_method_access")
 func test_upkeep_phase() -> void:
 	# Test direct state instead of signal monitoring (proven pattern)
 	var upkeep_phase := GameEnums.FiveParcsecsCampaignPhase.UPKEEP if GameEnums else 1
 	_phase_manager.transition_to(upkeep_phase)
 	
 	var upkeep_result: Dictionary = _phase_manager.process_upkeep()
-	assert_that(upkeep_result.has("resources_updated")).is_true()
-	assert_that(upkeep_result.has("maintenance_costs")).is_true()
-	assert_that(upkeep_result.get("resources_updated", false)).is_true()
-	assert_that(upkeep_result.get("maintenance_costs", 0)).is_equal(100)
+	assert_that(@warning_ignore("unsafe_call_argument")
+	upkeep_result.has("resources_updated")).is_true()
+	assert_that(@warning_ignore("unsafe_call_argument")
+	upkeep_result.has("maintenance_costs")).is_true()
 
+	assert_that(@warning_ignore("unsafe_call_argument")
+	upkeep_result.get("resources_updated", false)).is_true()
+
+	assert_that(@warning_ignore("unsafe_call_argument")
+	upkeep_result.get("maintenance_costs", 0)).is_equal(100)
+
+@warning_ignore("unsafe_method_access")
 func test_story_phase() -> void:
 	# Test direct state instead of signal monitoring (proven pattern)
 	var story_phase := GameEnums.FiveParcsecsCampaignPhase.STORY if GameEnums else 2
@@ -118,11 +132,18 @@ func test_story_phase() -> void:
 	
 	var story_event: Dictionary = _phase_manager.generate_story_event()
 	assert_that(story_event).is_not_null()
-	assert_that(story_event.has("type")).is_true()
-	assert_that(story_event.has("description")).is_true()
-	assert_that(story_event.get("type", "")).is_equal("encounter")
-	assert_that(story_event.get("description", "")).is_equal("Test story event")
+	assert_that(@warning_ignore("unsafe_call_argument")
+	story_event.has("type")).is_true()
+	assert_that(@warning_ignore("unsafe_call_argument")
+	story_event.has("description")).is_true()
 
+	assert_that(@warning_ignore("unsafe_call_argument")
+	story_event.get("type", "")).is_equal("encounter")
+
+	assert_that(@warning_ignore("unsafe_call_argument")
+	story_event.get("description", "")).is_equal("Test story event")
+
+@warning_ignore("unsafe_method_access")
 func test_battle_setup_phase() -> void:
 	# Test direct state instead of signal monitoring (proven pattern)
 	var battle_setup_phase := GameEnums.FiveParcsecsCampaignPhase.BATTLE_SETUP if GameEnums else 3
@@ -130,11 +151,18 @@ func test_battle_setup_phase() -> void:
 	
 	var battle_state: Dictionary = _phase_manager.initialize_battle()
 	assert_that(battle_state).is_not_null()
-	assert_that(battle_state.has("units")).is_true()
-	assert_that(battle_state.has("terrain")).is_true()
-	assert_that(battle_state.get("units", null) is Array).is_true()
-	assert_that(battle_state.get("terrain", null) is Dictionary).is_true()
+	assert_that(@warning_ignore("unsafe_call_argument")
+	battle_state.has("units")).is_true()
+	assert_that(@warning_ignore("unsafe_call_argument")
+	battle_state.has("terrain")).is_true()
 
+	assert_that(@warning_ignore("unsafe_call_argument")
+	battle_state.get("units", null) is Array).is_true()
+
+	assert_that(@warning_ignore("unsafe_call_argument")
+	battle_state.get("terrain", null) is Dictionary).is_true()
+
+@warning_ignore("unsafe_method_access")
 func test_battle_resolution_phase() -> void:
 	# Test direct state instead of signal monitoring (proven pattern)
 	var battle_resolution_phase := GameEnums.FiveParcsecsCampaignPhase.BATTLE_RESOLUTION if GameEnums else 4
@@ -142,12 +170,19 @@ func test_battle_resolution_phase() -> void:
 	
 	var resolution: Dictionary = _phase_manager.resolve_battle()
 	assert_that(resolution).is_not_null()
-	assert_that(resolution.has("outcome")).is_true()
-	assert_that(resolution.has("rewards")).is_true()
-	assert_that(resolution.get("outcome", "")).is_equal("victory")
-	assert_that(resolution.get("rewards", {}) is Dictionary).is_true()
+	assert_that(@warning_ignore("unsafe_call_argument")
+	resolution.has("outcome")).is_true()
+	assert_that(@warning_ignore("unsafe_call_argument")
+	resolution.has("rewards")).is_true()
+
+	assert_that(@warning_ignore("unsafe_call_argument")
+	resolution.get("outcome", "")).is_equal("victory")
+
+	assert_that(@warning_ignore("unsafe_call_argument")
+	resolution.get("rewards", {}) is Dictionary).is_true()
 
 # Complex Phase Transition Tests
+@warning_ignore("unsafe_method_access")
 func test_complete_phase_cycle() -> void:
 	# Test direct state instead of signal monitoring (proven pattern)
 	var phases = [
@@ -164,6 +199,7 @@ func test_complete_phase_cycle() -> void:
 		var current_phase: int = _phase_manager.get_current_phase()
 		assert_that(current_phase).is_equal(phase)
 
+@warning_ignore("unsafe_method_access")
 func test_phase_data_management() -> void:
 	# Test direct state instead of signal monitoring (proven pattern)
 	var test_data = {
@@ -182,6 +218,7 @@ func test_phase_data_management() -> void:
 	success = _phase_manager.set_phase_data({})
 	assert_that(success).is_true()
 
+@warning_ignore("unsafe_method_access")
 func test_battle_processing() -> void:
 	# Test direct state instead of signal monitoring (proven pattern)
 	# Test non-battle phases
@@ -202,6 +239,7 @@ func test_battle_processing() -> void:
 	assert_that(can_process).is_true()
 
 # Edge Cases and Error Handling
+@warning_ignore("unsafe_method_access")
 func test_phase_boundary_conditions() -> void:
 	# Test direct state instead of signal monitoring (proven pattern)
 	# Test minimum boundary
@@ -218,45 +256,59 @@ func test_phase_boundary_conditions() -> void:
 	success = _phase_manager.transition_to(5)
 	assert_that(success).is_false()
 
+@warning_ignore("unsafe_method_access")
 func test_rapid_phase_transitions() -> void:
 	# Test direct state instead of signal monitoring (proven pattern)
-	for i in range(100):
-		var phase = i % 5 # Cycle through valid phases 0-4
+	for i: int in range(100):
+		var phase = @warning_ignore("integer_division")
+	i % 5 # Cycle through valid phases 0-4
 		var success: bool = _phase_manager.transition_to(phase)
 		assert_that(success).is_true()
 		
 		var current_phase: int = _phase_manager.get_current_phase()
 		assert_that(current_phase).is_equal(phase)
 
+@warning_ignore("unsafe_method_access")
 func test_phase_specific_operations() -> void:
 	# Test direct state instead of signal monitoring (proven pattern)
+
 	# Test each phase has its specific operations
 	var upkeep_phase := GameEnums.FiveParcsecsCampaignPhase.UPKEEP if GameEnums else 1
 	_phase_manager.transition_to(upkeep_phase)
 	var upkeep_result = _phase_manager.process_upkeep()
-	assert_that(upkeep_result.get("maintenance_costs", 0)).is_greater(0)
+
+	assert_that(@warning_ignore("unsafe_call_argument")
+	upkeep_result.get("maintenance_costs", 0)).is_greater(0)
 	
 	var story_phase := GameEnums.FiveParcsecsCampaignPhase.STORY if GameEnums else 2
 	_phase_manager.transition_to(story_phase)
 	var story_result = _phase_manager.generate_story_event()
-	assert_that(story_result.get("type", "")).is_not_equal("")
+
+	assert_that(@warning_ignore("unsafe_call_argument")
+	story_result.get("type", "")).is_not_equal("")
 	
 	var battle_setup_phase := GameEnums.FiveParcsecsCampaignPhase.BATTLE_SETUP if GameEnums else 3
 	_phase_manager.transition_to(battle_setup_phase)
 	var battle_setup_result = _phase_manager.initialize_battle()
-	assert_that(battle_setup_result.has("units")).is_true()
+	assert_that(@warning_ignore("unsafe_call_argument")
+	battle_setup_result.has("units")).is_true()
 	
 	var battle_resolution_phase := GameEnums.FiveParcsecsCampaignPhase.BATTLE_RESOLUTION if GameEnums else 4
 	_phase_manager.transition_to(battle_resolution_phase)
 	var battle_resolution_result = _phase_manager.resolve_battle()
-	assert_that(battle_resolution_result.get("outcome", "")).is_not_equal("")
 
+	assert_that(@warning_ignore("unsafe_call_argument")
+	battle_resolution_result.get("outcome", "")).is_not_equal("")
+
+@warning_ignore("unsafe_method_access")
 func test_initialization_state() -> void:
 	# Test direct state instead of signal monitoring (proven pattern)
-	var new_game_state = MockGameState.new()
+	var new_game_state: MockGameState = MockGameState.new()
+	@warning_ignore("return_value_discarded")
 	track_resource(new_game_state)
 	
-	var new_phase_manager = MockPhaseManager.new()
+	var new_phase_manager: MockPhaseManager = MockPhaseManager.new()
+	@warning_ignore("return_value_discarded")
 	track_resource(new_phase_manager)
 	
 	var success: bool = new_phase_manager.initialize(new_game_state)

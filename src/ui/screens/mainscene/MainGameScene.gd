@@ -53,7 +53,7 @@ func change_scene(scene_name: String) -> void:
 		return
 		
 	if not SCENES.has(scene_name):
-		push_error("Invalid scene name: %s" % scene_name)
+		push_error("Invalid scene _name: %s" % scene_name)
 		return
 		
 	_is_transitioning = true
@@ -70,7 +70,7 @@ func change_scene(scene_name: String) -> void:
 	
 	_is_transitioning = false
 	_current_scene_name = scene_name
-	scene_changed.emit(scene_name)
+	scene_changed.emit(scene_name) # warning: return value discarded (intentional)
 
 func _change_scene_content(scene_name: String) -> void:
 	# Clear existing scene

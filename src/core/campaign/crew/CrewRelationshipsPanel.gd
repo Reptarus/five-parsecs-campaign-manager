@@ -27,13 +27,11 @@ func _ready() -> void:
 	
 	# Hide add relationship panel initially
 	$VBoxContainer/AddRelationshipPanel.hide()
-
 func initialize(members: Array[Character]) -> void:
 	crew_members = members
 	relationship_manager.generate_initial_relationships(members)
 	_update_display()
 	_populate_dropdowns()
-
 func _update_display() -> void:
 	# Update crew characteristic and meeting story
 	crew_characteristic_label.text = "Crew Characteristic: " + relationship_manager.crew_characteristic
@@ -50,20 +48,20 @@ func _update_display() -> void:
 			var char2 = rel["character"]
 			var relationship = rel["relationship"]
 			
-			var rel_display = HBoxContainer.new()
+			var rel_display := HBoxContainer.new()
 			
 			# Character names
-			var names_label = Label.new()
+			var names_label := Label.new()
 			names_label.text = "%s ←→ %s" % [char1.character_name, char2.character_name]
 			rel_display.add_child(names_label)
 			
 			# Relationship type
-			var type_label = Label.new()
+			var type_label := Label.new()
 			type_label.text = ": %s" % relationship
 			rel_display.add_child(type_label)
 			
 			# Remove button
-			var remove_button = Button.new()
+			var remove_button := Button.new()
 			remove_button.text = "Remove"
 			remove_button.pressed.connect(func():
 				relationship_manager.remove_relationship(char1, char2)
@@ -71,7 +69,6 @@ func _update_display() -> void:
 			rel_display.add_child(remove_button)
 			
 			relationships_container.add_child(rel_display)
-
 func _populate_dropdowns() -> void:
 	# Clear existing items
 	character1_dropdown.clear()
@@ -86,16 +83,12 @@ func _populate_dropdowns() -> void:
 	# Add relationship types
 	for rel_type in relationship_manager.RELATIONSHIP_TYPES.values():
 		relationship_type_dropdown.add_item(rel_type)
-
 func _on_add_relationship_pressed() -> void:
 	$VBoxContainer/AddRelationshipPanel.visible = !$VBoxContainer/AddRelationshipPanel.visible
-
 func _on_relationship_added(_char1: Character, _char2: Character, _relationship_type: String) -> void:
 	_update_display()
-
 func _on_relationship_removed(_char1: Character, _char2: Character) -> void:
 	_update_display()
-
 func _on_confirm_relationship_pressed() -> void:
 	var char1 = crew_members[character1_dropdown.selected]
 	var char2 = crew_members[character2_dropdown.selected]
@@ -104,7 +97,6 @@ func _on_confirm_relationship_pressed() -> void:
 	if char1 != char2:
 		relationship_manager.add_relationship(char1, char2, rel_type)
 		$VBoxContainer/AddRelationshipPanel.hide()
-
 func serialize() -> Dictionary:
 	return relationship_manager.serialize()
 

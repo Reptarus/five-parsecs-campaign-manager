@@ -74,7 +74,6 @@ var _is_debug := false
 func _init(is_debug := false) -> void:
 	_is_debug = is_debug
 	# Register for discovery events to sync the cache
-	@warning_ignore("return_value_discarded")
 	GdUnitSignals.instance().gdunit_test_discover_added.connect(sync_test_added)
 	GdUnitSignals.instance().gdunit_test_discover_deleted.connect(sync_test_deleted)
 	GdUnitSignals.instance().gdunit_test_discover_modified.connect(sync_test_modified)
@@ -195,7 +194,6 @@ func discover(script: Script, discover_sink: Callable = default_discover_sink) -
 ## [param source_file] suite source path[br]
 ## [param discovered_tests] Newly discovered tests
 func sync_moved_tests(source_file: String, discovered_tests: Array[GdUnitTestCase]) -> void:
-	@warning_ignore("unsafe_method_access")
 	var cache: Array[GdUnitTestCase] = _discover_cache.get(source_file).duplicate()
 	for discovered_test in discovered_tests:
 		# lookup in cache
@@ -207,7 +205,6 @@ func sync_moved_tests(source_file: String, discovered_tests: Array[GdUnitTestCas
 			GdUnitSignals.instance().gdunit_test_discover_modified.emit(test)
 			if _is_debug:
 				prints("-> moved test id:%s  %s: line:(%d -> %d)" % [test.guid, test.display_name, line_number_before, test.line_number])
-				@warning_ignore("unsafe_method_access")
 				_discovered_changes.get_or_add("changed_tests", Array([], TYPE_OBJECT, "RefCounted", GdUnitTestCase)).append(test)
 
 
@@ -220,7 +217,6 @@ func sync_moved_tests(source_file: String, discovered_tests: Array[GdUnitTestCas
 ## [param source_file] suite source path[br]
 ## [param discovered_tests] Newly discovered tests
 func sync_renamed_tests(source_file: String, discovered_tests: Array[GdUnitTestCase]) -> void:
-	@warning_ignore("unsafe_method_access")
 	var cache: Array[GdUnitTestCase] = _discover_cache.get(source_file).duplicate()
 	for discovered_test in discovered_tests:
 		# lookup in cache
@@ -233,7 +229,6 @@ func sync_renamed_tests(source_file: String, discovered_tests: Array[GdUnitTestC
 			GdUnitSignals.instance().gdunit_test_discover_modified.emit(test)
 			if _is_debug:
 				prints("-> renamed test id:%s  %s -> %s" % [test.guid, original_display_name, test.display_name])
-				@warning_ignore("unsafe_method_access")
 				_discovered_changes.get_or_add("changed_tests", Array([], TYPE_OBJECT, "RefCounted", GdUnitTestCase)).append(test)
 
 
@@ -246,7 +241,6 @@ func sync_renamed_tests(source_file: String, discovered_tests: Array[GdUnitTestC
 ## [param source_file] suite source path[br]
 ## [param discovered_tests] Newly discovered tests
 func sync_deleted_tests(source_file: String, discovered_tests: Array[GdUnitTestCase]) -> void:
-	@warning_ignore("unsafe_method_access")
 	var cache: Array[GdUnitTestCase] = _discover_cache.get(source_file).duplicate()
 	# lookup in cache
 	for test in cache:
@@ -254,7 +248,6 @@ func sync_deleted_tests(source_file: String, discovered_tests: Array[GdUnitTestC
 			GdUnitSignals.instance().gdunit_test_discover_deleted.emit(test)
 			if _is_debug:
 				prints("-> deleted test id:%s  %s:%d" % [test.guid, test.display_name, test.line_number])
-				@warning_ignore("unsafe_method_access")
 				_discovered_changes.get_or_add("deleted_tests", Array([], TYPE_OBJECT, "RefCounted", GdUnitTestCase)).append(test)
 
 
@@ -268,7 +261,6 @@ func sync_deleted_tests(source_file: String, discovered_tests: Array[GdUnitTestC
 ## [param discovered_tests] Newly discovered tests[br]
 ## [param discover_sink] Callback to handle newly discovered tests
 func sync_added_tests(source_file: String, discovered_tests: Array[GdUnitTestCase], discover_sink: Callable) -> void:
-	@warning_ignore("unsafe_method_access")
 	var cache: Array[GdUnitTestCase] = _discover_cache.get(source_file).duplicate()
 	# lookup in cache
 	for test in discovered_tests:
@@ -276,7 +268,6 @@ func sync_added_tests(source_file: String, discovered_tests: Array[GdUnitTestCas
 			discover_sink.call(test)
 			if _is_debug:
 				prints("-> added test id:%s  %s:%d" % [test.guid, test.display_name, test.line_number])
-				@warning_ignore("unsafe_method_access")
 				_discovered_changes.get_or_add("added_tests", Array([], TYPE_OBJECT, "RefCounted", GdUnitTestCase)).append(test)
 
 

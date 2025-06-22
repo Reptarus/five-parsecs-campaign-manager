@@ -3,7 +3,7 @@ extends PanelContainer
 
 ## Signals
 signal override_requested(context: String, current_value: int)
-signal override_applied(value: int)
+signal override_applied(_value: int)
 signal override_cancelled
 
 ## Node references
@@ -28,18 +28,18 @@ func _ready() -> void:
 		hide()
 
 ## Shows the override panel for a specific context
-func show_override(context: String, value: int, min_val: int = 1, max_val: int = 6) -> void:
+func show_override(context: String, _value: int, min_val: int = 1, max_val: int = 6) -> void:
 	current_context = context
-	current_value = value
+	current_value = _value
 	min_value = min_val
 	max_value = max_val
 	
 	override_type_label.text = _get_context_label(context)
-	current_value_label.text = "Current Value: %d" % value
+	current_value_label.text = "Current Value: %d" % _value
 	
 	override_value_spinbox.min_value = min_val
 	override_value_spinbox.max_value = max_val
-	override_value_spinbox.value = value
+	override_value_spinbox._value = _value
 	
 	show()
 
@@ -53,14 +53,14 @@ func _get_context_label(context: String) -> String:
 
 ## Called when the apply button is pressed
 func _on_apply_pressed() -> void:
-	override_applied.emit(int(override_value_spinbox.value))
+	override_applied.emit(int(override_value_spinbox._value)) # warning: return value discarded (intentional)
 	hide()
 
 ## Called when the cancel button is pressed
 func _on_cancel_pressed() -> void:
-	override_cancelled.emit()
+	override_cancelled.emit() # warning: return value discarded (intentional)
 	hide()
 
-## Called when the override value changes
-func _on_value_changed(value: float) -> void:
-	apply_button.disabled = value == current_value
+## Called when the override _value changes
+func _on_value_changed(_value: float) -> void:
+	apply_button.disabled = _value == current_value

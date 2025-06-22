@@ -29,14 +29,14 @@ func log_error(message: String, category: ErrorCategory, severity: ErrorSeverity
         "context": context,
         "timestamp": Time.get_unix_time_from_system()
     }
-    
-    error_history.append(error)
+
+    error_history.append(error) # warning: return value discarded (intentional)
     
     # Trim history if needed
     if error_history.size() > MAX_ERROR_HISTORY:
-        error_history = error_history.slice(- MAX_ERROR_HISTORY)
+        error_history = error_history.slice(-MAX_ERROR_HISTORY)
     
-    error_logged.emit(error)
+    error_logged.emit(error) # warning: return value discarded (intentional)
 
 func get_error_history() -> Array[Dictionary]:
     return error_history

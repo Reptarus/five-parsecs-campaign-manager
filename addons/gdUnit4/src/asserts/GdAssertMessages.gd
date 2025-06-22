@@ -75,11 +75,9 @@ static func colored_array_div(characters :PackedByteArray) -> String:
 		match character:
 			GdDiffTool.DIV_ADD:
 				index += 1
-				@warning_ignore("return_value_discarded")
 				additional_chars.append(characters[index])
 			GdDiffTool.DIV_SUB:
 				index += 1
-				@warning_ignore("return_value_discarded")
 				missing_chars.append(characters[index])
 			_:
 				if not missing_chars.is_empty():
@@ -88,7 +86,6 @@ static func colored_array_div(characters :PackedByteArray) -> String:
 				if not additional_chars.is_empty():
 					result.append_array(format_chars(additional_chars, ADD_COLOR))
 					additional_chars = PackedByteArray()
-				@warning_ignore("return_value_discarded")
 				result.append(character)
 		index += 1
 
@@ -250,7 +247,6 @@ static func error_is_same(current :Variant, expected :Variant) -> String:
 	return "%s\n %s\n to refer to the same object\n %s" % [_error("Expecting:"), _colored_value(expected), _colored_value(current)]
 
 
-@warning_ignore("unused_parameter")
 static func error_not_same(_current :Variant, expected :Variant) -> String:
 	return "%s\n %s" % [_error("Expecting not same:"), _colored_value(expected)]
 
@@ -365,7 +361,6 @@ static func error_ends_with(current :Variant, expected :Variant) -> String:
 
 
 static func error_has_length(current :Variant, expected: int, compare_operator :int) -> String:
-	@warning_ignore("unsafe_method_access")
 	var current_length :Variant = current.length() if current != null else null
 	match compare_operator:
 		Comparator.EQUAL:
@@ -576,7 +571,6 @@ static func error_no_more_interactions(summary :Dictionary) -> String:
 	var interactions := PackedStringArray()
 	for args :Array in summary.keys():
 		var times :int = summary[args]
-		@warning_ignore("return_value_discarded")
 		interactions.append(_format_arguments(args, times))
 	return "%s\n%s\n%s" % [_error("Expecting no more interactions!"), _error("But found interactions on:"), "\n".join(interactions)]
 
@@ -585,7 +579,6 @@ static func error_validate_interactions(current_interactions: Dictionary, expect
 	var collected_interactions := PackedStringArray()
 	for args: Array in current_interactions.keys():
 		var times: int = current_interactions[args]
-		@warning_ignore("return_value_discarded")
 		collected_interactions.append(_format_arguments(args, times))
 
 	var arguments: Array = expected_interactions.keys()[0]
@@ -606,7 +599,6 @@ static func _format_arguments(args :Array, times :int) -> String:
 static func _to_typed_args(args :Array) -> PackedStringArray:
 	var typed := PackedStringArray()
 	for arg :Variant in args:
-		@warning_ignore("return_value_discarded")
 		typed.append(_format_arg(arg) + " :" + GdObjects.type_as_string(typeof(arg)))
 	return typed
 
@@ -628,7 +620,6 @@ static func _find_first_diff(left :Array, right :Array) -> String:
 
 
 static func error_has_size(current :Variant, expected: int) -> String:
-	@warning_ignore("unsafe_method_access")
 	var current_size :Variant = null if current == null else current.size()
 	return "%s\n %s\n but was\n %s" % [_error("Expecting size:"), _colored_value(expected), _colored_value(current_size)]
 

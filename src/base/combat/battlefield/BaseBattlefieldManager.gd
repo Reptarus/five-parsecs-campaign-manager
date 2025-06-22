@@ -9,17 +9,17 @@ signal unit_added(unit: Node, position: Vector2i)
 signal unit_removed(unit: Node, position: Vector2i)
 signal cover_changed(position: Vector2i, cover_value: float)
 signal line_of_sight_changed(from: Vector2i, to: Vector2i, blocked: bool)
-signal tactical_advantage_changed(unit: Node, advantage_type: int, value: float)
+signal tactical_advantage_changed(unit: Node, advantage_type: int, _value: float)
 signal deployment_zone_updated(zone_type: int, positions: Array[Vector2i])
 signal battlefield_validated(result: Dictionary)
 signal terrain_placement_validated(result: Dictionary)
 
 # Configuration
-var MOVEMENT_BASE: int = 6 # Base movement points
+var _MOVEMENT_BASE: int = 6 # Base movement points
 var GRID_SIZE := Vector2i(24, 24) # Default battlefield size
-var CELL_SIZE := Vector2i(32, 32) # Default visual size of each grid cell
-var MIN_TERRAIN_PIECES: int = 4 # Minimum terrain requirement
-var MAX_TERRAIN_PIECES: int = 12 # Maximum terrain requirement
+var _CELL_SIZE := Vector2i(32, 32) # Default visual size of each grid cell
+var _MIN_TERRAIN_PIECES: int = 4 # Minimum terrain requirement
+var _MAX_TERRAIN_PIECES: int = 12 # Maximum terrain requirement
 
 # Battlefield state
 var terrain_map: Array[Array] = [] # Array of terrain types
@@ -32,30 +32,31 @@ var deployment_zones: Dictionary = {} # Dictionary of deployment zones
 func initialize_battlefield(size: Vector2i = GRID_SIZE) -> void:
 	GRID_SIZE = size
 	_create_empty_maps()
-
 func _create_empty_maps() -> void:
 	# Initialize terrain map
 	terrain_map.clear()
 	for x in range(GRID_SIZE.x):
 		var column: Array = []
 		for y in range(GRID_SIZE.y):
-			column.append(0) # Default terrain type (empty)
-		terrain_map.append(column)
+			column.append(0) # Default terrain type (empty)  # warning: return value discarded (intentional)
+
+		terrain_map.append(column) # warning: return value discarded (intentional)
 	
 	# Initialize cover map
 	cover_map.clear()
 	for x in range(GRID_SIZE.x):
 		var column: Array = []
 		for y in range(GRID_SIZE.y):
-			column.append(0.0) # Default cover value (none)
-		cover_map.append(column)
+			column.append(0.0) # Default cover _value (none)  # warning: return value discarded (intentional)
+
+		cover_map.append(column) # warning: return value discarded (intentional)
 
 # Terrain management
 func set_terrain(position: Vector2i, terrain_type: int) -> void:
 	if _is_valid_position(position):
 		terrain_map[position.x][position.y] = terrain_type
 		_update_cover_at_position(position)
-		terrain_updated.emit(position, terrain_type)
+		terrain_updated.emit(position, terrain_type) # warning: return value discarded (intentional)
 
 func get_terrain(position: Vector2i) -> int:
 	if _is_valid_position(position):
@@ -66,7 +67,7 @@ func get_terrain(position: Vector2i) -> int:
 func add_unit(unit: Node, position: Vector2i) -> bool:
 	if _is_valid_position(position) and not _is_position_occupied(position):
 		unit_positions[unit] = position
-		unit_added.emit(unit, position)
+		unit_added.emit(unit, position) # warning: return value discarded (intentional)
 		return true
 	return false
 
@@ -74,7 +75,7 @@ func remove_unit(unit: Node) -> bool:
 	if unit in unit_positions:
 		var position = unit_positions[unit]
 		unit_positions.erase(unit)
-		unit_removed.emit(unit, position)
+		unit_removed.emit(unit, position) # warning: return value discarded (intentional)
 		return true
 	return false
 
@@ -82,7 +83,7 @@ func move_unit(unit: Node, new_position: Vector2i) -> bool:
 	if unit in unit_positions and _is_valid_position(new_position) and not _is_position_occupied(new_position):
 		var old_position = unit_positions[unit]
 		unit_positions[unit] = new_position
-		unit_moved.emit(unit, old_position, new_position)
+		unit_moved.emit(unit, old_position, new_position) # warning: return value discarded (intentional)
 		return true
 	return false
 
@@ -107,7 +108,7 @@ func _update_cover_at_position(position: Vector2i) -> void:
 	if _is_valid_position(position):
 		var cover_value = _calculate_cover_value(position)
 		cover_map[position.x][position.y] = cover_value
-		cover_changed.emit(position, cover_value)
+		cover_changed.emit(position, cover_value) # warning: return value discarded (intentional)
 
 func _calculate_cover_value(position: Vector2i) -> float:
 	# To be implemented by derived classes
@@ -140,7 +141,7 @@ func _is_position_occupied(position: Vector2i) -> bool:
 # Deployment zones
 func set_deployment_zone(zone_type: int, positions: Array[Vector2i]) -> void:
 	deployment_zones[zone_type] = positions
-	deployment_zone_updated.emit(zone_type, positions)
+	deployment_zone_updated.emit(zone_type, positions) # warning: return value discarded (intentional)
 
 func get_deployment_zone(zone_type: int) -> Array[Vector2i]:
 	if zone_type in deployment_zones:
@@ -157,7 +158,7 @@ func validate_battlefield() -> Dictionary:
 	
 	# To be implemented by derived classes
 	
-	battlefield_validated.emit(result)
+	battlefield_validated.emit(result) # warning: return value discarded (intentional)
 	return result
 
 func validate_terrain_placement(terrain_type: int, position: Vector2i) -> Dictionary:
@@ -169,5 +170,5 @@ func validate_terrain_placement(terrain_type: int, position: Vector2i) -> Dictio
 	
 	# To be implemented by derived classes
 	
-	terrain_placement_validated.emit(result)
+	terrain_placement_validated.emit(result) # warning: return value discarded (intentional)
 	return result

@@ -34,6 +34,12 @@ var _current_state: Dictionary = {
 	"is_active": false
 }
 
+# Position tracking
+var _position: Vector2 = Vector2.ZERO
+
+# Combat stats and state
+@export var enemy_name: String = "Unknown Enemy"
+
 func _ready() -> void:
 	if not enemy_data:
 		push_warning("Enemy initialized without enemy data")
@@ -75,13 +81,13 @@ func move_to(target_position: Vector2) -> void:
 		return
 		
 	# Implement actual movement logic here
-	position = target_position
+	_position = target_position
 	_current_state.movement_points -= 1
 	if _current_state.movement_points <= 0:
 		_current_state.can_move = false
 	
-	movement_completed.emit()
-	state_changed.emit(_current_state)
+	movement_completed.emit() # warning: return value discarded (intentional)
+	state_changed.emit(_current_state) # warning: return value discarded (intentional)
 
 # Combat methods
 func get_weapon() -> Resource:
@@ -96,8 +102,8 @@ func attack(target: Node2D) -> void:
 		
 	# Implement attack logic here
 	_current_state.can_attack = false
-	attack_completed.emit()
-	state_changed.emit(_current_state)
+	attack_completed.emit() # warning: return value discarded (intentional)
+	state_changed.emit(_current_state) # warning: return value discarded (intentional)
 
 # Health methods
 func get_health() -> int:
@@ -109,15 +115,15 @@ func get_max_health() -> int:
 func take_damage(amount: int) -> void:
 	var old_health = _current_health
 	_current_health = maxi(0, _current_health - amount)
-	health_changed.emit(_current_health, old_health)
+	health_changed.emit(_current_health, old_health) # warning: return value discarded (intentional)
 	
 	if _current_health <= 0:
-		died.emit()
+		died.emit() # warning: return value discarded (intentional)
 
 func heal(amount: int) -> void:
 	var old_health = _current_health
 	_current_health = mini(_max_health, _current_health + amount)
-	health_changed.emit(_current_health, old_health)
+	health_changed.emit(_current_health, old_health) # warning: return value discarded (intentional)
 
 # State management
 func start_turn() -> void:
@@ -126,7 +132,7 @@ func start_turn() -> void:
 	_current_state.can_attack = true
 	_current_state.can_move = true
 	_current_state.is_active = true
-	state_changed.emit(_current_state)
+	state_changed.emit(_current_state) # warning: return value discarded (intentional)
 
 func end_turn() -> void:
 	_current_state.action_points = 0
@@ -134,7 +140,7 @@ func end_turn() -> void:
 	_current_state.can_attack = false
 	_current_state.can_move = false
 	_current_state.is_active = false
-	state_changed.emit(_current_state)
+	state_changed.emit(_current_state) # warning: return value discarded (intentional)
 
 func get_state() -> Dictionary:
 	return _current_state.duplicate()
@@ -143,7 +149,7 @@ func get_combat_rating() -> float:
 	if not enemy_data:
 		return 1.0
 	
-	var weapon_rating = 1.0 if not get_weapon() else get_weapon().get_rating()
+	var weapon_rating: int = 1 if not get_weapon() else get_weapon().get_rating()
 	var health_ratio = float(_current_health) / float(_max_health)
 	
 	return weapon_rating * health_ratio

@@ -1,5 +1,6 @@
 @tool
-extends RefCounted
+@warning_ignore("return_value_discarded")
+	extends RefCounted
 
 ## Signal awaiter class for handling signal waiting and argument collection
 ## Used by signal_test_helper.gd for signal testing functionality
@@ -7,7 +8,8 @@ extends RefCounted
 var _signal_name: String
 var _emitter: Object
 var _timeout: float
-var _args: Array[Variant] = []
+var _args: @warning_ignore("unsafe_call_argument")
+	Array[Variant] = []
 var _completed: bool = false
 var _error: String = ""
 
@@ -30,9 +32,11 @@ func _init(emitter: Object, signal_name: String, timeout: float = SIGNAL_TIMEOUT
 		return
 		
 	if not _emitter.has_signal(_signal_name):
-		_error = ERROR_SIGNAL_NOT_FOUND % _signal_name
+		_error = @warning_ignore("integer_division")
+	ERROR_SIGNAL_NOT_FOUND % _signal_name
 		return
-		
+
+	@warning_ignore("return_value_discarded")
 	_emitter.connect(_signal_name, _on_signal_emitted)
 
 func _on_signal_emitted(arg1 = null, arg2 = null, arg3 = null, arg4 = null, arg5 = null) -> void:

@@ -30,13 +30,13 @@ func apply_terrain_effect(target: Node, terrain_type: TerrainTypes.Type, feature
 		for effect_type in modifiers:
 			var strength = modifiers[effect_type]
 			_active_effects[target_id][effect_type] = strength
-			effect_applied.emit(target_id, effect_type, strength)
+			effect_applied.emit(target_id, effect_type, strength) # warning: return value discarded (intentional)
 	else:
 		# Create new effects
 		_active_effects[target_id] = modifiers.duplicate()
 		for effect_type in modifiers:
 			var strength = modifiers[effect_type]
-			effect_applied.emit(target_id, effect_type, strength)
+			effect_applied.emit(target_id, effect_type, strength) # warning: return value discarded (intentional)
 
 # Remove all terrain effects from a target
 func remove_terrain_effects(target: Node) -> void:
@@ -46,7 +46,7 @@ func remove_terrain_effects(target: Node) -> void:
 	var target_id = target.get_instance_id()
 	if _active_effects.has(target_id):
 		for effect_type in _active_effects[target_id]:
-			effect_removed.emit(target_id, effect_type)
+			effect_removed.emit(target_id, effect_type) # warning: return value discarded (intentional)
 		_active_effects.erase(target_id)
 
 # Get active effects for a target
@@ -55,11 +55,12 @@ func get_active_effects(target: Node) -> Dictionary:
 		return {}
 		
 	var target_id = target.get_instance_id()
+
 	return _active_effects.get(target_id, {}).duplicate()
 
 # Update terrain state at a position
 func update_terrain_state(position: Vector2i, terrain_type: TerrainTypes.Type, feature_type: GameEnums.TerrainFeatureType) -> void:
-	var old_state = _terrain_states.get(position, {})
+	var _old_state = _terrain_states.get(position, {})
 	var environment = _convert_terrain_to_environment(terrain_type)
 	var new_state = {
 		"terrain_type": terrain_type,
@@ -67,9 +68,9 @@ func update_terrain_state(position: Vector2i, terrain_type: TerrainTypes.Type, f
 		"environment": environment,
 		"movement_cost": TerrainTypes.get_movement_cost(terrain_type),
 		"cover_value": TerrainTypes.get_cover_value(terrain_type),
-		"blocks_los": TerrainTypes.blocks_line_of_sight(terrain_type),
-		"elevation": TerrainTypes.get_elevation(terrain_type),
-		"special": TerrainTypes.get_special_properties(terrain_type)
+		"blocks_los": TerrainTypes.blocks_movement(terrain_type),
+		"elevation": 0,
+		"special": {}
 	}
 	
 	_terrain_states[position] = new_state
@@ -85,26 +86,31 @@ func get_terrain_state(position: Vector2i) -> Dictionary:
 # Check if a position has a specific terrain feature
 func has_terrain_feature(position: Vector2i, feature_type: GameEnums.TerrainFeatureType) -> bool:
 	var state = _terrain_states.get(position, {})
+
 	return state.get("feature_type", GameEnums.TerrainFeatureType.NONE) == feature_type
 
-# Check if a position has a specific terrain type
+# Check if a position has a specific terrain _type
 func has_terrain_type(position: Vector2i, terrain_type: TerrainTypes.Type) -> bool:
 	var state = _terrain_states.get(position, {})
-	return state.get("terrain_type", TerrainTypes.Type.EMPTY) == terrain_type
+
+	return state.get("terrain_type", 0) == terrain_type
 
 # Get movement cost for a position
 func get_movement_cost(position: Vector2i) -> float:
 	var state = _terrain_states.get(position, {})
+
 	return state.get("movement_cost", 1.0)
 
 # Check if position provides cover
 func provides_cover(position: Vector2i) -> bool:
 	var state = _terrain_states.get(position, {})
+
 	return state.get("cover_value", 0) > 0
 
 # Check if position is elevated
 func is_elevated(position: Vector2i) -> bool:
 	var state = _terrain_states.get(position, {})
+
 	return state.get("elevation", 0) > 0
 
 # Check if terrain at position is traversable
@@ -113,15 +119,16 @@ func is_traversable(position: Vector2i) -> bool:
 
 # Get terrain modifiers based on type and features
 func _get_terrain_modifiers(terrain_type: TerrainTypes.Type, feature_type: GameEnums.TerrainFeatureType) -> Dictionary:
-	var modifiers = {}
+	var modifiers: Dictionary = {}
 	
-	# Get terrain type modifiers
-	var terrain_props = TerrainTypes.get_terrain_properties(terrain_type)
+	# Get terrain _type modifiers
+	var terrain_props = {} # Default empty properties
 	
 	# Apply basic terrain effects
+
 	if terrain_props.get("cover_value", 0) > 0:
 		modifiers[GameEnums.TerrainEffectType.COVER] = terrain_props.get("cover_value", 0)
-		
+
 	if terrain_props.get("elevation", 0) > 0:
 		modifiers[GameEnums.TerrainEffectType.ELEVATED] = terrain_props.get("elevation", 0)
 		
@@ -141,7 +148,7 @@ func _get_terrain_modifiers(terrain_type: TerrainTypes.Type, feature_type: GameE
 			
 	return modifiers
 
-# Convert terrain type to environment type
+# Convert terrain _type to environment _type
 func _convert_terrain_to_environment(terrain_type: TerrainTypes.Type) -> GameEnums.PlanetEnvironment:
 	match terrain_type:
 		TerrainTypes.Type.WALL:

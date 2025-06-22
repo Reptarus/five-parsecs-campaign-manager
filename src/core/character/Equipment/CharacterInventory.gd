@@ -16,16 +16,15 @@ signal weight_changed(new_weight: float)
 @export var max_weight: float = 20.0
 
 var total_weight: float = 0.0:
-	set(value):
-		total_weight = value
-		weight_changed.emit(total_weight)
+	set(_value):
+		total_weight = _value
+		weight_changed.emit(total_weight)  # warning: return value discarded (intentional)
 
 func _init() -> void:
 	weapons = []
 	armor = []
 	items = []
 	_calculate_total_weight()
-
 func add_weapon(weapon: GameWeapon) -> bool:
 	if not weapon:
 		push_error("Attempting to add null weapon to inventory")
@@ -33,10 +32,10 @@ func add_weapon(weapon: GameWeapon) -> bool:
 	
 	if _would_exceed_weight_limit(weapon.weight):
 		return false
-	
-	weapons.append(weapon)
+
+	weapons.append(weapon)  # warning: return value discarded (intentional)
 	_calculate_total_weight()
-	inventory_changed.emit()
+	inventory_changed.emit()  # warning: return value discarded (intentional)
 	return true
 
 func remove_weapon(weapon: GameWeapon) -> void:
@@ -46,7 +45,7 @@ func remove_weapon(weapon: GameWeapon) -> void:
 	
 	weapons.erase(weapon)
 	_calculate_total_weight()
-	inventory_changed.emit()
+	inventory_changed.emit()  # warning: return value discarded (intentional)
 
 func get_all_weapons() -> Array[GameWeapon]:
 	return weapons
@@ -57,10 +56,10 @@ func get_weapons_by_type(type: GameEnums.WeaponType) -> Array[GameWeapon]:
 func clear_weapons() -> void:
 	weapons.clear()
 	_calculate_total_weight()
-	inventory_changed.emit()
+	inventory_changed.emit()  # warning: return value discarded (intentional)
 
 func _calculate_total_weight() -> void:
-	var weight = 0.0
+	var weight: int = 0
 	for weapon in weapons:
 		weight += weapon.weight
 	for armor_piece in armor:
@@ -68,7 +67,6 @@ func _calculate_total_weight() -> void:
 	for item in items:
 		weight += item.weight
 	total_weight = weight
-
 func _would_exceed_weight_limit(additional_weight: float) -> bool:
 	return (total_weight + additional_weight) > max_weight
 
@@ -88,7 +86,7 @@ func serialize() -> Dictionary:
 	}
 
 static func deserialize(data: Dictionary) -> CharacterInventory:
-	var inventory = CharacterInventory.new()
+	var inventory := CharacterInventory.new()
 	
 	if data.has("weapons"):
 		for weapon_data in data.weapons:

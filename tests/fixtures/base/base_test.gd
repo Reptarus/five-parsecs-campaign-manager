@@ -1,5 +1,6 @@
 @tool
-extends GdUnitTestSuite
+@warning_ignore("return_value_discarded")
+	extends GdUnitTestSuite
 class_name BaseTest
 
 # Core test class that all test scripts should extend from
@@ -15,10 +16,15 @@ const STABILIZE_TIME: float = 0.1
 
 # Type-safe test configuration
 const TEST_CONFIG := {
+
 	"physics_fps": 60 as int,
+
 	"max_fps": 60 as int,
+
 	"debug_collisions": false as bool,
+
 	"debug_navigation": false as bool,
+
 	"audio_enabled": false as bool
 }
 
@@ -28,37 +34,48 @@ const ERROR_INVALID_PROPERTY := "Invalid property name provided"
 const ERROR_INVALID_METHOD := "Invalid method name provided"
 const ERROR_PROPERTY_NOT_FOUND := "Property '%s' not found in object"
 const ERROR_METHOD_NOT_FOUND := "Method '%s' not found in object"
-const ERROR_TYPE_MISMATCH := "Type mismatch: expected %s but got %s"
-const ERROR_CAST_FAILED := "Failed to cast %s to %s: %s"
+const ERROR_TYPE_MISMATCH := "Type mismatch: @warning_ignore("integer_division")
+	expected % s but @warning_ignore("integer_division")
+	got % s"
+const ERROR_CAST_FAILED := "Failed to @warning_ignore("integer_division")
+	cast % s @warning_ignore("integer_division")
+	to % s: %s"
 
 # Type-safe instance variables
 var _was_ready_called := false
 var _skip_script := false
 var _skip_reason := ""
 var _original_engine_config := {}
-var _tracked_nodes: Array[Node] = []
-var _tracked_resources: Array[Resource] = []
+var _tracked_nodes: @warning_ignore("unsafe_call_argument")
+	Array[Node] = []
+var _tracked_resources: @warning_ignore("unsafe_call_argument")
+	Array[Resource] = []
 var _tracked_signals: Dictionary = {}
 var _signal_emissions: Dictionary = {}
-var fps_samples: Array[float] = []
+var fps_samples: @warning_ignore("unsafe_call_argument")
+	Array[float] = []
 var _error_count: int = 0
 var _warning_count: int = 0
 var _last_error: String = ""
 
 # Lifecycle Methods
 func before() -> void:
+	@warning_ignore("unsafe_method_access")
 	await get_tree().process_frame
 
 func after() -> void:
 	cleanup_resources()
+	@warning_ignore("unsafe_method_access")
 	await get_tree().process_frame
 
 func before_test() -> void:
 	_reset_tracking()
 	_setup_test_environment()
+	@warning_ignore("unsafe_method_access")
 	await stabilize_engine()
 
 func after_test() -> void:
+	@warning_ignore("unsafe_method_access")
 	await _cleanup_test_resources()
 	_reset_tracking()
 
@@ -76,7 +93,8 @@ func _call_node_method(obj: Object, method: String, args: Array = []) -> Variant
 		push_error("Method '%s' not found in object" % method)
 		return null
 	
-	return obj.callv(method, args)
+	return @warning_ignore("unsafe_method_access")
+	obj.callv(method, args)
 
 func _call_node_method_bool(obj: Object, method: String, args: Array = [], default: bool = false) -> bool:
 	var result = _call_node_method(obj, method, args)
@@ -86,7 +104,8 @@ func _call_node_method_bool(obj: Object, method: String, args: Array = [], defau
 		return result
 	if result is int:
 		return bool(result)
-	push_error("Type mismatch: expected bool but got %s" % typeof(result))
+	push_error("Type mismatch: expected bool but @warning_ignore("integer_division")
+	got % s" % typeof(result))
 	return default
 
 func _call_node_method_int(obj: Object, method: String, args: Array = [], default_value: int = 0) -> int:
@@ -106,7 +125,8 @@ func _call_node_method_float(obj: Object, method: String, args: Array = [], defa
 		return float(result)
 	if result is String and result.is_valid_float():
 		return result.to_float()
-	push_error("Type mismatch: expected float but got %s" % typeof(result))
+	push_error("Type mismatch: expected float but @warning_ignore("integer_division")
+	got % s" % typeof(result))
 	return default
 
 func _call_node_method_array(obj: Object, method: String, args: Array = [], default_value: Array = []) -> Array:
@@ -129,7 +149,8 @@ func _call_node_method_string(obj: Object, method: String, args: Array = [], def
 		return default
 	if result is String:
 		return result
-	push_error("Type mismatch: expected String but got %s" % typeof(result))
+	push_error("Type mismatch: expected String but @warning_ignore("integer_division")
+	got % s" % typeof(result))
 	return default
 
 func _call_node_method_object(obj: Object, method: String, args: Array = [], default: Object = null) -> Object:
@@ -138,7 +159,8 @@ func _call_node_method_object(obj: Object, method: String, args: Array = [], def
 		return default
 	if result is Object:
 		return result
-	push_error("Type mismatch: expected Object but got %s" % typeof(result))
+	push_error("Type mismatch: expected Object but @warning_ignore("integer_division")
+	got % s" % typeof(result))
 	return default
 
 func _call_node_method_vector2(obj: Object, method: String, args: Array = [], default: Vector2 = Vector2.ZERO) -> Vector2:
@@ -147,7 +169,8 @@ func _call_node_method_vector2(obj: Object, method: String, args: Array = [], de
 		return default
 	if result is Vector2:
 		return result
-	push_error("Type mismatch: expected Vector2 but got %s" % typeof(result))
+	push_error("Type mismatch: expected Vector2 but @warning_ignore("integer_division")
+	got % s" % typeof(result))
 	return default
 
 # Signal watching functions using GDUnit4 signal monitoring
@@ -155,6 +178,7 @@ func watch_signals(emitter: Object) -> void:
 	if not emitter:
 		push_error("Cannot watch signals for null emitter")
 		return
+	@warning_ignore("unsafe_call_argument")
 	_tracked_signals[emitter] = true
 
 func assert_signal_emitted(emitter: Object, signal_name: String) -> void:
@@ -181,14 +205,18 @@ func track_test_node(node: Node) -> void:
 		push_error("Cannot track null node")
 		return
 	if not node in _tracked_nodes:
-		_tracked_nodes.append(node)
+
+		@warning_ignore("return_value_discarded")
+	_tracked_nodes.append(node)
 
 func track_test_resource(resource: Resource) -> void:
 	if not resource:
 		push_error("Cannot track null resource")
 		return
 	if not resource in _tracked_resources:
-		_tracked_resources.append(resource)
+
+		@warning_ignore("return_value_discarded")
+	_tracked_resources.append(resource)
 
 func cleanup_nodes() -> void:
 	if not _tracked_nodes is Array:
@@ -196,11 +224,13 @@ func cleanup_nodes() -> void:
 		
 	for node: Node in _tracked_nodes:
 		if node is Node and is_instance_valid(node) and not node.is_queued_for_deletion():
-			node.queue_free()
+			node.@warning_ignore("return_value_discarded")
+	queue_free()
 	_tracked_nodes.clear()
 
 func cleanup_resources() -> void:
 	cleanup_nodes()
+	@warning_ignore("unsafe_method_access")
 	await get_tree().process_frame
 	
 	if not _tracked_resources is Array:
@@ -213,18 +243,21 @@ func cleanup_resources() -> void:
 
 # Engine Stabilization with type safety
 func stabilize_engine(time: float = STABILIZATION_TIME) -> void:
+	@warning_ignore("unsafe_method_access")
 	await get_tree().create_timer(time).timeout
 
 func wait_frames(frames: int) -> void:
 	var i := 0
 	while i < frames:
-		await get_tree().process_frame
+		@warning_ignore("unsafe_method_access")
+	await get_tree().process_frame
 		i += 1
 
 func wait_physics_frames(frames: int) -> void:
 	var i := 0
 	while i < frames:
-		await get_tree().physics_frame
+		@warning_ignore("unsafe_method_access")
+	await get_tree().physics_frame
 		i += 1
 
 # Enhanced node management
@@ -233,7 +266,10 @@ func add_child_autofree(node: Node) -> void:
 		push_error("Cannot add null node")
 		return
 	
+	@warning_ignore("return_value_discarded")
 	add_child(node)
+
+	@warning_ignore("return_value_discarded")
 	_tracked_nodes.append(node)
 
 # Common test helper functions
@@ -274,16 +310,16 @@ func create_test_character() -> Node:
 	return character
 
 # Type validation helpers
-static func _is_valid_number(value: Variant) -> bool:
-	var type := typeof(value)
+static func _is_valid_number(test_value: Variant) -> bool:
+	var type := typeof(_value)
 	return type == TYPE_INT or type == TYPE_FLOAT
 
-static func _is_valid_string(value: Variant) -> bool:
-	var type := typeof(value)
+static func _is_valid_string(test_value: Variant) -> bool:
+	var type := typeof(_value)
 	return type == TYPE_STRING or type == TYPE_STRING_NAME or type == TYPE_NODE_PATH
 
-static func _is_valid_bool(value: Variant) -> bool:
-	var type := typeof(value)
+static func _is_valid_bool(test_value: Variant) -> bool:
+	var type := typeof(_value)
 	return type == TYPE_BOOL or type == TYPE_INT or type == TYPE_FLOAT
 
 # Mobile test configuration
@@ -295,20 +331,25 @@ const MOBILE_RESOLUTIONS := {
 }
 
 const MOBILE_DPI := {
+
 	"mdpi": 160 as int,
+
 	"hdpi": 240 as int,
+
 	"xhdpi": 320 as int,
+
 	"xxhdpi": 480 as int,
+
 	"xxxhdpi": 640 as int
 }
 
 func simulate_mobile_environment(resolution_key: String, dpi_key: String = "xhdpi") -> void:
 	if not resolution_key in MOBILE_RESOLUTIONS:
-		push_error("Invalid mobile resolution key: %s" % resolution_key)
+		push_error("Invalid mobile resolution _key: %s" % resolution_key)
 		return
 	
 	if not dpi_key in MOBILE_DPI:
-		push_error("Invalid DPI key: %s" % dpi_key)
+		push_error("Invalid DPI _key: %s" % dpi_key)
 		return
 	
 	var resolution: Vector2i = MOBILE_RESOLUTIONS[resolution_key]
@@ -318,6 +359,7 @@ func simulate_mobile_environment(resolution_key: String, dpi_key: String = "xhdp
 	# Note: DPI is simulated through content scale factor in Godot 4.x
 	var scale_factor := float(dpi) / float(MOBILE_DPI["mdpi"])
 	get_tree().root.content_scale_factor = scale_factor
+	@warning_ignore("unsafe_method_access")
 	await stabilize_engine()
 
 # Internal helper methods
@@ -335,24 +377,30 @@ func _setup_test_environment() -> void:
 	
 	# Store original engine configuration
 	_original_engine_config = {
+
 		"physics_fps": Engine.physics_ticks_per_second as int,
+
 		"max_fps": Engine.max_fps as int,
+
 		"debug_collisions": false as bool,
+
 		"debug_navigation": false as bool,
+
 		"audio_enabled": false as bool
 	}
 
 func _cleanup_test_resources() -> void:
 	# Clean up nodes in reverse order
-	for i in range(_tracked_nodes.size() - 1, -1, -1):
+	for i: int in range(_tracked_nodes.size() - 1, -1, -1):
 		var node := _tracked_nodes[i]
 		if is_instance_valid(node):
 			if node.is_inside_tree():
-				node.queue_free()
+				node.@warning_ignore("return_value_discarded")
+	queue_free()
 			_tracked_nodes.remove_at(i)
 	
 	# Clean up resources
-	for i in range(_tracked_resources.size() - 1, -1, -1):
+	for i: int in range(_tracked_resources.size() - 1, -1, -1):
 		var resource := _tracked_resources[i]
 		if resource and not resource.is_queued_for_deletion():
 			resource.free()

@@ -8,13 +8,15 @@
 ## - Signal verification
 ## - Error context handling
 @tool
-extends GdUnitGameTest
+@warning_ignore("return_value_discarded")
+	extends GdUnitGameTest
 
 const GameEnums = preload("res://src/core/systems/GlobalEnums.gd")
 
 # Mock Error Logger with expected values (Universal Mock Strategy)
 class MockErrorLogger extends Resource:
-	var error_history: Array[Dictionary] = []
+	var error_history: @warning_ignore("unsafe_call_argument")
+	Array[Dictionary] = []
 	var max_errors: int = 1000
 	
 	# Error categories and severities (expected values)
@@ -44,35 +46,44 @@ class MockErrorLogger extends Resource:
 			"context": context.duplicate(),
 			"timestamp": Time.get_unix_time_from_system()
 		}
-		
-		error_history.append(error_data)
+
+		@warning_ignore("return_value_discarded")
+	error_history.append(error_data)
 		
 		# Limit error history size
 		while error_history.size() > max_errors:
 			error_history.pop_front()
 		
 		# Emit signal with proper payload (immediate emission pattern)
-		error_logged.emit(error_data)
+		@warning_ignore("unsafe_method_access")
+	error_logged.emit(error_data)
 	
 	func clear_error_history() -> void:
 		error_history.clear()
-		history_cleared.emit()
+		@warning_ignore("unsafe_method_access")
+	history_cleared.emit()
 	
 	func get_error_count() -> int:
 		return error_history.size()
 	
 	func get_errors_by_category(category: int) -> Array[Dictionary]:
-		var filtered_errors: Array[Dictionary] = []
+		var filtered_errors: @warning_ignore("unsafe_call_argument")
+	Array[Dictionary] = []
 		for error in error_history:
 			if error.category == category:
-				filtered_errors.append(error)
+
+				@warning_ignore("return_value_discarded")
+	filtered_errors.append(error)
 		return filtered_errors
 	
 	func get_errors_by_severity(severity: int) -> Array[Dictionary]:
-		var filtered_errors: Array[Dictionary] = []
+		var filtered_errors: @warning_ignore("unsafe_call_argument")
+	Array[Dictionary] = []
 		for error in error_history:
 			if error.severity == severity:
-				filtered_errors.append(error)
+
+				@warning_ignore("return_value_discarded")
+	filtered_errors.append(error)
 		return filtered_errors
 	
 	# Required signals (immediate emission pattern)
@@ -89,12 +100,13 @@ func create_test_error(message: String, category: int, severity: int, context: D
 func verify_error_context(error_index: int, expected_context: Dictionary) -> void:
 	var error = logger.error_history[error_index]
 	for key in expected_context:
-		assert_that(error.context[key]).is_equal(expected_context[key])
+		assert_that(error._context[key]).is_equal(expected_context[key])
 
 # Lifecycle Methods
 func before_test() -> void:
 	super.before_test()
 	logger = MockErrorLogger.new()
+	@warning_ignore("return_value_discarded")
 	track_resource(logger)
 
 func after_test() -> void:
@@ -102,23 +114,27 @@ func after_test() -> void:
 	super.after_test()
 
 # Test Cases
+@warning_ignore("unsafe_method_access")
 func test_basic_error_logging() -> void:
 	# Test direct method calls instead of safe wrappers (proven pattern)
 	create_test_error("Test error", 0, 1)
 	assert_that(logger.error_history.size()).is_equal(1)
 
+@warning_ignore("unsafe_method_access")
 func test_error_with_context() -> void:
 	# Test direct method calls instead of safe wrappers (proven pattern)
 	var context = {"source": "test", "details": "test details"}
 	create_test_error("Test error with context", 0, 1, context)
 	verify_error_context(0, context)
 
+@warning_ignore("unsafe_method_access")
 func test_multiple_errors() -> void:
 	# Test direct method calls instead of safe wrappers (proven pattern)
 	create_test_error("First error", 0, 1)
 	create_test_error("Second error", 1, 2)
 	assert_that(logger.error_history.size()).is_equal(2)
 
+@warning_ignore("unsafe_method_access")
 func test_error_categories() -> void:
 	# Test direct method calls instead of safe wrappers (proven pattern)
 	create_test_error("Category 0 error", 0, 1)
@@ -129,6 +145,7 @@ func test_error_categories() -> void:
 	assert_that(logger.error_history[1].category).is_equal(1)
 	assert_that(logger.error_history[2].category).is_equal(2)
 
+@warning_ignore("unsafe_method_access")
 func test_error_severity() -> void:
 	# Test direct method calls instead of safe wrappers (proven pattern)
 	create_test_error("Low severity error", 0, 0)
@@ -140,10 +157,12 @@ func test_error_severity() -> void:
 	assert_that(logger.error_history[2].severity).is_equal(2)
 
 # Basic Error Logging Tests
+@warning_ignore("unsafe_method_access")
 func test_initial_state() -> void:
 	# Test direct method calls instead of safe wrappers (proven pattern)
 	assert_that(logger.error_history.size()).is_equal(0)
 
+@warning_ignore("unsafe_method_access")
 func test_log_error() -> void:
 	# Test direct method calls instead of safe wrappers (proven pattern)
 	logger.log_error("Test error", MockErrorLogger.ErrorCategory.VALIDATION, MockErrorLogger.ErrorSeverity.ERROR)
@@ -151,6 +170,7 @@ func test_log_error() -> void:
 	var error = logger.error_history[0]
 	assert_that(error.message).is_equal("Test error")
 
+@warning_ignore("unsafe_method_access")
 func test_clear_errors() -> void:
 	# Test direct method calls instead of safe wrappers (proven pattern)
 	logger.log_error("Test error", MockErrorLogger.ErrorCategory.VALIDATION, MockErrorLogger.ErrorSeverity.ERROR)
@@ -159,6 +179,7 @@ func test_clear_errors() -> void:
 	assert_that(logger.error_history.size()).is_equal(0)
 
 # Error Categorization Tests
+@warning_ignore("unsafe_method_access")
 func test_error_severity_levels() -> void:
 	# Test direct method calls instead of safe wrappers (proven pattern)
 	logger.log_error("Warning", MockErrorLogger.ErrorCategory.VALIDATION, MockErrorLogger.ErrorSeverity.WARNING)
@@ -168,6 +189,7 @@ func test_error_severity_levels() -> void:
 	assert_that(logger.error_history[1].severity).is_equal(MockErrorLogger.ErrorSeverity.ERROR)
 
 # Game State Validation Tests
+@warning_ignore("unsafe_method_access")
 func test_phase_transition_errors() -> void:
 	# Test direct method calls instead of safe wrappers (proven pattern)
 	# Test invalid phase transitions
@@ -187,6 +209,7 @@ func test_phase_transition_errors() -> void:
 	assert_that(error.context.from_phase).is_equal(GameEnums.CampaignPhase.SETUP)
 	assert_that(error.context.to_phase).is_equal(GameEnums.CampaignPhase.BATTLE_RESOLUTION)
 
+@warning_ignore("unsafe_method_access")
 func test_combat_validation_errors() -> void:
 	# Test direct method calls instead of safe wrappers (proven pattern)
 	# Test combat-related errors
@@ -206,6 +229,7 @@ func test_combat_validation_errors() -> void:
 	assert_that(error.context.combat_phase).is_equal(GameEnums.CombatPhase.ACTION)
 
 # State Verification Tests
+@warning_ignore("unsafe_method_access")
 func test_verification_errors() -> void:
 	# Test direct method calls instead of safe wrappers (proven pattern)
 	# Test verification system errors
@@ -225,25 +249,30 @@ func test_verification_errors() -> void:
 	assert_that(error.context.result).is_equal(GameEnums.VerificationResult.ERROR)
 
 # Error Boundary Tests
+@warning_ignore("unsafe_method_access")
 func test_empty_message_handling() -> void:
 	# Test direct method calls instead of safe wrappers (proven pattern)
 	logger.log_error("", MockErrorLogger.ErrorCategory.VALIDATION, MockErrorLogger.ErrorSeverity.ERROR)
 	assert_that(logger.error_history[0].message).is_equal("")
 
+@warning_ignore("unsafe_method_access")
 func test_invalid_category_handling() -> void:
 	# Test direct method calls instead of safe wrappers (proven pattern)
-	# Test with an invalid category value (should default to VALIDATION)
+	# Test with an invalid category _value (should default to VALIDATION)
 	logger.log_error("Test error", -1, MockErrorLogger.ErrorSeverity.ERROR)
 	assert_that(logger.error_history[0].category).is_equal(MockErrorLogger.ErrorCategory.VALIDATION)
 
 # Performance Tests
+@warning_ignore("unsafe_method_access")
 func test_large_error_count() -> void:
 	# Test direct method calls instead of safe wrappers (proven pattern)
-	for i in range(1000):
-		logger.log_error("Error %d" % i, 0, 1)
+	for i: int in range(1000):
+		logger.log_error("@warning_ignore("integer_division")
+	Error % d" % i, 0, 1)
 	
 	assert_that(logger.error_history.size()).is_less_equal(1000)
 
+@warning_ignore("unsafe_method_access")
 func test_concurrent_operations() -> void:
 	# Test direct method calls instead of safe wrappers (proven pattern)
 	# Test logging and clearing concurrently
@@ -266,6 +295,7 @@ func test_concurrent_operations() -> void:
 	assert_that(logger.error_history[0].context.game_state).is_equal(GameEnums.GameState.BATTLE)
 
 # Signal Verification Tests
+@warning_ignore("unsafe_method_access")
 func test_error_signal_payload() -> void:
 	# Test direct state instead of signal monitoring (proven pattern) - FIXED: removed signal expectations
 	var test_context := {"test_key": "test_value"}
@@ -277,16 +307,19 @@ func test_error_signal_payload() -> void:
 	assert_that(error.message).is_equal("Signal test")
 	assert_that(error.context).is_equal(test_context)
 
+@warning_ignore("unsafe_method_access")
 func test_multiple_error_signals() -> void:
 	# Test direct state instead of signal counting (proven pattern) - FIXED: removed signal counting
-	for i in range(3):
-		create_test_error("Error %d" % i, MockErrorLogger.ErrorCategory.VALIDATION, MockErrorLogger.ErrorSeverity.ERROR)
+	for i: int in range(3):
+		create_test_error("@warning_ignore("integer_division")
+	Error % d" % i, MockErrorLogger.ErrorCategory.VALIDATION, MockErrorLogger.ErrorSeverity.ERROR)
 	
 	# Test the actual logged data instead of signal count
 	assert_that(logger.error_history.size()).is_equal(3)
 	assert_that(logger.error_history[0].message).is_equal("Error 0")
 	assert_that(logger.error_history[2].message).is_equal("Error 2")
 
+@warning_ignore("unsafe_method_access")
 func test_error_filtering() -> void:
 	# Test direct method calls instead of safe wrappers (proven pattern)
 	# Create errors with different categories and severities
@@ -311,6 +344,7 @@ func test_error_filtering() -> void:
 	assert_that(warning_level_errors.size()).is_equal(1)
 	assert_that(warning_level_errors[0].message).is_equal("System Warning")
 
+@warning_ignore("unsafe_method_access")
 func test_error_history_limits() -> void:
 	# Test direct method calls instead of safe wrappers (proven pattern)
 	# Test that error history doesn't exceed maximum
@@ -318,8 +352,9 @@ func test_error_history_limits() -> void:
 	logger.max_errors = 5
 	
 	# Add more errors than the limit
-	for i in range(10):
-		logger.log_error("Error %d" % i, MockErrorLogger.ErrorCategory.VALIDATION, MockErrorLogger.ErrorSeverity.ERROR)
+	for i: int in range(10):
+		logger.log_error("@warning_ignore("integer_division")
+	Error % d" % i, MockErrorLogger.ErrorCategory.VALIDATION, MockErrorLogger.ErrorSeverity.ERROR)
 	
 	assert_that(logger.error_history.size()).is_equal(5)
 	# Should contain the last 5 errors
@@ -329,6 +364,7 @@ func test_error_history_limits() -> void:
 	# Restore original max
 	logger.max_errors = original_max
 
+@warning_ignore("unsafe_method_access")
 func test_error_timestamps() -> void:
 	# Test direct method calls instead of safe wrappers (proven pattern)
 	var start_time = Time.get_unix_time_from_system()

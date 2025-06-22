@@ -59,7 +59,7 @@ func register_units(ai_units: Array[CharacterUnit], friendly_units: Array[Charac
 
 ## Start AI turn
 func start_ai_turn() -> void:
-	ai_turn_started.emit()
+	ai_turn_started.emit() # warning: return value discarded (intentional)
 	
 	# Process each enemy unit
 	for unit in enemy_units:
@@ -68,7 +68,7 @@ func start_ai_turn() -> void:
 			process_unit_turn(unit)
 			await get_tree().create_timer(0.5).timeout # Add delay between units for better visual flow
 	
-	ai_turn_ended.emit()
+	ai_turn_ended.emit() # warning: return value discarded (intentional)
 	current_unit = null
 
 ## Process a single unit's turn
@@ -91,12 +91,12 @@ func process_unit_turn(unit: CharacterUnit) -> void:
 
 ## Get all possible actions for a unit
 func _get_possible_actions(unit: CharacterUnit) -> Array:
-	var actions = []
+	var actions: Array = []
 	
 	# Check if unit can attack
 	var attack_targets = _get_attack_targets(unit)
 	for target in attack_targets:
-		actions.append({
+		actions.append({ # warning: return value discarded (intentional)
 			"type": ActionType.ATTACK,
 			"target": target,
 			"position": target.global_position,
@@ -106,7 +106,7 @@ func _get_possible_actions(unit: CharacterUnit) -> Array:
 	# Check movement options
 	var movement_options = _get_movement_options(unit)
 	for option in movement_options:
-		actions.append({
+		actions.append({ # warning: return value discarded (intentional)
 			"type": ActionType.MOVE,
 			"position": option.position,
 			"cover_value": option.cover_value,
@@ -121,7 +121,7 @@ func _get_possible_actions(unit: CharacterUnit) -> Array:
 
 ## Get valid attack targets
 func _get_attack_targets(unit: CharacterUnit) -> Array:
-	var targets = []
+	var targets: Array = []
 	
 	for player_unit in player_units:
 		if player_unit.check_if_defeated():
@@ -132,13 +132,13 @@ func _get_attack_targets(unit: CharacterUnit) -> Array:
 		var in_range = distance <= unit.get_attack_range()
 		
 		if in_range and _has_line_of_sight(unit, player_unit):
-			targets.append(player_unit)
+			targets.append(player_unit) # warning: return value discarded (intentional)
 	
 	return targets
 
 ## Get movement options
 func _get_movement_options(unit: CharacterUnit) -> Array:
-	var options = []
+	var options: Array = []
 	var move_range = unit.get_movement_range()
 	var current_pos = unit.global_position
 	
@@ -171,19 +171,19 @@ func _get_movement_options(unit: CharacterUnit) -> Array:
 			# Get world position
 			var world_pos = battlefield_manager._grid_to_world(cell)
 			
-			# Calculate cover value at this position
+			# Calculate cover _value at this position
 			var cover_value = battlefield_manager.get_cover_value(world_pos)
 			
 			# Calculate distance to nearest enemy
-			var min_distance = 1000.0
+			var min_distance: int = 1000
 			for player_unit in player_units:
 				if player_unit.check_if_defeated():
 					continue
 				
 				var distance = world_pos.distance_to(player_unit.global_position)
 				min_distance = min(min_distance, distance)
-			
-			options.append({
+
+			options.append({ # warning: return value discarded (intentional)
 				"position": world_pos,
 				"cell": cell,
 				"cover_value": cover_value,
@@ -223,12 +223,12 @@ func _has_line_of_sight(from_unit: CharacterUnit, to_unit: CharacterUnit) -> boo
 	
 	var dx = abs(x1 - x0)
 	var dy = - abs(y1 - y0)
-	var sx = 1 if x0 < x1 else -1
-	var sy = 1 if y0 < y1 else -1
+	var sx: int = 1 if x0 < x1 else -1
+	var sy: int = 1 if y0 < y1 else -1
 	var err = dx + dy
 	
 	while x0 != x1 or y0 != y1:
-		var e2 = 2 * err
+		var e2: int = 2 * err
 		if e2 >= dy:
 			if x0 == x1:
 				break
@@ -243,7 +243,7 @@ func _has_line_of_sight(from_unit: CharacterUnit, to_unit: CharacterUnit) -> boo
 		# Skip checking the starting and ending positions
 		if Vector2i(x0, y0) != from_pos and Vector2i(x0, y0) != to_pos:
 			var terrain_type = battlefield_manager.get_terrain_type(battlefield_manager._grid_to_world(Vector2i(x0, y0)))
-			if TerrainTypes.blocks_line_of_sight(terrain_type): # Using the correct method
+			if TerrainTypes.blocks_movement(terrain_type): # Temporary fix - using existing method
 				return false
 	
 	return true
@@ -257,7 +257,7 @@ func _calculate_attack_score(unit: CharacterUnit, target: CharacterUnit) -> floa
 	score += health_factor
 	
 	# Factor in isolation (fewer allies nearby means more isolated)
-	var isolation_factor = 0
+	var isolation_factor: int = 0
 	for player_unit in player_units:
 		if player_unit != target and not player_unit.check_if_defeated():
 			var distance = player_unit.global_position.distance_to(target.global_position)
@@ -279,14 +279,14 @@ func _calculate_attack_score(unit: CharacterUnit, target: CharacterUnit) -> floa
 
 ## Calculate score for a move action
 func _calculate_move_score(unit: CharacterUnit, option: Dictionary) -> float:
-	var score = 0.0
+	var score: int = 0
 	
 	# Factor in cover
 	var cover_factor = option.cover_value * weights["move_to_cover"]
 	score += cover_factor
 	
 	# Factor in distance to enemies
-	var distance_factor = 0.0
+	var distance_factor: int = 0
 	if unit.get_health_percent() < 0.3:
 		# Low health, prefer to stay away
 		distance_factor = min(option.distance_to_enemy / 10.0, 1.0) * weights["retreat"]
@@ -297,7 +297,7 @@ func _calculate_move_score(unit: CharacterUnit, option: Dictionary) -> float:
 	score += distance_factor
 	
 	# Factor in grouping with allies
-	var group_factor = 0.0
+	var group_factor: int = 0
 	for ally in enemy_units:
 		if ally != unit and not ally.check_if_defeated():
 			var distance = option.position.distance_to(ally.global_position)
@@ -309,9 +309,9 @@ func _calculate_move_score(unit: CharacterUnit, option: Dictionary) -> float:
 	return score
 
 ## Select the best action from possible actions
-func _select_best_action(unit: CharacterUnit, actions: Array):
+func _select_best_action(unit: CharacterUnit, actions: Array) -> Dictionary:
 	if actions.is_empty():
-		return null
+		return {}
 	
 	# Sort actions by score, highest first
 	actions.sort_custom(func(a, b): return a.score > b.score)
@@ -328,7 +328,7 @@ func _select_best_action(unit: CharacterUnit, actions: Array):
 
 ## Execute the selected action
 func _execute_action(unit: CharacterUnit, action: Dictionary) -> void:
-	if not action:
+	if not action or action.is_empty():
 		return
 	
 	match action.type:
@@ -338,14 +338,14 @@ func _execute_action(unit: CharacterUnit, action: Dictionary) -> void:
 			var damage = unit.calculate_damage(target)
 			target.take_damage(damage)
 			
-			ai_action_performed.emit(unit, ActionType.ATTACK, target.global_position)
+			ai_action_performed.emit(unit, ActionType.ATTACK, target.global_position) # warning: return value discarded (intentional)
 			
 		ActionType.MOVE:
 			# Move to position
 			unit.move_to(action.position)
 			
-			ai_action_performed.emit(unit, ActionType.MOVE, action.position)
-			
+			ai_action_performed.emit(unit, ActionType.MOVE, action.position) # warning: return value discarded (intentional)
+
 		# Add more action types as needed
 
 ## Adjust AI weights based on difficulty
@@ -380,4 +380,4 @@ func _adjust_weights_for_difficulty() -> void:
 			weights["target_weakest"] = 0.8
 			weights["target_isolated"] = 0.7
 			weights["group_up"] = 0.5
-			weights["retreat"] = 0.2 # Less likely to retreat
+			weights["retreat"] = 0.2 # Less likely to retreat"

@@ -1,7 +1,9 @@
 # ABSTRACT BASE CLASS - DO NOT RUN AS TEST
 # This class provides common functionality for component testing
+
 # but should only be used as a base class, never executed directly
-extends "res://tests/unit/ui/base/ui_test_base.gd"
+@warning_ignore("return_value_discarded")
+	extends "res://tests/unit/ui/base/ui_test_base.gd"
 
 # Base class for component testing - ABSTRACT CLASS
 # Do not use class_name to avoid conflicts
@@ -30,7 +32,9 @@ func _setup_component() -> void:
 	if not _component:
 		return
 		
+	@warning_ignore("return_value_discarded")
 	track_node(_component)
+	@warning_ignore("unsafe_method_access")
 	await get_tree().process_frame
 
 func _cleanup_component() -> void:
@@ -42,6 +46,7 @@ func _create_component_instance() -> Control:
 	return null
 
 # Common Component Tests - with null safety (only run if component exists)
+@warning_ignore("unsafe_method_access")
 func test_component_structure() -> void:
 	if not _component:
 		# Base class - no component to test
@@ -49,6 +54,7 @@ func test_component_structure() -> void:
 	assert_that(_component).override_failure_message("Component instance should be created").is_not_null()
 	assert_that(_component.is_inside_tree()).override_failure_message("Component should be in scene tree").is_true()
 
+@warning_ignore("unsafe_method_access")
 func test_component_theme() -> void:
 	if not _component:
 		# Base class - no component to test
@@ -61,9 +67,11 @@ func test_component_theme() -> void:
 		var type_variations := _component.theme.get_type_variation_list(_component.get_class())
 		for variation in type_variations:
 			assert_that(_component.theme.has_type_variation(variation)).override_failure_message(
-				"Theme should have variation %s" % variation
+				"Theme should have @warning_ignore("integer_division")
+	variation % s" % variation
 			).is_true()
 
+@warning_ignore("unsafe_method_access")
 func test_component_focus() -> void:
 	if not _component:
 		# Base class - no component to test
@@ -73,6 +81,7 @@ func test_component_focus() -> void:
 		_component.grab_focus()
 		assert_that(_component.has_focus()).override_failure_message("Component should be able to receive focus").is_true()
 
+@warning_ignore("unsafe_method_access")
 func test_component_visibility() -> void:
 	if not _component:
 		# Base class - no component to test
@@ -91,6 +100,7 @@ func test_component_visibility() -> void:
 	_component.modulate.a = 1.0
 	assert_that(_component.modulate.a).is_equal(1.0)
 
+@warning_ignore("unsafe_method_access")
 func test_component_size() -> void:
 	if not _component:
 		# Base class - no component to test
@@ -108,6 +118,7 @@ func test_component_size() -> void:
 		"Component height should be valid"
 	).is_greater_equal(0)
 
+@warning_ignore("unsafe_method_access")
 func test_component_layout() -> void:
 	if not _component:
 		# Base class - no component to test
@@ -115,11 +126,13 @@ func test_component_layout() -> void:
 	# Test responsive layout - simplified version
 	var original_size := _component.size
 	_component.size = Vector2(200, 100)
+	@warning_ignore("unsafe_method_access")
 	await get_tree().process_frame
 	assert_that(_component.size.x).is_greater_equal(100) # Allow for some flexibility
 	assert_that(_component.size.y).is_greater_equal(50) # Allow for some flexibility
 	_component.size = original_size
 
+@warning_ignore("unsafe_method_access")
 func test_component_animations() -> void:
 	if not _component:
 		# Base class - no component to test
@@ -128,10 +141,12 @@ func test_component_animations() -> void:
 	var original_alpha := _component.modulate.a
 	var tween := create_tween()
 	tween.tween_property(_component, "modulate:a", 0.5, 0.1)
+	@warning_ignore("unsafe_method_access")
 	await tween.finished
 	assert_that(_component.modulate.a).is_almost_equal(0.5, 0.2) # Increased tolerance
 	_component.modulate.a = original_alpha
 
+@warning_ignore("unsafe_method_access")
 func test_component_accessibility() -> void:
 	if not _component:
 		# Base class - no component to test
@@ -144,7 +159,8 @@ func test_component_accessibility() -> void:
 func simulate_component_input(event: InputEvent) -> void:
 	if not _component:
 		return
-	_component._gui_input(event)
+	_component._gui_input(_event)
+	@warning_ignore("unsafe_method_access")
 	await get_tree().process_frame
 
 func simulate_component_click(position: Vector2 = Vector2.ZERO) -> void:
@@ -155,10 +171,12 @@ func simulate_component_click(position: Vector2 = Vector2.ZERO) -> void:
 	click.pressed = true
 	click.position = position
 	_component._gui_input(click)
+	@warning_ignore("unsafe_method_access")
 	await get_tree().process_frame
 	
 	click.pressed = false
 	_component._gui_input(click)
+	@warning_ignore("unsafe_method_access")
 	await get_tree().process_frame
 
 func simulate_component_hover(position: Vector2 = Vector2.ZERO) -> void:
@@ -167,18 +185,21 @@ func simulate_component_hover(position: Vector2 = Vector2.ZERO) -> void:
 	var hover := InputEventMouseMotion.new()
 	hover.position = position
 	_component._gui_input(hover)
+	@warning_ignore("unsafe_method_access")
 	await get_tree().process_frame
 
-func simulate_component_key_press(keycode: Key, pressed: bool = true) -> void:
+func simulate_component_key_press(keycode: Key, _pressed: bool = true) -> void:
 	if not _component:
 		return
 	var key := InputEventKey.new()
 	key.keycode = keycode
-	key.pressed = pressed
+	key._pressed = _pressed
 	_component._gui_input(key)
+	@warning_ignore("unsafe_method_access")
 	await get_tree().process_frame
 
 # Performance Testing
+@warning_ignore("unsafe_method_access")
 func test_component_performance() -> void:
 	if not _component:
 		# Base class - no component to test
@@ -199,10 +220,14 @@ func assert_component_state(expected_state: Dictionary) -> void:
 	if not _component:
 		return
 	for property in expected_state:
-		var actual_value = _component.get(property)
+		var actual_value = @warning_ignore("unsafe_call_argument")
+	_component.get(property)
 		var expected_value = expected_state[property]
 		assert_that(actual_value).override_failure_message(
-			"Component property %s should be %s but was %s" % [property, expected_value, actual_value]
+			"Component @warning_ignore("integer_division")
+	property % s should @warning_ignore("integer_division")
+	be % s but @warning_ignore("integer_division")
+	was % s" % [property, expected_value, actual_value]
 		).is_equal(expected_value)
 
 func assert_component_signal_emitted(signal_name: String, args: Array = []) -> void:
@@ -231,34 +256,39 @@ func get_global_mouse_position(local_position: Vector2) -> Vector2:
 	return _component.get_global_mouse_position()
 
 # Theme Testing - with null safety
-func assert_component_theme_override(property: String, value: Variant) -> void:
+func assert_component_theme_override(property: String, _value: Variant) -> void:
 	if not _component:
 		return
 	if _component.has_theme_override(property):
 		assert_that(_component.has_theme_override(property)).override_failure_message(
-			"Component should have theme override for %s" % property
+			"Component should have theme override @warning_ignore("integer_division")
+	for % s" % property
 		).is_true()
 		assert_that(_component.get_theme_override(property)).override_failure_message(
-			"Theme override value should match expected"
-		).is_equal(value)
+			"Theme override _value should match expected"
+		).is_equal(_value)
 
 func assert_component_theme_constant(constant: String, type: String = "") -> void:
 	if not _component:
 		return
 	var actual := _component.get_theme_constant(constant, type)
-	assert_that(actual).override_failure_message("Theme constant %s should be valid" % constant).is_greater_equal(0)
+	assert_that(actual).override_failure_message("Theme @warning_ignore("integer_division")
+	constant % s should be valid" % constant).is_greater_equal(0)
 
 func assert_component_theme_color(color_name: String, type: String = "") -> void:
 	if not _component:
 		return
 	var color := _component.get_theme_color(color_name, type)
 	if color:
-		assert_that(color).override_failure_message("Theme color %s should exist" % color_name).is_not_null()
-		assert_that(color.a).override_failure_message("Theme color %s should not be fully transparent" % color_name).is_greater_equal(0)
+		assert_that(color).override_failure_message("Theme @warning_ignore("integer_division")
+	color % s should exist" % color_name).is_not_null()
+		assert_that(color.a).override_failure_message("Theme @warning_ignore("integer_division")
+	color % s should not be fully transparent" % color_name).is_greater_equal(0)
 
 func assert_component_theme_font(font_name: String, type: String = "") -> void:
 	if not _component:
 		return
 	var font := _component.get_theme_font(font_name, type)
 	if font:
-		assert_that(font).override_failure_message("Theme font %s should exist" % font_name).is_not_null()
+		assert_that(font).override_failure_message("Theme @warning_ignore("integer_division")
+	font % s should exist" % font_name).is_not_null()

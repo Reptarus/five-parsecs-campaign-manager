@@ -1,7 +1,9 @@
 @tool
-extends GdUnitGameTest
+@warning_ignore("return_value_discarded")
+	extends GdUnitGameTest
 
-# UNIVERSAL MOCK STRATEGY - Same pattern that achieved 100% success in Ship/Mission tests
+# UNIVERSAL MOCK STRATEGY - Same pattern that achieved @warning_ignore("integer_division")
+	100 % success in Ship/Mission tests
 class MockEnemyScalingSystem extends Resource:
 	# Properties with expected values (NO nulls/zeros!)
 	var base_health: float = 100.0
@@ -48,12 +50,21 @@ class MockEnemyScalingSystem extends Resource:
 		# Apply difficulty scaling
 		if difficulty in difficulty_modifiers:
 			var diff_mod = difficulty_modifiers[difficulty]
-			result["health"] *= diff_mod.get("health", 1.0)
-			result["damage"] *= diff_mod.get("damage", 1.0)
-			result["armor"] *= diff_mod.get("armor", 1.0)
-			result["count_modifier"] = diff_mod.get("count", 1.0)
+
+			result["health"] *= @warning_ignore("unsafe_call_argument")
+	diff_mod.get("health", 1.0)
+
+			result["damage"] *= @warning_ignore("unsafe_call_argument")
+	diff_mod.get("damage", 1.0)
+
+			result["armor"] *= @warning_ignore("unsafe_call_argument")
+	diff_mod.get("armor", 1.0)
+
+			result["count_modifier"] = @warning_ignore("unsafe_call_argument")
+	diff_mod.get("count", 1.0)
 		
-		# Apply level scaling (10% per level above 1)
+		# Apply level scaling (@warning_ignore("integer_division")
+	10 % per level above 1)
 		if level > 1:
 			var level_modifier = 1.0 + (level - 1) * 0.1
 			result["health"] *= level_modifier
@@ -63,12 +74,22 @@ class MockEnemyScalingSystem extends Resource:
 		# Apply zone scaling
 		if mission_type in zone_modifiers:
 			var zone_mod = zone_modifiers[mission_type]
-			result["health"] *= zone_mod.get("health", 1.0)
-			result["damage"] *= zone_mod.get("damage", 1.0)
-			if zone_mod.has("armor"):
-				result["armor"] *= zone_mod.get("armor", 1.0)
-			if zone_mod.has("count"):
-				result["count_modifier"] *= zone_mod.get("count", 1.0)
+
+			result["health"] *= @warning_ignore("unsafe_call_argument")
+	zone_mod.get("health", 1.0)
+
+			result["damage"] *= @warning_ignore("unsafe_call_argument")
+	zone_mod.get("damage", 1.0)
+			if @warning_ignore("unsafe_call_argument")
+	zone_mod.has("armor"):
+
+				result["armor"] *= @warning_ignore("unsafe_call_argument")
+	zone_mod.get("armor", 1.0)
+			if @warning_ignore("unsafe_call_argument")
+	zone_mod.has("count"):
+
+				result["count_modifier"] *= @warning_ignore("unsafe_call_argument")
+	zone_mod.get("count", 1.0)
 		
 		# Special case for hardcore + red zone combination
 		if difficulty == 4 and mission_type == 3:
@@ -84,7 +105,9 @@ var _instance: MockEnemyScalingSystem = null
 func before_test() -> void:
 	super.before_test()
 	_instance = MockEnemyScalingSystem.new()
+	@warning_ignore("return_value_discarded")
 	track_resource(_instance)
+	@warning_ignore("unsafe_method_access")
 	await get_tree().process_frame
 
 func after_test() -> void:
@@ -94,11 +117,17 @@ func after_test() -> void:
 # Type-safe helper methods
 func _verify_scaling_result(result: Dictionary, expected: Dictionary, message: String) -> void:
 	for key in expected:
-		var got: float = result.get(key, 0.0)
-		var want: float = expected.get(key, 0.0)
-		assert_that(got).override_failure_message("%s: %s should be %f" % [message, key, want]).is_equal(want)
+
+		var got: float = @warning_ignore("unsafe_call_argument")
+	result.get(key, 0.0)
+
+		var want: float = @warning_ignore("unsafe_call_argument")
+	expected.get(key, 0.0)
+		assert_that(got).override_failure_message("%s: %s should @warning_ignore("integer_division")
+	be % f" % [message, key, want]).is_equal(want)
 
 # Base Value Tests
+@warning_ignore("unsafe_method_access")
 func test_base_values() -> void:
 	var base_health: float = _instance.get_base_health()
 	var base_damage: float = _instance.get_base_damage()
@@ -111,6 +140,7 @@ func test_base_values() -> void:
 	assert_that(base_speed).override_failure_message("Base speed should be 4").is_equal(4.0)
 
 # Difficulty Scaling Tests
+@warning_ignore("unsafe_method_access")
 func test_easy_difficulty_scaling() -> void:
 	var result: Dictionary = _instance.calculate_enemy_scaling(0, 1, 0)
 	
@@ -121,6 +151,7 @@ func test_easy_difficulty_scaling() -> void:
 		"count_modifier": 0.8
 	}, "Easy difficulty scaling")
 
+@warning_ignore("unsafe_method_access")
 func test_normal_difficulty_scaling() -> void:
 	var result: Dictionary = _instance.calculate_enemy_scaling(1, 1, 0)
 	
@@ -131,6 +162,7 @@ func test_normal_difficulty_scaling() -> void:
 		"count_modifier": 1.0
 	}, "Normal difficulty scaling")
 
+@warning_ignore("unsafe_method_access")
 func test_hard_difficulty_scaling() -> void:
 	var result: Dictionary = _instance.calculate_enemy_scaling(2, 1, 0)
 	
@@ -141,6 +173,7 @@ func test_hard_difficulty_scaling() -> void:
 		"count_modifier": 1.2
 	}, "Hard difficulty scaling")
 
+@warning_ignore("unsafe_method_access")
 func test_elite_difficulty_scaling() -> void:
 	var result: Dictionary = _instance.calculate_enemy_scaling(3, 1, 0)
 	
@@ -151,6 +184,7 @@ func test_elite_difficulty_scaling() -> void:
 		"count_modifier": 1.4
 	}, "Elite difficulty scaling")
 
+@warning_ignore("unsafe_method_access")
 func test_hardcore_difficulty_scaling() -> void:
 	var result: Dictionary = _instance.calculate_enemy_scaling(4, 1, 3)
 	
@@ -163,6 +197,7 @@ func test_hardcore_difficulty_scaling() -> void:
 	}, "Hardcore difficulty in red zone scaling")
 
 # Mission Type Scaling Tests
+@warning_ignore("unsafe_method_access")
 func test_green_zone_scaling() -> void:
 	var result: Dictionary = _instance.calculate_enemy_scaling(1, 1, 1)
 	
@@ -171,6 +206,7 @@ func test_green_zone_scaling() -> void:
 		"damage": 9.0
 	}, "Green zone scaling")
 
+@warning_ignore("unsafe_method_access")
 func test_red_zone_scaling() -> void:
 	var result: Dictionary = _instance.calculate_enemy_scaling(1, 1, 3)
 	
@@ -180,6 +216,7 @@ func test_red_zone_scaling() -> void:
 		"count_modifier": 1.1
 	}, "Red zone scaling")
 
+@warning_ignore("unsafe_method_access")
 func test_black_zone_scaling() -> void:
 	var result: Dictionary = _instance.calculate_enemy_scaling(1, 1, 4)
 	
@@ -191,6 +228,7 @@ func test_black_zone_scaling() -> void:
 	}, "Black zone scaling")
 
 # Level Scaling Tests
+@warning_ignore("unsafe_method_access")
 func test_level_scaling() -> void:
 	# Test level 1 (base case)
 	var level1: Dictionary = _instance.calculate_enemy_scaling(1, 1, 0)
@@ -198,7 +236,8 @@ func test_level_scaling() -> void:
 		"health": 100.0
 	}, "Level 1 scaling")
 	
-	# Test level 5 (40% increase: 1 + (5-1)*0.1 = 1.4)
+	# Test level 5 (@warning_ignore("integer_division")
+	40 % increase: 1 + (5-1)*0.1 = 1.4)
 	var level5: Dictionary = _instance.calculate_enemy_scaling(1, 5, 0)
 	_verify_scaling_result(level5, {
 		"health": 140.0,
@@ -206,7 +245,8 @@ func test_level_scaling() -> void:
 		"armor": 7.0
 	}, "Level 5 scaling")
 	
-	# Test level 10 (90% increase: 1 + (10-1)*0.1 = 1.9)
+	# Test level 10 (@warning_ignore("integer_division")
+	90 % increase: 1 + (10-1)*0.1 = 1.9)
 	var level10: Dictionary = _instance.calculate_enemy_scaling(1, 10, 0)
 	_verify_scaling_result(level10, {
 		"health": 190.0,
@@ -215,6 +255,7 @@ func test_level_scaling() -> void:
 	}, "Level 10 scaling")
 
 # Combined Scaling Tests
+@warning_ignore("unsafe_method_access")
 func test_combined_scaling() -> void:
 	var base_health: float = _instance.get_base_health()
 	var base_damage: float = _instance.get_base_damage()
@@ -230,6 +271,7 @@ func test_combined_scaling() -> void:
 	assert_that(scaling["damage"]).override_failure_message("Combined scaling should increase damage").is_greater(base_damage)
 	assert_that(scaling["count_modifier"]).override_failure_message("Combined scaling should increase enemy count").is_greater(1.0)
 
+@warning_ignore("unsafe_method_access")
 func test_extreme_scaling_combination() -> void:
 	# Test Elite + Level 10 + Black Zone
 	var result: Dictionary = _instance.calculate_enemy_scaling(3, 10, 4)

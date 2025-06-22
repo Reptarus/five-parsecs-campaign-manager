@@ -65,7 +65,7 @@ func initialize(data: Dictionary) -> void:
 func complete_objective(index: int) -> void:
     if index >= 0 and index < objectives.size():
         objectives[index].completed = true
-        objective_completed.emit(index)
+        objective_completed.emit(index) # warning: return value discarded (intentional)
         _check_mission_completion()
 
 ## Reset a specific objective
@@ -78,13 +78,13 @@ func reset_objective(index: int) -> void:
 func complete_mission() -> void:
     is_completed = true
     is_failed = false
-    mission_completed.emit()
+    mission_completed.emit() # warning: return value discarded (intentional)
 
 ## Fail the mission
 func fail_mission() -> void:
     is_failed = true
     is_completed = false
-    mission_failed.emit()
+    mission_failed.emit() # warning: return value discarded (intentional)
 
 ## Clean up mission state
 func cleanup() -> void:
@@ -92,13 +92,14 @@ func cleanup() -> void:
     is_failed = false
     for objective in objectives:
         objective.completed = false
-    mission_cleaned_up.emit()
+    mission_cleaned_up.emit() # warning: return value discarded (intentional)
 
 ## Calculate mission completion percentage
 func get_completion_percentage() -> float:
     if objectives.is_empty():
         return 0.0
     var completed := objectives.filter(func(obj): return obj.completed).size()
+
     return (completed as float / objectives.size() as float) * 100.0
 
 ## Check if all required objectives are completed
@@ -124,6 +125,7 @@ func validate_requirements(capabilities: Dictionary) -> Dictionary:
         result.missing.append("insufficient_crew")
     
     # Check required skills
+
     var crew_skills: Array = capabilities.get("skills", [])
     for skill in required_skills:
         if not skill in crew_skills:
@@ -131,6 +133,7 @@ func validate_requirements(capabilities: Dictionary) -> Dictionary:
             result.missing.append("missing_skill_%s" % skill)
     
     # Check required equipment
+
     var crew_equipment: Array = capabilities.get("equipment", [])
     for equipment in required_equipment:
         if not equipment in crew_equipment:

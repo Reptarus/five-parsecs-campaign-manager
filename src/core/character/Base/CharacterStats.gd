@@ -25,7 +25,6 @@ var stat_modifiers: Dictionary = {
 
 func _init() -> void:
 	reset_to_base_stats()
-
 func reset_to_base_stats() -> void:
 	reactions = 3
 	speed = 3
@@ -47,18 +46,14 @@ func reset_to_base_stats() -> void:
 		"savvy": 0,
 		"luck": 0
 	}
-
 func _recalculate_max_health() -> void:
 	max_health = 8 + (toughness * 2)
 	if current_health > max_health:
 		current_health = max_health
-
 func heal(amount: int) -> void:
 	current_health = min(current_health + amount, max_health)
-
 func take_damage(amount: int) -> void:
 	current_health = max(current_health - amount, 0)
-
 func apply_stat_bonus(stat_name: String, bonus: int) -> void:
 	match stat_name:
 		"REACTIONS":
@@ -74,17 +69,14 @@ func apply_stat_bonus(stat_name: String, bonus: int) -> void:
 			savvy += bonus
 		"LUCK":
 			luck += bonus
-
 func apply_temporary_modifier(stat_name: String, modifier: int) -> void:
 	if stat_modifiers.has(stat_name.to_lower()):
 		stat_modifiers[stat_name.to_lower()] += modifier
-
 func remove_temporary_modifier(stat_name: String, modifier: int) -> void:
 	if stat_modifiers.has(stat_name.to_lower()):
 		stat_modifiers[stat_name.to_lower()] -= modifier
-
 func get_effective_stat(stat_name: String) -> int:
-	var base_value = 0
+	var base_value: int = 0
 	match stat_name.to_upper():
 		"REACTIONS":
 			base_value = reactions
@@ -98,7 +90,7 @@ func get_effective_stat(stat_name: String) -> int:
 			base_value = savvy
 		"LUCK":
 			base_value = luck
-	
+
 	return base_value + stat_modifiers.get(stat_name.to_lower(), 0)
 
 func serialize() -> Dictionary:
@@ -116,17 +108,26 @@ func serialize() -> Dictionary:
 	}
 
 func deserialize(data: Dictionary) -> void:
+
 	reactions = data.get("reactions", 3)
+
 	speed = data.get("speed", 3)
+
 	combat_skill = data.get("combat_skill", 3)
+
 	toughness = data.get("toughness", 3)
+
 	savvy = data.get("savvy", 3)
+
 	luck = data.get("luck", 3)
+
 	level = data.get("level", 1)
-	
+
 	max_health = data.get("max_health", 10)
+
 	current_health = data.get("current_health", max_health)
 	
 	stat_modifiers.clear()
+
 	for key in data.get("stat_modifiers", {}).keys():
 		stat_modifiers[key] = data.stat_modifiers[key]

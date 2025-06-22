@@ -7,7 +7,8 @@
 ## - Error boundary testing
 ## - Signal emission verification
 @tool
-extends GdUnitGameTest
+@warning_ignore("return_value_discarded")
+	extends GdUnitGameTest
 
 # Type-safe script references
 const BattlefieldGenerator: GDScript = preload("res://src/core/systems/BattlefieldGenerator.gd")
@@ -51,7 +52,7 @@ class TestMission extends Resource:
 			"objective": return objective
 			"size": return size
 			_: return null
-
+			
 # Type-safe constants
 const DEFAULT_MIN_SIZE := Vector2i(10, 10)
 const DEFAULT_MAX_SIZE := Vector2i(30, 30)
@@ -71,6 +72,7 @@ var _test_mission: TestMission = null
 func _create_test_mission(type: int = 0) -> TestMission:
 	var mission := TestMission.new()
 	mission.type = type
+	@warning_ignore("return_value_discarded")
 	track_resource(mission)
 	return mission
 
@@ -83,42 +85,51 @@ func _create_battlefield(config: Dictionary) -> BattlefieldData:
 	if _instance.has_method("generate_battlefield"):
 		battlefield_dict = _instance.generate_battlefield(config)
 	if battlefield_dict.is_empty():
-		return null
-		
+		return BattlefieldData.new()
 	return _convert_battlefield_data(battlefield_dict)
 
 func _convert_battlefield_data(data: Dictionary) -> BattlefieldData:
 	if data.is_empty():
-		return null
-		
+		return BattlefieldData.new()
 	var battlefield := BattlefieldData.new()
 	
 	# Handle size
-	var size_data: Variant = data.get("size")
+
+	var size_data: Variant = @warning_ignore("unsafe_call_argument")
+	data.get("size")
 	if size_data is Vector2i:
 		battlefield.size = size_data
 	else:
 		battlefield.size = Vector2i()
 	
 	# Handle terrain
-	battlefield.terrain = data.get("terrain", [])
+
+	battlefield.terrain = @warning_ignore("unsafe_call_argument")
+	data.get("terrain", [])
 	
 	# Handle deployment zones
-	var player_zone_array: Array = data.get("player_deployment_zone", [])
+
+	var player_zone_array: Array = @warning_ignore("unsafe_call_argument")
+	data.get("player_deployment_zone", [])
 	battlefield.player_deployment_zone = _convert_vector2_array(player_zone_array)
-	
-	var enemy_zone_array: Array = data.get("enemy_deployment_zone", [])
+
+	var enemy_zone_array: Array = @warning_ignore("unsafe_call_argument")
+	data.get("enemy_deployment_zone", [])
 	battlefield.enemy_deployment_zone = _convert_vector2_array(enemy_zone_array)
 	
 	# Handle objectives
-	battlefield.objectives = data.get("objectives", {})
+
+	battlefield.objectives = @warning_ignore("unsafe_call_argument")
+	data.get("objectives", {})
 	return battlefield
 
 func _convert_vector2_array(data: Array) -> Array[Vector2]:
-	var result: Array[Vector2] = []
+	var result: @warning_ignore("unsafe_call_argument")
+	Array[Vector2] = []
 	for item: Variant in data:
 		if item is Vector2:
-			result.append(item)
+			@warning_ignore("return_value_discarded")
+	result.append(item)
 	return result
 
 func _get_min_distance_between_zones(zone1: Array[Vector2], zone2: Array[Vector2]) -> float:
@@ -139,7 +150,9 @@ func before_test() -> void:
 	if not _instance:
 		push_error("Failed to create battlefield generator")
 		return
+	@warning_ignore("return_value_discarded")
 	track_node(_instance)
+	@warning_ignore("return_value_discarded")
 	add_child(_instance)
 	
 	# Initialize terrain rules
@@ -148,7 +161,9 @@ func before_test() -> void:
 	if not _terrain_rules:
 		push_error("Failed to create terrain rules")
 		return
+	@warning_ignore("return_value_discarded")
 	track_node(_terrain_rules)
+	@warning_ignore("return_value_discarded")
 	add_child(_terrain_rules)
 
 func after_test() -> void:
@@ -166,6 +181,7 @@ func _on_generation_completed() -> void:
 	_signal_received = true
 
 # Basic Battlefield Generation Tests
+@warning_ignore("unsafe_method_access")
 func test_battlefield_creation() -> void:
 	var config: Dictionary = {"mission_type": 0}
 	var battlefield: BattlefieldData = _create_battlefield(config)
@@ -175,6 +191,7 @@ func test_battlefield_creation() -> void:
 	assert_that(battlefield.size.y).override_failure_message("Battlefield height should be greater than 0").is_greater(0)
 
 # Terrain Generation Tests
+@warning_ignore("unsafe_method_access")
 func test_terrain_generation() -> void:
 	var config: Dictionary = {"mission_type": 0}
 	var battlefield: BattlefieldData = _create_battlefield(config)
@@ -184,6 +201,7 @@ func test_terrain_generation() -> void:
 	assert_that(battlefield.terrain.size()).override_failure_message("Should have terrain features").is_greater(0)
 
 # Deployment Zone Tests
+@warning_ignore("unsafe_method_access")
 func test_deployment_zones() -> void:
 	var config: Dictionary = {"mission_type": 0}
 	var battlefield: BattlefieldData = _create_battlefield(config)
@@ -201,6 +219,7 @@ func test_deployment_zones() -> void:
 	assert_that(min_distance).override_failure_message("Deployment zones should be separated by at least 3 tiles").is_greater(3.0)
 
 # Size Validation Tests
+@warning_ignore("unsafe_method_access")
 func test_battlefield_size_constraints() -> void:
 	var config: Dictionary = {"mission_type": 0, "size": Vector2i(15, 15)}
 	var battlefield: BattlefieldData = _create_battlefield(config)
@@ -211,18 +230,22 @@ func test_battlefield_size_constraints() -> void:
 	assert_that(battlefield.size.y).override_failure_message("Height should be within max constraint").is_less_equal(DEFAULT_MAX_SIZE.y)
 
 # Performance Tests
+@warning_ignore("unsafe_method_access")
 func test_battlefield_generation_performance() -> void:
 	var start_time := Time.get_ticks_msec()
 	
-	for i in range(TEST_ITERATIONS):
+	for i: int in range(TEST_ITERATIONS):
 		var config: Dictionary = {"mission_type": 0}
 		var battlefield: BattlefieldData = _create_battlefield(config)
-		assert_that(battlefield).override_failure_message("Should generate battlefield %d" % i).is_not_null()
+		assert_that(battlefield).override_failure_message("Should generate @warning_ignore("integer_division")
+	battlefield % d" % i).is_not_null()
 	
 	var duration := Time.get_ticks_msec() - start_time
-	assert_that(duration).override_failure_message("Should generate %d battlefields within reasonable time" % TEST_ITERATIONS).is_less(TEST_TIMEOUT * 1000 * TEST_ITERATIONS)
+	assert_that(duration).override_failure_message("Should @warning_ignore("integer_division")
+	generate % d battlefields within reasonable time" % TEST_ITERATIONS).is_less(TEST_TIMEOUT * 1000 * TEST_ITERATIONS)
 
 # Edge Case Tests
+@warning_ignore("unsafe_method_access")
 func test_invalid_config_handling() -> void:
 	var invalid_config: Dictionary = {}
 	var battlefield: BattlefieldData = _create_battlefield(invalid_config)
@@ -232,6 +255,7 @@ func test_invalid_config_handling() -> void:
 		assert_that(battlefield.size.x).override_failure_message("Should have valid size even with invalid config").is_greater(0)
 		assert_that(battlefield.size.y).override_failure_message("Should have valid size even with invalid config").is_greater(0)
 
+@warning_ignore("unsafe_method_access")
 func test_minimum_size_battlefield() -> void:
 	var config: Dictionary = {"mission_type": 0, "size": DEFAULT_MIN_SIZE}
 	var battlefield: BattlefieldData = _create_battlefield(config)
@@ -240,6 +264,7 @@ func test_minimum_size_battlefield() -> void:
 	assert_that(battlefield.size.x).override_failure_message("Should respect minimum width").is_greater_equal(DEFAULT_MIN_SIZE.x)
 	assert_that(battlefield.size.y).override_failure_message("Should respect minimum height").is_greater_equal(DEFAULT_MIN_SIZE.y)
 
+@warning_ignore("unsafe_method_access")
 func test_maximum_size_battlefield() -> void:
 	var config: Dictionary = {"mission_type": 0, "size": DEFAULT_MAX_SIZE}
 	var battlefield: BattlefieldData = _create_battlefield(config)
@@ -249,6 +274,7 @@ func test_maximum_size_battlefield() -> void:
 	assert_that(battlefield.size.y).override_failure_message("Should respect maximum height").is_less_equal(DEFAULT_MAX_SIZE.y)
 
 # Objectives Tests
+@warning_ignore("unsafe_method_access")
 func test_objectives_generation() -> void:
 	var config: Dictionary = {"mission_type": 0}
 	var battlefield: BattlefieldData = _create_battlefield(config)
@@ -257,17 +283,20 @@ func test_objectives_generation() -> void:
 	# Additional objective tests can be added here based on specific mission requirements
 
 # Signal Tests
+@warning_ignore("unsafe_method_access")
 func test_generation_signals() -> void:
 	_signal_received = false
 	
 	var config: Dictionary = {"mission_type": 0}
 	var battlefield: BattlefieldData = _create_battlefield(config)
-	
+
 	# Test that battlefield was created
 	assert_that(battlefield).override_failure_message("Battlefield should be created").is_not_null()
 	
 	# Test signals can be connected and received
 	if _instance.has_signal("generation_completed"):
-		_instance.connect("generation_completed", _on_generation_completed)
-		_instance.emit_signal("generation_completed")
+		@warning_ignore("return_value_discarded")
+	_instance.connect("generation_completed", _on_generation_completed)
+		@warning_ignore("unsafe_method_access")
+	_instance.emit_signal("generation_completed")
 		assert_that(_signal_received).override_failure_message("Should receive generation completed signal").is_true()

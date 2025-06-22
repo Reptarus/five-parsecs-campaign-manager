@@ -200,7 +200,6 @@ func disable_fail_fast() -> void:
 		"Disabled fail fast!",
 		Color.DEEP_SKY_BLUE
 	)
-	@warning_ignore("unsafe_method_access")
 	_executor.fail_fast(false)
 
 
@@ -336,7 +335,6 @@ func init_gd_unit() -> void:
 		return
 	# build runner config by given commands
 	var commands :Array[CmdCommand] = []
-	@warning_ignore("unsafe_cast")
 	commands.append_array(result.value() as Array)
 	result = (
 		CmdCommandHandler.new(_cmd_options)

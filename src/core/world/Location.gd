@@ -76,7 +76,8 @@ func _init() -> void:
 
 func add_connected_location(location_name: String) -> void:
 	if not connected_locations.has(location_name):
-		connected_locations.append(location_name)
+
+		connected_locations.append(location_name)  # warning: return value discarded (intentional)
 	
 	# Update wrapped GameLocation
 	_game_location.add_connected_location(location_name)
@@ -86,13 +87,13 @@ func remove_connected_location(location_name: String) -> void:
 	
 	# Update wrapped GameLocation
 	_game_location.remove_connected_location(location_name)
-
 func is_connected_to(location_name: String) -> bool:
 	return connected_locations.has(location_name)
 
 func add_mission(mission_data: Dictionary) -> void:
 	if not available_missions.has(mission_data):
-		available_missions.append(mission_data)
+
+		available_missions.append(mission_data)  # warning: return value discarded (intentional)
 	
 	# Update wrapped GameLocation
 	# Note: GameLocation expects a mission object, not a dictionary
@@ -105,20 +106,23 @@ func remove_mission(mission_data: Dictionary) -> void:
 	# Update wrapped GameLocation
 	# Note: GameLocation expects a mission ID, not a dictionary
 	# This would need to be converted in a real implementation
+
 	# var mission_id = mission_data.get("id", "")
 	# _game_location.remove_mission(mission_id)
-
 func add_event(event_data: Dictionary) -> void:
 	if not local_events.has(event_data):
-		local_events.append(event_data)
+
+		local_events.append(event_data)  # warning: return value discarded (intentional)
 	
 	# GameLocation doesn't have direct event support, would need custom implementation
 
 func clear_expired_events() -> void:
 	var current_events: Array[Dictionary] = []
 	for event in local_events:
+
 		if not event.get("expired", false):
-			current_events.append(event)
+
+			current_events.append(event)  # warning: return value discarded (intentional)
 	local_events = current_events
 	
 	# GameLocation doesn't have direct event support, would need custom implementation
@@ -150,7 +154,6 @@ func update_market_state() -> void:
 	var game_market_state = _convert_market_state(market_state)
 	_game_location.market_state = game_market_state
 	_game_location.update_market_state()
-
 func _convert_market_state(old_state: int) -> int:
 	match old_state:
 		MARKET_NORMAL: return GameLocation.MARKET_STATE_NORMAL
@@ -167,14 +170,18 @@ func get_travel_cost_to(destination: Resource) -> float:
 	return base_cost + (distance * 2) + (base_cost * danger_modifier)
 
 func get_resource_price(resource_type: GameEnums.ResourceType) -> float:
+
 	var base_price: float = resources.get(resource_type, 0)
+
 	var modifier: float = price_modifiers.get(resource_type, 1.0)
 	return base_price * modifier
 
 func add_threat(threat_data: Dictionary) -> void:
 	if not current_threats.has(threat_data):
-		current_threats.append(threat_data)
+
+		current_threats.append(threat_data)  # warning: return value discarded (intentional)
 		# Update danger level based on threats
+
 		danger_level = maxi(danger_level, threat_data.get("threat_level", 1))
 	
 	# GameLocation doesn't have direct threat support in the same way
@@ -185,14 +192,15 @@ func remove_threat(threat_data: Dictionary) -> void:
 	# Recalculate danger level
 	danger_level = 1
 	for threat in current_threats:
+
 		danger_level = maxi(danger_level, threat.get("threat_level", 1))
 	
 	# GameLocation doesn't have direct threat support in the same way
 	# Would need custom implementation
-
 func add_special_feature(feature: String) -> void:
 	if not special_features.has(feature):
-		special_features.append(feature)
+
+		special_features.append(feature)  # warning: return value discarded (intentional)
 	
 	# Map to GameLocation world traits
 	var trait_id = _convert_feature_to_trait_id(feature)
@@ -252,6 +260,7 @@ func get_game_location() -> GameLocation:
 	return _game_location
 
 ## Update this location from the wrapped GameLocation
+
 ## Call this when you know the GameLocation has been modified externally
 func update_from_game_location() -> void:
 	name = _game_location.location_name
@@ -283,7 +292,8 @@ func update_from_game_location() -> void:
 	for trait_item in _game_location.world_traits:
 		var feature = _convert_trait_id_to_feature(trait_item.trait_id)
 		if feature != "" and not feature in special_features:
-			special_features.append(feature)
+
+			special_features.append(feature)  # warning: return value discarded (intentional)
 
 ## Convert GameLocation market state to FiveParsecsLocation market state
 func _convert_game_market_state(game_state: int) -> int:
@@ -340,29 +350,50 @@ func serialize() -> Dictionary:
 
 static func deserialize(data: Dictionary) -> Resource:
 	var location = load("res://src/core/world/Location.gd").new()
+
 	location.name = data.get("name", "")
+
 	location.coordinates = Vector2(data.get("coordinates", {}).get("x", 0), data.get("coordinates", {}).get("y", 0))
+
 	location.type = data.get("type", "")
+
 	location.description = data.get("description", "")
+
 	location.faction = data.get("faction", "")
+
 	location.danger_level = data.get("danger_level", 1)
+
 	location.resources = data.get("resources", {})
+
 	location.connected_locations = data.get("connected_locations", [])
+
 	location.available_missions = data.get("available_missions", [])
+
 	location.local_events = data.get("local_events", [])
+
 	location.market_modifiers = data.get("market_modifiers", {})
+
 	location.special_features = data.get("special_features", [])
+
 	location.market_state = data.get("market_state", MARKET_NORMAL)
+
 	location.trade_goods = data.get("trade_goods", [])
+
 	location.black_market_active = data.get("black_market_active", false)
+
 	location.price_modifiers = data.get("price_modifiers", {})
+
 	location.is_discovered = data.get("is_discovered", false)
+
 	location.is_accessible = data.get("is_accessible", true)
+
 	location.current_threats = data.get("current_threats", [])
+
 	location.active_effects = data.get("active_effects", [])
 	
 	# If there's GameLocation data, deserialize it
 	if data.has("game_location_data"):
+
 		location._game_location = GameLocation.deserialize(data.get("game_location_data"))
 	else:
 		# Otherwise, sync our state to the GameLocation

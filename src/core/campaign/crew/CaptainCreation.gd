@@ -21,11 +21,9 @@ signal back_pressed
 func _ready() -> void:
 	_setup_ui()
 	_connect_signals()
-
 func _setup_ui() -> void:
 	_populate_dropdowns()
 	confirm_button.disabled = true
-
 func _connect_signals() -> void:
 	name_input.text_changed.connect(_on_name_changed)
 	origin_option.item_selected.connect(_on_origin_selected)
@@ -33,7 +31,6 @@ func _connect_signals() -> void:
 	class_option.item_selected.connect(_on_class_selected)
 	confirm_button.pressed.connect(_on_confirm_pressed)
 	back_button.pressed.connect(_on_back_pressed)
-
 func _populate_dropdowns() -> void:
 	# Populate origin dropdown
 	for origin in GlobalEnums.Origin.keys():
@@ -42,33 +39,28 @@ func _populate_dropdowns() -> void:
 	# Populate class dropdown
 	for class_type in GlobalEnums.CharacterClass.keys():
 		class_option.add_item(class_type)
-
 func _on_name_changed(new_text: String) -> void:
 	confirm_button.disabled = new_text.strip_edges().is_empty()
 	_update_preview()
-
 func _on_origin_selected(_index: int) -> void:
 	_update_preview()
-
 func _on_background_selected(_index: int) -> void:
 	_update_preview()
-
 func _on_class_selected(_index: int) -> void:
 	_update_preview()
-
 func _on_confirm_pressed() -> void:
 	var captain_data = {
 		"name": name_input.text,
 		"origin": GlobalEnums.Origin.values()[origin_option.selected],
 		"class": GlobalEnums.CharacterClass.values()[class_option.selected]
 	}
-	captain_created.emit(captain_data)
+	captain_created.emit(captain_data) # warning: return value discarded (intentional)
 
 func _on_back_pressed() -> void:
-	back_pressed.emit()
+	back_pressed.emit() # warning: return value discarded (intentional)
 
 func _update_preview() -> void:
-	var preview_text = "[center][color=yellow]Captain Preview[/color][/center]\n\n"
+	var preview_text: String = "[center][color=yellow]Captain Preview[/color][/center]\n\n"
 	
 	if not name_input.text.strip_edges().is_empty():
 		preview_text += "[color=lime]Name:[/color] %s\n" % name_input.text
@@ -78,5 +70,5 @@ func _update_preview() -> void:
 	
 	if class_option.selected >= 0:
 		preview_text += "[color=lime]Class:[/color] %s\n" % GlobalEnums.CharacterClass.keys()[class_option.selected]
-	
+
 	preview_label.text = preview_text

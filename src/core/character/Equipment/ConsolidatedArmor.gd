@@ -29,19 +29,16 @@ var cost: int = 0
 
 func _init() -> void:
     pass
-
 func get_effective_armor_value() -> int:
     return armor_save + damage_resistance
 
 func apply_modifiers(character) -> void:
     # Base implementation - can be overridden
     pass
-
 func apply_additional_modifiers(character) -> void:
     if movement_penalty > 0 and character.has_method("modify_movement"):
         character.modify_movement(- movement_penalty)
     apply_modifiers(character)
-
 func get_display_name() -> String:
     var display = armor_name if armor_name else "Unnamed Armor"
     if environmental_protection:
@@ -64,10 +61,8 @@ func is_damaged() -> bool:
 
 func repair(amount: int) -> void:
     current_durability = min(current_durability + amount, durability)
-
 func take_damage(amount: int) -> void:
     current_durability = max(0, current_durability - amount)
-
 func is_broken() -> bool:
     return current_durability <= 0
 
@@ -79,11 +74,11 @@ func has_characteristic(characteristic: int) -> bool:
 
 func add_characteristic(characteristic: int) -> void:
     if not has_characteristic(characteristic):
-        characteristics.append(characteristic)
+
+        characteristics.append(characteristic)  # warning: return value discarded (intentional)
 
 func remove_characteristic(characteristic: int) -> void:
     characteristics.erase(characteristic)
-
 func calculate_repair_cost() -> int:
     return (100 - durability) * cost / 100
 
@@ -107,18 +102,32 @@ func serialize() -> Dictionary:
     return data
 
 func deserialize(data: Dictionary) -> ConsolidatedArmor:
+
     armor_id = data.get("armor_id", "")
+
     armor_name = data.get("armor_name", "")
+
     armor_description = data.get("armor_description", "")
+
     armor_save = data.get("armor_save", 0)
+
     damage_resistance = data.get("damage_resistance", 0)
+
     movement_penalty = data.get("movement_penalty", 0)
+
     repair_cost = data.get("repair_cost", 0)
+
     environmental_protection = data.get("environmental_protection", false)
+
     defense = data.get("defense", 1)
+
     armor_type = data.get("armor_type", GlobalEnums.ArmorType.LIGHT)
+
     characteristics = data.get("characteristics", [])
+
     durability = data.get("durability", 100)
+
     current_durability = data.get("current_durability", durability)
+
     cost = data.get("cost", 0)
     return self

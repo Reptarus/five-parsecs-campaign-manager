@@ -16,37 +16,37 @@ signal action_unhovered
 
 # Properties
 var action_name: String = "":
-	set(value):
-		action_name = value
+	set(_value):
+		action_name = _value
 		if label:
-			label.text = value.capitalize()
+			label.text = _value.capitalize()
 
 var action_icon: Texture = null:
-	set(value):
-		action_icon = value
+	set(_value):
+		action_icon = _value
 		if icon_rect:
-			icon_rect.texture = value
-			icon_rect.visible = value != null
+			icon_rect.texture = _value
+			icon_rect.visible = _value != null
 
 var is_enabled: bool = true:
-	set(value):
-		is_enabled = value
+	set(_value):
+		is_enabled = _value
 		if button:
-			button.disabled = not value
+			button.disabled = not _value
 		if cooldown_overlay:
-			cooldown_overlay.visible = not value
+			cooldown_overlay.visible = not _value
 
 var cooldown_progress: float = 1.0:
-	set(value):
-		cooldown_progress = clamp(value, 0.0, 1.0)
+	set(_value):
+		cooldown_progress = clamp(_value, 0.0, 1.0)
 		if progress_arc:
-			progress_arc.value = cooldown_progress * 100
+			progress_arc._value = cooldown_progress * 100
 		if cooldown_overlay:
 			cooldown_overlay.visible = cooldown_progress < 1.0
 
 var action_color: Color = Color.WHITE:
-	set(value):
-		action_color = value
+	set(_value):
+		action_color = _value
 		if button:
 			# Apply color to button style
 			var style = button.get_theme_stylebox("normal").duplicate()
@@ -90,7 +90,7 @@ func _setup_ui() -> void:
 	if progress_arc:
 		progress_arc.min_value = 0
 		progress_arc.max_value = 100
-		progress_arc.value = cooldown_progress * 100
+		progress_arc._value = cooldown_progress * 100
 		progress_arc.fill_mode = TextureProgressBar.FILL_CLOCKWISE
 		progress_arc.visible = cooldown_progress < 1.0
 
@@ -101,16 +101,18 @@ func _connect_signals() -> void:
 		button.mouse_exited.connect(_on_button_mouse_exited)
 
 # Signal handlers
+	
 func _on_button_pressed() -> void:
-	emit_signal("action_pressed")
+	action_pressed.emit()
 
 func _on_button_mouse_entered() -> void:
-	emit_signal("action_hovered")
+	action_hovered.emit()
 
 func _on_button_mouse_exited() -> void:
-	emit_signal("action_unhovered")
+	action_unhovered.emit()
 
 # Public methods
+	
 func setup(name: String, icon: Texture = null, enabled: bool = true, color: Color = Color.WHITE) -> void:
 	action_name = name
 	action_icon = icon
@@ -131,3 +133,4 @@ func set_progress(progress: float) -> void:
 func reset_cooldown() -> void:
 	cooldown_progress = 1.0
 	is_enabled = true
+	

@@ -34,12 +34,10 @@ func is_error() -> GdUnitResultAssert:
 
 
 ## Verifies that the result contains the given message
-@warning_ignore("unused_parameter")
 func contains_message(expected :String) -> GdUnitResultAssert:
 	return self
 
 
 ## Verifies that the result contains the given value
-@warning_ignore("unused_parameter")
 func is_value(expected :Variant) -> GdUnitResultAssert:
 	return self

@@ -10,13 +10,13 @@ const EXCLUDE_DIRECTORIES = ["res://src/addons"]
 const OUTPUT_FILE = "res://class_name_conflicts_report.md"
 
 # Class name registry - maps class_name to files that declare it
-var class_registry = {}
+var class_registry: Dictionary = {}
 
 # Files with issues
-var conflicting_files = []
-var missing_reference_files = []
+var conflicting_files: Array = []
+var missing_reference_files: Array = []
 
-func _run():
+func _run() -> void:
 	print("Starting class_name conflict analysis...")
 	
 	# Clear previous results
@@ -33,7 +33,7 @@ func _run():
 	
 	print("Analysis complete. Results saved to " + OUTPUT_FILE)
 
-func scan_directory(path):
+func scan_directory(path) -> void:
 	print("Scanning directory: " + path)
 	
 	var dir = DirAccess.open(path)
@@ -70,7 +70,7 @@ func scan_directory(path):
 	
 	dir.list_dir_end()
 
-func analyze_script(file_path):
+func analyze_script(file_path) -> void:
 	var file = FileAccess.open(file_path, FileAccess.READ)
 	if not file:
 		print("Error opening file: " + file_path)
@@ -78,7 +78,7 @@ func analyze_script(file_path):
 	
 	var content = file.get_as_text()
 	var lines = content.split("\n")
-	var class_name_pattern = RegEx.new()
+	var class_name_pattern := RegEx.new()
 	class_name_pattern.compile("class_name\\s+([A-Za-z0-9_]+)")
 	
 	for line in lines:
@@ -93,15 +93,17 @@ func analyze_script(file_path):
 			# Check for conflicts
 			if class_registry[class_found].size() > 1:
 				if not conflicting_files.has(file_path):
+
 					conflicting_files.append(file_path)
 				
 				# Also add the original file that declared this class
 				var original_file = class_registry[class_found][0]
 				if not conflicting_files.has(original_file):
+
 					conflicting_files.append(original_file)
 
-func generate_report():
-	var report = "# Class Name Conflicts Report\n\n"
+func generate_report() -> void:
+	var report: String = "# Class Name Conflicts Report\n\n"
 	report += "This report identifies scripts with class_name conflicts.\n\n"
 	report += "## Conflicting Class Names\n\n"
 	report += "The following classes are defined in multiple files:\n\n"

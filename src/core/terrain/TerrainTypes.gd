@@ -2,167 +2,132 @@
 ## TerrainTypes
 # Defines terrain types and their properties for the Five Parsecs battle system.
 @tool
-extends Resource
-class_name FPCM_TerrainTypes
+extends RefCounted
+class_name TerrainTypes
 
-## Terrain Type Definitions
+## Terrain type definitions for Five Parsecs Campaign Manager
+
 enum Type {
-	EMPTY = 0,
-	WALL = 1,
-	COVER_LOW = 2,
-	COVER_HIGH = 3,
-	BUILDING = 4,
-	WATER = 5,
-	FOREST = 6,
-	OBSTACLE = 7,
-	ELEVATED = 8,
-	HAZARD = 9,
-	SPECIAL = 10,
-	DIFFICULT = 11
+	NONE,
+	OPEN,
+	COVER,
+	COVER_LOW, # Light cover
+	COVER_HIGH, # Heavy cover
+	DIFFICULT,
+	IMPASSABLE,
+	WALL, # Solid barrier
+	HAZARD, # Dangerous terrain
+	WATER,
+	BUILDING,
+	VEHICLE,
+	FOREST,
+	ROCK,
+	HILL
 }
 
-## Store terrain properties for each type
-const TERRAIN_PROPERTIES = {
-	Type.EMPTY: {
-		"name": "Empty",
-		"traversable": true,
-		"cover_value": 0,
-		"blocks_los": false,
-		"movement_cost": 1.0,
-		"elevation": 0
-	},
-	Type.WALL: {
-		"name": "Wall",
-		"traversable": false,
-		"cover_value": 0,
-		"blocks_los": true,
-		"movement_cost": 0.0,
-		"elevation": 0
-	},
-	Type.COVER_LOW: {
-		"name": "Low Cover",
-		"traversable": true,
-		"cover_value": 1,
-		"blocks_los": false,
-		"movement_cost": 1.5,
-		"elevation": 0
-	},
-	Type.COVER_HIGH: {
-		"name": "High Cover",
-		"traversable": true,
-		"cover_value": 2,
-		"blocks_los": true,
-		"movement_cost": 2.0,
-		"elevation": 0
-	},
-	Type.BUILDING: {
-		"name": "Building",
-		"traversable": false,
-		"cover_value": 0,
-		"blocks_los": true,
-		"movement_cost": 0.0,
-		"elevation": 1
-	},
-	Type.WATER: {
-		"name": "Water",
-		"traversable": true,
-		"cover_value": 0,
-		"blocks_los": false,
-		"movement_cost": 2.5,
-		"elevation": 0
-	},
-	Type.FOREST: {
-		"name": "Forest",
-		"traversable": true,
-		"cover_value": 1,
-		"blocks_los": true,
-		"movement_cost": 2.0,
-		"elevation": 0
-	},
-	Type.OBSTACLE: {
-		"name": "Obstacle",
-		"traversable": false,
-		"cover_value": 0,
-		"blocks_los": false,
-		"movement_cost": 0.0,
-		"elevation": 0
-	},
-	Type.ELEVATED: {
-		"name": "Elevated",
-		"traversable": true,
-		"cover_value": 1,
-		"blocks_los": false,
-		"movement_cost": 1.5,
-		"elevation": 1
-	},
-	Type.HAZARD: {
-		"name": "Hazard",
-		"traversable": true,
-		"cover_value": 0,
-		"blocks_los": false,
-		"movement_cost": 3.0,
-		"elevation": 0,
-		"damage": 5
-	},
-	Type.SPECIAL: {
-		"name": "Special",
-		"traversable": true,
-		"cover_value": 0,
-		"blocks_los": false,
-		"movement_cost": 1.0,
-		"elevation": 0
-	},
-	Type.DIFFICULT: {
-		"name": "Difficult Terrain",
-		"traversable": true,
-		"cover_value": 0,
-		"blocks_los": false,
-		"movement_cost": 2.5,
-		"elevation": 0
-	}
+enum MovementType {
+	NORMAL,
+	DIFFICULT,
+	IMPASSABLE
 }
 
-## Get terrain properties for a given type
-static func get_terrain_properties(type: Type) -> Dictionary:
-	if type in TERRAIN_PROPERTIES:
-		return TERRAIN_PROPERTIES[type].duplicate()
-	return TERRAIN_PROPERTIES[Type.EMPTY].duplicate()
+enum CoverType {
+	NONE,
+	LIGHT,
+	HEAVY,
+	FULL
+}
+
+## Terrain type names for display
+const TYPE_NAMES = {
+	Type.NONE: "None",
+	Type.OPEN: "Open",
+	Type.COVER: "Cover",
+	Type.COVER_LOW: "Light Cover",
+	Type.COVER_HIGH: "Heavy Cover",
+	Type.DIFFICULT: "Difficult",
+	Type.IMPASSABLE: "Impassable",
+	Type.WALL: "Wall",
+	Type.HAZARD: "Hazard",
+	Type.WATER: "Water",
+	Type.BUILDING: "Building",
+	Type.VEHICLE: "Vehicle",
+	Type.FOREST: "Forest",
+	Type.ROCK: "Rock",
+	Type.HILL: "Hill"
+}
+
+## Terrain type descriptions
+const TYPE_DESCRIPTIONS = {
+	Type.NONE: "No terrain",
+	Type.OPEN: "Open ground with no obstructions",
+	Type.COVER: "Partial cover that provides defensive bonuses",
+	Type.COVER_LOW: "Light cover that provides minor defensive bonuses",
+	Type.COVER_HIGH: "Heavy cover that provides significant defensive bonuses",
+	Type.DIFFICULT: "Rough terrain that impedes movement",
+	Type.IMPASSABLE: "Solid barrier that blocks movement and line of sight",
+	Type.WALL: "Solid wall that blocks movement and line of sight",
+	Type.HAZARD: "Dangerous terrain that may cause damage",
+	Type.WATER: "Water feature that slows movement",
+	Type.BUILDING: "Building",
+	Type.VEHICLE: "Vehicle",
+	Type.FOREST: "Forest",
+	Type.ROCK: "Rock",
+	Type.HILL: "Hill"
+}
+
+## Check if terrain blocks movement (referenced by other files)
+static func blocks_movement(terrain_type: Type) -> bool:
+	match terrain_type:
+		Type.IMPASSABLE, Type.WALL:
+			return true
+		_:
+			return false
 
 ## Check if terrain type is traversable
-static func is_traversable(type: Type) -> bool:
-	return get_terrain_properties(type).get("traversable", false)
+static func is_traversable(terrain_type: Type) -> bool:
+	match terrain_type:
+		Type.IMPASSABLE, Type.WALL, Type.WATER:
+			return false
+		_:
+			return true
 
-## Get movement cost for a terrain type
-static func get_movement_cost(type: Type) -> float:
-	return get_terrain_properties(type).get("movement_cost", 1.0)
+## Get movement cost for terrain type
+static func get_movement_cost(terrain_type: Type) -> float:
+	match terrain_type:
+		Type.OPEN:
+			return 1.0
+		Type.DIFFICULT, Type.FOREST, Type.HILL:
+			return 2.0
+		Type.HAZARD:
+			return 1.5
+		Type.ROCK:
+			return 1.5
+		Type.IMPASSABLE, Type.WALL, Type.WATER:
+			return 999.0
+		_:
+			return 1.0
 
-## Check if terrain blocks line of sight
-static func blocks_line_of_sight(type: Type) -> bool:
-	return get_terrain_properties(type).get("blocks_los", false)
+## Get cover _value for terrain type
+static func get_cover_value(terrain_type: Type) -> CoverType:
+	match terrain_type:
+		Type.COVER, Type.COVER_LOW, Type.FOREST:
+			return CoverType.LIGHT
+		Type.COVER_HIGH, Type.BUILDING, Type.ROCK, Type.WALL:
+			return CoverType.HEAVY
+		Type.VEHICLE:
+			return CoverType.FULL
+		_:
+			return CoverType.NONE
 
-## Get cover value for a terrain type
-static func get_cover_value(type: Type) -> int:
-	return get_terrain_properties(type).get("cover_value", 0)
+## Get terrain name string
+static func get_terrain_name(terrain_type: Type) -> String:
+	return TYPE_NAMES.get(terrain_type, "Unknown")
 
-## Get terrain elevation
-static func get_elevation(type: Type) -> int:
-	return get_terrain_properties(type).get("elevation", 0)
+## Get description for terrain type
+static func get_type_description(terrain_type: Type) -> String:
+	return TYPE_DESCRIPTIONS.get(terrain_type, "No description available")
 
-## Get terrain display name
-static func get_display_name(type: Type) -> String:
-	return get_terrain_properties(type).get("name", "Unknown")
-
-## Get special properties for terrain (if any)
-static func get_special_properties(type: Type) -> Dictionary:
-	var props = get_terrain_properties(type)
-	var special = {}
-	
-	for key in props:
-		if key not in ["name", "traversable", "cover_value", "blocks_los", "movement_cost", "elevation"]:
-			special[key] = props[key]
-			
-	return special
-
-## Check if terrain blocks movement
-static func blocks_movement(type: Type) -> bool:
-	return not is_traversable(type)
+## Validate terrain type
+static func is_valid_terrain_type(terrain_type: int) -> bool:
+	return terrain_type >= Type.NONE and terrain_type <= Type.HILL

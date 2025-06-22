@@ -1,13 +1,44 @@
 @tool
+extends Node
 class_name FPCM_CrewMember
-extends BaseCrewMember
 
-const BaseCrewMember = preload("res://src/base/campaign/crew/BaseCrewMember.gd")
+signal health_changed(new_health: int)
+signal status_changed(new_status: FiveParsecsGameEnums.CharacterStatus)
+signal experience_gained(amount: int)
+signal level_up(new_level: int)
+
+# Dependencies
 const GameEnums = preload("res://src/core/systems/GlobalEnums.gd")
 const FiveParsecsGameEnums = preload("res://src/game/campaign/crew/FiveParsecsGameEnums.gd")
-const Character = preload("res://src/core/character/Base/Character.gd")
-const GameWeapon = preload("res://src/core/systems/items/GameWeapon.gd")
-const CharacterInventory = preload("res://src/core/character/Equipment/CharacterInventory.gd")
+
+# Character data
+var character: Node
+var inventory: Dictionary = {}
+var active_weapon: Dictionary = {}
+
+# Basic character attributes
+var character_class: FiveParsecsGameEnums.CharacterClass = FiveParsecsGameEnums.CharacterClass.SOLDIER
+var combat_skill: int = 0
+var reactions: int = 0
+var savvy: int = 0
+var toughness: int = 3
+var speed: int = 4
+var luck: int = 0
+
+# Health and status
+var health: int = 10
+var max_health: int = 10
+var morale: int = 10
+var status: GameEnums.CharacterStatus = GameEnums.CharacterStatus.HEALTHY
+
+# Experience
+var level: int = 1
+var experience: int = 0
+
+# Character identity
+var character_name: String = "Crew Member"
+var traits: Array[String] = []
+var advances_available: int = 0
 
 # Status tracking
 var recovery_time: int = 0
@@ -22,15 +53,15 @@ func _ready() -> void:
 	equip_default_gear()
 
 func _initialize_character() -> void:
+	# Basic character initialization - simplified
 	if not character:
-		character = Character.new()
+		character = Node.new()
 	if not inventory:
-		inventory = CharacterInventory.new()
+		inventory = {}
 
 func _init() -> void:
 	# Basic initialization - detailed setup happens in _ready
-	character = Character.new()
-	inventory = CharacterInventory.new()
+	_initialize_character()
 	_apply_class_bonuses()
 
 func _apply_class_bonuses() -> void:
@@ -73,49 +104,31 @@ func set_default_stats() -> void:
 	status = GameEnums.CharacterStatus.HEALTHY
 
 func equip_default_gear() -> void:
-	# Equip default gear based on character class
+	# Simplified gear setup
 	if not inventory:
-		push_error("Inventory not initialized")
-		return
-		
-	# Clear existing inventory
-	inventory.clear()
+		inventory = {}
 	
-	# Add default weapon based on class
-	var default_weapon = GameWeapon.new()
+	# Add basic weapon data
+	var default_weapon = {
+		"name": "Basic Weapon",
+		"type": GameEnums.WeaponType.PISTOL,
+		"damage": 1
+	}
+	
 	match character_class:
 		FiveParsecsGameEnums.CharacterClass.SOLDIER:
-			default_weapon.weapon_type = GameEnums.WeaponType.RIFLE
+			default_weapon.type = GameEnums.WeaponType.RIFLE
 		FiveParsecsGameEnums.CharacterClass.SECURITY:
-			default_weapon.weapon_type = GameEnums.WeaponType.PISTOL
+			default_weapon.type = GameEnums.WeaponType.PISTOL
 		FiveParsecsGameEnums.CharacterClass.BOT_TECH:
-			default_weapon.weapon_type = GameEnums.WeaponType.HEAVY
+			default_weapon.type = GameEnums.WeaponType.HEAVY
 		FiveParsecsGameEnums.CharacterClass.MERCHANT:
-			default_weapon.weapon_type = GameEnums.WeaponType.PISTOL
+			default_weapon.type = GameEnums.WeaponType.PISTOL
 		_:
-			default_weapon.weapon_type = GameEnums.WeaponType.PISTOL
+			default_weapon.type = GameEnums.WeaponType.PISTOL
 	
-	inventory.add_weapon(default_weapon)
+	inventory["weapon"] = default_weapon
 	active_weapon = default_weapon
-	
-	# Add class-specific equipment
-	match character_class:
-		FiveParsecsGameEnums.CharacterClass.MEDIC:
-			var medkit = create_equipment_item(GameEnums.ItemType.CONSUMABLE, "Medkit")
-			inventory.add_equipment(medkit)
-		FiveParsecsGameEnums.CharacterClass.ENGINEER:
-			var toolkit = create_equipment_item(GameEnums.ItemType.GEAR, "Toolkit")
-			inventory.add_equipment(toolkit)
-
-# Helper function to create equipment items
-func create_equipment_item(item_type: int, item_name: String) -> Dictionary:
-	return {
-		"type": item_type,
-		"name": item_name,
-		"description": "Standard issue " + item_name.to_lower(),
-		"value": 10,
-		"weight": 1
-	}
 
 func handle_incapacitation() -> void:
 	# Handle character being reduced to 0 health
@@ -136,6 +149,7 @@ func handle_incapacitation() -> void:
 func apply_status_effect(effect_data: Dictionary) -> void:
 	# Apply status effects specific to Five Parsecs
 	var effect = effect_data.get("effect", "")
+
 	var duration = effect_data.get("duration", 1)
 	
 	# Store the recovery time
@@ -174,7 +188,7 @@ func apply_status_effect(effect_data: Dictionary) -> void:
 		"critically_wounded":
 			status = GameEnums.CharacterStatus.CRITICAL
 	
-	emit_signal("status_changed", status)
+	status_changed.emit( status)
 
 func remove_status_effect(effect_name: String) -> void:
 	# Reset status to healthy
@@ -186,7 +200,7 @@ func remove_status_effect(effect_name: String) -> void:
 
 func get_stat_modifier(stat_name: String) -> int:
 	# Get modifiers for stats based on status effects
-	var modifier = 0
+	var modifier: int = 0
 	
 	match status:
 		GameEnums.CharacterStatus.HEALTHY:

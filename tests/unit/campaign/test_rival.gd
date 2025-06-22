@@ -1,7 +1,8 @@
 ## Rival Test Suite
 ## Tests the functionality of individual rival objects
 @tool
-extends GdUnitGameTest
+@warning_ignore("return_value_discarded")
+	extends GdUnitGameTest
 
 # Type-safe script references
 const Rival: GDScript = preload("res://src/core/rivals/Rival.gd")
@@ -104,12 +105,24 @@ class MockRival extends Resource:
 		}
 	
 	func deserialize(data: Dictionary) -> bool:
-		rival_name = data.get("name", rival_name)
-		description = data.get("description", description)
-		threat_level = data.get("threat_level", threat_level)
-		hostility = data.get("hostility", hostility)
-		resources = data.get("resources", resources)
-		is_active_state = data.get("active", is_active_state)
+
+		rival_name = @warning_ignore("unsafe_call_argument")
+	data.get("name", rival_name)
+
+		description = @warning_ignore("unsafe_call_argument")
+	data.get("description", description)
+
+		threat_level = @warning_ignore("unsafe_call_argument")
+	data.get("threat_level", threat_level)
+
+		hostility = @warning_ignore("unsafe_call_argument")
+	data.get("hostility", hostility)
+
+		resources = @warning_ignore("unsafe_call_argument")
+	data.get("resources", resources)
+
+		is_active_state = @warning_ignore("unsafe_call_argument")
+	data.get("active", is_active_state)
 		return true
 
 # Type-safe instance variables
@@ -139,6 +152,7 @@ func before_test() -> void:
 	super.before_test()
 	
 	rival = MockRival.new()
+	@warning_ignore("return_value_discarded")
 	track_resource(rival) # Use track_resource for Resource objects
 
 func after_test() -> void:
@@ -146,6 +160,7 @@ func after_test() -> void:
 	super.after_test()
 
 # Initialization Tests
+@warning_ignore("unsafe_method_access")
 func test_initialization() -> void:
 	assert_that(rival).is_not_null()
 	
@@ -159,11 +174,12 @@ func test_initialization() -> void:
 	assert_that(name).is_not_equal("")
 	assert_that(description).is_not_equal("")
 	assert_that(threat_level).is_greater(MIN_THREAT_LEVEL)
-	assert_that(hostility).is_equal(DEFAULT_HOSTILITY) # Expected value instead of 0
+	assert_that(hostility).is_equal(DEFAULT_HOSTILITY) # Expected _value instead of 0
 	assert_that(resources).is_greater(MIN_RESOURCES)
 	assert_that(is_active).is_true()
 
 # Hostility Management Tests
+@warning_ignore("unsafe_method_access")
 func test_hostility_management() -> void:
 	# Test hostility increase
 	var success: bool = rival.increase_hostility(HOSTILITY_INCREASE_AMOUNT)
@@ -185,6 +201,7 @@ func test_hostility_management() -> void:
 	assert_that(hostility).is_equal(MAX_HOSTILITY + HOSTILITY_INCREASE_AMOUNT)
 
 # Threat Level Management Tests
+@warning_ignore("unsafe_method_access")
 func test_threat_level_management() -> void:
 	# Test threat level increase
 	var success: bool = rival.increase_threat_level(THREAT_LEVEL_INCREASE)
@@ -206,6 +223,7 @@ func test_threat_level_management() -> void:
 	assert_that(threat_level).is_equal(MIN_THREAT_LEVEL) # Should not go below minimum
 
 # Resource Management Tests
+@warning_ignore("unsafe_method_access")
 func test_resource_management() -> void:
 	# Test resource addition
 	var success: bool = rival.add_resources(RESOURCE_GAIN_AMOUNT)
@@ -224,6 +242,7 @@ func test_resource_management() -> void:
 	assert_that(success).is_false()
 
 # Activity Status Tests
+@warning_ignore("unsafe_method_access")
 func test_activity_status() -> void:
 	# Test initial active state
 	var is_active: bool = rival.is_active()
@@ -249,33 +268,47 @@ func test_activity_status() -> void:
 	assert_that(final_resources).is_greater(initial_resources)
 
 # Encounter Generation Tests
+@warning_ignore("unsafe_method_access")
 func test_encounter_generation() -> void:
 	var encounter: Dictionary = rival.generate_encounter()
-	assert_that(encounter.has("type")).is_true()
-	assert_that(encounter.has("difficulty")).is_true()
-	
-	var difficulty: int = encounter.get("difficulty", 0)
+	assert_that(@warning_ignore("unsafe_call_argument")
+	encounter.has("type")).is_true()
+	assert_that(@warning_ignore("unsafe_call_argument")
+	encounter.has("difficulty")).is_true()
+
+	var difficulty: int = @warning_ignore("unsafe_call_argument")
+	encounter.get("difficulty", 0)
 	assert_that(difficulty).is_greater(MIN_ENCOUNTER_DIFFICULTY)
-	
-	var encounter_type: String = encounter.get("type", "")
+
+	var encounter_type: String = @warning_ignore("unsafe_call_argument")
+	encounter.get("type", "")
 	assert_that(encounter_type).is_not_equal("")
-	
-	var enemies: int = encounter.get("enemies", 0)
+
+	var enemies: int = @warning_ignore("unsafe_call_argument")
+	encounter.get("enemies", 0)
 	assert_that(enemies).is_greater(0)
 
 # Serialization Tests
+@warning_ignore("unsafe_method_access")
 func test_serialization() -> void:
 	# Test serialization
 	var data: Dictionary = rival.serialize()
-	assert_that(data.has("name")).is_true()
-	assert_that(data.has("threat_level")).is_true()
-	assert_that(data.has("hostility")).is_true()
-	assert_that(data.has("resources")).is_true()
-	assert_that(data.has("active")).is_true()
-	assert_that(data.has("description")).is_true()
+	assert_that(@warning_ignore("unsafe_call_argument")
+	data.has("name")).is_true()
+	assert_that(@warning_ignore("unsafe_call_argument")
+	data.has("threat_level")).is_true()
+	assert_that(@warning_ignore("unsafe_call_argument")
+	data.has("hostility")).is_true()
+	assert_that(@warning_ignore("unsafe_call_argument")
+	data.has("resources")).is_true()
+	assert_that(@warning_ignore("unsafe_call_argument")
+	data.has("active")).is_true()
+	assert_that(@warning_ignore("unsafe_call_argument")
+	data.has("description")).is_true()
 	
 	# Test deserialization
 	var new_rival: MockRival = MockRival.new()
+	@warning_ignore("return_value_discarded")
 	track_resource(new_rival)
 	
 	var success: bool = new_rival.deserialize(data)

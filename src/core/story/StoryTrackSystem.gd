@@ -13,6 +13,9 @@ extends Resource
 # Dependencies
 const GameEnums = preload("res://src/core/systems/GlobalEnums.gd")
 
+# Manager references for dice system integration (accessed as autoload)
+var dice_manager: Node = null
+
 # Signals - following tested patterns
 signal story_clock_advanced(ticks_remaining: int)
 signal story_event_triggered(event: StoryEvent)
@@ -30,7 +33,7 @@ var current_event_index: int = 0
 # Story events array (6 interconnected events per Appendix V)
 var story_events: Array[StoryEvent] = []
 var completed_events: Array[StoryEvent] = []
-var available_choices: Array[StoryChoice] = []
+var _available_choices: Array[StoryChoice] = []
 
 # Player progress tracking
 var story_choices_made: Array[Dictionary] = []
@@ -44,14 +47,24 @@ var turns_since_discovery: int = 0
 
 ## Initialize story track with default events
 func _init() -> void:
+	_initialize_dice_manager()
 	_initialize_story_events()
+
+## Initialize dice manager reference
+func _initialize_dice_manager() -> void:
+	# Dice manager will be injected by CampaignManager since Resource class doesn't have access to scene tree
+	pass
+
+## Set dice manager reference (called by CampaignManager)
+func set_dice_manager(dm: Node) -> void:
+	dice_manager = dm
 
 ## Initialize the 6 story events from Appendix V pattern
 func _initialize_story_events() -> void:
 	story_events.clear()
 	
 	# Event 1: Initial Discovery
-	var event1 = StoryEvent.new()
+	var event1 := StoryEvent.new()
 	event1.event_id = "discovery_signal"
 	event1.title = "Mysterious Signal"
 	event1.description = "Your crew picks up a mysterious signal from an abandoned research facility..."
@@ -62,10 +75,11 @@ func _initialize_story_events() -> void:
 		{"text": "Monitor from distance", "risk": "low", "reward": "information", "evidence_gain": 1},
 		{"text": "Report to authorities", "risk": "none", "reward": "credits", "evidence_gain": 0}
 	])
-	story_events.append(event1)
+
+	story_events.append(event1) # warning: return value discarded (intentional)
 	
 	# Event 2: First Contact
-	var event2 = StoryEvent.new()
+	var event2 := StoryEvent.new()
 	event2.event_id = "first_contact"
 	event2.title = "Unexpected Contact"
 	event2.description = "A transmission reveals someone else is searching for the same thing..."
@@ -76,10 +90,11 @@ func _initialize_story_events() -> void:
 		{"text": "Follow them secretly", "risk": "high", "reward": "intel", "evidence_gain": 3},
 		{"text": "Avoid them entirely", "risk": "low", "reward": "none", "evidence_gain": 0}
 	])
-	story_events.append(event2)
+
+	story_events.append(event2) # warning: return value discarded (intentional)
 	
 	# Event 3: Hidden Conspiracy
-	var event3 = StoryEvent.new()
+	var event3 := StoryEvent.new()
 	event3.event_id = "conspiracy_revealed"
 	event3.title = "Corporate Conspiracy"
 	event3.description = "Evidence points to a massive corporate cover-up involving illegal experiments..."
@@ -90,12 +105,14 @@ func _initialize_story_events() -> void:
 		{"text": "Blackmail for profit", "risk": "high", "reward": "credits", "evidence_gain": 1},
 		{"text": "Sell data to competitors", "risk": "medium", "reward": "contacts", "evidence_gain": 0}
 	])
-	story_events.append(event3)
+
+	story_events.append(event3) # warning: return value discarded (intentional)
 	
 	# Event 4: Personal Stakes
-	var event4 = StoryEvent.new()
+	var event4 := StoryEvent.new()
 	event4.event_id = "personal_connection"
 	event4.title = "Personal Connection"
+
 	event4.description = "You discover someone close to you was involved in the original research..."
 	event4.event_index = 3
 	event4.required_evidence = 4
@@ -104,12 +121,14 @@ func _initialize_story_events() -> void:
 		{"text": "Search for more evidence", "risk": "low", "reward": "intel", "evidence_gain": 3},
 		{"text": "Protect them from discovery", "risk": "high", "reward": "loyalty", "evidence_gain": 0}
 	])
-	story_events.append(event4)
+
+	story_events.append(event4) # warning: return value discarded (intentional)
 	
 	# Event 5: The Hunt Begins
-	var event5 = StoryEvent.new()
+	var event5 := StoryEvent.new()
 	event5.event_id = "hunt_begins"
 	event5.title = "The Hunt Begins"
+
 	event5.description = "Your old companion has been taken by those who want to silence the truth..."
 	event5.event_index = 4
 	event5.required_evidence = 5
@@ -118,26 +137,29 @@ func _initialize_story_events() -> void:
 		{"text": "Gather allies first", "risk": "medium", "reward": "support", "evidence_gain": 2},
 		{"text": "Negotiate for release", "risk": "high", "reward": "deal", "evidence_gain": 0}
 	])
-	story_events.append(event5)
+
+	story_events.append(event5) # warning: return value discarded (intentional)
 	
 	# Event 6: Final Confrontation
-	var event6 = StoryEvent.new()
+	var event6 := StoryEvent.new()
 	event6.event_id = "final_confrontation"
 	event6.title = "We're Coming!"
 	event6.description = "You've tracked down where they're holding your friend. Time for diplomacy, Fringe-style!"
 	event6.event_index = 5
+
 	event6.required_evidence = 7 # 7+ from dice roll + evidence as per rules
 	_add_event_choices(event6, [
 		{"text": "Full frontal assault", "risk": "extreme", "reward": "victory", "evidence_gain": 0},
 		{"text": "Stealth infiltration", "risk": "very_high", "reward": "rescue", "evidence_gain": 0},
 		{"text": "Create distraction", "risk": "high", "reward": "opportunity", "evidence_gain": 0}
 	])
-	story_events.append(event6)
+
+	story_events.append(event6) # warning: return value discarded (intentional)
 
 ## Add choices to a story event
 func _add_event_choices(event: StoryEvent, choices_data: Array) -> void:
 	for choice_data in choices_data:
-		var choice = StoryChoice.new()
+		var choice := StoryChoice.new()
 		choice.choice_text = choice_data.text
 		choice.risk_level = choice_data.risk
 		choice.potential_reward = choice_data.reward
@@ -165,10 +187,10 @@ func advance_story_clock(success: bool = true) -> void:
 		return
 	
 	# Clock reduction based on success (per Appendix V)
-	var tick_reduction = 2 if success else 1
+	var tick_reduction: int = 2 if success else 1
 	story_clock_ticks = max(0, story_clock_ticks - tick_reduction)
 	
-	story_clock_advanced.emit(story_clock_ticks)
+	story_clock_advanced.emit(story_clock_ticks) # warning: return value discarded (intentional)
 	
 	# Check if we should trigger next event
 	if story_clock_ticks <= 0:
@@ -177,14 +199,14 @@ func advance_story_clock(success: bool = true) -> void:
 ## Discover evidence (per Core Rules mechanics)
 func discover_evidence(amount: int = 1) -> void:
 	evidence_pieces += amount
-	evidence_discovered.emit(evidence_pieces)
+	evidence_discovered.emit(evidence_pieces) # warning: return value discarded (intentional)
 	
 	# Check if evidence unlocks new events (per rules: 1D6 + evidence >= 7)
 	_check_evidence_progression()
 
 ## Check if evidence unlocks story progression
 func _check_evidence_progression() -> void:
-	var dice_roll = randi_range(1, 6)
+	var dice_roll = _roll_dice("Story Evidence Check", "D6")
 	var total_score = dice_roll + evidence_pieces
 	
 	# Per Appendix V: On 7+, discover companion location (Event 6)
@@ -196,7 +218,7 @@ func _check_evidence_progression() -> void:
 	# Otherwise, gain additional evidence and continue
 	if total_score < 7:
 		evidence_pieces += 1 # Additional evidence per rules
-		evidence_discovered.emit(evidence_pieces)
+		evidence_discovered.emit(evidence_pieces) # warning: return value discarded (intentional)
 
 ## Trigger the next story event
 func trigger_next_event() -> void:
@@ -205,53 +227,55 @@ func trigger_next_event() -> void:
 		return
 	
 	var event = story_events[current_event_index]
-	
+
 	# Check if player has required evidence
 	if evidence_pieces >= event.required_evidence:
 		event.is_available = true
-		story_event_triggered.emit(event)
+		story_event_triggered.emit(event) # warning: return value discarded (intentional)
 		story_track_phase = "event_active"
 	else:
 		# Reset clock and continue searching
 		story_clock_ticks = max_clock_ticks
-		story_clock_advanced.emit(story_clock_ticks)
+		story_clock_advanced.emit(story_clock_ticks) # warning: return value discarded (intentional)
 
 ## Make a story choice
-func make_story_choice(event: StoryEvent, choice: StoryChoice) -> Dictionary:
-	if not event or not choice:
-		return {"success": false, "message": "Invalid event or choice"}
+func make_story_choice(_event: StoryEvent, choice: StoryChoice) -> Dictionary:
+	if not _event or not choice:
+		return {"success": false, "message": "Invalid _event or choice"}
 	
 	# Apply choice effects
 	var outcome = _resolve_choice_outcome(choice)
 	
 	# Record choice
 	var choice_record = {
-		"event_id": event.event_id,
+		"event_id": _event.event_id,
 		"choice_text": choice.choice_text,
 		"outcome": outcome,
 		"timestamp": Time.get_unix_time_from_system()
 	}
-	story_choices_made.append(choice_record)
+
+	story_choices_made.append(choice_record) # warning: return value discarded (intentional)
 	
 	# Gain evidence
 	if choice.evidence_gain > 0:
 		discover_evidence(choice.evidence_gain)
+
+	# Mark _event as completed
+	_event.is_completed = true
+
+	completed_events.append(_event) # warning: return value discarded (intentional)
 	
-	# Mark event as completed
-	event.is_completed = true
-	completed_events.append(event)
-	
-	# Advance to next event
+	# Advance to next _event
 	current_event_index += 1
 	
 	# Emit signals
-	story_choice_made.emit(choice)
+	story_choice_made.emit(choice) # warning: return value discarded (intentional)
 	
 	# Check for story completion
 	if current_event_index >= story_events.size():
 		complete_story_track()
 	else:
-		# Reset clock for next event
+		# Reset clock for next _event
 		story_clock_ticks = max_clock_ticks
 		advance_story_clock(outcome.success)
 	
@@ -259,13 +283,17 @@ func make_story_choice(event: StoryEvent, choice: StoryChoice) -> Dictionary:
 
 ## Resolve choice outcome based on risk/reward
 func _resolve_choice_outcome(choice: StoryChoice) -> Dictionary:
-	var success_chance = _calculate_success_chance(choice.risk_level)
-	var is_success = randf() < success_chance
+	# Use dice system for outcome determination
+	var outcome_roll = _roll_dice("Story Choice: " + choice.choice_text, "D6")
+	var success_threshold = _get_success_threshold(choice.risk_level)
+	var is_success = outcome_roll >= success_threshold
 	
 	var outcome = {
 		"success": is_success,
 		"reward_type": choice.potential_reward,
-		"description": _generate_outcome_description(choice, is_success)
+		"description": _generate_outcome_description(choice, is_success),
+		"dice_roll": outcome_roll,
+		"threshold": success_threshold
 	}
 	
 	if is_success:
@@ -275,16 +303,16 @@ func _resolve_choice_outcome(choice: StoryChoice) -> Dictionary:
 	
 	return outcome
 
-## Calculate success chance based on risk level
-func _calculate_success_chance(risk_level: String) -> float:
+## Get success threshold for dice rolls (lower threshold = easier)
+func _get_success_threshold(risk_level: String) -> int:
 	match risk_level:
-		"none": return 1.0
-		"low": return 0.85
-		"medium": return 0.70
-		"high": return 0.55
-		"very_high": return 0.40
-		"extreme": return 0.25
-		_: return 0.70
+		"none": return 1 # Always succeeds
+		"low": return 2 # 5/6 chance (83%)
+		"medium": return 3 # 4/6 chance (67%)
+		"high": return 4 # 3/6 chance (50%)
+		"very_high": return 5 # 2/6 chance (33%)
+		"extreme": return 6 # 1/6 chance (17%)
+		_: return 3
 
 ## Apply rewards for successful choices
 func _apply_choice_rewards(choice: StoryChoice) -> void:
@@ -309,8 +337,8 @@ func _apply_choice_rewards(choice: StoryChoice) -> void:
 			reward["effect"] = "Rescue companion"
 		_:
 			reward["effect"] = "Gain story advantage"
-	
-	story_rewards_earned.append(reward)
+
+	story_rewards_earned.append(reward) # warning: return value discarded (intentional)
 
 ## Apply consequences for failed choices
 func _apply_choice_consequences(choice: StoryChoice) -> void:
@@ -333,6 +361,7 @@ func _get_success_flavor(reward_type: String) -> String:
 	match reward_type:
 		"tech_data": return "You've uncovered valuable technology data."
 		"ally": return "You've gained a powerful ally for future endeavors."
+
 		"credits": return "The risk was worth it - you're richer for it."
 		"companion": return "Your friend is safe and grateful."
 		_: return "Things worked out better than expected."
@@ -342,6 +371,7 @@ func _get_failure_flavor(risk_level: String) -> String:
 	match risk_level:
 		"extreme": return "The consequences are severe and far-reaching."
 		"very_high": return "This setback will be difficult to overcome."
+
 		"high": return "The situation has become more complicated."
 		_: return "You'll need to find another approach."
 
@@ -349,7 +379,7 @@ func _get_failure_flavor(risk_level: String) -> String:
 func complete_story_track() -> void:
 	is_story_track_active = false
 	story_track_phase = "completed"
-	story_track_completed.emit()
+	story_track_completed.emit() # warning: return value discarded (intentional)
 
 ## Get current story event
 func get_current_event() -> StoryEvent:
@@ -398,27 +428,42 @@ func serialize() -> Dictionary:
 
 func deserialize(data: Dictionary) -> void:
 	story_clock_ticks = data.get("story_clock_ticks", 6)
+
 	evidence_pieces = data.get("evidence_pieces", 0)
+
 	current_event_index = data.get("current_event_index", 0)
+
 	is_story_track_active = data.get("is_story_track_active", false)
+
 	story_track_phase = data.get("story_track_phase", "inactive")
+
 	turns_since_discovery = data.get("turns_since_discovery", 0)
+
 	story_choices_made = data.get("story_choices_made", [])
+
 	story_branches_unlocked = data.get("story_branches_unlocked", [])
+
 	story_rewards_earned = data.get("story_rewards_earned", [])
+	
+	# Reinitialize dice manager after deserialization
+	_initialize_dice_manager()
 	
 	# Deserialize events
 	completed_events.clear()
+
 	for event_data in data.get("completed_events", []):
-		var event = StoryEvent.new()
+		var event := StoryEvent.new()
 		event.deserialize(event_data)
-		completed_events.append(event)
+
+		completed_events.append(event) # warning: return value discarded (intentional)
 	
 	story_events.clear()
+
 	for event_data in data.get("story_events", []):
-		var event = StoryEvent.new()
+		var event := StoryEvent.new()
 		event.deserialize(event_data)
-		story_events.append(event)
+
+		story_events.append(event) # warning: return value discarded (intentional)
 
 ## Story Event Class
 class StoryEvent extends Resource:
@@ -445,18 +490,26 @@ class StoryEvent extends Resource:
 	
 	func deserialize(data: Dictionary) -> void:
 		event_id = data.get("event_id", "")
+
 		title = data.get("title", "")
+
 		description = data.get("description", "")
+
 		event_index = data.get("event_index", 0)
+
 		required_evidence = data.get("required_evidence", 0)
+
 		is_available = data.get("is_available", false)
+
 		is_completed = data.get("is_completed", false)
 		
 		choices.clear()
+
 		for choice_data in data.get("choices", []):
-			var choice = StoryChoice.new()
+			var choice := StoryChoice.new()
 			choice.deserialize(choice_data)
-			choices.append(choice)
+
+			choices.append(choice) # warning: return value discarded (intentional)
 
 ## Story Choice Class
 class StoryChoice extends Resource:
@@ -476,6 +529,28 @@ class StoryChoice extends Resource:
 	
 	func deserialize(data: Dictionary) -> void:
 		choice_text = data.get("choice_text", "")
+
 		risk_level = data.get("risk_level", "medium")
+
 		potential_reward = data.get("potential_reward", "")
+
 		evidence_gain = data.get("evidence_gain", 0)
+
+## Helper function for dice rolling with context
+func _roll_dice(context: String, pattern: String) -> int:
+	"""Roll dice using the dice system with proper context"""
+	if dice_manager and dice_manager.has_method("roll_dice"):
+		return dice_manager.roll_dice(context, pattern)
+	else:
+		# Fallback to basic random if dice system unavailable
+		match pattern:
+			"D6":
+				return randi_range(1, 6)
+			"D10":
+				return randi_range(1, 10)
+			"D66":
+				return randi_range(1, 6) * 10 + randi_range(1, 6)
+			"D100":
+				return randi_range(1, 100)
+			_:
+				return randi_range(1, 6)

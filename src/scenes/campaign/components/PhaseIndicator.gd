@@ -22,22 +22,22 @@ const PHASE_COLORS = {
 
 # Properties
 var current_phase: String = "preparation":
-	set(value):
-		if current_phase != value:
-			current_phase = value
+	set(_value):
+		if current_phase != _value:
+			current_phase = _value
 			_update_display()
 
 var phase_progress: float = 0.0:
-	set(value):
-		phase_progress = clamp(value, 0.0, 1.0)
+	set(_value):
+		phase_progress = clamp(_value, 0.0, 1.0)
 		if progress_bar:
-			progress_bar.value = phase_progress * 100
+			progress_bar._value = phase_progress * 100
 
 var phase_description_text: String = "":
-	set(value):
-		phase_description_text = value
+	set(_value):
+		phase_description_text = _value
 		if phase_description:
-			phase_description.text = value
+			phase_description.text = _value
 
 func _ready() -> void:
 	_setup_ui()
@@ -51,7 +51,7 @@ func _setup_ui() -> void:
 	if progress_bar:
 		progress_bar.min_value = 0
 		progress_bar.max_value = 100
-		progress_bar.value = 0
+		progress_bar._value = 0
 		
 	# Configure labels
 	if phase_label:
@@ -93,15 +93,15 @@ func _get_next_phase() -> String:
 
 func set_phase_complete() -> void:
 	phase_progress = 1.0
-	
+
 func reset_progress() -> void:
 	phase_progress = 0.0
 
 # Input handling
-func _gui_input(event: InputEvent) -> void:
+func _gui_input(event) -> void:
 	if event is InputEventMouseButton:
 		if event.button_index == MOUSE_BUTTON_LEFT and event.pressed:
-			emit_signal("phase_clicked", current_phase)
+			phase_clicked.emit( current_phase)
 
 # Public methods
 func highlight_phase(duration: float = 0.3) -> void:
@@ -114,3 +114,4 @@ func set_phase_data(phase_name: String, progress: float = 0.0, description: Stri
 	current_phase = phase_name
 	phase_progress = progress
 	phase_description_text = description
+

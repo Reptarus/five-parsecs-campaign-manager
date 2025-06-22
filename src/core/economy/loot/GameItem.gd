@@ -43,10 +43,13 @@ func initialize_from_id(id: String) -> bool:
 func initialize_from_data(data: Dictionary) -> bool:
 	if data.is_empty():
 		return false
-		
+
 	item_id = data.get("id", "")
+
 	item_name = data.get("name", "")
+
 	item_category = data.get("category", "")
+
 	item_description = data.get("description", "")
 	
 	# Set item type based on category
@@ -76,21 +79,26 @@ func initialize_from_data(data: Dictionary) -> bool:
 		
 		# If there's a single effect, convert it to our format
 		if data.has("effect"):
-			item_effects.append({
+
+			item_effects.append({  # warning: return value discarded (intentional)
 				"type": "basic",
+
 				"description": data.get("effect", ""),
-				"value": data.get("value", 0)
+
+				"_value": data.get("_value", 0)
 			})
 	
 	# Handle uses
+
 	item_uses = data.get("uses", 1)
 	
 	# Handle cost data
 	if data.has("cost") and data.cost is Dictionary:
 		item_cost = data.cost
 	else:
+
 		item_cost = {"credits": data.get("cost", 0), "rarity": data.get("rarity", "Common")}
-	
+
 	item_tags = data.get("tags", [])
 	
 	return true
@@ -132,9 +140,11 @@ func is_depleted() -> bool:
 	return item_uses <= 0 and is_consumable()
 
 func get_cost() -> int:
+
 	return item_cost.get("credits", 0)
 
 func get_rarity() -> String:
+
 	return item_cost.get("rarity", "Common")
 
 func get_tags() -> Array[String]:
@@ -157,7 +167,7 @@ func get_item_profile() -> Dictionary:
 	}
 
 static func create_from_profile(profile: Dictionary) -> GameItem:
-	var item = GameItem.new()
+	var item := GameItem.new()
 	item.initialize_from_data(profile)
 	return item
 
@@ -166,25 +176,29 @@ func serialize() -> Dictionary:
 
 func deserialize(data: Dictionary) -> void:
 	initialize_from_data(data)
-
 func apply_effect(character, effect_index: int = 0) -> bool:
 	if effect_index < 0 or effect_index >= item_effects.size():
 		return false
 		
 	var effect = item_effects[effect_index]
+
 	var effect_type = effect.get("type", "basic")
 	
 	match effect_type:
 		"stat_boost":
+
 			var stat = effect.get("stat", "")
-			var value = effect.get("value", 0)
+
+			var _value = effect.get("_value", 0)
+
 			var duration = effect.get("duration", 1)
 			
-			if stat and value > 0:
-				character.add_stat_boost(stat, value, duration)
+			if stat and _value > 0:
+				character.add_stat_boost(stat, _value, duration)
 				return true
 				
 		"healing":
+
 			var amount = effect.get("amount", 1)
 			
 			if amount > 0:
@@ -192,6 +206,7 @@ func apply_effect(character, effect_index: int = 0) -> bool:
 				return true
 				
 		"status_removal":
+
 			var status = effect.get("status", "")
 			
 			if status:
@@ -199,7 +214,9 @@ func apply_effect(character, effect_index: int = 0) -> bool:
 				return true
 				
 		"environmental_protection":
+
 			var protection_type = effect.get("protection_type", "")
+
 			var duration = effect.get("duration", 1)
 			
 			if protection_type:
@@ -207,7 +224,9 @@ func apply_effect(character, effect_index: int = 0) -> bool:
 				return true
 				
 		"special_ability":
+
 			var ability = effect.get("ability", "")
+
 			var duration = effect.get("duration", 1)
 			
 			if ability:
@@ -221,26 +240,26 @@ func apply_effect(character, effect_index: int = 0) -> bool:
 	return false
 
 func get_value() -> int:
-	var value := 10 # Base value
+	var _value := 10 # Base _value
 	
-	# Add value based on rarity
+	# Add _value based on rarity
 	match get_rarity():
 		"Common":
-			value += 0
+			_value += 0
 		"Uncommon":
-			value += 20
+			_value += 20
 		"Rare":
-			value += 50
+			_value += 50
 		"Very Rare":
-			value += 100
+			_value += 100
 		"Legendary":
-			value += 200
+			_value += 200
 	
-	# Add value for effects
-	value += item_effects.size() * 15
+	# Add _value for effects
+	_value += item_effects.size() * 15
 	
-	# Add value for uses if consumable
+	# Add _value for uses if consumable
 	if is_consumable():
-		value += item_uses * 5
+		_value += item_uses * 5
 	
-	return value
+	return _value

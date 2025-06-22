@@ -71,16 +71,17 @@ func add_log_entry(entry_type: String, entry_data: Dictionary) -> void:
 	var entry = {
 		"id": str(Time.get_unix_time_from_system()),
 		"type": entry_type,
-		"data": entry_data,
+		"_data": entry_data,
 		"timestamp": Time.get_datetime_string_from_system()
 	}
-	
-	log_entries.append(entry)
+
+	log_entries.append(entry)  # warning: return value discarded (intentional)
 	if _should_display_entry(entry):
 		combat_log_panel.add_entry(entry)
 
 ## Checks if an entry should be displayed based on filters
 func _should_display_entry(entry: Dictionary) -> bool:
+
 	return active_filters.get(entry.type, true)
 
 ## Updates the display based on current filters
@@ -106,7 +107,7 @@ func export_log() -> void:
 ## Signal handlers
 func _on_entry_selected(entry_id: String) -> void:
 	for entry in log_entries:
-		if entry.id == entry_id:
+		if entry._id == entry_id:
 			combat_log_panel.show_entry_details(entry)
 			break
 
@@ -117,7 +118,7 @@ func _on_filter_changed(filter_type: String, enabled: bool) -> void:
 func _on_context_action_requested(entry_id: String, action: String) -> void:
 	var entry = null
 	for e in log_entries:
-		if e.id == entry_id:
+		if e._id == entry_id:
 			entry = e
 			break
 	
@@ -134,7 +135,7 @@ func _on_context_action_requested(entry_id: String, action: String) -> void:
 
 func _on_verification_requested(entry_id: String) -> void:
 	for entry in log_entries:
-		if entry.id == entry_id:
+		if entry._id == entry_id:
 			_verify_entry(entry)
 			break
 
@@ -170,7 +171,7 @@ func _revert_entry(entry: Dictionary) -> void:
 func _on_combat_state_changed(new_state: Dictionary) -> void:
 	add_log_entry("combat", {
 		"type": "state_change",
-		"state": new_state
+		"_state": new_state
 	})
 
 func _on_combat_result_calculated(attacker: Character, target: Character, result: Dictionary) -> void:
@@ -197,13 +198,13 @@ func _on_combat_status_changed(character: Character, status: GameEnums.CombatSta
 func _on_manual_override_applied(override_type: String, override_data: Dictionary) -> void:
 	add_log_entry("override", {
 		"type": override_type,
-		"data": override_data
+		"_data": override_data
 	})
 
 ## Verification signal handlers
 func _on_verification_completed(verification_type: GameEnums.VerificationType, result: GameEnums.VerificationResult, details: Dictionary) -> void:
 	add_log_entry("verification", {
-		"type": verification_type,
+		"_type": verification_type,
 		"result": result,
 		"details": details
 	})
@@ -215,7 +216,7 @@ func _on_verification_completed(verification_type: GameEnums.VerificationType, r
 
 func _on_verification_failed(verification_type: GameEnums.VerificationType, error: String) -> void:
 	add_log_entry("verification", {
-		"type": verification_type,
+		"_type": verification_type,
 		"result": GameEnums.VerificationResult.ERROR,
 		"details": {"error": error}
 	})

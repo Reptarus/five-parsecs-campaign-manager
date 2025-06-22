@@ -1,5 +1,6 @@
 @tool
-extends GdUnitGameTest
+@warning_ignore("return_value_discarded")
+	extends GdUnitGameTest
 class_name PerfTestBase
 
 # Performance thresholds
@@ -55,7 +56,8 @@ var _current_test_name: String = ""
 var _is_mobile: bool = false
 
 func before_test() -> void:
-    await super.before_test()
+    @warning_ignore("unsafe_method_access")
+	await super.before_test()
     _start_time = Time.get_ticks_msec()
     _memory_start = Performance.get_monitor(Performance.MEMORY_STATIC)
     _is_mobile = OS.has_feature("mobile")
@@ -68,12 +70,14 @@ func before_test() -> void:
     
     # Warm up the engine
     for i in WARMUP_FRAMES:
-        await get_tree().process_frame
+        @warning_ignore("unsafe_method_access")
+	await get_tree().process_frame
 
 func after_test() -> void:
     # Cool down period
     for i in COOLDOWN_FRAMES:
-        await get_tree().process_frame
+        @warning_ignore("unsafe_method_access")
+	await get_tree().process_frame
         
     _end_time = Time.get_ticks_msec()
     _memory_end = Performance.get_monitor(Performance.MEMORY_STATIC)
@@ -83,7 +87,8 @@ func after_test() -> void:
     
     _print_performance_results(duration, memory_used)
     _check_for_memory_leaks()
-    await super.after_test()
+    @warning_ignore("unsafe_method_access")
+	await super.after_test()
 
 func _reset_metrics() -> void:
     for key in _metrics.keys():
@@ -138,7 +143,8 @@ func _check_for_memory_leaks() -> void:
     # Force garbage collection
     for i in leak_check_iterations:
         OS.delay_msec(100)
-        await get_tree().process_frame
+        @warning_ignore("unsafe_method_access")
+	await get_tree().process_frame
     
     var final_memory := Performance.get_monitor(Performance.MEMORY_STATIC)
     var memory_delta := (final_memory - initial_memory) / 1024.0 # KB
@@ -157,28 +163,40 @@ func measure_performance(callable: Callable, iterations: int = 100) -> Dictionar
     var initial_draw_calls = Performance.get_monitor(Performance.RENDER_TOTAL_DRAW_CALLS_IN_FRAME)
     
     # Collect frame timing data (works in headless mode)
-    var frame_times: Array[float] = []
-    var memory_samples: Array[float] = []
+    var frame_times: @warning_ignore("unsafe_call_argument")
+	Array[float] = []
+    var memory_samples: @warning_ignore("unsafe_call_argument")
+	Array[float] = []
     
-    for i in range(iterations):
+    for i: int in range(iterations):
         var frame_start = Time.get_ticks_msec()
         
         # Execute the callable
-        await callable.call()
-        await get_tree().process_frame
+
+        await @warning_ignore("unsafe_method_access")
+	callable.call()
+        @warning_ignore("unsafe_method_access")
+	await get_tree().process_frame
         
         var frame_end = Time.get_ticks_msec()
         var frame_time = frame_end - frame_start
-        frame_times.append(frame_time)
+
+        @warning_ignore("return_value_discarded")
+	frame_times.append(frame_time)
         
         # Collect memory metrics (these work in headless mode)
         var current_memory = Performance.get_monitor(Performance.MEMORY_STATIC)
-        memory_samples.append(current_memory)
+
+        @warning_ignore("return_value_discarded")
+	memory_samples.append(current_memory)
         
         # Store in metrics arrays
-        _metrics.frame_time.append(frame_time)
-        _metrics.memory.append(current_memory)
-        _metrics.draw_calls.append(Performance.get_monitor(Performance.RENDER_TOTAL_DRAW_CALLS_IN_FRAME))
+        _metrics.@warning_ignore("return_value_discarded")
+	frame_time.append(frame_time)
+        _metrics.@warning_ignore("return_value_discarded")
+	memory.append(current_memory)
+        _metrics.@warning_ignore("return_value_discarded")
+	draw_calls.append(Performance.get_monitor(Performance.RENDER_TOTAL_DRAW_CALLS_IN_FRAME))
     
     var end_time = Time.get_ticks_msec()
     var final_memory = Performance.get_monitor(Performance.MEMORY_STATIC)
@@ -221,47 +239,56 @@ func verify_performance_metrics(metrics: Dictionary, thresholds: Dictionary) -> 
     
     # Verify frame timing (lower is better) - this works in headless mode
     assert_that(metrics.average_frame_time).override_failure_message(
-        "Average frame time (%.2f ms) should be below threshold (%.2f ms)" % [metrics.average_frame_time, thresholds.get("average_frame_time", frame_time_target)]
-    ).is_less(thresholds.get("average_frame_time", frame_time_target))
+        "Average frame time (%.2f ms) should be below threshold (%.2f ms)" % [metrics.average_frame_time, @warning_ignore("unsafe_call_argument")
+	thresholds.get("average_frame_time", frame_time_target)]
+    ).is_less(@warning_ignore("unsafe_call_argument")
+	thresholds.get("average_frame_time", frame_time_target))
     
     assert_that(metrics.maximum_frame_time).override_failure_message(
-        "Maximum frame time (%.2f ms) should be below threshold (%.2f ms)" % [metrics.maximum_frame_time, thresholds.get("maximum_frame_time", frame_time_target * 2.0)]
-    ).is_less(thresholds.get("maximum_frame_time", frame_time_target * 2.0))
+        "Maximum frame time (%.2f ms) should be below threshold (%.2f ms)" % [metrics.maximum_frame_time, @warning_ignore("unsafe_call_argument")
+	thresholds.get("maximum_frame_time", frame_time_target * 2.0)]
+    ).is_less(@warning_ignore("unsafe_call_argument")
+	thresholds.get("maximum_frame_time", frame_time_target * 2.0))
     
     # Memory verification
     assert_that(metrics.memory_delta_kb).override_failure_message(
-        "Memory delta (%.2f KB) should be below threshold (%.2f KB)" % [metrics.memory_delta_kb, thresholds.get("memory_delta_kb", PERFORMANCE_THRESHOLDS.memory.max_delta_mb * 1024)]
-    ).is_less(thresholds.get("memory_delta_kb", PERFORMANCE_THRESHOLDS.memory.max_delta_mb * 1024))
+        "Memory delta (%.2f KB) should be below threshold (%.2f KB)" % [metrics.memory_delta_kb, @warning_ignore("unsafe_call_argument")
+	thresholds.get("memory_delta_kb", PERFORMANCE_THRESHOLDS.memory.max_delta_mb * 1024)]
+    ).is_less(@warning_ignore("unsafe_call_argument")
+	thresholds.get("memory_delta_kb", PERFORMANCE_THRESHOLDS.memory.max_delta_mb * 1024))
     
     # Frame time stability verification (higher is better)
-    if metrics.has("frame_time_stability"):
+    if @warning_ignore("unsafe_call_argument")
+	metrics.has("frame_time_stability"):
         assert_that(metrics.frame_time_stability).override_failure_message(
-            "Frame time stability (%.2f) should be above threshold (%.2f)" % [metrics.frame_time_stability, thresholds.get("frame_time_stability", 0.5)]
-        ).is_greater(thresholds.get("frame_time_stability", 0.5))
+            "Frame time stability (%.2f) should be above threshold (%.2f)" % [metrics.frame_time_stability, @warning_ignore("unsafe_call_argument")
+	thresholds.get("frame_time_stability", 0.5)]
+        ).is_greater(@warning_ignore("unsafe_call_argument")
+	thresholds.get("frame_time_stability", 0.5))
 
 # Statistical utilities
 func _calculate_average(values: Array) -> float:
     if values.is_empty():
         return 0.0
     var sum := 0.0
-    for value in values:
-        sum += value
+    for _value in values:
+        sum += _value
     return sum / values.size()
 
 func _calculate_minimum(values: Array) -> float:
     if values.is_empty():
         return 0.0
     var min_value: float = values[0]
-    for value in values:
-        min_value = min(min_value, value)
+    for _value in values:
+        min_value = min(min_value, _value)
     return min_value
 
 func _calculate_maximum(values: Array) -> float:
     if values.is_empty():
         return 0.0
     var max_value: float = values[0]
-    for value in values:
-        max_value = max(max_value, value)
+    for _value in values:
+        max_value = max(max_value, _value)
     return max_value
 
 func _calculate_percentile(values: Array, percentile: float) -> float:
@@ -278,8 +305,11 @@ func stress_test(callable: Callable) -> void:
     var end_time := start_time + (STRESS_TEST_DURATION * 1000)
     
     while Time.get_ticks_msec() < end_time:
-        await callable.call()
-        await get_tree().process_frame
+
+        await @warning_ignore("unsafe_method_access")
+	callable.call()
+        @warning_ignore("unsafe_method_access")
+	await get_tree().process_frame
     
     _check_for_memory_leaks()
 
@@ -288,15 +318,19 @@ func simulate_memory_pressure() -> void:
     if not _is_mobile:
         return
         
-    var temp_arrays: Array[Array] = []
-    # Allocate memory until we hit 80% of max
+        # Allocate memory until we hit @warning_ignore("integer_division")
+	80 % of max
     while Performance.get_monitor(Performance.MEMORY_STATIC) < Performance.get_monitor(Performance.MEMORY_STATIC_MAX):
-        temp_arrays.append(PackedByteArray().resize(1024 * 1024)) # 1MB chunks
-        await get_tree().process_frame
+
+        @warning_ignore("return_value_discarded")
+	temp_arrays.append(PackedByteArray().resize(1024 * 1024)) # 1MB chunks
+        @warning_ignore("unsafe_method_access")
+	await get_tree().process_frame
     
     # Release memory
     temp_arrays.clear()
-    await get_tree().process_frame
+    @warning_ignore("unsafe_method_access")
+	await get_tree().process_frame
 
 func _calculate_fps_stability(fps_samples: Array[float]) -> float:
     if fps_samples.is_empty():
@@ -313,7 +347,7 @@ func _calculate_fps_stability(fps_samples: Array[float]) -> float:
     variance /= fps_samples.size()
     
     var std_deviation: float = sqrt(variance)
-    var stability: float = 1.0 - (std_deviation / avg_fps) # Higher value = more stable
+    var stability: float = 1.0 - (std_deviation / avg_fps) # Higher _value = more stable
     return max(0.0, min(1.0, stability))
 
 func _calculate_performance_score(avg_fps: float, avg_frame_time: float, memory_delta: float) -> float:

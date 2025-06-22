@@ -1,5 +1,6 @@
 @tool
-extends GdUnitGameTest
+@warning_ignore("return_value_discarded")
+	extends GdUnitGameTest
 
 # Mock Sector Manager with expected values (Universal Mock Strategy)
 class MockSectorManager extends Resource:
@@ -14,43 +15,59 @@ class MockSectorManager extends Resource:
 		return sectors.values()
 	
 	func generate_sectors(count: int) -> void:
-		for i in range(count):
-			var sector_name = "Sector_%d" % i
+		for i: int in range(count):
+			var sector_name = "@warning_ignore("integer_division")
+	Sector_ % d" % i
 			generate_sector(sector_name)
 	
 	func generate_sector(sector_name: String) -> void:
 		var planet_count = randi_range(MIN_PLANETS_PER_SECTOR, MAX_PLANETS_PER_SECTOR)
 		var planets: Array = []
 		
-		for i in range(planet_count):
-			var planet = MockGamePlanet.new()
-			planet.set_property("planet_name", "Planet_%s_%d" % [sector_name, i])
-			planet.set_property("planet_type", randi() % 5) # 0-4 planet types
-			planet.set_property("faction_type", randi() % 3) # 0-2 faction types
-			planet.set_property("environment_type", randi() % 4) # 0-3 environment types
-			planet.set_property("world_features", [randi() % 10]) # Random world trait
-			planets.append(planet)
+		for i: int in range(planet_count):
+			var planet: MockGamePlanet = MockGamePlanet.new()
+			planet.set_property("planet_name", "@warning_ignore("integer_division")
+	Planet_ % s_%d" % [sector_name, i])
+			planet.set_property("planet_type", @warning_ignore("integer_division")
+	randi() % 5) # 0-4 planet types
+			planet.set_property("faction_type", @warning_ignore("integer_division")
+	randi() % 3) # 0-2 faction types
+			planet.set_property("environment_type", @warning_ignore("integer_division")
+	randi() % 4) # 0-3 environment types
+			planet.set_property("world_features", [@warning_ignore("integer_division")
+	randi() % 10]) # Random world trait
+
+			@warning_ignore("return_value_discarded")
+	planets.append(planet)
 			
 			# Add to discovered planets
-			var coordinates = "coord_%d_%d" % [i, i]
-			discovered_planets[coordinates] = planet
+			var coordinates = "@warning_ignore("integer_division")
+	coord_ % d_%d" % [i, i]
+			@warning_ignore("unsafe_call_argument")
+	discovered_planets[coordinates] = planet
 		
-		sectors[sector_name] = planets
-		sector_generated.emit(sector_name)
+		@warning_ignore("unsafe_call_argument")
+	sectors[sector_name] = planets
+		@warning_ignore("unsafe_method_access")
+	sector_generated.emit(sector_name)
 	
 	func get_planets_in_sector(sector_name: String) -> Array:
-		return sectors.get(sector_name, [])
+		return @warning_ignore("unsafe_call_argument")
+	sectors.get(sector_name, [])
 	
 	func get_planet_at_coordinates(coordinates: String) -> Resource:
-		return discovered_planets.get(coordinates, null)
+		return @warning_ignore("unsafe_call_argument")
+	discovered_planets.get(coordinates, null)
 	
 	func serialize() -> Dictionary:
-		var serialized_sectors = {}
+		var serialized_sectors: Dictionary = {}
 		for sector_name in sectors:
-			var serialized_planets = []
+			var serialized_planets: Array = []
 			for planet in sectors[sector_name]:
-				serialized_planets.append(planet.serialize() if planet.has_method("serialize") else {})
-			serialized_sectors[sector_name] = serialized_planets
+				@warning_ignore("return_value_discarded")
+	serialized_planets.append(planet.serialize() if planet.has_method("serialize") else {})
+			@warning_ignore("unsafe_call_argument")
+	serialized_sectors[sector_name] = serialized_planets
 		
 		return {
 			"sectors": serialized_sectors,
@@ -59,20 +76,27 @@ class MockSectorManager extends Resource:
 		}
 	
 	func deserialize(data: Dictionary) -> void:
-		current_sector = data.get("current_sector", "")
-		discovered_planets = data.get("discovered_planets", {})
-		
-		var sectors_data = data.get("sectors", {})
+		current_sector = @warning_ignore("unsafe_call_argument")
+	data.get("current_sector", "")
+
+		discovered_planets = @warning_ignore("unsafe_call_argument")
+	data.get("discovered_planets", {})
+
+		var sectors_data = @warning_ignore("unsafe_call_argument")
+	data.get("sectors", {})
 		sectors.clear()
-		for sector_name in sectors_data:
+		for sector_name: String in sectors_data:
 			var planets: Array = []
 			for planet_data in sectors_data[sector_name]:
-				var planet = MockGamePlanet.new()
+				var planet: MockGamePlanet = MockGamePlanet.new()
 				planet.deserialize(planet_data)
-				planets.append(planet)
-			sectors[sector_name] = planets
+
+				@warning_ignore("return_value_discarded")
+	planets.append(planet)
+			@warning_ignore("unsafe_call_argument")
+	sectors[sector_name] = planets
 	
-	func get_property(property: String):
+	func get_property(property: String) -> Variant:
 		match property:
 			"sectors": return sectors
 			"MIN_PLANETS_PER_SECTOR": return MIN_PLANETS_PER_SECTOR
@@ -87,15 +111,19 @@ class MockSectorManager extends Resource:
 class MockGamePlanet extends Resource:
 	var properties: Dictionary = {}
 	
-	func get_property(property: String):
-		return properties.get(property, null)
+	func get_property(property: String) -> Variant:
+		return @warning_ignore("unsafe_call_argument")
+	properties.get(property, null)
 	
-	func set_property(property: String, value) -> void:
-		properties[property] = value
-		property_changed.emit(property, value)
+	func set_property(property: String, _value) -> void:
+		@warning_ignore("unsafe_call_argument")
+	properties[property] = _value
+		@warning_ignore("unsafe_method_access")
+	property_changed.emit(property, _value)
 	
 	func has_trait(trait_id: String) -> bool:
-		var world_features = properties.get("world_features", [])
+		var world_features = @warning_ignore("unsafe_call_argument")
+	properties.get("world_features", [])
 		return trait_id in world_features
 	
 	func serialize() -> Dictionary:
@@ -106,14 +134,16 @@ class MockGamePlanet extends Resource:
 	
 	func update_from_game_planet() -> void:
 		# Mock update logic
-		updated.emit()
+		@warning_ignore("unsafe_method_access")
+	updated.emit()
 	
 	func _sync_to_game_planet() -> void:
 		# Mock sync logic
-		synced.emit()
+		@warning_ignore("unsafe_method_access")
+	synced.emit()
 	
 	# Required signals (immediate emission pattern)
-	signal property_changed(property: String, value)
+	signal property_changed(property: String, _value)
 	signal updated()
 	signal synced()
 
@@ -138,14 +168,14 @@ class MockWorldDataMigration extends Resource:
 			_: return "standard"
 	
 	func migrate_planet(planet: Resource) -> MockGamePlanet:
-		var game_planet = MockGamePlanet.new()
+		var game_planet: MockGamePlanet = MockGamePlanet.new()
 		if planet:
 			# Copy properties
 			for property in ["planet_name", "planet_type", "faction_type", "environment_type", "world_features"]:
 				if planet.has_method("get_property"):
-					var value = planet.get_property(property)
-					if value != null:
-						game_planet.set_property(property, value)
+					var _value = planet.get_property(property)
+					if _value != null:
+						game_planet.set_property(property, _value)
 		return game_planet
 
 # Type-safe instance variables
@@ -155,9 +185,11 @@ var migration: MockWorldDataMigration = null
 func before_test() -> void:
 	super.before_test()
 	sector_manager = MockSectorManager.new()
+	@warning_ignore("return_value_discarded")
 	track_resource(sector_manager)
 	
 	migration = MockWorldDataMigration.new()
+	@warning_ignore("return_value_discarded")
 	track_resource(migration)
 
 func after_test() -> void:
@@ -165,11 +197,13 @@ func after_test() -> void:
 	migration = null
 	super.after_test()
 
+@warning_ignore("unsafe_method_access")
 func test_initialization() -> void:
 	# Test direct method calls instead of safe wrappers (proven pattern)
 	var sectors: Array = sector_manager.get_sectors()
 	assert_that(sectors.size()).is_equal(0)
 
+@warning_ignore("unsafe_method_access")
 func test_sector_generation() -> void:
 	# Test direct method calls instead of safe wrappers (proven pattern)
 	var sector_count: int = 5
@@ -177,6 +211,7 @@ func test_sector_generation() -> void:
 	var sectors: Array = sector_manager.get_sectors()
 	assert_that(sectors.size()).is_equal(sector_count)
 
+@warning_ignore("unsafe_method_access")
 func test_sector_connections() -> void:
 	# Test direct method calls instead of safe wrappers (proven pattern)
 	sector_manager.generate_sectors(3)
@@ -185,6 +220,7 @@ func test_sector_connections() -> void:
 		# Mock sectors automatically have planets, so check planet count
 		assert_that(sector.size()).is_greater(0)
 
+@warning_ignore("unsafe_method_access")
 func test_serialization() -> void:
 	# Test direct method calls instead of safe wrappers (proven pattern)
 	sector_manager.generate_sectors(3)
@@ -192,19 +228,22 @@ func test_serialization() -> void:
 	var serialized: Dictionary = sector_manager.serialize()
 	
 	var new_manager: MockSectorManager = MockSectorManager.new()
+	@warning_ignore("return_value_discarded")
 	track_resource(new_manager)
 	new_manager.deserialize(serialized)
 	var deserialized_sectors: Array = new_manager.get_sectors()
 	assert_that(deserialized_sectors.size()).is_equal(original_sectors.size())
 
+@warning_ignore("unsafe_method_access")
 func test_generate_sector() -> void:
 	# Test direct method calls instead of safe wrappers (proven pattern)
 	var sector_name = "test_sector"
 	sector_manager.generate_sector(sector_name)
-	
+
 	# Test that the sector was created
 	var sectors: Dictionary = sector_manager.get_property("sectors")
-	assert_that(sectors.has(sector_name)).is_true()
+	assert_that(@warning_ignore("unsafe_call_argument")
+	sectors.has(sector_name)).is_true()
 	
 	# Test that the correct number of planets were generated
 	var planets: Array = sector_manager.get_planets_in_sector(sector_name)
@@ -233,6 +272,7 @@ func test_generate_sector() -> void:
 		assert_that(planet_type_id).is_not_null()
 		assert_that(planet_type_id).is_not_equal("")
 
+@warning_ignore("unsafe_method_access")
 func test_get_planet_at_coordinates() -> void:
 	# Test direct method calls instead of safe wrappers (proven pattern)
 	var sector_name = "test_sector"
@@ -253,6 +293,7 @@ func test_get_planet_at_coordinates() -> void:
 		assert_that(planet_type_id).is_not_null()
 		assert_that(planet_type_id).is_not_equal("")
 
+@warning_ignore("unsafe_method_access")
 func test_sector_serialization() -> void:
 	# Test direct method calls instead of safe wrappers (proven pattern)
 	var sector_name = "test_sector"
@@ -260,21 +301,28 @@ func test_sector_serialization() -> void:
 	
 	# Serialize
 	var data: Dictionary = sector_manager.serialize()
-	assert_that(data.has("sectors")).is_true()
-	assert_that(data.has("current_sector")).is_true()
+	assert_that(@warning_ignore("unsafe_call_argument")
+	data.has("sectors")).is_true()
+	assert_that(@warning_ignore("unsafe_call_argument")
+	data.has("current_sector")).is_true()
 	
 	# Create new manager and deserialize
-	var new_manager = MockSectorManager.new()
+	var new_manager: MockSectorManager = MockSectorManager.new()
+	@warning_ignore("return_value_discarded")
 	track_resource(new_manager)
 	new_manager.deserialize(data)
 	
 	# Verify deserialized data
 	var new_sectors: Dictionary = new_manager.get_property("sectors")
 	var original_sectors: Dictionary = sector_manager.get_property("sectors")
-	assert_that(new_sectors.has(sector_name)).is_true()
-	if new_sectors.has(sector_name) and original_sectors.has(sector_name):
+	assert_that(@warning_ignore("unsafe_call_argument")
+	new_sectors.has(sector_name)).is_true()
+	if @warning_ignore("unsafe_call_argument")
+	new_sectors.has(sector_name) and @warning_ignore("unsafe_call_argument")
+	original_sectors.has(sector_name):
 		assert_that(new_sectors[sector_name].size()).is_equal(original_sectors[sector_name].size())
 
+@warning_ignore("unsafe_method_access")
 func test_migration_utility() -> void:
 	# Test direct method calls instead of safe wrappers (proven pattern)
 	var sector_name = "test_sector"
@@ -306,7 +354,7 @@ func test_migration_utility() -> void:
 			var trait_id: String = migration.convert_world_trait_to_id(trait_enum)
 			assert_that(trait_id).is_not_null()
 			assert_that(trait_id).is_not_equal("")
-			
+
 			# Test that the GamePlanet has the trait
 			assert_that(game_planet.has_trait(trait_id)).is_true()
 		
@@ -323,10 +371,11 @@ func test_migration_utility() -> void:
 		var newer_name = "Even Newer Planet Name"
 		planet.set_property("planet_name", newer_name)
 		planet._sync_to_game_planet()
-		
+
 		# Verify the planet still exists and has expected properties
 		assert_that(planet.get_property("planet_type")).is_greater_equal(0)
 
+@warning_ignore("unsafe_method_access")
 func test_planet_type_conversion() -> void:
 	# Test direct method calls instead of safe wrappers (proven pattern)
 	# Test all planet type conversions
@@ -337,6 +386,7 @@ func test_planet_type_conversion() -> void:
 	assert_that(migration.convert_planet_type_to_id(4)).is_equal("toxic_world")
 	assert_that(migration.convert_planet_type_to_id(-1)).is_equal("unknown")
 
+@warning_ignore("unsafe_method_access")
 func test_world_trait_conversion() -> void:
 	# Test direct method calls instead of safe wrappers (proven pattern)
 	# Test all world trait conversions

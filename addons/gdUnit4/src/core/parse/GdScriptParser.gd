@@ -265,7 +265,6 @@ class TokenInnerClass extends Token:
 
 	func parse(source_rows :PackedStringArray, offset :int) -> void:
 		# add class signature
-		@warning_ignore("return_value_discarded")
 		_content.append(source_rows[offset])
 		# parse class content
 		for row_index in range(offset+1, source_rows.size()):
@@ -278,10 +277,8 @@ class TokenInnerClass extends Token:
 					source_row = source_row.trim_prefix("\t")
 				# refomat invalid empty lines
 				if source_row.dedent().is_empty():
-					@warning_ignore("return_value_discarded")
 					_content.append("")
 				else:
-					@warning_ignore("return_value_discarded")
 					_content.append(source_row)
 				continue
 			break
@@ -348,7 +345,6 @@ func extract_clazz_name(value :String) -> String:
 		return result.get_string(2)
 
 
-@warning_ignore("unused_parameter")
 func tokenize_inner_class(source_code: String, current: int, token: Token) -> Token:
 	var clazz_name := extract_clazz_name(source_code.substr(current, 64))
 	return TokenInnerClass.new(clazz_name)
@@ -548,11 +544,8 @@ func extract_inner_class(source_rows: PackedStringArray, clazz_name :String) -> 
 		var input := source_rows[row_index]
 		var token := next_token(input, 0)
 		if token.is_inner_class():
-			@warning_ignore("unsafe_method_access")
 			if token.is_class_name(clazz_name):
-				@warning_ignore("unsafe_method_access")
 				token.parse(source_rows, row_index)
-				@warning_ignore("unsafe_method_access")
 				return token.content()
 	return PackedStringArray()
 
@@ -629,7 +622,6 @@ func _enrich_function_descriptor(script: GDScript, fds: Array[GdFunctionDescript
 				).pop_front()
 				if fd != null:
 					# add as enriched function to exclude from next iteration (could be inherited)
-					@warning_ignore("return_value_discarded")
 					enriched_functions.append(fd.name())
 					var func_signature := extract_func_signature(rows, rowIndex)
 					var func_arguments := _parse_function_arguments(func_signature)
@@ -689,7 +681,6 @@ func _prescan_script(script: GDScript) -> void:
 	for key :String in _script_constants.keys():
 		var value :Variant = _script_constants.get(key)
 		if value is GDScript:
-			@warning_ignore("return_value_discarded")
 			_scanned_inner_classes.append(key)
 
 

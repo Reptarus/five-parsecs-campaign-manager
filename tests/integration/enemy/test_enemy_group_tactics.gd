@@ -1,13 +1,16 @@
 @tool
-extends "res://tests/fixtures/specialized/enemy_test.gd"
+@warning_ignore("return_value_discarded")
+	extends "res://tests/fixtures/specialized/enemy_test.gd"
 
 # Type-safe instance variables for tactical testing
 var _tactical_manager: Node = null
 var _combat_manager: Node = null
 var _test_battlefield: Node2D = null
 var _tactics_system: Node = null
-var _test_squad: Array[Enemy] = []
-var _test_objectives: Array[Node2D] = []
+var _test_squad: @warning_ignore("unsafe_call_argument")
+	Array[Enemy] = []
+var _test_objectives: @warning_ignore("unsafe_call_argument")
+	Array[Node2D] = []
 
 func before_test() -> void:
 	super.before_test()
@@ -18,6 +21,7 @@ func before_test() -> void:
 		push_error("Failed to create tactical manager")
 		return
 	_tactical_manager.name = "TacticalManager"
+	@warning_ignore("return_value_discarded")
 	track_node(_tactical_manager)
 	
 	_combat_manager = Node.new()
@@ -25,6 +29,7 @@ func before_test() -> void:
 		push_error("Failed to create combat manager")
 		return
 	_combat_manager.name = "CombatManager"
+	@warning_ignore("return_value_discarded")
 	track_node(_combat_manager)
 	
 	_test_battlefield = Node2D.new()
@@ -32,8 +37,10 @@ func before_test() -> void:
 		push_error("Failed to create test battlefield")
 		return
 	_test_battlefield.name = "TestBattlefield"
+	@warning_ignore("return_value_discarded")
 	track_node(_test_battlefield)
 	
+	@warning_ignore("unsafe_method_access")
 	await stabilize_engine(ENEMY_TEST_CONFIG.stabilize_time)
 
 func after_test() -> void:
@@ -43,8 +50,10 @@ func after_test() -> void:
 	super.after_test()
 
 # Group Tactical Tests
+@warning_ignore("unsafe_method_access")
 func test_group_tactical_initialization() -> void:
-	var group: Array[Enemy] = _create_tactical_group()
+	var group: @warning_ignore("unsafe_call_argument")
+	Array[Enemy] = _create_tactical_group()
 	assert_that(group.size()).is_equal(3)
 	
 	var leader: Enemy = group[0]
@@ -57,8 +66,10 @@ func test_group_tactical_initialization() -> void:
 		if member.has_method("is_leader"):
 			assert_that(member.is_leader()).is_false()
 
+@warning_ignore("unsafe_method_access")
 func test_group_formation_tactics() -> void:
-	var group: Array[Enemy] = _create_tactical_group()
+	var group: @warning_ignore("unsafe_call_argument")
+	Array[Enemy] = _create_tactical_group()
 	var formation_data: Dictionary = {
 		"type": "wedge",
 		"spacing": 2.0,
@@ -71,19 +82,23 @@ func test_group_formation_tactics() -> void:
 	
 	# Verify positions
 	var leader_pos: Vector2 = group[0].position
-	for i in range(1, group.size()):
+	for i: int in range(1, group.size()):
 		var member_pos: Vector2 = group[i].position
 		var distance: float = leader_pos.distance_to(member_pos)
 		assert_that(distance).is_greater(0.0)
 		assert_that(distance).is_less(formation_data.spacing * 3.0)
 
+@warning_ignore("unsafe_method_access")
 func test_group_combat_coordination() -> void:
-	var group: Array[Enemy] = _create_tactical_group()
+	var group: @warning_ignore("unsafe_call_argument")
+	Array[Enemy] = _create_tactical_group()
 	var target: Enemy = create_test_enemy()
+	@warning_ignore("return_value_discarded")
 	track_node(target)
 	
 	# Skip signal monitoring to prevent Dictionary corruption
-	# monitor_signals(group[0])  # REMOVED - causes Dictionary corruption
+	# @warning_ignore("unsafe_method_access")
+	monitor_signals(group[0])  # REMOVED - causes Dictionary corruption
 	# Test state directly instead of signal emission
 	
 	# Test group attack coordination
@@ -93,8 +108,10 @@ func test_group_combat_coordination() -> void:
 	# assert_signal(group[0]).is_emitted("group_attack_coordinated")  # REMOVED - causes Dictionary corruption
 	# Test state directly instead of signal emission
 
+@warning_ignore("unsafe_method_access")
 func test_group_movement_tactics() -> void:
-	var group: Array[Enemy] = _create_tactical_group()
+	var group: @warning_ignore("unsafe_call_argument")
+	Array[Enemy] = _create_tactical_group()
 	var start_pos: Vector2 = Vector2.ZERO
 	var end_pos: Vector2 = Vector2(100, 100)
 	
@@ -105,7 +122,8 @@ func test_group_movement_tactics() -> void:
 	
 	# Test group movement
 	# Skip signal monitoring to prevent Dictionary corruption
-	# monitor_signals(group[0])  # REMOVED - causes Dictionary corruption
+	# @warning_ignore("unsafe_method_access")
+	monitor_signals(group[0])  # REMOVED - causes Dictionary corruption
 	# Test state directly instead of signal emission
 	if _tactical_manager.has_method("move_group_to"):
 		_tactical_manager.move_group_to(group, end_pos)
@@ -118,26 +136,35 @@ func test_group_movement_tactics() -> void:
 		var final_pos: Vector2 = member.position
 		assert_that(final_pos.distance_to(end_pos)).is_less(50.0)
 
+@warning_ignore("unsafe_method_access")
 func test_group_target_prioritization() -> void:
-	var group: Array[Enemy] = _create_tactical_group()
-	var targets: Array[Enemy] = _create_target_group()
+	var group: @warning_ignore("unsafe_call_argument")
+	Array[Enemy] = _create_tactical_group()
+	var targets: @warning_ignore("unsafe_call_argument")
+	Array[Enemy] = _create_target_group()
 	
 	# Test target assignment
 	if _tactical_manager.has_method("assign_group_targets"):
 		_tactical_manager.assign_group_targets(group, targets)
 	
 	# Verify target assignments
-	var assigned_targets: Array[Enemy] = []
+	var assigned_targets: @warning_ignore("unsafe_call_argument")
+	Array[Enemy] = []
 	for member in group:
 		if member.has_method("get_current_target"):
 			var current_target: Enemy = member.get_current_target()
 			assert_that(current_target).is_not_null()
 			assert_that(current_target in assigned_targets).is_false()
-			assigned_targets.append(current_target)
 
+			@warning_ignore("return_value_discarded")
+	assigned_targets.append(current_target)
+
+@warning_ignore("unsafe_method_access")
 func test_group_cover_tactics() -> void:
-	var group: Array[Enemy] = _create_tactical_group()
-	var cover_points: Array[Vector2] = _create_cover_points()
+	var group: @warning_ignore("unsafe_call_argument")
+	Array[Enemy] = _create_tactical_group()
+	var cover_points: @warning_ignore("unsafe_call_argument")
+	Array[Vector2] = _create_cover_points()
 	
 	# Test cover assignment
 	if _tactical_manager.has_method("assign_group_cover"):
@@ -150,9 +177,12 @@ func test_group_cover_tactics() -> void:
 			assert_that(cover_pos).is_not_null()
 			assert_that(cover_pos in cover_points).is_true()
 
+@warning_ignore("unsafe_method_access")
 func test_group_retreat_conditions() -> void:
-	var group: Array[Enemy] = _create_tactical_group()
-	var retreat_threshold: float = 0.25 # Retreat at 25% health
+	var group: @warning_ignore("unsafe_call_argument")
+	Array[Enemy] = _create_tactical_group()
+	var retreat_threshold: float = 0.25 # Retreat at @warning_ignore("integer_division")
+	25 % health
 	
 	# Set retreat threshold for group
 	if _tactical_manager.has_method("set_group_retreat_threshold"):
@@ -162,7 +192,8 @@ func test_group_retreat_conditions() -> void:
 	for member in group:
 		if member.has_method("get_max_health") and member.has_method("take_damage"):
 			var max_health: float = member.get_max_health()
-			member.take_damage(max_health * 0.8) # Take 80% damage
+			member.take_damage(max_health * 0.8) # Take @warning_ignore("integer_division")
+	80 % damage
 	
 	# Verify group doesn't retreat yet
 	if _tactical_manager.has_method("should_group_retreat"):
@@ -172,15 +203,19 @@ func test_group_retreat_conditions() -> void:
 	for member in group:
 		if member.has_method("get_current_health") and member.has_method("take_damage"):
 			var current_health: float = member.get_current_health()
-			member.take_damage(current_health * 0.7) # Take 70% of remaining health
+			member.take_damage(current_health * 0.7) # Take @warning_ignore("integer_division")
+	70 % of remaining health
 	
 	# Verify group retreats
 	if _tactical_manager.has_method("should_group_retreat"):
 		assert_that(_tactical_manager.should_group_retreat(group)).is_true()
 
+@warning_ignore("unsafe_method_access")
 func test_group_reinforcement_tactics() -> void:
-	var main_group: Array[Enemy] = _create_tactical_group()
-	var reinforcements: Array[Enemy] = _create_tactical_group()
+	var main_group: @warning_ignore("unsafe_call_argument")
+	Array[Enemy] = _create_tactical_group()
+	var reinforcements: @warning_ignore("unsafe_call_argument")
+	Array[Enemy] = _create_tactical_group()
 	
 	# Test reinforcement integration
 	if _tactical_manager.has_method("integrate_reinforcements"):
@@ -188,11 +223,14 @@ func test_group_reinforcement_tactics() -> void:
 	
 	# Verify combined group
 	if _tactical_manager.has_method("get_group_members"):
-		var combined_group: Array[Enemy] = _tactical_manager.get_group_members(main_group[0])
+		var combined_group: @warning_ignore("unsafe_call_argument")
+	Array[Enemy] = _tactical_manager.get_group_members(main_group[0])
 		assert_that(combined_group.size()).is_equal(main_group.size() + reinforcements.size())
 
+@warning_ignore("unsafe_method_access")
 func test_group_leadership_mechanics() -> void:
-	var group: Array[Enemy] = _create_tactical_group()
+	var group: @warning_ignore("unsafe_call_argument")
+	Array[Enemy] = _create_tactical_group()
 	var leader: Enemy = group[0]
 	var member: Enemy = group[1]
 	
@@ -208,9 +246,12 @@ func test_group_leadership_mechanics() -> void:
 	if member.has_method("is_leader"):
 		assert_that(member.is_leader()).is_true()
 
+@warning_ignore("unsafe_method_access")
 func test_group_behavior_tree() -> void:
-	var group: Array[Enemy] = _create_tactical_group()
-	var targets: Array[Enemy] = _create_target_group()
+	var group: @warning_ignore("unsafe_call_argument")
+	Array[Enemy] = _create_tactical_group()
+	var targets: @warning_ignore("unsafe_call_argument")
+	Array[Enemy] = _create_target_group()
 	
 	# Setup the behavior tree
 	for member in group:
@@ -240,7 +281,8 @@ func test_group_behavior_tree() -> void:
 
 # Helper Methods
 func _create_tactical_group() -> Array[Enemy]:
-	var group: Array[Enemy] = []
+	var group: @warning_ignore("unsafe_call_argument")
+	Array[Enemy] = []
 	
 	# Create leader
 	var leader: Enemy = create_test_enemy(EnemyTestType.ELITE)
@@ -249,39 +291,52 @@ func _create_tactical_group() -> Array[Enemy]:
 		return []
 	if leader.has_method("set_as_leader"):
 		leader.set_as_leader(true)
+	@warning_ignore("return_value_discarded")
 	track_node(leader)
+
+	@warning_ignore("return_value_discarded")
 	group.append(leader)
 	
 	# Create members
-	for i in range(2):
+	for i: int in range(2):
 		var member: Enemy = create_test_enemy(EnemyTestType.BASIC)
 		if not member:
 			push_error("Failed to create group member")
 			continue
 		if member.has_method("set_as_leader"):
 			member.set_as_leader(false)
-		track_node(member)
-		group.append(member)
+		@warning_ignore("return_value_discarded")
+	track_node(member)
+
+		@warning_ignore("return_value_discarded")
+	group.append(member)
 	
 	return group
 
 func _create_target_group() -> Array[Enemy]:
-	var targets: Array[Enemy] = []
+	var targets: @warning_ignore("unsafe_call_argument")
+	Array[Enemy] = []
 	
-	for i in range(3):
+	for i: int in range(3):
 		var target: Enemy = create_test_enemy()
 		if not target:
 			push_error("Failed to create target")
 			continue
-		track_node(target)
-		targets.append(target)
+		@warning_ignore("return_value_discarded")
+	track_node(target)
+
+		@warning_ignore("return_value_discarded")
+	targets.append(target)
 	
 	return targets
 
 func _create_cover_points() -> Array[Vector2]:
-	var cover_points: Array[Vector2] = []
+	var cover_points: @warning_ignore("unsafe_call_argument")
+	Array[Vector2] = []
 	
-	for i in range(5):
-		cover_points.append(Vector2(i * 50, i * 50))
+	for i: int in range(5):
+
+		@warning_ignore("return_value_discarded")
+	cover_points.append(Vector2(i * 50, i * 50))
 	
 	return cover_points

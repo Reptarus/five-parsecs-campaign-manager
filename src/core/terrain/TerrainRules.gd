@@ -91,9 +91,11 @@ signal terrain_rule_triggered(position: Vector2i, rule_type: String, data: Dicti
 var _terrain_states: Dictionary = {}
 
 func get_terrain_modifiers(terrain_type: GameEnums.PlanetEnvironment) -> PackedInt32Array:
+
 	return terrain_modifiers.get(terrain_type, PackedInt32Array([GameEnums.TerrainModifier.NONE]))
 
 func get_feature_modifiers(feature_type: GameEnums.TerrainFeatureType) -> PackedInt32Array:
+
 	return feature_modifiers.get(feature_type, PackedInt32Array([GameEnums.TerrainModifier.NONE]))
 
 func has_modifier(modifiers: PackedInt32Array, modifier: GameEnums.TerrainModifier) -> bool:
@@ -176,15 +178,18 @@ func on_terrain_changed(position: Vector2i, new_state: Dictionary) -> void:
 
 # Check for special terrain interaction rules
 func _check_terrain_rules(position: Vector2i) -> void:
+
 	var current_state = _terrain_states.get(position, {})
 	if current_state.is_empty():
 		return
 		
 	# Example rule: Fire spreads to adjacent flammable terrain
+
 	if current_state.get("feature_type") == GameEnums.TerrainFeatureType.FIRE:
 		_check_fire_spread_rule(position)
 	
 	# Example rule: Water extinguishes fire
+
 	if current_state.get("terrain_type") == TerrainTypes.Type.WATER:
 		_check_extinguish_rule(position)
 
@@ -198,18 +203,20 @@ func _check_fire_spread_rule(position: Vector2i) -> void:
 	]
 	
 	for adj_pos in adjacent_positions:
+
 		var adj_state = _terrain_states.get(adj_pos, {})
 		if adj_state.is_empty():
 			continue
 			
 		# Check if adjacent terrain can catch fire
+
 		if adj_state.get("terrain_type") == TerrainTypes.Type.FOREST:
 			var data = {
 				"source_position": position,
 				"target_position": adj_pos,
 				"probability": 0.2 # 20% chance to spread
 			}
-			terrain_rule_triggered.emit(adj_pos, "fire_spread", data)
+			terrain_rule_triggered.emit(adj_pos, "fire_spread", data)  # warning: return value discarded (intentional)
 
 # Water can extinguish fire
 func _check_extinguish_rule(position: Vector2i) -> void:
@@ -221,15 +228,17 @@ func _check_extinguish_rule(position: Vector2i) -> void:
 	]
 	
 	for adj_pos in adjacent_positions:
+
 		var adj_state = _terrain_states.get(adj_pos, {})
 		if adj_state.is_empty():
 			continue
-			
+
 		# Check if adjacent terrain has fire
+
 		if adj_state.get("feature_type") == GameEnums.TerrainFeatureType.FIRE:
 			var data = {
 				"source_position": position,
 				"target_position": adj_pos,
 				"probability": 0.5 # 50% chance to extinguish
 			}
-			terrain_rule_triggered.emit(adj_pos, "extinguish_fire", data)
+			terrain_rule_triggered.emit(adj_pos, "extinguish_fire", data)  # warning: return value discarded (intentional)

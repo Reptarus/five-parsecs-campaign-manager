@@ -1,6 +1,7 @@
 @tool
 class_name GameTest
-extends BaseTest
+@warning_ignore("return_value_discarded")
+	extends BaseTest
 
 ## Base class for game-specific tests
 ##
@@ -17,41 +18,56 @@ const TestHelper: GDScript = preload("res://tests/fixtures/helpers/test_helper.g
 
 # Game test configuration
 const GAME_TEST_CONFIG := {
+
 	"auto_save": false as bool,
+
 	"debug_mode": true as bool,
+
 	"test_mode": true as bool
 }
 
 # Default game state
 const DEFAULT_GAME_STATE := {
+
 	"difficulty_level": GameEnums.DifficultyLevel.NORMAL as int,
+
 	"enable_permadeath": true as bool,
+
 	"use_story_track": true as bool,
+
 	"auto_save_enabled": true as bool,
+
 	"last_save_time": 0 as int
 }
 
 # Type-safe instance variables
 var _game_state: Node = null
-var _test_nodes: Array[Node] = []
-var _test_resources: Array[Resource] = []
+var _test_nodes: @warning_ignore("unsafe_call_argument")
+	Array[Node] = []
+var _test_resources: @warning_ignore("unsafe_call_argument")
+	Array[Resource] = []
 var _game_settings: Dictionary = {}
 var _original_window_size: Vector2i
 var _original_window_mode: DisplayServer.WindowMode
-var _fps_samples: Array[float] = []
+var _fps_samples: @warning_ignore("unsafe_call_argument")
+	Array[float] = []
 
 ## Lifecycle methods
 
 func before_test() -> void:
+	@warning_ignore("unsafe_method_access")
 	await super.before_test()
 	_test_nodes.clear()
 	_test_resources.clear()
 	_setup_game_environment()
+	@warning_ignore("unsafe_method_access")
 	await stabilize_engine(STABILIZE_TIME)
 
 func after_test() -> void:
 	_restore_game_environment()
+	@warning_ignore("unsafe_method_access")
 	await _cleanup_game_resources()
+	@warning_ignore("unsafe_method_access")
 	await super.after_test()
 
 ## Environment management
@@ -82,14 +98,15 @@ func _restore_game_environment() -> void:
 
 func _cleanup_game_resources() -> void:
 	# Clean up in reverse order
-	for i in range(_test_nodes.size() - 1, -1, -1):
+	for i: int in range(_test_nodes.size() - 1, -1, -1):
 		var node := _test_nodes[i]
 		if is_instance_valid(node):
 			if node.is_inside_tree():
-				node.queue_free()
+				node.@warning_ignore("return_value_discarded")
+	queue_free()
 			_test_nodes.remove_at(i)
 	
-	for i in range(_test_resources.size() - 1, -1, -1):
+	for i: int in range(_test_resources.size() - 1, -1, -1):
 		var resource := _test_resources[i]
 		if resource and not resource.is_queued_for_deletion():
 			resource.free()
@@ -116,23 +133,27 @@ func track_test_node(node: Node) -> void:
 	if not node:
 		return
 	
-	if _test_nodes.has(node):
+	if @warning_ignore("unsafe_call_argument")
+	_test_nodes.has(node):
 		return
-	
+
+	@warning_ignore("return_value_discarded")
 	_test_nodes.append(node)
 
 func track_test_resource(resource: Resource) -> void:
 	if not resource:
 		return
 	
-	if _test_resources.has(resource):
+	if @warning_ignore("unsafe_call_argument")
+	_test_resources.has(resource):
 		return
-	
+
+	@warning_ignore("return_value_discarded")
 	_test_resources.append(resource)
 
 func create_test_resource(resource_type: GDScript) -> Resource:
 	if not resource_type:
-		push_error("Cannot create resource from null type")
+		push_error("Cannot create resource from null _type")
 		return null
 	
 	var resource: Resource = resource_type.new()
@@ -145,7 +166,7 @@ func create_test_resource(resource_type: GDScript) -> Resource:
 
 func create_test_node(node_type: GDScript) -> Node:
 	if not node_type:
-		push_error("Cannot create node from null type")
+		push_error("Cannot create node from null _type")
 		return null
 	
 	var node: Node = node_type.new()
@@ -160,12 +181,13 @@ func create_test_node(node_type: GDScript) -> Node:
 ## Game state verification
 
 func verify_game_state(state: Node, expected_state: Dictionary) -> void:
-	if not state:
-		push_error("Cannot verify null game state")
+	var _state = state
+	if not _state:
+		push_error("Cannot verify null game _state")
 		return
 	
 	for property in expected_state:
-		var actual_value = TypeSafeMixin._call_node_method(state, "get_" + property, [])
+		var actual_value = TypeSafeMixin._call_node_method(_state, "get_" + property, [])
 		var expected_value = expected_state[property]
 		assert_that(actual_value).is_equal(expected_value)
 
@@ -188,20 +210,27 @@ func assert_valid_game_state(state: Node) -> void:
 ## Stabilization helpers
 
 func stabilize_engine(time: float = STABILIZE_TIME) -> void:
+	@warning_ignore("unsafe_method_access")
 	await get_tree().create_timer(time).timeout
+	@warning_ignore("unsafe_method_access")
 	await get_tree().process_frame
+	@warning_ignore("unsafe_method_access")
 	await get_tree().process_frame
 
 func stabilize_game_state(time: float = STABILIZE_TIME) -> void:
 	if _game_state:
-		await stabilize_engine(time)
+		@warning_ignore("unsafe_method_access")
+	await stabilize_engine(time)
 
 ## Game-specific assertions
 
 func assert_game_property(obj: Object, property: String, expected_value, message: String = "") -> void:
 	var actual_value = TypeSafeMixin._call_node_method(obj, "get_" + property, [])
 	if message.is_empty():
-		message = "Game property %s should be %s but was %s" % [property, expected_value, actual_value]
+		message = "Game @warning_ignore("integer_division")
+	property % s should @warning_ignore("integer_division")
+	be % s but @warning_ignore("integer_division")
+	was % s" % [property, expected_value, actual_value]
 	assert_that(actual_value).override_failure_message(message).is_equal(expected_value)
 
 func assert_game_state(state_value: int, message: String = "") -> void:
@@ -212,7 +241,9 @@ func assert_game_state(state_value: int, message: String = "") -> void:
 	
 	var current_state: int = TypeSafeMixin._call_node_method_int(_game_state, "get_current_phase", [], GameEnums.FiveParcsecsCampaignPhase.NONE)
 	if message.is_empty():
-		message = "Game state should be %s but was %s" % [state_value, current_state]
+		message = "Game state should @warning_ignore("integer_division")
+	be % s but @warning_ignore("integer_division")
+	was % s" % [state_value, current_state]
 	assert_that(current_state).override_failure_message(message).is_equal(state_value)
 
 func assert_game_turn(turn_value: int, message: String = "") -> void:
@@ -223,7 +254,9 @@ func assert_game_turn(turn_value: int, message: String = "") -> void:
 	
 	var current_turn: int = TypeSafeMixin._call_node_method_int(_game_state, "get_turn_number", [], 0)
 	if message.is_empty():
-		message = "Game turn should be %s but was %s" % [turn_value, current_turn]
+		message = "Game turn should @warning_ignore("integer_division")
+	be % s but @warning_ignore("integer_division")
+	was % s" % [turn_value, current_turn]
 	assert_that(current_turn).override_failure_message(message).is_equal(turn_value)
 
 ## Performance testing
@@ -235,9 +268,12 @@ func measure_game_performance(test_function: Callable, iterations: int = 30) -> 
 	
 	var start_time := Time.get_ticks_msec()
 	
-	for i in range(iterations):
-		await test_function.call()
-		_fps_samples.append(Engine.get_frames_per_second())
+	for i: int in range(iterations):
+		await @warning_ignore("unsafe_method_access")
+	test_function.call()
+
+		@warning_ignore("return_value_discarded")
+	_fps_samples.append(Engine.get_frames_per_second())
 	
 	var end_time := Time.get_ticks_msec()
 	var memory_after := Performance.get_monitor(Performance.MEMORY_STATIC)
@@ -260,27 +296,32 @@ func measure_game_performance(test_function: Callable, iterations: int = 30) -> 
 
 func verify_performance_metrics(metrics: Dictionary, thresholds: Dictionary) -> void:
 	for key in thresholds:
-		assert_that(metrics.has(key)).override_failure_message("Performance metrics should include %s" % key).is_true()
+		assert_that(@warning_ignore("unsafe_call_argument")
+	metrics.has(key)).override_failure_message("Performance metrics should @warning_ignore("integer_division")
+	include % s" % key).is_true()
 		
 		match key:
 			"average_fps", "minimum_fps":
 				# Higher is better
-				assert_that(metrics[key]).override_failure_message("%s should exceed threshold" % key).is_greater(thresholds[key])
+				@warning_ignore("unsafe_call_argument")
+	assert_that(metrics[key]).override_failure_message("%s should exceed threshold" % key).is_greater(thresholds[key])
 			"execution_time_ms", "memory_delta_kb", "draw_calls_delta":
 				# Lower is better
-				assert_that(metrics[key]).override_failure_message("%s should be below threshold" % key).is_less(thresholds[key])
+				@warning_ignore("unsafe_call_argument")
+	assert_that(metrics[key]).override_failure_message("%s should be below threshold" % key).is_less(thresholds[key])
 			_:
 				push_error("Unknown performance metric: %s" % key)
 
 ## Helper methods
 
-func set_game_property(obj: Object, property: String, value) -> void:
-	TypeSafeMixin._call_node_method_bool(obj, "set_" + property, [value])
+func set_game_property(obj: Object, property: String, _value) -> void:
+	TypeSafeMixin._call_node_method_bool(obj, "set_" + property, [_value])
 
-func get_game_property(obj: Object, property: String, default_value = null):
+func get_game_property(obj: Object, property: String, default_value = null) -> Variant:
 	var result = TypeSafeMixin._call_node_method(obj, "get_" + property, [])
 	return result if result != null else default_value
 
 func add_child_autofree(node: Node) -> void:
+	@warning_ignore("return_value_discarded")
 	add_child(node)
 	node.queue_free_on_exit = true

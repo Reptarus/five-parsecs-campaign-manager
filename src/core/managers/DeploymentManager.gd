@@ -48,7 +48,7 @@ static func get_zone_size(deployment_type: GameEnums.DeploymentType) -> Vector2:
 		_:
 			return Vector2(6, 4)
 
-## Generates deployment zones based on the current deployment type
+## Generates deployment zones based on the current deployment _type
 ## Returns: Array of deployment zone dictionaries
 func generate_deployment_zones() -> Array[Dictionary]:
 	var zones: Array[Dictionary] = []
@@ -56,46 +56,57 @@ func generate_deployment_zones() -> Array[Dictionary]:
 	
 	match current_deployment_type:
 		GameEnums.DeploymentType.STANDARD:
-			zones.append(_create_zone(Vector2(2, 2), zone_size, current_deployment_type))
-			zones.append(_create_zone(Vector2(grid_size.x - zone_size.x - 2, 2), zone_size, current_deployment_type))
+			zones.append(_create_zone(Vector2(2, 2), zone_size, current_deployment_type)) # warning: return value discarded (intentional)
+
+			zones.append(_create_zone(Vector2(grid_size.x - zone_size.x - 2, 2), zone_size, current_deployment_type)) # warning: return value discarded (intentional)
 		GameEnums.DeploymentType.LINE:
-			zones.append(_create_zone(Vector2(2, grid_size.y / 2 - zone_size.y / 2), zone_size, current_deployment_type))
-			zones.append(_create_zone(Vector2(grid_size.x - zone_size.x - 2, grid_size.y / 2 - zone_size.y / 2), zone_size, current_deployment_type))
+			zones.append(_create_zone(Vector2(2, grid_size.y / 2 - zone_size.y / 2), zone_size, current_deployment_type)) # warning: return value discarded (intentional)
+
+			zones.append(_create_zone(Vector2(grid_size.x - zone_size.x - 2, grid_size.y / 2 - zone_size.y / 2), zone_size, current_deployment_type)) # warning: return value discarded (intentional)
 		GameEnums.DeploymentType.AMBUSH:
-			zones.append(_create_zone(Vector2(2, 2), zone_size, current_deployment_type))
-			zones.append(_create_zone(Vector2(grid_size.x - zone_size.x - 2, grid_size.y - zone_size.y - 2), zone_size, current_deployment_type))
+			zones.append(_create_zone(Vector2(2, 2), zone_size, current_deployment_type)) # warning: return value discarded (intentional)
+
+			zones.append(_create_zone(Vector2(grid_size.x - zone_size.x - 2, grid_size.y - zone_size.y - 2), zone_size, current_deployment_type)) # warning: return value discarded (intentional)
 		GameEnums.DeploymentType.SCATTERED:
 			for i in range(4):
 				var pos := Vector2(
 					randf_range(2, grid_size.x - zone_size.x - 2),
 					randf_range(2, grid_size.y - zone_size.y - 2)
 				)
-				zones.append(_create_zone(pos, zone_size, current_deployment_type))
+
+				zones.append(_create_zone(pos, zone_size, current_deployment_type)) # warning: return value discarded (intentional)
 		GameEnums.DeploymentType.DEFENSIVE:
-			zones.append(_create_zone(Vector2(grid_size.x / 2 - zone_size.x / 2, 2), zone_size, current_deployment_type))
+			zones.append(_create_zone(Vector2(grid_size.x / 2 - zone_size.x / 2, 2), zone_size, current_deployment_type)) # warning: return value discarded (intentional)
 		GameEnums.DeploymentType.INFILTRATION:
-			zones.append(_create_zone(Vector2(2, 2), zone_size, current_deployment_type))
-			zones.append(_create_zone(Vector2(grid_size.x - zone_size.x - 2, grid_size.y - zone_size.y - 2), zone_size, current_deployment_type))
+			zones.append(_create_zone(Vector2(2, 2), zone_size, current_deployment_type)) # warning: return value discarded (intentional)
+
+			zones.append(_create_zone(Vector2(grid_size.x - zone_size.x - 2, grid_size.y - zone_size.y - 2), zone_size, current_deployment_type)) # warning: return value discarded (intentional)
 		GameEnums.DeploymentType.REINFORCEMENT:
-			zones.append(_create_zone(Vector2(2, 2), zone_size, current_deployment_type))
-			zones.append(_create_zone(Vector2(grid_size.x / 2 - zone_size.x / 2, grid_size.y - zone_size.y - 2), zone_size, current_deployment_type))
+			zones.append(_create_zone(Vector2(2, 2), zone_size, current_deployment_type)) # warning: return value discarded (intentional)
+
+			zones.append(_create_zone(Vector2(grid_size.x / 2 - zone_size.x / 2, grid_size.y - zone_size.y - 2), zone_size, current_deployment_type)) # warning: return value discarded (intentional)
 		GameEnums.DeploymentType.OFFENSIVE:
-			zones.append(_create_zone(Vector2(2, 2), zone_size, current_deployment_type))
-			zones.append(_create_zone(Vector2(grid_size.x - zone_size.x - 2, 2), zone_size, current_deployment_type))
-			zones.append(_create_zone(Vector2(grid_size.x / 2 - zone_size.x / 2, grid_size.y - zone_size.y - 2), zone_size, current_deployment_type))
+			zones.append(_create_zone(Vector2(2, 2), zone_size, current_deployment_type)) # warning: return value discarded (intentional)
+
+			zones.append(_create_zone(Vector2(grid_size.x - zone_size.x - 2, 2), zone_size, current_deployment_type)) # warning: return value discarded (intentional)
+
+			zones.append(_create_zone(Vector2(grid_size.x / 2 - zone_size.x / 2, grid_size.y - zone_size.y - 2), zone_size, current_deployment_type)) # warning: return value discarded (intentional)
 		GameEnums.DeploymentType.CONCEALED:
 			for i in range(3):
 				var pos := Vector2(
 					randf_range(2, grid_size.x - zone_size.x - 2),
 					randf_range(2, grid_size.y - zone_size.y - 2)
 				)
-				zones.append(_create_zone(pos, zone_size, current_deployment_type))
+
+				zones.append(_create_zone(pos, zone_size, current_deployment_type)) # warning: return value discarded (intentional)
 		GameEnums.DeploymentType.BOLSTERED_LINE:
-			zones.append(_create_zone(Vector2(2, grid_size.y / 2 - zone_size.y / 2), zone_size, current_deployment_type))
-			zones.append(_create_zone(Vector2(grid_size.x - zone_size.x - 2, grid_size.y / 2 - zone_size.y / 2), zone_size, current_deployment_type))
-			zones.append(_create_zone(Vector2(grid_size.x / 2 - zone_size.x / 2, grid_size.y / 2 - zone_size.y / 2), zone_size, current_deployment_type))
+			zones.append(_create_zone(Vector2(2, grid_size.y / 2 - zone_size.y / 2), zone_size, current_deployment_type)) # warning: return value discarded (intentional)
+
+			zones.append(_create_zone(Vector2(grid_size.x - zone_size.x - 2, grid_size.y / 2 - zone_size.y / 2), zone_size, current_deployment_type)) # warning: return value discarded (intentional)
+
+			zones.append(_create_zone(Vector2(grid_size.x / 2 - zone_size.x / 2, grid_size.y / 2 - zone_size.y / 2), zone_size, current_deployment_type)) # warning: return value discarded (intentional)
 	
-	deployment_zones_generated.emit(zones)
+	deployment_zones_generated.emit(zones) # warning: return value discarded (intentional)
 	return zones
 
 ## Creates a deployment zone with the given parameters
@@ -127,24 +138,25 @@ func generate_terrain_layout(terrain_features: Array[GameEnums.TerrainFeatureTyp
 		for i in feature_count:
 			var pos := _get_valid_terrain_position()
 			if pos != Vector2.ZERO:
-				terrain_layout.append({
+				terrain_layout.append({ # warning: return value discarded (intentional)
 					"type": feature_type,
 					"position": pos
 				})
 	
-	terrain_generated.emit(terrain_layout)
+	terrain_generated.emit(terrain_layout) # warning: return value discarded (intentional)
 	return terrain_layout
 
 ## Adds required terrain features based on deployment type
 func _add_required_terrain_features() -> void:
 	# Add spawn points
-	terrain_layout.append({
+	terrain_layout.append({ # warning: return value discarded (intentional)
 		"type": TERRAIN_FEATURE_SPAWN_POINT,
 		"position": Vector2(2, 2)
 	})
 	
 	# Add exit points
-	terrain_layout.append({
+
+	terrain_layout.append({ # warning: return value discarded (intentional)
 		"type": TERRAIN_FEATURE_EXIT_POINT,
 		"position": Vector2(grid_size.x - 2, grid_size.y - 2)
 	})
@@ -152,7 +164,7 @@ func _add_required_terrain_features() -> void:
 	# Add objectives based on deployment type
 	match current_deployment_type:
 		GameEnums.DeploymentType.DEFENSIVE:
-			terrain_layout.append({
+			terrain_layout.append({ # warning: return value discarded (intentional)
 				"type": TERRAIN_FEATURE_OBJECTIVE,
 				"position": Vector2(grid_size.x / 2, grid_size.y / 2)
 			})

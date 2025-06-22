@@ -18,7 +18,7 @@ var is_initialized: bool = false
 func initialize_world(size: Vector2) -> void:
     world_size = size
     is_initialized = true
-    world_initialized.emit()
+    world_initialized.emit() # warning: return value discarded (intentional)
 
 func set_location(new_location: Vector2) -> bool:
     if not is_valid_location(new_location):
@@ -26,7 +26,7 @@ func set_location(new_location: Vector2) -> bool:
     
     var old_location = current_location
     current_location = new_location
-    location_changed.emit(old_location, new_location)
+    location_changed.emit(old_location, new_location) # warning: return value discarded (intentional)
     return true
 
 func is_valid_location(location: Vector2) -> bool:
@@ -56,16 +56,20 @@ func serialize() -> Dictionary:
 func deserialize(data: Dictionary) -> void:
     if data.has("world_size"):
         world_size = Vector2(
+
             data["world_size"].get("x", 0),
+
             data["world_size"].get("y", 0)
         )
     
     if data.has("current_location"):
         current_location = Vector2(
+
             data["current_location"].get("x", 0),
+
             data["current_location"].get("y", 0)
         )
-    
+
     is_initialized = data.get("is_initialized", false)
     if is_initialized:
-        world_initialized.emit() 
+        world_initialized.emit() # warning: return value discarded (intentional)

@@ -1,4 +1,5 @@
-extends GdUnitTestSuite
+@warning_ignore("return_value_discarded")
+	extends GdUnitTestSuite
 
 # Test StoryTrackSystem using Universal Mock Strategy patterns
 class_name Test_StoryTrackSystem
@@ -17,10 +18,10 @@ class MockStoryTrackSystem extends Resource:
 	var story_rewards_earned: Array = []
 	
 	# Complete API - all required methods implemented
-	func _init():
+	func _init() -> void:
 		_initialize_story_events()
 	
-	func _initialize_story_events():
+	func _initialize_story_events() -> void:
 		# Create 6 story events per Appendix V
 		story_events = [
 			{
@@ -89,42 +90,53 @@ class MockStoryTrackSystem extends Resource:
 			}
 		]
 	
-	func start_story_track():
+	func start_story_track() -> void:
 		is_story_track_active = true
 		story_track_phase = "active"
-		story_event_triggered.emit()
+		@warning_ignore("unsafe_method_access")
+	story_event_triggered.emit()
 	
-	func advance_story_clock(success: bool):
+	func advance_story_clock(success: bool) -> void:
 		if success:
 			story_clock_ticks = max(0, story_clock_ticks - 2)
 		else:
 			story_clock_ticks = max(0, story_clock_ticks - 1)
-		story_clock_advanced.emit(story_clock_ticks)
+		@warning_ignore("unsafe_method_access")
+	story_clock_advanced.emit(story_clock_ticks)
 	
-	func discover_evidence(amount: int):
+	func discover_evidence(amount: int) -> void:
 		evidence_pieces += amount
-		evidence_discovered.emit(amount)
+		@warning_ignore("unsafe_method_access")
+	evidence_discovered.emit(amount)
 	
-	func get_current_event():
+	func get_current_event() -> Dictionary:
 		if current_event_index < story_events.size():
 			return story_events[current_event_index]
-		return null
+		return {}
 	
-	func make_story_choice(event, choice):
-		if not event or not choice:
+	func make_story_choice(_event, choice) -> Dictionary:
+		if not _event or not choice:
 			return {"success": false, "message": "Invalid parameters"}
-		
-		story_choices_made.append({"event": event, "choice": choice})
-		event.is_completed = true
-		completed_events.append(event)
-		story_choice_made.emit()
+
+		@warning_ignore("return_value_discarded")
+	story_choices_made.append({"_event": _event, "choice": choice})
+		_event.is_completed = true
+		current_event_index += 1
+		progress_story_track()
+		@warning_ignore("unsafe_method_access")
+	story_choice_made.emit()
 		
 		return {
 			"success": true,
 			"description": "Choice processed successfully"
 		}
 	
-	func _check_evidence_progression():
+	func progress_story_track() -> void:
+		# Check if story should be completed
+		if current_event_index >= story_events.size():
+			is_story_track_active = false
+	
+	func _check_evidence_progression() -> void:
 		# Mock evidence progression logic
 		pass
 	
@@ -136,14 +148,15 @@ class MockStoryTrackSystem extends Resource:
 			"extreme": return 0.25
 			_: return 0.5
 	
-	func trigger_next_event():
+	func trigger_next_event() -> void:
 		current_event_index += 1
 		if current_event_index >= story_events.size():
 			is_story_track_active = false
 			story_track_phase = "completed"
-			story_track_completed.emit()
+			@warning_ignore("unsafe_method_access")
+	story_track_completed.emit()
 	
-	func get_story_track_status():
+	func get_story_track_status() -> Dictionary:
 		return {
 			"is_active": is_story_track_active,
 			"evidence_pieces": evidence_pieces,
@@ -152,7 +165,7 @@ class MockStoryTrackSystem extends Resource:
 			"can_progress": can_progress()
 		}
 	
-	func serialize():
+	func serialize() -> Dictionary:
 		return {
 			"is_story_track_active": is_story_track_active,
 			"evidence_pieces": evidence_pieces,
@@ -160,23 +173,31 @@ class MockStoryTrackSystem extends Resource:
 			"story_choices_made": story_choices_made
 		}
 	
-	func deserialize(data: Dictionary):
-		is_story_track_active = data.get("is_story_track_active", false)
-		evidence_pieces = data.get("evidence_pieces", 0)
-		current_event_index = data.get("current_event_index", 0)
-		story_choices_made = data.get("story_choices_made", [])
+	func deserialize(data: Dictionary) -> void:
+		is_story_track_active = @warning_ignore("unsafe_call_argument")
+	data.get("is_story_track_active", false)
+
+		evidence_pieces = @warning_ignore("unsafe_call_argument")
+	data.get("evidence_pieces", 0)
+
+		current_event_index = @warning_ignore("unsafe_call_argument")
+	data.get("current_event_index", 0)
+
+		story_choices_made = @warning_ignore("unsafe_call_argument")
+	data.get("story_choices_made", [])
 	
-	func _apply_choice_consequences(choice):
+	func _apply_choice_consequences(choice) -> void:
 		# Mock consequence application
 		if choice.risk_level == "extreme":
 			evidence_pieces = max(0, evidence_pieces - 1)
 			story_clock_ticks = max(0, story_clock_ticks - 1)
 	
-	func get_available_events():
-		var available = []
-		for event in story_events:
-			if evidence_pieces >= event.required_evidence:
-				available.append(event)
+	func get_available_events() -> Array:
+		var available: Array = []
+		for _event in story_events:
+			if evidence_pieces >= _event.required_evidence:
+				@warning_ignore("return_value_discarded")
+	available.append(_event)
 		return available
 	
 	func can_progress() -> bool:
@@ -196,13 +217,19 @@ class MockStoryTrackSystem extends Resource:
 			"extreme": return "The severe consequences are felt immediately"
 			_: return "The attempt fails"
 	
-	func _apply_choice_rewards(choice):
+	func _apply_choice_rewards(choice) -> void:
 		var reward = {
-			"type": choice.get("reward_type", "evidence"),
-			"effect": choice.get("evidence_gain", 1),
+
+			"type": @warning_ignore("unsafe_call_argument")
+	choice.get("reward_type", "evidence"),
+
+			"effect": @warning_ignore("unsafe_call_argument")
+	choice.get("evidence_gain", 1),
 			"timestamp": Time.get_ticks_msec()
 		}
-		story_rewards_earned.append(reward)
+
+		@warning_ignore("return_value_discarded")
+	story_rewards_earned.append(reward)
 	
 	# Realistic signals - emit immediately for predictable testing
 	signal story_event_triggered()
@@ -214,21 +241,25 @@ class MockStoryTrackSystem extends Resource:
 var story_track_system: MockStoryTrackSystem
 var mock_game_state: Resource
 
-func before_test():
+func before_test() -> void:
 	# Create fresh system for each test - proven pattern
 	story_track_system = MockStoryTrackSystem.new()
 	mock_game_state = Resource.new()
 	
 	# Track resources for cleanup
+	@warning_ignore("return_value_discarded")
 	auto_free(story_track_system)
+	@warning_ignore("return_value_discarded")
 	auto_free(mock_game_state)
 
-func after_test():
-	# Cleanup happens automatically with auto_free()
+func after_test() -> void:
+	# Cleanup happens automatically with @warning_ignore("return_value_discarded")
+	auto_free()
 	pass
 
 # Test system initialization
-func test_story_track_initialization():
+@warning_ignore("unsafe_method_access")
+func test_story_track_initialization() -> void:
 	# Then story track should be initialized with expected values
 	assert_that(story_track_system.is_story_track_active).is_false()
 	assert_that(story_track_system.story_clock_ticks).is_equal(6)
@@ -237,8 +268,10 @@ func test_story_track_initialization():
 	assert_that(story_track_system.story_events.size()).is_equal(6) # 6 events per Appendix V
 
 # Test story track activation
-func test_story_track_activation():
+@warning_ignore("unsafe_method_access")
+func test_story_track_activation() -> void:
 	# Monitor signals before action - proven pattern
+	@warning_ignore("unsafe_method_access")
 	monitor_signals(story_track_system)
 	
 	# When starting story track
@@ -253,9 +286,11 @@ func test_story_track_activation():
 	assert_signal(story_track_system).is_emitted("story_event_triggered")
 
 # Test story clock advancement
-func test_story_clock_advancement():
+@warning_ignore("unsafe_method_access")
+func test_story_clock_advancement() -> void:
 	# Given an active story track
 	story_track_system.start_story_track()
+	@warning_ignore("unsafe_method_access")
 	monitor_signals(story_track_system)
 	
 	# When advancing clock with success
@@ -272,9 +307,11 @@ func test_story_clock_advancement():
 	assert_that(story_track_system.story_clock_ticks).is_equal(3)
 
 # Test evidence discovery
-func test_evidence_discovery():
+@warning_ignore("unsafe_method_access")
+func test_evidence_discovery() -> void:
 	# Given an active story track
 	story_track_system.start_story_track()
+	@warning_ignore("unsafe_method_access")
 	monitor_signals(story_track_system)
 	
 	# When discovering evidence
@@ -285,7 +322,8 @@ func test_evidence_discovery():
 	assert_signal(story_track_system).is_emitted("evidence_discovered", [2])
 
 # Test story event progression
-func test_story_event_progression():
+@warning_ignore("unsafe_method_access")
+func test_story_event_progression() -> void:
 	# Given an active story track
 	story_track_system.start_story_track()
 	
@@ -299,7 +337,8 @@ func test_story_event_progression():
 	assert_that(current_event.title).is_equal("Mysterious Signal")
 
 # Test story choice making
-func test_story_choice_making():
+@warning_ignore("unsafe_method_access")
+func test_story_choice_making() -> void:
 	# Given an active story track with current event
 	story_track_system.start_story_track()
 	var current_event = story_track_system.get_current_event()
@@ -309,6 +348,7 @@ func test_story_choice_making():
 	var first_choice = current_event.choices[0] # "Investigate immediately"
 	assert_that(first_choice).is_not_null()
 	
+	@warning_ignore("unsafe_method_access")
 	monitor_signals(story_track_system)
 	
 	# When making a story choice
@@ -316,8 +356,10 @@ func test_story_choice_making():
 	
 	# Then choice should be recorded and processed
 	assert_that(outcome).is_not_null()
-	assert_that(outcome.has("success")).is_true()
-	assert_that(outcome.has("description")).is_true()
+	assert_that(@warning_ignore("unsafe_call_argument")
+	outcome.has("success")).is_true()
+	assert_that(@warning_ignore("unsafe_call_argument")
+	outcome.has("description")).is_true()
 	assert_that(story_track_system.story_choices_made.size()).is_equal(1)
 	
 	# And signals should be emitted
@@ -328,7 +370,8 @@ func test_story_choice_making():
 	assert_that(story_track_system.completed_events.size()).is_equal(1)
 
 # Test evidence progression mechanics (Core Rules)
-func test_evidence_progression_mechanics():
+@warning_ignore("unsafe_method_access")
+func test_evidence_progression_mechanics() -> void:
 	# Given story track with evidence
 	story_track_system.start_story_track()
 	story_track_system.evidence_pieces = 6 # Set high evidence count
@@ -344,7 +387,8 @@ func test_evidence_progression_mechanics():
 	assert_that(story_track_system.evidence_pieces >= 6).is_true()
 
 # Test risk/reward mechanics
-func test_risk_reward_mechanics():
+@warning_ignore("unsafe_method_access")
+func test_risk_reward_mechanics() -> void:
 	# Test different risk levels produce expected success chances
 	var none_chance = story_track_system._calculate_success_chance("none")
 	var low_chance = story_track_system._calculate_success_chance("low")
@@ -358,10 +402,12 @@ func test_risk_reward_mechanics():
 	assert_that(extreme_chance).is_equal(0.25)
 
 # Test story track completion
-func test_story_track_completion():
+@warning_ignore("unsafe_method_access")
+func test_story_track_completion() -> void:
 	# Given an active story track
 	story_track_system.start_story_track()
 	story_track_system.current_event_index = 6 # Past last event
+	@warning_ignore("unsafe_method_access")
 	monitor_signals(story_track_system)
 	
 	# When triggering next event (should complete track)
@@ -373,7 +419,8 @@ func test_story_track_completion():
 	assert_signal(story_track_system).is_emitted("story_track_completed")
 
 # Test story track status
-func test_story_track_status():
+@warning_ignore("unsafe_method_access")
+func test_story_track_status() -> void:
 	# Given an active story track with some progress
 	story_track_system.start_story_track()
 	story_track_system.evidence_pieces = 3
@@ -387,19 +434,23 @@ func test_story_track_status():
 	assert_that(status.evidence_pieces).is_equal(3)
 	assert_that(status.current_event_index).is_equal(2)
 	assert_that(status.total_events).is_equal(6)
-	assert_that(status.has("can_progress")).is_true()
+	assert_that(@warning_ignore("unsafe_call_argument")
+	status.has("can_progress")).is_true()
 
 # Test serialization/deserialization
-func test_serialization():
+@warning_ignore("unsafe_method_access")
+func test_serialization() -> void:
 	# Given a story track with some progress
 	story_track_system.start_story_track()
 	story_track_system.evidence_pieces = 3
 	story_track_system.current_event_index = 2
-	story_track_system.story_choices_made.append({"test": "choice"})
+	story_track_system.@warning_ignore("return_value_discarded")
+	story_choices_made.append({"test": "choice"})
 	
 	# When serializing and deserializing
 	var serialized_data = story_track_system.serialize()
-	var new_system = MockStoryTrackSystem.new()
+	var new_system: MockStoryTrackSystem = MockStoryTrackSystem.new()
+	@warning_ignore("return_value_discarded")
 	auto_free(new_system)
 	new_system.deserialize(serialized_data)
 	
@@ -410,7 +461,8 @@ func test_serialization():
 	assert_that(new_system.story_choices_made.size()).is_equal(1)
 
 # Test choice consequences
-func test_choice_consequences():
+@warning_ignore("unsafe_method_access")
+func test_choice_consequences() -> void:
 	# Given a story track and high-risk choice
 	story_track_system.start_story_track()
 	var current_event = story_track_system.get_current_event()
@@ -431,7 +483,8 @@ func test_choice_consequences():
 	assert_that(evidence_reduced or clock_reduced).is_true()
 
 # Test event availability
-func test_event_availability():
+@warning_ignore("unsafe_method_access")
+func test_event_availability() -> void:
 	# Given a story track
 	story_track_system.start_story_track()
 	
@@ -444,7 +497,8 @@ func test_event_availability():
 	assert_that(available_events.size()).is_less_equal(1) # Only first event or none
 
 # Test progression control
-func test_progression_control():
+@warning_ignore("unsafe_method_access")
+func test_progression_control() -> void:
 	# Given a story track
 	story_track_system.start_story_track()
 	
@@ -462,7 +516,8 @@ func test_progression_control():
 	assert_that(cannot_progress_without_evidence).is_false()
 
 # Test all 6 story events are properly configured
-func test_all_story_events_configured():
+@warning_ignore("unsafe_method_access")
+func test_all_story_events_configured() -> void:
 	# Given initialized story track
 	# Then all 6 events should be properly configured
 	assert_that(story_track_system.story_events.size()).is_equal(6)
@@ -480,7 +535,8 @@ func test_all_story_events_configured():
 	assert_that(event6.required_evidence).is_equal(7) # Per Appendix V rules
 
 # Test choice text and descriptions
-func test_choice_content():
+@warning_ignore("unsafe_method_access")
+func test_choice_content() -> void:
 	# Given initialized story track
 	var first_event = story_track_system.story_events[0]
 	
@@ -491,7 +547,8 @@ func test_choice_content():
 	assert_that(first_event.choices[0].evidence_gain).is_equal(2)
 
 # Test flavor text generation
-func test_flavor_text_generation():
+@warning_ignore("unsafe_method_access")
+func test_flavor_text_generation() -> void:
 	# Given choices with different rewards
 	var tech_flavor = story_track_system._get_success_flavor("tech_data")
 	var ally_flavor = story_track_system._get_success_flavor("ally")
@@ -503,17 +560,21 @@ func test_flavor_text_generation():
 	assert_that(failure_flavor).contains("severe")
 
 # Test error handling
-func test_error_handling():
+@warning_ignore("unsafe_method_access")
+func test_error_handling() -> void:
 	# When making choice with null parameters
 	var outcome = story_track_system.make_story_choice(null, null)
 	
 	# Then error should be handled gracefully
 	assert_that(outcome.success).is_false()
-	assert_that(outcome.has("message")).is_true()
+	assert_that(@warning_ignore("unsafe_call_argument")
+	outcome.has("message")).is_true()
 
 # Test signal emission patterns (Universal Mock Strategy)
-func test_signal_emission_patterns():
+@warning_ignore("unsafe_method_access")
+func test_signal_emission_patterns() -> void:
 	# Given story track system
+	@warning_ignore("unsafe_method_access")
 	monitor_signals(story_track_system)
 	
 	# When performing various actions
@@ -527,7 +588,8 @@ func test_signal_emission_patterns():
 	assert_signal(story_track_system).is_emitted("evidence_discovered")
 
 # Test story rewards tracking
-func test_story_rewards_tracking():
+@warning_ignore("unsafe_method_access")
+func test_story_rewards_tracking() -> void:
 	# Given a story track with successful choice
 	story_track_system.start_story_track()
 	var current_event = story_track_system.get_current_event()
@@ -539,6 +601,9 @@ func test_story_rewards_tracking():
 	# Then rewards should be tracked
 	assert_that(story_track_system.story_rewards_earned.size()).is_equal(1)
 	var reward = story_track_system.story_rewards_earned[0]
-	assert_that(reward.has("type")).is_true()
-	assert_that(reward.has("effect")).is_true()
-	assert_that(reward.has("timestamp")).is_true()
+	assert_that(@warning_ignore("unsafe_call_argument")
+	reward.has("type")).is_true()
+	assert_that(@warning_ignore("unsafe_call_argument")
+	reward.has("effect")).is_true()
+	assert_that(@warning_ignore("unsafe_call_argument")
+	reward.has("timestamp")).is_true()

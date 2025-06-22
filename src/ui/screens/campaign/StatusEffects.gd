@@ -1,91 +1,99 @@
-class_name FPCM_StatusEffect
+@tool
 extends Resource
+class_name StatusEffect
 
-const Character = preload("res://src/core/character/Base/Character.gd")
+## Status Effect system for Five Parsecs from Home
+## Handles temporary and permanent character status effects
 
-enum StatusEffectType {
-    STUN,
-    POISON,
-    BUFF,
-    DEBUFF,
-    NEUTRAL,
-    REGENERATION,
-    SHIELD
+const GameEnums = preload("res://src/core/systems/GlobalEnums.gd")
+
+signal effect_applied(character: Node, effect: StatusEffect)
+signal effect_removed(character: Node, effect: StatusEffect)
+signal effect_expired(character: Node, effect: StatusEffect)
+
+enum EffectType {
+	BUFF,
+	DEBUFF,
+	CONDITION,
+	INJURY,
+	ENHANCEMENT
 }
 
-@export var type: StatusEffectType = StatusEffectType.STUN
-@export var duration: int = 1
-@export var intensity: int = 1
+enum EffectDuration {
+	PERMANENT,
+	BATTLE,
+	TURN,
+	CUSTOM
+}
 
-func _init(_type: StatusEffectType = StatusEffectType.STUN, _duration: int = 1, _intensity: int = 1) -> void:
-    type = _type
-    duration = max(1, _duration)
-    intensity = max(1, _intensity)
+var effect_name: String = ""
+var effect_type: EffectType = EffectType.CONDITION
+var duration_type: EffectDuration = EffectDuration.BATTLE
+var remaining_duration: int = 0
+var description: String = ""
+var stat_modifiers: Dictionary = {}
+var special_rules: Array[String] = []
 
-func process(character: Character) -> void:
-    if not character:
-        push_error("Character is required for status effect processing")
-        return
-        
-    match type:
-        StatusEffectType.STUN:
-            process_stunned(character)
-        StatusEffectType.POISON:
-            process_poisoned(character)
-        StatusEffectType.BUFF:
-            process_buff(character)
-        StatusEffectType.DEBUFF:
-            process_debuff(character)
-        StatusEffectType.NEUTRAL:
-            process_neutral(character)
-        StatusEffectType.REGENERATION:
-            process_regeneration(character)
-        StatusEffectType.SHIELD:
-            process_shield(character)
-    duration = max(0, duration - 1)
+func _init() -> void:
+	effect_name = "Unknown Effect"
+
+func apply_to_character(character: Node) -> void:
+	# Apply stat modifiers
+	for stat in stat_modifiers:
+		if character.has_method("modify_stat"):
+			character.modify_stat(stat, stat_modifiers[stat])
+	
+	# Apply special rules
+	for rule in special_rules:
+		if character.has_method("add_special_rule"):
+			character.add_special_rule(rule)
+	
+	effect_applied.emit(character, self)
+
+func remove_from_character(character: Node) -> void:
+	# Remove stat modifiers
+	for stat in stat_modifiers:
+		if character.has_method("modify_stat"):
+			character.modify_stat(stat, -stat_modifiers[stat])
+	
+	# Remove special rules
+	for rule in special_rules:
+		if character.has_method("remove_special_rule"):
+			character.remove_special_rule(rule)
+	
+	effect_removed.emit(character, self)
+
+func tick_duration() -> bool:
+	if duration_type == EffectDuration.CUSTOM and remaining_duration > 0:
+		remaining_duration -= 1
+		return remaining_duration <= 0
+	return false
 
 func is_expired() -> bool:
-    return duration <= 0
+	return duration_type == EffectDuration.CUSTOM and remaining_duration <= 0
 
-func process_stunned(character: Character) -> void:
-    character.apply_status_effect({"type": "stunned", "value": intensity})
-    character.reactions -= 1
-    character.speed -= 1
-
-func process_poisoned(character: Character) -> void:
-    character.take_damage(intensity)
-    character.toughness -= 1
-
-func process_buff(character: Character) -> void:
-    character.apply_status_effect({"type": "buffed", "value": intensity})
-    character.combat_skill += 1
-    character.toughness += 1
-
-func process_debuff(character: Character) -> void:
-    character.apply_status_effect({"type": "debuffed", "value": intensity})
-    character.combat_skill -= 1
-    character.toughness -= 1
-
-func process_neutral(character: Character) -> void:
-    character.apply_status_effect({"type": "neutral", "value": intensity})
-
-func process_regeneration(character: Character) -> void:
-    character.heal(intensity)
-
-func process_shield(character: Character) -> void:
-    character.apply_status_effect({"type": "shielded", "value": intensity})
-    character.toughness += intensity
+func set_duration(turns: int) -> void:
+	duration_type = EffectDuration.CUSTOM
+	remaining_duration = turns
 
 func serialize() -> Dictionary:
-    return {
-        "type": StatusEffectType.keys()[type],
-        "duration": duration,
-        "intensity": intensity
-    }
+	return {
+		"effect_name": effect_name,
+		"effect_type": effect_type,
+		"duration_type": duration_type,
+		"remaining_duration": remaining_duration,
+		"description": description,
+		"stat_modifiers": stat_modifiers,
+		"special_rules": special_rules
+	}
 
-static func deserialize(data: Dictionary) -> FPCM_StatusEffect:
-    return FPCM_StatusEffect.new(
-        StatusEffectType[data["type"]],
-        data["duration"],
-        data["intensity"]
-    )
+static func deserialize(data: Dictionary) -> StatusEffect:
+	var effect := StatusEffect.new()
+	effect.effect_name = data.get("effect_name", "")
+	effect.effect_type = data.get("effect_type", EffectType.CONDITION)
+	effect.duration_type = data.get("duration_type", EffectDuration.BATTLE)
+	effect.remaining_duration = data.get("remaining_duration", 0)
+	effect.description = data.get("description", "")
+	effect.stat_modifiers = data.get("stat_modifiers", {})
+	effect.special_rules = data.get("special_rules", [])
+	return effect

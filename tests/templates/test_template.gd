@@ -1,5 +1,6 @@
 @tool
-extends GdUnitGameTest
+@warning_ignore("return_value_discarded")
+	extends GdUnitGameTest
 
 ## Test Template for Five Parsecs Campaign Manager
 ##
@@ -14,23 +15,29 @@ var _instance = null
 
 # Lifecycle methods
 func before_test() -> void:
+	@warning_ignore("unsafe_method_access")
 	await super.before_test()
 	
 	# Create the instance being tested
 	# Uncomment and replace with actual instantiation
 	# _instance = TestedClass.new()
-	# add_child(_instance)
-	# track_node(_instance)
+	# @warning_ignore("return_value_discarded")
+	add_child(_instance)
+	# @warning_ignore("return_value_discarded")
+	track_node(_instance)
 	
+	@warning_ignore("unsafe_method_access")
 	await stabilize_engine()
 
 func after_test() -> void:
 	_instance = null
+	@warning_ignore("unsafe_method_access")
 	await super.after_test()
 
 # BASIC FUNCTIONALITY TESTS
 # ------------------------------------------------------------------------
 
+@warning_ignore("unsafe_method_access")
 func test_initialization() -> void:
 	# Given
 	assert_that(_instance).is_not_null()
@@ -42,6 +49,7 @@ func test_initialization() -> void:
 	# Add assertions about initial state
 	# Example: assert_that(_instance.some_property).is_equal(expected_value)
 
+@warning_ignore("unsafe_method_access")
 func test_state_change() -> void:
 	# Given
 	# Initial setup
@@ -53,6 +61,7 @@ func test_state_change() -> void:
 
 # ERROR HANDLING TESTS
 # ------------------------------------------------------------------------
+@warning_ignore("unsafe_method_access")
 func test_invalid_operation() -> void:
 	# Given
 	# Setup for invalid operation
@@ -64,6 +73,7 @@ func test_invalid_operation() -> void:
 
 # RESOURCE MANAGEMENT TESTS
 # ------------------------------------------------------------------------
+@warning_ignore("unsafe_method_access")
 func test_resource_management() -> void:
 	# Given
 	var resource = load("res://test/data/test_resource.tres")
@@ -78,6 +88,7 @@ func test_resource_management() -> void:
 # PERFORMANCE TESTS
 # ------------------------------------------------------------------------
 
+@warning_ignore("unsafe_method_access")
 func test_operation_performance() -> void:
 	# Given
 	var start_time := Time.get_ticks_msec()

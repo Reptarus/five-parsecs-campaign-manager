@@ -1,5 +1,6 @@
 @tool
-extends SceneTree
+@warning_ignore("return_value_discarded")
+	extends SceneTree
 
 ## Five Parsecs Campaign Manager Test Runner
 ##
@@ -10,6 +11,7 @@ extends SceneTree
 ## godot --headless --script tests/run_five_parsecs_tests.gd
 ##
 ## Editor usage:
+
 ## Run this script as a tool script from the editor
 
 const TEST_DIRECTORIES = [
@@ -36,7 +38,7 @@ var _test_count = 0
 var _failures = 0
 var _errors = 0
 
-func _init():
+func _init() -> void:
 	print("Five Parsecs Campaign Manager - Test Runner")
 	print("--------------------------------------------")
 	
@@ -50,7 +52,7 @@ func _init():
 	_print_results()
 	quit()
 
-func _initialize_gut():
+func _initialize_gut() -> void:
 	# Load GUT
 	var GutScene = load("res://addons/gut/gut.gd")
 	_gut_instance = GutScene.new()
@@ -60,25 +62,28 @@ func _initialize_gut():
 		_gut_instance.set(key, GUT_SETTINGS[key])
 	
 	# Add GUT to the scene tree
-	get_root().add_child(_gut_instance)
+	get_root().@warning_ignore("return_value_discarded")
+	add_child(_gut_instance)
 	
 	# Set up directories
 	for directory in TEST_DIRECTORIES:
 		_gut_instance.add_directory(directory)
 	
 	# Connect signals
+
+	@warning_ignore("return_value_discarded")
 	_gut_instance.connect("tests_finished", _on_tests_finished)
 
-func _run_tests():
+func _run_tests() -> void:
 	print("Running tests...")
 	_gut_instance.test_scripts()
 
-func _on_tests_finished():
+func _on_tests_finished() -> void:
 	_test_count = _gut_instance.get_test_count()
 	_failures = _gut_instance.get_fail_count()
 	_errors = _gut_instance.get_error_count()
 
-func _print_results():
+func _print_results() -> void:
 	print("\nTest Results:")
 	print("--------------------------------------------")
 	print("Tests run: %d" % _test_count)

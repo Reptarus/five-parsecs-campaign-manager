@@ -85,7 +85,7 @@ func add_world_trait_by_id(trait_id: String) -> void:
             return
     
     # Create and add the new trait
-    var new_trait = GameWorldTrait.new()
+    var new_trait := GameWorldTrait.new()
     new_trait.initialize_from_id(trait_id)
     world_traits.append(new_trait)
 
@@ -196,14 +196,14 @@ func remove_resource(resource_type: int, amount: int = 1) -> bool:
 
 ## Get the total resource modifier from all world traits
 func get_resource_modifier(resource_type: int) -> float:
-    var total_modifier = 0.0
+    var total_modifier: int = 0
     for trait_item in world_traits:
         total_modifier += trait_item.get_resource_modifier(resource_type)
     return total_modifier
 
-## Get the total modifier value for a specific encounter type from all world traits
+## Get the total modifier _value for a specific encounter _type from all world traits
 func get_encounter_modifier(encounter_type: int) -> float:
-    var total_modifier = 0.0
+    var total_modifier: int = 0
     for trait_item in world_traits:
         total_modifier += trait_item.get_encounter_modifier(encounter_type)
     return total_modifier
@@ -225,7 +225,7 @@ func has_special_feature(feature_name: String) -> bool:
         "trade": "trade",
         "pirate": "pirate",
         "free_port": "free_port",
-        "corporate": "corporate",
+        "corporate": "corporate"
         # Add more mappings as needed
     }
     
@@ -238,15 +238,15 @@ func has_special_feature(feature_name: String) -> bool:
 
 ## Serialize the location's data into a dictionary
 func serialize() -> Dictionary:
-    var trait_data = []
+    var trait_data: Array = []
     for trait_item in world_traits:
         trait_data.append(trait_item.serialize())
     
-    var poi_data = []
+    var poi_data: Array = []
     for poi in points_of_interest:
         poi_data.append(poi.serialize())
     
-    var mission_data = []
+    var mission_data: Array = []
     for mission in active_missions:
         mission_data.append(mission.serialize())
     
@@ -273,7 +273,7 @@ func serialize() -> Dictionary:
 
 ## Create a GameLocation instance from serialized data
 static func deserialize(data: Dictionary) -> GameLocation:
-    var location = GameLocation.new()
+    var location := GameLocation.new()
     
     location.location_id = data.get("location_id", "")
     location.location_name = data.get("location_name", "")
@@ -290,7 +290,7 @@ static func deserialize(data: Dictionary) -> GameLocation:
     var trait_data = data.get("world_traits", [])
     for i in range(trait_data.size()):
         var t_dict = trait_data[i]
-        var new_trait = GameWorldTrait.new()
+        var new_trait := GameWorldTrait.new()
         new_trait.initialize_from_data(t_dict)
         location.world_traits.append(new_trait)
     

@@ -1,8 +1,8 @@
 @tool
 class_name FPCM_Crew
-extends BaseCrew
+extends "res://src/base/campaign/crew/BaseCrew.gd"
 
-const BaseCrew = preload("res://src/base/campaign/crew/BaseCrew.gd")
+# Dependencies
 const FPCM_CrewMember = preload("res://src/game/campaign/crew/FiveParsecsCrewMember.gd")
 const GameEnums = preload("res://src/core/systems/GlobalEnums.gd")
 const FiveParsecsGameEnums = preload("res://src/game/campaign/crew/FiveParsecsGameEnums.gd")
@@ -20,7 +20,7 @@ var visited_systems: Array = []
 var story_points: int = 0
 
 func _init() -> void:
-	super()
+	super ()
 	name = "New Five Parsecs Crew"
 	credits = 1500 # Five Parsecs starts with more credits
 
@@ -38,7 +38,7 @@ func generate_random_crew(size: int = 5) -> void:
 	
 	# Generate new members
 	for i in range(size):
-		var member = FPCM_CrewMember.new()
+		var member: FPCM_CrewMember = FPCM_CrewMember.new()
 		
 		# Randomize class
 		member.character_class = randi() % FiveParsecsGameEnums.CharacterClass.size()
@@ -114,22 +114,22 @@ func _generate_ship_name() -> String:
 	return prefix + " " + suffix
 
 func add_patron(patron_data: Dictionary) -> void:
-	patrons.append(patron_data)
+	patrons.append(patron_data) # warning: return value discarded (intentional)
 
 func remove_patron(patron_id: String) -> bool:
 	for i in range(patrons.size()):
-		if patrons[i].id == patron_id:
+		if patrons[i]._id == patron_id:
 			patrons.remove_at(i)
 			return true
 	
 	return false
 
 func add_rival(rival_data: Dictionary) -> void:
-	rivals.append(rival_data)
+	rivals.append(rival_data) # warning: return value discarded (intentional)
 
 func remove_rival(rival_id: String) -> bool:
 	for i in range(rivals.size()):
-		if rivals[i].id == rival_id:
+		if rivals[i]._id == rival_id:
 			rivals.remove_at(i)
 			return true
 	
@@ -147,7 +147,7 @@ func use_story_point() -> bool:
 
 func add_visited_system(system_name: String) -> void:
 	if not system_name in visited_systems:
-		visited_systems.append(system_name)
+		visited_systems.append(system_name) # warning: return value discarded (intentional)
 
 func set_current_system(system_name: String) -> void:
 	current_system = system_name
@@ -192,6 +192,6 @@ func from_dict(data: Dictionary) -> void:
 	if data.has("members"):
 		members.clear()
 		for member_data in data.members:
-			var member = FPCM_CrewMember.new()
+			var member: FPCM_CrewMember = FPCM_CrewMember.new()
 			member.from_dict(member_data)
 			add_member(member)

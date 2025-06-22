@@ -60,9 +60,9 @@ var role_requirements = {
 }
 
 # Stores character ID -> role assignments
-var _assigned_roles = {}
+var _assigned_roles: Dictionary = {}
 # Stores role -> character ID assignments (for quick lookups)
-var _role_assignments = {}
+var _role_assignments: Dictionary = {}
 
 # Character manager reference (will be set in setup)
 var _character_manager = null
@@ -101,7 +101,7 @@ func assign_role(character_id: String, role: ShipRole) -> bool:
 	_role_assignments[role] = character_id
 	
 	# Emit signal
-	role_assigned.emit(character_id, role)
+	role_assigned.emit(character_id, role) # warning: return value discarded (intentional)
 	
 	return true
 
@@ -118,7 +118,7 @@ func unassign_role(character_id: String) -> bool:
 		_role_assignments.erase(role)
 	
 	# Emit signal
-	role_unassigned.emit(character_id, role)
+	role_unassigned.emit(character_id, role) # warning: return value discarded (intentional)
 	
 	return true
 
@@ -143,8 +143,9 @@ func is_good_fit_for_role(character_id: String, role: ShipRole) -> bool:
 		return false
 		
 	var requirements = role_requirements[role]
+
 	var preferred_skills = requirements.get("preferred_skills", [])
-	
+
 	# Check if character has any of the preferred skills
 	for skill in preferred_skills:
 		if character.has_skill(skill):
@@ -161,7 +162,7 @@ func apply_role_benefits(character_id: String) -> bool:
 	if not role in role_requirements:
 		return false
 	
-	var benefits_applied = false
+	var benefits_applied: bool = false
 	
 	# Apply appropriate benefits based on role
 	match role:
@@ -180,10 +181,18 @@ func apply_role_benefits(character_id: String) -> bool:
 		ShipRole.GUNNER:
 			# Gunner improves weapon accuracy
 			benefits_applied = true
-		# Add additional role benefits as needed
+		ShipRole.NAVIGATOR:
+			# Navigator can find shortcuts
+			benefits_applied = true
+		ShipRole.MECHANIC:
+			# Mechanic provides repair bonus
+			benefits_applied = true
+		ShipRole.COMMS_OFFICER:
+			# Comms Officer provides communication benefits
+			benefits_applied = true
 	
 	if benefits_applied:
-		role_benefits_applied.emit(character_id, role)
+		role_benefits_applied.emit(character_id, role) # warning: return value discarded (intentional)
 		
 	return benefits_applied
 
@@ -204,11 +213,13 @@ func calculate_role_effectiveness(character_id: String) -> float:
 		return 0.0
 		
 	var requirements = role_requirements[role]
+
 	var preferred_skills = requirements.get("preferred_skills", [])
+
 	var bonus_modifier = requirements.get("bonus_modifier", 1)
 	
-	var base_effectiveness = 0.5 # Base 50% effectiveness
-	
+	var base_effectiveness: int = 0 # Base 50% effectiveness
+
 	# Add bonus for each preferred skill the character has
 	for skill in preferred_skills:
 		if character.has_skill(skill):
@@ -221,12 +232,12 @@ func calculate_role_effectiveness(character_id: String) -> float:
 func process_travel_effects(fuel_consumption: int) -> int:
 	var modified_consumption = fuel_consumption
 	
-	# Engineer reduces fuel consumption
+	# Engineer reduces fuel _consumption
 	if ShipRole.ENGINEER in _role_assignments:
 		var engineer_id = _role_assignments[ShipRole.ENGINEER]
 		var effectiveness = calculate_role_effectiveness(engineer_id)
 		
-		# Reduce fuel consumption based on effectiveness (up to 25%)
+		# Reduce fuel _consumption based on effectiveness (up to 25%)
 		var reduction = int(fuel_consumption * 0.25 * effectiveness)
 		modified_consumption = max(1, fuel_consumption - reduction)
 	

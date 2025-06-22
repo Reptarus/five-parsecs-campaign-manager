@@ -2,7 +2,14 @@
 extends Node
 class_name FPCM_TutorialStateMachine
 
-const GameEnums := preload("res://src/core/systems/GlobalEnums.gd")
+## Tutorial State Machine for Five Parsecs Campaign Manager
+##
+## Manages tutorial flow and progression through different learning stages
+
+# Dependencies
+const GlobalEnums = preload("res://src/core/systems/GlobalEnums.gd")
+# const GameEventLogger = preload("res://src/core/systems/GameEventLogger.gd") # Commented out - file doesn't exist
+# const FiveParsecsCrewSystem = preload("res://src/core/systems/FiveParsecsCrewSystem.gd") # Commented out - file doesn't exist
 const FiveParsecsGameState := preload("res://src/core/state/GameState.gd")
 const Mission := preload("res://src/core/systems/Mission.gd")
 
@@ -106,6 +113,13 @@ func start_tutorial() -> void:
 
 func complete_current_step() -> void:
 	if current_step > 0:
+
+
+
+
+
+
+
 		steps_completed.append(current_step)
 		tutorial_step_completed.emit(current_step)
 		_advance_to_next_step()
@@ -123,7 +137,7 @@ func _advance_to_next_step() -> void:
 func _setup_step(step: int) -> void:
 	match step:
 		1: # Introduction
-			game_state.set_victory_type(GameEnums.FiveParcsecsCampaignVictoryType.STANDARD)
+			game_state.set_victory_type(GlobalEnums.FiveParcsecsCampaignVictoryType.STANDARD)
 		2: # Basic Movement
 			_setup_movement_tutorial()
 		3: # Combat
@@ -172,8 +186,8 @@ func _start_battle_tutorial() -> void:
 		
 	var battle_setup := {
 		"enemy_count": 2,
-		"battle_environment": GameEnums.PlanetEnvironment.URBAN,
-		"objective": GameEnums.MissionObjective.DEFEND
+		"battle_environment": GlobalEnums.PlanetEnvironment.URBAN,
+		"objective": GlobalEnums.MissionObjective.DEFEND
 	}
 	game_state.is_tutorial_active = true
 	if game_state.has_method("start_tutorial_battle"):
@@ -185,9 +199,9 @@ func _start_campaign_tutorial() -> void:
 		
 	game_state.is_tutorial_active = true
 	var campaign_setup := {
-		"difficulty": GameEnums.DifficultyLevel.NORMAL,
-		"victory_type": GameEnums.FiveParcsecsCampaignVictoryType.STANDARD,
-		"crew_size": GameEnums.CrewSize.FOUR,
+		"difficulty": GlobalEnums.DifficultyLevel.NORMAL,
+		"victory_type": GlobalEnums.FiveParcsecsCampaignVictoryType.STANDARD,
+		"crew_size": GlobalEnums.CrewSize.FOUR,
 		"use_story_track": false
 	}
 	
@@ -203,9 +217,9 @@ func _start_story_tutorial() -> void:
 
 func _setup_tutorial_mission(track: int) -> void:
 	var mission = {
-		"type": GameEnums.MissionType.PATROL, # Using PATROL as a basic mission type for tutorials
-		"difficulty": GameEnums.DifficultyLevel.EASY,
-		"victory_type": GameEnums.FiveParcsecsCampaignVictoryType.STANDARD,
+		"type": GlobalEnums.MissionType.PATROL, # Using PATROL as a basic mission type for tutorials
+		"difficulty": GlobalEnums.DifficultyLevel.EASY,
+		"victory_type": GlobalEnums.FiveParcsecsCampaignVictoryType.STANDARD,
 		"track": track
 	}
 	

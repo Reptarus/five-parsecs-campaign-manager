@@ -1,5 +1,6 @@
 @tool
-extends GdUnitGameTest
+@warning_ignore("return_value_discarded")
+	extends GdUnitGameTest
 
 # Mock Medical Bay Component with realistic behavior
 class MockMedicalBayComponent extends Resource:
@@ -27,10 +28,10 @@ class MockMedicalBayComponent extends Resource:
     func get_efficiency() -> float: return efficiency
     func get_is_active() -> bool: return is_active
     
-    func set_level(value: int) -> void: level = value
-    func set_durability(value: int) -> void: durability = value
-    func set_efficiency(value: float) -> void: efficiency = value
-    func set_is_active(value: bool) -> void: is_active = value
+    func set_level(test_value: int) -> void: level = _value
+    func set_durability(test_value: int) -> void: durability = _value
+    func set_efficiency(test_value: float) -> void: efficiency = _value
+    func set_is_active(test_value: bool) -> void: is_active = _value
     
     func upgrade() -> void:
         healing_rate += 5.0
@@ -70,17 +71,39 @@ class MockMedicalBayComponent extends Resource:
         }
     
     func deserialize(data: Dictionary) -> void:
-        name = data.get("name", name)
-        description = data.get("description", description)
-        cost = data.get("cost", cost)
-        power_draw = data.get("power_draw", power_draw)
-        healing_rate = data.get("healing_rate", healing_rate)
-        max_patients = data.get("max_patients", max_patients)
-        current_patients = data.get("current_patients", current_patients)
-        level = data.get("level", level)
-        durability = data.get("durability", durability)
-        efficiency = data.get("efficiency", efficiency)
-        is_active = data.get("is_active", is_active)
+
+        name = @warning_ignore("unsafe_call_argument")
+	data.get("name", name)
+
+        description = @warning_ignore("unsafe_call_argument")
+	data.get("description", description)
+
+        cost = @warning_ignore("unsafe_call_argument")
+	data.get("cost", cost)
+
+        power_draw = @warning_ignore("unsafe_call_argument")
+	data.get("power_draw", power_draw)
+
+        healing_rate = @warning_ignore("unsafe_call_argument")
+	data.get("healing_rate", healing_rate)
+
+        max_patients = @warning_ignore("unsafe_call_argument")
+	data.get("max_patients", max_patients)
+
+        current_patients = @warning_ignore("unsafe_call_argument")
+	data.get("current_patients", current_patients)
+
+        level = @warning_ignore("unsafe_call_argument")
+	data.get("level", level)
+
+        durability = @warning_ignore("unsafe_call_argument")
+	data.get("durability", durability)
+
+        efficiency = @warning_ignore("unsafe_call_argument")
+	data.get("efficiency", efficiency)
+
+        is_active = @warning_ignore("unsafe_call_argument")
+	data.get("is_active", is_active)
 
 # Test medical bay component
 var medical_bay: MockMedicalBayComponent = null
@@ -88,10 +111,12 @@ var medical_bay: MockMedicalBayComponent = null
 # Test environment setup
 func _initialize_test_environment() -> void:
     medical_bay = MockMedicalBayComponent.new()
-    track_resource(medical_bay)
+    @warning_ignore("return_value_discarded")
+	track_resource(medical_bay)
 
 func before_test() -> void:
-    await super.before_test()
+    @warning_ignore("unsafe_method_access")
+	await super.before_test()
     
     # Initialize our test environment
     _initialize_test_environment()
@@ -103,8 +128,10 @@ func before_test() -> void:
 
 func after_test() -> void:
     medical_bay = null
-    await super.after_test()
+    @warning_ignore("unsafe_method_access")
+	await super.after_test()
 
+@warning_ignore("unsafe_method_access")
 func test_initialization() -> void:
     assert_that(medical_bay).is_not_null()
     
@@ -118,6 +145,7 @@ func test_initialization() -> void:
     assert_that(medical_bay.get_max_patients()).is_equal(2)
     assert_that(medical_bay.get_current_patients()).is_equal(0)
 
+@warning_ignore("unsafe_method_access")
 func test_upgrade_effects() -> void:
     # Store initial values
     var initial_healing_rate: float = medical_bay.get_healing_rate()
@@ -129,6 +157,7 @@ func test_upgrade_effects() -> void:
     assert_that(medical_bay.get_healing_rate()).is_equal(initial_healing_rate + 5.0)
     assert_that(medical_bay.get_max_patients()).is_equal(initial_max_patients + 1)
 
+@warning_ignore("unsafe_method_access")
 func test_efficiency_effects() -> void:
     # Test base values at full efficiency
     assert_that(medical_bay.get_healing_rate()).is_equal(10.0)
@@ -140,6 +169,7 @@ func test_efficiency_effects() -> void:
     assert_that(medical_bay.get_healing_rate()).is_equal(5.0) # 10.0 * 0.5
     assert_that(medical_bay.get_max_patients()).is_equal(2) # Max patients not affected by efficiency
 
+@warning_ignore("unsafe_method_access")
 func test_patient_management() -> void:
     # Test adding patients
     assert_that(medical_bay.add_patient()).is_true()
@@ -163,6 +193,7 @@ func test_patient_management() -> void:
     assert_that(medical_bay.remove_patient()).is_false()
     assert_that(medical_bay.get_current_patients()).is_equal(0)
 
+@warning_ignore("unsafe_method_access")
 func test_healing_process() -> void:
     # Add a patient
     medical_bay.add_patient()
@@ -186,6 +217,7 @@ func test_healing_process() -> void:
     healing_done = medical_bay.process_healing(1.0)
     assert_that(healing_done).is_equal(0.0)
 
+@warning_ignore("unsafe_method_access")
 func test_serialization() -> void:
     # Modify medical bay state
     medical_bay.set_level(5)
@@ -198,7 +230,8 @@ func test_serialization() -> void:
     
     # Create new medical bay and deserialize
     var new_medical_bay: MockMedicalBayComponent = MockMedicalBayComponent.new()
-    track_resource(new_medical_bay)
+    @warning_ignore("return_value_discarded")
+	track_resource(new_medical_bay)
     new_medical_bay.deserialize(data)
     
     # Verify medical bay-specific properties

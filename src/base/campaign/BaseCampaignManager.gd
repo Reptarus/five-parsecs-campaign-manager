@@ -15,20 +15,17 @@ const SAVE_DIR = "user://campaigns/"
 const SAVE_EXTENSION = ".campaign"
 
 var current_campaign: Variant
-var active_campaigns: Array = []
+var _active_campaigns: Array = []
 
 func _init() -> void:
 	_initialize_save_directory()
-
 func _initialize_save_directory() -> void:
 	var dir = DirAccess.open("user://")
 	if not dir.dir_exists(SAVE_DIR):
 		dir.make_dir(SAVE_DIR)
-
 func create_campaign(name: String = "New Campaign") -> Variant:
 	push_error("BaseCampaignManager.create_campaign() must be overridden by derived class")
 	return null
-
 func start_campaign(campaign = null) -> void:
 	if campaign:
 		current_campaign = campaign
@@ -94,7 +91,7 @@ func load_campaign(campaign_name: String) -> Variant:
 	return campaign
 
 func get_saved_campaigns() -> Array:
-	var campaigns = []
+	var campaigns: Array = []
 	var dir = DirAccess.open(SAVE_DIR)
 	
 	if not dir:
@@ -107,6 +104,7 @@ func get_saved_campaigns() -> Array:
 	while file_name != "":
 		if not dir.current_is_dir() and file_name.ends_with(SAVE_EXTENSION):
 			var campaign_name = file_name.replace(SAVE_EXTENSION, "").replace("_", " ")
+
 			campaigns.append(campaign_name)
 		file_name = dir.get_next()
 	
@@ -146,14 +144,14 @@ func charge_upkeep_costs(amount: int) -> bool:
 	return current_campaign.remove_resource("credits", amount)
 
 func generate_crew_tasks() -> Array:
-	var tasks = []
+	var tasks: Array = []
 	# Base implementation returns empty array
 	# Override in derived classes to generate game-specific tasks
 	crew_tasks_available.emit(tasks)
 	return tasks
 
 func generate_job_offers() -> Array:
-	var offers = []
+	var offers: Array = []
 	# Base implementation returns empty array
 	# Override in derived classes to generate game-specific job offers
 	job_offers_available.emit(offers)

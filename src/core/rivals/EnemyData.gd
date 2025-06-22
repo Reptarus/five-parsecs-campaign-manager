@@ -24,8 +24,8 @@ var stats: Dictionary = {
 var equipped_weapons: Array[GameWeapon] = []
 var weapon_class: int = GameEnums.EnemyWeaponClass.BASIC
 var armor_save: int = 0 # 0 means no save, otherwise represents X+ save
-var panic: int = 2 # Default panic value
-var morale: int = 10 # Default morale value
+var panic: int = 2 # Default panic _value
+var morale: int = 10 # Default morale _value
 var deployment_pattern: int = GameEnums.EnemyDeploymentPattern.STANDARD
 
 # Traits and characteristics
@@ -59,7 +59,6 @@ func _initialize_default_values() -> void:
 			_setup_standard()
 		_:
 			_setup_specific_type()
-
 func _setup_category_defaults() -> void:
 	match enemy_category:
 		GameEnums.EnemyCategory.CRIMINAL_ELEMENTS:
@@ -78,7 +77,6 @@ func _setup_category_defaults() -> void:
 			morale = 20
 			weapon_class = GameEnums.EnemyWeaponClass.ELITE
 			add_characteristic(GameEnums.EnemyTrait.FEROCIOUS)
-
 func _setup_specific_type() -> void:
 	match enemy_type:
 		GameEnums.EnemyType.GANGERS, GameEnums.EnemyType.PUNKS:
@@ -93,41 +91,35 @@ func _setup_specific_type() -> void:
 			_setup_elite_agent_type()
 		_:
 			_setup_standard()
-
 func _setup_gang_type() -> void:
 	stats[GameEnums.CharacterStats.COMBAT_SKILL] = 0
 	stats[GameEnums.CharacterStats.TOUGHNESS] = 3
 	add_characteristic(GameEnums.EnemyTrait.LEG_IT)
 	add_characteristic(GameEnums.EnemyTrait.FRIDAY_NIGHT_WARRIORS)
 	deployment_pattern = GameEnums.EnemyDeploymentPattern.SCATTERED
-
 func _setup_raider_type() -> void:
 	stats[GameEnums.CharacterStats.COMBAT_SKILL] = 1
 	stats[GameEnums.CharacterStats.TOUGHNESS] = 4
 	add_characteristic(GameEnums.EnemyTrait.AGGRO)
 	add_characteristic(GameEnums.EnemyTrait.UP_CLOSE)
 	deployment_pattern = GameEnums.EnemyDeploymentPattern.AMBUSH
-
 func _setup_fanatic_type() -> void:
 	stats[GameEnums.CharacterStats.COMBAT_SKILL] = 1
 	stats[GameEnums.CharacterStats.TOUGHNESS] = 3
 	add_characteristic(GameEnums.EnemyTrait.FEARLESS)
 	add_characteristic(GameEnums.EnemyTrait.GRUESOME)
 	deployment_pattern = GameEnums.EnemyDeploymentPattern.OFFENSIVE
-
 func _setup_robot_type() -> void:
 	stats[GameEnums.CharacterStats.COMBAT_SKILL] = 2
 	stats[GameEnums.CharacterStats.TOUGHNESS] = 5
 	add_characteristic(GameEnums.EnemyTrait.SAVING_THROW)
 	deployment_pattern = GameEnums.EnemyDeploymentPattern.STANDARD
-
 func _setup_elite_agent_type() -> void:
 	stats[GameEnums.CharacterStats.COMBAT_SKILL] = 2
 	stats[GameEnums.CharacterStats.TOUGHNESS] = 4
 	add_characteristic(GameEnums.EnemyTrait.TRICK_SHOT)
 	add_characteristic(GameEnums.EnemyTrait.ALERT)
 	deployment_pattern = GameEnums.EnemyDeploymentPattern.CONCEALED
-
 func _setup_elite() -> void:
 	stats[GameEnums.CharacterStats.COMBAT_SKILL] = 1
 	stats[GameEnums.CharacterStats.TOUGHNESS] = 4
@@ -136,7 +128,6 @@ func _setup_elite() -> void:
 	experience_value = 2
 	weapon_class = GameEnums.EnemyWeaponClass.ADVANCED
 	deployment_pattern = GameEnums.EnemyDeploymentPattern.OFFENSIVE
-
 func _setup_boss() -> void:
 	stats[GameEnums.CharacterStats.COMBAT_SKILL] = 2
 	stats[GameEnums.CharacterStats.TOUGHNESS] = 5
@@ -145,7 +136,6 @@ func _setup_boss() -> void:
 	experience_value = 3
 	weapon_class = GameEnums.EnemyWeaponClass.ELITE
 	deployment_pattern = GameEnums.EnemyDeploymentPattern.DEFENSIVE
-
 func _setup_minion() -> void:
 	stats[GameEnums.CharacterStats.COMBAT_SKILL] = 0
 	stats[GameEnums.CharacterStats.TOUGHNESS] = 2
@@ -153,7 +143,6 @@ func _setup_minion() -> void:
 	experience_value = 1
 	weapon_class = GameEnums.EnemyWeaponClass.BASIC
 	deployment_pattern = GameEnums.EnemyDeploymentPattern.STANDARD
-
 func _setup_standard() -> void:
 	stats[GameEnums.CharacterStats.COMBAT_SKILL] = 0
 	stats[GameEnums.CharacterStats.TOUGHNESS] = 3
@@ -161,7 +150,6 @@ func _setup_standard() -> void:
 	experience_value = 1
 	weapon_class = GameEnums.EnemyWeaponClass.BASIC
 	deployment_pattern = GameEnums.EnemyDeploymentPattern.STANDARD
-
 func validate_behavior_pattern() -> bool:
 	# Validate that deployment pattern matches behavior
 	match enemy_behavior:
@@ -197,28 +185,24 @@ func validate_behavior_pattern() -> bool:
 func get_stat(stat_type: int) -> int:
 	return stats.get(stat_type, 0)
 
-func set_stat(stat_type: int, value: int) -> void:
-	stats[stat_type] = value
-
+func set_stat(stat_type: int, _value: int) -> void:
+	stats[stat_type] = _value
 func add_weapon(weapon: GameWeapon) -> void:
 	if not weapon in equipped_weapons:
-		equipped_weapons.append(weapon)
+		equipped_weapons.append(weapon) # warning: return value discarded (intentional)
 
 func remove_weapon(weapon: GameWeapon) -> void:
 	equipped_weapons.erase(weapon)
-
 func get_weapons() -> Array[GameWeapon]:
 	return equipped_weapons
 
 func set_weapon_class(new_class: int) -> void:
 	weapon_class = new_class
-
 func get_weapon_class() -> int:
 	return weapon_class
 
 func set_deployment_pattern(pattern: int) -> void:
 	deployment_pattern = pattern
-
 func get_deployment_pattern() -> int:
 	return deployment_pattern
 
@@ -227,32 +211,28 @@ func has_characteristic(characteristic: int) -> bool:
 
 func add_characteristic(characteristic: int) -> void:
 	if not has_characteristic(characteristic):
-		characteristics.append(characteristic)
+		characteristics.append(characteristic) # warning: return value discarded (intentional)
 
 func remove_characteristic(characteristic: int) -> void:
 	characteristics.erase(characteristic)
-
 func add_special_rule(rule: String) -> void:
 	if not rule in special_rules:
-		special_rules.append(rule)
+		special_rules.append(rule) # warning: return value discarded (intentional)
 
 func remove_special_rule(rule: String) -> void:
 	special_rules.erase(rule)
-
 func add_loot_reward(reward_type: int, probability: float) -> void:
 	loot_table[reward_type] = probability
-
 func remove_loot_reward(reward_type: int) -> void:
 	loot_table.erase(reward_type)
-
 func get_loot_table() -> Dictionary:
 	return loot_table
 
 func get_experience_value() -> int:
 	return experience_value
 
-func set_experience_value(value: int) -> void:
-	experience_value = value
+func set_experience_value(_value: int) -> void:
+	experience_value = _value
 
 # Serialization
 func serialize() -> Dictionary:
@@ -278,25 +258,38 @@ func deserialize(data: Dictionary) -> void:
 	if not data.has_all(["enemy_type", "enemy_category", "enemy_behavior"]):
 		push_error("Invalid enemy data for deserialization")
 		return
-		
+
 	enemy_type = data.get("enemy_type", enemy_type)
+
 	enemy_category = data.get("enemy_category", enemy_category)
+
 	enemy_behavior = data.get("enemy_behavior", enemy_behavior)
+
 	character_name = data.get("character_name", character_name)
+
 	stats = data.get("stats", stats)
+
 	weapon_class = data.get("weapon_class", weapon_class)
+
 	armor_save = data.get("armor_save", armor_save)
+
 	panic = data.get("panic", panic)
+
 	morale = data.get("morale", morale)
+
 	deployment_pattern = data.get("deployment_pattern", deployment_pattern)
+
 	characteristics = data.get("characteristics", characteristics)
+
 	special_rules = data.get("special_rules", special_rules)
+
 	loot_table = data.get("loot_table", loot_table)
+
 	experience_value = data.get("experience_value", experience_value)
 	
 	equipped_weapons.clear()
 	if data.has("equipped_weapons"):
 		for weapon_data in data.equipped_weapons:
-			var weapon = GameWeapon.new()
+			var weapon := GameWeapon.new()
 			weapon.deserialize(weapon_data)
-			equipped_weapons.append(weapon)
+			equipped_weapons.append(weapon) # warning: return value discarded (intentional)

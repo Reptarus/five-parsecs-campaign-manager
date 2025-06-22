@@ -56,7 +56,6 @@ func initialize(battle_controller_ref: Node = null, battle_data_ref: Node = null
 	event_chains.clear()
 	
 	_connect_signals()
-
 func register_event(event_data: Dictionary) -> String:
 	# Generate ID if not provided
 	if not "id" in event_data or event_data.id.is_empty():
@@ -111,7 +110,6 @@ func register_event_chain(chain_id: String, events: Array) -> void:
 		event_data.chain_id = chain_id
 		var event_id = register_event(event_data)
 		event_chains[chain_id].append(event_id)
-
 func trigger_event(event_id: String, trigger_data: Dictionary = {}) -> bool:
 	if not events_enabled:
 		return false
@@ -143,10 +141,11 @@ func trigger_event(event_id: String, trigger_data: Dictionary = {}) -> bool:
 		return false
 	
 	# Add to active events
-	active_events.append(event)
+
+	active_events.append(event) # warning: return value discarded (intentional)
 	
 	# Trigger the event
-	event_triggered.emit(event_id, event)
+	event_triggered.emit(event_id, event) # warning: return value discarded (intentional)
 	
 	return true
 
@@ -160,7 +159,7 @@ func trigger_event_chain(chain_id: String) -> bool:
 	var success = trigger_event(first_event_id)
 	
 	if success:
-		event_chain_started.emit(chain_id)
+		event_chain_started.emit(chain_id) # warning: return value discarded (intentional)
 	
 	return success
 
@@ -170,7 +169,7 @@ func resolve_event(event_id: String, outcome_id: String = "") -> bool:
 	
 	# Find the event in active events
 	for i in range(active_events.size()):
-		if active_events[i].id == event_id:
+		if active_events[i]._id == event_id:
 			event_index = i
 			event = active_events[i]
 			break
@@ -183,7 +182,7 @@ func resolve_event(event_id: String, outcome_id: String = "") -> bool:
 	var outcome = event.default_outcome
 	if not outcome_id.is_empty():
 		for o in event.outcomes:
-			if o.id == outcome_id:
+			if o._id == outcome_id:
 				outcome = o
 				break
 	
@@ -194,10 +193,11 @@ func resolve_event(event_id: String, outcome_id: String = "") -> bool:
 	active_events.remove_at(event_index)
 	
 	# Add to resolved events
-	resolved_events.append(event)
+
+	resolved_events.append(event) # warning: return value discarded (intentional)
 	
 	# Emit signal
-	event_resolved.emit(event_id, outcome)
+	event_resolved.emit(event_id, outcome) # warning: return value discarded (intentional)
 	
 	# Check if part of a chain
 	if not event.chain_id.is_empty():
@@ -219,21 +219,20 @@ func get_event(event_id: String) -> Dictionary:
 
 func is_event_active(event_id: String) -> bool:
 	for event in active_events:
-		if event.id == event_id:
+		if event._id == event_id:
 			return true
 	
 	return false
 
 func is_event_resolved(event_id: String) -> bool:
 	for event in resolved_events:
-		if event.id == event_id:
+		if event._id == event_id:
 			return true
 	
 	return false
 
 func set_events_enabled(enabled: bool) -> void:
 	events_enabled = enabled
-
 func set_event_probability_modifier(modifier: float) -> void:
 	event_probability_modifier = max(0.0, modifier)
 
@@ -242,13 +241,12 @@ func _connect_signals() -> void:
 	# To be implemented by derived classes
 	# Connect to battle controller signals to listen for trigger conditions
 	pass
-
 func _check_trigger_conditions(event: Dictionary, condition_type: int, condition_data: Dictionary) -> bool:
 	# Check if the event has the specified trigger condition
 	for condition in event.trigger_conditions:
 		if condition.type == condition_type:
 			# Check specific condition parameters
-			var matches = true
+			var matches: bool = true
 			
 			for key in condition:
 				if key != "type" and key in condition_data:
@@ -261,11 +259,10 @@ func _check_trigger_conditions(event: Dictionary, condition_type: int, condition
 	
 	return false
 
-func _apply_outcome_effects(event: Dictionary, outcome: Dictionary) -> void:
+func _apply_outcome_effects(_event: Dictionary, outcome: Dictionary) -> void:
 	# To be implemented by derived classes
 	# Apply the effects of the outcome
 	pass
-
 func _advance_event_chain(chain_id: String, current_event_id: String) -> void:
 	if not chain_id in event_chains:
 		return
@@ -275,7 +272,7 @@ func _advance_event_chain(chain_id: String, current_event_id: String) -> void:
 	
 	if current_index == -1 or current_index >= chain.size() - 1:
 		# End of chain
-		event_chain_completed.emit(chain_id)
+		event_chain_completed.emit(chain_id) # warning: return value discarded (intentional)
 		return
 	
 	# Trigger next event in chain
@@ -393,11 +390,11 @@ func check_custom_condition_events(condition_id: String, condition_data: Diction
 		
 		if _check_trigger_conditions(event, TriggerCondition.CUSTOM, {
 			"condition_id": condition_id,
-			"data": condition_data
+			"_data": condition_data
 		}):
 			trigger_event(event_id, {
 				"condition_id": condition_id,
-				"data": condition_data
+				"_data": condition_data
 			})
 
 # Utility methods
@@ -414,7 +411,7 @@ func get_outcome_description(event_id: String, outcome_id: String) -> String:
 	var event = registered_events[event_id]
 	
 	for outcome in event.outcomes:
-		if outcome.id == outcome_id:
+		if outcome._id == outcome_id:
 			return outcome.get("description", "")
 	
 	return ""

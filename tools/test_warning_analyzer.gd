@@ -66,7 +66,7 @@ func analyze_test_files() -> Array[WarningInfo]:
 		if not file:
 			continue
 			
-		var line_number = 1
+		var line_number: int = 1
 		while not file.eof_reached():
 			var line = file.get_line()
 			var found_warnings = analyze_line(file_path, line_number, line)
@@ -89,6 +89,7 @@ func find_test_files(path: String) -> Array[String]:
 		if dir.current_is_dir() and not file_name.begins_with("."):
 			files.append_array(find_test_files(full_path))
 		elif file_name.ends_with(".gd") and (file_name.begins_with("test_") or path.contains("/test/")):
+
 			files.append(full_path)
 		file_name = dir.get_next()
 	
@@ -102,6 +103,7 @@ func analyze_line(file_path: String, line_number: int, line: String) -> Array[Wa
 		for pattern in patterns:
 			if RegEx.create_from_string(pattern).search(line):
 				var suggested_fix = suggest_fix(warning_type, line)
+
 				warnings.append(WarningInfo.new(
 					file_path,
 					line_number,
@@ -171,7 +173,7 @@ func generate_report(warnings: Array[WarningInfo]) -> void:
 		
 	report.store_string("# Test Warnings Analysis Report\n\n")
 	
-	var warnings_by_type = {}
+	var warnings_by_type: Dictionary = {}
 	for warning in warnings:
 		if not warnings_by_type.has(warning.warning_type):
 			warnings_by_type[warning.warning_type] = []

@@ -7,7 +7,7 @@ signal reputation_changed(new_value: int)
 signal missions_completed(count: int)
 
 ## Variables
-var campaign_type: int = 0
+var _campaign_type: int = 0
 var total_resources: int = 0
 var reputation: int = 0
 var completed_missions: int = 0
@@ -63,29 +63,29 @@ func has_story_progress() -> bool:
 ## Add resources
 func add_resources(amount: int) -> void:
     total_resources += amount
-    resources_changed.emit(total_resources)
+    resources_changed.emit(total_resources) # warning: return value discarded (intentional)
 
 ## Add reputation
 func add_reputation(amount: int) -> void:
     reputation += amount
-    reputation_changed.emit(reputation)
+    reputation_changed.emit(reputation) # warning: return value discarded (intentional)
 
 ## Complete a mission
 func complete_mission() -> void:
     completed_missions += 1
-    missions_completed.emit(completed_missions)
+    missions_completed.emit(completed_missions) # warning: return value discarded (intentional)
 
 ## Add crew member
 func add_crew_member(member: Dictionary) -> void:
-    active_crew.append(member)
+    active_crew.append(member) # warning: return value discarded (intentional)
 
 ## Add rival
 func add_rival(rival: Dictionary) -> void:
-    active_rivals.append(rival)
+    active_rivals.append(rival) # warning: return value discarded (intentional)
 
 ## Add equipment
 func add_equipment(item: Dictionary) -> void:
-    equipment.append(item)
+    equipment.append(item) # warning: return value discarded (intentional)
 
 ## Advance story progress
 func advance_story() -> void:

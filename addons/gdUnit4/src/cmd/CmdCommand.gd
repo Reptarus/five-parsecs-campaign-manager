@@ -19,7 +19,6 @@ func arguments() -> PackedStringArray:
 
 
 func add_argument(arg :String) -> void:
-	@warning_ignore("return_value_discarded")
 	_arguments.append(arg)
 
 

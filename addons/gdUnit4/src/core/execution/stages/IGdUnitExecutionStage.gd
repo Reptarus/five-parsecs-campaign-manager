@@ -15,7 +15,6 @@ var _debug_mode := false
 ## [/codeblock][br]
 func execute(context :GdUnitExecutionContext) -> void:
 	GdUnitThreadManager.get_current_context().set_execution_context(context)
-	@warning_ignore("redundant_await")
 	await _execute(context)
 
 
@@ -35,5 +34,4 @@ func set_debug_mode(debug_mode :bool) -> void:
 
 ## The execution phase to be carried out.
 func _execute(_context :GdUnitExecutionContext) -> void:
-	@warning_ignore("assert_always_false")
 	assert(false, "The execution stage is not implemented")

@@ -76,11 +76,11 @@ func _setup_phase_manager() -> void:
 		phase_ui.initialize(_phase_manager)
 		_phase_manager.phase_changed.connect(_on_phase_changed)
 
-func _update_resource_display(resource_type: GameEnums.ResourceType, value: int) -> void:
+func _update_resource_display(resource_type: GameEnums.ResourceType, _value: int) -> void:
 	var resource_name = GameEnums.ResourceType.keys()[resource_type]
 	var resource_label = resource_panel.get_node_or_null(resource_name.to_lower() + "_label")
 	if resource_label:
-		resource_label.text = "%s: %d" % [resource_name.capitalize(), value]
+		resource_label.text = "%s: %d" % [resource_name.capitalize(), _value]
 
 func _log_event(event_data: Dictionary) -> void:
 	if event_log:
@@ -92,16 +92,16 @@ func _on_phase_changed(new_phase: GameEnums.CampaignPhase) -> void:
 	# Update UI
 	phase_indicator.set_phase(new_phase)
 	
-	# Log phase change
+	# Log _phase change
 	_log_event({
 		"id": "phase_change_%d" % Time.get_unix_time_from_system(),
 		"title": "Phase Changed",
-		"description": "Campaign phase changed to %s" % GameEnums.CampaignPhase.keys()[new_phase],
+		"description": "Campaign _phase changed to %s" % GameEnums.CampaignPhase.keys()[new_phase],
 		"category": "campaign",
-		"phase": new_phase
+		"_phase": new_phase
 	})
 	
-	emit_signal("phase_changed", new_phase)
+	phase_changed.emit( new_phase)
 
 func _on_resource_updated(resource_type: GameEnums.ResourceType, new_value: int) -> void:
 	_update_resource_display(resource_type, new_value)
@@ -116,14 +116,14 @@ func _on_resource_updated(resource_type: GameEnums.ResourceType, new_value: int)
 		"description": "%s changed to %d" % [GameEnums.ResourceType.keys()[resource_type], new_value],
 		"category": "campaign",
 		"resource": resource_type,
-		"value": new_value
+		"_value": new_value
 	})
 	
-	emit_signal("resource_updated", resource_type, new_value)
+	resource_updated.emit( resource_type, new_value)
 
 func _on_event_occurred(event_data: Dictionary) -> void:
 	_log_event(event_data)
-	emit_signal("event_occurred", event_data)
+	event_occurred.emit( event_data)
 
 func _on_phase_action_requested(action_type: String) -> void:
 	match action_type:
@@ -171,11 +171,12 @@ func _on_phase_action_requested(action_type: String) -> void:
 			_handle_turn_end()
 
 # Action handlers
+
 func _handle_crew_creation() -> void:
-	get_tree().change_scene_to_file("res://src/scenes/character/CrewCreation.tscn")
+	get_tree().call_deferred("change_scene_to_file", "res://src/scenes/character/CrewCreation.tscn")
 
 func _handle_campaign_selection() -> void:
-	get_tree().change_scene_to_file("res://src/scenes/campaign/CampaignSelection.tscn")
+	get_tree().call_deferred("change_scene_to_file", "res://src/scenes/campaign/CampaignSelection.tscn")
 
 func _handle_campaign_start() -> void:
 	_phase_manager.advance_phase()
@@ -184,34 +185,34 @@ func _handle_upkeep_payment() -> void:
 	_campaign_manager.process_upkeep()
 
 func _handle_resource_management() -> void:
-	get_tree().change_scene_to_file("res://src/scenes/resource/ResourceManagement.tscn")
+	get_tree().call_deferred("change_scene_to_file", "res://src/scenes/resource/ResourceManagement.tscn")
 
 func _handle_crew_status() -> void:
-	get_tree().change_scene_to_file("res://src/scenes/character/CrewStatus.tscn")
+	get_tree().call_deferred("change_scene_to_file", "res://src/scenes/character/CrewStatus.tscn")
 
 func _handle_event_check() -> void:
 	_campaign_manager.check_events()
 
 func _handle_story_progress() -> void:
-	get_tree().change_scene_to_file("res://src/scenes/story/StoryProgress.tscn")
+	get_tree().call_deferred("change_scene_to_file", "res://src/scenes/story/StoryProgress.tscn")
 
 func _handle_event_resolution() -> void:
 	_campaign_manager.resolve_events()
 
 func _handle_mission_selection() -> void:
-	get_tree().change_scene_to_file("res://src/scenes/mission/MissionSelection.tscn")
+	get_tree().call_deferred("change_scene_to_file", "res://src/scenes/mission/MissionSelection.tscn")
 
 func _handle_crew_management() -> void:
-	get_tree().change_scene_to_file("res://src/scenes/character/CrewManagement.tscn")
+	get_tree().call_deferred("change_scene_to_file", "res://src/scenes/character/CrewManagement.tscn")
 
 func _handle_equipment_trade() -> void:
-	get_tree().change_scene_to_file("res://src/scenes/equipment/EquipmentTrade.tscn")
+	get_tree().call_deferred("change_scene_to_file", "res://src/scenes/equipment/EquipmentTrade.tscn")
 
 func _handle_battlefield_setup() -> void:
-	get_tree().change_scene_to_file("res://src/scenes/battle/BattlefieldSetup.tscn")
+	get_tree().call_deferred("change_scene_to_file", "res://src/scenes/battle/BattlefieldSetup.tscn")
 
 func _handle_crew_deployment() -> void:
-	get_tree().change_scene_to_file("res://src/scenes/battle/CrewDeployment.tscn")
+	get_tree().call_deferred("change_scene_to_file", "res://src/scenes/battle/CrewDeployment.tscn")
 
 func _handle_battle_start() -> void:
 	_campaign_manager.start_battle()
@@ -220,16 +221,18 @@ func _handle_combat_resolution() -> void:
 	_campaign_manager.resolve_combat()
 
 func _handle_casualty_check() -> void:
-	get_tree().change_scene_to_file("res://src/scenes/battle/CasualtyCheck.tscn")
+	get_tree().call_deferred("change_scene_to_file", "res://src/scenes/battle/CasualtyCheck.tscn")
 
 func _handle_reward_collection() -> void:
 	_campaign_manager.collect_rewards()
 
 func _handle_character_advancement() -> void:
-	get_tree().change_scene_to_file("res://src/scenes/character/CharacterAdvancement.tscn")
+	get_tree().call_deferred("change_scene_to_file", "res://src/scenes/character/CharacterAdvancement.tscn")
 
 func _handle_equipment_update() -> void:
-	get_tree().change_scene_to_file("res://src/scenes/equipment/EquipmentUpdate.tscn")
+	get_tree().call_deferred("change_scene_to_file", "res://src/scenes/equipment/EquipmentUpdate.tscn")
 
 func _handle_turn_end() -> void:
+	_phase_manager.advance_phase()
+
 	_phase_manager.advance_phase()

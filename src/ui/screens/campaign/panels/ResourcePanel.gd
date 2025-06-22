@@ -4,10 +4,10 @@ const GameEnums = preload("res://src/core/systems/GlobalEnums.gd")
 
 signal resources_updated(resources: Dictionary)
 
-@onready var credits_label = $Content/Resources/Credits/Value
-@onready var supplies_label = $Content/Resources/Supplies/Value
-@onready var tech_parts_label = $Content/Resources/TechParts/Value
-@onready var patron_label = $Content/Resources/Patron/Value
+@onready var credits_label: Label = $"Content/Resources/Credits/Value"
+@onready var supplies_label: Label = $"Content/Resources/Supplies/Value"
+@onready var tech_parts_label: Label = $"Content/Resources/TechParts/Value"
+@onready var patron_label: Label = $"Content/Resources/Patron/Value"
 
 var current_resources: Dictionary = {
 	GameEnums.ResourceType.CREDITS: 1000,
@@ -22,7 +22,7 @@ func _ready() -> void:
 func set_resources(resources: Dictionary) -> void:
 	current_resources = resources.duplicate()
 	_update_ui()
-	resources_updated.emit(current_resources)
+	resources_updated.emit(current_resources)  # warning: return value discarded (intentional)
 
 func _update_ui() -> void:
 	credits_label.text = str(current_resources[GameEnums.ResourceType.CREDITS])

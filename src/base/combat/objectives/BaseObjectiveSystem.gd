@@ -52,7 +52,6 @@ func initialize() -> void:
 	completed_objectives.clear()
 	failed_objectives.clear()
 	mission_status = ObjectiveStatus.PENDING
-
 func add_objective(objective_data: Dictionary) -> String:
 	# Generate a unique ID if not provided
 	if not "id" in objective_data or objective_data.id.is_empty():
@@ -88,7 +87,7 @@ func add_objective(objective_data: Dictionary) -> String:
 	objectives[objective_data.id] = objective_data
 	
 	# Emit signal
-	objective_added.emit(objective_data)
+	objective_added.emit(objective_data) # warning: return value discarded (intentional)
 	
 	return objective_data.id
 
@@ -110,7 +109,7 @@ func update_objective_progress(objective_id: String, progress: float) -> void:
 		if objective.status == ObjectiveStatus.PENDING:
 			objective.status = ObjectiveStatus.IN_PROGRESS
 		
-		objective_updated.emit(objective_id, objective)
+		objective_updated.emit(objective_id, objective) # warning: return value discarded (intentional)
 
 func complete_objective(objective_id: String) -> void:
 	if not objective_id in objectives:
@@ -118,17 +117,17 @@ func complete_objective(objective_id: String) -> void:
 		return
 	
 	var objective = objectives[objective_id]
-	
+
 	# Mark as completed
 	objective.status = ObjectiveStatus.COMPLETED
 	objective.progress = objective.target_progress
 	
 	# Add to completed list
 	if not objective_id in completed_objectives:
-		completed_objectives.append(objective_id)
+		completed_objectives.append(objective_id) # warning: return value discarded (intentional)
 	
 	# Emit signal
-	objective_completed.emit(objective_id)
+	objective_completed.emit(objective_id) # warning: return value discarded (intentional)
 	
 	# Check if all objectives are completed
 	_check_mission_status()
@@ -139,16 +138,16 @@ func fail_objective(objective_id: String) -> void:
 		return
 	
 	var objective = objectives[objective_id]
-	
+
 	# Mark as failed
 	objective.status = ObjectiveStatus.FAILED
 	
 	# Add to failed list
 	if not objective_id in failed_objectives:
-		failed_objectives.append(objective_id)
+		failed_objectives.append(objective_id) # warning: return value discarded (intentional)
 	
 	# Emit signal
-	objective_failed.emit(objective_id)
+	objective_failed.emit(objective_id) # warning: return value discarded (intentional)
 	
 	# Check mission status
 	_check_mission_status()
@@ -164,44 +163,43 @@ func get_all_objectives() -> Dictionary:
 	return objectives
 
 func get_objectives_by_priority(priority: int) -> Array:
-	var result = []
+	var result: Array = []
 	
 	for id in objectives:
 		var objective = objectives[id]
 		if objective.priority == priority:
-			result.append(objective)
+			result.append(objective) # warning: return value discarded (intentional)
 	
 	return result
 
 func get_objectives_by_type(type: int) -> Array:
-	var result = []
+	var result: Array = []
 	
 	for id in objectives:
 		var objective = objectives[id]
 		if objective.type == type:
-			result.append(objective)
+			result.append(objective) # warning: return value discarded (intentional)
 	
 	return result
 
 func get_objectives_by_status(status: int) -> Array:
-	var result = []
+	var result: Array = []
 	
 	for id in objectives:
 		var objective = objectives[id]
 		if objective.status == status:
-			result.append(objective)
+			result.append(objective) # warning: return value discarded (intentional)
 	
 	return result
 
 func set_mission_success_condition(condition: String) -> void:
 	mission_success_condition = condition
-
 func _check_mission_status() -> void:
 	# Check if all objectives are completed
-	var all_completed = true
-	var any_primary_completed = false
-	var all_primary_completed = true
-	var any_primary_failed = false
+	var all_completed: bool = true
+	var any_primary_completed: bool = false
+	var all_primary_completed: bool = true
+	var any_primary_failed: bool = false
 	
 	for id in objectives:
 		var objective = objectives[id]
@@ -219,8 +217,8 @@ func _check_mission_status() -> void:
 				any_primary_completed = true
 	
 	# Check mission success condition
-	var mission_succeeded = false
-	var mission_failed = false
+	var mission_succeeded: bool = false
+	var mission_failed: bool = false
 	
 	match mission_success_condition:
 		"all":
@@ -240,11 +238,11 @@ func _check_mission_status() -> void:
 	# Update mission status
 	if mission_succeeded:
 		mission_status = ObjectiveStatus.COMPLETED
-		mission_success.emit()
-		all_objectives_completed.emit()
+		mission_success.emit() # warning: return value discarded (intentional)
+		all_objectives_completed.emit() # warning: return value discarded (intentional)
 	elif mission_failed:
 		mission_status = ObjectiveStatus.FAILED
-		mission_failure.emit()
+		mission_failure.emit() # warning: return value discarded (intentional)
 
 func _check_custom_mission_success() -> bool:
 	# To be implemented by derived classes
@@ -258,12 +256,12 @@ func get_mission_status() -> int:
 	return mission_status
 
 func get_mission_progress() -> float:
-	var total_weight = 0.0
-	var total_progress = 0.0
+	var total_weight: int = 0
+	var total_progress: int = 0
 	
 	for id in objectives:
 		var objective = objectives[id]
-		var weight = 1.0
+		var weight: int = 1
 		
 		# Primary objectives have higher weight
 		if objective.priority == ObjectivePriority.PRIMARY:

@@ -1,4 +1,5 @@
 @tool
+class_name BaseCrewMember
 extends Node
 
 signal stats_changed
@@ -8,49 +9,49 @@ const MAX_STAT_VALUE: int = 6
 
 # Basic Character Info
 @export var character_name: String = "":
-	set(value):
-		if value == null or value.strip_edges().is_empty():
+	set(_value):
+		if _value == null or _value.strip_edges().is_empty():
 			push_error("Character name cannot be empty")
 			return
-		character_name = value.strip_edges()
+		character_name = _value.strip_edges()
 		if character:
 			notify_property_list_changed()
 
 # Core base stats
 @export var reactions: int = 1:
-	set(value):
-		reactions = clampi(value, 0, MAX_STAT_VALUE)
+	set(_value):
+		reactions = clampi(_value, 0, MAX_STAT_VALUE)
 		stats_changed.emit()
 
 @export var speed: int = 4:
-	set(value):
-		speed = clampi(value, 0, 8) # Speed has a max of 8
+	set(_value):
+		speed = clampi(_value, 0, 8) # Speed has a max of 8
 		stats_changed.emit()
 
 @export var combat_skill: int = 0:
-	set(value):
-		combat_skill = clampi(value, 0, 3) # Combat skill has a max of 3
+	set(_value):
+		combat_skill = clampi(_value, 0, 3) # Combat skill has a max of 3
 		stats_changed.emit()
 
 @export var toughness: int = 3:
-	set(value):
-		toughness = clampi(value, 0, MAX_STAT_VALUE)
+	set(_value):
+		toughness = clampi(_value, 0, MAX_STAT_VALUE)
 		stats_changed.emit()
 
 @export var savvy: int = 0:
-	set(value):
-		savvy = clampi(value, 0, 3) # Savvy has a max of 3
+	set(_value):
+		savvy = clampi(_value, 0, 3) # Savvy has a max of 3
 		stats_changed.emit()
 
 @export var luck: int = 0:
-	set(value):
-		luck = clampi(value, 0, 3) # Luck has a max of 3
+	set(_value):
+		luck = clampi(_value, 0, 3) # Luck has a max of 3
 		stats_changed.emit()
 
 # Derived stats
 @export var health: int = 10:
-	set(value):
-		health = clampi(value, 0, max_health)
+	set(_value):
+		health = clampi(_value, 0, max_health)
 		health_changed.emit(health)
 
 @export var max_health: int = 10
@@ -65,8 +66,8 @@ var advances_available: int = 0
 var specialization: String = ""
 var traits: Array[String] = []
 var relationships: Dictionary = {}
-var inventory = null
-var active_weapon = null
+var _inventory = null
+var _active_weapon = null
 var status: int = 0 # Will be defined by game-specific enums
 
 @export var items: Array[Dictionary] = []
@@ -114,7 +115,7 @@ func check_level_up() -> void:
 func level_up() -> void:
 	level += 1
 	advances_available += 1
-	
+
 func take_damage(amount: int) -> void:
 	health -= amount
 	if health <= 0:
@@ -194,4 +195,5 @@ func from_dict(data: Dictionary) -> void:
 	if data.has("relationships"): relationships = data.relationships
 	if data.has("items"): items = data.items
 	if data.has("weapon_proficiencies"): weapon_proficiencies = data.weapon_proficiencies
+	if data.has("status"): status = data.status
 	if data.has("status"): status = data.status
