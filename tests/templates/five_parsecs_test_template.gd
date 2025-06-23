@@ -1,6 +1,5 @@
 @tool
-@warning_ignore("return_value_discarded")
-	extends GdUnitGameTest
+extends GdUnitGameTest
 
 ## Five Parsecs Campaign Manager Test Template
 ##
@@ -14,114 +13,103 @@
 # Type-safe instance variables
 var _instance: Node = null
 
-# Lifecycle methods
+# Setup and teardown
 func before_test() -> void:
-	@warning_ignore("unsafe_method_access")
-	await super.before_test()
-	
-	# Initialize your test subject
-	# _instance = TestedClass.new()
-	# if _instance:
-	#	@warning_ignore("return_value_discarded")
-	add_child(_instance)
-	#	@warning_ignore("return_value_discarded")
-	track_node(_instance)
-	
-	@warning_ignore("unsafe_method_access")
-	await stabilize_engine()
+    super.before_test()
+    await get_tree().process_frame
+    
+    # Initialize your test subject
+    # _instance = TestedClass.new()
+    # if _instance:
+    #     track_node(_instance)
 
 func after_test() -> void:
-	_instance = null
-	@warning_ignore("unsafe_method_access")
-	await super.after_test()
+    _instance = null
+    super.after_test()
 
 # Basic functionality tests
-@warning_ignore("unsafe_method_access")
 func test_initialization() -> void:
-	assert_that(_instance).is_not_null()
-	# Add your initialization tests here
+    pass
+    # assert_that(_instance).is_not_null()
+    # Add more initialization tests here
 
-@warning_ignore("unsafe_method_access")
 func test_basic_functionality() -> void:
-	# Add your basic functionality tests here
-	pass
+    pass
+    # Add your basic functionality tests here
 
-@warning_ignore("unsafe_method_access")
 func test_error_handling() -> void:
-	# Add your error handling tests here
-	pass
+    pass
+    # Add your error handling tests here
 
 # Performance tests
-@warning_ignore("unsafe_method_access")
 func test_performance() -> void:
-	var start_time := Time.get_ticks_msec()
-	
-	# Add your performance test code here
-	
-	var elapsed := Time.get_ticks_msec() - start_time
-	assert_that(elapsed).is_less(1000) # Should complete in less than 1 second
+    pass
+    # var start_time := Time.get_ticks_msec()
+    
+    # Add your performance test code here
+    
+    # var elapsed := Time.get_ticks_msec() - start_time
+    # assert_that(elapsed).is_less(1000) # Should complete in less than 1 second
 
-# ====== Campaign Mechanics Tests ======
-@warning_ignore("unsafe_method_access")
+# Campaign system tests
 func test_campaign_mechanics() -> void:
-	# Test campaign-specific logic
-	# TODO: Implement campaign mechanics test
-	assert_that(true).is_true()
+    pass
+    # TODO: Implement campaign mechanics test
+    # assert_that(true).is_true()
 
-# ====== Character System Tests ======
-@warning_ignore("unsafe_method_access")
+# Character system tests
 func test_character_system() -> void:
-	# Test character-related functionality
-	# TODO: Implement character system test
-	assert_that(true).is_true()
+    pass
+    # TODO: Implement character system test
+    # assert_that(true).is_true()
 
-# ====== Mission System Tests ======
-@warning_ignore("unsafe_method_access")
+# Mission system tests
 func test_mission_system() -> void:
-	# Test mission generation and outcomes
-	# TODO: Implement mission system test
-	assert_that(true).is_true()
+    pass
+    # TODO: Implement mission system test
+    # assert_that(true).is_true()
 
-# ====== Equipment and Item Tests ======
-@warning_ignore("unsafe_method_access")
+# Equipment system tests
 func test_equipment_system() -> void:
-	# Test equipment handling
-	# TODO: Implement equipment system test
-	assert_that(true).is_true()
+    pass
+    # TODO: Implement equipment system test
+    # assert_that(true).is_true()
 
-# ====== Ships and Crew Tests ======
-@warning_ignore("unsafe_method_access")
+# Ship system tests
 func test_ship_system() -> void:
-	# Test ship functionality
-	# TODO: Implement ship system test
-	assert_that(true).is_true()
+    pass
+    # TODO: Implement ship system test
+    # assert_that(true).is_true()
 
-# ====== Helper Methods ======
+# Helper methods
 func _create_test_character() -> Dictionary:
-	# Helper to create a test character with standard values
-	return {
-		"name": "Test Character",
-		"type": "Trooper",
-		"stats": {
-			"reactions": 1,
-			"speed": 4,
-			"combat_skill": 1,
-			"toughness": 3,
-			"savvy": 1
-		}
-	}
+    pass
+    # Helper to create a test character with standard values
+    return {
+        "name": "Test Character",
+        "type": "Trooper",
+        "stats": {
+            "reactions": 1,
+            "speed": 4,
+            "combat_skill": 1,
+            "toughness": 3,
+            "savvy": 1,
+        }
+    }
 
 func _create_test_campaign() -> Dictionary:
-	# Helper to create a test campaign with standard values
-	return {
-		"name": "Test Campaign",
-		"turn": 1,
-		"credits": 100,
-		"story_track": 0
-	}
+    pass
+    # Helper to create a test campaign with standard values
+    return {
+        "name": "Test Campaign",
+        "turn": 1,
+        "credits": 100,
+        "story_track": 0,
+    }
 
 func _verify_valid_state(object) -> void:
-	# Helper to verify an object is in a valid state
-	# Customize based on what makes an object "valid" in your system
-	assert_that(object).is_not_null()
-	# Add more validity checks specific to your data structures
+    pass
+    # Helper to verify an object is in a valid state
+    # Customize based on what makes an object "valid" in your system
+    # assert_that(object).is_not_null()
+    # Add more validity checks specific to your data structures

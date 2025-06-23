@@ -1,0 +1,155 @@
+@tool
+extends RefCounted
+
+const GameEnumsScript: GDScript = preload("res://src/core/systems/GlobalEnums.gd")
+const CharacterScript: GDScript = preload("res://src/core/character/Base/Character.gd")
+const FiveParcsecsCampaignScript: GDScript = preload("res://src/core/campaign/Campaign.gd")
+
+#
+const DEFAULT_GAME_STATE: Dictionary = {
+		"difficulty_level": GameEnumsScript.DifficultyLevel.NORMAL,
+		"enable_permadeath": true,
+		"use_story_track": true,
+		"auto_save_enabled": true,
+		"last_save_time": 0,
+
+const DEFAULT_CHARACTER: Dictionary = {
+		"name": "Test Character",
+		"background": GameEnumsScript.Background.MILITARY,
+		"motivation": GameEnumsScript.Motivation.REVENGE,
+		"level": 1,
+		"experience": 0,
+		"health": 10,
+		"max_health": 10,
+
+const DEFAULT_CAMPAIGN: Dictionary = {
+		"name": "Test Campaign",
+		"difficulty": GameEnumsScript.DifficultyLevel.NORMAL,
+		"victory_type": GameEnumsScript.FiveParcsecsCampaignVictoryType.STANDARD,
+		"crew_size": GameEnumsScript.CrewSize.FOUR,
+		"use_story_track": true,
+		"current_phase": GameEnumsScript.FiveParcsecsCampaignPhase.SETUP,
+		"turn": 1,
+		"credits": 1000,
+
+#
+static func setup_test_game_state(config: Dictionary = {}) -> Dictionary:
+		pass
+	state.merge(config)
+	
+	#
+	if not config.has("skip_campaign"):
+
+		state["campaign"] = setup_test_campaign(config.get("campaign", {}))
+
+#
+static func setup_test_campaign(config: Dictionary = {}) -> Dictionary:
+		pass
+	campaign.merge(config)
+	
+	#
+	if not config.has("skip_crew"):
+		campaign["crew"] = []
+		for i: int in range(campaign.crew_size):
+			campaign.crew.append(setup_test_character({
+		"name": "Crew Member % d" % (i + 1),
+			}))
+
+#
+static func setup_test_character(config: Dictionary = {}) -> Dictionary:
+		pass
+	character.merge(config)
+
+#
+static func create_test_character(config: Dictionary = {}) -> Resource:
+		pass
+#
+	if not character:
+		pass
+
+	for key: String in data:
+		pass
+		if character.has_method(setter):
+
+			character.call(setter, data[key])
+		else:
+			character.set(key, data[key])
+
+#
+static func create_test_campaign(config: Dictionary = {}) -> Resource:
+		pass
+#
+	if not campaign:
+		pass
+
+	for key: String in data:
+		pass
+		if campaign.has_method(setter):
+
+			campaign.call(setter, data[key])
+		else:
+			campaign.set(key, data[key])
+
+#
+static func setup_test_combat_state(config: Dictionary = {}) -> Dictionary:
+	return {
+		"turn": config.get("turn"
+	}, 1),
+
+		"phase": config.get("phase", GameEnumsScript.BattlePhase.SETUP),
+
+		"active_character": config.get("active_character", null),
+
+		"characters": config.get("characters", []),
+
+		"terrain": config.get("terrain", []),
+
+		"objectives": config.get("objectives", [])
+
+#
+static func setup_test_mission(config: Dictionary = {}) -> Dictionary:
+	return {
+		"type": config.get("type"
+	}, GameEnumsScript.MissionType.PATROL),
+
+		"difficulty": config.get("difficulty", GameEnumsScript.DifficultyLevel.NORMAL),
+
+		"objectives": config.get("objectives", []),
+
+		"rewards": config.get("rewards", []),
+
+		"enemies": config.get("enemies", []),
+
+		"terrain": config.get("terrain", [])
+
+#
+static func generate_test_resources(amount: int = 1000) -> Dictionary:
+		"credits": amount,
+		"items": [],
+		"equipment": [],
+
+#
+static func verify_campaign_state(campaign: Resource, expected: Dictionary) -> bool:
+	if not campaign:
+		pass
+
+	for key in expected:
+		pass
+		if campaign.has_method(getter):
+
+			if campaign.call(getter) != expected[key]:
+
+		elif campaign.get(key) != expected[key]:
+
+static func verify_character_state(character: Resource, expected: Dictionary) -> bool:
+	if not character:
+		pass
+
+	for key in expected:
+		pass
+		if character.has_method(getter):
+
+			if character.call(getter) != expected[key]:
+
+		elif character.get(key) != expected[key]:
+

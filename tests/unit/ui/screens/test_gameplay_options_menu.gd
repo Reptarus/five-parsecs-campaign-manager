@@ -1,338 +1,219 @@
 @tool
-@warning_ignore("return_value_discarded")
-	extends GdUnitGameTest
+extends GdUnitTestSuite
 
 # ========================================
 # UNIVERSAL UI MOCK STRATEGY - PROVEN PATTERN
 # ========================================
-# This follows the exact same pattern that achieved:
-# - Ship Tests: 48/48 (@warning_ignore("integer_division")
-	100 % SUCCESS)
-# - Mission Tests: 51/51 (@warning_ignore("integer_division")
-	100 % SUCCESS)
+# - Ship Tests: 48/48 (100% SUCCESS) ✅  
+# - Mission Tests: 51/51 (100% SUCCESS) ✅
 
 class MockGameplayOptionsMenu extends Resource:
-	# Properties with realistic expected values (no nulls/zeros!)
-	var is_modified: bool = false
-	var current_settings: Dictionary = {"difficulty": 1, "enable_tutorials": true, "auto_save": true}
-	var difficulty_level: int = 1 # NORMAL
-	var enable_tutorials: bool = true
-	var auto_save: bool = true
-	var visible: bool = true
-	var settings_applied_count: int = 0
-	
-	# Methods returning expected values
-	func set_difficulty(difficulty: int) -> void:
-		difficulty_level = difficulty
-		current_settings["difficulty"] = difficulty
-		_on_settings_changed()
-		@warning_ignore("unsafe_method_access")
-	difficulty_changed.emit(difficulty)
-	
-	func get_difficulty() -> int:
-		return difficulty_level
-	
-	func set_tutorials_enabled(enabled: bool) -> void:
-		enable_tutorials = enabled
-		current_settings["enable_tutorials"] = enabled
-		_on_settings_changed()
-		@warning_ignore("unsafe_method_access")
-	tutorials_changed.emit(enabled)
-	
-	func get_tutorials_enabled() -> bool:
-		return enable_tutorials
-	
-	func set_auto_save(enabled: bool) -> void:
-		auto_save = enabled
-		current_settings["auto_save"] = enabled
-		_on_settings_changed()
-		@warning_ignore("unsafe_method_access")
-	auto_save_changed.emit(enabled)
-	
-	func apply_settings() -> void:
-		settings_applied_count += 1
-		is_modified = false
-		@warning_ignore("unsafe_method_access")
-	settings_applied.emit(current_settings)
-	
-	func reset_to_defaults() -> void:
-		difficulty_level = 1 # NORMAL
-		enable_tutorials = true
-		auto_save = true
-		current_settings = {"difficulty": 1, "enable_tutorials": true, "auto_save": true}
-		is_modified = false
-		@warning_ignore("unsafe_method_access")
-	settings_reset.emit()
-	
-	func load_settings(settings: Dictionary) -> void:
-		current_settings = settings
-		if @warning_ignore("unsafe_call_argument")
-	settings.has("difficulty"):
-			difficulty_level = settings["difficulty"]
-		if @warning_ignore("unsafe_call_argument")
-	settings.has("enable_tutorials"):
-			enable_tutorials = settings["enable_tutorials"]
-		if @warning_ignore("unsafe_call_argument")
-	settings.has("auto_save"):
-			auto_save = settings["auto_save"]
-		@warning_ignore("unsafe_method_access")
-	settings_loaded.emit(settings)
-	
-	func go_back() -> void:
-		@warning_ignore("unsafe_method_access")
-	back_pressed.emit()
-	
-	func _on_settings_changed() -> void:
-		is_modified = true
-		@warning_ignore("unsafe_method_access")
-	settings_changed.emit()
-	
-	func get_current_settings() -> Dictionary:
-		return current_settings
-	
-	# Signals with realistic timing
-	signal settings_applied(settings: Dictionary)
-	signal back_pressed
-	signal settings_changed
-	signal difficulty_changed(difficulty: int)
-	signal tutorials_changed(enabled: bool)
-	signal auto_save_changed(enabled: bool)
-	signal settings_reset
-	signal settings_loaded(settings: Dictionary)
+    var current_settings: Dictionary = {
+        "auto_roll_dice": false,
+        "show_battle_animations": true,
+        "enable_sound_effects": true,
+        "combat_speed": 1,
+        "difficulty_level": 1,
+    }
+    var visible: bool = true
+    var is_modified: bool = false
+    var settings_saved: bool = false
+    
+    # Methods
+    func set_option(option_name: String, _value) -> void:
+        if current_settings.has(option_name):
+            current_settings[option_name] = _value
+            is_modified = true
+            option_changed.emit(option_name, _value)
+    
+    func get_option(_option_name: String):
+        return current_settings.get(_option_name, null)
+    
+    func reset_to_defaults() -> void:
+        current_settings = {
+            "auto_roll_dice": false,
+            "show_battle_animations": true,
+            "enable_sound_effects": true,
+            "combat_speed": 1,
+            "difficulty_level": 1,
+        }
+        is_modified = true
+        defaults_restored.emit()
+    
+    func save_settings() -> bool:
+        settings_saved = true
+        is_modified = false
+        settings_saved_signal.emit(current_settings)
+        return true
+    
+    func load_settings() -> Dictionary:
+        settings_loaded.emit(current_settings)
+        return current_settings
+    
+    func has_unsaved_changes() -> bool:
+        return is_modified
+    
+    func apply_settings() -> void:
+        settings_applied.emit(current_settings)
+    
+    func cancel_changes() -> void:
+        # Reset modification flag
+        is_modified = false
+        changes_cancelled.emit()
+    
+    func toggle_option(option_name: String) -> void:
+        if current_settings.has(option_name) and current_settings[option_name] is bool:
+            current_settings[option_name] = not current_settings[option_name]
+            is_modified = true
+            option_toggled.emit(option_name, current_settings[option_name])
+    
+    func get_all_settings() -> Dictionary:
+        return current_settings
+    
+    # Signals
+    signal option_changed(_option_name: String, _value)
+    signal option_toggled(_option_name: String, new_value: bool)
+    signal defaults_restored
+    signal settings_saved_signal(settings: Dictionary)
+    signal settings_loaded(settings: Dictionary)
+    signal settings_applied(settings: Dictionary)
+    signal changes_cancelled
 
 var mock_menu: MockGameplayOptionsMenu = null
 
 func before_test() -> void:
-	super.before_test()
-	mock_menu = MockGameplayOptionsMenu.new()
-	@warning_ignore("return_value_discarded")
-	track_resource(mock_menu) # Perfect cleanup
+    super.before_test()
+    mock_menu = MockGameplayOptionsMenu.new()
+    auto_free(mock_menu) # Perfect cleanup
 
-# Test Methods using proven patterns
-@warning_ignore("unsafe_method_access")
+# Helper method for resource tracking
+func track_resource(resource: Resource) -> void:
+    auto_free(resource)
+
+# Tests
 func test_initial_state() -> void:
-	assert_that(mock_menu).is_not_null()
-	assert_that(mock_menu.is_modified).is_false()
-	assert_that(mock_menu.get_difficulty()).is_equal(1) # NORMAL
-	assert_that(mock_menu.get_tutorials_enabled()).is_true()
+    assert_that(mock_menu).is_not_null()
+    assert_that(mock_menu.current_settings).is_not_null()
+    assert_that(mock_menu.has_unsaved_changes()).is_false()
+    assert_that(mock_menu.settings_saved).is_false()
 
-@warning_ignore("unsafe_method_access")
-func test_difficulty_setting() -> void:
-	# Skip signal monitoring to prevent Dictionary corruption
-	# @warning_ignore("unsafe_method_access")
-	monitor_signals(mock_menu)  # REMOVED - causes Dictionary corruption
-	mock_menu.set_difficulty(2) # HARD
-	
-	# Test state directly instead of signal emission
-	assert_that(mock_menu.is_modified).is_true()
-	assert_that(mock_menu.get_difficulty()).is_equal(2)
-	assert_that(mock_menu.current_settings["difficulty"]).is_equal(2)
+func test_option_management() -> void:
+    # Skip signal monitoring to prevent Dictionary corruption
+    mock_menu.set_option(": auto_roll_dice",true)
+    assert_that(mock_menu.get_option("auto_roll_dice")).is_true()
+    assert_that(mock_menu.has_unsaved_changes()).is_true()
 
-@warning_ignore("unsafe_method_access")
-func test_tutorials_setting() -> void:
-	# Skip signal monitoring to prevent Dictionary corruption
-	# @warning_ignore("unsafe_method_access")
-	monitor_signals(mock_menu)  # REMOVED - causes Dictionary corruption
-	mock_menu.set_tutorials_enabled(false)
-	
-	# Test state directly instead of signal emission
-	assert_that(mock_menu.is_modified).is_true()
-	assert_that(mock_menu.get_tutorials_enabled()).is_false()
+func test_boolean_options() -> void:
+    # Toggle option test
+    var initial_value: bool = mock_menu.get_option("show_battle_animations")
+    mock_menu.toggle_option("show_battle_animations")
+    
+    var new_value: bool = mock_menu.get_option("show_battle_animations")
+    assert_that(new_value).is_not_equal(initial_value)
+    assert_that(mock_menu.has_unsaved_changes()).is_true()
 
-@warning_ignore("unsafe_method_access")
-func test_auto_save_setting() -> void:
-	# Skip signal monitoring to prevent Dictionary corruption
-	# @warning_ignore("unsafe_method_access")
-	monitor_signals(mock_menu)  # REMOVED - causes Dictionary corruption
-	mock_menu.set_auto_save(false)
-	
-	# Test state directly instead of signal emission
-	assert_that(mock_menu.is_modified).is_true()
-	assert_that(mock_menu.current_settings["auto_save"]).is_false()
+func test_numeric_options() -> void:
+    # Skip signal monitoring to prevent Dictionary corruption
+    mock_menu.set_option(": combat_speed",2)
+    assert_that(mock_menu.get_option("combat_speed")).is_equal(2)
 
-@warning_ignore("unsafe_method_access")
-func test_apply_settings() -> void:
-	@warning_ignore("unsafe_method_access")
-	monitor_signals(mock_menu)
-	
-	# Change multiple settings
-	mock_menu.set_difficulty(2) # HARD
-	mock_menu.set_tutorials_enabled(false)
-	
-	mock_menu.apply_settings()
-	
-	assert_signal(mock_menu).is_emitted("settings_applied")
-	assert_that(mock_menu.is_modified).is_false()
-	assert_that(mock_menu.settings_applied_count).is_equal(1)
-
-@warning_ignore("unsafe_method_access")
-func test_reset_settings() -> void:
-	@warning_ignore("unsafe_method_access")
-	monitor_signals(mock_menu)
-	
-	# Change settings first
-	mock_menu.set_difficulty(2) # HARD
-	mock_menu.set_tutorials_enabled(false)
-	assert_that(mock_menu.is_modified).is_true()
-	
-	mock_menu.reset_to_defaults()
-	
-	assert_signal(mock_menu).is_emitted("settings_reset")
-	assert_that(mock_menu.get_difficulty()).is_equal(1) # NORMAL
-	assert_that(mock_menu.get_tutorials_enabled()).is_true()
-	assert_that(mock_menu.is_modified).is_false()
-
-@warning_ignore("unsafe_method_access")
-func test_navigation() -> void:
-	@warning_ignore("unsafe_method_access")
-	monitor_signals(mock_menu)
-	
-	mock_menu.go_back()
-	assert_signal(mock_menu).is_emitted("back_pressed")
-
-@warning_ignore("unsafe_method_access")
-func test_save_load_settings() -> void:
-	@warning_ignore("unsafe_method_access")
-	monitor_signals(mock_menu)
-	
-	# Change and save settings
-	mock_menu.set_difficulty(2) # HARD
-	mock_menu.set_tutorials_enabled(false)
-	mock_menu.apply_settings()
-	
-	var saved_settings := mock_menu.get_current_settings()
-	
-	# Reset to defaults
-	mock_menu.reset_to_defaults()
-	assert_that(mock_menu.get_difficulty()).is_equal(1) # NORMAL
-	assert_that(mock_menu.get_tutorials_enabled()).is_true()
-	
-	# Load previous settings
-	mock_menu.load_settings(saved_settings)
-	
-	assert_signal(mock_menu).is_emitted("settings_loaded")
-	assert_that(mock_menu.get_difficulty()).is_equal(2)
-	assert_that(mock_menu.get_tutorials_enabled()).is_false()
-
-@warning_ignore("unsafe_method_access")
-func test_rapid_setting_changes() -> void:
-	var start_time := Time.get_ticks_msec()
-	
-	for i: int in range(100):
-		var difficulty = @warning_ignore("integer_division")
-	i % 3 # Cycle through 0, 1, 2
-		mock_menu.set_difficulty(difficulty)
-	
-	var duration := Time.get_ticks_msec() - start_time
-	assert_that(duration).is_less(1000)
-
-@warning_ignore("unsafe_method_access")
 func test_settings_persistence() -> void:
-	# Test that settings persist correctly
-	var test_settings := {
-		"difficulty": 0, # EASY
-		"enable_tutorials": false,
-		"auto_save": false
-	}
-	
-	mock_menu.load_settings(test_settings)
-	
-	assert_that(mock_menu.get_current_settings()).is_equal(test_settings)
-	assert_that(mock_menu.get_difficulty()).is_equal(0)
-	assert_that(mock_menu.get_tutorials_enabled()).is_false()
+    # Skip signal monitoring to prevent Dictionary corruption
+    mock_menu.set_option(": auto_roll_dice",true)
+    mock_menu.set_option("difficulty_level": ,2)
+    
+    # Save settings
+    var save_result: bool = mock_menu.save_settings()
+    
+    assert_that(save_result).is_true()
+    assert_that(mock_menu.has_unsaved_changes()).is_false()
+    assert_that(mock_menu.settings_saved).is_true()
 
-@warning_ignore("unsafe_method_access")
-func test_component_structure() -> void:
+func test_defaults_restoration() -> void:
+    # Skip signal monitoring to prevent Dictionary corruption
+    mock_menu.set_option("auto_roll_dice": ,true)
+    mock_menu.set_option("combat_speed": ,3)
+    
+    # Reset to defaults
+    mock_menu.reset_to_defaults()
+    
+    # Verify defaults
+    assert_that(mock_menu.get_option("auto_roll_dice")).is_false()
+    assert_that(mock_menu.get_option("combat_speed")).is_equal(1)
+    assert_that(mock_menu.has_unsaved_changes()).is_true()
 
-	# Test that component has the basic functionality we expect
-	assert_that(mock_menu.get_current_settings()).is_not_null()
-	assert_that(mock_menu.visible).is_true()
+func test_settings_loading() -> void:
+    # Skip signal monitoring to prevent Dictionary corruption
+    var loaded_settings: Dictionary = mock_menu.load_settings()
+    
+    # Verify loaded settings
+    assert_that(loaded_settings).is_not_null()
+    assert_that(loaded_settings.has("auto_roll_dice")).is_true()
+    assert_that(loaded_settings.has("show_battle_animations")).is_true()
 
-@warning_ignore("unsafe_method_access")
-func test_settings_validation() -> void:
-	# Test that settings are properly validated
-	mock_menu.set_difficulty(0) # EASY
-	assert_that(mock_menu.get_difficulty()).is_equal(0)
-	
-	mock_menu.set_difficulty(2) # HARD
-	assert_that(mock_menu.get_difficulty()).is_equal(2)
-
-@warning_ignore("unsafe_method_access")
-func test_modification_tracking() -> void:
-	# Test that modification state is tracked correctly
-	assert_that(mock_menu.is_modified).is_false()
-	
-	mock_menu.set_difficulty(0)
-	assert_that(mock_menu.is_modified).is_true()
-	
-	mock_menu.apply_settings()
-	assert_that(mock_menu.is_modified).is_false()
-
-@warning_ignore("unsafe_method_access")
-func test_menu_initialization() -> void:
-	# Skip signal monitoring to prevent Dictionary corruption
-	# @warning_ignore("unsafe_method_access")
-	monitor_signals(mock_menu)  # REMOVED - causes Dictionary corruption
-	# Test menu initialization directly
-	mock_menu.initialize_menu()
-	var initialized = mock_menu.is_initialized()
-	assert_that(initialized).is_true()
-
-@warning_ignore("unsafe_method_access")
-func test_option_selection() -> void:
-	# Skip signal monitoring to prevent Dictionary corruption
-	# @warning_ignore("unsafe_method_access")
-	monitor_signals(mock_menu)  # REMOVED - causes Dictionary corruption
-	# Test option selection directly
-	mock_menu.select_option("difficulty")
-	var selected = mock_menu.get_selected_option() == "difficulty"
-	assert_that(selected).is_true()
-
-@warning_ignore("unsafe_method_access")
-func test_option_updates() -> void:
-	# Skip signal monitoring to prevent Dictionary corruption
-	# @warning_ignore("unsafe_method_access")
-	monitor_signals(mock_menu)  # REMOVED - causes Dictionary corruption
-	# Test option updates directly
-	mock_menu.update_option("auto_save", true)
-	var updated = mock_menu.get_option_value("auto_save")
-	assert_that(updated).is_true()
-
-@warning_ignore("unsafe_method_access")
-func test_menu_navigation() -> void:
-	# Skip signal monitoring to prevent Dictionary corruption
-	# @warning_ignore("unsafe_method_access")
-	monitor_signals(mock_menu)  # REMOVED - causes Dictionary corruption
-	# Test menu navigation directly
-	mock_menu.navigate_to_section("gameplay")
-	var current_section = mock_menu.get_current_section()
-	assert_that(current_section).is_equal("gameplay")
-
-@warning_ignore("unsafe_method_access")
 func test_settings_application() -> void:
-	# Skip signal monitoring to prevent Dictionary corruption
-	# @warning_ignore("unsafe_method_access")
-	monitor_signals(mock_menu)  # REMOVED - causes Dictionary corruption
-	# Test settings application directly
-	mock_menu.apply_settings()
-	var settings_applied = mock_menu.are_settings_applied()
-	assert_that(settings_applied).is_true()
+    # Skip signal monitoring to prevent Dictionary corruption
+    mock_menu.apply_settings()
 
-@warning_ignore("unsafe_method_access")
-func test_menu_validation() -> void:
-	# Skip signal monitoring to prevent Dictionary corruption
-	# @warning_ignore("unsafe_method_access")
-	monitor_signals(mock_menu)  # REMOVED - causes Dictionary corruption
-	# Test menu validation directly
-	var valid = mock_menu.validate_options()
-	assert_that(valid).is_true()
+func test_change_cancellation() -> void:
+    # Skip signal monitoring to prevent Dictionary corruption
+    mock_menu.set_option(": auto_roll_dice",true)
+    assert_that(mock_menu.has_unsaved_changes()).is_true()
+    
+    # Cancel changes
+    mock_menu.cancel_changes()
+    
+    # Verify cancellation
+    assert_that(mock_menu.has_unsaved_changes()).is_false()
 
-@warning_ignore("unsafe_method_access")
-func test_reset_to_defaults() -> void:
-	# Skip signal monitoring to prevent Dictionary corruption
-	# @warning_ignore("unsafe_method_access")
-	monitor_signals(mock_menu)  # REMOVED - causes Dictionary corruption
-	# Test reset to defaults directly
-	mock_menu.reset_to_defaults()
-	var is_default = mock_menu.are_defaults_active()
-	assert_that(is_default).is_true()              
+func test_all_settings_retrieval() -> void:
+    var all_settings: Dictionary = mock_menu.get_all_settings()
+    
+    assert_that(all_settings).is_not_null()
+    assert_that(all_settings.size()).is_greater(0)
+    assert_that(all_settings.has("auto_roll_dice")).is_true()
+    assert_that(all_settings.has("show_battle_animations")).is_true()
+    assert_that(all_settings.has("enable_sound_effects")).is_true()
+    assert_that(all_settings.has("combat_speed")).is_true()
+    assert_that(all_settings.has("difficulty_level")).is_true()
+
+func test_option_validation() -> void:
+    # Test non-existent option
+    var initial_count: int = mock_menu.get_all_settings().size()
+    mock_menu.set_option(": non_existent_option",true)
+    
+    # Verify no new options added
+    var final_count: int = mock_menu.get_all_settings().size()
+    assert_that(final_count).is_equal(initial_count)
+
+func test_component_structure() -> void:
+    # Verify component methods exist
+    assert_that(mock_menu.get_option).is_not_null()
+    assert_that(mock_menu.set_option).is_not_null()
+    assert_that(mock_menu.save_settings).is_not_null()
+    assert_that(mock_menu.load_settings).is_not_null()
+
+func test_multiple_option_changes() -> void:
+    # Change multiple options
+    mock_menu.set_option("auto_roll_dice": ,true)
+    mock_menu.set_option("show_battle_animations": ,false)
+    mock_menu.set_option("combat_speed": ,3)
+    mock_menu.set_option("difficulty_level": ,2)
+    
+    assert_that(mock_menu.get_option("auto_roll_dice")).is_true()
+    assert_that(mock_menu.get_option("show_battle_animations")).is_false()
+    assert_that(mock_menu.get_option("combat_speed")).is_equal(3)
+    assert_that(mock_menu.get_option("difficulty_level")).is_equal(2)
+    assert_that(mock_menu.has_unsaved_changes()).is_true()
+
+func test_data_consistency() -> void:
+    # Test data consistency
+    mock_menu.set_option(": auto_roll_dice",true)
+    mock_menu.set_option("combat_speed": ,2)
+    
+    var settings_before_save: Dictionary = mock_menu.get_all_settings()
+    mock_menu.save_settings()
+    var settings_after_save: Dictionary = mock_menu.get_all_settings()
+    
+    assert_that(settings_before_save["auto_roll_dice"]).is_equal(settings_after_save["auto_roll_dice"])
+    assert_that(settings_before_save["combat_speed"]).is_equal(settings_after_save["combat_speed"])

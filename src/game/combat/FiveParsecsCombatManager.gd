@@ -1,3 +1,5 @@
+# Universal Connection Validation Applied
+# Based on proven patterns: Universal Mock Strategy + 7-Stage Methodology
 @tool
 extends BaseCombatManager
 class_name FPCM_CombatManager
@@ -7,12 +9,19 @@ class_name FPCM_CombatManager
 ## Manages combat state and coordinates combat-related systems
 ## specific to the Five Parsecs From Home ruleset.
 
-## Required dependencies
+# Safe imports
+const UniversalNodeAccess = preload("res://src/utils/UniversalNodeAccess.gd")
+const UniversalResourceLoader = preload("res://src/utils/UniversalResourceLoader.gd") 
+const UniversalSignalManager = preload("res://src/utils/UniversalSignalManager.gd")
+const UniversalDataAccess = preload("res://src/utils/UniversalDataAccess.gd")
+const UniversalSceneManager = preload("res://src/utils/UniversalSceneManager.gd")
+
+# Safe dependency loading
 var GameEnums = null
 var GlobalEnums = null
-const Character = preload("res://src/core/character/Base/Character.gd")
-const FiveParsecsBattleRules = preload("res://src/game/combat/FiveParsecsBattleRules.gd")
-const TerrainTypes = preload("res://src/core/terrain/TerrainTypes.gd")
+var Character = null
+var FiveParsecsBattleRules = null
+var TerrainTypes = null
 
 # Five Parsecs specific constants
 const BASE_ACTION_POINTS: int = 2
@@ -56,6 +65,11 @@ func create_combat_state(character: Character) -> BaseCombatState:
 
 ## Called when the node enters the scene tree
 func _ready() -> void:
+	# Load dependencies safely at runtime
+	Character = UniversalResourceLoader.load_script_safe("res://src/core/character/Base/Character.gd", "FiveParsecsCombatManager Character")
+	FiveParsecsBattleRules = UniversalResourceLoader.load_script_safe("res://src/game/combat/FiveParsecsBattleRules.gd", "FiveParsecsCombatManager BattleRules")
+	TerrainTypes = UniversalResourceLoader.load_script_safe("res://src/core/terrain/TerrainTypes.gd", "FiveParsecsCombatManager TerrainTypes")
+	
 	super._ready()
 	
 	# Try to load enums

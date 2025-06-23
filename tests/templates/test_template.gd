@@ -1,6 +1,5 @@
 @tool
-@warning_ignore("return_value_discarded")
-	extends GdUnitGameTest
+extends GdUnitGameTest
 
 ## Test Template for Five Parsecs Campaign Manager
 ##
@@ -13,104 +12,96 @@
 # Type-safe instance variables
 var _instance = null
 
-# Lifecycle methods
+# Setup and teardown
 func before_test() -> void:
-	@warning_ignore("unsafe_method_access")
-	await super.before_test()
-	
-	# Create the instance being tested
-	# Uncomment and replace with actual instantiation
-	# _instance = TestedClass.new()
-	# @warning_ignore("return_value_discarded")
-	add_child(_instance)
-	# @warning_ignore("return_value_discarded")
-	track_node(_instance)
-	
-	@warning_ignore("unsafe_method_access")
-	await stabilize_engine()
+    super.before_test()
+    await get_tree().process_frame
+    
+    # Create the instance being tested
+    # Uncomment and replace with actual instantiation
+    # _instance = TestedClass.new()
+    # add_child(_instance)
+    # track_node(_instance)
 
 func after_test() -> void:
-	_instance = null
-	@warning_ignore("unsafe_method_access")
-	await super.after_test()
+    _instance = null
+    super.after_test()
 
 # BASIC FUNCTIONALITY TESTS
-# ------------------------------------------------------------------------
-
-@warning_ignore("unsafe_method_access")
+# Basic initialization test
 func test_initialization() -> void:
-	# Given
-	assert_that(_instance).is_not_null()
-	
-	# When
-	# No specific action for this test
-	
-	# Then
-	# Add assertions about initial state
-	# Example: assert_that(_instance.some_property).is_equal(expected_value)
+    pass
+    # Given
+    # assert_that(_instance).is_not_null()
+    
+    # When
+    # No specific action for this test
+    
+    # Then
+    # Add assertions about initial state
+    # Add more specific tests here
 
-@warning_ignore("unsafe_method_access")
 func test_state_change() -> void:
-	# Given
-	# Initial setup
-	# When
-	# Perform state change
-	# Then
-	# Verify state change
-	pass
+    pass
+    # Given
+    # Initial setup
+    # When
+    # Perform state change
+    # Then
+    # Add assertions about state change
+    # Add more specific tests here
 
 # ERROR HANDLING TESTS
-# ------------------------------------------------------------------------
-@warning_ignore("unsafe_method_access")
+# Test invalid operations
 func test_invalid_operation() -> void:
-	# Given
-	# Setup for invalid operation
-	# When
-	# Perform invalid operation
-	# Then
-	# Verify error handling
-	pass
+    pass
+    # Given
+    # Setup for invalid operation
+    # When
+    # Perform invalid operation
+    # Then
+    # Add assertions about error handling
+    # Add more specific tests here
 
 # RESOURCE MANAGEMENT TESTS
-# ------------------------------------------------------------------------
-@warning_ignore("unsafe_method_access")
+# Test resource loading and management
 func test_resource_management() -> void:
-	# Given
-	var resource = load("res://test/data/test_resource.tres")
-	
-	# When
-	# _instance.set_resource(resource)
-	
-	# Then
-	# var current_resource = _instance.get_resource()
-	# assert_that(current_resource).is_equal(resource)
+    pass
+    # Given
+    # var resource = load("res://test/data/test_resource.tres")
+    
+    # When
+    # _instance.set_resource(resource)
+    
+    # Then
+    # var current_resource = _instance.get_resource()
+    # assert_that(current_resource).is_equal(resource)
 
 # PERFORMANCE TESTS
-# ------------------------------------------------------------------------
-
-@warning_ignore("unsafe_method_access")
+# Test operation performance
 func test_operation_performance() -> void:
-	# Given
-	var start_time := Time.get_ticks_msec()
-	
-	# When
-	# _instance.perform_operation()
-	
-	# Then
-	var end_time := Time.get_ticks_msec()
-	# Verify metrics
-	var elapsed := end_time - start_time
-	assert_that(elapsed).is_less(1000)
+    pass
+    # Given
+    # var start_time := Time.get_ticks_msec()
+    
+    # When
+    # _instance.perform_operation()
+    
+    # Then
+    # var end_time := Time.get_ticks_msec()
+    # Verify metrics
+    # var elapsed := end_time - start_time
+    # assert_that(elapsed).is_less(1000) # Should complete in less than 1 second
 
 # HELPER METHODS
-# ------------------------------------------------------------------------
-
+# Helper to create test data
 func create_test_data() -> Dictionary:
-	return {
-		"test_property": "test_value",
-		"test_number": 42
-	}
+    return {
+        "test_property": "test_value",
+        "test_number": 42,
+    }
 
 func verify_state(expected_state: Dictionary) -> void:
-	# Add state verification logic here
-	pass
+    pass
+    # Verify the current state matches expected state
+    # Add specific verification logic here

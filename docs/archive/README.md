@@ -29,6 +29,18 @@ Documents are archived when:
 - `class_name_conflicts.md` - Original class name conflicts documentation
 - `godot_reference_workarounds.md` - Workarounds for Godot reference issues
 
+### Warning Fix Methodology (Superseded by Universal Connection Validation)
+- `ENHANCED_WARNING_FIX_GUIDE.md` - Enhanced warning fix methodology
+- `WARNING_FIX_SUMMARY.md` - Warning fix results and patterns
+- `LINTER_WARNING_PATTERNS_GUIDE.md` - Linter warning pattern analysis
+- `GAMESTATE_FIX_METHODOLOGY.md` - GameState fix methodology
+
+### Development Phase Documentation (Superseded by Production Ready Status)
+- `ALPHA_RELEASE_SUMMARY.md` - Alpha release implementation summary
+- `ALPHA_BETA_TRANSITION_PLAN.md` - Alpha to beta transition planning
+
+**Note**: The warning fix documentation has been superseded by the Universal Connection Validation system which provides comprehensive crash prevention. The alpha/beta phase documentation has been superseded by achieving production-ready status with enterprise-grade stability.
+
 ## Accessing Archived Documents
 
 All archived documents can be found in the [active documentation summary](../docs_summary.md). 

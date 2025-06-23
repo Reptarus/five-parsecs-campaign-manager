@@ -1,9 +1,18 @@
+# Universal Connection Validation Applied
+# Based on proven patterns: Universal Mock Strategy + 7-Stage Methodology
 @tool
 extends Container
 class_name FPCM_BaseContainer
 
 ## Base container class for UI layout management
 ## Provides horizontal and vertical layout capabilities with spacing
+
+# Safe imports
+const UniversalNodeAccess = preload("res://src/utils/UniversalNodeAccess.gd")
+const UniversalResourceLoader = preload("res://src/utils/UniversalResourceLoader.gd") 
+const UniversalSignalManager = preload("res://src/utils/UniversalSignalManager.gd")
+const UniversalDataAccess = preload("res://src/utils/UniversalDataAccess.gd")
+const UniversalSceneManager = preload("res://src/utils/UniversalSceneManager.gd")
 
 enum ContainerOrientation {
 	HORIZONTAL,
@@ -14,7 +23,21 @@ enum ContainerOrientation {
 @export var spacing: float = 10.0
 
 func _ready() -> void:
-	sort_children.connect(_on_sort_children)  # warning: return value discarded (intentional)
+	_validate_universal_connections()
+	_setup_signal_connections()
+
+func _validate_universal_connections() -> void:
+	# Validate UI component connections
+	_validate_base_container_connections()
+
+func _validate_base_container_connections() -> void:
+	# BaseContainer is self-contained, but validate basic functionality
+	if not has_method("get_children"):
+		push_error("UI SYSTEM FAILURE: BaseContainer missing get_children method")
+
+func _setup_signal_connections() -> void:
+	# Connect sort_children signal safely
+	UniversalSignalManager.connect_signal_safe(self, "sort_children", _on_sort_children, "BaseContainer sort_children")
 
 func _on_sort_children() -> void:
 	var offset := Vector2.ZERO

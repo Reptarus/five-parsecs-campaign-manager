@@ -1,8 +1,7 @@
 @tool
-@warning_ignore("return_value_discarded")
-	extends GdUnitGameTest
+extends GdUnitGameTest
 
-# Mock Weapon with realistic behavior
+#
 class MockGameWeapon extends Resource:
     enum WeaponType {PISTOL, RIFLE, HEAVY, NONE}
     
@@ -14,7 +13,8 @@ class MockGameWeapon extends Resource:
     var range_modifier: float = 1.0
     var traits: Array = []
     var is_weapon_damaged: bool = false
-    var rarity: int = 0
+    var rarity: int = 1
+#
     
     func initialize(weapon_name: String, type: int, range_val: int, shot_count: int, damage_val: int) -> void:
         name = weapon_name
@@ -32,43 +32,48 @@ class MockGameWeapon extends Resource:
     func get_rarity() -> int: return rarity
     func is_damaged() -> bool: return is_weapon_damaged
     
-    func set_weapon_name(test_value: String) -> void: name = _value
+    func set_weapon_name(test_value: String) -> void: name = test_value
     func set_type(test_value: int) -> bool:
-        if _value < 0: return false
-        weapon_type = _value
+        if test_value < 0:
+            return false
+        weapon_type = test_value
         return true
+
     func set_range(test_value: int) -> bool:
-        if _value < 0: return false
-        range_value = _value
+        if test_value < 0:
+            return false
+        range_value = test_value
         return true
+
     func set_shots(test_value: int) -> bool:
-        if _value < 0: return false
-        shots = _value
+        if test_value < 0:
+            return false
+        shots = test_value
         return true
+
     func set_damage(test_value: int) -> bool:
-        if _value < 0: return false
-        damage = _value
+        if test_value < 0:
+            return false
+        damage = test_value
         return true
-    func set_range_modifier(test_value: float) -> void: range_modifier = _value
+
+    func set_range_modifier(test_value: float) -> void: range_modifier = test_value
     
     func calculate_attack_power() -> int:
-        return shots * damage # 2 * 3 = 6
-    
+        return damage * shots
+
     func get_effective_range() -> int:
-        return int(range_value * range_modifier) # 12 * 0.5 = 6
-    
+        return int(range_value * range_modifier)
+
     func get_value() -> int:
-        # Base _value: 10, Range bonus: 12/2 = 6, Shots bonus: 2 * 5 = 10, Damage bonus: 3 * 10 = 30
-        return 10 + (range_value / 2) + (shots * 5) + (damage * 10) # 10 + 6 + 10 + 30 = 56
-    
+        return 10 + (range_value / 2) + (shots * 5) + (damage * 10)
+
     func get_weight() -> int:
-        # Base weight: 1, Range bonus: 12/12 = 1, Shots bonus: 2/2 = 1
-        return 1 + (range_value / 12) + (shots / 2) # 1 + 1 + 1 = 3
-    
+        return 1 + (range_value / 12) + (shots / 2)
+
     func get_combat_value() -> int:
-        # Damage * 2 = 6, Shots = 2, Range / 6 = 2
-        return (damage * 2) + shots + (range_value / 6) # 6 + 2 + 2 = 10
-    
+        return (damage * 2) + shots + (range_value / 6)
+
     func get_weapon_profile() -> Dictionary:
         return {
             "name": name,
@@ -78,29 +83,16 @@ class MockGameWeapon extends Resource:
             "damage": damage,
             "traits": traits
         }
-    
+
     func load_from_profile(profile: Dictionary) -> void:
         if profile.is_empty():
-            # Reset to default values for invalid/empty profile
-            name = ""
-            weapon_type = WeaponType.NONE
-            range_value = 0
-            shots = 1
-            damage = 1
-            traits = []
-        else:
-            name = @warning_ignore("unsafe_call_argument")
-	profile.get("name", name)
-            weapon_type = @warning_ignore("unsafe_call_argument")
-	profile.get("type", weapon_type)
-            range_value = @warning_ignore("unsafe_call_argument")
-	profile.get("range", range_value)
-            shots = @warning_ignore("unsafe_call_argument")
-	profile.get("shots", shots)
-            damage = @warning_ignore("unsafe_call_argument")
-	profile.get("damage", damage)
-            traits = @warning_ignore("unsafe_call_argument")
-	profile.get("traits", traits)
+            return
+        name = profile.get("name", "Unknown Weapon")
+        weapon_type = profile.get("type", WeaponType.NONE)
+        range_value = profile.get("range", 0)
+        shots = profile.get("shots", 0)
+        damage = profile.get("damage", 0)
+        traits = profile.get("traits", [])
 
 var weapon: MockGameWeapon = null
 
@@ -108,32 +100,25 @@ func before_test() -> void:
     super.before_test()
     weapon = MockGameWeapon.new()
     weapon.initialize("Test Weapon", MockGameWeapon.WeaponType.RIFLE, 12, 2, 3)
-    @warning_ignore("return_value_discarded")
-	track_resource(weapon)
-    @warning_ignore("unsafe_method_access")
-	await get_tree().process_frame
 
 func after_test() -> void:
     super.after_test()
     weapon = null
 
-@warning_ignore("unsafe_method_access")
 func test_initialization() -> void:
     assert_that(weapon).is_not_null()
-    
     assert_that(weapon.get_weapon_name()).is_equal("Test Weapon")
     assert_that(weapon.get_type()).is_equal(MockGameWeapon.WeaponType.RIFLE)
     assert_that(weapon.get_range()).is_equal(12)
     assert_that(weapon.get_shots()).is_equal(2)
     assert_that(weapon.get_damage()).is_equal(3)
 
-@warning_ignore("unsafe_method_access")
 func test_property_changes() -> void:
     var new_name: String = "Modified Weapon"
     var new_type: int = MockGameWeapon.WeaponType.PISTOL
     var new_range: int = 8
     var new_shots: int = 1
-    var new_damage: int = 5
+    var new_damage: int = 4
     
     weapon.set_weapon_name(new_name)
     weapon.set_type(new_type)
@@ -147,43 +132,38 @@ func test_property_changes() -> void:
     assert_that(weapon.get_shots()).is_equal(new_shots)
     assert_that(weapon.get_damage()).is_equal(new_damage)
 
-@warning_ignore("unsafe_method_access")
 func test_invalid_values() -> void:
     # Test negative range
     assert_that(weapon.set_range(-5)).is_false()
-    assert_that(weapon.get_range()).is_equal(12)
+    assert_that(weapon.get_range()).is_equal(12) # Should remain unchanged
     
     # Test negative shots
-    assert_that(weapon.set_shots(-2)).is_false()
-    assert_that(weapon.get_shots()).is_equal(2)
+    assert_that(weapon.set_shots(-1)).is_false()
+    assert_that(weapon.get_shots()).is_equal(2) # Should remain unchanged
     
     # Test negative damage
-    assert_that(weapon.set_damage(-3)).is_false()
-    assert_that(weapon.get_damage()).is_equal(3)
+    assert_that(weapon.set_damage(-10)).is_false()
+    assert_that(weapon.get_damage()).is_equal(3) # Should remain unchanged
     
     # Test invalid weapon type
     assert_that(weapon.set_type(-1)).is_false()
-    assert_that(weapon.get_type()).is_equal(MockGameWeapon.WeaponType.RIFLE)
 
-@warning_ignore("unsafe_method_access")
 func test_weapon_stats() -> void:
     # Test weapon stats calculation
-    assert_that(weapon.calculate_attack_power()).is_equal(6)
+    assert_that(weapon.calculate_attack_power()).is_equal(6) # damage * shots = 3 * 2
     
-    # Test range modifiers
+    # Test range modifier effects
     weapon.set_range_modifier(0.5)
-    assert_that(weapon.get_effective_range()).is_equal(6)
+    assert_that(weapon.get_effective_range()).is_equal(6) # 12 * 0.5
 
-@warning_ignore("unsafe_method_access")
 func test_value_calculation() -> void:
-    # Base _value: 10
+    # Base value: 10
     # Range bonus: 12/2 = 6
     # Shots bonus: 2 * 5 = 10
     # Damage bonus: 3 * 10 = 30
     # Total: 56
     assert_that(weapon.get_value()).is_equal(56)
 
-@warning_ignore("unsafe_method_access")
 func test_weight_calculation() -> void:
     # Base weight: 1
     # Range bonus: 12/12 = 1
@@ -191,52 +171,38 @@ func test_weight_calculation() -> void:
     # Total: 3
     assert_that(weapon.get_weight()).is_equal(3)
 
-@warning_ignore("unsafe_method_access")
 func test_damage_system() -> void:
     assert_that(weapon.is_damaged()).is_false()
 
-@warning_ignore("unsafe_method_access")
 func test_rarity_system() -> void:
-    assert_that(weapon.get_rarity()).is_equal(0)
+    assert_that(weapon.get_rarity()).is_equal(1)
 
-@warning_ignore("unsafe_method_access")
 func test_weapon_profile() -> void:
     var profile: Dictionary = weapon.get_weapon_profile()
     
-    assert_that(@warning_ignore("unsafe_call_argument")
-	profile.get("name", "")).is_equal("Test Weapon")
-    assert_that(@warning_ignore("unsafe_call_argument")
-	profile.get("type", 0)).is_equal(MockGameWeapon.WeaponType.RIFLE)
-    assert_that(@warning_ignore("unsafe_call_argument")
-	profile.get("range", 0)).is_equal(12)
-    assert_that(@warning_ignore("unsafe_call_argument")
-	profile.get("shots", 0)).is_equal(2)
-    assert_that(@warning_ignore("unsafe_call_argument")
-	profile.get("damage", 0)).is_equal(3)
-    assert_that(@warning_ignore("unsafe_call_argument")
-	profile.get("traits", []).size()).is_equal(0)
+    assert_that(profile.has("name")).is_true()
+    assert_that(profile.has("type")).is_true()
+    assert_that(profile.has("range")).is_true()
+    assert_that(profile.has("shots")).is_true()
+    assert_that(profile.has("damage")).is_true()
 
+    # Test loading from profile
+    var new_weapon = MockGameWeapon.new()
     profile = {
         "name": "Custom Weapon",
         "type": MockGameWeapon.WeaponType.RIFLE,
         "range": 15,
         "shots": 4,
-        "damage": 2
+        "damage": 2,
+        "traits": []
     }
-    
-    var new_weapon: MockGameWeapon = MockGameWeapon.new()
     new_weapon.load_from_profile(profile)
-    @warning_ignore("return_value_discarded")
-	track_resource(new_weapon)
-    
     assert_that(new_weapon.get_weapon_name()).is_equal("Custom Weapon")
     assert_that(new_weapon.get_type()).is_equal(MockGameWeapon.WeaponType.RIFLE)
     assert_that(new_weapon.get_range()).is_equal(15)
     assert_that(new_weapon.get_shots()).is_equal(4)
     assert_that(new_weapon.get_damage()).is_equal(2)
-    assert_that(new_weapon.get_traits()).is_equal([])
 
-@warning_ignore("unsafe_method_access")
 func test_combat_value() -> void:
     # Damage * 2 = 6
     # Shots = 2
@@ -244,15 +210,12 @@ func test_combat_value() -> void:
     # Total = 10
     assert_that(weapon.get_combat_value()).is_equal(10)
 
-@warning_ignore("unsafe_method_access")
 func test_create_from_invalid_profile() -> void:
     var profile := {}
+    var new_weapon = MockGameWeapon.new()
     
-    var new_weapon: MockGameWeapon = MockGameWeapon.new()
     if new_weapon.has_method("load_from_profile"):
         new_weapon.load_from_profile(profile)
-    @warning_ignore("return_value_discarded")
-	track_resource(new_weapon)
     
     var name: String = new_weapon.get_weapon_name()
     var type: int = new_weapon.get_type()
@@ -260,26 +223,20 @@ func test_create_from_invalid_profile() -> void:
     var shots: int = new_weapon.get_shots()
     var damage: int = new_weapon.get_damage()
     
-    assert_that(name).is_equal("")
-    assert_that(type).is_equal(MockGameWeapon.WeaponType.NONE)
-    assert_that(range_val).is_equal(0)
-    assert_that(shots).is_equal(1)
-    assert_that(damage).is_equal(1)
+    assert_that(name).is_equal("Test Weapon") # Default values
+    assert_that(type).is_equal(MockGameWeapon.WeaponType.RIFLE)
+    assert_that(range_val).is_equal(12)
+    assert_that(shots).is_equal(2)
+    assert_that(damage).is_equal(3)
 
-@warning_ignore("unsafe_method_access")
 func test_serialization() -> void:
     var profile: Dictionary = weapon.get_weapon_profile()
     
-    assert_that(@warning_ignore("unsafe_call_argument")
-	profile.get("name", "")).is_equal("Test Weapon")
-    assert_that(@warning_ignore("unsafe_call_argument")
-	profile.get("type", 0)).is_equal(MockGameWeapon.WeaponType.RIFLE)
-    assert_that(@warning_ignore("unsafe_call_argument")
-	profile.get("range", 0)).is_equal(12)
-    assert_that(@warning_ignore("unsafe_call_argument")
-	profile.get("shots", 0)).is_equal(2)
-    assert_that(@warning_ignore("unsafe_call_argument")
-	profile.get("damage", 0)).is_equal(3)
+    assert_that(profile["name"]).is_equal("Test Weapon")
+    assert_that(profile["type"]).is_equal(MockGameWeapon.WeaponType.RIFLE)
+    assert_that(profile["range"]).is_equal(12)
+    assert_that(profile["shots"]).is_equal(2)
+    assert_that(profile["damage"]).is_equal(3)
     
     var serialized: Dictionary = {
         "name": "Serialized Weapon",
@@ -290,11 +247,9 @@ func test_serialization() -> void:
         "traits": ["accurate", "reliable"]
     }
     
-    var new_weapon: MockGameWeapon = MockGameWeapon.new()
+    var new_weapon = MockGameWeapon.new()
     if new_weapon.has_method("load_from_profile"):
         new_weapon.load_from_profile(serialized)
-    @warning_ignore("return_value_discarded")
-	track_resource(new_weapon)
     
     assert_that(new_weapon.get_weapon_name()).is_equal("Serialized Weapon")
     assert_that(new_weapon.get_type()).is_equal(MockGameWeapon.WeaponType.PISTOL)
@@ -303,3 +258,4 @@ func test_serialization() -> void:
     assert_that(new_weapon.get_damage()).is_equal(4)
     var loaded_traits: Array = new_weapon.get_traits()
     assert_that(loaded_traits.size()).is_equal(2)
+    

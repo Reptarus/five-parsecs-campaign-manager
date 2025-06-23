@@ -2,15 +2,24 @@
 extends Node
 class_name GameState
 
-## Dependencies - explicit loading to avoid circular references
+# Safe imports
+const UniversalNodeAccess = preload("res://src/utils/UniversalNodeAccess.gd")
+const UniversalResourceLoader = preload("res://src/utils/UniversalResourceLoader.gd")
+const UniversalSignalManager = preload("res://src/utils/UniversalSignalManager.gd")
+const UniversalDataAccess = preload("res://src/utils/UniversalDataAccess.gd")
+const UniversalSceneManager = preload("res://src/utils/UniversalSceneManager.gd")
+
+# Safe dependency loading - loaded at compile time for type safety
 const GameEnums = preload("res://src/core/systems/GlobalEnums.gd")
-const FiveParsecsCampaign = preload("res://src/game/campaign/FiveParsecsCampaign.gd")
-const Ship = preload("res://src/core/ships/Ship.gd")
 const ErrorLogger = preload("res://src/core/systems/ErrorLogger.gd")
+
+# Safe dependency loading - loaded at runtime in _ready()
+var FiveParsecsCampaign = null
+var Ship = null
 
 ## Signals with proper type annotations
 signal state_changed
-signal campaign_loaded(campaign: FiveParsecsCampaign)
+signal campaign_loaded(campaign)
 signal campaign_saved
 signal save_started
 signal save_completed(success: bool, message: String)
@@ -34,7 +43,7 @@ const MAX_SAVE_ATTEMPTS: int = 3
 const SAVE_RETRY_DELAY: float = 0.5
 
 ## Core state properties
-var current_phase: GameEnums.FiveParcsecsCampaignPhase = GameEnums.FiveParcsecsCampaignPhase.NONE
+var current_phase: int = 0 # Will be set to NONE enum value in _ready()
 var turn_number: int = 0
 var story_points: int = 0
 var reputation: int = 0
@@ -42,22 +51,22 @@ var resources: Dictionary = {}
 var active_quests: Array[Dictionary] = []
 var completed_quests: Array[Dictionary] = []
 var current_location: Dictionary = {}
-var player_ship: Ship = null
+var player_ship = null # Will be typed after Ship is loaded
 var visited_locations: Array[String] = []
 
 ## Limits and settings
 var max_turns: int = 100
 var max_story_points: int = 5
 var max_reputation: int = 100
-var difficulty_level: GameEnums.DifficultyLevel = GameEnums.DifficultyLevel.NORMAL
+var difficulty_level: int = 1 # Will be set to NORMAL enum value in _ready()
 var enable_permadeath: bool = true
 var use_story_track: bool = true
 var auto_save_enabled: bool = true
 var auto_save_frequency: int = 15
 
 ## Campaign state with property accessor
-var _current_campaign: FiveParsecsCampaign
-var current_campaign: FiveParsecsCampaign:
+var _current_campaign = null  # Will be typed after FiveParsecsCampaign is loaded
+var current_campaign:
 	get:
 		return _current_campaign
 	set(value):
@@ -84,7 +93,7 @@ func _emit_state_changed() -> void:
 func _emit_resources_changed() -> void:
 	resources_changed.emit()
 
-func _emit_campaign_loaded(campaign: FiveParsecsCampaign) -> void:
+func _emit_campaign_loaded(campaign) -> void:
 	campaign_loaded.emit(campaign)
 
 func _emit_campaign_saved() -> void:
@@ -163,7 +172,11 @@ func _validate_quest_data(quest: Dictionary) -> bool:
 ## METHOD SAFETY HELPERS - Safe external method calls
 func _deserialize_player_ship(ship_data: Dictionary) -> void:
 	if not player_ship:
-		player_ship = Ship.new()
+		if Ship:
+			player_ship = Ship.new()
+		else:
+			push_error("CRASH PREVENTION: Ship class not loaded")
+			return
 	if player_ship.has_method("deserialize"):
 		player_ship.deserialize(ship_data)
 	else:
@@ -171,7 +184,11 @@ func _deserialize_player_ship(ship_data: Dictionary) -> void:
 
 func _deserialize_campaign(campaign_data: Dictionary) -> void:
 	if not _current_campaign:
-		_current_campaign = FiveParsecsCampaign.new()
+		if FiveParsecsCampaign:
+			_current_campaign = FiveParsecsCampaign.new()
+		else:
+			push_error("CRASH PREVENTION: FiveParsecsCampaign class not loaded")
+			return
 	if _current_campaign.has_method("deserialize"):
 		_current_campaign.deserialize(campaign_data)
 	else:
@@ -179,7 +196,11 @@ func _deserialize_campaign(campaign_data: Dictionary) -> void:
 
 func _load_campaign_from_dictionary(campaign_dict: Dictionary) -> void:
 	if not _current_campaign:
-		_current_campaign = FiveParsecsCampaign.new()
+		if FiveParsecsCampaign:
+			_current_campaign = FiveParsecsCampaign.new()
+		else:
+			push_error("CRASH PREVENTION: FiveParsecsCampaign class not loaded")
+			return
 	if _current_campaign.has_method("from_dictionary"):
 		_current_campaign.from_dictionary(campaign_dict)
 	else:
@@ -212,6 +233,10 @@ func _queue_save_operation(save_name: String, create_backup: bool) -> void:
 	_save_queue.append(save_operation)
 
 func _process_save_queue() -> void:
+	if not _save_queue.is_empty():
+		var next_save = _save_queue.pop_front()
+		save_game(next_save.save_name, next_save.create_backup)
+
 ## ARRAY OPERATION HELPERS - Clean collection management
 func _add_active_quest(quest: Dictionary) -> void:
 	active_quests.append(quest)
@@ -321,7 +346,7 @@ func _handle_save_failure(error_message: String, file_path: String) -> void:
 	push_error("Save failure: " + error_message)
 	
 	# Log using ErrorLogger with correct parameters
-	var err_logger := ErrorLogger.new()
+	var err_logger: ErrorLogger = ErrorLogger.new()
 	err_logger.log_error(
 		error_message,
 		ErrorLogger.ErrorCategory.PERSISTENCE,
@@ -611,11 +636,11 @@ func apply_location_effects() -> void:
 
 # Ship Management
 
-func set_player_ship(ship: Ship) -> void:
+func set_player_ship(ship) -> void:
 	player_ship = ship
 	_emit_state_changed()
 
-func get_player_ship() -> Ship:
+func get_player_ship():
 	return player_ship
 
 func apply_ship_damage(amount: int) -> void:
@@ -744,27 +769,23 @@ func deserialize(data: Dictionary) -> void:
 	
 	if data.has("player_ship"):
 		var ship_data = _get_safe_dictionary_data(data, "player_ship")
-	if ship_data:
-			player_ship = Ship.new()
-			_deserialize_player_ship(ship_data)
+		if ship_data:
+			if Ship:
+				player_ship = Ship.new()
+				_deserialize_player_ship(ship_data)
 			else:
-				push_warning("Ship class does not support deserialize method")
+				push_warning("Ship class not loaded - cannot deserialize ship data")
 		else:
 			push_warning("Invalid ship data format in save file")
 	
 	if data.has("campaign"):
 		var campaign_data = _get_safe_dictionary_data(data, "campaign")
 		if campaign_data:
-			_current_campaign = FiveParsecsCampaign.new()
-			_deserialize_campaign(campaign_data)
-		else:
-			push_warning("Invalid campaign data format in save file")
-		else:
-			push_warning("Campaign class does not support deserialize method")
-		else:
-			push_warning("Invalid campaign data format in save file")
+			if FiveParsecsCampaign:
+				_current_campaign = FiveParsecsCampaign.new()
+				_deserialize_campaign(campaign_data)
 			else:
-				push_warning("Campaign class does not support deserialize method")
+				push_warning("FiveParsecsCampaign class not loaded - cannot deserialize campaign data")
 		else:
 			push_warning("Invalid campaign data format in save file")
 
@@ -774,10 +795,26 @@ static func deserialize_new(data: Dictionary) -> GameState:
 	return state
 
 func _ready() -> void:
-	save_manager = get_node_or_null("/root/SaveManager")
+	# Load runtime dependencies safely
+	FiveParsecsCampaign = UniversalResourceLoader.load_script_safe("res://src/game/campaign/FiveParsecsCampaign.gd", "GameState FiveParsecsCampaign")
+	Ship = UniversalResourceLoader.load_script_safe("res://src/core/ships/Ship.gd", "GameState Ship")
+	
+	# Initialize enum defaults now that GameEnums is loaded
+	current_phase = GameEnums.FiveParcsecsCampaignPhase.NONE
+	difficulty_level = GameEnums.DifficultyLevel.NORMAL
+	
+	# Initialize default resources
+	resources[GameEnums.ResourceType.CREDITS] = 1000
+	resources[GameEnums.ResourceType.FUEL] = 5
+	resources[GameEnums.ResourceType.SUPPLIES] = 3
+	
+	# Connect to save manager safely
+	save_manager = UniversalNodeAccess.get_node_safe(get_tree().root, NodePath("SaveManager"), "GameState save_manager")
 	if save_manager:
-		save_manager.save_completed.connect(_on_save_manager_save_completed)
-		save_manager.load_completed.connect(_on_save_manager_load_completed)
+		UniversalSignalManager.connect_signal_safe(save_manager, "save_completed", _on_save_manager_save_completed, "GameState save_completed")
+		UniversalSignalManager.connect_signal_safe(save_manager, "load_completed", _on_save_manager_load_completed, "GameState load_completed")
+	
+	print("GameState: Initialized successfully")
 
 func _notification(what: int) -> void:
 	if what == NOTIFICATION_PREDELETE:
@@ -797,10 +834,11 @@ func _cleanup() -> void:
 	if _current_campaign:
 		_current_campaign = null
 
-func start_new_campaign(campaign: FiveParsecsCampaign) -> void:
+func start_new_campaign(campaign) -> void:
 	_current_campaign = campaign
 	turn_number = 1
-	reputation = campaign.starting_reputation
+	if campaign and "starting_reputation" in campaign:
+		reputation = campaign.starting_reputation
 	_emit_state_changed()
 	
 	if auto_save_enabled:
@@ -821,10 +859,13 @@ func load_campaign(save_data: Dictionary) -> void:
 		return
 		
 	var campaign_dict: Dictionary = campaign_data as Dictionary
-	_current_campaign = FiveParsecsCampaign.new()
-	_load_campaign_from_dictionary(campaign_dict)
+	if FiveParsecsCampaign:
+		_current_campaign = FiveParsecsCampaign.new()
+		_load_campaign_from_dictionary(campaign_dict)
 	else:
-		push_warning("Campaign does not support from_dictionary method")
+		push_error("CRASH PREVENTION: FiveParsecsCampaign class not loaded")
+		_emit_load_completed(false, "Campaign class not available")
+		return
 	
 	# Load game state
 	turn_number = save_data.get("turn_number", 1)
@@ -851,8 +892,6 @@ func save_campaign() -> Dictionary:
 	
 	var campaign_data: Dictionary = {}
 	campaign_data = _get_campaign_dictionary()
-	else:
-		push_warning("Campaign does not support to_dictionary method")
 	
 	var save_data: Dictionary = {
 		"campaign": campaign_data,
@@ -880,7 +919,7 @@ func end_campaign() -> void:
 	reputation = 0
 	_emit_state_changed()
 
-func get_campaign() -> FiveParsecsCampaign:
+func get_campaign():
 	return _current_campaign
 
 func modify_reputation(amount: int) -> void:
@@ -930,10 +969,13 @@ func has_equipment(equipment_type: Variant) -> bool:
 	# Convert string to int if needed
 	var equipment_id: int
 	if equipment_type is String:
-		equipment_id = GameEnums.WeaponType.get(equipment_type, -1)
-		if equipment_id == -1:
+		# Look up enum value by string name
+		var enum_keys = GameEnums.WeaponType.keys()
+		var found_index = enum_keys.find(equipment_type.to_upper())
+		if found_index == -1:
 			push_warning("Invalid equipment type string: " + str(equipment_type))
 			return false
+		equipment_id = GameEnums.WeaponType.values()[found_index]
 	else:
 		equipment_id = equipment_type
 	

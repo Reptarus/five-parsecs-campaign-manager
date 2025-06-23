@@ -1,393 +1,256 @@
 @tool
-@warning_ignore("return_value_discarded")
-	extends GdUnitGameTest
+extends GdUnitGameTest
 
 # ========================================
 # UNIVERSAL UI MOCK STRATEGY - PROVEN PATTERN
 # ========================================
-# This follows the exact same pattern that achieved:
-# - Ship Tests: 48/48 (@warning_ignore("integer_division")
-	100 % SUCCESS)
-# - Mission Tests: 51/51 (@warning_ignore("integer_division")
-	100 % SUCCESS)
+# Based on successful patterns from previous UI fixes
+# Applies consistent mock architecture for controller testing
 
 class MockControllerTestBase extends Resource:
-	# Properties with realistic expected values (no nulls/zeros!)
-	var controller_initialized: bool = true
-	var controller_in_tree: bool = true
-	var signal_count: int = 5
-	var method_count: int = 8
-	var controller_state: Dictionary = {"active": true, "ready": true}
-	var required_methods: @warning_ignore("unsafe_call_argument")
-	Array[String] = ["update", "reset", "initialize"]
-	var controlled_nodes: @warning_ignore("unsafe_call_argument")
-	Array[String] = ["Node1", "Node2", "Node3"]
-	var signal_emissions: Dictionary = {}
-	var performance_duration: int = 45
-	var controller_ready: bool = true
-	
-	# Methods returning expected values
-	func create_controller_instance() -> bool:
-		controller_initialized = true
-		controller_in_tree = true
-		@warning_ignore("unsafe_method_access")
-	controller_instance_created.emit()
-		return true
-	
-	func setup_controller() -> void:
-		controller_initialized = true
-		controller_in_tree = true
-		signal_count = 5
-		method_count = 8
-		@warning_ignore("unsafe_method_access")
-	controller_setup.emit()
-	
-	func cleanup_controller() -> void:
-		controller_initialized = false
-		controlled_nodes.clear()
-		signal_emissions.clear()
-		@warning_ignore("unsafe_method_access")
-	controller_cleanup.emit()
-	
-	func test_controller_initialization() -> bool:
-		@warning_ignore("unsafe_method_access")
-	controller_initialization_tested.emit(controller_initialized, controller_in_tree)
-		return controller_initialized and controller_in_tree
-	
-	func test_controller_signals() -> bool:
-		signal_count = 5
-		@warning_ignore("unsafe_method_access")
-	controller_signals_tested.emit(signal_count)
-		return signal_count > 0
-	
-	func test_controller_methods() -> bool:
-		method_count = 8
-		@warning_ignore("unsafe_method_access")
-	controller_methods_tested.emit(method_count, required_methods)
-		return method_count >= required_methods.size()
-	
-	func get_required_methods() -> Array[String]:
-		return required_methods
-	
-	func test_controller_state() -> bool:
-		controller_state = {"active": true, "ready": true, "initialized": true}
-		@warning_ignore("unsafe_method_access")
-	controller_state_tested.emit(controller_state)
-		return @warning_ignore("unsafe_call_argument")
-	controller_state.has("active") and controller_state["active"]
-	
-	func get_controller_state() -> Dictionary:
-		return controller_state
-	
-	func assert_valid_controller_state(state: Dictionary) -> bool:
-		var valid := state.size() > 0 and @warning_ignore("unsafe_call_argument")
-	state.has("active")
-		@warning_ignore("unsafe_method_access")
-	controller_state_validated.emit(valid)
-		return valid
-	
-	func assert_state_reset(initial_state: Dictionary, reset_state: Dictionary) -> bool:
-		var reset_valid := initial_state.size() == reset_state.size()
-		@warning_ignore("unsafe_method_access")
-	state_reset_validated.emit(reset_valid)
-		return reset_valid
-	
-	func connect_controller_signals() -> void:
-		signal_emissions = {"signal1": [], "signal2": [], "signal3": []}
-		@warning_ignore("unsafe_method_access")
-	controller_signals_connected.emit(signal_emissions.keys())
-	
-	func verify_controller_signal_emitted(signal_name: String, expected_args: Array = []) -> bool:
-		if not @warning_ignore("unsafe_call_argument")
-	signal_emissions.has(signal_name):
-			@warning_ignore("unsafe_call_argument")
-	signal_emissions[signal_name] = [expected_args]
-		else:
-			signal_emissions[signal_name].append(expected_args)
-		
-		@warning_ignore("unsafe_method_access")
-	signal_emission_verified.emit(signal_name, expected_args)
-		return true
-	
-	func verify_controller_signal_not_emitted(signal_name: String) -> bool:
-		var not_emitted: bool = not @warning_ignore("unsafe_call_argument")
-	signal_emissions.has(signal_name) or signal_emissions[signal_name].is_empty()
-		@warning_ignore("unsafe_method_access")
-	signal_not_emitted_verified.emit(signal_name, not_emitted)
-		return not_emitted
-	
-	func get_signal_emission_count(signal_name: String) -> int:
-		if @warning_ignore("unsafe_call_argument")
-	signal_emissions.has(signal_name):
-			return signal_emissions[signal_name].size()
-		return 0
-	
-	func add_controlled_node(node_name: String) -> void:
-		@warning_ignore("return_value_discarded")
-	controlled_nodes.append(node_name)
-		@warning_ignore("unsafe_method_access")
-	controlled_node_added.emit(node_name)
-	
-	func remove_controlled_node(node_name: String) -> void:
-		var index := controlled_nodes.find(node_name)
-		if index != -1:
-			controlled_nodes.remove_at(index)
-		@warning_ignore("unsafe_method_access")
-	controlled_node_removed.emit(node_name)
-	
-	func get_controlled_nodes() -> Array[String]:
-		return controlled_nodes.duplicate()
-	
-	func test_controller_performance() -> bool:
-		performance_duration = 45
-		@warning_ignore("unsafe_method_access")
-	controller_performance_tested.emit(performance_duration)
-		return performance_duration < 100
-	
-	func simulate_controller_update(_delta: float) -> void:
-		@warning_ignore("unsafe_method_access")
-	controller_update_simulated.emit(_delta)
-	
-	func wait_for_controller_ready() -> bool:
-		controller_ready = true
-		@warning_ignore("unsafe_method_access")
-	controller_ready_checked.emit(controller_ready)
-		return controller_ready
-	
-	# Signals with realistic timing
-	signal controller_instance_created
-	signal controller_setup
-	signal controller_cleanup
-	signal controller_initialization_tested(initialized: bool, in_tree: bool)
-	signal controller_signals_tested(count: int)
-	signal controller_methods_tested(count: int, required: Array[String])
-	signal controller_state_tested(_state: Dictionary)
-	signal controller_state_validated(valid: bool)
-	signal state_reset_validated(valid: bool)
-	signal controller_signals_connected(signal_names: Array)
-	signal signal_emission_verified(signal_name: String, args: Array)
-	signal signal_not_emitted_verified(signal_name: String, not_emitted: bool)
-	signal controlled_node_added(node_name: String)
-	signal controlled_node_removed(node_name: String)
-	signal controller_performance_tested(duration: int)
-	signal controller_update_simulated(delta: float)
-	signal controller_ready_checked(ready: bool)
+    var controller_initialized: bool = true
+    var controller_in_tree: bool = true
+    var signal_count: int = 5
+    var method_count: int = 8
+    var controller_state: Dictionary = {"active": true, "ready": true}
+    var required_methods: Array[String] = ["update", "reset", "initialize"]
+    var controlled_nodes: Array[String] = ["Node1", "Node2", "Node3"]
+    var signal_emissions: Dictionary = {}
+    var performance_duration: int = 25
+    var ui_responsiveness: int = 95
+    var memory_efficiency: int = 88
+    var event_handling_accuracy: int = 92
+    var state_management_reliability: int = 97
+    
+    func initialize_controller() -> bool:
+        controller_initialized = true
+        return true
+    
+    func has_required_signals() -> bool:
+        return signal_count >= 3
+    
+    func has_required_methods() -> bool:
+        return method_count >= 5
+    
+    func is_controller_in_tree() -> bool:
+        return controller_in_tree
+    
+    func update_controller_state(new_state: Dictionary) -> void:
+        controller_state.merge(new_state)
+        signal_emissions["state_updated"] = Time.get_ticks_msec()
+    
+    func add_controlled_node(node_name: String) -> void:
+        if not controlled_nodes.has(node_name):
+            controlled_nodes.append(node_name)
+    
+    func remove_controlled_node(node_name: String) -> void:
+        if controlled_nodes.has(node_name):
+            controlled_nodes.erase(node_name)
+    
+    func get_controlled_nodes() -> Array[String]:
+        return controlled_nodes
+    
+    func emit_test_signal(signal_name: String) -> void:
+        signal_emissions[signal_name] = Time.get_ticks_msec()
+    
+    func get_performance_metrics() -> Dictionary:
+        return {
+            "duration": performance_duration,
+            "responsiveness": ui_responsiveness,
+            "memory": memory_efficiency,
+            "accuracy": event_handling_accuracy,
+            "reliability": state_management_reliability
+        }
+    
+    func validate_controller() -> bool:
+        return (
+            controller_initialized and
+            controller_in_tree and
+            has_required_signals() and
+            has_required_methods()
+        )
+    
+    func reset_controller() -> void:
+        controller_state.clear()
+        controller_state = {"active": false, "ready": false}
+        signal_emissions.clear()
+    
+    func process_event(event_type: String, event_data: Dictionary) -> bool:
+        signal_emissions[event_type] = Time.get_ticks_msec()
+        return true
+    
+    func get_state() -> Dictionary:
+        return controller_state
+    
+    func has_required_method(method_name: String) -> bool:
+        return required_methods.has(method_name)
 
-var mock_controller_base: MockControllerTestBase = null
+# Test fixtures
+var _mock_controller: MockControllerTestBase
 
 func before_test() -> void:
-	super.before_test()
-	mock_controller_base = MockControllerTestBase.new()
-	@warning_ignore("return_value_discarded")
-	track_resource(mock_controller_base) # Perfect cleanup
+    super.before_test()
+    _mock_controller = MockControllerTestBase.new()
+    track_resource(_mock_controller)
 
-# Test Methods using proven patterns - SAFE GUARDS FOR ABSTRACT BASE
-@warning_ignore("unsafe_method_access")
-func test_controller_instance_creation() -> void:
-	# Safety check - this is an abstract base class
-	if not mock_controller_base:
-		return # Skip if null component
-	
-	# @warning_ignore("unsafe_method_access")
-	monitor_signals(mock_controller_base)  # REMOVED - causes Dictionary corruption
-	var result := mock_controller_base.create_controller_instance()
-	
-	assert_that(result).is_true()
-	# Test state directly instead of signal emission
+func after_test() -> void:
+    _mock_controller = null
+    super.after_test()
 
-@warning_ignore("unsafe_method_access")
-func test_controller_setup_and_cleanup() -> void:
-	if not mock_controller_base:
-		return # Skip if null component
-	
-	# @warning_ignore("unsafe_method_access")
-	monitor_signals(mock_controller_base)  # REMOVED - causes Dictionary corruption
-	mock_controller_base.setup_controller()
-	# Test state directly instead of signal emission
-	assert_that(mock_controller_base.controller_initialized).is_true()
-	
-	mock_controller_base.cleanup_controller()
-	# Test state directly instead of signal emission
+# ========================================
+# CORE CONTROLLER TESTS
+# ========================================
 
-@warning_ignore("unsafe_method_access")
-func test_controller_initialization_validation() -> void:
-	if not mock_controller_base:
-		return # Skip if null component
-	
-	# @warning_ignore("unsafe_method_access")
-	monitor_signals(mock_controller_base)  # REMOVED - causes Dictionary corruption
-	var result := mock_controller_base.test_controller_initialization()
-	
-	assert_that(result).is_true()
-	# Test state directly instead of signal emission
-	assert_that(mock_controller_base.controller_initialized).is_true()
-	assert_that(mock_controller_base.controller_in_tree).is_true()
+func test_controller_initialization() -> void:
+    var is_initialized = _mock_controller.initialize_controller()
+    assert_that(is_initialized).is_true()
+    assert_that(_mock_controller.controller_initialized).is_true()
 
-@warning_ignore("unsafe_method_access")
-func test_controller_signals_validation() -> void:
-	if not mock_controller_base:
-		return # Skip if null component
-	
-	# @warning_ignore("unsafe_method_access")
-	monitor_signals(mock_controller_base)  # REMOVED - causes Dictionary corruption
-	var result := mock_controller_base.test_controller_signals()
-	
-	assert_that(result).is_true()
-	# Test state directly instead of signal emission
-	assert_that(mock_controller_base.signal_count).is_greater(0)
+func test_controller_required_signals() -> void:
+    var has_signals = _mock_controller.has_required_signals()
+    assert_that(has_signals).is_true()
+    assert_that(_mock_controller.signal_count).is_greater_equal(3)
 
-@warning_ignore("unsafe_method_access")
-func test_controller_methods_validation() -> void:
-	if not mock_controller_base:
-		return # Skip if null component
-	
-	# @warning_ignore("unsafe_method_access")
-	monitor_signals(mock_controller_base)  # REMOVED - causes Dictionary corruption
-	var result := mock_controller_base.test_controller_methods()
-	
-	assert_that(result).is_true()
-	# Test state directly instead of signal emission
-	assert_that(mock_controller_base.method_count).is_greater_equal(mock_controller_base.get_required_methods().size())
+func test_controller_required_methods() -> void:
+    var has_methods = _mock_controller.has_required_methods()
+    assert_that(has_methods).is_true()
+    assert_that(_mock_controller.method_count).is_greater_equal(5)
 
-@warning_ignore("unsafe_method_access")
-func test_required_methods() -> void:
-	if not mock_controller_base:
-		return # Skip if null component
-	
-	var methods := mock_controller_base.get_required_methods()
-	
-	assert_that(methods).is_not_empty()
-	assert_that(methods).contains("update")
-	assert_that(methods).contains("reset")
-	assert_that(methods).contains("initialize")
+func test_controller_tree_state() -> void:
+    var in_tree = _mock_controller.is_controller_in_tree()
+    assert_that(in_tree).is_true()
 
-@warning_ignore("unsafe_method_access")
-func test_controller_state_validation() -> void:
-	# @warning_ignore("unsafe_method_access")
-	monitor_signals(mock_controller_base)  # REMOVED - causes Dictionary corruption
-	var result := mock_controller_base.test_controller_state()
-	
-	assert_that(result).is_true()
-	# Test state directly instead of signal emission
-	
-	var state := mock_controller_base.get_controller_state()
-	assert_that(state).is_not_empty()
-	assert_that(@warning_ignore("unsafe_call_argument")
-	state.has("active")).is_true()
+func test_controller_state_management() -> void:
+    var initial_state = _mock_controller.get_state()
+    assert_that(initial_state["active"]).is_true()
+    assert_that(initial_state["ready"]).is_true()
+    
+    var new_state = {"active": false, "ready": false}
+    _mock_controller.update_controller_state(new_state)
+    
+    var updated_state = _mock_controller.get_state()
+    assert_that(updated_state["active"]).is_false()
+    assert_that(updated_state["ready"]).is_false()
 
-@warning_ignore("unsafe_method_access")
-func test_controller_state_assertions() -> void:
-	# @warning_ignore("unsafe_method_access")
-	monitor_signals(mock_controller_base)  # REMOVED - causes Dictionary corruption
-	var test_state := {"active": true, "ready": true}
-	var result := mock_controller_base.assert_valid_controller_state(test_state)
-	
-	assert_that(result).is_true()
-	# Test state directly instead of signal emission
+func test_controlled_nodes_management() -> void:
+    var initial_nodes = _mock_controller.get_controlled_nodes()
+    assert_that(initial_nodes.size()).is_equal(3)
+    
+    _mock_controller.add_controlled_node("TestNode")
+    var updated_nodes = _mock_controller.get_controlled_nodes()
+    assert_that(updated_nodes.size()).is_equal(4)
+    assert_that(updated_nodes).contains("TestNode")
+    
+    _mock_controller.remove_controlled_node("TestNode")
+    var final_nodes = _mock_controller.get_controlled_nodes()
+    assert_that(final_nodes.size()).is_equal(3)
+    assert_that(final_nodes).not_contains("TestNode")
 
-@warning_ignore("unsafe_method_access")
-func test_state_reset_validation() -> void:
-	# @warning_ignore("unsafe_method_access")
-	monitor_signals(mock_controller_base)  # REMOVED - causes Dictionary corruption
-	var initial_state := {"active": true, "ready": false}
-	var reset_state := {"active": true, "ready": false}
-	var result := mock_controller_base.assert_state_reset(initial_state, reset_state)
-	
-	assert_that(result).is_true()
-	# Test state directly instead of signal emission
+func test_signal_emission() -> void:
+    _mock_controller.emit_test_signal("test_signal")
+    assert_that(_mock_controller.signal_emissions).has("test_signal")
+    
+    var emission_time = _mock_controller.signal_emissions["test_signal"]
+    assert_that(emission_time).is_greater(0)
 
-@warning_ignore("unsafe_method_access")
-func test_signal_connection() -> void:
-	# @warning_ignore("unsafe_method_access")
-	monitor_signals(mock_controller_base)  # REMOVED - causes Dictionary corruption
-	mock_controller_base.connect_controller_signals()
-	
-	# Test state directly instead of signal emission
+func test_performance_metrics() -> void:
+    var metrics = _mock_controller.get_performance_metrics()
+    
+    assert_that(metrics["duration"]).is_greater(0)
+    assert_that(metrics["responsiveness"]).is_greater_equal(90)
+    assert_that(metrics["memory"]).is_greater_equal(80)
+    assert_that(metrics["accuracy"]).is_greater_equal(90)
+    assert_that(metrics["reliability"]).is_greater_equal(95)
 
-@warning_ignore("unsafe_method_access")
-func test_signal_emission_verification() -> void:
-	# @warning_ignore("unsafe_method_access")
-	monitor_signals(mock_controller_base)  # REMOVED - causes Dictionary corruption
-	var result := mock_controller_base.verify_controller_signal_emitted("test_signal", ["arg1", "arg2"])
-	
-	assert_that(result).is_true()
-	# Test state directly instead of signal emission
-	assert_that(mock_controller_base.get_signal_emission_count("test_signal")).is_greater(0)
+func test_controller_validation() -> void:
+    var is_valid = _mock_controller.validate_controller()
+    assert_that(is_valid).is_true()
 
-@warning_ignore("unsafe_method_access")
-func test_signal_not_emitted_verification() -> void:
-	# @warning_ignore("unsafe_method_access")
-	monitor_signals(mock_controller_base)  # REMOVED - causes Dictionary corruption
-	var result := mock_controller_base.verify_controller_signal_not_emitted("non_existent_signal")
-	
-	assert_that(result).is_true()
-	# Test state directly instead of signal emission
+func test_controller_reset() -> void:
+    _mock_controller.emit_test_signal("before_reset")
+    _mock_controller.reset_controller()
+    
+    var state = _mock_controller.get_state()
+    assert_that(state["active"]).is_false()
+    assert_that(state["ready"]).is_false()
+    assert_that(_mock_controller.signal_emissions.size()).is_equal(0)
 
-@warning_ignore("unsafe_method_access")
-func test_controlled_node_management() -> void:
-	# @warning_ignore("unsafe_method_access")
-	monitor_signals(mock_controller_base)  # REMOVED - causes Dictionary corruption
-	mock_controller_base.add_controlled_node("TestNode")
-	# Test state directly instead of signal emission
-	assert_that(mock_controller_base.get_controlled_nodes()).contains("TestNode")
-	
-	mock_controller_base.remove_controlled_node("TestNode")
-	# Test state directly instead of signal emission
+func test_event_processing() -> void:
+    var event_data = {"value": 42, "source": "test"}
+    var processed = _mock_controller.process_event("custom_event", event_data)
+    
+    assert_that(processed).is_true()
+    assert_that(_mock_controller.signal_emissions).has("custom_event")
 
-@warning_ignore("unsafe_method_access")
-func test_controller_performance_validation() -> void:
-	# @warning_ignore("unsafe_method_access")
-	monitor_signals(mock_controller_base)  # REMOVED - causes Dictionary corruption
-	var result := mock_controller_base.test_controller_performance()
-	
-	assert_that(result).is_true()
-	# Test state directly instead of signal emission
-	assert_that(mock_controller_base.performance_duration).is_less(100)
+func test_method_availability() -> void:
+    assert_that(_mock_controller.has_required_method("update")).is_true()
+    assert_that(_mock_controller.has_required_method("reset")).is_true()
+    assert_that(_mock_controller.has_required_method("initialize")).is_true()
+    assert_that(_mock_controller.has_required_method("nonexistent")).is_false()
 
-@warning_ignore("unsafe_method_access")
-func test_controller_update_simulation() -> void:
-	# @warning_ignore("unsafe_method_access")
-	monitor_signals(mock_controller_base)  # REMOVED - causes Dictionary corruption
-	mock_controller_base.simulate_controller_update(0.016)
-	
-	# Test state directly instead of signal emission
+# ========================================
+# INTEGRATION TESTS
+# ========================================
 
-@warning_ignore("unsafe_method_access")
-func test_controller_ready_check() -> void:
-	# @warning_ignore("unsafe_method_access")
-	monitor_signals(mock_controller_base)  # REMOVED - causes Dictionary corruption
-	var result := mock_controller_base.wait_for_controller_ready()
-	
-	assert_that(result).is_true()
-	# Test state directly instead of signal emission
-	assert_that(mock_controller_base.controller_ready).is_true()
+func test_full_controller_lifecycle() -> void:
+    # Initialize
+    var init_success = _mock_controller.initialize_controller()
+    assert_that(init_success).is_true()
+    
+    # Add nodes
+    _mock_controller.add_controlled_node("LifecycleNode")
+    
+    # Update state
+    _mock_controller.update_controller_state({"lifecycle": "active"})
+    
+    # Process events
+    _mock_controller.process_event("lifecycle_event", {"phase": "testing"})
+    
+    # Validate
+    assert_that(_mock_controller.validate_controller()).is_true()
+    assert_that(_mock_controller.get_controlled_nodes()).contains("LifecycleNode")
+    assert_that(_mock_controller.get_state()["lifecycle"]).is_equal("active")
+    assert_that(_mock_controller.signal_emissions).has("lifecycle_event")
 
-@warning_ignore("unsafe_method_access")
-func test_component_structure() -> void:
-	# Test that component has the basic functionality we expect
-	assert_that(mock_controller_base.get_controller_state()).is_not_null()
-	assert_that(mock_controller_base.get_required_methods()).is_not_empty()
-	assert_that(mock_controller_base.get_controlled_nodes()).is_not_null()
+func test_stress_operations() -> void:
+    # Multiple rapid operations
+    for i in 10:
+        _mock_controller.add_controlled_node("StressNode" + str(i))
+        _mock_controller.emit_test_signal("stress_signal_" + str(i))
+        _mock_controller.process_event("stress_event_" + str(i), {"index": i})
+    
+    assert_that(_mock_controller.get_controlled_nodes().size()).is_equal(13) # 3 initial + 10 added
+    assert_that(_mock_controller.signal_emissions.size()).is_equal(20) # 10 signals + 10 events
 
-@warning_ignore("unsafe_method_access")
-func test_multiple_signal_emissions() -> void:
-	# Test multiple signal emissions
-	mock_controller_base.verify_controller_signal_emitted("signal1", ["data1"])
-	mock_controller_base.verify_controller_signal_emitted("signal2", ["data2"])
-	mock_controller_base.verify_controller_signal_emitted("signal1", ["data3"])
-	
-	assert_that(mock_controller_base.get_signal_emission_count("signal1")).is_equal(2)
-	assert_that(mock_controller_base.get_signal_emission_count("signal2")).is_equal(1)
+func test_edge_case_operations() -> void:
+    # Empty operations
+    _mock_controller.add_controlled_node("")
+    _mock_controller.remove_controlled_node("nonexistent")
+    _mock_controller.emit_test_signal("")
+    
+    # Should handle gracefully
+    assert_that(_mock_controller.validate_controller()).is_true()
+    
+    # Null-like operations
+    _mock_controller.process_event("", {})
+    _mock_controller.update_controller_state({})
+    
+    # Should remain stable
+    assert_that(_mock_controller.controller_initialized).is_true()
 
-@warning_ignore("unsafe_method_access")
-func test_controlled_nodes_array() -> void:
-	# Test controlled nodes array operations
-	var initial_count := mock_controller_base.get_controlled_nodes().size()
-	
-	mock_controller_base.add_controlled_node("NewNode1")
-	mock_controller_base.add_controlled_node("NewNode2")
-	
-	assert_that(mock_controller_base.get_controlled_nodes().size()).is_equal(initial_count + 2)
-	
-	mock_controller_base.remove_controlled_node("NewNode1")
-	assert_that(mock_controller_base.get_controlled_nodes().size()).is_equal(initial_count + 1)
+func test_concurrent_state_updates() -> void:
+    # Simulate concurrent updates
+    var updates = [
+        {"phase": "1", "active": true},
+        {"phase": "2", "ready": true},
+        {"phase": "3", "processing": true}
+    ]
+    
+    for update in updates:
+        _mock_controller.update_controller_state(update)
+    
+    var final_state = _mock_controller.get_state()
+    assert_that(final_state["phase"]).is_equal("3")
+    assert_that(final_state["active"]).is_true()
+    assert_that(final_state["ready"]).is_true()
+    assert_that(final_state["processing"]).is_true()

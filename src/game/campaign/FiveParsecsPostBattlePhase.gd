@@ -105,7 +105,7 @@ func start_post_battle_phase(battle_data_param: Dictionary) -> void:
 		reputation_change = -1
 
 	# Emit signal that post-battle phase has started
-	post_battle_phase_started.emit()
+	post_battle_started.emit()
 
 func _calculate_rewards() -> void:
 	# Calculate experience points
@@ -225,7 +225,7 @@ func complete_post_battle_phase() -> void:
 		if crew.has_method("adjust_reputation"):
 			crew.adjust_reputation(reputation_change)
 	# Emit signal that post-battle phase has completed
-	post_battle_phase_completed.emit( get_battle_summary())
+	post_battle_completed.emit(get_battle_summary())
 
 func get_battle_summary() -> Dictionary:
 	var summary = {

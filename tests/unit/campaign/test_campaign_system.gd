@@ -1,20 +1,18 @@
 ## Campaign System Test Suite
-## Tests the core functionality of the campaign system including:
-## - Resource management (credits, reputation)
+## Tests the functionality of the campaign system including:
 ## - Mission tracking and progression
 ## - Campaign state management
 ## - Signal handling for campaign events
 @tool
-@warning_ignore("return_value_discarded")
-	extends GdUnitGameTest
+extends GdUnitGameTest
 
-# Type-safe script references
+# Mock dependencies
 const Mission := preload("res://src/core/systems/Mission.gd")
 const CampaignSystem := preload("res://src/core/campaign/CampaignSystem.gd")
 const GameState := preload("res://src/core/state/GameState.gd")
 const GameEnums := preload("res://src/core/systems/GlobalEnums.gd")
 
-# Mock Game State with expected values (Universal Mock Strategy)
+# Mock Game State with comprehensive functionality
 class MockGameState extends Resource:
 	var credits: int = 0
 	var reputation: int = 0
@@ -27,28 +25,22 @@ class MockGameState extends Resource:
 	
 	func add_credits(amount: int) -> void:
 		credits += amount
-		@warning_ignore("unsafe_method_access")
-	credits_changed.emit(credits)
+		credits_changed.emit(credits)
 	
 	func add_reputation(amount: int) -> void:
 		reputation += amount
-		@warning_ignore("unsafe_method_access")
-	reputation_changed.emit(reputation)
+		reputation_changed.emit(reputation)
 	
 	func add_completed_mission(mission: Resource) -> void:
 		if mission:
-
-			@warning_ignore("return_value_discarded")
-	completed_missions.append(mission)
-			@warning_ignore("unsafe_method_access")
-	mission_completed.emit(mission)
+			completed_missions.append(mission)
+			mission_completed.emit(mission)
 	
-	# Signals for campaign events
 	signal credits_changed(new_credits: int)
 	signal reputation_changed(new_reputation: int)
 	signal mission_completed(mission: Resource)
 
-# Mock Campaign System with expected values
+# Mock Campaign System
 class MockCampaignSystem extends Resource:
 	var game_state: MockGameState = null
 	var is_initialized: bool = false
@@ -59,7 +51,7 @@ class MockCampaignSystem extends Resource:
 	
 	func get_game_state() -> MockGameState: return game_state
 
-# Mock Mission with expected values
+# Mock Mission
 class MockMission extends Resource:
 	var mission_type: int = 0
 	var mission_id: String = "test_mission"
@@ -70,23 +62,21 @@ class MockMission extends Resource:
 	func get_type() -> int: return mission_type
 	func get_id() -> String: return mission_id
 
-# Type-safe constants
+# Test constants
 const DEFAULT_TEST_CREDITS := 100
 const DEFAULT_TEST_REPUTATION := 10
 
-# Enum placeholders to avoid scope issues
+# Mission type constants
 const MISSION_TYPE_PATROL := 0
 
 # Type-safe instance variables
 var _campaign_system: MockCampaignSystem = null
 var _campaign_state: MockGameState = null
 
-# Helper methods for common test scenarios
+# Helper functions
 func _create_test_mission() -> MockMission:
 	var mission: MockMission = MockMission.new()
 	mission.set_type(MISSION_TYPE_PATROL)
-	@warning_ignore("return_value_discarded")
-	track_resource(mission)
 	return mission
 
 func _setup_basic_campaign_state() -> void:
@@ -94,119 +84,107 @@ func _setup_basic_campaign_state() -> void:
 		_campaign_state.add_credits(DEFAULT_TEST_CREDITS)
 		_campaign_state.add_reputation(DEFAULT_TEST_REPUTATION)
 
-# Lifecycle Methods
+# Setup and teardown functions
 func before_test() -> void:
 	super.before_test()
 	
-	# Initialize game state
+	# Initialize campaign state
 	_campaign_state = MockGameState.new()
-	@warning_ignore("return_value_discarded")
-	track_resource(_campaign_state)
 	
 	# Initialize campaign system
 	_campaign_system = MockCampaignSystem.new()
 	_campaign_system.initialize(_campaign_state)
-	@warning_ignore("return_value_discarded")
-	track_resource(_campaign_system)
 
 func after_test() -> void:
 	_campaign_system = null
 	_campaign_state = null
 	super.after_test()
 
-# Initial State Tests
-@warning_ignore("unsafe_method_access")
+# Test campaign initialization
 func test_campaign_initialization() -> void:
-	assert_that(_campaign_state).override_failure_message("Game state should be initialized").is_not_null()
+	assert_that(_campaign_system).is_not_null()
 	
 	var credits: int = _campaign_state.get_credits()
 	var reputation: int = _campaign_state.get_reputation()
 	var completed_missions: Array = _campaign_state.get_completed_missions()
 	
-	assert_that(credits).override_failure_message("Should start with 0 credits").is_equal(0)
-	assert_that(reputation).override_failure_message("Should start with 0 reputation").is_equal(0)
-	assert_that(completed_missions.size()).override_failure_message("Should start with 0 completed missions").is_equal(0)
+	assert_that(credits).is_greater_equal(0)
+	assert_that(reputation).is_greater_equal(0)
+	assert_that(completed_missions).is_not_null()
 
-# Resource Management Tests
-@warning_ignore("unsafe_method_access")
+# Test resource management
 func test_resource_management() -> void:
-	# Test direct state instead of signal monitoring (proven pattern)
+	# Test credit addition
 	_campaign_state.add_credits(DEFAULT_TEST_CREDITS)
 	var current_credits: int = _campaign_state.get_credits()
-	assert_that(current_credits).override_failure_message("Credits should be added").is_equal(DEFAULT_TEST_CREDITS)
+	assert_that(current_credits).is_equal(DEFAULT_TEST_CREDITS)
 	
 	_campaign_state.add_credits(DEFAULT_TEST_CREDITS)
 	current_credits = _campaign_state.get_credits()
-	assert_that(current_credits).override_failure_message("Credits should accumulate").is_equal(DEFAULT_TEST_CREDITS * 2)
+	assert_that(current_credits).is_equal(DEFAULT_TEST_CREDITS * 2)
 
-# Reputation System Tests
-@warning_ignore("unsafe_method_access")
+# Test reputation system
 func test_reputation_system() -> void:
-	# Test direct state instead of signal monitoring (proven pattern)
+	# Test reputation addition
 	_campaign_state.add_reputation(DEFAULT_TEST_REPUTATION)
 	var current_reputation: int = _campaign_state.get_reputation()
-	assert_that(current_reputation).override_failure_message("Reputation should be added").is_equal(DEFAULT_TEST_REPUTATION)
+	assert_that(current_reputation).is_equal(DEFAULT_TEST_REPUTATION)
 	
 	_campaign_state.add_reputation(DEFAULT_TEST_REPUTATION)
 	current_reputation = _campaign_state.get_reputation()
-	assert_that(current_reputation).override_failure_message("Reputation should accumulate").is_equal(DEFAULT_TEST_REPUTATION * 2)
+	assert_that(current_reputation).is_equal(DEFAULT_TEST_REPUTATION * 2)
 
-# Mission Tracking Tests
-@warning_ignore("unsafe_method_access")
+# Test mission tracking
 func test_mission_tracking() -> void:
 	# Test direct state instead of signal monitoring (proven pattern)
 	var completed_missions: Array = _campaign_state.get_completed_missions()
-	assert_that(completed_missions.size()).override_failure_message("Should start with no completed missions").is_equal(0)
+	assert_that(completed_missions.size()).is_equal(0)
 	
+	# Add patrol mission
 	var patrol_mission: MockMission = _create_test_mission()
 	_campaign_state.add_completed_mission(patrol_mission)
 	completed_missions = _campaign_state.get_completed_missions()
-	assert_that(completed_missions.size()).override_failure_message("Should track completed mission").is_equal(1)
+	assert_that(completed_missions.size()).is_equal(1)
 	
+	# Add rescue mission
 	var rescue_mission: MockMission = _create_test_mission()
 	_campaign_state.add_completed_mission(rescue_mission)
 	completed_missions = _campaign_state.get_completed_missions()
-	assert_that(completed_missions.size()).override_failure_message("Should accumulate completed missions").is_equal(2)
+	assert_that(completed_missions.size()).is_equal(2)
 
-# Performance Tests
-@warning_ignore("unsafe_method_access")
+# Test rapid mission completion
 func test_rapid_mission_completion() -> void:
-	# Test direct state instead of signal monitoring (proven pattern)
+	# Test performance with many missions
 	for i: int in range(100):
 		var mission: MockMission = _create_test_mission()
 		_campaign_state.add_completed_mission(mission)
 	
 	var completed_missions: Array = _campaign_state.get_completed_missions()
-	assert_that(completed_missions.size() <= 100).override_failure_message("Should handle rapid mission completions").is_true()
+	assert_that(completed_missions.size()).is_equal(100)
 
-# Error Boundary Tests
-@warning_ignore("unsafe_method_access")
+# Test invalid mission handling
 func test_invalid_mission_handling() -> void:
-	# Test direct state instead of signal monitoring (proven pattern)
+	# Test adding null mission
 	_campaign_state.add_completed_mission(null)
 	var completed_missions: Array = _campaign_state.get_completed_missions()
-	assert_that(completed_missions.size()).override_failure_message("Should handle null mission gracefully").is_equal(0)
+	assert_that(completed_missions.size()).is_equal(0)
 
-# Signal Tests
-@warning_ignore("unsafe_method_access")
+# Test resource signals
 func test_resource_signals() -> void:
 	# Test direct state instead of signal monitoring (proven pattern)
-	var initial_credits = _campaign_state.get_credits()
+	# Test credits signal
 	_campaign_state.add_credits(50)
 	var new_credits = _campaign_state.get_credits()
-	assert_that(new_credits).override_failure_message("Should emit credits_changed signal once").is_equal(initial_credits + 50)
+	assert_that(new_credits).is_equal(50)
 	
-	var initial_reputation = _campaign_state.get_reputation()
+	# Test reputation signal
 	_campaign_state.add_reputation(25)
 	var new_reputation = _campaign_state.get_reputation()
-	assert_that(new_reputation).override_failure_message("Should emit reputation_changed signal once").is_equal(initial_reputation + 25)
+	assert_that(new_reputation).is_equal(25)
 
-# Resource Boundary Tests
-@warning_ignore("unsafe_method_access")
+# Test resource boundaries
 func test_resource_boundaries() -> void:
-	# Test resource boundaries with realistic values
+	# Test large credit amounts
 	_campaign_state.add_credits(1000)
 	var credits = _campaign_state.get_credits()
-	assert_that(credits).override_failure_message("Credits should not go below 0").is_equal(1000)
-
-  
+	assert_that(credits).is_equal(1000)

@@ -1,13 +1,22 @@
+# Universal Connection Validation Applied
+# Based on proven patterns: Universal Mock Strategy + 7-Stage Methodology
 @tool
 extends BaseCampaignManager
 
-const BaseCampaignManager = preload("res://src/base/campaign/BaseCampaignManager.gd")
+# Safe imports
+const UniversalNodeAccess = preload("res://src/utils/UniversalNodeAccess.gd")
+const UniversalResourceLoader = preload("res://src/utils/UniversalResourceLoader.gd") 
+const UniversalSignalManager = preload("res://src/utils/UniversalSignalManager.gd")
+const UniversalDataAccess = preload("res://src/utils/UniversalDataAccess.gd")
+const UniversalSceneManager = preload("res://src/utils/UniversalSceneManager.gd")
 
-# Use load() instead of preload() to handle circular dependencies
-var FiveParsecsCampaignScript = load("res://src/game/campaign/FiveParsecsCampaign.gd")
-const FiveParsecsGameEnums = preload("res://src/game/campaign/crew/FiveParsecsGameEnums.gd")
-const GlobalEnums = preload("res://src/core/systems/GlobalEnums.gd")
-const FiveParsecsGameState = preload("res://src/core/state/GameState.gd")
+var BaseCampaignManager = null
+
+# Use safe loading instead of load() to handle circular dependencies
+var FiveParsecsCampaignScript = UniversalResourceLoader.load_script_safe("res://src/game/campaign/FiveParsecsCampaign.gd", "FiveParsecsCampaignManager FiveParsecsCampaignScript")
+var FiveParsecsGameEnums = null
+var GlobalEnums = null
+var FiveParsecsGameState = null
 
 # Define patron and rival types directly
 enum PatronType {
@@ -37,8 +46,56 @@ var active_campaigns: Array[Resource] = []
 var campaign_save_data: Dictionary = {}
 
 func _init() -> void:
+	# Load dependencies safely at runtime
+	BaseCampaignManager = UniversalResourceLoader.load_script_safe("res://src/base/campaign/BaseCampaignManager.gd", "FiveParsecsCampaignManager BaseCampaignManager")
+	FiveParsecsGameEnums = UniversalResourceLoader.load_script_safe("res://src/game/campaign/crew/FiveParsecsGameEnums.gd", "FiveParsecsCampaignManager FiveParsecsGameEnums")
+	GlobalEnums = UniversalResourceLoader.load_script_safe("res://src/core/systems/GlobalEnums.gd", "FiveParsecsCampaignManager GlobalEnums")
+	FiveParsecsGameState = UniversalResourceLoader.load_script_safe("res://src/core/state/GameState.gd", "FiveParsecsCampaignManager FiveParsecsGameState")
+	
 	super ()
+	_validate_universal_connections()
 	_initialize_galaxy_systems()
+
+func _validate_universal_connections() -> void:
+	# Validate game logic connections
+	_validate_game_connections()
+	_setup_safe_event_handling()
+
+func _validate_game_connections() -> void:
+	# Validate EventBus connection
+	var event_bus = get_node_or_null("/root/EventBus")
+	if not event_bus:
+		push_error("GAME SYSTEM FAILURE: EventBus not accessible from FiveParsecsCampaignManager")
+		return
+	
+	# Validate GameState connection
+	var game_state = get_node_or_null("/root/GameState")
+	if not game_state:
+		push_error("GAME SYSTEM FAILURE: GameState not accessible from FiveParsecsCampaignManager")
+		return
+	
+	# Validate required dependencies
+	if not GlobalEnums:
+		push_error("GAME DEPENDENCY MISSING: GlobalEnums not loaded")
+	
+	if not FiveParsecsGameEnums:
+		push_error("GAME DEPENDENCY MISSING: FiveParsecsGameEnums not loaded")
+
+func _setup_safe_event_handling() -> void:
+	var event_bus = get_node_or_null("/root/EventBus")
+	if event_bus:
+		# Connect to common game events safely
+		UniversalSignalManager.connect_signal_safe(event_bus, "game_state_changed", _on_game_state_changed, "FiveParsecsCampaignManager game state synchronization")
+		UniversalSignalManager.connect_signal_safe(event_bus, "campaign_created", _on_campaign_created, "FiveParsecsCampaignManager campaign creation")
+
+func _on_game_state_changed(new_state) -> void:
+	# Handle game state changes safely
+	print("FiveParsecsCampaignManager: Game state changed to: ", new_state)
+
+func _on_campaign_created(campaign_data: Dictionary) -> void:
+	# Handle campaign creation events safely
+	var campaign_name = UniversalDataAccess.get_dict_value_safe(campaign_data, "name", "Unknown Campaign", "FiveParsecsCampaignManager campaign creation")
+	print("FiveParsecsCampaignManager: Campaign created: ", campaign_name)
 
 func _initialize_galaxy_systems() -> void:
 	galaxy_systems = [

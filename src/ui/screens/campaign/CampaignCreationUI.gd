@@ -1,256 +1,257 @@
 extends Control
 
-const CampaignCreationManager = preload("res://src/core/campaign/CampaignCreationManager.gd")
-const GameEnums = preload("res://src/core/systems/GlobalEnums.gd")
+# Use the new core system setup
+var core_systems: Node = null
+var creation_manager: Node = null
 
 # UI Components
-@onready var config_panel: Control = $"MarginContainer/VBoxContainer/StepPanels/ConfigPanel"
-@onready var crew_panel: Control = $"MarginContainer/VBoxContainer/StepPanels/CrewPanel"
-@onready var captain_panel: Control = $"MarginContainer/VBoxContainer/StepPanels/CaptainPanel"
-@onready var resource_panel: Control = $"MarginContainer/VBoxContainer/StepPanels/ResourcePanel"
-@onready var final_panel: Control = $"MarginContainer/VBoxContainer/StepPanels/FinalPanel"
+@onready var config_panel: Control = get_node_or_null("MarginContainer/VBoxContainer/StepPanels/ConfigPanel")
+@onready var crew_panel: Control = get_node_or_null("MarginContainer/VBoxContainer/StepPanels/CrewPanel")
+@onready var captain_panel: Control = get_node_or_null("MarginContainer/VBoxContainer/StepPanels/CaptainPanel")
+@onready var resource_panel: Control = get_node_or_null("MarginContainer/VBoxContainer/StepPanels/ResourcePanel")
+@onready var final_panel: Control = get_node_or_null("MarginContainer/VBoxContainer/StepPanels/FinalPanel")
 
-@onready var step_label: Label = $"MarginContainer/VBoxContainer/Header/StepLabel"
-@onready var next_button: Button = $"MarginContainer/VBoxContainer/Navigation/NextButton"
-@onready var back_button: Button = $"MarginContainer/VBoxContainer/Navigation/BackButton"
-@onready var finish_button: Button = $"MarginContainer/VBoxContainer/Navigation/FinishButton"
+@onready var step_label: Label = get_node_or_null("MarginContainer/VBoxContainer/Header/StepLabel")
+@onready var next_button: Button = get_node_or_null("MarginContainer/VBoxContainer/Controls/NextButton")
+@onready var back_button: Button = get_node_or_null("MarginContainer/VBoxContainer/Controls/BackButton")
+@onready var cancel_button: Button = get_node_or_null("MarginContainer/VBoxContainer/Controls/CancelButton")
 
-var creation_manager: CampaignCreationManager
-var current_panel: Control
+# State
 var current_step: int = 0
-var max_steps: int = 5
+var step_panels: Array[Control] = []
 
 func _ready() -> void:
-	print("CampaignCreationUI: Starting initialization...")
+	print("CampaignCreationUI: Initializing...")
+	_setup_ui()
+	_initialize_core_systems()
+
+func _initialize_core_systems() -> void:
+	"""Initialize connection to core systems"""
+	# Get the core system setup autoload
+	core_systems = get_node_or_null("/root/CoreSystemSetup")
 	
-	# Validate required nodes first
-	if not _validate_required_nodes():
-		push_error("CampaignCreationUI: Required nodes are missing")
+	if not core_systems:
+		push_error("CampaignCreationUI: CoreSystemSetup autoload not found")
+		_create_fallback_ui()
 		return
 	
-	# Setup UI first
-	_setup_navigation()
-	_setup_panels()
+	# Check if systems are ready
+	if core_systems.has_method("is_ready") and core_systems.is_ready():
+		_on_core_systems_ready()
+	else:
+		# Wait for systems to be ready
+		if core_systems.has_signal("core_systems_ready"):
+			core_systems.core_systems_ready.connect(_on_core_systems_ready)
+		else:
+			push_warning("CampaignCreationUI: Core systems not ready, using fallback")
+			_create_fallback_ui()
+
+func _on_core_systems_ready() -> void:
+	"""Handle core systems being ready"""
+	print("CampaignCreationUI: Core systems ready, getting creation manager...")
 	
-	# Initialize creation manager
-	creation_manager = CampaignCreationManager.new()
-	add_child(creation_manager)
+	if core_systems.has_method("get_campaign_creation_manager"):
+		creation_manager = core_systems.get_campaign_creation_manager()
+		
+		if creation_manager:
+			_connect_creation_manager_signals()
+			print("CampaignCreationUI: Connected to campaign creation manager")
+		else:
+			push_warning("CampaignCreationUI: Campaign creation manager not available")
+			_create_fallback_ui()
+	else:
+		push_warning("CampaignCreationUI: Core systems don't support campaign creation manager")
+		_create_fallback_ui()
+
+func _connect_creation_manager_signals() -> void:
+	"""Connect to creation manager signals"""
+	if not creation_manager:
+		return
 	
-	# Connect signals if methods exist
+	# Connect signals if they exist
 	if creation_manager.has_signal("creation_step_changed"):
 		creation_manager.creation_step_changed.connect(_on_creation_step_changed)
+	
 	if creation_manager.has_signal("campaign_creation_completed"):
 		creation_manager.campaign_creation_completed.connect(_on_campaign_creation_completed)
 	
-	# Start with first step
-	_show_step(0)
-	print("CampaignCreationUI: Initialization complete!")
+	if creation_manager.has_signal("validation_failed"):
+		creation_manager.validation_failed.connect(_on_validation_failed)
 
-func _validate_required_nodes() -> bool:
-	"""Validate that all required UI nodes exist"""
-	var required_nodes = [
-		config_panel, crew_panel, captain_panel, resource_panel, final_panel,
-		step_label, next_button, back_button, finish_button
-	]
+func _setup_ui() -> void:
+	"""Setup the user interface"""
+	# Collect step panels
+	step_panels = []
+	if config_panel:
+		step_panels.append(config_panel)
+	if crew_panel:
+		step_panels.append(crew_panel)
+	if captain_panel:
+		step_panels.append(captain_panel)
+	if resource_panel:
+		step_panels.append(resource_panel)
+	if final_panel:
+		step_panels.append(final_panel)
 	
-	for node in required_nodes:
-		if not node:
-			return false
-	return true
-
-func _setup_navigation() -> void:
-	next_button.pressed.connect(_on_next_pressed)
-	back_button.pressed.connect(_on_back_pressed)
-	finish_button.pressed.connect(_on_finish_pressed)
+	# Connect button signals
+	if next_button:
+		next_button.pressed.connect(_on_next_button_pressed)
+	if back_button:
+		back_button.pressed.connect(_on_back_button_pressed)
+	if cancel_button:
+		cancel_button.pressed.connect(_on_cancel_button_pressed)
 	
-	# Initial state
-	back_button.hide()
-	finish_button.hide()
-	next_button.disabled = false
+	# Show first step
+	_update_ui_for_step(0)
 
-func _setup_panels() -> void:
-	# Hide all panels initially
-	var step_panels = $"MarginContainer/VBoxContainer/StepPanels"
-	for panel in step_panels.get_children():
-		panel.hide()
+func _create_fallback_ui() -> void:
+	"""Create a fallback UI when core systems aren't available"""
+	print("CampaignCreationUI: Creating fallback UI")
 	
-	# Connect panel signals if they exist
-	if config_panel and config_panel.has_signal("config_updated"):
-		config_panel.config_updated.connect(_on_config_updated)
-	if crew_panel and crew_panel.has_signal("crew_updated"):
-		crew_panel.crew_updated.connect(_on_crew_updated)
-	if resource_panel and resource_panel.has_signal("resources_updated"):
-		resource_panel.resources_updated.connect(_on_resources_updated)
-
-func _show_step(step: int) -> void:
-	"""Show a specific creation step"""
-	if current_panel:
-		current_panel.hide()
+	# Hide all panels except the first one
+	for i in range(step_panels.size()):
+		if step_panels[i]:
+			step_panels[i].visible = (i == 0)
 	
 	# Update step label
-	var step_names = [
-		"Step 1: Campaign Configuration",
-		"Step 2: Crew Creation",
-		"Step 3: Captain Setup",
-		"Step 4: Resources & Equipment",
-		"Step 5: Final Review"
-	]
+	if step_label:
+		step_label.text = "Campaign Creation (Fallback Mode)"
 	
-	if step < step_names.size():
-		step_label.text = step_names[step]
+	# Enable basic navigation
+	if next_button:
+		next_button.disabled = false
+		next_button.text = "Next"
 	
-	# Show appropriate panel
-	match step:
-		0: # Campaign Config
-			current_panel = config_panel
-			back_button.hide()
-			next_button.show()
-			finish_button.hide()
-		1: # Crew Creation
-			current_panel = crew_panel
-			back_button.show()
-			next_button.show()
-			finish_button.hide()
-		2: # Captain Setup
-			current_panel = captain_panel
-			back_button.show()
-			next_button.show()
-			finish_button.hide()
-		3: # Resource Setup
-			current_panel = resource_panel
-			back_button.show()
-			next_button.show()
-			finish_button.hide()
-		4: # Finalization
-			current_panel = final_panel
-			back_button.show()
-			next_button.hide()
-			finish_button.show()
+	if back_button:
+		back_button.disabled = true
+
+func _update_ui_for_step(step: int) -> void:
+	"""Update UI for the current step"""
+	current_step = step
 	
-	if current_panel:
-		current_panel.show()
-	_update_navigation()
+	# Hide all panels
+	for panel in step_panels:
+		if panel:
+			panel.visible = false
+	
+	# Show current panel
+	if step < step_panels.size() and step_panels[step]:
+		step_panels[step].visible = true
+	
+	# Update step label
+	if step_label:
+		var step_names = ["Configuration", "Crew Setup", "Captain Creation", "Resources", "Final Review"]
+		if step < step_names.size():
+			step_label.text = "Step " + str(step + 1) + ": " + step_names[step]
+	
+	# Update button states
+	if back_button:
+		back_button.disabled = (step == 0)
+	
+	if next_button:
+		if step >= step_panels.size() - 1:
+			next_button.text = "Create Campaign"
+		else:
+			next_button.text = "Next"
 
-func _on_creation_step_changed(step: int) -> void:
-	"""Handle creation step change from creation manager"""
-	_show_step(step)
-
-func _validate_current_step() -> bool:
-	"""Validate the current step can be advanced"""
-	match current_step:
-		0: # Campaign Config
-			return config_panel != null
-		1: # Crew Creation
-			return crew_panel != null
-		2: # Captain Setup
-			return captain_panel != null
-		3: # Resource Setup
-			return resource_panel != null
-		4: # Final Review
-			return final_panel != null
-		_:
-			return false
-
-func _on_next_pressed() -> void:
+func _on_next_button_pressed() -> void:
 	"""Handle next button press"""
-	print("CampaignCreationUI: Next pressed, current step: ", current_step)
-	
-	# Validate current step before proceeding
-	if not _validate_current_step():
-		print("CampaignCreationUI: Current step validation failed")
-		return
-	
-	# Advance to next step
-	if current_step < max_steps - 1:
-		current_step += 1
-		_show_step(current_step)
-		
-		# Use creation manager if available
-		if creation_manager and creation_manager.has_method("advance_step"):
-			creation_manager.advance_step()
+	if creation_manager and creation_manager.has_method("advance_step"):
+		creation_manager.advance_step()
+	else:
+		# Fallback navigation
+		if current_step < step_panels.size() - 1:
+			_update_ui_for_step(current_step + 1)
+		else:
+			_finalize_campaign_creation()
 
-func _on_back_pressed() -> void:
+func _on_back_button_pressed() -> void:
 	"""Handle back button press"""
-	print("CampaignCreationUI: Back pressed, current step: ", current_step)
-	
-	# Go to previous step
-	if current_step > 0:
-		current_step -= 1
-		_show_step(current_step)
-		
-		# Use creation manager if available
-		if creation_manager and creation_manager.has_method("go_back_step"):
-			creation_manager.go_back_step()
+	if creation_manager and creation_manager.has_method("go_back_step"):
+		creation_manager.go_back_step()
+	else:
+		# Fallback navigation
+		if current_step > 0:
+			_update_ui_for_step(current_step - 1)
 
-func _on_finish_pressed() -> void:
-	"""Handle finish button press"""
-	print("CampaignCreationUI: Finish pressed - creating campaign")
-	
-	# Finalize campaign creation
-	var _campaign_data = _gather_campaign_data()
-	
+func _on_cancel_button_pressed() -> void:
+	"""Handle cancel button press"""
+	print("CampaignCreationUI: Campaign creation cancelled")
+	_return_to_main_menu()
+
+func _finalize_campaign_creation() -> void:
+	"""Finalize campaign creation"""
 	if creation_manager and creation_manager.has_method("finalize_campaign_creation"):
 		var campaign = creation_manager.finalize_campaign_creation()
-		_start_campaign(campaign)
+		if campaign:
+			print("CampaignCreationUI: Campaign created successfully")
+			_start_campaign(campaign)
+		else:
+			push_error("CampaignCreationUI: Failed to create campaign")
 	else:
-		# Fallback - transition to main game
-		print("CampaignCreationUI: No creation manager, transitioning to main game")
-		_transition_to_main_game()
-
-func _gather_campaign_data() -> Dictionary:
-	"""Gather all campaign data from panels"""
-	return {
-		"config": _get_config_data(),
-		"crew": _get_crew_data(),
-		"captain": _get_captain_data(),
-		"resources": _get_resource_data()
-	}
-
-func _get_config_data() -> Dictionary:
-	return {} # TODO: Get from config panel
-
-func _get_crew_data() -> Array:
-	return [] # TODO: Get from crew panel
-
-func _get_captain_data() -> Dictionary:
-	return {} # TODO: Get from captain panel
-
-func _get_resource_data() -> Dictionary:
-	return {} # TODO: Get from resource panel
+		# Fallback: just start a basic campaign
+		print("CampaignCreationUI: Creating fallback campaign")
+		_start_fallback_campaign()
 
 func _start_campaign(campaign) -> void:
-	"""Start the campaign with given data"""
-	print("CampaignCreationUI: Starting campaign")
-	# TODO: Connect to game state manager
-	_transition_to_main_game()
-
-func _transition_to_main_game() -> void:
-	"""Transition to the main game scene"""
-	print("CampaignCreationUI: Transitioning to main game")
-	var scene_router = get_node("/root/SceneRouter")
-	if scene_router and scene_router.has_method("enter_main_game"):
-		scene_router.enter_main_game()
+	"""Start the created campaign"""
+	# Try to start the campaign through core systems
+	if core_systems and core_systems.has_method("start_new_campaign"):
+		var config = {"campaign": campaign}
+		if core_systems.start_new_campaign(config):
+			print("CampaignCreationUI: Campaign started successfully")
+			_navigate_to_main_game()
+		else:
+			push_error("CampaignCreationUI: Failed to start campaign")
 	else:
-		push_warning("SceneRouter not found or method unavailable")
+		push_warning("CampaignCreationUI: Core systems not available, using fallback")
+		_navigate_to_main_game()
 
-func _update_navigation() -> void:
-	"""Update navigation button states"""
-	back_button.disabled = (current_step == 0)
-	next_button.disabled = (current_step == max_steps - 1) or not _validate_current_step()
-	finish_button.disabled = (current_step != max_steps - 1) or not _validate_current_step()
+func _start_fallback_campaign() -> void:
+	"""Start a basic fallback campaign"""
+	if core_systems and core_systems.has_method("start_new_campaign"):
+		var basic_config = {
+			"name": "New Campaign",
+			"difficulty": 1,
+			"credits": 1000
+		}
+		core_systems.start_new_campaign(basic_config)
+	
+	_navigate_to_main_game()
 
-# Panel update handlers
+func _navigate_to_main_game() -> void:
+	"""Navigate to the main game scene"""
+	var scene_router = get_node_or_null("/root/SceneRouter")
+	if scene_router and scene_router.has_method("navigate_to_main_game"):
+		scene_router.navigate_to_main_game()
+	else:
+		# Fallback navigation
+		get_tree().call_deferred("change_scene_to_file", "res://src/scenes/main/MainGameScene.tscn")
 
-func _on_config_updated(config: Dictionary) -> void:
-	_update_navigation()
+func _return_to_main_menu() -> void:
+	"""Return to the main menu"""
+	var scene_router = get_node_or_null("/root/SceneRouter")
+	if scene_router and scene_router.has_method("return_to_main_menu"):
+		scene_router.return_to_main_menu()
+	else:
+		# Fallback navigation
+		get_tree().call_deferred("change_scene_to_file", "res://src/ui/screens/mainmenu/MainMenu.tscn")
 
-func _on_crew_updated(crew: Array) -> void:
-	_update_navigation()
-
-func _on_resources_updated(resources: Dictionary) -> void:
-	_update_navigation()
+# Signal handlers for creation manager
+func _on_creation_step_changed(step: int) -> void:
+	"""Handle creation step change"""
+	_update_ui_for_step(step)
 
 func _on_campaign_creation_completed(campaign) -> void:
 	"""Handle campaign creation completion"""
 	print("CampaignCreationUI: Campaign creation completed")
 	_start_campaign(campaign)
+
+func _on_validation_failed(errors: Array[String]) -> void:
+	"""Handle validation failure"""
+	print("CampaignCreationUI: Validation failed:")
+	for error in errors:
+		print("  - " + error)
+	
+	# Show error message to user
+	# TODO: Implement proper error display UI

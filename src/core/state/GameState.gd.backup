@@ -1,6 +1,6 @@
 @tool
 extends Node
-class_name GameState
+# BACKUP FILE - class_name removed to avoid conflicts
 
 ## Dependencies - explicit loading to avoid circular references
 const GameEnums = preload("res://src/core/systems/GlobalEnums.gd")

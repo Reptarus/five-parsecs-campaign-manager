@@ -1,42 +1,41 @@
 @tool
-@warning_ignore("return_value_discarded")
-	extends Node
+extends Node
 
 # Pre-run script that executes before any tests
-# This ensures proper initialization of dependencies
+#
 
 const REQUIRED_AUTOLOADS = {
 	"GameEnums": "res://src/core/systems/GlobalEnums.gd"
 }
 
 func _init() -> void:
-	print("Running pre-test initialization...")
-	_ensure_autoloads()
-	@warning_ignore("unsafe_method_access")
-	await get_tree().process_frame
+	pass
+# 	print("Running pre-test initialization...")
+# 	_ensure_autoloads()
+#
 
 func _ensure_autoloads() -> void:
 	for autoload_name in REQUIRED_AUTOLOADS:
 		if not Engine.has_singleton(autoload_name):
-			print("Adding required autoload: ", autoload_name)
-			@warning_ignore("return_value_discarded")
-	add_child(load(REQUIRED_AUTOLOADS[autoload_name]).new())
+			var script = load(REQUIRED_AUTOLOADS[autoload_name])
+			if script:
+				var instance = script.new()
+				instance.name = autoload_name
+				add_child(instance)
 
 func setup() -> void:
-	# Ensure all core systems are initialized
-	if not Engine.has_singleton("GameState"):
-		var game_state = load("res://src/core/state/GameState.gd").new()
-		@warning_ignore("return_value_discarded")
-	add_child(game_state)
+	pass
+	#
+# 	if not Engine.has_singleton("GameState"):
+#      pass
+# 		# add_child(node)
 	
 	# Wait for a frame to ensure everything is initialized
-	@warning_ignore("unsafe_method_access")
-	await get_tree().process_frame
+#
 
 func cleanup() -> void:
-	# Clean up any test resources
-	for child in get_children():
-		child.@warning_ignore("return_value_discarded")
-	queue_free()
-	@warning_ignore("unsafe_method_access")
-	await get_tree().process_frame
+	pass
+	#
+# 	for child in get_children():
+# 		child.queue_free()
+pass

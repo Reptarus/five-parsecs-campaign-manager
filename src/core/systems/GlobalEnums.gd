@@ -9,21 +9,57 @@ enum EditMode {
 	VIEW
 }
 
-## Phase Names and Descriptions
+## Official Five Parsecs Campaign Phases (Core Rulebook Compliance)
+## Four-Phase Campaign Turn Structure
 enum FiveParcsecsCampaignPhase {
 	NONE,
-	SETUP,
-	UPKEEP,
-	STORY,
-	CAMPAIGN,
-	BATTLE_SETUP,
-	BATTLE_RESOLUTION,
-	ADVANCEMENT,
-	TRADE,
-	END
+	SETUP,        # Initial crew creation (not part of regular turn)
+	TRAVEL,       # Phase 1: Travel Phase
+	WORLD,        # Phase 2: World Phase  
+	BATTLE,       # Phase 3: Tabletop Battle
+	POST_BATTLE   # Phase 4: Post-Battle Sequence
 }
 
-## Campaign Sub-Phases for more granular campaign flow management
+## Travel Phase Sub-Steps (Official Rules)
+enum TravelSubPhase {
+	NONE,
+	FLEE_INVASION,        # Step 1: Flee invasion (if applicable)
+	DECIDE_TRAVEL,        # Step 2: Decide whether to travel
+	TRAVEL_EVENT,         # Step 3: Starship travel event (if applicable)
+	WORLD_ARRIVAL         # Step 4: New world arrival steps (if applicable)
+}
+
+## World Phase Sub-Steps (Official Rules)
+enum WorldSubPhase {
+	NONE,
+	UPKEEP,              # Step 1: Upkeep and ship repairs
+	CREW_TASKS,          # Step 2: Assign and resolve crew tasks
+	JOB_OFFERS,          # Step 3: Determine job offers
+	EQUIPMENT,           # Step 4: Assign equipment
+	RUMORS,              # Step 5: Resolve any rumors
+	BATTLE_CHOICE        # Step 6: Choose your battle
+}
+
+## Post-Battle Phase Sub-Steps (Official Rules)
+enum PostBattleSubPhase {
+	NONE,
+	RIVAL_STATUS,        # Step 1: Resolve rival status
+	PATRON_STATUS,       # Step 2: Resolve patron status
+	QUEST_PROGRESS,      # Step 3: Determine quest progress
+	GET_PAID,            # Step 4: Get paid
+	BATTLEFIELD_FINDS,   # Step 5: Battlefield finds
+	CHECK_INVASION,      # Step 6: Check for invasion
+	GATHER_LOOT,         # Step 7: Gather the loot
+	INJURIES,            # Step 8: Determine injuries and recovery
+	EXPERIENCE,          # Step 9: Experience and character upgrades
+	TRAINING,            # Step 10: Invest in advanced training
+	PURCHASES,           # Step 11: Purchase items
+	CAMPAIGN_EVENT,      # Step 12: Roll for a campaign event
+	CHARACTER_EVENT,     # Step 13: Roll for a character event
+	GALACTIC_WAR         # Step 14: Check for galactic war progress
+}
+
+## Legacy Sub-Phases (Deprecated - kept for backward compatibility)
 enum CampaignSubPhase {
 	NONE,
 	TRAVEL,
@@ -33,30 +69,83 @@ enum CampaignSubPhase {
 	MISSION_SELECTION
 }
 
+## Crew Task Types (World Phase Step 2)
+enum CrewTaskType {
+	NONE,
+	FIND_PATRON,         # Find a patron
+	TRAIN,              # Train (gain 1 XP)
+	TRADE,              # Trade (roll on trade table)
+	RECRUIT,            # Recruit (expand crew)
+	EXPLORE,            # Explore (roll on exploration table)
+	TRACK,              # Track (locate rivals)
+	REPAIR_KIT,         # Repair your kit
+	DECOY               # Decoy (help avoid rivals)
+}
+
 const PHASE_NAMES = {
 	FiveParcsecsCampaignPhase.NONE: "None",
-	FiveParcsecsCampaignPhase.SETUP: "Setup",
-	FiveParcsecsCampaignPhase.UPKEEP: "Upkeep",
-	FiveParcsecsCampaignPhase.STORY: "Story",
-	FiveParcsecsCampaignPhase.CAMPAIGN: "Campaign",
-	FiveParcsecsCampaignPhase.BATTLE_SETUP: "Battle Setup",
-	FiveParcsecsCampaignPhase.BATTLE_RESOLUTION: "Battle Resolution",
-	FiveParcsecsCampaignPhase.ADVANCEMENT: "Advancement",
-	FiveParcsecsCampaignPhase.TRADE: "Trade",
-	FiveParcsecsCampaignPhase.END: "End"
+	FiveParcsecsCampaignPhase.SETUP: "Crew Creation",
+	FiveParcsecsCampaignPhase.TRAVEL: "Travel Phase",
+	FiveParcsecsCampaignPhase.WORLD: "World Phase",
+	FiveParcsecsCampaignPhase.BATTLE: "Battle Phase",
+	FiveParcsecsCampaignPhase.POST_BATTLE: "Post-Battle Phase"
 }
 
 const PHASE_DESCRIPTIONS = {
 	FiveParcsecsCampaignPhase.NONE: "No active phase",
 	FiveParcsecsCampaignPhase.SETUP: "Create your crew and prepare for adventure",
-	FiveParcsecsCampaignPhase.UPKEEP: "Maintain your crew and resources",
-	FiveParcsecsCampaignPhase.STORY: "Progress through story events",
-	FiveParcsecsCampaignPhase.CAMPAIGN: "Engage in campaign activities",
-	FiveParcsecsCampaignPhase.BATTLE_SETUP: "Prepare for combat",
-	FiveParcsecsCampaignPhase.BATTLE_RESOLUTION: "Handle battle aftermath",
-	FiveParcsecsCampaignPhase.ADVANCEMENT: "Improve your crew",
-	FiveParcsecsCampaignPhase.TRADE: "Buy and sell equipment",
-	FiveParcsecsCampaignPhase.END: "Campaign phase complete"
+	FiveParcsecsCampaignPhase.TRAVEL: "Decide travel, handle events, and arrive at new worlds",
+	FiveParcsecsCampaignPhase.WORLD: "Handle upkeep, crew tasks, jobs, and mission selection",
+	FiveParcsecsCampaignPhase.BATTLE: "Resolve tactical combat on the tabletop",
+	FiveParcsecsCampaignPhase.POST_BATTLE: "Handle battle aftermath, advancement, and events"
+}
+
+const TRAVEL_SUBSTEP_NAMES = {
+	TravelSubPhase.NONE: "None",
+	TravelSubPhase.FLEE_INVASION: "Flee Invasion",
+	TravelSubPhase.DECIDE_TRAVEL: "Decide Travel",
+	TravelSubPhase.TRAVEL_EVENT: "Travel Event",
+	TravelSubPhase.WORLD_ARRIVAL: "World Arrival"
+}
+
+const WORLD_SUBSTEP_NAMES = {
+	WorldSubPhase.NONE: "None",
+	WorldSubPhase.UPKEEP: "Upkeep & Repairs",
+	WorldSubPhase.CREW_TASKS: "Crew Tasks",
+	WorldSubPhase.JOB_OFFERS: "Job Offers",
+	WorldSubPhase.EQUIPMENT: "Equipment Assignment",
+	WorldSubPhase.RUMORS: "Resolve Rumors",
+	WorldSubPhase.BATTLE_CHOICE: "Choose Battle"
+}
+
+const POST_BATTLE_SUBSTEP_NAMES = {
+	PostBattleSubPhase.NONE: "None",
+	PostBattleSubPhase.RIVAL_STATUS: "Rival Status",
+	PostBattleSubPhase.PATRON_STATUS: "Patron Status",
+	PostBattleSubPhase.QUEST_PROGRESS: "Quest Progress",
+	PostBattleSubPhase.GET_PAID: "Get Paid",
+	PostBattleSubPhase.BATTLEFIELD_FINDS: "Battlefield Finds",
+	PostBattleSubPhase.CHECK_INVASION: "Check Invasion",
+	PostBattleSubPhase.GATHER_LOOT: "Gather Loot",
+	PostBattleSubPhase.INJURIES: "Injuries & Recovery",
+	PostBattleSubPhase.EXPERIENCE: "Experience & Upgrades",
+	PostBattleSubPhase.TRAINING: "Advanced Training",
+	PostBattleSubPhase.PURCHASES: "Purchase Items",
+	PostBattleSubPhase.CAMPAIGN_EVENT: "Campaign Event",
+	PostBattleSubPhase.CHARACTER_EVENT: "Character Event",
+	PostBattleSubPhase.GALACTIC_WAR: "Galactic War"
+}
+
+const CREW_TASK_NAMES = {
+	CrewTaskType.NONE: "None",
+	CrewTaskType.FIND_PATRON: "Find Patron",
+	CrewTaskType.TRAIN: "Train",
+	CrewTaskType.TRADE: "Trade",
+	CrewTaskType.RECRUIT: "Recruit",
+	CrewTaskType.EXPLORE: "Explore",
+	CrewTaskType.TRACK: "Track",
+	CrewTaskType.REPAIR_KIT: "Repair Kit",
+	CrewTaskType.DECOY: "Decoy"
 }
 
 ## Difficulty Levels

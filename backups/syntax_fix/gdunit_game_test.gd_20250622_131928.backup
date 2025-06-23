@@ -1,0 +1,315 @@
+class_name GdUnitGameTest
+extends GdUnitBaseTest
+
+## Game-specific test utilities for Five Parsecs Campaign Manager
+## Extends GdUnitBaseTest with game-specific functionality
+
+#
+var game_data_manager: Node
+var game_state_manager: Node
+var character_manager: Node
+
+#
+var _test_campaigns: Array[Resource] = []
+var _test_characters: Array[Resource] = []
+var _test_missions: Array[Resource] = []
+
+func before() -> void:
+	"""Initialize game systems before tests"""
+	super.before()
+	_initialize_game_systems()
+
+func after() -> void:
+	"""Clean up game systems after tests"""
+	_cleanup_game_data()
+	super.after()
+
+func before_test() -> void:
+	"""Set up game state before each test"""
+	super.before_test()
+	_reset_game_state()
+
+func after_test() -> void:
+	pass
+	#
+	_cleanup_signal_connections()
+	
+	#
+	await stabilize_engine()
+	await get_tree().process_frame
+	
+	super.after_test()
+
+#
+func _initialize_game_systems() -> void:
+	"""Initialize core game systems for testing"""
+	#
+	game_data_manager = get_node_or_null("/root/GameDataManager")
+	game_state_manager = get_node_or_null("/root/GameStateManager")
+	character_manager = get_node_or_null("/root/CharacterManager")
+	
+	#
+	assert_that(game_data_manager).is_not_null()
+	assert_that(game_state_manager).is_not_null()
+	assert_that(character_manager).is_not_null()
+
+func _reset_game_state() -> void:
+	"""Reset game state to clean slate for testing"""
+	if game_state_manager and game_state_manager.has_method("reset_to_defaults"):
+		game_state_manager.reset_to_defaults()
+
+#
+func create_test_campaign(test_name: String = "Test Campaign") -> Resource:
+	"""Create a test campaign resource"""
+	#
+	var campaign = Resource.new()
+	campaign.set_meta("campaign_name", test_name)
+	campaign.set_meta("turn_number", 1)
+	_test_campaigns.append(campaign)
+	return track_resource(campaign)
+
+func create_test_character(test_name: String = "Test Character") -> Resource:
+	"""Create a test character resource"""
+	var character = Resource.new()
+	character.character_name = test_name
+	character.reactions = 1
+	character.speed = 4
+	character.combat_skill = 1
+	character.toughness = 3
+	character.savvy = 1
+	_test_characters.append(character)
+	return track_resource(character)
+
+func create_test_crew(size: int = 4) -> Array[Resource]:
+	"""Create a test crew of specified size"""
+	var crew: Array[Resource] = []
+	for i: int in range(size):
+		var character = create_test_character("Crew Member %d" % (i + 1))
+		crew.append(character)
+	return crew
+
+func create_test_mission(mission_type: String = "Patrol") -> Resource:
+	"""Create a test mission resource"""
+	var mission = Resource.new()
+	mission.mission_type = mission_type
+	mission.difficulty = 1
+	_test_missions.append(mission)
+	return track_resource(mission)
+
+#
+func assert_campaign_valid(campaign: Resource, message: String = "") -> GdUnitObjectAssert:
+	"""Assert that a campaign resource is valid"""
+	assert_that(campaign).is_not_null()
+	assert_that(campaign.has_meta("campaign_name")).is_true()
+	assert_that(campaign.has_meta("turn_number")).is_true()
+	return assert_that(campaign)
+
+func assert_character_valid(character: Resource, message: String = "") -> GdUnitObjectAssert:
+	"""Assert that a character resource is valid"""
+	assert_that(character).is_not_null()
+	assert_that(character.character_name).is_not_equal("")
+	assert_that(character.reactions).is_greater_equal(0)
+	assert_that(character.speed).is_greater_equal(0)
+	assert_that(character.combat_skill).is_greater_equal(0)
+	assert_that(character.toughness).is_greater_equal(0)
+	assert_that(character.savvy).is_greater_equal(0)
+	return assert_that(character)
+
+func assert_crew_size(crew: Array, expected_size: int, message: String = "") -> GdUnitArrayAssert:
+	"""Assert crew has expected size"""
+	return assert_that(crew).has_size(expected_size)
+
+func assert_mission_valid(mission: Resource, message: String = "") -> GdUnitObjectAssert:
+	"""Assert that a mission resource is valid"""
+	assert_that(mission).is_not_null()
+	assert_that(mission.mission_type).is_not_equal("")
+	assert_that(mission.difficulty).is_greater_equal(0)
+	return assert_that(mission)
+
+#
+func simulate_campaign_turn() -> void:
+	"""Simulate a complete campaign turn"""
+	if game_state_manager and game_state_manager.has_method("advance_turn"):
+		game_state_manager.advance_turn()
+
+#
+func _cleanup_game_data() -> void:
+	"""Clean up test game data"""
+	_test_campaigns.clear()
+	_test_characters.clear()
+	_test_missions.clear()
+
+func _cleanup_signal_connections() -> void:
+	"""Clean up any signal connections created during tests"""
+	if game_data_manager and is_instance_valid(game_data_manager):
+		for signal_info in game_data_manager.get_signal_list():
+			if game_data_manager.is_connected(signal_info.name, _on_test_signal):
+				game_data_manager.disconnect(signal_info.name, _on_test_signal)
+
+func _on_test_signal() -> void:
+	"""Generic signal handler for test cleanup"""
+	pass
+
+#
+func create_mock_node(node_type: String = "Node") -> Node:
+	"""Create a mock node for testing"""
+	var node: Node
+	match node_type:
+		"Control": node = Control.new(),
+		"Node2D": node = Node2D.new(),
+		_:
+			node = Node.new()
+	
+	node.name = "MockNode"
+	return track_node(node)
+
+func create_mock_resource(resource_type: String = "Resource") -> Resource:
+	"""Create a mock resource for testing"""
+	var resource: Resource
+	match resource_type:
+		"PackedScene": resource = PackedScene.new(),
+		_:
+			resource = Resource.new()
+	
+	return track_resource(resource)
+
+#
+func benchmark_function(function: Callable, iterations: int = 100) -> Dictionary:
+	"""Benchmark a function's performance"""
+	var start_time = Time.get_ticks_msec()
+	
+	for i: int in range(iterations):
+		function.call()
+	
+	var end_time = Time.get_ticks_msec()
+	var duration = end_time - start_time
+
+	return {
+		"total_time_ms": duration,
+		"iterations": iterations,
+		"average_time_ms": float(duration) / iterations,
+		"ops_per_second": 1000.0 / (float(duration) / iterations),
+
+#
+func connect_test_signals(object: Object, signal_name: String, target: Object, method_name: String) -> bool:
+	"""Safely connect signals for testing"""
+	if object and object.has_signal(signal_name) and target and target.has_method(method_name):
+		object.connect(signal_name, target.call.bind(method_name))
+		return true
+	return false
+
+func emit_test_signal(object: Object, signal_name: String, args: Array = []) -> bool:
+	"""Safely emit signals during testing"""
+	if object and object.has_signal(signal_name):
+		if args.is_empty():
+			object.emit_signal(signal_name)
+		else:
+			object.callv("emit_signal", [signal_name] + args)
+		return true
+	return false
+
+#
+func wait_for_signal(object: Object, signal_name: String, timeout: float = 5.0) -> bool:
+	"""Wait for a signal with timeout"""
+	if not object or not object.has_signal(signal_name):
+		return false
+
+	var timer = get_tree().create_timer(timeout)
+	var signal_emitted = false
+	
+	var signal_callback = func():
+		signal_emitted = true
+	
+	object.connect(signal_name, signal_callback, CONNECT_ONE_SHOT)
+	
+	while not signal_emitted and timer.time_left > 0:
+		await get_tree().process_frame
+	
+	if object.is_connected(signal_name, signal_callback):
+		object.disconnect(signal_name, signal_callback)
+	
+	return signal_emitted
+
+#
+func validate_resource_integrity(resource: Resource) -> bool:
+	"""Validate that a resource is properly formed"""
+	if not resource or not is_instance_valid(resource):
+		return false
+
+	#
+	var script = resource.get_script()
+	if script:
+		var property_list = resource.get_property_list()
+		return not property_list.is_empty()
+	
+	return true
+
+func validate_node_hierarchy(node: Node, expected_children: Array = []) -> bool:
+	"""Validate node hierarchy structure"""
+	if not node or not is_instance_valid(node):
+		return false
+
+	if expected_children.size() > 0:
+		return node.get_child_count() >= expected_children.size()
+	
+	return true
+
+#
+func generate_test_data(data_type: String, count: int = 1) -> Array:
+	"""Generate test data of specified type"""
+	var data: Array = []
+	
+	for i: int in range(count):
+		match data_type:
+		"campaign": data.append(create_test_campaign("Test Campaign %d" % (i + 1))),
+		"character": data.append(create_test_character("Test Character %d" % (i + 1))),
+		"mission": data.append(create_test_mission("Test Mission %d" % (i + 1))),
+			_:
+				data.append({"id": i, "name": "Test Data %d" % (i + 1)})
+	
+	return data
+
+#
+func safe_call_method(object: Object, method_name: String, args: Array = []) -> Variant:
+	"""Safely call method with error handling"""
+	if not object or not is_instance_valid(object):
+		return null
+
+	if not object.has_method(method_name):
+		return null
+
+	if args.is_empty():
+		return object.call(method_name)
+	else:
+		return object.callv(method_name, args)
+
+func safe_get_property(object: Object, property_name: String) -> Variant:
+	"""Safely get property with error handling"""
+	if not object or not is_instance_valid(object):
+		return null
+
+	if property_name in object:
+		return object.get(property_name)
+	
+	return null
+
+func safe_set_property(object: Object, property_name: String, _value: Variant) -> bool:
+	"""Safely set property with error handling"""
+	if not object or not is_instance_valid(object):
+		return false
+
+	if property_name in object:
+		object.set(property_name, _value)
+		return true
+	
+	return false
+
+func safe_emit_signal(object: Object, signal_name: String, args: Array = []) -> bool:
+	if not is_instance_valid(object):
+		return false
+
+	if object.has_signal(signal_name):
+		object.callv("emit_signal", [signal_name] + args)
+		return true
+	
+	return false

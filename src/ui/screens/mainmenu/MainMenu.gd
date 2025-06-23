@@ -1,25 +1,45 @@
-# MainMenu.gd
+# Universal Connection Validation Applied
+# Based on proven patterns: Universal Mock Strategy + 7-Stage Methodology
 extends Control
 
-const GameStateManager = preload("res://src/core/managers/GameStateManager.gd")
-const GameEnums = preload("res://src/core/systems/GlobalEnums.gd")
+# Safe imports
+const UniversalNodeAccess = preload("res://src/utils/UniversalNodeAccess.gd")
+const UniversalResourceLoader = preload("res://src/utils/UniversalResourceLoader.gd") 
+const UniversalSignalManager = preload("res://src/utils/UniversalSignalManager.gd")
+const UniversalDataAccess = preload("res://src/utils/UniversalDataAccess.gd")
+const UniversalSceneManager = preload("res://src/utils/UniversalSceneManager.gd")
 
-@onready var continue_button = %Continue as Button
-@onready var new_campaign_button = %NewCampaign as Button
-@onready var coop_campaign_button = %CoopCampaign as Button
-@onready var battle_simulator_button = %BattleSimulator as Button
-@onready var bug_hunt_button = %BugHunt as Button
-@onready var options_button = %Options as Button
-@onready var library_button = %Library as Button
-@onready var tutorial_popup = %TutorialPopup as Panel
+# Developer Quick Start Panel for playtesting efficiency
+const DeveloperQuickStart = preload("res://src/ui/debug/DeveloperQuickStart.gd")
+
+# Safe dependency loading - loaded at runtime in _ready()
+var GameStateManager = null
+var GameEnums = null
+
+# Node references using safe access
+@onready var continue_button = UniversalNodeAccess.get_node_safe(self, "%Continue", "MainMenu continue_button") as Button
+@onready var new_campaign_button = UniversalNodeAccess.get_node_safe(self, "%NewCampaign", "MainMenu new_campaign_button") as Button
+@onready var coop_campaign_button = UniversalNodeAccess.get_node_safe(self, "%CoopCampaign", "MainMenu coop_campaign_button") as Button
+@onready var battle_simulator_button = UniversalNodeAccess.get_node_safe(self, "%BattleSimulator", "MainMenu battle_simulator_button") as Button
+@onready var bug_hunt_button = UniversalNodeAccess.get_node_safe(self, "%BugHunt", "MainMenu bug_hunt_button") as Button
+@onready var options_button = UniversalNodeAccess.get_node_safe(self, "%Options", "MainMenu options_button") as Button
+@onready var library_button = UniversalNodeAccess.get_node_safe(self, "%Library", "MainMenu library_button") as Button
+@onready var tutorial_popup = UniversalNodeAccess.get_node_safe(self, "%TutorialPopup", "MainMenu tutorial_popup") as Panel
 
 var game_state_manager: Node
 var _active_dialogs: Array[Node] = []
+
+# Developer panel variables
+var developer_panel: Control
+var developer_mode: bool = false
+var show_developer_button: Button
 
 func _exit_tree() -> void:
 	_cleanup_dialogs()
 	if game_state_manager:
 		game_state_manager = null
+	if developer_panel:
+		developer_panel = null
 
 func setup(manager: Node) -> void:
 	if not manager:
@@ -32,6 +52,10 @@ func setup(manager: Node) -> void:
 func _ready() -> void:
 	print("MainMenu: Starting initialization...")
 	
+	# Load dependencies safely at runtime
+	GameStateManager = UniversalResourceLoader.load_script_safe("res://src/core/managers/GameStateManager.gd", "MainMenu GameStateManager")
+	GameEnums = UniversalResourceLoader.load_script_safe("res://src/core/systems/GlobalEnums.gd", "MainMenu GameEnums")
+	
 	if not _validate_required_nodes():
 		push_error("MainMenu: Required nodes are missing")
 		return
@@ -43,6 +67,9 @@ func _ready() -> void:
 	if tutorial_popup:
 		tutorial_popup.hide()
 		_connect_tutorial_signals()
+	
+	# Setup developer panel if in debug mode
+	_setup_developer_panel()
 	
 	print("MainMenu: Initialization complete!")
 
@@ -111,6 +138,7 @@ func _connect_tutorial_signals() -> void:
 
 func setup_ui() -> void:
 	_connect_buttons()
+	_setup_developer_button()
 	add_fade_in_animation()
 
 func _connect_buttons() -> void:
@@ -325,6 +353,151 @@ func _test_autoload_systems() -> void:
 	# Show results in dialog
 	var result_text: String = "\n".join(test_results)
 	show_message("Autoload System Test Results:\n\n" + result_text)
+
+## Developer Panel Methods
+
+func _setup_developer_panel() -> void:
+	"""Setup developer quick start panel if in debug mode"""
+	developer_mode = OS.is_debug_build()
+	if not developer_mode:
+		return
+	
+	print("MainMenu: Setting up developer panel for playtesting efficiency...")
+	
+	# Load and instantiate developer panel
+	var developer_scene = UniversalResourceLoader.load_resource_safe(
+		"res://src/ui/debug/DeveloperQuickStart.tscn", 
+		"PackedScene", 
+		"MainMenu developer panel scene"
+	)
+	
+	if developer_scene:
+		developer_panel = developer_scene.instantiate()
+		if developer_panel:
+			developer_panel.hide()  # Start hidden
+			UniversalNodeAccess.add_child_safe(self, developer_panel, "MainMenu developer panel")
+			_connect_developer_signals()
+			print("MainMenu: Developer panel ready - press F11 to toggle")
+		else:
+			push_error("MainMenu: Failed to instantiate developer panel")
+	else:
+		print("MainMenu: Developer panel scene not available")
+
+func _setup_developer_button() -> void:
+	"""Add developer button to main menu if in debug mode"""
+	if not developer_mode:
+		return
+	
+	# Create developer access button
+	show_developer_button = Button.new()
+	show_developer_button.text = "🚀 DEVELOPER PANEL (F11)"
+	show_developer_button.size_flags_horizontal = Control.SIZE_SHRINK_CENTER
+	show_developer_button.add_theme_color_override("font_color", Color.YELLOW)
+	
+	_safe_connect(show_developer_button, "pressed", _on_show_developer_panel_pressed)
+	
+	# Add to main menu layout (position at bottom)
+	UniversalNodeAccess.add_child_safe(self, show_developer_button, "MainMenu developer button")
+	
+	print("MainMenu: Developer button added")
+
+func _connect_developer_signals() -> void:
+	"""Connect developer panel signals"""
+	if not developer_panel:
+		return
+	
+	# Connect panel signals to appropriate handlers
+	UniversalSignalManager.connect_signal_safe(
+		developer_panel, "test_campaign_requested",
+		_on_test_campaign_requested, "MainMenu developer test_campaign_requested"
+	)
+	
+	UniversalSignalManager.connect_signal_safe(
+		developer_panel, "direct_phase_requested",
+		_on_direct_phase_requested, "MainMenu developer direct_phase_requested"
+	)
+	
+	UniversalSignalManager.connect_signal_safe(
+		developer_panel, "test_scenario_requested",
+		_on_test_scenario_requested, "MainMenu developer test_scenario_requested"
+	)
+
+func _input(event: InputEvent) -> void:
+	"""Handle developer panel hotkey"""
+	if not developer_mode or not developer_panel:
+		return
+	
+	# Toggle developer panel with F11
+	if event is InputEventKey and event.pressed and event.keycode == KEY_F11:
+		_toggle_developer_panel()
+
+func _toggle_developer_panel() -> void:
+	"""Toggle developer panel visibility"""
+	if not developer_panel:
+		return
+	
+	if developer_panel.visible:
+		developer_panel.hide()
+		print("MainMenu: Developer panel hidden")
+	else:
+		developer_panel.show()
+		print("MainMenu: Developer panel shown")
+
+func _on_show_developer_panel_pressed() -> void:
+	"""Handle developer panel button press"""
+	_toggle_developer_panel()
+
+## Developer Panel Event Handlers
+
+func _on_test_campaign_requested(campaign_data: Dictionary) -> void:
+	"""Handle test campaign creation request"""
+	print("MainMenu: Test campaign requested - ", campaign_data.get("name", "Unknown"))
+	
+	# Create the test campaign via GameStateManager if available
+	if game_state_manager and game_state_manager.has_method("create_test_campaign"):
+		game_state_manager.create_test_campaign(campaign_data)
+	
+	# Navigate to the target phase or main game
+	var target_phase = campaign_data.get("phase", "world")
+	var scene_router = get_node_or_null("/root/SceneRouter")
+	if scene_router:
+		if target_phase == "world":
+			scene_router.navigate_to("main_game")
+		else:
+			scene_router.navigate_to_campaign_phase(target_phase)
+	
+	# Hide the developer panel
+	if developer_panel:
+		developer_panel.hide()
+
+func _on_direct_phase_requested(phase_name: String) -> void:
+	"""Handle direct phase navigation request"""
+	print("MainMenu: Direct phase navigation requested - ", phase_name)
+	
+	var scene_router = get_node_or_null("/root/SceneRouter")
+	if scene_router and scene_router.has_method("navigate_to_campaign_phase"):
+		scene_router.navigate_to_campaign_phase(phase_name)
+	
+	# Hide the developer panel
+	if developer_panel:
+		developer_panel.hide()
+
+func _on_test_scenario_requested(scenario_name: String) -> void:
+	"""Handle test scenario setup request"""
+	print("MainMenu: Test scenario requested - ", scenario_name)
+	
+	# Apply scenario setup via GameStateManager if available
+	if game_state_manager and game_state_manager.has_method("apply_test_scenario"):
+		game_state_manager.apply_test_scenario(scenario_name)
+	
+	# Navigate to main game
+	var scene_router = get_node_or_null("/root/SceneRouter")
+	if scene_router:
+		scene_router.navigate_to("main_game")
+	
+	# Hide the developer panel
+	if developer_panel:
+		developer_panel.hide()
 
 func _cleanup_dialogs() -> void:
 	for dialog in _active_dialogs:

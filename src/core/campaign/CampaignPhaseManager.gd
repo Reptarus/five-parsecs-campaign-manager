@@ -1,569 +1,379 @@
+# Universal Connection Validation Applied
+# Based on proven patterns: Universal Mock Strategy + 7-Stage Methodology
 @tool
-@warning_ignore("return_value_discarded")
-@warning_ignore("unsafe_method_access")
-@warning_ignore("unsafe_call_argument")
-@warning_ignore("untyped_declaration")
-@warning_ignore("unused_variable")
-@warning_ignore("redundant_await")
-@warning_ignore("unsafe_cast")
-@warning_ignore("inference_on_variant")
-@warning_ignore("static_called_on_instance")
 extends Node
 
-const GameEnums = preload("res://src/core/systems/GlobalEnums.gd")
-# Note: GameState injected via setup() to avoid circular dependencies
-const FiveParsecsCampaign = preload("res://src/game/campaign/FiveParsecsCampaign.gd")
-const ValidationManager = preload("res://src/core/systems/ValidationManager.gd")
+## Campaign Phase Manager - Official Five Parsecs Rules Implementation
+## Coordinates the Four-Phase Campaign Turn Structure
 
-# Import the enums directly for cleaner code
-const FiveParcsecsCampaignPhase = GameEnums.FiveParcsecsCampaignPhase
-const CampaignSubPhase = GameEnums.CampaignSubPhase
+# Safe imports
+const UniversalNodeAccess = preload("res://src/utils/UniversalNodeAccess.gd")
+const UniversalResourceLoader = preload("res://src/utils/UniversalResourceLoader.gd") 
+const UniversalSignalManager = preload("res://src/utils/UniversalSignalManager.gd")
+const UniversalDataAccess = preload("res://src/utils/UniversalDataAccess.gd")
+const UniversalSceneManager = preload("res://src/utils/UniversalSceneManager.gd")
 
-signal phase_changed(old_phase: FiveParcsecsCampaignPhase, new_phase: FiveParcsecsCampaignPhase)
-signal sub_phase_changed(old_sub_phase: CampaignSubPhase, new_sub_phase: CampaignSubPhase)
-signal phase_completed
-signal phase_started(phase: FiveParcsecsCampaignPhase)
-signal phase_action_completed(action: String)
-signal phase_event_triggered(event: Dictionary)
-signal phase_error(error_message: String, is_critical: bool)
+# Safe dependency loading - loaded at runtime in _ready()
+var GameEnums = null
+var GameState = null
+var TravelPhase = null
+var WorldPhase = null
+var PostBattlePhase = null
 
-var game_state: Node # GameState - avoiding circular dependency
-var current_phase: FiveParcsecsCampaignPhase = FiveParcsecsCampaignPhase.NONE
-var previous_phase: FiveParcsecsCampaignPhase = FiveParcsecsCampaignPhase.NONE
-var current_sub_phase: CampaignSubPhase = CampaignSubPhase.NONE
-var previous_sub_phase: CampaignSubPhase = CampaignSubPhase.NONE
+## Current campaign state
+var current_phase: int = 0
+var current_substep: int = 0
+var transition_in_progress: bool = false
+var turn_number: int = 1
 
-# Phase tracking
-var phase_actions_completed: Dictionary = {}
-var phase_requirements: Dictionary = {}
-var phase_resources: Dictionary = {}
-var phase_events: Array = []
-var phase_errors: Array = []
-var validator: ValidationManager
+## Phase handlers
+var travel_phase_handler: Node = null
+var world_phase_handler: Node = null
+var post_battle_phase_handler: Node = null
+
+## Campaign Phase Manager Signals
+signal phase_changed(new_phase: int)
+signal phase_completed(phase: int)
+signal phase_started(phase: int)
+signal substep_changed(phase: int, substep: int)
+signal campaign_turn_started(turn: int)
+signal campaign_turn_completed(turn: int)
 
 func _ready() -> void:
-	reset_phase_tracking()
-func setup(state: Node) -> void:
-	game_state = state
-	validator = ValidationManager.new(game_state)
-	reset_phase_tracking()
+	# Load dependencies safely at runtime
+	GameEnums = UniversalResourceLoader.load_script_safe("res://src/core/systems/GlobalEnums.gd", "CampaignPhaseManager GameEnums")
+	GameState = UniversalNodeAccess.get_node_safe(get_tree().root, NodePath("GameStateManager"), "CampaignPhaseManager GameState")
 	
-	# Connect to campaign signals if available
-	if game_state and game_state.current_campaign:
-		_connect_to_campaign(game_state.current_campaign)
-func _connect_to_campaign(campaign: FiveParsecsCampaign) -> void:
-	# Connect relevant campaign signals for tracking state changes
-	if campaign.is_connected("campaign_state_changed", _on_campaign_state_changed):
-		campaign.disconnect("campaign_state_changed", _on_campaign_state_changed)
-
-	campaign.connect("campaign_state_changed", _on_campaign_state_changed) # warning: return value discarded (intentional)
-
-	campaign.connect("resource_changed", _on_campaign_resource_changed) # warning: return value discarded (intentional)
-
-	campaign.connect("world_changed", _on_campaign_world_changed) # warning: return value discarded (intentional)
-
-func _on_campaign_state_changed(_property: String) -> void:
-	# Validate current state after a change
-	var validation_result = validator.validate_campaign()
-	if not validation_result.valid:
-		var error_message = validation_result.errors.join(", ")
-		phase_error.emit(error_message, validation_result.errors.size() > 1) # warning: return value discarded (intentional)
-
-		phase_errors.append(error_message) # warning: return value discarded (intentional)
-
-func _on_campaign_resource_changed(resource_type: String, amount: int) -> void:
-	# Update phase resources
-	phase_resources[resource_type] = amount
+	# Load phase classes
+	TravelPhase = UniversalResourceLoader.load_script_safe("res://src/core/campaign/phases/TravelPhase.gd", "CampaignPhaseManager TravelPhase")
+	WorldPhase = UniversalResourceLoader.load_script_safe("res://src/core/campaign/phases/WorldPhase.gd", "CampaignPhaseManager WorldPhase")
+	PostBattlePhase = UniversalResourceLoader.load_script_safe("res://src/core/campaign/phases/PostBattlePhase.gd", "CampaignPhaseManager PostBattlePhase")
 	
-	# Check if resource affects any phase requirements
-	_check_resource_requirements(resource_type, amount)
-func _on_campaign_world_changed(world_data: Dictionary) -> void:
-	# Update location information and potentially trigger events
-	if current_phase == FiveParcsecsCampaignPhase.CAMPAIGN:
-		phase_events.append({ # warning: return value discarded (intentional)
-			"type": "world_arrival",
-			"world": world_data
-		})
-		phase_event_triggered.emit(phase_events[-1]) # warning: return value discarded (intentional)
-
-		# Mark location checked action as completed
-		complete_phase_action("location_checked")
-		
-		# Start appropriate sub-phase based on current travel status
-		if current_sub_phase == CampaignSubPhase.TRAVEL:
-			start_sub_phase(CampaignSubPhase.WORLD_ARRIVAL)
-
-func reset_phase_tracking() -> void:
-	phase_actions_completed = {
-		# Upkeep Phase
-		"upkeep_paid": false,
-		"crew_maintained": false,
-		"ship_maintained": false,
-		
-		# Story Phase
-		"events_resolved": false,
-		"story_progressed": false,
-		
-		# Campaign Phase - Travel Steps
-		"travel_destination_selected": false,
-		"travel_completed": false,
-		
-		# Campaign Phase - World Arrival
-		"location_checked": false,
-		"local_events_resolved": false,
-		"patron_contacted": false,
-		
-		# Campaign Phase - World Steps
-		"mission_selected": false,
-		"mission_prepared": false,
-		
-		# Battle Setup
-		"battlefield_generated": false,
-		"enemy_forces_generated": false,
-		"deployment_ready": false,
-		
-		# Battle Resolution
-		"battle_completed": false,
-		"casualties_resolved": false,
-		
-		# Post-Battle
-		"rewards_calculated": false,
-		"loot_collected": false,
-		"resources_updated": false,
-		
-		# Advancement
-		"experience_gained": false,
-		"skills_improved": false,
-		"advancement_completed": false,
-		
-		# Trade
-		"trade_completed": false,
-		"equipment_updated": false,
-		
-		# End
-		"turn_completed": false
-	}
+	# Initialize enum values after loading GameEnums
+	if GameEnums:
+		current_phase = GameEnums.FiveParcsecsCampaignPhase.NONE
 	
-	phase_requirements.clear()
-	phase_resources.clear()
-	phase_events.clear()
-	phase_errors.clear()
-	current_phase = FiveParcsecsCampaignPhase.NONE
-	previous_phase = FiveParcsecsCampaignPhase.NONE
-	current_sub_phase = CampaignSubPhase.NONE
-	previous_sub_phase = CampaignSubPhase.NONE
-func start_phase(new_phase: FiveParcsecsCampaignPhase) -> bool:
-	if not _can_transition_to_phase(new_phase):
-		phase_error.emit("Cannot transition from _phase " + str(current_phase) + " to " + str(new_phase), false) # warning: return value discarded (intentional)
+	# Initialize phase handlers
+	_initialize_phase_handlers()
+	
+	_validate_universal_connections()
+	print("CampaignPhaseManager: Initialized with official Four-Phase structure")
+
+func _initialize_phase_handlers() -> void:
+	"""Initialize the phase handler instances"""
+	if TravelPhase:
+		travel_phase_handler = TravelPhase.new()
+		add_child(travel_phase_handler)
+		# Connect signals
+		if travel_phase_handler.has_signal("travel_phase_completed"):
+			travel_phase_handler.travel_phase_completed.connect(_on_travel_phase_completed)
+		if travel_phase_handler.has_signal("travel_substep_changed"):
+			travel_phase_handler.travel_substep_changed.connect(_on_travel_substep_changed)
+	
+	if WorldPhase:
+		world_phase_handler = WorldPhase.new()
+		add_child(world_phase_handler)
+		# Connect signals
+		if world_phase_handler.has_signal("world_phase_completed"):
+			world_phase_handler.world_phase_completed.connect(_on_world_phase_completed)
+		if world_phase_handler.has_signal("world_substep_changed"):
+			world_phase_handler.world_substep_changed.connect(_on_world_substep_changed)
+	
+	if PostBattlePhase:
+		post_battle_phase_handler = PostBattlePhase.new()
+		add_child(post_battle_phase_handler)
+		# Connect signals
+		if post_battle_phase_handler.has_signal("post_battle_phase_completed"):
+			post_battle_phase_handler.post_battle_phase_completed.connect(_on_post_battle_phase_completed)
+		if post_battle_phase_handler.has_signal("post_battle_substep_changed"):
+			post_battle_phase_handler.post_battle_substep_changed.connect(_on_post_battle_substep_changed)
+
+func _validate_universal_connections() -> void:
+	# Validate core system connections
+	_validate_core_connections()
+	_register_with_game_state()
+
+func _validate_core_connections() -> void:
+	# Validate required dependencies
+	if not GameEnums:
+		push_error("CORE SYSTEM FAILURE: GameEnums not accessible from CampaignPhaseManager")
+	
+	if not GameState:
+		push_error("CORE SYSTEM FAILURE: GameState not accessible from CampaignPhaseManager")
+
+func _register_with_game_state() -> void:
+	# Register this manager with the global game state system
+	var global_game_state = get_node_or_null("/root/GameState")
+	if global_game_state and global_game_state.has_method("register_manager"):
+		global_game_state.register_manager("CampaignPhaseManager", self)
+
+## Main Campaign Turn Management
+func start_new_campaign_turn() -> bool:
+	"""Start a new campaign turn with the official Four-Phase structure"""
+	if transition_in_progress:
+		print("CampaignPhaseManager: Turn transition already in progress")
 		return false
 	
-	previous_phase = current_phase
-	current_phase = new_phase
+	turn_number += 1
+	print("CampaignPhaseManager: Starting Campaign Turn %d" % turn_number)
+	UniversalSignalManager.emit_signal_safe(self, "campaign_turn_started", [turn_number], "CampaignPhaseManager campaign_turn_started")
 	
-	# Reset sub-_phase when changing main phases
-	previous_sub_phase = CampaignSubPhase.NONE
-	current_sub_phase = CampaignSubPhase.NONE
+	# Phase 1: Travel Phase
+	return start_phase(GameEnums.FiveParcsecsCampaignPhase.TRAVEL)
+
+func get_current_phase() -> int:
+	return current_phase
+
+func get_current_substep() -> int:
+	return current_substep
+
+func get_turn_number() -> int:
+	return turn_number
+
+## Official Phase Management
+func start_phase(phase: int) -> bool:
+	"""Start a specific campaign phase"""
+	if transition_in_progress:
+		print("CampaignPhaseManager: Phase transition already in progress")
+		return false
 	
-	# Initialize _phase requirements
-	_setup_phase_requirements(current_phase)
+	if not _can_transition_to_phase(phase):
+		print("CampaignPhaseManager: Cannot transition to phase %d from phase %d" % [phase, current_phase])
+		return false
 	
-	# Emit signals
-	phase_changed.emit(previous_phase, current_phase) # warning: return value discarded (intentional)
-	phase_started.emit(current_phase) # warning: return value discarded (intentional)
+	transition_in_progress = true
+	var previous_phase = current_phase
+	current_phase = phase
+	current_substep = 0
 	
-	# Start _phase execution
-	_execute_phase_start()
+	print("CampaignPhaseManager: Starting phase %s" % get_phase_name(phase))
+	UniversalSignalManager.emit_signal_safe(self, "phase_started", [phase], "CampaignPhaseManager start_phase")
+	UniversalSignalManager.emit_signal_safe(self, "phase_changed", [phase], "CampaignPhaseManager phase_changed")
 	
+	# Update game state
+	if GameState and GameState.has_method("set_campaign_phase"):
+		GameState.set_campaign_phase(phase)
+	
+	# Start the appropriate phase handler
+	_start_phase_handler(phase)
+	
+	transition_in_progress = false
 	return true
 
-func start_sub_phase(new_sub_phase: CampaignSubPhase) -> bool:
-	if not _can_transition_to_sub_phase(new_sub_phase):
-		phase_error.emit("Cannot transition to sub-_phase " + str(new_sub_phase) + " from current state", false) # warning: return value discarded (intentional)
-		return false
-		
-	previous_sub_phase = current_sub_phase
-	current_sub_phase = new_sub_phase
-	
-	# Emit sub-_phase change signal
-	sub_phase_changed.emit(previous_sub_phase, current_sub_phase) # warning: return value discarded (intentional)
-	
-	# Execute sub-_phase specific logic
-	_execute_sub_phase_start()
-	
-	return true
-
-func complete_phase_action(action: String) -> void:
-	if action in phase_actions_completed:
-		phase_actions_completed[action] = true
-		phase_action_completed.emit(action) # warning: return value discarded (intentional)
-		
-		# Check if phase or sub-phase is complete
-		if _are_current_sub_phase_requirements_met():
-			_complete_current_sub_phase()
-			
-		if _are_phase_requirements_met():
-			phase_completed.emit() # warning: return value discarded (intentional)
-
-func _can_transition_to_phase(new_phase: FiveParcsecsCampaignPhase) -> bool:
-	match new_phase:
-		FiveParcsecsCampaignPhase.SETUP:
-			return current_phase == FiveParcsecsCampaignPhase.NONE
-		FiveParcsecsCampaignPhase.UPKEEP:
-			return current_phase in [FiveParcsecsCampaignPhase.SETUP, FiveParcsecsCampaignPhase.END]
-		FiveParcsecsCampaignPhase.STORY:
-			return current_phase == FiveParcsecsCampaignPhase.UPKEEP
-		FiveParcsecsCampaignPhase.CAMPAIGN:
-			return current_phase == FiveParcsecsCampaignPhase.STORY
-		FiveParcsecsCampaignPhase.BATTLE_SETUP:
-			return current_phase == FiveParcsecsCampaignPhase.CAMPAIGN
-		FiveParcsecsCampaignPhase.BATTLE_RESOLUTION:
-			return current_phase == FiveParcsecsCampaignPhase.BATTLE_SETUP
-		FiveParcsecsCampaignPhase.ADVANCEMENT:
-			return current_phase == FiveParcsecsCampaignPhase.BATTLE_RESOLUTION
-		FiveParcsecsCampaignPhase.TRADE:
-			return current_phase == FiveParcsecsCampaignPhase.ADVANCEMENT
-		FiveParcsecsCampaignPhase.END:
-			return current_phase == FiveParcsecsCampaignPhase.TRADE
-		_:
-			return false
-
-func _can_transition_to_sub_phase(new_sub_phase: CampaignSubPhase) -> bool:
-	# First, check if we're in a _phase that supports sub-phases
-	if current_phase != FiveParcsecsCampaignPhase.CAMPAIGN:
-		return false
-		
-	match new_sub_phase:
-		CampaignSubPhase.TRAVEL:
-			return current_sub_phase == CampaignSubPhase.NONE
-		CampaignSubPhase.WORLD_ARRIVAL:
-			return current_sub_phase == CampaignSubPhase.TRAVEL
-		CampaignSubPhase.WORLD_EVENTS:
-			return current_sub_phase == CampaignSubPhase.WORLD_ARRIVAL
-		CampaignSubPhase.PATRON_CONTACT:
-			return current_sub_phase == CampaignSubPhase.WORLD_EVENTS
-		CampaignSubPhase.MISSION_SELECTION:
-			return current_sub_phase == CampaignSubPhase.PATRON_CONTACT
-		_:
-			return false
-
-func _execute_phase_start() -> void:
-	# Execute phase-specific initialization
-	match current_phase:
-		FiveParcsecsCampaignPhase.SETUP:
-			_execute_setup_phase_start()
-		FiveParcsecsCampaignPhase.UPKEEP:
-			_execute_upkeep_phase_start()
-		FiveParcsecsCampaignPhase.STORY:
-			_execute_story_phase_start()
-		FiveParcsecsCampaignPhase.CAMPAIGN:
-			_execute_campaign_phase_start()
-		FiveParcsecsCampaignPhase.BATTLE_SETUP:
-			_execute_battle_setup_phase_start()
-		FiveParcsecsCampaignPhase.BATTLE_RESOLUTION:
-			_execute_battle_resolution_phase_start()
-		FiveParcsecsCampaignPhase.ADVANCEMENT:
-			_execute_advancement_phase_start()
-		FiveParcsecsCampaignPhase.TRADE:
-			_execute_trade_phase_start()
-		FiveParcsecsCampaignPhase.END:
-			_execute_end_phase_start()
-func _execute_sub_phase_start() -> void:
-	# Only relevant for Campaign Phase
-	if current_phase != FiveParcsecsCampaignPhase.CAMPAIGN:
+func _start_phase_handler(phase: int) -> void:
+	"""Start the appropriate phase handler"""
+	if not GameEnums:
 		return
-		
-	match current_sub_phase:
-		CampaignSubPhase.TRAVEL:
-			# Initialize travel destination selection
-			phase_events.append({ # warning: return value discarded (intentional)
-				"type": "travel_options",
-				"options": _get_travel_options()
-			})
-			phase_event_triggered.emit(phase_events[-1]) # warning: return value discarded (intentional)
-		CampaignSubPhase.WORLD_ARRIVAL:
-			# Generate world details and arrival events
-			phase_events.append({ # warning: return value discarded (intentional)
-				"type": "world_arrival_events",
-				"events": _generate_world_arrival_events()
-			})
-			phase_event_triggered.emit(phase_events[-1]) # warning: return value discarded (intentional)
-		CampaignSubPhase.WORLD_EVENTS:
-			# Generate local events
-			phase_events.append({ # warning: return value discarded (intentional)
-				"type": "local_events",
-				"events": _generate_local_events()
-			})
-			phase_event_triggered.emit(phase_events[-1]) # warning: return value discarded (intentional)
-		CampaignSubPhase.PATRON_CONTACT:
-			# Check for patrons
-			phase_events.append({ # warning: return value discarded (intentional)
-				"type": "patron_availability",
-				"patrons": _check_patron_availability()
-			})
-			phase_event_triggered.emit(phase_events[-1]) # warning: return value discarded (intentional)
-		CampaignSubPhase.MISSION_SELECTION:
-			# Generate available missions
-			phase_events.append({ # warning: return value discarded (intentional)
-				"type": "available_missions",
-				"missions": _generate_available_missions()
-			})
-			phase_event_triggered.emit(phase_events[-1]) # warning: return value discarded (intentional)
-
-func _execute_setup_phase_start() -> void:
-	# Initial campaign setup
-	if not game_state.current_campaign:
-		phase_error.emit("No active campaign during setup phase", true) # warning: return value discarded (intentional)
-		return
-
-func _execute_upkeep_phase_start() -> void:
-	# Calculate upkeep costs and resources required
-	var upkeep_costs = _calculate_upkeep_costs()
-	phase_resources["upkeep_costs"] = upkeep_costs
-
-	phase_events.append({ # warning: return value discarded (intentional)
-		"type": "upkeep_required",
-		"costs": upkeep_costs
-	})
-	phase_event_triggered.emit(phase_events[-1]) # warning: return value discarded (intentional)
-
-func _execute_story_phase_start() -> void:
-	# Generate story events
-	var story_events = _generate_story_events()
-
-	phase_events.append({ # warning: return value discarded (intentional)
-		"type": "story_events",
-		"events": story_events
-	})
-	phase_event_triggered.emit(phase_events[-1]) # warning: return value discarded (intentional)
-
-func _execute_campaign_phase_start() -> void:
-	# Start with Travel sub-phase
-	start_sub_phase(CampaignSubPhase.TRAVEL)
-func _execute_battle_setup_phase_start() -> void:
-	# Generate battlefield
-	var battlefield = _generate_battlefield()
-
-	phase_events.append({ # warning: return value discarded (intentional)
-		"type": "battlefield_generated",
-		"battlefield": battlefield
-	})
-	phase_event_triggered.emit(phase_events[-1]) # warning: return value discarded (intentional)
 	
-	# Generate enemy forces
-	var enemy_forces = _generate_enemy_forces()
-
-	phase_events.append({ # warning: return value discarded (intentional)
-		"type": "enemy_forces_generated",
-		"enemies": enemy_forces
-	})
-	phase_event_triggered.emit(phase_events[-1]) # warning: return value discarded (intentional)
-
-func _execute_battle_resolution_phase_start() -> void:
-	# Initialize battle state
-	phase_events.append({ # warning: return value discarded (intentional)
-		"type": "battle_started",
-		"battle_data": _get_current_battle_data()
-	})
-	phase_event_triggered.emit(phase_events[-1]) # warning: return value discarded (intentional)
-
-func _execute_advancement_phase_start() -> void:
-	# Calculate experience earned
-	var experience_earned = _calculate_experience_earned()
-	phase_resources["experience_earned"] = experience_earned
-
-	phase_events.append({ # warning: return value discarded (intentional)
-		"type": "experience_earned",
-		"experience": experience_earned
-	})
-	phase_event_triggered.emit(phase_events[-1]) # warning: return value discarded (intentional)
-
-func _execute_trade_phase_start() -> void:
-	# Generate trade options
-	var trade_options = _generate_trade_options()
-
-	phase_events.append({ # warning: return value discarded (intentional)
-		"type": "trade_options",
-		"options": trade_options
-	})
-	phase_event_triggered.emit(phase_events[-1]) # warning: return value discarded (intentional)
-
-func _execute_end_phase_start() -> void:
-	# Generate turn summary
-	var turn_summary = _generate_turn_summary()
-
-	phase_events.append({ # warning: return value discarded (intentional)
-		"type": "turn_summary",
-		"summary": turn_summary
-	})
-	phase_event_triggered.emit(phase_events[-1]) # warning: return value discarded (intentional)
-	
-	# Advance campaign turn
-	game_state.advance_turn()
-
-func _complete_current_sub_phase() -> void:
-	if current_phase != FiveParcsecsCampaignPhase.CAMPAIGN:
-		return
-		
-	# Move to next sub-phase or complete campaign phase
-	match current_sub_phase:
-		CampaignSubPhase.TRAVEL:
-			start_sub_phase(CampaignSubPhase.WORLD_ARRIVAL)
-		CampaignSubPhase.WORLD_ARRIVAL:
-			start_sub_phase(CampaignSubPhase.WORLD_EVENTS)
-		CampaignSubPhase.WORLD_EVENTS:
-			start_sub_phase(CampaignSubPhase.PATRON_CONTACT)
-		CampaignSubPhase.PATRON_CONTACT:
-			start_sub_phase(CampaignSubPhase.MISSION_SELECTION)
-		CampaignSubPhase.MISSION_SELECTION:
-			# This is the final sub-phase, mark the campaign phase as complete
-			complete_phase_action("mission_selected")
-			complete_phase_action("mission_prepared")
-
-func _setup_phase_requirements(phase: FiveParcsecsCampaignPhase) -> void:
 	match phase:
-		FiveParcsecsCampaignPhase.UPKEEP:
-			phase_requirements = {
-				"actions": ["upkeep_paid", "crew_maintained", "ship_maintained"],
-				"resources": {"credits": 0} # Will be updated during execution
-			}
-		FiveParcsecsCampaignPhase.STORY:
-			phase_requirements = {
-				"actions": ["events_resolved", "story_progressed"]
-			}
-		FiveParcsecsCampaignPhase.CAMPAIGN:
-			phase_requirements = {
-				"actions": ["travel_completed", "location_checked", "mission_selected", "mission_prepared"],
-				"sub_phases": [
-					CampaignSubPhase.TRAVEL,
-					CampaignSubPhase.WORLD_ARRIVAL,
-					CampaignSubPhase.WORLD_EVENTS,
-					CampaignSubPhase.PATRON_CONTACT,
-					CampaignSubPhase.MISSION_SELECTION
-				]
-			}
-		FiveParcsecsCampaignPhase.BATTLE_SETUP:
-			phase_requirements = {
-				"actions": ["battlefield_generated", "enemy_forces_generated", "deployment_ready"]
-			}
-		FiveParcsecsCampaignPhase.BATTLE_RESOLUTION:
-			phase_requirements = {
-				"actions": ["battle_completed", "casualties_resolved"]
-			}
-		FiveParcsecsCampaignPhase.ADVANCEMENT:
-			phase_requirements = {
-				"actions": ["experience_gained", "skills_improved", "advancement_completed"]
-			}
-		FiveParcsecsCampaignPhase.TRADE:
-			phase_requirements = {
-				"actions": ["trade_completed", "equipment_updated"]
-			}
-		FiveParcsecsCampaignPhase.END:
-			phase_requirements = {
-				"actions": ["turn_completed"]
-			}
-func _are_phase_requirements_met() -> bool:
-	# Check if all required actions are completed
-	if "actions" in phase_requirements:
-		for action in phase_requirements.actions:
-			if not phase_actions_completed.get(action, false):
-				return false
+		GameEnums.FiveParcsecsCampaignPhase.TRAVEL:
+			if travel_phase_handler and travel_phase_handler.has_method("start_travel_phase"):
+				travel_phase_handler.start_travel_phase()
+		
+		GameEnums.FiveParcsecsCampaignPhase.WORLD:
+			if world_phase_handler and world_phase_handler.has_method("start_world_phase"):
+				world_phase_handler.start_world_phase()
+		
+		GameEnums.FiveParcsecsCampaignPhase.BATTLE:
+			# Battle phase is handled separately by combat system
+			print("CampaignPhaseManager: Battle phase started - transitioning to combat system")
+			# Auto-complete battle phase for now (would integrate with combat system)
+			_complete_battle_phase()
+		
+		GameEnums.FiveParcsecsCampaignPhase.POST_BATTLE:
+			if post_battle_phase_handler and post_battle_phase_handler.has_method("start_post_battle_phase"):
+				# Get battle results from combat system
+				var battle_results = _get_battle_results()
+				post_battle_phase_handler.start_post_battle_phase(battle_results)
+
+func _complete_battle_phase() -> void:
+	"""Complete battle phase (placeholder for combat system integration)"""
+	print("CampaignPhaseManager: Battle phase completed")
+	UniversalSignalManager.emit_signal_safe(self, "phase_completed", [current_phase], "CampaignPhaseManager battle_phase_completed")
 	
-	# Check if all required resources are available
-	if "resources" in phase_requirements:
-		for resource in phase_requirements.resources:
-			if phase_resources.get(resource, 0) < phase_requirements.resources[resource]:
-				return false
+	# Transition to Post-Battle phase
+	start_phase(GameEnums.FiveParcsecsCampaignPhase.POST_BATTLE)
+
+func _get_battle_results() -> Dictionary:
+	"""Get battle results from combat system (placeholder)"""
+	return {
+		"success": true,
+		"enemies_defeated": 3,
+		"crew_participants": ["crew_1", "crew_2", "crew_3"],
+		"base_payment": 8,
+		"danger_pay": 2,
+		"defeated_enemy_list": [
+			{"type": "basic", "is_rival": false},
+			{"type": "elite", "is_rival": false},
+			{"type": "boss", "is_rival": true, "rival_id": "rival_1"}
+		]
+	}
+
+## Official Phase Transition Logic
+func _can_transition_to_phase(phase: int) -> bool:
+	"""Check if transition to target phase is valid (Official Rules)"""
+	if not GameEnums:
+		return false
 	
-	# For campaign phase, also check sub-phases
-	if current_phase == FiveParcsecsCampaignPhase.CAMPAIGN:
-		return current_sub_phase == CampaignSubPhase.MISSION_SELECTION and _are_current_sub_phase_requirements_met()
+	# Official Four-Phase Campaign Turn Structure
+	match current_phase:
+		GameEnums.FiveParcsecsCampaignPhase.NONE:
+			return phase in [GameEnums.FiveParcsecsCampaignPhase.SETUP, GameEnums.FiveParcsecsCampaignPhase.TRAVEL]
+		
+		GameEnums.FiveParcsecsCampaignPhase.SETUP:
+			return phase == GameEnums.FiveParcsecsCampaignPhase.TRAVEL
+		
+		GameEnums.FiveParcsecsCampaignPhase.TRAVEL:
+			return phase == GameEnums.FiveParcsecsCampaignPhase.WORLD
+		
+		GameEnums.FiveParcsecsCampaignPhase.WORLD:
+			return phase == GameEnums.FiveParcsecsCampaignPhase.BATTLE
+		
+		GameEnums.FiveParcsecsCampaignPhase.BATTLE:
+			return phase == GameEnums.FiveParcsecsCampaignPhase.POST_BATTLE
+		
+		GameEnums.FiveParcsecsCampaignPhase.POST_BATTLE:
+			return phase == GameEnums.FiveParcsecsCampaignPhase.TRAVEL  # Start new turn
+	
+	return false
+
+func _get_next_phase(phase: int) -> int:
+	"""Get the next phase in the official sequence"""
+	if not GameEnums:
+		return phase
+	
+	# Official Four-Phase Campaign Turn Progression
+	match phase:
+		GameEnums.FiveParcsecsCampaignPhase.SETUP:
+			return GameEnums.FiveParcsecsCampaignPhase.TRAVEL
+		GameEnums.FiveParcsecsCampaignPhase.TRAVEL:
+			return GameEnums.FiveParcsecsCampaignPhase.WORLD
+		GameEnums.FiveParcsecsCampaignPhase.WORLD:
+			return GameEnums.FiveParcsecsCampaignPhase.BATTLE
+		GameEnums.FiveParcsecsCampaignPhase.BATTLE:
+			return GameEnums.FiveParcsecsCampaignPhase.POST_BATTLE
+		GameEnums.FiveParcsecsCampaignPhase.POST_BATTLE:
+			return GameEnums.FiveParcsecsCampaignPhase.TRAVEL  # Start new turn
+	
+	return phase
+
+## Phase Handler Signal Handlers
+func _on_travel_phase_completed() -> void:
+	"""Handle Travel Phase completion"""
+	print("CampaignPhaseManager: Travel Phase completed")
+	UniversalSignalManager.emit_signal_safe(self, "phase_completed", [current_phase], "CampaignPhaseManager travel_phase_completed")
+	start_phase(GameEnums.FiveParcsecsCampaignPhase.WORLD)
+
+func _on_world_phase_completed() -> void:
+	"""Handle World Phase completion"""
+	print("CampaignPhaseManager: World Phase completed")
+	UniversalSignalManager.emit_signal_safe(self, "phase_completed", [current_phase], "CampaignPhaseManager world_phase_completed")
+	start_phase(GameEnums.FiveParcsecsCampaignPhase.BATTLE)
+
+func _on_post_battle_phase_completed() -> void:
+	"""Handle Post-Battle Phase completion"""
+	print("CampaignPhaseManager: Post-Battle Phase completed")
+	UniversalSignalManager.emit_signal_safe(self, "phase_completed", [current_phase], "CampaignPhaseManager post_battle_phase_completed")
+	
+	# Complete the campaign turn
+	UniversalSignalManager.emit_signal_safe(self, "campaign_turn_completed", [turn_number], "CampaignPhaseManager campaign_turn_completed")
+	
+	# Start next turn
+	start_new_campaign_turn()
+
+func _on_travel_substep_changed(substep: int) -> void:
+	"""Handle Travel Phase sub-step changes"""
+	current_substep = substep
+	UniversalSignalManager.emit_signal_safe(self, "substep_changed", [current_phase, substep], "CampaignPhaseManager travel_substep_changed")
+
+func _on_world_substep_changed(substep: int) -> void:
+	"""Handle World Phase sub-step changes"""
+	current_substep = substep
+	UniversalSignalManager.emit_signal_safe(self, "substep_changed", [current_phase, substep], "CampaignPhaseManager world_substep_changed")
+
+func _on_post_battle_substep_changed(substep: int) -> void:
+	"""Handle Post-Battle Phase sub-step changes"""
+	current_substep = substep
+	UniversalSignalManager.emit_signal_safe(self, "substep_changed", [current_phase, substep], "CampaignPhaseManager post_battle_substep_changed")
+
+## Legacy Support Methods (for backward compatibility)
+func complete_current_phase() -> bool:
+	"""Complete current phase and transition to next"""
+	if current_phase == 0:  # NONE
+		return false
+	
+	print("CampaignPhaseManager: Completing phase %s" % get_phase_name(current_phase))
+	UniversalSignalManager.emit_signal_safe(self, "phase_completed", [current_phase], "CampaignPhaseManager complete_current_phase")
+	
+	# Determine next phase
+	var next_phase = _get_next_phase(current_phase)
+	if next_phase != current_phase:
+		return start_phase(next_phase)
 	
 	return true
 
-func _are_current_sub_phase_requirements_met() -> bool:
-	match current_sub_phase:
-		CampaignSubPhase.TRAVEL:
-			return phase_actions_completed.get("travel_completed", false)
-		CampaignSubPhase.WORLD_ARRIVAL:
-			return phase_actions_completed.get("location_checked", false)
-		CampaignSubPhase.WORLD_EVENTS:
-			return phase_actions_completed.get("local_events_resolved", false)
-		CampaignSubPhase.PATRON_CONTACT:
-			return phase_actions_completed.get("patron_contacted", false)
-		CampaignSubPhase.MISSION_SELECTION:
-			return phase_actions_completed.get("mission_selected", false)
-		_:
-			return false
-
-func _check_resource_requirements(resource_type: String, amount: int) -> void:
-	# Check if this resource affects any phase requirements
-	if current_phase == FiveParcsecsCampaignPhase.UPKEEP and resource_type == "credits":
-		if amount >= phase_resources.get("upkeep_costs", 0):
-			complete_phase_action("upkeep_paid")
-
-# Helper methods for generating campaign content
-# These would need actual implementation based on your data files
-func _get_travel_options() -> Array:
-	# Stub: Return possible travel destinations
-	return []
-
-func _generate_world_arrival_events() -> Array:
-	# Stub: Return events that happen upon arrival
-	return []
-
-func _generate_local_events() -> Array:
-	# Stub: Return local events for the current world
-	return []
-
-func _check_patron_availability() -> Array:
-	# Stub: Check for available patrons
-	return []
-
-func _generate_available_missions() -> Array:
-	# Stub: Generate available missions
-	return []
-
-func _calculate_upkeep_costs() -> int:
-	# Stub: Calculate crew and ship upkeep
-	return 0
-
-func _generate_story_events() -> Array:
-	# Stub: Generate story events
-	return []
-
-func _generate_battlefield() -> Dictionary:
-	# Stub: Generate battlefield details
-	return {}
-
-func _generate_enemy_forces() -> Array:
-	# Stub: Generate enemy forces
-	return []
-
-func _get_current_battle_data() -> Dictionary:
-	# Stub: Get current battle data
-	return {}
-
-func _calculate_experience_earned() -> Dictionary:
-	# Stub: Calculate experience earned from battle
-	return {}
-
-func _generate_trade_options() -> Array:
-	# Stub: Generate trade options
-	return []
-
-func _generate_turn_summary() -> Dictionary:
-	# Stub: Generate turn summary
-	return {}
-
-func validate_current_campaign() -> bool:
-	if not validator or not game_state:
-		phase_errors.append("Cannot validate campaign: validator or game state not ready") # warning: return value discarded (intentional)
-		return false
+func force_phase_transition(target_phase: int) -> bool:
+	"""Force transition to specific phase (for debugging/admin)"""
+	transition_in_progress = true
+	current_phase = target_phase
+	current_substep = 0
 	
-	var validation_result = validator.validate_campaign()
+	UniversalSignalManager.emit_signal_safe(self, "phase_changed", [target_phase], "CampaignPhaseManager force_phase_transition")
 	
-	if not validation_result.valid and validation_result.errors.size() > 0:
-		phase_errors.append_array(validation_result.errors)
-		return false
+	if GameState and GameState.has_method("set_campaign_phase"):
+		GameState.set_campaign_phase(target_phase)
 	
+	transition_in_progress = false
 	return true
+
+## Utility Methods
+func get_phase_name(phase: int) -> String:
+	"""Get human-readable phase name"""
+	if GameEnums and "PHASE_NAMES" in GameEnums:
+		return GameEnums.PHASE_NAMES.get(phase, "Unknown Phase")
+	return "Unknown Phase"
+
+func get_substep_name(phase: int, substep: int) -> String:
+	"""Get human-readable sub-step name"""
+	if not GameEnums:
+		return "Unknown Substep"
+	
+	match phase:
+		GameEnums.FiveParcsecsCampaignPhase.TRAVEL:
+			if "TRAVEL_SUBSTEP_NAMES" in GameEnums:
+				return GameEnums.TRAVEL_SUBSTEP_NAMES.get(substep, "Unknown Travel Step")
+		GameEnums.FiveParcsecsCampaignPhase.WORLD:
+			if "WORLD_SUBSTEP_NAMES" in GameEnums:
+				return GameEnums.WORLD_SUBSTEP_NAMES.get(substep, "Unknown World Step")
+		GameEnums.FiveParcsecsCampaignPhase.POST_BATTLE:
+			if "POST_BATTLE_SUBSTEP_NAMES" in GameEnums:
+				return GameEnums.POST_BATTLE_SUBSTEP_NAMES.get(substep, "Unknown Post-Battle Step")
+	
+	return "Unknown Substep"
+
+func is_transition_in_progress() -> bool:
+	return transition_in_progress
+
+func get_phase_progress() -> Dictionary:
+	"""Get detailed phase progress information"""
+	return {
+		"turn_number": turn_number,
+		"current_phase": current_phase,
+		"current_substep": current_substep,
+		"phase_name": get_phase_name(current_phase),
+		"substep_name": get_substep_name(current_phase, current_substep),
+		"transition_in_progress": transition_in_progress
+	}
+
+## Phase Handler Access
+func get_travel_phase_handler() -> Node:
+	"""Get Travel Phase handler for direct access"""
+	return travel_phase_handler
+
+func get_world_phase_handler() -> Node:
+	"""Get World Phase handler for direct access"""
+	return world_phase_handler
+
+func get_post_battle_phase_handler() -> Node:
+	"""Get Post-Battle Phase handler for direct access"""
+	return post_battle_phase_handler

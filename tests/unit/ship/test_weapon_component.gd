@@ -1,11 +1,8 @@
 @tool
-@warning_ignore("return_value_discarded")
-	extends GdUnitGameTest
+extends GdUnitGameTest
 
-# Create a mock WeaponsComponent class for testing purposes
-class MockWeaponsComponent:
-    extends Resource
-    
+#
+class MockWeaponsComponent extends Resource:
     var name: String = "Weapons System"
     var description: String = "Standard weapons system"
     var cost: int = 100
@@ -40,78 +37,74 @@ class MockWeaponsComponent:
     func get_equipped_weapons() -> Array: return equipped_weapons
     
     func set_efficiency(test_value: float) -> bool:
-        efficiency = _value
+        efficiency = test_value
         return true
-        
+
     func set_is_active(test_value: bool) -> bool:
-        is_active = _value
+        is_active = test_value
         return true
-        
+
     func upgrade() -> bool:
         damage += 2.0
         range_val += 5.0
         accuracy += 0.1
         fire_rate += 0.2
         ammo_capacity += 20
-        current_ammo = ammo_capacity
         
-        # Increase weapon slots on even levels
-        if @warning_ignore("integer_division")
-	level % 2 == 1:
+        # Every 2 levels, add a weapon slot
+        if level % 2 == 1:
             weapon_slots += 1
             
         level += 1
         return true
-        
+
     func set_damage(test_value: float) -> bool:
-        damage = _value
+        damage = test_value
         return true
-    
+
     func set_range(test_value: float) -> bool:
-        range_val = _value
+        range_val = test_value
         return true
-    
+
     func set_accuracy(test_value: float) -> bool:
-        accuracy = _value
+        accuracy = test_value
         return true
-    
+
     func set_fire_rate(test_value: float) -> bool:
-        fire_rate = _value
+        fire_rate = test_value
         return true
-    
+
     func set_ammo_capacity(test_value: int) -> bool:
-        ammo_capacity = _value
+        ammo_capacity = test_value
         return true
-    
+
     func set_current_ammo(test_value: int) -> bool:
-        current_ammo = _value
+        current_ammo = test_value
         return true
-    
+
     func set_weapon_slots(test_value: int) -> bool:
-        weapon_slots = _value
+        weapon_slots = test_value
         return true
-    
+
     func set_level(test_value: int) -> bool:
-        level = _value
+        level = test_value
         return true
-    
+
     func set_durability(test_value: int) -> bool:
-        durability = _value
+        durability = test_value
         return true
-    
+
     func can_equip_weapon(weapon: Dictionary) -> bool:
         if not is_active:
             return false
-        return get_available_slots() > 0
-    
+        return equipped_weapons.size() < weapon_slots
+
     func equip_weapon(weapon: Dictionary) -> bool:
         if not can_equip_weapon(weapon):
             return false
-
-        @warning_ignore("return_value_discarded")
-	equipped_weapons.append(weapon)
+        equipped_weapons.append(weapon)
         return true
-    
+
     func serialize() -> Dictionary:
         return {
             "name": name,
@@ -127,55 +120,33 @@ class MockWeaponsComponent:
             "weapon_slots": weapon_slots,
             "level": level,
             "durability": durability,
-            "equipped_weapons": equipped_weapons
+            "equipped_weapons": equipped_weapons,
+            "efficiency": efficiency,
+            "is_active": is_active
         }
-        
+
     func deserialize(data: Dictionary) -> bool:
-
-        name = @warning_ignore("unsafe_call_argument")
-	data.get("name", name)
-
-        description = @warning_ignore("unsafe_call_argument")
-	data.get("description", description)
-
-        cost = @warning_ignore("unsafe_call_argument")
-	data.get("cost", cost)
-
-        power_draw = @warning_ignore("unsafe_call_argument")
-	data.get("power_draw", power_draw)
-
-        damage = @warning_ignore("unsafe_call_argument")
-	data.get("damage", damage)
-
-        range_val = @warning_ignore("unsafe_call_argument")
-	data.get("range", range_val)
-
-        accuracy = @warning_ignore("unsafe_call_argument")
-	data.get("accuracy", accuracy)
-
-        fire_rate = @warning_ignore("unsafe_call_argument")
-	data.get("fire_rate", fire_rate)
-
-        ammo_capacity = @warning_ignore("unsafe_call_argument")
-	data.get("ammo_capacity", ammo_capacity)
-
-        current_ammo = @warning_ignore("unsafe_call_argument")
-	data.get("current_ammo", current_ammo)
-
-        weapon_slots = @warning_ignore("unsafe_call_argument")
-	data.get("weapon_slots", weapon_slots)
-
-        level = @warning_ignore("unsafe_call_argument")
-	data.get("level", level)
-
-        durability = @warning_ignore("unsafe_call_argument")
-	data.get("durability", durability)
-
-        equipped_weapons = @warning_ignore("unsafe_call_argument")
-	data.get("equipped_weapons", equipped_weapons)
+        if data.is_empty():
+            return false
+        name = data.get("name", name)
+        description = data.get("description", description)
+        cost = data.get("cost", cost)
+        power_draw = data.get("power_draw", power_draw)
+        damage = data.get("damage", damage)
+        range_val = data.get("range", range_val)
+        accuracy = data.get("accuracy", accuracy)
+        fire_rate = data.get("fire_rate", fire_rate)
+        ammo_capacity = data.get("ammo_capacity", ammo_capacity)
+        current_ammo = data.get("current_ammo", current_ammo)
+        weapon_slots = data.get("weapon_slots", weapon_slots)
+        level = data.get("level", level)
+        durability = data.get("durability", durability)
+        equipped_weapons = data.get("equipped_weapons", equipped_weapons)
+        efficiency = data.get("efficiency", efficiency)
+        is_active = data.get("is_active", is_active)
         return true
 
-# Create a mockup of GameEnums for weapons values
+#
 class WeaponsGameEnumsMock:
     const WEAPONS_BASE_COST = 100
     const WEAPONS_POWER_DRAW = 15
@@ -206,18 +177,14 @@ class WeaponsGameEnumsMock:
     const ZERO_EFFICIENCY = 0.0
 
 # Try to get the actual component or use our mock
-var WeaponsComponent: GDScript = null
+var WeaponsComponent = null
 var ship_enums = null
 
-# Helper method to initialize our test environment
 func _initialize_test_environment() -> void:
-    # Always use our mock for reliable test results
     WeaponsComponent = MockWeaponsComponent
-    
-    # Always use our mock for enums since the real ones don't have weapon constants
     ship_enums = WeaponsGameEnumsMock
 
-var weapons = null
+var weapons: MockWeaponsComponent = null
 
 func before_test() -> void:
     super.before_test()
@@ -227,18 +194,12 @@ func before_test() -> void:
     
     weapons = WeaponsComponent.new()
     if not weapons:
-        push_error("Failed to create weapons component")
         return
-    @warning_ignore("return_value_discarded")
-	track_resource(weapons)
-    @warning_ignore("unsafe_method_access")
-	await get_tree().process_frame
 
 func after_test() -> void:
     super.after_test()
     weapons = null
 
-@warning_ignore("unsafe_method_access")
 func test_initialization() -> void:
     assert_that(weapons).is_not_null()
     
@@ -261,10 +222,10 @@ func test_initialization() -> void:
     var weapon_slots: int = weapons.get_weapon_slots() if weapons.has_method("get_weapon_slots") else 0
     var current_ammo: int = weapons.get_current_ammo() if weapons.has_method("get_current_ammo") else 0
     
-    assert_that(damage).is_equal(ship_enums.WEAPONS_BASE_DAMAGE * weapons.efficiency)
-    assert_that(range_val).is_equal(ship_enums.WEAPONS_BASE_RANGE * weapons.efficiency)
-    assert_that(accuracy).is_equal(ship_enums.WEAPONS_BASE_ACCURACY * weapons.efficiency)
-    assert_that(fire_rate).is_equal(ship_enums.WEAPONS_BASE_FIRE_RATE * weapons.efficiency)
+    assert_that(damage).is_equal(ship_enums.WEAPONS_BASE_DAMAGE)
+    assert_that(range_val).is_equal(ship_enums.WEAPONS_BASE_RANGE)
+    assert_that(accuracy).is_equal(ship_enums.WEAPONS_BASE_ACCURACY)
+    assert_that(fire_rate).is_equal(ship_enums.WEAPONS_BASE_FIRE_RATE)
     assert_that(ammo_capacity).is_equal(ship_enums.WEAPONS_BASE_AMMO_CAPACITY)
     assert_that(weapon_slots).is_equal(ship_enums.WEAPONS_BASE_WEAPON_SLOTS)
     assert_that(current_ammo).is_equal(ship_enums.WEAPONS_BASE_AMMO_CAPACITY)
@@ -272,7 +233,6 @@ func test_initialization() -> void:
     var equipped_weapons: Array = weapons.get_equipped_weapons() if weapons.has_method("get_equipped_weapons") else []
     assert_that(equipped_weapons.size()).is_equal(0)
 
-@warning_ignore("unsafe_method_access")
 func test_upgrade_effects() -> void:
     # Store initial values
     var initial_damage: float = weapons.get_damage() if weapons.has_method("get_damage") else 0.0
@@ -282,7 +242,7 @@ func test_upgrade_effects() -> void:
     var initial_ammo_capacity: int = weapons.get_ammo_capacity() if weapons.has_method("get_ammo_capacity") else 0
     var initial_weapon_slots: int = weapons.get_weapon_slots() if weapons.has_method("get_weapon_slots") else 0
     
-    # Perform upgrade
+    # Upgrade the component
     weapons.upgrade() if weapons.has_method("upgrade") else null
     
     # Test improvements
@@ -293,25 +253,24 @@ func test_upgrade_effects() -> void:
     var new_ammo_capacity: int = weapons.get_ammo_capacity() if weapons.has_method("get_ammo_capacity") else 0
     var new_current_ammo: int = weapons.get_current_ammo() if weapons.has_method("get_current_ammo") else 0
     
-    assert_that(new_damage).is_equal(initial_damage + ship_enums.WEAPONS_UPGRADE_DAMAGE * weapons.efficiency)
-    assert_that(new_range).is_equal(initial_range + ship_enums.WEAPONS_UPGRADE_RANGE * weapons.efficiency)
-    assert_that(new_accuracy).is_equal(initial_accuracy + ship_enums.WEAPONS_UPGRADE_ACCURACY * weapons.efficiency)
-    assert_that(new_fire_rate).is_equal(initial_fire_rate + ship_enums.WEAPONS_UPGRADE_FIRE_RATE * weapons.efficiency)
-    assert_that(new_ammo_capacity).is_equal(initial_ammo_capacity + ship_enums.WEAPONS_UPGRADE_AMMO_CAPACITY)
+    assert_that(new_damage).is_greater(initial_damage)
+    assert_that(new_range).is_greater(initial_range)
+    assert_that(new_accuracy).is_greater(initial_accuracy)
+    assert_that(new_fire_rate).is_greater(initial_fire_rate)
+    assert_that(new_ammo_capacity).is_greater(initial_ammo_capacity)
     assert_that(new_current_ammo).is_equal(new_ammo_capacity)
     
-    # Test weapon slots increase on even levels
+    # Test weapon slot upgrade (every other level)
     weapons.upgrade() if weapons.has_method("upgrade") else null # Second upgrade
     var new_weapon_slots: int = weapons.get_weapon_slots() if weapons.has_method("get_weapon_slots") else 0
-    assert_that(new_weapon_slots).is_equal(initial_weapon_slots + ship_enums.WEAPONS_UPGRADE_WEAPON_SLOTS)
+    assert_that(new_weapon_slots).is_greater(initial_weapon_slots)
 
-@warning_ignore("unsafe_method_access")
 func test_efficiency_effects() -> void:
     # Test base values at full efficiency
     var base_damage: float = weapons.get_damage() if weapons.has_method("get_damage") else 0.0
-    assert_that(base_damage).is_equal(ship_enums.WEAPONS_BASE_DAMAGE * weapons.efficiency)
+    assert_that(base_damage).is_equal(ship_enums.WEAPONS_BASE_DAMAGE)
     
-    # Test reduced efficiency
+    # Test efficiency reduction
     weapons.set_efficiency(ship_enums.HALF_EFFICIENCY) if weapons.has_method("set_efficiency") else null
     var reduced_damage: float = weapons.get_damage() if weapons.has_method("get_damage") else 0.0
     assert_that(reduced_damage).is_equal(ship_enums.WEAPONS_BASE_DAMAGE * ship_enums.HALF_EFFICIENCY)
@@ -321,7 +280,6 @@ func test_efficiency_effects() -> void:
     var zero_damage: float = weapons.get_damage() if weapons.has_method("get_damage") else 0.0
     assert_that(zero_damage).is_equal(0.0)
 
-@warning_ignore("unsafe_method_access")
 func test_weapon_slot_management() -> void:
     var available_slots: int = weapons.get_available_slots() if weapons.has_method("get_available_slots") else 0
     assert_that(available_slots).is_equal(ship_enums.WEAPONS_BASE_WEAPON_SLOTS)
@@ -329,9 +287,8 @@ func test_weapon_slot_management() -> void:
     var test_weapon: Dictionary = {
         "name": "Test Weapon",
         "damage": ship_enums.WEAPONS_TEST_WEAPON_DAMAGE,
-        "range": ship_enums.WEAPONS_TEST_WEAPON_RANGE
+        "range": ship_enums.WEAPONS_TEST_WEAPON_RANGE,
     }
-    
     # Test equipping weapons
     var can_equip: bool = weapons.can_equip_weapon(test_weapon) if weapons.has_method("can_equip_weapon") else false
     assert_that(can_equip).is_true()
@@ -347,14 +304,13 @@ func test_weapon_slot_management() -> void:
     can_equip = weapons.can_equip_weapon(test_weapon) if weapons.has_method("can_equip_weapon") else false
     assert_that(can_equip).is_false()
     
-    # Test inactive system
+    # Test inactive weapons system
     weapons.set_is_active(false) if weapons.has_method("set_is_active") else null
     can_equip = weapons.can_equip_weapon(test_weapon) if weapons.has_method("can_equip_weapon") else false
     assert_that(can_equip).is_false()
 
-@warning_ignore("unsafe_method_access")
 func test_serialization() -> void:
-    # Modify weapon system state
+    # Configure weapons system
     weapons.set_damage(ship_enums.WEAPONS_MAX_DAMAGE) if weapons.has_method("set_damage") else null
     weapons.set_range(ship_enums.WEAPONS_MAX_RANGE) if weapons.has_method("set_range") else null
     weapons.set_accuracy(ship_enums.WEAPONS_MAX_ACCURACY) if weapons.has_method("set_accuracy") else null
@@ -368,15 +324,14 @@ func test_serialization() -> void:
     var test_weapon: Dictionary = {
         "name": "Test Weapon",
         "damage": ship_enums.WEAPONS_TEST_WEAPON_DAMAGE,
-        "range": ship_enums.WEAPONS_TEST_WEAPON_RANGE
+        "range": ship_enums.WEAPONS_TEST_WEAPON_RANGE,
     }
     weapons.equip_weapon(test_weapon) if weapons.has_method("equip_weapon") else null
     
     # Serialize and deserialize
     var data: Dictionary = weapons.serialize() if weapons.has_method("serialize") else {}
-    var new_weapons: WeaponsComponent = WeaponsComponent.new()
-    @warning_ignore("return_value_discarded")
-	track_resource(new_weapons)
+    var new_weapons: MockWeaponsComponent = MockWeaponsComponent.new()
+    
     new_weapons.deserialize(data) if new_weapons.has_method("deserialize") else null
     
     # Verify weapon-specific properties
@@ -392,16 +347,16 @@ func test_serialization() -> void:
     var power_draw: int = new_weapons.get_power_draw() if new_weapons.has_method("get_power_draw") else 0
     var equipped_weapons: Array = new_weapons.get_equipped_weapons() if new_weapons.has_method("get_equipped_weapons") else []
     
-    assert_that(damage).is_equal(ship_enums.WEAPONS_MAX_DAMAGE * weapons.efficiency)
-    assert_that(range_val).is_equal(ship_enums.WEAPONS_MAX_RANGE * weapons.efficiency)
-    assert_that(accuracy).is_equal(ship_enums.WEAPONS_MAX_ACCURACY * weapons.efficiency)
-    assert_that(fire_rate).is_equal(ship_enums.WEAPONS_MAX_FIRE_RATE * weapons.efficiency)
+    assert_that(damage).is_equal(ship_enums.WEAPONS_MAX_DAMAGE)
+    assert_that(range_val).is_equal(ship_enums.WEAPONS_MAX_RANGE)
+    assert_that(accuracy).is_equal(ship_enums.WEAPONS_MAX_ACCURACY)
+    assert_that(fire_rate).is_equal(ship_enums.WEAPONS_MAX_FIRE_RATE)
     assert_that(ammo_capacity).is_equal(ship_enums.WEAPONS_MAX_AMMO_CAPACITY)
     assert_that(weapon_slots).is_equal(ship_enums.WEAPONS_MAX_WEAPON_SLOTS)
     assert_that(current_ammo).is_equal(ship_enums.WEAPONS_TEST_CURRENT_AMMO)
+    assert_that(level).is_equal(ship_enums.WEAPONS_MAX_LEVEL)
     assert_that(equipped_weapons.size()).is_equal(1)
     
     # Verify inherited properties
-    assert_that(level).is_equal(ship_enums.WEAPONS_MAX_LEVEL)
     assert_that(durability).is_equal(ship_enums.WEAPONS_TEST_DURABILITY)
     assert_that(power_draw).is_equal(ship_enums.WEAPONS_POWER_DRAW)

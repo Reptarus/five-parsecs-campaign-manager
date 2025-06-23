@@ -10,7 +10,10 @@
       "Bash(touch:*)",
       "Bash(find src/ -name \"*.gd\" -exec grep -l 'return.*[^\"\"]\"\"$' {} ;)",
       "Bash(sed:*)",
-      "Bash(python:*)"
+      "Bash(python:*)",
+      "Bash(mv:*)",
+      "Bash(rm:*)",
+      "Bash(timeout:*)"
     ],
     "deny": []
   }

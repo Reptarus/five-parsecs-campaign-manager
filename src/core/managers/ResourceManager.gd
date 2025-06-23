@@ -1,7 +1,18 @@
+# Universal Connection Validation Applied
+# Based on proven patterns: Universal Mock Strategy + 7-Stage Methodology
 @tool
 extends Resource
 
-const GameEnums = preload("res://src/core/systems/GlobalEnums.gd")
+# Safe imports
+const UniversalNodeAccess = preload("res://src/utils/UniversalNodeAccess.gd")
+const UniversalResourceLoader = preload("res://src/utils/UniversalResourceLoader.gd") 
+const UniversalSignalManager = preload("res://src/utils/UniversalSignalManager.gd")
+const UniversalDataAccess = preload("res://src/utils/UniversalDataAccess.gd")
+const UniversalSceneManager = preload("res://src/utils/UniversalSceneManager.gd")
+
+# Safe dependency loading
+var GameEnums = null
+var _initialized: bool = false
 
 signal resource_changed(resource_type: int, old_value: int, new_value: int, source: String)
 signal resource_threshold_reached(resource_type: int, threshold: int, current_value: int)
@@ -33,13 +44,26 @@ class ResourceTransaction:
 		timestamp = Time.get_unix_time_from_system()
 		turn_number = p_turn
 func _init() -> void:
+	# Load dependencies safely at runtime
+	if not _initialized:
+		GameEnums = UniversalResourceLoader.load_script_safe("res://src/core/systems/GlobalEnums.gd", "ResourceManager GameEnums")
+		_initialized = true
+	
 	_initialize_resources()
 	_initialize_history()
 func _initialize_resources() -> void:
+	if not GameEnums or not "ResourceType" in GameEnums:
+		push_error("CRASH PREVENTION: ResourceManager cannot initialize - GameEnums.ResourceType not available")
+		return
+	
 	for resource_type in GameEnums.ResourceType.values():
 		resources[resource_type] = 0
 		resource_thresholds[resource_type] = {}
 func _initialize_history() -> void:
+	if not GameEnums or not "ResourceType" in GameEnums:
+		push_error("CRASH PREVENTION: ResourceManager cannot initialize history - GameEnums.ResourceType not available")
+		return
+	
 	for resource_type in GameEnums.ResourceType.values():
 		resource_history[resource_type] = []
 func set_resource(resource_type: int, _value: int, source: String = "system") -> void:

@@ -1,32 +1,43 @@
+# Universal Connection Validation Applied
+# Based on proven patterns: Universal Mock Strategy + 7-Stage Methodology
 class_name FPCM_CampaignDashboardUI
 extends Control
 
-const GameEnums = preload("res://src/core/systems/GlobalEnums.gd")
-const GameState = preload("res://src/core/state/GameState.gd")
-const CampaignPhaseManagerScript = preload("res://src/core/campaign/CampaignPhaseManager.gd")
-const FPCM_BasePhasePanel = preload("res://src/ui/screens/campaign/phases/BasePhasePanel.gd")
+# Safe imports
+const UniversalNodeAccess = preload("res://src/utils/UniversalNodeAccess.gd")
+const UniversalResourceLoader = preload("res://src/utils/UniversalResourceLoader.gd") 
+const UniversalSignalManager = preload("res://src/utils/UniversalSignalManager.gd")
+const UniversalDataAccess = preload("res://src/utils/UniversalDataAccess.gd")
+const UniversalSceneManager = preload("res://src/utils/UniversalSceneManager.gd")
 
-const UpkeepPhasePanel = preload("res://src/ui/screens/campaign/phases/UpkeepPhasePanel.tscn")
-const StoryPhasePanel = preload("res://src/ui/screens/campaign/phases/StoryPhasePanel.tscn")
-const CampaignPhasePanel = preload("res://src/ui/screens/campaign/phases/CampaignPhasePanel.tscn")
-const BattleSetupPhasePanel = preload("res://src/ui/screens/campaign/phases/BattleSetupPhasePanel.tscn")
-const BattleResolutionPhasePanel = preload("res://src/ui/screens/campaign/phases/BattleResolutionPhasePanel.tscn")
-const AdvancementPhasePanel = preload("res://src/ui/screens/campaign/phases/AdvancementPhasePanel.tscn")
-const TradePhasePanel = preload("res://src/ui/screens/campaign/phases/TradePhasePanel.tscn")
-const EndPhasePanel = preload("res://src/ui/screens/campaign/phases/EndPhasePanel.tscn")
+# Safe dependency loading
+var GameEnums = null
+var GameState = null
+var CampaignPhaseManagerScript = null
+var FPCM_BasePhasePanel = null
 
-# UI Node References - Updated to match actual scene structure
-@onready var phase_label: Button = $"MarginContainer/VBoxContainer/HeaderPanel/HBoxContainer/PhaseLabel"
-@onready var credits_label: Button = $"MarginContainer/VBoxContainer/HeaderPanel/HBoxContainer/CreditsLabel"
-@onready var story_points_label: Button = $"MarginContainer/VBoxContainer/HeaderPanel/HBoxContainer/StoryPointsLabel"
-@onready var crew_list: Button = $"MarginContainer/VBoxContainer/MainContent/LeftPanel/CrewPanel/VBoxContainer/CrewList"
-@onready var ship_info = $MarginContainer/VBoxContainer/MainContent/LeftPanel/ShipPanel/VBoxContainer/ShipInfo
-@onready var phase_content = $MarginContainer/VBoxContainer/MainContent
-@onready var next_phase_button = $MarginContainer/VBoxContainer/ButtonContainer/ActionButton
-@onready var manage_crew_button = $MarginContainer/VBoxContainer/ButtonContainer/ManageCrewButton
-@onready var save_button = $MarginContainer/VBoxContainer/ButtonContainer/SaveButton
-@onready var load_button = $MarginContainer/VBoxContainer/ButtonContainer/LoadButton
-@onready var quit_button = $MarginContainer/VBoxContainer/ButtonContainer/QuitButton
+# Safe scene loading
+const UpkeepPhasePanel = UniversalResourceLoader.load_resource_safe("res://src/ui/screens/campaign/phases/UpkeepPhasePanel.tscn", "PackedScene", "CampaignDashboard UpkeepPhasePanel")
+const StoryPhasePanel = UniversalResourceLoader.load_resource_safe("res://src/ui/screens/campaign/phases/StoryPhasePanel.tscn", "PackedScene", "CampaignDashboard StoryPhasePanel")
+const CampaignPhasePanel = UniversalResourceLoader.load_resource_safe("res://src/ui/screens/campaign/phases/CampaignPhasePanel.tscn", "PackedScene", "CampaignDashboard CampaignPhasePanel")
+const BattleSetupPhasePanel = UniversalResourceLoader.load_resource_safe("res://src/ui/screens/campaign/phases/BattleSetupPhasePanel.tscn", "PackedScene", "CampaignDashboard BattleSetupPhasePanel")
+const BattleResolutionPhasePanel = UniversalResourceLoader.load_resource_safe("res://src/ui/screens/campaign/phases/BattleResolutionPhasePanel.tscn", "PackedScene", "CampaignDashboard BattleResolutionPhasePanel")
+const AdvancementPhasePanel = UniversalResourceLoader.load_resource_safe("res://src/ui/screens/campaign/phases/AdvancementPhasePanel.tscn", "PackedScene", "CampaignDashboard AdvancementPhasePanel")
+const TradePhasePanel = UniversalResourceLoader.load_resource_safe("res://src/ui/screens/campaign/phases/TradePhasePanel.tscn", "PackedScene", "CampaignDashboard TradePhasePanel")
+const EndPhasePanel = UniversalResourceLoader.load_resource_safe("res://src/ui/screens/campaign/phases/EndPhasePanel.tscn", "PackedScene", "CampaignDashboard EndPhasePanel")
+
+# UI Node References using safe access
+@onready var phase_label: Button = UniversalNodeAccess.get_node_safe(self, "MarginContainer/VBoxContainer/HeaderPanel/HBoxContainer/PhaseLabel", "CampaignDashboard phase_label") as Button
+@onready var credits_label: Button = UniversalNodeAccess.get_node_safe(self, "MarginContainer/VBoxContainer/HeaderPanel/HBoxContainer/CreditsLabel", "CampaignDashboard credits_label") as Button
+@onready var story_points_label: Button = UniversalNodeAccess.get_node_safe(self, "MarginContainer/VBoxContainer/HeaderPanel/HBoxContainer/StoryPointsLabel", "CampaignDashboard story_points_label") as Button
+@onready var crew_list: Button = UniversalNodeAccess.get_node_safe(self, "MarginContainer/VBoxContainer/MainContent/LeftPanel/CrewPanel/VBoxContainer/CrewList", "CampaignDashboard crew_list") as Button
+@onready var ship_info = UniversalNodeAccess.get_node_safe(self, "MarginContainer/VBoxContainer/MainContent/LeftPanel/ShipPanel/VBoxContainer/ShipInfo", "CampaignDashboard ship_info")
+@onready var phase_content = UniversalNodeAccess.get_node_safe(self, "MarginContainer/VBoxContainer/MainContent", "CampaignDashboard phase_content")
+@onready var next_phase_button = UniversalNodeAccess.get_node_safe(self, "MarginContainer/VBoxContainer/ButtonContainer/ActionButton", "CampaignDashboard next_phase_button")
+@onready var manage_crew_button = UniversalNodeAccess.get_node_safe(self, "MarginContainer/VBoxContainer/ButtonContainer/ManageCrewButton", "CampaignDashboard manage_crew_button")
+@onready var save_button = UniversalNodeAccess.get_node_safe(self, "MarginContainer/VBoxContainer/ButtonContainer/SaveButton", "CampaignDashboard save_button")
+@onready var load_button = UniversalNodeAccess.get_node_safe(self, "MarginContainer/VBoxContainer/ButtonContainer/LoadButton", "CampaignDashboard load_button")
+@onready var quit_button = UniversalNodeAccess.get_node_safe(self, "MarginContainer/VBoxContainer/ButtonContainer/QuitButton", "CampaignDashboard quit_button")
 # @onready var phase_container = $PhaseContainer # This node doesn't exist in scene
 
 var game_state: GameState
@@ -38,6 +49,12 @@ var alpha_manager: Node = null
 var campaign_manager: Node = null
 
 func _ready() -> void:
+	# Load dependencies safely at runtime
+	GameEnums = UniversalResourceLoader.load_script_safe("res://src/core/systems/GlobalEnums.gd", "CampaignDashboard GameEnums")
+	GameState = UniversalResourceLoader.load_script_safe("res://src/core/state/GameState.gd", "CampaignDashboard GameState")
+	CampaignPhaseManagerScript = UniversalResourceLoader.load_script_safe("res://src/core/campaign/CampaignPhaseManager.gd", "CampaignDashboard CampaignPhaseManager")
+	FPCM_BasePhasePanel = UniversalResourceLoader.load_script_safe("res://src/ui/screens/campaign/phases/BasePhasePanel.gd", "CampaignDashboard BasePhasePanel")
+	
 	_initialize_managers()
 	_connect_signals()
 	_setup_campaign()

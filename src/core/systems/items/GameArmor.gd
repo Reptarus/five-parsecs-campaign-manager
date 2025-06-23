@@ -1,8 +1,8 @@
 @tool
 extends Resource
-class_name BaseArmor
+class_name GameArmor
 
-## Base Armor class for Five Parsecs
+## Game Armor class for Five Parsecs
 ## Provides armor protection and characteristics
 
 const GameEnums = preload("res://src/core/systems/GlobalEnums.gd")

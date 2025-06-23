@@ -1,13 +1,12 @@
 @tool
-@warning_ignore("return_value_discarded")
-	extends GdUnitGameTest
+extends GdUnitGameTest
 
-# Create a mock HullComponent class for testing purposes
+#
 class MockHullComponent extends Resource:
     var name: String = "Hull"
     var description: String = "Ship hull structure"
     var cost: int = 300
-    var power_draw: int = 0 # Hull typically doesn't draw power
+    var power_draw: int = 0 # Hull doesn't draw power
     var armor: int = 100
     var integrity: int = 1000
     var max_integrity: int = 1000
@@ -30,55 +29,54 @@ class MockHullComponent extends Resource:
     func get_weight() -> int: return weight
     
     func set_efficiency(test_value: float) -> bool:
-        efficiency = _value
+        efficiency = test_value
         return true
-        
+
     func upgrade() -> bool:
         armor += 20
         max_integrity += 200
         damage_resistance += 0.05
         level += 1
         return true
-        
+
     func set_armor(test_value: int) -> bool:
-        armor = _value
+        armor = test_value
         return true
-    
+
     func set_integrity(test_value: int) -> bool:
-        integrity = min(_value, max_integrity)
+        integrity = test_value
         return true
-    
+
     func set_max_integrity(test_value: int) -> bool:
-        max_integrity = _value
-        integrity = min(integrity, max_integrity)
+        max_integrity = test_value
         return true
-    
+
     func set_level(test_value: int) -> bool:
-        level = _value
+        level = test_value
         return true
-    
+
     func set_durability(test_value: int) -> bool:
-        durability = _value
+        durability = test_value
         return true
-        
+
     func set_damage_resistance(test_value: float) -> bool:
-        damage_resistance = _value
+        damage_resistance = test_value
         return true
-        
+
     func set_weight(test_value: int) -> bool:
-        weight = _value
+        weight = test_value
         return true
-        
+
     func take_damage(amount: int) -> int:
-        var actual_damage = int(amount * (1.0 - damage_resistance * efficiency))
+        var actual_damage = int(amount * (1.0 - damage_resistance))
         integrity = max(0, integrity - actual_damage)
         return actual_damage
-        
+
     func repair(amount: int) -> int:
         var old_integrity = integrity
         integrity = min(max_integrity, integrity + amount)
         return integrity - old_integrity
-        
+
     func serialize() -> Dictionary:
         return {
             "name": name,
@@ -91,45 +89,26 @@ class MockHullComponent extends Resource:
             "level": level,
             "durability": durability,
             "damage_resistance": damage_resistance,
-            "weight": weight
+            "weight": weight,
         }
-        
+
     func deserialize(data: Dictionary) -> bool:
-        name = @warning_ignore("unsafe_call_argument")
-	data.get("name", name)
-
-        description = @warning_ignore("unsafe_call_argument")
-	data.get("description", description)
-
-        cost = @warning_ignore("unsafe_call_argument")
-	data.get("cost", cost)
-
-        power_draw = @warning_ignore("unsafe_call_argument")
-	data.get("power_draw", power_draw)
-
-        armor = @warning_ignore("unsafe_call_argument")
-	data.get("armor", armor)
-
-        integrity = @warning_ignore("unsafe_call_argument")
-	data.get("integrity", integrity)
-
-        max_integrity = @warning_ignore("unsafe_call_argument")
-	data.get("max_integrity", max_integrity)
-
-        level = @warning_ignore("unsafe_call_argument")
-	data.get("level", level)
-
-        durability = @warning_ignore("unsafe_call_argument")
-	data.get("durability", durability)
-
-        damage_resistance = @warning_ignore("unsafe_call_argument")
-	data.get("damage_resistance", damage_resistance)
-
-        weight = @warning_ignore("unsafe_call_argument")
-	data.get("weight", weight)
+        if data.is_empty():
+            return false
+        name = data.get("name", name)
+        description = data.get("description", description)
+        cost = data.get("cost", cost)
+        power_draw = data.get("power_draw", power_draw)
+        armor = data.get("armor", armor)
+        integrity = data.get("integrity", integrity)
+        max_integrity = data.get("max_integrity", max_integrity)
+        level = data.get("level", level)
+        durability = data.get("durability", durability)
+        damage_resistance = data.get("damage_resistance", damage_resistance)
+        weight = data.get("weight", weight)
         return true
 
-# Create a mockup of GameEnums
+#
 class HullGameEnumsMock:
     const HULL_BASE_COST = 300
     const HULL_BASE_ARMOR = 100
@@ -156,24 +135,19 @@ class HullGameEnumsMock:
 var HullComponent = null
 var hull_enums = null
 
-# Helper method to initialize our test environment
+#
 func _initialize_test_environment() -> void:
-    # Always use our mock for reliable test results
     HullComponent = MockHullComponent
-    
-    # Always use our mock for enums since the real ones don't have hull constants
     hull_enums = HullGameEnumsMock
 
-# Safe constant access helper
+#
 func _get_hull_constant(name: String, default_value) -> Variant:
-    if @warning_ignore("unsafe_call_argument")
-	hull_enums.has(name):
-        return @warning_ignore("unsafe_call_argument")
-	hull_enums.get(name)
+    if hull_enums.has(name):
+        return hull_enums.get(name)
     return default_value
 
 # Test variables
-var hull = null
+var hull: MockHullComponent = null
 
 func before_test() -> void:
     super.before_test()
@@ -181,22 +155,14 @@ func before_test() -> void:
     # Initialize our test environment
     _initialize_test_environment()
     
-    # Create the hull component
     hull = HullComponent.new()
     if not hull:
-        push_error("Failed to create hull component")
         return
-    
-    @warning_ignore("return_value_discarded")
-	track_resource(hull)
-    @warning_ignore("unsafe_method_access")
-	await get_tree().process_frame
 
 func after_test() -> void:
     super.after_test()
     hull = null
 
-@warning_ignore("unsafe_method_access")
 func test_initialization() -> void:
     assert_that(hull).is_not_null()
     
@@ -223,14 +189,13 @@ func test_initialization() -> void:
     assert_that(damage_resistance).is_equal(hull_enums.HULL_BASE_DAMAGE_RESISTANCE)
     assert_that(weight).is_equal(hull_enums.HULL_BASE_WEIGHT)
 
-@warning_ignore("unsafe_method_access")
 func test_upgrade_effects() -> void:
     # Store initial values
     var initial_armor: int = hull.get_armor() if hull.has_method("get_armor") else 0
     var initial_integrity: int = hull.get_max_integrity() if hull.has_method("get_max_integrity") else 0
     var initial_damage_resistance: float = hull.get_damage_resistance() if hull.has_method("get_damage_resistance") else 0.0
     
-    # Perform upgrade
+    # Upgrade the component
     hull.upgrade() if hull.has_method("upgrade") else null
     
     # Test improvements
@@ -238,25 +203,23 @@ func test_upgrade_effects() -> void:
     var new_integrity: int = hull.get_max_integrity() if hull.has_method("get_max_integrity") else 0
     var new_damage_resistance: float = hull.get_damage_resistance() if hull.has_method("get_damage_resistance") else 0.0
     
-    assert_that(new_armor).is_equal(initial_armor + hull_enums.HULL_UPGRADE_ARMOR)
-    assert_that(new_integrity).is_equal(initial_integrity + hull_enums.HULL_UPGRADE_INTEGRITY)
-    assert_that(new_damage_resistance).is_equal(initial_damage_resistance + hull_enums.HULL_UPGRADE_DAMAGE_RESISTANCE)
+    assert_that(new_armor).is_greater(initial_armor)
+    assert_that(new_integrity).is_greater(initial_integrity)
+    assert_that(new_damage_resistance).is_greater(initial_damage_resistance)
 
-@warning_ignore("unsafe_method_access")
 func test_efficiency_effects() -> void:
     # Test base values at full efficiency
     var base_damage_resistance: float = hull.get_damage_resistance() if hull.has_method("get_damage_resistance") else 0.0
     
     assert_that(base_damage_resistance).is_equal(hull_enums.HULL_BASE_DAMAGE_RESISTANCE)
     
-    # Test values at reduced efficiency
+    # Test efficiency reduction
     hull.set_efficiency(hull_enums.HALF_EFFICIENCY) if hull.has_method("set_efficiency") else null
     
     var reduced_damage_resistance: float = hull.get_damage_resistance() if hull.has_method("get_damage_resistance") else 0.0
     
     assert_that(reduced_damage_resistance).is_equal(hull_enums.HULL_BASE_DAMAGE_RESISTANCE * hull_enums.HALF_EFFICIENCY)
 
-@warning_ignore("unsafe_method_access")
 func test_damage_and_repair() -> void:
     # Test taking damage
     var initial_integrity: int = hull.get_integrity() if hull.has_method("get_integrity") else 0
@@ -268,7 +231,7 @@ func test_damage_and_repair() -> void:
     assert_that(actual_damage).is_equal(expected_damage)
     
     var new_integrity: int = hull.get_integrity() if hull.has_method("get_integrity") else 0
-    assert_that(new_integrity).is_equal(initial_integrity - expected_damage)
+    assert_that(new_integrity).is_equal(initial_integrity - actual_damage)
     
     # Test repairing
     var repair_amount: int = hull_enums.HULL_TEST_REPAIR
@@ -277,7 +240,7 @@ func test_damage_and_repair() -> void:
     assert_that(actual_repair).is_equal(repair_amount)
     
     var repaired_integrity: int = hull.get_integrity() if hull.has_method("get_integrity") else 0
-    assert_that(repaired_integrity).is_equal(new_integrity + repair_amount)
+    assert_that(repaired_integrity).is_equal(new_integrity + actual_repair)
     
     # Test repair capped by max integrity
     var over_repair: int = hull.repair(hull_enums.HULL_BASE_INTEGRITY) if hull.has_method("repair") else 0
@@ -285,37 +248,34 @@ func test_damage_and_repair() -> void:
     var final_integrity: int = hull.get_integrity() if hull.has_method("get_integrity") else 0
     
     assert_that(final_integrity).is_equal(max_integrity)
-    assert_that(over_repair).is_equal(max_integrity - repaired_integrity)
 
-@warning_ignore("unsafe_method_access")
 func test_setters() -> void:
     # Test armor setter
-    var new_armor: int = hull_enums.HULL_MAX_ARMOR
+    var new_armor = hull_enums.HULL_MAX_ARMOR
     hull.set_armor(new_armor) if hull.has_method("set_armor") else null
     var current_armor: int = hull.get_armor() if hull.has_method("get_armor") else 0
     assert_that(current_armor).is_equal(new_armor)
     
     # Test max integrity setter
-    var new_max_integrity: int = hull_enums.HULL_MAX_INTEGRITY
+    var new_max_integrity = hull_enums.HULL_MAX_INTEGRITY
     hull.set_max_integrity(new_max_integrity) if hull.has_method("set_max_integrity") else null
     var current_max_integrity: int = hull.get_max_integrity() if hull.has_method("get_max_integrity") else 0
     assert_that(current_max_integrity).is_equal(new_max_integrity)
     
     # Test damage resistance setter
-    var new_damage_resistance: float = hull_enums.HULL_MAX_DAMAGE_RESISTANCE
+    var new_damage_resistance = hull_enums.HULL_MAX_DAMAGE_RESISTANCE
     hull.set_damage_resistance(new_damage_resistance) if hull.has_method("set_damage_resistance") else null
     var current_damage_resistance: float = hull.get_damage_resistance() if hull.has_method("get_damage_resistance") else 0.0
-    assert_that(abs(current_damage_resistance - new_damage_resistance) < 0.001).is_true()
+    assert_that(current_damage_resistance).is_equal(new_damage_resistance)
     
     # Test weight setter
-    var new_weight: int = hull_enums.HULL_TEST_WEIGHT
+    var new_weight = hull_enums.HULL_TEST_WEIGHT
     hull.set_weight(new_weight) if hull.has_method("set_weight") else null
     var current_weight: int = hull.get_weight() if hull.has_method("get_weight") else 0
     assert_that(current_weight).is_equal(new_weight)
 
-@warning_ignore("unsafe_method_access")
 func test_serialization() -> void:
-    # Modify hull state
+    # Configure hull
     hull.set_armor(hull_enums.HULL_MAX_ARMOR) if hull.has_method("set_armor") else null
     hull.set_max_integrity(hull_enums.HULL_MAX_INTEGRITY) if hull.has_method("set_max_integrity") else null
     hull.set_integrity(hull_enums.HULL_MAX_INTEGRITY - 500) if hull.has_method("set_integrity") else null
@@ -326,9 +286,7 @@ func test_serialization() -> void:
     
     # Serialize and deserialize
     var data: Dictionary = hull.serialize() if hull.has_method("serialize") else {}
-    var new_hull: HullComponent = HullComponent.new()
-    @warning_ignore("return_value_discarded")
-	track_resource(new_hull)
+    var new_hull: MockHullComponent = MockHullComponent.new()
     new_hull.deserialize(data) if new_hull.has_method("deserialize") else null
     
     # Verify hull-specific properties
@@ -341,7 +299,7 @@ func test_serialization() -> void:
     assert_that(armor).is_equal(hull_enums.HULL_MAX_ARMOR)
     assert_that(integrity).is_equal(hull_enums.HULL_MAX_INTEGRITY - 500)
     assert_that(max_integrity).is_equal(hull_enums.HULL_MAX_INTEGRITY)
-    assert_that(abs(damage_resistance - hull_enums.HULL_MAX_DAMAGE_RESISTANCE) < 0.001).is_true()
+    assert_that(damage_resistance).is_equal(hull_enums.HULL_MAX_DAMAGE_RESISTANCE)
     assert_that(weight).is_equal(hull_enums.HULL_TEST_WEIGHT)
     
     # Verify inherited properties

@@ -1,325 +1,357 @@
+@tool
 extends Node
-# Removed class_name to avoid autoload conflicts
+class_name FPCM_AlphaGameManager
 
-## Alpha Game Manager - Integrates all systems for Five Parsecs Campaign Manager
-## Manages the complete campaign turn flow with all new support systems
+## Alpha Game Manager for Five Parsecs Campaign Manager
+## Central coordinator for all core systems
 
-signal campaign_turn_started()
-signal campaign_turn_completed()
-signal system_error(message: String)
+# Safe imports
+const UniversalNodeAccess = preload("res://src/utils/UniversalNodeAccess.gd")
+const UniversalResourceLoader = preload("res://src/utils/UniversalResourceLoader.gd") 
+const UniversalSignalManager = preload("res://src/utils/UniversalSignalManager.gd")
+const UniversalDataAccess = preload("res://src/utils/UniversalDataAccess.gd")
+const UniversalSceneManager = preload("res://src/utils/UniversalSceneManager.gd")
 
-# Core systems
-var enemy_generator # EnemyGenerator
-var upkeep_system # UpkeepSystem
-var trading_system # TradingSystem
+# Safe dependency loading - loaded at runtime in _ready()
+var GameEnums = null
 
-# Current campaign data
-var current_campaign: Resource = null
-var current_mission: Resource = null
-var current_enemies: Array[Resource] = []
-var current_battle_result: Resource = null
+# System references
+var game_state_manager: Node = null
+var campaign_creation_manager: Node = null
+var campaign_phase_manager: Node = null
+var battle_results_manager: Node = null
+var dice_manager: Node = null
 
-# UI references
-var _main_game_scene: MainGameScene = null
-var ui_manager: Node = null
+# Core state
+var is_initialized: bool = false
+var initialization_errors: Array[String] = []
+var systems_ready: Dictionary = {}
+
+# Signals
+signal systems_initialized(success: bool, errors: Array[String])
+signal game_state_ready(game_state: Node)
+signal campaign_creation_ready(manager: Node)
+signal system_error(system_name: String, error_message: String)
+signal all_systems_ready()
+
+func _init() -> void:
+	name = "AlphaGameManager"
+	print("AlphaGameManager: Initializing...")
 
 func _ready() -> void:
-	_initialize_systems()
-	_setup_autoload_connections()
-func _initialize_systems() -> void:
-	"""Initialize all core game systems"""
-	enemy_generator = preload("res://src/core/systems/EnemyGenerator.gd").new()
-	upkeep_system = preload("res://src/core/systems/UpkeepSystem.gd").new()
-	trading_system = preload("res://src/core/systems/TradingSystem.gd").new()
+	# Load dependencies safely at runtime
+	GameEnums = UniversalResourceLoader.load_script_safe("res://src/core/systems/GlobalEnums.gd", "AlphaGameManager GameEnums")
 	
-	# Connect system signals
-	_connect_system_signals()
-	
-	print("Alpha Game Manager: All systems initialized")
-func _connect_system_signals() -> void:
-	"""Connect signals from all systems"""
-	if enemy_generator:
-		enemy_generator.enemies_generated.connect(_on_enemies_generated)
-	
-	if upkeep_system:
-		upkeep_system.upkeep_calculated.connect(_on_upkeep_calculated)
-		upkeep_system.upkeep_paid.connect(_on_upkeep_paid)
-		upkeep_system.insufficient_funds.connect(_on_insufficient_funds)
-	
-	if trading_system:
-		trading_system.market_generated.connect(_on_market_generated)
-		trading_system.trade_completed.connect(_on_trade_completed)
-		trading_system.trade_failed.connect(_on_trade_failed)
-func _setup_autoload_connections() -> void:
-	"""Setup connections with autoload systems"""
-	# Connect to UI Manager if available
-	ui_manager = get_node_or_null("/root/UIManager")
-	if ui_manager and ui_manager.has_signal("scene_changed"):
-		ui_manager.scene_changed.connect(_on_ui_scene_changed)
+	# Defer initialization to next frame to ensure all autoloads are ready
+	call_deferred("initialize_systems")
 
-# ===== CAMPAIGN MANAGEMENT =====
-func start_new_campaign(campaign_data: Resource) -> void:
-	"""Start a new campaign with provided _data"""
-	current_campaign = campaign_data
+func initialize_systems() -> void:
+	"""Initialize all core systems in proper order"""
+	print("AlphaGameManager: Starting system initialization...")
+	initialization_errors.clear()
+	systems_ready.clear()
 	
-	# Initialize campaign defaults
-	_initialize_campaign_defaults()
+	# Step 1: Initialize GameStateManager first (it's the foundation)
+	_initialize_game_state_manager()
 	
-	# Start first campaign turn
-	campaign_turn_started.emit() # warning: return value discarded (intentional)
-	print("Alpha Game Manager: New campaign started")
+	# Step 2: Initialize other managers that depend on GameState
+	_initialize_campaign_creation_manager()
+	_initialize_campaign_phase_manager()
+	_initialize_battle_results_manager()
+	_initialize_dice_manager()
+	
+	# Step 3: Check if all systems are ready
+	_finalize_initialization()
 
-func _initialize_campaign_defaults() -> void:
-	"""Set up default campaign values"""
-	if not current_campaign:
+func _initialize_game_state_manager() -> void:
+	"""Initialize the GameStateManager"""
+	print("AlphaGameManager: Initializing GameStateManager...")
+	
+	# Try to get existing GameStateManager from autoload
+	game_state_manager = get_node_or_null("/root/GameStateManager")
+	
+	if not game_state_manager:
+		# Create new GameStateManager if not found
+		var GameStateManagerClass = UniversalResourceLoader.load_script_safe("res://src/core/managers/GameStateManager.gd", "AlphaGameManager GameStateManagerClass")
+		if GameStateManagerClass:
+			game_state_manager = GameStateManagerClass.new()
+			game_state_manager.name = "GameStateManager"
+			add_child(game_state_manager)
+			print("AlphaGameManager: Created new GameStateManager")
+		else:
+			var error = "Failed to load GameStateManager class"
+			initialization_errors.append(error)
+			system_error.emit("GameStateManager", error)
+			systems_ready["GameStateManager"] = false
+			return
+	
+	# Initialize the GameStateManager
+	if game_state_manager.has_method("initialize_game_state"):
+		game_state_manager.initialize_game_state()
+	
+	systems_ready["GameStateManager"] = true
+	game_state_ready.emit(game_state_manager)
+	print("AlphaGameManager: GameStateManager ready")
+
+func _initialize_campaign_creation_manager() -> void:
+	"""Initialize the CampaignCreationManager"""
+	print("AlphaGameManager: Initializing CampaignCreationManager...")
+	
+	if not game_state_manager:
+		var error = "Cannot initialize CampaignCreationManager: GameStateManager not available"
+		initialization_errors.append(error)
+		system_error.emit("CampaignCreationManager", error)
+		systems_ready["CampaignCreationManager"] = false
 		return
 	
-	# Set default credits if not set
-	if not current_campaign.has_meta("credits"):
-		current_campaign.set_meta("credits", 1000)
-	
-	# Initialize empty inventory if not set
-	if not current_campaign.has_meta("inventory"):
-		current_campaign.set_meta("inventory", [])
-	
-	# Set default living standard
-	if not current_campaign.has_meta("living_standard"):
-		current_campaign.set_meta("living_standard", "normal")
-	
-	# Initialize ship data if not set
-	if not current_campaign.has_meta("ship_data"):
-		var ship := Resource.new()
-		ship.set_meta("hull_damage", 0)
-		ship.set_meta("modifications", [])
-		current_campaign.set_meta("ship_data", ship)
-
-func load_campaign(campaign_data: Resource) -> void:
-	"""Load an existing campaign"""
-	current_campaign = campaign_data
-	print("Alpha Game Manager: Campaign loaded")
-
-# ===== MISSION MANAGEMENT =====
-func generate_enemies_for_mission(mission: Resource) -> Array[Resource]:
-	"""Generate enemies for the current mission"""
-	if not enemy_generator:
-		system_error.emit("Enemy generator not available") # warning: return value discarded (intentional)
-		return []
-	
-	var crew_size = _get_crew_size()
-	return enemy_generator.generate_enemies_for_mission(mission, crew_size)
-
-func start_mission(mission: Resource) -> void:
-	"""Start a mission and generate enemies"""
-	current_mission = mission
-	current_enemies = generate_enemies_for_mission(mission)
-	print("Alpha Game Manager: Mission started - %s" % mission.get_meta("mission_type"))
-func complete_mission(battle_result: Resource) -> void:
-	"""Complete mission and apply results"""
-	current_battle_result = battle_result
-	
-	# Apply battle results to campaign
-	if battle_result and battle_result.has_method("get"):
-		var victory = battle_result.victory if battle_result.has("victory") else false
-		var credits_earned = battle_result.credits_earned if battle_result.has("credits_earned") else 0
+	var CampaignCreationManagerClass = UniversalResourceLoader.load_script_safe("res://src/core/campaign/CampaignCreationManager.gd", "AlphaGameManager CampaignCreationManagerClass")
+	if CampaignCreationManagerClass:
+		campaign_creation_manager = CampaignCreationManagerClass.new()
+		campaign_creation_manager.name = "CampaignCreationManager"
+		add_child(campaign_creation_manager)
 		
-		if victory:
-			_apply_victory_rewards(credits_earned)
+		# Setup with dependencies
+		if campaign_creation_manager.has_method("setup"):
+			var game_state = game_state_manager.get_game_state()
+			campaign_creation_manager.setup(game_state)
+		
+		systems_ready["CampaignCreationManager"] = true
+		campaign_creation_ready.emit(campaign_creation_manager)
+		print("AlphaGameManager: CampaignCreationManager ready")
+	else:
+		var error = "Failed to load CampaignCreationManager class"
+		initialization_errors.append(error)
+		system_error.emit("CampaignCreationManager", error)
+		systems_ready["CampaignCreationManager"] = false
+
+func _initialize_campaign_phase_manager() -> void:
+	"""Initialize the CampaignPhaseManager"""
+	print("AlphaGameManager: Initializing CampaignPhaseManager...")
+	
+	if not game_state_manager:
+		var error = "Cannot initialize CampaignPhaseManager: GameStateManager not available"
+		initialization_errors.append(error)
+		system_error.emit("CampaignPhaseManager", error)
+		systems_ready["CampaignPhaseManager"] = false
+		return
+	
+	var CampaignPhaseManagerClass = UniversalResourceLoader.load_script_safe("res://src/core/campaign/CampaignPhaseManager.gd", "AlphaGameManager CampaignPhaseManagerClass")
+	if CampaignPhaseManagerClass:
+		campaign_phase_manager = CampaignPhaseManagerClass.new()
+		campaign_phase_manager.name = "CampaignPhaseManager"
+		add_child(campaign_phase_manager)
+		
+		# Setup with dependencies
+		if campaign_phase_manager.has_method("setup"):
+			var game_state = game_state_manager.get_game_state()
+			campaign_phase_manager.setup(game_state)
+		
+		systems_ready["CampaignPhaseManager"] = true
+		print("AlphaGameManager: CampaignPhaseManager ready")
+	else:
+		var error = "Failed to load CampaignPhaseManager class"
+		initialization_errors.append(error)
+		system_error.emit("CampaignPhaseManager", error)
+		systems_ready["CampaignPhaseManager"] = false
+
+func _initialize_battle_results_manager() -> void:
+	"""Initialize the BattleResultsManager"""
+	print("AlphaGameManager: Initializing BattleResultsManager...")
+	
+	if not game_state_manager:
+		var error = "Cannot initialize BattleResultsManager: GameStateManager not available"
+		initialization_errors.append(error)
+		system_error.emit("BattleResultsManager", error)
+		systems_ready["BattleResultsManager"] = false
+		return
+	
+	var BattleResultsManagerClass = UniversalResourceLoader.load_script_safe("res://src/core/battle/BattleResultsManager.gd", "AlphaGameManager BattleResultsManagerClass")
+	if BattleResultsManagerClass:
+		battle_results_manager = BattleResultsManagerClass.new()
+		battle_results_manager.name = "BattleResultsManager"
+		add_child(battle_results_manager)
+		
+		# Setup with dependencies
+		if battle_results_manager.has_method("setup"):
+			var game_state = game_state_manager.get_game_state()
+			# Note: CharacterManager would be loaded here if needed
+			battle_results_manager.setup(game_state, null)
+		
+		systems_ready["BattleResultsManager"] = true
+		print("AlphaGameManager: BattleResultsManager ready")
+	else:
+		var error = "Failed to load BattleResultsManager class"
+		initialization_errors.append(error)
+		system_error.emit("BattleResultsManager", error)
+		systems_ready["BattleResultsManager"] = false
+
+func _initialize_dice_manager() -> void:
+	"""Initialize the DiceManager"""
+	print("AlphaGameManager: Initializing DiceManager...")
+	
+	# Try to get existing DiceManager from autoload
+	dice_manager = get_node_or_null("/root/DiceManager")
+	
+	if not dice_manager:
+		var DiceManagerClass = UniversalResourceLoader.load_script_safe("res://src/core/managers/DiceManager.gd", "AlphaGameManager DiceManagerClass")
+		if DiceManagerClass:
+			dice_manager = DiceManagerClass.new()
+			dice_manager.name = "DiceManager"
+			add_child(dice_manager)
+			print("AlphaGameManager: Created new DiceManager")
 		else:
-			_apply_defeat_consequences()
+			var error = "Failed to load DiceManager class"
+			initialization_errors.append(error)
+			system_error.emit("DiceManager", error)
+			systems_ready["DiceManager"] = false
+			return
 	
-	# Clear current mission
-	current_mission = null
-	current_enemies.clear()
-func _apply_victory_rewards(credits: int) -> void:
-	"""Apply rewards for mission victory"""
-	var current_credits = _get_campaign_credits()
-	_set_campaign_credits(current_credits + credits)
-	print("Alpha Game Manager: Victory! Earned %d credits" % credits)
-func _apply_defeat_consequences() -> void:
-	"""Apply consequences for mission defeat"""
-	# TODO: Implement defeat consequences (injuries, lost equipment, etc.)
-	print("Alpha Game Manager: Mission failed - applying consequences")
+	systems_ready["DiceManager"] = true
+	print("AlphaGameManager: DiceManager ready")
 
-# ===== UPKEEP MANAGEMENT =====
-func calculate_campaign_upkeep() -> Dictionary:
-	"""Calculate upkeep for current campaign turn"""
-	if not upkeep_system or not current_campaign:
-		return {}
+func _finalize_initialization() -> void:
+	"""Finalize the initialization process"""
+	var all_ready = true
+	var ready_count = 0
+	var total_count = systems_ready.size()
 	
-	return upkeep_system.calculate_upkeep_costs(current_campaign)
+	for system_name in systems_ready:
+		if systems_ready[system_name]:
+			ready_count += 1
+		else:
+			all_ready = false
+			push_error("AlphaGameManager: System '" + system_name + "' failed to initialize")
+	
+	is_initialized = all_ready
+	
+	print("AlphaGameManager: Initialization complete - " + str(ready_count) + "/" + str(total_count) + " systems ready")
+	
+	if initialization_errors.size() > 0:
+		print("AlphaGameManager: Initialization errors:")
+		for error in initialization_errors:
+			print("  - " + error)
+	
+	systems_initialized.emit(is_initialized, initialization_errors)
+	
+	if is_initialized:
+		all_systems_ready.emit()
+		print("AlphaGameManager: All systems ready!")
+	else:
+		push_error("AlphaGameManager: System initialization failed")
 
-func pay_campaign_upkeep() -> bool:
-	"""Attempt to pay campaign upkeep"""
-	if not upkeep_system or not current_campaign:
+# Public API methods
+func get_game_state_manager() -> Node:
+	"""Get the GameStateManager instance"""
+	return game_state_manager
+
+func get_campaign_creation_manager() -> Node:
+	"""Get the CampaignCreationManager instance"""
+	return campaign_creation_manager
+
+func get_campaign_phase_manager() -> Node:
+	"""Get the CampaignPhaseManager instance"""
+	return campaign_phase_manager
+
+func get_battle_results_manager() -> Node:
+	"""Get the BattleResultsManager instance"""
+	return battle_results_manager
+
+func get_dice_manager() -> Node:
+	"""Get the DiceManager instance"""
+	return dice_manager
+
+func is_system_ready(system_name: String) -> bool:
+	"""Check if a specific system is ready"""
+	return systems_ready.get(system_name, false)
+
+func get_system_status() -> Dictionary:
+	"""Get the status of all systems"""
+	return {
+		"initialized": is_initialized,
+		"systems_ready": systems_ready.duplicate(),
+		"errors": initialization_errors.duplicate()
+	}
+
+func start_new_campaign(config: Dictionary = {}) -> bool:
+	"""Start a new campaign with the given configuration"""
+	if not is_initialized:
+		push_error("AlphaGameManager: Cannot start campaign - systems not initialized")
 		return false
 	
-	var upkeep_costs = calculate_campaign_upkeep()
-	return upkeep_system.pay_upkeep(current_campaign, upkeep_costs)
-
-# ===== TRADING MANAGEMENT =====
-
-func generate_market(world_type: String = "frontier") -> Array[Resource]:
-	"""Generate market for current world"""
-	if not trading_system:
-		system_error.emit("Trading system not available") # warning: return value discarded (intentional)
-		return []
-	
-	return trading_system.generate_market(world_type)
-
-func buy_item(item: Resource) -> bool:
-	"""Buy an item from the market"""
-	if not trading_system or not current_campaign:
+	if not game_state_manager or not game_state_manager.has_method("start_new_campaign"):
+		push_error("AlphaGameManager: Cannot start campaign - GameStateManager not available")
 		return false
 	
-	return trading_system.buy_item(item, current_campaign)
+	print("AlphaGameManager: Starting new campaign...")
+	return game_state_manager.start_new_campaign(config)
 
-func sell_item(item: Resource) -> bool:
-	"""Sell an item to the market"""
-	if not trading_system or not current_campaign:
+func get_current_phase() -> int:
+	"""Get the current campaign phase"""
+	if campaign_phase_manager and campaign_phase_manager.has_method("get_current_phase"):
+		return campaign_phase_manager.get_current_phase()
+	
+	# Safe enum access
+	if GameEnums and "FiveParcsecsCampaignPhase" in GameEnums and "NONE" in GameEnums.FiveParcsecsCampaignPhase:
+		return GameEnums.FiveParcsecsCampaignPhase.NONE
+	return 0  # Fallback to safe default
+
+func transition_to_phase(new_phase: int) -> bool:
+	"""Transition to a new campaign phase"""
+	if not campaign_phase_manager or not campaign_phase_manager.has_method("start_phase"):
+		push_error("AlphaGameManager: Cannot transition phase - CampaignPhaseManager not available")
 		return false
 	
-	return trading_system.sell_item(item, current_campaign)
+	return campaign_phase_manager.start_phase(new_phase)
 
-# ===== CAMPAIGN TURN FLOW =====
-
-func start_campaign_turn() -> void:
-	"""Start a new campaign turn"""
-	campaign_turn_started.emit() # warning: return value discarded (intentional)
+func save_current_state() -> bool:
+	"""Save the current game state"""
+	if not game_state_manager or not game_state_manager.has_method("save_current_state"):
+		push_error("AlphaGameManager: Cannot save state - GameStateManager not available")
+		return false
 	
-	# Calculate upkeep at start of turn
-	var upkeep_costs = calculate_campaign_upkeep()
+	return game_state_manager.save_current_state()
 
-	print("Alpha Game Manager: Campaign turn started. Upkeep: %d credits" % upkeep_costs.get("total", 0))
-
-func complete_campaign_turn() -> void:
-	"""Complete the current campaign turn"""
-	# Apply end-of-turn effects
-	_apply_end_turn_effects()
+func load_saved_state(save_name: String = "current_campaign") -> bool:
+	"""Load a saved game state"""
+	if not game_state_manager or not game_state_manager.has_method("load_saved_state"):
+		push_error("AlphaGameManager: Cannot load state - GameStateManager not available")
+		return false
 	
-	campaign_turn_completed.emit() # warning: return value discarded (intentional)
-	print("Alpha Game Manager: Campaign turn completed")
+	return game_state_manager.load_saved_state(save_name)
 
-func _apply_end_turn_effects() -> void:
-	"""Apply effects at end of campaign turn"""
-	# Heal injured crew members
-	_process_injury_recovery()
+func restart_systems() -> void:
+	"""Restart all systems (useful for recovery)"""
+	print("AlphaGameManager: Restarting systems...")
+	is_initialized = false
+	systems_ready.clear()
+	initialization_errors.clear()
 	
-	# Apply any ongoing effects
-	_process_ongoing_effects()
-func _process_injury_recovery() -> void:
-	"""Process injury recovery for crew members"""
-	var crew_members = _get_crew_members()
-	for crew_member in crew_members:
-		if crew_member.has_method("get_meta") and crew_member.has_method("set_meta"):
-			var recovery_time = crew_member.get_meta("recovery_time")
-			if recovery_time > 0:
-				crew_member.set_meta("recovery_time", recovery_time - 1)
-				if recovery_time <= 1:
-					crew_member.set_meta("injured", false)
-func _process_ongoing_effects() -> void:
-	"""Process ongoing campaign effects"""
-	# Clear temporary effects
-	if current_campaign and current_campaign.has_method("set_meta"):
-		current_campaign.set_meta("luxury_bonus", false)
-
-# ===== UTILITY FUNCTIONS =====
-func _get_crew_size() -> int:
-	"""Get current crew size"""
-	var crew_members = _get_crew_members()
-	return crew_members.size()
-
-func _get_crew_members() -> Array[Resource]:
-	"""Get crew members from campaign"""
-	if current_campaign and current_campaign.has_method("get_meta"):
-		var crew = current_campaign.get_meta("crew_members")
-		return crew if crew != null else []
-	return []
-
-func _get_campaign_credits() -> int:
-	"""Get current campaign credits"""
-	if current_campaign and current_campaign.has_method("get_meta"):
-		return current_campaign.get_meta("credits")
-	return 0
-
-func _set_campaign_credits(credits: int) -> void:
-	"""Set campaign credits"""
-	if current_campaign and current_campaign.has_method("set_meta"):
-		current_campaign.set_meta("credits", credits)
-
-# ===== SIGNAL HANDLERS =====
-func _on_enemies_generated(enemies: Array[Resource]) -> void:
-	"""Handle enemy generation completion"""
-	current_enemies = enemies
-	print("Alpha Game Manager: Generated %d enemies" % enemies.size())
-func _on_upkeep_calculated(cost: int, breakdown: Dictionary) -> void:
-	"""Handle upkeep calculation"""
-	print("Alpha Game Manager: Upkeep calculated - %d credits" % cost)
-func _on_upkeep_paid(remaining_credits: int) -> void:
-	"""Handle successful upkeep payment"""
-	print("Alpha Game Manager: Upkeep paid - %d _credits remaining" % remaining_credits)
-func _on_insufficient_funds(required: int, available: int) -> void:
-	"""Handle insufficient funds for upkeep"""
-	print("Alpha Game Manager: Insufficient funds - need %d, have %d" % [required, available])
+	# Clean up existing systems
+	if campaign_creation_manager:
+		campaign_creation_manager.queue_free()
+		campaign_creation_manager = null
 	
-	# Apply upkeep failure consequences
-	if upkeep_system:
-		var consequences = upkeep_system.handle_upkeep_failure(current_campaign)
-		print("Alpha Game Manager: Upkeep failure consequences applied")
-func _on_market_generated(items: Array[Resource]) -> void:
-	"""Handle market generation"""
-	print("Alpha Game Manager: Market generated with %d items" % items.size())
-func _on_trade_completed(item: Resource, transaction_type: String, credits: int) -> void:
-	"""Handle successful trade"""
-	var item_name = item.get_meta("name") if item.has_method("get_meta") else "Unknown"
-	print("Alpha Game Manager: %s completed - %s for %d credits" % [transaction_type, item_name, credits])
-func _on_trade_failed(reason: String) -> void:
-	"""Handle failed trade"""
-	print("Alpha Game Manager: Trade failed - %s" % reason)
-func _on_ui_scene_changed(scene_name: String) -> void:
-	"""Handle UI scene changes"""
-	print("Alpha Game Manager: UI scene changed to %s" % scene_name)
+	if campaign_phase_manager:
+		campaign_phase_manager.queue_free()
+		campaign_phase_manager = null
+	
+	if battle_results_manager:
+		battle_results_manager.queue_free()
+		battle_results_manager = null
+	
+	# Reinitialize
+	call_deferred("initialize_systems")
 
-# ===== PUBLIC API =====
-func get_current_campaign() -> Resource:
-	"""Get current campaign data"""
-	return current_campaign
-
-func get_current_mission() -> Resource:
-	"""Get current mission data"""
-	return current_mission
-
-func get_current_enemies() -> Array[Resource]:
-	"""Get current enemies"""
-	return current_enemies
-
-func get_enemy_generator() -> EnemyGenerator:
-	"""Get enemy generator system"""
-	return enemy_generator
-
-func get_upkeep_system() -> UpkeepSystem:
-	"""Get upkeep system"""
-	return upkeep_system
-
-func get_trading_system() -> TradingSystem:
-	"""Get trading system"""
-	return trading_system
-
-func get_story_track_system() -> Resource:
-	"""Get story track system from campaign manager"""
-	if has_node("/root/CampaignManager"):
-		var campaign_mgr = get_node("/root/CampaignManager")
-		if campaign_mgr and campaign_mgr.has_method("get_story_track_system"):
-			return campaign_mgr.get_story_track_system()
-		elif campaign_mgr and campaign_mgr.has_property("story_track_system"):
-			return campaign_mgr.story_track_system
-	return null
-
-func get_campaign_manager() -> Node:
-	"""Get campaign manager reference"""
-	if has_node("/root/CampaignManager"):
-		return get_node("/root/CampaignManager")
-	return null
-
-func is_campaign_active() -> bool:
-	"""Check if a campaign is currently active"""
-	return current_campaign != null
+func _exit_tree() -> void:
+	"""Clean up when the manager is removed"""
+	print("AlphaGameManager: Shutting down...")
+	
+	# Clean up managed systems
+	if campaign_creation_manager and is_instance_valid(campaign_creation_manager):
+		campaign_creation_manager.queue_free()
+	
+	if campaign_phase_manager and is_instance_valid(campaign_phase_manager):
+		campaign_phase_manager.queue_free()
+	
+	if battle_results_manager and is_instance_valid(battle_results_manager):
+		battle_results_manager.queue_free()

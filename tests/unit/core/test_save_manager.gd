@@ -1,417 +1,420 @@
 @tool
-@warning_ignore("return_value_discarded")
-	extends GdUnitGameTest
+extends GdUnitGameTest
 
-# Mock Save Manager with expected values (Universal Mock Strategy)
+## Unit tests for the SaveManager system
+##
+## This test suite covers:
+## - Game state serialization/deserialization
+## - Save file operations
+## - Campaign persistence
+## - Error handling for corrupted saves
+
+# Test constants
+const TEST_SAVE_FILE_SUFFIX := "_test"
+const TEST_AUTO_SAVE_INTERVAL := 30.0
+
+# Mock save manager for testing
 class MockSaveManager extends Resource:
-	var save_directory: String = "user://saves/"
-	var auto_save_enabled: bool = true
-	var auto_save_interval: int = 300 # 5 minutes
-	var max_backups: int = 5
-	var save_files: Dictionary = {}
-	var auto_save_files: @warning_ignore("unsafe_call_argument")
-	Array[String] = []
-	var save_metadata: Dictionary = {}
-	
-	# Core getters with expected values
-	func get_save_directory() -> String: return save_directory
-	func is_auto_save_enabled() -> bool: return auto_save_enabled
-	func get_auto_save_interval() -> int: return auto_save_interval
-	func get_max_backups() -> int: return max_backups
-	
-	# Core setters
-	func set_auto_save_enabled(enabled: bool) -> void:
-		auto_save_enabled = enabled
-	
-	func set_auto_save_interval(interval: int) -> void:
-		auto_save_interval = max(1, interval)
-	
-	# Save file management
-	func create_save(save_name: String, data: Dictionary) -> bool:
-		if save_name == "" or data == null:
-			return false
-		if save_name.contains("/") or save_name.contains("\\"):
-			return false
-		@warning_ignore("unsafe_call_argument")
-	save_files[save_name] = data.duplicate()
-		return true
-	
-	func load_save(save_name: String) -> Dictionary:
+    signal save_completed(file_path: String)
+    signal load_completed(file_path: String)
+    signal save_failed(error: String)
+    signal auto_save_triggered()
+    
+    var current_save_file: String = ""
+    var auto_save_enabled: bool = true
+    var last_save_time: float = 0.0
+    var save_count: int = 0
+    var load_count: int = 0
+    var _save_data: Dictionary = {}
+    var _auto_save_timer: float = 0.0
+    
+    func save_game(file_path: String, data: Dictionary) -> bool:
+        if file_path.is_empty():
+            save_failed.emit("Invalid file path")
+            return false
+        
+        _save_data = data.duplicate(true)
+        current_save_file = file_path
+        last_save_time = Time.get_ticks_msec() / 1000.0
+        save_count += 1
+        
+        save_completed.emit(file_path)
+        return true
+    
+    func load_game(file_path: String) -> Dictionary:
+        if file_path.is_empty():
+            return {}
+        
+        load_count += 1
+        load_completed.emit(file_path)
+        return _save_data.duplicate(true)
+    
+    func auto_save(data: Dictionary) -> bool:
+        if not auto_save_enabled:
+            return false
+        
+        var auto_save_path = current_save_file + "_auto"
+        var success = save_game(auto_save_path, data)
+        if success:
+            auto_save_triggered.emit()
+        return success
+    
+    func delete_save_file(file_path: String) -> bool:
+        if file_path == current_save_file:
+            current_save_file = ""
+            _save_data.clear()
+        return true
+    
+    func list_save_files() -> Array:
+        var files: Array[String] = []
+        if not current_save_file.is_empty():
+            files.append(current_save_file)
+            files.append(current_save_file + "_auto")
+        return files
+    
+    func get_save_metadata(file_path: String) -> Dictionary:
+        if file_path == current_save_file:
+            return {
+                "timestamp": last_save_time,
+                "version": "1.0.0",
+                "campaign_name": _save_data.get("campaign_name", "Test Campaign"),
+                "turn_number": _save_data.get("turn_number", 1)
+            }
+        return {}
+    
+    func update_auto_save_timer(delta: float) -> void:
+        _auto_save_timer += delta
+        if _auto_save_timer >= TEST_AUTO_SAVE_INTERVAL:
+            _auto_save_timer = 0.0
+            if auto_save_enabled and not _save_data.is_empty():
+                auto_save(_save_data)
+    
+    func validate_save_data(data: Dictionary) -> bool:
+        if not data.has("campaign_name"):
+            return false
+        if not data.has("turn_number"):
+            return false
+        if typeof(data.get("turn_number")) != TYPE_INT:
+            return false
+        return true
+    
+    func get_save_file_size(file_path: String) -> int:
+        if file_path == current_save_file:
+            return _save_data.size() * 100 # Mock file size
+        return 0
+    
+    func backup_save_file(file_path: String) -> String:
+        var backup_path = file_path + ".backup"
+        # Mock backup creation
+        return backup_path
+    
+    func restore_from_backup(backup_path: String) -> bool:
+        return backup_path.ends_with(".backup")
 
-		return @warning_ignore("unsafe_call_argument")
-	save_files.get(save_name, {})
-	
-	func delete_save(save_name: String) -> bool:
-		if @warning_ignore("unsafe_call_argument")
-	save_files.has(save_name):
-			@warning_ignore("return_value_discarded")
-	save_files.erase(save_name)
-			return true
-		return false
-	
-	func get_save_files() -> Array[String]:
-		var file_array: @warning_ignore("unsafe_call_argument")
-	Array[String] = []
-		file_array.assign(save_files.keys())
-		return file_array
-	
-	# Auto-save management
-	func update_auto_save_data(data: Dictionary) -> void:
-		if auto_save_enabled:
-			var auto_save_name = "auto_save_" + str(Time.get_unix_time_from_system())
+# Mock campaign data for testing
+class MockCampaignData extends Resource:
+    var campaign_name: String = "Test Campaign"
+    var turn_number: int = 1
+    var crew_data: Dictionary = {}
+    var ship_data: Dictionary = {}
+    var world_data: Dictionary = {}
+    
+    func serialize() -> Dictionary:
+        return {
+            "campaign_name": campaign_name,
+            "turn_number": turn_number,
+            "crew_data": crew_data,
+            "ship_data": ship_data,
+            "world_data": world_data,
+            "timestamp": Time.get_ticks_msec() / 1000.0
+        }
+    
+    func deserialize(data: Dictionary) -> void:
+        campaign_name = data.get("campaign_name", "Unknown Campaign")
+        turn_number = data.get("turn_number", 1)
+        crew_data = data.get("crew_data", {})
+        ship_data = data.get("ship_data", {})
+        world_data = data.get("world_data", {})
 
-			@warning_ignore("return_value_discarded")
-	auto_save_files.append(auto_save_name)
-			@warning_ignore("unsafe_call_argument")
-	save_files[auto_save_name] = data.duplicate()
-			# Keep only recent auto-saves
-			while auto_save_files.size() > max_backups:
-				var old_save = auto_save_files.pop_front()
-				@warning_ignore("return_value_discarded")
-	save_files.erase(old_save)
-	
-	func get_auto_save_files() -> Array[String]:
-		return auto_save_files
-	
-	func load_auto_save(auto_save_name: String) -> Dictionary:
-
-		return @warning_ignore("unsafe_call_argument")
-	save_files.get(auto_save_name, {})
-	
-	# Backup management
-	func create_backup(save_name: String, data: Dictionary) -> bool:
-		if save_name == "" or data == null:
-			return false
-		var backup_name = save_name + "_backup_" + str(Time.get_unix_time_from_system())
-		@warning_ignore("unsafe_call_argument")
-	save_files[backup_name] = data.duplicate()
-		return true
-	
-	func get_backups(save_name: String) -> Array[String]:
-		var backups: @warning_ignore("unsafe_call_argument")
-	Array[String] = []
-		for file_name in save_files.keys():
-			if file_name.begins_with(save_name + "_backup_"):
-
-				@warning_ignore("return_value_discarded")
-	backups.append(file_name)
-		return backups
-	
-	func load_backup(save_name: String, backup_name: String) -> Dictionary:
-
-		return @warning_ignore("unsafe_call_argument")
-	save_files.get(backup_name, {})
-	
-	func delete_backups(save_name: String) -> bool:
-		var backups = get_backups(save_name)
-		for backup in backups:
-			@warning_ignore("return_value_discarded")
-	save_files.erase(backup)
-		return true
-	
-	# Metadata management
-	func create_save_with_metadata(save_name: String, data: Dictionary, metadata: Dictionary) -> bool:
-		if create_save(save_name, data):
-			@warning_ignore("unsafe_call_argument")
-	save_metadata[save_name] = metadata.duplicate()
-			return true
-		return false
-	
-	func get_save_metadata(save_name: String) -> Dictionary:
-
-		return @warning_ignore("unsafe_call_argument")
-	save_metadata.get(save_name, {})
-	
-	func update_save_metadata(save_name: String, metadata: Dictionary) -> bool:
-		if @warning_ignore("unsafe_call_argument")
-	save_files.has(save_name):
-			@warning_ignore("unsafe_call_argument")
-	save_metadata[save_name] = metadata.duplicate()
-			return true
-		return false
-	
-	# Compression management
-	func create_compressed_save(save_name: String, data: Dictionary) -> bool:
-		# Mock compression by just storing the data
-		return create_save(save_name, data)
-	
-	func load_compressed_save(save_name: String) -> Dictionary:
-		return load_save(save_name)
-	
-	func get_uncompressed_size(save_name: String) -> int:
-
-		var data = @warning_ignore("unsafe_call_argument")
-	save_files.get(save_name, {})
-		return str(data).length() # Mock size calculation
-	
-	func get_compressed_size(save_name: String) -> int:
-		var uncompressed = get_uncompressed_size(save_name)
-		return int(uncompressed * 0.6) # Mock @warning_ignore("integer_division")
-	40 % compression ratio
-
-# Type-safe instance variables
-var save_manager: MockSaveManager = null
+# Test instance variables
+var _save_manager: MockSaveManager
+var _campaign_data: MockCampaignData
+var _test_save_path: String
 
 func before_test() -> void:
-	super.before_test()
-	save_manager = MockSaveManager.new()
-	@warning_ignore("return_value_discarded")
-	track_resource(save_manager)
+    super.before_test()
+    _save_manager = MockSaveManager.new()
+    track_resource(_save_manager)
+    _campaign_data = MockCampaignData.new()
+    track_resource(_campaign_data)
+    _test_save_path = "test_save" + TEST_SAVE_FILE_SUFFIX
 
 func after_test() -> void:
-	save_manager = null
-	super.after_test()
+    super.after_test()
+    _save_manager = null
+    _campaign_data = null
 
-@warning_ignore("unsafe_method_access")
-func test_initialization() -> void:
-	assert_that(save_manager).is_not_null()
-	
-	# Test direct method calls instead of safe wrappers (proven pattern)
-	var save_directory: String = save_manager.get_save_directory()
-	var auto_save_enabled: bool = save_manager.is_auto_save_enabled()
-	var auto_save_interval: int = save_manager.get_auto_save_interval()
-	
-	assert_that(save_directory).is_not_equal("")
-	assert_that(auto_save_enabled).is_true()
-	assert_that(auto_save_interval).is_greater(0)
+#region Core Save/Load Tests
 
-@warning_ignore("unsafe_method_access")
-func test_save_file_management() -> void:
-	# Test direct method calls instead of safe wrappers (proven pattern)
-	var test_data := {
-		"test_key": "test_value",
-		"number": 42,
-		"array": [1, 2, 3]
-	}
-	
-	var success: bool = save_manager.create_save("test_save", test_data)
-	assert_that(success).is_true()
-	
-	# Test loading save file
-	var loaded_data: Dictionary = save_manager.load_save("test_save")
+func test_save_campaign() -> void:
+    monitor_signals(_save_manager)
+    var save_data = _campaign_data.serialize()
+    var success = _save_manager.save_game(_test_save_path, save_data)
+    
+    assert_that(success).is_true()
+    assert_that(_save_manager.save_count).is_equal(1)
+    assert_that(_save_manager.current_save_file).is_equal(_test_save_path)
+    assert_signal(_save_manager).is_emitted("save_completed", [_test_save_path])
 
-	assert_that(@warning_ignore("unsafe_call_argument")
-	loadedtest_data.get("test_key", "")).is_equal(test_data.test_key)
+func test_load_campaign() -> void:
+    # First save a campaign
+    var save_data = _campaign_data.serialize()
+    _save_manager.save_game(_test_save_path, save_data)
+    
+    # Then load it
+    monitor_signals(_save_manager)
+    var loaded_data = _save_manager.load_game(_test_save_path)
+    
+    assert_that(loaded_data).is_not_empty()
+    assert_that(loaded_data["campaign_name"]).is_equal(_campaign_data.campaign_name)
+    assert_that(loaded_data["turn_number"]).is_equal(_campaign_data.turn_number)
+    assert_that(_save_manager.load_count).is_equal(1)
+    assert_signal(_save_manager).is_emitted("load_completed", [_test_save_path])
 
-	assert_that(@warning_ignore("unsafe_call_argument")
-	loadedtest_data.get("number", 0)).is_equal(test_data.number)
+func test_save_with_invalid_path() -> void:
+    monitor_signals(_save_manager)
+    var save_data = _campaign_data.serialize()
+    var success = _save_manager.save_game("", save_data)
+    
+    assert_that(success).is_false()
+    assert_signal(_save_manager).is_emitted("save_failed", ["Invalid file path"])
 
-	assert_that(@warning_ignore("unsafe_call_argument")
-	loadedtest_data.get("array", [])).is_equal(test_data.array)
-	
-	# Test save file listing
-	var save_files: @warning_ignore("unsafe_call_argument")
-	Array[String] = save_manager.get_save_files()
-	assert_that(@warning_ignore("unsafe_call_argument")
-	save_files.has("test_save")).is_true()
-	
-	# Test deleting save file
-	success = save_manager.delete_save("test_save")
-	assert_that(success).is_true()
-	
-	save_files = save_manager.get_save_files()
-	assert_that(@warning_ignore("unsafe_call_argument")
-	save_files.has("test_save")).is_false()
+func test_load_nonexistent_file() -> void:
+    var loaded_data = _save_manager.load_game("nonexistent_file")
+    assert_that(loaded_data).is_empty()
 
-@warning_ignore("unsafe_method_access")
+#endregion
+
+#region Auto-Save Tests
+
 func test_auto_save_functionality() -> void:
-	# Test direct method calls instead of safe wrappers (proven pattern)
-	# Test auto-save configuration
-	save_manager.set_auto_save_enabled(false)
-	var auto_save_enabled: bool = save_manager.is_auto_save_enabled()
-	assert_that(auto_save_enabled).is_false()
-	
-	save_manager.set_auto_save_interval(30)
-	var auto_save_interval: int = save_manager.get_auto_save_interval()
-	assert_that(auto_save_interval).is_equal(30)
-	
-	# Test auto-save trigger
-	save_manager.set_auto_save_enabled(true)
-	var test_data := {"auto_save_test": true}
-	save_manager.update_auto_save_data(test_data)
-	
-	var auto_save_files: @warning_ignore("unsafe_call_argument")
-	Array[String] = save_manager.get_auto_save_files()
-	assert_that(auto_save_files.size()).is_greater(0)
-	
-	if auto_save_files.size() > 0:
-		var loaded_auto_save: Dictionary = save_manager.load_auto_save(auto_save_files[0])
+    _save_manager.current_save_file = _test_save_path
+    var save_data = _campaign_data.serialize()
+    _save_manager._save_data = save_data
+    
+    monitor_signals(_save_manager)
+    var success = _save_manager.auto_save(save_data)
+    
+    assert_that(success).is_true()
+    assert_signal(_save_manager).is_emitted("auto_save_triggered")
 
-		assert_that(@warning_ignore("unsafe_call_argument")
-	loaded_auto_save.get("auto_save_test", false)).is_equal(test_data.auto_save_test)
+func test_auto_save_disabled() -> void:
+    _save_manager.auto_save_enabled = false
+    var save_data = _campaign_data.serialize()
+    var success = _save_manager.auto_save(save_data)
+    
+    assert_that(success).is_false()
 
-@warning_ignore("unsafe_method_access")
-func test_save_data_validation() -> void:
-	# Test direct method calls instead of safe wrappers (proven pattern)
-	# Test invalid save data - Fix the null parameter error
-	var empty_data := {} # Use empty dict instead of null
-	var success: bool = save_manager.create_save("invalid_save", empty_data)
-	assert_that(success).is_true() # Empty dict should be valid
-	
-	# Test empty save name
-	success = save_manager.create_save("", {"valid": "data"})
-	assert_that(success).is_false()
-	
-	# Test invalid characters in save name
-	success = save_manager.create_save("invalid/save\\name", {"valid": "data"})
-	assert_that(success).is_false()
-	
-	# Test loading non-existent save
-	var loaded_data: Dictionary = save_manager.load_save("non_existent_save")
-	assert_that(loaded_data.size()).is_equal(0)
+func test_auto_save_timer() -> void:
+    _save_manager.auto_save_enabled = true
+    _save_manager._save_data = _campaign_data.serialize()
+    _save_manager.current_save_file = _test_save_path
+    
+    monitor_signals(_save_manager)
+    
+    # Simulate timer updates
+    _save_manager.update_auto_save_timer(TEST_AUTO_SAVE_INTERVAL + 1.0)
+    
+    assert_signal(_save_manager).is_emitted("auto_save_triggered")
 
-@warning_ignore("unsafe_method_access")
-func test_save_backup_management() -> void:
-	# Test direct method calls instead of safe wrappers (proven pattern)
-	# Test creating backup
-	var test_data := {"backup_test": true}
-	var success: bool = save_manager.create_backup("test_save", test_data)
-	assert_that(success).is_true()
-	
-	# Test listing backups
-	var backups: @warning_ignore("unsafe_call_argument")
-	Array[String] = save_manager.get_backups("test_save")
-	assert_that(backups.size()).is_greater(0)
-	
-	# Test loading backup
-	if backups.size() > 0:
-		var loaded_backup: Dictionary = save_manager.load_backup("test_save", backups[0])
+#endregion
 
-		assert_that(@warning_ignore("unsafe_call_argument")
-	loaded_backup.get("backup_test", false)).is_equal(test_data.backup_test)
-	
-	# Test backup rotation
-	for i: int in range(10):
-		save_manager.create_backup("test_save", {"backup_number": i})
-	
-	backups = save_manager.get_backups("test_save")
-	var max_backups: int = save_manager.get_max_backups()
-	assert_that(backups.size()).is_greater_equal(1) # At least one backup should exist
-	
-	# Test deleting backups
-	success = save_manager.delete_backups("test_save")
-	assert_that(success).is_true()
-	
-	backups = save_manager.get_backups("test_save")
-	assert_that(backups.size()).is_equal(0)
+#region File Management Tests
 
-@warning_ignore("unsafe_method_access")
-func test_save_metadata() -> void:
-	# Test direct method calls instead of safe wrappers (proven pattern)
-	# Test save metadata creation
-	var test_data := {"game_data": "test"}
-	var metadata := {
-		"timestamp": Time.get_unix_time_from_system(),
-		"version": "1.0.0",
-		"description": "Test save"
-	}
-	
-	var success: bool = save_manager.create_save_with_metadata("test_save", test_data, metadata)
-	assert_that(success).is_true()
-	
-	# Test metadata retrieval
-	var save_metadata: Dictionary = save_manager.get_save_metadata("test_save")
+func test_delete_save_file() -> void:
+    # Create a save first
+    var save_data = _campaign_data.serialize()
+    _save_manager.save_game(_test_save_path, save_data)
+    
+    # Delete it
+    var success = _save_manager.delete_save_file(_test_save_path)
+    
+    assert_that(success).is_true()
+    assert_that(_save_manager.current_save_file).is_equal("")
 
-	assert_that(@warning_ignore("unsafe_call_argument")
-	save_metadata.get("version", "")).is_equal(metadata.version)
+func test_list_save_files() -> void:
+    var save_data = _campaign_data.serialize()
+    _save_manager.save_game(_test_save_path, save_data)
+    
+    var files = _save_manager.list_save_files()
+    
+    assert_that(files.size()).is_greater_equal(1)
+    assert_that(files).contains(_test_save_path)
 
-	assert_that(@warning_ignore("unsafe_call_argument")
-	save_metadata.get("description", "")).is_equal(metadata.description)
-	
-	# Test metadata update
-	var updated_metadata := metadata.duplicate()
-	updated_metadata.description = "Updated test save"
-	success = save_manager.update_save_metadata("test_save", updated_metadata)
-	assert_that(success).is_true()
-	
-	save_metadata = save_manager.get_save_metadata("test_save")
+func test_get_save_metadata() -> void:
+    var save_data = _campaign_data.serialize()
+    _save_manager.save_game(_test_save_path, save_data)
+    
+    var metadata = _save_manager.get_save_metadata(_test_save_path)
+    
+    assert_that(metadata).is_not_empty()
+    assert_that(metadata.has("timestamp")).is_true()
+    assert_that(metadata.has("version")).is_true()
+    assert_that(metadata["campaign_name"]).is_equal(_campaign_data.campaign_name)
 
-	assert_that(@warning_ignore("unsafe_call_argument")
-	save_metadata.get("description", "")).is_equal(updated_metadata.description)
+#endregion
 
-@warning_ignore("unsafe_method_access")
-func test_save_compression() -> void:
-	# Test direct method calls instead of safe wrappers (proven pattern)
-	# Test compressed save creation
-	var large_data := {"array": []}
-	for i: int in range(1000):
-		large_data.@warning_ignore("return_value_discarded")
-	array.append("test_data_" + str(i))
-	
-	var success: bool = save_manager.create_compressed_save("compressed_save", large_data)
-	assert_that(success).is_true()
-	
-	# Test compressed save loading
-	var loaded_data: Dictionary = save_manager.load_compressed_save("compressed_save")
+#region Data Validation Tests
 
-	assert_that(@warning_ignore("unsafe_call_argument")
-	loadedtest_data.get("array", []).size()).is_equal(large_data.array.size())
-	
-	# Test compression ratio
-	var uncompressed_size: int = save_manager.get_uncompressed_size("compressed_save")
-	var compressed_size: int = save_manager.get_compressed_size("compressed_save")
-	assert_that(compressed_size).is_less(uncompressed_size)
+func test_validate_save_data() -> void:
+    var valid_data = _campaign_data.serialize()
+    assert_that(_save_manager.validate_save_data(valid_data)).is_true()
+    
+    var invalid_data = {"invalid": "data"}
+    assert_that(_save_manager.validate_save_data(invalid_data)).is_false()
 
-@warning_ignore("unsafe_method_access")
-func test_edge_cases() -> void:
-	# Test direct method calls instead of safe wrappers (proven pattern)
-	# Test auto-save interval limits
-	save_manager.set_auto_save_interval(0)
-	assert_that(save_manager.get_auto_save_interval()).is_equal(1) # Should clamp to minimum
-	
-	save_manager.set_auto_save_interval(-10)
-	assert_that(save_manager.get_auto_save_interval()).is_equal(1) # Should clamp to minimum
-	
-	# Test multiple auto-saves
-	save_manager.set_auto_save_enabled(true)
-	for i: int in range(10):
-		save_manager.update_auto_save_data({"iteration": i})
-	
-	var auto_saves: @warning_ignore("unsafe_call_argument")
-	Array[String] = save_manager.get_auto_save_files()
-	var max_backups: int = save_manager.get_max_backups()
-	assert_that(auto_saves.size()).is_less_equal(max_backups)
+func test_validate_missing_campaign_name() -> void:
+    var invalid_data = {"turn_number": 1}
+    assert_that(_save_manager.validate_save_data(invalid_data)).is_false()
 
-@warning_ignore("unsafe_method_access")
-func test_save_file_operations() -> void:
-	# Test direct method calls instead of safe wrappers (proven pattern)
-	# Test multiple save operations
-	var saves_data := {
-		"save1": {"level": 1, "score": 100},
-		"save2": {"level": 5, "score": 500},
-		"save3": {"level": 10, "score": 1000}
-	}
-	
-	# Create multiple saves
-	for save_name: String in saves_data:
-		var success: bool = save_manager.create_save(save_name, saves_data[save_name])
-		assert_that(success).is_true()
-	
-	# Verify all saves exist
-	var save_files: @warning_ignore("unsafe_call_argument")
-	Array[String] = save_manager.get_save_files()
-	for save_name: String in saves_data:
-		assert_that(@warning_ignore("unsafe_call_argument")
-	save_files.has(save_name)).is_true()
-	
-	# Load and verify each save
-	for save_name: String in saves_data:
-		var loaded_data: Dictionary = save_manager.load_save(save_name)
-		var expected_data: Dictionary = saves_data[save_name]
+func test_validate_invalid_turn_number() -> void:
+    var invalid_data = {
+        "campaign_name": "Test",
+        "turn_number": "not_a_number"
+    }
+    assert_that(_save_manager.validate_save_data(invalid_data)).is_false()
 
-		assert_that(@warning_ignore("unsafe_call_argument")
-	loadedtest_data.get("level", 0)).is_equal(expected_data.level)
+#endregion
 
-		assert_that(@warning_ignore("unsafe_call_argument")
-	loadedtest_data.get("score", 0)).is_equal(expected_data.score)
-	
-	# Delete all saves
-	for save_name: String in saves_data:
-		var success: bool = save_manager.delete_save(save_name)
-		assert_that(success).is_true()
-	
-	# Verify all saves are deleted
-	save_files = save_manager.get_save_files()
-	for save_name: String in saves_data:
-		assert_that(@warning_ignore("unsafe_call_argument")
-	save_files.has(save_name)).is_false()  
+#region Serialization Tests
+
+func test_campaign_data_serialization() -> void:
+    _campaign_data.campaign_name = "Advanced Test Campaign"
+    _campaign_data.turn_number = 42
+    _campaign_data.crew_data = {"pilot": "John Doe"}
+    
+    var serialized = _campaign_data.serialize()
+    
+    assert_that(serialized["campaign_name"]).is_equal("Advanced Test Campaign")
+    assert_that(serialized["turn_number"]).is_equal(42)
+    assert_that(serialized["crew_data"]["pilot"]).is_equal("John Doe")
+    assert_that(serialized.has("timestamp")).is_true()
+
+func test_campaign_data_deserialization() -> void:
+    var test_data = {
+        "campaign_name": "Deserialized Campaign",
+        "turn_number": 99,
+        "crew_data": {"engineer": "Jane Smith"},
+        "ship_data": {"hull": 100},
+        "world_data": {"sector": "Alpha"}
+    }
+    
+    _campaign_data.deserialize(test_data)
+    
+    assert_that(_campaign_data.campaign_name).is_equal("Deserialized Campaign")
+    assert_that(_campaign_data.turn_number).is_equal(99)
+    assert_that(_campaign_data.crew_data["engineer"]).is_equal("Jane Smith")
+    assert_that(_campaign_data.ship_data["hull"]).is_equal(100)
+    assert_that(_campaign_data.world_data["sector"]).is_equal("Alpha")
+
+#endregion
+
+#region Backup and Recovery Tests
+
+func test_backup_save_file() -> void:
+    var save_data = _campaign_data.serialize()
+    _save_manager.save_game(_test_save_path, save_data)
+    
+    var backup_path = _save_manager.backup_save_file(_test_save_path)
+    
+    assert_that(backup_path).contains(".backup")
+    assert_that(backup_path).is_not_equal(_test_save_path)
+
+func test_restore_from_backup() -> void:
+    var backup_path = _test_save_path + ".backup"
+    var success = _save_manager.restore_from_backup(backup_path)
+    
+    assert_that(success).is_true()
+
+func test_get_save_file_size() -> void:
+    var save_data = _campaign_data.serialize()
+    _save_manager.save_game(_test_save_path, save_data)
+    
+    var file_size = _save_manager.get_save_file_size(_test_save_path)
+    
+    assert_that(file_size).is_greater(0)
+
+#endregion
+
+#region Edge Cases and Error Handling
+
+func test_save_empty_data() -> void:
+    monitor_signals(_save_manager)
+    var success = _save_manager.save_game(_test_save_path, {})
+    
+    # Should still succeed with empty data
+    assert_that(success).is_true()
+    assert_signal(_save_manager).is_emitted("save_completed")
+
+func test_multiple_saves_same_file() -> void:
+    var save_data1 = _campaign_data.serialize()
+    _campaign_data.turn_number = 2
+    var save_data2 = _campaign_data.serialize()
+    
+    _save_manager.save_game(_test_save_path, save_data1)
+    _save_manager.save_game(_test_save_path, save_data2)
+    
+    assert_that(_save_manager.save_count).is_equal(2)
+    
+    var loaded_data = _save_manager.load_game(_test_save_path)
+    assert_that(loaded_data["turn_number"]).is_equal(2)
+
+func test_load_after_delete() -> void:
+    var save_data = _campaign_data.serialize()
+    _save_manager.save_game(_test_save_path, save_data)
+    _save_manager.delete_save_file(_test_save_path)
+    
+    var loaded_data = _save_manager.load_game(_test_save_path)
+    assert_that(loaded_data).is_empty()
+
+#endregion
+
+#region Performance Tests
+
+func test_large_save_data_performance() -> void:
+    # Create large save data
+    var large_data = _campaign_data.serialize()
+    for i: int in range(1000):
+        large_data["large_array_" + str(i)] = range(100)
+    
+    var start_time = Time.get_ticks_msec()
+    var success = _save_manager.save_game(_test_save_path, large_data)
+    var save_time = Time.get_ticks_msec() - start_time
+    
+    assert_that(success).is_true()
+    assert_that(save_time).is_less(5000) # Should complete within 5 seconds
+    
+    start_time = Time.get_ticks_msec()
+    var loaded_data = _save_manager.load_game(_test_save_path)
+    var load_time = Time.get_ticks_msec() - start_time
+    
+    assert_that(loaded_data).is_not_empty()
+    assert_that(load_time).is_less(5000) # Should complete within 5 seconds
+
+func test_rapid_save_load_cycles() -> void:
+    var save_data = _campaign_data.serialize()
+    
+    for i: int in range(10):
+        _campaign_data.turn_number = i + 1
+        var current_data = _campaign_data.serialize()
+        
+        var success = _save_manager.save_game(_test_save_path, current_data)
+        assert_that(success).is_true()
+        
+        var loaded_data = _save_manager.load_game(_test_save_path)
+        assert_that(loaded_data["turn_number"]).is_equal(i + 1)
+    
+    assert_that(_save_manager.save_count).is_equal(10)
+    assert_that(_save_manager.load_count).is_equal(10)
+
+#endregion

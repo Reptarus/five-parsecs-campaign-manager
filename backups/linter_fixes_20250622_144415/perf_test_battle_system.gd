@@ -1,0 +1,286 @@
+@tool
+extends GdUnitTestSuite
+
+#
+const BattleSystemScript: GDScript = preload("res://src/core/battle/state/BattleStateMachine.gd")
+const CharacterScript: GDScript = preload("res://src/core/character/Base/Character.gd")
+const WeaponScript: GDScript = preload("res://src/core/systems/items/GameWeapon.gd")
+
+# Test variables with explicit types
+# var _battle_system: Node = null
+# var _characters: Array[Node] = []
+# var _weapons: Array[Resource] = []
+# var _tracked_nodes: Array[Node] = []
+# var _tracked_resources: Array[Resource] = []
+
+#
+func track_node(node: Node) -> void:
+    _tracked_nodes.append(node)
+
+func track_resource(resource: Resource) -> void:
+    _tracked_resources.append(resource)
+
+func stabilize_engine(time: float) -> void:
+    pass
+#
+
+func measure_performance(callback: Callable) -> Dictionary:
+    pass
+#     var start_time = Time.get_ticks_msec()
+#     await call removed
+#
+
+func verify_performance_metrics(metrics: Dictionary, thresholds: Dictionary) -> void:
+    pass
+#
+
+func stress_test(callback: Callable) -> void:
+    for i: int in range(100):
+        pass
+#
+
+func simulate_memory_pressure() -> void:
+    pass
+
+#
+const STABILIZE_TIME = 0.1
+
+#
+const BATTLE_THRESHOLDS := {
+    "small_battle": {
+"average_frame_time": 50.0, # 50ms = ~20 FPS (reasonable for headless tests)
+"maximum_frame_time": 100.0, # 100ms = ~10 FPS (max acceptable)
+"memory_delta_kb": 512.0,
+    "frame_time_stability": 0.5,
+},
+"medium_battle": {
+"average_frame_time": 75.0, # 75ms = ~13 FPS
+"maximum_frame_time": 150.0, # 150ms = ~6.7 FPS
+"memory_delta_kb": 1024.0,
+    "frame_time_stability": 0.4,
+},
+"large_battle": {
+"average_frame_time": 100.0, # 100ms = ~10 FPS
+"maximum_frame_time": 200.0, # 200ms = ~5 FPS
+"memory_delta_kb": 2048.0,
+    "frame_time_stability": 0.3,
+#
+func _safe_call_method_bool(node: Node, method_name: String, args: Array = []) -> bool:
+    if node and node.has_method(method_name):
+        pass
+
+func before_test() -> void:
+    pass
+#     await call removed
+    
+    #
+    _characters.clear()
+_weapons.clear()
+    
+    #
+    _battle_system = BattleSystemScript.new()
+if not _battle_system:
+    pass
+#         return statement removed
+    # Use track_node for automatic cleanup
+#
+    _battle_system.name = "TestBattleSystem"
+#     # add_child(node)
+#
+
+func after_test() -> void:
+    pass
+#
+    for character: Node in _characters:
+        if is_instance_valid(character):
+            if character.get_parent():
+                character.get_parent().remove_child(character)
+character.queue_free()
+_characters.clear()
+    
+    #
+    _weapons.clear()
+    
+    #
+    if is_instance_valid(_battle_system):
+        if _battle_system.get_parent():
+            _battle_system.get_parent().remove_child(_battle_system)
+_battle_system.queue_free()
+_battle_system = null
+    
+    # Force garbage collection
+#
+#     
+#
+func test_small_battle_performance() -> void:
+    print_debug("Testing small battle performance (5v5)...")
+#     await call removed
+    
+#
+        func() -> void:
+            pass
+#             await call removed
+    )
+    
+#
+func test_medium_battle_performance() -> void:
+    print_debug("Testing medium battle performance (10v10)...")
+#     await call removed
+    
+#
+        func() -> void:
+            pass
+#             await call removed
+    )
+    
+#
+func test_large_battle_performance() -> void:
+    print_debug("Testing large battle performance (20v20)...")
+#     await call removed
+    
+#
+        func() -> void:
+            pass
+#             await call removed
+    )
+    
+#
+func test_battle_memory_management() -> void:
+    pass
+#     print_debug("Testing battle memory management...")
+    
+#     var initial_memory := Performance.get_monitor(Performance.MEMORY_STATIC)
+    
+    #
+    for battle_size in [5, 10, 20]:
+        pass
+#         await call removed
+        
+        #
+        for i: int in range(5):
+            if is_instance_valid(_battle_system):
+                pass
+#             await call removed
+        
+        #
+        for character: Node in _characters:
+            if is_instance_valid(character):
+                if character.get_parent():
+                    character.get_parent().remove_child(character)
+character.queue_free()
+_characters.clear()
+_weapons.clear()
+        
+        #
+#         await call removed
+        
+        #
+    
+#     var final_memory := Performance.get_monitor(Performance.MEMORY_STATIC)
+#     var memory_delta := (final_memory - initial_memory) / 1024.0 # KB
+    
+#     print_debug("Memory delta: %.2f KB" % memory_delta)
+    
+    # Use a more lenient threshold for battle system tests (3MB instead of default)
+#     var memory_threshold := 3072.0 # 3MB in KB
+#     
+#     assert_that() call removed
+        "Memory delta (%.2f KB) should be less than threshold (%.2f KB)" % [memory_delta, memory_threshold]
+is_less(memory_threshold)
+
+func test_battle_stress() -> void:
+    pass
+#     print_debug("Running battle system stress test...")
+    
+    # Setup medium-sized battle
+#     await call removed
+#
+        func() -> void:
+            pass
+            
+            #
+            if randf() < 0.2: # 20 % chance each frame
+#
+                if side == 0:
+                    pass
+await _add_character_to_battle(true) #
+await _add_character_to_battle(false) #
+)
+
+func test_mobile_battle_performance() -> void:
+    if not _is_mobile:
+        pass
+#         return statement removed
+    
+    # Test under memory pressure
+#     await call removed
+    
+    #
+    
+#
+        func() -> void:
+            pass
+#             await call removed
+    )
+    
+    # Use mobile-specific thresholds (frame timing based)
+#     var mobile_thresholds := {
+        "average_frame_time": 50.0, # 50ms frame budget for mobile
+"maximum_frame_time": 100.0, # 100ms max for mobile
+"memory_delta_kb": 1024.0, # 1MB memory limit for mobile
+"frame_time_stability": 0.3,
+#     verify_performance_metrics(metrics, mobile_thresholds)
+
+#
+func _setup_battle(player_count: int, enemy_count: int) -> void:
+    pass
+#
+    for i: int in range(player_count):
+        pass
+#         await call removed
+    
+    #
+    for i: int in range(enemy_count):
+        pass
+#     
+#
+
+func _add_character_to_battle(is_player: bool) -> void:
+    pass
+#
+    if not is_instance_valid(_battle_system):
+        pass
+#         return statement removed
+    # Create a Node2D to represent the character in battle (since we need a Node)
+#
+    if not character:
+        pass
+#         return statement removed
+    #
+    character.name = "TestCharacter_ % d" % (_characters.size() + 1)
+character.set_meta("is_player", is_player)
+character.set_meta("health", 100)
+character.set_meta("max_health", 100)
+character.set_meta("armor", 2)
+character.set_meta("weapon_skill", 3)
+character.set_meta("movement", 6)
+character.position = Vector2(randf_range(-100, 100), randf_range(-100, 100))
+    
+    # Create and assign a weapon
+#
+    weapon.set_meta("name", "Test Weapon")
+weapon.set_meta("damage", 2)
+weapon.set_meta("range", 12)
+weapon.set_meta("shots", 1)
+    
+    character.set_meta("weapon", weapon)
+    
+    # Track resources for cleanup
+#     # track_node(node)
+# track_resource() call removed
+    #
+    _weapons.append(weapon)
+_characters.append(character)
+    
+    # Add to scene tree
+#

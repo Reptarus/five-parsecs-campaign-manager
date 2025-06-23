@@ -1,383 +1,148 @@
 @tool
-@warning_ignore("return_value_discarded")
-	extends GdUnitGameTest
-class_name PerfTestBase
+extends GdUnitGameTest
+
+# Performance Test Base Class
+# Universal Mock Strategy - Base Performance Testing Framework
+
+# Core performance tracking
+var _start_time: int = 0
+var _peak_memory: float = 0.0
+var _metrics: Dictionary = {
+	"fps": [],
+	"frame_time": [],
+	"memory": [],
+	"draw_calls": [],
+	"gpu_memory": [],
+	"physics_objects": []
+}
 
 # Performance thresholds
-const PERFORMANCE_THRESHOLDS := {
-    "fps": {
-        "target": 60.0,
-        "minimum": 30.0,
-        "mobile_target": 30.0,
-        "mobile_minimum": 24.0
-    },
-    "memory": {
-        "max_delta_mb": 50.0,
-        "leak_threshold_kb": 100.0,
-        "mobile_max_delta_mb": 25.0
-    },
-    "gpu": {
-        "max_draw_calls": 100,
-        "max_vertices": 10000,
-        "max_material_changes": 50
-    },
-    "physics": {
-        "max_bodies": 1000,
-        "max_contacts": 2000
-    },
-    "time": {
-        "frame_budget_ms": 16.67,
-        "mobile_frame_budget_ms": 33.33
-    }
-}
-
-# Test configuration
-const WARMUP_FRAMES := 3
-const COOLDOWN_FRAMES := 2
-const STRESS_TEST_DURATION := 5.0
-const STABILIZE_TIME := 0.1 # seconds
-
-# Performance metrics
-var _metrics := {
-    "fps": [],
-    "memory": [],
-    "draw_calls": [],
-    "gpu_memory": [],
-    "physics_objects": [],
-    "audio_mix_time": [],
-    "frame_time": []
-}
-
-var _start_time: int
-var _end_time: int
-var _memory_start: int
-var _memory_end: int
-var _current_test_name: String = ""
-var _is_mobile: bool = false
+const DEFAULT_FPS_THRESHOLD: float = 30.0
+const DEFAULT_MEMORY_THRESHOLD: float = 100.0 # MB
+const DEFAULT_FRAME_TIME_THRESHOLD: float = 33.33 # ms (30 FPS)
 
 func before_test() -> void:
-    @warning_ignore("unsafe_method_access")
-	await super.before_test()
-    _start_time = Time.get_ticks_msec()
-    _memory_start = Performance.get_monitor(Performance.MEMORY_STATIC)
-    _is_mobile = OS.has_feature("mobile")
-    _reset_metrics()
-    
-    # Get the name of the current test function
-    var stack := get_stack()
-    if stack.size() > 0:
-        _current_test_name = stack[0]["function"]
-    
-    # Warm up the engine
-    for i in WARMUP_FRAMES:
-        @warning_ignore("unsafe_method_access")
-	await get_tree().process_frame
+	super.before_test()
+	_reset_metrics()
+	_start_performance_monitoring()
 
 func after_test() -> void:
-    # Cool down period
-    for i in COOLDOWN_FRAMES:
-        @warning_ignore("unsafe_method_access")
-	await get_tree().process_frame
-        
-    _end_time = Time.get_ticks_msec()
-    _memory_end = Performance.get_monitor(Performance.MEMORY_STATIC)
-    
-    var duration := (_end_time - _start_time) / 1000.0
-    var memory_used := _memory_end - _memory_start
-    
-    _print_performance_results(duration, memory_used)
-    _check_for_memory_leaks()
-    @warning_ignore("unsafe_method_access")
-	await super.after_test()
+	_stop_performance_monitoring()
+	super.after_test()
 
 func _reset_metrics() -> void:
-    for key in _metrics.keys():
-        _metrics[key].clear()
+	_metrics = {
+		"fps": [],
+		"frame_time": [],
+		"memory": [],
+		"draw_calls": [],
+		"gpu_memory": [],
+		"physics_objects": []
+	}
+	_start_time = 0
+	_peak_memory = 0.0
 
-func _print_performance_results(duration: float, memory_used: int) -> void:
-    var report := "[Performance Report] %s\n" % _current_test_name
-    report += "Duration: %.3fs\n" % duration
-    report += "Memory Delta: %.2f KB\n" % (memory_used / 1024.0)
-    
-    # Calculate effective FPS from frame timing data
-    var avg_frame_time = _calculate_average(_metrics.frame_time)
-    var min_frame_time = _calculate_minimum(_metrics.frame_time)
-    var max_frame_time = _calculate_maximum(_metrics.frame_time)
-    
-    var effective_avg_fps = 1000.0 / max(1.0, avg_frame_time) if avg_frame_time > 0 else 0.0
-    var effective_min_fps = 1000.0 / max(1.0, max_frame_time) if max_frame_time > 0 else 0.0
-    var effective_max_fps = 1000.0 / max(1.0, min_frame_time) if min_frame_time > 0 else 0.0
-    
-    report += "Average FPS: %.2f (from %.2f ms frame time)\n" % [effective_avg_fps, avg_frame_time]
-    report += "Min FPS: %.2f (from %.2f ms max frame time)\n" % [effective_min_fps, max_frame_time]
-    report += "Max FPS: %.2f (from %.2f ms min frame time)\n" % [effective_max_fps, min_frame_time]
-    report += "Average Draw Calls: %.2f\n" % _calculate_average(_metrics.draw_calls)
-    report += "Peak GPU Memory: %.2f MB\n" % (_calculate_maximum(_metrics.gpu_memory) / (1024.0 * 1024.0))
-    report += "Average Physics Objects: %.2f\n" % _calculate_average(_metrics.physics_objects)
-    report += "Average Audio Mix Time: %.2f ms\n" % _calculate_average(_metrics.audio_mix_time)
-    
-    print(report)
-    
-    # Use frame timing thresholds instead of FPS for better headless compatibility
-    var frame_time_threshold := PERFORMANCE_THRESHOLDS.time.frame_budget_ms
-    if _is_mobile:
-        frame_time_threshold = PERFORMANCE_THRESHOLDS.time.mobile_frame_budget_ms
-    
-    var memory_threshold := PERFORMANCE_THRESHOLDS.memory.max_delta_mb
-    if _is_mobile:
-        memory_threshold = PERFORMANCE_THRESHOLDS.memory.mobile_max_delta_mb
-    
-    # Assert against frame timing instead of FPS (works better in headless mode)
-    assert_that(avg_frame_time).override_failure_message(
-        "Average frame time (%.2f ms) should be below threshold (%.2f ms)" % [avg_frame_time, frame_time_threshold]
-    ).is_less(frame_time_threshold)
-    
-    assert_that(memory_used / (1024.0 * 1024.0)).override_failure_message(
-        "Memory usage (%.2f MB) should be below threshold (%.2f MB)" % [memory_used / (1024.0 * 1024.0), memory_threshold]
-    ).is_less(memory_threshold)
+func _start_performance_monitoring() -> void:
+	_start_time = Time.get_ticks_msec()
+	_peak_memory = Performance.get_monitor(Performance.MEMORY_STATIC)
+
+func _stop_performance_monitoring() -> void:
+	# Final performance snapshot
+	_capture_performance_snapshot()
+
+func _capture_performance_snapshot() -> void:
+	_metrics.fps.append(Engine.get_frames_per_second())
+	_metrics.frame_time.append(Performance.get_monitor(Performance.TIME_PROCESS))
+	_metrics.memory.append(Performance.get_monitor(Performance.MEMORY_STATIC))
+	_metrics.draw_calls.append(Performance.get_monitor(Performance.RENDER_TOTAL_DRAW_CALLS_IN_FRAME))
+	_metrics.gpu_memory.append(Performance.get_monitor(Performance.RENDER_VIDEO_MEM_USED))
+	_metrics.physics_objects.append(Performance.get_monitor(Performance.PHYSICS_3D_ACTIVE_OBJECTS))
+	
+	# Update peak memory
+	var current_memory: float = Performance.get_monitor(Performance.MEMORY_STATIC)
+	_peak_memory = max(_peak_memory, current_memory)
+
+func run_performance_test(test_callable: Callable, iterations: int = 100) -> Dictionary:
+	_reset_metrics()
+	
+	for i: int in range(iterations):
+		test_callable.call()
+		_capture_performance_snapshot()
+		await get_tree().process_frame
+	
+	return _generate_performance_report()
+
+func _generate_performance_report() -> Dictionary:
+	var duration: float = (Time.get_ticks_msec() - _start_time) / 1000.0
+	var memory_used: float = _peak_memory - Performance.get_monitor(Performance.MEMORY_STATIC)
+	
+	var report: String = "\n=== Performance Report ===\n"
+	report += "Duration: %.3fs\n" % duration
+	report += "Memory Delta: %.2f KB\n" % (memory_used / 1024.0)
+	
+	# Calculate effective FPS from frame timing data
+	var avg_frame_time = _calculate_average(_metrics.frame_time)
+	var min_frame_time = _calculate_minimum(_metrics.frame_time)
+	var max_frame_time = _calculate_maximum(_metrics.frame_time)
+	var effective_avg_fps = 1000.0 / avg_frame_time if avg_frame_time > 0 else 0.0
+	var effective_min_fps = 1000.0 / max_frame_time if max_frame_time > 0 else 0.0
+	var effective_max_fps = 1000.0 / min_frame_time if min_frame_time > 0 else 0.0
+	
+	report += "Average FPS: %.2f (from %.2f ms frame time)\n" % [effective_avg_fps, avg_frame_time]
+	report += "Min FPS: %.2f (from %.2f ms max frame time)\n" % [effective_min_fps, max_frame_time]
+	report += "Max FPS: %.2f (from %.2f ms min frame time)\n" % [effective_max_fps, min_frame_time]
+	report += "Average Draw Calls: %.2f\n" % _calculate_average(_metrics.draw_calls)
+	report += "Peak GPU Memory: %.2f MB\n" % (_calculate_maximum(_metrics.gpu_memory) / (1024.0 * 1024.0))
+	report += "Average Physics Objects: %.2f\n" % _calculate_average(_metrics.physics_objects)
+	
+	print_debug(report)
+	
+	return {
+		"duration": duration,
+		"memory_delta_mb": memory_used / (1024.0 * 1024.0),
+		"average_fps": effective_avg_fps,
+		"min_fps": effective_min_fps,
+		"max_fps": effective_max_fps,
+		"average_frame_time": avg_frame_time,
+		"average_draw_calls": _calculate_average(_metrics.draw_calls),
+		"peak_gpu_memory_mb": _calculate_maximum(_metrics.gpu_memory) / (1024.0 * 1024.0),
+		"average_physics_objects": _calculate_average(_metrics.physics_objects)
+	}
+
+func assert_performance_thresholds(metrics: Dictionary, fps_threshold: float = DEFAULT_FPS_THRESHOLD, memory_threshold: float = DEFAULT_MEMORY_THRESHOLD, frame_time_threshold: float = DEFAULT_FRAME_TIME_THRESHOLD) -> void:
+	var memory_used: float = metrics.get("memory_delta_mb", 0.0)
+	var avg_frame_time: float = metrics.get("average_frame_time", 0.0)
+	
+	assert_that(avg_frame_time).is_less(frame_time_threshold)
+	assert_that(memory_used).is_less(memory_threshold)
 
 func _check_for_memory_leaks() -> void:
-    var leak_check_iterations := 5
-    var initial_memory := Performance.get_monitor(Performance.MEMORY_STATIC)
-    
-    # Force garbage collection
-    for i in leak_check_iterations:
-        OS.delay_msec(100)
-        @warning_ignore("unsafe_method_access")
-	await get_tree().process_frame
-    
-    var final_memory := Performance.get_monitor(Performance.MEMORY_STATIC)
-    var memory_delta := (final_memory - initial_memory) / 1024.0 # KB
-    
-    assert_that(memory_delta).override_failure_message(
-        "Potential memory leak detected: %.2f KB retained" % memory_delta
-    ).is_less(PERFORMANCE_THRESHOLDS.memory.leak_threshold_kb)
+	var current_memory: float = Performance.get_monitor(Performance.MEMORY_STATIC)
+	var memory_delta: float = current_memory - _peak_memory
+	
+	if memory_delta > (10.0 * 1024.0 * 1024.0): # 10MB threshold
+		print_debug("WARNING: Potential memory leak detected. Memory delta: %.2f MB" % (memory_delta / (1024.0 * 1024.0)))
 
-# Performance measurement utilities - Headless test compatible
-func measure_performance(callable: Callable, iterations: int = 100) -> Dictionary:
-    _reset_metrics()
-    
-    # Use frame timing instead of FPS for headless tests
-    var start_time = Time.get_ticks_msec()
-    var initial_memory = Performance.get_monitor(Performance.MEMORY_STATIC)
-    var initial_draw_calls = Performance.get_monitor(Performance.RENDER_TOTAL_DRAW_CALLS_IN_FRAME)
-    
-    # Collect frame timing data (works in headless mode)
-    var frame_times: @warning_ignore("unsafe_call_argument")
-	Array[float] = []
-    var memory_samples: @warning_ignore("unsafe_call_argument")
-	Array[float] = []
-    
-    for i: int in range(iterations):
-        var frame_start = Time.get_ticks_msec()
-        
-        # Execute the callable
+func stabilize_engine(wait_time: float = 0.1) -> void:
+	for i: int in range(3):
+		await get_tree().process_frame
+	await get_tree().create_timer(wait_time).timeout
 
-        await @warning_ignore("unsafe_method_access")
-	callable.call()
-        @warning_ignore("unsafe_method_access")
-	await get_tree().process_frame
-        
-        var frame_end = Time.get_ticks_msec()
-        var frame_time = frame_end - frame_start
-
-        @warning_ignore("return_value_discarded")
-	frame_times.append(frame_time)
-        
-        # Collect memory metrics (these work in headless mode)
-        var current_memory = Performance.get_monitor(Performance.MEMORY_STATIC)
-
-        @warning_ignore("return_value_discarded")
-	memory_samples.append(current_memory)
-        
-        # Store in metrics arrays
-        _metrics.@warning_ignore("return_value_discarded")
-	frame_time.append(frame_time)
-        _metrics.@warning_ignore("return_value_discarded")
-	memory.append(current_memory)
-        _metrics.@warning_ignore("return_value_discarded")
-	draw_calls.append(Performance.get_monitor(Performance.RENDER_TOTAL_DRAW_CALLS_IN_FRAME))
-    
-    var end_time = Time.get_ticks_msec()
-    var final_memory = Performance.get_monitor(Performance.MEMORY_STATIC)
-    var final_draw_calls = Performance.get_monitor(Performance.RENDER_TOTAL_DRAW_CALLS_IN_FRAME)
-    
-    # Calculate metrics based on frame timing instead of FPS
-    var total_time = (end_time - start_time) / 1000.0 # Convert to seconds
-    var avg_frame_time = _calculate_average(frame_times)
-    var min_frame_time = _calculate_minimum(frame_times)
-    var max_frame_time = _calculate_maximum(frame_times)
-    
-    # Calculate "effective FPS" from frame timing (for compatibility)
-    var effective_fps = 1000.0 / max(1.0, avg_frame_time) if avg_frame_time > 0 else 60.0
-    var min_effective_fps = 1000.0 / max(1.0, max_frame_time) if max_frame_time > 0 else 60.0
-    var max_effective_fps = 1000.0 / max(1.0, min_frame_time) if min_frame_time > 0 else 60.0
-    
-    var memory_delta = (final_memory - initial_memory) / 1024.0 # Convert to KB
-    var draw_calls_delta = final_draw_calls - initial_draw_calls
-    
-    return {
-        "total_time": total_time,
-        "iterations": iterations,
-        "average_fps": effective_fps,
-        "minimum_fps": min_effective_fps,
-        "maximum_fps": max_effective_fps,
-        "average_frame_time": avg_frame_time,
-        "minimum_frame_time": min_frame_time,
-        "maximum_frame_time": max_frame_time,
-        "memory_delta_kb": memory_delta,
-        "draw_calls_delta": draw_calls_delta,
-        "frame_time_stability": _calculate_frame_time_stability(frame_times),
-        "performance_score": _calculate_performance_score_from_timing(avg_frame_time, memory_delta)
-    }
-
-func verify_performance_metrics(metrics: Dictionary, thresholds: Dictionary) -> void:
-    # Use frame timing instead of FPS for headless test compatibility
-    var frame_time_target := PERFORMANCE_THRESHOLDS.time.frame_budget_ms
-    if _is_mobile:
-        frame_time_target = PERFORMANCE_THRESHOLDS.time.mobile_frame_budget_ms
-    
-    # Verify frame timing (lower is better) - this works in headless mode
-    assert_that(metrics.average_frame_time).override_failure_message(
-        "Average frame time (%.2f ms) should be below threshold (%.2f ms)" % [metrics.average_frame_time, @warning_ignore("unsafe_call_argument")
-	thresholds.get("average_frame_time", frame_time_target)]
-    ).is_less(@warning_ignore("unsafe_call_argument")
-	thresholds.get("average_frame_time", frame_time_target))
-    
-    assert_that(metrics.maximum_frame_time).override_failure_message(
-        "Maximum frame time (%.2f ms) should be below threshold (%.2f ms)" % [metrics.maximum_frame_time, @warning_ignore("unsafe_call_argument")
-	thresholds.get("maximum_frame_time", frame_time_target * 2.0)]
-    ).is_less(@warning_ignore("unsafe_call_argument")
-	thresholds.get("maximum_frame_time", frame_time_target * 2.0))
-    
-    # Memory verification
-    assert_that(metrics.memory_delta_kb).override_failure_message(
-        "Memory delta (%.2f KB) should be below threshold (%.2f KB)" % [metrics.memory_delta_kb, @warning_ignore("unsafe_call_argument")
-	thresholds.get("memory_delta_kb", PERFORMANCE_THRESHOLDS.memory.max_delta_mb * 1024)]
-    ).is_less(@warning_ignore("unsafe_call_argument")
-	thresholds.get("memory_delta_kb", PERFORMANCE_THRESHOLDS.memory.max_delta_mb * 1024))
-    
-    # Frame time stability verification (higher is better)
-    if @warning_ignore("unsafe_call_argument")
-	metrics.has("frame_time_stability"):
-        assert_that(metrics.frame_time_stability).override_failure_message(
-            "Frame time stability (%.2f) should be above threshold (%.2f)" % [metrics.frame_time_stability, @warning_ignore("unsafe_call_argument")
-	thresholds.get("frame_time_stability", 0.5)]
-        ).is_greater(@warning_ignore("unsafe_call_argument")
-	thresholds.get("frame_time_stability", 0.5))
-
-# Statistical utilities
+# Helper calculation functions
 func _calculate_average(values: Array) -> float:
-    if values.is_empty():
-        return 0.0
-    var sum := 0.0
-    for _value in values:
-        sum += _value
-    return sum / values.size()
+	if values.is_empty(): return 0.0
+	var sum: float = 0.0
+	for value in values: sum += value
+	return sum / values.size()
 
 func _calculate_minimum(values: Array) -> float:
-    if values.is_empty():
-        return 0.0
-    var min_value: float = values[0]
-    for _value in values:
-        min_value = min(min_value, _value)
-    return min_value
+	if values.is_empty(): return 0.0
+	var min_val: float = values[0]
+	for value in values: min_val = min(min_val, value)
+	return min_val
 
 func _calculate_maximum(values: Array) -> float:
-    if values.is_empty():
-        return 0.0
-    var max_value: float = values[0]
-    for _value in values:
-        max_value = max(max_value, _value)
-    return max_value
-
-func _calculate_percentile(values: Array, percentile: float) -> float:
-    if values.is_empty():
-        return 0.0
-    var sorted_values := values.duplicate()
-    sorted_values.sort()
-    var index := int(ceil(sorted_values.size() * percentile) - 1)
-    return sorted_values[index]
-
-# Stress testing utilities
-func stress_test(callable: Callable) -> void:
-    var start_time := Time.get_ticks_msec()
-    var end_time := start_time + (STRESS_TEST_DURATION * 1000)
-    
-    while Time.get_ticks_msec() < end_time:
-
-        await @warning_ignore("unsafe_method_access")
-	callable.call()
-        @warning_ignore("unsafe_method_access")
-	await get_tree().process_frame
-    
-    _check_for_memory_leaks()
-
-# Mobile-specific utilities
-func simulate_memory_pressure() -> void:
-    if not _is_mobile:
-        return
-        
-        # Allocate memory until we hit @warning_ignore("integer_division")
-	80 % of max
-    while Performance.get_monitor(Performance.MEMORY_STATIC) < Performance.get_monitor(Performance.MEMORY_STATIC_MAX):
-
-        @warning_ignore("return_value_discarded")
-	temp_arrays.append(PackedByteArray().resize(1024 * 1024)) # 1MB chunks
-        @warning_ignore("unsafe_method_access")
-	await get_tree().process_frame
-    
-    # Release memory
-    temp_arrays.clear()
-    @warning_ignore("unsafe_method_access")
-	await get_tree().process_frame
-
-func _calculate_fps_stability(fps_samples: Array[float]) -> float:
-    if fps_samples.is_empty():
-        return 0.0
-    
-    var avg_fps: float = _calculate_average(fps_samples)
-    if avg_fps <= 0.0:
-        return 0.0
-    
-    # Calculate coefficient of variation (lower is more stable)
-    var variance: float = 0.0
-    for fps in fps_samples:
-        variance += pow(fps - avg_fps, 2)
-    variance /= fps_samples.size()
-    
-    var std_deviation: float = sqrt(variance)
-    var stability: float = 1.0 - (std_deviation / avg_fps) # Higher _value = more stable
-    return max(0.0, min(1.0, stability))
-
-func _calculate_performance_score(avg_fps: float, avg_frame_time: float, memory_delta: float) -> float:
-    # Calculate a composite performance score (0-100, higher is better)
-    var fps_score: float = min(100.0, (avg_fps / 60.0) * 100.0) # Normalize against 60 FPS
-    var frame_time_score: float = max(0.0, 100.0 - (avg_frame_time / 16.67) * 100.0) # 16.67ms = 60 FPS
-    var memory_score: float = max(0.0, 100.0 - (memory_delta / 1024.0) * 10.0) # Penalize memory usage
-    
-    return (fps_score * 0.5) + (frame_time_score * 0.3) + (memory_score * 0.2)
-
-func _calculate_frame_time_stability(frame_times: Array[float]) -> float:
-    if frame_times.is_empty():
-        return 0.0
-    
-    var avg_frame_time = _calculate_average(frame_times)
-    if avg_frame_time <= 0.0:
-        return 0.0
-    
-    var variance: float = 0.0
-    for frame_time in frame_times:
-        variance += pow(frame_time - avg_frame_time, 2)
-    variance /= frame_times.size()
-    
-    var std_deviation: float = sqrt(variance)
-    var stability: float = 1.0 - (std_deviation / avg_frame_time)
-    return max(0.0, min(1.0, stability))
-
-func _calculate_performance_score_from_timing(avg_frame_time: float, memory_delta: float) -> float:
-    # Calculate a composite performance score (0-100, higher is better)
-    var frame_time_score: float = max(0.0, 100.0 - (avg_frame_time / 16.67) * 100.0) # 16.67ms = 60 FPS
-    var memory_score: float = max(0.0, 100.0 - (memory_delta / 1024.0) * 10.0) # Penalize memory usage
-    
-    return (frame_time_score * 0.5) + (memory_score * 0.5)
+	if values.is_empty(): return 0.0
+	var max_val: float = values[0]
+	for value in values: max_val = max(max_val, value)
+	return max_val

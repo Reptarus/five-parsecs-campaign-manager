@@ -89,14 +89,14 @@ func get_active_rivals_count() -> int:
 
 ## Check if crew has exploration capability
 func has_exploration_capability() -> bool:
-	for crew_member in active_crew:
+	for crew_member: Dictionary in active_crew:
 		if crew_member.get("skills", []).has("exploration"):
 			return true
 	return false
 
 ## Check if crew has advanced equipment
 func has_advanced_equipment() -> bool:
-	for item in equipment:
+	for item: Dictionary in equipment:
 		if item.get("tier", 0) >= 2:
 			return true
 	return false
@@ -166,7 +166,7 @@ func save_campaign() -> void:
 		push_error("No active campaign to save")
 		return
 	
-	var save_data = active_campaign.serialize()
+	var save_data: Dictionary = active_campaign.serialize()
 	campaign_saved.emit(save_data) # warning: return value discarded (intentional)
 
 func delete_campaign(campaign_id: String) -> void:
@@ -177,7 +177,7 @@ func delete_campaign(campaign_id: String) -> void:
 	# Add deletion logic here
 	campaign_deleted.emit(campaign_id) # warning: return value discarded (intentional)
 
-func get_active_campaign() -> FiveParsecsCampaign:
+func get_active_campaign() -> FiveParsecsGameCampaign:
 	return active_campaign
 
 func _exit_tree() -> void:
