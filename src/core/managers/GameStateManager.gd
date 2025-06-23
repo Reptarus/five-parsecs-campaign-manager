@@ -4,7 +4,7 @@ extends Node
 
 # Safe imports
 const UniversalNodeAccess = preload("res://src/utils/UniversalNodeAccess.gd")
-const UniversalResourceLoader = preload("res://src/utils/UniversalResourceLoader.gd") 
+const UniversalResourceLoader = preload("res://src/utils/UniversalResourceLoader.gd")
 const UniversalSignalManager = preload("res://src/utils/UniversalSignalManager.gd")
 const UniversalDataAccess = preload("res://src/utils/UniversalDataAccess.gd")
 const UniversalSceneManager = preload("res://src/utils/UniversalSceneManager.gd")
@@ -26,8 +26,8 @@ signal story_progress_changed(new_amount: int)
 @export var initial_reputation: int = 0
 
 var game_state = null
-var campaign_phase: int = 0  # Will be set to NONE enum value in _ready()
-var difficulty_level: int = 1  # Will be set to NORMAL enum value in _ready()
+var campaign_phase: int = 0 # Will be set to NONE enum value in _ready()
+var difficulty_level: int = 1 # Will be set to NORMAL enum value in _ready()
 var credits: int = initial_credits
 var supplies: int = initial_supplies
 var reputation: int = initial_reputation
@@ -259,7 +259,7 @@ func get_crew_size() -> int:
 	"""Get current crew size"""
 	if game_state and game_state.has_method("get_crew_size"):
 		return game_state.get_crew_size()
-	return 4  # Default crew size
+	return 4 # Default crew size
 
 func get_sick_crew_count() -> int:
 	"""Get number of crew members in sick bay"""
@@ -452,9 +452,9 @@ func _simulate_campaign_progression(target_turn: int) -> void:
 	# Basic progression simulation
 	for turn in range(1, target_turn):
 		# Add some progression elements
-		if turn % 5 == 0:  # Every 5 turns, add some story progress
+		if turn % 5 == 0: # Every 5 turns, add some story progress
 			story_progress += 1
-		if turn % 3 == 0:  # Every 3 turns, add some reputation
+		if turn % 3 == 0: # Every 3 turns, add some reputation
 			reputation += 1
 
 func _create_test_crew(crew_size: int) -> void:
@@ -470,9 +470,13 @@ func _create_test_rivals(rival_count: int) -> void:
 	"""Create test rival encounters"""
 	print("GameStateManager: Creating ", rival_count, " test rivals")
 	
+	if not game_state or not game_state.has_method("add_rival"):
+		push_warning("GameStateManager: GameState is not available or does not have add_rival method.")
+		return
+		
 	for i in range(rival_count):
 		var test_rival_id = "test_rival_" + str(i + 1)
-		add_rival(test_rival_id)
+		game_state.add_rival(test_rival_id)
 
 func _create_test_quests(quest_count: int) -> void:
 	"""Create test quest scenarios"""
@@ -574,3 +578,4 @@ func _setup_combat_ready_scenario() -> void:
 	# Create varied enemy types
 	if game_state and game_state.has_method("setup_varied_enemies"):
 		game_state.setup_varied_enemies()
+      

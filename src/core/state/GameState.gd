@@ -65,7 +65,7 @@ var auto_save_enabled: bool = true
 var auto_save_frequency: int = 15
 
 ## Campaign state with property accessor
-var _current_campaign = null  # Will be typed after FiveParsecsCampaign is loaded
+var _current_campaign = null # Will be typed after FiveParsecsCampaign is loaded
 var current_campaign:
 	get:
 		return _current_campaign
@@ -541,26 +541,30 @@ func can_transition_to(phase: GameEnums.FiveParcsecsCampaignPhase) -> bool:
 		GameEnums.FiveParcsecsCampaignPhase.NONE:
 			return phase == GameEnums.FiveParcsecsCampaignPhase.SETUP
 		GameEnums.FiveParcsecsCampaignPhase.SETUP:
-			return phase == GameEnums.FiveParcsecsCampaignPhase.CAMPAIGN
-		GameEnums.FiveParcsecsCampaignPhase.CAMPAIGN:
-			return phase in [GameEnums.FiveParcsecsCampaignPhase.BATTLE_SETUP,
-						   GameEnums.FiveParcsecsCampaignPhase.TRADE,
-						   GameEnums.FiveParcsecsCampaignPhase.STORY]
-		GameEnums.FiveParcsecsCampaignPhase.BATTLE_SETUP:
-			return phase == GameEnums.FiveParcsecsCampaignPhase.BATTLE_RESOLUTION
+			return phase == GameEnums.FiveParcsecsCampaignPhase.TRAVEL
+		GameEnums.FiveParcsecsCampaignPhase.TRAVEL:
+			return phase == GameEnums.FiveParcsecsCampaignPhase.WORLD
+		GameEnums.FiveParcsecsCampaignPhase.WORLD:
+			return phase == GameEnums.FiveParcsecsCampaignPhase.BATTLE
+		GameEnums.FiveParcsecsCampaignPhase.BATTLE:
+			return phase == GameEnums.FiveParcsecsCampaignPhase.POST_BATTLE
+		GameEnums.FiveParcsecsCampaignPhase.POST_BATTLE:
+			return phase == GameEnums.FiveParcsecsCampaignPhase.TRAVEL
 		_:
 			return false
 
 func complete_phase() -> void:
 	match current_phase:
 		GameEnums.FiveParcsecsCampaignPhase.SETUP:
-			set_phase(GameEnums.FiveParcsecsCampaignPhase.CAMPAIGN)
-		GameEnums.FiveParcsecsCampaignPhase.CAMPAIGN:
-			set_phase(GameEnums.FiveParcsecsCampaignPhase.BATTLE_SETUP)
-		GameEnums.FiveParcsecsCampaignPhase.BATTLE_SETUP:
-			set_phase(GameEnums.FiveParcsecsCampaignPhase.BATTLE_RESOLUTION)
-		GameEnums.FiveParcsecsCampaignPhase.BATTLE_RESOLUTION:
-			set_phase(GameEnums.FiveParcsecsCampaignPhase.CAMPAIGN)
+			set_phase(GameEnums.FiveParcsecsCampaignPhase.TRAVEL)
+		GameEnums.FiveParcsecsCampaignPhase.TRAVEL:
+			set_phase(GameEnums.FiveParcsecsCampaignPhase.WORLD)
+		GameEnums.FiveParcsecsCampaignPhase.WORLD:
+			set_phase(GameEnums.FiveParcsecsCampaignPhase.BATTLE)
+		GameEnums.FiveParcsecsCampaignPhase.BATTLE:
+			set_phase(GameEnums.FiveParcsecsCampaignPhase.POST_BATTLE)
+		GameEnums.FiveParcsecsCampaignPhase.POST_BATTLE:
+			set_phase(GameEnums.FiveParcsecsCampaignPhase.TRAVEL)
 
 func advance_turn() -> void:
 	if turn_number < max_turns:

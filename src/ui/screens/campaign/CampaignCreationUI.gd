@@ -1,20 +1,22 @@
 extends Control
 
+const UniversalNodeAccess = preload("res://src/utils/UniversalNodeAccess.gd")
+
 # Use the new core system setup
 var core_systems: Node = null
 var creation_manager: Node = null
 
 # UI Components
-@onready var config_panel: Control = get_node_or_null("MarginContainer/VBoxContainer/StepPanels/ConfigPanel")
-@onready var crew_panel: Control = get_node_or_null("MarginContainer/VBoxContainer/StepPanels/CrewPanel")
-@onready var captain_panel: Control = get_node_or_null("MarginContainer/VBoxContainer/StepPanels/CaptainPanel")
-@onready var resource_panel: Control = get_node_or_null("MarginContainer/VBoxContainer/StepPanels/ResourcePanel")
-@onready var final_panel: Control = get_node_or_null("MarginContainer/VBoxContainer/StepPanels/FinalPanel")
+@onready var config_panel: Control = UniversalNodeAccess.get_node_safe(self, "MarginContainer/VBoxContainer/StepPanels/ConfigPanel", "CampaignCreationUI")
+@onready var crew_panel: Control = UniversalNodeAccess.get_node_safe(self, "MarginContainer/VBoxContainer/StepPanels/CrewPanel", "CampaignCreationUI")
+@onready var captain_panel: Control = UniversalNodeAccess.get_node_safe(self, "MarginContainer/VBoxContainer/StepPanels/CaptainPanel", "CampaignCreationUI")
+@onready var resource_panel: Control = UniversalNodeAccess.get_node_safe(self, "MarginContainer/VBoxContainer/StepPanels/ResourcePanel", "CampaignCreationUI")
+@onready var final_panel: Control = UniversalNodeAccess.get_node_safe(self, "MarginContainer/VBoxContainer/StepPanels/FinalPanel", "CampaignCreationUI")
 
-@onready var step_label: Label = get_node_or_null("MarginContainer/VBoxContainer/Header/StepLabel")
-@onready var next_button: Button = get_node_or_null("MarginContainer/VBoxContainer/Controls/NextButton")
-@onready var back_button: Button = get_node_or_null("MarginContainer/VBoxContainer/Controls/BackButton")
-@onready var cancel_button: Button = get_node_or_null("MarginContainer/VBoxContainer/Controls/CancelButton")
+@onready var step_label: Label = UniversalNodeAccess.get_node_safe(self, "MarginContainer/VBoxContainer/Header/StepLabel", "CampaignCreationUI")
+@onready var next_button: Button = UniversalNodeAccess.get_node_safe(self, "MarginContainer/VBoxContainer/Controls/NextButton", "CampaignCreationUI")
+@onready var back_button: Button = UniversalNodeAccess.get_node_safe(self, "MarginContainer/VBoxContainer/Controls/BackButton", "CampaignCreationUI")
+@onready var cancel_button: Button = UniversalNodeAccess.get_node_safe(self, "MarginContainer/VBoxContainer/Controls/CancelButton", "CampaignCreationUI")
 
 # State
 var current_step: int = 0
@@ -28,7 +30,7 @@ func _ready() -> void:
 func _initialize_core_systems() -> void:
 	"""Initialize connection to core systems"""
 	# Get the core system setup autoload
-	core_systems = get_node_or_null("/root/CoreSystemSetup")
+	core_systems = UniversalNodeAccess.get_node_safe(self, "/root/CoreSystemSetup", "CampaignCreationUI")
 	
 	if not core_systems:
 		push_error("CampaignCreationUI: CoreSystemSetup autoload not found")
@@ -221,7 +223,7 @@ func _start_fallback_campaign() -> void:
 
 func _navigate_to_main_game() -> void:
 	"""Navigate to the main game scene"""
-	var scene_router = get_node_or_null("/root/SceneRouter")
+	var scene_router = UniversalNodeAccess.get_node_safe(self, "/root/SceneRouter", "CampaignCreationUI")
 	if scene_router and scene_router.has_method("navigate_to_main_game"):
 		scene_router.navigate_to_main_game()
 	else:
@@ -230,7 +232,7 @@ func _navigate_to_main_game() -> void:
 
 func _return_to_main_menu() -> void:
 	"""Return to the main menu"""
-	var scene_router = get_node_or_null("/root/SceneRouter")
+	var scene_router = UniversalNodeAccess.get_node_safe(self, "/root/SceneRouter", "CampaignCreationUI")
 	if scene_router and scene_router.has_method("return_to_main_menu"):
 		scene_router.return_to_main_menu()
 	else:

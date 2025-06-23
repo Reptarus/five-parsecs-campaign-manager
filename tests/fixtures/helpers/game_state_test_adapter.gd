@@ -17,7 +17,7 @@ static func create_default_test_state() -> GameState:
 	var state = create_test_instance()
 	
 	# Set default test values
-	state.current_phase = GameEnumsScript.FiveParcsecsCampaignPhase.CAMPAIGN
+	state.current_phase = 2 # Use direct value instead of missing enum
 	state.turn_number = 1
 	state.story_points = 3
 	state.reputation = 50
@@ -37,7 +37,7 @@ static func deserialize_from_dict(data: Dictionary) -> GameState:
 
 static func create_test_serialized_state() -> Dictionary:
 	return {
-		"current_phase": GameEnumsScript.FiveParcsecsCampaignPhase.CAMPAIGN,
+		"current_phase": 2, # Use direct value instead of missing enum
 		"turn_number": 1,
 		"story_points": 3,
 		"reputation": 50,

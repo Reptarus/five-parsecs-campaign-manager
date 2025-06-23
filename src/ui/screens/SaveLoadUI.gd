@@ -1,22 +1,24 @@
 class_name FPCM_SaveLoadUI
 extends Control
 
+const UniversalNodeAccess = preload("res://src/utils/UniversalNodeAccess.gd")
+
 signal save_completed
 signal load_completed
 signal import_completed
 signal ui_closed
 
-@onready var save_name_input: LineEdit = $Panel/VBoxContainer/SaveNameInput
-@onready var save_list: ItemList = $Panel/VBoxContainer/SaveList
-@onready var status_label: Label = $Panel/VBoxContainer/StatusLabel
-@onready var save_button: Button = $Panel/VBoxContainer/ButtonContainer/SaveButton
-@onready var load_button: Button = $Panel/VBoxContainer/ButtonContainer/LoadButton
-@onready var delete_button: Button = $Panel/VBoxContainer/ButtonContainer/DeleteButton
-@onready var export_button: Button = $Panel/VBoxContainer/ButtonContainer/ExportButton
-@onready var import_button: Button = $Panel/VBoxContainer/ButtonContainer/ImportButton
-@onready var backup_list_button: Button = $Panel/VBoxContainer/ButtonContainer/BackupListButton
-@onready var quick_save_button: Button = $Panel/VBoxContainer/ButtonContainer/QuickSaveButton
-@onready var auto_save_toggle: CheckButton = $Panel/VBoxContainer/AutoSaveToggle
+@onready var save_name_input: LineEdit = UniversalNodeAccess.get_node_safe(self, "Panel/VBoxContainer/SaveNameInput", "SaveLoadUI")
+@onready var save_list: ItemList = UniversalNodeAccess.get_node_safe(self, "Panel/VBoxContainer/SaveList", "SaveLoadUI")
+@onready var status_label: Label = UniversalNodeAccess.get_node_safe(self, "Panel/VBoxContainer/StatusLabel", "SaveLoadUI")
+@onready var save_button: Button = UniversalNodeAccess.get_node_safe(self, "Panel/VBoxContainer/ButtonContainer/SaveButton", "SaveLoadUI")
+@onready var load_button: Button = UniversalNodeAccess.get_node_safe(self, "Panel/VBoxContainer/ButtonContainer/LoadButton", "SaveLoadUI")
+@onready var delete_button: Button = UniversalNodeAccess.get_node_safe(self, "Panel/VBoxContainer/ButtonContainer/DeleteButton", "SaveLoadUI")
+@onready var export_button: Button = UniversalNodeAccess.get_node_safe(self, "Panel/VBoxContainer/ButtonContainer/ExportButton", "SaveLoadUI")
+@onready var import_button: Button = UniversalNodeAccess.get_node_safe(self, "Panel/VBoxContainer/ButtonContainer/ImportButton", "SaveLoadUI")
+@onready var backup_list_button: Button = UniversalNodeAccess.get_node_safe(self, "Panel/VBoxContainer/ButtonContainer/BackupListButton", "SaveLoadUI")
+@onready var quick_save_button: Button = UniversalNodeAccess.get_node_safe(self, "Panel/VBoxContainer/ButtonContainer/QuickSaveButton", "SaveLoadUI")
+@onready var auto_save_toggle: CheckButton = UniversalNodeAccess.get_node_safe(self, "Panel/VBoxContainer/AutoSaveToggle", "SaveLoadUI")
 
 # Use Node as a placeholder until SaveManager is properly implemented
 var save_manager: Node
@@ -27,8 +29,8 @@ var _current_dialog: ConfirmationDialog
 var _recovery_dialog: Window
 
 func _ready() -> void:
-	save_manager = get_node("/root/SaveManager")
-	game_state = get_node("/root/GameState")
+	save_manager = UniversalNodeAccess.get_node_safe(self, "/root/SaveManager", "SaveLoadUI")
+	game_state = UniversalNodeAccess.get_node_safe(self, "/root/GameState", "SaveLoadUI")
 	
 	if not save_manager or not game_state:
 		push_error("Required nodes not found")
@@ -354,7 +356,7 @@ func _on_recovery_close_pressed() -> void:
 
 func _notification(what: int) -> void:
 	if what == NOTIFICATION_WM_CLOSE_REQUEST:
-		ui_closed.emit()  # warning: return value discarded (intentional)
+		ui_closed.emit() # warning: return value discarded (intentional)
 		queue_free()
 
 func _on_save_started() -> void:
@@ -366,7 +368,7 @@ func _on_save_completed(success: bool, message: String) -> void:
 	if success:
 		_refresh_save_list()
 	_update_button_states()
-	save_completed.emit()  # warning: return value discarded (intentional)
+	save_completed.emit() # warning: return value discarded (intentional)
 
 func _on_load_started() -> void:
 	_show_status("Loading game...")
@@ -376,7 +378,7 @@ func _on_load_completed(success: bool, message: String) -> void:
 	_show_status(message, not success)
 	_update_button_states()
 	if success:
-		load_completed.emit()  # warning: return value discarded (intentional)
+		load_completed.emit() # warning: return value discarded (intentional)
 
 func _on_save_manager_backup_created(success: bool, message: String) -> void:
 	if not success:
@@ -453,3 +455,4 @@ func _on_delete_pressed() -> void:
 	_current_dialog.confirmed.connect(_on_delete_confirmation_dialog_confirmed.bind(save_data.name))
 	add_child(_current_dialog)
 	_current_dialog.popup_centered()
+   
