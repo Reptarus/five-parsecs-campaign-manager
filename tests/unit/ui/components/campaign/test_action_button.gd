@@ -5,11 +5,8 @@ extends GdUnitGameTest
 # UNIVERSAL UI MOCK STRATEGY - PROVEN PATTERN
 # ========================================
 #
-		pass
-#
 
 class MockActionButton extends Resource:
-    pass
     var text: String = "Test Action"
     var icon: Texture2D = null
     var disabled: bool = false
@@ -19,42 +16,42 @@ class MockActionButton extends Resource:
     var size: Vector2 = Vector2(100, 32)
     var tooltip_text: String = ""
     var style: String = "default"
-	
-	#
-	func get_text() -> String:
-		return text
+    
+    #
+    func get_text() -> String:
+        return text
 
-	func set_text(test_value: String) -> void:
-    text = test_value
-		text_changed.emit(text)
-	
-	func get_icon() -> Texture2D:
-		return icon
+    func set_text(test_value: String) -> void:
+        text = test_value
+        text_changed.emit(text)
+    
+    func get_icon() -> Texture2D:
+        return icon
 
-	func set_icon(test_value: Texture2D) -> void:
-    icon = test_value
-		icon_changed.emit(icon)
-	
-	func get_style() -> String:
-		return style
+    func set_icon(test_value: Texture2D) -> void:
+        icon = test_value
+        icon_changed.emit(icon)
+    
+    func get_style() -> String:
+        return style
 
-	func set_style(test_value: String) -> void:
-    style = test_value
-		style_changed.emit(style)
-	
-	func set_disabled(test_value: bool) -> void:
-    disabled = test_value
-		state_changed.emit(disabled)
-	
-	func set_tooltip(test_value: String) -> void:
-    tooltip_text = test_value
-		tooltip_changed.emit(tooltip_text)
-	
-	func set_size(test_value: Vector2) -> void:
-    size = test_value
-		size_changed.emit(size)
-	
-	#
+    func set_style(test_value: String) -> void:
+        style = test_value
+        style_changed.emit(style)
+    
+    func set_disabled(test_value: bool) -> void:
+        disabled = test_value
+        state_changed.emit(disabled)
+    
+    func set_tooltip(test_value: String) -> void:
+        tooltip_text = test_value
+        tooltip_changed.emit(tooltip_text)
+    
+    func set_size(test_value: Vector2) -> void:
+        size = test_value
+        size_changed.emit(size)
+    
+    #
     signal text_changed(new_text: String)
     signal icon_changed(new_icon: Texture2D)
     signal style_changed(new_style: String)
@@ -65,80 +62,71 @@ class MockActionButton extends Resource:
     signal clicked
     signal button_pressed
 
-    var mock_component: MockActionButton = null
+var mock_component: MockActionButton = null
 
 func before_test() -> void:
-	super.before_test()
+    super.before_test()
     mock_component = MockActionButton.new()
-	track_resource(mock_component) # Perfect cleanup
+    track_resource(mock_component) # Perfect cleanup
 
 #
 func test_initial_state() -> void:
     assert_that(mock_component.text).is_equal("Test Action")
-	assert_that(mock_component.disabled).is_false()
-	assert_that(mock_component.visible).is_true()
+    assert_that(mock_component.disabled).is_false()
+    assert_that(mock_component.visible).is_true()
 
 func test_button_click() -> void:
-    pass
-	#
-	mock_component.action_pressed.emit()
-	#
-	assert_that(mock_component.is_enabled).is_true()
+    #
+    mock_component.action_pressed.emit()
+    #
+    assert_that(mock_component.is_enabled).is_true()
 
 func test_disabled_state() -> void:
-	mock_component.set_disabled(true)
-	assert_that(mock_component.disabled).is_true()
-	assert_that(mock_component.is_enabled).is_true()
+    mock_component.set_disabled(true)
+    assert_that(mock_component.disabled).is_true()
+    assert_that(mock_component.is_enabled).is_true()
 
 func test_button_text() -> void:
-    pass
     var test_text := "Test Button"
-	mock_component.set_text(test_text)
+    mock_component.set_text(test_text)
     var result_text: String = mock_component.get_text()
-	assert_that(result_text).is_equal(test_text)
+    assert_that(result_text).is_equal(test_text)
 
 func test_button_icon() -> void:
-    pass
     var test_icon := PlaceholderTexture2D.new()
-	test_icon.size = Vector2(32, 32)
-	track_resource(test_icon)
-	mock_component.set_icon(test_icon)
+    test_icon.size = Vector2(32, 32)
+    track_resource(test_icon)
+    mock_component.set_icon(test_icon)
     var result_icon: Texture2D = mock_component.get_icon()
-	assert_that(result_icon).is_same(test_icon)
+    assert_that(result_icon).is_same(test_icon)
 
 func test_button_style() -> void:
-    pass
     var test_style := "primary"
-	mock_component.set_style(test_style)
+    mock_component.set_style(test_style)
     var result_style: String = mock_component.get_style()
-	assert_that(result_style).is_equal(test_style)
+    assert_that(result_style).is_equal(test_style)
 
 func test_button_size_configuration() -> void:
-    pass
     var test_size := Vector2(100, 50)
-	mock_component.set_size(test_size)
-	assert_that(mock_component.size.x).is_equal(100)
-	assert_that(mock_component.size.y).is_equal(50)
+    mock_component.set_size(test_size)
+    assert_that(mock_component.size.x).is_equal(100)
+    assert_that(mock_component.size.y).is_equal(50)
 
 func test_button_tooltip() -> void:
-    pass
     var test_tooltip := "Test Tooltip"
-	mock_component.set_tooltip(test_tooltip)
-	assert_that(mock_component.tooltip_text).is_equal(test_tooltip)
+    mock_component.set_tooltip(test_tooltip)
+    assert_that(mock_component.tooltip_text).is_equal(test_tooltip)
 
 func test_component_structure() -> void:
-    pass
-	#
-	assert_that(mock_component).is_not_null()
-	assert_that(mock_component.text).is_not_empty()
+    #
+    assert_that(mock_component).is_not_null()
+    assert_that(mock_component.text).is_not_empty()
 
 func test_component_theme() -> void:
-    pass
-	#
-	assert_that(mock_component.style).is_equal("default")
-	assert_that(mock_component.focus_mode).is_equal(Control.FOCUS_ALL)
+    #
+    assert_that(mock_component.style).is_equal("default")
+    assert_that(mock_component.focus_mode).is_equal(Control.FOCUS_ALL)
 
 func test_component_accessibility() -> void:
-    pass
-	#
-	assert_that(mock_component.focus_mode).is_equal(Control.FOCUS_ALL)
+    #
+    assert_that(mock_component.focus_mode).is_equal(Control.FOCUS_ALL)

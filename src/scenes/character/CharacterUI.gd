@@ -4,7 +4,7 @@ extends Control
 
 # Safe imports
 const UniversalNodeAccess = preload("res://src/utils/UniversalNodeAccess.gd")
-const UniversalResourceLoader = preload("res://src/utils/UniversalResourceLoader.gd") 
+const UniversalResourceLoader = preload("res://src/utils/UniversalResourceLoader.gd")
 const UniversalSignalManager = preload("res://src/utils/UniversalSignalManager.gd")
 const UniversalDataAccess = preload("res://src/utils/UniversalDataAccess.gd")
 const UniversalSceneManager = preload("res://src/utils/UniversalSceneManager.gd")
@@ -40,7 +40,7 @@ var FiveParsecsGameState = null
 @onready var inventory_list = UniversalNodeAccess.get_node_safe(self, "Panel/HSplitContainer/CharacterDetails/TabContainer/Equipment/VBoxContainer/InventorySection/InventoryList", "CharacterUI inventory_list")
 
 var character_creator
-var selected_character: Character
+var selected_character: Node = null
 
 func _ready() -> void:
 	# Load dependencies safely at runtime
@@ -126,7 +126,7 @@ func _clear_character_details() -> void:
 	gear_list.clear()
 	inventory_list.clear()
 
-func _update_character_details(character: Character) -> void:
+func _update_character_details(character: Node) -> void:
 	if not character:
 		_clear_character_details()
 		return
@@ -180,11 +180,11 @@ func _on_remove_pressed() -> void:
 		var character_id = character_manager._generate_character_id(selected_character)
 		character_manager.remove_character(character_id)
 
-func _on_character_created(character: Character) -> void:
+func _on_character_created(character: Node) -> void:
 	var character_manager = get_node(" / root / CharacterManager")
 	character_manager.add_character(character)
 
-func _on_character_edited(character: Character) -> void:
+func _on_character_edited(character: Node) -> void:
 	if selected_character:
 		var character_manager = get_node(" / root / CharacterManager")
 		character_manager.update_character(character)
@@ -192,13 +192,13 @@ func _on_character_edited(character: Character) -> void:
 func _on_creation_cancelled() -> void:
 	print("Charactercreationcancelled")
 
-func _on_character_added(_character: Character) -> void:
+func _on_character_added(_character: Node) -> void:
 	_refresh_character_list()
 
-func _on_character_removed(_character: Character) -> void:
+func _on_character_removed(_character: Node) -> void:
 	_refresh_character_list()
 
-func _on_character_updated(_character: Character) -> void:
+func _on_character_updated(_character: Node) -> void:
 	_refresh_character_list()
 	if selected_character and selected_character == _character:
 		_update_character_details(_character)

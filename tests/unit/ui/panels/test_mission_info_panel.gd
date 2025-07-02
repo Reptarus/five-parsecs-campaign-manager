@@ -95,10 +95,10 @@ class MockMissionInfoPanel extends Resource:
                         item_names.append(item)
 
                 if item_names.size() > 0:
-                    parts.append("Items: ":  + ",".join(item_names))
+                    parts.append("Items: " + ",".join(item_names))
 
         if rewards.has("reputation"):
-            parts.append("Reputation: ":  + str(rewards["reputation"]))
+            parts.append("Reputation: " + str(rewards["reputation"]))
         
         return ",".join(parts)
     
@@ -147,7 +147,7 @@ func test_initialization() -> void:
 
 func test_setup_with_mission_data() -> void:
     var mission_data = {
-        "title": ": Test Mission","description": ": Test mission description","difficulty": 2,
+        "title": ": Test Mission", "description": ": Test mission description", "difficulty": 2,
         "rewards": {
             "credits": 1000,
             "items": [
@@ -181,7 +181,7 @@ func test_accept_button_signal() -> void:
     mock_panel.description_label.text = "Test Description"
     
     #
-    mock_panel.connect("mission_selected",_on_mission_selected)
+    mock_panel.connect("mission_selected", _on_mission_selected)
     
     mock_panel._on_accept_button_pressed()
     pass
@@ -210,7 +210,7 @@ func test_visibility_management() -> void:
 
 func test_mission_data_storage() -> void:
     var test_data = {
-        "title": ": Storage Test","description": ": Testing data storage","difficulty": 1,
+        "title": ": Storage Test", "description": ": Testing data storage", "difficulty": 1,
         "rewards": {"credits": 750}
     }
     mock_panel.setup(test_data)
@@ -228,7 +228,7 @@ func test_partial_rewards_formatting() -> void:
 
 func test_complex_mission_setup() -> void:
     var complex_mission = {
-        "title": ": Complex Mission","description": ": A very complex mission with multiple objectives","difficulty": 3,
+        "title": ": Complex Mission", "description": ": A very complex mission with multiple objectives", "difficulty": 3,
         "rewards": {
             "credits": 2500,
             "items": [

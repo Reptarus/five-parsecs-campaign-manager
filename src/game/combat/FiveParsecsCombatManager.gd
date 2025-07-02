@@ -11,7 +11,7 @@ class_name FPCM_CombatManager
 
 # Safe imports
 const UniversalNodeAccess = preload("res://src/utils/UniversalNodeAccess.gd")
-const UniversalResourceLoader = preload("res://src/utils/UniversalResourceLoader.gd") 
+const UniversalResourceLoader = preload("res://src/utils/UniversalResourceLoader.gd")
 const UniversalSignalManager = preload("res://src/utils/UniversalSignalManager.gd")
 const UniversalDataAccess = preload("res://src/utils/UniversalDataAccess.gd")
 const UniversalSceneManager = preload("res://src/utils/UniversalSceneManager.gd")
@@ -19,7 +19,7 @@ const UniversalSceneManager = preload("res://src/utils/UniversalSceneManager.gd"
 # Safe dependency loading
 var GameEnums = null
 var GlobalEnums = null
-var Character = null
+var CharacterClass = null
 var FiveParsecsBattleRules = null
 var TerrainTypes = null
 
@@ -35,7 +35,7 @@ class CombatState extends BaseCombatState:
 	var flanking: bool = false
 	var suppressed: bool = false
 	
-	func _init(char: Character) -> void:
+	func _init(char) -> void:
 		super._init(char)
 		action_points = BASE_ACTION_POINTS
 		combat_advantage = 0 # NONE
@@ -43,7 +43,7 @@ class CombatState extends BaseCombatState:
 		combat_tactic = 0 # NONE
 
 # Factory method to create a CombatState instance without direct instantiation
-func create_combat_state(character: Character) -> BaseCombatState:
+func create_combat_state(character) -> BaseCombatState:
 	# Create a base combat state and manually add our properties
 	var state = BaseCombatState.new(character)
 	
@@ -66,7 +66,7 @@ func create_combat_state(character: Character) -> BaseCombatState:
 ## Called when the node enters the scene tree
 func _ready() -> void:
 	# Load dependencies safely at runtime
-	Character = UniversalResourceLoader.load_script_safe("res://src/core/character/Base/Character.gd", "FiveParsecsCombatManager Character")
+	CharacterClass = UniversalResourceLoader.load_script_safe("res://src/core/character/Base/Character.gd", "FiveParsecsCombatManager Character")
 	FiveParsecsBattleRules = UniversalResourceLoader.load_script_safe("res://src/game/combat/FiveParsecsBattleRules.gd", "FiveParsecsCombatManager BattleRules")
 	TerrainTypes = UniversalResourceLoader.load_script_safe("res://src/core/terrain/TerrainTypes.gd", "FiveParsecsCombatManager TerrainTypes")
 	
@@ -83,12 +83,11 @@ func _ready() -> void:
 		push_warning("FiveParsecsCombatManager: No battlefield manager assigned")
 
 ## Five Parsecs specific combat methods
-func initialize_combat(combatants: Array[Character], battlefield: Node) -> void:
+func initialize_combat(combatants: Array, battlefield: Node) -> void:
 	# Cast to the appropriate array type
 	var typed_combatants: Array = []
 	for combatant in combatants:
-
-		typed_combatants.append(combatant)  # warning: return value discarded (intentional)
+		typed_combatants.append(combatant) # warning: return value discarded (intentional)
 	
 	_active_combatants = typed_combatants
 	battlefield_manager = battlefield
@@ -101,29 +100,29 @@ func initialize_combat(combatants: Array[Character], battlefield: Node) -> void:
 		_combat_statuses[combatant] = state.combat_status
 
 	# Emit signal that combat state has changed
-	combat_state_changed.emit({  # warning: return value discarded (intentional)
+	combat_state_changed.emit({ # warning: return value discarded (intentional)
 		"active_combatants": _active_combatants,
 		"positions": _combat_positions,
 		"advantages": _combat_advantages,
 		"statuses": _combat_statuses
 	})
 
-func update_combatant_position(character: Character, new_position: Vector2i) -> void:
+func update_combatant_position(character, new_position: Vector2i) -> void:
 	if not character in _active_combatants:
 		return
 	
 	_combat_positions[character] = new_position
-	character_position_updated.emit(character, new_position)  # warning: return value discarded (intentional)
+	character_position_updated.emit(character, new_position) # warning: return value discarded (intentional)
 	
 	# Check for terrain modifiers at the new _position
 	if _terrain_modifiers.has(new_position):
 		var modifier = _terrain_modifiers[new_position]
-		terrain_modifier_applied.emit(new_position, modifier)  # warning: return value discarded (intentional)
+		terrain_modifier_applied.emit(new_position, modifier) # warning: return value discarded (intentional)
 		
 		# Apply terrain effects based on modifier
 		_apply_terrain_effects(character, modifier)
 
-func _apply_terrain_effects(character: Character, terrain_modifier: int) -> void:
+func _apply_terrain_effects(character, terrain_modifier: int) -> void:
 	# Apply Five Parsecs specific terrain effects
 	match terrain_modifier:
 		1: # COVER_LIGHT
@@ -145,23 +144,22 @@ func _apply_terrain_effects(character: Character, terrain_modifier: int) -> void
 			# Apply elevated terrain effects
 			pass
 
-func calculate_combat_result(attacker: Character, target: Character, weapon_data: Dictionary) -> Dictionary:
+func calculate_combat_result(attacker, target, weapon_data: Dictionary) -> Dictionary:
 	if not attacker in _active_combatants or not target in _active_combatants:
 		return {"result": 0} # MISS result
 
 	var attacker_position = _combat_positions.get(attacker, Vector2i.ZERO)
-
 	var target_position = _combat_positions.get(target, Vector2i.ZERO)
 	var distance = attacker_position.distance_to(target_position)
 	
 	# Get combat modifiers
-
 	var attacker_advantage = _combat_advantages.get(attacker, 0)
-
 	var target_status = _combat_statuses.get(target, 0)
 	
-	# Create an instance of battle rules
-	var _battle_rules := FiveParsecsBattleRules.new()
+	# Create an instance of battle rules if available
+	var _battle_rules = null
+	if FiveParsecsBattleRules:
+		_battle_rules = FiveParsecsBattleRules.new()
 	
 	# Calculate hit chance using Five Parsecs battle rules
 	var hit_chance: int = 50 # Default _value
@@ -198,11 +196,10 @@ func calculate_combat_result(attacker: Character, target: Character, weapon_data
 		result = 2 # GRAZE result
 	
 	# Emit signal with combat result
-	combat_result_calculated.emit(attacker, target, result)  # warning: return value discarded (intentional)
+	combat_result_calculated.emit(attacker, target, result) # warning: return value discarded (intentional)
 	
 	var damage_value: int = 0
 	if result > 0:
-
 		damage_value = weapon_data.get("damage", 1)
 	
 	return {
@@ -212,19 +209,19 @@ func calculate_combat_result(attacker: Character, target: Character, weapon_data
 		"damage": damage_value
 	}
 
-func update_combat_advantage(character: Character, advantage: int) -> void:
+func update_combat_advantage(character, advantage: int) -> void:
 	if not character in _active_combatants:
 		return
 	
 	_combat_advantages[character] = advantage
-	combat_advantage_changed.emit(character, advantage)  # warning: return value discarded (intentional)
+	combat_advantage_changed.emit(character, advantage) # warning: return value discarded (intentional)
 
-func update_combat_status(character: Character, status: int) -> void:
+func update_combat_status(character, status: int) -> void:
 	if not character in _active_combatants:
 		return
 	
 	_combat_statuses[character] = status
-	combat_status_changed.emit(character, status)  # warning: return value discarded (intentional)
+	combat_status_changed.emit(character, status) # warning: return value discarded (intentional)
 
 ## Five Parsecs specific verification methods
 func _verify_phase_consistency() -> bool:
@@ -255,18 +252,15 @@ func _verify_modifiers() -> bool:
 	return true
 
 ## Signal handlers specific to Five Parsecs
-func _on_character_activated(character: Character) -> void:
+func _on_character_activated(character) -> void:
 	if not character in _active_combatants:
 		return
 	
 	# Reset action points for the activated character
 	var state = create_combat_state(character)
-
 	state.position = _combat_positions.get(character, Vector2i.ZERO)
 	state.action_points = BASE_ACTION_POINTS
-
 	state.combat_advantage = _combat_advantages.get(character, 0)
-
 	state.combat_status = _combat_statuses.get(character, 0)
 	
 	# Apply house rule modifiers if any
@@ -278,12 +272,12 @@ func _on_character_activated(character: Character) -> void:
 	_combat_statuses[character] = state.combat_status
 
 	# Emit signal that combat state has changed
-	combat_state_changed.emit({  # warning: return value discarded (intentional)
+	combat_state_changed.emit({ # warning: return value discarded (intentional)
 		"active_character": character,
 		"state": state
 	})
 
-func _on_character_deactivated(character: Character) -> void:
+func _on_character_deactivated(character) -> void:
 	if not character in _active_combatants:
 		return
 	
@@ -304,7 +298,7 @@ func _on_character_deactivated(character: Character) -> void:
 	_combat_statuses[character] = state.combat_status
 
 	# Emit signal that combat state has changed
-	combat_state_changed.emit({  # warning: return value discarded (intentional)
+	combat_state_changed.emit({ # warning: return value discarded (intentional)
 		"deactivated_character": character,
 		"state": state
 	})

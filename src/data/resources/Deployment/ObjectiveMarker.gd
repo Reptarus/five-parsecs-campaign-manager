@@ -5,7 +5,7 @@ extends Area3D
 
 # Safe imports
 const UniversalNodeAccess = preload("res://src/utils/UniversalNodeAccess.gd")
-const UniversalResourceLoader = preload("res://src/utils/UniversalResourceLoader.gd") 
+const UniversalResourceLoader = preload("res://src/utils/UniversalResourceLoader.gd")
 const UniversalSignalManager = preload("res://src/utils/UniversalSignalManager.gd")
 const UniversalDataAccess = preload("res://src/utils/UniversalDataAccess.gd")
 const UniversalSceneManager = preload("res://src/utils/UniversalSceneManager.gd")
@@ -13,7 +13,7 @@ const UniversalSceneManager = preload("res://src/utils/UniversalSceneManager.gd"
 # Safe dependency loading
 var Character = null
 
-signal objective_reached(by_unit: Character)
+signal objective_reached(by_unit: Node)
 signal objective_completed
 signal objective_failed
 signal objective_progress_updated(progress: float)
@@ -23,7 +23,7 @@ signal objective_progress_updated(progress: float)
 @export var capture_radius := 2.0
 @export var fail_on_enemy_capture := false
 
-var capturing_unit: Character = null
+var capturing_unit: Node = null
 var turns_held := 0
 
 func _ready() -> void:
@@ -59,7 +59,7 @@ func _on_area_entered(area: Area3D) -> void:
 			push_warning("ObjectiveMarker: unit area has no parent node")
 			return
 			
-		if Character and node is Character:
+		if Character and node.get_script() == Character:
 			capturing_unit = node
 			if fail_on_enemy_capture and capturing_unit.has_method("is_enemy") and capturing_unit.is_enemy():
 				UniversalSignalManager.emit_signal_safe(self, "objective_failed", [], "ObjectiveMarker objective_failed")

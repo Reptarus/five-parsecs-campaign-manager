@@ -98,7 +98,9 @@ class ThemeManagerMockScript extends RefCounted:
     
     func set_text_size(size: String) -> void:
         # Mock implementation for text size setting
-        pass
+        var manager = get_script_instance()
+        if manager:
+            manager.set_meta("text_size", size)
     
     func get_text_scale() -> float:
         return 1.0
@@ -120,7 +122,7 @@ class ThemeManagerMockScript extends RefCounted:
     func apply_theme_to_control(control: Control) -> void:
         if control:
             # Mock theme application
-            pass
+            control.set_meta("theme_applied", true)
     
     func get_script_instance() -> Node:
         # Mock method to get the manager instance

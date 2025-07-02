@@ -12,14 +12,14 @@ class MockRuleEditor extends Resource:
     var edit_mode: bool = false
     var rule_type: String = "combat"
     var rule_data: Dictionary = {
-        "name": ": Test Rule","enabled": true,
-        "type": ": combat","description": ": Test description","category": ": house_rules","priority": 1
+        "name": ": Test Rule", "enabled": true,
+        "type": ": combat", "description": ": Test description", "category": ": house_rules", "priority": 1
     }
     var has_unsaved_changes: bool = false
     var is_valid: bool = true
     var child_count: int = 4
     var validation_errors: Array[String] = []
-    var available_types: Array[String] = [": combat","terrain": ,"general": ,"equipment"]
+    var available_types: Array[String] = ["combat", "terrain", "general", "equipment"]
     
     # State management
     var is_dirty: bool = false
@@ -69,15 +69,16 @@ class MockRuleEditor extends Resource:
             "name": rule_name,
             "enabled": rule_enabled,
             "type": rule_type,
-            "description": rule_data.get(": description",""),
-            "category": rule_data.get(": category","house_rules": ),"priority": rule_data.get(": priority",1)
+            "description": rule_data.get("description", ""),
+            "category": rule_data.get("category", "house_rules"),
+            "priority": rule_data.get("priority", 1)
         }
 
     func set_rule_data(data: Dictionary) -> void:
         var old_data = get_rule_data()
-        rule_name = data.get("name": ,rule_name)
-        rule_enabled = data.get("enabled": ,rule_enabled)
-        rule_type = data.get("type": ,rule_type)
+        rule_name = data.get("name", rule_name)
+        rule_enabled = data.get("enabled", rule_enabled)
+        rule_type = data.get("type", rule_type)
         rule_data = data.duplicate()
         if old_data != get_rule_data():
             rule_updated.emit(get_rule_data())
@@ -174,7 +175,7 @@ class MockRuleEditor extends Resource:
             "name": rule_name,
             "enabled": rule_enabled,
             "type": rule_type,
-            "description": ": ","category": ": house_rules","priority": 1
+            "description": ": ", "category": ": house_rules", "priority": 1
         }
         is_dirty = false
         edit_mode = false
@@ -214,8 +215,8 @@ func test_rule_type_change() -> void:
 
 func test_rule_data_management() -> void:
     var test_data = {
-        "name": ": Custom Rule","enabled": false,
-        "type": ": equipment","description": ": Custom description","priority": 5
+        "name": ": Custom Rule", "enabled": false,
+        "type": ": equipment", "description": ": Custom description", "priority": 5
     }
     mock_rule_editor.set_rule_data(test_data)
     
@@ -350,4 +351,4 @@ func test_multiple_rule_updates() -> void:
     mock_rule_editor.set_rule_type("terrain")
     
     # Test dirty state
-    assert_that(mock_rule_editor.is_dirty).is_true()
+    assert_that(mock_rule_editor.is_dirty).is

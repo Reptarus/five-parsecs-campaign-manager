@@ -20,7 +20,7 @@ enum CreatorMode {
 }
 
 var current_mode: CreatorMode = CreatorMode.STANDARD
-var current_character: Character
+var current_character: Character = null
 var is_visible: bool = false
 
 # UI Components (to be connected in _ready)

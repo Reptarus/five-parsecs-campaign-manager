@@ -76,7 +76,7 @@ func _initialize_test_states() -> void:
 			}
 		},
 		"STORY": {
-			"phase": GameEnums.FiveParcsecsCampaignPhase.STORY as int,
+			"phase": GameEnums.FiveParcsecsCampaignPhase.UPKEEP as int,
 			"resources": {
 				"credits": 150 as int,
 				"reputation": 5 as int

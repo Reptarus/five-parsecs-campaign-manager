@@ -6,11 +6,11 @@ const GameEnums = preload("res://src/core/systems/GlobalEnums.gd")
 
 signal captain_updated(captain: Character)
 
-@onready var character_creator: Button = $"CharacterCreator"
-@onready var captain_info: Button = $"Content/CaptainInfo/Label"
+@onready var character_creator: Node = $"CharacterCreator"
+@onready var captain_info: Label = $"Content/CaptainInfo/Label"
 @onready var create_button: Button = $"Content/Controls/CreateButton"
 @onready var edit_button: Button = $"Content/Controls/EditButton"
-@onready var randomize_button = $Content/Controls/RandomizeButton
+@onready var randomize_button: Button = $"Content/Controls/RandomizeButton"
 
 var current_captain: Character
 

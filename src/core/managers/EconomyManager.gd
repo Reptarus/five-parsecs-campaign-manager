@@ -21,7 +21,7 @@ var global_economic_modifier: float = 1.0
 var trade_restricted_items: Array[String] = []
 var scarce_resources: Array = []
 var new_tech_items: Array = []
-var current_market_state: int = 0  # Will be set to NORMAL in _init()
+var current_market_state: int = 0 # Will be set to NORMAL in _init()
 var market_prices: Dictionary = {}
 var supply_demand: Dictionary = {}
 
@@ -214,24 +214,29 @@ func _apply_global_event(_event: int) -> void:
         return
     
     match _event:
-        GameEnums.GlobalEvent.TRADE_DISRUPTION if "TRADE_DISRUPTION" in GameEnums.GlobalEvent:
-            global_economic_modifier *= 0.8
-        GameEnums.GlobalEvent.ECONOMIC_BOOM if "ECONOMIC_BOOM" in GameEnums.GlobalEvent:
-            global_economic_modifier *= 1.2
-        GameEnums.GlobalEvent.RESOURCE_SHORTAGE if "RESOURCE_SHORTAGE" in GameEnums.GlobalEvent:
-            if "ItemType" in GameEnums:
-                var resource_types := GameEnums.ItemType.values()
-                if resource_types.size() > 0:
-                    var new_resource: int = resource_types[randi() % resource_types.size()]
-                    if "NONE" in GameEnums.ItemType and new_resource != GameEnums.ItemType.NONE and not new_resource in scarce_resources:
-                        scarce_resources.append(new_resource) # warning: return value discarded (intentional)
-        GameEnums.GlobalEvent.NEW_TECHNOLOGY if "NEW_TECHNOLOGY" in GameEnums.GlobalEvent:
-            if "ItemType" in GameEnums:
-                var tech_items := GameEnums.ItemType.values()
-                if tech_items.size() > 0:
-                    var new_tech: int = tech_items[randi() % tech_items.size()]
-                    if "NONE" in GameEnums.ItemType and new_tech != GameEnums.ItemType.NONE and not new_tech in new_tech_items:
-                        new_tech_items.append(new_tech) # warning: return value discarded (intentional)
+        GameEnums.GlobalEvent.TRADE_DISRUPTION:
+            if "TRADE_DISRUPTION" in GameEnums.GlobalEvent:
+                global_economic_modifier *= 0.8
+        GameEnums.GlobalEvent.ECONOMIC_BOOM:
+            if "ECONOMIC_BOOM" in GameEnums.GlobalEvent:
+                global_economic_modifier *= 1.2
+        GameEnums.GlobalEvent.RESOURCE_SHORTAGE:
+            if "RESOURCE_SHORTAGE" in GameEnums.GlobalEvent:
+                if "ItemType" in GameEnums:
+                    var resource_types := GameEnums.ItemType.values()
+                    if resource_types.size() > 0:
+                        var new_resource: int = resource_types[randi() % resource_types.size()]
+                        if "NONE" in GameEnums.ItemType and new_resource != GameEnums.ItemType.NONE and not new_resource in scarce_resources:
+                            scarce_resources.append(new_resource) # warning: return value discarded (intentional)
+        GameEnums.GlobalEvent.NEW_TECHNOLOGY:
+            if "NEW_TECHNOLOGY" in GameEnums.GlobalEvent:
+                if "ItemType" in GameEnums:
+                    var tech_items := GameEnums.ItemType.values()
+                    if tech_items.size() > 0:
+                        var new_tech: int = tech_items[randi() % tech_items.size()]
+                        if "NONE" in GameEnums.ItemType and new_tech != GameEnums.ItemType.NONE and not new_tech in new_tech_items:
+                            new_tech_items.append(new_tech) # warning: return value discarded (intentional)
     
     # Normalize global modifier over time
     global_economic_modifier = lerpf(global_economic_modifier, 1.0, ECONOMY_NORMALIZATION_RATE)
+ 

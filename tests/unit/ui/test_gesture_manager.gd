@@ -23,10 +23,12 @@ class MockGestureManager extends Resource:
 	var mouse_position: Vector2 = Vector2(100, 100)
 	var is_touch_device: bool = false
 	var gesture_data: Dictionary = {
-		"type": ": none","position": Vector2.ZERO,
-		"delta": Vector2.ZERO,
+		"type": "none",
+		"position": Vector2.ZERO,
+		"scale": 1.0,
 		"duration": 0.0
 	}
+	var registered_gestures: Array[String] = []
 	
 	# Gesture signals
 	signal gesture_started(gesture_type: String)
@@ -91,19 +93,24 @@ class MockGestureManager extends Resource:
 		gesture_enabled = enabled
 	
 	func detect_gesture(gesture_name: String) -> bool:
-		return gesture_name in [": swipe_left","swipe_right": ,"tap": ,"double_tap": ,"pinch"]
+		return gesture_name in ["swipe_left", "swipe_right", "tap", "double_tap", "pinch"]
 
 	func process_gesture(gesture_name: String) -> void:
-		pass
+		# Process the gesture
+		if gesture_name in ["swipe_left", "swipe_right", "tap", "double_tap", "pinch"]:
+			current_gesture = gesture_name
+			gesture_active = true
 	
 	func validate_gesture(gesture_name: String) -> bool:
 		return gesture_name.length() > 0
 
 	func register_gesture(gesture_name: String) -> void:
-		pass
-	
+		# Register a new gesture type
+		if gesture_name not in ["swipe_left", "swipe_right", "tap", "double_tap", "pinch"]:
+			registered_gestures.append(gesture_name)
+
 	func has_gesture(gesture_name: String) -> bool:
-		return gesture_name in [": swipe_left","swipe_right": ,"tap": ,"double_tap": ,"pinch"]
+		return gesture_name in ["swipe_left", "swipe_right", "tap", "double_tap", "pinch"]
 
 var mock_gesture_manager: MockGestureManager = null
 
@@ -144,7 +151,7 @@ func test_gesture_lifecycle() -> void:
 	assert_that(mock_gesture_manager.gesture_active).is_true()
 	
 	# Update gesture
-	var test_data = {"type": ": swipe","delta": Vector2(10, 0)}
+	var test_data = {"type": ": swipe", "delta": Vector2(10, 0)}
 	mock_gesture_manager.update_gesture(test_data)
 	
 	# End gesture
@@ -170,7 +177,7 @@ func test_touch_count_tracking() -> void:
 
 func test_gesture_data_structure() -> void:
 	var test_data = {
-		"type": ": pinch","position": Vector2(100, 100),
+		"type": ": pinch", "position": Vector2(100, 100),
 		"scale": 1.2
 	}
 	mock_gesture_manager.update_gesture(test_data)
@@ -182,7 +189,7 @@ func test_swipe_direction_detection() -> void:
 	assert_that(left_result).is_equal(": left")
 	
 	# Test right swipe
-	var right_result = mock_gesture_manager.detect_swipe(Vector2(0,0), Vector2(100, 0))
+	var right_result = mock_gesture_manager.detect_swipe(Vector2(0, 0), Vector2(100, 0))
 	assert_that(right_result).is_equal("right")
 
 func test_gesture_state_management() -> void:

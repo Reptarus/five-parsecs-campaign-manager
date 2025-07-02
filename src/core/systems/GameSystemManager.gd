@@ -212,18 +212,16 @@ func _get_next_campaign_phase() -> int:
 		GameEnums.FiveParcsecsCampaignPhase.SETUP:
 			return GameEnums.FiveParcsecsCampaignPhase.UPKEEP
 		GameEnums.FiveParcsecsCampaignPhase.UPKEEP:
-			return GameEnums.FiveParcsecsCampaignPhase.STORY
-		GameEnums.FiveParcsecsCampaignPhase.STORY:
-			return GameEnums.FiveParcsecsCampaignPhase.CAMPAIGN
-		GameEnums.FiveParcsecsCampaignPhase.CAMPAIGN:
+			return GameEnums.FiveParcsecsCampaignPhase.TRAVEL
+		GameEnums.FiveParcsecsCampaignPhase.TRAVEL:
+			return GameEnums.FiveParcsecsCampaignPhase.WORLD
+		GameEnums.FiveParcsecsCampaignPhase.WORLD:
 			return GameEnums.FiveParcsecsCampaignPhase.BATTLE_SETUP
 		GameEnums.FiveParcsecsCampaignPhase.BATTLE_SETUP:
-			return GameEnums.FiveParcsecsCampaignPhase.BATTLE_RESOLUTION
-		GameEnums.FiveParcsecsCampaignPhase.BATTLE_RESOLUTION:
-			return GameEnums.FiveParcsecsCampaignPhase.ADVANCEMENT
-		GameEnums.FiveParcsecsCampaignPhase.ADVANCEMENT:
-			return GameEnums.FiveParcsecsCampaignPhase.TRADE
-		GameEnums.FiveParcsecsCampaignPhase.TRADE:
+			return GameEnums.FiveParcsecsCampaignPhase.BATTLE
+		GameEnums.FiveParcsecsCampaignPhase.BATTLE:
+			return GameEnums.FiveParcsecsCampaignPhase.POST_BATTLE
+		GameEnums.FiveParcsecsCampaignPhase.POST_BATTLE:
 			return GameEnums.FiveParcsecsCampaignPhase.END
 		_:
 			return GameEnums.FiveParcsecsCampaignPhase.NONE
@@ -308,12 +306,12 @@ func _on_battle_results_recorded(results: Dictionary) -> void:
 	game_state_changed.emit() # warning: return value discarded (intentional)
 	
 	# If current phase is battle resolution, complete the "battle_completed" action
-	if campaign_phase_manager.current_phase == GameEnums.FiveParcsecsCampaignPhase.BATTLE_RESOLUTION:
+	if campaign_phase_manager.current_phase == GameEnums.FiveParcsecsCampaignPhase.POST_BATTLE:
 		campaign_phase_manager.complete_phase_action("battle_completed")
 
 func _on_casualties_processed(_casualties: Array) -> void:
 	# If current phase is battle resolution, complete the "casualties_resolved" action
-	if campaign_phase_manager.current_phase == GameEnums.FiveParcsecsCampaignPhase.BATTLE_RESOLUTION:
+	if campaign_phase_manager.current_phase == GameEnums.FiveParcsecsCampaignPhase.POST_BATTLE:
 		campaign_phase_manager.complete_phase_action("casualties_resolved")
 func _on_rewards_calculated(_rewards: Dictionary) -> void:
 	game_state_changed.emit() # warning: return value discarded (intentional)
@@ -325,7 +323,7 @@ func _on_mission_preparation_complete(_mission: Dictionary) -> void:
 	game_state_changed.emit() # warning: return value discarded (intentional)
 	
 	# If current phase is campaign, complete the _mission preparation action
-	if campaign_phase_manager.current_phase == GameEnums.FiveParcsecsCampaignPhase.CAMPAIGN:
+	if campaign_phase_manager.current_phase == GameEnums.FiveParcsecsCampaignPhase.WORLD:
 		campaign_phase_manager.complete_phase_action("mission_prepared")
 
 func _on_equipment_acquired(_equipment_data: Dictionary) -> void:

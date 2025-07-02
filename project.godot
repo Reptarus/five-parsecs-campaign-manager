@@ -29,6 +29,9 @@ BattleStateMachine="*res://src/core/battle/state/BattleStateMachine.gd"
 AlphaGameManager="*res://src/core/managers/AlphaGameManager.gd"
 CampaignManager="*res://src/core/managers/CampaignManager.gd"
 DiceManager="*res://src/core/managers/DiceManager.gd"
+CoreSystemSetup="*res://src/autoload/CoreSystemSetup.gd"
+SaveManager="*res://src/core/state/SaveManager.gd"
+GameState="*res://src/core/state/GameState.gd"
 SceneRouter="*res://src/ui/screens/SceneRouter.gd"
 
 [debug]

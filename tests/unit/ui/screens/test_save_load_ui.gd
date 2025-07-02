@@ -11,7 +11,7 @@ class MockSaveLoadUI extends Resource:
     var is_saving: bool = false
     var is_loading: bool = false
     var current_mode: String = ""
-    var save_list: Array = [": Save 1","Save 2": ,"Save 3"]
+    var save_list: Array = ["Save 1", "Save 2", "Save 3"]
     var visible: bool = true
     var selected_save_index: int = -1
     var last_save_name: String = ""
@@ -105,7 +105,7 @@ func test_save_functionality() -> void:
     assert_that(mock_ui.is_saving).is_true()
 
 func test_load_functionality() -> void:
-    var test_save_data := {"name": ": test_save","data": {"credits": 1500}}
+    var test_save_data := {"name": ": test_save", "data": {"credits": 1500}}
     mock_ui.set_mode("load")
     mock_ui.load_game(test_save_data)
     
@@ -163,7 +163,7 @@ func test_component_structure() -> void:
     assert_that(mock_ui.save_list).is_not_null()
 
 func test_data_persistence() -> void:
-    var test_data := {"campaign": ": Test Campaign","turn": 5}
+    var test_data := {"campaign": ": Test Campaign", "turn": 5}
     mock_ui.load_game(test_data)
     
     assert_that(mock_ui.last_save_data).is_equal(test_data)

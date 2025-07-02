@@ -53,28 +53,17 @@ func _can_access_autoload(autoload_name: String) -> bool:
 func setup_core_systems() -> void:
 	"""Setup all core systems in the correct order"""
 	
-	if not FPCM_AlphaGameManager:
-		push_error("CRASH PREVENTION: Cannot create AlphaGameManager - class not loaded")
-		return
-	
-	# Create the main game manager using safe methods
-	alpha_game_manager = FPCM_AlphaGameManager.new()
+	# Get reference to the existing AlphaGameManager autoload
+	alpha_game_manager = get_node_or_null("/root/AlphaGameManager")
 	if not alpha_game_manager:
-		push_error("CRASH PREVENTION: Failed to create AlphaGameManager instance")
-		return
-	
-	alpha_game_manager.name = "AlphaGameManager"
-	
-	# Use safe child addition
-	if not UniversalNodeAccess.add_child_safe(self, alpha_game_manager, "CoreSystemSetup alpha_game_manager"):
-		push_error("CRASH PREVENTION: Failed to add AlphaGameManager to scene tree")
+		push_error("CRASH PREVENTION: Cannot access AlphaGameManager autoload")
 		return
 	
 	# Connect to initialization signals using safe signal connections
 	UniversalSignalManager.connect_signal_safe(alpha_game_manager, "all_systems_ready", _on_all_systems_ready, "CoreSystemSetup all_systems_ready")
 	UniversalSignalManager.connect_signal_safe(alpha_game_manager, "systems_initialized", _on_systems_initialized, "CoreSystemSetup systems_initialized")
 	
-	print("CoreSystemSetup: Alpha Game Manager created and initialized")
+	print("CoreSystemSetup: Connected to existing AlphaGameManager autoload")
 
 func _on_all_systems_ready() -> void:
 	"""Handle successful system initialization"""

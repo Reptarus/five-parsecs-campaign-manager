@@ -16,7 +16,7 @@ class MockStateVerificationPanel extends Resource:
     var auto_verify: bool = false
     var current_state: Dictionary = {}
     var expected_state: Dictionary = {}
-    var state_categories: Array = ["Combat": ,"Position": ,"Resources": ,"Effects": ,"Modifiers"]
+    var state_categories: Array = ["Combat", "Position", "Resources", "Effects", "Modifiers"]
     var verification_results: Dictionary = {}
     var is_verifying: bool = false
     var mismatches_found: Array = []

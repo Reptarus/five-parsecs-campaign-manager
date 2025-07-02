@@ -75,13 +75,12 @@ func _on_phase_changed(new_phase: FiveParcsecsCampaignPhase) -> void:
 		FiveParcsecsCampaignPhase.SETUP:
 			change_state(FiveParsecsGameEnums.GameState.SETUP)
 		FiveParcsecsCampaignPhase.UPKEEP, \
-		FiveParcsecsCampaignPhase.STORY, \
-		FiveParcsecsCampaignPhase.CAMPAIGN, \
-		FiveParcsecsCampaignPhase.ADVANCEMENT, \
-		FiveParcsecsCampaignPhase.TRADE:
+		FiveParcsecsCampaignPhase.TRAVEL, \
+		FiveParcsecsCampaignPhase.WORLD, \
+		FiveParcsecsCampaignPhase.POST_BATTLE:
 			change_state(FiveParsecsGameEnums.GameState.CAMPAIGN)
 		FiveParcsecsCampaignPhase.BATTLE_SETUP, \
-		FiveParcsecsCampaignPhase.BATTLE_RESOLUTION:
+		FiveParcsecsCampaignPhase.BATTLE:
 			change_state(FiveParsecsGameEnums.GameState.BATTLE)
 
 func _on_turn_completed() -> void:

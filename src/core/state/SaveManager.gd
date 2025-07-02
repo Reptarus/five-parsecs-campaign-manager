@@ -1,6 +1,6 @@
 @tool
-extends RefCounted
-class_name SaveManager
+extends Node
+class_name CoreSaveManager
 
 ## Simple save/load manager for Five Parsecs Campaign Manager
 ##
@@ -13,7 +13,7 @@ const SAVE_EXTENSION: String = ".fpcsave"
 const SAVE_DIRECTORY: String = "user://saves/"
 
 ## Save game data to file
-static func save_game(data: Dictionary, save_name: String) -> bool:
+func save_game(data: Dictionary, save_name: String) -> bool:
 	var dir: DirAccess = DirAccess.open("user://")
 	if not dir:
 		push_error("Could not access user directory")
@@ -46,7 +46,7 @@ static func save_game(data: Dictionary, save_name: String) -> bool:
 	return true
 
 ## Load game data from file
-static func load_game(save_name: String) -> Dictionary:
+func load_game(save_name: String) -> Dictionary:
 	var save_path: String = SAVE_DIRECTORY + save_name + SAVE_EXTENSION
 	var file: FileAccess = FileAccess.open(save_path, FileAccess.READ)
 	
@@ -73,7 +73,7 @@ static func load_game(save_name: String) -> Dictionary:
 	return save_dict.get("data", {})
 
 ## Get list of available save files
-static func get_save_list() -> Array[String]:
+func get_save_list() -> Array[String]:
 	var saves: Array[String] = []
 	var dir: DirAccess = DirAccess.open(SAVE_DIRECTORY)
 	
@@ -91,12 +91,12 @@ static func get_save_list() -> Array[String]:
 	return saves
 
 ## Check if a save file exists
-static func save_exists(save_name: String) -> bool:
+func save_exists(save_name: String) -> bool:
 	var save_path: String = SAVE_DIRECTORY + save_name + SAVE_EXTENSION
 	return FileAccess.file_exists(save_path)
 
 ## Delete a save file
-static func delete_save(save_name: String) -> bool:
+func delete_save(save_name: String) -> bool:
 	var save_path: String = SAVE_DIRECTORY + save_name + SAVE_EXTENSION
 	if FileAccess.file_exists(save_path):
 		var dir: DirAccess = DirAccess.open("user://")

@@ -6,7 +6,7 @@ class MockConfigPanel extends Control:
     signal config_updated(config: Dictionary)
     
     var current_config: Dictionary = {
-        "name": ": ","seed": ": ","difficulty": 1
+        "name": ": ", "seed": ": ", "difficulty": 1
     }
     var has_error_state: bool = false
     var error_message: String = ""
@@ -24,11 +24,11 @@ class MockConfigPanel extends Control:
 
     func is_valid() -> bool:
         #
-        if current_config.get(": name","").is_empty():
+        if current_config.get(": name", "").is_empty():
             return false
 
         #
-        var seed = current_config.get(": seed","")
+        var seed = current_config.get(": seed", "")
         if not seed.is_empty() and not seed.is_valid_int():
             return false
         
@@ -50,21 +50,21 @@ class MockConfigPanel extends Control:
 
     #
     func get_name_input() -> String:
-        return current_config.get(": name","")
+        return current_config.get(": name", "")
 
     func set_name_input(test_value: String) -> void:
         current_config["name"] = test_value
         config_updated.emit(current_config)
     
     func get_seed_input() -> String:
-        return current_config.get(": seed","")
+        return current_config.get(": seed", "")
     
     func set_seed_input(test_value: String) -> void:
         current_config["seed"] = test_value
         config_updated.emit(current_config)
     
     func get_difficulty_selection() -> int:
-        return current_config.get(": difficulty",1)
+        return current_config.get(": difficulty", 1)
     
     func set_difficulty_selection(test_value: int) -> void:
         current_config["difficulty"] = test_value
@@ -93,7 +93,7 @@ func test_initial_setup() -> void:
 
 func test_signal_connections() -> void:
     #
-    var test_config = {"name": ": Test","seed": ": 123","difficulty": 2}
+    var test_config = {"name": ": Test", "seed": ": 123", "difficulty": 2}
     panel.set_config(test_config)
     
     # Skip signal monitoring to prevent Dictionary corruption
@@ -104,7 +104,7 @@ func test_signal_connections() -> void:
 
 func test_state_management() -> void:
     var test_config: Dictionary = {
-        "name": ": Test Campaign","seed": ": 12345","difficulty": 1
+        "name": ": Test Campaign", "seed": ": 12345", "difficulty": 1
     }
     panel.set_config(test_config)
     var current_config = panel.get_config()
@@ -181,8 +181,8 @@ func test_difficulty_levels() -> void:
 
 func test_seed_validation_edge_cases() -> void:
     #
-    var valid_seeds = [": ","0": ,"123": ,"999999": ]
-    var invalid_seeds = ["abc","12a": ,"a123": ,"!@#"]
+    var valid_seeds = ["", "0", "123", "999999"]
+    var invalid_seeds = ["abc", "12a", "a123", "!@#"]
     
     panel.set_name_input("Test Campaign") #
     
@@ -212,7 +212,7 @@ func test_error_state_independence() -> void:
 func test_config_update_signal_data() -> void:
     #
     var test_config = {
-        "name": ": Signal Data Test","seed": ": 777","difficulty": 2
+        "name": ": Signal Data Test", "seed": ": 777", "difficulty": 2
     }
     panel.set_config(test_config)
     

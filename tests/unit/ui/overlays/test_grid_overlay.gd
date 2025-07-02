@@ -106,7 +106,7 @@ class MockGridOverlay extends Resource:
         return highlight_cell
 
     func has_property(property_name: String) -> bool:
-        return property_name in ["grid_visible": ,"grid_size": ,"cell_size": ,"grid_color"]
+        return property_name in ["grid_visible", "grid_size", "cell_size", "grid_color"]
 
     #
     signal grid_setup

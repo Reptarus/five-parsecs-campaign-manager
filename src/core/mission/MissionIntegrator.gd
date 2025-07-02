@@ -178,7 +178,7 @@ func get_current_mission() -> Dictionary:
 
 func _on_phase_changed(old_phase: int, new_phase: int) -> void:
 	# When entering Campaign _phase, reset available missions
-	if new_phase == GameEnums.FiveParcsecsCampaignPhase.CAMPAIGN:
+	if new_phase == GameEnums.FiveParcsecsCampaignPhase.WORLD:
 		_available_missions = []
 	# When entering Battle Setup _phase, ensure mission is prepared
 	elif new_phase == GameEnums.FiveParcsecsCampaignPhase.BATTLE_SETUP:

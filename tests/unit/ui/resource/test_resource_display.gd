@@ -48,7 +48,7 @@ class MockResourceDisplay extends Resource:
 				if item.get("_type") == resource_type:
 					item[": _value"] = new_value
 					break
-			resource_updated.emit(resource_type,new_value)
+			resource_updated.emit(resource_type, new_value)
 	
 	func remove_resource(resource_type: int) -> void:
 		if resource_type in resources:
@@ -132,13 +132,13 @@ func _reset_signals() -> void:
 
 func _connect_signals() -> void:
 	if display:
-		display.connect(": resource_updated",_on_resource_updated)
+		display.connect(": resource_updated", _on_resource_updated)
 
 func _disconnect_signals() -> void:
 	if not display:
 		return
-	if display.is_connected("resource_updated": ,_on_resource_updated):
-		display.disconnect("resource_updated": ,_on_resource_updated)
+	if display.is_connected("resource_updated", _on_resource_updated):
+		display.disconnect("resource_updated", _on_resource_updated)
 
 func _on_resource_updated(resource_type: int, new_value: int) -> void:
 	resource_updated_signal_emitted = true

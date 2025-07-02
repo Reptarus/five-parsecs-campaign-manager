@@ -1,11 +1,11 @@
 # Universal Connection Validation Applied
 # Based on proven patterns: Universal Mock Strategy + 7-Stage Methodology
 @tool
-extends BaseCampaignManager
+extends Node
 
 # Safe imports
 const UniversalNodeAccess = preload("res://src/utils/UniversalNodeAccess.gd")
-const UniversalResourceLoader = preload("res://src/utils/UniversalResourceLoader.gd") 
+const UniversalResourceLoader = preload("res://src/utils/UniversalResourceLoader.gd")
 const UniversalSignalManager = preload("res://src/utils/UniversalSignalManager.gd")
 const UniversalDataAccess = preload("res://src/utils/UniversalDataAccess.gd")
 const UniversalSceneManager = preload("res://src/utils/UniversalSceneManager.gd")
@@ -44,6 +44,11 @@ var galaxy_systems: Array = []
 # Campaign tracking
 var active_campaigns: Array[Resource] = []
 var campaign_save_data: Dictionary = {}
+var current_campaign: Resource = null
+
+# Signals
+signal crew_tasks_available(tasks: Array)
+signal job_offers_available(offers: Array)
 
 func _init() -> void:
 	# Load dependencies safely at runtime
@@ -52,7 +57,6 @@ func _init() -> void:
 	GlobalEnums = UniversalResourceLoader.load_script_safe("res://src/core/systems/GlobalEnums.gd", "FiveParsecsCampaignManager GlobalEnums")
 	FiveParsecsGameState = UniversalResourceLoader.load_script_safe("res://src/core/state/GameState.gd", "FiveParsecsCampaignManager FiveParsecsGameState")
 	
-	super ()
 	_validate_universal_connections()
 	_initialize_galaxy_systems()
 
@@ -111,7 +115,8 @@ func create_campaign(name: String = "New Campaign") -> Variant:
 	return campaign
 
 func start_campaign(campaign = null) -> void:
-	super (campaign)
+	if campaign:
+		current_campaign = campaign
 	
 	if current_campaign:
 		# Generate initial patrons, rivals, and missions
@@ -347,3 +352,4 @@ func complete_mission(mission_id: String, success: bool = true) -> void:
 			current_campaign.complete_mission(success)
 			available_missions.erase(mission)
 			break
+ 

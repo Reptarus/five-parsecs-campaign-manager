@@ -215,6 +215,15 @@ func enter_main_game() -> void:
 	"""Enter the main game scene"""
 	navigate_to("main_game")
 
+func navigate_to_main_game() -> void:
+	"""Navigate to the main game scene - alias for enter_main_game"""
+	enter_main_game()
+
+func change_scene(scene_path: String) -> void:
+	"""Direct scene change using file path - for compatibility"""
+	print("SceneRouter: Direct scene change to ", scene_path)
+	get_tree().call_deferred("change_scene_to_file", scene_path)
+
 func open_character_management() -> void:
 	"""Open character management"""
 	navigate_to("advancement_manager")

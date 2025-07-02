@@ -14,10 +14,13 @@ enum EditMode {
 enum FiveParcsecsCampaignPhase {
 	NONE,
 	SETUP,        # Initial crew creation (not part of regular turn)
+	UPKEEP,       # Upkeep and ship repairs
 	TRAVEL,       # Phase 1: Travel Phase
 	WORLD,        # Phase 2: World Phase  
+	BATTLE_SETUP, # Battle preparation
 	BATTLE,       # Phase 3: Tabletop Battle
-	POST_BATTLE   # Phase 4: Post-Battle Sequence
+	POST_BATTLE,  # Phase 4: Post-Battle Sequence
+	END           # Campaign end/turn completion
 }
 
 ## Travel Phase Sub-Steps (Official Rules)
@@ -85,19 +88,25 @@ enum CrewTaskType {
 const PHASE_NAMES = {
 	FiveParcsecsCampaignPhase.NONE: "None",
 	FiveParcsecsCampaignPhase.SETUP: "Crew Creation",
+	FiveParcsecsCampaignPhase.UPKEEP: "Upkeep Phase",
 	FiveParcsecsCampaignPhase.TRAVEL: "Travel Phase",
 	FiveParcsecsCampaignPhase.WORLD: "World Phase",
+	FiveParcsecsCampaignPhase.BATTLE_SETUP: "Battle Setup",
 	FiveParcsecsCampaignPhase.BATTLE: "Battle Phase",
-	FiveParcsecsCampaignPhase.POST_BATTLE: "Post-Battle Phase"
+	FiveParcsecsCampaignPhase.POST_BATTLE: "Post-Battle Phase",
+	FiveParcsecsCampaignPhase.END: "Campaign End"
 }
 
 const PHASE_DESCRIPTIONS = {
 	FiveParcsecsCampaignPhase.NONE: "No active phase",
 	FiveParcsecsCampaignPhase.SETUP: "Create your crew and prepare for adventure",
+	FiveParcsecsCampaignPhase.UPKEEP: "Handle ship repairs and crew maintenance",
 	FiveParcsecsCampaignPhase.TRAVEL: "Decide travel, handle events, and arrive at new worlds",
-	FiveParcsecsCampaignPhase.WORLD: "Handle upkeep, crew tasks, jobs, and mission selection",
+	FiveParcsecsCampaignPhase.WORLD: "Handle crew tasks, jobs, and mission selection",
+	FiveParcsecsCampaignPhase.BATTLE_SETUP: "Prepare for tactical combat deployment",
 	FiveParcsecsCampaignPhase.BATTLE: "Resolve tactical combat on the tabletop",
-	FiveParcsecsCampaignPhase.POST_BATTLE: "Handle battle aftermath, advancement, and events"
+	FiveParcsecsCampaignPhase.POST_BATTLE: "Handle battle aftermath, advancement, and events",
+	FiveParcsecsCampaignPhase.END: "Complete campaign turn and prepare for next"
 }
 
 const TRAVEL_SUBSTEP_NAMES = {

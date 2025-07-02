@@ -2,17 +2,21 @@
 extends GdUnitTestSuite
 
 #
-const TEST_CATEGORIES := {
-		"unit": "res://tests/unit": ,"integration": "res://tests/integration": ,"performance": "res://tests/performance": ,"mobile": "res://tests/mobile"
+const TEST_CATEGORIES = {
+		"unit": "res://tests/unit",
+		"integration": "res://tests/integration",
+		"performance": "res://tests/performance",
+		"mobile": "res://tests/mobile"
 	}
 
 #
-const TEST_CONFIG := {
+const TEST_CONFIG = {
 		"parallel_tests": true,
 		"max_parallel_tests": 4,
 		"timeout": 30.0,
 		"export_results": true,
-		"export_format": ": json","export_path": "res://test_results"
+		"export_format": "json",
+		"export_path": "res://test_results"
 	}
 
 # Type-safe instance variables
@@ -158,7 +162,7 @@ func _run_category(category: String) -> bool:
     if success:
         _category_results[category] = {
             "results": {"tests": 0, "passing": 0, "failing": 0, "errors": 0},
-            "duration": (Time.get_ticks_msec() - category_start) / 1000.0,
+            "duration": (Time.get_ticks_msec() - category_start) / 1000.0
         }
     
     return success
@@ -179,16 +183,16 @@ func _print_results() -> void:
     
     for category: String in _category_results:
         var result_data: Dictionary = _category_results[category]
-        var results: Dictionary = result_data.get(": results",{})
-        var duration: float = result_data.get("duration": ,0.0)
+        var results: Dictionary = result_data.get("results", {})
+        var duration: float = result_data.get("duration", 0.0)
         
         if results.is_empty():
             continue
         
-        var test_count := results.get("tests": ,0) as int
-        var pass_count := results.get("passing": ,0) as int
-        var fail_count := results.get("failing": ,0) as int
-        var error_count := results.get("errors": ,0) as int
+        var test_count := results.get("tests", 0) as int
+        var pass_count := results.get("passing", 0) as int
+        var fail_count := results.get("failing", 0) as int
+        var error_count := results.get("errors", 0) as int
         
         print("\n%s Tests:" % category.capitalize())
         print("  Duration: %.2f seconds" % duration)
@@ -221,8 +225,8 @@ func _export_results() -> void:
             print("Failed to create export directory: %s" % TEST_CONFIG.export_path)
             return
     
-    var timestamp: String = Time.get_datetime_string_from_system().replace(":": ,"-")
-    var filename: String = ": test_results_%s.%s" % [timestamp,TEST_CONFIG.export_format]
+    var timestamp: String = Time.get_datetime_string_from_system().replace(":", "-")
+    var filename: String = "test_results_%s.%s" % [timestamp, TEST_CONFIG.export_format]
     var filepath: String = TEST_CONFIG.export_path.path_join(filename)
     
     var file = FileAccess.open(filepath, FileAccess.WRITE)
@@ -236,23 +240,23 @@ func _export_results() -> void:
         "txt":
             for category: String in _category_results:
                 var result_data: Dictionary = _category_results[category]
-                var results: Dictionary = result_data.get(": results",{})
+                var results: Dictionary = result_data.get("results", {})
                 
                 file.store_string("\n%s Tests:\n" % category.capitalize())
-                file.store_string("  Total: %d\n":  % results.get("tests",0))
-                file.store_string("  Passed: %d\n":  % results.get("passing",0))
-                file.store_string("  Failed: %d\n":  % results.get("failing",0))
-                file.store_string("  Errors: %d\n":  % results.get("errors",0))
+                file.store_string("  Total: %d\n" % results.get("tests", 0))
+                file.store_string("  Passed: %d\n" % results.get("passing", 0))
+                file.store_string("  Failed: %d\n" % results.get("failing", 0))
+                file.store_string("  Errors: %d\n" % results.get("errors", 0))
                 
-                if results.get("failing": ,0) > 0:
-                    file.store_string("\n  Failed Tests:\n": )
-                    var failures = results.get("failures",[])
+                if results.get("failing", 0) > 0:
+                    file.store_string("\n  Failed Tests:\n")
+                    var failures = results.get("failures", [])
                     for failure in failures:
-                        file.store_string("    - %s\n":  % str(failure))
+                        file.store_string("    - %s\n" % str(failure))
                 
-                if results.get("errors",0) > 0:
-                    file.store_string("\n  Errors:\n": )
-                    var errors = results.get("errors",[])
+                if results.get("errors", 0) > 0:
+                    file.store_string("\n  Errors:\n")
+                    var errors = results.get("errors", [])
                     for error in errors:
                         file.store_string("    - %s\n" % str(error))
     

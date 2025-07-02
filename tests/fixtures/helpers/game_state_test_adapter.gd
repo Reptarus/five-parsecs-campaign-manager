@@ -6,14 +6,15 @@ class_name GameStateTestAdapter
 # Universal Mock Strategy patterns applied
 
 const GameStateScript: GDScript = preload("res://src/core/state/GameState.gd")
+const CoreGameState = preload("res://src/core/state/GameState.gd")
 const GameEnumsScript: GDScript = preload("res://src/core/systems/GlobalEnums.gd")
 
 # Test instance creation methods
-static func create_test_instance() -> GameState:
+static func create_test_instance() -> CoreGameState:
 	var state = GameStateScript.new()
 	return state
 
-static func create_default_test_state() -> GameState:
+static func create_default_test_state() -> CoreGameState:
 	var state = create_test_instance()
 	
 	# Set default test values
@@ -30,7 +31,7 @@ static func create_default_test_state() -> GameState:
 	return state
 
 # Serialization methods
-static func deserialize_from_dict(data: Dictionary) -> GameState:
+static func deserialize_from_dict(data: Dictionary) -> CoreGameState:
 	var state = create_test_instance()
 	# Apply serialized data to state
 	return state

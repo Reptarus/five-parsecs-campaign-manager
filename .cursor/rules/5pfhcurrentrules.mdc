@@ -1,0 +1,701 @@
+---
+description: 
+globs: 
+alwaysApply: true
+---
+# Five Parsecs Campaign Manager - Development Guidelines
+
+This document provides comprehensive development guidelines for the Five Parsecs Campaign Manager project, a digital adaptation of the Five Parsecs from Home tabletop game built in Godot 4.4.
+
+## Project Overview
+
+The Five Parsecs Campaign Manager is a digital campaign management tool that implements the complete ruleset from Five Parsecs from Home. The project follows a modular architecture with clear separation between base abstractions, core systems, and game-specific implementations.
+
+### Key Systems Status
+- ✅ **Story Track System** - Production ready (20/20 tests passing)
+- ✅ **Battle Events System** - Production ready (22/22 tests passing)
+- ✅ **Digital Dice System** - Production ready with visual interface
+- ✅ **Campaign Manager** - Enhanced integration layer
+
+## File Organization & Architecture
+
+### Directory Structure
+```
+src/
+├── autoload/           # Godot autoload singletons
+├── base/              # Base classes and interfaces
+│   ├── campaign/      # Campaign base classes
+│   ├── character/     # Character base classes
+│   ├── combat/        # Combat base classes
+│   ├── items/         # Item base classes
+│   ├── mission/       # Mission base classes
+│   ├── ships/         # Ship base classes
+│   ├── state/         # State management base classes
+│   └── world/         # World base classes
+├── core/              # Core systems and managers
+│   ├── battle/        # ✅ Battle Events System
+│   ├── campaign/      # Campaign management core
+│   ├── character/     # Character system core
+│   ├── data/          # Data management
+│   ├── economy/       # Economic systems
+│   ├── enemy/         # Enemy management
+│   ├── equipment/     # Equipment systems
+│   ├── items/         # Item management
+│   ├── managers/      # System managers
+│   ├── mission/       # Mission management
+│   ├── settings/      # Configuration management
+│   ├── ships/         # Ship management
+│   ├── state/         # State management
+│   ├── story/         # ✅ Story Track System
+│   ├── systems/       # ✅ Core game systems (DiceSystem)
+│   ├── terrain/       # Terrain generation
+│   ├── tutorial/      # Tutorial systems
+│   ├── utils/         # Core utilities
+│   ├── victory/       # Victory conditions
+│   └── world/         # World generation
+├── data/              # Data definitions and containers
+├── game/              # Five Parsecs specific implementations
+│   ├── campaign/      # Campaign implementations
+│   ├── character/     # Character implementations
+│   ├── combat/        # Combat implementations
+│   ├── economy/       # Economy implementations
+│   ├── enemy/         # Enemy implementations
+│   ├── mission/       # Mission implementations
+│   ├── ships/         # Ship implementations
+│   ├── state/         # Game state implementations
+│   ├── story/         # Story implementations
+│   ├── terrain/       # Terrain implementations
+│   ├── tutorial/      # Tutorial implementations
+│   ├── victory/       # Victory implementations
+│   └── world/         # World implementations
+├── scenes/            # Scene implementations
+├── ui/                # User interface components
+└── utils/             # Utility functions and helpers
+```
+
+### File Naming Conventions
+- **Classes**: PascalCase (e.g., `CharacterManager.gd`, `CampaignState.gd`)
+- **Scene files**: PascalCase (e.g., `CharacterCreator.tscn`, `BattleMap.tscn`)
+- **Resource files**: snake_case (e.g., `character_template.tres`, `weapon_data.res`)
+- **Test files**: snake_case with `_test` suffix (e.g., `character_manager_test.gd`)
+- **Interfaces**: Prefix with `I` (e.g., `ICharacter.gd`, `ICampaignPhase.gd`)
+- **Enums**: Suffix with `Enums` (e.g., `FiveParsecsGameEnums.gd`, `CombatEnums.gd`)
+
+### Class Naming Patterns
+- **Base classes**: `Base{Type}` (e.g., `BaseMission`, `BaseCharacter`)
+- **Interfaces**: `I{Type}` (e.g., `ICombatable`, `IStorable`)
+- **Implementations**: `FiveParsecs{Type}` (e.g., `FiveParsecsMission`, `FiveParsecsCharacter`)
+- **Managers**: `{Type}Manager` (e.g., `CombatManager`, `CampaignManager`)
+- **UI Components**: `{Type}Component` (e.g., `InventoryComponent`, `CharacterSheet`)
+
+## Coding Standards
+
+### GDScript Best Practices
+
+#### Type Safety & Modern GDScript
+```gdscript
+# Use strict typing for all variables and functions
+class_name CharacterManager
+extends RefCounted
+
+# Strongly-typed arrays and collections
+var characters: Array[Character] = []
+var equipment: Dictionary = {}  # Use sparingly, prefer custom resources
+
+# Function signatures with full type annotations
+func create_character(background: CharacterBackground, motivation: CharacterMotivation) -> Character:
+    var character := Character.new()
+    character.initialize(background, motivation)
+    return character
+
+# Use await for async operations
+func load_character_data(character_id: String) -> CharacterData:
+    var http_request := HTTPRequest.new()
+    add_child(http_request)
+    http_request.request("api/character/" + character_id)
+    
+    var response = await http_request.request_completed
+    http_request.queue_free()
+    return _parse_character_data(response[3])
+```
+
+#### Godot 4.4 Features
+```gdscript
+# Lambda functions for data processing
+var high_level_characters = characters.filter(func(char): return char.level > 5)
+
+# Pattern matching with type patterns
+func process_combat_result(result: Variant) -> void:
+    match result:
+        var hit as CombatHit:
+            _apply_damage(hit.target, hit.damage)
+        var miss as CombatMiss:
+            _show_miss_effect(miss.target)
+        var critical as CriticalHit:
+            _apply_critical_damage(critical.target, critical.damage)
+
+# Unique node references
+func _ready() -> void:
+    %HealthBar.value = character.health  # Using unique_name_in_owner
+```
+
+### Documentation Standards
+```gdscript
+## Manages character creation and progression according to Five Parsecs rules
+## 
+## This class handles all aspects of character management including:
+## - Initial character generation based on background and motivation
+## - Skill development and advancement rolls
+## - Character relationships and rivalries
+## - Injury tracking and recovery
+##
+## @tutorial: See docs/character_system.md for detailed usage
+class_name CharacterManager
+
+## Creates a new character following Five Parsecs character creation rules
+## 
+## The character creation process follows the steps outlined in the Five Parsecs
+## Core Rulebook pages 12-17, including attribute generation, skill assignment,
+## and background-specific bonuses.
+##
+## @param background: Character's background from CharacterBackground enum
+## @param motivation: Character's driving motivation from CharacterMotivation enum
+## @param custom_name: Optional custom name, auto-generated if empty
+## @return: Fully initialized Character instance
+## @throws: InvalidBackgroundError if background is not valid
+func create_character(
+    background: CharacterBackground, 
+    motivation: CharacterMotivation,
+    custom_name: String = ""
+) -> Character:
+```
+
+### Signal Management
+```gdscript
+# Signal declarations with typed parameters
+signal character_created(character: Character)
+signal character_damaged(character: Character, damage: int)
+signal campaign_phase_changed(old_phase: CampaignPhase, new_phase: CampaignPhase)
+
+# Signal connections with lambda functions
+func _ready() -> void:
+    character_manager.character_created.connect(func(char): _on_character_added(char))
+    
+    # Signal connections with validation
+    if not battle_system.enemy_defeated.is_connected(_on_enemy_defeated):
+        battle_system.enemy_defeated.connect(_on_enemy_defeated)
+```
+
+## Five Parsecs Implementation Guidelines
+
+### Core Rules Implementation
+
+#### Character System
+```gdscript
+## Character creation following Five Parsecs Core Rules p.12-17
+func create_character(background: int, motivation: int, character_class: int) -> Character:
+    var character := Character.new()
+    
+    # Generate attributes using Five Parsecs method (2d6/3 rounded up)
+    character.combat = DiceSystem.generate_attribute()
+    character.reaction = DiceSystem.generate_attribute()
+    character.toughness = DiceSystem.generate_attribute()
+    character.savvy = DiceSystem.generate_attribute()
+    character.tech = DiceSystem.generate_attribute()
+    character.move = DiceSystem.generate_attribute()
+    
+    # Set health based on toughness (Core Rules p.13)
+    character.max_health = character.toughness + 2
+    character.current_health = character.max_health
+    
+    # Apply background and class bonuses
+    _apply_background_bonuses(character, background)
+    _apply_class_bonuses(character, character_class)
+    
+    return character
+```
+
+#### Campaign Turn Structure
+```gdscript
+## Implementation of Five Parsecs campaign turn sequence (Core Rules p.34-52)
+class CampaignTurnManager:
+    enum TurnPhase {
+        UPKEEP,      # Maintenance costs, ship payments
+        STORY,       # Story progression and events
+        CAMPAIGN,    # Travel, patrons, jobs, world events
+        BATTLE,      # Combat encounters
+        RESOLUTION   # Injury recovery, loot, advancement
+    }
+    
+    func execute_campaign_turn() -> void:
+        _execute_upkeep_phase()
+        _execute_story_phase()
+        _execute_campaign_phase()
+        if has_battle:
+            _execute_battle_phase()
+        _execute_resolution_phase()
+```
+
+#### Combat Resolution
+```gdscript
+## Combat attack resolution following Five Parsecs rules (Core Rules p.71-84)
+func resolve_attack(attacker: Character, defender: Character, weapon: Weapon, distance: float) -> AttackResult:
+    var result := AttackResult.new()
+    
+    # Base target number is 4+ (Core Rules p.75)
+    var target_number := 4
+    
+    # Apply range modifiers
+    var range_band := _determine_range_band(weapon, distance)
+    match range_band:
+        RangeBand.POINT_BLANK: target_number -= 1  # +1 to hit
+        RangeBand.SHORT: pass                      # No modifier
+        RangeBand.MEDIUM: target_number += 1       # -1 to hit
+        RangeBand.LONG: target_number += 2         # -2 to hit
+    
+    # Apply cover penalty (+2 to target number)
+    if defender.has_cover():
+        target_number += 2
+    
+    # Roll d10 + Combat skill
+    var roll := DiceSystem.d10() + attacker.combat
+    
+    # Determine hit success
+    result.hit = roll >= target_number
+    result.roll_value = roll
+    result.target_number = target_number
+    
+    if result.hit:
+        result.damage = weapon.damage_value
+        # Critical hit on natural 10
+        if roll - attacker.combat == 10:
+            result.critical = true
+            result.damage += weapon.critical_damage
+    
+    return result
+```
+
+### Dice System Integration
+```gdscript
+## Five Parsecs dice patterns implementation
+class DiceSystem:
+    ## Generate Five Parsecs attribute (2d6/3 rounded up)
+    static func generate_attribute() -> int:
+        var roll := roll_dice(2, 6)
+        return ceili(float(roll) / 3.0)
+    
+    ## Roll d66 for tables (two d6 read as tens and ones)
+    static func d66() -> int:
+        var tens := randi() % 6 + 1
+        var ones := randi() % 6 + 1
+        return tens * 10 + ones
+    
+    ## Combat resolution d10
+    static func d10() -> int:
+        return randi() % 10 + 1
+```
+
+### Table System Implementation
+```gdscript
+## Pattern for Five Parsecs random tables
+class TableManager:
+    var _tables: Dictionary = {}
+    
+    func roll_on_table(table_name: String, modifiers: Dictionary = {}) -> Dictionary:
+        if not _tables.has(table_name):
+            _load_table(table_name)
+        
+        var table = _tables[table_name]
+        if modifiers.size() > 0:
+            return table.roll_with_modifiers(modifiers)
+        else:
+            return table.roll()
+    
+    func _load_table(table_name: String) -> void:
+        var path := "res://src/data/tables/%s.json" % table_name
+        _tables[table_name] = load(path)
+```
+
+## State Management
+
+### Campaign State Validation
+```gdscript
+## Validates state transitions according to Five Parsecs rules
+class CampaignValidator:
+    func validate_phase_transition(from: CampaignPhase, to: CampaignPhase) -> ValidationResult:
+        var result := ValidationResult.new()
+        
+        # Validate transition legality according to rulebook
+        if not _is_valid_transition(from, to):
+            result.valid = false
+            result.error_message = "Invalid phase transition: %s -> %s" % [from, to]
+            return result
+        
+        # Validate preconditions for target phase
+        match to:
+            CampaignPhase.BATTLE:
+                if not _has_valid_mission():
+                    result.valid = false
+                    result.error_message = "Cannot enter battle without valid mission"
+            CampaignPhase.RESOLUTION:
+                if not _battle_completed():
+                    result.valid = false
+                    result.error_message = "Cannot resolve without completed battle"
+        
+        result.valid = true
+        return result
+```
+
+### Error Handling Patterns
+```gdscript
+## Structured error handling for game systems
+class GameError extends RefCounted:
+    enum Type {
+        INVALID_STATE,
+        RESOURCE_NOT_FOUND,
+        VALIDATION_FAILED,
+        SYSTEM_ERROR
+    }
+    
+    var type: Type
+    var message: String
+    var context: Dictionary = {}
+    var recoverable: bool = true
+
+func handle_character_creation_error(error: GameError) -> void:
+    match error.type:
+        GameError.Type.VALIDATION_FAILED:
+            _show_validation_error(error.message)
+        GameError.Type.RESOURCE_NOT_FOUND:
+            _attempt_resource_recovery(error.context)
+        _:
+            _log_error("Unhandled character creation error", error)
+```
+
+## UI/UX Standards
+
+### Responsive Design
+```gdscript
+## Responsive UI component that adapts to screen size
+class ResponsiveContainer extends Container:
+    @export var mobile_threshold: float = 768.0
+    @export var tablet_threshold: float = 1024.0
+    
+    func _ready() -> void:
+        get_viewport().size_changed.connect(_on_viewport_resized)
+        _update_layout()
+    
+    func _on_viewport_resized() -> void:
+        _update_layout()
+    
+    func _update_layout() -> void:
+        var viewport_size := get_viewport().get_visible_rect().size
+        var width := viewport_size.x
+        
+        if width < mobile_threshold:
+            _apply_mobile_layout()
+        elif width < tablet_threshold:
+            _apply_tablet_layout()
+        else:
+            _apply_desktop_layout()
+```
+
+### Accessibility Features
+```gdscript
+## Accessibility-compliant UI component
+class AccessibleButton extends Button:
+    @export var high_contrast_style: StyleBox
+    @export var normal_style: StyleBox
+    
+    func _ready() -> void:
+        # Connect to accessibility settings
+        AccessibilityManager.high_contrast_changed.connect(_on_high_contrast_changed)
+        AccessibilityManager.ui_scale_changed.connect(_on_ui_scale_changed)
+        
+        # Set initial accessibility state
+        _update_accessibility_features()
+    
+    func _on_high_contrast_changed(enabled: bool) -> void:
+        if enabled:
+            add_theme_stylebox_override("normal", high_contrast_style)
+        else:
+            add_theme_stylebox_override("normal", normal_style)
+```
+
+### Input Management
+```gdscript
+## Multi-platform input handling
+class InputManager extends Node:
+    signal input_confirmed(action: String)
+    
+    func _unhandled_input(event: InputEvent) -> void:
+        # Handle both touch and mouse/keyboard inputs
+        if event is InputEventScreenTouch:
+            _handle_touch_input(event)
+        elif event is InputEventMouseButton:
+            _handle_mouse_input(event)
+        elif event is InputEventKey:
+            _handle_keyboard_input(event)
+    
+    func _handle_touch_input(event: InputEventScreenTouch) -> void:
+        # Ensure touch zones are appropriately sized
+        var touch_zone_size := Vector2(44, 44)  # Minimum 44x44 points
+        # Implementation...
+```
+
+## Performance Standards
+
+### Memory Management
+```gdscript
+## Object pooling for frequently created objects
+class BulletPool extends Node:
+    var available_bullets: Array[Bullet] = []
+    var active_bullets: Array[Bullet] = []
+    var max_pool_size: int = 100
+    
+    func get_bullet() -> Bullet:
+        var bullet: Bullet
+        if available_bullets.size() > 0:
+            bullet = available_bullets.pop_back()
+        else:
+            bullet = _create_bullet()
+        
+        active_bullets.append(bullet)
+        return bullet
+    
+    func return_bullet(bullet: Bullet) -> void:
+        active_bullets.erase(bullet)
+        bullet.reset()
+        
+        if available_bullets.size() < max_pool_size:
+            available_bullets.append(bullet)
+        else:
+            bullet.queue_free()
+```
+
+### Async Loading Patterns
+```gdscript
+## Background resource loading with progress tracking
+class ResourceLoader extends Node:
+    signal loading_progress(percentage: float)
+    signal loading_complete(resource: Resource)
+    
+    func load_resource_async(path: String) -> Resource:
+        ResourceLoader.load_threaded_request(path)
+        
+        while true:
+            var status = ResourceLoader.load_threaded_get_status(path)
+            match status:
+                ResourceLoader.THREAD_LOAD_IN_PROGRESS:
+                    var progress = ResourceLoader.load_threaded_get_status(path, true)
+                    loading_progress.emit(progress[0])
+                    await get_tree().process_frame
+                ResourceLoader.THREAD_LOAD_LOADED:
+                    var resource = ResourceLoader.load_threaded_get(path)
+                    loading_complete.emit(resource)
+                    return resource
+                _:
+                    push_error("Failed to load resource: " + path)
+                    return null
+```
+
+## Testing Standards
+
+### Unit Testing Patterns
+```gdscript
+## Unit test example following project standards
+extends GutTest
+
+func test_character_creation_with_valid_background():
+    # Arrange
+    var background = CharacterBackground.SOLDIER
+    var motivation = CharacterMotivation.REVENGE
+    var character_manager = CharacterManager.new()
+    
+    # Act
+    var character = character_manager.create_character(background, motivation)
+    
+    # Assert
+    assert_not_null(character, "Character should be created")
+    assert_eq(character.background, background, "Background should be set correctly")
+    assert_eq(character.motivation, motivation, "Motivation should be set correctly")
+    assert_true(character.combat >= 2 and character.combat <= 6, "Combat should be in valid range")
+
+func test_signal_emission_on_character_creation():
+    # Arrange
+    var character_manager = CharacterManager.new()
+    var signal_emitted = false
+    var created_character: Character
+    
+    character_manager.character_created.connect(func(char):
+        signal_emitted = true
+        created_character = char
+    )
+    
+    # Act
+    var character = character_manager.create_character(CharacterBackground.SOLDIER, CharacterMotivation.REVENGE)
+    
+    # Assert
+    assert_true(signal_emitted, "character_created signal should be emitted")
+    assert_same(created_character, character, "Signal should pass the created character")
+```
+
+### Integration Testing
+```gdscript
+## Integration test for campaign system
+extends GutTest
+
+func test_complete_campaign_turn():
+    # Arrange
+    var campaign = Campaign.new()
+    var turn_manager = CampaignTurnManager.new()
+    campaign.add_child(turn_manager)
+    
+    # Act
+    turn_manager.execute_campaign_turn()
+    
+    # Assert
+    assert_eq(campaign.turn_count, 1, "Turn count should increment")
+    assert_true(campaign.upkeep_completed, "Upkeep phase should complete")
+    # Additional assertions...
+```
+
+## Version Control & Quality Assurance
+
+### Commit Guidelines
+- **Format**: `type(scope): description`
+  - `feat(character): add character relationship system`
+  - `fix(combat): resolve range calculation bug`
+  - `docs(api): update character creation documentation`
+  - `refactor(state): improve campaign state validation`
+  - `test(battle): add battle event system tests`
+
+### Pull Request Requirements
+1. All tests must pass (minimum 85% coverage)
+2. Code must follow style guidelines
+3. Documentation must be updated for API changes
+4. Performance impact must be assessed
+5. Breaking changes must be clearly documented
+
+### Quality Gates
+- **Code Coverage**: Minimum 85% overall, 100% for critical paths
+- **Performance**: Maintain 60 FPS on target platforms
+- **Memory**: Monitor memory usage and implement proper cleanup
+- **Accessibility**: Support keyboard navigation and screen readers
+- **Cross-Platform**: Test on desktop and mobile targets
+
+## Security & Data Handling
+
+### Input Validation
+```gdscript
+## Input validation for user data
+class InputValidator:
+    static func validate_character_name(name: String) -> ValidationResult:
+        var result = ValidationResult.new()
+        
+        if name.length() < 2:
+            result.valid = false
+            result.error = "Character name must be at least 2 characters"
+            return result
+        
+        if name.length() > 50:
+            result.valid = false
+            result.error = "Character name cannot exceed 50 characters"
+            return result
+        
+        # Sanitize for security
+        var sanitized = name.strip_edges()
+        if sanitized != name:
+            result.warnings.append("Whitespace was trimmed from name")
+        
+        result.valid = true
+        result.sanitized_value = sanitized
+        return result
+```
+
+### Save Data Protection
+```gdscript
+## Secure save data handling
+class SaveManager:
+    func save_campaign(campaign: Campaign, file_path: String) -> SaveResult:
+        var result = SaveResult.new()
+        
+        # Validate data before saving
+        var validation = CampaignValidator.validate_save_data(campaign)
+        if not validation.valid:
+            result.success = false
+            result.error = validation.error_message
+            return result
+        
+        # Create backup before saving
+        if FileAccess.file_exists(file_path):
+            var backup_path = file_path + ".backup"
+            DirAccess.copy_absolute(file_path, backup_path)
+        
+        # Save with error handling
+        var file = FileAccess.open(file_path, FileAccess.WRITE)
+        if file == null:
+            result.success = false
+            result.error = "Failed to open file for writing: " + file_path
+            return result
+        
+        var json_string = JSON.stringify(campaign.to_dict())
+        file.store_string(json_string)
+        file.close()
+        
+        result.success = true
+        return result
+```
+
+## Development Workflow
+
+### Feature Development Process
+1. **Planning**: Review Five Parsecs rules and create implementation plan
+2. **Design**: Create base classes and interfaces
+3. **Implementation**: Build core functionality with tests
+4. **Integration**: Connect with existing systems
+5. **Testing**: Unit, integration, and performance tests
+6. **Documentation**: Update guides and API documentation
+7. **Review**: Code review and quality assurance
+8. **Deployment**: Merge and release
+
+### Debugging Guidelines
+```gdscript
+## Debugging utilities for development
+class DebugManager:
+    static var debug_enabled: bool = OS.is_debug_build()
+    
+    static func log_state_transition(from: String, to: String, context: Dictionary = {}):
+        if debug_enabled:
+            print("[STATE] %s -> %s" % [from, to])
+            if context.size() > 0:
+                print("  Context: ", context)
+    
+    static func assert_valid_character(character: Character, context: String = ""):
+        if debug_enabled:
+            assert(character != null, "Character is null in " + context)
+            assert(character.is_valid(), "Character is invalid in " + context)
+```
+
+## Future Development
+
+### Roadmap Considerations
+- **Modding Support**: Design APIs for community modifications
+- **Multiplayer**: Consider architecture for future multiplayer features
+- **Mobile Optimization**: Ensure responsive design scales to mobile
+- **Accessibility**: Implement comprehensive accessibility features
+- **Performance**: Monitor and optimize for lower-end devices
+- **Localization**: Prepare string management for multiple languages
+
+### Technical Debt Management
+- Regular refactoring sessions
+- Performance profiling and optimization
+- Dependency updates and security patches
+- Documentation maintenance
+- Test coverage improvements
+- Code style consistency enforcement
+
+---
+
+
+This document serves as the primary reference for development standards and practices. All contributors should familiarize themselves with these guidelines and refer to them during development.

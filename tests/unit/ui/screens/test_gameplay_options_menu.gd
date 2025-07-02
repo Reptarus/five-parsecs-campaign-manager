@@ -99,7 +99,7 @@ func test_initial_state() -> void:
 
 func test_option_management() -> void:
     # Skip signal monitoring to prevent Dictionary corruption
-    mock_menu.set_option(": auto_roll_dice",true)
+    mock_menu.set_option("auto_roll_dice", true)
     assert_that(mock_menu.get_option("auto_roll_dice")).is_true()
     assert_that(mock_menu.has_unsaved_changes()).is_true()
 
@@ -114,13 +114,13 @@ func test_boolean_options() -> void:
 
 func test_numeric_options() -> void:
     # Skip signal monitoring to prevent Dictionary corruption
-    mock_menu.set_option(": combat_speed",2)
+    mock_menu.set_option("combat_speed", 2)
     assert_that(mock_menu.get_option("combat_speed")).is_equal(2)
 
 func test_settings_persistence() -> void:
     # Skip signal monitoring to prevent Dictionary corruption
-    mock_menu.set_option(": auto_roll_dice",true)
-    mock_menu.set_option("difficulty_level": ,2)
+    mock_menu.set_option("auto_roll_dice", true)
+    mock_menu.set_option("difficulty_level", 2)
     
     # Save settings
     var save_result: bool = mock_menu.save_settings()
@@ -131,8 +131,8 @@ func test_settings_persistence() -> void:
 
 func test_defaults_restoration() -> void:
     # Skip signal monitoring to prevent Dictionary corruption
-    mock_menu.set_option("auto_roll_dice": ,true)
-    mock_menu.set_option("combat_speed": ,3)
+    mock_menu.set_option("auto_roll_dice", true)
+    mock_menu.set_option("combat_speed", 3)
     
     # Reset to defaults
     mock_menu.reset_to_defaults()
@@ -157,7 +157,7 @@ func test_settings_application() -> void:
 
 func test_change_cancellation() -> void:
     # Skip signal monitoring to prevent Dictionary corruption
-    mock_menu.set_option(": auto_roll_dice",true)
+    mock_menu.set_option("auto_roll_dice", true)
     assert_that(mock_menu.has_unsaved_changes()).is_true()
     
     # Cancel changes
@@ -180,7 +180,7 @@ func test_all_settings_retrieval() -> void:
 func test_option_validation() -> void:
     # Test non-existent option
     var initial_count: int = mock_menu.get_all_settings().size()
-    mock_menu.set_option(": non_existent_option",true)
+    mock_menu.set_option("non_existent_option", true)
     
     # Verify no new options added
     var final_count: int = mock_menu.get_all_settings().size()
@@ -195,10 +195,10 @@ func test_component_structure() -> void:
 
 func test_multiple_option_changes() -> void:
     # Change multiple options
-    mock_menu.set_option("auto_roll_dice": ,true)
-    mock_menu.set_option("show_battle_animations": ,false)
-    mock_menu.set_option("combat_speed": ,3)
-    mock_menu.set_option("difficulty_level": ,2)
+    mock_menu.set_option("auto_roll_dice", true)
+    mock_menu.set_option("show_battle_animations", false)
+    mock_menu.set_option("combat_speed", 3)
+    mock_menu.set_option("difficulty_level", 2)
     
     assert_that(mock_menu.get_option("auto_roll_dice")).is_true()
     assert_that(mock_menu.get_option("show_battle_animations")).is_false()
@@ -208,8 +208,8 @@ func test_multiple_option_changes() -> void:
 
 func test_data_consistency() -> void:
     # Test data consistency
-    mock_menu.set_option(": auto_roll_dice",true)
-    mock_menu.set_option("combat_speed": ,2)
+    mock_menu.set_option("auto_roll_dice", true)
+    mock_menu.set_option("combat_speed", 2)
     
     var settings_before_save: Dictionary = mock_menu.get_all_settings()
     mock_menu.save_settings()

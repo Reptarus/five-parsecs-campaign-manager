@@ -6,7 +6,7 @@ class_name FPCM_CampaignUI
 
 # Safe imports
 const UniversalNodeAccess = preload("res://src/utils/UniversalNodeAccess.gd")
-const UniversalResourceLoader = preload("res://src/utils/UniversalResourceLoader.gd") 
+const UniversalResourceLoader = preload("res://src/utils/UniversalResourceLoader.gd")
 const UniversalSignalManager = preload("res://src/utils/UniversalSignalManager.gd")
 const UniversalDataAccess = preload("res://src/utils/UniversalDataAccess.gd")
 const UniversalSceneManager = preload("res://src/utils/UniversalSceneManager.gd")
@@ -15,8 +15,8 @@ const UniversalSceneManager = preload("res://src/utils/UniversalSceneManager.gd"
 var FPCM_CampaignResponsiveLayout = null
 var CampaignManager = null
 var GameCampaignManager = null
-const CampaignDashboard = UniversalResourceLoader.load_resource_safe("res://src/ui/screens/campaign/CampaignDashboard.tscn", "PackedScene", "CampaignUI CampaignDashboard")
-const CampaignPhaseUI = UniversalResourceLoader.load_resource_safe("res://src/scenes/campaign/components/CampaignPhaseUI.tscn", "PackedScene", "CampaignUI CampaignPhaseUI")
+var CampaignDashboard = null
+var CampaignPhaseUI = null
 var GameEnums = null
 var CampaignPhaseManager = null
 var FiveParsecsGameState = null
@@ -36,15 +36,15 @@ var FiveParsecsGameState = null
 var dashboard: Node # Using Node since CampaignDashboard is a scene
 
 # Signals
-signal phase_changed(new_phase: GameEnums.CampaignPhase)
-signal resource_updated(resource_type: GameEnums.ResourceType, new_value: int)
+signal phase_changed(new_phase: int)
+signal resource_updated(resource_type: int, new_value: int)
 signal event_occurred(event_data: Dictionary)
 
 # Internal state
-var _current_phase: GameEnums.CampaignPhase = GameEnums.CampaignPhase.SETUP
-var _layout: FPCM_CampaignResponsiveLayout
-var _campaign_manager: GameCampaignManager
-var _phase_manager: CampaignPhaseManager
+var _current_phase: int = 0
+var _layout: Node
+var _campaign_manager: Node
+var _phase_manager: Node
 
 func _ready() -> void:
 	# Load dependencies safely at runtime
@@ -128,7 +128,7 @@ func _setup_phase_manager() -> void:
 			phase_ui.initialize(_phase_manager)
 		UniversalSignalManager.connect_signal_safe(_phase_manager, "phase_changed", _on_phase_changed, "CampaignUI phase_manager phase_changed")
 
-func _update_resource_display(resource_type: GameEnums.ResourceType, _value: int) -> void:
+func _update_resource_display(resource_type: int, _value: int) -> void:
 	if not GameEnums:
 		push_error("CRASH PREVENTION: Cannot update resource display - GameEnums not available")
 		return
@@ -137,7 +137,10 @@ func _update_resource_display(resource_type: GameEnums.ResourceType, _value: int
 		push_warning("UI WARNING: resource_panel not available for resource display update")
 		return
 	
-	var resource_name = GameEnums.ResourceType.keys()[resource_type]
+	var resource_name = "Resource"
+	if GameEnums and GameEnums.has_method("ResourceType") and GameEnums.ResourceType.keys().size() > resource_type:
+		resource_name = GameEnums.ResourceType.keys()[resource_type]
+	
 	var resource_label = UniversalNodeAccess.get_node_safe(resource_panel, resource_name.to_lower() + "_label", "CampaignUI resource label")
 	if resource_label:
 		resource_label.text = "%s: %d" % [resource_name.capitalize(), _value]
@@ -146,7 +149,7 @@ func _log_event(event_data: Dictionary) -> void:
 	if event_log:
 		event_log.add_event(event_data)
 
-func _on_phase_changed(new_phase: GameEnums.CampaignPhase) -> void:
+func _on_phase_changed(new_phase: int) -> void:
 	_current_phase = new_phase
 	
 	# Update UI
@@ -163,7 +166,7 @@ func _on_phase_changed(new_phase: GameEnums.CampaignPhase) -> void:
 	
 	UniversalSignalManager.emit_signal_safe(self, "phase_changed", [new_phase], "CampaignUI phase_changed")
 
-func _on_resource_updated(resource_type: GameEnums.ResourceType, new_value: int) -> void:
+func _on_resource_updated(resource_type: int, new_value: int) -> void:
 	_update_resource_display(resource_type, new_value)
 	
 	if dashboard:
@@ -315,4 +318,4 @@ func _handle_equipment_update() -> void:
 func _handle_turn_end() -> void:
 	_phase_manager.advance_phase()
 
-	_phase_manager.advance_phase()
+	_phase_manager.advance_phase() 

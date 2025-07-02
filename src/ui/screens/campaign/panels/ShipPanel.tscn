@@ -1,0 +1,73 @@
+[gd_scene load_steps=2 format=3 uid="uid://b6x8kas2k3e4f"]
+
+[ext_resource type="Script" path="res://src/ui/screens/campaign/panels/ShipPanel.gd" id="1_ship"]
+
+[node name="ShipPanel" type="VBoxContainer"]
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+script = ExtResource("1_ship")
+
+[node name="Title" type="Label" parent="."]
+layout_mode = 2
+text = "Ship Assignment"
+horizontal_alignment = 1
+theme_override_font_sizes/font_size = 24
+
+[node name="HSeparator" type="HSeparator" parent="."]
+layout_mode = 2
+
+[node name="ScrollContainer" type="ScrollContainer" parent="."]
+layout_mode = 2
+size_flags_vertical = 3
+
+[node name="VBoxContainer" type="VBoxContainer" parent="ScrollContainer"]
+layout_mode = 2
+size_flags_horizontal = 3
+size_flags_vertical = 3
+
+[node name="ShipOptions" type="VBoxContainer" parent="ScrollContainer/VBoxContainer"]
+layout_mode = 2
+
+[node name="Label" type="Label" parent="ScrollContainer/VBoxContainer/ShipOptions"]
+layout_mode = 2
+text = "Choose your starting ship:"
+
+[node name="RandomShipButton" type="Button" parent="ScrollContainer/VBoxContainer/ShipOptions"]
+layout_mode = 2
+text = "Generate Random Ship"
+
+[node name="SelectShipButton" type="Button" parent="ScrollContainer/VBoxContainer/ShipOptions"]
+layout_mode = 2
+text = "Select Specific Ship"
+
+[node name="ShipDetails" type="VBoxContainer" parent="ScrollContainer/VBoxContainer"]
+layout_mode = 2
+
+[node name="ShipName" type="LineEdit" parent="ScrollContainer/VBoxContainer/ShipDetails"]
+layout_mode = 2
+placeholder_text = "Ship Name"
+
+[node name="ShipType" type="OptionButton" parent="ScrollContainer/VBoxContainer/ShipDetails"]
+layout_mode = 2
+
+[node name="ShipStats" type="GridContainer" parent="ScrollContainer/VBoxContainer/ShipDetails"]
+layout_mode = 2
+columns = 2
+
+[node name="HullLabel" type="Label" parent="ScrollContainer/VBoxContainer/ShipDetails/ShipStats"]
+layout_mode = 2
+text = "Hull Points:"
+
+[node name="HullValue" type="SpinBox" parent="ScrollContainer/VBoxContainer/ShipDetails/ShipStats"]
+layout_mode = 2
+max_value = 20.0
+value = 10.0
+
+[node name="ValidationLabel" type="Label" parent="ScrollContainer/VBoxContainer"]
+layout_mode = 2
+text = "Ship configuration complete"
+horizontal_alignment = 1
+modulate = Color(0.5, 1, 0.5, 1)

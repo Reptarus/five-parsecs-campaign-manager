@@ -8,22 +8,22 @@ extends GdUnitTestSuite
 # - Grid Overlay: 11/11 (100% SUCCESS)
 # - Mission Tests: 51/51 (100% SUCCESS) ✅
 
-class MockResponsiveContainer extends Resource:
+class MockResponsiveContainer extends Control:
     var orientation: String = "landscape"
     var viewport_size: Vector2 = Vector2(1920, 1080)
     var portrait_threshold: float = 0.75
     var min_width: int = 768
     var responsive_threshold: float = 1.33
-    var custom_threshold: float = 1.0
-    var custom_min_width: int = 600
+    var custom_theme: Theme = null
     var ui_scale: float = 1.0
-    var theme: Theme = Theme.new()
     var performance_score: float = 0.95
     var accessibility_score: float = 0.98
     var accessibility_enabled: bool = true
     var performance_stable: bool = true
     var scale_responsive: bool = true
     var threshold_width: int = 800
+    var character_data: Dictionary = {}
+    var visible_overlays: Array[String] = []
     
     func set_orientation(value: String) -> void:
         orientation = value
@@ -36,10 +36,10 @@ class MockResponsiveContainer extends Resource:
 
     # Theme and UI methods
     func has_theme() -> bool:
-        return theme != null
+        return custom_theme != null
 
-    func get_theme() -> Theme:
-        return theme
+    func get_custom_theme() -> Theme:
+        return custom_theme
 
     func get_performance_score() -> float:
         return performance_score
@@ -64,11 +64,11 @@ class MockResponsiveContainer extends Resource:
 
     func load_character_data(data: Dictionary) -> void:
         # Character data loading logic placeholder
-        pass
+        character_data = data
     
     func show_overlay(name: String) -> void:
         # Overlay display logic placeholder
-        pass
+        visible_overlays.append(name)
     
     func is_overlay_visible(name: String) -> bool:
         return true
@@ -89,19 +89,19 @@ func test_initial_setup() -> void:
 func test_landscape_mode() -> void:
     # Test landscape orientation
     mock_container.set_orientation(": landscape")
-    mock_container.set_viewport_size(Vector2(1920,1080))
+    mock_container.set_viewport_size(Vector2(1920, 1080))
     assert_that(mock_container.orientation).is_equal("landscape")
 
 func test_portrait_mode_by_ratio() -> void:
     # Test portrait mode detection by aspect ratio
     mock_container.set_orientation(": portrait")
-    mock_container.set_viewport_size(Vector2(600,800))
+    mock_container.set_viewport_size(Vector2(600, 800))
     assert_that(mock_container.orientation).is_equal("portrait")
 
 func test_portrait_mode_by_min_width() -> void:
     # Test portrait mode detection by minimum width
     mock_container.set_orientation(": portrait")
-    mock_container.set_viewport_size(Vector2(400,600))
+    mock_container.set_viewport_size(Vector2(400, 600))
     assert_that(mock_container.orientation).is_equal("portrait")
 
 func test_orientation_change() -> void:
@@ -127,7 +127,7 @@ func test_component_theme() -> void:
     assert_that(theme_applied).is_true()
     
     # Test theme validity
-    var theme_valid = mock_container.get_theme() != null
+    var theme_valid = mock_container.get_custom_theme() != null
     assert_that(theme_valid).is_true()
 
 func test_component_layout() -> void:
@@ -161,7 +161,7 @@ func test_accessibility() -> void:
 
 func test_theme_manager_integration() -> void:
     # Test theme manager integration
-    var theme_integration_works = mock_container.get_theme() != null
+    var theme_integration_works = mock_container.get_custom_theme() != null
     assert_that(theme_integration_works).is_true()
 
 func test_ui_scale_response() -> void:
@@ -218,4 +218,4 @@ func test_component_animations() -> void:
 func test_component_accessibility() -> void:
     # Test component accessibility features
     var accessibility_good = true
-    assert_that(accessibility_good).is_true()
+    assert_that(accessibility_good).is_tru

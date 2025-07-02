@@ -1,11 +1,13 @@
-[gd_scene load_steps=7 format=3 uid="uid://b4jy1ry6g1x8n"]
+[gd_scene load_steps=9 format=3 uid="uid://b4jy1ry6g1x8n"]
 
 [ext_resource type="Script" uid="uid://8iweqgi3k6et" path="res://src/ui/screens/campaign/CampaignCreationUI.gd" id="1_8ykjc"]
 [ext_resource type="Theme" uid="uid://ddjoduj1ya6tp" path="res://assets/5PFH.tres" id="2_rnx4k"]
 [ext_resource type="PackedScene" uid="uid://c1ipgkdm40l6c" path="res://src/ui/screens/campaign/panels/ConfigPanel.tscn" id="3_mupwv"]
 [ext_resource type="PackedScene" uid="uid://ddmexnm0dog68" path="res://src/ui/screens/campaign/panels/CrewPanel.tscn" id="4_lrtqq"]
 [ext_resource type="PackedScene" uid="uid://swd7rhnhcr41" path="res://src/ui/screens/campaign/panels/CaptainPanel.tscn" id="5_l4k6d"]
-[ext_resource type="PackedScene" uid="uid://b3wc2cq0m72j" path="res://src/ui/screens/campaign/panels/ResourcePanel.tscn" id="6_2yj0n"]
+[ext_resource type="PackedScene" uid="uid://b6x8j9s2k3e4f" path="res://src/ui/screens/campaign/panels/ShipPanel.tscn" id="6_shipnl"]
+[ext_resource type="PackedScene" uid="uid://c7y9k0t3l4e5g" path="res://src/ui/screens/campaign/panels/EquipmentPanel.tscn" id="7_equipnl"]
+[ext_resource type="PackedScene" uid="uid://b3wc2cq0m72j" path="res://src/ui/screens/campaign/panels/ResourcePanel.tscn" id="8_2yj0n"]
 
 [node name="CampaignCreationUI" type="Control"]
 layout_mode = 3
@@ -71,7 +73,15 @@ layout_mode = 1
 visible = false
 layout_mode = 1
 
-[node name="ResourcePanel" parent="MarginContainer/VBoxContainer/StepPanels" instance=ExtResource("6_2yj0n")]
+[node name="ShipPanel" parent="MarginContainer/VBoxContainer/StepPanels" instance=ExtResource("6_shipnl")]
+visible = false
+layout_mode = 1
+
+[node name="EquipmentPanel" parent="MarginContainer/VBoxContainer/StepPanels" instance=ExtResource("7_equipnl")]
+visible = false
+layout_mode = 1
+
+[node name="ResourcePanel" parent="MarginContainer/VBoxContainer/StepPanels" instance=ExtResource("8_2yj0n")]
 visible = false
 layout_mode = 1
 

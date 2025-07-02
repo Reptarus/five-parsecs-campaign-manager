@@ -1,6 +1,6 @@
 @tool
 extends Node
-class_name GameState
+class_name CoreGameState
 
 # Safe imports
 const UniversalNodeAccess = preload("res://src/utils/UniversalNodeAccess.gd")
@@ -793,8 +793,8 @@ func deserialize(data: Dictionary) -> void:
 		else:
 			push_warning("Invalid campaign data format in save file")
 
-static func deserialize_new(data: Dictionary) -> GameState:
-	var state := GameState.new()
+static func deserialize_new(data: Dictionary) -> CoreGameState:
+	var state := CoreGameState.new()
 	state.deserialize(data)
 	return state
 

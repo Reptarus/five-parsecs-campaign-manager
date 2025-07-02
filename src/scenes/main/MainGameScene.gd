@@ -17,9 +17,9 @@ const UniversalSceneManager = preload("res://src/utils/UniversalSceneManager.gd"
 signal scene_changed(scene_name: String)
 signal game_state_updated(state: Dictionary)
 
-@onready var campaign_ui: Control = UniversalNodeAccess.get_node_safe(self, "CampaignUI", "MainGameScene CampaignUI")
-@onready var battle_ui: Control = UniversalNodeAccess.get_node_safe(self, "BattleUI", "MainGameScene BattleUI")
-@onready var menu_ui: Control = UniversalNodeAccess.get_node_safe(self, "MenuUI", "MainGameScene MenuUI")
+@onready var campaign_ui: Control = UniversalNodeAccess.get_node_safe(self, "PhaseContainer/CampaignDashboard", "MainGameScene CampaignUI")
+@onready var battle_ui: Control = UniversalNodeAccess.get_node_safe(self, "PhaseContainer/BattlePhase", "MainGameScene BattleUI") 
+@onready var menu_ui: Control = UniversalNodeAccess.get_node_safe(self, "PhaseContainer", "MainGameScene PhaseContainer as MenuUI")
 
 var current_scene_mode: String = "menu"
 var game_state: Resource
