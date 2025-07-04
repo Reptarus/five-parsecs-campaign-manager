@@ -1,0 +1,48 @@
+{
+  "background_connections": {
+    "military": [
+      {"type": "contact", "name": "Former Squad Leader", "influence": "moderate", "location": "local"},
+      {"type": "contact", "name": "Military Quartermaster", "influence": "minor", "location": "regional"}
+    ],
+    "mercenary": [
+      {"type": "contact", "name": "Mercenary Company Commander", "influence": "major", "location": "sector"},
+      {"type": "contact", "name": "Arms Dealer", "influence": "moderate", "location": "local"}
+    ],
+    "criminal": [
+      {"type": "contact", "name": "Fence", "influence": "minor", "location": "local"},
+      {"type": "contact", "name": "Information Broker", "influence": "moderate", "location": "regional"}
+    ],
+    "colonist": [
+      {"type": "contact", "name": "Colonial Administrator", "influence": "moderate", "location": "local"},
+      {"type": "contact", "name": "Trading Post Owner", "influence": "minor", "location": "regional"}
+    ],
+    "academic": [
+      {"type": "contact", "name": "Research Institution", "influence": "major", "location": "sector"},
+      {"type": "contact", "name": "Fellow Researcher", "influence": "moderate", "location": "galactic"}
+    ],
+    "explorer": [
+      {"type": "contact", "name": "Exploration Guild", "influence": "moderate", "location": "sector"},
+      {"type": "contact", "name": "Starport Navigator", "influence": "minor", "location": "local"}
+    ],
+    "trader": [
+      {"type": "contact", "name": "Trade Consortium", "influence": "major", "location": "sector"},
+      {"type": "contact", "name": "Local Merchant", "influence": "moderate", "location": "local"}
+    ],
+    "noble": [
+      {"type": "contact", "name": "Noble House", "influence": "major", "location": "galactic"},
+      {"type": "contact", "name": "Court Official", "influence": "moderate", "location": "sector"}
+    ],
+    "outcast": [
+      {"type": "contact", "name": "Underground Network", "influence": "minor", "location": "local"},
+      {"type": "contact", "name": "Sympathetic Outsider", "influence": "minor", "location": "regional"}
+    ]
+  },
+  "random_connections": {
+    "1": {"type": "contact", "name": "Starport Official", "influence": "minor", "location": "local"},
+    "2": {"type": "contact", "name": "Information Trader", "influence": "moderate", "location": "regional"},
+    "3": {"type": "patron", "name": "Wealthy Benefactor", "influence": "major", "location": "sector"},
+    "4": {"type": "contact", "name": "Tech Specialist", "influence": "moderate", "location": "local"},
+    "5": {"type": "contact", "name": "Corporate Representative", "influence": "major", "location": "galactic"},
+    "6": {"type": "rival", "name": "Jealous Competitor", "influence": "moderate", "location": "regional"}
+  }
+}

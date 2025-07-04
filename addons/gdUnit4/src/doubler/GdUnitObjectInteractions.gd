@@ -49,4 +49,5 @@ static func _is_mock_or_spy(instance: Object) -> bool:
 
 
 static func _get_verifier(interaction_object: Object) -> GdUnitObjectInteractionsVerifier:
+	@warning_ignore("unsafe_method_access")
 	return interaction_object.__get_verifier()

@@ -12,6 +12,7 @@ var _stage_fuzzer_test: IGdUnitExecutionStage = GdUnitTestCaseFuzzedExecutionSta
 ##  -> test_before() [br]
 ##  -> test_case() [br]
 ##  -> test_after() [br]
+@warning_ignore("redundant_await")
 func _execute(context :GdUnitExecutionContext) -> void:
 	var test_case := context.test_case
 

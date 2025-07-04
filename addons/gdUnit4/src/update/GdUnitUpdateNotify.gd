@@ -12,7 +12,7 @@ const GdUnitUpdateProgress = preload("res://addons/gdUnit4/src/update/GdUnitUpda
 @onready var _header: Label = $Panel/GridContainer/PanelContainer/header
 @onready var _update_button: Button = $Panel/GridContainer/Panel/HBoxContainer/update
 @onready var _content: RichTextLabel = $Panel/GridContainer/PanelContainer2/ScrollContainer/MarginContainer/content
-@onready var _update_progress :GdUnitUpdateProgress = %update_banner
+@onready var _update_progress: GdUnitUpdateProgress = %update_banner
 
 var _debug_mode := false
 var _patcher := GdUnitPatcher.new()
@@ -22,6 +22,7 @@ var _current_version := GdUnit4Version.current()
 func _ready() -> void:
 	_update_button.set_disabled(false)
 	_md_reader.set_http_client(_update_client)
+	@warning_ignore("return_value_discarded")
 	#GdUnitFonts.init_fonts(_content)
 	_update_progress.set_visible(false)
 	_update_progress.hidden.connect(func() -> void:
@@ -36,12 +37,12 @@ func request_releases() -> bool:
 		_update_button.set_disabled(false)
 		return true
 
-	var response :GdUnitUpdateClient.HttpResponse = await _update_client.request_latest_version()
+	var response: GdUnitUpdateClient.HttpResponse = await _update_client.request_latest_version()
 	if response.status() != 200:
 		_header.text = "Update information cannot be retrieved from GitHub!"
 		message_h4("\n\nError: %s" % response.response(), Color.INDIAN_RED)
 		return false
-	var latest_version := _update_client.extract_latest_version(response)
+	var latest_version: Variant = _update_client.extract_latest_version(response)
 	# if same version exit here no update need
 	if latest_version.is_greater(_current_version):
 		_patcher.scan(_current_version)
@@ -97,7 +98,7 @@ func show_update() -> void:
 		var template := FileAccess.open("res://addons/gdUnit4/test/update/resources/http_response_releases.txt", FileAccess.READ).get_as_text()
 		content = await _md_reader.to_bbcode(template)
 	else:
-		var response :GdUnitUpdateClient.HttpResponse = await _update_client.request_releases()
+		var response: GdUnitUpdateClient.HttpResponse = await _update_client.request_releases()
 		if response.status() == 200:
 			content = await extract_releases(response, _current_version)
 		else:
@@ -111,16 +112,15 @@ func show_update() -> void:
 	_update_button.set_disabled(false)
 
 
-
 func extract_zip_url(response: GdUnitUpdateClient.HttpResponse) -> String:
-	var body :Array = response.response()
+	var body: Array = response.response()
 	return body[0]["zipball_url"]
 
 
 func extract_releases(response: GdUnitUpdateClient.HttpResponse, current_version: GdUnit4Version) -> String:
 	await get_tree().process_frame
 	var result := ""
-	for release :Dictionary in response.response():
+	for release: Dictionary in response.response():
 		var release_version := str(release["tag_name"])
 		if GdUnit4Version.parse(release_version).equals(current_version):
 			break
@@ -151,9 +151,10 @@ func progressBar(p_progress: int) -> void:
 		p_progress = 0
 	if p_progress > 100:
 		p_progress = 100
-	printraw("scan [%-50s] %-3d%%\r" % ["".lpad(int(p_progress/2.0), "#").rpad(50, "-"), p_progress])
+	printraw("scan [%-50s] %-3d%%\r" % ["".lpad(int(p_progress / 2.0), "#").rpad(50, "-"), p_progress])
 
 
+@warning_ignore("return_value_discarded")
 func _on_update_pressed() -> void:
 	_update_button.set_disabled(true)
 	# close all opend scripts before start the update
@@ -181,6 +182,7 @@ func _on_cancel_pressed() -> void:
 func _on_content_meta_clicked(meta: String) -> void:
 	var properties: Dictionary = str_to_var(meta)
 	if properties.has("url"):
+		@warning_ignore("return_value_discarded")
 		OS.shell_open(str(properties.get("url")))
 
 
@@ -190,6 +192,7 @@ func _on_content_meta_hover_started(meta: String) -> void:
 		_content.set_tooltip_text(str(properties.get("tool_tip")))
 
 
+@warning_ignore("unused_parameter")
 func _on_content_meta_hover_ended(meta: String) -> void:
 	_content.set_tooltip_text("")
 

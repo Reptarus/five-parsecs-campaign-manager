@@ -4,7 +4,7 @@ extends Node
 
 const GameEnums = preload("res://src/core/systems/GlobalEnums.gd")
 const FiveParsecsGameEnums = preload("res://src/game/campaign/crew/FiveParsecsGameEnums.gd")
-const CharacterManager = preload("res://src/core/character/Management/CharacterManager.gd")
+# Note: CharacterManager is an autoload - access via get_node("/root/CharacterManager")
 const BattleResultsManager = preload("res://src/core/battle/BattleResultsManager.gd")
 
 signal equipment_acquired(equipment_data: Dictionary)
@@ -13,7 +13,7 @@ signal equipment_removed(character_id: String, equipment_id: String)
 signal equipment_sold(equipment_id: String, credits: int)
 signal equipment_list_updated()
 
-var character_manager: CharacterManager
+var character_manager: Node # CharacterManagerAutoload
 var game_state: Node
 var battle_results_manager: BattleResultsManager
 
@@ -158,7 +158,7 @@ func _init() -> void:
 	
 func _ready() -> void:
 	pass
-func setup(state: Node, char_manager: CharacterManager, battle_results_mgr: BattleResultsManager) -> void:
+func setup(state: Node, char_manager: Node, battle_results_mgr: BattleResultsManager) -> void: # char_manager is CharacterManagerAutoload
 	game_state = state
 	character_manager = char_manager
 	battle_results_manager = battle_results_mgr

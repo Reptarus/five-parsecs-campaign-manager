@@ -62,6 +62,7 @@ func append_failure_message(message :String) -> GdUnitSignalAssert:
 
 func wait_until(timeout := 2000) -> GdUnitSignalAssert:
 	if timeout <= 0:
+		@warning_ignore("return_value_discarded")
 		report_warning("Invalid timeout parameter, allowed timeouts must be greater than 0, use default timeout instead!")
 		_timeout = DEFAULT_TIMEOUT
 	else:
@@ -72,6 +73,7 @@ func wait_until(timeout := 2000) -> GdUnitSignalAssert:
 # Verifies the signal exists checked the emitter
 func is_signal_exists(signal_name :String) -> GdUnitSignalAssert:
 	if not _emitter.has_signal(signal_name):
+		@warning_ignore("return_value_discarded")
 		report_error("The signal '%s' not exists checked object '%s'." % [signal_name, _emitter.get_class()])
 	return self
 
@@ -100,6 +102,7 @@ func _wail_until_signal(signal_name :String, expected_args :Array, expect_not_em
 	(Engine.get_main_loop() as SceneTree).root.add_child(timer)
 	timer.add_to_group("GdUnitTimers")
 	timer.set_one_shot(true)
+	@warning_ignore("return_value_discarded")
 	timer.timeout.connect(func on_timeout() -> void: _interrupted = true)
 	timer.start((_timeout/1000.0)*time_scale)
 	var is_signal_emitted := false
@@ -108,9 +111,11 @@ func _wail_until_signal(signal_name :String, expected_args :Array, expect_not_em
 		if is_instance_valid(_emitter):
 			is_signal_emitted = _signal_collector.match(_emitter, signal_name, expected_args)
 			if is_signal_emitted and expect_not_emitted:
+				@warning_ignore("return_value_discarded")
 				report_error(GdAssertMessages.error_signal_emitted(signal_name, expected_args, LocalTime.elapsed(int(_timeout-timer.time_left*1000))))
 
 	if _interrupted and not expect_not_emitted:
+		@warning_ignore("return_value_discarded")
 		report_error(GdAssertMessages.error_wait_signal(signal_name, expected_args, LocalTime.elapsed(_timeout)))
 	timer.free()
 	if is_instance_valid(_emitter):

@@ -1,4 +1,3 @@
-@tool
 extends Node
 class_name CoreGameState
 
@@ -532,39 +531,39 @@ func _gather_save_data() -> Dictionary:
 func _init() -> void:
 	pass
 
-func set_phase(phase: GameEnums.FiveParcsecsCampaignPhase) -> void:
+func set_phase(phase: GameEnums.FiveParsecsCampaignPhase) -> void:
 	current_phase = phase
 	_emit_state_changed()
 
-func can_transition_to(phase: GameEnums.FiveParcsecsCampaignPhase) -> bool:
+func can_transition_to(phase: GameEnums.FiveParsecsCampaignPhase) -> bool:
 	match current_phase:
-		GameEnums.FiveParcsecsCampaignPhase.NONE:
-			return phase == GameEnums.FiveParcsecsCampaignPhase.SETUP
-		GameEnums.FiveParcsecsCampaignPhase.SETUP:
-			return phase == GameEnums.FiveParcsecsCampaignPhase.TRAVEL
-		GameEnums.FiveParcsecsCampaignPhase.TRAVEL:
-			return phase == GameEnums.FiveParcsecsCampaignPhase.WORLD
-		GameEnums.FiveParcsecsCampaignPhase.WORLD:
-			return phase == GameEnums.FiveParcsecsCampaignPhase.BATTLE
-		GameEnums.FiveParcsecsCampaignPhase.BATTLE:
-			return phase == GameEnums.FiveParcsecsCampaignPhase.POST_BATTLE
-		GameEnums.FiveParcsecsCampaignPhase.POST_BATTLE:
-			return phase == GameEnums.FiveParcsecsCampaignPhase.TRAVEL
+		GameEnums.FiveParsecsCampaignPhase.NONE:
+			return phase == GameEnums.FiveParsecsCampaignPhase.SETUP
+		GameEnums.FiveParsecsCampaignPhase.SETUP:
+			return phase == GameEnums.FiveParsecsCampaignPhase.TRAVEL
+		GameEnums.FiveParsecsCampaignPhase.TRAVEL:
+			return phase == GameEnums.FiveParsecsCampaignPhase.WORLD
+		GameEnums.FiveParsecsCampaignPhase.WORLD:
+			return phase == GameEnums.FiveParsecsCampaignPhase.BATTLE
+		GameEnums.FiveParsecsCampaignPhase.BATTLE:
+			return phase == GameEnums.FiveParsecsCampaignPhase.POST_BATTLE
+		GameEnums.FiveParsecsCampaignPhase.POST_BATTLE:
+			return phase == GameEnums.FiveParsecsCampaignPhase.TRAVEL
 		_:
 			return false
 
 func complete_phase() -> void:
 	match current_phase:
-		GameEnums.FiveParcsecsCampaignPhase.SETUP:
-			set_phase(GameEnums.FiveParcsecsCampaignPhase.TRAVEL)
-		GameEnums.FiveParcsecsCampaignPhase.TRAVEL:
-			set_phase(GameEnums.FiveParcsecsCampaignPhase.WORLD)
-		GameEnums.FiveParcsecsCampaignPhase.WORLD:
-			set_phase(GameEnums.FiveParcsecsCampaignPhase.BATTLE)
-		GameEnums.FiveParcsecsCampaignPhase.BATTLE:
-			set_phase(GameEnums.FiveParcsecsCampaignPhase.POST_BATTLE)
-		GameEnums.FiveParcsecsCampaignPhase.POST_BATTLE:
-			set_phase(GameEnums.FiveParcsecsCampaignPhase.TRAVEL)
+		GameEnums.FiveParsecsCampaignPhase.SETUP:
+			set_phase(GameEnums.FiveParsecsCampaignPhase.TRAVEL)
+		GameEnums.FiveParsecsCampaignPhase.TRAVEL:
+			set_phase(GameEnums.FiveParsecsCampaignPhase.WORLD)
+		GameEnums.FiveParsecsCampaignPhase.WORLD:
+			set_phase(GameEnums.FiveParsecsCampaignPhase.BATTLE)
+		GameEnums.FiveParsecsCampaignPhase.BATTLE:
+			set_phase(GameEnums.FiveParsecsCampaignPhase.POST_BATTLE)
+		GameEnums.FiveParsecsCampaignPhase.POST_BATTLE:
+			set_phase(GameEnums.FiveParsecsCampaignPhase.TRAVEL)
 
 func advance_turn() -> void:
 	if turn_number < max_turns:
@@ -754,7 +753,7 @@ func serialize() -> Dictionary:
 	return data
 
 func deserialize(data: Dictionary) -> void:
-	current_phase = data.get("current_phase", GameEnums.FiveParcsecsCampaignPhase.NONE)
+	current_phase = data.get("current_phase", GameEnums.FiveParsecsCampaignPhase.NONE)
 	turn_number = data.get("turn_number", 0)
 	story_points = data.get("story_points", 0)
 	reputation = data.get("reputation", 0)
@@ -804,7 +803,7 @@ func _ready() -> void:
 	Ship = UniversalResourceLoader.load_script_safe("res://src/core/ships/Ship.gd", "GameState Ship")
 	
 	# Initialize enum defaults now that GameEnums is loaded
-	current_phase = GameEnums.FiveParcsecsCampaignPhase.NONE
+	current_phase = GameEnums.FiveParsecsCampaignPhase.NONE
 	difficulty_level = GameEnums.DifficultyLevel.NORMAL
 	
 	# Initialize default resources
@@ -812,13 +811,20 @@ func _ready() -> void:
 	resources[GameEnums.ResourceType.FUEL] = 5
 	resources[GameEnums.ResourceType.SUPPLIES] = 3
 	
-	# Connect to save manager safely
-	save_manager = UniversalNodeAccess.get_node_safe(get_tree().root, NodePath("SaveManager"), "GameState save_manager")
+	# Connect to save manager safely - use deferred call to ensure autoloads are ready
+	call_deferred("_connect_save_manager")
+	
+	print("GameState: Initialized successfully")
+
+func _connect_save_manager() -> void:
+	# Try to connect to SaveManager after autoloads are fully initialized
+	save_manager = UniversalNodeAccess.get_node_safe(get_tree().root, NodePath("/root/SaveManagerAutoload"), "GameState save_manager")
 	if save_manager:
 		UniversalSignalManager.connect_signal_safe(save_manager, "save_completed", _on_save_manager_save_completed, "GameState save_completed")
 		UniversalSignalManager.connect_signal_safe(save_manager, "load_completed", _on_save_manager_load_completed, "GameState load_completed")
-	
-	print("GameState: Initialized successfully")
+		print("GameState: Connected to SaveManager successfully")
+	else:
+		push_warning("SaveManager not available - save/load functionality will be limited")
 
 func _notification(what: int) -> void:
 	if what == NOTIFICATION_PREDELETE:

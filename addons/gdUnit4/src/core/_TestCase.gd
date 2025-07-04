@@ -68,6 +68,7 @@ func _resolve_test_parameters(attribute_index: int) -> Array:
 		completed.emit()
 		return []
 
+	@warning_ignore("unsafe_method_access")
 	var test_parameters: Array = parameter_sets[attribute_index].duplicate()
 	# We need here to add a empty array to override the `test_parameters` to prevent initial "default" parameters from being used.
 	# This prevents objects in the argument list from being unnecessarily re-instantiated.
@@ -86,6 +87,7 @@ func dispose() -> void:
 	_attribute.fuzzers.clear()
 
 
+@warning_ignore("shadowed_variable_base_class", "redundant_await")
 func _execute_test_case(name: String, test_parameter: Array) -> void:
 	# save the function state like GDScriptFunctionState to dispose at test timeout to prevent orphan state
 	_func_state = get_parent().callv(name, test_parameter)
@@ -108,6 +110,7 @@ func set_timeout() -> void:
 	_timer = Timer.new()
 	add_child(_timer)
 	_timer.set_name("gdunit_test_case_timer_%d" % _timer.get_instance_id())
+	@warning_ignore("return_value_discarded")
 	_timer.timeout.connect(do_interrupt, CONNECT_DEFERRED)
 	_timer.set_one_shot(true)
 	_timer.set_wait_time(time)
@@ -132,6 +135,7 @@ func do_interrupt() -> void:
 
 func _set_failure_handler() -> void:
 	if not GdUnitSignals.instance().gdunit_set_test_failed.is_connected(_failure_received):
+		@warning_ignore("return_value_discarded")
 		GdUnitSignals.instance().gdunit_set_test_failed.connect(_failure_received)
 
 
@@ -188,6 +192,7 @@ func test_name() -> String:
 	return _test_case.test_name
 
 
+@warning_ignore("native_method_override")
 func get_name() -> StringName:
 	return _test_case.test_name
 

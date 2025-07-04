@@ -9,7 +9,7 @@ class MockGameState extends Resource:
     var turn_number: int = 0
     var story_points: int = 0
     var reputation: int = 0
-    var current_phase: int = GameEnums.FiveParcsecsCampaignPhase.NONE
+    var current_phase: int = GameEnums.FiveParsecsCampaignPhase.NONE
     var difficulty_level: int = GameEnums.DifficultyLevel.NORMAL
     var enable_permadeath: bool = true
     var use_story_track: bool = true
@@ -54,16 +54,16 @@ class MockGameState extends Resource:
     #
     func can_transition_to(target_phase: int) -> bool:
         match current_phase:
-            GameEnums.FiveParcsecsCampaignPhase.NONE:
-                return target_phase == GameEnums.FiveParcsecsCampaignPhase.SETUP
-            GameEnums.FiveParcsecsCampaignPhase.SETUP:
+            GameEnums.FiveParsecsCampaignPhase.NONE:
+                return target_phase == GameEnums.FiveParsecsCampaignPhase.SETUP
+            GameEnums.FiveParsecsCampaignPhase.SETUP:
                 return target_phase == 1 # Use direct value instead of missing enum
             _:
                 return false
 
     func complete_phase() -> void:
         match current_phase:
-            GameEnums.FiveParcsecsCampaignPhase.SETUP:
+            GameEnums.FiveParsecsCampaignPhase.SETUP:
                 set_phase(1) # Use direct value instead of missing enum
             _:
                 pass # No transition
@@ -140,7 +140,7 @@ class MockGameState extends Resource:
         turn_number = data.get("turn_number", 0)
         story_points = data.get("story_points", 0)
         reputation = data.get("reputation", 0)
-        current_phase = data.get("current_phase", GameEnums.FiveParcsecsCampaignPhase.NONE)
+        current_phase = data.get("current_phase", GameEnums.FiveParsecsCampaignPhase.NONE)
         difficulty_level = data.get("difficulty_level", GameEnums.DifficultyLevel.NORMAL)
         enable_permadeath = data.get("enable_permadeath", true)
         use_story_track = data.get("use_story_track", true)
@@ -210,7 +210,7 @@ func test_create_game_state() -> void:
 func test_phase_management() -> void:
     pass
     # Test phase setting
-    state.set_phase(GameEnums.FiveParcsecsCampaignPhase.SETUP)
+    state.set_phase(GameEnums.FiveParsecsCampaignPhase.SETUP)
     # assert_that() call removed
     
     # Test phase transitions
@@ -334,7 +334,7 @@ func test_state_serialization() -> void:
     # Setup state
     state.advance_turn()
     state.add_resource(GameEnums.ResourceType.CREDITS, 500)
-    state.set_phase(GameEnums.FiveParcsecsCampaignPhase.SETUP)
+    state.set_phase(GameEnums.FiveParsecsCampaignPhase.SETUP)
     
     # var serialized_data: Dictionary = state.serialize()
     # assert_that() call removed
@@ -354,7 +354,7 @@ func test_state_validation() -> void:
     pass
     # Test direct method calls instead of safe wrappers (proven pattern)
     # Test invalid phase transitions
-    state.set_phase(GameEnums.FiveParcsecsCampaignPhase.NONE)
+    state.set_phase(GameEnums.FiveParsecsCampaignPhase.NONE)
     # assert_that() call removed
     
     # Test valid transitions
@@ -383,4 +383,3 @@ func test_edge_cases() -> void:
     var initial_turn = state.get_turn_number()
     state.advance_turn()
     # assert_that(state.get_turn_number()).is_equal(initial_turn) # Should not advance past limit
- 

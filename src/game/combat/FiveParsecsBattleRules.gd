@@ -161,20 +161,35 @@ func calculate_movement_cost(distance: float, terrain_type: int) -> int:
 func get_combat_result(hit_chance: float, modifiers) -> int:
 	# Similar implementation as calculate_hit_chance
 	# For brevity, we'll use a simplified version
-	var roll := randf()
+	var dice_manager = get_node_or_null("/root/DiceManager")
+	var roll: float = 0.5  # Default fallback
+	if dice_manager and dice_manager.has_method("roll_d100"):
+		roll = dice_manager.roll_d100("Combat Result") / 100.0
+	else:
+		roll = randf()  # Fallback if DiceManager unavailable
 	
 	var is_suppressed = modifiers.has("suppressed") and modifiers.suppressed
 	
 	if roll >= CRITICAL_THRESHOLD and not is_suppressed:
 		return 1 # CRITICAL
 	elif roll >= hit_chance:
-		# Check for dodge if applicable
-		if modifiers.has("combat_tactic") and modifiers.combat_tactic == 1 and randf() < 0.3:
+		# Check for dodge if applicable - use consistent dice rolling
+		var dodge_roll: float = 0.5
+		if dice_manager and dice_manager.has_method("roll_d100"):
+			dodge_roll = dice_manager.roll_d100("Dodge Check") / 100.0
+		else:
+			dodge_roll = randf()
+		if modifiers.has("combat_tactic") and modifiers.combat_tactic == 1 and dodge_roll < 0.3:
 			return 4 # DODGE
 		return 0 # MISS
 	elif roll <= GRAZE_THRESHOLD:
-		# Check for block if applicable
-		if modifiers.has("combat_tactic") and modifiers.combat_tactic == 2 and randf() < 0.3:
+		# Check for block if applicable - use consistent dice rolling
+		var block_roll: float = 0.5
+		if dice_manager and dice_manager.has_method("roll_d100"):
+			block_roll = dice_manager.roll_d100("Block Check") / 100.0
+		else:
+			block_roll = randf()
+		if modifiers.has("combat_tactic") and modifiers.combat_tactic == 2 and block_roll < 0.3:
 			return 5 # BLOCK
 		return 2 # GRAZE
 	

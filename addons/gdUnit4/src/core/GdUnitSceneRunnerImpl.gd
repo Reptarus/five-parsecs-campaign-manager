@@ -43,9 +43,11 @@ var _scene_auto_free := false
 func _init(p_scene: Variant, p_verbose: bool, p_hide_push_errors := false) -> void:
 	_verbose = p_verbose
 	_saved_iterations_per_second = Engine.get_physics_ticks_per_second()
+	@warning_ignore("return_value_discarded")
 	set_time_factor(1)
 	# handle scene loading by resource path
 	if typeof(p_scene) == TYPE_STRING:
+		@warning_ignore("unsafe_cast")
 		if !ResourceLoader.exists(p_scene as String):
 			if not p_hide_push_errors:
 				push_error("GdUnitSceneRunner: Can't load scene by given resource path: '%s'. The resource does not exists." % p_scene)
@@ -54,6 +56,7 @@ func _init(p_scene: Variant, p_verbose: bool, p_hide_push_errors := false) -> vo
 			if not p_hide_push_errors:
 				push_error("GdUnitSceneRunner: The given resource: '%s'. is not a scene." % p_scene)
 			return
+		@warning_ignore("unsafe_cast")
 		_current_scene = (load(p_scene as String) as PackedScene).instantiate()
 		_scene_auto_free = true
 	else:
@@ -70,6 +73,7 @@ func _init(p_scene: Variant, p_verbose: bool, p_hide_push_errors := false) -> vo
 
 	_scene_tree().root.add_child(_current_scene)
 	# do finally reset all open input events when the scene is removed
+	@warning_ignore("return_value_discarded")
 	_scene_tree().root.child_exiting_tree.connect(func f(child :Node) -> void:
 		if child == _current_scene:
 			# we need to disable the processing to avoid input flush buffer errors
@@ -103,6 +107,7 @@ func _scene_tree() -> SceneTree:
 	return Engine.get_main_loop() as SceneTree
 
 
+@warning_ignore("return_value_discarded")
 func simulate_action_pressed(action: String) -> GdUnitSceneRunner:
 	simulate_action_press(action)
 	simulate_action_release(action)
@@ -115,6 +120,7 @@ func simulate_action_press(action: String) -> GdUnitSceneRunner:
 	event.pressed = true
 	event.action = action
 	if Engine.get_version_info().hex >= 0x40300:
+		@warning_ignore("unsafe_property_access")
 		event.event_index = InputMap.get_actions().find(action)
 	_action_on_press.append(action)
 	return _handle_input_event(event)
@@ -126,11 +132,13 @@ func simulate_action_release(action: String) -> GdUnitSceneRunner:
 	event.pressed = false
 	event.action = action
 	if Engine.get_version_info().hex >= 0x40300:
+		@warning_ignore("unsafe_property_access")
 		event.event_index = InputMap.get_actions().find(action)
 	_action_on_press.erase(action)
 	return _handle_input_event(event)
 
 
+@warning_ignore("return_value_discarded")
 func simulate_key_pressed(key_code: int, shift_pressed := false, ctrl_pressed := false) -> GdUnitSceneRunner:
 	simulate_key_press(key_code, shift_pressed, ctrl_pressed)
 	await _scene_tree().process_frame
@@ -201,6 +209,7 @@ func simulate_mouse_move(position: Vector2) -> GdUnitSceneRunner:
 	return _handle_input_event(event)
 
 
+@warning_ignore("return_value_discarded")
 func simulate_mouse_move_relative(relative: Vector2, time: float = 1.0, trans_type: Tween.TransitionType = Tween.TRANS_LINEAR) -> GdUnitSceneRunner:
 	var tween := _scene_tree().create_tween()
 	_curent_mouse_position = get_mouse_position()
@@ -214,6 +223,7 @@ func simulate_mouse_move_relative(relative: Vector2, time: float = 1.0, trans_ty
 	return self
 
 
+@warning_ignore("return_value_discarded")
 func simulate_mouse_move_absolute(position: Vector2, time: float = 1.0, trans_type: Tween.TransitionType = Tween.TRANS_LINEAR) -> GdUnitSceneRunner:
 	var tween := _scene_tree().create_tween()
 	_curent_mouse_position = get_mouse_position()
@@ -226,6 +236,7 @@ func simulate_mouse_move_absolute(position: Vector2, time: float = 1.0, trans_ty
 	return self
 
 
+@warning_ignore("return_value_discarded")
 func simulate_mouse_button_pressed(button_index: MouseButton, double_click := false) -> GdUnitSceneRunner:
 	simulate_mouse_button_press(button_index, double_click)
 	simulate_mouse_button_release(button_index)
@@ -255,12 +266,14 @@ func simulate_mouse_button_release(button_index: MouseButton) -> GdUnitSceneRunn
 	return _handle_input_event(event)
 
 
+@warning_ignore("return_value_discarded")
 func simulate_screen_touch_pressed(index: int, position: Vector2, double_tap := false) -> GdUnitSceneRunner:
 	simulate_screen_touch_press(index, position, double_tap)
 	simulate_screen_touch_release(index)
 	return self
 
 
+@warning_ignore("return_value_discarded")
 func simulate_screen_touch_press(index: int, position: Vector2, double_tap := false) -> GdUnitSceneRunner:
 	if is_emulate_mouse_from_touch():
 		# we need to simulate in addition to the touch the mouse events
@@ -279,6 +292,7 @@ func simulate_screen_touch_press(index: int, position: Vector2, double_tap := fa
 	return self
 
 
+@warning_ignore("return_value_discarded")
 func simulate_screen_touch_release(index: int, double_tap := false) -> GdUnitSceneRunner:
 	if is_emulate_mouse_from_touch():
 		# we need to simulate in addition to the touch the mouse events
@@ -303,11 +317,13 @@ func simulate_screen_touch_drag_absolute(index: int, position: Vector2, time: fl
 	return await _do_touch_drag_at(index, position, time, trans_type)
 
 
+@warning_ignore("return_value_discarded")
 func simulate_screen_touch_drag_drop(index: int, position: Vector2, drop_position: Vector2, time: float = 1.0, trans_type: Tween.TransitionType = Tween.TRANS_LINEAR) -> GdUnitSceneRunner:
 	simulate_screen_touch_press(index, position)
 	return await _do_touch_drag_at(index, drop_position, time, trans_type)
 
 
+@warning_ignore("return_value_discarded")
 func simulate_screen_touch_drag(index: int, position: Vector2) -> GdUnitSceneRunner:
 	if is_emulate_mouse_from_touch():
 		simulate_mouse_move(position)
@@ -340,6 +356,7 @@ func _get_screen_touch_drag_position_or_default(index: int, default_position: Ve
 	return default_position
 
 
+@warning_ignore("return_value_discarded")
 func _do_touch_drag_at(index: int, drag_position: Vector2, time: float, trans_type: Tween.TransitionType) -> GdUnitSceneRunner:
 	# start draging
 	var event := InputEventScreenDrag.new()
@@ -559,6 +576,7 @@ func _handle_actions(event: InputEventAction) -> bool:
 
 
 # for handling read https://docs.godotengine.org/en/stable/tutorials/inputs/inputevent.html?highlight=inputevent#how-does-it-work
+@warning_ignore("return_value_discarded")
 func _handle_input_event(event: InputEvent) -> GdUnitSceneRunner:
 	if event is InputEventMouse:
 		Input.warp_mouse((event as InputEventMouse).position as Vector2)
@@ -584,6 +602,7 @@ func _handle_input_event(event: InputEvent) -> GdUnitSceneRunner:
 	return self
 
 
+@warning_ignore("return_value_discarded")
 func _reset_input_to_default() -> void:
 	# reset all mouse button to inital state if need
 	for m_button :int in _mouse_button_on_press.duplicate():

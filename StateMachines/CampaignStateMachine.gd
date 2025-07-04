@@ -6,7 +6,7 @@ const FiveParsecsGameState = preload("res://src/core/state/GameState.gd")
 const GameCampaignManager = preload("res://src/core/campaign/GameCampaignManager.gd")
 
 # Import the enums directly for cleaner code
-const FiveParcsecsCampaignPhase = FiveParsecsGameEnums.FiveParcsecsCampaignPhase
+const FiveParsecsCampaignPhase = FiveParsecsGameEnums.FiveParsecsCampaignPhase
 
 signal state_changed(new_state: int)
 
@@ -70,17 +70,17 @@ func _handle_game_over() -> void:
 	game_state.finalize_campaign()
 
 # Signal handlers
-func _on_phase_changed(new_phase: FiveParcsecsCampaignPhase) -> void:
+func _on_phase_changed(new_phase: FiveParsecsCampaignPhase) -> void:
 	match new_phase:
-		FiveParcsecsCampaignPhase.SETUP:
+		FiveParsecsCampaignPhase.SETUP:
 			change_state(FiveParsecsGameEnums.GameState.SETUP)
-		FiveParcsecsCampaignPhase.UPKEEP, \
-		FiveParcsecsCampaignPhase.TRAVEL, \
-		FiveParcsecsCampaignPhase.WORLD, \
-		FiveParcsecsCampaignPhase.POST_BATTLE:
+		FiveParsecsCampaignPhase.UPKEEP, \
+		FiveParsecsCampaignPhase.TRAVEL, \
+		FiveParsecsCampaignPhase.WORLD, \
+		FiveParsecsCampaignPhase.POST_BATTLE:
 			change_state(FiveParsecsGameEnums.GameState.CAMPAIGN)
-		FiveParcsecsCampaignPhase.BATTLE_SETUP, \
-		FiveParcsecsCampaignPhase.BATTLE:
+		FiveParsecsCampaignPhase.BATTLE_SETUP, \
+		FiveParsecsCampaignPhase.BATTLE:
 			change_state(FiveParsecsGameEnums.GameState.BATTLE)
 
 func _on_turn_completed() -> void:

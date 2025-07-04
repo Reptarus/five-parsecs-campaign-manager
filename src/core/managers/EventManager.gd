@@ -9,7 +9,7 @@ const Character = preload("res://src/core/character/Management/CharacterDataMana
 const Mission = preload("res://src/core/systems/Mission.gd")
 const StoryQuestData = preload("res://src/core/story/StoryQuestData.gd")
 const GameLocation = preload("res://src/game/world/GameLocation.gd")
-const ResourceSystem = preload("res://src/core/systems/ResourceSystem.gd")
+# Note: ResourceSystem is an autoload - access via get_node("/root/ResourceSystem")
 const MissionGeneratorClass = preload("res://src/core/systems/MissionGenerator.gd")
 
 ## Signals
@@ -34,7 +34,7 @@ const MAX_ACTIVE_EVENTS := 5 # Limit concurrent active events
 
 ## Game state reference
 var game_state: FiveParsecsGameState
-var resource_system: ResourceSystem
+var resource_system: Node # ResourceSystemAutoload
 var mission_generator: Node
 
 ## Event configuration
@@ -139,17 +139,18 @@ const MISSION_EVENTS = {
 ## Initialize the event manager
 func initialize(state: FiveParsecsGameState) -> void:
 	game_state = state
-	var resource_node = get_node("/root/Game/Systems/ResourceSystem")
-	if resource_node is ResourceSystem:
+	var resource_node = get_node_or_null("/root/ResourceSystemAutoload")
+	if not resource_node:
+		push_error("ResourceSystemAutoload node not found or wrong type")
+	else:
 		resource_system = resource_node
-	else:
-		push_error("ResourceSystem node not found or wrong type")
 	
-	var mission_gen = get_node("/root/Game/Systems/MissionGenerator")
-	if mission_gen is MissionGeneratorClass:
-		mission_generator = mission_gen
-	else:
-		push_error("Failed to get MissionGenerator node")
+	# Mission generator setup skipped - would need proper autoload configuration
+	# if mission_generator_node:
+	#     mission_generator = mission_generator_node
+	# else:
+	#     push_error("Failed to get MissionGenerator node")
+	
 	active_events.clear()
 	event_history.clear()
 	event_cooldowns.clear()

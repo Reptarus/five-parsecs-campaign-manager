@@ -141,7 +141,7 @@ func start_battle() -> void:
 	
 	# Begin the battle by transitioning to the Battle Setup phase
 	if campaign_phase_manager:
-		campaign_phase_manager.start_phase(GameEnums.FiveParcsecsCampaignPhase.BATTLE_SETUP)
+		campaign_phase_manager.start_phase(GameEnums.FiveParsecsCampaignPhase.BATTLE_SETUP)
 	
 	# Initialize battle in the battle results manager
 	if battle_results_manager:
@@ -178,10 +178,10 @@ func get_current_mission() -> Dictionary:
 
 func _on_phase_changed(old_phase: int, new_phase: int) -> void:
 	# When entering Campaign _phase, reset available missions
-	if new_phase == GameEnums.FiveParcsecsCampaignPhase.WORLD:
+	if new_phase == GameEnums.FiveParsecsCampaignPhase.WORLD:
 		_available_missions = []
 	# When entering Battle Setup _phase, ensure mission is prepared
-	elif new_phase == GameEnums.FiveParcsecsCampaignPhase.BATTLE_SETUP:
+	elif new_phase == GameEnums.FiveParsecsCampaignPhase.BATTLE_SETUP:
 		if _current_mission.is_empty() or not _current_mission.get("prepared", false):
 			push_warning("Entering Battle Setup without a prepared mission")
 func _on_sub_phase_changed(old_sub_phase: int, new_sub_phase: int) -> void:

@@ -374,4 +374,3 @@ func _convert_enemy_to_character(enemy: EnemyData) -> Character:
 	# Implementation depends on your character system
 	# This should convert EnemyData to a Character instance
 	return null
-          

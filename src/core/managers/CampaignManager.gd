@@ -66,9 +66,12 @@ func _ready() -> void:
 	completed_missions = []
 	mission_history = []
 	
-	# Initialize Dice System first (reference autoload)
-	dice_manager = DiceManager
-	_connect_dice_signals()
+	# Initialize Dice System first (reference autoload directly with proper typing)
+	dice_manager = DiceManager as Node
+	if dice_manager:
+		_connect_dice_signals()
+	else:
+		push_warning("CampaignManager: DiceManager autoload not found")
 	
 	# Initialize Story Track System and inject dice manager
 	story_track_system = FPCM_StoryTrackSystem.new()
@@ -193,8 +196,11 @@ func clear_battle_events() -> void:
 
 ## Connect dice system signals
 func _connect_dice_signals() -> void:
-	if dice_manager:
-		dice_manager.dice_result_ready.connect(_on_dice_result_ready)
+	if dice_manager and dice_manager.has_signal("dice_result_ready"):
+		# Use signal connection by string name to avoid type issues
+		dice_manager.connect("dice_result_ready", _on_dice_result_ready)
+	else:
+		push_warning("CampaignManager: DiceManager signal 'dice_result_ready' not found")
 
 ## Handle dice results
 func _on_dice_result_ready(result: int, context: String) -> void:

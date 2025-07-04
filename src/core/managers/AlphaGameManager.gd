@@ -1,13 +1,11 @@
-@tool
 extends Node
-class_name FPCM_AlphaGameManager
 
 ## Alpha Game Manager for Five Parsecs Campaign Manager
 ## Central coordinator for all core systems
 
 # Safe imports
 const UniversalNodeAccess = preload("res://src/utils/UniversalNodeAccess.gd")
-const UniversalResourceLoader = preload("res://src/utils/UniversalResourceLoader.gd") 
+const UniversalResourceLoader = preload("res://src/utils/UniversalResourceLoader.gd")
 const UniversalSignalManager = preload("res://src/utils/UniversalSignalManager.gd")
 const UniversalDataAccess = preload("res://src/utils/UniversalDataAccess.gd")
 const UniversalSceneManager = preload("res://src/utils/UniversalSceneManager.gd")
@@ -16,7 +14,7 @@ const UniversalSceneManager = preload("res://src/utils/UniversalSceneManager.gd"
 var GameEnums = null
 
 # System references
-var game_state_manager: Node = null
+var game_state_manager: Node = null # Will contain GameStateManagerAutoload
 var campaign_creation_manager: Node = null
 var campaign_phase_manager: Node = null
 var battle_results_manager: Node = null
@@ -46,7 +44,7 @@ func _ready() -> void:
 	call_deferred("initialize_systems")
 
 func initialize_systems() -> void:
-	"""Initialize all core systems in proper order"""
+	# Initialize all core systems in proper order
 	print("AlphaGameManager: Starting system initialization...")
 	initialization_errors.clear()
 	systems_ready.clear()
@@ -64,22 +62,31 @@ func initialize_systems() -> void:
 	_finalize_initialization()
 
 func _initialize_game_state_manager() -> void:
-	"""Initialize the GameStateManager"""
+	# Initialize the GameStateManager
 	print("AlphaGameManager: Initializing GameStateManager...")
 	
-	# Try to get existing GameStateManager from autoload
-	game_state_manager = get_node_or_null("/root/GameStateManager")
+	# Try to get existing GameStateManager from autoload directly
+	game_state_manager = get_node_or_null("/root/GameStateManagerAutoload")
 	
 	if not game_state_manager:
 		# Create new GameStateManager if not found
-		var GameStateManagerClass = UniversalResourceLoader.load_script_safe("res://src/core/managers/GameStateManager.gd", "AlphaGameManager GameStateManagerClass")
-		if GameStateManagerClass:
-			game_state_manager = GameStateManagerClass.new()
-			game_state_manager.name = "GameStateManager"
-			add_child(game_state_manager)
-			print("AlphaGameManager: Created new GameStateManager")
+		var game_state_script = UniversalResourceLoader.load_script_safe("res://src/core/managers/GameStateManager.gd", "AlphaGameManager GameStateManagerClass")
+		if game_state_script:
+			# Create instance using proper Godot 4.4 pattern
+			var instance = (game_state_script as Script).new()
+			if instance:
+				game_state_manager = instance
+				game_state_manager.name = "GameStateManager"
+				add_child(game_state_manager)
+				print("AlphaGameManager: Created new GameStateManager")
+			else:
+				var error = "Failed to instantiate GameStateManager - constructor failed"
+				initialization_errors.append(error)
+				system_error.emit("GameStateManager", error)
+				systems_ready["GameStateManager"] = false
+				return
 		else:
-			var error = "Failed to load GameStateManager class"
+			var error = "Failed to load GameStateManager class - script compilation failed"
 			initialization_errors.append(error)
 			system_error.emit("GameStateManager", error)
 			systems_ready["GameStateManager"] = false
@@ -94,7 +101,7 @@ func _initialize_game_state_manager() -> void:
 	print("AlphaGameManager: GameStateManager ready")
 
 func _initialize_campaign_creation_manager() -> void:
-	"""Initialize the CampaignCreationManager"""
+	# Initialize the CampaignCreationManager
 	print("AlphaGameManager: Initializing CampaignCreationManager...")
 	
 	if not game_state_manager:
@@ -104,20 +111,29 @@ func _initialize_campaign_creation_manager() -> void:
 		systems_ready["CampaignCreationManager"] = false
 		return
 	
-	var CampaignCreationManagerClass = UniversalResourceLoader.load_script_safe("res://src/core/campaign/CampaignCreationManager.gd", "AlphaGameManager CampaignCreationManagerClass")
-	if CampaignCreationManagerClass:
-		campaign_creation_manager = CampaignCreationManagerClass.new()
-		campaign_creation_manager.name = "CampaignCreationManager"
-		add_child(campaign_creation_manager)
-		
-		# Setup with dependencies
-		if campaign_creation_manager.has_method("setup"):
-			var game_state = game_state_manager.get_game_state()
-			campaign_creation_manager.setup(game_state)
-		
-		systems_ready["CampaignCreationManager"] = true
-		campaign_creation_ready.emit(campaign_creation_manager)
-		print("AlphaGameManager: CampaignCreationManager ready")
+	var campaign_creation_script = UniversalResourceLoader.load_script_safe("res://src/core/campaign/CampaignCreationManager.gd", "AlphaGameManager CampaignCreationManagerClass")
+	if campaign_creation_script:
+		# Create instance using proper Godot 4.4 pattern
+		var instance = (campaign_creation_script as Script).new()
+		if instance:
+			campaign_creation_manager = instance
+			campaign_creation_manager.name = "CampaignCreationManager"
+			add_child(campaign_creation_manager)
+			
+			# Setup with dependencies
+			if campaign_creation_manager.has_method("setup"):
+				var game_state = game_state_manager.get_game_state() if game_state_manager.has_method("get_game_state") else null
+				if game_state:
+					campaign_creation_manager.setup(game_state)
+			
+			systems_ready["CampaignCreationManager"] = true
+			campaign_creation_ready.emit(campaign_creation_manager)
+			print("AlphaGameManager: CampaignCreationManager ready")
+		else:
+			var error = "Failed to instantiate CampaignCreationManager - constructor failed"
+			initialization_errors.append(error)
+			system_error.emit("CampaignCreationManager", error)
+			systems_ready["CampaignCreationManager"] = false
 	else:
 		var error = "Failed to load CampaignCreationManager class"
 		initialization_errors.append(error)
@@ -125,7 +141,7 @@ func _initialize_campaign_creation_manager() -> void:
 		systems_ready["CampaignCreationManager"] = false
 
 func _initialize_campaign_phase_manager() -> void:
-	"""Initialize the CampaignPhaseManager"""
+	# Initialize the CampaignPhaseManager
 	print("AlphaGameManager: Initializing CampaignPhaseManager...")
 	
 	if not game_state_manager:
@@ -135,19 +151,28 @@ func _initialize_campaign_phase_manager() -> void:
 		systems_ready["CampaignPhaseManager"] = false
 		return
 	
-	var CampaignPhaseManagerClass = UniversalResourceLoader.load_script_safe("res://src/core/campaign/CampaignPhaseManager.gd", "AlphaGameManager CampaignPhaseManagerClass")
-	if CampaignPhaseManagerClass:
-		campaign_phase_manager = CampaignPhaseManagerClass.new()
-		campaign_phase_manager.name = "CampaignPhaseManager"
-		add_child(campaign_phase_manager)
-		
-		# Setup with dependencies
-		if campaign_phase_manager.has_method("setup"):
-			var game_state = game_state_manager.get_game_state()
-			campaign_phase_manager.setup(game_state)
-		
-		systems_ready["CampaignPhaseManager"] = true
-		print("AlphaGameManager: CampaignPhaseManager ready")
+	var campaign_phase_script = UniversalResourceLoader.load_script_safe("res://src/core/campaign/CampaignPhaseManager.gd", "AlphaGameManager CampaignPhaseManagerClass")
+	if campaign_phase_script:
+		# Create instance using proper Godot 4.4 pattern
+		var instance = (campaign_phase_script as Script).new()
+		if instance:
+			campaign_phase_manager = instance
+			campaign_phase_manager.name = "CampaignPhaseManager"
+			add_child(campaign_phase_manager)
+			
+			# Setup with dependencies
+			if campaign_phase_manager.has_method("setup"):
+				var game_state = game_state_manager.get_game_state() if game_state_manager.has_method("get_game_state") else null
+				if game_state:
+					campaign_phase_manager.setup(game_state)
+			
+			systems_ready["CampaignPhaseManager"] = true
+			print("AlphaGameManager: CampaignPhaseManager ready")
+		else:
+			var error = "Failed to instantiate CampaignPhaseManager - constructor failed"
+			initialization_errors.append(error)
+			system_error.emit("CampaignPhaseManager", error)
+			systems_ready["CampaignPhaseManager"] = false
 	else:
 		var error = "Failed to load CampaignPhaseManager class"
 		initialization_errors.append(error)
@@ -155,7 +180,7 @@ func _initialize_campaign_phase_manager() -> void:
 		systems_ready["CampaignPhaseManager"] = false
 
 func _initialize_battle_results_manager() -> void:
-	"""Initialize the BattleResultsManager"""
+	# Initialize the BattleResultsManager
 	print("AlphaGameManager: Initializing BattleResultsManager...")
 	
 	if not game_state_manager:
@@ -165,20 +190,29 @@ func _initialize_battle_results_manager() -> void:
 		systems_ready["BattleResultsManager"] = false
 		return
 	
-	var BattleResultsManagerClass = UniversalResourceLoader.load_script_safe("res://src/core/battle/BattleResultsManager.gd", "AlphaGameManager BattleResultsManagerClass")
-	if BattleResultsManagerClass:
-		battle_results_manager = BattleResultsManagerClass.new()
-		battle_results_manager.name = "BattleResultsManager"
-		add_child(battle_results_manager)
-		
-		# Setup with dependencies
-		if battle_results_manager.has_method("setup"):
-			var game_state = game_state_manager.get_game_state()
-			# Note: CharacterManager would be loaded here if needed
-			battle_results_manager.setup(game_state, null)
-		
-		systems_ready["BattleResultsManager"] = true
-		print("AlphaGameManager: BattleResultsManager ready")
+	var battle_results_script = UniversalResourceLoader.load_script_safe("res://src/core/battle/BattleResultsManager.gd", "AlphaGameManager BattleResultsManagerClass")
+	if battle_results_script:
+		# Create instance using proper Godot 4.4 pattern
+		var instance = (battle_results_script as Script).new()
+		if instance:
+			battle_results_manager = instance
+			battle_results_manager.name = "BattleResultsManager"
+			add_child(battle_results_manager)
+			
+			# Setup with dependencies
+			if battle_results_manager.has_method("setup"):
+				var game_state = game_state_manager.get_game_state() if game_state_manager.has_method("get_game_state") else null
+				# Note: CharacterManager would be loaded here if needed
+				if game_state:
+					battle_results_manager.setup(game_state, null)
+			
+			systems_ready["BattleResultsManager"] = true
+			print("AlphaGameManager: BattleResultsManager ready")
+		else:
+			var error = "Failed to instantiate BattleResultsManager - constructor failed"
+			initialization_errors.append(error)
+			system_error.emit("BattleResultsManager", error)
+			systems_ready["BattleResultsManager"] = false
 	else:
 		var error = "Failed to load BattleResultsManager class"
 		initialization_errors.append(error)
@@ -186,19 +220,28 @@ func _initialize_battle_results_manager() -> void:
 		systems_ready["BattleResultsManager"] = false
 
 func _initialize_dice_manager() -> void:
-	"""Initialize the DiceManager"""
+	# Initialize the DiceManager
 	print("AlphaGameManager: Initializing DiceManager...")
 	
-	# Try to get existing DiceManager from autoload
+	# Try to get existing DiceManager from autoload directly
 	dice_manager = get_node_or_null("/root/DiceManager")
 	
 	if not dice_manager:
-		var DiceManagerClass = UniversalResourceLoader.load_script_safe("res://src/core/managers/DiceManager.gd", "AlphaGameManager DiceManagerClass")
-		if DiceManagerClass:
-			dice_manager = DiceManagerClass.new()
-			dice_manager.name = "DiceManager"
-			add_child(dice_manager)
-			print("AlphaGameManager: Created new DiceManager")
+		var dice_manager_script = UniversalResourceLoader.load_script_safe("res://src/core/managers/DiceManager.gd", "AlphaGameManager DiceManagerClass")
+		if dice_manager_script:
+			# Create instance using proper Godot 4.4 pattern
+			var instance = (dice_manager_script as Script).new()
+			if instance:
+				dice_manager = instance
+				dice_manager.name = "DiceManager"
+				add_child(dice_manager)
+				print("AlphaGameManager: Created new DiceManager")
+			else:
+				var error = "Failed to instantiate DiceManager - constructor failed"
+				initialization_errors.append(error)
+				system_error.emit("DiceManager", error)
+				systems_ready["DiceManager"] = false
+				return
 		else:
 			var error = "Failed to load DiceManager class"
 			initialization_errors.append(error)
@@ -210,7 +253,7 @@ func _initialize_dice_manager() -> void:
 	print("AlphaGameManager: DiceManager ready")
 
 func _finalize_initialization() -> void:
-	"""Finalize the initialization process"""
+	# Finalize the initialization process
 	var all_ready = true
 	var ready_count = 0
 	var total_count = systems_ready.size()
@@ -241,31 +284,45 @@ func _finalize_initialization() -> void:
 
 # Public API methods
 func get_game_state_manager() -> Node:
-	"""Get the GameStateManager instance"""
+	# Get the GameStateManager instance
 	return game_state_manager
 
 func get_campaign_creation_manager() -> Node:
-	"""Get the CampaignCreationManager instance"""
+	# Get the CampaignCreationManager instance
 	return campaign_creation_manager
 
 func get_campaign_phase_manager() -> Node:
-	"""Get the CampaignPhaseManager instance"""
+	# Get the CampaignPhaseManager instance
 	return campaign_phase_manager
 
 func get_battle_results_manager() -> Node:
-	"""Get the BattleResultsManager instance"""
+	# Get the BattleResultsManager instance
 	return battle_results_manager
 
 func get_dice_manager() -> Node:
-	"""Get the DiceManager instance"""
+	# Get the DiceManager instance
 	return dice_manager
 
+func get_battle_manager() -> Node:
+	# Get the battle manager instance for tactical combat
+	if battle_results_manager:
+		return battle_results_manager
+	
+	# Try to find or create a battle manager if not available
+	var battle_manager = get_node_or_null("/root/BattleManager")
+	if not battle_manager:
+		# Check if we have a FiveParsecsCombatManager registered
+		if game_state_manager and game_state_manager.has_method("get_manager"):
+			battle_manager = game_state_manager.get_manager("FiveParsecsCombatManager")
+	
+	return battle_manager
+
 func is_system_ready(system_name: String) -> bool:
-	"""Check if a specific system is ready"""
+	# Check if a specific system is ready
 	return systems_ready.get(system_name, false)
 
 func get_system_status() -> Dictionary:
-	"""Get the status of all systems"""
+	# Get the status of all systems
 	return {
 		"initialized": is_initialized,
 		"systems_ready": systems_ready.duplicate(),
@@ -273,7 +330,7 @@ func get_system_status() -> Dictionary:
 	}
 
 func start_new_campaign(config: Dictionary = {}) -> bool:
-	"""Start a new campaign with the given configuration"""
+	# Start a new campaign with the given configuration
 	if not is_initialized:
 		push_error("AlphaGameManager: Cannot start campaign - systems not initialized")
 		return false
@@ -286,17 +343,17 @@ func start_new_campaign(config: Dictionary = {}) -> bool:
 	return game_state_manager.start_new_campaign(config)
 
 func get_current_phase() -> int:
-	"""Get the current campaign phase"""
+	# Get the current campaign phase
 	if campaign_phase_manager and campaign_phase_manager.has_method("get_current_phase"):
 		return campaign_phase_manager.get_current_phase()
 	
 	# Safe enum access
-	if GameEnums and "FiveParcsecsCampaignPhase" in GameEnums and "NONE" in GameEnums.FiveParcsecsCampaignPhase:
-		return GameEnums.FiveParcsecsCampaignPhase.NONE
-	return 0  # Fallback to safe default
+	if GameEnums and "FiveParsecsCampaignPhase" in GameEnums and "NONE" in GameEnums.FiveParsecsCampaignPhase:
+		return GameEnums.FiveParsecsCampaignPhase.NONE
+	return 0 # Fallback to safe default
 
 func transition_to_phase(new_phase: int) -> bool:
-	"""Transition to a new campaign phase"""
+	# Transition to a new campaign phase
 	if not campaign_phase_manager or not campaign_phase_manager.has_method("start_phase"):
 		push_error("AlphaGameManager: Cannot transition phase - CampaignPhaseManager not available")
 		return false
@@ -304,7 +361,7 @@ func transition_to_phase(new_phase: int) -> bool:
 	return campaign_phase_manager.start_phase(new_phase)
 
 func save_current_state() -> bool:
-	"""Save the current game state"""
+	# Save the current game state
 	if not game_state_manager or not game_state_manager.has_method("save_current_state"):
 		push_error("AlphaGameManager: Cannot save state - GameStateManager not available")
 		return false
@@ -312,7 +369,7 @@ func save_current_state() -> bool:
 	return game_state_manager.save_current_state()
 
 func load_saved_state(save_name: String = "current_campaign") -> bool:
-	"""Load a saved game state"""
+	# Load a saved game state
 	if not game_state_manager or not game_state_manager.has_method("load_saved_state"):
 		push_error("AlphaGameManager: Cannot load state - GameStateManager not available")
 		return false
@@ -320,7 +377,7 @@ func load_saved_state(save_name: String = "current_campaign") -> bool:
 	return game_state_manager.load_saved_state(save_name)
 
 func restart_systems() -> void:
-	"""Restart all systems (useful for recovery)"""
+	# Restart all systems (useful for recovery)
 	print("AlphaGameManager: Restarting systems...")
 	is_initialized = false
 	systems_ready.clear()
@@ -343,7 +400,7 @@ func restart_systems() -> void:
 	call_deferred("initialize_systems")
 
 func _exit_tree() -> void:
-	"""Clean up when the manager is removed"""
+	# Clean up when the manager is removed
 	print("AlphaGameManager: Shutting down...")
 	
 	# Clean up managed systems

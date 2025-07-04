@@ -263,4 +263,3 @@ func _safe_call_method(object: Object, method_name: String, args: Array = []) ->
     if object and object.has_method(method_name):
         return object.callv(method_name, args)
     return null
-  

@@ -14,17 +14,18 @@ extends "res://addons/gdUnit4/src/core/runners/GdUnitBaseTestRunner.gd"
 
 
 func _init() -> void:
-	super()
+	super ()
 
 
 func _ready() -> void:
-	super()
+	super ()
 
-	var config_result := _runner_config.load_config()
+	var config_result: Variant = _runner_config.load_config()
 	if config_result.is_error():
 		push_error(config_result.error_message())
 		_state = EXIT
 		return
+	@warning_ignore("return_value_discarded")
 	_client.connect("connection_failed", _on_connection_failed)
 	var result := _client.start("127.0.0.1", _runner_config.server_port())
 	if result.is_error():

@@ -42,6 +42,7 @@ static func instance() -> Script:
 ## This improves performance by reusing the same object
 static func api_instance() -> RefCounted:
 	if _api_instance == null and is_api_loaded():
+		@warning_ignore("unsafe_method_access")
 		_api_instance = instance().new()
 	return _api_instance
 
@@ -67,6 +68,7 @@ static func is_api_loaded() -> bool:
 
 	# Finally load the wrapper and check if the GdUnit4 assembly can be found
 	_gdUnit4NetWrapper = load("res://addons/gdUnit4/src/dotnet/GdUnit4CSharpApi.cs")
+	@warning_ignore("unsafe_method_access")
 	return _gdUnit4NetWrapper.IsApiLoaded()
 
 
@@ -75,6 +77,7 @@ static func is_api_loaded() -> bool:
 static func version() -> String:
 	if not GdUnit4CSharpApiLoader.is_api_loaded():
 		return "unknown"
+	@warning_ignore("unsafe_method_access")
 	return instance().Version()
 
 
@@ -92,12 +95,14 @@ static func execute(tests: Array[GdUnitTestCase]) -> void:
 	var tests_as_dict: Array[Dictionary] = Array(tests.map(GdUnitTestCase.to_dict), TYPE_DICTIONARY, "", null)
 
 	net_api.call("ExecuteAsync", tests_as_dict, _test_event_listener.publish_event)
+	@warning_ignore("unsafe_property_access")
 	await net_api.ExecutionCompleted
 
 
 static func create_test_suite(source_path: String, line_number: int, test_suite_path: String) -> GdUnitResult:
 	if not GdUnit4CSharpApiLoader.is_api_loaded():
 		return  GdUnitResult.error("Can't create test suite. No .NET support found.")
+	@warning_ignore("unsafe_method_access")
 	var result: Dictionary = instance().CreateTestSuite(source_path, line_number, test_suite_path)
 	if result.has("error"):
 		return GdUnitResult.error(str(result.get("error")))

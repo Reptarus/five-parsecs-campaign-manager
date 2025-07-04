@@ -258,4 +258,3 @@ func test_serialization() -> void:
     assert_that(new_weapon.get_damage()).is_equal(4)
     var loaded_traits: Array = new_weapon.get_traits()
     assert_that(loaded_traits.size()).is_equal(2)
-    

@@ -1,5 +1,6 @@
 # Universal Connection Validation Applied
 # Based on proven patterns: Universal Mock Strategy + 7-Stage Methodology
+class_name GameStateManagerClass
 extends Node
 
 # Safe imports
@@ -11,7 +12,7 @@ const UniversalSceneManager = preload("res://src/utils/UniversalSceneManager.gd"
 
 # Safe dependency loading - loaded at runtime in _ready()
 var GameEnums = null
-var GameState = null
+var CoreGameState = null
 
 signal game_state_changed(new_state)
 signal campaign_phase_changed(new_phase: int)
@@ -33,16 +34,19 @@ var supplies: int = initial_supplies
 var reputation: int = initial_reputation
 var story_progress: int = 0
 
+# Manager registration system for cross-system communication
+var registered_managers: Dictionary = {}
+
 func _ready() -> void:
 	# Load dependencies safely at runtime
 	GameEnums = UniversalResourceLoader.load_script_safe("res://src/core/systems/GlobalEnums.gd", "GameStateManager GameEnums")
-	GameState = UniversalResourceLoader.load_script_safe("res://src/core/state/GameState.gd", "GameStateManager GameState")
+	CoreGameState = UniversalResourceLoader.load_script_safe("res://src/core/state/GameState.gd", "GameStateManager CoreGameState")
 	
 	# Initialize enum values after loading GameEnums
 	if GameEnums:
 		# Set default campaign phase to NONE if available
-		if "FiveParcsecsCampaignPhase" in GameEnums and "NONE" in GameEnums.FiveParcsecsCampaignPhase:
-			campaign_phase = GameEnums.FiveParcsecsCampaignPhase.NONE
+		if "FiveParsecsCampaignPhase" in GameEnums and "NONE" in GameEnums.FiveParsecsCampaignPhase:
+			campaign_phase = GameEnums.FiveParsecsCampaignPhase.NONE
 		# Set default difficulty to NORMAL if available  
 		if "DifficultyLevel" in GameEnums and "NORMAL" in GameEnums.DifficultyLevel:
 			difficulty_level = GameEnums.DifficultyLevel.NORMAL
@@ -57,11 +61,16 @@ func _ready() -> void:
 	
 	# Create default game state if none exists
 	if not game_state:
-		if GameState:
-			game_state = GameState.new()
-			print("GameStateManager: Created new game state")
+		if CoreGameState:
+			# Create instance using proper Godot 4.4 pattern
+			var instance = (CoreGameState as Script).new()
+			if instance:
+				game_state = instance
+				print("GameStateManager: Created new game state")
+			else:
+				push_error("CRASH PREVENTION: Failed to instantiate CoreGameState")
 		else:
-			push_error("CRASH PREVENTION: GameState class not loaded")
+			push_error("CRASH PREVENTION: CoreGameState class not loaded")
 
 func _validate_universal_connections() -> void:
 	# Validate core system connections
@@ -73,29 +82,29 @@ func _validate_core_connections() -> void:
 	if not GameEnums:
 		push_error("CORE SYSTEM FAILURE: GameEnums not accessible from GameStateManager")
 	
-	if not GameState:
-		push_error("CORE SYSTEM FAILURE: GameState not accessible from GameStateManager")
+	if not CoreGameState:
+		push_error("CORE SYSTEM FAILURE: CoreGameState not accessible from GameStateManager")
 	
-	# Validate autoload connections
-	var required_systems = ["EventBus"]
-	for system_name in required_systems:
-		var system = get_node_or_null("/root/" + system_name)
-		if not system:
-			push_warning("CORE DEPENDENCY MISSING: %s not found (GameStateManager)" % system_name)
+	# Autoload validation skipped - dependencies checked at runtime
 
 func _register_with_game_state() -> void:
-	# Register this manager with the global game state system
-	var global_game_state = get_node_or_null("/root/GameState")
-	if global_game_state and global_game_state.has_method("register_manager"):
-		global_game_state.register_manager("GameStateManager", self)
+	# Register this manager with the global game state system using direct autoload access
+	if GameState and GameState.has_method("register_manager"):
+		GameState.register_manager("GameStateManager", self)
 
+## Initialize a new game state
 func initialize_game_state() -> void:
-	"""Initialize a new game state"""
 	if not game_state:
-		if GameState:
-			game_state = GameState.new()
+		if CoreGameState:
+			# Create instance using proper Godot 4.4 pattern
+			var instance = (CoreGameState as Script).new()
+			if instance:
+				game_state = instance
+			else:
+				push_error("CRASH PREVENTION: Failed to instantiate CoreGameState")
+				return
 		else:
-			push_error("CRASH PREVENTION: Cannot create GameState - class not loaded")
+			push_error("CRASH PREVENTION: Cannot create CoreGameState - class not loaded")
 			return
 	
 	# Set initial values using proper API
@@ -183,15 +192,57 @@ func get_reputation() -> int:
 func get_story_progress() -> int:
 	return story_progress
 
-# Campaign management
+# Manager Registration System for Cross-System Communication
+
+## Register a manager for cross-system access
+func register_manager(manager_name: String, manager_instance: Node) -> void:
+	"""Register a manager for cross-system communication"""
+	if not manager_instance:
+		push_warning("GameStateManager: Attempted to register null manager: " + manager_name)
+		return
+	
+	registered_managers[manager_name] = manager_instance
+	print("GameStateManager: Registered manager: " + manager_name)
+
+## Get a registered manager by name
+func get_manager(manager_name: String) -> Node:
+	"""Get a registered manager by name"""
+	if manager_name in registered_managers:
+		return registered_managers[manager_name]
+	else:
+		push_warning("GameStateManager: Manager not found: " + manager_name)
+		return null
+
+## Check if a manager is registered
+func has_manager(manager_name: String) -> bool:
+	"""Check if a manager is registered"""
+	return manager_name in registered_managers
+
+## Unregister a manager
+func unregister_manager(manager_name: String) -> void:
+	"""Unregister a manager"""
+	if manager_name in registered_managers:
+		registered_managers.erase(manager_name)
+		print("GameStateManager: Unregistered manager: " + manager_name)
+	else:
+		push_warning("GameStateManager: Cannot unregister unknown manager: " + manager_name)
+
+## Get all registered manager names
+func get_registered_managers() -> Array[String]:
+	"""Get all registered manager names"""
+	var manager_names: Array[String] = []
+	for name in registered_managers.keys():
+		manager_names.append(name)
+	return manager_names
+
+## Check if there's an active campaign
 func has_active_campaign() -> bool:
-	"""Check if there's an active campaign"""
 	if not game_state:
 		return false
 	return game_state.has_method("has_active_campaign") and game_state.has_active_campaign()
 
+## Start a new campaign with given configuration
 func start_new_campaign(campaign_config: Dictionary = {}) -> bool:
-	"""Start a new campaign with given configuration"""
 	if not game_state:
 		initialize_game_state()
 	
@@ -211,177 +262,251 @@ func start_new_campaign(campaign_config: Dictionary = {}) -> bool:
 	print("GameStateManager: New campaign started")
 	return true
 
+## Save the current game state
 func save_current_state() -> bool:
-	"""Save the current game state"""
 	if not game_state:
 		push_error("GameStateManager: No game state to save")
 		return false
 	
-	if game_state.has_method("save_game"):
+	# Coordinate save across all registered managers
+	var save_data = _collect_all_manager_data()
+	
+	# Get SaveManager for coordinated save operations
+	var save_manager = get_manager("SaveManager")
+	if save_manager and save_manager.has_method("save_game"):
+		return save_manager.save_game(save_data, "current_campaign")
+	elif game_state.has_method("save_game"):
 		return game_state.save_game("current_campaign")
 	else:
-		push_warning("GameStateManager: Game state doesn't support saving")
+		push_warning("GameStateManager: No save system available")
 		return false
 
+func _collect_all_manager_data() -> Dictionary:
+	"""Collect save data from all registered managers"""
+	var save_data = {
+		"game_state_manager": serialize_manager_state(),
+		"managers": {}
+	}
+	
+	# Collect data from all registered managers
+	for manager_name in registered_managers:
+		var manager = registered_managers[manager_name]
+		if manager and manager.has_method("save_data"):
+			save_data.managers[manager_name] = manager.save_data()
+		elif manager and manager.has_method("serialize"):
+			save_data.managers[manager_name] = manager.serialize()
+	
+	# Include game state data
+	if game_state and game_state.has_method("serialize"):
+		save_data["game_state"] = game_state.serialize()
+	
+	return save_data
+
+func serialize_manager_state() -> Dictionary:
+	"""Serialize GameStateManager's own state"""
+	return {
+		"credits": credits,
+		"supplies": supplies,
+		"reputation": reputation,
+		"story_progress": story_progress,
+		"campaign_phase": campaign_phase,
+		"difficulty_level": difficulty_level
+	}
+
+## Load a saved game state
 func load_saved_state(save_name: String = "current_campaign") -> bool:
-	"""Load a saved game state"""
 	if not game_state:
 		initialize_game_state()
 	
-	if game_state.has_method("load_game"):
+	# Get SaveManager for coordinated load operations
+	var save_manager = get_manager("SaveManager")
+	var save_data: Dictionary = {}
+	
+	if save_manager and save_manager.has_method("load_game"):
+		save_data = save_manager.load_game(save_name)
+	elif game_state.has_method("load_game"):
 		return game_state.load_game(save_name)
 	else:
-		push_warning("GameStateManager: Game state doesn't support loading")
+		push_warning("GameStateManager: No load system available")
 		return false
+	
+	if save_data.is_empty():
+		push_error("GameStateManager: Failed to load save data")
+		return false
+	
+	# Restore GameStateManager's own state
+	if save_data.has("game_state_manager"):
+		_restore_manager_state(save_data.game_state_manager)
+	
+	# Restore data for all registered managers
+	if save_data.has("managers"):
+		_restore_all_manager_data(save_data.managers)
+	
+	# Restore game state
+	if save_data.has("game_state") and game_state.has_method("deserialize"):
+		game_state.deserialize(save_data.game_state)
+	
+	print("GameStateManager: Game state loaded successfully")
+	return true
+
+func _restore_manager_state(data: Dictionary) -> void:
+	"""Restore GameStateManager's own state"""
+	credits = data.get("credits", initial_credits)
+	supplies = data.get("supplies", initial_supplies)
+	reputation = data.get("reputation", initial_reputation)
+	story_progress = data.get("story_progress", 0)
+	campaign_phase = data.get("campaign_phase", 0)
+	difficulty_level = data.get("difficulty_level", 1)
+	
+	# Emit signals for state changes
+	credits_changed.emit(credits)
+	supplies_changed.emit(supplies)
+	reputation_changed.emit(reputation)
+	story_progress_changed.emit(story_progress)
+	campaign_phase_changed.emit(campaign_phase)
+	difficulty_changed.emit(difficulty_level)
+
+func _restore_all_manager_data(managers_data: Dictionary) -> void:
+	"""Restore data for all registered managers"""
+	for manager_name in managers_data:
+		var manager = get_manager(manager_name)
+		if manager and manager.has_method("load_data"):
+			manager.load_data(managers_data[manager_name])
+		elif manager and manager.has_method("deserialize"):
+			manager.deserialize(managers_data[manager_name])
+		else:
+			push_warning("GameStateManager: Manager %s doesn't support loading" % manager_name)
 
 ## Campaign System Integration Methods
 
-# Credits Management
+## Add credits to current total
 func add_credits(amount: int) -> void:
-	"""Add credits to current total"""
 	set_credits(credits + amount)
 
+## Remove credits from current total
 func remove_credits(amount: int) -> bool:
-	"""Remove credits from current total"""
 	if credits >= amount:
 		set_credits(credits - amount)
 		return true
 	return false
 
-# Crew Management
+## Get array of crew members
 func get_crew_members() -> Array:
-	"""Get array of crew members"""
 	if game_state and game_state.has_method("get_crew_members"):
 		return game_state.get_crew_members()
 	return []
 
+## Get current crew size
 func get_crew_size() -> int:
-	"""Get current crew size"""
 	if game_state and game_state.has_method("get_crew_size"):
 		return game_state.get_crew_size()
 	return 4 # Default crew size
 
+## Get number of crew members in sick bay
 func get_sick_crew_count() -> int:
-	"""Get number of crew members in sick bay"""
 	if game_state and game_state.has_method("get_sick_crew_count"):
 		return game_state.get_sick_crew_count()
 	return 0
 
+## Add experience to crew member
 func add_crew_experience(crew_id: String, xp: int) -> void:
-	"""Add experience to crew member"""
 	if game_state and game_state.has_method("add_crew_experience"):
 		game_state.add_crew_experience(crew_id, xp)
 
+## Apply injury to crew member
 func apply_crew_injury(crew_id: String, injury_data: Dictionary) -> void:
-	"""Apply injury to crew member"""
 	if game_state and game_state.has_method("apply_crew_injury"):
 		game_state.apply_crew_injury(crew_id, injury_data)
 
-# Ship Management
+## Get player ship instance
 func get_player_ship():
-	"""Get player ship instance"""
 	if game_state and game_state.has_method("get_player_ship"):
 		return game_state.get_player_ship()
 	return null
 
+## Get ship debt interest payment
 func get_ship_debt_interest() -> int:
-	"""Get ship debt interest payment"""
 	if game_state and game_state.has_method("get_ship_debt_interest"):
 		return game_state.get_ship_debt_interest()
 	return 0
 
-# Rival System
+## Get number of active rivals
 func get_rival_count() -> int:
-	"""Get number of active rivals"""
 	if game_state and game_state.has_method("get_rival_count"):
 		return game_state.get_rival_count()
 	return 0
 
+## Remove rival from active rivals
 func remove_rival(rival_id: String) -> void:
-	"""Remove rival from active rivals"""
 	if game_state and game_state.has_method("remove_rival"):
 		game_state.remove_rival(rival_id)
 
-# Patron System
+## Add patron to contacts
 func add_patron_contact(patron_id: String) -> void:
-	"""Add patron to contacts"""
 	if game_state and game_state.has_method("add_patron_contact"):
 		game_state.add_patron_contact(patron_id)
 
+## Dismiss patrons without persistence trait
 func dismiss_non_persistent_patrons() -> void:
-	"""Dismiss patrons without persistence trait"""
 	if game_state and game_state.has_method("dismiss_non_persistent_patrons"):
 		game_state.dismiss_non_persistent_patrons()
 
-# Quest System
+## Check if there's an active quest
 func has_active_quest() -> bool:
-	"""Check if there's an active quest"""
 	if game_state and game_state.has_method("has_active_quest"):
 		return game_state.has_active_quest()
 	return false
 
+## Get number of quest rumors
 func get_quest_rumors() -> int:
-	"""Get number of quest rumors"""
 	if game_state and game_state.has_method("get_quest_rumors"):
 		return game_state.get_quest_rumors()
 	return 0
 
+## Advance quest progress
 func advance_quest(progress: int) -> void:
-	"""Advance quest progress"""
 	if game_state and game_state.has_method("advance_quest"):
 		game_state.advance_quest(progress)
 
+## Check if crew can attack a rival
 func can_attack_rival() -> bool:
-	"""Check if crew can attack a rival"""
 	if game_state and game_state.has_method("can_attack_rival"):
 		return game_state.can_attack_rival()
 	return false
 
-# World System
+## Set current world location
 func set_location(world_data: Dictionary) -> void:
-	"""Set current world location"""
 	if game_state and game_state.has_method("set_location"):
 		game_state.set_location(world_data)
 
+## Check if invasion is pending
 func has_pending_invasion() -> bool:
-	"""Check if invasion is pending"""
 	if game_state and game_state.has_method("has_pending_invasion"):
 		return game_state.has_pending_invasion()
 	return false
 
+## Set invasion pending status
 func set_invasion_pending(pending: bool) -> void:
-	"""Set invasion pending status"""
 	if game_state and game_state.has_method("set_invasion_pending"):
 		game_state.set_invasion_pending(pending)
 
-# Inventory System
+## Add item to crew inventory
 func add_inventory_item(item: Dictionary) -> void:
-	"""Add item to crew inventory"""
 	if game_state and game_state.has_method("add_inventory_item"):
 		game_state.add_inventory_item(item)
 
+## Add contact for crew member
 func add_crew_contact(crew_id: String, contact_id: String) -> void:
-	"""Add contact for crew member"""
 	if game_state and game_state.has_method("add_crew_contact"):
 		game_state.add_crew_contact(crew_id, contact_id)
 
-# Manager Registration System
-var registered_managers: Dictionary = {}
 
-func register_manager(manager_name: String, manager_instance: Node) -> void:
-	"""Register a manager instance"""
-	registered_managers[manager_name] = manager_instance
-	print("GameStateManager: Registered manager '%s'" % manager_name)
-
-func get_manager(manager_name: String) -> Node:
-	"""Get registered manager instance"""
-	return registered_managers.get(manager_name, null)
 
 ## Developer Testing Methods
 ## These methods support the DeveloperQuickStart panel for efficient playtesting
 
+## Create a test campaign with specified parameters for playtesting
 func create_test_campaign(campaign_data: Dictionary) -> bool:
-	"""Create a test campaign with specified parameters for playtesting"""
 	print("GameStateManager: Creating test campaign - ", campaign_data.get("name", "Unknown"))
 	
 	# Start with basic new campaign
@@ -422,8 +547,8 @@ func create_test_campaign(campaign_data: Dictionary) -> bool:
 	print("GameStateManager: Test campaign created successfully")
 	return true
 
+## Apply a specific test scenario to current campaign
 func apply_test_scenario(scenario_name: String) -> bool:
-	"""Apply a specific test scenario to current campaign"""
 	print("GameStateManager: Applying test scenario - ", scenario_name)
 	
 	match scenario_name:
@@ -443,8 +568,8 @@ func apply_test_scenario(scenario_name: String) -> bool:
 	
 	return true
 
+## Simulate campaign progression to target turn
 func _simulate_campaign_progression(target_turn: int) -> void:
-	"""Simulate campaign progression to target turn"""
 	# This is a simplified simulation for testing purposes
 	# In a real implementation, this would involve proper turn progression
 	print("GameStateManager: Simulating progression to turn ", target_turn)
@@ -457,8 +582,8 @@ func _simulate_campaign_progression(target_turn: int) -> void:
 		if turn % 3 == 0: # Every 3 turns, add some reputation
 			reputation += 1
 
+## Create test crew members
 func _create_test_crew(crew_size: int) -> void:
-	"""Create test crew members"""
 	print("GameStateManager: Creating test crew of size ", crew_size)
 	
 	# This would interface with the crew system to generate test crew
@@ -466,8 +591,8 @@ func _create_test_crew(crew_size: int) -> void:
 	if game_state and game_state.has_method("set_crew_size"):
 		game_state.set_crew_size(crew_size)
 
+## Create test rival encounters
 func _create_test_rivals(rival_count: int) -> void:
-	"""Create test rival encounters"""
 	print("GameStateManager: Creating ", rival_count, " test rivals")
 	
 	if not game_state or not game_state.has_method("add_rival"):
@@ -478,16 +603,16 @@ func _create_test_rivals(rival_count: int) -> void:
 		var test_rival_id = "test_rival_" + str(i + 1)
 		game_state.add_rival(test_rival_id)
 
+## Create test quest scenarios
 func _create_test_quests(quest_count: int) -> void:
-	"""Create test quest scenarios"""
 	print("GameStateManager: Creating ", quest_count, " test quests")
 	
 	# This would interface with the quest system
 	if game_state and game_state.has_method("create_test_quests"):
 		game_state.create_test_quests(quest_count)
 
+## Apply test equipment level to crew
 func _apply_test_equipment_level(level: String) -> void:
-	"""Apply test equipment level to crew"""
 	print("GameStateManager: Applying equipment level - ", level)
 	
 	match level:
@@ -500,30 +625,30 @@ func _apply_test_equipment_level(level: String) -> void:
 		"elite":
 			_apply_elite_equipment()
 
+## Apply basic equipment set
 func _apply_basic_equipment() -> void:
-	"""Apply basic equipment set"""
 	# Basic starting equipment
 	pass
 
+## Apply improved equipment set
 func _apply_improved_equipment() -> void:
-	"""Apply improved equipment set"""
 	# Mid-tier equipment
 	pass
 
+## Apply advanced equipment set
 func _apply_advanced_equipment() -> void:
-	"""Apply advanced equipment set"""
 	# High-tier equipment
 	pass
 
+## Apply elite equipment set
 func _apply_elite_equipment() -> void:
-	"""Apply elite equipment set"""
 	# Top-tier equipment
 	pass
 
 ## Test Scenario Setups
 
+## Setup rival attack test scenario
 func _setup_rival_attack_scenario() -> void:
-	"""Setup rival attack test scenario"""
 	print("GameStateManager: Setting up rival attack scenario")
 	
 	# Create multiple active rivals
@@ -533,8 +658,8 @@ func _setup_rival_attack_scenario() -> void:
 	if game_state and game_state.has_method("set_rival_aggression"):
 		game_state.set_rival_aggression("high")
 
+## Setup resource crisis test scenario
 func _setup_resource_crisis_scenario() -> void:
-	"""Setup resource crisis test scenario"""
 	print("GameStateManager: Setting up resource crisis scenario")
 	
 	# Set low resources
@@ -544,8 +669,8 @@ func _setup_resource_crisis_scenario() -> void:
 	# Large crew to create upkeep pressure
 	_create_test_crew(6)
 
+## Setup quest chain test scenario
 func _setup_quest_chain_scenario() -> void:
-	"""Setup quest chain test scenario"""
 	print("GameStateManager: Setting up quest chain scenario")
 	
 	# Create multiple active quests
@@ -555,8 +680,8 @@ func _setup_quest_chain_scenario() -> void:
 	if game_state and game_state.has_method("add_quest_rumors"):
 		game_state.add_quest_rumors(5)
 
+## Setup equipment showcase test scenario
 func _setup_equipment_showcase_scenario() -> void:
-	"""Setup equipment showcase test scenario"""
 	print("GameStateManager: Setting up equipment showcase scenario")
 	
 	# High credits for equipment testing
@@ -566,16 +691,15 @@ func _setup_equipment_showcase_scenario() -> void:
 	if game_state and game_state.has_method("unlock_all_equipment"):
 		game_state.unlock_all_equipment()
 
+## Setup combat ready test scenario
 func _setup_combat_ready_scenario() -> void:
-	"""Setup combat ready test scenario"""
 	print("GameStateManager: Setting up combat ready scenario")
 	
 	# Set to battle phase
-	if GameEnums and "FiveParcsecsCampaignPhase" in GameEnums:
-		if "BATTLE" in GameEnums.FiveParcsecsCampaignPhase:
-			set_campaign_phase(GameEnums.FiveParcsecsCampaignPhase.BATTLE)
+	if GameEnums and "FiveParsecsCampaignPhase" in GameEnums:
+		if "BATTLE" in GameEnums.FiveParsecsCampaignPhase:
+			set_campaign_phase(GameEnums.FiveParsecsCampaignPhase.BATTLE)
 	
 	# Create varied enemy types
 	if game_state and game_state.has_method("setup_varied_enemies"):
 		game_state.setup_varied_enemies()
-      

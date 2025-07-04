@@ -11,7 +11,7 @@
 extends Node
 
 const GameEnums = preload("res://src/core/systems/GlobalEnums.gd")
-const CharacterManager = preload("res://src/core/character/Management/CharacterManager.gd")
+# Note: CharacterManager is an autoload - access via get_node("/root/CharacterManager")
 # Note: GameState will be injected via setup() to avoid circular dependencies
 
 signal battle_results_recorded(results: Dictionary)
@@ -19,7 +19,7 @@ signal casualties_processed(casualties: Array)
 signal rewards_calculated(rewards: Dictionary)
 signal battle_log_updated(log_entry: Dictionary)
 
-var character_manager: CharacterManager
+var character_manager: Node # CharacterManagerAutoload
 var game_state: Node # GameState - avoiding circular dependency
 
 # Battle result data
@@ -37,7 +37,7 @@ func _init() -> void:
 	pass
 func _ready() -> void:
 	reset_current_battle()
-func setup(state: Node, char_manager: CharacterManager) -> void:
+func setup(state: Node, char_manager: Node) -> void: # char_manager is CharacterManagerAutoload
 	game_state = state
 	character_manager = char_manager
 func reset_current_battle() -> void:

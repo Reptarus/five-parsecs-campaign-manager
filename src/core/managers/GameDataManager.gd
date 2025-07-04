@@ -1,11 +1,53 @@
-@tool
+class_name GameDataManagerClass
 extends Node
 
 signal data_loaded(data_type)
 signal data_load_failed(data_type, error)
+signal game_data_manager_ready()
 
-# Singleton reference
-static var _instance: Node = null
+# Static compatibility methods for existing code
+static func get_instance() -> GameDataManagerClass:
+	# In Godot 4, autoloads are accessed via the scene tree at /root/[AutoloadName]
+	var tree = Engine.get_main_loop() as SceneTree
+	if not tree:
+		if OS.is_debug_build():
+			print("CoreGameDataManager: SceneTree not available yet - still initializing")
+		return null
+	
+	if not tree.root:
+		if OS.is_debug_build():
+			print("CoreGameDataManager: Root node not available yet - still initializing")
+		return null
+	
+	var instance = tree.root.get_node_or_null("GameDataManagerAutoload") as GameDataManagerClass
+	if instance:
+		if OS.is_debug_build() and instance._is_initialized:
+			print("CoreGameDataManager: Successfully accessed initialized instance")
+		return instance
+	
+	# More detailed error information for debugging
+	if OS.is_debug_build():
+		print("CoreGameDataManager autoload not found - may still be initializing")
+	return null
+
+static func ensure_data_loaded() -> bool:
+	var instance = get_instance()
+	if instance:
+		return instance._is_initialized
+	# Return false if not available instead of failing completely
+	return false
+
+static func wait_for_ready() -> GameDataManagerClass:
+	# Simplified synchronous check - no await in autoload context
+	var instance = get_instance()
+	if instance and instance._is_initialized:
+		if OS.is_debug_build():
+			print("CoreGameDataManager: Instance ready immediately")
+		return instance
+	
+	if OS.is_debug_build():
+		print("CoreGameDataManager: Instance not ready yet")
+	return null
 
 # Paths to data files
 const INJURY_TABLE_PATH = "res://data/injury_table.json"
@@ -41,29 +83,22 @@ var status_effects: Dictionary = {}
 var _is_initialized: bool = false
 
 func _init() -> void:
-	# We don't automatically load data on initialization
-	# to allow for more control over when data is loaded
-	if _instance == null and not Engine.is_editor_hint():
-		_instance = self
-		
-# Static accessor for singleton
-static func get_instance() -> Node:
-	if _instance == null:
-		push_warning("GameDataManager singleton not initialized. Creating new instance.")
-		_instance = load("res://src/core/managers/GameDataManager.gd").new()
-	return _instance
-
-# Static method to ensure data is loaded
-static func ensure_data_loaded() -> bool:
-	var instance = get_instance()
-	if not instance._is_initialized:
-		return instance.load_all_data()
-	return true
+	# Initialize data containers
+	pass
 
 func _ready() -> void:
-	# If this is the autoloaded instance, load data automatically
-	if _instance == self and not Engine.is_editor_hint():
-		load_all_data()
+	print("CoreGameDataManager: Starting initialization...")
+	# Load data automatically on ready
+	var success = load_all_data()
+	
+	if success:
+		print("CoreGameDataManager: Initialization completed successfully")
+		game_data_manager_ready.emit()
+	else:
+		print("CoreGameDataManager: Initialization completed with some warnings")
+		# Still emit ready signal even if some non-critical data failed
+		game_data_manager_ready.emit()
+
 func load_all_data() -> bool:
 	var all_loaded: bool = true
 	
@@ -98,9 +133,9 @@ func load_all_data() -> bool:
 	# Log the initialization status
 	if _is_initialized:
 		if not all_loaded:
-			push_warning("Some non-critical data files failed to load, but GameDataManager is initialized with critical data.")
+			push_warning("Some non-critical data files failed to load, but CoreGameDataManager is initialized with critical data.")
 	else:
-		push_error("Failed to load critical data files. GameDataManager is not properly initialized.")
+		push_error("Failed to load critical data files. CoreGameDataManager is not properly initialized.")
 	
 	return _is_initialized
 
@@ -109,7 +144,7 @@ func load_injury_tables() -> bool:
 	if file == null:
 		var error = FileAccess.get_open_error()
 		push_error("Failed to open injury table file: " + str(error))
-		data_load_failed.emit( "injury_tables", error)
+		data_load_failed.emit("injury_tables", error)
 		return false
 	
 	var json_text = file.get_as_text()
@@ -119,7 +154,7 @@ func load_injury_tables() -> bool:
 	var error = json.parse(json_text)
 	if error != OK:
 		push_error("Failed to parse injury table JSON: " + json.get_error_message() + " at line " + str(json.get_error_line()))
-		data_load_failed.emit( "injury_tables", error)
+		data_load_failed.emit("injury_tables", error)
 		return false
 	
 	var data = json.get_data()
@@ -127,10 +162,10 @@ func load_injury_tables() -> bool:
 		injury_tables = data
 	else:
 		push_error("Invalid injury tables format: expected a dictionary")
-		data_load_failed.emit( "injury_tables", ERR_INVALID_DATA)
+		data_load_failed.emit("injury_tables", ERR_INVALID_DATA)
 		return false
 		
-	data_loaded.emit( "injury_tables")
+	data_loaded.emit("injury_tables")
 	return true
 
 func load_enemy_types() -> bool:
@@ -138,7 +173,7 @@ func load_enemy_types() -> bool:
 	if file == null:
 		var error = FileAccess.get_open_error()
 		push_error("Failed to open enemy types file: " + str(error))
-		data_load_failed.emit( "enemy_types", error)
+		data_load_failed.emit("enemy_types", error)
 		# Use fallback data structure
 		_initialize_default_enemy_types()
 		return true
@@ -150,7 +185,7 @@ func load_enemy_types() -> bool:
 	var error = json.parse(json_text)
 	if error != OK:
 		push_error("Failed to parse enemy types JSON: " + json.get_error_message() + " at line " + str(json.get_error_line()))
-		data_load_failed.emit( "enemy_types", error)
+		data_load_failed.emit("enemy_types", error)
 		# Use fallback data structure
 		_initialize_default_enemy_types()
 		return true
@@ -160,12 +195,12 @@ func load_enemy_types() -> bool:
 		enemy_types = data
 	else:
 		push_error("Invalid enemy types data structure: expected a dictionary")
-		data_load_failed.emit( "enemy_types", ERR_INVALID_DATA)
+		data_load_failed.emit("enemy_types", ERR_INVALID_DATA)
 		# Use fallback data structure
 		_initialize_default_enemy_types()
 		return true
 	
-	data_loaded.emit( "enemy_types")
+	data_loaded.emit("enemy_types")
 	return true
 
 # Initialize a default enemy types structure for fallback
@@ -190,12 +225,13 @@ func _initialize_default_enemy_types() -> void:
 		"enemy_loot_tables": {},
 		"enemy_spawn_rules": {}
 	}
+
 func load_world_traits() -> bool:
 	var file = FileAccess.open(WORLD_TRAITS_PATH, FileAccess.READ)
 	if file == null:
 		var error = FileAccess.get_open_error()
 		push_error("Failed to open world traits file: " + str(error))
-		data_load_failed.emit( "world_traits", error)
+		data_load_failed.emit("world_traits", error)
 		return false
 	
 	var json_text = file.get_as_text()
@@ -205,7 +241,7 @@ func load_world_traits() -> bool:
 	var error = json.parse(json_text)
 	if error != OK:
 		push_error("Failed to parse world traits JSON: " + json.get_error_message() + " at line " + str(json.get_error_line()))
-		data_load_failed.emit( "world_traits", error)
+		data_load_failed.emit("world_traits", error)
 		return false
 	
 	var data = json.get_data()
@@ -213,10 +249,10 @@ func load_world_traits() -> bool:
 		world_traits = data
 	else:
 		push_error("Invalid world traits format: expected a dictionary")
-		data_load_failed.emit( "world_traits", ERR_INVALID_DATA)
+		data_load_failed.emit("world_traits", ERR_INVALID_DATA)
 		return false
 		
-	data_loaded.emit( "world_traits")
+	data_loaded.emit("world_traits")
 	return true
 
 func load_planet_types() -> bool:
@@ -224,7 +260,7 @@ func load_planet_types() -> bool:
 	if file == null:
 		var error = FileAccess.get_open_error()
 		push_error("Failed to open planet types file: " + str(error))
-		data_load_failed.emit( "planet_types", error)
+		data_load_failed.emit("planet_types", error)
 		return false
 	
 	var json_text = file.get_as_text()
@@ -234,7 +270,7 @@ func load_planet_types() -> bool:
 	var error = json.parse(json_text)
 	if error != OK:
 		push_error("Failed to parse planet types JSON: " + json.get_error_message() + " at line " + str(json.get_error_line()))
-		data_load_failed.emit( "planet_types", error)
+		data_load_failed.emit("planet_types", error)
 		return false
 	
 	var data = json.get_data()
@@ -242,10 +278,10 @@ func load_planet_types() -> bool:
 		planet_types = data
 	else:
 		push_error("Invalid planet types format: expected a dictionary")
-		data_load_failed.emit( "planet_types", ERR_INVALID_DATA)
+		data_load_failed.emit("planet_types", ERR_INVALID_DATA)
 		return false
 		
-	data_loaded.emit( "planet_types")
+	data_loaded.emit("planet_types")
 	return true
 
 func load_location_types() -> bool:
@@ -253,7 +289,7 @@ func load_location_types() -> bool:
 	if file == null:
 		var error = FileAccess.get_open_error()
 		push_error("Failed to open location types file: " + str(error))
-		data_load_failed.emit( "location_types", error)
+		data_load_failed.emit("location_types", error)
 		return false
 	
 	var json_text = file.get_as_text()
@@ -263,7 +299,7 @@ func load_location_types() -> bool:
 	var error = json.parse(json_text)
 	if error != OK:
 		push_error("Failed to parse location types JSON: " + json.get_error_message() + " at line " + str(json.get_error_line()))
-		data_load_failed.emit( "location_types", error)
+		data_load_failed.emit("location_types", error)
 		return false
 	
 	var data = json.get_data()
@@ -271,10 +307,10 @@ func load_location_types() -> bool:
 		location_types = data
 	else:
 		push_error("Invalid location types format: expected a dictionary")
-		data_load_failed.emit( "location_types", ERR_INVALID_DATA)
+		data_load_failed.emit("location_types", ERR_INVALID_DATA)
 		return false
 		
-	data_loaded.emit( "location_types")
+	data_loaded.emit("location_types")
 	return true
 
 func load_gear_database() -> bool:
@@ -282,7 +318,7 @@ func load_gear_database() -> bool:
 	if file == null:
 		var error = FileAccess.get_open_error()
 		push_error("Failed to open gear database file: " + str(error))
-		data_load_failed.emit( "gear_database", error)
+		data_load_failed.emit("gear_database", error)
 		return false
 	
 	var json_text = file.get_as_text()
@@ -292,7 +328,7 @@ func load_gear_database() -> bool:
 	var error = json.parse(json_text)
 	if error != OK:
 		push_error("Failed to parse gear database JSON: " + json.get_error_message() + " at line " + str(json.get_error_line()))
-		data_load_failed.emit( "gear_database", error)
+		data_load_failed.emit("gear_database", error)
 		return false
 	
 	var data = json.get_data()
@@ -300,10 +336,10 @@ func load_gear_database() -> bool:
 		gear_database = data
 	else:
 		push_error("Invalid gear database format: expected a dictionary")
-		data_load_failed.emit( "gear_database", ERR_INVALID_DATA)
+		data_load_failed.emit("gear_database", ERR_INVALID_DATA)
 		return false
 		
-	data_loaded.emit( "gear_database")
+	data_loaded.emit("gear_database")
 	return true
 
 func load_equipment_database() -> bool:
@@ -311,7 +347,7 @@ func load_equipment_database() -> bool:
 	if file == null:
 		var error = FileAccess.get_open_error()
 		push_error("Failed to open equipment database file: " + str(error))
-		data_load_failed.emit( "equipment_database", error)
+		data_load_failed.emit("equipment_database", error)
 		return false
 	
 	var json_text = file.get_as_text()
@@ -321,7 +357,7 @@ func load_equipment_database() -> bool:
 	var error = json.parse(json_text)
 	if error != OK:
 		push_error("Failed to parse equipment database JSON: " + json.get_error_message() + " at line " + str(json.get_error_line()))
-		data_load_failed.emit( "equipment_database", error)
+		data_load_failed.emit("equipment_database", error)
 		return false
 	
 	var data = json.get_data()
@@ -329,10 +365,10 @@ func load_equipment_database() -> bool:
 		equipment_database = data
 	else:
 		push_error("Invalid equipment database format: expected a dictionary")
-		data_load_failed.emit( "equipment_database", ERR_INVALID_DATA)
+		data_load_failed.emit("equipment_database", ERR_INVALID_DATA)
 		return false
 		
-	data_loaded.emit( "equipment_database")
+	data_loaded.emit("equipment_database")
 	return true
 
 func load_loot_tables() -> bool:
@@ -340,7 +376,7 @@ func load_loot_tables() -> bool:
 	if file == null:
 		var error = FileAccess.get_open_error()
 		push_error("Failed to open loot tables file: " + str(error))
-		data_load_failed.emit( "loot_tables", error)
+		data_load_failed.emit("loot_tables", error)
 		return false
 	
 	var json_text = file.get_as_text()
@@ -350,7 +386,7 @@ func load_loot_tables() -> bool:
 	var error = json.parse(json_text)
 	if error != OK:
 		push_error("Failed to parse loot tables JSON: " + json.get_error_message() + " at line " + str(json.get_error_line()))
-		data_load_failed.emit( "loot_tables", error)
+		data_load_failed.emit("loot_tables", error)
 		return false
 	
 	var data = json.get_data()
@@ -358,10 +394,10 @@ func load_loot_tables() -> bool:
 		loot_tables = data
 	else:
 		push_error("Invalid loot tables format: expected a dictionary")
-		data_load_failed.emit( "loot_tables", ERR_INVALID_DATA)
+		data_load_failed.emit("loot_tables", ERR_INVALID_DATA)
 		return false
 		
-	data_loaded.emit( "loot_tables")
+	data_loaded.emit("loot_tables")
 	return true
 
 func load_mission_templates() -> bool:
@@ -369,7 +405,7 @@ func load_mission_templates() -> bool:
 	if file == null:
 		var error = FileAccess.get_open_error()
 		push_error("Failed to open mission templates file: " + str(error))
-		data_load_failed.emit( "mission_templates", error)
+		data_load_failed.emit("mission_templates", error)
 		return false
 	
 	var json_text = file.get_as_text()
@@ -379,7 +415,7 @@ func load_mission_templates() -> bool:
 	var error = json.parse(json_text)
 	if error != OK:
 		push_error("Failed to parse mission templates JSON: " + json.get_error_message() + " at line " + str(json.get_error_line()))
-		data_load_failed.emit( "mission_templates", error)
+		data_load_failed.emit("mission_templates", error)
 		return false
 	
 	var data = json.get_data()
@@ -387,10 +423,10 @@ func load_mission_templates() -> bool:
 		mission_templates = data["mission_templates"]
 	else:
 		push_error("Invalid mission templates format: expected a dictionary with 'mission_templates' array")
-		data_load_failed.emit( "mission_templates", ERR_INVALID_DATA)
+		data_load_failed.emit("mission_templates", ERR_INVALID_DATA)
 		return false
 		
-	data_loaded.emit( "mission_templates")
+	data_loaded.emit("mission_templates")
 	return true
 
 func load_character_creation_data() -> bool:
@@ -398,7 +434,7 @@ func load_character_creation_data() -> bool:
 	if file == null:
 		var error = FileAccess.get_open_error()
 		push_error("Failed to open character creation data file: " + str(error))
-		data_load_failed.emit( "character_creation_data", error)
+		data_load_failed.emit("character_creation_data", error)
 		return false
 	
 	var json_text = file.get_as_text()
@@ -408,7 +444,7 @@ func load_character_creation_data() -> bool:
 	var error = json.parse(json_text)
 	if error != OK:
 		push_error("Failed to parse character creation data JSON: " + json.get_error_message() + " at line " + str(json.get_error_line()))
-		data_load_failed.emit( "character_creation_data", error)
+		data_load_failed.emit("character_creation_data", error)
 		return false
 	
 	var data = json.get_data()
@@ -416,10 +452,10 @@ func load_character_creation_data() -> bool:
 		character_creation_data = data
 	else:
 		push_error("Invalid character creation data format: expected a dictionary")
-		data_load_failed.emit( "character_creation_data", ERR_INVALID_DATA)
+		data_load_failed.emit("character_creation_data", ERR_INVALID_DATA)
 		return false
 		
-	data_loaded.emit( "character_creation_data")
+	data_loaded.emit("character_creation_data")
 	return true
 
 func load_weapons_database() -> bool:
@@ -427,7 +463,7 @@ func load_weapons_database() -> bool:
 	if file == null:
 		var error = FileAccess.get_open_error()
 		push_error("Failed to open weapons database file: " + str(error))
-		data_load_failed.emit( "weapons_database", error)
+		data_load_failed.emit("weapons_database", error)
 		return false
 	
 	var json_text = file.get_as_text()
@@ -437,7 +473,7 @@ func load_weapons_database() -> bool:
 	var error = json.parse(json_text)
 	if error != OK:
 		push_error("Failed to parse weapons database JSON: " + json.get_error_message() + " at line " + str(json.get_error_line()))
-		data_load_failed.emit( "weapons_database", error)
+		data_load_failed.emit("weapons_database", error)
 		return false
 	
 	var data = json.get_data()
@@ -445,10 +481,10 @@ func load_weapons_database() -> bool:
 		weapons_database = data
 	else:
 		push_error("Invalid weapons database format: expected a dictionary")
-		data_load_failed.emit( "weapons_database", ERR_INVALID_DATA)
+		data_load_failed.emit("weapons_database", ERR_INVALID_DATA)
 		return false
 		
-	data_loaded.emit( "weapons_database")
+	data_loaded.emit("weapons_database")
 	return true
 
 func load_armor_database() -> bool:
@@ -456,7 +492,7 @@ func load_armor_database() -> bool:
 	if file == null:
 		var error = FileAccess.get_open_error()
 		push_error("Failed to open armor database file: " + str(error))
-		data_load_failed.emit( "armor_database", error)
+		data_load_failed.emit("armor_database", error)
 		return false
 	
 	var json_text = file.get_as_text()
@@ -466,7 +502,7 @@ func load_armor_database() -> bool:
 	var error = json.parse(json_text)
 	if error != OK:
 		push_error("Failed to parse armor database JSON: " + json.get_error_message() + " at line " + str(json.get_error_line()))
-		data_load_failed.emit( "armor_database", error)
+		data_load_failed.emit("armor_database", error)
 		return false
 	
 	var data = json.get_data()
@@ -474,10 +510,10 @@ func load_armor_database() -> bool:
 		armor_database = data
 	else:
 		push_error("Invalid armor database format: expected a dictionary")
-		data_load_failed.emit( "armor_database", ERR_INVALID_DATA)
+		data_load_failed.emit("armor_database", ERR_INVALID_DATA)
 		return false
 		
-	data_loaded.emit( "armor_database")
+	data_loaded.emit("armor_database")
 	return true
 
 func load_status_effects() -> bool:
@@ -485,7 +521,7 @@ func load_status_effects() -> bool:
 	if file == null:
 		var error = FileAccess.get_open_error()
 		push_error("Failed to open status effects file: " + str(error))
-		data_load_failed.emit( "status_effects", error)
+		data_load_failed.emit("status_effects", error)
 		return false
 	
 	var json_text = file.get_as_text()
@@ -495,7 +531,7 @@ func load_status_effects() -> bool:
 	var error = json.parse(json_text)
 	if error != OK:
 		push_error("Failed to parse status effects JSON: " + json.get_error_message() + " at line " + str(json.get_error_line()))
-		data_load_failed.emit( "status_effects", error)
+		data_load_failed.emit("status_effects", error)
 		return false
 	
 	var data = json.get_data()
@@ -503,10 +539,10 @@ func load_status_effects() -> bool:
 		status_effects = data
 	else:
 		push_error("Invalid status effects format: expected a dictionary")
-		data_load_failed.emit( "status_effects", ERR_INVALID_DATA)
+		data_load_failed.emit("status_effects", ERR_INVALID_DATA)
 		return false
 		
-	data_loaded.emit( "status_effects")
+	data_loaded.emit("status_effects")
 	return true
 
 # Generic JSON file loader
@@ -532,7 +568,7 @@ func load_json_file(file_path: String) -> Variant:
 
 func get_injury_result(table_name: String, roll: int) -> Dictionary:
 	if not _is_initialized:
-		push_error("GameDataManager not initialized. Call load_all_data() first.")
+		push_error("CoreGameDataManager not initialized. Call load_all_data() first.")
 		return {}
 	
 	if not injury_tables.has(table_name):
@@ -558,7 +594,7 @@ func get_injury_result(table_name: String, roll: int) -> Dictionary:
 
 func get_enemy_type(enemy_id: String) -> Dictionary:
 	if not _is_initialized:
-		push_error("GameDataManager not initialized. Call load_all_data() first.")
+		push_error("CoreGameDataManager not initialized. Call load_all_data() first.")
 		return {}
 	
 	if not enemy_types.has("enemy_categories"):
@@ -570,7 +606,7 @@ func get_enemy_type(enemy_id: String) -> Dictionary:
 			continue
 
 		for enemy in category.get("enemies", []):
-			if enemy.has("_id") and enemy.get("_id") == enemy_id:
+			if enemy.has("id") and enemy.get("id") == enemy_id:
 				return enemy
 	
 	push_error("Enemy type not found: " + enemy_id)
@@ -578,7 +614,7 @@ func get_enemy_type(enemy_id: String) -> Dictionary:
 
 func get_world_trait(trait_id: String) -> Dictionary:
 	if not _is_initialized:
-		push_error("GameDataManager not initialized. Call load_all_data() first.")
+		push_error("CoreGameDataManager not initialized. Call load_all_data() first.")
 		return {}
 	
 	if world_traits.has(trait_id):
@@ -589,7 +625,7 @@ func get_world_trait(trait_id: String) -> Dictionary:
 
 func get_planet_type(planet_id: String) -> Dictionary:
 	if not _is_initialized:
-		push_error("GameDataManager not initialized. Call load_all_data() first.")
+		push_error("CoreGameDataManager not initialized. Call load_all_data() first.")
 		return {}
 	
 	if planet_types.has(planet_id):
@@ -600,7 +636,7 @@ func get_planet_type(planet_id: String) -> Dictionary:
 
 func get_location_type(location_id: String) -> Dictionary:
 	if not _is_initialized:
-		push_error("GameDataManager not initialized. Call load_all_data() first.")
+		push_error("CoreGameDataManager not initialized. Call load_all_data() first.")
 		return {}
 	
 	if location_types.has(location_id):
@@ -611,7 +647,7 @@ func get_location_type(location_id: String) -> Dictionary:
 
 func get_gear_item(item_id: String) -> Dictionary:
 	if not _is_initialized:
-		push_error("GameDataManager not initialized. Call load_all_data() first.")
+		push_error("CoreGameDataManager not initialized. Call load_all_data() first.")
 		return {}
 	
 	if gear_database.has(item_id):
@@ -622,7 +658,7 @@ func get_gear_item(item_id: String) -> Dictionary:
 
 func get_equipment_item(item_id: String) -> Dictionary:
 	if not _is_initialized:
-		push_error("GameDataManager not initialized. Call load_all_data() first.")
+		push_error("CoreGameDataManager not initialized. Call load_all_data() first.")
 		return {}
 	
 	if equipment_database.has(item_id):
@@ -633,7 +669,7 @@ func get_equipment_item(item_id: String) -> Dictionary:
 
 func get_loot_table(table_name: String) -> Array:
 	if not _is_initialized:
-		push_error("GameDataManager not initialized. Call load_all_data() first.")
+		push_error("CoreGameDataManager not initialized. Call load_all_data() first.")
 		return []
 	
 	if loot_tables.has(table_name):
@@ -651,11 +687,11 @@ func get_random_loot_item(table_name: String) -> Dictionary:
 
 func get_mission_template(template_id: String) -> Dictionary:
 	if not _is_initialized:
-		push_error("GameDataManager not initialized. Call load_all_data() first.")
+		push_error("CoreGameDataManager not initialized. Call load_all_data() first.")
 		return {}
 	
 	for mission_template in mission_templates:
-		if mission_template._id == template_id:
+		if mission_template.id == template_id:
 			return mission_template
 	
 	push_error("Mission template not found: " + template_id)
@@ -663,7 +699,7 @@ func get_mission_template(template_id: String) -> Dictionary:
 
 func get_character_creation_option(option_type: String, option_id: String) -> Dictionary:
 	if not _is_initialized:
-		push_error("GameDataManager not initialized. Call load_all_data() first.")
+		push_error("CoreGameDataManager not initialized. Call load_all_data() first.")
 		return {}
 	
 	if not character_creation_data.has(option_type):
@@ -673,7 +709,7 @@ func get_character_creation_option(option_type: String, option_id: String) -> Di
 	var options = character_creation_data[option_type]
 	
 	for creation_option in options:
-		if creation_option._id == option_id:
+		if creation_option.id == option_id:
 			return creation_option
 	
 	push_error("Character creation option not found: " + option_id + " in type " + option_type)
@@ -712,19 +748,15 @@ func is_data_loaded(data_type: String) -> bool:
 		"status_effects":
 			return not status_effects.is_empty()
 		_:
-			push_error("Invalid data _type: " + data_type)
+			push_error("Invalid data type: " + data_type)
 			return false
-
-# Static accessor for data loading check
-static func is_data_type_loaded(data_type: String) -> bool:
-	return get_instance().is_data_loaded(data_type)
 
 func get_weapon_by_id(weapon_id: String) -> Dictionary:
 	if not weapons_database.has("weapons"):
 		return {}
 	
 	for weapon in weapons_database.weapons:
-		if weapon._id == weapon_id:
+		if weapon.id == weapon_id:
 			return weapon
 	
 	return {}
@@ -734,7 +766,7 @@ func get_armor_by_id(armor_id: String) -> Dictionary:
 		return {}
 	
 	for armor in armor_database.armor:
-		if armor._id == armor_id:
+		if armor.id == armor_id:
 			return armor
 	
 	return {}
@@ -744,8 +776,7 @@ func get_status_effect_by_id(effect_id: String) -> Dictionary:
 		return {}
 	
 	for effect in status_effects.effects:
-		if effect._id == effect_id:
+		if effect.id == effect_id:
 			return effect
 	
 	return {}
-  

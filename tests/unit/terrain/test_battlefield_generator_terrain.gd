@@ -262,4 +262,3 @@ func _zones_are_connected(battlefield: MockBattlefield, start_pos: Vector2i, end
 					queue.append(next_pos)
 	
 	return false
-  

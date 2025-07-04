@@ -352,4 +352,3 @@ func complete_mission(mission_id: String, success: bool = true) -> void:
 			current_campaign.complete_mission(success)
 			available_missions.erase(mission)
 			break
- 

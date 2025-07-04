@@ -297,4 +297,3 @@ func test_attack_coordination() -> void:
     
     for enemy in _enemy_group:
         assert_signal(enemy).is_emitted("attack_executed")
- 

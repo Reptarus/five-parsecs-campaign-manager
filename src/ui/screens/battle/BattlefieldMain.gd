@@ -78,7 +78,15 @@ func _connect_signals() -> void:
 func setup_phase(data: Resource) -> void:
 	"""Setup the battle phase with campaign data"""
 	campaign_data = data
-	battle_data = data.get_meta("current_battle", {}) if data else {}
+	# Safe property access with Universal Safety System pattern
+	if data and data.has_method("get_meta"):
+		battle_data = data.get_meta("current_battle", {})
+	elif typeof(data) == TYPE_DICTIONARY and data.has("current_battle"):
+		battle_data = data["current_battle"]
+	elif data and "current_battle" in data:
+		battle_data = data.current_battle
+	else:
+		battle_data = {}
 	_start_battle()
 
 func _start_battle() -> void:

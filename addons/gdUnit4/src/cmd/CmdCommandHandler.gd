@@ -67,14 +67,17 @@ func _validate() -> GdUnitResult:
 			if _command_cbs[cmd_name][CB_SINGLE_ARG]
 			else _command_cbs[cmd_name][CB_MULTI_ARGS])
 		if cb != NO_CB and not cb.is_valid():
+			@warning_ignore("return_value_discarded")
 			errors.append("Invalid function reference for command '%s', Check the function reference!" % cmd_name)
 		if _cmd_options.get_option(cmd_name) == null:
+			@warning_ignore("return_value_discarded")
 			errors.append("The command '%s' is unknown, verify your CmdOptions!" % cmd_name)
 		# verify for multiple registered command callbacks
 		if cb != NO_CB:
 			var cb_method := cb.get_method()
 			if registered_cbs.has(cb_method):
 				var already_registered_cmd :String = registered_cbs[cb_method]
+				@warning_ignore("return_value_discarded")
 				errors.append("The function reference '%s' already registerd for command '%s'!" % [cb_method, already_registered_cmd])
 			else:
 				registered_cbs[cb_method] = cmd_name
@@ -111,6 +114,7 @@ func execute(commands: Array[CmdCommand]) -> GdUnitResult:
 func _validate_cb_signature(cb: Callable, arg_type: int) -> bool:
 	for m in cb.get_object().get_method_list():
 		if m["name"] == cb.get_method():
+			@warning_ignore("unsafe_cast")
 			return _validate_func_arguments(m["args"] as Array, arg_type)
 	return true
 
@@ -124,6 +128,7 @@ func _validate_func_arguments(arguments: Array, arg_type: int) -> bool:
 		return true
 	# validate argument type
 	var arg: Dictionary = arguments[0]
+	@warning_ignore("unsafe_cast")
 	if arg["usage"] as int == PROPERTY_USAGE_NIL_IS_VARIANT:
 		return true
 	if arg["type"] != arg_type:

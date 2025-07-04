@@ -282,4 +282,3 @@ func _create_cover_points() -> Array[Vector2]:
 		cover_points.append(Vector2(i * 50, i * 50))
 	
 	return cover_points
-    

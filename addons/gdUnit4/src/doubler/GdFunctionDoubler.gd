@@ -82,7 +82,9 @@ static func get_enum_default(value :String) -> Variant:
 		return %s.values()[0]
 
 	""".dedent() % value
+	@warning_ignore("return_value_discarded")
 	script.reload()
+	@warning_ignore("unsafe_method_access")
 	return script.new().call("get_enum_default")
 
 
@@ -112,6 +114,7 @@ func _init(push_errors :bool = false) -> void:
 			assert(DEFAULT_TYPED_RETURN_VALUES.has(type_key), "Missing Type default definition!")
 
 
+@warning_ignore("unused_parameter")
 func get_template(return_type: GdFunctionDescriptor, is_callable: bool) -> String:
 	assert(false, "'get_template' must be implemented!")
 	return ""
@@ -132,6 +135,7 @@ func double(func_descriptor: GdFunctionDescriptor, is_callable: bool = false) ->
 		var constructor := """
 			func _init(%s) -> void:
 				Engine.set_meta(__INSTANCE_ID, self)
+				@warning_ignore("unsafe_call_argument")
 				super(%s)
 
 			""".dedent() % [constructor_args, ", ".join(arg_names)]
@@ -162,6 +166,7 @@ func double(func_descriptor: GdFunctionDescriptor, is_callable: bool = false) ->
 func extract_arg_names(argument_signatures: Array[GdFunctionArgument], add_suffix := false) -> PackedStringArray:
 	var arg_names := PackedStringArray()
 	for arg in argument_signatures:
+		@warning_ignore("return_value_discarded")
 		arg_names.append(arg._name + ("_" if add_suffix else ""))
 	return arg_names
 
@@ -172,8 +177,10 @@ static func extract_constructor_args(args :Array[GdFunctionArgument]) -> PackedS
 		var arg_name := arg._name + "_"
 		var default_value := get_default(arg)
 		if default_value == "null":
+			@warning_ignore("return_value_discarded")
 			constructor_args.append(arg_name + ":Variant=" + default_value)
 		else:
+			@warning_ignore("return_value_discarded")
 			constructor_args.append(arg_name + ":=" + default_value)
 	return constructor_args
 
@@ -197,10 +204,13 @@ static func typeless_args(descriptor: GdFunctionDescriptor) -> String:
 			if arg.type() == GdObjects.TYPE_VARIANT:
 				collect.push_back("%s_:%s=%s" % [arg.name(), GdObjects.type_as_string(arg.type()), arg.value_as_string()])
 			else:
+				@warning_ignore("return_value_discarded")
 				collect.push_back("%s_=%s" % [arg.name(), arg.value_as_string()])
 		else:
+			@warning_ignore("return_value_discarded")
 			collect.push_back(arg.name() + "_")
 	for arg in descriptor.varargs():
+		@warning_ignore("return_value_discarded")
 		collect.push_back(arg.name() + "=" + arg.value_as_string())
 	return ", ".join(collect)
 

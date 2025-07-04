@@ -14,6 +14,7 @@ func _init(current: Variant, type_check := true) -> void:
 	# save the actual assert instance on the current thread context
 	GdUnitThreadManager.get_current_context().set_assert(self)
 	if not _validate_value_type(current):
+		@warning_ignore("return_value_discarded")
 		report_error("GdUnitArrayAssert inital error, unexpected type <%s>" % GdObjects.typeof_as_string(current))
 
 
@@ -65,6 +66,7 @@ func max_length(left: Variant, right: Variant) -> int:
 # gdlint: disable=function-name
 func _toPackedStringArray(value: Variant) -> PackedStringArray:
 	if GdArrayTools.is_array_type(value):
+		@warning_ignore("unsafe_cast")
 		return PackedStringArray(value as Array)
 	return PackedStringArray([str(value)])
 
@@ -114,6 +116,7 @@ func _contains(expected: Variant, compare_mode: GdObjects.COMPARE_MODE) -> GdUni
 	var current_value: Variant = get_current_value()
 	if current_value == null:
 		return report_error(GdAssertMessages.error_arr_contains(current_value, expected, [], expected, by_reference))
+	@warning_ignore("unsafe_cast")
 	var diffs := _array_div(compare_mode, current_value as Array[Variant], expected as Array[Variant])
 	#var not_expect := diffs[0] as Array
 	var not_found: Array = diffs[1]
@@ -135,6 +138,7 @@ func _contains_exactly(expected: Variant, compare_mode: GdObjects.COMPARE_MODE) 
 	if _is_equals_sorted(current_value, expected, false, compare_mode):
 		return report_error(GdAssertMessages.error_arr_contains_exactly(current_value, expected, [], [], compare_mode))
 	# find the difference
+	@warning_ignore("unsafe_cast")
 	var diffs := _array_div(compare_mode,
 		current_value as Array[Variant],
 		expected as Array[Variant],
@@ -151,6 +155,7 @@ func _contains_exactly_in_any_order(expected: Variant, compare_mode: GdObjects.C
 	if current_value == null:
 		return report_error(GdAssertMessages.error_arr_contains_exactly_in_any_order(current_value, expected, [], expected, compare_mode))
 	# find the difference
+	@warning_ignore("unsafe_cast")
 	var diffs := _array_div(compare_mode, current_value as Array[Variant], expected as Array[Variant], false)
 	var not_expect: Array[Variant] = diffs[0]
 	var not_found: Array[Variant] = diffs[1]
@@ -165,20 +170,25 @@ func _not_contains(expected: Variant, compare_mode: GdObjects.COMPARE_MODE) -> G
 	var current_value: Variant = get_current_value()
 	if current_value == null:
 		return report_error(GdAssertMessages.error_arr_contains_exactly_in_any_order(current_value, expected, [], expected, compare_mode))
+	@warning_ignore("unsafe_cast")
 	var diffs := _array_div(compare_mode, current_value as Array[Variant], expected as Array[Variant])
 	var found: Array[Variant] = diffs[0]
+	@warning_ignore("unsafe_cast")
 	if found.size() == (current_value as Array).size():
 		return report_success()
+	@warning_ignore("unsafe_cast")
 	var diffs2 := _array_div(compare_mode, expected as Array[Variant], diffs[1] as Array[Variant])
 	return report_error(GdAssertMessages.error_arr_not_contains(current_value, expected, diffs2[0], compare_mode))
 
 
 func is_null() -> GdUnitArrayAssert:
+	@warning_ignore("return_value_discarded")
 	_base.is_null()
 	return self
 
 
 func is_not_null() -> GdUnitArrayAssert:
+	@warning_ignore("return_value_discarded")
 	_base.is_not_null()
 	return self
 
@@ -205,8 +215,10 @@ func is_equal_ignoring_case(expected: Variant) -> GdUnitArrayAssert:
 		return report_error("ERROR: expected value: <%s>\n is not a Array Type!" % GdObjects.typeof_as_string(expected))
 	var current_value: Variant = get_current_value()
 	if current_value == null and expected != null:
+		@warning_ignore("unsafe_cast")
 		return report_error(GdAssertMessages.error_equal(null, GdArrayTools.as_string(expected as Array)))
 	if not _is_equal(current_value, expected, true):
+		@warning_ignore("unsafe_cast")
 		var diff := _array_equals_div(current_value as Array[Variant], expected as Array[Variant], true)
 		var expected_as_list := GdArrayTools.as_string(diff[0])
 		var current_as_list := GdArrayTools.as_string(diff[1])
@@ -229,7 +241,9 @@ func is_not_equal_ignoring_case(expected: Variant) -> GdUnitArrayAssert:
 		return report_error("ERROR: expected value: <%s>\n is not a Array Type!" % GdObjects.typeof_as_string(expected))
 	var current_value: Variant = get_current_value()
 	if _is_equal(current_value, expected, true):
+		@warning_ignore("unsafe_cast")
 		var c := GdArrayTools.as_string(current_value as Array)
+		@warning_ignore("unsafe_cast")
 		var e := GdArrayTools.as_string(expected as Array)
 		return report_error(GdAssertMessages.error_not_equal_case_insensetiv(c, e))
 	return report_success()
@@ -237,6 +251,7 @@ func is_not_equal_ignoring_case(expected: Variant) -> GdUnitArrayAssert:
 
 func is_empty() -> GdUnitArrayAssert:
 	var current_value: Variant = get_current_value()
+	@warning_ignore("unsafe_cast")
 	if current_value == null or (current_value as Array).size() > 0:
 		return report_error(GdAssertMessages.error_is_empty(current_value))
 	return report_success()
@@ -244,16 +259,19 @@ func is_empty() -> GdUnitArrayAssert:
 
 func is_not_empty() -> GdUnitArrayAssert:
 	var current_value: Variant = get_current_value()
+	@warning_ignore("unsafe_cast")
 	if current_value != null and (current_value as Array).size() == 0:
 		return report_error(GdAssertMessages.error_is_not_empty())
 	return report_success()
 
 
+@warning_ignore("unused_parameter", "shadowed_global_identifier")
 func is_same(expected: Variant) -> GdUnitArrayAssert:
 	if not _validate_value_type(expected):
 		return report_error("ERROR: expected value: <%s>\n is not a Array Type!" % GdObjects.typeof_as_string(expected))
 	var current: Variant = get_current_value()
 	if not is_same(current, expected):
+		@warning_ignore("return_value_discarded")
 		report_error(GdAssertMessages.error_is_same(current, expected))
 	return self
 
@@ -263,12 +281,14 @@ func is_not_same(expected: Variant) -> GdUnitArrayAssert:
 		return report_error("ERROR: expected value: <%s>\n is not a Array Type!" % GdObjects.typeof_as_string(expected))
 	var current: Variant = get_current_value()
 	if is_same(current, expected):
+		@warning_ignore("return_value_discarded")
 		report_error(GdAssertMessages.error_not_same(current, expected))
 	return self
 
 
 func has_size(expected: int) -> GdUnitArrayAssert:
 	var current_value: Variant = get_current_value()
+	@warning_ignore("unsafe_cast")
 	if current_value == null or (current_value as Array).size() != expected:
 		return report_error(GdAssertMessages.error_has_size(current_value, expected))
 	return report_success()
@@ -307,6 +327,7 @@ func not_contains_same(expected: Variant) -> GdUnitArrayAssert:
 
 
 func is_instanceof(expected: Variant) -> GdUnitAssert:
+	@warning_ignore("unsafe_method_access")
 	_base.is_instanceof(expected)
 	return self
 
@@ -355,9 +376,11 @@ func extractv(
 				GdUnitTuple.NO_ARG,
 				GdUnitTuple.NO_ARG
 			]
+			@warning_ignore("unsafe_cast")
 			for index: int in (extractors as Array).size():
 				var extractor: GdUnitValueExtractor = extractors[index]
 				ev[index] = extractor.extract_value(element)
+			@warning_ignore("unsafe_cast")
 			if (extractors as Array).size() > 1:
 				extracted_elements.append(GdUnitTuple.new(ev[0], ev[1], ev[2], ev[3], ev[4], ev[5], ev[6], ev[7], ev[8], ev[9]))
 			else:
@@ -366,12 +389,14 @@ func extractv(
 	return self
 
 
+@warning_ignore("incompatible_ternary")
 func _is_equal(
 	left: Variant,
 	right: Variant,
 	case_sensitive := false,
 	compare_mode := GdObjects.COMPARE_MODE.PARAMETER_DEEP_TEST) -> bool:
 
+	@warning_ignore("unsafe_cast")
 	return GdObjects.equals(
 		(left as Array) if GdArrayTools.is_array_type(left) else left,
 		(right as Array) if GdArrayTools.is_array_type(right) else right,
@@ -386,6 +411,7 @@ func _is_equals_sorted(
 	case_sensitive := false,
 	compare_mode := GdObjects.COMPARE_MODE.PARAMETER_DEEP_TEST) -> bool:
 
+	@warning_ignore("unsafe_cast")
 	return GdObjects.equals_sorted(
 		left as Array,
 		right as Array,

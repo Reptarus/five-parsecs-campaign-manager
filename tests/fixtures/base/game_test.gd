@@ -169,7 +169,7 @@ func assert_valid_game_state(state: Node) -> void:
 	assert_that(is_instance_valid(state)).is_true()
 	
 	#
-	var phase: int = _call_node_method_int(state, "get_current_phase", [], GameEnums.FiveParcsecsCampaignPhase.NONE)
+	var phase: int = _call_node_method_int(state, "get_current_phase", [], GameEnums.FiveParsecsCampaignPhase.NONE)
 	var turn: int = _call_node_method_int(state, "get_turn_number", [], 0)
 	
 	assert_that(phase).is_greater_equal(0)

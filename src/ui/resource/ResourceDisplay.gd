@@ -3,7 +3,7 @@ extends Control
 
 const GameEnums = preload("res://src/core/systems/GlobalEnums.gd")
 const ResourceItem = preload("res://src/ui/resource/ResourceItem.gd")
-const GameResourceSystem = preload("res://src/core/systems/ResourceSystem.gd")
+# Note: GameResourceSystem is an autoload - access via get_node("/root/ResourceSystem")
 
 @onready var resource_container: VBoxContainer = $MainContainer/ResourceContainer
 @onready var history_container: VBoxContainer = $MainContainer/HistoryContainer
@@ -11,7 +11,7 @@ const GameResourceSystem = preload("res://src/core/systems/ResourceSystem.gd")
 @onready var filter_type: OptionButton = $MainContainer/HistoryContainer/FilterContainer/FilterType
 @onready var market_info_container: VBoxContainer = $MainContainer/MarketContainer
 @onready var market_state_label: Label = $MainContainer/MarketContainer/MarketStateLabel
-@onready var resource_system: GameResourceSystem
+@onready var resource_system: Node
 
 signal resource_clicked(type: int)
 signal market_update_requested
@@ -26,15 +26,15 @@ func _ready() -> void:
 	# Get reference to resource system with error handling
 	if has_node("/root/Game/Systems/ResourceSystem"):
 		var node = get_node("/root/Game/Systems/ResourceSystem")
-		if node is GameResourceSystem:
+		if node.has_method("get_resource_amount"):
 			resource_system = node
 		else:
 			push_warning("ResourceDisplay: ResourceSystem node is not the correct type")
-			resource_system = GameResourceSystem.new()
+			resource_system = null
 	else:
 		# Fallback: create a stub system
 		push_warning("ResourceDisplay: No ResourceSystem found, using fallback")
-		resource_system = GameResourceSystem.new()
+		resource_system = null # No fallback needed as get_resource_amount is now checked
 	
 	# Connect signals if resource system exists
 	if resource_system:
@@ -119,7 +119,7 @@ func _setup_history_display() -> void:
 	for transaction in history:
 		_add_transaction_to_list(transaction)
 
-func _add_transaction_to_list(transaction: GameResourceSystem.ResourceTransaction) -> void:
+func _add_transaction_to_list(transaction: Dictionary) -> void:
 	var time_str = Time.get_datetime_string_from_unix_time(transaction.timestamp)
 	var amount_str = ("+" if transaction.transaction_type == "ADD" else "-") + str(transaction.amount)
 	var type_str = GameEnums.ResourceType.keys()[transaction.type].capitalize()
@@ -149,7 +149,7 @@ func _on_resource_changed(type: int, amount: int) -> void:
 			child.update_values(amount, market_value, trend)
 			break
 
-func _on_transaction_recorded(transaction: GameResourceSystem.ResourceTransaction) -> void:
+func _on_transaction_recorded(transaction: Dictionary) -> void:
 	_add_transaction_to_list(transaction)
 
 func _on_validation_failed(type: int, amount: int, reason: String) -> void:

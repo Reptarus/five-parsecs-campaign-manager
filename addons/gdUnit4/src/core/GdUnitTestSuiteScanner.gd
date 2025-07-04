@@ -36,8 +36,10 @@ func prescan_testsuite_classes() -> void:
 		var base_class: String = script_meta["base"]
 		var resource_path: String = script_meta["path"]
 		if base_class == "GdUnitTestSuite":
+			@warning_ignore("return_value_discarded")
 			_included_resources.append(resource_path)
 		elif ClassDB.class_exists(base_class):
+			@warning_ignore("return_value_discarded")
 			_excluded_resources.append(resource_path)
 
 
@@ -80,6 +82,7 @@ func _scan_test_suites_scripts(dir: DirAccess, collected_suites: Array[Script]) 
 		if dir.current_is_dir():
 			var sub_dir := DirAccess.open(resource_path)
 			if sub_dir != null:
+				@warning_ignore("return_value_discarded")
 				_scan_test_suites_scripts(sub_dir, collected_suites)
 		else:
 			var time := LocalTime.now()

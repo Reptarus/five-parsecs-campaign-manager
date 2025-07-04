@@ -12,6 +12,7 @@ const TITLE = "gdUnit4 ${version} Console"
 var _test_reporter: GdUnitConsoleTestReporter
 
 
+@warning_ignore("return_value_discarded")
 func _ready() -> void:
 	GdUnitFonts.init_fonts(output)
 	GdUnit4Version.init_version_label(title)
@@ -45,12 +46,12 @@ func setup_update_notification(control: Button) -> void:
 	_test_reporter.print_message("Searching for updates... ", Color.CORNFLOWER_BLUE)
 	var update_client := GdUnitUpdateClient.new()
 	add_child(update_client)
-	var response :GdUnitUpdateClient.HttpResponse = await update_client.request_latest_version()
+	var response: GdUnitUpdateClient.HttpResponse = await update_client.request_latest_version()
 	if response.status() != 200:
 		_test_reporter.println_message("Information cannot be retrieved from GitHub!", Color.INDIAN_RED)
 		_test_reporter.println_message("Error:  %s" % response.response(), Color.INDIAN_RED)
 		return
-	var latest_version := update_client.extract_latest_version(response)
+	var latest_version: Variant = update_client.extract_latest_version(response)
 	if not latest_version.is_greater(GdUnit4Version.current()):
 		_test_reporter.println_message("GdUnit4 is up-to-date.", Color.FOREST_GREEN)
 		return
@@ -63,7 +64,7 @@ func setup_update_notification(control: Button) -> void:
 	tween.tween_property(control, "self_modulate", Color.VIOLET, .2).set_trans(Tween.TransitionType.TRANS_LINEAR)
 	tween.tween_property(control, "self_modulate", Color.YELLOW, .2).set_trans(Tween.TransitionType.TRANS_BOUNCE)
 	tween.parallel()
-	tween.tween_property(control, "scale", Vector2.ONE*1.05, .4).set_trans(Tween.TransitionType.TRANS_LINEAR)
+	tween.tween_property(control, "scale", Vector2.ONE * 1.05, .4).set_trans(Tween.TransitionType.TRANS_LINEAR)
 	tween.tween_property(control, "scale", Vector2.ONE, .4).set_trans(Tween.TransitionType.TRANS_BOUNCE)
 	tween.set_loops(-1)
 	tween.play()

@@ -1,4 +1,3 @@
-@tool
 extends BaseBattleCharacter
 class_name FPCM_BattleCharacter
 

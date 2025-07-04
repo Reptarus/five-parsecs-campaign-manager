@@ -1,6 +1,5 @@
-@tool
+class_name SaveManagerClass
 extends Node
-class_name CoreSaveManager
 
 ## Simple save/load manager for Five Parsecs Campaign Manager
 ##
@@ -11,6 +10,19 @@ signal load_completed(success: bool, data: Dictionary)
 
 const SAVE_EXTENSION: String = ".fpcsave"
 const SAVE_DIRECTORY: String = "user://saves/"
+
+func _ready() -> void:
+	"""Register SaveManager with GameStateManager for coordinated save operations"""
+	call_deferred("_register_with_game_state")
+
+func _register_with_game_state() -> void:
+	"""Register this manager with GameStateManager for cross-system communication"""
+	var game_state = get_node_or_null("/root/GameStateManager")
+	if game_state and game_state.has_method("register_manager"):
+		game_state.register_manager("SaveManager", self)
+		print("SaveManager: Registered with GameStateManager")
+	else:
+		push_warning("SaveManager: GameStateManager not found for registration")
 
 ## Save game data to file
 func save_game(data: Dictionary, save_name: String) -> bool:

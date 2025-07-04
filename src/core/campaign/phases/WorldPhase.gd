@@ -7,15 +7,15 @@ class_name WorldPhase
 
 # Safe imports
 const UniversalNodeAccess = preload("res://src/utils/UniversalNodeAccess.gd")
-const UniversalResourceLoader = preload("res://src/utils/UniversalResourceLoader.gd") 
+const UniversalResourceLoader = preload("res://src/utils/UniversalResourceLoader.gd")
 const UniversalSignalManager = preload("res://src/utils/UniversalSignalManager.gd")
 const UniversalDataAccess = preload("res://src/utils/UniversalDataAccess.gd")
 const UniversalSceneManager = preload("res://src/utils/UniversalSceneManager.gd")
 
 # Safe dependency loading - loaded at runtime in _ready()
 var GameEnums = null
-var DiceManager = null
-var GameState = null
+var dice_manager = null
+var game_state_manager = null
 
 ## World Phase Signals
 signal world_phase_started()
@@ -30,7 +30,7 @@ signal rumors_resolved(quest_triggered: bool)
 signal battle_choice_made(choice: Dictionary)
 
 ## Current world state
-var current_substep: int = 0  # Will be set to WorldSubPhase.NONE in _ready()
+var current_substep: int = 0 # Will be set to WorldSubPhase.NONE in _ready()
 var crew_task_assignments: Dictionary = {}
 var available_job_offers: Array[Dictionary] = []
 var current_rumors: int = 0
@@ -38,16 +38,16 @@ var equipment_loadout: Dictionary = {}
 
 ## Upkeep costs (Core Rulebook p.XX)
 var upkeep_costs: Dictionary = {
-	"base_crew_4_to_6": 1,      # 1 credit for 4-6 crew members
-	"additional_crew": 1,        # +1 per additional crew member
-	"sick_bay_per_patient": 1    # 1 credit per crew in sick bay
+	"base_crew_4_to_6": 1, # 1 credit for 4-6 crew members
+	"additional_crew": 1, # +1 per additional crew member
+	"sick_bay_per_patient": 1 # 1 credit per crew in sick bay
 }
 
 func _ready() -> void:
 	# Load dependencies safely at runtime
 	GameEnums = UniversalResourceLoader.load_script_safe("res://src/core/systems/GlobalEnums.gd", "WorldPhase GameEnums")
-	DiceManager = UniversalNodeAccess.get_node_safe(get_tree().root, NodePath("DiceManager"), "WorldPhase DiceManager")
-	GameState = UniversalNodeAccess.get_node_safe(get_tree().root, NodePath("GameStateManager"), "WorldPhase GameState")
+	dice_manager = DiceManager
+	game_state_manager = get_node_or_null("/root/GameStateManagerAutoload")
 	
 	# Initialize enum values after loading GameEnums
 	if GameEnums:
@@ -73,13 +73,13 @@ func _process_upkeep() -> void:
 	var total_upkeep_cost = _calculate_upkeep_cost()
 	
 	# Pay upkeep costs
-	if GameState and GameState.has_method("remove_credits"):
+	if game_state_manager and game_state_manager.has_method("remove_credits"):
 		var credits_available = 0
-		if GameState.has_method("get_credits"):
-			credits_available = GameState.get_credits()
+		if game_state_manager.has_method("get_credits"):
+			credits_available = game_state_manager.get_credits()
 		
 		if credits_available >= total_upkeep_cost:
-			GameState.remove_credits(total_upkeep_cost)
+			game_state_manager.remove_credits(total_upkeep_cost)
 			print("WorldPhase: Paid %d credits for upkeep" % total_upkeep_cost)
 		else:
 			print("WorldPhase: Insufficient credits for upkeep (need %d, have %d)" % [total_upkeep_cost, credits_available])
@@ -98,13 +98,13 @@ func _calculate_upkeep_cost() -> int:
 	"""Calculate total upkeep cost based on crew size and conditions"""
 	var total_cost = 0
 	
-	if not GameState:
-		return upkeep_costs.base_crew_4_to_6  # Default cost
+	if not game_state_manager:
+		return upkeep_costs.base_crew_4_to_6 # Default cost
 	
 	# Get crew size
-	var crew_size = 4  # Default
-	if GameState.has_method("get_crew_size"):
-		crew_size = GameState.get_crew_size()
+	var crew_size = 4 # Default
+	if game_state_manager.has_method("get_crew_size"):
+		crew_size = game_state_manager.get_crew_size()
 	
 	# Base cost for crew of 4-6
 	if crew_size >= 4 and crew_size <= 6:
@@ -127,14 +127,14 @@ func _calculate_upkeep_cost() -> int:
 
 func _get_sick_crew_count() -> int:
 	"""Get number of crew members currently in sick bay"""
-	if GameState and GameState.has_method("get_sick_crew_count"):
-		return GameState.get_sick_crew_count()
+	if game_state_manager and game_state_manager.has_method("get_sick_crew_count"):
+		return game_state_manager.get_sick_crew_count()
 	return 0
 
 func _get_ship_debt_interest() -> int:
 	"""Get ship debt interest payment"""
-	if GameState and GameState.has_method("get_ship_debt_interest"):
-		return GameState.get_ship_debt_interest()
+	if game_state_manager and game_state_manager.has_method("get_ship_debt_interest"):
+		return game_state_manager.get_ship_debt_interest()
 	return 0
 
 func _handle_unpaid_upkeep(shortage: int) -> void:
@@ -230,7 +230,7 @@ func _resolve_find_patron_task(crew_id: String) -> Dictionary:
 	"""Resolve Find Patron task"""
 	# Roll on Patron table to find potential employer
 	var patron_roll = randi_range(1, 10)
-	var patron_found = patron_roll >= 6  # 50% chance of finding patron
+	var patron_found = patron_roll >= 6 # 50% chance of finding patron
 	
 	return {
 		"crew_id": crew_id,
@@ -281,7 +281,7 @@ func _resolve_trade_task(crew_id: String) -> Dictionary:
 func _resolve_recruit_task(crew_id: String) -> Dictionary:
 	"""Resolve Recruit task - attempt to expand crew"""
 	var recruit_roll = randi_range(1, 6)
-	var recruit_found = recruit_roll >= 5  # 33% chance of finding recruit
+	var recruit_found = recruit_roll >= 5 # 33% chance of finding recruit
 	
 	return {
 		"crew_id": crew_id,
@@ -306,7 +306,7 @@ func _resolve_explore_task(crew_id: String) -> Dictionary:
 
 func _resolve_track_task(crew_id: String) -> Dictionary:
 	"""Resolve Track task - locate rivals"""
-	var track_success = randi_range(1, 6) >= 4  # 50% chance
+	var track_success = randi_range(1, 6) >= 4 # 50% chance
 	
 	return {
 		"crew_id": crew_id,

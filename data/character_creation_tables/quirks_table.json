@@ -1,0 +1,8 @@
+{
+  "1": {"name": "Methodical", "effect": "Reroll failed Tech checks once per battle"},
+  "2": {"name": "Aggressive", "effect": "+1 damage in first round of combat"},
+  "3": {"name": "Cautious", "effect": "+1 to Initiative when not taking aggressive actions"},
+  "4": {"name": "Lucky", "effect": "Start with +1 Luck point"},
+  "5": {"name": "Connections", "effect": "Start with one additional contact"},
+  "6": {"name": "Resilient", "effect": "+1 to injury recovery rolls"}
+}

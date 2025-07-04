@@ -8,6 +8,7 @@ func _init(current :Variant) -> void:
 	# save the actual assert instance on the current thread context
 	GdUnitThreadManager.get_current_context().set_assert(self)
 	if not GdUnitAssertions.validate_value_type(current, TYPE_FLOAT):
+		@warning_ignore("return_value_discarded")
 		report_error("GdUnitFloatAssert inital error, unexpected type <%s>" % GdObjects.typeof_as_string(current))
 
 
@@ -37,35 +38,42 @@ func failure_message() -> String:
 
 
 func override_failure_message(message :String) -> GdUnitFloatAssert:
+	@warning_ignore("return_value_discarded")
 	_base.override_failure_message(message)
 	return self
 
 
 func append_failure_message(message :String) -> GdUnitFloatAssert:
+	@warning_ignore("return_value_discarded")
 	_base.append_failure_message(message)
 	return self
 
 
 func is_null() -> GdUnitFloatAssert:
+	@warning_ignore("return_value_discarded")
 	_base.is_null()
 	return self
 
 
 func is_not_null() -> GdUnitFloatAssert:
+	@warning_ignore("return_value_discarded")
 	_base.is_not_null()
 	return self
 
 
 func is_equal(expected :Variant) -> GdUnitFloatAssert:
+	@warning_ignore("return_value_discarded")
 	_base.is_equal(expected)
 	return self
 
 
 func is_not_equal(expected :Variant) -> GdUnitFloatAssert:
+	@warning_ignore("return_value_discarded")
 	_base.is_not_equal(expected)
 	return self
 
 
+@warning_ignore("shadowed_global_identifier")
 func is_equal_approx(expected :float, approx :float) -> GdUnitFloatAssert:
 	return is_between(expected-approx, expected+approx)
 
@@ -114,6 +122,7 @@ func is_not_negative() -> GdUnitFloatAssert:
 
 func is_zero() -> GdUnitFloatAssert:
 	var current :Variant = current_value()
+	@warning_ignore("unsafe_cast")
 	if current == null or not is_equal_approx(0.00000000, current as float):
 		return report_error(GdAssertMessages.error_is_zero(current))
 	return report_success()
@@ -121,6 +130,7 @@ func is_zero() -> GdUnitFloatAssert:
 
 func is_not_zero() -> GdUnitFloatAssert:
 	var current :Variant = current_value()
+	@warning_ignore("unsafe_cast")
 	if current == null or is_equal_approx(0.00000000, current as float):
 		return report_error(GdAssertMessages.error_is_not_zero())
 	return report_success()

@@ -46,8 +46,10 @@ func verify_interactions(function_args: Array[Variant]) -> void:
 			error_message = GdAssertMessages.error_validate_interactions(__current_summary, __expected_summary)
 		else:
 			error_message = GdAssertMessages.error_validate_interactions(summary, __expected_summary)
+		@warning_ignore("return_value_discarded")
 		assert_tool.report_error(error_message)
 	else:
+		@warning_ignore("return_value_discarded")
 		assert_tool.report_success()
 	expected_interactions = -1
 

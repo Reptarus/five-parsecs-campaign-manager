@@ -139,7 +139,7 @@ func _get_optimal_position(enemy: Enemy) -> Vector2:
 	return enemy.global_position
 
 func _get_best_target(enemy: Enemy) -> Node:
-	"""Get the closest viable target"""
+	# Get the closest viable target
 	var targets = _get_viable_targets(enemy)
 	if targets.is_empty():
 		return null
@@ -201,7 +201,7 @@ func deserialize(data: Dictionary) -> void:
 
 ## ===== FIVE PARSECS TACTICAL AI ENHANCEMENTS =====
 func _get_five_parsecs_behavior(enemy: Enemy) -> FiveParsecsAIBehavior:
-	"""Determine Five Parsecs AI behavior based on enemy type and situation"""
+	# Determine Five Parsecs AI behavior based on enemy type and situation
 	# Check for behavior override first
 	if enemy.has_method("get_ai_behavior"):
 		var override = enemy.get_ai_behavior()
@@ -231,7 +231,7 @@ func _get_five_parsecs_behavior(enemy: Enemy) -> FiveParsecsAIBehavior:
 			return FiveParsecsAIBehavior.CAUTIOUS
 
 func _generate_tactical_options(enemy: Enemy, ai_behavior: FiveParsecsAIBehavior) -> Array:
-	"""Generate tactical options based on AI _behavior"""
+	# Generate tactical options based on AI behavior
 	var options: Array = []
 	
 	# Base movement and attack options
@@ -263,11 +263,11 @@ func _generate_tactical_options(enemy: Enemy, ai_behavior: FiveParsecsAIBehavior
 	return options
 
 func _generate_movement_options(enemy: Enemy, ai_behavior: FiveParsecsAIBehavior) -> Array:
-	"""Generate movement options based on AI _behavior"""
+	# Generate movement options based on AI behavior
 	var options: Array = []
 	var base_priority = BEHAVIOR_WEIGHTS["move"]
 	
-	# Different movement priorities based on _behavior
+	# Different movement priorities based on behavior
 	match ai_behavior:
 		FiveParsecsAIBehavior.AGGRESSIVE:
 			options.append({ # warning: return value discarded (intentional)
@@ -301,7 +301,7 @@ func _generate_movement_options(enemy: Enemy, ai_behavior: FiveParsecsAIBehavior
 	return options
 
 func _generate_attack_options(enemy: Enemy, ai_behavior: FiveParsecsAIBehavior) -> Array:
-	"""Generate attack options based on AI _behavior"""
+	# Generate attack options based on AI behavior
 	var options: Array = []
 	var targets = _get_viable_targets(enemy)
 	
@@ -335,7 +335,7 @@ func _generate_attack_options(enemy: Enemy, ai_behavior: FiveParsecsAIBehavior) 
 	return options
 
 func _generate_aggressive_options(enemy: Enemy) -> Array:
-	"""Generate options for aggressive AI behavior"""
+	# Generate options for aggressive AI behavior
 	var options: Array = []
 	
 	# Charge attack - move and attack in one action
@@ -361,7 +361,7 @@ func _generate_aggressive_options(enemy: Enemy) -> Array:
 	return options
 
 func _generate_defensive_options(enemy: Enemy) -> Array:
-	"""Generate options for defensive AI behavior"""
+	# Generate options for defensive AI behavior
 	var options: Array = []
 	
 	# Overwatch - covering fire for allies
@@ -385,7 +385,7 @@ func _generate_defensive_options(enemy: Enemy) -> Array:
 	return options
 
 func _generate_pack_hunting_options(enemy: Enemy) -> Array:
-	"""Generate options for pack hunting behavior"""
+	# Generate options for pack hunting behavior
 	var options: Array = []
 	var pack_allies = _get_pack_allies(enemy)
 	
@@ -412,7 +412,7 @@ func _generate_pack_hunting_options(enemy: Enemy) -> Array:
 	return options
 
 func _update_battlefield_analysis(enemy: Enemy) -> void:
-	"""Update tactical analysis of the battlefield"""
+	# Update tactical analysis of the battlefield
 	var enemy_pos = enemy.global_position if enemy.has("global_position") else Vector2.ZERO
 	
 	battlefield_analysis = {
@@ -425,8 +425,7 @@ func _update_battlefield_analysis(enemy: Enemy) -> void:
 		"escape_routes": _identify_escape_routes(enemy_pos)
 	}
 func _assess_threat_level(enemy: Enemy) -> String:
-	"""Assess current threat level for tactical decisions"""
-
+	# Assess current threat level for tactical decisions
 	var health_ratio = float(enemy.health) / enemy.max_health if enemy.has("health") and enemy.has("max_health") else 1.0
 	var nearby_enemies = _count_nearby_player_characters(enemy)
 	var has_cover = _is_in_cover(enemy)
@@ -457,7 +456,7 @@ func _assess_threat_level(enemy: Enemy) -> String:
 		return "low"
 
 func _apply_five_parsecs_modifiers(enemy: Enemy, options: Array) -> Array:
-	"""Apply Five Parsecs specific combat modifiers"""
+	# Apply Five Parsecs specific combat modifiers
 	for option in options:
 		# Range modifiers
 		if option.type.contains("attack"):
@@ -477,8 +476,7 @@ func _apply_five_parsecs_modifiers(enemy: Enemy, options: Array) -> Array:
 	return options
 
 func _record_tactical_decision(enemy: Enemy, decision: Dictionary) -> void:
-	"""Record AI decision for learning and analysis"""
-
+	# Record AI decision for learning and analysis
 	var memory = tactical_memory.get(enemy, {})
 	
 	if not memory.has("decision_history"):
@@ -499,8 +497,7 @@ func _record_tactical_decision(enemy: Enemy, decision: Dictionary) -> void:
 
 ## ===== FORMATION AND COORDINATION =====
 func create_coordination_group(enemies: Array[Enemy], formation_type: String = "line") -> void:
-	"""Create a coordination group with formation tactics"""
-
+	# Create a coordination group with formation tactics
 	coordination_groups.append(enemies) # warning: return value discarded (intentional)
 
 	var formation_data = FORMATION_PATTERNS.get(formation_type, FORMATION_PATTERNS["line"])
@@ -517,7 +514,7 @@ func create_coordination_group(enemies: Array[Enemy], formation_type: String = "
 		}
 
 func _assign_formation_role(index: int, group_size: int, formation_type: String) -> String:
-	"""Assign formation role based on position and formation _type"""
+	# Assign formation role based on position and formation type
 	match formation_type:
 		"line":
 			if index == 0:
@@ -544,12 +541,12 @@ func _assign_formation_role(index: int, group_size: int, formation_type: String)
 ## ===== UTILITY FUNCTIONS =====
 
 func _get_viable_targets(enemy: Enemy) -> Array:
-	"""Get all viable targets for this enemy"""
+	# Get all viable targets for this enemy
 	# Implementation would depend on your character/target system
 	return []
 
 func _is_target_vulnerable(target) -> bool:
-	"""Check if target is in a vulnerable position"""
+	# Check if target is in a vulnerable position
 	# Implementation would check for flanking, no cover, low health, etc.
 	return false
 

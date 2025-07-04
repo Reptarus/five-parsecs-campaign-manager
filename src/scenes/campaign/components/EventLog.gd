@@ -324,4 +324,3 @@ func update_event(event_id: String, updates: Dictionary) -> bool:
 			_update_event_list()
 			return true
 	return false
-               

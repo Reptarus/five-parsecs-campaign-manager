@@ -1,4 +1,3 @@
-@tool
 extends Node
 
 ## Edit Mode
@@ -11,55 +10,55 @@ enum EditMode {
 
 ## Official Five Parsecs Campaign Phases (Core Rulebook Compliance)
 ## Four-Phase Campaign Turn Structure
-enum FiveParcsecsCampaignPhase {
+enum FiveParsecsCampaignPhase {
 	NONE,
-	SETUP,        # Initial crew creation (not part of regular turn)
-	UPKEEP,       # Upkeep and ship repairs
-	TRAVEL,       # Phase 1: Travel Phase
-	WORLD,        # Phase 2: World Phase  
+	SETUP, # Initial crew creation (not part of regular turn)
+	UPKEEP, # Upkeep and ship repairs
+	TRAVEL, # Phase 1: Travel Phase
+	WORLD, # Phase 2: World Phase
 	BATTLE_SETUP, # Battle preparation
-	BATTLE,       # Phase 3: Tabletop Battle
-	POST_BATTLE,  # Phase 4: Post-Battle Sequence
-	END           # Campaign end/turn completion
+	BATTLE, # Phase 3: Tabletop Battle
+	POST_BATTLE, # Phase 4: Post-Battle Sequence
+	END # Campaign end/turn completion
 }
 
 ## Travel Phase Sub-Steps (Official Rules)
 enum TravelSubPhase {
 	NONE,
-	FLEE_INVASION,        # Step 1: Flee invasion (if applicable)
-	DECIDE_TRAVEL,        # Step 2: Decide whether to travel
-	TRAVEL_EVENT,         # Step 3: Starship travel event (if applicable)
-	WORLD_ARRIVAL         # Step 4: New world arrival steps (if applicable)
+	FLEE_INVASION, # Step 1: Flee invasion (if applicable)
+	DECIDE_TRAVEL, # Step 2: Decide whether to travel
+	TRAVEL_EVENT, # Step 3: Starship travel event (if applicable)
+	WORLD_ARRIVAL # Step 4: New world arrival steps (if applicable)
 }
 
 ## World Phase Sub-Steps (Official Rules)
 enum WorldSubPhase {
 	NONE,
-	UPKEEP,              # Step 1: Upkeep and ship repairs
-	CREW_TASKS,          # Step 2: Assign and resolve crew tasks
-	JOB_OFFERS,          # Step 3: Determine job offers
-	EQUIPMENT,           # Step 4: Assign equipment
-	RUMORS,              # Step 5: Resolve any rumors
-	BATTLE_CHOICE        # Step 6: Choose your battle
+	UPKEEP, # Step 1: Upkeep and ship repairs
+	CREW_TASKS, # Step 2: Assign and resolve crew tasks
+	JOB_OFFERS, # Step 3: Determine job offers
+	EQUIPMENT, # Step 4: Assign equipment
+	RUMORS, # Step 5: Resolve any rumors
+	BATTLE_CHOICE # Step 6: Choose your battle
 }
 
 ## Post-Battle Phase Sub-Steps (Official Rules)
 enum PostBattleSubPhase {
 	NONE,
-	RIVAL_STATUS,        # Step 1: Resolve rival status
-	PATRON_STATUS,       # Step 2: Resolve patron status
-	QUEST_PROGRESS,      # Step 3: Determine quest progress
-	GET_PAID,            # Step 4: Get paid
-	BATTLEFIELD_FINDS,   # Step 5: Battlefield finds
-	CHECK_INVASION,      # Step 6: Check for invasion
-	GATHER_LOOT,         # Step 7: Gather the loot
-	INJURIES,            # Step 8: Determine injuries and recovery
-	EXPERIENCE,          # Step 9: Experience and character upgrades
-	TRAINING,            # Step 10: Invest in advanced training
-	PURCHASES,           # Step 11: Purchase items
-	CAMPAIGN_EVENT,      # Step 12: Roll for a campaign event
-	CHARACTER_EVENT,     # Step 13: Roll for a character event
-	GALACTIC_WAR         # Step 14: Check for galactic war progress
+	RIVAL_STATUS, # Step 1: Resolve rival status
+	PATRON_STATUS, # Step 2: Resolve patron status
+	QUEST_PROGRESS, # Step 3: Determine quest progress
+	GET_PAID, # Step 4: Get paid
+	BATTLEFIELD_FINDS, # Step 5: Battlefield finds
+	CHECK_INVASION, # Step 6: Check for invasion
+	GATHER_LOOT, # Step 7: Gather the loot
+	INJURIES, # Step 8: Determine injuries and recovery
+	EXPERIENCE, # Step 9: Experience and character upgrades
+	TRAINING, # Step 10: Invest in advanced training
+	PURCHASES, # Step 11: Purchase items
+	CAMPAIGN_EVENT, # Step 12: Roll for a campaign event
+	CHARACTER_EVENT, # Step 13: Roll for a character event
+	GALACTIC_WAR # Step 14: Check for galactic war progress
 }
 
 ## Legacy Sub-Phases (Deprecated - kept for backward compatibility)
@@ -75,38 +74,38 @@ enum CampaignSubPhase {
 ## Crew Task Types (World Phase Step 2)
 enum CrewTaskType {
 	NONE,
-	FIND_PATRON,         # Find a patron
-	TRAIN,              # Train (gain 1 XP)
-	TRADE,              # Trade (roll on trade table)
-	RECRUIT,            # Recruit (expand crew)
-	EXPLORE,            # Explore (roll on exploration table)
-	TRACK,              # Track (locate rivals)
-	REPAIR_KIT,         # Repair your kit
-	DECOY               # Decoy (help avoid rivals)
+	FIND_PATRON, # Find a patron
+	TRAIN, # Train (gain 1 XP)
+	TRADE, # Trade (roll on trade table)
+	RECRUIT, # Recruit (expand crew)
+	EXPLORE, # Explore (roll on exploration table)
+	TRACK, # Track (locate rivals)
+	REPAIR_KIT, # Repair your kit
+	DECOY # Decoy (help avoid rivals)
 }
 
 const PHASE_NAMES = {
-	FiveParcsecsCampaignPhase.NONE: "None",
-	FiveParcsecsCampaignPhase.SETUP: "Crew Creation",
-	FiveParcsecsCampaignPhase.UPKEEP: "Upkeep Phase",
-	FiveParcsecsCampaignPhase.TRAVEL: "Travel Phase",
-	FiveParcsecsCampaignPhase.WORLD: "World Phase",
-	FiveParcsecsCampaignPhase.BATTLE_SETUP: "Battle Setup",
-	FiveParcsecsCampaignPhase.BATTLE: "Battle Phase",
-	FiveParcsecsCampaignPhase.POST_BATTLE: "Post-Battle Phase",
-	FiveParcsecsCampaignPhase.END: "Campaign End"
+	FiveParsecsCampaignPhase.NONE: "None",
+	FiveParsecsCampaignPhase.SETUP: "Crew Creation",
+	FiveParsecsCampaignPhase.UPKEEP: "Upkeep Phase",
+	FiveParsecsCampaignPhase.TRAVEL: "Travel Phase",
+	FiveParsecsCampaignPhase.WORLD: "World Phase",
+	FiveParsecsCampaignPhase.BATTLE_SETUP: "Battle Setup",
+	FiveParsecsCampaignPhase.BATTLE: "Battle Phase",
+	FiveParsecsCampaignPhase.POST_BATTLE: "Post-Battle Phase",
+	FiveParsecsCampaignPhase.END: "Campaign End"
 }
 
 const PHASE_DESCRIPTIONS = {
-	FiveParcsecsCampaignPhase.NONE: "No active phase",
-	FiveParcsecsCampaignPhase.SETUP: "Create your crew and prepare for adventure",
-	FiveParcsecsCampaignPhase.UPKEEP: "Handle ship repairs and crew maintenance",
-	FiveParcsecsCampaignPhase.TRAVEL: "Decide travel, handle events, and arrive at new worlds",
-	FiveParcsecsCampaignPhase.WORLD: "Handle crew tasks, jobs, and mission selection",
-	FiveParcsecsCampaignPhase.BATTLE_SETUP: "Prepare for tactical combat deployment",
-	FiveParcsecsCampaignPhase.BATTLE: "Resolve tactical combat on the tabletop",
-	FiveParcsecsCampaignPhase.POST_BATTLE: "Handle battle aftermath, advancement, and events",
-	FiveParcsecsCampaignPhase.END: "Complete campaign turn and prepare for next"
+	FiveParsecsCampaignPhase.NONE: "No active phase",
+	FiveParsecsCampaignPhase.SETUP: "Create your crew and prepare for adventure",
+	FiveParsecsCampaignPhase.UPKEEP: "Handle ship repairs and crew maintenance",
+	FiveParsecsCampaignPhase.TRAVEL: "Decide travel, handle events, and arrive at new worlds",
+	FiveParsecsCampaignPhase.WORLD: "Handle crew tasks, jobs, and mission selection",
+	FiveParsecsCampaignPhase.BATTLE_SETUP: "Prepare for tactical combat deployment",
+	FiveParsecsCampaignPhase.BATTLE: "Resolve tactical combat on the tabletop",
+	FiveParsecsCampaignPhase.POST_BATTLE: "Handle battle aftermath, advancement, and events",
+	FiveParsecsCampaignPhase.END: "Complete campaign turn and prepare for next"
 }
 
 const TRAVEL_SUBSTEP_NAMES = {
@@ -184,6 +183,7 @@ enum ArmorCharacteristic {
 enum CharacterClass {
 	NONE,
 	SOLDIER,
+	SCOUT,
 	MEDIC,
 	ENGINEER,
 	PILOT,
@@ -221,7 +221,6 @@ const TRAINING_NAMES = {
 }
 
 static func get_training_name(training: Training) -> String:
-
 	return TRAINING_NAMES.get(training, "Unknown Training")
 
 ## Character Origins
@@ -973,6 +972,9 @@ static func get_ability_name(ability_type: int) -> String:
 
 static func get_trait_name(trait_type: int) -> String:
 	return Trait.keys()[trait_type]
+
+static func get_background_name(background: Background) -> String:
+	return Background.keys()[background]
 
 ## Skills
 enum Skill {

@@ -14,11 +14,13 @@ func is_not_null() -> GdUnitBoolAssert:
 
 
 ## Verifies that the current value is equal to the given one.
+@warning_ignore("unused_parameter")
 func is_equal(expected :Variant) -> GdUnitBoolAssert:
 	return self
 
 
 ## Verifies that the current value is not equal to the given one.
+@warning_ignore("unused_parameter")
 func is_not_equal(expected :Variant) -> GdUnitBoolAssert:
 	return self
 
@@ -34,5 +36,6 @@ func is_false() -> GdUnitBoolAssert:
 
 
 ## Overrides the default failure message by given custom message.
+@warning_ignore("unused_parameter")
 func override_failure_message(message :String) -> GdUnitBoolAssert:
 	return self

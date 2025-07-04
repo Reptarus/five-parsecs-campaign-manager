@@ -1,4 +1,3 @@
-@tool
 extends Resource
 class_name BaseBattleData
 
@@ -59,11 +58,9 @@ func end_battle(victory: bool = false) -> void:
 ## @param is_player: Whether the combatant is a player character
 func add_combatant(combatant, is_player: bool = true) -> void:
     if is_player:
-
-        player_combatants.append(combatant)  # warning: return value discarded (intentional)
+        player_combatants.append(combatant) # warning: return value discarded (intentional)
     else:
-
-        enemy_combatants.append(combatant)  # warning: return value discarded (intentional)
+        enemy_combatants.append(combatant) # warning: return value discarded (intentional)
 
 ## Remove a combatant from the battle
 ## @param combatant: The combatant to remove

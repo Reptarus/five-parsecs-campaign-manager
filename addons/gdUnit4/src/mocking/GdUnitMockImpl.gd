@@ -22,6 +22,7 @@ class MockingState:
 			return return_values
 
 
+@warning_ignore("unused_private_class_variable")
 var __verifier_instance := GdUnitObjectInteractionsVerifier.new()
 var __mocking_state := MockingState.new()
 
@@ -45,11 +46,13 @@ func _notification(what: int) -> void:
 
 
 static func __mock_state() -> MockingState:
+	@warning_ignore("unsafe_property_access")
 	return __get_instance().__mocking_state
 
 
 static func __get_verifier() -> GdUnitObjectInteractionsVerifier:
 	var __instance := __get_instance()
+	@warning_ignore("unsafe_property_access")
 	return null if __instance == null else __instance.__verifier_instance
 
 
@@ -111,6 +114,7 @@ static func __is_mocked_args_match(__func_args: Array, __mocked_args: Array) -> 
 			var __func_arg: Variant = __func_args[__arg_index]
 			var __mock_arg: Variant = __fuction_args[__arg_index]
 			if __mock_arg is GdUnitArgumentMatcher:
+				@warning_ignore("unsafe_method_access")
 				__is_matching = __is_matching and __mock_arg.is_match(__func_arg)
 			else:
 				__is_matching = __is_matching and typeof(__func_arg) == typeof(__mock_arg) and __func_arg == __mock_arg
@@ -127,6 +131,7 @@ static func __get_mocked_return_value_or_default(__fuction_args: Array, __defaul
 	if not __mock.return_values.has(__func_name):
 		return __default_return_value
 	var __func_args: Array = __fuction_args.slice(1)
+	@warning_ignore("unsafe_method_access")
 	var __mocked_args: Array = __mock.return_values.get(__func_name).keys()
 	for __index in __mocked_args.size():
 		var __margs: Variant = __mocked_args[__index]
@@ -141,6 +146,7 @@ static func __do_call_real_func(__func_name: String, __func_args := []) -> bool:
 	# do not call real funcions for mocked functions
 	if __is_call_real_func and __mock.return_values.has(__func_name):
 		var __fuction_args: Array = __func_args.slice(1)
+		@warning_ignore("unsafe_method_access")
 		var __mocked_args: Array = __mock.return_values.get(__func_name).keys()
 		return not __is_mocked_args_match(__fuction_args, __mocked_args)
 	return __is_call_real_func

@@ -4,7 +4,7 @@ extends Node
 const GameEnums = preload("res://src/core/systems/GlobalEnums.gd")
 const FiveParsecsGameState = preload("res://src/core/state/GameState.gd")
 const CampaignPhaseManager = preload("res://src/core/campaign/CampaignPhaseManager.gd")
-const CharacterManager = preload("res://src/core/character/Management/CharacterManager.gd")
+# Note: CharacterManager is an autoload - access via get_node("/root/CharacterManager")
 const BattleResultsManager = preload("res://src/core/battle/BattleResultsManager.gd")
 const MissionIntegrator = preload("res://src/core/mission/MissionIntegrator.gd")
 const EquipmentManager = preload("res://src/core/equipment/EquipmentManager.gd")
@@ -18,7 +18,7 @@ signal turn_advanced(new_turn: int)
 # Core game state
 var game_state: FiveParsecsGameState
 var campaign_phase_manager: CampaignPhaseManager
-var character_manager: CharacterManager
+var character_manager: Node # CharacterManagerAutoload
 var battle_results_manager: BattleResultsManager
 var mission_integrator: MissionIntegrator
 var equipment_manager: EquipmentManager
@@ -56,8 +56,9 @@ func _initialize_systems() -> void:
 
 ## Initialize the character manager
 func _initialize_character_manager() -> void:
-	character_manager = CharacterManager.new()
-	add_child(character_manager)
+	character_manager = get_node_or_null("/root/CharacterManagerAutoload")
+	if not character_manager:
+		push_error("CharacterManagerAutoload autoload not found")
 
 ## Initialize the campaign phase manager
 func _initialize_campaign_phase_manager() -> void:
@@ -126,7 +127,7 @@ func start_new_campaign(campaign_data: Dictionary) -> void:
 	game_state.create_campaign(campaign_data)
 	
 	# Start with the setup phase
-	campaign_phase_manager.start_phase(GameEnums.FiveParcsecsCampaignPhase.SETUP)
+	campaign_phase_manager.start_phase(GameEnums.FiveParsecsCampaignPhase.SETUP)
 
 ## Load an existing campaign
 func load_campaign(campaign_data: Dictionary) -> void:
@@ -159,8 +160,8 @@ func load_campaign(campaign_data: Dictionary) -> void:
 	
 	# Start in the appropriate phase
 
-	var current_phase = campaign_data.get("current_phase", GameEnums.FiveParcsecsCampaignPhase.NONE)
-	if current_phase != GameEnums.FiveParcsecsCampaignPhase.NONE:
+	var current_phase = campaign_data.get("current_phase", GameEnums.FiveParsecsCampaignPhase.NONE)
+	if current_phase != GameEnums.FiveParsecsCampaignPhase.NONE:
 		campaign_phase_manager.start_phase(current_phase)
 	
 	_loading = false
@@ -196,7 +197,7 @@ func save_campaign() -> Dictionary:
 ## Advance to the next campaign phase
 func advance_to_next_phase() -> bool:
 	var next_phase = _get_next_campaign_phase()
-	if next_phase == GameEnums.FiveParcsecsCampaignPhase.NONE:
+	if next_phase == GameEnums.FiveParsecsCampaignPhase.NONE:
 		push_error("No valid next phase from current phase")
 		return false
 	
@@ -207,24 +208,24 @@ func _get_next_campaign_phase() -> int:
 	var current = campaign_phase_manager.current_phase
 	
 	match current:
-		GameEnums.FiveParcsecsCampaignPhase.NONE, GameEnums.FiveParcsecsCampaignPhase.END:
-			return GameEnums.FiveParcsecsCampaignPhase.UPKEEP
-		GameEnums.FiveParcsecsCampaignPhase.SETUP:
-			return GameEnums.FiveParcsecsCampaignPhase.UPKEEP
-		GameEnums.FiveParcsecsCampaignPhase.UPKEEP:
-			return GameEnums.FiveParcsecsCampaignPhase.TRAVEL
-		GameEnums.FiveParcsecsCampaignPhase.TRAVEL:
-			return GameEnums.FiveParcsecsCampaignPhase.WORLD
-		GameEnums.FiveParcsecsCampaignPhase.WORLD:
-			return GameEnums.FiveParcsecsCampaignPhase.BATTLE_SETUP
-		GameEnums.FiveParcsecsCampaignPhase.BATTLE_SETUP:
-			return GameEnums.FiveParcsecsCampaignPhase.BATTLE
-		GameEnums.FiveParcsecsCampaignPhase.BATTLE:
-			return GameEnums.FiveParcsecsCampaignPhase.POST_BATTLE
-		GameEnums.FiveParcsecsCampaignPhase.POST_BATTLE:
-			return GameEnums.FiveParcsecsCampaignPhase.END
+		GameEnums.FiveParsecsCampaignPhase.NONE, GameEnums.FiveParsecsCampaignPhase.END:
+			return GameEnums.FiveParsecsCampaignPhase.UPKEEP
+		GameEnums.FiveParsecsCampaignPhase.SETUP:
+			return GameEnums.FiveParsecsCampaignPhase.UPKEEP
+		GameEnums.FiveParsecsCampaignPhase.UPKEEP:
+			return GameEnums.FiveParsecsCampaignPhase.TRAVEL
+		GameEnums.FiveParsecsCampaignPhase.TRAVEL:
+			return GameEnums.FiveParsecsCampaignPhase.WORLD
+		GameEnums.FiveParsecsCampaignPhase.WORLD:
+			return GameEnums.FiveParsecsCampaignPhase.BATTLE_SETUP
+		GameEnums.FiveParsecsCampaignPhase.BATTLE_SETUP:
+			return GameEnums.FiveParsecsCampaignPhase.BATTLE
+		GameEnums.FiveParsecsCampaignPhase.BATTLE:
+			return GameEnums.FiveParsecsCampaignPhase.POST_BATTLE
+		GameEnums.FiveParsecsCampaignPhase.POST_BATTLE:
+			return GameEnums.FiveParsecsCampaignPhase.END
 		_:
-			return GameEnums.FiveParcsecsCampaignPhase.NONE
+			return GameEnums.FiveParsecsCampaignPhase.NONE
 
 ## Create a new character for the current campaign
 func create_character(character_data: Dictionary) -> Dictionary:
@@ -288,8 +289,8 @@ func _on_phase_error(error_message: String, is_critical: bool) -> void:
 	# Handle _critical errors
 	if is_critical:
 		# Attempt to recover
-		if campaign_phase_manager.current_phase != GameEnums.FiveParcsecsCampaignPhase.SETUP:
-			campaign_phase_manager.start_phase(GameEnums.FiveParcsecsCampaignPhase.SETUP)
+		if campaign_phase_manager.current_phase != GameEnums.FiveParsecsCampaignPhase.SETUP:
+			campaign_phase_manager.start_phase(GameEnums.FiveParsecsCampaignPhase.SETUP)
 func _on_turn_advanced(new_turn: int) -> void:
 	turn_advanced.emit(new_turn) # warning: return value discarded (intentional)
 
@@ -306,12 +307,12 @@ func _on_battle_results_recorded(results: Dictionary) -> void:
 	game_state_changed.emit() # warning: return value discarded (intentional)
 	
 	# If current phase is battle resolution, complete the "battle_completed" action
-	if campaign_phase_manager.current_phase == GameEnums.FiveParcsecsCampaignPhase.POST_BATTLE:
+	if campaign_phase_manager.current_phase == GameEnums.FiveParsecsCampaignPhase.POST_BATTLE:
 		campaign_phase_manager.complete_phase_action("battle_completed")
 
 func _on_casualties_processed(_casualties: Array) -> void:
 	# If current phase is battle resolution, complete the "casualties_resolved" action
-	if campaign_phase_manager.current_phase == GameEnums.FiveParcsecsCampaignPhase.POST_BATTLE:
+	if campaign_phase_manager.current_phase == GameEnums.FiveParsecsCampaignPhase.POST_BATTLE:
 		campaign_phase_manager.complete_phase_action("casualties_resolved")
 func _on_rewards_calculated(_rewards: Dictionary) -> void:
 	game_state_changed.emit() # warning: return value discarded (intentional)
@@ -323,7 +324,7 @@ func _on_mission_preparation_complete(_mission: Dictionary) -> void:
 	game_state_changed.emit() # warning: return value discarded (intentional)
 	
 	# If current phase is campaign, complete the _mission preparation action
-	if campaign_phase_manager.current_phase == GameEnums.FiveParcsecsCampaignPhase.WORLD:
+	if campaign_phase_manager.current_phase == GameEnums.FiveParsecsCampaignPhase.WORLD:
 		campaign_phase_manager.complete_phase_action("mission_prepared")
 
 func _on_equipment_acquired(_equipment_data: Dictionary) -> void:
@@ -332,7 +333,7 @@ func _on_equipment_acquired(_equipment_data: Dictionary) -> void:
 ## Public accessors for each manager
 
 # Get the character manager
-func get_character_manager() -> CharacterManager:
+func get_character_manager() -> Node: # Returns CharacterManagerAutoload
 	return character_manager
 
 # Get the battle results manager

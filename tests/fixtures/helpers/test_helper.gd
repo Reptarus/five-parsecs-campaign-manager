@@ -30,7 +30,7 @@ const DEFAULT_CAMPAIGN: Dictionary = {
 	"victory_type": GameEnumsScript.FiveParcsecsCampaignVictoryType.STANDARD,
 	"crew_size": GameEnumsScript.CrewSize.FOUR,
 	"use_story_track": true,
-	"current_phase": GameEnumsScript.FiveParcsecsCampaignPhase.SETUP,
+	"current_phase": GameEnumsScript.FiveParsecsCampaignPhase.SETUP,
 	"turn": 1,
 	"credits": 1000
 }

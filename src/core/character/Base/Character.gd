@@ -1,4 +1,3 @@
-@tool
 extends "res://src/base/character/character_base.gd"
 class_name CoreCharacter
 

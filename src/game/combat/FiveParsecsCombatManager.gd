@@ -81,6 +81,18 @@ func _ready() -> void:
 	
 	if not battlefield_manager:
 		push_warning("FiveParsecsCombatManager: No battlefield manager assigned")
+	
+	# Register with GameStateManager for cross-system communication
+	_register_with_game_state()
+
+func _register_with_game_state() -> void:
+	"""Register this manager with GameStateManager for cross-system communication"""
+	var game_state = get_node_or_null("/root/GameStateManager")
+	if game_state and game_state.has_method("register_manager"):
+		game_state.register_manager("FiveParsecsCombatManager", self)
+		print("FiveParsecsCombatManager: Registered with GameStateManager")
+	else:
+		push_warning("FiveParsecsCombatManager: GameStateManager not found for registration")
 
 ## Five Parsecs specific combat methods
 func initialize_combat(combatants: Array, battlefield: Node) -> void:
@@ -176,8 +188,13 @@ func calculate_combat_result(attacker, target, weapon_data: Dictionary) -> Dicti
 	# Clamp hit chance between 5% and 95%
 	hit_chance = clamp(hit_chance, 5, 95)
 	
-	# Roll for hit
-	var roll = randi() % 100 + 1
+	# Roll for hit using DiceManager
+	var dice_manager = get_node_or_null("/root/DiceManager")
+	var roll: int = 50  # Default fallback
+	if dice_manager and dice_manager.has_method("roll_d100"):
+		roll = dice_manager.roll_d100("Combat Hit Roll")
+	else:
+		roll = randi() % 100 + 1  # Fallback to direct roll if DiceManager unavailable
 	var result: int = 0 # MISS result
 	
 	if roll <= hit_chance:

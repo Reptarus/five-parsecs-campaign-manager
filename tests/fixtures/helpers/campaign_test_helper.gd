@@ -69,21 +69,21 @@ func after_test() -> void:
 func _initialize_test_states() -> void:
 	TEST_CAMPAIGN_STATES = {
 		"SETUP": {
-			"phase": GameEnums.FiveParcsecsCampaignPhase.SETUP as int,
+			"phase": GameEnums.FiveParsecsCampaignPhase.SETUP as int,
 			"resources": {
 				"credits": 100 as int,
 				"reputation": 0 as int
 			}
 		},
 		"STORY": {
-			"phase": GameEnums.FiveParcsecsCampaignPhase.UPKEEP as int,
+			"phase": GameEnums.FiveParsecsCampaignPhase.UPKEEP as int,
 			"resources": {
 				"credits": 150 as int,
 				"reputation": 5 as int
 			}
 		},
 		"BATTLE": {
-			"phase": GameEnums.FiveParcsecsCampaignPhase.BATTLE_SETUP as int,
+			"phase": GameEnums.FiveParsecsCampaignPhase.BATTLE_SETUP as int,
 			"resources": {
 				"credits": 200 as int,
 				"reputation": 10 as int
@@ -178,7 +178,7 @@ func verify_campaign_state(campaign: Resource, expected_state: Dictionary) -> vo
 		return
 	
 	# Verify phase
-	var phase: int = expected_state.get("phase", GameEnums.FiveParcsecsCampaignPhase.SETUP)
+	var phase: int = expected_state.get("phase", GameEnums.FiveParsecsCampaignPhase.SETUP)
 	var current_phase: int = 0
 	if campaign.has_method("get_current_phase"):
 		current_phase = campaign.call("get_current_phase")
@@ -265,7 +265,7 @@ func _create_test_manager(manager_name: String) -> Node:
 
 # Mock campaign class
 class MockCampaign extends Resource:
-	var current_phase: int = GameEnums.FiveParcsecsCampaignPhase.NONE
+	var current_phase: int = GameEnums.FiveParsecsCampaignPhase.NONE
 	var credits: int = 100
 	var reputation: int = 0
 	var progress_values: Dictionary = {"reputation": 0}
@@ -312,7 +312,7 @@ func test_campaign_initial_phase() -> void:
 	var current_phase: int = 0
 	if campaign.has_method("get_current_phase"):
 		current_phase = campaign.call("get_current_phase")
-	assert_that(current_phase).is_equal(GameEnums.FiveParcsecsCampaignPhase.NONE)
+	assert_that(current_phase).is_equal(GameEnums.FiveParsecsCampaignPhase.NONE)
 
 func test_campaign_phase_transition() -> void:
 	var campaign = create_test_campaign_resource()
@@ -322,20 +322,20 @@ func test_campaign_phase_transition() -> void:
 	
 	# Test transition to UPKEEP
 	if campaign.has_method("set_phase"):
-		campaign.call("set_phase", GameEnums.FiveParcsecsCampaignPhase.UPKEEP)
+		campaign.call("set_phase", GameEnums.FiveParsecsCampaignPhase.UPKEEP)
 	
 	var current_phase: int = 0
 	if campaign.has_method("get_current_phase"):
 		current_phase = campaign.call("get_current_phase")
-	assert_that(current_phase).is_equal(GameEnums.FiveParcsecsCampaignPhase.UPKEEP)
+	assert_that(current_phase).is_equal(GameEnums.FiveParsecsCampaignPhase.UPKEEP)
 	
 	# Test transition to BATTLE_SETUP
 	if campaign.has_method("set_phase"):
-		campaign.call("set_phase", GameEnums.FiveParcsecsCampaignPhase.BATTLE_SETUP)
+		campaign.call("set_phase", GameEnums.FiveParsecsCampaignPhase.BATTLE_SETUP)
 	
 	if campaign.has_method("get_current_phase"):
 		current_phase = campaign.call("get_current_phase")
-	assert_that(current_phase).is_equal(GameEnums.FiveParcsecsCampaignPhase.BATTLE_SETUP)
+	assert_that(current_phase).is_equal(GameEnums.FiveParsecsCampaignPhase.BATTLE_SETUP)
 
 func test_campaign_progress() -> void:
 	var campaign = create_test_campaign_resource()

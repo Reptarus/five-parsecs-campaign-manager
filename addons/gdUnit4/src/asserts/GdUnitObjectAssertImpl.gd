@@ -12,6 +12,7 @@ func _init(current: Variant) -> void:
 		or GdUnitAssertions.validate_value_type(current, TYPE_INT)
 		or GdUnitAssertions.validate_value_type(current, TYPE_FLOAT)
 		or GdUnitAssertions.validate_value_type(current, TYPE_STRING))):
+			@warning_ignore("return_value_discarded")
 			report_error("GdUnitObjectAssert inital error, unexpected type <%s>" % GdObjects.typeof_as_string(current))
 
 
@@ -41,35 +42,42 @@ func failure_message() -> String:
 
 
 func override_failure_message(message: String) -> GdUnitObjectAssert:
+	@warning_ignore("return_value_discarded")
 	_base.override_failure_message(message)
 	return self
 
 
 func append_failure_message(message: String) -> GdUnitObjectAssert:
+	@warning_ignore("return_value_discarded")
 	_base.append_failure_message(message)
 	return self
 
 
 func is_equal(expected: Variant) -> GdUnitObjectAssert:
+	@warning_ignore("return_value_discarded")
 	_base.is_equal(expected)
 	return self
 
 
 func is_not_equal(expected: Variant) -> GdUnitObjectAssert:
+	@warning_ignore("return_value_discarded")
 	_base.is_not_equal(expected)
 	return self
 
 
 func is_null() -> GdUnitObjectAssert:
+	@warning_ignore("return_value_discarded")
 	_base.is_null()
 	return self
 
 
 func is_not_null() -> GdUnitObjectAssert:
+	@warning_ignore("return_value_discarded")
 	_base.is_not_null()
 	return self
 
 
+@warning_ignore("shadowed_global_identifier")
 func is_same(expected: Variant) -> GdUnitObjectAssert:
 	var current: Variant = current_value()
 	if not is_same(current, expected):

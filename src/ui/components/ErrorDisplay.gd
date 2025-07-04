@@ -3,12 +3,12 @@ extends Control
 
 const ErrorLogger = preload("res://src/core/systems/ErrorLogger.gd")
 
-@onready var error_list: ItemList = $ErrorList
-@onready var error_details: RichTextLabel = $ErrorDetails
-@onready var category_filter: OptionButton = $Filters/CategoryFilter
-@onready var severity_filter: OptionButton = $Filters/SeverityFilter
-@onready var clear_resolved_button: Button = $Actions/ClearResolved
-@onready var export_logs_button: Button = $Actions/ExportLogs
+@onready var error_list: ItemList = get_node_or_null("ErrorList")
+@onready var error_details: RichTextLabel = get_node_or_null("ErrorDetails")
+@onready var category_filter: OptionButton = get_node_or_null("Filters/CategoryFilter")
+@onready var severity_filter: OptionButton = get_node_or_null("Filters/SeverityFilter")
+@onready var clear_resolved_button: Button = get_node_or_null("Actions/ClearResolved")
+@onready var export_logs_button: Button = get_node_or_null("Actions/ExportLogs")
 
 var error_logger: ErrorLogger
 var _selected_error_id: String = ""
@@ -19,9 +19,13 @@ var _current_filters: Dictionary = {
 }
 
 func _ready() -> void:
-    _setup_filters()
-    _connect_signals()
-    _refresh_error_list()
+    if category_filter and severity_filter:
+        _setup_filters()
+    if error_list and error_details:
+        _connect_signals()
+        _refresh_error_list()
+    else:
+        push_warning("ErrorDisplay: Required UI nodes not found")
 func initialize(logger: ErrorLogger) -> void:
     error_logger = logger
     error_logger.error_logged.connect(_on_error_logged)
@@ -29,6 +33,8 @@ func initialize(logger: ErrorLogger) -> void:
     _refresh_error_list()
 
 func _setup_filters() -> void:
+    if not category_filter or not severity_filter:
+        return
     # Setup category filter
     category_filter.add_item("AllCategories", -1)
     for category in ErrorLogger.ErrorCategory.values():
@@ -40,14 +46,19 @@ func _setup_filters() -> void:
         severity_filter.add_item(ErrorLogger.ErrorSeverity.keys()[severity], severity)
 
 func _connect_signals() -> void:
-    error_list.item_selected.connect(_on_error_selected)
-    category_filter.item_selected.connect(_on_category_filter_changed)
-    severity_filter.item_selected.connect(_on_severity_filter_changed)
-    clear_resolved_button.pressed.connect(_on_clear_resolved_pressed)
-    export_logs_button.pressed.connect(_on_export_logs_pressed)
+    if error_list:
+        error_list.item_selected.connect(_on_error_selected)
+    if category_filter:
+        category_filter.item_selected.connect(_on_category_filter_changed)
+    if severity_filter:
+        severity_filter.item_selected.connect(_on_severity_filter_changed)
+    if clear_resolved_button:
+        clear_resolved_button.pressed.connect(_on_clear_resolved_pressed)
+    if export_logs_button:
+        export_logs_button.pressed.connect(_on_export_logs_pressed)
 
 func _refresh_error_list() -> void:
-    if not error_logger:
+    if not error_logger or not error_list:
         return
     
     error_list.clear()

@@ -3,7 +3,7 @@ extends Resource
 class_name GameGear
 
 # Import necessary classes
-const GameDataManager = preload("res://src/core/managers/GameDataManager.gd")
+# Note: GameDataManager is an autoload - access via get_node("/root/GameDataManager")
 
 const GameEnums = preload("res://src/core/systems/GlobalEnums.gd")
 
@@ -25,14 +25,27 @@ func _init() -> void:
 	if Engine.is_editor_hint():
 		return
 		
-	# Use the singleton instance
-	_data_manager = GameDataManager.get_instance()
-	GameDataManager.ensure_data_loaded()
+	# Try to get the singleton instance
+	var tree = Engine.get_main_loop() as SceneTree
+	if tree and tree.root:
+		var data_manager_node = tree.root.get_node_or_null("GameDataManagerAutoload")
+		if data_manager_node:
+			_data_manager = data_manager_node
+			print("GameGear: GameDataManagerAutoload available immediately")
+		else:
+			print("GameGear: GameDataManagerAutoload not ready yet")
+	else:
+		print("GameGear: SceneTree not available yet")
 
 func initialize_from_id(id: String) -> bool:
+	# If we don't have data manager yet, try to get it with retry
 	if _data_manager == null:
-		_data_manager = GameDataManager.get_instance()
-		GameDataManager.ensure_data_loaded()
+		var tree = Engine.get_main_loop() as SceneTree
+		if tree and tree.root:
+			_data_manager = tree.root.get_node_or_null("GameDataManagerAutoload")
+		if not _data_manager:
+			push_error("GameGear: Failed to get GameDataManagerAutoload")
+			return false
 		
 	var gear_data = _data_manager.get_gear_item(id)
 	if gear_data.is_empty():
@@ -61,8 +74,7 @@ func initialize_from_data(data: Dictionary) -> bool:
 		
 		# If there's a single effect, convert it to our format
 		if data.has("effect"):
-
-			gear_effects.append({  # warning: return value discarded (intentional)
+			gear_effects.append({ # warning: return value discarded (intentional)
 				"type": "basic",
 
 				"description": data.get("effect", ""),
@@ -80,7 +92,6 @@ func initialize_from_data(data: Dictionary) -> bool:
 	if data.has("cost") and data.cost is Dictionary:
 		gear_cost = data.cost
 	else:
-
 		gear_cost = {"credits": data.get("cost", 0), "rarity": data.get("rarity", "Common")}
 
 	gear_tags = data.get("tags", [])
@@ -115,11 +126,9 @@ func has_trait(trait_name: String) -> bool:
 	return gear_traits.has(trait_name)
 
 func get_cost() -> int:
-
 	return gear_cost.get("credits", 0)
 
 func get_rarity() -> String:
-
 	return gear_cost.get("rarity", "Common")
 
 func get_tags() -> Array[String]:
@@ -198,7 +207,6 @@ func apply_effect(character, effect_index: int = 0) -> bool:
 	
 	match effect_type:
 		"stat_boost":
-
 			var stat = effect.get("stat", "")
 
 			var _value = effect.get("_value", 0)
@@ -208,7 +216,6 @@ func apply_effect(character, effect_index: int = 0) -> bool:
 				return true
 				
 		"skill_boost":
-
 			var skill = effect.get("skill", "")
 
 			var _value = effect.get("_value", 0)
@@ -218,7 +225,6 @@ func apply_effect(character, effect_index: int = 0) -> bool:
 				return true
 				
 		"special_ability":
-
 			var ability = effect.get("ability", "")
 			
 			if ability:
@@ -226,7 +232,6 @@ func apply_effect(character, effect_index: int = 0) -> bool:
 				return true
 				
 		"environmental_protection":
-
 			var protection_type = effect.get("protection_type", "")
 			
 			if protection_type:

@@ -24,6 +24,7 @@ func _init(value: Variant) -> void:
 func on(obj: Variant) -> Variant:
 	if not GdUnitMock._is_mock_or_spy(obj, "__do_return"):
 		return obj
+	@warning_ignore("unsafe_method_access")
 	return obj.__do_return(_value)
 
 

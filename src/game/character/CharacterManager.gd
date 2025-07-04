@@ -18,7 +18,7 @@ func _ready() -> void:
 	super._ready()
 
 ## Override create_character to use game-specific character class
-func create_character(character_data: Dictionary = {}) -> Character:
+func create_character(character_data: Dictionary = {}) -> CoreCharacter:
 	var character := FPCM_Character.new()
 	
 	# Apply provided data or use defaults

@@ -8,14 +8,14 @@ extends Node
 
 # Safe imports
 const UniversalNodeAccess = preload("res://src/utils/UniversalNodeAccess.gd")
-const UniversalResourceLoader = preload("res://src/utils/UniversalResourceLoader.gd") 
+const UniversalResourceLoader = preload("res://src/utils/UniversalResourceLoader.gd")
 const UniversalSignalManager = preload("res://src/utils/UniversalSignalManager.gd")
 const UniversalDataAccess = preload("res://src/utils/UniversalDataAccess.gd")
 const UniversalSceneManager = preload("res://src/utils/UniversalSceneManager.gd")
 
 # Safe dependency loading - loaded at runtime in _ready()
 var GameEnums = null
-var GameState = null
+var game_state_manager = null
 var TravelPhase = null
 var WorldPhase = null
 var PostBattlePhase = null
@@ -42,7 +42,8 @@ signal campaign_turn_completed(turn: int)
 func _ready() -> void:
 	# Load dependencies safely at runtime
 	GameEnums = UniversalResourceLoader.load_script_safe("res://src/core/systems/GlobalEnums.gd", "CampaignPhaseManager GameEnums")
-	GameState = UniversalNodeAccess.get_node_safe(get_tree().root, NodePath("GameStateManager"), "CampaignPhaseManager GameState")
+	# Access GameStateManagerAutoload autoload directly
+	game_state_manager = get_node_or_null("/root/GameStateManagerAutoload")
 	
 	# Load phase classes
 	TravelPhase = UniversalResourceLoader.load_script_safe("res://src/core/campaign/phases/TravelPhase.gd", "CampaignPhaseManager TravelPhase")
@@ -51,7 +52,7 @@ func _ready() -> void:
 	
 	# Initialize enum values after loading GameEnums
 	if GameEnums:
-		current_phase = GameEnums.FiveParcsecsCampaignPhase.NONE
+		current_phase = GameEnums.FiveParsecsCampaignPhase.NONE
 	
 	# Initialize phase handlers
 	_initialize_phase_handlers()
@@ -98,14 +99,13 @@ func _validate_core_connections() -> void:
 	if not GameEnums:
 		push_error("CORE SYSTEM FAILURE: GameEnums not accessible from CampaignPhaseManager")
 	
-	if not GameState:
-		push_error("CORE SYSTEM FAILURE: GameState not accessible from CampaignPhaseManager")
+	if not game_state_manager:
+		push_error("CORE SYSTEM FAILURE: GameStateManager not accessible from CampaignPhaseManager")
 
 func _register_with_game_state() -> void:
-	# Register this manager with the global game state system
-	var global_game_state = get_node_or_null("/root/GameState")
-	if global_game_state and global_game_state.has_method("register_manager"):
-		global_game_state.register_manager("CampaignPhaseManager", self)
+	# Register this manager with the global game state system using direct autoload access
+	if GameState and GameState.has_method("register_manager"):
+		GameState.register_manager("CampaignPhaseManager", self)
 
 ## Main Campaign Turn Management
 func start_new_campaign_turn() -> bool:
@@ -119,7 +119,7 @@ func start_new_campaign_turn() -> bool:
 	UniversalSignalManager.emit_signal_safe(self, "campaign_turn_started", [turn_number], "CampaignPhaseManager campaign_turn_started")
 	
 	# Phase 1: Travel Phase
-	return start_phase(GameEnums.FiveParcsecsCampaignPhase.TRAVEL)
+	return start_phase(GameEnums.FiveParsecsCampaignPhase.TRAVEL)
 
 func get_current_phase() -> int:
 	return current_phase
@@ -151,8 +151,8 @@ func start_phase(phase: int) -> bool:
 	UniversalSignalManager.emit_signal_safe(self, "phase_changed", [phase], "CampaignPhaseManager phase_changed")
 	
 	# Update game state
-	if GameState and GameState.has_method("set_campaign_phase"):
-		GameState.set_campaign_phase(phase)
+	if game_state_manager and game_state_manager.has_method("set_campaign_phase"):
+		game_state_manager.set_campaign_phase(phase)
 	
 	# Start the appropriate phase handler
 	_start_phase_handler(phase)
@@ -166,21 +166,21 @@ func _start_phase_handler(phase: int) -> void:
 		return
 	
 	match phase:
-		GameEnums.FiveParcsecsCampaignPhase.TRAVEL:
+		GameEnums.FiveParsecsCampaignPhase.TRAVEL:
 			if travel_phase_handler and travel_phase_handler.has_method("start_travel_phase"):
 				travel_phase_handler.start_travel_phase()
 		
-		GameEnums.FiveParcsecsCampaignPhase.WORLD:
+		GameEnums.FiveParsecsCampaignPhase.WORLD:
 			if world_phase_handler and world_phase_handler.has_method("start_world_phase"):
 				world_phase_handler.start_world_phase()
 		
-		GameEnums.FiveParcsecsCampaignPhase.BATTLE:
+		GameEnums.FiveParsecsCampaignPhase.BATTLE:
 			# Battle phase is handled separately by combat system
 			print("CampaignPhaseManager: Battle phase started - transitioning to combat system")
 			# Auto-complete battle phase for now (would integrate with combat system)
 			_complete_battle_phase()
 		
-		GameEnums.FiveParcsecsCampaignPhase.POST_BATTLE:
+		GameEnums.FiveParsecsCampaignPhase.POST_BATTLE:
 			if post_battle_phase_handler and post_battle_phase_handler.has_method("start_post_battle_phase"):
 				# Get battle results from combat system
 				var battle_results = _get_battle_results()
@@ -192,7 +192,7 @@ func _complete_battle_phase() -> void:
 	UniversalSignalManager.emit_signal_safe(self, "phase_completed", [current_phase], "CampaignPhaseManager battle_phase_completed")
 	
 	# Transition to Post-Battle phase
-	start_phase(GameEnums.FiveParcsecsCampaignPhase.POST_BATTLE)
+	start_phase(GameEnums.FiveParsecsCampaignPhase.POST_BATTLE)
 
 func _get_battle_results() -> Dictionary:
 	"""Get battle results from combat system (placeholder)"""
@@ -217,23 +217,23 @@ func _can_transition_to_phase(phase: int) -> bool:
 	
 	# Official Four-Phase Campaign Turn Structure
 	match current_phase:
-		GameEnums.FiveParcsecsCampaignPhase.NONE:
-			return phase in [GameEnums.FiveParcsecsCampaignPhase.SETUP, GameEnums.FiveParcsecsCampaignPhase.TRAVEL]
+		GameEnums.FiveParsecsCampaignPhase.NONE:
+			return phase in [GameEnums.FiveParsecsCampaignPhase.SETUP, GameEnums.FiveParsecsCampaignPhase.TRAVEL]
 		
-		GameEnums.FiveParcsecsCampaignPhase.SETUP:
-			return phase == GameEnums.FiveParcsecsCampaignPhase.TRAVEL
+		GameEnums.FiveParsecsCampaignPhase.SETUP:
+			return phase == GameEnums.FiveParsecsCampaignPhase.TRAVEL
 		
-		GameEnums.FiveParcsecsCampaignPhase.TRAVEL:
-			return phase == GameEnums.FiveParcsecsCampaignPhase.WORLD
+		GameEnums.FiveParsecsCampaignPhase.TRAVEL:
+			return phase == GameEnums.FiveParsecsCampaignPhase.WORLD
 		
-		GameEnums.FiveParcsecsCampaignPhase.WORLD:
-			return phase == GameEnums.FiveParcsecsCampaignPhase.BATTLE
+		GameEnums.FiveParsecsCampaignPhase.WORLD:
+			return phase == GameEnums.FiveParsecsCampaignPhase.BATTLE
 		
-		GameEnums.FiveParcsecsCampaignPhase.BATTLE:
-			return phase == GameEnums.FiveParcsecsCampaignPhase.POST_BATTLE
+		GameEnums.FiveParsecsCampaignPhase.BATTLE:
+			return phase == GameEnums.FiveParsecsCampaignPhase.POST_BATTLE
 		
-		GameEnums.FiveParcsecsCampaignPhase.POST_BATTLE:
-			return phase == GameEnums.FiveParcsecsCampaignPhase.TRAVEL  # Start new turn
+		GameEnums.FiveParsecsCampaignPhase.POST_BATTLE:
+			return phase == GameEnums.FiveParsecsCampaignPhase.TRAVEL # Start new turn
 	
 	return false
 
@@ -244,16 +244,16 @@ func _get_next_phase(phase: int) -> int:
 	
 	# Official Four-Phase Campaign Turn Progression
 	match phase:
-		GameEnums.FiveParcsecsCampaignPhase.SETUP:
-			return GameEnums.FiveParcsecsCampaignPhase.TRAVEL
-		GameEnums.FiveParcsecsCampaignPhase.TRAVEL:
-			return GameEnums.FiveParcsecsCampaignPhase.WORLD
-		GameEnums.FiveParcsecsCampaignPhase.WORLD:
-			return GameEnums.FiveParcsecsCampaignPhase.BATTLE
-		GameEnums.FiveParcsecsCampaignPhase.BATTLE:
-			return GameEnums.FiveParcsecsCampaignPhase.POST_BATTLE
-		GameEnums.FiveParcsecsCampaignPhase.POST_BATTLE:
-			return GameEnums.FiveParcsecsCampaignPhase.TRAVEL  # Start new turn
+		GameEnums.FiveParsecsCampaignPhase.SETUP:
+			return GameEnums.FiveParsecsCampaignPhase.TRAVEL
+		GameEnums.FiveParsecsCampaignPhase.TRAVEL:
+			return GameEnums.FiveParsecsCampaignPhase.WORLD
+		GameEnums.FiveParsecsCampaignPhase.WORLD:
+			return GameEnums.FiveParsecsCampaignPhase.BATTLE
+		GameEnums.FiveParsecsCampaignPhase.BATTLE:
+			return GameEnums.FiveParsecsCampaignPhase.POST_BATTLE
+		GameEnums.FiveParsecsCampaignPhase.POST_BATTLE:
+			return GameEnums.FiveParsecsCampaignPhase.TRAVEL # Start new turn
 	
 	return phase
 
@@ -262,13 +262,13 @@ func _on_travel_phase_completed() -> void:
 	"""Handle Travel Phase completion"""
 	print("CampaignPhaseManager: Travel Phase completed")
 	UniversalSignalManager.emit_signal_safe(self, "phase_completed", [current_phase], "CampaignPhaseManager travel_phase_completed")
-	start_phase(GameEnums.FiveParcsecsCampaignPhase.WORLD)
+	start_phase(GameEnums.FiveParsecsCampaignPhase.WORLD)
 
 func _on_world_phase_completed() -> void:
 	"""Handle World Phase completion"""
 	print("CampaignPhaseManager: World Phase completed")
 	UniversalSignalManager.emit_signal_safe(self, "phase_completed", [current_phase], "CampaignPhaseManager world_phase_completed")
-	start_phase(GameEnums.FiveParcsecsCampaignPhase.BATTLE)
+	start_phase(GameEnums.FiveParsecsCampaignPhase.BATTLE)
 
 func _on_post_battle_phase_completed() -> void:
 	"""Handle Post-Battle Phase completion"""
@@ -299,7 +299,7 @@ func _on_post_battle_substep_changed(substep: int) -> void:
 ## Legacy Support Methods (for backward compatibility)
 func complete_current_phase() -> bool:
 	"""Complete current phase and transition to next"""
-	if current_phase == 0:  # NONE
+	if current_phase == 0: # NONE
 		return false
 	
 	print("CampaignPhaseManager: Completing phase %s" % get_phase_name(current_phase))
@@ -339,13 +339,13 @@ func get_substep_name(phase: int, substep: int) -> String:
 		return "Unknown Substep"
 	
 	match phase:
-		GameEnums.FiveParcsecsCampaignPhase.TRAVEL:
+		GameEnums.FiveParsecsCampaignPhase.TRAVEL:
 			if "TRAVEL_SUBSTEP_NAMES" in GameEnums:
 				return GameEnums.TRAVEL_SUBSTEP_NAMES.get(substep, "Unknown Travel Step")
-		GameEnums.FiveParcsecsCampaignPhase.WORLD:
+		GameEnums.FiveParsecsCampaignPhase.WORLD:
 			if "WORLD_SUBSTEP_NAMES" in GameEnums:
 				return GameEnums.WORLD_SUBSTEP_NAMES.get(substep, "Unknown World Step")
-		GameEnums.FiveParcsecsCampaignPhase.POST_BATTLE:
+		GameEnums.FiveParsecsCampaignPhase.POST_BATTLE:
 			if "POST_BATTLE_SUBSTEP_NAMES" in GameEnums:
 				return GameEnums.POST_BATTLE_SUBSTEP_NAMES.get(substep, "Unknown Post-Battle Step")
 	

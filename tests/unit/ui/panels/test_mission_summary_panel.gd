@@ -1,11 +1,6 @@
 @tool
 extends GdUnitGameTest
 
-# ========================================
-# UNIVERSAL UI MOCK STRATEGY - PROVEN PATTERN
-# ========================================
-#
-
 class MockMissionSummaryPanel extends Resource:
     var title_text: String = ""
     var outcome_text: String = ""
@@ -16,7 +11,6 @@ class MockMissionSummaryPanel extends Resource:
     var is_setup: bool = false
     var continue_pressed_count: int = 0
     
-    #
     func setup(data: Dictionary) -> void:
         mission_data = data
         if data.has("title"):
@@ -71,21 +65,19 @@ class MockMissionSummaryPanel extends Resource:
 
     func is_panel_setup() -> bool:
         return is_setup
-
-    #
+    
     signal setup_completed(data: Dictionary)
     signal continue_button_pressed
     signal stats_updated(stats: Dictionary)
     signal rewards_updated(rewards: Dictionary)
 
-    var mock_panel: MockMissionSummaryPanel = null
+var mock_panel: MockMissionSummaryPanel = null
 
 func before_test() -> void:
     super.before_test()
     mock_panel = MockMissionSummaryPanel.new()
-    track_resource(mock_panel) # Perfect cleanup
+    track_resource(mock_panel)
 
-#
 func test_initial_setup() -> void:
     pass
 
@@ -165,7 +157,6 @@ func test_continue_button() -> void:
     pass
 
 func test_victory_scenarios() -> void:
-    #
     var objective_mission := {
         "title": "Objective Mission",
         "outcome": {"victory": true, "victory_type": "objective"}
@@ -181,7 +172,6 @@ func test_victory_scenarios() -> void:
     pass
 
 func test_defeat_scenarios() -> void:
-    #
     var defeat_mission := {
         "title": "Failed Mission",
         "outcome": {"victory": false, "failure_reason": "Crew overwhelmed"}
@@ -190,11 +180,9 @@ func test_defeat_scenarios() -> void:
     pass
 
 func test_component_structure() -> void:
-    #
     pass
 
 func test_data_persistence() -> void:
-    #
     var test_data := {
         "title": "Persistence Test",
         "outcome": {"victory": true, "victory_type": "survival"},
@@ -205,7 +193,6 @@ func test_data_persistence() -> void:
     pass
 
 func test_multiple_setups() -> void:
-    #
     var first_mission := {"title": "First Mission"}
     var second_mission := {"title": "Second Mission"}
     

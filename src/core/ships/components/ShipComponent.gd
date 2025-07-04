@@ -1,5 +1,4 @@
 # Scripts/ShipAndCrew/ShipComponent.gd
-@tool
 extends Resource
 class_name FPCM_ShipComponent
 
@@ -286,4 +285,3 @@ static func deserialize(data: Dictionary) -> Dictionary:
 
         "status_effects": data.get("status_effects", [])
     }
-         

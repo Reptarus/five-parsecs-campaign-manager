@@ -22,6 +22,7 @@ class HttpResponse:
 			return _body.get_string_from_utf8()
 
 		var test_json_conv := JSON.new()
+		@warning_ignore("return_value_discarded")
 		var error := test_json_conv.parse(_body.get_string_from_utf8())
 		if error != OK:
 			return "HttpResponse: %s Error: %s" % [error_string(error), _body.get_string_from_utf8()]
@@ -36,6 +37,7 @@ var _http_request := HTTPRequest.new()
 
 func _ready() -> void:
 	add_child(_http_request)
+	@warning_ignore("return_value_discarded")
 	_http_request.request_completed.connect(_on_request_completed)
 
 

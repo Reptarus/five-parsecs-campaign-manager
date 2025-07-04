@@ -5,12 +5,12 @@ const CHARACTER_FILE_EXTENSION = ".char.json"
 const CREW_FILE_EXTENSION = ".crew.json"
 const PORTRAIT_DIR = "user://portraits/"
 const Character = preload("res://src/core/character/Base/Character.gd")
-const GameStateManager = preload("res://src/core/managers/GameStateManager.gd")
+# Note: GameStateManager is an autoload - access via get_node("/root/GameStateManager")
 const GameEnums = preload("res://src/core/systems/GlobalEnums.gd")
 
-var game_state_manager: GameStateManager
+var game_state_manager: Node # FPCM_GameStateManager
 
-func _init(_game_state_manager: GameStateManager) -> void:
+func _init(_game_state_manager: Node) -> void: # _game_state_manager is FPCM_GameStateManager
 	game_state_manager = _game_state_manager
 	_ensure_directories_exist()
 func _ensure_directories_exist() -> void:

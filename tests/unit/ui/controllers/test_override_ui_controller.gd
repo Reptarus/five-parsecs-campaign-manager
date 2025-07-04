@@ -1,11 +1,6 @@
 @tool
 extends GdUnitGameTest
 
-# ========================================
-# UNIVERSAL UI MOCK STRATEGY - PROVEN PATTERN
-# ========================================
-#
-
 class MockOverrideUIController extends Resource:
     var override_active: bool = false
     var current_override: Dictionary = {}
@@ -14,34 +9,30 @@ class MockOverrideUIController extends Resource:
     var override_count: int = 0
     var max_overrides: int = 10
     
-    #
     var available_overrides: Array[String] = ["combat", "movement", "terrain", "equipment"]
     var override_history: Array[Dictionary] = []
     var pending_overrides: Array[Dictionary] = []
     
-    #
     var controller_initialized: bool = true
     var combat_system_active: bool = false
     var validation_enabled: bool = true
     
-    #
     signal override_requested(override_type: String)
     signal override_applied(override_data: Dictionary)
     signal override_cancelled(override_id: String)
     signal override_validated(is_valid: bool)
     signal ui_state_changed(enabled: bool)
     
-    #
     func request_override(override_type: String, data: Dictionary = {}) -> bool:
         if not override_type in available_overrides:
             return false
         
-    var override_data = {
-        "id": "override_" + str(override_count),
-        "type": override_type,
-        "data": data,
-        "timestamp": Time.get_unix_time_from_system()
-    }
+        var override_data = {
+            "id": "override_" + str(override_count),
+            "type": override_type,
+            "data": data,
+            "timestamp": Time.get_unix_time_from_system()
+        }
         pending_overrides.append(override_data)
         override_count += 1
         return true
@@ -63,19 +54,19 @@ class MockOverrideUIController extends Resource:
         return false
 
     func validate_override(override_data: Dictionary) -> bool:
-    var is_valid = override_data.has("type") and override_data.has("data")
+        var is_valid = override_data.has("type") and override_data.has("data")
         return is_valid
 
     func setup_combat_system(combat_manager: Resource, ui_manager: Resource) -> bool:
-    combat_system_active = true
+        combat_system_active = true
         return true
 
     func cleanup_combat_system() -> void:
-    combat_system_active = false
+        combat_system_active = false
         pending_overrides.clear()
     
     func set_ui_enabled(enabled: bool) -> void:
-    ui_enabled = enabled
+        ui_enabled = enabled
     
     func get_override_count() -> int:
         return override_count
@@ -89,14 +80,13 @@ class MockOverrideUIController extends Resource:
     func get_current_override() -> Dictionary:
         return current_override
 
-    var mock_controller: MockOverrideUIController = null
+var mock_controller: MockOverrideUIController = null
 
 func before_test() -> void:
     super.before_test()
     mock_controller = MockOverrideUIController.new()
-    track_resource(mock_controller) # Perfect cleanup
+    track_resource(mock_controller)
 
-#
 func test_initial_state() -> void:
     pass
 
@@ -105,7 +95,6 @@ func test_request_override() -> void:
     pass
 
 func test_apply_override() -> void:
-    #
     mock_controller.request_override("movement", {"direction": "north"})
     var override_id = "override_0"
     
@@ -113,7 +102,6 @@ func test_apply_override() -> void:
     pass
 
 func test_cancel_override() -> void:
-    #
     mock_controller.request_override("terrain", {"type": "difficult"})
     var override_id = "override_0"
     
@@ -141,7 +129,6 @@ func test_controller_state() -> void:
     pass
 
 func test_override_sequence() -> void:
-    #
     mock_controller.request_override("equipment", {"item": "medkit"})
     
     var override_id = "override_0"
@@ -149,7 +136,6 @@ func test_override_sequence() -> void:
     pass
 
 func test_controller_performance() -> void:
-    #
     for i: int in range(5):
         mock_controller.request_override("combat", {"iteration": i})
     pass
@@ -162,10 +148,8 @@ func test_invalid_overrides() -> void:
     pass
 
 func test_combat_system_cleanup() -> void:
-    #
     mock_controller.setup_combat_system(Resource.new(), Resource.new())
     mock_controller.request_override("combat", {})
     
-    #
     mock_controller.cleanup_combat_system()
     pass

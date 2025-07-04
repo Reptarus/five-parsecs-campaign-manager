@@ -1,7 +1,14 @@
 extends Control
 
+## Five Parsecs Campaign Creation Crew Panel
+## Enhanced with FiveParsecsCharacterGeneration integration
+
+# Safe imports using Universal Safety System
+const UniversalResourceLoader = preload("res://src/utils/UniversalResourceLoader.gd")
+const UniversalSignalManager = preload("res://src/utils/UniversalSignalManager.gd")
 const Character = preload("res://src/core/character/Base/Character.gd")
 const CharacterCreator = preload("res://src/core/character/Generation/CharacterCreator.gd")
+const FiveParsecsCharacterGeneration = preload("res://src/core/character/CharacterGeneration.gd")
 const GameEnums = preload("res://src/core/systems/GlobalEnums.gd")
 
 signal crew_updated(crew: Array)
@@ -57,10 +64,15 @@ func _on_add_member_pressed() -> void:
 		character_creator.start_creation()
 		character_creator.show()
 	else:
-		# Fallback: create a basic character
-		_create_basic_character()
+		# Use Five Parsecs character generation for compliance
+		_create_five_parsecs_character()
 		_update_crew_list()
-		crew_updated.emit(crew_members)
+		UniversalSignalManager.emit_signal_safe(
+			self,
+			"crew_updated",
+			[crew_members],
+			"CrewPanel add character"
+		)
 
 func _on_edit_member_pressed() -> void:
 	var selected = crew_list.get_selected_items()
@@ -87,10 +99,15 @@ func _on_randomize_pressed() -> void:
 	crew_members.clear()
 	
 	for i in range(selected_size):
-		_create_basic_character()
+		_create_five_parsecs_character()
 	
 	_update_crew_list()
-	crew_updated.emit(crew_members) # warning: return value discarded (intentional)
+	UniversalSignalManager.emit_signal_safe(
+		self,
+		"crew_updated",
+		[crew_members],
+		"CrewPanel randomize crew generation"
+	)
 
 func _on_character_created(character: Character) -> void:
 	if crew_members.size() < selected_size:
@@ -149,8 +166,20 @@ func get_crew_data() -> Array:
 func is_valid() -> bool:
 	return crew_members.size() == selected_size
 
-func _create_basic_character() -> void:
-	"""Create a basic character following Five Parsecs crew generation rules"""
+func _create_five_parsecs_character() -> void:
+	"""Create a character using official Five Parsecs generation system"""
+	# Use the sophisticated FiveParsecsCharacterGeneration system
+	var character = FiveParsecsCharacterGeneration.generate_random_character()
+	
+	if character:
+		crew_members.append(character)
+		print("CrewPanel: Generated Five Parsecs character: ", character.character_name)
+	else:
+		# Fallback to manual creation if needed
+		_create_manual_character()
+
+func _create_manual_character() -> void:
+	"""Fallback manual character creation following Five Parsecs crew generation rules"""
 	var character = Character.new()
 	
 	# Step 1: Roll for crew type (Core Rules p.764)
@@ -199,7 +228,12 @@ func _create_basic_character() -> void:
 	
 	crew_members.append(character)
 	_update_crew_list()
-	crew_updated.emit(crew_members)
+	UniversalSignalManager.emit_signal_safe(
+		self,
+		"crew_updated",
+		[crew_members],
+		"CrewPanel manual character creation"
+	)
 
 func _generate_name_for_origin(origin: GameEnums.Origin) -> String:
 	"""Generate appropriate names for different character origins"""

@@ -179,7 +179,7 @@ func get_scenes_by_category(category: String) -> Array[String]:
 
 ## Campaign phase navigation helpers
 func navigate_to_campaign_phase(phase: String) -> void:
-	"""Navigate to a specific campaign phase"""
+	# Navigate to a specific campaign phase
 	var phase_scene_map = {
 		"upkeep": "upkeep_phase",
 		"travel": "travel_phase",
@@ -202,52 +202,52 @@ func navigate_to_campaign_phase(phase: String) -> void:
 ## Quick navigation methods for common flows
 
 func start_new_campaign() -> void:
-	"""Start the new campaign flow"""
+	# Start the new campaign flow
 	clear_history()
 	navigate_to("campaign_creation")
 
 func return_to_main_menu() -> void:
-	"""Return to main menu"""
+	# Return to main menu
 	clear_history()
 	navigate_to("main_menu")
 
 func enter_main_game() -> void:
-	"""Enter the main game scene"""
+	# Enter the main game scene
 	navigate_to("main_game")
 
 func navigate_to_main_game() -> void:
-	"""Navigate to the main game scene - alias for enter_main_game"""
+	# Navigate to the main game scene - alias for enter_main_game
 	enter_main_game()
 
 func change_scene(scene_path: String) -> void:
-	"""Direct scene change using file path - for compatibility"""
+	# Direct scene change using file path - for compatibility
 	print("SceneRouter: Direct scene change to ", scene_path)
 	get_tree().call_deferred("change_scene_to_file", scene_path)
 
 func open_character_management() -> void:
-	"""Open character management"""
+	# Open character management
 	navigate_to("advancement_manager")
 
 func open_equipment_management() -> void:
-	"""Open equipment management"""
+	# Open equipment management
 	navigate_to("equipment_manager")
 
 func open_ship_management() -> void:
-	"""Open ship management"""
+	# Open ship management
 	navigate_to("ship_manager")
 
 func start_battle_sequence() -> void:
-	"""Start the battle sequence"""
+	# Start the battle sequence
 	navigate_to("pre_battle")
 
 func start_post_battle_sequence() -> void:
-	"""Start the post-battle sequence"""
+	# Start the post-battle sequence
 	navigate_to("post_battle_sequence")
 
 ## Private helper methods
 
 func _add_to_history(scene_name: String) -> void:
-	"""Add a scene to navigation history"""
+	# Add a scene to navigation history
 	# Avoid duplicate consecutive entries
 	if not navigation_history.is_empty() and navigation_history.back() == scene_name:
 		return
@@ -258,8 +258,8 @@ func _add_to_history(scene_name: String) -> void:
 	if navigation_history.size() > max_history_size:
 		navigation_history.pop_front()
 
-func _validate_all_scenes() -> Dictionary:
-	"""Validate that all registered scene files exist"""
+func validate_all_scenes() -> bool:
+	# Validate that all registered scene files exist
 	var results = {"valid": [], "missing": []}
 	
 	for scene_name in SCENE_PATHS:
@@ -272,9 +272,9 @@ func _validate_all_scenes() -> Dictionary:
 	return results
 
 ## Debug and utility methods
-func print_scene_validation() -> void:
-	"""Print validation results for all scenes"""
-	var results = _validate_all_scenes()
+func print_validation_results() -> void:
+	# Print validation results for all scenes
+	var results = validate_all_scenes()
 	print("SceneRouter Validation Results:")
 	print("Valid scenes (", results.valid.size(), "): ", results.valid)
 	if results.missing.size() > 0:
@@ -283,8 +283,8 @@ func print_scene_validation() -> void:
 		print("All scenes validated successfully!")
 
 func get_scene_info() -> Dictionary:
-	"""Get comprehensive scene information"""
-	var results = _validate_all_scenes()
+	# Get comprehensive scene information
+	var results = validate_all_scenes()
 	return {
 		"total_scenes": SCENE_PATHS.size(),
 		"valid_scenes": results.valid.size(),

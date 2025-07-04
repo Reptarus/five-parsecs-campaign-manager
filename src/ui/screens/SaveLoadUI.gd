@@ -47,7 +47,14 @@ func _ready() -> void:
 
 # Simple direct initialization - bypasses complex validation
 func _initialize_component_direct() -> void:
-	# Get references to required autoloads
+	# Use deferred call to ensure autoloads are ready
+	call_deferred("_connect_autoloads")
+	
+	# Initialize UI state (will be updated once autoloads connect)
+	_update_button_states()
+
+func _connect_autoloads() -> void:
+	# Get references to required autoloads after they're fully initialized
 	save_manager = get_node_or_null("/root/SaveManager")
 	game_state = get_node_or_null("/root/GameState")
 	
@@ -59,7 +66,7 @@ func _initialize_component_direct() -> void:
 	# Connect signals for existing nodes only
 	_connect_existing_signals()
 	
-	# Initialize UI state
+	# Initialize UI state now that we have autoload references
 	if save_manager:
 		_refresh_save_list()
 	_update_button_states()
@@ -727,4 +734,3 @@ func _on_delete_pressed() -> void:
 	_current_dialog.confirmed.connect(_on_delete_confirmation_dialog_confirmed.bind(save_data.name))
 	add_child(_current_dialog)
 	_current_dialog.popup_centered()
-   

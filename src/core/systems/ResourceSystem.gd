@@ -1,6 +1,5 @@
-@tool
-extends RefCounted
-class_name GameResourceSystem
+class_name ResourceSystemClass
+extends Node
 
 ## Simple resource management system for Five Parsecs
 ##
@@ -48,7 +47,7 @@ func _initialize_resources() -> void:
 
 ## Add resources
 
-func add_resource(type: ResourceType, amount: int, description: String = "") -> void:
+func add_resource(type: ResourceSystemClass.ResourceType, amount: int, description: String = "") -> void:
 	if amount <= 0:
 		validation_failed.emit(type, amount, "Amount must be positive") # warning: return value discarded (intentional)
 		return
@@ -61,7 +60,7 @@ func add_resource(type: ResourceType, amount: int, description: String = "") -> 
 	transaction_recorded.emit(transaction) # warning: return value discarded (intentional)
 
 ## Remove resources
-func remove_resource(type: ResourceType, amount: int, description: String = "") -> bool:
+func remove_resource(type: ResourceSystemClass.ResourceType, amount: int, description: String = "") -> bool:
 	if amount <= 0:
 		validation_failed.emit(type, amount, "Amount must be positive") # warning: return value discarded (intentional)
 		return false
@@ -79,11 +78,11 @@ func remove_resource(type: ResourceType, amount: int, description: String = "") 
 	return true
 
 ## Get resource amount
-func get_resource(type: ResourceType) -> int:
+func get_resource(type: ResourceSystemClass.ResourceType) -> int:
 	return resources.get(type, 0)
 
 ## Check if has enough resources
-func has_enough(type: ResourceType, amount: int) -> bool:
+func has_enough(type: ResourceSystemClass.ResourceType, amount: int) -> bool:
 	return get_resource(type) >= amount
 
 ## Get all resources

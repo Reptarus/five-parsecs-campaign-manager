@@ -3,6 +3,7 @@ class_name GdUnitTestSuiteExecutor
 
 
 # preload all asserts here
+@warning_ignore("unused_private_class_variable")
 var _assertions := GdUnitAssertions.new()
 var _executeStage := GdUnitTestSuiteExecutionStage.new()
 
@@ -28,6 +29,7 @@ func run_and_wait(tests: Array[GdUnitTestCase]) -> void:
 	)
 	var scanner := GdUnitTestSuiteScanner.new()
 	for suite_path: String in grouped_by_suites.keys():
+		@warning_ignore("unsafe_call_argument")
 		var suite_tests: Array[GdUnitTestCase] = Array(grouped_by_suites[suite_path], TYPE_OBJECT, "RefCounted", GdUnitTestCase)
 		var script := GdUnitTestSuiteScanner.load_with_disabled_warnings(suite_path)
 		if script.get_class() == "GDScript":

@@ -318,4 +318,3 @@ func test_flood_fill_operations() -> void:
 	# Verify flood fill doesn't cross walls
 	assert_that(connected_tiles).not_contains(Vector2i(0, 0)) # Outside the walls
 	assert_that(connected_tiles).not_contains(Vector2i(6, 6)) # Outside the walls
-                    

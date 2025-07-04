@@ -2,7 +2,7 @@ extends Node
 
 const GameEnums = preload("res://src/core/systems/GlobalEnums.gd")
 const FiveParsecsGameState = preload("res://src/core/state/GameState.gd")
-const GameStateManager = preload("res://src/core/managers/GameStateManager.gd")
+# Note: GameStateManager is an autoload - access via get_node("/root/GameStateManager")
 const Character = preload("res://src/core/character/Management/CharacterDataManager.gd")
 const Mission = preload("res://src/core/systems/Mission.gd")
 const UnifiedAISystem = preload("res://src/core/systems/UnifiedAISystem.gd")
@@ -13,7 +13,7 @@ signal ai_action_completed(action: Dictionary)
 @export var ai_behavior: int = GameEnums.AIBehavior.CAUTIOUS
 
 var combat_manager: BaseCombatManager
-var _game_state_manager: GameStateManager
+var _game_state_manager: Node # FPCM_GameStateManager
 var _enemy_deployment_manager: Node # Will be typed when EnemyDeploymentManager is available
 
 func _calculate_attack_score(character: Character, enemy: Character) -> float:

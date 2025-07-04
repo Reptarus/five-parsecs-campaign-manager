@@ -287,4 +287,3 @@ func _calculate_maximum(values: Array[float]) -> float:
 	var max_value: float = values[0]
 	for value in values: max_value = max(max_value, value)
 	return max_value
-     

@@ -1,4 +1,3 @@
-@tool
 extends Node
 
 ## Economy in Five Parsecs from Home
@@ -22,13 +21,13 @@ func add_credits(amount: int) -> void:
 	if amount > 0:
 		_current_credits += amount
 		_record_transaction(amount, "credit")
-		economy_updated.emit()  # warning: return value discarded (intentional)
+		economy_updated.emit() # warning: return value discarded (intentional)
 
 func remove_credits(amount: int) -> bool:
 	if amount > 0 and _current_credits >= amount:
 		_current_credits -= amount
-		_record_transaction(- amount, "debit")
-		economy_updated.emit()  # warning: return value discarded (intentional)
+		_record_transaction(-amount, "debit")
+		economy_updated.emit() # warning: return value discarded (intentional)
 		return true
 	return false
 
@@ -39,8 +38,8 @@ func _record_transaction(amount: int, type: String) -> void:
 		"timestamp": Time.get_unix_time_from_system()
 	}
 
-	_transaction_history.append(transaction)  # warning: return value discarded (intentional)
-	transaction_completed.emit(amount, type)  # warning: return value discarded (intentional)
+	_transaction_history.append(transaction) # warning: return value discarded (intentional)
+	transaction_completed.emit(amount, type) # warning: return value discarded (intentional)
 
 func get_transaction_history() -> Array:
 	return _transaction_history

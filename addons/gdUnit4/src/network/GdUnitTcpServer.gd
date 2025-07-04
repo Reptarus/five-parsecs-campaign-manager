@@ -4,6 +4,7 @@ extends Node
 
 signal client_connected(client_id: int)
 signal client_disconnected(client_id: int)
+@warning_ignore("unused_signal")
 signal rpc_data(rpc_data: RPC)
 
 var _server: TCPServer
@@ -93,6 +94,7 @@ func stop() -> void:
 		_server.stop()
 	for connection in get_children():
 		if connection is TcpConnection:
+			@warning_ignore("unsafe_method_access")
 			connection.close()
 			remove_child(connection)
 	_server = null
@@ -116,7 +118,9 @@ func _on_client_connected(client_id: int) -> void:
 
 func _on_client_disconnected(client_id: int) -> void:
 	for connection in get_children():
+		@warning_ignore("unsafe_method_access")
 		if connection is TcpConnection and connection.id() == client_id:
+			@warning_ignore("unsafe_method_access")
 			connection.close()
 			remove_child(connection)
 

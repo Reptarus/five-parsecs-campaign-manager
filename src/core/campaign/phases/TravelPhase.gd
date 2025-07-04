@@ -7,15 +7,15 @@ class_name TravelPhase
 
 # Safe imports
 const UniversalNodeAccess = preload("res://src/utils/UniversalNodeAccess.gd")
-const UniversalResourceLoader = preload("res://src/utils/UniversalResourceLoader.gd") 
+const UniversalResourceLoader = preload("res://src/utils/UniversalResourceLoader.gd")
 const UniversalSignalManager = preload("res://src/utils/UniversalSignalManager.gd")
 const UniversalDataAccess = preload("res://src/utils/UniversalDataAccess.gd")
 const UniversalSceneManager = preload("res://src/utils/UniversalSceneManager.gd")
 
 # Safe dependency loading - loaded at runtime in _ready()
 var GameEnums = null
-var DiceManager = null
-var GameState = null
+var dice_manager = null
+var game_state_manager = null
 
 ## Travel Phase Signals
 signal travel_phase_started()
@@ -28,7 +28,7 @@ signal travel_event_occurred(event_data: Dictionary)
 signal world_arrival_completed(world_data: Dictionary)
 
 ## Current travel state
-var current_substep: int = 0  # Will be set to TravelSubPhase.NONE in _ready()
+var current_substep: int = 0 # Will be set to TravelSubPhase.NONE in _ready()
 var invasion_pending: bool = false
 var travel_costs: Dictionary = {
 	"starship_travel": 5,
@@ -42,8 +42,9 @@ var world_traits_table: Array[Dictionary] = []
 func _ready() -> void:
 	# Load dependencies safely at runtime
 	GameEnums = UniversalResourceLoader.load_script_safe("res://src/core/systems/GlobalEnums.gd", "TravelPhase GameEnums")
-	DiceManager = UniversalNodeAccess.get_node_safe(get_tree().root, NodePath("DiceManager"), "TravelPhase DiceManager")
-	GameState = UniversalNodeAccess.get_node_safe(get_tree().root, NodePath("GameStateManager"), "TravelPhase GameState")
+	# Access autoloads directly
+	dice_manager = DiceManager
+	game_state_manager = get_node_or_null("/root/GameStateManagerAutoload")
 	
 	# Initialize enum values after loading GameEnums
 	if GameEnums:
@@ -112,12 +113,12 @@ func _process_flee_invasion() -> void:
 		UniversalSignalManager.emit_signal_safe(self, "travel_substep_changed", [current_substep], "TravelPhase flee_invasion")
 	
 	# Check if invasion is pending
-	if not GameState:
+	if not game_state_manager:
 		_process_decide_travel()
 		return
 		
-	if GameState.has_method("has_pending_invasion"):
-		invasion_pending = GameState.has_pending_invasion()
+	if game_state_manager.has_method("has_pending_invasion"):
+		invasion_pending = game_state_manager.has_pending_invasion()
 	
 	if invasion_pending:
 		UniversalSignalManager.emit_signal_safe(self, "invasion_check_required", [], "TravelPhase invasion_check")
@@ -127,17 +128,17 @@ func _process_flee_invasion() -> void:
 
 func _handle_invasion_escape() -> void:
 	"""Handle invasion escape mechanics - 2D6, need 8+ to escape"""
-	if not DiceManager:
+	if not dice_manager:
 		print("TravelPhase: No DiceManager available, auto-escaping invasion")
 		_invasion_escape_result(true)
 		return
 	
 	# Roll 2D6 for escape attempt
 	var escape_roll = 0
-	if DiceManager.has_method("roll_dice"):
-		escape_roll = DiceManager.roll_dice(2, 6)
+	if dice_manager.has_method("roll_dice"):
+		escape_roll = dice_manager.roll_dice(2, 6)
 	else:
-		escape_roll = randi_range(2, 12)  # Fallback
+		escape_roll = randi_range(2, 12) # Fallback
 	
 	var escape_success = escape_roll >= 8
 	print("TravelPhase: Invasion escape roll: %d, success: %s" % [escape_roll, str(escape_success)])
@@ -177,21 +178,21 @@ func _process_decide_travel() -> void:
 
 func _check_travel_affordability() -> bool:
 	"""Check if crew can afford travel costs"""
-	if not GameState:
-		return true  # Default to affordable
+	if not game_state_manager:
+		return true # Default to affordable
 	
 	# Check for starship travel (5 credits)
-	if GameState.has_method("get_credits"):
-		var credits = GameState.get_credits()
+	if game_state_manager.has_method("get_credits"):
+		var credits = game_state_manager.get_credits()
 		if credits >= travel_costs.starship_travel:
 			return true
 	
 	# Check for commercial passage (1 credit per crew member)
-	if GameState.has_method("get_crew_size"):
-		var crew_size = GameState.get_crew_size()
+	if game_state_manager.has_method("get_crew_size"):
+		var crew_size = game_state_manager.get_crew_size()
 		var commercial_cost = crew_size * travel_costs.commercial_passage_per_crew
-		if GameState.has_method("get_credits"):
-			var credits = GameState.get_credits()
+		if game_state_manager.has_method("get_credits"):
+			var credits = game_state_manager.get_credits()
 			if credits >= commercial_cost:
 				return true
 	
@@ -210,12 +211,12 @@ func _make_travel_decision(travel_decision: bool) -> void:
 
 func _charge_travel_costs() -> void:
 	"""Charge appropriate travel costs"""
-	if not GameState:
+	if not game_state_manager:
 		return
 	
 	# For now, assume starship travel (5 credits)
-	if GameState.has_method("remove_credits"):
-		GameState.remove_credits(travel_costs.starship_travel)
+	if game_state_manager.has_method("remove_credits"):
+		game_state_manager.remove_credits(travel_costs.starship_travel)
 		print("TravelPhase: Charged %d credits for starship travel" % travel_costs.starship_travel)
 
 func _process_travel_event() -> void:
@@ -304,8 +305,8 @@ func _process_world_arrival() -> void:
 		print("TravelPhase: World requires operating license")
 	
 	# Update game state with new world
-	if GameState and GameState.has_method("set_location"):
-		GameState.set_location(world_data)
+	if game_state_manager and game_state_manager.has_method("set_location"):
+		game_state_manager.set_location(world_data)
 	
 	UniversalSignalManager.emit_signal_safe(self, "world_arrival_completed", [world_data], "TravelPhase world_arrival")
 	_complete_travel_phase()
@@ -318,7 +319,7 @@ func _generate_new_world() -> Dictionary:
 	var world_data = {
 		"id": "world_" + str(Time.get_unix_time_from_system()),
 		"name": _generate_world_name(),
-		"trait": world_trait_data.trait,
+		"trait": world_trait_data.trait ,
 		"trait_name": world_trait_data.name,
 		"arrival_time": Time.get_unix_time_from_system()
 	}
@@ -355,8 +356,8 @@ func _check_rival_follows() -> bool:
 
 func _dismiss_patrons() -> void:
 	"""Dismiss non-persistent patrons"""
-	if GameState and GameState.has_method("dismiss_non_persistent_patrons"):
-		GameState.dismiss_non_persistent_patrons()
+	if game_state_manager and game_state_manager.has_method("dismiss_non_persistent_patrons"):
+		game_state_manager.dismiss_non_persistent_patrons()
 
 func _check_license_requirement() -> bool:
 	"""Check if world requires license (D6, 5-6 requires license)"""

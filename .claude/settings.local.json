@@ -14,7 +14,23 @@
       "Bash(mv:*)",
       "Bash(rm:*)",
       "Bash(timeout:*)",
-      "Bash(ls:*)"
+      "Bash(ls:*)",
+      "Bash(od:*)",
+      "Bash(cat:*)",
+      "Bash(npx @wonderwhy-er/desktop-commander@latest:*)",
+      "Bash(chmod:*)",
+      "Bash(./scripts/mcp.sh:*)",
+      "WebFetch(domain:github.com)",
+      "Bash(node:*)",
+      "Bash(npm:*)",
+      "Bash(git clone:*)",
+      "Bash(export:*)",
+      "Bash(echo:*)",
+      "Bash(\"/mnt/c/Users/elija/Desktop/GoDot/Godot_v4.4-stable_mono_win64/Godot_v4.4-stable_mono_win64.exe\" --version)",
+      "Bash(GODOT_PATH=\"/mnt/c/Users/elija/Desktop/GoDot/Godot_v4.4-stable_mono_win64/Godot_v4.4-stable_mono_win64.exe\" timeout 5 node build/index.js)",
+      "Bash(ss:*)",
+      "WebFetch(domain:mcpservers.org)",
+      "Bash(./scripts/cursor_connect.sh:*)"
     ],
     "deny": []
   }

@@ -267,4 +267,3 @@ func test_initialization_state() -> void:
 	
 	var initial_phase: int = new_phase_manager.get_current_phase()
 	assert_that(initial_phase).is_equal(0)
-    

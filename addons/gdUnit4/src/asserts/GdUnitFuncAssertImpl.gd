@@ -22,6 +22,7 @@ func _init(instance :Object, func_name :String, args := Array()) -> void:
 	GdUnitThreadManager.get_current_context().set_assert(self)
 	# verify at first the function name exists
 	if not instance.has_method(func_name):
+		@warning_ignore("return_value_discarded")
 		report_error("The function '%s' do not exists checked instance '%s'." % [func_name, instance])
 		_interrupted = true
 	else:
@@ -131,6 +132,7 @@ func _validate_callback(predicate :Callable, expected :Variant = null) -> void:
 	var scene_tree := Engine.get_main_loop() as SceneTree
 	scene_tree.root.add_child(timer)
 	timer.add_to_group("GdUnitTimers")
+	@warning_ignore("return_value_discarded")
 	timer.timeout.connect(do_interrupt, CONNECT_DEFERRED)
 	timer.set_one_shot(true)
 	timer.start((_timeout/1000.0)*time_scale)
@@ -153,6 +155,7 @@ func _validate_callback(predicate :Callable, expected :Variant = null) -> void:
 		# https://github.com/godotengine/godot/issues/73052
 		#var predicate_name = predicate.get_method()
 		var predicate_name :String = str(predicate).split('::')[1]
+		@warning_ignore("return_value_discarded")
 		report_error(GdAssertMessages.error_interrupted(
 			predicate_name.strip_edges().trim_prefix("cb_"),
 			expected,
@@ -160,6 +163,7 @@ func _validate_callback(predicate :Callable, expected :Variant = null) -> void:
 			)
 		)
 	else:
+		@warning_ignore("return_value_discarded")
 		report_success()
 	_sleep_timer.free()
 	timer.free()
@@ -167,6 +171,7 @@ func _validate_callback(predicate :Callable, expected :Variant = null) -> void:
 
 
 func next_current_value() -> Variant:
+	@warning_ignore("redundant_await")
 	if is_instance_valid(_current_value_provider):
 		return await _current_value_provider.get_value()
 	return "invalid value"

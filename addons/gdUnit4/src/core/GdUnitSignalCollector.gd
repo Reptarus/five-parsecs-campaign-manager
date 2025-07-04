@@ -54,6 +54,7 @@ func unregister_emitter(emitter :Object) -> void:
 			var signal_name :String = signal_def["name"]
 			if emitter.is_connected(signal_name, _on_signal_emmited):
 				emitter.disconnect(signal_name, _on_signal_emmited.bind(emitter, signal_name))
+		@warning_ignore("return_value_discarded")
 		_collected_signals.erase(emitter)
 
 
@@ -77,6 +78,7 @@ func _on_signal_emmited(
 	var emitter :Object = signal_args.pop_back()
 	#prints("_on_signal_emmited:", emitter, signal_name, signal_args)
 	if is_signal_collecting(emitter, signal_name):
+		@warning_ignore("unsafe_cast")
 		(_collected_signals[emitter][signal_name] as Array).append(signal_args)
 
 
@@ -85,11 +87,13 @@ func reset_received_signals(emitter :Object, signal_name: String, signal_args :A
 	if _collected_signals.has(emitter):
 		var signals_by_emitter :Dictionary = _collected_signals[emitter]
 		if signals_by_emitter.has(signal_name):
+			@warning_ignore("unsafe_cast")
 			(_collected_signals[emitter][signal_name] as Array).erase(signal_args)
 	#_debug_signal_list("after claer");
 
 
 func is_signal_collecting(emitter :Object, signal_name :String) -> bool:
+	@warning_ignore("unsafe_cast")
 	return _collected_signals.has(emitter) and (_collected_signals[emitter] as Dictionary).has(signal_name)
 
 

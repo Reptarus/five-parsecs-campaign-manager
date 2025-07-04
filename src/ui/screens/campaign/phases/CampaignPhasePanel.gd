@@ -1,7 +1,7 @@
 extends FPCM_BasePhasePanel
 class_name FPCM_CampaignPhasePanel
 
-const CampaignManager = preload("res://src/core/managers/CampaignManager.gd")
+# Note: CampaignManager is an autoload - access via get_node("/root/CampaignManager")
 const WorldEconomyManager = preload("res://src/core/managers/WorldEconomyManager.gd")
 const StoryQuestData = preload("res://src/core/story/StoryQuestData.gd")
 

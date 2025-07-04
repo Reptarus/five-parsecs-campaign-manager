@@ -32,10 +32,14 @@ static func filter_value(array: Variant, value: Variant) -> Variant:
 	if not is_array_type(array):
 		return null
 
+	@warning_ignore("unsafe_method_access")
 	var filtered_array: Variant = array.duplicate()
+	@warning_ignore("unsafe_method_access")
 	var index: int = filtered_array.find(value)
 	while index != -1:
+		@warning_ignore("unsafe_method_access")
 		filtered_array.remove_at(index)
+		@warning_ignore("unsafe_method_access")
 		index = filtered_array.find(value)
 	return filtered_array
 
@@ -90,6 +94,7 @@ static func as_string(elements: Variant, encode_value := true) -> String:
 	var delemiter := ", "
 	if elements == null:
 		return "<null>"
+	@warning_ignore("unsafe_cast")
 	if (elements as Array).is_empty():
 		return "<empty>"
 	var prefix := _typeof_as_string(elements) if encode_value else ""

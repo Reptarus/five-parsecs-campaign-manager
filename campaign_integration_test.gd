@@ -6,7 +6,7 @@ extends Node
 
 # Test imports
 const UniversalNodeAccess = preload("res://src/utils/UniversalNodeAccess.gd")
-const UniversalResourceLoader = preload("res://src/utils/UniversalResourceLoader.gd") 
+const UniversalResourceLoader = preload("res://src/utils/UniversalResourceLoader.gd")
 const UniversalSignalManager = preload("res://src/utils/UniversalSignalManager.gd")
 const UniversalDataAccess = preload("res://src/utils/UniversalDataAccess.gd")
 
@@ -49,7 +49,7 @@ func test_global_enums_accessibility() -> void:
 	# Check for required enumerations
 	var required_enums = [
 		"FiveParcsecsCampaignPhase",
-		"TravelSubPhase", 
+		"TravelSubPhase",
 		"WorldSubPhase",
 		"PostBattleSubPhase",
 		"CrewTaskType",
@@ -139,7 +139,7 @@ func test_signal_connections() -> void:
 	
 	# Test signal emission safety
 	var test_emitter = Node.new()
-	test_emitter.add_user_signal("test_signal", [{"name": "data", "type": TYPE_INT}])
+	test_emitter.add_user_signal("test_signal", [ {"name": "data", "type": TYPE_INT}])
 	add_child(test_emitter)
 	
 	var emission_result = UniversalSignalManager.emit_signal_safe(test_emitter, "test_signal", [42], "integration_test")
@@ -170,7 +170,7 @@ func test_game_state_integration() -> void:
 	# Check required integration methods
 	var required_methods = [
 		"add_credits",
-		"remove_credits", 
+		"remove_credits",
 		"get_crew_members",
 		"get_crew_size",
 		"set_campaign_phase",

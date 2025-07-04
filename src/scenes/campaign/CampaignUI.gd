@@ -318,4 +318,4 @@ func _handle_equipment_update() -> void:
 func _handle_turn_end() -> void:
 	_phase_manager.advance_phase()
 
-	_phase_manager.advance_phase() 
+	_phase_manager.advance_phase()

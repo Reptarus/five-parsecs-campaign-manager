@@ -41,6 +41,7 @@ func elapsed_time() -> float:
 
 func on_signal(source :Object, signal_name :String, expected_signal_args :Array) -> Variant:
 	# register checked signal to wait for
+	@warning_ignore("return_value_discarded")
 	source.connect(signal_name, _on_signal_emmited)
 	# install timeout timer
 	var scene_tree := Engine.get_main_loop() as SceneTree
@@ -48,6 +49,7 @@ func on_signal(source :Object, signal_name :String, expected_signal_args :Array)
 	scene_tree.root.add_child(timer)
 	timer.add_to_group("GdUnitTimers")
 	timer.set_one_shot(true)
+	@warning_ignore("return_value_discarded")
 	timer.timeout.connect(_do_interrupt, CONNECT_DEFERRED)
 	timer.start(_timeout_millis * 0.001 * Engine.get_time_scale())
 
@@ -68,6 +70,7 @@ func on_signal(source :Object, signal_name :String, expected_signal_args :Array)
 	_time_left = timer.time_left
 	timer.queue_free()
 	await scene_tree.process_frame
+	@warning_ignore("unsafe_cast")
 	if value is Array and (value as Array).size() == 1:
 		return value[0]
 	return value

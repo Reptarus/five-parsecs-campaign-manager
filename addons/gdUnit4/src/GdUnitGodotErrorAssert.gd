@@ -18,6 +18,7 @@ func is_success() -> GdUnitGodotErrorAssert:
 ##     [codeblock]
 ##		await assert_error(<callable>).is_runtime_error(<expected error message>)
 ##     [/codeblock]
+@warning_ignore("unused_parameter")
 func is_runtime_error(expected_error :String) -> GdUnitGodotErrorAssert:
 	await (Engine.get_main_loop() as SceneTree).process_frame
 	return self
@@ -28,6 +29,7 @@ func is_runtime_error(expected_error :String) -> GdUnitGodotErrorAssert:
 ##     [codeblock]
 ##		await assert_error(<callable>).is_push_warning(<expected push warning message>)
 ##     [/codeblock]
+@warning_ignore("unused_parameter")
 func is_push_warning(expected_warning :String) -> GdUnitGodotErrorAssert:
 	await (Engine.get_main_loop() as SceneTree).process_frame
 	return self
@@ -38,6 +40,7 @@ func is_push_warning(expected_warning :String) -> GdUnitGodotErrorAssert:
 ##     [codeblock]
 ##		await assert_error(<callable>).is_push_error(<expected push error message>)
 ##     [/codeblock]
+@warning_ignore("unused_parameter")
 func is_push_error(expected_error :String) -> GdUnitGodotErrorAssert:
 	await (Engine.get_main_loop() as SceneTree).process_frame
 	return self

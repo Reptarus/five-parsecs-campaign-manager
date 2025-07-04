@@ -1,4 +1,3 @@
-@tool
 extends Node
 
 const GameEnums = preload("res://src/core/systems/GlobalEnums.gd")
@@ -25,7 +24,7 @@ func add_planet(planet: GamePlanet) -> void:
 	dirty = true
 	_cleanup_old_cache()
 	save_cache()
-	cache_updated.emit()  # warning: return value discarded (intentional)
+	cache_updated.emit() # warning: return value discarded (intentional)
 
 func get_planet(sector: String, coordinates: Vector2) -> GamePlanet:
 	var planet_id = _generate_id(sector, coordinates)
@@ -39,7 +38,7 @@ func update_planet(planet: GamePlanet) -> void:
 		cache_timestamps[planet_id] = Time.get_unix_time_from_system()
 		dirty = true
 		save_cache()
-		cache_updated.emit()  # warning: return value discarded (intentional)
+		cache_updated.emit() # warning: return value discarded (intentional)
 
 func _generate_planet_id(planet: GamePlanet) -> String:
 	return _generate_id(planet.sector, planet.coordinates)
@@ -58,8 +57,7 @@ func _cleanup_old_cache() -> void:
 	var to_remove: Array = []
 	for planet_id in cache_timestamps:
 		if cache_timestamps[planet_id] < cutoff_time:
-
-			to_remove.append(planet_id)  # warning: return value discarded (intentional)
+			to_remove.append(planet_id) # warning: return value discarded (intentional)
 	
 	for planet_id in to_remove:
 		cached_planets.erase(planet_id)

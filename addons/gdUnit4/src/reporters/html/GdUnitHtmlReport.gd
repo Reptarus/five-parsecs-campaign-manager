@@ -15,6 +15,7 @@ func _init(report_path :String, max_reports: int) -> void:
 	else:
 		_iteration = 1
 	_report_path = "%s/%s%d" % [report_path, REPORT_DIR_PREFIX, _iteration]
+	@warning_ignore("return_value_discarded")
 	DirAccess.make_dir_recursive_absolute(_report_path)
 
 
@@ -22,6 +23,7 @@ func add_testsuite_report(p_resource_path: String, p_suite_name: String, p_test_
 	_reports.append(GdUnitTestSuiteReport.new(p_resource_path, p_suite_name, p_test_count))
 
 
+@warning_ignore("shadowed_variable")
 func add_testcase(resource_path :String, suite_name :String, test_name: String) -> void:
 	for report:GdUnitTestSuiteReport in _reports:
 		if report.get_resource_path() == resource_path:
@@ -102,6 +104,7 @@ func write() -> void:
 	to_write = apply_testsuite_reports(_report_path, to_write, _reports)
 	# write report
 	FileAccess.open(report_file(), FileAccess.WRITE).store_string(to_write)
+	@warning_ignore("return_value_discarded")
 	GdUnitFileAccess.copy_directory("res://addons/gdUnit4/src/reporters/html/template/css/", _report_path + "/css")
 
 
@@ -124,6 +127,7 @@ func apply_path_reports(report_dir :String, template :String, report_summaries :
 		var reports: Array[GdUnitReportSummary] = path_report_mapping.get(report_path)
 		var report := GdUnitByPathReport.new(report_path, reports)
 		var report_link :String = report.write(report_dir).replace(report_dir, ".")
+		@warning_ignore("return_value_discarded")
 		table_records.append(report.create_record(report_link))
 	return template.replace(GdUnitHtmlPatterns.TABLE_BY_PATHS, "\n".join(table_records))
 
@@ -132,6 +136,7 @@ func apply_testsuite_reports(report_dir: String, template: String, test_suite_re
 	var table_records := PackedStringArray()
 	for report: GdUnitTestSuiteReport in test_suite_reports:
 		var report_link :String = report.write(report_dir).replace(report_dir, ".")
+		@warning_ignore("return_value_discarded")
 		table_records.append(report.create_record(report_link) as String)
 	return template.replace(GdUnitHtmlPatterns.TABLE_BY_TESTSUITES, "\n".join(table_records))
 

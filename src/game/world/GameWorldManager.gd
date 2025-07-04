@@ -39,7 +39,10 @@ func _init() -> void:
     # Use the singleton instance
     if not Engine.is_editor_hint():
         _data_manager = GameDataManager.get_instance()
-        GameDataManager.ensure_data_loaded()
+        if _data_manager:
+            GameDataManager.ensure_data_loaded()
+        else:
+            push_warning("GameWorldManager: GameDataManager not available yet during initialization")
 
 ## Generate a new game world with the specified number of sectors
 func generate_world(num_sectors: int = 1) -> void:
@@ -501,7 +504,7 @@ func set_current_planet(planet_id: String) -> void:
         var planet = planets[planet_id]
         if not planet.visited:
             planet.visited = true
-            planet_updated.emit( planet)
+            planet_updated.emit(planet)
 
 ## Set the current location
 func set_current_location(location_id: String) -> void:
@@ -514,7 +517,7 @@ func set_current_location(location_id: String) -> void:
             # Mark location as visited
             if not location.visited:
                 location.visited = true
-                location_updated.emit( location)
+                location_updated.emit(location)
 
 ## Serialize all world data
 func serialize() -> Dictionary:
@@ -549,3 +552,4 @@ func deserialize(data: Dictionary) -> void:
     # Set current planet and location
     current_planet_id = data.get("current_planet_id", "")
     current_location_id = data.get("current_location_id", "")
+    

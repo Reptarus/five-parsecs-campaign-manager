@@ -16,7 +16,7 @@ signal checkpoint_completed
     "validation": validation_label
 }
 
-var game_state_manager: GameStateManager
+var game_state_manager: Node # Will contain GameStateManagerAutoload
 var current_mission: Mission
 var initial_state: Dictionary
 var mission_specific_inputs: Dictionary = {}
@@ -29,10 +29,11 @@ func _ready() -> void:
     initialize_from_autoload()
     setup_ui()
     connect_signals()
+
 func initialize_from_autoload() -> void:
-    game_state_manager = get_node("/root/GameStateManager") as GameStateManager
+    game_state_manager = get_node("/root/GameStateManagerAutoload")
     if not game_state_manager:
-        push_error("Failed to get GameStateManager")
+        push_error("Failed to get GameStateManagerAutoload")
         return
 
 func initialize(mission: Mission, battle_state: Dictionary) -> void:

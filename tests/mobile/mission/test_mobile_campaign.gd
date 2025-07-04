@@ -105,7 +105,7 @@ class MockGameEnums extends Resource:
 	enum DifficultyLevel {EASY = 0, NORMAL = 1, HARD = 2}
 	enum FiveParcsecsCampaignVictoryType {STANDARD = 1, CONQUEST = 2, SURVIVAL = 3}
 	enum CrewSize {TWO = 2, FOUR = 4, SIX = 6}
-	enum FiveParcsecsCampaignPhase {SETUP = 0, UPKEEP = 1, CAMPAIGN = 2, BATTLE = 3}
+	enum FiveParsecsCampaignPhase {SETUP = 0, UPKEEP = 1, CAMPAIGN = 2, BATTLE = 3}
 
 # Type-safe instance variables
 var _campaign_system: MockCampaignSystem = null
@@ -211,11 +211,11 @@ func test_mobile_campaign_performance() -> void:
 		# Measure phase transition performance
 		var metrics: Dictionary = await measure_performance(
 			func() -> void:
-				var phase_success: bool = _campaign.change_phase(GameEnums.FiveParcsecsCampaignPhase.UPKEEP)
+				var phase_success: bool = _campaign.change_phase(GameEnums.FiveParsecsCampaignPhase.UPKEEP)
 				assert_that(phase_success).is_true()
 				await get_tree().process_frame
 				
-				phase_success = _campaign.change_phase(GameEnums.FiveParcsecsCampaignPhase.CAMPAIGN)
+				phase_success = _campaign.change_phase(GameEnums.FiveParsecsCampaignPhase.CAMPAIGN)
 				assert_that(phase_success).is_true()
 				await get_tree().process_frame
 		)
@@ -348,4 +348,3 @@ func verify_performance_metrics(metrics: Dictionary, thresholds: Dictionary) -> 
 	
 	if metrics.has("memory_delta_kb") and thresholds.has("memory_delta_kb"):
 		assert_that(metrics.memory_delta_kb).is_less_equal(thresholds.memory_delta_kb)
-    

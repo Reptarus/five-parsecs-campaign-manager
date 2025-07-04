@@ -204,6 +204,7 @@ func disable_test_recovery() -> void:
 	_run_test_recovery = false
 
 
+@warning_ignore("return_value_discarded")
 func _ready() -> void:
 	_context_menu.set_item_icon(CONTEXT_MENU_RUN_ID, GdUnitUiTools.get_icon("Play"))
 	_context_menu.set_item_icon(CONTEXT_MENU_DEBUG_ID, GdUnitUiTools.get_icon("PlayStart"))
@@ -453,6 +454,7 @@ func flatmap_folders(parent: TreeItem) -> Dictionary:
 			# Add children to existing path or create new entry
 			if not children.is_empty():
 				if folder_map.has(current_path):
+					@warning_ignore("unsafe_method_access")
 					folder_map[current_path].append_array(children)
 				else:
 					folder_map[current_path] = children
@@ -461,6 +463,7 @@ func flatmap_folders(parent: TreeItem) -> Dictionary:
 			var sub_folders := flatmap_folders(item)
 			for path: String in sub_folders.keys():
 				if folder_map.has(path):
+					@warning_ignore("unsafe_method_access")
 					folder_map[path].append_array(sub_folders[path])
 				else:
 					folder_map[path] = sub_folders[path]
@@ -738,6 +741,7 @@ func select_first_orphan() -> void:
 			for item in parent.get_children():
 				if is_item_state_orphan(item):
 					parent.set_collapsed(false)
+					@warning_ignore("return_value_discarded")
 					select_item(item)
 					return
 
@@ -1203,6 +1207,7 @@ func _on_gdunit_runner_stop(_client_id: int) -> void:
 	sort_tree_items(_tree_root)
 	# wait until the tree redraw
 	await get_tree().process_frame
+	@warning_ignore("return_value_discarded")
 	select_first_failure()
 
 

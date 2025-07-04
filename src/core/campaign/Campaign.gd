@@ -257,4 +257,3 @@ func load_data(data: Dictionary) -> void:
 	crew_data = data.get("crew_data", [])
 	resources = data.get("resources", {})
 	settings = data.get("settings", {})
-                

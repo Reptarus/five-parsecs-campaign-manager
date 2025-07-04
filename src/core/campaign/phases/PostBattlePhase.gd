@@ -7,15 +7,15 @@ class_name PostBattlePhase
 
 # Safe imports
 const UniversalNodeAccess = preload("res://src/utils/UniversalNodeAccess.gd")
-const UniversalResourceLoader = preload("res://src/utils/UniversalResourceLoader.gd") 
+const UniversalResourceLoader = preload("res://src/utils/UniversalResourceLoader.gd")
 const UniversalSignalManager = preload("res://src/utils/UniversalSignalManager.gd")
 const UniversalDataAccess = preload("res://src/utils/UniversalDataAccess.gd")
 const UniversalSceneManager = preload("res://src/utils/UniversalSceneManager.gd")
 
 # Safe dependency loading - loaded at runtime in _ready()
 var GameEnums = null
-var DiceManager = null
-var GameState = null
+var dice_manager = null
+var game_state_manager = null
 
 ## Post-Battle Phase Signals
 signal post_battle_phase_started()
@@ -37,7 +37,7 @@ signal character_event_occurred(event: Dictionary)
 signal galactic_war_updated(progress: Dictionary)
 
 ## Current post-battle state
-var current_substep: int = 0  # Will be set to PostBattleSubPhase.NONE in _ready()
+var current_substep: int = 0 # Will be set to PostBattleSubPhase.NONE in _ready()
 var battle_result: Dictionary = {}
 var defeated_enemies: Array[Dictionary] = []
 var crew_participants: Array[String] = []
@@ -51,8 +51,8 @@ var injuries_sustained: Array[Dictionary] = []
 func _ready() -> void:
 	# Load dependencies safely at runtime
 	GameEnums = UniversalResourceLoader.load_script_safe("res://src/core/systems/GlobalEnums.gd", "PostBattlePhase GameEnums")
-	DiceManager = UniversalNodeAccess.get_node_safe(get_tree().root, NodePath("DiceManager"), "PostBattlePhase DiceManager")
-	GameState = UniversalNodeAccess.get_node_safe(get_tree().root, NodePath("GameStateManager"), "PostBattlePhase GameState")
+	dice_manager = DiceManager
+	game_state_manager = get_node_or_null("/root/GameStateManagerAutoload")
 	
 	# Initialize enum values after loading GameEnums
 	if GameEnums:
@@ -92,7 +92,7 @@ func _process_rival_status() -> void:
 			if rival_id != "":
 				# Roll D6+modifiers to remove rival permanently
 				var removal_roll = _roll_rival_removal(rival_id)
-				if removal_roll >= 6:  # Standard threshold for rival removal
+				if removal_roll >= 6: # Standard threshold for rival removal
 					rivals_removed.append(rival_id)
 					_remove_rival(rival_id)
 					print("PostBattlePhase: Rival %s permanently eliminated" % rival_id)
@@ -127,8 +127,8 @@ func _get_rival_removal_modifiers(rival_id: String) -> int:
 
 func _remove_rival(rival_id: String) -> void:
 	"""Remove rival from active rivals list"""
-	if GameState and GameState.has_method("remove_rival"):
-		GameState.remove_rival(rival_id)
+	if game_state_manager and game_state_manager.has_method("remove_rival"):
+		game_state_manager.remove_rival(rival_id)
 
 func _process_patron_status() -> void:
 	"""Step 2: Resolve Patron Status"""
@@ -229,7 +229,7 @@ func _process_battlefield_finds() -> void:
 	var battlefield_finds: Array[Dictionary] = []
 	
 	# Search battlefield for items and clues
-	var search_attempts = crew_participants.size()  # Each crew member can search
+	var search_attempts = crew_participants.size() # Each crew member can search
 	
 	for i in range(search_attempts):
 		var find = _roll_battlefield_find()
@@ -249,7 +249,7 @@ func _roll_battlefield_find() -> Dictionary:
 	
 	match find_roll:
 		1, 2:
-			return {}  # Nothing found
+			return {} # Nothing found
 		3, 4:
 			return {"type": "credits", "amount": randi_range(1, 3), "description": "Small credits cache"}
 		5:
@@ -267,7 +267,7 @@ func _process_invasion_check() -> void:
 	
 	# Roll for world invasion status
 	var invasion_roll = randi_range(1, 100)
-	var invasion_pending = invasion_roll <= 5  # 5% chance of invasion
+	var invasion_pending = invasion_roll <= 5 # 5% chance of invasion
 	
 	if invasion_pending:
 		print("PostBattlePhase: World invasion detected!")
@@ -312,13 +312,13 @@ func _roll_enemy_loot(enemy: Dictionary) -> Array[Dictionary]:
 	# Different loot tables based on enemy type
 	match enemy_type:
 		"elite":
-			if randi_range(1, 6) >= 4:  # 50% chance
+			if randi_range(1, 6) >= 4: # 50% chance
 				loot.append({"type": "weapon", "quality": "advanced", "description": "Elite weapon"})
 		"boss":
-			if randi_range(1, 6) >= 3:  # 67% chance
+			if randi_range(1, 6) >= 3: # 67% chance
 				loot.append({"type": "special", "quality": "rare", "description": "Boss loot"})
 		_:
-			if randi_range(1, 6) >= 5:  # 33% chance
+			if randi_range(1, 6) >= 5: # 33% chance
 				loot.append({"type": "equipment", "quality": "basic", "description": "Standard gear"})
 	
 	return loot
@@ -360,13 +360,13 @@ func _process_single_injury(injury_data: Dictionary) -> Dictionary:
 	
 	match injury_type:
 		"minor":
-			recovery_time = injury_roll  # 1-6 turns
+			recovery_time = injury_roll # 1-6 turns
 		"serious":
-			recovery_time = injury_roll + 3  # 4-9 turns
-			permanent_effect = injury_roll == 1  # 16% chance
+			recovery_time = injury_roll + 3 # 4-9 turns
+			permanent_effect = injury_roll == 1 # 16% chance
 		"critical":
-			recovery_time = injury_roll + 6  # 7-12 turns
-			permanent_effect = injury_roll <= 2  # 33% chance
+			recovery_time = injury_roll + 6 # 7-12 turns
+			permanent_effect = injury_roll <= 2 # 33% chance
 	
 	var processed_injury = {
 		"crew_id": crew_id,
@@ -408,7 +408,7 @@ func _process_experience() -> void:
 
 func _calculate_crew_xp(crew_id: String) -> int:
 	"""Calculate XP earned by crew member"""
-	var xp = 1  # Base XP for participation
+	var xp = 1 # Base XP for participation
 	
 	# Additional XP for achievements
 	if mission_successful:

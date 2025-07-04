@@ -338,4 +338,3 @@ func setup_phase(campaign_data: Resource) -> void:
 	"""Called by MainGameScene when this phase is activated"""
 	if campaign_data:
 		_load_campaign_data(campaign_data)
-  
